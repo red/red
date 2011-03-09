@@ -1,5 +1,26 @@
 Red Programming Language
 ------------------------
 
-Initializing repository...
-Testing simple change...
+Red is a new programming langage strongly inspired by REBOL (http://rebol.com), but with a broader field of usage, from system programming to high-level scripting, and providing a modern support for concurrency and multicore CPU.
+
+The langage is in its early bootstrapping phase. The Red/System low-level DSL is the first focus. It's a limited C-level langage with a REBOL look'n feel, required to build Red's runtime library.
+
+Running the Hello script
+------------------------
+The compiler and linker are currently written in REBOL and produce PE executable (Windows) but it will be soon extended to support ELF too. So, for now, a REBOL2 Windows binary is required to run it. Follown the instructions :
+
+1) Download a REBOL interpreter from here: http://www.rebol.com/downloads/v278/rebol-core-278-3-1.exe. 
+
+2) Save it in red-system/ folder and run it, you'll see a >> prompt appear
+
+3) Type: do/args %rsc.r "%tests/hello.reds"
+
+4) The resulting binary is in red-system/builds/hello.exe, open a DOS console and run it.
+
+
+The %rsc.r script is only a wrapper script around the compiler, for testing purpose. It accepts a -v[vvv] option for verbose logs. Try it with:
+
+do/args %rsc.r "-vvvv %tests/hello.reds"
+
+
+More information on http://www.red-lang.org
