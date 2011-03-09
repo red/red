@@ -7,9 +7,9 @@ The langage is in its early bootstrapping phase. The Red/System low-level DSL is
 
 Running the Hello script
 ------------------------
-The compiler and linker are currently written in REBOL and produce PE executable (Windows) but it will be soon extended to support ELF too. So, for now, a REBOL2 Windows binary is required to run it. Follown the instructions :
+The compiler and linker are currently written in REBOL and produce PE executable (Windows) but it will be soon extended to support ELF too. So, for now, a REBOL/View Windows binary is required to run it. Follow the instructions :
 
-1) Download a REBOL interpreter from here: http://www.rebol.com/downloads/v278/rebol-core-278-3-1.exe. 
+1) Download a REBOL interpreter from here: http://www.rebol.com/downloads/v278/rebol-view-278-3-1.exe 
 
 2) Save it in red-system/ folder and run it, you'll see a >> prompt appear
 
