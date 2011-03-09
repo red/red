@@ -36,7 +36,8 @@ print [
 	"Compiling" file "..."
 ]
 
-result: system-dialect/compile/link/level file verbosity
+builds: make-dir %builds/
+result: system-dialect/compile/link/in/level file builds verbosity
 
 print ["^/...compilation time:" tab round result/1/second * 1000 "ms"]
 if result/2 [

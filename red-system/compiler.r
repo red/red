@@ -651,6 +651,8 @@ system-dialect: context [
 	
 	compile: func [
 		file [file!]					;-- source file
+		/in
+			path						;-- where to place compile/link results
 		/link							;-- invoke the linker and finalize the job
 		/level
 			verbosity [integer!]		;-- logs verbosity (0 => none)
@@ -684,7 +686,7 @@ system-dialect: context [
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
 				]
-				linker/build/in job %builds/
+				linker/build/in job any [path %builds/]
 			]
 		]
 		output-logs
