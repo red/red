@@ -3,7 +3,7 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %compiler.r
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
 do %linker.r
@@ -12,11 +12,84 @@ do %emitter.r
 system-dialect: context [
 	verbose:  0									;-- logs verbosity level
 	job: none
+	
 	nl: newline
 	
 	;errors: [
 	;	type	["message" arg1 "and" arg2]
 	;]
+	
+	runtime-env: [
+		prolog {	
+			#define WIN_STD_INPUT_HANDLE	-10
+			#define WIN_STD_OUTPUT_HANDLE	-11
+			#define WIN_STD_ERROR_HANDLE	-12
+
+			#import [
+				"kernel32.dll" [
+					GetStdHandle: "GetStdHandle" [
+						type		[integer!]
+						return:		[integer!]
+					]
+					WriteConsole: "WriteConsoleA" [
+						handle		[integer!]
+						buffer		[string!]
+						len			[integer!]
+						written		[struct! [value [integer!]]]
+						reserved	[integer!]
+						;return:	[integer!]
+					]
+					SetConsoleTextAttribute: "SetConsoleTextAttribute" [
+						handle 		[integer!]
+						attributes  [integer!]
+						;return:		[integer!]
+					]
+					ExitProcess: "ExitProcess" [
+						code		[integer!]
+					]
+				]
+			]
+
+			newline: "^^/"
+
+			stdout: GetStdHandle WIN_STD_OUTPUT_HANDLE
+			written: struct [value [integer!]]
+
+			prin: func [s [string!] return: [integer!]][
+				WriteConsole stdout s length? s written 0
+			]
+
+			print: func [s [string!] return: [integer!]][
+				prin s
+				WriteConsole stdout "^^/" 1 written 0
+			]
+
+			set-pen-color: func [color [integer!]][
+				SetConsoleTextAttribute stdout color
+			]
+
+			set-colors: func [pen [integer!] bg [integer!]][
+				SetConsoleTextAttribute stdout bg * 16 or pen
+			]
+
+			black:   0
+			blue: 	 1
+			green:	 2
+			red:	 4
+			cyan:  	 blue or green
+			magenta: blue or red
+			yellow:  green or red
+			white:   blue or green or red
+
+			light-blue:  blue  or 8
+			light-green: green or 8
+			light-red: 	 red   or 8
+		}
+		
+		epilog {
+			ExitProcess 0
+		}
+	]
 	
 	preprocessor: context [
 		verbose: 0
@@ -26,14 +99,15 @@ system-dialect: context [
 		special: charset "_-"
 		alpha-num: union special union alpha-chars num-chars
 		value-char: complement charset ";^/"
-		ws: charset " "
+		ws: charset " ^-^/^M"
+		space: charset " "
 
-		expand: func [file [file!] /local source defs name value rule s e][
-			source: as-string read/binary file
+		expand: func [source [string! binary!] /local defs name value rule s e][
+			source: as-string source
 			defs: make block! 100
 			parse/all/case source [				;-- 1st pass: get definitions
 				any [
-					newline any ws "#define" some ws
+					newline any ws "#define" some space
 					copy name some alpha-num
 					copy value some value-char (
 						rule: copy/deep [s: _ e: (e: change/part s _ e) :e |]
@@ -53,7 +127,7 @@ system-dialect: context [
 			unless empty? defs [				;-- 2nd pass: resolve definitions
 				remove back tail defs
 				parse/all/case source [
-					any ["#define" some ws to " " | defs | skip]
+					any ["#define" to newline | defs | skip]
 				]
 			]
 			source
@@ -575,10 +649,13 @@ system-dialect: context [
 			pc: skip pc 2
 		]
 
-		run: func [src [block!]][
+		run: func [src [block!] /no-header][
 			pc: src
-			comp-header
+			unless no-header [comp-header]
 			comp-dialect
+		]
+		
+		finalize: does [
 			comp-natives
 		]
 	]
@@ -621,6 +698,10 @@ system-dialect: context [
 		]
 	]
 	
+	comp-runtime: func [type [word!]][
+		compiler/run/no-header load preprocessor/expand runtime-env/:type
+	]
+	
 	clean-up: does [
 		clear compiler/imports
 		clear compiler/bodies
@@ -650,7 +731,7 @@ system-dialect: context [
 	]
 	
 	compile: func [
-		file [file!]					;-- source file
+		files [file! block!]			;-- source file or block of source files
 		/in
 			path						;-- where to place compile/link results
 		/link							;-- invoke the linker and finalize the job
@@ -660,17 +741,23 @@ system-dialect: context [
 			comp-time link-time err src
 	][
 		comp-time: dt [
-			emitter/init link job: make-job file
+			unless block? files [files: reduce [files]]
+			emitter/init link job: make-job last files	;-- last file's name is retained for output
 			compiler/job: job
-
-			if level [set-verbose-level verbosity]
-
-			src: preprocessor/expand file
-			if error? set/any 'err try [src: load src][
-				print ["Syntax Error at LOAD phase:" mold disarm err]
-			]
 			
-			compiler/run src
+			if level [set-verbose-level verbosity]
+			comp-runtime 'prolog
+
+			foreach file files [
+				src: preprocessor/expand read/binary file			
+				if error? set/any 'err try [src: load src][
+					print ["Syntax Error at LOAD phase:" mold disarm err]
+				]			
+				compiler/run src				
+			]
+			compiler/finalize
+			
+			comp-runtime 'epilog
 		]
 		if verbose >= 4 [
 			print [
