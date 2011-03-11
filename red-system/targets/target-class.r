@@ -37,34 +37,12 @@ target-class: context [
 		]
 	]
 
-	;to-bin8: func [value [integer!]][
-	;	to char! either negative? value [256 + value][value]
-	;]
 	to-bin8: func [v [integer!]][to char! 256 + v and 255]
 
-	;to-bin16: func [value [integer!] /local byte][		;TBD: add big-endian support
-	;	value: skip debase/base to-hex value 16 2
-	;	byte: value/1
-	;	value/1: to char! value/2
-	;	value/2: to char! byte
-	;	value
-	;]
-	to-bin16: func [v [integer!]][reverse skip debase/base to-hex v 16 2]
+	to-bin16: func [v [integer!]][reverse skip debase/base to-hex v 16 2]	;TBD: add big-endian support
 
-	;to-bin32: func [value [integer!] /local new][		;TBD: add big-endian support
-	;	value: debase/base to-hex value 16
-	;	new: copy #{00000000}
-	;	new/1: to char! value/4
-	;	new/2: to char! value/3
-	;	new/3: to char! value/2
-	;	new/4: to char! value/1
-	;	new
-	;]
-	to-bin32: func [v [integer!]][reverse debase/base to-hex v 16]
+	to-bin32: func [v [integer!]][reverse debase/base to-hex v 16]	;TBD: add big-endian support
 	
-	;power-of-2?: func [n /local p][
-	;	either n = shift/left 1 p: to integer! log-2 n [p][none]
-	;]
 	power-of-2?: func [n [integer!]][if zero? n - 1 and n [log-2 n]]
 
 	emit: func [bin [binary! char! block!]][
