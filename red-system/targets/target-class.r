@@ -43,7 +43,11 @@ target-class: context [
 
 	to-bin32: func [v [integer!]][reverse debase/base to-hex v 16]	;TBD: add big-endian support
 	
-	power-of-2?: func [n [integer!]][if zero? n - 1 and n [log-2 n]]
+	power-of-2?: func [n [integer!]][if zero? n - 1 and n [to integer! log-2 n]]
+	
+	;power-of-2?: func [n /local p][
+	;	either n = shift/left 1 p: to integer! log-2 n [p][none]
+	;]
 
 	emit: func [bin [binary! char! block!]][
 		append emitter/code-buf bin
