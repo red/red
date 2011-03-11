@@ -10,86 +10,15 @@ do %linker.r
 do %emitter.r
 
 system-dialect: context [
-	verbose:  0									;-- logs verbosity level
-	job: none
-	
+	verbose:  0								;-- logs verbosity level
+	job: none								;-- reference the current job object	
+	runtime-env: none						;-- hold OS-specific Red/System runtime
+	runtime-path: %runtime/
 	nl: newline
 	
 	;errors: [
 	;	type	["message" arg1 "and" arg2]
 	;]
-	
-	runtime-env: [
-		prolog {	
-			#define WIN_STD_INPUT_HANDLE	-10
-			#define WIN_STD_OUTPUT_HANDLE	-11
-			#define WIN_STD_ERROR_HANDLE	-12
-
-			#import [
-				"kernel32.dll" [
-					GetStdHandle: "GetStdHandle" [
-						type		[integer!]
-						return:		[integer!]
-					]
-					WriteConsole: "WriteConsoleA" [
-						handle		[integer!]
-						buffer		[string!]
-						len			[integer!]
-						written		[struct! [value [integer!]]]
-						reserved	[integer!]
-						;return:	[integer!]
-					]
-					SetConsoleTextAttribute: "SetConsoleTextAttribute" [
-						handle 		[integer!]
-						attributes  [integer!]
-						;return:		[integer!]
-					]
-					ExitProcess: "ExitProcess" [
-						code		[integer!]
-					]
-				]
-			]
-
-			newline: "^^/"
-
-			stdout: GetStdHandle WIN_STD_OUTPUT_HANDLE
-			written: struct [value [integer!]]
-
-			prin: func [s [string!] return: [integer!]][
-				WriteConsole stdout s length? s written 0
-			]
-
-			print: func [s [string!] return: [integer!]][
-				prin s
-				WriteConsole stdout "^^/" 1 written 0
-			]
-
-			set-pen-color: func [color [integer!]][
-				SetConsoleTextAttribute stdout color
-			]
-
-			set-colors: func [pen [integer!] bg [integer!]][
-				SetConsoleTextAttribute stdout bg * 16 or pen
-			]
-
-			black:   0
-			blue: 	 1
-			green:	 2
-			red:	 4
-			cyan:  	 blue or green
-			magenta: blue or red
-			yellow:  green or red
-			white:   blue or green or red
-
-			light-blue:  blue  or 8
-			light-green: green or 8
-			light-red: 	 red   or 8
-		}
-		
-		epilog {
-			ExitProcess 0
-		}
-	]
 	
 	preprocessor: context [
 		verbose: 0
@@ -702,6 +631,14 @@ system-dialect: context [
 		compiler/run/no-header load preprocessor/expand runtime-env/:type
 	]
 	
+	set-runtime: func [job][
+		runtime-env: load switch job/format [
+			PE     [runtime-path/win32.r]
+			;ELF    [runtime-path/posix.r]
+			;Mach-o [runtime-path/posix.r]
+		]
+	]
+	
 	clean-up: does [
 		clear compiler/imports
 		clear compiler/bodies
@@ -744,10 +681,12 @@ system-dialect: context [
 			unless block? files [files: reduce [files]]
 			emitter/init link job: make-job last files	;-- last file's name is retained for output
 			compiler/job: job
+			set-runtime job
 			
 			if level [set-verbose-level verbosity]
+			
 			comp-runtime 'prolog
-
+			
 			foreach file files [
 				src: preprocessor/expand read/binary file			
 				if error? set/any 'err try [src: load src][
@@ -755,9 +694,9 @@ system-dialect: context [
 				]			
 				compiler/run src				
 			]
-			compiler/finalize
 			
 			comp-runtime 'epilog
+			compiler/finalize
 		]
 		if verbose >= 4 [
 			print [
@@ -765,6 +704,7 @@ system-dialect: context [
 				nl mold emitter/code-buf nl
 			]
 		]
+
 		if link [
 			link-time: dt [
 				job/symbols: emitter/symbols
