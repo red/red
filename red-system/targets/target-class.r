@@ -37,27 +37,31 @@ target-class: context [
 		]
 	]
 
-	to-bin8: func [v [integer!]][to char! 256 + v and 255]
+	to-bin8: func [v [integer!]][
+		to char! 256 + v and 255
+	]
 
-	to-bin16: func [v [integer!]][reverse skip debase/base to-hex v 16 2]	;TBD: add big-endian support
+	to-bin16: func [v [integer!]][					;TBD: add big-endian support
+		reverse skip debase/base to-hex v 16 2
+	]
 
-	to-bin32: func [v [integer!]][reverse debase/base to-hex v 16]	;TBD: add big-endian support
+	to-bin32: func [v [integer!]][					;TBD: add big-endian support
+		reverse debase/base to-hex v 16
+	]
 	
-	power-of-2?: func [n [integer!]][if zero? n - 1 and n [to integer! log-2 n]]
-	
-	;power-of-2?: func [n /local p][
-	;	either n = shift/left 1 p: to integer! log-2 n [p][none]
-	;]
+	power-of-2?: func [n [integer!]][
+		if zero? n - 1 and n [to integer! log-2 n]
+	]
 
 	emit: func [bin [binary! char! block!]][
 		append emitter/code-buf bin
 	]
 	
 	emit-reloc-addr: func [spec [block!]][
-		append spec/3 emitter/tail-ptr					;-- save reloc position
-		emit void-ptr									;-- emit void addr, reloc later		
+		append spec/3 emitter/tail-ptr				;-- save reloc position
+		emit void-ptr								;-- emit void addr, reloc later		
 		unless empty? emitter/chunks/queue [				
-			append/only 								;-- record reloc reference
+			append/only 							;-- record reloc reference
 				second last emitter/chunks/queue
 				back tail spec/3					
 		]

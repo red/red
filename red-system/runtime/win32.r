@@ -12,7 +12,7 @@ prolog {
 	#define WIN_STD_ERROR_HANDLE	-12
 
 	#import [
-		"kernel32.dll" [
+		"kernel32.dll" stdcall [
 			GetStdHandle: "GetStdHandle" [
 				type		[integer!]
 				return:		[integer!]

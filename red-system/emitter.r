@@ -17,7 +17,7 @@ emitter: context [
 	compiler: none						;-- just a short-cut
 	verbose:  0							;-- logs verbosity level
 	
-	OS-calling-type: 'stdcall			;-- Windows
+	OS-calling-type: 'stdcall			;-- Windows (TBD: refactor this!)
 	
 	pointer: make struct! [
 		value [integer!]				;-- 32/64-bit, watch out for endianess!!
@@ -226,24 +226,28 @@ emitter: context [
 		]
 	]
 	
+	arguments-size?: func [locals /local pos ret size][
+		pos: find locals /local
+		ret: to-set-word 'return
+		clear stack
+		size: 0
+		foreach [name type] any [all [pos copy/part locals pos] copy locals][
+			if name <> ret [
+				repend stack [name size + 8]			;-- account for esp + ebp storage
+				size: size + size-of? type/1			;TBD: make it target-independent
+			]
+		]
+		size
+	]
+	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][
 		symbols/:name/2: index? tail code-buf			;-- store function's entry point
 		
-		;-- Implements Red/System calling convention -- (STDCALL without reversing)
-		ret: to-set-word 'return
-		clear stack
-		pos: find locals /local
-		args-sz: 0
-		foreach [name type] any [all [pos copy/part locals pos] copy locals][
-			if name <> ret [
-				repend stack [
-					name args-sz + 8					;-- account for esp + ebp storage
-				]										;TBD: make it target-independent
-				args-sz: args-sz + size-of? type/1
-			]
-		]
+		;-- Implements Red/System calling convention -- (STDCALL without reversing)		
+		args-sz: arguments-size? locals
+		
 		locals-sz: 0
-		if pos [		
+		if pos: find locals /local [		
 			foreach [name type] next pos [
 				repend stack [
 					name locals-sz: locals-sz - size-of? type/1

@@ -456,11 +456,23 @@ make target-class [
 		if code [do boolean-op]
 	]
 	
-	emit-call: func [name [word!] args [block!] /local spec][
+	emit-cdecl-pop: func [spec [block!] /local size][
+		size: emitter/arguments-size? spec/4
+		if spec/3 = 'gcc45 [
+			;TBD: align on 16 bytes boundary
+			;     see http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl
+		]
+		emit #{83C4}								;-- ADD esp, n
+		emit to-bin8 size
+	]
+	
+	emit-call: func [name [word!] args [block!] /local spec fspec][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
-		unless spec: select emitter/symbols name [
-			spec: next select compiler/functions name
+		fspec: select compiler/functions name
+		spec: any [
+			select emitter/symbols name
+			next fspec
 		]
 		case [
 			not find [inline op] spec/1 [			;-- push function's arguments on stack
@@ -492,6 +504,9 @@ make target-class [
 			import [
 				emit #{FF15}						;-- CALL FAR [addr]
 				emit-reloc-addr spec
+				if find [cdecl gcc45] fspec/3 [	;-- add calling cleanup when required
+					emit-cdecl-pop fspec
+				]			
 			]
 			native [
 				emit #{E8}							;-- CALL NEAR disp

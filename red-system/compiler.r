@@ -66,13 +66,6 @@ system-dialect: context [
 	compiler: context [
 		job: pc: last-type: locals: none
 		verbose:  0							;-- logs verbosity level
-		
-		callings: [
-		;--Format---Imports---Natives
-		   PE		stdcall   cdecl
-		   ELF		?		  ?
-		   mach-o	?		  ?
-		]
 	
 		imports: 	   make block! 10
 		bodies:	  	   make hash! 40		;-- [name [specs] [body]...]
@@ -80,25 +73,26 @@ system-dialect: context [
 		aliased-types: make hash! 10
 		
 		functions: to-hash [
-			+		[2	op		[a [number! pointer!] b [number! pointer!]]]
-			-		[2	op		[a [number! pointer!] b [number! pointer!]]]
-			*		[2	op		[a [number!] b [number!]]]
-			/		[2	op		[a [number!] b [number!]]]
-			and		[2	op		[a [number!] b [number!]]]		;-- AND
-			or		[2	op		[a [number!] b [number!]]]		;-- OR
-			xor		[2	op		[a [number!] b [number!]]]		;-- XOR
-			mod		[2	op		[a [number!] b [number!]]]		;-- modulo
-			>>		[2	op		[a [number!] b [number!]]]		;-- shift left
-			<<		[2	op		[a [number!] b [number!]]]		;-- shift right
-			=		[2	op		[a b]]
-			<>		[2	op		[a b]]
-			>		[2	op		[a [number! pointer!] b [number! pointer!]]]
-			<		[2	op		[a [number! pointer!] b [number! pointer!]]]
-			>=		[2	op		[a [number! pointer!] b [number! pointer!]]]
-			<=		[2	op		[a [number! pointer!] b [number! pointer!]]]
-			not		[1	inline	[a [number!]]]					;-- NOT
-			make	[2 	inline	[type [word!] spec [number! pointer!]]]
-			length? [1	inline	[v [string! binary! struct!]]]
+		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
+			+		[2	op		- [a [number! pointer!] b [number! pointer!]]]
+			-		[2	op		- [a [number! pointer!] b [number! pointer!]]]
+			*		[2	op		- [a [number!] b [number!]]]
+			/		[2	op		- [a [number!] b [number!]]]
+			and		[2	op		- [a [number!] b [number!]]]		;-- AND
+			or		[2	op		- [a [number!] b [number!]]]		;-- OR
+			xor		[2	op		- [a [number!] b [number!]]]		;-- XOR
+			mod		[2	op		- [a [number!] b [number!]]]		;-- modulo
+			>>		[2	op		- [a [number!] b [number!]]]		;-- shift left
+			<<		[2	op		- [a [number!] b [number!]]]		;-- shift right
+			=		[2	op		- [a b]]
+			<>		[2	op		- [a b]]
+			>		[2	op		- [a [number! pointer!] b [number! pointer!]]]
+			<		[2	op		- [a [number! pointer!] b [number! pointer!]]]
+			>=		[2	op		- [a [number! pointer!] b [number! pointer!]]]
+			<=		[2	op		- [a [number! pointer!] b [number! pointer!]]]
+			not		[1	inline	- [a [number!]]]					;-- NOT
+			make	[2 	inline	- [type [word!] spec [number! pointer!]]]
+			length? [1	inline	- [v [string! binary! struct!]]]
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
@@ -164,7 +158,7 @@ system-dialect: context [
 			]
 		]
 		
-		add-function: func [type [word!] spec [block!] /local name nb][
+		add-function: func [type [word!] spec [block!] cc [word!] /local name nb][
 			if find functions name: to-word spec/1 [
 				;TBD: symbol already defined
 			]
@@ -175,7 +169,7 @@ system-dialect: context [
 				(length? spec/3) / 2
 			]		
 			if find spec/3 [return:][nb: nb - 1]
-			repend functions [name reduce [nb type new-line/all spec/3 off]]
+			repend functions [name reduce [nb type cc new-line/all spec/3 off]]
 		]
 		
 		check-specs: func [specs /local type s][
@@ -211,26 +205,26 @@ system-dialect: context [
 		fetch-func: func [name][
 			;check if name taken
 			check-specs pc/2
-			add-function 'native reduce [name none pc/2]
+			add-function 'native reduce [name none pc/2] 'stdcall
 			emitter/add-native to-word name
 			repend bodies [to-word name pc/2 pc/3]
 			pc: skip pc 3
 		]
 				
-		comp-directive: has [list reloc][		
+		comp-directive: has [list reloc specs cc][		;-- cc = calling convention
 			switch/default pc/1 [
 				#import [
 					unless block? pc/2 [
 						;TBD: syntax error
-					]				
-					foreach [lib specs] pc/2 [
+					]
+					foreach [lib cc specs] pc/2 [
 						;TBD: check lib/specs validity
 						unless list: select imports lib [
 							repend imports [lib list: make block! 10]
 						]
 						forskip specs 3 [
 							repend list [specs/2 reloc: make block! 1]
-							add-function 'import specs
+							add-function 'import specs cc
 							emitter/import-function to-word specs/1	reloc
 						]						
 					]				
@@ -418,8 +412,8 @@ system-dialect: context [
 			if all [
 				func?: not find [set-word! set-path!] type?/word tree/1
 				name: to-word tree/1
-				type: select [import 2 native 3] functions/:name/2
-				find [stdcall cdecl] pick find callings job/format type
+				find [import native] functions/:name/2
+				find [stdcall cdecl gcc45] functions/:name/3
 			][
 				reverse next tree
 			]
@@ -455,7 +449,7 @@ system-dialect: context [
 			][		
 				name: to-word tree/1
 				emitter/target/emit-call name next tree
-				get-return-type functions/:name/3
+				get-return-type functions/:name/4
 			]
 		]
 		
