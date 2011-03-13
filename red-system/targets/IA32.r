@@ -501,6 +501,20 @@ make target-class [
 			]
 		]
 		switch spec/1 [								;-- call or inline the function
+			syscall [
+				repeat c fspec/1 [					;TBD: check right order!!!
+					emit pick [
+						#{5B}						;-- POP ebx			; get 1st arg in reg
+						#{59}						;-- POP ecx			; get 2nd arg in reg
+						#{5A}						;-- POP edx			; get 3rd arg in reg
+						#{5E}						;-- POP esi			; get 4th arg in reg
+						#{5F}						;-- POP edi			; get 5th arg in reg
+					] c
+				]
+				emit #{B8}							;-- MOV eax, code
+				emit to-bin32 last fspec
+				emit #{CD80}						;-- INT 0x80		; syscall
+			]
 			import [
 				emit #{FF15}						;-- CALL FAR [addr]
 				emit-reloc-addr spec

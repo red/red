@@ -82,8 +82,8 @@ system-dialect: context [
 			or		[2	op		- [a [number!] b [number!]]]		;-- OR
 			xor		[2	op		- [a [number!] b [number!]]]		;-- XOR
 			mod		[2	op		- [a [number!] b [number!]]]		;-- modulo
-			>>		[2	op		- [a [number!] b [number!]]]		;-- shift left
-			<<		[2	op		- [a [number!] b [number!]]]		;-- shift right
+			;>>		[2	op		- [a [number!] b [number!]]]		;-- shift left
+			;<<		[2	op		- [a [number!] b [number!]]]		;-- shift right
 			=		[2	op		- [a b]]
 			<>		[2	op		- [a b]]
 			>		[2	op		- [a [number! pointer!] b [number! pointer!]]]
@@ -158,18 +158,20 @@ system-dialect: context [
 			]
 		]
 		
-		add-function: func [type [word!] spec [block!] cc [word!] /local name nb][
+		add-function: func [type [word!] spec [block!] cc [word!] /local name arity][		
 			if find functions name: to-word spec/1 [
 				;TBD: symbol already defined
 			]
 			;TBD: check spec syntax (here or somewhere else)
-			nb: either pos: find spec/3 /local [
+			arity: either pos: find spec/3 /local [
 				(index? pos) -  1 / 2
 			][
 				(length? spec/3) / 2
 			]		
-			if find spec/3 [return:][nb: nb - 1]
-			repend functions [name reduce [nb type cc new-line/all spec/3 off]]
+			if find spec/3 [return:][arity: arity - 1]
+			repend functions [
+				name reduce [arity type cc new-line/all spec/3 off]
+			]
 		]
 		
 		check-specs: func [specs /local type s][
@@ -211,13 +213,13 @@ system-dialect: context [
 			pc: skip pc 3
 		]
 				
-		comp-directive: has [list reloc specs cc][		;-- cc = calling convention
+		comp-directive: has [list reloc][
 			switch/default pc/1 [
 				#import [
 					unless block? pc/2 [
 						;TBD: syntax error
 					]
-					foreach [lib cc specs] pc/2 [
+					foreach [lib cc specs] pc/2 [		;-- cc = calling convention
 						;TBD: check lib/specs validity
 						unless list: select imports lib [
 							repend imports [lib list: make block! 10]
@@ -227,6 +229,18 @@ system-dialect: context [
 							add-function 'import specs cc
 							emitter/import-function to-word specs/1	reloc
 						]						
+					]				
+					pc: skip pc 2
+				]
+				#syscall [
+					unless block? pc/2 [
+						;TBD: syntax error
+					]
+					foreach [name code specs] pc/2 [
+						;TBD: check call/code/specs validity
+						add-function 'syscall reduce [name none specs] 'syscall
+						append last functions code		;-- extend definition with syscode
+						;emitter/import-function to-word specs/1 reloc					
 					]				
 					pc: skip pc 2
 				]
@@ -628,7 +642,7 @@ system-dialect: context [
 	set-runtime: func [job][
 		runtime-env: load switch job/format [
 			PE     [runtime-path/win32.r]
-			;ELF    [runtime-path/posix.r]
+			ELF    [runtime-path/linux.r]
 			;Mach-o [runtime-path/posix.r]
 		]
 	]
@@ -641,13 +655,19 @@ system-dialect: context [
 		clear compiler/user-functions
 	]
 	
-	make-job: func [file [file!]][
+	make-job: func [file [file!] /local fmt][
 		file: last split-path file			;-- remove path
 		file: to-file first parse file "."	;-- remove extension
 		
+		fmt: select [					;TBD: allow cross-compilation!
+			3	'PE						;-- Windows
+			4	'ELF					;-- Linux
+			5	'Mach-o					;-- Mac OS X
+		] system/version/4
+		
 		make linker/job-class [
 			output: 	file
-			format:		'PE
+			format:		fmt
 			type: 		'exe
 			target:		'IA32
 			sub-system: 'console

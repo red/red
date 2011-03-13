@@ -23,7 +23,7 @@ linker: context [
 	]
 	
 	PE:		 do %formats/PE.r
-	;ELF:	 do %formats/ELF.r				; TBD
+	ELF:	 do %formats/ELF.r
 	;Mach-o: do %formats/mach-o.r			; TBD
 
 	make-filename: func [job /local obj][
