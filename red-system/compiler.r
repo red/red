@@ -74,25 +74,25 @@ system-dialect: context [
 		
 		functions: to-hash [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
-			+		[2	op		- [a [number! pointer!] b [number! pointer!]]]
-			-		[2	op		- [a [number! pointer!] b [number! pointer!]]]
-			*		[2	op		- [a [number!] b [number!]]]
-			/		[2	op		- [a [number!] b [number!]]]
-			and		[2	op		- [a [number!] b [number!]]]		;-- AND
-			or		[2	op		- [a [number!] b [number!]]]		;-- OR
-			xor		[2	op		- [a [number!] b [number!]]]		;-- XOR
-			mod		[2	op		- [a [number!] b [number!]]]		;-- modulo
-			;>>		[2	op		- [a [number!] b [number!]]]		;-- shift left
-			;<<		[2	op		- [a [number!] b [number!]]]		;-- shift right
+			+		[2	op		- [a [number! pointer!] b [number! pointer!] return: [integer!]]]
+			-		[2	op		- [a [number! pointer!] b [number! pointer!] return: [integer!]]]
+			*		[2	op		- [a [number!] b [number!] return: [integer!]]]
+			/		[2	op		- [a [number!] b [number!] return: [integer!]]]
+			and		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- AND
+			or		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- OR
+			xor		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- XOR
+			mod		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- modulo
+			;>>		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift left
+			;<<		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift right
 			=		[2	op		- [a b]]
 			<>		[2	op		- [a b]]
 			>		[2	op		- [a [number! pointer!] b [number! pointer!]]]
 			<		[2	op		- [a [number! pointer!] b [number! pointer!]]]
 			>=		[2	op		- [a [number! pointer!] b [number! pointer!]]]
 			<=		[2	op		- [a [number! pointer!] b [number! pointer!]]]
-			not		[1	inline	- [a [number!]]]					;-- NOT
-			make	[2 	inline	- [type [word!] spec [number! pointer!]]]
-			length? [1	inline	- [v [string! binary! struct!]]]
+			;not		[1	inline	- [a [number!]]]									;-- NOT
+			;make	[2 	inline	- [type [word!] spec [number! pointer!]]]
+			length? [1	inline	- [v [string! binary! struct!] return: [integer!]]]
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
@@ -128,7 +128,7 @@ system-dialect: context [
 			halt
 		]
 		
-		get-return-type: func [spec][	
+		get-return-type: func [spec][
 			if spec: select spec [return:][last-type: spec/1]
 		]
 		

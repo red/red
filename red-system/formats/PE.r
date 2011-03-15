@@ -313,14 +313,13 @@ context [
 
 		foreach [name spec] job/symbols [
 			if all [spec/1 = 'global not empty? spec/3][			
-				ptr: base + spec/2
-				pointer/value: ptr
+				pointer/value: base + spec/2
 				foreach ref spec/3 [change at code ref third pointer]
 			]
 		]
 	]
 
-	resolve-import-refs: func [job /local code base ptr][
+	resolve-import-refs: func [job /local code base][
 		code: job/sections/code/2
 		base: to integer! defs/image/base-address
 

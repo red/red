@@ -40,7 +40,28 @@ context [
 			lo-proc			#{FF00}			;-- processor-specific
 			hi-proc			#{FFFF}			;-- processor-specific
 		]
-		s-type [
+		segment-type [
+			null			0				;-- ignore entry
+			load			1				;-- loadable segment
+			dynamic			2				;-- dynamic linking information
+			interp			3				;-- interpreter path name
+			note			4				;-- notes/comments
+			shlib			5				;-- reserved (unused)
+			phdr			6				;-- program header table location
+			lo-proc			#{70000000}		;-- reserved (proc-specific)
+			hi-proc			#{7FFFFFFF}		;-- reserved (proc-specific)
+		]
+		segment-flags [						;-- @@ missing from official docs ?!? @@
+			executable		1
+			write			2
+			read			4
+		]
+		segment-access [
+			CODE			5				;-- [read executable]	; 1st part of LOAD segment
+			DATA			6				;-- [read write]		; 2nd part of LOAD segment
+			IMPORT			6				;-- [read write]		; DYNAMIC segment
+		]
+		section-type [
 			null			0				;-- mark inactive section header
 			prog-bits		1				;-- flags
 			sym-tab			2				;-- symbol table (for link editing)
@@ -66,17 +87,20 @@ context [
 		]
 	]
 	
-	memory-align:		4096				;-- system page size
-	;file-align: 		512					;-- better keep it < memory-align
+	page-size:	 4096						;-- system page size
+	ptr:		 0							;-- virtual address global pointer
+	base-ptr:	 defs/image/base-address	;-- base virtual address
+	code-ptr:	 0							;-- code entry point
+	data-ptr:	 0							;-- data virtual address
 
-	ehdr: make struct! [
-		ident-mag0			[char!]		; 0x7F
-		ident-mag1			[char!]		; "E"
-		ident-mag2			[char!]		; "L"
-		ident-mag3			[char!]		; "F"
-		ident-class			[char!]		; file class
-		ident-data			[char!]		; data encoding
-		ident-version		[char!]		; file version
+	elf-header: make struct! [
+		ident-mag0			[char!]			;-- 0x7F
+		ident-mag1			[char!]			;-- "E"
+		ident-mag2			[char!]			;-- "L"
+		ident-mag3			[char!]			;-- "F"
+		ident-class			[char!]			;-- file class
+		ident-data			[char!]			;-- data encoding
+		ident-version		[char!]			;-- file version
 		ident-pad0			[char!]
 		ident-pad1			[integer!]
 		ident-pad2			[integer!]
@@ -95,7 +119,7 @@ context [
 		shstrndx			[short]
 	] none
 
-	phdr: make struct! [
+	program-header: make struct! [
 		type				[integer!]
 		offset				[integer!]
 		vaddr				[integer!]
@@ -106,30 +130,88 @@ context [
 		align				[integer!]
 	] none
 
-	ehdr-size: length? third ehdr
-	phdr-size: length? third phdr
+	ehdr-size: length? third elf-header
+	phdr-size: length? third program-header
+	
+	pointer: make struct! [
+		value [integer!]							;-- 32/64-bit, watch out for endianess!!
+	] none
+	
+	pad4: func [buffer [any-string!]][
+		head insert/dup tail buffer null 3 and negate ((length? buffer) // 4)
+	]
+	
+	calc-global-pointers: func [job][
+		code-ptr: base-ptr + ehdr-size + (phdr-size * (length? job/sections) / 2)	
+		
+		pad4 job/sections/code/2					;-- make sure code section's end is aligned to 4 bytes
+		data-ptr: code-ptr + length? job/sections/code/2
+	]
+	
+	resolve-data-refs: func [job /local code][
+		code: job/sections/code/2
+		
+		foreach [name spec] job/symbols [
+			if all [spec/1 = 'global not empty? spec/3][						
+				pointer/value: data-ptr + spec/2
+				foreach ref spec/3 [change at code ref probe third pointer]
+			]
+		]
+	]
+	
+	build-data-header: func [job [object!] /local ph spec] [
+		spec: job/sections/data
+		ph: make struct! program-header none
 
+		ph/type:	defs/segment-type/load
+		ph/offset:  data-ptr - base-ptr
+		ph/vaddr:   data-ptr
+		ph/paddr:   ph/vaddr
+		ph/filesz:  length? spec/2
+		ph/memsz:   ph/filesz						;@@ not sure about the alignment requirement?
+		ph/flags:	defs/segment-access/data
+		ph/align:	4	; page-size
+
+		append job/buffer third ph
+	]
+	
+	build-code-header: func [job [object!] /local ph spec] [
+		spec: job/sections/code
+		ph: make struct! program-header none
+		
+		ph/type:	defs/segment-type/load
+		ph/offset:  0
+		ph/vaddr:   base-ptr
+		ph/paddr:   ph/vaddr
+		ph/filesz:  code-ptr - base-ptr + length? spec/2
+		ph/memsz:   ph/filesz						;@@ not sure about the alignment requirement?
+		ph/flags:	defs/segment-access/code
+		ph/align:	4 ;page-size
+		
+		append job/buffer third ph
+	]
+	
 	build-elf-header: func [job [object!] /local machine eh][
 		machine: find defs/machine job/target
 
-		eh: make struct! ehdr none
+		eh: make struct! elf-header none
 		eh/ident-mag0:		#"^(7F)"
 		eh/ident-mag1:		#"E"
 		eh/ident-mag2:		#"L"
 		eh/ident-mag3:		#"F"
-		eh/ident-class:		to char! defs/class/c-32-bit
-		eh/ident-data:		to char! defs/encoding/LSB	;TBD: make it target-dependent
-		eh/ident-version:	to char! 1					;-- 0: invalid, 1: current
-		eh/type:			defs/file-type/executable	;TBD: switch on jobs/
+		eh/ident-class:		to-char defs/class/c-32-bit
+		eh/ident-data:		to-char defs/encoding/LSB	;TBD: make it target-dependent
+		eh/ident-version:	to-char 1					;-- 0: invalid, 1: current
+		eh/type:			defs/file-type/executable	;TBD: switch on job/type
 		eh/machine:			machine/2
 		eh/version:			1							; EV_CURRENT
-		eh/entry:			defs/image/base-address + ehdr-size + phdr-size ; @@
+		eh/entry:			code-ptr
 		eh/phoff:			ehdr-size
 		eh/shoff:			0
 		eh/flags:			0
 		eh/ehsize:			ehdr-size
 		eh/phentsize:		phdr-size
-		eh/phnum:			1 ; @@
+		eh/phnum:			(length? job/sections) / 2	;-- sections are "segments" here
 		eh/shentsize:		0
 		eh/shnum:			0
 		eh/shstrndx:		0
@@ -137,30 +219,20 @@ context [
 		append job/buffer third eh
 	]
 
-	build-program-header: func [job [object!] /local code-size ph] [
-		code-size: length? job/sections/code/2
-
-		ph: make struct! phdr none
-		ph/type:			1				; PT_LOAD
-		ph/offset:			0
-		ph/vaddr:			defs/image/base-address ; @@ $$
-		ph/paddr:			defs/image/base-address ; @@ $$
-		ph/filesz:			ehdr-size + phdr-size + code-size ; @@
-		ph/memsz:			ph/filesz
-		ph/flags:			5				; PF_R | PF_X
-		ph/align:			4096
-		append job/buffer third ph
-	]
-
 	build: func [job [object!]][
 	
+		remove/part find job/sections 'import 2		;@@ (to be removed once 'import supported)
+		
+		calc-global-pointers job
+		
 		build-elf-header job
-		build-program-header job
-
-		foreach [name spec] job/sections [
-			append job/buffer spec/2
+		build-code-header job
+		build-data-header job
+		
+		resolve-data-refs job						;-- resolve data references
+		
+		foreach [name spec] job/sections [			;-- concatenate all section contents		
+			append job/buffer probe spec/2
 		]
-
-		probe job/buffer
 	]
 ]

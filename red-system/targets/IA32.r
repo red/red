@@ -501,15 +501,15 @@ make target-class [
 			]
 		]
 		switch spec/1 [								;-- call or inline the function
-			syscall [
-				repeat c fspec/1 [					;TBD: check right order!!!
+			syscall [								;TBD: add support for SYSENTER/SYSEXIT
+				repeat c fspec/1 [
 					emit pick [
 						#{5B}						;-- POP ebx			; get 1st arg in reg
 						#{59}						;-- POP ecx			; get 2nd arg in reg
 						#{5A}						;-- POP edx			; get 3rd arg in reg
 						#{5E}						;-- POP esi			; get 4th arg in reg
 						#{5F}						;-- POP edi			; get 5th arg in reg
-					] c
+					] 1 + fspec/1 - c
 				]
 				emit #{B8}							;-- MOV eax, code
 				emit to-bin32 last fspec

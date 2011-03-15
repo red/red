@@ -14,14 +14,45 @@ prolog {
 			count	[integer!]
 			return: [integer!]
 		]
-		_exit: 1 [
+		exit: 1 [
 			status	[integer!]
 		]
 	]
 	
-	write 1 "Hello World!^^/" 13
+	newline: "^^/"
+	stdout: 1
+
+	prin: func [s [string!] return: [integer!]][
+		write stdout s length? s
+	]
+
+	print: func [s [string!] return: [integer!]][
+		prin s
+		write stdout "^^/" 1
+	]
+
+	set-pen-color: func [color [integer!]][
+		;-- not supported for now
+	]
+
+	set-colors: func [pen [integer!] bg [integer!]][
+		;-- not supported for now
+	]
+
+	black:   0
+	blue: 	 1
+	green:	 2
+	red:	 4
+	cyan:  	 blue or green
+	magenta: blue or red
+	yellow:  green or red
+	white:   blue or green or red
+
+	light-blue:  blue  or 8
+	light-green: green or 8
+	light-red: 	 red   or 8
 }
 
 epilog {
-	_exit 42
+	exit 0
 }
