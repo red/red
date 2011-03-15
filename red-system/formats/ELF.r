@@ -154,7 +154,7 @@ context [
 		foreach [name spec] job/symbols [
 			if all [spec/1 = 'global not empty? spec/3][						
 				pointer/value: data-ptr + spec/2
-				foreach ref spec/3 [change at code ref probe third pointer]
+				foreach ref spec/3 [change at code ref third pointer]
 			]
 		]
 	]
@@ -170,7 +170,7 @@ context [
 		ph/filesz:  length? spec/2
 		ph/memsz:   ph/filesz						;@@ not sure about the alignment requirement?
 		ph/flags:	defs/segment-access/data
-		ph/align:	4	; page-size
+		ph/align:	page-size
 
 		append job/buffer third ph
 	]
@@ -186,7 +186,7 @@ context [
 		ph/filesz:  code-ptr - base-ptr + length? spec/2
 		ph/memsz:   ph/filesz						;@@ not sure about the alignment requirement?
 		ph/flags:	defs/segment-access/code
-		ph/align:	4 ;page-size
+		ph/align:	page-size
 		
 		append job/buffer third ph
 	]
@@ -232,7 +232,7 @@ context [
 		resolve-data-refs job						;-- resolve data references
 		
 		foreach [name spec] job/sections [			;-- concatenate all section contents		
-			append job/buffer probe spec/2
+			append job/buffer spec/2
 		]
 	]
 ]

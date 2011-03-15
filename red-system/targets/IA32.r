@@ -135,7 +135,7 @@ make target-class [
 					emit to-bin32 value	
 				]
 			]
-			word! [				
+			word! [
 				type: first emitter/get-symbol-spec value
 				either find [string! binary! struct!] type [
 					gcode: #{68}					;-- PUSH imm32			; global value
@@ -518,7 +518,7 @@ make target-class [
 			import [
 				emit #{FF15}						;-- CALL FAR [addr]
 				emit-reloc-addr spec
-				if find [cdecl gcc45] fspec/3 [	;-- add calling cleanup when required
+				if find [cdecl gcc45] fspec/3 [		;-- add calling cleanup when required
 					emit-cdecl-pop fspec
 				]			
 			]

@@ -47,7 +47,7 @@ prolog {
 
 	print: func [s [string!] return: [integer!]][
 		prin s
-		WriteConsole stdout "^^/" 1 written 0
+		WriteConsole stdout newline 1 written 0
 	]
 
 	set-pen-color: func [color [integer!]][

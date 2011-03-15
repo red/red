@@ -226,14 +226,14 @@ emitter: context [
 		]
 	]
 	
-	arguments-size?: func [locals /local pos ret size][
+	arguments-size?: func [locals /push /local pos ret size][
 		pos: find locals /local
 		ret: to-set-word 'return
-		clear stack
+		if push [clear stack]
 		size: 0
 		foreach [name type] any [all [pos copy/part locals pos] copy locals][
 			if name <> ret [
-				repend stack [name size + 8]			;-- account for esp + ebp storage
+				if push [repend stack [name size + 8]]	;-- account for esp + ebp storage
 				size: size + size-of? type/1			;TBD: make it target-independent
 			]
 		]
@@ -244,7 +244,7 @@ emitter: context [
 		symbols/:name/2: index? tail code-buf			;-- store function's entry point
 		
 		;-- Implements Red/System calling convention -- (STDCALL without reversing)		
-		args-sz: arguments-size? locals
+		args-sz: arguments-size?/push locals
 		
 		locals-sz: 0
 		if pos: find locals /local [		

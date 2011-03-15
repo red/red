@@ -28,7 +28,7 @@ prolog {
 
 	print: func [s [string!] return: [integer!]][
 		prin s
-		write stdout "^^/" 1
+		write stdout newline 1
 	]
 
 	set-pen-color: func [color [integer!]][

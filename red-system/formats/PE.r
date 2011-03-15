@@ -358,7 +358,7 @@ context [
 			clear hints
 			hint-ptr: ptr + (ILT-size * 2 * (1 + divide length? list 2))		;-- ILTs + IATs
 
-			foreach [def reloc] list [			
+			foreach [def reloc] list [
 				hint: tail hints
 				repend hints [#{0000} def null]	;-- Ordinal is zero, not used
 				if even? length? def [append hints null]
