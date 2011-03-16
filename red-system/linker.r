@@ -19,6 +19,7 @@ linker: context [
 		flags:					;-- global flags
 		sub-system:				;-- target environment (GUI | console)
 		symbols:				;-- symbols table
+		output:					;-- output file name (without extension)
 		buffer: none
 	]
 	

@@ -22,7 +22,18 @@ The compiler and linker are currently written in REBOL and produce PE (Windows) 
 
 The %rsc.r script is only a wrapper script around the compiler, for testing purpose. It accepts a -v[vvv] option for verbose logs. Try it with:
 
-do/args %rsc.r "-vvvv %tests/hello.reds"
+    do/args %rsc.r "-vvvv %tests/hello.reds"
+
+Cross-compilation support
+-------------------------
+
+From Windows, to emit Linux executables:
+
+    do/args %rsc.r "-f ELF %tests/hello.reds"	
+
+From Linux, to emit Windows executables:
+
+    do/args %rsc.r "-f PE %tests/hello.reds"	
 
 
 More information on http://www.red-lang.org

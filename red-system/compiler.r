@@ -655,24 +655,13 @@ system-dialect: context [
 		clear compiler/user-functions
 	]
 	
-	make-job: func [file [file!] /local fmt][
+	make-job: func [opts [object!] file [file!] /local job][
 		file: last split-path file			;-- remove path
 		file: to-file first parse file "."	;-- remove extension
 		
-		fmt: select [					;TBD: allow cross-compilation!
-			3	'PE						;-- Windows
-			4	'ELF					;-- Linux
-			5	'Mach-o					;-- Mac OS X
-		] system/version/4
-		
-		make linker/job-class [
-			output: 	file
-			format:		fmt
-			type: 		'exe
-			target:		'IA32
-			sub-system: 'console
-			;sub-system: 'GUI
-		]
+		job: construct/with third opts linker/job-class	
+		job/output: file
+		job
 	]
 	
 	dt: func [code [block!] /local t0][
@@ -681,23 +670,34 @@ system-dialect: context [
 		now/time/precise - t0
 	]
 	
+	options-class: context [
+		link?: 		no					;-- yes = invoke the linker and finalize the job
+		build-dir:	%builds/			;-- where to place compile/link results
+		format:		select [			;-- file format
+						3	'PE				;-- Windows
+						4	'ELF			;-- Linux
+						5	'Mach-o			;-- Mac OS X
+					] system/version/4
+		type:		'exe				;-- file type ('exe | 'dll | 'lib | 'obj)
+		target:		'IA32				;-- CPU target
+		verbosity:	0					;-- logs verbosity level
+		sub-system:	'console			;-- 'GUI | 'console
+	]
+	
 	compile: func [
 		files [file! block!]			;-- source file or block of source files
-		/in
-			path						;-- where to place compile/link results
-		/link							;-- invoke the linker and finalize the job
-		/level
-			verbosity [integer!]		;-- logs verbosity (0 => none)
+		/options
+			opts [object!]
 		/local
 			comp-time link-time err src
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
-			emitter/init link job: make-job last files	;-- last file's name is retained for output
+			emitter/init opts/link? job: make-job opts last files	;-- last file's name is retained for output
 			compiler/job: job
 			set-runtime job
 			
-			if level [set-verbose-level verbosity]
+			set-verbose-level opts/verbosity
 			
 			comp-runtime 'prolog
 			
@@ -708,9 +708,9 @@ system-dialect: context [
 				]			
 				compiler/run src				
 			]
-			
+
 			comp-runtime 'epilog
-			compiler/finalize
+			compiler/finalize			;-- compile all functions
 		]
 		if verbose >= 4 [
 			print [
@@ -719,7 +719,7 @@ system-dialect: context [
 			]
 		]
 
-		if link [
+		if opts/link? [
 			link-time: dt [
 				job/symbols: emitter/symbols
 				job/sections: compose/deep [
@@ -727,12 +727,12 @@ system-dialect: context [
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
 				]
-				linker/build/in job any [path %builds/]
+				linker/build/in job opts/build-dir
 			]
 		]
 		output-logs
-		if link [clean-up]
-		
+		if opts/link? [clean-up]
+
 		also
 			reduce [comp-time link-time length? job/buffer]
 			compiler/job: job: none
