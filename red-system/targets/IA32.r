@@ -25,8 +25,9 @@ make target-class [
 		>				 #{0F}
 	]
 	
-	emit-length?: func [value [word! string! binary! struct!] /local spec size][
+	emit-length?: func [value [word! string! binary! struct! tag!] /local spec size][
 		if verbose >= 3 [print [">>>inlining: length?" mold value]]
+		if value = <last> [value: 'last]
 		
 		switch type?/word value [
 			word! [
@@ -77,11 +78,9 @@ make target-class [
 				emit to-bin32 value
 			]
 			word! [
-				if value <> 'last [
-					emit-variable value
-						#{A1}						;-- MOV eax, [value]	; global
-						#{8B45}						;-- MOV eax, [ebp+n]	; local
-				]
+				emit-variable value
+					#{A1}							;-- MOV eax, [value]	; global
+					#{8B45}							;-- MOV eax, [ebp+n]	; local
 			]
 			string! [
 				spec: emitter/set-global reduce [emitter/make-noname [string!]] value
@@ -161,11 +160,11 @@ make target-class [
 		]
 	]
 	
-	emit-path-access: func [/struct offset [integer!] /head name [word!] /store value [integer! word!]][
+	emit-path-access: func [/struct offset [integer!] /head name [word!] /store value [integer! word! tag!]][
 		either head [
 			either struct [
 				either store [
-					if value <> 'last [
+					if value <> <last> [
 						either integer? value [
 							emit #{B8}				;-- MOV eax, value
 							emit to-bin32 value
@@ -196,7 +195,7 @@ make target-class [
 						emit #{C700}				;-- MOV dword [edx], value
 						emit to-bin32 value
 					][
-						if value <> 'last [
+						if value <> <last> [
 							emit-variable value
 								#{A1}				;-- MOV eax, [value] 		; global
 								#{8B45}				;-- MOV eax, [ebp+n] 		; local
@@ -207,7 +206,7 @@ make target-class [
 			]
 		][
 			either store [
-				either value = 'last [
+				either value = <last> [
 					emit #{8B10}					;-- MOV edx, [eax]
 				][
 					emit #{8B15}					;-- MOV edx, [value]
@@ -230,8 +229,9 @@ make target-class [
 		]
 	]
 		
-	emit-store: func [name [word!] value [integer! word! string! struct!] /local spec][
+	emit-store: func [name [word!] value [integer! word! string! struct! tag!] /local spec][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
+		if value = <last> [value: 'last]
 		
 ;TBD: pass value in EAX ?
 		spec: select emitter/symbols name
@@ -272,7 +272,7 @@ make target-class [
 		
 		c: 1
 		foreach op [a b][	
-			set op either args/:c = 'last [
+			set op either args/:c = <last> [
 				 'reg								;-- value in eax
 			][
 				switch type?/word args/:c [
@@ -533,7 +533,7 @@ make target-class [
 			]
 			op	[
 				emit-operation name args
-				'last
+				<last>
 			]
 		]
 	]

@@ -148,7 +148,7 @@ system-dialect: context [
 			ctx: any [locals globals]
 			unless find ctx name [
 				type: case [
-					value = 'last 	[last-type]
+					value = <last>  [last-type]
 					block? value	[compose/deep [struct! [(value/2)]]]
 					word? value 	[first select ctx value]
 					'else 			[type?/word value]
@@ -264,7 +264,7 @@ system-dialect: context [
 			size: select emitter/datatypes type/1
 			emitter/target/emit-last size
 			pc: next pc
-			'last
+			<last>
 		]
 		
 		comp-block-chunked: func [/only][
@@ -287,7 +287,7 @@ system-dialect: context [
 			set [unused chunk] comp-block-chunked		;-- TRUE block
 			emitter/branch/over/on chunk expr/1			;-- insert IF branching			
 			emitter/merge chunk		
-			'last
+			<last>
 		]
 		
 		comp-either: has [expr unused c-true c-false offset][
@@ -302,7 +302,7 @@ system-dialect: context [
 			offset: emitter/branch/over c-false
 			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
 			emitter/merge emitter/chunks/join c-true c-false
-			'last
+			<last>
 		]
 		
 		comp-until: has [expr chunk][
@@ -311,7 +311,7 @@ system-dialect: context [
 			set [expr chunk] comp-block-chunked
 			emitter/branch/back/on chunk expr/1	
 			emitter/merge chunk			
-			'last
+			<last>
 		]
 		
 		comp-while: has [expr unused cond body  offset bodies][
@@ -326,7 +326,7 @@ system-dialect: context [
 			bodies: emitter/chunks/join body cond
 			emitter/branch/back/on/adjust bodies reduce [expr/1] offset ;-- Test condition, exit if FALSE
 			emitter/merge bodies
-			'last
+			<last>
 		]
 		
 		comp-expression-list: func [/invert /local list offset bodies test][
@@ -440,21 +440,21 @@ system-dialect: context [
 					name: to-word tree/1
 					value: either block? tree/2 [
 						comp-expression tree/2
-						'last
+						<last>
 					][
 						tree/2
 					]
 					add-symbol name value
 					if path? value [
 						emitter/access-path value
-						value: 'last
+						value: <last>
 					]
 					emitter/target/emit-store name value
 				]
 				set-path! [
 					value: either block? tree/2 [
 						comp-expression tree/2
-						'last
+						<last>
 					][
 						tree/2
 					]
@@ -519,7 +519,7 @@ system-dialect: context [
 						order-args expr
 						comp-expression expr
 					]
-					not find [logic! none!] type?/word expr [
+					not find [logic! none! tag!] type?/word expr [
 						emitter/target/emit-last expr
 					]
 				]

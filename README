@@ -26,7 +26,6 @@ The %rsc.r script is only a wrapper script around the compiler, for testing purp
 
 Cross-compilation support
 -------------------------
-
 From Windows, to emit Linux executables:
 
     do/args %rsc.r "-f ELF %tests/hello.reds"	
