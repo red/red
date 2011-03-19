@@ -6,7 +6,9 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-prolog {	
+prolog {
+	#include %common.reds
+	
 	#syscall [
 		write: 4 [
 			fd		[integer!]
@@ -14,7 +16,7 @@ prolog {
 			count	[integer!]
 			return: [integer!]
 		]
-		exit: 1 [
+		quit: 1 [					;-- "exit" syscall
 			status	[integer!]
 		]
 	]
@@ -54,5 +56,5 @@ prolog {
 }
 
 epilog {
-	exit 0
+	quit 0
 }

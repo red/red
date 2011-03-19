@@ -10,9 +10,9 @@ do %linker.r
 do %emitter.r
 
 system-dialect: context [
-	verbose:  0								;-- logs verbosity level
-	job: none								;-- reference the current job object	
-	runtime-env: none						;-- hold OS-specific Red/System runtime
+	verbose:  0									;-- logs verbosity level
+	job: none									;-- reference the current job object	
+	runtime-env: none							;-- hold OS-specific Red/System runtime
 	runtime-path: %runtime/
 	nl: newline
 	
@@ -20,55 +20,87 @@ system-dialect: context [
 	;	type	["message" arg1 "and" arg2]
 	;]
 	
-	preprocessor: context [
+	loader: context [
 		verbose: 0
-	
-		alpha-chars: charset [#"A" - #"Z" #"a" - #"z"]
-		num-chars: charset "0123456789"
-		special: charset "_-"
-		alpha-num: union special union alpha-chars num-chars
-		value-char: complement charset ";^/"
-		ws: charset " ^-^/^M"
-		space: charset " "
-
-		expand: func [source [string! binary!] /local defs name value rule s e][
-			source: as-string source
-			defs: make block! 100
-			parse/all/case source [				;-- 1st pass: get definitions
-				any [
-					newline any ws "#define" some space
-					copy name some alpha-num
-					copy value some value-char (
-						rule: copy/deep [s: _ e: (e: change/part s _ e) :e |]
-						rule/2: name
-						rule/4/4: trim value
+		include-dirs: none
+		defs: make block! 100
+		
+		init: does [
+			include-dirs: copy [%runtime/]
+			clear defs
+			insert defs <no-match>				;-- required to avoid empty rule (causes infinite loop)
+		]
+		
+		find-path: func [file [file!]][
+			foreach dir include-dirs [
+				if exists? dir/:file [return dir/:file]
+			]
+			make error! reform ["Include File Access Error:" file]
+		]
+		
+		expand-string: func [src [string! binary!] /local s e][
+			if verbose > 0 [print "running string preprocessor..."]
+			; reserved for not-LOAD-able syntax support
+		]
+		
+		expand-block: func [src [block!] /local blk rule name value s e][		
+			if verbose > 0 [print "running block preprocessor..."]
+			parse/case src blk: [
+				some [
+					defs								;-- resolve definitions in a single pass
+					| #define set name word! set value skip (
+						if verbose > 0 [print [mold name #":" mold value]]
+						rule: copy/deep [s: _ e: (e: change/part s _ e) :e]
+						rule/2: to lit-word! name
+						rule/4/4: value
+						either tag? defs/1 [remove defs][append defs '|]
 						append defs rule
-						if verbose >= 1 [
-							print ["define:" mold name "=>" mold value]
-						]
 					)
-					| s: copy value 1 8 num-chars #"h" e: (
-						e: change/part s to-integer to-issue value e
-					) :e
+					| s: #include set name file! e: (
+						if verbose > 0 [print ["...including file:" mold name]]
+						name: find-path name
+						value: skip process/short name 2 		;-- skip Red/System header						
+						e: change/part s value e
+					) :s
+					| into blk
 					| skip
 				]
-			]
-			unless empty? defs [				;-- 2nd pass: resolve definitions
-				remove back tail defs
-				parse/all/case source [
-					any ["#define" to newline | defs | skip]
+			]		
+		]
+		
+		process: func [input [file! string!] /short /local src err path][
+			if verbose > 0 [print ["processing" mold either file? input [input]['runtime]]]
+			
+			if file? input [
+				if all [
+					%./ <> path: first split-path input	;-- is there a path in the filename?
+					not find include-dirs path
+				][
+					append include-dirs path			;-- register source's dir as include dir
+				]
+				if error? set/any 'err try [src: as-string read/binary input][	;-- read source file
+					print ["File Access Error:" mold disarm err]
 				]
 			]
-			source
+			expand-string src: any [src input]			;-- process string-level compiler directives
+			
+			;TBD: add Red/System header checking here!
+			
+			if error? set/any 'err try [src: load src][	;-- convert source to blocks
+				print ["Syntax Error at LOAD phase:" mold disarm err]
+			]
+			
+			unless short [expand-block src]		;-- process block-level compiler directives
+			src
 		]
 	]
 	
 	compiler: context [
 		job: pc: last-type: locals: none
-		verbose:  0							;-- logs verbosity level
+		verbose:  0										;-- logs verbosity level
 	
 		imports: 	   make block! 10
-		bodies:	  	   make hash! 40		;-- [name [specs] [body]...]
+		bodies:	  	   make hash! 40					;-- [name [specs] [body]...]
 		globals:  	   make hash! 40
 		aliased-types: make hash! 10
 		
@@ -90,7 +122,7 @@ system-dialect: context [
 			<		[2	op		- [a [number! pointer!] b [number! pointer!]]]
 			>=		[2	op		- [a [number! pointer!] b [number! pointer!]]]
 			<=		[2	op		- [a [number! pointer!] b [number! pointer!]]]
-			;not		[1	inline	- [a [number!]]]									;-- NOT
+			;not	[1	inline	- [a [number!]]]									;-- NOT
 			;make	[2 	inline	- [type [word!] spec [number! pointer!]]]
 			length? [1	inline	- [v [string! binary! struct!] return: [integer!]]]
 		]
@@ -600,7 +632,7 @@ system-dialect: context [
 	set-verbose-level: func [level [integer!]][
 		foreach ctx reduce [
 			self
-			preprocessor
+			loader
 			compiler
 			emitter
 			emitter/target
@@ -636,7 +668,7 @@ system-dialect: context [
 	]
 	
 	comp-runtime: func [type [word!]][
-		compiler/run/no-header load preprocessor/expand runtime-env/:type
+		compiler/run/no-header loader/process runtime-env/:type
 	]
 	
 	set-runtime: func [job][
@@ -696,25 +728,19 @@ system-dialect: context [
 			emitter/init opts/link? job: make-job opts last files	;-- last file's name is retained for output
 			compiler/job: job
 			set-runtime job
-			
 			set-verbose-level opts/verbosity
 			
+			loader/init
 			comp-runtime 'prolog
 			
-			foreach file files [
-				src: preprocessor/expand read/binary file			
-				if error? set/any 'err try [src: load src][
-					print ["Syntax Error at LOAD phase:" mold disarm err]
-				]			
-				compiler/run src				
-			]
+			foreach file files [compiler/run loader/process file]
 
 			comp-runtime 'epilog
 			compiler/finalize			;-- compile all functions
 		]
 		if verbose >= 4 [
 			print [
-				"-- emitter/code-buf (no-relocations):"
+				"-- emitter/code-buf (empty addresses):"
 				nl mold emitter/code-buf nl
 			]
 		]

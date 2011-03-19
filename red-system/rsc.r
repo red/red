@@ -50,7 +50,7 @@ result: system-dialect/compile/options file opts
 print ["^/...compilation time:" tab round result/1/second * 1000 "ms"]
 if result/2 [
 	print [
-		"...linking time:" tab tab round result/1/second * 1000 "ms^/"
+		"...linking time:" tab tab round result/2/second * 1000 "ms^/"
 		"...output file size:" tab result/3 "bytes"
 	]
 ]

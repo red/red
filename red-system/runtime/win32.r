@@ -6,7 +6,9 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-prolog {	
+prolog {
+	#include %common.reds
+	
 	#define WIN_STD_INPUT_HANDLE	-10
 	#define WIN_STD_OUTPUT_HANDLE	-11
 	#define WIN_STD_ERROR_HANDLE	-12
@@ -30,7 +32,7 @@ prolog {
 				attributes  [integer!]
 				;return:		[integer!]
 			]
-			ExitProcess: "ExitProcess" [
+			quit: "ExitProcess" [
 				code		[integer!]
 			]
 		]
@@ -73,5 +75,5 @@ prolog {
 }
 
 epilog {
-	ExitProcess 0
+	quit 0
 }

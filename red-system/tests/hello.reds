@@ -28,7 +28,7 @@ draw-hline: func [size [integer!] alt [integer!] /local c [integer!]][
 			prin "-"				;-- print - only
 		]
 		c: c - 1
-		c = 0
+		zero? c
 	]
 	prin "^/"
 ]
