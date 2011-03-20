@@ -17,9 +17,13 @@ context [
 			lib %.a
 			dll %.so
 		]
+		target [
+		;-- Red Target ---- Machine --- Data Encoding
+			IA32			m-386		two-lsb
+		]
 		machine [
-		;--  CPU -------- ID ------ Endianness
-			IA32			3			1	; EM_386, ELFDATA2LSB
+			m-386			3				;-- intel 80386 (EM_386)
+		]
 		class [								;-- (EI_CLASS)
 			none			0				;-- invalid class (ELFCLASSNONE)
 			c-32-bit		1				;-- 32-bit objects (ELFCLASS32)
@@ -194,8 +198,11 @@ context [
 		append job/buffer third ph
 	]
 	
-	build-elf-header: func [job [object!] /local machine eh][
-		machine: find defs/machine job/target
+
+	build-elf-header: func [job [object!] /local target-def target-machine target-encoding eh][
+		target-def: find defs/target job/target
+		target-machine: select defs/machine target-def/2
+		target-encoding: select defs/encoding target-def/3
 
 		eh: make struct! elf-header none
 		eh/ident-mag0:		#"^(7F)"
@@ -203,10 +210,10 @@ context [
 		eh/ident-mag2:		#"L"
 		eh/ident-mag3:		#"F"
 		eh/ident-class:		to-char defs/class/c-32-bit
-		eh/ident-data:		to-char defs/encoding/two-lsb ;TBD: make it target-dependent
+		eh/ident-data:		to-char target-encoding
 		eh/ident-version:	to-char 1					;-- 0: invalid, 1: current
 		eh/type:			defs/file-type/executable	;TBD: switch on job/type
-		eh/machine:			machine/2
+		eh/machine:			target-machine
 		eh/version:			1							; EV_CURRENT
 		eh/entry:			code-ptr
 		eh/phoff:			ehdr-size
