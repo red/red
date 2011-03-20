@@ -93,7 +93,7 @@ context [
 			mask-proc		#{F0000000}		;-- mask bits for proc-specific semantics
 		]
 	]
-	
+
 	page-size:	 4096						;-- system page size
 	ptr:		 0							;-- virtual address global pointer
 	base-ptr:	 defs/image/base-address	;-- base virtual address
@@ -139,65 +139,64 @@ context [
 
 	ehdr-size: length? third elf-header
 	phdr-size: length? third program-header
-	
+
 	pointer: make struct! [
 		value [integer!]							;-- 32/64-bit, watch out for endianess!!
 	] none
-	
+
 	pad4: func [buffer [any-string!]][
 		head insert/dup tail buffer null 3 and negate ((length? buffer) // 4)
 	]
-	
+
 	calc-global-pointers: func [job][
-		code-ptr: base-ptr + ehdr-size + (phdr-size * (length? job/sections) / 2)	
-		
+		code-ptr: base-ptr + ehdr-size + (phdr-size * (length? job/sections) / 2)
+
 		pad4 job/sections/code/2					;-- make sure code section's end is aligned to 4 bytes
 		data-ptr: code-ptr + length? job/sections/code/2
 	]
-	
+
 	resolve-data-refs: func [job /local code][
 		code: job/sections/code/2
-		
+
 		foreach [name spec] job/symbols [
-			if all [spec/1 = 'global not empty? spec/3][						
+			if all [spec/1 = 'global not empty? spec/3][
 				pointer/value: data-ptr + spec/2
 				foreach ref spec/3 [change at code ref third pointer]
 			]
 		]
 	]
-	
+
 	build-data-header: func [job [object!] /local ph spec] [
 		spec: job/sections/data
 		ph: make struct! program-header none
 
 		ph/type:	defs/segment-type/load
-		ph/offset:  data-ptr - base-ptr
-		ph/vaddr:   data-ptr
-		ph/paddr:   ph/vaddr
-		ph/filesz:  length? spec/2
-		ph/memsz:   ph/filesz						;@@ not sure about the alignment requirement?
+		ph/offset:	data-ptr - base-ptr
+		ph/vaddr:	data-ptr
+		ph/paddr:	ph/vaddr
+		ph/filesz:	length? spec/2
+		ph/memsz:	ph/filesz						;@@ not sure about the alignment requirement?
 		ph/flags:	defs/segment-access/data
 		ph/align:	page-size
 
 		append job/buffer third ph
 	]
-	
+
 	build-code-header: func [job [object!] /local ph spec] [
 		spec: job/sections/code
 		ph: make struct! program-header none
-		
+
 		ph/type:	defs/segment-type/load
-		ph/offset:  0
-		ph/vaddr:   base-ptr
-		ph/paddr:   ph/vaddr
-		ph/filesz:  code-ptr - base-ptr + length? spec/2
-		ph/memsz:   ph/filesz						;@@ not sure about the alignment requirement?
+		ph/offset:	0
+		ph/vaddr:	base-ptr
+		ph/paddr:	ph/vaddr
+		ph/filesz:	code-ptr - base-ptr + length? spec/2
+		ph/memsz:	ph/filesz						;@@ not sure about the alignment requirement?
 		ph/flags:	defs/segment-access/code
 		ph/align:	page-size
-		
+
 		append job/buffer third ph
 	]
-	
 
 	build-elf-header: func [job [object!] /local target-def target-machine target-encoding eh][
 		target-def: find defs/target job/target
@@ -230,18 +229,18 @@ context [
 	]
 
 	build: func [job [object!]][
-	
+
 		remove/part find job/sections 'import 2		;@@ (to be removed once 'import supported)
-		
+
 		calc-global-pointers job
-		
+
 		build-elf-header job
 		build-code-header job
 		build-data-header job
-		
+
 		resolve-data-refs job						;-- resolve data references
-		
-		foreach [name spec] job/sections [			;-- concatenate all section contents		
+
+		foreach [name spec] job/sections [			;-- concatenate all section contents
 			append job/buffer spec/2
 		]
 	]
