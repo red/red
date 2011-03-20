@@ -92,13 +92,23 @@ context [
 			exec			4				;-- executable code (SHF_EXECINSTR)
 			mask-proc		#{F0000000}		;-- mask bits for proc-specific semantics
 		]
+		sections-table [
+		; -- Name --------- Type ------ Attributes
+			".text"			prog-bits	6	;-- [alloc exec]
+			".data"			prog-bits	3	;-- [alloc write]
+		;	".rodata"		prog-bits	2	;-- [alloc]
+			".shstrtab"		str-tab		0	;-- []
+		]
 	]
 
-	page-size:	 4096						;-- system page size
-	ptr:		 0							;-- virtual address global pointer
-	base-ptr:	 defs/image/base-address	;-- base virtual address
-	code-ptr:	 0							;-- code entry point
-	data-ptr:	 0							;-- data virtual address
+	page-size:		4096					;-- system page size
+	base-ptr:		defs/image/base-address	;-- base virtual address
+	code-ptr:		0						;-- code virtual address (entry point)
+	data-ptr:		0						;-- data virtual address
+	headers-size:	none					;-- size of all leading ELF headers (ehdr + phdrs)
+	code-size:		none					;-- size of the code segment (code section)
+	data-size:		none					;-- size of the data segment (all non-code sections)
+	shdr-offset:	0						;-- section header table file offset
 
 	elf-header: make struct! [				;-- (Elf32_Ehdr)
 		ident-mag0			[char!]			;-- 0x7F (EI_MAG0)
@@ -123,7 +133,7 @@ context [
 		phnum				[short]
 		shentsize			[short]			;-- the size in bytes of a shdr table entry (== shdr-size)
 		shnum				[short]			;-- how many entries the shdr table contains
-		shstrndx			[short]
+		shstrndx			[short]			;-- shdr table entry index for the section name string table (shstrtab)
 	] none
 
 	program-header: make struct! [			;-- (Elf32_Phdr)
@@ -137,8 +147,22 @@ context [
 		align				[integer!]
 	] none
 
+	section-header: make struct! [			;-- (Elf32_Shdr)
+		name				[integer!]		;-- index into the section header string table section
+		type				[integer!]		;-- (see DEFS/section-type)
+		flags				[integer!]
+		addr				[integer!]
+		offset				[integer!]
+		size				[integer!]
+		link				[integer!]
+		info				[integer!]
+		addralign			[integer!]
+		entsize				[integer!]
+	] none
+
 	ehdr-size: length? third elf-header
 	phdr-size: length? third program-header
+	shdr-size: length? third section-header
 
 	pointer: make struct! [
 		value [integer!]							;-- 32/64-bit, watch out for endianess!!
@@ -148,11 +172,23 @@ context [
 		head insert/dup tail buffer null 3 and negate ((length? buffer) // 4)
 	]
 
-	calc-global-pointers: func [job][
-		code-ptr: base-ptr + ehdr-size + (phdr-size * (length? job/sections) / 2)
-
+	calculate-offsets: func [job][
 		pad4 job/sections/code/2					;-- make sure code section's end is aligned to 4 bytes
-		data-ptr: code-ptr + length? job/sections/code/2
+
+		headers-size: ehdr-size + (2 * phdr-size)  ; @@ FIX_SEGMENTS currently we always use 2 segments
+
+		code-ptr: base-ptr + headers-size
+		code-size: length? job/sections/code/2
+
+		data-ptr: code-ptr + code-size
+		data-size: 0
+		foreach [name spec] job/sections [
+			if name <> 'code [
+				data-size: data-size + length? spec/2
+			]
+		]
+
+		shdr-offset: headers-size + code-size + data-size
 	]
 
 	resolve-data-refs: func [job /local code][
@@ -166,15 +202,14 @@ context [
 		]
 	]
 
-	build-data-header: func [job [object!] /local ph spec] [
-		spec: job/sections/data
+	build-data-header: func [job [object!] /local ph][
 		ph: make struct! program-header none
 
 		ph/type:	defs/segment-type/load
 		ph/offset:	data-ptr - base-ptr
 		ph/vaddr:	data-ptr
 		ph/paddr:	ph/vaddr
-		ph/filesz:	length? spec/2
+		ph/filesz:	data-size
 		ph/memsz:	ph/filesz						;@@ not sure about the alignment requirement?
 		ph/flags:	defs/segment-access/data
 		ph/align:	page-size
@@ -182,15 +217,14 @@ context [
 		append job/buffer third ph
 	]
 
-	build-code-header: func [job [object!] /local ph spec] [
-		spec: job/sections/code
+	build-code-header: func [job [object!] /local ph][
 		ph: make struct! program-header none
 
 		ph/type:	defs/segment-type/load
 		ph/offset:	0
 		ph/vaddr:	base-ptr
 		ph/paddr:	ph/vaddr
-		ph/filesz:	code-ptr - base-ptr + length? spec/2
+		ph/filesz:	code-ptr - base-ptr + code-size
 		ph/memsz:	ph/filesz						;@@ not sure about the alignment requirement?
 		ph/flags:	defs/segment-access/code
 		ph/align:	page-size
@@ -216,14 +250,14 @@ context [
 		eh/version:			1							; EV_CURRENT
 		eh/entry:			code-ptr
 		eh/phoff:			ehdr-size
-		eh/shoff:			0
+		eh/shoff:			shdr-offset
 		eh/flags:			0
 		eh/ehsize:			ehdr-size
 		eh/phentsize:		phdr-size
-		eh/phnum:			(length? job/sections) / 2	;-- sections are "segments" here
-		eh/shentsize:		0
-		eh/shnum:			0
-		eh/shstrndx:		0
+		eh/phnum:			2 ; @@ FIX_SEGMENTS currently we always use 2 segments
+		eh/shentsize:		shdr-size
+		eh/shnum:			4 ; (length? job/sections) / 2
+		eh/shstrndx:		3 ; @@ compute!
 
 		append job/buffer third eh
 	]
@@ -232,16 +266,84 @@ context [
 
 		remove/part find job/sections 'import 2		;@@ (to be removed once 'import supported)
 
-		calc-global-pointers job
+		generate-shstrtab job
 
-		build-elf-header job
-		build-code-header job
-		build-data-header job
+		calculate-offsets job						;-- calculate section offsets/vaddrs
+		print code-size
 
 		resolve-data-refs job						;-- resolve data references
 
-		foreach [name spec] job/sections [			;-- concatenate all section contents
+		build-elf-header job						;-- emit elf headers
+		build-code-header job
+		build-data-header job
+
+		foreach [name spec] job/sections [			;-- emit all section contents
 			append job/buffer spec/2
 		]
+
+		build-section-headers job
+	]
+
+	generate-shstrtab: func [job [object!] /local data][
+		; The "shstrtab" is a section holding section names in an ELF string
+		; table. String tables start with a null character and then hold
+		; null-terminated character sequences.
+		data: copy #{00}
+		foreach name extract defs/sections-table 3 [
+			repend data [name #{00}]
+		]
+		append job/sections compose/deep [shstrtab [- (data)]]
+	]
+
+	build-section-headers: func [job [object!] /local sh shstrtab-section-size data-section-size][
+		data-section-size: length? job/sections/data/2
+		shstrtab-section-size: length? job/sections/shstrtab/2
+		; @@ assumes:
+		; - DATA segment is right before shdr table, and
+		; - shstrtab section is last in DATA segment
+		shstrtab-section-offset: shdr-offset - shstrtab-section-size
+
+		sh: make struct! section-header none		;-- NULL section (mandatory)
+		sh/type: defs/section-type/null
+		append job/buffer third sh
+
+		sh: make struct! section-header none		;-- .text
+		sh/name:		1 ; @@ offset into shrstab (compute from sections-table)
+		sh/type:		defs/section-type/prog-bits ; @@ lookup in sections-table
+		sh/flags:		6 ; @@ lookup in sections-table
+		sh/addr:		code-ptr
+		sh/offset:		code-ptr - base-ptr
+		sh/size:		code-size
+		sh/link:		0 ; not used for SHT_PROGBITS
+		sh/info:		0 ; not used for SHT_PROGBITS
+		sh/addralign:	4
+		sh/entsize:		0 ; not used for .text
+		append job/buffer third sh
+
+		sh: make struct! section-header none		;-- .data
+		sh/name:		7 ; @@ offset into shrstab (compute from sections-table)
+		sh/type:		defs/section-type/prog-bits ; @@ lookup in sections-table
+		sh/flags:		3 ; @@ lookup in sections-table
+		sh/addr:		data-ptr
+		sh/offset:		data-ptr - base-ptr
+		sh/size:		data-size
+		sh/link:		0 ; not used for SHT_PROGBITS
+		sh/info:		0 ; not used for SHT_PROGBITS
+		sh/addralign:	4
+		sh/entsize:		0 ; not used for .data
+		append job/buffer third sh
+
+		sh: make struct! section-header none		;-- .shstrtab
+		sh/name:		13 ; @@ offset into shrstab (compute from sections-table)
+		sh/type:		defs/section-type/str-tab ; @@ lookup in sections-table
+		sh/flags:		0 ; @@ lookup in sections-table
+		sh/addr:		0 ; won't appear in the memory image
+		sh/offset:		shstrtab-section-offset
+		sh/size:		shstrtab-section-size
+		sh/link:		0 ; not used for SHT_STRTAB
+		sh/info:		0 ; not used for SHT_STRTAB
+		sh/addralign:	1 ; no alignment constraints
+		sh/entsize:		0 ; not used for .shstrtab
+		append job/buffer third sh
 	]
 ]
