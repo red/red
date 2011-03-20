@@ -20,70 +20,73 @@ context [
 		machine [
 		;--  CPU -------- ID ------ Endianness
 			IA32			3			1	; EM_386, ELFDATA2LSB
+		class [								;-- (EI_CLASS)
+			none			0				;-- invalid class (ELFCLASSNONE)
+			c-32-bit		1				;-- 32-bit objects (ELFCLASS32)
+			c-64-bit		2				;-- 64-bit objects (ELFCLASS64)
 		]
-		class [
-			none			0
-			c-32-bit		1
-			c-64-bit		2
+		encoding [							;-- (EI_DATA)
+			none			0				;-- unknown data format (ELFDATANONE)
+			two-lsb			1				;-- two's complement, little endian (ELFDATA2LSB)
+			two-msb			2				;-- two's complement, big endian (ELFDATA2MSB)
 		]
-		encoding [
-			none			0
-			LSB				1				;-- little endian data encoding
-			MSB				2				;-- big endian data encoding
+		version [							;-- (EI_VERSION)
+			none			0				;-- invalid version (EV_NONE)
+			current			1				;-- current version (EV_CURRENT)
 		]
 		file-type [
-			none			0				;-- no file type
-			relocatable		1				;-- relocatable file
-			executable		2				;-- executable file
-			shared			3				;-- shared object file
-			core			4				;-- core file
+			none			0				;-- unknown type (ET_NONE)
+			relocatable		1				;-- relocatable file (ET_REL)
+			executable		2				;-- executable file (ET_EXEC)
+			shared			3				;-- shared object file (ET_DYN)
+			core			4				;-- core file (ET_CORE)
 			lo-proc			#{FF00}			;-- processor-specific
 			hi-proc			#{FFFF}			;-- processor-specific
 		]
 		segment-type [
-			null			0				;-- ignore entry
-			load			1				;-- loadable segment
-			dynamic			2				;-- dynamic linking information
-			interp			3				;-- interpreter path name
-			note			4				;-- notes/comments
-			shlib			5				;-- reserved (unused)
-			phdr			6				;-- program header table location
+			null			0				;-- ignore entry (PT_NULL)
+			load			1				;-- loadable segment (PT_LOAD)
+			dynamic			2				;-- dynamic linking information (PT_DYNAMIC)
+			interp			3				;-- interpreter path name (PT_INTERP)
+			note			4				;-- notes/comments (PT_NOTE)
+			shlib			5				;-- reserved (unused) (PT_SHLIB)
+			phdr			6				;-- program header table location (PT_PHDR)
 			lo-proc			#{70000000}		;-- reserved (proc-specific)
 			hi-proc			#{7FFFFFFF}		;-- reserved (proc-specific)
 		]
-		segment-flags [						;-- @@ missing from official docs ?!? @@
-			executable		1
-			write			2
-			read			4
+		segment-flags [						;-- (proc-specific)
+			executable		1				;-- (PF_X)
+			write			2				;-- (PF_W)
+			read			4				;-- (PF_R)
 		]
 		segment-access [
-			CODE			5				;-- [read executable]	; 1st part of LOAD segment
-			DATA			6				;-- [read write]		; 2nd part of LOAD segment
-			IMPORT			6				;-- [read write]		; DYNAMIC segment
+			code			5				;-- [read executable]	; 1st part of LOAD segment
+			data			6				;-- [read write]		; 2nd part of LOAD segment
+			import			6				;-- [read write]		; DYNAMIC segment
 		]
 		section-type [
-			null			0				;-- mark inactive section header
-			prog-bits		1				;-- flags
-			sym-tab			2				;-- symbol table (for link editing)
-			str-tab			3				;-- string table
-			rela			4				;-- relocations with addends
-			hash			5				;-- symbol hash table
-			dynamic			6				;-- dynamic linking
-			note			7				;-- notes/comments
-			no-bits			8				;-- ??
-			rel				9				;-- relocations without addends
-			shlib			10				;-- reserved (unused)
-			dyn-sym			11				;-- symbol table (dynamic linking)
+			null			0				;-- mark inactive section header (SHT_NULL)
+			prog-bits		1				;-- program-specific data (SHT_PROGBITS)
+			sym-tab			2				;-- symbol table (for link editing) (SHT_SYMTAB)
+			str-tab			3				;-- string table (SHT_STRTAB)
+			rela			4				;-- relocations with addends (SHT_RELA)
+			hash			5				;-- symbol hash table (SHT_HASH)
+			dynamic			6				;-- dynamic linking (SHT_DYNAMIC)
+			note			7				;-- notes/comments (SHT_NOTE)
+			no-bits			8				;-- program-specific data (SHT_NOBITS)
+			rel				9				;-- relocations without addends (SHT_REL)
+			shlib			10				;-- reserved (unused) (SHT_SHLIB)
+			dyn-sym			11				;-- symbol table (dynamic linking) (SHT_DYNSYM)
 			lo-proc			#{70000000}		;-- reserved (proc-specific)
 			hi-proc			#{7FFFFFFF}		;-- reserved (proc-specific)
 			lo-user			#{80000000}		;-- reserved (lower bound reserved indexes)
 			hi-user			#{8FFFFFFF}		;-- reserved (upper bound reserved indexes)
 		]
-		s-flags [
-			write			1				;-- writable data
-			alloc			2				;-- requires memory during program execution
-			exec			4				;-- executable code
-			mask-proc		#{F0000000}		;-- proc-specific semantics
+		section-flags [
+			write			1				;-- writable during program execution (SHF_WRITE)
+			alloc			2				;-- in memory during program execution (SHF_ALLOC)
+			exec			4				;-- executable code (SHF_EXECINSTR)
+			mask-proc		#{F0000000}		;-- mask bits for proc-specific semantics
 		]
 	]
 	
@@ -93,14 +96,14 @@ context [
 	code-ptr:	 0							;-- code entry point
 	data-ptr:	 0							;-- data virtual address
 
-	elf-header: make struct! [
-		ident-mag0			[char!]			;-- 0x7F
-		ident-mag1			[char!]			;-- "E"
-		ident-mag2			[char!]			;-- "L"
-		ident-mag3			[char!]			;-- "F"
-		ident-class			[char!]			;-- file class
-		ident-data			[char!]			;-- data encoding
-		ident-version		[char!]			;-- file version
+	elf-header: make struct! [				;-- (Elf32_Ehdr)
+		ident-mag0			[char!]			;-- 0x7F (EI_MAG0)
+		ident-mag1			[char!]			;-- "E" (EI_MAG1)
+		ident-mag2			[char!]			;-- "L" (EI_MAG2)
+		ident-mag3			[char!]			;-- "F" (EI_MAG3)
+		ident-class			[char!]			;-- file class (see DEFS/class)
+		ident-data			[char!]			;-- data encoding (see DEFS/encoding)
+		ident-version		[char!]			;-- file version (see DEFS/version)
 		ident-pad0			[char!]
 		ident-pad1			[integer!]
 		ident-pad2			[integer!]
@@ -109,17 +112,17 @@ context [
 		version				[integer!]
 		entry				[integer!]
 		phoff				[integer!]
-		shoff				[integer!]
+		shoff				[integer!]		;-- offset from the beginning of the file to the shdr table
 		flags				[integer!]
 		ehsize				[short]
 		phentsize			[short]
 		phnum				[short]
-		shentsize			[short]
-		shnum				[short]
+		shentsize			[short]			;-- the size in bytes of a shdr table entry (== shdr-size)
+		shnum				[short]			;-- how many entries the shdr table contains
 		shstrndx			[short]
 	] none
 
-	program-header: make struct! [
+	program-header: make struct! [			;-- (Elf32_Phdr)
 		type				[integer!]
 		offset				[integer!]
 		vaddr				[integer!]
@@ -200,7 +203,7 @@ context [
 		eh/ident-mag2:		#"L"
 		eh/ident-mag3:		#"F"
 		eh/ident-class:		to-char defs/class/c-32-bit
-		eh/ident-data:		to-char defs/encoding/LSB	;TBD: make it target-dependent
+		eh/ident-data:		to-char defs/encoding/two-lsb ;TBD: make it target-dependent
 		eh/ident-version:	to-char 1					;-- 0: invalid, 1: current
 		eh/type:			defs/file-type/executable	;TBD: switch on job/type
 		eh/machine:			machine/2
