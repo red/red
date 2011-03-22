@@ -25,6 +25,8 @@ system-dialect: context [
 		include-dirs: none
 		defs: make block! 100
 		
+		num-chars: charset "0123456789"
+		
 		init: does [
 			include-dirs: copy [%runtime/]
 			clear defs
@@ -38,9 +40,17 @@ system-dialect: context [
 			make error! reform ["Include File Access Error:" file]
 		]
 		
-		expand-string: func [src [string! binary!] /local s e][
+		expand-string: func [src [string! binary!] /local value s e][
 			if verbose > 0 [print "running string preprocessor..."]
-			; reserved for not-LOAD-able syntax support
+			
+			parse/all/case src [				;-- not-LOAD-able syntax support
+				any [
+					s: copy value 1 8 num-chars #"h" e: (		;-- literal hexadecimal support
+						e: change/part s to integer! to issue! value e
+					) :e
+					| skip
+				]
+			]
 		]
 		
 		expand-block: func [src [block!] /local blk rule name value s e][		
