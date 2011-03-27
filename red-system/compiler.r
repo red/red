@@ -142,11 +142,11 @@ system-dialect: context [
 		datatype: 	[
 			'int8! | 'int16! | 'int32! | 'integer! | 'int64! | 'uint8! | 'uint16! |
 			'uint32! | 'uint64! | 'hexa! | 'pointer! | 'binary! | 'string! 
-			| 'struct! word!
+			| 'struct! word!	;@@ 
 		]
 		
 		reserved-words: [
-			&			 [comp-pointer]
+			;&			 [comp-pointer]
 			as			 [comp-as]
 			size? 		 [comp-size?]
 			if			 [comp-if]

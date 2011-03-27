@@ -1,0 +1,835 @@
+Red/System Language Specifications (working draft)
+
+	Author: Nenad Rakocevic
+	Date: 21/03/2011
+	Revision: 1
+	Status: working draft
+	Home: <a href="http://www.red-lang.org">red-lang.org</a>
+
+===Abstract
+
+Red/System is a dialect (<a href="http://fr.wikipedia.org/wiki/Domain-specific_programming_language">DSL</a>) of the Red programming language. Its purpose is to provide:
+
+*low-level system programming capabilities
+
+*a tool to build Red's runtime low-level library
+
+*a tool to link code and produce executables
+
+Red/System can be seen as a C-level language with memory pointers support and a very basic and limited set of datatypes.
+
+<u>Implementation note</u>: It is currently provided with a complete tool-chain generating executables from source files. This is a temporary state as Red/System will live inside Red, so will be embedded in Red scripts.
+
+===Syntax
+
+The syntax is the same as the one used by REBOL language, as the lexer (<a href="http://www.rebol.com/docs/words/wload.html">LOAD</a>) is currently provided by REBOL during the bootstrapping phase. The REBOL syntax doesn't have a formal specification nor an exhaustive documentation, just a superficial description, but it is enough to work with. See:
+
+*<a href="http://www.rebol.com/docs/core23/rebolcore-3.html">http://www.rebol.com/docs/core23/rebolcore-3.html</a>
+
+*<a href="http://www.rebol.com/r3/docs/guide/code-syntax.html">http://www.rebol.com/r3/docs/guide/code-syntax.html</a>
+
+A complete syntax specification for both Red and Red/System will be provided during the implementation of the Red language layer.
+
+For now, Red/System uses 8-bit characters encoding (ASCII). Once proper Unicode support will be provided by the Red language layer, Red/System will switch to UTF-8 source encoding.
+
+---Comments
+
+ ;this is a commented line
+
+ print "hello world"    ; this is another comment
+
+ comment {
+     This is a
+     multiline
+     comment
+ }
+
+===Variables
+
+Variables are labels used to represent a memory location. The labels (called <b>identifiers</b> from now) are formed by sequences of printable characters without any blank (space, newlines or tabulation). Printable characters are defined as any one-byte character in the 20h-FFh range that can be printed out in system's console excepting the following ones (used as delimiters or reserved for some datatypes literals): 
+
+ [ ] { } " ( ) / @ # $ % ^ , : ;
+    
+There is also a restriction on the first character, the following characters are forbidden in the first position, but allowed at other positions:
+
+ 0 1 2 3 4 5 6 7 8 9
+ 
+All identifiers (variables and function names) are <u>case-insensitive</u>.
+
+---Set a value
+
+Variables can hold any value of the available datatypes. This can be the real value (like for integer! or pointer!) or a reference to the real value (like for struct! or string!). To assign a value to a variable, use a column character at the end of the variable identifier.
+
+ foo: 123
+ bar: "hello"
+
+\note Multiple assignments
+Multiple assignments, like a: b: 123, are not supported in Red/System. Such feature could be added in the future if required.
+
+/note
+
+---Get a value
+
+Just use the variable without any decoration to get its value or to pass it as a function's argument.
+
+ bar: "hello"
+ print bar
+
+will output:
+ hello
+ 
+---Variable's type
+
+Variables do have a type. Global variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Functions variables always require a declaration that specify its type. For example:
+
+ foo: 123
+ bar: "hello"
+ size: length? bar
+ id: GetProcessID						;-- 'GetProcessID would return an integer!
+ 
+are valid variable usages.
+
+Allowed types are:
+
+*integer!
+
+*pointer!
+
+*string!
+
+*struct!
+
+
+
+===Datatypes
+
+---Integer!
+
++++Syntax
+
+ decimal form          :  1234
+
+ decimal negative form : -1234
+
+ hexadecimal form      :  4D2h
+
+Integer datatype represents natural and negative natural numbers. The memory size of an integer is 32 bits, so the range of supported numbers is : 
+
+ -2147483648 to 2147483647
+    
++++Alternative literal formats
+
+<b>Character format</b>
+
+Used to represent only byte range from 0 to 255. Examples of some character representations
+
+ #"a"
+ #"A"
+ #"5"
+ #"^A"
+ #"^(1A)"
+ #"^(back)"
+ 
+See <a href="http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1">http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1</a> for a more complete description of this format.
+
+\note Character as input format only
+The character literal format is a syntactic sugar offered by Red/System to represent bytes in source code in a more readable way. During the lexical analysis, all character literals are replaced by their ASCII value.
+
+/note
+
+<b>Hexadecimal format</b>
+
+Hexadecimal integer representation is mostly used to represent memory addresses or binary data for boolean operations. As for character, all hexadecimal literals found in sources are converted to their integer decimal value during lexical analysis. Allowed range is:
+    
+ 00000000h to FFFFFFFFh
+
+\note Hex literal form design decision
+The 0x prefix is often used to mark a literal hexadecimal value. It could have been used in Red/System too if the &lt;number&gt;x&lt;number&gt; literal form wasn't reserved in Red for the pair! datatype. As Red/System is a dialect of Red, it has to use the same representation for hex values, so <b>&lt;hexa&gt;h</b> was chosen instead.
+
+/note
+
+---Pointer!
+
+Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. 
+
+<u>Implementation note</u>: The memory size of a pointer is 4 bytes on 32-bit systems (and 8 bytes on 64-bit systems).
+
++++Declaration
+
+ &[<datatype> <address>]
+
+ <datatype>: integer! | pointer! [<datatype>] | string! | struct! [<members>]
+ <address> : initial memory address to point to (integer!)
+
+Declaration examples (with C equivalents):
+
+ p: &[integer! 0]						;-- int *p = 0;
+ p: &[string! 0]						;-- char *p = 0;
+ p: &[pointer! [string!] 0]				;-- char **p = 0
+ p: &[struct! [count [integer!]] 0]		;-- struct {int count;} *p = 0;
+ 
+<u>Note</u>: Pointer! and struct! values require an additional specification block.
+
++++Dereferencing
+
+Dereferencing a pointer is the operation allowing to access the pointed value. In Red/System, it is achieved by adding a <b>/value</b> refinement to the pointer variable (called more generally "path notation"):
+
+ <pointer>/value						;-- read access
+ <pointer>/value: <value>				;-- write access
+
+ <pointer> : pointer variable
+ <value>   : a value of same type as in pointer's definition
+
+Usage example
+
+ p:   &[integer! 4000000h]				;-- declare a pointer on an integer
+ bar: &[integer! 0]						;-- declare another pointer on an integer
+
+ p/value: 1234 							;-- write 1234 at address 40000000h
+ foo: p/value							;-- read pointed value back
+ bar: p									;-- assign pointer address to 'bar
+ 
+<u>Note</u>: Remember that a pointed value is undefined (can contain an arbitrary value) until you define it explicitly  
+
++++Pointer Arithmetic
+
+It is possible to apply some simple math operations on pointer like additions and subtractions (as in C). Pointer address would be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
+
+ p: &[integer! 4000000h]				;-- pointed value memory size is 4 bytes
+ p: p + 1								;-- p points now to 40000004h
+ p: p + 1								;-- p points now to 40000008h
+
+Another example with a bigger pointed value:
+
+ p: &[struct! [							;-- value memory size is 8 bytes
+ 		a [integer!]
+ 		b [pointer!]
+ 	]
+ 	4000000h
+ ]
+ p: p - 1								;-- p points now to 3FFFFFF8h 
+
+
+---String!
+
+A string! value is a sequence of not-null bytes terminated by a null byte. A string variable holds the address of the first byte of the string. A string having a null character as first byte is an empty string.
+
++++Syntax
+
+Literal strings are defined using double quotes delimiters or a pair of matching curly braces:
+
+ foo: "I am a string"
+ bar: {I am
+   a multiline
+   string
+ }
+ 
+\note String null byte ending
+You don't have to add a null byte to literal strings, it is added automatically during compilation.
+
+/note
+
++++String length
+
+It is possible to retrieve the number of bytes (<b>excluding the null</b> end marker) in a string at runtime using the LENGTH? function:
+
+ a: length? "Hello"						;-- here length? will return 5
+ 
+\noteLength? vs Size?
+Do not confuse the LENGTH? function with the SIZE? function (see ...)
+
+/note
+
++++Accessing bytes
+
+It is possible to access individual bytes in a string using path notations:
+
+ <string>/integer!						;-- literal integer index provided
+ <string>/<index>						;-- index provided by a variable
+
+ <string> : a string variable
+ <index>  : an integer variable
+
+Examples:
+
+ foo: "I am a string"
+ foo/1  =>  73							;-- ASCII code of "I"
+ foo/2  =>  32							;-- ASCII code of a space
+ ...
+ foo/13 => 103							;-- ASCII code of "g"
+ foo/14 =>   0							;-- ASCII code of null (end marker)
+ 
+<u>Note</u>: In contrary to the C language, indexes in Red/System are <u><b>one-based</b></u>.
+
+Example of a variable used as index:
+
+ c: 4
+ foo/c  => 109							;-- ASCII code of "m"
+
+A simple way to traverse a string would be:
+
+ foo: "I am a string"
+ c: 1
+ until [
+ 	prin form-char foo/c
+ 	c: c + 1
+ 	zero? foo/c
+ ]
+ 
+will output:
+ I am a string
+
+Similary, it is also possible to write bytes using path notation with an ending colon:
+
+ <string>/integer!:	<value>				;-- literal integer index provided
+ <string>/<index>:	<value>				;-- index provided by a variable
+
+ <string> : a string variable
+ <index>  : an integer variable
+ <value>  : a 8-bit integer value
+
+For example:
+
+ foo: "I am a string"
+ foo/3: #"-"
+ c: 4
+ foo/c: #"-"
+ print foo
+ 
+will output
+ I -- a string
+
+---Struct!
+
+Struct! datatype is roughly equivalent to C struct type. It is a record of one or several values, each value having its own datatype.
+
+<u>Implementation note</u>: Struct! values are <u>padded</u> (at tail) in memory in order to preserve optimal alignment for each target (for example, it is aligned to 4 bytes for IA32 target). SIZE? function will return the size of the struct! value in memory without the eventual padding .
+
++++Declaration
+
+Declaring a struct! value is achieved by using the STRUCT keyword followed by a specification block. That block defines struct! value members using pairs of name and datatype definition.
+
+ struct [
+ 	<member> [<datatype>]
+ 	...
+ ]
+ 
+ <member>   : a valid identifier
+ <datatype> : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+
++++Usage
+
+ s: struct [
+ 	a 	[integer!]
+ 	b	[string!]
+ 	c 	[struct! [d [integer!]]]
+ ]
+ 
+In this example, the struct value has 3 members: a, b, c, each with a different datatype.
+
+Remember that struct! values are always passed by reference to other variables and functions:
+
+ foo: s									;-- assign 's struct address to 'foo
+ bar s									;-- pass 's struct address as argument
+ 
+\notePassing by value?
+There is currently no way to pass a struct! data as value to a function or to copy it within another variable. If the need for such feature arises, this specification will be extended to support it.
+
+/note
+
++++Accessing members
+
+Member access is achieved using path notation. Syntax is:
+
+ <struct>/<member>						;-- read access
+ <struct>/<member>: <value>				;-- write access
+
+ <struct>  : a valid struct variable
+ <member>  : a valid member identifier in <struct>
+ <value>   : a value of same datatype as <member>
+
+
+From last example, that would give:
+
+ foo: s/a								;-- reading member 'a in struct 's
+ s/a: 123								;-- writing a value in member 'a in struct 's
+ s/b: "hello"
+ bar: s/c/d								;-- deep read/write access is also possible
+
++++Aliases
+
+Struct! values definitions tend to be quite long, so in some cases, when struct! definitions are required to be inserted in other struct! definitions or in functions specification block, it is possible to use an alias name to reference a struct! definition through the source code. It also allows to solve the self-referencing case quite simply.
+
+<u>Note</u>: remember that an alias is not a value, it doesn't take any space in memory, it can be seen as a <i>virtual datatype</i>. So, by convention, alias names should end with a exclamation mark, in order to distinguish them more easily from variables in the source code.
+
+Aliasing syntax:
+
+ <name>: alias-type struct! [
+ 	<member> [<datatype>]
+ 	...
+ ]
+ 
+ <name>     : the name to use as alias
+ <member>   : a valid identifier
+ <datatype> : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+ 
+Usage example:
+
+ book!: alias-type struct! [			;-- defines a new aliased type
+ 	title		[string!]
+ 	author	 	[string!]
+ 	year		[integer!]
+ 	last-book 	[book!]					;-- self-referenced definition
+ ]
+
+ gift: struct [
+ 	first  [book!]
+ 	second [book!]
+ ]
+ b: gift/first
+
+ b/title:  "Contact"
+ b/author: "Carl Sagan"
+ b/year:   1985
+ 
+\noteAlias-type keyword
+The keyword ALIAS-TYPE might be change in the future for a shorter form like ALIAS.
+
+/note
+
+---Type Casting
+
+Type casting is possible between value of compatible types. Compatible types are defined as types which values memory size is equal. Casting is achieved using the <b>AS</b> keyword followed by the target type and the value to cast.
+
+<u>Note</u>: Trying to assign a value to a variable of incompatible type will result in a compilation error. The same action with a compatible type will trigger a compilation warning, asking to add explicit casting or fix the issue if casting was not intended.
+
+Syntax:
+
+ as <new-type> value
+
+ <new-type> : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+
+Example:
+
+ foo: 0									;-- foo is an integer
+ bar: &[pointer! [string!]]				;-- bar is a pointer
+
+ foo: as integer! bar					;-- explicit type casting
+ bar: as [pointer! [string!]] foo		;-- complex type is passed as a block
+
+===Expressions
+
+
+===Functions
+
+Function definition and usage is pretty straightforward in Red/System. The function specification block contains all the definitions required by the function. This includes:
+
+*calling arguments
+
+*optional returned value type
+
+*local variables
+
+---Declaration
+
+<b>Syntax</b>
+
+ <name>: func | function [
+ 	<argument> [<datatype>]
+ 	...
+ 	return: [<datatype>]				;-- returned value type (optional part)
+ 	/local								;-- local variables (optional part)
+ 	<local> [<datatype>]
+ 	...
+ ][
+ 	<body>
+ ]
+
+ <name>		: function's name
+ <argument>	: function's argument indentifier
+ <datatype>	: integer! | pointer! [<datatype>] | string! | struct! [<members>]
+ <local>	: local variable
+ <body>		: function's body code
+
+<b>Examples</b>
+
+ hello: func [][print "hello"]			;-- no arguments, no locals, no return value
+
+ why?: func [return: [integer!]][42]	;-- minimal function returning an integer
+
+ inc: func [							;-- increment an integer
+ 	a 		[integer!]
+ 	return: [integer!]
+ ][
+ 	a + 1								;-- last value is returned
+ ]
+
+ percent?: func [						;-- return relative percentage of a / b
+ 	a [integer!]
+ 	b [integer!]
+ 	return: [integer!]
+ 	/local								;-- declare local variables
+ 	c [integer!]
+ ][
+ 	c: 100
+ 	a * c / b
+ ]
+
+---Return value
+
+Any function is able to return a value if necessary. This is trivially achieved as last expression in function's body will be automatically returned if:
+
+*a RETURN: statement is present in function's spec block
+
+*last expression datatype matches the one declared after the RETURN: statement
+
+---Calling a function
+
+Calling a function is achieved by writing its name followed by the required number of arguments.
+
+<i>(from the previous examples)</i>
+ hello									;-- will print "hello" in the standard output
+
+ answer: why?							;-- will return 42 in variable 'answer
+
+ foo: 4
+ foo: inc foo							;-- foo holds 5 after the call to 'inc
+
+ bar: percent? 3 4						;-- bar holds 75
+ 
+It is also possible to pipe several function calls together:
+
+ foo: percent? 11 inc inc why?			;-- will return 25 in foo
+
+---Premature exiting
+
+Exiting at function's end is not always desirable. Sometimes, conditional premature exiting from the function is required. This can be done using EXIT or RETURN special keywords.
+
++++Exit
+
+Quits immediatly the function.
+
+ test: func [a [integer!]][
+ 	if zero? a [exit]					;-- exit the function here if a = 0
+ 	...									;-- if a <> 0, continue processing...
+ ]
+ 
+ 
++++Return
+ 
+Quits immediatly the function and returns a value.
+
+ test: func [
+ 	a [integer!]
+ 	return: [string!]
+ ][
+ 	if zero? a [
+ 		return "Not allowed"			;-- exit the function here if a = 0
+ 	]
+ 	"ok"								;-- return "ok" if a <> 0
+ ]
+
+
+===Scoping
+
+In Red/System, variables are statically scoped. The place in source code where a variable is declared determines its scope. 
+
+---Global Context
+
+Global context is defined as the global namespace where all global variables and functions are defined. This context is unique. As a simple rule, every variable not declared in a function is a global variable bound to global context.
+
+Example:
+
+ foo: 123								;-- global variable
+
+ f: func [/local bar [integer!]][
+ 	bar: 123							;-- locally scoped variable
+ ]
+
+---Functions Contexts
+
+Each defined function has its own local context. Variables declared in function's definition block are locally scoped and can't be accessed outside of the function's body. On the other hand, global variable can be referenced and modified from functions. If a local variable has the same name as a global one, the local one will take precedence in function's body. The value of the homonym global variable won't be affected by local redefinitions in functions contexts.
+
+Example:
+
+ foo: 1									;-- global variable
+ var: 2
+
+ f: func [
+ 	return:    [integer!]
+ 	/local 
+ 		bar [integer!]
+ ][
+ 	bar: 3
+ 	foo + var + bar						;-- will return 6
+ ]
+
+ f: func [
+ 	return:    [integer!]
+ 	/local 
+ 		bar [integer!]
+ 		var [integer!]
+ ][
+ 	bar: 3
+ 	var: 10								;-- 'var is a local variable here
+ 	foo + var + bar						;-- will return 14
+ ]
+
+
+
+===Compiler directives
+
+Some features of Red/System need to be processed at compile-time rather than at runtime. This is especially true for features related to the linking phase that builds the executable file. In order to distinguish such compile-time commands or options, compiler directive are introduced. Their syntax is:
+
+ #<directive> <argument1> <argument2> ...
+
+ <directive> : a valid identifier
+ <argument*> : argument can be any Red valid datatype
+ 
+The number of argument is specific to each compiler directive.
+ 
+<u>Implementation note</u>: Directives arguments datatype set is the one provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
+
+
+===Importing External Libraries
+
+---#import
+
+Red/System is able to dynamically load external shared libraries when a Red/System executable is loaded by the operating system. This requires that the programmer gives instructions to the compiler about which library to load and how to map library's functions to Red/System global context. This feature is called "library import" in Red/System and it is supported by a specific compiler directive: <b>#import</b>. This directive can be used anywhere in the global context of your Red/System program, but pay attention to put it <i>before</i> you use one of the mapped functions, else a compiler error will be raised. This directive can be used multiple times in your source code if it makes it more readable. If there is a huge number of functions to imports, putting them in separate includes files would be considered as a good practice.
+
+<u>Note</u>: this is not the same as dynamically loading a shared library from your Red/System code after your program has started. Such approach allows you to delay the loading of your libraries and to free them. Imports cannot be freed.
+
+<b>Syntax</b>
+
+ #import [
+ 	"<library>" <convention> [
+ 		<function name>: "<ID>" [
+ 			<argument> [<datatype>]
+ 			...
+ 			return: [<datatype>]		;-- optional part
+ 		]
+ 		...								;-- more functions mappings
+ 	]
+ 	...									;-- more libraries to load					
+ ]
+
+ <library>		 : shared library file name (with extension)
+ <convention>	 : calling convention of the library (stdcall | cdecl)
+ <function name> : name of the mapped function in global context
+ <ID>			 : identifier of the function in the shared library
+ <argument>		 : function's argument indentifier
+ <datatype>		 : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+
+The <b>RETURN:</b> statement indicates that the mapped function has a return value.
+
+There's no limitation on the number of libraries or functions that can be declared this way.
+
+Supported calling conventions are:
+
+*<a href="http://en.wikipedia.org/wiki/X86_calling_conventions#stdcall">stdcall</a>: used mostly by Windows API (but can be also used by third-party DLLs)
+
+*<a href="http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl">cdecl</a>: default calling convention used by C shared libraries.
+
+<b>Usage</b>
+
+The following example is Windows-specific. 
+
+ #import [
+ 	"kernel32.dll" stdcall [
+ 		process-id?: "GetCurrentProcessId" [
+ 			return: [integer!]
+ 		]
+ 		get-env: "GetEnvironmentVariableA" [
+ 			name 	[string!]
+ 			buffer	[string!]
+ 			size	[integer!]
+ 			return: [integer!]
+ 		]
+ 	]
+ 	"msvcrt.dll" stdcall [
+ 		malloc: "malloc" [
+ 			size 	[integer!]
+ 			return: [string!]
+ 		]
+ 		free: "free" [
+ 			block	[string!]
+ 		]
+ 	]
+ ]
+
+ pid: process-id?
+
+ max-size: 128
+ buf: malloc  max-size						;-- allocate space for 127 characters
+
+ get-env "windir" buf  max-size
+
+ print buf
+ free buf
+ 
+would output:
+
+ C:\Windows
+
+
+---#syscall
+
+As Red/System is destined to be used mostly for low-level system programming, <a href="http://en.wikipedia.org/wiki/System_call">syscalls</a> mappings are also supported using the <b>#syscall</b> compiler directive.
+
+<b>Syntax</b>
+
+ #syscall [
+ 	<function name>: <ID> [
+  		<argument> [<datatype>]
+		...
+		return: [<datatype>]		;-- optional part
+	]
+	...								;-- more functions mappings
+ ]
+ 
+  <function name> : name of the mapped function in global context
+  <ID>			  : syscall integer ID
+  <argument>	  : syscall's argument indentifier
+  <datatype>	  : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+
+The <b>RETURN:</b> statement indicates that the mapped syscall has a return value.
+
+There's no limitation on the number of syscallsthat can be declared this way.
+
+<b>Usage</b>
+
+The following example is Linux-specific, but should work with most UNIX systems.
+
+ #syscall [
+	write: 4 [
+		fd		[integer!]			;-- file descriptor, STDOUT = 1
+		buffer	[string!]
+		count	[integer!]
+		return: [integer!]
+	]
+	quit: 1 [						;-- "exit" syscall, no return value
+		status	[integer!]
+	]
+ ]
+
+ msg: "Hello World"
+ result: write 1 msg length? msg
+ if negative? result [
+ 	print "Error: write failed"	
+ 	quit 3							;-- exit and return an error code
+ ]
+ quit 0								;-- no error
+
+will output (if no error):
+
+ Hello World
+ 
+===Source Processing
+
+Red/System relies on a preprocessor to make compile-time modifications of the source code in order to provide syntactic sugars, like hexadecimal and character literal forms for integers. Some features are controlled by user using compiler directives like <b>#define</b> or <b>#include</b>.
+
+---#define
+
+The <b>#define</b> compiler directive is a rudimentary macro system that can be used to:
+
+*define constant values
+
+*make simple macro expressions
+
+<b>Syntax</b>
+
+ #define <name> <value>
+
+ <name>	 : identifier to use in the source code
+ <value> : single value or block of values to replace in the source code
+ 
+<b>Usage</b>
+
+ #define R_PART	ff0000h				;-- simple constants definitions
+ #define G_PART	00ff00h
+ #define B_PART 0000ffh
+ #define zero?  [0 =]				;-- simple test expression macro
+
+ color: 550063h
+
+ if zero? (R_PART and color) [
+ 	print "no Red found"
+ ]
+ if zero? (G_PART and color) [
+  	print "no Green found"
+ ]
+ if zero? (B_PART and color) [
+  	print "no Blue found"
+ ]
+ 
+will output:
+
+ no Green
+ 
+<u>Note</u>: Parenthesis are required in this example on tests expression to make the second infix expression processed first before the equal operator.
+ 
+
+---#include
+
+===Source code organization
+
+---Header
+
+---Source code
+
+---Coding guidelines
+
+<i>TBD</i>
+
+===Integration in Red
+
+===API Reference
+
+---Reserved keywords
+
+---Infix operators
+
++++Math operators
+
++++Logic operators
+
++++Comparison operators
+
+---Control flow functions
+
+===Possible Evolutions
+
++++Variables
+
+*Add support for multiple assignments, like a: b: c: 0
+
++++Pointers
+
+*Accept boolean operations on pointers: OR, XOR, AND
+
++++Strings
+
+*Add a FOREACH control flow function to traverse strings:
+A simple way to traverse a string could be:
+
+ foo: "I am a string"
+ foreach c foo [prin c]
+ 
+will output:
+ I am a string
+ 
++++New datatypes
+
+*<b>Binary!</b>: this datatype was reserved early in the compiler's datatypes list, but not implemented. Its purpose was just to provide literal input/output forms in hexadecimal for string values. A standalone datatype for such purpose might be avoidable, hence the delayed implementation.
+ 
+===Document History
+
+*28/03/2011 - draft 1
+
+*>First public release
+
+###
+
+REBOL []
+md: load %makedoc2.r
+do/args md system/script/args: system/options/script
