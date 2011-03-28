@@ -8,7 +8,7 @@ Red/System Language Specifications (working draft)
 
 ===Abstract
 
-Red/System is a dialect (<a href="http://fr.wikipedia.org/wiki/Domain-specific_programming_language">DSL</a>) of the Red programming language. Its purpose is to provide:
+Red/System is a dialect (<a href="http://fr.wikipedia.org/wiki/Domain-specific_programming_language" target="_new">DSL</a>) of the Red programming language. Its purpose is to provide:
 
 *low-level system programming capabilities
 
@@ -22,11 +22,11 @@ Red/System can be seen as a C-level language with memory pointers support and a 
 
 ===Syntax
 
-The syntax is the same as the one used by REBOL language, as the lexer (<a href="http://www.rebol.com/docs/words/wload.html">LOAD</a>) is currently provided by REBOL during the bootstrapping phase. The REBOL syntax doesn't have a formal specification nor an exhaustive documentation, just a superficial description, but it is enough to work with. See:
+The syntax is almost the same as the one used by REBOL language, as the lexer (<a href="http://www.rebol.com/docs/words/wload.html" target="_new">LOAD</a>) is currently provided by REBOL during the bootstrapping phase. The REBOL syntax doesn't have a formal specification nor an exhaustive documentation, just a superficial description, but it is enough to work with. See:
 
-*<a href="http://www.rebol.com/docs/core23/rebolcore-3.html">http://www.rebol.com/docs/core23/rebolcore-3.html</a>
+*<a href="http://www.rebol.com/docs/core23/rebolcore-3.html" target="_new">http://www.rebol.com/docs/core23/rebolcore-3.html</a> (There is a typo in the table, all literals are missing a caret (^) character after the first quote)
 
-*<a href="http://www.rebol.com/r3/docs/guide/code-syntax.html">http://www.rebol.com/r3/docs/guide/code-syntax.html</a>
+*<a href="http://www.rebol.com/r3/docs/guide/code-syntax.html" target="_new">http://www.rebol.com/r3/docs/guide/code-syntax.html</a>
 
 A complete syntax specification for both Red and Red/System will be provided during the implementation of the Red language layer.
 
@@ -130,7 +130,7 @@ Used to represent only byte range from 0 to 255. Examples of some character repr
  #"^(1A)"
  #"^(back)"
  
-See <a href="http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1">http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1</a> for a more complete description of this format.
+See <a href="http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1" target="_new">http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1</a> for a more complete description of this format.
 
 \note Character as input format only
 The character literal format is a syntactic sugar offered by Red/System to represent bytes in source code in a more readable way. During the lexical analysis, all character literals are replaced by their ASCII value.
@@ -271,7 +271,7 @@ A simple way to traverse a string would be:
  foo: "I am a string"
  c: 1
  until [
- 	prin form-char foo/c
+ 	prin form foo/c					;-- form would convert an ASCII code to a string
  	c: c + 1
  	zero? foo/c
  ]
@@ -419,6 +419,7 @@ Example:
 
 ===Expressions
 
+<i>TBD</i>
 
 ===Functions
 
@@ -581,10 +582,10 @@ Example:
 
 Some features of Red/System need to be processed at compile-time rather than at runtime. This is especially true for features related to the linking phase that builds the executable file. In order to distinguish such compile-time commands or options, compiler directive are introduced. Their syntax is:
 
- #<directive> <argument1> <argument2> ...
+ #<directive> <argument-1> <argument-2> ...
 
- <directive> : a valid identifier
- <argument*> : argument can be any Red valid datatype
+ <directive>  : a valid identifier
+ <argument-*> : argument can be any Red valid datatype
  
 The number of argument is specific to each compiler directive.
  
@@ -626,9 +627,9 @@ There's no limitation on the number of libraries or functions that can be declar
 
 Supported calling conventions are:
 
-*<a href="http://en.wikipedia.org/wiki/X86_calling_conventions#stdcall">stdcall</a>: used mostly by Windows API (but can be also used by third-party DLLs)
+*<a href="http://en.wikipedia.org/wiki/X86_calling_conventions#stdcall" target="_new">stdcall</a>: used mostly by Windows API (but can be also used by third-party DLLs)
 
-*<a href="http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl">cdecl</a>: default calling convention used by C shared libraries.
+*<a href="http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl" target="_new">cdecl</a>: default calling convention used by C shared libraries.
 
 <b>Usage</b>
 
@@ -674,7 +675,7 @@ would output:
 
 ---#syscall
 
-As Red/System is destined to be used mostly for low-level system programming, <a href="http://en.wikipedia.org/wiki/System_call">syscalls</a> mappings are also supported using the <b>#syscall</b> compiler directive.
+As Red/System is destined to be used mostly for low-level system programming, <a href="http://en.wikipedia.org/wiki/System_call" target="_new">syscalls</a> mappings are also supported using the <b>#syscall</b> compiler directive.
 
 <b>Syntax</b>
 
@@ -736,6 +737,8 @@ The <b>#define</b> compiler directive is a rudimentary macro system that can be 
 
 *make simple macro expressions
 
+The name matching method is exact word matching. This ensures that no accidental source code corruption can occur.
+
 <b>Syntax</b>
 
  #define <name> <value>
@@ -766,16 +769,145 @@ will output:
 
  no Green
  
-<u>Note</u>: Parenthesis are required in this example on tests expression to make the second infix expression processed first before the equal operator.
+<u>Note</u>: Parens are required in this example on tests expression to make the second infix expression processed first before the equal operator.
  
-
 ---#include
+
+The <b>#include</b> compiler directive will insert the target source file at the current position in the calling source code.
+
+This directive helps split the source code in several files, allowing for example, to put common functions or definitions in a single place and including them where required, across several source files or across different projects.
+
+
+<b>Syntax</b>
+
+ #include %<file>
+
+ <file> : relative or full path to a Red/System source file
+ 
+\note Filename format
+The filename must be written using the OS-independent REBOL file! format, which is documented <a href="http://www.rebol.com/docs/core23/rebolcore-12.html#section-2" target="_new">here</a>.
+
+/note
+
+<b>Usage</b>
+
+Rewriting the example from <i>#include</i> section:
+
+ definitions.reds file:
+
+     #define R_PART	ff0000h	
+ 	 #define G_PART	00ff00h
+ 	 #define B_PART 0000ffh
+ 	 #define zero?  [0 =]
+
+ 	 test-primary: func [
+ 	 	color [integer!]
+ 	 	mask  [integer!]
+ 	 	msg   [string!]
+ 	 ][
+ 	 	if zero? (color and mask) [
+ 	 	 	print msg
+ 	 	]
+ 	 ]
+
+ main.reds file:
+
+     #include %definitions.reds
+
+ 	 color: 550063h
+
+	 test-primary color R_PART "no Red found"
+	 test-primary color G_PART "no Green found"
+	 test-primary color B_PART "no Blue found"
 
 ===Source code organization
 
+---Source files suffix
+
+The official Red/System source file suffix to use is: <b>.reds</b>
+
 ---Header
 
----Source code
+Red/System enforces the usage of a standard header for all sources (this one of the great ideas in REBOL), to both identify a valid Red/System program and document it.
+
+<b>Syntax</b>
+
+A valid Red/System source file will need this header:
+
+ Red/System [
+  <name>: <value>
+  ...								;-- more attributes...
+ ]
+
+ <name>  : valid identifier
+ <value> : any Red valid datatype
+ 
+There is no minimum or maximum of entries a valid header can contain, so an empty block will be also valid (but bad practice).
+ 
+<u>Implementation note</u>: Header values types are the ones provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
+
+The attribute that you can specify are not limited, you can add whatever you want/need. Anyway, some attribute names are used by convention:
+
+*<b>Title</b>:	application title
+
+*<b>Purpose</b>: short description of the application purpose
+
+*<b>Author</b>: source code author name
+
+*<b>File</b>: name of the source file
+
+*<b>Version</b>: source code version (usually using a <a href="http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.9" target="_new">tuple! literal</a>)
+
+*<b>Date</b>: date of last version
+
+*<b>Rights</b>: copyrights
+
+*<b>License</b>: source license (URL or full text)
+
+*<b>History</b>: source modifications history
+
+*<b>Note(s)</b>: any special notice
+
+
+<b>Example</b>
+
+ Red/System [
+ 	Title:   "Red/System small demo app"
+ 	Author:  "Nenad Rakocevic"
+ 	File: 	 %hello.reds
+ 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+ 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/COPYING"
+ ]
+
+---Code flow layout
+
+A typical Red/System program is a mix of function definitions and global code (means executable code not in a function). There is no concept of "main" function in Red/System. The only entry point is the beginning of the source code and the exiting point is at the end of the source code, or at a QUIT call if encountered before. 
+
+Example:
+ 
+ foo: 123
+ print "hello"
+
+ bar: func [a [integer!]][foo * 2]
+ 
+ foo-twice: bar foo
+
+ either foo < 100 [
+ 	print "less than 100"
+ ][
+	print "more than 100"
+ ]
+
+ bye: func [][print "goodbye"]
+
+ bye
+
+So, it's possible to mix functions and global code providing that functions are defined before they are call from global context. Such restriction doesn't apply if the call is made from a function context, so cross-references like these:
+
+ foo: func [...][...bar...]
+ bar: func [...][...foo...]
+ 
+can be processed without issues.
 
 ---Coding guidelines
 
@@ -783,31 +915,274 @@ will output:
 
 ===Integration in Red
 
+As a dialect of Red, Red/System code will be callable from Red source code directly using one of these two methods:
+
+<b>At runtime</b>: using the <b>DO</b> function with refinement:
+
+	do/system [...Red/System code...]
+	
+<b>At compile-time</b>: using a Red compiler directive:
+
+	#system [...Red/System code...]
+	
+\note Red/System functions export
+It will be possible to export some Red/System functions to be callable from the Red language layer. The method for such export hasn't been decided yet. Among possible options, it can be:
+
+*A special attribute in header that will list the functions to export
+
+*A function's attribute in the specification block
+
+*A compiler directive
+
+/note
+
 ===API Reference
 
 ---Reserved keywords
 
+The list of following keywords are reserved, they cannot be used as variables:
+
+ alias-type		all			and
+ any			as			either
+ forever		func		function
+ if				length?		negative?
+ newline		not			null
+ or				positive?	prin
+ print			quit		size?
+ stdout			struct		struct!
+ until			while		xor
+ zero?
+
 ---Infix operators
+
+Infix operators take two arguments and are positioned between them.
 
 +++Math operators
 
+The following math operations apply on integer values. When the operation results in an exceeded memory storage limit, <i>behaviour to be defined</i>. 
+
+<b>Addition</b>: +
+
+ <value> + <value>
+
+<b>Subtraction</b>: -
+
+ <value> - <value>
+
+<b>Multiplication</b>: *
+
+ <value> * <value>
+
+<b>Division</b>: /
+
+ <value> / <value>
+ 
+<b>Modulo</b>: //
+
+ <value> // <value>
+
+where
+
+ <value> : an integer (literal, variable, function return value)
+ 
+<u>Note:</u> for + and - operators, pointer! value can be used as first argument with an integer (literal, variable, function return value)
+
 +++Logic operators
+
+<b>Logical OR</b>: or
+
+ <value> or <value>
+
+<b>Logical XOR</b>: xor
+
+ <value> xor <value>
+
+<b>Logical AND</b>: and
+
+ <value> and <value>
+ 
+where
+ 
+ <value> : an integer (literal, variable, function return value)
 
 +++Comparison operators
 
+These operators can be used only where a condition is allowed. See "Control flow functions" section for a list of functions using conditions.
+
+<b>Equal</b>: =
+
+ <value> = <value>
+ 
+<b>Not equal</b>: <>
+
+ <value> <> <value>
+ 
+<b>Greater than</b>: >
+ 
+ <value> > <value>
+ 
+<b>Lesser than</b>: <
+ 
+ <value> < <value>
+ 
+<b>Greater than or equal</b>: >=
+ 
+ <value> >= <value>
+ 
+<b>Lesser than or equal</b>: <=
+ 
+ <value> <= <value>
+
++++Precedence rule
+
+<i>TBD here or in "Expressions" chapter</i>
+
 ---Control flow functions
+
++++IF
+
+Execute a block of code if a given condition is met.
+
+<b>Syntax</b>
+
+ if <condition> [<code>]
+
+ <condition> : a conditional expression
+ <code>		 : code to execute if the condition is met
+
+<b>Example</b>
+
+ if a < 0 [print "a is negative"]
+ 
++++EITHER
+
+Execute a block of code if a given condition is met, else execute an alternative block of code.
+
+<b>Syntax</b>
+
+ either <condition> [<code>][<alternative>]
+
+ <condition>   : a conditional expression
+ <code>		   : code to execute if the condition is met
+ <alternative> : code to execute if the condition is not met
+
+<b>Example</b>
+
+ either a < 0 [
+ 	either a = 0 [
+ 		msg: "zero"
+ 	][
+ 		msg: "negative"
+ 	]
+ ][
+ 	msg: "posivite"
+ ]
+
+ prin "a is "
+ print msg
+
++++UNTIL
+
+Loop over a block of code until the condition at end of block, is met.
+
+<b>Syntax</b>
+
+ until [
+ 	<code>
+ 	<condition>
+ ]
+
+ <code>		 : code to execute while the condition is met
+ <condition> : a conditional expression
+
+<u>Note</u>: At least on loop will always be executed, even if the condition is not met from the beginning.
+
+<b>Example</b>
+
+ c: 5
+ until [
+ 	prin "o"
+ 	c: c - 1
+ 	c = 0
+ ]
+will output:
+
+ ooooo
+
++++WHILE
+
+While a given condition is met, execute a block of code.
+
+<b>Syntax</b>
+
+ while [<condition>][<code>]
+
+ <condition> : a conditional expression
+ <code>		 : code to execute if the condition is met
+
+<u>Note</u>: It is possible to execute any code in the condition block as long as it ends with a conditional expression.
+
+<b>Example</b>
+
+ c: 5
+ while [c > 0][
+ 	prin "o"
+ 	c: c - 1
+ ]
+will output:
+
+ ooooo
+
++++ANY
+
+Global condition is met if at least one of the sub-conditions is met.
+
+<b>Syntax</b>
+
+ any [<condition-1> <condition-2> ...]
+
+ <condition-*> : a conditional expression
+
+<u>Note</u>:
+
+<b>Example</b>
+
+ if any [foo > 5 bar = 0][
+ 	print "true"					;-- reached if at least one condition is met
+ ]
+
++++ALL
+
+Global condition is met if all the sub-conditions are met.
+
+<b>Syntax</b>
+
+ all [<condition-1> <condition-2> ...]
+
+ <condition-*> : a conditional expression
+ 
+<u>Note</u>:
+
+<b>Example</b>
+
+if all [foo > 5 bar = 0][
+ 	print "true"				 ;-- reached if both conditions are met
+]
+
 
 ===Possible Evolutions
 
-+++Variables
+---Variables
 
 *Add support for multiple assignments, like a: b: c: 0
 
-+++Pointers
+---Pointers
+
+*Remove pointer! datatype (struct! is able to do the same job)
 
 *Accept boolean operations on pointers: OR, XOR, AND
 
-+++Strings
+---Strings
 
 *Add a FOREACH control flow function to traverse strings:
 A simple way to traverse a string could be:
@@ -818,10 +1193,40 @@ A simple way to traverse a string could be:
 will output:
  I am a string
  
-+++New datatypes
+---Functions
+
+*Add support for variable arguments number (using a block to gather them)
+
+*Add support for functions refinements (same as in REBOL)
+
+*Infer functions return value datatype
+ 
+---New datatypes
+
+*Add a uint8! (or char!) datatype
+
+*Add a uint16! (or short!) datatype
+
+*Add a uint64! (or long!) datatype
 
 *<b>Binary!</b>: this datatype was reserved early in the compiler's datatypes list, but not implemented. Its purpose was just to provide literal input/output forms in hexadecimal for string values. A standalone datatype for such purpose might be avoidable, hence the delayed implementation.
  
+*<b>Logic!</b>: add a boolean datatype, so that booleans resulting from conditional expressions become first class citizens.
+ 
+---New functions
+
+*Add a FORM function (convert any datatype to string!)
+
+*Add a SWITCH function: branch on different code blocks depending on a input value
+
+*Add a INLINE function to inline machine code: inline #{1234...} and/or assembler
+
+---Misc
+
+*Support 0 and 1 as valid boolean results
+
+*Add a module system (per-file contexts for example)
+
 ===Document History
 
 *28/03/2011 - draft 1

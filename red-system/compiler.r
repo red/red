@@ -123,7 +123,7 @@ system-dialect: context [
 			and		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- AND
 			or		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- OR
 			xor		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- XOR
-			mod		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- modulo
+			//		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- modulo
 			;>>		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift left
 			;<<		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift right
 			=		[2	op		- [a b]]
@@ -401,6 +401,10 @@ system-dialect: context [
 			pc: next pc
 			switch/default pc/1 [
 				func [
+					fetch-func name
+					none
+				]
+				function [
 					fetch-func name
 					none
 				]
