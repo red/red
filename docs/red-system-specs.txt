@@ -1256,5 +1256,18 @@ will output:
 ###
 
 REBOL []
-md: load %makedoc2.r
-do/args md system/script/args: system/options/script
+
+do/args %makedoc2.r 'load-only
+doc: scan-doc read file: system/options/script
+set [title out] gen-html/options doc [(options)]
+
+file: last split-path file
+replace file ".txt" ".html"
+file2: copy file
+insert find file2 "." "-light"
+replace out "$DARK$"  file
+replace out "$LIGHT$" file2
+
+write file out
+replace out "dark.css" "light.css"
+write file2 out
