@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 21/03/2011
-	Revision: 1
+	Date: 29/03/2011
+	Revision: 2
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -944,14 +944,14 @@ The list of following keywords are reserved, they cannot be used as variables:
 
  alias-type		all			and
  any			as			either
- forever		func		function
- if				length?		negative?
- newline		not			null
- or				positive?	prin
- print			quit		size?
- stdout			struct		struct!
- until			while		xor
- zero?
+ exit			forever		func
+ function		if			length?
+ negative?		newline		not
+ null			or			positive?
+ prin			print		quit
+ return			size?		stdout
+ struct			struct!		until
+ while			xor			zero?
 
 ---Infix operators
 
@@ -1165,9 +1165,9 @@ Global condition is met if all the sub-conditions are met.
 
 <b>Example</b>
 
-if all [foo > 5 bar = 0][
+ if all [foo > 5 bar = 0][
  	print "true"				 ;-- reached if both conditions are met
-]
+ ]
 
 
 ===Possible Evolutions
@@ -1180,11 +1180,11 @@ if all [foo > 5 bar = 0][
 
 *Remove pointer! datatype (struct! is able to do the same job)
 
-*Accept boolean operations on pointers: OR, XOR, AND
+*Accept boolean operations on pointers: OR, XOR, AND (nice but use-cases would be rare)
 
 ---Strings
 
-*Add a FOREACH control flow function to traverse strings:
+*Add a FOREACH control flow function to traverse strings (or even array! values):
 A simple way to traverse a string could be:
 
  foo: "I am a string"
@@ -1202,6 +1202,13 @@ will output:
 *Infer functions return value datatype
  
 ---New datatypes
+
+*<b>Array!</b>: this datatype would allow declaring arrays of values that could be accessed with an integer index (similar to C arrays). Redundancy with string! datatype would need to be considered. Here is a draft of possible syntax and usage:
+    ---- C ------               --------- Red/System ----------
+	int p[20] = 0;				p: &[array! [20 integer!] 0]
+	p[4] = 123;					p/4/value: 123
+	p[i] = 123;					p/i/value: 123
+
 
 *Add a uint8! (or char!) datatype
 
@@ -1221,6 +1228,13 @@ will output:
 
 *Add a INLINE function to inline machine code: inline #{1234...} and/or assembler
 
+*Add a NOT function that would return the boolean opposite of argument value. As booleans are not really supported in the current specs, NOT addition is postponed.
+
+*Add a REPEAT function to be able to loop with a counter:
+
+ total: 0
+ repeat c 10 [total: total + c]
+
 ---Misc
 
 *Support 0 and 1 as valid boolean results
@@ -1228,6 +1242,12 @@ will output:
 *Add a module system (per-file contexts for example)
 
 ===Document History
+
+*29/03/2011 - draft 2
+
+*>Added missing array! datatype proposition in Evolutions
+
+*>Added missing EXIT and RETURN in reserved keywords list
 
 *28/03/2011 - draft 1
 
