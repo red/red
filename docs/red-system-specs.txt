@@ -16,7 +16,7 @@ Red/System is a dialect (<a href="http://fr.wikipedia.org/wiki/Domain-specific_p
 
 *a tool to link code and produce executables
 
-Red/System can be seen as a C-level language with memory pointers support and a very basic and limited set of datatypes.
+Red/System can be seen as a C-level language with memory pointer support and a very basic and limited set of datatypes.
 
 <u>Implementation note</u>: It is currently provided with a complete tool-chain generating executables from source files. This is a temporary state as Red/System will live inside Red, so will be embedded in Red scripts.
 
@@ -695,7 +695,7 @@ As Red/System is destined to be used mostly for low-level system programming, <a
 
 The <b>RETURN:</b> statement indicates that the mapped syscall has a return value.
 
-There's no limitation on the number of syscallsthat can be declared this way.
+There's no limitation on the number of syscalls that can be declared this way.
 
 <b>Usage</b>
 
@@ -769,7 +769,7 @@ will output:
 
  no Green
  
-<u>Note</u>: Parens are required in this example on tests expression to make the second infix expression processed first before the equal operator.
+<u>Note</u>: Parens are required in this example on test expressions so that the compiler performs the second infix expression (the and operator) before the second (the equal operator).
  
 ---#include
 
