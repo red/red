@@ -46,7 +46,7 @@ For now, Red/System uses 8-bit character encoding (ASCII). Once proper Unicode s
 
 ===Variables
 
-Variables are labels used to represent a memory location. The labels (called <b>identifiers</b> from now) are formed by sequences of printable characters without any blank (space, newlines or tabulation). Printable characters are defined as any one-byte character in the 20h-7Fh range that can be printed out in system's console excepting the following ones (used as delimiters or reserved for some datatypes literals): 
+Variables are labels used to represent a memory location. The labels (called <b>identifiers</b> from now) are formed by sequences of printable characters without any blank (space, newlines or tabulation). Printable characters are defined as any one-byte character in the 20h-7Eh range that can be printed out in system's console excepting the following ones (used as delimiters or reserved for some datatypes literals): 
 
  [ ] { } " ( ) / @ # $ % ^ , : ;
     
@@ -902,7 +902,7 @@ Example:
 
  bye
 
-So, it's possible to mix functions and global code providing that functions are defined before they are called from global context. Such restriction don't apply if the call is made from a function context, so cross-references like these:
+So, it's possible to mix functions and global code providing that functions are defined before they are called from global context. Such restrictions don't apply if the call is made from a function context, so cross-references like these:
 
  foo: func [...][...bar...]
  bar: func [...][...foo...]
