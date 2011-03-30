@@ -30,7 +30,7 @@ The syntax is almost the same as the one used by REBOL language, as the lexer (<
 
 A complete syntax specification for both Red and Red/System will be provided during the implementation of the Red language layer.
 
-For now, Red/System uses 8-bit characters encoding (ASCII). Once proper Unicode support will be provided by the Red language layer, Red/System will switch to UTF-8 source encoding.
+For now, Red/System uses 8-bit character encoding (ASCII). Once proper Unicode support will be provided by the Red language layer, Red/System will switch to UTF-8 source encoding.
 
 ---Comments
 
@@ -46,7 +46,7 @@ For now, Red/System uses 8-bit characters encoding (ASCII). Once proper Unicode 
 
 ===Variables
 
-Variables are labels used to represent a memory location. The labels (called <b>identifiers</b> from now) are formed by sequences of printable characters without any blank (space, newlines or tabulation). Printable characters are defined as any one-byte character in the 20h-FFh range that can be printed out in system's console excepting the following ones (used as delimiters or reserved for some datatypes literals): 
+Variables are labels used to represent a memory location. The labels (called <b>identifiers</b> from now) are formed by sequences of printable characters without any blank (space, newlines or tabulation). Printable characters are defined as any one-byte character in the 20h-7Fh range that can be printed out in system's console excepting the following ones (used as delimiters or reserved for some datatypes literals): 
 
  [ ] { } " ( ) / @ # $ % ^ , : ;
     
@@ -58,7 +58,7 @@ All identifiers (variables and function names) are <u>case-insensitive</u>.
 
 ---Set a value
 
-Variables can hold any value of the available datatypes. This can be the real value (like for integer! or pointer!) or a reference to the real value (like for struct! or string!). To assign a value to a variable, use a column character at the end of the variable identifier.
+Variables can hold any value of the available datatypes. This can be the real value (like integer! or pointer!) or a reference to the real value as is the case for struct! or string!). To assign a value to a variable, use a colon character at the end of the variable identifier.
 
  foo: 123
  bar: "hello"
@@ -727,7 +727,7 @@ will output (if no error):
  
 ===Source Processing
 
-Red/System relies on a preprocessor to make compile-time modifications of the source code in order to provide syntactic sugars, like hexadecimal and character literal forms for integers. Some features are controlled by user using compiler directives like <b>#define</b> or <b>#include</b>.
+Red/System relies on a preprocessor to make compile-time modifications of the source code in order to provide syntactic sugars, like hexadecimal and character literal forms for integers. Some features are user controlled through compiler directives like <b>#define</b> or <b>#include</b>.
 
 ---#define
 
@@ -842,7 +842,7 @@ A valid Red/System source file will need this header:
  <name>  : valid identifier
  <value> : any Red valid datatype
  
-There is no minimum or maximum of entries a valid header can contain, so an empty block will be also valid (but bad practice).
+There is no minimum or maximum number of entries that a valid header can contain, so an empty block will be also valid (but bad practice).
  
 <u>Implementation note</u>: Header values types are the ones provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
 
@@ -881,7 +881,7 @@ The attribute that you can specify are not limited, you can add whatever you wan
 
 ---Code flow layout
 
-A typical Red/System program is a mix of function definitions and global code (means executable code not in a function). There is no concept of "main" function in Red/System. The only entry point is the beginning of the source code and the exiting point is at the end of the source code, or at a QUIT call if encountered before. 
+A typical Red/System program is a mix of function definitions and global code (meaning executable code that is not in a function). There is no concept of "main" function in Red/System. The only entry point is the beginning of the source code and the exit point is at the end of the source code, or at a QUIT call if encountered before. 
 
 Example:
  
@@ -902,7 +902,7 @@ Example:
 
  bye
 
-So, it's possible to mix functions and global code providing that functions are defined before they are call from global context. Such restriction doesn't apply if the call is made from a function context, so cross-references like these:
+So, it's possible to mix functions and global code providing that functions are defined before they are called from global context. Such restriction don't apply if the call is made from a function context, so cross-references like these:
 
  foo: func [...][...bar...]
  bar: func [...][...foo...]
