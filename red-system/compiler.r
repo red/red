@@ -72,6 +72,7 @@ system-dialect: context [
 						value: skip process/short name 2 		;-- skip Red/System header						
 						e: change/part s value e
 					) :s
+					| s: set value char! (e: change s to integer! value) :e
 					| into blk
 					| skip
 				]
