@@ -99,6 +99,7 @@ Allowed types are:
 
 *struct!
 
+<u>note</u>: Global string variables currently act as constants. A string cannot be assigned to a global string variable after its initialisaton.
 
 
 ===Datatypes
@@ -298,6 +299,8 @@ For example:
  
 will output
  I -- a string
+ 
+ <u>Note</u>: A global string variable currently acts as a constant. A new string cannot be assigned to once it has been declared.
 
 ---Struct!
 
