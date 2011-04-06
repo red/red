@@ -168,6 +168,7 @@ system-dialect: context [
 				][err]
 			]
 			print ["at: " mold copy/part pc 4]
+			clean-up
 			halt
 		]
 		
