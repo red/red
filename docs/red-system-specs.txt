@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 29/03/2011
-	Revision: 2
+	Date: ??/04/2011
+	Revision: 3 (work in progress)
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -56,7 +56,7 @@ There is also a restriction on the first character, the following characters are
  
 All identifiers (variables and function names) are <u>case-insensitive</u>.
 
----Set a value
+---Setting a value
 
 Variables can hold any value of the available datatypes. This can be the real value (like integer! or pointer!) or a reference to the real value as is the case for struct! or string!). To assign a value to a variable, use a colon character at the end of the variable identifier.
 
@@ -68,7 +68,7 @@ Multiple assignments, like a: b: 123, are not supported in Red/System. Such feat
 
 /note
 
----Get a value
+---Getting a value
 
 Just use the variable without any decoration to get its value or to pass it as a function's argument.
 
@@ -80,12 +80,21 @@ will output:
  
 ---Variable's type
 
-Variables do have a type. Global variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Functions variables always require a declaration that specify its type. For example:
+Variables do have a type. Variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Functions local variables require to be declared, but the type specification part can be skipped if the variable is properly initialized. For example:
 
  foo: 123
  bar: "hello"
  size: length? bar
  id: GetProcessID						;-- 'GetProcessID would return an integer!
+
+ compute: func [
+ 	a [integer!]
+ 	return: [integer!]
+ 	/local c							;-- 'c is declared without a type
+ ][
+ 	c: 1								;-- infered type is integer!
+ 	a + c
+ ]
  
 are valid variable usages.
 
@@ -93,20 +102,24 @@ Allowed types are:
 
 *integer!
 
+*byte!
+
+*logic!
+
 *pointer!
 
 *string!
 
 *struct!
 
-<u>note</u>: Global string variables currently act as constants. A string cannot be assigned to a global string variable after its initialisaton.
+<u>Note</u>: Global string variables currently act as constants. A string cannot be assigned to a global string variable after its initialization.
 
 
 ===Datatypes
 
 ---Integer!
 
-+++Syntax
++++Literal format
 
  decimal form          :  1234
 
@@ -117,26 +130,6 @@ Allowed types are:
 Integer datatype represents natural and negative natural numbers. The memory size of an integer is 32 bits, so the range of supported numbers is : 
 
  -2147483648 to 2147483647
-    
-+++Alternative literal formats
-
-<b>Character format</b>
-
-Used to represent only byte range from 0 to 255. Examples of some character representations
-
- #"a"
- #"A"
- #"5"
- #"^A"
- #"^(1A)"
- #"^(back)"
- 
-See <a href="http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1" target="_new">http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1</a> for a more complete description of this format.
-
-\note Character as input format only
-The character literal format is a syntactic sugar offered by Red/System to represent bytes in source code in a more readable way. During the lexical analysis, all character literals are replaced by their ASCII value.
-
-/note
 
 <b>Hexadecimal format</b>
 
@@ -148,6 +141,67 @@ Hexadecimal integer representation is mostly used to represent memory addresses 
 The 0x prefix is often used to mark a literal hexadecimal value. It could have been used in Red/System too if the &lt;number&gt;x&lt;number&gt; literal form wasn't reserved in Red for the pair! datatype. As Red/System is a dialect of Red, it has to use the same representation for hex values, so <b>&lt;hexa&gt;h</b> was chosen instead.
 
 /note
+
+---Byte!
+
+Byte! datatype purpose is to represent unsigned integers in the 0-255 range. Byte! is an alias name for the internal uint8! datatype, both will be accepted, but byte! is the official one. 
+
++++Syntax
+	
+ #"<character>"
+ #"^<character>"
+ #"^(hexadecimal)"
+ #"^(name)"
+ 
+Examples:
+
+ #"a"
+ #"A"
+ #"5"
+ #"^A"
+ #"^(1A)"
+ #"^(back)"
+ 
+See <a href="http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1" target="_new">http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1</a> for a more complete description of this format.
+
++++Casting
+
+Casting is allowed to some extent (see section "4.7 Type Casting").
+
+ foo: as integer! #"a"					;-- foo holds 97
+
+ bar: as byte! foo						;-- bar holds #"a"
+ 
+<u>Note</u>: trying to cast an integer value greater than 255 to a byte! will result in a data loss or data corruption. <i>(The handling of this case might be changed in future revisions)</i>
+
+---Logic!
+
+Logic! datatype represents boolean values: <b>TRUE</b> and <b>FALSE</b>. Logic variables are initialized using a literal logic value or the result of a conditional expression. 
+
+As a first class datatype, you can pass logic values and variables as function's argument or use them as function's return value.
+
++++Literal format
+
+ true
+ false
+
+Using a literal to initialize a logic variable:
+
+ foo: true
+ either foo [print "true"][print "false"]
+ 
+will output:
+
+ true
+ 
+Using a conditional expression to initialize a logic variable:
+
+ bar: 2 > 5
+ either bar [print "true"][print "false"]
+ 
+will output:
+
+ false
 
 ---Pointer!
 
@@ -224,7 +278,7 @@ Literal strings are defined using double quotes delimiters or a pair of matching
    a multiline
    string
  }
- 
+
 \note String null byte ending
 You don't have to add a null byte to literal strings, it is added automatically during compilation.
 
@@ -300,7 +354,7 @@ For example:
 will output
  I -- a string
  
- <u>Note</u>: A global string variable currently acts as a constant. A new string cannot be assigned to once it has been declared.
+<u>Note</u>: A global string variable currently acts as a constant. A new string cannot be assigned to once it has been declared.
 
 ---Struct!
 
@@ -419,6 +473,10 @@ Example:
 
  foo: as integer! bar					;-- explicit type casting
  bar: as [pointer! [string!]] foo		;-- complex type is passed as a block
+ 
+---Type Conversion
+
+<i>TBD</i>
 
 ===Expressions
 
@@ -947,14 +1005,13 @@ The list of following keywords are reserved, they cannot be used as variables:
 
  alias-type		all			and
  any			as			either
- exit			forever		func
- function		if			length?
- negative?		newline		not
- null			or			positive?
- prin			print		quit
- return			size?		stdout
- struct			struct!		until
- while			xor			zero?
+ exit			forever 	func
+ function		if 			length?
+ newline		not			null
+ or				return		size?
+ stdout			struct		struct!
+ until			while		xor
+ true			false
 
 ---Infix operators
 
@@ -966,75 +1023,88 @@ The following math operations apply on integer values. When the operation result
 
 <b>Addition</b>: +
 
- <value> + <value>
+ value1 + value2
 
 <b>Subtraction</b>: -
 
- <value> - <value>
+ value1 - value2
 
 <b>Multiplication</b>: *
 
- <value> * <value>
+ value1 * value2
 
 <b>Division</b>: /
 
- <value> / <value>
+ value1 / value2
  
 <b>Modulo</b>: //
 
- <value> // <value>
+ value1 // value2
 
 where
 
- <value> : an integer (literal, variable, function return value)
+ value1 : an expression returning an integer!
+ value2 : expression of same datatype as <value1>
  
-<u>Note:</u> for + and - operators, pointer! value can be used as first argument with an integer (literal, variable, function return value)
+<u>Note:</u> for + and - operators, pointer! value can be used as first argument with an integer expression.
 
-+++Logic operators
++++Bitwise and Logical operators
 
-<b>Logical OR</b>: or
+<b>Bitwise / Logical OR</b>: or
 
- <value> or <value>
+ value1 or value2
 
-<b>Logical XOR</b>: xor
+<b>Bitwise / Logical XOR</b>: xor
 
- <value> xor <value>
+ value1 xor value2
 
-<b>Logical AND</b>: and
+<b>Bitwise / Logical AND</b>: and
 
- <value> and <value>
+ value1 and value2
+ 
+<b>Bitwise / Logical NOT</b>: not
+
+ not value1
  
 where
  
- <value> : an integer (literal, variable, function return value)
-
+ value1 : an expression returning an integer!, byte! or logic!
+ value2 : expression of same datatype as <value1>
+ 
+<u>Note</u>: Logical NOT will return the opposite of the logic argument (TRUE<=>FALSE), while bitwise NOT will apply one's complement on the integer argument.
+ 
 +++Comparison operators
 
 These operators can be used only where a condition is allowed. See "Control flow functions" section for a list of functions using conditions.
 
 <b>Equal</b>: =
 
- <value> = <value>
+ value1 = value2
  
 <b>Not equal</b>: <>
 
- <value> <> <value>
+ value1 <> value2
  
 <b>Greater than</b>: >
  
- <value> > <value>
+ value1 > value2
  
 <b>Lesser than</b>: <
  
- <value> < <value>
+ value1 < value2
  
 <b>Greater than or equal</b>: >=
  
- <value> >= <value>
+ value1 >= value2
  
 <b>Lesser than or equal</b>: <=
  
- <value> <= <value>
+ value1 <= value2
+ 
+where
+  
+  value1 : an expression returning a integer!, byte! or string! 
+  value2 : expression of same datatype as <value1>
 
 +++Precedence rule
 
@@ -1196,9 +1266,14 @@ A simple way to traverse a string could be:
 will output:
  I am a string
  
+---Integer!
+
+*Bind the integer! type to int32! or int64! depending on the target platform. It needs some further investigations to determine if it can be a real advantage or not.
+ 
 ---Functions
 
-*Add support for variable arguments number (using a block to gather them)
+*Add support for variable arguments number (using a block to gather them). Example:
+ print ["Hello " name ", I'm" 18]
 
 *Add support for functions refinements (same as in REBOL)
 
@@ -1213,7 +1288,7 @@ will output:
 	p[i] = 123;					p/i: 123
 
 
-*Add a uint8! (or char!) datatype
+*<strike>Add a uint8! (or char!) datatype</strike>
 
 *Add a uint16! (or short!) datatype
 
@@ -1221,7 +1296,7 @@ will output:
 
 *<b>Binary!</b>: this datatype was reserved early in the compiler's datatypes list, but not implemented. Its purpose was just to provide literal input/output forms in hexadecimal for string values. A standalone datatype for such purpose might be avoidable, hence the delayed implementation.
  
-*<b>Logic!</b>: add a boolean datatype, so that booleans resulting from conditional expressions become first class citizens.
+*<strike><b>Logic!</b>: add a boolean datatype, so that booleans resulting from conditional expressions become first class citizens.</strike>
  
 ---New functions
 
@@ -1245,6 +1320,32 @@ will output:
 *Add a module system (per-file contexts for example)
 
 ===Document History
+
+*??/04/2011 - draft 3 (work in progress)
+
+*>Added byte! datatype, character specific syntax moved from integer! to byte!
+
+*>Added logic! datatype (boolean values)
+
+*>Added TRUE and FALSE keywords
+
+*>Added NOT operator
+
+*>Old "Logical" operators renames to the more appropriate "Bitwise" operators
+
+*>Bitwise ops completed with boolean counterparts
+
+*>More accurate syntax description for all infix operators
+
+*>Functions local variables type is now optional if the variables are properly initialized
+
+*>Added an empty "Type Conversion" to be completed later
+
+*>Removed functions and macros defined in runtime from keywords, they can be redefined by user code if required
+
+*>New Possible Evolution: integer! as a platform-specific type
+
+*>Minor corrections and additions
 
 *29/03/2011 - draft 2
 
