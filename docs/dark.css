@@ -12,6 +12,7 @@ a:link {color: white; text-decoration: none;}
 a:visited {color: white;}
 a:hover {color: #a03020;}
 .cnt * a:link {border-bottom: 1px dotted white;}
+strike {color: #888;}
 h1 {font-size: 16pt; Font-Weight: bold;}
 h2 {font-size: 14pt; color: #a03020; Font-Weight: bold; width: 100%;
 	border-bottom: 1px solid #c09060;}

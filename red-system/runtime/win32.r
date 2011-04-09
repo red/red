@@ -19,12 +19,12 @@ prolog {
 				type		[integer!]
 				return:		[integer!]
 			]
-			WriteConsole: "WriteConsoleA" [
+			WriteFile: "WriteFile" [
 				handle		[integer!]
 				buffer		[string!]
 				len			[integer!]
 				written		[struct! [value [integer!]]]
-				reserved	[integer!]
+				overlapped	[integer!]
 				;return:	[integer!]
 			]
 			SetConsoleTextAttribute: "SetConsoleTextAttribute" [
@@ -44,12 +44,12 @@ prolog {
 	written: struct [value [integer!]]
 
 	prin: func [s [string!] return: [integer!]][
-		WriteConsole stdout s length? s written 0
+		WriteFile stdout s length? s written 0
 	]
 
 	print: func [s [string!] return: [integer!]][
 		prin s
-		WriteConsole stdout newline 1 written 0
+		WriteFile stdout newline 1 written 0
 	]
 
 	set-pen-color: func [color [integer!]][

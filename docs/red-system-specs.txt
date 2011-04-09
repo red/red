@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 29/03/2011
-	Revision: 2
+	Date: 08/04/2011
+	Revision: 3
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -56,9 +56,9 @@ There is also a restriction on the first character, the following characters are
  
 All identifiers (variables and function names) are <u>case-insensitive</u>.
 
----Set a value
+---Setting a value
 
-Variables can hold any value of the available datatypes. This can be the real value (like integer! or pointer!) or a reference to the real value as is the case for struct! or string!). To assign a value to a variable, use a colon character at the end of the variable identifier.
+Variables can hold any value of the available datatypes. This can be the real value (like integer! or pointer!) or a reference to the real value as is the case for struct! or c-string!). To assign a value to a variable, use a colon character at the end of the variable identifier.
 
  foo: 123
  bar: "hello"
@@ -68,7 +68,7 @@ Multiple assignments, like a: b: 123, are not supported in Red/System. Such feat
 
 /note
 
----Get a value
+---Getting a value
 
 Just use the variable without any decoration to get its value or to pass it as a function's argument.
 
@@ -80,12 +80,21 @@ will output:
  
 ---Variable's type
 
-Variables do have a type. Global variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Functions variables always require a declaration that specify its type. For example:
+Variables do have a type. Variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Functions local variables require to be declared, but the type specification part can be skipped if the variable is properly initialized. For example:
 
  foo: 123
  bar: "hello"
  size: length? bar
  id: GetProcessID						;-- 'GetProcessID would return an integer!
+
+ compute: func [
+ 	a [integer!]
+ 	return: [integer!]
+ 	/local c							;-- 'c is declared without a type
+ ][
+ 	c: 1								;-- inferred type is integer!
+ 	a + c
+ ]
  
 are valid variable usages.
 
@@ -93,20 +102,24 @@ Allowed types are:
 
 *integer!
 
+*byte!
+
+*logic!
+
 *pointer!
 
-*string!
+*c-string!
 
 *struct!
 
-<u>note</u>: Global string variables currently act as constants. A string cannot be assigned to a global string variable after its initialisaton.
+<u>Note</u>: Global c-string variables currently act as constants. A c-string cannot be assigned to a global c-string variable after its initialization.
 
 
 ===Datatypes
 
 ---Integer!
 
-+++Syntax
++++Literal format
 
  decimal form          :  1234
 
@@ -117,26 +130,6 @@ Allowed types are:
 Integer datatype represents natural and negative natural numbers. The memory size of an integer is 32 bits, so the range of supported numbers is : 
 
  -2147483648 to 2147483647
-    
-+++Alternative literal formats
-
-<b>Character format</b>
-
-Used to represent only byte range from 0 to 255. Examples of some character representations
-
- #"a"
- #"A"
- #"5"
- #"^A"
- #"^(1A)"
- #"^(back)"
- 
-See <a href="http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1" target="_new">http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1</a> for a more complete description of this format.
-
-\note Character as input format only
-The character literal format is a syntactic sugar offered by Red/System to represent bytes in source code in a more readable way. During the lexical analysis, all character literals are replaced by their ASCII value.
-
-/note
 
 <b>Hexadecimal format</b>
 
@@ -149,27 +142,153 @@ The 0x prefix is often used to mark a literal hexadecimal value. It could have b
 
 /note
 
+---Byte!
+
+Byte! datatype purpose is to represent unsigned integers in the 0-255 range. Byte! is an alias name for the internal uint8! datatype, both will be accepted, but byte! is the official one. 
+
++++Syntax
+	
+ #"<character>"
+ #"^<character>"
+ #"^(hexadecimal)"
+ #"^(name)"
+ 
+Examples:
+
+ #"a"
+ #"A"
+ #"5"
+ #"^A"
+ #"^(1A)"
+ #"^(back)"
+ 
+See <a href="http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1" target="_new">http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1</a> for a more complete description of this format.
+
++++Casting
+
+Casting is allowed to some extent (see section "4.7 Type Casting").
+
+ foo: as integer! #"a"					;-- foo holds 97
+
+ bar: as byte! foo						;-- bar holds #"a"
+ 
+<u>Note</u>: trying to cast an integer value greater than 255 to a byte! will result in a data loss or data corruption. <i>(The handling of this case might be changed in future revisions)</i>
+
+---Logic!
+
+Logic! datatype represents boolean values: <b>TRUE</b> and <b>FALSE</b>. Logic variables are initialized using a literal logic value or the result of a conditional expression. 
+
+As a first class datatype, you can pass logic values and variables as function's argument or use them as function's return value.
+
++++Literal format
+
+ true
+ false
+
+Using a literal to initialize a logic variable:
+
+ foo: true
+ either foo [print "true"][print "false"]
+ 
+will output:
+
+ true
+ 
+Using a conditional expression to initialize a logic variable:
+
+ bar: 2 > 5
+ either bar [print "true"][print "false"]
+ 
+will output:
+
+ false
+
 ---Pointer!
 
 Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. 
 
 <u>Implementation note</u>: The memory size of a pointer is 4 bytes on 32-bit systems (and 8 bytes on 64-bit systems).
 
++++Literal format
+
+New pointers value can be created using the following syntax:
+
+ pointer [<datatype>]					;-- canonical form
+ &[<datatype>]							;-- short form (syntactic sugar)
+
+ <datatype>: integer! | byte! | pointer! [<datatype>] |
+             c-string! | struct! [<members>]
+ 
+Examples:
+
+ foo: pointer [integer!]				;-- equivalent to C's: int *foo;
+ bar: &[c-string!]						;-- equivalent to C's: char *bar;
+
+\note Pointer value initialization
+Do not assume any default value for a pointer value until it is initialized properly. In the current implementation, global pointer variables are set to 0 by default while local pointer variables default value is undefined. This might change in the future to adopt a default value more suitable for debugging (like 0BADBAD0h or similar hex trick).
+ 
+/note
+
 +++Declaration
 
- &[<datatype> <address>]
+Pointer declaration is only required for local pointer variables in functions' specification block. In such case, the datatype declaration can be omitted and left to the inferencer to guess. (See "Type inference" section)
 
- <datatype>: integer! | pointer! [<datatype>] | string! | struct! [<members>]
- <address> : initial memory address to point to (integer!)
+ pointer! [<datatype>]
 
-Declaration examples (with C equivalents):
+ <datatype>: integer! | byte! | pointer! [<datatype>] |
+             c-string! | struct! [<members>]
 
- p: &[integer! 0]						;-- int *p = 0;
- p: &[string! 0]						;-- char *p = 0;
- p: &[pointer! [string!] 0]				;-- char **p = 0
- p: &[struct! [count [integer!]] 0]		;-- struct {int count;} *p = 0;
+Global variables declaration examples (with C equivalents):
+
+ p: &[integer!]							;-- int *p;
+ p: &[c-string!]						;-- char *p;
+ p: &[pointer! [c-string!]]				;-- char **p;
+ p: &[struct! [count [integer!]]]		;-- struct {int count;} *p;
+
+Same with local variables declaration examples (with C equivalents):
+
+ func [/local p [pointer! [integer!]]	;-- int *p;
+ func [/local p [pointer! [c-string!]	;-- char *p;
+ func [
+ 	/local
+ 		p [pointer! [pointer! [c-string!]	;-- char **p;
+ ]
+ func [
+ 	/local
+ 		p [pointer! [struct! [count [integer!]] ;-- struct {int count;} *p;
+ ]
+
+Example of inferred variable type:
+
+ foo: func [
+ 	a [struct! [count [integer!]]
+ 	/local
+ 		p [pointer! [struct! [count [integer!]]]	;-- explicit declaration
+ ][
+ 	foobar p							;-- foobar modifies p
+ 	a/count: p/count
+ ]
+
+ bar: func [
+ 	a [struct! [count [integer!]]
+ 	/local p
+ ][
+ 	p: &[struct! [count [integer!]]]	;--  p initialized (implicit declaration)
+ 	foobar p
+ 	a/count: p/count
+ ]
+
+ bar2: func [
+  	a [struct! [count [integer!]]
+  	/local p
+ ][
+  	p: GetPointer a						;-- implicit p type declaration
+  	foobar p
+  	a/count: p/count
+ ]
  
-<u>Note</u>: Pointer! and struct! values require an additional specification block.
+ 
+<u>Note</u>: Pointer! and struct! values require an additional specification block compared to integer! or byte! datatypes.
 
 +++Dereferencing
 
@@ -183,20 +302,22 @@ Dereferencing a pointer is the operation allowing to access the pointed value. I
 
 Usage example
 
- p:   &[integer! 4000000h]				;-- declare a pointer on an integer
- bar: &[integer! 0]						;-- declare another pointer on an integer
+ p:   &[integer!]						;-- declare a pointer on an integer
+ bar: &[integer!]						;-- declare another pointer on an integer
 
+ p: 40000000h
  p/value: 1234 							;-- write 1234 at address 40000000h
  foo: p/value							;-- read pointed value back
  bar: p									;-- assign pointer address to 'bar
  
 <u>Note</u>: Remember that a pointed value is undefined (can contain an arbitrary value) until you define it explicitly  
 
-+++Pointer Arithmetic
++++Pointer arithmetic
 
 It is possible to apply some simple math operations on pointer like additions and subtractions (as in C). Pointer address would be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
 
- p: &[integer! 4000000h]				;-- pointed value memory size is 4 bytes
+ p: &[integer!]							;-- pointed value memory size is 4 bytes
+ p: 4000000h
  p: p + 1								;-- p points now to 40000004h
  p: p + 1								;-- p points now to 40000008h
 
@@ -206,107 +327,145 @@ Another example with a bigger pointed value:
  		a [integer!]
  		b [pointer! [integer!]]
  	]
- 	4000000h
  ]
- p: p - 1								;-- p points now to 3FFFFFF8h 
+ p: 4000000h
+ p: p - 1								;-- p points now to 3FFFFFF8h
 
++++Pointer path notation
 
----String!
+It is possible to use path notation to simulate an array with indexed access. Both reading and writing are possible.
 
-A string! value is a sequence of not-null bytes terminated by a null byte. A string variable holds the address of the first byte of the string. A string having a null character as first byte is an empty string.
+<b>Syntax</b>
+
+ <pointer>/integer!						;-- literal integer index provided
+ <pointer>/<index>						;-- index provided by a variable
+
+ <pointer>  : a pointer variable
+ <index>    : an integer variable
+
+Examples:
+
+ p: &[integer!]
+
+ p: 4000000h
+ a: p/1									;-- reads an integer! at 40000000h
+ p/2: a									;-- writes the integer! at 40000004h
+ 
+Integer variable can also be used as index:
+
+ p: &[integer!]
+ p: 4000000h
+ c: 2
+ p/c: 1234								;-- writes 123 (4 bytes) at 40000008h
+
++++Void pointer
+
+There is no specific support in Red/System for C-like void pointers. The official way is to use the integer! type to represent C void* pointers.
+
+---C-string!
+
+A c-string! value is a sequence of not-null bytes terminated by a null byte. A c-string variable holds the address of the first byte of the c-string. A c-string having a null character as first byte is an empty c-string.
 
 +++Syntax
 
-Literal strings are defined using double quotes delimiters or a pair of matching curly braces:
+Literal c-strings are defined using double quotes delimiters or a pair of matching curly braces:
 
- foo: "I am a string"
+ foo: "I am a c-string"
  bar: {I am
    a multiline
-   string
+   c-string
  }
- 
-\note String null byte ending
-You don't have to add a null byte to literal strings, it is added automatically during compilation.
+
+\note C-string null byte ending
+You don't have to add a null byte to literal c-strings, it is added automatically during compilation.
 
 /note
 
-+++String length
++++C-string length
 
-It is possible to retrieve the number of bytes (<b>excluding the null</b> end marker) in a string at runtime using the LENGTH? function:
+It is possible to retrieve the number of bytes (<b>excluding the null</b> end marker) in a c-string at runtime using the LENGTH? function:
 
  a: length? "Hello"						;-- here length? will return 5
  
-\noteLength? vs Size?
+\note Length? vs Size?
 Do not confuse the LENGTH? function with the SIZE? function (see ...)
 
 /note
 
 +++Accessing bytes
 
-It is possible to access individual bytes in a string using path notations:
+It is possible to access individual bytes in a c-string using path notations:
 
- <string>/integer!						;-- literal integer index provided
- <string>/<index>						;-- index provided by a variable
+ <c-string>/integer!					;-- literal integer index provided
+ <c-string>/<index>						;-- index provided by a variable
 
- <string> : a string variable
- <index>  : an integer variable
+ <c-string> : a c-string variable
+ <index>    : an integer variable
+ 
+The returned value will be a of <b>byte!</b> type.
 
 Examples:
 
- foo: "I am a string"
- foo/1  =>  73							;-- ASCII code of "I"
- foo/2  =>  32							;-- ASCII code of a space
+ foo: "I am a c-string"
+ foo/1  =>  #"I"						;-- byte! value (73)
+ foo/2  =>  #" "						;-- byte! value (32)
  ...
- foo/13 => 103							;-- ASCII code of "g"
- foo/14 =>   0							;-- ASCII code of null (end marker)
+ foo/15 => #"g"							;-- byte! value (103)
+ foo/16 => #"^(00)"						;-- byte! value (0) (end marker)
  
-<u>Note</u>: In contrary to the C language, indexes in Red/System are <u><b>one-based</b></u>.
+\note Important notes
+
+*In contrary to the C language, indexes in Red/System are <b>one-based</b>.
+
+*The behaviour of path with an index out of bounds is not yet defined. (It is better to avoid it)
+
+/note
 
 Example of a variable used as index:
 
  c: 4
- foo/c  => 109							;-- ASCII code of "m"
+ foo/c  => #"m"							;-- byte! value (109)
 
-A simple way to traverse a string would be:
+A simple way to traverse a c-string would be:
 
- foo: "I am a string"
+ foo: "I am a c-string"
  c: 1
  until [
- 	prin form foo/c					;-- form would convert an ASCII code to a string
+ 	prin form foo/c						;-- form would convert a byte! to a c-string
  	c: c + 1
  	zero? foo/c
  ]
  
 will output:
- I am a string
+ I am a c-string
 
 Similary, it is also possible to write bytes using path notation with an ending colon:
 
- <string>/integer!:	<value>				;-- literal integer index provided
- <string>/<index>:	<value>				;-- index provided by a variable
+ <c-string>/integer!:	<value>			;-- literal integer index provided
+ <c-string>/<index>:	<value>			;-- index provided by a variable
 
- <string> : a string variable
- <index>  : an integer variable
- <value>  : a 8-bit integer value
+ <c-string> : a c-string variable
+ <index>    : an integer variable
+ <value>    : a byte! value
 
 For example:
 
- foo: "I am a string"
+ foo: "I am a c-string"
  foo/3: #"-"
  c: 4
  foo/c: #"-"
  print foo
  
 will output
- I -- a string
+ I -- a c-string
  
- <u>Note</u>: A global string variable currently acts as a constant. A new string cannot be assigned to once it has been declared.
+<u>Note</u>: A global c-string variable currently acts as a constant. A new c-string variable cannot be assigned to once it has been declared.
 
 ---Struct!
 
 Struct! datatype is roughly equivalent to C struct type. It is a record of one or several values, each value having its own datatype.
 
-<u>Implementation note</u>: Struct! values are <u>padded</u> (at tail) in memory in order to preserve optimal alignment for each target (for example, it is aligned to 4 bytes for IA32 target). SIZE? function will return the size of the struct! value in memory without the eventual padding .
+<u>Implementation note</u>: Struct! values are <u>padded</u> (at tail) in memory in order to preserve optimal alignment for each target (for example, it is aligned to 4 bytes for IA32 target). SIZE? function will return the size of the struct! value in memory without the eventual tail padding.
 
 +++Declaration
 
@@ -318,27 +477,37 @@ Declaring a struct! value is achieved by using the STRUCT keyword followed by a 
  ]
  
  <member>   : a valid identifier
- <datatype> : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+ <datatype> : integer! | byte! | pointer! [<datatype>] |
+              c-string! | struct! [<members>]
 
 +++Usage
 
  s: struct [
  	a 	[integer!]
- 	b	[string!]
+ 	b	[c-string!]
  	c 	[struct! [d [integer!]]]
  ]
  
-In this example, the struct value has 3 members: a, b, c, each with a different datatype.
+In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is also a struct! value.
 
-Remember that struct! values are always passed by reference to other variables and functions:
++++Struct references
 
- foo: s									;-- assign 's struct address to 'foo
- bar s									;-- pass 's struct address as argument
+A struct! value memory address can be obtained using the following syntax:
+
+ :<struct variable>
  
-\notePassing by value?
-There is currently no way to pass a struct! data as value to a function or to copy it within another variable. If the need for such feature arises, this specification will be extended to support it.
+Example:
+ 
+ foo!: alias struct! [
+  	a 	[integer!]
+  	b	[c-string!]
+  	c 	[struct! [d [integer!]]]
+ ]
+ p: &[foo!]								;-- creating a pointer value
+ s: struct foo!							;-- creating a struct value
 
-/note
+ p: :s									;-- assigning the pointer to the struct value
+
 
 +++Accessing members
 
@@ -355,9 +524,16 @@ Member access is achieved using path notation. Syntax is:
 From last example, that would give:
 
  foo: s/a								;-- reading member 'a in struct 's
- s/a: 123								;-- writing a value in member 'a in struct 's
+ s/a: 123								;-- writing 123 in member 'a in struct 's
  s/b: "hello"
  bar: s/c/d								;-- deep read/write access is also possible
+ 
+A struct value pointer can also access members:
+
+ p: &[foo!]
+ p: :s
+ p/value/a: 123							;-- equivalent to s/a: 123
+ bar: p/value/c/d						;-- equivalent to bar: s/c/d
 
 +++Aliases
 
@@ -367,20 +543,21 @@ Struct! values definitions tend to be quite long, so in some cases, when struct!
 
 Aliasing syntax:
 
- <name>: alias-type struct! [
+ <name>: alias struct! [
  	<member> [<datatype>]
  	...
  ]
  
  <name>     : the name to use as alias
  <member>   : a valid identifier
- <datatype> : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+ <datatype> : integer! | byte! | pointer! [<datatype>] |
+              c-string! | struct! [<members>]
  
 Usage example:
 
- book!: alias-type struct! [			;-- defines a new aliased type
- 	title		[string!]
- 	author	 	[string!]
+ book!: alias struct! [					;-- defines a new aliased type
+ 	title		[c-string!]
+ 	author	 	[c-string!]
  	year		[integer!]
  	last-book 	[book!]					;-- self-referenced definition
  ]
@@ -394,11 +571,6 @@ Usage example:
  b/title:  "Contact"
  b/author: "Carl Sagan"
  b/year:   1985
- 
-\noteAlias-type keyword
-The keyword ALIAS-TYPE might be change in the future for a shorter form like ALIAS.
-
-/note
 
 ---Type Casting
 
@@ -410,15 +582,20 @@ Syntax:
 
  as <new-type> value
 
- <new-type> : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+ <new-type> : integer! | byte! | pointer! [<datatype>] |
+              c-string! | struct! [<members>]
 
 Example:
 
  foo: 0									;-- foo is an integer
- bar: &[pointer! [string!]]				;-- bar is a pointer
+ bar: &[pointer! [c-string!]]			;-- bar is a pointer
 
  foo: as integer! bar					;-- explicit type casting
- bar: as [pointer! [string!]] foo		;-- complex type is passed as a block
+ bar: as [pointer! [c-string!]] foo		;-- complex type is passed as a block
+ 
+---Type Conversion
+
+<i>TBD</i>
 
 ===Expressions
 
@@ -451,7 +628,8 @@ Function definition and usage is pretty straightforward in Red/System. The funct
 
  <name>		: function's name
  <argument>	: function's argument indentifier
- <datatype>	: integer! | pointer! [<datatype>] | string! | struct! [<members>]
+ <datatype>	: integer! | byte! | pointer! [<datatype>] |
+              c-string! | struct! [<members>]
  <local>	: local variable
  <body>		: function's body code
 
@@ -478,7 +656,7 @@ Function definition and usage is pretty straightforward in Red/System. The funct
  	c: 100
  	a * c / b
  ]
-
+ 
 ---Return value
 
 Any function is able to return a value if necessary. This is trivially achieved as last expression in function's body will be automatically returned if:
@@ -486,6 +664,27 @@ Any function is able to return a value if necessary. This is trivially achieved 
 *a RETURN: statement is present in function's spec block
 
 *last expression datatype matches the one declared after the RETURN: statement
+
+---Type inference
+
+Functions offer a limited type inference possibility for:
+
+*local variables
+
+*return value
+
+In practice, it means that it is allowed to omit a local variable type declaration as long as the variable is initialized properly. Same possibility is offered for return values as long as the compiler can guess without any ambiguity the return value type.
+
+Example:
+
+ foo: func [
+ 	a [integer!]
+ 	return:								;-- omitted return value type
+ 	/local c							;-- omitted local variable type
+ ][
+ 	c: 10								;-- variable type is integer!
+ 	a + c								;-- return type is obviously integer!
+ ]
 
 ---Calling a function
 
@@ -504,6 +703,26 @@ Calling a function is achieved by writing its name followed by the required numb
 It is also possible to pipe several function calls together:
 
  foo: percent? 11 inc inc why?			;-- will return 25 in foo
+ 
+ 
+---Function pointer
+
+It is possible to obtain a function address to pass it, for example, as argument to external calls with callbacks.
+
+<b>Syntax</b>
+
+ :<function name>
+ 
+Example:
+
+ progress: func [count [integer!]][
+ 	prin "."							;-- make the user see some progress
+ ]
+
+ get-file "bigfile.avi" :progress		;-- blocking job would call 'progress
+                                        ;-- periodically
+                                        
+<u>Note</u>: Function address is curently returned as an integer! value but this could be changed in the future to a function pointer!.
 
 ---Premature exiting
 
@@ -518,14 +737,13 @@ Quits immediatly the function.
  	...									;-- if a <> 0, continue processing...
  ]
  
- 
 +++Return
  
 Quits immediatly the function and returns a value.
 
  test: func [
  	a [integer!]
- 	return: [string!]
+ 	return: [c-string!]
  ][
  	if zero? a [
  		return "Not allowed"			;-- exit the function here if a = 0
@@ -533,6 +751,9 @@ Quits immediatly the function and returns a value.
  	"ok"								;-- return "ok" if a <> 0
  ]
 
+---Nested functions
+
+<i>TBD</i>
 
 ===Scoping
 
@@ -622,7 +843,8 @@ Red/System is able to dynamically load external shared libraries when a Red/Syst
  <function name> : name of the mapped function in global context
  <ID>			 : identifier of the function in the shared library
  <argument>		 : function's argument indentifier
- <datatype>		 : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+ <datatype>		 : integer! | byte! | pointer! [<datatype>] |
+             	   c-string! | struct! [<members>]
 
 The <b>RETURN:</b> statement indicates that the mapped function has a return value.
 
@@ -644,8 +866,8 @@ The following example is Windows-specific.
  			return: [integer!]
  		]
  		get-env: "GetEnvironmentVariableA" [
- 			name 	[string!]
- 			buffer	[string!]
+ 			name 	[c-string!]
+ 			buffer	[c-string!]
  			size	[integer!]
  			return: [integer!]
  		]
@@ -653,10 +875,10 @@ The following example is Windows-specific.
  	"msvcrt.dll" stdcall [
  		malloc: "malloc" [
  			size 	[integer!]
- 			return: [string!]
+ 			return: [c-string!]
  		]
  		free: "free" [
- 			block	[string!]
+ 			block	[c-string!]
  		]
  	]
  ]
@@ -694,7 +916,8 @@ As Red/System is destined to be used mostly for low-level system programming, <a
   <function name> : name of the mapped function in global context
   <ID>			  : syscall integer ID
   <argument>	  : syscall's argument indentifier
-  <datatype>	  : integer! | pointer! [<datatype>] | string! | struct! [<members>]
+  <datatype>	  : integer! | byte! | pointer! [<datatype>] |
+             		c-string! | struct! [<members>]
 
 The <b>RETURN:</b> statement indicates that the mapped syscall has a return value.
 
@@ -707,7 +930,7 @@ The following example is Linux-specific, but should work with most UNIX systems.
  #syscall [
 	write: 4 [
 		fd		[integer!]			;-- file descriptor, STDOUT = 1
-		buffer	[string!]
+		buffer	[c-string!]
 		count	[integer!]
 		return: [integer!]
 	]
@@ -806,7 +1029,7 @@ Rewriting the example from <i>#include</i> section:
  	 test-primary: func [
  	 	color [integer!]
  	 	mask  [integer!]
- 	 	msg   [string!]
+ 	 	msg   [c-string!]
  	 ][
  	 	if zero? (color and mask) [
  	 	 	print msg
@@ -905,7 +1128,7 @@ Example:
 
  bye
 
-So, it's possible to mix functions and global code providing that functions are defined before they are called from global context. Such restrictions don't apply if the call is made from a function context, so cross-references like these:
+So, it is possible to mix functions and global code providing that functions are defined before they are called from global context. Such restrictions don't apply if the call is made from a function context, so cross-references like these:
 
  foo: func [...][...bar...]
  bar: func [...][...foo...]
@@ -945,16 +1168,15 @@ It will be possible to export some Red/System functions to be callable from the 
 
 The list of following keywords are reserved, they cannot be used as variables:
 
- alias-type		all			and
- any			as			either
- exit			forever		func
- function		if			length?
- negative?		newline		not
- null			or			positive?
- prin			print		quit
- return			size?		stdout
- struct			struct!		until
- while			xor			zero?
+ alias		all			and
+ any		as			either
+ exit		false		forever
+ func		function	if
+ length?	newline		not
+ null		or			pointer
+ return		size?		struct
+ struct!	true		until
+ while		xor
 
 ---Infix operators
 
@@ -966,75 +1188,88 @@ The following math operations apply on integer values. When the operation result
 
 <b>Addition</b>: +
 
- <value> + <value>
+ value1 + value2
 
 <b>Subtraction</b>: -
 
- <value> - <value>
+ value1 - value2
 
 <b>Multiplication</b>: *
 
- <value> * <value>
+ value1 * value2
 
 <b>Division</b>: /
 
- <value> / <value>
+ value1 / value2
  
 <b>Modulo</b>: //
 
- <value> // <value>
+ value1 // value2
 
 where
 
- <value> : an integer (literal, variable, function return value)
+ value1 : an expression returning an integer!
+ value2 : expression of same datatype as <value1>
  
-<u>Note:</u> for + and - operators, pointer! value can be used as first argument with an integer (literal, variable, function return value)
+<u>Note:</u> for + and - operators, pointer! value can be used as first argument with an integer expression.
 
-+++Logic operators
++++Bitwise and Logical operators
 
-<b>Logical OR</b>: or
+<b>Bitwise / Logical OR</b>: or
 
- <value> or <value>
+ value1 or value2
 
-<b>Logical XOR</b>: xor
+<b>Bitwise / Logical XOR</b>: xor
 
- <value> xor <value>
+ value1 xor value2
 
-<b>Logical AND</b>: and
+<b>Bitwise / Logical AND</b>: and
 
- <value> and <value>
+ value1 and value2
+ 
+<b>Bitwise / Logical NOT</b>: not
+
+ not value1
  
 where
  
- <value> : an integer (literal, variable, function return value)
-
+ value1 : an expression returning an integer!, byte! or logic!
+ value2 : expression of same datatype as <value1>
+ 
+<u>Note</u>: Logical NOT will return the opposite of the logic argument (TRUE<=>FALSE), while bitwise NOT will apply one's complement on the integer argument.
+ 
 +++Comparison operators
 
 These operators can be used only where a condition is allowed. See "Control flow functions" section for a list of functions using conditions.
 
 <b>Equal</b>: =
 
- <value> = <value>
+ value1 = value2
  
 <b>Not equal</b>: <>
 
- <value> <> <value>
+ value1 <> value2
  
 <b>Greater than</b>: >
  
- <value> > <value>
+ value1 > value2
  
 <b>Lesser than</b>: <
  
- <value> < <value>
+ value1 < value2
  
 <b>Greater than or equal</b>: >=
  
- <value> >= <value>
+ value1 >= value2
  
 <b>Lesser than or equal</b>: <=
  
- <value> <= <value>
+ value1 <= value2
+ 
+where
+  
+  value1 : an expression returning a integer!, byte! or c-string! 
+  value2 : expression of same datatype as <value1>
 
 +++Precedence rule
 
@@ -1181,70 +1416,143 @@ Global condition is met if all the sub-conditions are met.
 
 ---Pointers
 
-*Remove pointer! datatype (struct! is able to do the same job)
+*<strike>Remove pointer! datatype (struct! is able to do the same job)</strike> <i><b>REJECTED</b></i>
 
-*Accept boolean operations on pointers: OR, XOR, AND (nice but use-cases would be rare)
+*Accept boolean operations on pointers: OR, XOR, AND (nice but use-cases would be rare?)
 
----Strings
+---Struct
 
-*Add a FOREACH control flow function to traverse strings (or even array! values):
-A simple way to traverse a string could be:
+*Add support for specifying struct memory alignment and padding. Default structure and members alignment would be the one specified in target object (per target). Per struct specific rules should be possible using the following syntax:
 
- foo: "I am a string"
+ #align <integer>				;-- change memory alignment for all subsequent
+ 								;-- c-strings, pointers and structs
+
+ struct [						;-- change members alignment and endianess
+	[align <n> <little|big>]
+	<members>
+ ]
+
+ <n>      : number of bytes to align members to
+ <little> : little endian (optional)
+ <big>    : big endian (optional)
+
+---C-strings
+
+*Add a FOREACH control flow function to traverse c-strings (or even array! values):
+A simple way to traverse a c-string could be:
+
+ foo: "I am a c-string"
  foreach c foo [prin c]
  
 will output:
- I am a string
+ I am a c-string
+ 
+---Integer!
+
+*Bind the integer! type to int32! or int64! depending on the target platform. It needs some further investigations to determine if it can be a real advantage or not.
  
 ---Functions
 
-*Add support for variable arguments number (using a block to gather them)
+*Add support for variable arguments number (using a block to gather them). Example:
+ print ["Hello " name ", I'm" 18]
 
 *Add support for functions refinements (same as in REBOL)
 
-*Infer functions return value datatype
+*<strike>Infer functions return value datatype</strike>
  
 ---New datatypes
 
-*<b>Array!</b>: this datatype would allow declaring arrays of values that could be accessed with an integer index (similar to C arrays). Redundancy with string! datatype would need to be considered. Here is a draft of possible syntax and usage:
+*<b>Array!</b>: this datatype would allow declaring arrays of values that could be accessed with an integer index (similar to C arrays). Redundancy with c-string! datatype would need to be considered. Here is a draft of possible syntax and usage:
     ---- C ------               --------- Red/System ----------
 	int p[20] = 0;				p: &[array! [20 integer!] 0]
 	p[4] = 123;					p/4: 123
 	p[i] = 123;					p/i: 123
 
 
-*Add a uint8! (or char!) datatype
+*<strike>Add a uint8! (or char!) datatype</strike>
 
 *Add a uint16! (or short!) datatype
 
 *Add a uint64! (or long!) datatype
 
-*<b>Binary!</b>: this datatype was reserved early in the compiler's datatypes list, but not implemented. Its purpose was just to provide literal input/output forms in hexadecimal for string values. A standalone datatype for such purpose might be avoidable, hence the delayed implementation.
+*<strike><b>Binary!</b>: this datatype was reserved early in the compiler's datatypes list, but not implemented. Its purpose was just to provide literal input/output forms in hexadecimal for c-string values. A standalone datatype for such purpose might be avoidable, hence the delayed implementation.</strike> <i><b>REJECTED</b></i>
  
-*<b>Logic!</b>: add a boolean datatype, so that booleans resulting from conditional expressions become first class citizens.
+*<strike><b>Logic!</b>: add a boolean datatype, so that booleans resulting from conditional expressions become first class citizens.</strike>
  
 ---New functions
 
-*Add a FORM function (convert any datatype to string!)
+*Add a FORM function (convert any datatype to c-string!)
 
 *Add a SWITCH function: branch on different code blocks depending on a input value
 
 *Add a INLINE function to inline machine code: inline #{1234...} and/or assembler
 
-*Add a NOT function that would return the boolean opposite of argument value. As booleans are not really supported in the current specs, NOT addition is postponed.
+*<strike>Add a NOT function that would return the boolean opposite of argument value. As booleans are not really supported in the current specs, NOT addition is postponed.</strike>
 
 *Add a REPEAT function to be able to loop with a counter:
 
  total: 0
  repeat c 10 [total: total + c]
+ 
+*Add a TYPE? function returning the argument's type as integer! (should use defines to name them)
 
 ---Misc
 
-*Support 0 and 1 as valid boolean results
+*<strike>Support 0 and 1 as valid boolean results</strike> <i><b>REJECTED</b></i>
 
 *Add a module system (per-file contexts for example)
 
+*Extend the get-word! syntax to all variable types.
+
 ===Document History
+
+*08/04/2011 - draft 3
+
+*>Added get-word! syntax for getting struct variable address
+
+*>New Possible Evolution: extend get-word! syntax to all variable types
+
+*>Added "pointer" as reserved keyword
+
+*>Renamed "alias-type" keyword to "alias"
+
+*>Byte! added to <datatypes> definitions
+
+*>Pointer syntax and declaration improved and extended to support paths with indexes
+
+*>String! type renamed to c-string!
+
+*>C-string path accesses now uses byte! values for reading and writing
+
+*>Added type inference for functions local variables and return value
+
+*>Function address can be returned using get-word! syntax
+
+*>New "Nested functions" section added to be completed later
+
+*>Added byte! datatype, character specific syntax moved from integer! to byte!
+
+*>Added logic! datatype (boolean values)
+
+*>Added TRUE and FALSE keywords
+
+*>Added NOT operator
+
+*>Old "Logical" operators renamed to the more appropriate "Bitwise" operators
+
+*>Bitwise ops completed with boolean counterparts
+
+*>More accurate syntax description for all infix operators
+
+*>Functions local variables type is now optional if the variables are properly initialized
+
+*>Added an empty "Type Conversion" to be completed later
+
+*>Removed functions and macros defined in runtime from keywords, they can be redefined by user code if required
+
+*>New Possible Evolution: integer! as a platform-specific type
+
+*>Minor corrections and additions
 
 *29/03/2011 - draft 2
 

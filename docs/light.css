@@ -1,4 +1,5 @@
 html, body, p, td, li {font-family: arial, sans-serif, helvetica; font-size: 10pt;}
+strike {color: #888;}
 h1 {font-size: 16pt; Font-Weight: bold;}
 h2 {font-size: 14pt; color: #2030a0; Font-Weight: bold; width: 100%;
 	border-bottom: 1px solid #c09060;}
@@ -8,10 +9,13 @@ h5 {font-size: 10pt; Font-Weight: bold;}
 tt {font-family: "courier new", monospace, courier; color: darkgreen;}
 pre {font: bold 10pt "courier new", monospace, console;
 	background-color: #e0e0e0; padding: 16px; border: solid #a0a0a0 1px;}
+legend {font-weight: bold;}
 .toc1 {margin-left: 1cm; font-size: 12pt; font-weight: bold;}
 .toc2 {margin-left: 2cm; font-size: 10pt; Font-Weight: bold; text-decoration: none;}
 .toc3 {margin-left: 3cm; font-size: 10pt; text-decoration: none;}
 .toc4 {margin-left: 4cm; font-size: 10pt; color: grey; text-decoration: none;}
 .output {color: #000080; font-weight: normal;}
 .note {background-color: #f0e090; width: 100%; padding: 16px; border: solid #a0a0a0 1px;}
+.fset, .fset p {background-color: #f0e090;}
+.fset  {border: solid #a0a0a0 1px;}
 .tail {color: gray; font-size: 8pt;}
