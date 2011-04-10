@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 08/04/2011
-	Revision: 3
+	Date: 10/04/2011
+	Revision: 4
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -106,11 +106,11 @@ Allowed types are:
 
 *logic!
 
-*pointer!
-
 *c-string!
 
 *struct!
+
+*pointer!
 
 <u>Note</u>: Global c-string variables currently act as constants. A c-string cannot be assigned to a global c-string variable after its initialization.
 
@@ -203,168 +203,9 @@ will output:
 
  false
 
----Pointer!
-
-Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. 
-
-<u>Implementation note</u>: The memory size of a pointer is 4 bytes on 32-bit systems (and 8 bytes on 64-bit systems).
-
-+++Literal format
-
-New pointers value can be created using the following syntax:
-
- pointer [<datatype>]					;-- canonical form
- &[<datatype>]							;-- short form (syntactic sugar)
-
- <datatype>: integer! | byte! | pointer! [<datatype>] |
-             c-string! | struct! [<members>]
- 
-Examples:
-
- foo: pointer [integer!]				;-- equivalent to C's: int *foo;
- bar: &[c-string!]						;-- equivalent to C's: char *bar;
-
-\note Pointer value initialization
-Do not assume any default value for a pointer value until it is initialized properly. In the current implementation, global pointer variables are set to 0 by default while local pointer variables default value is undefined. This might change in the future to adopt a default value more suitable for debugging (like 0BADBAD0h or similar hex trick).
- 
-/note
-
-+++Declaration
-
-Pointer declaration is only required for local pointer variables in functions' specification block. In such case, the datatype declaration can be omitted and left to the inferencer to guess. (See "Type inference" section)
-
- pointer! [<datatype>]
-
- <datatype>: integer! | byte! | pointer! [<datatype>] |
-             c-string! | struct! [<members>]
-
-Global variables declaration examples (with C equivalents):
-
- p: &[integer!]							;-- int *p;
- p: &[c-string!]						;-- char *p;
- p: &[pointer! [c-string!]]				;-- char **p;
- p: &[struct! [count [integer!]]]		;-- struct {int count;} *p;
-
-Same with local variables declaration examples (with C equivalents):
-
- func [/local p [pointer! [integer!]]	;-- int *p;
- func [/local p [pointer! [c-string!]	;-- char *p;
- func [
- 	/local
- 		p [pointer! [pointer! [c-string!]	;-- char **p;
- ]
- func [
- 	/local
- 		p [pointer! [struct! [count [integer!]] ;-- struct {int count;} *p;
- ]
-
-Example of inferred variable type:
-
- foo: func [
- 	a [struct! [count [integer!]]
- 	/local
- 		p [pointer! [struct! [count [integer!]]]	;-- explicit declaration
- ][
- 	foobar p							;-- foobar modifies p
- 	a/count: p/count
- ]
-
- bar: func [
- 	a [struct! [count [integer!]]
- 	/local p
- ][
- 	p: &[struct! [count [integer!]]]	;--  p initialized (implicit declaration)
- 	foobar p
- 	a/count: p/count
- ]
-
- bar2: func [
-  	a [struct! [count [integer!]]
-  	/local p
- ][
-  	p: GetPointer a						;-- implicit p type declaration
-  	foobar p
-  	a/count: p/count
- ]
- 
- 
-<u>Note</u>: Pointer! and struct! values require an additional specification block compared to integer! or byte! datatypes.
-
-+++Dereferencing
-
-Dereferencing a pointer is the operation allowing to access the pointed value. In Red/System, it is achieved by adding a <b>/value</b> refinement to the pointer variable (called more generally "path notation"):
-
- <pointer>/value						;-- read access
- <pointer>/value: <value>				;-- write access
-
- <pointer> : pointer variable
- <value>   : a value of same type as in pointer's definition
-
-Usage example
-
- p:   &[integer!]						;-- declare a pointer on an integer
- bar: &[integer!]						;-- declare another pointer on an integer
-
- p: 40000000h
- p/value: 1234 							;-- write 1234 at address 40000000h
- foo: p/value							;-- read pointed value back
- bar: p									;-- assign pointer address to 'bar
- 
-<u>Note</u>: Remember that a pointed value is undefined (can contain an arbitrary value) until you define it explicitly  
-
-+++Pointer arithmetic
-
-It is possible to apply some simple math operations on pointer like additions and subtractions (as in C). Pointer address would be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
-
- p: &[integer!]							;-- pointed value memory size is 4 bytes
- p: 4000000h
- p: p + 1								;-- p points now to 40000004h
- p: p + 1								;-- p points now to 40000008h
-
-Another example with a bigger pointed value:
-
- p: &[struct! [							;-- value memory size is 8 bytes
- 		a [integer!]
- 		b [pointer! [integer!]]
- 	]
- ]
- p: 4000000h
- p: p - 1								;-- p points now to 3FFFFFF8h
-
-+++Pointer path notation
-
-It is possible to use path notation to simulate an array with indexed access. Both reading and writing are possible.
-
-<b>Syntax</b>
-
- <pointer>/integer!						;-- literal integer index provided
- <pointer>/<index>						;-- index provided by a variable
-
- <pointer>  : a pointer variable
- <index>    : an integer variable
-
-Examples:
-
- p: &[integer!]
-
- p: 4000000h
- a: p/1									;-- reads an integer! at 40000000h
- p/2: a									;-- writes the integer! at 40000004h
- 
-Integer variable can also be used as index:
-
- p: &[integer!]
- p: 4000000h
- c: 2
- p/c: 1234								;-- writes 123 (4 bytes) at 40000008h
-
-+++Void pointer
-
-There is no specific support in Red/System for C-like void pointers. The official way is to use the integer! type to represent C void* pointers.
-
 ---C-string!
 
-A c-string! value is a sequence of not-null bytes terminated by a null byte. A c-string variable holds the address of the first byte of the c-string. A c-string having a null character as first byte is an empty c-string.
+A c-string! value is a sequence of not-null bytes terminated by a null byte. A c-string variable holds the memory address of the first byte of the c-string, so it can be viewed as an implicit pointer to byte!. A c-string having a null character as first byte is an empty c-string.
 
 +++Syntax
 
@@ -391,6 +232,25 @@ It is possible to retrieve the number of bytes (<b>excluding the null</b> end ma
 Do not confuse the LENGTH? function with the SIZE? function (see ...)
 
 /note
+
++++C-string arithmetic
+
+It is possible to apply some simple math operations on c-string variables like additions and subtractions. C-string address would be increased or decreased by the integer argument.
+
+Syntax
+
+ <c-string> + <n>
+ <c-string> - <n>
+
+ <c-string> : c-string variable
+ <n>        : integer value
+
+Example
+
+ s: "hello"								;-- let suppose s = 4000000h
+
+ s: s + 1								;-- now s = 40000001h
+ s: s + 1								;-- now s = 40000002h	
 
 +++Accessing bytes
 
@@ -429,11 +289,12 @@ Example of a variable used as index:
 A simple way to traverse a c-string would be:
 
  foo: "I am a c-string"
- c: 1
+ bar: foo
+
  until [
- 	prin form foo/c						;-- form would convert a byte! to a c-string
- 	c: c + 1
- 	zero? foo/c
+ 	prin form bar/c						;-- form would convert a byte! to a c-string
+ 	bar: bar + 1
+ 	zero? bar/c
  ]
  
 will output:
@@ -463,7 +324,7 @@ will output
 
 ---Struct!
 
-Struct! datatype is roughly equivalent to C struct type. It is a record of one or several values, each value having its own datatype.
+Struct! datatype is roughly equivalent to C struct type. It is a record of one or several values, each value having its own datatype. A struct variable holds the memory address of a struct value. 
 
 <u>Implementation note</u>: Struct! values are <u>padded</u> (at tail) in memory in order to preserve optimal alignment for each target (for example, it is aligned to 4 bytes for IA32 target). SIZE? function will return the size of the struct! value in memory without the eventual tail padding.
 
@@ -477,8 +338,10 @@ Declaring a struct! value is achieved by using the STRUCT keyword followed by a 
  ]
  
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [<datatype>] |
+ <datatype> : integer! | byte! | pointer! [integer!] |
               c-string! | struct! [<members>]
+              
+The returned value of STRUCT is the memory address of the newly created struct value.
 
 +++Usage
 
@@ -488,26 +351,7 @@ Declaring a struct! value is achieved by using the STRUCT keyword followed by a 
  	c 	[struct! [d [integer!]]]
  ]
  
-In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is also a struct! value.
-
-+++Struct references
-
-A struct! value memory address can be obtained using the following syntax:
-
- :<struct variable>
- 
-Example:
- 
- foo!: alias struct! [
-  	a 	[integer!]
-  	b	[c-string!]
-  	c 	[struct! [d [integer!]]]
- ]
- p: &[foo!]								;-- creating a pointer value
- s: struct foo!							;-- creating a struct value
-
- p: :s									;-- assigning the pointer to the struct value
-
+In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is also a struct! value pointer.
 
 +++Accessing members
 
@@ -528,12 +372,27 @@ From last example, that would give:
  s/b: "hello"
  bar: s/c/d								;-- deep read/write access is also possible
  
-A struct value pointer can also access members:
++++Struct arithmetic
 
- p: &[foo!]
- p: :s
- p/value/a: 123							;-- equivalent to s/a: 123
- bar: p/value/c/d						;-- equivalent to bar: s/c/d
+It is possible to apply some simple math operations on struct variables like additions and subtractions. Struct address would be increased or decreased by the size of the pointed struct value multiplied by the integer argument.
+
+Syntax
+
+ <struct> + <n>
+ <struct> - <n>
+
+ <struct>	: struct variable
+ <n>        : integer value
+
+Examples
+
+ p: struct [							;-- let suppose p = 4000000h
+	a [integer!]
+	b [pointer! [integer!]]
+ ]										;-- struct memory size would be 8 bytes
+ p: p + 1								;-- now p = 40000008h
+
+<u>Note</u>: The struct value size is target and alignment dependent. In the above example, it is supposed to run a 32-bit system with a struct alignment to 4 bytes.
 
 +++Aliases
 
@@ -550,10 +409,17 @@ Aliasing syntax:
  
  <name>     : the name to use as alias
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [<datatype>] |
+ <datatype> : integer! | byte! | pointer! [integer!] |
               c-string! | struct! [<members>]
+              
+Struct value declaration using an aliased definition:
+
+ <variable>: struct <alias>
+
+ <variable>  : a struct variable
+ <alias>     : a previously declared alias name
  
-Usage example:
+Struct usage example:
 
  book!: alias struct! [					;-- defines a new aliased type
  	title		[c-string!]
@@ -572,6 +438,170 @@ Usage example:
  b/author: "Carl Sagan"
  b/year:   1985
 
+---Pointer!
+
+Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, so the only pointed datatype allowed is integer! (byte! pointer is already covered by c-string! and logic! pointer is not needed).
+
+<u>Implementation note</u>: The memory size of a pointer is 4 bytes on 32-bit systems (and 8 bytes on 64-bit systems).
+
++++Literal format
+
+New pointers value can be created using the following syntax:
+
+ pointer [<datatype>]
+
+ <datatype>: integer!
+
+\note Possible syntactic sugar
+The & symbol used in previous revisions of this document has been removed due to the new limited pointer! datatype usage. It could be reintroduced again in the future if required.
+
+/note
+
+Examples:
+
+ foo: pointer [integer!]				;-- equivalent to C's: int *foo;
+
+\note Pointer value initialization
+Do not assume any default value for a pointer value until it is initialized properly. In the current implementation, global pointer variables are set to 0 by default while local pointer variables default value is undefined. This might change in the future to adopt a default value more suitable for debugging (like 0BADBAD0h or similar hex trick).
+ 
+/note
+
++++Declaration
+
+Pointer declaration is only required for local pointer variables in functions' specification block. In such case, the datatype declaration can be omitted and left to the inferencer to guess. (See "Type inference" section)
+
+ pointer! [<datatype>]
+
+ <datatype>: integer!
+
+Global variables declaration examples (with C equivalents):
+
+ p: pointer [integer!]							;-- int *p;
+
+Same with local variables declaration examples (with C equivalents):
+
+ func [/local p [pointer! [integer!]]			;-- int *p;
+
+Example of inferred pointer variable type:
+
+ foo: func [
+ 	a [struct! [count [integer!]]]
+ 	/local
+ 		p [pointer! [integer!]]				;-- explicit declaration
+ ][
+ 	foobar p								;-- foobar modifies p
+ 	a/count: p/value
+ ]
+
+ bar: func [
+ 	a [struct! [count [integer!]]]
+ 	/local p								;-- p datatype inferred
+ ][
+ 	p: pointer [integer!]					;-- p initialized (implicit declaration)
+ 	foobar p
+ 	a/count: p/value
+ ]
+
+ bar2: func [
+  	a [struct! [count [integer!]]]
+  	/local p								;-- p datatype inferred
+ ][
+  	p: GetPointer a							;-- datatype is guessed from return value
+  	foobar p
+  	a/count: p/count
+ ]
+
++++Dereferencing
+
+Dereferencing a pointer is the operation allowing to access the pointed value. In Red/System, it is achieved by adding a <b>/value</b> refinement to the pointer variable (called more generally "path notation"):
+
+ <pointer>/value						;-- read access
+ <pointer>/value: <value>				;-- write access
+
+ <pointer> : pointer variable
+ <value>   : a value of same type as in pointer's definition
+
+Usage example
+
+ p:   pointer [integer!]				;-- declare a pointer on an integer
+ bar: pointer [integer!]				;-- declare another pointer on an integer
+
+ p: as [pointer [integer!]] 40000000h
+ p/value: 1234 							;-- write 1234 at address 40000000h
+ foo: p/value							;-- read pointed value back
+ bar: p									;-- assign pointer address to 'bar
+ 
+<u>Note</u>: Remember that a pointed value is undefined (can contain an arbitrary value) until you define it explicitly  
+
++++Pointer arithmetic
+
+It is possible to apply some simple math operations on pointer like additions and subtractions (as in C). Pointer address would be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
+
+ p: pointer [integer!]					;-- pointed value memory size is 4 bytes
+
+ p: as [pointer [integer!]] 4000000h
+ p: p + 1								;-- p points now to 40000004h
+ p: p + 1								;-- p points now to 40000008h
+
++++Pointer path notation
+
+It is possible to use path notation to simulate an array with indexed access. Both reading and writing are possible.
+
+<b>Syntax</b>
+
+ <pointer>/integer!						;-- literal integer index provided
+ <pointer>/<index>						;-- index provided by a variable
+
+ <pointer>  : a pointer variable
+ <index>    : an integer variable
+
+Examples:
+
+ p: pointer [integer!]
+
+ p: as [pointer [integer!]] 4000000h
+ a: p/1									;-- reads an integer! at 40000000h
+ p/2: a									;-- writes the integer! at 40000004h
+ 
+Integer variable can also be used as index:
+
+ p: pointer [integer!]
+
+ p: as [pointer [integer!]] 4000000h
+ c: 2
+ p/c: 1234								;-- writes 123 (4 bytes) at 40000008h
+
++++Void pointer
+
+There is no specific support in Red/System for C-like void pointers. The official way is to use the integer! type to represent C void* pointers.
+
+For pointers on c-string! or struct! variables, a pointer variable can be used then dereferenced and casted to the target type.
+
+Example:
+
+ p-buffer!: alias struct! [buffer [c-string!]]
+
+ get-hello: function [
+ 	s [p-buffer]
+ 	return: [p-buffer]				;-- returns a pointer to a c-string
+ ][
+ 	s/buffer: "hello"
+ 	s								;-- equivalent to C's char **
+ ]
+ 
+ foo: func [
+ 	/local
+ 		c [pointer! [integer!]]
+ 		s [c-string!]
+ ][
+ 	c: get-hello
+ 	s: as c-string! c/value
+ 	prin s
+ ]
+would print
+ hello
+    
+
 ---Type Casting
 
 Type casting is possible between value of compatible types. Compatible types are defined as types which values memory size is equal. Casting is achieved using the <b>AS</b> keyword followed by the target type and the value to cast.
@@ -582,16 +612,16 @@ Syntax:
 
  as <new-type> value
 
- <new-type> : integer! | byte! | pointer! [<datatype>] |
+ <new-type> : integer! | byte! | pointer! [integer!] |
               c-string! | struct! [<members>]
 
 Example:
 
  foo: 0									;-- foo is an integer
- bar: &[pointer! [c-string!]]			;-- bar is a pointer
+ bar: pointer [integer!]				;-- bar is a pointer
 
- foo: as integer! bar					;-- explicit type casting
- bar: as [pointer! [c-string!]] foo		;-- complex type is passed as a block
+ foo: as integer! bar					;-- type casting
+ bar: as [pointer! [integer!]] foo		;-- complex type is passed as a block
  
 ---Type Conversion
 
@@ -628,7 +658,7 @@ Function definition and usage is pretty straightforward in Red/System. The funct
 
  <name>		: function's name
  <argument>	: function's argument indentifier
- <datatype>	: integer! | byte! | pointer! [<datatype>] |
+ <datatype>	: integer! | byte! | pointer! [integer!] |
               c-string! | struct! [<members>]
  <local>	: local variable
  <body>		: function's body code
@@ -843,7 +873,7 @@ Red/System is able to dynamically load external shared libraries when a Red/Syst
  <function name> : name of the mapped function in global context
  <ID>			 : identifier of the function in the shared library
  <argument>		 : function's argument indentifier
- <datatype>		 : integer! | byte! | pointer! [<datatype>] |
+ <datatype>		 : integer! | byte! | pointer! [integer!] |
              	   c-string! | struct! [<members>]
 
 The <b>RETURN:</b> statement indicates that the mapped function has a return value.
@@ -916,7 +946,7 @@ As Red/System is destined to be used mostly for low-level system programming, <a
   <function name> : name of the mapped function in global context
   <ID>			  : syscall integer ID
   <argument>	  : syscall's argument indentifier
-  <datatype>	  : integer! | byte! | pointer! [<datatype>] |
+  <datatype>	  : integer! | byte! | pointer! [integer!] |
              		c-string! | struct! [<members>]
 
 The <b>RETURN:</b> statement indicates that the mapped syscall has a return value.
@@ -1425,16 +1455,24 @@ Global condition is met if all the sub-conditions are met.
 *Add support for specifying struct memory alignment and padding. Default structure and members alignment would be the one specified in target object (per target). Per struct specific rules should be possible using the following syntax:
 
  #align <integer>				;-- change memory alignment for all subsequent
- 								;-- c-strings, pointers and structs
+ 								;-- c-strings, pointers and structs.
 
- struct [						;-- change members alignment and endianess
-	[align <n> <little|big>]
+ struct [
+	[align <n> <little|big>]	;-- change members alignment and endianess
 	<members>
  ]
 
  <n>      : number of bytes to align members to
  <little> : little endian (optional)
  <big>    : big endian (optional)
+ 
+*Add support for passing struct! by value when required. Possible syntax could be:
+
+ struct [
+	[by-value]					;-- 'by-value keyword would force passing it
+	<members>					;-- by value.
+ ]
+
 
 ---C-strings
 
@@ -1464,7 +1502,7 @@ will output:
 
 *<b>Array!</b>: this datatype would allow declaring arrays of values that could be accessed with an integer index (similar to C arrays). Redundancy with c-string! datatype would need to be considered. Here is a draft of possible syntax and usage:
     ---- C ------               --------- Red/System ----------
-	int p[20] = 0;				p: &[array! [20 integer!] 0]
+	int p[20] = 0;				p: array [20 integer!]
 	p[4] = 123;					p/4: 123
 	p[i] = 123;					p/i: 123
 
@@ -1498,13 +1536,27 @@ will output:
 
 ---Misc
 
-*<strike>Support 0 and 1 as valid boolean results</strike> <i><b>REJECTED</b></i>
-
 *Add a module system (per-file contexts for example)
 
-*Extend the get-word! syntax to all variable types.
+*<strike>Support 0 and 1 as valid boolean results</strike> <i><b>REJECTED</b></i>
+
+*>Extend the get-word! syntax to integer! variables.
 
 ===Document History
+
+*10/04/2011 - draft 4
+
+*>Struct arguments are passed by reference now again. STRUCT returns a reference to the struct value.
+
+*>Syntax now precised for STRUCT keyword followed by an alias name
+
+*>Struct! arithmetic added
+
+*>C-string! arithmetic added
+
+*>Pointer! now restricted to [integer!] only. It is more consistent with c-string! and struct! which are both (implicit) pointers already.
+
+*>Pointer! section moved after c-string! and struct! (because it is less important now)
 
 *08/04/2011 - draft 3
 
