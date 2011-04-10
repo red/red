@@ -135,14 +135,14 @@ system-dialect: context [
 			<=		[2	op		- [a [number! pointer!] b [number! pointer!]]]
 			;not	[1	inline	- [a [number!]]]									;-- NOT
 			;make	[2 	inline	- [type [word!] spec [number! pointer!]]]
-			length? [1	inline	- [v [string! binary! struct!] return: [integer!]]]
+			length? [1	inline	- [v [c-string!] return: [integer!]]]
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
 		
 		datatype: 	[
 			'int8! | 'int16! | 'int32! | 'integer! | 'int64! | 'uint8! | 'uint16! |
-			'uint32! | 'uint64! | 'hexa! | 'pointer! | 'binary! | 'string! 
+			'uint32! | 'uint64! | 'pointer! | 'binary! | 'c-string! 
 			| 'struct! word!	;@@ 
 		]
 		
@@ -193,7 +193,7 @@ system-dialect: context [
 			unless find ctx name [
 				type: case [
 					value = <last>  [last-type]
-					block? value	[compose/deep [struct! [(value/2)]]]
+					block? value	[compose/deep [(to-word join value/1 #"!") [(value/2)]]]
 					word? value 	[first select ctx value]
 					'else 			[type?/word value]
 				]			
@@ -410,7 +410,7 @@ system-dialect: context [
 					fetch-func name
 					none
 				]
-				alias-type [
+				alias [
 					;TBD: check specs block validity
 					repend aliased-types [
 						to word! name
@@ -424,6 +424,12 @@ system-dialect: context [
 				]
 				struct [
 					;TBD check struct spec validity
+					add-symbol to-word name reduce [pc/1 pc/2]
+					pc: skip pc 2
+					none
+				]
+				pointer [
+					;TBD check pointer spec validity
 					add-symbol to-word name reduce [pc/1 pc/2]
 					pc: skip pc 2
 					none

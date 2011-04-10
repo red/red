@@ -21,7 +21,7 @@ prolog {
 			]
 			WriteFile: "WriteFile" [
 				handle		[integer!]
-				buffer		[string!]
+				buffer		[c-string!]
 				len			[integer!]
 				written		[struct! [value [integer!]]]
 				overlapped	[integer!]
@@ -43,11 +43,11 @@ prolog {
 	stdout: GetStdHandle WIN_STD_OUTPUT_HANDLE
 	written: struct [value [integer!]]
 
-	prin: func [s [string!] return: [integer!]][
+	prin: func [s [c-string!] return: [integer!]][
 		WriteFile stdout s length? s written 0
 	]
 
-	print: func [s [string!] return: [integer!]][
+	print: func [s [c-string!] return: [integer!]][
 		prin s
 		WriteFile stdout newline 1 written 0
 	]

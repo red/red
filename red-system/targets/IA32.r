@@ -25,7 +25,7 @@ make target-class [
 		>				 #{0F}
 	]
 	
-	emit-length?: func [value [word! string! binary! struct! tag!] /local spec size][
+	emit-length?: func [value [word! string! struct! tag!] /local spec size][
 		if verbose >= 3 [print [">>>inlining: length?" mold value]]
 		if value = <last> [value: 'last]
 		
@@ -48,9 +48,6 @@ make target-class [
 			]
 			string! [
 				;TBD: support or throw error?
-			]
-			binary! [
-				;prefix binaries with size??
 			]
 			struct! [
 				size: 0
@@ -83,7 +80,7 @@ make target-class [
 					#{8B45}							;-- MOV eax, [ebp+n]	; local
 			]
 			string! [
-				spec: emitter/set-global reduce [emitter/make-noname [string!]] value
+				spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
 				emit #{}							;-- MOV eax, [string]
 				emit-reloc-addr spec/2				;-- one-based index
 			]
@@ -153,7 +150,7 @@ make target-class [
 				;TBD
 			]
 			string! [
-				spec: emitter/set-global reduce [emitter/make-noname [string!]] value
+				spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
 				emit #{68}							;-- PUSH value
 				emit-reloc-addr spec/2				;-- one-based index
 			]
@@ -254,7 +251,7 @@ make target-class [
 			]
 			string! [
 				if find emitter/stack name [
-					spec: emitter/set-global reduce [emitter/make-noname [string!]] value
+					spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
 					emit-variable name
 						#{}							;-- no code to emit, handled by higher layer
 						#{C745}						;-- MOV [ebp+n], value

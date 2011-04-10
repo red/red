@@ -36,7 +36,7 @@ emitter: context [
 		hexa!		4	unsigned
 		pointer!	4	-				;-- 32-bit, 8 for 64-bit
 		binary!		4	-				;-- 32-bit, 8 for 64-bit
-		string!		4	-				;-- 32-bit, 8 for 64-bit
+		c-string!	4	-				;-- 32-bit, 8 for 64-bit
 		struct!		4	-				;-- 32-bit, 8 for 64-bit ; struct! passed by reference
 	]
 	
