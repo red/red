@@ -127,12 +127,12 @@ system-dialect: context [
 			//		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- modulo
 			;>>		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift left
 			;<<		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift right
-			=		[2	op		- [a b]]
-			<>		[2	op		- [a b]]
-			>		[2	op		- [a [number! pointer!] b [number! pointer!]]]
-			<		[2	op		- [a [number! pointer!] b [number! pointer!]]]
-			>=		[2	op		- [a [number! pointer!] b [number! pointer!]]]
-			<=		[2	op		- [a [number! pointer!] b [number! pointer!]]]
+			=		[2	op		- [a b return: [logic!]]]
+			<>		[2	op		- [a b return: [logic!]]]
+			>		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
+			<		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
+			>=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
+			<=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
 			;not	[1	inline	- [a [number!]]]									;-- NOT
 			;make	[2 	inline	- [type [word!] spec [number! pointer!]]]
 			length? [1	inline	- [v [c-string!] return: [integer!]]]
@@ -158,6 +158,8 @@ system-dialect: context [
 			all			 [comp-expression-list/invert]
 			null	 	 [also 0 pc: next pc]
 			struct! 	 [also 'struct! pc: next pc]
+			true		 [also true pc: next pc]		;-- converts word! to logic!
+			false		 [also false pc: next pc]		;-- converts word! to logic!
 		]
 		
 		throw-error: func [err [word! string!]][
@@ -311,23 +313,45 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-block-chunked: func [/only][
+		comp-block-chunked: func [/only /test /local expr][
 			emitter/chunks/start
+			expr: either only [
+				fetch-expression/final					;-- returns first expression
+			][
+				comp-block/final						;-- returns last expression
+			]
+			if test [expr: check-logic expr]
 			reduce [
-				either only [
-					fetch-expression/final				;-- returns first expression
-				][
-					comp-block/final					;-- returns last expression
-				]
+				expr 
 				emitter/chunks/stop						;-- returns a chunk block!
 			]
 		]
 		
+		check-logic: func [expr][		
+			switch/default type?/word expr [
+				logic! [reduce [expr]]
+				word!  [
+					switch/default first resolve-type expr [
+						logic! [
+							emitter/target/emit-operation '= [<last> 0]
+							[#[true]]					;-- request '= comparison
+						]
+						function! [
+							;TBD: test
+						]
+					][
+						throw-error "expected logic! variable or conditional expression"
+					]
+				]
+			][expr]
+		]
+		
 		comp-if: has [expr unused chunk][		
 			pc: next pc
-			expr: fetch-expression/final				;-- compile condition
+			expr: fetch-expression/final				;-- compile condition expression
+			expr: check-logic expr		
 			check-body pc/1
-		
+	
 			set [unused chunk] comp-block-chunked		;-- TRUE block
 			emitter/branch/over/on chunk expr/1			;-- insert IF branching			
 			emitter/merge chunk		
@@ -337,6 +361,7 @@ system-dialect: context [
 		comp-either: has [expr unused c-true c-false offset][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile condition
+			expr: check-logic expr
 			check-body pc/1
 			check-body pc/2
 			
@@ -352,7 +377,7 @@ system-dialect: context [
 		comp-until: has [expr chunk][
 			pc: next pc
 			check-body pc/1
-			set [expr chunk] comp-block-chunked
+			set [expr chunk] comp-block-chunked/test
 			emitter/branch/back/on chunk expr/1	
 			emitter/merge chunk			
 			<last>
@@ -363,9 +388,10 @@ system-dialect: context [
 			check-body pc/1
 			check-body pc/2
 			
-			set [expr cond]   comp-block-chunked		;-- Condition block
+			set [expr cond]   comp-block-chunked/test	;-- Condition block
 			set [unused body] comp-block-chunked		;-- Body block
 			
+			if logic? expr/1 [expr: [<>]]				;-- re-encode test op
 			offset: emitter/branch/over body			;-- Jump to condition
 			bodies: emitter/chunks/join body cond
 			emitter/branch/back/on/adjust bodies reduce [expr/1] offset ;-- Test condition, exit if FALSE
@@ -395,7 +421,7 @@ system-dialect: context [
 				bodies: emitter/chunks/join list/1/2 bodies			;-- then left join expr
 			]
 			emitter/merge bodies
-			not invert									;-- true => test for TRUE, false => opposite
+			pick [1x0 0x1] not invert					;-- 1x0 => test for TRUE, 0x1 => opposite
 		]
 		
 		comp-set-word: has [name value][
@@ -488,12 +514,12 @@ system-dialect: context [
 			foreach v next tree [if block? v [order-args v]]	;-- recursive processing
 		]
 		
-		comp-expression: func [tree /local name value][	
+		comp-expression: func [tree /assign /local name value offset body][	
 			switch/default type?/word tree/1 [
 				set-word! [				
 					name: to-word tree/1
 					value: either block? tree/2 [
-						comp-expression tree/2
+						comp-expression/assign tree/2
 						<last>
 					][
 						tree/2
@@ -502,6 +528,9 @@ system-dialect: context [
 					if path? value [
 						emitter/access-path value
 						value: <last>
+					]
+					if logic? value [						;-- convert literal logic! values
+						value: to-integer value				;-- TRUE => 1, FALSE => 0
 					]
 					emitter/target/emit-store name value
 				]
@@ -518,6 +547,15 @@ system-dialect: context [
 				name: to-word tree/1
 				emitter/target/emit-call name next tree
 				get-return-type functions/:name/4
+				if all [
+					assign 
+					find emitter/target/comparison-op name
+					last-type = 'logic!
+				][											;-- runtime logic! conversion before storing
+					set [offset body] emitter/chunks/make-boolean
+					emitter/branch/over/on/adjust body reduce [name] offset
+					emitter/merge body
+				]
 			]
 		]
 		
@@ -573,12 +611,16 @@ system-dialect: context [
 						order-args expr
 						comp-expression expr
 					]
-					not find [logic! none! tag!] type?/word expr [
-						emitter/target/emit-last expr
+					not find [none! tag! logic! pair!] type?/word expr [
+						emitter/target/emit-last expr	; TBD: add logic! emitter! ??
 					]
 				]
 			]
-			any [all [logic? expr reduce [expr]] expr]	;TBD: check this
+			either pair? expr [							;-- special encoding for ALL/ANY
+				reduce [select [1x0 #[true] 0x1 #[false]] expr]
+			][
+				expr
+			]
 		]
 		
 		comp-block: func [/final /local expr][

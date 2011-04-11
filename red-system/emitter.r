@@ -33,7 +33,7 @@ emitter: context [
 		uint16!		2	unsigned
 		uint32!		4	unsigned
 		uint64!		8	unsigned
-		hexa!		4	unsigned
+		logic!		4	-
 		pointer!	4	-				;-- 32-bit, 8 for 64-bit
 		binary!		4	-				;-- 32-bit, 8 for 64-bit
 		c-string!	4	-				;-- 32-bit, 8 for 64-bit
@@ -129,6 +129,7 @@ emitter: context [
 
 	store-global: func [value size /local ptr][
 		ptr: tail data-buf
+		if logic? value [value: to-integer value]			;-- TRUE => 1, FALSE => 0
 		case [
 			number? value [
 				value: debase/base to-hex value 16
