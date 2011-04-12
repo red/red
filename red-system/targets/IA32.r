@@ -68,13 +68,19 @@ make target-class [
 		3											;-- offset to branch to TRUE part
 	]
 	
-	emit-last: func [value [integer! word! string! struct!] /local spec][
+	emit-last: func [value [integer! word! string! struct! logic!] /local spec][
 		switch type?/word value [
+			logic!   [
+				emit #{31C0}						;-- XOR eax, eax		; eax = 0 (FALSE)	
+				if value [
+					emit #{40}						;-- INC eax				; eax = 1 (TRUE)
+				]
+			]
 			integer! [
 				emit #{B8}							;-- MOV eax, value
 				emit to-bin32 value
 			]
-			word! [
+			word!   [
 				emit-variable value
 					#{A1}							;-- MOV eax, [value]	; global
 					#{8B45}							;-- MOV eax, [ebp+n]	; local
@@ -101,7 +107,7 @@ make target-class [
 		
 		size: (length? code) - any [offset 0]				;-- offset from the code's head
 		imm8?: either back [size <= 126][size <= 127]		;-- account 2 bytes for JMP imm8
-		opcode: either op [
+		opcode: either not none? op [
 			op: case [
 				block? op [op/1]							;-- [cc] => keep
 				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
@@ -117,11 +123,17 @@ make target-class [
 		length? jmp
 	]
 	
-	emit-push: func [value [integer! word! block! string!] /local spec type gcode lcode][
+	emit-push: func [value [logic! integer! word! block! string!] /local spec type gcode lcode][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		
-;TBD: pass value in EAX ?		
 		switch type?/word value [
+			logic! [
+				emit #{31C0}						;--	XOR eax, eax		; eax = 0 (FALSE)	
+				if value [
+					emit #{40}						;--	INC eax				; eax = 1 (TRUE)
+				]
+				emit #{50}							;-- PUSH eax
+			]
 			integer! [
 				either all [-128 <= value value <= 127][
 					emit #{6A}						;-- PUSH imm8
@@ -463,7 +475,7 @@ make target-class [
 		emit to-bin8 size
 	]
 	
-	emit-call: func [name [word!] args [block!] /local spec fspec][
+	emit-call: func [name [word!] args [block!] /sub /local spec fspec][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
@@ -477,7 +489,7 @@ make target-class [
 					switch/default type?/word arg [
 						binary! [emit arg]
 						block!  [
-							emit-call arg/1 next arg
+							emit-call/sub arg/1 next arg
 							emit #{50}				;-- PUSH eax		; push returned value
 						]
 					][
@@ -487,13 +499,13 @@ make target-class [
 			]
 			spec/1 = 'op [
 				if block? args/1 [
-					emit-call args/1/1 next args/1
+					emit-call/sub args/1/1 next args/1
 					if block? args/2 [				;-- save first argument result in another register
 						emit #{89C2}				;-- MOV edx, eax
 					]
 				]
 				if block? args/2 [
-					emit-call args/2/1 next args/2	;-- result in eax
+					emit-call/sub args/2/1 next args/2	;-- result in eax
 				]
 			]
 		]
@@ -530,6 +542,7 @@ make target-class [
 			]
 			op	[
 				emit-operation name args
+				if sub [emitter/logic-to-integer name]
 				<last>
 			]
 		]

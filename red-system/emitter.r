@@ -127,6 +127,14 @@ emitter: context [
 		]
 	]
 
+	logic-to-integer: func [op [word!]][
+		if find target/comparison-op op [
+			set [offset body] chunks/make-boolean
+			branch/over/on/adjust body reduce [op] offset
+			merge body
+		]
+	]
+
 	store-global: func [value size /local ptr][
 		ptr: tail data-buf
 		if logic? value [value: to-integer value]			;-- TRUE => 1, FALSE => 0
