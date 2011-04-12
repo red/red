@@ -142,7 +142,7 @@ system-dialect: context [
 		
 		datatype: 	[
 			'int8! | 'int16! | 'int32! | 'integer! | 'int64! | 'uint8! | 'uint16! |
-			'uint32! | 'uint64! | 'pointer! | 'binary! | 'c-string! 
+			'uint32! | 'uint64! | 'pointer! | 'binary! | 'c-string! | 'logic!
 			| 'struct! word!	;@@ 
 		]
 		
@@ -174,7 +174,12 @@ system-dialect: context [
 			halt
 		]
 		
-		get-return-type: func [spec][
+		get-return-type: func [name [word!] /local type][
+			type: select functions/:name/4 [return:]
+			either type [type/1][none]
+		]
+		
+		set-last-type: func [spec][
 			if spec: select spec [return:][last-type: spec/1]
 		]
 		
@@ -183,6 +188,9 @@ system-dialect: context [
 				all [with select parent name]
 				all [locals select locals name]
 				select globals name
+			]
+			if all [not type find functions name][
+				return [function!]
 			]
 			unless find emitter/datatypes type/1 [
 				type: select aliased-types type/1
@@ -209,12 +217,12 @@ system-dialect: context [
 				;TBD: symbol already defined
 			]
 			;TBD: check spec syntax (here or somewhere else)
-			arity: either pos: find spec/3 /local [
+			arity: either pos: find spec/3 /local [			; @@ won't work with inferencing
 				(index? pos) -  1 / 2
 			][
 				(length? spec/3) / 2
 			]		
-			if find spec/3 [return:][arity: arity - 1]
+			if find spec/3 [return:][arity: max 0 arity - 1]
 			repend functions [
 				name reduce [arity type cc new-line/all spec/3 off]
 			]
@@ -229,8 +237,8 @@ system-dialect: context [
 			]
 			unless parse specs [
 				any [word! into type]			;TBD: check datatypes compatibility!
-				opt  [set-word! into type]
-				opt  [/local some [word! into type]]
+				opt [set-word! into type]
+				opt [/local some [word! into type]]
 			][
 				throw-error "invalid function specs"
 			]
@@ -327,20 +335,31 @@ system-dialect: context [
 			]
 		]
 		
-		check-logic: func [expr][		
+		check-logic: func [expr][
 			switch/default type?/word expr [
 				logic! [reduce [expr]]
 				word!  [
-					switch/default first resolve-type expr [
-						logic! [
-							emitter/target/emit-operation '= [<last> 0]
-							[#[true]]					;-- request '= comparison
-						]
-						function! [
-							;TBD: test
-						]
-					][
+					type: first resolve-type expr					
+					unless find [logic! function!] type [
 						throw-error "expected logic! variable or conditional expression"
+					]
+					if all [
+						type = 'function!
+						'logic! <> get-return-type expr
+					][
+						throw-error reform [
+							"expecting a logic! return value from function"
+							mold expr
+						]
+					]
+					emitter/target/emit-operation '= [<last> 0]
+					[#[true]]							;-- request '= comparison
+				]
+				block! [
+					either find emitter/target/comparison-op expr/1 [
+						expr
+					][
+						check-logic expr/1
 					]
 				]
 			][expr]
@@ -421,7 +440,7 @@ system-dialect: context [
 				bodies: emitter/chunks/join list/1/2 bodies			;-- then left join expr
 			]
 			emitter/merge bodies
-			pick [1x0 0x1] not invert					;-- 1x0 => test for TRUE, 0x1 => opposite
+			pick [<true> <false>] not invert					;-- special encoding
 		]
 		
 		comp-set-word: has [name value][
@@ -546,15 +565,9 @@ system-dialect: context [
 			][		
 				name: to-word tree/1
 				emitter/target/emit-call name next tree
-				get-return-type functions/:name/4
-				if all [
-					assign 
-					find emitter/target/comparison-op name
-					last-type = 'logic!
-				][											;-- runtime logic! conversion before storing
-					set [offset body] emitter/chunks/make-boolean
-					emitter/branch/over/on/adjust body reduce [name] offset
-					emitter/merge body
+				set-last-type functions/:name/4
+				if all [assign last-type = 'logic!][
+					emitter/logic-to-integer name		;-- runtime logic! conversion before storing
 				]
 			]
 		]
@@ -611,13 +624,13 @@ system-dialect: context [
 						order-args expr
 						comp-expression expr
 					]
-					not find [none! tag! logic! pair!] type?/word expr [
-						emitter/target/emit-last expr	; TBD: add logic! emitter! ??
+					not find [none! tag!] type?/word expr [
+						emitter/target/emit-last expr
 					]
 				]
 			]
-			either pair? expr [							;-- special encoding for ALL/ANY
-				reduce [select [1x0 #[true] 0x1 #[false]] expr]
+			either all [tag? expr expr <> <last>][		;-- special encoding for ALL/ANY
+				reduce [select [<true> #[true] <false> #[false]] expr]
 			][
 				expr
 			]

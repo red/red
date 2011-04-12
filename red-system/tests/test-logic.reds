@@ -52,3 +52,44 @@ while [run?][
 	c: c - 1
 	if zero? c [run?: false]
 ]
+prin newline
+
+
+;-- function returning a logic value tests
+
+test?: func [return: [logic!]][
+	either 1 < 2 [true][false]
+]
+either test? [print "OK"][print "KO"]
+
+a: test?
+either a [print "OK"][print "KO"]
+
+
+test2?: func [return: [logic!]][
+	either 1 = 2 [true][false]
+]
+either test2? [print "KO"][print "OK"]
+
+a: test2?
+either a [print "KO"][print "OK"]
+
+
+;-- passing logic! as function's argument tests
+
+foo: func [a [logic!] return: [logic!]][a]
+
+either foo true  [print "OK"][print "KO"]
+either foo false [print "KO"][print "OK"]
+
+a: foo 1 < 2
+either a [print "OK"][print "KO"]
+
+a: foo 3 = 4
+either a [print "KO"][print "OK"]
+
+a: foo 1 + 1 < 3
+either a [print "OK"][print "KO"]
+
+a: foo 2 + 2 = 5
+either a [print "KO"][print "OK"]
