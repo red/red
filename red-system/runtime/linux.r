@@ -12,7 +12,7 @@ prolog {
 	#syscall [
 		write: 4 [
 			fd		[integer!]
-			buffer	[string!]
+			buffer	[c-string!]
 			count	[integer!]
 			return: [integer!]
 		]
@@ -24,11 +24,11 @@ prolog {
 	newline: "^^/"
 	stdout: 1
 
-	prin: func [s [string!] return: [integer!]][
+	prin: func [s [c-string!] return: [integer!]][
 		write stdout s length? s
 	]
 
-	print: func [s [string!] return: [integer!]][
+	print: func [s [c-string!] return: [integer!]][
 		prin s
 		write stdout newline 1
 	]
