@@ -107,7 +107,7 @@ make target-class [
 		
 		size: (length? code) - any [offset 0]				;-- offset from the code's head
 		imm8?: either back [size <= 126][size <= 127]		;-- account 2 bytes for JMP imm8
-		opcode: either op [
+		opcode: either not none? op [
 			op: case [
 				block? op [op/1]							;-- [cc] => keep
 				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE

@@ -140,7 +140,7 @@ system-dialect: context [
 		
 		user-functions: tail functions	;-- marker for user functions
 		
-		datatype: 	[
+		datatype: [
 			'int8! | 'int16! | 'int32! | 'integer! | 'int64! | 'uint8! | 'uint16! |
 			'uint32! | 'uint64! | 'pointer! | 'binary! | 'c-string! | 'logic!
 			| 'struct! word!	;@@ 
@@ -174,6 +174,14 @@ system-dialect: context [
 			halt
 		]
 		
+		encode-cond-test: func [value [logic!]][
+			pick [<true> <false>] value
+		]
+		
+		decode-cond-test: func [value [tag!]][
+			select [<true> #[true] <false> #[false]] value
+		]
+		
 		get-return-type: func [name [word!] /local type][
 			type: select functions/:name/4 [return:]
 			either type [type/1][none]
@@ -203,7 +211,7 @@ system-dialect: context [
 			unless find ctx name [
 				type: case [
 					value = <last>  [last-type]
-					block? value	[compose/deep [(to-word join value/1 #"!") [(value/2)]]]
+					block? value	[compose/deep [(to word! join value/1 #"!") [(value/2)]]]
 					word? value 	[first select ctx value]
 					'else 			[type?/word value]
 				]			
@@ -213,7 +221,7 @@ system-dialect: context [
 		]
 		
 		add-function: func [type [word!] spec [block!] cc [word!] /local name arity][		
-			if find functions name: to-word spec/1 [
+			if find functions name: to word! spec/1 [
 				;TBD: symbol already defined
 			]
 			;TBD: check spec syntax (here or somewhere else)
@@ -262,8 +270,8 @@ system-dialect: context [
 			;check if name taken
 			check-specs pc/2
 			add-function 'native reduce [name none pc/2] 'stdcall
-			emitter/add-native to-word name
-			repend bodies [to-word name pc/2 pc/3]
+			emitter/add-native to word! name
+			repend bodies [to word! name pc/2 pc/3]
 			pc: skip pc 3
 		]
 				
@@ -281,7 +289,7 @@ system-dialect: context [
 						forskip specs 3 [
 							repend list [specs/2 reloc: make block! 1]
 							add-function 'import specs cc
-							emitter/import-function to-word specs/1	reloc
+							emitter/import-function to word! specs/1 reloc
 						]						
 					]				
 					pc: skip pc 2
@@ -294,7 +302,7 @@ system-dialect: context [
 						;TBD: check call/code/specs validity
 						add-function 'syscall reduce [name none specs] 'syscall
 						append last functions code		;-- extend definition with syscode
-						;emitter/import-function to-word specs/1 reloc					
+						;emitter/import-function to word! specs/1 reloc
 					]				
 					pc: skip pc 2
 				]
@@ -337,7 +345,7 @@ system-dialect: context [
 		
 		check-logic: func [expr][
 			switch/default type?/word expr [
-				logic! [reduce [expr]]
+				logic! [[#[true]]]						;-- request '= comparison
 				word!  [
 					type: first resolve-type expr					
 					unless find [logic! function!] type [
@@ -360,6 +368,11 @@ system-dialect: context [
 						expr
 					][
 						check-logic expr/1
+					]
+				]
+				tag! [
+					if expr <> <last> [
+						reduce [decode-cond-test expr]	;-- special encoding for ALL/ANY
 					]
 				]
 			][expr]
@@ -418,7 +431,7 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-expression-list: func [/invert /local list offset bodies test][
+		comp-expression-list: func [/invert /local list offset bodies op][
 			pc: next pc
 			check-body pc/1
 			
@@ -430,17 +443,15 @@ system-dialect: context [
 			]
 			list: back tail list
 			set [offset bodies] emitter/chunks/make-boolean		;-- emit ending FALSE/TRUE block
-			test: either invert [list/1/1/1][reduce [list/1/1/1]]
-			emitter/branch/over/on/adjust bodies test offset	;-- last branching
-			bodies: emitter/chunks/join list/1/2 bodies			;-- left join last expression with ending block
-			while [not head? list][								;-- left join all remaining expr in reverse order
-				list: back list
-				test: either invert [list/1/1/1][reduce [list/1/1/1]]
-				emitter/branch/over/on/adjust bodies test offset	;-- emit branch first
+			until [										;-- left join all expr in reverse order
+				op: list/1/1/1
+				unless invert [op: reduce [op]]
+				emitter/branch/over/on/adjust bodies op offset		;-- emit branch first
 				bodies: emitter/chunks/join list/1/2 bodies			;-- then left join expr
-			]
+				also head? list	list: back list
+			]	
 			emitter/merge bodies
-			pick [<true> <false>] not invert					;-- special encoding
+			encode-cond-test not invert					;-- special encoding
 		]
 		
 		comp-set-word: has [name value][
@@ -459,7 +470,7 @@ system-dialect: context [
 					;TBD: check specs block validity
 					repend aliased-types [
 						to word! name
-						either find [struct! pointer!] to-word pc/2 [
+						either find [struct! pointer!] to word! pc/2 [
 							also reduce [pc/2 pc/3] pc: skip pc 3	
 						][
 							also pc/2 pc: skip pc 2
@@ -469,13 +480,13 @@ system-dialect: context [
 				]
 				struct [
 					;TBD check struct spec validity
-					add-symbol to-word name reduce [pc/1 pc/2]
+					add-symbol to word! name reduce [pc/1 pc/2]
 					pc: skip pc 2
 					none
 				]
 				pointer [
 					;TBD check pointer spec validity
-					add-symbol to-word name reduce [pc/1 pc/2]
+					add-symbol to word! name reduce [pc/1 pc/2]
 					pc: skip pc 2
 					none
 				]
@@ -524,7 +535,7 @@ system-dialect: context [
 		order-args: func [tree /local func? name type][
 			if all [
 				func?: not find [set-word! set-path!] type?/word tree/1
-				name: to-word tree/1
+				name: to word! tree/1
 				find [import native] functions/:name/2
 				find [stdcall cdecl gcc45] functions/:name/3
 			][
@@ -533,15 +544,18 @@ system-dialect: context [
 			foreach v next tree [if block? v [order-args v]]	;-- recursive processing
 		]
 		
-		comp-expression: func [tree /assign /local name value offset body][	
+		comp-expression: func [tree /assign /local name value offset body args][
 			switch/default type?/word tree/1 [
-				set-word! [				
-					name: to-word tree/1
+				set-word! [
+					name: to word! tree/1
 					value: either block? tree/2 [
 						comp-expression/assign tree/2
 						<last>
 					][
 						tree/2
+					]
+					if 	all [tag? value value <> <last>][			;-- special encoding for ALL/ANY
+						value: not decode-cond-test value
 					]
 					add-symbol name value
 					if path? value [
@@ -562,8 +576,14 @@ system-dialect: context [
 					]
 					emitter/access-path/store path value
 				]
-			][		
-				name: to-word tree/1
+			][
+				args: next tree
+				forall args [
+					if 	all [tag? args/1 args/1 <> <last>][			;-- special encoding for ALL/ANY
+						args/1: not decode-cond-test args/1
+					]
+				]
+				name: to word! tree/1
 				emitter/target/emit-call name next tree
 				set-last-type functions/:name/4
 				if all [assign last-type = 'logic!][
@@ -629,11 +649,7 @@ system-dialect: context [
 					]
 				]
 			]
-			either all [tag? expr expr <> <last>][		;-- special encoding for ALL/ANY
-				reduce [select [<true> #[true] <false> #[false]] expr]
-			][
-				expr
-			]
+			expr
 		]
 		
 		comp-block: func [/final /local expr][

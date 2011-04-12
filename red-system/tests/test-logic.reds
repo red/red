@@ -93,3 +93,27 @@ either a [print "OK"][print "KO"]
 
 a: foo 2 + 2 = 5
 either a [print "KO"][print "OK"]
+
+
+;-- ALL test
+
+;a: all [true]						; literal values not supported yet in ANY/ALL
+
+either all [1 < 2][print "OK"][print "KO"]
+
+a: all [1 < 2]
+either a [print "OK"][print "KO"]
+
+either foo all [1 < 2 3 <> 4][print "OK"][print "KO"]
+
+
+;-- ANY test
+
+;a: all [true]						; literal values not supported yet in ANY/ALL
+
+either any [1 < 2][print "OK"][print "KO"]
+
+a: any [1 < 2]
+either a [print "OK"][print "KO"]					; KO
+
+either foo any [1 < 2][print "OK"][print "KO"]		; KO
