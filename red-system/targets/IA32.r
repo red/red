@@ -65,7 +65,7 @@ make target-class [
 		emit #{31C0}								;--		  XOR eax, eax
 		emit #{40}									;--		  INC eax			; eax = 1 (TRUE)
 													;-- _exit:
-		3											;-- offset to branch to TRUE part
+		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
 	
 	emit-last: func [value [integer! word! string! struct! logic!] /local spec][
@@ -123,10 +123,13 @@ make target-class [
 		length? jmp
 	]
 	
-	emit-push: func [value [logic! integer! word! block! string!] /local spec type gcode lcode][
+	emit-push: func [value [logic! integer! word! block! string! tag!] /local spec type gcode lcode][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		
 		switch type?/word value [
+			tag!   [								;-- == <last>
+				emit #{50}							;-- PUSH eax
+			]
 			logic! [
 				emit #{31C0}						;--	XOR eax, eax		; eax = 0 (FALSE)	
 				if value [
