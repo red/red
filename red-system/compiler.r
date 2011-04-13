@@ -671,6 +671,7 @@ system-dialect: context [
 			while [not tail? pc][
 				case [
 					issue? pc/1 [comp-directive]
+					pc/1 = 'comment [pc: skip pc 2]
 					find [
 						set-word!
 						word! 
