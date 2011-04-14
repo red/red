@@ -155,7 +155,7 @@ system-dialect: context [
 			until		 [comp-until]
 			while		 [comp-while]
 			any			 [comp-expression-list]
-			all			 [comp-expression-list/invert]
+			all			 [comp-expression-list/_all]
 			null	 	 [also 0 pc: next pc]
 			struct! 	 [also 'struct! pc: next pc]
 			true		 [also true pc: next pc]		;-- converts word! to logic!
@@ -345,7 +345,7 @@ system-dialect: context [
 		
 		check-logic: func [expr][
 			switch/default type?/word expr [
-				logic! [[#[true]]]						;-- request '= comparison
+				logic! [[#[true]]]
 				word!  [
 					type: first resolve-type expr					
 					unless find [logic! function!] type [
@@ -361,7 +361,7 @@ system-dialect: context [
 						]
 					]
 					emitter/target/emit-operation '= [<last> 0]
-					[#[true]]							;-- request '= comparison
+					[#[true]]
 				]
 				block! [
 					either find emitter/target/comparison-op expr/1 [
@@ -371,9 +371,7 @@ system-dialect: context [
 					]
 				]
 				tag! [
-					if expr <> <last> [
-						reduce [decode-cond-test expr]	;-- special encoding for ALL/ANY
-					]
+					either expr <> <last> [ [#[true]] ][expr]
 				]
 			][expr]
 		]
@@ -431,27 +429,30 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-expression-list: func [/invert /local list offset bodies op][
+		comp-expression-list: func [/_all /local list offset bodies op][
 			pc: next pc
 			check-body pc/1
 			
 			list: make block! 8
 			fetch-into pc/1 [
 				while [not tail? pc][					;-- comp all expressions in chunks
-					append/only list comp-block-chunked/only
+					append/only list comp-block-chunked/only/test
 				]
 			]
 			list: back tail list
-			set [offset bodies] emitter/chunks/make-boolean		;-- emit ending FALSE/TRUE block
-			until [										;-- left join all expr in reverse order
-				op: list/1/1/1
-				unless invert [op: reduce [op]]
-				emitter/branch/over/on/adjust bodies op offset		;-- emit branch first
+			set [offset bodies] emitter/chunks/make-boolean			;-- emit ending FALSE/TRUE block
+			if _all [emitter/branch/over/adjust bodies offset/1]	;-- conclude by a branch on TRUE
+			offset: pick offset not _all				;-- branch to TRUE or FALSE 
+			
+			until [										;-- left join all expr in reverse order			
+				op: either logic? list/1/1/1 [first [<>]][list/1/1/1]
+				unless _all [op: reduce [op]]			;-- do not invert the test if ANY
+				emitter/branch/over/on/adjust bodies op offset		;-- first emit branch				
 				bodies: emitter/chunks/join list/1/2 bodies			;-- then left join expr
 				also head? list	list: back list
 			]	
 			emitter/merge bodies
-			encode-cond-test not invert					;-- special encoding
+			encode-cond-test not _all					;-- special encoding
 		]
 		
 		comp-set-word: has [name value][
@@ -510,12 +511,6 @@ system-dialect: context [
 				entry: find functions name: pc/1 [
 					pc: next pc						;-- it's a function		
 					args: make block! n: entry/2/1
-					if all [
-						entry/1 = 'make 
-						find [struct!] pc/1
-					][
-						n: n + 1
-					]
 					loop n [						;-- fetch n arguments
 						append/only args fetch-expression	;TBD: check arg types!
 					]
@@ -554,10 +549,12 @@ system-dialect: context [
 					][
 						tree/2
 					]
-					if 	all [tag? value value <> <last>][			;-- special encoding for ALL/ANY
-						value: not decode-cond-test value
+					either all [tag? value value <> <last>][		;-- special encoding for ALL/ANY
+						add-symbol name true
+						value: <last>
+					][
+						add-symbol name value
 					]
-					add-symbol name value
 					if path? value [
 						emitter/access-path value
 						value: <last>
@@ -574,17 +571,22 @@ system-dialect: context [
 					][
 						tree/2
 					]
+					;TBD: raise error if ANY/ALL passed as argument
 					emitter/access-path/store path value
 				]
 			][
-				args: next tree
-				forall args [
-					if 	all [tag? args/1 args/1 <> <last>][			;-- special encoding for ALL/ANY
-						args/1: not decode-cond-test args/1
-					]
-				]
 				name: to word! tree/1
-				emitter/target/emit-call name next tree
+				args: next tree
+				if all [tag? args/1 args/1 <> <last>][	;-- special encoding for ALL/ANY
+					if 1 < length? args [
+						throw-error reform [
+							"function" name
+							"requires only one argument when passing ANY/ALL expression"
+						]
+					]									
+					args/1: <last>
+				]			
+				emitter/target/emit-call name args
 				set-last-type functions/:name/4
 				if all [assign last-type = 'logic!][
 					emitter/logic-to-integer name		;-- runtime logic! conversion before storing
@@ -669,6 +671,7 @@ system-dialect: context [
 			while [not tail? pc][
 				case [
 					issue? pc/1 [comp-directive]
+					pc/1 = 'comment [pc: skip pc 2]
 					find [
 						set-word!
 						word! 

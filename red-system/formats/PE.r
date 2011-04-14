@@ -304,7 +304,7 @@ context [
 			]
 			pages: pages + round/ceiling (length? section/2) / align	
 		]
-		make error! "import section not found!"
+		make error! reform [mold s-name "section not found!"]
 	]
 
 	resolve-data-refs: func [job /local code base][
@@ -334,14 +334,16 @@ context [
 	]
 
 	build-import: func [
-		job spec page
+		job spec
 		/local IDTs ptr len out ILT-base buffer hints idt hint-ptr hint
 	][
+		spec:		job/sections/import
 		IDTs: 		make block! len: divide length? skip spec 2 2	;-- list of directory entries
 		out:		make binary! 4096		;-- final output buffer
 		buffer:		make binary! 256		;-- DLL names + ILTs + IATs + hints/names buffer
 		hints:		make binary! 2048		;-- hints/names temporary buffer
-		ptr: 		(page * memory-align) + (1 + len * length? third import-directory)		;-- point to end of directory table
+		ptr: 		(section-addr?/memory job 'import)
+					+ (1 + len * length? third import-directory)		;-- point to end of directory table
 
 		foreach [name list] skip spec 2 [	;-- collecting DLL names in buffer
 			append IDTs idt: make struct! import-directory none
@@ -458,11 +460,8 @@ context [
 	build: func [job [object!] /local page out pad][
 		clear imports-refs
 
-		page: 1
-		foreach [name spec] job/sections [
-			if name = 'import [build-import job spec page]
-			page: page + 1
-		]
+		build-import job					;-- populate import section buffer
+
 		out: job/buffer
 		append out defs/image/MSDOS-header
 		build-header job	

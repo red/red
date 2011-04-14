@@ -130,7 +130,7 @@ emitter: context [
 	logic-to-integer: func [op [word!]][
 		if find target/comparison-op op [
 			set [offset body] chunks/make-boolean
-			branch/over/on/adjust body reduce [op] offset
+			branch/over/on/adjust body reduce [op] offset/1
 			merge body
 		]
 	]
