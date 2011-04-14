@@ -288,3 +288,51 @@ prin "62: "
 a: foo any [1 = 2 3 < 4]
 either a [ok][ko]
 
+
+;-- Equality tests
+
+prin "70: "
+a: false
+either a = false [ok][ko]
+
+prin "71: "
+a: true
+either a = false [ko][ok]
+
+prin "72: "
+a: false
+either a <> false [ko][ok]
+
+prin "73: "
+a: true
+either a <> false [ok][ko]
+
+prin "74: "
+a: false
+b: a = false
+either b [ok][ko]
+
+prin "75: "
+a: true
+b: a = false
+either b [ko][ok]
+
+prin "76: "
+a: false
+b: false <> a
+either b [ko][ok]
+
+prin "77: "
+a: true
+b: false <> a
+either b [ok][ko]
+
+prin "78: "
+a: false
+b: foo a = false
+either b [ok][ko]
+
+prin "79: "
+a: true
+b: foo a = false
+either b [ko][ok]

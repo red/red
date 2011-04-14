@@ -133,9 +133,8 @@ system-dialect: context [
 			<		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
 			>=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
 			<=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
-			;not	[1	inline	- [a [number!]]]									;-- NOT
-			;make	[2 	inline	- [type [word!] spec [number! pointer!]]]
-			length? [1	inline	- [v [c-string!] return: [integer!]]]
+			not		[1	inline	- [a [logic! integer! ] return: [logic! integer!]]]						;-- NOT
+			length? [1	inline	- [s [c-string!] return: [integer!]]]
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
@@ -191,11 +190,17 @@ system-dialect: context [
 			if spec: select spec [return:][last-type: spec/1]
 		]
 		
+		get-variable-spec: func [name][
+			any [
+				all [locals select locals name]
+				select globals name
+			]
+		]
+		
 		resolve-type: func [name [word!] /with parent [block!] /local type][
 			type: any [
 				all [with select parent name]
-				all [locals select locals name]
-				select globals name
+				get-variable-spec name
 			]
 			if all [not type find functions name][
 				return [function!]
@@ -273,6 +278,33 @@ system-dialect: context [
 			emitter/add-native to word! name
 			repend bodies [to word! name pc/2 pc/3]
 			pc: skip pc 3
+		]
+		
+		reduce-logic-tests: func [expr /local test value][
+			test: [logic? expr/2 logic? expr/3]
+			
+			if all [
+				block? expr
+				find [= <>] expr/1
+				any test
+			][
+				expr: either all test [
+					do expr								;-- letting REBOL reduce the expression
+				][
+					expr: copy expr
+					any [
+						all [expr/1 = '= not any [expr/2 expr/3]]
+						all [expr/1 = first [<>] any [expr/2 expr/3]]
+						insert expr 'not
+					]
+					remove-each v expr [any [find [= <>] v logic? v]]
+					if get-variable-spec expr/1 [
+						expr: expr/1					;-- remove outer brackets if variable
+					]
+					expr
+				]
+			]
+			expr
 		]
 				
 		comp-directive: has [list reloc][
@@ -639,6 +671,8 @@ system-dialect: context [
 			][
 				throw-error "datatype not allowed"
 			]
+			expr: reduce-logic-tests expr
+			
 			if final [
 				if verbose >= 3 [?? expr]
 				case [

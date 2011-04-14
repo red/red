@@ -51,10 +51,47 @@ make target-class [
 			]
 			struct! [
 				size: 0
-				foreach [n type] emitter/get-symbol-spec value [
+				foreach [n type] compiler/get-variable-spec value [
 					size: size + select emitter/datatypes type
 				]
 				size
+			]
+		]
+	]
+	
+	emit-not: func [value [word! tag! integer! logic!] /local ][
+		switch type?/word value [
+			logic! [
+				emit-last not value
+			]
+			integer! [
+				emit #{B8}							;-- MOV eax, value
+				emit to-bin32 value
+				emit #{F7D0}						;-- NOT eax
+			]
+			word! [
+				emit-variable value
+					#{A1}							;-- MOV eax, [value]	; global
+					#{8B45}							;-- MOV eax, [ebp+n]	; local
+					
+				switch first compiler/get-variable-spec value [
+					logic! [
+						emit #{3401}				;-- XOR al, 1		; invert 0<=>1
+					]
+					integer! [
+						emit #{F7D0}				;-- NOT eax
+					]
+				]
+			]
+			tag! [
+				switch compiler/last-type [
+					logic! [
+						emit #{3401}				;-- XOR al, 1		; invert 0<=>1
+					]
+					integer! [
+						emit #{F7D0}				;-- NOT eax
+					]
+				]
 			]
 		]
 	]
@@ -91,7 +128,7 @@ make target-class [
 				emit-reloc-addr spec/2				;-- one-based index
 			]
 			struct! [
-			
+				;TBD @@
 			]
 		]
 	]
@@ -147,7 +184,7 @@ make target-class [
 				]
 			]
 			word! [
-				type: first emitter/get-symbol-spec value
+				type: first compiler/get-variable-spec value
 				either find [string! binary! struct!] type [
 					gcode: #{68}					;-- PUSH imm32			; global value
 					lcode: #{FF75}					;-- PUSH [ebp+n]		; local value
@@ -245,7 +282,6 @@ make target-class [
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]
 		
-;TBD: pass value in EAX ?
 		spec: select emitter/symbols name
 		switch type?/word value [
 			integer! [
@@ -539,7 +575,12 @@ make target-class [
 				emit-reloc-addr spec				;-- 32-bit relative displacement place-holder
 			]
 			inline [
+				if block? args/1 [					;-- works only for inline funcs with arity = 1
+					emit-call/sub args/1/1 next args/1
+					args/1: <last>
+				]		
 				do select [
+					not		[emit-not args/1]
 					length? [emit-length? args/1]
 				] name
 			]

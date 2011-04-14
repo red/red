@@ -11,3 +11,4 @@ Red/System [
 #define negative?	[0 > ]
 
 #define forever		[while [true]]
+#define does		[func []]
