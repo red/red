@@ -9,5 +9,7 @@ Red/System [
 #define zero? 		[0 =]
 #define positive?	[0 < ]	;-- space required after the lesser-than symbol
 #define negative?	[0 > ]
+#define negate		[0 -]
 
 #define forever		[while [true]]
+#define does		[func []]
