@@ -59,7 +59,15 @@ make target-class [
 		]
 	]
 	
-	emit-not: func [value [word! tag! integer! logic!] /local ][
+	emit-not: func [value [word! tag! integer! logic!] /local opcodes][
+		opcodes: [
+			logic! [
+				emit #{3401}						;-- XOR al, 1		; invert 0<=>1
+			]
+			integer! [
+				emit #{F7D0}						;-- NOT eax
+			]
+		]
 		switch type?/word value [
 			logic! [
 				emit-last not value
@@ -74,24 +82,10 @@ make target-class [
 					#{A1}							;-- MOV eax, [value]	; global
 					#{8B45}							;-- MOV eax, [ebp+n]	; local
 					
-				switch first compiler/get-variable-spec value [
-					logic! [
-						emit #{3401}				;-- XOR al, 1		; invert 0<=>1
-					]
-					integer! [
-						emit #{F7D0}				;-- NOT eax
-					]
-				]
+				switch first compiler/get-variable-spec value opcodes
 			]
 			tag! [
-				switch compiler/last-type [
-					logic! [
-						emit #{3401}				;-- XOR al, 1		; invert 0<=>1
-					]
-					integer! [
-						emit #{F7D0}				;-- NOT eax
-					]
-				]
+				switch compiler/last-type opcodes
 			]
 		]
 	]
@@ -315,7 +309,7 @@ make target-class [
 		]
 	]
 	
-	emit-operation: func [name [word!] args [block!] /local a b c boolean-op code][
+	emit-operation: func [name [word!] args [block!] /local a b c boolean-op code mod?][
 		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
 		
 		c: 1
@@ -348,6 +342,10 @@ make target-class [
 			]
 		]
 		;-- Math operations --
+		if name = first [//][						;-- workaround not accepted '// 
+			name: first [/]							;-- workaround not accepted '/ 
+			mod?: yes
+		]
 		switch name [
 			+ [
 				switch b [
@@ -413,18 +411,23 @@ make target-class [
 				switch b [
 			;TBD: check for 0 divider both at compilation-time and runtime
 					imm [
-						either c: power-of-2? args/2 [		;-- trivial optimization for b=2^n
+						either all [
+							not mod?				;-- do not use shifts if modulo
+							c: power-of-2? args/2
+						][							;-- trivial optimization for b=2^n
 							emit #{C1F8}			;-- SAR eax, log2(b)
 							emit to-bin8 c
 						][
 							emit #{BB}				;-- MOV ebx, value
 							emit to-bin32 args/2
 							emit #{31D2}			;-- XOR edx, edx		; edx = 0
+							emit #{99}				;-- CDQ					; extend sign to edx
 							emit #{F7FB}			;-- IDIV ebx			; edx:eax / ebx => eax,edx
 						]
 					]
 					ref [
 						emit #{31D2}				;-- XOR edx, edx		; edx = 0
+						emit #{99}					;-- CDQ					; extend sign to edx
 						emit-variable args/2
 							#{F73D}					;-- IDIV dword [value]	; global
 							#{F77D}					;-- IDIV dword [ebp+n]	; local
@@ -437,8 +440,12 @@ make target-class [
 							emit #{89C3}			;-- MOV ebx, eax		; ebx = b
 						]
 						emit #{31D2}				;-- XOR edx, edx		; edx = 0
+						emit #{99}					;-- CDQ					; extend sign to edx						
 						emit #{F7FB}				;-- IDIV ebx 			; not commutable op
 					]
+				]
+				if mod? [
+					emit #{89D0}					;-- MOV eax, edx		; move remainder
 				]
 			]
 		]
