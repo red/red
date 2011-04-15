@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 10/04/2011
-	Revision: 4
+	Date: 15/04/2011
+	Revision: 5
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -50,9 +50,11 @@ Variables are labels used to represent a memory location. The labels (called <b>
 
  [ ] { } " ( ) / @ # $ % ^ , : ;
     
-There is also a restriction on the first character, the following characters are forbidden in the first position, but allowed at other positions:
+There is a restriction on the first character, the following characters are forbidden in the first position, but allowed at other positions:
 
  0 1 2 3 4 5 6 7 8 9
+ 
+Also there is a another restriction to avoid letting the compiler mistake a hex integer with a variable name. Variable name starting with A-F letters consisting of A-F and 0-9 characters and ending with h are not allowed.
  
 All identifiers (variables and function names) are <u>case-insensitive</u>.
 
@@ -136,6 +138,8 @@ Integer datatype represents natural and negative natural numbers. The memory siz
 Hexadecimal integer representation is mostly used to represent memory addresses or binary data for boolean operations. As for character, all hexadecimal literals found in sources are converted to their integer decimal value during lexical analysis. Allowed range is:
     
  00000000h to FFFFFFFFh
+ 
+Hex letters have to be written in <b>uppercase</b>!
 
 \note Hex literal form design decision
 The 0x prefix is often used to mark a literal hexadecimal value. It could have been used in Red/System too if the &lt;number&gt;x&lt;number&gt; literal form wasn't reserved in Red for the pair! datatype. As Red/System is a dialect of Red, it has to use the same representation for hex values, so <b>&lt;hexa&gt;h</b> was chosen instead.
@@ -1198,15 +1202,15 @@ It will be possible to export some Red/System functions to be callable from the 
 
 The list of following keywords are reserved, they cannot be used as variables:
 
- alias		all			and
- any		as			either
- exit		false		forever
- func		function	if
- length?	newline		not
- null		or			pointer
- return		size?		struct
- struct!	true		until
- while		xor
+    alias		all			and
+    any			as			comment
+    either		exit		false
+    forever		func		function
+    if			length?		newline
+    not			null		or
+    pointer		return		size?
+    struct		struct!		true
+    until		while 		xor
 
 ---Infix operators
 
@@ -1243,17 +1247,17 @@ where
  
 <u>Note:</u> for + and - operators, pointer! value can be used as first argument with an integer expression.
 
-+++Bitwise and Logical operators
++++Bitwise operators
 
-<b>Bitwise / Logical OR</b>: or
+<b>Bitwise OR</b>: or
 
  value1 or value2
 
-<b>Bitwise / Logical XOR</b>: xor
+<b>Bitwise XOR</b>: xor
 
  value1 xor value2
 
-<b>Bitwise / Logical AND</b>: and
+<b>Bitwise AND</b>: and
 
  value1 and value2
  
@@ -1298,8 +1302,10 @@ These operators can be used only where a condition is allowed. See "Control flow
  
 where
   
-  value1 : an expression returning a integer!, byte! or c-string! 
+  value1 : an expression returning a integer! or byte!
   value2 : expression of same datatype as <value1>
+
+<u>Note</u>: = and <> can also be used to compare logic! or c-string! values.
 
 +++Precedence rule
 
@@ -1485,6 +1491,10 @@ A simple way to traverse a c-string could be:
 will output:
  I am a c-string
  
+---Logic!
+
+*Add logic! support for OR, XOR, AND operators (if provides any advantage over ANY/ALL).
+ 
 ---Integer!
 
 *Bind the integer! type to int32! or int64! depending on the target platform. It needs some further investigations to determine if it can be a real advantage or not.
@@ -1543,6 +1553,16 @@ will output:
 *>Extend the get-word! syntax to integer! variables.
 
 ===Document History
+
+*15/04/2011 - draft 5
+
+*>Letters in hex integers are restricted to uppercase only. Warning added for variable names that could be mistaken for hex integers.
+
+*>Logic! support for OR, XOR, AND operators withdrawn from specifications and put in the "Possible Evolution" section. (They can be replaced by ANY/ALL/NOT to compose logic expressions)
+
+*>'Comment added as reserved keyword
+
+*>Added a note for = and <> operators for use with logic! values. C-string! values comparisons restricted to those two operators only (c-string! was wrongly allowed for all comparison operators).
 
 *10/04/2011 - draft 4
 
