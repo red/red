@@ -191,15 +191,9 @@ context [
 		shdr-offset: headers-size + code-size + data-size
 	]
 
-	resolve-data-refs: func [job /local code][
-		code: job/sections/code/2
-
-		foreach [name spec] job/symbols [
-			if all [spec/1 = 'global not empty? spec/3][
-				pointer/value: data-ptr + spec/2
-				foreach ref spec/3 [change at code ref third pointer]
-			]
-		]
+	resolve-data-refs: func [job /local buf][
+		buf: job/sections/code/2
+		linker/resolve-symbol-refs job buf code-ptr data-ptr pointer
 	]
 
 	build-data-header: func [job [object!] /local ph][

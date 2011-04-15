@@ -528,6 +528,19 @@ system-dialect: context [
 				new-line/all reduce [name value] no
 			]
 		]
+		
+		comp-get-word: has [name spec][
+			either all [
+				spec: select functions name: to word! pc/1
+				spec/2 = 'native
+			][
+				emitter/target/emit-get-address name
+				pc: next pc
+				<last>
+			][
+				throw-error "get-word syntax only reserved for native functions for now"
+			]
+		]
 	
 		comp-word: has [entry args n name][
 			case [
@@ -660,6 +673,7 @@ system-dialect: context [
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-set-word]
 				word!		[comp-word]
+				get-word!	[comp-get-word]
 				path! 		[also pc/1 pc: next pc]
 				set-path!	[comp-set-path]
 				paren!		[comp-block]

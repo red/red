@@ -126,6 +126,17 @@ emitter: context [
 			select compiler/globals name
 		]
 	]
+	
+	get-func-ref: func [name /local entry][
+		entry: find/last symbols name
+		if entry/2/1 = 'native [
+			repend symbols [		;-- copy 'native entry to a 'global entry
+				name reduce ['native-ref entry/2/2 make block! 1]
+			]
+			entry: skip tail symbols -2 
+		]		
+		entry/2
+	]
 
 	logic-to-integer: func [op [word!]][
 		if find target/comparison-op op [
@@ -251,6 +262,12 @@ emitter: context [
 	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][
 		symbols/:name/2: index? tail code-buf			;-- store function's entry point
+		if all [
+			spec: find/last symbols name
+			spec/2/1 = 'native-ref						;-- function's address references
+		][
+			spec/2/2: index? tail code-buf				;-- store entry point here too
+		]
 		
 		;-- Implements Red/System calling convention -- (STDCALL without reversing)		
 		args-sz: arguments-size?/push locals

@@ -53,7 +53,7 @@ banner: func [width [integer!]][
 ]
 
 prin-logo
-print "/System v0.1.0 alpha 1^/"
+print "/System v0.1.1 alpha^/"
 
 size: 20
 until [

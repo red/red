@@ -511,6 +511,13 @@ make target-class [
 		if code [do boolean-op]
 	]
 	
+	emit-get-address: func [name [word!]][
+		if verbose >= 3 [print [">>>getting address of:" mold name]]
+		
+		emit #{B8}									;-- MOV eax, &name
+		emit-reloc-addr emitter/get-func-ref name	;-- symbol address
+	]
+	
 	emit-cdecl-pop: func [spec [block!] /local size][
 		size: emitter/arguments-size? spec/4
 		if spec/3 = 'gcc45 [
