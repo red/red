@@ -13,12 +13,13 @@ emitter: context [
 	data-buf: make binary! 10'000
 	symbols:  make hash! 200			;-- [name [type address [relocs]] ...]
 	stack: 	  make hash! 40				;-- [name offset ...]
-	target:	  none						;-- target code emitter object placeholder
-	compiler: none						;-- just a short-cut
+	exits:	  make block! 1				;-- [offset ...]	(funcs exits points)
 	verbose:  0							;-- logs verbosity level
 	
-	OS-calling-type: 'stdcall			;-- Windows (TBD: refactor this!)
-	
+	target:	  none						;-- target code emitter object placeholder
+	compiler: none						;-- just a short-cut
+
+		
 	pointer: make struct! [
 		value [integer!]				;-- 32/64-bit, watch out for endianess!!
 	] none
@@ -101,7 +102,7 @@ emitter: context [
 			append code-buf chunk/1			
 		][
 			clear at code-buf chunk/3
-			append code-buf chunk/1							;-- replace obsolete buffer														
+			append code-buf chunk/1							;-- replace obsolete buffer
 			append second last chunks/queue chunk/2		
 		]
 	]
@@ -260,15 +261,23 @@ emitter: context [
 		size
 	]
 	
+	resolve-exit-points: has [end offset][
+		end: tail-ptr
+		offset: target/branch-offset-size
+		foreach ptr exits [
+			change at code-buf ptr target/to-bin32 end - ptr - offset
+		]
+	]
+	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][
-		symbols/:name/2: index? tail code-buf			;-- store function's entry point
-		if all [
+		symbols/:name/2: tail-ptr						;-- store function's entry point
+		all [
 			spec: find/last symbols name
 			spec/2/1 = 'native-ref						;-- function's address references
-		][
-			spec/2/2: index? tail code-buf				;-- store entry point here too
+			spec/2/2: tail-ptr							;-- store entry point here too
 		]
-		
+		clear exits										;-- reset exit-points list
+
 		;-- Implements Red/System calling convention -- (STDCALL without reversing)		
 		args-sz: arguments-size?/push locals
 		
@@ -287,6 +296,7 @@ emitter: context [
 	]
 	
 	leave: func [name [word!] locals [block!] locals-sz [integer!]][
+		unless empty? exits [resolve-exit-points]
 		target/emit-epilog name locals locals-sz
 	]
 	
