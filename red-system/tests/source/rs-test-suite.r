@@ -4,7 +4,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-cd %../                          ;; revert to tests/ directory (from runable)
+change-dir %../                          ;; revert to tests/ directory (from runable)
 if not value? 'qt [do %quick-test-quick-test.r]
        
 qt/start-test-run "Red/System Test Suite - Part II"

@@ -29,4 +29,6 @@ if part1-failures? [print "^/****** FAILURES IN PART I ABOVE ******"]
 
 print ""
 
+halt
+
 
