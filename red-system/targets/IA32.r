@@ -100,9 +100,13 @@ make target-class [
 		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
 	
-	emit-last: func [value [integer! word! string! struct! logic!] /local spec][
+	emit-last: func [value [char! integer! word! string! struct! logic!] /local spec][
 		switch type?/word value [
-			logic!   [
+			char! [
+				emit #{B0}							;-- MOV al, value
+				emit value
+			]
+			logic! [
 				emit #{31C0}						;-- XOR eax, eax		; eax = 0 (FALSE)	
 				if value [
 					emit #{40}						;-- INC eax				; eax = 1 (TRUE)
@@ -112,7 +116,7 @@ make target-class [
 				emit #{B8}							;-- MOV eax, value
 				emit to-bin32 value
 			]
-			word!   [
+			word! [
 				emit-variable value
 					#{A1}							;-- MOV eax, [value]	; global
 					#{8B45}							;-- MOV eax, [ebp+n]	; local
@@ -160,7 +164,7 @@ make target-class [
 		length? jmp
 	]
 	
-	emit-push: func [value [logic! integer! word! block! string! tag!] /local spec type gcode lcode][
+	emit-push: func [value [char! logic! integer! word! block! string! tag!] /local spec type gcode lcode][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		
 		switch type?/word value [
@@ -173,6 +177,10 @@ make target-class [
 					emit #{40}						;--	INC eax				; eax = 1 (TRUE)
 				]
 				emit #{50}							;-- PUSH eax
+			]
+			char! [
+				emit #{6A}							;-- PUSH value
+				emit value
 			]
 			integer! [
 				either all [-128 <= value value <= 127][
@@ -278,12 +286,18 @@ make target-class [
 		]
 	]
 		
-	emit-store: func [name [word!] value [integer! word! string! struct! tag!] /local spec][
+	emit-store: func [name [word!] value [char! integer! word! string! struct! tag!] /local spec][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]
 		
 		spec: select emitter/symbols name
 		switch type?/word value [
+			char! [
+				emit-variable name
+					#{C605}							;-- MOV byte [name], value
+					#{C645}							;-- MOV byte [ebp+n], value
+				emit value
+			]
 			integer! [
 				emit-variable name
 					#{C705}							;-- MOV [name], value	; (32-bit only!!!)
@@ -348,8 +362,8 @@ make target-class [
 			]
 		]
 		;-- Math operations --
-		if name = first [//][						;-- workaround not accepted '// 
-			name: first [/]							;-- workaround not accepted '/ 
+		if name = first [//][						;-- work around unaccepted '// 
+			name: first [/]							;-- work around unaccepted '/ 
 			mod?: yes
 		]
 		switch name [

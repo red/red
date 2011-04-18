@@ -26,6 +26,7 @@ emitter: context [
 	
 	datatypes: to-hash [
 		int8!		1	signed
+		byte!		1	unsigned
 		int16!		2	signed
 		int32!		4	signed
 		integer!	4	signed
@@ -149,9 +150,9 @@ emitter: context [
 
 	store-global: func [value size /local ptr][
 		ptr: tail data-buf
-		if logic? value [value: to-integer value]			;-- TRUE => 1, FALSE => 0
+		if logic? value [value: to-integer value]			;-- TRUE => 1, FALSE => 0  ; @@ store as byte!?
 		case [
-			number? value [
+			number? value [									;TBD: align on 32-bit boundary
 				value: debase/base to-hex value 16
 				either target/little-endian? [
 					value: tail value
@@ -159,6 +160,9 @@ emitter: context [
 				][
 					append ptr skip tail value negate size		;-- truncate if required
 				]
+			]
+			char? value [
+				append ptr value
 			]
 			any [string? value binary? value][				
 				repend ptr [value null]
