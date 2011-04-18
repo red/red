@@ -12,7 +12,6 @@ either exe: qt/compile src: %source/compiler/hello.reds [
   qt/run exe
   qt/assert "hello 1" none <> find qt/output "hello"
   qt/assert "hello 2" none <> find qt/output "world"
-  qt/assert "hello 3" none <> find qt/output "zebra"
 ][
   qt/compile-error src
 ]

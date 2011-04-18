@@ -8,13 +8,13 @@ change-dir %../                   ;; revert to tests/ dir (from runnable)
   
 qt/start-file "comp-err"
 
-write %comp-err.reds {
+write %runnable/comp-err.reds {
   Red/System []
   i := 1;
 }
 
-qt/compile %source/compiler/comp-err.reds
-if exists? %comp-err.reds [delete %comp-err.reds]
+qt/compile %runnable/comp-err.reds
+if exists? %runnable/comp-err.reds [delete %runnable/comp-err.reds]
 qt/assert "ce1-l1" none <> find qt/comp-output "*** undefined symbol"
 qt/assert "ce1-l2" none <> find qt/comp-output "at:  ["
 qt/assert "ce1-l3" none <> find qt/comp-output "i := 1"
