@@ -26,6 +26,23 @@ linker: context [
 	PE:		 do %formats/PE.r
 	ELF:	 do %formats/ELF.r
 	;Mach-o: do %formats/mach-o.r			; TBD
+	
+	resolve-symbol-refs: func [job buf code-ptr data-ptr pointer][
+		foreach [name spec] job/symbols [
+			unless empty? spec/3 [
+				switch spec/1 [
+					global [
+						pointer/value: data-ptr + spec/2
+						foreach ref spec/3 [change at buf ref third pointer]
+					]
+					native-ref [
+						pointer/value: code-ptr + spec/2
+						foreach ref spec/3 [change at buf ref third pointer]
+					]
+				]
+			]
+		]
+	]
 
 	make-filename: func [job /local obj][
 		obj: get in self job/format

@@ -155,6 +155,8 @@ system-dialect: context [
 			while		 [comp-while]
 			any			 [comp-expression-list]
 			all			 [comp-expression-list/_all]
+			exit		 [comp-exit]
+			return		 [comp-exit/value]
 			null	 	 [also 0 pc: next pc]
 			struct! 	 [also 'struct! pc: next pc]
 			true		 [also true pc: next pc]		;-- converts word! to logic!
@@ -361,6 +363,17 @@ system-dialect: context [
 			<last>
 		]
 		
+		comp-exit: func [/value /local expr][
+			pc: next pc
+			if value [
+				expr: fetch-expression/final/keep		;-- compile expression to return			
+				check-logic expr							
+				;TBD: check return type validity here
+			]
+			emitter/target/emit-exit
+			none
+		]
+		
 		comp-block-chunked: func [/only /test /local expr][
 			emitter/chunks/start
 			expr: either only [
@@ -375,7 +388,7 @@ system-dialect: context [
 			]
 		]
 		
-		check-logic: func [expr][
+		check-logic: func [expr][						;-- preprocess logic values
 			switch/default type?/word expr [
 				logic! [[#[true]]]
 				word!  [
@@ -412,9 +425,9 @@ system-dialect: context [
 			pc: next pc
 			expr: fetch-expression/final				;-- compile condition expression
 			expr: check-logic expr		
-			check-body pc/1
+			check-body pc/1								;-- check TRUE block
 	
-			set [unused chunk] comp-block-chunked		;-- TRUE block
+			set [unused chunk] comp-block-chunked		;-- compile TRUE block
 			emitter/branch/over/on chunk expr/1			;-- insert IF branching			
 			emitter/merge chunk		
 			<last>
@@ -424,11 +437,11 @@ system-dialect: context [
 			pc: next pc
 			expr: fetch-expression/final				;-- compile condition
 			expr: check-logic expr
-			check-body pc/1
-			check-body pc/2
+			check-body pc/1								;-- check TRUE block
+			check-body pc/2								;-- check FALSE block
 			
-			set [unused c-true]  comp-block-chunked		;-- TRUE block		
-			set [unused c-false] comp-block-chunked		;-- FALSE block
+			set [unused c-true]  comp-block-chunked		;-- compile TRUE block		
+			set [unused c-false] comp-block-chunked		;-- compile FALSE block
 		
 			offset: emitter/branch/over c-false
 			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
@@ -447,8 +460,8 @@ system-dialect: context [
 		
 		comp-while: has [expr unused cond body  offset bodies][
 			pc: next pc
-			check-body pc/1
-			check-body pc/2
+			check-body pc/1								;-- check condition block
+			check-body pc/2								;-- check body block
 			
 			set [expr cond]   comp-block-chunked/test	;-- Condition block
 			set [unused body] comp-block-chunked		;-- Body block
@@ -463,7 +476,7 @@ system-dialect: context [
 		
 		comp-expression-list: func [/_all /local list offset bodies op][
 			pc: next pc
-			check-body pc/1
+			check-body pc/1								;-- check body block
 			
 			list: make block! 8
 			fetch-into pc/1 [
@@ -528,6 +541,19 @@ system-dialect: context [
 				new-line/all reduce [name value] no
 			]
 		]
+		
+		comp-get-word: has [name spec][
+			either all [
+				spec: select functions name: to word! pc/1
+				spec/2 = 'native
+			][
+				emitter/target/emit-get-address name
+				pc: next pc
+				<last>
+			][
+				throw-error "get-word syntax only reserved for native functions for now"
+			]
+		]
 	
 		comp-word: has [entry args n name][
 			case [
@@ -571,12 +597,12 @@ system-dialect: context [
 			foreach v next tree [if block? v [order-args v]]	;-- recursive processing
 		]
 		
-		comp-expression: func [tree /assign /local name value offset body args][
+		comp-expression: func [tree /keep /local name value offset body args][
 			switch/default type?/word tree/1 [
 				set-word! [
 					name: to word! tree/1
 					value: either block? tree/2 [
-						comp-expression/assign tree/2
+						comp-expression/keep tree/2
 						<last>
 					][
 						tree/2
@@ -620,7 +646,7 @@ system-dialect: context [
 				]			
 				emitter/target/emit-call name args
 				set-last-type functions/:name/4
-				if all [assign last-type = 'logic!][
+				if all [keep last-type = 'logic!][
 					emitter/logic-to-integer name		;-- runtime logic! conversion before storing
 				]
 			]
@@ -653,13 +679,14 @@ system-dialect: context [
 			]
 		]
 		
-		fetch-expression: func [/final /local expr][
+		fetch-expression: func [/final /keep /local expr][
 			check-infix-operators
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-set-word]
 				word!		[comp-word]
+				get-word!	[comp-get-word]
 				path! 		[also pc/1 pc: next pc]
 				set-path!	[comp-set-path]
 				paren!		[comp-block]
@@ -678,7 +705,11 @@ system-dialect: context [
 				case [
 					block? expr [
 						order-args expr
-						comp-expression expr
+						either keep [
+							comp-expression/keep expr
+						][
+							comp-expression expr
+						]
 					]
 					not find [none! tag!] type?/word expr [
 						emitter/target/emit-last expr
@@ -731,7 +762,13 @@ system-dialect: context [
 		comp-natives: does [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
 			foreach [name spec body] bodies [
-				if verbose >= 2 [print ["function:" name]]
+				if verbose >= 2 [
+					print [
+						"---------------------------------------^/"
+						"function:" name newline
+						"---------------------------------------"
+					]
+				]
 				comp-func name spec body
 			]
 			if verbose >= 2 [print ""]

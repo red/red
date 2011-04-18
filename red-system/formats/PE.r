@@ -307,16 +307,12 @@ context [
 		make error! reform [mold s-name "section not found!"]
 	]
 
-	resolve-data-refs: func [job /local code base][
-		code: job/sections/code/2
-		base: (section-addr?/memory job 'data) + to integer! defs/image/base-address
+	resolve-data-refs: func [job /local buf data code][
+		buf: job/sections/code/2
+		data: (section-addr?/memory job 'data) + to integer! defs/image/base-address
+		code: (section-addr?/memory job 'code) + to integer! defs/image/base-address 
 
-		foreach [name spec] job/symbols [
-			if all [spec/1 = 'global not empty? spec/3][			
-				pointer/value: base + spec/2
-				foreach ref spec/3 [change at code ref third pointer]
-			]
-		]
+		linker/resolve-symbol-refs job buf code data pointer
 	]
 
 	resolve-import-refs: func [job /local code base][

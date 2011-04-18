@@ -9,8 +9,9 @@ REBOL [
 make target-class [
 	target: 'IA32
 	little-endian?: yes
-	struct-align-size: 4
-	ptr-size: 4
+	struct-align-size: 	4
+	ptr-size: 			4
+	branch-offset-size:	4							;-- size of JMP offset
 	
 	conditions: make hash! [
 		overflow?		 #{00}
@@ -125,6 +126,11 @@ make target-class [
 				;TBD @@
 			]
 		]
+	]
+	
+	emit-exit: does [
+		emit #{E9}									;-- JMP imm32
+		emit-reloc-addr compose/only [- - (emitter/exits)]
 	]
 
 	emit-branch: func [
@@ -445,7 +451,7 @@ make target-class [
 					]
 				]
 				if mod? [
-					emit #{89D0}					;-- MOV eax, edx		; move remainder
+					emit #{89D0}					;-- MOV eax, edx		; move remainder to eax
 				]
 			]
 		]
@@ -509,6 +515,13 @@ make target-class [
 			]
 		] name
 		if code [do boolean-op]
+	]
+	
+	emit-get-address: func [name [word!]][
+		if verbose >= 3 [print [">>>getting address of:" mold name]]
+		
+		emit #{B8}									;-- MOV eax, &name
+		emit-reloc-addr emitter/get-func-ref name	;-- symbol address
 	]
 	
 	emit-cdecl-pop: func [spec [block!] /local size][
