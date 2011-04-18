@@ -20,9 +20,11 @@ comment {
 
 ;; make runnable directory if needed
 make-dir %runnable
-;; use Cheyenne's call.r instead of native call
-do %call.r
-set 'call :win-call
+;; use Cheyenne's call.r instead of native call (Windows only)
+if system/version/4 = 3 [
+	do %call.r						;; work around a CALL bug on Win7
+	set 'call :win-call
+]
 
 qt: make object! [
   
@@ -61,7 +63,7 @@ qt: make object! [
     write %comp.r comp
     
     ;; compose command line and call it
-    cmd: join "" [to-local-file system/options/boot " -s comp.r"]
+    cmd: join "" [to-local-file system/options/boot " -sc comp.r"]
     call/wait cmd
     
     ;; collect compiler output & tidy up
