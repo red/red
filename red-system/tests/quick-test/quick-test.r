@@ -22,6 +22,7 @@ comment {
 make-dir %runnable
 ;; use Cheyenne's call.r instead of native call
 do %call.r
+set 'call :win-call
 
 qt: make object! [
   
