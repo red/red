@@ -20,6 +20,8 @@ comment {
 
 ;; make runnable directory if needed
 make-dir %runnable
+;; use Cheyenne's call.r instead of native call
+do %call.r
 
 qt: make object! [
   
