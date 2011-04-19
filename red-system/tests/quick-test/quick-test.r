@@ -75,7 +75,7 @@ qt: make object! [
     
     ;; move the executable from /builds to /tests/runnable
     built: join %../builds/ [exe]
-    runner: join %runnable [exe]
+    runner: join %runnable/ [exe]
     if exists? built [
       write/binary runner read/binary built
       delete built
