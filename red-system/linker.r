@@ -63,6 +63,9 @@ linker: context [
 
 		if verbose >= 1 [print ["output file:" file]]	
 		write/binary file job/buffer
+		if find get-modes file 'file-modes 'owner-execute [
+			set-modes file [owner-execute: true]
+		]
 	]
 
 ]

@@ -100,9 +100,13 @@ make target-class [
 		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
 	
-	emit-last: func [value [integer! word! string! struct! logic!] /local spec][
+	emit-last: func [value [char! integer! word! string! struct! logic!] /local spec][
 		switch type?/word value [
-			logic!   [
+			char! [
+				emit #{B0}							;-- MOV al, value
+				emit value
+			]
+			logic! [
 				emit #{31C0}						;-- XOR eax, eax		; eax = 0 (FALSE)	
 				if value [
 					emit #{40}						;-- INC eax				; eax = 1 (TRUE)
@@ -112,7 +116,7 @@ make target-class [
 				emit #{B8}							;-- MOV eax, value
 				emit to-bin32 value
 			]
-			word!   [
+			word! [
 				emit-variable value
 					#{A1}							;-- MOV eax, [value]	; global
 					#{8B45}							;-- MOV eax, [ebp+n]	; local
@@ -160,7 +164,7 @@ make target-class [
 		length? jmp
 	]
 	
-	emit-push: func [value [logic! integer! word! block! string! tag!] /local spec type gcode lcode][
+	emit-push: func [value [char! logic! integer! word! block! string! tag!] /local spec type gcode lcode][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		
 		switch type?/word value [
@@ -173,6 +177,10 @@ make target-class [
 					emit #{40}						;--	INC eax				; eax = 1 (TRUE)
 				]
 				emit #{50}							;-- PUSH eax
+			]
+			char! [
+				emit #{6A}							;-- PUSH value
+				emit value
 			]
 			integer! [
 				either all [-128 <= value value <= 127][
@@ -278,16 +286,22 @@ make target-class [
 		]
 	]
 		
-	emit-store: func [name [word!] value [integer! word! string! struct! tag!] /local spec][
+	emit-store: func [name [word!] value [char! integer! word! string! struct! tag!] /local spec][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]
 		
 		spec: select emitter/symbols name
 		switch type?/word value [
+			char! [
+				emit-variable name
+					#{C605}							;-- MOV byte [name], value
+					#{C645}							;-- MOV byte [ebp+n], value
+				emit value
+			]
 			integer! [
 				emit-variable name
-					#{C705}							;-- MOV [name], value	; (32-bit only!!!)
-					#{C745}							;-- MOV [ebp+n], value	; (32-bit only!!!)					
+					#{C705}							;-- MOV dword [name], value		; (32-bit only!!!)
+					#{C745}							;-- MOV dword [ebp+n], value	; (32-bit only!!!)					
 				emit to-bin32 value
 			]
 			word! [
@@ -315,56 +329,81 @@ make target-class [
 		]
 	]
 	
-	emit-operation: func [name [word!] args [block!] /local a b c boolean-op code mod?][
-		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
+	emit-bitwise-op: func [name a b arg2 /local code][		
+		code: select [
+			and [
+				#{25}								;-- AND eax, value
+				#{2305}								;-- AND eax, [value]	; global
+				#{2345}								;-- AND eax, [ebp+n]	; local
+				#{21D0}								;-- AND eax, edx		; commutable op
+			]
+			or [
+				#{0D}								;-- OR eax, value
+				#{0B05}								;-- OR eax, [value]		; global
+				#{0B45}								;-- OR eax, [ebp+n]		; local
+				#{09D0}								;-- OR eax, edx			; commutable op				
+			]
+			xor [
+				#{35}								;-- XOR eax, value
+				#{3305}								;-- XOR eax, [value]	; global
+				#{3345}								;-- XOR eax, [ebp+n]	; local
+				#{31D0}								;-- XOR eax, edx		; commutable op			
+			]
+		] name
 		
-		c: 1
-		foreach op [a b][	
-			set op either args/:c = <last> [
-				 'reg								;-- value in eax
-			][
-				switch type?/word args/:c [
-					integer! ['imm] 				;-- add or mov to eax
-					word! 	 ['ref] 				;-- fetch value
-					block!   ['reg] 				;-- value in eax (or in edx)
-					path!    ['reg] 				;-- value in eax
+		switch b [
+			imm [
+				emit code/1							;-- <OP> eax, value
+				emit to-bin32 arg2
+			]
+			ref [
+				emit-variable arg2
+					code/2							;-- <OP> eax, [value]	; global
+					code/3							;-- <OP> eax, [ebp+n]	; local
+			]
+			reg [emit code/4]						;-- <OP> eax, edx		; commutable op
+		]
+	]
+	
+	emit-comparison-op: func [name a b arg2][
+		switch b [
+			imm [
+				emit #{3D}							;-- CMP eax, value
+				emit to-bin32 arg2
+			]
+			ref [
+				emit-variable arg2
+					#{8B15}							;-- MOV edx, [value]	; global
+					#{8B55}							;-- MOV edx, [ebp+n]	; local
+				emit #{39D0}						;-- CMP eax, edx		; commutable op
+			]
+			reg [
+				if a = 'reg [						;-- eax = b, edx = a
+					emit #{92}						;-- XCHG eax, edx		; swap
 				]
-			]
-			c: c + 1
-		]
-		if verbose >= 3 [?? a ?? b]
-		
-		if find [imm ref] a [						;-- load eax with 1st operand
-			if b = 'reg [							;-- 2nd operand in eax, save it in edx
-				emit #{89C2}						;-- MOV edx, eax
-			]
-			either a = 'imm [
-				emit #{B8}							;-- MOV eax, a
-				emit to-bin32 args/1
-			][
-				emit-variable args/1
-					#{A1}							;-- MOV eax, [a]		; global
-					#{8B45}							;-- MOV eax, [ebp+n]	; local
+				emit #{39D0}						;-- CMP eax, edx		; not commutable op
 			]
 		]
-		;-- Math operations --
-		if name = first [//][						;-- workaround not accepted '// 
-			name: first [/]							;-- workaround not accepted '/ 
+	]
+	
+	emit-math-op: func [name a b arg2 /local mod? c][
+		if name = first [//][						;-- work around unaccepted '// 
+			name: first [/]							;-- work around unaccepted '/ 
 			mod?: yes
 		]
 		switch name [
 			+ [
 				switch b [
 					imm [
-						either args/2 = 1 [			;-- trivial optimization
+						either arg2 = 1 [			;-- trivial optimization
 							emit #{40}				;-- INC eax
 						][
 							emit #{05}				;-- ADD eax, value
-							emit to-bin32 args/2
+							emit to-bin32 arg2
 						]
 					]
 					ref [	
-						emit-variable args/2
+						emit-variable arg2
 							#{0305}					;-- ADD eax, [value]	; global
 							#{0345}					;-- ADD eax, [ebp+n]	; local
 					]
@@ -374,15 +413,15 @@ make target-class [
 			- [
 				switch b [
 					imm [
-						either args/2 = 1 [			;-- trivial optimization
+						either arg2 = 1 [			;-- trivial optimization
 							emit #{48}				;-- DEC eax
 						][
 							emit #{2D}				;-- SUB eax, value
-							emit to-bin32 args/2
+							emit to-bin32 arg2
 						]
 					]
 					ref [
-						emit-variable args/2
+						emit-variable arg2
 							#{2B05}					;-- SUB eax, [value]	; global
 							#{2B45}					;-- SUB eax, [ebp+n]	; local
 					]
@@ -397,16 +436,16 @@ make target-class [
 			* [
 				switch b [
 					imm [
-						either c: power-of-2? args/2 [		;-- trivial optimization for b=2^n
+						either c: power-of-2? arg2 [		;-- trivial optimization for b=2^n
 							emit #{C1E0}			;-- SAL eax, log2(b)
 							emit to-bin8 c
 						][
 							emit #{69C0}			;-- IMUL eax, value
-							emit to-bin32 args/2
+							emit to-bin32 arg2
 						]
 					]
 					ref [
-						emit-variable args/2
+						emit-variable arg2
 							#{0FAF05}				;-- IMUL eax, [value]	; global
 							#{0FAF45}				;-- IMUL eax, [ebp+n]	; local
 					]
@@ -419,13 +458,13 @@ make target-class [
 					imm [
 						either all [
 							not mod?				;-- do not use shifts if modulo
-							c: power-of-2? args/2
+							c: power-of-2? arg2
 						][							;-- trivial optimization for b=2^n
 							emit #{C1F8}			;-- SAR eax, log2(b)
 							emit to-bin8 c
 						][
 							emit #{BB}				;-- MOV ebx, value
-							emit to-bin32 args/2
+							emit to-bin32 arg2
 							emit #{31D2}			;-- XOR edx, edx		; edx = 0
 							emit #{99}				;-- CDQ					; extend sign to edx
 							emit #{F7FB}			;-- IDIV ebx			; edx:eax / ebx => eax,edx
@@ -434,7 +473,7 @@ make target-class [
 					ref [
 						emit #{31D2}				;-- XOR edx, edx		; edx = 0
 						emit #{99}					;-- CDQ					; extend sign to edx
-						emit-variable args/2
+						emit-variable arg2
 							#{F73D}					;-- IDIV dword [value]	; global
 							#{F77D}					;-- IDIV dword [ebp+n]	; local
 					]
@@ -457,64 +496,47 @@ make target-class [
 		]
 		;TBD: test overflow and raise exception ? (or store overflow flag in a variable??)
 		; JNO? (Jump if No Overflow)
+	]
+	
+	emit-operation: func [name [word!] args [block!] /local a b c][
+		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
 		
-		if find comparison-op name [
-			switch b [
-				imm [
-					emit #{3D}						;-- CMP eax, value
-					emit to-bin32 args/2
+		c: 1
+		foreach op [a b][	
+			set op either args/:c = <last> [
+				 'reg								;-- value in eax
+			][
+				switch type?/word args/:c [
+					integer! ['imm] 				;-- add or mov to eax
+					word! 	 ['ref] 				;-- fetch value
+					block!   ['reg] 				;-- value in eax (or in edx)
+					path!    ['reg] 				;-- value in eax
 				]
-				ref [
-					emit-variable args/2
-						#{8B15}						;-- MOV edx, [value]	; global
-						#{8B55}						;-- MOV edx, [ebp+n]	; local
-					emit #{39D0}					;-- CMP eax, edx		; commutable op
-				]
-				reg [
-					if a = 'reg [					;-- eax = b, edx = a
-						emit #{92}					;-- XCHG eax, edx		; swap
-					]
-					emit #{39D0}					;-- CMP eax, edx		; not commutable op
-				]
+			]
+			c: c + 1
+		]
+		if verbose >= 3 [?? a ?? b]					;-- a and b hold addressing modes for operands
+		
+		;-- First operand processing
+		if find [imm ref] a [						;-- load eax with 1st operand
+			if b = 'reg [							;-- 2nd operand in eax, save it in edx
+				emit #{89C2}						;-- MOV edx, eax
+			]
+			either a = 'imm [
+				emit #{B8}							;-- MOV eax, a
+				emit to-bin32 args/1
+			][
+				emit-variable args/1
+					#{A1}							;-- MOV eax, [a]		; global
+					#{8B45}							;-- MOV eax, [ebp+n]	; local
 			]
 		]
-		
-		;-- Boolean operations --
-		boolean-op: [
-			switch b [
-				imm [
-					emit code/1						;-- <OP> eax, value
-					emit to-bin32 args/2
-				]
-				ref [
-					emit-variable args/2
-						code/2						;-- <OP> eax, [value]	; global
-						code/3						;-- <OP> eax, [ebp+n]	; local
-				]
-				reg [emit code/4]					;-- <OP> eax, edx		; commutable op
-			]
-		]		
-		code: select [
-			and [
-				#{25}								;-- AND eax, value
-				#{2305}								;-- AND eax, [value]	; global
-				#{2345}								;-- AND eax, [ebp+n]	; local
-				#{21D0}								;-- AND eax, edx		; commutable op
-			]
-			or [
-				#{0D}								;-- OR eax, value
-				#{0B05}								;-- OR eax, [value]		; global
-				#{0B45}								;-- OR eax, [ebp+n]		; local
-				#{09D0}								;-- OR eax, edx			; commutable op				
-			]
-			xor [
-				#{35}								;-- XOR eax, value
-				#{3305}								;-- XOR eax, [value]	; global
-				#{3345}								;-- XOR eax, [ebp+n]	; local
-				#{31D0}								;-- XOR eax, edx		; commutable op			
-			]
-		] name
-		if code [do boolean-op]
+		;-- Operator and second operand processing
+		case [
+			find comparison-op name [emit-comparison-op name a b args/2]
+			find [+ - * / //]  name	[emit-math-op		name a b args/2]
+			find [and or xor]  name	[emit-bitwise-op	name a b args/2]
+		]
 	]
 	
 	emit-get-address: func [name [word!]][

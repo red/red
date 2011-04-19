@@ -72,7 +72,6 @@ system-dialect: context [
 						value: skip process/short name 2 		;-- skip Red/System header						
 						e: change/part s value e
 					) :s
-					| s: set value char! (e: change s to integer! value) :e
 					| into blk
 					| skip
 				]
@@ -111,9 +110,9 @@ system-dialect: context [
 		verbose:  0										;-- logs verbosity level
 	
 		imports: 	   make block! 10
-		bodies:	  	   make hash! 40					;-- [name [specs] [body]...]
-		globals:  	   make hash! 40
-		aliased-types: make hash! 10
+		bodies:	  	   make hash!  40					;-- [name [specs] [body]...]
+		globals:  	   make hash!  40
+		aliased-types: make hash!  10
 		
 		functions: to-hash [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
@@ -121,9 +120,9 @@ system-dialect: context [
 			-		[2	op		- [a [number! pointer!] b [number! pointer!] return: [integer!]]]
 			*		[2	op		- [a [number!] b [number!] return: [integer!]]]
 			/		[2	op		- [a [number!] b [number!] return: [integer!]]]
-			and		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- AND
-			or		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- OR
-			xor		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- XOR
+			and		[2	op		- [a [number!] b [number!] return: [integer!]]]
+			or		[2	op		- [a [number!] b [number!] return: [integer!]]]
+			xor		[2	op		- [a [number!] b [number!] return: [integer!]]]
 			//		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- modulo
 			;>>		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift left
 			;<<		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift right
@@ -133,7 +132,7 @@ system-dialect: context [
 			<		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
 			>=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
 			<=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
-			not		[1	inline	- [a [logic! integer! ] return: [logic! integer!]]]						;-- NOT
+			not		[1	inline	- [a [logic! integer! ] return: [logic! integer!]]]
 			length? [1	inline	- [s [c-string!] return: [integer!]]]
 		]
 		
@@ -141,7 +140,7 @@ system-dialect: context [
 		
 		datatype: [
 			'int8! | 'int16! | 'int32! | 'integer! | 'int64! | 'uint8! | 'uint16! |
-			'uint32! | 'uint64! | 'pointer! | 'binary! | 'c-string! | 'logic!
+			'uint32! | 'uint64! | 'pointer! | 'binary! | 'c-string! | 'logic! | 'byte!
 			| 'struct! word!	;@@ 
 		]
 		
@@ -220,6 +219,7 @@ system-dialect: context [
 					value = <last>  [last-type]
 					block? value	[compose/deep [(to word! join value/1 #"!") [(value/2)]]]
 					word? value 	[first select ctx value]
+					char? value		['byte!]
 					'else 			[type?/word value]
 				]			
 				append ctx new: reduce [name compose [(type)]]
@@ -679,23 +679,25 @@ system-dialect: context [
 			]
 		]
 		
-		fetch-expression: func [/final /keep /local expr][
+		fetch-expression: func [/final /keep /local expr pass][
 			check-infix-operators
 			if verbose >= 4 [print ["<<<" mold pc/1]]
+			pass: [also pc/1 pc: next pc]
 			
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-set-word]
 				word!		[comp-word]
 				get-word!	[comp-get-word]
-				path! 		[also pc/1 pc: next pc]
+				path! 		[do pass]
 				set-path!	[comp-set-path]
 				paren!		[comp-block]
-				integer!	[also pc/1 pc: next pc]
-				decimal! 	[also pc/1 pc: next pc]
-				string!		[also pc/1 pc: next pc]
-				block!		[also pc/1 pc: next pc]		;-- struct! and pointer! specs
-				struct!		[also pc/1 pc: next pc]		;-- literal struct! value
-			][
+				char!		[do pass]
+				integer!	[do pass]
+				decimal! 	[do pass]
+				string!		[do pass]
+				block!		[do pass]					;-- struct! and pointer! specs
+				struct!		[do pass]					;-- literal struct! value
+			][			
 				throw-error "datatype not allowed"
 			]
 			expr: reduce-logic-tests expr
