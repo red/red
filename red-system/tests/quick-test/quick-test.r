@@ -19,7 +19,7 @@ comment {
 }
 
 ;; make runnable directory if needed
-make-dir %runnable
+make-dir %../runnable
 
 ;; use Cheyenne's call.r instead of native call (Windows only)
 if system/version/4 = 3 [
@@ -44,7 +44,7 @@ qt: make object! [
     ;; workout executable name
     if not exe: copy find/last/tail src "/" [exe: copy src]
     exe: copy/part exe find exe "."
-    if 3 = fourth system/version [
+    if system/version/4 = 3 [
       exe: join exe [".exe"]
     ]
     
@@ -75,9 +75,18 @@ qt: make object! [
     
     ;; move the executable from /builds to /tests/runnable
     built: join %../builds/ [exe]
+    runner: join %runnable [exe]
     if exists? built [
-      write/binary join %runnable/ [exe] read/binary built
+      write/binary runner read/binary built
       delete built
+      if system/version/4 <> 3 [
+        r: open runner
+        set-modes r [
+          owner-execute: true
+          group-execute: true
+        ]
+        close r
+      ]
     ]
     
     either compile-ok? [
