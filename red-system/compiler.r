@@ -358,7 +358,7 @@ system-dialect: context [
 			pc: next pc
 			type: resolve-type pc/1
 			size: select emitter/datatypes type/1
-			emitter/target/emit-last size
+			emitter/target/emit-load size
 			pc: next pc
 			<last>
 		]
@@ -714,7 +714,7 @@ system-dialect: context [
 						]
 					]
 					not find [none! tag!] type?/word expr [
-						emitter/target/emit-last expr
+						emitter/target/emit-load expr
 					]
 				]
 			]

@@ -9,6 +9,7 @@ REBOL [
 target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none
 	compiler: none									;-- just a short-cut
+	width: none										;-- operand width in bytes
 	verbose:  0										;-- logs verbosity level
 	
 	comparison-op: [= <> < > <= >=]
@@ -76,9 +77,9 @@ target-class: context [
 				offset < -128
 				offset > 127
 			][
-				print "#code generation error: overflow in emit-variable"
+				compiler/throw-error "#code generation error: overflow in emit-variable"
 			]
-			offset: skip debase/base to-hex offset 16 3
+			offset: skip debase/base to-hex offset 16 3	; @@ just to-char ??
 			either block? lcode [
 				emit reduce bind lcode 'offset
 			][
@@ -88,6 +89,18 @@ target-class: context [
 		][											;-- global variable case
 			emit gcode
 			emit-reloc-addr emitter/symbols/:name
+		]
+	]
+	
+	set-width: func [operand][
+		width: emitter/size-of? switch/default type?/word operand [
+				char!	 ['byte!]
+				integer! ['integer!]
+				word!	 [first compiler/resolve-type operand]
+				block!	 [compiler/last-type]
+				tag!	 [compiler/last-type]
+			][
+				compiler/throw-error reform ["Undefined type for:" mold operand]
 		]
 	]
 ]

@@ -25,6 +25,33 @@ make target-class [
 		<=				 #{0E}
 		>				 #{0F}
 	]
+		
+	emit-poly: func [spec [block!] /local to-bin][	;-- polymorphic code generation
+		spec: reduce spec
+		emit switch width [
+			1 [spec/1]								;-- 8-bit
+			2 [emit #{66} spec/2]					;-- 16-bit
+			4 [spec/2]								;-- 32-bit
+			;8 not yet supported
+		]
+		to-bin: get select [1 to-bin8 2 to-bin16 4 to-bin32] width
+		case/all [
+			2 < length? spec [emit to-bin to integer! spec/3]	;-- emit displacement or immediate
+			3 < length? spec [emit to-bin to integer! spec/4]	;-- emit displacement or immediate
+		]	
+	]
+	
+	emit-variable-poly: func [							;-- polymorphic variable access generation
+		name [word!]
+		    g8 [binary!] 		g32 [binary!]			;-- opcodes for global variables
+			l8 [binary! block!] l32 [binary! block!]	;-- opcodes for local variables
+	][
+		switch width [
+			1 [emit-variable name g8 l8]				;-- 8-bit
+			2 [emit #{66} emit-variable name g32 l32]	;-- 16-bit
+			4 [emit-variable name g32 l32]				;-- 32-bit
+		]
+	]
 	
 	emit-length?: func [value [word! string! struct! tag!] /local spec size][
 		if verbose >= 3 [print [">>>inlining: length?" mold value]]
@@ -65,24 +92,23 @@ make target-class [
 			logic! [
 				emit #{3401}						;-- XOR al, 1		; invert 0<=>1
 			]
+			byte! [
+				emit #{F6D0}						;-- NOT al
+			]										; @@ missing 16-bit support
 			integer! [
 				emit #{F7D0}						;-- NOT eax
 			]
 		]
 		switch type?/word value [
 			logic! [
-				emit-last not value
+				emit-load not value
 			]
 			integer! [
-				emit #{B8}							;-- MOV eax, value
-				emit to-bin32 value
-				emit #{F7D0}						;-- NOT eax
+				emit-load value
+				do opcodes/integer!
 			]
 			word! [
-				emit-variable value
-					#{A1}							;-- MOV eax, [value]	; global
-					#{8B45}							;-- MOV eax, [ebp+n]	; local
-					
+				emit-load value
 				switch first compiler/get-variable-spec value opcodes
 			]
 			tag! [
@@ -100,7 +126,7 @@ make target-class [
 		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
 	
-	emit-last: func [value [char! integer! word! string! struct! logic!] /local spec][
+	emit-load: func [value [char! integer! word! string! struct! logic!] /local spec][
 		switch type?/word value [
 			char! [
 				emit #{B0}							;-- MOV al, value
@@ -117,9 +143,10 @@ make target-class [
 				emit to-bin32 value
 			]
 			word! [
-				emit-variable value
-					#{A1}							;-- MOV eax, [value]	; global
-					#{8B45}							;-- MOV eax, [ebp+n]	; local
+				set-width value
+				emit-variable-poly value
+					#{A0}   #{A1}					;-- MOV rA, [value]		; global
+					#{8A45} #{8B45}					;-- MOV rA, [ebp+n]		; local	
 			]
 			string! [
 				spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
@@ -128,6 +155,50 @@ make target-class [
 			]
 			struct! [
 				;TBD @@
+			]
+		]
+	]
+	
+	emit-store: func [name [word!] value [char! integer! word! string! struct! tag!] /local spec][
+		if verbose >= 3 [print [">>>storing" mold name mold value]]
+		if value = <last> [value: 'last]
+
+		spec: select emitter/symbols name
+		switch type?/word value [
+			char! [
+				emit-variable name
+					#{C605}							;-- MOV byte [name], value
+					#{C645}							;-- MOV byte [ebp+n], value
+				emit value
+			]
+			integer! [
+				emit-variable name
+					#{C705}							;-- MOV dword [name], value		; (32-bit only!!!)
+					#{C745}							;-- MOV dword [ebp+n], value	; (32-bit only!!!)					
+				emit to-bin32 value
+			]
+			word! [
+				set-width name				
+				if value <> 'last [
+					emit-variable-poly value
+						#{A0}   #{A1}				;-- MOV rA, [value]		; global
+						#{8A45} #{8B45}				;-- MOV rA, [ebp+n]		; local	
+				]
+				emit-variable-poly name
+					#{A2} 	#{A3}					;-- MOV [name], rA		; global variable
+					#{8845} #{8945}					;-- MOV [ebp+n], rA		; local variable
+			]
+			string! [
+				if find emitter/stack name [
+					spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
+					emit-variable name
+						#{}							;-- no code to emit, handled by higher layer
+						#{C745}						;-- MOV [ebp+n], value
+					emit-reloc-addr spec/2
+				]
+			]
+			struct! [
+				;-- nothing to emit
 			]
 		]
 	]
@@ -164,11 +235,11 @@ make target-class [
 		length? jmp
 	]
 	
-	emit-push: func [value [char! logic! integer! word! block! string! tag!] /local spec type gcode lcode][
+	emit-push: func [value [char! logic! integer! word! block! string! tag!] /local spec type][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		
 		switch type?/word value [
-			tag!   [								;-- == <last>
+			tag! [									;-- == <last>
 				emit #{50}							;-- PUSH eax
 			]
 			logic! [
@@ -193,21 +264,22 @@ make target-class [
 			]
 			word! [
 				type: first compiler/get-variable-spec value
-				either find [string! binary! struct!] type [
-					gcode: #{68}					;-- PUSH imm32			; global value
-					lcode: #{FF75}					;-- PUSH [ebp+n]		; local value
+				either find [string! struct! pointer!] type [
+					emit-variable value
+						#{68}						;-- PUSH imm32			; global value
+						#{FF75}						;-- PUSH [ebp+n]		; local value
 				][
-					gcode: #{FF35}					;-- PUSH dword [value]	;TBD: test value size
-					lcode: [
-						#{8D45}						;-- LEA eax, [ebp+n]
-						offset						;-- n
-						#{FF30}						;-- PUSH dword [eax]
-					]
+					emit-variable value
+						#{FF35}						;-- PUSH dword [value]	;TBD: test value size
+						[
+							#{8D45}					;-- LEA eax, [ebp+n]
+							offset					;-- n
+							#{FF30}					;-- PUSH dword [eax]
+						]
 				]
-				emit-variable value gcode lcode			
 			]
 			block! [								;-- pointer
-				;TBD
+				; @@ (still required?)
 			]
 			string! [
 				spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
@@ -285,49 +357,6 @@ make target-class [
 			]
 		]
 	]
-		
-	emit-store: func [name [word!] value [char! integer! word! string! struct! tag!] /local spec][
-		if verbose >= 3 [print [">>>storing" mold name mold value]]
-		if value = <last> [value: 'last]
-		
-		spec: select emitter/symbols name
-		switch type?/word value [
-			char! [
-				emit-variable name
-					#{C605}							;-- MOV byte [name], value
-					#{C645}							;-- MOV byte [ebp+n], value
-				emit value
-			]
-			integer! [
-				emit-variable name
-					#{C705}							;-- MOV dword [name], value		; (32-bit only!!!)
-					#{C745}							;-- MOV dword [ebp+n], value	; (32-bit only!!!)					
-				emit to-bin32 value
-			]
-			word! [
-				if value <> 'last [
-					emit-variable value
-						#{A1}						;-- MOV eax, [value]	; global
-						#{8B45}						;-- MOV eax, [ebp+n]	; local
-				]
-				emit-variable name
-					#{A3}							;-- MOV [name], eax		; global variable
-					#{8945}							;-- MOV [ebp+n], eax	; local variable
-			]
-			string! [
-				if find emitter/stack name [
-					spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
-					emit-variable name
-						#{}							;-- no code to emit, handled by higher layer
-						#{C745}						;-- MOV [ebp+n], value
-					emit-reloc-addr spec/2
-				]
-			]
-			struct! [
-				;-- nothing to emit
-			]
-		]
-	]
 	
 	emit-bitwise-op: func [name a b arg2 /local code][		
 		code: select [
@@ -368,20 +397,19 @@ make target-class [
 	emit-comparison-op: func [name a b arg2][
 		switch b [
 			imm [
-				emit #{3D}							;-- CMP eax, value
-				emit to-bin32 arg2
+				emit-poly [#{3C} #{3D} arg2]		;-- CMP rA, value
 			]
-			ref [
-				emit-variable arg2
-					#{8B15}							;-- MOV edx, [value]	; global
-					#{8B55}							;-- MOV edx, [ebp+n]	; local
-				emit #{39D0}						;-- CMP eax, edx		; commutable op
+			ref [				
+				emit-variable-poly arg2
+					#{8A15} #{8B15}					;-- MOV rD, [value]		; global
+					#{8A55} #{8B55}					;-- MOV rD, [ebp+n]		; local
+				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; commutable op				
 			]
 			reg [
 				if a = 'reg [						;-- eax = b, edx = a
 					emit #{92}						;-- XCHG eax, edx		; swap
 				]
-				emit #{39D0}						;-- CMP eax, edx		; not commutable op
+				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; not commutable op
 			]
 		]
 	]
@@ -395,49 +423,49 @@ make target-class [
 			+ [
 				switch b [
 					imm [
-						either arg2 = 1 [			;-- trivial optimization
-							emit #{40}				;-- INC eax
+						emit-poly either arg2 = 1 [	;-- trivial optimization
+							[#{FEC0} #{40}]			;-- INC rA
 						][
-							emit #{05}				;-- ADD eax, value
-							emit to-bin32 arg2
+							[#{04} #{05} arg2] 		;-- ADD rA, value
 						]
 					]
 					ref [	
-						emit-variable arg2
-							#{0305}					;-- ADD eax, [value]	; global
-							#{0345}					;-- ADD eax, [ebp+n]	; local
+						emit-variable-poly arg2
+							#{0205} #{0305}			;-- ADD rA, [value]	; global
+							#{0245} #{0345}			;-- ADD rA, [ebp+n]	; local
 					]
-					reg [emit #{01D0}]				;-- ADD eax, edx		; commutable op
+					reg [
+						emit-poly [#{00D0} #{01D0}]	;-- ADD rA, rD		; commutable op
+					]
 				]
 			]
 			- [
 				switch b [
 					imm [
-						either arg2 = 1 [			;-- trivial optimization
-							emit #{48}				;-- DEC eax
+						emit-poly either arg2 = 1 [ ;-- trivial optimization
+							[#{FEC8} #{48}]			;-- DEC rA
 						][
-							emit #{2D}				;-- SUB eax, value
-							emit to-bin32 arg2
+							[#{2CFF} #{2D} arg2] 	;-- SUB rA, value
 						]
 					]
 					ref [
-						emit-variable arg2
-							#{2B05}					;-- SUB eax, [value]	; global
-							#{2B45}					;-- SUB eax, [ebp+n]	; local
+						emit-variable-poly arg2
+							#{2A05} #{2B05}			;-- SUB rA, [value]	; global
+							#{2A45} #{2B45}			;-- SUB rA, [ebp+n]	; local
 					]
 					reg [
 						if a = 'reg [				;-- eax = b, edx = a
 							emit #{92}				;-- XCHG eax, edx		; swap
 						]
-						emit #{29D0}				;-- SUB eax, edx		; not commutable op
+						emit-poly [#{28D0} #{29D0}] ;-- SUB rA, rD		; not commutable op
 					]
 				]
 			]
 			* [
 				switch b [
 					imm [
-						either c: power-of-2? arg2 [		;-- trivial optimization for b=2^n
-							emit #{C1E0}			;-- SAL eax, log2(b)
+						either c: power-of-2? arg2 [	;-- trivial optimization for b=2^n
+							emit-poly [#{C0ED} #{C1E0}]	;-- SAL eax, log2(b)
 							emit to-bin8 c
 						][
 							emit #{69C0}			;-- IMUL eax, value
@@ -465,13 +493,11 @@ make target-class [
 						][
 							emit #{BB}				;-- MOV ebx, value
 							emit to-bin32 arg2
-							emit #{31D2}			;-- XOR edx, edx		; edx = 0
 							emit #{99}				;-- CDQ					; extend sign to edx
 							emit #{F7FB}			;-- IDIV ebx			; edx:eax / ebx => eax,edx
 						]
 					]
 					ref [
-						emit #{31D2}				;-- XOR edx, edx		; edx = 0
 						emit #{99}					;-- CDQ					; extend sign to edx
 						emit-variable arg2
 							#{F73D}					;-- IDIV dword [value]	; global
@@ -484,7 +510,6 @@ make target-class [
 						][
 							emit #{89C3}			;-- MOV ebx, eax		; ebx = b
 						]
-						emit #{31D2}				;-- XOR edx, edx		; edx = 0
 						emit #{99}					;-- CDQ					; extend sign to edx						
 						emit #{F7FB}				;-- IDIV ebx 			; not commutable op
 					]
@@ -501,12 +526,14 @@ make target-class [
 	emit-operation: func [name [word!] args [block!] /local a b c][
 		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
 		
+		set-width args/1							;-- set reg/mem access width
 		c: 1
 		foreach op [a b][	
 			set op either args/:c = <last> [
 				 'reg								;-- value in eax
 			][
 				switch type?/word args/:c [
+					char! 	 ['imm]		 			;-- add or mov to al
 					integer! ['imm] 				;-- add or mov to eax
 					word! 	 ['ref] 				;-- fetch value
 					block!   ['reg] 				;-- value in eax (or in edx)
@@ -520,15 +547,12 @@ make target-class [
 		;-- First operand processing
 		if find [imm ref] a [						;-- load eax with 1st operand
 			if b = 'reg [							;-- 2nd operand in eax, save it in edx
-				emit #{89C2}						;-- MOV edx, eax
+				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA
 			]
 			either a = 'imm [
-				emit #{B8}							;-- MOV eax, a
-				emit to-bin32 args/1
+				emit-poly [#{B0} #{B8} args/1]		;-- MOV rA, a
 			][
-				emit-variable args/1
-					#{A1}							;-- MOV eax, [a]		; global
-					#{8B45}							;-- MOV eax, [ebp+n]	; local
+				emit-load args/1
 			]
 		]
 		;-- Operator and second operand processing
