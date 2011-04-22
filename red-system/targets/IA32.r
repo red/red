@@ -358,6 +358,14 @@ make target-class [
 		]
 	]
 	
+	emit-sign-extension: does [
+		emit switch width [
+			1 [#{6698}]			;-- extend AL to AX
+			2 [#{6699}]			;-- extend AX to DX:AX
+			4 [#{99}]			;-- extend EAX to EDX:EAX
+		]
+	]
+	
 	emit-bitwise-op: func [name a b arg2 /local code][		
 		code: select [
 			and [
@@ -457,7 +465,7 @@ make target-class [
 						if a = 'reg [				;-- eax = b, edx = a
 							emit #{92}				;-- XCHG eax, edx		; swap
 						]
-						emit-poly [#{28D0} #{29D0}] ;-- SUB rA, rD		; not commutable op
+						emit-poly [#{28D0} #{29D0}] ;-- SUB rA, rD			; not commutable op
 					]
 				]
 			]
@@ -465,43 +473,65 @@ make target-class [
 				switch b [
 					imm [
 						either c: power-of-2? arg2 [	;-- trivial optimization for b=2^n
-							emit-poly [#{C0ED} #{C1E0}]	;-- SAL eax, log2(b)
+							either width = 1 [
+								emit #{C0E0}			;-- SHL al, log2(b)	; 8-bit unsigned
+							][
+								emit-poly [#{C0ED} #{C1E0}]	;-- SAL rA, log2(b) ; signed
+							]
 							emit to-bin8 c
 						][
-							emit #{69C0}			;-- IMUL eax, value
-							emit to-bin32 arg2
+							emit-poly [#{B2} #{BA} arg2] ;-- MOV rD, value
+							emit-poly [#{F6EA} #{F7EA}]	 ;-- IMUL rD		; result in ax|eax|edx:eax
 						]
 					]
 					ref [
-						emit-variable arg2
-							#{0FAF05}				;-- IMUL eax, [value]	; global
-							#{0FAF45}				;-- IMUL eax, [ebp+n]	; local
+						emit-variable-poly arg2
+							#{F62D}	#{F72D}			;-- IMUL [value]		; global
+							#{F66D}	#{F76D}			;-- IMUL [ebp+n]		; local
 					]
-					reg [emit #{0FAFC2}]			;-- IMUL eax, edx 		; commutable op
+					reg [
+						emit-poly [#{F6EA} #{F7EA}] ;-- IMUL rD 			; commutable op
+					]
 				]
 			]
 			/ [
+				div-poly: [
+					either width = 1 [				;-- 8-bit unsigned
+						emit #{F6F3}				;-- DIV bl
+					][
+						emit-sign-extension			;-- 16/32-bit signed
+						emit-poly [#{F6FB} #{F7FB}]	;-- IDIV rB ; rA / rB
+					]
+				]
 				switch b [
 			;TBD: check for 0 divider both at compilation-time and runtime
 					imm [
 						either all [
-							not mod?				;-- do not use shifts if modulo
+							not mod?					;-- do not use shifts if modulo
 							c: power-of-2? arg2
-						][							;-- trivial optimization for b=2^n
-							emit #{C1F8}			;-- SAR eax, log2(b)
+						][								;-- trivial optimization for b=2^n
+							either width = 1 [
+								emit #{C0E8}			;-- SHR al, log2(b)	; 8-bit unsigned
+							][
+								emit-poly [#{C0F8} #{C1F8}]	;-- SAR rA, log2(b)	; signed
+							]
 							emit to-bin8 c
 						][
-							emit #{BB}				;-- MOV ebx, value
-							emit to-bin32 arg2
-							emit #{99}				;-- CDQ					; extend sign to edx
-							emit #{F7FB}			;-- IDIV ebx			; edx:eax / ebx => eax,edx
+							emit-poly [#{B3} #{BB} arg2] ;-- MOV rB, value
+							do div-poly
 						]
 					]
 					ref [
-						emit #{99}					;-- CDQ					; extend sign to edx
-						emit-variable arg2
-							#{F73D}					;-- IDIV dword [value]	; global
-							#{F77D}					;-- IDIV dword [ebp+n]	; local
+						either width = 1 [
+							emit-variable arg2
+								#{F635}				;-- DIV byte [value]	; global
+								#{F675}				;-- DIV byte [ebp+n]	; local
+						][
+							emit-sign-extension
+							emit-variable-poly arg2
+								#{F63D} #{F73D}		;-- IDIV word|dword [value]	; global
+								#{F67D} #{F77D}		;-- IDIV word|dword [ebp+n]	; local
+						]
 					]
 					reg [
 						either a = 'reg [			;-- eax = b, edx = a
@@ -510,12 +540,11 @@ make target-class [
 						][
 							emit #{89C3}			;-- MOV ebx, eax		; ebx = b
 						]
-						emit #{99}					;-- CDQ					; extend sign to edx						
-						emit #{F7FB}				;-- IDIV ebx 			; not commutable op
+						do div-poly
 					]
 				]
 				if mod? [
-					emit #{89D0}					;-- MOV eax, edx		; move remainder to eax
+					emit-poly [#{88E0} #{89D0}]		;-- MOV rA, remainder	; remainder in al|ax|eax
 				]
 			]
 		]
