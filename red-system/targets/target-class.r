@@ -7,9 +7,10 @@ REBOL [
 ]
 
 target-class: context [
-	target: little-endian?: struct-align: ptr-size: void-ptr: none
+	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
+	default-align: branch-offset-size: none						   ; TBD: document once stabilized
 	compiler: none									;-- just a short-cut
-	width: none										;-- operand width in bytes
+	width: none										;-- current operand width in bytes
 	verbose:  0										;-- logs verbosity level
 	
 	comparison-op: [= <> < > <= >=]

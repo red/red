@@ -11,6 +11,7 @@ make target-class [
 	little-endian?: yes
 	struct-align-size: 	4
 	ptr-size: 			4
+	default-align:		4
 	branch-offset-size:	4							;-- size of JMP offset
 	
 	conditions: make hash! [

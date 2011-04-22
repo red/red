@@ -109,10 +109,9 @@ emitter: context [
 	]
 	
 	tail-ptr: does [index? tail code-buf] 	;-- one-based addressing
-		
-	pad-global-struct: has [sz][
-		unless empty? data-buf [			;-- don't pad at beginning, already aligned
-			sz: target/struct-align-size
+	 
+	pad-data-buf: func [sz [integer!]][
+		unless empty? data-buf [
 			insert/dup tail data-buf null sz - ((length? data-buf) // sz)
 		]
 	]
@@ -150,9 +149,10 @@ emitter: context [
 
 	store-global: func [value size /local ptr][
 		ptr: tail data-buf
-		if logic? value [value: to-integer value]			;-- TRUE => 1, FALSE => 0  ; @@ store as byte!?
+		if logic? value [value: to-integer value]		;-- TRUE => 1, FALSE => 0
 		case [
-			number? value [									;TBD: align on 32-bit boundary
+			number? value [
+				pad-data-buf target/default-align		;-- align on default target boundary
 				value: debase/base to-hex value 16
 				either target/little-endian? [
 					value: tail value
@@ -176,7 +176,7 @@ emitter: context [
 	
 	set-global: func [spec [block!] value /local type base][
 		either 'struct! = type: spec/2/1 [
-			pad-global-struct
+			pad-data-buf target/struct-align-size
 			base: tail data-buf
 			foreach [var type] spec/2/2 [
 				store-global 0 size-of? type/1
