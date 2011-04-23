@@ -188,11 +188,11 @@ system-dialect: context [
 			either type [type/1][none]
 		]
 		
-		set-last-type: func [spec][
+		set-last-type: func [spec [block!]][
 			if spec: select spec [return:][last-type: spec/1]
 		]
 		
-		get-variable-spec: func [name][
+		get-variable-spec: func [name [word!]][
 			any [
 				all [locals select locals name]
 				select globals name
@@ -221,6 +221,7 @@ system-dialect: context [
 					block? value	[compose/deep [(to word! join value/1 #"!") [(value/2)]]]
 					word? value 	[first select ctx value]
 					char? value		['byte!]
+					string? value	['c-string!]
 					'else 			[type?/word value]
 				]			
 				append ctx new: reduce [name compose [(type)]]
@@ -586,7 +587,7 @@ system-dialect: context [
 			new-line/all reduce [path value] no
 		]
 		
-		order-args: func [tree /local func? name type][
+		order-args: func [tree [block!] /local func? name type][
 			if all [
 				func?: not find [set-word! set-path!] type?/word tree/1
 				name: to word! tree/1
@@ -598,7 +599,7 @@ system-dialect: context [
 			foreach v next tree [if block? v [order-args v]]	;-- recursive processing
 		]
 		
-		comp-expression: func [tree /keep /local name value offset body args][
+		comp-expression: func [tree [block!] /keep /local name value offset body args][
 			switch/default type?/word tree/1 [
 				set-word! [
 					name: to word! tree/1
@@ -753,7 +754,7 @@ system-dialect: context [
 			]
 		]
 		
-		comp-func: func [name spec body /local args-size][
+		comp-func: func [name [word!] spec [block!] body [block!] /local args-size][
 			locals: spec
 			args-size: emitter/enter name locals
 			pc: body
@@ -841,7 +842,7 @@ system-dialect: context [
 		compiler/run/no-header loader/process runtime-env/:type
 	]
 	
-	set-runtime: func [job][
+	set-runtime: func [job [object!]][
 		runtime-env: load switch job/format [
 			PE     [runtime-path/win32.r]
 			ELF    [runtime-path/linux.r]

@@ -27,7 +27,10 @@ linker: context [
 	ELF:	 do %formats/ELF.r
 	;Mach-o: do %formats/mach-o.r			; TBD
 	
-	resolve-symbol-refs: func [job buf code-ptr data-ptr pointer][
+	resolve-symbol-refs: func [
+		job [object!] buf [binary!] code-ptr [integer!] data-ptr [integer!]
+		pointer [struct! [v [integer!]]]
+	][
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
 				switch spec/1 [
@@ -44,12 +47,12 @@ linker: context [
 		]
 	]
 
-	make-filename: func [job /local obj][
+	make-filename: func [job [object!] /local obj][
 		obj: get in self job/format
 		join job/output select obj/defs/extensions job/type
 	]
 	
-	build: func [job [object!] /in path /local file][
+	build: func [job [object!] /in path [file!] /local file][
 		unless job/target [job/target: cpu-class]
 		job/buffer: make binary! 100 * 1024
 		

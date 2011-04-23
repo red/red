@@ -264,11 +264,11 @@ context [
 			+ to integer! t/second
 	]
 
-	pad-size?: func [buffer][
+	pad-size?: func [buffer [binary!]][
 		file-align - remainder length? buffer file-align
 	]
 
-	entry-point-page?: func [job /memory /local ptr][		
+	entry-point-page?: func [job [object!] /memory /local ptr][
 		ptr: (length? job/buffer) + length? third optional-header
 		foreach [name spec] job/sections [
 			ptr: ptr + sect-header-size
@@ -276,7 +276,7 @@ context [
 		round/ceiling ptr / either memory [memory-align][file-align]
 	]
 
-	image-size?: func [job /local pages][
+	image-size?: func [job [object!] /local pages][
 		pages: entry-point-page?/memory job
 		foreach [name section] job/sections [
 			pages: pages + round/ceiling (length? section/2)  / memory-align
@@ -284,7 +284,7 @@ context [
 		pages * memory-align
 	]
 
-	import-addr?: func [job /local pages][
+	import-addr?: func [job [object!] /local pages][
 		pages: entry-point-page?/memory job
 		foreach [name section] job/sections [
 			if name = 'import [
@@ -295,7 +295,7 @@ context [
 		make error! "import section not found!"
 	]
 
-	section-addr?: func [job s-name /file /memory /local pages align][
+	section-addr?: func [job [object!] s-name [word!] /file /memory /local pages align][
 		pages: either file [entry-point-page? job][entry-point-page?/memory job]
 		align: either file [file-align][memory-align]
 		foreach [name section] job/sections [
@@ -307,7 +307,7 @@ context [
 		make error! reform [mold s-name "section not found!"]
 	]
 
-	resolve-data-refs: func [job /local buf data code][
+	resolve-data-refs: func [job [object!] /local buf data code][
 		buf: job/sections/code/2
 		data: (section-addr?/memory job 'data) + to integer! defs/image/base-address
 		code: (section-addr?/memory job 'code) + to integer! defs/image/base-address 
@@ -315,7 +315,7 @@ context [
 		linker/resolve-symbol-refs job buf code data pointer
 	]
 
-	resolve-import-refs: func [job /local code base][
+	resolve-import-refs: func [job [object!] /local code base][
 		code: job/sections/code/2
 		base: to integer! defs/image/base-address
 
@@ -330,8 +330,8 @@ context [
 	]
 
 	build-import: func [
-		job spec
-		/local IDTs ptr len out ILT-base buffer hints idt hint-ptr hint
+		job [object!]
+		/local spec IDTs ptr len out ILT-base buffer hints idt hint-ptr hint
 	][
 		spec:		job/sections/import
 		IDTs: 		make block! len: divide length? skip spec 2 2	;-- list of directory entries

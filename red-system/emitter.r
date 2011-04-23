@@ -121,14 +121,14 @@ emitter: context [
 		to-word join "no-name-" cnt/1: cnt/1 + 1
 	]
 	
-	get-symbol-spec: func [name][
+	get-symbol-spec: func [name [word!]][
 		any [
 			all [compiler/locals select compiler/locals name]
 			select compiler/globals name
 		]
 	]
 	
-	get-func-ref: func [name /local entry][
+	get-func-ref: func [name [word!] /local entry][
 		entry: find/last symbols name
 		if entry/2/1 = 'native [
 			repend symbols [		;-- copy 'native entry to a 'global entry
@@ -147,7 +147,7 @@ emitter: context [
 		]
 	]
 
-	store-global: func [value size /local ptr][
+	store-global: func [value size [integer!] /local ptr][
 		ptr: tail data-buf
 		if logic? value [value: to-integer value]		;-- TRUE => 1, FALSE => 0
 		case [
@@ -251,7 +251,7 @@ emitter: context [
 		]
 	]
 	
-	arguments-size?: func [locals /push /local pos ret size][
+	arguments-size?: func [locals [block!] /push /local pos ret size][
 		pos: find locals /local
 		ret: to-set-word 'return
 		if push [clear stack]
@@ -327,7 +327,7 @@ emitter: context [
 		]
 	]
 	
-	init: func [link? job][
+	init: func [link? [logic!] job [object!]][
 		if link? [
 			clear code-buf
 			clear data-buf

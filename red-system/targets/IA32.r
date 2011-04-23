@@ -265,7 +265,7 @@ make target-class [
 			]
 			word! [
 				type: first compiler/get-variable-spec value
-				either find [string! struct! pointer!] type [
+				either find [c-string! struct! pointer!] type [
 					emit-variable value
 						#{68}						;-- PUSH imm32			; global value
 						#{FF75}						;-- PUSH [ebp+n]		; local value
@@ -367,7 +367,7 @@ make target-class [
 		]
 	]
 	
-	emit-bitwise-op: func [name a b arg2 /local code][		
+	emit-bitwise-op: func [name [word!] a [word!] b [word!] arg2 /local code][		
 		code: select [
 			and [
 				#{25}								;-- AND eax, value
@@ -403,7 +403,7 @@ make target-class [
 		]
 	]
 	
-	emit-comparison-op: func [name a b arg2][
+	emit-comparison-op: func [name [word!] a [word!] b [word!] arg2][
 		switch b [
 			imm [
 				emit-poly [#{3C} #{3D} arg2]		;-- CMP rA, value
@@ -423,7 +423,7 @@ make target-class [
 		]
 	]
 	
-	emit-math-op: func [name a b arg2 /local mod? c][
+	emit-math-op: func [name [word!] a [word!] b [word!] arg2 /local mod? c][
 		if name = first [//][						;-- work around unaccepted '// 
 			name: first [/]							;-- work around unaccepted '/ 
 			mod?: yes
@@ -688,7 +688,7 @@ make target-class [
 		]
 	]
 
-	emit-prolog: func [name locals [block!] args-size [integer!]][
+	emit-prolog: func [name [word!] locals [block!] args-size [integer!]][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		emit #{55}									;-- PUSH ebp
@@ -699,7 +699,7 @@ make target-class [
 		]
 	]
 
-	emit-epilog: func [name locals [block!] locals-size [integer!]][
+	emit-epilog: func [name [word!] locals [block!] locals-size [integer!]][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
 		emit #{C9}									;-- LEAVE
