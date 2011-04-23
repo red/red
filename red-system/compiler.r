@@ -60,10 +60,11 @@ system-dialect: context [
 					defs								;-- resolve definitions in a single pass
 					| #define set name word! set value skip (
 						if verbose > 0 [print [mold name #":" mold value]]
+						if word? value [value: to lit-word! value]
 						rule: copy/deep [s: _ e: (e: change/part s _ e) :e]
 						rule/2: to lit-word! name
-						rule/4/4: value
-						either tag? defs/1 [remove defs][append defs '|]
+						rule/4/4: :value						
+						either tag? defs/1 [remove defs][append defs '|]						
 						append defs rule
 					)
 					| s: #include set name file! e: (
@@ -100,7 +101,7 @@ system-dialect: context [
 				print ["Syntax Error at LOAD phase:" mold disarm err]
 			]
 			
-			unless short [expand-block src]		;-- process block-level compiler directives
+			unless short [expand-block src]		;-- process block-level compiler directives		
 			src
 		]
 	]
