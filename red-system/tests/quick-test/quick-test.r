@@ -22,9 +22,19 @@ comment {
 make-dir %../runnable
 
 ;; use Cheyenne's call.r instead of native call (Windows only)
-if system/version/4 = 3 [
-	do %call.r						;; work around a CALL bug on Win7
-	set 'call :win-call
+if system/version/4 = 3	[			;; Windows platform
+	SetCurrentDirectory: make routine! [
+		lpPathName	[string!]
+		return: 	[integer!]
+	] load/library %kernel32.dll "SetCurrentDirectoryA"
+
+	set 'OS-change-dir func [dir][
+		SetCurrentDirectory join to-local-file dir null
+	]
+	if system/version/3 = 8	[		;; v2.7.8 only
+		do %call.r					;; work around a CALL bug on Win7
+		set 'call :win-call
+	]
 ]
 
 qt: make object! [
@@ -63,14 +73,18 @@ qt: make object! [
     replace comp "***src***" src
     write %comp.r comp
     
+    OS-change-dir what-dir
+    
     ;; compose command line and call it
 
     cmd: join "" [to-local-file system/options/boot " -sc comp.r"]
     call/wait cmd
     
     ;; collect compiler output & tidy up
-    comp-output: read %comp-echo.txt
-    if exists? %comp-echo.txt [delete %comp-echo.txt]
+    if exists? %comp-echo.txt [
+    	comp-output: read %comp-echo.txt
+    	delete %comp-echo.txt
+    ]
     if exists? %comp.r [delete %comp.r]
     
     ;; move the executable from /builds to /tests/runnable
