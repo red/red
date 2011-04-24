@@ -16,7 +16,7 @@ either exe: qt/compile %source/rs-test-suite.reds [
   print qt/output
   part1-failures?: either find qt/output "TEST FAILURES" [true] [false]
 ][
-  qt-assert "Test Suite Compile Error!!!!!!"
+  qt/assert "Test Suite Compile Error!!!!!!" false
   print qt/comp-output
   part1-failures?: true
 ]
