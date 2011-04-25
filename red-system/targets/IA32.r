@@ -12,6 +12,7 @@ make target-class [
 	struct-align-size: 	4
 	ptr-size: 			4
 	default-align:		4
+	stack-width:		4
 	branch-offset-size:	4							;-- size of JMP offset
 	
 	conditions: make hash! [
@@ -51,6 +52,42 @@ make target-class [
 			1 [emit-variable name g8 l8]				;-- 8-bit
 			2 [emit #{66} emit-variable name g32 l32]	;-- 16-bit
 			4 [emit-variable name g32 l32]				;-- 32-bit
+		]
+	]
+	
+	emit-load-path: func [value [path!] /local idx][
+		switch first compiler/resolve-type value/1 [
+			c-string! [
+				idx: value/2
+				emit-variable value/1
+					#{BE}							;-- MOV esi, value1			; global
+					[
+						#{8D45}						;-- LEA eax, [ebp+n]		; local
+						offset						;-- n
+						#{8B30}						;-- MOV esi, [eax]
+					]
+				either integer? idx [
+					either zero? idx: idx - 1 [		;-- indexes are one-based
+						emit #{8A06}				;-- MOV al, [esi]
+					][
+						emit #{8A86}				;-- MOV al, [esi + idx]
+						emit to-bin32 idx
+					]
+				][
+					emit-variable idx
+						#{8B1D}						;-- MOV ebx, [idx]			; global
+						#{8B5D}						;-- MOV ebx, [ebp+n]		; local
+					emit #{4B}						;-- DEC ebx					; one-based index
+					emit #{8A041E}					;-- MOV al,  [esi + ebx]
+				]
+
+			]
+			pointer! [
+
+			]
+			struct! [
+				;emitter/get-path value
+			]
 		]
 	]
 	
@@ -127,7 +164,9 @@ make target-class [
 		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
 	
-	emit-load: func [value [char! integer! word! string! struct! logic!] /local spec][
+	emit-load: func [value [char! integer! word! string! struct! logic! path!] /local spec][
+		if verbose >= 3 [print [">>>loading" mold value]]
+		
 		switch type?/word value [
 			char! [
 				emit #{B0}							;-- MOV al, value
@@ -156,6 +195,9 @@ make target-class [
 			]
 			struct! [
 				;TBD @@
+			]
+			path! [
+				emit-load-path value
 			]
 		]
 	]
@@ -236,7 +278,7 @@ make target-class [
 		length? jmp
 	]
 	
-	emit-push: func [value [char! logic! integer! word! block! string! tag!] /local spec type][
+	emit-push: func [value [char! logic! integer! word! block! string! tag! path!] /local spec type][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		
 		switch type?/word value [
@@ -267,13 +309,13 @@ make target-class [
 				type: first compiler/get-variable-spec value
 				either find [c-string! struct! pointer!] type [
 					emit-variable value
-						#{68}						;-- PUSH imm32			; global value
-						#{FF75}						;-- PUSH [ebp+n]		; local value
+						#{68}						;-- PUSH imm32			; global
+						#{FF75}						;-- PUSH [ebp+n]		; local
 				][
 					emit-variable value
-						#{FF35}						;-- PUSH dword [value]	;TBD: test value size
-						[
-							#{8D45}					;-- LEA eax, [ebp+n]
+						#{FF35}						;-- PUSH dword [value]	; global
+						[	
+							#{8D45}					;-- LEA eax, [ebp+n]	; local
 							offset					;-- n
 							#{FF30}					;-- PUSH dword [eax]
 						]
@@ -286,6 +328,10 @@ make target-class [
 				spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
 				emit #{68}							;-- PUSH value
 				emit-reloc-addr spec/2				;-- one-based index
+			]
+			path! [
+				emit-load-path value
+				emit-push <last>
 			]
 		]
 	]
@@ -625,7 +671,7 @@ make target-class [
 						binary! [emit arg]
 						block!  [
 							emit-call/sub arg/1 next arg
-							emit #{50}				;-- PUSH eax		; push returned value
+							emit-push <last>		;-- push returned value
 						]
 					][
 						emit-push arg
@@ -641,6 +687,15 @@ make target-class [
 				]
 				if block? args/2 [
 					emit-call/sub args/2/1 next args/2	;-- result in eax
+				]
+				if path? args/1 [
+					emit-load-path args/1
+					if path? args/2 [
+						emit #{89C2}				;-- MOV edx, eax
+					]
+				]
+				if path? args/2 [
+					emit-load-path args/2
 				]
 			]
 		]

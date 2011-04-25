@@ -289,7 +289,7 @@ emitter: context [
 		if pos: find locals /local [		
 			foreach [name type] next pos [
 				repend stack [
-					name locals-sz: locals-sz - size-of? type/1
+					name locals-sz: locals-sz - max size-of? type/1 target/stack-width
 				]
 			]
 			locals-sz: abs locals-sz

@@ -107,13 +107,16 @@ system-dialect: context [
 	]
 	
 	compiler: context [
-		job: pc: last-type: locals: none
-		verbose:  0										;-- logs verbosity level
+		job: 		none								;-- compilation job object
+		pc:			none								;-- source code input cursor
+		last-type:	none								;-- type of last value from an expression
+		locals: 	none								;-- currently compiled function specification block
+		verbose:  	0									;-- logs verbosity level
 	
-		imports: 	   make block! 10
-		bodies:	  	   make hash!  40					;-- [name [specs] [body]...]
-		globals:  	   make hash!  40
-		aliased-types: make hash!  10
+		imports: 	   make block! 10					;-- list of imported functions
+		bodies:	  	   make hash!  40					;-- list of functions to compile [name [specs] [body]...]
+		globals:  	   make hash!  40					;-- list of globally defined symbols from scripts
+		aliased-types: make hash!  10					;-- list of aliased type definitions
 		
 		functions: to-hash [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
@@ -213,15 +216,35 @@ system-dialect: context [
 			type
 		]
 		
+		resolve-path-type: func [path [path!] /parent prev][
+			type: either parent [
+				resolve-type/with path/1 prev
+			][
+				resolve-type path/1
+			]
+			either tail? skip path 2 [
+				switch/default type/1 [
+					c-string! ['byte!]
+					pointer!  ['pointer!]
+					struct!   [first select type/2 path/2]
+				][
+					make error! "invalid path value"
+				]
+			][
+				resolve-path-type/parent next path path/1
+			]
+		]
+		
 		add-symbol: func [name [word!] value /local type new ctx][
 			ctx: any [locals globals]
 			unless find ctx name [
 				type: case [
 					value = <last>  [last-type]
 					block? value	[compose/deep [(to word! join value/1 #"!") [(value/2)]]]
-					word? value 	[first select ctx value]
+					word? value 	[first select ctx value]	; @@ should use 'resolve-type here
 					char? value		['byte!]
 					string? value	['c-string!]
+					path? value		[resolve-path-type value]
 					'else 			[type?/word value]
 				]			
 				append ctx new: reduce [name compose [(type)]]
@@ -580,9 +603,9 @@ system-dialect: context [
 			]
 		]
 		
-		comp-set-path: does [
-			path: pc/1		
-			pc: next pc		
+		comp-set-path: has [path][
+			path: pc/1
+			pc: next pc
 			value: fetch-expression
 			new-line/all reduce [path value] no
 		]
@@ -609,14 +632,14 @@ system-dialect: context [
 					][
 						tree/2
 					]
-					either all [tag? value value <> <last>][		;-- special encoding for ALL/ANY
+					either all [tag? value value <> <last>][	;-- special encoding for ALL/ANY
 						add-symbol name true
 						value: <last>
 					][
 						add-symbol name value
 					]
 					if path? value [
-						emitter/access-path value
+						emitter/target/emit-load value
 						value: <last>
 					]
 					if logic? value [						;-- convert literal logic! values
