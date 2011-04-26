@@ -8,13 +8,15 @@ Red/System [
 
 qt-start-run "Red/System Test Suite - Part I"
 
+#include %units/exit-test.reds
+qt-update-totals
 #include %units/logic-test.reds
 qt-update-totals
-
 #include %units/modulo-test.reds
 qt-update-totals
-
 #include %units/not-test.reds
+qt-update-totals
+#include %units/return-test.reds
 qt-update-totals
 
 qt-end-run
