@@ -9,7 +9,9 @@ if not value? 'qt [do %quick-test-quick-test.r]
        
 qt/start-test-run "Red/System Test Suite - Part II"
 
-qt/run-script %source/compiler/output-test.r
 qt/run-script %source/compiler/comp-err-test.r
+qt/run-script %source/compiler/exit-test.r
+qt/run-script %source/compiler/output-test.r
+qt/run-script %source/compiler/return-test.r
 
 qt/end-test-run
