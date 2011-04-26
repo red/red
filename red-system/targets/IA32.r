@@ -56,6 +56,8 @@ make target-class [
 	]
 	
 	emit-load-path: func [value [path!] /local idx][
+		if verbose >= 3 [print [">>>loading path:" mold value]]
+		
 		switch first compiler/resolve-type value/1 [
 			c-string! [
 				idx: value/2
@@ -83,10 +85,50 @@ make target-class [
 
 			]
 			pointer! [
-
+				;TBD
 			]
 			struct! [
 				;emitter/get-path value
+			]
+		]
+	]
+	
+	emit-store-path: func [path [set-path!] value /local idx][
+		if verbose >= 3 [print [">>>storing path:" mold value]]
+		
+		unless value = <last> [emit-load value]
+		emit #{89C2}								;-- MOV edx, eax			; save value
+		
+		switch first compiler/resolve-type path/1 [
+			c-string! [
+				idx: path/2
+				emit-variable path/1
+					#{BE}							;-- MOV esi, path/1			; global
+					[
+						#{8D45}						;-- LEA eax, [ebp+n]		; local
+						offset						;-- n
+						#{8B30}						;-- MOV esi, [eax]
+					]
+				either integer? idx [
+					either zero? idx: idx - 1 [		;-- indexes are one-based
+						emit #{8816}				;-- MOV [esi], dl
+					][
+						emit #{8896}				;-- MOV [esi + idx], dl
+						emit to-bin32 idx
+					]
+				][
+					emit-variable idx
+						#{8B1D}						;-- MOV ebx, [idx]			; global
+						#{8B5D}						;-- MOV ebx, [ebp+n]		; local
+					emit #{4B}						;-- DEC ebx					; one-based index
+					emit #{88141E}					;-- MOV [esi + ebx], dl
+				]
+			]
+			pointer! [
+				;TBD
+			]
+			struct! [
+				;TBD				
 			]
 		]
 	]
@@ -500,7 +542,7 @@ make target-class [
 						emit-poly either arg2 = 1 [ ;-- trivial optimization
 							[#{FEC8} #{48}]			;-- DEC rA
 						][
-							[#{2CFF} #{2D} arg2] 	;-- SUB rA, value
+							[#{2C} #{2D} arg2] 		;-- SUB rA, value
 						]
 					]
 					ref [

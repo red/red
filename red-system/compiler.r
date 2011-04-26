@@ -622,40 +622,48 @@ system-dialect: context [
 			foreach v next tree [if block? v [order-args v]]	;-- recursive processing
 		]
 		
-		comp-expression: func [tree [block!] /keep /local name value offset body args][
+		comp-expression: func [
+			tree [block!] /keep
+			/local name value offset body args get-value prepare-value
+		][
+			get-value: [
+				value: either block? tree/2 [
+					comp-expression/keep tree/2
+					<last>
+				][
+					tree/2
+				]
+			]
+			prepare-value: [
+				if all [tag? value value <> <last>][	;-- special encoding for ALL/ANY
+					value: <last>
+				]
+				if path? value [
+					emitter/target/emit-load value
+					value: <last>
+				]
+				if logic? value [						;-- convert literal logic! values
+					value: to-integer value				;-- TRUE => 1, FALSE => 0
+				]
+			]
 			switch/default type?/word tree/1 [
 				set-word! [
 					name: to word! tree/1
-					value: either block? tree/2 [
-						comp-expression/keep tree/2
-						<last>
-					][
-						tree/2
-					]
+					do get-value
 					either all [tag? value value <> <last>][	;-- special encoding for ALL/ANY
 						add-symbol name true
 						value: <last>
 					][
 						add-symbol name value
 					]
-					if path? value [
-						emitter/target/emit-load value
-						value: <last>
-					]
-					if logic? value [						;-- convert literal logic! values
-						value: to-integer value				;-- TRUE => 1, FALSE => 0
-					]
+					do prepare-value
 					emitter/target/emit-store name value
 				]
 				set-path! [
-					value: either block? tree/2 [
-						comp-expression tree/2
-						<last>
-					][
-						tree/2
-					]
-					;TBD: raise error if ANY/ALL passed as argument
-					emitter/access-path/store path value
+					do get-value
+					do prepare-value
+					;TBD: raise error if ANY/ALL passed as argument				
+					emitter/set-path tree/1 value
 				]
 			][
 				name: to word! tree/1

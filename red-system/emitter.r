@@ -200,6 +200,19 @@ emitter: context [
 		offset
 	]
 	
+	set-path: func [path [set-path!] value /with parent][
+		either 2 = length? path [
+			target/emit-store-path path value
+		][
+			target/emit-access-path path/1 parent			;@@ proto-code, not working yet
+			set-path/with next path either head? path [
+				compiler/resolve-type path/1
+			][
+				compiler/resolve-type/with path/1 parent-type
+			]
+		]
+	]
+comment {	
 	access-path: func [path [path! set-path!] /store value /local emit type idx offset][	
 		emit: get in target 'emit-path-access
 		
@@ -240,7 +253,7 @@ emitter: context [
 			path: either head? path [skip path 2][next path]
 		]
 	]
-	
+}	
 	size-of?: func [type [word!]][
 		any [
 			select datatypes type						;-- search in core types
