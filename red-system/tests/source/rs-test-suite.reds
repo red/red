@@ -8,15 +8,24 @@ Red/System [
 
 qt-start-run "Red/System Test Suite - Part I"
 
-#include %units/exit-test.reds
-qt-update-totals
+;-- Datatype tests
 #include %units/logic-test.reds
 qt-update-totals
-#include %units/modulo-test.reds
+#include %units/byte-test.reds
 qt-update-totals
+
+;-- Native functions tests
 #include %units/not-test.reds
 qt-update-totals
+
+;-- Special natives tests
+#include %units/exit-test.reds
+qt-update-totals
 #include %units/return-test.reds
+qt-update-totals
+
+;-- Math operators tests
+#include %units/modulo-test.reds
 qt-update-totals
 
 qt-end-run
