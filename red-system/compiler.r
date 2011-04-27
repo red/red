@@ -967,7 +967,7 @@ system-dialect: context [
 		if opts/link? [clean-up]
 
 		also
-			reduce [comp-time link-time length? job/buffer]
+			reduce [comp-time link-time any [all [job/buffer length? job/buffer] 0]]
 			compiler/job: job: none
 	]
 ]
