@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 15/04/2011
-	Revision: 5
+	Date: 27/04/2011
+	Revision: 6
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -645,11 +645,14 @@ Function definition and usage is pretty straightforward in Red/System. The funct
 
 *local variables
 
+*special attributes
+
 ---Declaration
 
 <b>Syntax</b>
 
  <name>: func | function [
+ 	[<attributes>]						;-- optional part
  	<argument> [<datatype>]
  	...
  	return: [<datatype>]				;-- returned value type (optional part)
@@ -660,12 +663,13 @@ Function definition and usage is pretty straightforward in Red/System. The funct
  	<body>
  ]
 
- <name>		: function's name
- <argument>	: function's argument indentifier
- <datatype>	: integer! | byte! | pointer! [integer!] |
-              c-string! | struct! [<members>]
- <local>	: local variable
- <body>		: function's body code
+ <name>		  : function's name
+ <attributes> : special attributes
+ <argument>	  : function's argument indentifier
+ <datatype>	  : integer! | byte! | logic! | pointer! [integer!] |
+                c-string! | struct! [<members>]
+ <local>	  : local variable
+ <body>		  : function's body code
 
 <b>Examples</b>
 
@@ -698,6 +702,28 @@ Any function is able to return a value if necessary. This is trivially achieved 
 *a RETURN: statement is present in function's spec block
 
 *last expression datatype matches the one declared after the RETURN: statement
+
+---Attributes
+
+It is possible to change how the function will behave at runtime using special attributes. 
+
++++Infix
+
+Allow the function to be called using an infix syntax. The function must take two arguments exactly or else a compilation error will be raised. Example:
+
+ avg: func [[infix] a [integer!] b [integer!] return: [integer!]][
+ 	(a + b) / 2
+ ]
+
+ 10 avg 6
+will return:
+ 8
+ 
+<u>Note</u>: When the <b>infix</b> syntax is used, the postfix syntax is still allowed, but it will work only if there is no value on the left side of the function call. Example:
+
+ func [][avg 10 6]						;-- will return 8 as well
+
+ print "ok" avg 10 6					;-- will produce a compilation error
 
 ---Type inference
 
@@ -1553,6 +1579,12 @@ will output:
 *>Extend the get-word! syntax to integer! variables.
 
 ===Document History
+
+*27/04/2011 - draft 6
+
+*>Added 'infix attribute support in functions spec block.
+
+*>Added missing logic! datatype in functions spec block definition.
 
 *15/04/2011 - draft 5
 

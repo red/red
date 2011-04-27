@@ -698,16 +698,16 @@ make target-class [
 		emit to-bin8 size
 	]
 	
-	emit-call: func [name [word!] args [block!] /sub /local spec fspec][
+	emit-call: func [name [word!] args [block!] /sub /local spec fspec type][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
-		spec: any [
+		type: first spec: any [
 			select emitter/symbols name
 			next fspec
 		]
 		case [
-			not find [inline op] spec/1 [			;-- push function's arguments on stack
+			not find [inline op] type [			;-- push function's arguments on stack
 				foreach arg args [
 					switch/default type?/word arg [
 						binary! [emit arg]
@@ -720,7 +720,7 @@ make target-class [
 					]
 				]
 			]
-			spec/1 = 'op [
+			type = 'op [
 				if block? args/1 [
 					emit-call/sub args/1/1 next args/1
 					if block? args/2 [				;-- save first argument result in another register
@@ -741,7 +741,7 @@ make target-class [
 				]
 			]
 		]
-		switch spec/1 [								;-- call or inline the function
+		switch type [								;-- call or inline the function
 			syscall [								;TBD: add support for SYSENTER/SYSEXIT
 				repeat c fspec/1 [
 					emit pick [

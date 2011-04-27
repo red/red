@@ -276,7 +276,8 @@ system-dialect: context [
 				) :s
 			]
 			unless parse specs [
-				any [word! into type]			;TBD: check datatypes compatibility!
+				opt [into [some word!]]					;-- functions attributes pass-thru
+				any [word! into type]					;TBD: check datatypes compatibility!
 				opt [set-word! into type]
 				opt [/local some [word! into type]]
 			][
@@ -287,7 +288,7 @@ system-dialect: context [
 		check-body: func [body][
 			case/all [
 				not block? :body [throw-error 'syntax 'block-expected]
-				empty? body  [throw-error 'syntax 'empty-block]
+				empty? body  	 [throw-error 'syntax 'empty-block]
 			]
 		]
 		
@@ -298,12 +299,23 @@ system-dialect: context [
 			pc: next save-pc
 		]
 		
-		fetch-func: func [name][
+		fetch-func: func [name /local specs type][
 			;check if name taken
 			check-specs pc/2
-			add-function 'native reduce [name none pc/2] 'stdcall
+			specs: pc/2
+			type: 'native
+			if all [
+				not empty? specs
+				block? specs/1
+				find specs/1 'infix
+			][
+				;TBD: check for two arguments presence
+				specs: next specs				;@@ quick'n dirty workaround
+				type: 'infix				
+			]
+			add-function type reduce [name none specs] 'stdcall
 			emitter/add-native to word! name
-			repend bodies [to word! name pc/2 pc/3]
+			repend bodies [to word! name specs pc/3]
 			pc: skip pc 3
 		]
 		
@@ -614,7 +626,7 @@ system-dialect: context [
 			if all [
 				func?: not find [set-word! set-path!] type?/word tree/1
 				name: to word! tree/1
-				find [import native] functions/:name/2
+				find [import native infix] functions/:name/2
 				find [stdcall cdecl gcc45] functions/:name/3
 			][
 				reverse next tree
@@ -690,7 +702,7 @@ system-dialect: context [
 				not tail? pos
 				word? pos/1
 				specs: select functions pos/1
-				specs/2 = 'op
+				find [op infix] specs/2
 			]
 		]
 		
@@ -772,15 +784,7 @@ system-dialect: context [
 				case [
 					issue? pc/1 [comp-directive]
 					pc/1 = 'comment [pc: skip pc 2]
-					find [
-						set-word!
-						word! 
-						path!
-						set-path!
-					] type?/word pc/1 [
-						fetch-expression/final
-					]
-					'else [throw-error 'syntax]
+					'else [fetch-expression/final]
 				]
 			]
 		]
