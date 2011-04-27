@@ -17,6 +17,8 @@ qt-update-totals
 ;-- Native functions tests
 #include %units/not-test.reds
 qt-update-totals
+#include %units/return-test.reds
+qt-update-totals
 
 ;-- Special natives tests
 #include %units/exit-test.reds
