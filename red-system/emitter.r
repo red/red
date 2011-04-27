@@ -200,60 +200,32 @@ emitter: context [
 		offset
 	]
 	
-	set-path: func [path [set-path!] value /with parent][
-		either 2 = length? path [
-			target/emit-store-path path value
+	resolve-path-head: func [path [path! set-path!] parent [block! none!]][
+		second either head? path [
+			compiler/resolve-type path/1
 		][
-			target/emit-access-path path/1 parent			;@@ proto-code, not working yet
-			set-path/with next path either head? path [
-				compiler/resolve-type path/1
-			][
-				compiler/resolve-type/with path/1 parent-type
-			]
+			compiler/resolve-type/with path/1 parent
 		]
 	]
-comment {	
-	access-path: func [path [path! set-path!] /store value /local emit type idx offset][	
-		emit: get in target 'emit-path-access
-		
-		while [not tail? path][
-			type: either head? path [
-				compiler/resolve-type path/1
-			][
-				compiler/resolve-type/with path/1 parent-type
-			]
-			idx: pick [2 1] head? path
-			switch/default type/1 [
-				pointer! [
-					if path/:idx <> 'value [
-						;TBD throw error "invalid pointer path"
-					]
-					case [
-						all [value head? path][emit/head/store path/1 value]
-						value 				  [emit/store value]
-						head? path 			  [emit/head path/1]
-						'else 				  [emit]
-					]
-				]
-				struct! [
-					unless offset: member-offset? type/2 path/:idx [
-						;TBD throw error "invalid struct member"
-					]
-					case [
-						all [value head? path][emit/head/store/struct path/1 value offset]
-						value 				  [emit/store/struct value offset]
-						head? path 			  [emit/head/struct path/1 offset]
-						'else 				  [emit/struct offset]
-					]
-				]
-			][
-				;TBD throw error
-			]
-			parent-type: type
-			path: either head? path [skip path 2][next path]
+	
+	set-path: func [path [set-path!] value /with parent [block!]][
+		either 2 = length? path [
+			target/emit-store-path path value parent
+		][
+			target/emit-access-path path parent
+			set-path/with next path value resolve-path-head path parent
 		]
 	]
-}	
+	
+	get-path: func [path [path!] /with parent [block!]][
+		either 2 = length? path [
+			target/emit-load-path path parent
+		][
+			target/emit-access-path path parent
+			get-path/with next path resolve-path-head path parent
+		]
+	]
+	
 	size-of?: func [type [word!]][
 		any [
 			select datatypes type						;-- search in core types

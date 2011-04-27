@@ -55,84 +55,6 @@ make target-class [
 		]
 	]
 	
-	emit-load-path: func [value [path!] /local idx][
-		if verbose >= 3 [print [">>>loading path:" mold value]]
-		
-		switch first compiler/resolve-type value/1 [
-			c-string! [
-				idx: value/2
-				emit-variable value/1
-					#{BE}							;-- MOV esi, value1			; global
-					[
-						#{8D45}						;-- LEA eax, [ebp+n]		; local
-						offset						;-- n
-						#{8B30}						;-- MOV esi, [eax]
-					]
-				either integer? idx [
-					either zero? idx: idx - 1 [		;-- indexes are one-based
-						emit #{8A06}				;-- MOV al, [esi]
-					][
-						emit #{8A86}				;-- MOV al, [esi + idx]
-						emit to-bin32 idx
-					]
-				][
-					emit-variable idx
-						#{8B1D}						;-- MOV ebx, [idx]			; global
-						#{8B5D}						;-- MOV ebx, [ebp+n]		; local
-					emit #{4B}						;-- DEC ebx					; one-based index
-					emit #{8A041E}					;-- MOV al,  [esi + ebx]
-				]
-
-			]
-			pointer! [
-				;TBD
-			]
-			struct! [
-				;emitter/get-path value
-			]
-		]
-	]
-	
-	emit-store-path: func [path [set-path!] value /local idx][
-		if verbose >= 3 [print [">>>storing path:" mold value]]
-		
-		unless value = <last> [emit-load value]
-		emit #{89C2}								;-- MOV edx, eax			; save value
-		
-		switch first compiler/resolve-type path/1 [
-			c-string! [
-				idx: path/2
-				emit-variable path/1
-					#{BE}							;-- MOV esi, path/1			; global
-					[
-						#{8D45}						;-- LEA eax, [ebp+n]		; local
-						offset						;-- n
-						#{8B30}						;-- MOV esi, [eax]
-					]
-				either integer? idx [
-					either zero? idx: idx - 1 [		;-- indexes are one-based
-						emit #{8816}				;-- MOV [esi], dl
-					][
-						emit #{8896}				;-- MOV [esi + idx], dl
-						emit to-bin32 idx
-					]
-				][
-					emit-variable idx
-						#{8B1D}						;-- MOV ebx, [idx]			; global
-						#{8B5D}						;-- MOV ebx, [ebp+n]		; local
-					emit #{4B}						;-- DEC ebx					; one-based index
-					emit #{88141E}					;-- MOV [esi + ebx], dl
-				]
-			]
-			pointer! [
-				;TBD
-			]
-			struct! [
-				;TBD				
-			]
-		]
-	]
-	
 	emit-length?: func [value [word! string! struct! tag!] /local spec size][
 		if verbose >= 3 [print [">>>inlining: length?" mold value]]
 		if value = <last> [value: 'last]
@@ -232,14 +154,14 @@ make target-class [
 			]
 			string! [
 				spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
-				emit #{}							;-- MOV eax, [string]
+				emit #{B8}							;-- MOV eax, [string]
 				emit-reloc-addr spec/2				;-- one-based index
 			]
 			struct! [
 				;TBD @@
 			]
 			path! [
-				emit-load-path value
+				emitter/get-path value
 			]
 		]
 	]
@@ -284,6 +206,102 @@ make target-class [
 			]
 			struct! [
 				;-- nothing to emit
+			]
+		]
+	]
+	
+	emit-access-path: func [path [path! set-path!] spec [block! none!] /short][
+		if verbose >= 3 [print [">>>accessing:" mold path]]
+
+		unless spec [
+			spec: second compiler/resolve-type path/1				
+			emit-variable path/1
+				#{B8}								;-- MOV eax, path/1			; global
+				#{8B45}								;-- MOV eax, [ebp+n]		; local
+		]
+		if short [return spec]
+
+		emit #{8B80}								;-- MOV eax, [eax+offset]
+		emit to-bin32 emitter/member-offset? spec path/2		
+	]
+	
+	emit-load-path: func [value [path!] spec [block! none!] /local idx][
+		if verbose >= 3 [print [">>>loading path:" mold value]]
+
+		switch first compiler/resolve-type value/1 [
+			c-string! [
+				idx: value/2
+				emit-variable value/1
+					#{BE}							;-- MOV esi, value1			; global
+					[
+						#{8D45}						;-- LEA eax, [ebp+n]		; local
+						offset						;-- n
+						#{8B30}						;-- MOV esi, [eax]
+					]
+				either integer? idx [
+					either zero? idx: idx - 1 [		;-- indexes are one-based
+						emit #{8A06}				;-- MOV al, [esi]
+					][
+						emit #{8A86}				;-- MOV al, [esi + idx]
+						emit to-bin32 idx
+					]
+				][
+					emit-variable idx
+						#{8B1D}						;-- MOV ebx, [idx]			; global
+						#{8B5D}						;-- MOV ebx, [ebp+n]		; local
+					emit #{4B}						;-- DEC ebx					; one-based index
+					emit #{8A041E}					;-- MOV al,  [esi + ebx]
+				]
+
+			]
+			pointer! [
+				;TBD
+			]
+			struct! [
+				emit-access-path value spec
+			]
+		]
+	]
+
+	emit-store-path: func [path [set-path!] value spec [block! none!] /local idx][
+		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
+
+		if spec [emit #{89C2}]						;-- MOV edx, eax			; save value/address
+		unless value = <last> [emit-load value]
+		emit #{92}									;-- XCHG eax, edx			; save value/restore address
+
+		switch first compiler/resolve-type/with path/1 spec [
+			c-string! [
+				idx: path/2
+				emit-variable path/1
+					#{BE}							;-- MOV esi, path/1			; global
+					[
+						#{8D45}						;-- LEA eax, [ebp+offset]	; local
+						offset
+						#{8B30}						;-- MOV esi, [eax]
+					]
+				either integer? idx [
+					either zero? idx: idx - 1 [		;-- indexes are one-based
+						emit #{8816}				;-- MOV [esi], dl
+					][
+						emit #{8896}				;-- MOV [esi + idx], dl
+						emit to-bin32 idx
+					]
+				][
+					emit-variable idx
+						#{8B1D}						;-- MOV ebx, [idx]			; global
+						#{8B5D}						;-- MOV ebx, [ebp+n]		; local
+					emit #{4B}						;-- DEC ebx					; one-based index
+					emit #{88141E}					;-- MOV [esi + ebx], dl
+				]
+			]
+			pointer! [
+				;TBD
+			]
+			struct! [
+				spec: emit-access-path/short path spec
+				emit #{8990}						;-- MOV [eax+offset], edx
+				emit to-bin32 emitter/member-offset? spec path/2
 			]
 		]
 	]
@@ -372,77 +390,8 @@ make target-class [
 				emit-reloc-addr spec/2				;-- one-based index
 			]
 			path! [
-				emit-load-path value
+				emit-load-path value none
 				emit-push <last>
-			]
-		]
-	]
-	
-	emit-path-access: func [/struct offset [integer!] /head name [word!] /store value [integer! word! tag!]][
-		either head [
-			either struct [
-				either store [
-					if value <> <last> [
-						either integer? value [
-							emit #{B8}				;-- MOV eax, value
-							emit to-bin32 value
-						][
-							emit-variable value
-								#{A1}				;-- MOV eax, [value]		; global
-								#{8B45}				;-- MOV eax, [ebp+n]		; local
-						]
-					]
-					emit-variable name
-						#{BA}						;-- MOV edx, name			; global
-						#{8B55}						;-- MOV edx, [ebp+n]		; local
-					emit #{8942}					;-- MOV [edx+offset], eax
-					emit to-bin8 offset
-				][
-					emit-variable name
-						#{BA}						;-- MOV edx, name			; global
-						#{8B75}						;-- MOV edx, [ebp+n]		; local
-					emit #{8B42}					;-- MOV eax, [edx+offset]
-					emit to-bin8 offset
-				]
-			][
-				emit-variable name
-					#{8B15}							;-- MOV edx, [name]			; global
-					#{8B55}							;-- MOV edx, [ebp+n]		; local
-				if store [
-					either integer? value [
-						emit #{C700}				;-- MOV dword [edx], value
-						emit to-bin32 value
-					][
-						if value <> <last> [
-							emit-variable value
-								#{A1}				;-- MOV eax, [value] 		; global
-								#{8B45}				;-- MOV eax, [ebp+n] 		; local
-						]
-						emit #{8902}				;-- MOV dword [edx], eax
-					]
-				]
-			]
-		][
-			either store [
-				either value = <last> [
-					emit #{8B10}					;-- MOV edx, [eax]
-				][
-					emit #{8B15}					;-- MOV edx, [value]
-					emit to-bin32 value
-				]
-				either struct [
-					emit #{8950}					;-- MOV [eax+offset], edx
-					emit to-bin8 offset
-				][
-					emit #{8910}					;-- MOV [eax], edx
-				]
-			][
-				either struct [
-					emit #{8B40}					;-- MOV eax, [eax+offset]
-					emit to-bin8 offset
-				][
-					emit #{8B00}					;-- MOV eax, [eax]
-				]
 			]
 		]
 	]
@@ -731,13 +680,13 @@ make target-class [
 					emit-call/sub args/2/1 next args/2	;-- result in eax
 				]
 				if path? args/1 [
-					emit-load-path args/1
+					emit-load-path args/1 none
 					if path? args/2 [
 						emit #{89C2}				;-- MOV edx, eax
 					]
 				]
 				if path? args/2 [
-					emit-load-path args/2
+					emit-load-path args/2 none
 				]
 			]
 		]

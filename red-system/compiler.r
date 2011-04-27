@@ -202,9 +202,9 @@ system-dialect: context [
 			]
 		]
 		
-		resolve-type: func [name [word!] /with parent [block!] /local type][
+		resolve-type: func [name [word!] /with parent [block! none!] /local type][
 			type: any [
-				all [with select parent name]
+				all [parent select parent name]
 				get-variable-spec name
 			]
 			if all [not type find functions name][
@@ -231,7 +231,7 @@ system-dialect: context [
 					make error! "invalid path value"
 				]
 			][
-				resolve-path-type/parent next path path/1
+				resolve-path-type/parent next path second type
 			]
 		]
 		
@@ -536,6 +536,7 @@ system-dialect: context [
 			emitter/merge bodies
 			encode-cond-test not _all					;-- special encoding
 		]
+		
 		
 		comp-set-word: has [name value][
 			name: pc/1
