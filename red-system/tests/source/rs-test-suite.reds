@@ -28,5 +28,9 @@ qt-update-totals
 #include %units/modulo-test.reds
 qt-update-totals
 
+;-- Infix syntax for functions
+#include %units/infix-test.reds
+qt-update-totals
+
 qt-end-run
 
