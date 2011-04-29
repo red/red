@@ -73,7 +73,7 @@ qt: make object! [
     replace comp "***src***" src
     write %comp.r comp
     
-    OS-change-dir what-dir
+    if system/version/4 = 3 [OS-change-dir what-dir]
     
     ;; compose command line and call it
 
