@@ -8,93 +8,131 @@ Red/System [
 
 #include %../../quick-test/quick-test.reds
 
-qt-start-file "byte!"
+~~~start-file~~~ "byte!"
 
+===start-group=== "Byte literals & operators test"
+	--test-- "byte-type-1"
+	--assert #"A" = #"A"
+	
+	--test-- "byte-type-2"
+	--assert #"A" <> #"B"
+	
+	--test-- "byte-type-3"
+	--assert #"A" < #"B"
+===end-group===
 
-;-- Byte literals & operators test --
-	qt-assert "byte-type-1" #"A" = #"A"
-	qt-assert "byte-type-2" #"A" <> #"B"
-	qt-assert "byte-type-3" #"A" < #"B"
+===start-group=== "Byte literals assignment"
+  --test-- "byte-type-4"
+	  t: #"^(C6)"
+	--assert t = #"^(C6)"
+	
+	--test-- "byte-type-5"
+	  u: #"^(C6)"
+	--assert t = u
+===end-group===
 
+===start-group=== "Math operations"
 
-;-- Byte literals assignment --
-	t: #"^(C6)"
-	qt-assert "byte-type-4" t = #"^(C6)"
-	u: #"^(C6)"
-	qt-assert "byte-type-5" t = u
+	--test-- "byte-type-6"
+	  bt-b: #"A"
+	  bt-a: bt-b + 1
+	--assert bt-a = #"B"
 
-;-- Math operations --
-	b: #"A"
-	a: b + 1
-	qt-assert "byte-type-6" a = #"B"
+comment { This test causes a run time exception.
+--test--  "byte-type-7"
+	  a: t / 3
+	--assert a = #"B"
+}
+===end-group===
 
-	a: t / 3
-	qt-assert "byte-type-7" a = #"B"
+===start-group=== "Passing byte! as argument and returning a byte!"
+	  foo: func [v [byte!] return: [byte!]][v]
+	
+	--test-- "byte-type-8"
+	  bt-b: foo bt-a
+	--assert (bt-b = #"B")
+===end-group===
 
+===start-group=== "Byte as c-string! element (READ access)"
+	--test-- "byte-read-1"
+    byte-test-str: "Hello World!"
+    br-c: byte-test-str/1
+	--assert br-c = #"H"
+	--assert br-c = byte-test-str/1
+	--assert byte-test-str/1 = br-c
 
-;-- Passing byte! as argument and returning a byte! --
-	foo: func [v [byte!] return: [byte!]][v]
-	b: foo a
-	qt-assert "byte-type-8" b = #"B"
+	--test-- "byte-read-2"
+	  d: 2
+	  br-c: byte-test-str/d
+	--assert br-c = #"e"
+	--assert byte-test-str/1 = #"H"
+	--assert #"H" = foo byte-test-str/1
+	
+	--test-- "byte-read-3"
+	  br-c: foo byte-test-str/d
+	--assert br-c = #"e"
+===end-group===
 
-
-;-- Byte as c-string! element (READ access)--
-	str: "Hello World!"
-	c: str/1
-	qt-assert "byte-read-1" c = #"H"
-	qt-assert "byte-read-2" c = str/1
-	qt-assert "byte-read-3" str/1 = c
-
-	d: 2
-	c: str/d
-	qt-assert "byte-read-4" c = #"e"
-	qt-assert "byte-read-5" str/1 = #"H"
-	qt-assert "byte-read-6" #"H" = foo str/1
-	c: foo str/d
-	qt-assert "byte-read-7" c = #"e"
-
-
-;-- same tests but with local variables --
+===start-group=== "same tests but with local variables"
 	byte-read: func [/local str [c-string!] c [byte!] d [byte!]][
 		str: "Hello World!"
+		
+	--test-- "byte-read-local-1"
 		c: str/1
-		qt-assert "byte-read-1" c = #"H"
-		qt-assert "byte-read-2" c = str/1
-		qt-assert "byte-read-3" str/1 = c
+	--assert c = #"H"
+	--assert c = str/1
+	--assert str/1 = c
 
+	--test-- "byte-read-local-2"
 		d: 2
 		c: str/d
-		qt-assert "byte-read-4" c = #"e"
-		qt-assert "byte-read-5" str/1 = #"H"
-		qt-assert "byte-read-6" #"H" = foo str/1
-		c: foo str/d
-		qt-assert "byte-read-7" c = #"e"
+	--assert c = #"e"
+	--assert str/1 = #"H"
+	--assert #"H" = foo str/1
+		
+	--test-- "byte-read-local-3"
+	  c: foo str/d
+	--assert c = #"e"
 	]
 	byte-read
+===end-group===
 
+===start-group=== "Byte as c-string! element (WRITE access)"
+    byte-write-str: "Hello "  
 
-;-- Byte as c-string! element (WRITE access)--
-	strw: "Hello "
-	strw/1: #"y"
-	qt-assert "byte-write-1" strw/1 = #"y"
+  --test-- "byte-write-1"
+	  byte-write-str/1: #"y"
+	--assert byte-write-str/1 = #"y"
 	
-	c: 6
-	strw/c: #"w"
-	qt-assert "byte-write-2"  strw/c = #"w"
-	;print str
+	--test-- "byte-write-2"
+	  c: 6
+	  byte-write-str/c: #"w"
+	--assert byte-write-str/c = #"w"
+	--assert byte-write-str/1 = #"y"
+	--assert byte-write-str/2 = #"e"
+	--assert byte-write-str/3 = #"l"
+	--assert byte-write-str/4 = #"l"
+	--assert byte-write-str/5 = #"o"
+	--assert byte-write-str/6 = #"w"
+	--assert 6 = length? byte-write-str
+
 	
 	byte-write: func [/local str [c-string!] c [integer!]][
-		str: "Hello "
-		str/1: #"y"
-		qt-assert "byte-write-3"  str/1 = #"y"
+	  str: "Hello "
+	   
+	--test-- "byte-write-3" 
+	  str/1: #"y"
+	--assert str/1 = #"y"
 	
-		c: 6
+	--test-- "byte-write-4"
+	  c: 6
 		str/c: #"w"
-		qt-assert "byte-write-4"  str/c = #"w"
-		;print str
+	--assert str/c = #"w"
+	
 	]
 	byte-write
 
+===end-group===
 
-qt-end-file
+~~~end-file~~~
 
