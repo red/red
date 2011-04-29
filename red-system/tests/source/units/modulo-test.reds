@@ -7,13 +7,13 @@ Red/System [
 ]
 
 #include %../../quick-test/quick-test.reds
-qt-start-file "modulo"
-qt-assert "mod-1"  10 //  7 = 3
-qt-assert "mod-2"   5 //  3 = 2
-qt-assert "mod-3"  15 //  8 = 7
-qt-assert "mod-4"   2 //  2 = 0
-qt-assert "mod-5" -10 // -7 = -3
-qt-assert "mod-6" -10 //  7 = -3
-qt-assert "mod-7"  10 // -7 = 3
-qt-end-file
+~~~start-file~~~ "modulo"
+  --test-- "mod-1" --assert  10 //  7 = 3
+  --test-- "mod-2" --assert   5 //  3 = 2
+  --test-- "mod-3" --assert  15 //  8 = 7
+  --test-- "mod-4" --assert   2 //  2 = 0
+  --test-- "mod-5" --assert -10 // -7 = -3
+  --test-- "mod-6" --assert -10 //  7 = -3
+  --test-- "mod-7" --assert  10 // -7 = 3
+~~~end-file~~~
 

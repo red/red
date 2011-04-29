@@ -11,42 +11,48 @@ Red/System [
 foo: func [a [logic!] return: [logic!]][a]
 nfoo: func [a [logic!] return: [logic!]][not a]
 
-qt-start-file "not"
+~~~start-file~~~ "not"
 
-qt-assert "not-1" false = not true
-qt-assert "not-2" not false
-qt-assert "not-3" not not true
-qt-assert "not-4" false = not not false
+  --test-- "not-1" --assert false = not true
+  --test-- "not-2" --assert not false
+  --test-- "not-3" --assert not not true
+  --test-- "not-4" --assert false = not not false
 
-a: true
-qt-assert "not-5" false = not a 
+  --test-- "not-5"
+    a: true
+  --assert false = not a 
 
-a: false
-qt-assert "not-6" not a
+  --test-- "not-6"
+    a: false
+  --assert not a
 
-qt-assert "not-7" false = not foo true
-qt-assert "not-8" not foo false
-qt-assert "not-9" false = foo not true
-qt-assert "not-10" foo not false
+  --test-- "not-7" --assert false = not foo true
+  --test-- "not-8" --assert not foo false
+  --test-- "not-9" --assert false = foo not true
+  --test-- "not-10" --assert foo not false
 
-a: true
-qt-assert "not-11" false = not foo a
+  --test-- "not-11"
+    a: true
+  --assert false = not foo a
+  
+  --test-- "not-12"
+    a: true
+  --assert false = foo not a
 
-a: true
-qt-assert "not-12" false = foo not a
+  --test-- "not-13"
+    a: false
+  --assert not foo a 
 
-a: false
-qt-assert "not-13" not foo a 
+  --test-- "not-14"
+    a: false
+  --assert not foo a
 
-a: false
-qt-assert "not-14" not foo a
+  --test-- "not-15" --assert false = nfoo true
+  --test-- "not-16" --assert nfoo false
 
-qt-assert "not-15" false = nfoo true
-qt-assert "not-16" nfoo false
+  --test-- "not-17" --assert false = nfoo true
+  --test-- "not-18" --assert nfoo false
 
-qt-assert "not-17" false = nfoo true
-qt-assert "not-18" nfoo false
-
-qt-end-file
+~~~end-file~~~
 
 ;TBD: write unit tests for bitwise NOT on integer

@@ -8,19 +8,23 @@ Red/System [
 
 #include %../../quick-test/quick-test.reds
 
-qt-start-file "infix syntax"
+~~~start-file~~~ "infix syntax"
 
-;-- Simple infix syntax test
-inf-test: func [[infix] a [integer!] b [integer!] return: [integer!]][
-	a + b
-]
-inf-value: 2 inf-test 3
-qt-assert "infix-1" inf-value = 5
+===start-group=== "Simple infix syntax test"
+  --test-- "infix-1"
+    inf-test: func [[infix] a [integer!] b [integer!] return: [integer!]][
+      a + b
+    ]
+    inf-value: 2 inf-test 3
+  --assert inf-value = 5
+===end-group===
 
-;-- Test infix call with an additional infix operator
-inf-assert?: func [[infix] s [c-string!] t [logic!]][
-	qt-assert "infix-2" t
-]
-"test-id" inf-assert? (inf-value = 5)	;-- paren are mandatory to force evaluation priority
+===start-group=== "Test infix call with an additional infix operator"
+  --test-- "infix-2"
+    inf-assert?: func [[infix] s [c-string!] t [logic!]][
+  --assert  t
+    ]
+    inf-assert? (inf-value = 5)	;-- paren are mandatory to force evaluation priority
+===end-group===
 
-qt-end-file
+~~~end-file~~~
