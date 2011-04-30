@@ -548,6 +548,7 @@ make target-class [
 			/ [
 				div-poly: [
 					either width = 1 [				;-- 8-bit unsigned
+						emit #{B400}				;-- MOV ah, 0			; clean-up garbage in ah
 						emit #{F6F3}				;-- DIV bl
 					][
 						emit-sign-extension			;-- 16/32-bit signed
@@ -574,6 +575,7 @@ make target-class [
 					]
 					ref [
 						either width = 1 [
+							emit #{B400}			;-- MOV ah, 0			; clean-up garbage in ah
 							emit-variable arg2
 								#{F635}				;-- DIV byte [value]	; global
 								#{F675}				;-- DIV byte [ebp+n]	; local
@@ -660,7 +662,7 @@ make target-class [
 		emit to-bin8 size
 	]
 	
-	emit-call: func [name [word!] args [block!] /sub /local spec fspec type][
+	emit-call: func [name [word!] args [block!] /sub /local spec fspec type res][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
@@ -742,9 +744,12 @@ make target-class [
 			op	[
 				emit-operation name args
 				if sub [emitter/logic-to-integer name]
-				<last>
+				unless find comparison-op name [	;-- comparison always return a logic!
+					res: operand-type? args/1		;-- other ops return type of the first argument	
+				]
 			]
 		]
+		res
 	]
 
 	emit-prolog: func [name [word!] locals [block!] args-size [integer!]][

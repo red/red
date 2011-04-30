@@ -22,7 +22,7 @@ Red/System [
 ===end-group===
 
 ===start-group=== "Byte literals assignment"
-  --test-- "byte-type-4"
+  	--test-- "byte-type-4"
 	  t: #"^(C6)"
 	--assert t = #"^(C6)"
 	
@@ -38,11 +38,10 @@ Red/System [
 	  bt-a: bt-b + 1
 	--assert bt-a = #"B"
 
-comment { This test causes a run time exception.
---test--  "byte-type-7"
-	  a: t / 3
-	--assert a = #"B"
-}
+	--test--  "byte-type-7"
+	  bt-aa: t / 3
+	--assert bt-aa = #"B"
+
 ===end-group===
 
 ===start-group=== "Passing byte! as argument and returning a byte!"

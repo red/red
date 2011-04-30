@@ -161,7 +161,7 @@ system-dialect: context [
 			exit		 [comp-exit]
 			return		 [comp-exit/value]
 			null	 	 [also 0 pc: next pc]
-			struct! 	 [also 'struct! pc: next pc]
+			struct! 	 [also 'struct! pc: next pc]	;@@ was required for 'alias (still needed?)
 			true		 [also true pc: next pc]		;-- converts word! to logic!
 			false		 [also false pc: next pc]		;-- converts word! to logic!
 			func 		 [comp-function]
@@ -641,7 +641,7 @@ system-dialect: context [
 		
 		comp-expression: func [
 			tree [block!] /keep
-			/local name value offset body args get-value prepare-value
+			/local name value offset body args get-value prepare-value type
 		][
 			get-value: [
 				value: either block? tree/2 [
@@ -694,8 +694,9 @@ system-dialect: context [
 					]									
 					args/1: <last>
 				]			
-				emitter/target/emit-call name args
-				set-last-type functions/:name/4
+				type: emitter/target/emit-call name args
+				either type [last-type: type][set-last-type functions/:name/4]
+				
 				if all [keep last-type = 'logic!][
 					emitter/logic-to-integer name		;-- runtime logic! conversion before storing
 				]

@@ -94,8 +94,8 @@ target-class: context [
 		]
 	]
 	
-	set-width: func [operand][
-		width: emitter/size-of? switch/default type?/word operand [
+	operand-type?: func [operand][
+		switch/default type?/word operand [
 				char!	 ['byte!]
 				integer! ['integer!]
 				word!	 [first compiler/resolve-type operand]
@@ -105,5 +105,9 @@ target-class: context [
 			][
 				compiler/throw-error reform ["Undefined type for:" mold operand]
 		]
+	]
+	
+	set-width: func [operand][
+		width: emitter/size-of? operand-type? operand
 	]
 ]
