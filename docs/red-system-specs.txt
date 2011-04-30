@@ -530,7 +530,7 @@ Usage example
  p:   pointer [integer!]				;-- declare a pointer on an integer
  bar: pointer [integer!]				;-- declare another pointer on an integer
 
- p: as [pointer [integer!]] 40000000h
+ p: as [pointer! [integer!]] 40000000h
  p/value: 1234 							;-- write 1234 at address 40000000h
  foo: p/value							;-- read pointed value back
  bar: p									;-- assign pointer address to 'bar
@@ -543,7 +543,7 @@ It is possible to apply some simple math operations on pointer like additions an
 
  p: pointer [integer!]					;-- pointed value memory size is 4 bytes
 
- p: as [pointer [integer!]] 4000000h
+ p: as [pointer! [integer!]] 4000000h
  p: p + 1								;-- p points now to 40000004h
  p: p + 1								;-- p points now to 40000008h
 
@@ -563,7 +563,7 @@ Examples:
 
  p: pointer [integer!]
 
- p: as [pointer [integer!]] 4000000h
+ p: as [pointer! [integer!]] 4000000h
  a: p/1									;-- reads an integer! at 40000000h
  p/2: a									;-- writes the integer! at 40000004h
  
@@ -571,7 +571,7 @@ Integer variable can also be used as index:
 
  p: pointer [integer!]
 
- p: as [pointer [integer!]] 4000000h
+ p: as [pointer! [integer!]] 4000000h
  c: 2
  p/c: 1234								;-- writes 123 (4 bytes) at 40000008h
 

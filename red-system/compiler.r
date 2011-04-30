@@ -581,8 +581,7 @@ system-dialect: context [
 			encode-cond-test not _all					;-- special encoding
 		]
 		
-		
-		comp-set-word: has [name value][
+		comp-assignment: has [name value][
 			name: pc/1
 			pc: next pc
 			either none? value: fetch-expression [	;-- explicitly test for none!
@@ -625,16 +624,6 @@ system-dialect: context [
 					head insert args name
 				]
 				'else [throw-error "undefined symbol"]
-			]
-		]
-		
-		comp-set-path: has [path][
-			path: pc/1
-			pc: next pc
-			either none? value: fetch-expression [	;-- explicitly test for none!
-				none
-			][
-				new-line/all reduce [path value] no
 			]
 		]
 		
@@ -746,11 +735,11 @@ system-dialect: context [
 			pass: [also pc/1 pc: next pc]
 			
 			expr: switch/default type?/word pc/1 [
-				set-word!	[comp-set-word]
+				set-word!	[comp-assignment]
 				word!		[comp-word]
 				get-word!	[comp-get-word]
 				path! 		[do pass]
-				set-path!	[comp-set-path]
+				set-path!	[comp-assignment]
 				paren!		[comp-block]
 				char!		[do pass]
 				integer!	[do pass]
