@@ -56,6 +56,7 @@ target-class: context [
 	]
 
 	emit: func [bin [binary! char! block!]][
+		if verbose >= 4 [print [">>>emitting code:" mold bin]]
 		append emitter/code-buf bin
 	]
 	

@@ -145,11 +145,11 @@ system-dialect: context [
 		datatype: [
 			'int8! | 'int16! | 'int32! | 'integer! | 'int64! | 'uint8! | 'uint16! |
 			'uint32! | 'uint64! | 'pointer! | 'binary! | 'c-string! | 'logic! | 'byte!
-			| 'struct! word!	;@@ 
+			| 'struct!
 		]
 		
 		reserved-words: [
-			;&			 [comp-pointer]
+			;&			 []
 			as			 [comp-as]
 			size? 		 [comp-size?]
 			if			 [comp-if]
@@ -164,6 +164,11 @@ system-dialect: context [
 			struct! 	 [also 'struct! pc: next pc]
 			true		 [also true pc: next pc]		;-- converts word! to logic!
 			false		 [also false pc: next pc]		;-- converts word! to logic!
+			func 		 [comp-function]
+			function 	 [comp-function]
+			alias 		 [comp-alias]
+			struct 		 [comp-struct]
+			pointer 	 [comp-pointer]
 		]
 		
 		throw-error: func [err [word! string!]][
@@ -240,11 +245,13 @@ system-dialect: context [
 			unless find ctx name [
 				type: case [
 					value = <last>  [last-type]
-					block? value	[compose/deep [(to word! join value/1 #"!") [(value/2)]]]
-					word? value 	[first select ctx value]	; @@ should use 'resolve-type here
-					char? value		['byte!]
+					tag?    value	['logic!]
+					paren?  value	[compose/deep [(to word! join value/1 #"!") [(value/2)]]]
+					word?   value 	[first select ctx value]	; @@ should use 'resolve-type here
+					char?   value	['byte!]
 					string? value	['c-string!]
-					path? value		[resolve-path-type value]
+					path?   value	[resolve-path-type value]
+					block?  value	[get-return-type value/1]
 					'else 			[type?/word value]
 				]			
 				append ctx new: reduce [name compose [(type)]]
@@ -274,15 +281,15 @@ system-dialect: context [
 				some datatype | s: set w word! (
 					if find aliased-types w [s: next s]		;-- make the rule fail if not found
 				) :s
-			]
+			]		
 			unless parse specs [
 				opt [into [some word!]]					;-- functions attributes pass-thru
 				any [word! into type]					;TBD: check datatypes compatibility!
 				opt [set-word! into type]
 				opt [/local some [word! into type]]
-			][
+			][			
 				throw-error "invalid function specs"
-			]
+			]		
 		]
 		
 		check-body: func [body][
@@ -383,12 +390,44 @@ system-dialect: context [
 			]
 		]
 		
+		comp-reference-literal: has [value][
+			value: to paren! reduce [pc/1 pc/2]
+			unless find [set-word! set-path!] type?/word pc/-1 [
+				throw-error "assignment expected for struct value"
+			]
+			pc: skip pc 2
+			value
+		]
+		
+		comp-struct: has [value][
+			;TBD check struct spec validity
+			comp-reference-literal
+		]
+		
+		comp-pointer: has [value][
+			;TBD check pointer spec validity
+			comp-reference-literal
+		]
+		
 		comp-as: has [type value][
 			type: pc/2
 			pc: skip pc 2
 			value: fetch-expression
 			last-type: either block? type [type][reduce [type]]
 			value
+		]
+		
+		comp-alias: does [
+			;TBD: check specs block validity
+			repend aliased-types [
+				to word! pc/-1
+				either find [struct! pointer!] to word! pc/2 [
+					also reduce [pc/2 pc/3] pc: skip pc 3	
+				][
+					also pc/2 pc: skip pc 2
+				]
+			]
+			none
 		]
 		
 		comp-size?: has [type size][
@@ -411,6 +450,11 @@ system-dialect: context [
 			none
 		]
 		
+		comp-function: does [
+			fetch-func pc/-1
+			none
+		]
+
 		comp-block-chunked: func [/only /test /local expr][
 			emitter/chunks/start
 			expr: either only [
@@ -541,41 +585,9 @@ system-dialect: context [
 		comp-set-word: has [name value][
 			name: pc/1
 			pc: next pc
-			switch/default pc/1 [
-				func [
-					fetch-func name
-					none
-				]
-				function [
-					fetch-func name
-					none
-				]
-				alias [
-					;TBD: check specs block validity
-					repend aliased-types [
-						to word! name
-						either find [struct! pointer!] to word! pc/2 [
-							also reduce [pc/2 pc/3] pc: skip pc 3	
-						][
-							also pc/2 pc: skip pc 2
-						]
-					]
-					none
-				]
-				struct [
-					;TBD check struct spec validity
-					add-symbol to word! name reduce [pc/1 pc/2]
-					pc: skip pc 2
-					none
-				]
-				pointer [
-					;TBD check pointer spec validity
-					add-symbol to word! name reduce [pc/1 pc/2]
-					pc: skip pc 2
-					none
-				]
-			][
-				value: fetch-expression
+			either none? value: fetch-expression [	;-- explicitly test for none!
+				none
+			][				
 				new-line/all reduce [name value] no
 			]
 		]
@@ -619,8 +631,11 @@ system-dialect: context [
 		comp-set-path: has [path][
 			path: pc/1
 			pc: next pc
-			value: fetch-expression
-			new-line/all reduce [path value] no
+			either none? value: fetch-expression [	;-- explicitly test for none!
+				none
+			][
+				new-line/all reduce [path value] no
+			]
 		]
 		
 		order-args: func [tree [block!] /local func? name type][
@@ -676,7 +691,7 @@ system-dialect: context [
 					do get-value
 					do prepare-value
 					;TBD: raise error if ANY/ALL passed as argument				
-					emitter/set-path tree/1 value
+					emitter/access-path tree/1 value
 				]
 			][
 				name: to word! tree/1
@@ -790,7 +805,7 @@ system-dialect: context [
 			]
 		]
 		
-		comp-func: func [name [word!] spec [block!] body [block!] /local args-size][
+		comp-func-body: func [name [word!] spec [block!] body [block!] /local args-size][
 			locals: spec
 			args-size: emitter/enter name locals
 			pc: body
@@ -809,7 +824,7 @@ system-dialect: context [
 						"---------------------------------------"
 					]
 				]
-				comp-func name spec body
+				comp-func-body name spec body
 			]
 			if verbose >= 2 [print ""]
 			emitter/reloc-native-calls

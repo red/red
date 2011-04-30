@@ -71,7 +71,7 @@ emitter: context [
 
 		join: func [a [block!] b [block!] /local bytes][
 			bytes: length? a/1
-			foreach ptr b/2 [ptr/1: ptr/1 + bytes]				;-- adjust relocs
+			foreach ptr b/2 [ptr/1: ptr/1 + bytes]		;-- adjust relocs
 			append a/1 b/1
 			append a/2 b/2		
 			a
@@ -103,21 +103,21 @@ emitter: context [
 			append code-buf chunk/1			
 		][
 			clear at code-buf chunk/3
-			append code-buf chunk/1							;-- replace obsolete buffer
+			append code-buf chunk/1						;-- replace obsolete buffer
 			append second last chunks/queue chunk/2		
 		]
 	]
 	
-	tail-ptr: does [index? tail code-buf] 	;-- one-based addressing
+	tail-ptr: does [index? tail code-buf] 				;-- one-based addressing
 	 
-	pad-data-buf: func [sz [integer!]][
-		unless empty? data-buf [
-			insert/dup tail data-buf null sz - ((length? data-buf) // sz)
+	pad-data-buf: func [sz [integer!] /local over][
+		unless zero? over: (length? data-buf) // sz [
+			insert/dup tail data-buf null sz - over
 		]
 	]
 	
-	make-noname: has [cnt][
-		cnt: [0]
+	make-name: has [cnt][
+		cnt: [0]										;-- persistent counter
 		to-word join "no-name-" cnt/1: cnt/1 + 1
 	]
 	
@@ -146,13 +146,32 @@ emitter: context [
 			merge body
 		]
 	]
+	
+	add-symbol: func [
+		name [word!] ptr [integer!] /with refs [block! word! none!] /local spec
+	][
+		spec: reduce [name reduce ['global ptr make block! 1 any [refs '-]]]
+		append symbols new-line spec yes
+		spec
+	]
 
-	store-global: func [value size [integer!] /local ptr][
+	store-global: func [value type [word!] spec [block! word! none!] /local size ptr][
+		if logic? value [
+			type: 'integer!
+			value: to integer! value					;-- TRUE => 1, FALSE => 0
+		]
+		if value = <last> [
+			type: 'integer!
+			value: 0
+		]
+		size: size-of? type
 		ptr: tail data-buf
-		if logic? value [value: to-integer value]		;-- TRUE => 1, FALSE => 0
-		case [
-			number? value [
-				pad-data-buf target/default-align		;-- align on default target boundary
+	
+		switch/default type [
+			integer! [
+				unless integer? value [value: 0]
+				pad-data-buf target/default-align
+				ptr: tail data-buf			
 				value: debase/base to-hex value 16
 				either target/little-endian? [
 					value: tail value
@@ -161,36 +180,68 @@ emitter: context [
 					append ptr skip tail value negate size		;-- truncate if required
 				]
 			]
-			char? value [
+			byte! [
+				unless char? value [value: #"^@"]
 				append ptr value
 			]
-			any [string? value binary? value][				
-				repend ptr [value null]
+			c-string! [
+				either string? value [
+					repend ptr [value null]
+				][
+					pad-data-buf target/ptr-size		;-- pointer alignment can be <> of integer
+					ptr: tail data-buf	
+					store-global 0 'integer! none
+				]
 			]
-			'else [
-				insert/dup ptr null size
+			pointer! [
+				pad-data-buf target/ptr-size			;-- pointer alignment can be <> of integer
+				ptr: tail data-buf	
+				store-global 0 'integer! none
 			]
-		]
-		ptr
-	]
-	
-	set-global: func [spec [block!] value /local type base][
-		either 'struct! = type: spec/2/1 [
-			pad-data-buf target/struct-align-size
-			base: tail data-buf
-			foreach [var type] spec/2/2 [
-				store-global 0 size-of? type/1
+			struct! [
+				pad-data-buf target/struct-align-size
+				ptr: tail data-buf
+				foreach [var type] spec [
+					type: either find [struct! c-string!] type/1 ['pointer!][type/1]
+					store-global 0 type none
+				]
 			]
-			;TBD: pad end for next values ??
 		][
-			base: tail data-buf
-			store-global value select datatypes type
+			make error! "store-global unexpected type!"
 		]
-		spec: reduce [spec/1 reduce ['global (index? base) - 1 make block! 5]] ;-- zero-based
-		append symbols new-line spec yes
-		spec
+		(index? ptr) - 1								;-- offset of stored value
 	]
 	
+	set-global: func [spec [block!] value /no-name /local type name-ptr val-ptr n-spec name refs][
+		type: spec/2/1
+		name: either no-name [
+			make-name
+		][
+			either find [struct! c-string!] type [
+				name-ptr: store-global 0 'pointer! none	;-- allocate variable slot
+				n-spec: add-symbol spec/1 name-ptr		;-- add variable to symbol table
+				refs: reduce [name-ptr + 1]				;-- reference value from variable slot
+				make-name								;-- name symbol table entry for value
+			][
+				spec/1
+			]
+		]
+		
+		val-ptr: store-global value type all [		 	;-- allocate variable or value slot
+			type = 'struct! spec/2/2
+		]
+		spec: add-symbol/with name val-ptr refs			;-- add variable or anonymous value to symbol table
+		any [n-spec spec]
+	]
+	
+	store-literal: func [type [word! block! none!] value][
+		if paren? value [								;-- reconstruct the type from the value
+			type: reduce [to word! join value/1 #"!" value/2]
+		]
+		unless block? type [type: reduce [type]]	
+		set-global/no-name reduce ['- type] value
+	]
+		
 	member-offset?: func [spec [block!] name [word!] /local offset][
 		offset: 0
 		foreach [var type] spec [
@@ -208,24 +259,24 @@ emitter: context [
 		]
 	]
 	
-	set-path: func [path [set-path!] value /with parent [block!]][
+	access-path: func [path [path! set-path!] value /with parent [block!] /local type][
 		either 2 = length? path [
-			target/emit-store-path path value parent
+			type: first compiler/resolve-type/with path/1 parent
+			if all [type = 'struct! parent][
+				parent: resolve-path-head path parent
+			]
+			either set-path? path [
+				target/emit-store-path path type value parent
+			][
+				target/emit-load-path path type parent
+			]
 		][
 			target/emit-access-path path parent
-			set-path/with next path value resolve-path-head path parent
+			parent: resolve-path-head path parent
+			access-path/with next path value parent
 		]
 	]
-	
-	get-path: func [path [path!] /with parent [block!]][
-		either 2 = length? path [
-			target/emit-load-path path parent
-		][
-			target/emit-access-path path parent
-			get-path/with next path resolve-path-head path parent
-		]
-	]
-	
+
 	size-of?: func [type [word!]][
 		any [
 			select datatypes type						;-- search in core types

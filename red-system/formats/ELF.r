@@ -191,9 +191,10 @@ context [
 		shdr-offset: headers-size + code-size + data-size
 	]
 
-	resolve-data-refs: func [job /local buf][
-		buf: job/sections/code/2
-		linker/resolve-symbol-refs job buf code-ptr data-ptr pointer
+	resolve-data-refs: func [job /local cbuf dbuf][
+		cbuf: job/sections/code/2
+		dbuf: job/sections/data/2
+		linker/resolve-symbol-refs job cbuf dbuf code-ptr data-ptr pointer
 	]
 
 	build-data-header: func [job [object!] /local ph][

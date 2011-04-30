@@ -28,21 +28,32 @@ linker: context [
 	;Mach-o: do %formats/mach-o.r			; TBD
 	
 	resolve-symbol-refs: func [
-		job [object!] buf [binary!] code-ptr [integer!] data-ptr [integer!]
+		job [object!] 
+		cbuf [binary!]						;-- code buffer
+		dbuf [binary!]						;-- data buffer
+		code-ptr [integer!]					;-- code memory address
+		data-ptr [integer!]					;-- data memory address
 		pointer [struct! [v [integer!]]]
 	][
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
 				switch spec/1 [
-					global [
+					global [				;-- code to data references
 						pointer/value: data-ptr + spec/2
-						foreach ref spec/3 [change at buf ref third pointer]
+						foreach ref spec/3 [change at cbuf ref third pointer]
 					]
-					native-ref [
+					native-ref [			;-- code to code references
 						pointer/value: code-ptr + spec/2
-						foreach ref spec/3 [change at buf ref third pointer]
+						foreach ref spec/3 [change at cbuf ref third pointer]
 					]
 				]
+			]
+			if all [	
+				spec/1 = 'global
+				block? spec/4
+			][								;-- data to data references
+				pointer/value: data-ptr + spec/2			
+				foreach ref spec/4 [change at dbuf ref third pointer]
 			]
 		]
 	]

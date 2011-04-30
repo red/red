@@ -54,6 +54,12 @@ make target-class [
 			4 [emit-variable name g32 l32]				;-- 32-bit
 		]
 	]
+
+	emit-load-literal: func [type [word! block! none!] value /local spec][	
+		spec: emitter/store-literal type value
+		emit #{B8}							;-- MOV eax, [value]
+		emit-reloc-addr spec/2				;-- one-based index
+	]
 	
 	emit-length?: func [value [word! string! struct! tag!] /local spec size][
 		if verbose >= 3 [print [">>>inlining: length?" mold value]]
@@ -62,10 +68,10 @@ make target-class [
 		switch type?/word value [
 			word! [
 				either value = 'last [
-					emit #{89C6} 					;--       MOV esi, eax
+					emit #{8B30} 					;--       MOV esi, [eax]
 				][
 					emit-variable value
-						#{BE}						;--       MOV esi, [value]		; global
+						#{8B35}						;--       MOV esi, [value]		; global
 						#{8B75}						;--		  MOV esi, [ebp+n]		; local
 					emit #{89F0}					;--		  MOV eax, esi
 					emit #{4E}						;-- 	  DEC esi
@@ -79,7 +85,7 @@ make target-class [
 			string! [
 				;TBD: support or throw error?
 			]
-			struct! [
+			struct! [								;@@ useless now (replace by 'size?)
 				size: 0
 				foreach [n type] compiler/get-variable-spec value [
 					size: size + select emitter/datatypes type
@@ -128,7 +134,7 @@ make target-class [
 		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
 	
-	emit-load: func [value [char! integer! word! string! struct! logic! path!] /local spec][
+	emit-load: func [value [char! integer! word! string! struct! logic! path! paren!] /local spec][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		
 		switch type?/word value [
@@ -153,20 +159,21 @@ make target-class [
 					#{8A45} #{8B45}					;-- MOV rA, [ebp+n]		; local	
 			]
 			string! [
-				spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
-				emit #{B8}							;-- MOV eax, [string]
-				emit-reloc-addr spec/2				;-- one-based index
+				emit-load-literal 'c-string! value
 			]
 			struct! [
 				;TBD @@
 			]
 			path! [
-				emitter/get-path value
+				emitter/access-path value none
+			]
+			paren! [
+				emit-load-literal none value
 			]
 		]
 	]
 	
-	emit-store: func [name [word!] value [char! integer! word! string! struct! tag!] /local spec][
+	emit-store: func [name [word!] value [char! integer! word! string! paren! tag!] /local spec][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]
 
@@ -196,22 +203,28 @@ make target-class [
 					#{8845} #{8945}					;-- MOV [ebp+n], rA		; local variable
 			]
 			string! [
-				if find emitter/stack name [
-					spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
+				if find emitter/stack name [		;-- test if local variable
+					spec: emitter/store-literal 'c-string! value 
 					emit-variable name
 						#{}							;-- no code to emit, handled by higher layer
 						#{C745}						;-- MOV [ebp+n], value
 					emit-reloc-addr spec/2
 				]
 			]
-			struct! [
-				;-- nothing to emit
+			paren! [
+				if find emitter/stack name [		;-- test if local variable
+					spec: emitter/store-literal none value
+					emit-variable name
+						#{}							;-- no code to emit, handled by higher layer
+						#{C745}						;-- MOV [ebp+n], value
+					emit-reloc-addr spec/2
+				]
 			]
 		]
 	]
 	
 	emit-access-path: func [path [path! set-path!] spec [block! none!] /short][
-		if verbose >= 3 [print [">>>accessing:" mold path]]
+		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
 		unless spec [
 			spec: second compiler/resolve-type path/1				
@@ -222,17 +235,17 @@ make target-class [
 		if short [return spec]
 
 		emit #{8B80}								;-- MOV eax, [eax+offset]
-		emit to-bin32 emitter/member-offset? spec path/2		
+		emit to-bin32 emitter/member-offset? spec path/2
 	]
 	
-	emit-load-path: func [value [path!] spec [block! none!] /local idx][
+	emit-load-path: func [value [path!] type [word!] parent [block! none!] /local idx][
 		if verbose >= 3 [print [">>>loading path:" mold value]]
 
-		switch first compiler/resolve-type value/1 [
+		switch type [
 			c-string! [
 				idx: value/2
 				emit-variable value/1
-					#{BE}							;-- MOV esi, value1			; global
+					#{8B35}							;-- MOV esi, [value1]		; global
 					[
 						#{8D45}						;-- LEA eax, [ebp+n]		; local
 						offset						;-- n
@@ -258,23 +271,23 @@ make target-class [
 				;TBD
 			]
 			struct! [
-				emit-access-path value spec
+				emit-access-path value parent
 			]
 		]
 	]
 
-	emit-store-path: func [path [set-path!] value spec [block! none!] /local idx][
+	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
-		if spec [emit #{89C2}]						;-- MOV edx, eax			; save value/address
+		if parent [emit #{89C2}]					;-- MOV edx, eax			; save value/address
 		unless value = <last> [emit-load value]
 		emit #{92}									;-- XCHG eax, edx			; save value/restore address
 
-		switch first compiler/resolve-type/with path/1 spec [
+		switch type [
 			c-string! [
 				idx: path/2
 				emit-variable path/1
-					#{BE}							;-- MOV esi, path/1			; global
+					#{8B35}							;-- MOV esi, [path/1]		; global
 					[
 						#{8D45}						;-- LEA eax, [ebp+offset]	; local
 						offset
@@ -298,10 +311,10 @@ make target-class [
 			pointer! [
 				;TBD
 			]
-			struct! [
-				spec: emit-access-path/short path spec
+			struct! [			
+				unless parent [parent: emit-access-path/short path parent]	;-- short path case
 				emit #{8990}						;-- MOV [eax+offset], edx
-				emit to-bin32 emitter/member-offset? spec path/2
+				emit to-bin32 emitter/member-offset? parent path/2
 			]
 		]
 	]
@@ -321,8 +334,8 @@ make target-class [
 		if verbose >= 3 [print [">>>inserting branch" either op [join "cc: " mold op][""]]]
 		
 		size: (length? code) - any [offset 0]				;-- offset from the code's head
-		imm8?: either back [size <= 126][size <= 127]		;-- account 2 bytes for JMP imm8
-		opcode: either not none? op [
+		imm8?: size <= either back [126][127]				;-- account 2 bytes for JMP imm8
+		opcode: either not none? op [						;-- explicitly test for none
 			op: case [
 				block? op [op/1]							;-- [cc] => keep
 				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
@@ -369,7 +382,7 @@ make target-class [
 				type: first compiler/get-variable-spec value
 				either find [c-string! struct! pointer!] type [
 					emit-variable value
-						#{68}						;-- PUSH imm32			; global
+						#{FF35}						;-- PUSH [value]		; global
 						#{FF75}						;-- PUSH [ebp+n]		; local
 				][
 					emit-variable value
@@ -385,12 +398,12 @@ make target-class [
 				; @@ (still required?)
 			]
 			string! [
-				spec: emitter/set-global reduce [emitter/make-noname [c-string!]] value
+				spec: emitter/store-literal 'c-string! value
 				emit #{68}							;-- PUSH value
 				emit-reloc-addr spec/2				;-- one-based index
 			]
 			path! [
-				emit-load-path value none
+				emitter/access-path value none
 				emit-push <last>
 			]
 		]
@@ -680,13 +693,13 @@ make target-class [
 					emit-call/sub args/2/1 next args/2	;-- result in eax
 				]
 				if path? args/1 [
-					emit-load-path args/1 none
+					emitter/access-path args/1 none
 					if path? args/2 [
 						emit #{89C2}				;-- MOV edx, eax
 					]
 				]
 				if path? args/2 [
-					emit-load-path args/2 none
+					emitter/access-path args/2 none
 				]
 			]
 		]

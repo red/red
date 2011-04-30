@@ -307,12 +307,13 @@ context [
 		make error! reform [mold s-name "section not found!"]
 	]
 
-	resolve-data-refs: func [job [object!] /local buf data code][
-		buf: job/sections/code/2
+	resolve-data-refs: func [job [object!] /local cbuf dbuf data code][
+		cbuf: job/sections/code/2
+		dbuf: job/sections/data/2
 		data: (section-addr?/memory job 'data) + to integer! defs/image/base-address
 		code: (section-addr?/memory job 'code) + to integer! defs/image/base-address 
 
-		linker/resolve-symbol-refs job buf code data pointer
+		linker/resolve-symbol-refs job cbuf dbuf code data pointer
 	]
 
 	resolve-import-refs: func [job [object!] /local code base][
