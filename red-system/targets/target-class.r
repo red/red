@@ -103,7 +103,7 @@ target-class: context [
 					either 'op = second select compiler/functions operand/1 [
 						operand-type? operand/2		;-- recursively search for an atomic left operand
 					][
-						compiler/last-type
+						compiler/get-return-type operand/1
 					]
 				]
 				tag!	 [compiler/last-type]
