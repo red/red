@@ -223,7 +223,7 @@ make target-class [
 		]
 	]
 	
-	emit-access-path: func [path [path! set-path!] spec [block! none!] /short][
+	emit-access-path: func [path [path! set-path!] spec [block! none!] /short /local offset][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
 		unless spec [
@@ -233,9 +233,13 @@ make target-class [
 				#{8B45}								;-- MOV eax, [ebp+n]		; local
 		]
 		if short [return spec]
-
-		emit #{8B80}								;-- MOV eax, [eax+offset]
-		emit to-bin32 emitter/member-offset? spec path/2
+		
+		either zero? offset: emitter/member-offset? spec path/2 [
+			emit #{8B00}							;-- MOV eax, [eax]
+		][
+			emit #{8B80}							;-- MOV eax, [eax+offset]
+			emit to-bin32 offset
+		]
 	]
 	
 	emit-load-path: func [value [path!] type [word!] parent [block! none!] /local idx][
@@ -276,7 +280,7 @@ make target-class [
 		]
 	]
 
-	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx][
+	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
 		if parent [emit #{89C2}]					;-- MOV edx, eax			; save value/address
@@ -313,8 +317,12 @@ make target-class [
 			]
 			struct! [			
 				unless parent [parent: emit-access-path/short path parent]	;-- short path case
-				emit #{8990}						;-- MOV [eax+offset], edx
-				emit to-bin32 emitter/member-offset? parent path/2
+				either zero? offset: emitter/member-offset? parent path/2 [
+					emit #{8910}					;-- MOV [eax], edx
+				][
+					emit #{8990}					;-- MOV [eax+offset], edx
+					emit to-bin32 offset
+				]
 			]
 		]
 	]
