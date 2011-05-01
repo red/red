@@ -243,20 +243,34 @@ make target-class [
 		]
 	]
 	
+	emit-prepare-string-path: func [value parent [block! none!]][
+		either parent [
+			emit #{89C6} 							;-- MOV esi, eax		; nested access
+		][
+			emit-variable value/1
+				#{8B35}								;-- MOV esi, [value1]	; global
+				[
+					#{8D45}							;-- LEA eax, [ebp+n]	; local
+					offset							;-- n
+					#{8B30}							;-- MOV esi, [eax]
+				]
+		]
+	]
+	
+	emit-load-index: func [idx [word!]][
+		emit-variable idx
+			#{8B1D}									;-- MOV ebx, [idx]			; global
+			#{8B5D}									;-- MOV ebx, [ebp+n]		; local
+		emit #{4B}									;-- DEC ebx					; one-based index
+	]
+	
 	emit-load-path: func [value [path!] type [word!] parent [block! none!] /local idx][
 		if verbose >= 3 [print [">>>loading path:" mold value]]
 
 		switch type [
 			c-string! [
-				idx: value/2
-				emit-variable value/1
-					#{8B35}							;-- MOV esi, [value1]		; global
-					[
-						#{8D45}						;-- LEA eax, [ebp+n]		; local
-						offset						;-- n
-						#{8B30}						;-- MOV esi, [eax]
-					]
-				either integer? idx [
+				emit-prepare-string-path value parent
+				either integer? idx: value/2 [
 					either zero? idx: idx - 1 [		;-- indexes are one-based
 						emit #{8A06}				;-- MOV al, [esi]
 					][
@@ -264,13 +278,9 @@ make target-class [
 						emit to-bin32 idx
 					]
 				][
-					emit-variable idx
-						#{8B1D}						;-- MOV ebx, [idx]			; global
-						#{8B5D}						;-- MOV ebx, [ebp+n]		; local
-					emit #{4B}						;-- DEC ebx					; one-based index
+					emit-load-index idx
 					emit #{8A041E}					;-- MOV al,  [esi + ebx]
 				]
-
 			]
 			pointer! [
 				;TBD
@@ -290,15 +300,8 @@ make target-class [
 
 		switch type [
 			c-string! [
-				idx: path/2
-				emit-variable path/1
-					#{8B35}							;-- MOV esi, [path/1]		; global
-					[
-						#{8D45}						;-- LEA eax, [ebp+offset]	; local
-						offset
-						#{8B30}						;-- MOV esi, [eax]
-					]
-				either integer? idx [
+				emit-prepare-string-path path parent
+				either integer? idx: path/2 [
 					either zero? idx: idx - 1 [		;-- indexes are one-based
 						emit #{8816}				;-- MOV [esi], dl
 					][
@@ -306,10 +309,7 @@ make target-class [
 						emit to-bin32 idx
 					]
 				][
-					emit-variable idx
-						#{8B1D}						;-- MOV ebx, [idx]			; global
-						#{8B5D}						;-- MOV ebx, [ebp+n]		; local
-					emit #{4B}						;-- DEC ebx					; one-based index
+					emit-load-index idx
 					emit #{88141E}					;-- MOV [esi + ebx], dl
 				]
 			]

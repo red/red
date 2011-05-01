@@ -11,6 +11,7 @@ Red/System [
 ;-- Datatype tests
 #include %units/logic-test.reds
 #include %units/byte-test.reds
+#include %units/struct-test.reds
  
 ;-- Native functions tests
 #include %units/not-test.reds
