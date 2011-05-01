@@ -99,7 +99,13 @@ target-class: context [
 				char!	 ['byte!]
 				integer! ['integer!]
 				word!	 [first compiler/resolve-type operand]
-				block!	 [compiler/last-type]
+				block!	 [
+					either 'op = second select compiler/functions operand/1 [
+						operand-type? operand/2		;-- recursively search for an atomic left operand
+					][
+						compiler/last-type
+					]
+				]
 				tag!	 [compiler/last-type]
 				path!	 [compiler/resolve-path-type operand]
 			][
