@@ -442,8 +442,7 @@ system-dialect: context [
 		comp-exit: func [/value /local expr][
 			pc: next pc
 			if value [
-				expr: fetch-expression/final/keep		;-- compile expression to return			
-				check-logic expr							
+				expr: fetch-expression/final/keep		;-- compile expression to return						
 				;TBD: check return type validity here
 			]
 			emitter/target/emit-exit
