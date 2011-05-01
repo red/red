@@ -68,7 +68,8 @@ make target-class [
 		switch type?/word value [
 			word! [
 				either value = 'last [
-					emit #{8B30} 					;--       MOV esi, [eax]
+					;emit #{8B30} 					;--       MOV esi, [eax]
+					emit #{89C6} 					;--       MOV esi, eax
 				][
 					emit-variable value
 						#{8B35}						;--       MOV esi, [value]		; global

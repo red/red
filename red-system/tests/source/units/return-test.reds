@@ -13,6 +13,8 @@ Red/System [
   --test-- "return-1"
     ret-test: func [return: [integer!]][return 1]
   --assert ret-test = 1
+  	ret-test1-1: func [s [c-string!] return: [c-string!]][return s]
+  --assert 5 = length? ret-test1-1 "hello"
 
   --test-- "return-2"
     i: 0
