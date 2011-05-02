@@ -246,7 +246,7 @@ emitter: context [
 		offset: 0
 		foreach [var type] spec [
 			if var = name [break]
-			offset: offset + size-of? type/1
+			offset: offset + max size-of? type/1 target/struct-align-size
 		]
 		offset
 	]
@@ -294,8 +294,8 @@ emitter: context [
 		size: 0
 		foreach [name type] any [all [pos copy/part locals pos] copy locals][
 			if name <> ret [
-				if push [repend stack [name size + 8]]	;-- account for esp + ebp storage
-				size: size + size-of? type/1			;TBD: make it target-independent
+				if push [repend stack [name size + 8]]	;-- account for esp + ebp storage ;TBD: make it target-independent
+				size: size + max size-of? type/1 target/stack-width		
 			]
 		]
 		size
