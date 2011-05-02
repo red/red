@@ -271,8 +271,9 @@ emitter: context [
 				target/emit-load-path path type parent
 			]
 		][
-			target/emit-access-path path parent
+			if head? path [target/emit-init-path path/1]
 			parent: resolve-path-head path parent
+			target/emit-access-path path parent
 			access-path/with next path value parent
 		]
 	]

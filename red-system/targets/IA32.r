@@ -224,14 +224,18 @@ make target-class [
 		]
 	]
 	
+	emit-init-path: func [name [word!]][
+		emit-variable name
+			#{B8}								;-- MOV eax, path/1			; global
+			#{8B45}								;-- MOV eax, [ebp+n]		; local
+	]
+	
 	emit-access-path: func [path [path! set-path!] spec [block! none!] /short /local offset][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
 		unless spec [
-			spec: second compiler/resolve-type path/1				
-			emit-variable path/1
-				#{B8}								;-- MOV eax, path/1			; global
-				#{8B45}								;-- MOV eax, [ebp+n]		; local
+			spec: second compiler/resolve-type path/1
+			emit-init-path path/1
 		]
 		if short [return spec]
 		
@@ -317,7 +321,7 @@ make target-class [
 				;TBD
 			]
 			struct! [			
-				unless parent [parent: emit-access-path/short path parent]	;-- short path case
+				unless parent [parent: emit-access-path/short path parent]
 				either zero? offset: emitter/member-offset? parent path/2 [
 					emit #{8910}					;-- MOV [eax], edx
 				][

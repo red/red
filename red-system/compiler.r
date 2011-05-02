@@ -145,7 +145,7 @@ system-dialect: context [
 		datatype: [
 			'int8! | 'int16! | 'int32! | 'integer! | 'int64! | 'uint8! | 'uint16! |
 			'uint32! | 'uint64! | 'pointer! | 'binary! | 'c-string! | 'logic! | 'byte!
-			| 'struct!
+			| 'struct! block!	; @@ temporary hack to make struct unit tests pass
 		]
 		
 		reserved-words: [
