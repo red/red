@@ -25,7 +25,7 @@ system-dialect: context [
 		include-dirs: none
 		defs: make block! 100
 		
-		num-chars: charset "0123456789"
+		hex-chars: charset "0123456789ABCDEF"
 		
 		init: does [
 			include-dirs: copy [%runtime/]
@@ -45,7 +45,7 @@ system-dialect: context [
 			
 			parse/all/case src [				;-- not-LOAD-able syntax support
 				any [
-					s: copy value 1 8 num-chars #"h" e: (		;-- literal hexadecimal support
+					s: copy value 1 8 hex-chars #"h" e: (		;-- literal hexadecimal support
 						e: change/part s to integer! to issue! value e
 					) :e
 					| skip
