@@ -23,14 +23,24 @@ system-dialect: context [
 	loader: context [
 		verbose: 0
 		include-dirs: none
+		include-list: make hash! 20
 		defs: make block! 100
 		
 		hex-chars: charset "0123456789ABCDEF"
 		
 		init: does [
 			include-dirs: copy [%runtime/]
+			clear include-list
 			clear defs
 			insert defs <no-match>				;-- required to avoid empty rule (causes infinite loop)
+		]
+		
+		included?: func [file [file!]][
+			file: get-modes file 'full-path
+			either find include-list file [true][
+				append include-list file
+				false
+			]
 		]
 		
 		find-path: func [file [file!]][
@@ -43,7 +53,7 @@ system-dialect: context [
 		expand-string: func [src [string! binary!] /local value s e][
 			if verbose > 0 [print "running string preprocessor..."]
 			
-			parse/all/case src [				;-- not-LOAD-able syntax support
+			parse/all/case src [						;-- not-LOAD-able syntax support
 				any [
 					s: copy value 1 8 hex-chars #"h" e: (		;-- literal hexadecimal support
 						e: change/part s to integer! to issue! value e
@@ -54,7 +64,7 @@ system-dialect: context [
 		]
 		
 		expand-block: func [src [block!] /local blk rule name value s e][		
-			if verbose > 0 [print "running block preprocessor..."]
+			if verbose > 0 [print "running block preprocessor..."]			
 			parse/case src blk: [
 				some [
 					defs								;-- resolve definitions in a single pass
@@ -68,10 +78,13 @@ system-dialect: context [
 						append defs rule
 					)
 					| s: #include set name file! e: (
-						if verbose > 0 [print ["...including file:" mold name]]
-						name: find-path name
-						value: skip process/short name 2 		;-- skip Red/System header						
-						e: change/part s value e
+						either included? name: find-path name [
+							s: skip s 2					;-- already included, skip it
+						][
+							if verbose > 0 [print ["...including file:" mold name]]
+							value: skip process/short name 2	;-- skip Red/System header						
+							e: change/part s value e
+						]
 					) :s
 					| into blk
 					| skip
@@ -387,7 +400,8 @@ system-dialect: context [
 					]				
 					pc: skip pc 2
 				]
-				#define [pc: skip pc 3]					;-- preprocessed before
+				#define  [pc: skip pc 3]				;-- preprocessed before
+				#include [pc: skip pc 2]				;-- preprocessed before
 			][
 				;TBD: unknown directive error
 			]
