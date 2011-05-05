@@ -187,6 +187,8 @@ system-dialect: context [
 			pick [<true> <false>] value
 		]
 		
+		literal?: func [value][not any [word? value value = <last>]]
+		
 		decode-cond-test: func [value [tag!]][
 			select [<true> #[true] <false> #[false]] value
 		]
@@ -198,6 +200,20 @@ system-dialect: context [
 		
 		set-last-type: func [spec [block!]][
 			if spec: select spec [return:][last-type: spec/1]
+		]
+		
+		get-mapped-type: func [value][
+			case [
+				value = <last>  [last-type]
+				tag?    value	['logic!]
+				paren?  value	[reduce [to word! join value/1 #"!" value/2]]
+				word?   value 	[first resolve-type value]
+				char?   value	['byte!]
+				string? value	['c-string!]
+				path?   value	[resolve-path-type value]
+				block?  value	[get-return-type value/1]
+				'else 			[type?/word value]	;@@ should throw an error?
+			]	
 		]
 		
 		get-variable-spec: func [name [word!]][
@@ -240,23 +256,10 @@ system-dialect: context [
 			]
 		]
 		
-		add-symbol: func [name [word!] value /local type new ctx][
-			ctx: any [locals globals]
-			unless find ctx name [
-				type: case [
-					value = <last>  [last-type]
-					tag?    value	['logic!]
-					paren?  value	[compose/deep [(to word! join value/1 #"!") [(value/2)]]]
-					word?   value 	[first select ctx value]	; @@ should use 'resolve-type here
-					char?   value	['byte!]
-					string? value	['c-string!]
-					path?   value	[resolve-path-type value]
-					block?  value	[get-return-type value/1]
-					'else 			[type?/word value]
-				]			
-				append ctx new: reduce [name compose [(type)]]
-				if ctx = globals [emitter/set-global new value]
-			]
+		add-symbol: func [name [word!] value /local type][
+			type: get-mapped-type value
+			append globals reduce [name type: compose [(type)]]
+			type
 		]
 		
 		add-function: func [type [word!] spec [block!] cc [word!] /local name arity][		
@@ -640,43 +643,36 @@ system-dialect: context [
 		
 		comp-expression: func [
 			tree [block!] /keep
-			/local name value offset body args get-value prepare-value type
+			/local name value data offset body args prepare-value type
 		][
-			get-value: [
+			prepare-value: [
 				value: either block? tree/2 [
 					comp-expression/keep tree/2
 					<last>
 				][
 					tree/2
 				]
-			]
-			prepare-value: [
-				if all [tag? value value <> <last>][	;-- special encoding for ALL/ANY
+				either all [tag? value value <> <last>][	;-- special encoding for ALL/ANY
+					data: true
 					value: <last>
+				][
+					data: value
 				]
 				if path? value [
-					emitter/target/emit-load value
+					emitter/access-path value none
 					value: <last>
-				]
-				if logic? value [						;-- convert literal logic! values
-					value: to-integer value				;-- TRUE => 1, FALSE => 0
 				]
 			]
 			switch/default type?/word tree/1 [
 				set-word! [
 					name: to word! tree/1
-					do get-value
-					either all [tag? value value <> <last>][	;-- special encoding for ALL/ANY
-						add-symbol name true
-						value: <last>
-					][
-						add-symbol name value
-					]
 					do prepare-value
-					emitter/target/emit-store name value
+					unless type: get-variable-spec name [	;-- test if known variable (local or global)
+						type: add-symbol name data			;-- if unknown add it to global context
+					]
+					emitter/store name value type
 				]
 				set-path! [
-					do get-value
 					do prepare-value
 					;TBD: raise error if ANY/ALL passed as argument				
 					emitter/access-path tree/1 value

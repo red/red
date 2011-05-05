@@ -148,7 +148,7 @@ emitter: context [
 	]
 	
 	add-symbol: func [
-		name [word!] ptr [integer!] /with refs [block! word! none!] /local spec
+		name [word! tag!] ptr [integer!] /with refs [block! word! none!] /local spec
 	][
 		spec: reduce [name reduce ['global ptr make block! 1 any [refs '-]]]
 		append symbols new-line spec yes
@@ -211,35 +211,46 @@ emitter: context [
 		]
 		(index? ptr) - 1								;-- offset of stored value
 	]
-	
-	set-global: func [spec [block!] value /no-name /local type name-ptr val-ptr n-spec name refs][
-		type: spec/2/1
-		name: either no-name [
-			make-name
-		][
-			either find [struct! c-string!] type [
-				name-ptr: store-global 0 'pointer! none	;-- allocate variable slot
-				n-spec: add-symbol spec/1 name-ptr		;-- add variable to symbol table
-				refs: reduce [name-ptr + 1]				;-- reference value from variable slot
-				make-name								;-- name symbol table entry for value
-			][
-				spec/1
-			]
-		]
 		
-		val-ptr: store-global value type all [		 	;-- allocate variable or value slot
-			type = 'struct! spec/2/2
+	store-value: func [
+		name [word! none!]
+		value
+		type [block!]
+		/ref ref-ptr
+		/local ptr
+	][
+		ptr: store-global value type/1 all [			;-- allocate value slot
+			type/1 = 'struct!
+			type/2
 		]
-		spec: add-symbol/with name val-ptr refs			;-- add variable or anonymous value to symbol table
-		any [n-spec spec]
+		add-symbol/with any [name <data>] ptr ref-ptr	;-- add variable/value to globals table
 	]
 	
-	store-literal: func [type [word! block! none!] value][
-		if paren? value [								;-- reconstruct the type from the value
-			type: reduce [to word! join value/1 #"!" value/2]
+	store: func [
+		name [word!] value type [block!]
+		/local new-global? ptr refs n-spec spec
+	][
+		new-global?: not any [							;-- TRUE if unknown global symbol
+			find stack name								;-- local variable
+			find symbols name 							;-- known symbol
 		]
-		unless block? type [type: reduce [type]]	
-		set-global/no-name reduce ['- type] value
+		
+		either all [
+			compiler/literal? value						;-- literal values only
+			find [c-string! struct!] type/1				;-- complex types only
+		][
+			if new-global? [
+				ptr: store-global 0 'pointer! none		;-- allocate separate variable slot
+				n-spec: add-symbol name ptr				;-- add variable to globals table
+				refs: reduce [ptr + 1]					;-- reference value from variable slot
+				name: none								;-- anonymous data storing
+			]
+			spec: store-value/ref name value type refs  ;-- store new value in data buffer
+			if n-spec [spec: n-spec]
+		][
+			if new-global? [spec: store-value name value type] ;-- store new variable with value
+		]
+		if name [target/emit-store name value spec]
 	]
 		
 	member-offset?: func [spec [block!] name [word!] /local offset][

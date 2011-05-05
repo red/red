@@ -55,8 +55,9 @@ make target-class [
 		]
 	]
 
-	emit-load-literal: func [type [word! block! none!] value /local spec][	
-		spec: emitter/store-literal type value
+	emit-load-literal: func [type [block! none!] value /local spec][
+		unless type [type: compiler/get-mapped-type value]
+		spec: emitter/store-value none value type
 		emit #{B8}							;-- MOV eax, [value]
 		emit-reloc-addr spec/2				;-- one-based index
 	]
@@ -135,7 +136,7 @@ make target-class [
 		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
 	
-	emit-load: func [value [char! integer! word! string! struct! logic! path! paren!] /local spec][
+	emit-load: func [value [char! logic! integer! word! string! struct! path! paren!]][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		
 		switch type?/word value [
@@ -160,7 +161,7 @@ make target-class [
 					#{8A45} #{8B45}					;-- MOV rA, [ebp+n]		; local	
 			]
 			string! [
-				emit-load-literal 'c-string! value
+				emit-load-literal [c-string!] value
 			]
 			struct! [
 				;TBD @@
@@ -174,11 +175,20 @@ make target-class [
 		]
 	]
 	
-	emit-store: func [name [word!] value [char! integer! word! string! paren! tag!] /local spec][
+	emit-store: func [
+		name [word!] value [char! logic! integer! word! string! paren! tag!] spec [block! none!]
+		/local store-dword
+	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]
-
-		spec: select emitter/symbols name
+		if logic? value [value: to integer! value]	;-- TRUE -> 1, FALSE -> 0
+		
+		store-dword: [
+			emit-variable name
+				#{C705}								;-- MOV dword [name], value		; global
+				#{C745}								;-- MOV dword [ebp+n], value	; local
+		]
+		
 		switch type?/word value [
 			char! [
 				emit-variable name
@@ -187,9 +197,7 @@ make target-class [
 				emit value
 			]
 			integer! [
-				emit-variable name
-					#{C705}							;-- MOV dword [name], value		; (32-bit only!!!)
-					#{C745}							;-- MOV dword [ebp+n], value	; (32-bit only!!!)					
+				do store-dword
 				emit to-bin32 value
 			]
 			word! [
@@ -204,22 +212,12 @@ make target-class [
 					#{8845} #{8945}					;-- MOV [ebp+n], rA		; local variable
 			]
 			string! [
-				if find emitter/stack name [		;-- test if local variable
-					spec: emitter/store-literal 'c-string! value 
-					emit-variable name
-						#{}							;-- no code to emit, handled by higher layer
-						#{C745}						;-- MOV [ebp+n], value
-					emit-reloc-addr spec/2
-				]
+				do store-dword
+				emit-reloc-addr spec/2
 			]
 			paren! [
-				if find emitter/stack name [		;-- test if local variable
-					spec: emitter/store-literal none value
-					emit-variable name
-						#{}							;-- no code to emit, handled by higher layer
-						#{C745}						;-- MOV [ebp+n], value
-					emit-reloc-addr spec/2
-				]
+				do store-dword
+				emit-reloc-addr spec/2
 			]
 		]
 	]
@@ -411,7 +409,7 @@ make target-class [
 				; @@ (still required?)
 			]
 			string! [
-				spec: emitter/store-literal 'c-string! value
+				spec: emitter/store-value none value [c-string!]
 				emit #{68}							;-- PUSH value
 				emit-reloc-addr spec/2				;-- one-based index
 			]

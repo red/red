@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 27/04/2011
-	Revision: 6
+	Date: 05/05/2011
+	Revision: 7
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -113,8 +113,6 @@ Allowed types are:
 *struct!
 
 *pointer!
-
-<u>Note</u>: Global c-string variables currently act as constants. A c-string cannot be assigned to a global c-string variable after its initialization.
 
 
 ===Datatypes
@@ -324,8 +322,6 @@ For example:
 will output
  I -- a c-string
  
-<u>Note</u>: A global c-string variable currently acts as a constant. A new c-string variable cannot be assigned to once it has been declared.
-
 ---Struct!
 
 Struct! datatype is roughly equivalent to C struct type. It is a record of one or several values, each value having its own datatype. A struct variable holds the memory address of a struct value. 
@@ -1579,6 +1575,10 @@ will output:
 *>Extend the get-word! syntax to integer! variables.
 
 ===Document History
+
+*05/05/2011 - draft 7
+
+*>Removed mentions for c-string variables acting as constants.
 
 *27/04/2011 - draft 6
 

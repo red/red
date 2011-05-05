@@ -264,7 +264,7 @@ context [
 		generate-shstrtab job
 
 		calculate-offsets job						;-- calculate section offsets/vaddrs
-		print code-size
+		;print code-size
 
 		resolve-data-refs job						;-- resolve data references
 
