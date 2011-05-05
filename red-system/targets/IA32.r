@@ -534,7 +534,10 @@ make target-class [
 			* [
 				switch b [
 					imm [
-						either c: power-of-2? arg2 [	;-- trivial optimization for b=2^n
+						either all [
+							not zero? arg2
+							c: power-of-2? arg2			;-- trivial optimization for b=2^n
+						][
 							either width = 1 [
 								emit #{C0E0}			;-- SHL al, log2(b)	; 8-bit unsigned
 							][
