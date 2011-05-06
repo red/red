@@ -52,7 +52,12 @@ target-class: context [
 	]
 	
 	power-of-2?: func [n [integer!]][
-		if zero? n - 1 and n [to integer! log-2 n]
+		if all [
+			positive? n
+			zero? n - 1 and n
+		][
+			to integer! log-2 n
+		]
 	]
 
 	emit: func [bin [binary! char! block!]][
@@ -113,7 +118,7 @@ target-class: context [
 		]
 	]
 	
-	set-width: func [operand][
-		width: emitter/size-of? operand-type? operand
+	set-width: func [operand /type][
+		width: emitter/size-of? either type [operand][operand-type? operand]
 	]
 ]
