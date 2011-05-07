@@ -219,7 +219,11 @@ make target-class [
 			]
 			paren! [
 				do store-dword
-				emit-reloc-addr spec/2
+				either value/1 = 'pointer [
+					emit to-bin32 0
+				][
+					emit-reloc-addr spec/2
+				]
 			]
 		]
 	]
@@ -462,9 +466,9 @@ make target-class [
 	
 	emit-sign-extension: does [
 		emit switch width [
-			1 [#{6698}]			;-- extend AL to AX
-			2 [#{6699}]			;-- extend AX to DX:AX
-			4 [#{99}]			;-- extend EAX to EDX:EAX
+			1 [#{6698}]								;-- extend AL to AX
+			2 [#{6699}]								;-- extend AX to DX:AX
+			4 [#{99}]								;-- extend EAX to EDX:EAX
 		]
 	]
 	
@@ -719,8 +723,6 @@ make target-class [
 	emit-call: func [name [word!] args [block!] /sub /local spec fspec type res][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 		
-		compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
-
 		fspec: select compiler/functions name
 		type: first spec: any [
 			select emitter/symbols name
@@ -805,6 +807,7 @@ make target-class [
 				]
 			]
 		]
+		compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
 		res
 	]
 

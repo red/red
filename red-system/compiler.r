@@ -233,6 +233,9 @@ system-dialect: context [
 			unless find emitter/datatypes type/1 [
 				type: select aliased-types type/1
 			]
+			;;;; Temporary workaround for lack of proper pointer! declaration support in functions @@
+			if all [type/1 = 'pointer! not type/2][type: [pointer! [integer!]]]
+			;;;; @@
 			type
 		]
 		
