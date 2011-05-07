@@ -12,6 +12,7 @@ Red/System [
 #include %units/logic-test.reds
 #include %units/byte-test.reds
 #include %units/struct-test.reds
+#include %units/pointer-test.reds
  
 ;-- Native functions tests
 #include %units/not-test.reds

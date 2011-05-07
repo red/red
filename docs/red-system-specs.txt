@@ -549,10 +549,11 @@ It is possible to use path notation to simulate an array with indexed access. Bo
 
 <b>Syntax</b>
 
- <pointer>/integer!						;-- literal integer index provided
+ <pointer>/<integer>					;-- literal integer index provided
  <pointer>/<index>						;-- index provided by a variable
 
  <pointer>  : a pointer variable
+ <integer>  : an integer literal value
  <index>    : an integer variable
 
 Examples:
@@ -570,6 +571,8 @@ Integer variable can also be used as index:
  p: as [pointer! [integer!]] 4000000h
  c: 2
  p/c: 1234								;-- writes 123 (4 bytes) at 40000008h
+ 
+<u>Note</u>: Pointer's <b>/value</b> notation is strictly equivalent to <b>/1</b>. The <b>/value</b> can be considered as syntactic sugar.
 
 +++Void pointer
 

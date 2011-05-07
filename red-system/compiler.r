@@ -215,20 +215,6 @@ system-dialect: context [
 			if spec: select spec [return:][last-type: spec/1]
 		]
 		
-		get-mapped-type: func [value][
-			case [
-				value = <last>  [last-type]
-				tag?    value	['logic!]
-				paren?  value	[reduce [to word! join value/1 #"!" value/2]]
-				word?   value 	[first resolve-type value]
-				char?   value	['byte!]
-				string? value	['c-string!]
-				path?   value	[resolve-path-type value]
-				block?  value	[get-return-type value/1]
-				'else 			[type?/word value]	;@@ should throw an error?
-			]	
-		]
-		
 		get-variable-spec: func [name [word!]][
 			any [
 				all [locals select locals name]
@@ -250,7 +236,7 @@ system-dialect: context [
 			type
 		]
 		
-		resolve-path-type: func [path [path!] /parent prev][
+		resolve-path-type: func [path [path! set-path!] /parent prev][
 			type: either parent [
 				resolve-type/with path/1 prev
 			][
@@ -259,14 +245,32 @@ system-dialect: context [
 			either tail? skip path 2 [
 				switch/default type/1 [
 					c-string! ['byte!]
-					pointer!  ['pointer!]
+					pointer!  [
+						;TBD: check-pointer-path
+						'pointer!
+					]
 					struct!   [first select type/2 path/2]
 				][
-					make error! "invalid path value"
+					pc: find/reverse/only pc path
+					throw-error "invalid path value"
 				]
 			][
 				resolve-path-type/parent next path second type
 			]
+		]
+		
+		get-mapped-type: func [value][
+			case [
+				value = <last>  [last-type]
+				tag?    value	['logic!]
+				paren?  value	[reduce [to word! join value/1 #"!" value/2]]
+				word?   value 	[first resolve-type value]
+				char?   value	['byte!]
+				string? value	['c-string!]
+				path?   value	[resolve-path-type value]
+				block?  value	[get-return-type value/1]
+				'else 			[type?/word value]	;@@ should throw an error?
+			]	
 		]
 		
 		add-symbol: func [name [word!] value /local type][
@@ -688,6 +692,7 @@ system-dialect: context [
 				]
 				set-path! [
 					do prepare-value
+					resolve-path-type tree/1				;-- check path validity
 					;TBD: raise error if ANY/ALL passed as argument				
 					emitter/access-path tree/1 value
 				]
@@ -704,7 +709,7 @@ system-dialect: context [
 					args/1: <last>
 				]			
 				type: emitter/target/emit-call name args
-				either type [last-type: type][set-last-type functions/:name/4]
+				if type [last-type: type]
 				
 				if all [keep last-type = 'logic!][
 					emitter/logic-to-integer name		;-- runtime logic! conversion before storing

@@ -58,7 +58,7 @@ make target-class [
 	emit-load-literal: func [type [block! none!] value /local spec][
 		unless type [type: compiler/get-mapped-type value]
 		spec: emitter/store-value none value type
-		emit #{B8}							;-- MOV eax, [value]
+		emit #{B8}							;-- MOV eax, value
 		emit-reloc-addr spec/2				;-- one-based index
 	]
 	
@@ -98,6 +98,8 @@ make target-class [
 	]
 	
 	emit-not: func [value [word! tag! integer! logic!] /local opcodes][
+		if verbose >= 3 [print [">>>emitting NOT" mold value]]
+		
 		opcodes: [
 			logic! [
 				emit #{3401}						;-- XOR al, 1		; invert 0<=>1
@@ -224,7 +226,7 @@ make target-class [
 	
 	emit-init-path: func [name [word!]][
 		emit-variable name
-			#{B8}								;-- MOV eax, path/1			; global
+			#{A1}								;-- MOV eax, [name]			; global
 			#{8B45}								;-- MOV eax, [ebp+n]		; local
 	]
 	
@@ -266,13 +268,13 @@ make target-class [
 		emit #{4B}									;-- DEC ebx					; one-based index
 	]
 	
-	emit-load-path: func [value [path!] type [word!] parent [block! none!] /local idx][
-		if verbose >= 3 [print [">>>loading path:" mold value]]
+	emit-load-path: func [path [path!] type [word!] parent [block! none!] /local idx][
+		if verbose >= 3 [print [">>>loading path:" mold path]]
 
 		switch type [
 			c-string! [
-				emit-prepare-string-path value parent
-				either integer? idx: value/2 [
+				emit-prepare-string-path path parent
+				either integer? idx: path/2 [
 					either zero? idx: idx - 1 [		;-- indexes are one-based
 						emit #{8A06}				;-- MOV al, [esi]
 					][
@@ -285,10 +287,29 @@ make target-class [
 				]
 			]
 			pointer! [
-				;TBD
+				type: either parent [
+					compiler/resolve-type/with path/1 parent
+				][
+					emit-init-path path/1
+					compiler/resolve-type path/1
+				]
+				set-width/type type/2/1
+				idx: either path/2 = 'value [1][path/2]
+
+				either integer? idx [
+					either zero? idx: idx - 1 [		;-- indexes are one-based
+						emit-poly [#{} #{8B00}]		;-- MOV ax|eax, [eax]
+					][
+						emit-poly [#{}#{8B80}]		;-- MOV ax|eax, [eax + idx * sizeof(integer!)]
+						emit to-bin32 idx * emitter/size-of? 'integer!
+					]
+				][
+					emit-load-index idx
+					emit-poly [#{} #{8B0498}]		;-- MOV ax|eax, [eax + ebx * sizeof(integer!)]
+				]
 			]
 			struct! [
-				emit-access-path value parent
+				emit-access-path path parent
 			]
 		]
 	]
@@ -316,7 +337,26 @@ make target-class [
 				]
 			]
 			pointer! [
-				;TBD
+				type: either parent [
+					compiler/resolve-type/with path/1 parent
+				][
+					emit-init-path path/1
+					compiler/resolve-type path/1
+				]
+				set-width/type type/2/1
+				idx: either path/2 = 'value [1][path/2]
+				
+				either integer? idx [
+					either zero? idx: idx - 1 [		;-- indexes are one-based
+						emit-poly [#{} #{8910}]		;-- MOV [eax], dx|edx
+					][
+						emit-poly [#{}#{8990}]		;-- MOV [eax + idx * sizeof(integer!)], dx|edx
+						emit to-bin32 idx * emitter/size-of? 'integer!
+					]
+				][
+					emit-load-index idx
+					emit-poly [#{} #{891498}]		;-- MOV [eax + ebx * sizeof(integer!)], dx|edx
+				]
 			]
 			struct! [			
 				unless parent [parent: emit-access-path/short path parent]
@@ -678,6 +718,8 @@ make target-class [
 	
 	emit-call: func [name [word!] args [block!] /sub /local spec fspec type res][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
+		
+		compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
 
 		fspec: select compiler/functions name
 		type: first spec: any [
@@ -746,7 +788,7 @@ make target-class [
 				emit-reloc-addr spec				;-- 32-bit relative displacement place-holder
 			]
 			inline [
-				if block? args/1 [					;-- works only for inline funcs with arity = 1
+				if block? args/1 [					;-- works only for unary functions
 					emit-call/sub args/1/1 next args/1
 					args/1: <last>
 				]		

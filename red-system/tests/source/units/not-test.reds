@@ -8,8 +8,8 @@ Red/System [
 
 #include %../../quick-test/quick-test.reds
 
-foo: func [a [logic!] return: [logic!]][a]
-nfoo: func [a [logic!] return: [logic!]][not a]
+not-foo: func [a [logic!] return: [logic!]][a]
+not-nfoo: func [a [logic!] return: [logic!]][not a]
 
 ~~~start-file~~~ "not"
 
@@ -19,39 +19,39 @@ nfoo: func [a [logic!] return: [logic!]][not a]
   --test-- "not-4" --assert false = not not false
 
   --test-- "not-5"
-    a: true
-  --assert false = not a 
+    n-logic-a: true
+  --assert false = not n-logic-a
 
   --test-- "not-6"
-    a: false
-  --assert not a
+    n-logic-a: false
+  --assert not n-logic-a
 
-  --test-- "not-7" --assert false = not foo true
-  --test-- "not-8" --assert not foo false
-  --test-- "not-9" --assert false = foo not true
-  --test-- "not-10" --assert foo not false
+  --test-- "not-7" --assert false = not not-foo true
+  --test-- "not-8" --assert not not-foo false
+  --test-- "not-9" --assert false = not-foo not true
+  --test-- "not-10" --assert not-foo not false
 
   --test-- "not-11"
-    a: true
-  --assert false = not foo a
+    n-logic-a: true
+  --assert false = not not-foo n-logic-a
   
   --test-- "not-12"
-    a: true
-  --assert false = foo not a
+    n-logic-a: true
+  --assert false = not-foo not n-logic-a
 
   --test-- "not-13"
-    a: false
-  --assert not foo a 
+    n-logic-a: false
+  --assert not not-foo n-logic-a 
 
   --test-- "not-14"
-    a: false
-  --assert not foo a
+    n-logic-a: false
+  --assert not not-foo n-logic-a
 
-  --test-- "not-15" --assert false = nfoo true
-  --test-- "not-16" --assert nfoo false
+  --test-- "not-15" --assert false = not-nfoo true
+  --test-- "not-16" --assert not-nfoo false
 
-  --test-- "not-17" --assert false = nfoo true
-  --test-- "not-18" --assert nfoo false
+  --test-- "not-17" --assert false = not-nfoo true
+  --test-- "not-18" --assert not-nfoo false
 
 ~~~end-file~~~
 

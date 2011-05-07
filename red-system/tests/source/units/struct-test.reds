@@ -124,9 +124,9 @@ Red/System [
 	struct3-f: struct3/sub/f
 	--assert struct3-f/1 = #"h"
 	
-	;--test-- "s-nested-9"
-	;struct3-byte: struct3/sub/f/2
-	;--assert struct3-byte = #"e"
+	--test-- "s-nested-9"
+	struct3-byte: struct3/sub/f/2
+	--assert struct3-byte = #"e"
 
 ===end-group===
 
@@ -142,6 +142,7 @@ struct-local-foo: func [
 		struct3   [struct! [d [byte!] b [integer!] c [c-string!] sub [struct! [e [integer!] f [c-string!]]] g [integer!]]]
 		struct3-e [integer!]
 		struct3-f [c-string!]
+		struct3-byte [byte!]
 ][
 	--test-- "ls-rw-1"
 	struct1: struct [b [integer!]]
@@ -250,6 +251,9 @@ struct-local-foo: func [
 	struct3-f: struct3/sub/f
 	--assert struct3-f/1 = #"h"
 
+	--test-- "ls-nested-9"
+	struct3-byte: struct3/sub/f/2
+	--assert struct3-byte = #"e"
 ]
 struct-local-foo
 
