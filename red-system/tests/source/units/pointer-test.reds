@@ -98,6 +98,31 @@ Red/System [
 	pointer-str/sub/C/2: 987654321
 	--assert p-struct/m = 987654321
 
+===start-group=== "Pointers arithmetic"
+	
+	--test-- "pointer-calc-1"
+	pa-struct: struct [n [integer!] m [integer!] p [integer!] o [integer!]]
+	pA: pointer [integer!]
+	pB: pointer [integer!]
+	
+	pA: as [pointer! [integer!]] pa-struct
+	pa-struct/n: 123456789
+	pa-struct/m: 987654321
+	--assert pA/value = 123456789
+	
+	--test-- "pointer-calc-2"
+	pA: pA + 1
+	--assert pA/value = 987654321
+	
+	--test-- "pointer-calc-3"
+	pa-struct/o: 123
+	pA: pA + 2
+	--assert pA/value = 123
+	
+	--test-- "pointer-calc-4"
+	pA: pA - 3
+	--assert pA/value = 123456789
+
 
 ===end-group===
 

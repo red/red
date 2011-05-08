@@ -253,7 +253,7 @@ emitter: context [
 		if name [target/emit-store name value spec]
 	]
 		
-	member-offset?: func [spec [block!] name [word!] /local offset][
+	member-offset?: func [spec [block!] name [word! none!] /local offset][
 		offset: 0
 		foreach [var type] spec [
 			if var = name [break]

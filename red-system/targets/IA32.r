@@ -458,7 +458,7 @@ make target-class [
 		]
 	]
 	
-	emit-bitwise-op: func [name [word!] a [word!] b [word!] arg2 /local code][		
+	emit-bitwise-op: func [name [word!] a [word!] b [word!] args [block!] /local code][		
 		code: select [
 			and [
 				#{25}								;-- AND eax, value
@@ -483,10 +483,10 @@ make target-class [
 		switch b [
 			imm [
 				emit code/1							;-- <OP> eax, value
-				emit to-bin32 arg2
+				emit to-bin32 args/2
 			]
 			ref [
-				emit-variable arg2
+				emit-variable args/2
 					code/2							;-- <OP> eax, [value]	; global
 					code/3							;-- <OP> eax, [ebp+n]	; local
 			]
@@ -494,13 +494,13 @@ make target-class [
 		]
 	]
 	
-	emit-comparison-op: func [name [word!] a [word!] b [word!] arg2][
+	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!]][
 		switch b [
 			imm [
-				emit-poly [#{3C} #{3D} arg2]		;-- CMP rA, value
+				emit-poly [#{3C} #{3D} args/2]		;-- CMP rA, value
 			]
 			ref [				
-				emit-variable-poly arg2
+				emit-variable-poly args/2
 					#{8A15} #{8B15}					;-- MOV rD, [value]		; global
 					#{8A55} #{8B55}					;-- MOV rD, [ebp+n]		; local
 				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; commutable op				
@@ -514,23 +514,44 @@ make target-class [
 		]
 	]
 	
-	emit-math-op: func [name [word!] a [word!] b [word!] arg2 /local mod? c][
+	emit-math-op: func [name [word!] a [word!] b [word!] args [block!] /local mod? scale c ][
 		if name = first [//][						;-- work around unaccepted '// 
 			name: first [/]							;-- work around unaccepted '/ 
 			mod?: yes
+		]
+		if all [
+			find [+ -] name							;-- pointer arithmetic only allowed for + & -
+			block? type: any [
+				all [word? args/1 compiler/resolve-type args/1]
+				all [path? args/1 compiler/resolve-path-type args/1]
+			]
+			scale: switch type/1 [
+				pointer! [emitter/size-of? type/2/1]	;-- scale factor: size of pointed value
+				struct!  [emitter/member-offset? none]  ;-- scale factor: total size of the struct
+			]
+		][	
+			either compiler/literal? args/2 [
+				args/2: args/2 * scale				;-- right operand is a literal, so scale it directly
+			][
+				if find [imm ref] a [				;-- b will now be in reg
+					emit-poly [#{88C2} #{89C2}]		;-- MOV rD, rA
+				]
+				emit-math-op '* b 'imm reduce [args/2 scale] ;-- right operand is a reference, emit code
+				b: 'reg
+			]
 		]
 		switch name [
 			+ [
 				switch b [
 					imm [
-						emit-poly either arg2 = 1 [	;-- trivial optimization
+						emit-poly either args/2 = 1 [	;-- trivial optimization
 							[#{FEC0} #{40}]			;-- INC rA
 						][
-							[#{04} #{05} arg2] 		;-- ADD rA, value
+							[#{04} #{05} args/2] 	;-- ADD rA, value
 						]
 					]
-					ref [	
-						emit-variable-poly arg2
+					ref [
+						emit-variable-poly args/2
 							#{0205} #{0305}			;-- ADD rA, [value]	; global
 							#{0245} #{0345}			;-- ADD rA, [ebp+n]	; local
 					]
@@ -542,14 +563,14 @@ make target-class [
 			- [
 				switch b [
 					imm [
-						emit-poly either arg2 = 1 [ ;-- trivial optimization
+						emit-poly either args/2 = 1 [ ;-- trivial optimization
 							[#{FEC8} #{48}]			;-- DEC rA
 						][
-							[#{2C} #{2D} arg2] 		;-- SUB rA, value
+							[#{2C} #{2D} args/2] 	;-- SUB rA, value
 						]
 					]
 					ref [
-						emit-variable-poly arg2
+						emit-variable-poly args/2
 							#{2A05} #{2B05}			;-- SUB rA, [value]	; global
 							#{2A45} #{2B45}			;-- SUB rA, [ebp+n]	; local
 					]
@@ -565,22 +586,22 @@ make target-class [
 				switch b [
 					imm [
 						either all [
-							not zero? arg2
-							c: power-of-2? arg2			;-- trivial optimization for b=2^n
+							not zero? args/2
+							c: power-of-2? args/2	;-- trivial optimization for b=2^n
 						][
 							either width = 1 [
-								emit #{C0E0}			;-- SHL al, log2(b)	; 8-bit unsigned
+								emit #{C0E0}		;-- SHL al, log2(b)	; 8-bit unsigned
 							][
 								emit-poly [#{C0ED} #{C1E0}]	;-- SAL rA, log2(b) ; signed
 							]
 							emit to-bin8 c
 						][
-							emit-poly [#{B2} #{BA} arg2] ;-- MOV rD, value
+							emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
 							emit-poly [#{F6EA} #{F7EA}]	 ;-- IMUL rD		; result in ax|eax|edx:eax
 						]
 					]
 					ref [
-						emit-variable-poly arg2
+						emit-variable-poly args/2
 							#{F62D}	#{F72D}			;-- IMUL [value]		; global
 							#{F66D}	#{F76D}			;-- IMUL [ebp+n]		; local
 					]
@@ -603,29 +624,29 @@ make target-class [
 			;TBD: check for 0 divider both at compilation-time and runtime
 					imm [
 						either all [
-							not mod?					;-- do not use shifts if modulo
-							c: power-of-2? arg2
-						][								;-- trivial optimization for b=2^n
+							not mod?				;-- do not use shifts if modulo
+							c: power-of-2? args/2
+						][							;-- trivial optimization for b=2^n
 							either width = 1 [
-								emit #{C0E8}			;-- SHR al, log2(b)	; 8-bit unsigned
+								emit #{C0E8}		;-- SHR al, log2(b)	; 8-bit unsigned
 							][
 								emit-poly [#{C0F8} #{C1F8}]	;-- SAR rA, log2(b)	; signed
 							]
 							emit to-bin8 c
 						][
-							emit-poly [#{B3} #{BB} arg2] ;-- MOV rB, value
+							emit-poly [#{B3} #{BB} args/2] ;-- MOV rB, value
 							do div-poly
 						]
 					]
 					ref [
 						either width = 1 [
 							emit #{B400}			;-- MOV ah, 0			; clean-up garbage in ah
-							emit-variable arg2
+							emit-variable args/2
 								#{F635}				;-- DIV byte [value]	; global
 								#{F675}				;-- DIV byte [ebp+n]	; local
 						][
 							emit-sign-extension
-							emit-variable-poly arg2
+							emit-variable-poly args/2
 								#{F63D} #{F73D}		;-- IDIV word|dword [value]	; global
 								#{F67D} #{F77D}		;-- IDIV word|dword [ebp+n]	; local
 						]
@@ -683,9 +704,9 @@ make target-class [
 		]
 		;-- Operator and second operand processing
 		case [
-			find comparison-op name [emit-comparison-op name a b args/2]
-			find [+ - * / //]  name	[emit-math-op		name a b args/2]
-			find [and or xor]  name	[emit-bitwise-op	name a b args/2]
+			find comparison-op name [emit-comparison-op name a b args]
+			find [+ - * / //]  name	[emit-math-op		name a b args]
+			find [and or xor]  name	[emit-bitwise-op	name a b args]
 		]
 	]
 	
@@ -715,7 +736,7 @@ make target-class [
 			next fspec
 		]
 		case [
-			not find [inline op] type [			;-- push function's arguments on stack
+			not find [inline op] type [				;-- push function's arguments on stack
 				foreach arg args [
 					switch/default type?/word arg [
 						binary! [emit arg]
