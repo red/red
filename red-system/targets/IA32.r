@@ -230,8 +230,8 @@ make target-class [
 	
 	emit-init-path: func [name [word!]][
 		emit-variable name
-			#{A1}								;-- MOV eax, [name]			; global
-			#{8B45}								;-- MOV eax, [ebp+n]		; local
+			#{A1}									;-- MOV eax, [name]			; global
+			#{8B45}									;-- MOV eax, [ebp+n]		; local
 	]
 	
 	emit-access-path: func [path [path! set-path!] spec [block! none!] /short /local offset][
@@ -250,12 +250,19 @@ make target-class [
 			emit to-bin32 offset
 		]
 	]
+		
+	emit-load-index: func [idx [word!]][
+		emit-variable idx
+			#{8B1D}									;-- MOV ebx, [idx]		; global
+			#{8B5D}									;-- MOV ebx, [ebp+n]	; local
+		emit #{4B}									;-- DEC ebx				; one-based index
+	]
 	
-	emit-prepare-string-path: func [value parent [block! none!]][
+	emit-c-string-path: func [path [path! set-path!] parent [block! none!] /local opcodes idx][
 		either parent [
 			emit #{89C6} 							;-- MOV esi, eax		; nested access
 		][
-			emit-variable value/1
+			emit-variable path/1
 				#{8B35}								;-- MOV esi, [value1]	; global
 				[
 					#{8D45}							;-- LEA eax, [ebp+n]	; local
@@ -263,58 +270,71 @@ make target-class [
 					#{8B30}							;-- MOV esi, [eax]
 				]
 		]
+		opcodes: pick [[							;-- store path opcodes --
+				#{8816}								;-- MOV [esi], dl			; first	
+				#{8896}								;-- MOV [esi + idx], dl 	; n-th
+				#{88141E}							;-- MOV [esi + ebx], dl 	; variable index
+			][										;-- load path opcodes --
+				#{8A06}								;-- MOV al, [esi]			; first
+				#{8A86}								;-- MOV al, [esi + idx]		; n-th
+				#{8A041E}							;-- MOV al, [esi + ebx]		; variable index
+		]] set-path? path
+		
+		either integer? idx: path/2 [
+			either zero? idx: idx - 1 [				;-- indexes are one-based
+				emit opcodes/1
+			][
+				emit opcodes/2
+				emit to-bin32 idx
+			]
+		][
+			emit-load-index idx
+			emit opcodes/3
+		]
 	]
 	
-	emit-load-index: func [idx [word!]][
-		emit-variable idx
-			#{8B1D}									;-- MOV ebx, [idx]			; global
-			#{8B5D}									;-- MOV ebx, [ebp+n]		; local
-		emit #{4B}									;-- DEC ebx					; one-based index
+	emit-pointer-path: func [
+		path [path! set-path!] parent [block! none!] /local opcodes idx type
+	][
+		opcodes: pick [[							;-- store path opcodes --
+				[#{} #{8910}  ]						;-- MOV [eax], dx|edx
+				[#{} #{8990}  ]						;-- MOV [eax + idx * sizeof(integer!)], dx|edx
+				[#{} #{891498}]						;-- MOV [eax + ebx * sizeof(integer!)], dx|edx
+			][										;-- load path opcodes --
+				[#{} #{8B00}  ]						;-- MOV ax|eax, [eax]
+				[#{} #{8B80}  ]						;-- MOV ax|eax, [eax + idx * sizeof(integer!)]
+				[#{} #{8B0498}]						;-- MOV ax|eax, [eax + ebx * sizeof(integer!)]
+		]] set-path? path
+		
+		type: either parent [
+			compiler/resolve-type/with path/1 parent
+		][
+			emit-init-path path/1
+			type: compiler/resolve-type path/1
+		]
+		set-width/type type/2/1
+		idx: either path/2 = 'value [1][path/2]
+
+		either integer? idx [
+			either zero? idx: idx - 1 [				;-- indexes are one-based
+				emit-poly opcodes/1
+			][
+				emit-poly opcodes/2
+				emit to-bin32 idx * emitter/size-of? 'integer!
+			]
+		][
+			emit-load-index idx
+			emit-poly opcodes/3
+		]
 	]
 	
 	emit-load-path: func [path [path!] type [word!] parent [block! none!] /local idx][
 		if verbose >= 3 [print [">>>loading path:" mold path]]
 
 		switch type [
-			c-string! [
-				emit-prepare-string-path path parent
-				either integer? idx: path/2 [
-					either zero? idx: idx - 1 [		;-- indexes are one-based
-						emit #{8A06}				;-- MOV al, [esi]
-					][
-						emit #{8A86}				;-- MOV al, [esi + idx]
-						emit to-bin32 idx
-					]
-				][
-					emit-load-index idx
-					emit #{8A041E}					;-- MOV al,  [esi + ebx]
-				]
-			]
-			pointer! [
-				type: either parent [
-					compiler/resolve-type/with path/1 parent
-				][
-					emit-init-path path/1
-					compiler/resolve-type path/1
-				]
-				set-width/type type/2/1
-				idx: either path/2 = 'value [1][path/2]
-
-				either integer? idx [
-					either zero? idx: idx - 1 [		;-- indexes are one-based
-						emit-poly [#{} #{8B00}]		;-- MOV ax|eax, [eax]
-					][
-						emit-poly [#{}#{8B80}]		;-- MOV ax|eax, [eax + idx * sizeof(integer!)]
-						emit to-bin32 idx * emitter/size-of? 'integer!
-					]
-				][
-					emit-load-index idx
-					emit-poly [#{} #{8B0498}]		;-- MOV ax|eax, [eax + ebx * sizeof(integer!)]
-				]
-			]
-			struct! [
-				emit-access-path path parent
-			]
+			c-string! [emit-c-string-path path parent]
+			pointer!  [emit-pointer-path  path parent]
+			struct!   [emit-access-path   path parent]
 		]
 	]
 
@@ -326,43 +346,9 @@ make target-class [
 		emit #{92}									;-- XCHG eax, edx			; save value/restore address
 
 		switch type [
-			c-string! [
-				emit-prepare-string-path path parent
-				either integer? idx: path/2 [
-					either zero? idx: idx - 1 [		;-- indexes are one-based
-						emit #{8816}				;-- MOV [esi], dl
-					][
-						emit #{8896}				;-- MOV [esi + idx], dl
-						emit to-bin32 idx
-					]
-				][
-					emit-load-index idx
-					emit #{88141E}					;-- MOV [esi + ebx], dl
-				]
-			]
-			pointer! [
-				type: either parent [
-					compiler/resolve-type/with path/1 parent
-				][
-					emit-init-path path/1
-					compiler/resolve-type path/1
-				]
-				set-width/type type/2/1
-				idx: either path/2 = 'value [1][path/2]
-				
-				either integer? idx [
-					either zero? idx: idx - 1 [		;-- indexes are one-based
-						emit-poly [#{} #{8910}]		;-- MOV [eax], dx|edx
-					][
-						emit-poly [#{}#{8990}]		;-- MOV [eax + idx * sizeof(integer!)], dx|edx
-						emit to-bin32 idx * emitter/size-of? 'integer!
-					]
-				][
-					emit-load-index idx
-					emit-poly [#{} #{891498}]		;-- MOV [eax + ebx * sizeof(integer!)], dx|edx
-				]
-			]
-			struct! [			
+			c-string! [emit-c-string-path path parent]
+			pointer!  [emit-pointer-path  path parent]
+			struct!   [			
 				unless parent [parent: emit-access-path/short path parent]
 				either zero? offset: emitter/member-offset? parent path/2 [
 					emit #{8910}					;-- MOV [eax], edx
