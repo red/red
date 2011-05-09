@@ -122,7 +122,20 @@ Red/System [
 	--test-- "pointer-calc-4"
 	pA: pA - 3
 	--assert pA/value = 123456789
-
+	
+	--test-- "pointer-calc-5"
+	pointer-idx: 3
+	pA: pA + pointer-idx
+	--assert pA/value = 123
+	
+	--test-- "pointer-calc-6"
+	pointer-idx: -3
+	pA: pA + pointer-idx
+	--assert pA/value = 123456789
+	
+	--test-- "pointer-calc-7"
+	pA: pA - pointer-idx
+	--assert pA/value = 123
 
 ===end-group===
 
@@ -136,6 +149,7 @@ pointer-local-foo: func [
 		p-int    [integer!]
 		p-idx    [integer!]
 		pointer-str [struct! [A [pointer!] B [pointer!] sub [struct! [C [pointer!]]]]] ;-- should be [pointer! [integer!]]	(validation not fully implemented yet)
+		pa-struct [struct! [n [integer!] m [integer!] p [integer!] o [integer!]]]
 ][
 
 	--test-- "loc-point-rw-1"
@@ -223,6 +237,41 @@ pointer-local-foo: func [
 	--test-- "loc-point-rw-13"
 	pointer-str/sub/C/2: 987654321
 	--assert p-struct/m = 987654321
+	
+	--test-- "loc-point-calc-1"
+	pa-struct: struct [n [integer!] m [integer!] p [integer!] o [integer!]]
+
+	pA: as [pointer! [integer!]] pa-struct
+	pa-struct/n: 123456789
+	pa-struct/m: 987654321
+	--assert pA/value = 123456789
+
+	--test-- "loc-point-calc-2"
+	pA: pA + 1
+	--assert pA/value = 987654321
+
+	--test-- "loc-point-calc-3"
+	pa-struct/o: 123
+	pA: pA + 2
+	--assert pA/value = 123
+
+	--test-- "loc-point-calc-4"
+	pA: pA - 3
+	--assert pA/value = 123456789
+
+	--test-- "loc-point-calc-5"
+	p-idx: 3
+	pA: pA + p-idx
+	--assert pA/value = 123
+	
+	--test-- "loc-point-calc-6"
+	p-idx: -3
+	pA: pA + p-idx
+	--assert pA/value = 123456789
+	
+	--test-- "loc-point-calc-7"
+	pA: pA - p-idx
+	--assert pA/value = 123
 ]
 pointer-local-foo
 

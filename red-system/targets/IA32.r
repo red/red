@@ -514,7 +514,7 @@ make target-class [
 		]
 	]
 	
-	emit-math-op: func [name [word!] a [word!] b [word!] args [block!] /local mod? scale c ][
+	emit-math-op: func [name [word!] a [word!] b [word!] args [block!] /local mod? scale c][
 		if name = first [//][						;-- work around unaccepted '// 
 			name: first [/]							;-- work around unaccepted '/ 
 			mod?: yes
@@ -531,12 +531,13 @@ make target-class [
 			]
 		][	
 			either compiler/literal? args/2 [
-				args/2: args/2 * scale				;-- right operand is a literal, so scale it directly
+				args/2: args/2 * scale				;-- 'b is a literal, so scale it directly
 			][
-				if find [imm ref] a [				;-- b will now be in reg
+				if find [imm ref] a [				;-- 'b will now be stored in reg, so save 'a
 					emit-poly [#{88C2} #{89C2}]		;-- MOV rD, rA
 				]
-				emit-math-op '* b 'imm reduce [args/2 scale] ;-- right operand is a reference, emit code
+				emit-operation '* reduce [args/2 scale] ;-- 'b is a reference, emit code
+				if name = '- [emit #{92}]			;-- XCHG eax, edx		; put operands in right order
 				b: 'reg
 			]
 		]
@@ -552,11 +553,11 @@ make target-class [
 					]
 					ref [
 						emit-variable-poly args/2
-							#{0205} #{0305}			;-- ADD rA, [value]	; global
-							#{0245} #{0345}			;-- ADD rA, [ebp+n]	; local
+							#{0205} #{0305}			;-- ADD rA, [value]		; global
+							#{0245} #{0345}			;-- ADD rA, [ebp+n]		; local
 					]
 					reg [
-						emit-poly [#{00D0} #{01D0}]	;-- ADD rA, rD		; commutable op
+						emit-poly [#{00D0} #{01D0}]	;-- ADD rA, rD			; commutable op
 					]
 				]
 			]
@@ -571,8 +572,8 @@ make target-class [
 					]
 					ref [
 						emit-variable-poly args/2
-							#{2A05} #{2B05}			;-- SUB rA, [value]	; global
-							#{2A45} #{2B45}			;-- SUB rA, [ebp+n]	; local
+							#{2A05} #{2B05}			;-- SUB rA, [value]		; global
+							#{2A45} #{2B45}			;-- SUB rA, [ebp+n]		; local
 					]
 					reg [
 						if a = 'reg [				;-- eax = b, edx = a
