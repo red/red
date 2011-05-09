@@ -60,7 +60,6 @@ Red/System [
 
 ===end-group===
 
-
 ===start-group=== "Nested structs read/write tests"
 
 	--test-- "s-nested-1"
@@ -258,5 +257,328 @@ struct-local-foo: func [
 struct-local-foo
 
 ===end-group===
+
+
+===start-group=== "Struct variables arithmetic"
+
+	--test-- "struct-math-1"
+	struct4: struct [
+		a [struct! [value [integer!]]]
+		b [struct! [value [integer!]]]
+		c [struct! [value [integer!]]]
+	]
+	struct5: struct [value [integer!]]
+
+	struct4/a: struct [value [integer!]]
+	struct4/b: struct [value [integer!]]
+	struct4/c: struct [value [integer!]]
+
+	struct4/a/value: 123
+	struct4/b/value: 456
+	struct4/c/value: 789
+	
+	--assert struct4/a/value = 123
+	--assert struct4/b/value = 456
+	--assert struct4/c/value = 789
+	
+	struct5: struct4/a
+	--assert struct5/value = 123
+	
+	--test-- "struct-math-2"
+	struct5: struct5 + 1
+	--assert struct5/value = 456
+
+	--test-- "struct-math-3"
+	struct5: struct4/c
+	--assert struct5/value = 789
+	struct5: struct5 - 2
+	--assert struct5/value = 123
+	
+	--test-- "struct-math-4"
+	struct-idx: 2
+	struct5: struct5 + struct-idx
+	--assert struct5/value = 789
+	
+	--test-- "struct-math-5"
+	struct-idx: -2
+	struct5: struct5 + struct-idx
+	--assert struct5/value = 123
+
+	--test-- "struct-math-6"
+	struct-idx: -2
+	struct5: struct5 - struct-idx
+	--assert struct5/value = 789
+	
+	
+	--test-- "struct-math-7"
+	struct6: struct [
+		a [struct! [value [byte!]]]
+		b [struct! [value [byte!]]]
+		c [struct! [value [byte!]]]
+	]
+	struct7: struct [value [byte!]]
+
+	struct6/a: struct [value [byte!]]
+	struct6/b: struct [value [byte!]]
+	struct6/c: struct [value [byte!]]
+
+	struct6/a/value: #"a"
+	struct6/b/value: #"b"
+	struct6/c/value: #"c"
+
+	--assert struct6/a/value = #"a"
+	--assert struct6/b/value = #"b"
+	--assert struct6/c/value = #"c"
+
+	struct7: struct6/a
+	--assert struct7/value = #"a"
+
+	--test-- "struct-math-8"
+	struct7: struct7 + 1
+	--assert struct7/value = #"b"
+
+	--test-- "struct-math-9"
+	struct7: struct6/c
+	--assert struct7/value = #"c"
+	struct7: struct7 - 2
+	--assert struct7/value = #"a"
+
+	--test-- "struct-math-10"
+	struct-idx: 2
+	struct7: struct7 + struct-idx
+	--assert struct7/value = #"c"
+
+	--test-- "struct-math-11"
+	struct-idx: -2
+	struct7: struct7 + struct-idx
+	--assert struct7/value = #"a"
+
+	--test-- "struct-math-12"
+	struct-idx: -2
+	struct7: struct7 - struct-idx
+	--assert struct7/value = #"c"
+	
+	--test-- "struct-math-13"
+	struct8: struct [
+		a [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+		b [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+		c [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+	]
+	struct9: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+
+	struct8/a: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/b: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/c: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+
+	struct8/a/v1: 123
+	struct8/b/v1: 456
+	struct8/c/v1: 789
+	
+	struct8/a/v2: #"a"
+	struct8/b/v2: #"b"
+	struct8/c/v2: #"c"
+	
+	struct8/a/v3: "A"
+	struct8/b/v3: "B"
+	struct8/c/v3: "C"
+
+	--assert struct8/a/v1 = 123
+	--assert struct8/b/v1 = 456
+	--assert struct8/c/v1 = 789
+	
+	--assert struct8/a/v2 = #"a"
+	--assert struct8/b/v2 = #"b"
+	--assert struct8/c/v2 = #"c"
+	
+	--assert struct8/a/v3/1 = #"A"
+	--assert struct8/b/v3/1 = #"B"
+	--assert struct8/c/v3/1 = #"C"
+
+	struct9: struct8/a
+	--assert struct9/v1 = 123
+	--assert struct9/v2 = #"a"
+	--assert struct9/v3/1 = #"A"
+
+	--test-- "struct-math-14"
+	struct9: struct9 + 1
+	--assert struct9/v1 = 456
+	--assert struct9/v2 = #"b"
+	--assert struct9/v3/1 = #"B"
+
+===end-group===
+
+
+===start-group=== "Local struct variables arithmetic"
+
+struct-local-foo2: func [
+	/local
+		struct4 [struct! [
+			a [struct! [value [integer!]]]
+			b [struct! [value [integer!]]]
+			c [struct! [value [integer!]]]
+		]]
+		struct5 [struct! [value [integer!]]]
+		struct6 [struct! [
+			a [struct! [value [byte!]]]
+			b [struct! [value [byte!]]]
+			c [struct! [value [byte!]]]
+		]]
+		struct7 [struct! [value [byte!]]]
+		struct8 [struct! [
+			a [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+			b [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+			c [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+		]]
+		struct9 [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+		struct-idx [integer!]
+][
+	--test-- "loc-struct-math-1"
+	struct4: struct [
+		a [struct! [value [integer!]]]
+		b [struct! [value [integer!]]]
+		c [struct! [value [integer!]]]
+	]
+	struct5: struct [value [integer!]]
+
+	struct4/a: struct [value [integer!]]
+	struct4/b: struct [value [integer!]]
+	struct4/c: struct [value [integer!]]
+
+	struct4/a/value: 123
+	struct4/b/value: 456
+	struct4/c/value: 789
+	
+	--assert struct4/a/value = 123
+	--assert struct4/b/value = 456
+	--assert struct4/c/value = 789
+	
+	struct5: struct4/a
+	--assert struct5/value = 123
+	
+	--test-- "loc-struct-math-2"
+	struct5: struct5 + 1
+	--assert struct5/value = 456
+
+	--test-- "loc-struct-math-3"
+	struct5: struct4/c
+	--assert struct5/value = 789
+	struct5: struct5 - 2
+	--assert struct5/value = 123
+	
+	--test-- "loc-struct-math-4"
+	struct-idx: 2
+	struct5: struct5 + struct-idx
+	--assert struct5/value = 789
+	
+	--test-- "loc-struct-math-5"
+	struct-idx: -2
+	struct5: struct5 + struct-idx
+	--assert struct5/value = 123
+
+	--test-- "loc-struct-math-6"
+	struct-idx: -2
+	struct5: struct5 - struct-idx
+	--assert struct5/value = 789
+	
+	
+	--test-- "loc-struct-math-7"
+	struct6: struct [
+		a [struct! [value [byte!]]]
+		b [struct! [value [byte!]]]
+		c [struct! [value [byte!]]]
+	]
+	struct7: struct [value [byte!]]
+
+	struct6/a: struct [value [byte!]]
+	struct6/b: struct [value [byte!]]
+	struct6/c: struct [value [byte!]]
+
+	struct6/a/value: #"a"
+	struct6/b/value: #"b"
+	struct6/c/value: #"c"
+
+	--assert struct6/a/value = #"a"
+	--assert struct6/b/value = #"b"
+	--assert struct6/c/value = #"c"
+
+	struct7: struct6/a
+	--assert struct7/value = #"a"
+
+	--test-- "loc-struct-math-8"
+	struct7: struct7 + 1
+	--assert struct7/value = #"b"
+
+	--test-- "loc-struct-math-9"
+	struct7: struct6/c
+	--assert struct7/value = #"c"
+	struct7: struct7 - 2
+	--assert struct7/value = #"a"
+
+	--test-- "loc-struct-math-10"
+	struct-idx: 2
+	struct7: struct7 + struct-idx
+	--assert struct7/value = #"c"
+
+	--test-- "loc-struct-math-11"
+	struct-idx: -2
+	struct7: struct7 + struct-idx
+	--assert struct7/value = #"a"
+
+	--test-- "loc-struct-math-12"
+	struct-idx: -2
+	struct7: struct7 - struct-idx
+	--assert struct7/value = #"c"
+	
+	--test-- "loc-struct-math-13"
+	struct8: struct [
+		a [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+		b [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+		c [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
+	]
+	struct9: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+
+	struct8/a: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/b: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/c: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+
+	struct8/a/v1: 123
+	struct8/b/v1: 456
+	struct8/c/v1: 789
+	
+	struct8/a/v2: #"a"
+	struct8/b/v2: #"b"
+	struct8/c/v2: #"c"
+	
+	struct8/a/v3: "A"
+	struct8/b/v3: "B"
+	struct8/c/v3: "C"
+
+	--assert struct8/a/v1 = 123
+	--assert struct8/b/v1 = 456
+	--assert struct8/c/v1 = 789
+	
+	--assert struct8/a/v2 = #"a"
+	--assert struct8/b/v2 = #"b"
+	--assert struct8/c/v2 = #"c"
+	
+	--assert struct8/a/v3/1 = #"A"
+	--assert struct8/b/v3/1 = #"B"
+	--assert struct8/c/v3/1 = #"C"
+
+	struct9: struct8/a
+	--assert struct9/v1 = 123
+	--assert struct9/v2 = #"a"
+	--assert struct9/v3/1 = #"A"
+
+	--test-- "loc-struct-math-14"
+	struct9: struct9 + 1
+	--assert struct9/v1 = 456
+	--assert struct9/v2 = #"b"
+	--assert struct9/v3/1 = #"B"
+]
+struct-local-foo2
+
+===end-group===
+
 
 ~~~end-file~~~

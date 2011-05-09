@@ -526,8 +526,8 @@ make target-class [
 				all [path? args/1 compiler/resolve-path-type args/1]
 			]
 			scale: switch type/1 [
-				pointer! [emitter/size-of? type/2/1]	;-- scale factor: size of pointed value
-				struct!  [emitter/member-offset? none]  ;-- scale factor: total size of the struct
+				pointer! [emitter/size-of? type/2/1]		;-- scale factor: size of pointed value
+				struct!  [emitter/member-offset? type/2 none] ;-- scale factor: total size of the struct
 			]
 		][	
 			either compiler/literal? args/2 [

@@ -267,7 +267,7 @@ system-dialect: context [
 				value = <last>  [last-type]
 				tag?    value	['logic!]
 				paren?  value	[reduce [to word! join value/1 #"!" value/2]]
-				word?   value 	[first resolve-type value]
+				word?   value 	[resolve-type value]
 				char?   value	['byte!]
 				string? value	['c-string!]
 				path?   value	[resolve-path-type value]
