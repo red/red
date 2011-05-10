@@ -23,6 +23,9 @@ unless parse system/script/args [
 		#"-" [
 			some [#"v" (verbosity: verbosity + 1)] (opts/verbosity: verbosity)
 			| #"f" copy fmt to #" " (opts/format: to-word trim fmt)
+			| "-" [
+				"no-runtime" (opts/with-runtime: false)
+			]
 		]
 	]
 	file: to end

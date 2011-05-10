@@ -1478,6 +1478,7 @@ system-dialect: context [
 		target:		'IA32				;-- CPU target
 		verbosity:	0					;-- logs verbosity level
 		sub-system:	'console			;-- 'GUI | 'console
+		with-runtime:	true			;-- include Red/System runtime
 	]
 	
 	compile: func [
@@ -1495,11 +1496,11 @@ system-dialect: context [
 			set-verbose-level opts/verbosity
 			
 			loader/init
-			comp-runtime 'prolog
+			if opts/with-runtime [comp-runtime 'prolog]
 			
 			foreach file files [compiler/run loader/process file]
 			
-			comp-runtime 'epilog
+			if opts/with-runtime [comp-runtime 'epilog]
 			compiler/finalize							;-- compile all functions
 		]
 		if verbose >= 4 [
