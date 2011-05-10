@@ -358,16 +358,21 @@ system-dialect: context [
 				any test
 			][
 				expr: either all test [
-					do expr								;-- letting REBOL reduce the expression
+					do expr								;-- let REBOL reduce the expression
 				][
 					expr: copy expr
-					any [
-						all [expr/1 = '= not any [expr/2 expr/3]]
-						all [expr/1 = first [<>] any [expr/2 expr/3]]
+					if any [
+						all [expr/1 = '= not all [expr/2 expr/3]]
+						all [expr/1 = first [<>] any [expr/2 = true expr/3 = true]]
+					][
 						insert expr 'not
 					]
 					remove-each v expr [any [find [= <>] v logic? v]]
-					if get-variable-spec expr/1 [
+					if any [
+						all [word? expr/1 get-variable-spec expr/1]
+						paren? expr/1
+						block? expr/1
+					][
 						expr: expr/1					;-- remove outer brackets if variable
 					]
 					expr
@@ -607,7 +612,7 @@ system-dialect: context [
 		comp-assignment: has [name value][
 			name: pc/1
 			pc: next pc
-			either none? value: fetch-expression [	;-- explicitly test for none!
+			either none? value: fetch-expression [		;-- explicitly test for none!
 				none
 			][				
 				new-line/all reduce [name value] no
@@ -629,19 +634,19 @@ system-dialect: context [
 	
 		comp-word: has [entry args n name][
 			case [
-				entry: select reserved-words pc/1 [	;-- reserved word
+				entry: select reserved-words pc/1 [		;-- reserved word
 					do entry
 				]
 				any [
 					all [locals find locals pc/1]
 					find globals pc/1
-				][									;-- it's a variable
+				][										;-- it's a variable
 					also pc/1 pc: next pc
 				]
 				entry: find functions name: pc/1 [
-					pc: next pc						;-- it's a function		
+					pc: next pc							;-- it's a function		
 					args: make block! n: entry/2/1
-					loop n [						;-- fetch n arguments
+					loop n [							;-- fetch n arguments
 						append/only args fetch-expression	;TBD: check arg types!
 					]
 					head insert args name
@@ -695,7 +700,7 @@ system-dialect: context [
 				]
 				set-path! [
 					do prepare-value
-					resolve-path-type tree/1				;-- check path validity
+					resolve-path-type tree/1			;-- check path validity
 					;TBD: raise error if ANY/ALL passed as argument				
 					emitter/access-path tree/1 value
 				]

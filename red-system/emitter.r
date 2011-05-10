@@ -156,9 +156,9 @@ emitter: context [
 	]
 
 	store-global: func [value type [word!] spec [block! word! none!] /local size ptr][
-		if logic? value [
+		if any [type = 'logic! logic? value][
 			type: 'integer!
-			value: to integer! value					;-- TRUE => 1, FALSE => 0
+			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
 		if value = <last> [
 			type: 'integer!
@@ -234,7 +234,6 @@ emitter: context [
 			find stack name								;-- local variable
 			find symbols name 							;-- known symbol
 		]
-		
 		either all [
 			compiler/literal? value						;-- literal values only
 			find [c-string! struct!] type/1				;-- complex types only
