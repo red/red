@@ -15,9 +15,10 @@ Red/System [
 #include %units/c-string-test.reds
 #include %units/struct-test.reds
 #include %units/pointer-test.reds
- 
+
 ;-- Native functions tests
 #include %units/not-test.reds
+#include %units/size-test.reds
  
 ;-- Special natives tests
 #include %units/exit-test.reds

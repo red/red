@@ -151,6 +151,7 @@ system-dialect: context [
 			<=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
 			not		[1	inline	- [a [logic! integer! ] return: [logic! integer!]]]
 			length? [1	inline	- [s [c-string!] return: [integer!]]]
+			size?	[1  inline  - [value return: [integer!]]]
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
@@ -266,6 +267,7 @@ system-dialect: context [
 			case [
 				value = <last>  [last-type]
 				tag?    value	['logic!]
+				logic?   value	['logic!]
 				paren?  value	[reduce [to word! join value/1 #"!" value/2]]
 				word?   value 	[resolve-type value]
 				char?   value	['byte!]
@@ -459,11 +461,22 @@ system-dialect: context [
 			none
 		]
 		
-		comp-size?: has [type size][
+		comp-size?: has [type value][
 			pc: next pc
-			type: resolve-type pc/1
-			size: select emitter/datatypes type/1
-			emitter/target/emit-load size
+			value: pc/1
+			if any [find [true false] value][
+				value: do value
+			]
+			type: switch/default type?/word value [
+				word!	  [resolve-type value]
+				path!	  [resolve-path-type value]
+				set-path! [resolve-path-type value]
+			][
+				get-mapped-type value
+			]
+			unless block? type [type: reduce [type]]
+			emitter/get-size type 
+			last-type: get-return-type 'size?
 			pc: next pc
 			<last>
 		]

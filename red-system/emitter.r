@@ -298,6 +298,11 @@ emitter: context [
 		]
 	]
 	
+	get-size: func [type [block!] size][
+		size: select emitter/datatypes type/1
+		emitter/target/emit-load size	
+	]
+	
 	arguments-size?: func [locals [block!] /push /local pos ret size][
 		pos: find locals /local
 		ret: to-set-word 'return
