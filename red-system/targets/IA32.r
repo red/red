@@ -61,55 +61,14 @@ make target-class [
 		emit #{B8}							;-- MOV eax, value
 		emit-reloc-addr spec/2				;-- one-based index
 	]
-	
-	emit-length?: func [value [word! string! struct! tag!] /local spec size][
-		if verbose >= 3 [print [">>>inlining: length?" mold value]]
-		if value = <last> [value: 'last]
 		
-		switch type?/word value [
-			word! [
-				either value = 'last [
-					;emit #{8B30} 					;--       MOV esi, [eax]
-					emit #{89C6} 					;--       MOV esi, eax
-				][
-					emit-variable value
-						#{8B35}						;--       MOV esi, [value]		; global
-						#{8B75}						;--		  MOV esi, [ebp+n]		; local
-					emit #{89F0}					;--		  MOV eax, esi
-					emit #{4E}						;-- 	  DEC esi
-				]
-				emit #{46}							;-- Loop: INC esi
-				emit #{803E00}						;-- 	  CMP byte [esi], 0
-				emit #{75FA}						;--		  JNZ Loop
-				emit #{29C6}						;--		  SUB esi, eax			; do not count the null byte
-				emit #{89F0}						;--		  MOV eax, esi
-			]
-			string! [
-				;TBD: support or throw error?
-			]
-			struct! [								;@@ useless now (replace by 'size?)
-				size: 0
-				foreach [n type] compiler/get-variable-spec value [
-					size: size + select emitter/datatypes type
-				]
-				size
-			]
-		]
-	]
-	
 	emit-not: func [value [word! tag! integer! logic!] /local opcodes][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
 		
 		opcodes: [
-			logic! [
-				emit #{3401}						;-- XOR al, 1		; invert 0<=>1
-			]
-			byte! [
-				emit #{F6D0}						;-- NOT al
-			]										; @@ missing 16-bit support
-			integer! [
-				emit #{F7D0}						;-- NOT eax
-			]
+			logic!	 [emit #{3401}]					;-- XOR al, 1			; invert 0<=>1
+			byte!	 [emit #{F6D0}]					;-- NOT al				; @@ missing 16-bit support									
+			integer! [emit #{F7D0}]					;-- NOT eax
 		]
 		switch type?/word value [
 			logic! [
@@ -130,10 +89,10 @@ make target-class [
 	]
 	
 	emit-boolean-switch: does [
-		emit #{31C0}								;-- 	  XOR eax, eax		; eax = 0 (FALSE)
+		emit #{31C0}								;-- 	  XOR eax, eax	; eax = 0 (FALSE)
 		emit #{EB03}								;-- 	  JMP _exit
 		emit #{31C0}								;--		  XOR eax, eax
-		emit #{40}									;--		  INC eax			; eax = 1 (TRUE)
+		emit #{40}									;--		  INC eax		; eax = 1 (TRUE)
 													;-- _exit:
 		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
@@ -804,7 +763,6 @@ make target-class [
 				]		
 				do select [
 					not		[emit-not args/1]
-					length? [emit-length? args/1]
 				] name
 			]
 			op	[

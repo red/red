@@ -150,7 +150,6 @@ system-dialect: context [
 			>=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
 			<=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
 			not		[1	inline	- [a [logic! integer! ] return: [logic! integer!]]]
-			length? [1	inline	- [s [c-string!] return: [integer!]]]
 			size?	[1  inline  - [value return: [integer!]]]
 		]
 		
@@ -475,7 +474,7 @@ system-dialect: context [
 				get-mapped-type value
 			]
 			unless block? type [type: reduce [type]]
-			emitter/get-size type 
+			emitter/get-size type value
 			last-type: get-return-type 'size?
 			pc: next pc
 			<last>

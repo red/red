@@ -199,7 +199,6 @@ emitter: context [
 				store-global 0 'integer! none
 			]
 			struct! [
-				pad-data-buf target/struct-align-size
 				ptr: tail data-buf
 				foreach [var type] spec [
 					type: either find [struct! c-string!] type/1 ['pointer!][type/1]
@@ -252,11 +251,16 @@ emitter: context [
 		if name [target/emit-store name value spec]
 	]
 		
-	member-offset?: func [spec [block!] name [word! none!] /local offset][
+	member-offset?: func [spec [block!] name [word! none!] /local offset over][
 		offset: 0
 		foreach [var type] spec [
+			all [
+				find [integer! c-string! pointer! struct!] type/1
+				not zero? over: offset // target/struct-align-size 
+				offset: offset + target/struct-align-size - over ;-- properly account for alignment
+			]
 			if var = name [break]
-			offset: offset + max size-of? type/1 target/struct-align-size
+			offset: offset + size-of? type/1
 		]
 		offset
 	]
@@ -298,9 +302,16 @@ emitter: context [
 		]
 	]
 	
-	get-size: func [type [block!] size][
-		size: select emitter/datatypes type/1
-		emitter/target/emit-load size	
+	get-size: func [type [block!] value][
+		switch/default type/1 [
+			c-string! [
+				target/emit-call 'length? reduce [value]
+				target/emit-call '+ [<last> 1]
+			]
+			struct! [target/emit-load member-offset? type/2 none]
+		][
+			target/emit-load select datatypes type/1
+		]
 	]
 	
 	arguments-size?: func [locals [block!] /push /local pos ret size][

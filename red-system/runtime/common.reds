@@ -7,9 +7,21 @@ Red/System [
 ]
 
 #define zero? 		[0 =]
-#define positive?	[0 < ]	;-- space required after the lesser-than symbol
+#define positive?	[0 < ]		;-- space required after the lesser-than symbol
 #define negative?	[0 > ]
 #define negate		[0 -]
 
 #define forever		[while [true]]
 #define does		[func []]
+
+
+length?: func [					;; return the number of characters from a c-string value ;;
+	s 		 [c-string!]		;; c-string value ;;
+	return:  [integer!]
+	/local 
+		base [c-string!]
+][
+	base: s
+	while [s/1 <> 0][s: s + 1]
+	s - base 					;-- do not count the terminal zero
+]
