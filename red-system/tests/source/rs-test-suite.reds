@@ -10,7 +10,7 @@ Red/System [
 
 ;-- Datatype tests
 #include %units/logic-test.reds
-#include %units/integer-auto-test.reds
+#include %units/integer-test.reds
 #include %units/byte-test.reds
 #include %units/c-string-test.reds
 #include %units/struct-test.reds
