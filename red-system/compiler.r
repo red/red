@@ -131,6 +131,11 @@ system-dialect: context [
 		globals:  	   make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: make hash!  10					;-- list of aliased type definitions
 		
+		pos:		none								;-- validation rules cursor for error reporting
+		return-def: to-set-word 'return					;-- return: keyword
+		fail:		[end skip]							;-- fail rule
+		rule: w:	none								;-- global parsing rules helpers
+		
 		functions: to-hash [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
 			+		[2	op		- [a [number! pointer!] b [number! pointer!] return: [integer!]]]
@@ -155,13 +160,27 @@ system-dialect: context [
 		
 		user-functions: tail functions	;-- marker for user functions
 		
-		datatype: [
-			'int8! | 'int16! | 'int32! | 'integer! | 'int64! | 'uint8! | 'uint16! |
-			'uint32! | 'uint64! | 'pointer! | 'binary! | 'c-string! | 'logic! | 'byte!
-			| 'struct! block!	; @@ temporary hack to make struct unit tests pass
+		struct-syntax: [
+			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
+			pos: any [word! into type-spec]							;-- struct's members
 		]
 		
-		reserved-words: [
+		pointer-syntax: ['integer!]
+		
+		type-syntax: [
+			'int8! | 'int16! | 'int32! | 'integer! | 'uint8! | 'uint16! | 'uint32!
+			| 'c-string! | 'logic! | 'byte!
+			| 'pointer! into [pointer-syntax]
+			| 'struct!  into [struct-syntax]
+		]
+
+		type-spec: [
+			pos: some type-syntax | set w word! (				;-- multiple types allowed for internal usage
+				rule: either find aliased-types w [[skip]][fail]	;-- make the rule fail if not found
+			) rule
+		]		
+		
+		keywords: [
 			;&			 []
 			as			 [comp-as]
 			size? 		 [comp-size?]
@@ -191,7 +210,7 @@ system-dialect: context [
 					join uppercase/part mold err 1 " error"
 				][err]
 			]
-			print ["at: " mold copy/part pc 4]
+			print ["*** at: " mold copy/part pc 4]
 			clean-up
 			halt
 		]
@@ -207,12 +226,12 @@ system-dialect: context [
 		]
 		
 		get-return-type: func [name [word!] /local type][
-			type: select functions/:name/4 [return:]
+			type: select functions/:name/4 return-def
 			either type [type/1][none]
 		]
 		
 		set-last-type: func [spec [block!]][
-			if spec: select spec [return:][last-type: spec/1]
+			if spec: select spec return-def [last-type: spec/1]
 		]
 		
 		get-variable-spec: func [name [word!]][
@@ -292,27 +311,28 @@ system-dialect: context [
 				(index? pos) -  1 / 2
 			][
 				(length? spec/3) / 2
-			]		
-			if find spec/3 [return:][arity: max 0 arity - 1]
+			]
+			if find spec/3 return-def [arity: max 0 arity - 1]
 			repend functions [
 				name reduce [arity type cc new-line/all spec/3 off]
 			]
 		]
 		
-		check-specs: func [specs /local type s][
+		check-specs: func [name specs /local type spec-type attribs value][
 			unless block? specs [throw-error 'syntax]
-			type: [
-				some datatype | s: set w word! (
-					if find aliased-types w [s: next s]		;-- make the rule fail if not found
-				) :s
-			]		
+			attribs: ['infix]
+
 			unless parse specs [
-				opt [into [some word!]]					;-- functions attributes pass-thru
-				any [word! into type]					;TBD: check datatypes compatibility!
-				opt [set-word! into type]
-				opt [/local some [word! into type]]
+				pos: opt [into [some attribs]]				;-- functions attributes
+				pos: any [pos: word! into type-spec]		;-- arguments definition
+				pos: opt [									;-- return type definition				
+					set value set-word! (					
+						rule: pick [[into type-spec] fail] value = return-def					
+					) rule
+				]
+				pos: opt [/local some [pos: word! into type-spec]] ;-- local variables definition
 			][			
-				throw-error "invalid function specs"
+				throw-error rejoin ["invalid definition for function " name ": " mold pos]
 			]		
 		]
 		
@@ -331,8 +351,8 @@ system-dialect: context [
 		]
 		
 		fetch-func: func [name /local specs type][
-			;check if name taken
-			check-specs pc/2
+			;check if name is word and taken
+			check-specs name pc/2
 			specs: pc/2
 			type: 'native
 			if all [
@@ -429,13 +449,17 @@ system-dialect: context [
 			value
 		]
 		
-		comp-struct: has [value][
-			;TBD check struct spec validity
+		comp-struct: does [		
+			unless parse pos: pc/2 struct-syntax [
+				throw-error reform ["invalid struct syntax:" mold pos]
+			]
 			comp-reference-literal
 		]
 		
-		comp-pointer: has [value][
-			;TBD check pointer spec validity
+		comp-pointer: does [
+			unless parse pos: pc/2 pointer-syntax [
+				throw-error reform ["invalid pointer syntax:" mold pos]
+			]
 			comp-reference-literal
 		]
 		
@@ -646,7 +670,7 @@ system-dialect: context [
 	
 		comp-word: has [entry args n name][
 			case [
-				entry: select reserved-words pc/1 [		;-- reserved word
+				entry: select keywords pc/1 [		;-- reserved word
 					do entry
 				]
 				any [

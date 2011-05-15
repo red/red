@@ -61,8 +61,8 @@ Red/System [
 
 	--test-- "pointer-rw-9"
 	foo-pointer: func [
-		a [pointer!]			;-- should be [pointer! [integer!]]	(validation not fully implemented yet)
-		return: [pointer!]		;-- should be [pointer! [integer!]] (validation not fully implemented yet)
+		a [pointer! [integer!]]
+		return: [pointer! [integer!]]
 	][
 		a
 	]
@@ -144,11 +144,15 @@ Red/System [
 pointer-local-foo: func [
 	/local
 		p-struct [struct! [n [integer!] m [integer!]]]
-		pA 		 [pointer!]	;-- should be [pointer! [integer!]]	(validation not fully implemented yet)
-		pB 		 [pointer!]	;-- should be [pointer! [integer!]]	(validation not fully implemented yet)
+		pA 		 [pointer! [integer!]]
+		pB 		 [pointer! [integer!]]
 		p-int    [integer!]
 		p-idx    [integer!]
-		pointer-str [struct! [A [pointer!] B [pointer!] sub [struct! [C [pointer!]]]]] ;-- should be [pointer! [integer!]]	(validation not fully implemented yet)
+		pointer-str [struct! [
+			A [pointer! [integer!]]
+			B [pointer! [integer!]]
+			sub [struct! [C [pointer! [integer!]]]]
+		]]
 		pa-struct [struct! [n [integer!] m [integer!] p [integer!] o [integer!]]]
 ][
 
@@ -201,8 +205,8 @@ pointer-local-foo: func [
 
 	--test-- "loc-point-rw-9"
 	foo-pointer: func [
-		a [pointer!]			;-- should be [pointer! [integer!]]	(validation not fully implemented yet)
-		return: [pointer!]		;-- should be [pointer! [integer!]] (validation not fully implemented yet)
+		a [pointer! [integer!]]
+		return: [pointer! [integer!]]
 	][
 		a
 	]

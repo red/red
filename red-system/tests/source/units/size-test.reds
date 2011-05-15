@@ -81,7 +81,7 @@ sz-foo: func [
 	sz-c 	[logic!]
 	sz-d	[c-string!]
 	sz-struct [struct! [a [byte!]]]
-	sz-pointer [pointer!]			;-- should be [pointer! [integer!]] (validation not fully implemented yet)
+	sz-pointer [pointer! [integer!]]
 	sz-struct2 [struct! [a [byte!] b [byte!]]]
 	sz-struct3 [struct! [a [byte!] b [integer!]]]
 	sz-struct4 [struct! [a [integer!] b [byte!]]]
