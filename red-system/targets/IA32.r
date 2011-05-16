@@ -62,7 +62,7 @@ make target-class [
 		emit-reloc-addr spec/2				;-- one-based index
 	]
 		
-	emit-not: func [value [word! tag! integer! logic!] /local opcodes][
+	emit-not: func [value [word! tag! integer! logic! path!] /local opcodes][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
 		
 		opcodes: [
@@ -84,6 +84,10 @@ make target-class [
 			]
 			tag! [
 				switch compiler/last-type opcodes
+			]
+			path! [
+				emitter/access-path value none
+				do opcodes/integer!
 			]
 		]
 	]
