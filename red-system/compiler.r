@@ -331,7 +331,7 @@ system-dialect: context [
 				pos: any [pos: word! into type-spec]		;-- arguments definition
 				pos: opt [									;-- return type definition				
 					set value set-word! (					
-						rule: pick [[into type-spec] fail] value = return-def					
+						rule: pick reduce [[into type-spec] fail] value = return-def
 					) rule
 				]
 				pos: opt [/local some [pos: word! into type-spec]] ;-- local variables definition
