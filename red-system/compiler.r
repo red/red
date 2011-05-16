@@ -205,7 +205,7 @@ system-dialect: context [
 		
 		throw-error: func [err [word! string!]][
 			print [
-				"***"
+				"*** Compilation Error:"
 				either word? err [
 					join uppercase/part mold err 1 " error"
 				][err]

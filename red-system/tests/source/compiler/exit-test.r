@@ -32,7 +32,7 @@ write %runnable/exit.reds
     until [exit]
   }
 exe: qt/compile src: %runnable/exit.reds
-qt/assert "exit-compile-2" none <> find qt/comp-output "*** datatype not allowed"
+qt/assert "exit-compile-2" none <> find qt/comp-output "*** Compilation Error: datatype not allowed"
 if exists? %runnable/exit.reds [delete %runnable/exit.reds]
 if all
 [

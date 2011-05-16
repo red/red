@@ -16,7 +16,7 @@ write %runnable/return.reds
     until [return]
   }
 exe: qt/compile src: %runnable/return.reds
-qt/assert "return-compile-2" none <> find qt/comp-output "*** datatype not allowed"
+qt/assert "return-compile-2" none <> find qt/comp-output "*** Compilation Error: datatype not allowed"
 if exists? %runnable/return.reds [delete %runnable/return.reds]
 if all [
   exe
