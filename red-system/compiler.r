@@ -227,7 +227,11 @@ system-dialect: context [
 		
 		get-return-type: func [name [word!] /local type][
 			type: select functions/:name/4 return-def
-			either type [type/1][none]
+			unless type [
+				pc: any [find/reverse pc name pc]
+				throw-error reform ["return type missing in function:" name]
+			]
+			type/1
 		]
 		
 		set-last-type: func [spec [block!]][
