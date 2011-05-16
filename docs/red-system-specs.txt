@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 05/05/2011
-	Revision: 7
+	Date: ??/05/2011
+	Revision: 8
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -338,7 +338,7 @@ Declaring a struct! value is achieved by using the STRUCT keyword followed by a 
  ]
  
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [integer!] |
+ <datatype> : integer! | byte! | pointer! [integer!] | logic! |
               c-string! | struct! [<members>]
               
 The returned value of STRUCT is the memory address of the newly created struct value.
@@ -409,7 +409,7 @@ Aliasing syntax:
  
  <name>     : the name to use as alias
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [integer!] |
+ <datatype> : integer! | byte! | pointer! [integer!] | logic! |
               c-string! | struct! [<members>]
               
 Struct value declaration using an aliased definition:
@@ -615,7 +615,7 @@ Syntax:
 
  as <new-type> value
 
- <new-type> : integer! | byte! | pointer! [integer!] |
+ <new-type> : integer! | byte! | pointer! [integer!] | logic! |
               c-string! | struct! [<members>]
 
 Example:
@@ -1578,6 +1578,10 @@ will output:
 *>Extend the get-word! syntax to integer! variables.
 
 ===Document History
+
+*??/05/2011 - draft 8
+
+*>Added logic! datatype to struct members and type casting allowed types.
 
 *05/05/2011 - draft 7
 
