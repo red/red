@@ -386,14 +386,14 @@ system-dialect: context [
 			][
 				get-mapped-type expr
 			]
-			unless block? type [type: reduce [type]]
-
+			unless block? type [type: reduce [type]]	 ;-- normalize type spec
+			
 			unless any [
 				all [
 					find type-sets expected
-					find expected: get expected/1 type/1	;-- internal polymorphic case
+					find expected: get expected/1 type/1 ;-- internal polymorphic case
 				]
-				expected = type 							;-- normal mono-type case
+				expected = type 						 ;-- normal mono-type case
 			][
 				pc: any [
 					find/reverse pc any [all [block? expr expr/1] expr]
@@ -404,6 +404,25 @@ system-dialect: context [
 					"type mismatch, expected:" mold expected
 					", found:" mold type
 				]
+			]
+		]
+		
+		check-arguments-type: func [expr /local name args entry spec][
+			if find [set-word! set-path!] type?/word expr/1 [exit]
+			
+			name: expr/1
+			args: next expr
+			entry: find functions name
+			
+			if all [
+				not empty? spec: entry/2/4 
+				block? spec/1
+			][
+				spec: next spec					;-- jump over attributes block
+			]
+			foreach arg args [
+				check-expected-type name arg spec/2
+				spec: skip spec	2
 			]
 		]
 		
@@ -429,11 +448,15 @@ system-dialect: context [
 			if all [
 				not empty? specs
 				block? specs/1
-				find specs/1 'infix
 			][
-				;TBD: check for two arguments presence
-				specs: next specs				;@@ quick'n dirty workaround
-				type: 'infix				
+				case [
+					find specs/1 'infix [
+						;TBD: check for two arguments presence
+						specs: next specs
+						type: 'infix
+					]
+					; add future attributes processing code here
+				]
 			]
 			add-function type reduce [name none specs] 'stdcall
 			emitter/add-native to word! name
@@ -738,41 +761,30 @@ system-dialect: context [
 			]
 		]
 	
-		comp-word: has [entry args n spec name expr][
+		comp-word: has [entry args n name expr][
 			case [
-				entry: select keywords pc/1 [		;-- reserved word
-					do entry
-				]
+				entry: select keywords pc/1 [do entry]	;-- it's a reserved word
+				
 				any [
 					all [locals find locals pc/1]
 					find globals pc/1
 				][										;-- it's a variable
 					also pc/1 pc: next pc
 				]
+				
 				entry: find functions name: pc/1 [
 					pc: next pc							;-- it's a function		
 					args: make block! n: entry/2/1
-					if all [
-						not empty? spec: entry/2/4 
-						block? spec/1
-					][
-						spec: next spec					;-- jump over attributes block
-					]
-					loop n [							;-- fetch n arguments
-						expr: fetch-expression						
-						check-expected-type name expr spec/2
-						append/only args expr
-						spec: skip spec	2
-					]
+					loop n [append/only args fetch-expression]	;-- fetch n arguments
 					head insert args name
 				]
 				'else [throw-error ["undefined symbol:" mold name]]
 			]
 		]
 		
-		order-args: func [tree [block!] /local func? name type][
+		order-args: func [tree [block!] /local name type][
 			if all [
-				func?: not find [set-word! set-path!] type?/word tree/1
+				not find [set-word! set-path!] type?/word tree/1
 				name: to word! tree/1
 				find [import native infix] functions/:name/2
 				find [stdcall cdecl gcc45] functions/:name/3
@@ -830,7 +842,7 @@ system-dialect: context [
 						]
 					]									
 					args/1: <last>
-				]			
+				]
 				type: emitter/target/emit-call name args
 				if type [last-type: type]
 				
@@ -894,6 +906,7 @@ system-dialect: context [
 				if verbose >= 3 [?? expr]
 				case [
 					block? expr [
+						check-arguments-type expr
 						order-args expr
 						either keep [
 							comp-expression/keep expr
