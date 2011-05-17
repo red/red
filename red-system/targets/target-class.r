@@ -99,26 +99,7 @@ target-class: context [
 		]
 	]
 	
-	operand-type?: func [operand][
-		switch/default type?/word operand [
-				char!	 ['byte!]
-				integer! ['integer!]
-				word!	 [first compiler/resolve-type operand]
-				block!	 [
-					either 'op = second select compiler/functions operand/1 [
-						operand-type? operand/2		;-- recursively search for an atomic left operand
-					][
-						compiler/get-return-type operand/1
-					]
-				]
-				tag!	 [compiler/last-type]
-				path!	 [compiler/resolve-path-type operand]
-			][
-				compiler/throw-error reform ["Undefined type for:" mold operand]
-		]
-	]
-	
 	set-width: func [operand /type][
-		width: emitter/size-of? either type [operand][operand-type? operand]
+		width: emitter/size-of? either type [operand][compiler/argument-type? operand]
 	]
 ]

@@ -22,9 +22,9 @@ Red/System [
 ===start-group=== "Test infix call with an additional infix operator"
   --test-- "infix-2"
     inf-assert?: func [[infix] s [c-string!] t [logic!]][
-  --assert  t
+  		--assert  t
     ]
-    inf-assert? (inf-value = 5)	;-- paren are mandatory to force evaluation priority
+    "test" inf-assert? (inf-value = 5)	;-- paren are mandatory to force evaluation priority
 ===end-group===
 
 ~~~end-file~~~

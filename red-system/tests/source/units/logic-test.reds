@@ -84,30 +84,30 @@ Red/System [
 ===end-group===
 
 ===start-group=== "passing logic! as function's argument tests"
-    foo: func [a [logic!] return: [logic!]][a]
+    log-foo: func [a [logic!] return: [logic!]][a]
   
   --test-- "logic-arg-1"    
-  --assert foo true
+  --assert log-foo true
 
   --test-- "logic-arg-2" 
-  --assert not foo false
+  --assert not log-foo false
 
   --test-- "logic-arg-3" 
-  --assert foo 1 < 2
+  --assert log-foo 1 < 2
   
   --test-- "logic-arg-4"
-  --assert foo 3 <> 4
+  --assert log-foo 3 <> 4
   
   --test-- "logic-arg-5"
-  --assert foo (1 + 1 < 3)
+  --assert log-foo (1 + 1 < 3)
   
   --test-- "logic-arg-6"
     a: false
-    if false = foo (2 + 2 = 5) [a: true]
+    if false = log-foo (2 + 2 = 5) [a: true]
   --assert a
   
   --test-- "logic-arg-7"
-  --assert not foo 3 = 4
+  --assert not log-foo 3 = 4
 
 ===end-group===
   
@@ -182,28 +182,28 @@ Red/System [
   --assert not a
 
   --test-- "logic-all-15"
-  --assert not foo all [1 = 2]
+  --assert not log-foo all [1 = 2]
   
   --test-- "logic-all-16"
-  --assert foo all [1 < 2 3 <> 4]
+  --assert log-foo all [1 < 2 3 <> 4]
   
   --test-- "logic-all-17"
-  --assert not foo all [1 = 2 3 <> 4]
+  --assert not log-foo all [1 = 2 3 <> 4]
 
   --test-- "logic-all-18"
-    a: foo all [1 < 2]
+    a: log-foo all [1 < 2]
   --assert a 
 
   --test-- "logic-all-19"
-    a: foo all [1 = 2]
+    a: log-foo all [1 = 2]
   --assert not a
   
   --test-- "logic-all-20"
-    a: foo all [1 < 2 3 <> 4]
+    a: log-foo all [1 < 2 3 <> 4]
   --assert a
 
     --test-- "logic-all-21"
-      a: all [foo true]
+      a: all [log-foo true]
   --assert a
   
 ===end-group===
@@ -279,28 +279,28 @@ Red/System [
   --assert a
   
   --test-- "logic-any-15"
-  --assert not foo any [1 = 2]
+  --assert not log-foo any [1 = 2]
   
   --test-- "logic-any-16"
-  --assert foo any [1 < 2 3 <> 4]
+  --assert log-foo any [1 < 2 3 <> 4]
   
   --test-- "logic-any-17"
-  --assert foo any [1 = 2 3 <> 4]
+  --assert log-foo any [1 = 2 3 <> 4]
   
   --test-- "logic-any-18"
-    a: foo any [1 < 2]
+    a: log-foo any [1 < 2]
   --assert a 
 
   --test-- "logic-any-19"
-    a: foo any [1 = 2]
+    a: log-foo any [1 = 2]
   --assert not a 
 
   --test-- "logic-any-20"
-    a: foo any [1 < 2 3 <> 4]
+    a: log-foo any [1 < 2 3 <> 4]
   --assert a
 
   --test-- "logic-any-21"
-    a: any [foo true]
+    a: any [log-foo true]
   --assert a
 
 ===end-group===
@@ -374,15 +374,15 @@ Red/System [
   
   --test-- "logic-=-9"
     a: false
-  --assert foo a = false
+  --assert log-foo a = false
   
   --test-- "logic-=-10"
     a: false
-  --assert foo a = false
+  --assert log-foo a = false
   
   --test-- "logic-=-11"
     a: true
-  --assert not foo a = false
+  --assert not log-foo a = false
   
 ===end-group===
 

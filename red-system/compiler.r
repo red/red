@@ -82,14 +82,16 @@ system-dialect: context [
 							s: skip s 2					;-- already included, skip it
 						][
 							if verbose > 0 [print ["...including file:" mold name]]
-							value: skip process/short name 2	;-- skip Red/System header						
-							e: change/part s value e
+							value: skip process/short name 2			;-- skip Red/System header						
+							e: skip change/part s value e 2
+							insert s reduce [#script name]				;-- mark code origin
+							insert e reduce [#script compiler/script]	;-- put back the parent origin
 						]
 					) :s
 					| into blk
 					| skip
 				]
-			]		
+			]
 		]
 		
 		process: func [input [file! string!] /short /local src err path][
@@ -106,6 +108,11 @@ system-dialect: context [
 					print ["File Access Error:" mold disarm err]
 				]
 			]
+			either file? input [
+				unless short [compiler/script: input]
+			][
+				compiler/script: 'memory
+			]
 			expand-string src: any [src input]			;-- process string-level compiler directives
 			
 			;TBD: add Red/System header checking here!
@@ -114,7 +121,7 @@ system-dialect: context [
 				print ["Syntax Error at LOAD phase:" mold disarm err]
 			]
 			
-			unless short [expand-block src]		;-- process block-level compiler directives		
+			unless short [expand-block src]				;-- process block-level compiler directives		
 			src
 		]
 	]
@@ -122,6 +129,7 @@ system-dialect: context [
 	compiler: context [
 		job: 		none								;-- compilation job object
 		pc:			none								;-- source code input cursor
+		script:		none								;-- source script file name
 		last-type:	none								;-- type of last value from an expression
 		locals: 	none								;-- currently compiled function specification block
 		verbose:  	0									;-- logs verbosity level
@@ -136,26 +144,34 @@ system-dialect: context [
 		fail:		[end skip]							;-- fail rule
 		rule: w:	none								;-- global parsing rules helpers
 		
+		not-set!:	[logic! integer!]									;-- reserved for internal use only
+		number!: 	[byte! integer!]									;-- reserved for internal use only
+		poly!:		[byte! integer! pointer! struct! c-string!]			;-- reserved for internal use only
+		any-type!:	[byte! integer! pointer! struct! c-string! logic!]	;-- reserved for internal use only
+		type-sets:	[not-set! number! poly! any-type!]					;-- reserved for internal use only
+		
+		comparison-op: [= <> < > <= >=]
+		
 		functions: to-hash [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
-			+		[2	op		- [a [number! pointer!] b [number! pointer!] return: [integer!]]]
-			-		[2	op		- [a [number! pointer!] b [number! pointer!] return: [integer!]]]
-			*		[2	op		- [a [number!] b [number!] return: [integer!]]]
-			/		[2	op		- [a [number!] b [number!] return: [integer!]]]
-			and		[2	op		- [a [number!] b [number!] return: [integer!]]]
-			or		[2	op		- [a [number!] b [number!] return: [integer!]]]
-			xor		[2	op		- [a [number!] b [number!] return: [integer!]]]
-			//		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- modulo
-			;>>		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift left
-			;<<		[2	op		- [a [number!] b [number!] return: [integer!]]]		;-- shift right
-			=		[2	op		- [a b return: [logic!]]]
-			<>		[2	op		- [a b return: [logic!]]]
-			>		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
-			<		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
-			>=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
-			<=		[2	op		- [a [number! pointer!] b [number! pointer!] return: [logic!]]]
-			not		[1	inline	- [a [logic! integer! ] return: [logic! integer!]]]
-			size?	[1  inline  - [value return: [integer!]]]
+			+		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
+			-		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
+			*		[2	op		- [a [number!] b [number!] return: [number!]]]
+			/		[2	op		- [a [number!] b [number!] return: [number!]]]
+			and		[2	op		- [a [number!] b [number!] return: [number!]]]
+			or		[2	op		- [a [number!] b [number!] return: [number!]]]
+			xor		[2	op		- [a [number!] b [number!] return: [number!]]]
+			//		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- modulo
+			;>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left
+			;<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right
+			=		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
+			<>		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
+			>		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
+			<		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
+			>=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
+			<=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
+			not		[1	inline	- [a [not-set!] 		   return: [logic!]]]	;@@ return should be not-set!
+			size?	[1  inline  - [value [any-type!] 	   return: [integer!]]]
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
@@ -168,8 +184,8 @@ system-dialect: context [
 		pointer-syntax: ['integer!]
 		
 		type-syntax: [
-			'int8! | 'int16! | 'int32! | 'integer! | 'uint8! | 'uint16! | 'uint32!
-			| 'c-string! | 'logic! | 'byte!
+			'logic! | 'int32! | 'integer! | 'uint8! | 'byte!
+			| 'c-string!
 			| 'pointer! into [pointer-syntax]
 			| 'struct!  into [struct-syntax]
 		]
@@ -196,21 +212,21 @@ system-dialect: context [
 			struct! 	 [also 'struct! pc: next pc]	;@@ was required for 'alias (still needed?)
 			true		 [also true pc: next pc]		;-- converts word! to logic!
 			false		 [also false pc: next pc]		;-- converts word! to logic!
-			func 		 [comp-function]
-			function 	 [comp-function]
+			func 		 [fetch-func pc/-1 none]
+			function 	 [fetch-func pc/-1 none]
 			alias 		 [comp-alias]
 			struct 		 [comp-struct]
 			pointer 	 [comp-pointer]
 		]
 		
-		throw-error: func [err [word! string!]][
+		throw-error: func [err [word! string! block!]][
 			print [
 				"*** Compilation Error:"
 				either word? err [
 					join uppercase/part mold err 1 " error"
-				][err]
+				][reform err]
 			]
-			print ["*** at: " mold copy/part pc 4]
+			print ["*** in:" mold script "^/*** at: " mold copy/part pc 4]
 			clean-up
 			halt
 		]
@@ -229,7 +245,7 @@ system-dialect: context [
 			type: select functions/:name/4 return-def
 			unless type [
 				pc: any [find/reverse pc name pc]
-				throw-error reform ["return type missing in function:" name]
+				throw-error ["return type missing in function:" name]
 			]
 			type/1
 		]
@@ -289,15 +305,35 @@ system-dialect: context [
 			case [
 				value = <last>  [last-type]
 				tag?    value	['logic!]
-				logic?   value	['logic!]
+				logic?  value	['logic!]
 				paren?  value	[reduce [to word! join value/1 #"!" value/2]]
 				word?   value 	[resolve-type value]
 				char?   value	['byte!]
 				string? value	['c-string!]
 				path?   value	[resolve-path-type value]
 				block?  value	[get-return-type value/1]
-				'else 			[type?/word value]	;@@ should throw an error?
+				'else 			[type?/word value]		;@@ should throw an error?
 			]	
+		]
+		
+		argument-type?: func [arg][
+			switch/default type?/word arg [
+					char!	 ['byte!]
+					integer! ['integer!]
+					logic!   ['logic!]
+					word!	 [first resolve-type arg]
+					block!	 [
+						either 'op = second select functions arg/1 [
+							argument-type? arg/2		;-- recursively search for an atomic left operand
+						][
+							get-return-type arg/1
+						]
+					]
+					tag!	 [last-type]
+					path!	 [resolve-path-type arg]
+				][
+					throw-error ["Undefined type for:" mold arg]
+			]
 		]
 		
 		add-symbol: func [name [word!] value /local type][
@@ -327,9 +363,9 @@ system-dialect: context [
 			attribs: ['infix]
 
 			unless parse specs [
-				pos: opt [into [some attribs]]				;-- functions attributes
-				pos: any [pos: word! into type-spec]		;-- arguments definition
-				pos: opt [									;-- return type definition				
+				pos: opt [into [some attribs]]			;-- functions attributes
+				pos: any [pos: word! into type-spec]	;-- arguments definition
+				pos: opt [								;-- return type definition				
 					set value set-word! (					
 						rule: pick reduce [[into type-spec] fail] value = return-def
 					) rule
@@ -338,6 +374,37 @@ system-dialect: context [
 			][			
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
 			]		
+		]
+		
+		check-expected-type: func [name [word!] expr expected [block!] /local type][
+			type: either all [
+				block? expr
+				not find comparison-op expr/1
+				find [op inline] second select functions expr/1	;-- works for unary & binary functions only!
+			][
+				argument-type? expr/2
+			][
+				get-mapped-type expr
+			]
+			unless block? type [type: reduce [type]]
+
+			unless any [
+				all [
+					find type-sets expected
+					find expected: get expected/1 type/1	;-- internal polymorphic case
+				]
+				expected = type 							;-- normal mono-type case
+			][
+				pc: any [
+					find/reverse pc any [all [block? expr expr/1] expr]
+					find/reverse pc name
+					pc
+				]
+				throw-error [
+					"type mismatch, expected:" mold expected
+					", found:" mold type
+				]
+			]
 		]
 		
 		check-body: func [body][
@@ -370,7 +437,7 @@ system-dialect: context [
 			]
 			add-function type reduce [name none specs] 'stdcall
 			emitter/add-native to word! name
-			repend bodies [to word! name specs pc/3]
+			repend bodies [to word! name specs pc/3 script]
 			pc: skip pc 3
 		]
 		
@@ -439,6 +506,10 @@ system-dialect: context [
 				]
 				#define  [pc: skip pc 3]				;-- preprocessed before
 				#include [pc: skip pc 2]				;-- preprocessed before
+				#script	 [								;-- internal compiler directive
+					compiler/script: pc/2				;-- set the origin of following code
+					pc: skip pc 2
+				]
 			][
 				;TBD: unknown directive error
 			]
@@ -455,14 +526,14 @@ system-dialect: context [
 		
 		comp-struct: does [		
 			unless parse pos: pc/2 struct-syntax [
-				throw-error reform ["invalid struct syntax:" mold pos]
+				throw-error ["invalid struct syntax:" mold pos]
 			]
 			comp-reference-literal
 		]
 		
 		comp-pointer: does [
 			unless parse pos: pc/2 pointer-syntax [
-				throw-error reform ["invalid pointer syntax:" mold pos]
+				throw-error ["invalid pointer syntax:" mold pos]
 			]
 			comp-reference-literal
 		]
@@ -517,11 +588,6 @@ system-dialect: context [
 			emitter/target/emit-exit
 			none
 		]
-		
-		comp-function: does [
-			fetch-func pc/-1
-			none
-		]
 
 		comp-block-chunked: func [/only /test /local expr][
 			emitter/chunks/start
@@ -537,7 +603,7 @@ system-dialect: context [
 			]
 		]
 		
-		check-logic: func [expr][						;-- preprocess logic values
+		check-logic: func [expr /local type][			;-- preprocess logic values
 			switch/default type?/word expr [
 				logic! [[#[true]]]
 				word!  [
@@ -547,9 +613,9 @@ system-dialect: context [
 					]
 					if all [
 						type = 'function!
-						'logic! <> get-return-type expr
+						'logic! <> type: get-return-type expr
 					][
-						throw-error reform [
+						throw-error [
 							"expecting a logic! return value from function"
 							mold expr
 						]
@@ -558,7 +624,7 @@ system-dialect: context [
 					[#[true]]
 				]
 				block! [
-					either find emitter/target/comparison-op expr/1 [
+					either find comparison-op expr/1 [
 						expr
 					][
 						check-logic expr/1
@@ -672,7 +738,7 @@ system-dialect: context [
 			]
 		]
 	
-		comp-word: has [entry args n name][
+		comp-word: has [entry args n spec name expr][
 			case [
 				entry: select keywords pc/1 [		;-- reserved word
 					do entry
@@ -686,12 +752,21 @@ system-dialect: context [
 				entry: find functions name: pc/1 [
 					pc: next pc							;-- it's a function		
 					args: make block! n: entry/2/1
+					if all [
+						not empty? spec: entry/2/4 
+						block? spec/1
+					][
+						spec: next spec					;-- jump over attributes block
+					]
 					loop n [							;-- fetch n arguments
-						append/only args fetch-expression	;TBD: check arg types!
+						expr: fetch-expression						
+						check-expected-type name expr spec/2
+						append/only args expr
+						spec: skip spec	2
 					]
 					head insert args name
 				]
-				'else [throw-error "undefined symbol"]
+				'else [throw-error ["undefined symbol:" mold name]]
 			]
 		]
 		
@@ -749,7 +824,7 @@ system-dialect: context [
 				args: next tree
 				if all [tag? args/1 args/1 <> <last>][	;-- special encoding for ALL/ANY
 					if 1 < length? args [
-						throw-error reform [
+						throw-error [
 							"function" name
 							"requires only one argument when passing ANY/ALL expression"
 						]
@@ -868,7 +943,7 @@ system-dialect: context [
 		
 		comp-natives: does [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
-			foreach [name spec body] bodies [
+			foreach [name spec body origin] bodies [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -876,6 +951,7 @@ system-dialect: context [
 						"---------------------------------------"
 					]
 				]
+				script: origin
 				comp-func-body name spec body
 			]
 			if verbose >= 2 [print ""]
@@ -942,6 +1018,7 @@ system-dialect: context [
 	]
 	
 	comp-runtime: func [type [word!]][
+		compiler/script: type
 		compiler/run/no-header loader/process runtime-env/:type
 	]
 	
@@ -1008,9 +1085,9 @@ system-dialect: context [
 			comp-runtime 'prolog
 			
 			foreach file files [compiler/run loader/process file]
-
+			
 			comp-runtime 'epilog
-			compiler/finalize			;-- compile all functions
+			compiler/finalize		;-- compile all functions
 		]
 		if verbose >= 4 [
 			print [

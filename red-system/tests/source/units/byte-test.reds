@@ -45,10 +45,10 @@ Red/System [
 ===end-group===
 
 ===start-group=== "Passing byte! as argument and returning a byte!"
-	  foo: func [v [byte!] return: [byte!]][v]
+	  bt-foo: func [v [byte!] return: [byte!]][v]
 	
 	--test-- "byte-type-8"
-	  bt-b: foo bt-a
+	  bt-b: bt-foo bt-a
 	--assert (bt-b = #"B")
 ===end-group===
 
@@ -65,10 +65,10 @@ Red/System [
 	  br-c: byte-test-str/d
 	--assert br-c = #"e"
 	--assert byte-test-str/1 = #"H"
-	--assert #"H" = foo byte-test-str/1
+	--assert #"H" = bt-foo byte-test-str/1
 	
 	--test-- "byte-read-3"
-	  br-c: foo byte-test-str/d
+	  br-c: bt-foo byte-test-str/d
 	--assert br-c = #"e"
 ===end-group===
 
@@ -87,10 +87,10 @@ Red/System [
 		c: str/d
 	--assert c = #"e"
 	--assert str/1 = #"H"
-	--assert #"H" = foo str/1
+	--assert #"H" = bt-foo str/1
 		
 	--test-- "byte-read-local-3"
-	  c: foo str/d
+	  c: bt-foo str/d
 	--assert c = #"e"
 	]
 	byte-read

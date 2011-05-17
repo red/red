@@ -772,8 +772,8 @@ make target-class [
 			op	[
 				emit-operation name args
 				if sub [emitter/logic-to-integer name]
-				unless find comparison-op name [	;-- comparison always return a logic!
-					res: operand-type? args/1		;-- other ops return type of the first argument	
+				unless find comparison-op name [		;-- comparison always return a logic!
+					res: compiler/argument-type? args/1	;-- other ops return type of the first argument	
 				]
 			]
 		]
