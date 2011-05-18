@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.1.0
+	Version: 0.2.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -18,30 +18,37 @@ comment {
     (quick-test will move the executable to red-system/runnable.)
 }
 
-;; make runnable directory if needed
-make-dir %../runnable
+qt: make object! [
+  
+  ;;;;;;;;;;; Setup ;;;;;;;;;;;;;;
+  ;; set the base-dir to ....red/red-system/tests
+  base-dir: system/script/path  
+  base-dir: copy/part base-dir find base-dir "tests/quick-test"
+  
+  ;; file names
+  comp-echo: join base-dir %tests/runnable/comp-echo.txt
+  comp-r: join base-dir %tests/runnable/comp.r
 
-;; use Cheyenne's call.r instead of native call (Windows only)
-if system/version/4 = 3	[			;; Windows platform
-	SetCurrentDirectory: make routine! [
-		lpPathName	[string!]
-		return: 	[integer!]
-	] load/library %kernel32.dll "SetCurrentDirectoryA"
-
-	set 'OS-change-dir func [dir][
-		SetCurrentDirectory join to-local-file dir null
-	]
-	if system/version/3 = 8	[		;; v2.7.8 only
-		do %call.r					;; work around a CALL bug on Win7
+  ;; make runnable directory if needed
+  make-dir join base-dir %tests/runnable/
+  
+  windows-os?: func [] [
+    either system/version/4 = 3 [true] [false]
+  ]
+  
+  ;; use Cheyenne call with REBOL v2.7.8 on Windows (re: 'call bug on Windows 7)
+  if all [
+    windows-os?
+    system/version/3 = 8              
+  ][
+		do %call.r					               
 		set 'call :win-call
 	]
-]
-
-qt: make object! [
+  ;;;;;;;;;;; End Setup ;;;;;;;;;;;;;;
   
   comp-output: ""                   ;; output captured from compile
   output: ""                        ;; output captured from pgm exec
-   
+  
   compile: func [
     src [file!]
     /local
@@ -54,46 +61,45 @@ qt: make object! [
     ;; workout executable name
     if not exe: copy find/last/tail src "/" [exe: copy src]
     exe: copy/part exe find exe "."
-    if system/version/4 = 3 [
+    if windows-os? [
       exe: join exe [".exe"]
     ]
+
     
     ;; compose and write compilation script
-    comp: copy {
+    save-dir: what-dir
+    comp: mold compose [
       REBOL []
       halt: :quit
-      change-dir %../
-      echo %tests/comp-echo.txt
+      change-dir (base-dir)
+      echo (comp-echo)
       do/args %rsc.r "***src***"
-      change-dir %tests/
-    }
-    src: mold src
+      change-dir (what-dir)
+    ]
     src: replace/all src "%" ""
-    src: join "%tests/" src
+    src: join "%" [base-dir "tests/" src]
     replace comp "***src***" src
-    write %comp.r comp
-    
-    if system/version/4 = 3 [OS-change-dir what-dir]
-    
-    ;; compose command line and call it
+    write comp-r comp
 
-    cmd: join "" [to-local-file system/options/boot " -sc comp.r"]
+    ;; compose command line and call it
+    cmd: join to-local-file system/options/boot [" -sc " comp-r]
     call/wait cmd
     
     ;; collect compiler output & tidy up
-    if exists? %comp-echo.txt [
-    	comp-output: read %comp-echo.txt
-    	delete %comp-echo.txt
+    if exists? comp-echo [
+    	comp-output: read comp-echo
+    	delete comp-echo
     ]
-    if exists? %comp.r [delete %comp.r]
+    if exists? comp-r [delete comp-r]
     
     ;; move the executable from /builds to /tests/runnable
-    built: join %../builds/ [exe]
-    runner: join %runnable/ [exe]
+    built: join base-dir [%builds/ exe]
+    runner: join base-dir [%tests/runnable/ exe]
+    
     if exists? built [
       write/binary runner read/binary built
       delete built
-      if system/version/4 <> 3 [
+      if not windows-os? [
         r: open runner
         set-modes r [
           owner-execute: true
@@ -128,7 +134,7 @@ qt: make object! [
     /local
     exec [string!]                   ;; command to be executed
   ][
-    exec: to-local-file join %runnable/ [prog]
+    exec: to-local-file join base-dir [%tests/runnable/ prog]
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
@@ -140,10 +146,9 @@ qt: make object! [
      filename                     ;; filename of script 
      script                       ;; %runnable/filename
   ][
-    src: mold src
     src: replace/all src "%" ""
     if not filename: copy find/last/tail src "/" [filename: copy src]
-    script: join %runnable/ filename
+    script: join base-dir [%tests/runnable/ filename]
     write to file! script read to file! src
     do script
   ]
@@ -217,7 +222,6 @@ qt: make object! [
   end-test-run: func [] [
       print ""
     _end test-run "test run"
-    if exists? %comp.txt [delete %comp.txt]
   ]
     
 ]
