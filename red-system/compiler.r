@@ -952,10 +952,8 @@ system-dialect: context [
 				paren!		[comp-block]
 				char!		[do pass]
 				integer!	[do pass]
-				decimal! 	[do pass]
 				string!		[do pass]
 				block!		[do pass]					;-- struct! and pointer! specs
-				struct!		[do pass]					;-- literal struct! value
 			][			
 				throw-error "datatype not allowed"
 			]
