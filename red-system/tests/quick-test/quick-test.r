@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.2.0
+	Version: 0.2.1
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -32,9 +32,8 @@ qt: make object! [
   ;; make runnable directory if needed
   make-dir join base-dir %tests/runnable/
   
-  windows-os?: func [] [
-    either system/version/4 = 3 [true] [false]
-  ]
+  ;; windows ?
+  windows-os?: system/version/4 = 3
   
   ;; use Cheyenne call with REBOL v2.7.8 on Windows (re: 'call bug on Windows 7)
   if all [
@@ -46,8 +45,35 @@ qt: make object! [
 	]
   ;;;;;;;;;;; End Setup ;;;;;;;;;;;;;;
   
-  comp-output: ""                   ;; output captured from compile
-  output: ""                        ;; output captured from pgm exec
+  comp-output: copy ""                 ;; output captured from compile
+  output: copy ""                      ;; output captured from pgm exec
+  
+  data: make object! [
+    title: copy ""
+    no-tests: 0
+    no-asserts: 0
+    passes: 0
+    failures: 0
+  ]
+  
+  file: make data []
+  test-run: make data []
+  
+  ;; group data
+  group-name: copy ""
+  group?: false
+  group-name-not-printed: true
+  _init-group: does [
+    group?: false
+    group-name-not-printed: true
+    group-name: copy ""
+  ]
+  
+  ;; test data
+  test-name: copy ""
+  _init-test: does [
+    test-name: copy ""
+  ]
   
   compile: func [
     src [file!]
@@ -153,75 +179,107 @@ qt: make object! [
     do script
   ]
   
-  data: make object! [
-    title: copy ""
-    no-tests: 0
-    passes: 0
-    failures: 0
+  _start: func [
+    data [object!]
+    leader [string!]
+    title [string!]
+  ][
+    print [leader title]
+    data/title: title
+    data/no-tests: 0
+    data/no-asserts: 0
+    data/passes: 0
+    data/failures: 0
+    _init-group
+  ]
+
+  start-test-run: func [
+    title [string!]
+  ][
+    _start test-run "***Starting***" title
   ]
   
-  file: make data []
-  test-run: make data []
+  start-file: func [
+    title [string!]
+  ][
+    _start file "~~~started test~~~" title
+  ]
   
+  start-group: func[
+    title [string!]
+  ][
+   group-name: title
+   group?: true
+  ]
+  
+  start-test: func[
+    title [string!]
+  ][
+    _init-test
+    test-name: title
+    file/no-tests: file/no-tests + 1
+  ]
+    
   assert: func [
-    name [string!]
     assertion [logic!]
   ][
-    file/no-tests: file/no-tests + 1
+    file/no-asserts: file/no-asserts + 1
     either assertion [
       file/passes: file/passes + 1
     ][
       file/failures: file/failures + 1
-      print ["***TEST" name "FAILED***"]
+      if group? [
+        if group-name-not-printed [
+          print ""
+          print ["===group===" group-name]
+        ]
+      ]
+      print ["---test---" test-name "FAILED**************"]
     ]
   ]
   
-  _start: func [
-    data [object!]
-    type [string!]
-    title [string!]
-  ][
-    print ["^/Start" type title]
-    data/title: title
-    data/no-tests: 0
-    data/passes: 0
-    data/failures: 0
-  ]
-
-  start-file: func [
-    title [string!]
-  ][
-    _start file "file" title
-  ]
-  
-  start-test-run: func [
-    title [string!]
-  ][
-    _start test-run "test run" title
+  end-group: does [
+    _init-group
   ]
   
   _end: func [
     data [object!]
-    type [string!]
+    leader [string!]
   ][
-    print ["End" type data/title]
-    print ["No of tests" data/no-tests]
-    print ["Passed     " data/passes]
-    print ["Failed     " data/failures]
+    print [leader data/title]
+    print ["No of tests  " data/no-tests]
+    print ["No of asserts" data/no-asserts]
+    print ["Passed       " data/passes]
+    print ["Failed       " data/failures]
     if data/failures > 0 [print "***TEST FAILURES***"]
     print ""
   ]
   
   end-file: func [] [
-    _end file "file"
+    _end file "~~~finished test~~~" 
     test-run/no-tests: test-run/no-tests + file/no-tests
+    test-run/no-asserts: test-run/no-asserts + file/no-asserts
     test-run/passes: test-run/passes + file/passes
     test-run/failures: test-run/failures + file/failures
   ]
   
   end-test-run: func [] [
       print ""
-    _end test-run "test run"
+    _end test-run "***Finished***"
   ]
+  
+  ;; create the test "dialect"
+  
+  set '***start-run***    :start-test-run
+  set '~~~start-file~~~   :start-file
+  set '===start-group===  :start-group
+  set '--test--           :start-test
+  set '--compile          :compile
+  set '--run              :run
+  set '--run-script       :run-script
+  set '--assert           :assert
+  set '===end-group===    :end-group
+  set '~~~end-file~~~     :end-file
+  set '***end-run***      :end-test-run
     
 ]

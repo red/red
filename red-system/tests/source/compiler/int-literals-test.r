@@ -6,16 +6,16 @@ REBOL [
 
 change-dir %../                   ;; revert to tests/ dir (from runnable)
   
-qt/start-file "int-literals-err"
+~~~start-file~~~ "int-literals-err"
 
-;; int-literals-1
-write %runnable/int-literals.reds {
-  Red/System []
-  i: FFFFFFFFh
-}
-qt/compile %runnable/int-literals.reds
-if exists? %runnable/int-literals.reds [delete %runnable/int-literals.reds]
-qt/assert "int-literals-l" qt/compile-ok?
+  --test-- "int-literals-1"
+    write %runnable/int-literals.reds {
+      Red/System []
+      i: FFFFFFFFh
+    }
+  --compile %runnable/int-literals.reds
+    if exists? %runnable/int-literals.reds [delete %runnable/int-literals.reds]
+  --assert qt/compile-ok?
 
-qt/end-file
+~~~end-file~~~
 
