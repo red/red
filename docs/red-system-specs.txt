@@ -1,7 +1,7 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: ??/05/2011
+	Date: 19/05/2011
 	Revision: 8
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
@@ -718,11 +718,21 @@ Allow the function to be called using an infix syntax. The function must take tw
 will return:
  8
  
-<u>Note</u>: When the <b>infix</b> syntax is used, the postfix syntax is still allowed, but it will work only if there is no value on the left side of the function call. Example:
+<u>Notes</u>:
+
+*When the <b>infix</b> syntax is used, the postfix syntax is still allowed, but it will work only if there is no value on the left side of the function call. Example:
 
  func [][avg 10 6]						;-- will return 8 as well
 
  print "ok" avg 10 6					;-- will produce a compilation error
+ 
+*The left-to-right evaluation rule applies also for user-defined infix functions, so:
+
+ 10 avg 6 + 2							;-- avg is executed first, then +
+ 
+is not equivalent to
+ 
+ 10 avg (6 + 2)							;-- + is executed first, then avg
 
 ---Type inference
 
@@ -1268,9 +1278,13 @@ The following math operations apply on integer values. When the operation result
 where
 
  value1 : an expression returning an integer!
- value2 : expression of same datatype as <value1>
+ value2 : expression of same (or compatible) datatype as <value1>
  
-<u>Note:</u> for + and - operators, pointer! value can be used as first argument with an integer expression.
+The resulting value type for math operators is the type of the left argument (an implicit type casting is operated when required).
+
+<i>TBD: make a matrix of allowed types combinations</i>
+ 
+<u>Note:</u> for + and - operators, a pointer!, struct! or c-string! value can be used as first argument with an integer expression as second argument (pointer arithmetic).
 
 +++Bitwise operators
 
@@ -1327,10 +1341,14 @@ These operators can be used only where a condition is allowed. See "Control flow
  
 where
   
-  value1 : an expression returning a integer! or byte!
+  value1 : an expression returning a integer!, byte!, c-string!, pointer! or struct!
   value2 : expression of same datatype as <value1>
 
-<u>Note</u>: = and <> can also be used to compare logic! or c-string! values.
+<u>Note</u>:
+
+*= and <> can also be used to compare logic! values.
+
+*For c-string!, pointer! and struct!, comparisons are done on references, not on the pointed value.
 
 +++Precedence rule
 
@@ -1340,14 +1358,14 @@ where
 
 +++IF
 
-Execute a block of code if a given condition is met.
+Execute a block of code if a given condition is true. IF does not return any value, so cannot be used in an expression.
 
 <b>Syntax</b>
 
  if <condition> [<code>]
 
  <condition> : a conditional expression
- <code>		 : code to execute if the condition is met
+ <code>		 : code to execute if the condition is true
 
 <b>Example</b>
 
@@ -1355,17 +1373,17 @@ Execute a block of code if a given condition is met.
  
 +++EITHER
 
-Execute a block of code if a given condition is met, else execute an alternative block of code.
+Execute a block of code if a given condition is true, else execute an alternative block of code. If both blocks of code's last expression is of the same type, EITHER can be used inside an expression.
 
 <b>Syntax</b>
 
  either <condition> [<code>][<alternative>]
 
  <condition>   : a conditional expression
- <code>		   : code to execute if the condition is met
- <alternative> : code to execute if the condition is not met
+ <code>		   : code to execute if the condition is true
+ <alternative> : code to execute if the condition is false
 
-<b>Example</b>
+<b>Examples</b>
 
  either a < 0 [
  	either a = 0 [
@@ -1374,15 +1392,29 @@ Execute a block of code if a given condition is met, else execute an alternative
  		msg: "negative"
  	]
  ][
- 	msg: "posivite"
+ 	msg: "positive"
  ]
 
+ prin "a is "
+ print msg
+ 
+Alternative way to write it (allowed because all code paths return a value of the same type):
+ msg: either a < 0 [
+  	either a = 0 [
+  		"zero"
+  	][
+  		"negative"
+  	]
+  ][
+  	"positive"
+ ]
+ 
  prin "a is "
  print msg
 
 +++UNTIL
 
-Loop over a block of code until the condition at end of block, is met.
+Loop over a block of code until the condition at end of block, is met. UNTIL does not return any value, so cannot be used in an expression.
 
 <b>Syntax</b>
 
@@ -1410,7 +1442,7 @@ will output:
 
 +++WHILE
 
-While a given condition is met, execute a block of code.
+While a given condition is met, execute a block of code. WHILE does not return any value, so cannot be used in an expression.
 
 <b>Syntax</b>
 
@@ -1434,7 +1466,7 @@ will output:
 
 +++ANY
 
-Global condition is met if at least one of the sub-conditions is met.
+Global condition is met if at least one of the sub-conditions is met. ANY returns a logic! value.
 
 <b>Syntax</b>
 
@@ -1452,7 +1484,7 @@ Global condition is met if at least one of the sub-conditions is met.
 
 +++ALL
 
-Global condition is met if all the sub-conditions are met.
+Global condition is met if all the sub-conditions are met.  ALL returns a logic! value.
 
 <b>Syntax</b>
 
@@ -1579,9 +1611,20 @@ will output:
 
 ===Document History
 
-*??/05/2011 - draft 8
+*19/05/2011 - draft 8
 
 *>Added logic! datatype to struct members and type casting allowed types.
+
+*>Added a note about evaluation rule for user-defined infix functions.
+
+*>Added missing types supporting math and comparison operations.
+
+*>Explained condition permitting that EITHER function be used inside expression.
+
+*>Mention about not possible inclusion in expressions for IF, UNTIL, WHILE.
+
+*>Returned type for ANY and ALL precised.
+
 
 *05/05/2011 - draft 7
 
@@ -1592,6 +1635,7 @@ will output:
 *>Added 'infix attribute support in functions spec block.
 
 *>Added missing logic! datatype in functions spec block definition.
+
 
 *15/04/2011 - draft 5
 
