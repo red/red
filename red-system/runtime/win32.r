@@ -25,7 +25,7 @@ prolog {
 				len			[integer!]
 				written		[struct! [value [integer!]]]
 				overlapped	[integer!]
-				;return:	[integer!]
+				return:	[integer!]
 			]
 			SetConsoleTextAttribute: "SetConsoleTextAttribute" [
 				handle 		[integer!]

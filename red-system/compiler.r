@@ -132,6 +132,7 @@ system-dialect: context [
 		script:		none								;-- source script file name
 		last-type:	none								;-- type of last value from an expression
 		locals: 	none								;-- currently compiled function specification block
+		func-name:	none								;-- currently compiled function name
 		verbose:  	0									;-- logs verbosity level
 	
 		imports: 	   make block! 10					;-- list of imported functions
@@ -175,6 +176,8 @@ system-dialect: context [
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
+		
+		action-class: context [action: type: data: none]
 		
 		struct-syntax: [
 			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
@@ -230,12 +233,12 @@ system-dialect: context [
 			clean-up
 			halt
 		]
+
+		literal?: func [value][not any [word? value value = <last>]]
 		
 		encode-cond-test: func [value [logic!]][
 			pick [<true> <false>] value
 		]
-		
-		literal?: func [value][not any [word? value value = <last>]]
 		
 		decode-cond-test: func [value [tag!]][
 			select [<true> #[true] <false> #[false]] value
@@ -272,9 +275,6 @@ system-dialect: context [
 			unless find emitter/datatypes type/1 [
 				type: select aliased-types type/1
 			]
-			;;;; Temporary workaround for lack of proper pointer! declaration support in functions @@
-			if all [type/1 = 'pointer! not type/2][type: [pointer! [integer!]]]
-			;;;; @@
 			type
 		]
 		
@@ -329,11 +329,38 @@ system-dialect: context [
 							get-return-type arg/1
 						]
 					]
-					tag!	 [last-type]
+					tag!	 [either word? last-type [last-type][last-type/1]]
 					path!	 [resolve-path-type arg]
 				][
 					throw-error ["Undefined type for:" mold arg]
 			]
+		]
+							
+		resolve-expr-type: func [expr /quiet /local type func? spec][
+			if block? expr [
+				switch type?/word expr/1 [
+					set-word! [expr: expr/2]			;-- resolve assigned value type
+					set-path! [expr: to path! expr/1]	;-- resolve path type
+				]
+			]			
+			func?: all [
+				block? expr word? expr/1
+				not find comparison-op expr/1
+				spec: select functions expr/1 			;-- works for unary & binary functions only!
+			]
+			type: case [
+				all [block? expr object? expr/1][
+					expr/1/type						 ;-- type casting case
+				]
+				all [func? find [op inline] spec/2][ ;-- works for unary & binary functions only!
+					argument-type? expr/2			;-- recursively search for return type
+				]
+				all [func? quiet][
+					select spec/4 return-def		;-- workaround error throwing in get-return-value
+				]
+				'else [get-mapped-type expr]
+			]
+			either block? type [type][reduce [type]]	 ;-- normalize type spec
 		]
 		
 		add-symbol: func [name [word!] value /local type][
@@ -376,18 +403,10 @@ system-dialect: context [
 			]		
 		]
 		
-		check-expected-type: func [name [word!] expr expected [block!] /local type][
-			type: either all [
-				block? expr
-				not find comparison-op expr/1
-				find [op inline] second select functions expr/1	;-- works for unary & binary functions only!
-			][
-				argument-type? expr/2
-			][
-				get-mapped-type expr
-			]
-			unless block? type [type: reduce [type]]	 ;-- normalize type spec
-			
+		check-expected-type: func [name [word!] expr expected [block!] /ret /local type][
+			unless expr [return none]					;-- expr == none for special keywords		
+			type: resolve-expr-type expr
+		
 			unless any [
 				all [
 					find type-sets expected
@@ -401,19 +420,22 @@ system-dialect: context [
 					pc
 				]
 				throw-error [
-					"type mismatch, expected:" mold expected
+					either ret [
+						reform ["wrong return type in function" name]
+					][
+						"type mismatch"
+					]
+					"^/*** expected:" mold expected
 					", found:" mold type
 				]
 			]
+			type
 		]
 		
-		check-arguments-type: func [expr /local name args entry spec][
-			if find [set-word! set-path!] type?/word expr/1 [exit]
+		check-arguments-type: func [name args /local entry spec][
+			if find [set-word! set-path!] type?/word name [exit]
 			
-			name: expr/1
-			args: next expr
 			entry: find functions name
-			
 			if all [
 				not empty? spec: entry/2/4 
 				block? spec/1
@@ -561,12 +583,16 @@ system-dialect: context [
 			comp-reference-literal
 		]
 		
-		comp-as: has [type value][
-			type: pc/2
+		comp-as: has [ctype expr][
+			ctype: pc/2
 			pc: skip pc 2
-			value: fetch-expression
-			last-type: either block? type [type][reduce [type]]
-			value
+			reduce [
+				make action-class [
+					action: 'type-cast
+					type: either block? ctype [ctype][reduce [ctype]]
+				]
+				fetch-expression
+			]
 		]
 		
 		comp-alias: does [
@@ -596,20 +622,28 @@ system-dialect: context [
 				get-mapped-type value
 			]
 			unless block? type [type: reduce [type]]
+			
 			emitter/get-size type value
 			last-type: get-return-type 'size?
 			pc: next pc
 			<last>
 		]
 		
-		comp-exit: func [/value /local expr][
+		comp-exit: func [/value /local expr type ret][
 			pc: next pc
 			if value [
-				expr: fetch-expression/final/keep		;-- compile expression to return						
-				;TBD: check return type validity here
+				expr: fetch-expression/final/keep		;-- compile expression to return				
+				unless ret: select locals return-def [	;-- check if return: declared
+					throw-error [
+						"return keyword used without return: declaration in"
+						func-name
+					]
+				]
+				type: check-expected-type/ret func-name expr ret
+				ret: either type [last-type: type <last>][none]
 			]
 			emitter/target/emit-exit
-			none
+			ret
 		]
 
 		comp-block-chunked: func [/only /test /local expr][
@@ -667,23 +701,27 @@ system-dialect: context [
 	
 			set [unused chunk] comp-block-chunked		;-- compile TRUE block
 			emitter/branch/over/on chunk expr/1			;-- insert IF branching			
-			emitter/merge chunk		
+			emitter/merge chunk
+			last-type: none
 			<last>
 		]
 		
-		comp-either: has [expr unused c-true c-false offset][
+		comp-either: has [expr e-true e-false c-true c-false offset type][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile condition
 			expr: check-logic expr
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
-			set [unused c-true]  comp-block-chunked		;-- compile TRUE block		
-			set [unused c-false] comp-block-chunked		;-- compile FALSE block
+			set [e-true c-true]  comp-block-chunked		;-- compile TRUE block		
+			set [e-false c-false] comp-block-chunked	;-- compile FALSE block
 		
 			offset: emitter/branch/over c-false
 			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
 			emitter/merge emitter/chunks/join c-true c-false
+
+			type: resolve-expr-type/quiet e-true		
+			last-type: either type = resolve-expr-type/quiet e-false [type][none] ;-- allow nesting if both blocks return same type
 			<last>
 		]
 		
@@ -692,7 +730,8 @@ system-dialect: context [
 			check-body pc/1
 			set [expr chunk] comp-block-chunked/test
 			emitter/branch/back/on chunk expr/1	
-			emitter/merge chunk			
+			emitter/merge chunk	
+			last-type: none
 			<last>
 		]
 		
@@ -709,6 +748,7 @@ system-dialect: context [
 			bodies: emitter/chunks/join body cond
 			emitter/branch/back/on/adjust bodies reduce [expr/1] offset ;-- Test condition, exit if FALSE
 			emitter/merge bodies
+			last-type: none
 			<last>
 		]
 		
@@ -735,6 +775,7 @@ system-dialect: context [
 				also head? list	list: back list
 			]	
 			emitter/merge bodies
+			last-type: 'logic!
 			encode-cond-test not _all					;-- special encoding
 		]
 		
@@ -762,17 +803,19 @@ system-dialect: context [
 		]
 	
 		comp-word: has [entry args n name expr][
+			name: pc/1
 			case [
-				entry: select keywords pc/1 [do entry]	;-- it's a reserved word
+				entry: select keywords name [do entry]	;-- it's a reserved word
 				
 				any [
-					all [locals find locals pc/1]
-					find globals pc/1
+					all [locals find locals name]
+					find globals name
 				][										;-- it's a variable
-					also pc/1 pc: next pc
+					last-type: resolve-type name				
+					also name pc: next pc
 				]
 				
-				entry: find functions name: pc/1 [
+				entry: find functions name [
 					pc: next pc							;-- it's a function		
 					args: make block! n: entry/2/1
 					loop n [append/only args fetch-expression]	;-- fetch n arguments
@@ -782,25 +825,17 @@ system-dialect: context [
 			]
 		]
 		
-		order-args: func [tree [block!] /local name type][
-			if all [
-				not find [set-word! set-path!] type?/word tree/1
-				name: to word! tree/1
-				find [import native infix] functions/:name/2
-				find [stdcall cdecl gcc45] functions/:name/3
-			][
-				reverse next tree
-			]
-			foreach v next tree [if block? v [order-args v]]	;-- recursive processing
-		]
-		
 		comp-expression: func [
 			tree [block!] /keep
 			/local name value data offset body args prepare-value type
 		][
-			prepare-value: [
+			prepare-value: [		
+				if all [block? tree/2 object? tree/2/1][
+					type: tree/2/1/type					;-- save casting type
+					tree/2: tree/2/2					;-- remove encoding object
+				]
 				value: either block? tree/2 [
-					comp-expression/keep tree/2
+					comp-expression/keep tree/2			;-- function call case
 					<last>
 				][
 					tree/2
@@ -820,8 +855,11 @@ system-dialect: context [
 				set-word! [
 					name: to word! tree/1
 					do prepare-value
-					unless type: get-variable-spec name [	;-- test if known variable (local or global)
-						type: add-symbol name data			;-- if unknown add it to global context
+					unless type: any [
+						type							;-- possible type casting
+						get-variable-spec name			;-- test if known variable (local or global)
+					][
+						type: add-symbol name data		;-- if unknown add it to global context
 					]
 					emitter/store name value type
 				]
@@ -830,6 +868,22 @@ system-dialect: context [
 					resolve-path-type tree/1			;-- check path validity
 					;TBD: raise error if ANY/ALL passed as argument				
 					emitter/access-path tree/1 value
+				]
+				object! [								;-- special actions
+					switch tree/1/action [
+						type-cast [						;-- apply type casting
+							if block? tree/2 [			;-- function call case
+								either keep [
+									comp-expression/keep tree/2
+								][
+									comp-expression tree/2
+								]
+							]
+							;TBD: test casting compatibility
+							last-type: tree/1/type
+						]
+						;-- add more special actions here
+					]
 				]
 			][
 				name: to word! tree/1
@@ -843,7 +897,8 @@ system-dialect: context [
 					]									
 					args/1: <last>
 				]
-				type: emitter/target/emit-call name args
+				
+				type: emitter/call name args
 				if type [last-type: type]
 				
 				if all [keep last-type = 'logic!][
@@ -901,20 +956,17 @@ system-dialect: context [
 				throw-error "datatype not allowed"
 			]
 			expr: reduce-logic-tests expr
-			
 			if final [
 				if verbose >= 3 [?? expr]
 				case [
 					block? expr [
-						check-arguments-type expr
-						order-args expr
 						either keep [
 							comp-expression/keep expr
 						][
 							comp-expression expr
 						]
 					]
-					not find [none! tag!] type?/word expr [
+					not find [none! tag! object!] type?/word expr [
 						emitter/target/emit-load expr
 					]
 				]
@@ -935,23 +987,30 @@ system-dialect: context [
 			expr
 		]
 		
-		comp-dialect: does [
+		comp-dialect: has [expr][
 			while [not tail? pc][
 				case [
 					issue? pc/1 [comp-directive]
 					pc/1 = 'comment [pc: skip pc 2]
-					'else [fetch-expression/final]
+					'else [expr: fetch-expression/final]
 				]
 			]
+			expr
 		]
 		
-		comp-func-body: func [name [word!] spec [block!] body [block!] /local args-size][
+		comp-func-body: func [name [word!] spec [block!] body [block!] /local args-size expr ret][
 			locals: spec
-			args-size: emitter/enter name locals
+			func-name: name
+			args-size: emitter/enter name locals		;-- build function prolog
 			pc: body
-			comp-dialect
-			emitter/leave name locals args-size
-			locals: none
+			
+			expr: comp-dialect							;-- compile function's body
+			
+			if ret: select spec return-def [
+				check-expected-type/ret name expr ret	;-- validate return value type
+			]
+			emitter/leave name locals args-size			;-- build function epilog
+			locals: func-name: none
 		]
 		
 		comp-natives: does [
@@ -1052,8 +1111,8 @@ system-dialect: context [
 	]
 	
 	make-job: func [opts [object!] file [file!] /local job][
-		file: last split-path file			;-- remove path
-		file: to-file first parse file "."	;-- remove extension
+		file: last split-path file						;-- remove path
+		file: to-file first parse file "."				;-- remove extension
 		
 		job: construct/with third opts linker/job-class	
 		job/output: file
@@ -1081,7 +1140,7 @@ system-dialect: context [
 	]
 	
 	compile: func [
-		files [file! block!]			;-- source file or block of source files
+		files [file! block!]							;-- source file or block of source files
 		/options
 			opts [object!]
 		/local
@@ -1100,7 +1159,7 @@ system-dialect: context [
 			foreach file files [compiler/run loader/process file]
 			
 			comp-runtime 'epilog
-			compiler/finalize		;-- compile all functions
+			compiler/finalize							;-- compile all functions
 		]
 		if verbose >= 4 [
 			print [

@@ -14,6 +14,11 @@ Red/System [
 #define forever		[while [true]]
 #define does		[func []]
 
+#define as-byte		[as byte!]
+#define as-logic	[as logic!]
+#define as-integer	[as integer!]
+#define as-c-string	[as c-string!]
+
 
 length?: func [					;; return the number of characters from a c-string value ;;
 	s 		 [c-string!]		;; c-string value ;;
@@ -23,5 +28,5 @@ length?: func [					;; return the number of characters from a c-string value ;;
 ][
 	base: s
 	while [s/1 <> 0][s: s + 1]
-	s - base 					;-- do not count the terminal zero
+	as-integer s - base 		;-- do not count the terminal zero
 ]

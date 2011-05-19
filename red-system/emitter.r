@@ -305,8 +305,8 @@ emitter: context [
 	get-size: func [type [block!] value][
 		switch/default type/1 [
 			c-string! [
-				target/emit-call 'length? reduce [value]
-				target/emit-call '+ [<last> 1]
+				call 'length? reduce [value]
+				call '+ [<last> 1]
 			]
 			struct! [target/emit-load member-offset? type/2 none]
 		][
@@ -334,6 +334,61 @@ emitter: context [
 		foreach ptr exits [
 			change at code-buf ptr target/to-bin32 end - ptr - offset
 		]
+	]
+	
+	order-args: func [name [word!] args [block!]][
+		if all [
+			not find [set-word! set-path!] type?/word name
+			find [import native infix] compiler/functions/:name/2
+			find [stdcall cdecl gcc45] compiler/functions/:name/3
+		][
+			reverse args
+		]
+		foreach v args [if block? v [order-args v/1 next v]]	;-- recursive processing
+	]
+	
+	call: func [name [word!] args [block!] /sub /local type res][			
+		compiler/check-arguments-type name args
+		order-args name args
+		
+		type: first any [
+			select symbols name							;@@
+			next select compiler/functions name
+		]
+		case [
+			not find [inline op] type [					;-- push function's arguments on stack
+				foreach arg args [
+					switch/default type?/word arg [
+						binary! [target/emit arg]
+						block!  [						
+							call/sub arg/1 next arg
+							target/emit-push <last>		;-- push returned value
+						]
+					][
+						target/emit-push arg
+					]
+				]
+			]
+			type = 'op [								;-- nested calls as op argument require special handling
+				if block? args/1 [
+					call/sub args/1/1 next args/1
+					if block? args/2 [target/emit-save-last] ;-- save first argument result
+				]
+				if block? args/2 [
+					call/sub args/2/1 next args/2
+				]
+				if path? args/1 [
+					access-path args/1 none
+					if path? args/2 [target/emit-save-last] ;-- save first argument result
+				]
+				if path? args/2 [
+					access-path args/2 none
+				]
+			]
+		]
+		res: target/emit-call name args to logic! sub
+		compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
+		res
 	]
 	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][

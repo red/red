@@ -21,6 +21,7 @@ Red/System [
     ret-test98: func [return: [logic!]][
       return true
       i: 1
+      false
     ]
   --assert ret-test98
   --assert i = 0
@@ -30,6 +31,7 @@ Red/System [
     ret-test99: func [return: [logic!]][
       return false
       i: 1
+      true
     ]
   --assert not ret-test99
   --assert i = 0
@@ -40,6 +42,7 @@ Red/System [
       i: 1
       return true
       i: 2
+      false
     ]
   --assert ret-test2
   --assert i = 1
@@ -50,6 +53,7 @@ Red/System [
       i: 1
       if true [return true i: 2]
       i: 3
+      false
     ]
   --assert ret-test3
   --assert i = 1
@@ -60,6 +64,7 @@ Red/System [
       i: 1
       if true [return a i: 2]
       i: 3
+      false
     ]
   --assert ret-test97 true
   --assert i = 1
@@ -81,6 +86,7 @@ Red/System [
       i: 1
       either true [return 1 < 2 i: 2][i: 3]
       i: 4
+      false
     ]
   --assert ret-test5
   --assert i = 1
@@ -91,6 +97,7 @@ Red/System [
       i: 1
       either false [return false][i: 1 return true i: 2]
       i: 3
+      false
     ]
   --assert ret-test6
   --assert i = 1
@@ -110,6 +117,7 @@ Red/System [
         i: 4
       ]
       i: 5
+      false
     ]
   --assert ret-test7
   --assert i = 1
@@ -125,6 +133,7 @@ Red/System [
         true
       ]
       i: 2
+      true
     ]
   --assert not ret-test9
   --assert i = 1

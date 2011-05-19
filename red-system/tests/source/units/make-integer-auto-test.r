@@ -123,7 +123,7 @@ foreach op test-binary-ops [
 
 ;; write function spec
 append tests "  integer-auto-test-func: func [^(0A)"
-append tests "    return: [integer!]^(0A)"
+;append tests "    return: [integer!]^(0A)"
 append tests "      /local^(0A)"
 append tests "      i [integer!]^(0A)"
 append tests "      j [integer!]^(0A)"

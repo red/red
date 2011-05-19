@@ -54,6 +54,10 @@ make target-class [
 			4 [emit-variable name g32 l32]				;-- 32-bit
 		]
 	]
+	
+	emit-save-last: does [
+		emit #{89C2}								;-- MOV edx, eax
+	]
 
 	emit-load-literal: func [type [block! none!] value /local spec][
 		unless type [type: compiler/get-mapped-type value]
@@ -691,48 +695,13 @@ make target-class [
 		emit to-bin8 size
 	]
 	
-	emit-call: func [name [word!] args [block!] /sub /local spec fspec type res][
+	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec type res][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 		
 		fspec: select compiler/functions name
 		type: first spec: any [
-			select emitter/symbols name
+			select emitter/symbols name				;@@
 			next fspec
-		]
-		case [
-			not find [inline op] type [				;-- push function's arguments on stack
-				foreach arg args [
-					switch/default type?/word arg [
-						binary! [emit arg]
-						block!  [
-							emit-call/sub arg/1 next arg
-							emit-push <last>		;-- push returned value
-						]
-					][
-						emit-push arg
-					]
-				]
-			]
-			type = 'op [
-				if block? args/1 [
-					emit-call/sub args/1/1 next args/1
-					if block? args/2 [				;-- save first argument result in another register
-						emit #{89C2}				;-- MOV edx, eax
-					]
-				]
-				if block? args/2 [
-					emit-call/sub args/2/1 next args/2	;-- result in eax
-				]
-				if path? args/1 [
-					emitter/access-path args/1 none
-					if path? args/2 [
-						emit #{89C2}				;-- MOV edx, eax
-					]
-				]
-				if path? args/2 [
-					emitter/access-path args/2 none
-				]
-			]
 		]
 		switch type [								;-- call or inline the function
 			syscall [								;TBD: add support for SYSENTER/SYSEXIT
@@ -762,22 +731,21 @@ make target-class [
 			]
 			inline [
 				if block? args/1 [					;-- works only for unary functions
-					emit-call/sub args/1/1 next args/1
+					emitter/call/sub args/1/1 next args/1
 					args/1: <last>
 				]		
 				do select [
-					not		[emit-not args/1]
+					not	[emit-not args/1]
 				] name
 			]
 			op	[
 				emit-operation name args
-				if sub [emitter/logic-to-integer name]
+				if sub? [emitter/logic-to-integer name]
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: compiler/argument-type? args/1	;-- other ops return type of the first argument	
 				]
 			]
 		]
-		compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
 		res
 	]
 
