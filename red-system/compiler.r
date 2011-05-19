@@ -860,6 +860,10 @@ system-dialect: context [
 						get-variable-spec name			;-- test if known variable (local or global)
 					][
 						type: add-symbol name data		;-- if unknown add it to global context
+					]					
+					if none? type/1 [
+						pc: any [find/reverse pc tree/1 pc]
+						throw-error ["unable to determine a type for:" name]
 					]
 					emitter/store name value type
 				]
