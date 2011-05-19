@@ -6,19 +6,20 @@ REBOL [
 
 change-dir %../                   ;; revert to tests/ dir (from runnable)
   
-qt/start-file "comp-err"
+~~~start-file~~~ "comp-err"
 
-write %runnable/comp-err.reds {
-  Red/System []
-  i := 1;
-}
+  --test-- "sample compilation error test"
+    write %runnable/comp-err.reds {
+      Red/System []
+      i := 1;
+    }
 
-qt/compile %runnable/comp-err.reds
-if exists? %runnable/comp-err.reds [delete %runnable/comp-err.reds]
-qt/assert "ce1-l1" none <> find qt/comp-output "*** Compilation Error: undefined symbol"
-qt/assert "ce1-l2" none <> find qt/comp-output "at:  ["
-qt/assert "ce1-l3" none <> find qt/comp-output "i := 1"
-qt/assert "ce1-l4" none <> find qt/comp-output "]"
+  --compile %runnable/comp-err.reds
+    if exists? %runnable/comp-err.reds [delete %runnable/comp-err.reds]
+  --assert none <> find qt/comp-output "*** Compilation Error: undefined symbol"
+  --assert none <> find qt/comp-output "at:  ["
+  --assert none <> find qt/comp-output "i := 1"
+  --assert none <> find qt/comp-output "]"
 
-qt/end-file
+~~~end-file~~~
 

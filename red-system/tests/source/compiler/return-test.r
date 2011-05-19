@@ -8,23 +8,23 @@ REBOL [
 
 change-dir %../
 
-qt/start-file "return-compile"
+~~~start-file~~~ "return-compile"
 
-;; test of return as last statement in until block
-write %runnable/return.reds 
-  {Red/System[]
-    until [return]
-  }
-exe: qt/compile src: %runnable/return.reds
-qt/assert "return-compile-2" none <> find qt/comp-output "*** Compilation Error: datatype not allowed"
-if exists? %runnable/return.reds [delete %runnable/return.reds]
-if all [
-  exe
-  exists? exe
-][
-  delete exe
-]
+  --test-- "return as last statement in until block"
+    write %runnable/return.reds 
+      {Red/System[]
+      until [return]
+    }
+    exe: --compile src: %runnable/return.reds
+    --assert none <> find qt/comp-output "*** Compilation Error: datatype not allowed"
+    if exists? %runnable/return.reds [delete %runnable/return.reds]
+    if all [
+      exe
+      exists? exe
+    ][
+      delete exe
+    ]
 
-qt/end-file
+~~~end-file~~~
 
 

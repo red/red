@@ -2,7 +2,7 @@ Red/System [
 	Title:   "Red/System simple testing framework"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.reds
-	Version: 0.2.0
+	Version: 0.2.1
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -30,15 +30,23 @@ qt-file: struct [
   passes    [integer!]
   failures  [integer!]
 ]
-;; switches
+;; group switches
 qt-group-name-not-printed: true
 qt-group?: false
+
+_qt-init-group: does [
+  
+  qt-group-name-not-printed: true
+  qt-group?: false
+  overwrite qt-group-name "" qt-max-len
+]
 
 qt-init-run: func [] [
   qt-run/tests:     0
   qt-run/asserts:   0
   qt-run/passes:    0
   qt-run/failures:  0
+  _qt-init-group
 ]
 
 qt-init-file: func [] [
@@ -46,6 +54,7 @@ qt-init-file: func [] [
   qt-file/asserts:   0
   qt-file/passes:    0
   qt-file/failures:  0
+  _qt-init-group
 ]
 
 ***start-run***: func[
@@ -94,7 +103,7 @@ qt-init-file: func [] [
     if qt-group? [  
       if qt-group-name-not-printed [
         print ""
-        prin "---group--- "
+        prin "===group=== "
         print qt-group-name
         qt-group-name-not-printed: false
       ]
@@ -106,7 +115,7 @@ qt-init-file: func [] [
 ]
 
 ===end-group===: func [] [
-  qt-group-name-not-printed: true
+  _qt-init-group
 ]
 
 ~~~end-file~~~: func [] [

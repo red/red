@@ -6,21 +6,23 @@ REBOL [
 
 change-dir %../                        ;; revert to tests/ directory from runnable/
   
-qt/start-file "output"
+~~~start-file~~~ "output"
 
-either exe: qt/compile src: %source/compiler/hello.reds [
-  qt/run exe
-  qt/assert "hello 1" none <> find qt/output "hello"
-  qt/assert "hello 2" none <> find qt/output "world"
-][
-  qt/compile-error src
-]
+  --test-- "hello"
+    either exe: --compile src: %source/compiler/hello.reds [
+      --run exe
+      --assert none <> find qt/output "hello"
+      --assert none <> find qt/output "world"
+    ][
+      qt/compile-error src
+    ]
 
-either exe: qt/compile src: %source/compiler/empty.reds [
-  qt/run exe
-  qt/assert "empty" qt/output = ""
-][
-  qt/compile-error src
-]
+    --test-- "empty"
+      either exe: --compile src: %source/compiler/empty.reds [
+        --run exe
+        --assert qt/output = ""
+      ][
+        qt/compile-error src
+      ]
 
-qt/end-file
+~~~end-file~~~

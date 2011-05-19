@@ -8,40 +8,39 @@ REBOL [
 
 change-dir %../
 
-qt/start-file "exit-compile"
+~~~start-file~~~ "exit-compile"
 
-;; simple test of complie and run
-write %runnable/exit.reds "Red/System[]^/test: does [exit]^/test" 
-either exe: qt/compile src: %runnable/exit.reds [
-  qt/run exe
-  qt/assert "exit-compile-1" qt/output = ""
-][
-  qt/compile-error src 
-]
-if exists? %runnable/exit.reds [delete %runnable/exit.reds]
-if all [
-  exe
-  exists? exe
-][
-  delete exe
-]
+  --test-- "simple test of compile and run"
+    write %runnable/exit.reds "Red/System[]^/test: does [exit]^/test" 
+    either exe: --compile src: %runnable/exit.reds [
+      --run exe
+      --assert qt/output = ""
+    ][
+      qt/compile-error src 
+    ]
+    if exists? %runnable/exit.reds [delete %runnable/exit.reds]
+    if all [
+      exe
+      exists? exe
+    ][
+      delete exe
+    ]
 
-;; test of exit as last statement in until block
-write %runnable/exit.reds 
-  {Red/System[]
-    until [exit]
-  }
-exe: qt/compile src: %runnable/exit.reds
-qt/assert "exit-compile-2" none <> find qt/comp-output "*** Compilation Error: datatype not allowed"
-if exists? %runnable/exit.reds [delete %runnable/exit.reds]
-if all
-[
-  exe
-  exists? exe
-][
-  delete exe
-]
+  --test-- "exit as last statement in until block"
+    write %runnable/exit.reds 
+      {Red/System[]
+        until [exit]
+      }
+    exe: --compile src: %runnable/exit.reds
+    --assert none <> find qt/comp-output "*** Compilation Error: datatype not allowed"
+      if exists? %runnable/exit.reds [delete %runnable/exit.reds]
+      if all [
+        exe
+        exists? exe
+      ][
+        delete exe
+      ]
 
-qt/end-file
+~~~end-file~~~
 
 
