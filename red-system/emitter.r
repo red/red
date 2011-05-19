@@ -166,6 +166,13 @@ emitter: context [
 		]
 		size: size-of? type
 		ptr: tail data-buf
+		if find compiler/aliased-types type [
+			type: compiler/resolve-aliased type
+			if block? type [
+				spec: type/2
+				type: type/1
+			]
+		]
 	
 		switch/default type [
 			integer! [
@@ -293,13 +300,7 @@ emitter: context [
 	]
 
 	size-of?: func [type [word!]][
-		any [
-			select datatypes type						;-- search in core types
-			all [										;-- search in user-aliased types
-				type: select compiler/aliased-types type
-				select datatypes type/1
-			]
-		]
+		select datatypes compiler/resolve-aliased type
 	]
 	
 	get-size: func [type [block!] value][

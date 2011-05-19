@@ -194,9 +194,11 @@ system-dialect: context [
 		]
 
 		type-spec: [
-			pos: some type-syntax | set w word! (				;-- multiple types allowed for internal usage
-				rule: either find aliased-types w [[skip]][fail]	;-- make the rule fail if not found
-			) rule
+			pos: some type-syntax | set w word! (		;-- multiple types allowed for internal usage			
+				unless find aliased-types w [			;-- make the rule fail if not found
+					throw-error ["invalid struct syntax:" mold pos]
+				]	
+			)
 		]		
 		
 		keywords: [
@@ -233,6 +235,8 @@ system-dialect: context [
 			clean-up
 			halt
 		]
+		
+		blockify: func [value][either block? value [value][reduce [value]]]
 
 		literal?: func [value][not any [word? value value = <last>]]
 		
@@ -264,6 +268,16 @@ system-dialect: context [
 			]
 		]
 		
+		resolve-aliased: func [type [word! block!] /local ][
+			name: either block? type [type/1][type]
+			all [
+				not find emitter/datatypes name
+				not type: select aliased-types name
+				throw-error ["unknown type:" type]
+			]
+			type
+		]
+		
 		resolve-type: func [name [word!] /with parent [block! none!] /local type][
 			type: any [
 				all [parent select parent name]
@@ -272,10 +286,7 @@ system-dialect: context [
 			if all [not type find functions name][
 				return [function!]
 			]
-			unless find emitter/datatypes type/1 [
-				type: select aliased-types type/1
-			]
-			type
+			resolve-aliased type
 		]
 		
 		resolve-path-type: func [path [path! set-path!] /parent prev][
@@ -360,7 +371,7 @@ system-dialect: context [
 				]
 				'else [get-mapped-type expr]
 			]
-			either block? type [type][reduce [type]]	 ;-- normalize type spec
+			blockify type 							;-- normalize type spec
 		]
 		
 		add-symbol: func [name [word!] value /local type][
@@ -405,8 +416,8 @@ system-dialect: context [
 		
 		check-expected-type: func [name [word!] expr expected [block!] /ret /local type][
 			unless expr [return none]					;-- expr == none for special keywords		
-			type: resolve-expr-type expr
-		
+			type: blockify resolve-aliased resolve-expr-type expr
+			
 			unless any [
 				all [
 					find type-sets expected
@@ -589,7 +600,7 @@ system-dialect: context [
 			reduce [
 				make action-class [
 					action: 'type-cast
-					type: either block? ctype [ctype][reduce [ctype]]
+					type: blockify ctype
 				]
 				fetch-expression
 			]
