@@ -613,10 +613,11 @@ Type casting is possible between value of compatible types. Compatible types are
 
 Syntax:
 
- as <new-type> value
+ as <new-type> value					;-- for single-word types
+ as [<new-type2>] value					;-- for compound types
 
- <new-type> : integer! | byte! | pointer! [integer!] | logic! |
-              c-string! | struct! [<members>]
+ <new-type> : integer! | byte! |  logic! | c-string!
+ <new-type2> : pointer! [integer!] | struct! [<members>]
 
 Example:
 
@@ -624,7 +625,7 @@ Example:
  bar: pointer [integer!]				;-- bar is a pointer
 
  foo: as integer! bar					;-- type casting
- bar: as [pointer! [integer!]] foo		;-- complex type is passed as a block
+ bar: as [pointer! [integer!]] foo		;-- compound type is passed as a block
  
 ---Type Conversion
 
@@ -1611,7 +1612,11 @@ will output:
 
 ===Document History
 
-*19/05/2011 - draft 8
+*<b>20/05/2011 - draft 9</b>
+
+*>Added missing type casting syntax description for compound types (thanks to Andreas).
+
+*<b>19/05/2011 - draft 8</b>
 
 *>Added logic! datatype to struct members and type casting allowed types.
 
@@ -1626,18 +1631,18 @@ will output:
 *>Returned type for ANY and ALL precised.
 
 
-*05/05/2011 - draft 7
+*<b>05/05/2011 - draft 7</b>
 
 *>Removed mentions for c-string variables acting as constants.
 
-*27/04/2011 - draft 6
+*<b>27/04/2011 - draft 6</b>
 
 *>Added 'infix attribute support in functions spec block.
 
 *>Added missing logic! datatype in functions spec block definition.
 
 
-*15/04/2011 - draft 5
+*<b>15/04/2011 - draft 5</b>
 
 *>Letters in hex integers are restricted to uppercase only. Warning added for variable names that could be mistaken for hex integers.
 
@@ -1647,7 +1652,7 @@ will output:
 
 *>Added a note for = and <> operators for use with logic! values. C-string! values comparisons restricted to those two operators only (c-string! was wrongly allowed for all comparison operators).
 
-*10/04/2011 - draft 4
+*<b>10/04/2011 - draft 4</b>
 
 *>Struct arguments are passed by reference now again. STRUCT returns a reference to the struct value.
 
@@ -1661,7 +1666,7 @@ will output:
 
 *>Pointer! section moved after c-string! and struct! (because it is less important now)
 
-*08/04/2011 - draft 3
+*<b>08/04/2011 - draft 3</b>
 
 *>Added get-word! syntax for getting struct variable address
 
@@ -1709,13 +1714,13 @@ will output:
 
 *>Minor corrections and additions
 
-*29/03/2011 - draft 2
+*<b>29/03/2011 - draft 2</b>
 
 *>Added missing array! datatype proposition in Evolutions
 
 *>Added missing EXIT and RETURN in reserved keywords list
 
-*28/03/2011 - draft 1
+*<b>28/03/2011 - draft 1</b>
 
 *>First public release
 
