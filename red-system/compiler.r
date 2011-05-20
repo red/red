@@ -213,7 +213,6 @@ system-dialect: context [
 			all			 [comp-expression-list/_all]
 			exit		 [comp-exit]
 			return		 [comp-exit/value]
-			null	 	 [also 0 pc: next pc]
 			struct! 	 [also 'struct! pc: next pc]	;@@ was required for 'alias (still needed?)
 			true		 [also true pc: next pc]		;-- converts word! to logic!
 			false		 [also false pc: next pc]		;-- converts word! to logic!
@@ -231,7 +230,7 @@ system-dialect: context [
 					join uppercase/part mold err 1 " error"
 				][reform err]
 			]
-			print ["*** in:" mold script "^/*** at: " mold copy/part pc 4]
+			print ["*** in:" mold script "^/*** at: " mold copy/part pc 8]
 			clean-up
 			halt
 		]
@@ -268,7 +267,7 @@ system-dialect: context [
 			]
 		]
 		
-		resolve-aliased: func [type [word! block!] /local ][
+		resolve-aliased: func [type [word! block!] /local name][
 			name: either block? type [type/1][type]
 			all [
 				not find emitter/datatypes name
@@ -286,7 +285,10 @@ system-dialect: context [
 			if all [not type find functions name][
 				return [function!]
 			]
-			resolve-aliased type
+			unless find emitter/datatypes type/1 [
+				type: select aliased-types type/1
+			]
+			type
 		]
 		
 		resolve-path-type: func [path [path! set-path!] /parent prev][
@@ -431,13 +433,13 @@ system-dialect: context [
 					pc
 				]
 				throw-error [
-					either ret [
-						reform ["wrong return type in function" name]
+					reform either ret [
+						["wrong return type in function:" name]
 					][
-						"type mismatch"
+						["argument type mismatch on calling:" name]
 					]
-					"^/*** expected:" mold expected
-					", found:" mold type
+					"^/*** expected:" join mold expected #","
+					"found:" mold type
 				]
 			]
 			type
@@ -580,9 +582,13 @@ system-dialect: context [
 			value
 		]
 		
-		comp-struct: does [		
-			unless parse pos: pc/2 struct-syntax [
-				throw-error ["invalid struct syntax:" mold pos]
+		comp-struct: does [
+			either word? pc/2 [
+				resolve-aliased pc/2					;-- just check if alias is defined
+			][
+				unless parse pos: pc/2 struct-syntax [
+					throw-error ["invalid struct syntax:" mold pos]
+				]
 			]
 			comp-reference-literal
 		]

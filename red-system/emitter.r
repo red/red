@@ -166,12 +166,9 @@ emitter: context [
 		]
 		size: size-of? type
 		ptr: tail data-buf
-		if find compiler/aliased-types type [
-			type: compiler/resolve-aliased type
-			if block? type [
-				spec: type/2
-				type: type/1
-			]
+		
+		if find compiler/aliased-types spec [	
+			spec: second compiler/resolve-aliased spec
 		]
 	
 		switch/default type [
@@ -300,7 +297,13 @@ emitter: context [
 	]
 
 	size-of?: func [type [word!]][
-		select datatypes compiler/resolve-aliased type
+		any [
+			select datatypes type						;-- search in core types
+			all [										;-- search in user-aliased types
+				type: select compiler/aliased-types type
+				select datatypes type/1
+			]
+		]
 	]
 	
 	get-size: func [type [block!] value][
@@ -345,10 +348,9 @@ emitter: context [
 		][
 			reverse args
 		]
-		foreach v args [if block? v [order-args v/1 next v]]	;-- recursive processing
 	]
 	
-	call: func [name [word!] args [block!] /sub /local type res][			
+	call: func [name [word!] args [block!] /sub /local type res][
 		compiler/check-arguments-type name args
 		order-args name args
 		

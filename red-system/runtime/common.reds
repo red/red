@@ -19,6 +19,8 @@ Red/System [
 #define as-integer	[as integer!]
 #define as-c-string	[as c-string!]
 
+null: pointer [integer!]		;-- null pointer declaration
+
 
 length?: func [					;; return the number of characters from a c-string value ;;
 	s 		 [c-string!]		;; c-string value ;;
