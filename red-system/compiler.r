@@ -213,7 +213,6 @@ system-dialect: context [
 			all			 [comp-expression-list/_all]
 			exit		 [comp-exit]
 			return		 [comp-exit/value]
-			struct! 	 [also 'struct! pc: next pc]	;@@ was required for 'alias (still needed?)
 			true		 [also true pc: next pc]		;-- converts word! to logic!
 			false		 [also false pc: next pc]		;-- converts word! to logic!
 			func 		 [fetch-func pc/-1 none]
@@ -613,15 +612,14 @@ system-dialect: context [
 		]
 		
 		comp-alias: does [
-			;TBD: check specs block validity
-			repend aliased-types [
-				to word! pc/-1
-				either find [struct! pointer!] to word! pc/2 [
-					also reduce [pc/2 pc/3] pc: skip pc 3	
-				][
-					also pc/2 pc: skip pc 2
-				]
+			unless pc/2 = 'struct! [
+				throw-error "ALIAS only works on struct! type"
 			]
+			unless parse pos: pc/3 struct-syntax [
+				throw-error ["invalid struct syntax:" mold pos]
+			]
+			repend aliased-types [to word! pc/-1 reduce [pc/2 pc/3]]
+			pc: skip pc 3
 			none
 		]
 		
