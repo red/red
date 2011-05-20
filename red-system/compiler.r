@@ -612,6 +612,9 @@ system-dialect: context [
 		]
 		
 		comp-alias: does [
+			unless set-word? pc/-1 [
+				throw-error "assignment expected for ALIAS"
+			]
 			unless pc/2 = 'struct! [
 				throw-error "ALIAS only works on struct! type"
 			]
