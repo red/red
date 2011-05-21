@@ -166,10 +166,6 @@ emitter: context [
 		]
 		size: size-of? type
 		ptr: tail data-buf
-		
-		if find compiler/aliased-types spec [	
-			spec: second compiler/resolve-aliased spec
-		]
 	
 		switch/default type [
 			integer! [
@@ -205,6 +201,7 @@ emitter: context [
 			struct! [
 				ptr: tail data-buf
 				foreach [var type] spec [
+					if spec: select compiler/aliased-types type [type: spec]
 					type: either find [struct! c-string!] type/1 ['pointer!][type/1]
 					store-global 0 type none
 				]
@@ -231,8 +228,11 @@ emitter: context [
 	
 	store: func [
 		name [word!] value type [block!]
-		/local new-global? ptr refs n-spec spec
+		/local new new-global? ptr refs n-spec spec
 	][
+		if new: select compiler/aliased-types type/1 [
+			type: new
+		]	
 		new-global?: not any [							;-- TRUE if unknown global symbol
 			find stack name								;-- local variable
 			find symbols name 							;-- known symbol

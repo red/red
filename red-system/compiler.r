@@ -290,7 +290,7 @@ system-dialect: context [
 			type
 		]
 		
-		resolve-path-type: func [path [path! set-path!] /parent prev][
+		resolve-path-type: func [path [path! set-path!] /parent prev /local type][
 			type: either parent [
 				resolve-type/with path/1 prev
 			][
@@ -305,7 +305,7 @@ system-dialect: context [
 					]
 					struct!   [first select type/2 path/2]
 				][
-					pc: find/reverse/only pc path
+					pc: any [find/reverse/only pc path pc]
 					throw-error "invalid path value"
 				]
 			][
@@ -318,33 +318,39 @@ system-dialect: context [
 				value = <last>  [last-type]
 				tag?    value	['logic!]
 				logic?  value	['logic!]
-				paren?  value	[reduce [to word! join value/1 #"!" value/2]]
 				word?   value 	[resolve-type value]
 				char?   value	['byte!]
 				string? value	['c-string!]
 				path?   value	[resolve-path-type value]
 				block?  value	[get-return-type value/1]
+				paren?  value	[
+					reduce either all [value/1 = 'struct word? value/2][
+						[value/2]
+					][
+						[to word! join value/1 #"!" value/2]
+					]
+				]
 				'else 			[type?/word value]		;@@ should throw an error?
 			]	
 		]
 		
 		argument-type?: func [arg][
 			switch/default type?/word arg [
-					char!	 ['byte!]
-					integer! ['integer!]
-					logic!   ['logic!]
-					word!	 [first resolve-type arg]
-					block!	 [
-						either 'op = second select functions arg/1 [
-							argument-type? arg/2		;-- recursively search for an atomic left operand
-						][
-							get-return-type arg/1
-						]
+				char!	 ['byte!]
+				integer! ['integer!]
+				logic!   ['logic!]
+				word!	 [first resolve-type arg]
+				block!	 [
+					either 'op = second select functions arg/1 [
+						argument-type? arg/2		;-- recursively search for an atomic left operand
+					][
+						get-return-type arg/1
 					]
-					tag!	 [either word? last-type [last-type][last-type/1]]
-					path!	 [resolve-path-type arg]
-				][
-					throw-error ["Undefined type for:" mold arg]
+				]
+				tag!	 [either word? last-type [last-type][last-type/1]]
+				path!	 [resolve-path-type arg]
+			][
+				throw-error ["Undefined type for:" mold arg]
 			]
 		]
 							
@@ -386,7 +392,7 @@ system-dialect: context [
 				;TBD: symbol already defined
 			]
 			;TBD: check spec syntax (here or somewhere else)
-			arity: either pos: find spec/3 /local [			; @@ won't work with inferencing
+			arity: either pos: find spec/3 /local [		; @@ won't work with inferencing
 				(index? pos) -  1 / 2
 			][
 				(length? spec/3) / 2
@@ -415,9 +421,10 @@ system-dialect: context [
 			]		
 		]
 		
-		check-expected-type: func [name [word!] expr expected [block!] /ret /local type][
+		check-expected-type: func [name [word!] expr expected [block!] /ret /local type alias][
 			unless expr [return none]					;-- expr == none for special keywords		
 			type: blockify resolve-aliased resolve-expr-type expr
+			if alias: select aliased-types expected/1 [expected: alias]
 			
 			unless any [
 				all [
@@ -452,7 +459,7 @@ system-dialect: context [
 				not empty? spec: entry/2/4 
 				block? spec/1
 			][
-				spec: next spec					;-- jump over attributes block
+				spec: next spec						;-- jump over attributes block
 			]
 			foreach arg args [
 				check-expected-type name arg spec/2

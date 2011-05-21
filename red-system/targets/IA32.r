@@ -265,12 +265,12 @@ make target-class [
 	][
 		opcodes: pick [[							;-- store path opcodes --
 				[#{} #{8910}  ]						;-- MOV [eax], dx|edx
-				[#{} #{8990}  ]						;-- MOV [eax + idx * sizeof(integer!)], dx|edx
-				[#{} #{891498}]						;-- MOV [eax + ebx * sizeof(integer!)], dx|edx
+				[#{} #{8990}  ]						;-- MOV [eax + idx * sizeof(p/value)], dx|edx
+				[#{} #{891498}]						;-- MOV [eax + ebx * sizeof(p/value)], dx|edx
 			][										;-- load path opcodes --
 				[#{} #{8B00}  ]						;-- MOV ax|eax, [eax]
-				[#{} #{8B80}  ]						;-- MOV ax|eax, [eax + idx * sizeof(integer!)]
-				[#{} #{8B0498}]						;-- MOV ax|eax, [eax + ebx * sizeof(integer!)]
+				[#{} #{8B80}  ]						;-- MOV ax|eax, [eax + idx * sizeof(p/value)]
+				[#{} #{8B0498}]						;-- MOV ax|eax, [eax + ebx * sizeof(p/value)]
 		]] set-path? path
 		
 		type: either parent [
@@ -279,7 +279,7 @@ make target-class [
 			emit-init-path path/1
 			type: compiler/resolve-type path/1
 		]
-		set-width/type type/2/1
+		set-width/type type/2/1						;-- adjust operations width to pointed value size
 		idx: either path/2 = 'value [1][path/2]
 
 		either integer? idx [
