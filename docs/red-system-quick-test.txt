@@ -80,26 +80,26 @@ Example 1: A Test of inc.reds - an imaginary function which adds 1 to an integer
 
   Red/System [
     Title:   "Tests of inc.reds"
-	  File: 	 %source/run-time/inc-test.reds
+    File: 	 %source/run-time/inc-test.reds
   ]
-  
+
   #include %../../quick-test/quick-test.reds 
   #include %relativepathto/inc.reds
-  
+
   ~~~start-file~~~ "inc"                          ;; start test file  
                                                   ;;  initialises totals
-                                                  
-  ===start-group=== "increment an variable"       ;;  a marker to group tests
+
+  ===start-group=== "increment an variable"       ;; a marker to group tests
                                                   ;;  group name [string!]
-  
+
     --test-- "inc-test-1"                         ;; start of code for a test
                                                   ;;   test name [string!]
       i: 1
     --assert 2 = inc i                            ;; an assertion
                                                   ;;   expression [logic!]
-                                                   
+
   ===end-group===                                 ;; end of group marker                                                  
-                                                   
+
   ~~~end-file~~~                                  ;; finish test - print totals
   
   
@@ -108,13 +108,13 @@ Example 2: A test to check the compiler correctly identifies aan unidentified va
   change-dir %../                   ;; revert to tests/ dir (from runnable)
                                     ;; .r test scripts are copied to runnable 
                                     ;; before execution
-                                    
+
                                     ;; There is no need to include quick-test.r
                                     ;; as it will have been included by either 
                                     ;; %run-all.r or %run-test.r
-  
+
   ~~~start-file~~~ "comp-err"       ;; start test
-                                  
+
     --test-- "compile-error-1"
       write %runnable/comp-err.reds {
         Red/System []
@@ -124,23 +124,22 @@ Example 2: A test to check the compiler correctly identifies aan unidentified va
     --compile %runnable/comp-err.reds   ;; compiles programs
                                         ;; compiler output is collected in
                                         ;;  qt/comp-output
-                                        
+
       if exists? %runnable/comp-err.reds [delete %runnable/comp-err.reds]      
-    
+
     --assert none <> find qt/comp-output "*** undefined symbol"
     --assert none <> find qt/comp-output "at:  ["
     --assert none <> find qt/comp-output "i := 1"
     --assert none <> find qt/comp-output "]"
-
 
   ~~~end-file~~~                          ;; ends test and print totals
 
 Example 3: Test the output of a Red/System programs
   
   change-dir %../                   ;; revert to tests/ directory from runnable/
-  
+
   ~~~start-file~~~ "output"  
-  
+
     --test-- "hello"
                                     ;; --compile compiles a Red/System
                                     ;; it returns the relative path to the
@@ -149,18 +148,18 @@ Example 3: Test the output of a Red/System programs
 
       either exe: --compile src: %source/compiler/hello.reds [
 
-      --run exe                     ;; runs the program
+        --run exe                   ;; runs the program
                                     ;; the output is collected in qt/output 
-  
-    --assert none <> find qt/output "hello"    
-    --assert none <> find qt/output "world"
+
+        --assert none <> find qt/output "hello"    
+        --assert none <> find qt/output "world"
       ][
         qt/compile-error src                        ;; generates a test failure
                                                     ;;  so that the problem is
                                                     ;;  highlighted
-]
+      ]
 
-~~~end-file~~~   
+  ~~~end-file~~~   
 
 ###
 
