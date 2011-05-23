@@ -96,6 +96,18 @@ make target-class [
 		]
 	]
 	
+	emit-to-logic: func [type [word! block!]][
+		type: compiler/blockify type
+		if verbose >= 3 [print [">>>converting to logic! from:" mold type/1]]
+		
+		set-width/type type/1
+		emit-poly [#{3C} #{3D} 0]					;-- 	   CMP rA, 0
+		emit #{7403}								;--        JZ _exit
+		emit #{31C0}								;--        XOR eax, eax
+		emit #{40}									;-- 	   INC eax
+													;-- _exit:
+	]
+	
 	emit-boolean-switch: does [
 		emit #{31C0}								;-- 	  XOR eax, eax	; eax = 0 (FALSE)
 		emit #{EB03}								;-- 	  JMP _exit
@@ -730,10 +742,7 @@ make target-class [
 				emit-reloc-addr spec				;-- 32-bit relative displacement place-holder
 			]
 			inline [
-				if block? args/1 [					;-- works only for unary functions
-					emitter/call/sub args/1/1 next args/1
-					args/1: <last>
-				]		
+				if block? args/1 [args/1: <last>]		;-- works only for unary functions	
 				do select [
 					not	[emit-not args/1]
 				] name

@@ -350,6 +350,24 @@ emitter: context [
 		]
 	]
 	
+	preprocess-argument: func [args [block!] /no-last /local arg casted old-type][
+		arg: args/1
+		if all [block? arg object? arg/1][				;-- preprocess casting
+			casted: arg/1/type
+			old-type: compiler/get-mapped-type arg/2
+			arg: args/1: compiler/cast casted arg/2		;-- new argument value can be a block! or not
+		]
+		if block? arg [									;-- nested call
+			call/sub arg/1 next arg
+			if casted [
+				unless no-last [compiler/set-last-type casted]
+				if casted/1 = 'logic! [
+					target/emit-to-logic old-type
+				]
+			]
+		]
+	]
+	
 	call: func [name [word!] args [block!] /sub /local type res][
 		compiler/check-arguments-type name args
 		order-args name args
@@ -358,35 +376,26 @@ emitter: context [
 			select symbols name							;@@
 			next select compiler/functions name
 		]
-		case [
-			not find [inline op] type [					;-- push function's arguments on stack
-				foreach arg args [
-					switch/default type?/word arg [
-						binary! [target/emit arg]
-						block!  [						
-							call/sub arg/1 next arg
-							target/emit-push <last>		;-- push returned value
-						]
-					][
-						target/emit-push arg
-					]
+		either type <> 'op [					
+			forall args [								;-- push function's arguments on stack
+				preprocess-argument/no-last args
+				if type <> 'inline [
+					target/emit-push either block? args/1 [<last>][args/1]
 				]
 			]
-			type = 'op [								;-- nested calls as op argument require special handling
-				if block? args/1 [
-					call/sub args/1/1 next args/1
-					if block? args/2 [target/emit-save-last] ;-- save first argument result
-				]
-				if block? args/2 [
-					call/sub args/2/1 next args/2
-				]
-				if path? args/1 [
-					access-path args/1 none
-					if path? args/2 [target/emit-save-last] ;-- save first argument result
-				]
-				if path? args/2 [
-					access-path args/2 none
-				]
+		][												;-- nested calls as op argument require special handling
+			preprocess-argument args
+			if all [block? args/1 block? args/2][
+				target/emit-save-last					;-- save first argument result
+			]
+			preprocess-argument/no-last next args
+			
+			if path? args/1 [
+				access-path args/1 none
+				if path? args/2 [target/emit-save-last] ;-- save first argument result
+			]
+			if path? args/2 [
+				access-path args/2 none
 			]
 		]
 		res: target/emit-call name args to logic! sub

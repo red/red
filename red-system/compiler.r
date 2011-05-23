@@ -228,10 +228,19 @@ system-dialect: context [
 				either word? err [
 					join uppercase/part mold err 1 " error"
 				][reform err]
+				"^/*** in:" mold script
+				"^/*** at: " mold copy/part pc 8
 			]
-			print ["*** in:" mold script "^/*** at: " mold copy/part pc 8]
 			clean-up
 			halt
+		]
+		
+		throw-warning: func [msg [string! block!] /at mark][
+			print [
+				"*** Warning:" reform msg
+				"^/*** in:" mold script
+				"^/*** at: " mold copy/part any [all [at find/reverse pc mark] pc] 8
+			]
 		]
 		
 		blockify: func [value][either block? value [value][reduce [value]]]
@@ -341,10 +350,12 @@ system-dialect: context [
 				logic!   ['logic!]
 				word!	 [first resolve-type arg]
 				block!	 [
-					either 'op = second select functions arg/1 [
-						argument-type? arg/2		;-- recursively search for an atomic left operand
-					][
-						get-return-type arg/1
+					case [
+						object? arg/1 [arg/1/type]
+						'op = second select functions arg/1 [
+							argument-type? arg/2		;-- recursively search for an atomic left operand
+						]
+						'else [get-return-type arg/1]
 					]
 				]
 				tag!	 [either word? last-type [last-type][last-type/1]]
@@ -379,6 +390,46 @@ system-dialect: context [
 				'else [get-mapped-type expr]
 			]
 			blockify type 							;-- normalize type spec
+		]
+		
+		cast: func [ctype [word! block!] value /local type][
+			type: blockify get-mapped-type value
+			ctype: blockify ctype
+
+			if type/1 = ctype/1 [
+				throw-warning/at ["type casting from" type/1 "to" ctype/1 "is not necessary"] 'as
+				return ctype
+			]
+			if any [
+				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
+				all [
+					find [c-string! pointer! struct!] ctype/1
+					find [byte! logic!] type/1
+				]
+			][
+				throw-error ["type casting from" type/1 "to" ctype/1 "is not allowed"]
+			]
+			
+			unless literal? value [return value]
+			
+			switch ctype/1 [
+				byte! [
+					switch type/1 [
+						integer! [value and 255]
+						logic! [pick [#"^(01)" #"^(00)"] value]
+					]
+				]
+				integer! [
+					if type/1 = 'logic! [value: to integer! value]
+				]
+				logic! [
+					switch type/1 [
+						byte! 	 [value: value <> null]
+						integer! [value: value <> 0]
+					]
+				]
+			]
+			value
 		]
 		
 		add-symbol: func [name [word!] value /local type][
@@ -606,7 +657,7 @@ system-dialect: context [
 			comp-reference-literal
 		]
 		
-		comp-as: has [ctype expr][
+		comp-as: has [ctype][
 			ctype: pc/2
 			pc: skip pc 2
 			reduce [
@@ -852,11 +903,11 @@ system-dialect: context [
 		
 		comp-expression: func [
 			tree [block!] /keep
-			/local name value data offset body args prepare-value type
+			/local name value data offset body args prepare-value type casted
 		][
 			prepare-value: [		
 				if all [block? tree/2 object? tree/2/1][
-					type: tree/2/1/type					;-- save casting type
+					casted: tree/2/1/type				;-- save casting type
 					tree/2: tree/2/2					;-- remove encoding object
 				]
 				value: either block? tree/2 [
@@ -880,12 +931,10 @@ system-dialect: context [
 				set-word! [
 					name: to word! tree/1
 					do prepare-value
-					unless type: any [
-						type							;-- possible type casting
-						get-variable-spec name			;-- test if known variable (local or global)
-					][
+					unless type: get-variable-spec name [ ;-- test if known variable (local or global)
 						type: add-symbol name data		;-- if unknown add it to global context
-					]					
+					]
+					if casted [type: casted]
 					if none? type/1 [
 						pc: any [find/reverse pc tree/1 pc]
 						throw-error ["unable to determine a type for:" name]
@@ -931,7 +980,7 @@ system-dialect: context [
 				if type [last-type: type]
 				
 				if all [keep last-type = 'logic!][
-					emitter/logic-to-integer name		;-- runtime logic! conversion before storing
+					emitter/logic-to-integer name		;-- runtime logic! conversion before storing @@
 				]
 			]
 		]
