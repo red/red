@@ -19,3 +19,18 @@ legend {font-weight: bold;}
 .fset, .fset p {background-color: #f0e090;}
 .fset  {border: solid #a0a0a0 1px;}
 .tail {color: gray; font-size: 8pt;}
+.matrix {
+	border: 1px solid #888;
+	border-collapse:collapse;
+}
+.matrix th, .matrix td {
+	border: 1px solid #888;
+	font-size: 13px;
+	padding: 12px 12px;
+}
+.matrix td {text-align: center;}
+.matrix th {background-color: #EEE;}
+td .allow {background-color: #DFD;}
+td .warn {background-color: #FDB;}
+td .deny {background-color: #FDD;}
+#matrix-start {background-color: white;}

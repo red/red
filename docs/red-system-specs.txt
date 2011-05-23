@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 20/05/2011
-	Revision: 9
+	Date: 23/05/2011
+	Revision: 10
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -48,11 +48,11 @@ For now, Red/System uses 8-bit character encoding (ASCII). Once proper Unicode s
 
 Variables are labels used to represent a memory location. The labels (called <b>identifiers</b> from now) are formed by sequences of printable characters without any blank (space, newlines or tabulation). Printable characters are defined as any one-byte character in the 20h-7Eh range that can be printed out in system's console excepting the following ones (used as delimiters or reserved for some datatypes literals): 
 
- [ ] { } " ( ) / @ # $ % ^ , : ;
+ [ ] { } " ( ) / \ @ # $ % ^ , : ; < >
     
 There is a restriction on the first character, the following characters are forbidden in the first position, but allowed at other positions:
 
- 0 1 2 3 4 5 6 7 8 9
+ 0 1 2 3 4 5 6 7 8 9 '
  
 Also there is a another restriction to avoid letting the compiler mistake a hex integer with a variable name. Variable name starting with A-F letters consisting of A-F and 0-9 characters and ending with h are not allowed.
  
@@ -429,14 +429,15 @@ Struct usage example:
  ]
 
  gift: struct [
- 	first  [book!]
- 	second [book!]
+ 	first  [book!]						;-- reference to a book! struct
+ 	second [book!]						;-- reference to a book! struct
  ]
- b: gift/first
 
- b/title:  "Contact"
- b/author: "Carl Sagan"
- b/year:   1985
+ gift/first: struct book!				;-- book! struct storage space reservation
+
+ gift/first/title:  "Contact"
+ gift/first/author: "Carl Sagan"
+ gift/first/year:   1985
 
 ---Pointer!
 
@@ -508,7 +509,7 @@ Example of inferred pointer variable type:
  ][
   	p: GetPointer a							;-- datatype is guessed from return value
   	foobar p
-  	a/count: p/count
+  	a/count: p/value
  ]
 
 +++Dereferencing
@@ -545,7 +546,7 @@ It is possible to apply some simple math operations on pointer like additions an
 
 +++Pointer path notation
 
-It is possible to use path notation to simulate an array with indexed access. Both reading and writing are possible.
+It is possible to use path notation to simulate an array with indexed access. Both reading and writing are possible. Indexes are <b>one-based</b>.
 
 <b>Syntax</b>
 
@@ -570,11 +571,11 @@ Integer variable can also be used as index:
 
  p: as [pointer! [integer!]] 4000000h
  c: 2
- p/c: 1234								;-- writes 123 (4 bytes) at 40000008h
+ p/c: 1234								;-- writes 123 (4 bytes) at 40000004h
  
-<u>Note</u>: Pointer's <b>/value</b> notation is strictly equivalent to <b>/1</b>. The <b>/value</b> can be considered as syntactic sugar.
+<u>Note</u>: Pointer's <b>/value</b> notation is strictly equivalent to <b>/1</b>. The <b>/value</b> notation can be considered as syntactic sugar.
 
-+++Void pointer
++++C void pointer
 
 There is no specific support in Red/System for C-like void pointers. The official way is to use the integer! type to represent C void* pointers.
 
@@ -609,7 +610,7 @@ would print
 
 Type casting is possible between value of compatible types. Compatible types are defined as types which values memory size is equal. Casting is achieved using the <b>AS</b> keyword followed by the target type and the value to cast.
 
-<u>Note</u>: Trying to assign a value to a variable of incompatible type will result in a compilation error. The same action with a compatible type will trigger a compilation warning, asking to add explicit casting or fix the issue if casting was not intended.
+<u>Note</u>: Trying to assign a value to a variable of different type without a proper type casting, will result in a compilation error.
 
 Syntax:
 
@@ -626,7 +627,83 @@ Example:
 
  foo: as integer! bar					;-- type casting
  bar: as [pointer! [integer!]] foo		;-- compound type is passed as a block
- 
+
+<br> 
+<b>Type casting reference matrix</b>
+
+Keep in mind that pointer!, c-string! and struct! are passed by reference, so the casting below for these datatypes is applied on their memory address value.
+
+<div align="center">
+<table class="matrix">
+<tr>
+
+<th id="matrix-start">source&gt;&gt;</th>
+<th>byte!</th>
+<th>integer!</th>
+<th>logic!</th>
+<th>c-string!</th>
+<th>pointer!</th>
+<th>struct!</th>
+</tr><tr>
+
+<th>byte!</th>
+<td class="warn">WARNING</td>
+<td class="allow">to byte!(1)</td>
+<td class="allow">true -> #"^(01)"<br>false -> #"^(00)"</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+</tr><tr>
+
+<th>integer!</th>
+<td class="allow">to integer!</td>
+<td class="warn">WARNING</td>
+<td class="allow">true -> 1<br>false -> 0</td>
+<td class="allow">to integer!</td>
+<td class="allow">to integer!</td>
+<td class="allow">to integer!</td>
+</tr><tr>
+
+<th>logic!</th>
+<td class="allow">#"^(00)"->false<br>else -> true</td>
+<td class="allow">0 -> false<br>else -> true</td>
+<td class="warn">WARNING</td>
+<td class="allow">null -> false<br>else -> true</td>
+<td class="allow">null -> false<br>else -> true</td>
+<td class="allow">null -> false<br>else -> true</td>
+</tr><tr>
+
+<th>c-string!</th>
+<td class="deny">ERROR</td>
+<td class="allow">to c-string!</td>
+<td class="deny">ERROR</td>
+<td class="warn">WARNING</td>
+<td class="allow">to c-string!</td>
+<td class="allow">to c-string!</td>
+</tr><tr>
+
+<th>pointer!</th>
+<td class="deny">ERROR</td>
+<td class="allow">to pointer!</td>
+<td class="deny">ERROR</td>
+<td class="allow">to pointer!</td>
+<td class="warn">WARNING</td>
+<td class="allow">to pointer!</td>
+</tr><tr>
+
+<th>struct!</th>
+<td class="deny">ERROR</td>
+<td class="allow">to struct!</td>
+<td class="deny">ERROR</td>
+<td class="allow">to struct!</td>
+<td class="allow">to struct!</td>
+<td class="warn">WARNING</td>
+</tr>
+</table>
+</div>
+
+(1) Casting allowed, but integer values higher than 255 will be truncated, so beware!
+
 ---Type Conversion
 
 <i>TBD</i>
@@ -1612,9 +1689,21 @@ will output:
 
 ===Document History
 
+*<b>23/05/2011 - draft 10</b>
+
+*>Added type casting combinations matrix
+
+*>Fixed uncomplete code example for ALIAS (thanks to Kaj)
+
+*>Fixed list of allowed characters in variables (<a href="https://github.com/dockimbel/Red/issues/48">issue #48</a>)
+
+*>Minor other fixes
+
+
 *<b>20/05/2011 - draft 9</b>
 
 *>Added missing type casting syntax description for compound types (thanks to Andreas).
+
 
 *<b>19/05/2011 - draft 8</b>
 
@@ -1634,6 +1723,7 @@ will output:
 *<b>05/05/2011 - draft 7</b>
 
 *>Removed mentions for c-string variables acting as constants.
+
 
 *<b>27/04/2011 - draft 6</b>
 
