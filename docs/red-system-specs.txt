@@ -34,15 +34,25 @@ For now, Red/System uses 8-bit character encoding (ASCII). Once proper Unicode s
 
 ---Comments
 
+Inline comment:
  ;this is a commented line
 
  print "hello world"    ; this is another comment
-
+ 
+Multiline comment:
  comment {
      This is a
      multiline
      comment
  }
+
+Usage rules: 
+
+*Inline comments are allowed anywhere in the source code
+
+*Multi-line comments are allowed anywhere in the source code, except in expressions. Exemple:
+
+ a: 1 + comment {5} 4	; this will produce a compilation error
 
 ===Variables
 
@@ -959,6 +969,8 @@ Some features of Red/System need to be processed at compile-time rather than at 
  <argument-*> : argument can be any Red valid datatype
  
 The number of argument is specific to each compiler directive.
+
+As compiler directives apply globally to programs, they are not allowed inside code blocks (this restriction might be removed if local directives are introduced in the future).
  
 <u>Implementation note</u>: Directives arguments datatype set is the one provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
 
@@ -1688,6 +1700,13 @@ will output:
 *>Extend the get-word! syntax to integer! variables.
 
 ===Document History
+
+*<b>??/05/2011 - draft 11</b>
+
+*>Multi-line comments restriction added.
+
+*>Compiler directives usage inside code blocks is now forbidden explicitly.
+
 
 *<b>23/05/2011 - draft 10</b>
 

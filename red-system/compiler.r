@@ -1032,8 +1032,13 @@ system-dialect: context [
 				integer!	[do pass]
 				string!		[do pass]
 				block!		[do pass]					;-- struct! and pointer! specs
-			][			
-				throw-error "datatype not allowed"
+			][
+				throw-error [
+					pick [
+						"compiler directive are not allowed in code blocks"
+						"datatype not allowed"
+					] issue? pc/1
+				]
 			]
 			expr: reduce-logic-tests expr
 			if final [
@@ -1057,10 +1062,12 @@ system-dialect: context [
 		comp-block: func [/final /local expr][
 			fetch-into pc/1 [
 				while [not tail? pc][
-					expr: either final [
-						fetch-expression/final
-					][
-						fetch-expression
+					either pc/1 = 'comment [pc: skip pc 2][
+						expr: either final [
+							fetch-expression/final
+						][
+							fetch-expression
+						]
 					]
 				]
 			]
