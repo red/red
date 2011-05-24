@@ -22,12 +22,12 @@ Red/System [
 	
 	--test-- "byte-cast-3"
 	--assert false = as logic! #"^(00)"
-	
+
 	--test-- "byte-cast-4"
 	  b: #"^(00)"
 	  l: false
 	--assert l = as logic! b
-	
+
 	--test-- "byte-cast-5"
 	--assert true = as logic! #"A"
 	
@@ -38,7 +38,7 @@ Red/System [
 	
 	--test-- "byte-cast-7"
 	--assert true = as logic! #"^(FF)"
-	
+
 	--test-- "byte-cast-8"
 	  b: #"^(FF)"
 	  l: true
@@ -176,6 +176,67 @@ comment {
     l: false
   --assert b = as integer! l
   
+===end-group===
+
+===start-group=== "cast c-string! tests"
+  
+  --test-- "c-string-cast-1"
+    csc1-str: "Hello, Nenad"
+    i: 0
+    i: as integer! csc1-str
+    i: i + 7
+    csc1-str: as c-string! i
+  --assert csc1-str/1 = #"N"
+  --assert csc1-str/2 = #"e"
+  --assert csc1-str/3 = #"n"
+  --assert csc1-str/4 = #"a"
+  --assert csc1-str/5 = #"d"
+  comment { 
+  --test-- "c-string-cast-2"
+  --assert false = as logic! ""
+  }
+    --test-- "c-string-cast-3"
+    csc3-str: ""
+  --assert false = as logic! csc3-str
+  
+  --test-- "c-string-cast-4"
+  --assert true = as logic! "Any old iron, any old iron"
+  
+  --test-- "c-string-cast-5"
+    csc5-str: "Why not?"
+  --assert true = as logic! csc5-str
+  
+  --test-- "c-string-cast-6"
+    csc6-str: "Tour de France"
+    csc6-p: pointer [integer!]
+    csc6-p: as [pointer! [integer!]] csc6-str
+    csc6-p: csc6-p + 2
+    csc6-str2: as c-string! csc6-p
+  --assert csc6-str2/1 = #"F"
+  --assert csc6-str2/2 = #"r"
+  --assert csc6-str2/3 = #"a"
+  --assert csc6-str2/4 = #"n"
+  --assert csc6-str2/5 = #"c"
+  --assert csc6-str2/6 = #"e"
+  comment { 
+  --test-- "C-string-cast-7"
+    csc7-struct: struct [
+      c1 [byte!]
+      c2 [byte!]
+      c3 [byte!]
+      c4 [byte!]
+      c5 [byte!]
+    ]
+    csc7-str: "Peter"
+    csc7-struct: as struct! [
+      c1 [byte!] c2 [byte!] c3 [byte!] c4 [byte!] c5 [byte!]
+    ] csc7-str
+  --assert csc7-struct/c1 = #"P"
+  --assert csc7-struct/c2 = #"e"
+  --assert csc7-struct/c3 = #"t"
+  --assert csc7-struct/c4 = #"e"
+  --assert csc7-struct/c5 = #"r"
+  }
 ===end-group===
 
 ~~~end-file~~~

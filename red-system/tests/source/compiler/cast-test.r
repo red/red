@@ -44,6 +44,27 @@ compiled?: func [
       #"^(00)" = as byte! false
     }
     
+  --test-- "cast c-string! 1"
+  --assert compiled? {
+      Red/System[]
+      false = as logic! ""
+   }
+   
+   --test-- "cast c-string! 2"
+   --assert compiled? {
+      Red/System[]
+      csc7-struct: struct [
+        c1 [byte!]
+        c2 [byte!]
+        c3 [byte!]
+        c4 [byte!]
+        c5 [byte!]
+      ]
+      csc7-str: "Peter"
+      csc7-struct: as struct! [
+        c1 [byte!] c2 [byte!] c3 [byte!] c4 [byte!] c5 [byte!]
+      ] csc7-str
+    }
 ~~~end-file~~~
 
 
