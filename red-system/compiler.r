@@ -313,8 +313,8 @@ system-dialect: context [
 				switch/default type/1 [
 					c-string! ['byte!]
 					pointer!  [
-						;TBD: check-pointer-path
-						'pointer!
+						check-pointer-path path
+						type/2/1						;-- return pointed value type
 					]
 					struct!   [first select type/2 path/2]
 				][
@@ -379,7 +379,7 @@ system-dialect: context [
 			func?: all [
 				block? expr word? expr/1
 				not find comparison-op expr/1
-				spec: select functions expr/1 			;-- works for unary & binary functions only!
+				spec: select functions expr/1 		;-- works for unary & binary functions only!
 			]
 			type: case [
 				all [block? expr object? expr/1][
@@ -455,6 +455,18 @@ system-dialect: context [
 			if find spec/3 return-def [arity: max 0 arity - 1]
 			repend functions [
 				name reduce [arity type cc new-line/all spec/3 off]
+			]
+		]
+		
+		check-pointer-path: func [path [path! set-path!] /local ending][
+			ending: path/2
+			unless any [
+				integer? ending
+				all [word? ending get-variable-spec ending]
+				ending = 'value
+			][
+				pc: any [find/only/reverse pc path pc]
+				throw-error "invalid pointer path ending"
 			]
 		]
 		
