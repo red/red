@@ -247,6 +247,11 @@ system-dialect: context [
 			]
 		]
 		
+		backtrack: func [value /local res][
+			pc: any [res: find/only/reverse pc value pc]
+			to logic! res
+		]
+		
 		blockify: func [value][either block? value [value][reduce [value]]]
 
 		literal?: func [value][not any [word? value value = <last>]]
@@ -262,7 +267,7 @@ system-dialect: context [
 		get-return-type: func [name [word!] /local type][
 			type: select functions/:name/4 return-def
 			unless type [
-				pc: any [find/reverse pc name pc]
+				backtrack name
 				throw-error ["return type missing in function:" name]
 			]
 			type/1
@@ -318,7 +323,7 @@ system-dialect: context [
 					]
 					struct!   [first select type/2 path/2]
 				][
-					pc: any [find/reverse/only pc path pc]
+					backtrack path
 					throw-error "invalid path value"
 				]
 			][
@@ -401,7 +406,10 @@ system-dialect: context [
 			ctype: blockify ctype
 
 			if type/1 = ctype/1 [
-				throw-warning/at ["type casting from" type/1 "to" ctype/1 "is not necessary"] 'as
+				throw-warning/at [
+					"type casting from" type/1 
+					"to" ctype/1 "is not necessary"
+				] 'as
 				return ctype
 			]
 			if any [
@@ -411,10 +419,13 @@ system-dialect: context [
 					find [byte! logic!] type/1
 				]
 			][
-				throw-error ["type casting from" type/1 "to" ctype/1 "is not allowed"]
+				throw-error [
+					"type casting from" type/1
+					"to" ctype/1 "is not allowed"
+				]
 			]
 			
-			unless literal? value [return value]
+			unless literal? value [return value]	;-- shield the following literal conversions
 			
 			switch ctype/1 [
 				byte! [
@@ -465,7 +476,7 @@ system-dialect: context [
 				all [word? ending get-variable-spec ending]
 				ending = 'value
 			][
-				pc: any [find/only/reverse pc path pc]
+				backtrack path
 				throw-error "invalid pointer path ending"
 			]
 		]
@@ -500,10 +511,9 @@ system-dialect: context [
 				]
 				expected = type 						 ;-- normal mono-type case
 			][
-				pc: any [
-					find/reverse pc any [all [block? expr expr/1] expr]
-					find/reverse pc name
-					pc
+				any [
+					backtrack any [all [block? expr expr/1] expr]
+					backtrack name
 				]
 				throw-error [
 					reform either ret [
@@ -512,7 +522,7 @@ system-dialect: context [
 						["argument type mismatch on calling:" name]
 					]
 					"^/*** expected:" join mold expected #","
-					"found:" mold type
+					"found:" mold new-line/all type no
 				]
 			]
 			type
@@ -545,7 +555,7 @@ system-dialect: context [
 			save-pc: pc
 			pc: code
 			do body
-			pc: next save-pc
+			pc: next save-pc						;-- skip over body block (a bit ugly, to be improved)
 		]
 		
 		fetch-func: func [name /local specs type][
@@ -952,7 +962,7 @@ system-dialect: context [
 					]
 					if casted [type: casted]
 					if none? type/1 [
-						pc: any [find/reverse pc tree/1 pc]
+						backtrack tree/1
 						throw-error ["unable to determine a type for:" name]
 					]
 					emitter/store name value type
