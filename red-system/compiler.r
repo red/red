@@ -430,8 +430,8 @@ system-dialect: context [
 			switch ctype/1 [
 				byte! [
 					switch type/1 [
-						integer! [value and 255]
-						logic! [pick [#"^(01)" #"^(00)"] value]
+						integer! [value: value and 255]
+						logic! 	 [value: pick [#"^(01)" #"^(00)"] value]
 					]
 				]
 				integer! [

@@ -29,19 +29,19 @@ compiled?: func [
   --test-- "cast integer! 1"
   --assert compiled? {
       Red/System[]
-      #"^(00)" = as byte! 0
+      #"^^(00)" = as byte! 0
     }
     
   --test-- "cast logic! 1"
   --assert compiled? {
       Red/System[]
-      #"^(01)" = as byte! true
+      #"^^(01)" = as byte! true
     }
     
   --test-- "cast logic! 2"
   --assert compiled? {
       Red/System[]
-      #"^(00)" = as byte! false
+      #"^^(00)" = as byte! false
     }
     
   --test-- "cast c-string! 1"

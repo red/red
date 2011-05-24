@@ -16,33 +16,33 @@ Red/System [
 	--assert 65 = as integer! #"A"
 	
 	--test-- "byte-cast-2"
-	  b: #"A"
-	  i: 65
-	--assert i = as integer! b
+	  cast-b: #"A"
+	  cast-i: 65
+	--assert cast-i = as integer! cast-b
 	
 	--test-- "byte-cast-3"
 	--assert false = as logic! #"^(00)"
 
 	--test-- "byte-cast-4"
-	  b: #"^(00)"
+	  cast-b: #"^(00)"
 	  l: false
-	--assert l = as logic! b
+	--assert l = as logic! cast-b
 
 	--test-- "byte-cast-5"
 	--assert true = as logic! #"A"
 	
 	--test-- "byte-cast-6"
-	  b: #"A"
+	  cast-b: #"A"
 	  l: true
-	--assert l = as logic! b
+	--assert l = as logic! cast-b
 	
 	--test-- "byte-cast-7"
 	--assert true = as logic! #"^(FF)"
 
 	--test-- "byte-cast-8"
-	  b: #"^(FF)"
+	  cast-b: #"^(FF)"
 	  l: true
-	--assert l = as logic! b
+	--assert l = as logic! cast-b
 	
 ===end-group===
 
