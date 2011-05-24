@@ -44,8 +44,12 @@ system-dialect: context [
 		]
 		
 		find-path: func [file [file!]][
-			foreach dir include-dirs [
-				if exists? dir/:file [return dir/:file]
+			either slash = first file [
+				if exists? file [return file] 		;-- absolute path check
+			][
+				foreach dir include-dirs [			;-- relative path check using known directories
+					if exists? dir/:file [return dir/:file]
+				]
 			]
 			make error! reform ["Include File Access Error:" file]
 		]
