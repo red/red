@@ -435,7 +435,9 @@ system-dialect: context [
 					]
 				]
 				integer! [
-					if type/1 = 'logic! [value: to integer! value]
+					if find [byte! logic!] type/1 [
+						value: to integer! value
+					]
 				]
 				logic! [
 					switch type/1 [
@@ -447,8 +449,8 @@ system-dialect: context [
 			value
 		]
 		
-		add-symbol: func [name [word!] value /local type][
-			type: get-mapped-type value
+		add-symbol: func [name [word!] value type][
+			unless type [type: get-mapped-type value]
 			append globals reduce [name type: compose [(type)]]
 			type
 		]
@@ -934,7 +936,7 @@ system-dialect: context [
 			prepare-value: [		
 				if all [block? tree/2 object? tree/2/1][
 					casted: tree/2/1/type				;-- save casting type
-					tree/2: tree/2/2					;-- remove encoding object
+					tree/2: cast casted tree/2/2		;-- remove encoding object
 				]
 				value: either block? tree/2 [
 					comp-expression/keep tree/2			;-- function call case
@@ -957,10 +959,16 @@ system-dialect: context [
 				set-word! [
 					name: to word! tree/1
 					do prepare-value
-					unless type: get-variable-spec name [ ;-- test if known variable (local or global)
-						type: add-symbol name data		;-- if unknown add it to global context
+					either type: get-variable-spec name [  ;-- test if known variable (local or global)
+						if all [casted type <> casted][
+							backtrack tree/1
+							throw-error [
+								"attempt to change type of variable:" name
+							]
+						]
+					][
+						type: add-symbol name data casted  ;-- if unknown add it to global context
 					]
-					if casted [type: casted]
 					if none? type/1 [
 						backtrack tree/1
 						throw-error ["unable to determine a type for:" name]
@@ -973,15 +981,13 @@ system-dialect: context [
 					;TBD: raise error if ANY/ALL passed as argument				
 					emitter/access-path tree/1 value
 				]
-				object! [								;-- special actions
+				object! [								;-- special actions @@
 					switch tree/1/action [
 						type-cast [						;-- apply type casting
-							if block? tree/2 [			;-- function call case
-								either keep [
-									comp-expression/keep tree/2
-								][
-									comp-expression tree/2
-								]
+							either keep [
+								comp-expression/keep tree/2
+							][
+								comp-expression tree/2
 							]
 							;TBD: test casting compatibility
 							last-type: tree/1/type
