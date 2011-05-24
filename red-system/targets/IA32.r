@@ -664,7 +664,7 @@ make target-class [
 					integer! ['imm] 				;-- add or mov to eax
 					word! 	 ['ref] 				;-- fetch value
 					block!   ['reg] 				;-- value in eax (or in edx)
-					path!    ['reg] 				;-- value in eax
+					path!    ['reg] 				;-- value in eax (or in edx)
 				]
 			]
 			c: c + 1
