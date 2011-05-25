@@ -26,6 +26,8 @@ compiled?: func [
 
 ~~~start-file~~~ "cast-compile"
 
+===start-group=== "compiler checks"
+
   --test-- "cast integer! 1"
   --assert compiled? {
       Red/System[]
@@ -61,10 +63,74 @@ compiled?: func [
         c5 [byte!]
       ]
       csc7-str: "Peter"
-      csc7-struct: as struct! [
+      csc7-struct: as [struct! [
         c1 [byte!] c2 [byte!] c3 [byte!] c4 [byte!] c5 [byte!]
-      ] csc7-str
+      ]] csc7-str
     }
+ 
+ ===end-group===
+ 
+ ===start-group=== "Warnings"
+    
+    warning-test: func[
+      type [string!]
+      src [string!]
+    ][
+      --test-- form ["cast" type  "warning"]
+      result: false
+      result: compiled? src
+      msg: "*** Warning: type casting from #type# to #type# is not necessary"
+      warning: replace/all copy msg "#type#" type
+       either result [
+         --assert none <> find qt/comp-output warning 
+       ][
+          --assert cbw-res                     ;; signify failing test
+          print qt/comp-output
+       ]
+    ]
+       
+    warning-test "byte!" {
+        Red/System []
+         b: #"A"
+         #"A" = as byte! b
+    }
+    
+    warning-test "integer!" {
+        Red/System []
+         i: 0
+         0 = as integer! i
+    }
+    
+    warning-test "logic!" {
+        Red/System []
+         l: true
+         true = as logic! l
+    }
+    
+    warning-test "c-string!" {
+        Red/System []
+         cs: "hello"
+         "hello" = as c-string! cs
+    }
+    
+    warning-test "pointer!" {
+        Red/System []
+         p: pointer [integer!]
+         p1: pointer [integer!]
+         p: as [pointer! [integer!]] 1
+         p1: p
+         p1 = as [pointer! [integer!]] p
+    }
+    
+    warning-test "stuct!" {
+        Red/System []
+         s1: struct [a [integer!] b [integer!]]
+         s2: struct [a [integer!] b [integer!]]
+         s2 = as [struct! [a [integer!] b [integer!]]] s1
+    }
+        
+===end-group=== 
+       
 ~~~end-file~~~
 
 
