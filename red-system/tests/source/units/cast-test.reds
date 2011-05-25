@@ -1,5 +1,5 @@
 Red/System [
-	Title:   "Red/System byte! datatype test script"
+	Title:   "Red/System datatype casting test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %cast-test.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic & Peter W A Wood. All rights reserved."
@@ -24,7 +24,7 @@ Red/System [
 	--assert false = as logic! #"^(00)"
 
 	--test-- "byte-cast-4"
-	  cast-b: #"^(00)"
+    cast-b: #"^(00)"
 	  l: false
 	--assert l = as logic! cast-b
 
@@ -53,32 +53,32 @@ comment {
 }
   --test-- "int-cast-2"
     i: 0
-    b: #"^(00)"
-  --assert b = as byte! i
+    cast-test-b: #"^(00)"
+  --assert cast-test-b = as byte! i
 
   --test-- "int-cast-3"
   --assert #"^(01)" = as byte! 1
   
   --test-- "int-cast-4"
     i: 1
-    b: #"^(01)"
-  --assert b = as byte! i
+    cast-test-b: #"^(01)"
+  --assert cast-test-b = as byte! i
   
   --test-- "int-cast-5"
   --assert #"^(FF)" = as byte! 255
   
   --test-- "int-cast-6"
     i: 255
-    b: #"^(FF)"
-  --assert b = as byte! i
+    cast-test-b: #"^(FF)"
+  --assert cast-test-b = as byte! i
   
   --test-- "int-cast-7"
   --assert #"^(00)" = as byte! 256
   
   --test-- "int-cast-8"
     i: 256
-    b: #"^(00)"
-  --assert b = as byte! i
+    cast-test-b: #"^(00)"
+  --assert cast-test-b = as byte! i
   
   --test-- "int-cast-9"
   --assert false = as logic! 0
@@ -148,17 +148,17 @@ comment {
   --assert #"^(01)" = as byte! true 
 }
   --test-- "logic-cast-2"
-    b: #"^(01)"
+    cast-test-b: #"^(01)"
     l: true
-  --assert b = as byte! l
+  --assert cast-test-b = as byte! l
 comment {  
   --test-- "logic-cast-3"
   --assert #"^(00)" = as byte! false
 }
   --test-- "logic-cast-4"
-    b: #"^(00)"
+    cast-test-b: #"^(00)"
     l: false
-  --assert b = as byte! l
+  --assert cast-test-b = as byte! l
   
     --test-- "logic-cast-5"
   --assert 1 = as integer! true 
@@ -166,7 +166,7 @@ comment {
   --test-- "logic-cast-6"
     i: 1
     l: true
-  --assert b = as integer! l
+  --assert i = as integer! l
   
   --test-- "logic-cast-7"
   --assert 0 = as integer! false
@@ -174,7 +174,7 @@ comment {
   --test-- "logic-cast-8"
     i: 0
     l: false
-  --assert b = as integer! l
+  --assert i = as integer! l
   
 ===end-group===
 
@@ -218,7 +218,7 @@ comment {
   --assert csc6-str2/4 = #"n"
   --assert csc6-str2/5 = #"c"
   --assert csc6-str2/6 = #"e"
-  comment { 
+  
   --test-- "C-string-cast-7"
     csc7-struct: struct [
       c1 [byte!]
@@ -228,16 +228,97 @@ comment {
       c5 [byte!]
     ]
     csc7-str: "Peter"
-    csc7-struct: as struct! [
+    csc7-struct: as [struct! [
       c1 [byte!] c2 [byte!] c3 [byte!] c4 [byte!] c5 [byte!]
-    ] csc7-str
+    ]] csc7-str
   --assert csc7-struct/c1 = #"P"
   --assert csc7-struct/c2 = #"e"
   --assert csc7-struct/c3 = #"t"
   --assert csc7-struct/c4 = #"e"
   --assert csc7-struct/c5 = #"r"
-  }
+  
 ===end-group===
 
+===start-group=== "cast from pointer!"
+
+  --test-- "csp-1"
+    csp1-p: pointer [integer!]
+    csp1-p: as [pointer! [integer!]] 256
+    i: 0
+    i: as integer! csp1-p
+  --assert i = 256
+
+  --test-- "csp-2"
+    csp2-p: pointer [integer!]
+    csp2-p: as [pointer! [integer!]] 0
+  --assert false = as logic! csp2-p
+ 
+  --test-- "csp-3"
+    csp3-p: pointer [integer!]
+    csp3-p: as [pointer! [integer!]] 1
+  --assert true = as logic! csp3-p
+  
+  --test-- "csp-4"
+    csp4-p: pointer [integer!]
+    csp4-p: as [pointer! [integer!]] FFFFFFFFh
+  --assert true = as logic! csp4-p
+  
+  --test-- "csp-5"
+    csp5-p: pointer [integer!]
+    csp5-p: as [pointer! [integer!]] 7FFFFFFFh
+  --assert true = as logic! csp5-p
+  
+  ;; No test for pointer! to c-string! as it would simply
+  ;;  duplicate the one of c-string! to pointer!
+  
+  --test-- "csp-6"
+    csp6-p: pointer [integer!]
+    csp6-s: struct [
+      a [integer!]
+      b [integer!]
+    ]
+    csp6-s/a: 1
+    csp6-s/b: 2
+    csp6-p: as [pointer! [integer!]] csp6-s
+  --assert csp6-p/value = 1
+    csp6-p: csp6-p + 1
+  --assert csp6-p/value = 2
+    csp6-p: csp6-p - 1
+    csp6-s: as [struct! [a [integer!] b [integer!]]] csp6-p
+  --assert csp6-s/a = 2
+    csp6-p: csp6-p - 1
+    csp6-s: as [struct! [a [integer!] b [integer!]]] csp6-p
+  --assert csp6-s/a = 1
+  
+===end-group===
+
+===start-group=== "cast from struct!" 
+    
+  ;; no test for cast to integer as it would simply
+  ;;  duplicate the test from integer! to struct!
+   
+  --test-- "cfstruc-1"
+    cfs1-struct: struct [
+      a [integer!]
+      b [integer!]
+    ]
+    cfs1-struct: as [struct! [a [integer!] b [integer!]]] 0
+  --assert false = as logic! cfs1-struct
+
+  --test-- "cfstruc-2"
+    cfs2-struct: struct [
+      a [integer!]
+      b [integer!]
+    ]
+  --assert true = as logic! cfs2-struct
+  
+  ;; no test for cast to c-string! as it would simply
+  ;;  duplicate the test from c-string! to struct!
+  
+  ;; no test for cast to pointer! as it would simply
+  ;;  duplicate the test from pointer! to struct!
+
+===end-group===
+  
 ~~~end-file~~~
 
