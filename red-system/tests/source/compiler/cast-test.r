@@ -31,19 +31,19 @@ compiled?: func [
   --test-- "cast integer! 1"
   --assert compiled? {
       Red/System[]
-      #"^(00)" = as byte! 0
+      #"^^(00)" = as byte! 0
     }
     
   --test-- "cast logic! 1"
   --assert compiled? {
       Red/System[]
-      #"^(01)" = as byte! true
+      #"^^(01)" = as byte! true
     }
     
   --test-- "cast logic! 2"
   --assert compiled? {
       Red/System[]
-      #"^(00)" = as byte! false
+      #"^^(00)" = as byte! false
     }
     
   --test-- "cast c-string! 1"
@@ -76,7 +76,7 @@ compiled?: func [
       type [string!]
       src [string!]
     ][
-      --test-- form ["cast" type  "warning"]
+      --test-- reform ["cast" type  "warning"]
       result: false
       result: compiled? src
       msg: "*** Warning: type casting from #type# to #type# is not necessary"
@@ -100,17 +100,18 @@ compiled?: func [
          i: 0
          0 = as integer! i
     }
-    
-    warning-test "logic!" {
-        Red/System []
-         l: true
-         true = as logic! l
-    }
-    
+
+comment {    
+    warning-test "logic!" {				;; does not produce a Warning message
+        Red/System []					;; because the [true =] part of the expression is
+         l: true						;; removed during compilation (part of literal logic! value
+         true = as logic! l				;; internal reduction strategy)
+    }									
+}    
     warning-test "c-string!" {
         Red/System []
          cs: "hello"
-         "hello" = as c-string! cs
+         cs2: as c-string! cs
     }
     
     warning-test "pointer!" {
@@ -122,7 +123,7 @@ compiled?: func [
          p1 = as [pointer! [integer!]] p
     }
     
-    warning-test "stuct!" {
+    warning-test "struct!" {
         Red/System []
          s1: struct [a [integer!] b [integer!]]
          s2: struct [a [integer!] b [integer!]]

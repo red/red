@@ -410,7 +410,6 @@ system-dialect: context [
 					"type casting from" type/1 
 					"to" ctype/1 "is not necessary"
 				] 'as
-				return ctype
 			]
 			if any [
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
@@ -956,7 +955,7 @@ system-dialect: context [
 				]
 			]
 			switch/default type?/word tree/1 [
-				set-word! [
+				set-word! [								;-- variable assignment --
 					name: to word! tree/1
 					do prepare-value
 					either type: get-variable-spec name [  ;-- test if known variable (local or global)
@@ -975,7 +974,7 @@ system-dialect: context [
 					]
 					emitter/store name value type
 				]
-				set-path! [
+				set-path! [								;-- path assignment --
 					do prepare-value
 					resolve-path-type tree/1			;-- check path validity
 					;TBD: raise error if ANY/ALL passed as argument				
@@ -984,18 +983,13 @@ system-dialect: context [
 				object! [								;-- special actions @@
 					switch tree/1/action [
 						type-cast [						;-- apply type casting
-							either keep [
-								comp-expression/keep tree/2
-							][
-								comp-expression tree/2
-							]
-							;TBD: test casting compatibility
+							do prepare-value
 							last-type: tree/1/type
 						]
 						;-- add more special actions here
 					]
 				]
-			][
+			][											;-- function call --
 				name: to word! tree/1
 				args: next tree
 				if all [tag? args/1 args/1 <> <last>][	;-- special encoding for ALL/ANY

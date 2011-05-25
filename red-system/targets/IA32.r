@@ -93,7 +93,7 @@ make target-class [
 		emit-reloc-addr spec/2						;-- one-based index
 	]
 		
-	emit-not: func [value [word! tag! integer! logic! path!] /local opcodes][
+	emit-not: func [value [word! tag! integer! logic! path! string!] /local opcodes][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
 		
 		opcodes: [
@@ -112,13 +112,17 @@ make target-class [
 			word! [
 				emit-load value
 				type: first compiler/get-variable-spec value
-				if find [pointer! c-string! struct!] type [
+				if find [pointer! c-string! struct!] type [ ;-- type casting trap
 					type: 'logic!
 				]
 				switch type opcodes
 			]
 			tag! [
 				switch compiler/last-type opcodes
+			]
+			string! [								;-- type casting trap
+				emit-load value
+				do opcodes/logic!
 			]
 			path! [
 				emitter/access-path value none
