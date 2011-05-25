@@ -354,18 +354,14 @@ emitter: context [
 		arg: args/1
 		if all [block? arg object? arg/1][				;-- preprocess casting
 			casted: arg/1/type
-			old-type: compiler/get-mapped-type arg/2
+			old-type: compiler/blockify compiler/get-mapped-type arg/2
 			arg: args/1: compiler/cast casted arg/2		;-- new argument value can be a block! or not
 		]
 		if block? arg [									;-- nested call
 			call/sub arg/1 next arg
-			if casted [
-				unless no-last [compiler/set-last-type casted]
-				if casted/1 = 'logic! [
-					target/emit-to-logic old-type
-				]
-			]
+			if all [casted not no-last][compiler/set-last-type casted]
 		]
+		either casted [reduce [casted/1 old-type/1]][none]
 	]
 	
 	call: func [name [word!] args [block!] /sub /local type res][
@@ -378,17 +374,20 @@ emitter: context [
 		]
 		either type <> 'op [					
 			forall args [								;-- push function's arguments on stack
-				preprocess-argument/no-last args
+				cast: preprocess-argument/no-last args
+				if all [cast cast/1 = 'logic!][
+					target/emit-casting cast no
+				]
 				if type <> 'inline [
 					target/emit-push either block? args/1 [<last>][args/1]
 				]
 			]
 		][												;-- nested calls as op argument require special handling
-			preprocess-argument args
+			target/left-cast: preprocess-argument args
 			if all [block? args/1 block? args/2][
 				target/emit-save-last					;-- save first argument result
 			]
-			preprocess-argument/no-last next args
+			target/right-cast: preprocess-argument/no-last next args
 			
 			if path? args/1 [
 				access-path args/1 none
@@ -399,6 +398,7 @@ emitter: context [
 			]
 		]
 		res: target/emit-call name args to logic! sub
+		target/left-cast: target/right-cast: none			;-- reset op's arguments type casting 
 		compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
 		res
 	]

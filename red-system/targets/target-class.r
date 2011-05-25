@@ -11,7 +11,11 @@ target-class: context [
 	default-align: stack-width: branch-offset-size: none		   ; TBD: document once stabilized
 	compiler: none									;-- just a short-cut
 	width: none										;-- current operand width in bytes
+	left-cast: none									;-- left operand type casting
+	right-cast: none								;-- right operand type casting
 	verbose:  0										;-- logs verbosity level
+	
+	emit-casting: none								;-- just pre-bind word to avoid contexts issue
 	
 	comparison-op: [= <> < > <= >=]
 	
@@ -101,6 +105,22 @@ target-class: context [
 	]
 	
 	set-width: func [operand /type][
-		width: emitter/size-of? either type [operand][compiler/argument-type? operand]
+		width: emitter/size-of? case [
+			type 	  [operand]
+			left-cast [left-cast/1]
+			'else 	  [compiler/argument-type? operand]
+		]
+	]
+	
+	with-right-casting: func [body [block!] /local old][
+		if right-cast [
+			old: width
+			set-width/type right-cast/2
+		]
+		do body
+		if old [
+			emit-casting right-cast yes				;-- emit runtime conversion
+			width: old
+		]
 	]
 ]

@@ -58,12 +58,39 @@ make target-class [
 	emit-save-last: does [
 		emit #{89C2}								;-- MOV edx, eax
 	]
+	
+	emit-casting: func [spec [block!] alt? [logic!] /local old][
+		case [
+			spec/1 = 'logic! [
+				if verbose >= 3 [print [">>>converting to logic! from:" mold spec/2]]
+				old: width
+				set-width/type spec/2
+				either alt? [
+					emit-poly [#{80FA00} #{83FA00}]		;-- 	   CMP rD, 0
+					emit #{7403}						;--        JZ _exit
+					emit #{31D2}						;--        XOR edx, edx
+					emit #{42}							;-- 	   INC edx
+				][										;-- _exit:
+					emit-poly [#{3C00} #{83F800}]		;-- 	   CMP rA, 0
+					emit #{7403}						;--        JZ _exit
+					emit #{31C0}						;--        XOR eax, eax
+					emit #{40}							;-- 	   INC eax
+				]										;-- _exit:
+				width: old
+			]
+			all [spec/1 = 'integer!	spec/2 = 'byte!][
+				if verbose >= 3 [print ">>>converting to integer! from byte!"]
+				emit pick [#{81E2} #{25}] alt?		;-- AND edx|eax, 000000FFh
+				emit to-bin32 255
+			]
+		]
+	]
 
-	emit-load-literal: func [type [block! none!] value /local spec][
+	emit-load-literal: func [type [block! none!] value /local spec][	
 		unless type [type: compiler/get-mapped-type value]
 		spec: emitter/store-value none value type
-		emit #{B8}							;-- MOV eax, value
-		emit-reloc-addr spec/2				;-- one-based index
+		emit #{B8}									;-- MOV eax, value
+		emit-reloc-addr spec/2						;-- one-based index
 	]
 		
 	emit-not: func [value [word! tag! integer! logic! path!] /local opcodes][
@@ -84,7 +111,11 @@ make target-class [
 			]
 			word! [
 				emit-load value
-				switch first compiler/get-variable-spec value opcodes
+				type: first compiler/get-variable-spec value
+				if find [pointer! c-string! struct!] type [
+					type: 'logic!
+				]
+				switch type opcodes
 			]
 			tag! [
 				switch compiler/last-type opcodes
@@ -94,18 +125,6 @@ make target-class [
 				do opcodes/integer!
 			]
 		]
-	]
-	
-	emit-to-logic: func [type [word! block!]][
-		type: compiler/blockify type
-		if verbose >= 3 [print [">>>converting to logic! from:" mold type/1]]
-		
-		set-width/type type/1
-		emit-poly [#{3C} #{3D} 0]					;-- 	   CMP rA, 0
-		emit #{7403}								;--        JZ _exit
-		emit #{31C0}								;--        XOR eax, eax
-		emit #{40}									;-- 	   INC eax
-													;-- _exit:
 	]
 	
 	emit-boolean-switch: does [
@@ -478,15 +497,19 @@ make target-class [
 			imm [
 				emit-poly [#{3C} #{3D} args/2]		;-- CMP rA, value
 			]
-			ref [				
-				emit-variable-poly args/2
-					#{8A15} #{8B15}					;-- MOV rD, [value]		; global
-					#{8A55} #{8B55}					;-- MOV rD, [ebp+n]		; local
+			ref [
+				with-right-casting [		
+					emit-variable-poly args/2
+						#{8A15} #{8B15}				;-- MOV rD, [value]		; global
+						#{8A55} #{8B55}				;-- MOV rD, [ebp+n]		; local
+				]				
 				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; commutable op				
 			]
 			reg [
-				if a = 'reg [						;-- eax = b, edx = a
-					emit #{92}						;-- XCHG eax, edx		; swap
+				with-right-casting [
+					if a = 'reg [					;-- eax = b, edx = a
+						emit #{92}					;-- XCHG eax, edx		; swap
+					]
 				]
 				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; not commutable op
 			]

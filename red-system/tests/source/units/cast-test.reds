@@ -285,10 +285,10 @@ comment {
   --assert csp6-p/value = 2
     csp6-p: csp6-p - 1
     csp6-s: as [struct! [a [integer!] b [integer!]]] csp6-p
-  --assert csp6-s/a = 2
-    csp6-p: csp6-p - 1
-    csp6-s: as [struct! [a [integer!] b [integer!]]] csp6-p
   --assert csp6-s/a = 1
+    csp6-p: csp6-p + 1
+    csp6-s: as [struct! [a [integer!] b [integer!]]] csp6-p
+  --assert csp6-s/a = 2
   
 ===end-group===
 
