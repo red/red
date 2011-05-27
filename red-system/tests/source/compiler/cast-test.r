@@ -101,13 +101,28 @@ compiled?: func [
          0 = as integer! i
     }
 
-comment {    
-    warning-test "logic!" {				;; does not produce a Warning message
-        Red/System []					;; because the [true =] part of the expression is
-         l: true						;; removed during compilation (part of literal logic! value
-         true = as logic! l				;; internal reduction strategy)
-    }									
-}    
+  --test-- "logic! warning special case"
+    result: false
+    result: compiled? {         ;; does not produce a Warning message because 
+      Red/System []					    ;; the [true =] part of the expression is
+      l: true						        ;; removed during compilation 
+      true = as logic! l				;; (part of literal logic! value
+    }                           ;; internal reduction strategy)
+    warning: "*** Warning: type casting"
+    either result [
+  --assert none = find qt/comp-output warning 
+    ][
+      --assert result                       ;; signify failing test
+      print qt/comp-output
+    ]
+  
+    warning-test "logic!" {
+        Red/System []
+         l: 1 = 1
+         l2: as logic! l
+    }
+
+
     warning-test "c-string!" {
         Red/System []
          cs: "hello"
