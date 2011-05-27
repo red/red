@@ -16,7 +16,7 @@ Red/System [
 #include %units/struct-test.reds
 #include %units/pointer-test.reds
 #include %units/cast-test.reds
-#include #units/alias-test.reds
+#include %units/alias-test.reds
 
 ;-- Native functions tests
 #include %units/not-test.reds
