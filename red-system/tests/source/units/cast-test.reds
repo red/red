@@ -143,18 +143,18 @@ comment {
 ===end-group===
 
 ===start-group=== "cast from logic!"
-comment {  
+  
   --test-- "logic-cast-1"
   --assert #"^(01)" = as byte! true 
-}
+  
   --test-- "logic-cast-2"
     cast-test-b: #"^(01)"
     l: true
   --assert cast-test-b = as byte! l
-comment {  
+ 
   --test-- "logic-cast-3"
   --assert #"^(00)" = as byte! false
-}
+
   --test-- "logic-cast-4"
     cast-test-b: #"^(00)"
     l: false

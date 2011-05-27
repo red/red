@@ -9,6 +9,7 @@ if not value? 'qt [do %quick-test-quick-test.r]
        
 ***start-run*** "Red/System Test Suite - Part II"
 
+  --run-script %source/compiler/alias-test.r
   --run-script %source/compiler/cast-test.r
   --run-script %source/compiler/comp-err-test.r
   --run-script %source/compiler/exit-test.r
