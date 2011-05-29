@@ -470,6 +470,24 @@ system-dialect: context [
 			]
 		]
 		
+		add-implicit-cast: func [name [word!] args [block!] /local ctype][
+			if any [
+				functions/:name/2 <> 'op 
+				all [block? args/2 object? args/2/1]
+			][exit]
+
+			ctype: argument-type? args/1		
+			if ctype <> argument-type? args/2 [
+					args/2: reduce [
+					make action-class [
+						action: 'type-cast
+						type: blockify ctype
+					]
+					args/2
+				]
+			]
+		]
+		
 		check-pointer-path: func [path [path! set-path!] /local ending][
 			ending: path/2
 			unless any [
@@ -685,7 +703,7 @@ system-dialect: context [
 		]
 		
 		comp-as: has [ctype][
-			ctype: pc/2
+			ctype: pc/2									;TBD: check type validity
 			pc: skip pc 2
 			reduce [
 				make action-class [
@@ -1001,6 +1019,7 @@ system-dialect: context [
 					]									
 					args/1: <last>
 				]
+				add-implicit-cast name args
 				
 				type: emitter/call name args
 				if type [last-type: type]

@@ -22,12 +22,12 @@ Red/System [
 	
 	--test-- "byte-operator-1"
 	  bo1-c: #"^(10)"
-	  either 17  < bo1-c [bo1-res: 1][bo!-res: 0]
+	  either 17  < bo1-c [bo1-res: 1][bo1-res: 0]
 	--assert bo1-res = 0    
 	
 	--test-- "byte-operator-2"
 	  bo1-c: #"^(10)"
-	  either 17  < as integer! bo1-c [bo1-res: 1][bo!-res: 0]
+	  either 17  < as integer! bo1-c [bo1-res: 1][bo1-res: 0]
 	--assert bo1-res = 0    
 	
 	--test-- "byte-operator-3"
@@ -44,11 +44,11 @@ Red/System [
 	
 	--test-- "byte-operator-5"
 	  bo1-c: #"^(10)"
-	--assert 17  < bo1-c     
+	--assert 17  > bo1-c     
 	
 	--test-- "byte-operator-6"
 	  bo1-c: #"^(10)"
-	--assert 17  < as integer! bo1-c
+	--assert 17  > as integer! bo1-c
 	  
 ===end-group===
 

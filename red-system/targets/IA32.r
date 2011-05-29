@@ -62,7 +62,7 @@ make target-class [
 	emit-casting: func [spec [block!] alt? [logic!] /local old][
 		case [
 			spec/1 = 'logic! [
-				if verbose >= 3 [print [">>>converting to logic! from:" mold spec/2]]
+				if verbose >= 3 [print [">>>converting from" mold/flat spec/2 "to logic!"]]
 				old: width
 				set-width/type spec/2
 				either alt? [
@@ -79,7 +79,7 @@ make target-class [
 				width: old
 			]
 			all [spec/1 = 'integer!	spec/2 = 'byte!][
-				if verbose >= 3 [print ">>>converting to integer! from byte!"]
+				if verbose >= 3 [print ">>>converting from byte! to integer! "]
 				emit pick [#{81E2} #{25}] alt?		;-- AND edx|eax, 000000FFh
 				emit to-bin32 255
 			]
@@ -507,7 +507,7 @@ make target-class [
 						#{8A15} #{8B15}				;-- MOV rD, [value]		; global
 						#{8A55} #{8B55}				;-- MOV rD, [ebp+n]		; local
 				]				
-				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; commutable op				
+				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; not commutable op				
 			]
 			reg [
 				with-right-casting [
