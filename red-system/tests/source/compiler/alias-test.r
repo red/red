@@ -34,6 +34,7 @@ compiled?: func [
       ;; perhaps it will be in Red ?? ;-)
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   --assert compiled? {
+    Red/System []
     a3-struct: struct [a [integer!] b [integer!]]
     a3-struct/a: 1
     a3-struct/b: 2
@@ -46,6 +47,7 @@ compiled?: func [
   --test-- "alias 2"
   ;; I'm not sure if this use of alias is supported, it would be good if it was
   --assert compiled? {
+      Red/System []
       a5-alias!: alias struct! [a [integer!] b [integer!]]
       a5-struc: struct a5-alias!
       a5-pointer: pointer [integer!]
@@ -58,6 +60,7 @@ compiled?: func [
   --test-- "alias 2"
       ;; This is bascially the book/gift example from the spec
   --assert compiled? {
+    Red/System []  
     a5-alias!: alias struct! [a [byte!] b [byte!]]
     a5-struc: struct [
       s1 [a5-alias!]
