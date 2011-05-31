@@ -256,6 +256,11 @@ system-dialect: context [
 
 		literal?: func [value][not any [word? value value = <last>]]
 		
+		base-type?: func [value][
+			if block? value [value: value/1]
+			to logic! find emitter/datatypes value
+		]
+		
 		encode-cond-test: func [value [logic!]][
 			pick [<true> <false>] value
 		]
@@ -287,7 +292,7 @@ system-dialect: context [
 		resolve-aliased: func [type [word! block!] /local name][
 			name: either block? type [type/1][type]
 			all [
-				not find emitter/datatypes name
+				not base-type? name
 				not type: select aliased-types name
 				throw-error ["unknown type:" type]
 			]
@@ -302,7 +307,7 @@ system-dialect: context [
 			if all [not type find functions name][
 				return [function!]
 			]
-			unless find emitter/datatypes type/1 [
+			unless base-type? type/1 [
 				type: select aliased-types type/1
 			]
 			type
@@ -352,7 +357,7 @@ system-dialect: context [
 			]	
 		]
 		
-		argument-type?: func [arg][
+		argument-type?: func [arg /local type][
 			switch/default type?/word arg [
 				char!	 ['byte!]
 				integer! ['integer!]
@@ -362,7 +367,11 @@ system-dialect: context [
 					case [
 						object? arg/1 [arg/1/type]
 						'op = second select functions arg/1 [
-							argument-type? arg/2		;-- recursively search for an atomic left operand
+							either base-type? type: get-return-type arg/1 [
+								type					;-- unique returned type, stop here
+							][
+								argument-type? arg/2	;-- recursively search for an atomic left operand
+							]
 						]
 						'else [get-return-type arg/1]
 					]

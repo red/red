@@ -52,10 +52,10 @@ Red/System [
 	
 	--test-- "byte-operator-6"
 	  bo1-c: #"^(10)"
-  --assert as logic! not (17  < as integer! bo1-c)
+  --assert not (17  < as integer! bo1-c)
 	
 	--test-- "byte-operator-7"
-	--assert as logic! not #"^(E1)" < as byte! 0
+	--assert not #"^(E1)" < as byte! 0
 	  
 ===end-group===
 
