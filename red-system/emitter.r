@@ -216,8 +216,11 @@ emitter: context [
 		value
 		type [block!]
 		/ref ref-ptr
-		/local ptr
+		/local ptr new
 	][
+		if new: select compiler/aliased-types type/1 [
+			type: new
+		]
 		ptr: store-global value type/1 all [			;-- allocate value slot
 			type/1 = 'struct!
 			type/2

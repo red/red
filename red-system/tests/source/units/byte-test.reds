@@ -52,7 +52,7 @@ Red/System [
 	
 	--test-- "byte-operator-6"
 	  bo1-c: #"^(10)"
-  --assert not (17  < as integer! bo1-c)
+    --assert not (17  < as integer! bo1-c)
 	
 	--test-- "byte-operator-7"
 	--assert not #"^(E1)" < as byte! 0

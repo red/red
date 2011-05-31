@@ -28,7 +28,7 @@ compiled?: func [
 
 ===start-group=== "compiler checks"
 
-  --test-- "alias 1"
+  --test-- "alias-1"
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ;; I guess creating an alias from an existing struc! alllowed? :-)
       ;; perhaps it will be in Red ?? ;-)
@@ -44,7 +44,22 @@ compiled?: func [
     a3-struct-1/b: 4
   }
   
-  --test-- "alias 2"
+	--test-- "alias-1-1"
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+		;; If you use it in the right order, I don't think we need anything more?
+		;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	--assert compiled? {
+	  Red/System []
+	  a3-alias!: alias struct! [a [integer!] b [integer!]]
+	  a3-struct: struct a3-alias!
+	  a3-struct/a: 1
+	  a3-struct/b: 2
+	  a3-struct-1: struct a3-alias!
+	  a3-struct-1/a: 3
+	  a3-struct-1/b: 4
+  }
+  
+  --test-- "alias-2"
   ;; I'm not sure if this use of alias is supported, it would be good if it was
   --assert compiled? {
       Red/System []
@@ -53,16 +68,16 @@ compiled?: func [
       a5-pointer: pointer [integer!]
       a5-struc/a: 1
       a5-struc/b: 2
-      a5-pointer: as pointer! a5-struc
-      a5-struc: as [struct! [a5-alias-1]] a5-pointer
+      a5-pointer: as [pointer! [integer!]] a5-struc
+      a5-struc: as a5-alias! a5-pointer
     }
     
-  --test-- "alias 2"
+  --test-- "alias-3"
       ;; This is bascially the book/gift example from the spec
   --assert compiled? {
     Red/System []  
     a5-alias!: alias struct! [a [byte!] b [byte!]]
-    a5-struc: struct [
+    a5-struct: struct [
       s1 [a5-alias!]
       s2 [a5-alias!]
     ]
