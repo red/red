@@ -254,7 +254,9 @@ system-dialect: context [
 		
 		blockify: func [value][either block? value [value][reduce [value]]]
 
-		literal?: func [value][not any [word? value value = <last>]]
+		literal?: func [value][
+			not any [word? value path? value value = <last>]
+		]
 		
 		base-type?: func [value][
 			if block? value [value: value/1]
