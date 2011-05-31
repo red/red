@@ -470,24 +470,6 @@ system-dialect: context [
 			]
 		]
 		
-		add-implicit-cast: func [name [word!] args [block!] /local ctype][
-			if any [
-				functions/:name/2 <> 'op 
-				all [block? args/2 object? args/2/1]
-			][exit]
-
-			ctype: argument-type? args/1		
-			if ctype <> argument-type? args/2 [
-					args/2: reduce [
-					make action-class [
-						action: 'type-cast
-						type: blockify ctype
-					]
-					args/2
-				]
-			]
-		]
-		
 		check-pointer-path: func [path [path! set-path!] /local ending][
 			ending: path/2
 			unless any [
@@ -547,7 +529,7 @@ system-dialect: context [
 			type
 		]
 		
-		check-arguments-type: func [name args /local entry spec][
+		check-arguments-type: func [name args /local entry spec list][
 			if find [set-word! set-path!] type?/word name [exit]
 			
 			entry: find functions name
@@ -557,10 +539,25 @@ system-dialect: context [
 			][
 				spec: next spec						;-- jump over attributes block
 			]
+			list: []
 			foreach arg args [
-				check-expected-type name arg spec/2
+				append/only list check-expected-type name arg spec/2
 				spec: skip spec	2
+			]		
+			if all [
+				any [
+					find emitter/target/comparison-op name
+					find emitter/target/bitwise-op name
+				]
+				list/1/1 <> list/2/1				;-- allow implicit casting for math ops only
+			][
+				backtrack name
+				throw-error [
+					"left and right argument must be of same type for:" name
+					"^/*** left:" join list/1/1 #"," "right:" list/2/1
+				]
 			]
+			clear list
 		]
 		
 		check-body: func [body][
@@ -1019,7 +1016,6 @@ system-dialect: context [
 					]									
 					args/1: <last>
 				]
-				add-implicit-cast name args
 				
 				type: emitter/call name args
 				if type [last-type: type]

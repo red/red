@@ -712,8 +712,8 @@ make target-class [
 		;-- Operator and second operand processing
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
-			find [+ - * / //]  name	[emit-math-op		name a b args]
-			find [and or xor]  name	[emit-bitwise-op	name a b args]
+			find math-op	   name	[emit-math-op		name a b args]
+			find bitwise-op	   name	[emit-bitwise-op	name a b args]
 		]
 	]
 	

@@ -19,6 +19,8 @@ Red/System [
 #define as-integer	[as integer!]
 #define as-c-string	[as c-string!]
 
+#define null-char	#"^(00)"
+
 null: pointer [integer!]		;-- null pointer declaration
 
 
@@ -29,6 +31,6 @@ length?: func [					;; return the number of characters from a c-string value ;;
 		base [c-string!]
 ][
 	base: s
-	while [s/1 <> 0][s: s + 1]
+	while [s/1 <> null-char][s: s + 1]
 	as-integer s - base 		;-- do not count the terminal zero
 ]

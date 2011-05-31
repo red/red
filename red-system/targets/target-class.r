@@ -18,6 +18,8 @@ target-class: context [
 	emit-casting: none								;-- just pre-bind word to avoid contexts issue
 	
 	comparison-op: [= <> < > <= >=]
+	math-op:	   [+ - * / //]
+	bitwise-op:	   [and or xor]
 	
 	opp-conditions: [
 	;-- condition ------ opposite condition --
