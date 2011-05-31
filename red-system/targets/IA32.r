@@ -16,16 +16,25 @@ make target-class [
 	branch-offset-size:	4							;-- size of JMP offset
 	
 	conditions: make hash! [
-		overflow?		 #{00}
-		not-overflow?	 #{01}			
-		=				 #{04}
-		<>				 #{05}
-		even?			 #{0A}
-		odd?			 #{0B}
-		<				 #{0C}
-		>=				 #{0D}
-		<=				 #{0E}
-		>				 #{0F}
+	;-- name ----------- signed --- unsigned --
+		overflow?		 #{00}		-
+		not-overflow?	 #{01}		-	
+		=				 #{04}		-
+		<>				 #{05}		-
+		signed?			 #{08}		-
+		unsigned?		 #{09}
+		even?			 #{0A}		-
+		odd?			 #{0B}		-
+		<				 #{0C}		#{02}
+		>=				 #{0D}		#{03}
+		<=				 #{0E}		#{06}
+		>				 #{0F}		#{07}
+	]
+	
+	get-condition: func [op [word!]][
+		either '- = third op: find conditions op [op/2][
+			pick op pick [2 3] signed?
+		]
 	]
 		
 	emit-poly: func [spec [block!] /local to-bin][	;-- polymorphic code generation
@@ -384,7 +393,7 @@ make target-class [
 				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
 				'else 	  [opposite? op]					;-- 'cc => invert condition
 			]
-			conditions/:op or pick [#{70} #{0780}] imm8?	;-- Jcc offset 	; 8/32-bit displacement
+			(get-condition op) or pick [#{70} #{0780}] imm8?	;-- Jcc offset 	; 8/32-bit displacement
 		][
 			pick [#{EB} #{E9}] imm8?						;-- JMP offset 	; 8/32-bit displacement
 		]

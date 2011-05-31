@@ -25,19 +25,18 @@ emitter: context [
 	] none
 	
 	datatypes: to-hash [
-		int8!		1	signed
+		;int8!		1	signed
 		byte!		1	unsigned
-		int16!		2	signed
+		;int16!		2	signed
 		int32!		4	signed
 		integer!	4	signed
-		int64!		8	signed
+		;int64!		8	signed
 		uint8!		1	unsigned
-		uint16!		2	unsigned
-		uint32!		4	unsigned
-		uint64!		8	unsigned
+		;uint16!	2	unsigned
+		;uint32!	4	unsigned
+		;uint64!	8	unsigned
 		logic!		4	-
 		pointer!	4	-				;-- 32-bit, 8 for 64-bit
-		binary!		4	-				;-- 32-bit, 8 for 64-bit
 		c-string!	4	-				;-- 32-bit, 8 for 64-bit
 		struct!		4	-				;-- 32-bit, 8 for 64-bit ; struct! passed by reference
 	]
@@ -298,12 +297,16 @@ emitter: context [
 
 	size-of?: func [type [word!]][
 		any [
-			select datatypes type						;-- search in core types
+			select datatypes type						;-- search in base types
 			all [										;-- search in user-aliased types
 				type: select compiler/aliased-types type
 				select datatypes type/1
 			]
 		]
+	]
+	
+	signed?: func [type [word!]][
+		'signed = third any [find datatypes type [- -]] ;-- force unsigned result for aliased types
 	]
 	
 	get-size: func [type [block!] value][
