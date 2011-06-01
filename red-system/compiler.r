@@ -759,6 +759,9 @@ system-dialect: context [
 		]
 		
 		comp-exit: func [/value /local expr type ret][
+			unless locals [
+				throw-error [pc/1 "is not allowed outside of a function"]
+			]
 			pc: next pc
 			if value [
 				expr: fetch-expression/final/keep		;-- compile expression to return				
