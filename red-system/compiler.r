@@ -219,8 +219,8 @@ system-dialect: context [
 			return		 [comp-exit/value]
 			true		 [also true pc: next pc]		;-- converts word! to logic!
 			false		 [also false pc: next pc]		;-- converts word! to logic!
-			func 		 [fetch-func pc/-1 none]
-			function 	 [fetch-func pc/-1 none]
+			func 		 [raise-func-error]				;-- func declaration not allowed at this level
+			function 	 [raise-func-error]				;-- func declaration not allowed at this level
 			alias 		 [comp-alias]
 			struct 		 [comp-struct]
 			pointer 	 [comp-pointer]
@@ -245,6 +245,11 @@ system-dialect: context [
 				"^/*** in:" mold script
 				"^/*** at: " mold copy/part any [all [at find/reverse pc mark] pc] 8
 			]
+		]
+		
+		raise-func-error: does [
+			pc: back pc
+			throw-error "declaring a function at this level is not allowed"
 		]
 		
 		backtrack: func [value /local res][
@@ -1139,6 +1144,13 @@ system-dialect: context [
 			while [not tail? pc][
 				case [
 					issue? pc/1 [comp-directive]
+					all [
+						set-word? pc/1
+						find [func function] pc/2
+					][									;-- allow function declaration at root level only
+						pc: next pc
+						fetch-func pc/-1
+					]
 					pc/1 = 'comment [pc: skip pc 2]
 					'else [expr: fetch-expression/final]
 				]
