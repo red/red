@@ -245,7 +245,7 @@ make target-class [
 			#{8B45}									;-- MOV eax, [ebp+n]		; local
 	]
 	
-	emit-access-path: func [path [path! set-path!] spec [block! none!] /short /local offset][
+	emit-access-path: func [path [path! set-path!] spec [block! none!] /short /local offset type][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
 		unless spec [
@@ -254,10 +254,13 @@ make target-class [
 		]
 		if short [return spec]
 		
+		type: first compiler/resolve-type/with path/2 spec
+		set-width/type type							;-- adjust operations width to member value size
+
 		either zero? offset: emitter/member-offset? spec path/2 [
-			emit #{8B00}							;-- MOV eax, [eax]
+			emit-poly [#{8A00} #{8B00}]				;-- MOV rA, [eax]
 		][
-			emit #{8B80}							;-- MOV eax, [eax+offset]
+			emit-poly [#{8A80} #{8B80}]				;-- MOV rA, [eax+offset]
 			emit to-bin32 offset
 		]
 	]
@@ -359,12 +362,15 @@ make target-class [
 		switch type [
 			c-string! [emit-c-string-path path parent]
 			pointer!  [emit-pointer-path  path parent]
-			struct!   [			
+			struct!   [
 				unless parent [parent: emit-access-path/short path parent]
+				type: first compiler/resolve-type/with path/2 parent
+				set-width/type type					;-- adjust operations width to member value size
+				
 				either zero? offset: emitter/member-offset? parent path/2 [
-					emit #{8910}					;-- MOV [eax], edx
+					emit-poly [#{8810} #{8910}] 	;-- MOV [eax], rD
 				][
-					emit #{8990}					;-- MOV [eax+offset], edx
+					emit-poly [#{8890} #{8990}]		;-- MOV [eax+offset], rD
 					emit to-bin32 offset
 				]
 			]
