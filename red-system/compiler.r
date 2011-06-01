@@ -512,10 +512,12 @@ system-dialect: context [
 		]
 		
 		check-expected-type: func [name [word!] expr expected [block!] /ret /local type alias][
-			unless expr [return none]					;-- expr == none for special keywords		
-			type: blockify resolve-aliased resolve-expr-type expr
-			if alias: select aliased-types expected/1 [expected: alias]
+			unless expr [return none]					;-- expr == none for special keywords
 			
+			if first type: resolve-expr-type expr [		;-- check if a type is returned or none
+				type: blockify resolve-aliased type
+				if alias: select aliased-types expected/1 [expected: alias]
+			]
 			unless any [
 				all [
 					find type-sets expected
