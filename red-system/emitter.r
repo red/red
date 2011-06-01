@@ -364,6 +364,7 @@ emitter: context [
 			arg: args/1: compiler/cast casted arg/2		;-- new argument value can be a block! or not
 		]
 		if block? arg [									;-- nested call
+			if object? arg/1 [compiler/raise-casting-error]
 			call/sub arg/1 next arg
 			if all [casted not no-last][compiler/set-last-type casted]
 		]

@@ -629,6 +629,8 @@ Syntax:
 
  <new-type> : integer! | byte! |  logic! | c-string!
  <new-type2> : pointer! [integer!] | struct! [<members>]
+ 
+<u>Note</u>: Multiple nested type castings are not allowed and will raise a compilation error.
 
 Example:
 
@@ -1438,7 +1440,7 @@ where
 
 *= and <> can also be used to compare logic! values.
 
-*For c-string!, pointer! and struct!, comparisons are done on references, not on the pointed value.
+*For c-string!, pointer! and struct! comparisons are done on references, not on the pointed value.
 
 +++Precedence rule
 
@@ -1697,7 +1699,9 @@ will output:
 
 *<strike>Support 0 and 1 as valid boolean results</strike> <i><b>REJECTED</b></i>
 
-*>Extend the get-word! syntax to integer! variables.
+*Extend the get-word! syntax to integer! variables.
+
+*Support multiple nested type castings.
 
 ===Document History
 
@@ -1706,6 +1710,8 @@ will output:
 *>Multi-line comments restriction added.
 
 *>Compiler directives usage inside code blocks is now forbidden explicitly.
+
+*>Multiple type castings explicitly forbidden and added as possible evolution.
 
 
 *<b>23/05/2011 - draft 10</b>

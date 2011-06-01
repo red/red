@@ -252,6 +252,11 @@ system-dialect: context [
 			throw-error "declaring a function at this level is not allowed"
 		]
 		
+		raise-casting-error: does [
+			backtrack 'as
+			throw-error "multiple casting not allowed"
+		]
+		
 		backtrack: func [value /local res][
 			pc: any [res: find/only/reverse pc value pc]
 			to logic! res
@@ -352,7 +357,14 @@ system-dialect: context [
 				char?   value	['byte!]
 				string? value	['c-string!]
 				path?   value	[resolve-path-type value]
-				block?  value	[get-return-type value/1]
+				block?  value	[
+					either object? value/1 [
+						;get-mapped-type value/2		;@@
+						value/1/type
+					][
+						get-return-type value/1
+					]
+				]
 				paren?  value	[
 					reduce either all [value/1 = 'struct word? value/2][
 						[value/2]
