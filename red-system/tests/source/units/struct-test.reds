@@ -23,6 +23,8 @@ Red/System [
 	struct2/d: 9876
 	struct2/b: #"R"				;-- intentionnaly put there to test not overlapping memory storage
 	--assert struct2/b   = #"R"
+	--assert struct2/c/1 = #"a"
+	--assert struct2/d   = 9876
 	
 	--test-- "s-rw-3"
 	--assert struct2/c/1 = #"a"
@@ -154,6 +156,8 @@ struct-local-foo: func [
 	struct2/d: 9876
 	struct2/b: #"R"				;-- intentionnaly put there to test not overlapping memory storage
 	--assert struct2/b   = #"R"
+	--assert struct2/c/1 = #"a"
+	--assert struct2/d   = 9876
 	
 	--test-- "ls-rw-3"
 	--assert struct2/c/1 = #"a"
