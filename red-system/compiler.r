@@ -765,16 +765,24 @@ system-dialect: context [
 				throw-error [pc/1 "is not allowed outside of a function"]
 			]
 			pc: next pc
-			if value [
-				expr: fetch-expression/final/keep		;-- compile expression to return				
-				unless ret: select locals return-def [	;-- check if return: declared
+			ret: select locals return-def
+			
+			either value [				
+				unless ret [							;-- check if return: declared
 					throw-error [
-						"return keyword used without return: declaration in"
+						"RETURN keyword used without return: declaration in"
 						func-name
 					]
 				]
+				expr: fetch-expression/final/keep		;-- compile expression to return
 				type: check-expected-type/ret func-name expr ret
 				ret: either type [last-type: type <last>][none]
+			][
+				if ret [
+					throw-error [
+						"EXIT keyword is not compatible with declaring a return value"
+					]
+				]
 			]
 			emitter/target/emit-exit
 			ret
