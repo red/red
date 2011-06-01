@@ -529,15 +529,19 @@ system-dialect: context [
 			]		
 		]
 		
-		check-expected-type: func [name [word!] expr expected [block!] /ret /local type alias][
-			unless expr [return none]					;-- expr == none for special keywords
+		check-expected-type: func [name [word!] expr expected [block!] /ret /key /local type alias][
+			unless any [not none? expr key][return none]			;-- expr == none for special keywords
 			
-			if first type: resolve-expr-type expr [		;-- check if a type is returned or none
+			if all [
+				not none? expr							;-- expr can be false, so explicit check for none is required
+				first type: resolve-expr-type expr
+			][											;-- check if a type is returned or none
 				type: blockify resolve-aliased type
 				if alias: select aliased-types expected/1 [expected: alias]
 			]
 			unless any [
 				all [
+					type
 					find type-sets expected
 					find expected: get expected/1 type/1 ;-- internal polymorphic case
 				]
@@ -548,13 +552,13 @@ system-dialect: context [
 					backtrack name
 				]
 				throw-error [
-					reform either ret [
-						["wrong return type in function:" name]
-					][
-						["argument type mismatch on calling:" name]
+					reform case [
+						ret   [["wrong return type in function:" name]]
+						key   [[uppercase form name "requires a conditional expression"]]
+						'else [["argument type mismatch on calling:" name]]
 					]
 					"^/*** expected:" join mold expected #","
-					"found:" mold new-line/all type no
+					"found:" mold new-line/all any [type [none]] no
 				]
 			]
 			type
@@ -819,37 +823,27 @@ system-dialect: context [
 			ret
 		]
 
-		comp-block-chunked: func [/only /test /local expr][
+		comp-block-chunked: func [/only /test name [word!] /local expr][
 			emitter/chunks/start
 			expr: either only [
 				fetch-expression/final					;-- returns first expression
 			][
 				comp-block/final						;-- returns last expression
 			]
-			if test [expr: check-logic expr]
+			if test [
+				check-expected-type/key name expr [logic!]	;-- verify conditional expression
+				expr: process-logic-encoding expr
+			]
 			reduce [
 				expr 
 				emitter/chunks/stop						;-- returns a chunk block!
 			]
 		]
 		
-		check-logic: func [expr /local type][			;-- preprocess logic values
+		process-logic-encoding: func [expr][			;-- preprocess logic values
 			switch/default type?/word expr [
-				logic! [[#[true]]]
+				logic! [ [#[true]] ]
 				word!  [
-					type: first resolve-type expr					
-					unless find [logic! function!] type [
-						throw-error "expected logic! variable or conditional expression"
-					]
-					if all [
-						type = 'function!
-						'logic! <> type: get-return-type expr
-					][
-						throw-error [
-							"expecting a logic! return value from function"
-							mold expr
-						]
-					]
 					emitter/target/emit-operation '= [<last> 0]
 					[#[true]]
 				]
@@ -857,19 +851,18 @@ system-dialect: context [
 					either find comparison-op expr/1 [
 						expr
 					][
-						check-logic expr/1
+						process-logic-encoding expr/1
 					]
 				]
-				tag! [
-					either expr <> <last> [ [#[true]] ][expr]
-				]
+				tag! [either expr <> <last> [ [#[true]] ][expr]]
 			][expr]
 		]
 		
 		comp-if: has [expr unused chunk][		
 			pc: next pc
-			expr: fetch-expression/final				;-- compile condition expression
-			expr: check-logic expr		
+			expr: fetch-expression/final				;-- compile expression
+			check-expected-type/key 'if expr [logic!]	;-- verify conditional expression
+			expr: process-logic-encoding expr
 			check-body pc/1								;-- check TRUE block
 	
 			set [unused chunk] comp-block-chunked		;-- compile TRUE block
@@ -881,8 +874,9 @@ system-dialect: context [
 		
 		comp-either: has [expr e-true e-false c-true c-false offset type][
 			pc: next pc
-			expr: fetch-expression/final				;-- compile condition
-			expr: check-logic expr
+			expr: fetch-expression/final				;-- compile expression
+			check-expected-type/key 'either expr [logic!]	;-- verify conditional expression
+			expr: process-logic-encoding expr
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
@@ -901,7 +895,7 @@ system-dialect: context [
 		comp-until: has [expr chunk][
 			pc: next pc
 			check-body pc/1
-			set [expr chunk] comp-block-chunked/test
+			set [expr chunk] comp-block-chunked/test 'until
 			emitter/branch/back/on chunk expr/1	
 			emitter/merge chunk	
 			last-type: none
@@ -913,7 +907,7 @@ system-dialect: context [
 			check-body pc/1								;-- check condition block
 			check-body pc/2								;-- check body block
 			
-			set [expr cond]   comp-block-chunked/test	;-- Condition block
+			set [expr cond]   comp-block-chunked/test 'while	;-- Condition block
 			set [unused body] comp-block-chunked		;-- Body block
 			
 			if logic? expr/1 [expr: [<>]]				;-- re-encode test op
@@ -932,7 +926,7 @@ system-dialect: context [
 			list: make block! 8
 			fetch-into pc/1 [
 				while [not tail? pc][					;-- comp all expressions in chunks
-					append/only list comp-block-chunked/only/test
+					append/only list comp-block-chunked/only/test pick [all any] to logic! _all
 				]
 			]
 			list: back tail list
