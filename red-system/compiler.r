@@ -434,6 +434,7 @@ system-dialect: context [
 					find [byte! logic!] type/1
 				]
 			][
+				backtrack value
 				throw-error [
 					"type casting from" type/1
 					"to" ctype/1 "is not allowed"
@@ -561,7 +562,7 @@ system-dialect: context [
 			foreach arg args [
 				append/only list check-expected-type name arg spec/2
 				spec: skip spec	2
-			]		
+			]
 			if all [
 				any [
 					find emitter/target/comparison-op name
@@ -572,6 +573,19 @@ system-dialect: context [
 				backtrack name
 				throw-error [
 					"left and right argument must be of same type for:" name
+					"^/*** left:" join list/1/1 #"," "right:" list/2/1
+				]
+			]
+			if all [
+				find emitter/target/math-op name				
+				any [
+					all [list/1/1 = 'byte! find [c-string! pointer! struct!] list/2/1]
+					all [list/2/1 = 'byte! find [c-string! pointer! struct!] list/1/1]
+				]
+			][
+				backtrack name
+				throw-error [
+					"arguments must be of same size for:" name
 					"^/*** left:" join list/1/1 #"," "right:" list/2/1
 				]
 			]
