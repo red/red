@@ -56,23 +56,33 @@ Red/System [
   --assert a4-struct-1/a = 3
   --assert a4-struct-1/b = 4
 
-comment {
   --test-- "alias-5"
-    a5-alias!: alias struct! [a [byte!] b [byte!]]
-    a5-struc: struct [
-      s1 [a5-alias!]
-      s2 [a5-alias!]
+      a5-alias!: alias struct! [a [integer!] b [integer!]]
+      a5-struc: struct a5-alias!
+      a5-pointer: pointer [integer!]
+      a5-struc/a: 1
+      a5-struc/b: 2
+      a5-pointer: as [pointer! [integer!]] a5-struc
+      a5-struc: as a5-alias! a5-pointer
+   --assert a5-struc/a = 1
+   --assert a5-struc/b = 2
+
+     --test-- "alias-6"
+    a6-alias!: alias struct! [a [byte!] b [byte!]]
+    a6-struct: struct [
+      s1 [a6-alias!]
+      s2 [a6-alias!]
     ]
-    a5-struct/s1: struct a5-alias!
-    a5-struct/s1/a: #"a"
-    a5-struct/s1/b: #"b"
-    a5-struct/s2: struct a5-alias!    
-    a5-struct/s2/a: #"c"
-    a5-struct/s2/b: #"d"
-  --assert a5-struct/s1/a = #"a"
-  --assert a5-struct/s1/b = #"b"
-  --assert a5-struct/s2/a = #"c"
-  --assert a5-struct/s2/b = #"d"
-}    
+    a6-struct/s1: struct a6-alias!
+    a6-struct/s1/a: #"a"
+    a6-struct/s1/b: #"b"
+    a6-struct/s2: struct a6-alias!    
+    a6-struct/s2/a: #"x"                  ;; this assignment seems to be causing
+    a6-struct/s2/b: #"y"                  ;;  memory to be over-written 
+  --assert a6-struct/s1/a = #"a"
+  --assert a6-struct/s1/b = #"b"
+  --assert a6-struct/s2/a = #"x"
+  --assert a6-struct/s2/b = #"y"
+  
 ~~~end-file~~~
 
