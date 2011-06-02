@@ -109,7 +109,7 @@ qt: make object! [
 
     ;; compose command line and call it
     cmd: join to-local-file system/options/boot [" -sc " comp-r]
-    call/wait cmd
+    call/wait/output cmd make string! 1024	;; redirect output to anonymous buffer
     
     ;; collect compiler output & tidy up
     if exists? comp-echo [
