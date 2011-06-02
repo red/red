@@ -217,11 +217,11 @@ system-dialect: context [
 			all			 [comp-expression-list/_all]
 			exit		 [comp-exit]
 			return		 [comp-exit/value]
-			true		 [also true pc: next pc]		;-- converts word! to logic!
-			false		 [also false pc: next pc]		;-- converts word! to logic!
-			func 		 [raise-func-error]				;-- func declaration not allowed at this level
-			function 	 [raise-func-error]				;-- func declaration not allowed at this level
-			alias 		 [comp-alias]
+			true		 [also true pc: next pc]		  ;-- converts word! to logic!
+			false		 [also false pc: next pc]		  ;-- converts word! to logic!
+			func 		 [raise-level-error "a function"] ;-- func declaration not allowed at this level
+			function 	 [raise-level-error "a function"] ;-- func declaration not allowed at this level
+			alias 		 [raise-level-error "an alias"]	  ;-- alias declaration not allowed at this level
 			struct 		 [comp-struct]
 			pointer 	 [comp-pointer]
 		]
@@ -248,9 +248,9 @@ system-dialect: context [
 			]
 		]
 		
-		raise-func-error: does [
+		raise-level-error: func [kind [string!]][
 			pc: back pc
-			throw-error "declaring a function at this level is not allowed"
+			throw-error reform ["declaring" kind "at this level is not allowed"]
 		]
 		
 		raise-casting-error: does [
@@ -339,7 +339,16 @@ system-dialect: context [
 						check-pointer-path path
 						type/2/1						;-- return pointed value type
 					]
-					struct!   [first select type/2 path/2]
+					struct!   [
+						either type: select type/2 path/2 [
+							type/1
+						][
+							backtrack path
+							throw-error [
+								"invalid struct member" path/2 "in" mold path
+							]
+						]
+					]
 				][
 					backtrack path
 					throw-error "invalid path value"
@@ -1172,9 +1181,13 @@ system-dialect: context [
 					all [
 						set-word? pc/1
 						find [func function] pc/2
-					][									;-- allow function declaration at root level only
+					][
 						pc: next pc
-						fetch-func pc/-1
+						fetch-func pc/-1				;-- allow function declaration at root level only
+					]
+					all [set-word? pc/1 pc/2 = 'alias][
+						pc: next pc
+						comp-alias						;-- allow alias declaration at root level only
 					]
 					pc/1 = 'comment [pc: skip pc 2]
 					'else [expr: fetch-expression/final]
