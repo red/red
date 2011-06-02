@@ -8,38 +8,46 @@ REBOL [
 
 change-dir %../
 
-~~~start-file~~~ "exit-compile"
+;==== Helper functions ====
+test-file: %runnable/exit.reds
+
+--clean: does [
+    if exists? test-file [delete test-file]
+    if all [exe exists? exe][delete exe]
+]
+
+compile: func [src /full][
+	unless full [insert src "Red/System []^/"]		;-- add a default header if not provided
+	write test-file src
+	exe: --compile test-file
+]
+
+--assert-error?: func [msg][
+	--assert found? find qt/comp-output msg
+]
+;==== end of helper functions ===
+
+
+~~~start-file~~~ "exit-err"
 
   --test-- "simple test of compile and run"
-    write %runnable/exit.reds "Red/System[]^/test: does [exit]^/test" 
-    either exe: --compile src: %runnable/exit.reds [
+    compile "test: does [exit] test" 
+    either exe [
       --run exe
       --assert qt/output = ""
     ][
       qt/compile-error src 
     ]
-    if exists? %runnable/exit.reds [delete %runnable/exit.reds]
-    if all [
-      exe
-      exists? exe
-    ][
-      delete exe
-    ]
+    --clean
 
   --test-- "exit as last statement in until block"
-    write %runnable/exit.reds 
-      {Red/System[]
-        until [exit]
-      }
-    exe: --compile src: %runnable/exit.reds
-    --assert none <> find qt/comp-output "*** Compilation Error: datatype not allowed"
-      if exists? %runnable/exit.reds [delete %runnable/exit.reds]
-      if all [
-        exe
-        exists? exe
-      ][
-        delete exe
-      ]
+	compile "until [exit]"
+	--assert-error? "*** Compilation Error: exit is not allowed outside of a function"
+	--clean
+	
+	compile "foo: does [until [exit]]"
+	--assert-error? "*** Compilation Error: UNTIL requires a conditional expression"
+	--clean
 
 ~~~end-file~~~
 

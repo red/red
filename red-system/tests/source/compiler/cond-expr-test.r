@@ -23,7 +23,7 @@ compile: func [src /full][
 ]
 
 --assert-error?: func [msg][
-	--assert to logic! find qt/comp-output msg
+	--assert found? find qt/comp-output msg
 ]
 ;==== end of helper functions ===
 

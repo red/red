@@ -232,7 +232,8 @@ system-dialect: context [
 				either word? err [
 					join uppercase/part mold err 1 " error"
 				][reform err]
-				"^/*** in:" mold script
+				"^/*** in file:" mold script
+				either locals [join "^/*** in function: " func-name][""]
 				"^/*** at: " mold copy/part pc 8
 			]
 			clean-up
@@ -1107,6 +1108,10 @@ system-dialect: context [
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			pass: [also pc/1 pc: next pc]
 			
+			if tail? pc [
+				pc: back pc
+				throw-error "missing argument"
+			]
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
 				word!		[comp-word]
