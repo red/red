@@ -8,30 +8,10 @@ REBOL [
 
 change-dir %../
 
-;==== Helper functions ====
-test-file: %runnable/exit.reds
-
---clean: does [
-    if exists? test-file [delete test-file]
-    if all [exe exists? exe][delete exe]
-]
-
-compile: func [src /full][
-	unless full [insert src "Red/System []^/"]		;-- add a default header if not provided
-	write test-file src
-	exe: --compile test-file
-]
-
---assert-error?: func [msg][
-	--assert found? find qt/comp-output msg
-]
-;==== end of helper functions ===
-
-
 ~~~start-file~~~ "exit-err"
 
   --test-- "simple test of compile and run"
-    compile "test: does [exit] test" 
+    --compile-this "test: does [exit] test" 
     either exe [
       --run exe
       --assert qt/output = ""
@@ -41,12 +21,12 @@ compile: func [src /full][
     --clean
 
   --test-- "exit as last statement in until block"
-	compile "until [exit]"
-	--assert-error? "*** Compilation Error: exit is not allowed outside of a function"
+	--compile-this "until [exit]"
+	--assert-msg? "*** Compilation Error: exit is not allowed outside of a function"
 	--clean
 	
-	compile "foo: does [until [exit]]"
-	--assert-error? "*** Compilation Error: UNTIL requires a conditional expression"
+	--compile-this "foo: does [until [exit]]"
+	--assert-msg? "*** Compilation Error: UNTIL requires a conditional expression"
 	--clean
 
 ~~~end-file~~~
