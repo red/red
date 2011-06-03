@@ -415,7 +415,7 @@ emitter: context [
 		res
 	]
 	
-	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos][
+	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos var sz][
 		symbols/:name/2: tail-ptr						;-- store function's entry point
 		all [
 			spec: find/last symbols name
@@ -429,10 +429,15 @@ emitter: context [
 		
 		locals-sz: 0
 		if pos: find locals /local [		
-			foreach [name type] next pos [
-				repend stack [
-					name locals-sz: locals-sz - max size-of? type/1 target/stack-width
-				]
+			while [not tail? pos: next pos][
+				var: pos/1
+				either block? pos/2 [
+					sz: max size-of? pos/2/1 target/stack-width	;-- type declared
+					pos: next pos
+				][
+					sz: target/stack-width						;-- type to be inferred
+				]				
+				repend stack [var locals-sz: locals-sz - sz]	;-- store stack offsets
 			]
 			locals-sz: abs locals-sz
 		]

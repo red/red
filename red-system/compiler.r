@@ -131,13 +131,14 @@ system-dialect: context [
 	]
 	
 	compiler: context [
-		job: 		none								;-- compilation job object
-		pc:			none								;-- source code input cursor
-		script:		none								;-- source script file name
-		last-type:	none								;-- type of last value from an expression
-		locals: 	none								;-- currently compiled function specification block
-		func-name:	none								;-- currently compiled function name
-		verbose:  	0									;-- logs verbosity level
+		job: 		 none								;-- compilation job object
+		pc:			 none								;-- source code input cursor
+		script:		 none								;-- source script file name
+		last-type:	 none								;-- type of last value from an expression
+		locals: 	 none								;-- currently compiled function specification block
+		locals-init: []									;-- currently compiler function locals variable init list
+		func-name:	 none								;-- currently compiled function name
+		verbose:  	 0									;-- logs verbosity level
 	
 		imports: 	   make block! 10					;-- list of imported functions
 		bodies:	  	   make hash!  40					;-- list of functions to compile [name [specs] [body]...]
@@ -267,6 +268,15 @@ system-dialect: context [
 
 		literal?: func [value][
 			not any [word? value path? value value = <last>]
+		]
+		
+		not-initialized?: func [name [word!] /local pos][
+			all [
+				locals
+				pos: find locals /local
+				pos: find pos name
+				not find locals-init name
+			]
 		]
 		
 		base-type?: func [value][
@@ -487,6 +497,15 @@ system-dialect: context [
 			value
 		]
 		
+		init-local: func [name [word!] expr [block!] /local pos type][	
+			append locals-init name					;-- mark as initialized
+			pos: find locals name
+			unless block? pos/2 [					;-- if not typed, infer type
+				insert/only at pos 2 type: resolve-expr-type expr
+				if verbose > 2 [print ["inferred type" mold type "for variable:" pos/1]]
+			]
+		]
+		
 		add-symbol: func [name [word!] value type][
 			unless type [type: get-mapped-type value]
 			append globals reduce [name type: compose [(type)]]
@@ -533,7 +552,7 @@ system-dialect: context [
 						rule: pick reduce [[into type-spec] fail] value = return-def
 					) rule
 				]
-				pos: opt [/local some [pos: word! into type-spec]] ;-- local variables definition
+				pos: opt [/local some [pos: word! opt [into type-spec]]] ;-- local variables definition
 			][			
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
 			]		
@@ -991,7 +1010,10 @@ system-dialect: context [
 				any [
 					all [locals find locals name]
 					find globals name
-				][										;-- it's a variable
+				][										;-- it's a variable			
+					if not-initialized? name [
+						throw-error ["local variable" name "used before being initialized!"]
+					]
 					last-type: resolve-type name				
 					also name pc: next pc
 				]
@@ -1036,6 +1058,9 @@ system-dialect: context [
 				set-word! [								;-- variable assignment --
 					name: to word! tree/1
 					do prepare-value
+					if not-initialized? name [
+						init-local name tree			;-- mark as initialized and infer type if required
+					]
 					either type: get-variable-spec name [  ;-- test if known variable (local or global)
 						if all [casted type <> casted][
 							backtrack tree/1
@@ -1212,6 +1237,7 @@ system-dialect: context [
 				check-expected-type/ret name expr ret	;-- validate return value type
 			]
 			emitter/leave name locals args-size			;-- build function epilog
+			clear locals-init
 			locals: func-name: none
 		]
 		
