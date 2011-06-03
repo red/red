@@ -795,10 +795,10 @@ system-dialect: context [
 			unless pc/2 = 'struct! [
 				throw-error "ALIAS only works on struct! type"
 			]
+			repend aliased-types [to word! pc/-1 reduce [pc/2 pc/3]]
 			unless parse pos: pc/3 struct-syntax [
 				throw-error ["invalid struct syntax:" mold pos]
 			]
-			repend aliased-types [to word! pc/-1 reduce [pc/2 pc/3]]
 			pc: skip pc 3
 			none
 		]
