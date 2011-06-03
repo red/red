@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.2.1
+	Version: 0.3.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -28,6 +28,7 @@ qt: make object! [
   ;; file names
   comp-echo: join base-dir %tests/runnable/comp-echo.txt
   comp-r: join base-dir %tests/runnable/comp.r
+  test-src-file: %runnable/qt-test-comp.reds
 
   ;; make runnable directory if needed
   make-dir join base-dir %tests/runnable/
@@ -91,7 +92,6 @@ qt: make object! [
       exe: join exe [".exe"]
     ]
 
-    
     ;; compose and write compilation script
     save-dir: what-dir
     comp: mold compose [
@@ -140,6 +140,14 @@ qt: make object! [
     ][
       none
     ]    
+  ]
+  
+  compile-from-string: func [src][
+    ;-- add a default header if not provided
+    if none = find src "Red/System" [insert src "Red/System []^/"]
+    
+    write test-src-file src
+    compile test-src-file                  ;; returns path to executable or none
   ]
   
   compile-error: func [
@@ -238,6 +246,15 @@ qt: make object! [
     ]
   ]
   
+  assert-msg?: func [msg][
+    assert found? find qt/comp-output msg
+  ]
+  
+  clean-compile-from-string: does [
+    if exists? test-src-file [delete test-src-file]
+    if all [exe exists? exe][delete exe]
+]
+  
   end-group: does [
     _init-group
   ]
@@ -275,9 +292,12 @@ qt: make object! [
   set '===start-group===  :start-group
   set '--test--           :start-test
   set '--compile          :compile
+  set '--compile-this     :compile-from-string
   set '--run              :run
   set '--run-script       :run-script
   set '--assert           :assert
+  set '--assert-msg?      :assert-msg?
+  set '--clean            :clean-compile-from-string
   set '===end-group===    :end-group
   set '~~~end-file~~~     :end-file
   set '***end-run***      :end-test-run
