@@ -876,6 +876,7 @@ system-dialect: context [
 			check-body pc/1								;-- check TRUE block
 	
 			set [unused chunk] comp-block-chunked		;-- compile TRUE block
+			emitter/set-signed-state expr				;-- properly set signed/unsigned state
 			emitter/branch/over/on chunk expr/1			;-- insert IF branching			
 			emitter/merge chunk
 			last-type: none
@@ -894,6 +895,7 @@ system-dialect: context [
 			set [e-false c-false] comp-block-chunked	;-- compile FALSE block
 		
 			offset: emitter/branch/over c-false
+			emitter/set-signed-state expr				;-- properly set signed/unsigned state	
 			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
 			emitter/merge emitter/chunks/join c-true c-false
 
@@ -923,6 +925,7 @@ system-dialect: context [
 			if logic? expr/1 [expr: [<>]]				;-- re-encode test op
 			offset: emitter/branch/over body			;-- Jump to condition
 			bodies: emitter/chunks/join body cond
+			emitter/set-signed-state expr				;-- properly set signed/unsigned state
 			emitter/branch/back/on/adjust bodies reduce [expr/1] offset ;-- Test condition, exit if FALSE
 			emitter/merge bodies
 			last-type: none
@@ -947,6 +950,7 @@ system-dialect: context [
 			until [										;-- left join all expr in reverse order			
 				op: either logic? list/1/1/1 [first [<>]][list/1/1/1]
 				unless _all [op: reduce [op]]			;-- do not invert the test if ANY
+				emitter/set-signed-state list/1/1		;-- properly set signed/unsigned state
 				emitter/branch/over/on/adjust bodies op offset		;-- first emit branch				
 				bodies: emitter/chunks/join list/1/2 bodies			;-- then left join expr
 				also head? list	list: back list

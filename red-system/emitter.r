@@ -96,6 +96,11 @@ emitter: context [
 			]
 		]
 	]
+	
+	set-signed-state: func [expr][
+		unless all [block? expr 3 <= length? expr][exit]
+		target/set-width expr/2							;-- set signed? (and width too as a side-effect)
+	]
 
 	merge: func [chunk [block!]][
 		either empty? chunks/queue [
