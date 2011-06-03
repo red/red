@@ -9,20 +9,12 @@ change-dir %../                        ;; revert to tests/ directory from runnab
 ~~~start-file~~~ "output"
 
   --test-- "hello"
-    either exe: --compile src: %source/compiler/hello.reds [
-      --run exe
-      --assert none <> find qt/output "hello"
-      --assert none <> find qt/output "world"
-    ][
-      qt/compile-error src
-    ]
-
-    --test-- "empty"
-      either exe: --compile src: %source/compiler/empty.reds [
-        --run exe
-        --assert qt/output = ""
-      ][
-        qt/compile-error src
-      ]
-
+  --compile-and-run %source/compiler/hello.reds 
+  --assert none <> find qt/output "hello"
+  --assert none <> find qt/output "world"
+  
+  --test-- "empty"
+  --compile-and-run %source/compiler/empty.reds
+  --assert qt/output = ""
+  
 ~~~end-file~~~
