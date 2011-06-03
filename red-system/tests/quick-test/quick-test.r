@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.3.0
+	Version: 0.3.1
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -142,6 +142,24 @@ qt: make object! [
     ]    
   ]
   
+  compile-and-run: func [src] [
+    either exe: compile src [
+      run exe
+    ][
+      compile-error src
+      output: none
+    ]
+  ]
+    
+  compile-and-run-from-string: func [src] [
+    either exe: compile-from-string src [
+      run exe
+    ][
+      compile-error src
+      output: "Compilation failed"
+    ]
+  ]
+    
   compile-from-string: func [src][
     ;-- add a default header if not provided
     if none = find src "Red/System" [insert src "Red/System []^/"]
@@ -287,19 +305,21 @@ qt: make object! [
   
   ;; create the test "dialect"
   
-  set '***start-run***    :start-test-run
-  set '~~~start-file~~~   :start-file
-  set '===start-group===  :start-group
-  set '--test--           :start-test
-  set '--compile          :compile
-  set '--compile-this     :compile-from-string
-  set '--run              :run
-  set '--run-script       :run-script
-  set '--assert           :assert
-  set '--assert-msg?      :assert-msg?
-  set '--clean            :clean-compile-from-string
-  set '===end-group===    :end-group
-  set '~~~end-file~~~     :end-file
-  set '***end-run***      :end-test-run
+  set '***start-run***        :start-test-run
+  set '~~~start-file~~~       :start-file
+  set '===start-group===      :start-group
+  set '--test--               :start-test
+  set '--compile              :compile
+  set '--compile-this         :compile-from-string
+  set '--compile-and-run      :compile-and-run
+  set '--compile-and-run-this :compile-and-run-from-string
+  set '--run                  :run
+  set '--run-script           :run-script
+  set '--assert               :assert
+  set '--assert-msg?          :assert-msg?
+  set '--clean                :clean-compile-from-string
+  set '===end-group===        :end-group
+  set '~~~end-file~~~         :end-file
+  set '***end-run***          :end-test-run
     
 ]

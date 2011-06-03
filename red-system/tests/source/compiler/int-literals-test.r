@@ -9,13 +9,11 @@ change-dir %../                   ;; revert to tests/ dir (from runnable)
 ~~~start-file~~~ "int-literals-err"
 
   --test-- "int-literals-1"
-    write %runnable/int-literals.reds {
-      Red/System []
+  --compile-this {
       i: FFFFFFFFh
     }
-  --compile %runnable/int-literals.reds
-    if exists? %runnable/int-literals.reds [delete %runnable/int-literals.reds]
   --assert qt/compile-ok?
-
+  --clean
+  
 ~~~end-file~~~
 
