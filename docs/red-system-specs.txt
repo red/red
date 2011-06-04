@@ -1033,7 +1033,7 @@ The following example is Windows-specific.
  			return: [integer!]
  		]
  	]
- 	"msvcrt.dll" stdcall [
+ 	"msvcrt.dll" cdecl [
  		malloc: "malloc" [
  			size 	[integer!]
  			return: [c-string!]

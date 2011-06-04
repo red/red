@@ -1050,6 +1050,7 @@ system-dialect: context [
 					tree/2: cast casted tree/2/2		;-- remove encoding object
 				]
 				value: either block? tree/2 [
+					get-return-type tree/2/1			;-- check that function is returning a value
 					comp-expression/keep tree/2			;-- function call case
 					<last>
 				][
