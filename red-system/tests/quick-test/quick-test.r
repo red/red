@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.3.1
+	Version: 0.3.2
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -48,6 +48,7 @@ qt: make object! [
   
   comp-output: copy ""                 ;; output captured from compile
   output: copy ""                      ;; output captured from pgm exec
+  exe: none                            ;; filepath to executable
   
   data: make object! [
     title: copy ""
@@ -81,7 +82,6 @@ qt: make object! [
     /local
       comp                          ;; compilation script
       cmd                           ;; compilation cmd
-      exe                           ;; executable name
       built                         ;; full path of compiler output
   ][
     clear comp-output
