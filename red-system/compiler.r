@@ -1006,6 +1006,7 @@ system-dialect: context [
 			][
 				emitter/target/emit-get-address name
 				pc: next pc
+				last-type: 'integer!
 				<last>
 			][
 				throw-error "get-word syntax only reserved for native functions for now"
