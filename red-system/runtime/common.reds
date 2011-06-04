@@ -25,10 +25,9 @@ null: pointer [integer!]		;-- null pointer declaration
 
 
 length?: func [					;; return the number of characters from a c-string value ;;
-	s 		 [c-string!]		;; c-string value ;;
-	return:  [integer!]
-	/local 
-		base [c-string!]
+	s 		[c-string!]			;; c-string value ;;
+	return: [integer!]
+	/local base
 ][
 	base: s
 	while [s/1 <> null-char][s: s + 1]
