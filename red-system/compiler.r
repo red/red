@@ -256,7 +256,7 @@ system-dialect: context [
 		
 		raise-casting-error: does [
 			backtrack 'as
-			throw-error "multiple casting not allowed"
+			throw-error "multiple type casting not allowed"
 		]
 		
 		backtrack: func [value /local res][
@@ -777,7 +777,13 @@ system-dialect: context [
 		]
 		
 		comp-as: has [ctype][
-			ctype: pc/2									;TBD: check type validity
+			ctype: pc/2
+			unless any [
+				parse blockify ctype type-syntax
+				find aliased-types ctype
+			][
+				throw-error ["invalid target type casting:" ctype]
+			]
 			pc: skip pc 2
 			reduce [
 				make action-class [
@@ -1035,6 +1041,9 @@ system-dialect: context [
 			prepare-value: [		
 				if all [block? tree/2 object? tree/2/1][
 					casted: tree/2/1/type				;-- save casting type
+					if all [block? tree/2/2 object? tree/2/2/1][
+						raise-casting-error
+					]
 					tree/2: cast casted tree/2/2		;-- remove encoding object
 				]
 				value: either block? tree/2 [
