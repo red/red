@@ -497,11 +497,14 @@ system-dialect: context [
 			value
 		]
 		
-		init-local: func [name [word!] expr [block!] /local pos type][	
+		init-local: func [name [word!] expr [block!] casted [block! none!] /local pos type][	
 			append locals-init name					;-- mark as initialized
 			pos: find locals name
 			unless block? pos/2 [					;-- if not typed, infer type
-				insert/only at pos 2 type: resolve-expr-type expr
+				insert/only at pos 2 type: any [
+					casted
+					resolve-expr-type expr
+				]
 				if verbose > 2 [print ["inferred type" mold type "for variable:" pos/1]]
 			]
 		]
@@ -1068,7 +1071,7 @@ system-dialect: context [
 					name: to word! tree/1
 					do prepare-value
 					if not-initialized? name [
-						init-local name tree			;-- mark as initialized and infer type if required
+						init-local name tree casted		;-- mark as initialized and infer type if required
 					]
 					either type: get-variable-spec name [  ;-- test if known variable (local or global)
 						if all [casted type <> casted][
