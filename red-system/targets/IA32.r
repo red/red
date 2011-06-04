@@ -818,7 +818,10 @@ make target-class [
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
 		emit #{C9}									;-- LEAVE
-		either zero? locals-size [
+		either any [
+			zero? locals-size 
+			find [cdecl gcc45] compiler/functions/:name/3
+		][
 			emit #{C3}								;-- RET
 		][
 			emit #{C2}								;-- RETN args-size
