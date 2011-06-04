@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 23/05/2011
-	Revision: 10
+	Date: 04/06/2011
+	Revision: 11
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -823,26 +823,37 @@ will return:
 is not equivalent to
  
  10 avg (6 + 2)							;-- + is executed first, then avg
+ 
++++Callback
+ 
+Change the default function calling convention (<a href="http://en.wikipedia.org/wiki/X86_calling_conventions#stdcall">stdcall</a>) to C language convention (cdecl). This is required if a function address is passed to an imported C library function.
+ 
+Example:
+ 
+  compare: func [
+  	[callback]
+  	a [integer!]
+  	b [integer!]
+  	return: [integer!]
+  ][
+  	either a <= b [0][1]
+  ]
 
 ---Type inference
 
-Functions offer a limited type inference possibility for:
+Functions offer a limited type inference possibility for local variables.
 
-*local variables
-
-*return value
-
-In practice, it means that it is allowed to omit a local variable type declaration as long as the variable is initialized properly. Same possibility is offered for return values as long as the compiler can guess without any ambiguity the return value type.
+In practice, it means that it is allowed to omit a local variable type declaration as long as the variable is initialized properly.
 
 Example:
 
  foo: func [
  	a [integer!]
- 	return:								;-- omitted return value type
+ 	return: [integer!]
  	/local c							;-- omitted local variable type
  ][
  	c: 10								;-- variable type is integer!
- 	a + c								;-- return type is obviously integer!
+ 	a + c
  ]
 
 ---Calling a function
@@ -1705,7 +1716,7 @@ will output:
 
 ===Document History
 
-*<b>??/05/2011 - draft 11</b>
+*<b>04/06/2011 - draft 11</b>
 
 *>Multi-line comments restriction added.
 
@@ -1713,6 +1724,9 @@ will output:
 
 *>Multiple type castings explicitly forbidden and added as possible evolution.
 
+*>Type inference for return value removed.
+
+*>Added new function attribute: callback
 
 *<b>23/05/2011 - draft 10</b>
 

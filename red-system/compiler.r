@@ -520,12 +520,8 @@ system-dialect: context [
 				;TBD: symbol already defined
 			]
 			;TBD: check spec syntax (here or somewhere else)
-			arity: either pos: find spec/3 /local [		; @@ won't work with inferencing
-				(index? pos) -  1 / 2
-			][
-				(length? spec/3) / 2
-			]
-			if find spec/3 return-def [arity: max 0 arity - 1]
+			arity: 0
+			parse spec/3 [opt block! any [word! block! (arity: arity + 1)]]
 			repend functions [
 				name reduce [arity type cc new-line/all spec/3 off]
 			]
@@ -545,7 +541,7 @@ system-dialect: context [
 		
 		check-specs: func [name specs /local type spec-type attribs value][
 			unless block? specs [throw-error 'syntax]
-			attribs: ['infix]
+			attribs: ['infix | 'callback]
 
 			unless parse specs [
 				pos: opt [into [some attribs]]			;-- functions attributes
@@ -654,11 +650,13 @@ system-dialect: context [
 			pc: next save-pc						;-- skip over body block (a bit ugly, to be improved)
 		]
 		
-		fetch-func: func [name /local specs type][
+		fetch-func: func [name /local specs type cc][
 			;check if name is word and taken
 			check-specs name pc/2
 			specs: pc/2
 			type: 'native
+			cc:   'stdcall							;-- default calling convention
+			
 			if all [
 				not empty? specs
 				block? specs/1
@@ -669,10 +667,13 @@ system-dialect: context [
 						specs: next specs
 						type: 'infix
 					]
+					find specs/1 'callback [
+						cc: 'cdecl					;TBD: make it configurable
+					]
 					; add future attributes processing code here
 				]
 			]
-			add-function type reduce [name none specs] 'stdcall
+			add-function type reduce [name none specs] cc
 			emitter/add-native to word! name
 			repend bodies [to word! name specs pc/3 script]
 			pc: skip pc 3

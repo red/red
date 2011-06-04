@@ -782,6 +782,9 @@ make target-class [
 			native [
 				emit #{E8}							;-- CALL NEAR disp
 				emit-reloc-addr spec				;-- 32-bit relative displacement place-holder
+				if find [cdecl gcc45] fspec/3 [		;-- in case of not default calling convention
+					emit-cdecl-pop fspec
+				]
 			]
 			inline [
 				if block? args/1 [args/1: <last>]		;-- works only for unary functions	

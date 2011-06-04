@@ -329,17 +329,13 @@ emitter: context [
 		]
 	]
 	
-	arguments-size?: func [locals [block!] /push /local pos ret size][
-		pos: find locals /local
-		ret: to-set-word 'return
+	arguments-size?: func [locals [block!] /push /local size name type][
 		if push [clear stack]
 		size: 0
-		foreach [name type] any [all [pos copy/part locals pos] copy locals][
-			if name <> ret [
-				if push [repend stack [name size + 8]]	;-- account for esp + ebp storage ;TBD: make it target-independent
-				size: size + max size-of? type/1 target/stack-width		
-			]
-		]
+		parse locals [opt block! any [set name word! set type block! (
+			if push [repend stack [name size + 8]]	;-- account for esp + ebp storage ;TBD: make it target-independent
+			size: size + max size-of? type/1 target/stack-width		
+		)]]
 		size
 	]
 	
@@ -424,7 +420,7 @@ emitter: context [
 		]
 		clear exits										;-- reset exit-points list
 
-		;-- Implements Red/System calling convention -- (STDCALL without reversing)		
+		;-- Implements Red/System calling convention -- (STDCALL)
 		args-sz: arguments-size?/push locals
 		
 		locals-sz: 0
