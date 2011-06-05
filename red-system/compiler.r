@@ -328,7 +328,7 @@ system-dialect: context [
 				get-variable-spec name
 			]
 			if all [not type find functions name][
-				return [function!]
+				return reduce ['function! functions/:name/4]
 			]
 			unless base-type? type/1 [
 				type: select aliased-types type/1
@@ -392,6 +392,7 @@ system-dialect: context [
 						[to word! join value/1 #"!" value/2]
 					]
 				]
+				get-word? value [resolve-type to word! value]
 				'else 			[type?/word value]		;@@ should throw an error?
 			]	
 		]
@@ -524,6 +525,39 @@ system-dialect: context [
 			parse spec/3 [opt block! any [word! block! (arity: arity + 1)]]
 			repend functions [
 				name reduce [arity type cc new-line/all spec/3 off]
+			]		
+		]
+		
+		compare-func-specs: func [
+			fun [word!] cb [get-word!] f-type [block!] c-type [block!] /local spec pos idx
+		][
+			cb: to word! cb
+			either functions/:cb/3 = '?? [
+				functions/:cb/3: functions/:fun/3	;-- propagate cconv to the callback func
+			][
+				if functions/:cb/3 <> functions/:fun/3 [
+					throw-error [
+						"incompatible calling conventions between"
+						fun "and" cb
+					]
+				]
+			]
+			if pos: find f-type /local [f-type: clear copy pos] ;-- remove locals
+			if pos: find c-type /local [c-type: clear copy pos] ;-- remove locals
+			if block? f-type/1 [f-type: next f-type]	;-- skip optional attributes block
+			if block? c-type/1 [c-type: next c-type]	;-- skip optional attributes block
+			
+			idx: 2
+			foreach [name type] f-type [
+				if type <> c-type/:idx [return false]
+				idx: idx + 2
+			]
+			true
+		]
+		
+		check-cc: func [name [word!]][
+			if functions/:name/3 = '?? [
+				throw-error ["calling convention undefined at this point for:" name]
 			]
 		]
 		
@@ -562,8 +596,8 @@ system-dialect: context [
 			
 			if all [
 				not none? expr							;-- expr can be false, so explicit check for none is required
-				first type: resolve-expr-type expr
-			][											;-- check if a type is returned or none
+				first type: resolve-expr-type expr		;-- first => deep check that it's not [none]
+			][											;-- check if a type is returned or none		
 				type: blockify resolve-aliased type
 				if alias: select aliased-types expected/1 [expected: alias]
 			]
@@ -573,7 +607,13 @@ system-dialect: context [
 					find type-sets expected
 					find expected: get expected/1 type/1 ;-- internal polymorphic case
 				]
-				expected = type 						 ;-- normal mono-type case
+				all [
+					type
+					type/1 = 'function!
+					expected/1 = 'function!
+					compare-func-specs name expr type/2 expected/2	 ;-- callback case
+				]
+				expected = type 						 ;-- normal single-type case
 			][
 				any [
 					backtrack any [all [block? expr expr/1] expr]
@@ -668,7 +708,7 @@ system-dialect: context [
 						type: 'infix
 					]
 					find specs/1 'callback [
-						cc: 'cdecl					;TBD: make it configurable
+						cc: '??						;-- set later when passed as argument
 					]
 					; add future attributes processing code here
 				]
@@ -999,18 +1039,14 @@ system-dialect: context [
 			]
 		]
 		
-		comp-get-word: has [name spec][
-			either all [
-				spec: select functions name: to word! pc/1
+		comp-get-word: has [spec][
+			unless all [
+				spec: select functions to word! pc/1
 				spec/2 = 'native
-			][
-				emitter/target/emit-get-address name
-				pc: next pc
-				last-type: 'integer!
-				<last>
 			][
 				throw-error "get-word syntax only reserved for native functions for now"
 			]
+			also pc/1 pc: next pc
 		]
 	
 		comp-word: has [entry args n name expr][

@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 04/06/2011
-	Revision: 11
+	Date: 05/06/2011
+	Revision: 12
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -826,18 +826,49 @@ is not equivalent to
  
 +++Callback
  
-Change the default function calling convention (<a href="http://en.wikipedia.org/wiki/X86_calling_conventions#stdcall">stdcall</a>) to C language convention (cdecl). This is required if a function address is passed to an imported C library function.
+Enable a Red/System function to be called by external code (usually from a C library). The calling function must provide a proper argument type specification to accept a function pointer. The compiler will raise an error if the expected argument and callback's specifications do not match. 
+
+<u>Notes:</u>:
+
+* The expected function pointer and callback function specifications must match, but arguments names can be different. Also the callback can safely declare local variables that should not be part of the function pointer specification.
+
+* The calling convention of the callback function will be transparently adapted to match the one of the caller function.
+
+* In the current implementation, the default function calling convention in Red/System is <a href="http://en.wikipedia.org/wiki/X86_calling_conventions#stdcall">stdcall</a>.
  
 Example:
  
-  compare: func [
-  	[callback]
-  	a [integer!]
-  	b [integer!]
-  	return: [integer!]
-  ][
-  	either a <= b [0][1]
-  ]
+ #import [
+	 "foo.dll" cdecl [
+		 foo: "foo" [
+			 fun 	 [function! [a [integer!] b [integer!] return: [logic!]]]
+			 return: [integer!]
+		 ]
+	 ]
+ ]
+
+ compare: func [
+	 [callback]							;-- can be passed as function pointer
+	 left [integer!] right [integer!]
+	 return: [logic!]
+ ][
+   	 left <= right
+ ]
+
+ foo :compare							;-- pass the function pointer
+ 
+\note Calling a callback function from Red/System (implementation note)
+In the current implementation, it is possible, while not recommended, to call a function using a [callback] attribute from Red/System code, but under a mandatory condition: the function call must be placed so that it is compiled after the get-word expression (else a compilation error will be raised). From the example above:
+
+  foo :compare
+  if compare 4 5 [...]
+will compile correctly, while
+
+  if compare 4 5 [...]
+  foo :compare
+will generate a compilation error.
+  
+/note
 
 ---Type inference
 
@@ -1016,7 +1047,7 @@ Red/System is able to dynamically load external shared libraries when a Red/Syst
  <ID>			 : identifier of the function in the shared library
  <argument>		 : function's argument indentifier
  <datatype>		 : integer! | byte! | pointer! [integer!] |
-             	   c-string! | struct! [<members>]
+             	   c-string! | struct! [<members>] | function! [<specification>]
 
 The <b>RETURN:</b> statement indicates that the mapped function has a return value.
 
@@ -1716,6 +1747,14 @@ will output:
 
 ===Document History
 
+*<b>05/06/2011 - draft 12</b>
+
+*>Callback description rewrote entirely to match the new behaviour.
+
+*>Function! type added to imported functions specification rules
+
+
+
 *<b>04/06/2011 - draft 11</b>
 
 *>Multi-line comments restriction added.
@@ -1728,6 +1767,8 @@ will output:
 
 *>Added new function attribute: callback
 
+
+
 *<b>23/05/2011 - draft 10</b>
 
 *>Added type casting combinations matrix
@@ -1739,9 +1780,11 @@ will output:
 *>Minor other fixes
 
 
+
 *<b>20/05/2011 - draft 9</b>
 
 *>Added missing type casting syntax description for compound types (thanks to Andreas).
+
 
 
 *<b>19/05/2011 - draft 8</b>

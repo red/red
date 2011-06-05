@@ -39,6 +39,7 @@ emitter: context [
 		pointer!	4	-				;-- 32-bit, 8 for 64-bit
 		c-string!	4	-				;-- 32-bit, 8 for 64-bit
 		struct!		4	-				;-- 32-bit, 8 for 64-bit ; struct! passed by reference
+		function!	4	-				;-- 32-bit, 8 for 64-bit
 	]
 	
 	chunks: context [
@@ -373,6 +374,7 @@ emitter: context [
 	]
 	
 	call: func [name [word!] args [block!] /sub /local type res][
+		compiler/check-cc name
 		compiler/check-arguments-type name args
 		order-args name args
 		
@@ -416,7 +418,7 @@ emitter: context [
 		all [
 			spec: find/last symbols name
 			spec/2/1 = 'native-ref						;-- function's address references
-			spec/2/2: tail-ptr							;-- store entry point here too
+			spec/2/2: tail-ptr - 1						;-- store zero-based entry point here too
 		]
 		clear exits										;-- reset exit-points list
 

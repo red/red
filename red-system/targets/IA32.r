@@ -409,7 +409,10 @@ make target-class [
 		length? jmp
 	]
 	
-	emit-push: func [value [char! logic! integer! word! block! string! tag! path!] /local spec type][
+	emit-push: func [
+		value [char! logic! integer! word! block! string! tag! path! get-word!]
+		/local spec type
+	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		
 		switch type?/word value [
@@ -451,6 +454,10 @@ make target-class [
 							#{FF30}					;-- PUSH dword [eax]
 						]
 				]
+			]
+			get-word! [
+				emit #{68}							;-- PUSH &value
+				emit-reloc-addr emitter/get-func-ref to word! value	;-- value memory address
 			]
 			block! [								;-- pointer
 				; @@ (still required?)
@@ -730,13 +737,6 @@ make target-class [
 			find math-op	   name	[emit-math-op		name a b args]
 			find bitwise-op	   name	[emit-bitwise-op	name a b args]
 		]
-	]
-	
-	emit-get-address: func [name [word!]][
-		if verbose >= 3 [print [">>>getting address of:" mold name]]
-		
-		emit #{B8}									;-- MOV eax, &name
-		emit-reloc-addr emitter/get-func-ref name	;-- symbol address
 	]
 	
 	emit-cdecl-pop: func [spec [block!] /local size][
