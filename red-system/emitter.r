@@ -394,18 +394,16 @@ emitter: context [
 			]
 		][												;-- nested calls as op argument require special handling
 			target/left-cast: preprocess-argument args
-			if all [block? args/1 block? args/2][
+			if path? args/1 [access-path args/1 none]
+			if all [
+				any [block? args/1 path? args/1]
+				any [block? args/2 path? args/2]
+			][
 				target/emit-save-last					;-- save first argument result
 			]
-			target/right-cast: preprocess-argument/no-last next args
 			
-			if path? args/1 [
-				access-path args/1 none
-				if path? args/2 [target/emit-save-last] ;-- save first argument result
-			]
-			if path? args/2 [
-				access-path args/2 none
-			]
+			target/right-cast: preprocess-argument/no-last next args
+			if path? args/2 [access-path args/2 none]
 		]
 		res: target/emit-call name args to logic! sub
 		target/left-cast: target/right-cast: none			;-- reset op's arguments type casting 
