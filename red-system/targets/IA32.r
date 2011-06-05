@@ -399,7 +399,7 @@ make target-class [
 				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
 				'else 	  [opposite? op]					;-- 'cc => invert condition
 			]
-			(get-condition op) or pick [#{70} #{0780}] imm8?	;-- Jcc offset 	; 8/32-bit displacement
+			(get-condition op) or pick [#{70} #{0F80}] imm8?	;-- Jcc offset 	; 8/32-bit displacement
 		][
 			pick [#{EB} #{E9}] imm8?						;-- JMP offset 	; 8/32-bit displacement
 		]
