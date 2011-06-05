@@ -19,5 +19,6 @@ if not value? 'qt [do %quick-test-quick-test.r]
   --run-script %source/compiler/cond-expr-test.r
   --run-script %source/compiler/inference-test.r
   --run-script %source/compiler/callback-test.r
+  --run-script %source/compiler/infix-test.r
 
 ***end-run***

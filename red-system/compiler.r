@@ -312,6 +312,12 @@ system-dialect: context [
 			]
 		]
 		
+		get-arity: func [spec [block!] /local count][
+			count: 0
+			parse spec [opt block! any [word! block! (count: count + 1)]]
+			count
+		]
+		
 		resolve-aliased: func [type [word! block!] /local name][
 			name: either block? type [type/1][type]
 			all [
@@ -516,15 +522,13 @@ system-dialect: context [
 			type
 		]
 		
-		add-function: func [type [word!] spec [block!] cc [word!] /local name arity][		
+		add-function: func [type [word!] spec [block!] cc [word!] /local name][
 			if find functions name: to word! spec/1 [
 				;TBD: symbol already defined
 			]
 			;TBD: check spec syntax (here or somewhere else)
-			arity: 0
-			parse spec/3 [opt block! any [word! block! (arity: arity + 1)]]
 			repend functions [
-				name reduce [arity type cc new-line/all spec/3 off]
+				name reduce [get-arity spec/3 type cc new-line/all spec/3 off]
 			]		
 		]
 		
@@ -702,7 +706,12 @@ system-dialect: context [
 			][
 				case [
 					find specs/1 'infix [
-						;TBD: check for two arguments presence
+						unless 2 = get-arity specs [
+							throw-error [
+								"infix function requires 2 arguments, found"
+								get-arity specs "for" name
+							]
+						]
 						specs: next specs
 						type: 'infix
 					]
