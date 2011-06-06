@@ -31,6 +31,9 @@ Red/System [
  
 ;-- Infix syntax for functions
 #include %units/infix-test.reds
+
+;-- Conditional tests
+#include %units/conditional-test.reds
  
 ***end-run***
 
