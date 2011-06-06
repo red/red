@@ -54,13 +54,18 @@ system-dialect: context [
 			make error! reform ["Include File Access Error:" file]
 		]
 		
-		expand-string: func [src [string! binary!] /local value s e][
+		expand-string: func [src [string! binary!] /local value s e c][
 			if verbose > 0 [print "running string preprocessor..."]
 			
 			parse/all/case src [						;-- not-LOAD-able syntax support
 				any [
-					s: copy value 1 8 hex-chars #"h" e: (		;-- literal hexadecimal support
-						e: change/part s to integer! to issue! value e
+					(c: 0)
+					s: copy value some [hex-chars (c: c + 1)] #"h" e: (		;-- literal hexadecimal support				
+						either find [2 4 8] c [
+							e: change/part s to integer! to issue! value e
+						][
+							make error! reform ["Invalid hex literal:" copy/part s 40]
+						]
 					) :e
 					| skip
 				]
