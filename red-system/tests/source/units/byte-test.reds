@@ -107,7 +107,7 @@ Red/System [
 ===end-group===
 
 ===start-group=== "same tests but with local variables"
-	byte-read: func [/local str [c-string!] c [byte!] d [byte!]][
+	byte-read: func [/local str [c-string!] c [byte!] d [integer!]][
 		str: "Hello World!"
 		
 	--test-- "byte-read-local-1"

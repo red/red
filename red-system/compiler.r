@@ -298,11 +298,13 @@ system-dialect: context [
 				backtrack name
 				throw-error ["return type missing in function:" name]
 			]
-			type/1
+			type
 		]
 		
 		set-last-type: func [spec [block!]][
-			if spec: select spec return-def [last-type: spec/1]
+			if spec: select spec return-def [
+				last-type: either tail? next spec [spec/1][spec]
+			]
 		]
 		
 		get-variable-spec: func [name [word!]][
@@ -357,7 +359,7 @@ system-dialect: context [
 					]
 					struct!   [
 						either type: select type/2 path/2 [
-							type/1
+							type
 						][
 							backtrack path
 							throw-error [
@@ -408,7 +410,7 @@ system-dialect: context [
 				char!	 ['byte!]
 				integer! ['integer!]
 				logic!   ['logic!]
-				word!	 [first resolve-type arg]
+				word!	 [resolve-type arg]
 				block!	 [
 					case [
 						object? arg/1 [arg/1/type]
@@ -422,7 +424,7 @@ system-dialect: context [
 						'else [get-return-type arg/1]
 					]
 				]
-				tag!	 [either word? last-type [last-type][last-type/1]]
+				tag!	 [last-type]
 				path!	 [resolve-path-type arg]
 			][
 				throw-error ["Undefined type for:" mold arg]
@@ -1085,7 +1087,7 @@ system-dialect: context [
 		
 		comp-expression: func [
 			tree [block!] /keep
-			/local name value data offset body args prepare-value type casted
+			/local name value data offset body args prepare-value type casted new
 		][
 			prepare-value: [		
 				if all [block? tree/2 object? tree/2/1][;-- detect a casting
@@ -1110,6 +1112,7 @@ system-dialect: context [
 				]
 				if path? value [
 					emitter/access-path value none
+					last-type: resolve-path-type value
 					value: <last>
 				]
 			]
@@ -1121,13 +1124,12 @@ system-dialect: context [
 						init-local name tree casted		;-- mark as initialized and infer type if required
 					]
 					either type: get-variable-spec name [  ;-- test if known variable (local or global)
-						if any [
-							type <> get-mapped-type data
-							all [casted type <> casted]
-						][
+						new: blockify get-mapped-type data
+						if type <> any [casted new][
 							backtrack tree/1
 							throw-error [
 								"attempt to change type of variable:" name
+								"from" mold type "to" mold any [casted new]
 							]
 						]
 					][

@@ -304,7 +304,8 @@ emitter: context [
 		]
 	]
 
-	size-of?: func [type [word!]][
+	size-of?: func [type [word! block!]][
+		if block? type [type: type/1]
 		any [
 			select datatypes type						;-- search in base types
 			all [										;-- search in user-aliased types
@@ -314,7 +315,8 @@ emitter: context [
 		]
 	]
 	
-	signed?: func [type [word!]][
+	signed?: func [type [word! block!]][
+		if block? type [type: type/1]
 		'signed = third any [find datatypes type [- -]] ;-- force unsigned result for aliased types
 	]
 	
