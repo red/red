@@ -560,6 +560,12 @@ system-dialect: context [
 			true
 		]
 		
+		check-keywords: func [name [word!]][
+			if find keywords name [
+				throw-error ["attempt to redefined a protected keyword:" name]
+			]
+		]
+		
 		check-cc: func [name [word!]][
 			if functions/:name/3 = '?? [
 				throw-error ["calling convention undefined at this point for:" name]
@@ -1119,6 +1125,7 @@ system-dialect: context [
 			switch/default type?/word tree/1 [
 				set-word! [								;-- variable assignment --
 					name: to word! tree/1
+					check-keywords name					;-- forbid keywords redefinition
 					do prepare-value
 					if not-initialized? name [
 						init-local name tree casted		;-- mark as initialized and infer type if required
