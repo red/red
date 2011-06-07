@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 05/06/2011
-	Revision: 12
+	Date: 07/06/2011
+	Revision: 13
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -64,7 +64,7 @@ There is a restriction on the first character, the following characters are forb
 
  0 1 2 3 4 5 6 7 8 9 '
  
-Also there is a another restriction to avoid letting the compiler mistake a hex integer with a variable name. Variable name starting with A-F letters consisting of A-F and 0-9 characters and ending with h are not allowed.
+Also there is a another restriction to avoid letting the compiler mistake a hex integer with a variable name. Variable name starting with A-F letters consisting of 2, 4 or 8 A-F and 0-9 characters and ending with h are not allowed.
  
 All identifiers (variables and function names) are <u>case-insensitive</u>.
 
@@ -135,7 +135,7 @@ Allowed types are:
 
  decimal negative form : -1234
 
- hexadecimal form      :  4D2h
+ hexadecimal form      :  04D2h
 
 Integer datatype represents natural and negative natural numbers. The memory size of an integer is 32 bits, so the range of supported numbers is : 
 
@@ -147,7 +147,7 @@ Hexadecimal integer representation is mostly used to represent memory addresses 
     
  00000000h to FFFFFFFFh
  
-Hex letters have to be written in <b>uppercase</b>!
+Hex letters have to be written in <b>uppercase</b> and only 2, 4 and 8 characters are allowed (prefixing with leading zeros is allowed).
 
 \note Hex literal form design decision
 The 0x prefix is often used to mark a literal hexadecimal value. It could have been used in Red/System too if the &lt;number&gt;x&lt;number&gt; literal form wasn't reserved in Red for the pair! datatype. As Red/System is a dialect of Red, it has to use the same representation for hex values, so <b>&lt;hexa&gt;h</b> was chosen instead.
@@ -916,14 +916,15 @@ It is possible to obtain a function address to pass it, for example, as argument
  
 Example:
 
- progress: func [count [integer!]][
+ progress: func [[callback] count [integer!]][
  	prin "."							;-- make the user see some progress
  ]
 
  get-file "bigfile.avi" :progress		;-- blocking job would call 'progress
                                         ;-- periodically
                                         
-<u>Note</u>: Function address is curently returned as an integer! value but this could be changed in the future to a function pointer!.
+<u>Note</u>: Function address is returned as an function pointer pseudo-type, so it cannot be used as-is in expressions, but it can be safely casted to an integer! if required.
+
 
 ---Premature exiting
 
@@ -1177,9 +1178,9 @@ The name matching method is exact word matching. This ensures that no accidental
  
 <b>Usage</b>
 
- #define R_PART	ff0000h				;-- simple constants definitions
- #define G_PART	00ff00h
- #define B_PART 0000ffh
+ #define R_PART	FF0000h				;-- simple constants definitions
+ #define G_PART	00FF00h
+ #define B_PART 0000FFh
  #define zero?  [0 =]				;-- simple test expression macro
 
  color: 550063h
@@ -1198,7 +1199,7 @@ will output:
 
  no Green
  
-<u>Note</u>: Parens are required in this example on test expressions so that the compiler performs the second infix expression (the and operator) before the second (the equal operator).
+<u>Note</u>: Parens are required in this example on test expressions so that the compiler performs the second infix expression (the and operator) before the first (the equal operator).
  
 ---#include
 
@@ -1214,7 +1215,7 @@ This directive helps split the source code in several files, allowing for exampl
  <file> : relative or full path to a Red/System source file
  
 \note Filename format
-The filename must be written using the OS-independent REBOL file! format, which is documented <a href="http://www.rebol.com/docs/core23/rebolcore-12.html#section-2" target="_new">here</a>.
+The filename must be written using the OS-independent <a href="http://www.rebol.com/docs/core23/rebolcore-12.html#section-2" target="_new">REBOL file! format</a>.
 
 /note
 
@@ -1224,9 +1225,9 @@ Rewriting the example from <i>#include</i> section:
 
  definitions.reds file:
 
-     #define R_PART	ff0000h	
- 	 #define G_PART	00ff00h
- 	 #define B_PART 0000ffh
+     #define R_PART	FF0000h	
+ 	 #define G_PART	00FF00h
+ 	 #define B_PART 0000FFh
  	 #define zero?  [0 =]
 
  	 test-primary: func [
@@ -1257,7 +1258,7 @@ The official Red/System source file suffix to use is: <b>.reds</b>
 
 ---Header
 
-Red/System enforces the usage of a standard header for all sources (this one of the great ideas in REBOL), to both identify a valid Red/System program and document it.
+Red/System enforces the usage of a standard header for all sources (one of the great ideas in REBOL), to both identify a valid Red/System program and document it.
 
 <b>Syntax</b>
 
@@ -1271,7 +1272,7 @@ A valid Red/System source file will need this header:
  <name>  : valid identifier
  <value> : any Red valid datatype
  
-There is no minimum or maximum number of entries that a valid header can contain, so an empty block will be also valid (but bad practice).
+There is no minimum or maximum number of entries that a valid header can contain, so an empty block will also be valid (but bad practice).
  
 <u>Implementation note</u>: Header values types are the ones provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
 
@@ -1369,17 +1370,20 @@ It will be possible to export some Red/System functions to be callable from the 
 
 ---Reserved keywords
 
-The list of following keywords are reserved, they cannot be used as variables:
+The list of following symbols and keywords are reserved, they cannot be used as variable name:
 
-    alias		all			and
-    any			as			comment
-    either		exit		false
-    forever		func		function
-    if			length?		newline
-    not			null		or
-    pointer		return		size?
-    struct		struct!		true
-    until		while 		xor
+    & 			* 			+
+    - 			/ 			//
+    < 			<= 			<>
+    = 			> 			>=
+    alias 		all 		and
+    any 		as 			either
+    exit 		false 		func
+    function 	if 			not
+    or 			pointer 	return
+    size? 		size? 		struct
+    true 		until		while
+    xor
 
 ---Infix operators
 
@@ -1746,6 +1750,21 @@ will output:
 *Support multiple nested type castings.
 
 ===Document History
+
+*<b>07/06/2011 - draft 13</b>
+
+*>Keywords list updated, only symbols and keywords built in the compiler are retained.
+
+*>Function pointer description and example updated wrt recent implementation changes.
+
+*>Added & as a reserved keyword (for future use)
+
+*>Keyword list updated and cleaned up
+
+*>Fixed non-confirming hex literals in examples (thanks Kaj)
+
+*>Minor fixes
+
 
 *<b>05/06/2011 - draft 12</b>
 
