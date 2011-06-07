@@ -16,10 +16,6 @@ system-dialect: context [
 	runtime-path: %runtime/
 	nl: newline
 	
-	;errors: [
-	;	type	["message" arg1 "and" arg2]
-	;]
-	
 	loader: context [
 		verbose: 0
 		include-dirs: none
@@ -27,6 +23,7 @@ system-dialect: context [
 		defs: make block! 100
 		
 		hex-chars: charset "0123456789ABCDEF"
+		ws: charset " ^/^M^-"
 		
 		init: does [
 			include-dirs: copy [%runtime/]
@@ -52,6 +49,12 @@ system-dialect: context [
 				]
 			]
 			make error! reform ["Include File Access Error:" file]
+		]
+		
+		check-marker: func [src [string!] /local pos][
+			unless parse/all src [any ws "Red/System" any ws #"[" to end][
+				make error! "not a Red/System source program"
+			]
 		]
 		
 		expand-string: func [src [string! binary!] /local value s e c][
@@ -123,8 +126,7 @@ system-dialect: context [
 				compiler/script: 'memory
 			]
 			expand-string src: any [src input]			;-- process string-level compiler directives
-			
-			;TBD: add Red/System header checking here!
+			if file? input [check-marker src]			;-- look for "Red/System" head marker
 			
 			if error? set/any 'err try [src: load src][	;-- convert source to blocks
 				print ["Syntax Error at LOAD phase:" mold disarm err]
@@ -1061,10 +1063,10 @@ system-dialect: context [
 		]
 		
 		comp-get-word: has [spec][
-			unless all [
-				spec: select functions to word! pc/1
-				spec/2 = 'native
-			][
+			unless spec: select functions to word! pc/1 [
+				throw-error ["function" to word! pc/1 "not defined"] 
+			]
+			unless spec/2 = 'native [
 				throw-error "get-word syntax only reserved for native functions for now"
 			]
 			also pc/1 pc: next pc
@@ -1334,14 +1336,18 @@ system-dialect: context [
 			emitter/reloc-native-calls
 		]
 		
-		comp-header: does [
-			unless pc/1 = 'RED/System [
-				;TBD: syntax error
+		comp-header: has [pos][
+			unless pc/1 = 'Red/System [
+				throw-error "source is not a Red/System program"
 			]
-			unless block? pc/2 [
-				;TBD: syntax error
+			pc: next pc
+			unless block? pc/1 [
+				throw-error "missing Red/System program header"
 			]
-			pc: skip pc 2
+			unless parse pc/1 [any [pos: set-word! skip]][
+				throw-error ["invalid program header at:" mold pos]
+			]
+			pc: next pc
 		]
 
 		run: func [src [block!] /no-header][

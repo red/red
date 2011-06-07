@@ -9,9 +9,9 @@ REBOL [
 do %targets/target-class.r
 
 emitter: context [
-	code-buf: make binary! 10'000
-	data-buf: make binary! 10'000
-	symbols:  make hash! 200			;-- [name [type address [relocs]] ...]
+	code-buf: make binary! 100'000
+	data-buf: make binary! 100'000
+	symbols:  make hash! 1000			;-- [name [type address [relocs]] ...]
 	stack: 	  make hash! 40				;-- [name offset ...]
 	exits:	  make block! 1				;-- [offset ...]	(funcs exits points)
 	verbose:  0							;-- logs verbosity level
