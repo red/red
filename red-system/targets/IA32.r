@@ -151,7 +151,7 @@ make target-class [
 		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
 	
-	emit-load: func [value [char! logic! integer! word! string! struct! path! paren!]][
+	emit-load: func [value [char! logic! integer! word! string! struct! path! paren! get-word!]][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		
 		switch type?/word value [
@@ -175,6 +175,10 @@ make target-class [
 					#{A0}   #{A1}					;-- MOV rA, [value]		; global
 					#{8A45} #{8B45}					;-- MOV rA, [ebp+n]		; local	
 			]
+			get-word! [
+				emit #{B8}							;-- MOV eax, &name
+				emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
+			]
 			string! [
 				emit-load-literal [c-string!] value
 			]
@@ -191,7 +195,7 @@ make target-class [
 	]
 	
 	emit-store: func [
-		name [word!] value [char! logic! integer! word! string! paren! tag!] spec [block! none!]
+		name [word!] value [char! logic! integer! word! string! paren! tag! get-word!] spec [block! none!]
 		/local store-dword
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
@@ -225,6 +229,10 @@ make target-class [
 				emit-variable-poly name
 					#{A2} 	#{A3}					;-- MOV [name], rA		; global variable
 					#{8845} #{8945}					;-- MOV [ebp+n], rA		; local variable
+			]
+			get-word! [
+				do store-dword
+				emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
 			]
 			string! [
 				do store-dword
