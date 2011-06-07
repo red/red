@@ -10,8 +10,9 @@ Red/System [
 
 ~~~start-file~~~ "conditional"
 
-  --test-- "this code exposes a bug in opcode generation"
-    ;; before the bug was fixed this code caused a segmentation error
+  --test-- "nested ifs inside a function with many return points"
+    ;; a bug was fixed that caused this code to raise a segmentation error
+    ;; the test waa passing until the lines marked ;###### were added
     scan-utf-8: func [
       str [c-string!]
       return: [integer!]
@@ -20,12 +21,18 @@ Red/System [
     ][
       i: 1
       until [
-        if str/1 > #"^(7F)" [                       
+        if str/1 > #"^(7F)" [
+          print "here"                      ;; remove this line when test passes
           if #"^(C0)" = str/1 [return i]
           if #"^(C1)" = str/1 [return i]
           if #"^(F4)" < str/1 [return i]
           if str/1 < #"^(E0)" [
              if str/2 < #"^(80)" [return i]
+             if str/2 > #"^(BF)" [return i]      ;######     
+             if str/3 <> null-char [             ;######
+               i: i + 1                          ;######
+               str: str + 1                      ;######
+             ]                                   ;###### 
           ]
         ]
         i: i + 1
@@ -35,6 +42,7 @@ Red/System [
       0
     ]
   --assert 0 = scan-utf-8 "a"
+  --assert 0 = scan-utf-8 "a very straightforward string"
   
   --test-- "simple if"
     i: 0
