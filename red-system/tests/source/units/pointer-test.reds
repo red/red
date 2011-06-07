@@ -204,13 +204,6 @@ pointer-local-foo: func [
 	--assert pB/value = 12345
 
 	--test-- "loc-point-rw-9"
-	foo-pointer: func [
-		a [pointer! [integer!]]
-		return: [pointer! [integer!]]
-	][
-		a
-	]
-
 	pB: foo-pointer pA 
 	--assert pB/value = 12345
 

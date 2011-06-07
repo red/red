@@ -155,7 +155,7 @@ system-dialect: context [
 		pos:		none								;-- validation rules cursor for error reporting
 		return-def: to-set-word 'return					;-- return: keyword
 		fail:		[end skip]							;-- fail rule
-		rule: w:	none								;-- global parsing rules helpers
+		rule: value: none								;-- global parsing rules helpers
 		
 		not-set!:	[logic! integer!]									;-- reserved for internal use only
 		number!: 	[byte! integer!]									;-- reserved for internal use only
@@ -203,18 +203,17 @@ system-dialect: context [
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
 			| 'struct!  into [struct-syntax]
+			| 'function! set value block! (check-specs '- value)
 		]
 
 		type-spec: [
-			pos: some type-syntax | set w word! (		;-- multiple types allowed for internal usage			
-				unless find aliased-types w [			;-- make the rule fail if not found
-					throw-error ["invalid struct syntax:" mold pos]
-				]	
+			pos: some type-syntax | set value word! (			;-- multiple types allowed for internal usage			
+				unless find aliased-types value [throw false]	;-- stop parsing if unresolved type
 			)
 		]		
 		
 		keywords: [
-			;&			 []
+			&			 [throw-error "reserved for future use"]
 			as			 [comp-as]
 			size? 		 [comp-size?]
 			if			 [comp-if]
@@ -531,13 +530,9 @@ system-dialect: context [
 			type
 		]
 		
-		add-function: func [type [word!] spec [block!] cc [word!] /local name][
-			if find functions name: to word! spec/1 [
-				;TBD: symbol already defined
-			]
-			;TBD: check spec syntax (here or somewhere else)
+		add-function: func [type [word!] spec [block!] cc [word!]][
 			repend functions [
-				name reduce [get-arity spec/3 type cc new-line/all spec/3 off]
+				to word! spec/1 reduce [get-arity spec/3 type cc new-line/all spec/3 off]
 			]		
 		]
 		
@@ -591,20 +586,33 @@ system-dialect: context [
 			]
 		]
 		
-		check-specs: func [name specs /local type spec-type attribs value][
+		check-func-name: func [name [word!] /only][
+			if find functions name [
+				pc: back pc
+				throw-error ["attempt to redefine existing function name:" name]
+			]
+			if all [not only get-variable-spec name][
+				pc: back pc
+				throw-error ["a variable is already using the same name:" name]
+			]
+		]
+		
+		check-specs: func [name specs /local type spec-type attribs value][		
 			unless block? specs [throw-error 'syntax]
 			attribs: ['infix | 'callback]
 
-			unless parse specs [
-				pos: opt [into [some attribs]]			;-- functions attributes
-				pos: any [pos: word! into type-spec]	;-- arguments definition
-				pos: opt [								;-- return type definition				
-					set value set-word! (					
-						rule: pick reduce [[into type-spec] fail] value = return-def
-					) rule
+			unless catch [
+				parse specs [
+					pos: opt [into [some attribs]]			;-- functions attributes
+					pos: any [pos: word! into type-spec]	;-- arguments definition
+					pos: opt [								;-- return type definition				
+						set value set-word! (					
+							rule: pick reduce [[into type-spec] fail] value = return-def
+						) rule
+					]
+					pos: opt [/local some [pos: word! opt [into type-spec]]] ;-- local variables definition
 				]
-				pos: opt [/local some [pos: word! opt [into type-spec]]] ;-- local variables definition
-			][			
+			][
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
 			]		
 		]
@@ -709,9 +717,9 @@ system-dialect: context [
 		]
 		
 		fetch-func: func [name /local specs type cc][
-			;check if name is word and taken
-			check-specs name pc/2
-			specs: pc/2
+			name: to word! name
+			check-func-name name
+			check-specs name specs: pc/2
 			type: 'native
 			cc:   'stdcall							;-- default calling convention
 			
@@ -737,8 +745,8 @@ system-dialect: context [
 				]
 			]
 			add-function type reduce [name none specs] cc
-			emitter/add-native to word! name
-			repend bodies [to word! name specs pc/3 script]
+			emitter/add-native name
+			repend bodies [name specs pc/3 script]
 			pc: skip pc 3
 		]
 		
@@ -787,6 +795,8 @@ system-dialect: context [
 						]
 						forskip specs 3 [
 							repend list [specs/2 reloc: make block! 1]
+							check-func-name name: to word! specs/1
+							check-specs name specs/3
 							add-function 'import specs cc
 							emitter/import-function to word! specs/1 reloc
 						]						
@@ -798,10 +808,11 @@ system-dialect: context [
 						;TBD: syntax error
 					]
 					foreach [name code specs] pc/2 [
-						;TBD: check call/code/specs validity
+						;TBD: check call/code validity
+						check-func-name name
+						check-specs name specs
 						add-function 'syscall reduce [name none specs] 'syscall
 						append last functions code		;-- extend definition with syscode
-						;emitter/import-function to word! specs/1 reloc
 					]				
 					pc: skip pc 2
 				]
@@ -812,7 +823,7 @@ system-dialect: context [
 					pc: skip pc 2
 				]
 			][
-				;TBD: unknown directive error
+				throw-error ["unknown directive" pc/1]
 			]
 		]
 		
@@ -829,7 +840,7 @@ system-dialect: context [
 			either word? pc/2 [
 				resolve-aliased pc/2					;-- just check if alias is defined
 			][
-				unless parse pos: pc/2 struct-syntax [
+				unless catch [parse pos: pc/2 struct-syntax][
 					throw-error ["invalid struct syntax:" mold pos]
 				]
 			]
@@ -869,7 +880,7 @@ system-dialect: context [
 				throw-error "ALIAS only works on struct! type"
 			]
 			repend aliased-types [to word! pc/-1 reduce [pc/2 pc/3]]
-			unless parse pos: pc/3 struct-syntax [
+			unless catch [parse pos: pc/3 struct-syntax][
 				throw-error ["invalid struct syntax:" mold pos]
 			]
 			pc: skip pc 3
@@ -1055,6 +1066,10 @@ system-dialect: context [
 		comp-assignment: has [name value][
 			name: pc/1
 			pc: next pc
+			if set-word? name [
+				check-keywords to word! name			;-- forbid keywords redefinition
+				check-func-name/only to word! name		;-- avoid clashing with an existing function name
+			]
 			either none? value: fetch-expression [		;-- explicitly test for none!
 				none
 			][				
@@ -1132,7 +1147,6 @@ system-dialect: context [
 			switch/default type?/word tree/1 [
 				set-word! [								;-- variable assignment --
 					name: to word! tree/1
-					check-keywords name					;-- forbid keywords redefinition
 					do prepare-value
 					if not-initialized? name [
 						init-local name tree casted		;-- mark as initialized and infer type if required

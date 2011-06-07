@@ -186,8 +186,6 @@ struct-local-foo: func [
 	--assert struct2-c/1 = #"y"
 		
 	--test-- "ls-rw-10"
-	struct2-foo-int:  func [a [integer!] return: [integer!]][a]
-	struct2-foo-byte: func [a [byte!] return: [byte!]][a]
 	--assert 9876 = struct2-foo-int struct2/d
 
 	--test-- "ls-rw-11"
