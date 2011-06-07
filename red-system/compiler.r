@@ -809,7 +809,7 @@ system-dialect: context [
 					]
 					foreach [name code specs] pc/2 [
 						;TBD: check call/code validity
-						check-func-name name
+						check-func-name name: to word! name
 						check-specs name specs
 						add-function 'syscall reduce [name none specs] 'syscall
 						append last functions code		;-- extend definition with syscode
