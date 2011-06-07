@@ -31,10 +31,12 @@ make target-class [
 		>				 #{0F}		#{07}
 	]
 	
-	get-condition: func [op [word!]][
-		either '- = third op: find conditions op [op/2][
+	add-condition: func [op [word!] data [binary!]][
+		op: either '- = third op: find conditions op [op/2][
 			pick op pick [2 3] signed?
 		]
+		data/(length? data): (to char! last data) or (to char! first op) ;-- REBOL2's awful binary! handling
+		data
 	]
 		
 	emit-poly: func [spec [block!] /local to-bin][	;-- polymorphic code generation
@@ -399,7 +401,7 @@ make target-class [
 				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
 				'else 	  [opposite? op]					;-- 'cc => invert condition
 			]
-			(get-condition op) or pick [#{70} #{0F80}] imm8?	;-- Jcc offset 	; 8/32-bit displacement
+			add-condition op copy pick [#{70} #{0F80}] imm8?		;-- Jcc offset 	; 8/32-bit displacement
 		][
 			pick [#{EB} #{E9}] imm8?						;-- JMP offset 	; 8/32-bit displacement
 		]
