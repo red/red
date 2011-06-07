@@ -22,17 +22,16 @@ Red/System [
       i: 1
       until [
         if str/1 > #"^(7F)" [
-          print "here"                      ;; remove this line when test passes
           if #"^(C0)" = str/1 [return i]
           if #"^(C1)" = str/1 [return i]
           if #"^(F4)" < str/1 [return i]
           if str/1 < #"^(E0)" [
              if str/2 < #"^(80)" [return i]
-             if str/2 > #"^(BF)" [return i]      ;######     
-             if str/3 <> null-char [             ;######
-               i: i + 1                          ;######
-               str: str + 1                      ;######
-             ]                                   ;###### 
+             if str/2 > #"^(BF)" [return i]
+             if str/3 <> null-char [
+               i: i + 1
+               str: str + 1
+             ]
           ]
         ]
         i: i + 1
