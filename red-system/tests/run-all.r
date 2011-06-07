@@ -5,14 +5,24 @@ REBOL [
 	Version: 0.1.1
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
+
 ;; make runnable/ directory if needed 
 make-dir %runnable/
 ;; include quick-test.r
 if not value? 'qt [do %quick-test/quick-test.r]
 
+print rejoin ["Quick-Test v" system/script/header/version]
+
 ;; compile & run rs-test-suite.reds
+print "Compiling rs-test-suite.reds..."
+t0: now/time/precise
+
 either exe: qt/compile %source/rs-test-suite.reds [
+  print ["...done in" now/time/precise - t0]
+  print "Running rs-test-suite..."
+  t0: now/time/precise
   qt/run exe
+  print ["...done in" now/time/precise - t0 newline]
   print qt/output
   part1-failures?: either find qt/output "TEST FAILURES" [true] [false]
 ][
