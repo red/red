@@ -198,12 +198,13 @@ system-dialect: context [
 		
 		pointer-syntax: ['integer!]
 		
+		func-pointer: ['function! set value block! (check-specs '- value)]
+		
 		type-syntax: [
 			'logic! | 'int32! | 'integer! | 'uint8! | 'byte!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
 			| 'struct!  into [struct-syntax]
-			| 'function! set value block! (check-specs '- value)
 		]
 
 		type-spec: [
@@ -597,15 +598,16 @@ system-dialect: context [
 			]
 		]
 		
-		check-specs: func [name specs /local type spec-type attribs value][		
+		check-specs: func [name specs /extend /local type type-def spec-type attribs value][		
 			unless block? specs [throw-error 'syntax]
 			attribs: ['infix | 'callback]
+			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
 			unless catch [
 				parse specs [
-					pos: opt [into [some attribs]]			;-- functions attributes
-					pos: any [pos: word! into type-spec]	;-- arguments definition
-					pos: opt [								;-- return type definition				
+					pos: opt [into [some attribs]]		;-- functions attributes
+					pos: any [pos: word! into type-def]	;-- arguments definition
+					pos: opt [							;-- return type definition				
 						set value set-word! (					
 							rule: pick reduce [[into type-spec] fail] value = return-def
 						) rule
@@ -781,41 +783,56 @@ system-dialect: context [
 			]
 			expr
 		]
-				
-		comp-directive: has [list reloc][
-			switch/default pc/1 [
-				#import [
-					unless block? pc/2 [
-						;TBD: syntax error
-					]
-					foreach [lib cc specs] pc/2 [		;-- cc = calling convention
-						;TBD: check lib/specs validity
+		
+		process-import: func [defs [block!] /local lib list cc name specs spec id reloc][
+			unless block? defs [throw-error "#import expects a block! as argument"]
+			unless parse defs [
+				some [
+					pos: set lib string! (
 						unless list: select imports lib [
 							repend imports [lib list: make block! 10]
 						]
-						forskip specs 3 [
-							repend list [specs/2 reloc: make block! 1]
-							check-func-name name: to word! specs/1
-							check-specs name specs/3
-							add-function 'import specs cc
-							emitter/import-function to word! specs/1 reloc
-						]						
-					]				
-					pc: skip pc 2
-				]
-				#syscall [
-					unless block? pc/2 [
-						;TBD: syntax error
+					)
+					pos: set cc ['cdecl | 'stdcall]		;-- calling convention	
+					pos: into [
+						some [
+							specs:						;-- new function mapping marker
+							pos: set name set-word! (check-func-name name: to word! name)
+							pos: set id   string!   (repend list [id reloc: make block! 1])
+							pos: set spec block!    (
+								check-specs/extend name spec
+								add-function 'import specs cc
+								emitter/import-function name reloc
+							)
+						]
 					]
-					foreach [name code specs] pc/2 [
-						;TBD: check call/code validity
-						check-func-name name: to word! name
-						check-specs name specs
-						add-function 'syscall reduce [name none specs] 'syscall
-						append last functions code		;-- extend definition with syscode
-					]				
-					pc: skip pc 2
 				]
+			][
+				throw-error ["invalid import specification at:" pos]
+			]		
+		]
+		
+		process-syscall: func [defs [block!] /local name id spec][
+			unless block? defs [throw-error "#syscall expects a block! as argument"]
+			unless parse defs [
+				some [
+					pos: set name set-word! (check-func-name name: to word! name)
+					pos: set id   integer!
+					pos: set spec block!    (
+						check-specs/extend name spec
+						add-function 'syscall reduce [name none spec] 'syscall
+						append last functions id		;-- extend definition with syscode
+					)
+				]
+			][
+				throw-error ["invalid syscall specification at:" pos]
+			]
+		]
+				
+		comp-directive: does [
+			switch/default pc/1 [
+				#import  [process-import  pc/2  pc: skip pc 2]
+				#syscall [process-syscall pc/2	pc: skip pc 2]
 				#define  [pc: skip pc 3]				;-- preprocessed before
 				#include [pc: skip pc 2]				;-- preprocessed before
 				#script	 [								;-- internal compiler directive
