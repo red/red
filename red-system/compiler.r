@@ -214,7 +214,7 @@ system-dialect: context [
 		]		
 		
 		keywords: [
-			&			 [throw-error "reserved for future use"]
+			;&			 [throw-error "reserved for future use"]
 			as			 [comp-as]
 			size? 		 [comp-size?]
 			if			 [comp-if]

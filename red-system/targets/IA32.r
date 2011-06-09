@@ -240,11 +240,7 @@ make target-class [
 			]
 			paren! [
 				do store-dword
-				either value/1 = 'pointer [
-					emit to-bin32 0
-				][
-					emit-reloc-addr spec/2
-				]
+				emit-reloc-addr spec/2
 			]
 		]
 	]

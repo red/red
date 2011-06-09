@@ -13,6 +13,7 @@ Red/System [
 
 #define forever		[while [true]]
 #define does		[func []]
+#define unless		[if not]
 
 #define as-byte		[as byte!]
 #define as-logic	[as logic!]

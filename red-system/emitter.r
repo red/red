@@ -247,7 +247,7 @@ emitter: context [
 		]
 		either all [
 			compiler/literal? value						;-- literal values only
-			find [c-string! struct!] type/1				;-- complex types only
+			find [c-string! struct! pointer!] type/1	;-- complex types only
 		][
 			if new-global? [
 				ptr: store-global 0 'pointer! none		;-- allocate separate variable slot
