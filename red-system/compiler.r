@@ -6,6 +6,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+do %utils/r2-forward.r
 do %linker.r
 do %emitter.r
 
