@@ -3,342 +3,707 @@ REBOL [
 	Author:  "Andreas Bolka, Nenad Rakocevic"
 	File:	 %ELF.r
 	Rights:  "Copyright (C) 2011 Andreas Bolka, Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+;; NOTE: all "offsets" are offsets into the file (as stored on disk),
+;; all "addresses" are virtual addresses (of the process in memory).
+
 context [
-	defs: [
-		image [
-			base-address	134512640	; #{08048000}
-		]
+	defs: compose [
+		;; Required by the linker.
 		extensions [
 			exe %""
 			obj %.o
 			lib %.a
 			dll %.so
 		]
-		target [
-		;-- Red Target ---- Machine --- Data Encoding
-			IA32			m-386		two-lsb
-		]
-		machine [
-			m-386			3				;-- intel 80386 (EM_386)
-		]
-		class [								;-- (EI_CLASS)
-			none			0				;-- invalid class (ELFCLASSNONE)
-			c-32-bit		1				;-- 32-bit objects (ELFCLASS32)
-			c-64-bit		2				;-- 64-bit objects (ELFCLASS64)
-		]
-		encoding [							;-- (EI_DATA)
-			none			0				;-- unknown data format (ELFDATANONE)
-			two-lsb			1				;-- two's complement, little endian (ELFDATA2LSB)
-			two-msb			2				;-- two's complement, big endian (ELFDATA2MSB)
-		]
-		version [							;-- (EI_VERSION)
-			none			0				;-- invalid version (EV_NONE)
-			current			1				;-- current version (EV_CURRENT)
-		]
-		file-type [
-			none			0				;-- unknown type (ET_NONE)
-			relocatable		1				;-- relocatable file (ET_REL)
-			executable		2				;-- executable file (ET_EXEC)
-			shared			3				;-- shared object file (ET_DYN)
-			core			4				;-- core file (ET_CORE)
-			lo-proc			#{FF00}			;-- processor-specific
-			hi-proc			#{FFFF}			;-- processor-specific
-		]
-		segment-type [
-			null			0				;-- ignore entry (PT_NULL)
-			load			1				;-- loadable segment (PT_LOAD)
-			dynamic			2				;-- dynamic linking information (PT_DYNAMIC)
-			interp			3				;-- interpreter path name (PT_INTERP)
-			note			4				;-- notes/comments (PT_NOTE)
-			shlib			5				;-- reserved (unused) (PT_SHLIB)
-			phdr			6				;-- program header table location (PT_PHDR)
-			lo-proc			#{70000000}		;-- reserved (proc-specific)
-			hi-proc			#{7FFFFFFF}		;-- reserved (proc-specific)
-		]
-		segment-flags [						;-- (proc-specific)
-			executable		1				;-- (PF_X)
-			write			2				;-- (PF_W)
-			read			4				;-- (PF_R)
-		]
-		segment-access [
-			code			5				;-- [read executable]	; 1st part of LOAD segment
-			data			6				;-- [read write]		; 2nd part of LOAD segment
-			import			6				;-- [read write]		; DYNAMIC segment
-		]
-		section-type [
-			null			0				;-- mark inactive section header (SHT_NULL)
-			prog-bits		1				;-- program-specific data (SHT_PROGBITS)
-			sym-tab			2				;-- symbol table (for link editing) (SHT_SYMTAB)
-			str-tab			3				;-- string table (SHT_STRTAB)
-			rela			4				;-- relocations with addends (SHT_RELA)
-			hash			5				;-- symbol hash table (SHT_HASH)
-			dynamic			6				;-- dynamic linking (SHT_DYNAMIC)
-			note			7				;-- notes/comments (SHT_NOTE)
-			no-bits			8				;-- program-specific data (SHT_NOBITS)
-			rel				9				;-- relocations without addends (SHT_REL)
-			shlib			10				;-- reserved (unused) (SHT_SHLIB)
-			dyn-sym			11				;-- symbol table (dynamic linking) (SHT_DYNSYM)
-			lo-proc			#{70000000}		;-- reserved (proc-specific)
-			hi-proc			#{7FFFFFFF}		;-- reserved (proc-specific)
-			lo-user			#{80000000}		;-- reserved (lower bound reserved indexes)
-			hi-user			#{8FFFFFFF}		;-- reserved (upper bound reserved indexes)
-		]
-		section-flags [
-			write			1				;-- writable during program execution (SHF_WRITE)
-			alloc			2				;-- in memory during program execution (SHF_ALLOC)
-			exec			4				;-- executable code (SHF_EXECINSTR)
-			mask-proc		#{F0000000}		;-- mask bits for proc-specific semantics
-		]
-		sections-table [
-		; -- Name --------- Type ------ Attributes
-			".text"			prog-bits	6	;-- [alloc exec]
-			".data"			prog-bits	3	;-- [alloc write]
-		;	".rodata"		prog-bits	2	;-- [alloc]
-			".shstrtab"		str-tab		0	;-- []
-		]
+
+		;base-address	(to-integer #{08048000})
+		base-address	(to-integer #{80000000})
+		page-size		4096		;; system page size
+
+		interpreter		"/lib/ld-linux.so.2"
+
+		;; ELF Constants
+
+		elfclass32		1			;; 32-bit object
+
+		elfdata2lsb		1			;; 2's-complement, little endian
+
+		ev-current		1			;; the "current" version we're adhering to
+
+		et-exec			2			;; executable file
+
+		em-386			3			;; intel 80386
+
+		pt-load			1			;; loadable segment
+		pt-dynamic		2			;; dynamic linking information
+		pt-interp		3			;; interpreter path name
+		pt-phdr			6			;; program header table
+
+		pf-x			1			;; executable segment
+		pf-w			2			;; writable segment
+		pf-r			4			;; readable wegment
+
+		shn-undef		0			;; undefined section
+
+		sht-null		0			;; inactive section header
+		sht-progbits	1			;; program-specific data (w/ file extent)
+		sht-symtab		2			;; symbol table (for link editing)
+		sht-strtab		3			;; string table
+		sht-hash		5			;; symbol hash table
+		sht-dynamic		6			;; dynamic linking
+		sht-nobits		8			;; program-specific data (w/o file extend)
+		sht-rel			9			;; relocations (w/o addends)
+		sht-dynsym		11			;; symbol table (dynamic linking)
+
+		shf-write		1			;; dynamically writable section
+		shf-alloc		2			;; dynamically allocated section
+		shf-execinstr	4			;; dynamically executable section
+
+		stn-undef		0			;; end of a hash chain (undef symtab nr)
+
+		stb-global		1			;; global symbol
+
+		stt-func		2			;; symbol is a code object
+
+		stv-default		0			;; default symbol visibility
+
+		dt-null			0			;; marks the end of the _DYNAMIC array
+		dt-needed		1			;; strtable offset of the name of a library
+		dt-hash			4			;; address of the symbol hash table
+		dt-strtab		5			;; address of the string table
+		dt-symtab		6			;; address of the symbol table
+		dt-strsz		10			;; total size of the string table (in bytes)
+		dt-syment		11			;; size of one symbol table entry (in bytes)
+		dt-rel			17			;; address of the relocation table
+		dt-relsz		18			;; total size of the relocation table
+		dt-relent		19			;; size of one reloc table entry (in bytes)
+
+		r-386-32		1			;; direct 32-bit relocation
+		r-386-copy		5			;; copy symbol at runtime
 	]
 
-	page-size:		4096					;-- system page size
-	base-ptr:		defs/image/base-address	;-- base virtual address
-	code-ptr:		0						;-- code virtual address (entry point)
-	data-ptr:		0						;-- data virtual address
-	headers-size:	none					;-- size of all leading ELF headers (ehdr + phdrs)
-	code-size:		none					;-- size of the code segment (code section)
-	data-size:		none					;-- size of the data segment (all non-code sections)
-	shdr-offset:	0						;-- section header table file offset
+	;; ELF Structures
 
-	elf-header: make struct! [				;-- (Elf32_Ehdr)
-		ident-mag0			[char!]			;-- 0x7F (EI_MAG0)
-		ident-mag1			[char!]			;-- "E" (EI_MAG1)
-		ident-mag2			[char!]			;-- "L" (EI_MAG2)
-		ident-mag3			[char!]			;-- "F" (EI_MAG3)
-		ident-class			[char!]			;-- file class (see DEFS/class)
-		ident-data			[char!]			;-- data encoding (see DEFS/encoding)
-		ident-version		[char!]			;-- file version (see DEFS/version)
-		ident-pad0			[char!]
-		ident-pad1			[integer!]
-		ident-pad2			[integer!]
-		type				[short]
-		machine				[short]
-		version				[integer!]
-		entry				[integer!]
-		phoff				[integer!]
-		shoff				[integer!]		;-- offset from the beginning of the file to the shdr table
-		flags				[integer!]
-		ehsize				[short]
-		phentsize			[short]
-		phnum				[short]
-		shentsize			[short]			;-- the size in bytes of a shdr table entry (== shdr-size)
-		shnum				[short]			;-- how many entries the shdr table contains
-		shstrndx			[short]			;-- shdr table entry index for the section name string table (shstrtab)
+	elf-header: make struct! [		;; (Elf32_Ehdr)
+		ident-mag0		[char!]		;; 0x7F (EI_MAG0)
+		ident-mag1		[char!]		;; "E" (EI_MAG1)
+		ident-mag2		[char!]		;; "L" (EI_MAG2)
+		ident-mag3		[char!]		;; "F" (EI_MAG3)
+		ident-class		[char!]		;; file class
+		ident-data		[char!]		;; data encoding
+		ident-version	[char!]		;; file version
+		ident-pad0		[char!]
+		ident-pad1		[integer!]
+		ident-pad2		[integer!]
+		type			[short]
+		machine			[short]
+		version			[integer!]
+		entry			[integer!]	;; virtual address of program entry point
+		phoff			[integer!]	;; file offset to phdr table
+		shoff			[integer!]	;; file offset to shdr table
+		flags			[integer!]
+		ehsize			[short]		;; size-of elf-header
+		phentsize		[short]		;; size-of program-header
+		phnum			[short]		;; num of "segments" (entries in phdr tab)
+		shentsize		[short]		;; size-of section-header
+		shnum			[short]		;; num of "sections" (entries in shdr tab)
+		shstrndx		[short]		;; shdr table index of .shstrtab section
 	] none
 
-	program-header: make struct! [			;-- (Elf32_Phdr)
-		type				[integer!]
-		offset				[integer!]
-		vaddr				[integer!]
-		paddr				[integer!]
-		filesz				[integer!]
-		memsz				[integer!]
-		flags				[integer!]
-		align				[integer!]
+	program-header: make struct! [	;; (Elf32_Phdr)
+		type			[integer!]
+		offset			[integer!]
+		vaddr			[integer!]
+		paddr			[integer!]
+		filesz			[integer!]
+		memsz			[integer!]
+		flags			[integer!]
+		align			[integer!]
 	] none
 
-	section-header: make struct! [			;-- (Elf32_Shdr)
-		name				[integer!]		;-- index into the section header string table section
-		type				[integer!]		;-- (see DEFS/section-type)
-		flags				[integer!]
-		addr				[integer!]
-		offset				[integer!]
-		size				[integer!]
-		link				[integer!]
-		info				[integer!]
-		addralign			[integer!]
-		entsize				[integer!]
+	section-header: make struct! [	;; (Elf32_Shdr)
+		name			[integer!]	;; index into .shstrtab
+		type			[integer!]
+		flags			[integer!]
+		addr			[integer!]
+		offset			[integer!]
+		size			[integer!]
+		link			[integer!]
+		info			[integer!]
+		addralign		[integer!]
+		entsize			[integer!]
 	] none
 
-	ehdr-size: length? third elf-header
-	phdr-size: length? third program-header
-	shdr-size: length? third section-header
-
-	pointer: make struct! [
-		value [integer!]							;-- 32/64-bit, watch out for endianess!!
+	elf-dynamic: make struct! [		;; (Elf32_Dyn)
+		tag				[integer!]
+		val				[integer!]
 	] none
 
-	pad4: func [buffer [any-string!]][
-		head insert/dup tail buffer null 3 and negate ((length? buffer) // 4)
-	]
+	elf-symbol: make struct! [		;; (Elf32_Sym)
+		name			[integer!]	;; symbol strtab index (zero: unnamed sym)
+		value			[integer!]	;; absolute value, address, ...
+		size			[integer!]	;; associated symbol size (if any)
+		info			[char!]		;; symbol type and binding attributes
+		other			[char!]		;; symbol visibility
+		shndx			[short]		;; section this symbol is associated with
+	] none
 
-	calculate-offsets: func [job][
-		pad4 job/sections/code/2					;-- make sure code section's end is aligned to 4 bytes
+	elf-relocation: make struct! [	;; (Elf32_Rel)
+		offset			[integer!]
+		info-sym		[char!]
+		info-type		[char!]
+		info-unused		[short]
+	] none
 
-		headers-size: ehdr-size + (2 * phdr-size)  ; @@ FIX_SEGMENTS currently we always use 2 segments
+	machine-word: make struct! [
+		value			[integer!]
+	] none
 
-		code-ptr: base-ptr + headers-size
-		code-size: length? job/sections/code/2
+	;; ------------------------------------------------------------------------
 
-		data-ptr: code-ptr + code-size
-		data-size: 0
-		foreach [name spec] job/sections [
-			if name <> 'code [
-				data-size: data-size + length? spec/2
+	;; The macro structure of our generated ELF binaries.
+	protect structure: [
+		;; Standard metadata:		[type		flags				align]
+		segment "rx"				[load		[r x]				page] [
+			struct "ehdr"
+			segment "phdr"			[phdr	  	[r]					byte]
+			segment "interp"		[interp	  	[r]					byte] [
+				section ".interp"	[progbits 	[alloc]				byte]
+			]
+			section ".hash"			[hash	  	[alloc]				word]
+			section ".dynstr"		[strtab	  	[alloc]				byte]
+			section ".dynsym"		[dynsym	  	[alloc]				word]
+			section ".rel.text"		[rel	  	[alloc]				word]
+			section ".text"			[progbits 	[alloc execinstr]	word]
+		]
+
+		segment "rw"				[load	  	[r w]				page] [
+			section ".data"			[progbits 	[write alloc]		word]
+			section ".data.rel.ro"	[progbits 	[write alloc]		word]
+			segment "dynamic"		[dynamic  	[r w]				word] [
+				section ".dynamic"	[dynamic  	[write alloc]		word]
 			]
 		]
 
-		shdr-offset: headers-size + code-size + data-size
+		section ".shstrtab"			[strtab	  	[]					byte]
+		struct "shdr"
 	]
 
-	resolve-data-refs: func [job /local cbuf dbuf][
-		cbuf: job/sections/code/2
-		dbuf: job/sections/data/2
-		linker/resolve-symbol-refs job cbuf dbuf code-ptr data-ptr pointer
+	;; The main entry point called from the linker.
+	build: func [
+		job [object!]
+		/local
+			segments sections symbols libraries commands layout
+			get-address get-offset get-size get-meta get-data set-data
+	] [
+		probe job
+
+		set [libraries symbols] collect-import-names job
+
+		segments: collect-structure-names structure 'segment
+		sections: collect-structure-names structure 'section
+
+		commands: compose/deep [
+			"rx"			skip (defs/base-address)
+			"rw"			skip (defs/page-size)
+
+			".hash"			meta [link ".dynsym"]
+			".dynsym"		meta [link ".dynstr" info ".interp"]
+			".rel.text"		meta [link ".dynsym" info ".text"]
+			".dynamic"		meta [link ".dynstr"]
+
+			"ehdr"			size elf-header
+			"phdr"			size [program-header	length? segments]
+			".hash"			size [machine-word		2 + 2 + length? symbols]
+			".dynsym"		size [elf-symbol		1 + length? symbols]
+			".rel.text"		size [elf-relocation	length? symbols]
+			".data.rel.ro"	size [machine-word		length? symbols]
+			".dynamic"		size [elf-dynamic		9 + length? libraries]
+			"shdr"			size [section-header	length? sections]
+
+			".interp"		data (to-c-string defs/interpreter)
+			".dynstr"		data (to-elf-strtab join libraries symbols)
+			".text"			data (job/sections/code/2)
+			".data"			data (job/sections/data/2)
+			".shstrtab"		data (to-elf-strtab sections)
+		]
+
+		complete-sizes structure commands
+		layout: layout-binary structure commands
+
+		;; In the following section, we try to minimize the global state passed
+		;; around. Instead of just passing LAYOUT to all build-* functions, we
+		;; try to pass the minimum amount of information necessary. This makes
+		;; the dependencies between those builders more explicit.
+
+		get-address: func [name] [layout/:name/address]
+		get-offset: func [name] [layout/:name/offset]
+		get-size: func [name] [layout/:name/size]
+		get-meta: func [name] [layout/:name/meta]
+		get-data: func [name] [layout/:name/data]
+
+		set-data: func [name data] [layout/:name/data: data]
+
+		set-data "ehdr"
+			build-ehdr
+				get-offset "phdr"
+				get-offset "shdr"
+				get-address ".text"
+				segments
+				sections
+
+		set-data "phdr"
+			build-phdr map-each segment segments [layout/:segment]
+
+		set-data ".hash"
+			build-hash symbols
+
+		set-data ".dynsym"
+			build-dynsym symbols get-data ".dynstr"
+
+		set-data ".rel.text"
+			build-reltext symbols get-address ".data.rel.ro"
+
+		set-data ".data.rel.ro"
+			build-relro symbols
+
+		set-data ".dynamic"
+			build-dynamic
+				get-address ".hash"
+				get-address ".dynstr" get-size ".dynstr"
+				get-address ".dynsym"
+				get-address ".rel.text" get-size ".rel.text"
+				get-data ".dynstr"
+				libraries
+
+		set-data "shdr"
+			build-shdr
+				flatten map-each name sections [reduce [name layout/:name]]
+				commands
+				get-data ".shstrtab"
+
+		;; Resolve data references.
+		linker/resolve-symbol-refs
+			job
+			get-data ".text"
+			get-data ".data"
+			get-address ".text"
+			get-address ".data"
+			make struct! [value [integer!]] none ;; pointer
+
+		;; Resolve import (library function) references.
+		resolve-import-refs
+			job
+			symbols
+			get-data ".text"
+			get-address ".data.rel.ro"
+
+		;; Concatenate the layout data into the output binary.
+		job/buffer: serialize-data map-each [name values] layout [values/data]
 	]
 
-	build-data-header: func [job [object!] /local ph][
-		ph: make struct! program-header none
+	;; -- ELF structure builders --
 
-		ph/type:	defs/segment-type/load
-		ph/offset:	data-ptr - base-ptr
-		ph/vaddr:	data-ptr
-		ph/paddr:	ph/vaddr
-		ph/filesz:	data-size
-		ph/memsz:	ph/filesz						;@@ not sure about the alignment requirement?
-		ph/flags:	defs/segment-access/data
-		ph/align:	page-size
-
-		append job/buffer third ph
-	]
-
-	build-code-header: func [job [object!] /local ph][
-		ph: make struct! program-header none
-
-		ph/type:	defs/segment-type/load
-		ph/offset:	0
-		ph/vaddr:	base-ptr
-		ph/paddr:	ph/vaddr
-		ph/filesz:	code-ptr - base-ptr + code-size
-		ph/memsz:	ph/filesz						;@@ not sure about the alignment requirement?
-		ph/flags:	defs/segment-access/code
-		ph/align:	page-size
-
-		append job/buffer third ph
-	]
-
-	build-elf-header: func [job [object!] /local target-def target-machine target-encoding eh][
-		target-def: find defs/target job/target
-		target-machine: select defs/machine target-def/2
-		target-encoding: select defs/encoding target-def/3
-
+	build-ehdr: func [
+		phdr-offset [integer!]
+		shdr-offset [integer!]
+		text-address [integer!]
+		segment-names [block!]
+		section-names [block!]
+		/local eh
+	] [
 		eh: make struct! elf-header none
 		eh/ident-mag0:		#"^(7F)"
 		eh/ident-mag1:		#"E"
 		eh/ident-mag2:		#"L"
 		eh/ident-mag3:		#"F"
-		eh/ident-class:		to-char defs/class/c-32-bit
-		eh/ident-data:		to-char target-encoding
-		eh/ident-version:	to-char 1					;-- 0: invalid, 1: current
-		eh/type:			defs/file-type/executable	;TBD: switch on job/type
-		eh/machine:			target-machine
-		eh/version:			1							; EV_CURRENT
-		eh/entry:			code-ptr
-		eh/phoff:			ehdr-size
+		eh/ident-class:		to-char defs/elfclass32
+		eh/ident-data:		to-char defs/elfdata2lsb
+		eh/ident-version:	to-char defs/ev-current
+		eh/type:			defs/et-exec
+		eh/machine:			defs/em-386
+		eh/version:			defs/ev-current
+		eh/entry:			text-address
+		eh/phoff:			phdr-offset
 		eh/shoff:			shdr-offset
 		eh/flags:			0
-		eh/ehsize:			ehdr-size
-		eh/phentsize:		phdr-size
-		eh/phnum:			2 ; @@ FIX_SEGMENTS currently we always use 2 segments
-		eh/shentsize:		shdr-size
-		eh/shnum:			4 ; (length? job/sections) / 2
-		eh/shstrndx:		3 ; @@ compute!
-
-		append job/buffer third eh
+		eh/ehsize:			size-of elf-header
+		eh/phentsize:		size-of program-header
+		eh/phnum:			length? segment-names
+		eh/shentsize:		size-of section-header
+		eh/shnum:			1 + length? section-names
+		eh/shstrndx:		index? find section-names ".shstrtab"
+		eh
 	]
 
-	build: func [job [object!]][
+	build-phdr: func [segments [block!] /local ph] [
+		map-each segment segments [
+			ph: make struct! program-header none
+			ph/type:		lookup-def "pt-" segment/meta/type
+			ph/offset:		segment/offset
+			ph/vaddr:		segment/address
+			ph/paddr:		segment/address
+			ph/filesz:		segment/size
+			ph/memsz:		segment/size
+			ph/flags:		lookup-flags "pf-" segment/meta/flags
+			ph/align:		lookup-align segment/meta/align
+			ph
+		]
+	]
 
-		remove/part find job/sections 'import 2		;@@ (to be removed once 'import supported)
+	build-hash: func [symbols [block!] /local nsymbols] [
+		;; @@ Document lookup algorithm?
+		nsymbols: length? symbols
+		map-each value collect [
+			;; nbucket
+			keep 1
+			;; nchain
+			keep nsymbols + 1
+			;; bucket[0] = 1 if nsymbols>0 else 0
+			keep min nsymbols 1
+			;; chain[0] = undef
+			keep defs/stn-undef
+			;; chain[i:1..nsymbols-1] = i+1
+			for i 2 nsymbols 1 [
+				keep i
+			]
+			;; chain[nsymbols] = undef if nsymbols>0 (else omit)
+			if nsymbols > 0 [
+				keep defs/stn-undef
+			]
+		] [
+			make struct! machine-word reduce [value]
+		]
+	]
 
-		generate-shstrtab job
+	build-dynsym: func [symbols [block!] dynstr [binary!] /local result entry] [
+		result: copy []
 
-		calculate-offsets job						;-- calculate section offsets/vaddrs
-		;print code-size
+		;; Symbol #0: undefined symbol
+		append result make struct! elf-symbol none
 
-		resolve-data-refs job						;-- resolve data references
-
-		build-elf-header job						;-- emit elf headers
-		build-code-header job
-		build-data-header job
-
-		foreach [name spec] job/sections [			;-- emit all section contents
-			append job/buffer spec/2
+		foreach symbol symbols [
+			entry: make struct! elf-symbol none
+			entry/name: strtab-index-of dynstr symbol
+			entry/value: 0 ;; Unknown, for imported symbols.
+			entry/info: to-elf-symbol-info defs/stb-global defs/stt-func
+			entry/other: to-char defs/stv-default
+			entry/shndx: defs/shn-undef
+			append result entry
 		]
 
-		build-section-headers job
+		result
 	]
 
-	generate-shstrtab: func [job [object!] /local data][
-		; The "shstrtab" is a section holding section names in an ELF string
-		; table. String tables start with a null character and then hold
-		; null-terminated character sequences.
-		data: copy #{00}
-		foreach name extract defs/sections-table 3 [
-			repend data [name #{00}]
+	build-reltext: func [
+		symbols [block!] relro-address [integer!] /local result entry
+	] [
+		result: copy []
+		repeat i length? symbols [ ;; 1..n, 0 is undef
+			entry: make struct! elf-relocation none
+			entry/offset: rel-address-of/index relro-address (i - 1)
+			entry/info-sym: to-char defs/r-386-32
+			entry/info-type: to-char i
+			append result entry
 		]
-		append job/sections compose/deep [shstrtab [- (data)]]
+		result
 	]
 
-	build-section-headers: func [job [object!] /local sh shstrtab-section-size data-section-size][
-		data-section-size: length? job/sections/data/2
-		shstrtab-section-size: length? job/sections/shstrtab/2
-		; @@ assumes:
-		; - DATA segment is right before shdr table, and
-		; - shstrtab section is last in DATA segment
-		shstrtab-section-offset: shdr-offset - shstrtab-section-size
-
-		sh: make struct! section-header none		;-- NULL section (mandatory)
-		sh/type: defs/section-type/null
-		append job/buffer third sh
-
-		sh: make struct! section-header none		;-- .text
-		sh/name:		1 ; @@ offset into shrstab (compute from sections-table)
-		sh/type:		defs/section-type/prog-bits ; @@ lookup in sections-table
-		sh/flags:		6 ; @@ lookup in sections-table
-		sh/addr:		code-ptr
-		sh/offset:		code-ptr - base-ptr
-		sh/size:		code-size
-		sh/link:		0 ; not used for SHT_PROGBITS
-		sh/info:		0 ; not used for SHT_PROGBITS
-		sh/addralign:	4
-		sh/entsize:		0 ; not used for .text
-		append job/buffer third sh
-
-		sh: make struct! section-header none		;-- .data
-		sh/name:		7 ; @@ offset into shrstab (compute from sections-table)
-		sh/type:		defs/section-type/prog-bits ; @@ lookup in sections-table
-		sh/flags:		3 ; @@ lookup in sections-table
-		sh/addr:		data-ptr
-		sh/offset:		data-ptr - base-ptr
-		sh/size:		data-size
-		sh/link:		0 ; not used for SHT_PROGBITS
-		sh/info:		0 ; not used for SHT_PROGBITS
-		sh/addralign:	4
-		sh/entsize:		0 ; not used for .data
-		append job/buffer third sh
-
-		sh: make struct! section-header none		;-- .shstrtab
-		sh/name:		13 ; @@ offset into shrstab (compute from sections-table)
-		sh/type:		defs/section-type/str-tab ; @@ lookup in sections-table
-		sh/flags:		0 ; @@ lookup in sections-table
-		sh/addr:		0 ; won't appear in the memory image
-		sh/offset:		shstrtab-section-offset
-		sh/size:		shstrtab-section-size
-		sh/link:		0 ; not used for SHT_STRTAB
-		sh/info:		0 ; not used for SHT_STRTAB
-		sh/addralign:	1 ; no alignment constraints
-		sh/entsize:		0 ; not used for .shstrtab
-		append job/buffer third sh
+	build-relro: func [symbols [block!]] [
+		;; @@ Use NOBITS section (filesize 0, memsize n) instead?
+		array/initial length? symbols make struct! machine-word none
 	]
+
+	build-dynamic: func [
+		hash-address [integer!]
+		dynstr-address [integer!]
+		dynstr-size [integer!]
+		dynsym-address [integer!]
+		reltext-address [integer!]
+		reltext-size [integer!]
+		dynstr [binary!]
+		libraries [block!]
+		/local entries
+	] [
+		entries: copy []
+
+		;; One DT_NEEDED for each dynamic library:
+		foreach library libraries [
+			repend entries ['needed strtab-index-of dynstr library]
+		]
+		;; Static _DYNAMIC entries:
+		append entries reduce [
+			'hash	hash-address
+			'strtab	dynstr-address
+			'symtab	dynsym-address
+			'strsz	dynstr-size
+			'syment	size-of elf-symbol
+			'rel	reltext-address
+			'relsz	reltext-size
+			'relent	size-of elf-relocation
+			'null	0
+		]
+
+		map-each [tag value] entries [
+			make struct! elf-dynamic reduce [lookup-def "dt-" tag value]
+		]
+	]
+
+	build-shdr: func [
+		sections [block!] commands [block!] shstrtab [binary!]
+		/local names sh name section
+	] [
+		names: extract sections 2
+		join reduce [
+			make struct! section-header none
+		] map-each [name section] sections [
+			sh: make struct! section-header none
+			sh/name:		strtab-index-of shstrtab name
+			sh/type:		lookup-def "sht-" section/meta/type
+			sh/flags:		lookup-flags "shf-" section/meta/flags
+			sh/addr:		section/address
+			sh/offset:		section/offset
+			sh/size:		section/size
+			sh/link:		section-index-of names select section/meta 'link
+			sh/info:		section-index-of names select section/meta 'info
+			sh/addralign:	lookup-align section/meta/align
+			sh/entsize:		find-entry-size commands name
+			sh
+		]
+	]
+
+	;; -- Job helpers --
+
+	collect-import-names: func [job [object!] /local libraries symbols] [
+		libraries: copy []
+		symbols: copy []
+		foreach [libname libuses] skip job/sections/import 2 [
+			append libraries libname
+			foreach [symbol callsites] libuses [
+				append symbols symbol
+			]
+		]
+		reduce [libraries symbols]
+	]
+
+	resolve-import-refs: func [
+		job [object!] symbols [block!] code [binary!] relro-address [integer!]
+		/local rel
+	] [
+		rel: make struct! machine-word none
+		foreach [libname libimports] skip job/sections/import 2 [
+			foreach [symbol callsites] libimports [
+				rel/value: rel-address-of/symbol relro-address symbols symbol
+				foreach callsite callsites [
+					change/part at code callsite serialize-data rel size-of rel
+				]
+			]
+		]
+	]
+
+	;; -- File structure/file commands helpers --
+
+	collect-structure-names: func [
+		structure [block!] filter [word! block!] /local result type name
+	] [
+		result: copy []
+		parse structure elements-rule: [
+			any [
+				set type word!
+				set name string!
+				opt [block!] ;; meta
+				(if filter = type [append result name])
+				opt [into [elements-rule]]
+			]
+		]
+		result
+	]
+
+	find-skip: func [commands [block!] name [string!]] [
+		any [select commands reduce [name 'skip] 0]
+	]
+
+	find-size: func [commands [block!] name [string!] /local data spec] [
+		if data: select commands reduce [name 'data] [
+			return size-of data
+		]
+
+		if spec: select commands reduce [name 'size] [
+			;; size spec variant 1: `value`
+			if integer? spec [return spec]
+
+			;; size spec variant 2: `word` (bound)
+			if word? spec [return size-of get spec]
+
+			;; size spec variant 3: `[element num-elements]` (bound, unreduced)
+			set [element num-elements] reduce spec
+			return num-elements * size-of element
+		]
+
+		make error! reform ["Unknown node size:" name]
+	]
+
+	find-entry-size: func [commands [block!] name [string!] /local spec] [
+		;; Items with a `[element num-elements]` size command have an entry
+		;; size, everything else does not.
+		either block? spec: select commands reduce [name 'size] [
+			size-of first reduce spec
+		] [
+			0
+		]
+	]
+
+	merge-meta: func [
+		commands [block!] name [string!] meta [block!] /local result
+	] [
+		append
+			reduce ['type meta/1 'flags meta/2 'align meta/3]
+			any [select commands reduce [name 'meta] []]
+	]
+
+	complete-sizes: func [
+		structure [block!] commands [block!] /local total size name children
+	] [
+		;; This could be inlined into LAYOUT-BINARY, but having it explicit as
+		;; a second pass makes makes things more clear.
+		total: 0
+		parse structure [
+			any [
+				word! ;; type
+				set name string!
+				opt [block!] ;; meta
+				[
+					set children block!
+					(
+						total: total + size: complete-sizes children commands
+						repend commands [name 'size size]
+					)
+				|
+					(
+						total: total + find-size commands name
+					)
+				]
+			]
+		]
+		total
+	]
+
+	layout-binary: func [
+		{Given a file structure and file layout commands, generate a full file
+		"layout". A file layout collects the type, offset, address, size,
+		metadata and data for each element in the file's structure.}
+		structure [block!] commands [block!]
+		/local layout emit offset address elements-rule name type meta size
+	] [
+		layout: copy []
+
+		emit: func [n t o a m /local s d] [
+			s: find-size commands n
+			m: merge-meta commands n m
+			d: select commands reduce [name 'data]
+			repend layout [
+				n reduce ['type t 'offset o 'address a 'size s 'meta m 'data d]
+			]
+		]
+
+		offset: 0
+		address: 0
+
+		parse structure elements-rule: [
+			any [
+				(meta: copy [])
+				set type word!
+				set name string!
+				opt [set meta block!]
+				(address: address + find-skip commands name)
+				[
+					into [
+						(emit name type offset address meta)
+						elements-rule
+					]
+				|
+					(
+						emit name type offset address meta
+						size: find-size commands name
+						address: address + size
+						offset: offset + size
+					)
+				]
+			]
+		]
+
+		layout
+	]
+
+	;; -- Definitions lookup --
+
+	lookup-def: func [prefix [string! word!] suffix [string! word!]] [
+		defs/(to-word join prefix suffix)
+	]
+
+	lookup-flags: func [prefix [string! word!] flags [block!] /local value] [
+		value: 0
+		foreach flag flags [
+			value: value or lookup-def prefix flag
+		]
+		value
+	]
+
+	lookup-align: func [align [word!] /local alignments] [
+		select reduce [
+			'byte 1
+			'word size-of machine-word
+			'page defs/page-size
+		] align
+	]
+
+	;; -- Helpers for creating/using ELF structures --
+
+	strtab-index-of: func [strtab [binary!] string [string!]] [
+		-1 + index? find strtab to-c-string string
+	]
+
+	section-index-of: func [sections [block!] section [string! none!]] [
+		either none? section [0] [index? find sections section]
+	]
+
+	rel-address-of: func [
+		base [integer!]
+		/symbol syms [block!] sym [string!]
+		/index ind [integer!]
+	] [
+		base + ((size-of machine-word) * any [ind (-1 + index? find syms sym)])
+	]
+
+	to-c-string: func [data [string! binary!]] [join to-binary data #{00}]
+
+	to-elf-strtab: func [items [block!]] [
+		join #{00} map-each item items [to-c-string item]
+	]
+
+	to-elf-symbol-info: func [binding [integer!] type [integer!]] [
+		to-char (shift/left binding 4) + (type and 15)
+	]
+
+	;; -- Helpers for working with various binary data intermediaries --
+
+	serialize-data: func [data [block! struct! binary! none!]] [
+		case [
+			block? data		[rejoin map-each item data [serialize-data item]]
+			struct? data	[third data]
+			binary? data	[data]
+			none? data		[#{}]
+		]
+	]
+
+	size-of: func [data [block! struct! binary! none!]] [
+		length? serialize-data data
+	]
+
+	;; -- Misc helpers --
+
+	flatten: func [items] [collect [foreach item items [keep item]]]
 ]
