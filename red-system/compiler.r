@@ -24,6 +24,7 @@ system-dialect: context [
 		
 		hex-chars: charset "0123456789ABCDEF"
 		ws: charset " ^/^M^-"
+		hex-prefix: union ws charset "[]()"
 		
 		init: does [
 			include-dirs: copy [%runtime/]
@@ -63,7 +64,7 @@ system-dialect: context [
 			parse/all/case src [						;-- not-LOAD-able syntax support
 				any [
 					(c: 0)
-					s: copy value some [hex-chars (c: c + 1)] #"h" e: (		;-- literal hexadecimal support				
+					hex-prefix s: copy value some [hex-chars (c: c + 1)] #"h" e: (	;-- literal hexadecimal support				
 						either find [2 4 8] c [
 							e: change/part s to integer! to issue! value e
 						][
