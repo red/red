@@ -360,9 +360,12 @@ system-dialect: context [
 			]
 			either tail? skip path 2 [
 				switch/default type/1 [
-					c-string! ['byte!]
+					c-string! [
+						check-path-index path 'string
+						'byte!
+					]
 					pointer!  [
-						check-pointer-path path
+						check-path-index path 'pointer
 						type/2/1						;-- return pointed value type
 					]
 					struct!   [
@@ -576,15 +579,30 @@ system-dialect: context [
 			]
 		]
 		
-		check-pointer-path: func [path [path! set-path!] /local ending][
+		check-path-index: func [path [path! set-path!] type [word!] /local ending][
 			ending: path/2
-			unless any [
-				integer? ending
-				all [word? ending get-variable-spec ending]
-				ending = 'value
-			][
-				backtrack path
-				throw-error "invalid pointer path ending"
+			case [
+				all [type = 'pointer ending = 'value][]	;-- pass thru case
+				word? ending [
+					unless get-variable-spec ending [
+						backtrack path
+						throw-error ["undefined" type "index variable"]
+					]
+					if 'integer! <> first resolve-type ending [
+						backtrack path
+						throw-error [
+							"attempt to use" type
+							"indexing with a non-integer! variable"
+						]
+					]
+				]
+				not integer? ending [
+					backtrack path
+					throw-error [
+						"attempt to use" type
+						"indexing with a non-integer! value"
+					]
+				]
 			]
 		]
 		
