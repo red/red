@@ -194,7 +194,7 @@ system-dialect: context [
 		
 		struct-syntax: [
 			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
-			pos: any [word! into type-spec]							;-- struct's members
+			pos: some [word! into type-spec]						;-- struct's members
 		]
 		
 		pointer-syntax: ['integer!]
