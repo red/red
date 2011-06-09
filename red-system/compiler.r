@@ -1094,6 +1094,13 @@ system-dialect: context [
 			]
 		]
 		
+		comp-path: has [path][
+			path: pc/1
+			comp-word/path path/1
+			last-type: resolve-path-type path
+			path
+		]
+		
 		comp-get-word: has [spec][
 			unless spec: select functions to word! pc/1 [
 				throw-error ["function" to word! pc/1 "not defined"] 
@@ -1104,8 +1111,8 @@ system-dialect: context [
 			also pc/1 pc: next pc
 		]
 	
-		comp-word: has [entry args n name expr][
-			name: pc/1
+		comp-word: func [/path symbol [word!] /local entry args n name expr][
+			name: any [symbol pc/1]
 			case [
 				entry: select keywords name [do entry]	;-- it's a reserved word
 				
@@ -1119,8 +1126,10 @@ system-dialect: context [
 					last-type: resolve-type name				
 					also name pc: next pc
 				]
-				
-				entry: find functions name [
+				all [
+					not path
+					entry: find functions name 
+				][
 					pc: next pc							;-- it's a function		
 					args: make block! n: entry/2/1
 					loop n [append/only args fetch-expression]	;-- fetch n arguments
@@ -1189,7 +1198,6 @@ system-dialect: context [
 				set-path! [								;-- path assignment --
 					do prepare-value
 					resolve-path-type tree/1			;-- check path validity
-					;TBD: raise error if ANY/ALL passed as argument				
 					emitter/access-path tree/1 value
 				]
 				object! [								;-- special actions @@
@@ -1263,7 +1271,7 @@ system-dialect: context [
 				set-word!	[comp-assignment]
 				word!		[comp-word]
 				get-word!	[comp-get-word]
-				path! 		[do pass]
+				path! 		[comp-path]
 				set-path!	[comp-assignment]
 				paren!		[comp-block]
 				char!		[do pass]
