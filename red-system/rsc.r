@@ -48,7 +48,24 @@ print [
 	"Compiling" file "..."
 ]
 
-result: system-dialect/compile/options file opts
+if error? set/any 'err try [
+	result: system-dialect/compile/options file opts
+][
+	err: disarm err
+	foreach w [arg1 arg2 arg3][
+		set w either unset? get/any in err w [none][
+			get/any in err w
+		]
+	]
+	print [
+		"*** Compiler Internal Error:" 
+		system/error/(err/type)/type #":"
+		reduce system/error/(err/type)/(err/id) newline
+		"*** Where:" mold/flat err/where newline
+		"*** Near: " mold/flat err/near newline
+	]
+	halt
+]
 
 print ["^/...compilation time:" tab round result/1/second * 1000 "ms"]
 if result/2 [

@@ -26,6 +26,10 @@ system-dialect: context [
 		ws: charset " ^/^M^-"
 		hex-delim: union ws charset "[]()"
 		
+		throw-error: func [msg [string! block!]][
+			compiler/throw-error/loader msg
+		]
+		
 		init: does [
 			include-dirs: copy [%runtime/]
 			clear include-list
@@ -49,12 +53,12 @@ system-dialect: context [
 					if exists? dir/:file [return dir/:file]
 				]
 			]
-			make error! reform ["Include File Access Error:" file]
+			throw-error ["include file access error:" mold file]
 		]
 		
 		check-marker: func [src [string!] /local pos][
 			unless parse/all src [any ws "Red/System" any ws #"[" to end][
-				make error! "not a Red/System source program"
+				throw-error "not a Red/System source program"
 			]
 		]
 		
@@ -70,7 +74,7 @@ system-dialect: context [
 						either find [2 4 8] c [
 							e: change/part s to integer! to issue! value e
 						][
-							make error! reform ["Invalid hex literal:" copy/part s 40]
+							throw-error ["invalid hex literal:" copy/part s 40]
 						]
 					) :e
 					| skip
@@ -120,7 +124,7 @@ system-dialect: context [
 					append include-dirs path			;-- register source's dir as include dir
 				]
 				if error? set/any 'err try [src: as-string read/binary input][	;-- read source file
-					print ["File Access Error:" mold disarm err]
+					throw-error ["file access error:" mold disarm err]
 				]
 			]
 			either file? input [
@@ -132,7 +136,7 @@ system-dialect: context [
 			if file? input [check-marker src]			;-- look for "Red/System" head marker
 			
 			if error? set/any 'err try [src: load src][	;-- convert source to blocks
-				print ["Syntax Error at LOAD phase:" mold disarm err]
+				throw-error ["syntax error during LOAD phase:" mold disarm err]
 			]
 			
 			unless short [expand-block src]				;-- process block-level compiler directives		
@@ -237,9 +241,9 @@ system-dialect: context [
 			pointer 	 [comp-pointer]
 		]
 		
-		throw-error: func [err [word! string! block!]][
+		throw-error: func [err [word! string! block!] /loader][
 			print [
-				"*** Compilation Error:"
+				"***" pick ["Loading" "Compilation"] to logic! loader "Error:"
 				either word? err [
 					join uppercase/part mold err 1 " error"
 				][reform err]
@@ -392,13 +396,15 @@ system-dialect: context [
 		get-mapped-type: func [value][
 			case [
 				value = <last>  [last-type]
-				tag?    value	['logic!]
-				logic?  value	['logic!]
-				word?   value 	[resolve-type value]
-				char?   value	['byte!]
-				string? value	['c-string!]
-				path?   value	[resolve-path-type value]
-				block?  value	[
+				none?	 value	[none!]					;-- no type case (func with no return value)
+				tag?     value	['logic!]
+				logic?   value	['logic!]
+				word?    value 	[resolve-type value]
+				char?    value	['byte!]
+				integer? value	['integer!]
+				string?  value	['c-string!]
+				path?    value	[resolve-path-type value]
+				block?   value	[
 					either object? value/1 [
 						;get-mapped-type value/2		;@@
 						value/1/type
@@ -414,7 +420,9 @@ system-dialect: context [
 					]
 				]
 				get-word? value [resolve-type to word! value]
-				'else 			[type?/word value]		;@@ should throw an error?
+				'else 			[
+					make error! reform ["not accepted datatype:" type? value]
+				]
 			]	
 		]
 		
@@ -619,7 +627,9 @@ system-dialect: context [
 		]
 		
 		check-specs: func [name specs /extend /local type type-def spec-type attribs value][		
-			unless block? specs [throw-error 'syntax]
+			unless block? specs [
+				throw-error "function definition requires a specification block"
+			]
 			attribs: ['infix | 'callback]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
@@ -726,8 +736,8 @@ system-dialect: context [
 		
 		check-body: func [body][
 			case/all [
-				not block? :body [throw-error 'syntax 'block-expected]
-				empty? body  	 [throw-error 'syntax 'empty-block]
+				not block? :body [throw-error "expected a block of code"]
+				empty? body  	 [throw-error "expected a non-empty block of code"]
 			]
 		]
 		
