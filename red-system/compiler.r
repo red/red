@@ -24,7 +24,7 @@ system-dialect: context [
 		
 		hex-chars: charset "0123456789ABCDEF"
 		ws: charset " ^/^M^-"
-		hex-prefix: union ws charset "[]()"
+		hex-delim: union ws charset "[]()"
 		
 		init: does [
 			include-dirs: copy [%runtime/]
@@ -64,7 +64,9 @@ system-dialect: context [
 			parse/all/case src [						;-- not-LOAD-able syntax support
 				any [
 					(c: 0)
-					hex-prefix s: copy value some [hex-chars (c: c + 1)] #"h" e: (	;-- literal hexadecimal support				
+					hex-delim
+					s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
+					hex-delim e: (			
 						either find [2 4 8] c [
 							e: change/part s to integer! to issue! value e
 						][
@@ -422,6 +424,8 @@ system-dialect: context [
 				integer! ['integer!]
 				logic!   ['logic!]
 				word!	 [resolve-type arg]
+				tag!	 [last-type]
+				path!	 [resolve-path-type arg]
 				block!	 [
 					case [
 						object? arg/1 [arg/1/type]
@@ -435,8 +439,6 @@ system-dialect: context [
 						'else [get-return-type arg/1]
 					]
 				]
-				tag!	 [last-type]
-				path!	 [resolve-path-type arg]
 			][
 				throw-error ["Undefined type for:" mold arg]
 			]
@@ -491,8 +493,7 @@ system-dialect: context [
 					"type casting from" type/1
 					"to" ctype/1 "is not allowed"
 				]
-			]
-			
+			]	
 			unless literal? value [return value]	;-- shield the following literal conversions
 			
 			switch ctype/1 [
