@@ -281,7 +281,7 @@ system-dialect: context [
 		blockify: func [value][either block? value [value][reduce [value]]]
 
 		literal?: func [value][
-			not any [word? value path? value value = <last>]
+			not any [word? value path? value block? value value = <last>]
 		]
 		
 		not-initialized?: func [name [word!] /local pos][
@@ -1182,8 +1182,11 @@ system-dialect: context [
 					tree/2: cast casted tree/2/2		;-- remove encoding object
 				]
 				value: either block? tree/2 [			;-- detect a sub-expression
-					get-return-type tree/2/1			;-- check that function is returning a value
-					comp-expression/keep tree/2			;-- function call case
+					type: get-return-type tree/2/1		;-- check that function is returning a value
+					comp-expression/keep tree/2 		;-- function call case
+					if casted [
+						emitter/target/emit-casting reduce [casted/1 type/1] no 
+					]
 					<last>
 				][
 					tree/2
