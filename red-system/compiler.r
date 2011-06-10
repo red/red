@@ -877,7 +877,7 @@ system-dialect: context [
 		comp-reference-literal: has [value][
 			value: to paren! reduce [pc/1 pc/2]
 			unless find [set-word! set-path!] type?/word pc/-1 [
-				throw-error "assignment expected for struct value"
+				throw-error ["assignment expected for" pc/1 "value"]
 			]
 			pc: skip pc 2
 			value
