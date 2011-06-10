@@ -408,8 +408,12 @@ emitter: context [
 			if path? args/2 [access-path args/2 none]
 		]
 		res: target/emit-call name args to logic! sub
-		target/left-cast: target/right-cast: none			;-- reset op's arguments type casting 
-		compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
+		target/left-cast: target/right-cast: none			;-- reset op's arguments type casting
+		either res [
+			compiler/last-type: res
+		][
+			compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
+		]
 		res
 	]
 	

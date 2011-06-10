@@ -52,6 +52,13 @@ not-nfoo: func [a [logic!] return: [logic!]][not a]
 
   --test-- "not-17" --assert false = not-nfoo true
   --test-- "not-18" --assert not-nfoo false
+  
+  --test-- "not-19" --assert -1 = (not 4 and 3)
+  --test-- "not-20" --assert -5 = not 4
+  --test-- "not-21" --assert 3 = (-5 and 3)
+  --test-- "not-22" --assert 3 = (3 and -5)
+  --test-- "not-23" --assert 3 = (3 and not 4)
+  --test-- "not-24" --assert 0 = (4 and 3)
 
 ~~~end-file~~~
 
