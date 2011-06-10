@@ -934,24 +934,11 @@ system-dialect: context [
 			none
 		]
 		
-		comp-size?: has [type value][
+		comp-size?: has [type expr][
 			pc: next pc
-			value: pc/1
-			if any [find [true false] value][
-				value: do value
-			]
-			type: switch/default type?/word value [
-				word!	  [resolve-type value]
-				path!	  [resolve-path-type value]
-				set-path! [resolve-path-type value]
-			][
-				get-mapped-type value
-			]
-			unless block? type [type: reduce [type]]
-			
-			emitter/get-size type value
+			expr: fetch-expression/final
+			emitter/get-size resolve-expr-type expr expr
 			last-type: get-return-type 'size?
-			pc: next pc
 			<last>
 		]
 		
