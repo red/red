@@ -1495,18 +1495,21 @@ system-dialect: context [
 	]
 	
 	options-class: context [
-		link?: 		no					;-- yes = invoke the linker and finalize the job
-		build-dir:	%builds/			;-- where to place compile/link results
-		format:		select [			;-- file format
+		config-name:  none				;-- Preconfigured compilation target ID
+		link?: 		  no				;-- yes = invoke the linker and finalize the job
+		build-dir:	  %builds/			;-- where to place compile/link results
+		format:		  select [			;-- file format
 						3	'PE				;-- Windows
 						4	'ELF			;-- Linux
 						5	'Mach-o			;-- Mac OS X
-					] system/version/4
-		type:		'exe				;-- file type ('exe | 'dll | 'lib | 'obj)
-		target:		'IA32				;-- CPU target
-		verbosity:	0					;-- logs verbosity level
-		sub-system:	'console			;-- 'GUI | 'console
-		with-runtime:	true			;-- include Red/System runtime
+					  ] system/version/4
+		type:		  'exe				;-- file type ('exe | 'dll | 'lib | 'obj)
+		target:		  'IA32				;-- CPU target
+		verbosity:	  0					;-- logs verbosity level
+		sub-system:	  'console			;-- 'GUI | 'console
+		with-runtime: true				;-- include Red/System runtime
+		PIC?:		  no				;-- compile using Position Independent Code
+		base-address: none				;-- base image memory address 
 	]
 	
 	compile: func [

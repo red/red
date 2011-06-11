@@ -18,12 +18,28 @@ unless exists? %builds/ [make-dir %builds/]
 verbosity: 0
 opts: make system-dialect/options-class [link?: yes]
 
+;-- Load preconfigured compilation targets --
+targets: load %config.r
+if exists? %custom-targets.r [
+	append targets load %custom-targets.r
+]
+
 unless parse system/script/args [
 	any [
 		#"-" [
 			some [#"v" (verbosity: verbosity + 1)] (opts/verbosity: verbosity)
-			| #"f" copy fmt to #" " (opts/format: to-word trim fmt)
-			| "-" [
+			| #"t" copy v to #" " (
+				value: attempt [to word! trim v]
+				either find targets value [
+					opts: make opts targets/:value
+					opts/config-name: value
+				][
+					print ["*** Command-line Error: unknown target" v]
+					halt
+				]
+			)
+			| #"f" copy fmt to #" " (opts/format: to-word trim fmt)		; to be removed
+			| "-" [														; to be removed
 				"no-runtime" (opts/with-runtime: false)
 			]
 		]
