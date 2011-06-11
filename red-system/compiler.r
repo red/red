@@ -859,7 +859,28 @@ system-dialect: context [
 			]
 		]
 		
-		process-if: has [save-pc][
+		process-switch: has [body][
+			all [
+				not any [word? pc/2 lit-word? pc/2]
+				not in job pc/2
+				throw-error "invalid #switch option"
+			]
+			all [
+				not block? pc/3
+				throw-error "missing block after #switch option"
+			]
+			either body: any [
+				select pc/3 get in job pc/2
+				select pc/3 #default
+			][
+				fetch-into body [comp-dialect]
+				pc: skip pc 2							; @@ to be improved
+			][
+				pc: skip pc 3
+			]
+		]
+		
+		process-if: does [
 			all [
 				not any [word? pc/2 lit-word? pc/2]
 				not in job pc/2
@@ -870,13 +891,12 @@ system-dialect: context [
 				not block? pc/5
 				throw-error "missing code block after #if condition"
 			]
-			if do probe bind reduce [pc/2 '= pc/4] job [
-				save-pc: pc
-				pc: pc/5
-				comp-dialect
-				pc: save-pc
+			either do bind reduce [pc/2 '= pc/4] job [
+				fetch-into pc/5 [comp-dialect]
+				pc: skip pc 4							; @@ to be improved
+			][
+				pc: skip pc 5
 			]
-			pc: skip pc 5
 		]
 				
 		comp-directive: does [
