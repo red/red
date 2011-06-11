@@ -19,11 +19,11 @@ context [
 			dll %.so
 		]
 
-		;base-address	(to-integer #{08048000})
-		base-address	(to-integer #{80000000})
-		page-size		4096		;; system page size
+		;; Target-specific Defaults (job-overridable)
 
-		interpreter		"/lib/ld-linux.so.2"
+		base-address	(to-integer #{08048000})
+		page-size		4096
+		dynamic-linker	"/lib/ld-linux.so.2"
 
 		;; ELF Constants
 
@@ -39,7 +39,7 @@ context [
 
 		pt-load			1			;; loadable segment
 		pt-dynamic		2			;; dynamic linking information
-		pt-interp		3			;; interpreter path name
+		pt-interp		3			;; dynamic linker ("interpreter") path name
 		pt-phdr			6			;; program header table
 
 		pf-x			1			;; executable segment
@@ -199,8 +199,6 @@ context [
 			segments sections symbols libraries commands layout
 			get-address get-offset get-size get-meta get-data set-data
 	] [
-		probe job
-
 		set [libraries symbols] collect-import-names job
 
 		segments: collect-structure-names structure 'segment
@@ -224,7 +222,7 @@ context [
 			".dynamic"		size [elf-dynamic		9 + length? libraries]
 			"shdr"			size [section-header	length? sections]
 
-			".interp"		data (to-c-string defs/interpreter)
+			".interp"		data (to-c-string defs/dynamic-linker)
 			".dynstr"		data (to-elf-strtab join libraries symbols)
 			".text"			data (job/sections/code/2)
 			".data"			data (job/sections/data/2)
@@ -292,7 +290,7 @@ context [
 			get-data ".data"
 			get-address ".text"
 			get-address ".data"
-			make struct! [value [integer!]] none ;; pointer
+			machine-word
 
 		;; Resolve import (library function) references.
 		resolve-import-refs
@@ -652,7 +650,7 @@ context [
 		value
 	]
 
-	lookup-align: func [align [word!] /local alignments] [
+	lookup-align: func [align [word!]] [
 		select reduce [
 			'byte 1
 			'word size-of machine-word
