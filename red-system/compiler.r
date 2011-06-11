@@ -102,9 +102,9 @@ system-dialect: context [
 						][
 							if verbose > 0 [print ["...including file:" mold name]]
 							value: skip process/short name 2			;-- skip Red/System header						
-							e: skip change/part s value e 2
-							insert s reduce [#script name]				;-- mark code origin
+							e: change/part s value e
 							insert e reduce [#script compiler/script]	;-- put back the parent origin
+							insert s reduce [#script name]				;-- mark code origin
 						]
 					) :s
 					| into blk
