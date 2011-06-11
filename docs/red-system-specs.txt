@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 07/06/2011
-	Revision: 13
+	Date: 11/06/2011
+	Revision: 14
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1250,6 +1250,69 @@ Rewriting the example from <i>#include</i> section:
 	 test-primary color G_PART "no Green found"
 	 test-primary color B_PART "no Blue found"
 
+---#if
+
+The <b>#if</b> compiler directive goal is to allow conditional compilation based on a simple test expression limited to a few compilation options.
+
+<b>Syntax</b>
+
+ #if <option> = <value> [
+ 	<body>
+ ]
+
+ <option> : compiler option name (case-insensitive)
+ <value>  : any value accepted by the property
+ <body>   : Red/System source code
+
+Valid option names and allowed values are listed in %config.r file, in a comment section. For words value, both word! and lit-word! syntaxes will be accepted.
+
+<b>Example</b>
+ 
+  #if OS = Windows [
+      print "Running on Windows"
+  ]
+ 
+---#switch
+
+The <b>#switch</b> compiler directive allows to define several conditionally compiled block of codes, depending on the value of a compilation option. The block following the option name is searched for a matching value and the following block of code is compiled.
+
+<b>Syntax</b>
+
+ #switch <option> [
+ 	<value-1> [
+		<body-1>
+	 ]
+	<value-2> [
+		<body-2>
+	]
+	...
+	#default [						;-- optional default clause
+		<body-N>
+	]
+ ]
+
+ <option>  : compiler option name (case-insensitive)
+ <value-*> : any value accepted by the property
+ <body-*>  : Red/System source code
+
+Valid option names and allowed values are listed in %config.r file, in a comment section. For words value, both word! and lit-word! syntaxes will be accepted.
+
+<u>Note</u>: the #default clause is optional. If present, it acts as a default catch-all value if none other is matched.
+
+<b>Example</b>
+ 
+  #switch type [
+      exe [print "Building an executable"]
+      dll [print "Building a dynamically linked library"]
+      obj [print "Building an object file"]
+      lib [print "Building a statically linked library"]
+  ]
+ 
+	 
+---#option
+
+<i>TBD</i>
+
 ===Source code organization
 
 ---Source files suffix
@@ -1370,7 +1433,7 @@ It will be possible to export some Red/System functions to be callable from the 
 
 ---Reserved keywords
 
-The list of following symbols and keywords are reserved, they cannot be used as variable name:
+The list of following symbols and keywords are reserved, they cannot be used as variable or function name:
 
     & 			* 			+
     - 			/ 			//
@@ -1381,9 +1444,8 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     exit 		false 		func
     function 	if 			not
     or 			pointer 	return
-    size? 		size? 		struct
-    true 		until		while
-    xor
+    size? 		struct    	true
+    until		while	    xor
 
 ---Infix operators
 
@@ -1750,6 +1812,12 @@ will output:
 *Support multiple nested type castings.
 
 ===Document History
+
+
+*<b>11/06/2011 - draft 14</b>
+
+*>Added #if and #switch directives description
+
 
 *<b>07/06/2011 - draft 13</b>
 
