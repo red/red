@@ -858,6 +858,26 @@ system-dialect: context [
 				throw-error ["invalid syscall specification at:" pos]
 			]
 		]
+		
+		process-if: has [save-pc][
+			all [
+				not any [word? pc/2 lit-word? pc/2]
+				not in job pc/2
+				pc/3 <> '=
+				throw-error "invalid #if condition"
+			]
+			all [
+				not block? pc/5
+				throw-error "missing code block after #if condition"
+			]
+			if do probe bind reduce [pc/2 '= pc/4] job [
+				save-pc: pc
+				pc: pc/5
+				comp-dialect
+				pc: save-pc
+			]
+			pc: skip pc 5
+		]
 				
 		comp-directive: does [
 			switch/default pc/1 [
@@ -869,6 +889,8 @@ system-dialect: context [
 					compiler/script: pc/2				;-- set the origin of following code
 					pc: skip pc 2
 				]
+				#switch  [process-switch]
+				#if 	 [process-if]
 			][
 				throw-error ["unknown directive" pc/1]
 			]
@@ -1496,6 +1518,12 @@ system-dialect: context [
 	
 	options-class: context [
 		config-name:  none				;-- Preconfigured compilation target ID
+		OS:			  select [			;-- Operating System
+						3	'Windows
+						4	'Linux
+						5	'MacOSX
+					  ] system/version/4
+		OS-version:	  none				;-- OS version
 		link?: 		  no				;-- yes = invoke the linker and finalize the job
 		build-dir:	  %builds/			;-- where to place compile/link results
 		format:		  select [			;-- file format
