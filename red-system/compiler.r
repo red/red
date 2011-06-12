@@ -745,7 +745,7 @@ system-dialect: context [
 			all [
 				not any [word? pc/2 lit-word? pc/2]
 				not in job pc/2
-				any [type = 'switch pc/3 <> '=]
+				any [type = 'switch not find [= <> < > <= >=] pc/3]
 				throw-error rejoin ["invalid #" type " condition"]
 			]
 			all [
@@ -755,6 +755,14 @@ system-dialect: context [
 					switch	[not block? pc/3]
 				]
 				throw-error rejoin ["missing block after #" type " condition"]
+			]
+			either type = 'switch [
+				any [
+					select pc/3 job/(pc/2)
+					select pc/3 #default
+				]
+			][
+				do bind copy/part at pc 2 find pc block! job
 			]
 		]
 		
@@ -887,21 +895,17 @@ system-dialect: context [
 					pc: skip pc 2
 				]
 				#if 	 [
-					check-condition 'if	
-					if pc/4 = job/(pc/2) [fetch-into pc/5 [comp-dialect]]
+					if check-condition 'if [fetch-into pc/5 [comp-dialect]]
 					pc: skip pc 5
 				]
 				#either	 [
-					check-condition 'either
-					fetch-into pick reduce [pc/5 pc/6] pc/4 = job/(pc/2) [comp-dialect]
+					fetch-into either check-condition 'either [pc/5][pc/6] [
+						comp-dialect
+					]
 					pc: skip pc 6
 				]
 				#switch  [
-					check-condition 'switch
-					if body: any [
-						select pc/3 job/(pc/2)
-						select pc/3 #default
-					][
+					if body: check-condition 'switch [
 						fetch-into body [comp-dialect]
 					]
 					pc: skip pc 3
