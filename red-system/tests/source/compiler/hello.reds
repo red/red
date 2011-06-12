@@ -6,7 +6,49 @@ Red/System [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-prin-logo: func [][
+#either OS = 'Windows [
+	#import [
+		"kernel32.dll" stdcall [
+			SetConsoleTextAttribute: "SetConsoleTextAttribute" [
+				handle 		[integer!]
+				attributes  [integer!]
+				return:		[integer!]
+			]
+		]
+	]
+	
+	set-pen-color: func [color [integer!]][
+		SetConsoleTextAttribute stdout color
+	]
+
+	set-colors: func [pen [integer!] bg [integer!]][
+		SetConsoleTextAttribute stdout bg * 16 or pen
+	]
+][
+	set-pen-color: func [color [integer!]][
+		;-- not supported for now
+	]
+
+	set-colors: func [pen [integer!] bg [integer!]][
+		;-- not supported for now
+	]
+]
+
+black:   0
+blue: 	 1
+green:	 2
+red:	 4
+cyan:  	 blue or green
+magenta: blue or red
+yellow:  green or red
+white:   blue or green or red
+
+light-blue:  blue  or 8
+light-green: green or 8
+light-red: 	 red   or 8
+
+
+prin-logo: does [
 	set-pen-color light-red
 	prin "R"
 	set-pen-color white
@@ -16,13 +58,13 @@ prin-logo: func [][
 draw-hline: func [size [integer!] alt [integer!] /local c [integer!]][
 	c: size							;-- local variable is not necessary, just for the demo
 	until [
-		either alt > 0 [			;-- print * and - alternatively
-			either alt = 1 [
+		either positive? alt [			;-- print * and - alternatively
+			alt: either alt = 1 [
 				prin "*"
-				alt: 2
+				2
 			][
 				prin "-" 
-				alt: 1
+				1
 			]
 		][
 			prin "-"				;-- print - only
@@ -33,7 +75,7 @@ draw-hline: func [size [integer!] alt [integer!] /local c [integer!]][
 	prin "^/"
 ]
 
-draw-vline: func [][prin "|"]
+draw-vline: does [prin "|"]
 
 pad: func [n [integer!]][
 	while [n > 0][prin " " n: n - 1]	;-- could have used UNTIL, just for the demo
@@ -53,7 +95,7 @@ banner: func [width [integer!]][
 ]
 
 prin-logo
-print "/System v0.1.0 alpha 1^/"
+print "/System v0.2.0 beta^/"
 
 size: 20
 until [

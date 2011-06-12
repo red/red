@@ -12,7 +12,6 @@ do %emitter.r
 system-dialect: context [
 	verbose:  0									;-- logs verbosity level
 	job: none									;-- reference the current job object	
-	runtime-env: none							;-- hold OS-specific Red/System runtime
 	runtime-path: %runtime/
 	nl: newline
 	
@@ -31,7 +30,7 @@ system-dialect: context [
 		]
 		
 		init: does [
-			include-dirs: copy [%runtime/]
+			include-dirs: reduce [runtime-path]
 			clear include-list
 			clear defs
 			insert defs <no-match>				;-- required to avoid empty rule (causes infinite loop)
@@ -114,7 +113,7 @@ system-dialect: context [
 		]
 		
 		process: func [input [file! string!] /short /local src err path][
-			if verbose > 0 [print ["processing" mold either file? input [input]['runtime]]]
+			if verbose > 0 [print ["processing" mold either file? input [input]['in-memory]]]
 			
 			if file? input [
 				if all [
@@ -130,7 +129,7 @@ system-dialect: context [
 			either file? input [
 				unless short [compiler/script: input]
 			][
-				compiler/script: 'memory
+				compiler/script: 'in-memory
 			]
 			expand-string src: any [src input]			;-- process string-level compiler directives
 			if file? input [check-marker src]			;-- look for "Red/System" head marker
@@ -1499,17 +1498,12 @@ system-dialect: context [
 		]
 	]
 	
-	comp-runtime: func [type [word!]][
-		compiler/script: type
-		compiler/run/no-header loader/process runtime-env/:type
+	comp-runtime-prolog: does [
+		compiler/run loader/process runtime-path/common.reds
 	]
 	
-	set-runtime: func [job [object!]][
-		runtime-env: load switch job/format [
-			PE     [runtime-path/win32.r]
-			ELF    [runtime-path/linux.r]
-			;Mach-o [runtime-path/posix.r]
-		]
+	comp-runtime-epilog: does [	
+		emitter/call '***-on-quit [0]					;-- call runtime exit handler
 	]
 	
 	clean-up: does [
@@ -1570,15 +1564,14 @@ system-dialect: context [
 			unless block? files [files: reduce [files]]
 			emitter/init opts/link? job: make-job opts last files	;-- last file's name is retained for output
 			compiler/job: job
-			set-runtime job
 			set-verbose-level opts/verbosity
 			
 			loader/init
-			if opts/with-runtime [comp-runtime 'prolog]
+			if opts/with-runtime [comp-runtime-prolog]
 			
 			foreach file files [compiler/run loader/process file]
 			
-			if opts/with-runtime [comp-runtime 'epilog]
+			if opts/with-runtime [comp-runtime-epilog]
 			compiler/finalize							;-- compile all functions
 		]
 		if verbose >= 4 [
