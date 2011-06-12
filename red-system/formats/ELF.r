@@ -205,7 +205,7 @@ context [
 		sections: collect-structure-names structure 'section
 
 		commands: compose/deep [
-			"rx"			skip (defs/base-address)
+			"rx"			skip (any [job/base-address defs/base-address])
 			"rw"			skip (defs/page-size)
 
 			".hash"			meta [link ".dynsym"]
