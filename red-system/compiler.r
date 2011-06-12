@@ -741,11 +741,28 @@ system-dialect: context [
 			]
 		]
 		
+		check-condition: func [type [word!]][
+			all [
+				not any [word? pc/2 lit-word? pc/2]
+				not in job pc/2
+				any [type = 'switch pc/3 <> '=]
+				throw-error rejoin ["invalid #" type " condition"]
+			]
+			all [
+				switch type [
+					if		[not block? pc/5]
+					either	[any [not block? pc/5 not block? pc/6]]
+					switch	[not block? pc/3]
+				]
+				throw-error rejoin ["missing block after #" type " condition"]
+			]
+		]
+		
 		fetch-into: func [code [block! paren!] body [block!] /local save-pc][		;-- compile sub-block
 			save-pc: pc
 			pc: code
 			do body
-			pc: next save-pc						;-- skip over body block (a bit ugly, to be improved)
+			next pc: save-pc
 		]
 		
 		fetch-func: func [name /local specs type cc][
@@ -858,48 +875,8 @@ system-dialect: context [
 				throw-error ["invalid syscall specification at:" pos]
 			]
 		]
-		
-		process-switch: has [body][
-			all [
-				not any [word? pc/2 lit-word? pc/2]
-				not in job pc/2
-				throw-error "invalid #switch option"
-			]
-			all [
-				not block? pc/3
-				throw-error "missing block after #switch option"
-			]
-			either body: any [
-				select pc/3 get in job pc/2
-				select pc/3 #default
-			][
-				fetch-into body [comp-dialect]
-				pc: skip pc 2							; @@ to be improved
-			][
-				pc: skip pc 3
-			]
-		]
-		
-		process-if: does [
-			all [
-				not any [word? pc/2 lit-word? pc/2]
-				not in job pc/2
-				pc/3 <> '=
-				throw-error "invalid #if condition"
-			]
-			all [
-				not block? pc/5
-				throw-error "missing code block after #if condition"
-			]
-			either do bind reduce [pc/2 '= pc/4] job [
-				fetch-into pc/5 [comp-dialect]
-				pc: skip pc 4							; @@ to be improved
-			][
-				pc: skip pc 5
-			]
-		]
-				
-		comp-directive: does [
+
+		comp-directive: has [body][
 			switch/default pc/1 [
 				#import  [process-import  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
@@ -909,8 +886,26 @@ system-dialect: context [
 					compiler/script: pc/2				;-- set the origin of following code
 					pc: skip pc 2
 				]
-				#switch  [process-switch]
-				#if 	 [process-if]
+				#if 	 [
+					check-condition 'if	
+					if pc/4 = job/(pc/2) [fetch-into pc/5 [comp-dialect]]
+					pc: skip pc 5
+				]
+				#either	 [
+					check-condition 'either
+					fetch-into pick reduce [pc/5 pc/6] pc/4 = job/(pc/2) [comp-dialect]
+					pc: skip pc 6
+				]
+				#switch  [
+					check-condition 'switch
+					if body: any [
+						select pc/3 job/(pc/2)
+						select pc/3 #default
+					][
+						fetch-into body [comp-dialect]
+					]
+					pc: skip pc 3
+				]
 			][
 				throw-error ["unknown directive" pc/1]
 			]
@@ -1116,7 +1111,7 @@ system-dialect: context [
 			check-body pc/1								;-- check body block
 			
 			list: make block! 8
-			fetch-into pc/1 [
+			pc: fetch-into pc/1 [
 				while [not tail? pc][					;-- comp all expressions in chunks
 					append/only list comp-block-chunked/only/test pick [all any] to logic! _all
 				]
@@ -1368,7 +1363,7 @@ system-dialect: context [
 		]
 		
 		comp-block: func [/final /local expr][
-			fetch-into pc/1 [
+			pc: fetch-into pc/1 [
 				while [not tail? pc][
 					either pc/1 = 'comment [pc: skip pc 2][
 						expr: either final [

@@ -24,6 +24,11 @@ if exists? %custom-targets.r [
 	append targets load %custom-targets.r
 ]
 
+unless system/script/args [
+	print "Missing command-line arguments!"
+	halt
+]
+
 unless parse system/script/args [
 	any [
 		#"-" [
