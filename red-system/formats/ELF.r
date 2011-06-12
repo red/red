@@ -165,7 +165,7 @@ context [
 	;; ------------------------------------------------------------------------
 
 	;; The macro structure of our generated ELF binaries.
-	protect structure: [
+	default-structure: [
 		;; Standard metadata:		[type		flags				align]
 		segment "rx"				[load		[r x]				page] [
 			struct "ehdr"
@@ -196,10 +196,32 @@ context [
 	build: func [
 		job [object!]
 		/local
-			segments sections symbols libraries commands layout
+			libraries symbols structure segments sections commands layout
 			get-address get-offset get-size get-meta get-data set-data
 	] [
 		set [libraries symbols] collect-import-names job
+
+		structure: copy default-structure
+
+		if empty? defs/dynamic-linker [
+			remove-elements structure [".interp"]
+		]
+
+		if empty? symbols [
+			remove-elements structure [
+				".interp"
+				".hash"
+				".dynstr"
+				".dynsym"
+				".rel.text"
+				".data.rel.ro"
+				".dynamic"
+			]
+		]
+
+		if empty? job/sections/data/2 [
+			remove-elements structure [".data"]
+		]
 
 		segments: collect-structure-names structure 'segment
 		sections: collect-structure-names structure 'section
@@ -243,32 +265,39 @@ context [
 		get-meta: func [name] [layout/:name/meta]
 		get-data: func [name] [layout/:name/data]
 
-		set-data: func [name data] [layout/:name/data: data]
+		has-element: func [name] [found? find/skip layout name 2]
 
-		set-data "ehdr"
+		set-data: func [name builder] [
+			if has-element name [
+				layout/:name/data: do builder
+			]
+		]
+
+		set-data "ehdr" [
 			build-ehdr
 				get-offset "phdr"
 				get-offset "shdr"
 				get-address ".text"
 				segments
 				sections
+		]
 
 		set-data "phdr"
-			build-phdr map-each segment segments [layout/:segment]
+			[build-phdr map-each segment segments [layout/:segment]]
 
 		set-data ".hash"
-			build-hash symbols
+			[build-hash symbols]
 
 		set-data ".dynsym"
-			build-dynsym symbols get-data ".dynstr"
+			[build-dynsym symbols get-data ".dynstr"]
 
 		set-data ".rel.text"
-			build-reltext symbols get-address ".data.rel.ro"
+			[build-reltext symbols get-address ".data.rel.ro"]
 
 		set-data ".data.rel.ro"
-			build-relro symbols
+			[build-relro symbols]
 
-		set-data ".dynamic"
+		set-data ".dynamic" [
 			build-dynamic
 				get-address ".hash"
 				get-address ".dynstr" get-size ".dynstr"
@@ -276,28 +305,34 @@ context [
 				get-address ".rel.text" get-size ".rel.text"
 				get-data ".dynstr"
 				libraries
+		]
 
-		set-data "shdr"
+		set-data "shdr" [
 			build-shdr
 				flatten map-each name sections [reduce [name layout/:name]]
 				commands
 				get-data ".shstrtab"
+		]
 
 		;; Resolve data references.
-		linker/resolve-symbol-refs
-			job
-			get-data ".text"
-			get-data ".data"
-			get-address ".text"
-			get-address ".data"
-			machine-word
+		if has-element ".data" [
+			linker/resolve-symbol-refs
+				job
+				get-data ".text"
+				get-data ".data"
+				get-address ".text"
+				get-address ".data"
+				machine-word
+		]
 
 		;; Resolve import (library function) references.
-		resolve-import-refs
-			job
-			symbols
-			get-data ".text"
-			get-address ".data.rel.ro"
+		if has-element ".data.rel.ro" [
+			resolve-import-refs
+				job
+				symbols
+				get-data ".text"
+				get-address ".data.rel.ro"
+		]
 
 		;; Concatenate the layout data into the output binary.
 		job/buffer: serialize-data map-each [name values] layout [values/data]
@@ -503,6 +538,24 @@ context [
 	]
 
 	;; -- File structure/file commands helpers --
+
+	remove-elements: func [structure elements /local begin mark name children] [
+		parse structure [
+			any [
+				begin: (children: none)
+				word! ;; type
+				set name string!
+				opt [block!] ;; meta
+				opt [set children block!]
+				mark: (
+					if children [remove-elements children elements]
+					if any [find elements name  attempt [empty? children]] [
+						mark: remove/part begin mark
+					]
+				) :mark
+			]
+		]
+	]
 
 	collect-structure-names: func [
 		structure [block!] filter [word! block!] /local result type name
