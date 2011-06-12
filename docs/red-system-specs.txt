@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 11/06/2011
-	Revision: 14
+	Date: 12/06/2011
+	Revision: 15
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1252,15 +1252,16 @@ Rewriting the example from <i>#include</i> section:
 
 ---#if
 
-The <b>#if</b> compiler directive goal is to allow conditional compilation based on a simple test expression limited to a few compilation options.
+The <b>#if</b> compiler directive goal is to allow conditional compilation based on a simple conditional expression limited to a few compilation options. If the expression result is TRUE, the first block of code is compiled.
 
 <b>Syntax</b>
 
- #if <option> = <value> [
+ #if <option> <op> <value> [
  	<body>
  ]
 
  <option> : compiler option name (case-insensitive)
+ <op>	  : =, <>, <, >, <= or >=
  <value>  : any value accepted by the property
  <body>   : Red/System source code
 
@@ -1270,6 +1271,33 @@ Valid option names and allowed values are listed in %config.r file, in a comment
  
   #if OS = Windows [
       print "Running on Windows"
+  ]
+  
+---#either
+
+The <b>#either</b> compiler directive allows conditional compilation based on a simple conditional expression limited to a few compilation options. If the expression result is TRUE, the first block of code is compiled, else the second one is compiled.
+
+<b>Syntax</b>
+
+ #either <option> <op> <value> [
+ 	<body-TRUE>
+ ][
+	<body-FALSE>
+ ]
+
+ <option> : compiler option name (case-insensitive)
+ <op>	  : =, <>, <, >, <= or >=
+ <value>  : any value accepted by the property
+ <body-*> : Red/System source code
+
+Valid option names and allowed values are listed in %config.r file, in a comment section. For words value, both word! and lit-word! syntaxes will be accepted.
+
+<b>Example</b>
+ 
+  #either OS = Windows [
+      print "Running on Windows"
+  ][
+  	  print "Running probably on a UNIX platform"
   ]
  
 ---#switch
@@ -1812,6 +1840,12 @@ will output:
 *Support multiple nested type castings.
 
 ===Document History
+
+*<b>12/06/2011 - draft 15</b>
+
+*>Added #either directive
+
+*>#if and #either now accept any comparison operator
 
 
 *<b>11/06/2011 - draft 14</b>
