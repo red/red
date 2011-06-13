@@ -1221,7 +1221,7 @@ The filename must be written using the OS-independent <a href="http://www.rebol.
 
 <b>Usage</b>
 
-Rewriting the example from <i>#include</i> section:
+Rewriting the example from <i>#define</i> section:
 
  definitions.reds file:
 
