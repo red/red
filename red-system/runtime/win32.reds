@@ -6,6 +6,8 @@ Red/System [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+#define LIBC-file	"msvcrt.dll"
+
 #define WIN_STD_INPUT_HANDLE	-10
 #define WIN_STD_OUTPUT_HANDLE	-11
 #define WIN_STD_ERROR_HANDLE	-12
@@ -22,7 +24,7 @@ Red/System [
 			len			[integer!]
 			written		[struct! [value [integer!]]]
 			overlapped	[integer!]
-			return:	[integer!]
+			return:		[integer!]
 		]
 		quit: "ExitProcess" [
 			code		[integer!]
@@ -41,4 +43,3 @@ print: func [s [c-string!] return: [integer!]][
 	prin s
 	WriteFile stdout newline 1 __written 0
 ]
-

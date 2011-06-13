@@ -741,10 +741,11 @@ system-dialect: context [
 		]
 		
 		check-condition: func [type [word!]][
-			all [
+			if any [
 				not any [word? pc/2 lit-word? pc/2]
 				not in job pc/2
-				any [type = 'switch not find [= <> < > <= >=] pc/3]
+				all [type <> 'switch not find [= <> < > <= >=] pc/3]
+			][
 				throw-error rejoin ["invalid #" type " condition"]
 			]
 			all [
@@ -1548,7 +1549,8 @@ system-dialect: context [
 		target:		  'IA32				;-- CPU target
 		verbosity:	  0					;-- logs verbosity level
 		sub-system:	  'console			;-- 'GUI | 'console
-		with-runtime: true				;-- include Red/System runtime
+		runtime?: 	  yes				;-- include Red/System runtime
+		C-binding?:	  yes				;-- Use C bindings instead of native functions
 		PIC?:		  no				;-- compile using Position Independent Code
 		base-address: none				;-- base image memory address 
 	]
@@ -1567,11 +1569,11 @@ system-dialect: context [
 			set-verbose-level opts/verbosity
 			
 			loader/init
-			if opts/with-runtime [comp-runtime-prolog]
+			if opts/runtime? [comp-runtime-prolog]
 			
 			foreach file files [compiler/run loader/process file]
 			
-			if opts/with-runtime [comp-runtime-epilog]
+			if opts/runtime? [comp-runtime-epilog]
 			compiler/finalize							;-- compile all functions
 		]
 		if verbose >= 4 [

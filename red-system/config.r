@@ -16,6 +16,7 @@ REBOL [
 ;;	sub-system:	  'GUI | 'console				;-- type of user interface
 ;;	PIC?:		   yes | no						;-- generate Position Independent Code
 ;;  base-address: <integer!>					;-- base image memory address
+;;  C-binding?:	   yes | no						;-- use C bindings instead of native functions
 ;;-------------------------------------------
 
 ;-------------------------
