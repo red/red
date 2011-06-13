@@ -79,7 +79,7 @@ stderr:		-1						;-- uninitialized default value
 		;TBD
 	]
 	
-	free: "free" [							;-- needs a Red/System native implementation
+	free: func [							;-- needs a Red/System native implementation
 		buffer		[byte-ptr!]
 	][
 		;TBD
@@ -136,7 +136,7 @@ stderr:		-1						;-- uninitialized default value
 	][
 		base: s
 		while [s/1 <> null-char][s: s + 1]
-		as-integer s - base 		;-- do not count the terminal zero
+		as-integer s - base 				;-- do not count the terminal zero
 	]
 ]
 
