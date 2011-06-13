@@ -25,6 +25,7 @@ MSDOS [									; Windows default target
 	format: 	'PE
 	type:		'exe
 	sub-system: 'console
+	C-binding?:	 yes					;@@ enable runtime C bindings (default temporary switched to no) 
 ]
 ;-------------------------
 WinGUI [
