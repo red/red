@@ -1334,7 +1334,7 @@ system-dialect: context [
 				get-word!	[comp-get-word]
 				path! 		[comp-path]
 				set-path!	[comp-assignment]
-				paren!		[comp-block]
+				paren!		[comp-block/only]
 				char!		[do pass]
 				integer!	[do pass]
 				string!		[do pass]
@@ -1366,14 +1366,18 @@ system-dialect: context [
 			expr
 		]
 		
-		comp-block: func [/final /local expr][
+		comp-block: func [/final /only /local fetch expr][
+			fetch: [either final [fetch-expression/final][fetch-expression]]
 			pc: fetch-into pc/1 [
-				while [not tail? pc][
-					either pc/1 = 'comment [pc: skip pc 2][
-						expr: either final [
-							fetch-expression/final
-						][
-							fetch-expression
+				either only [
+					expr: do fetch
+					unless tail? pc [
+						throw-error "more than one expression found in parentheses"
+					]
+				][
+					while [not tail? pc][
+						either pc/1 = 'comment [pc: skip pc 2][
+							expr: do fetch
 						]
 					]
 				]
