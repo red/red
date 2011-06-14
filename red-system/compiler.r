@@ -111,8 +111,8 @@ system-dialect: context [
 						rule: copy/deep [s: _ e: (e: change/part s _ e) :e]
 						rule/2: to lit-word! name
 						rule/4/4: :value						
-						either tag? defs/1 [remove defs][append defs '|]						
-						append defs rule
+						either tag? defs/1 [remove defs][insert defs '|]						
+						insert defs rule
 						remove/part s e
 					) :s
 					| s: #include set name file! e: (
