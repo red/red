@@ -25,7 +25,6 @@ MSDOS [									; Windows default target
 	format: 	'PE
 	type:		'exe
 	sub-system: 'console
-	C-binding?:	 yes					;@@ enable runtime C bindings (default temporary switched to no) 
 ]
 ;-------------------------
 WinGUI [
@@ -46,7 +45,6 @@ Linux [									; Linux default target
 	OS:			'Linux
 	format: 	'ELF
 	type:		'exe
-	C-binding?:	 no						;@@ temporary disable runtime C bindings until dynamic libraries can be loaded
 ]
 ;-------------------------
 ;LinSO [								; not supported yet
@@ -61,7 +59,6 @@ Syllable [
 	format: 	'ELF
 	type:		'exe
 	base-address: -2147483648			; 80000000h
-	C-binding?:	 no						;@@ temporary disable runtime C bindings until dynamic libraries can be loaded
 ]
 ;-------------------------
 ;Darwin [								; not supported yet

@@ -1548,7 +1548,7 @@ system-dialect: context [
 		verbosity:	  0					;-- logs verbosity level
 		sub-system:	  'console			;-- 'GUI | 'console
 		runtime?: 	  yes				;-- include Red/System runtime
-		C-binding?:	  no				;-- Use C bindings instead of native functions
+		C-binding?:	  yes				;-- Use C bindings instead of native functions
 		PIC?:		  no				;-- compile using Position Independent Code
 		base-address: none				;-- base image memory address 
 	]
