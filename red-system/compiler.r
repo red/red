@@ -144,7 +144,6 @@ system-dialect: context [
 	]
 	
 	compiler: context [
-		job: 		 none								;-- compilation job object
 		pc:			 none								;-- source code input cursor
 		script:		 none								;-- source script file name
 		last-type:	 none								;-- type of last value from an expression
@@ -1569,7 +1568,6 @@ system-dialect: context [
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
 			emitter/init opts/link? job: make-job opts last files	;-- last file's name is retained for output
-			compiler/job: job
 			set-verbose-level opts/verbosity
 			
 			loader/init
@@ -1603,6 +1601,5 @@ system-dialect: context [
 
 		also
 			reduce [comp-time link-time any [all [job/buffer length? job/buffer] 0]]
-			compiler/job: job: none
 	]
 ]
