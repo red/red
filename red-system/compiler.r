@@ -61,6 +61,24 @@ system-dialect: context [
 			]
 		]
 		
+		check-condition: func [type [word!] payload [block!]][
+			if any [
+				not any [word? payload/1 lit-word? payload/1]
+				not in job payload/1
+				all [type <> 'switch not find [= <> < > <= >=] payload/2]
+			][
+				throw-error rejoin ["invalid #" type " condition"]
+			]
+			either type = 'switch [
+				any [
+					select payload/2 job/(payload/1)
+					select payload/2 #default
+				]
+			][
+				do bind copy/part payload 3 job
+			]
+		]
+
 		expand-string: func [src [string! binary!] /local value s e c][
 			if verbose > 0 [print "running string preprocessor..."]
 			
@@ -81,12 +99,12 @@ system-dialect: context [
 			]
 		]
 		
-		expand-block: func [src [block!] /local blk rule name value s e][		
+		expand-block: func [src [block!] /local blk rule name value s e opr then-block else-block cases body][
 			if verbose > 0 [print "running block preprocessor..."]			
 			parse/case src blk: [
 				some [
 					defs								;-- resolve definitions in a single pass
-					| #define set name word! set value skip (
+					| s: #define set name word! set value skip e: (
 						if verbose > 0 [print [mold name #":" mold value]]
 						if word? value [value: to lit-word! value]
 						rule: copy/deep [s: _ e: (e: change/part s _ e) :e]
@@ -94,16 +112,36 @@ system-dialect: context [
 						rule/4/4: :value						
 						either tag? defs/1 [remove defs][append defs '|]						
 						append defs rule
-					)
+						remove/part s e
+					) :s
 					| s: #include set name file! e: (
 						either included? name: find-path name [
-							s: skip s 2					;-- already included, skip it
+							remove/part s e				;-- already included, drop it
 						][
 							if verbose > 0 [print ["...including file:" mold name]]
 							value: skip process/short name 2			;-- skip Red/System header						
 							e: change/part s value e
 							insert e reduce [#script compiler/script]	;-- put back the parent origin
 							insert s reduce [#script name]				;-- mark code origin
+						]
+					) :s
+					| s: #if set name word! set opr skip set value any-type! set then-block block! e: (
+						either check-condition 'if reduce [name opr get/any 'value][
+							change/part s then-block e
+						][
+							remove/part s e
+						]
+					) :s
+					| s: #either set name word! set opr skip set value any-type! set then-block block! set else-block block! e: (
+						either check-condition 'either reduce [name opr get/any 'value][
+							change/part s then-block e
+						][
+							change/part s else-block e
+						]
+					) :s
+					| s: #switch set name word! set cases block! e: (
+						if body: check-condition 'switch reduce [name cases][
+							change/part s body e
 						]
 					) :s
 					| into blk
@@ -739,32 +777,6 @@ system-dialect: context [
 			]
 		]
 		
-		check-condition: func [type [word!]][
-			if any [
-				not any [word? pc/2 lit-word? pc/2]
-				not in job pc/2
-				all [type <> 'switch not find [= <> < > <= >=] pc/3]
-			][
-				throw-error rejoin ["invalid #" type " condition"]
-			]
-			all [
-				switch type [
-					if		[not block? pc/5]
-					either	[any [not block? pc/5 not block? pc/6]]
-					switch	[not block? pc/3]
-				]
-				throw-error rejoin ["missing block after #" type " condition"]
-			]
-			either type = 'switch [
-				any [
-					select pc/3 job/(pc/2)
-					select pc/3 #default
-				]
-			][
-				do bind copy/part at pc 2 find pc block! job
-			]
-		]
-		
 		fetch-into: func [code [block! paren!] body [block!] /local save-pc][		;-- compile sub-block
 			save-pc: pc
 			pc: code
@@ -887,27 +899,9 @@ system-dialect: context [
 			switch/default pc/1 [
 				#import  [process-import  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
-				#define  [pc: skip pc 3]				;-- preprocessed before
-				#include [pc: skip pc 2]				;-- preprocessed before
 				#script	 [								;-- internal compiler directive
 					compiler/script: pc/2				;-- set the origin of following code
 					pc: skip pc 2
-				]
-				#if 	 [
-					if check-condition 'if [fetch-into pc/5 [comp-dialect]]
-					pc: skip pc 5
-				]
-				#either	 [
-					fetch-into either check-condition 'either [pc/5][pc/6] [
-						comp-dialect
-					]
-					pc: skip pc 6
-				]
-				#switch  [
-					if body: check-condition 'switch [
-						fetch-into body [comp-dialect]
-					]
-					pc: skip pc 3
 				]
 			][
 				throw-error ["unknown directive" pc/1]
