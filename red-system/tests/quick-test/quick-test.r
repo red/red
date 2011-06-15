@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.3.3
+	Version: 0.3.999
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -171,13 +171,19 @@ qt: make object! [
   compile-error: func [
     src [file!]
   ][
-    assert join "" [src " - compiler error"] false
+    print join "" [src " - compiler error"]
+    assert false
     print comp-output
   ]
   
   compile-ok?: func [] [
     either find comp-output "output file size:" [true] [false]
   ] 
+  
+  compile-run-print: func [src [file!]][
+    compile-and-run src
+    if output <> "Compilation failed" [print output]
+  ]
   
   run: func [
     prog [file!]
@@ -203,6 +209,40 @@ qt: make object! [
     script: join base-dir [%tests/runnable/ filename]
     write to file! script read to file! src
     do script
+  ]
+  
+  run-test-file: func [src [file!]][
+    compile-run-print src
+    add-to-run-totals
+  ]
+  
+  add-to-run-totals: func [
+    /local
+      tests
+      asserts
+      passes
+      failures
+      rule
+      digit
+      number
+  ][
+    digit: charset [#"0" - #"9"]
+    number: [some digit]
+    ws: charset [#"^-" #"^/" #" "]
+    whitespace: [some ws]
+    rule: [
+      thru "Number of Tests Performed:" whitespace copy tests number
+      thru "Number of Assertions Performed:" whitespace copy asserts number
+      thru "Number of Assertions Passed:" whitespace copy passed number
+      thru "Number of Assertions Failed:" whitespace copy failures number
+      to end
+    ]
+    if parse/all output rule [
+      test-run/no-tests: test-run/no-tests + to integer! tests
+      test-run/no-asserts: test-run/no-asserts + to integer! asserts
+      test-run/passes: test-run/passes + to integer! passed
+      test-run/failures: test-run/failures + to integer! failures
+    ]
   ]
   
   _start: func [
@@ -313,8 +353,11 @@ qt: make object! [
   set '--compile-this         :compile-from-string
   set '--compile-and-run      :compile-and-run
   set '--compile-and-run-this :compile-and-run-from-string
+  set '--compile-run-print    :compile-run-print
   set '--run                  :run
+  set '--add-to-run-totals    :add-to-run-totals
   set '--run-script           :run-script
+  set '--run-test-file        :run-test-file
   set '--assert               :assert
   set '--assert-msg?          :assert-msg?
   set '--clean                :clean-compile-from-string

@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs the Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.1.1
+	Version: 0.2
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -13,32 +13,14 @@ if not value? 'qt [do %quick-test/quick-test.r]
 
 print rejoin ["Quick-Test v" system/script/header/version]
 
-;; compile & run rs-test-suite.reds
-print "Compiling rs-test-suite.reds..."
+print "Running rs-test-suite.r..."
 t0: now/time/precise
-
-either exe: qt/compile %source/rs-test-suite.reds [
-  print ["...done in" now/time/precise - t0]
-  print "Running rs-test-suite..."
-  t0: now/time/precise
-  qt/run exe
-  print ["...done in" now/time/precise - t0 newline]
-  print qt/output
-  part1-failures?: either find qt/output "TEST FAILURES" [true] [false]
-][
-  qt/start-test "Test Suite Compile Error!!!!!!"
-  qt/assert false
-  print qt/comp-output
-  part1-failures?: true
-]
 
 ;; copy and run rs-test-suite.r
 write %runnable/rs-test-suite.r read %source/rs-test-suite.r
 do %runnable/rs-test-suite.r
 
-if part1-failures? [print "^/****** FAILURES IN PART I ABOVE ******"]
-
-print ""
+print ["...done in" now/time/precise - t0 newline]
 
 halt
 

@@ -1,5 +1,5 @@
 REBOL [
-	Title:   "Red/System cast test script"
+	Title:   "Red/System alias test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %alias-test.r
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic & Peter W A Wood. All rights reserved."
