@@ -286,8 +286,8 @@ system-dialect: context [
 				][reform err]
 				"^/*** in file:" mold script
 				either locals [join "^/*** in function: " func-name][""]
-				"^/*** at: " mold copy/part pc 8
 			]
+			if pc [print ["*** at: " mold copy/part pc 8]]
 			clean-up
 			halt
 		]
@@ -601,10 +601,9 @@ system-dialect: context [
 					]
 				]
 			]
-			if pos: find c-type /local [c-type: clear copy pos] ;-- remove locals
+			if pos: find f-type /local [f-type: clear copy pos] ;-- remove locals
 			if block? f-type/1 [f-type: next f-type]	;-- skip optional attributes block
 			if block? c-type/1 [c-type: next c-type]	;-- skip optional attributes block
-			
 			idx: 2
 			foreach [name type] f-type [
 				if type <> c-type/:idx [return false]
@@ -1502,7 +1501,7 @@ system-dialect: context [
 	]
 	
 	comp-runtime-epilog: does [	
-		emitter/call '***-on-quit [0]					;-- call runtime exit handler
+		emitter/call '***-on-quit [0 0]					;-- call runtime exit handler
 	]
 	
 	clean-up: does [
@@ -1537,6 +1536,7 @@ system-dialect: context [
 					  ] system/version/4
 		OS-version:	  none				;-- OS version
 		link?: 		  no				;-- yes = invoke the linker and finalize the job
+		debug?:		  no				;-- reserved for future use
 		build-dir:	  %builds/			;-- where to place compile/link results
 		format:		  select [			;-- file format
 						3	'PE				;-- Windows
@@ -1548,9 +1548,9 @@ system-dialect: context [
 		verbosity:	  0					;-- logs verbosity level
 		sub-system:	  'console			;-- 'GUI | 'console
 		runtime?: 	  yes				;-- include Red/System runtime
-		C-binding?:	  yes				;-- Use C bindings instead of native functions
+		use-natives?: no				;-- force use of native functions instead of C bindings
 		PIC?:		  no				;-- compile using Position Independent Code
-		base-address: none				;-- base image memory address 
+		base-address: none				;-- base image memory address
 	]
 	
 	compile: func [

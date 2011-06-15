@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.3.999
+	Version: 0.3.99
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]

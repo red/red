@@ -6,6 +6,7 @@ Red/System [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+#define OS_TYPE		3
 #define LIBC-file	"libc.so.2"
 
 #syscall [

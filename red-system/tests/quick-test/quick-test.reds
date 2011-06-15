@@ -7,7 +7,7 @@ Red/System [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-#include %prin-int.reds
+;#include %prin-int.reds		;; a prin-int function has been added in the runtime
 #include %overwrite.reds
 
 ;; allocate string memory
