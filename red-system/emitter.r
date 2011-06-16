@@ -317,7 +317,7 @@ emitter: context [
 	
 	signed?: func [type [word! block!]][
 		if block? type [type: type/1]
-		'signed = third any [find datatypes type [- -]] ;-- force unsigned result for aliased types
+		'signed = third any [find datatypes type [- - -]] ;-- force unsigned result for aliased types
 	]
 	
 	get-size: func [type [block!] value][
