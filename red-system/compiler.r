@@ -613,7 +613,10 @@ system-dialect: context [
 		]
 		
 		check-keywords: func [name [word!]][
-			if find keywords name [
+			if any [
+				find keywords name
+				name = 'comment
+			][
 				throw-error ["attempt to redefined a protected keyword:" name]
 			]
 		]
@@ -1369,7 +1372,7 @@ system-dialect: context [
 					]
 				][
 					while [not tail? pc][
-						either pc/1 = 'comment [pc: skip pc 2][
+						either all [word? pc/1 pc/1 = 'comment][pc: skip pc 2][
 							expr: do fetch
 						]
 					]
@@ -1393,7 +1396,7 @@ system-dialect: context [
 						pc: next pc
 						comp-alias						;-- allow alias declaration at root level only
 					]
-					pc/1 = 'comment [pc: skip pc 2]
+					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
 					'else [expr: fetch-expression/final]
 				]
 			]

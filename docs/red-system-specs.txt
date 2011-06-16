@@ -1468,12 +1468,13 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     < 			<= 			<>
     = 			> 			>=
     alias 		all 		and
-    any 		as 			either
-    exit 		false 		func
-    function 	if 			not
-    or 			pointer 	return
-    size? 		struct    	true
-    until		while	    xor
+    any			as			comment
+	either 		exit 		false
+	func 		function 	if
+	not 		or 			pointer
+	return 		size? 		struct
+	true 		until 		while
+    xor
 
 ---Infix operators
 
@@ -1840,6 +1841,12 @@ will output:
 *Support multiple nested type castings.
 
 ===Document History
+
+*<b>??/06/2011 - draft 16</b>
+
+*>Added missing 'comment word in keywords list
+
+
 
 *<b>12/06/2011 - draft 15</b>
 

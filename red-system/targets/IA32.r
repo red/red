@@ -656,7 +656,6 @@ make target-class [
 					]
 				]
 				switch b [
-			;TBD: check for 0 divider both at compilation-time and runtime
 					imm [
 						either all [
 							not mod?				;-- do not use shifts if modulo
