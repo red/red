@@ -11,6 +11,4 @@ Red/System [
 
 ~~~start-file~~~ "integer"
 
-#include %integer-auto-test.reds
-
 ~~~end-file~~~

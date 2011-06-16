@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs a single Red/System Tests"
 	File: 	 %run-test.r
 	Author:  "Peter W A Wood"
-	Version: 0.1.0
+	Version: 0.4.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 ;; make runnable/ directory if needed 

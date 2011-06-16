@@ -167,7 +167,5 @@ Red/System [
 
 ===end-group===
 
-#include %byte-auto-test.reds
-
 ~~~end-file~~~
 

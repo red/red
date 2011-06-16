@@ -2,7 +2,7 @@ Red/System [
 	Title:   "Red/System simple testing framework"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.reds
-	Version: 0.2.1
+	Version: 0.4.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]

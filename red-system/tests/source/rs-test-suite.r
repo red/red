@@ -1,5 +1,5 @@
 REBOL [
-  Title:   "Part of a basic test suite for Red/System"
+  Title:   "A basic test suite for Red/System"
 	File: 	 %rs-test-suite.r
 	Version: 0.2
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
@@ -7,6 +7,39 @@ REBOL [
 
 change-dir %../                    ;; revert to tests/ directory (from runnable)
 if not value? 'qt [do %quick-test-quick-test.r]
+
+make-if-needed?: func [
+  auto-test-file [file!]
+  make-file [file!]
+  /local
+    stored-length   ; the length of the make... .r file used to build auto tests
+    stored-file-length
+    digit
+    number
+    rule
+][
+  stored-file-length: does [
+    parse/all read auto-test-file rule
+    stored-length
+  ]
+  digit: charset [#"0" - #"9"]
+  number: [some digit]
+  rule: [
+    thru ";make-length:" 
+    copy stored-length number (stored-length: to integer! stored-length)
+    to end
+  ]
+  
+  if not exists? make-file [return]
+ 
+  if any [
+    not exists? auto-test-file
+    stored-file-length <> length? read make-file
+  ][
+    print ["Making" auto-test-file " - it will take a while"]
+    do make-file
+  ]
+]
        
 ***start-run*** "Red/System Test Suite"
 
@@ -41,6 +74,15 @@ if not value? 'qt [do %quick-test-quick-test.r]
 
 ===start-group=== "Conditional tests"
   --run-test-file %source/units/conditional-test.reds
+===end-group===
+
+===start-group=== "Auto-tests"
+      make-if-needed? %source/units/auto-tests/byte-auto-test.reds
+                      %source/units/make-byte-auto-test.r
+  --run-test-file %source/units/auto-tests/byte-auto-test.reds
+      make-if-needed? %source/units/auto-tests/integer-auto-test.reds
+                      %source/units/make-integer-auto-test.r
+  --run-test-file %source/units/auto-tests/integer-auto-test.reds
 ===end-group===
 
 ===start-group=== "Compiler Tests"
