@@ -65,28 +65,28 @@ exception-filter: func [
 ][
 	error: 99									;-- default unknown error
 	code: record/error/code
-	if code = C0000005h [error:  2]				;-- access violation 
-	if code = 80000002h [error:  3]				;-- datatype misalignment
-	if code = 80000003h [error:  4]				;-- breakpoint
-	if code = 80000004h [error:  5]				;-- single step
-	if code = C000008Ch [error:  6]				;-- array bounds exceeded
-	if code = C000008Dh [error:  7]				;-- float denormal operand	
-	if code = C000008Eh [error:  8]				;-- float divide by zero
-	if code = C000008Fh [error:  9]				;-- float inexact result
-	if code = C0000090h [error: 10]				;-- float invalid operation
-	if code = C0000091h [error: 11]				;-- float overflow
-	if code = C0000092h [error: 12]				;-- float stack check
-	if code = C0000093h [error: 13]				;-- float underflow
-	if code = C0000094h [error: 14]				;-- integer divide by zero
-	if code = C0000095h [error: 15]				;-- integer overflow
-	if code = C0000096h [error: 16]				;-- privileged instruction
-	if code = C0000006h [error: 17]				;-- in page error
-	if code = C000001Dh [error: 18]				;-- illegal instruction
-	if code = C0000025h [error: 19]				;-- non-continuable exception
-	if code = C00000FDh [error: 20]				;-- stack overflow
-	if code = C0000026h [error: 21]				;-- invalid disposition
-	if code = 80000001h [error: 22]				;-- guard page
-	if code = C0000008h [error: 23]				;-- invalid handle
+	if code = C0000005h [error:  1]				;-- access violation 
+	if code = 80000002h [error:  2]				;-- datatype misalignment
+	if code = 80000003h [error:  3]				;-- breakpoint
+	if code = 80000004h [error:  4]				;-- single step
+	if code = C000008Ch [error:  5]				;-- array bounds exceeded
+	if code = C000008Dh [error:  6]				;-- float denormal operand	
+	if code = C000008Eh [error:  7]				;-- float divide by zero
+	if code = C000008Fh [error:  8]				;-- float inexact result
+	if code = C0000090h [error:  9]				;-- float invalid operation
+	if code = C0000091h [error: 10]				;-- float overflow
+	if code = C0000092h [error: 11]				;-- float stack check
+	if code = C0000093h [error: 12]				;-- float underflow
+	if code = C0000094h [error: 13]				;-- integer divide by zero
+	if code = C0000095h [error: 14]				;-- integer overflow
+	if code = C0000096h [error: 15]				;-- privileged instruction
+	if code = C0000006h [error: 16]				;-- in page error
+	if code = C000001Dh [error: 17]				;-- illegal instruction
+	if code = C0000025h [error: 18]				;-- non-continuable exception
+	if code = C00000FDh [error: 19]				;-- stack overflow
+	if code = C0000026h [error: 20]				;-- invalid disposition
+	if code = 80000001h [error: 21]				;-- guard page
+	if code = C0000008h [error: 22]				;-- invalid handle
 	if code = C000013Ah [error:  0]				;-- CTRL-C exit
 
 	***-on-quit error record/error/address
@@ -94,7 +94,7 @@ exception-filter: func [
 ]
 
 SetUnhandledExceptionFilter :exception-filter
-SetErrorMode 1									;-- probably superceded by SetUnhandled...
+SetErrorMode 1									;-- probably superseded by SetUnhandled...
 
 
 ;-- Runtime globals --
