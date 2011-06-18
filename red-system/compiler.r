@@ -310,6 +310,11 @@ system-dialect: context [
 			throw-error "multiple type casting not allowed"
 		]
 		
+		raise-paren-error: does [
+			pc: back pc
+			throw-error "parens are only allowed nested in an expression"
+		]
+		
 		backtrack: func [value /local res][
 			pc: any [res: find/only/reverse pc value pc]
 			to logic! res
@@ -1338,7 +1343,7 @@ system-dialect: context [
 			][
 				throw-error [
 					pick [
-						"compiler directive are not allowed in code blocks"
+						"compiler directives are not allowed in code blocks"
 						"datatype not allowed"
 					] issue? pc/1
 				]
@@ -1372,8 +1377,10 @@ system-dialect: context [
 					]
 				][
 					while [not tail? pc][
-						either all [word? pc/1 pc/1 = 'comment][pc: skip pc 2][
-							expr: do fetch
+						case [
+							paren? pc/1 [raise-paren-error]
+							all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]	
+							'else [expr: do fetch]
 						]
 					]
 				]
@@ -1396,6 +1403,7 @@ system-dialect: context [
 						pc: next pc
 						comp-alias						;-- allow alias declaration at root level only
 					]
+					paren? pc/1 [raise-paren-error]
 					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
 					'else [expr: fetch-expression/final]
 				]
