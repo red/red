@@ -28,12 +28,12 @@ Red/System [
 	
 	--test-- "length?-5"
 	  l?5-s: "1234567890"
-	  l?5-s/6: null-char
+	  l?5-s/6: null-byte
 	--assert 5 = length? l?5-s
 	
 	--test-- "length?-6"
 	  l?6-s: "1234567890"
-	  l?6-s/6: null-char
+	  l?6-s/6: null-byte
 	  l?6-s/6: #"6"
 	--assert 10 = length? l?6-s
 
@@ -65,12 +65,12 @@ Red/System [
 	
   --test-- "len-alloc-1"
     la1-s1: allocate 128
-    la1-s1/128: null-char
+    la1-s1/128: null-byte
   --assert 128 > length? la1-s1
   
   --test-- "len-alloc-2"
     la2-s1: allocate 128
-    la2-s1/1: null-char
+    la2-s1/1: null-byte
   --assert 0 = length? la2-s1
   
   --test-- "len-alloc-3"
