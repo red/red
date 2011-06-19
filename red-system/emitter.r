@@ -363,9 +363,14 @@ emitter: context [
 	preprocess-argument: func [args [block!] /no-last /local arg casted old-type][
 		arg: args/1
 		if all [block? arg object? arg/1][				;-- preprocess casting
-			casted: arg/1/type
-			old-type: compiler/blockify compiler/get-mapped-type arg/2
-			arg: args/1: compiler/cast casted arg/2		;-- new argument value can be a block! or not
+			switch arg/1/action [
+				type-cast [
+					casted: arg/1/type
+					old-type: compiler/blockify compiler/get-mapped-type arg/2
+					arg: args/1: compiler/cast casted arg/2		;-- new argument value can be a block! or not
+				]
+				null [arg: args/1: 0]
+			]
 		]
 		if block? arg [									;-- nested call
 			if object? arg/1 [compiler/raise-casting-error]

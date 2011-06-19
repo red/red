@@ -29,7 +29,6 @@ Red/System [
 #define byte-ptr!	c-string!
 
 
-null: 		pointer [integer!]				;-- null pointer declaration
 newline: 	"^/"
 stdout:		-1								;-- uninitialized default value
 stdin:		-1								;-- uninitialized default value

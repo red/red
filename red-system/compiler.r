@@ -201,11 +201,12 @@ system-dialect: context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: none								;-- global parsing rules helpers
 		
-		not-set!:	[logic! integer!]									;-- reserved for internal use only
-		number!: 	[byte! integer!]									;-- reserved for internal use only
-		poly!:		[byte! integer! pointer! struct! c-string!]			;-- reserved for internal use only
-		any-type!:	[byte! integer! pointer! struct! c-string! logic!]	;-- reserved for internal use only
-		type-sets:	[not-set! number! poly! any-type!]					;-- reserved for internal use only
+		not-set!:	  [logic! integer!]					;-- reserved for internal use only
+		number!: 	  [byte! integer!]					;-- reserved for internal use only
+		any-pointer!: [pointer! struct! c-string!]		;-- reserved for internal use only
+		poly!:		  union number!	any-pointer!		;-- reserved for internal use only				
+		any-type!:	  union poly! [logic!]				;-- reserved for internal use only
+		type-sets:	  [not-set! number! poly! any-type!];-- reserved for internal use only
 		
 		comparison-op: [= <> < > <= >=]
 		
@@ -276,6 +277,7 @@ system-dialect: context [
 			alias 		 [raise-level-error "an alias"]	  ;-- alias declaration not allowed at this level
 			struct 		 [comp-struct]
 			pointer 	 [comp-pointer]
+			null		 [comp-null]
 		]
 		
 		throw-error: func [err [word! string! block!] /loader][
@@ -374,6 +376,20 @@ system-dialect: context [
 			count: 0
 			parse spec [opt block! any [word! block! (count: count + 1)]]
 			count
+		]
+		
+		any-pointer?: func [type [word!]][
+			either find type-sets type [
+				not empty? intersect get type any-pointer!
+			][
+				to logic! find any-pointer! type
+			]
+		]
+
+		equal-types?: func [type1 [word!] type2 [word!]][
+			type1: either find type-sets type1 [get type1][reduce [type1]]
+			type2: either find type-sets type2 [get type2][reduce [type2]]
+			not empty? intersect type1 type2
 		]
 		
 		resolve-aliased: func [type [word! block!] /local name][
@@ -695,8 +711,8 @@ system-dialect: context [
 		
 		check-expected-type: func [name [word!] expr expected [block!] /ret /key /local type alias][
 			unless any [not none? expr key][return none]			;-- expr == none for special keywords
-			
 			if all [
+				not all [block? expr object? expr/1 expr/1/type = 'null] ;-- avoid null type resolution here
 				not none? expr							;-- expr can be false, so explicit check for none is required
 				first type: resolve-expr-type expr		;-- first => deep check that it's not [none]
 			][											;-- check if a type is returned or none		
@@ -704,6 +720,13 @@ system-dialect: context [
 				if alias: select aliased-types expected/1 [expected: alias]
 			]
 			unless any [
+				all [
+					block? expr
+					object? expr/1
+					expr/1/action = 'null
+					type: expected						;-- morph null type to expected
+					any-pointer? expected/1
+				]
 				all [
 					type
 					find type-sets expected
@@ -717,6 +740,7 @@ system-dialect: context [
 				]
 				expected = type 						 ;-- normal single-type case
 			][
+				if expected = type [type: 'null]		 ;-- make null error msg explicit
 				any [
 					backtrack any [all [block? expr expr/1] expr]
 					backtrack name
@@ -754,7 +778,7 @@ system-dialect: context [
 					find emitter/target/comparison-op name
 					find emitter/target/bitwise-op name
 				]
-				list/1/1 <> list/2/1				;-- allow implicit casting for math ops only
+				not equal-types? list/1/1 list/2/1	;-- allow implicit casting for math ops only
 			][
 				backtrack name
 				throw-error [
@@ -765,8 +789,8 @@ system-dialect: context [
 			if all [
 				find emitter/target/math-op name				
 				any [
-					all [list/1/1 = 'byte! find [c-string! pointer! struct!] list/2/1]
-					all [list/2/1 = 'byte! find [c-string! pointer! struct!] list/1/1]
+					all [list/1/1 = 'byte! any-pointer? list/2/1]
+					all [list/2/1 = 'byte! any-pointer? list/1/1]
 				]
 			][
 				backtrack name
@@ -941,6 +965,11 @@ system-dialect: context [
 				throw-error ["invalid pointer syntax:" mold pos]
 			]
 			comp-reference-literal
+		]
+		
+		comp-null: does [
+			pc: next pc
+			reduce [make action-class [action: 'null type: none] 0]
 		]
 		
 		comp-as: has [ctype][
@@ -1204,11 +1233,23 @@ system-dialect: context [
 		][
 			prepare-value: [		
 				if all [block? tree/2 object? tree/2/1][;-- detect a casting
-					casted: tree/2/1/type				;-- save casting type
-					if all [block? tree/2/2 object? tree/2/2/1][
-						raise-casting-error
+					switch tree/2/1/action [
+						type-cast [
+							casted: tree/2/1/type				;-- save casting type
+							if all [block? tree/2/2 object? tree/2/2/1][
+								raise-casting-error
+							]
+							tree/2: cast casted tree/2/2		;-- remove encoding object
+						]
+						null [
+							unless casted: attempt [
+								get-mapped-type any [all [set-word? tree/1 name] tree/1]
+							][
+								throw-error ["Invalid null assignement to:" tree/1]
+							]
+							tree/2: 0
+						]
 					]
-					tree/2: cast casted tree/2/2		;-- remove encoding object
 				]
 				value: either block? tree/2 [			;-- detect a sub-expression
 					type: resolve-expr-type tree/2		;-- check that function is returning a value
