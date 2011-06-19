@@ -60,6 +60,19 @@ unless parse system/script/args [
 	halt
 ]
 
+unless opts/config-name [
+	; If desired target was not set explicitly, try to infer it from the
+	; REBOL host version.
+	process-target any [
+		select [
+			3 "MSDOS"
+			4 "Linux"
+			5 "Darwin"
+		] system/version/4
+		"MSDOS"
+	]
+]
+
 unless all [
 	file? file: attempt [load file]
 	exists? file	
