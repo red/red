@@ -28,7 +28,7 @@ Red/System [
           if str/1 < #"^(E0)" [
              if str/2 < #"^(80)" [return i]
              if str/2 > #"^(BF)" [return i]
-             if str/3 <> null-char [
+             if str/3 <> null-byte [
                i: i + 1
                str: str + 1
              ]
@@ -36,7 +36,7 @@ Red/System [
         ]
         i: i + 1
         str: str + 1
-        str/1 = null-char
+        str/1 = null-byte
       ]
       0
     ]

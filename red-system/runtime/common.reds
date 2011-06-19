@@ -20,7 +20,7 @@ Red/System [
 #define as-integer	[as integer!]
 #define as-c-string	[as c-string!]
 
-#define null-char	#"^(00)"
+#define null-byte	#"^(00)"
 #define yes			true
 #define no			false
 #define on			true

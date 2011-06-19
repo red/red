@@ -17,7 +17,7 @@ overwrite: func [
   until [
     c: c + 1
     target/c: src/c
-    if target/c = null-char [exit]
+    if target/c = null-byte [exit]
     c = max-len 
   ]
 ]
