@@ -138,7 +138,7 @@ system: struct [							;-- store runtime accessible system values
 		/local base
 	][
 		base: s
-		while [s/1 <> null-char][s: s + 1]
+		while [s/1 <> null-byte][s: s + 1]
 		as-integer s - base 				;-- do not count the terminal zero
 	]
 ]
