@@ -1243,9 +1243,10 @@ system-dialect: context [
 						]
 						null [
 							unless casted: attempt [
-								get-mapped-type any [all [set-word? tree/1 name] tree/1]
+								get-mapped-type any [all [set-word? tree/1 name] to path! tree/1]
 							][
-								throw-error ["Invalid null assignement to:" tree/1]
+								backtrack tree/1
+								throw-error "Invalid null assignement"
 							]
 							tree/2: 0
 						]
