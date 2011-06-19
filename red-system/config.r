@@ -9,14 +9,15 @@ REBOL [
 ;;-------------------------------------------
 ;;     Compilation Target Options
 ;;-------------------------------------------
-;;  OS:			  'Windows | 'Linux | 'MacOSX | 'Syllable	;-- operating system name
-;;	format: 	  'PE  | 'ELF | 'Mach-o			;-- file format
-;;	type: 		  'exe | 'obj | 'lib | 'dll		;-- file type
-;;	target:		  'IA-32						;-- CPU or VM target
-;;	sub-system:	  'GUI | 'console				;-- type of user interface
-;;	PIC?:		   yes | no						;-- generate Position Independent Code
-;;  base-address: <integer!>					;-- base image memory address
-;;  use-natives?:  yes | no						;-- use native functions instead of C bindings (when possible)
+;;	OS:				'Windows | 'Linux | 'MacOSX | 'Syllable	;-- operating system name
+;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
+;;	type:			'exe | 'obj | 'lib | 'dll	;-- file type
+;;	target:			'IA-32						;-- CPU or VM target
+;;	sub-system:		'GUI | 'console				;-- type of user interface
+;;	PIC?:			yes | no					;-- generate Position Independent Code
+;;	base-address:	<integer!>					;-- base image memory address
+;;	use-natives?:	yes | no					;-- use native functions instead of C bindings (when possible)
+;;	dynamic-linker:	none | <string!>			;-- ELF dynamic linker ("interpreter") to use
 ;;-------------------------------------------
 
 ;-------------------------
@@ -45,6 +46,7 @@ Linux [									; Linux default target
 	OS:			'Linux
 	format: 	'ELF
 	type:		'exe
+	dynamic-linker: "/lib/ld-linux.so.2"
 ]
 ;-------------------------
 ;LinSO [								; not supported yet
@@ -52,6 +54,7 @@ Linux [									; Linux default target
 ;	format: 	'ELF
 ;	type:		'DLL
 ;	PIC?:		yes
+;	dynamic-linker: "/lib/ld-linux.so.2"
 ;]
 ;-------------------------
 Syllable [

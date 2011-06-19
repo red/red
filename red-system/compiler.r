@@ -1584,29 +1584,30 @@ system-dialect: context [
 	]
 	
 	options-class: context [
-		config-name:  none				;-- Preconfigured compilation target ID
-		OS:			  select [			;-- Operating System
-						3	'Windows
-						4	'Linux
-						5	'MacOSX
-					  ] system/version/4
-		OS-version:	  none				;-- OS version
-		link?: 		  no				;-- yes = invoke the linker and finalize the job
-		debug?:		  no				;-- reserved for future use
-		build-dir:	  %builds/			;-- where to place compile/link results
-		format:		  select [			;-- file format
-						3	'PE				;-- Windows
-						4	'ELF			;-- Linux
-						5	'Mach-o			;-- Mac OS X
-					  ] system/version/4
-		type:		  'exe				;-- file type ('exe | 'dll | 'lib | 'obj)
-		target:		  'IA32				;-- CPU target
-		verbosity:	  0					;-- logs verbosity level
-		sub-system:	  'console			;-- 'GUI | 'console
-		runtime?: 	  yes				;-- include Red/System runtime
-		use-natives?: no				;-- force use of native functions instead of C bindings
-		PIC?:		  no				;-- compile using Position Independent Code
-		base-address: none				;-- base image memory address
+		config-name:	none			;-- Preconfigured compilation target ID
+		OS:				select [		;-- Operating System
+						  3	'Windows
+						  4	'Linux
+						  5	'MacOSX
+						] system/version/4
+		OS-version:		none			;-- OS version
+		link?:			no				;-- yes = invoke the linker and finalize the job
+		debug?:			no				;-- reserved for future use
+		build-dir:		%builds/		;-- where to place compile/link results
+		format:			select [		;-- file format
+						  3	'PE				;-- Windows
+						  4	'ELF			;-- Linux
+						  5	'Mach-o			;-- Mac OS X
+						] system/version/4
+		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj)
+		target:			'IA32			;-- CPU target
+		verbosity:		0				;-- logs verbosity level
+		sub-system:		'console		;-- 'GUI | 'console
+		runtime?:		yes				;-- include Red/System runtime
+		use-natives?:	no				;-- force use of native functions instead of C bindings
+		PIC?:			no				;-- compile using Position Independent Code
+		base-address:	none			;-- base image memory address
+		dynamic-linker: none			;-- ELF dynamic linker ("interpreter")
 	]
 	
 	compile: func [

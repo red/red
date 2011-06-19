@@ -23,7 +23,6 @@ context [
 
 		base-address	(to-integer #{08048000})
 		page-size		4096
-		dynamic-linker	"/lib/ld-linux.so.2"
 
 		;; ELF Constants
 
@@ -196,14 +195,18 @@ context [
 	build: func [
 		job [object!]
 		/local
+			base-address dynamic-linker
 			libraries symbols structure segments sections commands layout
 			get-address get-offset get-size get-meta get-data set-data
 	] [
+		base-address: any [job/base-address defs/base-address]
+		dynamic-linker: any [job/dynamic-linker ""]
+
 		set [libraries symbols] collect-import-names job
 
 		structure: copy default-structure
 
-		if empty? defs/dynamic-linker [
+		if empty? dynamic-linker [
 			remove-elements structure [".interp"]
 		]
 
@@ -227,7 +230,7 @@ context [
 		sections: collect-structure-names structure 'section
 
 		commands: compose/deep [
-			"rx"			skip (any [job/base-address defs/base-address])
+			"rx"			skip (base-address)
 			"rw"			skip (defs/page-size)
 
 			".hash"			meta [link ".dynsym"]
@@ -244,7 +247,7 @@ context [
 			".dynamic"		size [elf-dynamic		9 + length? libraries]
 			"shdr"			size [section-header	length? sections]
 
-			".interp"		data (to-c-string defs/dynamic-linker)
+			".interp"		data (to-c-string dynamic-linker)
 			".dynstr"		data (to-elf-strtab join libraries symbols)
 			".text"			data (job/sections/code/2)
 			".data"			data (job/sections/data/2)
@@ -717,8 +720,10 @@ context [
 		-1 + index? find strtab to-c-string string
 	]
 
-	section-index-of: func [sections [block!] section [string! none!]] [
-		either none? section [0] [index? find sections section]
+	section-index-of: func [
+		sections [block!] section [string! none!] /local pos
+	] [
+		either pos: find sections section [index? pos] [0]
 	]
 
 	rel-address-of: func [
