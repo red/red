@@ -52,6 +52,7 @@ make-if-needed?: func [
   --run-test-file %source/units/pointer-test.reds
   --run-test-file %source/units/cast-test.reds
   --run-test-file %source/units/alias-test.reds
+  --run-test-file %source/units/length-test.reds
 ===end-group===
 
 ===start-group=== "Native functions tests"
