@@ -161,7 +161,24 @@ Red/System [
 	pointer-idx: 2
 	b-pointer: b-pointer + pointer-idx
 	--assert b-pointer/value = #"l"
-
+	
+	--test-- "pointer-calc-9" 
+	pA: as [pointer! [integer!]] pa-struct
+	--assert pA/1 = 123456789
+	--assert pA/2 = 987654321
+	
+	--test-- "pointer-calc-10" 
+	pointer-idx: 1
+	--assert pA/pointer-idx = 123456789
+	
+	--test-- "pointer-calc-11" 
+	pointer-idx: 2
+	--assert pA/pointer-idx = 987654321
+	
+	--test-- "pointer-calc-12" 
+	pointer-idx: 4
+	--assert pA/pointer-idx = 123
+	
 ===end-group===
 
 ===start-group=== "Local pointers simple read/write tests"
@@ -315,6 +332,23 @@ pointer-local-foo: func [
 	pointer-idx: 2
 	b-pointer: b-pointer + pointer-idx
 	--assert b-pointer/value = #"l"
+	
+	--test-- "loc-point-calc-9" 
+	pA: as [pointer! [integer!]] pa-struct
+	--assert pA/1 = 123456789
+	--assert pA/2 = 987654321
+
+	--test-- "loc-point-calc-10" 
+	pointer-idx: 1
+	--assert pA/pointer-idx = 123456789
+
+	--test-- "loc-point-calc-11" 
+	pointer-idx: 2
+	--assert pA/pointer-idx = 987654321
+
+	--test-- "loc-point-calc-12" 
+	pointer-idx: 4
+	--assert pA/pointer-idx = 123
 ]
 pointer-local-foo
 

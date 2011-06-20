@@ -1188,7 +1188,6 @@ system-dialect: context [
 		comp-path: has [path][
 			path: pc/1
 			comp-word/path path/1
-?? path			
 			last-type: resolve-path-type path
 			path
 		]
