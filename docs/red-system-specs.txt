@@ -664,12 +664,14 @@ Keep in mind that pointer!, c-string! and struct! are passed by reference, so th
 <th>c-string!</th>
 <th>pointer!</th>
 <th>struct!</th>
+<th>function! &sup2;</th>
 </tr><tr>
 
 <th>byte!</th>
 <td class="warn">WARNING</td>
-<td class="allow">to byte!(1)</td>
-<td class="allow">true -> #"^(01)"<br>false -> #"^(00)"</td>
+<td class="allow">to byte! &sup1;</td>
+<td class="allow">true &raquo; #"^(01)"<br>false &raquo; #"^(00)"</td>
+<td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -678,19 +680,21 @@ Keep in mind that pointer!, c-string! and struct! are passed by reference, so th
 <th>integer!</th>
 <td class="allow">to integer!</td>
 <td class="warn">WARNING</td>
-<td class="allow">true -> 1<br>false -> 0</td>
+<td class="allow">true &raquo; 1<br>false &raquo; 0</td>
+<td class="allow">to integer!</td>
 <td class="allow">to integer!</td>
 <td class="allow">to integer!</td>
 <td class="allow">to integer!</td>
 </tr><tr>
 
 <th>logic!</th>
-<td class="allow">#"^(00)"->false<br>else -> true</td>
-<td class="allow">0 -> false<br>else -> true</td>
+<td class="allow">#"^(00)" &raquo; false<br>else &raquo; true</td>
+<td class="allow">0 &raquo; false<br>else &raquo; true</td>
 <td class="warn">WARNING</td>
-<td class="allow">null -> false<br>else -> true</td>
-<td class="allow">null -> false<br>else -> true</td>
-<td class="allow">null -> false<br>else -> true</td>
+<td class="allow">null &raquo; false<br>else &raquo; true</td>
+<td class="allow">null &raquo; false<br>else &raquo; true</td>
+<td class="allow">null &raquo; false<br>else &raquo; true</td>
+<td class="deny">ERROR</td>
 </tr><tr>
 
 <th>c-string!</th>
@@ -700,6 +704,7 @@ Keep in mind that pointer!, c-string! and struct! are passed by reference, so th
 <td class="warn">WARNING</td>
 <td class="allow">to c-string!</td>
 <td class="allow">to c-string!</td>
+<td class="deny">ERROR</td>
 </tr><tr>
 
 <th>pointer!</th>
@@ -709,6 +714,7 @@ Keep in mind that pointer!, c-string! and struct! are passed by reference, so th
 <td class="allow">to pointer!</td>
 <td class="warn">WARNING</td>
 <td class="allow">to pointer!</td>
+<td class="deny">ERROR</td>
 </tr><tr>
 
 <th>struct!</th>
@@ -718,11 +724,13 @@ Keep in mind that pointer!, c-string! and struct! are passed by reference, so th
 <td class="allow">to struct!</td>
 <td class="allow">to struct!</td>
 <td class="warn">WARNING</td>
+<td class="deny">ERROR</td>
 </tr>
 </table>
 </div>
 
-(1) Casting allowed, but integer values higher than 255 will be truncated, so beware!
+&sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
+&sup2; Function! is a pseudo-type that cannot be the target of a type casting.
 
 ---Type Conversion
 
@@ -1863,6 +1871,9 @@ will output:
 *>Note added to warn about transparent statements after a function ending expression.
 
 *>Minor code example cleanup (local type declaration removed)
+
+*>Added a function! column in the type casting matrix.
+
 
 
 *<b>12/06/2011 - draft 15</b>

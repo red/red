@@ -25,7 +25,7 @@ legend {font-weight: bold;}
 }
 .matrix th, .matrix td {
 	border: 1px solid #888;
-	font-size: 13px;
+	font-size: 12px;
 	padding: 12px 12px;
 }
 .matrix td {text-align: center;}

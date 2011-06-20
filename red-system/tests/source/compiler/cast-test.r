@@ -67,6 +67,13 @@ compiled?: func [
         c1 [byte!] c2 [byte!] c3 [byte!] c4 [byte!] c5 [byte!]
       ]] csc7-str
     }
+    
+	--test-- "cast function! 1"
+	--assert compiled? {
+		Red/System[]
+		foo: func [[callback] a [integer!]][]
+		i: as integer! :foo
+	}
  
  ===end-group===
  
@@ -147,6 +154,29 @@ compiled?: func [
     }
         
 ===end-group=== 
+
+===start-group=== "Errors"
+ 
+	--test-- "cast function! error 1"
+	--compile-this {
+		foo: func [[callback] a [integer!]][]
+		b: as byte! :foo
+	}
+	--assert-msg? "type casting from function! to byte! is not allowed"
+	
+	--test-- "cast function! error 2"
+	--compile-this {
+		foo: func [[callback] a [integer!]][]
+		l: as logic! :foo
+	}
+	--assert-msg? "type casting from function! to logic! is not allowed"
+	
+	--test-- "cast function! error 3"
+	--compile-this {
+		foo: func [[callback] a [integer!]][]
+		s: as c-string! :foo
+	}
+	--assert-msg? "type casting from function! to c-string! is not allowed"
        
 ~~~end-file~~~
 

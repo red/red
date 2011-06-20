@@ -552,6 +552,7 @@ system-dialect: context [
 				] 'as
 			]
 			if any [
+				all [type/1 = 'function! ctype/1 <> 'integer!]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
 				all [
 					find [c-string! pointer! struct!] ctype/1
