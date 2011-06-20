@@ -417,11 +417,14 @@ system-dialect: context [
 		]
 		
 		resolve-path-type: func [path [path! set-path!] /parent prev /local type][
-			type: either parent [
-				resolve-type/with path/1 prev
-			][
-				resolve-type path/1
-			]
+			type: either word? path/1 [
+				either parent [
+					resolve-type/with path/1 prev
+				][
+					resolve-type path/1
+				]
+			][reduce [type?/word path/1]]
+			
 			either tail? skip path 2 [
 				switch/default type/1 [
 					c-string! [
@@ -443,7 +446,7 @@ system-dialect: context [
 						]
 					]
 				][
-					backtrack path
+					pc: back pc
 					throw-error "invalid path value"
 				]
 			][
@@ -1185,6 +1188,7 @@ system-dialect: context [
 		comp-path: has [path][
 			path: pc/1
 			comp-word/path path/1
+?? path			
 			last-type: resolve-path-type path
 			path
 		]
