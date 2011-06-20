@@ -139,6 +139,23 @@ comment {
     s: s + 1
     i2: as integer! s
   --assert i2 = 9
+
+  --test-- "int-cast-19"
+    either as-logic 0 [
+      ic19-logic: false
+    ][
+      ic19-logic: true
+    ]
+  --assert ic19-logic
+  
+  --test-- "int-cast-20"
+    ic20-dummy: func [return: [integer!]][0]
+    either as-logic dummy [
+      ic20-logic: false
+    ][
+      ic20-logic: true
+    ]
+  --assert ic20-logic
   
 ===end-group===
 
