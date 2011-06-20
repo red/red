@@ -775,7 +775,7 @@ Function definition and usage is pretty straightforward in Red/System. The funct
  why?: func [return: [integer!]][42]	;-- minimal function returning an integer
 
  inc: func [							;-- increment an integer
- 	a 		[integer!]
+ 	a [integer!]
  	return: [integer!]
  ][
  	a + 1								;-- last value is returned
@@ -785,8 +785,7 @@ Function definition and usage is pretty straightforward in Red/System. The funct
  	a [integer!]
  	b [integer!]
  	return: [integer!]
- 	/local								;-- declare local variables
- 	c [integer!]
+ 	/local c							;-- declare local variables
  ][
  	c: 100
  	a * c / b
@@ -799,6 +798,11 @@ Any function is able to return a value if necessary. This is trivially achieved 
 *a RETURN: statement is present in function's spec block
 
 *last expression datatype matches the one declared after the RETURN: statement
+
+\note Implementation-specific note
+Some language statements like ALIAS or FUNC, are handled by the compiler in such a way that there are transparent to surrounding code. This means that such statement could be added after a function ending expression without having impact on it, nor raising any compilation error. Such construction has not much sense and would be considered bad practice if used.
+
+/note
 
 ---Attributes
 
@@ -1855,6 +1859,10 @@ will output:
 *>Added missing 'comment word in keywords list
 
 *>Added variable initialization at root level restriction description.
+
+*>Note added to warn about transparent statements after a function ending expression.
+
+*>Minor code example cleanup (local type declaration removed)
 
 
 *<b>12/06/2011 - draft 15</b>
