@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.4.0
+	Version: 0.4.1
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -172,8 +172,8 @@ qt: make object! [
     src [file!]
   ][
     print join "" [src " - compiler error"]
-    assert false
     print comp-output
+    test-run/failures: test-run/failures + 1           ;; signify failing test
   ]
   
   compile-ok?: func [] [
