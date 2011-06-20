@@ -241,7 +241,7 @@ system-dialect: context [
 			pos: some [word! into type-spec]						;-- struct's members
 		]
 		
-		pointer-syntax: ['integer!]
+		pointer-syntax: ['integer! | 'byte!]
 		
 		func-pointer: ['function! set value block! (check-specs '- value)]
 		

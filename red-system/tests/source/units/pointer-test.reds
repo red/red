@@ -97,6 +97,24 @@ Red/System [
 	--test-- "pointer-rw-13"
 	pointer-str/sub/C/2: 987654321
 	--assert p-struct/m = 987654321
+	
+	--test-- "pointer-rw-14"
+	b-pointer: pointer [byte!]
+	b-str: "hello"
+	b-pointer: as [pointer! [byte!]] b-str
+	--assert b-pointer/value = #"h"
+	
+	--test-- "pointer-rw-15"
+	foo-b-pointer: func [
+		a [pointer! [byte!]]
+		return: [pointer! [byte!]]
+	][
+		a
+	]
+	b-pointer2: pointer [byte!]
+
+	b-pointer2: foo-b-pointer b-pointer
+	--assert b-pointer2/value = #"h"
 
 ===start-group=== "Pointers arithmetic"
 	
@@ -136,6 +154,13 @@ Red/System [
 	--test-- "pointer-calc-7"
 	pA: pA - pointer-idx
 	--assert pA/value = 123
+	
+	--test-- "pointer-calc-8"
+	b-pointer: b-pointer + 1
+	--assert b-pointer/value = #"e"
+	pointer-idx: 2
+	b-pointer: b-pointer + pointer-idx
+	--assert b-pointer/value = #"l"
 
 ===end-group===
 
@@ -154,6 +179,9 @@ pointer-local-foo: func [
 			sub [struct! [C [pointer! [integer!]]]]
 		]]
 		pa-struct [struct! [n [integer!] m [integer!] p [integer!] o [integer!]]]
+		b-pointer [pointer! [byte!]]
+		b-str	[c-string!]
+		pointer-idx [integer!]
 ][
 
 	--test-- "loc-point-rw-1"
@@ -235,6 +263,17 @@ pointer-local-foo: func [
 	pointer-str/sub/C/2: 987654321
 	--assert p-struct/m = 987654321
 	
+	--test-- "loc-point-rw-14"
+	b-pointer: pointer [byte!]
+	b-str: "hello"
+	b-pointer: as [pointer! [byte!]] b-str
+	--assert b-pointer/value = #"h"
+
+	--test-- "loc-point-rw-15"
+	b-pointer2: pointer [byte!]
+	b-pointer2: foo-b-pointer b-pointer
+	--assert b-pointer2/value = #"h"
+	
 	--test-- "loc-point-calc-1"
 	pa-struct: struct [n [integer!] m [integer!] p [integer!] o [integer!]]
 
@@ -269,6 +308,13 @@ pointer-local-foo: func [
 	--test-- "loc-point-calc-7"
 	pA: pA - p-idx
 	--assert pA/value = 123
+	
+	--test-- "loc-point-calc-8"
+	b-pointer: b-pointer + 1
+	--assert b-pointer/value = #"e"
+	pointer-idx: 2
+	b-pointer: b-pointer + pointer-idx
+	--assert b-pointer/value = #"l"
 ]
 pointer-local-foo
 

@@ -6,27 +6,28 @@ Red/System [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-#define zero? 		[0 =]
-#define positive?	[0 < ]					;-- space required after the lesser-than symbol
-#define negative?	[0 > ]
-#define negate		[0 -]
+#define zero? 		  [0 =]
+#define positive?	  [0 < ]				;-- space required after the lesser-than symbol
+#define negative?	  [0 > ]
+#define negate		  [0 -]
+ 
+#define forever		  [while [true]]
+#define does		  [func []]
+#define unless		  [if not]
+ 
+#define as-byte		  [as byte!]
+#define as-logic	  [as logic!]
+#define as-integer	  [as integer!]
+#define as-c-string	  [as c-string!]
+ 
+#define null-byte	  #"^(00)"
+#define yes			  true
+#define no			  false
+#define on			  true
+#define off			  false
 
-#define forever		[while [true]]
-#define does		[func []]
-#define unless		[if not]
-
-#define as-byte		[as byte!]
-#define as-logic	[as logic!]
-#define as-integer	[as integer!]
-#define as-c-string	[as c-string!]
-
-#define null-byte	#"^(00)"
-#define yes			true
-#define no			false
-#define on			true
-#define off			false
-
-#define byte-ptr!	c-string!
+#define byte-ptr!	  [pointer! [byte!]]
+#define make-c-string [as c-string! allocate]
 
 
 newline: 	"^/"

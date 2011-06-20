@@ -64,17 +64,17 @@ Red/System [
 ===start-group=== "Allocated strings"
 	
   --test-- "len-alloc-1"
-    la1-s1: allocate 128
+    la1-s1: make-c-string 128
     la1-s1/128: null-byte
   --assert 128 > length? la1-s1
   
   --test-- "len-alloc-2"
-    la2-s1: allocate 128
+    la2-s1: make-c-string 128
     la2-s1/1: null-byte
   --assert 0 = length? la2-s1
   
   --test-- "len-alloc-3"
-    la2-s1: allocate 128
+    la2-s1: make-c-string 128
     la2-s1: "Nenad"
   --assert 5 = length? la2-s1
 

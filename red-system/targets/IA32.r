@@ -317,13 +317,13 @@ make target-class [
 		path [path! set-path!] parent [block! none!] /local opcodes idx type
 	][
 		opcodes: pick [[							;-- store path opcodes --
-				[#{} #{8910}  ]						;-- MOV [eax], dx|edx
-				[#{} #{8990}  ]						;-- MOV [eax + idx * sizeof(p/value)], dx|edx
-				[#{} #{891498}]						;-- MOV [eax + ebx * sizeof(p/value)], dx|edx
+				[#{8810} #{8910}]					;-- MOV [eax], rD
+				[#{8890} #{8990}]					;-- MOV [eax + idx * sizeof(p/value)], rD
+				[#{881418} #{891498}]				;-- MOV [eax + ebx * sizeof(p/value)], rD
 			][										;-- load path opcodes --
-				[#{} #{8B00}  ]						;-- MOV ax|eax, [eax]
-				[#{} #{8B80}  ]						;-- MOV ax|eax, [eax + idx * sizeof(p/value)]
-				[#{} #{8B0498}]						;-- MOV ax|eax, [eax + ebx * sizeof(p/value)]
+				[#{8A00} #{8B00}]					;-- MOV rA, [eax]
+				[#{8A80} #{8B80}]					;-- MOV rA, [eax + idx * sizeof(p/value)]
+				[#{8A0418} #{8B0498}]				;-- MOV rA, [eax + ebx * sizeof(p/value)]
 		]] set-path? path
 		
 		type: either parent [
