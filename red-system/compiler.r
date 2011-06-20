@@ -1071,10 +1071,10 @@ system-dialect: context [
 					[#[true]]
 				]
 				block! [
-					either find comparison-op expr/1 [
-						expr
-					][
-						process-logic-encoding expr/1
+					case [
+						find comparison-op expr/1 [expr]
+						object? expr/1 [blockify cast expr/1/type expr/2]
+						'else [process-logic-encoding expr/1]
 					]
 				]
 				tag! [either expr <> <last> [ [#[true]] ][expr]]
