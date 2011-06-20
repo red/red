@@ -189,6 +189,7 @@ system-dialect: context [
 		locals: 	 none								;-- currently compiled function specification block
 		locals-init: []									;-- currently compiler function locals variable init list
 		func-name:	 none								;-- currently compiled function name
+		block-level: 0									;-- nesting level of input source block
 		verbose:  	 0									;-- logs verbosity level
 	
 		imports: 	   make block! 10					;-- list of imported functions
@@ -1294,6 +1295,10 @@ system-dialect: context [
 							]
 						]
 					][
+						unless zero? block-level [
+							backtrack tree/1
+							throw-error "variable has to be initialized at root level"
+						]
 						type: add-symbol name data casted  ;-- if unknown add it to global context
 					]
 					if none? type/1 [
@@ -1414,6 +1419,7 @@ system-dialect: context [
 		
 		comp-block: func [/final /only /local fetch expr][
 			fetch: [either final [fetch-expression/final][fetch-expression]]
+			block-level: block-level + 1
 			pc: fetch-into pc/1 [
 				either only [
 					expr: do fetch
@@ -1430,10 +1436,12 @@ system-dialect: context [
 					]
 				]
 			]
+			block-level: block-level - 1
 			expr
 		]
 		
 		comp-dialect: has [expr][
+			block-level: 0
 			while [not tail? pc][
 				case [
 					issue? pc/1 [comp-directive]

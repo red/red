@@ -22,6 +22,7 @@ Red/System [
 	
 	--test-- "byte-operator-1"
 	  bo1-c: #"^(10)"
+	  bo1-res: -1
 	  either (as byte! 17)  < bo1-c [bo1-res: 1][bo1-res: 0]
 	--assert bo1-res = 0    
 	

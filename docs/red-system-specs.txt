@@ -110,7 +110,15 @@ Variables do have a type. Variables do not need to be declared before being used
  
 are valid variable usages.
 
-Allowed types are:
+Initializations have to be done at root level of code, attempt to initialize from a block of code will result in a compilation error.
+
+ foo: 123								;-- valid initialization
+
+ if a < b [foo: 123]					;-- invalid initialization
+ 
+<u>Note</u>: A function body block is considered a root level.
+
+Allowed types for variables are:
 
 *integer!
 
@@ -1846,6 +1854,7 @@ will output:
 
 *>Added missing 'comment word in keywords list
 
+*>Added variable initialization at root level restriction description.
 
 
 *<b>12/06/2011 - draft 15</b>
