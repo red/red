@@ -1073,7 +1073,13 @@ system-dialect: context [
 				block! [
 					case [
 						find comparison-op expr/1 [expr]
-						object? expr/1 [blockify cast expr/1/type expr/2]
+						object? expr/1 [				
+							expr: blockify cast expr/1/type expr/2
+							unless word? expr/1 [
+								emitter/target/emit-operation '= [<last> 0]
+							]
+							process-logic-encoding expr
+						]
 						'else [process-logic-encoding expr/1]
 					]
 				]
@@ -1240,11 +1246,11 @@ system-dialect: context [
 				if all [block? tree/2 object? tree/2/1][;-- detect a casting
 					switch tree/2/1/action [
 						type-cast [
-							casted: tree/2/1/type				;-- save casting type
+							casted: tree/2/1/type		;-- save casting type
 							if all [block? tree/2/2 object? tree/2/2/1][
 								raise-casting-error
 							]
-							tree/2: cast casted tree/2/2		;-- remove encoding object
+							tree/2: cast casted tree/2/2 ;-- remove encoding object
 						]
 						null [
 							unless casted: attempt [
@@ -1317,6 +1323,9 @@ system-dialect: context [
 					switch tree/1/action [
 						type-cast [						;-- apply type casting
 							do prepare-value
+							unless find [none! tag! object! block!] type?/word value [
+								emitter/target/emit-load value
+							]
 							last-type: tree/1/type
 						]
 						;-- add more special actions here
