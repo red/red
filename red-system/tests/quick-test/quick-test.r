@@ -174,6 +174,7 @@ qt: make object! [
     print join "" [src " - compiler error"]
     print comp-output
     test-run/failures: test-run/failures + 1           ;; signify failing test
+    test-run/no-asserts: test-run/no-asserts + 1
   ]
   
   compile-ok?: func [] [
