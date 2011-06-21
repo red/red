@@ -207,7 +207,7 @@ system-dialect: context [
 		any-pointer!: [pointer! struct! c-string!]		;-- reserved for internal use only
 		poly!:		  union number!	any-pointer!		;-- reserved for internal use only				
 		any-type!:	  union poly! [logic!]				;-- reserved for internal use only
-		type-sets:	  [not-set! number! poly! any-type!];-- reserved for internal use only
+		type-sets:	  [not-set! number! poly! any-type! any-pointer!] ;-- reserved for internal use only
 		
 		comparison-op: [= <> < > <= >=]
 		
@@ -397,6 +397,7 @@ system-dialect: context [
 			name: either block? type [type/1][type]
 			all [
 				not base-type? name
+				not find type-sets name
 				not type: select aliased-types name
 				throw-error ["unknown type:" type]
 			]
@@ -458,7 +459,7 @@ system-dialect: context [
 		get-mapped-type: func [value][
 			case [
 				value = <last>  [last-type]
-				none?	 value	[none!]					;-- no type case (func with no return value)
+				none?	 value	['none!]				;-- no type case (func with no return value)
 				tag?     value	['logic!]
 				logic?   value	['logic!]
 				word?    value 	[resolve-type value]
@@ -734,8 +735,11 @@ system-dialect: context [
 				]
 				all [
 					type
-					find type-sets expected
-					find expected: get expected/1 type/1 ;-- internal polymorphic case
+					any [
+						find type-sets expected/1
+						find type-sets type/1
+					]
+					equal-types? type/1 expected/1		;-- internal polymorphic case
 				]
 				all [
 					type
@@ -974,7 +978,7 @@ system-dialect: context [
 		
 		comp-null: does [
 			pc: next pc
-			reduce [make action-class [action: 'null type: none] 0]
+			reduce [make action-class [action: 'null type: 'any-pointer!] 0]
 		]
 		
 		comp-as: has [ctype][
@@ -1102,7 +1106,7 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset type][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
 			check-expected-type/key 'either expr [logic!]	;-- verify conditional expression
@@ -1118,8 +1122,10 @@ system-dialect: context [
 			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
 			emitter/merge emitter/chunks/join c-true c-false
 
-			type: resolve-expr-type/quiet e-true		
-			last-type: either type = resolve-expr-type/quiet e-false [type][none] ;-- allow nesting if both blocks return same type
+			t-true:  first blockify resolve-expr-type/quiet e-true
+			t-false: first blockify resolve-expr-type/quiet e-false
+
+			last-type: either equal-types? t-true t-false [t-true][none] ;-- allow nesting if both blocks return same type		
 			<last>
 		]
 		
@@ -1320,16 +1326,17 @@ system-dialect: context [
 					emitter/access-path tree/1 value
 				]
 				object! [								;-- special actions @@
+					do prepare-value
 					switch tree/1/action [
 						type-cast [						;-- apply type casting
-							do prepare-value
 							unless find [none! tag! object! block!] type?/word value [
 								emitter/target/emit-load value
 							]
-							last-type: tree/1/type
 						]
+						null [emitter/target/emit-load value]
 						;-- add more special actions here
 					]
+					last-type: tree/1/type
 				]
 			][											;-- function call --
 				name: to word! tree/1
