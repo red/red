@@ -981,15 +981,17 @@ system-dialect: context [
 			reduce [make action-class [action: 'null type: 'any-pointer!] 0]
 		]
 		
-		comp-as: has [ctype][
+		comp-as: has [ctype ptr?][
 			ctype: pc/2
+			if ptr?: find [pointer! struct!] ctype [ctype: reduce [pc/2 pc/3]]
+			
 			unless any [
 				parse blockify ctype type-syntax
 				find aliased-types ctype
 			][
 				throw-error ["invalid target type casting:" ctype]
 			]
-			pc: skip pc 2
+			pc: skip pc pick [3 2] to logic! ptr?
 			reduce [
 				make action-class [
 					action: 'type-cast
