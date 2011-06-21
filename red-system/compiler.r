@@ -24,7 +24,7 @@ system-dialect: context [
 		
 		hex-chars: charset "0123456789ABCDEF"
 		ws: charset " ^/^M^-"
-		hex-delim: union ws charset "[]()"
+		hex-delim: union ws charset "[]()/"
 		
 		throw-error: func [msg [string! block!]][
 			compiler/throw-error/loader msg
