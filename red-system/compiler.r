@@ -1596,11 +1596,12 @@ system-dialect: context [
 	]
 	
 	make-job: func [opts [object!] file [file!] /local job][
-		file: last split-path file						;-- remove path
-		file: to-file first parse file "."				;-- remove extension
-		
 		job: construct/with third opts linker/job-class	
-		job/output: file
+		unless job/build-basename [
+			file: last split-path file						;-- remove path
+			file: to-file first parse file "."				;-- remove extension
+			job/build-basename: file
+		]
 		job
 	]
 	
@@ -1620,7 +1621,9 @@ system-dialect: context [
 		OS-version:		none			;-- OS version
 		link?:			no				;-- yes = invoke the linker and finalize the job
 		debug?:			no				;-- reserved for future use
-		build-dir:		%builds/		;-- where to place compile/link results
+		build-prefix:	%builds/		;-- prefix to use for output file name (none: no prefix)
+		build-basename:	none			;-- base name to use for output file name (none: derive from input name)
+		build-suffix:	none			;-- suffix to use for output file name (none: derive from output type)
 		format:			select [		;-- file format
 						  3	'PE				;-- Windows
 						  4	'ELF			;-- Linux
@@ -1646,7 +1649,7 @@ system-dialect: context [
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
-			emitter/init opts/link? job: make-job opts last files	;-- last file's name is retained for output
+			emitter/init opts/link? job: make-job opts last files	;-- last input filename is retained for output name
 			set-verbose-level opts/verbosity
 			
 			loader/init
@@ -1672,7 +1675,7 @@ system-dialect: context [
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
 				]
-				linker/build/in job opts/build-dir
+				linker/build job
 			]
 		]
 		output-logs

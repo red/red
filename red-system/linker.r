@@ -62,10 +62,14 @@ linker: context [
 	]
 
 	make-filename: func [job [object!]][
-		join job/output select file-emitter/defs/extensions job/type
+		rejoin [
+			any [job/build-prefix %""]
+			job/build-basename
+			any [job/build-suffix select file-emitter/defs/extensions job/type]
+		]
 	]
 	
-	build: func [job [object!] /in path [file!] /local file][
+	build: func [job [object!] /local file][
 		unless job/target [job/target: cpu-class]
 		job/buffer: make binary! 100 * 1024
 	
@@ -75,8 +79,7 @@ linker: context [
 		file-emitter/build job
 
 		file: make-filename job
-		if in [file: path/:file]
-		if verbose >= 1 [print ["output file:" file]]	
+		if verbose >= 1 [print ["output file:" file]]
 		write/binary file job/buffer
 		
 		if find get-modes file 'file-modes 'owner-execute [
