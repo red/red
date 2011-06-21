@@ -7,10 +7,11 @@ REBOL [
 ]
 
 linker: context [
-	verbose: 0					;-- logs verbosity level
-	version: 1.0.0
-	cpu-class: 'IA32			;-- default target
-	
+	version: 		1.0.0					;-- emitted linker version
+	cpu-class: 		'IA32					;-- default target
+	file-emitter:	none					;-- file emitter object
+	verbose: 		0						;-- logs verbosity level
+		
 	job-class: context [
 		format: 				;-- 'PE | 'ELF | 'Mach-o
 		type: 					;-- 'exe | 'obj | 'lib | 'dll
@@ -22,10 +23,6 @@ linker: context [
 		output:					;-- output file name (without extension)
 		buffer: none
 	]
-	
-	PE:		 do %formats/PE.r
-	ELF:	 do %formats/ELF.r
-	;Mach-o: do %formats/mach-o.r			; TBD
 	
 	resolve-symbol-refs: func [
 		job [object!] 
@@ -64,9 +61,8 @@ linker: context [
 		]
 	]
 
-	make-filename: func [job [object!] /local obj][
-		obj: get in self job/format
-		join job/output select obj/defs/extensions job/type
+	make-filename: func [job [object!]][
+		join job/output select file-emitter/defs/extensions job/type
 	]
 	
 	build: func [job [object!] /in path [file!] /local file][
@@ -75,16 +71,14 @@ linker: context [
 	
 		remove-unused-imports job/sections/import
 	
-		switch job/format [
-			PE     [PE/build 	 job]
-			ELF    [ELF/build 	 job]
-			Mach-o [Mach-o/build job]
-		]
+		file-emitter: do rejoin [%formats/ job/format %.r]
+		file-emitter/build job
+
 		file: make-filename job
 		if in [file: path/:file]
-
 		if verbose >= 1 [print ["output file:" file]]	
 		write/binary file job/buffer
+		
 		if find get-modes file 'file-modes 'owner-execute [
 			set-modes file [owner-execute: true]
 		]
