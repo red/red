@@ -57,6 +57,12 @@ linker: context [
 			]
 		]
 	]
+	
+	remove-unused-imports: func [imports [block!]][
+		foreach [lib list] imports/3 [
+			remove-each [name refs] list [empty? refs]
+		]
+	]
 
 	make-filename: func [job [object!] /local obj][
 		obj: get in self job/format
@@ -66,7 +72,9 @@ linker: context [
 	build: func [job [object!] /in path [file!] /local file][
 		unless job/target [job/target: cpu-class]
 		job/buffer: make binary! 100 * 1024
-		
+	
+		remove-unused-imports job/sections/import
+	
 		switch job/format [
 			PE     [PE/build 	 job]
 			ELF    [ELF/build 	 job]

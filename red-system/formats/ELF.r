@@ -516,7 +516,7 @@ context [
 	collect-import-names: func [job [object!] /local libraries symbols] [
 		libraries: copy []
 		symbols: copy []
-		foreach [libname libuses] skip job/sections/import 2 [
+		foreach [libname libuses] job/sections/import/3 [
 			append libraries libname
 			foreach [symbol callsites] libuses [
 				append symbols symbol
@@ -530,7 +530,7 @@ context [
 		/local rel
 	] [
 		rel: make struct! machine-word none
-		foreach [libname libimports] skip job/sections/import 2 [
+		foreach [libname libimports] job/sections/import/3 [
 			foreach [symbol callsites] libimports [
 				rel/value: rel-address-of/symbol relro-address symbols symbol
 				foreach callsite callsites [

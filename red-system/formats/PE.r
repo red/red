@@ -335,14 +335,14 @@ context [
 		/local spec IDTs ptr len out ILT-base buffer hints idt hint-ptr hint
 	][
 		spec:		job/sections/import
-		IDTs: 		make block! len: divide length? skip spec 2 2	;-- list of directory entries
+		IDTs: 		make block! len: divide length? spec/3 2			;-- list of directory entries
 		out:		make binary! 4096		;-- final output buffer
 		buffer:		make binary! 256		;-- DLL names + ILTs + IATs + hints/names buffer
 		hints:		make binary! 2048		;-- hints/names temporary buffer
 		ptr: 		(section-addr?/memory job 'import)
 					+ (1 + len * length? third import-directory)		;-- point to end of directory table
 
-		foreach [name list] skip spec 2 [	;-- collecting DLL names in buffer
+		foreach [name list] spec/3 [			;-- collecting DLL names in buffer
 			append IDTs idt: make struct! import-directory none
 			idt/name-rva: ptr + length? buffer
 			repend buffer [uppercase name null]
@@ -351,7 +351,7 @@ context [
 		ptr: ptr + length? buffer			;-- base address of ILT/IAT/hints entries
 
 		idx: 1
-		foreach [name list] skip spec 2 [
+		foreach [name list] spec/3 [
 			IDTs/:idx/ILT-rva: ptr
 			ILT-base: tail buffer
 			clear hints

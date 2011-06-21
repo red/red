@@ -1658,7 +1658,7 @@ system-dialect: context [
 		if opts/link? [
 			link-time: dt [
 				job/symbols: emitter/symbols
-				job/sections: compose/deep [
+				job/sections: compose/deep/only [
 					code   [- 	(emitter/code-buf)]
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
