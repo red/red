@@ -17,17 +17,17 @@ The compiler and linker are currently written in REBOL and produce PE (Windows) 
 
 1. The resulting binary is in red-system/builds/. Windows users need to open a DOS console and run hello.exe from there.
 
-The %rsc.r script is only a wrapper script around the compiler, for testing purpose. It accepts a -v[vvv] option for verbose logs. Try it with:
+The %rsc.r script is only a wrapper script around the compiler, for testing purpose. It accepts a `-v <integer!>` option for verbose logs. Try it with:
 
-    >> do/args %rsc.r "-vvvv %tests/hello.reds"
+    >> do/args %rsc.r "-v 4 %tests/hello.reds"
 
 Cross-compilation support
 -------------------------
 From Windows, to emit Linux executables:
 
-    >> do/args %rsc.r "-f ELF %tests/hello.reds"	
+    >> do/args %rsc.r "-t Linux %tests/hello.reds"
 
 From Linux, to emit Windows executables:
 
-    >> do/args %rsc.r "-f PE %tests/hello.reds"	
+    >> do/args %rsc.r "-t MSDOS %tests/hello.reds"
 

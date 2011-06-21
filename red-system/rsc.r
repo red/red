@@ -1,11 +1,11 @@
 REBOL [
 	Title:   "Red/System compiler wrapper"
-	Author:  "Nenad Rakocevic"
+	Author:  "Nenad Rakocevic, Andreas Bolka"
 	File: 	 %rsc.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011 Nenad Rakocevic, Andreas Bolka. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 	Usage:   {
-		do/args %rsc.r "[-vvvv] [-f PE|ELF] %path/source.reds"
+		do/args %rsc.r "[-v <integer!>] path/source.reds"
 	}
 ]
 
@@ -13,105 +13,139 @@ unless value? 'system-dialect [
 	do %compiler.r
 ]
 
-unless exists? %builds/ [make-dir %builds/]
+rsc: context [
+	fail: func [value] [print value halt]
 
-verbosity: 0
-opts: make system-dialect/options-class [link?: yes]
-
-;-- Load preconfigured compilation targets --
-targets: load %config.r
-if exists? %custom-targets.r [
-	insert targets load %custom-targets.r
-]
-
-unless system/script/args [
-	print "Missing command-line arguments!"
-	halt
-]
-
-process-target: func [v][
-	value: attempt [to word! trim v]
-	either find targets value [
-		opts: make opts targets/:value
-		opts/config-name: value
-	][
-		print ["*** Command-line Error: unknown target" v]
-		halt
+	fail-try: func [component body /local err] [
+		if error? set/any 'err try body [
+			err: disarm err
+			foreach w [arg1 arg2 arg3][
+				set w either unset? get/any in err w [none][
+					get/any in err w
+				]
+			]
+			print [
+				"***" component "Internal Error:"
+				system/error/(err/type)/type #":"
+				reduce system/error/(err/type)/(err/id) newline
+				"*** Where:" mold/flat err/where newline
+				"*** Near: " mold/flat err/near newline
+			]
+			halt
+		]
 	]
-]
 
-unless parse system/script/args [
-	any [
-		#"-" [
-			some [#"v" (verbosity: verbosity + 1)] (opts/verbosity: verbosity)
-			| #"t" copy v to #" " (process-target v)
-			| #"f" copy fmt to #" " (opts/format: to-word trim fmt)		; to be removed
-			| #"r" (opts/runtime?: no)
-			| "-" [
-				"no-runtime" (opts/runtime?: no)
-				| "target" copy v to #" " (process-target v)
-				| "verbose" copy v to #" " (opts/verbosity: to integer! trim verbosity)
+	load-filename: func [filename /local result] [
+		unless any [
+			all [
+				#"%" = first filename
+				attempt [result: load filename]
+				file? result
+			]
+			attempt [result: to-rebol-file filename]
+		] [
+			fail ["Invalid filename:" filename]
+		]
+		result
+	]
+
+	load-targets: func [/local targets] [
+		targets: load %config.r
+		if exists? %custom-targets.r [
+			insert targets load %custom-targets.r
+		]
+		targets
+	]
+
+	parse-options: has [
+		args srcs opts output target verbose filename config config-name
+	] [
+		args: any [system/options/args parse any [system/script/args ""] none]
+
+		;; Select a default target based on the REBOL version.
+		target: any [
+			select [
+				3 "MSDOS"
+				4 "Linux"
+				5 "Darwin"
+			] system/version/4
+			"MSDOS"
+		]
+
+		srcs: copy []
+		opts: make system-dialect/options-class [link?: yes]
+
+		parse args [
+			any [
+				  ["-r" | "--no-runtime"] (opts/runtime?: no)
+				| ["-o" | "--output"] set output skip
+				| ["-t" | "--target"] set target skip
+				| ["-v" | "--verbose"] set verbose skip
+				| set filename skip (append srcs load-filename filename)
+			]
+		]
+
+		;; Process -t/--target first, so that all other command-line options
+		;; can potentially override the target config settings.
+		unless config: select load-targets config-name: to word! trim target [
+			fail ["Unknown target:" target]
+		]
+		opts: make opts config
+		opts/config-name: config-name
+
+		;; Process -o/--output (if any).
+		if output [
+			opts/build-prefix: %""
+			opts/build-basename: load-filename output
+		]
+
+		;; Process -v/--verbose (if any).
+		if verbose [
+			unless attempt [opts/verbosity: to integer! trim verbose] [
+				fail ["Invalid verbosity:" verbose]
+			]
+		]
+
+		;; Process input sources.
+		if empty? srcs [fail "No source files specified."]
+		foreach src srcs [
+			unless exists? src [
+				fail ["Cannot access source file:" src]
+			]
+		]
+
+		reduce [srcs opts]
+	]
+
+	main: has [srcs opts build-dir result] [
+		set [srcs opts] parse-options
+
+		;; If we use a build directory, ensure it exists.
+		unless all [
+			opts/build-prefix
+			attempt [make-dir/deep build-dir: first split-path opts/build-prefix]
+		] [
+			fail ["Cannot access build dir:" build-dir]
+		]
+
+		print [
+			newline
+			"-= Red/System Compiler =-" newline
+			"Compiling" srcs "..."
+		]
+
+		fail-try "Compiler" [
+			result: system-dialect/compile/options srcs opts
+		]
+
+		print ["^/...compilation time:" tab round result/1/second * 1000 "ms"]
+		if result/2 [
+			print [
+				"...linking time:" tab tab round result/2/second * 1000 "ms^/"
+				"...output file size:" tab result/3 "bytes"
 			]
 		]
 	]
-	file: to end
-][
-	print "Invalid command line"
-	halt
+
+	fail-try "Driver" [main]
 ]
-
-unless opts/config-name [
-	; If desired target was not set explicitly, try to infer it from the
-	; REBOL host version.
-	process-target any [
-		select [
-			3 "MSDOS"
-			4 "Linux"
-			5 "Darwin"
-		] system/version/4
-		"MSDOS"
-	]
-]
-
-unless all [
-	file? file: attempt [load file]
-	exists? file	
-][
-	print ["Can't access file" mold file]
-	halt
-]
-
-print [
-	newline
-	"-= Red/System Compiler =-" newline
-	"Compiling" file "..."
-]
-
-if error? set/any 'err try [
-	result: system-dialect/compile/options file opts
-][
-	err: disarm err
-	foreach w [arg1 arg2 arg3][
-		set w either unset? get/any in err w [none][
-			get/any in err w
-		]
-	]
-	print [
-		"*** Compiler Internal Error:" 
-		system/error/(err/type)/type #":"
-		reduce system/error/(err/type)/(err/id) newline
-		"*** Where:" mold/flat err/where newline
-		"*** Near: " mold/flat err/near newline
-	]
-	halt
-]
-
-print ["^/...compilation time:" tab round result/1/second * 1000 "ms"]
-if result/2 [
-	print [
-		"...linking time:" tab tab round result/2/second * 1000 "ms^/"
-		"...output file size:" tab result/3 "bytes"
-	]
-]
-
-
