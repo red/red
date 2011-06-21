@@ -20,6 +20,8 @@ Red/System [
 	][
 		p
 	]
+	foo-null: func [return: [pointer! [integer!]]][null]
+	
 	nt-p: pointer [integer!]
 	nt-p: null
 	nt-q: struct [a [integer!]]
@@ -36,6 +38,7 @@ Red/System [
 	--test-- "null-8"  --assert nt-struct/a = null
 	--test-- "null-9"  --assert null = nt-struct/a
 	--test-- "null-10" --assert nt-struct/a = null
+	--test-- "null-11" --assert null = foo-null
 	
 ===end-group===
 
