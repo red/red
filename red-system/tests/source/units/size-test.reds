@@ -9,7 +9,20 @@ Red/System [
 #include %../../quick-test/quick-test.reds
 
 ~~~start-file~~~ "size"
-  
+
+===start-group=== "Size of datatypes"
+
+	--test-- "type-sz-1" --assert 1 = size? byte!
+	--test-- "type-sz-2" --assert 4 = size? integer!
+	--test-- "type-sz-3" --assert 4 = size? logic!
+	--test-- "type-sz-4" --assert 4 = size? pointer!
+	--test-- "type-sz-5" --assert 4 = size? c-string!
+	--test-- "type-sz-6" --assert 4 = size? struct!
+	--test-- "type-sz-7" --assert 4 = size? function!
+
+===end-group===
+
+
 ===start-group=== "Size of literals and global variables"
 
 	--test-- "sz-1"

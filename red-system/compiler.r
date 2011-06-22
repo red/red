@@ -1021,8 +1021,11 @@ system-dialect: context [
 		comp-size?: has [type expr][
 			pc: next pc
 			unless all [
-				word? pc/1
-				type: select aliased-types expr: pc/1
+				word? expr: pc/1
+				type: any [
+					all [base-type? expr expr]
+					select aliased-types expr
+				]
 				pc: next pc
 			][
 				expr: fetch-expression/final	

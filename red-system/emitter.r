@@ -320,15 +320,19 @@ emitter: context [
 		'signed = third any [find datatypes type [- - -]] ;-- force unsigned result for aliased types
 	]
 	
-	get-size: func [type [block!] value][
-		switch/default type/1 [
-			c-string! [
-				call 'length? reduce [value]
-				call '+ [<last> 1]
-			]
-			struct! [target/emit-load member-offset? type/2 none]
+	get-size: func [type [block! word!] value][
+		either word? type [
+			target/emit-load datatypes/:type
 		][
-			target/emit-load select datatypes type/1
+			switch/default type/1 [
+				c-string! [
+					call 'length? reduce [value]
+					call '+ [<last> 1]
+				]
+				struct! [target/emit-load member-offset? type/2 none]
+			][
+				target/emit-load select datatypes type/1
+			]
 		]
 	]
 	
