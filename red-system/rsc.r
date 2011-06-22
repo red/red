@@ -121,11 +121,11 @@ rsc: context [
 		set [srcs opts] parse-options
 
 		;; If we use a build directory, ensure it exists.
-		unless all [
-			opts/build-prefix
-			attempt [make-dir/deep build-dir: first split-path opts/build-prefix]
-		] [
-			fail ["Cannot access build dir:" build-dir]
+		if all [opts/build-prefix find opts/build-prefix %/] [
+			build-dir: copy/part opts/build-prefix find/last opts/build-prefix %/
+			unless attempt [make-dir/deep build-dir] [
+				fail ["Cannot access build dir:" build-dir]
+			]
 		]
 
 		print [
