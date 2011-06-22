@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 12/06/2011
-	Revision: 15
+	Date: 23/06/2011
+	Revision: 16
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -732,13 +732,84 @@ Keep in mind that pointer!, c-string! and struct! are passed by reference, so th
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
 &sup2; Function! is a pseudo-type that cannot be the target of a type casting.
 
----Type Conversion
-
-<i>TBD</i>
 
 ===Expressions
 
-<i>TBD</i>
+Expressions are the basic building blocks of a Red/System program. They are composed of:
+
+* variables
+
+* literal values
+
+* function calls
+
+* operator calls
+
+* sub-expression in parentheses
+
+---Formal grammar rules
+
+The grammar rules are specified in <a href="http://en.wikipedia.org/wiki/Backus%E2%80%93Naur_Form" target="_new">BNF</a> format, except when using ... to mark a definition in native language.
+
+ <literal>       ::= ... any valid Red/System literal value ...
+ <variable>      ::= ... any valid Red/System variable name ...
+ <logic-call>    ::= ... function call that returns a value of logic! type ...
+ <func-call>     ::= ... function call that returns a value ...
+ <statement>     ::= ... statement or function without return value...
+
+ <logic-literal> ::= "true" | "false"
+
+ <math-op>       ::= "+" | "-" | "*" | "/" | "//"
+ <bitwise-op>    ::= "and" | "or" | "xor"
+ <comparison-op> ::= "=" | "<>" | "<" | "<=" | ">=" | ">"
+ <op>            ::= <math-op> | <bitwise-op>
+
+ <cond-expr>     ::= <value> <comparison-op> <expression>
+ <condition>     ::= <logic-literal> | <logic-call> | <cond-expr>
+
+ <all>           ::= "ALL" "[" <condition>+ "]"
+ <any>           ::= "ANY" "[" <condition>+ "]" 
+ <either>        ::= "EITHER" <condition> "[" <expression>+ "]" "[" <expression>+ "]"
+ <short-circuit> ::= <all> | <any> | <either>
+
+ <paren>         ::= "(" <expression> ")"
+ <value>         ::= <variable> | <literal> | <paren> | "null"
+
+ <infix>         ::= <value> <op> <expression>
+ <prefix>        ::= <func-call> <expression>* | <statement> <expression>* 
+ <call>          ::= <prefix>+ | <infix> | <cond-expr>
+
+ <expression>    ::= <call> | <value> | <short-circuit>
+
+An expression can be used standalone, after an assignment or as argument to some statements (RETURN, IF or EITHER used as statement).
+
+<u>Note</u>: EITHER can be used in an expression only if both its TRUE block and FALSE block last expressions are of the same type. When used in an expression, EITHER is similar to C's ? operator.
+
+<b>Examples</b>
+
+ a: 123
+ foo a + 1
+ 0 < foo a + 1
+ any [(0 < foo a + 1) a > 0]
+
+ if any [(0 < foo a + 1) a > 0][print "ok"]
+
+ b: 1 + (2 * a - either zero? a [0][a + 100])
+
+---Evaluation order rule
+
+Expressions are evaluated from <b>left to right</b>. There is no operator precedence, but infix functions do have a precedence over prefix calls.
+
+<b>Examples</b>
+
+ 1 + 2 * 3								;-- (1 + 2) * 3 returns 9
+ 1 + 2 * 3 = 9							;-- ((1 + 2) * 3) = 9 returns TRUE
+ 9 = 1 + 2 * 3							;-- ((9 = 1) + 2) * 3 raises an error!
+
+ 1 + (2 * 3)							;-- 1 + (2 * 3) returns 7
+
+ foo 1 + 2								;-- foo (1 + 2)
+ 1 + foo 2 * 3							;-- 1 + (foo (2 * 3))
 
 ===Functions
 
@@ -1862,7 +1933,7 @@ will output:
 
 ===Document History
 
-*<b>??/06/2011 - draft 16</b>
+*<b>23/06/2011 - draft 16</b>
 
 *>Added missing 'comment word in keywords list
 
@@ -1874,6 +1945,7 @@ will output:
 
 *>Added a function! column in the type casting matrix.
 
+*>Added missing Expression chapter.
 
 
 *<b>12/06/2011 - draft 15</b>
