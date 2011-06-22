@@ -204,11 +204,11 @@ system-dialect: context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: none								;-- global parsing rules helpers
 		
-		not-set!:	  [logic! integer!]					;-- reserved for internal use only
-		number!: 	  [byte! integer!]					;-- reserved for internal use only
-		any-pointer!: [pointer! struct! c-string!]		;-- reserved for internal use only
-		poly!:		  union number!	any-pointer!		;-- reserved for internal use only				
-		any-type!:	  union poly! [logic!]				;-- reserved for internal use only
+		not-set!:	  [logic! integer!]								  ;-- reserved for internal use only
+		number!: 	  [byte! integer!]								  ;-- reserved for internal use only
+		any-pointer!: [pointer! struct! c-string! function!]		  ;-- reserved for internal use only
+		poly!:		  union number!	any-pointer!					  ;-- reserved for internal use only				
+		any-type!:	  union poly! [logic!]							  ;-- reserved for internal use only
 		type-sets:	  [not-set! number! poly! any-type! any-pointer!] ;-- reserved for internal use only
 		
 		comparison-op: [= <> < > <= >=]
