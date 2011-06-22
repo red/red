@@ -9,7 +9,7 @@ Running the Hello script
 ------------------------
 The compiler and linker are currently written in REBOL and produce PE (Windows) or ELF (Linux) executables. So, for now, a REBOL/View binary is required to run it. Follow the instructions:
 
-1. Download a REBOL interpreter suitable for your OS: [Windows](http://www.rebol.com/downloads/v278/rebol-view-278-3-1.exe), [Linux](http://www.rebol.com/downloads/v278/rebol-view-278-4-2.tar.gz)
+1. Download a REBOL interpreter suitable for your OS: [Windows](http://www.rebol.com/downloads/v278/rebol-core-278-3-1.exe), [Linux](http://www.rebol.com/downloads/v278/rebol-core-278-4-2.tar.gz)
 
 1. Save it in red-system/ folder and run it, you'll see a `>>` prompt appear
 

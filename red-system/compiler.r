@@ -7,6 +7,8 @@ REBOL [
 ]
 
 do %utils/r2-forward.r
+do %utils/int-to-bin.r
+do %utils/virtual-struct.r
 do %linker.r
 do %emitter.r
 
