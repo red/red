@@ -748,8 +748,8 @@ context [
 
 	serialize-data: func [data [block! object! binary! none!]] [
 		case [
-			struct? data	[form-struct data]
 			block? data		[rejoin map-each item data [serialize-data item]]
+			struct? data	[form-struct data]
 			binary? data	[data]
 			none? data		[#{}]
 		]

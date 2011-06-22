@@ -41,7 +41,7 @@ virtual-struct!: context [
 	]
 	
 	set 'struct? func [
-		"Returns TRUE is the argument is a virtual struct!."
+		"Returns TRUE if the argument is a virtual struct!."
 		value [any-type!]		"value to test"
 		/local type
 	][
