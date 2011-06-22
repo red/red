@@ -1020,9 +1020,16 @@ system-dialect: context [
 		
 		comp-size?: has [type expr][
 			pc: next pc
-			expr: fetch-expression/final
-			emitter/get-size resolve-expr-type expr expr
-			last-type: get-return-type 'size?
+			unless all [
+				word? pc/1
+				type: select aliased-types expr: pc/1
+				pc: next pc
+			][
+				expr: fetch-expression/final	
+				type: resolve-expr-type expr
+			]
+			emitter/get-size type expr	
+			last-type: get-return-type 'size?		
 			<last>
 		]
 		

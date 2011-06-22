@@ -69,6 +69,9 @@ Red/System [
 	sz-struct5: struct [a [integer!] b [c-string!]]
 	--assert 8 = size? sz-struct5
 	
+	--test-- "sz-16"
+	sz-struct!: alias struct! [a [integer!] b [c-string!]]
+	--assert 8 = size? sz-struct!
 
 ===end-group===
 
