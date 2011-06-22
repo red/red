@@ -100,7 +100,7 @@ virtual-struct!: context [
 			
 			append out switch/default type/1 [
 				char 	 [to-bin8   any [value 0]]
-				short	 [to-bin16  any [value 0]]
+				short	 [pad out 2 to-bin16  any [value 0]]
 				int		 [pad out 4 to-bin32  any [value 0]]
 				char!	 [to-bin8   any [value 0]]
 				integer! [pad out 4 to-bin32  any [value 0]]
