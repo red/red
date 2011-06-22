@@ -356,9 +356,9 @@ context [
 		eh/ident-mag1:		#"E"
 		eh/ident-mag2:		#"L"
 		eh/ident-mag3:		#"F"
-		eh/ident-class:		to-char defs/elfclass32
-		eh/ident-data:		to-char defs/elfdata2lsb
-		eh/ident-version:	to-char defs/ev-current
+		eh/ident-class:		defs/elfclass32
+		eh/ident-data:		defs/elfdata2lsb
+		eh/ident-version:	defs/ev-current
 		eh/type:			defs/et-exec
 		eh/machine:			defs/em-386
 		eh/version:			defs/ev-current
@@ -426,7 +426,7 @@ context [
 			entry/name: strtab-index-of dynstr symbol
 			entry/value: 0 ;; Unknown, for imported symbols.
 			entry/info: to-elf-symbol-info defs/stb-global defs/stt-func
-			entry/other: to-char defs/stv-default
+			entry/other: defs/stv-default
 			entry/shndx: defs/shn-undef
 			append result entry
 		]
@@ -441,8 +441,8 @@ context [
 		repeat i length? symbols [ ;; 1..n, 0 is undef
 			entry: make-struct elf-relocation none
 			entry/offset: rel-address-of/index relro-address (i - 1)
-			entry/info-sym: to-char defs/r-386-32
-			entry/info-type: to-char i
+			entry/info-sym: defs/r-386-32
+			entry/info-type: i
 			append result entry
 		]
 		result
@@ -741,7 +741,7 @@ context [
 	]
 
 	to-elf-symbol-info: func [binding [integer!] type [integer!]] [
-		to-char (shift/left binding 4) + (type and 15)
+		(shift/left binding 4) + (type and 15)
 	]
 
 	;; -- Helpers for working with various binary data intermediaries --
