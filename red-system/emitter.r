@@ -20,7 +20,7 @@ emitter: context [
 	compiler: none						;-- just a short-cut
 
 		
-	pointer: make struct! [
+	pointer: make-struct [
 		value [integer!]				;-- 32/64-bit, watch out for endianess!!
 	] none
 	
@@ -346,7 +346,7 @@ emitter: context [
 		end: tail-ptr
 		offset: target/branch-offset-size
 		foreach ptr exits [
-			change at code-buf ptr target/to-bin32 end - ptr - offset
+			change at code-buf ptr to-bin32 end - ptr - offset
 		]
 	]
 	
@@ -475,7 +475,7 @@ emitter: context [
 				ptr: spec/2
 				foreach ref spec/3 [
 					pointer/value: ptr - ref - target/ptr-size	;-- CALL NEAR disp size
-					change at code-buf ref third pointer
+					change at code-buf ref form-struct pointer
 				]
 			]
 		]
@@ -491,5 +491,6 @@ emitter: context [
 		target: do rejoin [%targets/ job/target %.r]
 		target/compiler: compiler: system-dialect/compiler
 		target/void-ptr: head insert/dup copy #{} null target/ptr-size
+		int-to-bin/little-endian?: target/little-endian?
 	]
 ]

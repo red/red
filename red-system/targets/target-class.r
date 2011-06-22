@@ -45,18 +45,6 @@ target-class: context [
 			and value + size negate size
 		]
 	]
-
-	to-bin8: func [v [integer! char!]][
-		to char! 256 + v and 255
-	]
-
-	to-bin16: func [v [integer! char!]][			;TBD: add big-endian support
-		reverse skip debase/base to-hex to integer! v 16 2
-	]
-
-	to-bin32: func [v [integer! char!]][			;TBD: add big-endian support
-		reverse debase/base to-hex to integer! v 16
-	]
 	
 	power-of-2?: func [n [integer! char!]][
 		if all [

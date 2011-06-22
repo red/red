@@ -143,7 +143,7 @@ context [
 		]
 	]
 
-	file-header: make struct! [
+	file-header: make-struct [
 		machine				[short]
 		sections-nb			[short]
 		timestamp			[integer!]		;-- file creation timestamp
@@ -153,7 +153,7 @@ context [
 		flags				[short]			
 	] none
 
-	optional-header: make struct! [			;-- optional header for image only
+	optional-header: make-struct [			;-- optional header for image only
 		magic				[short]			;-- different for 32/64-bit
 		major-link-version	[char]
 		minor-link-version	[char]
@@ -219,7 +219,7 @@ context [
 		reserved2			[integer!]		;-- reserved, must be zero
 	] none
 
-	section-header: make struct! [
+	section-header: make-struct [
 		name				[decimal!]		;-- placeholder for an 8 bytes string
 		virtual-size		[integer!]
 		virtual-address		[integer!]
@@ -232,7 +232,7 @@ context [
 		flags				[integer!]
 	] none
 
-	import-directory: make struct! [
+	import-directory: make-struct [
 		ILT-rva				[integer!]		;-- lookup table RVA
 		timestamp			[integer!]
 		chain				[integer!]
@@ -240,11 +240,11 @@ context [
 		IAT-rva				[integer!]		;-- address table RVA
 	] none
 
-	ILT: make struct! [
+	ILT: make-struct [
 		rva	[integer!]						;-- 32/64-bit
 	] none
 
-	pointer: make struct! [
+	pointer: make-struct [
 		value [integer!]					;-- 32/64-bit, watch out for endianess!!
 	] none
 
@@ -254,6 +254,7 @@ context [
 	ILT-size:			4					;-- Import Lookup Table size (8 for 64-bit)
 	pointer-size:		4					;-- Pointer size (8 for 64-bit)
 	imports-refs:		make block! 10		;-- [ptr [DLL imports] ...]
+	opt-header-size:	length? form-struct optional-header
 
 	get-timestamp: has [n t][
 		n: now
@@ -269,7 +270,7 @@ context [
 	]
 
 	entry-point-page?: func [job [object!] /memory /local ptr][
-		ptr: (length? job/buffer) + length? third optional-header
+		ptr: (length? job/buffer) + opt-header-size
 		foreach [name spec] job/sections [
 			ptr: ptr + sect-header-size
 		]
@@ -324,7 +325,7 @@ context [
 			ptr: base + ptr		
 			foreach [def reloc] list [
 				pointer/value: ptr 
-				foreach ref reloc [change at code ref third pointer]	;TBD: check endianness + x-compilation
+				foreach ref reloc [change at code ref form-struct pointer]	;TBD: check endianness + x-compilation
 				ptr: ptr + pointer-size
 			]
 		]
@@ -340,10 +341,10 @@ context [
 		buffer:		make binary! 256		;-- DLL names + ILTs + IATs + hints/names buffer
 		hints:		make binary! 2048		;-- hints/names temporary buffer
 		ptr: 		(section-addr?/memory job 'import)
-					+ (1 + len * length? third import-directory)		;-- point to end of directory table
+					+ (1 + len * length? form-struct import-directory)		;-- point to end of directory table
 
 		foreach [name list] spec/3 [			;-- collecting DLL names in buffer
-			append IDTs idt: make struct! import-directory none
+			append IDTs idt: make-struct import-directory none
 			idt/name-rva: ptr + length? buffer
 			repend buffer [uppercase name null]
 			if even? length? name [append buffer null]
@@ -362,7 +363,7 @@ context [
 				repend hints [#{0000} def null]	;-- Ordinal is zero, not used
 				if even? length? def [append hints null]
 				ILT/rva: hint-ptr
-				append buffer third ILT			;-- ILT instance
+				append buffer form-struct ILT			;-- ILT instance
 				hint-ptr: hint-ptr + length? hint
 				ptr: ptr + ILT-size
 			]
@@ -378,29 +379,29 @@ context [
 			append buffer hints
 			idx: idx + 1
 		]
-		foreach idt IDTs [append out third idt]
-		append out third import-directory		;-- Null directory entry
+		foreach idt IDTs [append out form-struct idt]
+		append out form-struct import-directory		;-- Null directory entry
 		change next spec append out buffer
 	]
 
 	build-header: func [job [object!] /local fh][
 		if job/type = 'exe [append job/buffer "PE^@^@"]	;-- image signature
 
-		fh: make struct! file-header none
+		fh: make-struct file-header none
 		fh/machine: 		 to integer! select defs/machine job/target
 		fh/sections-nb: 	 (length? job/sections) / 2
 		fh/timestamp: 		 get-timestamp
 		fh/symbols-ptr: 	 0
-		fh/opt-headers-size: length? third optional-header
+		fh/opt-headers-size: opt-header-size
 		fh/flags:			 to integer! defs/c-flags/executable-image 
 								or defs/c-flags/relocs-stripped
 								or defs/c-flags/machine-32bit
-		append job/buffer third fh
+		append job/buffer form-struct fh
 	]
 
 	build-opt-header: func [job [object!] /local oh code-page][
 		code-page: entry-point-page? job
-		oh: make struct! optional-header none
+		oh: make-struct optional-header none
 
 		oh/magic:				to integer! #{010B}			;-- PE32 magic number
 		oh/major-link-version:  to char! linker/version/1
@@ -436,12 +437,12 @@ context [
 		oh/import-addr:			import-addr? job			
 		oh/import-size:			length? job/sections/import/2
 
-		append job/buffer third oh
+		append job/buffer form-struct oh
 	]
 
-	build-section-header: func [job [object!] name [word!] spec [block!] /local sh][
-		sh: make struct! section-header none
-		change third sh append uppercase form name null			
+	build-section-header: func [job [object!] name [word!] spec [block!] /local sh s][
+		sh: make-struct section-header none
+
 		sh/virtual-size: 	length? spec/2
 		sh/virtual-address:	section-addr?/memory job name
 		sh/raw-data-size: 	file-align * round/ceiling (length? spec/2) / file-align
@@ -451,7 +452,9 @@ context [
 		sh/relocations-nb:	0				;-- zero for executable images
 		sh/line-num-nb:		0
 		sh/flags:			to integer! select defs/s-type name		
-		change spec copy third sh			
+
+		change s: form-struct sh append uppercase form name null	
+		change spec s	
 	]
 
 	build: func [job [object!] /local page out pad][

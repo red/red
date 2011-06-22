@@ -86,7 +86,7 @@ context [
 
 	;; ELF Structures
 
-	elf-header: make struct! [		;; (Elf32_Ehdr)
+	elf-header: make-struct [		;; (Elf32_Ehdr)
 		ident-mag0		[char!]		;; 0x7F (EI_MAG0)
 		ident-mag1		[char!]		;; "E" (EI_MAG1)
 		ident-mag2		[char!]		;; "L" (EI_MAG2)
@@ -112,7 +112,7 @@ context [
 		shstrndx		[short]		;; shdr table index of .shstrtab section
 	] none
 
-	program-header: make struct! [	;; (Elf32_Phdr)
+	program-header: make-struct [	;; (Elf32_Phdr)
 		type			[integer!]
 		offset			[integer!]
 		vaddr			[integer!]
@@ -123,7 +123,7 @@ context [
 		align			[integer!]
 	] none
 
-	section-header: make struct! [	;; (Elf32_Shdr)
+	section-header: make-struct [	;; (Elf32_Shdr)
 		name			[integer!]	;; index into .shstrtab
 		type			[integer!]
 		flags			[integer!]
@@ -136,12 +136,12 @@ context [
 		entsize			[integer!]
 	] none
 
-	elf-dynamic: make struct! [		;; (Elf32_Dyn)
+	elf-dynamic: make-struct [		;; (Elf32_Dyn)
 		tag				[integer!]
 		val				[integer!]
 	] none
 
-	elf-symbol: make struct! [		;; (Elf32_Sym)
+	elf-symbol: make-struct [		;; (Elf32_Sym)
 		name			[integer!]	;; symbol strtab index (zero: unnamed sym)
 		value			[integer!]	;; absolute value, address, ...
 		size			[integer!]	;; associated symbol size (if any)
@@ -150,14 +150,14 @@ context [
 		shndx			[short]		;; section this symbol is associated with
 	] none
 
-	elf-relocation: make struct! [	;; (Elf32_Rel)
+	elf-relocation: make-struct [	;; (Elf32_Rel)
 		offset			[integer!]
 		info-sym		[char!]
 		info-type		[char!]
 		info-unused		[short]
 	] none
 
-	machine-word: make struct! [
+	machine-word: make-struct [
 		value			[integer!]
 	] none
 
@@ -351,7 +351,7 @@ context [
 		section-names [block!]
 		/local eh
 	] [
-		eh: make struct! elf-header none
+		eh: make-struct elf-header none
 		eh/ident-mag0:		#"^(7F)"
 		eh/ident-mag1:		#"E"
 		eh/ident-mag2:		#"L"
@@ -377,7 +377,7 @@ context [
 
 	build-phdr: func [segments [block!] /local ph] [
 		map-each segment segments [
-			ph: make struct! program-header none
+			ph: make-struct program-header none
 			ph/type:		lookup-def "pt-" segment/meta/type
 			ph/offset:		segment/offset
 			ph/vaddr:		segment/address
@@ -411,7 +411,7 @@ context [
 				keep defs/stn-undef
 			]
 		] [
-			make struct! machine-word reduce [value]
+			make-struct machine-word reduce [value]
 		]
 	]
 
@@ -419,10 +419,10 @@ context [
 		result: copy []
 
 		;; Symbol #0: undefined symbol
-		append result make struct! elf-symbol none
+		append result make-struct elf-symbol none
 
 		foreach symbol symbols [
-			entry: make struct! elf-symbol none
+			entry: make-struct elf-symbol none
 			entry/name: strtab-index-of dynstr symbol
 			entry/value: 0 ;; Unknown, for imported symbols.
 			entry/info: to-elf-symbol-info defs/stb-global defs/stt-func
@@ -439,7 +439,7 @@ context [
 	] [
 		result: copy []
 		repeat i length? symbols [ ;; 1..n, 0 is undef
-			entry: make struct! elf-relocation none
+			entry: make-struct elf-relocation none
 			entry/offset: rel-address-of/index relro-address (i - 1)
 			entry/info-sym: to-char defs/r-386-32
 			entry/info-type: to-char i
@@ -450,7 +450,7 @@ context [
 
 	build-relro: func [symbols [block!]] [
 		;; @@ Use NOBITS section (filesize 0, memsize n) instead?
-		array/initial length? symbols make struct! machine-word none
+		array/initial length? symbols make-struct machine-word none
 	]
 
 	build-dynamic: func [
@@ -484,7 +484,7 @@ context [
 		]
 
 		map-each [tag value] entries [
-			make struct! elf-dynamic reduce [lookup-def "dt-" tag value]
+			make-struct elf-dynamic reduce [lookup-def "dt-" tag value]
 		]
 	]
 
@@ -494,9 +494,9 @@ context [
 	] [
 		names: extract sections 2
 		join reduce [
-			make struct! section-header none
+			make-struct section-header none
 		] map-each [name section] sections [
-			sh: make struct! section-header none
+			sh: make-struct section-header none
 			sh/name:		strtab-index-of shstrtab name
 			sh/type:		lookup-def "sht-" section/meta/type
 			sh/flags:		lookup-flags "shf-" section/meta/flags
@@ -529,7 +529,7 @@ context [
 		job [object!] symbols [block!] code [binary!] relro-address [integer!]
 		/local rel
 	] [
-		rel: make struct! machine-word none
+		rel: make-struct machine-word none
 		foreach [libname libimports] job/sections/import/3 [
 			foreach [symbol callsites] libimports [
 				rel/value: rel-address-of/symbol relro-address symbols symbol
@@ -734,7 +734,7 @@ context [
 		base + ((size-of machine-word) * any [ind (-1 + index? find syms sym)])
 	]
 
-	to-c-string: func [data [string! binary!]] [join to-binary data #{00}]
+	to-c-string: func [data [string! binary!]] [join as-binary data #{00}]
 
 	to-elf-strtab: func [items [block!]] [
 		join #{00} map-each item items [to-c-string item]
@@ -746,16 +746,16 @@ context [
 
 	;; -- Helpers for working with various binary data intermediaries --
 
-	serialize-data: func [data [block! struct! binary! none!]] [
+	serialize-data: func [data [block! object! binary! none!]] [
 		case [
+			struct? data	[form-struct data]
 			block? data		[rejoin map-each item data [serialize-data item]]
-			struct? data	[third data]
 			binary? data	[data]
 			none? data		[#{}]
 		]
 	]
 
-	size-of: func [data [block! struct! binary! none!]] [
+	size-of: func [data [block! object! binary! none!]] [
 		length? serialize-data data
 	]
 

@@ -30,18 +30,18 @@ linker: context [
 		dbuf [binary!]						;-- data buffer
 		code-ptr [integer!]					;-- code memory address
 		data-ptr [integer!]					;-- data memory address
-		pointer [struct! [v [integer!]]]
+		pointer [object!]
 	][
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
 				switch spec/1 [
 					global [				;-- code to data references
 						pointer/value: data-ptr + spec/2
-						foreach ref spec/3 [change at cbuf ref third pointer]
+						foreach ref spec/3 [change at cbuf ref form-struct pointer]
 					]
 					native-ref [			;-- code to code references
 						pointer/value: code-ptr + spec/2
-						foreach ref spec/3 [change at cbuf ref third pointer]
+						foreach ref spec/3 [change at cbuf ref form-struct pointer]
 					]
 				]
 			]
@@ -50,7 +50,7 @@ linker: context [
 				block? spec/4
 			][								;-- data to data references
 				pointer/value: data-ptr + spec/2			
-				foreach ref spec/4 [change at dbuf ref third pointer]
+				foreach ref spec/4 [change at dbuf ref form-struct pointer]
 			]
 		]
 	]
