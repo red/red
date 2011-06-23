@@ -1032,7 +1032,9 @@ system-dialect: context [
 					all [base-type? expr expr]
 					select aliased-types expr
 				]
-				pc: next pc
+				pc: skip pc pick [2 1] to logic! all [
+					block? pc/2 any-pointer? expr
+				]
 			][
 				expr: fetch-expression/final	
 				type: resolve-expr-type expr
