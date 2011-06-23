@@ -2,7 +2,7 @@ Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
 	Date: 23/06/2011
-	Revision: 16
+	Revision: 17
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -356,7 +356,7 @@ Declaring a struct! value is achieved by using the STRUCT keyword followed by a 
  ]
  
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [integer!] | logic! |
+ <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
               c-string! | struct! [<members>]
               
 The returned value of STRUCT is the memory address of the newly created struct value.
@@ -427,7 +427,7 @@ Aliasing syntax:
  
  <name>     : the name to use as alias
  <member>   : a valid identifier
- <datatype> : integer! | byte! | pointer! [integer!] | logic! |
+ <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
               c-string! | struct! [<members>]
               
 Struct value declaration using an aliased definition:
@@ -459,7 +459,9 @@ Struct usage example:
 
 ---Pointer!
 
-Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, so the only pointed datatype allowed is integer! (byte! pointer is already covered by c-string! and logic! pointer is not needed).
+Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, so the only pointed datatypes allowed are integer! and byte! (logic! pointer is not needed). 
+
+Byte! pointers are equivalent to c-string! references, the difference lies only in the interpretation of the pointed values. Byte! pointer are meant to point to a stream of byte without a specified bound, while c-string! reference an array of bytes terminated by a null byte.
 
 <u>Implementation note</u>: The memory size of a pointer is 4 bytes on 32-bit systems (and 8 bytes on 64-bit systems).
 
@@ -469,7 +471,7 @@ New pointers value can be created using the following syntax:
 
  pointer [<datatype>]
 
- <datatype>: integer!
+ <datatype>: integer! | byte!
 
 \note Possible syntactic sugar
 The & symbol used in previous revisions of this document has been removed due to the new limited pointer! datatype usage. It could be reintroduced again in the future if required.
@@ -479,6 +481,7 @@ The & symbol used in previous revisions of this document has been removed due to
 Examples:
 
  foo: pointer [integer!]				;-- equivalent to C's: int *foo;
+ bar: pointer [byte!]					;-- equivalent to C's: char *bar;
 
 \note Pointer value initialization
 Do not assume any default value for a pointer value until it is initialized properly. In the current implementation, global pointer variables are set to 0 by default while local pointer variables default value is undefined. This might change in the future to adopt a default value more suitable for debugging (like 0BADBAD0h or similar hex trick).
@@ -491,41 +494,43 @@ Pointer declaration is only required for local pointer variables in functions' s
 
  pointer! [<datatype>]
 
- <datatype>: integer!
+ <datatype>: integer! | byte!
 
 Global variables declaration examples (with C equivalents):
 
- p: pointer [integer!]							;-- int *p;
+ p: pointer [integer!]					;-- int *p;
+ p: pointer [byte!]						;-- char *p;
 
 Same with local variables declaration examples (with C equivalents):
 
- func [/local p [pointer! [integer!]]			;-- int *p;
+ func [/local p [pointer! [integer!]]	;-- int *p;
+ func [/local p [pointer! [byte!]]		;-- char *p;
 
 Example of inferred pointer variable type:
 
  foo: func [
  	a [struct! [count [integer!]]]
  	/local
- 		p [pointer! [integer!]]				;-- explicit declaration
+ 		p [pointer! [integer!]]			;-- explicit declaration
  ][
- 	foobar p								;-- foobar modifies p
+ 	foobar p							;-- foobar modifies p
  	a/count: p/value
  ]
 
  bar: func [
  	a [struct! [count [integer!]]]
- 	/local p								;-- p datatype inferred
+ 	/local p							;-- p datatype inferred
  ][
- 	p: pointer [integer!]					;-- p initialized (implicit declaration)
+ 	p: pointer [integer!]				;-- p initialized (implicit declaration)
  	foobar p
  	a/count: p/value
  ]
 
  bar2: func [
   	a [struct! [count [integer!]]]
-  	/local p								;-- p datatype inferred
+  	/local p							;-- p datatype inferred
  ][
-  	p: GetPointer a							;-- datatype is guessed from return value
+  	p: GetPointer a						;-- datatype is guessed from return value
   	foobar p
   	a/count: p/value
  ]
@@ -561,6 +566,12 @@ It is possible to apply some simple math operations on pointer like additions an
  p: as [pointer! [integer!]] 4000000h
  p: p + 1								;-- p points now to 40000004h
  p: p + 1								;-- p points now to 40000008h
+ 
+ q: pointer [byte!]						;-- pointed value memory size is 1 byte
+ 
+ q: as [pointer! [byte!]] 4000000h
+ q: q + 1								;-- p points now to 40000001h
+ q: q + 1								;-- p points now to 40000002h
 
 +++Pointer path notation
 
@@ -593,9 +604,34 @@ Integer variable can also be used as index:
  
 <u>Note</u>: Pointer's <b>/value</b> notation is strictly equivalent to <b>/1</b>. The <b>/value</b> notation can be considered as syntactic sugar.
 
++++Null value
+
+A special <b>null</b> value is available to use for pointer! and other pointer-like (pass-by-reference) types (struct!, c-string!) and pseudo-type function!. <b>Null</b> does not have a specific type, but can be used to replace any other pointer-like value. So, <b>null</b> cannot be used as initializing value for a local variable that does not have an explicit type specification.
+
+<b>Null</b> is a first class value, so it can be assigned to a variable, passed as argument to a function or returned by a function.
+
+<u>Note</u>: It is not possible to explicitly cast <b>null</b> to a given type, only implicit type casting automatically done by the compiler is allowed.
+
+Examples:
+
+ a: pointer [integer!]
+ a: null								;-- valid assignation, 'a type is defined
+
+ foo: func [s [c-string!] return: [c-string!]][
+ 	if s = null [
+ 		print "error"
+ 		return null
+ 	]
+ 	return uppercase s
+ ]
+
+ b: foo "test"							;-- will set b to "TEST"
+ b: foo null							;-- will print "error" and set b to null
+
+
 +++C void pointer
 
-There is no specific support in Red/System for C-like void pointers. The official way is to use the integer! type to represent C void* pointers.
+There is no specific support in Red/System for C-like void pointers. The official way is to use a pointer! [byte!] type to represent C void* pointers.
 
 For pointers on c-string! or struct! variables, a pointer variable can be used then dereferenced and casted to the target type.
 
@@ -605,10 +641,10 @@ Example:
 
  get-hello: function [
  	s [p-buffer]
- 	return: [p-buffer]				;-- returns a pointer to a c-string
+ 	return: [p-buffer]					;-- returns a pointer to a c-string
  ][
  	s/buffer: "hello"
- 	s								;-- equivalent to C's char **
+ 	s									;-- equivalent to C's char **
  ]
  
  foo: func [
@@ -623,20 +659,27 @@ Example:
 would print
  hello
     
+\note Runtime macro byte-ptr!
+The runtime defines a byte-ptr! macro (just defined as: pointer! [byte!]) to be used as an equivalent to C void* for raw memory accesses.
+
+/note
 
 ---Type Casting
 
-Type casting is possible between value of compatible types. Compatible types are defined as types which values memory size is equal. Casting is achieved using the <b>AS</b> keyword followed by the target type and the value to cast.
+Casting is achieved using the <b>AS</b> keyword followed by the target type and the value to cast.
+ 
+Type casting is possible between value of compatible types. Compatible types are defined in the following type casting reference matrix. A run-time type conversion might be generated for some types combinations.
 
 <u>Note</u>: Trying to assign a value to a variable of different type without a proper type casting, will result in a compilation error.
 
 Syntax:
 
- as <new-type> value					;-- for single-word types
- as [<new-type2>] value					;-- for compound types
+ as <new-type> value
+ as [<new-type>] value					;-- alternative syntax
 
- <new-type> : integer! | byte! |  logic! | c-string!
- <new-type2> : pointer! [integer!] | struct! [<members>]
+ <new-type> : integer! | byte! |  logic! | c-string! |
+              pointer! [integer!] | struct! [<members>] |
+              <alias-name>
  
 <u>Note</u>: Multiple nested type castings are not allowed and will raise a compilation error.
 
@@ -646,12 +689,12 @@ Example:
  bar: pointer [integer!]				;-- bar is a pointer
 
  foo: as integer! bar					;-- type casting
- bar: as [pointer! [integer!]] foo		;-- compound type is passed as a block
+ bar: as pointer! [integer!] foo
 
 <br> 
 <b>Type casting reference matrix</b>
 
-Keep in mind that pointer!, c-string! and struct! are passed by reference, so the casting below for these datatypes is applied on their memory address value.
+Keep in mind that pointer!, c-string!, struct! and function! are passed by reference, so the casting below for these datatypes is applied on their memory address value.
 
 <div align="center">
 <table class="matrix">
@@ -842,7 +885,7 @@ Function definition and usage is pretty straightforward in Red/System. The funct
  <name>		  : function's name
  <attributes> : special attributes
  <argument>	  : function's argument indentifier
- <datatype>	  : integer! | byte! | logic! | pointer! [integer!] |
+ <datatype>	  : integer! | byte! | logic! | pointer! [integer! | byte!] |
                 c-string! | struct! [<members>]
  <local>	  : local variable
  <body>		  : function's body code
@@ -1138,7 +1181,7 @@ Red/System is able to dynamically load external shared libraries when a Red/Syst
  <function name> : name of the mapped function in global context
  <ID>			 : identifier of the function in the shared library
  <argument>		 : function's argument indentifier
- <datatype>		 : integer! | byte! | pointer! [integer!] |
+ <datatype>		 : integer! | byte! | pointer! [integer! | byte!] |
              	   c-string! | struct! [<members>] | function! [<specification>]
 
 The <b>RETURN:</b> statement indicates that the mapped function has a return value.
@@ -1211,7 +1254,7 @@ As Red/System is destined to be used mostly for low-level system programming, <a
   <function name> : name of the mapped function in global context
   <ID>			  : syscall integer ID
   <argument>	  : syscall's argument indentifier
-  <datatype>	  : integer! | byte! | pointer! [integer!] |
+  <datatype>	  : integer! | byte! | pointer! [integer! | byte!] |
              		c-string! | struct! [<members>]
 
 The <b>RETURN:</b> statement indicates that the mapped syscall has a return value.
@@ -1833,6 +1876,7 @@ Global condition is met if all the sub-conditions are met.  ALL returns a logic!
 
 *Accept boolean operations on pointers: OR, XOR, AND (nice but use-cases would be rare?)
 
+
 ---Struct
 
 *Add support for specifying struct memory alignment and padding. Default structure and members alignment would be the one specified in target object (per target). Per struct specific rules should be possible using the following syntax:
@@ -1933,7 +1977,19 @@ will output:
 
 ===Document History
 
-*<b>23/06/2011 - draft 16</b>
+*<b>23/06/2011 - draft 17</b>
+
+*>Updated type casting description to match the new relaxed syntax implemented.
+
+*>Added null keyword description.
+
+*>Upgraded pointer! type reference to take byte! into account
+
+*>C void pointers now mapped to pointer! [byte!] and byte-ptr!
+
+
+
+*<b>22/06/2011 - draft 16</b>
 
 *>Added missing 'comment word in keywords list
 
