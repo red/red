@@ -23,17 +23,15 @@ The first type of tests are written in Red/System, the other two in REBOL.
 
 ===Quick-Test Components
 Quick-Test consists of the following:
+
   quick-test.r - a REBOL script that supports testing compiler and executable output.
   quick-test.reds - a set of Red/System functions that supports writing tests in Red/System.
-  quick-test-all.reds a set of Red/System functions for totalling no of tests, passes and failures.
-  prin-int.reds - a temporary Red/System function whichs prints an integer.
   
 (The above are stored in the red-system/tests/quick-test/ directory.)
   
-  rs-test-suite.r - a consolidated script of all the individual tests written using quick-test.r
-  rs-test-suite.reds - a consolidated script of all the individual tests written using quick-test.reds
+  rs-test-suite.r - a consolidated script of all the individual tests written.
   
-(Both the above are stored in the red-system/tests/source/ directory.)
+(It is stored in the red-system/tests/source/ directory.)
   
   run-all.r - a script which runs the complete set of Red/System tests.
   run-test.r - a script which will run an individual test.
@@ -283,14 +281,6 @@ Marks the end of a test file.
   ***end-run***
   
 Marks the end of a test run.
-
-
-
-
-  
-
-  
-  
   
 
 

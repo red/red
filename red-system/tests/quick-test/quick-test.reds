@@ -2,20 +2,16 @@ Red/System [
 	Title:   "Red/System simple testing framework"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.reds
-	Version: 0.4.0
+	Version: 0.4.1
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
-
-;#include %prin-int.reds
-#include %overwrite.reds
 
 ;; allocate string memory
 qt-run-name:    "123456789012345678901234567890"
 qt-file-name:   "123456789012345678901234567890"
 qt-group-name:  "123456789012345678901234567890"
 qt-test-name:   "123456789012345678901234567890"
-qt-max-len:     length? qt-run-name
 
 ;; counters
 qt-run: struct [
@@ -38,7 +34,7 @@ _qt-init-group: does [
   
   qt-group-name-not-printed: true
   qt-group?: false
-  overwrite qt-group-name "" qt-max-len
+  qt-group-name: ""
 ]
 
 qt-init-run: func [] [
@@ -61,7 +57,7 @@ qt-init-file: func [] [
     title [c-string!]
 ][
   qt-init-run
-  overwrite qt-run-name title qt-max-len
+  qt-run-name: title
   prin "***Starting*** "
   print title
   print ""
@@ -73,21 +69,21 @@ qt-init-file: func [] [
   qt-init-file
   prin "~~~started test~~~ "
   print title
-  overwrite qt-file-name title qt-max-len
+  qt-file-name: title
   qt-group?: false
 ]
 
 ===start-group===: func [
   title [c-string!]
 ][
-  overwrite qt-group-name title qt-max-len
+  qt-group-name: title
   qt-group?: true
 ]
 
 --test--: func [
   title [c-string!]
 ][
-  overwrite qt-test-name title qt-max-len
+  qt-test-name: title
   qt-file/tests: qt-file/tests + 1
 ]
 
