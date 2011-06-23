@@ -983,7 +983,7 @@ system-dialect: context [
 			reduce [make action-class [action: 'null type: 'any-pointer!] 0]
 		]
 		
-		comp-as: has [ctype ptr?][
+		comp-as: has [ctype ptr? expr][
 			ctype: pc/2
 			if ptr?: find [pointer! struct!] ctype [ctype: reduce [pc/2 pc/3]]
 			
@@ -994,12 +994,18 @@ system-dialect: context [
 				throw-error ["invalid target type casting:" ctype]
 			]
 			pc: skip pc pick [3 2] to logic! ptr?
+			expr: fetch-expression
+
+			if all [block? expr object? expr/1 expr/1/action = 'null][
+				pc: back pc
+				throw-error "type casting on null value is not allowed"
+			]
 			reduce [
 				make action-class [
 					action: 'type-cast
 					type: blockify ctype
 				]
-				fetch-expression
+				expr
 			]
 		]
 		
@@ -1318,7 +1324,8 @@ system-dialect: context [
 							backtrack tree/1
 							throw-error [
 								"attempt to change type of variable:" name
-								"from" mold type "to" mold any [casted new]
+								"^/*** from:" mold type
+								"^/***   to:" mold any [casted new]
 							]
 						]
 					][
