@@ -59,6 +59,7 @@ make-if-needed?: func [
 ===start-group=== "Native functions tests"
   --run-test-file %source/units/not-test.reds
   --run-test-file %source/units/size-test.reds
+  --run-test-file %source/units/function-test.reds
 ===end-group===
 
 ===start-group=== "Special natives tests"
@@ -99,6 +100,7 @@ make-if-needed?: func [
   --run-script %source/compiler/inference-test.r
   --run-script %source/compiler/callback-test.r
   --run-script %source/compiler/infix-test.r
+  --run-script %source/compiler/not-test.r
 ===end-group===
 
 ***end-run***
