@@ -15,14 +15,16 @@ Red/System [
       /local
       f1-f1 [integer!]
     ][
-      f1-f1: 1  
+      f1-f1: 3 
+      --assert f1-f1 = 3
     ]
 
     f1-f1: func [
       return: [integer!]
     ][
-      1
+      5
     ]
-  --assert 1 = f1-f1
+  --assert f1-f1 = 5
+  f1-f
 
 ~~~end-file~~~
