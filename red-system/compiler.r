@@ -1207,12 +1207,14 @@ system-dialect: context [
 			encode-cond-test not _all					;-- special encoding
 		]
 		
-		comp-assignment: has [name value][
+		comp-assignment: has [name value n][
 			name: pc/1
 			pc: next pc
 			if set-word? name [
-				check-keywords to word! name			;-- forbid keywords redefinition
-				check-func-name/only to word! name		;-- avoid clashing with an existing function name
+				check-keywords n: to word! name			;-- forbid keywords redefinition
+				unless all [locals find locals n][
+					check-func-name/only n				;-- avoid clashing with an existing function name
+				]
 			]
 			either none? value: fetch-expression [		;-- explicitly test for none!
 				none
