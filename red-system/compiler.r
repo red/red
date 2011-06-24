@@ -1147,7 +1147,10 @@ system-dialect: context [
 			t-true:  first blockify resolve-expr-type/quiet e-true
 			t-false: first blockify resolve-expr-type/quiet e-false
 
-			last-type: either equal-types? t-true t-false [t-true][none] ;-- allow nesting if both blocks return same type		
+			last-type: either all [
+				t-true t-false
+				equal-types? t-true t-false
+			][t-true][none] 							;-- allow nesting if both blocks return same type		
 			<last>
 		]
 		
