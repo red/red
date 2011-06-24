@@ -124,6 +124,14 @@ change-dir %../
 		--compile-this "any [true 123]"
 		--assert-msg? "*** Compilation Error: ANY requires a conditional expression"
 		--clean
-
+		
+		--test-- {Either followed by a block containg a call to a funtion which 
+		          doesn't return a value should compile}
+		--compile-this {
+		  x: does []
+		  either true [x] [x]
+		 }
+		--assert qt/compile-ok? 
+		
 ~~~end-file~~~
 
