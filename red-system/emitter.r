@@ -398,6 +398,7 @@ emitter: context [
 				cast: preprocess-argument/no-last args
 				if all [cast cast/1 = 'logic!][
 					target/emit-casting cast no
+					compiler/last-type: cast/1			;-- for inline unary functions
 				]
 				if type <> 'inline [
 					target/emit-push either block? args/1 [<last>][args/1]
