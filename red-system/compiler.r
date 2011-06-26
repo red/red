@@ -1009,14 +1009,21 @@ system-dialect: context [
 			]
 		]
 		
-		comp-alias: does [
+		comp-alias: has [name][
 			unless set-word? pc/-1 [
 				throw-error "assignment expected for ALIAS"
 			]
 			unless pc/2 = 'struct! [
 				throw-error "ALIAS only works on struct! type"
 			]
-			repend aliased-types [to word! pc/-1 reduce [pc/2 pc/3]]
+			if find aliased-types name: to word! pc/-1 [
+				pc: back pc
+				throw-error reform [
+					"alias name already defined as:"
+					mold aliased-types/:name
+				]
+			]
+			repend aliased-types [name reduce [pc/2 pc/3]]
 			unless catch [parse pos: pc/3 struct-syntax][
 				throw-error ["invalid struct syntax:" mold pos]
 			]

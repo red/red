@@ -416,7 +416,11 @@ Examples
 
 Struct! values definitions tend to be quite long, so in some cases, when struct! definitions are required to be inserted in other struct! definitions or in functions specification block, it is possible to use an alias name to reference a struct! definition through the source code. It also allows to solve the self-referencing case quite simply.
 
-<u>Note</u>: remember that an alias is not a value, it doesn't take any space in memory, it can be seen as a <i>virtual datatype</i>. So, by convention, alias names should end with a exclamation mark, in order to distinguish them more easily from variables in the source code.
+<u>Notes</u>: 
+
+* An alias is not a value, it doesn't take any space in memory, it can be seen as a <i>virtual datatype</i>. So, by convention, alias names should end with a exclamation mark, in order to distinguish them more easily from variables in the source code.
+
+* Aliased names live in their own namespace, so they cannot interfere with variable names.
 
 Aliasing syntax:
 
@@ -1976,6 +1980,11 @@ will output:
 *Support multiple nested type castings.
 
 ===Document History
+
+*<b>??/06/2011 - draft 18</b>
+
+*>Added a note about alias names living in their own namespace.
+
 
 *<b>23/06/2011 - draft 17</b>
 
