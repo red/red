@@ -342,7 +342,7 @@ system-dialect: context [
 		
 		base-type?: func [value][
 			if block? value [value: value/1]
-			to logic! find emitter/datatypes value
+			to logic! find/skip emitter/datatypes value 3
 		]
 		
 		encode-cond-test: func [value [logic!]][
@@ -1032,6 +1032,10 @@ system-dialect: context [
 					"alias name already defined as:"
 					mold aliased-types/:name
 				]
+			]
+			if base-type? name [
+				pc: back pc
+				throw-error "a base type name cannot be defined as an alias name"
 			]
 			repend aliased-types [name reduce [pc/2 pc/3]]
 			unless catch [parse pos: pc/3 struct-syntax][
