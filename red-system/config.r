@@ -12,7 +12,7 @@ REBOL [
 ;;	OS:				'Windows | 'Linux | 'MacOSX | 'Syllable	;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
 ;;	type:			'exe | 'obj | 'lib | 'dll	;-- file type
-;;	target:			'IA-32						;-- CPU or VM target
+;;	target:			'IA32						;-- CPU or VM target
 ;;	sub-system:		'GUI | 'console				;-- type of user interface
 ;;	PIC?:			yes | no					;-- generate Position Independent Code
 ;;	base-address:	<integer!>					;-- base image memory address
