@@ -2,13 +2,16 @@ REBOL [
   Title:   "Builds and Runs a single Red/System Tests"
 	File: 	 %run-test.r
 	Author:  "Peter W A Wood"
-	Version: 0.4.0
+	Version: 0.4.1
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 ;; make runnable/ directory if needed 
 make-dir %runnable/
 ;; include quick-test.r
 if not value? 'qt [do %quick-test/quick-test.r]
+
+print rejoin ["Quick-Test v" system/script/header/version]
+print rejoin ["Running under REBOL " system/version]
 
 ;; get the src path
 src: system/script/args
