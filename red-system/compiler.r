@@ -766,7 +766,10 @@ system-dialect: context [
 				throw-error [
 					reform case [
 						ret   [["wrong return type in function:" name]]
-						key   [[uppercase form name "requires a conditional expression"]]
+						key   [[
+							uppercase form name "requires a conditional expression"
+							either find [while until] name ["as last expression"][""]						
+						]]
 						'else [["argument type mismatch on calling:" name]]
 					]
 					"^/*** expected:" join mold expected #","
