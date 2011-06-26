@@ -35,6 +35,7 @@ context [
 		et-exec			2			;; executable file
 
 		em-386			3			;; intel 80386
+		em-arm			40			;; ARM
 
 		pt-load			1			;; loadable segment
 		pt-dynamic		2			;; dynamic linking information
@@ -307,6 +308,8 @@ context [
 
 		set-data "ehdr" [
 			build-ehdr
+				job/os
+				job/target
 				get-offset "phdr"
 				get-offset "shdr"
 				get-address ".text"
@@ -390,6 +393,8 @@ context [
 	;; -- ELF structure builders --
 
 	build-ehdr: func [
+		target-os [word!]
+		target-arch [word!]
 		phdr-offset [integer!]
 		shdr-offset [integer!]
 		text-address [integer!]
@@ -406,7 +411,6 @@ context [
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
 		eh/type:			defs/et-exec
-		eh/machine:			defs/em-386
 		eh/version:			defs/ev-current
 		eh/entry:			text-address
 		eh/phoff:			phdr-offset
@@ -418,6 +422,19 @@ context [
 		eh/shentsize:		size-of section-header
 		eh/shnum:			1 + length? section-names
 		eh/shstrndx:		index? find section-names ".shstrtab"
+
+		;; Target-specific header fields.
+
+		switch target-arch [
+			ia32	[
+				eh/machine: defs/em-386
+			]
+			arm		[
+				eh/machine: defs/em-arm
+				eh/flags: to-integer #{04000000} ;; EABI v4
+			]
+		]
+
 		eh
 	]
 
