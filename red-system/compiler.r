@@ -1452,7 +1452,6 @@ system-dialect: context [
 				char!		[do pass]
 				integer!	[do pass]
 				string!		[do pass]
-				block!		[do pass]					;-- struct! and pointer! specs
 			][
 				throw-error [
 					pick [
