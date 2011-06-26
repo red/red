@@ -19,8 +19,6 @@ Red/System [
 	--test-- "type-sz-5" --assert 4 = size? c-string!
 	--test-- "type-sz-6" --assert 4 = size? struct!
 	--test-- "type-sz-7" --assert 4 = size? function!
-	--test-- "type-sz-8" --assert 4 = size? pointer! [integer!]
-	--test-- "type-sz-6" --assert 4 = size? struct! [...whatever...]
 
 ===end-group===
 
