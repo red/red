@@ -206,8 +206,9 @@ system-dialect: context [
 		
 		not-set!:	  [logic! integer!]								  ;-- reserved for internal use only
 		number!: 	  [byte! integer!]								  ;-- reserved for internal use only
-		any-pointer!: [pointer! struct! c-string! function!]		  ;-- reserved for internal use only
-		poly!:		  union number!	any-pointer!					  ;-- reserved for internal use only				
+		pointers!:	  [pointer! struct! c-string!] 					  ;-- reserved for internal use only
+		any-pointer!: union pointers! [function!]		  			  ;-- reserved for internal use only
+		poly!:		  union number!	pointers!					  	  ;-- reserved for internal use only
 		any-type!:	  union poly! [logic!]							  ;-- reserved for internal use only
 		type-sets:	  [not-set! number! poly! any-type! any-pointer!] ;-- reserved for internal use only
 		
@@ -1215,6 +1216,9 @@ system-dialect: context [
 			pc: next pc
 			if set-word? name [
 				check-keywords n: to word! name			;-- forbid keywords redefinition
+				if get-word? pc/1 [
+					throw-error "storing a function! requires a type casting"
+				]
 				unless all [locals find locals n][
 					check-func-name/only n				;-- avoid clashing with an existing function name
 				]
