@@ -233,7 +233,6 @@ system-dialect: context [
 			>=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			<=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			not		[1	inline	- [a [not-set!] 		   return: [logic!]]]	;@@ return should be not-set!
-			size?	[1  inline  - [value [any-type!] 	   return: [integer!]]]
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
@@ -1033,15 +1032,13 @@ system-dialect: context [
 					all [base-type? expr expr]
 					select aliased-types expr
 				]
-				pc: skip pc pick [2 1] to logic! all [
-					block? pc/2 any-pointer? expr
-				]
+				pc: next pc
 			][
 				expr: fetch-expression/final	
 				type: resolve-expr-type expr
 			]
 			emitter/get-size type expr	
-			last-type: get-return-type 'size?		
+			last-type: 'integer!	
 			<last>
 		]
 		
