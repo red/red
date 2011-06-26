@@ -420,14 +420,31 @@ system-dialect: context [
 			type
 		]
 		
-		resolve-path-type: func [path [path! set-path!] /parent prev /local type][
+		resolve-struct-member-type: func [spec [block!] name [word!] /local type][
+			unless type: select spec name [
+				pc: skip pc -2
+				throw-error [
+					"invalid struct member" name "in:" mold to path! pc/1
+				]
+			]
+			type
+		]
+		
+		resolve-path-type: func [path [path! set-path!] /parent prev /local type path-error][
+			path-error: [
+				pc: skip pc -2
+				throw-error "invalid path value"
+			]
 			type: either word? path/1 [
 				either parent [
+					resolve-struct-member-type prev path/1	;-- just check for correct member name
 					resolve-type/with path/1 prev
 				][
 					resolve-type path/1
 				]
 			][reduce [type?/word path/1]]
+			
+			unless type path-error
 			
 			either tail? skip path 2 [
 				switch/default type/1 [
@@ -440,19 +457,9 @@ system-dialect: context [
 						type/2/1						;-- return pointed value type
 					]
 					struct!   [
-						either type: select type/2 path/2 [
-							type
-						][
-							backtrack path
-							throw-error [
-								"invalid struct member" path/2 "in" mold path
-							]
-						]
+						resolve-struct-member-type type/2 path/2
 					]
-				][
-					pc: back pc
-					throw-error "invalid path value"
-				]
+				] path-error
 			][
 				resolve-path-type/parent next path second type
 			]
@@ -1356,8 +1363,8 @@ system-dialect: context [
 					]
 					emitter/store name value type
 				]
-				set-path! [								;-- path assignment --
-					do prepare-value
+				set-path! [								;-- path assignment --				
+					do prepare-value				
 					resolve-path-type tree/1			;-- check path validity
 					emitter/access-path tree/1 value
 				]
