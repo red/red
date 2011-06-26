@@ -695,7 +695,7 @@ system-dialect: context [
 				pc: back pc
 				throw-error ["attempt to redefine existing function name:" name]
 			]
-			if all [not only get-variable-spec name][
+			if all [not only find any [locals globals] name][
 				pc: back pc
 				throw-error ["a variable is already using the same name:" name]
 			]
