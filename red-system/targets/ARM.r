@@ -6,6 +6,23 @@ REBOL [
 	License:	"BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+;; AAPCS:
+;;
+;;	15 = pc
+;;	14 = lr
+;;	13 = sp									(callee saved: fun must preserve)
+;;	12 = "ip" (scratch)
+;;	4-11 = variable register 1-8			(callee saved: fun must preserve)
+;;		11 = "fp"
+;;	2-3 = argument 3-4
+;;  0-1	= argument 1-2 / result
+;;
+;;	stack (sp) at function call must be 8-byte (dword) aligned!
+;;
+;;	c widths: char = i8, short = i16, int & long = i32, long long = i64
+;;	alignment: == size (so char==1, short==2, int/long==4, ptr==4)
+;;	structs aligned at max aligned, padded to multiple of alignment
+
 make target-class [
 	target:				'ARM
 	little-endian?:		yes
