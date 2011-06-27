@@ -814,7 +814,7 @@ make target-class [
 		emit #{55}									;-- PUSH ebp
 		emit #{89E5}								;-- MOV ebp, esp
 		unless zero? args-size [
-			emit #{83EC}							;-- SUB esp, locals-size
+			emit #{83EC}							;-- SUB esp, args-size
 			emit to-char align-to args-size 4
 		]
 	]
@@ -829,7 +829,7 @@ make target-class [
 		][
 			emit #{C3}								;-- RET
 		][
-			emit #{C2}								;-- RETN args-size
+			emit #{C2}								;-- RET locals-size
 			emit to-bin16 align-to locals-size 4
 		]
 	]
