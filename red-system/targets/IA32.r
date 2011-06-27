@@ -808,7 +808,7 @@ make target-class [
 		res
 	]
 
-	emit-prolog: func [name [word!] locals [block!] args-size [integer!]][
+	emit-prolog: func [name [word!] locals [block!] args-size [integer!] /local fspec][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		emit #{55}									;-- PUSH ebp
@@ -817,11 +817,23 @@ make target-class [
 			emit #{83EC}							;-- SUB esp, args-size
 			emit to-char align-to args-size 4
 		]
+		fspec: select compiler/functions name
+		if all [block? fspec/4/1 find fspec/4/1 'callback] [
+			emit #{53}								;-- PUSH ebx
+			emit #{56}								;-- PUSH esi
+			emit #{57}								;-- PUSH edi
+		]
 	]
 
-	emit-epilog: func [name [word!] locals [block!] locals-size [integer!]][
+	emit-epilog: func [name [word!] locals [block!] locals-size [integer!] /local fspec][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 		
+		fspec: select compiler/functions name
+		if all [block? fspec/4/1 find fspec/4/1 'callback] [
+			emit #{5F}								;-- POP edi
+			emit #{5E}								;-- POP esi
+			emit #{5B}								;-- POP ebx
+		]
 		emit #{C9}									;-- LEAVE
 		either any [
 			zero? locals-size 
