@@ -41,7 +41,7 @@ test-binary-ops: [
   -
   *
   /
-  ///
+  //
   or
   xor
   and
@@ -49,7 +49,7 @@ test-binary-ops: [
 
 test-no-zeroes: [         ;; zero not allowed as operand2
   / 
-  ///
+  //
 ]
 
 test-comparison-ops: [
@@ -100,18 +100,22 @@ foreach op test-binary-ops [
           find test-no-zeroes op 
         ][
           expected: to-integer expected
+          
+          ;; convert REBOL's // operator to Red/System's % operator
+          nop: either op = first [//][#"%"][op]
+          
           ;; test with literal values
           test-number: test-number + 1
           append tests join {  --test-- "integer-auto-} [test-number {"^(0A)}]
           append tests "  --assert "
-          append tests reform [expected " = (" operand1 op operand2 ")^(0A)"]
+          append tests reform [expected " = (" operand1 nop operand2 ")^(0A)"]
           
           ;; test with variables
           test-number: test-number + 1
           append tests join {  --test-- "integer-auto-} [test-number {"^(0A)}]
           append tests join "      i: " [operand1 "^(0A)"]
           append tests join "      j: " [operand2 "^(0A)"]
-          append tests rejoin ["      k:  i " op " j^(0A)"]
+          append tests rejoin ["      k:  i " nop " j^(0A)"]
           append tests "  --assert "
           append tests reform [expected " = k ^(0A)"]
           
@@ -150,13 +154,16 @@ foreach op test-binary-ops [
           find test-no-zeroes op 
         ][
           expected: to-integer expected
+          
+          ;; convert REBOL's // operator to Red/System's % operator
+          nop: either op = first [//][#"%"][op]
          
           ;; test with variables inside the function
           test-number: test-number + 1
           append tests join {    --test-- "integer-auto-} [test-number {"^(0A)}]
           append tests join "      i: " [operand1 "^(0A)"]
           append tests join "      j: " [operand2 "^(0A)"]
-          append tests rejoin ["      k:  i " op " j^(0A)"]
+          append tests rejoin ["      k:  i " nop " j^(0A)"]
           append tests "    --assert "
           append tests reform [expected " = k ^(0A)"]
           
