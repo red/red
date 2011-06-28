@@ -88,7 +88,11 @@ system-dialect: context [
 			parse/all/case src [						;-- not-LOAD-able syntax support
 				any [
 					(c: 0)
-					hex-delim
+					{"} thru {"} | "{" thru "}"
+					| some ws s: #"%" e: some ws (
+						e: change/part s "///" e		;-- convert % to ///
+					) :e
+					| hex-delim
 					s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
 					[hex-delim | #";" | end] e: (			
 						either find [2 4 8] c [
@@ -224,6 +228,7 @@ system-dialect: context [
 			or		[2	op		- [a [number!] b [number!] return: [number!]]]
 			xor		[2	op		- [a [number!] b [number!] return: [number!]]]
 			//		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- modulo
+			///		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- remainder (real syntax: %)
 			;>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left
 			;<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right
 			=		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]

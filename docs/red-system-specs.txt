@@ -1638,9 +1638,17 @@ The following math operations apply on integer values. When the operation result
 
  value1 / value2
  
+<b>Remainder</b>: %
+
+ value1 % value2
+ 
+Note: a remainder will be negative if the divider is negative.
+ 
 <b>Modulo</b>: //
 
  value1 // value2
+ 
+Note: a positive result is always returned.
 
 where
 
@@ -1984,6 +1992,8 @@ will output:
 *<b>??/06/2011 - draft 18</b>
 
 *>Added a note about alias names living in their own namespace.
+
+*>Added % operator and notes to help distinguish % and // operators.
 
 
 *<b>23/06/2011 - draft 17</b>

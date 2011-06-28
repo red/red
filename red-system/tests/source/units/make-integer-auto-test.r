@@ -41,7 +41,7 @@ test-binary-ops: [
   -
   *
   /
-  //
+  ///
   or
   xor
   and
@@ -49,7 +49,7 @@ test-binary-ops: [
 
 test-no-zeroes: [         ;; zero not allowed as operand2
   / 
-  //
+  ///
 ]
 
 test-comparison-ops: [

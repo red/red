@@ -549,9 +549,9 @@ make target-class [
 	]
 	
 	emit-math-op: func [name [word!] a [word!] b [word!] args [block!] /local mod? scale c][
-		if name = first [//][						;-- work around unaccepted '// 
+		if find [// ///] name [						;-- work around unaccepted '// and '///
+			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
 			name: first [/]							;-- work around unaccepted '/ 
-			mod?: yes
 		]
 		if all [
 			find [+ -] name							;-- pointer arithmetic only allowed for + & -
@@ -681,8 +681,9 @@ make target-class [
 						][
 							emit-sign-extension
 							emit-variable-poly args/2
-								#{F63D} #{F73D}		;-- IDIV word|dword [value]	; global
-								#{F67D} #{F77D}		;-- IDIV word|dword [ebp+n]	; local
+								#{8A1D} #{8B1D}		;-- MOV rB, word|dword [value]	; global
+								#{8A5D} #{8B5D}		;-- MOV rB, word|dword [ebp+n]	; local
+							do div-poly
 						]
 					]
 					reg [
@@ -696,7 +697,23 @@ make target-class [
 					]
 				]
 				if mod? [
-					emit-poly [#{88E0} #{89D0}]		;-- MOV rA, remainder	; remainder in al|ax|eax
+					emit-poly [#{88E0} #{89D0}]		;-- MOV rA, remainder	; remainder from ah|dx|edx
+					if all [mod? <> 'rem width > 1][;-- modulo, not remainder
+					;-- Adjust modulo result to be mathematically correct:
+					;-- 	if modulo < 0 [
+					;--			if divider < 0  [divider: negate divider]
+					;--			modulo: modulo + divider
+					;--		]
+						c: to-bin8 select [1 7 2 15 4 31] width		;-- support for possible int8 type
+						emit #{0FBAE0}				;--   	  BT rA, 7|15|31 ; @@ better way ?
+						emit c
+						emit #{730A}				;-- 	  JNC exit		 ; (won't work with ax)
+						emit #{0FBAE3}				;-- 	  BT rB, 7|15|31 ; @@ better way ?
+						emit c
+						emit #{7302}				;-- 	  JNC add		 ; (won't work with ax)
+						emit-poly [#{F6DB} #{F7DB}]	;--		  NEG rB
+						emit-poly [#{00D8} #{01D8}]	;-- add:  ADD rA, rB
+					]								;-- exit:
 				]
 			]
 		]
