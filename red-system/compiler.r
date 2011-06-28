@@ -199,7 +199,8 @@ system-dialect: context [
 		verbose:  	 0									;-- logs verbosity level
 	
 		imports: 	   make block! 10					;-- list of imported functions
-		bodies:	  	   make hash!  40					;-- list of functions to compile [name [specs] [body]...]
+		natives:	   make hash!  40					;-- list of functions to compile [name [specs] [body]...]
+		callbacks:	   make hash!  40					;-- list of callback functions to compile [name [specs] [body]...]
 		globals:  	   make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: make hash!  10					;-- list of aliased type definitions
 		
@@ -842,12 +843,13 @@ system-dialect: context [
 			next pc: save-pc
 		]
 		
-		fetch-func: func [name /local specs type cc][
+		fetch-func: func [name /local specs type cc storage][
 			name: to word! name
 			check-func-name name
 			check-specs name specs: pc/2
 			type: 'native
 			cc:   'stdcall							;-- default calling convention
+			storage: natives
 			
 			if all [
 				not empty? specs
@@ -866,13 +868,14 @@ system-dialect: context [
 					]
 					find specs/1 'callback [
 						cc: '??						;-- set later when passed as argument
+						storage: callbacks
 					]
 					; add future attributes processing code here
 				]
 			]
 			add-function type reduce [name none specs] cc
 			emitter/add-native name
-			repend bodies [name specs pc/3 script]
+			repend storage [name specs pc/3 script]
 			pc: skip pc 3
 		]
 		
@@ -1188,7 +1191,7 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-while: has [expr unused cond body  offset bodies][
+		comp-while: has [expr unused cond body offset bodies][
 			pc: next pc
 			check-body pc/1								;-- check condition block
 			check-body pc/2								;-- check body block
@@ -1551,9 +1554,8 @@ system-dialect: context [
 			locals: func-name: none
 		]
 		
-		comp-natives: does [
-			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
-			foreach [name spec body origin] bodies [
+		comp-natives: func [type [word!]][			
+			foreach [name spec body origin] get type [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -1564,8 +1566,6 @@ system-dialect: context [
 				script: origin
 				comp-func-body name spec body
 			]
-			if verbose >= 2 [print ""]
-			emitter/reloc-native-calls
 		]
 		
 		comp-header: has [pos][
@@ -1589,7 +1589,11 @@ system-dialect: context [
 		]
 		
 		finalize: does [
-			comp-natives
+			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
+			comp-natives 'natives
+			comp-natives 'callbacks
+			if verbose >= 2 [print ""]
+			emitter/reloc-native-calls
 		]
 	]
 	
@@ -1641,7 +1645,8 @@ system-dialect: context [
 	
 	clean-up: does [
 		clear compiler/imports
-		clear compiler/bodies
+		clear compiler/natives
+		clear compiler/callbacks
 		clear compiler/globals
 		clear compiler/aliased-types
 		clear compiler/user-functions
