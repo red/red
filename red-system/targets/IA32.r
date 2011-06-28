@@ -808,14 +808,14 @@ make target-class [
 		res
 	]
 
-	emit-prolog: func [name [word!] locals [block!] args-size [integer!] /local fspec][
+	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
-		
+
 		emit #{55}									;-- PUSH ebp
 		emit #{89E5}								;-- MOV ebp, esp
-		unless zero? args-size [
-			emit #{83EC}							;-- SUB esp, args-size
-			emit to-char align-to args-size 4
+		unless zero? locals-size [
+			emit #{83EC}							;-- SUB esp, locals-size
+			emit to-char align-to locals-size 4
 		]
 		fspec: select compiler/functions name
 		if all [block? fspec/4/1 find fspec/4/1 'callback] [
@@ -825,9 +825,9 @@ make target-class [
 		]
 	]
 
-	emit-epilog: func [name [word!] locals [block!] locals-size [integer!] /local fspec][
+	emit-epilog: func [name [word!] locals [block!] args-size [integer!] /local fspec][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
-		
+
 		fspec: select compiler/functions name
 		if all [block? fspec/4/1 find fspec/4/1 'callback] [
 			emit #{5F}								;-- POP edi
@@ -836,13 +836,15 @@ make target-class [
 		]
 		emit #{C9}									;-- LEAVE
 		either any [
-			zero? locals-size 
+			zero? args-size
 			find [cdecl gcc45] compiler/functions/:name/3
 		][
+			;; cdecl: Leave original arguments on stack, popped by caller.
 			emit #{C3}								;-- RET
 		][
-			emit #{C2}								;-- RET locals-size
-			emit to-bin16 align-to locals-size 4
+			;; stdcall/reds: Consume original arguments from stack.
+			emit #{C2}								;-- RET args-size
+			emit to-bin16 align-to args-size 4
 		]
 	]
 ]
