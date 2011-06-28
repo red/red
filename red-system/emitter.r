@@ -137,7 +137,7 @@ emitter: context [
 		entry: find/last symbols name
 		if entry/2/1 = 'native [
 			repend symbols [		;-- copy 'native entry to a 'global entry
-				name reduce ['native-ref entry/2/2 make block! 1]
+				name reduce ['native-ref all [entry/2/2 entry/2/2 - 1] make block! 1]
 			]
 			entry: skip tail symbols -2 
 		]		
