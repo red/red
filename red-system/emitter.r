@@ -137,7 +137,7 @@ emitter: context [
 		entry: find/last symbols name
 		if entry/2/1 = 'native [
 			repend symbols [		;-- copy 'native entry to a 'global entry
-				name reduce ['native-ref entry/2/2 make block! 1]
+				name reduce ['native-ref all [entry/2/2 entry/2/2 - 1] make block! 1]
 			]
 			entry: skip tail symbols -2 
 		]		
@@ -458,9 +458,9 @@ emitter: context [
 		args-sz
 	]
 	
-	leave: func [name [word!] locals [block!] locals-sz [integer!]][
+	leave: func [name [word!] locals [block!] args-sz [integer!]][
 		unless empty? exits [resolve-exit-points]
-		target/emit-epilog name locals locals-sz
+		target/emit-epilog name locals args-sz
 	]
 	
 	import-function: func [name [word!] reloc [block!]][
