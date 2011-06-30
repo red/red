@@ -1693,6 +1693,7 @@ system-dialect: context [
 		sub-system:		'console		;-- 'GUI | 'console
 		runtime?:		yes				;-- include Red/System runtime
 		use-natives?:	no				;-- force use of native functions instead of C bindings
+		debug?:			no				;-- emit debug information into binary
 		PIC?:			no				;-- compile using Position Independent Code
 		base-address:	none			;-- base image memory address
 		dynamic-linker: none			;-- ELF dynamic linker ("interpreter")

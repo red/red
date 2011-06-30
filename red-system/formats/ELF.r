@@ -82,6 +82,10 @@ context [
 
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
+
+		stabs-n-undf	0			;; undefined stabs entry
+		stabs-n-fun		36			;; function name
+		stabs-n-so		100			;; source file name
 	]
 
 	;; ELF Structures
@@ -157,6 +161,14 @@ context [
 		info-unused		[short]
 	] none
 
+	stab-entry: make-struct [
+		strx			[integer!]
+		type			[char!]
+		other			[char!]
+		desc			[short]
+		value			[integer!]
+	] none
+
 	machine-word: make-struct [
 		value			[integer!]
 	] none
@@ -187,6 +199,9 @@ context [
 			]
 		]
 
+		section ".stab"				[progbits	[]					word]
+		section ".stabstr"			[strtab		[]					byte]
+
 		section ".shstrtab"			[strtab	  	[]					byte]
 		struct "shdr"
 	]
@@ -196,13 +211,15 @@ context [
 		job [object!]
 		/local
 			base-address dynamic-linker
-			libraries symbols structure segments sections commands layout
+			libraries symbols natives
+			structure segments sections commands layout
 			get-address get-offset get-size get-meta get-data set-data
 	] [
 		base-address: any [job/base-address defs/base-address]
 		dynamic-linker: any [job/dynamic-linker ""]
 
 		set [libraries symbols] collect-import-names job
+		natives: collect-natives job
 
 		structure: copy default-structure
 
@@ -222,6 +239,10 @@ context [
 			]
 		]
 
+		unless job/debug? [
+			remove-elements structure [".stab" ".stabstr"]
+		]
+
 		if empty? job/sections/data/2 [
 			remove-elements structure [".data"]
 		]
@@ -237,6 +258,7 @@ context [
 			".dynsym"		meta [link ".dynstr" info ".interp"]
 			".rel.text"		meta [link ".dynsym" info ".text"]
 			".dynamic"		meta [link ".dynstr"]
+			".stab"			meta [link ".stabstr"]
 
 			"ehdr"			size elf-header
 			"phdr"			size [program-header	length? segments]
@@ -245,12 +267,14 @@ context [
 			".rel.text"		size [elf-relocation	length? symbols]
 			".data.rel.ro"	size [machine-word		length? symbols]
 			".dynamic"		size [elf-dynamic		9 + length? libraries]
+			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [section-header	length? sections]
 
 			".interp"		data (to-c-string dynamic-linker)
 			".dynstr"		data (to-elf-strtab join libraries symbols)
 			".text"			data (job/sections/code/2)
 			".data"			data (job/sections/data/2)
+			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
 		]
 
@@ -308,6 +332,13 @@ context [
 				get-address ".rel.text" get-size ".rel.text"
 				get-data ".dynstr"
 				libraries
+		]
+
+		set-data ".stab" [
+			build-stab
+				get-address ".text"
+				get-data ".stabstr"
+				natives
 		]
 
 		set-data "shdr" [
@@ -488,6 +519,36 @@ context [
 		]
 	]
 
+	build-stab: func [
+		text-address [integer!] stabstr [binary!] natives [block!]
+		/local r s
+	] [
+		collect [
+			;; The first synthetic entry (required) holds the number of
+			;; non-synthetic entries as well as the size of the string table.
+			s: make-struct stab-entry none
+			s/type: defs/stabs-n-undf
+			s/desc: 1 + ((length? natives) / 2)
+			s/value: size-of stabstr
+			keep s
+
+			;; One source file stab (N_SO) is required before any other stabs.
+			s: make-struct stab-entry none
+			s/type: defs/stabs-n-so
+			s/value: text-address
+			s/strx: 1 ;; @@ Use a real source name (instead of "%_")
+			keep s
+
+			foreach [name offset] natives [
+				s: make-struct stab-entry none
+				s/type: defs/stabs-n-fun
+				s/value: text-address + offset
+				s/strx: strtab-index-of stabstr name
+				keep s
+			]
+		]
+	]
+
 	build-shdr: func [
 		sections [block!] commands [block!] shstrtab [binary!]
 		/local names sh name section
@@ -523,6 +584,16 @@ context [
 			]
 		]
 		reduce [libraries symbols]
+	]
+
+	collect-natives: func [job [object!]] [
+		collect [
+			foreach [name meta] job/symbols [
+				if meta/1 = 'native [
+					keep reduce [(join name ":F") (meta/2 - 1)]
+				]
+			]
+		]
 	]
 
 	resolve-import-refs: func [
@@ -737,7 +808,7 @@ context [
 	to-c-string: func [data [string! binary!]] [join as-binary data #{00}]
 
 	to-elf-strtab: func [items [block!]] [
-		join #{00} map-each item items [to-c-string item]
+		join #{00} map-each item items [to-c-string form item]
 	]
 
 	to-elf-symbol-info: func [binding [integer!] type [integer!]] [
