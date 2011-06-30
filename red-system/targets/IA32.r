@@ -855,7 +855,6 @@ make target-class [
 		either any [
 			zero? args-size
 			find [cdecl gcc45] fspec/3
-			all [block? fspec/4/1 find fspec/4/1 'callback] ;-- workaround if cconv propagation fails
 		][
 			;; cdecl: Leave original arguments on stack, popped by caller.
 			emit #{C3}								;-- RET
