@@ -665,6 +665,7 @@ system-dialect: context [
 		
 		check-cc: func [name [word!]][
 			if functions/:name/3 = '?? [
+				pc: back pc
 				throw-error ["calling convention undefined at this point for:" name]
 			]
 		]
