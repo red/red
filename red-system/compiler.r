@@ -731,6 +731,10 @@ system-dialect: context [
 			]		
 		]
 		
+		check-expected-logic: func [name [word!] expr][
+			if last-type <> 'logic! [check-expected-type/key name expr [logic!]]
+		]
+		
 		check-expected-type: func [name [word!] expr expected [block!] /ret /key /local type alias][
 			unless any [not none? expr key][return none]			;-- expr == none for special keywords
 			if all [
@@ -1108,7 +1112,7 @@ system-dialect: context [
 				comp-block/final						;-- returns last expression
 			]
 			if test [
-				check-expected-type/key name expr [logic!]	;-- verify conditional expression
+				check-expected-logic name expr			;-- verify conditional expression
 				expr: process-logic-encoding expr
 			]
 			reduce [
@@ -1145,7 +1149,7 @@ system-dialect: context [
 		comp-if: has [expr unused chunk][		
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
-			check-expected-type/key 'if expr [logic!]	;-- verify conditional expression
+			check-expected-logic 'if expr				;-- verify conditional expression
 			expr: process-logic-encoding expr
 			check-body pc/1								;-- check TRUE block
 	
@@ -1160,7 +1164,7 @@ system-dialect: context [
 		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
-			check-expected-type/key 'either expr [logic!]	;-- verify conditional expression
+			check-expected-logic 'either expr			;-- verify conditional expression
 			expr: process-logic-encoding expr
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
