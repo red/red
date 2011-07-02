@@ -1118,18 +1118,18 @@ system-dialect: context [
 		]
 		
 		process-logic-encoding: func [expr][			;-- preprocess logic values
-			switch/default type?/word expr [
-				logic! [ [#[true]] ]
-				word!  [
+			case [
+				logic? expr [ [#[true]] ]
+				find [word! path!] type?/word expr  [
 					emitter/target/emit-operation '= [<last> 0]
 					[#[true]]
 				]
-				block! [
+				block? expr [
 					case [
 						find comparison-op expr/1 [expr]
 						object? expr/1 [				
 							expr: blockify cast expr/1/type expr/2
-							unless word? expr/1 [
+							unless find [word! path!] type?/word expr/1 [
 								emitter/target/emit-operation '= [<last> 0]
 							]
 							process-logic-encoding expr
@@ -1137,8 +1137,9 @@ system-dialect: context [
 						'else [process-logic-encoding expr/1]
 					]
 				]
-				tag! [either expr <> <last> [ [#[true]] ][expr]]
-			][expr]
+				tag? expr [either expr <> <last> [ [#[true]] ][expr]]
+				'else [expr]
+			]
 		]
 		
 		comp-if: has [expr unused chunk][		
