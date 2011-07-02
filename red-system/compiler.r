@@ -1311,7 +1311,7 @@ system-dialect: context [
 				if all [block? tree/2 object? tree/2/1][;-- detect a casting
 					switch tree/2/1/action [
 						type-cast [
-							casted: tree/2/1/type		;-- save casting type
+							casted: blockify resolve-aliased tree/2/1/type		;-- save casting type
 							if all [block? tree/2/2 object? tree/2/2/1][
 								raise-casting-error
 							]
@@ -1358,6 +1358,7 @@ system-dialect: context [
 						init-local name tree casted		;-- mark as initialized and infer type if required
 					]
 					either type: get-variable-spec name [  ;-- test if known variable (local or global)
+						type: resolve-aliased type				
 						new: blockify get-mapped-type data
 						if type <> any [casted new][
 							backtrack tree/1

@@ -44,23 +44,24 @@ compiled?: func [
   --assert compiled? {
       Red/System []
       a5-alias!: alias struct! [a [integer!] b [integer!]]
-      a5-struc: struct a5-alias!
+      a5-struct: struct a5-alias!
       a5-pointer: pointer [integer!]
-      a5-struc/a: 1
-      a5-struc/b: 2
-      a5-pointer: as [pointer! [integer!]] a5-struc
-      a5-struc: as a5-alias! a5-pointer
+      a5-struct/a: 1
+      a5-struct/b: 2
+      a5-pointer: as [pointer! [integer!]] a5-struct
+      a5-struct: as a5-alias! a5-pointer
     }
     
   --test-- "alias-3"
   --assert compiled? {
     Red/System []  
     a5-alias!: alias struct! [a [byte!] b [byte!]]
-    a5-struct: struct [
+    a6-alias!: alias struct! [a [byte!] b [byte!]]
+    a6-struct: struct [
       s1 [a5-alias!]
       s2 [a5-alias!]
     ]
-    a5-struct/s1: struct a5-alias!
+    a6-struct/s1: struct a6-alias!
   }
   
 ===end-group=== 
