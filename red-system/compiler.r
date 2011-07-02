@@ -94,7 +94,7 @@ system-dialect: context [
 					) :e
 					| hex-delim
 					s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
-					[hex-delim | #";" | end] e: (			
+					e: [hex-delim | #";" | end] (			
 						either find [2 4 8] c [
 							e: change/part s to integer! to issue! value e
 						][
