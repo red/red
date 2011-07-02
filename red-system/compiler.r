@@ -1172,12 +1172,12 @@ system-dialect: context [
 			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
 			emitter/merge emitter/chunks/join c-true c-false
 
-			t-true:  first blockify resolve-expr-type/quiet e-true
-			t-false: first blockify resolve-expr-type/quiet e-false
+			t-true:  blockify resolve-expr-type/quiet e-true
+			t-false: blockify resolve-expr-type/quiet e-false
 
 			last-type: either all [
-				t-true t-false
-				equal-types? t-true t-false
+				t-true/1 t-false/1
+				equal-types? t-true/1 t-false/1
 			][t-true][none] 							;-- allow nesting if both blocks return same type		
 			<last>
 		]
