@@ -21,6 +21,7 @@ target-class: context [
 	comparison-op: [= <> < > <= >=]
 	math-op:	   [+ - * / // ///]
 	bitwise-op:	   [and or xor]
+	bitshift-op:   [>> << >>>]
 	
 	opp-conditions: [
 	;-- condition ------ opposite condition --
