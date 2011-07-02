@@ -78,6 +78,7 @@ rsc: context [
 		parse args [
 			any [
 				  ["-r" | "--no-runtime"] (opts/runtime?: no)
+				| ["-g" | "--debug-stabs"] (opts/debug?: yes)
 				| ["-o" | "--output"] set output skip
 				| ["-t" | "--target"] set target skip
 				| ["-v" | "--verbose"] set verbose skip
