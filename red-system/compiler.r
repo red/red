@@ -1363,7 +1363,7 @@ system-dialect: context [
 					]
 					either type: get-variable-spec name [  ;-- test if known variable (local or global)
 						type: resolve-aliased type				
-						new: blockify get-mapped-type data
+						new: blockify resolve-aliased get-mapped-type data
 						if type <> any [casted new][
 							backtrack tree/1
 							throw-error [
