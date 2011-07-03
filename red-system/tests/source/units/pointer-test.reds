@@ -13,9 +13,9 @@ Red/System [
 ===start-group=== "Pointers simple read/write tests"
 
 	--test-- "pointer-rw-1"
-	p-struct: struct [n [integer!] m [integer!]]
-	pA: pointer [integer!]
-	pB: pointer [integer!]
+	p-struct: declare struct! [n [integer!] m [integer!]]
+	pA: declare pointer! [integer!]
+	pB: declare pointer! [integer!]
 
 	p-struct/n: 123
 	--assert p-struct/n = 123
@@ -70,7 +70,7 @@ Red/System [
 	pB: foo-pointer pA 
 	--assert pB/value = 12345
 
-	pointer-str: struct [
+	pointer-str: declare struct! [
 		A [pointer! [integer!]]
 		B [pointer! [integer!]]
 		sub [
@@ -79,7 +79,7 @@ Red/System [
 			]
 		]
 	]
-	pointer-str/sub: struct [C [pointer! [integer!]]]
+	pointer-str/sub: declare struct! [C [pointer! [integer!]]]
 
 	--test-- "pointer-rw-10"
 	pointer-str/A: pA
@@ -99,7 +99,7 @@ Red/System [
 	--assert p-struct/m = 987654321
 	
 	--test-- "pointer-rw-14"
-	b-pointer: pointer [byte!]
+	b-pointer: declare pointer! [byte!]
 	b-str: "hello"
 	b-pointer: as [pointer! [byte!]] b-str
 	--assert b-pointer/value = #"h"
@@ -111,7 +111,7 @@ Red/System [
 	][
 		a
 	]
-	b-pointer2: pointer [byte!]
+	b-pointer2: declare pointer! [byte!]
 
 	b-pointer2: foo-b-pointer b-pointer
 	--assert b-pointer2/value = #"h"
@@ -119,9 +119,9 @@ Red/System [
 ===start-group=== "Pointers arithmetic"
 	
 	--test-- "pointer-calc-1"
-	pa-struct: struct [n [integer!] m [integer!] p [integer!] o [integer!]]
-	pA: pointer [integer!]
-	pB: pointer [integer!]
+	pa-struct: declare struct! [n [integer!] m [integer!] p [integer!] o [integer!]]
+	pA: declare pointer! [integer!]
+	pB: declare pointer! [integer!]
 	
 	pA: as [pointer! [integer!]] pa-struct
 	pa-struct/n: 123456789
@@ -202,9 +202,9 @@ pointer-local-foo: func [
 ][
 
 	--test-- "loc-point-rw-1"
-	p-struct: struct [n [integer!] m [integer!]]
-	pA: pointer [integer!]
-	pB: pointer [integer!]
+	p-struct: declare struct! [n [integer!] m [integer!]]
+	pA: declare pointer! [integer!]
+	pB: declare pointer! [integer!]
 
 	p-struct/n: 123
 	--assert p-struct/n = 123
@@ -252,7 +252,7 @@ pointer-local-foo: func [
 	pB: foo-pointer pA 
 	--assert pB/value = 12345
 
-	pointer-str: struct [
+	pointer-str: declare struct! [
 		A [pointer! [integer!]]
 		B [pointer! [integer!]]
 		sub [
@@ -261,7 +261,7 @@ pointer-local-foo: func [
 			]
 		]
 	]
-	pointer-str/sub: struct [C [pointer! [integer!]]]
+	pointer-str/sub: declare struct! [C [pointer! [integer!]]]
 
 	--test-- "loc-point-rw-10"
 	pointer-str/A: pA
@@ -281,18 +281,18 @@ pointer-local-foo: func [
 	--assert p-struct/m = 987654321
 	
 	--test-- "loc-point-rw-14"
-	b-pointer: pointer [byte!]
+	b-pointer: declare pointer! [byte!]
 	b-str: "hello"
 	b-pointer: as [pointer! [byte!]] b-str
 	--assert b-pointer/value = #"h"
 
 	--test-- "loc-point-rw-15"
-	b-pointer2: pointer [byte!]
+	b-pointer2: declare pointer! [byte!]
 	b-pointer2: foo-b-pointer b-pointer
 	--assert b-pointer2/value = #"h"
 	
 	--test-- "loc-point-calc-1"
-	pa-struct: struct [n [integer!] m [integer!] p [integer!] o [integer!]]
+	pa-struct: declare struct! [n [integer!] m [integer!] p [integer!] o [integer!]]
 
 	pA: as [pointer! [integer!]] pa-struct
 	pa-struct/n: 123456789

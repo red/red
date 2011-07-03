@@ -13,12 +13,12 @@ Red/System [
 ===start-group=== "Struct members simple read/write tests"
 
 	--test-- "s-rw-1"
-	struct1: struct [b [integer!]]
+	struct1: declare struct! [b [integer!]]
 	struct1/b: 12345
 	--assert struct1/b = 12345
 	
 	--test-- "s-rw-2"
-	struct2: struct [b [byte!] c [c-string!] d [integer!]]
+	struct2: declare struct! [b [byte!] c [c-string!] d [integer!]]
 	struct2/c: "a"
 	struct2/d: 9876
 	struct2/b: #"R"				;-- intentionnaly put there to test not overlapping memory storage
@@ -65,7 +65,7 @@ Red/System [
 ===start-group=== "Nested structs read/write tests"
 
 	--test-- "s-nested-1"
-	struct3: struct [
+	struct3: declare struct! [
 		d [byte!]
 		b [integer!]
 		c [c-string!]
@@ -77,7 +77,7 @@ Red/System [
 		]
 		g [integer!]
 	]
-	struct3/sub: struct [
+	struct3/sub: declare struct! [
 		e [integer!]
 		f [c-string!]
 	]
@@ -146,12 +146,12 @@ struct-local-foo: func [
 		struct3-byte [byte!]
 ][
 	--test-- "ls-rw-1"
-	struct1: struct [b [integer!]]
+	struct1: declare struct! [b [integer!]]
 	struct1/b: 12345
 	--assert struct1/b = 12345
 
 	--test-- "ls-rw-2"
-	struct2: struct [b [byte!] c [c-string!] d [integer!]]
+	struct2: declare struct! [b [byte!] c [c-string!] d [integer!]]
 	struct2/c: "a"
 	struct2/d: 9876
 	struct2/b: #"R"				;-- intentionnaly put there to test not overlapping memory storage
@@ -192,7 +192,7 @@ struct-local-foo: func [
 	--assert #"R" = struct2-foo-byte struct2/b
 	
 	--test-- "ls-nested-1"
-	struct3: struct [
+	struct3: declare struct! [
 		d [byte!]
 		b [integer!]
 		c [c-string!]
@@ -204,7 +204,7 @@ struct-local-foo: func [
 		]
 		g [integer!]
 	]
-	struct3/sub: struct [
+	struct3/sub: declare struct! [
 		e [integer!]
 		f [c-string!]
 	]
@@ -264,16 +264,16 @@ struct-local-foo
 ===start-group=== "Struct variables arithmetic"
 
 	--test-- "struct-math-1"
-	struct4: struct [
+	struct4: declare struct! [
 		a [struct! [value [integer!]]]
 		b [struct! [value [integer!]]]
 		c [struct! [value [integer!]]]
 	]
-	struct5: struct [value [integer!]]
+	struct5: declare struct! [value [integer!]]
 
-	struct4/a: struct [value [integer!]]
-	struct4/b: struct [value [integer!]]
-	struct4/c: struct [value [integer!]]
+	struct4/a: declare struct! [value [integer!]]
+	struct4/b: declare struct! [value [integer!]]
+	struct4/c: declare struct! [value [integer!]]
 
 	struct4/a/value: 123
 	struct4/b/value: 456
@@ -313,16 +313,16 @@ struct-local-foo
 	
 	
 	--test-- "struct-math-7"
-	struct6: struct [
+	struct6: declare struct! [
 		a [struct! [value [byte!]]]
 		b [struct! [value [byte!]]]
 		c [struct! [value [byte!]]]
 	]
-	struct7: struct [value [byte!]]
+	struct7: declare struct! [value [byte!]]
 
-	struct6/a: struct [value [byte!]]
-	struct6/b: struct [value [byte!]]
-	struct6/c: struct [value [byte!]]
+	struct6/a: declare struct! [value [byte!]]
+	struct6/b: declare struct! [value [byte!]]
+	struct6/c: declare struct! [value [byte!]]
 
 	struct6/a/value: #"a"
 	struct6/b/value: #"b"
@@ -361,16 +361,16 @@ struct-local-foo
 	--assert struct7/value = #"c"
 	
 	--test-- "struct-math-13"
-	struct8: struct [
+	struct8: declare struct! [
 		a [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
 		b [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
 		c [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
 	]
-	struct9: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct9: declare struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]
 
-	struct8/a: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
-	struct8/b: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
-	struct8/c: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/a: declare struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/b: declare struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/c: declare struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]
 
 	struct8/a/v1: 123
 	struct8/b/v1: 456
@@ -435,16 +435,16 @@ struct-local-foo2: func [
 		struct-idx [integer!]
 ][
 	--test-- "loc-struct-math-1"
-	struct4: struct [
+	struct4: declare struct! [
 		a [struct! [value [integer!]]]
 		b [struct! [value [integer!]]]
 		c [struct! [value [integer!]]]
 	]
-	struct5: struct [value [integer!]]
+	struct5: declare struct! [value [integer!]]
 
-	struct4/a: struct [value [integer!]]
-	struct4/b: struct [value [integer!]]
-	struct4/c: struct [value [integer!]]
+	struct4/a: declare struct! [value [integer!]]
+	struct4/b: declare struct! [value [integer!]]
+	struct4/c: declare struct! [value [integer!]]
 
 	struct4/a/value: 123
 	struct4/b/value: 456
@@ -484,16 +484,16 @@ struct-local-foo2: func [
 	
 	
 	--test-- "loc-struct-math-7"
-	struct6: struct [
+	struct6: declare struct! [
 		a [struct! [value [byte!]]]
 		b [struct! [value [byte!]]]
 		c [struct! [value [byte!]]]
 	]
-	struct7: struct [value [byte!]]
+	struct7: declare struct! [value [byte!]]
 
-	struct6/a: struct [value [byte!]]
-	struct6/b: struct [value [byte!]]
-	struct6/c: struct [value [byte!]]
+	struct6/a: declare struct! [value [byte!]]
+	struct6/b: declare struct! [value [byte!]]
+	struct6/c: declare struct! [value [byte!]]
 
 	struct6/a/value: #"a"
 	struct6/b/value: #"b"
@@ -532,16 +532,16 @@ struct-local-foo2: func [
 	--assert struct7/value = #"c"
 	
 	--test-- "loc-struct-math-13"
-	struct8: struct [
+	struct8: declare struct! [
 		a [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
 		b [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
 		c [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
 	]
-	struct9: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct9: declare struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]
 
-	struct8/a: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
-	struct8/b: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
-	struct8/c: struct [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/a: declare struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/b: declare struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]
+	struct8/c: declare struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]
 
 	struct8/a/v1: 123
 	struct8/b/v1: 456

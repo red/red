@@ -12,7 +12,7 @@ Red/System [
 
 ===start-group=== "null first class tests"
 
-	nt-struct: struct [a [pointer! [integer!]]]
+	nt-struct: declare struct! [a [pointer! [integer!]]]
 
 	nt-foo: func [
 		p [pointer! [integer!]]
@@ -22,9 +22,9 @@ Red/System [
 	]
 	foo-null: func [return: [pointer! [integer!]]][null]
 	
-	nt-p: pointer [integer!]
+	nt-p: declare pointer! [integer!]
 	nt-p: null
-	nt-q: struct [a [integer!]]
+	nt-q: declare struct! [a [integer!]]
 	nt-r: nt-foo null
 	nt-struct/a: null
 

@@ -36,7 +36,7 @@ stdin:		-1								;-- uninitialized default value
 stderr:		-1								;-- uninitialized default value
 
 
-system: struct [							;-- store runtime accessible system values
+system: declare struct! [					;-- store runtime accessible system values
 	reserved 	[integer!]					;-- place-holder to not have an empty structure
 ]
 

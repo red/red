@@ -55,7 +55,7 @@ compiled?: func [
    --test-- "cast c-string! 2"
    --assert compiled? {
       Red/System[]
-      csc7-struct: struct [
+      csc7-struct: declare struct! [
         c1 [byte!]
         c2 [byte!]
         c3 [byte!]
@@ -139,8 +139,8 @@ compiled?: func [
     
     warning-test "pointer!" {
         Red/System []
-         p: pointer [integer!]
-         p1: pointer [integer!]
+         p:  declare pointer! [integer!]
+         p1: declare pointer! [integer!]
          p: as [pointer! [integer!]] 1
          p1: p
          p1 = as [pointer! [integer!]] p
@@ -148,8 +148,8 @@ compiled?: func [
     
     warning-test "struct!" {
         Red/System []
-         s1: struct [a [integer!] b [integer!]]
-         s2: struct [a [integer!] b [integer!]]
+         s1: declare struct! [a [integer!] b [integer!]]
+         s2: declare struct! [a [integer!] b [integer!]]
          s2 = as [struct! [a [integer!] b [integer!]]] s1
     }
         
