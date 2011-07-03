@@ -14,13 +14,13 @@ qt-group-name:  "123456789012345678901234567890"
 qt-test-name:   "123456789012345678901234567890"
 
 ;; counters
-qt-run: struct [
+qt-run: declare struct! [
   tests     [integer!]
   asserts   [integer!]
   passes    [integer!]
   failures  [integer!]
 ]
-qt-file: struct [
+qt-file: declare struct! [
   tests     [integer!]
   asserts   [integer!]
   passes    [integer!]

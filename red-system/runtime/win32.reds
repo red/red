@@ -114,7 +114,7 @@ stderr: GetStdHandle WIN_STD_ERROR_HANDLE
 ;-- Runtime functions --
 
 prin: func [s [c-string!] return: [integer!] /local written][
-	written: struct [value [integer!]]
+	written: declare struct! [value [integer!]]
 	WriteFile stdout s length? s written 0
 ]
 

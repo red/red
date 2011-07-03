@@ -32,10 +32,10 @@ compiled?: func [
 	--assert compiled? {
 	  Red/System []
 	  a3-alias!: alias struct! [a [integer!] b [integer!]]
-	  a3-struct: struct a3-alias!
+	  a3-struct: declare a3-alias!
 	  a3-struct/a: 1
 	  a3-struct/b: 2
-	  a3-struct-1: struct a3-alias!
+	  a3-struct-1: declare a3-alias!
 	  a3-struct-1/a: 3
 	  a3-struct-1/b: 4
   }
@@ -44,8 +44,8 @@ compiled?: func [
   --assert compiled? {
       Red/System []
       a5-alias!: alias struct! [a [integer!] b [integer!]]
-      a5-struct: struct a5-alias!
-      a5-pointer: pointer [integer!]
+      a5-struct: declare a5-alias!
+      a5-pointer: declare pointer! [integer!]
       a5-struct/a: 1
       a5-struct/b: 2
       a5-pointer: as [pointer! [integer!]] a5-struct
@@ -57,11 +57,11 @@ compiled?: func [
     Red/System []  
     a5-alias!: alias struct! [a [byte!] b [byte!]]
     a6-alias!: alias struct! [a [byte!] b [byte!]]
-    a6-struct: struct [
+    a6-struct: declare struct! [
       s1 [a5-alias!]
       s2 [a5-alias!]
     ]
-    a6-struct/s1: struct a6-alias!
+    a6-struct/s1: declare a6-alias!
   }
   
 ===end-group=== 

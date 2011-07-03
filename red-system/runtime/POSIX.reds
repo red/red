@@ -101,7 +101,7 @@ print: func [s [c-string!] return: [integer!]][
 	***-on-quit error info/address
 ]
 
-__sigaction-options: struct sigaction!
+__sigaction-options: declare sigaction!
 
 __sigaction-options/sigaction: 	as-integer :***-on-signal
 __sigaction-options/mask: 		0

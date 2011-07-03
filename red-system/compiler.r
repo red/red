@@ -288,8 +288,7 @@ system-dialect: context [
 			func 		 [raise-level-error "a function"] ;-- func declaration not allowed at this level
 			function 	 [raise-level-error "a function"] ;-- func declaration not allowed at this level
 			alias 		 [raise-level-error "an alias"]	  ;-- alias declaration not allowed at this level
-			struct 		 [comp-struct]
-			pointer 	 [comp-pointer]
+			declare		 [comp-declare]
 			null		 [comp-null]
 		]
 		
@@ -496,10 +495,10 @@ system-dialect: context [
 					]
 				]
 				paren?  value	[
-					reduce either all [value/1 = 'struct word? value/2][
+					reduce either all [value/1 = 'struct! word? value/2][
 						[value/2]
 					][
-						[to word! join value/1 #"!" value/2]
+						[value/1 value/2]
 					]
 				]
 				get-word? value [resolve-type to word! value]
@@ -979,31 +978,28 @@ system-dialect: context [
 			]
 		]
 		
-		comp-reference-literal: has [value][
-			value: to paren! reduce [pc/1 pc/2]
+		comp-declare: has [rule value pos offset][
 			unless find [set-word! set-path!] type?/word pc/-1 [
-				throw-error ["assignment expected for" pc/1 "value"]
+				throw-error "assignment expected before literal declaration"
 			]
-			pc: skip pc 2
-			value
-		]
-		
-		comp-struct: does [
-			either word? pc/2 [
-				resolve-aliased pc/2					;-- just check if alias is defined
-			][
-				unless catch [parse pos: pc/2 struct-syntax][
-					throw-error ["invalid struct syntax:" mold pos]
+			value: to paren! reduce either find [pointer! struct!] pc/2 [
+				rule: get pick [struct-syntax pointer-syntax] pc/2 = 'struct!
+				unless catch [parse pos: pc/3 rule][
+					throw-error ["invalid literal syntax:" mold pos]
 				]
+				offset: 3
+				[pc/2 pc/3]
+			][
+				unless all [word? pc/2 resolve-aliased pc/2][
+					throw-error [
+						"declaring literal for type" pc/2 "not supported"
+					]
+				]
+				offset: 2
+				['struct! pc/2]
 			]
-			comp-reference-literal
-		]
-		
-		comp-pointer: does [
-			unless parse pos: pc/2 pointer-syntax [
-				throw-error ["invalid pointer syntax:" mold pos]
-			]
-			comp-reference-literal
+			pc: skip pc offset
+			value
 		]
 		
 		comp-null: does [

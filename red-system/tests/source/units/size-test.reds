@@ -57,29 +57,29 @@ Red/System [
 	--assert 2 = size? sz-d
 
 	--test-- "sz-10"
-	sz-struct: struct [a [byte!]]
+	sz-struct: declare struct! [a [byte!]]
 	--assert 1 = size? sz-struct
 	--assert 1 = size? sz-struct/a
 
 	--test-- "sz-11"
-	sz-pointer: pointer [integer!]
+	sz-pointer: declare pointer! [integer!]
 	--assert 4 = size? sz-pointer
 	--assert 4 = size? sz-pointer/value
 	
 	--test-- "sz-12"
-	sz-struct2: struct [a [byte!] b [byte!]]
+	sz-struct2: declare struct! [a [byte!] b [byte!]]
 	--assert 2 = size? sz-struct2
 	
 	--test-- "sz-13"
-	sz-struct3: struct [a [byte!] b [integer!]]
+	sz-struct3: declare struct! [a [byte!] b [integer!]]
 	--assert 8 = size? sz-struct3
 	
 	--test-- "sz-14"
-	sz-struct4: struct [a [integer!] b [byte!]]
+	sz-struct4: declare struct! [a [integer!] b [byte!]]
 	--assert 5 = size? sz-struct4
 	
 	--test-- "sz-15"
-	sz-struct5: struct [a [integer!] b [c-string!]]
+	sz-struct5: declare struct! [a [integer!] b [c-string!]]
 	--assert 8 = size? sz-struct5
 	
 	--test-- "sz-16"
@@ -120,28 +120,28 @@ sz-foo: func [
 	--assert 2 = size? sz-d
 
 	--test-- "loc-sz-5"
-	sz-struct: struct [a [byte!]]
+	sz-struct: declare struct! [a [byte!]]
 	--assert 1 = size? sz-struct
 
 	--test-- "loc-sz-6"
-	sz-pointer: pointer [integer!]
+	sz-pointer: declare pointer! [integer!]
 	--assert 4 = size? sz-pointer
 	--assert 4 = size? sz-pointer/value
 	
 	--test-- "loc-sz-7"
-	sz-struct2: struct [a [byte!] b [byte!]]
+	sz-struct2: declare struct! [a [byte!] b [byte!]]
 	--assert 2 = size? sz-struct2
 
 	--test-- "loc-sz-8"
-	sz-struct3: struct [a [byte!] b [integer!]]
+	sz-struct3: declare struct! [a [byte!] b [integer!]]
 	--assert 8 = size? sz-struct3
 
 	--test-- "loc-sz-9"
-	sz-struct4: struct [a [integer!] b [byte!]]
+	sz-struct4: declare struct! [a [integer!] b [byte!]]
 	--assert 5 = size? sz-struct4
 
 	--test-- "loc-sz-10"
-	sz-struct5: struct [a [integer!] b [c-string!]]
+	sz-struct5: declare struct! [a [integer!] b [c-string!]]
 	--assert 8 = size? sz-struct5
 ]
 sz-foo

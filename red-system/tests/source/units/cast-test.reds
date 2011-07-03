@@ -115,7 +115,7 @@ comment {
   
   --test-- "int-cast-16"           ;; This test assumes 32-bit target
     i: 1
-    p: pointer [integer!]
+    p: declare pointer! [integer!]
     p: as [pointer! [integer!]] i
     P: P + 1
     i2: as integer! p
@@ -131,7 +131,7 @@ comment {
   
   --test-- "int-cast-18"            
     i: 1
-    s: struct [
+    s: declare struct! [
       a [integer!]
       b [integer!]
     ]
@@ -225,7 +225,7 @@ comment {
   
   --test-- "c-string-cast-6"
     csc6-str: "Tour de France"
-    csc6-p: pointer [integer!]
+    csc6-p: declare pointer! [integer!]
     csc6-p: as [pointer! [integer!]] csc6-str
     csc6-p: csc6-p + 2
     csc6-str2: as c-string! csc6-p
@@ -237,7 +237,7 @@ comment {
   --assert csc6-str2/6 = #"e"
   
   --test-- "C-string-cast-7"
-    csc7-struct: struct [
+    csc7-struct: declare struct! [
       c1 [byte!]
       c2 [byte!]
       c3 [byte!]
@@ -259,29 +259,29 @@ comment {
 ===start-group=== "cast from pointer!"
 
   --test-- "csp-1"
-    csp1-p: pointer [integer!]
+    csp1-p: declare pointer! [integer!]
     csp1-p: as [pointer! [integer!]] 256
     i: 0
     i: as integer! csp1-p
   --assert i = 256
 
   --test-- "csp-2"
-    csp2-p: pointer [integer!]
+    csp2-p: declare pointer! [integer!]
     csp2-p: as [pointer! [integer!]] 0
   --assert false = as logic! csp2-p
  
   --test-- "csp-3"
-    csp3-p: pointer [integer!]
+    csp3-p: declare pointer! [integer!]
     csp3-p: as [pointer! [integer!]] 1
   --assert true = as logic! csp3-p
   
   --test-- "csp-4"
-    csp4-p: pointer [integer!]
+    csp4-p: declare pointer! [integer!]
     csp4-p: as [pointer! [integer!]] FFFFFFFFh
   --assert true = as logic! csp4-p
   
   --test-- "csp-5"
-    csp5-p: pointer [integer!]
+    csp5-p: declare pointer! [integer!]
     csp5-p: as [pointer! [integer!]] 7FFFFFFFh
   --assert true = as logic! csp5-p
   
@@ -289,8 +289,8 @@ comment {
   ;;  duplicate the one of c-string! to pointer!
   
   --test-- "csp-6"
-    csp6-p: pointer [integer!]
-    csp6-s: struct [
+    csp6-p: declare pointer! [integer!]
+    csp6-s: declare struct! [
       a [integer!]
       b [integer!]
     ]
@@ -315,7 +315,7 @@ comment {
   ;;  duplicate the test from integer! to struct!
    
   --test-- "cfstruc-1"
-    cfs1-struct: struct [
+    cfs1-struct: declare struct! [
       a [integer!]
       b [integer!]
     ]
@@ -323,7 +323,7 @@ comment {
   --assert false = as logic! cfs1-struct
 
   --test-- "cfstruc-2"
-    cfs2-struct: struct [
+    cfs2-struct: declare struct! [
       a [integer!]
       b [integer!]
     ]
