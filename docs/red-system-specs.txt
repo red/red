@@ -610,7 +610,7 @@ Integer variable can also be used as index:
 
 +++Null value
 
-A special <b>null</b> value is available to use for pointer! and other pointer-like (pass-by-reference) types (struct!, c-string!) and pseudo-type function!. <b>Null</b> does not have a specific type, but can be used to replace any other pointer-like value. So, <b>null</b> cannot be used as initializing value for a local variable that does not have an explicit type specification.
+A special <b>null</b> value is available to use for pointer! and other pointer-like (pass-by-reference) types (struct!, c-string!) and pseudo-type function!. <b>Null</b> does not have a specific type, but can be used to replace any other pointer-like value. So, <b>null</b> cannot be used as initializing value for a global variable or a local variable that does not have an explicit type specification.
 
 <b>Null</b> is a first class value, so it can be assigned to a variable, passed as argument to a function or returned by a function.
 
@@ -1601,8 +1601,9 @@ It will be possible to export some Red/System functions to be callable from the 
 
 The list of following symbols and keywords are reserved, they cannot be used as variable or function name:
 
-    & 			* 			+
-    - 			/ 			//
+	%			& 			* 
+	+			- 			-**
+	/ 			// 	 		///
     < 			<= 			<>
     = 			> 			>=
     alias 		all 		and
@@ -1613,6 +1614,11 @@ The list of following symbols and keywords are reserved, they cannot be used as 
 	return 		size? 		struct
 	true 		until 		while
     xor
+    
+\note Bootstrapping constraint
+Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
+
+/note
 
 ---Infix operators
 
@@ -1642,13 +1648,13 @@ The following math operations apply on integer values. When the operation result
 
  value1 % value2
  
-Note: a remainder will be negative if the divider is negative.
+Note: a remainder will be negative if the divider is negative. Same as in C or // operator in REBOL.
  
 <b>Modulo</b>: //
 
  value1 // value2
  
-Note: a positive result is always returned.
+Note: a positive result is always returned. Same as 'modulo function in REBOL.
 
 where
 
@@ -1660,6 +1666,27 @@ The resulting value type for math operators is the type of the left argument (an
 <i>TBD: make a matrix of allowed types combinations</i>
  
 <u>Note:</u> for + and - operators, a pointer!, struct! or c-string! value can be used as first argument with an integer expression as second argument (pointer arithmetic).
+
++++Bitshift operators
+
+<b>Signed left shift</b>: <<
+
+ value1 << value2
+
+<b>Signed right shift</b>: >>
+
+ value1 >> value2
+
+<b>Unsigned right shift</b>: >>>
+
+ value1 >>> value2
+  
+where
+ 
+ value1 : an expression returning an integer! or byte!
+ value2 : integer! expression restricted to 0-31 range only.
+
+<u>Note</u>: There is no unsigned left shift operator as it is the same as the signed left shift one.
 
 +++Bitwise operators
 
@@ -1994,6 +2021,12 @@ will output:
 *>Added a note about alias names living in their own namespace.
 
 *>Added % operator and notes to help distinguish % and // operators.
+
+*>Added a mention for global variables initialization restriction in Null description.
+
+*>Added -**, >>>, %, /// in reserved keywords list.
+
+*>Added bitshift operators section.
 
 
 *<b>23/06/2011 - draft 17</b>
