@@ -870,6 +870,11 @@ Function definition and usage is pretty straightforward in Red/System. The funct
 
 *special attributes
 
+\note Dialects
+The specification block is a Red/System dialect (DSL), so the words inside such block are interpreted specifically and relatively to this <i>function definition</i> dialect, they are not related or affected by other namespaces, like the global variables namespace. A consequence is that using the type names as variables names is possible, but not recommended in order to keep the source code more easily readable.
+
+/note
+
 ---Declaration
 
 <b>Syntax</b>
@@ -2027,6 +2032,8 @@ will output:
 *>Added -**, >>>, %, /// in reserved keywords list.
 
 *>Added bitshift operators section.
+
+
 
 
 *<b>23/06/2011 - draft 17</b>
