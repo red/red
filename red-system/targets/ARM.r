@@ -27,13 +27,26 @@ make target-class [
 		]
 	]
 
-	emit-push-integer: func [value [integer!]] [
+	emit-load-integer: func [value [integer!]] [
 		;; @@ we currently store full 32-bit integer immediates directly in the
 		;; instruction stream. should probably use a literal pool instead.
 		ei32 #{e49f0000}				;-- ldr r0, [pc], #0
 		ei32 #{e1a00000}				;-- nop
 		emit to-bin32 value				;-- <value>
-		ei32 #{e92d0001}				;-- push {r0}
+	]
+
+	emit-load: func [
+		value [char! logic! integer! word! string! path! get-word! struct! paren!]
+	] [
+		if verbose >= 3 [print [">>>loading" mold value]]
+
+		switch/default type?/word value [
+			integer! [
+				emit-load-integer value
+			]
+		] [
+			compiler/throw-error join "[codegen] nyi load: " type?/word value
+		]
 	]
 
 	emit-push: func [
@@ -43,7 +56,8 @@ make target-class [
 
 		switch/default type?/word value [
 			integer! [
-				emit-push-integer value
+				emit-load-integer value
+				ei32 #{e92d0001}				;-- push {r0}
 			]
 		] [
 			compiler/throw-error join "[codegen] nyi push: " type?/word value
