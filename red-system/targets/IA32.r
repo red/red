@@ -488,7 +488,7 @@ make target-class [
 		]
 	]
 	
-	emit-bitshift-op: func [name [word!] a [word!] b [word!] args [block!]][
+	emit-bitshift-op: func [name [word!] a [word!] b [word!] args [block!] /local c][
 		switch b [
 			ref [
 				emit-variable args/2
@@ -517,7 +517,16 @@ make target-class [
 				] b = 'imm
 			]
 		]
-		if b = 'imm [emit to-bin8 args/2]			;@@ add range checking
+		if b = 'imm [
+			c: select [1 7 2 15 4 31] width
+			unless all [0 <= args/2 args/2 <= c][		
+				compiler/backtrack name
+				compiler/throw-error rejoin [
+					"a value in 0-" c " range is required for this shift operation"
+				]
+			]
+			emit to-bin8 args/2
+		]
 	]
 	
 	emit-bitwise-op: func [name [word!] a [word!] b [word!] args [block!] /local code][		
