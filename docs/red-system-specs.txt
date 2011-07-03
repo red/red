@@ -1,8 +1,8 @@
 Red/System Language Specifications (working draft)
 
 	Author: Nenad Rakocevic
-	Date: 23/06/2011
-	Revision: 17
+	Date: 04/07/2011
+	Revision: 18
 	Status: working draft
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -348,9 +348,9 @@ Struct! datatype is roughly equivalent to C struct type. It is a record of one o
 
 +++Declaration
 
-Declaring a struct! value is achieved by using the STRUCT keyword followed by a specification block. That block defines struct! value members using pairs of name and datatype definition.
+Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence followed by a specification block. That block defines struct! value members using pairs of name and datatype definition.
 
- struct [
+ declare struct! [
  	<member> [<datatype>]
  	...
  ]
@@ -359,11 +359,11 @@ Declaring a struct! value is achieved by using the STRUCT keyword followed by a 
  <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
               c-string! | struct! [<members>]
               
-The returned value of STRUCT is the memory address of the newly created struct value.
+The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value.
 
 +++Usage
 
- s: struct [
+ s: declare struct! [
  	a 	[integer!]
  	b	[c-string!]
  	c 	[struct! [d [integer!]]]
@@ -404,7 +404,7 @@ Syntax
 
 Examples
 
- p: struct [							;-- let suppose p = 4000000h
+ p: declare struct! [					;-- let suppose p = 4000000h
 	a [integer!]
 	b [pointer! [integer!]]
  ]										;-- struct memory size would be 8 bytes
@@ -436,7 +436,7 @@ Aliasing syntax:
               
 Struct value declaration using an aliased definition:
 
- <variable>: struct <alias>
+ <variable>: declare <alias>
 
  <variable>  : a struct variable
  <alias>     : a previously declared alias name
@@ -450,12 +450,12 @@ Struct usage example:
  	last-book 	[book!]					;-- self-referenced definition
  ]
 
- gift: struct [
+ gift: declare struct! [
  	first  [book!]						;-- reference to a book! struct
  	second [book!]						;-- reference to a book! struct
  ]
 
- gift/first: struct book!				;-- book! struct storage space reservation
+ gift/first: declare book!				;-- book! struct storage space reservation
 
  gift/first/title:  "Contact"
  gift/first/author: "Carl Sagan"
@@ -473,7 +473,7 @@ Byte! pointers are equivalent to c-string! references, the difference lies only 
 
 New pointers value can be created using the following syntax:
 
- pointer [<datatype>]
+ declare pointer! [<datatype>]
 
  <datatype>: integer! | byte!
 
@@ -484,8 +484,8 @@ The & symbol used in previous revisions of this document has been removed due to
 
 Examples:
 
- foo: pointer [integer!]				;-- equivalent to C's: int *foo;
- bar: pointer [byte!]					;-- equivalent to C's: char *bar;
+ foo: declare pointer! [integer!]		;-- equivalent to C's: int *foo;
+ bar: declare pointer! [byte!]			;-- equivalent to C's: char *bar;
 
 \note Pointer value initialization
 Do not assume any default value for a pointer value until it is initialized properly. In the current implementation, global pointer variables are set to 0 by default while local pointer variables default value is undefined. This might change in the future to adopt a default value more suitable for debugging (like 0BADBAD0h or similar hex trick).
@@ -502,8 +502,8 @@ Pointer declaration is only required for local pointer variables in functions' s
 
 Global variables declaration examples (with C equivalents):
 
- p: pointer [integer!]					;-- int *p;
- p: pointer [byte!]						;-- char *p;
+ p: declare pointer! [integer!]			;-- int *p;
+ p: declare pointer! [byte!]			;-- char *p;
 
 Same with local variables declaration examples (with C equivalents):
 
@@ -525,7 +525,7 @@ Example of inferred pointer variable type:
  	a [struct! [count [integer!]]]
  	/local p							;-- p datatype inferred
  ][
- 	p: pointer [integer!]				;-- p initialized (implicit declaration)
+ 	p: declare pointer! [integer!]		;-- p initialized (implicit declaration)
  	foobar p
  	a/count: p/value
  ]
@@ -551,8 +551,8 @@ Dereferencing a pointer is the operation allowing to access the pointed value. I
 
 Usage example
 
- p:   pointer [integer!]				;-- declare a pointer on an integer
- bar: pointer [integer!]				;-- declare another pointer on an integer
+ p:   declare pointer! [integer!]		;-- declare a pointer on an integer
+ bar: declare pointer! [integer!]		;-- declare another pointer on an integer
 
  p: as [pointer! [integer!]] 40000000h
  p/value: 1234 							;-- write 1234 at address 40000000h
@@ -565,13 +565,13 @@ Usage example
 
 It is possible to apply some simple math operations on pointer like additions and subtractions (as in C). Pointer address would be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
 
- p: pointer [integer!]					;-- pointed value memory size is 4 bytes
+ p: declare pointer! [integer!]			;-- pointed value memory size is 4 bytes
 
  p: as [pointer! [integer!]] 4000000h
  p: p + 1								;-- p points now to 40000004h
  p: p + 1								;-- p points now to 40000008h
  
- q: pointer [byte!]						;-- pointed value memory size is 1 byte
+ q: declare pointer! [byte!]			;-- pointed value memory size is 1 byte
  
  q: as [pointer! [byte!]] 4000000h
  q: q + 1								;-- p points now to 40000001h
@@ -592,7 +592,7 @@ It is possible to use path notation to simulate an array with indexed access. Bo
 
 Examples:
 
- p: pointer [integer!]
+ p: declare pointer! [integer!]
 
  p: as [pointer! [integer!]] 4000000h
  a: p/1									;-- reads an integer! at 40000000h
@@ -600,7 +600,7 @@ Examples:
  
 Integer variable can also be used as index:
 
- p: pointer [integer!]
+ p: declare pointer! [integer!]
 
  p: as [pointer! [integer!]] 4000000h
  c: 2
@@ -618,7 +618,7 @@ A special <b>null</b> value is available to use for pointer! and other pointer-l
 
 Examples:
 
- a: pointer [integer!]
+ a: declare pointer! [integer!]
  a: null								;-- valid assignation, 'a type is defined
 
  foo: func [s [c-string!] return: [c-string!]][
@@ -689,8 +689,8 @@ Syntax:
 
 Example:
 
- foo: 0									;-- foo is an integer
- bar: pointer [integer!]				;-- bar is a pointer
+ foo: 0									;-- foo is an integer variable
+ bar: declare pointer! [integer!]		;-- bar is a pointer variable
 
  foo: as integer! bar					;-- type casting
  bar: as pointer! [integer!] foo
@@ -1613,12 +1613,11 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     = 			> 			>=
     alias 		all 		and
     any			as			comment
-	either 		exit 		false
-	func 		function 	if
-	not 		or 			pointer
-	return 		size? 		struct
-	true 		until 		while
-    xor
+    declare		either 		exit
+    false		func 		function
+    if			not 		or
+    return		size? 		true
+    until 		while	    xor
     
 \note Bootstrapping constraint
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -2019,9 +2018,12 @@ will output:
 
 *Support multiple nested type castings.
 
+
 ===Document History
 
-*<b>??/06/2011 - draft 18</b>
+
+
+*<b>04/07/2011 - draft 18</b>
 
 *>Added a note about alias names living in their own namespace.
 
@@ -2032,6 +2034,8 @@ will output:
 *>Added -**, >>>, %, /// in reserved keywords list.
 
 *>Added bitshift operators section.
+
+*>Propagated "struct" and "pointer" replacement by "declare <type>"
 
 
 
