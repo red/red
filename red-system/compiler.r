@@ -1361,6 +1361,10 @@ system-dialect: context [
 			switch/default type?/word tree/1 [
 				set-word! [								;-- variable assignment --
 					name: to word! tree/1
+					if find aliased-types name [
+						backtrack tree/1
+						throw-error "name already used for as an alias definition"
+					]
 					do prepare-value
 					if not-initialized? name [
 						init-local name tree casted		;-- mark as initialized and infer type if required
