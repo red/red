@@ -488,6 +488,38 @@ make target-class [
 		]
 	]
 	
+	emit-bitshift-op: func [name [word!] a [word!] b [word!] args [block!]][
+		switch b [
+			ref [
+				emit-variable args/2
+					#{8A0D}							;-- MOV cl, byte [value]	; global
+					#{8A4D}							;-- MOV cl, byte [ebp+n]	; local
+			]
+			reg [emit #{88D1}]						;-- MOV cl, dl
+		]
+		switch name [
+			<<  [
+				emit-poly pick [
+					[#{C0E0} #{C1E0}]				;-- SAL|SHL rA, value
+					[#{D2E0} #{D3E0}]				;-- SAL|SHL rA, cl
+				] b = 'imm
+			]
+			>>  [
+				emit-poly pick [
+					[#{C0F8} #{C1F8}]				;-- SAR rA, value
+					[#{D2F8} #{D3F8}]				;-- SAR rA, cl
+				] b = 'imm
+			]
+			-** [
+				emit-poly pick [
+					[#{C0E8} #{C1E8}]				;-- SHR rA, value
+					[#{D2E8} #{D3E8}]				;-- SHR rA, cl
+				] b = 'imm
+			]
+		]
+		if b = 'imm [emit to-bin8 args/2]			;@@ add range checking
+	]
+	
 	emit-bitwise-op: func [name [word!] a [word!] b [word!] args [block!] /local code][		
 		code: select [
 			and [
@@ -758,6 +790,7 @@ make target-class [
 			find comparison-op name [emit-comparison-op name a b args]
 			find math-op	   name	[emit-math-op		name a b args]
 			find bitwise-op	   name	[emit-bitwise-op	name a b args]
+			find bitshift-op   name [emit-bitshift-op   name a b args]
 		]
 	]
 	

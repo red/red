@@ -89,6 +89,9 @@ system-dialect: context [
 				any [
 					(c: 0)
 					{"} thru {"} | "{" thru "}"
+					| some ws s: ">>>" e: some ws (
+						e: change/part s "-**" e		;-- convert >>> to -**
+					) :e
 					| some ws s: #"%" e: some ws (
 						e: change/part s "///" e		;-- convert % to ///
 					) :e
@@ -230,8 +233,9 @@ system-dialect: context [
 			xor		[2	op		- [a [number!] b [number!] return: [number!]]]
 			//		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- modulo
 			///		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- remainder (real syntax: %)
-			;>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left
-			;<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right
+			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
+			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
+			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned
 			=		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
 			<>		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
 			>		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
