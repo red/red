@@ -50,14 +50,14 @@ system: struct [							;-- store runtime accessible system values
 #either use-natives? = no [					;-- C bindings that have native counterparts
 	#import [
 		LIBC-file cdecl [
-			allocate: "malloc" [
+			allocate:	 "malloc" [
 				size		[integer!]
 				return:		[byte-ptr!]
 			]
-			free: "free" [
+			free:		 "free" [
 				block		[byte-ptr!]
 			]
-			set-memory:  "memset" [
+			set-memory:	 "memset" [
 				target		[byte-ptr!]
 				filler		[byte!]
 				size		[integer!]
@@ -69,7 +69,7 @@ system: struct [							;-- store runtime accessible system values
 				size		[integer!]
 				return:		[byte-ptr!]
 			]
-			length?: 	 "strlen" [
+			length?:	 "strlen" [
 				command		[c-string!]
 				return:		[integer!]
 			]
