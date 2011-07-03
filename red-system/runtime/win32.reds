@@ -47,8 +47,14 @@ SEH_EXCEPTION_RECORD: alias struct! [
 			overlapped	[integer!]
 			return:		[integer!]
 		]
-		quit: "ExitProcess" [
-			code		[integer!]
+]
+
+#if use-natives? = yes [
+	#import [
+		"kernel32.dll" stdcall [
+			quit: "ExitProcess" [
+				code		[integer!]
+			]
 		]
 	]
 ]

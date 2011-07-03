@@ -73,6 +73,9 @@ system: struct [							;-- store runtime accessible system values
 				command		[c-string!]
 				return:		[integer!]
 			]
+			quit:		 "exit" [
+				status		[integer!]
+			]
 		]
 	]
 ][

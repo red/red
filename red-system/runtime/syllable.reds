@@ -19,8 +19,13 @@ Red/System [
 		count	[integer!]
 		return: [integer!]
 	]
-	quit: 6 [					;-- "exit" syscall
-		status	[integer!]
+]
+
+#if use-natives? = yes [
+	#syscall [
+		quit: 6 [							;-- "exit" syscall
+			status	[integer!]
+		]
 	]
 ]
 
