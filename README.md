@@ -28,7 +28,6 @@ Cross-compilation is easily achieved by using a `-t` command line option followe
 
 Currently supported targets are:
 
-<div align="center">
 <table>
 	<tr><th>Target ID</th><th>Description</th></tr>
 	<tr><td><pre>MSDOS</pre></td><td>Windows x86, console-only applications</td></tr>
@@ -37,7 +36,6 @@ Currently supported targets are:
 	<tr><td><pre>Syllable</pre></td><td><a href="http://web.syllable.org/pages/index.html">Syllable OS</a> x86 platform</td></tr>
 </table>
 <i>Mac OS X support is pending.</i>
-</div>
 
 For example, from Windows, to emit Linux executables:
 
