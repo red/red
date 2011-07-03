@@ -47,6 +47,7 @@ SEH_EXCEPTION_RECORD: alias struct! [
 			overlapped	[integer!]
 			return:		[integer!]
 		]
+	]
 ]
 
 #if use-natives? = yes [
