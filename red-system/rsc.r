@@ -14,7 +14,11 @@ unless value? 'system-dialect [
 ]
 
 rsc: context [
-	fail: func [value] [print value halt]
+	fail: func [value] [
+		print value
+		if system/options/args [quit/return 1]
+		halt
+	]
 
 	fail-try: func [component body /local err] [
 		if error? set/any 'err try body [
@@ -24,14 +28,13 @@ rsc: context [
 					get/any in err w
 				]
 			]
-			print [
+			fail [
 				"***" component "Internal Error:"
 				system/error/(err/type)/type #":"
 				reduce system/error/(err/type)/(err/id) newline
 				"*** Where:" mold/flat err/where newline
 				"*** Near: " mold/flat err/near newline
 			]
-			halt
 		]
 	]
 
