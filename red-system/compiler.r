@@ -304,6 +304,7 @@ system-dialect: context [
 			]
 			if pc [print ["*** at: " mold copy/part pc 8]]
 			clean-up
+			if system/options/args [quit/return 1]
 			halt
 		]
 		
