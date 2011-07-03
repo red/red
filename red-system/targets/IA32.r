@@ -510,7 +510,7 @@ make target-class [
 					[#{D2F8} #{D3F8}]				;-- SAR rA, cl
 				] b = 'imm
 			]
-			>>> [
+			-** [
 				emit-poly pick [
 					[#{C0E8} #{C1E8}]				;-- SHR rA, value
 					[#{D2E8} #{D3E8}]				;-- SHR rA, cl

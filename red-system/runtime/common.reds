@@ -148,7 +148,7 @@ system: struct [							;-- store runtime accessible system values
 ;-- Debugging helper functions --
 
 prin-int: func [i [integer!] /local s c n][
-	;-- dumbed down version of form-signed by Rudolf W. MEIJER (https://gist.github.com/952998)
+	;-- modified version of form-signed by Rudolf W. MEIJER (https://gist.github.com/952998)
 	;-- used in signal handlers, so dynamic allocation removed to limit interferences
 	
 	if zero? i [prin "0" exit]
@@ -167,18 +167,19 @@ prin-int: func [i [integer!] /local s c n][
 ]
 
 prin-hex: func [i [integer!] /local s c d][
-	;-- dumbed down version of form-hex by Rudolf W. MEIJER (https://gist.github.com/952998)
+	;-- modified version of form-hex by Rudolf W. MEIJER (https://gist.github.com/952998)
 	;-- used in signal handlers, so dynamic allocation removed to limit interferences 
 	
 	if zero? i [prin "0" exit]
 	s: "00000000"
 	c: 8
-	while [i <> 0][
+	until [
 		d: i // 16
 		if d > 9 [d: d + 7]					;-- 7 = (#"A" - 1) - #"9"
 		s/c: #"0" + d
-		i: i / 16
+		i: i >>> 4
 		c: c - 1
+		zero? c								;-- iterate on all 8 bytes to overwrite previous values
 	]
 	prin s
 ]
