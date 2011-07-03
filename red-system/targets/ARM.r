@@ -58,6 +58,22 @@ make target-class [
 		ei32 #{ef000000}				;-- svc 0			; @@ EABI syscall
 	]
 
+	emit-call-native: func [spec] [
+		add-native-reloc spec :reloc-bl
+		ei32 #{eb000000}				;-- bl <disp>
+	]
+
+	add-native-reloc: func [spec callback] [
+		repend/only spec/3 [emitter/tail-ptr :callback]
+	]
+
+	reloc-bl: func [code-buf rel-ptr dst-ptr] [
+		;; @@ check bounds, @@ to-bin24
+		change
+			at code-buf rel-ptr
+			copy/part to-bin32 shift (dst-ptr - rel-ptr - (2 * ptr-size)) 2 3
+	]
+
 	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec] [
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
@@ -69,8 +85,51 @@ make target-class [
 			syscall [
 				emit-call-syscall last fspec fspec/1
 			]
+			native [
+				emit-call-native spec
+			]
 		] [
 			compiler/throw-error join "[codegen] nyi call: " type
 		]
+	]
+
+	emit-prolog: func [name locals [block!] args-size [integer!]][
+		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
+
+		;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
+		;; passed via regs r0-r3, further args are passed on the stack (pushed
+		;; right-to-left; i.e. the leftmost argument is at top-of-stack).
+		;;
+		;; our prolog pushes the first <=4 args right-to-left to the stack as
+		;; well and makes fp point to arg0 on the stack.
+		;;
+		;; after that, all callee-saved registers and the return address are
+		;; pushed on the stack. sp will point to the return address on the
+		;; stack.
+		;;
+		;; that's where the prolog ends. locals, if any, will be pushed on the
+		;; stack immediately afterwards. all other reds-generated code is
+		;; required to be stack neutral.
+		repeat i args-size [
+			ei32 #{e92d00}							;-- push {r<n>}
+			ei32 shift/left #{01} (args-size - i)
+		]
+		unless zero? args-size [
+			ei32 #{e1a0c00d}						;-- mov ip, sp
+		]
+		ei32 #{e92d4ff0}							;-- stmfd sp!, {r4-r11, lr}
+		unless zero? args-size [
+			ei32 #{e1a0b00c}						;-- mov fp, ip
+		]
+	]
+
+	emit-epilog: func [name locals [block!] locals-size [integer!]][
+		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
+
+		unless zero? locals-size [
+			;; Restore sp to where we saved our 9 callee-saved registers.
+			ei32 #{e28bd024}						;-- add sp, fp, #36
+		]
+		ei32 #{e8bd8ff0}							;-- ldmfd sp!, {r4-r11, pc}
 	]
 ]

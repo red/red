@@ -469,8 +469,14 @@ emitter: context [
 			][
 				ptr: spec/2
 				foreach ref spec/3 [
-					pointer/value: ptr - ref - target/ptr-size	;-- CALL NEAR disp size
-					change at code-buf ref form-struct pointer
+					either block? ref [
+						;; Handle relocation thru callback.
+						ref/2 code-buf ref/1 ptr
+					][
+						change									;-- CALL NEAR disp size
+							at code-buf ref
+							to-bin32 ptr - ref - target/ptr-size
+					]
 				]
 			]
 		]
