@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.4.1
+	Version: 0.5.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -50,16 +50,31 @@ qt: make object! [
   output: copy ""                      ;; output captured from pgm exec
   exe: none                            ;; filepath to executable
   
+  summary-template: ".. - .................................... / "
+  
   data: make object! [
     title: copy ""
     no-tests: 0
     no-asserts: 0
     passes: 0
     failures: 0
+    reset: does [
+      title: copy ""
+      no-tests: 0
+      no-asserts: 0
+      passes: 0
+      failures: 0
+    ]
   ]
   
   file: make data []
   test-run: make data []
+  _add-file-to-run-totals: does [
+    test-run/no-tests: test-run/no-tests + file/no-tests
+    test-run/no-asserts: test-run/no-asserts + file/no-asserts
+    test-run/passes: test-run/passes + file/passes
+    test-run/failures: test-run/failures + file/failures
+  ]
   
   ;; group data
   group-name: copy ""
@@ -77,6 +92,13 @@ qt: make object! [
     test-name: copy ""
   ]
   
+  ;; print diversion function
+  _save-print: :print
+  print-output: copy ""
+  _quiet-print: func [val] [
+    append print-output join "" [reduce val "^/"]
+  ]
+        
   compile: func [
     src [file!]
     /local
@@ -212,9 +234,30 @@ qt: make object! [
     do script
   ]
   
+  run-script-quiet: func [src [file!]][
+    print: :_quiet-print
+    print-output: copy ""
+    run-script src
+    print: :_save-print
+    write/append %quick-test.log print-output
+    _print-summary file
+  ]
+  
   run-test-file: func [src [file!]][
+    file/reset
+    file/title: find/last/tail to string! src "/"
+    replace file/title "-test.reds" ""
     compile-run-print src
     add-to-run-totals
+  ]
+  
+  run-test-file-quiet: func [src [file!]][
+    print: :_quiet-print
+    print-output: copy ""
+    run-test-file src
+    print: :_save-print
+    write/append %quick-test.log print-output
+    _print-summary file
   ]
   
   add-to-run-totals: func [
@@ -239,10 +282,11 @@ qt: make object! [
       to end
     ]
     if parse/all output rule [
-      test-run/no-tests: test-run/no-tests + to integer! tests
-      test-run/no-asserts: test-run/no-asserts + to integer! asserts
-      test-run/passes: test-run/passes + to integer! passed
-      test-run/failures: test-run/failures + to integer! failures
+      file/no-tests: file/no-tests + to integer! tests
+      file/no-asserts: file/no-asserts + to integer! asserts
+      file/passes: file/passes + to integer! passed
+      file/failures: file/failures + to integer! failures
+      _add-file-to-run-totals
     ]
   ]
   
@@ -264,6 +308,15 @@ qt: make object! [
     title [string!]
   ][
     _start test-run "***Starting***" title
+    prin newline
+  ]
+  
+  start-test-run-quiet: func [
+    title [string!]
+      ][
+    _start test-run "" title
+    prin newline
+    write %quick-test.log rejoin ["***Starting***" title newline]
   ]
   
   start-file: func [
@@ -333,10 +386,7 @@ qt: make object! [
   
   end-file: func [] [
     _end file "~~~finished test~~~" 
-    test-run/no-tests: test-run/no-tests + file/no-tests
-    test-run/no-asserts: test-run/no-asserts + file/no-asserts
-    test-run/passes: test-run/passes + file/passes
-    test-run/failures: test-run/failures + file/failures
+    _add-file-to-run-totals
   ]
   
   end-test-run: func [] [
@@ -344,9 +394,44 @@ qt: make object! [
     _end test-run "***Finished***"
   ]
   
+  end-test-run-quiet: func [] [
+    print: :_quiet-print
+    print-output: copy ""
+    end-test-run
+    print: :_save-print
+    write/append %quick-test.log print-output
+    prin newline
+    _print-summary test-run
+  ]
+  
+  _print-summary: func [
+    data [object!]
+    /local
+      print-line
+  ][
+    print-line: copy summary-template
+    print-line: skip print-line 5
+    remove/part print-line length? data/title
+    insert print-line data/title
+    print-line: skip tail print-line negate (3 + length? mold data/passes)
+    remove/part print-line length? mold data/passes
+    insert print-line data/passes
+    append print-line data/no-asserts
+    print-line: head print-line
+    either data/no-asserts = data/passes [
+      replace print-line ".." "ok"
+    ][
+      replace/all print-line "." "*"
+      append print-line " **"
+    ]
+    print print-line
+]
+  
+  
   ;; create the test "dialect"
   
   set '***start-run***        :start-test-run
+  set '***start-run-quiet***  :start-test-run-quiet
   set '~~~start-file~~~       :start-file
   set '===start-group===      :start-group
   set '--test--               :start-test
@@ -358,12 +443,14 @@ qt: make object! [
   set '--run                  :run
   set '--add-to-run-totals    :add-to-run-totals
   set '--run-script           :run-script
+  set '--run-script-quiet     :run-script-quiet
   set '--run-test-file        :run-test-file
+  set '--run-test-file-quiet  :run-test-file-quiet
   set '--assert               :assert
   set '--assert-msg?          :assert-msg?
   set '--clean                :clean-compile-from-string
   set '===end-group===        :end-group
   set '~~~end-file~~~         :end-file
   set '***end-run***          :end-test-run
-    
+  set '***end-run-quiet***    :end-test-run-quiet
 ]
