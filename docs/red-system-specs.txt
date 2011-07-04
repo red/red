@@ -1412,9 +1412,11 @@ Valid option names and allowed values are listed in %config.r file, in a comment
 
 <b>Example</b>
  
-  #if OS = Windows [
+  #if OS = 'Windows [
       print "Running on Windows"
   ]
+  
+<u>Note</u>: if the argument is a word and not a value (like an integer! or a logic!), it needs to be prefixed with ' character to avoid being evaluated (as in normal REBOL expressions).
   
 ---#either
 
@@ -1437,12 +1439,14 @@ Valid option names and allowed values are listed in %config.r file, in a comment
 
 <b>Example</b>
  
-  #either OS = Windows [
+  #either OS = 'Windows [
       print "Running on Windows"
   ][
   	  print "Running probably on a UNIX platform"
   ]
  
+<u>Note</u>: if the argument is a word and not a value (like an integer! or a logic!), it needs to be prefixed with ' character to avoid being evaluated (as in normal REBOL expressions).
+
 ---#switch
 
 The <b>#switch</b> compiler directive allows to define several conditionally compiled block of codes, depending on the value of a compilation option. The block following the option name is searched for a matching value and the following block of code is compiled.
@@ -1479,7 +1483,8 @@ Valid option names and allowed values are listed in %config.r file, in a comment
       lib [print "Building a statically linked library"]
   ]
  
-	 
+<u>Note</u>: if the argument is a word, it does not need to be prefixed with ' character in a #switch block.
+
 ---#option
 
 <i>TBD</i>
@@ -2021,6 +2026,9 @@ will output:
 
 ===Document History
 
+*<b>05/07/2011 - draft 19</b>
+
+*>Fixed #if and #either examples. Note added about lit-words arguments
 
 
 *<b>04/07/2011 - draft 18</b>
