@@ -1,9 +1,9 @@
-Red/System Language Specifications (working draft)
+Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 04/07/2011
-	Revision: 18
-	Status: working draft
+	Date: 05/07/2011
+	Revision: 19
+	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
 ===Abstract
@@ -22,7 +22,7 @@ Red/System can be seen as a C-level language with memory pointer support and a v
 
 ===Syntax
 
-The syntax is almost the same as the one used by REBOL language, as the lexer (<a href="http://www.rebol.com/docs/words/wload.html" target="_new">LOAD</a>) is currently provided by REBOL during the bootstrapping phase. The REBOL syntax doesn't have a formal specification nor an exhaustive documentation, just a superficial description, but it is enough to work with. See:
+The syntax is almost the same as the one used by REBOL language, as the lexer (<a href="http://www.rebol.com/docs/words/wload.html" target="_new">LOAD</a>) is currently provided by REBOL during the bootstrapping phase. The REBOL syntax does not have a formal specification nor an exhaustive documentation, just a superficial description, but it is enough to work with. See:
 
 *<a href="http://www.rebol.com/docs/core23/rebolcore-3.html" target="_new">http://www.rebol.com/docs/core23/rebolcore-3.html</a> (There is a typo in the table, all literals are missing a caret (^) character after the first quote)
 
@@ -31,6 +31,53 @@ The syntax is almost the same as the one used by REBOL language, as the lexer (<
 A complete syntax specification for both Red and Red/System will be provided during the implementation of the Red language layer.
 
 For now, Red/System uses 8-bit character encoding (ASCII). Once proper Unicode support will be provided by the Red language layer, Red/System will switch to UTF-8 source encoding.
+
+Here are a few practical aspects of the language syntax:
+
+---Delimiters
+
+String delimiters: double quotes
+
+ "this is a string"
+
+ {This is
+  a multiline
+  string.
+ }
+
+Block of code delimiters: square brackets
+
+ if a > 0 [print "TRUE"]
+
+ either a > 0 [print "TRUE"][print "FALSE]
+
+ while [a > 0][print "loop" a: a - 1]
+ 
+Path separator: slash (denotes a hierarchical relation)
+
+ s: struct [i [integer!] b [byte!]]
+ s/i: 123
+ s/b: #"A"
+
+---Free-form syntax
+
+Red/System (and Red) inherits the free-form syntax of the REBOL language. The only syntactic constraints are putting a whitespace (in the large sense) between tokens and correctly pairing delimiters.
+
+Examples of valid code:
+
+ while [a > 0][print "loop" a: a - 1]
+
+ while [a > 0]
+     [print "loop" a: a - 1]
+
+ while [
+ 	a > 0
+ ][
+ 	print "loop"
+ 	a: a - 1
+ ]
+
+Code guidelines are not yet available. They will follow standard REBOL practices.
 
 ---Comments
 
@@ -64,9 +111,14 @@ There is a restriction on the first character, the following characters are forb
 
  0 1 2 3 4 5 6 7 8 9 '
  
-Also there is a another restriction to avoid letting the compiler mistake a hex integer with a variable name. Variable name starting with A-F letters consisting of 2, 4 or 8 A-F and 0-9 characters and ending with h are not allowed.
+Also there is a another restriction to avoid letting the compiler mistake an hex integer for a variable name. Variable names starting with A-F letters consisting of 2, 4 or 8 A-F and 0-9 characters and ending with h are not allowed.
  
 All identifiers (variables and function names) are <u>case-insensitive</u>.
+
+\note Unicode support
+As indicated in the Syntax section, Unicode support is not available during the bootstrapping phase, it will be available at Red layer, so Red/System will inherit it once rewritten in Red.
+
+/note
 
 ---Setting a value
 
@@ -76,13 +128,13 @@ Variables can hold any value of the available datatypes. This can be the real va
  bar: "hello"
 
 \note Multiple assignments
-Multiple assignments, like a: b: 123, are not supported in Red/System. Such feature could be added in the future if required.
+Multiple assignments, like a: b: 123, are not currently supported in Red/System. Such feature will be added in the future at some point, probably on the rewrite of Red/System in Red.
 
 /note
 
 ---Getting a value
 
-Just use the variable without any decoration to get its value or to pass it as a function's argument.
+Just use the variable name without any decoration to get its value or to pass it as a function's argument.
 
  bar: "hello"
  print bar
@@ -92,7 +144,7 @@ will output:
  
 ---Variable's type
 
-Variables do have a type. Variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Functions local variables require to be declared, but the type specification part can be skipped if the variable is properly initialized. For example:
+Variables do have a type. Variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Function local variables require to be declared, but the type specification part can be skipped if the variable is properly initialized. For example:
 
  foo: 123
  bar: "hello"
@@ -151,7 +203,7 @@ Integer datatype represents natural and negative natural numbers. The memory siz
 
 <b>Hexadecimal format</b>
 
-Hexadecimal integer representation is mostly used to represent memory addresses or binary data for boolean operations. As for character, all hexadecimal literals found in sources are converted to their integer decimal value during lexical analysis. Allowed range is:
+Hexadecimal integer representation is mostly used to represent memory addresses or binary data for bitwise operations. As for character, all hexadecimal literals found in sources are converted to their integer decimal value during lexical analysis. Allowed range is:
     
  00000000h to FFFFFFFFh
  
@@ -225,7 +277,7 @@ will output:
 
 ---C-string!
 
-A c-string! value is a sequence of not-null bytes terminated by a null byte. A c-string variable holds the memory address of the first byte of the c-string, so it can be viewed as an implicit pointer to byte!. A c-string having a null character as first byte is an empty c-string.
+A c-string! value is a sequence of non-null bytes terminated by a null byte. A c-string variable holds the memory address of the first byte of the c-string, so it can be viewed as an implicit pointer to byte!. A c-string having a null character as first byte is an empty c-string.
 
 +++Syntax
 
@@ -249,7 +301,7 @@ It is possible to retrieve the number of bytes (<b>excluding the null</b> end ma
  a: length? "Hello"						;-- here length? will return 5
  
 \note Length? vs Size?
-Do not confuse the LENGTH? function with the SIZE? function (see ...)
+Do not confuse the <b>length?</b> function with the <b>size?</b> function. <b>Size?</b> function will return the number of bytes in the c-string, including the ending null byte.
 
 /note
 
@@ -263,18 +315,18 @@ Syntax
  <c-string> - <n>
 
  <c-string> : c-string variable
- <n>        : integer value
+ <n>        : expression resulting in an integer! value
 
 Example
 
- s: "hello"								;-- let suppose s = 4000000h
+ s: "hello"								;-- let's suppose s = 4000000h
 
  s: s + 1								;-- now s = 40000001h
  s: s + 1								;-- now s = 40000002h	
 
 +++Accessing bytes
 
-It is possible to access individual bytes in a c-string using path notations:
+It is possible to access individual bytes in a c-string using path notation:
 
  <c-string>/integer!					;-- literal integer index provided
  <c-string>/<index>						;-- index provided by a variable
@@ -282,7 +334,7 @@ It is possible to access individual bytes in a c-string using path notations:
  <c-string> : a c-string variable
  <index>    : an integer variable
  
-The returned value will be a of <b>byte!</b> type.
+The returned value will be a of type <b>byte!</b>.
 
 Examples:
 
@@ -320,7 +372,7 @@ A simple way to traverse a c-string would be:
 will output:
  I am a c-string
 
-Similary, it is also possible to write bytes using path notation with an ending colon:
+Similary, it is also possible to modify the c-string's bytes using path notation with an ending colon:
 
  <c-string>/integer!:	<value>			;-- literal integer index provided
  <c-string>/<index>:	<value>			;-- index provided by a variable
@@ -344,7 +396,7 @@ will output
 
 Struct! datatype is roughly equivalent to C struct type. It is a record of one or several values, each value having its own datatype. A struct variable holds the memory address of a struct value. 
 
-<u>Implementation note</u>: Struct! values are <u>padded</u> (at tail) in memory in order to preserve optimal alignment for each target (for example, it is aligned to 4 bytes for IA32 target). SIZE? function will return the size of the struct! value in memory without the eventual tail padding.
+<u>Implementation note</u>: Struct! values members are <u>padded</u> in memory in order to preserve optimal alignment for each target (for example, it is aligned to 4 bytes for IA32 target). <b>Size?</b> function will return the size of the struct! value in memory including the padding bytes.
 
 +++Declaration
 
@@ -369,7 +421,11 @@ The returned value of DECLARE STRUCT! is the memory address of the newly created
  	c 	[struct! [d [integer!]]]
  ]
  
-In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is also a struct! value pointer.
+In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is a struct! value pointer, it needs to be assigned to a struct value to be used. So a correct initialization for the c member would be:
+
+ s/c: declare struct! [n [integer!]]
+ 
+<u>Note</u>: the members names do not need to match with previous declaration, only the datatypes layout have to match.
 
 +++Accessing members
 
@@ -410,7 +466,7 @@ Examples
  ]										;-- struct memory size would be 8 bytes
  p: p + 1								;-- now p = 40000008h
 
-<u>Note</u>: The struct value size is target and alignment dependent. In the above example, it is supposed to run a 32-bit system with a struct alignment to 4 bytes.
+<u>Note</u>: The struct value size is target and alignment dependent. In the above example, it is supposed to run on a 32-bit system with a struct alignment to 4 bytes.
 
 +++Aliases
 
@@ -455,7 +511,7 @@ Struct usage example:
  	second [book!]						;-- reference to a book! struct
  ]
 
- gift/first: declare book!				;-- book! struct storage space reservation
+ gift/first: declare book!				;-- book! struct allocation
 
  gift/first/title:  "Contact"
  gift/first/author: "Carl Sagan"
@@ -463,9 +519,9 @@ Struct usage example:
 
 ---Pointer!
 
-Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, so the only pointed datatypes allowed are integer! and byte! (logic! pointer is not needed). 
+Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, the only pointed datatypes allowed are integer! and byte! (logic! pointer is not needed). 
 
-Byte! pointers are equivalent to c-string! references, the difference lies only in the interpretation of the pointed values. Byte! pointer are meant to point to a stream of byte without a specified bound, while c-string! reference an array of bytes terminated by a null byte.
+Byte! pointers are equivalent to c-string! references, the difference lies only in the interpretation of the pointed values. Byte! pointer is meant to point to a stream of byte without a specified bound, while c-string! references an array of bytes terminated by a null byte.
 
 <u>Implementation note</u>: The memory size of a pointer is 4 bytes on 32-bit systems (and 8 bytes on 64-bit systems).
 
@@ -554,7 +610,7 @@ Usage example
  p:   declare pointer! [integer!]		;-- declare a pointer on an integer
  bar: declare pointer! [integer!]		;-- declare another pointer on an integer
 
- p: as [pointer! [integer!]] 40000000h
+ p: as [pointer! [integer!]] 40000000h  ;-- type cast an integer! to a pointer!
  p/value: 1234 							;-- write 1234 at address 40000000h
  foo: p/value							;-- read pointed value back
  bar: p									;-- assign pointer address to 'bar
@@ -676,7 +732,7 @@ Type casting is possible between value of compatible types. Compatible types are
 
 <u>Note</u>: Trying to assign a value to a variable of different type without a proper type casting, will result in a compilation error.
 
-Syntax:
+<b>Syntax</b>
 
  as <new-type> value
  as [<new-type>] value					;-- alternative syntax
@@ -830,7 +886,7 @@ The grammar rules are specified in <a href="http://en.wikipedia.org/wiki/Backus%
 
 An expression can be used standalone, after an assignment or as argument to some statements (RETURN, IF or EITHER used as statement).
 
-<u>Note</u>: EITHER can be used in an expression only if both its TRUE block and FALSE block last expressions are of the same type. When used in an expression, EITHER is similar to C's ? operator.
+<u>Note</u>: EITHER can be used in an expression only if both its TRUE block and FALSE block last expressions are of the same type. When used in an expression, EITHER is similar to the C ternary operator (?).
 
 <b>Examples</b>
 
@@ -969,13 +1025,13 @@ is not equivalent to
  
 +++Callback
  
-Enable a Red/System function to be called by external code (usually from a C library). The calling function must provide a proper argument type specification to accept a function pointer. The compiler will raise an error if the expected argument and callback's specifications do not match. 
+Enable a Red/System function to be called by external code (usually from a C library). The calling function must provide a proper argument type specification to accept a function pointer. The compiler will raise an error if the expected argument and callback's specification do not match. 
 
 <u>Notes:</u>:
 
 * The expected function pointer and callback function specifications must match, but arguments names can be different. Also the callback can safely declare local variables that should not be part of the function pointer specification.
 
-* The calling convention of the callback function will be transparently adapted to match the one of the caller function.
+* The calling convention of the callback function will be transparently adapted to match the one from the caller function.
 
 * In the current implementation, the default function calling convention in Red/System is <a href="http://en.wikipedia.org/wiki/X86_calling_conventions#stdcall">stdcall</a>.
  
@@ -1096,9 +1152,6 @@ Quits immediatly the function and returns a value.
  	"ok"								;-- return "ok" if a <> 0
  ]
 
----Nested functions
-
-<i>TBD</i>
 
 ===Scoping
 
@@ -1149,7 +1202,7 @@ Example:
 
 ===Compiler directives
 
-Some features of Red/System need to be processed at compile-time rather than at runtime. This is especially true for features related to the linking phase that builds the executable file. In order to distinguish such compile-time commands or options, compiler directive are introduced. Their syntax is:
+Some features of Red/System need to be processed at compile-time rather than at run-time. This is especially true for features related to the linking phase that builds the executable file. In order to distinguish such compile-time commands or options, compiler directive are introduced. Their syntax is:
 
  #<directive> <argument-1> <argument-2> ...
 
@@ -1160,7 +1213,7 @@ The number of argument is specific to each compiler directive.
 
 As compiler directives apply globally to programs, they are not allowed inside code blocks (this restriction might be removed if local directives are introduced in the future).
  
-<u>Implementation note</u>: Directives arguments datatype set is the one provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
+<u>Implementation note</u>: The directive arguments datatype set, is the one provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
 
 
 ===Importing External Libraries
@@ -1485,10 +1538,6 @@ Valid option names and allowed values are listed in %config.r file, in a comment
  
 <u>Note</u>: if the argument is a word, it does not need to be prefixed with ' character in a #switch block.
 
----#option
-
-<i>TBD</i>
-
 ===Source code organization
 
 ---Source files suffix
@@ -1616,15 +1665,16 @@ The list of following symbols and keywords are reserved, they cannot be used as 
 	/ 			// 	 		///
     < 			<= 			<>
     = 			> 			>=
-    alias 		all 		and
-    any			as			comment
-    declare		either 		exit
-    false		func 		function
-    if			not 		or
-    return		size? 		true
-    until 		while	    xor
+    >>>         alias 		all
+    and         any			as
+    comment		declare		either
+    exit	    false		func
+    function    if			not
+    or		    return		size?
+    true	    until 		while
+    xor
     
-\note Bootstrapping constraint
+\note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
 
 /note
@@ -1671,8 +1721,6 @@ where
  value2 : expression of same (or compatible) datatype as <value1>
  
 The resulting value type for math operators is the type of the left argument (an implicit type casting is operated when required).
-
-<i>TBD: make a matrix of allowed types combinations</i>
  
 <u>Note:</u> for + and - operators, a pointer!, struct! or c-string! value can be used as first argument with an integer expression as second argument (pointer arithmetic).
 
@@ -1760,10 +1808,6 @@ where
 *= and <> can also be used to compare logic! values.
 
 *For c-string!, pointer! and struct! comparisons are done on references, not on the pointed value.
-
-+++Precedence rule
-
-<i>TBD here or in "Expressions" chapter</i>
 
 ---Control flow functions
 
@@ -2029,6 +2073,10 @@ will output:
 *<b>05/07/2011 - draft 19</b>
 
 *>Fixed #if and #either examples. Note added about lit-words arguments
+
+*>Delimiters and free-form syntax descriptions added
+
+*>Various small fixes and cleanups
 
 
 *<b>04/07/2011 - draft 18</b>
