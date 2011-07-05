@@ -423,10 +423,8 @@ The returned value of DECLARE STRUCT! is the memory address of the newly created
  
 In this example, the struct value has 3 members: a, b, c, each with a different datatype. The c member is a struct! value pointer, it needs to be assigned to a struct value to be used. So a correct initialization for the c member would be:
 
- s/c: declare struct! [n [integer!]]
+ s/c: declare struct! [d [integer!]]
  
-<u>Note</u>: the members names do not need to match with previous declaration, only the datatypes layout have to match.
-
 +++Accessing members
 
 Member access is achieved using path notation. Syntax is:
