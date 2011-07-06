@@ -113,12 +113,14 @@ stderr: GetStdHandle WIN_STD_ERROR_HANDLE
 
 ;-- Runtime functions --
 
-prin: func [s [c-string!] return: [integer!] /local written][
-	written: declare struct! [value [integer!]]
-	WriteFile stdout s length? s written 0
-]
+#if use-natives? = yes [
+	prin: func [s [c-string!] return: [integer!] /local written][
+		written: declare struct! [value [integer!]]
+		WriteFile stdout s length? s written 0
+	]
 
-print: func [s [c-string!] return: [integer!]][
-	prin s
-	prin newline
+	print: func [s [c-string!] return: [integer!]][
+		prin s
+		prin newline
+	]
 ]

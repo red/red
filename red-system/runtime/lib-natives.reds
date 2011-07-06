@@ -1,0 +1,117 @@
+Red/System [
+	Title:   "Red/System native implementations of basic functions"
+	Author:  "Nenad Rakocevic"
+	File: 	 %lib-natives.reds
+	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+]
+
+
+allocate:  func [						;-- needs a Red/System native implementation
+	size		[integer!]
+	return:		[byte-ptr!]
+][
+	;TBD
+]
+
+free: func [							;-- needs a Red/System native implementation
+	buffer		[byte-ptr!]
+][
+	;TBD
+]
+
+set-memory: func [						;; fill a memory buffer with the same given byte ;;
+	target		[byte-ptr!]				;; pointer to start of the buffer ;;
+	filler		[byte!]					;; filler byte ;;
+	size		[integer!]				;; size of the buffer to fill ;;
+	return:		[byte-ptr!]				;; returns the start of the buffer ;;
+][
+	unless zero? size [
+		until [
+			target/1: filler
+			target: target + 1
+			size: size - 1
+			zero? size
+		]
+	]
+	target
+]
+
+copy-memory: func [						;; copy a memory buffer to a new region in a safe way ;; 
+	target		[byte-ptr!]				;; target start address ;;
+	source		[byte-ptr!]				;; source start address ;;
+	size		[integer!]				;; number of bytes to copy ;;
+	return:		[byte-ptr!]				;; returns the target start address ;;
+	/local c
+][
+	unless any [zero? size source = target][
+		either source < target [
+			until [
+				target/size: source/size
+				size: size - 1
+				zero? size
+			]
+		][
+			c: 0
+			until [
+				target/c: source/c
+				c: c + 1
+				size: size - 1
+				zero? size
+			]
+		]
+	]
+	target
+]
+
+length?: func [							;; return the number of characters from a c-string value ;;
+	s 		[c-string!]					;; c-string value ;;
+	return: [integer!]
+	/local base
+][
+	base: s
+	while [s/1 <> null-byte][s: s + 1]
+	as-integer s - base 				;-- do not count the terminal zero
+]
+
+
+;-- Debugging helper functions --
+
+prin-int: func [i [integer!] /local s c n][
+	;-- modified version of form-signed by Rudolf W. MEIJER (https://gist.github.com/952998)
+	;-- used in signal handlers, so dynamic allocation removed to limit interferences
+	
+	if zero? i [prin "0" exit]
+	s: "-2147483648"						;-- 11 bytes wide
+	if i = -2147483648 [prin s exit]
+	n: negative? i
+	if n [i: negate i]
+	c: 11
+	while [i <> 0][
+		s/c: #"0" + (i // 10)
+		i: i / 10
+		c: c - 1
+	]
+	if n [s/c: #"-" c: c - 1]
+	prin s + c
+]
+
+prin-hex: func [i [integer!] /local s c d][
+	;-- modified version of form-hex by Rudolf W. MEIJER (https://gist.github.com/952998)
+	;-- used in signal handlers, so dynamic allocation removed to limit interferences 
+	
+	if zero? i [prin "0" exit]
+	s: "00000000"
+	c: 8
+	until [
+		d: i // 16
+		if d > 9 [d: d + 7]					;-- 7 = (#"A" - 1) - #"9"
+		s/c: #"0" + d
+		i: i >>> 4
+		c: c - 1
+		zero? c								;-- iterate on all 8 bytes to overwrite previous values
+	]
+	prin s
+]
+
+

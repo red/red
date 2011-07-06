@@ -28,7 +28,7 @@ MSDOS [									; Windows default target
 	sub-system: 'console
 ]
 ;-------------------------
-WinGUI [
+Windows [
 	OS:			'Windows
 	format: 	'PE
 	type:		'exe
