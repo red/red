@@ -77,12 +77,12 @@ length?: func [							;; return the number of characters from a c-string value ;
 
 ;-- Debugging helper functions --
 
-prin-int: func [i [integer!] /local s c n][
+prin-int: func [i [integer!] return: [integer!] /local s c n][
 	;-- modified version of form-signed by Rudolf W. MEIJER (https://gist.github.com/952998)
 	;-- used in signal handlers, so dynamic allocation removed to limit interferences
 	
 	if zero? i [prin "0" exit]
-	s: "-2147483648"						;-- 11 bytes wide
+	s: "-2147483648"					;-- 11 bytes wide
 	if i = -2147483648 [prin s exit]
 	n: negative? i
 	if n [i: negate i]
@@ -94,24 +94,27 @@ prin-int: func [i [integer!] /local s c n][
 	]
 	if n [s/c: #"-" c: c - 1]
 	prin s + c
+	i
 ]
 
-prin-hex: func [i [integer!] /local s c d][
+prin-hex: func [i [integer!] return: [integer!] /local s c d ret][
 	;-- modified version of form-hex by Rudolf W. MEIJER (https://gist.github.com/952998)
 	;-- used in signal handlers, so dynamic allocation removed to limit interferences 
 	
-	if zero? i [prin "0" exit]
+	if zero? i [prin "0" return i]
 	s: "00000000"
 	c: 8
+	ret: i
 	until [
 		d: i // 16
-		if d > 9 [d: d + 7]					;-- 7 = (#"A" - 1) - #"9"
+		if d > 9 [d: d + 7]				;-- 7 = (#"A" - 1) - #"9"
 		s/c: #"0" + d
 		i: i >>> 4
 		c: c - 1
-		zero? c								;-- iterate on all 8 bytes to overwrite previous values
+		zero? c							;-- iterate on all 8 bytes to overwrite previous values
 	]
 	prin s
+	ret
 ]
 
 
