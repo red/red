@@ -1323,8 +1323,14 @@ system-dialect: context [
 							tree/2: cast casted tree/2/2 ;-- remove encoding object
 						]
 						null [
-							unless casted: attempt [
-								get-mapped-type any [all [set-word? tree/1 name] to path! tree/1]
+							unless all [
+								attempt [
+									casted: get-mapped-type any [
+										all [set-word? tree/1 name]
+										to path! tree/1
+									]
+								]
+								any-pointer? casted/1
 							][
 								backtrack tree/1
 								throw-error "Invalid null assignement"
