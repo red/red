@@ -31,7 +31,7 @@ Currently supported targets are:
 <table>
 	<tr><th>Target ID</th><th>Description</th></tr>
 	<tr><td><pre>MSDOS</pre></td><td>Windows x86, console-only applications</td></tr>
-	<tr><td><pre>WinGUI</pre></td><td>Windows x86, native applications</td></tr>
+	<tr><td><pre>Windows</pre></td><td>Windows x86, native applications</td></tr>
 	<tr><td><pre>Linux</pre></td><td>GNU/Linux x86 platform</td></tr>
 	<tr><td><pre>Syllable</pre></td><td><a href="http://web.syllable.org/pages/index.html">Syllable OS</a> x86 platform</td></tr>
 </table>
