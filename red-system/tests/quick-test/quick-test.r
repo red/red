@@ -428,13 +428,6 @@ qt: make object! [
     ]
     print print-line
 ]
-
-_extract-test-name: func [
-  data [object!]
-][
-
-]
-  
   
   ;; create the test "dialect"
   
