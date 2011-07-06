@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.5.0
+	Version: 0.5.1
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -235,6 +235,7 @@ qt: make object! [
   ]
   
   run-script-quiet: func [src [file!]][
+    prin [ "running " find/last/tail src "/" #"^(0D)"]
     print: :_quiet-print
     print-output: copy ""
     run-script src
@@ -252,6 +253,7 @@ qt: make object! [
   ]
   
   run-test-file-quiet: func [src [file!]][
+    prin [ "running " find/last/tail src "/" #"^(0D)"]
     print: :_quiet-print
     print-output: copy ""
     run-test-file src
@@ -426,7 +428,6 @@ qt: make object! [
     ]
     print print-line
 ]
-  
   
   ;; create the test "dialect"
   
