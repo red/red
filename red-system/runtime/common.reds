@@ -62,7 +62,7 @@ system: declare struct! [					;-- store runtime accessible system values
 	/local msg
 ][
 	unless zero? status [
-		prin "*** Runtime Error "
+		prin "^/*** Runtime Error "
 		prin-int status
 		prin ": "
 		
@@ -96,14 +96,19 @@ system: declare struct! [					;-- store runtime accessible system values
 		if status = 28 [msg: "object specific hardware error"]		
 		if status = 29 [msg: "hardware memory error consumed AR"]
 		if status = 30 [msg: "hardware memory error consumed AO"]
+		if status = 98 [msg: "assertion failed at line "]
 		if status = 99 [msg: "unknown error"]
 		
 		prin msg
 		
-		unless zero? address [
-			prin "^/*** at: "
-			prin-hex address
-			prin "h"
+		either status = 98 [
+			prin as-c-string address
+		][
+			unless zero? address [
+				prin "^/*** at: "
+				prin-hex address
+				prin "h"
+			]
 		]
 		prin newline
 	]

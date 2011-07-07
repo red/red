@@ -13,20 +13,22 @@ do %linker.r
 do %emitter.r
 
 system-dialect: context [
-	verbose:  0									;-- logs verbosity level
-	job: none									;-- reference the current job object	
+	verbose:  	  0									;-- logs verbosity level
+	job: 		  none								;-- reference the current job object	
 	runtime-path: %runtime/
-	nl: newline
+	nl: 		  newline
 	
 	loader: context [
-		verbose: 0
+		verbose: 	  0
 		include-dirs: none
 		include-list: make hash! 20
-		defs: make block! 100
+		defs:		  make block! 100
 		
-		hex-chars: charset "0123456789ABCDEF"
-		ws: charset " ^/^M^-"
-		hex-delim: union ws charset "[]()/"
+		hex-chars: 	  charset "0123456789ABCDEF"
+		ws: 		  charset " ^/^M^-"
+		assert-delim: union ws charset "[]()"
+		hex-delim: 	  union ws charset "[]()/"
+		non-cbracket: complement charset "}"
 		
 		throw-error: func [msg [string! block!]][
 			compiler/throw-error/loader msg
@@ -36,7 +38,7 @@ system-dialect: context [
 			include-dirs: reduce [runtime-path]
 			clear include-list
 			clear defs
-			insert defs <no-match>				;-- required to avoid empty rule (causes infinite loop)
+			insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
 		]
 		
 		included?: func [file [file!]][
@@ -82,13 +84,16 @@ system-dialect: context [
 			]
 		]
 
-		expand-string: func [src [string! binary!] /local value s e c][
+		expand-string: func [src [string! binary!] /local value s e c line][
 			if verbose > 0 [print "running string preprocessor..."]
 			
+			line: 1										;-- lines counter
 			parse/all/case src [						;-- not-LOAD-able syntax support
 				any [
 					(c: 0)
-					{"} thru {"} | "{" thru "}"
+					#";" to lf
+					| {"} thru {"}
+					| "{" any [lf (line: line + 1) | non-cbracket] "}"
 					| some ws s: ">>>" e: some ws (
 						e: change/part s "-**" e		;-- convert >>> to -**
 					) :e
@@ -104,6 +109,8 @@ system-dialect: context [
 							throw-error ["invalid hex literal:" copy/part s 40]
 						]
 					) :e
+					| assert-delim "assert " s: (e: insert s join line + 1 #" ") :e
+					| lf (line: line + 1)
 					| skip
 				]
 			]
@@ -274,6 +281,7 @@ system-dialect: context [
 		keywords: [
 			;&			 [throw-error "reserved for future use"]
 			as			 [comp-as]
+			assert		 [comp-assert]
 			size? 		 [comp-size?]
 			if			 [comp-if]
 			either		 [comp-either]
@@ -1030,6 +1038,32 @@ system-dialect: context [
 					type: blockify ctype
 				]
 				expr
+			]
+		]
+		
+		comp-assert: has [expr line][
+			either job/debug? [
+				line: pc/2
+				pc: skip pc 2
+				expr: fetch-expression/final
+				check-expected-logic 'assert expr			;-- verify conditional expression
+				expr: process-logic-encoding expr
+
+				insert/only pc compose [
+					***-on-quit 98 as integer! (reform [
+						line "^/*** in file:" mold script
+					])
+				]
+				set [unused chunk] comp-block-chunked		;-- compile TRUE block
+				emitter/set-signed-state expr				;-- properly set signed/unsigned state
+				emitter/branch/over/on chunk reduce [expr/1] ;-- branch over if expr is true
+				emitter/merge chunk
+				last-type: none
+				<last>
+			][
+				pc: skip pc 2
+				fetch-expression							;-- consume next expression
+				none
 			]
 		]
 		
