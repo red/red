@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 05/07/2011
-	Revision: 19
+	Date: 07/07/2011
+	Revision: 20
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1665,12 +1665,12 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     = 			> 			>=
     >>>         alias 		all
     and         any			as
-    comment		declare		either
-    exit	    false		func
-    function    if			not
-    or		    return		size?
-    true	    until 		while
-    xor
+    assert		comment		declare
+    either      exit	    false
+    func   		function    if
+    not			or		    return
+    size?    	true	    until
+    while		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -1927,8 +1927,6 @@ Global condition is met if at least one of the sub-conditions is met. ANY return
 
  <condition-*> : a conditional expression
 
-<u>Note</u>:
-
 <b>Example</b>
 
  if any [foo > 5 bar = 0][
@@ -1945,13 +1943,32 @@ Global condition is met if all the sub-conditions are met.  ALL returns a logic!
 
  <condition-*> : a conditional expression
  
-<u>Note</u>:
-
 <b>Example</b>
 
  if all [foo > 5 bar = 0][
  	print "true"				 ;-- reached if both conditions are met
  ]
+ 
+---Debugging functions
+
++++ASSERT
+
+Make a runtime assertion. If assertion fails, a runtime error will be raised.
+
+<b>Syntax</b>
+
+ assert <conditional expression>
+ 
+<b>Example</b>
+
+ Red/System []
+
+ assert 1 = 2
+ 
+will produce if saved to %test.reds file and run:
+
+ *** Runtime Error 98: assertion failed at line 3
+ *** in file: %test.reds
 
 
 ===Possible Evolutions
@@ -2067,6 +2084,12 @@ will output:
 
 
 ===Document History
+
+*<b>07/07/2011 - revision 20</b>
+
+*>Added ASSERT keyword description
+
+
 
 *<b>05/07/2011 - draft 19</b>
 
