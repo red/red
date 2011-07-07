@@ -1970,6 +1970,10 @@ will produce if saved to %test.reds file and run:
  *** Runtime Error 98: assertion failed at line 3
  *** in file: %test.reds
 
+\note Compiler debug mode
+Assertion will only be compiled if the <b>debug?</b> compilation option is set to YES or if the <b>-g</b> command-line option is used, else the assertion will be ignored by the compiler.
+
+/note
 
 ===Possible Evolutions
 
