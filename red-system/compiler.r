@@ -25,10 +25,11 @@ system-dialect: context [
 		defs:		  make block! 100
 		
 		hex-chars: 	  charset "0123456789ABCDEF"
-		ws: 		  charset " ^/^M^-"
-		assert-delim: union ws charset "[]()"
-		hex-delim: 	  union ws charset "[]()/"
-		non-cbracket: complement charset "}"
+		ws-chars: 	  charset " ^M^-"
+		ws-all:		  union ws-chars charset "^/"
+		assert-delim: charset "[]()"
+		hex-delim: 	  charset "[]()/"
+		non-cbracket: complement charset "}^/"
 		
 		throw-error: func [msg [string! block!]][
 			compiler/throw-error/loader msg
@@ -61,7 +62,7 @@ system-dialect: context [
 		]
 		
 		check-marker: func [src [string!] /local pos][
-			unless parse/all src [any ws "Red/System" any ws #"[" to end][
+			unless parse/all src [any ws-all "Red/System" any ws-all #"[" to end][
 				throw-error "not a Red/System source program"
 			]
 		]
@@ -84,33 +85,36 @@ system-dialect: context [
 			]
 		]
 
-		expand-string: func [src [string! binary!] /local value s e c line][
+		expand-string: func [src [string! binary!] /local value s e c line lf-count ws i p][
 			if verbose > 0 [print "running string preprocessor..."]
 			
 			line: 1										;-- lines counter
+			lf-count: [lf s: (if p <> i: index? s [p: i line: line + 1])] ;-- workaround to avoid writing more complex rules
+			ws:	[ws-chars | lf-count]
+			
 			parse/all/case src [						;-- not-LOAD-able syntax support
 				any [
 					(c: 0)
 					#";" to lf
 					| {"} thru {"}
-					| "{" any [lf (line: line + 1) | non-cbracket] "}"
-					| some ws s: ">>>" e: some ws (
+					| "{" any [lf-count | non-cbracket] "}"
+					| ws s: ">>>" e: ws (
 						e: change/part s "-**" e		;-- convert >>> to -**
 					) :e
-					| some ws s: #"%" e: some ws (
+					| ws s: #"%" e: ws (
 						e: change/part s "///" e		;-- convert % to ///
 					) :e
-					| hex-delim
+					| [hex-delim | ws]
 					s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
-					e: [hex-delim | #";" | end] (			
+					e: [hex-delim | ws | #";" to lf | end] (
 						either find [2 4 8] c [
 							e: change/part s to integer! to issue! value e
 						][
 							throw-error ["invalid hex literal:" copy/part s 40]
 						]
 					) :e
-					| assert-delim "assert " s: (e: insert s join line + 1 #" ") :e
-					| lf (line: line + 1)
+					| [assert-delim | ws] "assert " s: (e: insert s join line #" ") :e
+					| lf-count
 					| skip
 				]
 			]
@@ -1791,7 +1795,6 @@ system-dialect: context [
 		output-logs
 		if opts/link? [clean-up]
 
-		also
-			reduce [comp-time link-time any [all [job/buffer length? job/buffer] 0]]
+		reduce [comp-time link-time any [all [job/buffer length? job/buffer] 0]]
 	]
 ]
