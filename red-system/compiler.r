@@ -106,7 +106,7 @@ system-dialect: context [
 					) :e
 					| [hex-delim | ws]
 					s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
-					e: [hex-delim | ws | #";" to lf | end] (
+					e: [hex-delim | ws-all | #";" to lf | end] (
 						either find [2 4 8] c [
 							e: change/part s to integer! to issue! value e
 						][
