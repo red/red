@@ -805,13 +805,14 @@ make target-class [
 	
 	emit-cdecl-pop: func [spec [block!] /local size][
 		size: emitter/arguments-size? spec/4
-		if spec/3 = 'gcc45 [
-			;TBD: align on 16 bytes boundary
-			;     see http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl
-		]
 		all [
-			spec/3 = 'syscall
-			compiler/job/syscall = 'BSD
+			any [
+				spec/3 = 'gcc45						;-- http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl
+				all [
+					spec/3 = 'syscall
+					compiler/job/syscall = 'BSD
+				]
+			]
 			odd? size 
 			size: size + 1							;-- account for 16 byte stack alignment
 		]
