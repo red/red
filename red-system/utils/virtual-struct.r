@@ -104,7 +104,7 @@ virtual-struct!: context [
 				int		 [pad out 4 to-bin32  any [value 0]]
 				char!	 [to-bin8   any [value 0]]
 				integer! [pad out 4 to-bin32  any [value 0]]
-				decimal! [pad out 4 #{0000000000}]	;-- placeholder
+				decimal! [pad out 4 #{0000000000000000}]	;-- placeholder
 			][
 				make error! join "datatype not supported: " mold type/1
 			]

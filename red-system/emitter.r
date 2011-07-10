@@ -357,9 +357,17 @@ emitter: context [
 	order-args: func [name [word!] args [block!]][
 		if all [
 			not find [set-word! set-path!] type?/word name
-			find [import native infix] compiler/functions/:name/2
-			find [stdcall cdecl gcc45] compiler/functions/:name/3
-		][
+			any [
+				all [
+					find [import native infix] compiler/functions/:name/2
+					find [stdcall cdecl gcc45] compiler/functions/:name/3
+				]
+				all [
+					compiler/functions/:name/2 = 'syscall
+					compiler/job/syscall = 'BSD
+				]
+			]
+		][		
 			reverse args
 		]
 	]

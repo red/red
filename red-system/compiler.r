@@ -203,6 +203,7 @@ system-dialect: context [
 	]
 	
 	compiler: context [
+		job:		 none								;-- shortcut for job object
 		pc:			 none								;-- source code input cursor
 		script:		 none								;-- source script file name
 		last-type:	 none								;-- type of last value from an expression
@@ -1638,7 +1639,8 @@ system-dialect: context [
 			pc: next pc
 		]
 
-		run: func [src [block!] /no-header][
+		run: func [obj [object!] src [block!] /no-header][
+			job: obj
 			pc: src
 			unless no-header [comp-header]
 			comp-dialect
@@ -1692,7 +1694,7 @@ system-dialect: context [
 	]
 	
 	comp-runtime-prolog: does [
-		compiler/run loader/process runtime-path/common.reds
+		compiler/run job loader/process runtime-path/common.reds
 	]
 	
 	comp-runtime-epilog: does [	
@@ -1752,6 +1754,7 @@ system-dialect: context [
 		PIC?:			no				;-- compile using Position Independent Code
 		base-address:	none			;-- base image memory address
 		dynamic-linker: none			;-- ELF dynamic linker ("interpreter")
+		syscall:		'Linux			;-- syscalls convention: 'Linux | 'BSD
 	]
 	
 	compile: func [
@@ -1763,13 +1766,14 @@ system-dialect: context [
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
-			emitter/init opts/link? job: make-job opts last files	;-- last input filename is retained for output name
+			job: make-job opts last files	;-- last input filename is retained for output name
+			emitter/init opts/link? job
 			set-verbose-level opts/verbosity
 			
 			loader/init
 			if opts/runtime? [comp-runtime-prolog]
 			
-			foreach file files [compiler/run loader/process file]
+			foreach file files [compiler/run job loader/process file]
 			
 			if opts/runtime? [comp-runtime-epilog]
 			compiler/finalize							;-- compile all functions

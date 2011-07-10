@@ -18,6 +18,7 @@ REBOL [
 ;;	base-address:	<integer!>					;-- base image memory address
 ;;	use-natives?:	yes | no					;-- use native functions instead of C bindings (when possible)
 ;;	dynamic-linker:	none | <string!>			;-- ELF dynamic linker ("interpreter") to use
+;;  syscalls:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;-------------------------------------------
 
 ;-------------------------
@@ -64,12 +65,14 @@ Syllable [
 	base-address: -2147483648			; 80000000h
 ]
 ;-------------------------
-;Darwin [								; not supported yet
-;	OS:			'MacOSX
-;	format: 	'Mach-o
-;	type:		'exe
-;	sub-system: 'console
-;]
+Darwin [
+	OS:			'MacOSX
+	format: 	'Mach-O
+	type:		'exe
+	sub-system: 'console
+	use-natives?: yes
+	syscall:	'BSD
+]
 ;-------------------------
 ;OSX [									; not supported yet
 ;	OS:			'MacOSX

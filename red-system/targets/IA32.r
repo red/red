@@ -809,6 +809,12 @@ make target-class [
 			;TBD: align on 16 bytes boundary
 			;     see http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl
 		]
+		all [
+			spec/3 = 'syscall
+			compiler/job/syscall = 'BSD
+			odd? size 
+			size: size + 1							;-- account for 16 byte stack alignment
+		]
 		emit #{83C4}								;-- ADD esp, n
 		emit to-bin8 size
 	]
@@ -823,18 +829,33 @@ make target-class [
 		]
 		switch type [								;-- call or inline the function
 			syscall [								;TBD: add support for SYSENTER/SYSEXIT
-				repeat c fspec/1 [
-					emit pick [
-						#{5B}						;-- POP ebx			; get 1st arg in reg
-						#{59}						;-- POP ecx			; get 2nd arg in reg
-						#{5A}						;-- POP edx			; get 3rd arg in reg
-						#{5E}						;-- POP esi			; get 4th arg in reg
-						#{5F}						;-- POP edi			; get 5th arg in reg
-					] 1 + fspec/1 - c
+				switch compiler/job/syscall [
+					BSD [
+						if all [
+							compiler/job/OS = 'MacOSX 
+							odd? length? args 
+						][
+							emit #{83EC04}			;-- SUB esp, 4		; align stack on 16 bytes
+						]				
+					]
+					Linux [
+						repeat c fspec/1 [
+							emit pick [
+								#{5B}				;-- POP ebx			; get 1st arg in reg
+								#{59}				;-- POP ecx			; get 2nd arg in reg
+								#{5A}				;-- POP edx			; get 3rd arg in reg
+								#{5E}				;-- POP esi			; get 4th arg in reg
+								#{5F}				;-- POP edi			; get 5th arg in reg
+							] 1 + fspec/1 - c
+						]
+					]
 				]
 				emit #{B8}							;-- MOV eax, code
 				emit to-bin32 last fspec
 				emit #{CD80}						;-- INT 0x80		; syscall
+				if compiler/job/syscall = 'BSD [
+					emit-cdecl-pop fspec			;-- BSD syscall cconv ~ cdecl 
+				]
 			]
 			import [
 				emit #{FF15}						;-- CALL FAR [addr]
