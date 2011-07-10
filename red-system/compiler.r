@@ -1728,22 +1728,14 @@ system-dialect: context [
 	
 	options-class: context [
 		config-name:	none			;-- Preconfigured compilation target ID
-		OS:				select [		;-- Operating System
-						  3	'Windows
-						  4	'Linux
-						  5	'MacOSX
-						] system/version/4
+		OS:				none			;-- Operating System
 		OS-version:		none			;-- OS version
 		link?:			no				;-- yes = invoke the linker and finalize the job
 		debug?:			no				;-- reserved for future use
 		build-prefix:	%builds/		;-- prefix to use for output file name (none: no prefix)
 		build-basename:	none			;-- base name to use for output file name (none: derive from input name)
 		build-suffix:	none			;-- suffix to use for output file name (none: derive from output type)
-		format:			select [		;-- file format
-						  3	'PE				;-- Windows
-						  4	'ELF			;-- Linux
-						  5	'Mach-o			;-- Mac OS X
-						] system/version/4
+		format:			none			;-- file format
 		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj)
 		target:			'IA32			;-- CPU target
 		verbosity:		0				;-- logs verbosity level
@@ -1766,6 +1758,8 @@ system-dialect: context [
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
+			
+			
 			job: make-job opts last files	;-- last input filename is retained for output name
 			emitter/init opts/link? job
 			set-verbose-level opts/verbosity

@@ -68,9 +68,9 @@ rsc: context [
 		;; Select a default target based on the REBOL version.
 		target: any [
 			select [
+				2 "Darwin"
 				3 "MSDOS"
 				4 "Linux"
-				5 "Darwin"
 			] system/version/4
 			"MSDOS"
 		]
