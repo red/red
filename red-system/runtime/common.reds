@@ -47,7 +47,7 @@ system: declare struct! [					;-- store runtime accessible system values
 #switch OS [								;-- loading OS-specific bindings
 	Windows  [#include %win32.reds]
 	Syllable [#include %syllable.reds]
-	MacOSX	 [#include %macosx.reds]
+	MacOSX	 [#include %darwin.reds]
 	#default [#include %linux.reds]
 ]
 
