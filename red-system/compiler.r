@@ -660,7 +660,7 @@ system-dialect: context [
 					]
 				]
 			]
-			if pos: find f-type /local [f-type: clear copy pos] ;-- remove locals
+			if pos: find f-type /local [f-type: head clear copy pos] ;-- remove locals
 			if block? f-type/1 [f-type: next f-type]	;-- skip optional attributes block
 			if block? c-type/1 [c-type: next c-type]	;-- skip optional attributes block
 			idx: 2
