@@ -267,7 +267,7 @@ emitter: context [
 		offset: 0
 		foreach [var type] spec [
 			all [
-				find [integer! c-string! pointer! struct!] type/1
+				find [integer! c-string! pointer! struct! logic!] type/1
 				not zero? over: offset // target/struct-align-size 
 				offset: offset + target/struct-align-size - over ;-- properly account for alignment
 			]
