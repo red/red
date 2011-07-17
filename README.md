@@ -38,7 +38,7 @@ Currently supported targets are:
 	<tr><td><pre>MSDOS</pre></td><td>Windows, x86, console-only applications</td></tr>
 	<tr><td><pre>Windows</pre></td><td>Windows, x86, native applications</td></tr>
 	<tr><td><pre>Linux</pre></td><td>GNU/Linux, x86</td></tr>
-	<tr><td><pre>Darwin</pre></td><td>Mac OS X Intel, console-only applications (<i>importing libraries not yet available</i>)</td></tr>
+	<tr><td><pre>Darwin</pre></td><td>Mac OS X Intel, console-only applications</td></tr>
 	<tr><td><pre>Syllable</pre></td><td><a href="http://web.syllable.org/pages/index.html">Syllable OS</a>, x86 </td></tr>
 </table>
 
