@@ -92,7 +92,7 @@ stderr: 2
 	]
 	if signal = SIGBUS [
 		if code = 1 [error:  2]				;-- invalid address alignment
-		if code = 2 [error: 27]				;-- non-existant physical address
+		if code = 2 [error:  1]				;-- non-existant physical address
 		if code = 3 [error: 28]				;-- object specific hardware error
 		if code = 4 [error: 29]				;-- hardware memory error consumed (action required)
 		if code = 5 [error: 30]				;-- hardware memory error consumed (action optional)
@@ -121,7 +121,7 @@ __sigaction-options/sigaction: 	as-integer :***-on-signal
 __sigaction-options/mask: 		0
 __sigaction-options/flags: 		SA_SIGINFO ;or SA_RESTART
 
-;sigaction SIGILL  __sigaction-options as sigaction! 0
-;sigaction SIGBUS  __sigaction-options as sigaction! 0
-;sigaction SIGFPE  __sigaction-options as sigaction! 0
-;sigaction SIGSEGV __sigaction-options as sigaction! 0
+sigaction SIGILL  __sigaction-options as sigaction! 0
+sigaction SIGBUS  __sigaction-options as sigaction! 0
+sigaction SIGFPE  __sigaction-options as sigaction! 0
+sigaction SIGSEGV __sigaction-options as sigaction! 0

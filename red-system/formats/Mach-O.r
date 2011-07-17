@@ -418,7 +418,7 @@ context [
 		dbuf: job/sections/data/2
 		forskip segments 10 [
 			switch segments/2 [
-				__TEXT [code: segments/3]
+				__TEXT [code: get-section-addr '__text]
 				__DATA [data: segments/3]
 			]
 		]
