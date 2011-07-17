@@ -30,6 +30,7 @@ context [
 			dylinker 		7		; dynamic link editor
 			bundle   		8		; dynamically bound bundle file
 			dylib_stub  	9		; shared library stub for static
+			dsym			10		; file that store symbol information for a corresponding binary file
 		]
 		flags [					 	;-- Constants for the flags field of the mach_header
 			noundefs 		1     	; no undefined references
@@ -45,7 +46,12 @@ context [
 			nofixprebinding	1024    ; do not have dyld notify the prebinding agent about this executable
 			prebindable  	2048    ; not prebound but can have its prebinding redone
 			allmodsbound 	4096    ; binds to all two-level namespace modules of its dependent libraries
-			canonical    	8192    ; canonicalized via the unprebind operation
+			subsections		8192	; sections of the object file can be divided into individual blocks
+			canonical    	16384   ; canonicalized via the unprebind operation
+			weakdefs        32768	; ?? (MH_WEAK_DEFINES)
+			bindstoweak     65536	; ?? (MH_BINDS_TO_WEAK)
+			allowstackexec  131072	; ?? (MH_ALLOW_STACK_EXECUTION)
+			validflags      262143	; ?? 0003ffff (mask)
 		]
 		load-type [					;-- Constants for the cmd field of all load commands
 			req_dyld 		-2147483648
@@ -95,6 +101,7 @@ context [
 			mod_term_func_pointers   #{0000000a} ; section with only function
 			coalesced        		 #{0000000b} ; section contains symbols that
 			section_attributes_usr   #{ff000000} ; User setable attributes
+			attr_self_modifying_code #{04000000} ; section contains self-modifying code
 			attr_pure_instructions 	 #{80000000} ; section contains only true
 			attr_no_toc        	  	 #{40000000} ; section contains coalesced
 			attr_strip_static_syms   #{20000000} ; ok to strip static symbols
@@ -102,6 +109,31 @@ context [
 			attr_some_instructions   #{00000400} ; section contains some machine instructions
 			attr_ext_reloc     		 #{00000200} ; section has external relocation entries
 			attr_loc_reloc     		 #{00000100} ; section has local relocation entries
+		]
+		sym-type [
+			n-stab					#{E0}		; stab entry
+			n-pext					#{10}		; private extern bit
+			n-type					#{0E}		; type of the symbol
+			n-ext					#{01}		; external symbol
+			;-- n-type flags --
+			n-undf					#{00}		; undefined symbol
+			n-abs					#{02}		; absolute symbol
+			n-sect					#{0E}		; symbol defined in section n-sect
+			n-pbud					#{0C}		; prebound valud for an undefined symbol
+			n-indr					#{0A}		; alias symbol (n-value points to reference symbol)
+		]
+		sym-desc [
+			undef-non-lazy			#{00}		; reference to an external non-lazy (data) symbol
+			undef-lazy				#{01}		; external lazy symbol—that is, to a function call
+			defined					#{02}		; symbol is defined in this module
+			priv-def				#{03}		; defined in module, but private
+			priv-def-non-lazy  		#{04}		; private, defined, non-lazy symbol
+			priv-def-lazy  			#{05}		; private, defined, lazy symbol
+			ref-dynamically			#{10}		; set for any defined symbol that is referenced by dynamic-loader APIs
+			desc-discarded			#{20}		; do not set this bit in a fully linked image
+			no-dead-strip			#{20}		; indicates to the static linker to never dead-strip the symbo
+			weak-ref				#{40}		; symbol is a weak reference
+			weak-def				#{80}		; symbol is a weak definition
 		]
 	]
 
@@ -155,12 +187,19 @@ context [
 		gs				[integer!]
 	] none
 	
+	load-dylib-cmd: make-struct [
+		cmd				[integer!]	; load-type/segment
+		size			[integer!]	; sizeof(segment_command + (sizeof(section) * segment->nsect))
+		offset			[integer!]	; = 24 (from the start of the load cmd)
+		timestamp		[integer!]	; date and time when the shared library was built
+		version			[integer!]	; current version of the shared library
+		compat			[integer!]	; compatibility version of the shared library
+	] none
+	
 	dylinker-cmd: make-struct [
 		cmd				[integer!]	; load-type/segment
 		size			[integer!]	; sizeof(segment_command + (sizeof(section) * segment->nsect))
 		offset			[integer!]	; = 12 (from the start of the load cmd)
-		name1			[decimal!]	; /usr/lib/dylib\0
-		name2			[decimal!]
 	] none
 	
 	section-header: make-struct [
@@ -179,6 +218,46 @@ context [
 		reserved2		[integer!]
 	] none
 	
+	symtab-cmd: make-struct [
+		cmd				[integer!]	; load-type/segment
+		size			[integer!]	; sizeof(segment_command + (sizeof(section) * segment->nsect))
+		symoff			[integer!]	; symbol table file offset (from head of file)
+		nsyms			[integer!]	; nb of symbol entries
+		stroff			[integer!]	; string table file offset (from head of file)
+		strsize			[integer!]	; size of string table in bytes
+	] none
+	
+	dysymtab-cmd: make-struct [
+		cmd				[integer!]	; load-type/segment
+		size			[integer!]	; sizeof(segment_command + (sizeof(section) * segment->nsect))
+		ilocalsym		[integer!]	; index of the first symbol in the group of local symbols
+		nlocalsym		[integer!]	; total number of symbols in the group of local symbols
+		iextdefsym		[integer!]	; index of the first symbol in the group of defined external symbols
+		nextdefsym		[integer!]	; total number of symbols in the group of defined external symbols
+		iundefsym		[integer!]	; index of the first symbol in the group of undefined external symbols
+		nundefsym		[integer!]	; total number of symbols in the group of undefined external symbols
+		tocoff			[integer!]	; byte offset from the start of the file to the table of contents data
+		ntoc			[integer!]	; number of entries in the table of contents
+		modtaboff		[integer!]	; byte offset from the start of the file to the module table data
+		nmodtab			[integer!]	; number of entries in the module table
+		extrefsymoff	[integer!]	; byte offset from the start of the file to the external reference table data
+		nextrefsyms		[integer!]	; number of entries in the external reference table
+		indirectsymoff	[integer!]	; byte offset from the start of the file to the indirect symbol table data
+		nindirectsyms	[integer!]	; number of entries in the indirect symbol table
+		extreloff		[integer!]	; byte offset from the start of the file to the external relocation table data
+		nextrel			[integer!]	; number of entries in the external relocation table
+		locreloff		[integer!]	; byte offset from the start of the file to the local relocation table data
+		nlocrel			[integer!]	; number of entries in the local relocation table
+	] none
+	
+	nlist: make-struct [
+		n-strx			[integer!]	; index in the string table
+		n-type			[char!]		; bit flags
+		n-sect			[char!]		; NO-SECT (if external) or section index (one-based)
+		n-desc			[short]		; nature of symbol (for non-stab symbols)
+		n-value			[integer!]	; symbol type specific value
+	] none
+	
 	pointer: make-struct [
 		value [integer!]			;-- 32/64-bit, watch out for endianess!!
 	] none
@@ -195,23 +274,33 @@ context [
 	  segment 		__DATA	 	 ?	 ?	 ?	 ?	[r w]	  -		   page [
 		section		__data	 	 ?	 ?	 ?	 ?	 -		  data	   word
 	  ]
-;	  dylinker		-			 -	 -   -	 -   - 		  -		   -	[]
 	  uthread		-			 -	 -   -	 -   - 		  -		   -	[]
 	]
 	
+	imports-refs:		make block! 10		;-- [ptr [refs] ...]
+	dylink?:			no					;-- yes => dynamic library linking required
 	segment-sz:			length? form-struct segment-command
 	section-sz:			length? form-struct section-header
 	load-cmds-nb:		0
 	load-cmds-sz:		0
+	stub-size:			5					;-- imported functions slot size
 
 	;-- Mach-O structure builders --
 	
 	to-c-string: func [value][join value null]
 	
+	pad4: func [s [string!] /local rem][
+		unless zero? rem: (length? s) // 4 [
+			insert/dup tail s #"^@" 4 - rem
+		]
+		s
+	]
+	
 	get-ceiling: func [type [word!]][
 		switch/default type [
 			page [defs/page-size]
 			word [4]						;-- 4 => 32-bit, 8 => 64-bit @@
+			byte [1]
 		][4]								;-- 4 => 32-bit, 8 => 64-bit @@								
 	]
 	
@@ -222,6 +311,9 @@ context [
 			segment  [segment-sz]
 			uthread  [length? form-struct unix-thread-cmd]
 			dylinker [length? form-struct dylinker-cmd]
+			lddylib  [length? form-struct load-dylib-cmd]
+			symtab	 [length? form-struct symtab-cmd]
+			dysymtab [length? form-struct dysymtab-cmd]
 		]
 	]
 	
@@ -233,18 +325,29 @@ context [
 		flags
 	]
 	
-	get-flags: func [type [word!]][
+	get-flags: func [type [word!] /local flags][
+		flags: defs/sect-type
 		to integer! switch/default type [
 			code [
-				defs/sect-type/attr_pure_instructions
-				or defs/sect-type/attr_some_instructions
+				flags/attr_pure_instructions
+					or flags/attr_some_instructions
 			]
-		][defs/sect-type/regular]
+			jmptbl [
+				flags/attr_pure_instructions
+					or flags/attr_some_instructions
+					or flags/attr_self_modifying_code
+					or flags/symbol_stubs
+			]
+		][flags/regular]
 	]
 	
 	get-section-addr: func [name [word!] /local addr][
 		parse segments [some [into [thru name set addr skip | none] | skip]]	
 		addr
+	]
+	
+	get-segment-info: func [name [word!] /local addr][
+		next find segments name
 	]
 		
 	prepare-headers: func [
@@ -259,6 +362,7 @@ context [
 		seg: segments
 		until [
 			load-cmds-sz: load-cmds-sz + get-struct-size seg/1
+			if string? seg/2 [load-cmds-sz: load-cmds-sz + length? seg/2]	;-- account for load-dylib path
 			load-cmds-nb: load-cmds-nb + 1
 			unless empty? seg/10 [
 				load-cmds-sz: load-cmds-sz + (section-sz * sections? seg/10)
@@ -273,14 +377,15 @@ context [
 		seg: segments
 		until [
 			if seg/1 = 'segment [
-				hd-sz: either seg/2 = '__TEXT [header-sz][0]	;-- account for headers
 				seg/3: addr: round/ceiling/to get-value 3 addr get-ceiling seg/9 ;-- offset in memory (segment)
 				seg/5: fpos: round/ceiling/to get-value 5 fpos get-ceiling seg/9 ;-- offset in file (segment)
+
 				sec: seg/10
-				size: 0
-				while [not tail? sec][			
-					sz: length? job/sections/(sec/8)/2
-					sec/3: addr: hd-sz + round/ceiling/to addr get-ceiling sec/9 ;-- offset in memory (section)
+				hd-sz: either seg/2 = '__TEXT [header-sz][0]	;-- account for headers
+				size: either seg/8 = '- [0][length? job/sections/(seg/8)/2]
+				while [not tail? sec][
+					sz: length? job/sections/(sec/8)/2					
+					sec/3: addr: round/ceiling/to addr + hd-sz get-ceiling sec/9 ;-- offset in memory (section)
 					sec/4: sz							;-- size in memory (section)
 					sec/5: fpos: round/ceiling/to fpos + hd-sz get-ceiling sec/9 ;-- offset in file (section)
 					sec/6: sz							;-- size in file (section)
@@ -298,7 +403,14 @@ context [
 				]
 			]
 			tail? seg: skip seg 10
-		]	
+		]
+	]
+	
+	emit-page-aligned: func [buf [binary!] data [binary!] /local page rem][
+		append buf data
+		unless zero? rem: (length? buf) // page: defs/page-size [
+			insert/dup tail buf null page - rem
+		]
 	]
 	
 	resolve-data-refs: func [job [object!] /local cbuf dbuf data code][
@@ -313,17 +425,143 @@ context [
 		linker/resolve-symbol-refs job cbuf dbuf code data pointer
 	]
 	
-	build-dylinker-command: func [spec [block!] /local dl][
+	resolve-import-refs: func [job [object!] /local code base][
+		code: job/sections/code/2
+		base: get-section-addr '__jump_table
+
+		foreach [ptr reloc] imports-refs [
+			pointer/value: ptr: base + ptr
+			foreach ref reloc [
+				change at code ref form-struct pointer 	;TBD: check endianness + x-compilation
+			]
+		]
+	]
+
+	build-imports: func [
+		job [object!]
+		/local sym-tbl dy-sym-tbl lib cnt entry
+	][
+		sym-tbl:    make binary! 1024
+		dy-sym-tbl: make binary! 1024
+		str-tbl: 	make binary! 1024
+		append str-tbl #{00000000}					;-- start with 4 null bytes @@
+		
+		insert find segments 'uthread [
+			segment			__IMPORT	 ?	 ? 	 ?	 ?	[r w x]	  -   	   page [
+				section		__jump_table ?	 ?   ?   ?  -		  jmptbl   byte
+			]
+			segment			__LINKEDIT	 ?	 ?	 ?	 ?  [r]		  symbols  page [] 
+			dylinker		-			 -	 -   -	 -   - 		  -		   -	[]
+			symtab			-			 -	 -   -	 -   - 		  -		   -	[]
+			dysymtab		-			 -	 -   -	 -   - 		  -		   -	[]
+			;twolvlhints	-			 -	 -   -	 -   - 		  -		   -	[]
+		]
+		segments/dylinker: pad4 to-c-string "/usr/lib/dyld"
+		
+		lib: 1										;-- one-based index
+		cnt: 0
+		foreach [name list] job/sections/import/3 [
+			name: to-c-string name
+			if name/1 <> slash [insert name "/usr/lib/"]
+			insert find segments 'symtab compose [
+				  lddylib (pad4 name) -	 -   -	 -   - 		  -		   -	[]
+			]
+			foreach [def reloc] list [		
+				entry: make-struct nlist none
+				entry/n-strx:  length? str-tbl
+				entry/n-type:  to integer! defs/sym-type/n-undf or defs/sym-type/n-ext
+				entry/n-sect:  0					;-- NO_SECT
+				entry/n-desc:  (to integer! defs/sym-desc/undef-lazy) or shift/left lib 8
+				entry/n-value: 0
+				append sym-tbl form-struct entry
+				
+				pointer/value: cnt
+				append dy-sym-tbl form-struct pointer
+				
+				repend imports-refs [cnt * stub-size reloc]		;-- store symbol jump table offset
+				
+				append str-tbl join "_" to-c-string def
+				cnt: cnt + 1
+			]
+			lib: lib + 1
+		]
+		repend job/sections [
+			'jmptbl reduce [
+				'- head insert/dup make binary! cnt * stub-size #{F4F4F4F4F4} cnt
+			]
+			'symbols reduce [
+				reduce [cnt length? sym-tbl length? dy-sym-tbl length? str-tbl]
+				rejoin [sym-tbl dy-sym-tbl str-tbl]
+			]
+		]
+	]
+	
+	build-dysymtab-command: func [job [object!] spec [block!] /local sc sym-info][
+		sym-info: job/sections/symbols/1
+
+		sc: make-struct dysymtab-cmd none
+		sc/cmd:			   defs/load-type/dysymtab
+		sc/size:		   get-struct-size 'dysymtab
+		sc/ilocalsym:	   0
+		sc/nlocalsym:	   0
+		sc/iextdefsym:	   0
+		sc/nextdefsym:	   0
+		sc/iundefsym:	   0
+		sc/nundefsym:	   sym-info/1
+		sc/tocoff:		   0
+		sc/ntoc:		   0
+		sc/modtaboff:	   0
+		sc/nmodtab:		   0
+		sc/extrefsymoff:   0
+		sc/nextrefsyms:	   0
+		sc/indirectsymoff: (third get-segment-info '__LINKEDIT) + sym-info/2
+		sc/nindirectsyms:  sym-info/1
+		sc/extreloff:	   0
+		sc/nextrel:		   0
+		sc/locreloff:	   0
+		sc/nlocrel:		   0
+		sc: form-struct sc
+		sc
+	]
+	
+	build-symtab-command: func [job [object!] spec [block!] /local sc sym-info][
+		sym-info: job/sections/symbols/1
+		
+		sc: make-struct symtab-cmd none
+		sc/cmd:			defs/load-type/symtab
+		sc/size:		get-struct-size 'symtab
+		sc/symoff:		third get-segment-info '__LINKEDIT
+		sc/nsyms:		sym-info/1
+		sc/stroff:		sc/symoff + sym-info/2 + sym-info/3
+		sc/strsize:		sym-info/4
+		sc: form-struct sc
+		sc
+	]
+	
+	build-lddylib-command: func [job [object!] spec [block!] /local lc][
+		lc: make-struct load-dylib-cmd none
+		lc/cmd:			defs/load-type/load_dylib
+		lc/size:		(get-struct-size 'lddylib) + length? spec/2
+		lc/offset:		24
+		lc/timestamp:	2
+		lc/version:		to integer! #{007D0000}
+		lc/compat:		to integer! #{00010000}
+		lc: form-struct lc
+		append lc spec/2
+		lc
+	]
+	
+	build-dylinker-command: func [job [object!] spec [block!] /local dl][
 		dl: make-struct dylinker-cmd none
 		dl/cmd:			defs/load-type/load_dylinker
-		dl/size:		get-struct-size 'dylinker
+		dl/size:		(get-struct-size 'dylinker) + length? spec/2
 		dl/offset:		12
 		dl: form-struct dl
-		change at dl 13 join "/usr/lib/dyld" null	
+		append dl spec/2	
 		dl
 	]
 	
-	build-uthread-command: func [spec [block!] /local ut][
+	build-uthread-command: func [job [object!] spec [block!] /local ut][
 		ut: make-struct unix-thread-cmd none
 		ut/cmd:			defs/load-type/unixthread
 		ut/size:		get-struct-size 'uthread
@@ -343,14 +581,14 @@ context [
 		sh/nreloc:		0
 		sh/flags:		get-flags spec/8
 		sh/reserved1:	0
-		sh/reserved2:	0
+		sh/reserved2:	either spec/2 = '__jump_table [stub-size][0]
 		sh: form-struct sh
 		change sh to-c-string spec/2
 		change at sh 17 to-c-string seg-name
 		sh
 	]
 	
-	build-segment-command: func [spec [block!] /local sc][
+	build-segment-command: func [job [object!] spec [block!] /local sc][
 		sc: make-struct segment-command none
 		sc/cmd:			defs/load-type/segment
 		sc/size:		segment-sz + (section-sz * sections? spec/10)
@@ -361,12 +599,13 @@ context [
 		sc/maxprot:		either empty? spec/7 [0][get-rights? [r w x]]
 		sc/initprot:	get-rights? spec/7
 		sc/nsects:		sections? spec/10
+		sc/flags:		4						;-- SG_NORELOC
 		sc: form-struct sc
 		change at sc 9 to-c-string spec/2
 		sc
 	]
 		
-	build-mach-header: has [mh][
+	build-mach-header: func [job [object!] /local mh][
 		mh: make-struct mach-header none
 		mh/magic:			to integer! #{FEEDFACE}
 		mh/cpu-type:		7					;-- CPU_TYPE_I386
@@ -375,6 +614,12 @@ context [
 		mh/nb-cmds:			load-cmds-nb
 		mh/sz-cmds:			load-cmds-sz
 		mh/flags:			defs/flags/noundefs
+		if dylink? [
+			mh/flags: mh/flags 
+				or defs/flags/dyldlink
+				or defs/flags/subsections
+				;or defs/flags/bindatload
+		]
 		form-struct mh
 	]
 
@@ -387,16 +632,24 @@ context [
 		base-address: any [job/base-address defs/base-address]
 		dynamic-linker: any [job/dynamic-linker ""]
 		
+		dylink?: not empty? job/sections/import/3
+		
+		clear imports-refs
+		if dylink? [build-imports job]
+		
 		prepare-headers job
 		
 		out: job/buffer
-		append out build-mach-header
+		append out build-mach-header job
 		seg: segments
 		forskip seg 10 [
 			append out switch seg/1 [
-				segment  [build-segment-command seg]
-				uthread  [build-uthread-command seg]
-				dylinker [build-dylinker-command seg]
+				segment  [build-segment-command  job seg]
+				uthread  [build-uthread-command  job seg]
+				dylinker [build-dylinker-command job seg]
+				lddylib  [build-lddylib-command  job seg]
+				symtab	 [build-symtab-command 	 job seg]
+				dysymtab [build-dysymtab-command job seg]
 			]
 			unless empty? sections: seg/10 [
 				forskip sections 9 [
@@ -405,13 +658,15 @@ context [
 			]
 		]
 		
+		if dylink? [resolve-import-refs job]
 		resolve-data-refs job
-		append out job/sections/code/2
 		
-		page: defs/page-size
-		insert/dup tail out null page - ((length? out) // page)		;@@ temporary
-		
-		append out job/sections/data/2
-		insert/dup tail out null page - ((length? out) // page)		;@@ temporary	
+		emit-page-aligned out job/sections/code/2
+		emit-page-aligned out job/sections/data/2
+	
+		if dylink? [
+			emit-page-aligned out job/sections/jmptbl/2
+			emit-page-aligned out job/sections/symbols/2
+		]
 	]
 ]

@@ -360,7 +360,7 @@ emitter: context [
 			any [
 				all [
 					find [import native infix] compiler/functions/:name/2
-					find [stdcall cdecl gcc45] compiler/functions/:name/3
+					find [stdcall cdecl] compiler/functions/:name/3
 				]
 				all [
 					compiler/functions/:name/2 = 'syscall
@@ -392,10 +392,13 @@ emitter: context [
 		either casted [reduce [casted/1 old-type/1]][none]
 	]
 	
-	call: func [name [word!] args [block!] /sub /local type res][
+	call: func [name [word!] args [block!] /sub /local type res import?][
 		compiler/check-cc name
 		compiler/check-arguments-type name args
 		order-args name args
+		
+		import?: compiler/functions/:name/2 = 'import	; syscalls don't seem to need 16-byte alignment ??
+		if import? [target/emit-stack-align-prolog args]
 		
 		type: first any [
 			select symbols name							;@@
@@ -432,6 +435,7 @@ emitter: context [
 		][
 			compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
 		]
+		if import? [target/emit-stack-align-epilog args]
 		res
 	]
 	

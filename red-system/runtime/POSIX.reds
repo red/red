@@ -78,8 +78,9 @@ stderr: 2
 		if code = 3 [error: 24]				;-- illegal addressing mode
 		if code = 4 [error: 25]				;-- illegal trap
 		if code = 5 [error: 15]				;-- privileged opcode
-		if code = 6 [error: 26]				;-- coprocessor error
-		if code = 7 [error: 19]				;-- internal stack error
+		if code = 6 [error: 31]				;-- privileged register
+		if code = 7 [error: 26]				;-- coprocessor error
+		if code = 8 [error: 19]				;-- internal stack error
 	]
 	if signal = SIGBUS [
 		if code = 1 [error:  2]				;-- invalid address alignment

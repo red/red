@@ -12,9 +12,6 @@ Red/System [
 #define OS_TYPE		4
 #define LIBC-file	"libc.dylib"
 
-#define SA_SIGINFO   00000004h				;-- POSIX value?
-#define SA_RESTART   10000000h				;-- POSIX value?
-
 #syscall [
 	write: 4 [
 		fd		[integer!]
@@ -33,15 +30,3 @@ Red/System [
 ]
 
 #include %BSD.reds
-
-
-#if use-natives? = yes [
-	prin: func [s [c-string!] return: [integer!]][
-		write stdout s length? s
-	]
-
-	print: func [s [c-string!] return: [integer!]][
-		prin s
-		write stdout newline 1
-	]
-]

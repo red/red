@@ -97,6 +97,7 @@ system: declare struct! [					;-- store runtime accessible system values
 		if status = 28 [msg: "object specific hardware error"]		
 		if status = 29 [msg: "hardware memory error consumed AR"]
 		if status = 30 [msg: "hardware memory error consumed AO"]
+		if status = 31 [msg: "privileged register"]
 		if status = 98 [msg: "assertion failed at line "]
 		if status = 99 [msg: "unknown error"]
 		

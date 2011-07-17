@@ -805,16 +805,11 @@ make target-class [
 	
 	emit-cdecl-pop: func [spec [block!] /local size][
 		size: emitter/arguments-size? spec/4
-		all [
-			any [
-				spec/3 = 'gcc45						;-- http://en.wikipedia.org/wiki/X86_calling_conventions#cdecl
-				all [
-					spec/3 = 'syscall
-					compiler/job/syscall = 'BSD
-				]
-			]
-			odd? size 
-			size: size + 1							;-- account for 16 byte stack alignment
+		if all [
+			spec/2 = 'syscall
+			compiler/job/syscall = 'BSD
+		][
+			size: size  + 1							;-- account for extra space
 		]
 		emit #{83C4}								;-- ADD esp, n
 		emit to-bin8 size
@@ -831,13 +826,8 @@ make target-class [
 		switch type [								;-- call or inline the function
 			syscall [								;TBD: add support for SYSENTER/SYSEXIT
 				switch compiler/job/syscall [
-					BSD [
-						if all [
-							compiler/job/OS = 'MacOSX 
-							odd? length? args 
-						][
-							emit #{83EC04}			;-- SUB esp, 4		; align stack on 16 bytes
-						]				
+					BSD [							; http://www.freebsd.org/doc/en/books/developers-handbook/book.html#X86-SYSTEM-CALLS
+						emit #{83EC04}				;-- SUB esp, 4		; extra entry (BSD convention)			
 					]
 					Linux [
 						repeat c fspec/1 [
@@ -859,16 +849,22 @@ make target-class [
 				]
 			]
 			import [
-				emit #{FF15}						;-- CALL FAR [addr]
-				emit-reloc-addr spec
-				if find [cdecl gcc45] fspec/3 [		;-- add calling cleanup when required
+				either compiler/job/OS = 'MacOSX [
+					emit #{B8}						;-- MOV eax, addr
+					emit-reloc-addr spec
+					emit #{FFD0} 					;-- CALL eax		; direct call
+				][	
+					emit #{FF15}					;-- CALL FAR [addr]	; indirect call
+					emit-reloc-addr spec
+				]
+				if fspec/3 = 'cdecl [				;-- add calling cleanup when required
 					emit-cdecl-pop fspec
 				]			
 			]
 			native [
 				emit #{E8}							;-- CALL NEAR disp
 				emit-reloc-addr spec				;-- 32-bit relative displacement place-holder
-				if find [cdecl gcc45] fspec/3 [		;-- in case of not default calling convention
+				if fspec/3 = 'cdecl [				;-- in case of not default calling convention
 					emit-cdecl-pop fspec
 				]
 			]
@@ -887,6 +883,25 @@ make target-class [
 			]
 		]
 		res
+	]
+	
+	emit-stack-align-prolog: func [args [block!] /local offset][
+		if compiler/job/stack-align-16? [
+			emit #{89E7}							;-- MOV edi, esp
+			emit #{83E4F0}							;-- AND esp, -16
+			offset: 1 + length? args				;-- account for saved edi
+			unless zero? offset: offset // 4 [
+				emit #{83EC}						;-- SUB esp, offset		; ensure call will be 16-bytes aligned
+				emit to-bin8 (4 - offset) * 4
+			]
+			emit #{57}								;-- PUSH edi
+		]
+	]
+	
+	emit-stack-align-epilog: func [args [block!]][
+		if compiler/job/stack-align-16? [
+			emit #{5C}								;-- POP esp
+		]
 	]
 
 	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec][
@@ -918,7 +933,7 @@ make target-class [
 		emit #{C9}									;-- LEAVE
 		either any [
 			zero? args-size
-			find [cdecl gcc45] fspec/3
+			fspec/3 = 'cdecl
 		][
 			;; cdecl: Leave original arguments on stack, popped by caller.
 			emit #{C3}								;-- RET

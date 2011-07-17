@@ -18,7 +18,8 @@ REBOL [
 ;;	base-address:	<integer!>					;-- base image memory address
 ;;	use-natives?:	yes | no					;-- use native functions instead of C bindings (when possible)
 ;;	dynamic-linker:	none | <string!>			;-- ELF dynamic linker ("interpreter") to use
-;;  syscalls:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
+;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
+;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
 ;;-------------------------------------------
 
 ;-------------------------
@@ -70,8 +71,8 @@ Darwin [
 	format: 	'Mach-O
 	type:		'exe
 	sub-system: 'console
-	use-natives?: yes
 	syscall:	'BSD
+	stack-align-16?: yes
 ]
 ;-------------------------
 ;OSX [									; not supported yet

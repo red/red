@@ -1747,6 +1747,7 @@ system-dialect: context [
 		base-address:	none			;-- base image memory address
 		dynamic-linker: none			;-- ELF dynamic linker ("interpreter")
 		syscall:		'Linux			;-- syscalls convention: 'Linux | 'BSD
+		stack-align-16?: no				;-- yes => align stack to 16 bytes
 	]
 	
 	compile: func [
