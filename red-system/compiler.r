@@ -1737,7 +1737,7 @@ system-dialect: context [
 		build-suffix:	none			;-- suffix to use for output file name (none: derive from output type)
 		format:			none			;-- file format
 		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj)
-		target:			'IA32			;-- CPU target
+		target:			'IA-32			;-- CPU target
 		verbosity:		0				;-- logs verbosity level
 		sub-system:		'console		;-- 'GUI | 'console
 		runtime?:		yes				;-- include Red/System runtime

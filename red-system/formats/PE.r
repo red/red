@@ -35,8 +35,8 @@ context [
 			ARM			#{01C0}			little
 			ARMV7		#{01C4}			?		
 			EBC			#{0EBC}			?
-			IA32		#{014C}			little
-			IA64		#{0200}			little
+			IA-32		#{014C}			little
+			IA-64		#{0200}			little
 			M32R		#{9041}			little
 			MIPS16		#{0266}			?
 			MIPSFPU		#{0366}			?

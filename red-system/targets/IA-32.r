@@ -1,13 +1,13 @@
 REBOL [
-	Title:   "Red/System IA32 code emitter"
+	Title:   "Red/System IA-32 code emitter"
 	Author:  "Nenad Rakocevic"
-	File: 	 %IA32.r
+	File: 	 %IA-32.r
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
 make target-class [
-	target: 'IA32
+	target: 'IA-32
 	little-endian?: yes
 	struct-align-size: 	4
 	ptr-size: 			4

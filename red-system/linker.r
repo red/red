@@ -8,7 +8,7 @@ REBOL [
 
 linker: context [
 	version: 		1.0.0					;-- emitted linker version
-	cpu-class: 		'IA32					;-- default target
+	cpu-class: 		'IA-32					;-- default target
 	file-emitter:	none					;-- file emitter object
 	verbose: 		0						;-- logs verbosity level
 		
