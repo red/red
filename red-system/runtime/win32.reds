@@ -146,7 +146,7 @@ __win32-memory-blocks: declare struct! [
 	;-- Build argv array in a newly allocated buffer, but reuse GetCommandLine buffer
 	;-- to store tokenized strings by replacing each new first space byte by a null byte
 	;-- to avoid allocating a new buffer for each new token. Might create side-effects
-	;-- if GetCommandLine buffer is unique, but side-effects should be rare and minor issues.
+	;-- if GetCommandLine buffer is shared, but side-effects should be rare and minor issues.
 	
 	while [s/1 <> null-byte][					;-- iterate other all command line bytes
 		if s/1 = #" " [							;-- space detected
@@ -168,7 +168,7 @@ __win32-memory-blocks: declare struct! [
 	c: c + 1									;-- add a null entry at argv's end to match UNIX layout
 	argv/c: 0									;-- end of argv array marker
 	
-	system/args-list: argv
+	system/args-list: as str-array! argv
 	system/env-vars: null
 	
 	__win32-memory-blocks/argv: argv

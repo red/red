@@ -39,10 +39,14 @@ stdin:		-1								;-- uninitialized default value
 stderr:		-1								;-- uninitialized default value
 
 
+str-array!: alias struct! [
+	item [c-string!]
+]
+
 system: declare struct! [					;-- store runtime accessible system values
 	args-count	[integer!]					;-- command-line arguments count (do not move member)
-	args-list	[pointer! [integer!]]		;-- command-line arguments array pointer (do not move member)
-	env-vars 	[pointer! [integer!]]		;-- environment variables array pointer (always null for Windows)
+	args-list	[str-array!]			;-- command-line arguments array pointer (do not move member)
+	env-vars 	[str-array!]			;-- environment variables array pointer (always null for Windows)
 ]
 
 #switch OS [

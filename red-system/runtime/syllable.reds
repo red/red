@@ -35,7 +35,7 @@ Red/System [
 	argv: system/args-list
 	c: 0
 
-	while [argv/value <> 0][
+	while [argv/item <> null][
 		c: c + 1
 		argv: argv + 1
 	]
