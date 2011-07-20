@@ -10,7 +10,6 @@ Red/System [
 ]
 
 #define OS_TYPE		2
-#define LIBC-file	"libc.so.6"
 
 #define SA_SIGINFO   00000004h				;-- POSIX value?
 #define SA_RESTART   10000000h				;-- POSIX value?
@@ -30,6 +29,10 @@ Red/System [
 			status	[integer!]
 		]
 	]
+]
+
+***-on-start: does [
+	system/env-vars: system/args-list + system/args-count + 1
 ]
 
 #include %POSIX.reds

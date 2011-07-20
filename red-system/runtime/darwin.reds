@@ -10,7 +10,6 @@ Red/System [
 ]
 
 #define OS_TYPE		4
-#define LIBC-file	"libc.dylib"
 
 #syscall [
 	write: 4 [
@@ -27,6 +26,10 @@ Red/System [
 			status	[integer!]
 		]
 	]
+]
+
+***-on-start: does [
+	system/env-vars: system/args-list + system/args-count + 1
 ]
 
 #include %BSD.reds

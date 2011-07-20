@@ -40,21 +40,29 @@ stderr:		-1								;-- uninitialized default value
 
 
 system: declare struct! [					;-- store runtime accessible system values
-	reserved 	[integer!]					;-- place-holder to not have an empty structure
+	args-count	[integer!]					;-- command-line arguments count (do not move member)
+	args-list	[pointer! [integer!]]		;-- command-line arguments array pointer (do not move member)
+	env-vars 	[pointer! [integer!]]		;-- environment variables array pointer (always null for Windows)
 ]
 
-
-#switch OS [								;-- loading OS-specific bindings
-	Windows  [#include %win32.reds]
-	Syllable [#include %syllable.reds]
-	MacOSX	 [#include %darwin.reds]
-	#default [#include %linux.reds]
+#switch OS [
+	Windows  [#define LIBC-file	"msvcrt.dll"]
+	Syllable [#define LIBC-file	"libc.so.2"]
+	MacOSX	 [#define LIBC-file	"libc.dylib"]
+	#default [#define LIBC-file	"libc.so.6"]
 ]
 
 #either use-natives? = no [					;-- C bindings or native counterparts
 	#include %lib-C.reds
 ][
 	#include %lib-natives.reds
+]
+
+#switch OS [								;-- loading OS-specific bindings
+	Windows  [#include %win32.reds]
+	Syllable [#include %syllable.reds]
+	MacOSX	 [#include %darwin.reds]
+	#default [#include %linux.reds]
 ]
 
 ***-on-quit: func [							;-- global exit handler
@@ -113,6 +121,10 @@ system: declare struct! [					;-- store runtime accessible system values
 			]
 		]
 		prin newline
+	]
+	
+	#if OS = 'Windows [						;-- special exit handler for Windows
+		***-on-win32-quit
 	]
 	quit status
 ]

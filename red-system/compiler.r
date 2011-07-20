@@ -480,6 +480,10 @@ system-dialect: context [
 						type/2/1						;-- return pointed value type
 					]
 					struct!   [
+						unless word? path/2 [
+							backtrack path
+							throw-error ["invalid struct member" path/2]
+						]
 						resolve-struct-member-type type/2 path/2
 					]
 				] path-error
@@ -578,7 +582,7 @@ system-dialect: context [
 			type: blockify get-mapped-type value
 			ctype: blockify ctype
 
-			if type/1 = ctype/1 [
+			if type = ctype [
 				throw-warning/at [
 					"type casting from" type/1 
 					"to" ctype/1 "is not necessary"
@@ -1364,7 +1368,7 @@ system-dialect: context [
 						null [
 							unless all [
 								attempt [
-									casted: get-mapped-type any [
+									casted: blockify get-mapped-type any [
 										all [set-word? tree/1 name]
 										to path! tree/1
 									]
@@ -1372,7 +1376,7 @@ system-dialect: context [
 								any-pointer? casted/1
 							][
 								backtrack tree/1
-								throw-error "Invalid null assignement"
+								throw-error "Invalid null assignment"
 							]
 							tree/2: 0
 						]
@@ -1694,7 +1698,13 @@ system-dialect: context [
 	]
 	
 	comp-runtime-prolog: does [
-		compiler/run job loader/process runtime-path/common.reds
+ 		compiler/run job loader/process runtime-path/common.reds
+ 		if job/OS <> 'Windows [
+ 			emitter/target/emit-read-args
+ 		]
+ 		unless job/use-natives? [						;-- no memory allocator available in pure natives mode
+ 			emitter/call '***-on-start []				;-- call runtime start handler
+ 		]
 	]
 	
 	comp-runtime-epilog: does [	

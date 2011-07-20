@@ -26,7 +26,7 @@ change-dir %../
 	--clean
 	
 	--compile-this "foo: does [until [exit]]"
-	--assert-msg? "*** Compilation Error: UNTIL requires a conditional expression"
+	--assert-msg? "*** Compilation Error: UNTIL requires a conditional expression as last expression"
 	--clean
 
 ~~~end-file~~~
