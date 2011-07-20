@@ -599,7 +599,7 @@ make target-class [
 			block? type: any [
 				all [word? args/1 compiler/resolve-type args/1]
 				all [path? args/1 compiler/resolve-path-type args/1]
-				all [block? args/1 compiler/last-type]
+				all [block? args/1 compiler/resolve-aliased compiler/last-type]
 			]
 			scale: switch type/1 [
 				pointer! [emitter/size-of? type/2/1]		;-- scale factor: size of pointed value
@@ -948,10 +948,16 @@ make target-class [
 	emit-read-args: does [
 		emit #{8B35}								;-- MOV esi, [system]
 		emit-reloc-addr emitter/symbols/system
-		emit #{58}									;-- POP eax
-		emit #{8906}								;-- MOV [esi], eax		; argc (or dummy on Syllable)
-		emit #{896604}								;-- MOV [esi+4], esp	; argv[0] (or &argv on Syllable)
-		emit #{58}									;-- POP eax				; drop argv
-		emit #{896608}								;-- MOV [esi+8], esp	; Syllable: &envp
+		either compiler/job/OS = 'Syllable [
+			emit #{58}									;-- POP eax				; dummy
+			emit #{58}									;-- POP eax
+			emit #{894604}								;-- MOV [esi+4], eax	; &argv
+			emit #{58}									;-- POP eax
+			emit #{894608}								;-- MOV [esi+8], eax	; &envp
+		][
+			emit #{58}									;-- POP eax
+			emit #{8906}								;-- MOV [esi], eax		; argc
+			emit #{896604}								;-- MOV [esi+4], esp	; argv[0]
+		]
 	]
 ]

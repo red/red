@@ -45,8 +45,8 @@ str-array!: alias struct! [
 
 system: declare struct! [					;-- store runtime accessible system values
 	args-count	[integer!]					;-- command-line arguments count (do not move member)
-	args-list	[str-array!]			;-- command-line arguments array pointer (do not move member)
-	env-vars 	[str-array!]			;-- environment variables array pointer (always null for Windows)
+	args-list	[str-array!]				;-- command-line arguments array pointer (do not move member)
+	env-vars 	[str-array!]				;-- environment variables array pointer (always null for Windows)
 ]
 
 #switch OS [

@@ -452,7 +452,7 @@ system-dialect: context [
 					"invalid struct member" name "in:" mold to path! pc/1
 				]
 			]
-			type
+			resolve-aliased type
 		]
 		
 		resolve-path-type: func [path [path! set-path!] /parent prev /local type path-error][
