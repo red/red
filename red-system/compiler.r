@@ -405,6 +405,8 @@ system-dialect: context [
 		]
 		
 		any-pointer?: func [type [word!]][
+			if block? type: resolve-aliased type [type: type/1]
+			
 			either find type-sets type [
 				not empty? intersect get type any-pointer!
 			][
