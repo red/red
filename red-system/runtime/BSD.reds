@@ -9,8 +9,11 @@ Red/System [
 	}
 ]
 
-#define SA_SIGINFO   0040h
-#define SA_RESTART   0002h
+#define SYSCALL_MMAP		197
+#define SYSCALL_MUNMAP		73
+
+#define SA_SIGINFO  		0040h
+#define SA_RESTART   		0002h
 
 sigaction!: alias struct! [
 ;	handler		[integer!]					;-- Warning: compiled as C union on most UNIX

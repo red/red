@@ -30,6 +30,7 @@ Red/System [
 #define off			  false
 
 #define byte-ptr!	  [pointer! [byte!]]
+#define int-ptr!	  [pointer! [integer!]]
 #define make-c-string [as c-string! allocate]
 
 
@@ -110,6 +111,9 @@ system: declare struct! [					;-- store runtime accessible system values
 		if status = 29 [msg: "hardware memory error consumed AR"]
 		if status = 30 [msg: "hardware memory error consumed AO"]
 		if status = 31 [msg: "privileged register"]
+		
+		if status = 96 [msg: "virtual memory release failed"]
+		if status = 97 [msg: "out of memory"]
 		if status = 98 [msg: "assertion failed at line "]
 		if status = 99 [msg: "unknown error"]
 		
