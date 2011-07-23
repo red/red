@@ -401,7 +401,10 @@ make target-class [
 		imm8?: size <= either back [126][127]				;-- account 2 bytes for JMP imm8
 		opcode: either not none? op [						;-- explicitly test for none
 			op: case [
-				block? op [op/1]							;-- [cc] => keep
+				block? op [									;-- [cc] => keep
+					op: op/1
+					either logic? op [pick [= <>] op][op]	;-- [logic!] or [cc]
+				]
 				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
 				'else 	  [opposite? op]					;-- 'cc => invert condition
 			]
