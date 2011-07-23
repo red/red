@@ -13,10 +13,12 @@ Red/System [
 #define positive?	  [0 < ]				;-- space required after the lesser-than symbol
 #define negative?	  [0 > ]
 #define negate		  [0 -]
+#define null?		  [null =]
  
 #define forever		  [while [true]]
 #define does		  [func []]
 #define unless		  [if not]
+#define	raise-error	  ***-on-quit
  
 #define as-byte		  [as byte!]
 #define as-logic	  [as logic!]
@@ -69,6 +71,11 @@ system: declare struct! [					;-- store runtime accessible system values
 	MacOSX	 [#include %darwin.reds]
 	#default [#include %linux.reds]
 ]
+
+;-- Run-time error handling --
+
+#define RED_ERR_VMEM_RELEASE_FAILED		96
+#define RED_ERR_VMEM_OUT_OF_MEMORY		97
 
 ***-on-quit: func [							;-- global exit handler
 	status [integer!]

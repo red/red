@@ -754,7 +754,7 @@ system-dialect: context [
 			]		
 		]
 		
-		check-expected-logic: func [name [word!] expr][
+		check-conditional: func [name [word!] expr][
 			if last-type <> 'logic! [check-expected-type/key name expr [logic!]]
 		]
 		
@@ -1057,7 +1057,7 @@ system-dialect: context [
 				line: pc/2
 				pc: skip pc 2
 				expr: fetch-expression/final
-				check-expected-logic 'assert expr			;-- verify conditional expression
+				check-conditional 'assert expr			;-- verify conditional expression
 				expr: process-logic-encoding expr
 
 				insert/only pc compose [
@@ -1158,7 +1158,7 @@ system-dialect: context [
 				comp-block/final						;-- returns last expression
 			]
 			if test [
-				check-expected-logic name expr			;-- verify conditional expression
+				check-conditional name expr			;-- verify conditional expression
 				expr: process-logic-encoding expr
 			]
 			reduce [
@@ -1195,7 +1195,7 @@ system-dialect: context [
 		comp-if: has [expr unused chunk][		
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
-			check-expected-logic 'if expr				;-- verify conditional expression
+			check-conditional 'if expr				;-- verify conditional expression
 			expr: process-logic-encoding expr
 			check-body pc/1								;-- check TRUE block
 	
@@ -1210,7 +1210,7 @@ system-dialect: context [
 		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
-			check-expected-logic 'either expr			;-- verify conditional expression
+			check-conditional 'either expr			;-- verify conditional expression
 			expr: process-logic-encoding expr
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
@@ -1731,8 +1731,8 @@ system-dialect: context [
 	make-job: func [opts [object!] file [file!] /local job][
 		job: construct/with third opts linker/job-class	
 		unless job/build-basename [
-			file: last split-path file						;-- remove path
-			file: to-file first parse file "."				;-- remove extension
+			file: last split-path file					;-- remove path
+			file: to-file first parse file "."			;-- remove extension
 			job/build-basename: file
 		]
 		job
@@ -1779,7 +1779,7 @@ system-dialect: context [
 			unless block? files [files: reduce [files]]
 			
 			
-			job: make-job opts last files	;-- last input filename is retained for output name
+			job: make-job opts last files				;-- last input filename is retained for output name
 			emitter/init opts/link? job
 			set-verbose-level opts/verbosity
 			
