@@ -11,5 +11,7 @@ Red/System [
 
 #include %macro-defs.reds
 #include %imports.reds
+;#include %threads.reds
 #include %allocator.reds
+;#include %collector.reds
 ;#include %tokenizer.reds
