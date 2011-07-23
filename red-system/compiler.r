@@ -1566,7 +1566,10 @@ system-dialect: context [
 				][
 					while [not tail? pc][
 						case [
-							paren? pc/1 [raise-paren-error]
+							paren? pc/1 [
+								unless infix? at pc 2 [raise-paren-error]
+								expr: do fetch
+							]
 							all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]	
 							'else [expr: do fetch]
 						]
@@ -1593,7 +1596,10 @@ system-dialect: context [
 						pc: next pc
 						comp-alias						;-- allow alias declaration at root level only
 					]
-					paren? pc/1 [raise-paren-error]
+					paren? pc/1 [
+						unless infix? at pc 2 [raise-paren-error]
+						expr: fetch-expression/final
+					]
 					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
 					'else [expr: fetch-expression/final]
 				]
