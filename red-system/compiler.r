@@ -120,7 +120,10 @@ system-dialect: context [
 			]
 		]
 		
-		expand-block: func [src [block!] /local blk rule name value s e opr then-block else-block cases body][
+		expand-block: func [
+			src [block!]
+			/local blk rule name value s e opr then-block else-block cases body saved
+		][
 			if verbose > 0 [print "running block preprocessor..."]			
 			parse/case src blk: [
 				some [
@@ -128,6 +131,13 @@ system-dialect: context [
 					| s: #define set name word! set value skip e: (
 						if verbose > 0 [print [mold name #":" mold value]]
 						if word? value [value: to lit-word! value]
+						if block? value [
+							saved: reduce [s e]
+							parse/case value rule: [
+								some [defs | into rule | skip] 	;-- resolve macros in macros
+							]
+							set [s e] saved
+						]
 						rule: copy/deep [s: _ e: (e: change/part s _ e) :e]
 						rule/2: to lit-word! name
 						rule/4/4: :value						
