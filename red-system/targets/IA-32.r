@@ -599,11 +599,8 @@ make target-class [
 		]
 		if all [
 			find [+ -] name							;-- pointer arithmetic only allowed for + & -
-			block? type: any [
-				all [word? args/1 compiler/resolve-type args/1]
-				all [path? args/1 compiler/resolve-path-type args/1]
-				all [block? args/1 compiler/resolve-aliased compiler/last-type]
-			]
+			type: compiler/resolve-expr-type args/1
+			not compiler/any-pointer? first compiler/resolve-expr-type args/2	;-- no scaling if both operands are pointers
 			scale: switch type/1 [
 				pointer! [emitter/size-of? type/2/1]		;-- scale factor: size of pointed value
 				struct!  [emitter/member-offset? type/2 none] ;-- scale factor: total size of the struct

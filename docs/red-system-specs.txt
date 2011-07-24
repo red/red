@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 07/07/2011
-	Revision: 20
+	Date: 24/07/2011
+	Revision: 21
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -617,7 +617,7 @@ Usage example
 
 +++Pointer arithmetic
 
-It is possible to apply some simple math operations on pointer like additions and subtractions (as in C). Pointer address would be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
+It is possible to apply some simple math operations on pointers like additions and subtractions (as in C). Pointer address would be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
 
  p: declare pointer! [integer!]			;-- pointed value memory size is 4 bytes
 
@@ -630,6 +630,10 @@ It is possible to apply some simple math operations on pointer like additions an
  q: as [pointer! [byte!]] 4000000h
  q: q + 1								;-- p points now to 40000001h
  q: q + 1								;-- p points now to 40000002h
+ 
+Also, additions and subtractions between pointer addresses are allowed. Pointers are treated as simple integers in such case.
+
+ offset: p - q							;-- would store 6 in offset
 
 +++Pointer path notation
 
@@ -1720,7 +1724,7 @@ where
  
 The resulting value type for math operators is the type of the left argument (an implicit type casting is operated when required).
  
-<u>Note:</u> for + and - operators, a pointer!, struct! or c-string! value can be used as first argument with an integer expression as second argument (pointer arithmetic).
+<u>Note:</u> for + and - operators, a pointer!, struct! or c-string! value can be used for both arguments or as first argument with an integer expression as second argument (see "Pointer arithmetic").
 
 +++Bitshift operators
 
@@ -2088,6 +2092,11 @@ will output:
 
 
 ===Document History
+
+*<b>24/07/2011 - revision 21</b>
+
+*>Pointers arithmetic extended to allow addition and subtraction of pointer arguments.
+
 
 *<b>07/07/2011 - revision 20</b>
 
