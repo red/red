@@ -873,7 +873,7 @@ make target-class [
 				]
 			]
 			inline [
-				if block? args/1 [args/1: <last>]		;-- works only for unary functions	
+				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
 				do select [
 					not	[emit-not args/1]
 				] name
@@ -952,15 +952,15 @@ make target-class [
 		emit #{8B35}								;-- MOV esi, [system]
 		emit-reloc-addr emitter/symbols/system
 		either compiler/job/OS = 'Syllable [
-			emit #{58}									;-- POP eax				; dummy
-			emit #{58}									;-- POP eax
-			emit #{894604}								;-- MOV [esi+4], eax	; &argv
-			emit #{58}									;-- POP eax
-			emit #{894608}								;-- MOV [esi+8], eax	; &envp
+			emit #{58}								;-- POP eax				; dummy
+			emit #{58}								;-- POP eax
+			emit #{894604}							;-- MOV [esi+4], eax	; &argv
+			emit #{58}								;-- POP eax
+			emit #{894608}							;-- MOV [esi+8], eax	; &envp
 		][
-			emit #{58}									;-- POP eax
-			emit #{8906}								;-- MOV [esi], eax		; argc
-			emit #{896604}								;-- MOV [esi+4], esp	; argv[0]
+			emit #{58}								;-- POP eax
+			emit #{8906}							;-- MOV [esi], eax		; argc
+			emit #{896604}							;-- MOV [esi+4], esp	; argv[0]
 		]
 	]
 ]
