@@ -52,7 +52,7 @@ string-local-foo: func [
 	/local
 		stringA 	[c-string!]
 		stringB 	[c-string!]
-		stringB 	[c-string!]
+		stringC 	[c-string!]
 		string-idx 	[integer!]
 ][
 	--test-- "loc-str-math-1"

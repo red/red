@@ -358,7 +358,7 @@ system-dialect: context [
 			all [
 				locals
 				pos: find locals /local
-				pos: find pos name
+				pos: find next pos name
 				not find locals-init name
 			]
 		]
@@ -731,7 +731,29 @@ system-dialect: context [
 			]
 		]
 		
-		check-specs: func [name specs /extend /local type type-def spec-type attribs value][		
+		check-duplicates: func [
+			name [word!] args [block! none!] locs [block! none!]
+			/local dups
+		][
+			if args [remove-each item args: copy args [not word? item]]
+			if locs [remove-each item locs: copy locs [not word? item]]
+			
+			if any [
+				all [args (length? unique args) <> length? args]
+				all [locs (length? unique locs) <> length? locs]
+				all [args locs not empty? dups: intersect args locs]
+			][
+				throw-error [
+					"duplicate variable definition in function" name
+					either dups [reform ["for:" mold/only new-line/all dups no]][""]
+				]
+			]
+		]
+		
+		check-specs: func [
+			name specs /extend
+			/local type type-def spec-type attribs value args locs
+		][
 			unless block? specs [
 				throw-error "function definition requires a specification block"
 			]
@@ -741,17 +763,18 @@ system-dialect: context [
 			unless catch [
 				parse specs [
 					pos: opt [into [some attribs]]		;-- functions attributes
-					pos: any [pos: word! into type-def]	;-- arguments definition
+					pos: copy args any [pos: word! into type-def]	;-- arguments definition
 					pos: opt [							;-- return type definition				
 						set value set-word! (					
 							rule: pick reduce [[into type-spec] fail] value = return-def
 						) rule
 					]
-					pos: opt [/local some [pos: word! opt [into type-spec]]] ;-- local variables definition
+					pos: opt [/local copy locs some [pos: word! opt [into type-spec]]] ;-- local variables definition
 				]
 			][
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
-			]		
+			]
+			check-duplicates name args locs
 		]
 		
 		check-conditional: func [name [word!] expr][
