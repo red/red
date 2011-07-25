@@ -11,18 +11,6 @@ Red/System [
 
 #define OS-page-size	4096					;@@ target/OS dependent
 
-;-------------------------------------------
-;-- Return an integer rounded to the closer upper page size multiple
-;-------------------------------------------
-page-round: func [
-	size 	[integer!]							;-- a memory region size
-	return: [integer!]							;-- rounded value
-][
-	and
-		size + OS-page-size
-		negate OS-page-size
-]
-
 #either OS = 'Windows [
 	#import [
 		"kernel32.dll" stdcall [
@@ -54,7 +42,7 @@ page-round: func [
 		return: [int-ptr!]						;-- allocated memory region pointer
 		/local ptr
 	][
-		size: page-round size + 4				;-- account for header (one word)
+		size: round-to size + 4	OS-page-size	;-- account for header (one word)
 		
 		ptr: OS-VirtualAlloc 
 			null
@@ -109,7 +97,7 @@ page-round: func [
 		exec? 	[logic!]						;-- TRUE => executable region
 		return: [int-ptr!]						;-- allocated memory region pointer
 	][
-		size: page-round size + 4				;-- account for header (one word)
+		size: round-to size + 4	OS-page-size	;-- account for header (one word)
 		
 		ptr: OS-mmap 
 			null 

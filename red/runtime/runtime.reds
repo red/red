@@ -10,6 +10,7 @@ Red/System [
 ]
 
 #include %macro-defs.reds
+#include %utils.reds
 #include %imports.reds
 ;#include %threads.reds
 #include %allocator.reds

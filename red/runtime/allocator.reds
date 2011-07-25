@@ -23,8 +23,12 @@ Red/System [
 ;   8-28: <reserved>
 ;   0-7: datatype ID						;-- datatype number
 
+#define size-of-2MB			2097152
+#define size-of-16MB		16777216
 #define nodes-per-frame		5000
-#define node-frame-size		[((5000 * 2 * size? pointer!) + size? node-frame!)]
+#define node-frame-size		[((nodes-per-frame * 2 * size? pointer!) + size? node-frame!)]
+
+#define series-in-use		10000000h
 	
 int-array!: alias struct! [ptr [int-ptr!]]
 
@@ -35,10 +39,16 @@ cell!: alias struct! [
 	data3	[integer!]
 ]
 
+series-buffer!: alias struct! [
+	size	[integer!]						;-- bitfield: 31: used/free, 30-24: reserved, 23-0: size
+	referer	[int-ptr!]						;-- point back to refering node
+]
+
 series-frame!: alias struct! [				;-- series frame header
 	next	[series-frame!]					;-- next frame or null
 	prev	[series-frame!]					;-- previous frame or null
-	heap	[byte-ptr!]
+	heap	[series-buffer!]				;-- point to allocatable region
+	tail	[byte-ptr!]						;-- point to last byte in allocatable region
 ]
 
 node-frame!: alias struct! [				;-- node frame header
@@ -56,7 +66,12 @@ memory: declare struct! [
 	s-head	 [series-frame!]				;-- head of series frames list
 	s-active [series-frame!]				;-- actively used series frame
 	s-tail	 [series-frame!]				;-- tail of series frames list
+	s-limit	 [integer!]						;-- size in bytes for the new series frames (1)
 ]
+memory/s-limit: 131072						;-- 128KB
+;; (1) Series frames size will grow from 128KB up to 2MB (arbitrary selected). This
+;; range will need fine-tuning with real Red apps. This growing size, with low starting value
+;; will allow small apps to not consume much memory while avoiding to penalize big apps.
 
 ;-------------------------------------------
 ;-- Format the node frame stack by filling it with pointers to all nodes
@@ -83,9 +98,9 @@ alloc-node-frame: func [
 	return:	[node-frame!]					;-- newly initialized frame
 	/local sz frame
 ][
-	assert size > 0
-	sz: size * 2 * (size? pointer!) + (size? node-frame!) ;-- total required size of node frame
-	frame: as node-frame! allocate-virtual page-round sz no ;-- RW only
+	assert positive? size
+	sz: size * 2 * (size? pointer!) + (size? node-frame!) ;-- total required size for a node frame
+	frame: as node-frame! allocate-virtual sz no ;-- RW only
 	
 	frame/prev:  null
 	frame/next:  null
@@ -110,7 +125,7 @@ alloc-node-frame: func [
 ;-- Release a node frame buffer
 ;-------------------------------------------
 free-node-frame: func [
-	frame [node-frame!]
+	frame [node-frame!]						;-- frame to release
 ][
 	either null? frame/prev [				;-- if frame = head
 		memory/n-head: frame/next			;-- head now points to next one
@@ -123,12 +138,12 @@ free-node-frame: func [
 		]
 	]
 
-	assert not all [
+	assert not all [						;-- ensure that list is not empty
 		null? memory/n-head
 		null? memory/n-tail
 	]
 	
-	free-virtual as int-ptr! frame
+	free-virtual as int-ptr! frame			;-- release the memory to the OS
 ]
 
 ;-------------------------------------------
@@ -143,8 +158,9 @@ alloc-node: func [
 	frame/top: frame/top - 1
 	
 	if frame/top = frame/bottom [
-		; TBD: trigger a "light" GC pass from here
+		; TBD: trigger a "light" GC pass from here and update memory/n-active
 		frame: alloc-node-frame nodes-per-frame	;-- allocate a new frame
+		memory/n-active: frame				;@@ to be removed once GC implemented
 		node: as int-ptr! frame/top/value	;-- pop free node address from stack
 		frame/top: frame/top - 1
 	]
@@ -162,7 +178,7 @@ free-node: func [
 	offset: as-integer node - frame
 	
 	if all [
-		positive? offset					;-- test if node address is part of active frame
+		positive? offset					;-- check if node address is part of active frame
 		offset < node-frame-size
 	][										;-- node is owned by active frame
 		frame/top: frame/top + 1			;-- free node by pushing its address on stack
@@ -171,17 +187,17 @@ free-node: func [
 		assert frame/top < (frame/bottom + frame/nodes)	;-- top should not overflow
 		exit
 	]
-	
+											;@@ following code not be needed if freed only by the GC...
 	frame: memory/n-head					;-- search for right frame from head of the list
 	while [									; @@ could be optimized by searching backward/forward from active frame
 		offset: as-integer node - frame
-		not all [
-			positive? offset				;-- test if node address is part of that frame
+		not all [							;-- test if node address is part of that frame
+			positive? offset
 			offset < node-frame-size		; @@ check upper bound case
 		]
 	][
 		frame: frame/next
-		assert frame <> null
+		assert frame <> null				;-- should found the right one before the list end
 	]
 	frame/top: frame/top + 1				;-- free node by pushing its address on stack
 	frame/top/value: node
@@ -193,34 +209,107 @@ free-node: func [
 ;-- Allocate a series frame buffer
 ;-------------------------------------------
 alloc-series-frame: func [
-
+	return:	[series-frame!]					;-- newly initialized frame
+	/local size frame
 ][
-
+	size: memory/s-limit
+	if size < size-of-2MB [
+		memory/s-limit: size * 2
+	]
+	size: size + size? series-frame! 		;-- total required size for a series frame
+	frame: as series-frame! allocate-virtual size no ;-- RW only
+	
+	either null? memory/s-head [
+		memory/s-head: frame				;-- first item in the list
+		memory/s-tail: frame
+		frame/prev:  null
+	][
+		memory/s-tail/next: frame			;-- append new item at tail of the list
+		frame/prev: memory/s-tail			;-- link back to previous tail
+		memory/s-tail: frame				;-- now tail is the new item
+	]
+	
+	frame/next: null
+	frame/heap: frame + size? series-frame!
+	frame/tail: frame + size - 1			;-- point to last byte in frame
+	frame
 ]
 
 ;-------------------------------------------
 ;-- Release a series frame buffer
 ;-------------------------------------------
 free-series-frame: func [
+	frame [series-frame!]					;-- frame to release
+][
+	either null? frame/prev [				;-- if frame = head
+		memory/s-head: frame/next			;-- head now points to next one
+	][
+		either null? frame/next [			;-- if frame = tail
+			memory/s-tail: frame/prev		;-- tail is now at one position back
+		][
+			frame/prev/next: frame/next		;-- link preceding frame to next frame
+			frame/next/prev: frame/prev		;-- link back next frame to preceding frame
+		]
+	]
+
+	assert not all [						;-- ensure that list is not empty
+		null? memory/s-head
+		null? memory/s-tail
+	]
+	
+	free-virtual as int-ptr! frame			;-- release the memory to the OS
+]
+
+;-------------------------------------------
+;-- Compact a series frame by overwriting unused series
+;-------------------------------------------
+compact-series-frame: func [
 
 ][
 
 ]
 
+
 ;-------------------------------------------
-;-- Allocate a series
+;-- Allocate a series from the active series frame
 ;-------------------------------------------
 alloc-series: func [
-
+	size	[integer!]						;-- size in multiple of 16 bytes (cell! size)
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	/local series node
 ][
+	assert positive? size					;-- size is not zero or negative
+	assert zero? (size and 0Fh)				;-- size is a multiple of 16
+	
+	frame: memory/s-active
+	size: size + size? series-buffer!		;-- add series header size
 
+	;-- size should not be greater than the frame capacity
+	assert size < as-integer (frame/tail - ((as byte-ptr! frame) + size? series-frame!))
+
+	series: frame/heap
+	if (as byte-ptr! series + size) >= frame/tail [
+		; TBD: trigger a GC pass from here and update memory/s-active
+		frame: alloc-series-frame
+		memory/s-active: frame				;@@ to be removed once GC implemented
+		series: frame/heap
+	]
+	
+	assert size < size-of-16MB				;-- max series size allowed in a series frame
+	series/size: size or series-in-use		;-- mark series as used
+	
+	node: alloc-node						;-- get a new node
+	series/referer: node					;-- link back series to node
+	node/value: (as byte-ptr! series) + size? series-buffer! ;-- node points to first usable byte of series buffer
+	node									;-- return the node pointer
 ]
 
 ;-------------------------------------------
-;-- Free a series
+;-- Release a series
 ;-------------------------------------------
 free-series: func [
-
+	frame	[series-frame!]
+	node	[int-ptr!]
 ][
 
 ]
