@@ -99,7 +99,7 @@ target-class: context [
 	set-width: func [operand /type /local value][
 		width: emitter/size-of? value: case [
 			type 	  [operand]
-			left-cast [left-cast/1]
+			left-cast [left-cast/1/1]
 			'else 	  [compiler/argument-type? operand]
 		]
 		signed?: emitter/signed? value
@@ -108,7 +108,7 @@ target-class: context [
 	with-right-casting: func [body [block!] /local old][
 		if right-cast [
 			old: width
-			set-width/type right-cast/2
+			set-width/type right-cast/2/1
 		]
 		do body
 		if old [

@@ -72,10 +72,10 @@ make target-class [
 	
 	emit-casting: func [spec [block!] alt? [logic!] /local old][
 		case [
-			spec/1 = 'logic! [
-				if verbose >= 3 [print [">>>converting from" mold/flat spec/2 "to logic!"]]
+			spec/1/1 = 'logic! [
+				if verbose >= 3 [print [">>>converting from" mold/flat spec/2/1 "to logic!"]]
 				old: width
-				set-width/type spec/2
+				set-width/type spec/2/1
 				either alt? [
 					emit-poly [#{80FA00} #{83FA00}]		;-- 	   CMP rD, 0
 					emit #{7403}						;--        JZ _exit
@@ -89,7 +89,7 @@ make target-class [
 				]										;-- _exit:
 				width: old
 			]
-			all [spec/1 = 'integer!	spec/2 = 'byte!][
+			all [spec/1/1 = 'integer! spec/2/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
 				emit pick [#{81E2} #{25}] alt?		;-- AND edx|eax, 000000FFh
 				emit to-bin32 255
@@ -599,13 +599,18 @@ make target-class [
 		]
 		if all [
 			find [+ -] name							;-- pointer arithmetic only allowed for + & -
-			type: compiler/resolve-expr-type args/1
+			type: any [
+				all [left-cast left-cast/1]
+				compiler/resolve-expr-type args/1
+			]
 			not compiler/any-pointer? first compiler/resolve-expr-type args/2	;-- no scaling if both operands are pointers
 			scale: switch type/1 [
 				pointer! [emitter/size-of? type/2/1]		;-- scale factor: size of pointed value
 				struct!  [emitter/member-offset? type/2 none] ;-- scale factor: total size of the struct
 			]
-		][	
+		][
+			if left-cast [emit-casting left-cast no]	
+			
 			either compiler/literal? args/2 [
 				args/2: args/2 * scale				;-- 'b is a literal, so scale it directly
 			][

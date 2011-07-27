@@ -1421,7 +1421,7 @@ system-dialect: context [
 					type: resolve-expr-type tree/2		;-- check that function is returning a value
 					comp-expression/keep tree/2 		;-- function call case
 					if casted [
-						emitter/target/emit-casting reduce [casted/1 type/1] no 
+						emitter/target/emit-casting reduce [casted type] no 
 					]
 					<last>
 				][

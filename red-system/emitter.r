@@ -389,7 +389,7 @@ emitter: context [
 			call/sub arg/1 next arg
 			if all [casted not no-last][compiler/set-last-type casted]
 		]
-		either casted [reduce [casted/1 old-type/1]][none]
+		either casted [reduce [casted old-type]][none]
 	]
 	
 	call: func [name [word!] args [block!] /sub /local type res import?][
@@ -407,7 +407,7 @@ emitter: context [
 		either type <> 'op [					
 			forall args [								;-- push function's arguments on stack
 				cast: preprocess-argument/no-last args
-				if all [cast cast/1 = 'logic!][
+				if all [cast cast/1/1 = 'logic!][
 					target/emit-casting cast no
 					compiler/last-type: cast/1			;-- for inline unary functions
 				]
@@ -429,6 +429,7 @@ emitter: context [
 			if path? args/2 [access-path args/2 none]
 		]
 		res: target/emit-call name args to logic! sub
+		
 		target/left-cast: target/right-cast: none			;-- reset op's arguments type casting
 		either res [
 			compiler/last-type: res
