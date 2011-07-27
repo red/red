@@ -21,7 +21,8 @@ Red/System [
 ;   29:		immutable						;-- mark as read-only (series only)
 ;   28:		new-line?						;-- new-line marker (before the slot)
 ;   27:		big?							;-- indicates a big series (big-frame!)
-;   26-8:	<reserved>
+;	26:		stack?							;-- series buffer is allocated on stack (series only)
+;   25-8:	<reserved>
 ;   7-0:	datatype ID						;-- datatype number
 
 #define _128KB				131072			; @@ create a dedicated datatype?
@@ -32,6 +33,9 @@ Red/System [
 
 #define series-in-use		80000000h		;-- mark a series as used (not collectable by the GC)
 #define flag-series-big		40000000h		;-- 1 = big, 0 = series
+#define flag-ins-head		10000000h		;-- optimize for head insertions
+#define flag-ins-tail		20000000h		;-- optimize for tail insertions
+#define flag-ins-both		30000000h		;-- optimize for both head & tail insertions
 #define s-size-mask			00FFFFFFh		;-- mask for 24-bit size field
 	
 int-array!: alias struct! [ptr [int-ptr!]]
@@ -51,8 +55,9 @@ series-buffer!: alias struct! [
 ]
 ;; size bitfield:
 ;; 31: 		used (1 = used, 0 = free)
-;; 30: 		type (1 = big, 0 = series)
-;; 29-24: 	reserved
+;; 30: 		type (always 0 for series-buffer!)
+;; 29-28: 	insert-opt (2 = head, 1 = tail, 0 = both)
+;; 27-24: 	reserved
 ;; 23-0: 	size of allocated buffer
 
 series-frame!: alias struct! [				;-- series frame header
@@ -71,11 +76,14 @@ node-frame!: alias struct! [				;-- node frame header
 ]
 
 big-frame!: alias struct! [					;-- big frame header (for >= 2MB series)
-	next	[big-frame!]
+	flags	[integer!]						;-- bit 30: 1 (type = big)
+	next	[big-frame!]					;-- next frame or null
 	size	[integer!]						;-- size (up to 4GB - size? header)
+	padding [integer!]						;-- make this header same size as series-buffer! header
 ]
 
 memory: declare struct! [
+	total	 [integer!]						;-- total memory size allocated (in bytes)
 	n-head	 [node-frame!]					;-- head of node frames list
 	n-active [node-frame!]					;-- actively used node frame
 	n-tail	 [node-frame!]					;-- tail of node frames list
@@ -280,14 +288,69 @@ free-series-frame: func [
 ]
 
 ;-------------------------------------------
-;-- Compact a series frame by moving down used series
+;-- Update node back-reference from moved series buffers
 ;-------------------------------------------
-compact-series-frame: func [
+update-series-nodes: func [
 
 ][
 
 ]
 
+;-------------------------------------------
+;-- Compact a series frame by moving down in-use series buffer regions
+;-------------------------------------------
+#define SM1_INIT		1					;-- enter the state machine
+#define SM1_HOLE		2					;-- begin of contiguous region of freed buffers (hole)
+#define SM1_HOLE_END	3					;-- end of freed buffers region 
+#define SM1_USED		4					;-- begin of contiguous region of buffers in use
+#define SM1_USED_END	5					;-- end of used buffers region 
+
+compact-series-frame: func [
+	frame [series-frame!]
+	/local ptr tail series state
+		free? [logic!] src [byte-ptr!] dst [byte-ptr!]
+][
+	ptr: as byte-ptr! (as byte-ptr! frame) + size? series-frame!
+	tail: frame/tail
+		
+	src: null
+	dst: null
+	state: SM1_INIT
+	
+	until [
+		series: as series-buffer! ptr
+		free?: zero? (series/size and series-in-use)
+		
+		if all [state = SM1_INIT free?][
+			dst: as byte-ptr! series
+			state: SM1_HOLE
+		]
+		if all [state = SM1_HOLE not free?][
+			state: SM1_HOLE_END
+		]
+		if state = SM1_HOLE_END [
+			src: as byte-ptr! series
+			state: SM1_USED
+		]
+		if all [state = SM1_USED free?][
+			state: SM1_USED_END
+		]
+		if state = SM1_USED_END [
+			assert dst < src
+			assert src <> as byte-ptr! series
+			
+			copy-memory dst	src as-integer series - src
+			update-series-nodes as series-buffer! dst
+			dst: dst + (as-integer series - src)
+			frame/heap: as series-buffer! dst
+			state: SM1_HOLE
+		]
+		
+		ptr: ptr + (series/size and s-size-mask)
+		ptr >= tail							;-- exit state machine
+	]
+	;TBD: handle exit states
+]
 
 ;-------------------------------------------
 ;-- Allocate a series from the active series frame, return the series
@@ -317,6 +380,7 @@ alloc-series-buffer: func [
 	assert sz < _16MB						;-- max series size allowed in a series frame
 	series/size: sz 
 		or series-in-use 					;-- mark series as used
+		or flag-ins-both					;-- optimize for both head & tail insertions (default)
 		and not flag-series-big				;-- set type bit to 0 (= series)
 		
 	series/head: size / 2					;-- position empty series at middle of buffer
@@ -379,12 +443,13 @@ expand-series: func [
 	new: alloc-series-buffer new-sz
 	series/node/value: new					;-- link node to new series buffer
 	
-; TBD
-;	copy-memory 							;-- copy old series in new buffer (including header)
-;		as byte-ptr! new
-;		as byte-ptr! series
-;		series/size + size? series-buffer!
-;	
+	;TBD: honor flag-ins-head and flag-ins-tail when copying!
+	
+	copy-memory 							;-- copy old series in new buffer (including header)
+		as byte-ptr! new
+		as byte-ptr! series
+		series/size + size? series-buffer!
+	
 	assert not zero? (series/size and not series-in-use) ;-- ensure that 'used bit is set
 	series/size: series/size xor series-in-use	;-- clear 'used bit (enough to free the series)
 	new	
@@ -456,3 +521,24 @@ free-big: func [
 	free-virtual as int-ptr! frame			;-- release the memory to the OS
 ]
 
+
+;-------------------------------------------
+;-- Dump memory statistics on screen (debugging purpose only)
+;-------------------------------------------
+memory-stats: func [
+	verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
+][
+	assert all [1 <= verbose verbose <= 3]
+
+	if verbose >= 1 [
+		print "1"
+	]
+
+	if verbose >= 2 [
+		print "2"
+	]
+	
+	if verbose >= 3 [
+		print "3"
+	]
+]

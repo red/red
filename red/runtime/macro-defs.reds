@@ -27,6 +27,9 @@ Red/System [
 #define RED_TYPE_SET_PATH		15
 #define RED_TYPE_GET_PATH		16
 #define RED_TYPE_LIT_PATH		17
-#define RED_TYPE_FLOAT			18
+#define RED_TYPE_NATIVE			18
+#define RED_TYPE_ACTION			19
+#define RED_TYPE_FUNCTION		20
+#define RED_TYPE_FLOAT			21
 
 
