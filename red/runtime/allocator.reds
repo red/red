@@ -19,9 +19,10 @@ Red/System [
 ;   31:		mark							;-- mark as referenced for the GC (mark phase)
 ;   30:		lock							;-- lock slot for active thread access only
 ;   29:		immutable						;-- mark as read-only (series only)
-;   28:		new-line?						;-- new-line marker (before the slot)
-;   27:		big?							;-- indicates a big series (big-frame!)
-;	26:		stack?							;-- series buffer is allocated on stack (series only)
+;   28:		new-line						;-- new-line marker (before the slot)
+;   27:		big								;-- indicates a big series (big-frame!)
+;	26:		stack							;-- series buffer is allocated on stack (series only)
+;   25:		permanent						;-- protected from GC (system-critical series)
 ;   25-8:	<reserved>
 ;   7-0:	datatype ID						;-- datatype number
 
@@ -82,7 +83,7 @@ big-frame!: alias struct! [					;-- big frame header (for >= 2MB series)
 	padding [integer!]						;-- make this header same size as series-buffer! header
 ]
 
-memory: declare struct! [
+memory: declare struct! [					; TBD: instanciate this structure per OS thread
 	total	 [integer!]						;-- total memory size allocated (in bytes)
 	n-head	 [node-frame!]					;-- head of node frames list
 	n-active [node-frame!]					;-- actively used node frame
@@ -96,6 +97,7 @@ memory: declare struct! [
 	b-head	 [big-frame!]					;-- head of big frames list
 ]
 
+memory/total: 	0
 memory/s-start: _128KB
 memory/s-max: 	_2MB
 memory/s-size: 	memory/s-start
@@ -103,6 +105,33 @@ memory/s-size: 	memory/s-start
 ;; range will need fine-tuning with real Red apps. This growing size, with low starting value
 ;; will allow small apps to not consume much memory while avoiding to penalize big apps.
 
+
+;-------------------------------------------
+;-- Allocate paged virtual memory region
+;-------------------------------------------
+allocate-virtual: func [
+	size 	[integer!]						;-- allocated size in bytes (page size multiple)
+	exec? 	[logic!]						;-- TRUE => executable region
+	return: [int-ptr!]						;-- allocated memory region pointer
+	/local ptr
+][
+	size: round-to size + 4	OS-page-size	;-- account for header (one word)
+	memory/total: memory/total + size
+	ptr: OS-allocate-virtual size exec?
+	ptr/value: size							;-- store size in header
+	ptr + 1									;-- return pointer after header
+]
+
+;-------------------------------------------
+;-- Free paged virtual memory region from OS (Windows)
+;-------------------------------------------
+free-virtual: func [
+	ptr [int-ptr!]							;-- address of memory region to release
+][
+	ptr: ptr - 1							;-- return back to header
+	memory/total: memory/total - ptr/value
+	OS-free-virtual ptr
+]
 
 ;-------------------------------------------
 ;-- Format the node frame stack by filling it with pointers to all nodes
@@ -131,12 +160,12 @@ alloc-node-frame: func [
 ][
 	assert positive? size
 	sz: size * 2 * (size? pointer!) + (size? node-frame!) ;-- total required size for a node frame
-	frame: as node-frame! allocate-virtual sz no ;-- RW only
+	frame: as node-frame! allocate-virtual sz no ;-- R/W only
 	
 	frame/prev:  null
 	frame/next:  null
 	frame/nodes: size
-	frame/bottom: frame + 5					;-- 5 = size of frame header in words
+	frame/bottom: (as byte-ptr! frame) + size? node-frame!
 	frame/top: frame/bottom + size - 1		;-- point to the top element
 	
 	either null? memory/n-head [
@@ -244,7 +273,7 @@ alloc-series-frame: func [
 	if size < memory/s-max [memory/s-size: size * 2]
 	
 	size: size + size? series-frame! 		;-- total required size for a series frame
-	frame: as series-frame! allocate-virtual size no ;-- RW only
+	frame: as series-frame! allocate-virtual size no ;-- R/W only
 	
 	either null? memory/s-head [
 		memory/s-head: frame				;-- first item in the list
@@ -257,8 +286,8 @@ alloc-series-frame: func [
 	]
 	
 	frame/next: null
-	frame/heap: frame + size? series-frame!
-	frame/tail: frame + size - 1			;-- point to last byte in frame
+	frame/heap: (as byte-ptr! frame) + size? series-frame!
+	frame/tail: (as byte-ptr! frame) + size - 1		;-- point to last byte in frame
 	frame
 ]
 
@@ -291,9 +320,18 @@ free-series-frame: func [
 ;-- Update node back-reference from moved series buffers
 ;-------------------------------------------
 update-series-nodes: func [
-
+	series	[series-buffer!]				;-- start of series region with nodes to re-sync
 ][
-
+	until [
+		;-- update the node pointer to the new series address
+		series/node/value: (as byte-ptr! series) + size? series-buffer!
+		
+		;-- advance to the next series buffer
+		series: (as byte-ptr! series) + (series/size and s-size-mask)
+		
+		;-- exit when a freed series is met (<=> end of region)
+		zero? (series/size and series-in-use)
+	]
 ]
 
 ;-------------------------------------------
@@ -306,50 +344,55 @@ update-series-nodes: func [
 #define SM1_USED_END	5					;-- end of used buffers region 
 
 compact-series-frame: func [
-	frame [series-frame!]
+	frame [series-frame!]					;-- series frame to compact
 	/local ptr tail series state
 		free? [logic!] src [byte-ptr!] dst [byte-ptr!]
 ][
-	ptr: as byte-ptr! (as byte-ptr! frame) + size? series-frame!
+	ptr: as byte-ptr! (as byte-ptr! frame) + size? series-frame!	;-- point to first series buffer
 	tail: frame/tail
 		
-	src: null
-	dst: null
+	src: null								;-- src will point to start of buffer region to move down
+	dst: null								;-- dst will point to start of free region
 	state: SM1_INIT
+	series: as series-buffer! ptr
 	
 	until [
-		series: as series-buffer! ptr
-		free?: zero? (series/size and series-in-use)
+		free?: zero? (series/size and series-in-use)  ;-- true: series is not used
 		
 		if all [state = SM1_INIT free?][
-			dst: as byte-ptr! series
+			dst: as byte-ptr! series		 ;-- start of "hole" region
 			state: SM1_HOLE
 		]
-		if all [state = SM1_HOLE not free?][
+		if all [state = SM1_HOLE not free?][ ;-- search for first used series (<=> end of hole)
 			state: SM1_HOLE_END
 		]
 		if state = SM1_HOLE_END [
-			src: as byte-ptr! series
+			src: as byte-ptr! series		 ;-- start of new "alive" region
 			state: SM1_USED
 		]
-		if all [state = SM1_USED free?][
+		
+		ptr: ptr + (series/size and s-size-mask) ;-- point to next series buffer
+		series: as series-buffer! ptr
+		
+		if all [state = SM1_USED any [free? ptr >= tail]][	;-- handle both normal and "exit" states
 			state: SM1_USED_END
 		]
 		if state = SM1_USED_END [
-			assert dst < src
-			assert src <> as byte-ptr! series
+			assert dst < src					 ;-- regions are moved down in memory
+			assert src < as byte-ptr! series 	 ;-- src should point at least at series - series/size
 			
 			copy-memory dst	src as-integer series - src
 			update-series-nodes as series-buffer! dst
-			dst: dst + (as-integer series - src)
-			frame/heap: as series-buffer! dst
+			dst: dst + (as-integer series - src) ;-- points after moved region (ready for next move)
 			state: SM1_HOLE
 		]
 		
-		ptr: ptr + (series/size and s-size-mask)
 		ptr >= tail							;-- exit state machine
 	]
-	;TBD: handle exit states
+	
+	unless null? dst [						;-- no compaction occurred, all series were in use
+		frame/heap: as series-buffer! dst	;-- new heap is after last moved region
+	]
 ]
 
 ;-------------------------------------------
@@ -456,7 +499,7 @@ expand-series: func [
 ]
 
 ;-------------------------------------------
-;-- Shrink a series to a smaller size (not implemented for now)
+;-- Shrink a series to a smaller size (not needed for now)
 ;-------------------------------------------
 ;shrink-series: func [
 ;	series  [series-buffer!]
@@ -478,7 +521,7 @@ alloc-big: func [
 	assert size >= _2MB						;-- should be bigger than a series frame
 	
 	sz: size + size? big-frame! 			;-- total required size for a big frame
-	frame: as big-frame! allocate-virtual sz no ;-- RW only
+	frame: as big-frame! allocate-virtual sz no ;-- R/W only
 
 	frame/next: null
 	frame/size: size
@@ -522,23 +565,123 @@ free-big: func [
 ]
 
 
-;-------------------------------------------
-;-- Dump memory statistics on screen (debugging purpose only)
-;-------------------------------------------
-memory-stats: func [
-	verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
-][
-	assert all [1 <= verbose verbose <= 3]
+;===========================================
+;== Debugging functions
+;===========================================
 
-	if verbose >= 1 [
-		print "1"
-	]
+#if debug? = yes [
 
-	if verbose >= 2 [
-		print "2"
+	;-------------------------------------------
+	;-- Print usage stats about a given node frame
+	;-------------------------------------------
+	node-frame-stats: func [
+		frame [node-frame!]
+		/local free used
+	][
+		free: as-integer (as-integer frame/top - frame/bottom) / 4
+		used: as-integer (frame/nodes - free)
+		
+		prin "used = " 
+		prin-int used
+		prin "/"
+		prin-int frame/nodes
+		prin "("
+		prin-int 100 * used / frame/nodes
+		prin "), free = "
+		prin-int free
+		prin "/"
+		prin-int frame/nodes
+		prin "("
+		prin-int 100 * free / frame/nodes
+		prin ")"
+		prin newline
 	]
 	
-	if verbose >= 3 [
-		print "3"
+	;-------------------------------------------
+	;-- Print usage stats about a given series frame
+	;-------------------------------------------
+	series-frame-stats: func [
+		frame [series-frame!]
+		/local free used total
+	][
+		free:  as-integer frame/tail - as byte-ptr! frame/heap
+		used:  as-integer frame/heap - ((as byte-ptr! frame) + size? series-frame!)
+		total: as-integer frame/tail - ((as byte-ptr! frame) + size? series-frame!)
+		
+		assert free + used = total
+
+		prin "used = " 
+		prin-int used
+		prin "/"
+		prin-int total
+		prin "("
+		prin-int 100 * used / total
+		prin "), free = "
+		prin-int free
+		prin "/"
+		prin-int total
+		prin "("
+		prin-int 100 * free / total
+		prin ")"
+		prin newline
 	]
+
+	;-------------------------------------------
+	;-- Dump memory statistics on screen
+	;-------------------------------------------
+	memory-stats: func [
+		verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
+		/local n-frame
+	][
+		assert all [1 <= verbose verbose <= 3]
+		
+		print "-- Red Memory Stats --"
+
+		;-- Node frames stats --
+		cnt: 0
+		n-frame: memory/n-head
+		
+		while [n-frame <> null][
+			if verbose >= 2 [
+				prin "- node frame "
+				prin-int cnt
+				prin " : "
+				node-frame-stats n-frame
+			]
+			cnt: cnt + 1
+			n-frame: n-frame/next
+		]
+		prin "Total node frames: " 
+		prin-int cnt
+		prin newline
+		
+		;-- Series frames stats --
+		cnt: 0
+		s-frame: memory/s-head
+
+		while [s-frame <> null][
+			if verbose >= 2 [
+				prin "- series frame "
+				prin-int cnt
+				prin " : "
+				series-frame-stats s-frame
+			]
+			cnt: cnt + 1
+			s-frame: s-frame/next
+		]
+		prin "Total series frames: " 
+		prin-int cnt
+		prin newline
+		
+	]
+	
+	;-------------------------------------------
+	;-- Dump memory layout of a given series frame
+	;-------------------------------------------
+	dump-series-frame: func [
+	
+	][
+	
+	]
+	
 ]

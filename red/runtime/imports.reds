@@ -36,32 +36,30 @@ Red/System [
 	;-------------------------------------------
 	;-- Allocate paged virtual memory region from OS (Windows)
 	;-------------------------------------------
-	allocate-virtual: func [
+	OS-allocate-virtual: func [
 		size 	[integer!]						;-- allocated size in bytes (page size multiple)
 		exec? 	[logic!]						;-- TRUE => executable region
 		return: [int-ptr!]						;-- allocated memory region pointer
 		/local ptr
 	][
-		size: round-to size + 4	OS-page-size	;-- account for header (one word)
-		
 		ptr: OS-VirtualAlloc 
 			null
 			size
 			VA_COMMIT_RESERVE
 			either exec? [VA_PAGE_RWX][VA_PAGE_RW]
 			
-		if ptr = null [raise-error RED_ERR_VMEM_OUT_OF_MEMORY 0]
-		ptr/value: size							;-- store size in header
-		ptr + 1									;-- return pointer after header
+		if ptr = null [
+			raise-error RED_ERR_VMEM_OUT_OF_MEMORY 0
+		]
+		ptr
 	]
 	
 	;-------------------------------------------
 	;-- Free paged virtual memory region from OS (Windows)
 	;-------------------------------------------
-	free-virtual: func [
+	OS-free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
-		ptr: ptr - 1							;-- return back to header
 		if negative? OS-VirtualFree ptr ptr/value [
 			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer ptr
 		]
@@ -92,12 +90,13 @@ Red/System [
 	;-------------------------------------------
 	;-- Allocate paged virtual memory region from OS (UNIX)
 	;-------------------------------------------
-	allocate-virtual: func [
+	OS-allocate-virtual: func [
 		size 	[integer!]						;-- allocated size in bytes (page size multiple)
 		exec? 	[logic!]						;-- TRUE => executable region
 		return: [int-ptr!]						;-- allocated memory region pointer
+		/local ptr
 	][
-		size: round-to size + 4	OS-page-size	;-- account for header (one word)
+		assert zero? (size and 0Fh)				;-- size is a multiple of 16
 		
 		ptr: OS-mmap 
 			null 
@@ -110,17 +109,15 @@ Red/System [
 		if negative? as-integer ptr [
 			raise-error RED_ERR_VMEM_OUT_OF_MEMORY 0
 		]
-		ptr/value: size							;-- store size in header
-		ptr + 1									;-- return pointer after header
+		ptr
 	]
 	
 	;-------------------------------------------
 	;-- Free paged virtual memory region from OS (UNIX)
 	;-------------------------------------------	
-	free-virtual: func [
+	OS-free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
-		ptr: ptr - 1							;-- return back to header
 		if negative? OS-munmap ptr ptr/value [
 			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer ptr
 		]
