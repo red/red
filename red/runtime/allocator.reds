@@ -572,42 +572,13 @@ free-big: func [
 #if debug? = yes [
 
 	;-------------------------------------------
-	;-- Print usage stats about a given node frame
+	;-- Print usage stats about a given frame
 	;-------------------------------------------
-	node-frame-stats: func [
-		frame [node-frame!]
-		/local free used
+	frame-stats: func [
+		free	[integer!]
+		used	[integer!]
+		total	[integer!]
 	][
-		free: as-integer (as-integer frame/top - frame/bottom) / 4
-		used: as-integer (frame/nodes - free)
-		
-		prin "used = " 
-		prin-int used
-		prin "/"
-		prin-int frame/nodes
-		prin "("
-		prin-int 100 * used / frame/nodes
-		prin "), free = "
-		prin-int free
-		prin "/"
-		prin-int frame/nodes
-		prin "("
-		prin-int 100 * free / frame/nodes
-		prin ")"
-		prin newline
-	]
-	
-	;-------------------------------------------
-	;-- Print usage stats about a given series frame
-	;-------------------------------------------
-	series-frame-stats: func [
-		frame [series-frame!]
-		/local free used total
-	][
-		free:  as-integer frame/tail - as byte-ptr! frame/heap
-		used:  as-integer frame/heap - ((as byte-ptr! frame) + size? series-frame!)
-		total: as-integer frame/tail - ((as byte-ptr! frame) + size? series-frame!)
-		
 		assert free + used = total
 
 		prin "used = " 
@@ -631,7 +602,7 @@ free-big: func [
 	;-------------------------------------------
 	memory-stats: func [
 		verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
-		/local n-frame
+		/local cnt n-frame s-frame b-frame free-nodes 
 	][
 		assert all [1 <= verbose verbose <= 3]
 		
@@ -646,7 +617,11 @@ free-big: func [
 				prin "- node frame "
 				prin-int cnt
 				prin " : "
-				node-frame-stats n-frame
+				free-nodes: as-integer (as-integer n-frame/top - n-frame/bottom) / 4
+				frame-stats 
+					free-nodes
+					as-integer (n-frame/nodes - free-nodes)
+					n-frame/nodes
 			]
 			cnt: cnt + 1
 			n-frame: n-frame/next
@@ -664,12 +639,33 @@ free-big: func [
 				prin "- series frame "
 				prin-int cnt
 				prin " : "
-				series-frame-stats s-frame
+				frame-stats
+					as-integer s-frame/tail - as byte-ptr! s-frame/heap
+					as-integer s-frame/heap - ((as byte-ptr! s-frame) + size? series-frame!)
+					as-integer s-frame/tail - ((as byte-ptr! s-frame) + size? series-frame!)
 			]
 			cnt: cnt + 1
 			s-frame: s-frame/next
 		]
 		prin "Total series frames: " 
+		prin-int cnt
+		prin newline
+		
+		;-- Big frames stats --
+		cnt: 0
+		b-frame: memory/b-head
+
+		while [b-frame <> null][
+			if verbose >= 2 [
+				prin "- big frame "
+				prin-int cnt
+				prin " : size = "
+				prin-int b-frame/size
+			]
+			cnt: cnt + 1
+			b-frame: b-frame/next
+		]
+		prin "Total big frames: " 
 		prin-int cnt
 		prin newline
 		
@@ -679,9 +675,26 @@ free-big: func [
 	;-- Dump memory layout of a given series frame
 	;-------------------------------------------
 	dump-series-frame: func [
-	
+		frame	[series-frame!]
+		/local series alt? size chunk
 	][
-	
+		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
+		
+		alt?: no
+		until [
+			size: (series/size and not series-in-use) - size? series-buffer!
+			size: size / 16
+			chunk: either alt? ["x"]["o"]
+			until [
+				prin chunk
+				size: size - 1
+				zero? size
+			]
+			series: (as byte-ptr! series) + series/size
+			series >= frame/heap
+		]
+		assert series = frame/heap
+		prin newline
 	]
 	
 ]
