@@ -1091,7 +1091,7 @@ system-dialect: context [
 				pc: skip pc 2
 				expr: fetch-expression/final
 				check-conditional 'assert expr			;-- verify conditional expression
-				expr: process-logic-encoding expr
+				expr: process-logic-encoding/invert expr
 
 				insert/only pc compose [
 					***-on-quit 98 as integer! (reform [
@@ -1189,7 +1189,7 @@ system-dialect: context [
 				comp-block/final						;-- returns last expression
 			]
 			if test [
-				check-conditional name expr			;-- verify conditional expression
+				check-conditional name expr				;-- verify conditional expression
 				expr: process-logic-encoding expr
 			]
 			reduce [
@@ -1198,7 +1198,7 @@ system-dialect: context [
 			]
 		]
 		
-		process-logic-encoding: func [expr][			;-- preprocess logic values
+		process-logic-encoding: func [expr /invert][	;-- preprocess logic values
 			case [
 				logic? expr [ [#[true]] ]
 				find [word! path!] type?/word expr  [
@@ -1218,7 +1218,12 @@ system-dialect: context [
 						'else [process-logic-encoding expr/1]
 					]
 				]
-				tag? expr [either expr <> <last> [ [#[true]] ][expr]]
+				tag? expr [
+					either expr <> <last> [
+						emitter/target/emit-operation '= [<last> 0]
+						reduce [not invert]
+					][expr] 
+				]
 				'else [expr]
 			]
 		]
@@ -1226,7 +1231,7 @@ system-dialect: context [
 		comp-if: has [expr unused chunk][		
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
-			check-conditional 'if expr				;-- verify conditional expression
+			check-conditional 'if expr					;-- verify conditional expression
 			expr: process-logic-encoding expr
 			check-body pc/1								;-- check TRUE block
 	
@@ -1241,7 +1246,7 @@ system-dialect: context [
 		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
-			check-conditional 'either expr			;-- verify conditional expression
+			check-conditional 'either expr				;-- verify conditional expression
 			expr: process-logic-encoding expr
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
