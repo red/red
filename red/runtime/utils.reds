@@ -18,5 +18,5 @@ round-to: func [
 	return: [integer!]							;-- nearest scale multiple
 ][
 	assert scale <> 0
-	(size + scale) and negate scale
+	(size + scale) and (negate scale)
 ]
