@@ -601,6 +601,7 @@ make target-class [
 			find [+ -] name							;-- pointer arithmetic only allowed for + & -
 			type: any [
 				all [left-cast left-cast/1]
+				all [block? args/1 compiler/blockify compiler/last-type]
 				compiler/resolve-expr-type args/1
 			]
 			not compiler/any-pointer? first compiler/resolve-expr-type args/2	;-- no scaling if both operands are pointers
@@ -851,7 +852,7 @@ make target-class [
 				emit to-bin32 last fspec
 				emit #{CD80}						;-- INT 0x80		; syscall
 				if compiler/job/syscall = 'BSD [
-					emit-cdecl-pop fspec			;-- BSD syscall cconv ~ cdecl 
+					emit-cdecl-pop fspec			;-- BSD syscall cconv (~ cdecl)
 				]
 			]
 			import [
@@ -884,7 +885,10 @@ make target-class [
 				emit-operation name args
 				if sub? [emitter/logic-to-integer name]
 				unless find comparison-op name [		;-- comparison always return a logic!
-					res: compiler/argument-type? args/1	;-- other ops return type of the first argument	
+					res: any [
+						all [left-cast left-cast/1]
+						compiler/argument-type? args/1	;-- other ops return type of the first argument	
+					]
 				]
 			]
 		]

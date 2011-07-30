@@ -644,6 +644,7 @@ system-dialect: context [
 			unless block? pos/2 [					;-- if not typed, infer type
 				insert/only at pos 2 type: any [
 					casted
+					all [block? expr/2 blockify last-type]
 					resolve-expr-type expr
 				]
 				if verbose > 2 [print ["inferred type" mold type "for variable:" pos/1]]
