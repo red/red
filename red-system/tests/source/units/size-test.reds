@@ -85,6 +85,11 @@ Red/System [
 	--test-- "sz-16"
 	sz-struct!: alias struct! [a [integer!] b [c-string!]]
 	--assert 8 = size? sz-struct!
+	
+	--test-- "sz-17"
+	a: 3 * (size? pointer!) * 2 
+	b: 3 * 2 * (size? pointer!)
+	--assert a = b
 
 ===end-group===
 
