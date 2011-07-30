@@ -322,16 +322,13 @@ emitter: context [
 	
 	get-size: func [type [block! word!] value][
 		either word? type [
-			target/emit-load datatypes/:type
+			datatypes/:type
 		][
 			switch/default type/1 [
-				c-string! [
-					call 'length? reduce [value]
-					call '+ [<last> 1]
-				]
-				struct! [target/emit-load member-offset? type/2 none]
+				c-string! [reduce ['+ 1 reduce ['length? value]]]
+				struct!   [member-offset? type/2 none]
 			][
-				target/emit-load select datatypes type/1
+				select datatypes type/1
 			]
 		]
 	]

@@ -1150,9 +1150,7 @@ system-dialect: context [
 				expr: fetch-expression/final	
 				type: resolve-expr-type expr
 			]
-			emitter/get-size type expr	
-			last-type: 'integer!	
-			<last>
+			emitter/get-size type expr
 		]
 		
 		comp-exit: func [/value /local expr type ret][
