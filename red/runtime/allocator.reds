@@ -19,7 +19,7 @@ Red/System [
 ;   31:		mark							;-- mark as referenced for the GC (mark phase)
 ;   30:		lock							;-- lock slot for active thread access only
 ;   29:		immutable						;-- mark as read-only (series only)
-;   28:		new-line						;-- new-line marker (before the slot)
+;   28:		new-line						;-- new-line (LF) marker (before the slot)
 ;   27:		big								;-- indicates a big series (big-frame!)
 ;	26:		stack							;-- series buffer is allocated on stack (series only)
 ;   25:		permanent						;-- protected from GC (system-critical series)
@@ -123,7 +123,7 @@ allocate-virtual: func [
 ]
 
 ;-------------------------------------------
-;-- Free paged virtual memory region from OS (Windows)
+;-- Free paged virtual memory region from OS
 ;-------------------------------------------
 free-virtual: func [
 	ptr [int-ptr!]							;-- address of memory region to release
@@ -131,6 +131,31 @@ free-virtual: func [
 	ptr: ptr - 1							;-- return back to header
 	memory/total: memory/total - ptr/value
 	OS-free-virtual ptr
+]
+
+;-------------------------------------------
+;-- Free all frames (part of Red's global exit handler)
+;-------------------------------------------
+free-all: func [
+	/local n-frame s-frame b-frame
+][
+	n-frame: memory/n-head
+	while [n-frame <> null][
+		free-virtual as int-ptr! n-frame
+		n-frame: n-frame/next
+	]
+	
+	s-frame: memory/s-head
+	while [s-frame <> null][
+		free-virtual as int-ptr! s-frame
+		s-frame: s-frame/next
+	]
+	
+	b-frame: memory/b-head
+	while [b-frame <> null][
+		free-virtual as int-ptr! b-frame
+		b-frame: b-frame/next
+	]
 ]
 
 ;-------------------------------------------
@@ -161,16 +186,18 @@ alloc-node-frame: func [
 	assert positive? size
 	sz: size * 2 * (size? pointer!) + (size? node-frame!) ;-- total required size for a node frame
 	frame: as node-frame! allocate-virtual sz no ;-- R/W only
-	
+
 	frame/prev:  null
 	frame/next:  null
 	frame/nodes: size
+
 	frame/bottom: (as byte-ptr! frame) + size? node-frame!
 	frame/top: frame/bottom + size - 1		;-- point to the top element
 	
 	either null? memory/n-head [
 		memory/n-head: frame				;-- first item in the list
 		memory/n-tail: frame
+		memory/n-active: frame
 	][
 		memory/n-tail/next: frame			;-- append new item at tail of the list
 		frame/prev: memory/n-tail			;-- link back to previous tail
@@ -196,6 +223,9 @@ free-node-frame: func [
 			frame/prev/next: frame/next		;-- link preceding frame to next frame
 			frame/next/prev: frame/prev		;-- link back next frame to preceding frame
 		]
+	]
+	if memory/n-active = frame [
+		memory/n-active: memory/n-tail		;-- reset active frame to last one @@
 	]
 
 	assert not all [						;-- ensure that list is not empty
@@ -278,6 +308,7 @@ alloc-series-frame: func [
 	either null? memory/s-head [
 		memory/s-head: frame				;-- first item in the list
 		memory/s-tail: frame
+		memory/s-active: frame
 		frame/prev:  null
 	][
 		memory/s-tail/next: frame			;-- append new item at tail of the list
@@ -287,7 +318,7 @@ alloc-series-frame: func [
 	
 	frame/next: null
 	frame/heap: (as byte-ptr! frame) + size? series-frame!
-	frame/tail: (as byte-ptr! frame) + size - 1		;-- point to last byte in frame
+	frame/tail: (as byte-ptr! frame) + size	;-- point to last byte in frame
 	frame
 ]
 
@@ -306,6 +337,9 @@ free-series-frame: func [
 			frame/prev/next: frame/next		;-- link preceding frame to next frame
 			frame/next/prev: frame/prev		;-- link back next frame to preceding frame
 		]
+	]
+	if memory/s-active = frame [
+		memory/s-active: memory/s-tail		;-- reset active frame to last one @@
 	]
 
 	assert not all [						;-- ensure that list is not empty
@@ -327,7 +361,7 @@ update-series-nodes: func [
 		series/node/value: (as byte-ptr! series) + size? series-buffer!
 		
 		;-- advance to the next series buffer
-		series: (as byte-ptr! series) + (series/size and s-size-mask)
+		series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)
 		
 		;-- exit when a freed series is met (<=> end of region)
 		zero? (series/size and series-in-use)
@@ -399,12 +433,12 @@ compact-series-frame: func [
 ;-- Allocate a series from the active series frame, return the series
 ;-------------------------------------------
 alloc-series-buffer: func [
-	size	[integer!]						;-- size in multiple of 16 bytes (cell! size)
+	size	[integer!]						;-- size in bytes
 	return: [series-buffer!]				;-- return the new series buffer
-	/local series sz
+	/local series frame sz
 ][
 	assert positive? size					;-- size is not zero or negative
-	assert zero? (size and 0Fh)				;-- size is a multiple of 16
+	size: round-to size 16					;-- size is a multiple of 16 (one cell! size)
 	
 	frame: memory/s-active
 	sz: size + size? series-buffer!			;-- add series header size
@@ -413,7 +447,7 @@ alloc-series-buffer: func [
 	assert sz < as-integer (frame/tail - ((as byte-ptr! frame) + size? series-frame!))
 
 	series: frame/heap
-	if (as byte-ptr! series + sz) >= frame/tail [
+	if ((as byte-ptr! series) + sz) >= frame/tail [
 		; TBD: trigger a GC pass from here and update memory/s-active
 		frame: alloc-series-frame
 		memory/s-active: frame				;@@ to be removed once GC implemented
@@ -421,8 +455,11 @@ alloc-series-buffer: func [
 	]
 	
 	assert sz < _16MB						;-- max series size allowed in a series frame
+	
+	frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
+
 	series/size: sz 
-		or series-in-use 					;-- mark series as used
+		or series-in-use 					;-- mark series as in-use
 		or flag-ins-both					;-- optimize for both head & tail insertions (default)
 		and not flag-series-big				;-- set type bit to 0 (= series)
 		
@@ -578,22 +615,24 @@ free-big: func [
 		free	[integer!]
 		used	[integer!]
 		total	[integer!]
+		/local percent
 	][
 		assert free + used = total
+		percent: 100 * used / total
 
 		prin "used = " 
 		prin-int used
 		prin "/"
 		prin-int total
-		prin "("
-		prin-int 100 * used / total
-		prin "), free = "
+		prin " ("
+		prin-int percent
+		prin "%), free = "
 		prin-int free
 		prin "/"
 		prin-int total
-		prin "("
-		prin-int 100 * free / total
-		prin ")"
+		prin " ("
+		prin-int 100 - percent
+		prin "%)"
 		prin newline
 	]
 
@@ -602,22 +641,23 @@ free-big: func [
 	;-------------------------------------------
 	memory-stats: func [
 		verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
-		/local cnt n-frame s-frame b-frame free-nodes 
+		/local cnt n-frame s-frame b-frame free-nodes base
 	][
 		assert all [1 <= verbose verbose <= 3]
 		
-		print "-- Red Memory Stats --"
+		print "=== Red Memory Stats ==="
 
-		;-- Node frames stats --
+	;-- Node frames stats --
 		cnt: 0
 		n-frame: memory/n-head
+		prin newline
 		
 		while [n-frame <> null][
 			if verbose >= 2 [
 				prin "- node frame "
-				prin-int cnt
+				prin-int cnt + 1
 				prin " : "
-				free-nodes: as-integer (as-integer n-frame/top - n-frame/bottom) / 4
+				free-nodes: as-integer (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
 				frame-stats 
 					free-nodes
 					as-integer (n-frame/nodes - free-nodes)
@@ -630,19 +670,21 @@ free-big: func [
 		prin-int cnt
 		prin newline
 		
-		;-- Series frames stats --
+	;-- Series frames stats --
 		cnt: 0
 		s-frame: memory/s-head
+		prin newline
 
 		while [s-frame <> null][
 			if verbose >= 2 [
 				prin "- series frame "
-				prin-int cnt
+				prin-int cnt + 1
 				prin " : "
+				base: (as byte-ptr! s-frame) + size? series-frame!
 				frame-stats
 					as-integer s-frame/tail - as byte-ptr! s-frame/heap
-					as-integer s-frame/heap - ((as byte-ptr! s-frame) + size? series-frame!)
-					as-integer s-frame/tail - ((as byte-ptr! s-frame) + size? series-frame!)
+					as-integer (as byte-ptr! s-frame/heap) - base
+					as-integer s-frame/tail - base
 			]
 			cnt: cnt + 1
 			s-frame: s-frame/next
@@ -651,9 +693,10 @@ free-big: func [
 		prin-int cnt
 		prin newline
 		
-		;-- Big frames stats --
+	;-- Big frames stats --
 		cnt: 0
 		b-frame: memory/b-head
+		prin newline
 
 		while [b-frame <> null][
 			if verbose >= 2 [
@@ -668,7 +711,6 @@ free-big: func [
 		prin "Total big frames: " 
 		prin-int cnt
 		prin newline
-		
 	]
 	
 	;-------------------------------------------
@@ -676,21 +718,31 @@ free-big: func [
 	;-------------------------------------------
 	dump-series-frame: func [
 		frame	[series-frame!]
-		/local series alt? size chunk
+		/local series alt? size block
 	][
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 		
+		prin "^/== Series frame layout: ("
+		prin-hex as-integer frame
+		print "h)"
+		
 		alt?: no
 		until [
-			size: (series/size and not series-in-use) - size? series-buffer!
-			size: size / 16
-			chunk: either alt? ["x"]["o"]
+			block: either zero? (series/size and series-in-use) [
+				"."
+			][
+				alt?: not alt?
+				either alt? ["x"]["o"]
+			]
+			
+			size: ((series/size and s-size-mask) - size? series-buffer!) / 16
 			until [
-				prin chunk
+				prin block
 				size: size - 1
 				zero? size
 			]
-			series: (as byte-ptr! series) + series/size
+			
+			series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)			
 			series >= frame/heap
 		]
 		assert series = frame/heap
