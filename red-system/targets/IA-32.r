@@ -67,6 +67,7 @@ make target-class [
 	]
 	
 	emit-save-last: does [
+		last-saved?: yes
 		emit #{89C2}								;-- MOV edx, eax
 	]
 	
@@ -251,7 +252,9 @@ make target-class [
 			#{8B45}									;-- MOV eax, [ebp+n]		; local
 	]
 	
-	emit-access-path: func [path [path! set-path!] spec [block! none!] /short /local offset type][
+	emit-access-path: func [
+		path [path! set-path!] spec [block! none!] /short /local offset type saved
+	][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
 		unless spec [
@@ -260,6 +263,7 @@ make target-class [
 		]
 		if short [return spec]
 		
+		saved: width
 		type: first compiler/resolve-type/with path/2 spec
 		set-width/type type							;-- adjust operations width to member value size
 
@@ -269,6 +273,7 @@ make target-class [
 			emit-poly [#{8A80} #{8B80}]				;-- MOV rA, [eax+offset]
 			emit to-bin32 offset
 		]
+		width: saved
 	]
 		
 	emit-load-index: func [idx [word!]][
@@ -606,19 +611,21 @@ make target-class [
 			]
 			not compiler/any-pointer? first compiler/resolve-expr-type args/2	;-- no scaling if both operands are pointers
 			scale: switch type/1 [
-				pointer! [emitter/size-of? type/2/1]		;-- scale factor: size of pointed value
+				pointer! [emitter/size-of? type/2/1]		  ;-- scale factor: size of pointed value
 				struct!  [emitter/member-offset? type/2 none] ;-- scale factor: total size of the struct
 			]
+			scale > 1
 		][
 			if left-cast [emit-casting left-cast no]	
 			
 			either compiler/literal? args/2 [
 				args/2: args/2 * scale				;-- 'b is a literal, so scale it directly
 			][
-				if find [imm ref] a [				;-- 'b will now be stored in reg, so save 'a
+				if b <> 'reg [						;-- 'b will now be stored in reg, so save 'a
 					emit-poly [#{88C2} #{89C2}]		;-- MOV rD, rA
 				]
-				emit-operation '* reduce [args/2 scale] ;-- 'b is a reference, emit code
+				last-saved?: yes
+				emit-operation/pass '* reduce [args/2 scale] ;-- 'b is a reference, emit code
 				if name = '- [emit #{92}]			;-- XCHG eax, edx		; put operands in right order
 				b: 'reg
 			]
@@ -769,9 +776,9 @@ make target-class [
 		; JNO? (Jump if No Overflow)
 	]
 	
-	emit-operation: func [name [word!] args [block!] /local a b c][
+	emit-operation: func [name [word!] args [block!] /pass /local a b c][
 		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
-		
+
 		set-width args/1							;-- set reg/mem access width
 		c: 1
 		foreach op [a b][	
@@ -791,16 +798,49 @@ make target-class [
 		if verbose >= 3 [?? a ?? b]					;-- a and b hold addressing modes for operands
 		
 		;-- First operand processing
-		if find [imm ref] a [						;-- load eax with 1st operand
-			if b = 'reg [							;-- 2nd operand in eax, save it in edx
+		switch to path! reduce [a b] [
+			imm/imm	[emit-poly [#{B0} #{B8} args/1]];-- MOV rA, a
+			imm/ref [emit-load args/1]				;-- eax = a
+			imm/reg [								;-- eax = b
+				if all [not pass path? args/2][
+					emit-load args/2				;-- late path loading
+				]
 				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA
+				emit-poly [#{B0} #{B8} args/1]		;-- MOV rA, a		; eax = a, edx = b
 			]
-			either a = 'imm [
-				emit-poly [#{B0} #{B8} args/1]		;-- MOV rA, a
-			][
-				emit-load args/1
+			ref/imm [emit-load args/1]
+			ref/ref [emit-load args/1]
+			ref/reg [								;-- eax = b
+				if all [not pass path? args/2][
+					emit-load args/2				;-- late path loading
+				]
+				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA	
+				emit-load args/1					;-- eax = a, edx = b
+			]
+			reg/imm [								;-- eax = a (or edx = a if last-saved)
+				if all [not pass path? args/1][
+					emit-load args/1				;-- late path loading
+				]
+				if last-saved? [emit #{92}]			;-- XCHG eax, edx	; eax = a
+			]
+			reg/ref [								;-- eax = a (or edx = a if last-saved)
+				if all [not pass path? args/1][
+					emit-load args/1				;-- late path loading
+				]
+				if last-saved? [emit #{92}]			;-- XCHG eax, edx	; eax = a
+			]
+			reg/reg [								;-- eax = b, edx = a
+				unless pass [
+					if path? args/1 [
+						emit-load args/1			;-- late path loading
+						emit #{92}					;-- XCHG eax, edx	; eax = b, edx = a
+					]
+					if path? args/2 [emit-load args/2]
+				]
 			]
 		]
+		last-saved?: no								;-- reset flag
+
 		;-- Operator and second operand processing
 		case [
 			find comparison-op name [emit-comparison-op name a b args]

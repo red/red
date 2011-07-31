@@ -14,6 +14,7 @@ target-class: context [
 	signed?: 	none								;-- TRUE => signed op, FALSE => unsigned op
 	left-cast: 	none								;-- left operand type casting
 	right-cast: none								;-- right operand type casting
+	last-saved?: no									;-- TRUE => operand saved in another register
 	verbose:  	0									;-- logs verbosity level
 	
 	emit-casting: none								;-- just pre-bind word to avoid contexts issue

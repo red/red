@@ -389,12 +389,12 @@ emitter: context [
 		either casted [reduce [casted old-type]][none]
 	]
 	
-	call: func [name [word!] args [block!] /sub /local type res import?][
+	call: func [name [word!] args [block!] /sub /local type res import? left right][
 		compiler/check-cc name
 		compiler/check-arguments-type name args
 		order-args name args
 		
-		import?: compiler/functions/:name/2 = 'import	; syscalls don't seem to need 16-byte alignment ??
+		import?: compiler/functions/:name/2 = 'import	; syscalls don't seem to need 16-byte alignment??
 		if import? [target/emit-stack-align-prolog args]
 		
 		type: first any [
@@ -413,17 +413,16 @@ emitter: context [
 				]
 			]
 		][												;-- nested calls as op argument require special handling
-			target/left-cast: preprocess-argument args
-			if path? args/1 [access-path args/1 none]
-			if all [
-				any [block? args/1 path? args/1]
-				any [block? args/2 path? args/2]
-			][
-				target/emit-save-last					;-- save first argument result
+			left: preprocess-argument args
+			if all [block? args/1 any [block? args/2 path? args/2]][
+				target/emit-save-last					;-- optionally save left argument result
 			]
-			
-			target/right-cast: preprocess-argument/no-last next args
-			if path? args/2 [access-path args/2 none]
+			right: preprocess-argument/no-last next args
+			if all [path? args/1 block? args/2][
+				target/emit-save-last					;-- optionally save right argument result
+			]
+			target/left-cast:  left
+			target/right-cast: right
 		]
 		res: target/emit-call name args to logic! sub
 		
