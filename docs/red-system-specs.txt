@@ -631,7 +631,7 @@ It is possible to apply some simple math operations on pointers like additions a
  q: q + 1								;-- p points now to 40000001h
  q: q + 1								;-- p points now to 40000002h
  
-Also, additions and subtractions between pointer addresses are allowed. Pointers are treated as simple integers in such case.
+Also, additions and subtractions between pointer addresses are allowed. The result value type is, as usual, the type of left operand.
 
  offset: p - q							;-- would store 6 in offset
 
