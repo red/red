@@ -13,11 +13,23 @@ Red/System [
 alloc-node-frame nodes-per-frame
 alloc-series-frame
 
+print "^/>> allocating 3 series"
 s1: alloc-series 5
 s2: alloc-series 100
+s3: alloc-series 5
 
-memory-stats 2
+memory-stats 3
 
-dump-series-frame memory/s-head
+dump-series-frame memory/s-active
+
+print "^/>> freeing 2nd series"
+free-series memory/s-head s2
+dump-series-frame memory/s-active
+
+print "^/>> compacting frame"
+compact-series-frame memory/s-active
+dump-series-frame memory/s-active
+
+memory-stats 3
 
 free-all

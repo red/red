@@ -379,17 +379,16 @@ update-series-nodes: func [
 
 compact-series-frame: func [
 	frame [series-frame!]					;-- series frame to compact
-	/local ptr tail series state
+	/local heap series state
 		free? [logic!] src [byte-ptr!] dst [byte-ptr!]
 ][
-	ptr: as byte-ptr! (as byte-ptr! frame) + size? series-frame!	;-- point to first series buffer
-	tail: frame/tail
+	series: as series-buffer! (as byte-ptr! frame) + size? series-frame! ;-- point to first series buffer
+	heap: frame/heap
 		
 	src: null								;-- src will point to start of buffer region to move down
 	dst: null								;-- dst will point to start of free region
 	state: SM1_INIT
-	series: as series-buffer! ptr
-	
+
 	until [
 		free?: zero? (series/size and series-in-use)  ;-- true: series is not used
 		
@@ -404,28 +403,26 @@ compact-series-frame: func [
 			src: as byte-ptr! series		 ;-- start of new "alive" region
 			state: SM1_USED
 		]
-		
-		ptr: ptr + (series/size and s-size-mask) ;-- point to next series buffer
-		series: as series-buffer! ptr
-		
-		if all [state = SM1_USED any [free? ptr >= tail]][	;-- handle both normal and "exit" states
+	 	;-- point to next series buffer
+		series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)
+
+		if all [state = SM1_USED any [free? series >= heap]][	;-- handle both normal and "exit" states
 			state: SM1_USED_END
 		]
 		if state = SM1_USED_END [
-			assert dst < src					 ;-- regions are moved down in memory
-			assert src < as byte-ptr! series 	 ;-- src should point at least at series - series/size
+			assert dst < src				 ;-- regions are moved down in memory
+			assert src < as byte-ptr! series ;-- src should point at least at series - series/size
 			
 			copy-memory dst	src as-integer series - src
 			update-series-nodes as series-buffer! dst
 			dst: dst + (as-integer series - src) ;-- points after moved region (ready for next move)
 			state: SM1_HOLE
 		]
-		
-		ptr >= tail							;-- exit state machine
+		series >= heap						;-- exit state machine
 	]
 	
 	unless null? dst [						;-- no compaction occurred, all series were in use
-		frame/heap: as series-buffer! dst	;-- new heap is after last moved region
+		frame/heap: as series-buffer! dst	;-- set new heap after last moved region
 	]
 ]
 
@@ -635,82 +632,128 @@ free-big: func [
 		prin "%)"
 		prin newline
 	]
+	
+		
+	;-------------------------------------------
+	;-- List series buffer allocated in a given series frame
+	;-------------------------------------------
+	list-series-buffers: func [
+		frame	[series-frame!]
+		/local series alt? size block count
+	][
+		count: 1
+		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
+		until [			
+			prin " - series #"
+			prin-int count
+			prin ": size = "
+			prin-int (series/size and s-size-mask) - size? series-buffer!
+			prin ", offset pos = "
+			prin-int series/head
+			prin ", tail pos = "
+			prin-int series/tail
+			prin "    "
+			if series/size and flag-ins-head <> 0 [prin "H"]
+			if series/size and flag-ins-tail <> 0 [prin "T"]
+			prin newline
+			count: count + 1
+
+			series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)			
+			series >= frame/heap
+		]
+		assert series = frame/heap
+	]
+	
+	;-------------------------------------------
+	;-- Displays total frames count
+	;-------------------------------------------
+	print-frames-count: func [count [integer!]][
+		prin "^/    "
+		prin-int count
+		prin " frame"
+		prin either count > 1 ["s^/"][newline]
+	]
 
 	;-------------------------------------------
 	;-- Dump memory statistics on screen
 	;-------------------------------------------
 	memory-stats: func [
 		verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
-		/local cnt n-frame s-frame b-frame free-nodes base
+		/local count n-frame s-frame b-frame free-nodes base
 	][
 		assert all [1 <= verbose verbose <= 3]
 		
-		print "=== Red Memory Stats ==="
+		print "^/====== Red Memory Stats ======"
 
 	;-- Node frames stats --
-		cnt: 0
+		count: 0
 		n-frame: memory/n-head
 		prin newline
 		
+		print "Node frames:"
 		while [n-frame <> null][
 			if verbose >= 2 [
-				prin "- node frame "
-				prin-int cnt + 1
-				prin " : "
+				prin "#"
+				prin-int count + 1
+				prin ": "
 				free-nodes: as-integer (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
 				frame-stats 
 					free-nodes
 					as-integer (n-frame/nodes - free-nodes)
 					n-frame/nodes
 			]
-			cnt: cnt + 1
+			count: count + 1
 			n-frame: n-frame/next
 		]
-		prin "Total node frames: " 
-		prin-int cnt
-		prin newline
+		print-frames-count count
 		
 	;-- Series frames stats --
-		cnt: 0
+		count: 0
 		s-frame: memory/s-head
 		prin newline
 
+		print "Series frames:"
 		while [s-frame <> null][
 			if verbose >= 2 [
-				prin "- series frame "
-				prin-int cnt + 1
-				prin " : "
+				prin "#"
+				prin-int count + 1
+				prin ": "
 				base: (as byte-ptr! s-frame) + size? series-frame!
 				frame-stats
 					as-integer s-frame/tail - as byte-ptr! s-frame/heap
 					as-integer (as byte-ptr! s-frame/heap) - base
 					as-integer s-frame/tail - base
+				if verbose >= 3 [
+					list-series-buffers s-frame
+				]
 			]
-			cnt: cnt + 1
+			count: count + 1
 			s-frame: s-frame/next
 		]
-		prin "Total series frames: " 
-		prin-int cnt
-		prin newline
+		print-frames-count count
 		
 	;-- Big frames stats --
-		cnt: 0
+		count: 0
 		b-frame: memory/b-head
 		prin newline
 
+		print "Big frames:"
 		while [b-frame <> null][
 			if verbose >= 2 [
-				prin "- big frame "
-				prin-int cnt
-				prin " : size = "
+				prin "#"
+				prin-int count
+				prin ": size = "
 				prin-int b-frame/size
 			]
-			cnt: cnt + 1
+			count: count + 1
 			b-frame: b-frame/next
 		]
-		prin "Total big frames: " 
-		prin-int cnt
-		prin newline
+		print-frames-count count
+		
+		prin "^/Total memory used: "
+		prin-int memory/total
+		print " bytes"
+		print "^/=============================="
 	]
 	
 	;-------------------------------------------
@@ -722,7 +765,7 @@ free-big: func [
 	][
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 		
-		prin "^/== Series frame layout: ("
+		prin "^/=== Series frame layout: ("
 		prin-hex as-integer frame
 		print "h)"
 		
