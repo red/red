@@ -1092,7 +1092,7 @@ system-dialect: context [
 				pc: skip pc 2
 				expr: fetch-expression/final
 				check-conditional 'assert expr			;-- verify conditional expression
-				expr: process-logic-encoding/invert expr
+				expr: process-logic-encoding expr yes
 
 				insert/only pc compose [
 					***-on-quit 98 as integer! (reform [
@@ -1191,7 +1191,7 @@ system-dialect: context [
 			]
 			if test [
 				check-conditional name expr				;-- verify conditional expression
-				expr: process-logic-encoding expr
+				expr: process-logic-encoding expr no
 			]
 			reduce [
 				expr 
@@ -1199,12 +1199,12 @@ system-dialect: context [
 			]
 		]
 		
-		process-logic-encoding: func [expr /invert][	;-- preprocess logic values
+		process-logic-encoding: func [expr invert? [logic!]][	;-- preprocess logic values
 			case [
 				logic? expr [ [#[true]] ]
 				find [word! path!] type?/word expr  [
 					emitter/target/emit-operation '= [<last> 0]
-					[#[true]]
+					reduce [not invert?]
 				]
 				block? expr [
 					case [
@@ -1214,15 +1214,15 @@ system-dialect: context [
 							unless find [word! path!] type?/word expr/1 [
 								emitter/target/emit-operation '= [<last> 0]
 							]
-							process-logic-encoding expr
+							process-logic-encoding expr invert?
 						]
-						'else [process-logic-encoding expr/1]
+						'else [process-logic-encoding expr/1 invert?]
 					]
 				]
 				tag? expr [
 					either expr <> <last> [
 						emitter/target/emit-operation '= [<last> 0]
-						reduce [not invert]
+						reduce [not invert?]
 					][expr] 
 				]
 				'else [expr]
@@ -1233,7 +1233,7 @@ system-dialect: context [
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
 			check-conditional 'if expr					;-- verify conditional expression
-			expr: process-logic-encoding expr
+			expr: process-logic-encoding expr no
 			check-body pc/1								;-- check TRUE block
 	
 			set [unused chunk] comp-block-chunked		;-- compile TRUE block
@@ -1248,7 +1248,7 @@ system-dialect: context [
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
-			expr: process-logic-encoding expr
+			expr: process-logic-encoding expr no
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
