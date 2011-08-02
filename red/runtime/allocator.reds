@@ -616,6 +616,7 @@ free-big: func [
 	][
 		assert free + used = total
 		percent: 100 * used / total
+		if all [not zero? used zero? percent][percent: 1]
 
 		prin "used = " 
 		prin-int used
