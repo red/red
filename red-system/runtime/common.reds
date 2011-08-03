@@ -72,6 +72,9 @@ system: declare struct! [					;-- store runtime accessible system values
 	#default [#include %linux.reds]
 ]
 
+#if debug? = yes [#include %debug.reds]
+
+
 ;-- Run-time error handling --
 
 #define RED_ERR_VMEM_RELEASE_FAILED		96
