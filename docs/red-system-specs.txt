@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 24/07/2011
-	Revision: 21
+	Date: 04/08/2011
+	Revision: 22
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1952,6 +1952,60 @@ Global condition is met if all the sub-conditions are met.  ALL returns a logic!
  if all [foo > 5 bar = 0][
  	print "true"				 ;-- reached if both conditions are met
  ]
+
+---Stack functions
+
++++PUSH
+
+Push a value on top of execution stack. Stack pointer is modified.
+
+<b>Syntax</b>
+
+ push <value>
+
+ <value>: expression of any type
+ 
+<b>Examples</b>
+
+ push 123
+ push a
+ push "hello"
+ push p/value
+
++++POP
+
+Pop a value from top of execution stack. Stack pointer is modified.
+
+<b>Syntax</b>
+
+ pop
+
+ return: an integer value
+
++++GET-STACK
+
+Retrieve execution stack top address. Stack pointer is not modified.
+
+<b>Syntax</b>
+
+ get-stack
+
+ return: a pointer value of type: pointer! [integer!]
+
++++SET-STACK
+
+Set the execution stack top address to a new a value. Stack pointer is modified.
+
+<b>Syntax</b>
+
+ set-stack <address>
+
+ <address>: a pointer value of type: pointer! [integer!]
+
+\note Stack pointer modification
+Do not use this function unless you know exactly what you are doing, else your program will most probably crash.
+
+/note
  
 ---Debugging functions
 
@@ -2092,6 +2146,11 @@ will output:
 
 
 ===Document History
+
+*<b>04/08/2011 - revision 22</b>
+
+*>Stack manipulation functions added.
+
 
 *<b>24/07/2011 - revision 21</b>
 
