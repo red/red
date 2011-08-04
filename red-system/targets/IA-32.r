@@ -637,7 +637,9 @@ make target-class [
 			either compiler/literal? args/2 [
 				args/2: args/2 * scale				;-- 'b is a literal, so scale it directly
 			][
-				if b <> 'reg [						;-- 'b will now be stored in reg, so save 'a
+				either b = 'reg [
+					emit #{92}						;-- XCHG eax, edx		; put operands in right order
+				][									;-- 'b will now be stored in reg, so save 'a
 					emit-poly [#{88C2} #{89C2}]		;-- MOV rD, rA
 					emit-load args/2
 				]
