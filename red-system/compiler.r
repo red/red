@@ -1491,7 +1491,11 @@ system-dialect: context [
 					emitter/store name value type
 				]
 				set-path! [								;-- path assignment --				
-					do prepare-value				
+					do prepare-value
+					unless get-variable-spec tree/1/1 [
+						backtrack tree/1
+						throw-error ["unknown path root variable:" tree/1/1]
+					]
 					resolve-path-type tree/1			;-- check path validity
 					emitter/access-path tree/1 value
 				]
