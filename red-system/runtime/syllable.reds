@@ -31,16 +31,22 @@ Red/System [
 	]
 ]
 
+;-------------------------------------------
+;-- Retrieve command-line information from stack
+;-------------------------------------------
+pop											;-- dummy value
+system/args-list: as str-array! pop			;-- &argv
+system/env-vars: as str-array! pop			;-- &envp
+
 ***-on-start: func [/local c argv][
 	argv: system/args-list
 	c: 0
-
 	while [argv/item <> null][
 		c: c + 1
 		argv: argv + 1
 	]
-	
 	system/args-count: c
 ]
+***-on-start
 
 #include %POSIX.reds

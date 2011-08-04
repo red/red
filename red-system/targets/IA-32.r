@@ -104,6 +104,22 @@ make target-class [
 		emit #{B8}									;-- MOV eax, value
 		emit-reloc-addr spec/2						;-- one-based index
 	]
+	
+	emit-set-stack: func [value][
+		if verbose >= 3 [print [">>>emitting SET-STACK" mold value]]
+		emit-load value
+		emit #{89C4}								;-- MOV esp, eax
+	]
+	
+	emit-get-stack: does [
+		if verbose >= 3 [print ">>>emitting GET-STACK"]
+		emit #{89E0}								;-- MOV eax, esp		
+	]
+	
+	emit-pop: does [
+		if verbose >= 3 [print ">>>emitting POP"]
+		emit #{58}									;-- POP eax
+	]
 		
 	emit-not: func [value [word! tag! integer! logic! path! string!] /local opcodes][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
@@ -623,9 +639,9 @@ make target-class [
 			][
 				if b <> 'reg [						;-- 'b will now be stored in reg, so save 'a
 					emit-poly [#{88C2} #{89C2}]		;-- MOV rD, rA
+					emit-load args/2
 				]
-				last-saved?: yes
-				emit-operation/pass '* reduce [args/2 scale] ;-- 'b is a reference, emit code
+				emit-math-op '* 'reg 'imm reduce [args/2 scale]
 				if name = '- [emit #{92}]			;-- XCHG eax, edx		; put operands in right order
 				b: 'reg
 			]
@@ -918,7 +934,11 @@ make target-class [
 			inline [
 				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
 				do select [
-					not	[emit-not args/1]
+					not			[emit-not args/1]
+					push		[emit-push args/1]
+					pop			[emit-pop]
+					get-stack	[emit-get-stack]
+					set-stack	[emit-set-stack args/1]
 				] name
 			]
 			op	[
@@ -991,22 +1011,6 @@ make target-class [
 			;; stdcall/reds: Consume original arguments from stack.
 			emit #{C2}								;-- RET args-size
 			emit to-bin16 align-to args-size 4
-		]
-	]
-	
-	emit-read-args: does [
-		emit #{8B35}								;-- MOV esi, [system]
-		emit-reloc-addr emitter/symbols/system
-		either compiler/job/OS = 'Syllable [
-			emit #{58}								;-- POP eax				; dummy
-			emit #{58}								;-- POP eax
-			emit #{894604}							;-- MOV [esi+4], eax	; &argv
-			emit #{58}								;-- POP eax
-			emit #{894608}							;-- MOV [esi+8], eax	; &envp
-		][
-			emit #{58}								;-- POP eax
-			emit #{8906}							;-- MOV [esi], eax		; argc
-			emit #{896604}							;-- MOV [esi+4], esp	; argv[0]
 		]
 	]
 ]

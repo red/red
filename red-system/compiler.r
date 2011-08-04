@@ -265,6 +265,10 @@ system-dialect: context [
 			>=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			<=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			not		[1	inline	- [a [not-set!] 		   return: [logic!]]]	;@@ return should be not-set!
+			push	[1	inline	- [a [poly!]]]
+			pop		[0	inline	- [						   return: [integer!]]]
+			set-stack [1 inline	- [a [poly!]]]
+			get-stack [0 inline	- [				 		   return: [pointer! [integer!]]]]
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
@@ -580,7 +584,15 @@ system-dialect: context [
 					expr/1/type						 ;-- type casting case
 				]
 				all [func? find [op inline] spec/2][ ;-- works for unary & binary functions only!
-					argument-type? expr/2			;-- recursively search for return type
+					any [
+						all [
+							expr/1 <> 'not			;-- @@ issue with 'not return type
+							spec: select spec/4 return-def
+							base-type? spec/1		;-- determined return type
+							spec
+						]
+						argument-type? expr/2		;-- recursively search for return type
+					]
 				]
 				all [func? quiet][
 					select spec/4 return-def		;-- workaround error throwing in get-return-value
@@ -1744,12 +1756,6 @@ system-dialect: context [
 	
 	comp-runtime-prolog: does [
  		compiler/run job loader/process runtime-path/common.reds
- 		if job/OS <> 'Windows [
- 			emitter/target/emit-read-args
- 		]
- 		unless job/use-natives? [						;-- no memory allocator available in pure natives mode
- 			emitter/call '***-on-start []				;-- call runtime start handler
- 		]
 	]
 	
 	comp-runtime-epilog: does [	

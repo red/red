@@ -136,6 +136,9 @@ __win32-memory-blocks: declare struct! [
 	]
 ]
 
+;-------------------------------------------
+;-- Retrieve command-line information from stack
+;-------------------------------------------
 ***-on-start: func [/local c argv s args][
 	c: 1											;-- account for executable name
 	argv: as pointer! [integer!] allocate 256 * 4	;-- max argc = 256
@@ -173,7 +176,8 @@ __win32-memory-blocks: declare struct! [
 	
 	__win32-memory-blocks/argv: argv
 ]
+#if use-natives? = no [***-on-start]			;-- allocate is not yet implemented as native function
 
 ***-on-win32-quit: does [
-	free as byte-ptr! __win32-memory-blocks/argv
+	free as byte-ptr! __win32-memory-blocks/argv	;-- free call is safe here (defined in all cases)
 ]

@@ -28,8 +28,12 @@ Red/System [
 	]
 ]
 
-***-on-start: does [
-	system/env-vars: system/args-list + system/args-count + 1
-]
+;-------------------------------------------
+;-- Retrieve command-line information from stack
+;-------------------------------------------
+system/args-count: 	pop
+system/args-list: 	as str-array! get-stack
+system/env-vars: 	system/args-list + system/args-count + 1
+
 
 #include %BSD.reds
