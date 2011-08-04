@@ -265,9 +265,9 @@ system-dialect: context [
 			>=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			<=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			not		[1	inline	- [a [not-set!] 		   return: [logic!]]]	;@@ return should be not-set!
-			push	[1	inline	- [a [poly!]]]
+			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
-			set-stack [1 inline	- [a [poly!]]]
+			set-stack [1 inline	- [a [pointer! [integer!]]]]
 			get-stack [0 inline	- [				 		   return: [pointer! [integer!]]]]
 		]
 		
