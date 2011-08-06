@@ -277,6 +277,38 @@ emitter: context [
 		offset
 	]
 	
+	system-path?: func [path [path! set-path!] value /local set?][
+		either path/1 = 'system [
+			switch/default path/2 [
+				stack [
+					if all [2 = length? path set?: set-path? path][
+						compiler/throw-error "cannot modify system/stack"
+					]
+					switch path/3 [
+						top [
+							either set? [
+								target/emit-set-stack value
+							][
+								target/emit-get-stack
+							]
+						]
+						frame [
+							either set? [
+								target/emit-set-stack/frame value
+							][
+								target/emit-get-stack/frame
+							]
+						]
+					]
+				]
+				; add here implicit system getters/setters
+			][return false]
+			true
+		][
+			false
+		]
+	]
+	
 	resolve-path-head: func [path [path! set-path!] parent [block! none!]][
 		second either head? path [
 			compiler/resolve-type path/1
@@ -286,6 +318,8 @@ emitter: context [
 	]
 	
 	access-path: func [path [path! set-path!] value /with parent [block!] /local type][
+		if all [not with system-path? path value][exit]
+
 		either 2 = length? path [
 			type: first compiler/resolve-type/with path/1 parent
 			if all [type = 'struct! parent][
@@ -389,7 +423,7 @@ emitter: context [
 		either casted [reduce [casted old-type]][none]
 	]
 	
-	call: func [name [word!] args [block!] /sub /local type res import? left right][
+	call: func [name [word!] args [block!] /sub /local type res import? left right dup][
 		compiler/check-cc name
 		compiler/check-arguments-type name args
 		order-args name args
@@ -416,11 +450,14 @@ emitter: context [
 			left: preprocess-argument args
 			if all [block? args/1 any [block? args/2 path? args/2]][
 				target/emit-save-last					;-- optionally save left argument result
+				if block? args/2 [
+					left: reduce [						;-- implicit cast forced to save returned type
+						dup: compiler/blockify compiler/last-type
+						dup
+					]
+				]
 			]
 			right: preprocess-argument/no-last next args
-			if all [path? args/1 block? args/2][
-				target/emit-save-last					;-- optionally save right argument result
-			]
 			target/left-cast:  left
 			target/right-cast: right
 		]

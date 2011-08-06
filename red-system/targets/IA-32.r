@@ -105,15 +105,23 @@ make target-class [
 		emit-reloc-addr spec/2						;-- one-based index
 	]
 	
-	emit-set-stack: func [value][
+	emit-set-stack: func [value /frame][
 		if verbose >= 3 [print [">>>emitting SET-STACK" mold value]]
 		emit-load value
-		emit #{89C4}								;-- MOV esp, eax
+		either frame [
+			emit #{89C5}							;-- MOV ebp, eax		
+		][
+			emit #{89C4}							;-- MOV esp, eax
+		]
 	]
 	
-	emit-get-stack: does [
+	emit-get-stack: func [/frame][
 		if verbose >= 3 [print ">>>emitting GET-STACK"]
-		emit #{89E0}								;-- MOV eax, esp		
+		either frame [
+			emit #{89E8}							;-- MOV eax, ebp			
+		][
+			emit #{89E0}							;-- MOV eax, esp
+		]
 	]
 	
 	emit-pop: does [
@@ -603,17 +611,13 @@ make target-class [
 				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; not commutable op				
 			]
 			reg [
-				with-right-casting [
-					if a = 'reg [					;-- eax = b, edx = a
-						emit #{92}					;-- XCHG eax, edx		; swap
-					]
-				]
 				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; not commutable op
 			]
 		]
 	]
 	
 	emit-math-op: func [name [word!] a [word!] b [word!] args [block!] /local mod? scale c][
+		;-- eax = a, edx = b
 		if find [// ///] name [						;-- work around unaccepted '// and '///
 			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
 			name: first [/]							;-- work around unaccepted '/ 
@@ -625,7 +629,10 @@ make target-class [
 				all [block? args/1 compiler/blockify compiler/last-type]
 				compiler/resolve-expr-type args/1
 			]
-			not compiler/any-pointer? first compiler/resolve-expr-type args/2	;-- no scaling if both operands are pointers
+			not compiler/any-pointer? first any [
+				all [right-cast right-cast/1]
+				compiler/resolve-expr-type args/2	;-- no scaling if both operands are pointers
+			]			
 			scale: switch type/1 [
 				pointer! [emitter/size-of? type/2/1]		  ;-- scale factor: size of pointed value
 				struct!  [emitter/member-offset? type/2 none] ;-- scale factor: total size of the struct
@@ -648,6 +655,7 @@ make target-class [
 				b: 'reg
 			]
 		]
+		;-- eax = a, edx = b
 		switch name [
 			+ [
 				switch b [
@@ -683,9 +691,6 @@ make target-class [
 							#{2A45} #{2B45}			;-- SUB rA, [ebp+n]		; local
 					]
 					reg [
-						if a = 'reg [				;-- eax = b, edx = a
-							emit #{92}				;-- XCHG eax, edx		; swap
-						]
 						emit-poly [#{28D0} #{29D0}] ;-- SUB rA, rD			; not commutable op
 					]
 				]
@@ -760,12 +765,7 @@ make target-class [
 						]
 					]
 					reg [
-						either a = 'reg [			;-- eax = b, edx = a
-							emit #{92}				;-- XCHG eax, edx		; swap, eax = a, edx = b
-							emit #{89D3}			;-- MOV ebx, edx		; ebx = b
-						][
-							emit #{89C3}			;-- MOV ebx, eax		; ebx = b
-						]
+						emit #{89D3}				;-- MOV ebx, edx		; ebx = b
 						do div-poly
 					]
 				]
@@ -794,7 +794,7 @@ make target-class [
 		; JNO? (Jump if No Overflow)
 	]
 	
-	emit-operation: func [name [word!] args [block!] /pass /local a b c][
+	emit-operation: func [name [word!] args [block!] /local a b c sorted?][
 		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
@@ -820,7 +820,7 @@ make target-class [
 			imm/imm	[emit-poly [#{B0} #{B8} args/1]];-- MOV rA, a
 			imm/ref [emit-load args/1]				;-- eax = a
 			imm/reg [								;-- eax = b
-				if all [not pass path? args/2][
+				if path? args/2 [
 					emit-load args/2				;-- late path loading
 				]
 				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA
@@ -829,32 +829,37 @@ make target-class [
 			ref/imm [emit-load args/1]
 			ref/ref [emit-load args/1]
 			ref/reg [								;-- eax = b
-				if all [not pass path? args/2][
+				if path? args/2 [
 					emit-load args/2				;-- late path loading
 				]
 				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA	
 				emit-load args/1					;-- eax = a, edx = b
 			]
 			reg/imm [								;-- eax = a (or edx = a if last-saved)
-				if all [not pass path? args/1][
+				if path? args/1 [
 					emit-load args/1				;-- late path loading
 				]
 				if last-saved? [emit #{92}]			;-- XCHG eax, edx	; eax = a
 			]
 			reg/ref [								;-- eax = a (or edx = a if last-saved)
-				if all [not pass path? args/1][
+				if path? args/1 [
 					emit-load args/1				;-- late path loading
 				]
 				if last-saved? [emit #{92}]			;-- XCHG eax, edx	; eax = a
 			]
 			reg/reg [								;-- eax = b, edx = a
-				unless pass [
-					if path? args/1 [
-						emit-load args/1			;-- late path loading
-						emit #{92}					;-- XCHG eax, edx	; eax = b, edx = a
+				if path? args/1 [
+					if block? args/2 [				;-- edx = b
+						emit #{92}					;-- XCHG eax, edx
+						sorted?: yes				;-- eax = a, edx = b
 					]
-					if path? args/2 [emit-load args/2]
+					emit-load args/1				;-- late path loading
 				]
+				if path? args/2 [
+					emit #{92}						;-- XCHG eax, edx	; eax = b, edx = a
+					emit-load args/2
+				]
+				unless sorted? [emit #{92}]			;-- XCHG eax, edx	; eax = a, edx = b
 			]
 		]
 		last-saved?: no								;-- reset flag
@@ -939,8 +944,6 @@ make target-class [
 					not			[emit-not args/1]
 					push		[emit-push args/1]
 					pop			[emit-pop]
-					get-stack	[emit-get-stack]
-					set-stack	[emit-set-stack args/1]
 				] name
 			]
 			op	[

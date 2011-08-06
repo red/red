@@ -267,8 +267,6 @@ system-dialect: context [
 			not		[1	inline	- [a [not-set!] 		   return: [logic!]]]	;@@ return should be not-set!
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
-			set-stack [1 inline	- [a [pointer! [integer!]]]]
-			get-stack [0 inline	- [				 		   return: [pointer! [integer!]]]]
 		]
 		
 		user-functions: tail functions	;-- marker for user functions
@@ -1496,7 +1494,16 @@ system-dialect: context [
 						backtrack tree/1
 						throw-error ["unknown path root variable:" tree/1/1]
 					]
-					resolve-path-type tree/1			;-- check path validity
+					type: blockify resolve-path-type tree/1		;-- check path validity
+					new: blockify resolve-aliased get-mapped-type data
+					if type <> any [casted new][
+						backtrack tree/1
+						throw-error [
+							"type mismatch on setting path:" to path! tree/1
+							"^/*** expected:" mold type
+							"^/*** found:" mold any [casted new]
+						]
+					]
 					emitter/access-path tree/1 value
 				]
 				object! [								;-- special actions @@

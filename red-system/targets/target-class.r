@@ -100,7 +100,7 @@ target-class: context [
 	set-width: func [operand /type /local value][
 		width: emitter/size-of? value: case [
 			type 	  [operand]
-			left-cast [left-cast/1/1]
+			left-cast [left-cast left-cast/1/1]
 			'else 	  [compiler/argument-type? operand]
 		]
 		signed?: emitter/signed? value
