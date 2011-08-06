@@ -168,7 +168,7 @@ format-node-stack: func [
 	ptr: frame/bottom						;-- point to bottom of stack
 	node: ptr + frame/nodes					;-- first free node address
 	until [
-		ptr/value: node						;-- store free node address on stack
+		ptr/value: as-integer node			;-- store free node address on stack
 		node: node + 1
 		ptr: ptr + 1
 		ptr > frame/top						;-- until the stack is filled up
@@ -191,7 +191,7 @@ alloc-node-frame: func [
 	frame/next:  null
 	frame/nodes: size
 
-	frame/bottom: (as byte-ptr! frame) + size? node-frame!
+	frame/bottom: as int-ptr! (as byte-ptr! frame) + size? node-frame!
 	frame/top: frame/bottom + size - 1		;-- point to the top element
 	
 	either null? memory/n-head [
@@ -287,7 +287,7 @@ free-node: func [
 	]
 	
 	frame/top: frame/top + 1				;-- free node by pushing its address on stack
-	frame/top/value: node
+	frame/top/value: as-integer node
 
 	assert frame/top < (frame/bottom + frame/nodes)	;-- top should not overflow
 ]
@@ -317,7 +317,7 @@ alloc-series-frame: func [
 	]
 	
 	frame/next: null
-	frame/heap: (as byte-ptr! frame) + size? series-frame!
+	frame/heap: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 	frame/tail: (as byte-ptr! frame) + size	;-- point to last byte in frame
 	frame
 ]
@@ -358,7 +358,7 @@ update-series-nodes: func [
 ][
 	until [
 		;-- update the node pointer to the new series address
-		series/node/value: (as byte-ptr! series) + size? series-buffer!
+		series/node/value: as-integer (as byte-ptr! series) + size? series-buffer!
 		
 		;-- advance to the next series buffer
 		series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)
@@ -476,7 +476,8 @@ alloc-series: func [
 	series: alloc-series-buffer size
 	node: alloc-node						;-- get a new node
 	series/node: node						;-- link back series to node
-	node/value: (as byte-ptr! series) + size? series-buffer! ;-- node points to first usable byte of series buffer
+	;-- make node points to first usable byte of series buffer
+	node/value: as-integer (as byte-ptr! series) + size? series-buffer!
 	node									;-- return the node pointer
 ]
 
@@ -518,7 +519,7 @@ expand-series: func [
 	assert new-sz > (series/size and s-size-mask)  ;-- ensure requested size is bigger than current one
 	
 	new: alloc-series-buffer new-sz
-	series/node/value: new					;-- link node to new series buffer
+	series/node/value: as-integer new		;-- link node to new series buffer
 	
 	;TBD: honor flag-ins-head and flag-ins-tail when copying!
 	
@@ -697,7 +698,7 @@ free-big: func [
 				prin "#"
 				prin-int count + 1
 				prin ": "
-				free-nodes: as-integer (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
+				free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
 				frame-stats 
 					free-nodes
 					as-integer (n-frame/nodes - free-nodes)
@@ -766,9 +767,9 @@ free-big: func [
 	][
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 		
-		prin "^/=== Series frame layout: ("
+		prin "^/=== Series layout for frame: <"
 		prin-hex as-integer frame
-		print "h)"
+		print "h>"
 		
 		alt?: no
 		until [
