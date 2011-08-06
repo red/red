@@ -63,7 +63,7 @@ start-time: now/precise
 
 ===start-group=== "Datatype tests"
   --run-test-file-quiet %source/units/logic-test.reds
-  --run-test-file-quiet %source/units/integer-test.reds
+ ; --run-test-file-quiet %source/units/integer-test.reds
   --run-test-file-quiet %source/units/byte-test.reds
   --run-test-file-quiet %source/units/c-string-test.reds
   --run-test-file-quiet %source/units/struct-test.reds
@@ -87,6 +87,7 @@ start-time: now/precise
 
 ===start-group=== "Math operators tests"
   --run-test-file-quiet %source/units/modulo-test.reds
+  --run-test-file-quiet %source/units/math-mixed-test.reds
 ===end-group===
 
 ===start-group=== "Infix syntax for functions"

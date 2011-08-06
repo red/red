@@ -8,7 +8,7 @@ REBOL [
 
 change-dir %../
 
-~~~start-file~~~ "not"
+~~~start-file~~~ "not-compile"
 
 ===start-group=== "not compile and run tests"
 
