@@ -873,13 +873,13 @@ make target-class [
 		]
 	]
 	
-	emit-cdecl-pop: func [spec [block!] args [block!] /local size attribut][
+	emit-cdecl-pop: func [spec [block!] args [block!] /local size][
 		size: emitter/arguments-size? spec/4
 		if all [
 			spec/2 = 'syscall
 			compiler/job/syscall = 'BSD
 		][
-			size: size + 4							;-- account for extra space
+			size: size + stack-width				;-- account for extra space
 		]
 		if issue? args/1 [							;-- test for variadic call
 			size: length? args/2
@@ -1002,7 +1002,7 @@ make target-class [
 		emit #{89E5}								;-- MOV ebp, esp
 		unless zero? locals-size [
 			emit #{83EC}							;-- SUB esp, locals-size
-			emit to-char round/to/ceiling locals-size 4		;-- limits local variables number to 255
+			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
 		fspec: select compiler/functions name
 		if all [block? fspec/4/1 find fspec/4/1 'callback] [

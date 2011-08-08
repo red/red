@@ -1395,7 +1395,7 @@ system-dialect: context [
 			also pc/1 pc: next pc
 		]
 	
-		comp-word: func [/path symbol [word!] /local entry args n name expr attribut][
+		comp-word: func [/path symbol [word!] /local entry args n name expr attribute][
 			name: any [symbol pc/1]
 			case [
 				entry: select keywords name [do entry]	;-- it's a reserved word
@@ -1415,7 +1415,7 @@ system-dialect: context [
 					entry: find functions name 
 				][
 					pc: next pc							;-- it's a function
-					either attribut: check-variable-arity? entry/2/4 [
+					either attribute: check-variable-arity? entry/2/4 [
 						unless block? pc/1 [			;-- variable arity case
 							throw-error [
 								"variable-arguments function requires an enclosing block for arguments"
@@ -1425,14 +1425,14 @@ system-dialect: context [
 						fetch-into pc/1 [
 							until [
 								append/only args fetch-expression	;-- fetch all arguments
-								if attribut = 'typeinfo [
+								if attribute = 'typeinfo [
 									append args get-type-id last args
 								]
 								tail? pc
 							]
 						]
 						pc: next pc							;-- jump over arguments block
-						reduce [name to-issue attribut args]
+						reduce [name to-issue attribute args]
 					][									;-- fixed arity case
 						args: make block! n: entry/2/1
 						loop n [append/only args fetch-expression]	;-- fetch n arguments
