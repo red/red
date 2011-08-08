@@ -375,6 +375,16 @@ system-dialect: context [
 			]
 		]
 		
+		get-type-id: func [value /local type][
+			type: blockify get-mapped-type value
+			type: either type/1 = 'pointer [
+				pick [int-ptr! byte-ptr!] type/2/1 = 'integer!
+			][
+				type/1
+			]
+			select emitter/datatype-ID type
+		]
+		
 		base-type?: func [value][
 			if block? value [value: value/1]
 			to logic! find/skip emitter/datatypes value 3
@@ -545,6 +555,7 @@ system-dialect: context [
 				integer! ['integer!]
 				logic!   ['logic!]
 				word!	 [resolve-type arg]
+				get-word!['function!]
 				tag!	 [last-type]
 				path!	 [resolve-path-type arg]
 				block!	 [
@@ -778,12 +789,16 @@ system-dialect: context [
 			unless block? specs [
 				throw-error "function definition requires a specification block"
 			]
-			attribs: ['infix | 'callback]
+			attribs: [
+				'infix | 'callback | 'variadic | 'typeinfo
+				| ['callback | ['variadic | 'typeinfo]]
+				| [['variadic | 'typeinfo] | 'callback]
+			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
 			unless catch [
 				parse specs [
-					pos: opt [into [some attribs]]		;-- functions attributes
+					pos: opt [into attribs]				;-- functions attributes
 					pos: copy args any [pos: word! into type-def]	;-- arguments definition
 					pos: opt [							;-- return type definition				
 						set value set-word! (					
@@ -901,6 +916,16 @@ system-dialect: context [
 			clear list
 		]
 		
+		check-variable-arity?: func [spec [block!]][
+			all [
+				block? spec/1
+				any [
+					all [find spec/1 'variadic 'variadic]
+					all [find spec/1 'typeinfo 'typeinfo]
+				]
+			]
+		]
+		
 		check-body: func [body][
 			case/all [
 				not block? :body [throw-error "expected a block of code"]
@@ -929,20 +954,18 @@ system-dialect: context [
 			][
 				case [
 					find specs/1 'infix [
-						unless 2 = get-arity specs [
+						if 2 <> get-arity specs [
 							throw-error [
 								"infix function requires 2 arguments, found"
 								get-arity specs "for" name
 							]
 						]
-						specs: next specs
 						type: 'infix
 					]
 					find specs/1 'callback [
 						cc: '??						;-- set later when passed as argument
 						storage: callbacks
 					]
-					; add future attributes processing code here
 				]
 			]
 			add-function type reduce [name none specs] cc
@@ -1372,7 +1395,7 @@ system-dialect: context [
 			also pc/1 pc: next pc
 		]
 	
-		comp-word: func [/path symbol [word!] /local entry args n name expr][
+		comp-word: func [/path symbol [word!] /local entry args n name expr attribut][
 			name: any [symbol pc/1]
 			case [
 				entry: select keywords name [do entry]	;-- it's a reserved word
@@ -1391,10 +1414,30 @@ system-dialect: context [
 					not path
 					entry: find functions name 
 				][
-					pc: next pc							;-- it's a function		
-					args: make block! n: entry/2/1
-					loop n [append/only args fetch-expression]	;-- fetch n arguments
-					head insert args name
+					pc: next pc							;-- it's a function
+					either attribut: check-variable-arity? entry/2/4 [
+						unless block? pc/1 [			;-- variable arity case
+							throw-error [
+								"variable-arguments function requires an enclosing block for arguments"
+							]
+						]
+						args: make block! 1
+						fetch-into pc/1 [
+							until [
+								append/only args fetch-expression	;-- fetch all arguments
+								if attribut = 'typeinfo [
+									append args get-type-id last args
+								]
+								tail? pc
+							]
+						]
+						pc: next pc							;-- jump over arguments block
+						reduce [name to-issue attribut args]
+					][									;-- fixed arity case
+						args: make block! n: entry/2/1
+						loop n [append/only args fetch-expression]	;-- fetch n arguments
+						head insert args name
+					]
 				]
 				'else [throw-error ["undefined symbol:" mold name]]
 			]

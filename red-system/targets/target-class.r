@@ -41,12 +41,6 @@ target-class: context [
 	opposite?: func [cond [word!]][
 		first select/skip opp-conditions cond 2
 	]
-
-	align-to: func [value [integer!] size [integer!]][
-		either zero? value // size [value][
-			and value + size negate size
-		]
-	]
 	
 	power-of-2?: func [n [integer! char!]][
 		if all [

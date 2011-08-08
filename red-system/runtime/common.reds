@@ -35,8 +35,17 @@ Red/System [
 #define int-ptr!	  [pointer! [integer!]]
 #define make-c-string [as c-string! allocate]
 
+#define type-logic!		1					;-- type ID list for 'typeinfo attribut
+#define type-integer!	2
+#define type-byte!	    3
+#define type-c-string!  4
+#define type-byte-ptr!  5
+#define type-int-ptr!	6
+#define type-struct!	7
+#define type-function!	8
 
-newline: 	"^/"
+
+newline: 	"^/"							;-- Line-feed (LF) global definition
 stdout:		-1								;-- uninitialized default value
 stdin:		-1								;-- uninitialized default value
 stderr:		-1								;-- uninitialized default value
@@ -44,6 +53,11 @@ stderr:		-1								;-- uninitialized default value
 
 str-array!: alias struct! [
 	item [c-string!]
+]
+
+typed-value!: alias struct! [
+	value	[integer!]
+	type	[integer!]	
 ]
 
 __stack!: alias struct! [
@@ -56,6 +70,25 @@ system: declare struct! [					;-- store runtime accessible system values
 	args-list	[str-array!]				;-- command-line arguments array pointer (do not move member)
 	env-vars 	[str-array!]				;-- environment variables array pointer (always null for Windows)
 	stack		[__stack!]					;-- stack virtual access
+]
+
+;-------------------------------------------
+;-- Convert a type ID to a c-string!
+;-------------------------------------------
+to-type: func [
+	type 	[integer!]						;-- type ID
+	return: [c-string!]						;-- type representation as c-string
+	/local msg
+][
+	if type = type-logic! 	 [msg: "logic!"]
+	if type = type-integer!  [msg: "integer!"]
+	if type = type-byte! 	 [msg: "byte!"]
+	if type = type-c-string! [msg: "c-string!"]
+	if type = type-byte-ptr! [msg: "pointer! [byte!]"]
+	if type = type-int-ptr!  [msg: "pointer! [integer!]"]
+	if type = type-struct!   [msg: "struct!"]
+	if type = type-function! [msg: "function!"]
+	msg	
 ]
 
 #switch OS [

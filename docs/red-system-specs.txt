@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 04/08/2011
-	Revision: 22
+	Date: 08/08/2011
+	Revision: 23
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1071,6 +1071,134 @@ will generate a compilation error.
   
 /note
 
++++Variadic
+
+Triggers the variable argument mode for native or imported functions. A native function using this attribute must provide two arguments in its specification block:
+
+* an integer variable for the arguments count
+
+* a pointer for the argument list (pointer! [integer!])
+
+An imported function just needs the attribute without any other arguments declaration.
+
+Examples of definition:
+
+  vprint: func [						;-- native function
+  	[variadic]
+  	count [integer!] list [int-ptr!]
+  ][
+    prin "count: "
+  	prin-int count
+  	prin newline
+  	until [
+  		prin-hex list/value
+  		prin newline
+  		list: list + 1
+  		count: count - 1
+  		zero? count
+  	]
+ ]
+
+ #import [								;-- imported function
+ 	LIBC-file cdecl [
+ 		vprintf: "printf" [[variadic]]
+ 	]
+ ]
+ 
+Passing arguments to a variadic function is achieved by wrapping them in a block (squared brackets).
+
+Example of calls:
+
+ vprint ["hello" 123 "world"]
+ 
+will output:
+
+ count: 3
+ 00402035								;-- pointer to "hello" c-string
+ 0000007B								;-- 123 in hexadecimal
+ 00402030								;-- pointer to "world" c-string
+ 
+Calling an imported variadic function:
+
+ vprintf ["%s %i %s" "hello" 123 "world"]
+ 
+will output:
+
+ hello 123 world
+ 
+\note Compatibity with other attributes
+<b>Variadic</b> attribute can only be used alone or with the <b>callback</b> attribute.
+
+/note
+ 
++++Typeinfo
+
+Triggers the variable argument mode with type information for native functions. <b>Typeinfo</b> is similar to the <b>variadic</b> attribute. A native function using this attribute must provide two arguments in its specification block:
+
+* an integer variable for the arguments count
+
+* a pointer for the argument records (using the <b>typed-value!</b> alias)
+
+The <b>typed-value!</b> alias is defined as
+
+ typed-value!: alias struct! [
+ 	value	[integer!]					;-- argument value or pointer
+	type	[integer!]					;-- argument type	
+ ]
+ 
+Types are defined by the runtime as:
+
+ #define type-logic!	 1
+ #define type-integer!	 2
+ #define type-byte!	     3
+ #define type-c-string!  4
+ #define type-byte-ptr!  5
+ #define type-int-ptr!	 6
+ #define type-struct!	 7
+ #define type-function!	 8
+ 
+\note Typeinfo and imported function
+It is possible to use <b>typeinfo</b> attribute for an imported function, but it needs to meet the specific stack layout required by this attribute, so should probably be reserverd only for imported function written in Red/System.
+
+/note
+
+Example of definition:
+
+  vprint2: func [
+  	[typeinfo]
+  	count [integer!] list [typed-value!]
+  ][
+    prin "count: "
+  	prin-int count
+  	prin newline
+  	until [
+  		prin-hex list/value
+  		prin " : "
+  		print to-type list/type			;-- to-type converts a type ID to a c-string
+  		list: list + 1
+  		count: count - 1
+  		zero? count
+  	]
+ ]
+ 
+Passing arguments to a variadic function with type information is achieved by wrapping them in a block (squared brackets).
+
+Example of calls:
+
+ vprint2 ["hello" 123 "world"]
+ 
+will output:
+
+ count: 3
+ 00402043 : c-string!					;-- pointer to "hello" c-string
+ 0000007B : integer!					;-- 123 in hexadecimal
+ 0040203E : c-string!					;-- pointer to "world" c-string 
+ 
+\note Compatibity with other attributes
+<b>Typeinfo</b> attribute can only be used alone or with the <b>callback</b> attribute.
+
+/note
+
 ---Type inference
 
 Functions offer a limited type inference possibility for local variables.
@@ -1982,31 +2110,6 @@ Pop a value from top of execution stack. Stack pointer is modified.
 
  return: an integer value
 
-+++GET-STACK
-
-Retrieve execution stack top address. Stack pointer is not modified.
-
-<b>Syntax</b>
-
- get-stack
-
- return: a pointer value of type: pointer! [integer!]
-
-+++SET-STACK
-
-Set the execution stack top address to a new a value. Stack pointer is modified.
-
-<b>Syntax</b>
-
- set-stack <address>
-
- <address>: a pointer value of type: pointer! [integer!]
-
-\note Stack pointer modification
-Do not use this function unless you know exactly what you are doing, else your program will most probably crash.
-
-/note
- 
 ---Debugging functions
 
 +++ASSERT
@@ -2032,6 +2135,57 @@ will produce if saved to %test.reds file and run:
 Assertion will only be compiled if the <b>debug?</b> compilation option is set to YES or if the <b>-g</b> command-line option is used, else the assertion will be ignored by the compiler.
 
 /note
+
+---System structure
+
+<i>TBD: describe system structure</i>
+
++++SYSTEM/STACK/TOP
+
+Set or retrieve execution stack top address.
+
+<b>Syntax</b>
+
+Getting stack top value:
+
+ system/stack/top
+
+ return: a pointer value of type: pointer! [integer!]
+
+Setting stack top value:
+
+ system/stack/top: <address>
+
+ <address>: a pointer value of type: pointer! [integer!]
+
+\note Stack pointer modification
+Do not use it unless you know exactly what you are doing, else your program will most probably crash.
+
+/note
+
++++SYSTEM/STACK/FRAME
+
+Set or retrieve execution stack frame address.
+
+<b>Syntax</b>
+
+Getting stack frame value:
+
+ system/stack/frame
+
+ return: a pointer value of type: pointer! [integer!]
+
+Setting stack frame value:
+
+ system/stack/frame: <address>
+
+ <address>: a pointer value of type: pointer! [integer!]
+
+\note Stack pointer modification
+Do not use it unless you know exactly what you are doing, else your program will most probably crash.
+
+/note
+
 
 ===Possible Evolutions
 
@@ -2091,9 +2245,6 @@ will output:
  
 ---Functions
 
-*Add support for variable arguments number (using a block to gather them). Example:
- print ["Hello " name ", I'm" 18]
-
 *Add support for functions refinements (same as in REBOL)
 
 *<strike>Infer functions return value datatype</strike>
@@ -2146,6 +2297,15 @@ will output:
 
 
 ===Document History
+
+*<b>08/08/2011 - revision 23</b>
+
+*>Variadic and typeinfo function attributes added.
+
+*>Get-stack and set-stack functions removed.
+
+*>Added system/stack/* descriptions.
+
 
 *<b>04/08/2011 - revision 22</b>
 

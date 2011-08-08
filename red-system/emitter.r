@@ -42,6 +42,17 @@ emitter: context [
 		function!	4	-				;-- 32-bit, 8 for 64-bit
 	]
 	
+	datatype-ID: [
+		logic!		1
+		integer!	2
+		byte!	    3
+		c-string!   4
+		byte-ptr!   5
+		int-ptr!	6
+		struct!		7
+		function!	8
+	]
+	
 	chunks: context [
 		queue: make block! 10
 		
@@ -423,10 +434,17 @@ emitter: context [
 		either casted [reduce [casted old-type]][none]
 	]
 	
-	call: func [name [word!] args [block!] /sub /local type res import? left right dup][
+	call: func [
+		name [word!] args [block!] /sub /local list type res import? left right dup var-arity?
+	][
 		compiler/check-cc name
-		compiler/check-arguments-type name args
-		order-args name args
+		list: either issue? args/1 [					;-- bypass type-checking for variable arity calls
+			args/2
+		][
+			compiler/check-arguments-type name args
+			args
+		]
+		order-args name list
 		
 		import?: compiler/functions/:name/2 = 'import	; syscalls don't seem to need 16-byte alignment??
 		if import? [target/emit-stack-align-prolog args]
@@ -436,28 +454,28 @@ emitter: context [
 			next select compiler/functions name
 		]
 		either type <> 'op [					
-			forall args [								;-- push function's arguments on stack
-				cast: preprocess-argument/no-last args
+			forall list [								;-- push function's arguments on stack
+				cast: preprocess-argument/no-last list
 				if all [cast cast/1/1 = 'logic!][
 					target/emit-casting cast no
 					compiler/last-type: cast/1			;-- for inline unary functions
 				]
 				if type <> 'inline [
-					target/emit-push either block? args/1 [<last>][args/1]
+					target/emit-push either block? list/1 [<last>][list/1]
 				]
 			]
 		][												;-- nested calls as op argument require special handling
-			left: preprocess-argument args
-			if all [block? args/1 any [block? args/2 path? args/2]][
+			left: preprocess-argument list
+			if all [block? list/1 any [block? list/2 path? list/2]][
 				target/emit-save-last					;-- optionally save left argument result
-				if block? args/2 [
+				if block? list/2 [
 					left: reduce [						;-- implicit cast forced to save returned type
 						dup: compiler/blockify compiler/last-type
 						dup
 					]
 				]
 			]
-			right: preprocess-argument/no-last next args
+			right: preprocess-argument/no-last next list
 			target/left-cast:  left
 			target/right-cast: right
 		]

@@ -873,19 +873,26 @@ make target-class [
 		]
 	]
 	
-	emit-cdecl-pop: func [spec [block!] /local size][
+	emit-cdecl-pop: func [spec [block!] args [block!] /local size attribut][
 		size: emitter/arguments-size? spec/4
 		if all [
 			spec/2 = 'syscall
 			compiler/job/syscall = 'BSD
 		][
-			size: size  + 1							;-- account for extra space
+			size: size + 4							;-- account for extra space
+		]
+		if issue? args/1 [							;-- test for variadic call
+			size: length? args/2
+			if spec/2 = 'native [
+				size: size + pick [3 2] args/1 = #typeinfo 	;-- account for extra arguments
+			]
+			size: size * stack-width
 		]
 		emit #{83C4}								;-- ADD esp, n
 		emit to-bin8 size
 	]
 	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec type res][
+	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec type res total][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 		
 		fspec: select compiler/functions name
@@ -915,7 +922,7 @@ make target-class [
 				emit to-bin32 last fspec
 				emit #{CD80}						;-- INT 0x80		; syscall
 				if compiler/job/syscall = 'BSD [
-					emit-cdecl-pop fspec			;-- BSD syscall cconv (~ cdecl)
+					emit-cdecl-pop fspec args		;-- BSD syscall cconv (~ cdecl)
 				]
 			]
 			import [
@@ -928,14 +935,23 @@ make target-class [
 					emit-reloc-addr spec
 				]
 				if fspec/3 = 'cdecl [				;-- add calling cleanup when required
-					emit-cdecl-pop fspec
+					emit-cdecl-pop fspec args
 				]			
 			]
 			native [
+				if issue? args/1 [					;-- variadic call
+					emit-push 4 * length? args/2	;-- push arguments total size in bytes 
+													;-- (required to clear stack on stdcall return)
+					emit #{8D742404}				;-- LEA esi, [esp+4]	; skip last pushed value
+					emit #{56}						;-- PUSH esi			; push arguments list pointer
+					total: length? args/2
+					if args/1 = #typeinfo [total: total / 2]
+					emit-push total					;-- push arguments count
+				]
 				emit #{E8}							;-- CALL NEAR disp
 				emit-reloc-addr spec				;-- 32-bit relative displacement place-holder
-				if fspec/3 = 'cdecl [				;-- in case of not default calling convention
-					emit-cdecl-pop fspec
+				if fspec/3 = 'cdecl [				;-- in case of non-default calling convention
+					emit-cdecl-pop fspec args
 				]
 			]
 			inline [
@@ -986,7 +1002,7 @@ make target-class [
 		emit #{89E5}								;-- MOV ebp, esp
 		unless zero? locals-size [
 			emit #{83EC}							;-- SUB esp, locals-size
-			emit to-char align-to locals-size 4
+			emit to-char round/to/ceiling locals-size 4		;-- limits local variables number to 255
 		]
 		fspec: select compiler/functions name
 		if all [block? fspec/4/1 find fspec/4/1 'callback] [
@@ -1014,8 +1030,18 @@ make target-class [
 			emit #{C3}								;-- RET
 		][
 			;; stdcall/reds: Consume original arguments from stack.
-			emit #{C2}								;-- RET args-size
-			emit to-bin16 align-to args-size 4
+			either compiler/check-variable-arity? locals [
+				emit #{5E}							;-- POP esi			; retrieve the return address
+				emit #{5B}							;-- POP ebx			; skip arguments count
+				emit #{5B}							;-- POP ebx			; skip arguments pointer
+				emit #{5B}							;-- POP ebx			; get stack offset
+				emit #{01DC}						;-- ADD esp, ebx	; skip arguments list (clears stack)
+				emit #{56}							;-- PUSH esi		; push return address
+				emit #{C3}							;-- RET
+			][
+				emit #{C2}							;-- RET args-size
+				emit to-bin16 round/to/ceiling args-size 4
+			]
 		]
 	]
 ]
