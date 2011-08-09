@@ -2236,6 +2236,11 @@ would output (specific to your shell/OS):
  SHELL=/bin/bash
  ...								;-- rest of output omitted						
 
+\note Implementation note
+On Windows platforms, system/env-vars is always set to null. This may change in future.
+
+/note
+
 +++STACK/TOP
 
 Set or retrieve execution stack top address.
