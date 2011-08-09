@@ -376,8 +376,8 @@ system-dialect: context [
 		]
 		
 		get-type-id: func [value /local type][
-			type: blockify get-mapped-type value
-			type: either type/1 = 'pointer [
+			type: resolve-expr-type value
+			type: either type/1 = 'pointer! [
 				pick [int-ptr! byte-ptr!] type/2/1 = 'integer!
 			][
 				type/1
@@ -1395,7 +1395,7 @@ system-dialect: context [
 			also pc/1 pc: next pc
 		]
 	
-		comp-word: func [/path symbol [word!] /local entry args n name expr attribute][
+		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch][
 			name: any [symbol pc/1]
 			case [
 				entry: select keywords name [do entry]	;-- it's a reserved word
@@ -1416,22 +1416,19 @@ system-dialect: context [
 				][
 					pc: next pc							;-- it's a function
 					either attribute: check-variable-arity? entry/2/4 [
-						unless block? pc/1 [			;-- variable arity case
-							throw-error [
-								"variable-arguments function requires an enclosing block for arguments"
+						fetch: [
+							append/only args fetch-expression
+							if attribute = 'typed [
+								append args get-type-id last args
 							]
 						]
 						args: make block! 1
-						fetch-into pc/1 [
-							until [
-								append/only args fetch-expression	;-- fetch all arguments
-								if attribute = 'typed [
-									append args get-type-id last args
-								]
-								tail? pc
-							]
+						either block? pc/1 [
+							fetch-into pc/1 [until [do fetch tail? pc]]
+							pc: next pc					;-- jump over arguments block
+						][
+							do fetch
 						]
-						pc: next pc							;-- jump over arguments block
 						reduce [name to-issue attribute args]
 					][									;-- fixed arity case
 						args: make block! n: entry/2/1
