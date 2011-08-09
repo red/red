@@ -189,7 +189,7 @@ system-dialect: context [
 					%./ <> path: first split-path input	;-- is there a path in the filename?
 					not find include-dirs path
 				][
-					append include-dirs path			;-- register source's dir as include dir
+					insert include-dirs path			;-- register source's dir as include dir
 				]
 				if error? set/any 'err try [src: as-string read/binary input][	;-- read source file
 					throw-error ["file access error:" mold disarm err]
