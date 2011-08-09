@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 08/08/2011
-	Revision: 23
+	Date: 09/08/2011
+	Revision: 24
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1131,9 +1131,9 @@ will output:
 
 /note
  
-+++Typeinfo
++++Typed
 
-Triggers the variable argument mode with type information for native functions. <b>Typeinfo</b> is similar to the <b>variadic</b> attribute. A native function using this attribute must provide two arguments in its specification block:
+Triggers the variable argument mode with type information for native functions. <b>Typed</b> is similar to the <b>variadic</b> attribute. A native function using this attribute must provide two arguments in its specification block:
 
 * an integer variable for the arguments count
 
@@ -1157,15 +1157,15 @@ Types are defined by the runtime as:
  #define type-struct!	 7
  #define type-function!	 8
  
-\note Typeinfo and imported function
-It is possible to use <b>typeinfo</b> attribute for an imported function, but it needs to meet the specific stack layout required by this attribute, so should probably be reserverd only for imported function written in Red/System.
+\note Typed and imported function
+It is possible to use <b>typed</b> attribute for an imported function, but it needs to meet the specific stack layout required by this attribute, so should probably be reserverd only for imported function written in Red/System.
 
 /note
 
 Example of definition:
 
   vprint2: func [
-  	[typeinfo]
+  	[typed]
   	count [integer!] list [typed-value!]
   ][
     prin "count: "
@@ -1195,7 +1195,7 @@ will output:
  0040203E : c-string!					;-- pointer to "world" c-string 
  
 \note Compatibity with other attributes
-<b>Typeinfo</b> attribute can only be used alone or with the <b>callback</b> attribute.
+<b>Typed</b> attribute can only be used alone or with the <b>callback</b> attribute.
 
 /note
 
@@ -1376,9 +1376,13 @@ Red/System is able to dynamically load external shared libraries when a Red/Syst
  <datatype>		 : integer! | byte! | pointer! [integer! | byte!] |
              	   c-string! | struct! [<members>] | function! [<specification>]
 
-The <b>RETURN:</b> statement indicates that the mapped function has a return value.
+<u>Notes</u>:
 
-There's no limitation on the number of libraries or functions that can be declared this way.
+*An absolute path to the library can be provided in OS-specific format.
+
+*The <b>RETURN:</b> statement indicates that the mapped function has a return value.
+
+*There's no limitation on the number of libraries or functions that can be declared this way.
 
 Supported calling conventions are:
 
@@ -1800,9 +1804,10 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     assert		comment		declare
     either      exit	    false
     func   		function    if
-    not			or		    return
-    size?    	true	    until
-    while		xor
+    not			or		    pop
+    push		return      size?
+    true	    until       while
+    xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -2078,7 +2083,7 @@ Global condition is met if all the sub-conditions are met.  ALL returns a logic!
 <b>Example</b>
 
  if all [foo > 5 bar = 0][
- 	print "true"				 ;-- reached if both conditions are met
+ 	print "true"				 	;-- reached if both conditions are met
  ]
 
 ---Stack functions
@@ -2138,9 +2143,100 @@ Assertion will only be compiled if the <b>debug?</b> compilation option is set t
 
 ---System structure
 
-<i>TBD: describe system structure</i>
+System structure is a special struct value, defined at run-time, to give access to some core features of Red/System.
 
-+++SYSTEM/STACK/TOP
++++ARGS-COUNT
+
+Informs about the number of words passed on command-line. The executable itself is included in the count, so <b>args-count</b> is greater or equal to one.
+
+<b>Syntax</b>
+
+ system/args-count
+
+ return: an integer value (>= 1)
+
++++ARGS-LIST
+
+Pointer to an array of words passed on command-line (including the program name). The array's end is marked by a null pointer.
+
+<b>Syntax</b>
+
+ system/args-list
+
+ return: a pointer value of type: str-array! (alias)
+ 
+The pointer alias is defined as:
+
+ str-array!: alias struct! [
+ 	item [c-string!]
+ ]
+
+<b>Example</b>
+
+ Red/System [purpose: "demo system/args-* info usage"]
+
+ prin "count: " 
+ prin-int system/args-count 
+ prin newline 
+ args: system/args-list 
+ c: 1 
+ until [ 
+ 	prin-int c 
+ 	prin ": " 
+ 	print args/item 
+ 	c: c + 1 
+ 	args: args + 1 
+ 	args/item = null 
+ ] 
+
+If compiled as <i>show-args</i> executable, and called as:
+
+ show-args 123 -p hello
+ 
+it would output:
+
+ count: 4
+ 1: test-logic2
+ 2: 123
+ 3: -p
+ 4: hello
+ 
++++ENV-VARS
+
+Pointer to an array of shell environment variables with their value. The array's end is marked by a null pointer.
+
+<b>Syntax</b>
+
+ system/env-vars
+
+ return: a pointer value of type: str-array! (alias)
+ 
+The pointer alias is defined as:
+
+ str-array!: alias struct! [
+ 	item [c-string!]
+ ]
+
+<b>Example</b>
+
+ Red/System [purpose: "demo system/env-vars usage"]
+
+ env: system/env-vars 
+ until [ 
+	print env/item 
+	env: env + 1 
+	env/item = null 
+ ] 
+
+would output (specific to your shell/OS):
+
+ ORBIT_SOCKETDIR=/tmp/orbit-root
+ SSH_AGENT_PID=2248
+ TERM=xterm
+ SHELL=/bin/bash
+ ...								;-- rest of output omitted						
+
++++STACK/TOP
 
 Set or retrieve execution stack top address.
 
@@ -2163,7 +2259,7 @@ Do not use it unless you know exactly what you are doing, else your program will
 
 /note
 
-+++SYSTEM/STACK/FRAME
++++STACK/FRAME
 
 Set or retrieve execution stack frame address.
 
@@ -2298,6 +2394,18 @@ will output:
 
 ===Document History
 
+*<b>09/08/2011 - revision 24</b>
+
+*>Typeinfo function attribute renamed to typed.
+
+*>Added a note about imported library path format.
+
+*>Special 'system structure fully documented
+
+*>Added push and pop as reserved keywords
+
+
+
 *<b>08/08/2011 - revision 23</b>
 
 *>Variadic and typeinfo function attributes added.
@@ -2305,6 +2413,7 @@ will output:
 *>Get-stack and set-stack functions removed.
 
 *>Added system/stack/* descriptions.
+
 
 
 *<b>04/08/2011 - revision 22</b>
