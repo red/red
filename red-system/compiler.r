@@ -790,9 +790,9 @@ system-dialect: context [
 				throw-error "function definition requires a specification block"
 			]
 			attribs: [
-				'infix | 'callback | 'variadic | 'typeinfo
-				| ['callback | ['variadic | 'typeinfo]]
-				| [['variadic | 'typeinfo] | 'callback]
+				'infix | 'callback | 'variadic | 'typed
+				| ['callback | ['variadic | 'typed]]
+				| [['variadic | 'typed] | 'callback]
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
@@ -921,7 +921,7 @@ system-dialect: context [
 				block? spec/1
 				any [
 					all [find spec/1 'variadic 'variadic]
-					all [find spec/1 'typeinfo 'typeinfo]
+					all [find spec/1 'typed 'typed]
 				]
 			]
 		]
@@ -1425,7 +1425,7 @@ system-dialect: context [
 						fetch-into pc/1 [
 							until [
 								append/only args fetch-expression	;-- fetch all arguments
-								if attribute = 'typeinfo [
+								if attribute = 'typed [
 									append args get-type-id last args
 								]
 								tail? pc

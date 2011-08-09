@@ -884,7 +884,7 @@ make target-class [
 		if issue? args/1 [							;-- test for variadic call
 			size: length? args/2
 			if spec/2 = 'native [
-				size: size + pick [3 2] args/1 = #typeinfo 	;-- account for extra arguments
+				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments
 			]
 			size: size * stack-width
 		]
@@ -945,7 +945,7 @@ make target-class [
 					emit #{8D742404}				;-- LEA esi, [esp+4]	; skip last pushed value
 					emit #{56}						;-- PUSH esi			; push arguments list pointer
 					total: length? args/2
-					if args/1 = #typeinfo [total: total / 2]
+					if args/1 = #typed [total: total / 2]
 					emit-push total					;-- push arguments count
 				]
 				emit #{E8}							;-- CALL NEAR disp
