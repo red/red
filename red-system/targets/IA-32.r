@@ -449,6 +449,7 @@ make target-class [
 	
 	emit-push: func [
 		value [char! logic! integer! word! block! string! tag! path! get-word!]
+		/with cast [block! none!]
 		/local spec type
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
@@ -507,6 +508,9 @@ make target-class [
 			]
 			path! [
 				emitter/access-path value none
+				if all [cast find [logic! integer!] cast/1/1][
+					emit-casting cast no
+				]
 				emit-push <last>
 			]
 		]
