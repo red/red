@@ -44,8 +44,7 @@ Red/System [
 #define type-struct!	7
 #define type-function!	8
 
-
-newline: 	"^/"							;-- Line-feed (LF) global definition
+;-- Global variables definition --
 stdout:		-1								;-- uninitialized default value
 stdin:		-1								;-- uninitialized default value
 stderr:		-1								;-- uninitialized default value
@@ -111,8 +110,9 @@ to-type: func [
 	#default [#include %linux.reds]
 ]
 
-#if debug? = yes [#include %debug.reds]
+#include %utils.reds						;-- load additional utility functions
 
+#if debug? = yes [#include %debug.reds]		;-- loads optionally debug functions
 
 ;-- Run-time error handling --
 

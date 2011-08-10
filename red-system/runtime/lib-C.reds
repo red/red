@@ -37,32 +37,28 @@ Red/System [
 		quit:		 "exit" [
 			status		[integer!]
 		]
-		puts: 		 "puts" [
-			str			[c-string!]
+		putchar: 	 "putchar" [
+			char		[byte!]
 		]
-		printf: 	 "printf" [
-			format		[c-string!]
-			str			[integer!]		;-- placeholder for any type
-		]
+		printf: 	 "printf" [[variadic]]
 	]
 ]
 
-print: func [s [c-string!] return: [c-string!]][
-	puts s
-	s
-]
-
-prin: func [s [c-string!] return: [c-string!]][
-	printf "%s" as-integer s
+prin: func [s [c-string!] return: [c-string!] /local p][
+	p: s
+	while [p/1 <> null-byte][
+		putchar p/1
+		p: p + 1
+	]
 	s
 ]
 
 prin-int: func [i [integer!] return: [integer!]][
-	printf "%i" i
+	printf ["%i" i]
 	i
 ]
 
 prin-hex: func [i [integer!] return: [integer!]][
-	printf "%08X" i	
+	printf ["%08X" i]
 	i
 ]

@@ -128,12 +128,8 @@ __win32-memory-blocks: declare struct! [
 		WriteFile stdout s length? s written 0
 		s
 	]
+	
 
-	print: func [s [c-string!] return: [c-string!]][
-		prin s
-		prin newline
-		s
-	]
 ]
 
 ;-------------------------------------------

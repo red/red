@@ -43,11 +43,6 @@ stderr: 2
 	prin: func [s [c-string!] return: [integer!]][
 		write stdout s length? s
 	]
-
-	print: func [s [c-string!] return: [integer!]][
-		prin s
-		write stdout newline 1
-	]
 ]
 
 ;-- Catching runtime errors --

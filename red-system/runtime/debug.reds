@@ -20,7 +20,7 @@ prin-hex-chars: func [
 ][
 	s: "00000000"
 	if zero? i [
-		prin s + (8 - n) 
+		print s + (8 - n) 
 		return i
 	]
 	c: 8
@@ -48,18 +48,14 @@ dump-memory: func [
 ][	
 	assert any [unit = 1 unit = 4]
 	
-	prin "^/Hex dump from: "
-	prin-hex as-integer address
-	print "h^/"
+	print ["^/Hex dump from: " address "h^/" lf]
 
 	offset: 0
 	ascii: "                "
 	
 	data-ptr: address
 	until [
-		prin-hex as-integer address
-		prin ": "
-		
+		print [address ": "]
 		i: 0
 		until [
 			i: i + 1
@@ -67,13 +63,13 @@ dump-memory: func [
 			if unit = 1 [
 				prin-hex-chars as-integer address/value 2
 				address: address + 1
-				prin either i = 8 ["  "][" "]
+				print either i = 8 ["  "][" "]
 			]
 			if all [unit = 4 zero? (i // 4)][
 				int-ptr: as int-ptr! address
 				prin-hex int-ptr/value
 				address: address + 4
-				prin either i = 8 ["  "][" "]
+				print either i = 8 ["  "][" "]
 			]
 			
 			byte: data-ptr/value
@@ -86,9 +82,7 @@ dump-memory: func [
 			data-ptr: data-ptr + 1
 			i = 16
 		]
-		prin " "
-		print ascii
-	
+		print [space ascii lf]
 		offset: offset + 16
 		offset = 128
 	]
