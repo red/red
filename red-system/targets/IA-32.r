@@ -968,6 +968,7 @@ make target-class [
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: any [
 						all [left-cast left-cast/1]
+						all [not sub? block? args/1 compiler/last-type]
 						compiler/argument-type? args/1	;-- other ops return type of the first argument	
 					]
 				]
