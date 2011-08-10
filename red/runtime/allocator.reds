@@ -619,20 +619,10 @@ free-big: func [
 		percent: 100 * used / total
 		if all [not zero? used zero? percent][percent: 1]
 
-		prin "used = " 
-		prin-int used
-		prin "/"
-		prin-int total
-		prin " ("
-		prin-int percent
-		prin "%), free = "
-		prin-int free
-		prin "/"
-		prin-int total
-		prin " ("
-		prin-int 100 - percent
-		prin "%)"
-		prin newline
+		print [
+			"used = " used "/" total " ("  percent "%), "
+			"free = " free "/" total " (" 100 - percent "%)" lf
+		]
 	]
 	
 		
@@ -645,19 +635,16 @@ free-big: func [
 	][
 		count: 1
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
-		until [			
-			prin " - series #"
-			prin-int count
-			prin ": size = "
-			prin-int (series/size and s-size-mask) - size? series-buffer!
-			prin ", offset pos = "
-			prin-int series/head
-			prin ", tail pos = "
-			prin-int series/tail
-			prin "    "
-			if series/size and flag-ins-head <> 0 [prin "H"]
-			if series/size and flag-ins-tail <> 0 [prin "T"]
-			prin newline
+		until [
+			print [
+				" - series #" count 
+				": size = "	(series/size and s-size-mask) - size? series-buffer!
+				", offset pos = " series/head ", tail pos = " series/tail
+				"    "
+			]
+			if series/size and flag-ins-head <> 0 [print "H"]
+			if series/size and flag-ins-tail <> 0 [print "T"]
+			print lf
 			count: count + 1
 
 			series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)			
@@ -670,10 +657,7 @@ free-big: func [
 	;-- Displays total frames count
 	;-------------------------------------------
 	print-frames-count: func [count [integer!]][
-		prin "^/    "
-		prin-int count
-		prin " frame"
-		prin either count > 1 ["s^/"][newline]
+		print ["^/    " count " frame" either count > 1 ["s^/"][newline] lf]
 	]
 
 	;-------------------------------------------
@@ -685,19 +669,16 @@ free-big: func [
 	][
 		assert all [1 <= verbose verbose <= 3]
 		
-		print "^/====== Red Memory Stats ======"
+		print [lf "====== Red Memory Stats ======" lf]
 
 	;-- Node frames stats --
 		count: 0
 		n-frame: memory/n-head
-		prin newline
 		
-		print "Node frames:"
+		print [lf "-- Node frames --" lf]
 		while [n-frame <> null][
 			if verbose >= 2 [
-				prin "#"
-				prin-int count + 1
-				prin ": "
+				print ["#" count + 1 ": "]
 				free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
 				frame-stats 
 					free-nodes
@@ -712,14 +693,11 @@ free-big: func [
 	;-- Series frames stats --
 		count: 0
 		s-frame: memory/s-head
-		prin newline
 
-		print "Series frames:"
+		print ["-- Series frames --" lf]
 		while [s-frame <> null][
 			if verbose >= 2 [
-				prin "#"
-				prin-int count + 1
-				prin ": "
+				print ["#" count + 1 ": "]
 				base: (as byte-ptr! s-frame) + size? series-frame!
 				frame-stats
 					as-integer s-frame/tail - as byte-ptr! s-frame/heap
@@ -737,14 +715,11 @@ free-big: func [
 	;-- Big frames stats --
 		count: 0
 		b-frame: memory/b-head
-		prin newline
 
-		print "Big frames:"
+		print ["-- Big frames --" lf]
 		while [b-frame <> null][
 			if verbose >= 2 [
-				prin "#"
-				prin-int count
-				prin ": size = "
+				print ["#" count + 1 ": "]
 				prin-int b-frame/size
 			]
 			count: count + 1
@@ -752,10 +727,10 @@ free-big: func [
 		]
 		print-frames-count count
 		
-		prin "^/Total memory used: "
-		prin-int memory/total
-		print " bytes"
-		print "^/=============================="
+		print [
+			"Total memory used: " memory/total " bytes" lf
+			"==============================" lf
+		]
 	]
 	
 	;-------------------------------------------
@@ -767,9 +742,7 @@ free-big: func [
 	][
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 		
-		prin "^/=== Series layout for frame: <"
-		prin-hex as-integer frame
-		print "h>"
+		print [lf "=== Series layout for frame: <" frame "h>" lf]
 		
 		alt?: no
 		until [
@@ -782,7 +755,7 @@ free-big: func [
 			
 			size: ((series/size and s-size-mask) - size? series-buffer!) / 16
 			until [
-				prin block
+				print block
 				size: size - 1
 				zero? size
 			]
@@ -791,7 +764,7 @@ free-big: func [
 			series >= frame/heap
 		]
 		assert series = frame/heap
-		prin newline
+		print lf
 	]
 	
 ]
