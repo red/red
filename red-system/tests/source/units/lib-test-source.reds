@@ -13,23 +13,51 @@ Red/System [
 
 #include %../../../quick-test/quick-test.reds
 
+;; library declarations
+#import [
+  "***abs-path***###prefix###testlib1@@@extension@@@" cdecl [
+    addone: "addone" [
+      i       [integer!]
+      return: [integer!]
+    ]
+    subtractone: "subtractone" [
+      i       [integer!]
+      return: [integer!]
+    ]
+  ]
+]
+
+#import [
+  "***abs-path***###prefix###testlib2@@@extension@@@" cdecl [
+    twice: "twice" [
+      i       [integer!]
+      return: [integer!]
+    ]
+  ]
+]
+
+#import [
+  "***abs-path***###prefix###testlib3@@@extension@@@" cdecl [
+    halve: "halve" [
+      i       [integer!]
+      return: [integer!]
+    ]
+  ]
+]
+
 ~~~start-file~~~ "library"
   
   --test-- "lib1"
-    #import [
-      "***abs-path***###prefix###testlib1@@@extension@@@" cdecl [
-        addone: "addone" [
-          i       [integer!]
-          return: [integer!]
-        ]
-        subtractone: "subtractone" [
-          i       [integer!]
-          return: [integer!]
-        ]
-      ]
-    ]
   --assert 2 = addone 1
   --assert 1 = subtractone 2
+  
+  --test-- "lib2"    
+  --assert 2 = twice 1
+  --assert 4 = twice 2
+  
+  --test-- "lib3"
+  --assert 1 = halve 2
+  --assert 0 = halve 1
   
 ~~~end-file~~~
 

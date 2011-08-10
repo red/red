@@ -1,10 +1,10 @@
-// testlib1       Adds or subtracts one to/from an integer
+// testlib2       Multiplies an integer by two
 //
 // Purpose:       Testing library calls in Red/System
 //
 // Author:        Peter W A Wood
 //
-// Date:          27-Jun-2011
+// Date:          10-Aug-2011
 //
 // Version:       0.0.1
 //
@@ -19,26 +19,19 @@
 //                  -k-no_order_inits
 //                (This is due to a bug in the Xcode 3 linker
 
-library one;
+library two;
 
-function addone(i: integer):integer;cdecl;
+function twice(i: integer):integer;cdecl;
 begin
-  addone := i + 1;
-end;
-
-function subtractone(i: integer):integer;cdecl;
-begin
-  subtractone := i - 1;
+  twice := i * 2;
 end;
 
 {$ifndef Darwin}
 exports  
-  addone name 'addone',
-  subtractone name 'subtractone';
+  twice name 'twice';
 {$else}
 exports
-  addone name '_addone',
-  subtractone name '_subtractone';
+  twice name '_twice';
 {$endif}
 
 begin

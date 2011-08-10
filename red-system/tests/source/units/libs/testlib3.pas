@@ -1,10 +1,10 @@
-// testlib1       Adds or subtracts one to/from an integer
+// testlib3       Divides an integer by two
 //
 // Purpose:       Testing library calls in Red/System
 //
 // Author:        Peter W A Wood
 //
-// Date:          27-Jun-2011
+// Date:          10-Aug-2011
 //
 // Version:       0.0.1
 //
@@ -19,26 +19,19 @@
 //                  -k-no_order_inits
 //                (This is due to a bug in the Xcode 3 linker
 
-library one;
+library three;
 
-function addone(i: integer):integer;cdecl;
+function halve(i: integer):integer;cdecl;
 begin
-  addone := i + 1;
-end;
-
-function subtractone(i: integer):integer;cdecl;
-begin
-  subtractone := i - 1;
+  halve := i div 2;
 end;
 
 {$ifndef Darwin}
 exports  
-  addone name 'addone',
-  subtractone name 'subtractone';
+  halve name 'halve';
 {$else}
 exports
-  addone name '_addone',
-  subtractone name '_subtractone';
+  halve name '_halve';
 {$endif}
 
 begin

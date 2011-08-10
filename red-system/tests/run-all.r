@@ -9,6 +9,7 @@ REBOL [
 make-if-needed?: func [
   auto-test-file [file!]
   make-file [file!]
+  /lib-test
   /local
     stored-length   ; the length of the make... .r file used to build auto tests
     stored-file-length
@@ -48,12 +49,31 @@ make-dir %runnable/
 
 if not value? 'qt [do %quick-test/quick-test.r]
 
+;; make auto files if needed
 make-if-needed? %source/units/auto-tests/byte-auto-test.reds
-                      %source/units/make-byte-auto-test.r
+                %source/units/make-byte-auto-test.r
                       
 make-if-needed? %source/units/auto-tests/integer-auto-test.reds
-                      %source/units/make-integer-auto-test.r
+                %source/units/make-integer-auto-test.r
 
+;; make lib-test file if needed
+lib-test-len: length? read %source/units/lib-test-source.reds
+save-len: either exists? %source/units/len-lib-test.dat [
+  load %source/units/len-lib-test.dat
+][
+  -1
+]
+
+if any [
+  not exists? %source/units/auto-tests/lib-auto-test.reds
+  lib-test-len <> save-len 
+][
+  save %source/units/len-lib-test.dat lib-test-len
+  print "Making lib-test-auto.reds - shouldn't take long"
+  do %source/units/make-lib-auto-test.r                         
+]
+
+;; run the tests
 print rejoin ["Quick-Test v" system/script/header/version]
 print rejoin ["REBOL " system/version]
 
@@ -101,6 +121,7 @@ start-time: now/precise
 ===start-group=== "Auto-tests"
   --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
+  --run-test-file-quiet %source/units/auto-tests/lib-auto-test.reds
 ===end-group===
 
 ===start-group=== "Compiler Tests"
