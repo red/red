@@ -1490,6 +1490,9 @@ system-dialect: context [
 				if path? value [
 					emitter/access-path value none
 					last-type: resolve-path-type value
+					if casted [
+						emitter/target/emit-casting reduce [casted last-type] no 
+					]				
 					value: <last>
 				]
 			]
