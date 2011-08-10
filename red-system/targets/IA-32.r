@@ -369,7 +369,7 @@ make target-class [
 				emit-poly opcodes/1
 			][
 				emit-poly opcodes/2
-				emit to-bin32 idx * emitter/size-of? 'integer!
+				emit to-bin32 idx * emitter/size-of? type/2/1
 			]
 		][
 			emit-load-index idx
