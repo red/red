@@ -1164,7 +1164,7 @@ It is possible to use <b>typed</b> attribute for an imported function, but it ne
 
 Example of definition:
 
-  vprint2: func [
+  vprint: func [
   	[typed]
   	count [integer!] list [typed-value!]
   ][
@@ -1185,7 +1185,7 @@ Passing arguments to a variadic function with type information is achieved by wr
 
 Example of calls:
 
- vprint2 ["hello" 123 "world"]
+ vprint ["hello" 123 "world"]
  
 will output:
 
@@ -1508,12 +1508,12 @@ The name matching method is exact word matching. This ensures that no accidental
  
 <b>Usage</b>
 
- #define R_PART	FF0000h				;-- simple constants definitions
- #define G_PART	00FF00h
- #define B_PART 0000FFh
+ #define R_PART	00FF0000h			;-- simple constants definitions
+ #define G_PART	0000FF00h
+ #define B_PART 000000FFh
  #define zero?  [0 =]				;-- simple test expression macro
 
- color: 550063h
+ color: 00550063h
 
  if zero? (R_PART and color) [
  	print "no Red found"
@@ -1555,9 +1555,9 @@ Rewriting the example from <i>#define</i> section:
 
  definitions.reds file:
 
-     #define R_PART	FF0000h	
- 	 #define G_PART	00FF00h
- 	 #define B_PART 0000FFh
+     #define R_PART	00FF0000h
+ 	 #define G_PART	0000FF00h
+ 	 #define B_PART 000000FFh
  	 #define zero?  [0 =]
 
  	 test-primary: func [
@@ -1574,7 +1574,7 @@ Rewriting the example from <i>#define</i> section:
 
      #include %definitions.reds
 
- 	 color: 550063h
+ 	 color: 00550063h
 
 	 test-primary color R_PART "no Red found"
 	 test-primary color G_PART "no Green found"
@@ -2398,6 +2398,13 @@ will output:
 
 
 ===Document History
+
+*<b>??/08/2011 - revision 25</b>
+
+*>Fixed invalid hex values in some code examples.
+
+*>Minor code example improvement for typed attributes.
+
 
 *<b>09/08/2011 - revision 24</b>
 
