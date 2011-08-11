@@ -435,7 +435,8 @@ emitter: context [
 	]
 	
 	call: func [
-		name [word!] args [block!] /sub /local list type res import? left right dup var-arity?
+		name [word!] args [block!] /sub
+		/local list type res import? left right dup var-arity? saved?
 	][
 		compiler/check-cc name
 		list: either issue? args/1 [					;-- bypass type-checking for variable arity calls
@@ -468,7 +469,7 @@ emitter: context [
 			]
 		][												;-- nested calls as op argument require special handling
 			left: preprocess-argument list
-			if all [block? list/1 any [block? list/2 path? list/2]][
+			if saved?: all [block? list/1 any [block? list/2 path? list/2]][
 				target/emit-save-last					;-- optionally save left argument result
 				if block? list/2 [
 					left: reduce [						;-- implicit cast forced to save returned type
@@ -478,6 +479,8 @@ emitter: context [
 				]
 			]
 			right: preprocess-argument/no-last next list
+			if saved? [target/emit-restore-last]
+			
 			target/left-cast:  left
 			target/right-cast: right
 		]

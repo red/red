@@ -68,7 +68,11 @@ make target-class [
 	
 	emit-save-last: does [
 		last-saved?: yes
-		emit #{89C2}								;-- MOV edx, eax
+		emit #{50}										;-- PUSH eax
+	]
+	
+	emit-restore-last: does [
+		emit #{5A}					   					;-- POP edx
 	]
 	
 	emit-casting: func [spec [block!] alt? [logic!] /local old][
@@ -713,14 +717,18 @@ make target-class [
 							]
 							emit to-bin8 c
 						][
-							emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
-							emit-poly [#{F6EA} #{F7EA}]	 ;-- IMUL rD		; result in ax|eax|edx:eax
+							emit #{52}					   ;-- PUSH edx	; save edx from corruption
+							emit-poly [#{B3} #{BB} args/2] ;-- MOV rB, value
+							emit-poly [#{F6EB} #{F7EB}]	   ;-- IMUL rB		; result in ax|eax|edx:eax
+							emit #{5A}					   ;-- POP edx
 						]
 					]
 					ref [
+						emit #{52}					;-- PUSH edx	; save edx from corruption
 						emit-variable-poly args/2
 							#{F62D}	#{F72D}			;-- IMUL [value]		; global
 							#{F66D}	#{F76D}			;-- IMUL [ebp+n]		; local
+						emit #{5A}					;-- POP edx
 					]
 					reg [
 						emit-poly [#{F6EA} #{F7EA}] ;-- IMUL rD 			; commutable op
@@ -750,11 +758,13 @@ make target-class [
 							]
 							emit to-bin8 c
 						][
+							emit #{52}				;-- PUSH edx	; save edx from corruption
 							emit-poly [#{B3} #{BB} args/2] ;-- MOV rB, value
 							do div-poly
 						]
 					]
 					ref [
+						emit #{52}					;-- PUSH edx	; save edx from corruption
 						either width = 1 [
 							emit #{B400}			;-- MOV ah, 0			; clean-up garbage in ah
 							emit-variable args/2
@@ -791,6 +801,12 @@ make target-class [
 						emit-poly [#{F6DB} #{F7DB}]	;--		  NEG rB
 						emit-poly [#{00D8} #{01D8}]	;-- add:  ADD rA, rB
 					]								;-- exit:
+				]
+				if any [							;-- in case edx was saved on stack
+					all [b = 'imm any [mod? not c]]
+					b = 'ref
+				][
+					emit #{5A}						;-- POP edx
 				]
 			]
 		]
