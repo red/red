@@ -13,6 +13,8 @@ Red/System [
 
 ===start-group=== "Simple nested expressions"
 
+	ident: func [i [integer!] return: [integer!]][i]
+	
 	a: 1
 	b: 2
 	c: 3
@@ -43,6 +45,25 @@ Red/System [
 
 	--test-- "math-nested-9"
 	--assert ((c - a) - (c - b)) - ((c - a) - (c - b)) = 0
+	
+	--test-- "math-nested-10"
+	--assert (3 * 1) + (3 * 2) = 9
+	
+	--test-- "math-nested-11"
+	--assert (3 / 1) + (3 / 2) = 4
+	
+	--test-- "math-nested-12"
+	--assert ((3 * 1) - (3 * 2)) * ((3 * 1) - (3 * 2)) = 9
+
+	--test-- "math-nested-13"
+	--assert (c * a) + (c * b) = 9
+	
+	--test-- "math-nested-14"
+	--assert (3 * ident 1) + (3 * ident 2) = 9
+	
+	--test-- "math-nested-15"
+	--assert ((ident 3) * ident 1) + ((ident 3) * ident 2) = 9
+	
 
 	foo-nested: func [
 		/local a b c
