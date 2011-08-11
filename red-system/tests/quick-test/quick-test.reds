@@ -2,7 +2,7 @@ Red/System [
 	Title:   "Red/System simple testing framework"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.reds
-	Version: 0.4.1
+	Version: 0.4.2
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -58,17 +58,14 @@ qt-init-file: func [] [
 ][
   qt-init-run
   qt-run-name: title
-  prin "***Starting*** "
-  print title
-  print ""
+  print ["***Starting*** " title lf lf]
 ]
 
 ~~~start-file~~~: func [
   title [c-string!]
 ][
   qt-init-file
-  prin "~~~started test~~~ "
-  print title
+  print ["~~~started test~~~ " title lf]
   qt-file-name: title
   qt-group?: false
 ]
@@ -98,15 +95,11 @@ qt-init-file: func [] [
     qt-file/failures: qt-file/failures + 1
     if qt-group? [  
       if qt-group-name-not-printed [
-        print ""
-        prin "===group=== "
-        print qt-group-name
+        print [lf "===group=== " qt-group-name]
         qt-group-name-not-printed: false
       ]
     ]
-    prin "--test-- "
-    prin qt-test-name
-    print " FAILED**************"
+    print ["--test-- " qt-test-name " FAILED**************" lf]
   ]
 ]
 
@@ -115,14 +108,12 @@ qt-init-file: func [] [
 ]
 
 ~~~end-file~~~: func [] [
-  print ""
-  prin "~~~finished test~~~ "
-  print qt-file-name
+  print [lf "~~~finished test~~~ " qt-file-name lf]
   qt-print-totals qt-file/tests
                   qt-file/asserts
                   qt-file/passes 
                   qt-file/failures
-  print ""
+  print lf
   
   ;; update run totals
   qt-run/passes: qt-run/passes + qt-file/passes
@@ -132,8 +123,7 @@ qt-init-file: func [] [
 ]
 
 ***end-run***: func [][
-  prin "***Finished*** "
-  print qt-run-name
+  print ["***Finished*** " qt-run-name lf]
   qt-print-totals qt-run/tests
                   qt-run/asserts
                   qt-run/passes
@@ -146,20 +136,12 @@ qt-print-totals: func [
   passes    [integer!]
   failures  [integer!]
 ][
-  prin "  Number of Tests Performed:      "
-  prin-int tests
-  print ""
-  prin "  Number of Assertions Performed: "
-  prin-int asserts
-  print ""
-  prin "  Number of Assertions Passed:    "
-  prin-int passes
-  print ""
-  prin "  Number of Assertions Failed:    "
-  prin-int failures
-  print ""
+  print ["  Number of Tests Performed:      " tests lf]
+  print ["  Number of Assertions Performed: " asserts lf]
+  print ["  Number of Assertions Passed:    " passes lf]
+  print ["  Number of Assertions Failed:    " failures lf]
   if failures <> 0 [
-    print "****************TEST FAILURES****************"
+    print ["****************TEST FAILURES****************" lf]
   ]
 ]
 
