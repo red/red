@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 09/08/2011
-	Revision: 24
+	Date: 12/08/2011
+	Revision: 26
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -197,7 +197,7 @@ Allowed types for variables are:
 
  hexadecimal form      :  04D2h
 
-Integer datatype represents natural and negative natural numbers. The memory size of an integer is 32 bits, so the range of supported numbers is : 
+The integer! datatype represents natural and negative natural numbers. The memory size of an integer is 32 bits, so the range of supported numbers is : 
 
  -2147483648 to 2147483647
 
@@ -216,7 +216,7 @@ The 0x prefix is often used to mark a literal hexadecimal value. It could have b
 
 ---Byte!
 
-Byte! datatype purpose is to represent unsigned integers in the 0-255 range. Byte! is an alias name for the internal uint8! datatype, both will be accepted, but byte! is the official one. 
+The byte! datatype's purpose is to represent unsigned integers in the 0-255 range. byte! is an alias for the internal uint8! datatype, both will be accepted, but byte! is the official one. 
 
 +++Syntax
 	
@@ -248,9 +248,9 @@ Casting is allowed to some extent (see section "4.7 Type Casting").
 
 ---Logic!
 
-Logic! datatype represents boolean values: <b>TRUE</b> and <b>FALSE</b>. Logic variables are initialized using a literal logic value or the result of a conditional expression. 
+The logic! datatype represents boolean values: <b>TRUE</b> and <b>FALSE</b>. Logic variables are initialized using a literal logic value or the result of a conditional expression. 
 
-As a first class datatype, you can pass logic values and variables as function's argument or use them as function's return value.
+As a first class datatype, you can pass logic values and variables as function arguments or use them as function's return value.
 
 +++Literal format
 
@@ -277,7 +277,7 @@ will output:
 
 ---C-string!
 
-A c-string! value is a sequence of non-null bytes terminated by a null byte. A c-string variable holds the memory address of the first byte of the c-string, so it can be viewed as an implicit pointer to byte!. A c-string having a null character as first byte is an empty c-string.
+A c-string! value is a sequence of non-null bytes terminated by a null byte. A c-string variable holds the memory address of the first byte of the c-string, so it can be viewed as an implicit pointer to a variable of the byte! datatype. A c-string having a null character as first byte is an empty c-string.
 
 +++Syntax
 
@@ -319,10 +319,12 @@ Syntax
 
 Example
 
- s: "hello"								;-- let's suppose s = 4000000h
+ s: "hello"							;-- let's suppose s points to address 4000000h
 
- s: s + 1								;-- now s = 40000001h
- s: s + 1								;-- now s = 40000002h	
+ s: s + 1								;-- now s points to address 40000001h
+ print s                ;-- "ello" would be printed
+ s: s + 1								;-- now s points to address 40000002h	
+ print s                ;-- "llo" would be printed
 
 +++Accessing bytes
 
@@ -334,7 +336,7 @@ It is possible to access individual bytes in a c-string using path notation:
  <c-string> : a c-string variable
  <index>    : an integer variable
  
-The returned value will be a of type <b>byte!</b>.
+The returned value will be of the type <b>byte!</b>.
 
 Examples:
 
@@ -343,7 +345,7 @@ Examples:
  foo/2  =>  #" "						;-- byte! value (32)
  ...
  foo/15 => #"g"							;-- byte! value (103)
- foo/16 => #"^(00)"						;-- byte! value (0) (end marker)
+ foo/16 => #"^(00)"					;-- byte! value (0) (end marker)
  
 \note Important notes
 
@@ -364,9 +366,9 @@ A simple way to traverse a c-string would be:
  bar: foo
 
  until [
- 	prin form bar/c						;-- form would convert a byte! to a c-string
- 	bar: bar + 1
- 	zero? bar/c
+ 	  print bar/1					
+ 	  bar: bar + 1
+ 	  bar/1 = null-byte
  ]
  
 will output:
@@ -468,7 +470,7 @@ Examples
 
 +++Aliases
 
-Struct! values definitions tend to be quite long, so in some cases, when struct! definitions are required to be inserted in other struct! definitions or in functions specification block, it is possible to use an alias name to reference a struct! definition through the source code. It also allows to solve the self-referencing case quite simply.
+Struct! values definitions tend to be quite long, so in some cases, when struct! definitions are required to be inserted in other struct! definitions or in functions specification block, it is possible to use an alias name to reference a struct! definition through the source code. It also allows the self-referencing case to be quite simply solved.
 
 <u>Notes</u>: 
 
@@ -617,7 +619,7 @@ Usage example
 
 +++Pointer arithmetic
 
-It is possible to apply some simple math operations on pointers like additions and subtractions (as in C). Pointer address would be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
+It is possible to apply some simple math operations on pointers like additions and subtractions (as in C). A pointer address will be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
 
  p: declare pointer! [integer!]			;-- pointed value memory size is 4 bytes
 
@@ -634,6 +636,7 @@ It is possible to apply some simple math operations on pointers like additions a
 Also, additions and subtractions between pointer addresses are allowed. The result value type is, as usual, the type of left operand.
 
  offset: p - q							;-- would store 6 in offset
+                            ;-- type of offset is pointer! [integer!]
 
 +++Pointer path notation
 
@@ -653,8 +656,8 @@ Examples:
  p: declare pointer! [integer!]
 
  p: as [pointer! [integer!]] 4000000h
- a: p/1									;-- reads an integer! at 40000000h
- p/2: a									;-- writes the integer! at 40000004h
+ a: p/1									;-- reads an integer! from 40000000h
+ p/2: a									;-- writes the integer! to 40000004h
  
 Integer variable can also be used as index:
 
@@ -677,7 +680,9 @@ A special <b>null</b> value is available to use for pointer! and other pointer-l
 Examples:
 
  a: declare pointer! [integer!]
- a: null								;-- valid assignation, 'a type is defined
+ a: null								;-- valid assignment, 'a type is defined
+ b: null                ;-- invalid assignment, type of b cannot be deduced by
+                        ;--  the compiler
 
  foo: func [s [c-string!] return: [c-string!]][
  	if s = null [
@@ -688,14 +693,14 @@ Examples:
  ]
 
  b: foo "test"							;-- will set b to "TEST"
- b: foo null							;-- will print "error" and set b to null
+ b: foo null		  					;-- will print "error" and set b to null
 
 
 +++C void pointer
 
 There is no specific support in Red/System for C-like void pointers. The official way is to use a pointer! [byte!] type to represent C void* pointers.
 
-For pointers on c-string! or struct! variables, a pointer variable can be used then dereferenced and casted to the target type.
+For pointers to c-string! or struct! variables, a pointer variable can be used then dereferenced and type cast to the target type.
 
 Example:
 
@@ -706,7 +711,7 @@ Example:
  	return: [p-buffer]					;-- returns a pointer to a c-string
  ][
  	s/buffer: "hello"
- 	s									;-- equivalent to C's char **
+ 	s								          	;-- equivalent to C's char **
  ]
  
  foo: func [
@@ -716,7 +721,7 @@ Example:
  ][
  	c: get-hello
  	s: as c-string! c/value
- 	prin s
+ 	print s
  ]
 would print
  hello
@@ -888,7 +893,7 @@ The grammar rules are specified in <a href="http://en.wikipedia.org/wiki/Backus%
 
 An expression can be used standalone, after an assignment or as argument to some statements (RETURN, IF or EITHER used as statement).
 
-<u>Note</u>: EITHER can be used in an expression only if both its TRUE block and FALSE block last expressions are of the same type. When used in an expression, EITHER is similar to the C ternary operator (?).
+<u>Note</u>: EITHER can be used in an expression only if the last expressions in both its TRUE block and FALSE block are of the same type. When used in an expression, EITHER is similar to the C ternary operator (?).
 
 <b>Examples</b>
 
@@ -903,7 +908,7 @@ An expression can be used standalone, after an assignment or as argument to some
 
 ---Evaluation order rule
 
-Expressions are evaluated from <b>left to right</b>. There is no operator precedence, but infix functions do have a precedence over prefix calls.
+Expressions are evaluated from <b>left to right</b>. There is no operator precedence except for infix functions which do have precedence over prefix calls.
 
 <b>Examples</b>
 
@@ -924,7 +929,7 @@ Function definition and usage is pretty straightforward in Red/System. The funct
 
 *optional returned value type
 
-*local variables
+*declaration of local variables
 
 *special attributes
 
@@ -980,13 +985,22 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  	a * c / b
  ]
  
+---Arguments
+
+All arguments are based by value in Red/System. 
+
+\note c-string! and struct! arguments
+Bear in mind that all the c-string! and struct! types are in fact pointers. These pointers are passed by value to a function.
+
+/note
+
 ---Return value
 
 Any function is able to return a value if necessary. This is trivially achieved as last expression in function's body will be automatically returned if:
 
 *a RETURN: statement is present in function's spec block
 
-*last expression datatype matches the one declared after the RETURN: statement
+*the datatype produced by the last expression executed in the function matches the one declared after the RETURN: statement
 
 \note Implementation-specific note
 Some language statements like ALIAS or FUNC, are handled by the compiler in such a way that there are transparent to surrounding code. This means that such statement could be added after a function ending expression without having impact on it, nor raising any compilation error. Such construction has not much sense and would be considered bad practice if used.
@@ -1013,7 +1027,11 @@ will return:
 
 *When the <b>infix</b> syntax is used, the postfix syntax is still allowed, but it will work only if there is no value on the left side of the function call. Example:
 
- func [][avg 10 6]						;-- will return 8 as well
+ func [
+    return: integer!
+ ][
+    avg 10 6                  ;-- will return 8 as well               
+ ]						
 
  print "ok" avg 10 6					;-- will produce a compilation error
  
@@ -1087,12 +1105,9 @@ Examples of definition:
   	[variadic]
   	count [integer!] list [int-ptr!]
   ][
-    prin "count: "
-  	prin-int count
-  	prin newline
+    print ["count: " count lf]
   	until [
-  		prin-hex list/value
-  		prin newline
+  		print [list/value lf]
   		list: list + 1
   		count: count - 1
   		zero? count
@@ -1168,13 +1183,11 @@ Example of definition:
   	[typed]
   	count [integer!] list [typed-value!]
   ][
-    prin "count: "
-  	prin-int count
-  	prin newline
-  	until [
-  		prin-hex list/value
-  		prin " : "
+    print ["count: " count lf]
+    until [
+  		print [list/value " : "]
   		print to-type list/type			;-- to-type converts a type ID to a c-string
+  		print lf
   		list: list + 1
   		count: count - 1
   		zero? count
@@ -1195,7 +1208,7 @@ will output:
  0040203E : c-string!					;-- pointer to "world" c-string 
  
 \note Compatibity with other attributes
-<b>Typed</b> attribute can only be used alone or with the <b>callback</b> attribute.
+<b>Typed</b> attribute can only be used on its own or with the <b>callback</b> attribute.
 
 /note
 
@@ -1246,13 +1259,13 @@ It is possible to obtain a function address to pass it, for example, as argument
 Example:
 
  progress: func [[callback] count [integer!]][
- 	prin "."							;-- make the user see some progress
+ 	print "."							;-- make the user see some progress
  ]
 
  get-file "bigfile.avi" :progress		;-- blocking job would call 'progress
                                         ;-- periodically
                                         
-<u>Note</u>: Function address is returned as an function pointer pseudo-type, so it cannot be used as-is in expressions, but it can be safely casted to an integer! if required.
+<u>Note</u>: Function address is returned as a function pointer pseudo-type, so it cannot be used as-is in expressions, but it can be safely cast to an integer! if required.
 
 
 ---Premature exiting
@@ -1261,7 +1274,7 @@ Exiting at function's end is not always desirable. Sometimes, conditional premat
 
 +++Exit
 
-Quits immediatly the function.
+Immediatly quits the function.
 
  test: func [a [integer!]][
  	if zero? a [exit]					;-- exit the function here if a = 0
@@ -1270,7 +1283,7 @@ Quits immediatly the function.
  
 +++Return
  
-Quits immediatly the function and returns a value.
+Immediately quits the function and returns a value.
 
  test: func [
  	a [integer!]
@@ -1339,18 +1352,18 @@ Some features of Red/System need to be processed at compile-time rather than at 
  <directive>  : a valid identifier
  <argument-*> : argument can be any Red valid datatype
  
-The number of argument is specific to each compiler directive.
+The number of arguments is specific to each compiler directive.
 
 As compiler directives apply globally to programs, they are not allowed inside code blocks (this restriction might be removed if local directives are introduced in the future).
  
-<u>Implementation note</u>: The directive arguments datatype set, is the one provided by REBOL during the bootstrapping phase only. Once the Red layer will be implemented, the allowed datatypes will be Red ones.
+<u>Implementation note</u>: The directive arguments datatype set, is the one provided by REBOL during the bootstrapping phase only. Once the Red layer has been implemented, the allowed datatypes will be Red ones.
 
 
 ===Importing External Libraries
 
 ---#import
 
-Red/System is able to dynamically load external shared libraries when a Red/System executable is loaded by the operating system. This requires that the programmer gives instructions to the compiler about which library to load and how to map library's functions to Red/System global context. This feature is called "library import" in Red/System and it is supported by a specific compiler directive: <b>#import</b>. This directive can be used anywhere in the global context of your Red/System program, but pay attention to put it <i>before</i> you use one of the mapped functions, else a compiler error will be raised. This directive can be used multiple times in your source code if it makes it more readable. If there is a huge number of functions to imports, putting them in separate includes files would be considered as a good practice.
+Red/System is able to load external shared libraries at the time a Red/System executable is loaded by the operating system. This requires that the programmer gives instructions to the compiler about which library to load and how to map library's functions to Red/System global context. This feature is called "library import" in Red/System and it is supported by a specific compiler directive: <b>#import</b>. This directive can be used anywhere in the global context of your Red/System program, but pay attention to put it <i>before</i> you use one of the mapped functions, else a compiler error will be raised. This directive can be used multiple times in your source code if it makes it more readable. If there is a huge number of functions to imports, putting them in separate includes files would be considered as good practice.
 
 <u>Note</u>: this is not the same as dynamically loading a shared library from your Red/System code after your program has started. Such approach allows you to delay the loading of your libraries and to free them. Imports cannot be freed.
 
@@ -1527,7 +1540,7 @@ The name matching method is exact word matching. This ensures that no accidental
  
 will output:
 
- no Green
+ no Green found
  
 <u>Note</u>: Parens are required in this example on test expressions so that the compiler performs the second infix expression (the and operator) before the first (the equal operator).
  
@@ -1555,7 +1568,7 @@ Rewriting the example from <i>#define</i> section:
 
  definitions.reds file:
 
-     #define R_PART	00FF0000h
+   #define R_PART	00FF0000h
  	 #define G_PART	0000FF00h
  	 #define B_PART 000000FFh
  	 #define zero?  [0 =]
@@ -1582,7 +1595,7 @@ Rewriting the example from <i>#define</i> section:
 
 ---#if
 
-The <b>#if</b> compiler directive goal is to allow conditional compilation based on a simple conditional expression limited to a few compilation options. If the expression result is TRUE, the first block of code is compiled.
+The <b>#if</b> compiler directive goal is to allow conditional compilation based on a simple conditional expression limited to a few compilation options. If the expression result is TRUE, the following block of code is compiled.
 
 <b>Syntax</b>
 
@@ -1942,7 +1955,7 @@ where
 
 *= and <> can also be used to compare logic! values.
 
-*For c-string!, pointer! and struct! comparisons are done on references, not on the pointed value.
+*For c-string!, pointer! and struct! comparisons are done on references, not on the value pointed at.
 
 ---Control flow functions
 
@@ -1985,10 +1998,9 @@ Execute a block of code if a given condition is true, else execute an alternativ
  	msg: "positive"
  ]
 
- prin "a is "
- print msg
+ print ["a is " msg lf]
  
-Alternative way to write it (allowed because all code paths return a value of the same type):
+An alternative way to write it (allowed because all code paths return a value of the same type):
  msg: either a < 0 [
   	either a = 0 [
   		"zero"
@@ -1999,8 +2011,7 @@ Alternative way to write it (allowed because all code paths return a value of th
   	"positive"
  ]
  
- prin "a is "
- print msg
+ prin ["a is " msg lf]
 
 +++UNTIL
 
@@ -2016,13 +2027,13 @@ Loop over a block of code until the condition at end of block, is met. UNTIL doe
  <code>		 : code to execute while the condition is met
  <condition> : a conditional expression
 
-<u>Note</u>: At least on loop will always be executed, even if the condition is not met from the beginning.
+<u>Note</u>: The loop will always be executed at least once, even if the condition is not met from the beginning.
 
 <b>Example</b>
 
  c: 5
  until [
- 	prin "o"
+ 	print "o"
  	c: c - 1
  	c = 0
  ]
@@ -2047,7 +2058,7 @@ While a given condition is met, execute a block of code. WHILE does not return a
 
  c: 5
  while [c > 0][
- 	prin "o"
+ 	print "o"
  	c: c - 1
  ]
 will output:
@@ -2175,15 +2186,11 @@ The pointer alias is defined as:
 
  Red/System [purpose: "demo system/args-* info usage"]
 
- prin "count: " 
- prin-int system/args-count 
- prin newline 
+ print ["count: " system/args-count lf]
  args: system/args-list 
  c: 1 
  until [ 
- 	prin-int c 
- 	prin ": " 
- 	print args/item 
+ 	print [c ": " args/item lf] 
  	c: c + 1 
  	args: args + 1 
  	args/item = null 
@@ -2223,7 +2230,7 @@ The pointer alias is defined as:
 
  env: system/env-vars 
  until [ 
-	print env/item 
+	print [env/item lf] 
 	env: env + 1 
 	env/item = null 
  ] 
@@ -2338,7 +2345,7 @@ will output:
  
 ---Logic!
 
-*Add logic! support for OR, XOR, AND operators (if provides any advantage over ANY/ALL).
+*Add logic! support for OR, XOR, AND operators (if it provides any advantage over ANY/ALL).
  
 ---Integer!
 
@@ -2398,6 +2405,13 @@ will output:
 
 
 ===Document History
+
+*<b>12/08/2011 - draft 26</b>
+
+*> Minor editing changes
+
+*> Updated examples to use variadic print function
+
 
 *<b>??/08/2011 - revision 25</b>
 
