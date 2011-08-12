@@ -518,7 +518,7 @@ system-dialect: context [
 		get-mapped-type: func [value][
 			case [
 				value = <last>  [last-type]
-				none?	 value	[[#[none!]]]				;-- no type case (func with no return value)
+				none?	 value	[none-type]				;-- no type case (func with no return value)
 				tag?     value	[[logic!]]
 				logic?   value	[[logic!]]
 				word?    value 	[resolve-type value]
