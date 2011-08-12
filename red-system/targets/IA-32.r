@@ -158,7 +158,7 @@ make target-class [
 				switch type opcodes
 			]
 			tag! [
-				switch compiler/last-type opcodes
+				switch compiler/last-type/1 opcodes
 			]
 			string! [								;-- type casting trap
 				emit-load value
@@ -634,10 +634,10 @@ make target-class [
 			find [+ -] name							;-- pointer arithmetic only allowed for + & -
 			type: any [
 				all [left-cast left-cast/1]
-				all [block? args/1 compiler/blockify compiler/last-type]
+				all [block? args/1 compiler/last-type]
 				compiler/resolve-expr-type args/1
 			]
-			not compiler/any-pointer? first any [
+			not compiler/any-pointer? any [
 				all [right-cast right-cast/1]
 				compiler/resolve-expr-type args/2	;-- no scaling if both operands are pointers
 			]			

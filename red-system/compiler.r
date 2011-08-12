@@ -233,6 +233,7 @@ system-dialect: context [
 		return-def: to-set-word 'return					;-- return: keyword
 		fail:		[end skip]							;-- fail rule
 		rule: value: none								;-- global parsing rules helpers
+		none-type:	[#[none]]
 		
 		not-set!:	  [logic! integer!]								  ;-- reserved for internal use only
 		number!: 	  [byte! integer!]								  ;-- reserved for internal use only
@@ -404,13 +405,11 @@ system-dialect: context [
 				backtrack name
 				throw-error ["return type missing in function:" name]
 			]
-			type
+			any [type none-type]
 		]
 		
 		set-last-type: func [spec [block!]][
-			if spec: select spec return-def [
-				last-type: either tail? next spec [spec/1][spec]
-			]
+			if spec: select spec return-def [last-type: spec]
 		]
 		
 		get-variable-spec: func [name [word!]][
@@ -426,8 +425,8 @@ system-dialect: context [
 			count
 		]
 		
-		any-pointer?: func [type [word!]][
-			if block? type: resolve-aliased type [type: type/1]
+		any-pointer?: func [type [block!]][
+			type: first resolve-aliased type
 			
 			either find type-sets type [
 				not empty? intersect get type any-pointer!
@@ -442,8 +441,8 @@ system-dialect: context [
 			not empty? intersect type1 type2
 		]
 		
-		resolve-aliased: func [type [word! block!] /local name][
-			name: either block? type [type/1][type]
+		resolve-aliased: func [type [block!] /local name][
+			name: type/1
 			all [
 				not base-type? name
 				not find type-sets name
@@ -497,11 +496,11 @@ system-dialect: context [
 				switch/default type/1 [
 					c-string! [
 						check-path-index path 'string
-						'byte!
+						[byte!]
 					]
 					pointer!  [
 						check-path-index path 'pointer
-						type/2/1						;-- return pointed value type
+						reduce [type/2/1]				;-- return pointed value type
 					]
 					struct!   [
 						unless word? path/2 [
@@ -519,13 +518,13 @@ system-dialect: context [
 		get-mapped-type: func [value][
 			case [
 				value = <last>  [last-type]
-				none?	 value	['none!]				;-- no type case (func with no return value)
-				tag?     value	['logic!]
-				logic?   value	['logic!]
+				none?	 value	[[#[none!]]]				;-- no type case (func with no return value)
+				tag?     value	[[logic!]]
+				logic?   value	[[logic!]]
 				word?    value 	[resolve-type value]
-				char?    value	['byte!]
-				integer? value	['integer!]
-				string?  value	['c-string!]
+				char?    value	[[byte!]]
+				integer? value	[[integer!]]
+				string?  value	[[c-string!]]
 				path?    value	[resolve-path-type value]
 				block?   value	[
 					either object? value/1 [
@@ -551,11 +550,11 @@ system-dialect: context [
 		
 		argument-type?: func [arg /local type][
 			switch/default type?/word arg [
-				char!	 ['byte!]
-				integer! ['integer!]
-				logic!   ['logic!]
+				char!	 [[byte!]]
+				integer! [[integer!]]
+				logic!   [[logic!]]
 				word!	 [resolve-type arg]
-				get-word!['function!]
+				get-word![[function!]]
 				tag!	 [last-type]
 				path!	 [resolve-path-type arg]
 				block!	 [
@@ -604,16 +603,19 @@ system-dialect: context [
 					]
 				]
 				all [func? quiet][
-					select spec/4 return-def		;-- workaround error throwing in get-return-value
+					any [
+						select spec/4 return-def		;-- workaround error throwing in get-return-value
+						none-type
+					]
 				]
 				'else [get-mapped-type expr]
 			]
-			blockify type 							;-- normalize type spec
+			type
 		]
 		
-		cast: func [ctype [word! block!] value /local type][
-			type: blockify get-mapped-type value
-			ctype: blockify ctype
+		cast: func [ctype [block!] value /local type][
+			type: get-mapped-type value
+			ctype: ctype
 
 			if type = ctype [
 				throw-warning/at [
@@ -665,7 +667,7 @@ system-dialect: context [
 			unless block? pos/2 [					;-- if not typed, infer type
 				insert/only at pos 2 type: any [
 					casted
-					all [block? expr/2 blockify last-type]
+					all [block? expr/2 last-type]
 					resolve-expr-type expr
 				]
 				if verbose > 2 [print ["inferred type" mold type "for variable:" pos/1]]
@@ -814,7 +816,7 @@ system-dialect: context [
 		]
 		
 		check-conditional: func [name [word!] expr][
-			if last-type <> 'logic! [check-expected-type/key name expr [logic!]]
+			if last-type/1 <> 'logic! [check-expected-type/key name expr [logic!]]
 		]
 		
 		check-expected-type: func [name [word!] expr expected [block!] /ret /key /local type alias][
@@ -823,8 +825,8 @@ system-dialect: context [
 				not all [block? expr object? expr/1 expr/1/type = 'null] ;-- avoid null type resolution here
 				not none? expr							;-- expr can be false, so explicit check for none is required
 				first type: resolve-expr-type expr		;-- first => deep check that it's not [none]
-			][											;-- check if a type is returned or none		
-				type: blockify resolve-aliased type
+			][											;-- check if a type is returned or none
+				type: resolve-aliased type
 				if alias: select aliased-types expected/1 [expected: alias]
 			]
 			unless any [
@@ -833,7 +835,7 @@ system-dialect: context [
 					object? expr/1
 					expr/1/action = 'null
 					type: expected						;-- morph null type to expected
-					any-pointer? expected/1
+					any-pointer? expected
 				]
 				all [
 					type
@@ -903,8 +905,8 @@ system-dialect: context [
 			if all [
 				find emitter/target/math-op name				
 				any [
-					all [list/1/1 = 'byte! any-pointer? list/2/1]
-					all [list/2/1 = 'byte! any-pointer? list/1/1]
+					all [list/1/1 = 'byte! any-pointer? list/2]
+					all [list/2/1 = 'byte! any-pointer? list/1]
 				]
 			][
 				backtrack name
@@ -1076,7 +1078,7 @@ system-dialect: context [
 				offset: 3
 				[pc/2 pc/3]
 			][
-				unless all [word? pc/2 resolve-aliased pc/2][
+				unless all [word? pc/2 resolve-aliased reduce [pc/2]][
 					throw-error [
 						"declaring literal for type" pc/2 "not supported"
 					]
@@ -1090,7 +1092,7 @@ system-dialect: context [
 		
 		comp-null: does [
 			pc: next pc
-			reduce [make action-class [action: 'null type: 'any-pointer!] 0]
+			reduce [make action-class [action: 'null type: [any-pointer!]] 0]
 		]
 		
 		comp-as: has [ctype ptr? expr][
@@ -1136,7 +1138,7 @@ system-dialect: context [
 				emitter/set-signed-state expr				;-- properly set signed/unsigned state
 				emitter/branch/over/on chunk reduce [expr/1] ;-- branch over if expr is true
 				emitter/merge chunk
-				last-type: none
+				last-type: none-type
 				<last>
 			][
 				pc: skip pc 2
@@ -1243,8 +1245,10 @@ system-dialect: context [
 					case [
 						find comparison-op expr/1 [expr]
 						object? expr/1 [				
-							expr: blockify cast expr/1/type expr/2
-							unless find [word! path!] type?/word expr/1 [
+							expr: cast expr/1/type expr/2
+							unless find [word! path!] type?/word any [
+								all [block? expr expr/1] expr 
+							][
 								emitter/target/emit-operation '= [<last> 0]
 							]
 							process-logic-encoding expr invert?
@@ -1273,7 +1277,7 @@ system-dialect: context [
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
 			emitter/branch/over/on chunk expr/1			;-- insert IF branching			
 			emitter/merge chunk
-			last-type: none
+			last-type: none-type
 			<last>
 		]
 		
@@ -1285,7 +1289,7 @@ system-dialect: context [
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
-			set [e-true c-true]  comp-block-chunked		;-- compile TRUE block		
+			set [e-true c-true]   comp-block-chunked	;-- compile TRUE block		
 			set [e-false c-false] comp-block-chunked	;-- compile FALSE block
 		
 			offset: emitter/branch/over c-false
@@ -1293,13 +1297,13 @@ system-dialect: context [
 			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
 			emitter/merge emitter/chunks/join c-true c-false
 
-			t-true:  blockify resolve-expr-type/quiet e-true
-			t-false: blockify resolve-expr-type/quiet e-false
+			t-true:  resolve-expr-type/quiet e-true
+			t-false: resolve-expr-type/quiet e-false
 
 			last-type: either all [
 				t-true/1 t-false/1
 				equal-types? t-true/1 t-false/1
-			][t-true][none] 							;-- allow nesting if both blocks return same type		
+			][t-true][none-type]						;-- allow nesting if both blocks return same type		
 			<last>
 		]
 		
@@ -1309,7 +1313,7 @@ system-dialect: context [
 			set [expr chunk] comp-block-chunked/test 'until
 			emitter/branch/back/on chunk expr/1	
 			emitter/merge chunk	
-			last-type: none
+			last-type: none-type
 			<last>
 		]
 		
@@ -1327,7 +1331,7 @@ system-dialect: context [
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
 			emitter/branch/back/on/adjust bodies reduce [expr/1] offset ;-- Test condition, exit if FALSE
 			emitter/merge bodies
-			last-type: none
+			last-type: none-type
 			<last>
 		]
 		
@@ -1355,7 +1359,7 @@ system-dialect: context [
 				also head? list	list: back list
 			]	
 			emitter/merge bodies
-			last-type: 'logic!
+			last-type: [logic!]
 			encode-cond-test not _all					;-- special encoding
 		]
 		
@@ -1448,7 +1452,7 @@ system-dialect: context [
 				if all [block? tree/2 object? tree/2/1][;-- detect a casting
 					switch tree/2/1/action [
 						type-cast [
-							casted: blockify resolve-aliased tree/2/1/type		;-- save casting type
+							casted: resolve-aliased tree/2/1/type		;-- save casting type
 							if all [block? tree/2/2 object? tree/2/2/1][
 								raise-casting-error
 							]
@@ -1457,12 +1461,12 @@ system-dialect: context [
 						null [
 							unless all [
 								attempt [
-									casted: blockify get-mapped-type any [
+									casted: get-mapped-type any [
 										all [set-word? tree/1 name]
 										to path! tree/1
 									]
 								]
-								any-pointer? casted/1
+								any-pointer? casted
 							][
 								backtrack tree/1
 								throw-error "Invalid null assignment"
@@ -1509,7 +1513,7 @@ system-dialect: context [
 					]
 					either type: get-variable-spec name [  ;-- test if known variable (local or global)
 						type: resolve-aliased type				
-						new: blockify resolve-aliased get-mapped-type data
+						new: resolve-aliased get-mapped-type data
 						if type <> any [casted new][
 							backtrack tree/1
 							throw-error [
@@ -1537,8 +1541,8 @@ system-dialect: context [
 						backtrack tree/1
 						throw-error ["unknown path root variable:" tree/1/1]
 					]
-					type: blockify resolve-path-type tree/1		;-- check path validity
-					new: blockify resolve-aliased get-mapped-type data
+					type: resolve-path-type tree/1		;-- check path validity
+					new: resolve-aliased get-mapped-type data
 					if type <> any [casted new][
 						backtrack tree/1
 						throw-error [
@@ -1578,7 +1582,7 @@ system-dialect: context [
 				type: emitter/call name args
 				if type [last-type: type]
 				
-				if all [keep last-type = 'logic!][
+				if all [keep last-type/1 = 'logic!][
 					emitter/logic-to-integer name		;-- runtime logic! conversion before storing @@
 				]
 			]

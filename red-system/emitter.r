@@ -258,7 +258,7 @@ emitter: context [
 		]
 		either all [
 			compiler/literal? value						;-- literal values only
-			compiler/any-pointer? type/1				;-- complex types only
+			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
 				ptr: store-global 0 'pointer! none		;-- allocate separate variable slot
@@ -420,7 +420,7 @@ emitter: context [
 			switch arg/1/action [
 				type-cast [
 					casted: arg/1/type
-					old-type: compiler/blockify compiler/get-mapped-type arg/2
+					old-type: compiler/get-mapped-type arg/2
 					arg: args/1: compiler/cast casted arg/2		;-- new argument value can be a block! or not
 				]
 				null [arg: args/1: 0]
@@ -473,7 +473,7 @@ emitter: context [
 				target/emit-save-last					;-- optionally save left argument result
 				if block? list/2 [
 					left: reduce [						;-- implicit cast forced to save returned type
-						dup: compiler/blockify compiler/last-type
+						dup: compiler/last-type
 						dup
 					]
 				]
