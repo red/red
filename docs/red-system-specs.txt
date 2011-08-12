@@ -2,7 +2,7 @@ Red/System Language Specification
 
 	Author: Nenad Rakocevic
 	Date: 12/08/2011
-	Revision: 26
+	Revision: 25
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -319,12 +319,12 @@ Syntax
 
 Example
 
- s: "hello"							;-- let's suppose s points to address 4000000h
+ s: "hello"								;-- let's suppose s points to address 4000000h
 
  s: s + 1								;-- now s points to address 40000001h
- print s                ;-- "ello" would be printed
+ print s                				;-- "ello" would be printed
  s: s + 1								;-- now s points to address 40000002h	
- print s                ;-- "llo" would be printed
+ print s                				;-- "llo" would be printed
 
 +++Accessing bytes
 
@@ -345,7 +345,7 @@ Examples:
  foo/2  =>  #" "						;-- byte! value (32)
  ...
  foo/15 => #"g"							;-- byte! value (103)
- foo/16 => #"^(00)"					;-- byte! value (0) (end marker)
+ foo/16 => #"^(00)"						;-- byte! value (0) (end marker)
  
 \note Important notes
 
@@ -681,8 +681,8 @@ Examples:
 
  a: declare pointer! [integer!]
  a: null								;-- valid assignment, 'a type is defined
- b: null                ;-- invalid assignment, type of b cannot be deduced by
-                        ;--  the compiler
+ b: null                				;-- invalid assignment, type of b cannot
+                        				;--  be deduced by the compiler
 
  foo: func [s [c-string!] return: [c-string!]][
  	if s = null [
@@ -711,7 +711,7 @@ Example:
  	return: [p-buffer]					;-- returns a pointer to a c-string
  ][
  	s/buffer: "hello"
- 	s								          	;-- equivalent to C's char **
+ 	s									;-- equivalent to C's char **
  ]
  
  foo: func [
@@ -985,12 +985,9 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  	a * c / b
  ]
  
----Arguments
+\note Arguments passing
 
-All arguments are based by value in Red/System. 
-
-\note c-string! and struct! arguments
-Bear in mind that all the c-string! and struct! types are in fact pointers. These pointers are passed by value to a function.
+In current implementation, pointer!, integer!, byte! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference.
 
 /note
 
@@ -1000,7 +997,7 @@ Any function is able to return a value if necessary. This is trivially achieved 
 
 *a RETURN: statement is present in function's spec block
 
-*the datatype produced by the last expression executed in the function matches the one declared after the RETURN: statement
+*the datatype of the function ending expression matches the one declared after the RETURN: statement
 
 \note Implementation-specific note
 Some language statements like ALIAS or FUNC, are handled by the compiler in such a way that there are transparent to surrounding code. This means that such statement could be added after a function ending expression without having impact on it, nor raising any compilation error. Such construction has not much sense and would be considered bad practice if used.
@@ -1027,10 +1024,8 @@ will return:
 
 *When the <b>infix</b> syntax is used, the postfix syntax is still allowed, but it will work only if there is no value on the left side of the function call. Example:
 
- func [
-    return: integer!
- ][
-    avg 10 6                  ;-- will return 8 as well               
+ func [return: [integer!]][
+    avg 10 6                 			;-- will return 8 as well               
  ]						
 
  print "ok" avg 10 6					;-- will produce a compilation error
@@ -1186,8 +1181,7 @@ Example of definition:
     print ["count: " count lf]
     until [
   		print [list/value " : "]
-  		print to-type list/type			;-- to-type converts a type ID to a c-string
-  		print lf
+  		print [to-type list/type lf]	;-- to-type converts a type ID to a c-string
   		list: list + 1
   		count: count - 1
   		zero? count
@@ -1433,7 +1427,7 @@ The following example is Windows-specific.
  pid: process-id?
 
  max-size: 128
- buf: malloc  max-size						;-- allocate space for 127 characters
+ buf: malloc  max-size					;-- allocate space for 127 characters
 
  get-env "windir" buf  max-size
 
@@ -1455,9 +1449,9 @@ As Red/System is destined to be used mostly for low-level system programming, <a
  	<function name>: <ID> [
   		<argument> [<datatype>]
 		...
-		return: [<datatype>]		;-- optional part
+		return: [<datatype>]			;-- optional part
 	]
-	...								;-- more functions mappings
+	...									;-- more functions mappings
  ]
  
   <function name> : name of the mapped function in global context
@@ -1476,12 +1470,12 @@ The following example is Linux-specific, but should work with most UNIX systems.
 
  #syscall [
 	write: 4 [
-		fd		[integer!]			;-- file descriptor, STDOUT = 1
+		fd		[integer!]				;-- file descriptor, STDOUT = 1
 		buffer	[c-string!]
 		count	[integer!]
 		return: [integer!]
 	]
-	quit: 1 [						;-- "exit" syscall, no return value
+	quit: 1 [							;-- "exit" syscall, no return value
 		status	[integer!]
 	]
  ]
@@ -1490,9 +1484,9 @@ The following example is Linux-specific, but should work with most UNIX systems.
  result: write 1 msg length? msg
  if negative? result [
  	print "Error: write failed"	
- 	quit 3							;-- exit and return an error code
+ 	quit 3								;-- exit and return an error code
  ]
- quit 0								;-- no error
+ quit 0									;-- no error
 
 will output (if no error):
 
@@ -1521,26 +1515,26 @@ The name matching method is exact word matching. This ensures that no accidental
  
 <b>Usage</b>
 
- #define R_PART	00FF0000h			;-- simple constants definitions
+ #define R_PART	00FF0000h				;-- simple constants definitions
  #define G_PART	0000FF00h
  #define B_PART 000000FFh
- #define zero?  [0 =]				;-- simple test expression macro
+ #define zero?  [0 =]					;-- simple test expression macro
 
  color: 00550063h
 
  if zero? (R_PART and color) [
- 	print "no Red found"
+ 	print "Red not found"
  ]
  if zero? (G_PART and color) [
-  	print "no Green found"
+  	print "Green not found"
  ]
  if zero? (B_PART and color) [
-  	print "no Blue found"
+  	print "Blue not found"
  ]
  
 will output:
 
- no Green found
+ Green not found
  
 <u>Note</u>: Parens are required in this example on test expressions so that the compiler performs the second infix expression (the and operator) before the first (the equal operator).
  
@@ -1568,26 +1562,26 @@ Rewriting the example from <i>#define</i> section:
 
  definitions.reds file:
 
-   #define R_PART	00FF0000h
- 	 #define G_PART	0000FF00h
- 	 #define B_PART 000000FFh
- 	 #define zero?  [0 =]
+	 #define R_PART	00FF0000h
+	 #define G_PART	0000FF00h
+	 #define B_PART 000000FFh
+	 #define zero?  [0 =]
 
- 	 test-primary: func [
- 	 	color [integer!]
- 	 	mask  [integer!]
- 	 	msg   [c-string!]
- 	 ][
- 	 	if zero? (color and mask) [
- 	 	 	print msg
- 	 	]
- 	 ]
+	 test-primary: func [
+		color [integer!]
+		mask  [integer!]
+		msg   [c-string!]
+	 ][
+		if zero? (color and mask) [
+			print msg
+		]
+	 ]
 
  main.reds file:
 
-     #include %definitions.reds
+	 #include %definitions.reds
 
- 	 color: 00550063h
+	 color: 00550063h
 
 	 test-primary color R_PART "no Red found"
 	 test-primary color G_PART "no Green found"
@@ -1661,7 +1655,7 @@ The <b>#switch</b> compiler directive allows to define several conditionally com
 		<body-2>
 	]
 	...
-	#default [						;-- optional default clause
+	#default [							;-- optional default clause
 		<body-N>
 	]
  ]
@@ -1701,7 +1695,7 @@ A valid Red/System source file will need this header:
 
  Red/System [
   <name>: <value>
-  ...								;-- more attributes...
+  ...									;-- more attributes...
  ]
 
  <name>  : valid identifier
@@ -2406,18 +2400,16 @@ will output:
 
 ===Document History
 
-*<b>12/08/2011 - draft 26</b>
-
-*> Minor editing changes
-
-*> Updated examples to use variadic print function
-
-
-*<b>??/08/2011 - revision 25</b>
+*<b>12/08/2011 - revision 25</b>
 
 *>Fixed invalid hex values in some code examples.
 
 *>Minor code example improvement for typed attributes.
+
+*>Minor editing changes
+
+*>Updated examples to use variadic print function
+
 
 
 *<b>09/08/2011 - revision 24</b>
