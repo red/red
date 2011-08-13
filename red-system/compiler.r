@@ -216,7 +216,8 @@ system-dialect: context [
 		job:		 none								;-- shortcut for job object
 		pc:			 none								;-- source code input cursor
 		script:		 none								;-- source script file name
-		last-type:	 none								;-- type of last value from an expression
+		none-type:	 [#[none]]							;-- marker for "no value returned"
+		last-type:	 none-type							;-- type of last value from an expression
 		locals: 	 none								;-- currently compiled function specification block
 		locals-init: []									;-- currently compiler function locals variable init list
 		func-name:	 none								;-- currently compiled function name
@@ -233,7 +234,6 @@ system-dialect: context [
 		return-def: to-set-word 'return					;-- return: keyword
 		fail:		[end skip]							;-- fail rule
 		rule: value: none								;-- global parsing rules helpers
-		none-type:	[#[none]]
 		
 		not-set!:	  [logic! integer!]								  ;-- reserved for internal use only
 		number!: 	  [byte! integer!]								  ;-- reserved for internal use only
@@ -1701,7 +1701,14 @@ system-dialect: context [
 			expr: comp-dialect							;-- compile function's body
 			
 			if ret: select spec return-def [
-				check-expected-type/ret name expr ret	;-- validate return value type
+				check-expected-type/ret name expr ret	;-- validate return value type	
+				if all [
+					last-type/1 = 'logic!
+					block? expr
+					word? expr/1
+				][
+					emitter/logic-to-integer expr/1		;-- runtime logic! conversion before returning
+				]
 			]
 			emitter/leave name locals args-size			;-- build function epilog
 			clear locals-init
