@@ -103,7 +103,7 @@ make target-class [
 	]
 
 	emit-load-literal: func [type [block! none!] value /local spec][	
-		unless type [type: compiler/get-mapped-type value]
+		unless type [type: compiler/get-type value]
 		spec: emitter/store-value none value type
 		emit #{B8}									;-- MOV eax, value
 		emit-reloc-addr spec/2						;-- one-based index
@@ -989,7 +989,7 @@ make target-class [
 					res: any [
 						all [left-cast left-cast/1]
 						all [not sub? block? args/1 compiler/last-type]
-						compiler/argument-type? args/1	;-- other ops return type of the first argument	
+						compiler/get-type args/1	;-- other ops return type of the first argument	
 					]
 				]
 			]

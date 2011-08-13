@@ -95,7 +95,7 @@ target-class: context [
 		width: emitter/size-of? value: case [
 			type 	  [operand]
 			left-cast [left-cast left-cast/1/1]
-			'else 	  [compiler/argument-type? operand]
+			'else 	  [compiler/get-type operand]
 		]
 		signed?: emitter/signed? value
 	]

@@ -515,66 +515,44 @@ system-dialect: context [
 			]
 		]
 		
-		get-mapped-type: func [value][
-			case [
-				value = <last>  [last-type]
-				none?	 value	[none-type]				;-- no type case (func with no return value)
-				tag?     value	[[logic!]]
-				logic?   value	[[logic!]]
-				word?    value 	[resolve-type value]
-				char?    value	[[byte!]]
-				integer? value	[[integer!]]
-				string?  value	[[c-string!]]
-				path?    value	[resolve-path-type value]
-				block?   value	[
-					either object? value/1 [
-						;get-mapped-type value/2		;@@
-						value/1/type
-					][
-						get-return-type value/1
+		get-type: func [value][
+			if value = <last> [return last-type]
+			
+			switch/default type?/word value [
+				none!	 [none-type]				;-- no type case (func with no return value)
+				tag!	 [[logic!]]
+				logic!	 [[logic!]]
+				word! 	 [resolve-type value]
+				char!	 [[byte!]]
+				integer! [[integer!]]
+				string!	 [[c-string!]]
+				path!	 [resolve-path-type value]
+				block!	 [
+					case [
+						object? value/1 [value/1/type]
+						'op = second select functions value/1 [
+							either base-type? type: get-return-type value/1 [
+								type				;-- unique returned type, stop here
+							][
+								get-type value/2	;-- recursively search for an atomic left operand
+							]
+						]
+						'else [get-return-type value/1]
 					]
 				]
-				paren?  value	[
+				paren!	 [
 					reduce either all [value/1 = 'struct! word? value/2][
 						[value/2]
 					][
 						[value/1 value/2]
 					]
 				]
-				get-word? value [resolve-type to word! value]
-				'else 			[
-					make error! reform ["not accepted datatype:" type? value]
-				]
-			]	
-		]
-		
-		argument-type?: func [arg /local type][
-			switch/default type?/word arg [
-				char!	 [[byte!]]
-				integer! [[integer!]]
-				logic!   [[logic!]]
-				word!	 [resolve-type arg]
-				get-word![[function!]]
-				tag!	 [last-type]
-				path!	 [resolve-path-type arg]
-				block!	 [
-					case [
-						object? arg/1 [arg/1/type]
-						'op = second select functions arg/1 [
-							either base-type? type: get-return-type arg/1 [
-								type					;-- unique returned type, stop here
-							][
-								argument-type? arg/2	;-- recursively search for an atomic left operand
-							]
-						]
-						'else [get-return-type arg/1]
-					]
-				]
+				get-word! [resolve-type to word! value]
 			][
-				throw-error ["Undefined type for:" mold arg]
+				throw-error ["not accepted datatype:" type? value]
 			]
 		]
-							
+
 		resolve-expr-type: func [expr /quiet /local type func? spec][
 			if block? expr [
 				switch type?/word expr/1 [
@@ -585,7 +563,7 @@ system-dialect: context [
 			func?: all [
 				block? expr word? expr/1
 				not find comparison-op expr/1
-				spec: select functions expr/1 		;-- works for unary & binary functions only!
+				spec: select functions expr/1 		 ;-- works for unary & binary functions only!
 			]
 			type: case [
 				all [block? expr object? expr/1][
@@ -599,22 +577,22 @@ system-dialect: context [
 							base-type? spec/1		;-- determined return type
 							spec
 						]
-						argument-type? expr/2		;-- recursively search for return type
+						get-type expr/2				;-- recursively search for return type
 					]
 				]
 				all [func? quiet][
 					any [
-						select spec/4 return-def		;-- workaround error throwing in get-return-value
+						select spec/4 return-def	;-- workaround error throwing in get-return-value
 						none-type
 					]
 				]
-				'else [get-mapped-type expr]
+				'else [get-type expr]
 			]
 			type
 		]
 		
 		cast: func [ctype [block!] value /local type][
-			type: get-mapped-type value
+			type: get-type value
 			ctype: ctype
 
 			if type = ctype [
@@ -675,7 +653,7 @@ system-dialect: context [
 		]
 		
 		add-symbol: func [name [word!] value type][
-			unless type [type: get-mapped-type value]
+			unless type [type: get-type value]
 			append globals reduce [name type: compose [(type)]]
 			type
 		]
@@ -1461,7 +1439,7 @@ system-dialect: context [
 						null [
 							unless all [
 								attempt [
-									casted: get-mapped-type any [
+									casted: get-type any [
 										all [set-word? tree/1 name]
 										to path! tree/1
 									]
@@ -1513,7 +1491,7 @@ system-dialect: context [
 					]
 					either type: get-variable-spec name [  ;-- test if known variable (local or global)
 						type: resolve-aliased type				
-						new: resolve-aliased get-mapped-type data
+						new: resolve-aliased get-type data
 						if type <> any [casted new][
 							backtrack tree/1
 							throw-error [
@@ -1542,7 +1520,7 @@ system-dialect: context [
 						throw-error ["unknown path root variable:" tree/1/1]
 					]
 					type: resolve-path-type tree/1		;-- check path validity
-					new: resolve-aliased get-mapped-type data
+					new: resolve-aliased get-type data
 					if type <> any [casted new][
 						backtrack tree/1
 						throw-error [

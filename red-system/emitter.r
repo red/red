@@ -420,7 +420,7 @@ emitter: context [
 			switch arg/1/action [
 				type-cast [
 					casted: arg/1/type
-					old-type: compiler/get-mapped-type arg/2
+					old-type: compiler/get-type arg/2
 					arg: args/1: compiler/cast casted arg/2		;-- new argument value can be a block! or not
 				]
 				null [arg: args/1: 0]
