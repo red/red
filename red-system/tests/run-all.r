@@ -55,6 +55,9 @@ make-if-needed? %source/units/auto-tests/byte-auto-test.reds
                       
 make-if-needed? %source/units/auto-tests/integer-auto-test.reds
                 %source/units/make-integer-auto-test.r
+                
+make-if-needed? %source/units/auto-tests/maths-auto-test.reds
+                %source/units/make-maths-auto-test.r
 
 ;; make lib-test file if needed
 lib-test-len: length? read %source/units/lib-test-source.reds
@@ -121,6 +124,7 @@ start-time: now/precise
 ===start-group=== "Auto-tests"
   --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
+  --run-test-file-quiet %source/units/auto-tests/maths-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/lib-auto-test.reds
 ===end-group===
 

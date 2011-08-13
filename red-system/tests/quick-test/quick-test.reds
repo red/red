@@ -95,7 +95,7 @@ qt-init-file: func [] [
     qt-file/failures: qt-file/failures + 1
     if qt-group? [  
       if qt-group-name-not-printed [
-        print [lf "===group=== " qt-group-name]
+        print [lf "===group=== " qt-group-name lf]
         qt-group-name-not-printed: false
       ]
     ]
