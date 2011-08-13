@@ -624,7 +624,7 @@ make target-class [
 		]
 	]
 	
-	emit-math-op: func [name [word!] a [word!] b [word!] args [block!] /local mod? scale c][
+	emit-math-op: func [name [word!] a [word!] b [word!] args [block!] /local mod? scale c type][
 		;-- eax = a, edx = b
 		if find [// ///] name [						;-- work around unaccepted '// and '///
 			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
