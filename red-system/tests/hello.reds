@@ -28,13 +28,12 @@ Red/System [
 ][
 	set-pen-color: func [color [integer!]][
 		either color = white [
-			prin "^[[0m"
+			print "^[[0m"
 		][ 
-			prin "^[["
-			prin-int either color >= 7 [1][0]
-			prin ";3"
-			prin-int color and 7	;-- mask only right 3 bits for color
-			prin "m"
+			print [
+				"^[[" either color >= 7 [1][0] ";3"
+				color and 7	"m"					;-- mask only right 3 bits for color
+			]
 		]
 	]
 	
@@ -53,11 +52,11 @@ light-blue:  blue  or 8
 light-green: green or 8
 light-red: 	 red   or 8
 
-prin-logo: does [
+print-logo: does [
 	set-pen-color light-red
-	prin "R"
+	print "R"
 	set-pen-color white
-	prin "ed"
+	print "ed"
 ]
 
 draw-hline: func [size [integer!] alt [integer!] /local c [integer!]][
@@ -65,42 +64,42 @@ draw-hline: func [size [integer!] alt [integer!] /local c [integer!]][
 	until [
 		either positive? alt [		;-- print * and - alternatively
 			alt: either alt = 1 [
-				prin "*"
+				print "*"
 				2
 			][
-				prin "-" 
+				print "-" 
 				1
 			]
 		][
-			prin "-"				;-- print - only
+			print "-"				;-- print - only
 		]
 		c: c - 1
 		zero? c
 	]
-	prin "^/"
+	print newline
 ]
 
-draw-vline: does [prin "|"]
+draw-vline: does [print "|"]
 
 pad: func [n [integer!]][
-	while [n > 0][prin " " n: n - 1] ;-- could have used UNTIL, just for the demo
+	while [n > 0][print space n: n - 1] ;-- could have used UNTIL, just for the demo
 ]
 
 banner: func [width [integer!]][
 	draw-hline width 1
 	draw-vline
 	pad (width - 16) / 2 - 1
-	prin "Hello " 
-	prin-logo
-	prin " World!"
+	print "Hello " 
+	print-logo
+	print " World!"
 	pad ((width - 16) / 2) - 1		;-- just showing nested parenthesis support
 	draw-vline
-	prin newline
+	print newline
 	draw-hline width 0
 ]
 
-prin-logo
-print "/System v0.2.0 beta^/"
+print-logo
+print ["/System v0.2.0 beta" lf lf]
 
 size: 20
 until [
