@@ -386,4 +386,14 @@ Red/System [
   
 ===end-group===
 
+===start-group=== "logic value returned by function"
+
+	fooT: func [return: [logic!]][1 < 2]
+	fooF: func [return: [logic!]][1 = 2]
+
+	--test-- "logic-ret-1" --assert fooT
+	--test-- "logic-ret-2" --assert not fooF
+
+===end-group===
+
 ~~~end-file~~~
