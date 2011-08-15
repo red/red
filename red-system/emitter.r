@@ -197,7 +197,11 @@ emitter: context [
 				]
 			]
 			byte! [
-				unless char? value [value: #"^@"]
+				either integer? value [
+					value: to char! value and 255		;-- truncate if required
+				][
+					unless char? value [value: #"^@"]
+				]
 				append ptr value
 			]
 			c-string! [
@@ -247,7 +251,7 @@ emitter: context [
 	
 	store: func [
 		name [word!] value type [block!]
-		/local new new-global? ptr refs n-spec spec
+		/local new new-global? ptr refs n-spec spec literal?
 	][
 		if new: select compiler/aliased-types type/1 [
 			type: new
@@ -257,7 +261,7 @@ emitter: context [
 			find symbols name 							;-- known symbol
 		]
 		either all [
-			compiler/literal? value						;-- literal values only
+			literal?: compiler/literal? value			;-- literal values only
 			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
@@ -271,7 +275,9 @@ emitter: context [
 		][
 			if new-global? [spec: store-value name value type] ;-- store new variable with value
 		]
-		if name [target/emit-store name value spec]
+		if all [name not all [new-global? literal?]][	;-- emit dynamic loading code when required
+			target/emit-store name value spec
+		]
 	]
 		
 	member-offset?: func [spec [block!] name [word! none!] /local offset over][
