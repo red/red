@@ -912,6 +912,16 @@ make target-class [
 		emit to-bin8 size
 	]
 	
+	emit-argument: func [arg cast [block! none!] func-type [word!]][
+		if all [cast cast/1/1 = 'logic! not path? arg][
+			emit-casting cast no
+			compiler/last-type: cast/1				;-- for inline unary functions
+		]
+		if func-type <> 'inline [
+			emit-push/with either block? arg [<last>][arg] cast
+		]
+	]
+	
 	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec type res total][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 		

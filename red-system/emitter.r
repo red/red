@@ -457,15 +457,7 @@ emitter: context [
 		either type <> 'op [					
 			forall list [								;-- push function's arguments on stack
 				cast: preprocess-argument/no-last list
-				if all [cast cast/1/1 = 'logic! not path? list/1][
-					target/emit-casting cast no
-					compiler/last-type: cast/1			;-- for inline unary functions
-				]
-				if type <> 'inline [
-					target/emit-push/with 
-						either block? list/1 [<last>][list/1]
-						cast
-				]
+				target/emit-argument list/1 cast type	;-- let target define how arguments are passed
 			]
 		][												;-- nested calls as op argument require special handling
 			left: preprocess-argument list
