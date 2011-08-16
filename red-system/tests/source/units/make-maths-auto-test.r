@@ -25,7 +25,11 @@ make-test: func [
   append tests join {  --test-- "maths-auto-} [test-number {"^(0A)}]
   if setup [append tests test-setup]
   append tests "  --assert "
-  append tests reform [expected " = (" test-string ")^(0A)"]  
+  either find test-string "#" [
+    append tests reform [expected "= (as integer! (" test-string "))^(0A)"]
+  ][
+    append tests reform [expected "= (" test-string ")^(0A)"]
+  ]
 ]
 
 ;; initialisations 
@@ -36,6 +40,8 @@ file-out: %auto-tests/maths-auto-test.reds
 
 
 ;; tests & data - test formulae, test data, test formulae, test data, etc.
+;;  byte! values must be enclosed in () so that the correct expected value will 
+;;  be calculated in REBOL
 tests-and-data: [
   [
     "(v * v) * v"
@@ -58,6 +64,11 @@ tests-and-data: [
     [-256 -256 -256]
     [-257 -257 -257]
     [-255 -256 -257]
+    [(#"^(02)") (#"^(02)") (#"^(02)")]
+    [(#"^(09)") (#"^(08)") (#"^(07)")]
+    [1 (#"^(0A)") 100]
+    [2 (#"^(10)") 256]
+
   ]
   [
     "(v * v) * (v * v)"
@@ -76,16 +87,80 @@ tests-and-data: [
     [2 2 2 2]
     [256 256 256 256]
     [257 257 257 257]
+    [(#"^(FF)") 256 257 258]
   ]
   [
     "((v * v) * (v * v)) * ((v * v) * (v * v))"
-    "((v - v) - (v - v)) - ((v - v) - (v - v))"
-    "((v * v) - (v * v)) - ((v * v) - (v * v))"
-    "((v - v) * (v - v)) * ((v - v) * (v - v))"
+    "((v - v) * (v * v)) * ((v * v) * (v * v))"
+    "((v * v) - (v * v)) * ((v * v) * (v * v))"
+    "((v * v) * (v - v)) * ((v * v) * (v * v))"
+    "((v * v) * (v * v)) - ((v * v) * (v * v))"
+    "((v * v) * (v * v)) * ((v - v) * (v * v))"
+    "((v * v) * (v * v)) * ((v * v) - (v * v))"
+    "((v * v) * (v * v)) * ((v * v) * (v - v))"
+    "((v - v) * (v * v)) * ((v * v) * (v * v))"
+    "((v - v) * (v * v)) * ((v * v) * (v * v))"
+    "((v - v) - (v * v)) * ((v * v) * (v * v))"
+    "((v - v) * (v - v)) * ((v * v) * (v * v))"
+    "((v - v) * (v * v)) - ((v * v) * (v * v))"
+    "((v - v) * (v * v)) * ((v - v) * (v * v))"
+    "((v - v) * (v * v)) * ((v * v) - (v * v))"
+    "((v - v) * (v * v)) * ((v * v) * (v - v))"
+    "((v * v) - (v * v)) * ((v * v) * (v * v))"
+    "((v - v) - (v * v)) * ((v * v) * (v * v))"
+    "((v * v) - (v * v)) * ((v * v) * (v * v))"
+    "((v * v) - (v - v)) * ((v * v) * (v * v))"
+    "((v * v) - (v * v)) - ((v * v) * (v * v))"
+    "((v * v) - (v * v)) * ((v - v) * (v * v))"
+    "((v * v) - (v * v)) * ((v * v) - (v * v))"
+    "((v * v) - (v * v)) * ((v * v) * (v - v))"
+    "((v * v) * (v - v)) - ((v * v) * (v * v))"
+    "((v - v) * (v - v)) * ((v - v) * (v * v))"
+    "((v * v) * (v - v)) * ((v * v) - (v * v))"
+    "((v * v) * (v - v)) * ((v * v) * (v - v))"
+    "((v * v) * (v - v)) - ((v * v) * (v * v))"
+    "((v * v) * (v - v)) * ((v - v) * (v * v))"
+    "((v * v) * (v - v)) * ((v * v) - (v * v))"
+    "((v * v) * (v - v)) * ((v * v) * (v - v))"
     "((v - v) - (v - v)) * ((v * v) * (v * v))"
-    "((v - v) - (v - v)) - ((v * v) * (v * v))"
-    "((v * v) - (v * v)) - ((v * v) - (v * v))"
+    "((v - v) - (v * v)) - ((v * v) * (v * v))"
+    "((v - v) - (v * v)) * ((v - v) * (v * v))"
+    "((v - v) - (v - v)) * ((v * v) - (v * v))"
+    "((v - v) * (v - v)) - ((v * v) * (v - v))"
+    "((v - v) * (v * v)) - ((v - v) * (v * v))"
+    "((v - v) * (v * v)) - ((v * v) - (v * v))"
+    "((v - v) * (v * v)) - ((v * v) * (v - v))"
+    "((v - v) * (v * v)) * ((v - v) - (v * v))"
+    "((v - v) * (v * v)) * ((v - v) * (v - v))"
+    "((v - v) * (v * v)) * ((v * v) - (v - v))"
+    "((v * v) - (v - v)) - ((v * v) * (v * v))"
+    "((v * v) - (v - v)) * ((v - v) * (v * v))"
+    "((v * v) - (v - v)) * ((v * v) - (v * v))"
+    "((v * v) - (v - v)) * ((v * v) * (v - v))"
+    "((v * v) * (v - v)) - ((v - v) * (v * v))"
+    "((v * v) * (v - v)) - ((v * v) - (v * v))"
+    "((v * v) * (v - v)) - ((v * v) * (v - v))"
+    "((v * v) * (v - v)) * ((v - v) - (v * v))"
+    "((v * v) * (v - v)) * ((v - v) * (v - v))"
+    "((v * v) * (v * v)) - ((v - v) - (v * v))"
+    "((v * v) * (v * v)) - ((v - v) * (v - v))"
+    "((v * v) * (v * v)) - ((v * v) - (v - v))"
+    "((v * v) * (v * v)) * ((v - v) - (v - v))"
+    "((v - v) * (v - v)) - ((v - v) * (v * v))"
     "((v - v) * (v - v)) - ((v * v) - (v * v))"
+    "((v - v) * (v - v)) - ((v * v) * (v - v))"
+    "((v - v) - (v - v)) - ((v * v) * (v * v))"
+    "((v - v) - (v - v)) * ((v - v) * (v * v))"
+    "((v - v) - (v - v)) * ((v * v) - (v * v))"
+    "((v - v) - (v - v)) * ((v * v) * (v - v))"
+    "((v - v) - (v * v)) * ((v - v) - (v * v))"
+    "((v - v) - (v * v)) * ((v - v) * (v - v))"
+    "((v * v) - (v - v)) - ((v - v) * (v * v))"
+    "((v * v) * (v - v)) - ((v * v) - (v - v))"
+    "((v * v) * (v - v)) - ((v - v) - (v - v))"
+    "((v * v) * (v * v)) - ((v - v) - (v - v))"
+    "((v - v) * (v - v)) - ((v - v) * (v - v))"
+    "((v - v) - (v - v)) - ((v - v) - (v - v))"
   ]
   [
     [1 1 1 1 1 1 1 1]
@@ -93,42 +168,56 @@ tests-and-data: [
     [257 257 257 257 257 257 257 257]
     [-256 -256 -256 -256 -256 -256 -256 -256]
     [-257 -257 -257 -257 -257 -257 -257 -257]
+    [(#"^(01)") (#"^(02)") (#"^(03)") (#"^(04)") (#"^(05)") (#"^(06)") (#"^(07)") (#"^(08)")]
+    [1 2 (#"^(03)") 4 5 6 7 8]
   ]
 ]
-   
 
-;; create test file with header
-append tests "Red/System [^(0A)"
-append tests {  Title:   "Red/System auto-generated maths tests"^(0A)}
-append tests {	Author:  "Peter W A Wood"^(0A)}
-append tests {  File: 	 %maths-auto-test.reds^(0A)}
-append tests {  License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"^(0A)}
-append tests "]^(0A)^(0A)"
-append tests "^(0A)^(0A)comment {"
-append tests "  This file is generated by make-maths-auto-test.r^(0A)"
-append tests "  Do not edit this file directly.^(0A)"
-append tests "}^(0A)^(0A)"
-append tests join ";make-length:" 
-                  [length? read %make-maths-auto-test.r "^(0A)^(0A)"]
-append tests "#include %../../../quick-test/quick-test.reds^(0A)^(0A)"
-append tests "s: declare struct! [^(0A)"
-append tests "  a [integer!] ^(0A)"
-append tests "  b [integer!] ^(0A)"
-append tests "  c [integer!] ^(0A)"
-append tests "  d [integer!] ^(0A)"
-append tests "  e [integer!] ^(0A)"
-append tests "  f [integer!] ^(0A)"
-append tests "  g [integer!] ^(0A)"
-append tests "  h [integer!] ^(0A)"
-append tests "] ^(0A)^(0A)"
-append tests "ident: func[i [integer!] return: [integer!]][i]^(0A)^(0A)"
-append tests {~~~start-file~~~ "Auto-generated tests for maths"^(0A)^(0A)}
-append tests {===start-group=== "Auto-generated tests for maths"^(0A)^(0A)}
+;;;;;;;;;;;;;;;; start of template;;;;;;;;;;;;;;;;;;;;;;;;;;
+template: {
+Red/System [
+  Title:   "Red/System auto-generated maths tests"
+  Author:  "Peter W A Wood"
+  File:    %maths-auto-test.reds
+  License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+]
 
-write file-out tests
+comment {
+  This file is generated by make-maths-auto-test.r
+  Do not edit this file directly.
+}
+;make-length:$LENGTH$
+
+#include %../../../quick-test/quick-test.reds
+
+s: declare struct! [
+  a [integer!]
+  b [integer!]
+  c [integer!]
+  d [integer!]
+  e [integer!]
+  f [integer!]
+  g [integer!]
+  h [integer!]
+]
+
+ident: func [i [integer!] return: [integer!]][i]
+
+~~~start-file~~~ "Auto-generated tests for maths"
+
+===start-group=== "Auto-generated tests for maths"
+
+}
+;;;;;;;;;;;;;;;; end of template;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; start of executable code
+header: copy template
+replace header "$LENGTH$" length? read %make-maths-auto-test.r 
+write file-out header
+
 tests: copy ""
 
-foreach [formulae data] tests-and-data [ 
+foreach [formulae data] tests-and-data [
   foreach test-formula formulae [
     foreach test-data data [
       test-string: copy test-formula
@@ -137,46 +226,50 @@ foreach [formulae data] tests-and-data [
       ]
     
       ;; only write a test if REBOL produces a result
-      if attempt [expected: do test-string][
-        
-        expected: to-integer expected
-            
-        ;; test with literal values
-        make-test test-string
-        
-        ;; test using integer variables
-        test-setup: copy ""
-        test-string: copy test-formula
-        variable-names: copy ["a" "b" "c" "d" "e" "f" "g" "h"]
-        foreach test-value test-data [
-          append test-setup join "    " [
-            first variable-names ": " mold test-value "^(0A)"
+      rebol-test-string: replace/all copy test-string "#" "to integer! #"
+      if attempt [expected: do rebol-test-string][
+          
+          expected: to-integer expected
+              
+          ;; test with literal values
+          make-test test-string
+          
+          ;; if the data contains byte! values don't create the other tests
+          if not find test-string "#" [
+          
+          ;; test using integer variables
+          test-setup: copy ""
+          test-string: copy test-formula
+          variable-names: copy ["a" "b" "c" "d" "e" "f" "g" "h"]
+          foreach test-value test-data [
+            append test-setup join "    " [
+              first variable-names ": " mold test-value "^(0A)"
+            ]
+            replace test-string "v" first variable-names
+            variable-names: next variable-names
           ]
-          replace test-string "v" first variable-names
-          variable-names: next variable-names
-        ]
-        make-test/setup test-string test-setup
-        
-        ;; test using integer/path
-        test-setup: copy ""
-        test-string: copy test-formula
-        variable-names: copy ["a" "b" "c" "d" "e" "f" "g" "h"]
-        foreach test-value test-data [
-          append test-setup join "    s/" [
-            first variable-names ": " mold test-value "^(0A)"
+          make-test/setup test-string test-setup
+          
+          ;; test using integer/path 
+          test-setup: copy ""
+          test-string: copy test-formula
+          variable-names: copy ["a" "b" "c" "d" "e" "f" "g" "h"]
+          foreach test-value test-data [
+            append test-setup join "    s/" [
+              first variable-names ": " mold test-value "^(0A)"
+            ]
+            replace test-string "v" join "s/" [first variable-names]
+            variable-names: next variable-names
           ]
-          replace test-string "v" join "s/" [first variable-names]
-          variable-names: next variable-names
+          make-test/setup test-string test-setup
+          
+          ;; test using function call
+          test-string: copy test-formula
+          foreach test-value test-data [
+            replace test-string "v" join "(ident " [mold test-value ")"]
+          ]
+          make-test test-string
         ]
-        make-test/setup test-string test-setup
-        
-        ;; test using function call
-        test-string: copy test-formula
-        foreach test-value test-data [
-          replace test-string "v" join "(ident " [mold test-value ")"]
-        ]
-        make-test test-string
-        
       ]
     ]
   ]
