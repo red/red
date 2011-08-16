@@ -96,8 +96,10 @@ make target-class [
 			]
 			all [spec/1/1 = 'integer! spec/2/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
-				emit pick [#{81E2} #{25}] alt?		;-- AND edx|eax, 000000FFh
-				emit to-bin32 255
+				if alt? [emit #{92}]					;-- XCHG eax, edx
+				emit #{6698}							;-- CBW		; sign extend al->ax
+				emit #{98}								;-- CWDE	; sign extend ax->eax
+				if alt? [emit #{92}]					;-- XCHG eax, edx
 			]
 		]
 	]
@@ -522,9 +524,9 @@ make target-class [
 	
 	emit-sign-extension: does [
 		emit switch width [
-			1 [#{6698}]								;-- extend AL to AX
-			2 [#{6699}]								;-- extend AX to DX:AX
-			4 [#{99}]								;-- extend EAX to EDX:EAX
+			1 [#{6698}]								;-- CBW			; extend AL to AX
+			2 [#{6699}]								;-- CWD			; extend AX to DX:AX
+			4 [#{99}]								;-- CDQ			; extend EAX to EDX:EAX
 		]
 	]
 	
@@ -885,6 +887,9 @@ make target-class [
 		last-saved?: no								;-- reset flag
 
 		;-- Operator and second operand processing
+		if all [right-cast b = 'reg][	
+			emit-casting right-cast yes				;-- do runtime conversion on edx if required
+		]
 		case [
 			find comparison-op name [emit-comparison-op name a b args]
 			find math-op	   name	[emit-math-op		name a b args]
