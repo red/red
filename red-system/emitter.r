@@ -299,7 +299,12 @@ emitter: context [
 			switch/default path/2 [
 				stack [
 					if all [2 = length? path set?: set-path? path][
+						compiler/backtrack path
 						compiler/throw-error "cannot modify system/stack"
+					]
+					if 3 < length? path [
+						compiler/backtrack path
+						compiler/throw-error "invalid system/stack access"
 					]
 					switch path/3 [
 						top [
