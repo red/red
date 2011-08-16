@@ -25,7 +25,11 @@ make-test: func [
   append tests join {  --test-- "maths-auto-} [test-number {"^(0A)}]
   if setup [append tests test-setup]
   append tests "  --assert "
-  append tests reform [expected " = (" test-string ")^(0A)"]  
+  either find test-string "#" [
+    append tests reform [expected "= (as integer! (" test-string "))^(0A)"]
+  ][
+    append tests reform [expected "= (" test-string ")^(0A)"]
+  ]
 ]
 
 ;; initialisations 
@@ -36,6 +40,8 @@ file-out: %auto-tests/maths-auto-test.reds
 
 
 ;; tests & data - test formulae, test data, test formulae, test data, etc.
+;;  byte! values must be enclosed in () so that the correct expected value will 
+;;  be calculated in REBOL
 tests-and-data: [
   [
     "(v * v) * v"
@@ -58,6 +64,11 @@ tests-and-data: [
     [-256 -256 -256]
     [-257 -257 -257]
     [-255 -256 -257]
+    [(#"^(02)") (#"^(02)") (#"^(02)")]
+    [(#"^(09)") (#"^(08)") (#"^(07)")]
+    [1 (#"^(0A)") 100]
+    [2 (#"^(10)") 256]
+
   ]
   [
     "(v * v) * (v * v)"
@@ -76,6 +87,7 @@ tests-and-data: [
     [2 2 2 2]
     [256 256 256 256]
     [257 257 257 257]
+    [(#"^(FF)") 256 257 258]
   ]
   [
     "((v * v) * (v * v)) * ((v * v) * (v * v))"
@@ -156,6 +168,8 @@ tests-and-data: [
     [257 257 257 257 257 257 257 257]
     [-256 -256 -256 -256 -256 -256 -256 -256]
     [-257 -257 -257 -257 -257 -257 -257 -257]
+    [(#"^(01)") (#"^(02)") (#"^(03)") (#"^(04)") (#"^(05)") (#"^(06)") (#"^(07)") (#"^(08)")]
+    [1 2 (#"^(03)") 4 5 6 7 8]
   ]
 ]
 
@@ -203,7 +217,7 @@ write file-out header
 
 tests: copy ""
 
-foreach [formulae data] tests-and-data [ 
+foreach [formulae data] tests-and-data [
   foreach test-formula formulae [
     foreach test-data data [
       test-string: copy test-formula
@@ -212,46 +226,50 @@ foreach [formulae data] tests-and-data [
       ]
     
       ;; only write a test if REBOL produces a result
-      if attempt [expected: do test-string][
-        
-        expected: to-integer expected
-            
-        ;; test with literal values
-        make-test test-string
-        
-        ;; test using integer variables
-        test-setup: copy ""
-        test-string: copy test-formula
-        variable-names: copy ["a" "b" "c" "d" "e" "f" "g" "h"]
-        foreach test-value test-data [
-          append test-setup join "    " [
-            first variable-names ": " mold test-value "^(0A)"
+      rebol-test-string: replace/all copy test-string "#" "to integer! #"
+      if attempt [expected: do rebol-test-string][
+          
+          expected: to-integer expected
+              
+          ;; test with literal values
+          make-test test-string
+          
+          ;; if the data contains byte! values don't create the other tests
+          if not find test-string "#" [
+          
+          ;; test using integer variables
+          test-setup: copy ""
+          test-string: copy test-formula
+          variable-names: copy ["a" "b" "c" "d" "e" "f" "g" "h"]
+          foreach test-value test-data [
+            append test-setup join "    " [
+              first variable-names ": " mold test-value "^(0A)"
+            ]
+            replace test-string "v" first variable-names
+            variable-names: next variable-names
           ]
-          replace test-string "v" first variable-names
-          variable-names: next variable-names
-        ]
-        make-test/setup test-string test-setup
-        
-        ;; test using integer/path
-        test-setup: copy ""
-        test-string: copy test-formula
-        variable-names: copy ["a" "b" "c" "d" "e" "f" "g" "h"]
-        foreach test-value test-data [
-          append test-setup join "    s/" [
-            first variable-names ": " mold test-value "^(0A)"
+          make-test/setup test-string test-setup
+          
+          ;; test using integer/path 
+          test-setup: copy ""
+          test-string: copy test-formula
+          variable-names: copy ["a" "b" "c" "d" "e" "f" "g" "h"]
+          foreach test-value test-data [
+            append test-setup join "    s/" [
+              first variable-names ": " mold test-value "^(0A)"
+            ]
+            replace test-string "v" join "s/" [first variable-names]
+            variable-names: next variable-names
           ]
-          replace test-string "v" join "s/" [first variable-names]
-          variable-names: next variable-names
+          make-test/setup test-string test-setup
+          
+          ;; test using function call
+          test-string: copy test-formula
+          foreach test-value test-data [
+            replace test-string "v" join "(ident " [mold test-value ")"]
+          ]
+          make-test test-string
         ]
-        make-test/setup test-string test-setup
-        
-        ;; test using function call
-        test-string: copy test-formula
-        foreach test-value test-data [
-          replace test-string "v" join "(ident " [mold test-value ")"]
-        ]
-        make-test test-string
-        
       ]
     ]
   ]
