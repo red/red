@@ -918,12 +918,19 @@ make target-class [
 	]
 	
 	emit-argument: func [arg cast [block! none!] func-type [word!]][
-		if all [cast cast/1/1 = 'logic! not path? arg][
+		either all [
+			cast
+			any [cast/1/1 = 'logic! cast/2/1 = 'byte!]
+			not path? arg
+		][
+			unless block? arg [emit-load arg]		;-- block! means last value is already in eax (func call)
 			emit-casting cast no
+			emit-push <last>
 			compiler/last-type: cast/1				;-- for inline unary functions
-		]
-		if func-type <> 'inline [
-			emit-push/with either block? arg [<last>][arg] cast
+		][
+			if func-type <> 'inline [
+				emit-push/with either block? arg [<last>][arg] cast
+			]
 		]
 	]
 	
