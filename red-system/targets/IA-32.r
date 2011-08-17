@@ -96,10 +96,8 @@ make target-class [
 			]
 			all [spec/1/1 = 'integer! spec/2/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
-				if alt? [emit #{92}]					;-- XCHG eax, edx
-				emit #{6698}							;-- CBW		; sign extend al->ax
-				emit #{98}								;-- CWDE	; sign extend ax->eax
-				if alt? [emit #{92}]					;-- XCHG eax, edx
+				emit pick [#{81E2} #{25}] alt?    ;-- AND edx|eax, 000000FFh 	
+				emit to-bin32 255
 			]
 		]
 	]
@@ -719,10 +717,10 @@ make target-class [
 							]
 							emit to-bin8 c
 						][
-							emit #{52}					   ;-- PUSH edx	; save edx from corruption
+							unless width = 1 [emit #{52}]  ;-- PUSH edx	; save edx from corruption for 16/32-bit ops
 							emit-poly [#{B3} #{BB} args/2] ;-- MOV rB, value
 							emit-poly [#{F6EB} #{F7EB}]	   ;-- IMUL rB		; result in ax|eax|edx:eax
-							emit #{5A}					   ;-- POP edx
+							unless width = 1 [emit #{5A}]  ;-- POP edx
 						]
 					]
 					ref [
@@ -887,7 +885,7 @@ make target-class [
 		last-saved?: no								;-- reset flag
 
 		;-- Operator and second operand processing
-		if all [right-cast b = 'reg][	
+		if all [right-cast find [imm reg] b][	
 			emit-casting right-cast yes				;-- do runtime conversion on edx if required
 		]
 		case [
