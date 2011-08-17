@@ -2,18 +2,9 @@ REBOL [
   Title:   "Generates Red/System maths tests"
 	Author:  "Peter W A Wood"
 	File: 	 %make-maths-auto-test.r
-	Version: 0.1.0
+	Version: 0.1.1
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
-]
-
-rand: func [
-  "returns a random number between -2147483647 and 2147483647"
-  /local i
-][
-  i: random 2147483647
-  if 2 = random 2 [i: - i]
-  i
 ]
 
 make-test: func [
@@ -213,6 +204,7 @@ ident: func [i [integer!] return: [integer!]][i]
 ;; start of executable code
 header: copy template
 replace header "$LENGTH$" length? read %make-maths-auto-test.r 
+
 write file-out header
 
 tests: copy ""
