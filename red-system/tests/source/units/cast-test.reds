@@ -44,6 +44,11 @@ Red/System [
 	  l: true
 	--assert l = as logic! cast-b
 	
+	--test-- "byte-cast-9"
+		a: as-byte 10h
+		b: as-byte 80h
+	--assert 10h = as-integer a
+	
 ===end-group===
 
 ===start-group=== "cast from integer!"
