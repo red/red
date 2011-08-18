@@ -49,11 +49,17 @@ Red/System [
 	  b: as-byte 80h
 	--assert 10h = as-integer a
 	
-	--test-- "byte-cast-9"							;-- issue #159
+	--test-- "byte-cast-10"							;-- issue #159
 	  a: as-byte 10h
 	  b: as-byte 80h
 	  c: as-integer a
 	--assert 10h = c
+	
+	--test-- "byte-cast-11"							;-- issue #160
+	  a: as-byte 1
+	  b: as-byte 2
+	  --assert (as byte-ptr! (as-integer a) * 2) = (as byte-ptr! 2)
+	  --assert (as byte-ptr! (as-integer a) << 2) = (as byte-ptr! 4)
 	
 ===end-group===
 
