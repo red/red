@@ -383,6 +383,7 @@ compact-series-frame: func [
 		free? [logic!] src [byte-ptr!] dst [byte-ptr!]
 ][
 	series: as series-buffer! (as byte-ptr! frame) + size? series-frame! ;-- point to first series buffer
+	free?: zero? (series/size and series-in-use)  ;-- true: series is not used
 	heap: frame/heap
 		
 	src: null								;-- src will point to start of buffer region to move down
@@ -390,8 +391,6 @@ compact-series-frame: func [
 	state: SM1_INIT
 
 	until [
-		free?: zero? (series/size and series-in-use)  ;-- true: series is not used
-		
 		if all [state = SM1_INIT free?][
 			dst: as byte-ptr! series		 ;-- start of "hole" region
 			state: SM1_HOLE
@@ -405,6 +404,7 @@ compact-series-frame: func [
 		]
 	 	;-- point to next series buffer
 		series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)
+		free?: zero? (series/size and series-in-use)  ;-- true: series is not used
 
 		if all [state = SM1_USED any [free? series >= heap]][	;-- handle both normal and "exit" states
 			state: SM1_USED_END
@@ -412,7 +412,6 @@ compact-series-frame: func [
 		if state = SM1_USED_END [
 			assert dst < src				 ;-- regions are moved down in memory
 			assert src < as byte-ptr! series ;-- src should point at least at series - series/size
-			
 			copy-memory dst	src as-integer series - src
 			update-series-nodes as series-buffer! dst
 			dst: dst + (as-integer series - src) ;-- points after moved region (ready for next move)
@@ -682,7 +681,7 @@ free-big: func [
 				free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
 				frame-stats 
 					free-nodes
-					as-integer (n-frame/nodes - free-nodes)
+					n-frame/nodes - free-nodes
 					n-frame/nodes
 			]
 			count: count + 1
