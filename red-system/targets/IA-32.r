@@ -228,7 +228,7 @@ make target-class [
 		/local store-dword
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
-		if value = <last> [value: 'last]
+		if value = <last> [value: 'last]			;-- force word! code path in switch block
 		if logic? value [value: to integer! value]	;-- TRUE -> 1, FALSE -> 0
 		
 		store-dword: [
@@ -250,11 +250,6 @@ make target-class [
 			]
 			word! [
 				set-width name				
-				if value <> 'last [
-					emit-variable-poly value
-						#{A0}   #{A1}				;-- MOV rA, [value]		; global
-						#{8A45} #{8B45}				;-- MOV rA, [ebp+n]		; local	
-				]
 				emit-variable-poly name
 					#{A2} 	#{A3}					;-- MOV [name], rA		; global variable
 					#{8845} #{8945}					;-- MOV [ebp+n], rA		; local variable

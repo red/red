@@ -1425,7 +1425,7 @@ system-dialect: context [
 		comp-expression: func [
 			tree [block!] /keep
 			/local name value data offset body args prepare-value type casted new
-		][
+		][	
 			prepare-value: [		
 				if all [block? tree/2 object? tree/2/1][;-- detect a casting
 					switch tree/2/1/action [
@@ -1453,16 +1453,13 @@ system-dialect: context [
 						]
 					]
 				]
+				type: resolve-expr-type tree/2
 				value: either block? tree/2 [			;-- detect a sub-expression
-					type: resolve-expr-type tree/2		;-- check that function is returning a value
 					comp-expression/keep tree/2 		;-- function call case
-					if casted [
-						emitter/target/emit-casting reduce [casted type] no 
-					]
 					<last>
 				][
 					tree/2
-				]
+				]				
 				either all [tag? value value <> <last>][	;-- special encoding for ALL/ANY
 					data: true
 					value: <last>
@@ -1471,11 +1468,14 @@ system-dialect: context [
 				]
 				if path? value [
 					emitter/access-path value none
-					last-type: resolve-path-type value
-					if casted [
-						emitter/target/emit-casting reduce [casted last-type] no 
-					]				
+					type: last-type: resolve-path-type value				
 					value: <last>
+				]
+				if all [word? value set-word? tree/1][
+					emitter/target/emit-load value
+				]
+				if casted [
+					emitter/target/emit-casting reduce [casted type] no 
 				]
 			]
 			switch/default type?/word tree/1 [
