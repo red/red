@@ -642,8 +642,6 @@ make target-class [
 			]
 			scale > 1
 		][
-			if left-cast [emit-casting left-cast no]	
-			
 			either compiler/literal? args/2 [
 				args/2: args/2 * scale				;-- 'b is a literal, so scale it directly
 			][
@@ -878,6 +876,7 @@ make target-class [
 			]
 		]
 		last-saved?: no								;-- reset flag
+		if left-cast [emit-casting left-cast no]	;-- do runtime conversion on eax if required
 
 		;-- Operator and second operand processing
 		if all [right-cast find [imm reg] b][	
