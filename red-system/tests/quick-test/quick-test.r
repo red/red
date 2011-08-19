@@ -177,7 +177,7 @@ qt: make object! [
     either exe: compile-from-string src [
       run exe
     ][
-      compile-error src
+      compile-error "Supplied source"
       output: "Compilation failed"
     ]
   ]
@@ -185,13 +185,13 @@ qt: make object! [
   compile-from-string: func [src][
     ;-- add a default header if not provided
     if none = find src "Red/System" [insert src "Red/System []^/"]
-    
+
     write test-src-file src
     compile test-src-file                  ;; returns path to executable or none
   ]
   
   compile-error: func [
-    src [file!]
+    src [file! string!]
   ][
     print join "" [src " - compiler error"]
     print comp-output

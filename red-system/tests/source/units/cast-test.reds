@@ -368,6 +368,72 @@ comment {
   ;;  duplicate the test from pointer! to struct!
 
 ===end-group===
+
+===start-group=== "byte-integer-cast"
+
+  --test-- "bic-1"
+    bic-a: as-byte 1
+  --assert 1 = as-integer bic-a
+  
+  --test-- "bic-2"
+    bic-a: as-byte 1
+  --assert 65536 = ((as-integer bic-a) << 16)
+  
+  --test-- "bic-3"
+    bic-a: as-byte 2
+  --assert 131072 = ((as-integer bic-a) << 16)
+  
+  --test-- "bic-4"
+    bic-a: #"^(01)"
+  --assert 65537 = (65536 or (as-integer bic-a))
+  
+  --test-- "bic-5"
+    bic-a: #"^(01)"
+    bic-b: #"^(02)"
+  --assert 131073 = ((as-integer bic-b) << 16 or as-integer bic-a)
+  
+  --test-- "bic-6"
+    bic-a: #"^(01)"
+    bic-b: #"^(02)"
+  --assert 131073 = ((as-integer bic-b) << 16 or as-integer bic-a)
+  
+  --test-- "bic-7"
+    bic-a: #"^(01)"
+    bic-b: #"^(02)"
+  --assert (as byte-ptr! 131073) = as byte-ptr! ((as-integer bic-b) << 16 or as-integer bic-a)
+  
+  --test-- "bic-8"
+    bic-a: as-byte 1
+    bic-b: as-byte 2
+  --assert 131073 = ((as-integer bic-b) << 16 or as-integer bic-a)
+  
+  --test-- "bic-9"
+    bic-a: as-byte 1
+    bic-b: as-byte 2
+  --assert (as byte-ptr! 131073) = as byte-ptr! ((as-integer bic-b) << 16 or as-integer bic-a)
+  
+  --test-- "bic-10"
+    bic-s: declare struct! [
+      bic-a [byte!]
+      bic-b [byte!]
+      bic-c [integer!]
+      bic-d [byte!]
+      bic-e [byte!]
+      bic-f [integer!]
+    ]
+    bic-s/bic-a: as-byte 0
+    bic-s/bic-b: as-byte 1
+    bic-s/bic-c: 2
+    bic-s/bic-d: as-byte 3
+    bic-s/bic-e: as-byte 255
+    bic-s/bic-f: 255
+  --assert false = as-logic bic-s/bic-a
+  --assert true = as-logic bic-s/bic-b
+  --assert bic-s/bic-e = as-byte bic-s/bic-f
+  --assert bic-s/bic-f = as-integer bic-s/bic-e
+  
+===end-group===
+
   
 ~~~end-file~~~
 
