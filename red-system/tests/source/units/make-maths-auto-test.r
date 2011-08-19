@@ -23,6 +23,71 @@ make-test: func [
   ]
 ]
 
+preprocess: func [
+  s [string!]
+  /local
+    calc
+    rules
+    sb
+    ns
+    nothing-changed
+][
+
+  calc: func [
+    a   [char!]
+    op  [word!]
+    b   [char!]
+    /local 
+      res
+  ][
+    ;; Ensure all typecasts are to integer! not char!
+    a: to integer! a   
+    
+    switch op [
+      + [res: a + b]
+      - [res: a - b]
+      * [res: a * b]
+      / [res: a / b]
+    ]
+    
+    ;; adjust the return value to emulate 8-bit arithmetic with overflow
+    either res >= 0 [
+      res: res // 256
+    ][
+      until [
+        res: res + 256
+        res > 0
+      ]
+     ]
+    to char! res
+  ]
+  
+  rules: [
+    any [
+      [set a char! set op word! set b char! (
+        acc: calc a op b
+        replace ns join "(" [mold a " " op " " mold b ")"] mold acc
+        replace ns join "" [mold a " " op " " mold b ] mold acc
+        nothing-changed: false
+        print "here"
+      )] |
+      [set p paren! (parse to block! p rules)] |
+      skip
+    ]
+    end
+  ]
+
+  ns: mold copy s  
+  until [
+    nothing-changed: true
+    sb: to block! load ns
+    parse sb rules
+    nothing-changed
+  ]
+  
+  ns
+]
+
 ;; initialisations 
 tests: copy ""                          ;; string to hold generated tests
 test-number: 0                          ;; number of the generated test
@@ -37,8 +102,8 @@ tests-and-data: [
   [
     "(v * v) * v"
     "(v - v) - v"
-    "(v * v) - v)"
-    "(v - v) * v)"
+    "(v * v) - v"
+    "(v - v) * v"
     "v * v * v"
     "v - v - v"
     "v - v * v"
@@ -216,12 +281,14 @@ foreach [formulae data] tests-and-data [
       foreach test-value test-data [
         replace test-string "v" mold test-value
       ]
-    
-      ;; only write a test if REBOL produces a result
-      rebol-test-string: replace/all copy test-string "#" "to integer! #"
-      if attempt [expected: do rebol-test-string][
-          
-          expected: to-integer expected
+      
+      rebol-test-string: preprocess test-string
+      
+      ;; parse the expression and perform the calculation as Red/System would
+      ;; only write a test if REBOL produces a valid result 
+      if attempt [expected: do load rebol-test-string][
+        
+          expected: to integer! expected
               
           ;; test with literal values
           make-test test-string
