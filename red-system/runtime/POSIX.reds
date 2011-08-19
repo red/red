@@ -10,11 +10,40 @@ Red/System [
 ]
 
 sigaction!: alias struct! [
-;	handler		[integer!]					;-- Warning: compiled as C union on most UNIX
-	sigaction	[integer!]					;-- Warning: compiled as union on most UNIX
-	mask		[integer!]					;@@ it's an array, not sure this definition is correct
+	handler		[integer!]					;-- Warning: compiled as union on most UNIX
+	mask0		[integer!]					;-- glibc/Hurd insane inheritage...
+	mask1		[integer!]	
+	mask2		[integer!]	
+	mask3		[integer!]	
+	mask4		[integer!]	
+	mask5		[integer!]
+	mask6		[integer!]	
+	mask7		[integer!]	
+	mask8		[integer!]	
+	mask9		[integer!]	
+	mask10		[integer!]	
+	mask11		[integer!]	
+	mask12		[integer!]	
+	mask13		[integer!]	
+	mask14		[integer!]	
+	mask15		[integer!]	
+	mask16		[integer!]	
+	mask17		[integer!]	
+	mask18		[integer!]	
+	mask19		[integer!]	
+	mask20		[integer!]	
+	mask21		[integer!]	
+	mask22		[integer!]	
+	mask23		[integer!]	
+	mask24		[integer!]	
+	mask25		[integer!]	
+	mask26		[integer!]	
+	mask27		[integer!]	
+	mask28		[integer!]	
+	mask29		[integer!]	
+	mask30		[integer!]	
+	mask31		[integer!]
 	flags		[integer!]
-	restorer	[integer!]					;-- unused
 ]
 
 siginfo!: alias struct! [
@@ -31,6 +60,7 @@ siginfo!: alias struct! [
 			signum	[integer!]
 			action	[sigaction!]
 			oldact	[sigaction!]
+			return: [integer!]
 		]
 	]
 ]
@@ -56,11 +86,42 @@ stderr: 2
 #define	SIGFPE		 8						;-- Floating point error
 #define	SIGSEGV		11						;-- Segmentation violation
 
+_ucontext!: alias struct! [
+	flags 		[integer!]
+	link		[_ucontext!]
+	ss_sp		[byte-ptr!]					;-- stack_t struct inlined
+	ss_flags	[integer!]
+	ss_size		[integer!]
+	gs			[integer!]					;-- sigcontext struct inlined
+	fs			[integer!]
+	es			[integer!]
+	ds			[integer!]
+	edi			[integer!]
+	esi			[integer!]
+	ebp			[integer!]
+	esp			[integer!]
+	ebx			[integer!]
+	edx			[integer!]
+	ecx			[integer!]
+	eax			[integer!]
+	trapno		[integer!]
+	err			[integer!]
+	eip			[integer!]
+	cs			[integer!]
+	eflags		[integer!]
+	esp_at_sig	[integer!]
+	ss			[integer!]
+	fpstate		[int-ptr!]
+	oldmask		[integer!]
+	cr2			[integer!]
+	;sigmask	[...]						;-- 128 byte array ignored
+]
+
 ***-on-signal: func [
 	[callback]
 	signal	[integer!]
 	info	[siginfo!]
-	ctx		[byte-ptr!]
+	ctx		[_ucontext!]
 	/local code error
 ][
 	error: 99								;-- default unknown error
@@ -98,15 +159,13 @@ stderr: 2
 		if code = 2 [error: 16]				;-- invalid permissions for mapped object
 	]
 
-	***-on-quit error info/address
+	***-on-quit error ctx/eip
 ]
 
 __sigaction-options: declare sigaction!
 
-__sigaction-options/sigaction: 	as-integer :***-on-signal
-__sigaction-options/mask: 		0
+__sigaction-options/handler: 	as-integer :***-on-signal
 __sigaction-options/flags: 		SA_SIGINFO ;or SA_RESTART
-__sigaction-options/restorer:	0
 
 sigaction SIGILL  __sigaction-options as sigaction! 0
 sigaction SIGBUS  __sigaction-options as sigaction! 0
