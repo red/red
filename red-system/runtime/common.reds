@@ -125,9 +125,7 @@ to-type: func [
 	/local msg
 ][
 	unless zero? status [
-		prin "^/*** Runtime Error "
-		prin-int status
-		prin ": "
+		print [lf "*** Runtime Error " status ": "]
 		
 		if status =  1 [msg: "access violation"]
 		if status =  2 [msg: "invalid alignment"]
@@ -166,18 +164,16 @@ to-type: func [
 		if status = 98 [msg: "assertion failed at line "]
 		if status = 99 [msg: "unknown error"]
 		
-		prin msg
+		print msg
 		
 		either status = 98 [
-			prin as-c-string address
+			print as-c-string address
 		][
 			unless zero? address [
-				prin "^/*** at: "
-				prin-hex address
-				prin "h"
+				print [lf "*** at: " as byte-ptr! address "h"]
 			]
 		]
-		prin newline
+		print newline
 	]
 	
 	#if OS = 'Windows [						;-- special exit handler for Windows
