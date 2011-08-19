@@ -20,6 +20,7 @@ prin-hex-chars: func [
 ][
 	s: "00000000"
 	if zero? i [
+		s: "00000000"
 		print s + (8 - n) 
 		return i
 	]
