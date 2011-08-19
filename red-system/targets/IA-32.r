@@ -81,17 +81,18 @@ make target-class [
 				if verbose >= 3 [print [">>>converting from" mold/flat spec/2/1 "to logic!"]]
 				old: width
 				set-width/type spec/2/1
+				emit #{31DB}							;--		   XOR ebx, ebx
 				either alt? [
 					emit-poly [#{80FA00} #{83FA00}]		;-- 	   CMP rD, 0
-					emit #{7403}						;--        JZ _exit
-					emit #{31D2}						;--        XOR edx, edx
-					emit #{42}							;-- 	   INC edx
-				][										;-- _exit:
+					emit #{7401}						;--        JZ _exit
+					emit #{43}							;-- 	   INC ebx
+					emit #{89DA}						;-- _exit: MOV edx, ebx
+				][
 					emit-poly [#{3C00} #{83F800}]		;-- 	   CMP rA, 0
-					emit #{7403}						;--        JZ _exit
-					emit #{31C0}						;--        XOR eax, eax
-					emit #{40}							;-- 	   INC eax
-				]										;-- _exit:
+					emit #{7401}						;--        JZ _exit
+					emit #{43}							;-- 	   INC ebx
+					emit #{89D8}						;-- _exit: MOV eax, ebx
+				]
 				width: old
 			]
 			all [spec/1/1 = 'integer! spec/2/1 = 'byte!][
