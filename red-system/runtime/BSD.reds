@@ -18,7 +18,7 @@ Red/System [
 sigaction!: alias struct! [
 ;	handler		[integer!]					;-- Warning: compiled as C union on most UNIX
 	sigaction	[integer!]					;-- Warning: compiled as union on most UNIX
-	mask		[integer!]					;@@ it's an array, not sure this definition is correct
+	mask		[integer!]					;-- bit array
 	flags		[integer!]
 ]
 
@@ -30,7 +30,7 @@ siginfo!: alias struct! [
 	uid			[integer!]
 	status		[integer!]
 	address		[integer!]					;-- this field is a C union, dependent on signal
-	;... remaining fields not used
+	;... remaining fields skipped
 ]
 
 
@@ -68,16 +68,95 @@ stderr: 2
 #define	SIGFPE		 8						;-- Floating point error
 #define	SIGSEGV		11						;-- Segmentation violation
 
+#switch OS [								;@@ also CPU-dependent
+	MacOSX [
+		_mcontext!: alias struct! [
+			trapno		[integer!]			;-- _STRUCT_X86_EXCEPTION_STATE32 inlined
+			err			[integer!]
+			faultvaddr	[integer!]
+			eax			[integer!]			;-- _STRUCT_X86_THREAD_STATE32 inlined
+			ebx			[integer!]
+			ecx			[integer!]
+			edx			[integer!]
+			edi			[integer!]
+			esi			[integer!]
+			ebp			[integer!]
+			esp			[integer!]
+			ss			[integer!]
+			eflags		[integer!]
+			eip			[integer!]
+			cs			[integer!]
+			ds			[integer!]
+			es			[integer!]
+			fs			[integer!]
+			gs			[integer!]
+			;... _STRUCT_X86_FLOAT_STATE32 skipped
+		]
+
+		_ucontext!: alias struct! [
+			onstack		[integer!]
+			sigmask		[integer!]
+			ss_sp		[byte-ptr!]			;-- stack_t struct inlined
+			ss_size		[integer!]
+			ss_flags	[integer!]
+			link		[_ucontext!]
+			mcsize		[integer!]
+			mcontext	[_mcontext!]
+		]
+	]
+	#default [								;-- FreeBSD definition
+		_mcontext!: alias struct! [
+			onstack		[integer!]
+			gs			[integer!]
+			fs			[integer!]
+			es			[integer!]
+			ds			[integer!]
+			edi			[integer!]
+			esi			[integer!]
+			ebp			[integer!]
+			isp			[integer!]
+			ebx			[integer!]
+			edx			[integer!]
+			ecx			[integer!]
+			eax			[integer!]
+			trapno		[integer!]
+			err			[integer!]
+			eip			[integer!]
+			cs			[integer!]
+			eflags		[integer!]
+			esp			[integer!]
+			ss			[integer!]
+			mc_len		[integer!]
+			fpformat	[integer!]
+			ownedfp		[integer!]
+			;... remaining fields skipped
+		]
+		_ucontext!: alias struct! [
+			sigmask0	[integer!]			;-- __sigset defined as an array of 4 uint32 
+			sigmask1	[integer!]
+			sigmask2	[integer!]
+			sigmask3	[integer!]
+			mcontext	[_mcontext!]
+			link		[_ucontext!]
+			ss_sp		[byte-ptr!]			;-- stack_t struct inlined
+			ss_size		[integer!]
+			ss_flags	[integer!]
+			flags		[integer!]
+			;... remaining fields skipped
+		]
+	]
+]
+
 ***-on-signal: func [
 	[callback]
 	signal	[integer!]
 	info	[siginfo!]
-	ctx		[byte-ptr!]
+	ctx		[_ucontext!]
 	/local code error
 ][
 	error: 99								;-- default unknown error
 	code: info/code
-	
+
 	if signal = SIGILL [
 		if code = 1 [error: 17]				;-- illegal opcode
 		if code = 2 [error: 25]				;-- illegal trap
@@ -110,7 +189,7 @@ stderr: 2
 		if code = 2 [error: 16]				;-- invalid permissions for mapped object
 	]
 
-	***-on-quit error info/address
+	***-on-quit error ctx/mcontext/eip
 ]
 
 __sigaction-options: declare sigaction!
