@@ -60,6 +60,21 @@ Red/System [
 	  b: as-byte 2
 	  --assert (as byte-ptr! (as-integer a) * 2) = (as byte-ptr! 2)
 	  --assert (as byte-ptr! (as-integer a) << 2) = (as byte-ptr! 4)
+	  
+	--test-- "byte-cast-12"							;-- issue #161
+	  a: as-byte 1
+	  b: as-byte 2
+	  c: (as-integer b) << 16 or as-integer a
+	  --assert 00020001h = c
+	  
+	--test-- "byte-cast-13"							;-- issue #162
+	  sb: declare struct! [
+	      a   [byte!]
+	      b   [byte!]
+	  ]
+	  sb/a: as-byte 0
+	  sb/b: as-byte 1
+	  --assert not as-logic sb/a
 	
 ===end-group===
 
