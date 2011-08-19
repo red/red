@@ -100,14 +100,14 @@ target-class: context [
 		signed?: emitter/signed? value
 	]
 	
-	with-right-casting: func [body [block!] /local old][
+	with-right-casting: func [body [block!] /alt /local old][
 		if right-cast [
 			old: width
 			set-width/type right-cast/2/1
 		]
 		do body
 		if old [
-			emit-casting right-cast yes				;-- emit runtime conversion
+			if alt [emit-casting right-cast to logic! alt]	;-- emit runtime conversion for comparison op only
 			width: old
 		]
 	]

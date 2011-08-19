@@ -571,18 +571,24 @@ make target-class [
 				#{2305}								;-- AND eax, [value]	; global
 				#{2345}								;-- AND eax, [ebp+n]	; local
 				#{21D0}								;-- AND eax, edx		; commutable op
+				#{2205}								;-- AND  al, [value]	; global
+				#{2245}								;-- AND  al, [ebp+n]	; local
 			]
 			or [
 				#{0D}								;-- OR eax, value
 				#{0B05}								;-- OR eax, [value]		; global
 				#{0B45}								;-- OR eax, [ebp+n]		; local
-				#{09D0}								;-- OR eax, edx			; commutable op				
+				#{09D0}								;-- OR eax, edx			; commutable op
+				#{0A05}								;-- OR  al, [value]		; global
+				#{0A45}								;-- OR  al, [ebp+n]		; local
 			]
 			xor [
 				#{35}								;-- XOR eax, value
 				#{3305}								;-- XOR eax, [value]	; global
 				#{3345}								;-- XOR eax, [ebp+n]	; local
-				#{31D0}								;-- XOR eax, edx		; commutable op			
+				#{31D0}								;-- XOR eax, edx		; commutable op
+				#{3205}								;-- XOR  al, [value]	; global
+				#{3245}								;-- XOR  al, [ebp+n]	; local
 			]
 		] name
 		
@@ -592,9 +598,11 @@ make target-class [
 				emit to-bin32 args/2
 			]
 			ref [
-				emit-variable args/2
-					code/2							;-- <OP> eax, [value]	; global
-					code/3							;-- <OP> eax, [ebp+n]	; local
+				with-right-casting [
+					emit-variable-poly args/2
+						code/5 code/2				;-- <OP> eax, [value]	; global
+						code/6 code/3				;-- <OP> eax, [ebp+n]	; local
+				]
 			]
 			reg [emit code/4]						;-- <OP> eax, edx		; commutable op
 		]
@@ -606,7 +614,7 @@ make target-class [
 				emit-poly [#{3C} #{3D} args/2]		;-- CMP rA, value
 			]
 			ref [
-				with-right-casting [		
+				with-right-casting/alt [		
 					emit-variable-poly args/2
 						#{8A15} #{8B15}				;-- MOV rD, [value]		; global
 						#{8A55} #{8B55}				;-- MOV rD, [ebp+n]		; local
