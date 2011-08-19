@@ -69,7 +69,6 @@ preprocess: func [
         replace ns join "(" [mold a " " op " " mold b ")"] mold acc
         replace ns join "" [mold a " " op " " mold b ] mold acc
         nothing-changed: false
-        print "here"
       )] |
       [set p paren! (parse to block! p rules)] |
       skip
@@ -77,7 +76,7 @@ preprocess: func [
     end
   ]
 
-  ns: mold copy s  
+  ns: copy s  
   until [
     nothing-changed: true
     sb: to block! load ns
@@ -96,8 +95,6 @@ file-out: %auto-tests/maths-auto-test.reds
 
 
 ;; tests & data - test formulae, test data, test formulae, test data, etc.
-;;  byte! values must be enclosed in () so that the correct expected value will 
-;;  be calculated in REBOL
 tests-and-data: [
   [
     "(v * v) * v"
@@ -120,10 +117,10 @@ tests-and-data: [
     [-256 -256 -256]
     [-257 -257 -257]
     [-255 -256 -257]
-    [(#"^(02)") (#"^(02)") (#"^(02)")]
-    [(#"^(07)") (#"^(08)") (#"^(03)")]
-    [1 (#"^(0A)") 100]
-    [2 (#"^(10)") 256]
+    [#"^(02)" #"^(02)" #"^(02)"]
+    [#"^(07)" #"^(08)" #"^(03)"]
+    [1 #"^(0A)" 100]
+    [2 #"^(10)" 256]
 
   ]
   [
@@ -143,7 +140,7 @@ tests-and-data: [
     [2 2 2 2]
     [256 256 256 256]
     [257 257 257 257]
-    [(#"^(FF)") 256 257 258]
+    [#"^(FF)" 256 257 258]
   ]
   [
     "((v * v) * (v * v)) * ((v * v) * (v * v))"
@@ -224,8 +221,8 @@ tests-and-data: [
     [257 257 257 257 257 257 257 257]
     [-256 -256 -256 -256 -256 -256 -256 -256]
     [-257 -257 -257 -257 -257 -257 -257 -257]
-    [(#"^(01)") (#"^(02)") (#"^(03)") (#"^(01)") (#"^(02)") (#"^(03)") (#"^(01)") (#"^(02)")]
-    [1 2 (#"^(03)") 4 5 6 7 8]
+    [#"^(01)" #"^(02)" #"^(03)" #"^(01)" #"^(02)" #"^(03)" #"^(01)" #"^(02)"]
+    [1 2 #"^(03)" 4 5 6 7 8]
   ]
 ]
 
