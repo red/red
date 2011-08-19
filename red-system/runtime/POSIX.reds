@@ -86,7 +86,7 @@ stderr: 2
 #define	SIGFPE		 8						;-- Floating point error
 #define	SIGSEGV		11						;-- Segmentation violation
 
-_ucontext!: alias struct! [
+_ucontext!: alias struct! [					;@@ CPU-dependent
 	flags 		[integer!]
 	link		[_ucontext!]
 	ss_sp		[byte-ptr!]					;-- stack_t struct inlined
