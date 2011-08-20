@@ -9,12 +9,12 @@ change-dir %../                        ;; revert to tests/ directory from runnab
 ~~~start-file~~~ "print"
 
   --test-- "p1"
-  --compile-and-run-this [
+  --compile-and-run-this {
     a: as-byte 1
     b: as-byte 2
     print as byte-ptr! (as-integer b) << 16 or as-integer a
     print lf
-  ]
-  --assert none <> find qt/output "20001"
+  }
+  --assert found? find qt/output "20001"
  
 ~~~end-file~~~
