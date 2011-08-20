@@ -461,10 +461,7 @@ emitter: context [
 		import?: compiler/functions/:name/2 = 'import	; syscalls don't seem to need 16-byte alignment??
 		if import? [target/emit-stack-align-prolog args]
 		
-		type: first any [
-			select symbols name							;@@
-			next select compiler/functions name
-		]
+		type: compiler/functions/:name/2
 		either type <> 'op [					
 			forall list [								;-- push function's arguments on stack
 				cast: preprocess-argument/no-last list
@@ -489,7 +486,7 @@ emitter: context [
 		]
 		res: target/emit-call name args to logic! sub
 		
-		target/left-cast: target/right-cast: none			;-- reset op's arguments type casting
+		target/left-cast: target/right-cast: none		;-- reset op's arguments type casting
 		either res [
 			compiler/last-type: res
 		][
