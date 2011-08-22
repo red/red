@@ -434,6 +434,25 @@ comment {
   
 ===end-group===
 
+===start-group=== "Cast in conditional tests"
+    cic-r: false
+  --test-- "cic-1"
+    cic-d: as-byte 0
+    either as-logic cic-d [cic-r: false] [cic-r: true]
+  --assert cic-r
+  
+  --test-- "cic-2"
+    cic-s: declare struct! [
+      a   [byte!]
+      b   [byte!]
+    ]
+    cic-s/a: as-byte 0
+    cic-s/b: as-byte 1
+    either as-logic cic-s/a [cic-r: false] [cic-r: true]
+  --assert cic-r
+
+===end-group===
+
   
 ~~~end-file~~~
 
