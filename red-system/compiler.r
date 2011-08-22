@@ -391,12 +391,8 @@ system-dialect: context [
 			to logic! find/skip emitter/datatypes value 3
 		]
 		
-		encode-cond-test: func [value [logic!]][
-			pick [<true> <false>] value
-		]
-		
-		decode-cond-test: func [value [tag!]][
-			select [<true> #[true] <false> #[false]] value
+		unbox: func [value][
+			either object? value [value/data][value]
 		]
 		
 		get-return-type: func [name [word!] /local type][
@@ -410,6 +406,14 @@ system-dialect: context [
 		
 		set-last-type: func [spec [block!]][
 			if spec: select spec return-def [last-type: spec]
+		]
+		
+		exists-variable?: func [name [word! set-word!]][
+			name: to word! name
+			to logic! any [
+				all [locals find locals name]
+				find globals name
+			]
 		]
 		
 		get-variable-spec: func [name [word!]][
@@ -516,28 +520,25 @@ system-dialect: context [
 		]
 		
 		get-type: func [value][
-			if value = <last> [return last-type]
-			
 			switch/default type?/word value [
 				none!	 [none-type]				;-- no type case (func with no return value)
-				tag!	 [[logic!]]
+				tag!	 [either value = <last> [last-type][ [logic!] ]]
 				logic!	 [[logic!]]
 				word! 	 [resolve-type value]
 				char!	 [[byte!]]
 				integer! [[integer!]]
 				string!	 [[c-string!]]
 				path!	 [resolve-path-type value]
-				block!	 [
-					case [
-						object? value/1 [value/1/type]
-						'op = second select functions value/1 [
-							either base-type? type: get-return-type value/1 [
-								type				;-- unique returned type, stop here
-							][
-								get-type value/2	;-- recursively search for an atomic left operand
-							]
+				object!  [value/type]
+				block!	 [			
+					either 'op = second select functions value/1 [
+						either base-type? type: get-return-type value/1 [
+							type				;-- unique returned type, stop here
+						][
+							get-type value/2	;-- recursively search for left operand base type
 						]
-						'else [get-return-type value/1]
+					][
+						get-return-type value/1
 					]
 				]
 				paren!	 [
@@ -566,8 +567,8 @@ system-dialect: context [
 				spec: select functions expr/1 		 ;-- works for unary & binary functions only!
 			]
 			type: case [
-				all [block? expr object? expr/1][
-					expr/1/type						 ;-- type casting case
+				object? expr [
+					expr/type						 ;-- type casting case
 				]
 				all [func? find [op inline] spec/2][ ;-- works for unary & binary functions only!
 					any [
@@ -591,9 +592,10 @@ system-dialect: context [
 			type
 		]
 		
-		cast: func [ctype [block!] value /local type][
+		cast: func [obj [object!] /local value ctype type][
+			value: obj/data
+			ctype: obj/type
 			type: get-type value
-			ctype: ctype
 
 			if type = ctype [
 				throw-warning/at [
@@ -639,13 +641,13 @@ system-dialect: context [
 			value
 		]
 		
-		init-local: func [name [word!] expr [block!] casted [block! none!] /local pos type][	
+		init-local: func [name [word!] expr casted [block! none!] /local pos type][
 			append locals-init name					;-- mark as initialized
 			pos: find locals name
 			unless block? pos/2 [					;-- if not typed, infer type
 				insert/only at pos 2 type: any [
 					casted
-					all [block? expr/2 last-type]
+					all [block? expr last-type]
 					resolve-expr-type expr
 				]
 				if verbose > 2 [print ["inferred type" mold type "for variable:" pos/1]]
@@ -800,7 +802,7 @@ system-dialect: context [
 		check-expected-type: func [name [word!] expr expected [block!] /ret /key /local type alias][
 			unless any [not none? expr key][return none]			;-- expr == none for special keywords
 			if all [
-				not all [block? expr object? expr/1 expr/1/type = 'null] ;-- avoid null type resolution here
+				not all [object? expr expr/action = 'null] ;-- avoid null type resolution here
 				not none? expr							;-- expr can be false, so explicit check for none is required
 				first type: resolve-expr-type expr		;-- first => deep check that it's not [none]
 			][											;-- check if a type is returned or none
@@ -809,9 +811,8 @@ system-dialect: context [
 			]
 			unless any [
 				all [
-					block? expr
-					object? expr/1
-					expr/1/action = 'null
+					object? expr
+					expr/action = 'null
 					type: expected						;-- morph null type to expected
 					any-pointer? expected
 				]
@@ -977,6 +978,7 @@ system-dialect: context [
 						all [word? expr/1 get-variable-spec expr/1]
 						paren? expr/1
 						block? expr/1
+						object? expr/1
 					][
 						expr: expr/1					;-- remove outer brackets if variable
 					]
@@ -1070,7 +1072,7 @@ system-dialect: context [
 		
 		comp-null: does [
 			pc: next pc
-			reduce [make action-class [action: 'null type: [any-pointer!]] 0]
+			make action-class [action: 'null type: [any-pointer!] data: 0]
 		]
 		
 		comp-as: has [ctype ptr? expr][
@@ -1086,16 +1088,14 @@ system-dialect: context [
 			pc: skip pc pick [3 2] to logic! ptr?
 			expr: fetch-expression
 
-			if all [block? expr object? expr/1 expr/1/action = 'null][
+			if all [object? expr expr/action = 'null][
 				pc: back pc
 				throw-error "type casting on null value is not allowed"
 			]
-			reduce [
-				make action-class [
-					action: 'type-cast
-					type: blockify ctype
-				]
-				expr
+			make action-class [
+				action: 'type-cast
+				type: blockify ctype
+				data: expr
 			]
 		]
 		
@@ -1219,23 +1219,23 @@ system-dialect: context [
 					emitter/target/emit-operation '= [<last> 0]
 					reduce [not invert?]
 				]
+				object? expr [
+					expr: cast expr
+					unless find [word! path!] type?/word any [
+						all [block? expr expr/1] expr 
+					][
+						emitter/target/emit-operation '= [<last> 0]
+					]
+					process-logic-encoding expr invert?
+				]
 				block? expr [
 					case [
 						find comparison-op expr/1 [expr]
-						object? expr/1 [				
-							expr: cast expr/1/type expr/2
-							unless find [word! path!] type?/word any [
-								all [block? expr expr/1] expr 
-							][
-								emitter/target/emit-operation '= [<last> 0]
-							]
-							process-logic-encoding expr invert?
-						]
 						'else [process-logic-encoding expr/1 invert?]
 					]
 				]
 				tag? expr [
-					either expr <> <last> [
+					either last-type/1 = 'logic! [
 						emitter/target/emit-operation '= [<last> 0]
 						reduce [not invert?]
 					][expr] 
@@ -1338,7 +1338,7 @@ system-dialect: context [
 			]	
 			emitter/merge bodies
 			last-type: [logic!]
-			encode-cond-test not _all					;-- special encoding
+			<last>
 		]
 		
 		comp-assignment: has [name value n][
@@ -1422,146 +1422,201 @@ system-dialect: context [
 			]
 		]
 		
-		comp-expression: func [
-			tree [block!] /keep
-			/local name value data offset body args prepare-value type casted new
-		][	
-			prepare-value: [		
-				if all [block? tree/2 object? tree/2/1][;-- detect a casting
-					switch tree/2/1/action [
-						type-cast [
-							casted: resolve-aliased tree/2/1/type		;-- save casting type
-							if all [block? tree/2/2 object? tree/2/2/1][
-								raise-casting-error
-							]
-							tree/2: cast casted tree/2/2 ;-- remove encoding object
-						]
-						null [
-							unless all [
-								attempt [
-									casted: get-type any [
-										all [set-word? tree/1 name]
-										to path! tree/1
-									]
-								]
-								any-pointer? casted
-							][
-								backtrack tree/1
-								throw-error "Invalid null assignment"
-							]
-							tree/2: 0
-						]
+		cast-null: func [variable [set-word! set-path!] /local casting][
+			unless all [
+				attempt [
+					casting: get-type any [
+						all [set-word? variable to word! variable]
+						to path! variable
 					]
 				]
-				type: resolve-expr-type tree/2
-				value: either block? tree/2 [			;-- detect a sub-expression
-					comp-expression/keep tree/2 		;-- function call case
-					<last>
-				][
-					tree/2
-				]				
-				either all [tag? value value <> <last>][	;-- special encoding for ALL/ANY
-					data: true
-					value: <last>
-				][
-					data: value
+				any-pointer? casting
+			][
+				backtrack variable
+				throw-error "Invalid null assignment"
+			]			
+			casting
+		]
+		
+		order-args: func [name [word!] args [block!]][
+			if any [
+				all [
+					find [import native infix] functions/:name/2
+					find [stdcall cdecl] functions/:name/3
 				]
-				if path? value [
-					emitter/access-path value none
-					type: last-type: resolve-path-type value				
-					value: <last>
+				all [
+					functions/:name/2 = 'syscall
+					job/syscall = 'BSD
 				]
-				if all [word? value set-word? tree/1][
-					emitter/target/emit-load value
+			][		
+				reverse args
+			]
+		]
+
+		comp-call: func [
+			name [word!] args [block!] /sub
+			/local list type res import? left right dup var-arity? saved? arg
+		][
+			check-cc name
+			list: either issue? args/1 [					;-- bypass type-checking for variable arity calls
+				args/2
+			][
+				check-arguments-type name args
+				args
+			]
+			order-args name list							;-- reorder argument according to cconv
+
+			import?: functions/:name/2 = 'import			;@@ syscalls don't seem to need 16-byte alignment??
+			if import? [emitter/target/emit-stack-align-prolog args]
+
+			type: functions/:name/2
+			either type <> 'op [					
+				forall list [								;-- push function's arguments on stack
+					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
+					if type <> 'inline [
+						emitter/target/emit-argument list/1 type ;-- let target define how arguments are passed
+					]
 				]
-				if casted [
-					emitter/target/emit-casting reduce [casted type] no 
+			][												;-- nested calls as op argument require special handling
+				if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
+				left:  unbox list/1
+				right: unbox list/2
+				if saved?: all [block? left any [block? right path? right]][
+					emitter/target/emit-save-last			;-- optionally save left argument result
+				]
+				if block? unbox list/2 [comp-expression list/2 yes]	;-- nested call
+				if saved? [emitter/target/emit-restore-last]			
+			]
+			res: emitter/target/emit-call name args to logic! sub
+
+			either res [
+				last-type: res
+			][
+				set-last-type functions/:name/4				;-- catch nested calls return type
+			]
+			if import? [emitter/target/emit-stack-align-epilog args]
+			res
+		]
+				
+		comp-path-assign: func [
+			set-path [set-path!] expr casted [block! none!]
+			/local type new value
+		][
+			unless get-variable-spec set-path/1 [
+				backtrack set-path
+				throw-error ["unknown path root variable:" set-path/1]
+			]
+			type: resolve-path-type set-path			;-- check path validity
+			new: resolve-aliased get-type expr		
+
+			if type <> any [casted new][
+				backtrack set-path
+				throw-error [
+					"type mismatch on setting path:" to path! set-path
+					"^/*** expected:" mold type
+					"^/*** found:" mold any [casted new]
 				]
 			]
-			switch/default type?/word tree/1 [
-				set-word! [								;-- variable assignment --
-					name: to word! tree/1
-					if find aliased-types name [
-						backtrack tree/1
-						throw-error "name already used for as an alias definition"
-					]
-					do prepare-value
-					if not-initialized? name [
-						init-local name tree casted		;-- mark as initialized and infer type if required
-					]
-					either type: get-variable-spec name [  ;-- test if known variable (local or global)
-						type: resolve-aliased type				
-						new: resolve-aliased get-type data
-						if type <> any [casted new][
-							backtrack tree/1
-							throw-error [
-								"attempt to change type of variable:" name
-								"^/*** from:" mold type
-								"^/***   to:" mold any [casted new]
-							]
-						]
-					][
-						unless zero? block-level [
-							backtrack tree/1
-							throw-error "variable has to be initialized at root level"
-						]
-						type: add-symbol name data casted  ;-- if unknown add it to global context
-					]
-					if none? type/1 [
-						backtrack tree/1
-						throw-error ["unable to determine a type for:" name]
-					]
-					emitter/store name value type
-				]
-				set-path! [								;-- path assignment --				
-					do prepare-value
-					unless get-variable-spec tree/1/1 [
-						backtrack tree/1
-						throw-error ["unknown path root variable:" tree/1/1]
-					]
-					type: resolve-path-type tree/1		;-- check path validity
-					new: resolve-aliased get-type data
-					if type <> any [casted new][
-						backtrack tree/1
-						throw-error [
-							"type mismatch on setting path:" to path! tree/1
-							"^/*** expected:" mold type
-							"^/*** found:" mold any [casted new]
-						]
-					]
-					emitter/access-path tree/1 value
-				]
-				object! [								;-- special actions @@
-					do prepare-value
-					switch tree/1/action [
-						type-cast [						;-- apply type casting
-							unless find [none! tag! object! block!] type?/word value [
-								emitter/target/emit-load value
-							]
-						]
-						null [emitter/target/emit-load value]
-						;-- add more special actions here
-					]
-					last-type: tree/1/type
-				]
-			][											;-- function call --
-				name: to word! tree/1
-				args: next tree
-				if all [tag? args/1 args/1 <> <last>][	;-- special encoding for ALL/ANY
-					if 1 < length? args [
-						throw-error [
-							"function" name
-							"requires only one argument when passing ANY/ALL expression"
-						]
-					]									
-					args/1: <last>
-				]
+			value: unbox expr
+			if block? value [value: <last>]
+
+			emitter/access-path set-path value
+		]
+		
+		comp-variable-assign: func [
+			set-word [set-word!] expr casted [block! none!]
+			/local name type new value
+		][
+			name: to word! set-word		
+			if find aliased-types name [
+				backtrack set-word
+				throw-error "name already used for as an alias definition"
+			]
+			if not-initialized? name [
+				init-local name expr casted				;-- mark as initialized and infer type if required
+			]		
+			either type: get-variable-spec name [ 		;-- test if known variable (local or global)		
+				type: resolve-aliased type		
+				new: resolve-aliased get-type expr			
 				
-				type: emitter/call name args
-				if type [last-type: type]
-				
-				if all [keep last-type/1 = 'logic!][
-					emitter/logic-to-integer name		;-- runtime logic! conversion before storing @@
+				if type <> any [casted new][
+					backtrack set-word
+					throw-error [
+						"attempt to change type of variable:" name
+						"^/*** from:" mold type
+						"^/***   to:" mold any [casted new]
+					]
+				]
+			][
+				unless zero? block-level [
+					backtrack set-word
+					throw-error "variable has to be initialized at root level"
+				]
+				type: add-symbol name unbox expr casted  ;-- if unknown add it to global context
+			]
+			if none? type/1 [
+				backtrack set-word
+				throw-error ["unable to determine a type for:" name]
+			]
+			value: unbox expr
+			if block? value [value: <last>]
+			
+			emitter/store name value type
+		]
+		
+		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type][	
+			;-- preprocessing expression
+			if all [block? expr find [set-word! set-path!] type?/word expr/1][
+				variable: expr/1
+				expr: expr/2							;-- switch to assigned expression
+				if set-word? variable [
+					new?: not exists-variable? variable
+				]
+			]			
+			if object? expr [							;-- unbox type-casting object
+				if all [any [keep? variable] expr/action = 'null][
+					casting: cast-null variable
+				]
+				boxed: expr
+				expr: cast expr
+			]
+
+			;-- emitting expression code
+			either block? expr [
+				type: comp-call expr/1 next expr 	;-- function call case (recursive)
+				if type [last-type: type]				;-- set last-type if not already set
+			][
+				unless any [
+					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment
+					all [set-path? variable literal? unbox expr] ;-- value loaded at lower level
+					tag? unbox expr
+				][
+					emitter/target/emit-load expr		;-- emit code for single value
+				]
+				last-type: resolve-expr-type expr
+			]
+			
+			;-- postprocessing result
+			if boxed [
+				emitter/target/emit-casting boxed no 	;-- insert runtime type casting if required
+				last-type: boxed/type
+			]
+			if all [
+				any [keep? variable]						;-- if result needs to be stored
+				block? expr								;-- and if expr is a function call
+				last-type/1 = 'logic!					;-- which return type is logic!
+			][
+				emitter/logic-to-integer expr/1			;-- runtime logic! conversion before storing
+			]
+			
+			;-- storing result if assignement required
+			if variable [
+				if all [boxed not casting][
+					casting: resolve-aliased boxed/type
+				]
+				switch type?/word variable [
+					set-word! [comp-variable-assign variable expr casting]
+					set-path! [comp-path-assign		variable expr casting]
 				]
 			]
 		]
@@ -1621,19 +1676,11 @@ system-dialect: context [
 				]
 			]
 			expr: reduce-logic-tests expr
+			
 			if final [
 				if verbose >= 3 [?? expr]
-				case [
-					block? expr [
-						either keep [
-							comp-expression/keep expr
-						][
-							comp-expression expr
-						]
-					]
-					not find [none! tag! object!] type?/word expr [
-						emitter/target/emit-load expr
-					]
+				unless find [none! tag!] type?/word expr [
+					comp-expression expr to logic! keep
 				]
 			]
 			expr
@@ -1802,7 +1849,7 @@ system-dialect: context [
 	]
 	
 	comp-runtime-epilog: does [	
-		emitter/call '***-on-quit [0 0]					;-- call runtime exit handler
+		compiler/comp-call '***-on-quit [0 0]			;-- call runtime exit handler
 	]
 	
 	clean-up: does [

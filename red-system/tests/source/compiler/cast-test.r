@@ -111,14 +111,14 @@ compiled?: func [
   --test-- "logic! warning special case"
     result: false
     result: compiled? {
-      Red/System []					;; does not produce a Warning message because 
-      				    			;; the [true =] part of the expression is
-      l: true					    ;; removed during compilation 
-      true = as logic! l			;; (part of literal logic! value
-    }                           	;; internal reduction strategy)
+      Red/System []
+
+      l: true
+      true = as logic! l
+    } 
     warning: "*** Warning: type casting"
     either result [
-  --assert none = find qt/comp-output warning 
+  --assert found? find qt/comp-output warning 
     ][
       --assert result                       ;; signify failing test
       print qt/comp-output

@@ -246,7 +246,7 @@ comment {
   }
     --test-- "c-string-cast-3"
     csc3-str: ""
-  --assert false = as logic! csc3-str
+  --assert true = as logic! csc3-str
   
   --test-- "c-string-cast-4"
   --assert true = as logic! "Any old iron, any old iron"

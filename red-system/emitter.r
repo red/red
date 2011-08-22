@@ -252,7 +252,11 @@ emitter: context [
 	store: func [
 		name [word!] value type [block!]
 		/local new new-global? ptr refs n-spec spec literal?
-	][
+	][	
+		if path? value [
+			access-path value none		
+			value: <last>
+		]
 		if new: select compiler/aliased-types type/1 [
 			type: new
 		]	
@@ -405,95 +409,6 @@ emitter: context [
 		foreach ptr exits [
 			change at code-buf ptr to-bin32 end - ptr - offset
 		]
-	]
-	
-	order-args: func [name [word!] args [block!]][
-		if all [
-			not find [set-word! set-path!] type?/word name
-			any [
-				all [
-					find [import native infix] compiler/functions/:name/2
-					find [stdcall cdecl] compiler/functions/:name/3
-				]
-				all [
-					compiler/functions/:name/2 = 'syscall
-					compiler/job/syscall = 'BSD
-				]
-			]
-		][		
-			reverse args
-		]
-	]
-	
-	preprocess-argument: func [args [block!] /no-last /local arg casted old-type][
-		arg: args/1
-		if all [block? arg object? arg/1][				;-- preprocess casting
-			switch arg/1/action [
-				type-cast [
-					casted: arg/1/type
-					old-type: compiler/get-type arg/2
-					arg: args/1: compiler/cast casted arg/2		;-- new argument value can be a block! or not
-				]
-				null [arg: args/1: 0]
-			]
-		]
-		if block? arg [									;-- nested call
-			if object? arg/1 [compiler/raise-casting-error]
-			call/sub arg/1 next arg
-			if all [casted not no-last][compiler/set-last-type casted]
-		]
-		either casted [reduce [casted old-type]][none]
-	]
-	
-	call: func [
-		name [word!] args [block!] /sub
-		/local list type res import? left right dup var-arity? saved?
-	][
-		compiler/check-cc name
-		list: either issue? args/1 [					;-- bypass type-checking for variable arity calls
-			args/2
-		][
-			compiler/check-arguments-type name args
-			args
-		]
-		order-args name list
-		
-		import?: compiler/functions/:name/2 = 'import	; syscalls don't seem to need 16-byte alignment??
-		if import? [target/emit-stack-align-prolog args]
-		
-		type: compiler/functions/:name/2
-		either type <> 'op [					
-			forall list [								;-- push function's arguments on stack
-				cast: preprocess-argument/no-last list
-				target/emit-argument list/1 cast type	;-- let target define how arguments are passed
-			]
-		][												;-- nested calls as op argument require special handling
-			left: preprocess-argument list
-			if saved?: all [block? list/1 any [block? list/2 path? list/2]][
-				target/emit-save-last					;-- optionally save left argument result
-				if block? list/2 [
-					left: reduce [						;-- implicit cast forced to save returned type
-						dup: compiler/last-type
-						dup
-					]
-				]
-			]
-			right: preprocess-argument/no-last next list
-			if saved? [target/emit-restore-last]
-			
-			target/left-cast:  left
-			target/right-cast: right
-		]
-		res: target/emit-call name args to logic! sub
-		
-		target/left-cast: target/right-cast: none		;-- reset op's arguments type casting
-		either res [
-			compiler/last-type: res
-		][
-			compiler/set-last-type compiler/functions/:name/4	;-- catch nested calls return type
-		]
-		if import? [target/emit-stack-align-epilog args]
-		res
 	]
 	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos var sz][

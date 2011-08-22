@@ -12,8 +12,6 @@ target-class: context [
 	compiler: 	none								;-- just a short-cut
 	width: 		none								;-- current operand width in bytes
 	signed?: 	none								;-- TRUE => signed op, FALSE => unsigned op
-	left-cast: 	none								;-- left operand type casting
-	right-cast: none								;-- right operand type casting
 	last-saved?: no									;-- TRUE => operand saved in another register
 	verbose:  	0									;-- logs verbosity level
 	
@@ -91,24 +89,39 @@ target-class: context [
 		]
 	]
 	
-	set-width: func [operand /type /local value][
-		width: emitter/size-of? value: case [
-			type 	  [operand]
-			left-cast [left-cast left-cast/1/1]
-			'else 	  [compiler/get-type operand]
+	get-width: func [operand type /local value][
+		reduce [
+			emitter/size-of? value: case [
+				type 	[operand]
+				'else 	[			
+					value: first compiler/get-type operand
+					either value = 'any-pointer! ['pointer!][value]
+				]
+			]
+			value
 		]
-		signed?: emitter/signed? value
 	]
 	
-	with-right-casting: func [body [block!] /alt /local old][
-		if right-cast [
-			old: width
-			set-width/type right-cast/2/1
-		]
+	set-width: func [operand /type /local value][
+		value: get-width operand type
+		width: value/1
+		signed?: emitter/signed? value/2
+	]
+	
+	with-width-of: func [value body [block!] /alt /local old][
+		old: width
+		set-width compiler/unbox value
 		do body
-		if old [
-			if alt [emit-casting right-cast to logic! alt]	;-- emit runtime conversion for comparison op only
-			width: old
+		width: old
+		if all [alt object? value][emit-casting value yes]	;-- casting for right operand
+	]
+	
+	implicit-cast: func [arg /local right-width][
+		right-width: first get-width arg none
+		
+		if all [width = 4 right-width = 1][				;-- detect byte! -> integer! implicit casting
+			arg: make object! [action: 'type-cast type: [integer!] data: arg]
+			emit-casting arg yes						;-- type cast right argument
 		]
 	]
 ]
