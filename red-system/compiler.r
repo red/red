@@ -1574,7 +1574,7 @@ system-dialect: context [
 				]
 			]			
 			if object? expr [							;-- unbox type-casting object
-				if all [any [keep? variable] expr/action = 'null][
+				if all [variable expr/action = 'null][
 					casting: cast-null variable
 				]
 				boxed: expr
