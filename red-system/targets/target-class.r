@@ -66,9 +66,11 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word!] gcode [binary!] lcode [binary! block!] 
+		name [word! object!] gcode [binary!] lcode [binary! block!] 
 		/local offset
 	][
+		if object? name [name: compiler/unbox name]
+		
 		either offset: select emitter/stack name [
 			if any [								;-- local variable case
 				offset < -128

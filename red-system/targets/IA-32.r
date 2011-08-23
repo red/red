@@ -59,11 +59,12 @@ make target-class [
 		    g8 [binary!] 		g32 [binary!]			;-- opcodes for global variables
 			l8 [binary! block!] l32 [binary! block!]	;-- opcodes for local variables
 	][
-		if object? name [name: compiler/unbox name]
-		switch width [
-			1 [emit-variable name g8 l8]				;-- 8-bit
-			2 [emit #{66} emit-variable name g32 l32]	;-- 16-bit
-			4 [emit-variable name g32 l32]				;-- 32-bit
+		with-width-of name [
+			switch width [
+				1 [emit-variable name g8 l8]				;-- 8-bit
+				2 [emit #{66} emit-variable name g32 l32]	;-- 16-bit
+				4 [emit-variable name g32 l32]				;-- 32-bit
+			]
 		]
 	]
 	
@@ -199,7 +200,10 @@ make target-class [
 		reduce [3 7]								;-- [offset-TRUE offset-FALSE]
 	]
 	
-	emit-load: func [value [char! logic! integer! word! string! struct! path! paren! get-word! object!]][
+	emit-load: func [
+		value [char! logic! integer! word! string! struct! path! paren! get-word! object!]
+		/alt
+	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		
 		switch type?/word value [
@@ -219,9 +223,15 @@ make target-class [
 			]
 			word! [
 				with-width-of value [
-					emit-variable-poly value
-						#{A0}   #{A1}				;-- MOV rA, [value]		; global
-						#{8A45} #{8B45}				;-- MOV rA, [ebp+n]		; local	
+					either alt [
+						emit-variable-poly value
+							#{8A15} #{8B15}			;-- MOV rD, [value]		; global
+							#{8A55} #{8B55}			;-- MOV rD, [ebp+n]		; local
+					][
+						emit-variable-poly value
+							#{A0}   #{A1}			;-- MOV rA, [value]		; global
+							#{8A45} #{8B45}			;-- MOV rA, [ebp+n]		; local	
+					]
 				]
 			]
 			get-word! [
@@ -242,7 +252,7 @@ make target-class [
 			]
 			object! [
 				unless any [block? value/data value/data = <last>][
-					emit-load value/data
+					either alt [emit-load/alt value/data][emit-load value/data]
 				]
 			]
 		]
@@ -597,27 +607,15 @@ make target-class [
 		code: select [
 			and [
 				#{25}								;-- AND eax, value
-				#{2305}								;-- AND eax, [value]	; global
-				#{2345}								;-- AND eax, [ebp+n]	; local
 				#{21D0}								;-- AND eax, edx		; commutable op
-				#{2205}								;-- AND  al, [value]	; global
-				#{2245}								;-- AND  al, [ebp+n]	; local
 			]
 			or [
 				#{0D}								;-- OR eax, value
-				#{0B05}								;-- OR eax, [value]		; global
-				#{0B45}								;-- OR eax, [ebp+n]		; local
 				#{09D0}								;-- OR eax, edx			; commutable op
-				#{0A05}								;-- OR  al, [value]		; global
-				#{0A45}								;-- OR  al, [ebp+n]		; local
 			]
 			xor [
 				#{35}								;-- XOR eax, value
-				#{3305}								;-- XOR eax, [value]	; global
-				#{3345}								;-- XOR eax, [ebp+n]	; local
 				#{31D0}								;-- XOR eax, edx		; commutable op
-				#{3205}								;-- XOR  al, [value]	; global
-				#{3245}								;-- XOR  al, [ebp+n]	; local
 			]
 		] name
 		
@@ -627,36 +625,36 @@ make target-class [
 				emit to-bin32 compiler/unbox args/2
 			]
 			ref [
-				with-width-of args/2 [
-					emit-variable-poly args/2
-						code/5 code/2				;-- <OP> eax, [value]	; global
-						code/6 code/3				;-- <OP> eax, [ebp+n]	; local
-				]
+				emit-load/alt args/2
+				if object? args/2 [emit-casting args/2 yes]
+				emit code/2
 			]
-			reg [emit code/4]						;-- <OP> eax, edx		; commutable op
+			reg [emit code/2]						;-- <OP> eax, edx		; commutable op
 		]
 	]
 	
-	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!]][
+	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local op-poly][
+		op-poly: [emit-poly [#{38D0} #{39D0}]]		;-- CMP rA, rD			; not commutable op
+		
 		switch b [
 			imm [
 				emit-poly [#{3C} #{3D} args/2]		;-- CMP rA, value
 			]
 			ref [
-				with-width-of/alt args/2 [
-					emit-variable-poly args/2
-						#{8A15} #{8B15}				;-- MOV rD, [value]		; global
-						#{8A55} #{8B55}				;-- MOV rD, [ebp+n]		; local
-				]				
-				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; not commutable op				
+				emit-load/alt args/2
+				if object? args/2 [emit-casting args/2 yes]
+				do op-poly
 			]
 			reg [
-				emit-poly [#{38D0} #{39D0}]			;-- CMP rA, rD			; not commutable op
+				do op-poly
 			]
 		]
 	]
 	
-	emit-math-op: func [name [word!] a [word!] b [word!] args [block!] /local mod? scale c type arg2][
+	emit-math-op: func [
+		name [word!] a [word!] b [word!] args [block!]
+		/local mod? scale c type arg2 op-poly
+	][
 		;-- eax = a, edx = b
 		if find [// ///] name [						;-- work around unaccepted '// and '///
 			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
@@ -691,6 +689,9 @@ make target-class [
 		;-- eax = a, edx = b
 		switch name [
 			+ [
+				op-poly: [
+					emit-poly [#{00D0} #{01D0}]		;-- ADD rA, rD			; commutable op
+				]
 				switch b [
 					imm [
 						emit-poly either arg2 = 1 [	;-- trivial optimization
@@ -700,16 +701,16 @@ make target-class [
 						]
 					]
 					ref [
-						emit-variable-poly arg2
-							#{0205} #{0305}			;-- ADD rA, [value]		; global
-							#{0245} #{0345}			;-- ADD rA, [ebp+n]		; local
+						emit-load/alt args/2
+						do op-poly
 					]
-					reg [
-						emit-poly [#{00D0} #{01D0}]	;-- ADD rA, rD			; commutable op
-					]
+					reg [do op-poly]
 				]
 			]
 			- [
+				op-poly: [
+					emit-poly [#{28D0} #{29D0}] 	;-- SUB rA, rD			; not commutable op
+				]
 				switch b [
 					imm [
 						emit-poly either arg2 = 1 [ ;-- trivial optimization
@@ -719,16 +720,16 @@ make target-class [
 						]
 					]
 					ref [
-						emit-variable-poly arg2
-							#{2A05} #{2B05}			;-- SUB rA, [value]		; global
-							#{2A45} #{2B45}			;-- SUB rA, [ebp+n]		; local
+						emit-load/alt args/2
+						do op-poly
 					]
-					reg [
-						emit-poly [#{28D0} #{29D0}] ;-- SUB rA, rD			; not commutable op
-					]
+					reg [do op-poly]
 				]
 			]
 			* [
+				op-poly: [
+					emit-poly [#{F6EA} #{F7EA}] ;-- IMUL rD 			; commutable op
+				]
 				switch b [
 					imm [
 						either all [
@@ -753,18 +754,15 @@ make target-class [
 					]
 					ref [
 						emit #{52}					;-- PUSH edx	; save edx from corruption
-						emit-variable-poly arg2
-							#{F62D}	#{F72D}			;-- IMUL [value]		; global
-							#{F66D}	#{F76D}			;-- IMUL [ebp+n]		; local
+						emit-load/alt args/2
+						do op-poly
 						emit #{5A}					;-- POP edx
 					]
-					reg [
-						emit-poly [#{F6EA} #{F7EA}] ;-- IMUL rD 			; commutable op
-					]
+					reg [do op-poly]
 				]
 			]
 			/ [
-				div-poly: [
+				op-poly: [
 					either width = 1 [				;-- 8-bit unsigned
 						emit #{B400}				;-- MOV ah, 0			; clean-up garbage in ah
 						emit #{F6F3}				;-- DIV bl
@@ -774,44 +772,23 @@ make target-class [
 					]
 				]
 				switch b [
-					imm [
-						either all [
-							not mod?				;-- do not use shifts if modulo
-							c: power-of-2? arg2
-						][							;-- trivial optimization for b=2^n
-							either width = 1 [
-								emit #{C0E8}		;-- SHR al, log2(b)	; 8-bit unsigned
-							][
-								emit-poly [#{C0F8} #{C1F8}]	;-- SAR rA, log2(b)	; signed
-							]
-							emit to-bin8 c
-						][
-							emit #{52}				;-- PUSH edx	; save edx from corruption
-							with-width-of/alt args/2 [							
-								emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
-							]
-							emit #{89D3}				   ;-- MOV ebx, edx
-							do div-poly
+					imm [							;-- SAR usage http://www.arl.wustl.edu/~lockwood/class/cs306/books/artofasm/Chapter_6/CH06-3.html#HEADING3-120
+						emit #{52}					;-- PUSH edx	; save edx from corruption
+						with-width-of/alt args/2 [							
+							emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
 						]
+						emit #{89D3}				;-- MOV ebx, edx
+						do op-poly
 					]
 					ref [
 						emit #{52}					;-- PUSH edx	; save edx from corruption
-						either width = 1 [
-							emit #{B400}			;-- MOV ah, 0			; clean-up garbage in ah
-							emit-variable arg2
-								#{F635}				;-- DIV byte [value]	; global
-								#{F675}				;-- DIV byte [ebp+n]	; local
-						][
-							emit-sign-extension
-							emit-variable-poly arg2
-								#{8A1D} #{8B1D}		;-- MOV rB, word|dword [value]	; global
-								#{8A5D} #{8B5D}		;-- MOV rB, word|dword [ebp+n]	; local
-							do div-poly
-						]
+						emit-load/alt args/2
+						emit #{89D3}				;-- MOV ebx, edx
+						do op-poly
 					]
 					reg [
 						emit #{89D3}				;-- MOV ebx, edx		; ebx = b
-						do div-poly
+						do op-poly
 					]
 				]
 				if mod? [
