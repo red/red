@@ -7,15 +7,6 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
-rand: func [
-  "returns a random number between -2147483647 and 2147483647"
-  /local i
-][
-  i: random 2147483647
-  if 2 = random 2 [i: - i]
-  i
-]
-
 ;; initialisations 
 tests: copy ""                          ;; string to hold generated tests
 test-number: 0                          ;; number of the generated test
@@ -32,8 +23,12 @@ test-values: [
            -7
             5
        123456
+        28230
+        -6681
+        44095
+        65536
 ]
-loop 3 [append test-values rand]
+
 
 ;; create blocks of operators to be applied
 test-binary-ops: [
