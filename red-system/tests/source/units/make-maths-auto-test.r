@@ -2,7 +2,7 @@ REBOL [
   Title:   "Generates Red/System maths tests"
 	Author:  "Peter W A Wood"
 	File: 	 %make-maths-auto-test.r
-	Version: 0.1.1
+	Version: 0.1.2
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
@@ -31,6 +31,7 @@ preprocess: func [
     sb
     ns
     nothing-changed
+    division-sign
 ][
 
   calc: func [
@@ -47,7 +48,7 @@ preprocess: func [
       + [res: a + b]
       - [res: a - b]
       * [res: a * b]
-      / [res: a / b]
+      div-sign [res: to integer! (a / b)]
     ]
     
     ;; adjust the return value to emulate 8-bit arithmetic with overflow
@@ -70,13 +71,18 @@ preprocess: func [
         replace ns join "" [mold a " " op " " mold b ] mold acc
         nothing-changed: false
       )] |
+      [set a integer! 'div-sign set b integer! (
+        replace ns join "" [mold a " " op " " mold b ]
+                   join "(to integer! divide "[mold a " " mold b ")"]
+      )] |
       [set p paren! (parse to block! p rules)] |
       skip
     ]
     end
   ]
 
-  ns: copy s  
+  ns: copy s
+  replace/all ns " / " " div-sign "  
   until [
     nothing-changed: true
     sb: to block! load ns
@@ -104,6 +110,7 @@ tests-and-data: [
     "v * v * v"
     "v - v - v"
     "v - v * v"
+    "(v / v) + v"
   ]  
   [
     [1 1 1]
@@ -121,7 +128,8 @@ tests-and-data: [
     [#"^(07)" #"^(08)" #"^(03)"]
     [1 #"^(0A)" 100]
     [2 #"^(10)" 256]
-
+    [#"^(FD)" #"^(FE)" #"^(FF)"]
+    [#"^(AA)" 34 #"^(99)"]
   ]
   [
     "(v * v) * (v * v)"
@@ -141,6 +149,7 @@ tests-and-data: [
     [256 256 256 256]
     [257 257 257 257]
     [#"^(FF)" 256 257 258]
+    [#"^(FC)" #"^(FD)" #"^(FE)" #"^(FF)"]
   ]
   [
     "((v * v) * (v * v)) * ((v * v) * (v * v))"
@@ -223,6 +232,7 @@ tests-and-data: [
     [-257 -257 -257 -257 -257 -257 -257 -257]
     [#"^(01)" #"^(02)" #"^(03)" #"^(01)" #"^(02)" #"^(03)" #"^(01)" #"^(02)"]
     [1 2 #"^(03)" 4 5 6 7 8]
+    [#"^(F8)" #"^(F9)" #"^(FA)" #"^(FB)" #"^(FC)" #"^(FD)" #"^(FE)" #"^(FF)"]
   ]
 ]
 
