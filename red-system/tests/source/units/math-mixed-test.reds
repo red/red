@@ -10,6 +10,33 @@ Red/System [
 
 ~~~start-file~~~ "math-mixed"
 
+===start-group=== "Math implicit type castings"
+
+	--test-- "math-implicit-cast-1" --assert 10 - #"^C" = 7
+	--test-- "math-implicit-cast-2" --assert -1 - #"^C" = -4
+	--test-- "math-implicit-cast-3" --assert 10 + #"^C" = 13
+	--test-- "math-implicit-cast-4" --assert -1 + #"^C" = 2
+	--test-- "math-implicit-cast-5" --assert 10 * #"^C" = 30
+	--test-- "math-implicit-cast-6" --assert -1 * #"^C" = -3
+	--test-- "math-implicit-cast-7" --assert 10 / #"^C" = 3
+	--test-- "math-implicit-cast-8" --assert -10 / #"^C" = -3
+	--test-- "math-implicit-cast-9" --assert 1000 - #"^C" = 997
+
+	byte: #"^C"
+	--test-- "math-implicit-cast-10" --assert 10 - byte = 7
+	--test-- "math-implicit-cast-11" --assert -1 - byte = -4
+	--test-- "math-implicit-cast-12" --assert 10 + byte = 13
+	--test-- "math-implicit-cast-13" --assert -1 + byte = 2
+	--test-- "math-implicit-cast-14" --assert 10 * byte = 30
+	--test-- "math-implicit-cast-15" --assert -1 * byte = -3
+	--test-- "math-implicit-cast-16" --assert 10 / byte = 3
+	--test-- "math-implicit-cast-17" --assert -10 / byte = -3
+	--test-- "math-implicit-cast-18" --assert 1000 - byte = 997
+	
+	--test-- "math-implicit-cast-19" --assert 1000 or (as-integer byte) = 1003
+
+===end-group===
+
 
 ===start-group=== "Simple nested expressions"
 
