@@ -570,7 +570,7 @@ alloc-big: func [
 		frm/next: frame						;-- append new item at tail of the list
 	]
 	
-	as byte-ptr! ((as byte-ptr! frame) + size? big-frame!)	;-- return a pointer to the requested buffer
+	(as byte-ptr! frame) + size? big-frame!	;-- return a pointer to the requested buffer
 ]
 
 ;-------------------------------------------
