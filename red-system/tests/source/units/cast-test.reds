@@ -75,6 +75,21 @@ Red/System [
 	  sb/a: as-byte 0
 	  sb/b: as-byte 1
 	  --assert not as-logic sb/a
+	  
+	--test-- "byte-cast-13"							;-- issue #150
+	 s!: alias struct! [
+	     a   [byte!]
+	     b   [byte!]
+	     c   [byte!]
+	     d   [byte!]
+	 ]
+	 t: declare s!
+	 t/a: as-byte 1
+	 t/b: as-byte 1
+	 t/c: as-byte 0
+	 t/d: as-byte 0
+	 h: as-integer t/a
+	 --assert h = 1
 	
 ===end-group===
 
