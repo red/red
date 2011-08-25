@@ -150,6 +150,7 @@ system-dialect: context [
 			]
 			
 			parse/case src blk: [
+				s: (do store-line)
 				some [
 					defs								;-- resolve definitions in a single pass
 					| s: #define set name word! set value skip e: (
@@ -203,8 +204,8 @@ system-dialect: context [
 						s: remove/part s 2
 						do store-line
 					) :s
-					| s: (if block? s/1 [append/only stack copy [] do store-line])
-					  [into blk | block!]
+					| s: (if block? s/1 [append/only stack copy []])
+					  [into blk | block!]					;-- odd, but required to work @@
 					  s: (
 					  	if block? s/-1 [
 					  		s/-1: insert s/-1 last stack	;-- insert hidden header
@@ -382,8 +383,8 @@ system-dialect: context [
 			]
 			if pc [
 				print [
-					"*** line:" calc-line pc lf
-					"*** at:" mold copy/part pc 8
+					"*** at line:" calc-line pc lf
+					"*** near:" mold copy/part pc 8
 				]
 			]
 			clean-up
