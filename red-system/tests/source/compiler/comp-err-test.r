@@ -13,9 +13,27 @@ change-dir %../                   ;; revert to tests/ dir (from runnable)
       i := 1;
     }     
   --assert none <> find qt/comp-output "*** Compilation Error: undefined symbol"
-  --assert none <> find qt/comp-output "line: 3"
-  --assert none <> find qt/comp-output "at: [i := 1]"
+  --assert none <> find qt/comp-output "at line: 3"
+  --assert none <> find qt/comp-output "near: [i := 1]"
   --clean
+
+
+ --test-- "error line reporting test"
+  --compile-this {
+      foo: func [][
+      	if true [
+      		either true [
+      			a
+      		][
+      			123
+      		]
+      	]
+      ]
+    }     
+  --assert none <> find qt/comp-output "*** Compilation Error: undefined symbol: a"
+  --assert none <> find qt/comp-output "at line: 6"
+  --clean
+
   
 ~~~end-file~~~
 
