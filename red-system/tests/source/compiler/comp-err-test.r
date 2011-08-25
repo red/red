@@ -11,11 +11,10 @@ change-dir %../                   ;; revert to tests/ dir (from runnable)
   --test-- "sample compilation error test"
   --compile-this {
       i := 1;
-    }
+    }     
   --assert none <> find qt/comp-output "*** Compilation Error: undefined symbol"
-  --assert none <> find qt/comp-output "at:  ["
-  --assert none <> find qt/comp-output "i := 1"
-  --assert none <> find qt/comp-output "]"
+  --assert none <> find qt/comp-output "line: 3"
+  --assert none <> find qt/comp-output "at: [i := 1]"
   --clean
   
 ~~~end-file~~~
