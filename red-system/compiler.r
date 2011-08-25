@@ -143,9 +143,9 @@ system-dialect: context [
 					prev: pick tail header -1
 					prev/2 = idx 
 				][
-					change back tail header mark		;-- replace last mark by a more accurate one
+					change back tail header mark		;-- replace last marker by a more accurate one
 				][			
-					append header mark					;-- insert line marker in root header
+					append header mark					;-- append line marker to header
 				]
 			]
 			
