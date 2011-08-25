@@ -85,19 +85,25 @@ system-dialect: context [
 			]
 		]
 
-		expand-string: func [src [string! binary!] /local value s e c line lf-count ws i p][
+		expand-string: func [src [string! binary!] /local value s e c line lf-count ws i p ins?][
 			if verbose > 0 [print "running string preprocessor..."]
 			
 			line: 1										;-- lines counter
-			lf-count: [lf s: (if p <> i: index? s [p: i line: line + 1])] ;-- workaround to avoid writing more complex rules
-			ws:	[ws-chars | lf-count]
-			
+			lf-count: [lf s: (
+				if p <> i: index? s [					;-- workaround to avoid writing more complex rules
+					p: i
+					line: line + 1
+					if ins? [s: insert s rejoin [" #L " line " "]]
+				]
+			)] 
+			ws:	[ws-chars | (ins?: yes) lf-count]
+		
 			parse/all/case src [						;-- not-LOAD-able syntax support
 				any [
 					(c: 0)
 					#";" to lf
 					| {"} thru {"}
-					| "{" any [lf-count | non-cbracket] "}"
+					| "{" any [(ins?: no) lf-count | non-cbracket] "}"
 					| ws s: ">>>" e: ws (
 						e: change/part s "-**" e		;-- convert >>> to -**
 					) :e
@@ -114,7 +120,7 @@ system-dialect: context [
 						]
 					) :e
 					| [assert-delim | ws] "assert " s: (e: insert s join line #" ") :e
-					| lf-count
+					| (ins?: yes) lf-count
 					| skip
 				]
 			]
@@ -122,9 +128,27 @@ system-dialect: context [
 		
 		expand-block: func [
 			src [block!]
-			/local blk rule name value s e opr then-block else-block cases body saved
+			/local blk rule name value s e opr then-block else-block cases body
+				saved line stack header mark idx prev
 		][
-			if verbose > 0 [print "running block preprocessor..."]			
+			if verbose > 0 [print "running block preprocessor..."]
+			stack: append/only clear [] make block! 100
+			line: 1
+
+			store-line: [
+				header: last stack
+				idx: index? s
+				mark: to pair! reduce [line idx]
+				either all [
+					prev: pick tail header -1
+					prev/2 = idx 
+				][
+					change back tail header mark		;-- replace last mark by a more accurate one
+				][			
+					append header mark					;-- insert line marker in root header
+				]
+			]
+			
 			parse/case src blk: [
 				some [
 					defs								;-- resolve definitions in a single pass
@@ -134,7 +158,7 @@ system-dialect: context [
 						if block? value [
 							saved: reduce [s e]
 							parse/case value rule: [
-								some [defs | into rule | skip] 	;-- resolve macros in macros
+								some [defs | into rule | skip] 	;-- resolve macros recursively
 							]
 							set [s e] saved
 						]
@@ -150,7 +174,7 @@ system-dialect: context [
 							remove/part s e				;-- already included, drop it
 						][
 							if verbose > 0 [print ["...including file:" mold name]]
-							value: skip process/short name 2			;-- skip Red/System header						
+							value: skip process/short name 2			;-- skip Red/System header
 							e: change/part s value e
 							insert e reduce [#script compiler/script]	;-- put back the parent origin
 							insert s reduce [#script name]				;-- mark code origin
@@ -175,10 +199,22 @@ system-dialect: context [
 							change/part s body e
 						]
 					) :s
-					| into blk
+					| s: #L set line integer! e: (
+						s: remove/part s 2
+						do store-line
+					) :s
+					| s: (if block? s/1 [append/only stack copy [] do store-line])
+					  [into blk | block!]
+					  s: (
+					  	if block? s/-1 [
+					  		s/-1: insert s/-1 last stack	;-- insert hidden header
+					  		remove back tail stack
+					  	]
+					  )
 					| skip
 				]
 			]
+			insert src stack/1							;-- return source with hidden root header
 		]
 		
 		process: func [input [file! string!] /short /local src err path][
@@ -200,14 +236,15 @@ system-dialect: context [
 			][
 				compiler/script: 'in-memory
 			]
-			expand-string src: any [src input]			;-- process string-level compiler directives
+			src: any [src input]						;-- process string-level compiler directives
 			if file? input [check-marker src]			;-- look for "Red/System" head marker
+			expand-string src
 			
 			if error? set/any 'err try [src: load src][	;-- convert source to blocks
 				throw-error ["syntax error during LOAD phase:" mold disarm err]
 			]
 			
-			unless short [expand-block src]				;-- process block-level compiler directives		
+			unless short [src: expand-block src]		;-- process block-level compiler directives
 			src
 		]
 	]
@@ -318,6 +355,22 @@ system-dialect: context [
 			null		 [comp-null]
 		]
 		
+		calc-line: func [src [block!] /local idx head-end prev p][
+			parse head pc [some pair! head-end:]		;-- determine hidden header end position	
+			idx: 1 + offset? head-end pc 				;-- calculate real pc position (not counting hidden header)
+			prev: 1
+			
+			parse head pc [								;-- search for closest line marker
+				some [
+					set p pair! (
+						if p/2 = idx [return p/1]		;-- exact value position match
+						if p/2 > idx [return prev]		;-- closest value position match 
+						prev: p/1
+					)
+				]
+			]
+		]
+		
 		throw-error: func [err [word! string! block!] /loader][
 			print [
 				"***" pick ["Loading" "Compilation"] to logic! loader "Error:"
@@ -327,7 +380,12 @@ system-dialect: context [
 				"^/*** in file:" mold script
 				either locals [join "^/*** in function: " func-name][""]
 			]
-			if pc [print ["*** at: " mold copy/part pc 8]]
+			if pc [
+				print [
+					"*** line:" calc-line pc lf
+					"*** at:" mold copy/part pc 8
+				]
+			]
 			clean-up
 			if system/options/args [quit/return 1]
 			halt
