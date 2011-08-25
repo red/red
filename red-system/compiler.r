@@ -1576,7 +1576,7 @@ system-dialect: context [
 				]
 			]
 			value: unbox expr
-			if block? value [value: <last>]
+			if any [block? value path? value][value: <last>]
 
 			emitter/access-path set-path value
 		]
@@ -1617,7 +1617,7 @@ system-dialect: context [
 				throw-error ["unable to determine a type for:" name]
 			]
 			value: unbox expr
-			if block? value [value: <last>]
+			if any [block? value path? value][value: <last>]
 			
 			emitter/store name value type
 		]

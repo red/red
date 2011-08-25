@@ -252,11 +252,7 @@ emitter: context [
 	store: func [
 		name [word!] value type [block!]
 		/local new new-global? ptr refs n-spec spec literal?
-	][	
-		if path? value [
-			access-path value none		
-			value: <last>
-		]
+	][
 		if new: select compiler/aliased-types type/1 [
 			type: new
 		]	
