@@ -31,6 +31,8 @@ system-dialect: context [
 		hex-delim: 	  charset "[]()/"
 		non-cbracket: complement charset "}^/"
 		
+		current-script: none
+		
 		throw-error: func [msg [string! block!]][
 			compiler/throw-error/loader msg
 		]
@@ -183,10 +185,15 @@ system-dialect: context [
 							if verbose > 0 [print ["...including file:" mold name]]
 							value: skip process/short name 2			;-- skip Red/System header
 							e: change/part s value e
-							insert e reduce [#script compiler/script]	;-- put back the parent origin
-							insert s reduce [#script name]				;-- mark code origin
+							insert e reduce [			;-- put back the parent origin
+								#script current-script
+							]
+							insert s reduce [			;-- mark code origin	
+								#script name
+							]
+							current-script: name
 						]
-					) :s
+					)
 					| s: #if set name word! set opr skip set value any-type! set then-block block! e: (
 						either check-condition 'if reduce [name opr get/any 'value][
 							change/part s then-block e
@@ -208,6 +215,7 @@ system-dialect: context [
 					) :s
 					| s: #L set line integer! e: (
 						s: remove/part s 2
+						new-line s yes
 						do store-line
 					) :s
 					| path! | set-path!	| any-string!		;-- avoid diving into these series
@@ -242,10 +250,8 @@ system-dialect: context [
 					throw-error ["file access error:" mold disarm err]
 				]
 			]
-			either file? input [
-				unless short [compiler/script: input]
-			][
-				compiler/script: 'in-memory
+			unless short [
+				current-script: pick reduce [input 'in-memory] file? input
 			]
 			src: any [src input]						;-- process string-level compiler directives
 			if file? input [check-marker src]			;-- look for "Red/System" head marker
