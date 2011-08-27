@@ -21,6 +21,7 @@ linker: context [
 		sub-system:				;-- target environment (GUI | console)
 		symbols:				;-- symbols table
 		output:					;-- output file name (without extension)
+		debug-info:				;-- debugging informations
 		buffer: none
 	]
 	

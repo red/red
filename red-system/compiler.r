@@ -133,15 +133,17 @@ system-dialect: context [
 		][
 			if verbose > 0 [print "running block preprocessor..."]
 			stack: append/only clear [] make block! 100
+			append stack/1 1							;-- insert root header starting size
 			line: 1
 
-			store-line: [
-				header: last stack
+			store-line: [			
+				header: last stack				
 				idx: index? s
 				mark: to pair! reduce [line idx]
 				either all [
 					prev: pick tail header -1
-					prev/2 = idx 
+					pair? prev
+					prev/2 = idx 						;-- test if previous marker is at the same series position
 				][
 					change back tail header mark		;-- replace last marker by a more accurate one
 				][			
@@ -156,17 +158,21 @@ system-dialect: context [
 					| s: #define set name word! set value skip e: (
 						if verbose > 0 [print [mold name #":" mold value]]
 						if word? value [value: to lit-word! value]
-						if block? value [
+						either block? value [
 							saved: reduce [s e]
 							parse/case value rule: [
 								some [defs | into rule | skip] 	;-- resolve macros recursively
 							]
 							set [s e] saved
+							rule: copy/deep [s: _ e: (e: change/part s copy/deep _ e) :s]
+							rule/4/5: :value
+						][
+							rule: copy/deep [s: _ e: (e: change/part s _ e) :s]
+							rule/4/4: :value
 						]
-						rule: copy/deep [s: _ e: (e: change/part s _ e) :e]
 						rule/2: to lit-word! name
-						rule/4/4: :value						
-						either tag? defs/1 [remove defs][append defs '|]						
+						
+						either tag? defs/1 [remove defs][append defs '|]
 						append defs rule
 						remove/part s e
 					) :s
@@ -204,17 +210,21 @@ system-dialect: context [
 						s: remove/part s 2
 						do store-line
 					) :s
-					| s: (if block? s/1 [append/only stack copy []])
-					  [into blk | block!]					;-- odd, but required to work @@
+					| path! | set-path!	| any-string!		;-- avoid diving into these series
+					| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
+					  [into blk | block! | paren!]			;-- black magic...
 					  s: (
-					  	if block? s/-1 [
-					  		s/-1: insert s/-1 last stack	;-- insert hidden header
+					  	if any [block? s/-1 paren? s/-1][
+					  		header: last stack
+					  		change header length? header	;-- update header size					  		
+					  		s/-1: insert s/-1 header		;-- insert hidden header
 					  		remove back tail stack
 					  	]
 					  )
 					| skip
 				]
-			]
+			]		
+			change stack/1 length? stack/1				;-- update root header size	
 			insert src stack/1							;-- return source with hidden root header
 		]
 		
@@ -268,6 +278,11 @@ system-dialect: context [
 		globals:  	   make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: make hash!  10					;-- list of aliased type definitions
 		
+		debug-lines: reduce [							;-- runtime source line/file information storage
+			'records make block!  1000					;-- [address line file] records
+			'files	 make hash!   20					;-- filenames table
+		]
+		
 		pos:		none								;-- validation rules cursor for error reporting
 		return-def: to-set-word 'return					;-- return: keyword
 		fail:		[end skip]							;-- fail rule
@@ -308,7 +323,7 @@ system-dialect: context [
 			pop		[0	inline	- [						   return: [integer!]]]
 		]
 		
-		user-functions: tail functions	;-- marker for user functions
+		user-functions: tail functions					;-- marker for user functions
 		
 		action-class: context [action: type: data: none]
 		
@@ -356,12 +371,13 @@ system-dialect: context [
 			null		 [comp-null]
 		]
 		
-		calc-line: func [src [block!] /local idx head-end prev p][
-			parse head pc [some pair! head-end:]		;-- determine hidden header end position	
-			idx: 1 + offset? head-end pc 				;-- calculate real pc position (not counting hidden header)
+		calc-line: has [idx head-end prev p header][
+			header: head pc
+			idx: (index? pc) - header/1  				;-- calculate real pc position (not counting hidden header)
 			prev: 1
-			
-			parse head pc [								;-- search for closest line marker
+
+			parse header [								;-- search for closest line marker
+				skip									;-- skip over header length
 				some [
 					set p pair! (
 						if p/2 = idx [return p/1]		;-- exact value position match
@@ -369,6 +385,18 @@ system-dialect: context [
 						prev: p/1
 					)
 				]
+			]
+			return p/1									;-- return last marker
+		]
+		
+		store-dbg-lines: has [dbg pos][
+			dbg: debug-lines
+			unless pos: find dbg/files script [
+				pos: tail dbg/files
+				append dbg/files script
+			]
+			repend dbg/records [
+				emitter/tail-ptr calc-line index? pos
 			]
 		]
 		
@@ -383,7 +411,7 @@ system-dialect: context [
 			]
 			if pc [
 				print [
-					"*** at line:" calc-line pc lf
+					"*** at line:" calc-line lf
 					"*** near:" mold copy/part pc 8
 				]
 			]
@@ -1165,7 +1193,8 @@ system-dialect: context [
 				check-conditional 'assert expr			;-- verify conditional expression
 				expr: process-logic-encoding expr yes
 
-				insert/only pc compose [
+				insert/only pc next next compose [
+					2 (to pair! reduce [line 1])			;-- hidden line offset header
 					***-on-quit 98 as integer! (reform [
 						line "^/*** in file:" mold script
 					])
@@ -1734,6 +1763,7 @@ system-dialect: context [
 				]
 			]
 			expr: reduce-logic-tests expr
+			if job/debug? [store-dbg-lines]
 			
 			if final [
 				if verbose >= 3 [?? expr]
@@ -1917,6 +1947,8 @@ system-dialect: context [
 		clear compiler/globals
 		clear compiler/aliased-types
 		clear compiler/user-functions
+		clear compiler/debug-lines/records
+		clear compiler/debug-lines/files
 	]
 	
 	make-job: func [opts [object!] file [file!] /local job][
@@ -1996,6 +2028,9 @@ system-dialect: context [
 					code   [- 	(emitter/code-buf)]
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
+				]
+				if opts/debug? [
+					job/debug-info: reduce ['lines compiler/debug-lines]
 				]
 				linker/build job
 			]
