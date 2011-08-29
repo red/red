@@ -343,7 +343,7 @@ system-dialect: context [
 		func-pointer: ['function! set value block! (check-specs '- value)]
 		
 		type-syntax: [
-			'logic! | 'int32! | 'integer! | 'uint8! | 'byte!
+			'logic! | 'int32! | 'integer! | 'uint8! | 'byte! | 'int16!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
 			| 'struct!  into [struct-syntax]
