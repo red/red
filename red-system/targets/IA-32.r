@@ -930,7 +930,7 @@ make target-class [
 		emit to-bin8 size
 	]
 	
-	emit-argument: func [arg][
+	emit-argument: func [arg func-type [word!]][
 		either all [
 			object? arg
 			any [arg/type = 'logic! 'byte! = first compiler/get-type arg/data]
