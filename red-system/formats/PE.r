@@ -276,6 +276,10 @@ context [
 		]
 		round/ceiling ptr / either memory [memory-align][file-align]
 	]
+	
+	entry-point-address?: func [job [object!]][
+		(section-addr?/memory job 'code) + to integer! defs/image/base-address
+	]
 
 	image-size?: func [job [object!] /local pages][
 		pages: entry-point-page?/memory job
@@ -312,7 +316,7 @@ context [
 		cbuf: job/sections/code/2
 		dbuf: job/sections/data/2
 		data: (section-addr?/memory job 'data) + to integer! defs/image/base-address
-		code: (section-addr?/memory job 'code) + to integer! defs/image/base-address 
+		code: entry-point-address? job
 
 		linker/resolve-symbol-refs job cbuf dbuf code data pointer
 	]
@@ -457,9 +461,14 @@ context [
 		change spec s	
 	]
 
-	build: func [job [object!] /local page out pad][
+	build: func [job [object!] /local page out pad code-ptr][
 		clear imports-refs
 
+		if job/debug? [
+			code-ptr: entry-point-address? job
+			linker/build-debug-lines job code-ptr pointer
+		]
+		
 		build-import job					;-- populate import section buffer
 
 		out: job/buffer

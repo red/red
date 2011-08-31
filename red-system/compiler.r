@@ -1750,6 +1750,8 @@ system-dialect: context [
 				pc: back pc
 				throw-error "missing argument"
 			]
+			if job/debug? [store-dbg-lines]
+			
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
 				word!		[comp-word]
@@ -1769,8 +1771,7 @@ system-dialect: context [
 				]
 			]
 			expr: reduce-logic-tests expr
-			if job/debug? [store-dbg-lines]
-			
+
 			if final [
 				if verbose >= 3 [?? expr]
 				unless find [none! tag!] type?/word expr [
@@ -1884,9 +1885,10 @@ system-dialect: context [
 			pc: next pc
 		]
 
-		run: func [obj [object!] src [block!] /no-header][
+		run: func [obj [object!] src [block!] file [file!] /no-header][
 			job: obj
 			pc: src
+			script: file
 			unless no-header [comp-header]
 			comp-dialect
 		]
@@ -1938,8 +1940,9 @@ system-dialect: context [
 		]
 	]
 	
-	comp-runtime-prolog: does [
- 		compiler/run job loader/process runtime-path/common.reds
+	comp-runtime-prolog: has [script][
+		script: runtime-path/common.reds
+ 		compiler/run job loader/process script script
 	]
 	
 	comp-runtime-epilog: does [	
@@ -2015,7 +2018,7 @@ system-dialect: context [
 			loader/init
 			if opts/runtime? [comp-runtime-prolog]
 			
-			foreach file files [compiler/run job loader/process file]
+			foreach file files [compiler/run job loader/process file file]
 			
 			if opts/runtime? [comp-runtime-epilog]
 			compiler/finalize							;-- compile all functions

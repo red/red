@@ -9,6 +9,38 @@ Red/System [
 	}
 ]
 
+
+__line-record!: alias struct! [				;-- debug lines records associating code addresses and source lines
+	address [byte-ptr!]						;-- native code pointer
+	line	[integer!]						;-- source line number
+	file	[integer!]						;-- source file name c-string offset (from first record)
+]
+
+__debug-lines: as __line-record! 0			;-- pointer to first debug-lines record (set at link-time)
+
+;-------------------------------------------
+;-- Calculate line number for a runtime error and print it (internal function).
+;-------------------------------------------
+__print-debug-line: func [
+	address [byte-ptr!]						;-- memory address where the runtime error happened
+	/local base records
+][
+	records: __debug-lines
+	base: as byte-ptr! records
+
+	while [records/address < address][		;-- search for the closest record
+		records: records + 1
+	]
+	if records/address > address [			;-- if not an exact match, use the closest lower record
+		records: records - 1
+	]
+	print [
+		lf "*** at line: " records/line
+		lf "*** in file: " as-c-string base + records/file
+		lf
+	]
+]
+
 ;-------------------------------------------
 ;-- Print an integer as hex number on screen, limited to n characters
 ;-------------------------------------------
@@ -109,4 +141,3 @@ dump-hex4: func [
 ][	
 	dump-memory address 4
 ]
-

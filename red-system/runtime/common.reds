@@ -167,13 +167,18 @@ to-type: func [
 		print msg
 		
 		either status = 98 [
-			print as-c-string address
+			print [as-c-string address lf]
 		][
-			unless zero? address [
-				print [lf "*** at: " as byte-ptr! address "h"]
+			#either format = 'ELF [			; @@ temporary until ELF emitter supports debug-lines
+				print [lf "*** at: " as byte-ptr! address "h" lf]
+			][
+				#either debug? = yes [
+					__print-debug-line as byte-ptr! address
+				][
+					print [lf "*** at: " as byte-ptr! address "h" lf]
+				]
 			]
 		]
-		print newline
 	]
 	
 	#if OS = 'Windows [						;-- special exit handler for Windows

@@ -349,6 +349,10 @@ context [
 	get-segment-info: func [name [word!] /local addr][
 		next find segments name
 	]
+	
+	process-debug-info: func [job [object!]][
+		linker/build-debug-lines job get-section-addr '__text pointer
+	]
 		
 	prepare-headers: func [
 		job [object!]
@@ -400,6 +404,9 @@ context [
 				if zero? size [
 					addr:  addr + seg/4
 					fpos:  fpos + seg/6
+				]
+				if all [seg/2 = '__TEXT job/debug?][
+					process-debug-info job
 				]
 			]
 			tail? seg: skip seg 10
