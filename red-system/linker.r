@@ -62,6 +62,14 @@ linker: context [
 		]
 	]
 	
+	get-debug-lines-size: func [job [object!] /local size][
+		size: 12 * (length? job/debug-info/lines/records) / 3
+		foreach file job/debug-info/lines/files [
+			size: size + 1 + length? file			;-- file is supposed to be FORMed not MOLDed
+		]
+		size
+	]
+	
 	build-debug-lines: func [
 		job [object!]
 		code-ptr [integer!]							;-- code memory address
