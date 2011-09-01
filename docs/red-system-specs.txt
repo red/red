@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 12/08/2011
-	Revision: 25
+	Date: 01/09/2011
+	Revision: 26
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -2288,6 +2288,18 @@ Do not use it unless you know exactly what you are doing, else your program will
 
 /note
 
++++PC
+
+Retrieve the CPU program counter value.
+
+<b>Syntax</b>
+	
+ system/pc
+
+\note IA-32 target
+This access path will return the value of the EIP register.
+
+/note
 
 ===Possible Evolutions
 
@@ -2399,6 +2411,10 @@ will output:
 
 
 ===Document History
+
+*<b>01/09/2011 - revision 26</b>
+
+*>Added system/pc description.
 
 *<b>12/08/2011 - revision 25</b>
 
