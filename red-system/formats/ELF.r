@@ -213,6 +213,7 @@ context [
 			base-address dynamic-linker
 			libraries symbols natives
 			structure segments sections commands layout
+			data-size
 			get-address get-offset get-size get-meta get-data set-data
 	] [
 		base-address: any [job/base-address defs/base-address]
@@ -243,7 +244,11 @@ context [
 			remove-elements structure [".stab" ".stabstr"]
 		]
 
-		if empty? job/sections/data/2 [
+		data-size: size-of job/sections/data/2
+		if job/debug? [
+			data-size: data-size + linker/get-debug-lines-size job
+		]
+		if zero? data-size [
 			remove-elements structure [".data"]
 		]
 
@@ -265,6 +270,7 @@ context [
 			".hash"			size [machine-word		2 + 2 + length? symbols]
 			".dynsym"		size [elf-symbol		1 + length? symbols]
 			".rel.text"		size [elf-relocation	length? symbols]
+			".data"			size (data-size)
 			".data.rel.ro"	size [machine-word		length? symbols]
 			".dynamic"		size [elf-dynamic		9 + length? libraries]
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
@@ -273,7 +279,6 @@ context [
 			".interp"		data (to-c-string dynamic-linker)
 			".dynstr"		data (to-elf-strtab join libraries symbols)
 			".text"			data (job/sections/code/2)
-			".data"			data (job/sections/data/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
 		]
@@ -320,6 +325,14 @@ context [
 
 		set-data ".rel.text"
 			[build-reltext symbols get-address ".data.rel.ro"]
+
+		set-data ".data" [
+			linker/build-debug-lines
+				job
+				get-address ".text"
+				machine-word
+			job/sections/data/2
+		]
 
 		set-data ".data.rel.ro"
 			[build-relro symbols]

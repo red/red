@@ -167,14 +167,10 @@ to-type: func [
 		
 		print msg
 		
-		#either format = 'ELF [			; @@ temporary until ELF emitter supports debug-lines
-			print [lf "*** at: " as byte-ptr! address "h" lf]
+		#either debug? = yes [
+			__print-debug-line as byte-ptr! address
 		][
-			#either debug? = yes [
-				__print-debug-line as byte-ptr! address
-			][
-				print [lf "*** at: " as byte-ptr! address "h" lf]
-			]
+			print [lf "*** at: " as byte-ptr! address "h" lf]
 		]
 	]
 	
