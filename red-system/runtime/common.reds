@@ -69,6 +69,7 @@ system: declare struct! [					;-- store runtime accessible system values
 	args-list	[str-array!]				;-- command-line arguments array pointer (do not move member)
 	env-vars 	[str-array!]				;-- environment variables array pointer (always null for Windows)
 	stack		[__stack!]					;-- stack virtual access
+	pc			[byte-ptr!]					;-- CPU program counter value
 ]
 
 ;-------------------------------------------
@@ -161,22 +162,18 @@ to-type: func [
 		
 		if status = 96 [msg: "virtual memory release failed"]
 		if status = 97 [msg: "out of memory"]
-		if status = 98 [msg: "assertion failed at line "]
+		if status = 98 [msg: "assertion failed"]
 		if status = 99 [msg: "unknown error"]
 		
 		print msg
 		
-		either status = 98 [
-			print [as-c-string address lf]
+		#either format = 'ELF [			; @@ temporary until ELF emitter supports debug-lines
+			print [lf "*** at: " as byte-ptr! address "h" lf]
 		][
-			#either format = 'ELF [			; @@ temporary until ELF emitter supports debug-lines
-				print [lf "*** at: " as byte-ptr! address "h" lf]
+			#either debug? = yes [
+				__print-debug-line as byte-ptr! address
 			][
-				#either debug? = yes [
-					__print-debug-line as byte-ptr! address
-				][
-					print [lf "*** at: " as byte-ptr! address "h" lf]
-				]
+				print [lf "*** at: " as byte-ptr! address "h" lf]
 			]
 		]
 	]

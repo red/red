@@ -15,7 +15,6 @@ loader: context [
 	hex-chars: 	  charset "0123456789ABCDEF"
 	ws-chars: 	  charset " ^M^-"
 	ws-all:		  union ws-chars charset "^/"
-	assert-delim: charset "[]()"
 	hex-delim: 	  charset "[]()/"
 	non-cbracket: complement charset "}^/"
 
@@ -109,7 +108,6 @@ loader: context [
 						throw-error ["invalid hex literal:" copy/part s 40]
 					]
 				) :e
-				| [assert-delim | ws] "assert " s: (e: insert s join line #" ") :e
 				| (ins?: yes) lf-count
 				| skip
 			]

@@ -947,17 +947,15 @@ system-dialect: context [
 		
 		comp-assert: has [expr line][
 			either job/debug? [
-				line: pc/2
-				pc: skip pc 2
+				line: calc-line
+				pc: next pc
 				expr: fetch-expression/final
 				check-conditional 'assert expr			;-- verify conditional expression
 				expr: process-logic-encoding expr yes
 
 				insert/only pc next next compose [
 					2 (to pair! reduce [line 1])			;-- hidden line offset header
-					***-on-quit 98 as integer! (reform [
-						line "^/*** in file:" mold script
-					])
+					***-on-quit 98 as integer! system/pc
 				]
 				set [unused chunk] comp-block-chunked		;-- compile TRUE block
 				emitter/set-signed-state expr				;-- properly set signed/unsigned state
@@ -966,7 +964,7 @@ system-dialect: context [
 				last-type: none-type
 				<last>
 			][
-				pc: skip pc 2
+				pc: next pc
 				fetch-expression							;-- consume next expression
 				none
 			]

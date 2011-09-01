@@ -113,6 +113,11 @@ make target-class [
 		emit-reloc-addr spec/2						;-- one-based index
 	]
 	
+	emit-get-pc: does [
+		emit #{E800000000}							;-- CALL next		; call the next instruction
+		emit-pop									;-- get eip in eax
+	]
+	
 	emit-set-stack: func [value /frame][
 		if verbose >= 3 [print [">>>emitting SET-STACK" mold value]]
 		emit-load value

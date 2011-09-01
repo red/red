@@ -298,7 +298,8 @@ emitter: context [
 		either path/1 = 'system [
 			switch/default path/2 [
 				stack [
-					if all [2 = length? path set?: set-path? path][
+					set?: set-path? path
+					if all [2 = length? path set?][
 						compiler/backtrack path
 						compiler/throw-error "cannot modify system/stack"
 					]
@@ -322,6 +323,13 @@ emitter: context [
 							]
 						]
 					]
+				]
+				pc [
+					if set-path? path [
+						compiler/backtrack path
+						compiler/throw-error "cannot modify system/pc"
+					]
+					target/emit-get-pc
 				]
 				; add here implicit system getters/setters
 			][return false]

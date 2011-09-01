@@ -35,8 +35,8 @@ __print-debug-line: func [
 		records: records - 1
 	]
 	print [
-		lf "*** at line: " records/line
 		lf "*** in file: " as-c-string base + records/file
+		lf "*** at line: " records/line
 		lf
 	]
 ]
