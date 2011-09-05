@@ -75,7 +75,7 @@ system: declare struct! [					;-- store runtime accessible system values
 ;-------------------------------------------
 ;-- Convert a type ID to a c-string!
 ;-------------------------------------------
-to-type: func [
+form-type: func [
 	type 	[integer!]						;-- type ID
 	return: [c-string!]						;-- type representation as c-string
 	/local msg
