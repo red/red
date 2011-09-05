@@ -224,13 +224,20 @@ system-dialect: context [
 		]
 		
 		get-type-id: func [value /local type][
-			type: resolve-expr-type value
-			type: either type/1 = 'pointer! [
-				pick [int-ptr! byte-ptr!] type/2/1 = 'integer!
+			either all [
+				word? value
+				type: find aliased-types first resolve-type/only value 
 			][
-				type/1
+				1000 + divide 1 + index? type 2			;-- special encoding for aliases
+			][
+				type: resolve-expr-type value
+				type: either type/1 = 'pointer! [
+					pick [int-ptr! byte-ptr!] type/2/1 = 'integer!
+				][
+					type/1
+				]
+				select emitter/datatype-ID type
 			]
-			select emitter/datatype-ID type
 		]
 		
 		base-type?: func [value][
@@ -303,7 +310,7 @@ system-dialect: context [
 			type
 		]
 		
-		resolve-type: func [name [word!] /with parent [block! none!] /local type][
+		resolve-type: func [name [word!] /with parent [block! none!] /only /local type][
 			type: any [
 				all [parent select parent name]
 				get-variable-spec name
@@ -311,7 +318,7 @@ system-dialect: context [
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
 			]
-			unless base-type? type/1 [
+			unless any [only base-type? type/1][
 				type: select aliased-types type/1
 			]
 			type
