@@ -70,6 +70,7 @@ system: declare struct! [					;-- store runtime accessible system values
 	env-vars 	[str-array!]				;-- environment variables array pointer (always null for Windows)
 	stack		[__stack!]					;-- stack virtual access
 	pc			[byte-ptr!]					;-- CPU program counter value
+	alias		[integer!]					;-- aliases ID virtual access
 ]
 
 ;-------------------------------------------
@@ -88,6 +89,7 @@ form-type: func [
 	if type = type-int-ptr!  [msg: "pointer! [integer!]"]
 	if type = type-struct!   [msg: "struct!"]
 	if type = type-function! [msg: "function!"]
+	if type > 1000 [msg: "alias"]
 	msg	
 ]
 

@@ -223,12 +223,16 @@ system-dialect: context [
 			]
 		]
 		
+		get-alias-id: func [pos [hash!]][
+			1000 + divide 1 + index? pos 2
+		]
+		
 		get-type-id: func [value /local type][
 			either all [
 				word? value
 				type: find aliased-types first resolve-type/only value 
 			][
-				1000 + divide 1 + index? type 2			;-- special encoding for aliases
+				get-alias-id type						;-- special encoding for aliases
 			][
 				type: resolve-expr-type value
 				type: either type/1 = 'pointer! [
@@ -238,6 +242,27 @@ system-dialect: context [
 				]
 				select emitter/datatype-ID type
 			]
+		]
+		
+		system-reflexion?: func [path [path!] /local def][	
+			if path/1 = 'system [
+				switch path/2 [
+					alias [
+						unless path/3 [
+							backtrack path
+							throw-error "invalid system/alias path access"
+						]
+						unless def: find aliased-types path/3 [
+							backtrack path
+							throw-error ["undefined alias name:" path/3]
+						]
+						last-type: [integer!]
+						return get-alias-id def			;-- special encoding for aliases
+					]
+					; add new special reflective system path here
+				]
+			]
+			none
 		]
 		
 		base-type?: func [value][
@@ -1212,11 +1237,13 @@ system-dialect: context [
 			]
 		]
 		
-		comp-path: has [path][
+		comp-path: has [path value][
 			path: pc/1
-			comp-word/path path/1
-			last-type: resolve-path-type path
-			path
+			comp-word/path path/1						;-- check if root word is defined
+			unless value: system-reflexion? path [
+				last-type: resolve-path-type path
+			]
+			any [value path]
 		]
 		
 		comp-get-word: has [spec][
