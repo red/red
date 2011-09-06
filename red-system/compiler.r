@@ -678,7 +678,7 @@ system-dialect: context [
 		]
 		
 		check-expected-type: func [name [word!] expr expected [block!] /ret /key /local type alias][
-			unless any [not none? expr key][return none]			;-- expr == none for special keywords
+			unless any [not none? expr key][return none]   ;-- expr == none for special keywords
 			if all [
 				not all [object? expr expr/action = 'null] ;-- avoid null type resolution here
 				not none? expr							;-- expr can be false, so explicit check for none is required
@@ -1157,6 +1157,8 @@ system-dialect: context [
 
 			last-type: either all [
 				t-true/1 t-false/1
+				t-true:  resolve-aliased t-true			;-- alias resolution is safe here
+				t-false: resolve-aliased t-false
 				equal-types? t-true/1 t-false/1
 			][t-true][none-type]						;-- allow nesting if both blocks return same type		
 			<last>
