@@ -327,10 +327,12 @@ context [
 			[build-reltext symbols get-address ".data.rel.ro"]
 
 		set-data ".data" [
-			linker/build-debug-lines
-				job
-				get-address ".text"
-				machine-word
+			if job/debug? [
+				linker/build-debug-lines
+					job
+					get-address ".text"
+					machine-word
+			]
 			job/sections/data/2
 		]
 
