@@ -234,7 +234,7 @@ system-dialect: context [
 			][
 				get-alias-id type						;-- special encoding for aliases
 			][
-				type: resolve-expr-type value
+				type: resolve-aliased resolve-expr-type value
 				type: either type/1 = 'pointer! [
 					pick [int-ptr! byte-ptr!] type/2/1 = 'integer!
 				][
