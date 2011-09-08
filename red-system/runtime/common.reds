@@ -41,8 +41,9 @@ Red/System [
 #define type-c-string!  4
 #define type-byte-ptr!  5
 #define type-int-ptr!	6
-#define type-struct!	7
-#define type-function!	8
+#define type-function!	7
+#define type-struct!	1000
+#define any-struct?		[1000 <=]
 
 ;-- Global variables definition --
 stdout:		-1								;-- uninitialized default value
