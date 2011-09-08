@@ -210,20 +210,20 @@ emitter: context [
 				][
 					pad-data-buf target/ptr-size		;-- pointer alignment can be <> of integer
 					ptr: tail data-buf	
-					store-global 0 'integer! none
+					store-global value 'integer! none
 				]
 			]
 			pointer! [
 				pad-data-buf target/ptr-size			;-- pointer alignment can be <> of integer
 				ptr: tail data-buf	
-				store-global 0 'integer! none
+				store-global value 'integer! none
 			]
 			struct! [
 				ptr: tail data-buf
 				foreach [var type] spec [
 					if spec: select compiler/aliased-types type [type: spec]
 					type: either find [struct! c-string!] type/1 ['pointer!][type/1]
-					store-global 0 type none
+					store-global value type none
 				]
 			]
 		][
@@ -265,7 +265,7 @@ emitter: context [
 			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
-				ptr: store-global 0 'pointer! none		;-- allocate separate variable slot
+				ptr: store-global value 'pointer! none	;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
 				refs: reduce [ptr + 1]					;-- reference value from variable slot
 				name: none								;-- anonymous data storing
