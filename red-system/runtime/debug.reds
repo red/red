@@ -16,7 +16,7 @@ __line-record!: alias struct! [				;-- debug lines records associating code addr
 	file	[integer!]						;-- source file name c-string offset (from first record)
 ]
 
-__debug-lines: as __line-record! 0			;-- pointer to first debug-lines record (set at link-time)
+__debug-lines: declare __line-record!		;-- pointer to first debug-lines record (set at link-time)
 
 ;-------------------------------------------
 ;-- Calculate line number for a runtime error and print it (internal function).

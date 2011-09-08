@@ -270,7 +270,9 @@ emitter: context [
 				refs: reduce [ptr + 1]					;-- reference value from variable slot
 				name: none								;-- anonymous data storing
 			]
-			spec: store-value/ref name value type refs  ;-- store new value in data buffer
+			if any [not new-global? string? value paren? value][
+				spec: store-value/ref name value type refs  ;-- store new value in data buffer
+			]
 			if n-spec [spec: n-spec]
 		][
 			if new-global? [spec: store-value name value type] ;-- store new variable with value
