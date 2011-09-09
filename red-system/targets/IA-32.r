@@ -169,7 +169,7 @@ make target-class [
 			word! [
 				emit-load value
 				if boxed [emit-casting boxed no]
-				type: first compiler/get-variable-spec value
+				type: first compiler/resolve-aliased compiler/get-variable-spec value
 				if find [pointer! c-string! struct!] type [ ;-- type casting trap
 					type: 'logic!
 				]
