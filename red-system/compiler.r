@@ -229,8 +229,16 @@ system-dialect: context [
 		
 		get-type-id: func [value /local type][
 			either all [
-				word? value
-				type: find aliased-types first resolve-type/only value 
+				any [
+					all [
+						word? value
+						type: find aliased-types first resolve-type/only value
+					]
+					all [
+						find [block! tag!] type?/word value
+						type: find aliased-types last-type/1
+					]
+				]
 			][
 				get-alias-id type						;-- special encoding for aliases
 			][
