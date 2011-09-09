@@ -49,8 +49,8 @@ emitter: context [
 		c-string!   4
 		byte-ptr!   5
 		int-ptr!	6
-		struct!		7
-		function!	8
+		function!	7
+		struct!		1000
 	]
 	
 	chunks: context [
