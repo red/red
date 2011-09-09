@@ -38,6 +38,9 @@ system-dialect: context [
 		globals:  	   make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: make hash!  10					;-- list of aliased type definitions
 		
+		; temporary fix for issue #172
+		resolve-alias?: yes								;-- YES: instruct the type resolution function to reduce aliases
+		
 		debug-lines: reduce [							;-- runtime source line/file information storage
 			'records make block!  1000					;-- [address line file] records
 			'files	 make hash!   20					;-- filenames table
@@ -227,22 +230,15 @@ system-dialect: context [
 			1000 + divide 1 + index? pos 2
 		]
 		
-		get-type-id: func [value /local type][
-			either all [
-				any [
-					all [
-						word? value
-						type: find aliased-types first resolve-type/only value
-					]
-					all [
-						find [block! tag!] type?/word value
-						type: find aliased-types last-type/1
-					]
-				]
+		get-type-id: func [value /local type alias][
+			resolve-alias?: no							; temporary fix for issue #172
+			type: resolve-expr-type value
+			resolve-alias?: yes							; temporary fix for issue #172
+
+			either alias: find aliased-types type/1 [
+				get-alias-id alias
 			][
-				get-alias-id type						;-- special encoding for aliases
-			][
-				type: resolve-aliased resolve-expr-type value
+				type: resolve-aliased type
 				type: either type/1 = 'pointer! [
 					pick [int-ptr! byte-ptr!] type/2/1 = 'integer!
 				][
@@ -343,7 +339,7 @@ system-dialect: context [
 			type
 		]
 		
-		resolve-type: func [name [word!] /with parent [block! none!] /only /local type][
+		resolve-type: func [name [word!] /with parent [block! none!] /local type][
 			type: any [
 				all [parent select parent name]
 				get-variable-spec name
@@ -351,7 +347,7 @@ system-dialect: context [
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
 			]
-			unless any [only base-type? type/1][
+			unless any [not resolve-alias? base-type? type/1][
 				type: select aliased-types type/1
 			]
 			type
@@ -364,20 +360,25 @@ system-dialect: context [
 					"invalid struct member" name "in:" mold to path! pc/1
 				]
 			]
-			resolve-aliased type
+			either resolve-alias? [resolve-aliased type][type]
 		]
 		
-		resolve-path-type: func [path [path! set-path!] /parent prev /local type path-error][
+		resolve-path-type: func [path [path! set-path!] /parent prev /local type path-error saved][
 			path-error: [
 				pc: skip pc -2
 				throw-error "invalid path value"
 			]
-			type: either word? path/1 [
+			either word? path/1 [
+				saved: resolve-alias?						; temporary fix for issue #172
 				either parent [
 					resolve-struct-member-type prev path/1	;-- just check for correct member name
-					resolve-type/with path/1 prev
+					resolve-alias?: yes						; temporary fix for issue #172
+					type: resolve-type/with path/1 prev
+					resolve-alias?: saved					; temporary fix for issue #172
 				][
-					resolve-type path/1
+					resolve-alias?: yes						; temporary fix for issue #172
+					type: resolve-type path/1
+					resolve-alias?: saved					; temporary fix for issue #172
 				]
 			][reduce [type?/word path/1]]
 			
