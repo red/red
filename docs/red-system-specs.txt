@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 01/09/2011
-	Revision: 26
+	Date: 17/09/2011
+	Revision: 27
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1096,7 +1096,7 @@ An imported function just needs the attribute without any other arguments declar
 
 Examples of definition:
 
-  vprint: func [						;-- native function
+  my-print: func [						;-- native function
   	[variadic]
   	count [integer!] list [int-ptr!]
   ][
@@ -1111,15 +1111,15 @@ Examples of definition:
 
  #import [								;-- imported function
  	LIBC-file cdecl [
- 		vprintf: "printf" [[variadic]]
+ 		printf: "printf" [[variadic]]	;-- no need to specify any argument here
  	]
  ]
  
-Passing arguments to a variadic function is achieved by wrapping them in a block (squared brackets).
+Passing arguments to a variadic function is achieved by wrapping them in a block (squared brackets delimited list).
 
 Example of calls:
 
- vprint ["hello" 123 "world"]
+ my-print ["hello" 123 "world"]
  
 will output:
 
@@ -1130,7 +1130,7 @@ will output:
  
 Calling an imported variadic function:
 
- vprintf ["%s %i %s" "hello" 123 "world"]
+ printf ["%s %i %s" "hello" 123 "world"]
  
 will output:
 
@@ -1181,7 +1181,7 @@ Example of definition:
     print ["count: " count lf]
     until [
   		print [list/value " : "]
-  		print [to-type list/type lf]	;-- to-type converts a type ID to a c-string
+  		print [form-type list/type lf]	;-- to-type converts a type ID to a c-string
   		list: list + 1
   		count: count - 1
   		zero? count
@@ -1804,17 +1804,17 @@ The list of following symbols and keywords are reserved, they cannot be used as 
 	%			& 			* 
 	+			- 			-**
 	/ 			// 	 		///
-    < 			<= 			<>
-    = 			> 			>=
-    >>>         alias 		all
-    and         any			as
-    assert		comment		declare
-    either      exit	    false
-    func   		function    if
-    not			or		    pop
-    push		return      size?
-    true	    until       while
-    xor
+    < 			<< 			<= 
+    <>			= 			>
+    >>			>=		    >>>
+    alias 		all		    and
+    any			as			assert
+    comment		declare		either
+    exit	    false		func
+    function    if			not
+    or		    pop			push
+    return      size?	    true
+    until       while	    xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -2411,6 +2411,13 @@ will output:
 
 
 ===Document History
+
+*<b>17/09/2011 - revision 27</b>
+
+*>Added missing bitshift operators in reserved keywords list.
+
+*>Improve variadic function names in examples to avoid confusion with C function names.
+
 
 *<b>01/09/2011 - revision 26</b>
 
