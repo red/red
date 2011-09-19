@@ -38,7 +38,6 @@ system-dialect: context [
 		globals:  	   make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: make hash!  10					;-- list of aliased type definitions
 		
-		; temporary fix for issue #172
 		resolve-alias?: yes								;-- YES: instruct the type resolution function to reduce aliases
 		
 		debug-lines: reduce [							;-- runtime source line/file information storage
@@ -231,10 +230,8 @@ system-dialect: context [
 		]
 		
 		get-type-id: func [value /local type alias][
-			resolve-alias?: no							; temporary fix for issue #172
-			type: resolve-expr-type value
-			resolve-alias?: yes							; temporary fix for issue #172
-
+			with-alias-resolution off [type: resolve-expr-type value]
+			
 			either alias: find aliased-types type/1 [
 				get-alias-id alias
 			][
@@ -327,6 +324,13 @@ system-dialect: context [
 			type2: either find type-sets type2 [get type2][reduce [type2]]
 			not empty? intersect type1 type2
 		]
+						
+		with-alias-resolution: func [mode [logic!] body [block!] /local saved][
+			saved: resolve-alias?
+			resolve-alias?: mode	
+			do body
+			resolve-alias?: saved
+		]
 		
 		resolve-aliased: func [type [block!] /local name][
 			name: type/1
@@ -369,16 +373,15 @@ system-dialect: context [
 				throw-error "invalid path value"
 			]
 			either word? path/1 [
-				saved: resolve-alias?						; temporary fix for issue #172
 				either parent [
 					resolve-struct-member-type prev path/1	;-- just check for correct member name
-					resolve-alias?: yes						; temporary fix for issue #172
-					type: resolve-type/with path/1 prev
-					resolve-alias?: saved					; temporary fix for issue #172
+					with-alias-resolution on [
+						type: resolve-type/with path/1 prev
+					]
 				][
-					resolve-alias?: yes						; temporary fix for issue #172
-					type: resolve-type path/1
-					resolve-alias?: saved					; temporary fix for issue #172
+					with-alias-resolution on [
+						type: resolve-type path/1
+					]
 				]
 			][reduce [type?/word path/1]]
 			
