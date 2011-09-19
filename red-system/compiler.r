@@ -1289,10 +1289,16 @@ system-dialect: context [
 					pc: next pc							;-- it's a function
 					either attribute: check-variable-arity? entry/2/4 [
 						fetch: [
+							if all [
+								get-word? pc/1
+								functions/(to word! pc/1)/3 = '??
+							][
+								functions/(to word! pc/1)/3: 'cdecl	;-- fixes issue #176
+							]						
 							append/only args fetch-expression
 							if attribute = 'typed [
 								append args get-type-id last args
-							]
+							]							
 						]
 						args: make block! 1
 						either block? pc/1 [
