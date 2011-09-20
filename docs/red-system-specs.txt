@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 17/09/2011
-	Revision: 27
+	Date: 20/09/2011
+	Revision: 28
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1038,18 +1038,10 @@ is not equivalent to
  
  10 avg (6 + 2)							;-- + is executed first, then avg
  
-+++Callback
- 
-Enable a Red/System function to be called by external code (usually from a C library). The calling function must provide a proper argument type specification to accept a function pointer. The compiler will raise an error if the expected argument and callback's specification do not match. 
++++Cdecl
 
-<u>Notes:</u>:
+Changes function's calling convention to C convention. This allows to safely pass a Red/System function as argument to imported C functions.
 
-* The expected function pointer and callback function specifications must match, but arguments names can be different. Also the callback can safely declare local variables that should not be part of the function pointer specification.
-
-* The calling convention of the callback function will be transparently adapted to match the one from the caller function.
-
-* In the current implementation, the default function calling convention in Red/System is <a href="http://en.wikipedia.org/wiki/X86_calling_conventions#stdcall">stdcall</a>.
- 
 Example:
  
  #import [
@@ -1062,7 +1054,7 @@ Example:
  ]
 
  compare: func [
-	 [callback]							;-- can be passed as function pointer
+	 [cdecl]							;-- use C calling convention
 	 left [integer!] right [integer!]
 	 return: [logic!]
  ][
@@ -1070,17 +1062,9 @@ Example:
  ]
 
  foo :compare							;-- pass the function pointer
- 
-\note Calling a callback function from Red/System (implementation note)
-In the current implementation, it is possible, while not recommended, to call a function using a [callback] attribute from Red/System code, but under a mandatory condition: the function call must be placed so that it is compiled after the get-word expression (else a compilation error will be raised). From the example above:
 
-  foo :compare
-  if compare 4 5 [...]
-will compile correctly, while
-
-  if compare 4 5 [...]
-  foo :compare
-will generate a compilation error.
+\note Stdcall support
+The <b>stdcall</b> attribut is also accepted, but currently as no effect, as it is already the default calling convention in Red/System.
   
 /note
 
@@ -1158,14 +1142,15 @@ The <b>typed-value!</b> alias is defined as
  
 Types are defined by the runtime as:
 
- #define type-logic!	 1
- #define type-integer!	 2
- #define type-byte!	     3
- #define type-c-string!  4
- #define type-byte-ptr!  5
- #define type-int-ptr!	 6
- #define type-struct!	 7
- #define type-function!	 8
+ #define type-logic!		1
+ #define type-integer!		2
+ #define type-byte!	    	3
+ #define type-c-string!  	4
+ #define type-byte-ptr!  	5
+ #define type-int-ptr!		6
+ #define type-function!		7
+ #define type-struct!		1000
+ #define any-struct?		[1000 <=]	;-- testing for structs and aliases.
  
 \note Typed and imported function
 It is possible to use <b>typed</b> attribute for an imported function, but it needs to meet the specific stack layout required by this attribute, so should probably be reserverd only for imported function written in Red/System.
@@ -1259,7 +1244,7 @@ Example:
  get-file "bigfile.avi" :progress		;-- blocking job would call 'progress
                                         ;-- periodically
                                         
-<u>Note</u>: Function address is returned as a function pointer pseudo-type, so it cannot be used as-is in expressions, but it can be safely cast to an integer! if required.
+<u>Note</u>: Function address is returned as a function pointer pseudo-type, so it cannot be used as-is in expressions, but it can be safely casted to an integer! if required.
 
 
 ---Premature exiting
@@ -2411,6 +2396,14 @@ will output:
 
 
 ===Document History
+
+*<b>20/09/2011 - revision 28</b>
+
+*>Typed attribut ID values and macros updated.
+
+*>Callback attribute removed and replaced by 'cdecl attribute.
+
+
 
 *<b>17/09/2011 - revision 27</b>
 
