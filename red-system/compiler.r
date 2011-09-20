@@ -34,7 +34,6 @@ system-dialect: context [
 	
 		imports: 	   make block! 10					;-- list of imported functions
 		natives:	   make hash!  40					;-- list of functions to compile [name [specs] [body]...]
-		callbacks:	   make hash!  40					;-- list of callback functions to compile [name [specs] [body]...]
 		globals:  	   make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: make hash!  10					;-- list of aliased type definitions
 		
@@ -560,14 +559,10 @@ system-dialect: context [
 			fun [word!] cb [get-word!] f-type [block!] c-type [block!] /local spec pos idx
 		][
 			cb: to word! cb
-			either functions/:cb/3 = '?? [
-				functions/:cb/3: functions/:fun/3	;-- propagate cconv to the callback func
-			][
-				if functions/:cb/3 <> functions/:fun/3 [
-					throw-error [
-						"incompatible calling conventions between"
-						fun "and" cb
-					]
+			if functions/:cb/3 <> functions/:fun/3 [
+				throw-error [
+					"incompatible calling conventions between"
+					fun "and" cb
 				]
 			]
 			if pos: find f-type /local [f-type: head clear copy pos] ;-- remove locals
@@ -587,13 +582,6 @@ system-dialect: context [
 				name = 'comment
 			][
 				throw-error ["attempt to redefined a protected keyword:" name]
-			]
-		]
-		
-		check-cc: func [name [word!]][
-			if functions/:name/3 = '?? [
-				pc: back pc
-				throw-error ["calling convention undefined at this point for:" name]
 			]
 		]
 		
@@ -656,15 +644,16 @@ system-dialect: context [
 		
 		check-specs: func [
 			name specs /extend
-			/local type type-def spec-type attribs value args locs
+			/local type type-def spec-type attribs value args locs cconv
 		][
 			unless block? specs [
 				throw-error "function definition requires a specification block"
 			]
+			cconv: ['cdecl | 'stdcall]
 			attribs: [
-				'infix | 'callback | 'variadic | 'typed
-				| ['callback | ['variadic | 'typed]]
-				| [['variadic | 'typed] | 'callback]
+				'infix | 'variadic | 'typed | cconv
+				| [cconv ['variadic | 'typed]]
+				| [['variadic | 'typed] cconv]
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
@@ -811,13 +800,12 @@ system-dialect: context [
 			next pc: save-pc
 		]
 		
-		fetch-func: func [name /local specs type cc storage][
+		fetch-func: func [name /local specs type cc][
 			name: to word! name
 			check-func-name name
 			check-specs name specs: pc/2
 			type: 'native
-			cc:   'stdcall							;-- default calling convention
-			storage: natives
+			cc:   'stdcall								;-- default calling convention
 			
 			if all [
 				not empty? specs
@@ -833,15 +821,13 @@ system-dialect: context [
 						]
 						type: 'infix
 					]
-					find specs/1 'callback [
-						cc: '??						;-- set later when passed as argument
-						storage: callbacks
-					]
+					find specs/1 'cdecl   [cc: 'cdecl]
+					find specs/1 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
 				]
 			]
 			add-function type reduce [name none specs] cc
 			emitter/add-native name
-			repend storage [name specs pc/3 script]
+			repend natives [name specs pc/3 script]
 			pc: skip pc 3
 		]
 		
@@ -1267,6 +1253,7 @@ system-dialect: context [
 			unless spec/2 = 'native [
 				throw-error "get-word syntax only reserved for native functions for now"
 			]
+			unless spec/5 = 'callback [append spec 'callback]
 			also pc/1 pc: next pc
 		]
 	
@@ -1292,12 +1279,6 @@ system-dialect: context [
 					pc: next pc							;-- it's a function
 					either attribute: check-variable-arity? entry/2/4 [
 						fetch: [
-							if all [
-								get-word? pc/1
-								functions/(to word! pc/1)/3 = '??
-							][
-								functions/(to word! pc/1)/3: 'cdecl	;-- fixes issue #176
-							]						
 							append/only args fetch-expression
 							if attribute = 'typed [
 								append args get-type-id last args
@@ -1356,7 +1337,6 @@ system-dialect: context [
 			name [word!] args [block!] /sub
 			/local list type res import? left right dup var-arity? saved? arg
 		][
-			check-cc name
 			list: either issue? args/1 [					;-- bypass type-checking for variable arity calls
 				args/2
 			][
@@ -1663,8 +1643,8 @@ system-dialect: context [
 			locals: func-name: none
 		]
 		
-		comp-natives: func [type [word!]][			
-			foreach [name spec body origin] get type [
+		comp-natives: does [			
+			foreach [name spec body origin] natives [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -1701,8 +1681,7 @@ system-dialect: context [
 		
 		finalize: does [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
-			comp-natives 'natives
-			comp-natives 'callbacks
+			comp-natives
 			if verbose >= 2 [print ""]
 			emitter/reloc-native-calls
 		]
@@ -1758,7 +1737,6 @@ system-dialect: context [
 	clean-up: does [
 		clear compiler/imports
 		clear compiler/natives
-		clear compiler/callbacks
 		clear compiler/globals
 		clear compiler/aliased-types
 		clear compiler/user-functions

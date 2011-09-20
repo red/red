@@ -26,7 +26,7 @@ change-dir %../
 			]
 			
 			compare: func [
-				[callback]
+				[cdecl]
 				left [integer!] right [integer!]
 				return: [logic!]
 			][
@@ -55,7 +55,7 @@ change-dir %../
 			]
 			
 			compare: func [
-				[callback]
+				[cdecl]
 				left [integer!]
 				return: [logic!]
 			][
@@ -79,7 +79,7 @@ change-dir %../
 			]
 			
 			compare: func [
-				[callback]
+				[cdecl]
 				left [integer!] right [byte!]
 				return: [logic!]
 			][
@@ -89,32 +89,7 @@ change-dir %../
 			foo :compare
 		}
 		--assert-msg? "*** Compilation Error: argument type mismatch on calling: foo"
-		--clean	
-		
-	--test-- "inference error 3"
-		--compile-this {
-			#import [
-				"foo.dll" cdecl [
-					foo: "foo" [
-						fun 	[function! [a [integer!] b [integer!] return: [logic!]]]
-						return: [integer!]
-					]
-				]
-			]
-
-			compare: func [
-				[callback]
-				left [integer!] right [byte!]
-				return: [logic!]
-			][
-				left <= right
-			]
-
-			compare 4 5
-			foo :compare
-		}
-		--assert-msg? "*** Compilation Error: calling convention undefined at this point for: compare"
-		--clean	
+		--clean
 	
 ~~~end-file~~~
 

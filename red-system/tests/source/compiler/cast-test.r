@@ -71,7 +71,7 @@ compiled?: func [
 	--test-- "cast function! 1"
 	--assert compiled? {
 		Red/System[]
-		foo: func [[callback] a [integer!]][]
+		foo: func [a [integer!]][]
 		i: as integer! :foo
 	}
  
@@ -159,21 +159,21 @@ compiled?: func [
  
 	--test-- "cast function! error 1"
 	--compile-this {
-		foo: func [[callback] a [integer!]][]
+		foo: func [a [integer!]][]
 		b: as byte! :foo
 	}
 	--assert-msg? "type casting from function! to byte! is not allowed"
 	
 	--test-- "cast function! error 2"
 	--compile-this {
-		foo: func [[callback] a [integer!]][]
+		foo: func [a [integer!]][]
 		l: as logic! :foo
 	}
 	--assert-msg? "type casting from function! to logic! is not allowed"
 	
 	--test-- "cast function! error 3"
 	--compile-this {
-		foo: func [[callback] a [integer!]][]
+		foo: func [a [integer!]][]
 		s: as c-string! :foo
 	}
 	--assert-msg? "type casting from function! to c-string! is not allowed"

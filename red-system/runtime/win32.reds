@@ -70,7 +70,6 @@ SEH_EXCEPTION_RECORD: alias struct! [
 ;; source: http://msdn.microsoft.com/en-us/library/aa363082(v=VS.85).aspx
 
 exception-filter: func [
-	[callback]
 	record  [SEH_EXCEPTION_RECORD]
 	return: [integer!]
 	/local code error

@@ -118,7 +118,7 @@ _ucontext!: alias struct! [					;@@ CPU-dependent
 ]
 
 ***-on-signal: func [
-	[callback]
+	[cdecl]
 	signal	[integer!]
 	info	[siginfo!]
 	ctx		[_ucontext!]

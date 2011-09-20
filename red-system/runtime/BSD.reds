@@ -148,7 +148,7 @@ stderr: 2
 ]
 
 ***-on-signal: func [
-	[callback]
+	[cdecl]
 	signal	[integer!]
 	info	[siginfo!]
 	ctx		[_ucontext!]
