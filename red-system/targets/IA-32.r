@@ -965,6 +965,9 @@ make target-class [
 						emit #{83EC04}				;-- SUB esp, 4		; extra entry (BSD convention)			
 					]
 					Linux [
+						if fspec/1 >= 6 [
+							emit #{89E8}			;-- MOV eax, ebp	; save frame pointer
+						]
 						repeat c fspec/1 [
 							emit pick [
 								#{5B}				;-- POP ebx			; get 1st arg in reg
@@ -972,15 +975,22 @@ make target-class [
 								#{5A}				;-- POP edx			; get 3rd arg in reg
 								#{5E}				;-- POP esi			; get 4th arg in reg
 								#{5F}				;-- POP edi			; get 5th arg in reg
+								#{5D}				;-- POP ebp			; get 6th arg in reg
 							] 1 + fspec/1 - c
+						]
+						if fspec/1 >= 6 [
+							emit #{50}				;-- PUSH eax		; save frame pointer on stack
 						]
 					]
 				]
 				emit #{B8}							;-- MOV eax, code
 				emit to-bin32 last fspec
 				emit #{CD80}						;-- INT 0x80		; syscall
-				if compiler/job/syscall = 'BSD [
-					emit-cdecl-pop fspec args		;-- BSD syscall cconv (~ cdecl)
+				switch compiler/job/syscall [
+					BSD [emit-cdecl-pop fspec args]	;-- BSD syscall cconv (~ cdecl)
+					Linux [
+						if fspec/1 >= 6 [emit #{5D}];-- POP ebp			; restore frame pointer
+					]
 				]
 			]
 			import [
