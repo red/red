@@ -97,7 +97,7 @@ Red/System [
 		/local ptr
 	][
 		assert zero? (size and 0Fh)				;-- size is a multiple of 16
-		
+	
 		ptr: OS-mmap 
 			null 
 			size
@@ -107,9 +107,9 @@ Red/System [
 			0
 			
 		if negative? as-integer ptr [
-			raise-error RED_ERR_VMEM_OUT_OF_MEMORY 0
+			raise-error RED_ERR_VMEM_OUT_OF_MEMORY as-integer system/pc
 		]
-		ptr
+		as int-ptr! ptr
 	]
 	
 	;-------------------------------------------
@@ -118,8 +118,8 @@ Red/System [
 	OS-free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
-		if negative? OS-munmap ptr ptr/value [
-			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer ptr
+		if negative? OS-munmap as byte-ptr! ptr ptr/value [
+			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
 		]
 	]
 ]
