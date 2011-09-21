@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 20/09/2011
-	Revision: 28
+	Date: 21/09/2011
+	Revision: 29
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -2286,6 +2286,43 @@ This access path will return the value of the EIP register.
 
 /note
 
++++ALIAS
+
+Get the ID value of an alias. This is required in typed functions in order to distinguish different struct! values.
+
+<b>Syntax</b>
+
+ system/alias/<name>
+
+ where
+ 	<name> : existing alias name
+ 	
+This expression returns an <b>integer!</b> value that can be used to test at runtime, the type of an argument in a typed function.
+
+Example:
+
+ foo!: alias struct! [a [byte!]]
+ 
+ s: declare foo!
+
+ probe: func [
+ 	 [typed] count [integer!] list [typed-value!]
+ ][
+ 	 until [
+ 		if list/type = system/alias/foo! [
+			print "foo! alias detected"
+		]
+		list: list + 1
+		count: count - 1
+		zero? count
+	 ]
+ ]
+
+ probe [1 "r" s 123]
+ 
+will output:
+ foo! alias detected
+ 
 ===Possible Evolutions
 
 ---Variables
@@ -2396,6 +2433,12 @@ will output:
 
 
 ===Document History
+
+*<b>21/09/2011 - revision 29</b>
+
+*>Added description for system/alias/... special path.
+
+
 
 *<b>20/09/2011 - revision 28</b>
 
