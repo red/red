@@ -9,6 +9,7 @@ REBOL [
 do %utils/r2-forward.r
 do %utils/int-to-bin.r
 do %utils/virtual-struct.r
+do %utils/secure-clean-path.r
 do %linker.r
 do %emitter.r
 
@@ -914,7 +915,7 @@ system-dialect: context [
 				#import  [process-import  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
 				#script	 [								;-- internal compiler directive
-					compiler/script: pc/2				;-- set the origin of following code
+					compiler/script: secure-clean-path pc/2	;-- set the origin of following code
 					pc: skip pc 2
 				]
 			][
@@ -1674,7 +1675,7 @@ system-dialect: context [
 		run: func [obj [object!] src [block!] file [file!] /no-header][
 			job: obj
 			pc: src
-			script: file
+			script: secure-clean-path file
 			unless no-header [comp-header]
 			comp-dialect
 		]
@@ -1726,7 +1727,7 @@ system-dialect: context [
 	]
 	
 	comp-runtime-prolog: has [script][
-		script: runtime-path/common.reds
+		script: secure-clean-path runtime-path/common.reds
  		compiler/run job loader/process script script
 	]
 	
