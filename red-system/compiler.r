@@ -1338,31 +1338,31 @@ system-dialect: context [
 			name [word!] args [block!] /sub
 			/local list type res import? left right dup var-arity? saved? arg
 		][
-			list: either issue? args/1 [					;-- bypass type-checking for variable arity calls
+			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
 				args/2
 			][
 				check-arguments-type name args
 				args
 			]
-			order-args name list							;-- reorder argument according to cconv
+			order-args name list						;-- reorder argument according to cconv
 
-			import?: functions/:name/2 = 'import			;@@ syscalls don't seem to need 16-byte alignment??
+			import?: functions/:name/2 = 'import		;@@ syscalls don't seem to need 16-byte alignment??
 			if import? [emitter/target/emit-stack-align-prolog args]
 
 			type: functions/:name/2
 			either type <> 'op [					
-				forall list [								;-- push function's arguments on stack
+				forall list [							;-- push function's arguments on stack
 					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
 					if type <> 'inline [
 						emitter/target/emit-argument list/1 type ;-- let target define how arguments are passed
 					]
 				]
-			][												;-- nested calls as op argument require special handling
+			][											;-- nested calls as op argument require special handling
 				if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
 				left:  unbox list/1
 				right: unbox list/2
 				if saved?: all [block? left any [block? right path? right]][
-					emitter/target/emit-save-last			;-- optionally save left argument result
+					emitter/target/emit-save-last		;-- optionally save left argument result
 				]
 				if block? unbox list/2 [comp-expression list/2 yes]	;-- nested call
 				if saved? [emitter/target/emit-restore-last]			
@@ -1372,7 +1372,7 @@ system-dialect: context [
 			either res [
 				last-type: res
 			][
-				set-last-type functions/:name/4				;-- catch nested calls return type
+				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
 			if import? [emitter/target/emit-stack-align-epilog args]
 			res
@@ -1463,7 +1463,7 @@ system-dialect: context [
 
 			;-- emitting expression code
 			either block? expr [
-				type: comp-call expr/1 next expr 	;-- function call case (recursive)
+				type: comp-call expr/1 next expr 		;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
 			][
 				unless any [
@@ -1482,7 +1482,7 @@ system-dialect: context [
 				last-type: boxed/type
 			]
 			if all [
-				any [keep? variable]						;-- if result needs to be stored
+				any [keep? variable]					;-- if result needs to be stored
 				block? expr								;-- and if expr is a function call
 				last-type/1 = 'logic!					;-- which return type is logic!
 			][
