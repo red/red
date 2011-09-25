@@ -68,11 +68,12 @@ Red/System [
 	#define MMAP_PROT_RW		03h				;-- PROT_READ | PROT_WRITE
 	#define MMAP_PROT_RWX		07h				;-- PROT_READ | PROT_WRITE | PROT_EXEC
 	
+	#define MMAP_MAP_SHARED     01h
 	#define MMAP_MAP_PRIVATE    02h
 	#define MMAP_MAP_ANONYMOUS  20h
 
 	#syscall [
-		OS-mmap: SYSCALL_MMAP [
+		OS-mmap: SYSCALL_MMAP2 [
 			address		[byte-ptr!]
 			size		[integer!]
 			protection	[integer!]
