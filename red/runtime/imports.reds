@@ -40,13 +40,15 @@ Red/System [
 		size 	[integer!]						;-- allocated size in bytes (page size multiple)
 		exec? 	[logic!]						;-- TRUE => executable region
 		return: [int-ptr!]						;-- allocated memory region pointer
-		/local ptr
+		/local ptr prot
 	][
+		prot: either exec? [VA_PAGE_RWX][VA_PAGE_RW]
+		
 		ptr: OS-VirtualAlloc 
 			null
 			size
 			VA_COMMIT_RESERVE
-			either exec? [VA_PAGE_RWX][VA_PAGE_RW]
+			prot
 			
 		if ptr = null [
 			raise-error RED_ERR_VMEM_OUT_OF_MEMORY 0
@@ -95,14 +97,15 @@ Red/System [
 		size 	[integer!]						;-- allocated size in bytes (page size multiple)
 		exec? 	[logic!]						;-- TRUE => executable region
 		return: [int-ptr!]						;-- allocated memory region pointer
-		/local ptr
+		/local ptr prot
 	][
 		assert zero? (size and 0Fh)				;-- size is a multiple of 16
-	
+		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
+		
 		ptr: OS-mmap 
 			null 
 			size
-			either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
+			prot	
 			MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS
 			-1									;-- portable value
 			0
