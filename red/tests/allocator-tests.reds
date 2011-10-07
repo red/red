@@ -32,17 +32,18 @@ dump-series-frame memory/s-active
 
 memory-stats 3
 
-print [lf ">> allocating 50 series" lf]
+print [lf ">> allocating 25 series" lf]
 
 array: as int-ptr! allocate 25 * size? pointer!
 c: 50
 alt?: no
 series: as int-ptr! 0
-idx: 0
+idx: 1
 until [
 	series: alloc-series either alt? [5][100]
 	unless alt? [
 		array/idx: as-integer series
+		print-wide [idx ":" as byte-ptr! array/idx lf]
 		idx: idx + 1
 	]
 	alt?: not alt?
@@ -54,11 +55,12 @@ dump-series-frame memory/s-active
 memory-stats 3
 
 print [lf ">> freeing all new short series" lf]
-idx: 25
+idx: 26
 until [
 	idx: idx - 1
+	print-wide [idx ":" as byte-ptr! array/idx lf]
 	free-series memory/s-head as int-ptr! array/idx
-	zero? idx
+	idx = 1
 ]
 
 print [lf ">> compacting frame" lf]
