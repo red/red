@@ -137,24 +137,27 @@ free-virtual: func [
 ;-- Free all frames (part of Red's global exit handler)
 ;-------------------------------------------
 free-all: func [
-	/local n-frame s-frame b-frame
+	/local n-frame s-frame b-frame n-next s-next b-next
 ][
 	n-frame: memory/n-head
 	while [n-frame <> null][
+		n-next: n-frame/next
 		free-virtual as int-ptr! n-frame
-		n-frame: n-frame/next
+		n-frame: n-next
 	]
 	
 	s-frame: memory/s-head
 	while [s-frame <> null][
+		s-next: s-frame/next
 		free-virtual as int-ptr! s-frame
-		s-frame: s-frame/next
+		s-frame: s-next
 	]
-	
+
 	b-frame: memory/b-head
 	while [b-frame <> null][
+		b-next: b-frame/next
 		free-virtual as int-ptr! b-frame
-		b-frame: b-frame/next
+		b-frame: b-next
 	]
 ]
 
