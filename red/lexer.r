@@ -10,17 +10,57 @@ lexer: context [
 	verbose: 0
 	
 	stack: 	[[]]									;-- nested blocks stack
+	line: 	1										;-- source code lines counter
 	pos:	none									;-- source input position (error reporting)
+	start:	none
+	end:	none
 	value:	none
 	blk: 	none
+	s: e:	none
+	fail:	none
 	
 	UTF-8-BOM: #{EFBBBF}
-	ws-ASCII: charset " ^-^/^M"						;-- ASCII common whitespaces
+	ws-ASCII: charset " ^-^M"						;-- ASCII common whitespaces
 	ws-U+2k: charset [#"^(80)" - #"^(8A)"]			;-- Unicode spaces in the U+2000-U+200A range
+	
+	UTF8-tail: charset [#"^(80)" - #"^(BF)"]
+		
+	UTF8-1: charset [#"^(00)" - #"^(7F)"]
+	
+	UTF8-2: reduce [
+		charset [#"^(C2)" - #"^(DF)"]
+		UTF8-tail
+	]
+	
+	UTF8-3: reduce [
+		#{E0} charset [#"^(A0)" - #"^(BF)"] UTF8-tail
+		'| charset [#"^(E1)" - #"^(EC)"] 2 UTF8-tail
+		'| #{ED} charset [#"^(80)" - #"^(9F)"] UTF8-tail
+		'| charset [#"^(EE)" - #"^(EF)"] 2 UTF8-tail
+	]
+	
+	UTF8-4: reduce [
+		#{F0} charset [#"^(90)" - #"^(BF)"] 2 UTF8-tail
+		'| charset [#"^(F1)" - #"^(F3)"] 3 UTF8-tail
+		'| #{F4} charset [#"^(80)" - #"^(8F)"] 2 UTF8-tail
+	]
+	
+	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
+	
+	not-word-char: charset {/,'[](){}"#%$@:}
+	
+	UTF8-word-char: [
+		[
+			pos: [not-word-char | ws] :pos (fail: [end skip])
+			| UTF8-char end: (fail: none)
+		]
+		fail
+	]
 	
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 	ws: [
-		ws-ASCII									;-- only the 4 common whitespaces are matched
+		#"^/" (line: line + 1)
+		| ws-ASCII									;-- only the 4 common whitespaces are matched
 		| #{C2} [
 			#{85}									;-- U+0085 (Newline)
 			| #{A0}									;-- U+00A0 (No-break space)
@@ -38,18 +78,19 @@ lexer: context [
 		| #{E2819F}									;-- U+205F (Medium mathematical space)
 		| #{E38080}									;-- U+3000 (Ideographic space)
 	]
-
+	
+	any-ws: [pos: any ws]
+	
+	
 	push: func [value][append/only last stack value]
 	
-	word-rule: []
+	word-rule: [start: some UTF8-word-char end:]
 	
-	get-word-rule: []
+	get-word-rule: [#":" word-rule]
+		
+	lit-word-rule: [#"'" word-rule]
 	
-	set-word-rule: []
-	
-	lit-word-rule: []
-	
-	refinement-rule: []
+	refinement-rule: [#"/" word-rule]
 	
 	integer-rule: []
 	
@@ -68,9 +109,9 @@ lexer: context [
 	lit-value-rule: []
 	
 	block-rule: [
-		pos: #"[" (push make block! 1)
-		pos: expression 
-		#"]" (	
+		#"[" (append/only stack make block! 1)
+		any expression 
+		#"]" (		
 			blk: last stack
 			remove back tail stack
 			push blk
@@ -78,32 +119,36 @@ lexer: context [
 	]
 
 	expression: [
-		any pos: ws
-		pos: copy value [
-			word-rule
-			| get-word-rule
-			| set-word-rule
-			| lit-word-rule
-			| refinement-rule
-			| integer-rule
-			| char-rule
+		any-ws pos: (end: none) start: [
+
+			word-rule [
+				#":" 		  (push to set-word!   copy/part start end)
+				| none 		  (push to word! 	   copy/part start end)
+			]
+			| get-word-rule	  (push to get-word!   copy/part start end)
+			| lit-word-rule	  (push to lit-word!   copy/part start end)
+			| refinement-rule (push to refinement! copy/part start end)
+			;| integer-rule
+			;| char-rule
 			| block-rule
-			| paren-rule
-			| string-rule
-			| binary-rule
-			| file-rule
-			| lit-value-rule
+			;| paren-rule
+			;| string-rule
+			;| binary-rule
+			;| file-rule
+			;| lit-value-rule
 		]
 	]
 
-	header: [any pos: ws pos: "Red" pos: any ws block-rule]
+	header: [any-ws pos: "Red" any-ws block-rule]
 
-	program: [pos: opt UTF-8-BOM header any expression]
+	program: [pos: opt UTF-8-BOM header any expression any-ws]
 	
 	run: func [src [string! binary!]][
-		unless parse src program [
-		
-		]
+		unless parse/all src program [
+			print rejoin [
+				"*** Loading Error: (line " line ") at: " copy/part pos 40
+			]
+		]		
 		stack/1
 	]
 ]
