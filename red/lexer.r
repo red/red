@@ -22,7 +22,7 @@ lexer: context [
 	fail:	none
 	
 	
-	push: func [value][append/only last stack :value]
+	push: func [value][insert/only tail last stack :value]
 
 	add-line-markers: func [blk [block!]][
 		foreach pos lines [new-line pos yes]
@@ -57,7 +57,7 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char: charset {/,'[](){}"#%$@:}
+	not-word-char: charset {/\^,'[](){}"#%$@:;}
 	
 	UTF8-word-char: [
 		[
