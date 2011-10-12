@@ -9,8 +9,10 @@ REBOL [
 lexer: context [
 	verbose: 0
 	
-	stack: 	[[]]									;-- nested blocks stack
+	stack: 	[]										;-- nested blocks stack
 	line: 	1										;-- source code lines counter
+	lines:	[]										;-- offsets of newlines marker in current block
+	count?: yes										;-- if TRUE, lines counter is enabled
 	pos:	none									;-- source input position (error reporting)
 	start:	none
 	end:	none
@@ -18,6 +20,14 @@ lexer: context [
 	blk: 	none
 	s: e:	none
 	fail:	none
+	
+	
+	push: func [value][append/only last stack value]
+
+	add-line-markers: func [blk [block!]][
+		foreach pos lines [new-line pos yes]
+		clear lines
+	]
 	
 	UTF-8-BOM: #{EFBBBF}
 	ws-ASCII: charset " ^-^M"						;-- ASCII common whitespaces
@@ -51,7 +61,7 @@ lexer: context [
 	
 	UTF8-word-char: [
 		[
-			pos: [not-word-char | ws] :pos (fail: [end skip])
+			pos: [not-word-char | (count?: no) ws (count?: yes) ] :pos (fail: [end skip])
 			| UTF8-char end: (fail: none)
 		]
 		fail
@@ -59,8 +69,13 @@ lexer: context [
 	
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 	ws: [
-		#"^/" (line: line + 1)
-		| ws-ASCII									;-- only the 4 common whitespaces are matched
+		#"^/" (
+			if count? [
+				line: line + 1 
+				append/only lines tail last stack
+			]
+		)
+		| ws-ASCII									;-- only the common whitespaces are matched
 		| #{C2} [
 			#{85}									;-- U+0085 (Newline)
 			| #{A0}									;-- U+00A0 (No-break space)
@@ -81,8 +96,6 @@ lexer: context [
 	
 	any-ws: [pos: any ws]
 	
-	
-	push: func [value][append/only last stack value]
 	
 	word-rule: [start: some UTF8-word-char end:]
 	
@@ -119,8 +132,8 @@ lexer: context [
 	]
 
 	expression: [
-		any-ws pos: (end: none) start: [
-
+		any-ws 
+		pos: (end: none) start: [
 			word-rule [
 				#":" 		  (push to set-word!   copy/part start end)
 				| none 		  (push to word! 	   copy/part start end)
@@ -137,18 +150,23 @@ lexer: context [
 			;| file-rule
 			;| lit-value-rule
 		]
+		any-ws
 	]
 
 	header: [any-ws pos: "Red" any-ws block-rule]
 
-	program: [pos: opt UTF-8-BOM header any expression any-ws]
+	program: [pos: opt UTF-8-BOM header any expression]
 	
 	run: func [src [string! binary!]][
-		unless parse/all src program [
+		append/only stack make block! 1
+		
+		unless parse/all src program [		
 			print rejoin [
 				"*** Loading Error: (line " line ") at: " copy/part pos 40
 			]
-		]		
-		stack/1
+		]
+		
+		add-line-markers blk
+		also stack/1 clear stack
 	]
 ]
