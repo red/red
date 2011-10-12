@@ -22,7 +22,7 @@ lexer: context [
 	fail:	none
 	
 	
-	push: func [value][append/only last stack value]
+	push: func [value][append/only last stack :value]
 
 	add-line-markers: func [blk [block!]][
 		foreach pos lines [new-line pos yes]
