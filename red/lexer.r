@@ -10,7 +10,7 @@ lexer: context [
 	verbose: 0
 	
 	stack: 	[]										;-- nested blocks stack
-	line: 	1										;-- source code lines counter
+	line: 	none									;-- source code lines counter
 	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
 	pos:	none									;-- source input position (error reporting)
@@ -19,34 +19,12 @@ lexer: context [
 	value:	none
 	blk: 	none
 	s: e:	none
-	fail:	none
+	fail?:	none
 	
-	throw-error: func [msg [block! string!]][
-		print rejoin [
-			"*** Syntax Error: " uppercase/part reform msg 1
-			"^/*** line: " line
-			"^/*** at: " mold copy/part pos 40
-		]
-		halt
-	]
-	
-	push: func [value][insert/only tail last stack :value]
-
-	add-line-markers: func [blk [block!]][
-		foreach pos lines [new-line pos yes]
-		clear lines
-	]
-	
-	load-integer: func [s [string!]][
-		unless attempt [s: to integer! s][
-			throw-error "invalid 32-bit integer"
-		]
-		s
-	]
-	
-	;--- Parsing rules ---
+	;====== Parsing rules ======
 	
 	digit: charset "0123465798"
+	hexa:  union digit charset "ABCDEF" 
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
@@ -77,23 +55,34 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char: charset {/\^,'[](){}"#%$@:;}
-	not-file-char: charset {[](){}"%@:;}
-	not-str-char:  charset {"}
-	not-mstr-char: charset "}"
-	stop: none
+	not-word-char:  charset {/\^^,'[](){}"#%$@:;}
+	not-file-char:  charset {[](){}"%@:;}
+	not-str-char:   charset {"}
+	not-mstr-char:  charset "}"
+	caret-char:	    charset [#"@" - #"_"]
+	printable-char: charset [#"^(20)" - #"^(7E)"]
+	char-char:		exclude printable-char charset {"^^}
+	stop: 		    none
 	
 	UTF8-ws-filtered-char: [
 		[
-			pos: [stop | (count?: no) ws (count?: yes)] :pos (fail: [end skip])
-			| UTF8-char _end: (fail: none)
+			pos: [stop | (count?: no) ws (count?: yes)] :pos (fail?: [end skip])
+			| UTF8-char _end: (fail?: none)
 		]
-		fail
+		fail?
+	]
+	
+	UTF8-nl-filtered-char: [
+		[
+			pos: [stop | newline-char] :pos (fail?: [end skip])
+			| UTF8-char _end: (fail?: none)
+		]
+		fail?
 	]
 	
 	UTF8-filtered-char: [
-		[pos: stop :pos (fail: [end skip]) | UTF8-char _end: (fail: none)]
-		fail
+		[pos: stop :pos (fail?: [end skip]) | UTF8-char _end: (fail?: none)]
+		fail?
 	]
 	
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
@@ -125,8 +114,16 @@ lexer: context [
 		| #{E38080}									;-- U+3000 (Ideographic space)
 	]
 	
-	any-ws: [pos: any ws]
+	newline-char: [
+		#"^/"
+		| #{C285}									;-- U+0085 (Newline)
+		| #{E280} [
+			#{A8}									;-- U+2028 (Line separator)
+			| #{A9}									;-- U+2029 (Paragraph separator)
+		]
+	]
 	
+	any-ws: [pos: any ws]
 	
 	word-rule: [
 		(stop: not-word-char)
@@ -136,7 +133,7 @@ lexer: context [
 	get-word-rule: 	 [#":" word-rule]
 	lit-word-rule: 	 [#"'" word-rule]
 	refinement-rule: [#"/" word-rule]
-	slash-rule: 	 [start: ["//" | #"/"] _end:]
+	slash-rule: 	 [start: [slash opt slash] _end:]
 	integer-rule: 	 [digit any [digit | #"'" digit] _end:]
 		
 	block-rule: [
@@ -156,23 +153,49 @@ lexer: context [
 			value: last stack
 			remove back tail stack
 			push value
-		)]
-		
-	char-rule: []
+		)
+	]
 	
-	encoded-char: [
+	escaped-char: [
+		"^^(" [
+			s: [6 hexa | 4 hexa | 2 hexa] e: (		;-- Unicode values allowed up to 10FFFFh
+				value: encode-UTF8 s e
+			)
+			| [
+				"null" 	 (value: #"^(00)")
+				| "back" (value: #"^(08)")
+				| "tab"  (value: #"^(09)")
+				| "line" (value: #"^(0A)")
+				| "page" (value: #"^(0C)")
+				| "esc"  (value: #"^(1B)")
+				| "del"	 (value: #"^(7F)")
+			] 
+		] #")"
+		| #"^^" [
+			s: caret-char (value: to char! s/1 - #"@") 
+			| [
+				#"/" 	(value: #"^/")
+				| #"-"	(value: #"^-")
+				| #"?" 	(value: #"^(del)")
+			]
+		]
+	]
 	
+	char-rule: [
+		{#"} (fail?: none) [
+			start: char-char (value: to char! start/1)	;-- allowed UTF-1 chars
+			| newline-char (fail?: [end skip])			;-- fail rule
+			| copy value [UTF8-2 | UTF8-3 | UTF8-4]		;-- allowed Unicode chars
+			| escaped-char
+		] fail? {"}
 	]
 	
 	string-rule: [
-		  {"} start: (stop: not-str-char)
-		  	;any [UTF8-filtered-char | encoded-char]
-		  	any UTF8-filtered-char
-		  _end: {"}
-		| "{" start: (stop: not-mstr-char)		;@@ need to count LFs
-			;any [UTF8-filtered-char | encoded-char]
-			any UTF8-filtered-char
-		_end: "}"
+		{"} start: (stop: not-str-char) any UTF8-nl-filtered-char _end: {"}
+		
+		| "{" start: (stop: not-mstr-char) any [
+			#"^/" (line: line + 1) | UTF8-filtered-char 
+		] _end: "}"
 	]
 	
 	binary-rule: []
@@ -203,10 +226,10 @@ lexer: context [
 			| lit-word-rule	  (push to lit-word!   copy/part start _end)
 			| refinement-rule (push to refinement! copy/part start _end)
 			| slash-rule	  (push to word! 	   copy/part start _end)
-			;| char-rule
+			| char-rule		  (push value)
 			| block-rule
 			| paren-rule
-			| string-rule	  (push as-string      copy/part start _end)
+			| string-rule	  (push load-string start _end)
 			;| binary-rule
 			| file-rule		  (push to file!	   copy/part start _end)
 			;| lit-value-rule
@@ -219,7 +242,54 @@ lexer: context [
 
 	program: [pos: opt UTF-8-BOM header any-expression]
 	
+	
+	;====== Helper functions ======
+	
+	throw-error: func [msg [block! string!]][
+		print rejoin [
+			"*** Syntax Error: " uppercase/part reform msg 1
+			"^/*** line: " line
+			"^/*** at: " mold copy/part pos 40
+		]
+		halt
+	]
+
+	push: func [value][insert/only tail last stack :value]
+
+	add-line-markers: func [blk [block!]][
+		foreach pos lines [new-line pos yes]
+		clear lines
+	]
+	
+	encode-UTF8: func [s [string!] e [string!]][
+		copy/part s e								;@@ placeholder
+	]
+
+	load-integer: func [s [string!]][
+		unless attempt [s: to integer! s][
+			throw-error "invalid 32-bit integer"
+		]
+		s
+	]
+
+	load-string: func [s [string!] e [string!] /local new][
+		new: make string! offset? s e				;-- allocated size close to final size
+
+		parse/all/case s [
+			some [
+				escaped-char (insert tail new value)
+				| s: UTF8-filtered-char e: (		;-- already set to right filter	
+					insert/part tail new s e
+				)
+			]										;-- exit on matching " or }
+		]
+		new
+	]
+	
 	run: func [src [string! binary!]][
+		line: 1
+		count?: yes
+		
 		append/only stack make block! 1
 
 		unless parse/all/case src program [
