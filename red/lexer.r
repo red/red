@@ -56,17 +56,19 @@ lexer: context [
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
 	not-word-char:  charset {/\^^,'[](){}"#%$@:;}
+	not-word-1st:	union not-word-char digit
 	not-file-char:  charset {[](){}"%@:;}
 	not-str-char:   charset {"}
 	not-mstr-char:  charset "}"
 	caret-char:	    charset [#"@" - #"_"]
 	printable-char: charset [#"^(20)" - #"^(7E)"]
 	char-char:		exclude printable-char charset {"^^}
+	integer-end:	charset {^{"])}
 	stop: 		    none
 	
 	UTF8-ws-filtered-char: [
 		[
-			pos: [stop | (count?: no) ws (count?: yes)] :pos (fail?: [end skip])
+			pos: [stop | ws-no-count] :pos (fail?: [end skip])
 			| UTF8-char _end: (fail?: none)
 		]
 		fail?
@@ -123,18 +125,33 @@ lexer: context [
 		]
 	]
 	
+	ws-no-count: [(count?: no) ws (count?: yes)]
+	
 	any-ws: [pos: any ws]
 	
+	extended-word-rule: [
+		(stop: not-word-char) some UTF8-ws-filtered-char 
+		_end:
+	]
+	
 	word-rule: [
-		(stop: not-word-char)
-		start: some UTF8-ws-filtered-char _end:
+		start: (stop: not-word-1st) UTF8-ws-filtered-char	;-- 1st char is restricted
+		opt extended-word-rule
 	]
 	
 	get-word-rule: 	 [#":" word-rule]
 	lit-word-rule: 	 [#"'" word-rule]
-	refinement-rule: [#"/" word-rule]
+	refinement-rule: [#"/" start: extended-word-rule]
 	slash-rule: 	 [start: [slash opt slash] _end:]
-	integer-rule: 	 [digit any [digit | #"'" digit] _end:]
+	
+	integer-rule: [
+		digit any [digit | #"'" digit] _end:
+		pos: [										;-- protection rule from typo with sticky words
+			[integer-end | ws-no-count] (fail?: none)
+			| skip (fail?: [end skip]) 
+		] :pos 
+		fail?
+	]
 		
 	block-rule: [
 		#"[" (append/only stack make block! 1)
@@ -142,7 +159,6 @@ lexer: context [
 		#"]" (		
 			value: last stack
 			remove back tail stack
-			push value
 		)
 	]
 	
@@ -152,7 +168,6 @@ lexer: context [
 		#")" (		
 			value: last stack
 			remove back tail stack
-			push value
 		)
 	]
 	
@@ -227,11 +242,16 @@ lexer: context [
 			| refinement-rule (push to refinement! copy/part start _end)
 			| slash-rule	  (push to word! 	   copy/part start _end)
 			| char-rule		  (push value)
-			| block-rule
-			| paren-rule
+			;| issue-rule
+			| block-rule	  (push value)
+			| paren-rule	  (push value)
 			| string-rule	  (push load-string start _end)
 			;| binary-rule
 			| file-rule		  (push to file!	   copy/part start _end)
+			;| path-rule
+			;| get-path-rule
+			;| set-path-rule
+			;| lit-path-rule
 			;| lit-value-rule
 		]
 	]
