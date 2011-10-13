@@ -139,7 +139,7 @@ lexer: context [
 	
 	refinement-rule: [#"/" word-rule]
 	
-	integer-rule: [some [digit | #"'"] _end:]
+	integer-rule: [digit any [digit | #"'" digit] _end:]
 		
 	block-rule: [
 		#"[" (append/only stack make block! 1)
@@ -196,14 +196,14 @@ lexer: context [
 
 	expression: [
 		pos: (_end: none) start: [
-			word-rule [
+			integer-rule	  (push load-integer   copy/part start _end)
+			| word-rule [
 				#":" 		  (push to set-word!   copy/part start _end)
 				| none 		  (push to word! 	   copy/part start _end)
 			]
 			| get-word-rule	  (push to get-word!   copy/part start _end)
 			| lit-word-rule	  (push to lit-word!   copy/part start _end)
 			| refinement-rule (push to refinement! copy/part start _end)
-			| integer-rule	  (push load-integer   copy/part start _end)
 			;| char-rule
 			| block-rule
 			| paren-rule
