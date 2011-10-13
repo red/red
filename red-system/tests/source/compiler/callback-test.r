@@ -36,7 +36,7 @@ change-dir %../
 			foo :compare
 			compare 4 5
 		}
-		--assert qt/output = ""
+		--assert qt/compile-ok?
 		
 ~~~end-file~~~
 

@@ -11,7 +11,7 @@ comment {
   This script makes some assumptions about the location of files. They are:
     this script will be run from the red-system/tests directory
     the test scripts will be in the red-system/tests/source directories
-    this script resides in the red-system/tests/quick-test directory
+    this script resides in the quick-test directory
     the compiler will reside in the red-system directory
     the source of the programmes being tested are in red-system/tests/source directories
     the exe of the program being tested will be created in red-system/builds
@@ -21,9 +21,10 @@ comment {
 qt: make object! [
   
   ;;;;;;;;;;; Setup ;;;;;;;;;;;;;;
-  ;; set the base-dir to ....red/red-system/tests
-  base-dir: system/script/path  
-  base-dir: copy/part base-dir find base-dir "tests/quick-test"
+  ;; set the base-dir to ....red/red-system/
+  base-dir: system/script/path 
+  base-dir: copy/part base-dir find base-dir "/quick-test"
+  base-dir: join base-dir "/red-system/"
   
   ;; file names
   comp-echo: join base-dir %tests/runnable/comp-echo.txt

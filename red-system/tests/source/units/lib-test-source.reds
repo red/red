@@ -11,7 +11,7 @@ Red/System [
 ;;  lib-auto-test.reds in the auto-tests sub-directory. It also generates the
 ;;  correct name for the library under the os it is running
 
-#include %../../../quick-test/quick-test.reds
+#include %../../../../../quick-test/quick-test.reds
 
 ;; library declarations
 #import [

@@ -6,7 +6,7 @@ Red/System [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
-#include %../../quick-test/quick-test.reds
+#include %../../../../quick-test/quick-test.reds
 
 ~~~start-file~~~ "pointer!"
 

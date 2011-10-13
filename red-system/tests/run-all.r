@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs the Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.5.0
+	Version: 0.5.1
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -48,7 +48,7 @@ system/options/quiet: true
 ;; make runnable/ directory if needed 
 make-dir %runnable/
 
-if not value? 'qt [do %quick-test/quick-test.r]
+if not value? 'qt [do %../../quick-test/quick-test.r]
 
 ;; make auto files if needed
 make-if-needed? %source/units/auto-tests/byte-auto-test.reds

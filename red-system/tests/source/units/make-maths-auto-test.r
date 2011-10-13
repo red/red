@@ -2,7 +2,7 @@ REBOL [
   Title:   "Generates Red/System maths tests"
 	Author:  "Peter W A Wood"
 	File: 	 %make-maths-auto-test.r
-	Version: 0.1.2
+	Version: 0.1.3
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
@@ -251,7 +251,7 @@ comment {
 }
 ;make-length:$LENGTH$
 
-#include %../../../quick-test/quick-test.reds
+#include %../../../../../quick-test/quick-test.reds
 
 s: declare struct! [
   a [integer!]
