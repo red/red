@@ -133,13 +133,11 @@ lexer: context [
 		start: some UTF8-ws-filtered-char _end:
 	]
 	
-	get-word-rule: [#":" word-rule]
-		
-	lit-word-rule: [#"'" word-rule]
-	
+	get-word-rule: 	 [#":" word-rule]
+	lit-word-rule: 	 [#"'" word-rule]
 	refinement-rule: [#"/" word-rule]
-	
-	integer-rule: [digit any [digit | #"'" digit] _end:]
+	slash-rule: 	 [start: ["//" | #"/"] _end:]
+	integer-rule: 	 [digit any [digit | #"'" digit] _end:]
 		
 	block-rule: [
 		#"[" (append/only stack make block! 1)
@@ -204,6 +202,7 @@ lexer: context [
 			| get-word-rule	  (push to get-word!   copy/part start _end)
 			| lit-word-rule	  (push to lit-word!   copy/part start _end)
 			| refinement-rule (push to refinement! copy/part start _end)
+			| slash-rule	  (push to word! 	   copy/part start _end)
 			;| char-rule
 			| block-rule
 			| paren-rule
