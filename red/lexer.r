@@ -141,6 +141,7 @@ lexer: context [
 	
 	get-word-rule: 	 [#":" word-rule]
 	lit-word-rule: 	 [#"'" word-rule]
+	issue-rule: 	 [#"#" start: extended-word-rule]
 	refinement-rule: [#"/" start: extended-word-rule]
 	slash-rule: 	 [start: [slash opt slash] _end:]
 	
@@ -206,14 +207,17 @@ lexer: context [
 	]
 	
 	string-rule: [
-		{"} start: (stop: not-str-char) any UTF8-nl-filtered-char _end: {"}
-		
-		| "{" start: (stop: not-mstr-char) any [
-			#"^/" (line: line + 1) | UTF8-filtered-char 
-		] _end: "}"
+		  {"} start: (stop: not-str-char) any UTF8-nl-filtered-char _end: {"}
+		| #"{" start: (stop: not-mstr-char) any [
+			pos: #"^/" (line: line + 1) | "^^}" | UTF8-filtered-char 
+		] _end: #"}"
 	]
 	
-	binary-rule: []
+	binary-rule: [
+		"#{" start: any [
+			pos: #"^/" (line: line + 1) | 2 hexa | ws | comment-rule
+		] _end: #"}"
+	]
 	
 	file-rule: [
 		#"%" (stop: not-file-char)
@@ -222,17 +226,19 @@ lexer: context [
 	
 	lit-value-rule: []
 	
-	line-comment-rule: [
-	
-	]
+	comment-rule: [#";" to #"^/"]
 	
 	multiline-comment-rule: [
-		
+		"comment" any-ws #"{" (stop: not-mstr-char) any [
+			#"^/" (line: line + 1) | "^^}" | UTF8-filtered-char
+		] #"}"
 	]
 
 	expression: [
 		pos: (_end: none) start: [
 			integer-rule	  (push load-integer   copy/part start _end)
+			| comment-rule
+			| multiline-comment-rule
 			| word-rule [
 				#":" 		  (push to set-word!   copy/part start _end)
 				| none 		  (push to word! 	   copy/part start _end)
@@ -242,11 +248,11 @@ lexer: context [
 			| refinement-rule (push to refinement! copy/part start _end)
 			| slash-rule	  (push to word! 	   copy/part start _end)
 			| char-rule		  (push value)
-			;| issue-rule
+			| issue-rule	  (push to issue!	   copy/part start _end)
 			| block-rule	  (push value)
 			| paren-rule	  (push value)
 			| string-rule	  (push load-string start _end)
-			;| binary-rule
+			| binary-rule	  (push load-binary start _end)
 			| file-rule		  (push to file!	   copy/part start _end)
 			;| path-rule
 			;| get-path-rule
@@ -292,7 +298,7 @@ lexer: context [
 		s
 	]
 
-	load-string: func [s [string!] e [string!] /local new][
+	load-string: func [s [string!] e [string!] /local new value][
 		new: make string! offset? s e				;-- allocated size close to final size
 
 		parse/all/case s [
@@ -302,6 +308,19 @@ lexer: context [
 					insert/part tail new s e
 				)
 			]										;-- exit on matching " or }
+		]
+		new
+	]
+	
+	load-binary: func [s [string!] e [string!] /local new byte][
+		new: make binary! (offset? s e) / 2			;-- allocated size above final size
+
+		parse/all/case s [
+			some [
+				copy byte 2 hexa (insert tail new debase/base byte 16)
+				| ws | comment-rule
+				| #"}" end skip
+			]
 		]
 		new
 	]
