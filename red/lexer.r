@@ -146,7 +146,7 @@ lexer: context [
 	slash-rule: 	 [start: [slash opt slash] _end:]
 	
 	integer-rule: [
-		digit any [digit | #"'" digit] _end:
+		opt #"-" digit any [digit | #"'" digit] _end:
 		pos: [										;-- protection rule from typo with sticky words
 			[integer-end | ws-no-count] (fail?: none)
 			| skip (fail?: [end skip]) 
