@@ -245,7 +245,20 @@ lexer: context [
 		start: some UTF8-ws-filtered-char _end:
 	]
 	
-	lit-value-rule: []
+	escaped-rule: [
+		"#[" any-ws [
+			"none" 	  (value: none)
+			| "true"  (value: true)
+			| "false" (value: false)
+			| start: [
+				"none!" | "logic!" | "block!" | "integer!" | "word!" 
+				| "set-word!" | "get-word!" | "lit-word!" | "refinement!"
+				| "binary!" | "string!"	| "char!" | "bitset!" | "path!"
+				| "set-path!" | "lit-path!" | "native!"	| "action!"
+				| "issue!" | "paren!" | "function!"
+			] _end: (value: get to word! copy/part start _end)
+		]  any-ws #"]"
+	]
 	
 	comment-rule: [#";" to #"^/"]
 	
@@ -272,7 +285,7 @@ lexer: context [
 			| string-rule	  (push load-string start _end)
 			| binary-rule	  (push load-binary start _end)
 			| file-rule		  (push to file!	   copy/part start _end)
-			;| lit-value-rule
+			| escaped-rule    (push value)
 		]
 	]
 	
