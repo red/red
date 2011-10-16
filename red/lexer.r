@@ -20,6 +20,7 @@ lexer: context [
 	blk: 	none
 	s: e:	none
 	fail?:	none
+	type:	none
 	
 	;====== Parsing rules ======
 	
@@ -129,22 +130,37 @@ lexer: context [
 	
 	any-ws: [pos: any ws]
 	
-	extended-word-rule: [
+	symbol-rule: [
 		(stop: not-word-char) some UTF8-ws-filtered-char 
 		_end:
 	]
 	
-	word-rule: [
-		start: (stop: not-word-1st) UTF8-ws-filtered-char	;-- 1st char is restricted
-		opt extended-word-rule
+	begin-symbol-rule: [
+		(stop: not-word-1st) UTF8-ws-filtered-char	;-- 1st char is restricted
+		opt symbol-rule
 	]
 	
-	get-word-rule: 	 [#":" word-rule]
-	lit-word-rule: 	 [#"'" word-rule]
-	issue-rule: 	 [#"#" start: extended-word-rule]
-	refinement-rule: [#"/" start: extended-word-rule]
-	slash-rule: 	 [start: [slash opt slash] _end:]
+	path-rule: [some [slash [begin-symbol-rule | paren-rule]] _end:]
 	
+	word-rule: [
+		(type: word!) start: begin-symbol-rule 
+		opt [path-rule (type: path!)] 
+		opt [#":" (type: either type = word! [set-word!][set-path!])]
+	]
+	
+	get-word-rule: 	 [#":" (type: get-word!) start: begin-symbol-rule]
+	
+	lit-word-rule: 	 [
+		#"'" (type: lit-word!) start: begin-symbol-rule
+		opt [path-rule (type: probe lit-path!)]
+	]
+	
+	issue-rule: 	 [#"#" start: symbol-rule]
+	
+	refinement-rule: [slash start: symbol-rule]
+	
+	slash-rule: 	 [start: [slash opt slash] _end:]
+		
 	integer-rule: [
 		opt #"-" digit any [digit | #"'" digit] _end:
 		pos: [										;-- protection rule from typo with sticky words
@@ -156,7 +172,7 @@ lexer: context [
 		
 	block-rule: [
 		#"[" (append/only stack make block! 1)
-		any-expression
+		any-red-value
 		#"]" (		
 			value: last stack
 			remove back tail stack
@@ -165,7 +181,7 @@ lexer: context [
 	
 	paren-rule: [
 		#"(" (append/only stack make paren! 1)
-		any-expression
+		any-red-value
 		#")" (		
 			value: last stack
 			remove back tail stack
@@ -206,12 +222,17 @@ lexer: context [
 		] fail? {"}
 	]
 	
-	string-rule: [
-		  {"} start: (stop: not-str-char) any UTF8-nl-filtered-char _end: {"}
-		| #"{" start: (stop: not-mstr-char) any [
+	line-string: [
+		{"} start: (stop: not-str-char) any UTF8-nl-filtered-char _end: {"}
+	]
+	
+	multiline-string: [
+		#"{" start: (stop: not-mstr-char) any [
 			pos: #"^/" (line: line + 1) | "^^}" | UTF8-filtered-char 
 		] _end: #"}"
 	]
+	
+	string-rule: [line-string | multiline-string]
 	
 	binary-rule: [
 		"#{" start: any [
@@ -234,17 +255,14 @@ lexer: context [
 		] #"}"
 	]
 
-	expression: [
+	Red-value: [
 		pos: (_end: none) start: [
 			integer-rule	  (push load-integer   copy/part start _end)
 			| comment-rule
 			| multiline-comment-rule
-			| word-rule [
-				#":" 		  (push to set-word!   copy/part start _end)
-				| none 		  (push to word! 	   copy/part start _end)
-			]
+			| word-rule		  (push to type		   copy/part start _end)
+			| lit-word-rule	  (push to type		   copy/part start _end)
 			| get-word-rule	  (push to get-word!   copy/part start _end)
-			| lit-word-rule	  (push to lit-word!   copy/part start _end)
 			| refinement-rule (push to refinement! copy/part start _end)
 			| slash-rule	  (push to word! 	   copy/part start _end)
 			| char-rule		  (push value)
@@ -254,19 +272,15 @@ lexer: context [
 			| string-rule	  (push load-string start _end)
 			| binary-rule	  (push load-binary start _end)
 			| file-rule		  (push to file!	   copy/part start _end)
-			;| path-rule
-			;| get-path-rule
-			;| set-path-rule
-			;| lit-path-rule
 			;| lit-value-rule
 		]
 	]
 	
-	any-expression: [pos: any [expression | ws]]
+	any-Red-value: [pos: any [Red-value | ws]]
 
 	header: [any-ws pos: "Red" any-ws block-rule]
 
-	program: [pos: opt UTF-8-BOM header any-expression]
+	program: [pos: opt UTF-8-BOM header any-Red-value]
 	
 	
 	;====== Helper functions ======
