@@ -9,7 +9,6 @@ REBOL [
 lexer: context [
 	verbose: 0
 	
-	stack: 	[]										;-- nested blocks stack
 	line: 	none									;-- source code lines counter
 	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
@@ -17,7 +16,6 @@ lexer: context [
 	start:	none
 	_end:	none
 	value:	none
-	blk: 	none
 	s: e:	none
 	fail?:	none
 	type:	none
@@ -93,7 +91,7 @@ lexer: context [
 		pos: #"^/" (
 			if count? [
 				line: line + 1 
-				append/only lines tail last stack
+				append/only lines stack/tail?
 			]
 		)
 		| ws-ASCII									;-- only the common whitespaces are matched
@@ -126,6 +124,8 @@ lexer: context [
 		]
 	]
 	
+	counted-newline: [pos: #"^/" (line: line + 1)]
+	
 	ws-no-count: [(count?: no) ws (count?: yes)]
 	
 	any-ws: [pos: any ws]
@@ -152,7 +152,7 @@ lexer: context [
 	
 	lit-word-rule: 	 [
 		#"'" (type: lit-word!) start: begin-symbol-rule
-		opt [path-rule (type: probe lit-path!)]
+		opt [path-rule (type: lit-path!)]
 	]
 	
 	issue-rule: 	 [#"#" start: symbol-rule]
@@ -170,23 +170,9 @@ lexer: context [
 		fail?
 	]
 		
-	block-rule: [
-		#"[" (append/only stack make block! 1)
-		any-red-value
-		#"]" (		
-			value: last stack
-			remove back tail stack
-		)
-	]
+	block-rule: [#"[" (stack/push block!) any-red-value #"]" (value: stack/pop)]
 	
-	paren-rule: [
-		#"(" (append/only stack make paren! 1)
-		any-red-value
-		#")" (		
-			value: last stack
-			remove back tail stack
-		)
-	]
+	paren-rule: [#"(" (stack/push paren!) any-red-value	#")" (value: stack/pop)]
 	
 	escaped-char: [
 		"^^(" [
@@ -228,7 +214,7 @@ lexer: context [
 	
 	multiline-string: [
 		#"{" start: (stop: not-mstr-char) any [
-			pos: #"^/" (line: line + 1) | "^^}" | UTF8-filtered-char 
+			counted-newline | "^^}" | UTF8-filtered-char 
 		] _end: #"}"
 	]
 	
@@ -236,7 +222,7 @@ lexer: context [
 	
 	binary-rule: [
 		"#{" start: any [
-			pos: #"^/" (line: line + 1) | 2 hexa | ws | comment-rule
+			counted-newline | 2 hexa | ws | comment-rule
 		] _end: #"}"
 	]
 	
@@ -264,28 +250,28 @@ lexer: context [
 	
 	multiline-comment-rule: [
 		"comment" any-ws #"{" (stop: not-mstr-char) any [
-			#"^/" (line: line + 1) | "^^}" | UTF8-filtered-char
+			counted-newline | "^^}" | UTF8-filtered-char
 		] #"}"
 	]
 
 	Red-value: [
 		pos: (_end: none) start: [
-			integer-rule	  (push load-integer   copy/part start _end)
-			| comment-rule
+			comment-rule
 			| multiline-comment-rule
-			| word-rule		  (push to type		   copy/part start _end)
-			| lit-word-rule	  (push to type		   copy/part start _end)
-			| get-word-rule	  (push to get-word!   copy/part start _end)
-			| refinement-rule (push to refinement! copy/part start _end)
-			| slash-rule	  (push to word! 	   copy/part start _end)
-			| char-rule		  (push value)
-			| issue-rule	  (push to issue!	   copy/part start _end)
-			| block-rule	  (push value)
-			| paren-rule	  (push value)
-			| string-rule	  (push load-string start _end)
-			| binary-rule	  (push load-binary start _end)
-			| file-rule		  (push to file!	   copy/part start _end)
-			| escaped-rule    (push value)
+			| integer-rule	  (stack/push load-integer   copy/part start _end)
+			| word-rule		  (stack/push to type		 copy/part start _end)
+			| lit-word-rule	  (stack/push to type		 copy/part start _end)
+			| get-word-rule	  (stack/push to get-word!   copy/part start _end)
+			| refinement-rule (stack/push to refinement! copy/part start _end)
+			| slash-rule	  (stack/push to word! 	   	 copy/part start _end)
+			| issue-rule	  (stack/push to issue!	   	 copy/part start _end)
+			| file-rule		  (stack/push to file!		 copy/part start _end)
+			| char-rule		  (stack/push value)
+			| block-rule	  (stack/push value)
+			| paren-rule	  (stack/push value)
+			| escaped-rule    (stack/push value)
+			| string-rule	  (stack/push load-string start _end)
+			| binary-rule	  (stack/push load-binary start _end)
 		]
 	]
 	
@@ -298,6 +284,23 @@ lexer: context [
 	
 	;====== Helper functions ======
 	
+	stack: context [
+		stk: []
+		
+		push: func [value][
+			either any [value = block! value = paren!][		
+				insert/only tail stk value: make value 1			
+				value
+			][
+				insert/only tail last stk :value
+			]
+		]
+		
+		pop:   does [also last stk remove back tail stk]
+		tail?: does [tail last stk]
+		reset: does [clear stk]
+	]
+	
 	throw-error: func [msg [block! string!]][
 		print rejoin [
 			"*** Syntax Error: " uppercase/part reform msg 1
@@ -307,9 +310,7 @@ lexer: context [
 		halt
 	]
 
-	push: func [value][insert/only tail last stack :value]
-
-	add-line-markers: func [blk [block!]][
+	add-line-markers: func [blk [block!]][	
 		foreach pos lines [new-line pos yes]
 		clear lines
 	]
@@ -352,17 +353,18 @@ lexer: context [
 		new
 	]
 	
-	run: func [src [string! binary!]][
+	run: func [src [string! binary!] /local blk][
 		line: 1
 		count?: yes
 		
-		append/only stack make block! 1
+		blk: stack/push block!						;-- root block
 
 		unless parse/all/case src program [
 			throw-error "invalid Red data"
 		]
 		
-		add-line-markers stack/1
-		also stack/1 clear stack
+		add-line-markers blk
+		stack/reset
+		blk
 	]
 ]
