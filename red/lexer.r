@@ -13,12 +13,11 @@ lexer: context [
 	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
 	pos:	none									;-- source input position (error reporting)
-	start:	none
-	_end:	none
-	value:	none
-	s: e:	none
-	fail?:	none
-	type:	none
+	s:		none									;-- mark start position of new value
+	e:		none									;-- mark end position of new value
+	value:	none									;-- new value
+	fail?:	none									;-- used for failing some parsing rules
+	type:	none									;-- define the type of the new value
 	
 	;====== Parsing rules ======
 	
@@ -68,7 +67,7 @@ lexer: context [
 	UTF8-ws-filtered-char: [
 		[
 			pos: [stop | ws-no-count] :pos (fail?: [end skip])
-			| UTF8-char _end: (fail?: none)
+			| UTF8-char e: (fail?: none)
 		]
 		fail?
 	]
@@ -76,13 +75,13 @@ lexer: context [
 	UTF8-nl-filtered-char: [
 		[
 			pos: [stop | newline-char] :pos (fail?: [end skip])
-			| UTF8-char _end: (fail?: none)
+			| UTF8-char e: (fail?: none)
 		]
 		fail?
 	]
 	
 	UTF8-filtered-char: [
-		[pos: stop :pos (fail?: [end skip]) | UTF8-char _end: (fail?: none)]
+		[pos: stop :pos (fail?: [end skip]) | UTF8-char e: (fail?: none)]
 		fail?
 	]
 	
@@ -131,8 +130,7 @@ lexer: context [
 	any-ws: [pos: any ws]
 	
 	symbol-rule: [
-		(stop: not-word-char) some UTF8-ws-filtered-char 
-		_end:
+		(stop: not-word-char) some UTF8-ws-filtered-char e:
 	]
 	
 	begin-symbol-rule: [
@@ -140,29 +138,30 @@ lexer: context [
 		opt symbol-rule
 	]
 	
-	path-rule: [some [slash [begin-symbol-rule | paren-rule]] _end:]
+	path-rule: [some [slash [begin-symbol-rule | paren-rule]] e:]
 	
-	word-rule: [
-		(type: word!) start: begin-symbol-rule 
+	word-rule: 	[
+		(type: word!) s: begin-symbol-rule 
 		opt [path-rule (type: path!)] 
 		opt [#":" (type: either type = word! [set-word!][set-path!])]
 	]
 	
-	get-word-rule: 	 [#":" (type: get-word!) start: begin-symbol-rule]
+	get-word-rule: [#":" (type: get-word!) s: begin-symbol-rule]
 	
-	lit-word-rule: 	 [
-		#"'" (type: lit-word!) start: begin-symbol-rule
+	lit-word-rule: [
+		#"'" (type: lit-word!) s: begin-symbol-rule
 		opt [path-rule (type: lit-path!)]
 	]
 	
-	issue-rule: 	 [#"#" start: symbol-rule]
+	issue-rule: [#"#" (type: issue!) s: symbol-rule]
 	
-	refinement-rule: [slash start: symbol-rule]
+	refinement-rule: [slash (type: refinement!) s: symbol-rule]
 	
-	slash-rule: 	 [start: [slash opt slash] _end:]
+	slash-rule: [s: [slash opt slash] e:]
 		
 	integer-rule: [
-		opt #"-" digit any [digit | #"'" digit] _end:
+		(type: integer!)
+		opt #"-" digit any [digit | #"'" digit] e:
 		pos: [										;-- protection rule from typo with sticky words
 			[integer-end | ws-no-count] (fail?: none)
 			| skip (fail?: [end skip]) 
@@ -170,9 +169,9 @@ lexer: context [
 		fail?
 	]
 		
-	block-rule: [#"[" (stack/push block!) any-red-value #"]" (value: stack/pop)]
+	block-rule: [#"[" (stack/push block!) any-red-value #"]" (value: stack/pop block!)]
 	
-	paren-rule: [#"(" (stack/push paren!) any-red-value	#")" (value: stack/pop)]
+	paren-rule: [#"(" (stack/push paren!) any-red-value	#")" (value: stack/pop paren!)]
 	
 	escaped-char: [
 		"^^(" [
@@ -200,35 +199,35 @@ lexer: context [
 	]
 	
 	char-rule: [
-		{#"} (fail?: none) [
-			start: char-char (value: to char! start/1)	;-- allowed UTF-1 chars
-			| newline-char (fail?: [end skip])			;-- fail rule
-			| copy value [UTF8-2 | UTF8-3 | UTF8-4]		;-- allowed Unicode chars
+		{#"} (type: char! fail?: none) [
+			s: char-char (value: to char! s/1)		;-- allowed UTF-1 chars
+			| newline-char (fail?: [end skip])		;-- fail rule
+			| copy value [UTF8-2 | UTF8-3 | UTF8-4]	;-- allowed Unicode chars
 			| escaped-char
 		] fail? {"}
 	]
 	
 	line-string: [
-		{"} start: (stop: not-str-char) any UTF8-nl-filtered-char _end: {"}
+		{"} s: (type: string! stop: not-str-char) any UTF8-nl-filtered-char e: {"}
 	]
 	
 	multiline-string: [
-		#"{" start: (stop: not-mstr-char) any [
+		#"{" s: (type: string! stop: not-mstr-char) any [
 			counted-newline | "^^}" | UTF8-filtered-char 
-		] _end: #"}"
+		] e: #"}"
 	]
 	
 	string-rule: [line-string | multiline-string]
 	
 	binary-rule: [
-		"#{" start: any [
-			counted-newline | 2 hexa | ws | comment-rule
-		] _end: #"}"
+		"#{" (type: binary!) 
+		s: any [counted-newline | 2 hexa | ws-no-count | comment-rule]
+		e: #"}"
 	]
 	
 	file-rule: [
-		#"%" (stop: not-file-char)
-		start: some UTF8-ws-filtered-char _end:
+		#"%" (type: file! stop: not-file-char)
+		s: some UTF8-ws-filtered-char e:
 	]
 	
 	escaped-rule: [
@@ -236,13 +235,13 @@ lexer: context [
 			"none" 	  (value: none)
 			| "true"  (value: true)
 			| "false" (value: false)
-			| start: [
+			| s: [
 				"none!" | "logic!" | "block!" | "integer!" | "word!" 
 				| "set-word!" | "get-word!" | "lit-word!" | "refinement!"
 				| "binary!" | "string!"	| "char!" | "bitset!" | "path!"
 				| "set-path!" | "lit-path!" | "native!"	| "action!"
 				| "issue!" | "paren!" | "function!"
-			] _end: (value: get to word! copy/part start _end)
+			] e: (value: get to word! copy/part s e)
 		]  any-ws #"]"
 	]
 	
@@ -253,25 +252,33 @@ lexer: context [
 			counted-newline | "^^}" | UTF8-filtered-char
 		] #"}"
 	]
+	
+	wrong-delimiters: [
+		pos: [
+			  #"]" (value: #"[") | #")" (value: #"(")
+			| #"[" (value: #"]") | #"(" (value: #")")
+		] :pos
+		(throw-error/with ["missing matching" value])
+	]
 
 	Red-value: [
-		pos: (_end: none) start: [
+		pos: (e: none) s: [
 			comment-rule
 			| multiline-comment-rule
-			| integer-rule	  (stack/push load-integer   copy/part start _end)
-			| word-rule		  (stack/push to type		 copy/part start _end)
-			| lit-word-rule	  (stack/push to type		 copy/part start _end)
-			| get-word-rule	  (stack/push to get-word!   copy/part start _end)
-			| refinement-rule (stack/push to refinement! copy/part start _end)
-			| slash-rule	  (stack/push to word! 	   	 copy/part start _end)
-			| issue-rule	  (stack/push to issue!	   	 copy/part start _end)
-			| file-rule		  (stack/push to file!		 copy/part start _end)
+			| integer-rule	  (stack/push load-integer   copy/part s e)
+			| word-rule		  (stack/push to type		 copy/part s e)
+			| lit-word-rule	  (stack/push to type		 copy/part s e)
+			| get-word-rule	  (stack/push to get-word!   copy/part s e)
+			| refinement-rule (stack/push to refinement! copy/part s e)
+			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
+			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
+			| file-rule		  (stack/push to file!		 copy/part s e)
 			| char-rule		  (stack/push value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| escaped-rule    (stack/push value)
-			| string-rule	  (stack/push load-string start _end)
-			| binary-rule	  (stack/push load-binary start _end)
+			| string-rule	  (stack/push load-string s e)
+			| binary-rule	  (stack/push load-binary s e)
 		]
 	]
 	
@@ -279,8 +286,12 @@ lexer: context [
 
 	header: [any-ws pos: "Red" any-ws block-rule]
 
-	program: [pos: opt UTF-8-BOM header any-Red-value]
-	
+	program: [
+		pos: opt UTF-8-BOM
+		header
+		any-Red-value
+		opt wrong-delimiters
+	]
 	
 	;====== Helper functions ======
 	
@@ -296,14 +307,24 @@ lexer: context [
 			]
 		]
 		
-		pop:   does [also last stk remove back tail stk]
+		pop: func [type [datatype!]][
+			if type <> type? last stk [
+				throw-error/with ["invalid" mold type "closing delimiter"]
+			]
+			also last stk remove back tail stk
+		]
+		
 		tail?: does [tail last stk]
 		reset: does [clear stk]
 	]
 	
-	throw-error: func [msg [block! string!]][
+	throw-error: func [/with msg [string! block!]][
 		print rejoin [
-			"*** Syntax Error: " uppercase/part reform msg 1
+			"*** Syntax Error: " either with [
+				uppercase/part reform msg 1
+			][
+				reform ["Invalid" mold type "value"]
+			]
 			"^/*** line: " line
 			"^/*** at: " mold copy/part pos 40
 		]
@@ -320,9 +341,7 @@ lexer: context [
 	]
 
 	load-integer: func [s [string!]][
-		unless attempt [s: to integer! s][
-			throw-error "invalid 32-bit integer"
-		]
+		unless attempt [s: to integer! s][throw-error]
 		s
 	]
 
@@ -359,9 +378,7 @@ lexer: context [
 		
 		blk: stack/push block!						;-- root block
 
-		unless parse/all/case src program [
-			throw-error "invalid Red data"
-		]
+		unless parse/all/case src program [throw-error]
 		
 		add-line-markers blk
 		stack/reset
