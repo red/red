@@ -169,9 +169,9 @@ lexer: context [
 		fail?
 	]
 		
-	block-rule: [#"[" (stack/push block!) any-red-value #"]" (value: stack/pop block!)]
+	block-rule: [#"[" (stack/push block!) any-value #"]" (value: stack/pop block!)]
 	
-	paren-rule: [#"(" (stack/push paren!) any-red-value	#")" (value: stack/pop paren!)]
+	paren-rule: [#"(" (stack/push paren!) any-value	#")" (value: stack/pop paren!)]
 	
 	escaped-char: [
 		"^^(" [
@@ -261,7 +261,7 @@ lexer: context [
 		(throw-error/with ["missing matching" value])
 	]
 
-	Red-value: [
+	literal-value: [
 		pos: (e: none) s: [
 			comment-rule
 			| multiline-comment-rule
@@ -282,14 +282,14 @@ lexer: context [
 		]
 	]
 	
-	any-Red-value: [pos: any [Red-value | ws]]
+	any-value: [pos: any [literal-value | ws]]
 
 	header: [any-ws pos: "Red" any-ws block-rule]
 
 	program: [
 		pos: opt UTF-8-BOM
 		header
-		any-Red-value
+		any-value
 		opt wrong-delimiters
 	]
 	
