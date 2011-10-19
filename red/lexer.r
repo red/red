@@ -176,7 +176,7 @@ lexer: context [
 	escaped-char: [
 		"^^(" [
 			s: [6 hexa | 4 hexa | 2 hexa] e: (		;-- Unicode values allowed up to 10FFFFh
-				value: encode-UTF8 s e
+				value: encode-UTF8-char s e
 			)
 			| [
 				"null" 	 (value: #"^(00)")
@@ -213,7 +213,7 @@ lexer: context [
 	
 	multiline-string: [
 		#"{" s: (type: string! stop: not-mstr-char) any [
-			counted-newline | "^^}" | UTF8-filtered-char 
+			counted-newline | "^^}" | UTF8-nl-filtered-char 
 		] e: #"}"
 	]
 	
@@ -336,8 +336,42 @@ lexer: context [
 		clear lines
 	]
 	
-	encode-UTF8: func [s [string!] e [string!]][
-		copy/part s e								;@@ placeholder
+	encode-UTF8-char: func [s [string!] e [string!] /local c code new][	
+		c: trim/head debase/base copy/part s e 16
+		code: to integer! c
+		
+		case [
+			code <= 127  [new: to char! last c]		;-- c <= 7Fh
+			code <= 2047 [							;-- c <= 07FFh
+				new: copy #{0000}
+				new/1: #"^(C0)"
+					or (shift/left to integer! (either code <= 255 [0][c/1]) and 7 2)
+					or shift/logical to integer! last c 6
+				new/2: #"^(80)" or (63 and last c)
+			]
+			code <= 65535 [							;-- c <= FFFFh
+				new: copy #{E00000}
+				new/1: #"^(E0)" or shift/logical to integer! c/1 4
+				new/2: #"^(80)" 
+					or (shift/left to integer! c/1 and 15 2)
+					or shift/logical to integer! c/2 6
+				new/3: #"^(80)" or (c/2 and 63)
+			]
+			code <= 1114111 [						;-- c <= 10FFFFh
+				new: copy #{F0000000}
+				new/2: #"^(80)"
+					or (shift/left to integer! c/1 and 3 4)
+					or (shift/logical to integer! c/2 4)
+				new/3: #"^(80)"
+					or (shift/left to integer! c/2 and 15 2)
+					or shift/logical to integer! c/3 6
+				new/4: #"^(80)" or (c/3 and 63)
+			]
+			'else [
+				throw-error/with "Codepoints above U+10FFFF are not supported"
+			]
+		]
+		new
 	]
 
 	load-integer: func [s [string!]][
@@ -345,7 +379,7 @@ lexer: context [
 		s
 	]
 
-	load-string: func [s [string!] e [string!] /local new value][
+	load-string: func [s [string!] e [string!] /local new][
 		new: make string! offset? s e				;-- allocated size close to final size
 
 		parse/all/case s [
