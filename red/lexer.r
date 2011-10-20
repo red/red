@@ -154,7 +154,7 @@ lexer: context [
 		(type: integer!)
 		opt #"-" digit any [digit | #"'" digit] e:
 		pos: [										;-- protection rule from typo with sticky words
-			[integer-end | ws-no-count] (fail?: none)
+			[integer-end | ws-no-count | end] (fail?: none)
 			| skip (fail?: [end skip]) 
 		] :pos 
 		fail?
