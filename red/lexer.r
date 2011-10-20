@@ -56,30 +56,14 @@ lexer: context [
 	not-word-char:  charset {/\^^,'[](){}"#%$@:;}
 	not-word-1st:	union not-word-char digit
 	not-file-char:  charset {[](){}"%@:;}
-	not-str-char:   charset {"}
-	not-mstr-char:  charset "}"
+	not-str-char:   #"^""
+	not-mstr-char:  #"}"
 	caret-char:	    charset [#"@" - #"_"]
 	printable-char: charset [#"^(20)" - #"^(7E)"]
 	char-char:		exclude printable-char charset {"^^}
 	integer-end:	charset {^{"])}
 	stop: 		    none
-	
-	UTF8-ws-filtered-char: [
-		[
-			pos: [stop | ws-no-count] :pos (fail?: [end skip])
-			| UTF8-char e: (fail?: none)
-		]
-		fail?
-	]
-	
-	UTF8-nl-filtered-char: [
-		[
-			pos: [stop | newline-char] :pos (fail?: [end skip])
-			| UTF8-char e: (fail?: none)
-		]
-		fail?
-	]
-	
+		
 	UTF8-filtered-char: [
 		[pos: stop :pos (fail?: [end skip]) | UTF8-char e: (fail?: none)]
 		fail?
@@ -130,11 +114,13 @@ lexer: context [
 	any-ws: [pos: any ws]
 	
 	symbol-rule: [
-		(stop: not-word-char) some UTF8-ws-filtered-char e:
+		(stop: [not-word-char | ws-no-count])
+		some UTF8-filtered-char e:
 	]
 	
 	begin-symbol-rule: [
-		(stop: not-word-1st) UTF8-ws-filtered-char	;-- 1st char is restricted
+		(stop: [not-word-1st | ws-no-count])		;-- 1st char is restricted
+		UTF8-filtered-char
 		opt symbol-rule
 	]
 	
@@ -208,13 +194,15 @@ lexer: context [
 	]
 	
 	line-string: [
-		{"} s: (type: string! stop: not-str-char) any UTF8-nl-filtered-char e: {"}
+		{"} s: (type: string! stop: [not-str-char | newline-char])
+		any UTF8-filtered-char
+		e: {"}
 	]
 	
 	multiline-string: [
-		#"{" s: (type: string! stop: not-mstr-char) any [
-			counted-newline | "^^}" | UTF8-nl-filtered-char 
-		] e: #"}"
+		#"{" s: (type: string! stop: not-mstr-char)
+		any [counted-newline | "^^}" | UTF8-filtered-char]
+		e: #"}"
 	]
 	
 	string-rule: [line-string | multiline-string]
@@ -226,8 +214,8 @@ lexer: context [
 	]
 	
 	file-rule: [
-		#"%" (type: file! stop: not-file-char)
-		s: some UTF8-ws-filtered-char e:
+		#"%" (type: file! stop: [not-file-char | ws-no-count])
+		s: some UTF8-filtered-char e:
 	]
 	
 	escaped-rule: [
