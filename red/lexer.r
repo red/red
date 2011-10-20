@@ -63,7 +63,12 @@ lexer: context [
 	char-char:		exclude printable-char charset {"^^}
 	integer-end:	charset {^{"])}
 	stop: 		    none
-		
+	
+	control-char: reduce [
+		charset [#"^(00)" - #"^(1F)"] 				;-- ASCII control characters
+		'| #"^(C2)" charset [#"^(80)" - #"^(9F)"] 	;-- C2 control characters
+	]
+	
 	UTF8-filtered-char: [
 		[pos: stop :pos (fail?: [end skip]) | UTF8-char e: (fail?: none)]
 		fail?
@@ -114,12 +119,12 @@ lexer: context [
 	any-ws: [pos: any ws]
 	
 	symbol-rule: [
-		(stop: [not-word-char | ws-no-count])
+		(stop: [not-word-char | ws-no-count | control-char])
 		some UTF8-filtered-char e:
 	]
 	
-	begin-symbol-rule: [
-		(stop: [not-word-1st | ws-no-count])		;-- 1st char is restricted
+	begin-symbol-rule: [							;-- 1st char in symbols is restricted
+		(stop: [not-word-1st | ws-no-count | control-char])
 		UTF8-filtered-char
 		opt symbol-rule
 	]
