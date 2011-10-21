@@ -277,7 +277,10 @@ lexer: context [
 	
 	any-value: [pos: any [literal-value | ws]]
 
-	header: [any-ws pos: "Red" any-ws block-rule]
+	header: [
+		pos: thru "Red" any-ws block-rule (stack/push value)
+		| (throw-error/with "Invalid Red program") end skip
+	]
 
 	program: [
 		pos: opt UTF-8-BOM
