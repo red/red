@@ -152,7 +152,7 @@ lexer: context [
 		
 	integer-rule: [
 		(type: integer!)
-		opt #"-" digit any [digit | #"'" digit] e:
+		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
 		pos: [										;-- protection rule from typo with sticky words
 			[integer-end | ws-no-count | end] (fail?: none)
 			| skip (fail?: [end skip]) 
