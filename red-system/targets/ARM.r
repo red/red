@@ -84,15 +84,15 @@ make target-class [
 		none
 	]
 
-	emit-load-integer: func [value [integer!] /local v bits][
-		v: either negative? value [complement value][value]
+	emit-load-integer: func [value [integer!] /local neg? bits][
+		if negative? value [neg?: yes value: complement value]
 
-		either bits: ror-position? v [	
+		either bits: ror-position? value [	
 			emit-i32 reduce [						;-- MOV r0, #imm8, bits		; v = imm8 (ROR bits)x2
 				#{e3} 
-				pick [#{e0} #{a0}] negative? value	;-- emit MVN instead, if required
+				pick [#{e0} #{a0}] neg?				;-- emit MVN instead, if required
 				to char! shift/left bits 8
-				to char! rotate-left v bits
+				to char! rotate-left value bits
 			]
 		][
 			;; @@ we currently store full 32-bit integer immediates directly in the
