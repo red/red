@@ -43,13 +43,64 @@ make target-class [
 			emit to-bin32 to integer! take/part instruction-buffer 4
 		]
 	]
+	
+	rotate-left: func [value [integer!] bits [integer!]][
+		either bits < 4 [
+			switch bits [
+				0 [value]
+				1 [(shift/left value and 255 2) or shift/logical value 30]
+				2 [(shift/left value and 16 4) or shift/logical value 28]
+				3 [(shift/left value and 3 6) or shift/logical value 26]
+			]
+		][
+			shift/logical value 32 - (bits * 2)
+		]
+	]
+	
+	ror-position?: func [value [integer!] /local c][
+		;-- Test if an integer can be represented using the 8-bit + 4-bit-ROR format
+		c: 0
+		foreach mask [
+			255  									;-- 2#{00000000000000000000000011111111}
+			-1073741761								;-- 2#{11000000000000000000000000111111}
+			-268435441								;-- 2#{11110000000000000000000000001111}
+			-67108861								;-- 2#{11111100000000000000000000000011}
+			-16777216								;-- 2#{11111111000000000000000000000000}
+			1069547520								;-- 2#{00111111110000000000000000000000}
+			267386880								;-- 2#{00001111111100000000000000000000}
+			66846720								;-- 2#{00000011111111000000000000000000}
+			16711680								;-- 2#{00000000111111110000000000000000}
+			4177920									;-- 2#{00000000001111111100000000000000}
+			1044480									;-- 2#{00000000000011111111000000000000}
+			261120									;-- 2#{00000000000000111111110000000000}
+			65280									;-- 2#{00000000000000001111111100000000}
+			16320									;-- 2#{00000000000000000011111111000000}
+			4080									;-- 2#{00000000000000000000111111110000}
+			1020									;-- 2#{00000000000000000000001111111100}
+		][
+			if value and mask = value [return c]
+			c: c + 1
+		]
+		none
+	]
 
-	emit-load-integer: func [value [integer!]] [
-		;; @@ we currently store full 32-bit integer immediates directly in the
-		;; instruction stream. should probably use a literal pool instead.
-		emit-i32 #{e49f0000}						;-- LDR r0, [pc], #0
-		emit-i32 #{e1a00000}						;-- NOP
-		emit to-bin32 value							;-- <value>
+	emit-load-integer: func [value [integer!] /local v bits][
+		v: either negative? value [complement value][value]
+
+		either bits: ror-position? v [	
+			emit-i32 reduce [						;-- MOV r0, #imm8, bits		; v = imm8 (ROR bits)x2
+				#{e3} 
+				pick [#{e0} #{a0}] negative? value	;-- emit MVN instead, if required
+				to char! shift/left bits 8
+				to char! rotate-left v bits
+			]
+		][
+			;; @@ we currently store full 32-bit integer immediates directly in the
+			;; instruction stream. should probably use a literal pool instead.
+			emit-i32 #{e49f0000}					;-- LDR r0, [pc], #0
+			emit-i32 #{e1a00000}					;-- NOP
+			emit-i32 to-bin32 value					;-- <value>
+		]
 	]
 
 	emit-load: func [
@@ -82,8 +133,8 @@ make target-class [
 	]
 
 	emit-call-syscall: func [number nargs] [
-		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}
-		emit-i32 shift #{ff} 8 - nargs
+		;emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}
+		;emit-i32 shift #{ff} 8 - nargs
 		emit-i32 #{e3a070}							;-- MOV r7, <number>
 		emit-i32 to-bin8 number
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
@@ -111,7 +162,7 @@ make target-class [
 			any [arg/type = 'logic! 'byte! = first compiler/get-type arg/data]
 			not path? arg/data
 		][
-			unless block? arg [emit-load arg]		;-- block! means last value is already in eax (func call)
+			unless block? arg [emit-load arg]		;-- block! means last value is already in r0 (func call)
 			emit-casting arg no
 			emit-push <last>
 			compiler/last-type: arg/type			;-- for inline unary functions
