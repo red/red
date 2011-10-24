@@ -1121,7 +1121,7 @@ will output:
  hello 123 world
  
 \note Compatibity with other attributes
-<b>Variadic</b> attribute can only be used alone or with the <b>callback</b> attribute.
+<b>Variadic</b> attribute can only be used alone or with the <b>cdecl</b> attribute.
 
 /note
  
