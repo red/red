@@ -1677,12 +1677,15 @@ system-dialect: context [
 			pc: src
 			script: secure-clean-path file
 			unless no-header [comp-header]
+			emitter/target/on-global-prolog
 			comp-dialect
+			emitter/target/on-global-epilog
 		]
 		
 		finalize: does [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
 			comp-natives
+			emitter/target/on-finalize
 			if verbose >= 2 [print ""]
 			emitter/reloc-native-calls
 		]
