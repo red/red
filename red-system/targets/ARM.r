@@ -31,6 +31,112 @@ make target-class [
 	default-align:		4
 	stack-width:		4
 	branch-offset-size:	4							;-- size of branch instruction
+	
+	pools: context [								;-- literals pools management
+		values:		  make block! 2000				;-- [value instruction-pos sym-spec ...]
+		entry-points: make block! 100				;-- insertion points candidates for pools
+		;jmp-points:  make block! 100				;-- relative jumps positions
+		pools:		  make block! 1					;-- [pool-pos [value-ref ...] inline? ...]
+		
+		;-- Collect a literal value to be stored in a pool
+		collect: func [value [integer!] /spec s [word! get-word! block!] /local pos][
+			insert pos: tail values reduce [value emitter/tail-ptr s]
+			pos
+		]
+		
+		;-- Collect a possible position in code for a literals pool
+		mark-entry-point: does [
+			append entry-points emitter/tail-ptr
+		]
+		
+		get-pool: does [skip tail pools -3]
+		
+		make-pool: does [
+			repend pools [entry-points/1 make block! 16 no]	;-- create a new pool entry
+			entry-points: next entry-points			;-- move to next possible position
+			get-pool								;-- get a reference on the last pool structure
+		]
+		
+		;-- Update code addresses after a pool insertion
+		update-entry-points: func [pool-idx [integer!] offset [integer!]][
+			ep: entry-points
+			forall ep [if ep/1 > pool-idx [ep/1: ep/1 + offset]]
+			;TBD: update all impacted function entry-points
+		]
+		
+		populate-pools: has [index pos offset pool][
+			until [
+				index: values/2
+				if empty? pools [make-pool]
+
+				pool: get-pool
+				pos: pool/1 + (4 * length? pool/2)	;-- pos: offset of value entry in the pool buffer
+
+				either positive? offset: pos - index [	;-- test if pool is before or after caller
+					if 4092 <= offset [
+						compiler/throw-error "[ARM emitter] pool too far!"
+						;pool/3: yes				;-- set "inlined" flag
+						;TBD: handle pool in the middle of code case
+					]
+				][
+					if 4092 <= abs offset [			;-- if pool too far behind,
+						pool: make-pool				;-- make a new pool at next possible position @@ > 4092 case
+						pos: pool/1 + (4 * length? pool/2)
+					]
+				]
+				
+				append/only pool/2 values			;-- insert literal value in the pool
+				tail? values: skip values 3
+			]
+			values: head values
+		]
+		
+		commit-pools: has [buffer value ins-idx spec entry-pos offset code][
+			buffer: make binary! 400				;-- reserve pool buffer for 100 values
+			
+			foreach [pool-idx value-refs inline?] pools [
+				clear buffer
+				until [			
+					set [value ins-idx spec] value-refs/1
+					
+					append buffer reverse debase/base to-hex value 16
+					
+					entry-pos: 4 * (-1 + index? value-refs)			;-- offset of value entry in the pool
+					offset: pool-idx + entry-pos - (ins-idx + 8)	;-- relative jump offset to the entry
+					offset: reverse #{000003FF} and debase/base to-hex offset 16	;-- create 12-bit offset
+					
+					code: at emitter/code-buf ins-idx
+					change code offset or copy/part code 4	;-- add relative jump offset to instruction
+					
+					if spec [
+						spec: switch type?/word spec [
+							get-word! [emitter/get-func-ref]
+							word!	  [emitter/symbols/:spec]
+							block!	  [spec]
+						]
+						append spec/3 pool-idx + entry-pos	;-- add symbol back-reference for linker
+					]
+					
+					tail? value-refs: next value-refs
+				]
+				insert at emitter/code-buf pool-idx buffer	;-- insert pool in code buffer
+				update-entry-points pool-idx length? buffer	;-- update code entry points accordingly
+			]
+		]
+		
+		process: does [	
+			populate-pools
+			commit-pools
+			
+			clear entry-points: head entry-points
+			clear values
+			clear pools
+		]
+	]
+	
+	on-finalize: does [pools/process]				;-- trigger pools processing on end of code generation
+	
+	on-global-epilog: does [pools/mark-entry-point]	;-- add end of global code section as pool entry-point
 
 	instruction-buffer: make binary! 4
 
@@ -53,7 +159,7 @@ make target-class [
 				3 [(shift/left value and 3 6) or shift/logical value 26]
 			]
 		][
-			shift/logical value 32 - (bits * 2)
+			shift/logical value 32 - (bits * 2)		;-- * 2 => rotation on even positions
 		]
 	]
 	
@@ -84,8 +190,8 @@ make target-class [
 		none
 	]
 
-	emit-load-integer: func [value [integer!] /local neg? bits][
-		if negative? value [neg?: yes value: complement value]
+	emit-load-imm32: func [value [integer!] /local neg? bits][
+		if neg?: negative? value [value: complement value]
 
 		either bits: ror-position? value [	
 			emit-i32 reduce [						;-- MOV r0, #imm8, bits		; v = imm8 (ROR bits)x2
@@ -95,46 +201,172 @@ make target-class [
 				to char! rotate-left value bits
 			]
 		][
-			;; @@ we currently store full 32-bit integer immediates directly in the
-			;; instruction stream. should probably use a literal pool instead.
-			emit-i32 #{e49f0000}					;-- LDR r0, [pc], #0
-			emit-i32 #{e1a00000}					;-- NOP
-			emit-i32 to-bin32 value					;-- <value>
+			pools/collect value
+			emit-i32 #{e59f0000}					;-- LDR r0, [pc, #offset]
 		]
 	]
+	
+	emit-variable: func [
+		name [word! object!] gcode [binary! block! none!] lcode [binary! block!] 
+		/local offset load-rel
+	][
+		if object? name [name: compiler/unbox name]
 
+		either offset: select emitter/stack name [
+			;TBD									;-- local variable case
+		][											;-- global variable case
+			spec: emitter/symbols/:name
+			pools/collect/spec 0 name
+			
+			load-rel: #{e59f0000}
+			unless all [gcode zero? gcode/3 and 16][
+				load-rel: copy load-rel
+				load-rel/3: #"^(10)"				;-- use r1 instead of r0
+			]
+			emit-i32 load-rel						;-- LDR r0|r1, [pc, #offset]
+			if gcode [emit-i32 gcode]
+		]
+	]
+	
+	emit-variable-poly: func [						;-- polymorphic variable access generation
+		name [word! object!]
+		global [binary!]							;-- opcodes for global variables
+		local [binary! block!]						;-- opcodes for local variables
+	][
+		with-width-of name [
+			switch width [
+				1 [emit-variable/byte name global local]	;-- 8-bit
+				;2 []										;-- 16-bit (unsupported)
+				4 [emit-variable name global local]			;-- 32-bit
+			]
+		]
+	]
+	
 	emit-load: func [
-		value [char! logic! integer! word! string! path! get-word! struct! paren!]
-	] [
+		value [char! logic! integer! word! string! struct! path! paren! get-word! object!]
+		/alt
+	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 
-		switch/default type?/word value [
-			integer! [
-				emit-load-integer value
+		switch type?/word value [
+			char! [
+				emit-load-imm32 value
 			]
-		] [
-			compiler/throw-error join "[codegen] nyi load: " type?/word value
+			logic! [
+				emit-load-imm32 to integer! value
+			]
+			integer! [
+				emit-load-imm32 value
+			]
+			word! [
+				with-width-of value [
+					either alt [
+						emit-variable-poly value
+							#{e5911000}				;-- LDR r1, [r1]		; global
+							#{8A55} #{8B55}			;-- MOV rD, [ebp+n]		; local
+					][
+						emit-variable-poly value
+							#{e5900000} 			;-- LDR r0, [r0]		; global
+							#{8A45} #{8B45}			;-- MOV rA, [ebp+n]		; local	
+					]
+				]
+			]
+			get-word! [
+				emit #{B8}							;-- MOV eax, &name
+				emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
+			]
+			string! [
+				emit-load-literal [c-string!] value
+			]
+			struct! [
+				;TBD @@
+			]
+			path! [
+				emitter/access-path value none
+			]
+			paren! [
+				emit-load-literal none value
+			]
+			object! [
+				unless any [block? value/data value/data = <last>][
+					either alt [emit-load/alt value/data][emit-load value/data]
+				]
+			]
 		]
 	]
-
+	
 	emit-push: func [
-		value [char! logic! integer! word! string! path! get-word! block! tag!]
-	] [
+		value [char! logic! integer! word! block! string! tag! path! get-word! object!]
+		/with cast [object!]
+		/local spec type
+	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
+		if block? value [value: <last>]
+		
+		push-last: [emit-i32 #{e92d0001}]			;-- PUSH {r0}
 
-		switch/default type?/word value [
-			integer! [
-				emit-load-integer value
-				emit-i32 #{e92d0001}				;-- PUSH {r0}
+		switch type?/word value [
+			tag! [									;-- == <last>
+				do push-last
 			]
-		] [
-			compiler/throw-error join "[codegen] nyi push: " type?/word value
+			logic! [
+				emit-load-imm32 to integer! value	;-- MOV r0, #0|#1
+				do push-last
+			]
+			char! [
+				emit-load-imm32 to integer! value	;-- MOV r0, #imm8
+				do push-last
+			]
+			integer! [
+				emit-load-imm32 value
+				do push-last
+			]
+			word! [
+				type: first compiler/get-variable-spec value
+				either find [c-string! struct! pointer!] type [
+					emit-variable value
+						#{e5900000} 				;-- LDR r0, [r0]		; global
+						#{FF75}						;-- PUSH [ebp+n]		; local
+				][
+					emit-variable value
+						#{e5900000} 				;-- LDR r0, [r0]		; global
+						[	
+							#{8D45}					;-- LEA eax, [ebp+n]	; local
+							offset					;-- n
+							#{FF30}					;-- PUSH dword [eax]
+						]
+				]
+				do push-last
+			]
+			get-word! [
+				pools/collect/spec 0 value
+				emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
+				do push-last						;-- PUSH &value
+			]
+			string! [
+				spec: emitter/store-value none value [c-string!]
+				pools/collect/spec 0 spec/2
+				emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
+				do push-last						;-- PUSH value
+			]
+			path! [
+				emitter/access-path value none
+				if cast [emit-casting cast no]
+				emit-push <last>
+			]
+			object! [
+				either path? value/data [
+					emit-push/with value/data value
+				][
+					emit-push value/data
+				]
+			]
 		]
 	]
 
 	emit-call-syscall: func [number nargs] [
-		;emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}
-		;emit-i32 shift #{ff} 8 - nargs
+		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}
+		emit-i32 shift #{ff} 8 - nargs
 		emit-i32 #{e3a070}							;-- MOV r7, <number>
 		emit-i32 to-bin8 number
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
@@ -192,6 +424,8 @@ make target-class [
 
 	emit-prolog: func [name locals [block!] args-size [integer!]][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
+		
+		pools/mark-entry-point
 
 		;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
 		;; passed via regs r0-r3, further args are passed on the stack (pushed
