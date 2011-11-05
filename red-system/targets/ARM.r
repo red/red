@@ -280,8 +280,8 @@ make target-class [
 				]
 			]
 			get-word! [
-				;emit #{B8}							;-- MOV eax, &name
-				;emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
+				pools/collect/spec 0 value
+				emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]	; symbol address
 			]
 			string! [
 				emit-load-literal [c-string!] value
