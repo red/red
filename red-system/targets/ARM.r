@@ -207,19 +207,22 @@ make target-class [
 	]
 	
 	emit-variable: func [
-		name [word! object!] gcode [binary! block! none!] lcode [binary! block!] 
-		/local offset load-rel
+		name [word! object!] gcode [binary! block! none!] lcode [binary! block!]
+		/byte										; @@ TBD
+		/alt
+		/local offset spec load-rel
 	][
 		if object? name [name: compiler/unbox name]
 
-		either offset: select emitter/stack name [
-			;TBD									;-- local variable case
+		either offset: select emitter/stack name [	;-- local variable case
+			offset: #{000003FF} and debase/base to-hex offset 16
+			emit-i32 lcode or offset
 		][											;-- global variable case
 			spec: emitter/symbols/:name
 			pools/collect/spec 0 name
 			
 			load-rel: #{e59f0000}
-			unless all [gcode zero? gcode/3 and 16][
+			if any [alt not all [gcode zero? gcode/3 and 16]][
 				load-rel: copy load-rel
 				load-rel/3: #"^(10)"				;-- use r1 instead of r0
 			]
@@ -242,8 +245,15 @@ make target-class [
 		]
 	]
 	
+	emit-load-literal: func [type [block! none!] value /local spec][	
+		unless type [type: compiler/get-type value]
+		spec: emitter/store-value none value type
+		pools/collect/spec 0 spec/2
+		emit-i32 #{e59f0000}						;-- LDR r0, [pc, #offset]
+	]
+
 	emit-load: func [
-		value [char! logic! integer! word! string! struct! path! paren! get-word! object!]
+		value [char! logic! integer! word! string! path! paren! get-word! object!]
 		/alt
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
@@ -259,27 +269,22 @@ make target-class [
 				emit-load-imm32 value
 			]
 			word! [
-				with-width-of value [
-					either alt [
-						emit-variable-poly value
-							#{e5911000}				;-- LDR r1, [r1]		; global
-							#{8A55} #{8B55}			;-- MOV rD, [ebp+n]		; local
-					][
-						emit-variable-poly value
-							#{e5900000} 			;-- LDR r0, [r0]		; global
-							#{8A45} #{8B45}			;-- MOV rA, [ebp+n]		; local	
-					]
+				either alt [
+					emit-variable-poly value
+						#{e5911000}					;-- LDR r1, [r1]		; global
+						#{e51b1000}					;-- LDR r1, [fp, #n]	; local
+				][
+					emit-variable-poly value
+						#{e5900000} 				;-- LDR r0, [r0]		; global
+						#{e51b0000}					;-- LDR r0, [fp, #n]	; local
 				]
 			]
 			get-word! [
-				emit #{B8}							;-- MOV eax, &name
-				emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
+				;emit #{B8}							;-- MOV eax, &name
+				;emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
 			]
 			string! [
 				emit-load-literal [c-string!] value
-			]
-			struct! [
-				;TBD @@
 			]
 			path! [
 				emitter/access-path value none
@@ -291,6 +296,52 @@ make target-class [
 				unless any [block? value/data value/data = <last>][
 					either alt [emit-load/alt value/data][emit-load value/data]
 				]
+			]
+		]
+	]
+	
+	emit-store: func [
+		name [word!] value [char! logic! integer! word! string! paren! tag! get-word!] spec [block! none!]
+		/local load-address store-word
+	][
+		if verbose >= 3 [print [">>>storing" mold name mold value]]
+		if value = <last> [value: 'last]			;-- force word! code path in switch block
+		if logic? value [value: to integer! value]	;-- TRUE -> 1, FALSE -> 0
+
+		load-address: [
+			emit-variable/alt name
+				none								;-- LDR r1, [pc, #name]	; global
+				#{e51b1000}							;-- LDR r1, [fp, #n]	; local
+		]
+		store-word: [
+			emit-i32 #{e5010000}					;-- STR r0, [r1]
+		]
+
+		switch type?/word value [
+			char! [
+				do load-address						;-- r1: name
+				emit-i32 #{e5410000}				;-- STRB r0, [r1]
+			]
+			integer! [
+				do load-address						;-- r1: name
+				do store-word
+			]
+			word! [
+				set-width name
+				do load-address						;-- r1: name
+				do store-word
+			]
+			get-word! [
+				pools/collect/spec 0 value
+				emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
+				do load-address						;-- r1: name
+				do store-word
+			]
+			string! paren! [
+				;pools/collect/spec 0 spec/2
+				;emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
+				do load-address						;-- r1: name
+				do store-word
 			]
 		]
 	]
@@ -323,19 +374,9 @@ make target-class [
 			]
 			word! [
 				type: first compiler/get-variable-spec value
-				either find [c-string! struct! pointer!] type [
-					emit-variable value
-						#{e5900000} 				;-- LDR r0, [r0]		; global
-						#{FF75}						;-- PUSH [ebp+n]		; local
-				][
-					emit-variable value
-						#{e5900000} 				;-- LDR r0, [r0]		; global
-						[	
-							#{8D45}					;-- LEA eax, [ebp+n]	; local
-							offset					;-- n
-							#{FF30}					;-- PUSH dword [eax]
-						]
-				]
+				emit-variable value
+					#{e5900000} 					;-- LDR r0, [r0]		; global
+					#{e51b0000}						;-- LDR r0, [fp, #n]	; local
 				do push-last
 			]
 			get-word! [
