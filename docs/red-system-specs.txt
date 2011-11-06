@@ -2182,7 +2182,7 @@ If compiled as <i>show-args</i> executable, and called as:
 it would output:
 
  count: 4
- 1: test-logic2
+ 1: show-args
  2: 123
  3: -p
  4: hello
