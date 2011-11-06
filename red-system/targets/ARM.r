@@ -32,6 +32,8 @@ make target-class [
 	stack-width:		4
 	branch-offset-size:	4							;-- size of branch instruction
 	
+	byte-flag: 			#{00400000}					;-- trigger byte access in opcode
+	
 	pools: context [								;-- literals pools management
 		values:		  make block! 2000				;-- [value instruction-pos sym-spec ...]
 		entry-points: make block! 100				;-- insertion points candidates for pools
@@ -137,6 +139,11 @@ make target-class [
 	on-finalize: does [pools/process]				;-- trigger pools processing on end of code generation
 	
 	on-global-epilog: does [pools/mark-entry-point]	;-- add end of global code section as pool entry-point
+	
+	;-- Convert a 12-bit integer offset to a 32-bit hexa
+	to-12-bit: func [offset [integer!]][
+		#{000003FF} and debase/base to-hex offset 16
+	]
 
 	instruction-buffer: make binary! 4
 
@@ -148,6 +155,13 @@ make target-class [
 		if 4 <= length? instruction-buffer [
 			emit to-bin32 to integer! take/part instruction-buffer 4
 		]
+	]
+	
+	;-- Polymorphic code generation
+	emit-poly: func [opcode [binary!] /with offset [integer!]][
+		if with 	 [opcode: opcode or to-12-bit offset]
+		if width = 1 [opcode: opcode or byte-flag]	;-- 16-bit access not supported
+		emit-i32 opcode
 	]
 	
 	rotate-left: func [value [integer!] bits [integer!]][
@@ -190,33 +204,35 @@ make target-class [
 		none
 	]
 
-	emit-load-imm32: func [value [integer!] /local neg? bits][
+	emit-load-imm32: func [value [integer!] /reg n [integer!] /local neg? bits opcode][
 		if neg?: negative? value [value: complement value]
 
 		either bits: ror-position? value [	
-			emit-i32 reduce [						;-- MOV r0, #imm8, bits		; v = imm8 (ROR bits)x2
+			opcode: rejoin [						;-- MOV r0, #imm8, bits		; v = imm8 (ROR bits)x2
 				#{e3} 
 				pick [#{e0} #{a0}] neg?				;-- emit MVN instead, if required
 				to char! shift/left bits 8
 				to char! rotate-left value bits
 			]
+		
 		][
+			opcode: #{e59f0000}						;-- LDR r0|rN, [pc, #offset]
 			pools/collect value
-			emit-i32 #{e59f0000}					;-- LDR r0, [pc, #offset]
 		]
+		if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
+		emit-i32 opcode
 	]
 	
 	emit-variable: func [
 		name [word! object!] gcode [binary! block! none!] lcode [binary! block!]
 		/byte										;-- force byte-size access
 		/alt										;-- use alternative register (r1)
-		/local offset spec load-rel byte-flag
+		/local offset spec load-rel
 	][
 		if object? name [name: compiler/unbox name]
-		byte-flag: #{00400000}
 
 		either offset: select emitter/stack name [	;-- local variable case
-			offset: #{000003FF} and debase/base to-hex offset 16
+			offset: to-12-bit offset
 			if byte [offset: offset or byte-flag]
 			emit-i32 lcode or offset
 		][											;-- global variable case
@@ -252,7 +268,7 @@ make target-class [
 		unless type [type: compiler/get-type value]
 		spec: emitter/store-value none value type
 		pools/collect/spec 0 spec/2
-		emit-i32 #{e59f0000}						;-- LDR r0, [pc, #offset]
+		emit-i32 #{e59f0000}						;-- LDR r0, [pc, #offset]	; r0: value
 	]
 
 	emit-load: func [
@@ -263,7 +279,7 @@ make target-class [
 
 		switch type?/word value [
 			char! [
-				emit-load-imm32 value
+				emit-load-imm32 to integer! value
 			]
 			logic! [
 				emit-load-imm32 to integer! value
@@ -345,6 +361,103 @@ make target-class [
 				;emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
 				do load-address						;-- r1: name
 				do store-word
+			]
+		]
+	]
+
+	emit-access-path: func [
+		path [path! set-path!] spec [block! none!] /short /local offset type saved
+	][
+		if verbose >= 3 [print [">>>accessing path:" mold path]]
+
+		unless spec [
+			spec: second compiler/resolve-type path/1
+			emit-load path/1
+		]
+		if short [return spec]
+
+		saved: width
+		type: first compiler/resolve-type/with path/2 spec
+		set-width/type type							;-- adjust operations width to member value size
+
+		offset: emitter/member-offset? spec path/2
+		emit-poly/with #{e5900000} offset			;-- LDR[B] r0, [r0, #offset]
+		width: saved
+	]
+	
+	emit-load-index: func [idx [word!]][
+		emit-variable idx
+			#{e5903000}								;-- LDR r3, [r0]		; global
+			#{e51b3000}								;-- LDR r3, [fp, #n]	; local
+		emit-i32 #{e24dd008}						;-- SUB r3, r3, #1		; one-based index
+	]
+
+	emit-c-string-path: func [path [path! set-path!] parent [block! none!] /local opcodes idx][
+		either parent [
+			emit-i32 #{e1a02000}					;-- MOV r2, r0			; nested access
+		][
+			emit-variable path/1
+				#{e5902000}							;-- LDR r2, [r0]		; global
+				#{e51b2000}							;-- LDR r2, [fp, #n]	; local
+		]
+		opcodes: pick [[							;-- store path opcodes --
+			#{e5421000}								;-- STRB r1, [r2]		; first
+			#{e7c21003}								;-- STRB r1, [r2, r3] 	; nth | variable index
+		][											;-- load path opcodes --
+			#{e5520000}								;-- LDRB r0, [r2]		; first
+			#{e7d20003}								;-- LDRB r0, [r2, r3]	; nth | variable index
+		]] set-path? path
+
+		either integer? idx: path/2 [
+			either zero? idx: idx - 1 [				;-- indexes are one-based
+				emit-i32 opcodes/1
+			][
+				emit-load-imm32/reg idx 3			;-- LDR r3, #idx
+				emit-i32 opcodes/2
+			]
+		][
+			emit-load-index idx
+			emit opcodes/2
+		]
+	]
+	
+	emit-load-path: func [path [path!] type [word!] parent [block! none!] /local idx][
+		if verbose >= 3 [print [">>>loading path:" mold path]]
+
+		switch type [
+			c-string! [emit-c-string-path path parent]
+			pointer!  [emit-pointer-path  path parent]
+			struct!   [emit-access-path   path parent]
+		]
+	]
+	
+	emit-swap-regs: does [
+		emit-i32 #{e1a0c001}						;-- MOV r12, r1
+		emit-i32 #{e1a01000}						;-- MOV r1, r0
+		emit-i32 #{e1a0000c}						;-- MOV r0, r12
+	]
+	
+	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset][
+		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
+
+		if parent [emit-i32 #{e1a01000}]			;-- MOV r1, r0		; save value/address
+		unless value = <last> [emit-load value]
+		emit-swap-regs								;-- save value/restore address
+
+		switch type [
+			c-string! [emit-c-string-path path parent]
+			pointer!  [emit-pointer-path  path parent]
+			struct!   [
+				unless parent [parent: emit-access-path/short path parent]
+				type: first compiler/resolve-type/with path/2 parent
+				set-width/type type					;-- adjust operations width to member value size
+
+				either zero? offset: emitter/member-offset? parent path/2 [
+				;	emit-poly [#{8810} #{8910}] 	;-- MOV [eax], rD
+				][
+				;	emit-poly [#{8890} #{8990}]		;-- MOV [eax+offset], rD
+				;	emit to-bin32 offset
+				]
 			]
 		]
 	]
