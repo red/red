@@ -208,25 +208,28 @@ make target-class [
 	
 	emit-variable: func [
 		name [word! object!] gcode [binary! block! none!] lcode [binary! block!]
-		/byte										; @@ TBD
-		/alt
-		/local offset spec load-rel
+		/byte										;-- force byte-size access
+		/alt										;-- use alternative register (r1)
+		/local offset spec load-rel byte-flag
 	][
 		if object? name [name: compiler/unbox name]
+		byte-flag: #{00400000}
 
 		either offset: select emitter/stack name [	;-- local variable case
 			offset: #{000003FF} and debase/base to-hex offset 16
+			if byte [offset: offset or byte-flag]
 			emit-i32 lcode or offset
 		][											;-- global variable case
 			spec: emitter/symbols/:name
 			pools/collect/spec 0 name
 			
 			load-rel: #{e59f0000}
+			if byte [load-rel: load-rel or byte-flag]
+			
 			if any [alt not all [gcode zero? gcode/3 and 16]][
-				load-rel: copy load-rel
-				load-rel/3: #"^(10)"				;-- use r1 instead of r0
+				load-rel: load-rel or #{00001000}	;-- use r1 instead of r0
 			]
-			emit-i32 load-rel						;-- LDR r0|r1, [pc, #offset]
+			emit-i32 load-rel						;-- LDR[B] r0|r1, [pc, #offset]
 			if gcode [emit-i32 gcode]
 		]
 	]
