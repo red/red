@@ -270,6 +270,96 @@ make target-class [
 		pools/collect/spec 0 spec/2
 		emit-i32 #{e59f0000}						;-- LDR r0, [pc, #offset]	; r0: value
 	]
+	
+	emit-get-pc: does [
+		emit-i32 #{e1a0f000}						;-- MOV r0, pc
+	]
+
+	emit-set-stack: func [value /frame][
+		if verbose >= 3 [print [">>>emitting SET-STACK" mold value]]
+		emit-load value
+		either frame [
+			emit-i32 #{e1ab0000}					;-- MOV fp, r0
+		][
+			emit-i32 #{e1ad0000}					;-- MOV sp, r0
+		]
+	]
+
+	emit-get-stack: func [/frame][
+		if verbose >= 3 [print ">>>emitting GET-STACK"]
+		either frame [
+			emit-i32 #{e1a0b000}					;-- MOV eax, fp
+		][
+			emit-i32 #{e1a0d000}					;-- MOV eax, sp
+		]
+	]
+
+	emit-pop: does [
+		if verbose >= 3 [print ">>>emitting POP"]
+		emit-i32 #{e8bd0000}						;-- POP {r0}
+	]
+	
+	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
+		if verbose >= 3 [print [">>>emitting NOT" mold value]]
+
+		if object? value [boxed: value]
+		value: compiler/unbox value
+		if block? value [value: <last>]
+
+		opcodes: [
+			logic!	 [emit-i32 #{e2200001}]			;-- EOR r0, #1		; invert 0<=>1
+			byte!	 [emit-i32 #{e1e00000}]			;-- MVN r0, r0
+			integer! [emit-i32 #{e1e00000}]			;-- MVN r0, r0
+		]
+		switch type?/word value [
+			logic! [
+				emit-load not value
+			]
+			char! [
+				emit-load value
+				do opcodes/byte!
+			]
+			integer! [
+				emit-load value
+				do opcodes/integer!
+			]
+			word! [
+				emit-load value
+				if boxed [emit-casting boxed no]
+				type: first compiler/resolve-aliased compiler/get-variable-spec value
+				if find [pointer! c-string! struct!] type [ ;-- type casting trap
+					type: 'logic!
+				]
+				switch type opcodes
+			]
+			tag! [
+				if boxed [emit-casting boxed no]
+				switch compiler/last-type/1 opcodes
+			]
+			string! [								;-- type casting trap
+				emit-load value
+				if boxed [emit-casting boxed no]
+				do opcodes/logic!
+			]
+			path! [
+				emitter/access-path value none
+				either boxed [
+					emit-casting boxed no
+					switch boxed/type/1 opcodes 
+				][
+					do opcodes/integer!
+				]
+			]
+		]
+	]
+	
+	emit-boolean-switch: does [
+		emit-i32 #{e3a00000}						;--		  MOV r0, #0	; (FALSE)
+		emit-i32 #{ea000001}						;--		  B _exit
+		emit-i32 #{e3a00001}						;--		  MOV r0, #1	; (TRUE)
+													;-- _exit:
+		reduce [4 24]								;-- [offset-TRUE offset-FALSE]
+	]
 
 	emit-load: func [
 		value [char! logic! integer! word! string! path! paren! get-word! object!]
