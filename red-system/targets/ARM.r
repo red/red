@@ -421,6 +421,44 @@ make target-class [
 		]
 	]
 	
+	emit-pointer-path: func [
+		path [path! set-path!] parent [block! none!] /local opcodes idx type scale
+	][
+		opcodes: pick [[							;-- store path opcodes --
+			#{e5401000}								;-- STR[B] r1, [r0]
+			#{e5401000}								;-- STR[B] r1, [r0, r3]
+		][											;-- load path opcodes --
+			#{e5500000}								;-- LDR[B] r0, [r0]
+			#{e7d00003}								;-- LDR[B] r0, [r0, r3]
+		]] set-path? path
+
+		type: either parent [
+			compiler/resolve-type/with path/1 parent
+		][
+			emit-init-path path/1
+			type: compiler/resolve-type path/1
+		]
+		set-width/type type/2/1						;-- adjust operations width to pointed value size
+		idx: either path/2 = 'value [1][path/2]
+		scale: emitter/size-of? type/2/1
+
+		either integer? idx [
+			either zero? idx: idx - 1 [				;-- indexes are one-based
+				emit-poly opcodes/1
+			][
+				emit-load-imm32/reg idx * scale 3	;-- LDR r3, #idx
+				emit-poly opcodes/2
+			]
+		][
+			emit-load-index idx
+			if scale > 1 [
+				emit-i32 #{e0d03003}				;-- LSL r3, #log2(scale)
+					or shift/left power-of-2? scale 7
+			]
+			emit-poly opcodes/2
+		]
+	]
+	
 	emit-load-path: func [path [path!] type [word!] parent [block! none!] /local idx][
 		if verbose >= 3 [print [">>>loading path:" mold path]]
 
@@ -453,10 +491,10 @@ make target-class [
 				set-width/type type					;-- adjust operations width to member value size
 
 				either zero? offset: emitter/member-offset? parent path/2 [
-				;	emit-poly [#{8810} #{8910}] 	;-- MOV [eax], rD
+					emit-i32 #{e5401000}			;-- STR r1, [r0]
 				][
-				;	emit-poly [#{8890} #{8990}]		;-- MOV [eax+offset], rD
-				;	emit to-bin32 offset
+					emit-load-index offset
+					emit-i32 #{e5401000}			;-- STR r1, [r0, r3]
 				]
 			]
 		]
