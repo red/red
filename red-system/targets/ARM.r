@@ -297,11 +297,10 @@ make target-class [
 			]
 			all [value/type/1 = 'integer! type/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
-				emit pick [
+				emit-i32 pick [
 					#{e20010ff}						;-- AND r1, #ff				
 					#{e20000ff}						;-- AND r0, #ff
 				] alt?
-				emit to-bin32 255
 			]
 		]
 	]
