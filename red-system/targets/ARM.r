@@ -264,6 +264,48 @@ make target-class [
 		]
 	]
 	
+	emit-save-last: does [
+		last-saved?: yes
+		emit-i32 #{e52d0004}						;-- PUSH r0
+	]
+
+	emit-restore-last: does [
+		emit-i32 #{e8bd0001}		   				;-- POP r1
+	]
+
+	emit-casting: func [value [object!] alt? [logic!] /local old][
+		type: compiler/get-type value/data	
+		case [
+			value/type/1 = 'logic! [
+				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]
+				old: width
+				set-width/type type/1
+				either alt? [
+					if width = 1 [										; 16-bit not supported
+						emit-i32 #{e20010ff}		;-- AND r1, #ff
+					]
+					emit-i32 #{e3510000}			;-- CMP r1, 0
+					emit-i32 #{13a10001}			;-- MOVNE r1, #1
+				][
+					if width = 1 [										; 16-bit not supported
+						emit-i32 #{e20000ff}		;-- AND r0, #FF
+					]
+					emit-i32 #{e3500000}			;-- CMP r0, 0
+					emit-i32 #{13a00001}			;-- MOVNE r0, #1
+				]
+				width: old
+			]
+			all [value/type/1 = 'integer! type/1 = 'byte!][
+				if verbose >= 3 [print ">>>converting from byte! to integer! "]
+				emit pick [
+					#{e20010ff}						;-- AND r1, #ff				
+					#{e20000ff}						;-- AND r0, #ff
+				] alt?
+				emit to-bin32 255
+			]
+		]
+	]
+	
 	emit-load-literal: func [type [block! none!] value /local spec][	
 		unless type [type: compiler/get-type value]
 		spec: emitter/store-value none value type
