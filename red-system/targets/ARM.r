@@ -32,12 +32,28 @@ make target-class [
 	stack-width:		4
 	branch-offset-size:	4							;-- size of branch instruction
 	
+	conditions: make hash! [
+	;-- name ----------- signed --- unsigned --
+		overflow?		 #{60}		-
+		not-overflow?	 #{70}		-	
+		=				 #{00}		-
+		<>				 #{10}		-
+		signed?			 -			-
+		unsigned?		 -			-
+		even?			 -			-
+		odd?			 -			-
+		<				 #{b0}		#{30}
+		>=				 #{a0}		#{20}
+		<=				 #{d0}		#{90}
+		>				 #{c0}		#{80}
+	]
+	
 	byte-flag: 			#{00400000}					;-- trigger byte access in opcode
 	
 	pools: context [								;-- literals pools management
 		values:		  make block! 2000				;-- [value instruction-pos sym-spec ...]
 		entry-points: make block! 100				;-- insertion points candidates for pools
-		;jmp-points:  make block! 100				;-- relative jumps positions
+		jmp-points:	  make block! 100				;-- relative jumps positions
 		pools:		  make block! 1					;-- [pool-pos [value-ref ...] inline? ...]
 		
 		;-- Collect a literal value to be stored in a pool
@@ -51,12 +67,34 @@ make target-class [
 			append entry-points emitter/tail-ptr
 		]
 		
+		mark-jmp-point: func [idx [integer!] offset [integer!]][
+			repend jmp-points [idx idx + offset]
+			
+			update-values-index idx 4				;-- move values references by 4 bytes
+			update-pools-index  idx 4				;-- move pools positions by 4 bytes
+			update-entry-points idx 4				;-- move entry-points by 4 bytes
+		]
+		
 		get-pool: does [skip tail pools -3]
 		
 		make-pool: does [
 			repend pools [entry-points/1 make block! 16 no]	;-- create a new pool entry
 			entry-points: next entry-points			;-- move to next possible position
 			get-pool								;-- get a reference on the last pool structure
+		]
+		
+		update-pools-index: func [idx [integer!] offset [integer!]][
+			forall pools [
+				if pools/1 > idx [pools/1: pools/1 + 4]
+				pools: next next pools				;-- records of size = 3
+			]
+		]
+		
+		update-values-index: func [idx [integer!] offset [integer!]][		
+			forall values [			
+				if values/2 > idx [values/2: values/2 + 4]
+				values: next next values			;-- records of size = 3
+			]			
 		]
 		
 		;-- Update code addresses after a pool insertion
@@ -140,6 +178,10 @@ make target-class [
 	
 	on-global-epilog: does [pools/mark-entry-point]	;-- add end of global code section as pool entry-point
 	
+	to-bin24: func [v [integer! char!]][
+		skip debase/base to-hex to integer! v 16 1
+	]
+	
 	;-- Convert a 12-bit integer offset to a 32-bit hexa
 	to-12-bit: func [offset [integer!]][
 		#{000003FF} and debase/base to-hex offset 16
@@ -208,9 +250,9 @@ make target-class [
 		if neg?: negative? value [value: complement value]
 
 		either bits: ror-position? value [	
-			opcode: rejoin [						;-- MOV r0, #imm8, bits		; v = imm8 (ROR bits)x2
+			opcode: rejoin [						;-- MOVS r0, #imm8, bits	; v = imm8 (ROR bits)x2
 				#{e3} 
-				pick [#{e0} #{a0}] neg?				;-- emit MVN instead, if required
+				pick [#{f0} #{b0}] neg?				;-- emit MVNS instead, if required
 				to char! shift/left bits 8
 				to char! rotate-left value bits
 			]
@@ -631,6 +673,43 @@ make target-class [
 		]
 	]
 	
+	emit-branch: func [
+		code 	[binary!]
+		op 		[word! block! logic! none!]
+		offset  [integer! none!]
+		/back										;@@ rename it to 'backward
+		/local distance opcode jmp
+	][
+		distance: (length? code) - (any [offset 0]) - 4		;-- offset from the code's head
+		if back [distance: negate distance + 4]
+		
+		op: either not none? op [							;-- explicitly test for none
+			op: case [
+				block? op [									;-- [cc] => keep
+					op: op/1
+					either logic? op [pick [= <>] op][op]	;-- [logic!] or [cc]
+				]
+				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
+				'else 	  [opposite? op]					;-- 'cc => invert condition
+			]
+			either '- = third op: find conditions op [		;-- lookup the code for the condition
+				op/2										;-- condition defined only for signed
+			][
+				pick op pick [2 3] signed?					;-- choose code between signed and unsigned
+			]
+		][
+			#{e0}											;-- unconditional jump
+		]
+		unless back [
+			pools/mark-jmp-point emitter/tail-ptr distance	;-- update code indexes affected by the insertion
+		]
+		opcode: reverse rejoin [
+			op or #{0a} to-bin24 shift distance 2
+		]
+		insert any [all [back tail code] code] opcode
+		4													;-- opcode length
+	]
+
 	emit-push: func [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object!]
 		/with cast [object!]
