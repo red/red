@@ -250,7 +250,7 @@ make target-class [
 		if neg?: negative? value [value: complement value]
 
 		either bits: ror-position? value [	
-			opcode: rejoin [						;-- MOVS r0, #imm8, bits	; v = imm8 (ROR bits)x2
+			opcode: rejoin [						;-- MOVS r0|rN, #imm8, bits	; v = imm8 (ROR bits)x2
 				#{e3} 
 				pick [#{f0} #{b0}] neg?				;-- emit MVNS instead, if required
 				to char! shift/left bits 8
@@ -304,6 +304,14 @@ make target-class [
 				4 [emit-variable name global local]			;-- 32-bit
 			]
 		]
+	]
+	
+	emit-move-alt: does [emit-i32 #{e1a01000}]		;-- MOV r1, r0
+
+	emit-swap-regs: does [
+		emit-i32 #{e1a0c001}						;-- MOV r12, r1
+		emit-move-alt
+		emit-i32 #{e1a0000c}						;-- MOV r0, r12
 	]
 	
 	emit-save-last: does [
@@ -642,12 +650,6 @@ make target-class [
 		]
 	]
 	
-	emit-swap-regs: does [
-		emit-i32 #{e1a0c001}						;-- MOV r12, r1
-		emit-i32 #{e1a01000}						;-- MOV r1, r0
-		emit-i32 #{e1a0000c}						;-- MOV r0, r12
-	]
-	
 	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
@@ -768,6 +770,129 @@ make target-class [
 			]
 		]
 	]
+	
+	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local op-poly][
+		op-poly: [
+			switch width [
+				1 [
+					emit-i32 #{e1a3c1a1}			;-- MOV r3, r1, LSL #24
+					emit-i32 #{e153c1a0}			;-- CMP r3, r0, LSL #24
+				]
+				;2 []								;-- 16-bit not supported
+				4 [emit-i32 #{e1500001}]			;-- CMP r0, r1		; not commutable op
+			]
+		]		
+		switch b [
+			imm [
+				switch width [
+					1 [emit-i32 join #{e35000} to char! args/2]	;-- CMP r0, #imm8
+					;2 []							;-- 16-bit not supported
+					4 [
+						emit-move-alt				;-- MOV r1, r0
+						emit-load-imm32 args/2
+						emit-i32 #{e1510000}		;-- CMP r1, r0		; not commutable op
+					]
+				]
+			]
+			ref [
+				emit-load/alt args/2
+				if object? args/2 [emit-casting args/2 yes]
+				do op-poly
+			]
+			reg [
+				do op-poly
+			]
+		]
+	]
+	
+	emit-operation: func [name [word!] args [block!] /local a b c sorted? arg left right][
+		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
+
+		set-width args/1							;-- set reg/mem access width
+		c: 1
+		foreach op [a b][
+			arg: either object? args/:c [compiler/cast args/:c][args/:c]		
+			set op either arg = <last> [
+				 'reg								;-- value in r0
+			][
+				switch type?/word arg [
+					char! 	 ['imm]		 			;-- add or mov to r0 lower byte
+					integer! ['imm] 				;-- add or mov to r0
+					word! 	 ['ref] 				;-- fetch value
+					block!   ['reg] 				;-- value in r0 (or in r1)
+					path!    ['reg] 				;-- value in r0 (or in r1)
+				]
+			]
+			c: c + 1
+		]
+		if verbose >= 3 [?? a ?? b]					;-- a and b hold addressing modes for operands
+
+		;-- First operand processing
+		left:  compiler/unbox args/1
+		right: compiler/unbox args/2
+
+		switch to path! reduce [a b] [
+			imm/imm	[emit-load-imm32 args/1]		;-- MOV r0, a
+			imm/ref [emit-load args/1]				;-- r0 = a
+			imm/reg [								;-- r0 = b
+				if path? right [
+					emit-load args/2				;-- late path loading
+				]
+				emit-move-alt						;-- MOV r1, r0
+				emit-load-imm32 args/1				;-- MOV r0, a		; r0 = a, r1 = b
+			]
+			ref/imm [emit-load args/1]
+			ref/ref [emit-load args/1]
+			ref/reg [								;-- r0 = b
+				if path? right [
+					emit-load args/2				;-- late path loading
+				]
+				emit-move-alt						;-- MOV r1, r0
+				emit-load args/1					;-- r0 = a, r1 = b
+			]
+			reg/imm [								;-- r0 = a (or r1 = a if last-saved)
+				if path? left [
+					emit-load args/1				;-- late path loading
+				]
+				if last-saved? [emit-swap-regs]		;-- swap r0, r1	; r0 = a
+			]
+			reg/ref [								;-- r0 = a (or r1 = a if last-saved)
+				if path? left [
+					emit-load args/1				;-- late path loading
+				]
+				if last-saved? [emit-swap-regs]		;-- swap r0, r1	; r0 = a
+			]
+			reg/reg [								;-- r0 = b, r1 = a
+				if path? left [
+					if block? args/2 [				;-- r1 = b
+						emit-swap-regs				;-- swap r0, r1
+						sorted?: yes				;-- r0 = a, r1 = b
+					]
+					emit-load args/1				;-- late path loading
+				]
+				if path? right [
+					emit-swap-regs					;-- swap r0, r1	; r0 = b, r1 = a
+					emit-load args/2
+				]
+				unless sorted? [emit-swap-regs]		;-- swap r0, r1	; r0 = a, r1 = b
+			]
+		]
+		last-saved?: no								;-- reset flag
+		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion on eax if required
+
+		;-- Operator and second operand processing
+		either all [object? args/2 find [imm reg] b][
+			emit-casting args/2 yes					;-- do runtime conversion on edx if required
+		][
+			implicit-cast right
+		]
+		case [
+			find comparison-op name [emit-comparison-op name a b args]
+			find math-op	   name	[emit-math-op		name a b args]
+			find bitwise-op	   name	[emit-bitwise-op	name a b args]
+			find bitshift-op   name [emit-bitshift-op   name a b args]
+		]
+	]
 
 	emit-call-syscall: func [number nargs] [
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}
@@ -822,7 +947,27 @@ make target-class [
 			native [
 				emit-call-native spec
 			]
-		] [
+			inline [
+				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
+				do select [
+					not			[emit-not args/1]
+					push		[emit-push args/1]
+					pop			[emit-pop]
+				] name
+				if name = 'not [res: compiler/get-type args/1]
+			]
+			op	[
+				emit-operation name args
+				if sub? [emitter/logic-to-integer name]
+				unless find comparison-op name [		;-- comparison always return a logic!
+					res: any [
+						;all [object? args/1 args/1/type]
+						all [not sub? block? args/1 compiler/last-type]
+						compiler/get-type args/1	;-- other ops return type of the first argument	
+					]
+				]
+			]
+		][
 			compiler/throw-error join "[codegen] nyi call: " type
 		]
 	]
