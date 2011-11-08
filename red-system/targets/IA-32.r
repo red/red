@@ -206,7 +206,7 @@ make target-class [
 	]
 	
 	emit-load: func [
-		value [char! logic! integer! word! string! struct! path! paren! get-word! object!]
+		value [char! logic! integer! word! string! path! paren! get-word! object!]
 		/alt
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
@@ -245,9 +245,6 @@ make target-class [
 			]
 			string! [
 				emit-load-literal [c-string!] value
-			]
-			struct! [
-				;TBD @@
 			]
 			path! [
 				emitter/access-path value none
@@ -520,19 +517,9 @@ make target-class [
 			]
 			word! [
 				type: first compiler/get-variable-spec value
-				either find [c-string! struct! pointer!] type [
-					emit-variable value
-						#{FF35}						;-- PUSH [value]		; global
-						#{FF75}						;-- PUSH [ebp+n]		; local
-				][
-					emit-variable value
-						#{FF35}						;-- PUSH dword [value]	; global
-						[	
-							#{8D45}					;-- LEA eax, [ebp+n]	; local
-							offset					;-- n
-							#{FF30}					;-- PUSH dword [eax]
-						]
-				]
+				emit-variable value
+					#{FF35}						;-- PUSH [value]		; global
+					#{FF75}						;-- PUSH [ebp+n]		; local
 			]
 			get-word! [
 				emit #{68}							;-- PUSH &value

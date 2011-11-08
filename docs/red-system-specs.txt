@@ -374,7 +374,7 @@ A simple way to traverse a c-string would be:
 will output:
  I am a c-string
 
-Similary, it is also possible to modify the c-string's bytes using path notation with an ending colon:
+Similarly, it is also possible to modify the c-string's bytes using path notation with an ending colon:
 
  <c-string>/integer!:	<value>			;-- literal integer index provided
  <c-string>/<index>:	<value>			;-- index provided by a variable
@@ -474,7 +474,7 @@ Struct! values definitions tend to be quite long, so in some cases, when struct!
 
 <u>Notes</u>: 
 
-* An alias is not a value, it doesn't take any space in memory, it can be seen as a <i>virtual datatype</i>. So, by convention, alias names should end with a exclamation mark, in order to distinguish them more easily from variables in the source code.
+* An alias is not a value, it doesn't take any space in memory, it can be seen as a <i>virtual datatype</i>. So, by convention, alias names should end with an exclamation mark, in order to distinguish them more easily from variables in the source code.
 
 * Aliased names live in their own namespace, so they cannot interfere with variable names.
 
@@ -1064,7 +1064,7 @@ Example:
  foo :compare							;-- pass the function pointer
 
 \note Stdcall support
-The <b>stdcall</b> attribut is also accepted, but currently as no effect, as it is already the default calling convention in Red/System.
+The <b>stdcall</b> attribute is also accepted, but currently as no effect, as it is already the default calling convention in Red/System.
   
 /note
 
@@ -2182,7 +2182,7 @@ If compiled as <i>show-args</i> executable, and called as:
 it would output:
 
  count: 4
- 1: test-logic2
+ 1: show-args
  2: 123
  3: -p
  4: hello
@@ -2442,7 +2442,7 @@ will output:
 
 *<b>20/09/2011 - revision 28</b>
 
-*>Typed attribut ID values and macros updated.
+*>Typed attribute ID values and macros updated.
 
 *>Callback attribute removed and replaced by 'cdecl attribute.
 
