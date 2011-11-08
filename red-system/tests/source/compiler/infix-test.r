@@ -8,20 +8,21 @@ REBOL [
 
 change-dir %../
 
-
 ;=== Test only infix compilation, not execution ===
 
 
 ~~~start-file~~~ "infix-compile"
 
+===start-group=== "compile"
+
 	--test-- "simple infix 1"
 		--compile-this "foo: func [[infix] a [integer!] b [integer!]][a]"
-		--assert qt/output = ""
+		--assert qt/compile-ok?
 		
-~~~end-file~~~
+===end-group===
 
 
-~~~start-file~~~ "infix-err"
+===start-group=== "errors"
 
 	--test-- "infix error 1"
 		--compile-this "foo: func [[infix] a [integer!]][a]"
@@ -32,8 +33,9 @@ change-dir %../
 		--compile-this "foo: func [[infix] a [integer!] b [integer!] c [integer!]][a]"
 		--assert-msg? "*** Compilation Error: infix function requires 2 arguments, found 3 for foo"
 		--clean	
+		
+===end-group===
 
-	
 ~~~end-file~~~
 
 

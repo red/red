@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs the Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.5.1
+	Version: 0.6.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -44,9 +44,6 @@ make-if-needed?: func [
 ;; supress script messages
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
-
-;; make runnable/ directory if needed 
-make-dir %runnable/
 
 if not value? 'qt [do %../../quick-test/quick-test.r]
 

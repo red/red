@@ -2,37 +2,46 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.5.1
+	Version: 0.6.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
 comment {
-  This script makes some assumptions about the location of files. They are:
-    this script will be run from the red-system/tests directory
-    the test scripts will be in the red-system/tests/source directories
-    this script resides in the quick-test directory
-    the compiler will reside in the red-system directory
-    the source of the programmes being tested are in red-system/tests/source directories
-    the exe of the program being tested will be created in red-system/builds
-    (quick-test will move the executable to red-system/runnable.)
+  This script makes some assumptions about the directory structure in which 
+  files are stored. They are:
+    this script is stored in Red/quick-test
+    the Red/System compiler is stored in Red/red-system
+    the compiler must be run from Red/red-system
+    the compiler writes the executable to Red/red-system/builds
 }
 
 qt: make object! [
   
   ;;;;;;;;;;; Setup ;;;;;;;;;;;;;;
-  ;; set the base-dir to ....red/red-system/
+  ;; set the base-dir to ....Red
   base-dir: system/script/path 
-  base-dir: copy/part base-dir find base-dir "/quick-test"
-  base-dir: join base-dir "/red-system/"
+  base-dir: copy/part base-dir find base-dir "quick-test"
+  ;; set the red/system compiler directory
+  comp-dir: join base-dir "red-system/"
+  ;; set the red/system runnable dir
+  runnable-dir: join comp-dir "tests/runnable/"
+  ;; set the builds dir
+  builds-dir: join comp-dir "builds/"
+  ;; set the base dir for tests
+  tests-dir: system/options/path
   
-  ;; file names
-  comp-echo: join base-dir %tests/runnable/comp-echo.txt
-  comp-r: join base-dir %tests/runnable/comp.r
-  test-src-file: %runnable/qt-test-comp.reds
+  ;; set temporary files names
+  ;;  use Red/red-system/runnable for temp files
+  comp-echo: join runnable-dir %comp-echo.txt
+  comp-r: join runnable-dir %comp.r
+  test-src-file: join %runnable/ "qt-test-comp.reds"
+  
+  ;; set log file 
+  log-file: join system/script/path "quick-test.log"
 
   ;; make runnable directory if needed
-  make-dir join base-dir %tests/runnable/
+  make-dir runnable-dir
   
   ;; windows ?
   windows-os?: system/version/4 = 3
@@ -120,14 +129,12 @@ qt: make object! [
     comp: mold compose [
       REBOL []
       halt: :quit
-      change-dir (base-dir)
+      change-dir (comp-dir)
       echo (comp-echo)
       do/args %rsc.r "***src***"
       change-dir (what-dir)
     ]
-    src: replace/all src "%" ""
-    src: join "%" [base-dir "tests/" src]
-    replace comp "***src***" src
+    replace comp "***src***" join tests-dir src
     write comp-r comp
 
     ;; compose command line and call it
@@ -142,8 +149,8 @@ qt: make object! [
     if exists? comp-r [delete comp-r]
     
     ;; move the executable from /builds to /tests/runnable
-    built: join base-dir [%builds/ exe]
-    runner: join base-dir [%tests/runnable/ exe]
+    built: join builds-dir [exe]
+    runner: join runnable-dir [exe]
     
     if exists? built [
       write/binary runner read/binary built
@@ -216,7 +223,7 @@ qt: make object! [
     /local
     exec [string!]                   ;; command to be executed
   ][
-    exec: to-local-file join base-dir [%tests/runnable/ prog]
+    exec: to-local-file join runnable-dir [prog]
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
@@ -230,8 +237,8 @@ qt: make object! [
   ][
     src: replace/all src "%" ""
     if not filename: copy find/last/tail src "/" [filename: copy src]
-    script: join base-dir [%tests/runnable/ filename]
-    write to file! script read to file! src
+    script: join runnable-dir [filename]
+    write to file! script read join tests-dir [src]
     do script
   ]
   
@@ -241,7 +248,7 @@ qt: make object! [
     print-output: copy ""
     run-script src
     print: :_save-print
-    write/append %quick-test.log print-output
+    write/append log-file print-output
     _print-summary file
   ]
   
@@ -259,7 +266,7 @@ qt: make object! [
     print-output: copy ""
     run-test-file src
     print: :_save-print
-    write/append %quick-test.log print-output
+    write/append log-file print-output
     _print-summary file
   ]
   
@@ -319,7 +326,7 @@ qt: make object! [
       ][
     _start test-run "" title
     prin newline
-    write %quick-test.log rejoin ["***Starting***" title newline]
+    write log-file rejoin ["***Starting***" title newline]
   ]
   
   start-file: func [
@@ -402,7 +409,7 @@ qt: make object! [
     print-output: copy ""
     end-test-run
     print: :_save-print
-    write/append %quick-test.log print-output
+    write/append log-file print-output
     prin newline
     _print-summary test-run
   ]

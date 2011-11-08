@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs a single Red/System Tests"
 	File: 	 %run-test.r
 	Author:  "Peter W A Wood"
-	Version: 0.4.2
+	Version: 0.6.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 ;; make runnable/ directory if needed 
@@ -24,6 +24,7 @@ either any [
 ][
   either find src ".reds" [
     ;; compile & run reds pgm
+    remove src                      
     either exe: qt/compile src [
       qt/run exe
       print qt/output
