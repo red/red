@@ -267,7 +267,6 @@ make target-class [
 	
 	emit-variable: func [
 		name [word! object!] gcode [binary! block! none!] lcode [binary! block!]
-		/byte										;-- force byte-size access
 		/alt										;-- use alternative register (r1)
 		/local offset spec load-rel
 	][
@@ -275,23 +274,22 @@ make target-class [
 
 		either offset: select emitter/stack name [	;-- local variable case
 			offset: to-12-bit offset
-			if byte [offset: offset or byte-flag]
 			emit-i32 lcode or offset
 		][											;-- global variable case
 			spec: emitter/symbols/:name
 			pools/collect/spec 0 name
 			
 			load-rel: #{e59f0000}
-			if byte [load-rel: load-rel or byte-flag]
 			
 			if any [alt not all [gcode zero? gcode/3 and 16]][
 				load-rel: load-rel or #{00001000}	;-- use r1 instead of r0
 			]
-			emit-i32 load-rel						;-- LDR[B] r0|r1, [pc, #offset]
+			emit-i32 load-rel						;-- LDR r0|r1, [pc, #offset]
 			if gcode [emit-i32 gcode]
 		]
 	]
 	
+	;@@ examine if this function is still relevant in this context
 	emit-variable-poly: func [						;-- polymorphic variable access generation
 		name [word! object!]
 		global [binary!]							;-- opcodes for global variables
@@ -299,9 +297,9 @@ make target-class [
 	][
 		with-width-of name [
 			switch width [
-				1 [emit-variable/byte name global local]	;-- 8-bit
-				;2 []										;-- 16-bit (unsupported)
-				4 [emit-variable name global local]			;-- 32-bit
+				1 [emit-variable name global local]	;-- 8-bit
+				;2 []								;-- 16-bit (unsupported)
+				4 [emit-variable name global local]	;-- 32-bit
 			]
 		]
 	]
@@ -320,7 +318,7 @@ make target-class [
 	]
 
 	emit-restore-last: does [
-		emit-i32 #{e8bd0001}		   				;-- POP r1
+		emit-i32 #{e8bd0002}		   				;-- POP {r1}
 	]
 
 	emit-casting: func [value [object!] alt? [logic!] /local old][
@@ -387,7 +385,7 @@ make target-class [
 
 	emit-pop: does [
 		if verbose >= 3 [print ">>>emitting POP"]
-		emit-i32 #{e8bd0000}						;-- POP {r0}
+		emit-i32 #{e8bd0001}						;-- POP {r0}
 	]
 	
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
@@ -633,7 +631,7 @@ make target-class [
 		][
 			emit-load-index idx
 			if scale > 1 [
-				emit-i32 #{e0d03003}				;-- LSL r3, #log2(scale)
+				emit-i32 #{e3a03003}				;-- LSL r3, r3, #log2(scale)
 					or shift/left power-of-2? scale 7
 			]
 			emit-poly opcodes/2
@@ -771,6 +769,69 @@ make target-class [
 		]
 	]
 	
+	emit-bitshift-op: func [name [word!] a [word!] b [word!] args [block!] /local c value][
+		switch b [
+			ref [
+				emit-variable args/2
+					#{e5d03000}						;-- LDRB r3, [r0]		; global
+					#{e55b3000}						;-- LDRB r3, [fp, #n]	; local
+			]
+			reg [emit-i32 #{e1a03001}]				;-- MOV r3, r1
+		]
+		opcode: select [
+			<<  [
+				#{e1a00000}							;-- LSL r0, r0, #b
+				#{e1a00310}							;-- LSL r0, r0, r3
+			]
+			>>  [
+				#{e1a00020}							;-- LSR r0, r0, #b
+				#{e1a00330}							;-- LSR r0, r0, r3
+			]
+			-** [
+				#{e1a00040}							;-- ASR r0, r0, #b
+				#{e1a00350}							;-- ASR r0, r0, r3
+			]
+		] name
+	
+		emit-i32 either b = 'imm [
+			opcode/1 or reverse to-bin32 shift/left args/2 7
+		][
+			opcode/2
+		]
+		
+		if b = 'imm [
+			c: select [1 7 2 15 4 31] width
+			value: compiler/unbox args/2		
+			unless all [0 <= value value <= c][		
+				compiler/backtrack name
+				compiler/throw-error rejoin [
+					"a value in 0-" c " range is required for this shift operation"
+				]
+			]
+		]
+	]
+	
+	emit-bitwise-op: func [name [word!] a [word!] b [word!] args [block!] /local code][		
+		code: select [
+			and [#{e0000001}]						;-- AND r0, r0, r1	; commutable op
+			or  [#{e1800001}]						;-- OR  r0, r0, r1	; commutable op
+			xor [#{e0200001}]						;-- EOR r0, r0, r1	; commutable op
+		] name
+
+		switch b [
+			imm [
+				emit-load-imm32/reg compiler/unbox args/2 1	;-- MOV r1, #value
+				emit-i32 code						;-- <OP> r0, r0, r1
+			]
+			ref [
+				emit-load/alt args/2
+				if object? args/2 [emit-casting args/2 yes]
+				emit-i32 code
+			]
+			reg [emit-i32 code]						;-- <OP> r0, r0, r1		; commutable op
+		]
+	]
+	
 	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local op-poly][
 		op-poly: [
 			switch width [
@@ -895,7 +956,7 @@ make target-class [
 	]
 
 	emit-call-syscall: func [number nargs] [
-		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}
+		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
 		emit-i32 shift #{ff} 8 - nargs
 		emit-i32 #{e3a070}							;-- MOV r7, <number>
 		emit-i32 to-bin8 number
