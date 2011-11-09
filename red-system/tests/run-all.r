@@ -147,6 +147,7 @@ start-time: now/precise
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
 system/options/quiet: store-quiet-mode
-halt
+ask "hit enter to finish"
+print ""
 
 

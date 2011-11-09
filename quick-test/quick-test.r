@@ -14,6 +14,10 @@ comment {
     the Red/System compiler is stored in Red/red-system
     the compiler must be run from Red/red-system
     the compiler writes the executable to Red/red-system/builds
+    the default "base" dir for tests is Red/red-system/tests
+    
+ The default "base" test dir can be overriden by setting qt/tests-dir before
+ any tests are processed
 }
 
 qt: make object! [
@@ -28,8 +32,8 @@ qt: make object! [
   runnable-dir: join comp-dir "tests/runnable/"
   ;; set the builds dir
   builds-dir: join comp-dir "builds/"
-  ;; set the base dir for tests
-  tests-dir: system/options/path
+  ;; set the default base dir for tests
+  tests-dir: join comp-dir "tests/"
   
   ;; set temporary files names
   ;;  use Red/red-system/runnable for temp files
@@ -125,14 +129,12 @@ qt: make object! [
     ]
 
     ;; compose and write compilation script
-    save-dir: what-dir
     comp: mold compose [
       REBOL []
       halt: :quit
       change-dir (comp-dir)
       echo (comp-echo)
       do/args %rsc.r "***src***"
-      change-dir (what-dir)
     ]
     replace comp "***src***" join tests-dir src
     write comp-r comp

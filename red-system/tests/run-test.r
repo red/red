@@ -5,10 +5,11 @@ REBOL [
 	Version: 0.6.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
-;; make runnable/ directory if needed 
-make-dir %runnable/
+
+;; This script will only run tests in Red/red-system/tests/ and its subdirectories
+
 ;; include quick-test.r
-if not value? 'qt [do %../../quick-test/quick-test.r]
+if not value? 'qt [do %quick-test.r]
 
 print rejoin ["Quick-Test v" system/script/header/version]
 print rejoin ["Running under REBOL " system/version]
