@@ -957,7 +957,7 @@ make target-class [
 
 	emit-call-syscall: func [number nargs] [
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
-		emit-i32 shift #{ff} 8 - nargs
+		emit-i32 to char! shift 255 8 - nargs
 		emit-i32 #{e3a070}							;-- MOV r7, <number>
 		emit-i32 to-bin8 number
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
