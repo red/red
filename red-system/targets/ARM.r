@@ -253,7 +253,7 @@ make target-class [
 			opcode: rejoin [						;-- MOVS r0|rN, #imm8, bits	; v = imm8 (ROR bits)x2
 				#{e3} 
 				pick [#{f0} #{b0}] neg?				;-- emit MVNS instead, if required
-				to char! shift/left bits 8
+				to char! bits
 				to char! rotate-left value bits
 			]
 		
@@ -265,6 +265,19 @@ make target-class [
 		emit-i32 opcode
 	]
 	
+	emit-op-imm32: func [opcode [binary!] value [integer!] /local bits][
+		either bits: ror-position? value [	
+			opcode/3: to char! bits
+			opcode/4: to char! rotate-left value bits
+		][
+			pools/collect value
+			emit-i32 #{e59f3000}					;-- LDR r3, [pc, #offset]
+			opcode/1: #"^(FD)" and to char! opcode/1
+			opcode/4: #"^(03)"
+		]
+		emit-i32 opcode
+	]
+
 	emit-variable: func [
 		name [word! object!] gcode [binary! block! none!] lcode [binary! block!]
 		/alt										;-- use alternative register (r1)
@@ -864,6 +877,172 @@ make target-class [
 				do op-poly
 			]
 		]
+	]
+	
+	emit-math-op: func [
+		name [word!] a [word!] b [word!] args [block!]
+		/local mod? scale c type arg2 op-poly
+	][
+		;-- r0 = a, r1 = b
+		if find [// ///] name [						;-- work around unaccepted '// and '///
+			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
+			name: first [/]							;-- work around unaccepted '/ 
+		]
+		arg2: compiler/unbox args/2
+
+		if all [
+			find [+ -] name							;-- pointer arithmetic only allowed for + & -
+			type: compiler/resolve-expr-type args/1
+			not compiler/any-pointer? compiler/resolve-expr-type args/2	;-- no scaling if both operands are pointers		
+			scale: switch type/1 [
+				pointer! [emitter/size-of? type/2/1]		  ;-- scale factor: size of pointed value
+				struct!  [emitter/member-offset? type/2 none] ;-- scale factor: total size of the struct
+			]
+			scale > 1
+		][
+			either compiler/literal? arg2 [
+				arg2: arg2 * scale					;-- 'b is a literal, so scale it directly
+			][
+				either b = 'reg [
+					emit-swap-regs					;-- swap r0, r1		; put operands in right order
+				][									;-- 'b will now be stored in reg, so save 'a			
+					emit-move-alt					;-- MOV r1, r0
+					emit-load args/2
+				]
+				emit-math-op '* 'reg 'imm reduce [arg2 scale]	;@@ refactor that using barrel shifter
+				if name = '- [emit-swap-regs]		;-- swap r0, r1		; put operands in right order
+				b: 'reg
+			]
+		]
+		;-- r0 = a, r1 = b
+		switch name [
+			+ [
+				op-poly: [emit-i32 #{e0800001}]		;-- ADD r0, r0, r1		; commutable op
+				
+				switch b [
+					imm [
+						emit-op-imm32 #{e2800000} args/2 ;-- ADD r0, r0, value
+					]
+					ref [
+						emit-load/alt args/2
+						do op-poly
+					]
+					reg [do op-poly]
+				]
+			]
+			- [
+				op-poly: [
+					emit-poly [#{28D0} #{29D0}] 	;-- SUB rA, rD			; not commutable op
+				]
+				switch b [
+					imm [
+						emit-poly either arg2 = 1 [ ;-- trivial optimization
+							[#{FEC8} #{48}]			;-- DEC rA
+						][
+							[#{2C} #{2D} arg2] 		;-- SUB rA, value
+						]
+					]
+					ref [
+						emit-load/alt args/2
+						do op-poly
+					]
+					reg [do op-poly]
+				]
+			]
+			* [
+				op-poly: [
+					emit-poly [#{F6EA} #{F7EA}] ;-- IMUL rD 			; commutable op
+				]
+				switch b [
+					imm [
+						either all [
+							not zero? arg2
+							c: power-of-2? arg2		;-- trivial optimization for b=2^n
+						][
+							either width = 1 [
+								emit #{C0E0}		;-- SHL al, log2(b)	; 8-bit unsigned
+							][
+								emit-poly [#{C0ED} #{C1E0}]	;-- SAL rA, log2(b) ; signed
+							]
+							emit to-bin8 c
+						][
+							unless width = 1 [emit #{52}]  ;-- PUSH edx	; save edx from corruption for 16/32-bit ops
+							with-width-of/alt args/2 [							
+								emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
+							]
+							emit #{89D3}				   ;-- MOV ebx, edx
+							emit-poly [#{F6EB} #{F7EB}]	   ;-- IMUL rB		; result in ax|eax|edx:eax
+							unless width = 1 [emit #{5A}]  ;-- POP edx
+						]
+					]
+					ref [
+						emit #{52}					;-- PUSH edx	; save edx from corruption
+						emit-load/alt args/2
+						do op-poly
+						emit #{5A}					;-- POP edx
+					]
+					reg [do op-poly]
+				]
+			]
+			/ [
+				op-poly: [
+					either width = 1 [				;-- 8-bit unsigned
+						emit #{B400}				;-- MOV ah, 0			; clean-up garbage in ah
+						emit #{F6F3}				;-- DIV bl
+					][
+						emit-sign-extension			;-- 16/32-bit signed
+						emit-poly [#{F6FB} #{F7FB}]	;-- IDIV rB ; rA / rB
+					]
+				]
+				switch b [
+					imm [							;-- SAR usage http://www.arl.wustl.edu/~lockwood/class/cs306/books/artofasm/Chapter_6/CH06-3.html#HEADING3-120
+						emit #{52}					;-- PUSH edx	; save edx from corruption
+						with-width-of/alt args/2 [							
+							emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
+						]
+						emit #{89D3}				;-- MOV ebx, edx
+						do op-poly
+					]
+					ref [
+						emit #{52}					;-- PUSH edx	; save edx from corruption
+						emit-load/alt args/2
+						emit #{89D3}				;-- MOV ebx, edx
+						do op-poly
+					]
+					reg [
+						emit #{89D3}				;-- MOV ebx, edx		; ebx = b
+						do op-poly
+					]
+				]
+				if mod? [
+					emit-poly [#{88E0} #{89D0}]		;-- MOV rA, remainder	; remainder from ah|dx|edx
+					if all [mod? <> 'rem width > 1][;-- modulo, not remainder
+					;-- Adjust modulo result to be mathematically correct:
+					;-- 	if modulo < 0 [
+					;--			if divider < 0  [divider: negate divider]
+					;--			modulo: modulo + divider
+					;--		]
+						c: to-bin8 select [1 7 2 15 4 31] width		;-- support for possible int8 type
+						emit #{0FBAE0}				;--   	  BT rA, 7|15|31 ; @@ better way ?
+						emit c
+						emit #{730A}				;-- 	  JNC exit		 ; (won't work with ax)
+						emit #{0FBAE3}				;-- 	  BT rB, 7|15|31 ; @@ better way ?
+						emit c
+						emit #{7302}				;-- 	  JNC add		 ; (won't work with ax)
+						emit-poly [#{F6DB} #{F7DB}]	;--		  NEG rB
+						emit-poly [#{00D8} #{01D8}]	;-- add:  ADD rA, rB
+					]								;-- exit:
+				]
+				if any [							;-- in case edx was saved on stack
+					all [b = 'imm any [mod? not c]]
+					b = 'ref
+				][
+					emit #{5A}						;-- POP edx
+				]
+			]
+		]
+		;TBD: test overflow and raise exception ? (or store overflow flag in a variable??)
+		; JNO? (Jump if No Overflow)
 	]
 	
 	emit-operation: func [name [word!] args [block!] /local a b c sorted? arg left right][
