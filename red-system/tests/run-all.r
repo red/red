@@ -80,11 +80,14 @@ print rejoin ["REBOL " system/version]
 
 start-time: now/precise
 
+;; any .reds test with more than one space between --run-test-file-quiet and 
+;;  the filename will be excluded from the ARM tests
+
 ***start-run-quiet*** "Red/System Test Suite"
 
 ===start-group=== "Datatype tests"
   --run-test-file-quiet %source/units/logic-test.reds
- ; --run-test-file-quiet %source/units/integer-test.reds
+ ; --run-test-file-quiet  %source/units/integer-test.reds        
   --run-test-file-quiet %source/units/byte-test.reds
   --run-test-file-quiet %source/units/c-string-test.reds
   --run-test-file-quiet %source/units/struct-test.reds
@@ -123,7 +126,7 @@ start-time: now/precise
   --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/maths-auto-test.reds
-  --run-test-file-quiet %source/units/auto-tests/lib-auto-test.reds
+  --run-test-file-quiet  %source/units/auto-tests/lib-auto-test.reds
 ===end-group===
 
 ===start-group=== "Compiler Tests"
