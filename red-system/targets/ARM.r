@@ -186,8 +186,18 @@ make target-class [
 	to-12-bit: func [offset [integer!]][
 		#{000003FF} and debase/base to-hex offset 16
 	]
+	
+	to-shift-imm: func [value [integer!]][
+		reverse to-bin32 shift/left value 7
+	]
 
 	instruction-buffer: make binary! 4
+	
+	;-- Overloaded emit to print reversed binary series for easier reading
+	emit: func [bin [binary! char! block!]][
+		if verbose >= 4 [print [">>>emitting code:" mold reverse copy bin]]
+		append emitter/code-buf bin
+	]
 
 	emit-i32: func [bin [binary! char! block!]] [
 		;; To allow more natural emission of 32-bit instructions, "emit-i32"
@@ -327,7 +337,7 @@ make target-class [
 	
 	emit-save-last: does [
 		last-saved?: yes
-		emit-i32 #{e52d0004}						;-- PUSH r0
+		emit-i32 #{e92d0001}						;-- PUSH r0
 	]
 
 	emit-restore-last: does [
@@ -807,7 +817,7 @@ make target-class [
 		] name
 	
 		emit-i32 either b = 'imm [
-			opcode/1 or reverse to-bin32 shift/left args/2 7
+			opcode/1 or to-shift-imm args/2
 		][
 			opcode/2
 		]
@@ -917,11 +927,10 @@ make target-class [
 		;-- r0 = a, r1 = b
 		switch name [
 			+ [
-				op-poly: [emit-i32 #{e0800001}]		;-- ADD r0, r0, r1		; commutable op
-				
+				op-poly: [emit-i32 #{e0800001}]		;-- ADD r0, r0, r1	; commutable op
 				switch b [
 					imm [
-						emit-op-imm32 #{e2800000} args/2 ;-- ADD r0, r0, value
+						emit-op-imm32 #{e2800000} args/2 ;-- ADD r0, r0, #value
 					]
 					ref [
 						emit-load/alt args/2
@@ -931,16 +940,10 @@ make target-class [
 				]
 			]
 			- [
-				op-poly: [
-					emit-poly [#{28D0} #{29D0}] 	;-- SUB rA, rD			; not commutable op
-				]
+				op-poly: [emit-i32 #{e0400001}] 	;-- SUB r0, r0, r1	; not commutable op
 				switch b [
 					imm [
-						emit-poly either arg2 = 1 [ ;-- trivial optimization
-							[#{FEC8} #{48}]			;-- DEC rA
-						][
-							[#{2C} #{2D} arg2] 		;-- SUB rA, value
-						]
+						emit-op-imm32 #{e2400000} args/2 ;-- SUB r0, r0, #value
 					]
 					ref [
 						emit-load/alt args/2
@@ -951,7 +954,7 @@ make target-class [
 			]
 			* [
 				op-poly: [
-					emit-poly [#{F6EA} #{F7EA}] ;-- IMUL rD 			; commutable op
+					emit-i32 #{e0000091}			;-- MUL r0, r0, r1 	; commutable op
 				]
 				switch b [
 					imm [
@@ -959,27 +962,18 @@ make target-class [
 							not zero? arg2
 							c: power-of-2? arg2		;-- trivial optimization for b=2^n
 						][
-							either width = 1 [
-								emit #{C0E0}		;-- SHL al, log2(b)	; 8-bit unsigned
-							][
-								emit-poly [#{C0ED} #{C1E0}]	;-- SAL rA, log2(b) ; signed
-							]
-							emit to-bin8 c
+							emit-i32 #{e1a00000}	;-- LSL r0, r0, #log2(b)
+								or to-shift-imm c
 						][
-							unless width = 1 [emit #{52}]  ;-- PUSH edx	; save edx from corruption for 16/32-bit ops
-							with-width-of/alt args/2 [							
-								emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
-							]
-							emit #{89D3}				   ;-- MOV ebx, edx
-							emit-poly [#{F6EB} #{F7EB}]	   ;-- IMUL rB		; result in ax|eax|edx:eax
-							unless width = 1 [emit #{5A}]  ;-- POP edx
+							emit-load-imm32/reg args/2 1
+							do op-poly
 						]
 					]
 					ref [
-						emit #{52}					;-- PUSH edx	; save edx from corruption
+						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
 						emit-load/alt args/2
 						do op-poly
-						emit #{5A}					;-- POP edx
+						emit-i32 #{e8bd0002}		;-- POP {r1}
 					]
 					reg [do op-poly]
 				]
