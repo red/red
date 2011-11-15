@@ -457,8 +457,9 @@ emitter: context [
 		repend symbols [name reduce ['import none reloc]]
 	]
 	
-	add-native: func [name [word!]][
-		repend symbols [name reduce ['native none make block! 5]]
+	add-native: func [name [word!] /local spec][
+		repend symbols [name spec: reduce ['native none make block! 5]]
+		spec
 	]
 	
 	reloc-native-calls: has [ptr][
@@ -469,14 +470,7 @@ emitter: context [
 			][
 				ptr: spec/2
 				foreach ref spec/3 [
-					either block? ref [
-						;; Handle relocation thru callback.
-						ref/2 code-buf ref/1 ptr
-					][
-						change									;-- CALL NEAR disp size
-							at code-buf ref
-							to-bin32 ptr - ref - target/ptr-size
-					]
+					target/patch-call code-buf ref ptr	;-- target-specific func call
 				]
 			]
 		]

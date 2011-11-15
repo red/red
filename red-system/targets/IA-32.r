@@ -411,7 +411,7 @@ make target-class [
 				emit to-bin32 idx * emitter/size-of? type/2/1
 			]
 		][
-			emit-load-index idx
+			emit-load-index idx						; @@ missing scaling factor ???
 			emit-poly opcodes/3
 		]
 	]
@@ -933,6 +933,12 @@ make target-class [
 		]
 		emit #{83C4}								;-- ADD esp, n
 		emit to-bin8 size
+	]
+	
+	patch-call: func [code-buf rel-ptr dst-ptr][
+		change										;-- CALL NEAR disp size
+			at code-buf rel-ptr
+			to-bin32 dst-ptr - rel-ptr - ptr-size
 	]
 	
 	emit-argument: func [arg func-type [word!]][

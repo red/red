@@ -32,6 +32,9 @@ make target-class [
 	stack-width:		4
 	branch-offset-size:	4							;-- size of branch instruction
 	
+	need-divide?: 		none						;-- if TRUE, include division routine in code
+	div-sym:			'_div_
+	
 	conditions: make hash! [
 	;-- name ----------- signed --- unsigned --
 		overflow?		 #{60}		-
@@ -98,10 +101,19 @@ make target-class [
 		]
 		
 		;-- Update code addresses after a pool insertion
-		update-entry-points: func [pool-idx [integer!] offset [integer!]][
+		update-entry-points: func [pool-idx [integer!] offset [integer!] /local refs][
 			ep: entry-points
-			forall ep [if ep/1 > pool-idx [ep/1: ep/1 + offset]]
-			;TBD: update all impacted function entry-points
+			forall ep [if ep/1 >= pool-idx [ep/1: ep/1 + offset]]
+			
+			foreach [name spec] emitter/symbols [	;-- move up functions entry-points and references
+				if all [
+					spec/1 = 'native
+					not empty? refs: spec/3
+				][
+					if all [spec/2 spec/2 >= pool-idx][spec/2: spec/2 + offset]
+					forall refs [if refs/1 >= pool-idx [refs/1: refs/1 + offset]]
+				]
+			]
 		]
 		
 		populate-pools: has [index pos offset pool][
@@ -174,7 +186,88 @@ make target-class [
 		]
 	]
 	
-	on-finalize: does [pools/process]				;-- trigger pools processing on end of code generation
+	emit-divide: does [
+		;-- Unsigned division code is from http://www.virag.si/2010/02/simple-division-algorithm-for-arm-assembler/
+		;-- Original routine extended to handle signed division using code from:
+		;-- "ARM System Developer's Guide", p.238, ISBN: 1-55860-874-5
+		if verbose >= 3 [print ">>>emitting DIVIDE intrinsic"]
+		
+		foreach opcode [	
+							; .divide	
+			#{e3510000}			; CMP r1, #0
+			#{0a000014}			; BEQ divide_end		; @@ TBD: link to runtime error handler when ready
+			#{e1b02001}			; MOVS r2, r1			; r2: divisor
+			#{e212c102}			; ANDS ip, r2, #1<<31	; if r2 < 0, ip: #80000000
+			#{42622000}			; RSBMI r2, r2, #0		; if r2 < 0, r2: -r2 (2's complement)
+			#{e1b01000}			; MOVS r1, r0			; r1: dividend
+			#{e03cc041}			; EORS ip, ip, r1 ASR#32 ; if r1 < 0, ip: ip xor r1>>32
+			#{22611000}			; RSBCS r1, r1, #0		; if r1 < 0, r1: -r1 (2's complement)
+			
+			#{e3a00000}			; MOV r0, #0     		; clear R0 to accumulate result
+			#{e3a03001}			; MOV r3, #1     		; set bit 0 in R3, which will be shifted left then right
+							; .start
+			#{e1520001}			; CMP r2, r1
+			#{91a02082}			; MOVLS r2, r2, LSL#1	; shift R2 left until it is about to be bigger than R1
+			#{91a03083}			; MOVLS r3, r3, LSL#1	; shift R3 left in parallel in order to flag how far we have to go
+			#{9afffffb}			; BLS      start
+							; .next
+			#{e1510002}			; CMP r1, r2      		; carry set if R1>R2 (don't ask why)
+			#{20411002}			; SUBCS r1, r1, r2      ; subtract R2 from R1 if this would
+														; give a positive answer
+			#{20800003}			; ADDCS r0, r0, r3   	; and add the current bit in R3 to
+											  			; the accumulating answer in R0.
+			#{e1b030a3}			; MOVS r3, r3, LSR#1	; Shift R3 right into carry flag
+			#{31a020a2}			; MOVCC r2, r2, LSR#1	; and if bit 0 of R3 was zero, also
+												   		; shift R2 right.
+			#{3afffff9}			; BCC next				; If carry not clear, R3 has shifted
+			
+							; .epilog					; back to where it started, and we can end
+			#{e1b0c08c}			; MOVS ip, ip, LSL#1	; C: bit 31, N: bit 30
+			#{22600000}			; RSBCS	r0, r0, #0		; if C = 1, r0: -r0 (2's complement)
+			#{42611000}			; RSBMI	r1, r1, #0		; if N = 1, r1: -r1 (2's complement)
+			#{e1a0f00e}			; MOV pc, lr			; return from sub-routine
+							; .divide_end				; r0: quotient, r1: remainder
+ 		][
+ 			emit-i32 opcode
+ 		]
+	]
+	
+	;-- Check if div-sym is not user-defined, else provide a unique replacement symbol
+	make-div-sym: has [retry][
+		if select emitter/symbols div-sym [
+			retry: 3								;-- try 3 times, then spit an error to user face ;)
+			until [
+				div-sym: to word! rejoin ["_div_" random "0123456798"]
+				if zero? retry: retry - 1 [
+					compiler/throw-error "Unable to create divide symbol!"
+				]
+				none? emitter/symbols/:div-sym
+			]
+		]
+		div-sym
+	]
+	
+	call-divide: has [refs][
+		refs: third either need-divide? [
+			emitter/symbols/:div-sym
+		][
+			div-sym: make-div-sym
+			need-divide?: yes
+			emitter/add-native div-sym				;-- add an entry for the divide pseudo-function
+		]
+		append refs emitter/tail-ptr				;-- remember branching instruction position
+		emit-i32 #{eb000000}						;-- BL .divide
+	]
+	
+	on-finalize: does [
+		if need-divide? [
+			emitter/symbols/:div-sym/2: emitter/tail-ptr
+			emit-divide
+		]		
+		pools/process								;-- trigger pools processing on end of code generation
+	]
+	
+	on-global-prolog: does [need-divide?: no]
 	
 	on-global-epilog: does [pools/mark-entry-point]	;-- add end of global code section as pool entry-point
 	
@@ -953,9 +1046,7 @@ make target-class [
 				]
 			]
 			* [
-				op-poly: [
-					emit-i32 #{e0000091}			;-- MUL r0, r0, r1 	; commutable op
-				]
+				op-poly: [emit-i32 #{e0000091}]		;-- MUL r0, r0, r1 	; commutable op
 				switch b [
 					imm [
 						either all [
@@ -965,7 +1056,7 @@ make target-class [
 							emit-i32 #{e1a00000}	;-- LSL r0, r0, #log2(b)
 								or to-shift-imm c
 						][
-							emit-load-imm32/reg args/2 1
+							emit-load-imm32/reg args/2 1	;-- MOV r1, #value
 							do op-poly
 						]
 					]
@@ -979,59 +1070,37 @@ make target-class [
 				]
 			]
 			/ [
-				op-poly: [
-					either width = 1 [				;-- 8-bit unsigned
-						emit #{B400}				;-- MOV ah, 0			; clean-up garbage in ah
-						emit #{F6F3}				;-- DIV bl
-					][
-						emit-sign-extension			;-- 16/32-bit signed
-						emit-poly [#{F6FB} #{F7FB}]	;-- IDIV rB ; rA / rB
-					]
-				]
 				switch b [
-					imm [							;-- SAR usage http://www.arl.wustl.edu/~lockwood/class/cs306/books/artofasm/Chapter_6/CH06-3.html#HEADING3-120
-						emit #{52}					;-- PUSH edx	; save edx from corruption
-						with-width-of/alt args/2 [							
-							emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
-						]
-						emit #{89D3}				;-- MOV ebx, edx
-						do op-poly
+					imm [
+						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
+						emit-load-imm32/reg args/2 1 ;-- MOV r1, #value
 					]
 					ref [
-						emit #{52}					;-- PUSH edx	; save edx from corruption
+						emit-i32 #{e92d0002}		;-- PUSH {r1}	; save r1 from corruption
 						emit-load/alt args/2
-						emit #{89D3}				;-- MOV ebx, edx
-						do op-poly
-					]
-					reg [
-						emit #{89D3}				;-- MOV ebx, edx		; ebx = b
-						do op-poly
 					]
 				]
+				call-divide
+				
 				if mod? [
-					emit-poly [#{88E0} #{89D0}]		;-- MOV rA, remainder	; remainder from ah|dx|edx
+					emit-i32 #{e1a00001}			;-- MOVS r0, r1	; r1: remainder
 					if all [mod? <> 'rem width > 1][;-- modulo, not remainder
 					;-- Adjust modulo result to be mathematically correct:
 					;-- 	if modulo < 0 [
 					;--			if divider < 0  [divider: negate divider]
 					;--			modulo: modulo + divider
 					;--		]
-						c: to-bin8 select [1 7 2 15 4 31] width		;-- support for possible int8 type
-						emit #{0FBAE0}				;--   	  BT rA, 7|15|31 ; @@ better way ?
-						emit c
-						emit #{730A}				;-- 	  JNC exit		 ; (won't work with ax)
-						emit #{0FBAE3}				;-- 	  BT rB, 7|15|31 ; @@ better way ?
-						emit c
-						emit #{7302}				;-- 	  JNC add		 ; (won't work with ax)
-						emit-poly [#{F6DB} #{F7DB}]	;--		  NEG rB
-						emit-poly [#{00D8} #{01D8}]	;-- add:  ADD rA, rB
+						emit-i32 #{ca000002}		;-- 	  BGT .exit
+						emit-i32 #{e3520000}		;-- 	  CMP r2, #0	 ; r2: divisor
+						emit-i32 #{b1e00000}		;-- 	  MVNLT r0, r0
+						emit-i32 #{e0800002}		;-- 	  ADD r0, r0, r2
 					]								;-- exit:
 				]
-				if any [							;-- in case edx was saved on stack
+				if any [							;-- in case r1 was saved on stack
 					all [b = 'imm any [mod? not c]]
 					b = 'ref
 				][
-					emit #{5A}						;-- POP edx
+					emit-i32 #{e8bd0002}			;-- POP {r1}
 				]
 			]
 		]
@@ -1141,11 +1210,11 @@ make target-class [
 		emit-i32 #{eb000000}						;-- BL <disp>
 	]
 
-	add-native-reloc: func [spec callback] [
-		repend/only spec/3 [emitter/tail-ptr :callback]
-	]
+	;add-native-reloc: func [spec ] [
+	;	repend/only spec/3 [emitter/tail-ptr :callback]
+	;]
 
-	reloc-bl: func [code-buf rel-ptr dst-ptr] [
+	patch-call: func [code-buf rel-ptr dst-ptr] [
 		;; @@ check bounds, @@ to-bin24
 		change
 			at code-buf rel-ptr
