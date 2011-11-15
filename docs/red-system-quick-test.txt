@@ -12,20 +12,23 @@ As a result, quick-test is very fussy about where files are and it is not partic
 
 There are actually two aspects to Quick-Test. The first is quick-test.reds, a handful of Red/System functions which can be included in a Red/System program to write unit tests. This can easily be used on its own to test Red/System code and is not at all fussy about where files reside.
 
+A temporary addition has been made to this part of Quick-Test. It is quick-test.red which is currently written in REBOL and used for unit testing the bootstrapping Red compiler. It will be replaced by a Red version once the compiler is re-written in Red.
+
 The second aspect is that Quick-Test is a full-test suite for Red/System itself and includes the files used to test Red/System.
 
 There are many improvements that could be made to quick-test. It is expected that quick-test will be replaced at the time when Red/System is re-written so they probably won't get made.
 
 ===Types of Tests
-Quick-Test supports three types of tests - tests of Red/System code, tests of Red/System programs and tests of the Red/System compiler behaviour.
+Quick-Test supports three types of tests - tests of Red/System code, tests of Red/System programs and tests of the Red/System compiler behaviour. Temporarily, Quick-Test also supports REBOL unit tests for the Red compiler.
 
-The first type of tests are written in Red/System, the other two in REBOL.
+The first type of tests are written in Red/System, the other three in REBOL.
 
 ===Quick-Test Components
 Quick-Test consists of the following:
 
   quick-test.r - a REBOL script that supports testing compiler and executable output.
   quick-test.reds - a set of Red/System functions that supports writing tests in Red/System.
+  quick-test.red - a set of REBOL functions that supports writing tests in REBOL.
   
 (The above are stored in the red-system/tests/quick-test/ directory.)
   
@@ -33,13 +36,25 @@ Quick-Test consists of the following:
   run-test.r - a script which will run an individual test.
   
 (Both the above are stored in the red-system/tests/ directory.)
+
+  run-all.r - a script that runs the complete set of Red tests.
+
+(Stored in the red/tests/ directory.)
   
 ===Directory Structure
 Quick-Test uses the following directory structure:
 
+  Red/
+    quick-test/                     ;; quick-test components
+  red/
+    run-all.r                       ;; runs all Red tests
+    source/
+      compiler/                     ;; red compiler unit tests
+      runtime/                      ;; runtime tests
   red-system/
     tests/                          ;; the main test directory
-      quick-test/                   ;; quick-test components
+      run-all.r                     ;; runs all Red/System tests
+      run-test.r                    ;; runs an individual Red/System test     
       source/                       ;; all test sources
         builtin/                    ;; tests for builtin functions (eg print)
         compiler/                   ;; tests of the compiler
@@ -50,12 +65,15 @@ Quick-Test uses the following directory structure:
                                     ;; listed in .gitignore
 
 ===Running Tests
-The Red/System tests are designed to be run from a REBOL/VIEW console session. The tests must be run from the red-system/tests/ directory.
+The tests are designed to be run from a REBOL console session. This must be a REBOL/View console session under Windows.
 
-To run all tests:
-  do %run-all.r
+To run all Red tests:
+  do %red/tests/run-all.r
+
+To run all Red/System tests:
+  do %red-system/tests/run-all.r
   
-To run an individual test file:
+To run an individual test file (must be run from the red-system/tests/ directory):
   do/args %run-test.r "%<file>"
   
   where <file> is the path to the file to be tested (from the red-system/tests/ directory).
@@ -148,6 +166,12 @@ Example 3: Test the output of a Red/System programs
 ---Test Dialects
 
 +++quick-test.reds
+
+/note 
+
+The syntax for quick-test.red is the same as that for quick-test.reds
+
+\note
 
   ***start-run*** <title>
     <title> : title of the test run - c-string!
@@ -251,13 +275,18 @@ Is used after a --compile-and-run or --compile-run-print to collect the totals f
     
 Runs an executable program. The output is captured in qt/output.
 
+  --run-red-test-quiet <file>
+    <file> : a REBOL script file - file!
+    
+Runs a quick-test.red test written in REBOL in quiet mode.
+
   --run-script <file>
-    <file> : an REBOL script - file!
+    <file> : a REBOL script - file!
     
 Runs a REBOL script.
 
   --run-script-quiet <file>
-    <file> : an REBOL script - file!
+    <file> : a REBOL script - file!
     
 Runs a REBOL script in quiet mode.
 
