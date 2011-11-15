@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.6.0
+	Version: 0.7.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -231,6 +231,24 @@ qt: make object! [
     call/output/wait exec output
   ]
   
+  run-red-test-quiet: func [
+    src [file!]
+    /local               
+      cmd                             ;; command to run
+      test-name                     
+  ][
+    test-name: find/last/tail src "/"
+    test-name: copy/part test-name find test-name "."
+    print [ "running " test-name #"^(0D)"]
+    clear output
+    cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
+    call/output/wait cmd output
+    add-to-run-totals
+    write/append log-file output
+    file/title: test-name
+    _print-summary file
+  ]
+  
   run-script: func [
     src [file!]
     /local 
@@ -240,15 +258,18 @@ qt: make object! [
     src: replace/all src "%" ""
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: join runnable-dir [filename]
+    print "tests-dir"
     write to file! script read join tests-dir [src]
     do script
   ]
   
+  ;; This is for the temporary version of quick-test.red (in REBOL)
   run-script-quiet: func [src [file!]][
     prin [ "running " find/last/tail src "/" #"^(0D)"]
     print: :_quiet-print
     print-output: copy ""
     run-script src
+    add-to-run-totals
     print: :_save-print
     write/append log-file print-output
     _print-summary file
@@ -453,6 +474,7 @@ qt: make object! [
   set '--compile-run-print    :compile-run-print
   set '--run                  :run
   set '--add-to-run-totals    :add-to-run-totals
+  set '--run-red-test-quiet   :run-red-test-quiet
   set '--run-script           :run-script
   set '--run-script-quiet     :run-script-quiet
   set '--run-test-file        :run-test-file

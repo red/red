@@ -11,7 +11,7 @@ store-quiet-mode: system/options/quiet
 system/options/quiet: true
 
 do %../../quick-test/quick-test.r
-qt/tests-dir: what-dir
+qt/tests-dir: system/script/path
 
 ;; run the tests
 print rejoin ["Quick-Test v" system/script/header/version]
@@ -20,6 +20,10 @@ print rejoin ["REBOL " system/version]
 start-time: now/precise
 
 ***start-run-quiet*** "Red Test Suite"
+
+===start-group=== "Red compiler tests"
+  --run-red-test-quiet %source/compiler/lexer-test.r
+===end-group===
 
 ===start-group=== "Red/System runtime tests"
   --run-test-file-quiet %source/runtime/utils-test.reds
