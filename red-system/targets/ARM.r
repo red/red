@@ -225,8 +225,23 @@ make target-class [
 			#{e1b0c08c}			; MOVS ip, ip, LSL#1	; C: bit 31, N: bit 30
 			#{22600000}			; RSBCS	r0, r0, #0		; if C = 1, r0: -r0 (2's complement)
 			#{42611000}			; RSBMI	r1, r1, #0		; if N = 1, r1: -r1 (2's complement)
-			#{e1a0f00e}			; MOV pc, lr			; return from sub-routine
 							; .divide_end				; r0: quotient, r1: remainder
+			#{e3340000}			; TEQ r4, #0			; if not modulo/remainder op,
+			#{01a0f00e}			; MOVEQ pc, lr			; 	return from sub-routine
+			
+			;-- Adjust modulo result to be mathematically correct:
+			;-- 	if modulo < 0 [
+			;--			if divisor < 0  [divisor: negate divisor]
+			;--			modulo: modulo + divisor
+			;--		]
+			#{e3340002}			; TEQ r4, #2			; if r1 <> rem,
+			#{01a0f00e}			; MOVEQ pc, lr			; 	return from sub-routine
+			#{e1b00001}			; MOVS r0, r1			; r0: modulo or remainder
+			#{51a0f00e}			; MOVPL pc, lr			; if r0 >= 0, return from sub-routine
+			#{e3520000}			; CMP r2, #0	 		; if r2 < 0 (divisor)
+			#{41e00000}			; RSBMI	r0, r0, #0		;	r2: -r2 (2's complement)
+			#{e0800002}			; ADD r0, r0, r2		; r0: r0 + r2
+			#{e1a0f00e}			; MOV pc, lr			; return from sub-routine
  		][
  			emit-i32 opcode
  		]
@@ -247,7 +262,7 @@ make target-class [
 		div-sym
 	]
 	
-	call-divide: has [refs][
+	call-divide: func [mod? [word! none!] /local refs][
 		refs: third either need-divide? [
 			emitter/symbols/:div-sym
 		][
@@ -255,6 +270,12 @@ make target-class [
 			need-divide?: yes
 			emitter/add-native div-sym				;-- add an entry for the divide pseudo-function
 		]
+		
+		emit-i32 join #{e3a040} switch/default mod? [ ;-- MOV r4, #0|1|2
+			mod [#"^(01)"]
+			rem [#"^(02)"]
+		][null]
+		
 		append refs emitter/tail-ptr				;-- remember branching instruction position
 		emit-i32 #{eb000000}						;-- BL .divide
 	]
@@ -1080,22 +1101,8 @@ make target-class [
 						emit-load/alt args/2
 					]
 				]
-				call-divide
+				call-divide mod?
 				
-				if mod? [
-					emit-i32 #{e1a00001}			;-- MOVS r0, r1	; r1: remainder
-					if all [mod? <> 'rem width > 1][;-- modulo, not remainder
-					;-- Adjust modulo result to be mathematically correct:
-					;-- 	if modulo < 0 [
-					;--			if divider < 0  [divider: negate divider]
-					;--			modulo: modulo + divider
-					;--		]
-						emit-i32 #{ca000002}		;-- 	  BGT .exit
-						emit-i32 #{e3520000}		;-- 	  CMP r2, #0	 ; r2: divisor
-						emit-i32 #{b1e00000}		;-- 	  MVNLT r0, r0
-						emit-i32 #{e0800002}		;-- 	  ADD r0, r0, r2
-					]								;-- exit:
-				]
 				if any [							;-- in case r1 was saved on stack
 					all [b = 'imm any [mod? not c]]
 					b = 'ref
