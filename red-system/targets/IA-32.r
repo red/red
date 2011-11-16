@@ -801,8 +801,8 @@ make target-class [
 					if all [mod? <> 'rem width > 1][;-- modulo, not remainder
 					;-- Adjust modulo result to be mathematically correct:
 					;-- 	if modulo < 0 [
-					;--			if divider < 0  [divider: negate divider]
-					;--			modulo: modulo + divider
+					;--			if divisor < 0  [divisor: negate divisor]
+					;--			modulo: modulo + divisor
 					;--		]
 						c: to-bin8 select [1 7 2 15 4 31] width		;-- support for possible int8 type
 						emit #{0FBAE0}				;--   	  BT rA, 7|15|31 ; @@ better way ?
