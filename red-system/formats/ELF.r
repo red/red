@@ -426,7 +426,7 @@ context [
 		;; Target-specific header fields.
 
 		switch target-arch [
-			ia32	[
+			ia-32	[
 				eh/machine: defs/em-386
 			]
 			arm		[
