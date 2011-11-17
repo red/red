@@ -84,6 +84,8 @@ context [
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
 
+		r-arm-abs32		2			;; direct 32-bit relocation
+
 		stabs-n-undf	0			;; undefined stabs entry
 		stabs-n-fun		36			;; function name
 		stabs-n-so		100			;; source file name
@@ -327,7 +329,7 @@ context [
 			[build-dynsym symbols get-data ".dynstr"]
 
 		set-data ".rel.text"
-			[build-reltext symbols get-address ".data.rel.ro"]
+			[build-reltext job/target symbols get-address ".data.rel.ro"]
 
 		set-data ".data" [
 			if job/debug? [
@@ -426,7 +428,7 @@ context [
 		;; Target-specific header fields.
 
 		switch target-arch [
-			ia32	[
+			ia-32	[
 				eh/machine: defs/em-386
 			]
 			arm		[
@@ -498,13 +500,20 @@ context [
 	]
 
 	build-reltext: func [
-		symbols [block!] relro-address [integer!] /local result entry
+		target-arch [word!]
+		symbols [block!]
+		relro-address [integer!]
+		/local rel-type result entry
 	] [
+		rel-type: select reduce [
+			'ia-32 defs/r-386-32
+			'arm defs/r-arm-abs32
+		] target-arch
 		result: copy []
 		repeat i length? symbols [ ;; 1..n, 0 is undef
 			entry: make-struct elf-relocation none
 			entry/offset: rel-address-of/index relro-address (i - 1)
-			entry/info-sym: defs/r-386-32
+			entry/info-sym: rel-type
 			entry/info-type: i
 			append result entry
 		]
