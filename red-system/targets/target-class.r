@@ -10,9 +10,11 @@ target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
 	default-align: stack-width: branch-offset-size: none		   ; TBD: document once stabilized
 	
-	on-global-prolog: none							;-- called at start of global code section
-	on-global-epilog: none							;-- called at end of global code section
-	on-finalize:	  none							;-- called after all sources are compiled
+	on-global-prolog: 		 none					;-- called at start of global code section
+	on-global-epilog: 		 none					;-- called at end of global code section
+	on-finalize:	  		 none					;-- called after all sources are compiled
+	emit-stack-align-prolog: none
+	emit-stack-align-epilog: none
 	
 	compiler: 	none								;-- just a short-cut
 	width: 		none								;-- current operand width in bytes

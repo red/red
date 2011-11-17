@@ -1211,6 +1211,16 @@ make target-class [
 		emit-i32 to-bin8 number
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
 	]
+	
+	emit-call-import: func [spec [block!] nargs [integer!]][
+		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
+		emit-i32 to char! shift 255 8 - nargs
+		
+		pools/collect/spec 0 spec
+		emit-i32 #{e59fc000}						;-- MOV ip, #(.data.rel.ro + symbol_offset)
+		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
+		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
+	]
 
 	emit-call-native: func [spec] [
 		add-native-reloc spec :reloc-bl
@@ -1253,6 +1263,9 @@ make target-class [
 		switch/default type [
 			syscall [
 				emit-call-syscall last fspec fspec/1
+			]
+			import [
+				emit-call-import spec fspec/1
 			]
 			native [
 				emit-call-native spec
