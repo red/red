@@ -146,7 +146,7 @@ make target-class [
 					
 					if spec [
 						spec: switch type?/word spec [
-							get-word! [emitter/get-func-ref]
+							get-word! [emitter/get-func-ref to word! spec]
 							word!	  [emitter/symbols/:spec]
 							block!	  [spec]
 						]
@@ -785,7 +785,7 @@ make target-class [
 				either zero? offset: emitter/member-offset? parent path/2 [
 					emit-i32 #{e5401000}			;-- STR r1, [r0]
 				][
-					emit-load-index offset
+					emit-load-imm32/reg offset 3
 					emit-i32 #{e5401000}			;-- STR r1, [r0, r3]
 				]
 			]
@@ -1277,7 +1277,7 @@ make target-class [
 		]
 	]
 
-	emit-prolog: func [name locals [block!] locals-size [integer!]][
+	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		pools/mark-entry-point
@@ -1316,6 +1316,7 @@ make target-class [
 			;;	alignment: == size (so char==1, short==2, int/long==4, ptr==4)
 			;;	structs aligned at max aligned, padded to multiple of alignment
 			
+			args-size: fspec/1
 			repeat i args-size [
 				emit-i32 #{e92d00}					;-- PUSH {r<n>}
 				emit-i32 shift/left #{01} (args-size - i)		; @@ args-size needs to be passed
@@ -1338,7 +1339,7 @@ make target-class [
 		]
 	]
 
-	emit-epilog: func [name locals [block!] args-size [integer!]][
+	emit-epilog: func [name locals [block!] args-size [integer!] locals-size [integer!]][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
 		either all [block? fspec/4/1 fspec/5 = 'callback][

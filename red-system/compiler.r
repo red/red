@@ -1621,10 +1621,13 @@ system-dialect: context [
 			expr
 		]
 		
-		comp-func-body: func [name [word!] spec [block!] body [block!] /local args-size expr ret][
+		comp-func-body: func [
+			name [word!] spec [block!] body [block!]
+			/local args-sz local-sz expr ret
+		][
 			locals: spec
 			func-name: name
-			args-size: emitter/enter name locals		;-- build function prolog
+			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
 			pc: body
 			
 			expr: comp-dialect							;-- compile function's body
@@ -1639,7 +1642,7 @@ system-dialect: context [
 					emitter/logic-to-integer expr/1		;-- runtime logic! conversion before returning
 				]
 			]
-			emitter/leave name locals args-size			;-- build function epilog
+			emitter/leave name locals args-sz local-sz	;-- build function epilog
 			clear locals-init
 			locals: func-name: none
 		]

@@ -1089,7 +1089,10 @@ make target-class [
 		]
 	]
 
-	emit-epilog: func [name [word!] locals [block!] args-size [integer!] /local fspec][
+	emit-epilog: func [
+		name [word!] locals [block!] args-size [integer!] locals-size [integer!]
+		/local fspec
+	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
 		fspec: select compiler/functions name

@@ -448,9 +448,9 @@ emitter: context [
 		args-sz
 	]
 	
-	leave: func [name [word!] locals [block!] args-sz [integer!]][
+	leave: func [name [word!] locals [block!] args-sz [integer!] locals-sz [integer!]][
 		unless empty? exits [resolve-exit-points]
-		target/emit-epilog name locals args-sz
+		target/emit-epilog name locals args-sz locals-sz
 	]
 	
 	import-function: func [name [word!] reloc [block!]][
