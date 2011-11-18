@@ -391,7 +391,7 @@ make target-class [
 	
 	emit-op-imm32: func [opcode [binary!] value [integer!] /local bits][
 		either bits: ror-position? value [	
-			opcode/3: to char! bits
+			opcode/3: (to char! opcode/3) or to char! bits
 			opcode/4: to char! rotate-left value bits
 		][
 			pools/collect value
@@ -410,7 +410,10 @@ make target-class [
 		if object? name [name: compiler/unbox name]
 
 		either offset: select emitter/stack name [	;-- local variable case
-			offset: to-12-bit offset
+			if negative? offset [
+				lcode/2: #"^(7F)" and lcode/2		;-- clear bit 23 (U)
+			]			
+			offset: to-12-bit abs offset			
 			emit-i32 lcode or offset
 		][											;-- global variable case
 			spec: emitter/symbols/:name
@@ -451,7 +454,7 @@ make target-class [
 	
 	emit-save-last: does [
 		last-saved?: yes
-		emit-i32 #{e92d0001}						;-- PUSH r0
+		emit-i32 #{e92d0001}						;-- PUSH {r0}
 	]
 
 	emit-restore-last: does [
@@ -584,7 +587,7 @@ make target-class [
 		emit-i32 #{ea000001}						;--		  B _exit
 		emit-i32 #{e3a00001}						;--		  MOV r0, #1	; (TRUE)
 													;-- _exit:
-		reduce [4 24]								;-- [offset-TRUE offset-FALSE]
+		reduce [4 24]								;-- [offset-TRUE offset-FALSE]	; @@ check values
 	]
 
 	emit-load: func [
@@ -607,11 +610,11 @@ make target-class [
 				either alt [
 					emit-variable-poly value
 						#{e5911000}					;-- LDR r1, [r1]		; global
-						#{e51b1000}					;-- LDR r1, [fp, #n]	; local
+						#{e59b1000}					;-- LDR r1, [fp, #[-]n]	; local
 				][
 					emit-variable-poly value
 						#{e5900000} 				;-- LDR r0, [r0]		; global
-						#{e51b0000}					;-- LDR r0, [fp, #n]	; local
+						#{e59b0000}					;-- LDR r0, [fp, #[-]n]	; local
 				]
 			]
 			get-word! [
@@ -643,39 +646,34 @@ make target-class [
 		if value = <last> [value: 'last]			;-- force word! code path in switch block
 		if logic? value [value: to integer! value]	;-- TRUE -> 1, FALSE -> 0
 
-		load-address: [
-			emit-variable/alt name
-				none								;-- LDR r1, [pc, #name]	; global
-				#{e51b1000}							;-- LDR r1, [fp, #n]	; local
-		]
 		store-word: [
-			emit-i32 #{e5010000}					;-- STR r0, [r1]
+			emit-variable/alt name
+				#{e5010000}							;-- STR r0, [r1]
+				#{e58b0000}							;-- STR r0, [fp, #[-]n]
+		]
+		store-byte: [
+			emit-variable/alt name
+				#{e5410000}							;-- STRB r0, [r1]
+				#{e5cb0000}							;-- STRB r0, [fp, #[-]n]
 		]
 
 		switch type?/word value [
 			char! [
-				do load-address						;-- r1: name
-				emit-i32 #{e5410000}				;-- STRB r0, [r1]
+				do store-byte
 			]
 			integer! [
-				do load-address						;-- r1: name
 				do store-word
 			]
 			word! [
 				set-width name
-				do load-address						;-- r1: name
 				do store-word
 			]
 			get-word! [
 				pools/collect/spec 0 value
 				emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
-				do load-address						;-- r1: name
 				do store-word
 			]
 			string! paren! [
-				;pools/collect/spec 0 spec/2
-				;emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
-				do load-address						;-- r1: name
 				do store-word
 			]
 		]
@@ -704,7 +702,7 @@ make target-class [
 	emit-load-index: func [idx [word!]][
 		emit-variable idx
 			#{e5903000}								;-- LDR r3, [r0]		; global
-			#{e51b3000}								;-- LDR r3, [fp, #n]	; local
+			#{e59b3000}								;-- LDR r3, [fp, #[-]n]	; local
 		emit-i32 #{e24dd008}						;-- SUB r3, r3, #1		; one-based index
 	]
 
@@ -714,7 +712,7 @@ make target-class [
 		][
 			emit-variable path/1
 				#{e5902000}							;-- LDR r2, [r0]		; global
-				#{e51b2000}							;-- LDR r2, [fp, #n]	; local
+				#{e59b2000}							;-- LDR r2, [fp, #[-]n]	; local
 		]
 		opcodes: pick [[							;-- store path opcodes --
 			#{e5421000}								;-- STRB r1, [r2]		; first
@@ -877,7 +875,7 @@ make target-class [
 				type: first compiler/get-variable-spec value
 				emit-variable value
 					#{e5900000} 					;-- LDR r0, [r0]		; global
-					#{e51b0000}						;-- LDR r0, [fp, #n]	; local
+					#{e59b0000}						;-- LDR r0, [fp, #[-]n]	; local
 				do push-last
 			]
 			get-word! [
@@ -911,7 +909,7 @@ make target-class [
 			ref [
 				emit-variable args/2
 					#{e5d03000}						;-- LDRB r3, [r0]		; global
-					#{e55b3000}						;-- LDRB r3, [fp, #n]	; local
+					#{e5db3000}						;-- LDRB r3, [fp, #[-]n]	; local
 			]
 			reg [emit-i32 #{e1a03001}]				;-- MOV r3, r1
 		]
@@ -1222,8 +1220,8 @@ make target-class [
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
 	]
 
-	emit-call-native: func [spec] [
-		add-native-reloc spec :reloc-bl
+	emit-call-native: func [spec [block!]][
+		append spec/3 emitter/tail-ptr				;-- remember branching instruction position
 		emit-i32 #{eb000000}						;-- BL <disp>
 	]
 
@@ -1295,45 +1293,66 @@ make target-class [
 		]
 	]
 
-	emit-prolog: func [name locals [block!] args-size [integer!]][
+	emit-prolog: func [name locals [block!] locals-size [integer!]][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		pools/mark-entry-point
 
-		;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
-		;; passed via regs r0-r3, further args are passed on the stack (pushed
-		;; right-to-left; i.e. the leftmost argument is at top-of-stack).
-		;;
-		;; our prolog pushes the first <=4 args right-to-left to the stack as
-		;; well and makes fp point to arg0 on the stack.
-		;;
-		;; after that, all callee-saved registers and the return address are
-		;; pushed on the stack. sp will point to the return address on the
-		;; stack.
-		;;
-		;; that's where the prolog ends. locals, if any, will be pushed on the
-		;; stack immediately afterwards. all other reds-generated code is
-		;; required to be stack neutral.
-	;	repeat i args-size [
-	;		emit-i32 #{e92d00}							;-- push {r<n>}
-	;		emit-i32 shift/left #{01} (args-size - i)
-	;	]
-	;	unless zero? args-size [
-	;		emit-i32 #{e1a0c00d}						;-- mov ip, sp
-	;	]
-	;	emit-i32 #{e92d4ff0}							;-- stmfd sp!, {r4-r11, lr}
-	;	unless zero? args-size [
-	;		emit-i32 #{e1a0b00c}						;-- mov fp, ip
-	;	]
+		fspec: select compiler/functions name
+		either all [block? fspec/4/1 fspec/5 = 'callback][
+			;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
+			;; passed via regs r0-r3, further args are passed on the stack (pushed
+			;; right-to-left; i.e. the leftmost argument is at top-of-stack).
+			;;
+			;; our prolog pushes the first <=4 args right-to-left to the stack as
+			;; well and makes fp point to arg0 on the stack.
+			;;
+			;; after that, all callee-saved registers and the return address are
+			;; pushed on the stack. sp will point to the return address on the
+			;; stack.
+			;;
+			;; that's where the prolog ends. locals, if any, will be pushed on the
+			;; stack immediately afterwards. all other reds-generated code is
+			;; required to be stack neutral.
+			repeat i args-size [
+				emit-i32 #{e92d00}					;-- PUSH {r<n>}
+				emit-i32 shift/left #{01} (args-size - i)		; @@ args-size needs to be passed
+			]
+			unless zero? args-size [
+				emit-i32 #{e1a0c00d}				;-- MOV ip, sp
+			]
+			emit-i32 #{e92d4ff0}					;-- STMFD sp!, {r4-r11, lr}
+			unless zero? args-size [
+				emit-i32 #{e1a0b00c}				;-- MOV fp, ip
+			]
+		][
+			;-- Red/System standard function prolog --	
+			emit-i32 #{e92d4800}					;-- PUSH {fp,lr}
+			emit-i32 #{e1a0b00d}					;-- MOV fp, sp
+			unless zero? locals-size [
+				emit-i32 join #{e24dd0}				;-- SUB sp, sp, locals-size
+					to char! round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
+			]
+		]
 	]
 
-	emit-epilog: func [name locals [block!] locals-size [integer!]][
+	emit-epilog: func [name locals [block!] args-size [integer!]][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
-	;	unless zero? locals-size [
-	;		;; Restore sp to where we saved our 9 callee-saved registers.
-	;		emit-i32 #{e28bd024}						;-- add sp, fp, #36
-	;	]
-	;	emit-i32 #{e8bd8ff0}							;-- ldmfd sp!, {r4-r11, pc}
+		either all [block? fspec/4/1 fspec/5 = 'callback][
+			unless zero? locals-size [
+				;; Restore sp to where we saved our 9 callee-saved registers.
+				emit-i32 #{e28bd024}				;-- ADD sp, fp, #36
+			]
+			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
+		][
+			;-- Red/System standard function epilog --		
+			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
+			emit-i32 #{e8bd4800}					;-- POP {fp,lr}
+			emit-op-imm32
+				#{e28dd000}							;-- ADD sp, sp, args-size
+				round/to/ceiling args-size 4
+			emit-i32 #{e1a0f00e}					;-- MOV pc, lr
+		]
 	]
 ]
