@@ -571,7 +571,7 @@ make target-class [
 		emit-i32 #{ea000001}						;--		  B _exit
 		emit-i32 #{e3a00001}						;--		  MOV r0, #1	; (TRUE)
 													;-- _exit:
-		reduce [4 24]								;-- [offset-TRUE offset-FALSE]	; @@ check values
+		reduce [4 12]								;-- [offset-TRUE offset-FALSE]
 	]
 
 	emit-load: func [
@@ -1319,7 +1319,7 @@ make target-class [
 			args-size: fspec/1
 			repeat i args-size [
 				emit-i32 #{e92d00}					;-- PUSH {r<n>}
-				emit-i32 shift/left #{01} (args-size - i)		; @@ args-size needs to be passed
+				emit-i32 shift/left #{01} (args-size - i)
 			]
 			unless zero? args-size [
 				emit-i32 #{e1a0c00d}				;-- MOV ip, sp
