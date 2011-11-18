@@ -30,6 +30,7 @@ make target-class [
 	ptr-size:			4
 	default-align:		4
 	stack-width:		4
+	args-offset:		8							;-- stack frame offset to arguments (fp + lr)
 	branch-offset-size:	4							;-- size of branch instruction
 	
 	need-divide?: 		none						;-- if TRUE, include division routine in code

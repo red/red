@@ -403,7 +403,7 @@ emitter: context [
 		if push [clear stack]
 		size: 0
 		parse locals [opt block! any [set name word! set type block! (
-			if push [repend stack [name size + 8]]	;-- account for esp + ebp storage ;TBD: make it target-independent
+			if push [repend stack [name size + target/args-offset]]
 			size: size + max size-of? type/1 target/stack-width		
 		)]]
 		size
