@@ -397,7 +397,8 @@ make target-class [
 			if negative? offset [
 				lcode/2: #"^(7F)" and lcode/2		;-- clear bit 23 (U)
 			]			
-			offset: to-12-bit abs offset			
+			offset: to-12-bit abs offset
+			;if alt [lcode: lcode or #{00001000}]	;-- use r1 instead of r0 
 			emit-i32 lcode or offset
 		][											;-- global variable case
 			spec: emitter/symbols/:name
@@ -413,17 +414,22 @@ make target-class [
 		]
 	]
 	
-	;@@ examine if this function is still relevant in this context
 	emit-variable-poly: func [						;-- polymorphic variable access generation
 		name [word! object!]
-		global [binary!]							;-- opcodes for global variables
-		local [binary! block!]						;-- opcodes for local variables
+		g-code [binary!]							;-- opcodes for global variables
+		l-code [binary! block!]						;-- opcodes for local variables
+		/alt
 	][
 		with-width-of name [
-			switch width [
-				1 [emit-variable name global local]	;-- 8-bit
-				;2 []								;-- 16-bit (unsupported)
-				4 [emit-variable name global local]	;-- 32-bit
+			if width = 1 [
+				g-code: g-code or byte-flag
+				l-code: l-code or byte-flag
+				emit-variable name g-code l-code
+			]
+			either alt [
+				emit-variable/alt name g-code l-code
+			][
+				emit-variable name g-code l-code
 			]
 		]
 	]
@@ -592,7 +598,7 @@ make target-class [
 			]
 			word! [
 				either alt [
-					emit-variable-poly value
+					emit-variable-poly/alt value
 						#{e5911000}					;-- LDR r1, [r1]		; global
 						#{e59b1000}					;-- LDR r1, [fp, #[-]n]	; local
 				][
@@ -1208,10 +1214,6 @@ make target-class [
 		append spec/3 emitter/tail-ptr				;-- remember branching instruction position
 		emit-i32 #{eb000000}						;-- BL <disp>
 	]
-
-	;add-native-reloc: func [spec ] [
-	;	repend/only spec/3 [emitter/tail-ptr :callback]
-	;]
 
 	patch-call: func [code-buf rel-ptr dst-ptr] [
 		;; @@ check bounds, @@ to-bin24
