@@ -1001,6 +1001,8 @@ make target-class [
 				]
 			]
 			import [
+				emit-stack-align-prolog length? args
+				
 				either compiler/job/OS = 'MacOSX [
 					emit #{B8}						;-- MOV eax, addr
 					emit-reloc-addr spec
@@ -1009,6 +1011,8 @@ make target-class [
 					emit #{FF15}					;-- CALL FAR [addr]	; indirect call
 					emit-reloc-addr spec
 				]
+				emit-stack-align-epilog length? args
+				
 				if fspec/3 = 'cdecl [				;-- add calling cleanup when required
 					emit-cdecl-pop fspec args
 				]			
@@ -1053,11 +1057,11 @@ make target-class [
 		res
 	]
 	
-	emit-stack-align-prolog: func [args [block!] /local offset][
+	emit-stack-align-prolog: func [args-nb [integer!] /local offset][
 		if compiler/job/stack-align-16? [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
-			offset: 1 + length? args				;-- account for saved edi
+			offset: 1 + args-nb 					;-- account for saved edi
 			unless zero? offset: offset // 4 [
 				emit #{83EC}						;-- SUB esp, offset		; ensure call will be 16-bytes aligned
 				emit to-bin8 (4 - offset) * 4
@@ -1066,7 +1070,7 @@ make target-class [
 		]
 	]
 	
-	emit-stack-align-epilog: func [args [block!]][
+	emit-stack-align-epilog: func [args-nb [integer!]][
 		if compiler/job/stack-align-16? [
 			emit #{5C}								;-- POP esp
 		]

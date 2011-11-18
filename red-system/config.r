@@ -64,7 +64,6 @@ Linux-ARM [								; Very preliminary support only!
 	format:		'ELF
 	target:		'ARM
 	type:		'exe
-	runtime?:	no
 	base-address: 32768					; 8000h
 	dynamic-linker: "/lib/ld-linux.so.3"
 ]

@@ -1192,7 +1192,7 @@ make target-class [
 		]
 	]
 
-	emit-call-syscall: func [number nargs] [
+	emit-call-syscall: func [number nargs] [		; @@ check if needs stack alignment too
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
 		emit-i32 to char! shift 255 8 - nargs
 		emit-i32 #{e3a070}							;-- MOV r7, <number>
@@ -1200,14 +1200,16 @@ make target-class [
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
 	]
 	
-	emit-call-import: func [spec [block!] nargs [integer!]][
+	emit-call-import: func [spec [block!] args-nb [integer!]][
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
-		emit-i32 to char! shift 255 8 - nargs
+		emit-i32 to char! shift 255 8 - args-nb
 		
+		emit-stack-align-prolog args-nb
 		pools/collect/spec 0 spec
 		emit-i32 #{e59fc000}						;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
+		emit-stack-align-epilog args-nb
 	]
 
 	emit-call-native: func [spec [block!]][
@@ -1244,7 +1246,7 @@ make target-class [
 		spec: any [select emitter/symbols name next fspec]
 		type: first spec
 
-		switch/default type [
+		switch type [
 			syscall [
 				emit-call-syscall last fspec fspec/1
 			]
@@ -1274,9 +1276,27 @@ make target-class [
 					]
 				]
 			]
-		][
-			compiler/throw-error join "[codegen] nyi call: " type
 		]
+	]
+	
+	emit-stack-align-prolog: func [args-nb [integer!] /local offset][
+		;-- EABI stack 8 bytes alignment: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0046b/IHI0046B_ABI_Advisory_1.pdf
+		; @@ to be optimized: infer stack alignment if possible, to avoid this overhead.
+		
+		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
+		emit-i32 #{e3a04008}						;-- MOV r4, #8
+		emit-i32 #{e2644000}						;-- RSB r4, r4, #0		; 2's complement of r4
+		emit-i32 #{e20dd004}						;-- AND sp, sp, r4		; align sp to 8 bytes
+		offset: 1 + args-nb							;-- account for saved ip
+		unless zero? offset: offset // 4 [
+			emit-i32 join #{e24dd0}					;-- SUB sp, sp, #offset	; ensure call will be 8-bytes aligned
+				to char! (4 - offset) * 4
+		]
+		emit-i32 #{e92d1000}						;-- PUSH {ip}
+	]
+
+	emit-stack-align-epilog: func [args-nb [integer!]][
+		emit-i32 #{e8bd2000}						;-- POP {sp}
 	]
 
 	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size][
@@ -1298,8 +1318,7 @@ make target-class [
 			;; stack.
 			;;
 			;; that's where the prolog ends. locals, if any, will be pushed on the
-			;; stack immediately afterwards. all other reds-generated code is
-			;; required to be stack neutral.
+			;; stack immediately afterwards.
 			;;
 			;; AAPCS (for external calls & callbacks only)
 			;;
@@ -1308,7 +1327,7 @@ make target-class [
 			;;	13 = sp									(callee saved: fun must preserve)
 			;;	12 = "ip" (scratch)
 			;;	4-11 = variable register 1-8			(callee saved: fun must preserve)
-			;;		11 = "fp"
+			;;	11 = "fp"
 			;;	2-3 = argument 3-4
 			;;  0-1	= argument 1-2 / result
 			;;
@@ -1332,6 +1351,7 @@ make target-class [
 			]
 		][
 			;-- Red/System standard function prolog --	
+			
 			emit-i32 #{e92d4800}					;-- PUSH {fp,lr}
 			emit-i32 #{e1a0b00d}					;-- MOV fp, sp
 			unless zero? locals-size [
@@ -1352,6 +1372,7 @@ make target-class [
 			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
 		][
 			;-- Red/System standard function epilog --		
+			
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			emit-i32 #{e8bd4800}					;-- POP {fp,lr}
 			emit-op-imm32
