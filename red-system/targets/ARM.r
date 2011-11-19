@@ -354,7 +354,8 @@ make target-class [
 		none
 	]
 
-	emit-load-imm32: func [value [integer!] /reg n [integer!] /local neg? bits opcode][
+	emit-load-imm32: func [value [integer! char!] /reg n [integer!] /local neg? bits opcode][
+		value: to integer! value
 		if neg?: negative? value [value: complement value]
 
 		either bits: ror-position? value [	
@@ -1141,14 +1142,14 @@ make target-class [
 		right: compiler/unbox args/2
 
 		switch to path! reduce [a b] [
-			imm/imm	[emit-load-imm32 args/1]		;-- MOV r0, a
+			imm/imm	[emit-load-imm32 left]			;-- MOV r0, a
 			imm/ref [emit-load args/1]				;-- r0 = a
 			imm/reg [								;-- r0 = b
 				if path? right [
 					emit-load args/2				;-- late path loading
 				]
 				emit-move-alt						;-- MOV r1, r0
-				emit-load-imm32 args/1				;-- MOV r0, a		; r0 = a, r1 = b
+				emit-load-imm32 left				;-- MOV r0, a		; r0 = a, r1 = b
 			]
 			ref/imm [emit-load args/1]
 			ref/ref [emit-load args/1]
@@ -1202,8 +1203,19 @@ make target-class [
 			find bitshift-op   name [emit-bitshift-op   name a b args]
 		]
 	]
+	
+	emit-variadic-epilog: func [args [block!] /local size][
+		if issue? args/1 [							;-- test for variadic call
+			size: length? args/2
+			if spec/2 = 'native [
+				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments
+			]
+			size: size * stack-width
+			emit-i32 join #{e28dd0} to char! size	;-- ADD sp, sp, #n 	; @@ 8-bit offset only?
+		]
+	]
 
-	emit-call-syscall: func [number nargs] [		; @@ check if needs stack alignment too
+	emit-call-syscall: func [number nargs] [		; @@ check if it needs stack alignment too
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
 		emit-i32 to char! shift 255 8 - nargs
 		emit-i32 #{e3a070}							;-- MOV r7, <number>
@@ -1211,19 +1223,30 @@ make target-class [
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
 	]
 	
-	emit-call-import: func [spec [block!] args-nb [integer!]][
+	emit-call-import: func [args [block!] spec [block!]][
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
-		emit-i32 to char! shift 255 8 - args-nb
+		emit-i32 to char! shift 255 8 - length? args
 		
 		pools/collect/spec 0 spec
 		emit-i32 #{e59fc000}						;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
+		emit-variadic-epilog
 	]
 
-	emit-call-native: func [spec [block!]][
+	emit-call-native: func [args [block!] spec [block!]][
+		if issue? args/1 [							;-- variadic call
+			emit-push 4 * length? args/2			;-- push arguments total size in bytes 
+													;-- (required to clear stack on stdcall return)
+			emit-i32 #{e24dc004}					;-- ADD ip, sp, #4	; skip last pushed value
+			emit-i32 #{e92d1000}					;-- PUSH {ip}		; push arguments list pointer
+			total: length? args/2
+			if args/1 = #typed [total: total / 2]
+			emit-push total							;-- push arguments count
+		]
 		append spec/3 emitter/tail-ptr				;-- remember branching instruction position
 		emit-i32 #{eb000000}						;-- BL <disp>
+		emit-variadic-epilog args
 	]
 
 	patch-call: func [code-buf rel-ptr dst-ptr] [
@@ -1260,10 +1283,10 @@ make target-class [
 				emit-call-syscall last fspec fspec/1
 			]
 			import [
-				emit-call-import spec fspec/1
+				emit-call-import args spec
 			]
 			native [
-				emit-call-native spec
+				emit-call-native args spec
 			]
 			inline [
 				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
@@ -1387,6 +1410,13 @@ make target-class [
 			emit-op-imm32
 				#{e28dd000}							;-- ADD sp, sp, args-size
 				round/to/ceiling args-size 4
+				
+			if compiler/check-variable-arity? locals [
+				emit-i32 #{e8bd0001}				;-- POP {r0}		; skip arguments count
+				emit-i32 #{e8bd0001}				;-- POP {r0}		; skip arguments pointer
+				emit-i32 #{e8bd0001}				;-- POP {r0}		; get stack offset
+				emit-i32 #{e08dd000}				;-- ADD sp, sp, r0	; skip arguments list (clears stack)
+			]
 			emit-i32 #{e1a0f00e}					;-- MOV pc, lr
 		]
 	]
