@@ -452,6 +452,10 @@ make target-class [
 		]
 	]
 	
+	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
+		change at code-buf ptr to-bin32 exit-point - ptr - branch-offset-size
+	]
+	
 	emit-exit: does [
 		emit #{E9}									;-- JMP imm32
 		emit-reloc-addr compose/only [- - (emitter/exits)]

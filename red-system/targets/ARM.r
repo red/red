@@ -798,6 +798,17 @@ make target-class [
 		]
 	]
 	
+	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
+		change 
+			next at code-buf ptr
+			reverse to-bin24 exit-point - ptr - branch-offset-size
+	]
+	
+	emit-exit: does [
+		append emitter/exits emitter/tail-ptr		;-- remember branching instruction position
+		emit-i32 #{ea000000}						;-- B <disp>
+	]
+	
 	emit-branch: func [
 		code 	[binary!]
 		op 		[word! block! logic! none!]

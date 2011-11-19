@@ -409,11 +409,10 @@ emitter: context [
 		size
 	]
 	
-	resolve-exit-points: has [end offset][
+	resolve-exit-points: has [end][
 		end: tail-ptr
-		offset: target/branch-offset-size
 		foreach ptr exits [
-			change at code-buf ptr to-bin32 end - ptr - offset
+			target/patch-exit-call code-buf ptr end
 		]
 	]
 	
