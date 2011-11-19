@@ -1204,12 +1204,10 @@ make target-class [
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
 		emit-i32 to char! shift 255 8 - args-nb
 		
-		emit-stack-align-prolog args-nb
 		pools/collect/spec 0 spec
 		emit-i32 #{e59fc000}						;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
-		emit-stack-align-epilog args-nb
 	]
 
 	emit-call-native: func [spec [block!]][

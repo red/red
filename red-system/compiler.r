@@ -1346,8 +1346,8 @@ system-dialect: context [
 			]
 			order-args name list						;-- reorder argument according to cconv
 
-;			import?: functions/:name/2 = 'import		;@@ syscalls don't seem to need 16-byte alignment??
-;			if import? [emitter/target/emit-stack-align-prolog args]
+			import?: functions/:name/2 = 'import		;@@ syscalls don't seem to need special alignment??
+			if import? [emitter/target/emit-stack-align-prolog length? args]
 
 			type: functions/:name/2
 			either type <> 'op [					
@@ -1374,7 +1374,7 @@ system-dialect: context [
 			][
 				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
-;			if import? [emitter/target/emit-stack-align-epilog args]
+			if import? [emitter/target/emit-stack-align-epilog length? args]
 			res
 		]
 				

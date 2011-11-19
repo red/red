@@ -1001,8 +1001,6 @@ make target-class [
 				]
 			]
 			import [
-				emit-stack-align-prolog length? args
-				
 				either compiler/job/OS = 'MacOSX [
 					emit #{B8}						;-- MOV eax, addr
 					emit-reloc-addr spec
@@ -1011,8 +1009,6 @@ make target-class [
 					emit #{FF15}					;-- CALL FAR [addr]	; indirect call
 					emit-reloc-addr spec
 				]
-				emit-stack-align-epilog length? args
-				
 				if fspec/3 = 'cdecl [				;-- add calling cleanup when required
 					emit-cdecl-pop fspec args
 				]			
