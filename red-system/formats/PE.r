@@ -265,8 +265,12 @@ context [
 			+ to integer! t/second
 	]
 
-	pad-size?: func [buffer [binary!]][
-		file-align - remainder length? buffer file-align
+	pad-size?: func [buffer [binary!] /local rem][
+		either zero? rem: (length? buffer) // file-align [
+			0
+		][
+			file-align - rem
+		]
 	]
 
 	entry-point-page?: func [job [object!] /memory /local ptr][
