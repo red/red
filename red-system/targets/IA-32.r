@@ -932,11 +932,11 @@ make target-class [
 		if issue? args/1 [							;-- test for variadic call
 			size: length? args/2
 			if spec/2 = 'native [
-				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments
+				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments @@ [3 2] ??
 			]
 			size: size * stack-width
 		]
-		emit #{83C4}								;-- ADD esp, n
+		emit #{83C4}								;-- ADD esp, n		; @@ 8-bit offset only?
 		emit to-bin8 size
 	]
 	
