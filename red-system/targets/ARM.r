@@ -1210,7 +1210,7 @@ make target-class [
 		]
 	]
 	
-	emit-variadic-epilog: func [args [block!] /local size][
+	emit-variadic-epilog: func [args [block!] spec [block!] /local size][
 		if issue? args/1 [							;-- test for variadic call
 			size: length? args/2
 			if spec/2 = 'native [
@@ -1237,7 +1237,7 @@ make target-class [
 		emit-i32 #{e59fc000}						;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
-		emit-variadic-epilog args
+		emit-variadic-epilog args spec
 	]
 
 	emit-call-native: func [args [block!] spec [block!]][
@@ -1252,7 +1252,7 @@ make target-class [
 		]
 		append spec/3 emitter/tail-ptr				;-- remember branching instruction position
 		emit-i32 #{eb000000}						;-- BL <disp>
-		emit-variadic-epilog args
+		emit-variadic-epilog args spec
 	]
 
 	patch-call: func [code-buf rel-ptr dst-ptr] [
