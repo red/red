@@ -127,23 +127,29 @@ make target-class [
 			values: head values
 		]
 		
-		commit-pools: has [buffer value ins-idx spec entry-pos offset code][
+		commit-pools: has [buffer value ins-idx spec entry-pos offset code back? pool-size][
 			buffer: make binary! 400				;-- reserve pool buffer for 100 values
 			
 			foreach [pool-idx value-refs inline?] pools [
 				clear buffer
-				until [			
+				pool-size: 4 * length? value-refs
+				
+				forall value-refs [		
 					set [value ins-idx spec] value-refs/1
 					
 					append buffer reverse debase/base to-hex value 16
-					
-					entry-pos: 4 * (-1 + index? value-refs)			;-- offset of value entry in the pool
+										
+					entry-pos: 4 * (-1 + index? value-refs)	;-- offset of value entry in the pool
 					offset: pool-idx + entry-pos - (ins-idx + 8)	;-- relative jump offset to the entry
+					if back?: negative? offset [
+						offset:	pool-size + abs offset
+					]
 					offset: reverse #{000003FF} and debase/base to-hex offset 16	;-- create 12-bit offset
 					
 					code: at emitter/code-buf ins-idx
 					change code offset or copy/part code 4	;-- add relative jump offset to instruction
-					
+					if back? [code/3: #"^(7F)" and code/3]	;-- encode a negative offset
+
 					if spec [
 						spec: switch type?/word spec [
 							get-word! [emitter/get-func-ref to word! spec]
@@ -152,8 +158,6 @@ make target-class [
 						]
 						append spec/3 pool-idx + entry-pos	;-- add symbol back-reference for linker
 					]
-					
-					tail? value-refs: next value-refs
 				]
 				insert at emitter/code-buf pool-idx buffer	;-- insert pool in code buffer
 				update-entry-points pool-idx length? buffer	;-- update code entry points accordingly
@@ -396,6 +400,7 @@ make target-class [
 
 		either offset: select emitter/stack name [	;-- local variable case
 			if negative? offset [
+				lcode: copy lcode
 				lcode/2: #"^(7F)" and lcode/2		;-- clear bit 23 (U)
 			]			
 			offset: to-12-bit abs offset
@@ -650,9 +655,11 @@ make target-class [
 
 		switch type?/word value [
 			char! [
+				;emit-load-imm32 to integer! value
 				do store-byte
 			]
 			integer! [
+				;emit-load-imm32 value
 				do store-word
 			]
 			word! [
@@ -694,7 +701,7 @@ make target-class [
 		emit-variable idx
 			#{e5903000}								;-- LDR r3, [r0]		; global
 			#{e59b3000}								;-- LDR r3, [fp, #[-]n]	; local
-		emit-i32 #{e24dd008}						;-- SUB r3, r3, #1		; one-based index
+		emit-i32 #{e2433001}						;-- SUB r3, r3, #1		; one-based index
 	]
 
 	emit-c-string-path: func [path [path! set-path!] parent [block! none!] /local opcodes idx][
@@ -722,7 +729,7 @@ make target-class [
 			]
 		][
 			emit-load-index idx
-			emit opcodes/2
+			emit-i32 opcodes/2
 		]
 	]
 	
@@ -814,28 +821,28 @@ make target-class [
 		code 	[binary!]
 		op 		[word! block! logic! none!]
 		offset  [integer! none!]
-		/back										;@@ rename it to 'backward
+		/back										;@@ rename it to 'backward or 'back?
 		/local distance opcode jmp
 	][
-		distance: (length? code) - (any [offset 0]) - 4		;-- offset from the code's head
-		if back [distance: negate distance + 4]
+		distance: (length? code) - (any [offset 0]) - 4	;-- offset from the code's head
+		if back [distance: negate distance + 12]	;-- 8 (PC offset) + one instruction
 		
-		op: either not none? op [							;-- explicitly test for none
+		op: either not none? op [					;-- explicitly test for none
 			op: case [
-				block? op [									;-- [cc] => keep
+				block? op [							;-- [cc] => keep
 					op: op/1
 					either logic? op [pick [= <>] op][op]	;-- [logic!] or [cc]
 				]
-				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
-				'else 	  [opposite? op]					;-- 'cc => invert condition
+				logic? op [pick [= <>] op]			;-- test for TRUE/FALSE
+				'else 	  [opposite? op]			;-- 'cc => invert condition
 			]
-			either '- = third op: find conditions op [		;-- lookup the code for the condition
-				op/2										;-- condition defined only for signed
+			either '- = third op: find conditions op [	;-- lookup the code for the condition
+				op/2								;-- condition defined only for signed
 			][
-				pick op pick [2 3] signed?					;-- choose code between signed and unsigned
+				pick op pick [2 3] signed?			;-- choose code between signed and unsigned
 			]
 		][
-			#{e0}											;-- unconditional jump
+			#{e0}									;-- unconditional jump
 		]
 		unless back [
 			pools/mark-jmp-point emitter/tail-ptr distance	;-- update code indexes affected by the insertion
@@ -844,7 +851,7 @@ make target-class [
 			op or #{0a} to-bin24 shift distance 2
 		]
 		insert any [all [back tail code] code] opcode
-		4													;-- opcode length
+		4											;-- opcode length
 	]
 
 	emit-push: func [
@@ -874,7 +881,6 @@ make target-class [
 				do push-last
 			]
 			word! [
-				type: first compiler/get-variable-spec value
 				emit-variable value
 					#{e5900000} 					;-- LDR r0, [r0]		; global
 					#{e59b0000}						;-- LDR r0, [fp, #[-]n]	; local
