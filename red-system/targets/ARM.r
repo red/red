@@ -1324,7 +1324,7 @@ make target-class [
 		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
 		emit-i32 #{e3a04008}						;-- MOV r4, #8
 		emit-i32 #{e2644000}						;-- RSB r4, r4, #0		; 2's complement of r4
-		emit-i32 #{e20dd004}						;-- AND sp, sp, r4		; align sp to 8 bytes
+		emit-i32 #{e00dd004}						;-- AND sp, sp, r4		; align sp to 8 bytes
 		offset: 1 + args-nb							;-- account for saved ip
 		unless zero? offset: offset // 4 [
 			emit-i32 join #{e24dd0}					;-- SUB sp, sp, #offset	; ensure call will be 8-bytes aligned
