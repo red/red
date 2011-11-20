@@ -1237,7 +1237,7 @@ make target-class [
 		emit-i32 #{e59fc000}						;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
-		emit-variadic-epilog
+		emit-variadic-epilog args
 	]
 
 	emit-call-native: func [args [block!] spec [block!]][
