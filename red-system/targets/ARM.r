@@ -164,10 +164,11 @@ make target-class [
 			]
 		]
 		
-		process: does [	
-			populate-pools
-			commit-pools
-			
+		process: does [
+			unless empty? values [
+				populate-pools
+				commit-pools
+			]	
 			clear entry-points: head entry-points
 			clear values
 			clear pools
@@ -430,7 +431,6 @@ make target-class [
 			if width = 1 [
 				g-code: g-code or byte-flag
 				l-code: l-code or byte-flag
-				emit-variable name g-code l-code
 			]
 			either alt [
 				emit-variable/alt name g-code l-code
@@ -655,16 +655,16 @@ make target-class [
 
 		switch type?/word value [
 			char! [
-				;emit-load-imm32 to integer! value
+				;emit-load-imm32 to integer! value	;-- @@ check if really not required
 				do store-byte
 			]
 			integer! [
-				;emit-load-imm32 value
+				;emit-load-imm32 value				;-- @@ check if really not required
 				do store-word
 			]
 			word! [
 				set-width name
-				do store-word
+				do either width = 1 [store-byte][store-word]
 			]
 			get-word! [
 				pools/collect/spec 0 value
