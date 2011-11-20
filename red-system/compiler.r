@@ -1329,6 +1329,11 @@ system-dialect: context [
 					functions/:name/2 = 'syscall
 					job/syscall = 'BSD
 				]
+				all [
+					functions/:name/2 = 'syscall		
+					job/target = 'ARM					;-- odd, but required for Linux/ARM syscalls
+					job/syscall = 'Linux
+				]
 			][		
 				reverse args
 			]
