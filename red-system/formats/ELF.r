@@ -388,7 +388,12 @@ context [
 		]
 
 		;; Concatenate the layout data into the output binary.
-		job/buffer: serialize-data map-each [name values] layout [values/data]
+		job/buffer: copy #{}
+		foreach [name values] layout [
+			append job/buffer serialize-data values/data			;; Data
+			append job/buffer rejoin array/initial values/pad #{00} ;; Padding
+		]
+		job/buffer
 	]
 
 	;; -- ELF structure builders --
@@ -748,7 +753,12 @@ context [
 					)
 				|
 					(
-						total: total + find-size commands name
+						size: find-size commands name
+						;; Ensure all leaf nodes are padded to 32-bit multiples.
+						if not zero? pad: (4 - (size // 4)) // 4 [ ;; @@ Make alignment target-specific.
+							repend commands [name 'pad pad]
+						]
+						total: total + size + pad
 					)
 				]
 			]
@@ -765,13 +775,14 @@ context [
 	] [
 		layout: copy []
 
-		emit: func [n t o a m /local s d] [
-			s: find-size commands n
-			m: merge-meta commands n m
-			d: select commands reduce [name 'data]
+		emit: func [n t o a s m d /local p] [
+			p: any [select commands reduce [name 'pad] 0]
 			repend layout [
-				n reduce ['type t 'offset o 'address a 'size s 'meta m 'data d]
+				n reduce [
+					'type t 'offset o 'address a 'size s 'pad p 'meta m 'data d
+				]
 			]
+			p
 		]
 
 		offset: 0
@@ -785,18 +796,22 @@ context [
 				set type word!
 				set name string!
 				opt [set meta block!]
-				(address: address + find-skip commands name)
+				(
+					address: address + find-skip commands name
+					size: find-size commands name
+					meta: merge-meta commands name meta
+					data: select commands reduce [name 'data]
+				)
 				[
 					into [
-						(emit name type offset address meta)
+						(emit name type offset address size meta data)
 						elements-rule
 					]
 				|
 					(
-						emit name type offset address meta
-						size: find-size commands name
-						address: address + size
-						offset: offset + size
+						padding: emit name type offset address size meta data
+						address: address + size + padding
+						offset: offset + size + padding
 					)
 				]
 			]
