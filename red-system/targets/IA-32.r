@@ -465,13 +465,13 @@ make target-class [
 		code [binary!]
 		op [word! block! logic! none!]
 		offset [integer! none!]
-		/back
+		/back?
 		/local size imm8? opcode jmp
 	][
 		if verbose >= 3 [print [">>>inserting branch" either op [join "cc: " mold op][""]]]
 		
 		size: (length? code) - any [offset 0]				;-- offset from the code's head
-		imm8?: size <= either back [126][127]				;-- account 2 bytes for JMP imm8
+		imm8?: size <= either back? [126][127]				;-- account 2 bytes for JMP imm8
 		opcode: either not none? op [						;-- explicitly test for none
 			op: case [
 				block? op [									;-- [cc] => keep
@@ -485,9 +485,9 @@ make target-class [
 		][
 			pick [#{EB} #{E9}] imm8?						;-- JMP offset 	; 8/32-bit displacement
 		]
-		if back [size: negate (size + (length? opcode) + pick [1 4] imm8?)]
+		if back? [size: negate (size + (length? opcode) + pick [1 4] imm8?)]
 		jmp: rejoin [opcode either imm8? [to-bin8 size][to-bin32 size]]
-		insert any [all [back tail code] code] jmp
+		insert any [all [back? tail code] code] jmp
 		length? jmp
 	]
 	

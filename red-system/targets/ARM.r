@@ -821,11 +821,11 @@ make target-class [
 		code 	[binary!]
 		op 		[word! block! logic! none!]
 		offset  [integer! none!]
-		/back										;@@ rename it to 'backward or 'back?
+		/back?
 		/local distance opcode jmp
 	][
 		distance: (length? code) - (any [offset 0]) - 4	;-- offset from the code's head
-		if back [distance: negate distance + 12]	;-- 8 (PC offset) + one instruction
+		if back? [distance: negate distance + 12]	;-- 8 (PC offset) + one instruction
 		
 		op: either not none? op [					;-- explicitly test for none
 			op: case [
@@ -844,13 +844,13 @@ make target-class [
 		][
 			#{e0}									;-- unconditional jump
 		]
-		unless back [
+		unless back? [
 			pools/mark-jmp-point emitter/tail-ptr distance	;-- update code indexes affected by the insertion
 		]
 		opcode: reverse rejoin [
 			op or #{0a} to-bin24 shift distance 2
 		]
-		insert any [all [back tail code] code] opcode
+		insert any [all [back? tail code] code] opcode
 		4											;-- opcode length
 	]
 

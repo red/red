@@ -104,7 +104,7 @@ emitter: context [
 				size
 			]
 			back [
-				target/emit-branch/back chunk/1 cond offset
+				target/emit-branch/back? chunk/1 cond offset
 			]
 		]
 	]
