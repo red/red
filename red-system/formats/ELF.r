@@ -286,7 +286,6 @@ context [
 			".shstrtab"		data (to-elf-strtab sections)
 		]
 
-		complete-sizes structure commands
 		layout: layout-binary structure commands
 
 		;; In the following section, we try to minimize the global state passed
@@ -777,6 +776,8 @@ context [
 
 		offset: 0
 		address: 0
+
+		complete-sizes structure commands
 
 		parse structure elements-rule: [
 			any [
