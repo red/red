@@ -78,9 +78,8 @@ make target-class [
 		]
 		
 		update-values-index: func [idx [integer!] offset [integer!]][		
-			forall values [			
-				if values/2 > idx [values/2: values/2 + 4]
-				values: next next values			;-- records of size = 3
+			forskip values 3 [			
+				if values/2 >= idx [values/2: values/2 + 4]
 			]			
 		]
 		
@@ -809,10 +808,11 @@ make target-class [
 	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
 		change 
 			next at code-buf ptr
-			reverse to-bin24 exit-point - ptr - branch-offset-size
+			reverse to-bin24 shift exit-point - ptr - branch-offset-size 2
 	]
 	
 	emit-exit: does [
+		if verbose >= 3 [print ">>>exiting function"]
 		append emitter/exits emitter/tail-ptr		;-- remember branching instruction position
 		emit-i32 #{ea000000}						;-- B <disp>
 	]
@@ -848,8 +848,8 @@ make target-class [
 			pools/mark-jmp-point emitter/tail-ptr distance	;-- update code indexes affected by the insertion
 		]
 		opcode: reverse rejoin [
-			op or #{0a} to-bin24 shift distance 2
-		]
+			op or #{0a} copy to-bin24 shift distance 2
+		]		
 		insert any [all [back? tail code] code] opcode
 		4											;-- opcode length
 	]
