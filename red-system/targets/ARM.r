@@ -579,7 +579,7 @@ make target-class [
 	
 	emit-boolean-switch: does [
 		emit-i32 #{e3a00000}						;--		  MOV r0, #0	; (FALSE)
-		emit-i32 #{ea000001}						;--		  B _exit
+		emit-i32 #{ea000000}						;--		  B _exit
 		emit-i32 #{e3a00001}						;--		  MOV r0, #1	; (TRUE)
 													;-- _exit:
 		reduce [4 12]								;-- [offset-TRUE offset-FALSE]
@@ -1244,7 +1244,7 @@ make target-class [
 		if issue? args/1 [							;-- variadic call
 			emit-push 4 * length? args/2			;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
-			emit-i32 #{e24dc004}					;-- ADD ip, sp, #4	; skip last pushed value
+			emit-i32 #{e28dc004}					;-- ADD ip, sp, #4	; skip last pushed value
 			emit-i32 #{e92d1000}					;-- PUSH {ip}		; push arguments list pointer
 			total: length? args/2
 			if args/1 = #typed [total: total / 2]
