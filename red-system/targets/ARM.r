@@ -1062,10 +1062,10 @@ make target-class [
 				op-poly: [emit-i32 #{e0800001}]		;-- ADD r0, r0, r1	; commutable op
 				switch b [
 					imm [
-						emit-op-imm32 #{e2800000} args/2 ;-- ADD r0, r0, #value
+						emit-op-imm32 #{e2800000} arg2 ;-- ADD r0, r0, #value
 					]
 					ref [
-						emit-load/alt args/2
+						emit-load/alt arg2
 						do op-poly
 					]
 					reg [do op-poly]
@@ -1075,10 +1075,10 @@ make target-class [
 				op-poly: [emit-i32 #{e0400001}] 	;-- SUB r0, r0, r1	; not commutable op
 				switch b [
 					imm [
-						emit-op-imm32 #{e2400000} args/2 ;-- SUB r0, r0, #value
+						emit-op-imm32 #{e2400000} arg2 ;-- SUB r0, r0, #value
 					]
 					ref [
-						emit-load/alt args/2
+						emit-load/alt arg2
 						do op-poly
 					]
 					reg [do op-poly]
