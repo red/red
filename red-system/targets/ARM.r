@@ -46,6 +46,7 @@ make target-class [
 		;-- Collect a literal value to be stored in a pool
 		collect: func [value [integer!] /spec s [word! get-word! block!] /local pos][
 			insert pos: tail values reduce [value emitter/tail-ptr s]
+			emit-reloc-addr/only next pos
 			pos
 		]
 		
@@ -72,14 +73,14 @@ make target-class [
 		
 		update-pools-index: func [idx [integer!] offset [integer!]][
 			forall pools [
-				if pools/1 > idx [pools/1: pools/1 + 4]
+				if pools/1 > idx [pools/1: pools/1 + offset]
 				pools: next next pools				;-- records of size = 3
 			]
 		]
 		
 		update-values-index: func [idx [integer!] offset [integer!]][		
 			forskip values 3 [			
-				if values/2 >= idx [values/2: values/2 + 4]
+				if values/2 >= idx [values/2: values/2 + offset]
 			]			
 		]
 		
@@ -139,11 +140,11 @@ make target-class [
 					append buffer reverse debase/base to-hex value 16
 										
 					entry-pos: 4 * (-1 + index? value-refs)	;-- offset of value entry in the pool
-					offset: pool-idx + entry-pos - (ins-idx + 8)	;-- relative jump offset to the entry
+					offset: pool-idx + entry-pos - (ins-idx + 8)	;-- relative jump offset to the entry				
 					if back?: negative? offset [
 						offset:	pool-size + abs offset
 					]
-					offset: reverse #{000003FF} and debase/base to-hex offset 16	;-- create 12-bit offset
+					offset: reverse to-12-bit offset
 					
 					code: at emitter/code-buf ins-idx
 					change code offset or copy/part code 4	;-- add relative jump offset to instruction
@@ -174,11 +175,20 @@ make target-class [
 		]
 	]
 	
+	emit-reloc-addr: func [spec [block!] /only][
+		unless only [append spec emitter/tail-ptr]	;-- save reloc position
+		unless empty? emitter/chunks/queue [				
+			append/only 							;-- record reloc reference
+				second last emitter/chunks/queue
+				either only [spec][back tail spec]
+		]
+	]
+	
 	emit-divide: does [
 		;-- Unsigned division code is from http://www.virag.si/2010/02/simple-division-algorithm-for-arm-assembler/
 		;-- Original routine extended to handle signed division using code from:
 		;-- "ARM System Developer's Guide", p.238, ISBN: 1-55860-874-5
-		if verbose >= 3 [print ">>>emitting DIVIDE intrinsic"]
+		if verbose >= 3 [print "^/>>>emitting DIVIDE intrinsic"]
 		
 		foreach opcode [	
 							; .divide	
@@ -264,7 +274,7 @@ make target-class [
 			rem [#"^(02)"]
 		][null]
 		
-		append refs emitter/tail-ptr				;-- remember branching instruction position
+		emit-reloc-addr refs
 		emit-i32 #{eb000000}						;-- BL .divide
 	]
 	
@@ -281,12 +291,12 @@ make target-class [
 	on-global-epilog: does [pools/mark-entry-point]	;-- add end of global code section as pool entry-point
 	
 	to-bin24: func [v [integer! char!]][
-		skip debase/base to-hex to integer! v 16 1
+		copy skip debase/base to-hex to integer! v 16 1
 	]
 	
 	;-- Convert a 12-bit integer offset to a 32-bit hexa
 	to-12-bit: func [offset [integer!]][
-		#{000003FF} and debase/base to-hex offset 16
+		#{00000FFF} and debase/base to-hex offset 16
 	]
 	
 	to-shift-imm: func [value [integer!]][
@@ -807,13 +817,13 @@ make target-class [
 	
 	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
 		change 
-			next at code-buf ptr
+			at code-buf ptr
 			reverse to-bin24 shift exit-point - ptr - branch-offset-size 2
 	]
 	
 	emit-exit: does [
 		if verbose >= 3 [print ">>>exiting function"]
-		append emitter/exits emitter/tail-ptr		;-- remember branching instruction position
+		emit-reloc-addr emitter/exits
 		emit-i32 #{ea000000}						;-- B <disp>
 	]
 	
@@ -845,10 +855,12 @@ make target-class [
 			#{e0}									;-- unconditional jump
 		]
 		unless back? [
-			pools/mark-jmp-point emitter/tail-ptr distance	;-- update code indexes affected by the insertion
+			if same? head code emitter/code-buf [
+				pools/mark-jmp-point emitter/tail-ptr distance	;-- update code indexes affected by the insertion
+			]
 		]
 		opcode: reverse rejoin [
-			op or #{0a} copy to-bin24 shift distance 2
+			op or #{0a} to-bin24 shift distance 2
 		]		
 		insert any [all [back? tail code] code] opcode
 		4											;-- opcode length
@@ -1250,7 +1262,7 @@ make target-class [
 			if args/1 = #typed [total: total / 2]
 			emit-push total							;-- push arguments count
 		]
-		append spec/3 emitter/tail-ptr				;-- remember branching instruction position
+		emit-reloc-addr spec/3
 		emit-i32 #{eb000000}						;-- BL <disp>
 		emit-variadic-epilog args spec
 	]
