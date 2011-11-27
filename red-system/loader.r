@@ -166,7 +166,7 @@ loader: context [
 				) :s
 				| s: #include set name file! e: (
 					either included? name: find-path name [
-						remove/part s e				;-- already included, drop it
+						s: remove/part s e			;-- already included, drop it
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
 						value: skip process/short name 2			;-- skip Red/System header
@@ -179,7 +179,7 @@ loader: context [
 						]
 						current-script: name
 					]
-				)
+				) :s
 				| s: #if set name word! set opr skip set value any-type! set then-block block! e: (
 					either check-condition 'if reduce [name opr get/any 'value][
 						change/part s then-block e
