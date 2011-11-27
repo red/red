@@ -74,13 +74,13 @@ loader: context [
 		]
 	]
 
-	expand-string: func [src [string! binary!] /local value s e c line lf-count ws i p ins?][
+	expand-string: func [src [string! binary!] /local value s e c line lf-count ws i prev ins?][
 		if verbose > 0 [print "running string preprocessor..."]
 
 		line: 1										;-- lines counter
 		lf-count: [lf s: (
-			if p <> i: index? s [					;-- workaround to avoid writing more complex rules
-				p: i
+			if prev <> i: index? s [				;-- workaround to avoid writing more complex rules
+				prev: i
 				line: line + 1
 				if ins? [s: insert s rejoin [" #L " line " "]]
 			]
