@@ -506,7 +506,7 @@ make target-class [
 	]
 	
 	emit-get-pc: does [
-		emit-i32 #{e1a0f000}						;-- MOV r0, pc
+		emit-i32 #{e1a0000f}						;-- MOV r0, pc
 	]
 
 	emit-set-stack: func [value /frame][
@@ -522,9 +522,9 @@ make target-class [
 	emit-get-stack: func [/frame][
 		if verbose >= 3 [print ">>>emitting GET-STACK"]
 		either frame [
-			emit-i32 #{e1a0b000}					;-- MOV eax, fp
+			emit-i32 #{e1a0000b}					;-- MOV r0, fp
 		][
-			emit-i32 #{e1a0d000}					;-- MOV eax, sp
+			emit-i32 #{e1a0000d}					;-- MOV r0, sp
 		]
 	]
 
@@ -806,10 +806,10 @@ make target-class [
 				set-width/type type					;-- adjust operations width to member value size
 
 				either zero? offset: emitter/member-offset? parent path/2 [
-					emit-i32 #{e5401000}			;-- STR r1, [r0]
+					emit-poly #{e5001000}			;-- STR r1, [r0]
 				][
 					emit-load-imm32/reg offset 3
-					emit-i32 #{e5401000}			;-- STR r1, [r0, r3]
+					emit-poly #{e7801003}			;-- STR r1, [r0, r3]
 				]
 			]
 		]
