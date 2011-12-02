@@ -85,8 +85,8 @@ prin-int: func [i [integer!] return: [integer!] /local s c n][
 	;-- used in signal handlers, so dynamic allocation removed to limit interferences
 	
 	if zero? i [prin "0" return 0]
-	s: "-2147483648"					;-- 11 bytes wide
-	if i = -2147483648 [prin s return i]
+	s: "-0000000000"					;-- 11 bytes wide
+	if i = -2147483648 [prin "-2147483648" return i]
 	n: negative? i
 	if n [i: negate i]
 	c: 11
