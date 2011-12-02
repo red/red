@@ -42,6 +42,16 @@ make target-class [
 		entry-points: make block! 100				;-- insertion points candidates for pools
 		jmp-points:	  make block! 100				;-- relative jumps positions
 		pools:		  make block! 1					;-- [pool-pos [value-ref ...] inline? ...]
+		verbose:	  0								;-- if > 0, output debug logs
+		
+		pools-stats: has [list][
+			print "--- Pools:"
+			list: pools
+			forskip list 3 [
+				print ["pos:" list/1 ", literals:" length? list/2]
+			]
+			print "---"
+		]
 		
 		;-- Collect a literal value to be stored in a pool
 		collect: func [value [integer!] /spec s [word! get-word! block!] /local pos][
@@ -51,45 +61,52 @@ make target-class [
 		]
 		
 		;-- Collect a possible position in code for a literals pool
-		mark-entry-point: does [
+		mark-entry-point: func [name][
+			if verbose > 0 [print ["new entry-point:" emitter/tail-ptr "(after" name #")"]]
+			
 			append entry-points emitter/tail-ptr
 		]
 		
-		mark-jmp-point: func [idx [integer!] offset [integer!]][
+		insert-jmp-point: func [idx [integer!] offset [integer!]][
 			repend jmp-points [idx idx + offset]
 			
 			update-values-index idx 4				;-- move values references by 4 bytes
-			update-pools-index  idx 4				;-- move pools positions by 4 bytes
 			update-entry-points idx 4				;-- move entry-points by 4 bytes
 		]
 		
 		get-pool: does [skip tail pools -3]
 		
-		make-pool: does [
-			repend pools [entry-points/1 make block! 16 no]	;-- create a new pool entry
-			entry-points: next entry-points			;-- move to next possible position
-			get-pool								;-- get a reference on the last pool structure
-		]
-		
-		update-pools-index: func [idx [integer!] offset [integer!]][
-			forall pools [
-				if pools/1 > idx [pools/1: pools/1 + offset]
-				pools: next next pools				;-- records of size = 3
+		make-pool: has [bound ep][
+			ep: entry-points
+			
+			unless empty? pools [
+				bound: second last second get-pool	;-- start search after last stored literal entry position in code				
+				while [ep/1 < bound][ep: next ep]
+				if tail? ep [
+					compiler/throw-error "[ARM emitter] suitable pool position not found!"
+				]
 			]
+			repend pools [ep/1 make block! 50 no]	;-- create a new pool entry
+			entry-points: next ep					;-- move to next possible position
+			get-pool								;-- return a reference on the last pool structure
 		]
-		
+				
 		update-values-index: func [idx [integer!] offset [integer!]][		
 			forskip values 3 [			
 				if values/2 >= idx [values/2: values/2 + offset]
 			]			
 		]
 		
-		;-- Update code addresses after a pool insertion
-		update-entry-points: func [pool-idx [integer!] offset [integer!] /local refs][
-			ep: entry-points
-			forall ep [if ep/1 >= pool-idx [ep/1: ep/1 + offset]]
+		;-- Update functions entry points after a pool insertion
+		update-entry-points: func [pool-idx [integer!] offset [integer!] /strict /local refs comp][
+			comp: get pick [greater? greater-or-equal?] to logic! strict
 			
-			foreach [name spec] emitter/symbols [	;-- move up functions entry-points and references
+			ep: head entry-points
+			forall ep [if comp ep/1 pool-idx [ep/1: ep/1 + offset]]
+			
+			forskip pools 3 [if comp pools/1 pool-idx [pools/1: pools/1 + offset]]
+
+			foreach [name spec] emitter/symbols [	;-- move functions entry-points and references
 				if all [
 					spec/1 = 'native
 					not empty? refs: spec/3
@@ -100,7 +117,23 @@ make target-class [
 			]
 		]
 		
+		find-close-pool: func [pool-idx [integer!] ins-idx [integer!] /local pool][
+			pool: find/skip pools pool-idx 3
+			until [
+				pool: skip pool 3				
+				if tail? pool [
+					if 4092 > entry-points/1 [return make-pool]	;-- see if next entry-point is reachable
+					compiler/error "[ARM emitter] unable to find a reachable pool!"
+				]
+				4092 > abs pool/1 + (4 * length? pool/2) - ins-idx		;@@	(ins-idx + 8)?
+			]
+			pool
+		]
+		
+		;-- Create literal pools lists and put literals pointers inside according to their distance
 		populate-pools: has [index pos offset pool][
+			if verbose > 0 [print "^/=== Populate stage ==="]
+			
 			until [
 				index: values/2
 				if empty? pools [make-pool]
@@ -108,8 +141,11 @@ make target-class [
 				pool: get-pool
 				pos: pool/1 + (4 * length? pool/2)	;-- pos: offset of value entry in the pool buffer
 
-				either positive? offset: pos - index [	;-- test if pool is before or after caller
-					if 4092 <= offset [
+				offset: pos - index
+				if verbose > 0 [prin [offset " "]]
+
+				either positive? offset [			;-- test if pool is before or after caller
+					if 4092 <= offset [				;-- if pool is too far ahead
 						compiler/throw-error "[ARM emitter] pool too far!"
 						;pool/3: yes				;-- set "inlined" flag
 						;TBD: handle pool in the middle of code case
@@ -120,19 +156,61 @@ make target-class [
 						pos: pool/1 + (4 * length? pool/2)
 					]
 				]
-				
 				append/only pool/2 values			;-- insert literal value in the pool
 				tail? values: skip values 3
 			]
 			values: head values
 		]
 		
-		commit-pools: has [buffer value ins-idx spec entry-pos offset code back? pool-size][
-			buffer: make binary! 400				;-- reserve pool buffer for 100 values
+		;-- Move literal values that became out-of-range to a closer pool
+		adjust-pools: has [pool-size value ins-idx spec entry-pos offset][
+			if verbose > 0 [print "^/=== Adjust stage ===" pools-stats]
 			
 			foreach [pool-idx value-refs inline?] pools [
-				clear buffer
 				pool-size: 4 * length? value-refs
+				update-values-index pool-idx pool-size
+				update-entry-points/strict pool-idx pool-size
+			]
+		
+			foreach [pool-idx value-refs inline?] pools [
+				if verbose > 0 [print ["processing pool:" pool-idx]]
+				
+				forall value-refs [		
+					set [value ins-idx spec] value-refs/1
+					
+					entry-pos: 4 * (-1 + index? value-refs)	;-- offset of value entry in the pool
+					offset: pool-idx + entry-pos - (ins-idx + 8)	;-- relative jump offset to the entry				
+					if verbose > 0 [print [offset " "]]
+				
+					offset:	abs offset
+
+					if offset >= 4092 [
+						pool: find-close-pool pool-idx ins-idx
+						if verbose > 0 [print ["- out-of-range:" offset ", moving to pool:" pool/1]]
+						append/only pool/2 value-refs/1
+						remove value-refs
+						value-refs: back value-refs
+						
+						update-values-index pool-idx -4
+						update-entry-points/strict pool-idx -4
+						
+						update-values-index pool/1 4
+						update-entry-points/strict pool/1 4
+					]
+				]
+			]
+		]
+		
+		;-- Build pools buffers and insert them in native code buffer
+		commit-pools: has [buffer value ins-idx spec entry-pos offset code back?][
+			if verbose > 0 [print "^/=== Commit stage ===" pools-stats]
+			buffer: make binary! 400				;-- reserve pool buffer for 100 values
+
+			foreach [pool-idx value-refs inline?] pools [
+				if verbose > 0 [print ["^/- pool:" pool-idx ", len:" length? value-refs]]
+				clear buffer
+				
+				insert/dup at emitter/code-buf pool-idx null 4 * length? value-refs
 				
 				forall value-refs [		
 					set [value ins-idx spec] value-refs/1
@@ -141,8 +219,13 @@ make target-class [
 										
 					entry-pos: 4 * (-1 + index? value-refs)	;-- offset of value entry in the pool
 					offset: pool-idx + entry-pos - (ins-idx + 8)	;-- relative jump offset to the entry				
-					if back?: negative? offset [
-						offset:	pool-size + abs offset
+					back?: negative? offset 
+					if verbose > 0 [print [offset " "]]
+					
+					offset:	abs offset
+
+					if offset >= 4092 [
+						compiler/throw-error "[ARM emitter] adjusting failed!"
 					]
 					offset: reverse to-12-bit offset
 					
@@ -159,14 +242,14 @@ make target-class [
 						append spec/3 pool-idx + entry-pos	;-- add symbol back-reference for linker
 					]
 				]
-				insert at emitter/code-buf pool-idx buffer	;-- insert pool in code buffer
-				update-entry-points pool-idx length? buffer	;-- update code entry points accordingly
+				change at emitter/code-buf pool-idx buffer	;-- insert pool in code buffer
 			]
 		]
 		
 		process: does [
 			unless empty? values [
 				populate-pools
+				adjust-pools
 				commit-pools
 			]	
 			clear entry-points: head entry-points
@@ -286,15 +369,21 @@ make target-class [
 		pools/process								;-- trigger pools processing on end of code generation
 	]
 	
-	on-global-prolog: does [need-divide?: no]
+	on-global-prolog: func [runtime? [logic!]][
+		if runtime? [need-divide?: no]
+	]
 	
-	on-global-epilog: does [pools/mark-entry-point]	;-- add end of global code section as pool entry-point
+	on-global-epilog: func [runtime? [logic!]][	
+		unless runtime? [
+			pools/mark-entry-point 'global			;-- add end of global code section as pool entry-point
+		]
+	]
 	
 	to-bin24: func [v [integer! char!]][
 		copy skip debase/base to-hex to integer! v 16 1
 	]
 	
-	;-- Convert a 12-bit integer offset to a 32-bit hexa
+	;-- Convert a 12-bit integer offset to a 32-bit hexa LE
 	to-12-bit: func [offset [integer!]][
 		#{00000FFF} and debase/base to-hex offset 16
 	]
@@ -856,7 +945,7 @@ make target-class [
 		]
 		unless back? [
 			if same? head code emitter/code-buf [
-				pools/mark-jmp-point emitter/tail-ptr distance	;-- update code indexes affected by the insertion
+				pools/insert-jmp-point emitter/tail-ptr distance	;-- update code indexes affected by the insertion
 			]
 		]
 		opcode: reverse rejoin [
@@ -1350,8 +1439,6 @@ make target-class [
 	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
-		pools/mark-entry-point
-
 		fspec: select compiler/functions name
 		either all [block? fspec/4/1 fspec/5 = 'callback][
 			;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
@@ -1435,5 +1522,7 @@ make target-class [
 			]
 			emit-i32 #{e1a0f00e}					;-- MOV pc, lr
 		]
+
+		pools/mark-entry-point name
 	]
 ]
