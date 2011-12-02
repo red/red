@@ -1680,14 +1680,15 @@ system-dialect: context [
 			pc: next pc
 		]
 
-		run: func [obj [object!] src [block!] file [file!] /no-header][
+		run: func [obj [object!] src [block!] file [file!] /no-header /runtime][
+			runtime: to logic! runtime
 			job: obj
 			pc: src
 			script: secure-clean-path file
 			unless no-header [comp-header]
-			emitter/target/on-global-prolog
+			emitter/target/on-global-prolog runtime
 			comp-dialect
-			emitter/target/on-global-epilog
+			if runtime [emitter/target/on-global-epilog yes]	;-- postpone epilog event after comp-runtime-epilog
 		]
 		
 		finalize: does [
@@ -1739,11 +1740,12 @@ system-dialect: context [
 	
 	comp-runtime-prolog: has [script][
 		script: secure-clean-path runtime-path/common.reds
- 		compiler/run job loader/process script script
+ 		compiler/run/runtime job loader/process script script
 	]
 	
 	comp-runtime-epilog: does [	
 		compiler/comp-call '***-on-quit [0 0]			;-- call runtime exit handler
+		emitter/target/on-global-epilog no
 	]
 	
 	clean-up: does [
