@@ -1688,7 +1688,14 @@ system-dialect: context [
 			unless no-header [comp-header]
 			emitter/target/on-global-prolog runtime
 			comp-dialect
-			if runtime [emitter/target/on-global-epilog yes]	;-- postpone epilog event after comp-runtime-epilog
+			case [
+				runtime [
+					emitter/target/on-global-epilog yes	;-- postpone epilog event after comp-runtime-epilog
+				]
+				not job/runtime? [
+					emitter/target/on-global-epilog no
+				]
+			]
 		]
 		
 		finalize: does [
