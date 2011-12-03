@@ -845,7 +845,7 @@ make target-class [
 		type: either parent [
 			compiler/resolve-type/with path/1 parent
 		][
-			emit-init-path path/1
+			emit-load path/1
 			type: compiler/resolve-type path/1
 		]
 		set-width/type type/2/1						;-- adjust operations width to pointed value size
@@ -1090,7 +1090,10 @@ make target-class [
 		switch b [
 			imm [
 				switch width [
-					1 [emit-i32 join #{e35000} to char! args/2]	;-- CMP r0, #imm8
+					1 [
+						emit-i32 join #{e35000}		;-- CMP r0, #imm8
+							to char! compiler/unbox args/2
+					]
 					;2 []							;-- 16-bit not supported
 					4 [
 						emit-move-alt				;-- MOV r1, r0
