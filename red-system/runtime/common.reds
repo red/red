@@ -99,10 +99,10 @@ form-type: func [
 	Syllable [#define LIBC-file	"libc.so.2"]
 	MacOSX	 [#define LIBC-file	"libc.dylib"]
 	#default [
-		either target = 'Android [			;-- @@ see if declaring it as an OS wouldn't be too costly
+		#either config-name = 'Android [	;-- @@ see if declaring it as an OS wouldn't be too costly
 			#define LIBC-file	"libc.so"
 		][
-			#define LIBC-file	"libc.so.6"
+			#define LIBC-file	"libc.so.6"	;-- Linux
 		]
 	]
 ]
