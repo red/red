@@ -59,7 +59,15 @@ Linux [									; Linux default target
 ;	dynamic-linker: "/lib/ld-linux.so.2"
 ;]
 ;-------------------------
-Linux-ARM [								; Very preliminary support only!
+Android [
+	OS:			'Linux
+	format:		'ELF
+	target:		'ARM
+	type:		'exe
+	base-address: 32768					; 8000h
+	dynamic-linker: "/system/bin/linker"
+]
+Linux-ARM [
 	OS:			'Linux
 	format:		'ELF
 	target:		'ARM
