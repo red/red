@@ -1315,7 +1315,7 @@ make target-class [
 		if issue? args/1 [							;-- test for variadic call
 			size: length? args/2
 			if spec/2 = 'native [
-				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments
+				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments @@
 			]
 			size: size * stack-width
 			emit-i32 join #{e28dd0} to char! size	;-- ADD sp, sp, #n 	; @@ 8-bit offset only?
@@ -1330,10 +1330,13 @@ make target-class [
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
 	]
 	
-	emit-call-import: func [args [block!] spec [block!]][
+	emit-call-import: func [args [block!] spec [block!] /local args-nb][
+		if 4 < args-nb: length? args [
+			compiler/throw-error "[ARM emitter] more than 4 arguments, not yet supported"
+		]
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
-		emit-i32 to char! shift 255 8 - length? args
-		
+		emit-i32 to char! shift 255 8 - args-nb
+				
 		pools/collect/spec 0 spec
 		emit-i32 #{e59fc000}						;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
@@ -1418,22 +1421,22 @@ make target-class [
 		]
 	]
 	
-	emit-stack-align-prolog: func [args-nb [integer!] /local offset][
+	emit-stack-align-prolog: func [args-nb [integer!]][
 		;-- EABI stack 8 bytes alignment: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0046b/IHI0046B_ABI_Advisory_1.pdf
 		; @@ to be optimized: infer stack alignment if possible, to avoid this overhead.
 		
+		emit-i32 #{e92d4000}						;-- PUSH {lr}			; save previous lr value
 		emit-i32 #{e1a0c00d}                        ;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
-		offset: 1 + args-nb							;-- account for saved ip
-		unless zero? offset: offset // 4 [
-			emit-i32 join #{e24dd0}					;-- SUB sp, sp, #offset	; ensure call will be 8-bytes aligned
-				to char! (4 - offset) * 4
+		if odd? 1 + args-nb [						;-- account for saved ip		
+			emit-i32 #{e24dd004}					;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
 		]
 		emit-i32 #{e92d1000}						;-- PUSH {ip}
 	]
 
 	emit-stack-align-epilog: func [args-nb [integer!]][
 		emit-i32 #{e8bd2000}						;-- POP {sp}
+		emit-i32 #{e8bd4000}						;-- POP {lr}
 	]
 
 	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size][
