@@ -1713,10 +1713,9 @@ system-dialect: context [
 			verbose >= 2 [
 				print [
 					"-- compiler/functions --" nl mold compiler/functions nl
-					"-- emitter/stack --"	   nl mold emitter/stack nl
 				]
 			]
-			verbose >= 3 [
+			verbose >= 6 [
 				print [
 					"-- emitter/code-buf --" nl mold emitter/code-buf nl
 					"-- emitter/data-buf --" nl mold emitter/data-buf nl
@@ -1795,20 +1794,21 @@ system-dialect: context [
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
 			
-			
 			job: make-job opts last files				;-- last input filename is retained for output name
 			emitter/init opts/link? job
-			set-verbose-level opts/verbosity
+			if opts/verbosity >= 10 [set-verbose-level opts/verbosity]
 			
 			loader/init
 			if opts/runtime? [comp-runtime-prolog]
 			
+			set-verbose-level opts/verbosity
 			foreach file files [compiler/run job loader/process file file]
+			set-verbose-level 0
 			
 			if opts/runtime? [comp-runtime-epilog]
 			compiler/finalize							;-- compile all functions
 		]
-		if verbose >= 4 [
+		if verbose >= 5 [
 			print [
 				"-- emitter/code-buf (empty addresses):"
 				nl mold emitter/code-buf nl
@@ -1829,6 +1829,8 @@ system-dialect: context [
 				linker/build job
 			]
 		]
+		
+		set-verbose-level opts/verbosity
 		output-logs
 		if opts/link? [clean-up]
 
