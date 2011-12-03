@@ -1356,7 +1356,6 @@ make target-class [
 		]
 		emit-reloc-addr spec/3
 		emit-i32 #{eb000000}						;-- BL <disp>
-		emit-variadic-epilog args spec
 	]
 
 	patch-call: func [code-buf rel-ptr dst-ptr] [
