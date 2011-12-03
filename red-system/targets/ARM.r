@@ -1513,15 +1513,16 @@ make target-class [
 			
 			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
 			emit-i32 #{e8bd4800}					;-- POP {fp,lr}
-			emit-op-imm32
-				#{e28dd000}							;-- ADD sp, sp, args-size
-				round/to/ceiling args-size 4
 				
-			if compiler/check-variable-arity? locals [
+			either compiler/check-variable-arity? locals [
 				emit-i32 #{e8bd0001}				;-- POP {r0}		; skip arguments count
 				emit-i32 #{e8bd0001}				;-- POP {r0}		; skip arguments pointer
 				emit-i32 #{e8bd0001}				;-- POP {r0}		; get stack offset
 				emit-i32 #{e08dd000}				;-- ADD sp, sp, r0	; skip arguments list (clears stack)
+			][
+				emit-op-imm32
+					#{e28dd000}						;-- ADD sp, sp, args-size
+					round/to/ceiling args-size 4
 			]
 			emit-i32 #{e1a0f00e}					;-- MOV pc, lr
 		]
