@@ -395,7 +395,7 @@ make target-class [
 			compiler/resolve-type/with path/1 parent
 		][
 			emit-init-path path/1
-			type: compiler/resolve-type path/1
+			compiler/resolve-type path/1
 		]
 		set-width/type type/2/1						;-- adjust operations width to pointed value size
 		idx: either path/2 = 'value [1][path/2]
