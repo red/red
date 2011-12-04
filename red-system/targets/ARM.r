@@ -39,8 +39,8 @@ make target-class [
 	
 	pools: context [								;-- literals pools management
 		values:		  make block! 2000				;-- [value instruction-pos sym-spec ...]
-		entry-points: make block! 100				;-- insertion points candidates for pools
-		jmp-points:	  make block! 100				;-- relative jumps positions
+		entry-points: make block! 100				;-- insertion points candidates for pools between functions
+		ins-points:	  make block! 100				;-- insertion points candidates for pools inlined in code
 		pools:		  make block! 1					;-- [pool-pos [value-ref ...] inline? ...]
 		verbose:	  0								;-- if > 0, output debug logs
 		
@@ -67,27 +67,51 @@ make target-class [
 			append entry-points emitter/tail-ptr
 		]
 		
-		insert-jmp-point: func [idx [integer!] offset [integer!]][
-			repend jmp-points [idx idx + offset]
-			
+		mark-ins-point: has [pos][
+			pos: emitter/tail-ptr
+			if pos <> pick tail ins-points -1 [append ins-points pos]
+		]
+		
+		insert-jmp-point: func [idx [integer!] offset [integer!]][			
 			update-values-index idx 4				;-- move values references by 4 bytes
 			update-entry-points idx 4				;-- move entry-points by 4 bytes
 		]
 		
 		get-pool: does [skip tail pools -3]
 		
-		make-pool: has [bound ep][
-			ep: entry-points
+		make-pool: func [/ins /local bound base list pool refs][
+			list: either ins [ins-points][entry-points]
 			
 			unless empty? pools [
-				bound: second last second get-pool	;-- start search after last stored literal entry position in code				
-				while [ep/1 < bound][ep: next ep]
-				if tail? ep [
-					compiler/throw-error "[ARM emitter] suitable pool position not found!"
+				if empty? second pool: get-pool [	;-- remove last pool if empty
+					clear pool
+				]
+				either ins [			
+					base: ins-points/1				;-- start search on first available insertion point
+					while [list/1 - base < 4092][	;-- search farthest reachable point
+						list: next list
+					]
+					list: back list					;-- limit exceeded, back to last reachable
+				][
+					bound: second last second get-pool	;-- start search after last stored literal entry position in code
+					while [list/1 < bound][
+						list: next list
+					]
+					if tail? list [
+						compiler/throw-error "[ARM emitter] suitable pool position not found!"
+					]
 				]
 			]
-			repend pools [ep/1 make block! 50 no]	;-- create a new pool entry
-			entry-points: next ep					;-- move to next possible position
+			if verbose > 0 [print ["- making a new pool, at:" list/1 "inlined?:" to logic! ins]]
+			
+			repend pools [list/1 refs: make block! 50 to logic! ins]	;-- create a new pool entry
+			
+			either ins [
+				remove/part ins-points next list	;-- clear all ins-points before pool position
+				repend/only refs [0 0 none]			;-- insert fake literal in pool (place-holder for B insn) 
+			][
+				entry-points: next list				;-- move to next possible position
+			]
 			get-pool								;-- return a reference on the last pool structure
 		]
 				
@@ -145,14 +169,12 @@ make target-class [
 
 				either positive? offset [			;-- test if pool is before or after caller
 					if 4092 <= offset [				;-- if pool is too far ahead
-						compiler/throw-error "[ARM emitter] pool too far!"
-						;pool/3: yes				;-- set "inlined" flag
-						;TBD: handle pool in the middle of code case
+						pool: make-pool/ins			;-- make a new pool at next possible insertion position
 					]
 				][
 					if 4092 <= abs offset [			;-- if pool too far behind,
 						pool: make-pool				;-- make a new pool at next possible position @@ > 4092 case
-						pos: pool/1 + (4 * length? pool/2)
+						pos: pool/1
 					]
 				]
 				append/only pool/2 values			;-- insert literal value in the pool
@@ -201,15 +223,22 @@ make target-class [
 		]
 		
 		;-- Build pools buffers and insert them in native code buffer
-		commit-pools: has [buffer value ins-idx spec entry-pos offset code back?][
+		commit-pools: has [buffer value ins-idx spec entry-pos offset code back? buf-size][
 			if verbose > 0 [print "^/=== Commit stage ===" pools-stats]
-			buffer: make binary! 400				;-- reserve pool buffer for 100 values
+			buffer: make binary! 800						;-- reserve pool buffer for 200 values (average estimate)
 
 			foreach [pool-idx value-refs inline?] pools [
 				if verbose > 0 [print ["^/- pool:" pool-idx ", len:" length? value-refs]]
 				clear buffer
 				
-				insert/dup at emitter/code-buf pool-idx null 4 * length? value-refs
+				buf-size: 4 * length? value-refs
+				if inline? [
+					append buffer reverse rejoin [			;-- B <buf-size>	; branch over the pool buffer
+						#{ea} to-bin24 shift buf-size - 8 2
+					]
+					value-refs: next value-refs				;-- skip place-holder value				
+				]
+				insert/dup at emitter/code-buf pool-idx null buf-size
 				
 				forall value-refs [		
 					set [value ins-idx spec] value-refs/1
@@ -252,6 +281,7 @@ make target-class [
 				commit-pools
 			]	
 			clear entry-points: head entry-points
+			clear ins-points
 			clear values
 			clear pools
 		]
@@ -372,10 +402,14 @@ make target-class [
 		if runtime? [need-divide?: no]
 	]
 	
-	on-global-epilog: func [runtime? [logic!]][	
+	on-global-epilog: func [runtime? [logic!]][
 		unless runtime? [
 			pools/mark-entry-point 'global			;-- add end of global code section as pool entry-point
 		]
+	]
+	
+	on-root-level-entry: does [
+		pools/mark-ins-point
 	]
 	
 	to-bin24: func [v [integer! char!]][
