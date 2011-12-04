@@ -107,12 +107,11 @@ make target-class [
 			forskip pools 3 [if comp pools/1 pool-idx [pools/1: pools/1 + offset]]
 
 			foreach [name spec] emitter/symbols [	;-- move functions entry-points and references
-				if all [
-					spec/1 = 'native
-					not empty? refs: spec/3
-				][
+				if find [native native-ref] spec/1 [
 					if all [spec/2 spec/2 >= pool-idx][spec/2: spec/2 + offset]
-					forall refs [if refs/1 >= pool-idx [refs/1: refs/1 + offset]]
+					unless empty? refs: spec/3 [
+						forall refs [if refs/1 >= pool-idx [refs/1: refs/1 + offset]]
+					]
 				]
 			]
 		]
@@ -1437,7 +1436,7 @@ make target-class [
 	]
 
 	emit-stack-align-epilog: func [args-nb [integer!]][
-		emit-i32 #{e8bd2000}						;-- POP {sp}
+		emit-i32 #{e8bd2000}						;-- POP {sp}		; @@ combine in one insn if order is preserved
 		emit-i32 #{e8bd4000}						;-- POP {lr}
 	]
 
@@ -1480,7 +1479,7 @@ make target-class [
 			args-size: fspec/1
 			repeat i args-size [
 				emit-i32 #{e92d00}					;-- PUSH {r<n>}
-				emit-i32 shift/left #{01} (args-size - i)
+				emit-i32 to char! shift/left 1 args-size - i
 			]
 			unless zero? args-size [
 				emit-i32 #{e1a0c00d}				;-- MOV ip, sp
