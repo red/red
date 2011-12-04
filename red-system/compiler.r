@@ -1622,6 +1622,7 @@ system-dialect: context [
 					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
 					'else [expr: fetch-expression/final]
 				]
+				emitter/target/on-root-level-entry
 			]
 			expr
 		]
