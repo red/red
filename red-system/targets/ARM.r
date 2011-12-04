@@ -510,7 +510,7 @@ make target-class [
 			
 			load-rel: #{e59f0000}
 			
-			if any [alt not all [gcode zero? gcode/3 and 16]][
+			if any [alt all [gcode not zero? gcode/3 and 16]][
 				load-rel: load-rel or #{00001000}	;-- use r1 instead of r0
 			]
 			emit-i32 load-rel						;-- LDR r0|r1, [pc, #offset]
@@ -834,18 +834,22 @@ make target-class [
 		path [path! set-path!] parent [block! none!] /local opcodes idx type scale
 	][
 		opcodes: pick [[							;-- store path opcodes --
-			#{e5401000}								;-- STR[B] r1, [r0]
-			#{e5401000}								;-- STR[B] r1, [r0, r3]
+			#{e5001000}								;-- STR[B] r1, [r0]
+			#{e5001000}								;-- STR[B] r1, [r0, r3]
 		][											;-- load path opcodes --
-			#{e5500000}								;-- LDR[B] r0, [r0]
-			#{e7d00003}								;-- LDR[B] r0, [r0, r3]
+			#{e5100000}								;-- LDR[B] r0, [r0]
+			#{e7900003}								;-- LDR[B] r0, [r0, r3]
 		]] set-path? path
 
 		type: either parent [
 			compiler/resolve-type/with path/1 parent
 		][
-			emit-load path/1
-			type: compiler/resolve-type path/1
+			emit-variable path/1
+				none								;-- NOP					; global
+				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
+				
+			emit-i32 #{e5100000}					;-- LDR[B] r0, [r0]		; dereference pointer
+			compiler/resolve-type path/1
 		]
 		set-width/type type/2/1						;-- adjust operations width to pointed value size
 		idx: either path/2 = 'value [1][path/2]
@@ -1334,7 +1338,7 @@ make target-class [
 	
 	emit-call-import: func [args [block!] spec [block!] /local args-nb][
 		if 4 < args-nb: length? args [
-			compiler/throw-error "[ARM emitter] more than 4 arguments, not yet supported"
+			compiler/throw-error "[ARM emitter] more than 4 arguments in imported functions, not yet supported"
 		]
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
 		emit-i32 to char! shift 255 8 - args-nb
@@ -1444,20 +1448,12 @@ make target-class [
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		fspec: select compiler/functions name
-		either all [block? fspec/4/1 fspec/5 = 'callback][
+		if all [block? fspec/4/1 fspec/5 = 'callback][
 			;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
 			;; passed via regs r0-r3, further args are passed on the stack (pushed
 			;; right-to-left; i.e. the leftmost argument is at top-of-stack).
 			;;
-			;; our prolog pushes the first <=4 args right-to-left to the stack as
-			;; well and makes fp point to arg0 on the stack.
-			;;
-			;; after that, all callee-saved registers and the return address are
-			;; pushed on the stack. sp will point to the return address on the
-			;; stack.
-			;;
-			;; that's where the prolog ends. locals, if any, will be pushed on the
-			;; stack immediately afterwards.
+			;; our prolog pushes the first <=4 args right-to-left to the stack
 			;;
 			;; AAPCS (for external calls & callbacks only)
 			;;
@@ -1477,56 +1473,50 @@ make target-class [
 			;;	structs aligned at max aligned, padded to multiple of alignment
 			
 			args-size: fspec/1
+			
+			if 4 < args-size [
+				compiler/throw-error "[ARM emitter] more than 4 arguments in callbacks, not yet supported"
+			]
+			emit-i32 #{e92d4ff0}					;-- STMFD sp!, {r4-r11, lr}
 			repeat i args-size [
 				emit-i32 #{e92d00}					;-- PUSH {r<n>}
 				emit-i32 to char! shift/left 1 args-size - i
 			]
-			unless zero? args-size [
-				emit-i32 #{e1a0c00d}				;-- MOV ip, sp
-			]
-			emit-i32 #{e92d4ff0}					;-- STMFD sp!, {r4-r11, lr}
-			unless zero? args-size [
-				emit-i32 #{e1a0b00c}				;-- MOV fp, ip
-			]
-		][
-			;-- Red/System standard function prolog --	
+		]
 			
-			emit-i32 #{e92d4800}					;-- PUSH {fp,lr}
-			emit-i32 #{e1a0b00d}					;-- MOV fp, sp
-			unless zero? locals-size [
-				emit-i32 join #{e24dd0}				;-- SUB sp, sp, locals-size
-					to char! round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
-			]
+		;-- Red/System standard function prolog --	
+		
+		emit-i32 #{e92d4800}						;-- PUSH {fp,lr}
+		emit-i32 #{e1a0b00d}						;-- MOV fp, sp
+		
+		unless zero? locals-size [
+			emit-i32 join #{e24dd0}					;-- SUB sp, sp, locals-size
+				to char! round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
 	]
 
 	emit-epilog: func [name locals [block!] args-size [integer!] locals-size [integer!]][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
-
-		either all [block? fspec/4/1 fspec/5 = 'callback][
-			unless zero? locals-size [
-				;; Restore sp to where we saved our 9 callee-saved registers.
-				emit-i32 #{e28bd024}				;-- ADD sp, fp, #36
-			]
-			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
-		][
-			;-- Red/System standard function epilog --		
 			
-			emit-i32 #{e1a0d00b}					;-- MOV sp, fp
-			emit-i32 #{e8bd4800}					;-- POP {fp,lr}
-				
-			either compiler/check-variable-arity? locals [
-				emit-i32 #{e8bd0001}				;-- POP {r0}		; skip arguments count
-				emit-i32 #{e8bd0001}				;-- POP {r0}		; skip arguments pointer
-				emit-i32 #{e8bd0001}				;-- POP {r0}		; get stack offset
-				emit-i32 #{e08dd000}				;-- ADD sp, sp, r0	; skip arguments list (clears stack)
-			][
-				emit-op-imm32
-					#{e28dd000}						;-- ADD sp, sp, args-size
-					round/to/ceiling args-size 4
-			]
-			emit-i32 #{e1a0f00e}					;-- MOV pc, lr
+		emit-i32 #{e1a0d00b}						;-- MOV sp, fp
+		emit-i32 #{e8bd4800}						;-- POP {fp,lr}
+
+		either compiler/check-variable-arity? locals [
+			emit-i32 #{e8bd0001}					;-- POP {r0}		; skip arguments count
+			emit-i32 #{e8bd0001}					;-- POP {r0}		; skip arguments pointer
+			emit-i32 #{e8bd0001}					;-- POP {r0}		; get stack offset
+			emit-i32 #{e08dd000}					;-- ADD sp, sp, r0	; skip arguments list (clears stack)
+		][
+			emit-op-imm32
+				#{e28dd000}							;-- ADD sp, sp, args-size
+				round/to/ceiling args-size 4
 		]
+		
+		if all [block? fspec/4/1 fspec/5 = 'callback][
+			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
+		]
+
+		emit-i32 #{e1a0f00e}						;-- MOV pc, lr
 
 		pools/mark-entry-point name
 	]
