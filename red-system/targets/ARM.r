@@ -1386,7 +1386,7 @@ make target-class [
 		]
 	]
 
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec] [
+	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
@@ -1424,6 +1424,7 @@ make target-class [
 				]
 			]
 		]
+		res
 	]
 	
 	emit-stack-align-prolog: func [args-nb [integer!]][
