@@ -841,25 +841,23 @@ make target-class [
 	
 	emit-load-index: func [idx [word!]][
 		emit-variable idx
-			#{e5933000}								;-- LDR r3, [r0]		; global
+			#{e5933000}								;-- LDR r3, [r3]		; global
 			#{e59b3000}								;-- LDR r3, [fp, #[-]n]	; local
 		emit-i32 #{e2433001}						;-- SUB r3, r3, #1		; one-based index
 	]
 
 	emit-c-string-path: func [path [path! set-path!] parent [block! none!] /local opcodes idx][
-		either parent [
-			emit-i32 #{e1a02000}					;-- MOV r2, r0			; nested access
-		][
+		unless parent [
 			emit-variable path/1
-				#{e5902000}							;-- LDR r2, [r0]		; global
-				#{e59b2000}							;-- LDR r2, [fp, #[-]n]	; local
+				#{e5900000}							;-- LDR r0, [r0]		; global
+				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
 		]
 		opcodes: pick [[							;-- store path opcodes --
-			#{e5421000}								;-- STRB r1, [r2]		; first
-			#{e7c21003}								;-- STRB r1, [r2, r3] 	; nth | variable index
+			#{e5401000}								;-- STRB r1, [r0]		; first
+			#{e7c01003}								;-- STRB r1, [r0, r3] 	; nth | variable index
 		][											;-- load path opcodes --
-			#{e5520000}								;-- LDRB r0, [r2]		; first
-			#{e7d20003}								;-- LDRB r0, [r2, r3]	; nth | variable index
+			#{e5500000}								;-- LDRB r0, [r0]		; first
+			#{e7d00003}								;-- LDRB r0, [r0, r3]	; nth | variable index
 		]] set-path? path
 
 		either integer? idx: path/2 [
@@ -1127,8 +1125,8 @@ make target-class [
 		op-poly: [
 			switch width [
 				1 [
-					emit-i32 #{e1a3c1a1}			;-- MOV r3, r1, LSL #24
-					emit-i32 #{e153c1a0}			;-- CMP r3, r0, LSL #24
+					emit-i32 #{e1a03c00}			;-- MOV r3, r0, LSL #24
+					emit-i32 #{e1533c01}			;-- CMP r3, r1, LSL #24
 				]
 				;2 []								;-- 16-bit not supported
 				4 [emit-i32 #{e1500001}]			;-- CMP r0, r1		; not commutable op
