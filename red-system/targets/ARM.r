@@ -510,8 +510,8 @@ make target-class [
 		emit-i32 opcode
 	]
 	
-	emit-op-imm32: func [opcode [binary!] value [integer!] /local bits][
-		either bits: ror-position? value [	
+	emit-op-imm32: func [opcode [binary!] value [integer! char!] /local bits][
+		either bits: ror-position? value: to integer! value [
 			opcode/3: (to char! opcode/3) or to char! bits
 			opcode/4: to char! rotate-left value bits
 		][
@@ -526,7 +526,7 @@ make target-class [
 	emit-variable: func [
 		name [word! object!] gcode [binary! block! none!] lcode [binary! block!]
 		/alt										;-- use alternative register (r1)
-		/local offset spec load-rel
+		/local offset spec load-rel Rn
 	][
 		if object? name [name: compiler/unbox name]
 
@@ -544,10 +544,15 @@ make target-class [
 			
 			load-rel: #{e59f0000}
 			
-			if any [alt all [gcode not zero? gcode/3 and 16]][
+			either alt [
 				load-rel: load-rel or #{00001000}	;-- use r1 instead of r0
+			][
+				if all [gcode not zero? Rn: gcode/3 and #"^(F0)"][
+					load-rel: copy load-rel
+					load-rel/3: to char! Rn			;-- use same Rn
+				]
 			]
-			emit-i32 load-rel						;-- LDR r0|r1, [pc, #offset]
+			emit-i32 load-rel						;-- LDR r0|r1|Rn, [pc, #offset]
 			if gcode [emit-i32 gcode]
 		]
 	]
@@ -807,6 +812,12 @@ make target-class [
 			]
 		]
 	]
+	
+	emit-init-path: func [name [word!]][
+		emit-variable name
+			#{e5900000}								;-- LDR r0, [r0]		; global
+			#{e59b0000}								;-- LDR r0, [fp, #[-]n]	; local
+	]
 
 	emit-access-path: func [
 		path [path! set-path!] spec [block! none!] /short /local offset type saved
@@ -830,7 +841,7 @@ make target-class [
 	
 	emit-load-index: func [idx [word!]][
 		emit-variable idx
-			#{e5903000}								;-- LDR r3, [r0]		; global
+			#{e5933000}								;-- LDR r3, [r0]		; global
 			#{e59b3000}								;-- LDR r3, [fp, #[-]n]	; local
 		emit-i32 #{e2433001}						;-- SUB r3, r3, #1		; one-based index
 	]
@@ -869,9 +880,9 @@ make target-class [
 	][
 		opcodes: pick [[							;-- store path opcodes --
 			#{e5001000}								;-- STR[B] r1, [r0]
-			#{e5001000}								;-- STR[B] r1, [r0, r3]
+			#{e7801003}								;-- STR[B] r1, [r0, r3]
 		][											;-- load path opcodes --
-			#{e5100000}								;-- LDR[B] r0, [r0]
+			#{e5900000}								;-- LDR[B] r0, [r0]
 			#{e7900003}								;-- LDR[B] r0, [r0, r3]
 		]] set-path? path
 
@@ -879,10 +890,9 @@ make target-class [
 			compiler/resolve-type/with path/1 parent
 		][
 			emit-variable path/1
-				none								;-- NOP					; global
+				#{e5900000}							;-- LDR r0, [r0]		; global
 				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
-				
-			emit-i32 #{e5100000}					;-- LDR[B] r0, [r0]		; dereference pointer
+
 			compiler/resolve-type path/1
 		]
 		set-width/type type/2/1						;-- adjust operations width to pointed value size
@@ -899,8 +909,8 @@ make target-class [
 		][
 			emit-load-index idx
 			if scale > 1 [
-				emit-i32 #{e3a03003}				;-- LSL r3, r3, #log2(scale)
-					or shift/left power-of-2? scale 7
+				emit-i32 #{e1a03003}				;-- LSL r3, r3, #log2(scale)
+					or debase/base to-hex shift/left power-of-2? scale 7 16
 			]
 			emit-poly opcodes/2
 		]
@@ -920,7 +930,7 @@ make target-class [
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
 		if parent [emit-i32 #{e1a01000}]			;-- MOV r1, r0		; save value/address
-		unless value = <last> [emit-load value]
+		unless value = <last> [emit-load value]		; @@ generates duplicate value loading sometimes
 		emit-swap-regs								;-- save value/restore address
 
 		switch type [
@@ -1113,7 +1123,7 @@ make target-class [
 		]
 	]
 	
-	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local op-poly][
+	emit-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local op-poly arg2][
 		op-poly: [
 			switch width [
 				1 [
@@ -1124,17 +1134,19 @@ make target-class [
 				4 [emit-i32 #{e1500001}]			;-- CMP r0, r1		; not commutable op
 			]
 		]		
+		arg2: either object? args/2 [compiler/cast args/2][args/2]
+		
 		switch b [
 			imm [
 				switch width [
 					1 [
 						emit-i32 join #{e35000}		;-- CMP r0, #imm8
-							to char! compiler/unbox args/2
+							to char! arg2
 					]
 					;2 []							;-- 16-bit not supported
 					4 [
 						emit-move-alt				;-- MOV r1, r0
-						emit-load-imm32 args/2
+						emit-load-imm32 arg2
 						emit-i32 #{e1510000}		;-- CMP r1, r0		; not commutable op
 					]
 				]
