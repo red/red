@@ -344,10 +344,11 @@ make target-class [
 			;--			if divisor < 0  [divisor: negate divisor]
 			;--			modulo: modulo + divisor
 			;--		]
+			#{e1b00001}			; MOVS r0, r1			; r0: modulo or remainder
 			#{e3340002}			; TEQ r4, #2			; if r1 <> rem,
 			#{01a0f00e}			; MOVEQ pc, lr			; 	return from sub-routine
-			#{e1b00001}			; MOVS r0, r1			; r0: modulo or remainder
-			#{51a0f00e}			; MOVPL pc, lr			; if r0 >= 0, return from sub-routine
+			#{e3500000}			; CMP r0, #0	 		; if r0 >= 0, (divisor)
+			#{51a0f00e}			; MOVPL pc, lr			; 	return from sub-routine
 			#{e3520000}			; CMP r2, #0	 		; if r2 < 0 (divisor)
 			#{41e00000}			; RSBMI	r0, r0, #0		;	r2: -r2 (2's complement)
 			#{e0800002}			; ADD r0, r0, r2		; r0: r0 + r2
@@ -382,9 +383,9 @@ make target-class [
 		]
 		
 		emit-i32 join #{e3a040} switch/default mod? [ ;-- MOV r4, #0|1|2
-			mod [#"^(01)"]
-			rem [#"^(02)"]
-		][null]
+			mod [#"^(01)"]							;-- modulo
+			rem [#"^(02)"]							;-- remainder
+		][null]										;-- division
 		
 		emit-reloc-addr refs
 		emit-i32 #{eb000000}						;-- BL .divide
