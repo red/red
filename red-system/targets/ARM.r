@@ -602,13 +602,13 @@ make target-class [
 				set-width/type type/1
 				either alt? [
 					if width = 1 [										; 16-bit not supported
-						emit-i32 #{e20010ff}		;-- AND r1, #ff
+						emit-i32 #{e20110ff}		;-- AND r1, r1, #ff
 					]
 					emit-i32 #{e3510000}			;-- CMP r1, 0
-					emit-i32 #{13a10001}			;-- MOVNE r1, #1
+					emit-i32 #{13a01001}			;-- MOVNE r1, #1
 				][
 					if width = 1 [										; 16-bit not supported
-						emit-i32 #{e20000ff}		;-- AND r0, #FF
+						emit-i32 #{e20000ff}		;-- AND r0, r0, #FF
 					]
 					emit-i32 #{e3500000}			;-- CMP r0, 0
 					emit-i32 #{13a00001}			;-- MOVNE r0, #1
@@ -618,8 +618,8 @@ make target-class [
 			all [value/type/1 = 'integer! type/1 = 'byte!][
 				if verbose >= 3 [print ">>>converting from byte! to integer! "]
 				emit-i32 pick [
-					#{e20010ff}						;-- AND r1, #ff				
-					#{e20000ff}						;-- AND r0, #ff
+					#{e20110ff}						;-- AND r1, r1, #ff				
+					#{e20000ff}						;-- AND r0, r0, #ff
 				] alt?
 			]
 		]
