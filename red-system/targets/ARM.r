@@ -517,7 +517,7 @@ make target-class [
 		
 		][
 			opcode: #{e59f0000}						;-- LDR r0|rN, [pc, #offset]
-			pools/collect value
+			pools/collect either neg? [complement value][value]
 		]
 		if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
 		emit-i32 opcode
