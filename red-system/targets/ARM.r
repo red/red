@@ -42,6 +42,7 @@ make target-class [
 		entry-points: make block! 100				;-- insertion points candidates for pools between functions
 		ins-points:	  make block! 100				;-- insertion points candidates for pools inlined in code
 		pools:		  make block! 1					;-- [pool-pos [value-ref ...] inline? ...]
+		limit:		  4088							;-- reachability max distance (insn<->pool, 4092 - insn - branching)
 		verbose:	  0								;-- if > 0, output debug logs
 		
 		pools-stats: has [list][
@@ -77,22 +78,31 @@ make target-class [
 			update-entry-points idx 4				;-- move entry-points by 4 bytes
 		]
 		
-		get-pool: does [skip tail pools -3]
+		get-pool: does [all [not empty? pools skip tail pools -3]]
 		
 		make-pool: func [/ins /local bound base list pool refs][
+			if all [
+				not ins
+				(entry-points/1 - first any [get-pool [1]]) >= limit
+			][
+				ins: true
+			]
 			list: either ins [ins-points][entry-points]
 			
-			unless empty? pools [
-				if empty? second pool: get-pool [	;-- remove last pool if empty
-					clear pool
+			if all [
+				not empty? pools
+				empty? second pool: get-pool	;-- remove last pool if empty
+			][
+				clear pool
+			]
+			either ins [
+				base: ins-points/1				;-- start search on first available insertion point
+				while [list/1 - base < limit][	;-- search farthest reachable point (accounting for fake entry)
+					list: next list
 				]
-				either ins [			
-					base: ins-points/1				;-- start search on first available insertion point
-					while [list/1 - base < 4092][	;-- search farthest reachable point
-						list: next list
-					]
-					list: back list					;-- limit exceeded, back to last reachable
-				][
+				list: back list					;-- limit exceeded, back to last reachable
+			][
+				unless empty? pools [
 					bound: second last second get-pool	;-- start search after last stored literal entry position in code
 					while [list/1 < bound][
 						list: next list
@@ -102,7 +112,8 @@ make target-class [
 					]
 				]
 			]
-			if verbose > 0 [print ["- making a new pool, at:" list/1 "inlined?:" to logic! ins]]
+				
+			if verbose > 0 [print ["^/* making a new pool, at:" list/1 ", inlined?:" ins]]
 			
 			repend pools [list/1 refs: make block! 50 to logic! ins]	;-- create a new pool entry
 			
@@ -143,12 +154,13 @@ make target-class [
 		find-close-pool: func [pool-idx [integer!] ins-idx [integer!] /local pool][
 			pool: find/skip pools pool-idx 3
 			until [
-				pool: skip pool 3				
+				pool: skip pool 3
 				if tail? pool [
-					if 4092 > entry-points/1 [return make-pool]	;-- see if next entry-point is reachable
-					compiler/error "[ARM emitter] unable to find a reachable pool!"
+					if limit > entry-points/1 [return make-pool]	;-- see if next entry-point is reachable
+					return make-pool/ins							; @@ temp change
+					;compiler/throw-error "[ARM emitter] unable to find a reachable pool!"
 				]
-				4092 > abs pool/1 + (4 * length? pool/2) - ins-idx		;@@	(ins-idx + 8)?
+				limit > (abs pool/1 + (4 * length? pool/2) - (ins-idx + 8))
 			]
 			pool
 		]
@@ -157,7 +169,7 @@ make target-class [
 		populate-pools: has [index pos offset pool][
 			if verbose > 0 [print "^/=== Populate stage ==="]
 			
-			until [
+			forskip values 3 [
 				index: values/2
 				if empty? pools [make-pool]
 
@@ -165,22 +177,21 @@ make target-class [
 				pos: pool/1 + (4 * length? pool/2)	;-- pos: offset of value entry in the pool buffer
 
 				offset: pos - index
-				if verbose > 0 [prin [offset " "]]
+				if verbose > 0 [prin [offset #" "]]
 
 				either positive? offset [			;-- test if pool is before or after caller
-					if 4092 <= offset [				;-- if pool is too far ahead
+					if limit <= offset [				;-- if pool is too far ahead
 						pool: make-pool/ins			;-- make a new pool at next possible insertion position
 					]
 				][
-					if 4092 <= abs offset [			;-- if pool too far behind,
-						pool: make-pool				;-- make a new pool at next possible position @@ > 4092 case
+					if limit <= abs offset [			;-- if pool too far behind,
+						pool: make-pool				;-- make a new pool at next possible position @@ > 4088 case
 						pos: pool/1
 					]
 				]
 				append/only pool/2 values			;-- insert literal value in the pool
-				tail? values: skip values 3
 			]
-			values: head values
+			sort/skip pools 3
 		]
 		
 		;-- Move literal values that became out-of-range to a closer pool
@@ -194,20 +205,21 @@ make target-class [
 			]
 		
 			foreach [pool-idx value-refs inline?] pools [
-				if verbose > 0 [print ["processing pool:" pool-idx]]
+				if verbose > 0 [print ["^/processing pool:" pool-idx]]
+				if inline? [value-refs: next value-refs]	;-- skip first fake entry (for branch insn)
 				
 				forall value-refs [		
 					set [value ins-idx spec] value-refs/1
 					
 					entry-pos: 4 * (-1 + index? value-refs)	;-- offset of value entry in the pool
 					offset: pool-idx + entry-pos - (ins-idx + 8)	;-- relative jump offset to the entry				
-					if verbose > 0 [print [offset " "]]
+					if verbose > 0 [prin [offset #" "]]
 				
 					offset:	abs offset
 
-					if offset >= 4092 [
+					if offset >= limit [
 						pool: find-close-pool pool-idx ins-idx
-						if verbose > 0 [print ["- out-of-range:" offset ", moving to pool:" pool/1]]
+						if verbose > 0 [print ["^/* out-of-range:" offset ", moving to pool:" pool/1]]
 						append/only pool/2 value-refs/1
 						remove value-refs
 						value-refs: back value-refs
@@ -248,11 +260,11 @@ make target-class [
 					entry-pos: 4 * (-1 + index? value-refs)	;-- offset of value entry in the pool
 					offset: pool-idx + entry-pos - (ins-idx + 8)	;-- relative jump offset to the entry				
 					back?: negative? offset 
-					if verbose > 0 [print [offset " "]]
+					if verbose > 0 [prin [offset #" "]]
 					
 					offset:	abs offset
 
-					if offset >= 4092 [
+					if offset >= limit [
 						compiler/throw-error "[ARM emitter] adjusting failed!"
 					]
 					offset: reverse to-12-bit offset
