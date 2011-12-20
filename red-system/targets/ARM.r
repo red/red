@@ -38,6 +38,7 @@ make target-class [
 	byte-flag: 			#{00400000}					;-- trigger byte access in opcode
 	
 	pools: context [								;-- literals pools management
+		local?:		  yes							;-- yes => store locally, no => store in pools
 		values:		  make block! 2000				;-- [value instruction-pos sym-spec ...]
 		entry-points: make block! 100				;-- insertion points candidates for pools between functions
 		ins-points:	  make block! 100				;-- insertion points candidates for pools inlined in code
@@ -55,10 +56,26 @@ make target-class [
 		]
 		
 		;-- Collect a literal value to be stored in a pool
-		collect: func [value [integer!] /spec s [word! get-word! block!] /local pos][
-			insert pos: tail values reduce [value emitter/tail-ptr s]
-			emit-reloc-addr/only next pos
-			pos
+		collect: func [value [integer!] /spec s [word! get-word! block!] /with opcode [binary!] /local pos][
+			either local? [
+				emit-i32 any [opcode #{e59f0000}]	;-- LDR r0, [pc, #0]	; offset 0 => value
+				emit-i32 #{ea000000}				;-- B <after_value>
+				if spec [
+					spec: switch type?/word s [
+						get-word! [emitter/get-func-ref to word! s]
+						word!	  [emitter/symbols/:s]
+						block!	  [s]
+					]
+					
+					emit-reloc-addr spec/3
+				]				
+				emit to-bin32 value					;-- emit value
+			][
+				insert pos: tail values reduce [value emitter/tail-ptr s]
+				emit-reloc-addr/only next pos
+				emit-i32 any [opcode #{e59f0000}]
+				pos
+			]
 		]
 		
 		;-- Collect a possible position in code for a literals pool
@@ -133,7 +150,7 @@ make target-class [
 		]
 		
 		;-- Update functions entry points after a pool insertion
-		update-entry-points: func [pool-idx [integer!] offset [integer!] /strict /local refs comp][
+		update-entry-points: func [pool-idx [integer!] offset [integer!] /strict /local refs comp ep][
 			comp: get pick [greater? greater-or-equal?] to logic! strict
 			
 			ep: head entry-points
@@ -146,6 +163,45 @@ make target-class [
 					if all [spec/2 spec/2 >= pool-idx][spec/2: spec/2 + offset]
 					unless empty? refs: spec/3 [
 						forall refs [if refs/1 >= pool-idx [refs/1: refs/1 + offset]]
+					]
+				]
+			]
+		]
+
+		;-- Update functions entry points after a pool insertion
+		update-refs-part: func [floor [integer!] ceil [integer!] offset [integer!] /local refs ep ip][
+			forskip values 3 [
+				if values/2 - 4 > ceil [break]
+				if values/2 - 4 >= floor [values/2: values/2 + offset]
+			]
+			values: head values
+			
+			ep: head entry-points
+			forall ep [
+				if ep/1 - 4 > ceil [break]
+				if ep/1 - 4 > floor [ep/1: ep/1 + offset]
+			]
+
+			ip: head ins-points
+			forall ip [
+				if ip/1 - 4 > ceil [break]
+				if ip/1 - 4 > floor [ip/1: ip/1 + offset]
+			]
+
+			forskip pools 3 [
+				if pools/1 - 4 > ceil [break]
+				if pools/1 - 4 > floor [pools/1: pools/1 + offset]
+			]
+			pools: head pools
+
+			foreach [name spec] emitter/symbols [	;-- move functions entry-points and references
+				if find [native native-ref] spec/1 [
+					if all [spec/2 spec/2 >= floor spec/2 - 4 < ceil][spec/2: spec/2 + offset]
+					unless empty? refs: spec/3 [
+						forall refs [
+							if refs/1 - 4 > ceil [break]
+							if refs/1 - 4 >= floor [refs/1: refs/1 + offset]
+						]
 					]
 				]
 			]
@@ -223,12 +279,14 @@ make target-class [
 						append/only pool/2 value-refs/1
 						remove value-refs
 						value-refs: back value-refs
-						
-						update-values-index pool-idx -4
-						update-entry-points/strict pool-idx -4
-						
-						update-values-index pool/1 4
-						update-entry-points/strict pool/1 4
+
+						update-refs-part pool-idx pool/1 -4
+
+						;update-values-index pool-idx -4
+						;update-entry-points/strict pool-idx -4
+						;
+						;update-values-index pool/1 4
+						;update-entry-points/strict pool/1 4
 					]
 				]
 			]
@@ -407,8 +465,8 @@ make target-class [
 		if need-divide? [
 			emitter/symbols/:div-sym/2: emitter/tail-ptr
 			emit-divide
-		]		
-		pools/process								;-- trigger pools processing on end of code generation
+		]
+		unless pools/local? [pools/process]			;-- trigger pools processing on end of code generation
 	]
 	
 	on-global-prolog: func [runtime? [logic!]][
@@ -514,22 +572,23 @@ make target-class [
 				to char! bits
 				to char! rotate-left value bits
 			]
-		
+			if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
+			emit-i32 opcode
 		][
 			opcode: #{e59f0000}						;-- LDR r0|rN, [pc, #offset]
-			pools/collect either neg? [complement value][value]
+			if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
+			
+			pools/collect/with either neg? [complement value][value] opcode
 		]
-		if reg [opcode: opcode or debase/base to-hex shift/left n 12 16]
-		emit-i32 opcode
 	]
 	
 	emit-op-imm32: func [opcode [binary!] value [integer! char!] /local bits][
+		opcode: copy opcode
 		either bits: ror-position? value: to integer! value [
 			opcode/3: (to char! opcode/3) or to char! bits
 			opcode/4: to char! rotate-left value bits
 		][
-			pools/collect value
-			emit-i32 #{e59f3000}					;-- LDR r3, [pc, #offset]
+			pools/collect/with value #{e59f3000}	;-- LDR r3, [pc, #offset]
 			opcode/1: #"^(FD)" and to char! opcode/1
 			opcode/4: #"^(03)"
 		]
@@ -539,7 +598,7 @@ make target-class [
 	emit-variable: func [
 		name [word! object!] gcode [binary! block! none!] lcode [binary! block!]
 		/alt										;-- use alternative register (r1)
-		/local offset spec load-rel Rn
+		/local offset load-rel Rn
 	][
 		if object? name [name: compiler/unbox name]
 
@@ -552,9 +611,6 @@ make target-class [
 			;if alt [lcode: lcode or #{00001000}]	;-- use r1 instead of r0 
 			emit-i32 lcode or offset
 		][											;-- global variable case
-			spec: emitter/symbols/:name
-			pools/collect/spec 0 name
-			
 			load-rel: #{e59f0000}
 			
 			either alt [
@@ -565,7 +621,7 @@ make target-class [
 					load-rel/3: to char! Rn			;-- use same Rn
 				]
 			]
-			emit-i32 load-rel						;-- LDR r0|r1|Rn, [pc, #offset]
+			pools/collect/spec/with 0 name load-rel	;-- LDR r0|r1|Rn, [pc, #offset]
 			if gcode [emit-i32 gcode]
 		]
 	]
@@ -641,8 +697,7 @@ make target-class [
 	emit-load-literal: func [type [block! none!] value /local spec][	
 		unless type [type: compiler/get-type value]
 		spec: emitter/store-value none value type
-		pools/collect/spec 0 spec/2
-		emit-i32 #{e59f0000}						;-- LDR r0, [pc, #offset]	; r0: value
+		pools/collect/spec 0 spec/2					;-- r0: value
 	]
 	
 	emit-get-pc: does [
@@ -764,7 +819,6 @@ make target-class [
 			]
 			get-word! [
 				pools/collect/spec 0 value
-				emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]	; symbol address
 			]
 			string! [
 				emit-load-literal [c-string!] value
@@ -817,7 +871,6 @@ make target-class [
 			]
 			get-word! [
 				pools/collect/spec 0 value
-				emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
 				do store-word
 			]
 			string! paren! [
@@ -1047,13 +1100,11 @@ make target-class [
 			]
 			get-word! [
 				pools/collect/spec 0 value
-				emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
 				do push-last						;-- PUSH &value
 			]
 			string! [
 				spec: emitter/store-value none value [c-string!]
 				pools/collect/spec 0 spec/2
-				emit-i32 #{e59f0000}				;-- LDR r0, [pc, #offset]
 				do push-last						;-- PUSH value
 			]
 			path! [
@@ -1399,9 +1450,8 @@ make target-class [
 		]
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
 		emit-i32 to char! shift 255 8 - args-nb
-				
-		pools/collect/spec 0 spec
-		emit-i32 #{e59fc000}						;-- MOV ip, #(.data.rel.ro + symbol_offset)
+		
+		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
 		emit-variadic-epilog args spec
