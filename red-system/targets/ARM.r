@@ -379,9 +379,13 @@ make target-class [
 			#{e1b02001}			; MOVS r2, r1			; r2: divisor
 			#{e212c102}			; ANDS ip, r2, #1<<31	; if r2 < 0, ip: #80000000
 			#{42622000}			; RSBMI r2, r2, #0		; if r2 < 0, r2: -r2 (2's complement)
+			#{e3520102}			; CMP r2, #1<<31		; if r2 = -2^31		(special case of 2's complement)
+			#{02422001}			; SUBEQ r2, r2, #1		;	r2 = 2^31
 			#{e1b01000}			; MOVS r1, r0			; r1: dividend
 			#{e03cc041}			; EORS ip, ip, r1 ASR#32 ; if r1 < 0, ip: ip xor r1>>32
 			#{22611000}			; RSBCS r1, r1, #0		; if r1 < 0, r1: -r1 (2's complement)
+			#{e3510102}			; CMP r1, #1<<31		; if r1 = -2^31		(special case of 2's complement)
+			#{02411001}			; SUBEQ r1, r1, #1		;	r1 = 2^31
 			
 			#{e3a00000}			; MOV r0, #0     		; clear R0 to accumulate result
 			#{e3a03001}			; MOV r3, #1     		; set bit 0 in R3, which will be shifted left then right
