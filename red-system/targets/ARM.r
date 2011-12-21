@@ -1429,17 +1429,6 @@ make target-class [
 		]
 	]
 	
-	emit-variadic-epilog: func [args [block!] spec [block!] /local size][
-		if issue? args/1 [							;-- test for variadic call
-			size: length? args/2
-			if spec/2 = 'native [
-				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments @@
-			]
-			size: size * stack-width
-			emit-i32 join #{e28dd0} to char! size	;-- ADD sp, sp, #n 	; @@ 8-bit offset only?
-		]
-	]
-
 	emit-call-syscall: func [number nargs] [		; @@ check if it needs stack alignment too
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
 		emit-i32 to char! shift 255 8 - nargs
@@ -1458,7 +1447,6 @@ make target-class [
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
-		emit-variadic-epilog args spec
 	]
 
 	emit-call-native: func [args [block!] spec [block!]][
