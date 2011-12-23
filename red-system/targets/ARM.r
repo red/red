@@ -374,18 +374,51 @@ make target-class [
 		
 		foreach opcode [	
 							; .divide	
-			#{e3510000}			; CMP r1, #0
+			#{e3510000}			; CMP r1, #0			; if divisor = 0
 			#{0a000014}			; BEQ divide_end		; @@ TBD: link to runtime error handler when ready
+			#{e1500001}			; CMP r0, r1			; if dividend = divisor
+			#{0a00000b}			; BEQ .equal
+			#{e1a03000}			; MOV r3, r0			; r3: dividend
+			#{e1a05001}			; MOV r5, r1			; r5: divisor
+			#{e3500000}			; CMP r0, #0			; if dividend < 0
+			#{42603000}			; RSBMI r3, r0, #0		;	r3: -dividend
+			#{e3510000}			; CMP r1, #0			; if divisor < 0
+			#{42615000}			; RSBMI r5, r1, #0		;	r5: -divisor
+			#{e3500102}			; CMP r0, #1<<31		; if r3 = -2^31 (special case for -2^31)
+			#{0a000006}			; BEQ .ispowerof2		; or
+			#{e1530005}			; CMP r3, r5			; if r3 <= divisor
+			#{8a000004}			; BHI .ispowerof2			
+			#{e1a01000}			; MOV r1, r0			; remainder: dividend
+			#{e3a00000}			; MOV r0, #0			; quotient: 0
+							; .equal
+			#{03a00001}			; MOVEQ r0, #1			; if dividend = divisor, quotient: 1
+			#{03a01000}			; MOVEQ r1, #0			;	remainder: 0
+			#{ea000024}			; B .divide_end			; jump to remainder epilog
+							; .ispowerof2
+			#{e2413001}			; SUB r3, r1, #1		; r3: divisor - 1
+			#{e1130001}			; TST r3, r1			; if divisor is a power of 2 (divisor & (divisor - 1))
+			#{1a00000c}			; BNE .notpowerof2
+			#{e1a03000}			; MOV r3, r0			; save dividend
+			#{e1a02001}			; MOV r2, r1			; save divisor
+							; .powerof2
+			#{31a000c0}			; MOVCC r0, r0, ASR#1	; divide by 2 (but not on first pass)
+			#{e1b010a1}			; MOVS r1, r1, LSR#1	; until power of 2 reached (carry set)
+			#{3afffffc}			; BCC .powerof2
+			#{e2621000}			; RSB r1, r2, #0		; 2's complement of divisor
+			#{e0031001}			; AND r1, r3, r1		; r1: dividend and -divisor
+			#{e0431001}			; SUB r1, r3, r1		; compute remainder = (dividend - (dividend and -divisor))
+			#{e3530102}			; CMP r3, #1<<31		; if r3 = -2^31 (special case for -2^31)
+			#{0a000017}			; BEQ .divide_end		; 	jump to end
+			#{e3530000}			; CMP r3, #0			; if dividend < 0
+			#{40411002}			; SUBMI r1, r1, r2		;	adjust remainder (remainder = remainder - divisor)
+			#{ea000014}			; B .divide_end
+							; .notpowerof2
 			#{e1b02001}			; MOVS r2, r1			; r2: divisor
 			#{e212c102}			; ANDS ip, r2, #1<<31	; if r2 < 0, ip: #80000000
 			#{42622000}			; RSBMI r2, r2, #0		; if r2 < 0, r2: -r2 (2's complement)
-			#{e3520102}			; CMP r2, #1<<31		; if r2 = -2^31		(special case of 2's complement)
-			#{02422001}			; SUBEQ r2, r2, #1		;	r2 = 2^31
 			#{e1b01000}			; MOVS r1, r0			; r1: dividend
 			#{e03cc041}			; EORS ip, ip, r1 ASR#32 ; if r1 < 0, ip: ip xor r1>>32
 			#{22611000}			; RSBCS r1, r1, #0		; if r1 < 0, r1: -r1 (2's complement)
-			#{e3510102}			; CMP r1, #1<<31		; if r1 = -2^31		(special case of 2's complement)
-			#{02411001}			; SUBEQ r1, r1, #1		;	r1 = 2^31
 			
 			#{e3a00000}			; MOV r0, #0     		; clear R0 to accumulate result
 			#{e3a03001}			; MOV r3, #1     		; set bit 0 in R3, which will be shifted left then right
@@ -408,23 +441,23 @@ make target-class [
 							; .epilog					; back to where it started, and we can end
 			#{e1b0c08c}			; MOVS ip, ip, LSL#1	; C: bit 31, N: bit 30
 			#{22600000}			; RSBCS	r0, r0, #0		; if C = 1, r0: -r0 (2's complement)
-			#{42611000}			; RSBMI	r1, r1, #0		; if N = 1, r1: -r1 (2's complement)
+			#{42611000}			; RSBMI	r1, r1, #0		; if N = 1, r1: -r1 (2's complement)								
 							; .divide_end				; r0: quotient, r1: remainder
 			#{e3340000}			; TEQ r4, #0			; if not modulo/remainder op,
 			#{01a0f00e}			; MOVEQ pc, lr			; 	return from sub-routine
 			
 			;-- Adjust modulo result to be mathematically correct:
 			;-- 	if modulo < 0 [
-			;--			if divisor < 0  [divisor: negate divisor]
+			;--			if divisor < 0 [divisor: negate divisor]
 			;--			modulo: modulo + divisor
 			;--		]
 			#{e1b00001}			; MOVS r0, r1			; r0: modulo or remainder
 			#{e3340002}			; TEQ r4, #2			; if r1 <> rem,
 			#{01a0f00e}			; MOVEQ pc, lr			; 	return from sub-routine
-			#{e3500000}			; CMP r0, #0	 		; if r0 >= 0, (divisor)
+			#{e3500000}			; CMP r0, #0	 		; if r0 >= 0, (modulo)
 			#{51a0f00e}			; MOVPL pc, lr			; 	return from sub-routine
 			#{e3520000}			; CMP r2, #0	 		; if r2 < 0 (divisor)
-			#{41e00000}			; RSBMI	r0, r0, #0		;	r2: -r2 (2's complement)
+			#{41e00000}			; RSBMI	r0, r0, #0		;	r0: -r0 (2's complement)
 			#{e0800002}			; ADD r0, r0, r2		; r0: r0 + r2
 			#{e1a0f00e}			; MOV pc, lr			; return from sub-routine
  		][
