@@ -1483,12 +1483,9 @@ make target-class [
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
 	]
 	
-	emit-call-import: func [args [block!] spec [block!] /local args-nb][
-		if 4 < args-nb: length? args [
-			compiler/throw-error "[ARM emitter] more than 4 arguments in imported functions, not yet supported"
-		]
-		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
-		emit-i32 to char! shift 255 8 - args-nb
+	emit-call-import: func [args [block!] spec [block!]][
+		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}	; nargs <= 4	
+		emit-i32 to char! shift 255 8 - min 4 length? args
 		
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
@@ -1579,7 +1576,7 @@ make target-class [
 		emit-i32 #{e92d4000}						;-- PUSH {lr}			; save previous lr value
 		emit-i32 #{e1a0c00d}                        ;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
-		if odd? 1 + args-nb [						;-- account for saved ip		
+		if odd? 1 + max 0 args-nb - 4 [				;-- account for saved ip + arguments on stack		
 			emit-i32 #{e24dd004}					;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
 		]
 		emit-i32 #{e92d1000}						;-- PUSH {ip}
