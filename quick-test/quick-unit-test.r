@@ -1,14 +1,10 @@
 REBOL [
-	Title:   "Red simple testing framework"
+	Title:   "Red Bootstrap unit testing framework"
 	Author:  "Peter W A Wood"
-	File: 	 %quick-test.red
+	File: 	 %quick-unit-test.r
 	Version: 0.1.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
-	Note: {
-	  I wrote this initial version in REBOL and intend to convert it to Red
-	  once the bootstrap phase has been completed.  
-	}
 ]
 
 qtr: make object! [
