@@ -15,6 +15,7 @@ make target-class [
 	stack-width:		4
 	args-offset:		8							;-- stack frame offset to arguments (fp + lr)
 	branch-offset-size:	4							;-- size of branch instruction
+	insn-size:			4
 	
 	need-divide?: 		none						;-- if TRUE, include division routine in code
 	div-sym:			'_div_
@@ -366,16 +367,26 @@ make target-class [
 		]
 	]
 	
-	emit-divide: does [
+	emit-divide: has [base][
 		;-- Unsigned division code is from http://www.virag.si/2010/02/simple-division-algorithm-for-arm-assembler/
 		;-- Original routine extended to handle signed division using code from:
 		;-- "ARM System Developer's Guide", p.238, ISBN: 1-55860-874-5
+		;-- registers usage:
+		;-- 	- on entering: r0: dividend, r1: divisor, r4: mode (0: division, 1: modulo, 2: remainder)
+		;--		- on exit: r0: quotient, r1: remainder or r0: modulo/remainder
+		;--		- registers modified: r0-r3, r5, ip
+		
 		if verbose >= 3 [print "^/>>>emitting DIVIDE intrinsic"]
+		
+		base: emitter/tail-ptr
 		
 		foreach opcode [	
 							; .divide	
 			#{e3510000}			; CMP r1, #0			; if divisor = 0
-			#{0a000014}			; BEQ divide_end		; @@ TBD: link to runtime error handler when ready
+			#{092d4000}			; PUSHEQ {lr}			; push calling address for error location
+			#{03a0000d}			; MOVEQ r0, #13			; integer divide by zero error code
+			#{092d0001}			; PUSHEQ {r0}
+			#{0a000000}			; BEQ ***-on-quit		; call runtime error handler
 			#{e1500001}			; CMP r0, r1			; if dividend = divisor
 			#{0a00000b}			; BEQ .equal
 			#{e1a03000}			; MOV r3, r0			; r3: dividend
@@ -463,6 +474,8 @@ make target-class [
  		][
  			emit-i32 opcode
  		]
+ 		;-- link it with runtime error handler
+ 		append emitter/symbols/***-on-quit/3 base + (4 * insn-size)
 	]
 	
 	;-- Check if div-sym is not user-defined, else provide a unique replacement symbol
