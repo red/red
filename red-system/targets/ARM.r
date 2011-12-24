@@ -1068,7 +1068,7 @@ make target-class [
 	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
 		change 
 			at code-buf ptr
-			reverse to-bin24 shift exit-point - ptr - branch-offset-size 2
+			reverse to-bin24 shift exit-point - ptr - (2 * branch-offset-size) 2
 	]
 	
 	emit-exit: does [
