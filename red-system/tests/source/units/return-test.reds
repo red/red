@@ -151,6 +151,18 @@ Red/System [
     ]
   --assert ret-test10 = 42
   --assert i = 1
+  
+  --test-- "return-13"
+	ret-test13: func [
+		i [integer!]
+		n [integer!]
+		return: [integer!]
+		/local s
+	][
+		if 0 = i [return i]	
+		i
+	]
+	--assert 0 = ret-test13 0 2
 
 ~~~end-file~~~
 
