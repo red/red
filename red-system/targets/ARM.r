@@ -1583,8 +1583,7 @@ make target-class [
 	]
 
 	emit-stack-align-epilog: func [args-nb [integer!]][
-		emit-i32 #{e8bd2000}						;-- POP {sp}		; @@ combine in one insn if order is preserved
-		emit-i32 #{e8bd4000}						;-- POP {lr}
+		emit-i32 #{e8bd6000}						;-- POP {sp,lr}
 	]
 
 	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size][
