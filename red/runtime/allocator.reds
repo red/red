@@ -658,8 +658,9 @@ free-big: func [
 	;-------------------------------------------
 	;-- Displays total frames count
 	;-------------------------------------------
-	print-frames-count: func [count [integer!]][
-		print ["^/    " count " frame" either count > 1 ["s^/"][newline] lf]
+	print-frames-count: func [count [integer!] /local s][
+		s: either count > 1 ["s^/"][newline]
+		print ["^/    " count " frame" s lf]
 	]
 
 	;-------------------------------------------
