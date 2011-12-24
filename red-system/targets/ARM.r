@@ -39,7 +39,7 @@ make target-class [
 	byte-flag: 			#{00400000}					;-- trigger byte access in opcode
 	
 	pools: context [								;-- literals pools management
-		local?:		  yes							;-- yes => store locally, no => store in pools
+		active?:	  yes							;-- yes => store in pools, no => store inlined
 		values:		  make block! 2000				;-- [value instruction-pos sym-spec ...]
 		entry-points: make block! 100				;-- insertion points candidates for pools between functions
 		ins-points:	  make block! 100				;-- insertion points candidates for pools inlined in code
@@ -58,7 +58,12 @@ make target-class [
 		
 		;-- Collect a literal value to be stored in a pool
 		collect: func [value [integer!] /spec s [word! get-word! block!] /with opcode [binary!] /local pos][
-			either local? [
+			either active? [
+				insert pos: tail values reduce [value emitter/tail-ptr s]
+				emit-reloc-addr/only next pos
+				emit-i32 any [opcode #{e59f0000}]
+				pos
+			][
 				emit-i32 any [opcode #{e59f0000}]	;-- LDR r0, [pc, #0]	; offset 0 => value
 				emit-i32 #{ea000000}				;-- B <after_value>
 				if spec [
@@ -71,11 +76,6 @@ make target-class [
 					emit-reloc-addr spec/3
 				]				
 				emit to-bin32 value					;-- emit value
-			][
-				insert pos: tail values reduce [value emitter/tail-ptr s]
-				emit-reloc-addr/only next pos
-				emit-i32 any [opcode #{e59f0000}]
-				pos
 			]
 		]
 		
@@ -516,10 +516,11 @@ make target-class [
 			emitter/symbols/:div-sym/2: emitter/tail-ptr
 			emit-divide
 		]
-		unless pools/local? [pools/process]			;-- trigger pools processing on end of code generation
+		if pools/active? [pools/process]			;-- trigger pools processing on end of code generation
 	]
 	
 	on-global-prolog: func [runtime? [logic!]][
+		pools/active?: compiler/job/literal-pool?
 		if runtime? [need-divide?: no]
 	]
 	

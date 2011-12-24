@@ -80,11 +80,12 @@ rsc: context [
 
 		parse args [
 			any [
-				  ["-r" | "--no-runtime"] (opts/runtime?: no)
-				| ["-g" | "--debug-stabs"] (opts/debug?: yes)
-				| ["-o" | "--output"] set output skip
-				| ["-t" | "--target"] set target skip
-				| ["-v" | "--verbose"] set verbose skip
+				  ["-r" | "--no-runtime"]   (opts/runtime?: no)
+				| ["-g" | "--debug-stabs"]  (opts/debug?: yes)
+				| ["-l" | "--literal-pool"] (opts/literal-pool?: yes)
+				| ["-o" | "--output"]  		set output skip
+				| ["-t" | "--target"]  		set target skip
+				| ["-v" | "--verbose"] 		set verbose skip
 				| set filename skip (append srcs load-filename filename)
 			]
 		]

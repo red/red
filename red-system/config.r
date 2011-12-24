@@ -20,6 +20,7 @@ REBOL [
 ;;	dynamic-linker:	none | <string!>			;-- ELF dynamic linker ("interpreter") to use
 ;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
+;;  literal-pool?:	yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
 ;;-------------------------------------------
 
 ;-------------------------
