@@ -908,11 +908,9 @@ make target-class [
 
 		switch type?/word value [
 			char! [
-				;emit-load-imm32 to integer! value	;-- @@ check if really not required
 				do store-byte
 			]
 			integer! [
-				;emit-load-imm32 value				;-- @@ check if really not required
 				do store-word
 			]
 			word! [
@@ -1507,7 +1505,7 @@ make target-class [
 	]
 
 	patch-call: func [code-buf rel-ptr dst-ptr] [
-		;; @@ check bounds, @@ to-bin24
+		;; @@ to-bin24
 		change
 			at code-buf rel-ptr
 			copy/part to-bin32 shift (dst-ptr - rel-ptr - (2 * ptr-size)) 2 3
