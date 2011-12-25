@@ -104,7 +104,7 @@ emitter: context [
 				size
 			]
 			back [
-				target/emit-branch/back chunk/1 cond offset
+				target/emit-branch/back? chunk/1 cond offset
 			]
 		]
 	]
@@ -403,17 +403,16 @@ emitter: context [
 		if push [clear stack]
 		size: 0
 		parse locals [opt block! any [set name word! set type block! (
-			if push [repend stack [name size + 8]]	;-- account for esp + ebp storage ;TBD: make it target-independent
+			if push [repend stack [name size + target/args-offset]]
 			size: size + max size-of? type/1 target/stack-width		
 		)]]
 		size
 	]
 	
-	resolve-exit-points: has [end offset][
+	resolve-exit-points: has [end][
 		end: tail-ptr
-		offset: target/branch-offset-size
 		foreach ptr exits [
-			change at code-buf ptr to-bin32 end - ptr - offset
+			target/patch-exit-call code-buf ptr end
 		]
 	]
 	
@@ -448,17 +447,18 @@ emitter: context [
 		args-sz
 	]
 	
-	leave: func [name [word!] locals [block!] args-sz [integer!]][
+	leave: func [name [word!] locals [block!] args-sz [integer!] locals-sz [integer!]][
 		unless empty? exits [resolve-exit-points]
-		target/emit-epilog name locals args-sz
+		target/emit-epilog name locals args-sz locals-sz
 	]
 	
 	import-function: func [name [word!] reloc [block!]][
 		repend symbols [name reduce ['import none reloc]]
 	]
 	
-	add-native: func [name [word!]][
-		repend symbols [name reduce ['native none make block! 5]]
+	add-native: func [name [word!] /local spec][
+		repend symbols [name spec: reduce ['native none make block! 5]]
+		spec
 	]
 	
 	reloc-native-calls: has [ptr][
@@ -469,8 +469,7 @@ emitter: context [
 			][
 				ptr: spec/2
 				foreach ref spec/3 [
-					pointer/value: ptr - ref - target/ptr-size	;-- CALL NEAR disp size
-					change at code-buf ref form-struct pointer
+					target/patch-call code-buf ref ptr	;-- target-specific func call
 				]
 			]
 		]

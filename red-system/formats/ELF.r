@@ -35,6 +35,7 @@ context [
 		et-exec			2			;; executable file
 
 		em-386			3			;; intel 80386
+		em-arm			40			;; ARM
 
 		pt-load			1			;; loadable segment
 		pt-dynamic		2			;; dynamic linking information
@@ -82,6 +83,8 @@ context [
 
 		r-386-32		1			;; direct 32-bit relocation
 		r-386-copy		5			;; copy symbol at runtime
+
+		r-arm-abs32		2			;; direct 32-bit relocation
 
 		stabs-n-undf	0			;; undefined stabs entry
 		stabs-n-fun		36			;; function name
@@ -283,7 +286,6 @@ context [
 			".shstrtab"		data (to-elf-strtab sections)
 		]
 
-		complete-sizes structure commands
 		layout: layout-binary structure commands
 
 		;; In the following section, we try to minimize the global state passed
@@ -307,6 +309,8 @@ context [
 
 		set-data "ehdr" [
 			build-ehdr
+				job/os
+				job/target
 				get-offset "phdr"
 				get-offset "shdr"
 				get-address ".text"
@@ -324,7 +328,7 @@ context [
 			[build-dynsym symbols get-data ".dynstr"]
 
 		set-data ".rel.text"
-			[build-reltext symbols get-address ".data.rel.ro"]
+			[build-reltext job/target symbols get-address ".data.rel.ro"]
 
 		set-data ".data" [
 			if job/debug? [
@@ -384,12 +388,19 @@ context [
 		]
 
 		;; Concatenate the layout data into the output binary.
-		job/buffer: serialize-data map-each [name values] layout [values/data]
+		job/buffer: copy #{}
+		foreach [name values] layout [
+			append job/buffer serialize-data values/data			;; Data
+			append job/buffer rejoin array/initial values/pad #{00} ;; Padding
+		]
+		job/buffer
 	]
 
 	;; -- ELF structure builders --
 
 	build-ehdr: func [
+		target-os [word!]
+		target-arch [word!]
 		phdr-offset [integer!]
 		shdr-offset [integer!]
 		text-address [integer!]
@@ -406,7 +417,6 @@ context [
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
 		eh/type:			defs/et-exec
-		eh/machine:			defs/em-386
 		eh/version:			defs/ev-current
 		eh/entry:			text-address
 		eh/phoff:			phdr-offset
@@ -418,6 +428,19 @@ context [
 		eh/shentsize:		size-of section-header
 		eh/shnum:			1 + length? section-names
 		eh/shstrndx:		index? find section-names ".shstrtab"
+
+		;; Target-specific header fields.
+
+		switch target-arch [
+			ia-32	[
+				eh/machine: defs/em-386
+			]
+			arm		[
+				eh/machine: defs/em-arm
+				eh/flags: to-integer #{04000000} ;; EABI v4
+			]
+		]
+
 		eh
 	]
 
@@ -481,13 +504,20 @@ context [
 	]
 
 	build-reltext: func [
-		symbols [block!] relro-address [integer!] /local result entry
+		target-arch [word!]
+		symbols [block!]
+		relro-address [integer!]
+		/local rel-type result entry
 	] [
+		rel-type: select reduce [
+			'ia-32 defs/r-386-32
+			'arm defs/r-arm-abs32
+		] target-arch
 		result: copy []
 		repeat i length? symbols [ ;; 1..n, 0 is undef
 			entry: make-struct elf-relocation none
 			entry/offset: rel-address-of/index relro-address (i - 1)
-			entry/info-sym: defs/r-386-32
+			entry/info-sym: rel-type
 			entry/info-type: i
 			append result entry
 		]
@@ -723,7 +753,12 @@ context [
 					)
 				|
 					(
-						total: total + find-size commands name
+						size: find-size commands name
+						;; Ensure all leaf nodes are padded to 32-bit multiples.
+						if not zero? pad: (4 - (size // 4)) // 4 [ ;; @@ Make alignment target-specific.
+							repend commands [name 'pad pad]
+						]
+						total: total + size + pad
 					)
 				]
 			]
@@ -740,17 +775,20 @@ context [
 	] [
 		layout: copy []
 
-		emit: func [n t o a m /local s d] [
-			s: find-size commands n
-			m: merge-meta commands n m
-			d: select commands reduce [name 'data]
+		emit: func [n t o a s m d /local p] [
+			p: any [select commands reduce [name 'pad] 0]
 			repend layout [
-				n reduce ['type t 'offset o 'address a 'size s 'meta m 'data d]
+				n reduce [
+					'type t 'offset o 'address a 'size s 'pad p 'meta m 'data d
+				]
 			]
+			p
 		]
 
 		offset: 0
 		address: 0
+
+		complete-sizes structure commands
 
 		parse structure elements-rule: [
 			any [
@@ -758,18 +796,22 @@ context [
 				set type word!
 				set name string!
 				opt [set meta block!]
-				(address: address + find-skip commands name)
+				(
+					address: address + find-skip commands name
+					size: find-size commands name
+					meta: merge-meta commands name meta
+					data: select commands reduce [name 'data]
+				)
 				[
 					into [
-						(emit name type offset address meta)
+						(emit name type offset address size meta data)
 						elements-rule
 					]
 				|
 					(
-						emit name type offset address meta
-						size: find-size commands name
-						address: address + size
-						offset: offset + size
+						padding: emit name type offset address size meta data
+						address: address + size + padding
+						offset: offset + size + padding
 					)
 				]
 			]

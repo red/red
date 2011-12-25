@@ -12,7 +12,7 @@ REBOL [
 ;;	OS:				'Windows | 'Linux | 'MacOSX | 'Syllable	;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
 ;;	type:			'exe | 'obj | 'lib | 'dll	;-- file type
-;;	target:			'IA-32						;-- CPU or VM target
+;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
 ;;	sub-system:		'GUI | 'console				;-- type of user interface
 ;;	PIC?:			yes | no					;-- generate Position Independent Code
 ;;	base-address:	<integer!>					;-- base image memory address
@@ -20,6 +20,7 @@ REBOL [
 ;;	dynamic-linker:	none | <string!>			;-- ELF dynamic linker ("interpreter") to use
 ;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
+;;  literal-pool?:	yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
 ;;-------------------------------------------
 
 ;-------------------------
@@ -58,6 +59,23 @@ Linux [									; Linux default target
 ;	PIC?:		yes
 ;	dynamic-linker: "/lib/ld-linux.so.2"
 ;]
+;-------------------------
+Android [
+	OS:			'Linux
+	format:		'ELF
+	target:		'ARM
+	type:		'exe
+	base-address: 32768					; 8000h
+	dynamic-linker: "/system/bin/linker"
+]
+Linux-ARM [
+	OS:			'Linux
+	format:		'ELF
+	target:		'ARM
+	type:		'exe
+	base-address: 32768					; 8000h
+	dynamic-linker: "/lib/ld-linux.so.3"
+]
 ;-------------------------
 Syllable [
 	OS:			'Syllable

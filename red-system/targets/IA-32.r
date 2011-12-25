@@ -13,6 +13,7 @@ make target-class [
 	ptr-size: 			4
 	default-align:		4
 	stack-width:		4
+	args-offset:		8							;-- stack frame offset to arguments (esp + ebp)
 	branch-offset-size:	4							;-- size of JMP offset
 	
 	conditions: make hash! [
@@ -408,7 +409,7 @@ make target-class [
 				emit to-bin32 idx * emitter/size-of? type/2/1
 			]
 		][
-			emit-load-index idx
+			emit-load-index idx						; @@ missing scaling factor ???
 			emit-poly opcodes/3
 		]
 	]
@@ -448,6 +449,10 @@ make target-class [
 		]
 	]
 	
+	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
+		change at code-buf ptr to-bin32 exit-point - ptr - branch-offset-size
+	]
+	
 	emit-exit: does [
 		emit #{E9}									;-- JMP imm32
 		emit-reloc-addr compose/only [- - (emitter/exits)]
@@ -457,13 +462,13 @@ make target-class [
 		code [binary!]
 		op [word! block! logic! none!]
 		offset [integer! none!]
-		/back
+		/back?
 		/local size imm8? opcode jmp
 	][
 		if verbose >= 3 [print [">>>inserting branch" either op [join "cc: " mold op][""]]]
 		
 		size: (length? code) - any [offset 0]				;-- offset from the code's head
-		imm8?: size <= either back [126][127]				;-- account 2 bytes for JMP imm8
+		imm8?: size <= either back? [126][127]				;-- account 2 bytes for JMP imm8
 		opcode: either not none? op [						;-- explicitly test for none
 			op: case [
 				block? op [									;-- [cc] => keep
@@ -477,9 +482,9 @@ make target-class [
 		][
 			pick [#{EB} #{E9}] imm8?						;-- JMP offset 	; 8/32-bit displacement
 		]
-		if back [size: negate (size + (length? opcode) + pick [1 4] imm8?)]
+		if back? [size: negate (size + (length? opcode) + pick [1 4] imm8?)]
 		jmp: rejoin [opcode either imm8? [to-bin8 size][to-bin32 size]]
-		insert any [all [back tail code] code] jmp
+		insert any [all [back? tail code] code] jmp
 		length? jmp
 	]
 	
@@ -788,8 +793,8 @@ make target-class [
 					if all [mod? <> 'rem width > 1][;-- modulo, not remainder
 					;-- Adjust modulo result to be mathematically correct:
 					;-- 	if modulo < 0 [
-					;--			if divider < 0  [divider: negate divider]
-					;--			modulo: modulo + divider
+					;--			if divisor < 0  [divisor: negate divisor]
+					;--			modulo: modulo + divisor
 					;--		]
 						c: to-bin8 select [1 7 2 15 4 31] width		;-- support for possible int8 type
 						emit #{0FBAE0}				;--   	  BT rA, 7|15|31 ; @@ better way ?
@@ -914,12 +919,18 @@ make target-class [
 		if issue? args/1 [							;-- test for variadic call
 			size: length? args/2
 			if spec/2 = 'native [
-				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments
+				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments @@ [3 2] ??
 			]
 			size: size * stack-width
 		]
-		emit #{83C4}								;-- ADD esp, n
+		emit #{83C4}								;-- ADD esp, n		; @@ 8-bit offset only?
 		emit to-bin8 size
+	]
+	
+	patch-call: func [code-buf rel-ptr dst-ptr][
+		change										;-- CALL NEAR disp size
+			at code-buf rel-ptr
+			to-bin32 dst-ptr - rel-ptr - ptr-size
 	]
 	
 	emit-argument: func [arg func-type [word!]][
@@ -1033,11 +1044,11 @@ make target-class [
 		res
 	]
 	
-	emit-stack-align-prolog: func [args [block!] /local offset][
+	emit-stack-align-prolog: func [args-nb [integer!] /local offset][
 		if compiler/job/stack-align-16? [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
-			offset: 1 + length? args				;-- account for saved edi
+			offset: 1 + args-nb 					;-- account for saved edi
 			unless zero? offset: offset // 4 [
 				emit #{83EC}						;-- SUB esp, offset		; ensure call will be 16-bytes aligned
 				emit to-bin8 (4 - offset) * 4
@@ -1046,7 +1057,7 @@ make target-class [
 		]
 	]
 	
-	emit-stack-align-epilog: func [args [block!]][
+	emit-stack-align-epilog: func [args-nb [integer!]][
 		if compiler/job/stack-align-16? [
 			emit #{5C}								;-- POP esp
 		]
@@ -1069,7 +1080,10 @@ make target-class [
 		]
 	]
 
-	emit-epilog: func [name [word!] locals [block!] args-size [integer!] /local fspec][
+	emit-epilog: func [
+		name [word!] locals [block!] args-size [integer!] locals-size [integer!]
+		/local fspec
+	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
 		fspec: select compiler/functions name

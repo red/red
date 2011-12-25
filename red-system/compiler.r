@@ -1329,6 +1329,11 @@ system-dialect: context [
 					functions/:name/2 = 'syscall
 					job/syscall = 'BSD
 				]
+				all [
+					functions/:name/2 = 'syscall		
+					job/target = 'ARM					;-- odd, but required for Linux/ARM syscalls
+					job/syscall = 'Linux
+				]
 			][		
 				reverse args
 			]
@@ -1346,8 +1351,8 @@ system-dialect: context [
 			]
 			order-args name list						;-- reorder argument according to cconv
 
-			import?: functions/:name/2 = 'import		;@@ syscalls don't seem to need 16-byte alignment??
-			if import? [emitter/target/emit-stack-align-prolog args]
+			import?: functions/:name/2 = 'import		;@@ syscalls don't seem to need special alignment??
+			if import? [emitter/target/emit-stack-align-prolog length? args]
 
 			type: functions/:name/2
 			either type <> 'op [					
@@ -1374,7 +1379,7 @@ system-dialect: context [
 			][
 				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
-			if import? [emitter/target/emit-stack-align-epilog args]
+			if import? [emitter/target/emit-stack-align-epilog length? args]
 			res
 		]
 				
@@ -1617,14 +1622,18 @@ system-dialect: context [
 					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
 					'else [expr: fetch-expression/final]
 				]
+				emitter/target/on-root-level-entry
 			]
 			expr
 		]
 		
-		comp-func-body: func [name [word!] spec [block!] body [block!] /local args-size expr ret][
+		comp-func-body: func [
+			name [word!] spec [block!] body [block!]
+			/local args-sz local-sz expr ret
+		][
 			locals: spec
 			func-name: name
-			args-size: emitter/enter name locals		;-- build function prolog
+			set [args-sz local-sz] emitter/enter name locals ;-- build function prolog
 			pc: body
 			
 			expr: comp-dialect							;-- compile function's body
@@ -1639,7 +1648,7 @@ system-dialect: context [
 					emitter/logic-to-integer expr/1		;-- runtime logic! conversion before returning
 				]
 			]
-			emitter/leave name locals args-size			;-- build function epilog
+			emitter/leave name locals args-sz local-sz	;-- build function epilog
 			clear locals-init
 			locals: func-name: none
 		]
@@ -1672,17 +1681,28 @@ system-dialect: context [
 			pc: next pc
 		]
 
-		run: func [obj [object!] src [block!] file [file!] /no-header][
+		run: func [obj [object!] src [block!] file [file!] /no-header /runtime][
+			runtime: to logic! runtime
 			job: obj
 			pc: src
 			script: secure-clean-path file
 			unless no-header [comp-header]
+			emitter/target/on-global-prolog runtime
 			comp-dialect
+			case [
+				runtime [
+					emitter/target/on-global-epilog yes	;-- postpone epilog event after comp-runtime-epilog
+				]
+				not job/runtime? [
+					emitter/target/on-global-epilog no
+				]
+			]
 		]
 		
 		finalize: does [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
 			comp-natives
+			emitter/target/on-finalize
 			if verbose >= 2 [print ""]
 			emitter/reloc-native-calls
 		]
@@ -1727,11 +1747,12 @@ system-dialect: context [
 	
 	comp-runtime-prolog: has [script][
 		script: secure-clean-path runtime-path/common.reds
- 		compiler/run job loader/process script script
+ 		compiler/run/runtime job loader/process script script
 	]
 	
 	comp-runtime-epilog: does [	
 		compiler/comp-call '***-on-quit [0 0]			;-- call runtime exit handler
+		emitter/target/on-global-epilog no
 	]
 	
 	clean-up: does [
@@ -1782,6 +1803,7 @@ system-dialect: context [
 		dynamic-linker: none			;-- ELF dynamic linker ("interpreter")
 		syscall:		'Linux			;-- syscalls convention: 'Linux | 'BSD
 		stack-align-16?: no				;-- yes => align stack to 16 bytes
+		literal-pool?:	no				;-- yes => use pools to store literals, no => store them inlined (default: no)
 	]
 	
 	compile: func [

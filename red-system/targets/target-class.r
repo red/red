@@ -9,6 +9,14 @@ REBOL [
 target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
 	default-align: stack-width: branch-offset-size: none		   ; TBD: document once stabilized
+	
+	on-global-prolog: 		 none					;-- called at start of global code section
+	on-global-epilog: 		 none					;-- called at end of global code section
+	on-finalize:	  		 none					;-- called after all sources are compiled
+	on-root-level-entry:	 none					;-- called after a root level expression or directive is compiled
+;	emit-stack-align-prolog: none					;-- align stack on imported function calls
+;	emit-stack-align-epilog: none					;-- unwind aligned stack
+	
 	compiler: 	none								;-- just a short-cut
 	width: 		none								;-- current operand width in bytes
 	signed?: 	none								;-- TRUE => signed op, FALSE => unsigned op
@@ -121,9 +129,9 @@ target-class: context [
 	implicit-cast: func [arg /local right-width][
 		right-width: first get-width arg none
 		
-		if all [width = 4 right-width = 1][				;-- detect byte! -> integer! implicit casting
+		if all [width = 4 right-width = 1][			;-- detect byte! -> integer! implicit casting
 			arg: make object! [action: 'type-cast type: [integer!] data: arg]
-			emit-casting arg yes						;-- type cast right argument
+			emit-casting arg yes					;-- type cast right argument
 		]
 	]
 ]
