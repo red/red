@@ -90,7 +90,7 @@ form-type: func [
 	if type = type-int-ptr!    [return "pointer! [integer!]"]
 	if type = type-struct!     [return "struct!"]
 	if type = type-function!   [return "function!"]
-	if type-alias!? type       [return "alias"]
+	if alias? type             [return "alias"]
 	"not valid type"
 ]
 
