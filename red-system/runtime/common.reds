@@ -43,7 +43,7 @@ Red/System [
 #define type-int-ptr!	6
 #define type-function!	7
 #define type-struct!	1000
-#define type-alias!?  [1001 <=]
+#define alias?  [1001 <=]
 #define any-struct?		[1000 <=]
 
 ;-- Global variables definition --
