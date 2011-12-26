@@ -23,7 +23,7 @@ output-contains?: func [
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
 
-do %../../../../quick-test/quick-test.red
+do %../../../../quick-test/quick-unit-test.r
 do %../../../lexer.r
 
 ~~~start-file~~~ "lexer"

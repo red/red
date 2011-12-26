@@ -43,6 +43,7 @@ Red/System [
 #define type-int-ptr!	6
 #define type-function!	7
 #define type-struct!	1000
+#define alias?  [1001 <=]
 #define any-struct?		[1000 <=]
 
 ;-- Global variables definition --
@@ -78,20 +79,19 @@ system: declare struct! [					;-- store runtime accessible system values
 ;-- Convert a type ID to a c-string!
 ;-------------------------------------------
 form-type: func [
-	type 	[integer!]						;-- type ID
+	type 	[integer!]				  		;-- type ID
 	return: [c-string!]						;-- type representation as c-string
-	/local msg
 ][
-	if type = type-logic! 	 [msg: "logic!"]
-	if type = type-integer!  [msg: "integer!"]
-	if type = type-byte! 	 [msg: "byte!"]
-	if type = type-c-string! [msg: "c-string!"]
-	if type = type-byte-ptr! [msg: "pointer! [byte!]"]
-	if type = type-int-ptr!  [msg: "pointer! [integer!]"]
-	if type = type-struct!   [msg: "struct!"]
-	if type = type-function! [msg: "function!"]
-	if type > 1000 [msg: "alias"]
-	msg	
+	if type = type-integer!    [return "integer!"]
+	if type = type-c-string!   [return "c-string!"]
+	if type = type-logic! 	   [return "logic!"]
+	if type = type-byte! 	     [return "byte!"]
+	if type = type-byte-ptr!   [return "pointer! [byte!]"]
+	if type = type-int-ptr!    [return "pointer! [integer!]"]
+	if type = type-struct!     [return "struct!"]
+	if type = type-function!   [return "function!"]
+	if alias? type             [return "alias"]
+	"not valid type"
 ]
 
 #switch OS [
