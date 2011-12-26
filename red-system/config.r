@@ -68,6 +68,7 @@ Android [
 	base-address: 32768					; 8000h
 	dynamic-linker: "/system/bin/linker"
 ]
+;-------------------------
 Linux-ARM [
 	OS:			'Linux
 	format:		'ELF
