@@ -53,7 +53,7 @@ test-comparison-ops: [
   <
   >
   >=
-  =<
+  <=
 ]
 
 test-comparison-values: [
