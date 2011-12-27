@@ -43,8 +43,8 @@ Red/System [
 #define type-int-ptr!	6
 #define type-function!	7
 #define type-struct!	1000
-#define alias?  [1001 <=]
 #define any-struct?		[1000 <=]
+#define alias?  		[1001 <=]
 
 ;-- Global variables definition --
 stdout:		-1								;-- uninitialized default value
