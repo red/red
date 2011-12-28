@@ -56,6 +56,8 @@ emitter: context [
 	chunks: context [
 		queue: make block! 10
 		
+		empty: does [copy/deep [#{} []]]
+		
 		start: has [s][
 			repend/only queue [
 				s: tail code-buf

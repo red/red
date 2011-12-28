@@ -118,6 +118,7 @@ system-dialect: context [
 			size? 		 [comp-size?]
 			if			 [comp-if]
 			either		 [comp-either]
+			case		 [comp-case]
 			until		 [comp-until]
 			while		 [comp-while]
 			any			 [comp-expression-list]
@@ -1160,6 +1161,45 @@ system-dialect: context [
 				t-false: resolve-aliased t-false
 				equal-types? t-true/1 t-false/1
 			][t-true][none-type]						;-- allow nesting if both blocks return same type		
+			<last>
+		]
+		
+		comp-case: has [cases list test body op bodies offset][
+			pc: next pc
+			check-body cases: pc/1
+			list: make block! 8
+			
+			until [										;-- collect and pre-compile all cases
+				fetch-into cases [						;-- compile case test
+					append/only list comp-block-chunked/only/test 'case
+					cases: pc							;-- set cursor after the expression
+				]				
+				check-body cases/1
+				fetch-into cases [						;-- compile case body
+					append/only list comp-block-chunked
+				]				
+				tail? cases: next cases
+			]
+			
+			bodies: emitter/chunks/empty
+			list: tail list								;-- point to last case test
+			until [										;-- left join all cases in reverse order			
+				list: skip list -2
+				set [test body] list					;-- retrieve case-test and case-body chunks
+				
+				op: either logic? test/1/1 [first [<>]][test/1/1]
+
+				emitter/set-signed-state test/1			;-- properly set signed/unsigned state
+				offset: negate emitter/branch/over bodies		;-- insert case exit branching
+				emitter/branch/over/on/adjust body/2 op	offset	;-- insert case test branching
+				
+				body: emitter/chunks/join test/2 body/2	;-- join case test with case body
+				bodies: emitter/chunks/join body bodies	;-- left join case with other cases
+				head? list		
+			]	
+			emitter/merge bodies						;-- commit all to main code buffer
+			pc: next pc
+			last-type: none-type
 			<last>
 		]
 		
