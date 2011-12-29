@@ -1164,34 +1164,33 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-case: has [cases list test body op bodies offset][
+		comp-case: has [cases list test body op bodies offset types][
 			pc: next pc
 			check-body cases: pc/1
-			list: make block! 8
+			list:  make block! 8
+			types: make block! 8
 			
 			until [										;-- collect and pre-compile all cases
 				fetch-into cases [						;-- compile case test
 					append/only list comp-block-chunked/only/test 'case
 					cases: pc							;-- set cursor after the expression
-				]				
+				]
 				check-body cases/1
 				fetch-into cases [						;-- compile case body
-					append/only list comp-block-chunked
-				]				
+					append/only list body: comp-block-chunked
+					append/only types resolve-expr-type/quiet body/1
+				]
 				tail? cases: next cases
 			]
-			
 			bodies: emitter/chunks/empty
 			list: tail list								;-- point to last case test
 			until [										;-- left join all cases in reverse order			
 				list: skip list -2
 				set [test body] list					;-- retrieve case-test and case-body chunks
-				
-				op: either logic? test/1/1 [first [<>]][test/1/1]
 
 				emitter/set-signed-state test/1			;-- properly set signed/unsigned state
 				offset: negate emitter/branch/over bodies		;-- insert case exit branching
-				emitter/branch/over/on/adjust body/2 op	offset	;-- insert case test branching
+				emitter/branch/over/on/adjust body/2 test/1/1 offset	;-- insert case test branching
 				
 				body: emitter/chunks/join test/2 body/2	;-- join case test with case body
 				bodies: emitter/chunks/join body bodies	;-- left join case with other cases
@@ -1199,7 +1198,17 @@ system-dialect: context [
 			]	
 			emitter/merge bodies						;-- commit all to main code buffer
 			pc: next pc
-			last-type: none-type
+			
+			last-type: either 'error = forall types [	;-- check if all last expressions are of same type
+				unless types/1/1 [break/return 'error]	;-- test if type is defined
+				types/1: resolve-aliased types/1		;-- reduce aliases and pseudo-types
+				if all [
+					not head? types
+					not equal-types? types/-1/1 types/1/1
+				][
+					break/return 'error
+				]
+			][none-type][first head types]				;-- allow nesting if both blocks return same type
 			<last>
 		]
 		
