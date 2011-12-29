@@ -415,6 +415,8 @@ Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence foll
               
 The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value.
 
+<u>Note</u>: Struct members are all initialized to 0 when a new literal struct! is declared. 
+
 +++Usage
 
  s: declare struct! [
@@ -2475,6 +2477,8 @@ will output:
 *>Minor typo fixed.
 
 *>"API Reference" level removed, all sub-sections are moved up and placed after "Scoping" chapter.
+
+*>Literal struct members default zero value mention added.
 
 
 *<b>21/09/2011 - revision 29</b>
