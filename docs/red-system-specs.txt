@@ -1320,6 +1320,555 @@ Example:
  	foo + var + bar						;-- will return 14
  ]
 
+===Infix operators
+
+Infix operators take two arguments and are positioned between them.
+
+---Math operators
+
+The following math operations apply on integer values. When the operation results in an exceeded memory storage limit, <i>behaviour to be defined</i>. 
+
+<b>Addition</b>: +
+
+ value1 + value2
+
+<b>Subtraction</b>: -
+
+ value1 - value2
+
+<b>Multiplication</b>: *
+
+ value1 * value2
+
+<b>Division</b>: /
+
+ value1 / value2
+ 
+<b>Remainder</b>: %
+
+ value1 % value2
+ 
+Note: a remainder will be negative if the divider is negative. Same as in C or // operator in REBOL.
+ 
+<b>Modulo</b>: //
+
+ value1 // value2
+ 
+Note: a positive result is always returned. Same as 'modulo function in REBOL.
+
+where
+
+ value1 : an expression returning an integer!
+ value2 : expression of same (or compatible) datatype as <value1>
+ 
+The resulting value type for math operators is the type of the left argument (an implicit type casting is operated when required).
+ 
+<u>Note:</u> for + and - operators, a pointer!, struct! or c-string! value can be used for both arguments or as first argument with an integer expression as second argument (see "Pointer arithmetic").
+
+---Bitshift operators
+
+<b>Signed left shift</b>: <<
+
+ value1 << value2
+
+<b>Signed right shift</b>: >>
+
+ value1 >> value2
+
+<b>Unsigned right shift</b>: >>>
+
+ value1 >>> value2
+  
+where
+ 
+ value1 : an expression returning an integer! or byte!
+ value2 : integer! expression restricted to 0-31 range only.
+
+<u>Note</u>: There is no unsigned left shift operator as it is the same as the signed left shift one.
+
+---Bitwise operators
+
+<b>Bitwise OR</b>: or
+
+ value1 or value2
+
+<b>Bitwise XOR</b>: xor
+
+ value1 xor value2
+
+<b>Bitwise AND</b>: and
+
+ value1 and value2
+ 
+<b>Bitwise / Logical NOT</b>: not
+
+ not value1
+ 
+where
+ 
+ value1 : an expression returning an integer!, byte! or logic!
+ value2 : expression of same datatype as <value1>
+ 
+<u>Note</u>: Logical NOT will return the opposite of the logic argument (TRUE<=>FALSE), while bitwise NOT will apply one's complement on the integer argument.
+ 
+---Comparison operators
+
+These operators can be used only where a condition is allowed. See "Control flow functions" section for a list of functions using conditions.
+
+<b>Equal</b>: =
+
+ value1 = value2
+ 
+<b>Not equal</b>: <>
+
+ value1 <> value2
+ 
+<b>Greater than</b>: >
+ 
+ value1 > value2
+ 
+<b>Lesser than</b>: <
+ 
+ value1 < value2
+ 
+<b>Greater than or equal</b>: >=
+ 
+ value1 >= value2
+ 
+<b>Lesser than or equal</b>: <=
+ 
+ value1 <= value2
+ 
+where
+  
+  value1 : an expression returning a integer!, byte!, c-string!, pointer! or struct!
+  value2 : expression of same datatype as <value1>
+
+<u>Note</u>:
+
+*= and <> can also be used to compare logic! values.
+
+*For c-string!, pointer! and struct! comparisons are done on references, not on the value pointed at.
+
+===Control flow functions
+
+---IF
+
+Execute a block of code if a given condition is true. IF does not return any value, so cannot be used in an expression.
+
+<b>Syntax</b>
+
+ if <condition> [<code>]
+
+ <condition> : a conditional expression
+ <code>		 : code to execute if the condition is true
+
+<b>Example</b>
+
+ if a < 0 [print "a is negative"]
+ 
+---EITHER
+
+Execute a block of code if a given condition is true, else execute an alternative block of code. If last expressions in both blocks have the same type, EITHER can be used inside an expression.
+
+<b>Syntax</b>
+
+ either <condition> [<code>][<alternative>]
+
+ <condition>   : a conditional expression
+ <code>		   : code to execute if the condition is true
+ <alternative> : code to execute if the condition is false
+
+<b>Examples</b>
+
+ either a < 0 [
+ 	either a = 0 [
+ 		msg: "zero"
+ 	][
+ 		msg: "negative"
+ 	]
+ ][
+ 	msg: "positive"
+ ]
+
+ print ["a is " msg lf]
+ 
+An alternative way to write it (allowed because all code paths return a value of the same type):
+ msg: either a < 0 [
+  	either a = 0 [
+  		"zero"
+  	][
+  		"negative"
+  	]
+  ][
+  	"positive"
+ ]
+ 
+ prin ["a is " msg lf]
+
+---UNTIL
+
+Loop over a block of code until the condition at end of block, is met. UNTIL does not return any value, so cannot be used in an expression.
+
+<b>Syntax</b>
+
+ until [
+ 	<code>
+ 	<condition>
+ ]
+
+ <code>		 : code to execute while the condition is met
+ <condition> : a conditional expression
+
+<u>Note</u>: The loop will always be executed at least once, even if the condition is not met from the beginning.
+
+<b>Example</b>
+
+ c: 5
+ until [
+ 	print "o"
+ 	c: c - 1
+ 	c = 0
+ ]
+will output:
+
+ ooooo
+
+---WHILE
+
+While a given condition is met, execute a block of code. WHILE does not return any value, so cannot be used in an expression.
+
+<b>Syntax</b>
+
+ while [<condition>][<code>]
+
+ <condition> : a conditional expression
+ <code>		 : code to execute if the condition is met
+
+<u>Note</u>: It is possible to execute any code in the condition block as long as it ends with a conditional expression.
+
+<b>Example</b>
+
+ c: 5
+ while [c > 0][
+ 	print "o"
+ 	c: c - 1
+ ]
+will output:
+
+ ooooo
+
+---ANY
+
+Global condition is met if at least one of the sub-conditions is met. ANY returns a logic! value.
+
+<b>Syntax</b>
+
+ any [<condition-1> <condition-2> ...]
+
+ <condition-*> : a conditional expression
+
+<b>Example</b>
+
+ if any [foo > 5 bar = 0][
+ 	print "true"					;-- reached if at least one condition is met
+ ]
+
+---ALL
+
+Global condition is met if all the sub-conditions are met.  ALL returns a logic! value.
+
+<b>Syntax</b>
+
+ all [<condition-1> <condition-2> ...]
+
+ <condition-*> : a conditional expression
+ 
+<b>Example</b>
+
+ if all [foo > 5 bar = 0][
+ 	print "true"				 	;-- reached if both conditions are met
+ ]
+ 
+---CASE
+
+Execute the block of code following the first condition that is met. If all blocks of code end with an expression of same type, then CASE can be used inside an expression.
+
+<b>Syntax</b>
+
+ case [<condition> [<body>] ...]
+
+ <condition> : a conditional expression
+ <body>		 : code to execute if the condition is met
+
+<b>Examples</b>
+
+ a: 3
+ case [
+ 	zero? a [print "0"]
+ 	a = 1   [print "1"]
+ 	a > 2   [print "greater than 2"]
+ ]
+will output:
+ greater than 2
+
+Example retrieving the returned value:
+ time: 8
+ msg: case [
+ 	all [6 < time time < 11]["morning"]
+ 	all [11 <= time time < 22]["evening"]
+ 	time >= 22 ["night"]
+ ]
+ print ["Good " msg]
+will output:
+ Good morning
+
+===Stack functions
+
+---PUSH
+
+Push a value on top of execution stack. Stack pointer is modified.
+
+<b>Syntax</b>
+
+ push <value>
+
+ <value>: expression of any type
+ 
+<b>Examples</b>
+
+ push 123
+ push a
+ push "hello"
+ push p/value
+
+---POP
+
+Pop a value from top of execution stack. Stack pointer is modified.
+
+<b>Syntax</b>
+
+ pop
+
+ return: an integer value
+
+===Debugging functions
+
+---ASSERT
+
+Make a runtime assertion. If assertion fails, a runtime error will be raised.
+
+<b>Syntax</b>
+
+ assert <conditional expression>
+ 
+<b>Example</b>
+
+ Red/System []
+
+ assert 1 = 2
+ 
+will produce if saved to %test.reds file and run:
+
+ *** Runtime Error 98: assertion failed at line 3
+ *** in file: %test.reds
+
+\note Compiler debug mode
+Assertion will only be compiled if the <b>debug?</b> compilation option is set to YES or if the <b>-g</b> command-line option is used, else the assertion will be ignored by the compiler.
+
+/note
+
+===System structure
+
+System structure is a special struct value, defined at run-time, to give access to some core features of Red/System.
+
+---ARGS-COUNT
+
+Informs about the number of words passed on command-line. The executable itself is included in the count, so <b>args-count</b> is greater or equal to one.
+
+<b>Syntax</b>
+
+ system/args-count
+
+ return: an integer value (>= 1)
+
+---ARGS-LIST
+
+Pointer to an array of words passed on command-line (including the program name). The array's end is marked by a null pointer.
+
+<b>Syntax</b>
+
+ system/args-list
+
+ return: a pointer value of type: str-array! (alias)
+ 
+The pointer alias is defined as:
+
+ str-array!: alias struct! [
+ 	item [c-string!]
+ ]
+
+<b>Example</b>
+
+ Red/System [purpose: "demo system/args-* info usage"]
+
+ print ["count: " system/args-count lf]
+ args: system/args-list 
+ c: 1 
+ until [ 
+ 	print [c ": " args/item lf] 
+ 	c: c + 1 
+ 	args: args + 1 
+ 	args/item = null 
+ ] 
+
+If compiled as <i>show-args</i> executable, and called as:
+
+ show-args 123 -p hello
+ 
+it would output:
+
+ count: 4
+ 1: show-args
+ 2: 123
+ 3: -p
+ 4: hello
+ 
+---ENV-VARS
+
+Pointer to an array of shell environment variables with their value. The array's end is marked by a null pointer.
+
+<b>Syntax</b>
+
+ system/env-vars
+
+ return: a pointer value of type: str-array! (alias)
+ 
+The pointer alias is defined as:
+
+ str-array!: alias struct! [
+ 	item [c-string!]
+ ]
+
+<b>Example</b>
+
+ Red/System [purpose: "demo system/env-vars usage"]
+
+ env: system/env-vars 
+ until [ 
+	print [env/item lf] 
+	env: env + 1 
+	env/item = null 
+ ] 
+
+would output (specific to your shell/OS):
+
+ ORBIT_SOCKETDIR=/tmp/orbit-root
+ SSH_AGENT_PID=2248
+ TERM=xterm
+ SHELL=/bin/bash
+ ...								;-- rest of output omitted						
+
+\note Implementation note
+On Windows platforms, system/env-vars is always set to null. This may change in future.
+
+/note
+
+---STACK/TOP
+
+Set or retrieve execution stack top address.
+
+<b>Syntax</b>
+
+Getting stack top value:
+
+ system/stack/top
+
+ return: a pointer value of type: pointer! [integer!]
+
+Setting stack top value:
+
+ system/stack/top: <address>
+
+ <address>: a pointer value of type: pointer! [integer!]
+
+\note Stack pointer modification
+Do not use it unless you know exactly what you are doing, else your program will most probably crash.
+
+/note
+
+---STACK/FRAME
+
+Set or retrieve execution stack frame address.
+
+<b>Syntax</b>
+
+Getting stack frame value:
+
+ system/stack/frame
+
+ return: a pointer value of type: pointer! [integer!]
+
+Setting stack frame value:
+
+ system/stack/frame: <address>
+
+ <address>: a pointer value of type: pointer! [integer!]
+
+\note Stack pointer modification
+Do not use it unless you know exactly what you are doing, else your program will most probably crash.
+
+/note
+
+---PC
+
+Retrieve the CPU program counter value.
+
+<b>Syntax</b>
+	
+ system/pc
+
+\note IA-32 target
+This access path will return the value of the EIP register.
+
+/note
+
+---ALIAS
+
+Get the ID value of an alias. This is required in typed functions in order to distinguish different struct! values.
+
+<b>Syntax</b>
+
+ system/alias/<name>
+
+ where
+ 	<name> : existing alias name
+ 	
+This expression returns an <b>integer!</b> value that can be used to test at runtime, the type of an argument in a typed function.
+
+Example:
+
+ foo!: alias struct! [a [byte!]]
+ 
+ s: declare foo!
+
+ probe: func [
+ 	 [typed] count [integer!] list [typed-value!]
+ ][
+ 	 until [
+ 		if list/type = system/alias/foo! [
+			print "foo! alias detected"
+		]
+		list: list + 1
+		count: count - 1
+		zero? count
+	 ]
+ ]
+
+ probe [1 "r" s 123]
+ 
+will output:
+ foo! alias detected
 
 
 ===Compiler directives
@@ -1780,9 +2329,7 @@ It will be possible to export some Red/System functions to be callable from the 
 
 /note
 
-===API Reference
-
----Reserved keywords
+===Reserved keywords
 
 The list of following symbols and keywords are reserved, they cannot be used as variable or function name:
 
@@ -1807,555 +2354,6 @@ Both -** (internal representation for >>>) and /// (internal representation for 
 
 /note
 
----Infix operators
-
-Infix operators take two arguments and are positioned between them.
-
-+++Math operators
-
-The following math operations apply on integer values. When the operation results in an exceeded memory storage limit, <i>behaviour to be defined</i>. 
-
-<b>Addition</b>: +
-
- value1 + value2
-
-<b>Subtraction</b>: -
-
- value1 - value2
-
-<b>Multiplication</b>: *
-
- value1 * value2
-
-<b>Division</b>: /
-
- value1 / value2
- 
-<b>Remainder</b>: %
-
- value1 % value2
- 
-Note: a remainder will be negative if the divider is negative. Same as in C or // operator in REBOL.
- 
-<b>Modulo</b>: //
-
- value1 // value2
- 
-Note: a positive result is always returned. Same as 'modulo function in REBOL.
-
-where
-
- value1 : an expression returning an integer!
- value2 : expression of same (or compatible) datatype as <value1>
- 
-The resulting value type for math operators is the type of the left argument (an implicit type casting is operated when required).
- 
-<u>Note:</u> for + and - operators, a pointer!, struct! or c-string! value can be used for both arguments or as first argument with an integer expression as second argument (see "Pointer arithmetic").
-
-+++Bitshift operators
-
-<b>Signed left shift</b>: <<
-
- value1 << value2
-
-<b>Signed right shift</b>: >>
-
- value1 >> value2
-
-<b>Unsigned right shift</b>: >>>
-
- value1 >>> value2
-  
-where
- 
- value1 : an expression returning an integer! or byte!
- value2 : integer! expression restricted to 0-31 range only.
-
-<u>Note</u>: There is no unsigned left shift operator as it is the same as the signed left shift one.
-
-+++Bitwise operators
-
-<b>Bitwise OR</b>: or
-
- value1 or value2
-
-<b>Bitwise XOR</b>: xor
-
- value1 xor value2
-
-<b>Bitwise AND</b>: and
-
- value1 and value2
- 
-<b>Bitwise / Logical NOT</b>: not
-
- not value1
- 
-where
- 
- value1 : an expression returning an integer!, byte! or logic!
- value2 : expression of same datatype as <value1>
- 
-<u>Note</u>: Logical NOT will return the opposite of the logic argument (TRUE<=>FALSE), while bitwise NOT will apply one's complement on the integer argument.
- 
-+++Comparison operators
-
-These operators can be used only where a condition is allowed. See "Control flow functions" section for a list of functions using conditions.
-
-<b>Equal</b>: =
-
- value1 = value2
- 
-<b>Not equal</b>: <>
-
- value1 <> value2
- 
-<b>Greater than</b>: >
- 
- value1 > value2
- 
-<b>Lesser than</b>: <
- 
- value1 < value2
- 
-<b>Greater than or equal</b>: >=
- 
- value1 >= value2
- 
-<b>Lesser than or equal</b>: <=
- 
- value1 <= value2
- 
-where
-  
-  value1 : an expression returning a integer!, byte!, c-string!, pointer! or struct!
-  value2 : expression of same datatype as <value1>
-
-<u>Note</u>:
-
-*= and <> can also be used to compare logic! values.
-
-*For c-string!, pointer! and struct! comparisons are done on references, not on the value pointed at.
-
----Control flow functions
-
-+++IF
-
-Execute a block of code if a given condition is true. IF does not return any value, so cannot be used in an expression.
-
-<b>Syntax</b>
-
- if <condition> [<code>]
-
- <condition> : a conditional expression
- <code>		 : code to execute if the condition is true
-
-<b>Example</b>
-
- if a < 0 [print "a is negative"]
- 
-+++EITHER
-
-Execute a block of code if a given condition is true, else execute an alternative block of code. If last expressions in both blocks have the same type, EITHER can be used inside an expression.
-
-<b>Syntax</b>
-
- either <condition> [<code>][<alternative>]
-
- <condition>   : a conditional expression
- <code>		   : code to execute if the condition is true
- <alternative> : code to execute if the condition is false
-
-<b>Examples</b>
-
- either a < 0 [
- 	either a = 0 [
- 		msg: "zero"
- 	][
- 		msg: "negative"
- 	]
- ][
- 	msg: "positive"
- ]
-
- print ["a is " msg lf]
- 
-An alternative way to write it (allowed because all code paths return a value of the same type):
- msg: either a < 0 [
-  	either a = 0 [
-  		"zero"
-  	][
-  		"negative"
-  	]
-  ][
-  	"positive"
- ]
- 
- prin ["a is " msg lf]
-
-+++UNTIL
-
-Loop over a block of code until the condition at end of block, is met. UNTIL does not return any value, so cannot be used in an expression.
-
-<b>Syntax</b>
-
- until [
- 	<code>
- 	<condition>
- ]
-
- <code>		 : code to execute while the condition is met
- <condition> : a conditional expression
-
-<u>Note</u>: The loop will always be executed at least once, even if the condition is not met from the beginning.
-
-<b>Example</b>
-
- c: 5
- until [
- 	print "o"
- 	c: c - 1
- 	c = 0
- ]
-will output:
-
- ooooo
-
-+++WHILE
-
-While a given condition is met, execute a block of code. WHILE does not return any value, so cannot be used in an expression.
-
-<b>Syntax</b>
-
- while [<condition>][<code>]
-
- <condition> : a conditional expression
- <code>		 : code to execute if the condition is met
-
-<u>Note</u>: It is possible to execute any code in the condition block as long as it ends with a conditional expression.
-
-<b>Example</b>
-
- c: 5
- while [c > 0][
- 	print "o"
- 	c: c - 1
- ]
-will output:
-
- ooooo
-
-+++ANY
-
-Global condition is met if at least one of the sub-conditions is met. ANY returns a logic! value.
-
-<b>Syntax</b>
-
- any [<condition-1> <condition-2> ...]
-
- <condition-*> : a conditional expression
-
-<b>Example</b>
-
- if any [foo > 5 bar = 0][
- 	print "true"					;-- reached if at least one condition is met
- ]
-
-+++ALL
-
-Global condition is met if all the sub-conditions are met.  ALL returns a logic! value.
-
-<b>Syntax</b>
-
- all [<condition-1> <condition-2> ...]
-
- <condition-*> : a conditional expression
- 
-<b>Example</b>
-
- if all [foo > 5 bar = 0][
- 	print "true"				 	;-- reached if both conditions are met
- ]
- 
-+++CASE
-
-Execute the block of code following the first condition that is met. If all blocks of code end with an expression of same type, then CASE can be used inside an expression.
-
-<b>Syntax</b>
-
- case [<condition> [<body>] ...]
-
- <condition> : a conditional expression
- <body>		 : code to execute if the condition is met
-
-<b>Examples</b>
-
- a: 3
- case [
- 	zero? a [print "0"]
- 	a = 1   [print "1"]
- 	a > 2   [print "greater than 2"]
- ]
-will output:
- greater than 2
-
-Example retrieving the returned value:
- time: 8
- msg: case [
- 	all [6 < time time < 11]["morning"]
- 	all [11 <= time time < 22]["evening"]
- 	time >= 22 ["night"]
- ]
- print ["Good " msg]
-will output:
- Good morning
-
----Stack functions
-
-+++PUSH
-
-Push a value on top of execution stack. Stack pointer is modified.
-
-<b>Syntax</b>
-
- push <value>
-
- <value>: expression of any type
- 
-<b>Examples</b>
-
- push 123
- push a
- push "hello"
- push p/value
-
-+++POP
-
-Pop a value from top of execution stack. Stack pointer is modified.
-
-<b>Syntax</b>
-
- pop
-
- return: an integer value
-
----Debugging functions
-
-+++ASSERT
-
-Make a runtime assertion. If assertion fails, a runtime error will be raised.
-
-<b>Syntax</b>
-
- assert <conditional expression>
- 
-<b>Example</b>
-
- Red/System []
-
- assert 1 = 2
- 
-will produce if saved to %test.reds file and run:
-
- *** Runtime Error 98: assertion failed at line 3
- *** in file: %test.reds
-
-\note Compiler debug mode
-Assertion will only be compiled if the <b>debug?</b> compilation option is set to YES or if the <b>-g</b> command-line option is used, else the assertion will be ignored by the compiler.
-
-/note
-
----System structure
-
-System structure is a special struct value, defined at run-time, to give access to some core features of Red/System.
-
-+++ARGS-COUNT
-
-Informs about the number of words passed on command-line. The executable itself is included in the count, so <b>args-count</b> is greater or equal to one.
-
-<b>Syntax</b>
-
- system/args-count
-
- return: an integer value (>= 1)
-
-+++ARGS-LIST
-
-Pointer to an array of words passed on command-line (including the program name). The array's end is marked by a null pointer.
-
-<b>Syntax</b>
-
- system/args-list
-
- return: a pointer value of type: str-array! (alias)
- 
-The pointer alias is defined as:
-
- str-array!: alias struct! [
- 	item [c-string!]
- ]
-
-<b>Example</b>
-
- Red/System [purpose: "demo system/args-* info usage"]
-
- print ["count: " system/args-count lf]
- args: system/args-list 
- c: 1 
- until [ 
- 	print [c ": " args/item lf] 
- 	c: c + 1 
- 	args: args + 1 
- 	args/item = null 
- ] 
-
-If compiled as <i>show-args</i> executable, and called as:
-
- show-args 123 -p hello
- 
-it would output:
-
- count: 4
- 1: show-args
- 2: 123
- 3: -p
- 4: hello
- 
-+++ENV-VARS
-
-Pointer to an array of shell environment variables with their value. The array's end is marked by a null pointer.
-
-<b>Syntax</b>
-
- system/env-vars
-
- return: a pointer value of type: str-array! (alias)
- 
-The pointer alias is defined as:
-
- str-array!: alias struct! [
- 	item [c-string!]
- ]
-
-<b>Example</b>
-
- Red/System [purpose: "demo system/env-vars usage"]
-
- env: system/env-vars 
- until [ 
-	print [env/item lf] 
-	env: env + 1 
-	env/item = null 
- ] 
-
-would output (specific to your shell/OS):
-
- ORBIT_SOCKETDIR=/tmp/orbit-root
- SSH_AGENT_PID=2248
- TERM=xterm
- SHELL=/bin/bash
- ...								;-- rest of output omitted						
-
-\note Implementation note
-On Windows platforms, system/env-vars is always set to null. This may change in future.
-
-/note
-
-+++STACK/TOP
-
-Set or retrieve execution stack top address.
-
-<b>Syntax</b>
-
-Getting stack top value:
-
- system/stack/top
-
- return: a pointer value of type: pointer! [integer!]
-
-Setting stack top value:
-
- system/stack/top: <address>
-
- <address>: a pointer value of type: pointer! [integer!]
-
-\note Stack pointer modification
-Do not use it unless you know exactly what you are doing, else your program will most probably crash.
-
-/note
-
-+++STACK/FRAME
-
-Set or retrieve execution stack frame address.
-
-<b>Syntax</b>
-
-Getting stack frame value:
-
- system/stack/frame
-
- return: a pointer value of type: pointer! [integer!]
-
-Setting stack frame value:
-
- system/stack/frame: <address>
-
- <address>: a pointer value of type: pointer! [integer!]
-
-\note Stack pointer modification
-Do not use it unless you know exactly what you are doing, else your program will most probably crash.
-
-/note
-
-+++PC
-
-Retrieve the CPU program counter value.
-
-<b>Syntax</b>
-	
- system/pc
-
-\note IA-32 target
-This access path will return the value of the EIP register.
-
-/note
-
-+++ALIAS
-
-Get the ID value of an alias. This is required in typed functions in order to distinguish different struct! values.
-
-<b>Syntax</b>
-
- system/alias/<name>
-
- where
- 	<name> : existing alias name
- 	
-This expression returns an <b>integer!</b> value that can be used to test at runtime, the type of an argument in a typed function.
-
-Example:
-
- foo!: alias struct! [a [byte!]]
- 
- s: declare foo!
-
- probe: func [
- 	 [typed] count [integer!] list [typed-value!]
- ][
- 	 until [
- 		if list/type = system/alias/foo! [
-			print "foo! alias detected"
-		]
-		list: list + 1
-		count: count - 1
-		zero? count
-	 ]
- ]
-
- probe [1 "r" s 123]
- 
-will output:
- foo! alias detected
  
 ===Possible Evolutions
 
@@ -2476,6 +2474,7 @@ will output:
 
 *>Minor typo fixed.
 
+*>"API Reference" level removed, all sub-sections are moved up and placed after "Scoping" chapter.
 
 
 *<b>21/09/2011 - revision 29</b>
