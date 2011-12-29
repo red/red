@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Red/System MacOS X runtime"
 	Author:  "Nenad Rakocevic"
-	File: 	 %macosx.reds
+	File: 	 %darwin.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
