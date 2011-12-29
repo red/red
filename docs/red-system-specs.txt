@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 21/09/2011
-	Revision: 29
+	Date: 29/12/2011
+	Revision: 30
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -49,7 +49,7 @@ Block of code delimiters: square brackets
 
  if a > 0 [print "TRUE"]
 
- either a > 0 [print "TRUE"][print "FALSE]
+ either a > 0 [print "TRUE"][print "FALSE"]
 
  while [a > 0][print "loop" a: a - 1]
  
@@ -1794,12 +1794,13 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     >>			>=		    >>>
     alias 		all		    and
     any			as			assert
-    comment		declare		either
-    exit	    false		func
-    function    if			not
-    or		    pop			push
-    return      size?	    true
-    until       while	    xor
+    case		comment		declare
+    either	    exit	    false
+    func 	  	function    if
+    not			or		    pop
+    push		return      size?
+    true		until       while
+    xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -1955,7 +1956,7 @@ Execute a block of code if a given condition is true. IF does not return any val
  
 +++EITHER
 
-Execute a block of code if a given condition is true, else execute an alternative block of code. If both blocks of code's last expression is of the same type, EITHER can be used inside an expression.
+Execute a block of code if a given condition is true, else execute an alternative block of code. If last expressions in both blocks have the same type, EITHER can be used inside an expression.
 
 <b>Syntax</b>
 
@@ -2075,6 +2076,39 @@ Global condition is met if all the sub-conditions are met.  ALL returns a logic!
  if all [foo > 5 bar = 0][
  	print "true"				 	;-- reached if both conditions are met
  ]
+ 
++++CASE
+
+Execute the block of code following the first condition that is met. If all blocks of code end with an expression of same type, then CASE can be used inside an expression.
+
+<b>Syntax</b>
+
+ case [<condition> [<body>] ...]
+
+ <condition> : a conditional expression
+ <body>		 : code to execute if the condition is met
+
+<b>Examples</b>
+
+ a: 3
+ case [
+ 	zero? a [print "0"]
+ 	a = 1   [print "1"]
+ 	a > 2   [print "greater than 2"]
+ ]
+will output:
+ greater than 2
+
+Example retrieving the returned value:
+ time: 8
+ msg: case [
+ 	all [6 < time time < 11]["morning"]
+ 	all [11 <= time time < 22]["evening"]
+ 	time >= 22 ["night"]
+ ]
+ print ["Good " msg]
+will output:
+ Good morning
 
 ---Stack functions
 
@@ -2433,6 +2467,16 @@ will output:
 
 
 ===Document History
+
+*<b>29/12/2011 - revision 30</b>
+
+*>Added CASE description.
+
+*>Update keywords list.
+
+*>Minor typo fixed.
+
+
 
 *<b>21/09/2011 - revision 29</b>
 
