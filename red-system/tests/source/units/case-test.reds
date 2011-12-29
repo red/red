@@ -12,58 +12,43 @@ Red/System [
 
 ===start-group=== "case integer!"
 
-#define case-int-1-code "case [ ci = 1 [1] ci = 2 [2] true [3]]"
+#define case-int-1 [case [ ci = 1 [1] ci = 2 [2] true [3]]]
 
 	--test-- "case-int-1"
 	  ci: 1
-	--assert 1 = case [ ci = 1 [1] ci = 2 [2] true [3]]
+	--assert 1 = case-int-1
 	
 	--test-- "case-int-2"
 	  ci: 1
-	  cr: case [ 
-	    ci = 1 [1]
-	    ci = 2 [2]
-	    true [3]
+	  cr: case-int-1
 	  ]
 	--assert 1 = cr
 	
 	--test-- "case-int-3"
 	  ci: 2
-	--assert 2 = case [ ci = 1 [1] ci = 2 [2] true [3]]
+	--assert 2 = case-int-1
 	
 	--test-- "case-int-4"
 	  ci: 2
-	  cr: case [ 
-	    ci = 1 [1]
-	    ci = 2 [2]
-	    true [3]
-	  ]
+	  cr: case-int-1
 	--assert 2 = cr
 	
 	--test-- "case-int-5"
 	  ci: 3
-	--assert 3 = case [ ci = 1 [1] ci = 2 [2] true [3]]
+	--assert 3 = case-int-1
 	
 	--test-- "case-int-6"
 	  ci: 3
-	  cr: case [ 
-	    ci = 1 [1]
-	    ci = 2 [2]
-	    true [3]
-	  ]
+	  cr: case-int-1
 	--assert 3 = cr
 	
 	--test-- "case-int-7"
 	  ci: 10
-	--assert 3 = case [ ci = 1 [1] ci = 2 [2] true [3]]
+	--assert 3 = case-int-1
 	
 	--test-- "case-int-2"
 	  ci: 10
-	  cr: case [ 
-	    ci = 1 [1]
-	    ci = 2 [2]
-	    true [3]
-	  ]
+	  cr: case-int-1
 	--assert 3 = cr
 
 ===end-group===
