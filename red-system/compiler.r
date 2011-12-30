@@ -119,6 +119,7 @@ system-dialect: context [
 			if			 [comp-if]
 			either		 [comp-either]
 			case		 [comp-case]
+			switch		 [comp-switch]
 			until		 [comp-until]
 			while		 [comp-while]
 			any			 [comp-expression-list]
@@ -324,6 +325,20 @@ system-dialect: context [
 			type1: either find type-sets type1 [get type1][reduce [type1]]
 			type2: either find type-sets type2 [get type2][reduce [type2]]
 			not empty? intersect type1 type2
+		]
+		
+		equal-types-list?: func [types [block!]][
+			forall types [							;-- check if all last expressions are of same type
+				unless types/1/1 [return none-type]	;-- test if type is defined
+				types/1: resolve-aliased types/1	;-- reduce aliases and pseudo-types
+				if all [
+					not head? types
+					not equal-types? types/-1/1 types/1/1
+				][
+					return none-type
+				]
+			]
+			first head types						;-- all types equal, return the first one
 		]
 						
 		with-alias-resolution: func [mode [logic!] body [block!] /local saved][
@@ -1198,17 +1213,79 @@ system-dialect: context [
 			]	
 			emitter/merge bodies						;-- commit all to main code buffer
 			pc: next pc
+			last-type: equal-types-list? types			;-- test if usage in expression allowed
+			<last>
+		]
+		
+		comp-switch: has [expr spec value values body bodies list types default][
+			pc: next pc
+			expr: fetch-expression/final				;-- compile argument
+			if any [none? expr last-type = none-type][
+				throw-error "SWITCH argument has no return value"
+			]
 			
-			last-type: either 'error = forall types [	;-- check if all last expressions are of same type
-				unless types/1/1 [break/return 'error]	;-- test if type is defined
-				types/1: resolve-aliased types/1		;-- reduce aliases and pseudo-types
-				if all [
-					not head? types
-					not equal-types? types/-1/1 types/1/1
-				][
-					break/return 'error
+			check-body spec: pc/1
+			foreach w [values list types][set w make block! 8]
+			
+			;-- check syntax and store parts in different lists
+			unless parse spec [
+				some [
+					pos: copy value some [integer! | char!] 
+					(repend values [value none])		;-- [value body-offset ...]
+					pos: block! (
+						fetch-into pos [				;-- compile action body
+							body: comp-block-chunked
+							append/only list body/2		
+							append/only types resolve-expr-type/quiet body/1
+						]
+					)
 				]
-			][none-type][first head types]				;-- allow nesting if both blocks return same type
+				opt [
+					'default pos: block! (
+						fetch-into pos [				;-- compile default body
+							default: comp-block-chunked
+							append/only types resolve-expr-type/quiet default/1
+						]
+					)
+				]
+			][
+				throw-error ["wrong syntax in SWITCH block at:" copy/part pos 4]
+			]
+
+			;-- assemble all actions together, with exit at end for each one
+			bodies: emitter/chunks/empty
+			list: tail list								;-- point to last action
+			until [										;-- left join all actions in reverse order		
+				body: first list: back list
+				unless empty? bodies/1 [
+					emitter/branch/over bodies			;-- insert case exit branching
+				]
+				bodies: emitter/chunks/join body bodies	;-- left join action with other actions		
+				change at values 2 * index? list length? bodies/1
+				head? list		
+			]
+			emitter/branch/over bodies					;-- insert catch-all exit branching
+			if default [bodies: emitter/chunks/join default/2 bodies]
+
+			;-- construct tests + branching and insert them at head
+			emitter/set-signed-state expr				;-- properly set signed/unsigned state
+			values: tail values
+			until [
+				values: skip values -2
+				foreach v values/1 [					;-- process multiple values per action
+					emitter/chunks/start
+					emitter/target/emit-operation '= reduce [<last> v]
+					body: emitter/chunks/stop
+
+					emitter/branch/over/on/adjust bodies [=] values/2	;-- insert action branching			
+					bodies: emitter/chunks/join body bodies
+				]
+				head? values
+			]
+			emitter/merge bodies						;-- commit all to main code buffer	
+			
+			pc: next pc
+			last-type: equal-types-list? types			;-- test if usage in expression allowed
 			<last>
 		]
 		
