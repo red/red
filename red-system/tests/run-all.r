@@ -103,6 +103,7 @@ start-time: now/precise
   --run-test-file-quiet %source/units/not-test.reds
   --run-test-file-quiet %source/units/size-test.reds
   --run-test-file-quiet %source/units/function-test.reds
+  --run-test-file-quiet %source/units/case-test.reds
 ===end-group===
 
 ===start-group=== "Special natives tests"
