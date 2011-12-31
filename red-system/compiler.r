@@ -1281,7 +1281,8 @@ system-dialect: context [
 			
 			;-- insert default clause or jump to runtime error
 			either default [
-				bodies: emitter/chunks/join default/2 bodies
+				emitter/branch/over bodies          	;-- insert default exit branching
+				bodies: emitter/chunks/join default/2 bodies ;-- insert default action
 			][
 				body: comp-chunked [raise-runtime-error 101] ;-- raise a runtime error if unmatched value
 				bodies: emitter/chunks/join body bodies
