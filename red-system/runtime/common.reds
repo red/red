@@ -174,6 +174,9 @@ form-type: func [
 		if status = 98 [msg: "assertion failed"]
 		if status = 99 [msg: "unknown error"]
 		
+		if status = 100 [msg: "no matched value in CASE"]
+		if status = 101 [msg: "no matched value in SWITCH"]
+		
 		print msg
 		
 		#either debug? = yes [

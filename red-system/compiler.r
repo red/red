@@ -925,6 +925,12 @@ system-dialect: context [
 				throw-error ["invalid syscall specification at:" pos]
 			]
 		]
+		
+		comp-chunked: func [body [block!]][
+			emitter/chunks/start
+			do body
+			emitter/chunks/stop
+		]
 
 		comp-directive: has [body][
 			switch/default pc/1 [
@@ -1197,7 +1203,12 @@ system-dialect: context [
 				]
 				tail? cases: next cases
 			]
-			bodies: emitter/chunks/empty
+			
+			bodies: comp-chunked [
+				emitter/target/emit-get-pc
+				compiler/comp-call '***-on-quit [100 <last>] ;-- raise a runtime error if unmatched value
+			]		
+
 			list: tail list								;-- point to last case test
 			until [										;-- left join all cases in reverse order			
 				list: skip list -2
@@ -1264,8 +1275,17 @@ system-dialect: context [
 				change at values 2 * index? list length? bodies/1
 				head? list		
 			]
-			emitter/branch/over bodies					;-- insert catch-all exit branching
-			if default [bodies: emitter/chunks/join default/2 bodies]
+			
+			;-- insert default clause or jump to runtime error
+			either default [
+				bodies: emitter/chunks/join default/2 bodies
+			][
+				body: comp-chunked [
+					emitter/target/emit-get-pc
+					compiler/comp-call '***-on-quit [101 <last>] ;-- raise a runtime error if unmatched value
+				]
+				bodies: emitter/chunks/join body bodies
+			]
 
 			;-- construct tests + branching and insert them at head
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
@@ -1273,10 +1293,9 @@ system-dialect: context [
 			until [
 				values: skip values -2
 				foreach v values/1 [					;-- process multiple values per action
-					emitter/chunks/start
-					emitter/target/emit-operation '= reduce [<last> v]
-					body: emitter/chunks/stop
-
+					body: comp-chunked [
+						emitter/target/emit-operation '= reduce [<last> v]
+					]
 					emitter/branch/over/on/adjust bodies [=] values/2	;-- insert action branching			
 					bodies: emitter/chunks/join body bodies
 				]
