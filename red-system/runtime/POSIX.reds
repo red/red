@@ -162,36 +162,46 @@ stderr: 2
 	error: 99								;-- default unknown error
 	code: info/code
 	
-	if signal = SIGILL [
-		if code = 1 [error: 17]				;-- illegal opcode
-		if code = 2 [error: 23]				;-- illegal operand
-		if code = 3 [error: 24]				;-- illegal addressing mode
-		if code = 4 [error: 25]				;-- illegal trap
-		if code = 5 [error: 15]				;-- privileged opcode
-		if code = 6 [error: 31]				;-- privileged register
-		if code = 7 [error: 26]				;-- coprocessor error
-		if code = 8 [error: 19]				;-- internal stack error
-	]
-	if signal = SIGBUS [
-		if code = 1 [error:  2]				;-- invalid address alignment
-		if code = 2 [error: 27]				;-- non-existant physical address
-		if code = 3 [error: 28]				;-- object specific hardware error
-		if code = 4 [error: 29]				;-- hardware memory error consumed (action required)
-		if code = 5 [error: 30]				;-- hardware memory error consumed (action optional)
-	]
-	if signal = SIGFPE [
-		if code = 1 [error: 13]				;-- integer divide by zero
-		if code = 2 [error: 14]				;-- integer overflow
-		if code = 3 [error:  7]				;-- floating point divide by zero
-		if code = 4 [error: 10]				;-- floating point overflow
-		if code = 5 [error: 12]				;-- floating point underflow
-		if code = 6 [error:  8]				;-- floating point inexact result
-		if code = 7 [error:  9]				;-- floating point invalid operation
-		if code = 8 [error:  5]				;-- subscript out of range
-	]
-	if signal = SIGSEGV [
-		if code = 1 [error:  1]				;-- address not mapped to object
-		if code = 2 [error: 16]				;-- invalid permissions for mapped object
+	error: switch signal [
+		SIGILL [
+			switch code [
+				1 [17]						;-- illegal opcode
+				2 [23]						;-- illegal operand
+				3 [24]						;-- illegal addressing mode
+				4 [25]						;-- illegal trap
+				5 [15]						;-- privileged opcode
+				6 [31]						;-- privileged register
+				7 [26]						;-- coprocessor error
+				8 [19]						;-- internal stack error
+			]
+		]
+		SIGBUS [
+			switch code [
+				1 [2]						;-- invalid address alignment
+				2 [27]						;-- non-existant physical address
+				3 [28]						;-- object specific hardware error
+				4 [29]						;-- hardware memory error consumed (action required)
+				5 [30]						;-- hardware memory error consumed (action optional)
+			]
+		]
+		SIGFPE [
+			switch code [
+				1 [13]						;-- integer divide by zero
+				2 [14]						;-- integer overflow
+				3 [7]						;-- floating point divide by zero
+				4 [10]						;-- floating point overflow
+				5 [12]						;-- floating point underflow
+				6 [8]						;-- floating point inexact result
+				7 [9]						;-- floating point invalid operation
+				8 [5]						;-- subscript out of range
+			]
+		]
+		SIGSEGV [
+			switch code [
+				1 [1]						;-- address not mapped to object
+				2 [16]						;-- invalid permissions for mapped object
+			]
+		]
 	]
 	
 	#switch target [

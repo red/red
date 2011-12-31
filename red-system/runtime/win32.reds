@@ -76,29 +76,31 @@ exception-filter: func [
 ][
 	error: 99									;-- default unknown error
 	code: record/error/code
-	if code = C0000005h [error:  1]				;-- access violation 
-	if code = 80000002h [error:  2]				;-- datatype misalignment
-	if code = 80000003h [error:  3]				;-- breakpoint
-	if code = 80000004h [error:  4]				;-- single step
-	if code = C000008Ch [error:  5]				;-- array bounds exceeded
-	if code = C000008Dh [error:  6]				;-- float denormal operand	
-	if code = C000008Eh [error:  7]				;-- float divide by zero
-	if code = C000008Fh [error:  8]				;-- float inexact result
-	if code = C0000090h [error:  9]				;-- float invalid operation
-	if code = C0000091h [error: 10]				;-- float overflow
-	if code = C0000092h [error: 11]				;-- float stack check
-	if code = C0000093h [error: 12]				;-- float underflow
-	if code = C0000094h [error: 13]				;-- integer divide by zero
-	if code = C0000095h [error: 14]				;-- integer overflow
-	if code = C0000096h [error: 15]				;-- privileged instruction
-	if code = C0000006h [error: 16]				;-- in page error
-	if code = C000001Dh [error: 17]				;-- illegal instruction
-	if code = C0000025h [error: 18]				;-- non-continuable exception
-	if code = C00000FDh [error: 19]				;-- stack overflow
-	if code = C0000026h [error: 20]				;-- invalid disposition
-	if code = 80000001h [error: 21]				;-- guard page
-	if code = C0000008h [error: 22]				;-- invalid handle
-	if code = C000013Ah [error:  0]				;-- CTRL-C exit
+	error: switch code [
+		C0000005h [1]							;-- access violation 
+		80000002h [2]							;-- datatype misalignment
+		80000003h [3]							;-- breakpoint
+		80000004h [4]							;-- single step
+		C000008Ch [5]							;-- array bounds exceeded
+		C000008Dh [6]							;-- float denormal operand	
+		C000008Eh [7]							;-- float divide by zero
+		C000008Fh [8]							;-- float inexact result
+		C0000090h [9]							;-- float invalid operation
+		C0000091h [10]							;-- float overflow
+		C0000092h [11]							;-- float stack check
+		C0000093h [12]							;-- float underflow
+		C0000094h [13]							;-- integer divide by zero
+		C0000095h [14]							;-- integer overflow
+		C0000096h [15]							;-- privileged instruction
+		C0000006h [16]							;-- in page error
+		C000001Dh [17]							;-- illegal instruction
+		C0000025h [18]							;-- non-continuable exception
+		C00000FDh [19]							;-- stack overflow
+		C0000026h [20]							;-- invalid disposition
+		80000001h [21]							;-- guard page
+		C0000008h [22]							;-- invalid handle
+		C000013Ah [0]							;-- CTRL-C exit
+	]
 
 	***-on-quit error record/error/address
 	1
@@ -127,8 +129,6 @@ __win32-memory-blocks: declare struct! [
 		WriteFile stdout s length? s written 0
 		s
 	]
-	
-
 ]
 
 ;-------------------------------------------
