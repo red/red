@@ -1256,9 +1256,8 @@ make target-class [
 					]
 					;2 []							;-- 16-bit not supported
 					4 [
-						emit-move-alt				;-- MOV r1, r0
-						emit-load-imm32 arg2
-						emit-i32 #{e1510000}		;-- CMP r1, r0		; not commutable op
+						emit-load-imm32/reg arg2 1	;-- r1: arg2	
+						emit-i32 #{e1500001}		;-- CMP r0, r1		; not commutable op
 					]
 				]
 			]
