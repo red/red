@@ -207,6 +207,12 @@ system-dialect: context [
 			throw-error "parens are only allowed nested in an expression"
 		]
 		
+		raise-runtime-error: func [error [integer!]][
+			emitter/target/emit-get-pc				;-- get current CPU program counter address
+			last-type: [integer!]					;-- emit-get-pc returns an integer! (required for next line)
+			compiler/comp-call '***-on-quit reduce [error <last>] ;-- raise a runtime error
+		]
+		
 		backtrack: func [value /local res][
 			pc: any [res: find/only/reverse pc value pc]
 			to logic! res
@@ -1204,11 +1210,8 @@ system-dialect: context [
 				tail? cases: next cases
 			]
 			
-			bodies: comp-chunked [
-				emitter/target/emit-get-pc
-				compiler/comp-call '***-on-quit [100 <last>] ;-- raise a runtime error if unmatched value
-			]		
-
+			bodies: comp-chunked [raise-runtime-error 100] ;-- raise a runtime error if unmatched value
+			
 			list: tail list								;-- point to last case test
 			until [										;-- left join all cases in reverse order			
 				list: skip list -2
@@ -1280,10 +1283,7 @@ system-dialect: context [
 			either default [
 				bodies: emitter/chunks/join default/2 bodies
 			][
-				body: comp-chunked [
-					emitter/target/emit-get-pc
-					compiler/comp-call '***-on-quit [101 <last>] ;-- raise a runtime error if unmatched value
-				]
+				body: comp-chunked [raise-runtime-error 101] ;-- raise a runtime error if unmatched value
 				bodies: emitter/chunks/join body bodies
 			]
 
