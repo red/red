@@ -35,6 +35,9 @@ qt: make object! [
   ;; set the default base dir for tests
   tests-dir: join comp-dir "tests/"
   
+  ;; set the version number
+  version: system/script/header/version
+  
   ;; set temporary files names
   ;;  use Red/red-system/runnable for temp files
   comp-echo: join runnable-dir %comp-echo.txt
@@ -205,8 +208,14 @@ qt: make object! [
   ][
     print join "" [src " - compiler error"]
     print comp-output
-    test-run/failures: test-run/failures + 1           ;; signify failing test
+    ;; signify failing test
+    file/failures: file/failures + 1           
+    file/no-tests: file/no-tests + 1
+    file/no-asserts: file/no-asserts + 1
+    test-run/failures: test-run/failures + 1           
+    test-run/no-tests: test-run/no-tests + 1
     test-run/no-asserts: test-run/no-asserts + 1
+    probe file
   ]
   
   compile-ok?: func [] [
