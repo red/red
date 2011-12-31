@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs the Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.6.1
+	Version: 0.7.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -76,7 +76,7 @@ if any [
 ]
 
 ;; run the tests
-print rejoin ["Quick-Test v" system/script/header/version]
+print rejoin ["Quick-Test v" qt/version]
 print rejoin ["REBOL " system/version]
 
 start-time: now/precise
@@ -88,7 +88,7 @@ start-time: now/precise
 
 ===start-group=== "Datatype tests"
   --run-test-file-quiet %source/units/logic-test.reds
- ; --run-test-file-quiet  %source/units/integer-test.reds        
+ ; --run-test-file-quiet  %source/units/integer-test.reds   ;; excluded from ARM tests       
   --run-test-file-quiet %source/units/byte-test.reds
   --run-test-file-quiet %source/units/c-string-test.reds
   --run-test-file-quiet %source/units/struct-test.reds
@@ -128,7 +128,7 @@ start-time: now/precise
   --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/maths-auto-test.reds
-  --run-test-file-quiet  %source/units/auto-tests/lib-auto-test.reds
+  --run-test-file-quiet  %source/units/auto-tests/lib-auto-test.reds ;; excluded from ARM tests
 ===end-group===
 
 ===start-group=== "Compiler Tests"
