@@ -947,101 +947,71 @@ make target-class [
 			emit-push either block? arg [<last>][arg]
 		]
 	]
-	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec type res total][
-		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 		
-		fspec: select compiler/functions name
-		type: first spec: any [
-			select emitter/symbols name				;@@
-			next fspec
+	emit-call-syscall: func [args [block!] fspec [block!]][
+		switch compiler/job/syscall [
+			BSD [									; http://www.freebsd.org/doc/en/books/developers-handbook/book.html#X86-SYSTEM-CALLS
+				emit #{83EC04}						;-- SUB esp, 4		; extra entry (BSD convention)			
+			]
+			Linux [
+				if fspec/1 >= 6 [
+					emit #{89E8}					;-- MOV eax, ebp	; save frame pointer
+				]
+				repeat c fspec/1 [
+					emit pick [
+						#{5B}						;-- POP ebx			; get 1st arg in reg
+						#{59}						;-- POP ecx			; get 2nd arg in reg
+						#{5A}						;-- POP edx			; get 3rd arg in reg
+						#{5E}						;-- POP esi			; get 4th arg in reg
+						#{5F}						;-- POP edi			; get 5th arg in reg
+						#{5D}						;-- POP ebp			; get 6th arg in reg
+					] 1 + fspec/1 - c
+				]
+				if fspec/1 >= 6 [
+					emit #{50}						;-- PUSH eax		; save frame pointer on stack
+				]
+			]
 		]
-		switch type [								;-- call or inline the function
-			syscall [								;TBD: add support for SYSENTER/SYSEXIT
-				switch compiler/job/syscall [
-					BSD [							; http://www.freebsd.org/doc/en/books/developers-handbook/book.html#X86-SYSTEM-CALLS
-						emit #{83EC04}				;-- SUB esp, 4		; extra entry (BSD convention)			
-					]
-					Linux [
-						if fspec/1 >= 6 [
-							emit #{89E8}			;-- MOV eax, ebp	; save frame pointer
-						]
-						repeat c fspec/1 [
-							emit pick [
-								#{5B}				;-- POP ebx			; get 1st arg in reg
-								#{59}				;-- POP ecx			; get 2nd arg in reg
-								#{5A}				;-- POP edx			; get 3rd arg in reg
-								#{5E}				;-- POP esi			; get 4th arg in reg
-								#{5F}				;-- POP edi			; get 5th arg in reg
-								#{5D}				;-- POP ebp			; get 6th arg in reg
-							] 1 + fspec/1 - c
-						]
-						if fspec/1 >= 6 [
-							emit #{50}				;-- PUSH eax		; save frame pointer on stack
-						]
-					]
-				]
-				emit #{B8}							;-- MOV eax, code
-				emit to-bin32 last fspec
-				emit #{CD80}						;-- INT 0x80		; syscall
-				switch compiler/job/syscall [
-					BSD [emit-cdecl-pop fspec args]	;-- BSD syscall cconv (~ cdecl)
-					Linux [
-						if fspec/1 >= 6 [emit #{5D}];-- POP ebp			; restore frame pointer
-					]
-				]
+		emit #{B8}									;-- MOV eax, code
+		emit to-bin32 last fspec
+		emit #{CD80}								;-- INT 0x80		; syscall
+		switch compiler/job/syscall [
+			BSD [emit-cdecl-pop fspec args]			;-- BSD syscall cconv (~ cdecl)
+			Linux [
+				if fspec/1 >= 6 [emit #{5D}]		;-- POP ebp			; restore frame pointer
 			]
-			import [
-				either compiler/job/OS = 'MacOSX [
-					emit #{B8}						;-- MOV eax, addr
-					emit-reloc-addr spec
-					emit #{FFD0} 					;-- CALL eax		; direct call
-				][	
-					emit #{FF15}					;-- CALL FAR [addr]	; indirect call
-					emit-reloc-addr spec
-				]
-				if fspec/3 = 'cdecl [				;-- add calling cleanup when required
-					emit-cdecl-pop fspec args
-				]			
-			]
-			native [
-				if issue? args/1 [					;-- variadic call
-					emit-push 4 * length? args/2	;-- push arguments total size in bytes 
+		]
+	]
+	
+	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
+		either compiler/job/OS = 'MacOSX [
+			emit #{B8}								;-- MOV eax, addr
+			emit-reloc-addr spec
+			emit #{FFD0} 							;-- CALL eax		; direct call
+		][	
+			emit #{FF15}							;-- CALL FAR [addr]	; indirect call
+			emit-reloc-addr spec
+		]
+		if fspec/3 = 'cdecl [						;-- add calling cleanup when required
+			emit-cdecl-pop fspec args
+		]		
+	]
+
+	emit-call-native: func [args [block!] fspec [block!] spec [block!] /local total][
+		if issue? args/1 [							;-- variadic call
+			emit-push 4 * length? args/2			;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
-					emit #{8D742404}				;-- LEA esi, [esp+4]	; skip last pushed value
-					emit #{56}						;-- PUSH esi			; push arguments list pointer
-					total: length? args/2
-					if args/1 = #typed [total: total / 2]
-					emit-push total					;-- push arguments count
-				]
-				emit #{E8}							;-- CALL NEAR disp
-				emit-reloc-addr spec				;-- 32-bit relative displacement place-holder
-				if fspec/3 = 'cdecl [				;-- in case of non-default calling convention
-					emit-cdecl-pop fspec args
-				]
-			]
-			inline [
-				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
-				do select [
-					not			[emit-not args/1]
-					push		[emit-push args/1]
-					pop			[emit-pop]
-				] name
-				if name = 'not [res: compiler/get-type args/1]
-			]
-			op	[
-				emit-operation name args
-				if sub? [emitter/logic-to-integer name]
-				unless find comparison-op name [		;-- comparison always return a logic!
-					res: any [
-						;all [object? args/1 args/1/type]
-						all [not sub? block? args/1 compiler/last-type]
-						compiler/get-type args/1	;-- other ops return type of the first argument	
-					]
-				]
-			]
+			emit #{8D742404}						;-- LEA esi, [esp+4]	; skip last pushed value
+			emit #{56}								;-- PUSH esi			; push arguments list pointer
+			total: length? args/2
+			if args/1 = #typed [total: total / 2]
+			emit-push total							;-- push arguments count
 		]
-		res
+		emit #{E8}									;-- CALL NEAR disp
+		emit-reloc-addr spec						;-- 32-bit relative displacement place-holder
+		if fspec/3 = 'cdecl [						;-- in case of non-default calling convention
+			emit-cdecl-pop fspec args
+		]
 	]
 	
 	emit-stack-align-prolog: func [args-nb [integer!] /local offset][

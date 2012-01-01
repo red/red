@@ -1473,15 +1473,15 @@ make target-class [
 		]
 	]
 	
-	emit-call-syscall: func [number nargs] [		; @@ check if it needs stack alignment too
+	emit-call-syscall: func [args [block!] fspec [block!]] [	; @@ check if it needs stack alignment too
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}		
-		emit-i32 to char! shift 255 8 - nargs
-		emit-i32 #{e3a070}							;-- MOV r7, <number>
-		emit-i32 to-bin8 number
+		emit-i32 to char! shift 255 8 - fspec/1
+		emit-i32 #{e3a070}							;-- MOV r7, <syscall>
+		emit-i32 to-bin8 last fspec
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
 	]
 	
-	emit-call-import: func [args [block!] spec [block!]][
+	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
 		emit-i32 #{e8bd00}							;-- POP {r0, .., r<nargs>}	; nargs <= 4	
 		emit-i32 to char! shift 255 8 - min 4 length? args
 		
@@ -1490,7 +1490,7 @@ make target-class [
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
 	]
 
-	emit-call-native: func [args [block!] spec [block!]][
+	emit-call-native: func [args [block!] fspec [block!] spec [block!]][
 		if issue? args/1 [							;-- variadic call
 			emit-push 4 * length? args/2			;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
@@ -1524,47 +1524,6 @@ make target-class [
 		][
 			emit-push either block? arg [<last>][arg]
 		]
-	]
-
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res][
-		if verbose >= 3 [print [">>>calling:" mold name mold args]]
-
-		fspec: select compiler/functions name
-		spec: any [select emitter/symbols name next fspec]
-		type: first spec
-
-		switch type [
-			syscall [
-				emit-call-syscall last fspec fspec/1
-			]
-			import [
-				emit-call-import args spec
-			]
-			native [
-				emit-call-native args spec
-			]
-			inline [
-				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
-				do select [
-					not			[emit-not args/1]
-					push		[emit-push args/1]
-					pop			[emit-pop]
-				] name
-				if name = 'not [res: compiler/get-type args/1]
-			]
-			op	[
-				emit-operation name args
-				if sub? [emitter/logic-to-integer name]
-				unless find comparison-op name [		;-- comparison always return a logic!
-					res: any [
-						;all [object? args/1 args/1/type]
-						all [not sub? block? args/1 compiler/last-type]
-						compiler/get-type args/1	;-- other ops return type of the first argument	
-					]
-				]
-			]
-		]
-		res
 	]
 	
 	emit-stack-align-prolog: func [args-nb [integer!]][

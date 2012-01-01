@@ -23,7 +23,9 @@ target-class: context [
 	last-saved?: no									;-- TRUE => operand saved in another register
 	verbose:  	0									;-- logs verbosity level
 	
-	emit-casting: none								;-- just pre-bind word to avoid contexts issue
+	emit-casting: emit-call-syscall: emit-call-import:
+	emit-call-native: emit-not: emit-push: emit-pop:
+	emit-operation: none							;-- just pre-bind word to avoid contexts issue
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   [+ - * / // ///]
@@ -133,5 +135,46 @@ target-class: context [
 			arg: make object! [action: 'type-cast type: [integer!] data: arg]
 			emit-casting arg yes					;-- type cast right argument
 		]
+	]
+	
+	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res][
+		if verbose >= 3 [print [">>>calling:" mold name mold args]]
+
+		fspec: select compiler/functions name
+		spec: any [select emitter/symbols name next fspec]
+		type: first spec
+
+		switch type [
+			syscall [
+				emit-call-syscall args fspec
+			]
+			import [
+				emit-call-import args fspec spec
+			]
+			native [
+				emit-call-native args fspec spec
+			]
+			inline [
+				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
+				do select [
+					not			[emit-not args/1]
+					push		[emit-push args/1]
+					pop			[emit-pop]
+				] name
+				if name = 'not [res: compiler/get-type args/1]
+			]
+			op	[
+				emit-operation name args
+				if sub? [emitter/logic-to-integer name]
+				unless find comparison-op name [		;-- comparison always return a logic!
+					res: any [
+						;all [object? args/1 args/1/type]
+						all [not sub? block? args/1 compiler/last-type]
+						compiler/get-type args/1	;-- other ops return type of the first argument	
+					]
+				]
+			]
+		]
+		res
 	]
 ]
