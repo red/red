@@ -10,6 +10,70 @@ Red/System [
 
 ~~~start-file~~~ "switch"
 
+===start-group=== "switch basics"
+
+	--test-- "switch-basic-1"
+	ci: 0
+	cia: 1
+	switch ci [0 [] default [0]]
+	--assert cia = 1
+	
+	--test-- "switch-basic-2"
+	ci: 1
+	cia: 2
+	switch ci [1 [cia: 2]]
+	--assert cia = 2
+	
+	--test-- "switch-basic-3"
+	ci: 1
+	cia: 2
+	switch ci [0 [] default [cia: 3]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-4"
+	ci: 0
+	cia: 2
+	switch ci [1 [cia: 0] default [cia: 3]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-5"
+	ci: 99
+	cia: 2
+	switch ci [1 [cia: 2] default [cia: 3]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-6"
+	ci: 0
+	cia: 1
+	cia: switch ci [1 [0] default [2]]
+	--assert cia = 2
+	
+	--test-- "switch-basic-7"
+	ci: 1
+	cia: 2
+	cia: switch ci [1 [3]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-8"
+	ci: 8
+	cia: 2
+	switch ci [8 [switch ci [8 [cia: 3] default [cia: 4]]]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-9"
+	ci:  1
+	cia: 2
+	cia: switch ci [1 [switch ci [1 [3] default [4]]]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-10"
+	ci:  8
+	cia: 2
+	cia: switch ci [8 [case [ci = 8 [3] true [4]]]]
+	--assert cia = 3
+	
+===end-group===
+
 ===start-group=== "switch integer!"
 	
 #define switch-int-1 [switch ci [ 1 [cia: 1] 2 [cia: 2] default [cia: 3]]]
