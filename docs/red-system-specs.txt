@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 29/12/2011
-	Revision: 30
+	Date: 03/01/2012
+	Revision: 31
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1454,7 +1454,7 @@ where
 
 ===Control flow functions
 
----IF
+---if
 
 Execute a block of code if a given condition is true. IF does not return any value, so cannot be used in an expression.
 
@@ -1469,7 +1469,7 @@ Execute a block of code if a given condition is true. IF does not return any val
 
  if a < 0 [print "a is negative"]
  
----EITHER
+---either
 
 Execute a block of code if a given condition is true, else execute an alternative block of code. If last expressions in both blocks have the same type, EITHER can be used inside an expression.
 
@@ -1508,7 +1508,7 @@ An alternative way to write it (allowed because all code paths return a value of
  
  prin ["a is " msg lf]
 
----UNTIL
+---until
 
 Loop over a block of code until the condition at end of block, is met. UNTIL does not return any value, so cannot be used in an expression.
 
@@ -1536,7 +1536,7 @@ will output:
 
  ooooo
 
----WHILE
+---while
 
 While a given condition is met, execute a block of code. WHILE does not return any value, so cannot be used in an expression.
 
@@ -1560,7 +1560,7 @@ will output:
 
  ooooo
 
----ANY
+---any
 
 Global condition is met if at least one of the sub-conditions is met. ANY returns a logic! value.
 
@@ -1576,7 +1576,7 @@ Global condition is met if at least one of the sub-conditions is met. ANY return
  	print "true"					;-- reached if at least one condition is met
  ]
 
----ALL
+---all
 
 Global condition is met if all the sub-conditions are met.  ALL returns a logic! value.
 
@@ -1592,9 +1592,11 @@ Global condition is met if all the sub-conditions are met.  ALL returns a logic!
  	print "true"				 	;-- reached if both conditions are met
  ]
  
----CASE
+---case
 
-Execute the block of code following the first condition that is met. If all blocks of code end with an expression of same type, then CASE can be used inside an expression.
+Execute the block of code following the first condition that is met. If all blocks of code end with an expression of same type, then CASE can be used inside an expression. A catch-all rule can be written using a conditional expression that always results in true. 
+
+<u>Note</u>: if no value matches, a runtime error will be raised.
 
 <b>Syntax</b>
 
@@ -1624,10 +1626,69 @@ Example retrieving the returned value:
  print ["Good " msg]
 will output:
  Good morning
+ 
+
+---switch
+
+Execute the block of code following the first value matched, or the default block if present and no value matched. If all blocks of code end with an expression of same type, then SWITCH can be used inside an expression.
+
+<u>Note</u>: if no value matched and no default block is provided, a runtime error will be raised.
+
+<b>Syntax</b>
+
+ switch <expression> [<values> [<body>] ...]
+ switch <expression> [<values> [<body>] ... default [<default-body>]]
+
+ <expression>   : an expression resulting in byte! or integer! value
+ <values>	    : one or several integer! or byte! literal values
+ <body>		    : code to execute if one of the <values> is matched
+ <default-body> : code to execute if no value is matched
+
+<b>Examples</b>
+
+ a: 2
+ switch a [
+ 	0 [print "green"]
+ 	1 [print "orange"]
+ 	2 [print "red"]
+ ]
+will output:
+ red
+
+Example using a default block:
+  a: 3
+  switch a [
+  	0 [print "green"]
+  	1 [print "orange"]
+  	2 [print "red"]
+  	default [print "white"]
+  ]
+will output:
+ white
+
+Example retrieving the returned value:
+ a: 2
+ year: switch a [
+ 	0 [2010]
+ 	1 [2011]
+ 	2 [2012]
+ ]
+ print ["Red will rock in " year]
+will output:
+ Red will rock in 2012
+ 
+Example using multiple values for matching:
+ input: 3
+ switch input [
+ 	0 2 4 6 8 [print "even"]
+ 	1 3 5 7 9 [print "odd"]
+ ]
+will output:
+ odd
 
 ===Stack functions
 
----PUSH
+---push
 
 Push a value on top of execution stack. Stack pointer is modified.
 
@@ -1644,7 +1705,7 @@ Push a value on top of execution stack. Stack pointer is modified.
  push "hello"
  push p/value
 
----POP
+---pop
 
 Pop a value from top of execution stack. Stack pointer is modified.
 
@@ -1656,7 +1717,7 @@ Pop a value from top of execution stack. Stack pointer is modified.
 
 ===Debugging functions
 
----ASSERT
+---assert
 
 Make a runtime assertion. If assertion fails, a runtime error will be raised.
 
@@ -1682,9 +1743,9 @@ Assertion will only be compiled if the <b>debug?</b> compilation option is set t
 
 ===System structure
 
-System structure is a special struct value, defined at run-time, to give access to some core features of Red/System.
+System structure is a special struct value, defined at run-time, that gives access to some core features of Red/System.
 
----ARGS-COUNT
+---args-count
 
 Informs about the number of words passed on command-line. The executable itself is included in the count, so <b>args-count</b> is greater or equal to one.
 
@@ -1694,7 +1755,7 @@ Informs about the number of words passed on command-line. The executable itself 
 
  return: an integer value (>= 1)
 
----ARGS-LIST
+---args-list
 
 Pointer to an array of words passed on command-line (including the program name). The array's end is marked by a null pointer.
 
@@ -1736,7 +1797,7 @@ it would output:
  3: -p
  4: hello
  
----ENV-VARS
+---env-vars
 
 Pointer to an array of shell environment variables with their value. The array's end is marked by a null pointer.
 
@@ -1776,7 +1837,7 @@ On Windows platforms, system/env-vars is always set to null. This may change in 
 
 /note
 
----STACK/TOP
+---stack/top
 
 Set or retrieve execution stack top address.
 
@@ -1799,7 +1860,7 @@ Do not use it unless you know exactly what you are doing, else your program will
 
 /note
 
----STACK/FRAME
+---stack/frame
 
 Set or retrieve execution stack frame address.
 
@@ -1822,7 +1883,7 @@ Do not use it unless you know exactly what you are doing, else your program will
 
 /note
 
----PC
+---pc
 
 Retrieve the CPU program counter value.
 
@@ -1835,7 +1896,7 @@ This access path will return the value of the EIP register.
 
 /note
 
----ALIAS
+---alias
 
 Get the ID value of an alias. This is required in typed functions in order to distinguish different struct! values.
 
@@ -2348,8 +2409,8 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     func 	  	function    if
     not			or		    pop
     push		return      size?
-    true		until       while
-    xor
+    switch 		true		until
+    while  		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -2467,6 +2528,17 @@ will output:
 
 
 ===Document History
+
+*<b>03/01/2012 - revision 31</b>
+
+*>Completed CASE description
+
+*>Added SWITCH description
+
+*>Added SWITCH to keywords list
+
+*>Changed the casing of the function names used as section headers.
+
 
 *<b>29/12/2011 - revision 30</b>
 
