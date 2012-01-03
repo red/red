@@ -189,6 +189,7 @@ stderr: 2
 				6 [5]						;-- subscript out of range
 				7 [13]						;-- integer divide by zero
 				8 [14]						;-- integer overflow
+			]
 		]
 		SIGSEGV [
 			switch code [
