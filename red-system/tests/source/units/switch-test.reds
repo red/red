@@ -72,6 +72,217 @@ Red/System [
 	cia: switch ci [8 [case [ci = 8 [3] true [4]]]]
 	--assert cia = 3
 	
+	--test-- "switch-basic-11"
+	ci:  1
+	cia: 0
+	switch ci [1 2 [cia: 3]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-12"
+	ci:  2
+	cia: 0
+	switch ci [1 2 [cia: 3]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-13"
+	ci:  8
+	cia: 0
+	switch ci [1 2 [cia: 0] default [cia: 3]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-14"
+	ci:  1
+	cia: 0
+	cia: switch ci [1 2 [3]]
+	--assert cia = 3
+
+	--test-- "switch-basic-15"
+	ci:  2
+	cia: 0
+	cia: switch ci [1 2 [3]]
+	--assert cia = 3
+
+	--test-- "switch-basic-16"
+	ci:  8
+	cia: 0
+	cia: switch ci [1 2 [0] default [3]]
+	--assert cia = 3
+
+	--test-- "switch-basic-17"
+	ci:  2
+	cia: 0
+	cia: switch ci [1 2 [3] 4 5 [0]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-18"
+	ci:  4
+	cia: 0
+	cia: switch ci [1 2 [0] 4 5 [3]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-19"
+	ci:  1
+	cia: 0
+	cia: switch ci [#"^(01)" 2 [3] 4 #"^(05)" [0]]
+	--assert cia = 3
+
+	--test-- "switch-basic-20"
+	ci:  5
+	cia: 0
+	cia: switch ci [#"^(01)" 2 [0] 4 #"^(05)" [3]]
+	--assert cia = 3
+	
+	--test-- "switch-basic-21"
+	ci:  2
+	cia: 0
+	cia: switch ci [#"^(01)" 2 [3] 4 #"^(05)" [0]]
+	--assert cia = 3
+
+	--test-- "switch-basic-22"
+	ci:  4
+	cia: 0
+	cia: switch ci [#"^(01)" 2 [0] 4 #"^(05)" [3]]
+	--assert cia = 3
+	
+===end-group===
+
+===start-group=== "switch basics local"
+
+	switch-fun: func [/local ci cia][
+		--test-- "switch-loc-1"
+		ci: 0
+		cia: 1
+		switch ci [0 [] default [0]]
+		--assert cia = 1
+
+		--test-- "switch-loc-2"
+		ci: 1
+		cia: 2
+		switch ci [1 [cia: 2]]
+		--assert cia = 2
+
+		--test-- "switch-loc-3"
+		ci: 1
+		cia: 2
+		switch ci [0 [] default [cia: 3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-4"
+		ci: 0
+		cia: 2
+		switch ci [1 [cia: 0] default [cia: 3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-5"
+		ci: 99
+		cia: 2
+		switch ci [1 [cia: 2] default [cia: 3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-6"
+		ci: 0
+		cia: 1
+		cia: switch ci [1 [0] default [2]]
+		--assert cia = 2
+
+		--test-- "switch-loc-7"
+		ci: 1
+		cia: 2
+		cia: switch ci [1 [3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-8"
+		ci: 8
+		cia: 2
+		switch ci [8 [switch ci [8 [cia: 3] default [cia: 4]]]]
+		--assert cia = 3
+
+		--test-- "switch-loc-9"
+		ci:  1
+		cia: 2
+		cia: switch ci [1 [switch ci [1 [3] default [4]]]]
+		--assert cia = 3
+
+		--test-- "switch-loc-10"
+		ci:  8
+		cia: 2
+		cia: switch ci [8 [case [ci = 8 [3] true [4]]]]
+		--assert cia = 3
+
+		--test-- "switch-loc-11"
+		ci:  1
+		cia: 0
+		switch ci [1 2 [cia: 3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-12"
+		ci:  2
+		cia: 0
+		switch ci [1 2 [cia: 3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-13"
+		ci:  8
+		cia: 0
+		switch ci [1 2 [cia: 0] default [cia: 3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-14"
+		ci:  1
+		cia: 0
+		cia: switch ci [1 2 [3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-15"
+		ci:  2
+		cia: 0
+		cia: switch ci [1 2 [3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-16"
+		ci:  8
+		cia: 0
+		cia: switch ci [1 2 [0] default [3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-17"
+		ci:  2
+		cia: 0
+		cia: switch ci [1 2 [3] 4 5 [0]]
+		--assert cia = 3
+
+		--test-- "switch-loc-18"
+		ci:  4
+		cia: 0
+		cia: switch ci [1 2 [0] 4 5 [3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-19"
+		ci:  1
+		cia: 0
+		cia: switch ci [#"^(01)" 2 [3] 4 #"^(05)" [0]]
+		--assert cia = 3
+
+		--test-- "switch-loc-20"
+		ci:  5
+		cia: 0
+		cia: switch ci [#"^(01)" 2 [0] 4 #"^(05)" [3]]
+		--assert cia = 3
+
+		--test-- "switch-loc-21"
+		ci:  2
+		cia: 0
+		cia: switch ci [#"^(01)" 2 [3] 4 #"^(05)" [0]]
+		--assert cia = 3
+
+		--test-- "switch-loc-22"
+		ci:  4
+		cia: 0
+		cia: switch ci [#"^(01)" 2 [0] 4 #"^(05)" [3]]
+		--assert cia = 3
+	]
+	switch-fun
+	
 ===end-group===
 
 ===start-group=== "switch integer!"

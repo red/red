@@ -80,6 +80,79 @@ Red/System [
 	
 ===end-group===
 
+===start-group=== "case basics local"
+
+	case-fun: func [/local ci cia][
+		--test-- "case-loc-1"
+		ci:  0
+		cia: 1
+		case [true [0]]
+		--assert cia = 1
+
+		--test-- "case-loc-2"
+		ci:  1
+		cia: 2
+		case [ci = 1 [cia: 2]]
+		--assert cia = 2
+
+		--test-- "case-loc-3"
+		ci:  1
+		cia: 2
+		case [true [cia: 3]]
+		--assert cia = 3
+
+		--test-- "case-loc-4"
+		ci:  0
+		cia: 2
+		case [ci <> 0 [cia: 0] true [cia: 3]]
+		--assert cia = 3
+
+		--test-- "case-loc-5"
+		ci:  99
+		cia: 2
+		case [ci = 1 [cia: 2] true [cia: 3]]
+		--assert cia = 3
+
+		--test-- "case-loc-6"
+		ci:  0
+		cia: 1
+		cia: case [true [2]]
+		--assert cia = 2
+
+		--test-- "case-loc-7"
+		ci:  0
+		cia: 2
+		cia: case [ci <> 0 [0] true [3]]
+		--assert cia = 3
+
+		--test-- "case-loc-8"
+		ci:  1
+		cia: 2
+		cia: case [ci = 1 [3]]
+		--assert cia = 3
+
+		--test-- "case-loc-9"
+		ci:  1
+		cia: 2
+		case [ci = 1 [case [ci <> 0 [cia: 3] true [cia: 4]]]]
+		--assert cia = 3
+
+		--test-- "case-loc-10"
+		ci:  1
+		cia: 2
+		cia: case [ci = 1 [case [ci <> 0 [3] true [4]]]]
+		--assert cia = 3
+
+		--test-- "case-loc-11"
+		ci:  1
+		cia: 2
+		cia: case [ci = 1 [switch ci [1 [3] default [4]]]]
+		--assert cia = 3
+	]
+	case-fun
+	
+===end-group===
+
 ===start-group=== "case integer!"
 	
 #define case-int-1 [case [ ci = 1 [cia: 1] ci = 2 [cia: 2] true [cia: 3]]]
