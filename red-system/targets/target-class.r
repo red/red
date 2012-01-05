@@ -14,8 +14,8 @@ target-class: context [
 	on-global-epilog: 		 none					;-- called at end of global code section
 	on-finalize:	  		 none					;-- called after all sources are compiled
 	on-root-level-entry:	 none					;-- called after a root level expression or directive is compiled
-;	emit-stack-align-prolog: none					;-- align stack on imported function calls
-;	emit-stack-align-epilog: none					;-- unwind aligned stack
+	emit-stack-align-prolog: none					;-- align stack on imported function calls
+	emit-stack-align-epilog: none					;-- unwind aligned stack
 	
 	compiler: 	none								;-- just a short-cut
 	width: 		none								;-- current operand width in bytes
