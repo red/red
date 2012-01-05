@@ -184,11 +184,11 @@ system-dialect: context [
 			halt
 		]
 		
-		throw-warning: func [msg [string! block!] /at mark][
+		throw-warning: func [msg [string! block!] /near][
 			print [
-				"*** Warning:" reform msg
-				"^/*** in:" mold script
-				"^/*** at: " mold copy/part any [all [at find/reverse pc mark] pc] 8
+				"*** Warning:" 	reform msg
+				"^/*** in:" 	mold script
+				"^/*** at:" 	mold copy/part any [all [near back pc] pc] 8
 			]
 		]
 		
@@ -511,7 +511,7 @@ system-dialect: context [
 			type: get-type value
 
 			if type = ctype [
-				throw-warning/at [
+				throw-warning/near [
 					"type casting from" type/1 
 					"to" ctype/1 "is not necessary"
 				] 'as
