@@ -19,9 +19,18 @@ loader: context [
 	non-cbracket: complement charset "}^/"
 
 	current-script: none
+	line: none
 
-	throw-error: func [msg [string! block!]][
-		compiler/throw-error/loader msg
+	throw-error: func [err [string! block!]][
+		print [
+			"*** Loading Error:"
+			either word? err [
+				join uppercase/part mold err 1 " error"
+			][reform err]
+			"^/*** in file:" mold current-script
+			"^/*** at line:" line
+		]
+		compiler/quit-on-error
 	]
 
 	init: does [
@@ -74,7 +83,7 @@ loader: context [
 		]
 	]
 
-	expand-string: func [src [string! binary!] /local value s e c line lf-count ws i prev ins?][
+	expand-string: func [src [string! binary!] /local value s e c lf-count ws i prev ins?][
 		if verbose > 0 [print "running string preprocessor..."]
 
 		line: 1										;-- lines counter
@@ -117,7 +126,7 @@ loader: context [
 	expand-block: func [
 		src [block!]
 		/local blk rule name value s e opr then-block else-block cases body
-			saved line stack header mark idx prev
+			saved stack header mark idx prev
 	][
 		if verbose > 0 [print "running block preprocessor..."]
 		stack: append/only clear [] make block! 100

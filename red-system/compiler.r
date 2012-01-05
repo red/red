@@ -164,9 +164,15 @@ system-dialect: context [
 			]
 		]
 		
-		throw-error: func [err [word! string! block!] /loader][
+		quit-on-error: does [
+			clean-up
+			if system/options/args [quit/return 1]
+			halt
+		]
+		
+		throw-error: func [err [word! string! block!]][
 			print [
-				"***" pick ["Loading" "Compilation"] to logic! loader "Error:"
+				"*** Compilation Error:"
 				either word? err [
 					join uppercase/part mold err 1 " error"
 				][reform err]
@@ -179,9 +185,7 @@ system-dialect: context [
 					"*** near:" mold copy/part pc 8
 				]
 			]
-			clean-up
-			if system/options/args [quit/return 1]
-			halt
+			quit-on-error
 		]
 		
 		throw-warning: func [msg [string! block!] /near][
