@@ -715,7 +715,7 @@ system-dialect: context [
 				all [
 					object? expr
 					expr/action = 'null
-					type: expected						;-- morph null type to expected
+					type: either expected/1 = 'any-type! [expr/type][expected]	;-- morph null type to expected
 					any-pointer? expected
 				]
 				all [
