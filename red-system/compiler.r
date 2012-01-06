@@ -126,13 +126,15 @@ system-dialect: context [
 			all			 [comp-expression-list/_all]
 			exit		 [comp-exit]
 			return		 [comp-exit/value]
+			declare		 [comp-declare]
+			null		 [comp-null]
+			
 			true		 [also true pc: next pc]		  ;-- converts word! to logic!
 			false		 [also false pc: next pc]		  ;-- converts word! to logic!
+			
 			func 		 [raise-level-error "a function"] ;-- func declaration not allowed at this level
 			function 	 [raise-level-error "a function"] ;-- func declaration not allowed at this level
 			alias 		 [raise-level-error "an alias"]	  ;-- alias declaration not allowed at this level
-			declare		 [comp-declare]
-			null		 [comp-null]
 		]
 		
 		calc-line: has [idx head-end prev p header][
