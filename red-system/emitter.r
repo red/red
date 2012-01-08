@@ -35,6 +35,9 @@ emitter: context [
 		;uint16!	2	unsigned
 		;uint32!	4	unsigned
 		;uint64!	8	unsigned
+		float32!	4	signed
+		float64!	8	signed
+		float!		8	signed
 		logic!		4	-
 		pointer!	4	-				;-- 32-bit, 8 for 64-bit
 		c-string!	4	-				;-- 32-bit, 8 for 64-bit
@@ -50,6 +53,9 @@ emitter: context [
 		byte-ptr!   5
 		int-ptr!	6
 		function!	7
+		float!		8
+		float32!	9
+		float64!	10
 		struct!		1000
 	]
 	
@@ -205,6 +211,11 @@ emitter: context [
 					unless char? value [value: #"^@"]
 				]
 				append ptr value
+			]
+			float! float64! [
+				pad-data-buf 8							;-- align 64-bit floats on 64-bit
+				ptr: tail data-buf	
+				append ptr IEEE-754/to-binary64/rev value
 			]
 			c-string! [
 				either string? value [
