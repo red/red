@@ -1513,9 +1513,6 @@ system-dialect: context [
 			if import? [emitter/target/emit-stack-align-prolog length? args]
 
 			type: functions/:name/2
-?? name
-?? type
-?? args
 			either type <> 'op [					
 				forall list [							;-- push function's arguments on stack
 					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
