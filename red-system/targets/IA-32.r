@@ -219,7 +219,7 @@ make target-class [
 	]
 	
 	emit-load: func [
-		value [char! logic! integer! word! string! path! paren! get-word! object!]
+		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
@@ -239,16 +239,38 @@ make target-class [
 				emit #{B8}							;-- MOV eax, value
 				emit to-bin32 value
 			]
+			decimal! [
+				value: IEEE-754/to-binary64 value
+				emit #{BA}							;-- MOV edx, low part of 64-bit float
+				emit copy/part value 4
+				emit #{B8}							;-- MOV eax, high part		
+				emit at value 5
+			]
 			word! [
 				with-width-of value [
-					either alt [
-						emit-variable-poly value
-							#{8A15} #{8B15}			;-- MOV rD, [value]		; global
-							#{8A55} #{8B55}			;-- MOV rD, [ebp+n]		; local
+					type: compiler/get-variable-spec value
+					either find [float! float64!] type/1 [
+						emit-variable value [
+							#{BE}					;-- LEA esi, value
+							address
+							#{8B16}					;-- MOV edx, [esi]		; global
+							#{8B4604}				;-- MOV eax, [esi+4]	; global
+						][
+							#{8B55}					;-- MOV edx, [ebp+n]		; local
+							offset
+							#{8B45}					;-- MOV eax, [ebp+(n+4)]	; local	
+							offset or #{04}
+						]
 					][
-						emit-variable-poly value
-							#{A0}   #{A1}			;-- MOV rA, [value]		; global
-							#{8A45} #{8B45}			;-- MOV rA, [ebp+n]		; local	
+						either alt [
+							emit-variable-poly value
+								#{8A15} #{8B15}		;-- MOV rD, [value]		; global
+								#{8A55} #{8B55}		;-- MOV rD, [ebp+n]		; local
+						][
+							emit-variable-poly value
+								#{A0}   #{A1}		;-- MOV rA, [value]		; global
+								#{8A45} #{8B45}		;-- MOV rA, [ebp+n]		; local	
+						]
 					]
 				]
 			]
@@ -274,7 +296,8 @@ make target-class [
 	]
 	
 	emit-store: func [
-		name [word!] value [char! logic! integer! word! string! paren! tag! get-word!] spec [block! none!]
+		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
+		spec [block! none!]
 		/local store-dword
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
@@ -298,11 +321,39 @@ make target-class [
 				do store-dword
 				emit to-bin32 value
 			]
+			decimal! [
+				type: compiler/get-variable-spec name
+				either type/1 = 'float32! [
+					do store-dword
+					emit IEEE-754/to-binary32/rev value
+				][
+					value: IEEE-754/to-binary64 value
+					do store-dword					;-- store low part of 64-bit float
+					emit copy/part value 4
+					do store-dword					;-- store high part		
+					emit at value 5
+				]
+			]
 			word! [
-				set-width name				
-				emit-variable-poly name
-					#{A2} 	#{A3}					;-- MOV [name], rA		; global variable
-					#{8845} #{8945}					;-- MOV [ebp+n], rA		; local variable
+				type: compiler/get-variable-spec name
+				either find [float! float64!] type/1 [
+					emit-variable name [
+						#{BE}						;-- LEA esi, value
+						address
+						#{8916}						;-- MOV [esi], edx			; global
+						#{894604}					;-- MOV [esi+4], eax		; global
+					][
+						#{8955}						;-- MOV [ebp+n], edx		; local
+						offset
+						#{8945}						;-- MOV [ebp+(n+4)], eax	; local	
+						offset or #{04}
+					]
+				][
+					set-width name				
+					emit-variable-poly name
+						#{A2} 	#{A3}				;-- MOV [name], rA		; global variable
+						#{8845} #{8945}				;-- MOV [ebp+n], rA		; local variable
+				]
 			]
 			get-word! [
 				do store-dword

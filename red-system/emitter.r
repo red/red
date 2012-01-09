@@ -215,6 +215,7 @@ emitter: context [
 			float! float64! [
 				pad-data-buf 8							;-- align 64-bit floats on 64-bit
 				ptr: tail data-buf	
+				unless decimal? value [value: 0.0]
 				append ptr IEEE-754/to-binary64/rev value
 			]
 			c-string! [

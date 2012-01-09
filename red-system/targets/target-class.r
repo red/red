@@ -76,7 +76,7 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word! object!] gcode [binary!] lcode [binary! block!] 
+		name [word! object!] gcode [binary! block!] lcode [binary! block!] 
 		/local offset
 	][
 		if object? name [name: compiler/unbox name]
@@ -96,8 +96,18 @@ target-class: context [
 				emit offset
 			]
 		][											;-- global variable case
-			emit gcode
-			emit-reloc-addr emitter/symbols/:name
+			either block? gcode [
+				foreach code gcode [
+					either code = 'address [
+						emit-reloc-addr emitter/symbols/:name	
+					][
+						emit code	
+					]
+				]
+			][
+				emit gcode
+				emit-reloc-addr emitter/symbols/:name
+			]
 		]
 	]
 	
