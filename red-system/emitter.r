@@ -53,9 +53,9 @@ emitter: context [
 		byte-ptr!   5
 		int-ptr!	6
 		function!	7
-		float!		8
-		float32!	9
-		float64!	10
+		float32!	8
+		float!		9
+		float64!	9
 		struct!		1000
 	]
 	

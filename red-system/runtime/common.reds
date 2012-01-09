@@ -44,9 +44,9 @@ Red/System [
 #define type-byte-ptr!  5
 #define type-int-ptr!	6
 #define type-function!	7
-#define type-float!		8
-#define type-float32!	9
-#define type-float64!	10
+#define type-float32!	8
+#define type-float64!	9					;-- float! is just an alias for float64!
+#define type-float!		9
 #define type-struct!	1000
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]
