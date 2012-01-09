@@ -16,6 +16,8 @@ make target-class [
 	args-offset:		8							;-- stack frame offset to arguments (esp + ebp)
 	branch-offset-size:	4							;-- size of JMP offset
 	
+	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
+													;-- and invalid operands raise exceptions.
 	conditions: make hash! [
 	;-- name ----------- signed --- unsigned --
 		overflow?		 #{00}		-
@@ -32,12 +34,13 @@ make target-class [
 		>				 #{0F}		#{07}
 	]
 	
-	on-global-prolog: func [runtime? [logic!]][
+	on-global-prolog: func [runtime? [logic!] /local spec][
 		; TBD: load control word from system/fpu/control-word
 		unless runtime? [
-			;emit #{DBE3}							;-- FINIT			; init x87 FPU
-			;emit #{BDE2}							;-- FNCLEX			; reset exception flags
-			;emit #{}								;-- FLDCW <word>	; load 16-bit control word
+			emit #{9BDBE3}							;-- FINIT			; init x87 FPU
+			spec: emitter/store-value none fpu-flags [integer!]
+			emit #{D92D}							;-- FLDCW <word>	; load 16-bit control word from memory
+			emit-reloc-addr spec/2					;-- one-based index
 		]
 	]
 	
