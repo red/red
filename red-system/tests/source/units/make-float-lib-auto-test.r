@@ -15,30 +15,18 @@ file-in: %float-lib-test-source.reds
 ;; get base dir address 
 base-dir: to-local-file system/script/path  
 
-;; work out prefix and extension based on version
+;; set the absolute path to the libs
 switch/default fourth system/version [
-  2 [
-    abs-path: join "" [base-dir "/libs/"]
-    prefix: "lib"
-    ext: ".dylib"
-  ]
   3 [
     abs-path: join "" [base-dir "\libs\"]
-    prefix: ""
-    ext: ".dll"
   ]
-][                                    ;; default to libxxx.so
+][                                    
     abs-path: join "" [base-dir "/libs/"]
-    prefix: "lib"
-    ext: ".so"
 ]
 
-;; read the file, insert the absolute path and file prefix and extension
+;; read the file, insert the absolute path to the library
 src: read file-in
 replace/all src "***abs-path***" abs-path
-replace/all src "###prefix###" prefix
-replace/all src "@@@extension@@@" ext
-
 write file-out src
 
 
