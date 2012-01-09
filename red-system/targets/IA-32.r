@@ -35,8 +35,8 @@ make target-class [
 	on-global-prolog: func [runtime? [logic!]][
 		; TBD: load control word from system/fpu/control-word
 		unless runtime? [
-			emit #{9BDBE3}							;-- FINIT			; init x87 FPU
-			emit #{BDE2}							;-- FNCLEX			; reset exception flags
+			;emit #{DBE3}							;-- FINIT			; init x87 FPU
+			;emit #{BDE2}							;-- FNCLEX			; reset exception flags
 			;emit #{}								;-- FLDCW <word>	; load 16-bit control word
 		]
 	]
