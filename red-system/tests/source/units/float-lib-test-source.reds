@@ -8,14 +8,31 @@ Red/System [
 
 ;; This script needs to be processed by make-lib-auto-test.r which sets the
 ;;  absolute path for the test libraries. It creates a file called
-;;  lib-auto-test.reds in the auto-tests sub-directory. It also generates the
-;;  correct name for the library under the os it is running
+;;  lib-auto-test.reds in the auto-tests sub-directory.
 
 #include %../../../../../quick-test/quick-test.reds
 
+#switch OS [
+	Windows  [
+	  #define LIB1	"***abs-path***flib1.dll"
+	  #define LIB2	"***abs-path***flib2.dll"
+	  #define LIB3	"***abs-path***flib3.dll"
+	]
+	MacOSX	 [
+	  #define LIB1	"***abs-path***libflib1.dylib"
+	  #define LIB2	"***abs-path***libflib2.dylib"
+	  #define LIB3	"***abs-path***libflib3.dylib"
+	]
+	#default [
+		#define LIB1	"***abs-path***libflib1.so"
+	  #define LIB2	"***abs-path***libflib2.so"
+	  #define LIB3	"***abs-path***libflib3.so"
+	]
+]
+
 ;; library declarations
 #import [
-  "***abs-path***###prefix###testlib1@@@extension@@@" cdecl [
+  LIB1 cdecl [
     addone: "addone" [
       f       [float!]
       return: [float!]
@@ -28,7 +45,7 @@ Red/System [
 ]
 
 #import [
-  "***abs-path***###prefix###testlib2@@@extension@@@" cdecl [
+  LIB2 cdecl [
     twice: "twice" [
       f       [float!]
       return: [float!]
@@ -37,7 +54,7 @@ Red/System [
 ]
 
 #import [
-  "***abs-path***###prefix###testlib3@@@extension@@@" cdecl [
+  LIB3 cdecl [
     halve: "halve" [
       f       [float!]
       return: [float!]
