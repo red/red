@@ -49,13 +49,13 @@ emitter: context [
 		logic!		1
 		integer!	2
 		byte!	    3
-		c-string!   4
-		byte-ptr!   5
-		int-ptr!	6
-		function!	7
-		float32!	8
-		float!		9
-		float64!	9
+		float32!	4
+		float!		5
+		float64!	5
+		c-string!   6
+		byte-ptr!   7
+		int-ptr!	8
+		function!	9
 		struct!		1000
 	]
 	

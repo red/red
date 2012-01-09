@@ -59,9 +59,9 @@ _print: func [
 		if list/type = type-c-string! [
 			prin as-c-string list/value
 		]
-		;if list/type > 4 [
-		;	prin-hex list/value
-		;]
+		if list/type > type-c-string! [
+			prin-hex list/value
+		]
 		list: list + 1
 		count: count - 1
 		if all [spaced? count <> 0][prin " "]

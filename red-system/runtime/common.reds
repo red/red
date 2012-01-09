@@ -40,13 +40,13 @@ Red/System [
 #define type-logic!		1					;-- type ID list for 'typeinfo attribut
 #define type-integer!	2
 #define type-byte!	    3
-#define type-c-string!  4
-#define type-byte-ptr!  5
-#define type-int-ptr!	6
-#define type-function!	7
-#define type-float32!	8
-#define type-float64!	9					;-- float! is just an alias for float64!
-#define type-float!		9
+#define type-float32!	4
+#define type-float64!	5					;-- float! is just an alias for float64!
+#define type-float!		5
+#define type-c-string!  6
+#define type-byte-ptr!  7
+#define type-int-ptr!	8
+#define type-function!	9
 #define type-struct!	1000
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]
