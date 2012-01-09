@@ -23,6 +23,8 @@ Red/System [
 #define as-byte		  [as byte!]
 #define as-logic	  [as logic!]
 #define as-integer	  [as integer!]
+#define as-float	  [as float!]
+#define as-float32	  [as float32!]
 #define as-c-string	  [as c-string!]
  
 #define null-byte	  #"^(00)"
@@ -42,6 +44,9 @@ Red/System [
 #define type-byte-ptr!  5
 #define type-int-ptr!	6
 #define type-function!	7
+#define type-float32!	8
+#define type-float64!	9					;-- float! is just an alias for float64!
+#define type-float!		9
 #define type-struct!	1000
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]

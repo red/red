@@ -47,15 +47,21 @@ _print: func [
 		if list/type = type-integer! [
 			prin-int list/value
 		]
+		if list/type = type-float! [
+			prin-float as-float list/value
+		]
+		if list/type = type-float32! [
+			prin-float32 as-float32 list/value
+		]
 		if list/type = type-byte! [
 			prin-byte as-byte list/value
 		]
 		if list/type = type-c-string! [
 			prin as-c-string list/value
 		]
-		if list/type > 4 [
-			prin-hex list/value
-		]
+		;if list/type > 4 [
+		;	prin-hex list/value
+		;]
 		list: list + 1
 		count: count - 1
 		if all [spaced? count <> 0][prin " "]

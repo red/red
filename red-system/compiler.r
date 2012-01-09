@@ -8,6 +8,7 @@ REBOL [
 
 do %utils/r2-forward.r
 do %utils/int-to-bin.r
+do %utils/IEEE-754.r
 do %utils/virtual-struct.r
 do %utils/secure-clean-path.r
 do %linker.r
@@ -52,6 +53,7 @@ system-dialect: context [
 		
 		not-set!:	  [logic! integer!]								  ;-- reserved for internal use only
 		number!: 	  [byte! integer!]								  ;-- reserved for internal use only
+		any-float!:	  [float! float32! float64!]						;-- reserved for internal use only
 		pointers!:	  [pointer! struct! c-string!] 					  ;-- reserved for internal use only
 		any-pointer!: union pointers! [function!]		  			  ;-- reserved for internal use only
 		poly!:		  union number!	pointers!					  	  ;-- reserved for internal use only
@@ -100,6 +102,7 @@ system-dialect: context [
 		
 		type-syntax: [
 			'logic! | 'int32! | 'integer! | 'uint8! | 'byte! | 'int16!
+			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
 			| 'struct!  into [struct-syntax]
@@ -323,6 +326,10 @@ system-dialect: context [
 			count
 		]
 		
+		any-float?: func [type [block!]][
+			find any-float! type/1
+		]
+		
 		any-pointer?: func [type [block!]][
 			type: first resolve-aliased type
 			
@@ -446,6 +453,7 @@ system-dialect: context [
 				word! 	 [resolve-type value]
 				char!	 [[byte!]]
 				integer! [[integer!]]
+				decimal! [[float!]]
 				string!	 [[c-string!]]
 				path!	 [resolve-path-type value]
 				object!  [value/type]
@@ -1706,6 +1714,7 @@ system-dialect: context [
 				char!		[do pass]
 				integer!	[do pass]
 				string!		[do pass]
+				decimal!	[do pass]
 			][
 				throw-error [
 					pick [

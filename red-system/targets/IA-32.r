@@ -32,6 +32,15 @@ make target-class [
 		>				 #{0F}		#{07}
 	]
 	
+	on-global-prolog: func [runtime? [logic!]][
+		; TBD: load control word from system/fpu/control-word
+		unless runtime? [
+			emit #{9BDBE3}							;-- FINIT			; init x87 FPU
+			emit #{BDE2}							;-- FNCLEX			; reset exception flags
+			;emit #{}								;-- FLDCW <word>	; load 16-bit control word
+		]
+	]
+	
 	add-condition: func [op [word!] data [binary!]][
 		op: either '- = third op: find conditions op [op/2][
 			pick op pick [2 3] signed?
@@ -489,7 +498,7 @@ make target-class [
 	]
 	
 	emit-push: func [
-		value [char! logic! integer! word! block! string! tag! path! get-word! object!]
+		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
 		/with cast [object!]
 		/local spec type
 	][
@@ -498,6 +507,9 @@ make target-class [
 		
 		switch type?/word value [
 			tag! [									;-- == <last>
+				if find [float! float64!] compiler/last-type/1 [
+					emit #{52}						;-- PUSH edx			; low part of 64-bit float
+				]															; high part in EAX
 				emit #{50}							;-- PUSH eax
 			]
 			logic! [
@@ -520,11 +532,27 @@ make target-class [
 					emit to-bin32 value	
 				]
 			]
+			decimal! [
+				value: IEEE-754/to-binary64 value
+				emit #{68}							;-- PUSH low part of 64-bit float
+				emit copy/part value 4
+				emit #{68}							;-- PUSH high part		
+				emit at value 5
+
+			]
 			word! [
-				type: first compiler/get-variable-spec value
-				emit-variable value
-					#{FF35}						;-- PUSH [value]		; global
-					#{FF75}						;-- PUSH [ebp+n]		; local
+				type: compiler/get-variable-spec value
+				either compiler/any-float? type [
+					emit #{83EC08}					;-- SUB esp, 8		@@ wide-aware
+					emit-variable value
+						#{DD05}						;-- FLD [value]			; global
+						#{DD45}						;-- FLD [ebp+n]			; local
+					emit #{DD1C24}					;-- FSTP [esp]			; push double on stack
+				][
+					emit-variable value
+						#{FF35}						;-- PUSH [value]		; global
+						#{FF75}						;-- PUSH [ebp+n]		; local
+				]
 			]
 			get-word! [
 				emit #{68}							;-- PUSH &value
@@ -947,6 +975,16 @@ make target-class [
 			emit-push either block? arg [<last>][arg]
 		]
 	]
+	
+	emit-get-float-result: func [fspec [block!]][
+		ret-type: select fspec/4 compiler/return-def
+		if all [ret-type compiler/any-float? ret-type][		; @@ adapt for float32, only EAX!!
+			emit #{83EC08}							;-- SUB esp, 8		@@ width-aware
+			emit #{DD1C24}							;-- FSTP [esp]		@@ width-aware
+			emit-pop								;-- POP eax			;  high part of 64-bit float
+			emit-restore-last						;-- POP edx			;  low part 
+		]
+	]
 		
 	emit-call-syscall: func [args [block!] fspec [block!]][
 		switch compiler/job/syscall [
@@ -981,6 +1019,7 @@ make target-class [
 				if fspec/1 >= 6 [emit #{5D}]		;-- POP ebp			; restore frame pointer
 			]
 		]
+		emit-get-float-result fspec
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
@@ -994,7 +1033,8 @@ make target-class [
 		]
 		if fspec/3 = 'cdecl [						;-- add calling cleanup when required
 			emit-cdecl-pop fspec args
-		]		
+		]
+		emit-get-float-result fspec
 	]
 
 	emit-call-native: func [args [block!] fspec [block!] spec [block!] /local total][
@@ -1012,6 +1052,7 @@ make target-class [
 		if fspec/3 = 'cdecl [						;-- in case of non-default calling convention
 			emit-cdecl-pop fspec args
 		]
+		emit-get-float-result fspec
 	]
 	
 	emit-stack-align-prolog: func [args-nb [integer!] /local offset][
