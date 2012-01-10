@@ -6,41 +6,6 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-make-if-needed?: func [
-  auto-test-file [file!]
-  make-file [file!]
-  /lib-test
-  /local
-    stored-length   ; the length of the make... .r file used to build auto tests
-    stored-file-length
-    digit
-    number
-    rule
-][
-  stored-file-length: does [
-    parse/all read auto-test-file rule
-    stored-length
-  ]
-  digit: charset [#"0" - #"9"]
-  number: [some digit]
-  rule: [
-    thru ";make-length:" 
-    copy stored-length number (stored-length: to integer! stored-length)
-    to end
-  ]
-  
-  if not exists? make-file [return]
- 
-  if any [
-    not exists? auto-test-file
-    stored-file-length <> length? read make-file
-    (modified? make-file) > (modified? auto-test-file)
-  ][
-    print ["Making" auto-test-file " - it will take a while"]
-    do make-file
-  ]
-]
-
 ;; supress script messages
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
@@ -60,7 +25,7 @@ if any [
   not exists? %source/units/auto-tests/float-lib-auto-test.reds
   flib-test-len <> save-len 
 ][
-  save %source/units/flen-lib-test.dat flib-test-len
+  save %source/units/len-flib-test.dat flib-test-len
   print "Making float-lib-test-auto.reds - shouldn't take long"
   do %source/units/make-float-lib-auto-test.r                         
 ]

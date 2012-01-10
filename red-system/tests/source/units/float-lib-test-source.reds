@@ -14,19 +14,19 @@ Red/System [
 
 #switch OS [
 	Windows  [
-	  #define LIB1	"***abs-path***flib1.dll"
-	  #define LIB2	"***abs-path***flib2.dll"
-	  #define LIB3	"***abs-path***flib3.dll"
+	  #define LIB1	"***abs-path***ftestlib1.dll"
+	  #define LIB2	"***abs-path***ftestlib2.dll"
+	  #define LIB3	"***abs-path***ftestlib3.dll"
 	]
 	MacOSX	 [
-	  #define LIB1	"***abs-path***libflib1.dylib"
-	  #define LIB2	"***abs-path***libflib2.dylib"
-	  #define LIB3	"***abs-path***libflib3.dylib"
+	  #define LIB1	"***abs-path***libftestlib1.dylib"
+	  #define LIB2	"***abs-path***libftestlib2.dylib"
+	  #define LIB3	"***abs-path***libftestlib3.dylib"
 	]
 	#default [
-		#define LIB1	"***abs-path***libflib1.so"
-	  #define LIB2	"***abs-path***libflib2.so"
-	  #define LIB3	"***abs-path***libflib3.so"
+		#define LIB1	"***abs-path***libftestlib1.so"
+	  #define LIB2	"***abs-path***libftestlib2.so"
+	  #define LIB3	"***abs-path***libftestlib3.so"
 	]
 ]
 
@@ -62,7 +62,7 @@ Red/System [
   ]
 ]
 
-~~~start-file~~~ "library"
+~~~start-file~~~ "library - float"
 
     f: 0.0
   
