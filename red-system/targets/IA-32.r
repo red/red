@@ -240,10 +240,10 @@ make target-class [
 				emit to-bin32 value
 			]
 			decimal! [
-				value: IEEE-754/to-binary64 value
-				emit #{BA}							;-- MOV edx, low part of 64-bit float
+				value: IEEE-754/to-binary64/rev value
+				emit #{B8}							;-- MOV eax, low part of 64-bit float
 				emit copy/part value 4
-				emit #{B8}							;-- MOV eax, high part		
+				emit #{BA}							;-- MOV edx, high part
 				emit at value 5
 			]
 			word! [
@@ -253,12 +253,12 @@ make target-class [
 						emit-variable value [
 							#{BE}					;-- LEA esi, value
 							address
-							#{8B16}					;-- MOV edx, [esi]		; global
-							#{8B4604}				;-- MOV eax, [esi+4]	; global
+							#{8B06}					;-- MOV eax, [esi]		; global
+							#{8B5604}				;-- MOV edx, [esi+4]	; global
 						][
-							#{8B55}					;-- MOV edx, [ebp+n]		; local
+							#{8B45}					;-- MOV eax, [ebp+n]	; local
 							offset
-							#{8B45}					;-- MOV eax, [ebp+(n+4)]	; local	
+							#{8B55}					;-- MOV edx, [ebp+n+4]	; local
 							offset or #{04}
 						]
 					][
@@ -327,25 +327,36 @@ make target-class [
 					do store-dword
 					emit IEEE-754/to-binary32/rev value
 				][
-					value: IEEE-754/to-binary64 value
-					do store-dword					;-- store low part of 64-bit float
-					emit copy/part value 4
-					do store-dword					;-- store high part		
-					emit at value 5
+					value: IEEE-754/to-binary64 value ;-- loaded as big-endian
+					emit-variable name [
+						#{BE}						;-- LEA esi, name
+						address
+						#{C706}						;-- MOV [esi], low-bits		; global
+						at value 5
+						#{C74604}					;-- MOV [esi+4], high-bits	; global
+						copy/part value 4
+					][
+						#{C745}						;-- MOV [ebp+n], low-bits		; local
+						offset
+						at value 5
+						#{C745}						;-- MOV [ebp+(n+4)], high-bits	; local	
+						to-bin8 add to integer! offset 4
+						copy/part value 4
+					]
 				]
 			]
 			word! [
 				type: compiler/get-variable-spec name
 				either find [float! float64!] type/1 [
 					emit-variable name [
-						#{BE}						;-- LEA esi, value
+						#{BE}						;-- LEA esi, name
 						address
-						#{8916}						;-- MOV [esi], edx			; global
-						#{894604}					;-- MOV [esi+4], eax		; global
+						#{8906}						;-- MOV [esi], eax		; global
+						#{895604}					;-- MOV [esi+4], edx	; global
 					][
-						#{8955}						;-- MOV [ebp+n], edx		; local
+						#{8945}						;-- MOV [ebp+n], eax	; local
 						offset
-						#{8945}						;-- MOV [ebp+(n+4)], eax	; local	
+						#{8955}						;-- MOV [ebp+n+4], edx	; local
 						offset or #{04}
 					]
 				][
@@ -587,12 +598,11 @@ make target-class [
 				]
 			]
 			decimal! [
-				value: IEEE-754/to-binary64 value
-				emit #{68}							;-- PUSH low part of 64-bit float
-				emit copy/part value 4
+				value: IEEE-754/to-binary64/rev value
 				emit #{68}							;-- PUSH high part		
 				emit at value 5
-
+				emit #{68}							;-- PUSH low part of 64-bit float
+				emit copy/part value 4
 			]
 			word! [
 				type: compiler/get-variable-spec value
@@ -1035,8 +1045,8 @@ make target-class [
 		if all [ret-type compiler/any-float? ret-type][		; @@ adapt for float32, only EAX!!
 			emit #{83EC08}							;-- SUB esp, 8		@@ width-aware
 			emit #{DD1C24}							;-- FSTP [esp]		@@ width-aware
-			emit-pop								;-- POP eax			;  high part of 64-bit float
-			emit-restore-last						;-- POP edx			;  low part 
+			emit-pop								;-- POP eax			;  low part of 64-bit float
+			emit-restore-last						;-- POP edx			;  high part 
 		]
 	]
 		
@@ -1106,7 +1116,6 @@ make target-class [
 		if fspec/3 = 'cdecl [						;-- in case of non-default calling convention
 			emit-cdecl-pop fspec args
 		]
-		emit-get-float-result fspec
 	]
 	
 	emit-stack-align-prolog: func [args-nb [integer!] /local offset][
