@@ -1977,9 +1977,11 @@ system-dialect: context [
 			
 			set-verbose-level opts/verbosity
 			foreach file files [compiler/run job loader/process file file]
-			set-verbose-level 0
 			
+			set-verbose-level 0
 			if opts/runtime? [comp-runtime-epilog]
+			set-verbose-level opts/verbosity
+
 			compiler/finalize							;-- compile all functions
 		]
 		if verbose >= 5 [
