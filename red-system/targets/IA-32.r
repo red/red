@@ -13,6 +13,7 @@ make target-class [
 	ptr-size: 			4
 	default-align:		4
 	stack-width:		4
+	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (esp + ebp)
 	branch-offset-size:	4							;-- size of JMP offset
 	

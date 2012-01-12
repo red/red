@@ -8,7 +8,8 @@ REBOL [
 
 target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
-	default-align: stack-width: branch-offset-size: none		   ; TBD: document once stabilized
+	default-align: stack-width: stack-slot-max:				  	   ; TBD: document once stabilized
+	branch-offset-size: none		   							   ; TBD: document once stabilized
 	
 	on-global-prolog: 		 none					;-- called at start of global code section
 	on-global-epilog: 		 none					;-- called at end of global code section
