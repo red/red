@@ -215,7 +215,6 @@ qt: make object! [
     test-run/failures: test-run/failures + 1           
     test-run/no-tests: test-run/no-tests + 1
     test-run/no-asserts: test-run/no-asserts + 1
-    probe file
   ]
   
   compile-ok?: func [] [
