@@ -389,7 +389,7 @@ make target-class [
 	]
 	
 	emit-access-path: func [
-		path [path! set-path!] spec [block! none!] /short /local offset type saved
+		path [path! set-path!] spec [block! none!] /short /local offset type saved float64?
 	][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
@@ -401,9 +401,21 @@ make target-class [
 		
 		saved: width
 		type: first compiler/resolve-type/with path/2 spec
-		set-width/type type							;-- adjust operations width to member value size
+		float64?: find [float! float64!] type
 
-		either zero? offset: emitter/member-offset? spec path/2 [
+		set-width/type type							;-- adjust operations width to member value size
+		offset: emitter/member-offset? spec path/2
+		
+		if float64? [								;-- load float high bits
+			width: 4
+			either zero? offset [
+				emit #{8B5004}						;-- MOV edx, [eax+4]
+			][
+				emit #{8B90}						;-- MOV edx, [eax+offset+4]
+				emit to-bin32 offset + 4
+			]
+		]
+		either zero? offset [
 			emit-poly [#{8A00} #{8B00}]				;-- MOV rA, [eax]
 		][
 			emit-poly [#{8A80} #{8B80}]				;-- MOV rA, [eax+offset]
@@ -499,11 +511,15 @@ make target-class [
 		]
 	]
 
-	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset][
+	emit-store-path: func [
+		path [set-path!] type [word!] value parent [block! none!]
+		/local idx offset float64?
+	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
 		if parent [emit #{89C2}]					;-- MOV edx, eax			; save value/address
 		unless value = <last> [emit-load value]
+		emit #{89D3}								;-- MOV ebx, edx
 		emit #{92}									;-- XCHG eax, edx			; save value/restore address
 
 		switch type [
@@ -512,13 +528,24 @@ make target-class [
 			struct!   [
 				unless parent [parent: emit-access-path/short path parent]
 				type: first compiler/resolve-type/with path/2 parent
-				set-width/type type					;-- adjust operations width to member value size
+				float64?: find [float! float64!] type
 				
+				set-width/type type				;-- adjust operations width to member value size
+				if float64? [width: 4]
 				either zero? offset: emitter/member-offset? parent path/2 [
-					emit-poly [#{8810} #{8910}] 	;-- MOV [eax], rD
+					emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
 				][
-					emit-poly [#{8890} #{8990}]		;-- MOV [eax+offset], rD
+					emit-poly [#{8890} #{8990}]	;-- MOV [eax+offset], rD
 					emit to-bin32 offset
+				]
+				if float64? [					;-- store float high bits
+					emit #{89DA}				;-- MOV edx, ebx
+					either zero? offset [
+						emit #{895004}			;-- MOV [eax+4], edx
+					][
+						emit #{8990}			;-- MOV [eax+offset+4], edx
+						emit to-bin32 offset + 4
+					]
 				]
 			]
 		]
