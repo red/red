@@ -1237,13 +1237,13 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-switch: has [expr spec value values body bodies list types default][
+		comp-switch: has [expr save-type spec value values body bodies list types default][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile argument
 			if any [none? expr last-type = none-type][
 				throw-error "SWITCH argument has no return value"
 			]
-			
+			save-type: last-type			
 			check-body spec: pc/1
 			foreach w [values list types][set w make block! 8]
 			
@@ -1295,6 +1295,7 @@ system-dialect: context [
 			]
 
 			;-- construct tests + branching and insert them at head
+			last-type: save-type
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
 			values: tail values
 			until [
