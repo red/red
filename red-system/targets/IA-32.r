@@ -409,7 +409,7 @@ make target-class [
 				emit to-bin32 idx * emitter/size-of? type/2/1
 			]
 		][
-			emit-load-index idx						; @@ missing scaling factor ???
+			emit-load-index idx
 			emit-poly opcodes/3
 		]
 	]
