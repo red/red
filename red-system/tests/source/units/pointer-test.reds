@@ -40,12 +40,13 @@ Red/System [
 
 	--test-- "pointer-rw-5"
 	p-idx: 1
-	pA/p-idx: 369
+	pA/p-idx: 1234567890
 	--assert p-struct/n = 369
 
 	--test-- "pointer-rw-6"
 	p-idx: 2
 	pA/p-idx: 963
+	--assert p-struct/n = 1234567890
 	--assert p-struct/m = 963
 
 	--test-- "pointer-rw-7"
