@@ -234,7 +234,12 @@ emitter: context [
 			pointer! [
 				pad-data-buf target/ptr-size			;-- pointer alignment can be <> of integer
 				ptr: tail data-buf	
-				store-global value 'integer! none
+				type: either all [
+					paren? value
+					value/1 = 'pointer!
+					find [float! float64!] value/2/1 
+				]['float!]['integer!]
+				store-global value type none
 			]
 			struct! [
 				ptr: tail data-buf
