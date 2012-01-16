@@ -513,6 +513,25 @@ Red/System [
 	
 ===end-group===
 
+===start-group=== "switch-until"
+  --test-- "switch-until-1"           ;; Issue #198
+    sui: 1
+    sur: 0
+    su-end: true
+    switch sui [
+      0 [sur: 1] 
+      2 [sur: 2]
+      default [
+        until [
+          sur: 3
+          su-end
+        ]
+      ]
+    ]
+  --assert sur = 3
+
+===end-group===
+
 
 ~~~end-file~~~
 
