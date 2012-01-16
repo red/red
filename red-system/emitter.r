@@ -184,7 +184,7 @@ emitter: context [
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if value = <last> [
+		if all [value = <last> not find [float! float!64] type][
 			type: 'integer!
 			value: 0
 		]
@@ -214,9 +214,13 @@ emitter: context [
 			]
 			float! float64! [
 				pad-data-buf 8							;-- align 64-bit floats on 64-bit
-				ptr: tail data-buf	
-				unless decimal? value [value: 0.0]
-				append ptr IEEE-754/to-binary64/rev value
+				ptr: tail data-buf
+				either binary? value [
+					append ptr value
+				][
+					unless decimal? value [value: 0.0]
+					append ptr IEEE-754/to-binary64/rev value	;-- stored in little-endian
+				]
 			]
 			c-string! [
 				either string? value [
@@ -230,7 +234,12 @@ emitter: context [
 			pointer! [
 				pad-data-buf target/ptr-size			;-- pointer alignment can be <> of integer
 				ptr: tail data-buf	
-				store-global value 'integer! none
+				type: either all [
+					paren? value
+					value/1 = 'pointer!
+					find [float! float64!] value/2/1 
+				]['float!]['integer!]
+				store-global value type none
 			]
 			struct! [
 				ptr: tail data-buf
@@ -450,7 +459,7 @@ emitter: context [
 					sz: max size-of? pos/2/1 target/stack-width	;-- type declared
 					pos: next pos
 				][
-					sz: target/stack-width						;-- type to be inferred
+					sz: target/stack-slot-max			;-- type to be inferred
 				]				
 				repend stack [var locals-sz: locals-sz - sz]	;-- store stack offsets
 			]

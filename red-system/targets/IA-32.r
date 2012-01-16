@@ -13,6 +13,7 @@ make target-class [
 	ptr-size: 			4
 	default-align:		4
 	stack-width:		4
+	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (esp + ebp)
 	branch-offset-size:	4							;-- size of JMP offset
 	
@@ -52,15 +53,15 @@ make target-class [
 		data
 	]
 		
-	emit-poly: func [spec [block!] /local to-bin][	;-- polymorphic code generation
+	emit-poly: func [spec [block!] /local w to-bin][	;-- polymorphic code generation
 		spec: reduce spec
-		emit switch width [
+		w: either width = 8 [4][width]				;-- use splitted 32-bit access for 64-bit word
+		emit switch w [
 			1 [spec/1]								;-- 8-bit
 			2 [emit #{66} spec/2]					;-- 16-bit
 			4 [spec/2]								;-- 32-bit
-			;8 not yet supported
 		]
-		to-bin: get select [1 to-bin8 2 to-bin16 4 to-bin32] width
+		to-bin: get select [1 to-bin8 2 to-bin16 4 to-bin32] w
 		case/all [
 			2 < length? spec [emit to-bin to integer! compiler/unbox spec/3] ;-- emit displacement or immediate
 			3 < length? spec [emit to-bin to integer! compiler/unbox spec/4] ;-- emit displacement or immediate
@@ -388,7 +389,7 @@ make target-class [
 	]
 	
 	emit-access-path: func [
-		path [path! set-path!] spec [block! none!] /short /local offset type saved
+		path [path! set-path!] spec [block! none!] /short /local offset type saved float64?
 	][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
@@ -400,9 +401,21 @@ make target-class [
 		
 		saved: width
 		type: first compiler/resolve-type/with path/2 spec
-		set-width/type type							;-- adjust operations width to member value size
+		float64?: find [float! float64!] type
 
-		either zero? offset: emitter/member-offset? spec path/2 [
+		set-width/type type							;-- adjust operations width to member value size
+		offset: emitter/member-offset? spec path/2
+		
+		if float64? [								;-- load float high bits
+			width: 4
+			either zero? offset [
+				emit #{8B5004}						;-- MOV edx, [eax+4]
+			][
+				emit #{8B90}						;-- MOV edx, [eax+offset+4]
+				emit to-bin32 offset + 4
+			]
+		]
+		either zero? offset [
 			emit-poly [#{8A00} #{8B00}]				;-- MOV rA, [eax]
 		][
 			emit-poly [#{8A80} #{8B80}]				;-- MOV rA, [eax+offset]
@@ -454,15 +467,15 @@ make target-class [
 	]
 	
 	emit-pointer-path: func [
-		path [path! set-path!] parent [block! none!] /local opcodes idx type
+		path [path! set-path!] parent [block! none!] /local opcodes idx type offset get64? set64?
 	][
 		opcodes: pick [[							;-- store path opcodes --
 				[#{8810} #{8910}]					;-- MOV [eax], rD
-				[#{8890} #{8990}]					;-- MOV [eax + idx * sizeof(p/value)], rD
+				[#{8890} #{8990}]					;-- MOV [eax + <idx> * sizeof(p/value)], rD
 				[#{881418} #{891498}]				;-- MOV [eax + ebx * sizeof(p/value)], rD
 			][										;-- load path opcodes --
 				[#{8A00} #{8B00}]					;-- MOV rA, [eax]
-				[#{8A80} #{8B80}]					;-- MOV rA, [eax + idx * sizeof(p/value)]
+				[#{8A80} #{8B80}]					;-- MOV rA, [eax + <idx> * sizeof(p/value)]
 				[#{8A0418} #{8B0498}]				;-- MOV rA, [eax + ebx * sizeof(p/value)]
 		]] set-path? path
 		
@@ -473,18 +486,33 @@ make target-class [
 			compiler/resolve-type path/1
 		]
 		set-width/type type/2/1						;-- adjust operations width to pointed value size
+		if width = 8 [get64?: not set64?: set-path? path]
+		
 		idx: either path/2 = 'value [1][path/2]
 
 		either integer? idx [
 			either zero? idx: idx - 1 [				;-- indexes are one-based
+				if get64? [emit #{8B5004}]			;-- MOV edx, [eax+4]			 ; read high bits
 				emit-poly opcodes/1
+				if set64? [emit #{897004}]			;-- MOV [eax+4], esi			 ; store high bits
 			][
+				offset: idx * emitter/size-of? type/2/1	;-- scaled up index
+				if get64? [
+					emit #{8B90}					;-- MOV edx, [eax+offset+4]		 ; read high bits
+					emit to-bin32 offset + 4
+				]
 				emit-poly opcodes/2
-				emit to-bin32 idx * emitter/size-of? type/2/1
+				emit to-bin32 offset
+				if set64? [
+					emit #{89B0}					;-- MOV [eax+offset+4], esi		 ; store high bits
+					emit to-bin32 offset + 4
+				]
 			]
 		][
-			emit-load-index idx						; @@ missing scaling factor ???
+			emit-load-index idx
+			if get64? [emit #{8B54D804}]			;-- MOV edx, [eax + ebx * 8 + 4] ; read high bits
 			emit-poly opcodes/3
+			if set64? [emit #{8974D804}]			;-- MOV [eax + ebx * 8 + 4], esi ; store high bits
 		]
 	]
 	
@@ -498,11 +526,15 @@ make target-class [
 		]
 	]
 
-	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset][
+	emit-store-path: func [
+		path [set-path!] type [word!] value parent [block! none!]
+		/local idx offset float64?
+	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
 		if parent [emit #{89C2}]					;-- MOV edx, eax			; save value/address
 		unless value = <last> [emit-load value]
+		emit #{89D6}								;-- MOV esi, edx
 		emit #{92}									;-- XCHG eax, edx			; save value/restore address
 
 		switch type [
@@ -511,13 +543,24 @@ make target-class [
 			struct!   [
 				unless parent [parent: emit-access-path/short path parent]
 				type: first compiler/resolve-type/with path/2 parent
-				set-width/type type					;-- adjust operations width to member value size
+				float64?: find [float! float64!] type
 				
+				set-width/type type				;-- adjust operations width to member value size
+				if float64? [width: 4]
 				either zero? offset: emitter/member-offset? parent path/2 [
-					emit-poly [#{8810} #{8910}] 	;-- MOV [eax], rD
+					emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
 				][
-					emit-poly [#{8890} #{8990}]		;-- MOV [eax+offset], rD
+					emit-poly [#{8890} #{8990}]	;-- MOV [eax+offset], rD
 					emit to-bin32 offset
+				]
+				if float64? [					;-- store float high bits
+					emit #{89F2}				;-- MOV edx, esi
+					either zero? offset [
+						emit #{895004}			;-- MOV [eax+4], edx
+					][
+						emit #{8990}			;-- MOV [eax+offset+4], edx
+						emit to-bin32 offset + 4
+					]
 				]
 			]
 		]
