@@ -53,11 +53,11 @@ system-dialect: context [
 		
 		not-set!:	  [logic! integer!]								  ;-- reserved for internal use only
 		number!: 	  [byte! integer!]								  ;-- reserved for internal use only
-		any-float!:	  [float! float32! float64!]						;-- reserved for internal use only
+		any-float!:	  [float! float32! float64!]					  ;-- reserved for internal use only
 		pointers!:	  [pointer! struct! c-string!] 					  ;-- reserved for internal use only
 		any-pointer!: union pointers! [function!]		  			  ;-- reserved for internal use only
-		poly!:		  union number!	pointers!					  	  ;-- reserved for internal use only
-		any-type!:	  union poly! [logic!]							  ;-- reserved for internal use only
+		poly!:		  union any-float! union number! pointers!		  ;-- reserved for internal use only
+		any-type!:	  union poly! [logic!]			  				  ;-- reserved for internal use only
 		type-sets:	  [not-set! number! poly! any-type! any-pointer!] ;-- reserved for internal use only
 		
 		comparison-op: [= <> < > <= >=]
@@ -1134,7 +1134,7 @@ system-dialect: context [
 			case [
 				logic? expr [ [#[true]] ]
 				find [word! path!] type?/word expr  [
-					emitter/target/emit-operation '= [<last> 0]
+					emitter/target/emit-integer-operation '= [<last> 0]
 					reduce [not invert?]
 				]
 				object? expr [
@@ -1142,7 +1142,7 @@ system-dialect: context [
 					unless find [word! path!] type?/word any [
 						all [block? expr expr/1] expr 
 					][
-						emitter/target/emit-operation '= [<last> 0]
+						emitter/target/emit-integer-operation '= [<last> 0]
 					]
 					process-logic-encoding expr invert?
 				]
@@ -1154,7 +1154,7 @@ system-dialect: context [
 				]
 				tag? expr [
 					either last-type/1 = 'logic! [
-						emitter/target/emit-operation '= [<last> 0]
+						emitter/target/emit-integer-operation '= [<last> 0]
 						reduce [not invert?]
 					][expr] 
 				]
@@ -1309,7 +1309,7 @@ system-dialect: context [
 				values: skip values -2
 				foreach v values/1 [					;-- process multiple values per action
 					body: comp-chunked [
-						emitter/target/emit-operation '= reduce [<last> v]
+						emitter/target/emit-integer-operation '= reduce [<last> v]
 					]
 					emitter/branch/over/on/adjust bodies [=] values/2	;-- insert action branching			
 					bodies: emitter/chunks/join body bodies
@@ -1954,6 +1954,7 @@ system-dialect: context [
 		format:			none			;-- file format
 		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj)
 		target:			'IA-32			;-- CPU target
+		revision:		6.0				;-- CPU revision (default: Pentium Pro)
 		verbosity:		0				;-- logs verbosity level
 		sub-system:		'console		;-- 'GUI | 'console
 		runtime?:		yes				;-- include Red/System runtime

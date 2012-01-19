@@ -84,10 +84,16 @@ make target-class [
 	
 	emit-save-last: does [
 		last-saved?: yes
+		if find [float! float64!] compiler/last-type/1 [
+			emit #{52}								;-- PUSH edx
+		]
 		emit #{50}									;-- PUSH eax
 	]
 	
 	emit-restore-last: does [
+		if find [float! float64!] compiler/last-type/1 [
+			emit #{58}								;-- POP eax
+		]
 		emit #{5A}					   				;-- POP edx
 	]
 	
@@ -954,28 +960,12 @@ make target-class [
 		; JNO? (Jump if No Overflow)
 	]
 	
-	emit-operation: func [name [word!] args [block!] /local a b c sorted? arg left right][
-		if verbose >= 3 [print [">>>inlining op:" mold name mold args]]
+	emit-integer-operation: func [name [word!] args [block!] /local a b sorted? left right][
+		if verbose >= 3 [print [">>>inlining integer op:" mold name mold args]]
 
 		set-width args/1							;-- set reg/mem access width
-		c: 1
-		foreach op [a b][
-			arg: either object? args/:c [compiler/cast args/:c][args/:c]		
-			set op either arg = <last> [
-				 'reg								;-- value in eax
-			][
-				switch type?/word arg [
-					char! 	 ['imm]		 			;-- add or mov to al
-					integer! ['imm] 				;-- add or mov to eax
-					word! 	 ['ref] 				;-- fetch value
-					block!   ['reg] 				;-- value in eax (or in edx)
-					path!    ['reg] 				;-- value in eax (or in edx)
-				]
-			]
-			c: c + 1
-		]
-		if verbose >= 3 [?? a ?? b]					;-- a and b hold addressing modes for operands
-
+		set [a b] get-arguments-class args
+		
 		;-- First operand processing
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
@@ -1043,6 +1033,105 @@ make target-class [
 		]
 	]
 	
+	emit-float-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local spec][
+		either compiler/job/revision >= 6.0	[		;-- support for FCOMI* only with P6+
+			switch b [
+				imm [
+					spec: emitter/store-value none args/2 compiler/get-type args/2
+					emit #{DD05}					;-- FLD [<float>]
+					emit-reloc-addr spec/2
+				]
+				ref [
+					emit-variable args/2
+						#{DD05}						;-- FLD [value]		; global
+						#{DD45}						;-- FLD [ebp+n]		; local
+				]
+				reg [
+					emit #{DD442408}				;-- FLD [esp+8]		; push a
+					emit #{DD0424}					;-- FLD [esp]		; push b
+					emit #{83C410}					;-- ADD esp, 16		; @@ width-aware !!
+				]
+			]
+			emit #{DFF1}							;-- FCOMIP st0, st1
+		][
+			switch b [
+				imm [
+					spec: emitter/store-value none args/2 compiler/get-type args/2
+					emit #{DC1D}					;-- FCOMP [<float>]
+					emit-reloc-addr spec/2
+				]
+				ref [
+					emit-variable args/2
+						#{DC1D}						;-- FCOMP [value]	; global
+						#{DC5D}						;-- FCOMP [ebp+n]	; local
+				]
+				reg [
+					emit #{DD0424}					;-- FLD [esp]		; push b
+					emit #{DD442408}				;-- FLD [esp+8]		; push a
+					emit #{83C410}					;-- ADD esp, 16		; @@ width-aware !!
+					emit #{D8D9}					;-- FCOMP st0, st1
+				]
+			]
+			emit #{9BDFE0}							;-- FSTSW ax		; move FPU flags to ax
+			emit #{9B}								;-- FWAIT			; wait for FPU->CPU transfer completion
+			emit #{9E}								;-- SAHF			; move flags to CPU status flags
+		]
+		signed?: no									;-- force binary comparison
+	]
+
+	emit-float-operation: func [name [word!] args [block!] /local a b left right spec][
+		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
+
+		if all [
+			find comparison-op name
+			compiler/job/revision >= 6.0			;-- support for FCOMIP only with P6+
+		][
+			reverse args							;-- arguments will be pushed in reverse order
+		]
+		set [a b] get-arguments-class args
+
+		;-- First operand processing
+		left:  compiler/unbox args/1
+		right: compiler/unbox args/2
+		
+		switch a [
+			imm [
+				spec: emitter/store-value none args/1 compiler/get-type args/1
+				emit #{DD05}						;-- FLD [<float>]	; load immediate from data segment
+				emit-reloc-addr spec/2
+			]
+			ref [			
+				emit-variable args/1
+					#{DD05}							;-- FLD [value]		; global
+					#{DD45}							;-- FLD [ebp+n]		; local
+			]
+			reg [
+				if any [block? left block? right][
+					;probe compiler/last-type
+					emit-push <last>
+				]
+				if path? left [
+					emit-push args/1				;-- late path loading
+					if b <> 'reg [
+						emit #{DD0424}				;-- FLD [esp]		; push a
+						emit #{83C408}				;-- ADD esp, 8		; @@ width-aware !!
+					]
+				]
+				if path? right [
+					emit-push args/2
+				]
+			]
+		]
+		
+		case [
+			find comparison-op name [emit-float-comparison-op name a b args]
+			find math-op	   name	[emit-float-math-op		  name a b args]
+			true [
+				compiler/throw-error "unsupported operation on floats"
+			]
+		]
+	]
+	
 	emit-cdecl-pop: func [spec [block!] args [block!] /local size][
 		size: emitter/arguments-size? spec/4
 		if all [
@@ -1089,7 +1178,7 @@ make target-class [
 			emit #{83EC08}							;-- SUB esp, 8		@@ width-aware
 			emit #{DD1C24}							;-- FSTP [esp]		@@ width-aware
 			emit-pop								;-- POP eax			;  low part of 64-bit float
-			emit-restore-last						;-- POP edx			;  high part 
+			emit #{5A}								;-- POP edx			;  high part 
 		]
 	]
 		

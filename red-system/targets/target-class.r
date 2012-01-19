@@ -26,7 +26,7 @@ target-class: context [
 	
 	emit-casting: emit-call-syscall: emit-call-import:
 	emit-call-native: emit-not: emit-push: emit-pop:
-	emit-operation: none							;-- just pre-bind word to avoid contexts issue
+	emit-integer-operation: emit-float-operation: none ;-- just pre-bind word to avoid contexts issue
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   [+ - * / // ///]
@@ -148,6 +148,28 @@ target-class: context [
 		]
 	]
 	
+	get-arguments-class: func [args [block!] /local c a b arg][
+		c: 1
+		foreach op [a b][
+			arg: either object? args/:c [compiler/cast args/:c][args/:c]		
+			set op either arg = <last> [
+				 'reg								;-- value in accumulator
+			][
+				switch type?/word arg [
+					char! 	 ['imm]
+					integer! ['imm]
+					decimal! ['imm]
+					word! 	 ['ref] 				;-- value need to be fetched
+					block!   ['reg] 				;-- value in accumulator (or in alt-acc)
+					path!    ['reg] 				;-- value in accumulator (or in alt-acc)
+				]
+			]
+			c: c + 1
+		]
+		if verbose >= 3 [?? a ?? b]					;-- a and b hold addressing modes for operands
+		reduce [a b]
+	]
+	
 	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
@@ -175,7 +197,14 @@ target-class: context [
 				if name = 'not [res: compiler/get-type args/1]
 			]
 			op	[
-				emit-operation name args
+				either any [
+					compiler/any-float? compiler/resolve-expr-type args/1
+					compiler/any-float? compiler/resolve-expr-type args/2
+				][
+					emit-float-operation name args
+				][
+					emit-integer-operation name args
+				]
 				if sub? [emitter/logic-to-integer name]
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: any [
