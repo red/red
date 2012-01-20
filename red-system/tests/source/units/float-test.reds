@@ -29,9 +29,9 @@ Red/System [
 
 ===start-group=== "float function arguments"
     ff: func [
-      fff [float!]
-      ffg [float!]
-      return: integer!
+      fff     [float!]
+      ffg     [float!]
+      return: [integer!]
       /local
       ffl [float!]
     ][
@@ -46,7 +46,7 @@ Red/System [
   --assert 1 = ff 1.0 2.0
   
   --test-- "float-func-args-2"
-  --assert 1 = ff 1.222090944E+33 1 9.99999E-45
+  --assert 1 = ff 1.222090944E+33 9.99999E-45
   
 ===end-group===
 
@@ -57,7 +57,7 @@ Red/System [
       ff1i      [integer!]
       return:   [float!]
     ][
-      switch ffli [
+      switch ff1i [
         1 [1.0]
         2 [1.222090944E+33]
         3 [9.99999E-45]
@@ -75,45 +75,42 @@ Red/System [
 ===start-group=== "float struct!"
 
   --test-- "float-struct-1"
-    sf1: struct! [
+    sf1: declare struct! [
       a   [float!]
     ]
   --assert 0.0 = sf1/a
   
   --test-- "float-struct-2"
-    sf2: struct! [
+    sf2: declare struct! [
       a   [float!]
     ]
     sf1/a: 1.222090944E+33
   --assert 1.222090944E+33 = sf1/a
 
-    sf3: struct! [
+   
+    sf3: declare struct! [
       a   [float!]
       b   [float!]
     ]
   
   --test-- "float-struct-3"
+    sf3/a: 1.222090944E+33
+    sf3/b: 9.99999E-45
     
+  --assert 1.222090944E+33 = sf3/a
+  --assert 9.99999E-45 = sf3/b
     
-    f: sf2/a
-    f: sf2/b
-    sf2/a: 1.222090944E+33
-    sf2/b: 9.99999E-45
-    f: sf2/a
-    f: sf2/b
-  --assert 1 = 1  
-    
-  --test-- "float-struct-3"
-    sf2: struct! [
+  --test-- "float-struct-4"
+    sf4: declare struct! [
       c   [byte!]
       a   [float!]
       l   [logic!]
       b   [float!]
     ]
-    sf3/a: 1.222090944E+33
-    sf3/b: 9.99999E-45
-  --assert 1.222090944E+33 = sf3/a
-  --assert 9.99999E-45 = sf3/b
+    sf4/a: 1.222090944E+33
+    sf4/b: 9.99999E-45
+  --assert 1.222090944E+33 = sf4/a
+  --assert 9.99999E-45 = sf4/b
 
 ===end-group===
 
