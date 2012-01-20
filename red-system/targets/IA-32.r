@@ -1053,6 +1053,7 @@ make target-class [
 				]
 			]
 			emit #{DFF1}							;-- FCOMIP st0, st1
+			emit #{DDD8}							;-- FSTP st0		; pop 2nd argument
 		][
 			switch b [
 				imm [
@@ -1070,6 +1071,7 @@ make target-class [
 					emit #{DD442408}				;-- FLD [esp+8]		; push a
 					emit #{83C410}					;-- ADD esp, 16		; @@ width-aware !!
 					emit #{D8D9}					;-- FCOMP st0, st1
+					emit #{DDD8}					;-- FSTP st0		; pop 2nd argument
 				]
 			]
 			emit #{9BDFE0}							;-- FSTSW ax		; move FPU flags to ax
@@ -1109,6 +1111,10 @@ make target-class [
 				if any [block? left block? right][
 					;probe compiler/last-type
 					emit-push <last>
+					if b <> 'reg [
+						emit #{DD0424}				;-- FLD [esp]		; push a
+						emit #{83C408}				;-- ADD esp, 8		; @@ width-aware !!
+					]
 				]
 				if path? left [
 					emit-push args/1				;-- late path loading
