@@ -98,7 +98,7 @@ target-class: context [
 			]
 		][											;-- global variable case
 			either block? gcode [
-				foreach code gcode [
+				foreach code reduce gcode [
 					either code = 'address [
 						emit-reloc-addr emitter/symbols/:name	
 					][

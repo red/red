@@ -259,7 +259,7 @@ make target-class [
 					either find [float! float64!] type/1 [
 						emit-variable value [
 							#{BE}					;-- LEA esi, value
-							address
+							'address
 							#{8B06}					;-- MOV eax, [esi]		; global
 							#{8B5604}				;-- MOV edx, [esi+4]	; global
 						][
@@ -337,7 +337,7 @@ make target-class [
 					value: IEEE-754/to-binary64 value ;-- loaded as big-endian
 					emit-variable name [
 						#{BE}						;-- LEA esi, name
-						address
+						'address
 						#{C706}						;-- MOV [esi], low-bits		; global
 						at value 5
 						#{C74604}					;-- MOV [esi+4], high-bits	; global
@@ -357,7 +357,7 @@ make target-class [
 				either find [float! float64!] type/1 [
 					emit-variable name [
 						#{BE}						;-- LEA esi, name
-						address
+						'address
 						#{8906}						;-- MOV [esi], eax		; global
 						#{895604}					;-- MOV [esi+4], edx	; global
 					][
