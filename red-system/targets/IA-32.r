@@ -334,21 +334,21 @@ make target-class [
 					do store-dword
 					emit IEEE-754/to-binary32/rev value
 				][
-					value: IEEE-754/to-binary64 value ;-- loaded as big-endian
+					value: IEEE-754/to-binary64/rev value ;-- loaded as big-endian
 					emit-variable name [
 						#{BE}						;-- LEA esi, name
 						'address
 						#{C706}						;-- MOV [esi], low-bits		; global
-						at value 5
-						#{C74604}					;-- MOV [esi+4], high-bits	; global
 						copy/part value 4
+						#{C74604}					;-- MOV [esi+4], high-bits	; global
+						at value 5
 					][
 						#{C745}						;-- MOV [ebp+n], low-bits		; local
 						offset
-						at value 5
+						copy/part value 4
 						#{C745}						;-- MOV [ebp+(n+4)], high-bits	; local	
 						to-bin8 add to integer! offset 4
-						copy/part value 4
+						at value 5
 					]
 				]
 			]
