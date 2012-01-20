@@ -92,6 +92,15 @@ qt: make object! [
     test-run/passes: test-run/passes + file/passes
     test-run/failures: test-run/failures + file/failures
   ]
+  _signify-failure: does [
+    ;; called when a compiler or runtime error occurs
+    file/failures: file/failures + 1           
+    file/no-tests: file/no-tests + 1
+    file/no-asserts: file/no-asserts + 1
+    test-run/failures: test-run/failures + 1           
+    test-run/no-tests: test-run/no-tests + 1
+    test-run/no-asserts: test-run/no-asserts + 1
+  ]
   
   ;; group data
   group-name: copy ""
@@ -208,13 +217,7 @@ qt: make object! [
   ][
     print join "" [src " - compiler error"]
     print comp-output
-    ;; signify failing test
-    file/failures: file/failures + 1           
-    file/no-tests: file/no-tests + 1
-    file/no-asserts: file/no-asserts + 1
-    test-run/failures: test-run/failures + 1           
-    test-run/no-tests: test-run/no-tests + 1
-    test-run/no-asserts: test-run/no-asserts + 1
+    _signify-failure
   ]
   
   compile-ok?: func [] [
@@ -237,6 +240,9 @@ qt: make object! [
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
+    if none <> find output "Runtime Error" [
+      _signify-failure
+    ]
   ]
   
   run-red-test-quiet: func [

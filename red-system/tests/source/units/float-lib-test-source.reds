@@ -12,23 +12,9 @@ Red/System [
 
 #include %../../../../../quick-test/quick-test.reds
 
-#switch OS [
-	Windows  [
-	  #define LIB1	"***abs-path***ftestlib1.dll"
-	  #define LIB2	"***abs-path***ftestlib2.dll"
-	  #define LIB3	"***abs-path***ftestlib3.dll"
-	]
-	MacOSX	 [
-	  #define LIB1	"***abs-path***libftestlib1.dylib"
-	  #define LIB2	"***abs-path***libftestlib2.dylib"
-	  #define LIB3	"***abs-path***libftestlib3.dylib"
-	]
-	#default [
-		#define LIB1	"***abs-path***libftestlib1.so"
-	  #define LIB2	"***abs-path***libftestlib2.so"
-	  #define LIB3	"***abs-path***libftestlib3.so"
-	]
-]
+#define LIB1	"***abs-path***###prefix###ftestlib1@@@extension@@@"
+#define LIB2	"***abs-path***###prefix###ftestlib2@@@extension@@@"
+#define LIB3	"***abs-path***###prefix###ftestlib3@@@extension@@@"
 
 ;; library declarations
 #import [
@@ -66,20 +52,32 @@ Red/System [
 
     f: 0.0
   
-  --test-- "lib1"
+  --test-- "flib1"
+  --assert 2.0 = addone 1.0
+  
+  --test-- "flib2"
     f: addone 1.0
+  --assert f = 2.0
+  
+  --test-- "flib3"
     f: subtractone 2.0
-  --assert 1 = 1
+  --assert f = 1.0
   
-  --test-- "lib2"    
+  --test-- "flib4"
+  --assert 1.0 = subtractone 2.0
+  
+  --test-- "flib5"    
     f: twice 1.0
-    f: twice 2.0
-  --assert 2 = 2
+  --assert f = 2.0
   
-  --test-- "lib3"
-    f: halve 2.0
-    f: halve 1.0
-  --assert 3 = 3
+  --test-- "flib6"
+  --assert 2.0 = twice 1.0
+  
+  --test-- "flib7"
+  --assert 1.0 = halve 2.0
+    
+  --test-- "flib8"
+  --assert 0.5 = halve 1.0
   
 ~~~end-file~~~
 
