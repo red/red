@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs the Red/System Tests for Float-Partial"
 	File: 	 %run-float.r
 	Author:  "Peter W A Wood"
-	Version: 0.1.0
+	Version: 0.2.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -13,10 +13,17 @@ system/options/quiet: true
 do %../../quick-test/quick-test.r
 qt/tests-dir: system/script/path
 
-;; make lib-test file if needed
+;; make lib-test files if needed
 flib-test-len: length? read %source/units/float-lib-test-source.reds
 save-len: either exists? %source/units/len-flib-test.dat [
   load %source/units/len-flib-test.dat
+][
+  -1
+]
+
+f32lib-test-len: length? read %source/units/float32-lib-test-source.reds
+f32-save-len: either exists? %source/units/len-f32lib-test.dat [
+  load %source/units/len-f32lib-test.dat
 ][
   -1
 ]
@@ -30,6 +37,15 @@ if any [
   do %source/units/make-float-lib-auto-test.r                         
 ]
 
+if any [
+  not exists? %source/units/auto-tests/float32-lib-auto-test.reds
+  f32lib-test-len <> f32-save-len 
+][
+  save %source/units/len-f32lib-test.dat f32lib-test-len
+  print "Making float32-lib-test-auto.reds - shouldn't take long"
+  do %source/units/make-float32-lib-auto-test.r                         
+]
+
 ;; run the tests
 print rejoin ["Quick-Test v" qt/version]
 print rejoin ["REBOL " system/version]
@@ -40,13 +56,13 @@ start-time: now/precise
 
 ===start-group=== "Datatype tests"
   --run-test-file-quiet %source/units/float-test.reds
- 
+  --run-test-file-quiet %source/units/float32-test.reds
 ===end-group===
 
 ===start-group=== "Auto-tests"
   --run-test-file-quiet  %source/units/auto-tests/float-lib-auto-test.reds 
+  --run-test-file-quiet  %source/units/auto-tests/float32-lib-auto-test.reds 
 ===end-group===
-
 
 ***end-run-quiet***
 

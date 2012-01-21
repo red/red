@@ -217,6 +217,7 @@ qt: make object! [
   ][
     print join "" [src " - compiler error"]
     print comp-output
+    clear output                           ;; clear the ouptut from prevous test
     _signify-failure
   ]
   
