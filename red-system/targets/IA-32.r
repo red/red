@@ -53,8 +53,16 @@ make target-class [
 		data
 	]
 	
+	emit-float: func [arg opcode [binary!]][
+		emit either 'float32! = first compiler/get-type arg [
+			opcode and #{F9FF}
+		][
+			opcode
+		]
+	]
+	
 	emit-float-variable: func [name [word! object!] gcode [binary! block!] lcode [binary! block!]][
-		if 'float32! = compiler/resolve-expr-type name [
+		if 'float32! = first compiler/get-type name [
 			gcode: gcode and #{F9FF}
 			lcode: lcode and #{F9FF} 
 		]
@@ -1065,12 +1073,14 @@ make target-class [
 					emit-reloc-addr spec/2
 				]
 				ref [
-					emit-variable args/2
+					emit-float-variable args/2
 						#{DD05}						;-- FLD [value]		; global
 						#{DD45}						;-- FLD [ebp+n]		; local
 				]
 				reg [
-					if a = 'reg [emit #{DD442408}]	;-- FLD [esp+8]		; push a
+					if a = 'reg [
+						emit #{DD442408}			;-- FLD [esp+8]	; push a
+					]
 					emit #{DD0424}					;-- FLD [esp]		; push b
 					emit #{83C4}					;-- ADD esp, 8|16	; @@ width-aware !!
 					emit to-bin8 pick [16 8] a = 'reg
@@ -1086,7 +1096,7 @@ make target-class [
 					emit-reloc-addr spec/2
 				]
 				ref [
-					emit-variable args/2
+					emit-float-variable args/2
 						#{DC1D}						;-- FCOMP [value]	; global
 						#{DC5D}						;-- FCOMP [ebp+n]	; local
 				]
@@ -1124,11 +1134,11 @@ make target-class [
 		switch a [
 			imm [
 				spec: emitter/store-value none args/1 compiler/get-type args/1
-				emit #{DD05}						;-- FLD [<float>]	; load immediate from data segment
+				emit-float args/1 #{DD05}			;-- FLD [<float>]	; load immediate from data segment
 				emit-reloc-addr spec/2
 			]
 			ref [			
-				emit-variable args/1
+				emit-float-variable args/1
 					#{DD05}							;-- FLD [value]		; global
 					#{DD45}							;-- FLD [ebp+n]		; local
 			]
@@ -1137,14 +1147,14 @@ make target-class [
 					;probe compiler/last-type
 					emit-push <last>
 					if b <> 'reg [
-						emit #{DD0424}				;-- FLD [esp]		; push a
+						emit-float left #{DD0424}	;-- FLD [esp]		; push a
 						emit #{83C408}				;-- ADD esp, 8		; @@ width-aware !!
 					]
 				]
 				if path? left [
 					emit-push args/1				;-- late path loading
 					if b <> 'reg [
-						emit #{DD0424}				;-- FLD [esp]		; push a
+						emit-float left  #{DD0424}	;-- FLD [esp]		; push a
 						emit #{83C408}				;-- ADD esp, 8		; @@ width-aware !!
 					]
 				]
