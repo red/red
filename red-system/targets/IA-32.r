@@ -52,6 +52,14 @@ make target-class [
 		data/(length? data): (to char! last data) or (to char! first op) ;-- REBOL2's awful binary! handling
 		data
 	]
+	
+	emit-float-variable: func [name [word! object!] gcode [binary! block!] lcode [binary! block!]][
+		if 'float32! = compiler/resolve-expr-type name [
+			gcode: gcode and #{F9FF}
+			lcode: lcode and #{F9FF} 
+		]
+		emit-variable name gcode lcode
+	]
 		
 	emit-poly: func [spec [block!] /local w to-bin][	;-- polymorphic code generation
 		spec: reduce spec
@@ -228,6 +236,7 @@ make target-class [
 	emit-load: func [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
+		/with cast [object!]
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		
@@ -247,11 +256,16 @@ make target-class [
 				emit to-bin32 value
 			]
 			decimal! [
-				value: IEEE-754/to-binary64/rev value
-				emit #{B8}							;-- MOV eax, low part of 64-bit float
+				value: either all [cast cast/type = 'float32!][
+					IEEE-754/to-binary32/rev value
+				][
+					value: IEEE-754/to-binary64/rev value
+					emit #{BA}						;-- MOV edx, high part
+					emit at value 5
+					value
+				]
+				emit #{B8}							;-- MOV eax, low part
 				emit copy/part value 4
-				emit #{BA}							;-- MOV edx, high part
-				emit at value 5
 			]
 			word! [
 				with-width-of value [
@@ -296,7 +310,11 @@ make target-class [
 			]
 			object! [
 				unless any [block? value/data value/data = <last>][
-					either alt [emit-load/alt value/data][emit-load value/data]
+					either alt [
+						emit-load/alt/with value/data value
+					][
+						emit-load/with value/data value
+					]
 				]
 			]
 		]
@@ -647,17 +665,22 @@ make target-class [
 				]
 			]
 			decimal! [
-				value: IEEE-754/to-binary64/rev value
-				emit #{68}							;-- PUSH high part		
-				emit at value 5
-				emit #{68}							;-- PUSH low part of 64-bit float
+				value: either all [cast cast/type = 'float32!][
+					IEEE-754/to-binary32/rev value
+				][
+					value: IEEE-754/to-binary64/rev value
+					emit #{68}						;-- PUSH high part		
+					emit at value 5
+					value
+				]
+				emit #{68}							;-- PUSH low part
 				emit copy/part value 4
 			]
 			word! [
 				type: compiler/get-variable-spec value
 				either compiler/any-float? type [
 					emit #{83EC08}					;-- SUB esp, 8		@@ wide-aware
-					emit-variable value
+					emit-float-variable value
 						#{DD05}						;-- FLD [value]			; global
 						#{DD45}						;-- FLD [ebp+n]			; local
 					emit #{DD1C24}					;-- FSTP [esp]			; push double on stack
