@@ -1,9 +1,9 @@
 Red/System [
 	Title:   "Red/System integer! datatype tests"
-	Author:  "Peter W A Wood"
+	Author:  "Peter W A Wood, Nenad Rakocevic"
 	File: 	 %float-test.reds
 	Version: 0.1.0
-	Rights:  "Copyright (C) 2012 Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2012 Peter W A Wood, Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -26,6 +26,31 @@ Red/System [
     f1: f
   --assert f1 = 1.0
 ===end-group===
+
+===start-group=== "float argument to external function"
+
+	#import [
+		LIBC-file cdecl [
+			sin: "sin" [
+				x 		[float!]
+				return: [float!]
+			]
+			cos: "cos" [
+				x 		[float!]
+				return: [float!]
+			]
+		]
+	]
+	pi: 3.14159265358979
+	
+	--test-- "float-ext-1"
+	--assert -1.0 = cos pi
+	
+	;--test-- "float-ext-2"
+	;--assert  0.0 = sin pi		; not working, because of rounding error.
+	
+	--test-- "float-ext-3"
+	--assert -1.0 = cos 3.14159265358979
 
 ===start-group=== "float function arguments"
     ff: func [
@@ -50,6 +75,50 @@ Red/System [
   
 ===end-group===
 
+===start-group=== "float locals"
+
+	local-float: func [n [float!] return: [float!] /local p][p: n p]
+
+	--test-- "float-loc-1"
+	pi: local-float 3.14159265358979
+	--assert pi = 3.14159265358979
+	--assert -1.0 = cos pi
+	--assert -1.0 = local-float cos pi
+	
+	--test-- "float-loc-2"
+	f: local-float pi
+	--assert pi = local-float f
+
+	--test-- "float-loc-3"
+	local-float2: func [n [float!] return: [float!] /local p][p: n local-float p]
+	
+	pi: local-float2 3.14159265358979
+	--assert -1.0 = local-float2 cos pi
+	f: local-float2 pi
+	--assert pi = local-float2 f
+
+	--test-- "float-loc-4"
+	local-float3: func [n [float!] return: [float!] /local p [float!]][p: n local-float p]
+
+	pi: local-float3 3.14159265358979
+	--assert -1.0 = local-float3 cos pi
+	f: local-float3 pi
+	--assert pi = local-float3 f
+
+	--test-- "float-loc-5"
+	local-float4: func [n [float!] return: [float!] /local r p][p: n p]
+	--assert -1.0 = local-float4 cos pi
+	f: local-float4 pi
+	--assert pi = local-float4 f
+	
+	--test-- "float-loc-6"
+	local-float5: func [n [float!] return: [float!] /local r p][p: n local-float p]
+	--assert -1.0 = local-float5 cos pi
+	f: local-float5 pi
+	--assert pi = local-float5 f
+
+===end-group===
+
 ===start-group=== "float function return"
 
  
@@ -72,7 +141,7 @@ Red/System [
   
 ===end-group===
 
-===start-group=== "float struct!"
+===start-group=== "float members in struct"
 
   --test-- "float-struct-1"
     sf1: declare struct! [
@@ -111,6 +180,34 @@ Red/System [
     sf4/b: 9.99999E-45
   --assert 1.222090944E+33 = sf4/a
   --assert 9.99999E-45 = sf4/b
+  
+  --test-- "float-struct-5"
+  sf5: declare struct! [f [float!] i [integer!]]
+  
+  sf5/i: 1234567890
+  sf5/f: 3.14159265358979
+  --assert sf5/i = 1234567890
+  --assert sf5/f = pi
+  
+  --test-- "float-struct-6"
+  sf6: declare struct! [i [integer!] f [float!]]
+  
+  sf6/i: 1234567890
+  sf6/f: 3.14159265358979
+  --assert sf6/i = 1234567890
+  --assert sf6/f = pi
+
+===end-group===
+
+===start-group=== "float pointers"
+
+  --test-- "float-point-1"
+  pi: 3.14159265358979
+  p: declare pointer! [float!]
+  p/value: 3.14159265358979
+  --assert pi = p/value
+ 
+ ;TBD: add more float pointer tests in %pointer-test.reds.
 
 ===end-group===
 
