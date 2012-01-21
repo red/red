@@ -1047,9 +1047,10 @@ make target-class [
 						#{DD45}						;-- FLD [ebp+n]		; local
 				]
 				reg [
-					emit #{DD442408}				;-- FLD [esp+8]		; push a
+					if a = 'reg [emit #{DD442408}]	;-- FLD [esp+8]		; push a
 					emit #{DD0424}					;-- FLD [esp]		; push b
-					emit #{83C410}					;-- ADD esp, 16		; @@ width-aware !!
+					emit #{83C4}					;-- ADD esp, 8|16	; @@ width-aware !!
+					emit to-bin8 pick [16 8] a = 'reg
 				]
 			]
 			emit #{DFF1}							;-- FCOMIP st0, st1
@@ -1068,8 +1069,9 @@ make target-class [
 				]
 				reg [
 					emit #{DD0424}					;-- FLD [esp]		; push b
-					emit #{DD442408}				;-- FLD [esp+8]		; push a
-					emit #{83C410}					;-- ADD esp, 16		; @@ width-aware !!
+					if a = 'reg [emit #{DD442408}]	;-- FLD [esp+8]		; push a
+					emit #{83C4}					;-- ADD esp, 8|16	; @@ width-aware !!
+					emit to-bin8 pick [16 8] a = 'reg
 					emit #{D8D9}					;-- FCOMP st0, st1
 					emit #{DDD8}					;-- FSTP st0		; pop 2nd argument
 				]
@@ -1123,15 +1125,13 @@ make target-class [
 						emit #{83C408}				;-- ADD esp, 8		; @@ width-aware !!
 					]
 				]
-				if path? right [
-					emit-push args/2
-				]
 			]
 		]
+		if path? right [emit-push args/2]
 		
 		case [
 			find comparison-op name [emit-float-comparison-op name a b args]
-			find math-op	   name	[emit-float-math-op		  name a b args]
+			;find math-op	   name	[emit-float-math-op		  name a b args]
 			true [
 				compiler/throw-error "unsupported operation on floats"
 			]
