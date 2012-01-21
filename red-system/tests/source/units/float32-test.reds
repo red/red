@@ -57,18 +57,18 @@ Red/System [
       ff1i      [integer!]
       return:   [float32!]
     ][
-      switch ff1i [
+      as float32! switch ff1i [
         1 [1.0]
         2 [1.222090944E+33]
         3 [9.99999E-45]
       ]
     ]
   --test-- "float32 return 1"
-  --assert 1.0 = ff1 1
+  --assert (as float32! 1.0) = ff1 1
   --test-- "float32 return 2"
-  --assert 1.222090944E+33 = ff1 2
+  --assert (as float32! 1.222090944E+33) = ff1 2
   --test-- "float32 return 3"
-  --assert 9.99999E-45 = ff1 3
+  --assert (as float32! 9.99999E-45) = ff1 3
   
 ===end-group===
 
@@ -78,14 +78,14 @@ Red/System [
     sf1: declare struct! [
       a   [float32!]
     ]
-  --assert 0.0 = sf1/a
+  --assert (as float32! 0.0) = sf1/a
   
   --test-- "float32-struct-2"
     sf2: declare struct! [
       a   [float32!]
     ]
-    sf1/a: 1.222090944E+33
-  --assert 1.222090944E+33 = sf1/a
+    sf1/a: as float32! 1.222090944E+33
+  --assert (as float32! 1.222090944E+33) = sf1/a
 
    
     sf3: declare struct! [
@@ -94,11 +94,11 @@ Red/System [
     ]
   
   --test-- "float32-struct-3"
-    sf3/a: 1.222090944E+33
-    sf3/b: 9.99999E-45
+    sf3/a: as float32! 1.222090944E+33
+    sf3/b: as float32! 9.99999E-45
     
-  --assert 1.222090944E+33 = sf3/a
-  --assert 9.99999E-45 = sf3/b
+  --assert (as float32! 1.222090944E+33) = sf3/a
+  --assert (as float32! 9.99999E-45) = sf3/b
     
   --test-- "float32-struct-4"
     sf4: declare struct! [
@@ -107,10 +107,10 @@ Red/System [
       l   [logic!]
       b   [float32!]
     ]
-    sf4/a: 1.222090944E+33
-    sf4/b: 9.99999E-45
-  --assert 1.222090944E+33 = sf4/a
-  --assert 9.99999E-45 = sf4/b
+    sf4/a: as float32! 1.222090944E+33
+    sf4/b: as float32! 9.99999E-45
+  --assert (as float32! 1.222090944E+33) = sf4/a
+  --assert (as float32! 9.99999E-45) = sf4/b
 
 ===end-group===
 
