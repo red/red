@@ -185,7 +185,7 @@ emitter: context [
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
 		if all [value = <last> not find [float! float!64] type][
-			type: 'integer!
+			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
 		size: size-of? type
@@ -215,12 +215,15 @@ emitter: context [
 			float! float64! [
 				pad-data-buf 8							;-- align 64-bit floats on 64-bit
 				ptr: tail data-buf
-				either binary? value [
-					append ptr value
-				][
-					unless decimal? value [value: 0.0]
-					append ptr IEEE-754/to-binary64/rev value	;-- stored in little-endian
-				]
+				unless decimal? value [value: 0.0]
+				append ptr IEEE-754/to-binary64/rev value	;-- stored in little-endian
+			]
+			float32! [	
+				pad-data-buf target/default-align			
+				ptr: tail data-buf
+				value: compiler/unbox value
+				unless decimal? value [value: 0.0]
+				append ptr IEEE-754/to-binary32/rev value	;-- stored in little-endian
 			]
 			c-string! [
 				either string? value [
