@@ -50,6 +50,49 @@ Red/System [
   
 ===end-group===
 
+===start-group=== "float32 locals"
+
+	local-float: func [n [float32!] return: [float32!] /local p][p: n p]
+
+	--test-- "float32-loc-1"
+	pi: local-float as float32! 3.1415927
+	--assert pi =  as float32! 3.1415927
+	--assert (as float32! 3.1415927) = local-float pi
+	
+	--test-- "float32-loc-2"
+	f: local-float pi
+	--assert pi = local-float f
+
+	--test-- "float32-loc-3"
+	local-float2: func [n [float32!] return: [float32!] /local p][p: n local-float p]
+	
+	pi: local-float2 as float32! 3.1415927
+	--assert (as float32! 3.1415927) = local-float2 pi
+	f: local-float2 pi
+	--assert pi = local-float2 f
+
+	--test-- "float32-loc-4"
+	local-float3: func [n [float32!] return: [float32!] /local p [float32!]][p: n local-float p]
+
+	pi: local-float3 as float32! 3.1415927
+	--assert (as float32! 3.1415927) = local-float3 pi
+	f: local-float3 pi
+	--assert pi = local-float3 f
+
+	--test-- "float32-loc-5"
+	local-float4: func [n [float32!] return: [float32!] /local r p][p: n p]
+	--assert (as float32! 3.1415927) = local-float4 pi
+	f: local-float4 pi
+	--assert pi = local-float4 f
+	
+	--test-- "float32-loc-6"
+	local-float5: func [n [float32!] return: [float32!] /local r p][p: n local-float p]
+	--assert (as float32! 3.1415927) = local-float5 pi
+	f: local-float5 pi
+	--assert pi = local-float5 f
+
+===end-group===
+
 ===start-group=== "float32 function return"
 
  
@@ -111,6 +154,18 @@ Red/System [
     sf4/b: as float32! 9.99999E-45
   --assert (as float32! 1.222090944E+33) = sf4/a
   --assert (as float32! 9.99999E-45) = sf4/b
+
+===end-group===
+
+===start-group=== "float32 pointers"
+
+  --test-- "float32-point-1"
+  pi: as float32! 3.1415927
+  p: declare pointer! [float32!]
+  p/value: as float32! 3.1415927
+  --assert pi = p/value
+ 
+ ;TBD: add more float pointer tests in %pointer-test.reds.
 
 ===end-group===
 
