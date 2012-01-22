@@ -54,7 +54,10 @@ make target-class [
 	]
 	
 	emit-float: func [arg opcode [binary!]][
-		emit either 'float32! = first compiler/get-type arg [
+		emit either any [
+			arg = 4
+			'float32! = first compiler/get-type arg 
+		][
 			opcode and #{F9FF}
 		][
 			opcode
@@ -264,7 +267,7 @@ make target-class [
 				emit to-bin32 value
 			]
 			decimal! [
-				value: either all [cast cast/type = 'float32!][
+				value: either all [cast cast/type/1 = 'float32!][
 					IEEE-754/to-binary32/rev value
 				][
 					value: IEEE-754/to-binary64/rev value
@@ -673,7 +676,7 @@ make target-class [
 				]
 			]
 			decimal! [
-				value: either all [cast cast/type = 'float32!][
+				value: either all [cast cast/type/1 = 'float32!][
 					IEEE-754/to-binary32/rev value
 				][
 					value: IEEE-754/to-binary64/rev value
@@ -1069,7 +1072,7 @@ make target-class [
 			switch b [
 				imm [
 					spec: emitter/store-value none args/2 compiler/get-type args/2
-					emit #{DD05}					;-- FLD [<float>]
+					emit-float args/2 #{DD05}		;-- FLD [<float>]
 					emit-reloc-addr spec/2
 				]
 				ref [
@@ -1116,7 +1119,7 @@ make target-class [
 		signed?: no									;-- force binary comparison
 	]
 
-	emit-float-operation: func [name [word!] args [block!] /local a b left right spec][
+	emit-float-operation: func [name [word!] args [block!] /local a b left right spec size][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 
 		if all [
@@ -1130,7 +1133,8 @@ make target-class [
 		;-- First operand processing
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
-		
+		size: pick [4 8] 'float32! = first compiler/get-type left
+
 		switch a [
 			imm [
 				spec: emitter/store-value none args/1 compiler/get-type args/1
@@ -1148,14 +1152,14 @@ make target-class [
 					emit-push <last>
 					if b <> 'reg [
 						emit-float left #{DD0424}	;-- FLD [esp]		; push a
-						emit #{83C408}				;-- ADD esp, 8		; @@ width-aware !!
+						emit join #{83C4} to-bin8 size	;-- ADD esp, 8|4
 					]
 				]
 				if path? left [
 					emit-push args/1				;-- late path loading
 					if b <> 'reg [
 						emit-float left  #{DD0424}	;-- FLD [esp]		; push a
-						emit #{83C408}				;-- ADD esp, 8		; @@ width-aware !!
+						emit join #{83C4} to-bin8 size	;-- ADD esp, 8|4
 					]
 				]
 			]
@@ -1211,13 +1215,14 @@ make target-class [
 		]
 	]
 	
-	emit-get-float-result: func [fspec [block!]][
+	emit-get-float-result: func [fspec [block!] /local ret-type size][
 		ret-type: select fspec/4 compiler/return-def
-		if all [ret-type compiler/any-float? ret-type][		; @@ adapt for float32, only EAX!!
-			emit #{83EC08}							;-- SUB esp, 8		@@ width-aware
-			emit #{DD1C24}							;-- FSTP [esp]		@@ width-aware
-			emit-pop								;-- POP eax			;  low part of 64-bit float
-			emit #{5A}								;-- POP edx			;  high part 
+		if all [ret-type compiler/any-float? ret-type][
+			size: pick [4 8] ret-type/1 = 'float32!		
+			emit join #{83EC} to-bin8 size			;-- SUB esp, 8|4
+			emit-float size #{DD1C24}				;-- FSTP [esp]
+			emit-pop								;-- POP eax			;  low part
+			if size = 8 [emit #{5A}]				;-- POP edx			;  high part 
 		]
 	]
 		

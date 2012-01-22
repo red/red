@@ -1636,7 +1636,7 @@ system-dialect: context [
 					all [set-path? variable literal? unbox expr] ;-- value loaded at lower level
 					tag? unbox expr
 				][
-					emitter/target/emit-load expr		;-- emit code for single value
+					emitter/target/emit-load either boxed [boxed][expr]	;-- emit code for single value
 				]
 				last-type: resolve-expr-type expr
 			]
