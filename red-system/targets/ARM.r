@@ -1527,20 +1527,20 @@ make target-class [
 		]
 	]
 	
-	emit-stack-align-prolog: func [args-nb [integer!]][
+	emit-stack-align-prolog: func [args [block!]][
 		;-- EABI stack 8 bytes alignment: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0046b/IHI0046B_ABI_Advisory_1.pdf
 		; @@ to be optimized: infer stack alignment if possible, to avoid this overhead.
 		
 		emit-i32 #{e92d4000}						;-- PUSH {lr}			; save previous lr value
 		emit-i32 #{e1a0c00d}                        ;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
-		if odd? 1 + max 0 args-nb - 4 [				;-- account for saved ip + arguments on stack		
+		if odd? 1 + max 0 (length? args) - 4 [		;-- account for saved ip + arguments on stack		
 			emit-i32 #{e24dd004}					;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
 		]
 		emit-i32 #{e92d1000}						;-- PUSH {ip}
 	]
 
-	emit-stack-align-epilog: func [args-nb [integer!]][
+	emit-stack-align-epilog: func [args [block!]][
 		emit-i32 #{e8bd6000}						;-- POP {sp,lr}
 	]
 
