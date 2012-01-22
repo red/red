@@ -1289,20 +1289,29 @@ make target-class [
 		]
 	]
 	
-	emit-stack-align-prolog: func [args-nb [integer!] /local offset][
+	emit-stack-align-prolog: func [args [block!] /local offset][
 		if compiler/job/stack-align-16? [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
-			offset: 1 + args-nb 					;-- account for saved edi
-			unless zero? offset: offset // 4 [
+			offset: 4								;-- account for saved edi
+			either issue? args/1 [
+				offset: offset + 8					; @@ test if this works for all variadic cases
+			][
+				foreach arg args [		
+					offset: offset + max 
+						emitter/size-of? probe compiler/get-type arg
+						stack-width
+				]
+			]
+			unless zero? offset: offset // 16 [
 				emit #{83EC}						;-- SUB esp, offset		; ensure call will be 16-bytes aligned
-				emit to-bin8 (4 - offset) * 4
+				emit to-bin8 16 - offset
 			]
 			emit #{57}								;-- PUSH edi
 		]
 	]
 	
-	emit-stack-align-epilog: func [args-nb [integer!]][
+	emit-stack-align-epilog: func [args [block!]][
 		if compiler/job/stack-align-16? [
 			emit #{5C}								;-- POP esp
 		]
