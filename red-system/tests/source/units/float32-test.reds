@@ -57,10 +57,10 @@ Red/System [
       ff1i      [integer!]
       return:   [float32!]
     ][
-      as float32! switch ff1i [
-        1 [1.0]
-        2 [1.222090944E+33]
-        3 [9.99999E-45]
+      switch ff1i [
+        1 [as float32! 1.0]							; TBD: document that constraint somewhere
+        2 [as float32! 1.222090944E+33]
+        3 [as float32! 9.99999E-45]
       ]
     ]
   --test-- "float32 return 1"
