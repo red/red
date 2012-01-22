@@ -53,7 +53,7 @@ Red/System [
     f: as float32! 0.0
   
   --test-- "f32lib1"
-  --assert as float32! 2.0 = addone as float32! 1.0
+  --assert (as float32! 2.0) = addone as float32! 1.0
   
   --test-- "f32lib2"
     f: addone as float32! 1.0
@@ -64,20 +64,20 @@ Red/System [
   --assert f = as float32! 1.0
   
   --test-- "f32lib4"
-  --assert as float32! 1.0 = subtractone as float32! 2.0
+  --assert (as float32! 1.0) = subtractone as float32! 2.0
   
   --test-- "f32lib5"    
     f: twice as float32! 1.0
   --assert f = as float32! 2.0
   
   --test-- "f32lib6"
-  --assert as float32! 2.0 = twice as float32! 1.0
+  --assert (as float32! 2.0) = twice as float32! 1.0
   
   --test-- "f32lib7"
-  --assert as float32! 1.0 = halve as float32! 2.0
+  --assert (as float32! 1.0) = halve as float32! 2.0
     
   --test-- "f32lib8"
-  --assert as float32! 0.5 = halve as float32! 1.0
+  --assert (as float32! 0.5) = halve as float32! 1.0
   
 ~~~end-file~~~
 
