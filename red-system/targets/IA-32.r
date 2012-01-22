@@ -716,11 +716,7 @@ make target-class [
 				emit-push <last>
 			]
 			object! [
-				either path? value/data [
-					emit-push/with value/data value
-				][
-					emit-push value/data
-				]
+				emit-push/with value/data value
 			]
 		]
 	]
@@ -1208,8 +1204,8 @@ make target-class [
 		][
 			unless block? arg [emit-load arg]		;-- block! means last value is already in eax (func call)
 			emit-casting arg no
-			emit-push <last>
 			compiler/last-type: arg/type			;-- for inline unary functions
+			emit-push <last>
 		][
 			emit-push either block? arg [<last>][arg]
 		]
