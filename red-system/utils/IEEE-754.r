@@ -71,12 +71,13 @@ IEEE-754: context [
 			frac: n / (2 ** exp)
 
 			either positive? exp: exp + 127 [
-				frac: frac * (2 ** 23) 				; make the remaining fraction an "integer"					   
-				frac: frac + 1						;-- NR: adjust by one to get the right result
+				frac: frac - 1
+				frac: frac * (2 ** 23) 				; make the remaining fraction an "integer"
 			][
 				frac: 2 ** (22 + exp) * frac  		; denormals
 				exp: 0
 			]
+			frac: to integer! frac + .5
 		]
 		reduce [sign exp frac]
 	]
@@ -93,9 +94,8 @@ IEEE-754: context [
 			insert out to char! byte: frac // 256
 			frac: frac - byte / 256
 		]
-		frac: to integer! frac
-		insert out to char! frac or shift/left to integer! even? exp 7
-		insert out to char! (shift exp 1) + (128 * sign)
+	    insert out to char! exp * 128 // 256  + frac
+	    insert out to char! exp / 2 + (128 * sign)
 		either rev [copy reverse out][out]
 	]
 ]
