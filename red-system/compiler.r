@@ -1561,11 +1561,13 @@ system-dialect: context [
 					"^/*** expected:" mold type
 					"^/*** found:" mold any [casted new]
 				]
-			]
+			]		
 			value: unbox expr
-			if any [block? value path? value][value: <last>]
-
-			emitter/access-path set-path value
+			emitter/access-path set-path either any [block? value path? value][
+				 <last>
+			][
+				expr
+			]
 		]
 		
 		comp-variable-assign: func [
@@ -1659,9 +1661,10 @@ system-dialect: context [
 				if all [boxed not casting][
 					casting: resolve-aliased boxed/type
 				]
+				unless boxed [boxed: expr]
 				switch type?/word variable [
 					set-word! [comp-variable-assign variable expr casting]
-					set-path! [comp-path-assign		variable expr casting]
+					set-path! [comp-path-assign		variable boxed casting]
 				]
 			]
 		]

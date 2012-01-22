@@ -84,8 +84,8 @@ Red/System [
     sf2: declare struct! [
       a   [float32!]
     ]
-    sf1/a: as float32! 1.222090944E+33
-  --assert (as float32! 1.222090944E+33) = sf1/a
+    sf2/a: as float32! 1.222090944E+33
+  --assert (as float32! 1.222090944E+33) = sf2/a
 
    
     sf3: declare struct! [
