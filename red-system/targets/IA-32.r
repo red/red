@@ -690,11 +690,12 @@ make target-class [
 			word! [
 				type: compiler/get-variable-spec value
 				either compiler/any-float? type [
-					emit #{83EC08}					;-- SUB esp, 8		@@ wide-aware
+					emit #{83EC}					;-- SUB esp, 8|4
+					emit to-bin8 pick [4 8] type/1 = 'float32!
 					emit-float-variable value
 						#{DD05}						;-- FLD [value]			; global
 						#{DD45}						;-- FLD [ebp+n]			; local
-					emit #{DD1C24}					;-- FSTP [esp]			; push double on stack
+					emit-float value #{DD1C24}		;-- FSTP [esp]			; push double on stack
 				][
 					emit-variable value
 						#{FF35}						;-- PUSH [value]		; global
@@ -1063,7 +1064,7 @@ make target-class [
 		]
 	]
 	
-	emit-float-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local spec][
+	emit-float-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local spec float32?][
 		either compiler/job/revision >= 6.0	[		;-- support for FCOMI* only with P6+
 			switch b [
 				imm [
@@ -1077,12 +1078,14 @@ make target-class [
 						#{DD45}						;-- FLD [ebp+n]		; local
 				]
 				reg [
+					float32?: 'float32! = first compiler/get-type args/2
 					if a = 'reg [
-						emit #{DD442408}			;-- FLD [esp+8]	; push a
+						emit-float args/2 #{DD4424}	;-- FLD [esp+8|4]	; push a
+						emit to-bin8 pick [4 8] float32?
 					]
-					emit #{DD0424}					;-- FLD [esp]		; push b
-					emit #{83C4}					;-- ADD esp, 8|16	; @@ width-aware !!
-					emit to-bin8 pick [16 8] a = 'reg
+					emit-float args/2 #{DD0424}		;-- FLD [esp]		; push b
+					emit #{83C4}					;-- ADD esp, 4|8|16
+					emit to-bin8 (pick [2 1] a = 'reg) * pick [4 8] float32?
 				]
 			]
 			emit #{DFF1}							;-- FCOMIP st0, st1
@@ -1148,14 +1151,16 @@ make target-class [
 					emit-push <last>
 					if b <> 'reg [
 						emit-float left #{DD0424}	;-- FLD [esp]		; push a
-						emit join #{83C4} to-bin8 size	;-- ADD esp, 8|4
+						emit #{83C4} 				;-- ADD esp, 8|4
+						emit to-bin8 size
 					]
 				]
 				if path? left [
 					emit-push args/1				;-- late path loading
 					if b <> 'reg [
 						emit-float left  #{DD0424}	;-- FLD [esp]		; push a
-						emit join #{83C4} to-bin8 size	;-- ADD esp, 8|4
+						emit #{83C4} 				;-- ADD esp, 8|4
+						emit to-bin8 size
 					]
 				]
 			]
