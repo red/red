@@ -1957,7 +1957,7 @@ system-dialect: context [
 		format:			none			;-- file format
 		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj)
 		target:			'IA-32			;-- CPU target
-		cpu-revision:	6.0				;-- CPU revision (default: Pentium Pro)
+		cpu-version:	6.0				;-- CPU version (default: Pentium Pro)
 		verbosity:		0				;-- logs verbosity level
 		sub-system:		'console		;-- 'GUI | 'console
 		runtime?:		yes				;-- include Red/System runtime

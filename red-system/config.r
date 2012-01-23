@@ -13,7 +13,7 @@ REBOL [
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
 ;;	type:			'exe | 'obj | 'lib | 'dll	;-- file type
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
-;;  cpu-revision:	<decimal!>					;-- CPU revision (default: 6.0, Pentium Pro)
+;;  cpu-version:	<decimal!>					;-- CPU version (default for IA-32: 6.0, Pentium Pro, for ARM: 5.0)
 ;;	sub-system:		'GUI | 'console				;-- type of user interface
 ;;	PIC?:			yes | no					;-- generate Position Independent Code
 ;;	base-address:	<integer!>					;-- base image memory address

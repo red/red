@@ -1094,7 +1094,7 @@ make target-class [
 			switch b [
 				imm [
 					spec: emitter/store-value none args/2 compiler/get-type args/2
-					emit #{DC1D}					;-- FCOMP [<float>]
+					emit-float args/2 #{DC1D}		;-- FCOMP [<float>]
 					emit-reloc-addr spec/2
 				]
 				ref [
@@ -1123,7 +1123,7 @@ make target-class [
 
 		if all [
 			find comparison-op name
-			compiler/job/cpu-revision >= 6.0		;-- support for FCOMIP only with P6+
+			compiler/job/cpu-version >= 6.0			;-- support for FCOMIP only with P6+
 		][
 			reverse args							;-- arguments will be pushed in reverse order
 		]
