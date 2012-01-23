@@ -27,6 +27,33 @@ Red/System [
   --assert f1 = as float32! 1.0
 ===end-group===
 
+===start-group=== "float argument to external function"
+
+	#import [
+		LIBC-file cdecl [
+			sin32: "sin" [
+				x 		[float!]
+				return: [float32!]
+			]
+			cos32: "cos" [
+				x 		[float!]
+				return: [float32!]
+			]
+		]
+	]
+	pi32: 3.1415927
+	
+	--test-- "float-ext-1"
+	--assert (as float32! -1.0) = cos32 pi32
+	
+	;--test-- "float-ext-2"
+	;--assert  (as float32! 0.0) = sin32 pi32		; not working, because of rounding error.
+	
+	--test-- "float-ext-3"
+	--assert (as float32! -1.0) = cos32 3.1415927
+	
+===end-group===
+
 ===start-group=== "float32 function arguments"
     ff: func [
       fff     [float32!]
@@ -55,9 +82,11 @@ Red/System [
 	local-float: func [n [float32!] return: [float32!] /local p][p: n p]
 
 	--test-- "float32-loc-1"
+	pi64: 3.14159265358979
 	pi: local-float as float32! 3.1415927
 	--assert pi =  as float32! 3.1415927
-	--assert (as float32! 3.1415927) = local-float pi
+	--assert (as float32! -1.0) = cos32 pi64
+	--assert (as float32! -1.0) = local-float cos32 pi64
 	
 	--test-- "float32-loc-2"
 	f: local-float pi
@@ -68,6 +97,7 @@ Red/System [
 	
 	pi: local-float2 as float32! 3.1415927
 	--assert (as float32! 3.1415927) = local-float2 pi
+	--assert (as float32! -1.0) = local-float2 cos32 pi64
 	f: local-float2 pi
 	--assert pi = local-float2 f
 
@@ -76,18 +106,21 @@ Red/System [
 
 	pi: local-float3 as float32! 3.1415927
 	--assert (as float32! 3.1415927) = local-float3 pi
+	--assert (as float32! -1.0) = local-float3 cos32 pi64
 	f: local-float3 pi
 	--assert pi = local-float3 f
 
 	--test-- "float32-loc-5"
 	local-float4: func [n [float32!] return: [float32!] /local r p][p: n p]
 	--assert (as float32! 3.1415927) = local-float4 pi
+	--assert (as float32! -1.0) = local-float4 cos32 pi64
 	f: local-float4 pi
 	--assert pi = local-float4 f
 	
 	--test-- "float32-loc-6"
 	local-float5: func [n [float32!] return: [float32!] /local r p][p: n local-float p]
 	--assert (as float32! 3.1415927) = local-float5 pi
+	--assert (as float32! -1.0) = local-float5 cos32 pi64
 	f: local-float5 pi
 	--assert pi = local-float5 f
 

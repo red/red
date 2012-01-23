@@ -51,6 +51,8 @@ Red/System [
 	
 	--test-- "float-ext-3"
 	--assert -1.0 = cos 3.14159265358979
+	
+===end-group===
 
 ===start-group=== "float function arguments"
     ff: func [
