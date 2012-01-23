@@ -1154,14 +1154,18 @@ make target-class [
 			]
 			reg []
 		]
-		either mod? [
-		
-		][
-			emit-float width switch name [
-				+ [#{DEC1}]							;-- FADDP st0, st1
-				- [#{DEE9}]							;-- FSUBP st0, st1
-				* [#{DEC9}]							;-- FMULP st0, st1
-				/ [#{DEF9}]							;-- FDIVP st0, st1
+		emit-float width switch name [
+			+ [#{DEC1}]							;-- FADDP st0, st1
+			- [#{DEE9}]							;-- FSUBP st0, st1
+			* [#{DEC9}]							;-- FMULP st0, st1
+			/ [
+				switch/default mod? [
+					mod [#{D9F8}]				;-- FPREM st0, st1		; floating point remainder
+					rem [
+						compiler/last-type: [integer!]
+						#{D9F5}					;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
+					]
+				][#{DEF9}]						;-- FDIVP st0, st1
 			]
 		]
 		emit-get-float-result
