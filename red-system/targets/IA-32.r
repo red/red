@@ -1065,7 +1065,7 @@ make target-class [
 	]
 	
 	emit-float-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local spec float32?][
-		either compiler/job/cpu-revision >= 6.0	[		;-- support for FCOMI* only with P6+
+		either compiler/job/cpu-version >= 6.0	[	;-- support for FCOMI* only with P6+
 			switch b [
 				imm [
 					spec: emitter/store-value none args/2 compiler/get-type args/2
@@ -1103,10 +1103,14 @@ make target-class [
 						#{DC5D}						;-- FCOMP [ebp+n]	; local
 				]
 				reg [
-					emit #{DD0424}					;-- FLD [esp]		; push b
-					if a = 'reg [emit #{DD442408}]	;-- FLD [esp+8]		; push a
-					emit #{83C4}					;-- ADD esp, 8|16	; @@ width-aware !!
-					emit to-bin8 pick [16 8] a = 'reg
+					float32?: 'float32! = first compiler/get-type args/2
+					emit-float args/2 #{DD0424}		;-- FLD [esp]		; push b
+					if a = 'reg [
+						emit-float args/2 #{DD4424}	;-- FLD [esp+8]		; push a
+						emit to-bin8 pick [4 8] float32?
+					]
+					emit #{83C4}					;-- ADD esp, 4|8|16
+					emit to-bin8 (pick [2 1] a = 'reg) * pick [4 8] float32?
 					emit #{D8D9}					;-- FCOMP st0, st1
 					emit #{DDD8}					;-- FSTP st0		; pop 2nd argument
 				]
@@ -1166,6 +1170,7 @@ make target-class [
 			]
 		]
 		if path? right [emit-push args/2]
+		if all [a <> 'reg block? right][emit-push <last>]
 		
 		case [
 			find comparison-op name [emit-float-comparison-op name a b args]
