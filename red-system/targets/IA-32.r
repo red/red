@@ -1121,6 +1121,51 @@ make target-class [
 		]
 		signed?: no									;-- force binary comparison
 	]
+	
+	emit-float-math-op: func [
+		name [word!] a [word!] b [word!] args [block!]
+		/local mod? scale c type spec
+	][
+		all [
+			find [+ -] name	
+			any [
+				compiler/any-pointer? compiler/get-type args/1
+				compiler/any-pointer? compiler/get-type args/2
+			]
+			compiler/throw-error "unsupported operation with float numbers"
+		]
+		
+		if find [// ///] name [						;-- work around unaccepted '// and '///
+			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
+			name: first [/]							;-- work around unaccepted '/ 
+		]
+		set-width args/1
+
+		switch b [
+			imm [
+				spec: emitter/store-value none args/2 compiler/get-type args/2
+				emit-float args/2 #{DD05}			;-- FLD [<float>]
+				emit-reloc-addr spec/2
+			]
+			ref [
+				emit-float-variable args/2
+					#{DD05}							;-- FLD [value]		; global
+					#{DD45}							;-- FLD [ebp+n]		; local
+			]
+			reg []
+		]
+		either mod? [
+		
+		][
+			emit-float width switch name [
+				+ [#{DEC1}]							;-- FADDP st0, st1
+				- [#{DEE9}]							;-- FSUBP st0, st1
+				* [#{DEC9}]							;-- FMULP st0, st1
+				/ [#{DEF9}]							;-- FDIVP st0, st1
+			]
+		]
+		emit-get-float-result
+	]
 
 	emit-float-operation: func [name [word!] args [block!] /local a b left right spec size][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
@@ -1174,7 +1219,7 @@ make target-class [
 		
 		case [
 			find comparison-op name [emit-float-comparison-op name a b args]
-			;find math-op	   name	[emit-float-math-op		  name a b args]
+			find math-op	   name	[emit-float-math-op		  name a b args]
 			true [
 				compiler/throw-error "unsupported operation on floats"
 			]
@@ -1221,14 +1266,20 @@ make target-class [
 		]
 	]
 	
-	emit-get-float-result: func [fspec [block!] /local ret-type size][
+	emit-get-float-result: does [
+		emit join #{83EC} to-bin8 width			;-- SUB esp, 8|4
+		emit-float width #{DD1C24}				;-- FSTP [esp]
+		emit-pop								;-- POP eax			;  low part
+		if width = 8 [emit #{5A}]				;-- POP edx			;  high part 
+	]
+	
+	emit-return-float: func [fspec [block!] /local ret-type saved][
 		ret-type: select fspec/4 compiler/return-def
 		if all [ret-type compiler/any-float? ret-type][
-			size: pick [4 8] ret-type/1 = 'float32!		
-			emit join #{83EC} to-bin8 size			;-- SUB esp, 8|4
-			emit-float size #{DD1C24}				;-- FSTP [esp]
-			emit-pop								;-- POP eax			;  low part
-			if size = 8 [emit #{5A}]				;-- POP edx			;  high part 
+			saved: width
+			width: pick [4 8] ret-type/1 = 'float32!		
+			emit-get-float-result
+			width: saved
 		]
 	]
 		
@@ -1265,7 +1316,7 @@ make target-class [
 				if fspec/1 >= 6 [emit #{5D}]		;-- POP ebp			; restore frame pointer
 			]
 		]
-		emit-get-float-result fspec
+		emit-return-float fspec
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
@@ -1280,7 +1331,7 @@ make target-class [
 		if fspec/3 = 'cdecl [						;-- add calling cleanup when required
 			emit-cdecl-pop fspec args
 		]
-		emit-get-float-result fspec
+		emit-return-float fspec
 	]
 
 	emit-call-native: func [args [block!] fspec [block!] spec [block!] /local total][

@@ -54,11 +54,15 @@ system-dialect: context [
 		not-set!:	  [logic! integer!]								  ;-- reserved for internal use only
 		number!: 	  [byte! integer!]								  ;-- reserved for internal use only
 		any-float!:	  [float! float32! float64!]					  ;-- reserved for internal use only
+		any-number!:  union number! any-float!						  ;-- reserved for internal use only
 		pointers!:	  [pointer! struct! c-string!] 					  ;-- reserved for internal use only
 		any-pointer!: union pointers! [function!]		  			  ;-- reserved for internal use only
-		poly!:		  union any-float! union number! pointers!		  ;-- reserved for internal use only
+		poly!:		  union any-number! pointers!		 			  ;-- reserved for internal use only
 		any-type!:	  union poly! [logic!]			  				  ;-- reserved for internal use only
-		type-sets:	  [not-set! number! poly! any-type! any-pointer!] ;-- reserved for internal use only
+		type-sets:	  [												  ;-- reserved for internal use only
+			not-set! number! poly! any-type! any-pointer!
+			any-number!
+		]
 		
 		comparison-op: [= <> < > <= >=]
 		
@@ -66,8 +70,8 @@ system-dialect: context [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
 			+		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
 			-		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
-			*		[2	op		- [a [number!] b [number!] return: [number!]]]
-			/		[2	op		- [a [number!] b [number!] return: [number!]]]
+			*		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]
+			/		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]
 			and		[2	op		- [a [number!] b [number!] return: [number!]]]
 			or		[2	op		- [a [number!] b [number!] return: [number!]]]
 			xor		[2	op		- [a [number!] b [number!] return: [number!]]]
