@@ -1065,7 +1065,7 @@ make target-class [
 	]
 	
 	emit-float-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local spec float32?][
-		either compiler/job/revision >= 6.0	[		;-- support for FCOMI* only with P6+
+		either compiler/job/cpu-revision >= 6.0	[		;-- support for FCOMI* only with P6+
 			switch b [
 				imm [
 					spec: emitter/store-value none args/2 compiler/get-type args/2
@@ -1123,7 +1123,7 @@ make target-class [
 
 		if all [
 			find comparison-op name
-			compiler/job/revision >= 6.0			;-- support for FCOMIP only with P6+
+			compiler/job/cpu-revision >= 6.0		;-- support for FCOMIP only with P6+
 		][
 			reverse args							;-- arguments will be pushed in reverse order
 		]
