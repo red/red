@@ -103,6 +103,27 @@ qt-init-file: func [] [
   ]
 ]
 
+comment {               to be implemented once float subtraction is available
+--assert~=: func[
+  a        [float!]
+  b        [float!]
+  tol      [float!]
+  /local
+    diff   [float!]
+][
+  either a > b [
+    diff: a - b
+  ][
+    diff: b - a
+  ]
+  either diff > tol [
+    --assert false
+  ][
+    --assert true
+  ]
+]
+end comment }
+
 ===end-group===: func [] [
   _qt-init-group
 ]
