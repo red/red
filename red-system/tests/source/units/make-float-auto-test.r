@@ -1,7 +1,7 @@
 REBOL [
   Title:   "Generates Red/System float! tests"
 	Author:  "Peter W A Wood"
-	File: 	 %make-integer-auto-test.r
+	File: 	 %make-float-auto-test.r
 	Version: 0.1.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
@@ -33,8 +33,8 @@ test-values: [
 test-binary-ops: [
   +
   -
-  *
-  /
+;  *
+;  /
 ]
 
 test-comparison-ops: [
