@@ -30,7 +30,7 @@ Red/System [
 ===start-group=== "float argument to external function"
 
 	#import [
-		LIBC-file cdecl [
+		LIBM-file cdecl [
 			sin32: "sin" [
 				x 		[float!]
 				return: [float32!]
