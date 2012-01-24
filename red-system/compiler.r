@@ -1422,7 +1422,7 @@ system-dialect: context [
 			also pc/1 pc: next pc
 		]
 	
-		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch][
+		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch id][
 			name: any [symbol pc/1]
 			case [
 				entry: select keywords name [do entry]	;-- it's a reserved word
@@ -1444,10 +1444,14 @@ system-dialect: context [
 					pc: next pc							;-- it's a function
 					either attribute: check-variable-arity? entry/2/4 [
 						fetch: [
-							append/only args fetch-expression
-							if attribute = 'typed [
-								append args get-type-id last args
-							]							
+							expr: fetch-expression
+							either attribute = 'typed [
+								append args id: get-type-id expr
+								append/only args expr
+								append args pick [#_ 0] id = emitter/datatype-ID/float! ;-- 32-bit padding
+							][
+								append/only args expr
+							]
 						]
 						args: make block! 1
 						either block? pc/1 [
@@ -1523,7 +1527,7 @@ system-dialect: context [
 				forall list [							;-- push function's arguments on stack
 					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
 					if type <> 'inline [
-						emitter/target/emit-argument list/1 type ;-- let target define how arguments are passed
+						emitter/target/emit-argument list/1 functions/:name ;-- let target define how arguments are passed
 					]
 				]
 			][											;-- nested calls as op argument require special handling

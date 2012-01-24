@@ -39,12 +39,13 @@ _print: func [
 	count	[integer!]						;-- typed values count
 	list	[typed-value!]					;-- pointer on first typed value
 	spaced?	[logic!]						;-- if TRUE, insert a space between items
+	/local fp [typed-float!]
 ][
 	until [
 		switch list/type [
 			type-logic!	   [prin either as-logic list/value ["true"]["false"]]
 			type-integer!  [prin-int list/value]
-			type-float!    [prin-float as-float list/value]
+			type-float!    [fp: as typed-float! list prin-float fp/value]
 			type-float32!  [prin-float32 as-float32 list/value]
 			type-byte!     [prin-byte as-byte list/value]
 			type-c-string! [prin as-c-string list/value]

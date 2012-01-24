@@ -148,6 +148,18 @@ target-class: context [
 		]
 	]
 	
+	call-arguments-size?: func [args [block!] /local total][
+		total: 0
+		foreach arg args [
+			if arg <> #_ [							;-- bypass place-holder marker
+				total: total + max 
+					emitter/size-of? compiler/get-type arg
+					stack-width
+			]
+		]
+		total
+	]
+	
 	get-arguments-class: func [args [block!] /local c a b arg][
 		c: 1
 		foreach op [a b][

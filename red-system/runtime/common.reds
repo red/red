@@ -62,8 +62,14 @@ str-array!: alias struct! [
 ]
 
 typed-value!: alias struct! [
-	value	[integer!]
-	type	[integer!]	
+	type	 [integer!]	
+	value	 [integer!]
+	_padding [integer!]						;-- extra space for 64-bit values
+]
+
+typed-float!: alias struct! [
+	type	 [integer!]	
+	value	 [float!]
 ]
 
 __stack!: alias struct! [

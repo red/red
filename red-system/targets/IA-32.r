@@ -142,6 +142,19 @@ make target-class [
 				emit pick [#{81E2} #{25}] alt?    	;-- AND edx|eax, 000000FFh 
 				emit to-bin32 255
 			]
+			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][
+				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to float! "]]
+				either alt? [
+					emit #{52}						;-- PUSH edx
+				][
+					emit #{50}						;-- PUSH eax
+				]
+				emit #{D90424}						;-- FLD dword [esp]		; load as 32-bit
+				emit #{83EC04}						;-- SUB esp, 4			; alloc space for 64-bit float
+				emit #{DD1C24}						;-- FSTP qword [esp]	; save as 64-bit
+				emit #{58}							;-- POP eax
+				emit #{5A}					   		;-- POP edx
+			]
 		]
 	]
 
@@ -393,7 +406,7 @@ make target-class [
 						#{8945}						;-- MOV [ebp+n], eax	; local
 						offset
 						#{8955}						;-- MOV [ebp+n+4], edx	; local
-						offset or #{04}
+						to-bin8 add to integer! offset 4
 					]
 				][
 					set-width name				
@@ -643,6 +656,7 @@ make target-class [
 	emit-push: func [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
 		/with cast [object!]
+		/cdecl										;-- external call
 		/local spec type
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
@@ -676,7 +690,7 @@ make target-class [
 				]
 			]
 			decimal! [
-				value: either all [cast cast/type/1 = 'float32!][
+				value: either all [cast cast/type/1 = 'float32! not cdecl][
 					IEEE-754/to-binary32/rev value
 				][
 					value: IEEE-754/to-binary64/rev value
@@ -690,12 +704,14 @@ make target-class [
 			word! [
 				type: compiler/get-variable-spec value
 				either compiler/any-float? type [
+					either cdecl [width: 8][set-width/type type]	;-- promote to C double if required
+					
 					emit #{83EC}					;-- SUB esp, 8|4
-					emit to-bin8 pick [4 8] type/1 = 'float32!
+					emit to-bin8 width
 					emit-float-variable value
 						#{DD05}						;-- FLD [value]			; global
 						#{DD45}						;-- FLD [ebp+n]			; local
-					emit-float value #{DD1C24}		;-- FSTP [esp]			; push double on stack
+					emit-float width #{DD1C24}		;-- FSTP [esp]			; push double on stack
 				][
 					emit-variable value
 						#{FF35}						;-- PUSH [value]		; global
@@ -713,7 +729,10 @@ make target-class [
 			]
 			path! [
 				emitter/access-path value none
-				if cast [emit-casting cast no]
+				if cast [
+					emit-casting cast no
+					compiler/last-type: cast/type
+				]
 				emit-push <last>
 			]
 			object! [
@@ -1239,11 +1258,10 @@ make target-class [
 			size: size + stack-width				;-- account for extra space
 		]
 		if issue? args/1 [							;-- test for variadic call
-			size: length? args/2
+			size: call-arguments-size? args/2
 			if spec/2 = 'native [
-				size: size + pick [3 2] args/1 = #typed 	;-- account for extra arguments @@ [3 2] ??
+				size: size + pick [12 8] args/1 = #typed 	;-- account for extra arguments
 			]
-			size: size * stack-width
 		]
 		emit #{83C4}								;-- ADD esp, n		; @@ 8-bit offset only?
 		emit to-bin8 size
@@ -1255,7 +1273,9 @@ make target-class [
 			to-bin32 dst-ptr - rel-ptr - ptr-size
 	]
 	
-	emit-argument: func [arg func-type [word!]][
+	emit-argument: func [arg fspec [block!]][
+		if arg = #_ [exit]							;-- place-holder, no code to emit
+		
 		either all [
 			object? arg
 			any [arg/type = 'logic! 'byte! = first compiler/get-type arg/data]
@@ -1266,15 +1286,24 @@ make target-class [
 			compiler/last-type: arg/type			;-- for inline unary functions
 			emit-push <last>
 		][
-			emit-push either block? arg [<last>][arg]
+			if block? arg [arg: <last>]
+			either all [
+				fspec/3 = 'cdecl 
+				block? fspec/4/1
+				find fspec/4/1 'variadic			;-- only for vararg C functions
+			][
+				emit-push/cdecl arg					;-- promote float32! to float!
+			][
+				emit-push arg
+			]
 		]
 	]
 	
 	emit-get-float-result: does [
-		emit join #{83EC} to-bin8 width			;-- SUB esp, 8|4
-		emit-float width #{DD1C24}				;-- FSTP [esp]
-		emit-pop								;-- POP eax			;  low part
-		if width = 8 [emit #{5A}]				;-- POP edx			;  high part 
+		emit join #{83EC} to-bin8 width				;-- SUB esp, 8|4
+		emit-float width #{DD1C24}					;-- FSTP [esp]
+		emit-pop									;-- POP eax			;  low part
+		if width = 8 [emit #{5A}]					;-- POP edx			;  high part 
 	]
 	
 	emit-return-float: func [fspec [block!] /local ret-type saved][
@@ -1340,12 +1369,12 @@ make target-class [
 
 	emit-call-native: func [args [block!] fspec [block!] spec [block!] /local total][
 		if issue? args/1 [							;-- variadic call
-			emit-push 4 * length? args/2			;-- push arguments total size in bytes 
+			emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
 			emit #{8D742404}						;-- LEA esi, [esp+4]	; skip last pushed value
 			emit #{56}								;-- PUSH esi			; push arguments list pointer
 			total: length? args/2
-			if args/1 = #typed [total: total / 2]
+			if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
 			emit-push total							;-- push arguments count
 		]
 		emit #{E8}									;-- CALL NEAR disp
@@ -1360,14 +1389,10 @@ make target-class [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
 			offset: 4								;-- account for saved edi
-			either issue? args/1 [
-				offset: offset + 8					; @@ test if this works for all variadic cases
+			offset: offset + either issue? args/1 [
+				8									; @@ test if this works for all variadic cases
 			][
-				foreach arg args [		
-					offset: offset + max 
-						emitter/size-of? compiler/get-type arg
-						stack-width
-				]
+				call-arguments-size? args
 			]
 			unless zero? offset: offset // 16 [
 				emit #{83EC}						;-- SUB esp, offset		; ensure call will be 16-bytes aligned

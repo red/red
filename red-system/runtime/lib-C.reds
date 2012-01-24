@@ -64,11 +64,11 @@ prin-hex: func [i [integer!] return: [integer!]][
 ]
 
 prin-float: func [f [float!] return: [float!]][
-	printf ["%f" f]
+	printf ["%.14f" f]
 	f
 ]
 
 prin-float32: func [f [float32!] return: [float32!]][
-	printf ["%f" f]
+	printf ["%.7f" f]
 	f
 ]
