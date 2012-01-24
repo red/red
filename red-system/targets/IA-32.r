@@ -1365,7 +1365,7 @@ make target-class [
 			][
 				foreach arg args [		
 					offset: offset + max 
-						emitter/size-of? probe compiler/get-type arg
+						emitter/size-of? compiler/get-type arg
 						stack-width
 				]
 			]
