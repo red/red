@@ -35,7 +35,15 @@ make target-class [
 		>				 #{0F}		#{07}
 	]
 	
+	patch-floats-definition: func [mode [word!] /local value][
+		value: pick [signed unsigned] mode = 'set
+		foreach w [float! float64! float32!][
+			poke find emitter/datatypes w 3 value	;-- force unsigned comparisons (x87 FPU specific)
+		]
+	]
+	
 	on-global-prolog: func [runtime? [logic!] /local spec][
+		patch-floats-definition 'set
 		; TBD: load control word from system/fpu/control-word
 		unless runtime? [
 			emit #{9BDBE3}							;-- FINIT			; init x87 FPU
@@ -43,6 +51,10 @@ make target-class [
 			emit #{D92D}							;-- FLDCW <word>	; load 16-bit control word from memory
 			emit-reloc-addr spec/2					;-- one-based index
 		]
+	]
+	
+	on-global-epilog: func [runtime? [logic!]][
+		patch-floats-definition 'unset				;-- restore definitions for next compilation jobs
 	]
 	
 	add-condition: func [op [word!] data [binary!]][
@@ -1138,7 +1150,6 @@ make target-class [
 			emit #{9B}								;-- FWAIT			; wait for FPU->CPU transfer completion
 			emit #{9E}								;-- SAHF			; move flags to CPU status flags
 		]
-		signed?: no									;-- force binary comparison
 	]
 	
 	emit-float-math-op: func [
