@@ -114,9 +114,17 @@ qt-init-file: func [] [
 ][
   ;; calculate tolerance to use
   ;;    as e * max (1, x, y)
-  e1: x * e
+  either x > 0.0 [
+    e1: x * e
+  ][
+    e1: -1.0 * x * e
+  ]
   if e > e1 [e1: e]
-  e2: y * e
+  either y > 0.0 [
+    e2: y * e
+  ][
+    e2: -1.0 * y * e
+  ]
   if e1 > e2 [e2: e1]
   
   ;; perform almost equal check
@@ -143,9 +151,17 @@ qt-init-file: func [] [
 ][
   ;; calculate tolerance to use
   ;;    as e * max (1, x, y)
-  e1: x * e
+  either x > as float32! 0.0 [
+    e1: x * e
+  ][
+    e1: as float32! -1.0 * x * e
+  ]
   if e > e1 [e1: e]
-  e2: y * e
+  either y > as float32! 0.0 [
+    e2: y * e
+  ][
+    e2: as float32! -1.0 * y * e
+  ]
   if e1 > e2 [e2: e1]
   
   ;; perform almost equal check

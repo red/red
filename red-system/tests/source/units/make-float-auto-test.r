@@ -28,7 +28,7 @@ test-values: [
             7.7E18
 ]
 
-tol: 1e-1
+tol: 1e-4   
 
 ;; create blocks of operators to be applied
 test-binary-ops: [
