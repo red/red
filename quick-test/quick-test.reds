@@ -103,27 +103,65 @@ qt-init-file: func [] [
   ]
 ]
 
-comment {               to be implemented once float subtraction is available
---assert~=: func[
-  a        [float!]
-  b        [float!]
-  tol      [float!]
+--assertf~=: func[
+  x           [float!]
+  y           [float!]
+  e           [float!]
   /local
-    diff   [float!]
+    diff      [float!]
+    e1        [float!]
+    e2        [float!]
 ][
-  either a > b [
-    diff: a - b
+  ;; calculate tolerance to use
+  ;;    as e * max (1, x, y)
+  e1: x * e
+  if e > e1 [e1: e]
+  e2: y * e
+  if e1 > e2 [e2: e1]
+  
+  ;; perform almost equal check
+  either x > y [
+    diff: x - y
   ][
-    diff: b - a
+    diff: y - x
   ]
-  either diff > tol [
+  either diff > e2 [
     --assert false
   ][
     --assert true
   ]
 ]
-end comment }
 
+--assertf32~=: func[
+  x           [float32!]
+  y           [float32!]
+  e           [float32!]
+  /local
+    diff      [float32!]
+    e1        [float32!]
+    e2        [float32!]
+][
+  ;; calculate tolerance to use
+  ;;    as e * max (1, x, y)
+  e1: x * e
+  if e > e1 [e1: e]
+  e2: y * e
+  if e1 > e2 [e2: e1]
+  
+  ;; perform almost equal check
+  either x > y [
+    diff: x - y
+  ][
+    diff: y - x
+  ]
+  either diff > e2 [
+    --assert false
+  ][
+    --assert true
+  ]
+]
+
+ 
 ===end-group===: func [] [
   _qt-init-group
 ]

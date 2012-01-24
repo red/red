@@ -91,7 +91,7 @@ print rejoin ["REBOL " system/version]
 
 start-time: now/precise
 
-***start-run-quiet*** "Red/System - Float Partial Tests"
+***start-run-quiet*** "Red/System - Float Partial"
 
 ===start-group=== "Datatype tests"
   --run-test-file-quiet %source/units/float-test.reds
