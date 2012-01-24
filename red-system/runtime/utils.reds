@@ -41,26 +41,14 @@ _print: func [
 	spaced?	[logic!]						;-- if TRUE, insert a space between items
 ][
 	until [
-		if list/type = type-logic! [
-			prin either as-logic list/value ["true"]["false"]
-		]
-		if list/type = type-integer! [
-			prin-int list/value
-		]
-		if list/type = type-float! [
-			prin-float as-float list/value
-		]
-		if list/type = type-float32! [
-			prin-float32 as-float32 list/value
-		]
-		if list/type = type-byte! [
-			prin-byte as-byte list/value
-		]
-		if list/type = type-c-string! [
-			prin as-c-string list/value
-		]
-		if list/type > type-c-string! [
-			prin-hex list/value
+		switch list/type [
+			type-logic!	   [prin either as-logic list/value ["true"]["false"]]
+			type-integer!  [prin-int list/value]
+			type-float!    [prin-float as-float list/value]
+			type-float32!  [prin-float32 as-float32 list/value]
+			type-byte!     [prin-byte as-byte list/value]
+			type-c-string! [prin as-c-string list/value]
+			default 	   [prin-hex list/value]
 		]
 		list: list + 1
 		count: count - 1
