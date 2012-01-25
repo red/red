@@ -36,7 +36,7 @@ make target-class [
 	]
 	
 	patch-floats-definition: func [mode [word!] /local value][
-		value: pick [signed unsigned] mode = 'set
+		value: pick [unsigned signed] mode = 'set
 		foreach w [float! float64! float32!][
 			poke find emitter/datatypes w 3 value	;-- force unsigned comparisons (x87 FPU specific)
 		]
@@ -54,7 +54,7 @@ make target-class [
 	]
 	
 	on-global-epilog: func [runtime? [logic!]][
-		patch-floats-definition 'unset				;-- restore definitions for next compilation jobs
+		if runtime? [patch-floats-definition 'unset] ;-- restore definitions for next compilation jobs
 	]
 	
 	add-condition: func [op [word!] data [binary!]][
@@ -655,7 +655,7 @@ make target-class [
 				logic? op [pick [= <>] op]					;-- test for TRUE/FALSE
 				'else 	  [opposite? op]					;-- 'cc => invert condition
 			]
-			add-condition op copy pick [#{70} #{0F80}] imm8?		;-- Jcc offset 	; 8/32-bit displacement
+			add-condition op copy pick [#{70} #{0F80}] imm8? ;-- Jcc offset 	; 8/32-bit displacement
 		][
 			pick [#{EB} #{E9}] imm8?						;-- JMP offset 	; 8/32-bit displacement
 		]
