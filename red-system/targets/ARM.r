@@ -1493,12 +1493,12 @@ make target-class [
 
 	emit-call-native: func [args [block!] fspec [block!] spec [block!]][
 		if issue? args/1 [							;-- variadic call
-			emit-push 4 * length? args/2			;-- push arguments total size in bytes 
+			emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
 			emit-i32 #{e28dc004}					;-- ADD ip, sp, #4	; skip last pushed value
 			emit-i32 #{e92d1000}					;-- PUSH {ip}		; push arguments list pointer
 			total: length? args/2
-			if args/1 = #typed [total: total / 2]
+			if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
 			emit-push total							;-- push arguments count
 		]
 		emit-reloc-addr spec/3
@@ -1512,7 +1512,9 @@ make target-class [
 			copy/part to-bin32 shift (dst-ptr - rel-ptr - (2 * ptr-size)) 2 3
 	]
 	
-	emit-argument: func [arg func-type [word!]][
+	emit-argument: func [arg fspec [block!]][
+		if arg = #_ [exit]							;-- place-holder, no code to emit
+		
 		either all [
 			object? arg
 			any [arg/type = 'logic! 'byte! = first compiler/get-type arg/data]
