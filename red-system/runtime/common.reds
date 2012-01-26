@@ -19,6 +19,7 @@ Red/System [
 #define does		  [func []]
 #define unless		  [if not]
 #define	raise-error	  ***-on-quit
+#define ?? 			  print-line
  
 #define as-byte		  [as byte!]
 #define as-logic	  [as logic!]

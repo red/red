@@ -76,3 +76,13 @@ print: func [
 ][
 	_print count list no
 ]
+
+;-------------------------------------------
+;-- Polymorphic print in console, with a line-feed 
+;-------------------------------------------
+print-line: func [
+	[typed]	count [integer!] list [typed-value!]
+][
+	_print count list no
+	prin newline
+]
