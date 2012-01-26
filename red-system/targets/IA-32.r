@@ -1184,7 +1184,7 @@ make target-class [
 			]
 			reg []
 		]
-		emit-float width switch name [
+		emit switch name [
 			+ [#{DEC1}]								;-- FADDP st0, st1
 			- [#{DEE9}]								;-- FSUBP st0, st1
 			* [#{DEC9}]								;-- FMULP st0, st1
