@@ -15,8 +15,8 @@ do %linker.r
 do %emitter.r
 
 system-dialect: context [
-	verbose:  	  0									;-- logs verbosity level
-	job: 		  none								;-- reference the current job object	
+	verbose:  	  0										;-- logs verbosity level
+	job: 		  none									;-- reference the current job object	
 	runtime-path: %runtime/
 	nl: 		  newline
 	
@@ -51,15 +51,15 @@ system-dialect: context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: none								;-- global parsing rules helpers
 		
-		not-set!:	  [logic! integer!]								  ;-- reserved for internal use only
-		number!: 	  [byte! integer!]								  ;-- reserved for internal use only
-		any-float!:	  [float! float32! float64!]					  ;-- reserved for internal use only
-		any-number!:  union number! any-float!						  ;-- reserved for internal use only
-		pointers!:	  [pointer! struct! c-string!] 					  ;-- reserved for internal use only
-		any-pointer!: union pointers! [function!]		  			  ;-- reserved for internal use only
-		poly!:		  union any-number! pointers!		 			  ;-- reserved for internal use only
-		any-type!:	  union poly! [logic!]			  				  ;-- reserved for internal use only
-		type-sets:	  [												  ;-- reserved for internal use only
+		not-set!:	  [logic! integer!]					;-- reserved for internal use only
+		number!: 	  [byte! integer!]					;-- reserved for internal use only
+		any-float!:	  [float! float32! float64!]		;-- reserved for internal use only
+		any-number!:  union number! any-float!			;-- reserved for internal use only
+		pointers!:	  [pointer! struct! c-string!] 		;-- reserved for internal use only
+		any-pointer!: union pointers! [function!]		;-- reserved for internal use only
+		poly!:		  union any-number! pointers!		;-- reserved for internal use only
+		any-type!:	  union poly! [logic!]			  	;-- reserved for internal use only
+		type-sets:	  [									;-- reserved for internal use only
 			not-set! number! poly! any-type! any-pointer!
 			any-number!
 		]
