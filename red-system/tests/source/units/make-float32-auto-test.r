@@ -48,7 +48,7 @@ test-comparison-ops: [
   <=
 ]
 
-test-comparison-values: [
+test-comparison-values: [        ;; these are relative not absolute
   -1E-6
   0.0
   +1E-6
@@ -169,7 +169,7 @@ foreach op test-comparison-ops [
     foreach oper2 test-comparison-values [
       ;; only write a test if REBOL produces a result
       if all [
-        attempt [operand2: operand1 + oper2]
+        attempt [operand2: operand1 + (operand1 * oper2)] 
         oper2 < 3.3E+38
         oper2 > 0.2E-37
         attempt [expected: do reduce [operand1 op operand2]]
