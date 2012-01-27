@@ -51,7 +51,9 @@ qt/tests-dir: system/script/path
 ;; make auto tests if needed
 make-if-needed? %source/units/auto-tests/float-auto-test.reds
                 %source/units/make-float-auto-test.r
-
+make-if-needed? %source/units/auto-tests/float32-auto-test.reds
+                %source/units/make-float32-auto-test.r
+                
 ;; make lib-test files if needed
 flib-test-len: length? read %source/units/float-lib-test-source.reds
 save-len: either exists? %source/units/len-flib-test.dat [
@@ -102,6 +104,7 @@ start-time: now/precise
   --run-test-file-quiet  %source/units/auto-tests/float-lib-auto-test.reds 
   --run-test-file-quiet  %source/units/auto-tests/float32-lib-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
+  --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds
 ===end-group===
 
 ***end-run-quiet***
