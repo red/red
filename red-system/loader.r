@@ -179,18 +179,40 @@ loader: context [
 						parse value [
 							(enum-value: 0)
 							any [
-								#L set line integer!
-								set enum-name word! (
-									if verbose > 3 [print ["Enum:" enum-name "=" enum-value]]
-									repend enums [enum-name enum-value]
-									enum-value: enum-value + 1
-								)
+								#L set line integer! [
+									set enum-name word! opt [opt '= set enum-value integer!](
+										if verbose > 3 [print ["Enum:" enum-name "=" enum-value]]
+										repend enums [enum-name enum-value]
+										enum-value: enum-value + 1
+									)
+									|
+									set enum-name block! (
+										parse enum-name [
+											any [
+												opt [#L set line integer!]
+												set enum-name 1 skip (
+													either word? enum-name [
+														if verbose > 3 [print ["Enum:" enum-name "=" enum-value]]
+														repend enums [enum-name enum-value]
+													][
+														throw-error ["invalid enumeration:" mold enum-name]
+													]
+												)
+											]
+										]
+										enum-value: enum-value + 1
+									)
+									|
+									set enum-name 1 skip (
+										throw-error ["invalid enumeration:" mold enum-name]
+									)
+								]
 							]
 						]
 						new-line/skip enums true 2
 						append/only append compiler/enumerations name enums
 					][
-						ask "invalid enumeration"
+						throw-error ["invalid enumeration (block required!):" mold value]
 					]
 					remove/part s e
 				) :s
