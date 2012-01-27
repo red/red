@@ -29,6 +29,7 @@ system-dialect: context [
 		none-type:	 [#[none]]							;-- marker for "no value returned"
 		last-type:	 none-type							;-- type of last value from an expression
 		locals: 	 none								;-- currently compiled function specification block
+		definitions:  make block! 10
 		enumerations: make block! 10
 		locals-init: []									;-- currently compiler function locals variable init list
 		func-name:	 none								;-- currently compiled function name
@@ -499,6 +500,53 @@ system-dialect: context [
 					return either value [ result ][ reduce [enum-list-name] ]
 				]
 			]
+		]
+		set-enumerator: func[identifier [word!] name [word!] value [integer!] /local list][
+			case [
+				select keywords name [
+					loader/throw-error ["redeclaration of keyword" name "as an enumerator!"]
+				]
+
+				any [
+					find definitions name
+					find definitions identifier
+				][
+					loader/throw-error "name already used for as a definition"
+				]
+				
+				any [
+					find aliased-types name
+					find aliased-types identifier
+				][
+					loader/throw-error "name already used for as an alias definition"
+				]
+				
+				base-type? identifier [
+					loader/throw-error ["redeclaration of base type by enumeration identifier" to-lit-word identifier]
+				]
+				base-type? name [
+					loader/throw-error ["redeclaration of base type by enumeration" to-lit-word name ]
+				]
+			
+				any [
+					exists-variable? name
+					all [locals find locals name]
+					find globals name
+				][										;-- it's a variable			
+					loader/throw-error ["redeclaration of variable" to-lit-word name "as an enumerator!"]
+				]
+				
+				found? get-enumerator name [
+					loader/throw-error ["redeclaration of enumerator" to-lit-word name ]
+				]
+				
+				none? list: select enumerations identifier [
+					append/only append enumerations identifier list: make block! 10
+				]
+			]
+			if verbose > 3 [print ["Enum:" identifier "[" name "=" value "]"]]
+			repend list [name value]
+			true
 		]
 
 		resolve-expr-type: func [expr /quiet /local type func? spec][
@@ -1404,11 +1452,19 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-assignment: has [name value n][
+		comp-assignment: has [name value n temp][
 			name: pc/1
 			pc: next pc
 			if set-word? name [
 				check-keywords n: to word! name			;-- forbid keywords redefinition
+				if find definitions n [
+					backtrack name
+					throw-error ["redeclaration of definition" name]
+				]
+				if temp: get-enumerator n [
+					backtrack name
+					throw-error ["redeclaration of enumerator" name "from" temp]
+				]
 				if get-word? pc/1 [
 					throw-error "storing a function! requires a type casting"
 				]
@@ -1962,6 +2018,8 @@ system-dialect: context [
 		clear compiler/imports
 		clear compiler/natives
 		clear compiler/globals
+		clear compiler/definitions
+		clear compiler/enumerations
 		clear compiler/aliased-types
 		clear compiler/user-functions
 		clear compiler/debug-lines/records

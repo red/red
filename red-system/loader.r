@@ -37,6 +37,7 @@ loader: context [
 		include-dirs: reduce [runtime-path]
 		clear include-list
 		clear defs
+		system-dialect/clean-up
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
 	]
 
@@ -154,6 +155,7 @@ loader: context [
 				defs								;-- resolve definitions in a single pass
 				| s: #define set name word! set value skip e: (
 					if verbose > 0 [print [mold name #":" mold value]]
+					append compiler/definitions name
 					if word? value [value: to lit-word! value]
 					either block? value [
 						saved: reduce [s e]
@@ -179,10 +181,9 @@ loader: context [
 						parse value [
 							(enum-value: 0)
 							any [
-								#L set line integer! [
+								opt [#L set line integer!] [
 									set enum-name word! opt [opt '= set enum-value integer!](
-										if verbose > 3 [print ["Enum:" enum-name "=" enum-value]]
-										repend enums [enum-name enum-value]
+										compiler/set-enumerator name enum-name enum-value
 										enum-value: enum-value + 1
 									)
 									|
@@ -192,8 +193,7 @@ loader: context [
 												opt [#L set line integer!]
 												set enum-name 1 skip (
 													either word? enum-name [
-														if verbose > 3 [print ["Enum:" enum-name "=" enum-value]]
-														repend enums [enum-name enum-value]
+														compiler/set-enumerator name enum-name enum-value
 													][
 														throw-error ["invalid enumeration:" mold enum-name]
 													]
@@ -209,8 +209,6 @@ loader: context [
 								]
 							]
 						]
-						new-line/skip enums true 2
-						append/only append compiler/enumerations name enums
 					][
 						throw-error ["invalid enumeration (block required!):" mold value]
 					]
