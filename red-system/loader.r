@@ -126,7 +126,7 @@ loader: context [
 	expand-block: func [
 		src [block!]
 		/local blk rule name value s e opr then-block else-block cases body
-			saved stack header mark idx prev
+			saved stack header mark idx prev enums enum-value enum-name
 	][
 		if verbose > 0 [print "running block preprocessor..."]
 		stack: append/only clear [] make block! 100
@@ -171,6 +171,27 @@ loader: context [
 
 					either tag? defs/1 [remove defs][append defs '|]
 					append defs rule
+					remove/part s e
+				) :s
+				| s: #enum set name word! set value skip e: (
+					either block? value [
+						enums: make block! 10
+						parse value [
+							(enum-value: 0)
+							any [
+								#L set line integer!
+								set enum-name word! (
+									if verbose > 3 [print ["Enum:" enum-name "=" enum-value]]
+									repend enums [enum-name enum-value]
+									enum-value: enum-value + 1
+								)
+							]
+						]
+						new-line/skip enums true 2
+						append/only append compiler/enumerations name enums
+					][
+						ask "invalid enumeration"
+					]
 					remove/part s e
 				) :s
 				| s: #include set name file! e: (

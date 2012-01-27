@@ -29,6 +29,7 @@ system-dialect: context [
 		none-type:	 [#[none]]							;-- marker for "no value returned"
 		last-type:	 none-type							;-- type of last value from an expression
 		locals: 	 none								;-- currently compiled function specification block
+		enumerations: make block! 10
 		locals-init: []									;-- currently compiler function locals variable init list
 		func-name:	 none								;-- currently compiled function name
 		block-level: 0									;-- nesting level of input source block
@@ -114,7 +115,10 @@ system-dialect: context [
 
 		type-spec: [
 			pos: some type-syntax | set value word! (			;-- multiple types allowed for internal usage			
-				unless find aliased-types value [throw false]	;-- stop parsing if unresolved type
+				unless any [
+					find aliased-types value
+					find enumerations value
+				][throw false]	;-- stop parsing if unresolved type
 			)
 		]		
 		
@@ -321,6 +325,7 @@ system-dialect: context [
 			any [
 				all [locals select locals name]
 				select globals name
+				get-enumerator name
 			]
 		]
 		
@@ -389,6 +394,9 @@ system-dialect: context [
 			]
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
+			]
+			if all [type find enumerations type/1][
+				return [integer!]
 			]
 			unless any [not resolve-alias? base-type? type/1][
 				type: select aliased-types type/1
@@ -482,6 +490,14 @@ system-dialect: context [
 				get-word! [resolve-type to word! value]
 			][
 				throw-error ["not accepted datatype:" type? value]
+			]
+		]
+
+		get-enumerator: func[enum-name [word!] /value /local result][
+			foreach [enum-list-name enum-list-data] enumerations [
+				if result: select enum-list-data enum-name [
+					return either value [ result ][ reduce [enum-list-name] ]
+				]
 			]
 		]
 
@@ -751,6 +767,11 @@ system-dialect: context [
 					compare-func-specs name expr type/2 expected/2	 ;-- callback case
 				]
 				expected = type 						 ;-- normal single-type case
+				all [
+					type
+					type/1 = 'integer!
+					find enumerations expected/1		;-- TODO: add also a value check for enums
+				]
 			][
 				if expected = type [type: 'null]		 ;-- make null error msg explicit
 				any [
@@ -1434,7 +1455,11 @@ system-dialect: context [
 					if not-initialized? name [
 						throw-error ["local variable" name "used before being initialized!"]
 					]
-					last-type: resolve-type name				
+					last-type: resolve-type name
+					also name pc: next pc
+				]
+				last-type: get-enumerator name [
+					if verbose >= 3 [print ["ENUMERATOR" name "=" last-type]]
 					also name pc: next pc
 				]
 				all [
@@ -1704,7 +1729,7 @@ system-dialect: context [
 			]
 		]
 		
-		fetch-expression: func [/final /keep /local expr pass][
+		fetch-expression: func [/final /keep /local expr pass value][
 			check-infix-operators
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			pass: [also pc/1 pc: next pc]
@@ -1715,6 +1740,11 @@ system-dialect: context [
 			]
 			if job/debug? [store-dbg-lines]
 			
+			if all [
+				word? pc/1
+				value: get-enumerator/value pc/1
+			][	change pc value ]
+
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
 				word!		[comp-word]

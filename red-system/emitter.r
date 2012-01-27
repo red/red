@@ -400,6 +400,10 @@ emitter: context [
 		if block? type [type: type/1]
 		any [
 			select datatypes type						;-- search in base types
+			all [										;-- search if it's enumeration
+				find compiler/enumerations type
+				select datatypes 'integer!
+			]
 			all [										;-- search in user-aliased types
 				type: select compiler/aliased-types type
 				select datatypes type/1
