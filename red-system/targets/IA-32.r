@@ -155,7 +155,7 @@ make target-class [
 				emit to-bin32 255
 			]
 			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][
-				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to float! "]]
+				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to float!"]]
 				either alt? [
 					emit #{52}						;-- PUSH edx
 				][
@@ -166,6 +166,16 @@ make target-class [
 				emit #{DD1C24}						;-- FSTP qword [esp]	; save as 64-bit
 				emit #{58}							;-- POP eax
 				emit #{5A}					   		;-- POP edx
+			]
+			all [value/type/1 = 'float32! find [float! float64!] type/1][
+				if verbose >= 3 [print [">>>converting from float! to float32!"]]
+				; @@ handle alt case?
+				emit #{52}							;-- PUSH edx
+				emit #{50}							;-- PUSH eax
+				emit #{DD0424}						;-- FLD qword [esp]		; load as 64-bit
+				emit #{83C404}						;-- ADD esp, 4			; reduce space for 32-bit float
+				emit #{D91C24}						;-- FSTP dword [esp]	; save as 32-bit
+				emit #{58}							;-- POP eax
 			]
 		]
 	]
@@ -352,6 +362,8 @@ make target-class [
 						emit-load/with value/data value
 					]
 				]
+				;emit-casting value no
+				;compiler/last-type: value/type
 			]
 		]
 	]
