@@ -1443,7 +1443,7 @@ system-dialect: context [
 			also pc/1 pc: next pc
 		]
 	
-		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch id][
+		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch id temp][
 			name: any [symbol pc/1]
 			case [
 				entry: select keywords name [do entry]	;-- it's a reserved word
@@ -1458,7 +1458,8 @@ system-dialect: context [
 					last-type: resolve-type name
 					also name pc: next pc
 				]
-				last-type: get-enumerator name [
+				temp: get-enumerator name [
+					last-type: temp
 					if verbose >= 3 [print ["ENUMERATOR" name "=" last-type]]
 					also name pc: next pc
 				]
