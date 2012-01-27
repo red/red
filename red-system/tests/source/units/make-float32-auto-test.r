@@ -24,7 +24,7 @@ test-values: [
             5.0
           456.7890
        123456.7
-            1.222944E+33
+            1.222944E+32
             9.99999E-7
             7.7E18
 ]
@@ -80,9 +80,11 @@ foreach op test-binary-ops [
   foreach operand1 test-values [
     foreach operand2 test-values [
       ;; only write a test if REBOL produces a result
-      if attempt [expected: do reduce [operand1 op operand2]][
-        
-        expected: to decimal! expected
+      if all [
+        attempt [expected: to decimal! do reduce [operand1 op operand2]]
+        expected < 3.3E38
+        expected > 0.2E-37
+      ][
        
         ;; test with literal values
         test-number: test-number + 1
@@ -129,9 +131,11 @@ foreach op test-binary-ops [
   foreach operand1 test-values [
     foreach operand2 test-values [
       ;; only write a test if REBOL produces a result
-      if attempt [expected: do reduce [operand1 op operand2]][
-       
-        expected: to decimal! expected
+      if all [
+        attempt [expected: to decimal! do reduce [operand1 op operand2]]
+        expected < 3.3E38
+        expected > 0.2E-37
+      ][
         
         ;; test with variables inside the function
         test-number: test-number + 1
@@ -145,7 +149,7 @@ foreach op test-binary-ops [
         
         ;; write tests to file
         write/append file-out tests
-        tests: copy ""
+        tests: copy "" 
       ]
       recycle
     ]
@@ -166,6 +170,8 @@ foreach op test-comparison-ops [
       ;; only write a test if REBOL produces a result
       if all [
         attempt [operand2: operand1 + oper2]
+        oper2 < 3.3E+38
+        oper2 > 0.2E-37
         attempt [expected: do reduce [operand1 op operand2]]
       ][
         test-number: test-number + 1
