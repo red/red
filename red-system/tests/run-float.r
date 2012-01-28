@@ -101,8 +101,8 @@ start-time: now/precise
 ===end-group===
 
 ===start-group=== "Auto-tests"
-  --run-test-file-quiet  %source/units/auto-tests/float-lib-auto-test.reds 
-  --run-test-file-quiet  %source/units/auto-tests/float32-lib-auto-test.reds
+  --run-test-file-quiet  %source/units/auto-tests/float-lib-auto-test.reds   ; not in Arm tests   
+  --run-test-file-quiet  %source/units/auto-tests/float32-lib-auto-test.reds ; not in Arm tests
   --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds
 ===end-group===
