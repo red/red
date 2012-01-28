@@ -188,8 +188,11 @@ emitter: context [
 			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
+		if find compiler/enumerations type [type: 'integer!]
+		
 		size: size-of? type
 		ptr: tail data-buf
+		
 	
 		switch/default type [
 			integer! [
@@ -253,7 +256,7 @@ emitter: context [
 				]
 			]
 		][
-			make error! "store-global unexpected type!"
+			compiler/throw-error ["store-global unexpected type:" type]
 		]
 		(index? ptr) - 1								;-- offset of stored value
 	]
@@ -281,7 +284,7 @@ emitter: context [
 	][
 		if new: select compiler/aliased-types type/1 [
 			type: new
-		]	
+		]
 		new-global?: not any [							;-- TRUE if unknown global symbol
 			find stack name								;-- local variable
 			find symbols name 							;-- known symbol

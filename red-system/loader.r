@@ -127,7 +127,7 @@ loader: context [
 	expand-block: func [
 		src [block!]
 		/local blk rule name value s e opr then-block else-block cases body
-			saved stack header mark idx prev enums enum-value enum-name
+			saved stack header mark idx prev enum-value enum-name
 	][
 		if verbose > 0 [print "running block preprocessor..."]
 		stack: append/only clear [] make block! 100
@@ -154,6 +154,7 @@ loader: context [
 			some [
 				defs								;-- resolve definitions in a single pass
 				| s: #define set name word! set value skip e: (
+					compiler/check-word-by-loader name
 					if verbose > 0 [print [mold name #":" mold value]]
 					append compiler/definitions name
 					if word? value [value: to lit-word! value]
@@ -177,29 +178,16 @@ loader: context [
 				) :s
 				| s: #enum set name word! set value skip e: (
 					either block? value [
-						enums: make block! 10
+						compiler/check-word-by-loader name ;-- first checking enumeration identifier possible conflicts
 						parse value [
 							(enum-value: 0)
 							any [
-								opt [#L set line integer!] [
-									set enum-name word! opt [opt '= set enum-value integer!](
-										compiler/set-enumerator name enum-name enum-value
-										enum-value: enum-value + 1
-									)
-									|
-									set enum-name block! (
-										parse enum-name [
-											any [
-												opt [#L set line integer!]
-												set enum-name 1 skip (
-													either word? enum-name [
-														compiler/set-enumerator name enum-name enum-value
-													][
-														throw-error ["invalid enumeration:" mold enum-name]
-													]
-												)
-											]
-										]
+								any [#L set line integer!] [
+									[
+										set enum-name word! |
+										set enum-name set-word! any [#L set line integer!] set enum-value integer!
+									] (
+										compiler/set-enumerator name to word! enum-name enum-value
 										enum-value: enum-value + 1
 									)
 									|

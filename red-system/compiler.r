@@ -30,7 +30,7 @@ system-dialect: context [
 		last-type:	 none-type							;-- type of last value from an expression
 		locals: 	 none								;-- currently compiled function specification block
 		definitions:  make block! 10
-		enumerations: make block! 10
+		enumerations: make hash! 10
 		locals-init: []									;-- currently compiler function locals variable init list
 		func-name:	 none								;-- currently compiled function name
 		block-level: 0									;-- nesting level of input source block
@@ -382,6 +382,10 @@ system-dialect: context [
 			all [
 				not base-type? name
 				not find type-sets name
+				not all [
+					find enumerations name
+					type: [integer!]
+				]
 				not type: select aliased-types name
 				throw-error ["unknown type:" type]
 			]
@@ -502,48 +506,13 @@ system-dialect: context [
 			]
 		]
 		set-enumerator: func[identifier [word!] name [word!] value [integer!] /local list][
-			case [
-				select keywords name [
-					loader/throw-error ["redeclaration of keyword" name "as an enumerator!"]
-				]
-
-				any [
-					find definitions name
-					find definitions identifier
-				][
-					loader/throw-error "name already used for as a definition"
-				]
-				
-				any [
-					find aliased-types name
-					find aliased-types identifier
-				][
-					loader/throw-error "name already used for as an alias definition"
-				]
-				
-				base-type? identifier [
-					loader/throw-error ["redeclaration of base type by enumeration identifier" to-lit-word identifier]
-				]
-				base-type? name [
-					loader/throw-error ["redeclaration of base type by enumeration" to-lit-word name ]
-				]
+		;ask ["----" mold natives]
+			check-word-by-loader name
 			
-				any [
-					exists-variable? name
-					all [locals find locals name]
-					find globals name
-				][										;-- it's a variable			
-					loader/throw-error ["redeclaration of variable" to-lit-word name "as an enumerator!"]
-				]
-				
-				found? get-enumerator name [
-					loader/throw-error ["redeclaration of enumerator" to-lit-word name ]
-				]
-				
-				none? list: select enumerations identifier [
-					append/only append enumerations identifier list: make block! 10
-				]
+			if none? list: select enumerations identifier [
+				append/only append enumerations identifier list: make block! 10
 			]
+			
 			if verbose > 3 [print ["Enum:" identifier "[" name "=" value "]"]]
 			repend list [name value]
 			true
@@ -681,6 +650,45 @@ system-dialect: context [
 			true
 		]
 		
+		check-word-by-loader: func [name [word!]][
+			case [
+				any [
+					find keywords name
+					name = 'comment
+				][
+					loader/throw-error ["attempt to redefined a protected keyword:" name]
+				]
+
+				find functions name [
+					loader/throw-error ["attempt to redefine existing function name:" name]
+				]
+
+				find definitions name [
+					loader/throw-error ["attempt to redefine existing definition:" name]
+				]
+
+				find aliased-types name [
+					loader/throw-error ["attempt to redefine existing alias definition:" name]
+				]
+
+				base-type? name [
+					loader/throw-error ["redeclaration of base type:" name ]
+				]
+
+				any [
+					exists-variable? name
+					all [locals find locals name]
+					find globals name
+				][										;-- it's a variable			
+					loader/throw-error ["redeclaration of variable:" name]
+				]
+
+				found? get-enumerator name [
+					loader/throw-error ["redeclaration of enumerator:" name ]
+				]
+			]
+		]
+		
 		check-keywords: func [name [word!]][
 			if any [
 				find keywords name
@@ -721,6 +729,13 @@ system-dialect: context [
 			if find functions name [
 				pc: back pc
 				throw-error ["attempt to redefine existing function name:" name]
+			]
+			if any [
+				find enumerations name
+				get-enumerator name
+			][
+				pc: back pc
+				throw-error ["attempt to redefine existing enumerator:" name]
 			]
 			if all [not only find any [locals globals] name][
 				pc: back pc
@@ -1697,7 +1712,6 @@ system-dialect: context [
 			]
 			value: unbox expr
 			if any [block? value path? value][value: <last>]
-			
 			emitter/store name value type
 		]
 		

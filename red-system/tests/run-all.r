@@ -146,6 +146,7 @@ start-time: now/precise
   --run-script-quiet %source/compiler/infix-test.r
   --run-script-quiet %source/compiler/not-test.r
   --run-script-quiet %source/compiler/print-test.r
+  --run-script-quiet %source/compiler/enum-test.r
 ===end-group===
 
 ***end-run-quiet***
