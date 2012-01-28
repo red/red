@@ -92,5 +92,12 @@ change-dir %../
 		p: declare pointer! [test!]}
 	  --assert-msg? "*** Compilation Error: invalid literal syntax: [test!]"
 	  --clean
+	  
+	  --compile-this {
+		#enum test! [foo: 3]
+		f: func[foo [c-string!]][print foo]
+		f "bar"}
+	  --assert-msg? "*** Compilation Error: function's argument redeclares enumeration: foo"
+	  --clean
 ~~~end-file~~~
 

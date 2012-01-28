@@ -510,7 +510,7 @@ system-dialect: context [
 			check-word-by-loader name
 			
 			if none? list: select enumerations identifier [
-				append/only append enumerations identifier list: make block! 10
+				append/only append enumerations identifier list: make hash! 10
 			]
 			
 			if verbose > 3 [print ["Enum:" identifier "[" name "=" value "]"]]
@@ -790,6 +790,13 @@ system-dialect: context [
 				]
 			][
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
+			]
+			if block? args [
+				foreach [name type] args [
+					if get-enumerator name [
+						throw-error ["function's argument redeclares enumeration:" name]
+					]
+				]
 			]
 			check-duplicates name args locs
 		]
@@ -1813,6 +1820,7 @@ system-dialect: context [
 			
 			if all [
 				word? pc/1
+				none? locals
 				value: get-enumerator/value pc/1
 			][	change pc value ]
 
