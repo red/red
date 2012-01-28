@@ -683,6 +683,10 @@ system-dialect: context [
 					loader/throw-error ["redeclaration of variable:" name]
 				]
 
+				find enumerations name [
+					loader/throw-error ["redeclaration of enum identifier:" name ]
+				]
+				
 				found? get-enumerator name [
 					loader/throw-error ["redeclaration of enumerator:" name ]
 				]

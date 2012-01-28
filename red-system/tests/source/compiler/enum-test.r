@@ -57,6 +57,10 @@ change-dir %../
 	  --assert found? find qt/output "03"
 	  --clean
 	  
+	  --compile-this {#enum test! [foo: "a"]}
+	  --assert-msg? "*** Loading Error: invalid enumeration: foo"
+	  --clean
+	  
   --test-- "Enum redeclaration errors"
 	  --compile-this "#enum test! [print]"
 	  --assert-msg? "*** Loading Error: attempt to redefine existing function name: print"
@@ -72,6 +76,16 @@ change-dir %../
 	  
 	  --compile-this "#enum test! [foo foo]"
 	  --assert-msg? "*** Loading Error: redeclaration of enumerator: foo"
+	  --clean
+
+	  --compile-this "#enum test! [a] #enum test! [b]"
+	  --assert-msg? "*** Loading Error: redeclaration of enum identifier: test!"
+	  --clean
+	  
+	  --compile-this {
+		#define foo 3
+		#enum test! [foo]}
+	  --assert-msg? "*** Loading Error: attempt to redefine existing definition: foo"
 	  --clean
 	  
 	  --compile-this {

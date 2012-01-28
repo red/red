@@ -192,7 +192,7 @@ loader: context [
 									)
 									|
 									set enum-name 1 skip (
-										throw-error ["invalid enumeration:" mold enum-name]
+										throw-error ["invalid enumeration:" to-word enum-name]
 									)
 								]
 							]
