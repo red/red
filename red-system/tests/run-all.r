@@ -97,6 +97,7 @@ start-time: now/precise
   --run-test-file-quiet %source/units/alias-test.reds
   --run-test-file-quiet %source/units/length-test.reds
   --run-test-file-quiet %source/units/null-test.reds
+  --run-test-file-quiet %source/units/enum-test.reds
 ===end-group===
 
 ===start-group=== "Native functions tests"
