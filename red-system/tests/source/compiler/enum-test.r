@@ -7,111 +7,84 @@ REBOL [
 
 change-dir %../
 
-~~~start-file~~~ "enumerations test"
+~~~start-file~~~ "enumerations compile"
 
-  --test-- "Enum results"
-	  --compile-and-run-this {#enum test! [foo boo] print [foo boo]}
-	  --assert found? find qt/output "01"
-	  --clean
-	  
-	  --compile-and-run-this {#enum test! [foo: 11 boo] print [foo boo]}
-	  --assert found? find qt/output "1112"
-	  --clean
-	  
-	  --compile-and-run-this {#enum test! [
-		foo: 11 boo] print [foo boo]}
-	  --assert found? find qt/output "1112"
-	  --clean
-	  
-  	  --compile-and-run-this {
-		#enum test! [
-		
-			foo: 11
-			boo: 10
-		] print [foo boo]}
-	  --assert found? find qt/output "1110"
-	  --clean
-	  
-  	  --compile-and-run-this {
-		#enum test! [foo: 3]
-		p: declare pointer! [integer!]
-		p/value: foo
-		print [p/value]}
-	  --assert found? find qt/output "3"
-	  --clean
-	  	  
-   	  --compile-and-run-this {
-		#enum test! [foo: 3]
-		p: declare struct! [a [test!] b [integer!]]
-		p/a: foo
-		p/b: foo
-		print [p/a p/b]}
-	  --assert found? find qt/output "33"
-	  --clean
-	  
-	  --compile-and-run-this {
-		#enum test! [foo]
-		p: declare struct! [foo [integer!]]
-		p/foo: 3
-		print [foo p/foo]}
-	  --assert found? find qt/output "03"
-	  --clean
-	  
-	  --compile-this {#enum test! [foo: "a"]}
-	  --assert-msg? "*** Loading Error: invalid enumeration: foo"
-	  --clean
-	  
-  --test-- "Enum redeclaration errors"
+===start-group=== "Enum redeclaration errors"
+
+  --test-- "enum-redec-1"
 	  --compile-this "#enum test! [print]"
-	  --assert-msg? "*** Loading Error: attempt to redefine existing function name: print"
+	--assert-msg? "*** Loading Error: attempt to redefine existing function name: print"
 	  --clean
 
+	--test-- "enum-redec-2"
 	  --compile-this "#enum print [foo]"
-	  --assert-msg? "*** Loading Error: attempt to redefine existing function name: print"
+	--assert-msg? "*** Loading Error: attempt to redefine existing function name: print"
 	  --clean
-	  
-	  --compile-this "#enum test! [foo] foo: 3"
-	  --assert-msg? "*** Compilation Error: redeclaration of enumerator foo from test!"
+
+	--test-- "enum-redec-3"
+    --compile-this "#enum test! [foo] foo: 3"
+	--assert-msg? "*** Compilation Error: redeclaration of enumerator foo from test!"
 	  --clean
-	  
+
+	--test-- "enum-redec-4"
 	  --compile-this "#enum test! [foo foo]"
-	  --assert-msg? "*** Loading Error: redeclaration of enumerator: foo"
+	--assert-msg? "*** Loading Error: redeclaration of enumerator: foo"
 	  --clean
 
+	--test-- "enum-redec-5"
 	  --compile-this "#enum test! [a] #enum test! [b]"
-	  --assert-msg? "*** Loading Error: redeclaration of enum identifier: test!"
-	  --clean
-	  
-	  --compile-this {
-		#define foo 3
-		#enum test! [foo]}
-	  --assert-msg? "*** Loading Error: attempt to redefine existing definition: foo"
-	  --clean
-	  
-	  --compile-this {
-		#enum test! [foo]
-		#define foo 3}
-	  --assert-msg? "*** Loading Error: redeclaration of enumerator: foo"
+	--assert-msg? "*** Loading Error: redeclaration of enum identifier: test!"
 	  --clean
 
-  	  --compile-this {
-		#enum test! [foo]
-		p: declare struct! [a [test!]]
-		p/a: "a"}
-	  --assert-msg? "*** Compilation Error: type mismatch on setting path: p/a"
+	--test-- "enum-redec-6"
+	  --compile-this {
+		  #define foo 3
+		  #enum test! [foo]
+		}
+	--assert-msg? "*** Loading Error: attempt to redefine existing definition: foo"
+	  --clean
+
+	--test-- "enum-redec-7"
+	  --compile-this {
+		  #enum test! [foo]
+		  #define foo 3
+		  }
+	--assert-msg? "*** Loading Error: redeclaration of enumerator: foo"
+	  --clean
+
+	--test-- "enum-redec-8"
+	  --compile-this {
+		  #enum test! [foo]
+		  p: declare struct! [a [test!]]
+		  p/a: "a"
+		}
+	--assert-msg? "*** Compilation Error: type mismatch on setting path: p/a"
+	  --clean
+
+	--test-- "enum-redec-9"
+	  --compile-this {
+		  #enum test! [foo]
+		  p: declare pointer! [test!]}
+	--assert-msg? "*** Compilation Error: invalid literal syntax: [test!]"
+	  --clean
+
+	--test-- "enum-redec-10"
+	  --compile-this {
+		  #enum test! [foo: 3]
+		  f: func[foo [c-string!]][print foo]
+		  f "bar"
+		}
+	--assert-msg? "*** Compilation Error: function's argument redeclares enumeration: foo"
 	  --clean
 	  
+	--test-- "enum-redec-11"
 	  --compile-this {
-		#enum test! [foo]
-		p: declare pointer! [test!]}
-	  --assert-msg? "*** Compilation Error: invalid literal syntax: [test!]"
+		  #enum test! [foo]
+		  foo/1: 3
+		}
+	--assert-msg? "*** Compilation Error: enumeration cannot be used as path root: foo"
 	  --clean
-	  
-	  --compile-this {
-		#enum test! [foo: 3]
-		f: func[foo [c-string!]][print foo]
-		f "bar"}
-	  --assert-msg? "*** Compilation Error: function's argument redeclares enumeration: foo"
-	  --clean
+===end-group===
+
 ~~~end-file~~~
 

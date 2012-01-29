@@ -29,7 +29,7 @@ system-dialect: context [
 		none-type:	 [#[none]]							;-- marker for "no value returned"
 		last-type:	 none-type							;-- type of last value from an expression
 		locals: 	 none								;-- currently compiled function specification block
-		definitions:  make block! 10
+		definitions:  make block! 100
 		enumerations: make hash! 10
 		locals-init: []									;-- currently compiler function locals variable init list
 		func-name:	 none								;-- currently compiled function name
@@ -326,7 +326,6 @@ system-dialect: context [
 			any [
 				all [locals select locals name]
 				select globals name
-				get-enumerator name
 			]
 		]
 		
@@ -400,7 +399,10 @@ system-dialect: context [
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
 			]
-			if all [type find enumerations type/1][
+			if any [
+				all [type find enumerations type/1]
+				get-enumerator name
+			][
 				return [integer!]
 			]
 			unless any [not resolve-alias? base-type? type/1][
@@ -506,7 +508,6 @@ system-dialect: context [
 			]
 		]
 		set-enumerator: func[identifier [word!] name [word!] value [integer!] /local list][
-		;ask ["----" mold natives]
 			check-word-by-loader name
 			
 			if none? list: select enumerations identifier [
@@ -677,8 +678,7 @@ system-dialect: context [
 
 				any [
 					exists-variable? name
-					all [locals find locals name]
-					find globals name
+					get-variable-spec name
 				][										;-- it's a variable			
 					loader/throw-error ["redeclaration of variable:" name]
 				]
@@ -702,20 +702,27 @@ system-dialect: context [
 			]
 		]
 		
-		check-path-index: func [path [path! set-path!] type [word!] /local ending][
+		check-path-index: func [path [path! set-path!] type [word!] /local ending enum-value][
 			ending: path/2
 			case [
 				all [type = 'pointer ending = 'value][]	;-- pass thru case
 				word? ending [
-					unless get-variable-spec ending [
-						backtrack path
-						throw-error ["undefined" type "index variable"]
-					]
-					if 'integer! <> first resolve-type ending [
-						backtrack path
-						throw-error [
-							"attempt to use" type
-							"indexing with a non-integer! variable"
+					either found? enum-value: get-enumerator/value ending [
+						path/2: ending: enum-value
+					][
+						unless any [
+							get-variable-spec ending
+							found? value: get-enumerator/value ending
+						][
+							backtrack path
+							throw-error ["undefined" type "index variable"]
+						]
+						if 'integer! <> first resolve-type ending [
+							backtrack path
+							throw-error [
+								"attempt to use" type
+								"indexing with a non-integer! variable"
+							]
 						]
 					]
 				]
@@ -987,7 +994,13 @@ system-dialect: context [
 					]
 					remove-each v expr [any [find [= <>] v logic? v]]
 					if any [
-						all [word? expr/1 get-variable-spec expr/1]
+						all [
+							word? expr/1
+							any [
+								get-variable-spec expr/1
+								get-enumerator expr/1
+							]
+						]
 						paren? expr/1
 						block? expr/1
 						object? expr/1
@@ -1478,7 +1491,7 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-assignment: has [name value n temp][
+		comp-assignment: has [name value n enum][
 			name: pc/1
 			pc: next pc
 			if set-word? name [
@@ -1487,9 +1500,9 @@ system-dialect: context [
 					backtrack name
 					throw-error ["redeclaration of definition" name]
 				]
-				if temp: get-enumerator n [
+				if enum: get-enumerator n [
 					backtrack name
-					throw-error ["redeclaration of enumerator" name "from" temp]
+					throw-error ["redeclaration of enumerator" name "from" enum]
 				]
 				if get-word? pc/1 [
 					throw-error "storing a function! requires a type casting"
@@ -1525,7 +1538,7 @@ system-dialect: context [
 			also pc/1 pc: next pc
 		]
 	
-		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch id temp][
+		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch id type][
 			name: any [symbol pc/1]
 			case [
 				entry: select keywords name [do entry]	;-- it's a reserved word
@@ -1540,8 +1553,8 @@ system-dialect: context [
 					last-type: resolve-type name
 					also name pc: next pc
 				]
-				temp: get-enumerator name [
-					last-type: temp
+				type: get-enumerator name [
+					last-type: type
 					if verbose >= 3 [print ["ENUMERATOR" name "=" last-type]]
 					also name pc: next pc
 				]
@@ -1663,6 +1676,10 @@ system-dialect: context [
 			set-path [set-path!] expr casted [block! none!]
 			/local type new value
 		][
+			if get-enumerator set-path/1 [
+				backtrack set-path
+				throw-error ["enumeration cannot be used as path root:" set-path/1]
+			]
 			unless get-variable-spec set-path/1 [
 				backtrack set-path
 				throw-error ["unknown path root variable:" set-path/1]
@@ -1698,7 +1715,10 @@ system-dialect: context [
 			if not-initialized? name [
 				init-local name expr casted				;-- mark as initialized and infer type if required
 			]		
-			either type: get-variable-spec name [ 		;-- test if known variable (local or global)		
+			either type: any [
+				get-variable-spec name					;-- test if known variable (local or global)	
+				get-enumerator name
+			][
 				type: resolve-aliased type		
 				new: resolve-aliased get-type expr			
 				
@@ -1824,7 +1844,6 @@ system-dialect: context [
 			
 			if all [
 				word? pc/1
-				none? locals
 				value: get-enumerator/value pc/1
 			][	change pc value ]
 
@@ -2108,6 +2127,7 @@ system-dialect: context [
 			emitter/init opts/link? job
 			if opts/verbosity >= 10 [set-verbose-level opts/verbosity]
 			
+			clean-up
 			loader/init
 			if opts/runtime? [comp-runtime-prolog]
 			

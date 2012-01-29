@@ -37,7 +37,6 @@ loader: context [
 		include-dirs: reduce [runtime-path]
 		clear include-list
 		clear defs
-		system-dialect/clean-up
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
 	]
 
