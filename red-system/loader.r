@@ -153,7 +153,7 @@ loader: context [
 			some [
 				defs								;-- resolve definitions in a single pass
 				| s: #define set name word! set value skip e: (
-					compiler/check-word-by-loader name
+					compiler/check-enum-word/by-loader name
 					if verbose > 0 [print [mold name #":" mold value]]
 					append compiler/definitions name
 					if word? value [value: to lit-word! value]
@@ -177,7 +177,7 @@ loader: context [
 				) :s
 				| s: #enum set name word! set value skip e: (
 					either block? value [
-						compiler/check-word-by-loader name ;-- first checking enumeration identifier possible conflicts
+						compiler/check-enum-word/by-loader name ;-- first checking enumeration identifier possible conflicts
 						parse value [
 							(enum-value: 0)
 							any [

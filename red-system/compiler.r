@@ -508,7 +508,7 @@ system-dialect: context [
 			]
 		]
 		set-enumerator: func[identifier [word!] name [word!] value [integer!] /local list][
-			check-word-by-loader name
+			check-enum-word/by-loader name
 			
 			if none? list: select enumerations identifier [
 				append/only append enumerations identifier list: make hash! 10
@@ -651,44 +651,51 @@ system-dialect: context [
 			true
 		]
 		
-		check-word-by-loader: func [name [word!]][
+		check-enum-word: func [name [word!] /by-loader /local error][
 			case [
 				any [
 					find keywords name
 					name = 'comment
 				][
-					loader/throw-error ["attempt to redefined a protected keyword:" name]
+					error: ["attempt to redefined a protected keyword:" name]
 				]
 
 				find functions name [
-					loader/throw-error ["attempt to redefine existing function name:" name]
+					error: ["attempt to redefine existing function name:" name]
 				]
 
 				find definitions name [
-					loader/throw-error ["attempt to redefine existing definition:" name]
+					error:  ["attempt to redefine existing definition:" name]
 				]
 
 				find aliased-types name [
-					loader/throw-error ["attempt to redefine existing alias definition:" name]
+					error:  ["attempt to redefine existing alias definition:" name]
 				]
 
 				base-type? name [
-					loader/throw-error ["redeclaration of base type:" name ]
+					error:  ["redeclaration of base type:" name ]
 				]
 
 				any [
 					exists-variable? name
 					get-variable-spec name
 				][										;-- it's a variable			
-					loader/throw-error ["redeclaration of variable:" name]
+					error:  ["redeclaration of variable:" name]
 				]
 
 				find enumerations name [
-					loader/throw-error ["redeclaration of enum identifier:" name ]
+					error:  ["redeclaration of enum identifier:" name ]
 				]
 				
 				found? get-enumerator name [
-					loader/throw-error ["redeclaration of enumerator:" name ]
+					error:  ["redeclaration of enumerator:" name ]
+				]
+			]
+			if error [
+				either by-loader [
+					loader/throw-error error
+				][
+					throw-error error
 				]
 			]
 		]
