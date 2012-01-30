@@ -507,16 +507,27 @@ system-dialect: context [
 				]
 			]
 		]
-		set-enumerator: func[identifier [word!] name [word!] value [integer!] /local list][
-			check-enum-word/by-loader name
+		set-enumerator: func[identifier [word!] name [word! block!] value [integer! word!] /local list][
+			if word? name [name: reduce [name]]
+			forall name [
+				check-enum-word/by-loader name/1
+			]
+			name: head name
 			
 			if none? list: select enumerations identifier [
 				append/only append enumerations identifier list: make hash! 10
 			]
-			
-			if verbose > 3 [print ["Enum:" identifier "[" name "=" value "]"]]
-			repend list [name value]
-			true
+			if all [
+				word? value
+				none? value: get-enumerator/value value
+			][
+				loader/throw-error ["cannot resolve literal enum value for:" form name]
+			]
+			forall name [
+				if verbose > 3 [print ["Enum:" identifier "[" name/1 "=" value "]"]]
+				repend list [name/1 value]
+			]
+			value: value + 1
 		]
 
 		resolve-expr-type: func [expr /quiet /local type func? spec][

@@ -84,6 +84,13 @@ change-dir %../
 		}
 	--assert-msg? "*** Compilation Error: enumeration cannot be used as path root: foo"
 	  --clean
+	  
+	--test-- "enum-redec-12"
+	  --compile-this {
+		  #enum test! [foo: bla]
+		}
+	--assert-msg? "*** Loading Error: cannot resolve literal enum value for: foo"
+	  --clean
 ===end-group===
 
 ~~~end-file~~~

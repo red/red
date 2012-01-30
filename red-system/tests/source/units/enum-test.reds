@@ -54,6 +54,15 @@ Red/System [
   --test-- "Enum-8"
         fce: func[return: [integer!]][ return enumC ]
     --assert fce = 3
-
+	
+  --test-- "Enum-9"
+        #enum test9! [enum9: enumC]
+    --assert enum9 = 3
+	
+  --test-- "Enum-10"
+        #enum test10! [enum10: enum11: 10 enum12]
+    --assert enum10 = 10
+	--assert enum11 = 10
+	--assert enum12 = 11
 ~~~end-file~~~
 
