@@ -173,6 +173,7 @@ stderr: 2
 				6 [31]						;-- privileged register
 				7 [26]						;-- coprocessor error
 				8 [19]						;-- internal stack error
+				default [99]
 			]
 		]
 		SIGBUS [
@@ -182,6 +183,7 @@ stderr: 2
 				3 [28]						;-- object specific hardware error
 				4 [29]						;-- hardware memory error consumed (action required)
 				5 [30]						;-- hardware memory error consumed (action optional)
+				default [34]
 			]
 		]
 		SIGFPE [
@@ -194,12 +196,14 @@ stderr: 2
 				6 [8]						;-- floating point inexact result
 				7 [9]						;-- floating point invalid operation
 				8 [5]						;-- subscript out of range
+				default [33]
 			]
 		]
 		SIGSEGV [
 			switch code [
 				1 [1]						;-- address not mapped to object
 				2 [16]						;-- invalid permissions for mapped object
+				default [32]
 			]
 		]
 	]
