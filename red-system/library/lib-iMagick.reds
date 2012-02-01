@@ -500,7 +500,6 @@ Red/System [
 #define ChannelStatistics! [pointer! [integer!]] ;??
 #define ?MagickProgressMonitor [pointer! [integer!]] ;??
 
-
 ExceptionType!: alias struct! [value [integer!]]
 KernelInfo!: alias struct! [
 	type    [KernelInfoType!]
@@ -520,6 +519,10 @@ KernelInfo!: alias struct! [
 
 #import [
 	"CORE_RL_wand_.dll" cdecl [
+
+
+	;==== source: pixel-wand.reb ====;
+
 		ClearPixelWand: "ClearPixelWand" [
 			;== Clears resources associated with the wand
 			;-- void ClearPixelWand(PixelWand *wand)
@@ -894,6 +897,10 @@ KernelInfo!: alias struct! [
 			wand	[PixelWand!] ;the pixel wand.
 			yellow	[Quantum!] ;the yellow color.
 		]
+
+
+	;==== source: magick-wand.reb ====;
+
 		ClearMagickWand: "ClearMagickWand" [
 			;== Clears resources associated with the wand
 			;-- void ClearMagickWand(MagickWand *wand)
@@ -1031,6 +1038,10 @@ KernelInfo!: alias struct! [
 			image	[Image!] ;the image.
 			return: [MagickWand!]
 		]
+
+
+	;==== source: magick-image.reb ====;
+
 		GetImageFromMagickWand: "GetImageFromMagickWand" [
 			;== Returns the current image from the magick wand
 			;-- Image *GetImageFromMagickWand(const MagickWand *wand)
@@ -1440,7 +1451,7 @@ KernelInfo!: alias struct! [
 			rows	[size_t!] ;height in pixels of the image.
 			map	[c-string!] ;This string reflects the expected ordering of the pixel array. It can be any combination or order of R = red, G = green, B = blue, A = alpha (0 is transparent), O = opacity (0 is opaque), C = cyan, Y = yellow, M = magenta, K = black, I = intensity (for grayscale), P = pad.
 			storage	[StorageType!] ;Define the data type of the pixels.  Float and double types are expected to be normalized [0..1] otherwise [0..QuantumRange].  Choose from these types: CharPixel, DoublePixel, FloatPixel, IntegerPixel, LongPixel, QuantumPixel, or ShortPixel.
-			pixels	[pointer! [integer!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
+			pixels	[pointer! [byte!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
 			return: [MagickBooleanType!]
 		]
 		MagickDecipherImage: "MagickDecipherImage" [
@@ -1581,7 +1592,7 @@ KernelInfo!: alias struct! [
 			rows	[size_t!] ;These values define the perimeter of a region of pixels you want to extract.
 			map	[c-string!] ;This string reflects the expected ordering of the pixel array. It can be any combination or order of R = red, G = green, B = blue, A = alpha (0 is transparent), O = opacity (0 is opaque), C = cyan, Y = yellow, M = magenta, K = black, I = intensity (for grayscale), P = pad.
 			storage	[StorageType!] ;Define the data type of the pixels.  Float and double types are expected to be normalized [0..1] otherwise [0..QuantumRange].  Choose from these types: CharPixel, DoublePixel, FloatPixel, IntegerPixel, LongPixel, QuantumPixel, or ShortPixel.
-			pixels	[pointer! [integer!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
+			pixels	[pointer! [byte!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
 			return: [MagickBooleanType!]
 		]
 		MagickExtentImage: "MagickExtentImage" [
@@ -1791,7 +1802,7 @@ KernelInfo!: alias struct! [
 		]
 		MagickGetImageDistortions: "MagickGetImageDistortions" [
 			;== Compares one or more image channels of an image to a reconstructed image and returns the specified distortion metrics
-			;-- double *MagickGetImageChannelDistortion(MagickWand *wand,const MagickWand *reference,const MetricType metric)
+			;-- double *MagickGetImageDistortions(MagickWand *wand,const MagickWand *reference,const MetricType metric)
 			wand	[MagickWand!] ;the magick wand.
 			reference	[MagickWand!] ;the reference wand.
 			metric	[MetricType!] ;the metric.
@@ -2154,7 +2165,7 @@ KernelInfo!: alias struct! [
 			rows	[size_t!] ;These values define the perimeter of a region of pixels you want to define.
 			map	[c-string!] ;This string reflects the expected ordering of the pixel array. It can be any combination or order of R = red, G = green, B = blue, A = alpha (0 is transparent), O = opacity (0 is opaque), C = cyan, Y = yellow, M = magenta, K = black, I = intensity (for grayscale), P = pad.
 			storage	[StorageType!] ;Define the data type of the pixels.  Float and double types are expected to be normalized [0..1] otherwise [0..QuantumRange].  Choose from these types: CharPixel, ShortPixel, IntegerPixel, LongPixel, FloatPixel, or DoublePixel.
-			pixels	[pointer! [integer!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
+			pixels	[pointer! [byte!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
 			return: [MagickBooleanType!]
 		]
 		MagickInverseFourierTransformImage: "MagickInverseFourierTransformImage" [
@@ -2876,7 +2887,7 @@ KernelInfo!: alias struct! [
 			;-- MagickProgressMonitor MagickSetImageProgressMonitor(MagickWand *wandconst MagickProgressMonitor progress_monitor,void *client_data)
 			wand	[MagickWand!] ;the magick wand.
 			progress_monitor	[?MagickProgressMonitor] ;Specifies a pointer to a method to monitor progress of an image operation.
-			client_data	[pointer! [integer!]] ;Specifies a pointer to any client data.
+			client_data	[pointer! [byte!]] ;Specifies a pointer to any client data.
 			return: [?MagickProgressMonitor]
 		]
 		MagickSetImageRedPrimary: "MagickSetImageRedPrimary" [
