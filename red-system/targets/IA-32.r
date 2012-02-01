@@ -761,7 +761,12 @@ make target-class [
 				emit-push <last>
 			]
 			object! [
-				emit-push/with value/data value
+				emit-casting value no
+				either cdecl [
+					emit-push/with/cdecl value/data value
+				][
+					emit-push/with value/data value
+				]
 			]
 		]
 	]
@@ -1214,7 +1219,7 @@ make target-class [
 		emit-get-float-result
 	]
 
-	emit-float-operation: func [name [word!] args [block!] /local a b left right spec size][
+	emit-float-operation: func [name [word!] args [block!] /local a b left right spec][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 
 		if all [
@@ -1228,7 +1233,7 @@ make target-class [
 		;-- First operand processing
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
-		size: pick [4 8] 'float32! = first compiler/get-type left
+		set-width left
 
 		switch a [
 			imm [
@@ -1242,21 +1247,25 @@ make target-class [
 					#{DD45}							;-- FLD [ebp+n]		; local
 			]
 			reg [
+				if object? args/1 [
+					emit-casting args/1 no
+					set-width/type compiler/last-type: args/1/type
+				]
 				if any [block? left block? right][
 					;probe compiler/last-type
 					emit-push <last>
 					if b <> 'reg [
-						emit-float left #{DD0424}	;-- FLD [esp]		; push a
+						emit-float width #{DD0424}	;-- FLD [esp]		; push a
 						emit #{83C4} 				;-- ADD esp, 8|4
-						emit to-bin8 size
+						emit to-bin8 width
 					]
 				]
 				if path? left [
 					emit-push args/1				;-- late path loading
 					if b <> 'reg [
-						emit-float left  #{DD0424}	;-- FLD [esp]		; push a
+						emit-float width #{DD0424}	;-- FLD [esp]		; push a
 						emit #{83C4} 				;-- ADD esp, 8|4
-						emit to-bin8 size
+						emit to-bin8 width
 					]
 				]
 			]
