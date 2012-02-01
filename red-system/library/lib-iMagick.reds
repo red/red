@@ -437,7 +437,7 @@ Red/System [
 	  RelativeIntent
 ]
 #enum StatisticType! [
-	UndefinedStatistic 
+	UndefinedStatistic
 	GradientStatistic
 	MaximumStatistic
 	MeanStatistic
@@ -448,50 +448,47 @@ Red/System [
 	StandardDeviationStatistic
 ]
 #enum KernelInfoType! [
-	UndefinedKernel 	
-	UnityKernel 	
-	GaussianKernel 	
-	DoGKernel 	
-	LoGKernel 	
-	BlurKernel 	
-	CometKernel 	
-	LaplacianKernel 	
-	SobelKernel 	
-	FreiChenKernel 	
-	RobertsKernel 	
-	PrewittKernel 	
-	CompassKernel 	
-	KirschKernel 	
-	DiamondKernel 	
-	SquareKernel 	
-	RectangleKernel 	
-	OctagonKernel 	
-	DiskKernel 	
-	PlusKernel 	
-	CrossKernel 	
-	RingKernel 	
-	PeaksKernel 	
-	EdgesKernel 	
-	CornersKernel 	
-	DiagonalsKernel 	
-	LineEndsKernel 	
-	LineJunctionsKernel 	
-	RidgesKernel 	
-	ConvexHullKernel 	
-	ThinSEKernel 	
-	SkeletonKernel 	
-	ChebyshevKernel 	
-	ManhattanKernel 	
-	OctagonalKernel 	
-	EuclideanKernel 	
-	UserDefinedKernel 	
+	UndefinedKernel
+	UnityKernel
+	GaussianKernel
+	DoGKernel
+	LoGKernel
+	BlurKernel
+	CometKernel
+	LaplacianKernel
+	SobelKernel
+	FreiChenKernel
+	RobertsKernel
+	PrewittKernel
+	CompassKernel
+	KirschKernel
+	DiamondKernel
+	SquareKernel
+	RectangleKernel
+	OctagonKernel
+	DiskKernel
+	PlusKernel
+	CrossKernel
+	RingKernel
+	PeaksKernel
+	EdgesKernel
+	CornersKernel
+	DiagonalsKernel
+	LineEndsKernel
+	LineJunctionsKernel
+	RidgesKernel
+	ConvexHullKernel
+	ThinSEKernel
+	SkeletonKernel
+	ChebyshevKernel
+	ManhattanKernel
+	OctagonalKernel
+	EuclideanKernel
+	UserDefinedKernel
 ]
 
-integer64!: alias struct! [high [integer!] low [integer!]]
-
-#define size_t  integer!
-#define ssize_t integer64!
-#define double  float!
+#define size_t!  integer!
+#define ssize_t! integer!
 #define FILE!   integer!
 #define MagickWand!  [pointer! [integer!]] ;handle!
 #define PixelWand!   [pointer! [integer!]] ;handle!
@@ -507,19 +504,20 @@ integer64!: alias struct! [high [integer!] low [integer!]]
 ExceptionType!: alias struct! [value [integer!]]
 KernelInfo!: alias struct! [
 	type    [KernelInfoType!]
-    width   [size_t]
-    height  [size_t]
-    x       [ssize_t]
-    y       [ssize_t]
-    *values [double]
-    minimum [double]
-    maximum [double]
-    negative_range [double]
-    positive_range [double]
-    angle   [double]
+    width   [size_t!]
+    height  [size_t!]
+    x       [ssize_t!]
+    y       [ssize_t!]
+    *values [float!]
+    minimum [float!]
+    maximum [float!]
+    negative_range [float!]
+    positive_range [float!]
+    angle   [float!]
     *next    [KernelInfo!]
-    signature [size_t]
+    signature [size_t!]
 ]
+
 #import [
 	"CORE_RL_wand_.dll" cdecl [
 		ClearPixelWand: "ClearPixelWand" [
@@ -537,7 +535,7 @@ KernelInfo!: alias struct! [
 			;== Makes an exact copy of the specified wands
 			;-- PixelWand **ClonePixelWands(const PixelWand **wands,const size_t number_wands)
 			*wands	[PixelWand!] ;none
-			number_wands	[size_t] ;the number of wands.
+			number_wands	[size_t!] ;the number of wands.
 			return: [pointer! [integer!]]
 		]
 		DestroyPixelWand: "DestroyPixelWand" [
@@ -550,7 +548,7 @@ KernelInfo!: alias struct! [
 			;== Deallocates resources associated with an array of pixel wands
 			;-- PixelWand **DestroyPixelWands(PixelWand **wand,const size_t number_wands)
 			*wand	[PixelWand!] ;none
-			number_wands	[size_t] ;the number of wands.
+			number_wands	[size_t!] ;the number of wands.
 			return: [pointer! [integer!]]
 		]
 		IsPixelWandSimilar: "IsPixelWandSimilar" [
@@ -575,7 +573,7 @@ KernelInfo!: alias struct! [
 		NewPixelWands: "NewPixelWands" [
 			;== Returns an array of pixel wands
 			;-- PixelWand **NewPixelWands(const size_t number_wands)
-			number_wands	[size_t] ;the number of wands.
+			number_wands	[size_t!] ;the number of wands.
 			return: [pointer! [integer!]]
 		]
 		PixelClearException: "PixelClearException" [
@@ -636,7 +634,7 @@ KernelInfo!: alias struct! [
 			;== Returns the color count associated with this color
 			;-- size_t PixelGetColorCount(const PixelWand *wand)
 			wand	[PixelWand!] ;the pixel wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		PixelGetCyan: "PixelGetCyan" [
 			;== Returns the normalized cyan color of the pixel wand
@@ -802,7 +800,7 @@ KernelInfo!: alias struct! [
 			;== Sets the color count of the pixel wand
 			;-- void PixelSetColorCount(PixelWand *wand,const size_t count)
 			wand	[PixelWand!] ;the pixel wand.
-			count	[size_t] ;the number of this particular color.
+			count	[size_t!] ;the number of this particular color.
 		]
 		PixelSetCyan: "PixelSetCyan" [
 			;== Sets the normalized cyan color of the pixel wand
@@ -942,7 +940,7 @@ KernelInfo!: alias struct! [
 			;== Returns the position of the iterator in the image list
 			;-- ssize_t MagickGetIteratorIndex(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [integer64!]
+			return: [ssize_t!]
 		]
 		MagickQueryConfigureOption: "MagickQueryConfigureOption" [
 			;== Returns the value associated with the specified configure option
@@ -954,7 +952,7 @@ KernelInfo!: alias struct! [
 			;== Returns any configure options that match the specified pattern (e
 			;-- char **MagickQueryConfigureOptions(const char *pattern,size_t *number_options)
 			pattern	[c-string!] ;Specifies a pointer to a text string containing a pattern.
-			number_options	[pointer! [integer!]] ;Returns the number of configure options in the list.
+			number_options	[pointer! [size_t!]] ;Returns the number of configure options in the list.
 			return: [str-array!]
 		]
 		MagickQueryFontMetrics: "MagickQueryFontMetrics" [
@@ -977,14 +975,14 @@ KernelInfo!: alias struct! [
 			;== Returns any font that match the specified pattern (e
 			;-- char **MagickQueryFonts(const char *pattern,size_t *number_fonts)
 			pattern	[c-string!] ;Specifies a pointer to a text string containing a pattern.
-			number_fonts	[pointer! [integer!]] ;Returns the number of fonts in the list.
+			number_fonts	[pointer! [size_t!]] ;Returns the number of fonts in the list.
 			return: [str-array!]
 		]
 		MagickQueryFormats: "MagickQueryFormats" [
 			;== Returns any image formats that match the specified pattern (e
 			;-- char **MagickQueryFormats(const char *pattern,size_t *number_formats)
 			pattern	[c-string!] ;Specifies a pointer to a text string containing a pattern.
-			number_formats	[pointer! [integer!]] ;This integer returns the number of image formats in the list.
+			number_formats	[pointer! [size_t!]] ;This integer returns the number of image formats in the list.
 			return: [str-array!]
 		]
 		MagickRelinquishMemory: "MagickRelinquishMemory" [
@@ -1006,7 +1004,7 @@ KernelInfo!: alias struct! [
 			;== Set the iterator to the position in the image list specified with the index parameter
 			;-- MagickBooleanType MagickSetIteratorIndex(MagickWand *wand,const ssize_t index)
 			wand	[MagickWand!] ;the magick wand.
-			index	[integer64!] ;the scene number.
+			index	[ssize_t!] ;the scene number.
 			return: [MagickBooleanType!]
 		]
 		MagickSetLastIterator: "MagickSetLastIterator" [
@@ -1060,8 +1058,8 @@ KernelInfo!: alias struct! [
 			;== Adaptively resize image with data dependent triangulation
 			;-- MagickBooleanType MagickAdaptiveResizeImage(MagickWand *wand, const size_t columns,const size_t rows)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;the number of columns in the scaled image.
-			rows	[size_t] ;the number of rows in the scaled image.
+			columns	[size_t!] ;the number of columns in the scaled image.
+			rows	[size_t!] ;the number of rows in the scaled image.
 			return: [MagickBooleanType!]
 		]
 		MagickAdaptiveSharpenImage: "MagickAdaptiveSharpenImage" [
@@ -1085,9 +1083,9 @@ KernelInfo!: alias struct! [
 			;== Selects an individual threshold for each pixel based on the range of intensity values in its local neighborhood
 			;-- MagickBooleanType MagickAdaptiveThresholdImage(MagickWand *wand,const size_t width,const size_t height,const ssize_t offset)
 			wand	[MagickWand!] ;the magick wand.
-			width	[size_t] ;the width of the local neighborhood.
-			height	[size_t] ;the height of the local neighborhood.
-			offset	[integer64!] ;the mean offset.
+			width	[size_t!] ;the width of the local neighborhood.
+			height	[size_t!] ;the height of the local neighborhood.
+			offset	[ssize_t!] ;the mean offset.
 			return: [MagickBooleanType!]
 		]
 		MagickAddImage: "MagickAddImage" [
@@ -1206,8 +1204,8 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickBorderImage(MagickWand *wand,const PixelWand *bordercolor,const size_t width,const size_t height)
 			wand	[MagickWand!] ;the magick wand.
 			bordercolor	[PixelWand!] ;the border color pixel wand.
-			width	[size_t] ;the border width.
-			height	[size_t] ;the border height.
+			width	[size_t!] ;the border width.
+			height	[size_t!] ;the border height.
 			return: [MagickBooleanType!]
 		]
 		MagickBrightnessContrastImage: "MagickBrightnessContrastImage" [
@@ -1239,10 +1237,10 @@ KernelInfo!: alias struct! [
 			;== Removes a region of an image and collapses the image to occupy the removed portion
 			;-- MagickBooleanType MagickChopImage(MagickWand *wand,const size_t width,const size_t height,const ssize_t x,const ssize_t y)
 			wand	[MagickWand!] ;the magick wand.
-			width	[size_t] ;the region width.
-			height	[size_t] ;the region height.
-			x	[integer64!] ;the region x offset.
-			y	[integer64!] ;the region y offset.
+			width	[size_t!] ;the region width.
+			height	[size_t!] ;the region height.
+			x	[ssize_t!] ;the region x offset.
+			y	[ssize_t!] ;the region y offset.
 			return: [MagickBooleanType!]
 		]
 		MagickClampImage: "MagickClampImage" [
@@ -1361,8 +1359,8 @@ KernelInfo!: alias struct! [
 			wand	[MagickWand!] ;the magick wand.
 			composite_wand	[MagickWand!] ;none
 			compose	[CompositeOperator!] ;This operator affects how the composite is applied to the image.  The default is Over.  Choose from these operators:
-			x	[integer64!] ;the column offset of the composited image.
-			y	[integer64!] ;the row offset of the composited image.
+			x	[ssize_t!] ;the column offset of the composited image.
+			y	[ssize_t!] ;the row offset of the composited image.
 			return: [MagickBooleanType!]
 		]
 		MagickCompositeImageChannel: "MagickCompositeImageChannel" [
@@ -1372,8 +1370,8 @@ KernelInfo!: alias struct! [
 			channel	[ChannelType!] ;none
 			composite_wand	[MagickWand!] ;none
 			compose	[CompositeOperator!] ;This operator affects how the composite is applied to the image.  The default is Over.  Choose from these operators:
-			x	[integer64!] ;the column offset of the composited image.
-			y	[integer64!] ;the row offset of the composited image.
+			x	[ssize_t!] ;the column offset of the composited image.
+			y	[ssize_t!] ;the row offset of the composited image.
 			return: [MagickBooleanType!]
 		]
 		MagickContrastImage: "MagickContrastImage" [
@@ -1404,7 +1402,7 @@ KernelInfo!: alias struct! [
 			;== Applies a custom convolution kernel to the image
 			;-- MagickBooleanType MagickConvolveImage(MagickWand *wand,const size_t order,const double *kernel)
 			wand	[MagickWand!] ;the magick wand.
-			order	[size_t] ;the number of columns and rows in the filter kernel.
+			order	[size_t!] ;the number of columns and rows in the filter kernel.
 			kernel	[pointer! [float!]] ;An array of doubles representing the convolution kernel.
 			return: [MagickBooleanType!]
 		]
@@ -1413,7 +1411,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickConvolveImageChannel(MagickWand *wand,const ChannelType channel,const size_t order,const double *kernel)
 			wand	[MagickWand!] ;the magick wand.
 			channel	[ChannelType!] ;the image channel(s).
-			order	[size_t] ;the number of columns and rows in the filter kernel.
+			order	[size_t!] ;the number of columns and rows in the filter kernel.
 			kernel	[pointer! [float!]] ;An array of doubles representing the convolution kernel.
 			return: [MagickBooleanType!]
 		]
@@ -1421,25 +1419,25 @@ KernelInfo!: alias struct! [
 			;== Extracts a region of the image
 			;-- MagickBooleanType MagickCropImage(MagickWand *wand,const size_t width,const size_t height,const ssize_t x,const ssize_t y)
 			wand	[MagickWand!] ;the magick wand.
-			width	[size_t] ;the region width.
-			height	[size_t] ;the region height.
-			x	[integer64!] ;the region x-offset.
-			y	[integer64!] ;the region y-offset.
+			width	[size_t!] ;the region width.
+			height	[size_t!] ;the region height.
+			x	[ssize_t!] ;the region x-offset.
+			y	[ssize_t!] ;the region y-offset.
 			return: [MagickBooleanType!]
 		]
 		MagickCycleColormapImage: "MagickCycleColormapImage" [
 			;== Displaces an image's colormap by a given number of positions
 			;-- MagickBooleanType MagickCycleColormapImage(MagickWand *wand,const ssize_t displace)
 			wand	[MagickWand!] ;the magick wand.
-			displace	[integer64!] ;none
+			displace	[ssize_t!] ;none
 			return: [MagickBooleanType!]
 		]
 		MagickConstituteImage: "MagickConstituteImage" [
 			;== Adds an image to the wand comprised of the pixel data you supply
 			;-- MagickBooleanType MagickConstituteImage(MagickWand *wand,const size_t columns,const size_t rows,const char *map,const StorageType storage,void *pixels)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;width in pixels of the image.
-			rows	[size_t] ;height in pixels of the image.
+			columns	[size_t!] ;width in pixels of the image.
+			rows	[size_t!] ;height in pixels of the image.
 			map	[c-string!] ;This string reflects the expected ordering of the pixel array. It can be any combination or order of R = red, G = green, B = blue, A = alpha (0 is transparent), O = opacity (0 is opaque), C = cyan, Y = yellow, M = magenta, K = black, I = intensity (for grayscale), P = pad.
 			storage	[StorageType!] ;Define the data type of the pixels.  Float and double types are expected to be normalized [0..1] otherwise [0..QuantumRange].  Choose from these types: CharPixel, DoublePixel, FloatPixel, IntegerPixel, LongPixel, QuantumPixel, or ShortPixel.
 			pixels	[pointer! [integer!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
@@ -1496,7 +1494,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickDistortImage(MagickWand *wand,const DistortImageMethod method,const size_t number_arguments,const double *arguments,const MagickBooleanType bestfit)
 			wand	[MagickWand!] ;none
 			method	[DistortImageMethod!] ;the method of image distortion.
-			number_arguments	[size_t] ;the number of arguments given for this distortion method.
+			number_arguments	[size_t!] ;the number of arguments given for this distortion method.
 			arguments	[pointer! [float!]] ;the arguments for this distortion method.
 			bestfit	[MagickBooleanType!] ;Attempt to resize destination to fit distorted source.
 			return: [MagickBooleanType!]
@@ -1577,10 +1575,10 @@ KernelInfo!: alias struct! [
 			;== Extracts pixel data from an image and returns it to you
 			;-- MagickBooleanType MagickExportImagePixels(MagickWand *wand,const ssize_t x,const ssize_t y,const size_t columns,const size_t rows,const char *map,const StorageType storage,void *pixels)
 			wand	[MagickWand!] ;the magick wand.
-			x	[integer64!] ;These values define the perimeter of a region of pixels you want to extract.
-			y	[integer64!] ;These values define the perimeter of a region of pixels you want to extract.
-			columns	[size_t] ;These values define the perimeter of a region of pixels you want to extract.
-			rows	[size_t] ;These values define the perimeter of a region of pixels you want to extract.
+			x	[ssize_t!] ;These values define the perimeter of a region of pixels you want to extract.
+			y	[ssize_t!] ;These values define the perimeter of a region of pixels you want to extract.
+			columns	[size_t!] ;These values define the perimeter of a region of pixels you want to extract.
+			rows	[size_t!] ;These values define the perimeter of a region of pixels you want to extract.
 			map	[c-string!] ;This string reflects the expected ordering of the pixel array. It can be any combination or order of R = red, G = green, B = blue, A = alpha (0 is transparent), O = opacity (0 is opaque), C = cyan, Y = yellow, M = magenta, K = black, I = intensity (for grayscale), P = pad.
 			storage	[StorageType!] ;Define the data type of the pixels.  Float and double types are expected to be normalized [0..1] otherwise [0..QuantumRange].  Choose from these types: CharPixel, DoublePixel, FloatPixel, IntegerPixel, LongPixel, QuantumPixel, or ShortPixel.
 			pixels	[pointer! [integer!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
@@ -1590,10 +1588,10 @@ KernelInfo!: alias struct! [
 			;== Extends the image as defined by the geometry, gravity, and wand background color
 			;-- MagickBooleanType MagickExtentImage(MagickWand *wand,const size_t width,const size_t height,const ssize_t x,const ssize_t y)
 			wand	[MagickWand!] ;the magick wand.
-			width	[size_t] ;the region width.
-			height	[size_t] ;the region height.
-			x	[integer64!] ;the region x offset.
-			y	[integer64!] ;the region y offset.
+			width	[size_t!] ;the region width.
+			height	[size_t!] ;the region height.
+			x	[ssize_t!] ;the region x offset.
+			y	[ssize_t!] ;the region y offset.
 			return: [MagickBooleanType!]
 		]
 		MagickFilterImage: "MagickFilterImage" [
@@ -1625,8 +1623,8 @@ KernelInfo!: alias struct! [
 			fill	[PixelWand!] ;the floodfill color pixel wand.
 			fuzz	[float!] ;By default target must match a particular pixel color exactly.  However, in many cases two colors may differ by a small amount. The fuzz member of image defines how much tolerance is acceptable to consider two colors as the same.  For example, set fuzz to 10 and the color red at intensities of 100 and 102 respectively are now interpreted as the same color for the purposes of the floodfill.
 			bordercolor	[PixelWand!] ;the border color pixel wand.
-			x	[integer64!] ;the starting location of the operation.
-			y	[integer64!] ;the starting location of the operation.
+			x	[ssize_t!] ;the starting location of the operation.
+			y	[ssize_t!] ;the starting location of the operation.
 			invert	[MagickBooleanType!] ;paint any pixel that does not match the target color.
 			return: [MagickBooleanType!]
 		]
@@ -1648,10 +1646,10 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickFrameImage(MagickWand *wand,const PixelWand *matte_color,const size_t width,const size_t height,const ssize_t inner_bevel,const ssize_t outer_bevel)
 			wand	[MagickWand!] ;the magick wand.
 			matte_color	[PixelWand!] ;the frame color pixel wand.
-			width	[size_t] ;the border width.
-			height	[size_t] ;the border height.
-			inner_bevel	[integer64!] ;the inner bevel width.
-			outer_bevel	[integer64!] ;the outer bevel width.
+			width	[size_t!] ;the border width.
+			height	[size_t!] ;the border height.
+			inner_bevel	[ssize_t!] ;the inner bevel width.
+			outer_bevel	[ssize_t!] ;the outer bevel width.
 			return: [MagickBooleanType!]
 		]
 		MagickFunctionImage: "MagickFunctionImage" [
@@ -1659,7 +1657,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickFunctionImage(MagickWand *wand,const MagickFunction function,const size_t number_arguments,const double *arguments)
 			wand	[MagickWand!] ;the magick wand.
 			function	[MagickFunction!] ;the image function.
-			number_arguments	[size_t] ;the number of function arguments.
+			number_arguments	[size_t!] ;the number of function arguments.
 			arguments	[pointer! [float!]] ;the function arguments.
 			return: [MagickBooleanType!]
 		]
@@ -1669,7 +1667,7 @@ KernelInfo!: alias struct! [
 			wand	[MagickWand!] ;the magick wand.
 			channel	[ChannelType!] ;the channel(s).
 			function	[MagickFunction!] ;the image function.
-			number_arguments	[size_t] ;the number of function arguments.
+			number_arguments	[size_t!] ;the number of function arguments.
 			arguments	[pointer! [float!]] ;the function arguments.
 			return: [MagickBooleanType!]
 		]
@@ -1730,7 +1728,7 @@ KernelInfo!: alias struct! [
 			;== Returns MagickFalse if the image alpha channel is not activated
 			;-- size_t MagickGetImageAlphaChannel(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageClipMask: "MagickGetImageClipMask" [
 			;== Gets the image clip mask at the current image index
@@ -1749,14 +1747,14 @@ KernelInfo!: alias struct! [
 			;== Implements direct to memory image formats
 			;-- unsigned char *MagickGetImageBlob(MagickWand *wand,size_t *length)
 			wand	[MagickWand!] ;the magick wand.
-			length	[pointer! [integer!]] ;the length of the blob.
+			length	[pointer! [size_t!]] ;the length of the blob.
 			return: [pointer! [byte!]]
 		]
 		MagickGetImagesBlob: "MagickGetImagesBlob" [
 			;== Implements direct to memory image formats
 			;-- unsigned char *MagickGetImagesBlob(MagickWand *wand,size_t *length)
 			wand	[MagickWand!] ;the magick wand.
-			length	[pointer! [integer!]] ;the length of the blob.
+			length	[pointer! [size_t!]] ;the length of the blob.
 			return: [pointer! [byte!]]
 		]
 		MagickGetImageBluePrimary: "MagickGetImageBluePrimary" [
@@ -1779,7 +1777,7 @@ KernelInfo!: alias struct! [
 			;-- size_t MagickGetImageChannelDepth(MagickWand *wand,const ChannelType channel)
 			wand	[MagickWand!] ;the magick wand.
 			channel	[ChannelType!] ;the image channel(s).
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageChannelDistortion: "MagickGetImageChannelDistortion" [
 			;== Compares one or more image channels of an image to a reconstructed image and returns the specified distortion metric
@@ -1803,7 +1801,7 @@ KernelInfo!: alias struct! [
 			;== Returns features for each channel in the image in each of four directions (horizontal, vertical, left and right diagonals) for the specified distance
 			;-- ChannelFeatures *MagickGetImageChannelFeatures(MagickWand *wand,const size_t distance)
 			wand	[MagickWand!] ;the magick wand.
-			distance	[size_t] ;the distance.
+			distance	[size_t!] ;the distance.
 			return: [ChannelFeatures!]
 		]
 		MagickGetImageChannelKurtosis: "MagickGetImageChannelKurtosis" [
@@ -1843,7 +1841,7 @@ KernelInfo!: alias struct! [
 			;== Returns the color of the specified colormap index
 			;-- MagickBooleanType MagickGetImageColormapColor(MagickWand *wand,const size_t index,PixelWand *color)
 			wand	[MagickWand!] ;the magick wand.
-			index	[size_t] ;the offset into the image colormap.
+			index	[size_t!] ;the offset into the image colormap.
 			color	[PixelWand!] ;Return the colormap color in this wand.
 			return: [MagickBooleanType!]
 		]
@@ -1851,7 +1849,7 @@ KernelInfo!: alias struct! [
 			;== Gets the number of unique colors in the image
 			;-- size_t MagickGetImageColors(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageColorspace: "MagickGetImageColorspace" [
 			;== Gets the image colorspace
@@ -1873,21 +1871,21 @@ KernelInfo!: alias struct! [
 		]
 		MagickGetImageCompressionQuality: "MagickGetImageCompressionQuality" [
 			;== Gets the image compression quality
-			;-- size_t MagickGetImageCompression(MagickWand *wand)
+			;-- size_t MagickGetImageCompressionQuality(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageDelay: "MagickGetImageDelay" [
 			;== Gets the image delay
 			;-- size_t MagickGetImageDelay(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageDepth: "MagickGetImageDepth" [
 			;== Gets the image depth
 			;-- size_t MagickGetImageDepth(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageDistortion: "MagickGetImageDistortion" [
 			;== Compares an image to a reconstructed image and returns the specified distortion metric
@@ -1946,13 +1944,13 @@ KernelInfo!: alias struct! [
 			;== Returns the image height
 			;-- size_t MagickGetImageHeight(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageHistogram: "MagickGetImageHistogram" [
 			;== Returns the image histogram as an array of PixelWand wands
 			;-- PixelWand **MagickGetImageHistogram(MagickWand *wand,size_t *number_colors)
 			wand	[MagickWand!] ;the magick wand.
-			number_colors	[pointer! [integer!]] ;the number of unique colors in the image and the number of pixel wands returned.
+			number_colors	[pointer! [size_t!]] ;the number of unique colors in the image and the number of pixel wands returned.
 			return: [pointer! [integer!]]
 		]
 		MagickGetImageInterlaceScheme: "MagickGetImageInterlaceScheme" [
@@ -1971,7 +1969,7 @@ KernelInfo!: alias struct! [
 			;== Gets the image iterations
 			;-- size_t MagickGetImageIterations(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageLength: "MagickGetImageLength" [
 			;== Returns the image length in bytes
@@ -1997,18 +1995,18 @@ KernelInfo!: alias struct! [
 			;== Returns the page geometry associated with the image
 			;-- MagickBooleanType MagickGetImagePage(MagickWand *wand,size_t *width,size_t *height,ssize_t *x,ssize_t *y)
 			wand	[MagickWand!] ;the magick wand.
-			width	[pointer! [integer!]] ;the page width.
-			height	[pointer! [integer!]] ;the page height.
-			x	[pointer! [integer!]] ;int64! ] ;the page x-offset.
-			y	[pointer! [integer!]] ;int64! ] ;the page y-offset.
+			width	[pointer! [size_t!]] ;the page width.
+			height	[pointer! [size_t!]] ;the page height.
+			x	[pointer! [ssize_t!]] ;the page x-offset.
+			y	[pointer! [ssize_t!]] ;the page y-offset.
 			return: [MagickBooleanType!]
 		]
 		MagickGetImagePixelColor: "MagickGetImagePixelColor" [
 			;== Returns the color of the specified pixel
 			;-- MagickBooleanType MagickGetImagePixelColor(MagickWand *wand,const ssize_t x,const ssize_t y,PixelWand *color)
 			wand	[MagickWand!] ;the magick wand.
-			x	[integer64!] ;the pixel offset into the image.
-			y	[integer64!] ;the pixel offset into the image.
+			x	[ssize_t!] ;the pixel offset into the image.
+			y	[ssize_t!] ;the pixel offset into the image.
 			color	[PixelWand!] ;Return the colormap color in this wand.
 			return: [MagickBooleanType!]
 		]
@@ -2024,10 +2022,10 @@ KernelInfo!: alias struct! [
 			;== Extracts a region of the image and returns it as a a new wand
 			;-- MagickWand *MagickGetImageRegion(MagickWand *wand,const size_t width,const size_t height,const ssize_t x,const ssize_t y)
 			wand	[MagickWand!] ;the magick wand.
-			width	[size_t] ;the region width.
-			height	[size_t] ;the region height.
-			x	[integer64!] ;the region x offset.
-			y	[integer64!] ;the region y offset.
+			width	[size_t!] ;the region width.
+			height	[size_t!] ;the region height.
+			x	[ssize_t!] ;the region x offset.
+			y	[ssize_t!] ;the region y offset.
 			return: [MagickWand!]
 		]
 		MagickGetImageRenderingIntent: "MagickGetImageRenderingIntent" [
@@ -2048,7 +2046,7 @@ KernelInfo!: alias struct! [
 			;== Gets the image scene
 			;-- size_t MagickGetImageScene(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageSignature: "MagickGetImageSignature" [
 			;== Generates an SHA-256 message digest for the image pixel stream
@@ -2060,7 +2058,7 @@ KernelInfo!: alias struct! [
 			;== Gets the image ticks-per-second
 			;-- size_t MagickGetImageTicksPerSecond(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageType: "MagickGetImageType" [
 			;== Gets the potential image type:
@@ -2092,13 +2090,13 @@ KernelInfo!: alias struct! [
 			;== Returns the image width
 			;-- size_t MagickGetImageWidth(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetNumberImages: "MagickGetNumberImages" [
 			;== Returns the number of images associated with a magick wand
 			;-- size_t MagickGetNumberImages(MagickWand *wand)
 			wand	[MagickWand!] ;the magick wand.
-			return: [size_t]
+			return: [size_t!]
 		]
 		MagickGetImageTotalInkDensity: "MagickGetImageTotalInkDensity" [
 			;== Gets the image total ink density
@@ -2150,10 +2148,10 @@ KernelInfo!: alias struct! [
 			;== Accepts pixel datand stores it in the image at the location you specify
 			;-- MagickBooleanType MagickImportImagePixels(MagickWand *wand,const ssize_t x,const ssize_t y,const size_t columns,const size_t rows,const char *map,const StorageType storage,const void *pixels)
 			wand	[MagickWand!] ;the magick wand.
-			x	[integer64!] ;These values define the perimeter of a region of pixels you want to define.
-			y	[integer64!] ;These values define the perimeter of a region of pixels you want to define.
-			columns	[size_t] ;These values define the perimeter of a region of pixels you want to define.
-			rows	[size_t] ;These values define the perimeter of a region of pixels you want to define.
+			x	[ssize_t!] ;These values define the perimeter of a region of pixels you want to define.
+			y	[ssize_t!] ;These values define the perimeter of a region of pixels you want to define.
+			columns	[size_t!] ;These values define the perimeter of a region of pixels you want to define.
+			rows	[size_t!] ;These values define the perimeter of a region of pixels you want to define.
 			map	[c-string!] ;This string reflects the expected ordering of the pixel array. It can be any combination or order of R = red, G = green, B = blue, A = alpha (0 is transparent), O = opacity (0 is opaque), C = cyan, Y = yellow, M = magenta, K = black, I = intensity (for grayscale), P = pad.
 			storage	[StorageType!] ;Define the data type of the pixels.  Float and double types are expected to be normalized [0..1] otherwise [0..QuantumRange].  Choose from these types: CharPixel, ShortPixel, IntegerPixel, LongPixel, FloatPixel, or DoublePixel.
 			pixels	[pointer! [integer!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
@@ -2205,8 +2203,8 @@ KernelInfo!: alias struct! [
 			;== Rescales image with seam carving
 			;-- MagickBooleanType MagickLiquidRescaleImage(MagickWand *wand, const size_t columns,const size_t rows, const double delta_x,const double rigidity)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;the number of columns in the scaled image.
-			rows	[size_t] ;the number of rows in the scaled image.
+			columns	[size_t!] ;the number of columns in the scaled image.
+			rows	[size_t!] ;the number of rows in the scaled image.
 			delta_x	[float!] ;maximum seam transversal step (0 means straight seams).
 			rigidity	[float!] ;introduce a bias for non-straight seams (typically 0).
 			return: [MagickBooleanType!]
@@ -2254,7 +2252,7 @@ KernelInfo!: alias struct! [
 			;== Method morphs a set of images
 			;-- MagickWand *MagickMorphImages(MagickWand *wand,const size_t number_frames)
 			wand	[MagickWand!] ;the magick wand.
-			number_frames	[size_t] ;the number of in-between images to generate.
+			number_frames	[size_t!] ;the number of in-between images to generate.
 			return: [MagickWand!]
 		]
 		MagickMorphologyImage: "MagickMorphologyImage" [
@@ -2262,7 +2260,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickMorphologyImage(MagickWand *wand,MorphologyMethod method,const ssize_t iterations,KernelInfo *kernel)
 			wand	[MagickWand!] ;the magick wand.
 			method	[MorphologyMethod!] ;the morphology method to be applied.
-			iterations	[integer64!] ;apply the operation this many times (or no change). A value of -1 means loop until no change found.  How this is applied may depend on the morphology method.  Typically this is a value of 1.
+			iterations	[ssize_t!] ;apply the operation this many times (or no change). A value of -1 means loop until no change found.  How this is applied may depend on the morphology method.  Typically this is a value of 1.
 			kernel	[KernelInfo!] ;An array of doubles representing the morphology kernel.
 			return: [MagickBooleanType!]
 		]
@@ -2272,7 +2270,7 @@ KernelInfo!: alias struct! [
 			wand	[MagickWand!] ;the magick wand.
 			channel	[ChannelType!] ;the image channel(s).
 			method	[MorphologyMethod!] ;the morphology method to be applied.
-			iterations	[integer64!] ;apply the operation this many times (or no change). A value of -1 means loop until no change found.  How this is applied may depend on the morphology method.  Typically this is a value of 1.
+			iterations	[ssize_t!] ;apply the operation this many times (or no change). A value of -1 means loop until no change found.  How this is applied may depend on the morphology method.  Typically this is a value of 1.
 			kernel	[KernelInfo!] ;An array of doubles representing the morphology kernel.
 			return: [MagickBooleanType!]
 		]
@@ -2304,7 +2302,7 @@ KernelInfo!: alias struct! [
 		]
 		MagickNegateImageChannel: "MagickNegateImageChannel" [
 			;== Negates the colors in the reference image
-			;-- MagickBooleanType MagickNegateImage(MagickWand *wand,const ChannelType channel,const MagickBooleanType gray)
+			;-- MagickBooleanType MagickNegateImageChannel(MagickWand *wand,const ChannelType channel,const MagickBooleanType gray)
 			wand	[MagickWand!] ;the magick wand.
 			channel	[ChannelType!] ;the image channel(s).
 			gray	[MagickBooleanType!] ;If MagickTrue, only negate grayscale pixels within the image.
@@ -2314,8 +2312,8 @@ KernelInfo!: alias struct! [
 			;== Adds a blank image canvas of the specified size and background color to the wand
 			;-- MagickBooleanType MagickNewImage(MagickWand *wand,const size_t columns,const size_t rows,const PixelWand *background)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;none
-			rows	[size_t] ;none
+			columns	[size_t!] ;none
+			rows	[size_t!] ;none
 			background	[PixelWand!] ;the image color.
 			return: [MagickBooleanType!]
 		]
@@ -2399,7 +2397,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickPingImageBlob(MagickWand *wand,const void *blob,const size_t length)
 			wand	[MagickWand!] ;the magick wand.
 			blob	[pointer! [byte!]] ;the blob.
-			length	[size_t] ;the blob length.
+			length	[size_t!] ;the blob length.
 			return: [MagickBooleanType!]
 		]
 		MagickPingImageFile: "MagickPingImageFile" [
@@ -2442,9 +2440,9 @@ KernelInfo!: alias struct! [
 			;== Analyzes the colors within a reference image and chooses a fixed number of colors to represent the image
 			;-- MagickBooleanType MagickQuantizeImage(MagickWand *wand,const size_t number_colors,const ColorspaceType colorspace,const size_t treedepth,const MagickBooleanType dither,const MagickBooleanType measure_error)
 			wand	[MagickWand!] ;the magick wand.
-			number_colors	[size_t] ;the number of colors.
+			number_colors	[size_t!] ;the number of colors.
 			colorspace	[ColorspaceType!] ;Perform color reduction in this colorspace, typically RGBColorspace.
-			treedepth	[size_t] ;Normally, this integer value is zero or one.  A zero or one tells Quantize to choose a optimal tree depth of Log4(number_colors).      A tree of this depth generally allows the best representation of the reference image with the least amount of memory and the fastest computational speed.  In some cases, such as an image with low color dispersion (a few number of colors), a value other than Log4(number_colors) is required.  To expand the color tree completely, use a value of 8.
+			treedepth	[size_t!] ;Normally, this integer value is zero or one.  A zero or one tells Quantize to choose a optimal tree depth of Log4(number_colors).      A tree of this depth generally allows the best representation of the reference image with the least amount of memory and the fastest computational speed.  In some cases, such as an image with low color dispersion (a few number of colors), a value other than Log4(number_colors) is required.  To expand the color tree completely, use a value of 8.
 			dither	[MagickBooleanType!] ;A value other than zero distributes the difference between an original image and the corresponding color reduced image to neighboring pixels along a Hilbert curve.
 			measure_error	[MagickBooleanType!] ;A value other than zero measures the difference between the original and quantized images.  This difference is the total quantization error.  The error is computed by summing over all pixels in an image the distance squared in RGB space between each reference pixel value and its quantized value.
 			return: [MagickBooleanType!]
@@ -2453,9 +2451,9 @@ KernelInfo!: alias struct! [
 			;== Analyzes the colors within a sequence of images and chooses a fixed number of colors to represent the image
 			;-- MagickBooleanType MagickQuantizeImages(MagickWand *wand,const size_t number_colors,const ColorspaceType colorspace,const size_t treedepth,const MagickBooleanType dither,const MagickBooleanType measure_error)
 			wand	[MagickWand!] ;the magick wand.
-			number_colors	[size_t] ;the number of colors.
+			number_colors	[size_t!] ;the number of colors.
 			colorspace	[ColorspaceType!] ;Perform color reduction in this colorspace, typically RGBColorspace.
-			treedepth	[size_t] ;Normally, this integer value is zero or one.  A zero or one tells Quantize to choose a optimal tree depth of Log4(number_colors).      A tree of this depth generally allows the best representation of the reference image with the least amount of memory and the fastest computational speed.  In some cases, such as an image with low color dispersion (a few number of colors), a value other than Log4(number_colors) is required.  To expand the color tree completely, use a value of 8.
+			treedepth	[size_t!] ;Normally, this integer value is zero or one.  A zero or one tells Quantize to choose a optimal tree depth of Log4(number_colors).      A tree of this depth generally allows the best representation of the reference image with the least amount of memory and the fastest computational speed.  In some cases, such as an image with low color dispersion (a few number of colors), a value other than Log4(number_colors) is required.  To expand the color tree completely, use a value of 8.
 			dither	[MagickBooleanType!] ;A value other than zero distributes the difference between an original image and the corresponding color reduced algorithm to neighboring pixels along a Hilbert curve.
 			measure_error	[MagickBooleanType!] ;A value other than zero measures the difference between the original and quantized images.  This difference is the total quantization error.  The error is computed by summing over all pixels in an image the distance squared in RGB space between each reference pixel value and its quantized value.
 			return: [MagickBooleanType!]
@@ -2479,10 +2477,10 @@ KernelInfo!: alias struct! [
 			;== Creates a simulated three-dimensional button-like effect by lightening and darkening the edges of the image
 			;-- MagickBooleanType MagickRaiseImage(MagickWand *wand,const size_t width,const size_t height,const ssize_t x,const ssize_t y,const MagickBooleanType raise)
 			wand	[MagickWand!] ;the magick wand.
-			width	[size_t] ;Define the dimensions of the area to raise.
-			height	[size_t] ;Define the dimensions of the area to raise.
-			x	[integer64!] ;Define the dimensions of the area to raise.
-			y	[integer64!] ;Define the dimensions of the area to raise.
+			width	[size_t!] ;Define the dimensions of the area to raise.
+			height	[size_t!] ;Define the dimensions of the area to raise.
+			x	[ssize_t!] ;Define the dimensions of the area to raise.
+			y	[ssize_t!] ;Define the dimensions of the area to raise.
 			raise	[MagickBooleanType!] ;A value other than zero creates a 3-D raise effect, otherwise it has a lowered effect.
 			return: [MagickBooleanType!]
 		]
@@ -2515,7 +2513,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickReadImageBlob(MagickWand *wand,const void *blob,const size_t length)
 			wand	[MagickWand!] ;the magick wand.
 			blob	[pointer! [byte!]] ;the blob.
-			length	[size_t] ;the blob length.
+			length	[size_t!] ;the blob length.
 			return: [MagickBooleanType!]
 		]
 		MagickReadImageFile: "MagickReadImageFile" [
@@ -2560,8 +2558,8 @@ KernelInfo!: alias struct! [
 			;== Scales an image to the desired dimensions with one of these filters:
 			;-- MagickBooleanType MagickResizeImage(MagickWand *wand,const size_t columns,const size_t rows,const FilterTypes filter,const double blur)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;the number of columns in the scaled image.
-			rows	[size_t] ;the number of rows in the scaled image.
+			columns	[size_t!] ;the number of columns in the scaled image.
+			rows	[size_t!] ;the number of rows in the scaled image.
 			filter	[FilterTypes!] ;Image filter to use.
 			blur	[float!] ;the blur factor where > 1 is blurry, < 1 is sharp.
 			return: [MagickBooleanType!]
@@ -2570,8 +2568,8 @@ KernelInfo!: alias struct! [
 			;== Offsets an image as defined by x and y
 			;-- MagickBooleanType MagickRollImage(MagickWand *wand,const ssize_t x,const size_t y)
 			wand	[MagickWand!] ;the magick wand.
-			x	[integer64!] ;the x offset.
-			y	[size_t] ;the y offset.
+			x	[ssize_t!] ;the x offset.
+			y	[size_t!] ;the y offset.
 			return: [MagickBooleanType!]
 		]
 		MagickRotateImage: "MagickRotateImage" [
@@ -2586,16 +2584,16 @@ KernelInfo!: alias struct! [
 			;== Scales an image to the desired dimensions with pixel sampling
 			;-- MagickBooleanType MagickSampleImage(MagickWand *wand,const size_t columns,const size_t rows)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;the number of columns in the scaled image.
-			rows	[size_t] ;the number of rows in the scaled image.
+			columns	[size_t!] ;the number of columns in the scaled image.
+			rows	[size_t!] ;the number of rows in the scaled image.
 			return: [MagickBooleanType!]
 		]
 		MagickScaleImage: "MagickScaleImage" [
 			;== Scales the size of an image to the given dimensions
 			;-- MagickBooleanType MagickScaleImage(MagickWand *wand,const size_t columns,const size_t rows)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;the number of columns in the scaled image.
-			rows	[size_t] ;the number of rows in the scaled image.
+			columns	[size_t!] ;the number of columns in the scaled image.
+			rows	[size_t!] ;the number of rows in the scaled image.
 			return: [MagickBooleanType!]
 		]
 		MagickSegmentImage: "MagickSegmentImage" [
@@ -2689,7 +2687,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickSetImageChannelDepth(MagickWand *wand,const ChannelType channel,const size_t depth)
 			wand	[MagickWand!] ;the magick wand.
 			channel	[ChannelType!] ;the image channel(s).
-			depth	[size_t] ;the image depth in bits.
+			depth	[size_t!] ;the image depth in bits.
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageClipMask: "MagickSetImageClipMask" [
@@ -2710,7 +2708,7 @@ KernelInfo!: alias struct! [
 			;== Sets the color of the specified colormap index
 			;-- MagickBooleanType MagickSetImageColormapColor(MagickWand *wand,const size_t index,const PixelWand *color)
 			wand	[MagickWand!] ;the magick wand.
-			index	[size_t] ;the offset into the image colormap.
+			index	[size_t!] ;the offset into the image colormap.
 			color	[PixelWand!] ;Return the colormap color in this wand.
 			return: [MagickBooleanType!]
 		]
@@ -2739,21 +2737,21 @@ KernelInfo!: alias struct! [
 			;== Sets the image compression quality
 			;-- MagickBooleanType MagickSetImageCompressionQuality(MagickWand *wand,const size_t quality)
 			wand	[MagickWand!] ;the magick wand.
-			quality	[size_t] ;the image compression tlityype.
+			quality	[size_t!] ;the image compression tlityype.
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageDelay: "MagickSetImageDelay" [
 			;== Sets the image delay
 			;-- MagickBooleanType MagickSetImageDelay(MagickWand *wand,const size_t delay)
 			wand	[MagickWand!] ;the magick wand.
-			delay	[size_t] ;the image delay in ticks-per-second units.
+			delay	[size_t!] ;the image delay in ticks-per-second units.
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageDepth: "MagickSetImageDepth" [
 			;== Sets the image depth
 			;-- MagickBooleanType MagickSetImageDepth(MagickWand *wand,const size_t depth)
 			wand	[MagickWand!] ;the magick wand.
-			depth	[size_t] ;the image depth in bits: 8, 16, or 32.
+			depth	[size_t!] ;the image depth in bits: 8, 16, or 32.
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageDispose: "MagickSetImageDispose" [
@@ -2767,7 +2765,7 @@ KernelInfo!: alias struct! [
 			;== Sets the image size (i
 			;-- MagickBooleanType MagickSetImageExtent(MagickWand *wand,const size_t columns,const unsigned rows)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;The image width in pixels.
+			columns	[size_t!] ;The image width in pixels.
 			rows	[integer!] ;The image height in pixels.
 			return: [MagickBooleanType!]
 		]
@@ -2832,12 +2830,12 @@ KernelInfo!: alias struct! [
 			;== Sets the image iterations
 			;-- MagickBooleanType MagickSetImageIterations(MagickWand *wand,const size_t iterations)
 			wand	[MagickWand!] ;the magick wand.
-			iterations	[size_t] ;none
+			iterations	[size_t!] ;none
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageMatte: "MagickSetImageMatte" [
 			;== Sets the image matte channel
-			;-- MagickBooleanType MagickSetImageMatteColor(MagickWand *wand,const MagickBooleanType *matte)
+			;-- MagickBooleanType MagickSetImageMatte(MagickWand *wand,const MagickBooleanType *matte)
 			wand	[MagickWand!] ;the magick wand.
 			matte	[MagickBooleanType!] ;Set to MagickTrue to enable the image matte channel otherwise MagickFalse.
 			return: [MagickBooleanType!]
@@ -2867,10 +2865,10 @@ KernelInfo!: alias struct! [
 			;== Sets the page geometry of the image
 			;-- MagickBooleanType MagickSetImagePage(MagickWand *wand,const size_t width,const size_t height,const ssize_t x,const ssize_t y)
 			wand	[MagickWand!] ;the magick wand.
-			width	[size_t] ;the page width.
-			height	[size_t] ;the page height.
-			x	[integer64!] ;the page x-offset.
-			y	[integer64!] ;the page y-offset.
+			width	[size_t!] ;the page width.
+			height	[size_t!] ;the page height.
+			x	[ssize_t!] ;the page x-offset.
+			y	[ssize_t!] ;the page y-offset.
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageProgressMonitor: "MagickSetImageProgressMonitor" [
@@ -2908,14 +2906,14 @@ KernelInfo!: alias struct! [
 			;== Sets the image scene
 			;-- MagickBooleanType MagickSetImageScene(MagickWand *wand,const size_t scene)
 			wand	[MagickWand!] ;the magick wand.
-			scene	[size_t] ;none
+			scene	[size_t!] ;none
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageTicksPerSecond: "MagickSetImageTicksPerSecond" [
 			;== Sets the image ticks-per-second
 			;-- MagickBooleanType MagickSetImageTicksPerSecond(MagickWand *wand,const ssize_t ticks_per-second)
 			wand	[MagickWand!] ;the magick wand.
-			ticks_per-second	[integer64!] ;none
+			ticks_per-second	[ssize_t!] ;none
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageType: "MagickSetImageType" [
@@ -2962,8 +2960,8 @@ KernelInfo!: alias struct! [
 			wand	[MagickWand!] ;the magick wand.
 			opacity	[float!] ;percentage transparency.
 			sigma	[float!] ;the standard deviation of the Gaussian, in pixels.
-			x	[integer64!] ;the shadow x-offset.
-			y	[integer64!] ;the shadow y-offset.
+			x	[ssize_t!] ;the shadow x-offset.
+			y	[ssize_t!] ;the shadow y-offset.
 			return: [MagickBooleanType!]
 		]
 		MagickSharpenImage: "MagickSharpenImage" [
@@ -2987,8 +2985,8 @@ KernelInfo!: alias struct! [
 			;== Shaves pixels from the image edges
 			;-- MagickBooleanType MagickShaveImage(MagickWand *wand,const size_t columns,const size_t rows)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;the number of columns in the scaled image.
-			rows	[size_t] ;the number of rows in the scaled image.
+			columns	[size_t!] ;the number of columns in the scaled image.
+			rows	[size_t!] ;the number of rows in the scaled image.
 			return: [MagickBooleanType!]
 		]
 		MagickShearImage: "MagickShearImage" [
@@ -3042,7 +3040,7 @@ KernelInfo!: alias struct! [
 			;-- MagickWand *MagickSmushImages(MagickWand *wand,const MagickBooleanType stack,const ssize_t offset)
 			wand	[MagickWand!] ;the magick wand.
 			stack	[MagickBooleanType!] ;By default, images are stacked left-to-right. Set stack to MagickTrue to stack them top-to-bottom.
-			offset	[integer64!] ;minimum distance in pixels between images.
+			offset	[ssize_t!] ;minimum distance in pixels between images.
 			return: [MagickWand!]
 		]
 		MagickSolarizeImage: "MagickSolarizeImage" [
@@ -3056,10 +3054,10 @@ KernelInfo!: alias struct! [
 			;== Splices a solid color into the image
 			;-- MagickBooleanType MagickSpliceImage(MagickWand *wand,const size_t width,const size_t height,const ssize_t x,const ssize_t y)
 			wand	[MagickWand!] ;the magick wand.
-			width	[size_t] ;the region width.
-			height	[size_t] ;the region height.
-			x	[integer64!] ;the region x offset.
-			y	[integer64!] ;the region y offset.
+			width	[size_t!] ;the region width.
+			height	[size_t!] ;the region height.
+			x	[ssize_t!] ;the region x offset.
+			y	[ssize_t!] ;the region y offset.
 			return: [MagickBooleanType!]
 		]
 		MagickSpreadImage: "MagickSpreadImage" [
@@ -3075,7 +3073,7 @@ KernelInfo!: alias struct! [
 			wand	[MagickWand!] ;the magick wand.
 			type	[StatisticType!] ;the statistic type (e.g. median, mode, etc.).
 			width	[float!] ;the width of the pixel neighborhood.
-			height	[size_t] ;the height of the pixel neighborhood.
+			height	[size_t!] ;the height of the pixel neighborhood.
 			return: [MagickBooleanType!]
 		]
 		MagickStatisticImageChannel: "MagickStatisticImageChannel" [
@@ -3085,7 +3083,7 @@ KernelInfo!: alias struct! [
 			channel	[ChannelType!] ;the image channel(s).
 			type	[StatisticType!] ;the statistic type (e.g. median, mode, etc.).
 			width	[float!] ;the width of the pixel neighborhood.
-			height	[size_t] ;the height of the pixel neighborhood.
+			height	[size_t!] ;the height of the pixel neighborhood.
 			return: [MagickBooleanType!]
 		]
 		MagickSteganoImage: "MagickSteganoImage" [
@@ -3093,7 +3091,7 @@ KernelInfo!: alias struct! [
 			;-- MagickWand *MagickSteganoImage(MagickWand *wand,const MagickWand *watermark_wand,const ssize_t offset)
 			wand	[MagickWand!] ;the magick wand.
 			watermark_wand	[MagickWand!] ;the watermark wand.
-			offset	[integer64!] ;Start hiding at this offset into the image.
+			offset	[ssize_t!] ;Start hiding at this offset into the image.
 			return: [MagickWand!]
 		]
 		MagickStereoImage: "MagickStereoImage" [
@@ -3142,8 +3140,8 @@ KernelInfo!: alias struct! [
 			;== Changes the size of an image to the given dimensions and removes any associated profiles
 			;-- MagickBooleanType MagickThumbnailImage(MagickWand *wand,const size_t columns,const size_t rows)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t] ;the number of columns in the scaled image.
-			rows	[size_t] ;the number of rows in the scaled image.
+			columns	[size_t!] ;the number of columns in the scaled image.
+			rows	[size_t!] ;the number of rows in the scaled image.
 			return: [MagickBooleanType!]
 		]
 		MagickTintImage: "MagickTintImage" [
@@ -3231,8 +3229,8 @@ KernelInfo!: alias struct! [
 			wand	[MagickWand!] ;the magick wand.
 			black_point	[float!] ;the black point.
 			white_point	[float!] ;the white point.
-			x	[integer64!] ;Define the x and y ellipse offset.
-			y	[integer64!] ;Define the x and y ellipse offset.
+			x	[ssize_t!] ;Define the x and y ellipse offset.
+			y	[ssize_t!] ;Define the x and y ellipse offset.
 			return: [MagickBooleanType!]
 		]
 		MagickWaveImage: "MagickWaveImage" [
