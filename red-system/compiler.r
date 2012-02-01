@@ -1786,21 +1786,24 @@ system-dialect: context [
 				type: comp-call expr/1 next expr 		;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
 			][
-				unless any [
+				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment
 					all [set-path? variable literal? unbox expr] ;-- value loaded at lower level
 					tag? unbox expr
 				][
 					emitter/target/emit-load either boxed [boxed][expr]	;-- emit code for single value
+					either all [boxed not decimal? unbox expr][
+						emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
+						boxed/type
+					][
+						resolve-expr-type expr
+					]
+				][
+					resolve-expr-type expr
 				]
-				last-type: resolve-expr-type expr
 			]
 			
 			;-- postprocessing result
-			if boxed [
-				emitter/target/emit-casting boxed no 	;-- insert runtime type casting if required
-				last-type: boxed/type
-			]
 			if all [
 				any [keep? variable]					;-- if result needs to be stored
 				block? expr								;-- and if expr is a function call
@@ -1961,7 +1964,11 @@ system-dialect: context [
 			expr: comp-dialect							;-- compile function's body
 			
 			if ret: select spec return-def [
-				check-expected-type/ret name expr ret	;-- validate return value type	
+				check-expected-type/ret name expr ret	;-- validate return value type
+				if object? expr [		
+					emitter/target/emit-casting expr no	;-- insert runtime type casting if required
+					last-type: expr/type
+				]
 				if all [
 					last-type/1 = 'logic!
 					block? expr
@@ -2154,7 +2161,10 @@ system-dialect: context [
 			set-verbose-level 0
 			
 			if opts/runtime? [comp-runtime-epilog]
+			
+			set-verbose-level opts/verbosity
 			compiler/finalize							;-- compile all functions
+			set-verbose-level 0
 		]
 		if verbose >= 5 [
 			print [

@@ -195,6 +195,9 @@ form-type: func [
 			29	["hardware memory error consumed AR"]
 			30	["hardware memory error consumed AO"]
 			31	["privileged register"]
+			32	["segmentation fault"]		;-- generic SIGSEGV message
+			33	["FPU error"]				;-- generic SIGFPE message
+			34	["Bus error"]				;-- generic SIGBUS message
 		
 			96	["virtual memory release failed"]
 			97	["out of memory"]
