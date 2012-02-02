@@ -1316,7 +1316,9 @@ make target-class [
 				emit-push <last>
 			]
 			object! [
-				emit-casting value no			
+				unless compiler/literal? value/data [
+					emit-casting value no
+				]
 				either cdecl [
 					emit-push/with/cdecl value/data value
 				][
@@ -1714,8 +1716,8 @@ make target-class [
 						#{ed9b1b00}					;-- FLDD d1, [fp, #[-]n]	; local
 				][
 					emit-float-variable args/2
-						#{ed932a00} 				;-- FLDS s2, [r3]			; global
-						#{ed9b2a00}					;-- FLDS s2, [fp, #[-]n]	; local
+						#{ed931a00} 				;-- FLDS s2, [r3]			; global
+						#{ed9b1a00}					;-- FLDS s2, [fp, #[-]n]	; local
 				]
 				if object? args/2 [emit-vfp-casting/right args/2]
 			]
