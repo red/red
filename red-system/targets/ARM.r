@@ -1922,7 +1922,8 @@ make target-class [
 			if 4 < args-size [
 				compiler/throw-error "[ARM emitter] more than 4 arguments in callbacks, not yet supported"
 			]
-			emit-i32 #{e92d4ff0}					;-- STMFD sp!, {r4-r11, lr}	; @@ save VFP regs also
+			emit-i32 #{e92d4ff0}					;-- STMFD sp!, {r4-r11, lr}
+			emit-i32 #{ed2d8b10}					;-- FSTMD sp!, {d8-d15}
 			repeat i args-size [
 				emit-i32 #{e92d00}					;-- PUSH {r<n>}
 				emit-i32 to char! shift/left 1 args-size - i
@@ -1958,6 +1959,7 @@ make target-class [
 		]
 		
 		if all [block? fspec/4/1 fspec/5 = 'callback][
+			emit-i32 #{ed3d8b10}					;-- FLDMD sp!, {d8-d15}
 			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
 		]
 
