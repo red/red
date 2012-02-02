@@ -541,14 +541,24 @@ Red/System [
 	ItalicStyle
 	ObliqueStyle
 ]
+#enum PaintMethod! [
+	PointMethod
+	ReplaceMethod
+	FloodfillMethod
+	FillToBorderMethod
+	ResetMethod
+]
+#enum PathMode! [DefaultPathMode AbsolutePathMode RelativePathMode]
 
 #define size_t!  integer!
 #define ssize_t! integer!
 #define FILE!   integer!
-#define MagickWand!  [pointer! [integer!]] ;handle!
-#define PixelWand!   [pointer! [integer!]] ;handle!
-#define DrawingWand! [pointer! [integer!]] ;handle!
-#define Image!       [pointer! [integer!]] ;handle!
+#define MagickWand!   [pointer! [integer!]] ;handle!
+#define PixelWand!    [pointer! [integer!]] ;handle!
+#define DrawingWand!  [pointer! [integer!]] ;handle!
+#define Image!        [pointer! [integer!]] ;handle!
+#define AffineMatrix! [pointer! [integer!]] ;handle!
+#define PointInfo!    [pointer! [integer!]] ;handle!
 #define Quantum! integer!     ;??
 #define IndexPacket! integer! ;??
 #define ChannelFeatures! [pointer! [integer!]] ;??
@@ -3368,7 +3378,7 @@ KernelInfo!: alias struct! [
 			;== Adjusts the current affine transformation matrix with the specified affine transformation matrix
 			;-- void DrawAffine(DrawingWand *wand,const AffineMatrix *affine)
 			wand	[DrawingWand!] ;Drawing wand
-			affine	[none] ;Affine matrix parameters
+			affine	[AffineMatrix!] ;Affine matrix parameters
 		]
 		DrawAnnotation: "DrawAnnotation" [
 			;== Draws text on the image
@@ -3394,7 +3404,7 @@ KernelInfo!: alias struct! [
 			;-- void DrawBezier(DrawingWand *wand,const size_t number_coordinates,const PointInfo *coordinates)
 			wand	[DrawingWand!] ;the drawing wand.
 			number_coordinates	[size_t!] ;number of coordinates
-			coordinates	[none] ;coordinates
+			coordinates	[PointInfo!] ;coordinates
 		]
 		DrawCircle: "DrawCircle" [
 			;== Draws a circle on the image
@@ -3408,7 +3418,7 @@ KernelInfo!: alias struct! [
 		DrawClearException: "DrawClearException" [
 			;== Clear any exceptions associated with the wand
 			;-- MagickBooleanType DrawClearException(DrawWand *wand)
-			wand	[none] ;the drawing wand.
+			wand	[DrawingWand!] ;the drawing wand.
 			return: [MagickBooleanType!]
 		]
 		DrawComposite: "DrawComposite" [
@@ -3429,7 +3439,7 @@ KernelInfo!: alias struct! [
 			wand	[DrawingWand!] ;the drawing wand.
 			x	[float!] ;x ordinate.
 			y	[float!] ;y ordinate.
-			paint_method	[none] ;paint method.
+			paint_method	[PaintMethod!] ;paint method.
 		]
 		DrawComment: "DrawComment" [
 			;== Adds a comment to a vector output stream
@@ -3475,14 +3485,14 @@ KernelInfo!: alias struct! [
 		DrawGetException: "DrawGetException" [
 			;== Returns the severity, reason, and description of any error that occurs when using other methods in this API
 			;-- char *DrawGetException(const DrawWand *wand,ExceptionType *severity)
-			wand	[?] ;the drawing wand.
+			wand	[DrawingWand!] ;the drawing wand.
 			severity	[ExceptionType!] ;the severity of the error is returned here.
 			return: [c-string!]
 		]
 		DrawGetExceptionType: "DrawGetExceptionType" [
 			;== The exception type associated with the wand
 			;-- ExceptionType DrawGetExceptionType(const DrawWand *wand)
-			wand	[?] ;the magick wand.
+			wand	[DrawingWand!] ;the magick wand.
 			return: [ExceptionType!]
 		]
 		DrawGetFillColor: "DrawGetFillColor" [
@@ -3683,7 +3693,7 @@ KernelInfo!: alias struct! [
 			wand	[DrawingWand!] ;the drawing wand.
 			x	[float!] ;x ordinate
 			y	[float!] ;y ordinate
-			paint_method	[?] ;paint method.
+			paint_method	[PaintMethod!] ;paint method.
 		]
 		DrawPathClose: "DrawPathClose" [
 			;== Adds a path element to the current path which closes the current subpath by drawing a straight line from the current point to the current subpath's most recent starting point (usually, the most recent moveto point)
@@ -3809,7 +3819,7 @@ KernelInfo!: alias struct! [
 			;== Draws a horizontal line path from the current point to the target point using absolute coordinates
 			;-- void DrawPathLineToHorizontalAbsolute(DrawingWand *wand,const PathMode mode,const double x)
 			wand	[DrawingWand!] ;the drawing wand.
-			mode	[none] ;none
+			mode	[PathMode!] ;none
 			x	[float!] ;target x ordinate
 		]
 		DrawPathLineToHorizontalRelative: "DrawPathLineToHorizontalRelative" [
@@ -3861,14 +3871,14 @@ KernelInfo!: alias struct! [
 			;-- void DrawPolygon(DrawingWand *wand,const size_t number_coordinates,const PointInfo *coordinates)
 			wand	[DrawingWand!] ;the drawing wand.
 			number_coordinates	[size_t!] ;number of coordinates
-			coordinates	[?] ;coordinate array
+			coordinates	[PointInfo!] ;coordinate array
 		]
 		DrawPolyline: "DrawPolyline" [
 			;== Draws a polyline using the current stroke, stroke width, and fill color or texture, using the specified array of coordinates
 			;-- void DrawPolyline(DrawingWand *wand,const size_t number_coordinates,const PointInfo *coordinates)
 			wand	[DrawingWand!] ;the drawing wand.
 			number_coordinates	[size_t!] ;number of coordinates
-			coordinates	[?] ;coordinate array
+			coordinates	[PointInfo!] ;coordinate array
 		]
 		DrawPopClipPath: "DrawPopClipPath" [
 			;== Terminates a clip path definition
@@ -3985,10 +3995,10 @@ KernelInfo!: alias struct! [
 		]
 		DrawSetFontResolution: "DrawSetFontResolution" [
 			;== Sets the image resolution
-			;-- DrawBooleanType DrawSetFontResolution(DrawingWand *wand,const double x_resolution,const doubtl y_resolution)
+			;-- DrawBooleanType DrawSetFontResolution(DrawingWand *wand,const double x_resolution,const double y_resolution)
 			wand	[DrawingWand!] ;the magick wand.
 			x_resolution	[float!] ;the image x resolution.
-			y_resolution	[none] ;the image y resolution.
+			y_resolution	[float!] ;the image y resolution.
 			return: [MagickBooleanType!]
 		]
 		DrawSetOpacity: "DrawSetOpacity" [
