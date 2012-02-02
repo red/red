@@ -651,11 +651,12 @@ make target-class [
 		emit-i32 either width = 8 [d-code][s-code]
 	]
 	
-	emit-load-local: func [opcode [binary!] offset [integer!]][
+	emit-load-local: func [opcode [binary!] offset [integer!] /float][
 		if negative? offset [
 			opcode: copy opcode
 			opcode/2: #"^(7F)" and opcode/2			;-- clear bit 23 (U)
-		]			
+		]
+		if float [offset: offset / 4]
 		offset: to-12-bit abs offset
 		;if alt [opcode: opcode or #{00001000}]		;-- use r1 instead of r0 
 		emit-i32 opcode or offset
@@ -668,7 +669,7 @@ make target-class [
 		if object? name [name: compiler/unbox name]
 
 		either offset: select emitter/stack name [	;-- local variable case
-			emit-load-local lcode offset
+			emit-load-local/float lcode offset
 		][											;-- global variable case
 			pools/collect/spec/with 0 name #{e59f3000}	;-- LDR r3, [pc, #offset]
 			emit-i32 gcode
@@ -1315,7 +1316,9 @@ make target-class [
 				emit-push <last>
 			]
 			object! [
-				emit-casting value no			
+				unless compiler/literal? value/data [
+					emit-casting value no
+				]
 				either cdecl [
 					emit-push/with/cdecl value/data value
 				][
@@ -1713,8 +1716,8 @@ make target-class [
 						#{ed9b1b00}					;-- FLDD d1, [fp, #[-]n]	; local
 				][
 					emit-float-variable args/2
-						#{ed932a00} 				;-- FLDS s2, [r3]			; global
-						#{ed9b2a00}					;-- FLDS s2, [fp, #[-]n]	; local
+						#{ed931a00} 				;-- FLDS s2, [r3]			; global
+						#{ed9b1a00}					;-- FLDS s2, [fp, #[-]n]	; local
 				]
 				if object? args/2 [emit-vfp-casting/right args/2]
 			]
@@ -1768,7 +1771,7 @@ make target-class [
 		]
 	]
 	
-	emit-APCS-call: func [args [block!] cconv [word!] /local reg bits offset type size][
+	emit-APCS-header: func [args [block!] cconv [word!] /local reg bits offset type size][
 		if issue? args/1 [args: args/2]
 		reg: 0		
 		foreach arg reverse args [					;-- arguments are on stack in reverse order	
@@ -1803,14 +1806,14 @@ make target-class [
 	]
 	
 	emit-call-syscall: func [args [block!] fspec [block!]] [	; @@ check if it needs stack alignment too
-		emit-APCS-call args fspec/3
+		emit-APCS-header args fspec/3
 		emit-i32 #{e3a070}							;-- MOV r7, <syscall>
 		emit-i32 to-bin8 last fspec
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
-		emit-APCS-call args fspec/3
+		emit-APCS-header args fspec/3
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
@@ -1920,6 +1923,7 @@ make target-class [
 				compiler/throw-error "[ARM emitter] more than 4 arguments in callbacks, not yet supported"
 			]
 			emit-i32 #{e92d4ff0}					;-- STMFD sp!, {r4-r11, lr}
+			emit-i32 #{ed2d8b10}					;-- FSTMD sp!, {d8-d15}
 			repeat i args-size [
 				emit-i32 #{e92d00}					;-- PUSH {r<n>}
 				emit-i32 to char! shift/left 1 args-size - i
@@ -1955,6 +1959,7 @@ make target-class [
 		]
 		
 		if all [block? fspec/4/1 fspec/5 = 'callback][
+			emit-i32 #{ed3d8b10}					;-- FLDMD sp!, {d8-d15}
 			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
 		]
 
