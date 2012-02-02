@@ -374,6 +374,7 @@ system-dialect: context [
 		resolve-aliased: func [type [block!] /local name][
 			name: type/1
 			all [
+				type/1								;-- ensure it is not #[none]
 				not base-type? name
 				not find type-sets name
 				not type: select aliased-types name
