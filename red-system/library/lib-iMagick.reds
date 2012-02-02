@@ -3654,9 +3654,9 @@ KernelInfo!: alias struct! [
 			wand	[DrawingWand!] ;the drawing wand.
 			return: [float!]
 		]
-		DrawGetTextInterwordSpacing: "DrawGetTextInterwordSpacing" [
+		DrawGetTextInterlineSpacing: "DrawGetTextInterlineSpacing" [
 			;== Gets the spacing between lines in text
-			;-- double DrawGetTextInterwordSpacing(DrawingWand *wand)
+			;-- double DrawGetTextInterlineSpacing(DrawingWand *wand)
 			wand	[DrawingWand!] ;the drawing wand.
 			return: [float!]
 		]
@@ -4157,9 +4157,9 @@ KernelInfo!: alias struct! [
 			wand	[DrawingWand!] ;the drawing wand.
 			kerning	[float!] ;text kerning
 		]
-		DrawSetTextInterwordSpacing: "DrawSetTextInterwordSpacing" [
+		DrawSetTextInterlineSpacing: "DrawSetTextInterlineSpacing" [
 			;== Sets the spacing between line in text
-			;-- void DrawSetTextInterwordSpacing(DrawingWand *wand,const double interline_spacing)
+			;-- void DrawSetTextInterlineSpacing(DrawingWand *wand,const double interline_spacing)
 			wand	[DrawingWand!] ;the drawing wand.
 			interline_spacing	[float!] ;text line spacing
 		]
