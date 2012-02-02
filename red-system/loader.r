@@ -126,7 +126,7 @@ loader: context [
 	expand-block: func [
 		src [block!]
 		/local blk rule name value s e opr then-block else-block cases body
-			saved stack header mark idx prev
+			saved stack header mark idx prev enum-value enum-name enum-names line-rule
 	][
 		if verbose > 0 [print "running block preprocessor..."]
 		stack: append/only clear [] make block! 100
@@ -147,13 +147,21 @@ loader: context [
 				append header mark					;-- append line marker to header
 			]
 		]
-
+		line-rule: [
+			s: #L set line integer! e: (
+				s: remove/part s 2
+				new-line s yes
+				do store-line
+			) :s
+		]
 		parse/case src blk: [
 			s: (do store-line)
 			some [
 				defs								;-- resolve definitions in a single pass
 				| s: #define set name word! set value skip e: (
+					compiler/check-enum-word/by-loader name
 					if verbose > 0 [print [mold name #":" mold value]]
+					append compiler/definitions name
 					if word? value [value: to lit-word! value]
 					either block? value [
 						saved: reduce [s e]
@@ -171,6 +179,36 @@ loader: context [
 
 					either tag? defs/1 [remove defs][append defs '|]
 					append defs rule
+					remove/part s e
+				) :s
+				| s: #enum set name word! set value skip e: (
+					either block? value [
+						saved: reduce [s e]
+						compiler/check-enum-word/by-loader name ;-- first checking enumeration identifier possible conflicts
+						parse value [
+							(enum-value: 0)
+							any [
+								any line-rule [
+									[
+										copy enum-names word! |
+										(enum-names: make block! 10)
+										some [
+											set enum-name set-word! any line-rule (append enum-names to word! enum-name)
+										]	set enum-value [integer! | word!]
+									] (
+										enum-value: compiler/set-enumerator name enum-names enum-value
+									)
+									|
+									set enum-name 1 skip (
+										throw-error ["invalid enumeration:" to-word enum-name]
+									)
+								]
+							]
+						]
+						set [s e] saved
+					][
+						throw-error ["invalid enumeration (block required!):" mold value]
+					]
 					remove/part s e
 				) :s
 				| s: #include set name file! e: (
@@ -208,11 +246,7 @@ loader: context [
 						change/part s body e
 					]
 				) :s
-				| s: #L set line integer! e: (
-					s: remove/part s 2
-					new-line s yes
-					do store-line
-				) :s
+				| line-rule
 				| path! | set-path!	| any-string!		;-- avoid diving into these series
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
 				  [into blk | block! | paren!]			;-- black magic...
