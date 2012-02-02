@@ -1288,7 +1288,10 @@ make target-class [
 			]
 			word! [
 				type: compiler/get-variable-spec value
-				either find [float! float64!] type/1 [
+				either any [
+					find [float! float64!] type/1 
+					all [cast find [float! float64!] cast/type/1]
+				][
 					emit-load value
 					do push-last64
 				][			
