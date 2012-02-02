@@ -487,6 +487,61 @@ Red/System [
 	UserDefinedKernel
 ]
 
+#enum LineCap! [
+	UndefinedCap
+	ButtCap
+	RoundCap
+	SquareCap
+]
+#enum LineJoin! [
+	UndefinedJoin
+	MiterJoin
+	RoundJoin
+	BevelJoin
+]
+#enum AlignType! [
+	UndefinedAlign ;No alignment specified. Equivalent to LeftAlign.
+	LeftAlign      ;Align the leftmost part of the text to the starting point.
+	CenterAlign    ;Center the text around the starting point.
+	RightAlign
+]
+#enum ClipPathUnits! [
+	UndefinedPathUnits
+	UserSpace
+	UserSpaceOnUse
+	ObjectBoundingBox
+]
+#enum DecorationType! [
+	UndefinedDecoration
+	NoDecoration
+	UnderlineDecoration
+	OverlineDecoration
+	LineThroughDecoration
+]
+#enum FillRule! [
+	UndefinedRule
+	EvenOddRule
+	NonZeroRule
+]
+#enum StretchType! [
+	AnyStretch	;Wildcard match for font stretch
+	NormalStretch
+	UltraCondensedStretch
+	ExtraCondensedStretch
+	CondensedStretch
+	SemiCondensedStretch
+	SemiExpandedStretch
+	ExpandedStretch
+	ExtraExpandedStretch
+	UltraExpandedStretch
+]
+#enum StyleType! [
+	AnyStyle
+	NormalStyle
+	ItalicStyle
+	ObliqueStyle
+]
+
 #define size_t!  integer!
 #define ssize_t! integer!
 #define FILE!   integer!
@@ -537,7 +592,7 @@ KernelInfo!: alias struct! [
 		ClonePixelWands: "ClonePixelWands" [
 			;== Makes an exact copy of the specified wands
 			;-- PixelWand **ClonePixelWands(const PixelWand **wands,const size_t number_wands)
-			*wands	[PixelWand!] ;none
+			wands	[pointer! [integer!]] ;the magick wands.
 			number_wands	[size_t!] ;the number of wands.
 			return: [pointer! [integer!]]
 		]
@@ -550,7 +605,7 @@ KernelInfo!: alias struct! [
 		DestroyPixelWands: "DestroyPixelWands" [
 			;== Deallocates resources associated with an array of pixel wands
 			;-- PixelWand **DestroyPixelWands(PixelWand **wand,const size_t number_wands)
-			*wand	[PixelWand!] ;none
+			wand	[pointer! [integer!]] ;the pixel wand.
 			number_wands	[size_t!] ;the number of wands.
 			return: [pointer! [integer!]]
 		]
@@ -3286,6 +3341,892 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickWriteImagesFile(MagickWand *wand,FILE *file)
 			wand	[MagickWand!] ;the magick wand.
 			file	[FILE!] ;the file descriptor.
+			return: [MagickBooleanType!]
+		]
+
+
+	;==== source: drawing-wand.reb ====;
+
+		ClearDrawingWand: "ClearDrawingWand" [
+			;== Clears resources associated with the drawing wand
+			;-- void ClearDrawingWand(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand to clear.
+		]
+		CloneDrawingWand: "CloneDrawingWand" [
+			;== Makes an exact copy of the specified wand
+			;-- DrawingWand *CloneDrawingWand(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the magick wand.
+			return: [DrawingWand!]
+		]
+		DestroyDrawingWand: "DestroyDrawingWand" [
+			;== Frees all resources associated with the drawing wand
+			;-- DrawingWand *DestroyDrawingWand(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand to destroy.
+			return: [DrawingWand!]
+		]
+		DrawAffine: "DrawAffine" [
+			;== Adjusts the current affine transformation matrix with the specified affine transformation matrix
+			;-- void DrawAffine(DrawingWand *wand,const AffineMatrix *affine)
+			wand	[DrawingWand!] ;Drawing wand
+			affine	[none] ;Affine matrix parameters
+		]
+		DrawAnnotation: "DrawAnnotation" [
+			;== Draws text on the image
+			;-- void DrawAnnotation(DrawingWand *wand,const double x,const double y,const unsigned char *text)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;x ordinate to left of text
+			y	[float!] ;y ordinate to text baseline
+			text	[pointer! [byte!]] ;text to draw
+		]
+		DrawArc: "DrawArc" [
+			;== Draws an arc falling within a specified bounding rectangle on the image
+			;-- void DrawArc(DrawingWand *wand,const double sx,const double sy,const double ex,const double ey,const double sd,const double ed)
+			wand	[DrawingWand!] ;the drawing wand.
+			sx	[float!] ;starting x ordinate of bounding rectangle
+			sy	[float!] ;starting y ordinate of bounding rectangle
+			ex	[float!] ;ending x ordinate of bounding rectangle
+			ey	[float!] ;ending y ordinate of bounding rectangle
+			sd	[float!] ;starting degrees of rotation
+			ed	[float!] ;ending degrees of rotation
+		]
+		DrawBezier: "DrawBezier" [
+			;== Draws a bezier curve through a set of points on the image
+			;-- void DrawBezier(DrawingWand *wand,const size_t number_coordinates,const PointInfo *coordinates)
+			wand	[DrawingWand!] ;the drawing wand.
+			number_coordinates	[size_t!] ;number of coordinates
+			coordinates	[none] ;coordinates
+		]
+		DrawCircle: "DrawCircle" [
+			;== Draws a circle on the image
+			;-- void DrawCircle(DrawingWand *wand,const double ox,const double oy,const double px, const double py)
+			wand	[DrawingWand!] ;the drawing wand.
+			ox	[float!] ;origin x ordinate
+			oy	[float!] ;origin y ordinate
+			px	[float!] ;perimeter x ordinate
+			py	[float!] ;perimeter y ordinate
+		]
+		DrawClearException: "DrawClearException" [
+			;== Clear any exceptions associated with the wand
+			;-- MagickBooleanType DrawClearException(DrawWand *wand)
+			wand	[none] ;the drawing wand.
+			return: [MagickBooleanType!]
+		]
+		DrawComposite: "DrawComposite" [
+			;== Composites an image onto the current image, using the specified composition operator, specified position, and at the specified size
+			;-- MagickBooleanType DrawComposite(DrawingWand *wand,const CompositeOperator compose,const double x,const double y,const double width,const double height,MagickWand *magick_wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			compose	[CompositeOperator!] ;composition operator
+			x	[float!] ;x ordinate of top left corner
+			y	[float!] ;y ordinate of top left corner
+			width	[float!] ;Width to resize image to prior to compositing.  Specify zero to use existing width.
+			height	[float!] ;Height to resize image to prior to compositing.  Specify zero to use existing height.
+			magick_wand	[MagickWand!] ;Image to composite is obtained from this wand.
+			return: [MagickBooleanType!]
+		]
+		DrawColor: "DrawColor" [
+			;== Draws color on image using the current fill color, starting at specified position, and using specified paint method
+			;-- void DrawColor(DrawingWand *wand,const double x,const double y,const PaintMethod paint_method)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;x ordinate.
+			y	[float!] ;y ordinate.
+			paint_method	[none] ;paint method.
+		]
+		DrawComment: "DrawComment" [
+			;== Adds a comment to a vector output stream
+			;-- void DrawComment(DrawingWand *wand,const char *comment)
+			wand	[DrawingWand!] ;the drawing wand.
+			comment	[c-string!] ;comment text
+		]
+		DrawEllipse: "DrawEllipse" [
+			;== Draws an ellipse on the image
+			;-- void DrawEllipse(DrawingWand *wand,const double ox,const double oy, const double rx,const double ry,const double start,const double end)
+			wand	[DrawingWand!] ;the drawing wand.
+			ox	[float!] ;origin x ordinate
+			oy	[float!] ;origin y ordinate
+			rx	[float!] ;radius in x
+			ry	[float!] ;radius in y
+			start	[float!] ;starting rotation in degrees
+			end	[float!] ;ending rotation in degrees
+		]
+		DrawGetBorderColor: "DrawGetBorderColor" [
+			;== Returns the border color used for drawing bordered objects
+			;-- void DrawGetBorderColor(const DrawingWand *wand,PixelWand *border_color)
+			wand	[DrawingWand!] ;the drawing wand.
+			border_color	[PixelWand!] ;Return the border color.
+		]
+		DrawGetClipPath: "DrawGetClipPath" [
+			;== Obtains the current clipping path ID
+			;-- char *DrawGetClipPath(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [c-string!]
+		]
+		DrawGetClipRule: "DrawGetClipRule" [
+			;== Returns the current polygon fill rule to be used by the clipping path
+			;-- FillRule DrawGetClipRule(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [FillRule!]
+		]
+		DrawGetClipUnits: "DrawGetClipUnits" [
+			;== Returns the interpretation of clip path units
+			;-- ClipPathUnits DrawGetClipUnits(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [ClipPathUnits!]
+		]
+		DrawGetException: "DrawGetException" [
+			;== Returns the severity, reason, and description of any error that occurs when using other methods in this API
+			;-- char *DrawGetException(const DrawWand *wand,ExceptionType *severity)
+			wand	[?] ;the drawing wand.
+			severity	[ExceptionType!] ;the severity of the error is returned here.
+			return: [c-string!]
+		]
+		DrawGetExceptionType: "DrawGetExceptionType" [
+			;== The exception type associated with the wand
+			;-- ExceptionType DrawGetExceptionType(const DrawWand *wand)
+			wand	[?] ;the magick wand.
+			return: [ExceptionType!]
+		]
+		DrawGetFillColor: "DrawGetFillColor" [
+			;== Returns the fill color used for drawing filled objects
+			;-- void DrawGetFillColor(const DrawingWand *wand,PixelWand *fill_color)
+			wand	[DrawingWand!] ;the drawing wand.
+			fill_color	[PixelWand!] ;Return the fill color.
+		]
+		DrawGetFillOpacity: "DrawGetFillOpacity" [
+			;== Returns the opacity used when drawing using the fill color or fill texture
+			;-- double DrawGetFillOpacity(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [float!]
+		]
+		DrawGetFillRule: "DrawGetFillRule" [
+			;== Returns the fill rule used while drawing polygons
+			;-- FillRule DrawGetFillRule(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [FillRule!]
+		]
+		DrawGetFont: "DrawGetFont" [
+			;== Returns a null-terminaged string specifying the font used when annotating with text
+			;-- char *DrawGetFont(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [c-string!]
+		]
+		DrawGetFontFamily: "DrawGetFontFamily" [
+			;== Returns the font family to use when annotating with text
+			;-- char *DrawGetFontFamily(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [c-string!]
+		]
+		DrawGetFontResolution: "DrawGetFontResolution" [
+			;== Gets the image X and Y resolution
+			;-- DrawBooleanType DrawGetFontResolution(const DrawingWand *wand,double *x,double *y)
+			wand	[DrawingWand!] ;the magick wand.
+			x	[pointer! [float!]] ;the x-resolution.
+			y	[pointer! [float!]] ;the y-resolution.
+			return: [MagickBooleanType!]
+		]
+		DrawGetFontSize: "DrawGetFontSize" [
+			;== Returns the font pointsize used when annotating with text
+			;-- double DrawGetFontSize(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [float!]
+		]
+		DrawGetFontStretch: "DrawGetFontStretch" [
+			;== Returns the font stretch used when annotating with text
+			;-- StretchType DrawGetFontStretch(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [StretchType!]
+		]
+		DrawGetFontStyle: "DrawGetFontStyle" [
+			;== Returns the font style used when annotating with text
+			;-- StyleType DrawGetFontStyle(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [StyleType!]
+		]
+		DrawGetFontWeight: "DrawGetFontWeight" [
+			;== Returns the font weight used when annotating with text
+			;-- size_t DrawGetFontWeight(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [size_t!]
+		]
+		DrawGetGravity: "DrawGetGravity" [
+			;== Returns the text placement gravity used when annotating with text
+			;-- GravityType DrawGetGravity(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [GravityType!]
+		]
+		DrawGetOpacity: "DrawGetOpacity" [
+			;== Returns the opacity used when drawing with the fill or stroke color or texture
+			;-- double DrawGetOpacity(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [float!]
+		]
+		DrawGetStrokeAntialias: "DrawGetStrokeAntialias" [
+			;== Returns the current stroke antialias setting
+			;-- MagickBooleanType DrawGetStrokeAntialias(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [MagickBooleanType!]
+		]
+		DrawGetStrokeColor: "DrawGetStrokeColor" [
+			;== Returns the color used for stroking object outlines
+			;-- void DrawGetStrokeColor(const DrawingWand *wand,PixelWand *stroke_color)
+			wand	[DrawingWand!] ;the drawing wand.
+			stroke_color	[PixelWand!] ;Return the stroke color.
+		]
+		DrawGetStrokeDashArray: "DrawGetStrokeDashArray" [
+			;== Returns an array representing the pattern of dashes and gaps used to stroke paths (see DrawSetStrokeDashArray)
+			;-- double *DrawGetStrokeDashArray(const DrawingWand *wand,size_t *number_elements)
+			wand	[DrawingWand!] ;the drawing wand.
+			number_elements	[pointer! [size_t!]] ;address to place number of elements in dash array
+			return: [pointer! [float!]]
+		]
+		DrawGetStrokeDashOffset: "DrawGetStrokeDashOffset" [
+			;== Returns the offset into the dash pattern to start the dash
+			;-- double DrawGetStrokeDashOffset(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [float!]
+		]
+		DrawGetStrokeLineCap: "DrawGetStrokeLineCap" [
+			;== Returns the shape to be used at the end of open subpaths when they are stroked
+			;-- LineCap DrawGetStrokeLineCap(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [LineCap!]
+		]
+		DrawGetStrokeLineJoin: "DrawGetStrokeLineJoin" [
+			;== Returns the shape to be used at the corners of paths (or other vector shapes) when they are stroked
+			;-- LineJoin DrawGetStrokeLineJoin(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [LineJoin!]
+		]
+		DrawGetStrokeMiterLimit: "DrawGetStrokeMiterLimit" [
+			;== Returns the miter limit
+			;-- size_t DrawGetStrokeMiterLimit(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [size_t!]
+		]
+		DrawGetStrokeOpacity: "DrawGetStrokeOpacity" [
+			;== Returns the opacity of stroked object outlines
+			;-- double DrawGetStrokeOpacity(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [float!]
+		]
+		DrawGetStrokeWidth: "DrawGetStrokeWidth" [
+			;== Returns the width of the stroke used to draw object outlines
+			;-- double DrawGetStrokeWidth(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [float!]
+		]
+		DrawGetTextAlignment: "DrawGetTextAlignment" [
+			;== Returns the alignment applied when annotating with text
+			;-- AlignType DrawGetTextAlignment(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [AlignType!]
+		]
+		DrawGetTextAntialias: "DrawGetTextAntialias" [
+			;== Returns the current text antialias setting, which determines whether text is antialiased
+			;-- MagickBooleanType DrawGetTextAntialias(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [MagickBooleanType!]
+		]
+		DrawGetTextDecoration: "DrawGetTextDecoration" [
+			;== Returns the decoration applied when annotating with text
+			;-- DecorationType DrawGetTextDecoration(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [DecorationType!]
+		]
+		DrawGetTextEncoding: "DrawGetTextEncoding" [
+			;== Returns a null-terminated string which specifies the code set used for text annotations
+			;-- char *DrawGetTextEncoding(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [c-string!]
+		]
+		DrawGetTextKerning: "DrawGetTextKerning" [
+			;== Gets the spacing between characters in text
+			;-- double DrawGetTextKerning(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [float!]
+		]
+		DrawGetTextInterwordSpacing: "DrawGetTextInterwordSpacing" [
+			;== Gets the spacing between lines in text
+			;-- double DrawGetTextInterwordSpacing(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [float!]
+		]
+		DrawGetTextInterwordSpacing: "DrawGetTextInterwordSpacing" [
+			;== Gets the spacing between words in text
+			;-- double DrawGetTextInterwordSpacing(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [float!]
+		]
+		DrawGetVectorGraphics: "DrawGetVectorGraphics" [
+			;== Returns a null-terminated string which specifies the vector graphics generated by any graphics calls made since the wand was instantiated
+			;-- char *DrawGetVectorGraphics(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [c-string!]
+		]
+		DrawGetTextUnderColor: "DrawGetTextUnderColor" [
+			;== Returns the color of a background rectangle to place under text annotations
+			;-- void DrawGetTextUnderColor(const DrawingWand *wand,PixelWand *under_color)
+			wand	[DrawingWand!] ;the drawing wand.
+			under_color	[PixelWand!] ;Return the under color.
+		]
+		DrawLine: "DrawLine" [
+			;== Draws a line on the image using the current stroke color, stroke opacity, and stroke width
+			;-- void DrawLine(DrawingWand *wand,const double sx,const double sy,const double ex,const double ey)
+			wand	[DrawingWand!] ;the drawing wand.
+			sx	[float!] ;starting x ordinate
+			sy	[float!] ;starting y ordinate
+			ex	[float!] ;ending x ordinate
+			ey	[float!] ;ending y ordinate
+		]
+		DrawMatte: "DrawMatte" [
+			;== Paints on the image's opacity channel in order to set effected pixels to transparent
+			;-- void DrawMatte(DrawingWand *wand,const double x,const double y,const PaintMethod paint_method)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;x ordinate
+			y	[float!] ;y ordinate
+			paint_method	[?] ;paint method.
+		]
+		DrawPathClose: "DrawPathClose" [
+			;== Adds a path element to the current path which closes the current subpath by drawing a straight line from the current point to the current subpath's most recent starting point (usually, the most recent moveto point)
+			;-- void DrawPathClose(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+		]
+		DrawPathCurveToAbsolute: "DrawPathCurveToAbsolute" [
+			;== Draws a cubic Bezier curve from the current point to (x,y) using (x1,y1) as the control point at the beginning of the curve and (x2,y2) as the control point at the end of the curve using absolute coordinates
+			;-- void DrawPathCurveToAbsolute(DrawingWand *wand,const double x1,const double y1,const double x2,const double y2,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x1	[float!] ;x ordinate of control point for curve beginning
+			y1	[float!] ;y ordinate of control point for curve beginning
+			x2	[float!] ;x ordinate of control point for curve ending
+			y2	[float!] ;y ordinate of control point for curve ending
+			x	[float!] ;x ordinate of the end of the curve
+			y	[float!] ;y ordinate of the end of the curve
+		]
+		DrawPathCurveToRelative: "DrawPathCurveToRelative" [
+			;== Draws a cubic Bezier curve from the current point to (x,y) using (x1,y1) as the control point at the beginning of the curve and (x2,y2) as the control point at the end of the curve using relative coordinates
+			;-- void DrawPathCurveToRelative(DrawingWand *wand,const double x1,const double y1,const double x2,const double y2,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x1	[float!] ;x ordinate of control point for curve beginning
+			y1	[float!] ;y ordinate of control point for curve beginning
+			x2	[float!] ;x ordinate of control point for curve ending
+			y2	[float!] ;y ordinate of control point for curve ending
+			x	[float!] ;x ordinate of the end of the curve
+			y	[float!] ;y ordinate of the end of the curve
+		]
+		DrawPathCurveToQuadraticBezierAbsolute: "DrawPathCurveToQuadraticBezierAbsolute" [
+			;== Draws a quadratic Bezier curve from the current point to (x,y) using (x1,y1) as the control point using absolute coordinates
+			;-- void DrawPathCurveToQuadraticBezierAbsolute(DrawingWand *wand,const double x1,const double y1,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x1	[float!] ;x ordinate of the control point
+			y1	[float!] ;y ordinate of the control point
+			x	[float!] ;x ordinate of final point
+			y	[float!] ;y ordinate of final point
+		]
+		DrawPathCurveToQuadraticBezierRelative: "DrawPathCurveToQuadraticBezierRelative" [
+			;== Draws a quadratic Bezier curve from the current point to (x,y) using (x1,y1) as the control point using relative coordinates
+			;-- void DrawPathCurveToQuadraticBezierRelative(DrawingWand *wand,const double x1,const double y1,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x1	[float!] ;x ordinate of the control point
+			y1	[float!] ;y ordinate of the control point
+			x	[float!] ;x ordinate of final point
+			y	[float!] ;y ordinate of final point
+		]
+		DrawPathCurveToQuadraticBezierSmoothAbsolute: "DrawPathCurveToQuadraticBezierSmoothAbsolute" [
+			;== Draws a quadratic Bezier curve (using absolute coordinates) from the current point to (x,y)
+			;-- void DrawPathCurveToQuadraticBezierSmoothAbsolute(DrawingWand *wand,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;x ordinate of final point
+			y	[float!] ;y ordinate of final point
+		]
+		DrawPathCurveToQuadraticBezierSmoothRelative: "DrawPathCurveToQuadraticBezierSmoothRelative" [
+			;== Draws a quadratic Bezier curve (using relative coordinates) from the current point to (x,y)
+			;-- void DrawPathCurveToQuadraticBezierSmoothRelative(DrawingWand *wand,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;x ordinate of final point
+			y	[float!] ;y ordinate of final point
+		]
+		DrawPathCurveToSmoothAbsolute: "DrawPathCurveToSmoothAbsolute" [
+			;== Draws a cubic Bezier curve from the current point to (x,y) using absolute coordinates
+			;-- void DrawPathCurveToSmoothAbsolute(DrawingWand *wand,const double x2,const double y2,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x2	[float!] ;x ordinate of second control point
+			y2	[float!] ;y ordinate of second control point
+			x	[float!] ;x ordinate of termination point
+			y	[float!] ;y ordinate of termination point
+		]
+		DrawPathCurveToSmoothRelative: "DrawPathCurveToSmoothRelative" [
+			;== Draws a cubic Bezier curve from the current point to (x,y) using relative coordinates
+			;-- void DrawPathCurveToSmoothRelative(DrawingWand *wand,const double x2,const double y2,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x2	[float!] ;x ordinate of second control point
+			y2	[float!] ;y ordinate of second control point
+			x	[float!] ;x ordinate of termination point
+			y	[float!] ;y ordinate of termination point
+		]
+		DrawPathEllipticArcAbsolute: "DrawPathEllipticArcAbsolute" [
+			;== Draws an elliptical arc from the current point to (x, y) using absolute coordinates
+			;-- void DrawPathEllipticArcAbsolute(DrawingWand *wand,const double rx,const double ry,const double x_axis_rotation,const MagickBooleanType large_arc_flag,const MagickBooleanType sweep_flag,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			rx	[float!] ;x radius
+			ry	[float!] ;y radius
+			x_axis_rotation	[float!] ;indicates how the ellipse as a whole is rotated relative to the current coordinate system
+			large_arc_flag	[MagickBooleanType!] ;If non-zero (true) then draw the larger of the available arcs
+			sweep_flag	[MagickBooleanType!] ;If non-zero (true) then draw the arc matching a clock-wise rotation
+			x	[float!] ;none
+			y	[float!] ;none
+		]
+		DrawPathEllipticArcRelative: "DrawPathEllipticArcRelative" [
+			;== Draws an elliptical arc from the current point to (x, y) using relative coordinates
+			;-- void DrawPathEllipticArcRelative(DrawingWand *wand,const double rx,const double ry,const double x_axis_rotation,const MagickBooleanType large_arc_flag,const MagickBooleanType sweep_flag,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			rx	[float!] ;x radius
+			ry	[float!] ;y radius
+			x_axis_rotation	[float!] ;indicates how the ellipse as a whole is rotated relative to the current coordinate system
+			large_arc_flag	[MagickBooleanType!] ;If non-zero (true) then draw the larger of the available arcs
+			sweep_flag	[MagickBooleanType!] ;If non-zero (true) then draw the arc matching a clock-wise rotation
+			x	[float!] ;none
+			y	[float!] ;none
+		]
+		DrawPathFinish: "DrawPathFinish" [
+			;== Terminates the current path
+			;-- void DrawPathFinish(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+		]
+		DrawPathLineToAbsolute: "DrawPathLineToAbsolute" [
+			;== Draws a line path from the current point to the given coordinate using absolute coordinates
+			;-- void DrawPathLineToAbsolute(DrawingWand *wand,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;target x ordinate
+			y	[float!] ;target y ordinate
+		]
+		DrawPathLineToRelative: "DrawPathLineToRelative" [
+			;== Draws a line path from the current point to the given coordinate using relative coordinates
+			;-- void DrawPathLineToRelative(DrawingWand *wand,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;target x ordinate
+			y	[float!] ;target y ordinate
+		]
+		DrawPathLineToHorizontalAbsolute: "DrawPathLineToHorizontalAbsolute" [
+			;== Draws a horizontal line path from the current point to the target point using absolute coordinates
+			;-- void DrawPathLineToHorizontalAbsolute(DrawingWand *wand,const PathMode mode,const double x)
+			wand	[DrawingWand!] ;the drawing wand.
+			mode	[none] ;none
+			x	[float!] ;target x ordinate
+		]
+		DrawPathLineToHorizontalRelative: "DrawPathLineToHorizontalRelative" [
+			;== Draws a horizontal line path from the current point to the target point using relative coordinates
+			;-- void DrawPathLineToHorizontalRelative(DrawingWand *wand,const double x)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;target x ordinate
+		]
+		DrawPathLineToVerticalAbsolute: "DrawPathLineToVerticalAbsolute" [
+			;== Draws a vertical line path from the current point to the target point using absolute coordinates
+			;-- void DrawPathLineToVerticalAbsolute(DrawingWand *wand,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			y	[float!] ;target y ordinate
+		]
+		DrawPathLineToVerticalRelative: "DrawPathLineToVerticalRelative" [
+			;== Draws a vertical line path from the current point to the target point using relative coordinates
+			;-- void DrawPathLineToVerticalRelative(DrawingWand *wand,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			y	[float!] ;target y ordinate
+		]
+		DrawPathMoveToAbsolute: "DrawPathMoveToAbsolute" [
+			;== Starts a new sub-path at the given coordinate using absolute coordinates
+			;-- void DrawPathMoveToAbsolute(DrawingWand *wand,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;target x ordinate
+			y	[float!] ;target y ordinate
+		]
+		DrawPathMoveToRelative: "DrawPathMoveToRelative" [
+			;== Starts a new sub-path at the given coordinate using relative coordinates
+			;-- void DrawPathMoveToRelative(DrawingWand *wand,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;target x ordinate
+			y	[float!] ;target y ordinate
+		]
+		DrawPathStart: "DrawPathStart" [
+			;== Declares the start of a path drawing list which is terminated by a matching DrawPathFinish() command
+			;-- void DrawPathStart(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+		]
+		DrawPoint: "DrawPoint" [
+			;== Draws a point using the current fill color
+			;-- void DrawPoint(DrawingWand *wand,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;target x coordinate
+			y	[float!] ;target y coordinate
+		]
+		DrawPolygon: "DrawPolygon" [
+			;== Draws a polygon using the current stroke, stroke width, and fill color or texture, using the specified array of coordinates
+			;-- void DrawPolygon(DrawingWand *wand,const size_t number_coordinates,const PointInfo *coordinates)
+			wand	[DrawingWand!] ;the drawing wand.
+			number_coordinates	[size_t!] ;number of coordinates
+			coordinates	[?] ;coordinate array
+		]
+		DrawPolyline: "DrawPolyline" [
+			;== Draws a polyline using the current stroke, stroke width, and fill color or texture, using the specified array of coordinates
+			;-- void DrawPolyline(DrawingWand *wand,const size_t number_coordinates,const PointInfo *coordinates)
+			wand	[DrawingWand!] ;the drawing wand.
+			number_coordinates	[size_t!] ;number of coordinates
+			coordinates	[?] ;coordinate array
+		]
+		DrawPopClipPath: "DrawPopClipPath" [
+			;== Terminates a clip path definition
+			;-- void DrawPopClipPath(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+		]
+		DrawPopDefs: "DrawPopDefs" [
+			;== Terminates a definition list
+			;-- void DrawPopDefs(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+		]
+		DrawPopPattern: "DrawPopPattern" [
+			;== Terminates a pattern definition
+			;-- MagickBooleanType DrawPopPattern(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [MagickBooleanType!]
+		]
+		DrawPushClipPath: "DrawPushClipPath" [
+			;== Starts a clip path definition which is comprized of any number of drawing commands and terminated by a DrawPopClipPath() command
+			;-- void DrawPushClipPath(DrawingWand *wand,const char *clip_mask_id)
+			wand	[DrawingWand!] ;the drawing wand.
+			clip_mask_id	[c-string!] ;string identifier to associate with the clip path for later use.
+		]
+		DrawPushDefs: "DrawPushDefs" [
+			;== Indicates that commands up to a terminating DrawPopDefs() command create named elements (e
+			;-- void DrawPushDefs(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+		]
+		DrawPushPattern: "DrawPushPattern" [
+			;== Indicates that subsequent commands up to a DrawPopPattern() command comprise the definition of a named pattern
+			;-- MagickBooleanType DrawPushPattern(DrawingWand *wand,const char *pattern_id,const double x,const double y,const double width,const double height)
+			wand	[DrawingWand!] ;the drawing wand.
+			pattern_id	[c-string!] ;pattern identification for later reference
+			x	[float!] ;x ordinate of top left corner
+			y	[float!] ;y ordinate of top left corner
+			width	[float!] ;width of pattern space
+			height	[float!] ;height of pattern space
+			return: [MagickBooleanType!]
+		]
+		DrawRectangle: "DrawRectangle" [
+			;== Draws a rectangle given two coordinates and using the current stroke, stroke width, and fill settings
+			;-- void DrawRectangle(DrawingWand *wand,const double x1,const double y1,const double x2,const double y2)
+			wand	[DrawingWand!] ;none
+			x1	[float!] ;x ordinate of first coordinate
+			y1	[float!] ;y ordinate of first coordinate
+			x2	[float!] ;x ordinate of second coordinate
+			y2	[float!] ;y ordinate of second coordinate
+		]
+		DrawResetVectorGraphics: "DrawResetVectorGraphics" [
+			;== Resets the vector graphics associated with the specified wand
+			;-- void DrawResetVectorGraphics(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+		]
+		DrawRotate: "DrawRotate" [
+			;== Applies the specified rotation to the current coordinate space
+			;-- void DrawRotate(DrawingWand *wand,const double degrees)
+			wand	[DrawingWand!] ;the drawing wand.
+			degrees	[float!] ;degrees of rotation
+		]
+		DrawRoundRectangle: "DrawRoundRectangle" [
+			;== Draws a rounted rectangle given two coordinates, x & y corner radiuses and using the current stroke, stroke width, and fill settings
+			;-- void DrawRoundRectangle(DrawingWand *wand,double x1,double y1,double x2,double y2,double rx,double ry)
+			wand	[DrawingWand!] ;the drawing wand.
+			x1	[float!] ;x ordinate of first coordinate
+			y1	[float!] ;y ordinate of first coordinate
+			x2	[float!] ;x ordinate of second coordinate
+			y2	[float!] ;y ordinate of second coordinate
+			rx	[float!] ;radius of corner in horizontal direction
+			ry	[float!] ;radius of corner in vertical direction
+		]
+		DrawScale: "DrawScale" [
+			;== Adjusts the scaling factor to apply in the horizontal and vertical directions to the current coordinate space
+			;-- void DrawScale(DrawingWand *wand,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;horizontal scale factor
+			y	[float!] ;vertical scale factor
+		]
+		DrawSetBorderColor: "DrawSetBorderColor" [
+			;== Sets the border color to be used for drawing bordered objects
+			;-- void DrawSetBorderColor(DrawingWand *wand,const PixelWand *border_wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			border_wand	[PixelWand!] ;border wand.
+		]
+		DrawSetClipPath: "DrawSetClipPath" [
+			;== Associates a named clipping path with the image
+			;-- MagickBooleanType DrawSetClipPath(DrawingWand *wand,const char *clip_mask)
+			wand	[DrawingWand!] ;the drawing wand.
+			clip_mask	[c-string!] ;name of clipping path to associate with image
+			return: [MagickBooleanType!]
+		]
+		DrawSetClipRule: "DrawSetClipRule" [
+			;== Set the polygon fill rule to be used by the clipping path
+			;-- void DrawSetClipRule(DrawingWand *wand,const FillRule fill_rule)
+			wand	[DrawingWand!] ;the drawing wand.
+			fill_rule	[FillRule!] ;fill rule (EvenOddRule or NonZeroRule)
+		]
+		DrawSetClipUnits: "DrawSetClipUnits" [
+			;== Sets the interpretation of clip path units
+			;-- void DrawSetClipUnits(DrawingWand *wand,const ClipPathUnits clip_units)
+			wand	[DrawingWand!] ;the drawing wand.
+			clip_units	[ClipPathUnits!] ;units to use (UserSpace, UserSpaceOnUse, or ObjectBoundingBox)
+		]
+		DrawSetFillColor: "DrawSetFillColor" [
+			;== Sets the fill color to be used for drawing filled objects
+			;-- void DrawSetFillColor(DrawingWand *wand,const PixelWand *fill_wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			fill_wand	[PixelWand!] ;fill wand.
+		]
+		DrawSetFillOpacity: "DrawSetFillOpacity" [
+			;== Sets the opacity to use when drawing using the fill color or fill texture
+			;-- void DrawSetFillOpacity(DrawingWand *wand,const double fill_opacity)
+			wand	[DrawingWand!] ;the drawing wand.
+			fill_opacity	[float!] ;fill opacity
+		]
+		DrawSetFontResolution: "DrawSetFontResolution" [
+			;== Sets the image resolution
+			;-- DrawBooleanType DrawSetFontResolution(DrawingWand *wand,const double x_resolution,const doubtl y_resolution)
+			wand	[DrawingWand!] ;the magick wand.
+			x_resolution	[float!] ;the image x resolution.
+			y_resolution	[none] ;the image y resolution.
+			return: [MagickBooleanType!]
+		]
+		DrawSetOpacity: "DrawSetOpacity" [
+			;== Sets the opacity to use when drawing using the fill or stroke color or texture
+			;-- void DrawSetOpacity(DrawingWand *wand,const double opacity)
+			wand	[DrawingWand!] ;the drawing wand.
+			opacity	[float!] ;fill opacity
+		]
+		DrawSetFillPatternURL: "DrawSetFillPatternURL" [
+			;== Sets the URL to use as a fill pattern for filling objects
+			;-- MagickBooleanType DrawSetFillPatternURL(DrawingWand *wand,const char *fill_url)
+			wand	[DrawingWand!] ;the drawing wand.
+			fill_url	[c-string!] ;URL to use to obtain fill pattern.
+			return: [MagickBooleanType!]
+		]
+		DrawSetFillRule: "DrawSetFillRule" [
+			;== Sets the fill rule to use while drawing polygons
+			;-- void DrawSetFillRule(DrawingWand *wand,const FillRule fill_rule)
+			wand	[DrawingWand!] ;the drawing wand.
+			fill_rule	[FillRule!] ;fill rule (EvenOddRule or NonZeroRule)
+		]
+		DrawSetFont: "DrawSetFont" [
+			;== Sets the fully-sepecified font to use when annotating with text
+			;-- MagickBooleanType DrawSetFont(DrawingWand *wand,const char *font_name)
+			wand	[DrawingWand!] ;the drawing wand.
+			font_name	[c-string!] ;font name
+			return: [MagickBooleanType!]
+		]
+		DrawSetFontFamily: "DrawSetFontFamily" [
+			;== Sets the font family to use when annotating with text
+			;-- MagickBooleanType DrawSetFontFamily(DrawingWand *wand,const char *font_family)
+			wand	[DrawingWand!] ;the drawing wand.
+			font_family	[c-string!] ;font family
+			return: [MagickBooleanType!]
+		]
+		DrawSetFontSize: "DrawSetFontSize" [
+			;== Sets the font pointsize to use when annotating with text
+			;-- void DrawSetFontSize(DrawingWand *wand,const double pointsize)
+			wand	[DrawingWand!] ;the drawing wand.
+			pointsize	[float!] ;text pointsize
+		]
+		DrawSetFontStretch: "DrawSetFontStretch" [
+			;== Sets the font stretch to use when annotating with text
+			;-- void DrawSetFontStretch(DrawingWand *wand,const StretchType font_stretch)
+			wand	[DrawingWand!] ;the drawing wand.
+			font_stretch	[StretchType!] ;font stretch (NormalStretch, UltraCondensedStretch, CondensedStretch, SemiCondensedStretch, SemiExpandedStretch, ExpandedStretch, ExtraExpandedStretch, UltraExpandedStretch, AnyStretch)
+		]
+		DrawSetFontStyle: "DrawSetFontStyle" [
+			;== Sets the font style to use when annotating with text
+			;-- void DrawSetFontStyle(DrawingWand *wand,const StyleType style)
+			wand	[DrawingWand!] ;the drawing wand.
+			style	[StyleType!] ;font style (NormalStyle, ItalicStyle, ObliqueStyle, AnyStyle)
+		]
+		DrawSetFontWeight: "DrawSetFontWeight" [
+			;== Sets the font weight to use when annotating with text
+			;-- void DrawSetFontWeight(DrawingWand *wand,const size_t font_weight)
+			wand	[DrawingWand!] ;the drawing wand.
+			font_weight	[size_t!] ;font weight (valid range 100-900)
+		]
+		DrawSetGravity: "DrawSetGravity" [
+			;== Sets the text placement gravity to use when annotating with text
+			;-- void DrawSetGravity(DrawingWand *wand,const GravityType gravity)
+			wand	[DrawingWand!] ;the drawing wand.
+			gravity	[GravityType!] ;positioning gravity (NorthWestGravity, NorthGravity, NorthEastGravity, WestGravity, CenterGravity, EastGravity, SouthWestGravity, SouthGravity, SouthEastGravity)
+		]
+		DrawSetStrokeColor: "DrawSetStrokeColor" [
+			;== Sets the color used for stroking object outlines
+			;-- void DrawSetStrokeColor(DrawingWand *wand,const PixelWand *stroke_wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			stroke_wand	[PixelWand!] ;stroke wand.
+		]
+		DrawSetStrokePatternURL: "DrawSetStrokePatternURL" [
+			;== Sets the pattern used for stroking object outlines
+			;-- MagickBooleanType DrawSetStrokePatternURL(DrawingWand *wand,const char *stroke_url)
+			wand	[DrawingWand!] ;the drawing wand.
+			stroke_url	[c-string!] ;URL specifying pattern ID (e.g. "#pattern_id")
+			return: [MagickBooleanType!]
+		]
+		DrawSetStrokeAntialias: "DrawSetStrokeAntialias" [
+			;== Controls whether stroked outlines are antialiased
+			;-- void DrawSetStrokeAntialias(DrawingWand *wand,const MagickBooleanType stroke_antialias)
+			wand	[DrawingWand!] ;the drawing wand.
+			stroke_antialias	[MagickBooleanType!] ;set to false (zero) to disable antialiasing
+		]
+		DrawSetStrokeDashArray: "DrawSetStrokeDashArray" [
+			;== Specifies the pattern of dashes and gaps used to stroke paths
+			;-- MagickBooleanType DrawSetStrokeDashArray(DrawingWand *wand,const size_t number_elements,const double *dash_array)
+			wand	[DrawingWand!] ;the drawing wand.
+			number_elements	[size_t!] ;number of elements in dash array
+			dash_array	[pointer! [float!]] ;dash array values
+			return: [MagickBooleanType!]
+		]
+		DrawSetStrokeDashOffset: "DrawSetStrokeDashOffset" [
+			;== Specifies the offset into the dash pattern to start the dash
+			;-- void DrawSetStrokeDashOffset(DrawingWand *wand,const double dash_offset)
+			wand	[DrawingWand!] ;the drawing wand.
+			dash_offset	[float!] ;dash offset
+		]
+		DrawSetStrokeLineCap: "DrawSetStrokeLineCap" [
+			;== Specifies the shape to be used at the end of open subpaths when they are stroked
+			;-- void DrawSetStrokeLineCap(DrawingWand *wand,const LineCap linecap)
+			wand	[DrawingWand!] ;the drawing wand.
+			linecap	[LineCap!] ;linecap style
+		]
+		DrawSetStrokeLineJoin: "DrawSetStrokeLineJoin" [
+			;== Specifies the shape to be used at the corners of paths (or other vector shapes) when they are stroked
+			;-- void DrawSetStrokeLineJoin(DrawingWand *wand,const LineJoin linejoin)
+			wand	[DrawingWand!] ;the drawing wand.
+			linejoin	[LineJoin!] ;line join style
+		]
+		DrawSetStrokeMiterLimit: "DrawSetStrokeMiterLimit" [
+			;== Specifies the miter limit
+			;-- void DrawSetStrokeMiterLimit(DrawingWand *wand,const size_t miterlimit)
+			wand	[DrawingWand!] ;the drawing wand.
+			miterlimit	[size_t!] ;miter limit
+		]
+		DrawSetStrokeOpacity: "DrawSetStrokeOpacity" [
+			;== Specifies the opacity of stroked object outlines
+			;-- void DrawSetStrokeOpacity(DrawingWand *wand,const double stroke_opacity)
+			wand	[DrawingWand!] ;the drawing wand.
+			stroke_opacity	[float!] ;stroke opacity.  The value 1.0 is opaque.
+		]
+		DrawSetStrokeWidth: "DrawSetStrokeWidth" [
+			;== Sets the width of the stroke used to draw object outlines
+			;-- void DrawSetStrokeWidth(DrawingWand *wand,const double stroke_width)
+			wand	[DrawingWand!] ;the drawing wand.
+			stroke_width	[float!] ;stroke width
+		]
+		DrawSetTextAlignment: "DrawSetTextAlignment" [
+			;== Specifies a text alignment to be applied when annotating with text
+			;-- void DrawSetTextAlignment(DrawingWand *wand,const AlignType alignment)
+			wand	[DrawingWand!] ;the drawing wand.
+			alignment	[AlignType!] ;text alignment.  One of UndefinedAlign, LeftAlign, CenterAlign, or RightAlign.
+		]
+		DrawSetTextAntialias: "DrawSetTextAntialias" [
+			;== Controls whether text is antialiased
+			;-- void DrawSetTextAntialias(DrawingWand *wand,const MagickBooleanType text_antialias)
+			wand	[DrawingWand!] ;the drawing wand.
+			text_antialias	[MagickBooleanType!] ;antialias boolean. Set to false (0) to disable antialiasing.
+		]
+		DrawSetTextDecoration: "DrawSetTextDecoration" [
+			;== Specifies a decoration to be applied when annotating with text
+			;-- void DrawSetTextDecoration(DrawingWand *wand,const DecorationType decoration)
+			wand	[DrawingWand!] ;the drawing wand.
+			decoration	[DecorationType!] ;text decoration.  One of NoDecoration, UnderlineDecoration, OverlineDecoration, or LineThroughDecoration
+		]
+		DrawSetTextEncoding: "DrawSetTextEncoding" [
+			;== Specifies the code set to use for text annotations
+			;-- void DrawSetTextEncoding(DrawingWand *wand,const char *encoding)
+			wand	[DrawingWand!] ;the drawing wand.
+			encoding	[c-string!] ;character string specifying text encoding
+		]
+		DrawSetTextKerning: "DrawSetTextKerning" [
+			;== Sets the spacing between characters in text
+			;-- void DrawSetTextKerning(DrawingWand *wand,const double kerning)
+			wand	[DrawingWand!] ;the drawing wand.
+			kerning	[float!] ;text kerning
+		]
+		DrawSetTextInterwordSpacing: "DrawSetTextInterwordSpacing" [
+			;== Sets the spacing between line in text
+			;-- void DrawSetTextInterwordSpacing(DrawingWand *wand,const double interline_spacing)
+			wand	[DrawingWand!] ;the drawing wand.
+			interline_spacing	[float!] ;text line spacing
+		]
+		DrawSetTextInterwordSpacing: "DrawSetTextInterwordSpacing" [
+			;== Sets the spacing between words in text
+			;-- void DrawSetTextInterwordSpacing(DrawingWand *wand,const double interword_spacing)
+			wand	[DrawingWand!] ;the drawing wand.
+			interword_spacing	[float!] ;text word spacing
+		]
+		DrawSetTextUnderColor: "DrawSetTextUnderColor" [
+			;== Specifies the color of a background rectangle to place under text annotations
+			;-- void DrawSetTextUnderColor(DrawingWand *wand,const PixelWand *under_wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			under_wand	[PixelWand!] ;text under wand.
+		]
+		DrawSetVectorGraphics: "DrawSetVectorGraphics" [
+			;== Sets the vector graphics associated with the specified wand
+			;-- MagickBooleanType DrawSetVectorGraphics(DrawingWand *wand,const char *xml)
+			wand	[DrawingWand!] ;the drawing wand.
+			xml	[c-string!] ;the drawing wand XML.
+			return: [MagickBooleanType!]
+		]
+		DrawSkewX: "DrawSkewX" [
+			;== Skews the current coordinate system in the horizontal direction
+			;-- void DrawSkewX(DrawingWand *wand,const double degrees)
+			wand	[DrawingWand!] ;the drawing wand.
+			degrees	[float!] ;number of degrees to skew the coordinates
+		]
+		DrawSkewY: "DrawSkewY" [
+			;== Skews the current coordinate system in the vertical direction
+			;-- void DrawSkewY(DrawingWand *wand,const double degrees)
+			wand	[DrawingWand!] ;the drawing wand.
+			degrees	[float!] ;number of degrees to skew the coordinates
+		]
+		DrawTranslate: "DrawTranslate" [
+			;== Applies a translation to the current coordinate system which moves the coordinate system origin to the specified coordinate
+			;-- void DrawTranslate(DrawingWand *wand,const double x,const double y)
+			wand	[DrawingWand!] ;the drawing wand.
+			x	[float!] ;new x ordinate for coordinate system origin
+			y	[float!] ;new y ordinate for coordinate system origin
+		]
+		DrawSetViewbox: "DrawSetViewbox" [
+			;== Sets the overall canvas size to be recorded with the drawing vector data
+			;-- void DrawSetViewbox(DrawingWand *wand,size_t x1,size_t y1,size_t x2,size_t y2)
+			wand	[DrawingWand!] ;the drawing wand.
+			x1	[size_t!] ;left x ordinate
+			y1	[size_t!] ;top y ordinate
+			x2	[size_t!] ;right x ordinate
+			y2	[size_t!] ;bottom y ordinate
+		]
+		IsDrawingWand: "IsDrawingWand" [
+			;== Returns MagickTrue if the wand is verified as a drawing wand
+			;-- MagickBooleanType IsDrawingWand(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [MagickBooleanType!]
+		]
+		NewDrawingWand: "NewDrawingWand" [
+			;== Returns a drawing wand required for all other methods in the API
+			;-- DrawingWand NewDrawingWand(void)
+			return: [DrawingWand!]
+		]
+		PeekDrawingWand: "PeekDrawingWand" [
+			;== Returns the current drawing wand
+			;-- DrawInfo *PeekDrawingWand(const DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [pointer! [integer!]]
+		]
+		PopDrawingWand: "PopDrawingWand" [
+			;== Destroys the current drawing wand and returns to the previously pushed drawing wand
+			;-- MagickBooleanType PopDrawingWand(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
+			return: [MagickBooleanType!]
+		]
+		PushDrawingWand: "PushDrawingWand" [
+			;== Clones the current drawing wand to create a new drawing wand
+			;-- MagickBooleanType PushDrawingWand(DrawingWand *wand)
+			wand	[DrawingWand!] ;the drawing wand.
 			return: [MagickBooleanType!]
 		]
 	]
