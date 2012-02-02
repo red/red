@@ -623,7 +623,7 @@ KernelInfo!: alias struct! [
 			;== Returns MagickTrue if the distance between two colors is less than the specified distance
 			;-- MagickBooleanType IsPixelWandSimilar(PixelWand *p,PixelWand *q,const double fuzz)
 			p	[PixelWand!] ;the pixel wand.
-			q	[PixelWand!] ;the pixel wand.
+			q	[PixelWand!]
 			fuzz	[float!] ;any two colors that are less than or equal to this distance squared are consider similar.
 			return: [MagickBooleanType!]
 		]
@@ -752,8 +752,8 @@ KernelInfo!: alias struct! [
 			;-- void PixelGetHSL(const PixelWand *wand,double *hue,double *saturation,double *lightness)
 			wand	[PixelWand!] ;the pixel wand.
 			hue	[pointer! [float!]] ;Return the pixel hue, saturation, and brightness.
-			saturation	[pointer! [float!]] ;Return the pixel hue, saturation, and brightness.
-			lightness	[pointer! [float!]] ;Return the pixel hue, saturation, and brightness.
+			saturation	[pointer! [float!]]
+			lightness	[pointer! [float!]]
 		]
 		PixelGetIndex: "PixelGetIndex" [
 			;== Returns the colormap index from the pixel wand
@@ -905,8 +905,8 @@ KernelInfo!: alias struct! [
 			;-- void PixelSetHSL(PixelWand *wand,const double hue,const double saturation,const double lightness)
 			wand	[PixelWand!] ;the pixel wand.
 			hue	[float!] ;Return the pixel hue, saturation, and brightness.
-			saturation	[float!] ;Return the pixel hue, saturation, and brightness.
-			lightness	[float!] ;Return the pixel hue, saturation, and brightness.
+			saturation	[float!]
+			lightness	[float!]
 		]
 		PixelSetIndex: "PixelSetIndex" [
 			;== Sets the colormap index of the pixel wand
@@ -1350,15 +1350,15 @@ KernelInfo!: alias struct! [
 			;== Replaces colors in the image from a color lookup table
 			;-- MagickBooleanType MagickClutImage(MagickWand *wand,const MagickWand *clut_wand)
 			wand	[MagickWand!] ;the magick wand.
-			clut_wand	[MagickWand!] ;none
+			clut_wand	[MagickWand!]
 			return: [MagickBooleanType!]
 		]
 		MagickClutImageChannel: "MagickClutImageChannel" [
 			;== Replaces colors in the image from a color lookup table
 			;-- MagickBooleanType MagickClutImageChannel(MagickWand *wand,const ChannelType channel,const MagickWand *clut_wand)
 			wand	[MagickWand!] ;the magick wand.
-			channel	[ChannelType!] ;none
-			clut_wand	[MagickWand!] ;none
+			channel	[ChannelType!]
+			clut_wand	[MagickWand!]
 			return: [MagickBooleanType!]
 		]
 		MagickCoalesceImages: "MagickCoalesceImages" [
@@ -1371,7 +1371,7 @@ KernelInfo!: alias struct! [
 			;== Accepts a lightweight Color Correction Collection (CCC) file which solely contains one or more color corrections and applies the color correction to the image
 			;-- MagickBooleanType MagickColorDecisionListImage(MagickWand *wand,const double gamma)
 			wand	[MagickWand!] ;the magick wand.
-			gamma	[float!] ;none
+			gamma	[float!]
 			return: [MagickBooleanType!]
 		]
 		MagickColorizeImage: "MagickColorizeImage" [
@@ -1433,7 +1433,7 @@ KernelInfo!: alias struct! [
 			;== Composite one image onto another at the specified offset
 			;-- MagickBooleanType MagickCompositeImage(MagickWand *wand,const MagickWand *composite_wand,const CompositeOperator compose,const ssize_t x,const ssize_t y)
 			wand	[MagickWand!] ;the magick wand.
-			composite_wand	[MagickWand!] ;none
+			composite_wand	[MagickWand!]
 			compose	[CompositeOperator!] ;This operator affects how the composite is applied to the image.  The default is Over.  Choose from these operators:
 			x	[ssize_t!] ;the column offset of the composited image.
 			y	[ssize_t!] ;the row offset of the composited image.
@@ -1443,8 +1443,8 @@ KernelInfo!: alias struct! [
 			;== Composite one image onto another at the specified offset
 			;-- MagickBooleanType MagickCompositeImageChannel(MagickWand *wand,const ChannelType channel,const MagickWand *composite_wand,const CompositeOperator compose,const ssize_t x,const ssize_t y)
 			wand	[MagickWand!] ;the magick wand.
-			channel	[ChannelType!] ;none
-			composite_wand	[MagickWand!] ;none
+			channel	[ChannelType!]
+			composite_wand	[MagickWand!]
 			compose	[CompositeOperator!] ;This operator affects how the composite is applied to the image.  The default is Over.  Choose from these operators:
 			x	[ssize_t!] ;the column offset of the composited image.
 			y	[ssize_t!] ;the row offset of the composited image.
@@ -1505,7 +1505,7 @@ KernelInfo!: alias struct! [
 			;== Displaces an image's colormap by a given number of positions
 			;-- MagickBooleanType MagickCycleColormapImage(MagickWand *wand,const ssize_t displace)
 			wand	[MagickWand!] ;the magick wand.
-			displace	[ssize_t!] ;none
+			displace	[ssize_t!]
 			return: [MagickBooleanType!]
 		]
 		MagickConstituteImage: "MagickConstituteImage" [
@@ -1568,7 +1568,7 @@ KernelInfo!: alias struct! [
 		MagickDistortImage: "MagickDistortImage" [
 			;== Distorts an image using various distortion methods, by mapping color lookups of the source image to a new destination image usally of the same size as the source image, unless 'bestfit' is set to true
 			;-- MagickBooleanType MagickDistortImage(MagickWand *wand,const DistortImageMethod method,const size_t number_arguments,const double *arguments,const MagickBooleanType bestfit)
-			wand	[MagickWand!] ;none
+			wand	[MagickWand!]
 			method	[DistortImageMethod!] ;the method of image distortion.
 			number_arguments	[size_t!] ;the number of arguments given for this distortion method.
 			arguments	[pointer! [float!]] ;the arguments for this distortion method.
@@ -1627,7 +1627,7 @@ KernelInfo!: alias struct! [
 			;== Applys an arithmetic, relational, or logical expression to an image
 			;-- MagickBooleanType MagickEvaluateImage(MagickWand *wand,const MagickEvaluateOperator operator,const double value)
 			wand	[MagickWand!] ;the magick wand.
-			operator	[MagickEvaluateOperator!] ;none
+			operator	[MagickEvaluateOperator!]
 			value	[float!] ;A value value.
 			return: [MagickBooleanType!]
 		]
@@ -1635,7 +1635,7 @@ KernelInfo!: alias struct! [
 			;== Applys an arithmetic, relational, or logical expression to an image
 			;-- MagickBooleanType MagickEvaluateImages(MagickWand *wand,const MagickEvaluateOperator operator)
 			wand	[MagickWand!] ;the magick wand.
-			operator	[MagickEvaluateOperator!] ;none
+			operator	[MagickEvaluateOperator!]
 			return: [MagickBooleanType!]
 		]
 		MagickEvaluateImageChannel: "MagickEvaluateImageChannel" [
@@ -1652,9 +1652,9 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickExportImagePixels(MagickWand *wand,const ssize_t x,const ssize_t y,const size_t columns,const size_t rows,const char *map,const StorageType storage,void *pixels)
 			wand	[MagickWand!] ;the magick wand.
 			x	[ssize_t!] ;These values define the perimeter of a region of pixels you want to extract.
-			y	[ssize_t!] ;These values define the perimeter of a region of pixels you want to extract.
-			columns	[size_t!] ;These values define the perimeter of a region of pixels you want to extract.
-			rows	[size_t!] ;These values define the perimeter of a region of pixels you want to extract.
+			y	[ssize_t!]
+			columns	[size_t!]
+			rows	[size_t!]
 			map	[c-string!] ;This string reflects the expected ordering of the pixel array. It can be any combination or order of R = red, G = green, B = blue, A = alpha (0 is transparent), O = opacity (0 is opaque), C = cyan, Y = yellow, M = magenta, K = black, I = intensity (for grayscale), P = pad.
 			storage	[StorageType!] ;Define the data type of the pixels.  Float and double types are expected to be normalized [0..1] otherwise [0..QuantumRange].  Choose from these types: CharPixel, DoublePixel, FloatPixel, IntegerPixel, LongPixel, QuantumPixel, or ShortPixel.
 			pixels	[pointer! [byte!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
@@ -1700,7 +1700,7 @@ KernelInfo!: alias struct! [
 			fuzz	[float!] ;By default target must match a particular pixel color exactly.  However, in many cases two colors may differ by a small amount. The fuzz member of image defines how much tolerance is acceptable to consider two colors as the same.  For example, set fuzz to 10 and the color red at intensities of 100 and 102 respectively are now interpreted as the same color for the purposes of the floodfill.
 			bordercolor	[PixelWand!] ;the border color pixel wand.
 			x	[ssize_t!] ;the starting location of the operation.
-			y	[ssize_t!] ;the starting location of the operation.
+			y	[ssize_t!]
 			invert	[MagickBooleanType!] ;paint any pixel that does not match the target color.
 			return: [MagickBooleanType!]
 		]
@@ -1766,7 +1766,7 @@ KernelInfo!: alias struct! [
 			;== Gamma-corrects an image
 			;-- MagickBooleanType MagickGammaImage(MagickWand *wand,const double gamma)
 			wand	[MagickWand!] ;the magick wand.
-			gamma	[float!] ;none
+			gamma	[float!]
 			return: [MagickBooleanType!]
 		]
 		MagickGammaImageChannel: "MagickGammaImageChannel" [
@@ -1774,7 +1774,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickGammaImageChannel(MagickWand *wand,const ChannelType channel,const double gamma)
 			wand	[MagickWand!] ;the magick wand.
 			channel	[ChannelType!] ;the channel.
-			gamma	[float!] ;none
+			gamma	[float!]
 			return: [MagickBooleanType!]
 		]
 		MagickGaussianBlurImage: "MagickGaussianBlurImage" [
@@ -2082,7 +2082,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickGetImagePixelColor(MagickWand *wand,const ssize_t x,const ssize_t y,PixelWand *color)
 			wand	[MagickWand!] ;the magick wand.
 			x	[ssize_t!] ;the pixel offset into the image.
-			y	[ssize_t!] ;the pixel offset into the image.
+			y	[ssize_t!]
 			color	[PixelWand!] ;Return the colormap color in this wand.
 			return: [MagickBooleanType!]
 		]
@@ -2184,15 +2184,15 @@ KernelInfo!: alias struct! [
 			;== Replaces colors in the image from a Hald color lookup table
 			;-- MagickBooleanType MagickHaldClutImage(MagickWand *wand,const MagickWand *hald_wand)
 			wand	[MagickWand!] ;the magick wand.
-			hald_wand	[MagickWand!] ;none
+			hald_wand	[MagickWand!]
 			return: [MagickBooleanType!]
 		]
 		MagickHaldClutImageChannel: "MagickHaldClutImageChannel" [
 			;== Replaces colors in the image from a Hald color lookup table
 			;-- MagickBooleanType MagickHaldClutImageChannel(MagickWand *wand,const ChannelType channel,const MagickWand *hald_wand)
 			wand	[MagickWand!] ;the magick wand.
-			channel	[ChannelType!] ;none
-			hald_wand	[MagickWand!] ;none
+			channel	[ChannelType!]
+			hald_wand	[MagickWand!]
 			return: [MagickBooleanType!]
 		]
 		MagickHasNextImage: "MagickHasNextImage" [
@@ -2217,7 +2217,7 @@ KernelInfo!: alias struct! [
 			;== Creates a new image that is a copy of an existing one with the image pixels 'implode' by the specified percentage
 			;-- MagickBooleanType MagickImplodeImage(MagickWand *wand,const double radius)
 			wand	[MagickWand!] ;the magick wand.
-			radius	[float!] ;none
+			radius	[float!]
 			return: [MagickBooleanType!]
 		]
 		MagickImportImagePixels: "MagickImportImagePixels" [
@@ -2225,9 +2225,9 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickImportImagePixels(MagickWand *wand,const ssize_t x,const ssize_t y,const size_t columns,const size_t rows,const char *map,const StorageType storage,const void *pixels)
 			wand	[MagickWand!] ;the magick wand.
 			x	[ssize_t!] ;These values define the perimeter of a region of pixels you want to define.
-			y	[ssize_t!] ;These values define the perimeter of a region of pixels you want to define.
-			columns	[size_t!] ;These values define the perimeter of a region of pixels you want to define.
-			rows	[size_t!] ;These values define the perimeter of a region of pixels you want to define.
+			y	[ssize_t!]
+			columns	[size_t!]
+			rows	[size_t!]
 			map	[c-string!] ;This string reflects the expected ordering of the pixel array. It can be any combination or order of R = red, G = green, B = blue, A = alpha (0 is transparent), O = opacity (0 is opaque), C = cyan, Y = yellow, M = magenta, K = black, I = intensity (for grayscale), P = pad.
 			storage	[StorageType!] ;Define the data type of the pixels.  Float and double types are expected to be normalized [0..1] otherwise [0..QuantumRange].  Choose from these types: CharPixel, ShortPixel, IntegerPixel, LongPixel, FloatPixel, or DoublePixel.
 			pixels	[pointer! [byte!]] ;This array of values contain the pixel components as defined by map and type.  You must preallocate this array where the expected length varies depending on the values of width, height, map, and type.
@@ -2388,8 +2388,8 @@ KernelInfo!: alias struct! [
 			;== Adds a blank image canvas of the specified size and background color to the wand
 			;-- MagickBooleanType MagickNewImage(MagickWand *wand,const size_t columns,const size_t rows,const PixelWand *background)
 			wand	[MagickWand!] ;the magick wand.
-			columns	[size_t!] ;none
-			rows	[size_t!] ;none
+			columns	[size_t!]
+			rows	[size_t!]
 			background	[PixelWand!] ;the image color.
 			return: [MagickBooleanType!]
 		]
@@ -2449,14 +2449,14 @@ KernelInfo!: alias struct! [
 		MagickOrderedPosterizeImage: "MagickOrderedPosterizeImage" [
 			;== Performs an ordered dither based on a number of pre-defined dithering threshold maps, but over multiple intensity levels, which can be different for different channels, according to the input arguments
 			;-- MagickBooleanType MagickOrderedPosterizeImage(MagickWand *wand,const char *threshold_map)
-			wand	[MagickWand!] ;none
+			wand	[MagickWand!]
 			threshold_map	[c-string!] ;A string containing the name of the threshold dither map to use, followed by zero or more numbers representing the number of color levels tho dither between.
 			return: [MagickBooleanType!]
 		]
 		MagickOrderedPosterizeImageChannel: "MagickOrderedPosterizeImageChannel" [
 			;== Performs an ordered dither based on a number of pre-defined dithering threshold maps, but over multiple intensity levels, which can be different for different channels, according to the input arguments
 			;-- MagickBooleanType MagickOrderedPosterizeImageChannel(MagickWand *wand,const ChannelType channel,const char *threshold_map)
-			wand	[MagickWand!] ;none
+			wand	[MagickWand!]
 			channel	[ChannelType!] ;the channel or channels to be thresholded.
 			threshold_map	[c-string!] ;A string containing the name of the threshold dither map to use, followed by zero or more numbers representing the number of color levels tho dither between.
 			return: [MagickBooleanType!]
@@ -2554,9 +2554,9 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickRaiseImage(MagickWand *wand,const size_t width,const size_t height,const ssize_t x,const ssize_t y,const MagickBooleanType raise)
 			wand	[MagickWand!] ;the magick wand.
 			width	[size_t!] ;Define the dimensions of the area to raise.
-			height	[size_t!] ;Define the dimensions of the area to raise.
-			x	[ssize_t!] ;Define the dimensions of the area to raise.
-			y	[ssize_t!] ;Define the dimensions of the area to raise.
+			height	[size_t!]
+			x	[ssize_t!]
+			y	[ssize_t!]
 			raise	[MagickBooleanType!] ;A value other than zero creates a 3-D raise effect, otherwise it has a lowered effect.
 			return: [MagickBooleanType!]
 		]
@@ -2565,7 +2565,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickRandomThresholdImage(MagickWand *wand,const double low,const double high)
 			wand	[MagickWand!] ;the magick wand.
 			low	[float!] ;Specify the high and low thresholds.  These values range from 0 to QuantumRange.
-			high	[float!] ;Specify the high and low thresholds.  These values range from 0 to QuantumRange.
+			high	[float!]
 			return: [MagickBooleanType!]
 		]
 		MagickRandomThresholdImageChannel: "MagickRandomThresholdImageChannel" [
@@ -2574,7 +2574,7 @@ KernelInfo!: alias struct! [
 			wand	[MagickWand!] ;the magick wand.
 			channel	[ChannelType!] ;the image channel(s).
 			low	[float!] ;Specify the high and low thresholds.  These values range from 0 to QuantumRange.
-			high	[float!] ;Specify the high and low thresholds.  These values range from 0 to QuantumRange.
+			high	[float!]
 			return: [MagickBooleanType!]
 		]
 		MagickReadImage: "MagickReadImage" [
@@ -2603,7 +2603,7 @@ KernelInfo!: alias struct! [
 			;== Replaces the colors of an image with the closest color from a reference image
 			;-- MagickBooleanType MagickRemapImage(MagickWand *wand,const MagickWand *remap_wand,const DitherMethod method)
 			wand	[MagickWand!] ;the magick wand.
-			remap_wand	[MagickWand!] ;none
+			remap_wand	[MagickWand!]
 			method	[DitherMethod!] ;choose from these dither methods: NoDitherMethod, RiemersmaDitherMethod, or FloydSteinbergDitherMethod.
 			return: [MagickBooleanType!]
 		]
@@ -2777,7 +2777,7 @@ KernelInfo!: alias struct! [
 			;== Set the entire wand canvas to the specified color
 			;-- MagickBooleanType MagickSetImageColor(MagickWand *wand,const PixelWand *color)
 			wand	[MagickWand!] ;the magick wand.
-			color	[PixelWand!] ;none
+			color	[PixelWand!]
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageColormapColor: "MagickSetImageColormapColor" [
@@ -2906,7 +2906,7 @@ KernelInfo!: alias struct! [
 			;== Sets the image iterations
 			;-- MagickBooleanType MagickSetImageIterations(MagickWand *wand,const size_t iterations)
 			wand	[MagickWand!] ;the magick wand.
-			iterations	[size_t!] ;none
+			iterations	[size_t!]
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageMatte: "MagickSetImageMatte" [
@@ -2982,14 +2982,14 @@ KernelInfo!: alias struct! [
 			;== Sets the image scene
 			;-- MagickBooleanType MagickSetImageScene(MagickWand *wand,const size_t scene)
 			wand	[MagickWand!] ;the magick wand.
-			scene	[size_t!] ;none
+			scene	[size_t!]
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageTicksPerSecond: "MagickSetImageTicksPerSecond" [
 			;== Sets the image ticks-per-second
 			;-- MagickBooleanType MagickSetImageTicksPerSecond(MagickWand *wand,const ssize_t ticks_per-second)
 			wand	[MagickWand!] ;the magick wand.
-			ticks_per-second	[ssize_t!] ;none
+			ticks_per-second	[ssize_t!]
 			return: [MagickBooleanType!]
 		]
 		MagickSetImageType: "MagickSetImageType" [
@@ -3027,7 +3027,7 @@ KernelInfo!: alias struct! [
 			wand	[MagickWand!] ;the magick wand.
 			gray	[MagickBooleanType!] ;A value other than zero shades the intensity of each pixel.
 			azimuth	[float!] ;Define the light source direction.
-			elevation	[float!] ;Define the light source direction.
+			elevation	[float!]
 			return: [MagickBooleanType!]
 		]
 		MagickShadowImage: "MagickShadowImage" [
@@ -3071,7 +3071,7 @@ KernelInfo!: alias struct! [
 			wand	[MagickWand!] ;the magick wand.
 			background	[PixelWand!] ;the background pixel wand.
 			x_shear	[float!] ;the number of degrees to shear the image.
-			y_shear	[float!] ;the number of degrees to shear the image.
+			y_shear	[float!]
 			return: [MagickBooleanType!]
 		]
 		MagickSigmoidalContrastImage: "MagickSigmoidalContrastImage" [
@@ -3306,7 +3306,7 @@ KernelInfo!: alias struct! [
 			black_point	[float!] ;the black point.
 			white_point	[float!] ;the white point.
 			x	[ssize_t!] ;Define the x and y ellipse offset.
-			y	[ssize_t!] ;Define the x and y ellipse offset.
+			y	[ssize_t!]
 			return: [MagickBooleanType!]
 		]
 		MagickWaveImage: "MagickWaveImage" [
@@ -3314,7 +3314,7 @@ KernelInfo!: alias struct! [
 			;-- MagickBooleanType MagickWaveImage(MagickWand *wand,const double amplitude,const double wave_length)
 			wand	[MagickWand!] ;the magick wand.
 			amplitude	[float!] ;Define the amplitude and wave length of the sine wave.
-			wave_length	[float!] ;Define the amplitude and wave length of the sine wave.
+			wave_length	[float!]
 			return: [MagickBooleanType!]
 		]
 		MagickWhiteThresholdImage: "MagickWhiteThresholdImage" [
@@ -3781,8 +3781,8 @@ KernelInfo!: alias struct! [
 			x_axis_rotation	[float!] ;indicates how the ellipse as a whole is rotated relative to the current coordinate system
 			large_arc_flag	[MagickBooleanType!] ;If non-zero (true) then draw the larger of the available arcs
 			sweep_flag	[MagickBooleanType!] ;If non-zero (true) then draw the arc matching a clock-wise rotation
-			x	[float!] ;none
-			y	[float!] ;none
+			x	[float!]
+			y	[float!]
 		]
 		DrawPathEllipticArcRelative: "DrawPathEllipticArcRelative" [
 			;== Draws an elliptical arc from the current point to (x, y) using relative coordinates
@@ -3793,8 +3793,8 @@ KernelInfo!: alias struct! [
 			x_axis_rotation	[float!] ;indicates how the ellipse as a whole is rotated relative to the current coordinate system
 			large_arc_flag	[MagickBooleanType!] ;If non-zero (true) then draw the larger of the available arcs
 			sweep_flag	[MagickBooleanType!] ;If non-zero (true) then draw the arc matching a clock-wise rotation
-			x	[float!] ;none
-			y	[float!] ;none
+			x	[float!]
+			y	[float!]
 		]
 		DrawPathFinish: "DrawPathFinish" [
 			;== Terminates the current path
@@ -3819,7 +3819,7 @@ KernelInfo!: alias struct! [
 			;== Draws a horizontal line path from the current point to the target point using absolute coordinates
 			;-- void DrawPathLineToHorizontalAbsolute(DrawingWand *wand,const PathMode mode,const double x)
 			wand	[DrawingWand!] ;the drawing wand.
-			mode	[PathMode!] ;none
+			mode	[PathMode!]
 			x	[float!] ;target x ordinate
 		]
 		DrawPathLineToHorizontalRelative: "DrawPathLineToHorizontalRelative" [
@@ -3921,7 +3921,7 @@ KernelInfo!: alias struct! [
 		DrawRectangle: "DrawRectangle" [
 			;== Draws a rectangle given two coordinates and using the current stroke, stroke width, and fill settings
 			;-- void DrawRectangle(DrawingWand *wand,const double x1,const double y1,const double x2,const double y2)
-			wand	[DrawingWand!] ;none
+			wand	[DrawingWand!]
 			x1	[float!] ;x ordinate of first coordinate
 			y1	[float!] ;y ordinate of first coordinate
 			x2	[float!] ;x ordinate of second coordinate
