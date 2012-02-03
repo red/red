@@ -1961,12 +1961,12 @@ make target-class [
 				round/to/ceiling args-size 4
 		]
 		
-		if all [block? fspec/4/1 fspec/5 = 'callback][
-			emit-i32 #{ed3d8b10}					;-- FLDMD sp!, {d8-d15}
+		either all [block? fspec/4/1 fspec/5 = 'callback][
+			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
+		][
+			emit-i32 #{e1a0f00e}					;-- MOV pc, lr
 		]
-
-		emit-i32 #{e1a0f00e}						;-- MOV pc, lr
 
 		pools/mark-entry-point name
 	]
