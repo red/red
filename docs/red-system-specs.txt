@@ -1,7 +1,7 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 28/01/2012
+	Date: 04/02/2012
 	Revision: 32
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
@@ -2305,6 +2305,63 @@ will output:
  
 <u>Note</u>: Parens are required in this example on test expressions so that the compiler performs the second infix expression (the and operator) before the first (the equal operator).
  
+ 
+---#enum
+
+The <b>#enum</b> compiler directive allows to declare enumerations using labels. A list of integers is assign to a list labels. These labels could then be used anywhere in the source code and will be converted to their integer value when needed by the compiler.
+
+<b>Syntax</b>
+
+ #enum <name>! [
+ 	<label> +
+ 	| <label>: + <value>
+ ]
+
+ <name>!  : enumeration name (ending with a ! by convention)
+ <label>  : label to which an integer value is assigned to
+ <label>: : label set to a given integer value
+ <value>  : integer value
+ +        : repeat last element once or several times
+
+The enumeration starts from 0 by default. It is possible to assign a starting value using a label name with a ending colon, followed by an integer. It is also possible to assign several labels to the same value.
+
+<u>Notes:</u> 
+
+* labels syntactic rules are the same as for variable identifiers. 
+	
+* enumeration names are pseudo-types that can be used in any local or global variable declaration in place of a real type.
+
+* labels can be used in place of integer variables or literal integer values.
+
+* ambiguous enum or label names that could conflict with other existing names will raise a compilation error.
+
+<b>Examples</b>
+
+ #enum colors [A B C D E]
+ print-wide [A E]
+will output
+ 0 4
+
+Using in place of literal integers:
+ #enum colors [red blue green yellow]
+
+ a: red
+
+ print switch a [
+ 	red    ["Red"]
+ 	blue   ["Blue"]
+ 	yellow ["Yellow"]
+ ]
+will output
+ Red
+ 
+Defining labels with user-selected value:
+ #enum [a: 1 b c d: e: 10]
+
+ print-wide [a b c d e]
+will output
+ 1 2 3 10 10
+
 ---#include
 
 The <b>#include</b> compiler directive will insert the target source file at the current position in the calling source code.
@@ -2699,13 +2756,15 @@ will output:
 
 ===Document History
 
-*<b>28/01/2012 - revision 32</b>
+*<b>04/02/2012 - revision 32</b>
 
 *>Added float! and float32! datatypes. 
 
 *>Type casting matrix updated with float! and float32!
 
 *>Updated list of runtime type IDs.
+
+*>Added #enum description
 
 
 
