@@ -791,7 +791,7 @@ Integer variable can also be used as index:
 
  p: as [pointer! [integer!]] 4000000h
  c: 2
- p/c: 1234								;-- writes 123 (4 bytes) at 40000004h
+ p/c: 1234								;-- writes 1234 (4 bytes) at 40000004h
  
 <u>Note</u>: Pointer's <b>/value</b> notation is strictly equivalent to <b>/1</b>. The <b>/value</b> notation can be considered as syntactic sugar.
 
