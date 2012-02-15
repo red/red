@@ -45,8 +45,23 @@ Red/System [
   ]
 ]
 
+#import [
+  "***abs-path***###prefix###testlib4@@@extension@@@" cdecl [
+    passitback: "passitback" [
+      i       [integer!]
+      p-i-b   [function! [
+        i       [integer!]
+        return: [integer!]
+      ]]
+      return: [integer!]
+    ]
+  ]
+]
+
+
 ~~~start-file~~~ "library"
   
+===start-group=== "calls"
   --test-- "lib1"
   --assert 2 = addone 1
   --assert 1 = subtractone 2
@@ -58,6 +73,24 @@ Red/System [
   --test-- "lib3"
   --assert 1 = halve 2
   --assert 0 = halve 1
+===end-group===
+
+===start-group=== "callbacks"
+    p-i-b: func [
+      [cdecl]
+      i       [integer!]
+      return: [integer!] 
+    ][
+      i * 2
+    ]
+  --test-- "callback 1"
+  --assert 2 = passitback 1 :p-i-b   
+  --test-- "callback 2"
+  --assert 256 = passitback 128 :p-i-b   
+  --test-- "callback 3"
+  --assert -2 = passitback -1 :p-i-b   
+    
+===end-group===
   
 ~~~end-file~~~
 

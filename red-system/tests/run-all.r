@@ -97,6 +97,7 @@ start-time: now/precise
   --run-test-file-quiet %source/units/alias-test.reds
   --run-test-file-quiet %source/units/length-test.reds
   --run-test-file-quiet %source/units/null-test.reds
+  --run-test-file-quiet %source/units/enum-test.reds
 ===end-group===
 
 ===start-group=== "Native functions tests"
@@ -146,6 +147,7 @@ start-time: now/precise
   --run-script-quiet %source/compiler/infix-test.r
   --run-script-quiet %source/compiler/not-test.r
   --run-script-quiet %source/compiler/print-test.r
+  --run-script-quiet %source/compiler/enum-test.r
 ===end-group===
 
 ***end-run-quiet***

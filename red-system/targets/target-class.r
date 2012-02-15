@@ -8,7 +8,8 @@ REBOL [
 
 target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
-	default-align: stack-width: branch-offset-size: none		   ; TBD: document once stabilized
+	default-align: stack-width: stack-slot-max:				  	   ; TBD: document once stabilized
+	branch-offset-size: none		   							   ; TBD: document once stabilized
 	
 	on-global-prolog: 		 none					;-- called at start of global code section
 	on-global-epilog: 		 none					;-- called at end of global code section
@@ -25,7 +26,7 @@ target-class: context [
 	
 	emit-casting: emit-call-syscall: emit-call-import:
 	emit-call-native: emit-not: emit-push: emit-pop:
-	emit-operation: none							;-- just pre-bind word to avoid contexts issue
+	emit-integer-operation: emit-float-operation: none ;-- just pre-bind word to avoid contexts issue
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   [+ - * / // ///]
@@ -76,7 +77,7 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word! object!] gcode [binary!] lcode [binary! block!] 
+		name [word! object!] gcode [binary! block!] lcode [binary! block!] 
 		/local offset
 	][
 		if object? name [name: compiler/unbox name]
@@ -96,8 +97,18 @@ target-class: context [
 				emit offset
 			]
 		][											;-- global variable case
-			emit gcode
-			emit-reloc-addr emitter/symbols/:name
+			either block? gcode [
+				foreach code reduce gcode [
+					either code = 'address [
+						emit-reloc-addr emitter/symbols/:name	
+					][
+						emit code	
+					]
+				]
+			][
+				emit gcode
+				emit-reloc-addr emitter/symbols/:name
+			]
 		]
 	]
 	
@@ -137,6 +148,49 @@ target-class: context [
 		]
 	]
 	
+	call-arguments-size?: func [args [block!] /cdecl /local total type][
+		total: 0
+		foreach arg args [
+			if arg <> #_ [							;-- bypass place-holder marker
+				total: total + max 
+					any [
+						all [object? arg arg/action = 'null emitter/size-of? 'integer!]
+						all [
+							type: compiler/get-type arg
+							any [
+								all [cdecl type/1 = 'float32! 8]	;-- promote to C double
+								emitter/size-of? type
+							]
+						]
+					]
+					stack-width
+			]
+		]
+		total
+	]
+	
+	get-arguments-class: func [args [block!] /local c a b arg][
+		c: 1
+		foreach op [a b][
+			arg: either object? args/:c [compiler/cast args/:c][args/:c]		
+			set op either arg = <last> [
+				 'reg								;-- value in accumulator
+			][
+				switch type?/word arg [
+					char! 	 ['imm]
+					integer! ['imm]
+					decimal! ['imm]
+					word! 	 ['ref] 				;-- value need to be fetched
+					block!   ['reg] 				;-- value in accumulator (or in alt-acc)
+					path!    ['reg] 				;-- value in accumulator (or in alt-acc)
+				]
+			]
+			c: c + 1
+		]
+		if verbose >= 3 [?? a ?? b]					;-- a and b hold addressing modes for operands
+		reduce [a b]
+	]
+	
 	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
@@ -164,7 +218,14 @@ target-class: context [
 				if name = 'not [res: compiler/get-type args/1]
 			]
 			op	[
-				emit-operation name args
+				either any [
+					compiler/any-float? compiler/resolve-expr-type args/1
+					compiler/any-float? compiler/resolve-expr-type args/2
+				][
+					emit-float-operation name args
+				][
+					emit-integer-operation name args
+				]
 				if sub? [emitter/logic-to-integer name]
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: any [

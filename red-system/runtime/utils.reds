@@ -39,22 +39,17 @@ _print: func [
 	count	[integer!]						;-- typed values count
 	list	[typed-value!]					;-- pointer on first typed value
 	spaced?	[logic!]						;-- if TRUE, insert a space between items
+	/local fp [typed-float!]
 ][
 	until [
-		if list/type = type-logic! [
-			prin either as-logic list/value ["true"]["false"]
-		]
-		if list/type = type-integer! [
-			prin-int list/value
-		]
-		if list/type = type-byte! [
-			prin-byte as-byte list/value
-		]
-		if list/type = type-c-string! [
-			prin as-c-string list/value
-		]
-		if list/type > 4 [
-			prin-hex list/value
+		switch list/type [
+			type-logic!	   [prin either as-logic list/value ["true"]["false"]]
+			type-integer!  [prin-int list/value]
+			type-float!    [fp: as typed-float! list prin-float fp/value]
+			type-float32!  [prin-float32 as-float32 list/value]
+			type-byte!     [prin-byte as-byte list/value]
+			type-c-string! [prin as-c-string list/value]
+			default 	   [prin-hex list/value]
 		]
 		list: list + 1
 		count: count - 1
@@ -80,4 +75,14 @@ print: func [
 	[typed]	count [integer!] list [typed-value!]
 ][
 	_print count list no
+]
+
+;-------------------------------------------
+;-- Polymorphic print in console, with a line-feed 
+;-------------------------------------------
+print-line: func [
+	[typed]	count [integer!] list [typed-value!]
+][
+	_print count list no
+	prin newline
 ]

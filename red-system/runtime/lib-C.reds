@@ -62,3 +62,13 @@ prin-hex: func [i [integer!] return: [integer!]][
 	printf ["%08X" i]
 	i
 ]
+
+prin-float: func [f [float!] return: [float!]][
+	printf ["%.14g" f]
+	f
+]
+
+prin-float32: func [f [float32!] return: [float32!]][
+	printf ["%.7g" as-float f]
+	f
+]

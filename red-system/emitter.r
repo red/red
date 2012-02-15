@@ -35,6 +35,9 @@ emitter: context [
 		;uint16!	2	unsigned
 		;uint32!	4	unsigned
 		;uint64!	8	unsigned
+		float32!	4	signed
+		float64!	8	signed
+		float!		8	signed
 		logic!		4	-
 		pointer!	4	-				;-- 32-bit, 8 for 64-bit
 		c-string!	4	-				;-- 32-bit, 8 for 64-bit
@@ -46,10 +49,13 @@ emitter: context [
 		logic!		1
 		integer!	2
 		byte!	    3
-		c-string!   4
-		byte-ptr!   5
-		int-ptr!	6
-		function!	7
+		float32!	4
+		float!		5
+		float64!	5
+		c-string!   6
+		byte-ptr!   7
+		int-ptr!	8
+		function!	9
 		struct!		1000
 	]
 	
@@ -178,12 +184,15 @@ emitter: context [
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if value = <last> [
-			type: 'integer!
+		if all [value = <last> not find [float! float!64] type][
+			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
+		if find compiler/enumerations type [type: 'integer!]
+		
 		size: size-of? type
 		ptr: tail data-buf
+		
 	
 		switch/default type [
 			integer! [
@@ -206,6 +215,19 @@ emitter: context [
 				]
 				append ptr value
 			]
+			float! float64! [
+				pad-data-buf 8							;-- align 64-bit floats on 64-bit
+				ptr: tail data-buf
+				unless decimal? value [value: 0.0]
+				append ptr IEEE-754/to-binary64/rev value	;-- stored in little-endian
+			]
+			float32! [	
+				pad-data-buf target/default-align			
+				ptr: tail data-buf
+				value: compiler/unbox value
+				unless decimal? value [value: 0.0]
+				append ptr IEEE-754/to-binary32/rev value	;-- stored in little-endian
+			]
 			c-string! [
 				either string? value [
 					repend ptr [value null]
@@ -218,7 +240,12 @@ emitter: context [
 			pointer! [
 				pad-data-buf target/ptr-size			;-- pointer alignment can be <> of integer
 				ptr: tail data-buf	
-				store-global value 'integer! none
+				type: either all [
+					paren? value
+					value/1 = 'pointer!
+					find [float! float64!] value/2/1 
+				]['float!]['integer!]
+				store-global value type none
 			]
 			struct! [
 				ptr: tail data-buf
@@ -229,7 +256,7 @@ emitter: context [
 				]
 			]
 		][
-			make error! "store-global unexpected type!"
+			compiler/throw-error ["store-global unexpected type:" type]
 		]
 		(index? ptr) - 1								;-- offset of stored value
 	]
@@ -257,7 +284,7 @@ emitter: context [
 	][
 		if new: select compiler/aliased-types type/1 [
 			type: new
-		]	
+		]
 		new-global?: not any [							;-- TRUE if unknown global symbol
 			find stack name								;-- local variable
 			find symbols name 							;-- known symbol
@@ -376,6 +403,10 @@ emitter: context [
 		if block? type [type: type/1]
 		any [
 			select datatypes type						;-- search in base types
+			all [										;-- search if it's enumeration
+				find compiler/enumerations type
+				select datatypes 'integer!
+			]
 			all [										;-- search in user-aliased types
 				type: select compiler/aliased-types type
 				select datatypes type/1
@@ -438,7 +469,7 @@ emitter: context [
 					sz: max size-of? pos/2/1 target/stack-width	;-- type declared
 					pos: next pos
 				][
-					sz: target/stack-width						;-- type to be inferred
+					sz: target/stack-slot-max			;-- type to be inferred
 				]				
 				repend stack [var locals-sz: locals-sz - sz]	;-- store stack offsets
 			]

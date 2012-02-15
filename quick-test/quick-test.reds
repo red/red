@@ -103,6 +103,81 @@ qt-init-file: func [] [
   ]
 ]
 
+--assertf~=: func[
+  x           [float!]
+  y           [float!]
+  e           [float!]
+  /local
+    diff      [float!]
+    e1        [float!]
+    e2        [float!]
+][
+  ;; calculate tolerance to use
+  ;;    as e * max (1, x, y)
+  either x > 0.0 [
+    e1: x * e
+  ][
+    e1: -1.0 * x * e
+  ]
+  if e > e1 [e1: e]
+  either y > 0.0 [
+    e2: y * e
+  ][
+    e2: -1.0 * y * e
+  ]
+  if e1 > e2 [e2: e1]
+  
+  ;; perform almost equal check
+  either x > y [
+    diff: x - y
+  ][
+    diff: y - x
+  ]
+  either diff > e2 [
+    --assert false
+  ][
+    --assert true
+  ]
+]
+
+--assertf32~=: func[
+  x           [float32!]
+  y           [float32!]
+  e           [float32!]
+  /local
+    diff      [float32!]
+    e1        [float32!]
+    e2        [float32!]
+][
+  ;; calculate tolerance to use
+  ;;    as e * max (1, x, y)
+  either x > as float32! 0.0 [
+    e1: x * e
+  ][
+    e1: as float32! -1.0 * x * e
+  ]
+  if e > e1 [e1: e]
+  either y > as float32! 0.0 [
+    e2: y * e
+  ][
+    e2: as float32! -1.0 * y * e
+  ]
+  if e1 > e2 [e2: e1]
+  
+  ;; perform almost equal check
+  either x > y [
+    diff: x - y
+  ][
+    diff: y - x
+  ]
+  either diff > e2 [
+    --assert false
+  ][
+    --assert true
+  ]
+]
+
+ 
 ===end-group===: func [] [
   _qt-init-group
 ]

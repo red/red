@@ -19,10 +19,13 @@ Red/System [
 #define does		  [func []]
 #define unless		  [if not]
 #define	raise-error	  ***-on-quit
+#define ?? 			  print-line			;-- DEPRECATED since 14/02/2012
  
 #define as-byte		  [as byte!]
 #define as-logic	  [as logic!]
 #define as-integer	  [as integer!]
+#define as-float	  [as float!]
+#define as-float32	  [as float32!]
 #define as-c-string	  [as c-string!]
  
 #define null-byte	  #"^(00)"
@@ -38,10 +41,13 @@ Red/System [
 #define type-logic!		1					;-- type ID list for 'typeinfo attribut
 #define type-integer!	2
 #define type-byte!	    3
-#define type-c-string!  4
-#define type-byte-ptr!  5
-#define type-int-ptr!	6
-#define type-function!	7
+#define type-float32!	4
+#define type-float64!	5					;-- float! is just an alias for float64!
+#define type-float!		5
+#define type-c-string!  6
+#define type-byte-ptr!  7
+#define type-int-ptr!	8
+#define type-function!	9
 #define type-struct!	1000
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]
@@ -57,8 +63,14 @@ str-array!: alias struct! [
 ]
 
 typed-value!: alias struct! [
-	value	[integer!]
-	type	[integer!]	
+	type	 [integer!]	
+	value	 [integer!]
+	_padding [integer!]						;-- extra space for 64-bit values
+]
+
+typed-float!: alias struct! [
+	type	 [integer!]	
+	value	 [float!]
 ]
 
 __stack!: alias struct! [
@@ -87,23 +99,36 @@ form-type: func [
 		type-c-string!  ["c-string!"]
 		type-logic! 	["logic!"]
 		type-byte! 	    ["byte!"]
+		type-float32!   ["float32!"]
+		type-float! 	["float!"]
 		type-byte-ptr!  ["pointer! [byte!]"]
 		type-int-ptr!   ["pointer! [integer!]"]
 		type-struct!    ["struct!"]
 		type-function!  ["function!"]
-		default			[either alias? type ["alias"]["not valid type"]]
+		default			[either alias? type ["alias"]["invalid type"]]
 	]
 ]
 
 #switch OS [
-	Windows  [#define LIBC-file	"msvcrt.dll"]
-	Syllable [#define LIBC-file	"libc.so.2"]
-	MacOSX	 [#define LIBC-file	"libc.dylib"]
+	Windows  [
+	  #define LIBC-file	"msvcrt.dll"
+	  #define LIBM-file "msvcrt.dll"  
+	]
+	Syllable [
+	  #define LIBC-file	"libc.so.2"
+	  #define LIBM-file "libm.so.2"  
+	]
+	MacOSX	 [
+	  #define LIBC-file	"libc.dylib"
+	  #define LIBM-file	"libc.dylib"
+	]
 	#default [
 		#either config-name = 'Android [	;-- @@ see if declaring it as an OS wouldn't be too costly
 			#define LIBC-file	"libc.so"
+			#define LIBM-file	"libm.so"
 		][
 			#define LIBC-file	"libc.so.6"	;-- Linux
+			#define LIBM-file	"libm.so.6"	
 		]
 	]
 ]
@@ -170,6 +195,9 @@ form-type: func [
 			29	["hardware memory error consumed AR"]
 			30	["hardware memory error consumed AO"]
 			31	["privileged register"]
+			32	["segmentation fault"]		;-- generic SIGSEGV message
+			33	["FPU error"]				;-- generic SIGFPE message
+			34	["Bus error"]				;-- generic SIGBUS message
 		
 			96	["virtual memory release failed"]
 			97	["out of memory"]

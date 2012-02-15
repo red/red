@@ -8,14 +8,15 @@ REBOL [
 
 do %utils/r2-forward.r
 do %utils/int-to-bin.r
+do %utils/IEEE-754.r
 do %utils/virtual-struct.r
 do %utils/secure-clean-path.r
 do %linker.r
 do %emitter.r
 
 system-dialect: context [
-	verbose:  	  0									;-- logs verbosity level
-	job: 		  none								;-- reference the current job object	
+	verbose:  	  0										;-- logs verbosity level
+	job: 		  none									;-- reference the current job object	
 	runtime-path: %runtime/
 	nl: 		  newline
 	
@@ -28,6 +29,8 @@ system-dialect: context [
 		none-type:	 [#[none]]							;-- marker for "no value returned"
 		last-type:	 none-type							;-- type of last value from an expression
 		locals: 	 none								;-- currently compiled function specification block
+		definitions:  make block! 100
+		enumerations: make hash! 10
 		locals-init: []									;-- currently compiler function locals variable init list
 		func-name:	 none								;-- currently compiled function name
 		block-level: 0									;-- nesting level of input source block
@@ -50,13 +53,18 @@ system-dialect: context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: none								;-- global parsing rules helpers
 		
-		not-set!:	  [logic! integer!]								  ;-- reserved for internal use only
-		number!: 	  [byte! integer!]								  ;-- reserved for internal use only
-		pointers!:	  [pointer! struct! c-string!] 					  ;-- reserved for internal use only
-		any-pointer!: union pointers! [function!]		  			  ;-- reserved for internal use only
-		poly!:		  union number!	pointers!					  	  ;-- reserved for internal use only
-		any-type!:	  union poly! [logic!]							  ;-- reserved for internal use only
-		type-sets:	  [not-set! number! poly! any-type! any-pointer!] ;-- reserved for internal use only
+		not-set!:	  [logic! integer!]					;-- reserved for internal use only
+		number!: 	  [byte! integer!]					;-- reserved for internal use only
+		any-float!:	  [float! float32! float64!]		;-- reserved for internal use only
+		any-number!:  union number! any-float!			;-- reserved for internal use only
+		pointers!:	  [pointer! struct! c-string!] 		;-- reserved for internal use only
+		any-pointer!: union pointers! [function!]		;-- reserved for internal use only
+		poly!:		  union any-number! pointers!		;-- reserved for internal use only
+		any-type!:	  union poly! [logic!]			  	;-- reserved for internal use only
+		type-sets:	  [									;-- reserved for internal use only
+			not-set! number! poly! any-type! any-pointer!
+			any-number!
+		]
 		
 		comparison-op: [= <> < > <= >=]
 		
@@ -64,8 +72,8 @@ system-dialect: context [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
 			+		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
 			-		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
-			*		[2	op		- [a [number!] b [number!] return: [number!]]]
-			/		[2	op		- [a [number!] b [number!] return: [number!]]]
+			*		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]
+			/		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]
 			and		[2	op		- [a [number!] b [number!] return: [number!]]]
 			or		[2	op		- [a [number!] b [number!] return: [number!]]]
 			xor		[2	op		- [a [number!] b [number!] return: [number!]]]
@@ -94,12 +102,13 @@ system-dialect: context [
 			pos: some [word! into type-spec]						;-- struct's members
 		]
 		
-		pointer-syntax: ['integer! | 'byte!]
+		pointer-syntax: ['integer! | 'byte! | 'float32! | 'float64! | 'float!]
 		
 		func-pointer: ['function! set value block! (check-specs '- value)]
 		
 		type-syntax: [
 			'logic! | 'int32! | 'integer! | 'uint8! | 'byte! | 'int16!
+			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
 			| 'struct!  into [struct-syntax]
@@ -107,7 +116,10 @@ system-dialect: context [
 
 		type-spec: [
 			pos: some type-syntax | set value word! (			;-- multiple types allowed for internal usage			
-				unless find aliased-types value [throw false]	;-- stop parsing if unresolved type
+				unless any [
+					find aliased-types value
+					find enumerations value
+				][throw false]	;-- stop parsing if unresolved type
 			)
 		]		
 		
@@ -323,6 +335,10 @@ system-dialect: context [
 			count
 		]
 		
+		any-float?: func [type [block!]][
+			find any-float! type/1
+		]
+		
 		any-pointer?: func [type [block!]][
 			type: first resolve-aliased type
 			
@@ -363,8 +379,13 @@ system-dialect: context [
 		resolve-aliased: func [type [block!] /local name][
 			name: type/1
 			all [
+				type/1								;-- ensure it is not #[none]
 				not base-type? name
 				not find type-sets name
+				not all [
+					find enumerations name
+					type: [integer!]
+				]
 				not type: select aliased-types name
 				throw-error ["unknown type:" type]
 			]
@@ -378,6 +399,12 @@ system-dialect: context [
 			]
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
+			]
+			if any [
+				all [type find enumerations type/1]
+				get-enumerator name
+			][
+				return [integer!]
 			]
 			unless any [not resolve-alias? base-type? type/1][
 				type: select aliased-types type/1
@@ -446,6 +473,7 @@ system-dialect: context [
 				word! 	 [resolve-type value]
 				char!	 [[byte!]]
 				integer! [[integer!]]
+				decimal! [[float!]]
 				string!	 [[c-string!]]
 				path!	 [resolve-path-type value]
 				object!  [value/type]
@@ -471,6 +499,36 @@ system-dialect: context [
 			][
 				throw-error ["not accepted datatype:" type? value]
 			]
+		]
+
+		get-enumerator: func[enum-name [word!] /value /local result][
+			foreach [enum-list-name enum-list-data] enumerations [
+				if result: select enum-list-data enum-name [
+					return either value [ result ][ reduce [enum-list-name] ]
+				]
+			]
+		]
+		set-enumerator: func[identifier [word!] name [word! block!] value [integer! word!] /local list][
+			if word? name [name: reduce [name]]
+			forall name [
+				check-enum-word/by-loader name/1
+			]
+			name: head name
+			
+			if none? list: select enumerations identifier [
+				append/only append enumerations identifier list: make hash! 10
+			]
+			if all [
+				word? value
+				none? value: get-enumerator/value value
+			][
+				loader/throw-error ["cannot resolve literal enum value for:" form name]
+			]
+			forall name [
+				if verbose > 3 [print ["Enum:" identifier "[" name/1 "=" value "]"]]
+				repend list [name/1 value]
+			]
+			value: value + 1
 		]
 
 		resolve-expr-type: func [expr /quiet /local type func? spec][
@@ -605,6 +663,55 @@ system-dialect: context [
 			true
 		]
 		
+		check-enum-word: func [name [word!] /by-loader /local error][
+			case [
+				any [
+					find keywords name
+					name = 'comment
+				][
+					error: ["attempt to redefined a protected keyword:" name]
+				]
+
+				find functions name [
+					error: ["attempt to redefine existing function name:" name]
+				]
+
+				find definitions name [
+					error:  ["attempt to redefine existing definition:" name]
+				]
+
+				find aliased-types name [
+					error:  ["attempt to redefine existing alias definition:" name]
+				]
+
+				base-type? name [
+					error:  ["redeclaration of base type:" name ]
+				]
+
+				any [
+					exists-variable? name
+					get-variable-spec name
+				][										;-- it's a variable			
+					error:  ["redeclaration of variable:" name]
+				]
+
+				find enumerations name [
+					error:  ["redeclaration of enum identifier:" name ]
+				]
+				
+				found? get-enumerator name [
+					error:  ["redeclaration of enumerator:" name ]
+				]
+			]
+			if error [
+				either by-loader [
+					loader/throw-error error
+				][
+					throw-error error
+				]
+			]
+		]
+		
 		check-keywords: func [name [word!]][
 			if any [
 				find keywords name
@@ -614,20 +721,27 @@ system-dialect: context [
 			]
 		]
 		
-		check-path-index: func [path [path! set-path!] type [word!] /local ending][
+		check-path-index: func [path [path! set-path!] type [word!] /local ending enum-value][
 			ending: path/2
 			case [
 				all [type = 'pointer ending = 'value][]	;-- pass thru case
 				word? ending [
-					unless get-variable-spec ending [
-						backtrack path
-						throw-error ["undefined" type "index variable"]
-					]
-					if 'integer! <> first resolve-type ending [
-						backtrack path
-						throw-error [
-							"attempt to use" type
-							"indexing with a non-integer! variable"
+					either found? enum-value: get-enumerator/value ending [
+						path/2: ending: enum-value
+					][
+						unless any [
+							get-variable-spec ending
+							found? value: get-enumerator/value ending
+						][
+							backtrack path
+							throw-error ["undefined" type "index variable"]
+						]
+						if 'integer! <> first resolve-type ending [
+							backtrack path
+							throw-error [
+								"attempt to use" type
+								"indexing with a non-integer! variable"
+							]
 						]
 					]
 				]
@@ -645,6 +759,13 @@ system-dialect: context [
 			if find functions name [
 				pc: back pc
 				throw-error ["attempt to redefine existing function name:" name]
+			]
+			if any [
+				find enumerations name
+				get-enumerator name
+			][
+				pc: back pc
+				throw-error ["attempt to redefine existing enumerator:" name]
 			]
 			if all [not only find any [locals globals] name][
 				pc: back pc
@@ -700,6 +821,13 @@ system-dialect: context [
 			][
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
 			]
+			if block? args [
+				foreach [name type] args [
+					if get-enumerator name [
+						throw-error ["function's argument redeclares enumeration:" name]
+					]
+				]
+			]
 			check-duplicates name args locs
 		]
 		
@@ -739,6 +867,11 @@ system-dialect: context [
 					compare-func-specs name expr type/2 expected/2	 ;-- callback case
 				]
 				expected = type 						 ;-- normal single-type case
+				all [
+					type
+					type/1 = 'integer!
+					find enumerations expected/1		;-- TODO: add also a value check for enums
+				]
 			][
 				if expected = type [type: 'null]		 ;-- make null error msg explicit
 				any [
@@ -880,7 +1013,13 @@ system-dialect: context [
 					]
 					remove-each v expr [any [find [= <>] v logic? v]]
 					if any [
-						all [word? expr/1 get-variable-spec expr/1]
+						all [
+							word? expr/1
+							any [
+								get-variable-spec expr/1
+								get-enumerator expr/1
+							]
+						]
 						paren? expr/1
 						block? expr/1
 						object? expr/1
@@ -1126,7 +1265,7 @@ system-dialect: context [
 			case [
 				logic? expr [ [#[true]] ]
 				find [word! path!] type?/word expr  [
-					emitter/target/emit-operation '= [<last> 0]
+					emitter/target/emit-integer-operation '= [<last> 0]
 					reduce [not invert?]
 				]
 				object? expr [
@@ -1134,7 +1273,7 @@ system-dialect: context [
 					unless find [word! path!] type?/word any [
 						all [block? expr expr/1] expr 
 					][
-						emitter/target/emit-operation '= [<last> 0]
+						emitter/target/emit-integer-operation '= [<last> 0]
 					]
 					process-logic-encoding expr invert?
 				]
@@ -1146,7 +1285,7 @@ system-dialect: context [
 				]
 				tag? expr [
 					either last-type/1 = 'logic! [
-						emitter/target/emit-operation '= [<last> 0]
+						emitter/target/emit-integer-operation '= [<last> 0]
 						reduce [not invert?]
 					][expr] 
 				]
@@ -1302,7 +1441,7 @@ system-dialect: context [
 				values: skip values -2
 				foreach v values/1 [					;-- process multiple values per action
 					body: comp-chunked [
-						emitter/target/emit-operation '= reduce [<last> v]
+						emitter/target/emit-integer-operation '= reduce [<last> v]
 					]
 					emitter/branch/over/on/adjust bodies [=] values/2	;-- insert action branching			
 					bodies: emitter/chunks/join body bodies
@@ -1372,11 +1511,19 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-assignment: has [name value n][
+		comp-assignment: has [name value n enum][
 			name: pc/1
 			pc: next pc
 			if set-word? name [
 				check-keywords n: to word! name			;-- forbid keywords redefinition
+				if find definitions n [
+					backtrack name
+					throw-error ["redeclaration of definition" name]
+				]
+				if enum: get-enumerator n [
+					backtrack name
+					throw-error ["redeclaration of enumerator" name "from" enum]
+				]
 				if get-word? pc/1 [
 					throw-error "storing a function! requires a type casting"
 				]
@@ -1411,7 +1558,7 @@ system-dialect: context [
 			also pc/1 pc: next pc
 		]
 	
-		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch][
+		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch id type][
 			name: any [symbol pc/1]
 			case [
 				entry: select keywords name [do entry]	;-- it's a reserved word
@@ -1423,7 +1570,12 @@ system-dialect: context [
 					if not-initialized? name [
 						throw-error ["local variable" name "used before being initialized!"]
 					]
-					last-type: resolve-type name				
+					last-type: resolve-type name
+					also name pc: next pc
+				]
+				type: get-enumerator name [
+					last-type: type
+					if verbose >= 3 [print ["ENUMERATOR" name "=" last-type]]
 					also name pc: next pc
 				]
 				all [
@@ -1433,10 +1585,14 @@ system-dialect: context [
 					pc: next pc							;-- it's a function
 					either attribute: check-variable-arity? entry/2/4 [
 						fetch: [
-							append/only args fetch-expression
-							if attribute = 'typed [
-								append args get-type-id last args
-							]							
+							expr: fetch-expression
+							either attribute = 'typed [
+								append args id: get-type-id expr
+								append/only args expr
+								append args pick [#_ 0] id = emitter/datatype-ID/float! ;-- 32-bit padding
+							][
+								append/only args expr
+							]
 						]
 						args: make block! 1
 						either block? pc/1 [
@@ -1505,14 +1661,14 @@ system-dialect: context [
 			order-args name list						;-- reorder argument according to cconv
 
 			import?: functions/:name/2 = 'import		;@@ syscalls don't seem to need special alignment??
-			if import? [emitter/target/emit-stack-align-prolog length? args]
+			if import? [emitter/target/emit-stack-align-prolog args]
 
 			type: functions/:name/2
 			either type <> 'op [					
 				forall list [							;-- push function's arguments on stack
 					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
 					if type <> 'inline [
-						emitter/target/emit-argument list/1 type ;-- let target define how arguments are passed
+						emitter/target/emit-argument list/1 functions/:name ;-- let target define how arguments are passed
 					]
 				]
 			][											;-- nested calls as op argument require special handling
@@ -1532,7 +1688,7 @@ system-dialect: context [
 			][
 				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
-			if import? [emitter/target/emit-stack-align-epilog length? args]
+			if import? [emitter/target/emit-stack-align-epilog args]
 			res
 		]
 				
@@ -1540,6 +1696,10 @@ system-dialect: context [
 			set-path [set-path!] expr casted [block! none!]
 			/local type new value
 		][
+			if get-enumerator set-path/1 [
+				backtrack set-path
+				throw-error ["enumeration cannot be used as path root:" set-path/1]
+			]
 			unless get-variable-spec set-path/1 [
 				backtrack set-path
 				throw-error ["unknown path root variable:" set-path/1]
@@ -1554,11 +1714,13 @@ system-dialect: context [
 					"^/*** expected:" mold type
 					"^/*** found:" mold any [casted new]
 				]
-			]
+			]		
 			value: unbox expr
-			if any [block? value path? value][value: <last>]
-
-			emitter/access-path set-path value
+			emitter/access-path set-path either any [block? value path? value][
+				 <last>
+			][
+				expr
+			]
 		]
 		
 		comp-variable-assign: func [
@@ -1573,7 +1735,10 @@ system-dialect: context [
 			if not-initialized? name [
 				init-local name expr casted				;-- mark as initialized and infer type if required
 			]		
-			either type: get-variable-spec name [ 		;-- test if known variable (local or global)		
+			either type: any [
+				get-variable-spec name					;-- test if known variable (local or global)	
+				get-enumerator name
+			][
 				type: resolve-aliased type		
 				new: resolve-aliased get-type expr			
 				
@@ -1598,7 +1763,6 @@ system-dialect: context [
 			]
 			value: unbox expr
 			if any [block? value path? value][value: <last>]
-			
 			emitter/store name value type
 		]
 		
@@ -1624,21 +1788,24 @@ system-dialect: context [
 				type: comp-call expr/1 next expr 		;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
 			][
-				unless any [
+				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment
 					all [set-path? variable literal? unbox expr] ;-- value loaded at lower level
 					tag? unbox expr
 				][
-					emitter/target/emit-load expr		;-- emit code for single value
+					emitter/target/emit-load either boxed [boxed][expr]	;-- emit code for single value
+					either all [boxed not decimal? unbox expr][
+						emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
+						boxed/type
+					][
+						resolve-expr-type expr
+					]
+				][
+					resolve-expr-type expr
 				]
-				last-type: resolve-expr-type expr
 			]
 			
 			;-- postprocessing result
-			if boxed [
-				emitter/target/emit-casting boxed no 	;-- insert runtime type casting if required
-				last-type: boxed/type
-			]
 			if all [
 				any [keep? variable]					;-- if result needs to be stored
 				block? expr								;-- and if expr is a function call
@@ -1652,9 +1819,10 @@ system-dialect: context [
 				if all [boxed not casting][
 					casting: resolve-aliased boxed/type
 				]
+				unless boxed [boxed: expr]
 				switch type?/word variable [
 					set-word! [comp-variable-assign variable expr casting]
-					set-path! [comp-path-assign		variable expr casting]
+					set-path! [comp-path-assign		variable boxed casting]
 				]
 			]
 		]
@@ -1686,7 +1854,7 @@ system-dialect: context [
 			]
 		]
 		
-		fetch-expression: func [/final /keep /local expr pass][
+		fetch-expression: func [/final /keep /local expr pass value][
 			check-infix-operators
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			pass: [also pc/1 pc: next pc]
@@ -1697,6 +1865,11 @@ system-dialect: context [
 			]
 			if job/debug? [store-dbg-lines]
 			
+			if all [
+				word? pc/1
+				value: get-enumerator/value pc/1
+			][	change pc value ]
+
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
 				word!		[comp-word]
@@ -1707,6 +1880,7 @@ system-dialect: context [
 				char!		[do pass]
 				integer!	[do pass]
 				string!		[do pass]
+				decimal!	[do pass]
 			][
 				throw-error [
 					pick [
@@ -1792,7 +1966,11 @@ system-dialect: context [
 			expr: comp-dialect							;-- compile function's body
 			
 			if ret: select spec return-def [
-				check-expected-type/ret name expr ret	;-- validate return value type	
+				check-expected-type/ret name expr ret	;-- validate return value type
+				if object? expr [		
+					emitter/target/emit-casting expr no	;-- insert runtime type casting if required
+					last-type: expr/type
+				]
 				if all [
 					last-type/1 = 'logic!
 					block? expr
@@ -1912,6 +2090,8 @@ system-dialect: context [
 		clear compiler/imports
 		clear compiler/natives
 		clear compiler/globals
+		clear compiler/definitions
+		clear compiler/enumerations
 		clear compiler/aliased-types
 		clear compiler/user-functions
 		clear compiler/debug-lines/records
@@ -1946,6 +2126,7 @@ system-dialect: context [
 		format:			none			;-- file format
 		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj)
 		target:			'IA-32			;-- CPU target
+		cpu-version:	6.0				;-- CPU version (default: Pentium Pro)
 		verbosity:		0				;-- logs verbosity level
 		sub-system:		'console		;-- 'GUI | 'console
 		runtime?:		yes				;-- include Red/System runtime
@@ -1973,6 +2154,7 @@ system-dialect: context [
 			emitter/init opts/link? job
 			if opts/verbosity >= 10 [set-verbose-level opts/verbosity]
 			
+			clean-up
 			loader/init
 			if opts/runtime? [comp-runtime-prolog]
 			
@@ -1981,9 +2163,10 @@ system-dialect: context [
 			
 			set-verbose-level 0
 			if opts/runtime? [comp-runtime-epilog]
+			
 			set-verbose-level opts/verbosity
-
 			compiler/finalize							;-- compile all functions
+			set-verbose-level 0
 		]
 		if verbose >= 5 [
 			print [

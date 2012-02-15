@@ -25,7 +25,7 @@ legend {font-weight: bold;}
 }
 .matrix th, .matrix td {
 	border: 1px solid #888;
-	font-size: 12px;
+	font-size: 8pt;
 	padding: 12px 12px;
 }
 .matrix td {text-align: center;}
@@ -33,4 +33,5 @@ legend {font-weight: bold;}
 td .allow {background-color: #DFD;}
 td .warn {background-color: #FDB;}
 td .deny {background-color: #FDD;}
+td .arrow {color: black}
 #matrix-start {background-color: white;}

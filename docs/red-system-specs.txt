@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 03/01/2012
-	Revision: 31
+	Date: 04/02/2012
+	Revision: 32
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -176,6 +176,10 @@ Allowed types for variables are:
 
 *byte!
 
+*float!
+
+*float32!
+
 *logic!
 
 *c-string!
@@ -238,13 +242,130 @@ See <a href="http://www.rebol.com/docs/core23/rebolcore-16.html#section-3.1" tar
 
 +++Casting
 
-Casting is allowed to some extent (see section "4.7 Type Casting").
+Casting is allowed to some extent (see section "4.9 Type Casting").
 
  foo: as integer! #"a"					;-- foo holds 97
 
  bar: as byte! foo						;-- bar holds #"a"
  
 <u>Note</u>: trying to cast an integer value greater than 255 to a byte! will result in a data loss or data corruption. <i>(The handling of this case might be changed in future revisions)</i>
+
+---Float!
+
+The float! datatype represents an IEEE-754 double precision floating point number. Float! memory size is 64-bit.
+
+<u>Note</u>: <b>float64!</b> can be used as an alias to <b>float!</b>.
+
++++Syntax
+
+ <sign><digits>.<digits>
+or using scientific notation:
+
+ <sign><digits>E<exponent>
+ <sign><digits>.<digits>E<exponent>
+
+where:
+ <sign>     : an optional + or - symbol
+ <digits>   : one or more digits
+ <exponent> : a positive or negative integer
+ 
+Examples:
+
+ 0.0
+ 1.0
+ -12345.6789
+ 3.14159265358979
+ -1E3
+ +1.23456E-265
+ 
+A maximum of 16 digits are accepted for literal float! values, if more are specified, they will be dropped.
+ 
+<i>For more information on double precision floating point numbers, see <a href="http://en.wikipedia.org/wiki/Double-precision_floating-point_format">Wikipedia</a></i>.
+
++++Casting
+
+It is allowed to apply a type casting transformation on a float! value to convert it to a float32! value.
+
+Examples:
+
+ pi: 3.14159265358979
+ pi-32: as float32! pi
+ print pi-32
+will output
+ 3.1415927
+ 
++++Math operations
+
+All Red/System math operators (+, -, *, /, //, %) are supported. The default rounding method on results is "rounding to nearest". Both operands need to be of float! types (no implicit casting).
+
+The modulo and remainder operators have a special meaning when used on float! values:
+
+* modulo (//): floating point remainder (result is a float!).
+
+* remainder (%): IEEE-754 rounded remainder (result is an integer!).
+
+
+---Float32!
+
+The float32! datatype represents an IEEE-754 single precision floating point number. Float! memory size is 32-bit.
+
+\note Float32! purpose
+The reason for having a single precision floating point type is for making the interfacing with popular libraries straightforward. For pure Red/System programs, <b>float!</b> should be the default choice.
+
+/note
+
++++Syntax
+
+ <sign><digits>.<digits>
+or using scientific notation:
+
+ <sign><digits>E<exponent>
+ <sign><digits>.<digits>E<exponent>
+
+where:
+ <sign>     : an optional + or - symbol
+ <digits>   : one or more digits
+ <exponent> : a positive or negative integer
+ 
+Examples:
+
+ 0.0
+ 1.0
+ -12345.6
+ 3.1415927
+ -1E3
+ +1.23456E-27
+ 
+A maximum of 8 digits are accepted for literal float! values, if more are specified, they will be dropped.
+ 
+<i>For more information on single precision floating point numbers, see <a href="http://en.wikipedia.org/wiki/Single-precision_floating-point_format">Wikipedia</a></i>.
+
++++Casting
+
+It is allowed to apply a type casting transformation on a float32! value to convert it to a float! value. Type casting to integer! is also allowed mainly for bits manipulation purpose (this is not a float32! to integer! conversion).
+
+Examples:
+
+ s: 3.1415927
+ print [
+ 	as float! s lf
+ 	as integer! s
+ ]
+ 
+will output
+3.14159270000000
+1518260631
+ 
++++Math operations
+
+All Red/System math operators (+, -, *, /, //, %) are supported. The default rounding method on results is "rounding to nearest". Both operands need to be of float32! types (no implicit casting).
+
+The modulo and remainder operators have a special meaning when used on float32! values:
+
+* modulo (//): floating point remainder (result is a float32!).
+
+* remainder (%): IEEE-754 rounded remainder (result is an integer!).
+
 
 ---Logic!
 
@@ -411,7 +532,7 @@ Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence foll
  
  <member>   : a valid identifier
  <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
-              c-string! | struct! [<members>]
+              float! | float32! | c-string! | struct! [<members>]
               
 The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value.
 
@@ -490,7 +611,7 @@ Aliasing syntax:
  <name>     : the name to use as alias
  <member>   : a valid identifier
  <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
-              c-string! | struct! [<members>]
+              float! | float32! | c-string! | struct! [<members>]
               
 Struct value declaration using an aliased definition:
 
@@ -533,7 +654,7 @@ New pointers value can be created using the following syntax:
 
  declare pointer! [<datatype>]
 
- <datatype>: integer! | byte!
+ <datatype>: integer! | byte! | float! | float32!
 
 \note Possible syntactic sugar
 The & symbol used in previous revisions of this document has been removed due to the new limited pointer! datatype usage. It could be reintroduced again in the future if required.
@@ -544,6 +665,7 @@ Examples:
 
  foo: declare pointer! [integer!]		;-- equivalent to C's: int *foo;
  bar: declare pointer! [byte!]			;-- equivalent to C's: char *bar;
+ baz: declare pointer! [float!]			;-- equivalent to C's: double *baz;
 
 \note Pointer value initialization
 Do not assume any default value for a pointer value until it is initialized properly. In the current implementation, global pointer variables are set to 0 by default while local pointer variables default value is undefined. This might change in the future to adopt a default value more suitable for debugging (like 0BADBAD0h or similar hex trick).
@@ -556,17 +678,19 @@ Pointer declaration is only required for local pointer variables in functions' s
 
  pointer! [<datatype>]
 
- <datatype>: integer! | byte!
+ <datatype>: integer! | byte! | float! | float32!
 
 Global variables declaration examples (with C equivalents):
 
  p: declare pointer! [integer!]			;-- int *p;
  p: declare pointer! [byte!]			;-- char *p;
+ p: declare pointer! [float!]			;-- double *p;
 
 Same with local variables declaration examples (with C equivalents):
 
  func [/local p [pointer! [integer!]]	;-- int *p;
  func [/local p [pointer! [byte!]]		;-- char *p;
+ func [/local p [pointer! [float!]]		;-- double *p;
 
 Example of inferred pointer variable type:
 
@@ -638,7 +762,7 @@ It is possible to apply some simple math operations on pointers like additions a
 Also, additions and subtractions between pointer addresses are allowed. The result value type is, as usual, the type of left operand.
 
  offset: p - q							;-- would store 6 in offset
-                            ;-- type of offset is pointer! [integer!]
+                            			;-- type of offset is pointer! [integer!]
 
 +++Pointer path notation
 
@@ -667,7 +791,7 @@ Integer variable can also be used as index:
 
  p: as [pointer! [integer!]] 4000000h
  c: 2
- p/c: 1234								;-- writes 123 (4 bytes) at 40000004h
+ p/c: 1234								;-- writes 1234 (4 bytes) at 40000004h
  
 <u>Note</u>: Pointer's <b>/value</b> notation is strictly equivalent to <b>/1</b>. The <b>/value</b> notation can be considered as syntactic sugar.
 
@@ -746,7 +870,7 @@ Type casting is possible between value of compatible types. Compatible types are
  as <new-type> value
  as [<new-type>] value					;-- alternative syntax
 
- <new-type> : integer! | byte! |  logic! | c-string! |
+ <new-type> : integer! | byte! |  logic! | c-string! | float! | float32! |
               pointer! [integer!] | struct! [<members>] |
               <alias-name>
  
@@ -776,13 +900,17 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <th>c-string!</th>
 <th>pointer!</th>
 <th>struct!</th>
+<th>float!</th>
+<th>float32!</th>
 <th>function! &sup2;</th>
 </tr><tr>
 
 <th>byte!</th>
 <td class="warn">WARNING</td>
 <td class="allow">to byte! &sup1;</td>
-<td class="allow">true &raquo; #"^(01)"<br>false &raquo; #"^(00)"</td>
+<td class="allow">true<span class="arrow">&raquo;</span>#"^(01)"<br>false<span class="arrow">&raquo;</span>#"^(00)"</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -792,20 +920,24 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <th>integer!</th>
 <td class="allow">to integer!</td>
 <td class="warn">WARNING</td>
-<td class="allow">true &raquo; 1<br>false &raquo; 0</td>
+<td class="allow">true<span class="arrow">&raquo;</span>1<br>false<span class="arrow">&raquo;</span>0</td>
 <td class="allow">to integer!</td>
 <td class="allow">to integer!</td>
 <td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
+<td class="deny">ERROR</td>
+<td class="allow">as integer!</td>
+<td class="allow">as integer!</td>
 </tr><tr>
 
 <th>logic!</th>
-<td class="allow">#"^(00)" &raquo; false<br>else &raquo; true</td>
-<td class="allow">0 &raquo; false<br>else &raquo; true</td>
+<td class="allow">#"^(00)"<span class="arrow">&raquo;</span>false<br>else<span class="arrow">&raquo;</span>true</td>
+<td class="allow">0<span class="arrow">&raquo;</span>false<br>else<span class="arrow">&raquo;</span>true</td>
 <td class="warn">WARNING</td>
-<td class="allow">null &raquo; false<br>else &raquo; true</td>
-<td class="allow">null &raquo; false<br>else &raquo; true</td>
-<td class="allow">null &raquo; false<br>else &raquo; true</td>
+<td class="allow">null<span class="arrow">&raquo;</span>false<br>else<span class="arrow">&raquo;</span>true</td>
+<td class="allow">null<span class="arrow">&raquo;</span>false<br>else<span class="arrow">&raquo;</span>true</td>
+<td class="allow">null<span class="arrow">&raquo;</span>false<br>else<span class="arrow">&raquo;</span>true</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 </tr><tr>
 
@@ -817,6 +949,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">to c-string!</td>
 <td class="allow">to c-string!</td>
 <td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
 </tr><tr>
 
 <th>pointer!</th>
@@ -826,6 +960,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">to pointer!</td>
 <td class="warn">WARNING</td>
 <td class="allow">to pointer!</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 </tr><tr>
 
@@ -837,7 +973,34 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">to struct!</td>
 <td class="warn">WARNING</td>
 <td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
 </tr>
+
+<th>float!</th>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="warn">WARNING</td>
+<td class="allow">to float!</td>
+<td class="deny">ERROR</td>
+</tr>
+
+<th>float32!</th>
+<td class="deny">ERROR</td>
+<td class="allow">as float32!</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="allow">to float32!</td>
+<td class="warn">WARNING</td>
+<td class="deny">ERROR</td>
+</tr>
+
 </table>
 </div>
 
@@ -960,7 +1123,7 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  <attributes> : special attributes
  <argument>	  : function's argument indentifier
  <datatype>	  : integer! | byte! | logic! | pointer! [integer! | byte!] |
-                c-string! | struct! [<members>]
+                float! | float32! | c-string! | struct! [<members>]
  <local>	  : local variable
  <body>		  : function's body code
 
@@ -989,7 +1152,7 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  
 \note Arguments passing
 
-In current implementation, pointer!, integer!, byte! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference.
+In current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference.
 
 /note
 
@@ -1147,12 +1310,16 @@ Types are defined by the runtime as:
  #define type-logic!		1
  #define type-integer!		2
  #define type-byte!	    	3
- #define type-c-string!  	4
- #define type-byte-ptr!  	5
- #define type-int-ptr!		6
- #define type-function!		7
+ #define type-float32!		4
+ #define type-float64!		5
+ #define type-float!		5
+ #define type-c-string!  	6
+ #define type-byte-ptr!  	7
+ #define type-int-ptr!		8
+ #define type-function!		9
  #define type-struct!		1000
- #define any-struct?		[1000 <=]	;-- testing for structs and aliases.
+ #define any-struct?		[1000 <=]
+ #define alias?  			[1001 <=]
  
 \note Typed and imported function
 It is possible to use <b>typed</b> attribute for an imported function, but it needs to meet the specific stack layout required by this attribute, so should probably be reserverd only for imported function written in Red/System.
@@ -1328,7 +1495,7 @@ Infix operators take two arguments and are positioned between them.
 
 ---Math operators
 
-The following math operations apply on integer values. When the operation results in an exceeded memory storage limit, <i>behaviour to be defined</i>. 
+The following math operations apply on integer or float values. When the operation results in an exceeded memory storage limit, <i>behaviour to be defined</i>. 
 
 <b>Addition</b>: +
 
@@ -1350,13 +1517,13 @@ The following math operations apply on integer values. When the operation result
 
  value1 % value2
  
-Note: a remainder will be negative if the divider is negative. Same as in C or // operator in REBOL.
+Note: a remainder will be negative if the divider is negative. Same as in C or // operator in REBOL. See float types section for specific behaviour of this operator on float values.
  
 <b>Modulo</b>: //
 
  value1 // value2
  
-Note: a positive result is always returned. Same as 'modulo function in REBOL.
+Note: a positive result is always returned. Same as 'modulo function in REBOL. See float types section for specific behaviour of this operator on float values.
 
 where
 
@@ -1443,7 +1610,9 @@ These operators can be used only where a condition is allowed. See "Control flow
  
 where
   
-  value1 : an expression returning a integer!, byte!, c-string!, pointer! or struct!
+  value1 : an expression returning a integer!, byte!, float!, float32!, 
+           c-string!, pointer! or struct!
+
   value2 : expression of same datatype as <value1>
 
 <u>Note</u>:
@@ -1978,7 +2147,8 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  <ID>			 : identifier of the function in the shared library
  <argument>		 : function's argument indentifier
  <datatype>		 : integer! | byte! | pointer! [integer! | byte!] |
-             	   c-string! | struct! [<members>] | function! [<specification>]
+                   float! | float32! | c-string! | struct! [<members>] |
+                   function! [<specification>]
 
 <u>Notes</u>:
 
@@ -2055,7 +2225,7 @@ As Red/System is destined to be used mostly for low-level system programming, <a
   <ID>			  : syscall integer ID
   <argument>	  : syscall's argument indentifier
   <datatype>	  : integer! | byte! | pointer! [integer! | byte!] |
-             		c-string! | struct! [<members>]
+             		float! | float32! | c-string! | struct! [<members>]
 
 The <b>RETURN:</b> statement indicates that the mapped syscall has a return value.
 
@@ -2135,6 +2305,63 @@ will output:
  
 <u>Note</u>: Parens are required in this example on test expressions so that the compiler performs the second infix expression (the and operator) before the first (the equal operator).
  
+ 
+---#enum
+
+The <b>#enum</b> compiler directive allows to declare enumerations using labels. A list of integers is assign to a list labels. These labels could then be used anywhere in the source code and will be converted to their integer value when needed by the compiler.
+
+<b>Syntax</b>
+
+ #enum <name>! [
+ 	<label> +
+ 	| <label>: + <value>
+ ]
+
+ <name>!  : enumeration name (ending with a ! by convention)
+ <label>  : label to which an integer value is assigned to
+ <label>: : label set to a given integer value
+ <value>  : integer value
+ +        : repeat last element once or several times
+
+The enumeration starts from 0 by default. It is possible to assign a starting value using a label name with a ending colon, followed by an integer. It is also possible to assign several labels to the same value.
+
+<u>Notes:</u> 
+
+* labels syntactic rules are the same as for variable identifiers. 
+	
+* enumeration names are pseudo-types that can be used in any local or global variable declaration in place of a real type.
+
+* labels can be used in place of integer variables or literal integer values.
+
+* ambiguous enum or label names that could conflict with other existing names will raise a compilation error.
+
+<b>Examples</b>
+
+ #enum colors [A B C D E]
+ print-wide [A E]
+will output
+ 0 4
+
+Using in place of literal integers:
+ #enum colors [red blue green yellow]
+
+ a: red
+
+ print switch a [
+ 	red    ["Red"]
+ 	blue   ["Blue"]
+ 	yellow ["Yellow"]
+ ]
+will output
+ Red
+ 
+Defining labels with user-selected value:
+ #enum [a: 1 b c d: e: 10]
+
+ print-wide [a b c d e]
+will output
+ 1 2 3 10 10
+
 ---#include
 
 The <b>#include</b> compiler directive will insert the target source file at the current position in the calling source code.
@@ -2528,6 +2755,18 @@ will output:
 
 
 ===Document History
+
+*<b>04/02/2012 - revision 32</b>
+
+*>Added float! and float32! datatypes. 
+
+*>Type casting matrix updated with float! and float32!
+
+*>Updated list of runtime type IDs.
+
+*>Added #enum description
+
+
 
 *<b>03/01/2012 - revision 31</b>
 
