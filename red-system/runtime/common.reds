@@ -19,7 +19,7 @@ Red/System [
 #define does		  [func []]
 #define unless		  [if not]
 #define	raise-error	  ***-on-quit
-#define ?? 			  print-line
+#define ?? 			  print-line			;-- DEPRECATED since 14/02/2012
  
 #define as-byte		  [as byte!]
 #define as-logic	  [as logic!]
