@@ -91,10 +91,10 @@ stderr: 2
 		_ucontext!: alias struct! [
 			flags 		[integer!]
 			link		[_ucontext!]
-			ss_sp		[byte-ptr!]					;-- stack_t struct inlined
+			ss_sp		[byte-ptr!]			;-- stack_t struct inlined
 			ss_flags	[integer!]
 			ss_size		[integer!]
-			gs			[integer!]					;-- sigcontext struct inlined
+			gs			[integer!]			;-- sigcontext struct inlined
 			fs			[integer!]
 			es			[integer!]
 			ds			[integer!]
@@ -116,14 +116,14 @@ stderr: 2
 			fpstate		[int-ptr!]
 			oldmask		[integer!]
 			cr2			[integer!]
-			;sigmask	[...]						;-- 128 byte array ignored
+			;sigmask	[...]				;-- 128 byte array ignored
 		]
 	]
 	ARM [
 		_ucontext!: alias struct! [
 			flags 		[integer!]
 			link		[_ucontext!]
-			ss_sp		[byte-ptr!]					;-- stack_t struct inlined
+			ss_sp		[byte-ptr!]			;-- stack_t struct inlined
 			ss_flags	[integer!]
 			ss_size		[integer!]
 			trap_no		[integer!]
@@ -147,7 +147,7 @@ stderr: 2
 			arm_pc		[integer!]
 			arm_cpsr	[integer!]
 			fault_address [integer!]
-			;sigmask	[...]						;-- 128 byte array ignored
+			;sigmask	[...]				;-- 128 byte array ignored
 		]
 	]
 ]
