@@ -187,7 +187,7 @@ foreach op test-comparison-ops [
       ;; only write a test if REBOL produces a result
       if all [
         attempt [operand2: operand1 + operand2]
-        attempt [expected: do reduce [operand1 op operand2]]
+        none <> attempt [expected: do reduce [operand1 op operand2]]
       ][
         test-number: test-number + 1
         append tests join {  --test-- "integer-auto-} [test-number {"^(0A)}]

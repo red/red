@@ -172,7 +172,7 @@ foreach op test-comparison-ops [
         attempt [operand2: operand1 + (operand1 * oper2)] 
         oper2 < 3.3E+38
         oper2 > 0.2E-37
-        attempt [expected: do reduce [operand1 op operand2]]
+        none <> attempt [expected: do reduce [operand1 op operand2]]
       ][
         test-number: test-number + 1
         append tests join {  --test-- "float-auto-} [test-number {"^(0A)}]

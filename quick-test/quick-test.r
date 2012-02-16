@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.7.0
+	Version: 0.7.1
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -273,7 +273,6 @@ qt: make object! [
     src: replace/all src "%" ""
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: join runnable-dir [filename]
-    print "tests-dir"
     write to file! script read join tests-dir [src]
     do script
   ]
@@ -306,6 +305,7 @@ qt: make object! [
     print: :_save-print
     write/append log-file print-output
     _print-summary file
+    output: copy ""
   ]
   
   add-to-run-totals: func [
