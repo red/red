@@ -5,9 +5,9 @@ Red Programming Language
 
 The language is in its early bootstrapping phase. The **Red/System** low-level DSL is the first focus. It is a limited C-level language with a REBOL look'n feel, required to build Red's runtime library. More information on [red-lang.org](http://www.red-lang.org).
 
-Running the Hello script
+Running the Red/System hello script
 ------------------------
-The compiler and linker are currently written in REBOL and can produce Windows, Linux and Mac OS X executables. So, for now, a REBOL/Core binary is required to compile Red/System programs. Please follow the instructions for installing the compiler tool-chain:
+The compiler and linker are currently written in REBOL and can produce Windows, Linux, Syllable, Android and Mac OS X executables. So, for now, a REBOL/Core binary is required to compile Red/System programs. Please follow the instructions for installing the compiler tool-chain:
 
 1. Clone this git repository or download an archive (`Downloads` menu).
 
