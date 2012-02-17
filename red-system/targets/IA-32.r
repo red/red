@@ -250,7 +250,10 @@ make target-class [
 				switch type opcodes
 			]
 			tag! [
-				if boxed [emit-casting boxed no]
+				if boxed [
+					emit-casting boxed no
+					compiler/last-type: boxed/type
+				]
 				switch compiler/last-type/1 opcodes
 			]
 			string! [								;-- type casting trap
