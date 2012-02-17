@@ -17,7 +17,7 @@ make target-class [
 	args-offset:		8							;-- stack frame offset to arguments (esp + ebp)
 	branch-offset-size:	4							;-- size of JMP offset
 	
-	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
+	fpu-flags: to integer! #{037B}					;-- default control word, division by zero
 													;-- and invalid operands raise exceptions.
 	conditions: make hash! [
 	;-- name ----------- signed --- unsigned --
