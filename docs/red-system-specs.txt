@@ -2313,15 +2313,14 @@ The <b>#enum</b> compiler directive allows to declare enumerations using labels.
 <b>Syntax</b>
 
  #enum <name>! [
- 	<label> +
- 	| <label>: + <value>
+ 	<label> | <label>: <value>
+ 	...
  ]
 
  <name>!  : enumeration name (ending with a ! by convention)
  <label>  : label to which an integer value is assigned to
- <label>: : label set to a given integer value
+ <label>: : one or several label(s) set to a given integer value
  <value>  : integer value
- +        : repeat last element once or several times
 
 The enumeration starts from 0 by default. It is possible to assign a starting value using a label name with a ending colon, followed by an integer. It is also possible to assign several labels to the same value.
 
@@ -2337,13 +2336,13 @@ The enumeration starts from 0 by default. It is possible to assign a starting va
 
 <b>Examples</b>
 
- #enum colors [A B C D E]
+ #enum colors! [A B C D E]
  print-wide [A E]
 will output
  0 4
 
 Using in place of literal integers:
- #enum colors [red blue green yellow]
+ #enum colors! [red blue green yellow]
 
  a: red
 
@@ -2356,7 +2355,7 @@ will output
  Red
  
 Defining labels with user-selected value:
- #enum [a: 1 b c d: e: 10]
+ #enum values! [a: 1 b c d: e: 10]
 
  print-wide [a b c d e]
 will output
