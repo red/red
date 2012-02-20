@@ -314,10 +314,14 @@ system-dialect: context [
 			if spec: select spec return-def [last-type: spec]
 		]
 		
+		local-variable?: func [name [word!]][
+			all [locals find locals name]
+		]
+		
 		exists-variable?: func [name [word! set-word!]][
 			name: to word! name
 			to logic! any [
-				all [locals find locals name]
+				local-variable? name
 				find globals name
 			]
 		]
@@ -400,9 +404,12 @@ system-dialect: context [
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
 			]
-			if any [
-				all [type find enumerations type/1]
-				get-enumerator name
+			if all [
+				not local-variable? name
+				any [
+					all [type find enumerations type/1]
+					get-enumerator name
+				]
 			][
 				return [integer!]
 			]
@@ -726,7 +733,10 @@ system-dialect: context [
 			case [
 				all [type = 'pointer ending = 'value][]	;-- pass thru case
 				word? ending [
-					either found? enum-value: get-enumerator/value ending [
+					either all [
+						not local-variable? ending
+						found? enum-value: get-enumerator/value ending
+					][
 						path/2: ending: enum-value
 					][
 						unless any [
@@ -824,7 +834,7 @@ system-dialect: context [
 			if block? args [
 				foreach [name type] args [
 					if get-enumerator name [
-						throw-error ["function's argument redeclares enumeration:" name]
+						throw-warning ["function's argument redeclares enumeration:" name]
 					]
 				]
 			]
@@ -1520,7 +1530,10 @@ system-dialect: context [
 					backtrack name
 					throw-error ["redeclaration of definition" name]
 				]
-				if enum: get-enumerator n [
+				if all [
+					not local-variable? n
+					enum: get-enumerator n
+				][
 					backtrack name
 					throw-error ["redeclaration of enumerator" name "from" enum]
 				]
@@ -1696,7 +1709,10 @@ system-dialect: context [
 			set-path [set-path!] expr casted [block! none!]
 			/local type new value
 		][
-			if get-enumerator set-path/1 [
+			if all [
+				not local-variable? set-path/1
+				get-enumerator set-path/1
+			][
 				backtrack set-path
 				throw-error ["enumeration cannot be used as path root:" set-path/1]
 			]
@@ -1867,6 +1883,7 @@ system-dialect: context [
 			
 			if all [
 				word? pc/1
+				not local-variable? pc/1
 				value: get-enumerator/value pc/1
 			][	change pc value ]
 

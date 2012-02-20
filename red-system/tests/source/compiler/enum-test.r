@@ -74,7 +74,7 @@ change-dir %../
 		  f: func[foo [c-string!]][print foo]
 		  f "bar"
 		}
-	--assert-msg? "*** Compilation Error: function's argument redeclares enumeration: foo"
+	--assert-msg? "*** Warning: function's argument redeclares enumeration: foo"
 	  --clean
 	  
 	--test-- "enum-redec-11"
