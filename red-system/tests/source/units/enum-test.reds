@@ -64,5 +64,17 @@ Red/System [
     --assert enum10 = 10
 	--assert enum11 = 10
 	--assert enum12 = 11
+	
+	--test-- "Enum-11"
+	  #enum test11! [e11-a e11-b]
+	  e11-f: func [
+	    return: [integer!]
+	    /local
+	    e11-b
+	  ][
+	    e11-b: 3
+	  ]
+	--assert 3 = e11-f
+	
 ~~~end-file~~~
 
