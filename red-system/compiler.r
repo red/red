@@ -1520,7 +1520,11 @@ system-dialect: context [
 					backtrack name
 					throw-error ["redeclaration of definition" name]
 				]
-				if enum: get-enumerator n [
+				if all [
+					none? locals
+					none? find locals n
+					enum: get-enumerator n
+				][
 					backtrack name
 					throw-error ["redeclaration of enumerator" name "from" enum]
 				]
