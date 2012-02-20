@@ -73,19 +73,7 @@ typed-float!: alias struct! [
 	value	 [float!]
 ]
 
-__stack!: alias struct! [
-	top		[int-ptr!]
-	frame	[int-ptr!]
-]
-
-system: declare struct! [					;-- store runtime accessible system values
-	args-count	[integer!]					;-- command-line arguments count (do not move member)
-	args-list	[str-array!]				;-- command-line arguments array pointer (do not move member)
-	env-vars 	[str-array!]				;-- environment variables array pointer (always null for Windows)
-	stack		[__stack!]					;-- stack virtual access
-	pc			[byte-ptr!]					;-- CPU program counter value
-	alias		[integer!]					;-- aliases ID virtual access
-]
+#include %system.reds
 
 ;-------------------------------------------
 ;-- Convert a type ID to a c-string!

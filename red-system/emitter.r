@@ -327,9 +327,9 @@ emitter: context [
 	
 	system-path?: func [path [path! set-path!] value /local set?][
 		either path/1 = 'system [
+			set?: set-path? path
 			switch/default path/2 [
 				stack [
-					set?: set-path? path
 					if all [2 = length? path set?][
 						compiler/backtrack path
 						compiler/throw-error "cannot modify system/stack"
@@ -356,11 +356,64 @@ emitter: context [
 					]
 				]
 				pc [
-					if set-path? path [
+					if set? [
 						compiler/backtrack path
 						compiler/throw-error "cannot modify system/pc"
 					]
 					target/emit-get-pc
+				]
+				fpu [
+					if 2 = length? path [
+						compiler/backtrack path
+						compiler/throw-error "invalid system/fpu access"
+					]
+					switch path/3 [
+						type [
+							either set? [
+								compiler/backtrack path
+								compiler/throw-error "cannot modify system/fpu/type"
+							][
+								target/emit-fpu-get/type
+							]
+						]
+						option [
+							if 3 = length? path [
+								compiler/backtrack path
+								compiler/throw-error "invalid system/fpu/option access"
+							]
+							either set? [
+								target/emit-fpu-set/options value path/4 
+							][
+								target/emit-fpu-get/options path/4
+							]
+						]
+						mask [
+							if 3 = length? path [
+								compiler/backtrack path
+								compiler/throw-error "invalid system/fpu/mask access"
+							]
+							either set? [
+								target/emit-fpu-set/masks value path/4
+							][
+								target/emit-fpu-get/masks path/4
+							]
+						]
+						control-word [
+							either set? [
+								target/emit-fpu-set/cword value
+							][
+								target/emit-fpu-get/cword
+							]
+						]
+						update [
+							either set? [
+								compiler/backtrack path
+								compiler/throw-error "system/fpu/update is an action"
+							][
+								target/emit-fpu-update
+							]
+						]
+					]
 				]
 				; add here implicit system getters/setters
 			][return false]

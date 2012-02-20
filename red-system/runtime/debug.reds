@@ -141,3 +141,59 @@ dump-hex4: func [
 ][	
 	dump-memory address 4
 ]
+
+;-------------------------------------------
+;-- Show FPU all internal options and exception masks
+;-------------------------------------------
+show-fpu-state: func [/local value][
+	#switch target [
+		IA-32 [
+			print-wide [
+				"FPU type:"
+				switch system/fpu/type [
+					FPU_TYPE_X87 ["x87"]
+					FPU_TYPE_SSE ["SSE"]
+					default 	 ["unknown"]
+				]
+				lf
+			]
+			print-wide [
+				"- control word:" as byte-ptr! system/fpu/control-word
+				lf
+			]
+			print-wide [
+				"- rounding    :"
+				switch system/fpu/option/rounding [
+					FPU_X87_ROUNDING_NEAREST ["nearest"]
+					FPU_X87_ROUNDING_DOWN	 ["toward -INF"]
+					FPU_X87_ROUNDING_UP		 ["toward +INF"]
+					FPU_X87_ROUNDING_ZERO	 ["toward zero"]
+				]
+				lf
+			]
+			print-wide [
+				"- precision   :"
+				switch system/fpu/option/precision [
+					FPU_X87_PRECISION_SINGLE	 ["single (32-bit)"]
+					FPU_X87_PRECISION_DOUBLE	 ["double (64-bit)"]
+					FPU_X87_PRECISION_DOUBLE_EXT ["double extended (80-bit)"]
+				]
+				lf
+			]
+			print-line "- raise exceptions for:"
+			print-wide ["    - precision  :" either system/fpu/mask/precision   ["no"]["yes"] lf]
+			print-wide ["    - underflow  :" either system/fpu/mask/underflow   ["no"]["yes"] lf]
+			print-wide ["    - overflow   :" either system/fpu/mask/overflow    ["no"]["yes"] lf]
+			print-wide ["    - zero-divide:" either system/fpu/mask/zero-divide ["no"]["yes"] lf]
+			print-wide ["    - denormal   :" either system/fpu/mask/denormal    ["no"]["yes"] lf]
+			print-wide ["    - invalid-op :" either system/fpu/mask/invalid-op  ["no"]["yes"] lf]
+		]
+		ARM [
+			value: switch system/fpu/type [
+				FPU_TYPE_VFP ["VFP"]
+				default 	 ["unknown"]
+			]
+			print-wide ["FPU type:" value lf]
+		]
+	]
+]

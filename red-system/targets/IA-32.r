@@ -17,7 +17,8 @@ make target-class [
 	args-offset:		8							;-- stack frame offset to arguments (esp + ebp)
 	branch-offset-size:	4							;-- size of JMP offset
 	
-	fpu-flags: to integer! #{037B}					;-- default control word, division by zero
+	fpu-cword: none									;-- x87 control word reference in emitter/symbols
+	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
 													;-- and invalid operands raise exceptions.
 	conditions: make hash! [
 	;-- name ----------- signed --- unsigned --
@@ -42,14 +43,11 @@ make target-class [
 		]
 	]
 	
-	on-global-prolog: func [runtime? [logic!] /local spec][
+	on-global-prolog: func [runtime? [logic!]][
 		patch-floats-definition 'set
-		; TBD: load control word from system/fpu/control-word
-		unless runtime? [
+		if runtime? [
 			emit #{9BDBE3}							;-- FINIT			; init x87 FPU
-			spec: emitter/store-value none fpu-flags [integer!]
-			emit #{D92D}							;-- FLDCW <word>	; load 16-bit control word from memory
-			emit-reloc-addr spec/2					;-- one-based index
+			fpu-cword: emitter/store-value none fpu-flags [integer!]
 		]
 	]
 	
@@ -185,6 +183,109 @@ make target-class [
 		spec: emitter/store-value none value type
 		emit #{B8}									;-- MOV eax, value
 		emit-reloc-addr spec/2						;-- one-based index
+	]
+	
+	emit-fpu-get: func [
+		/type
+		/options option [word!]
+		/masks mask [word!]
+		/cword
+		/local value bit 
+	][
+		unless type [
+			emit #{A1}								;-- MOV eax, [fpu-cword]
+			emit-reloc-addr fpu-cword/2				;-- one-based index
+		]
+		case [
+			type [
+				; hardcoded value for now (FPU_X87)
+				emit #{31C0}						;--	XOR eax, eax
+				emit #{40}							;--	INC eax				; eax: 1
+			]								
+			options [
+				emit #{25}							;-- AND eax, <value>
+				set [value bit] switch/default option [
+					rounding  [[#{00000C00} 10]]
+					precision [[#{00000300} 8]]
+				][
+					compiler/throw-error ["invalid FPU option name:" option]
+				]
+				emit reverse copy value
+			]
+			masks [
+				bit: switch/default mask [
+					precision	[5]
+					underflow	[4]
+					overflow	[3]
+					zero-divide [2]
+					denormal	[1]
+					invalid-op  [0]
+				][
+					compiler/throw-error ["invalid FPU mask name:" mask]
+				]
+				emit #{25}							;-- AND eax, 2^bit
+				emit to-bin32 shift/left 1 bit
+			]
+			;cword []								;-- control word is already in eax
+		]
+		unless any [type cword][
+			emit #{C1E8}							;-- SHR eax, <bit>
+			emit to-bin8 bit
+		]
+	]
+	
+	emit-fpu-set: func [
+		value
+		/options option [word!]
+		/masks mask [word!]
+		/cword
+		/local bit
+	][
+		value: to integer! value	
+		unless cword [
+			emit #{A1}								;-- MOV eax, [fpu-cword]
+			emit-reloc-addr fpu-cword/2				;-- one-based index
+			emit #{25}								;-- AND eax, 2^bit
+		]
+		case [
+			options [
+				set [mask bit] switch/default option [
+					rounding  [[#{00000C00} 10]]
+					precision [[#{00000300} 8]]
+				][
+					compiler/throw-error ["invalid FPU option name:" option]
+				]
+				emit reverse complement mask
+			]
+			masks [
+				bit: switch/default mask [
+					precision	[5]
+					underflow	[4]
+					overflow	[3]
+					zero-divide [2]
+					denormal	[1]
+					invalid-op  [0]
+				][
+					compiler/throw-error ["invalid FPU mask name:" mask]
+				]
+				emit to-bin32 complement shift/left 1 bit
+			]
+		]
+		either cword [
+			emit #{B8}								;-- MOV eax, <value>
+		][
+			value: shift/left value bit
+			emit #{0D}								;-- OR eax, <value>	
+		]
+		emit to-bin32 value
+		
+		emit #{A3}									;-- MOV [fpu-cword], eax
+		emit-reloc-addr fpu-cword/2					;-- one-based index
+	]
+	
+	emit-fpu-update: does [
+		emit #{D92D}								;-- FLDCW <word>	; load 16-bit control word from memory
+		emit-reloc-addr fpu-cword/2					;-- one-based index
 	]
 	
 	emit-get-pc: does [

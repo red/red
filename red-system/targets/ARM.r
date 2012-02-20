@@ -812,6 +812,17 @@ make target-class [
 		pools/collect/spec 0 spec/2					;-- r0: value
 	]
 	
+	emit-fpu-get: func [/type][
+		case [
+			type [
+				; hardcoded value for now (FPU_VFP)
+				emit-load-imm32 3					;-- MOV r0, <FPU_TYPE_VFP>
+			]								
+		]
+	]
+
+	emit-fpu-set: emit-fpu-update: none				;-- not used for now
+	
 	emit-get-pc: does [
 		emit-i32 #{e1a0000f}						;-- MOV r0, pc
 	]
