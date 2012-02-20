@@ -202,4 +202,29 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "expressions with returned float values"
+
+    fe1: function [
+      return: [float32!]
+    ][
+      as float32! 1.0
+    ]
+    fe2: function [
+      return: [float32!]
+    ][
+      as float32! 2.0
+    ]
+    
+   --test-- "ewrfv0"
+  --assertf32~= as float32! 1.0 (fe1 * as float32! 1.0) as float32! 0.1E-13
+  
+  --test-- "ewrfv1"
+  --assertf32~= as float32! 1.0 (as float32! 1.0 * fe1) as float32! 0.1E-13
+  
+  --test-- "ewrfv2"
+  --assertf32~= as float32! 0.5 (fe1 / fe2) as float32! 0.1E-13
+
+===end-group===
+
+
 ~~~end-file~~~

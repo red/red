@@ -213,4 +213,28 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "expressions with returned float values"
+
+    fe1: function [
+      return: [float!]
+    ][
+      1.0
+    ]
+    fe2: function [
+      return: [float!]
+    ][
+      2.0
+    ]
+  
+  --test-- "ewrfv0"
+  --assertf~= 1.0 (fe1 * 1.0) 0.1E-13
+    
+  --test-- "ewrfv1"
+  --assertf~= 1.0 (1.0 * fe1) 0.1E-13
+  
+  --test-- "ewrfv2"
+  --assertf~= 0.5 (fe1 / fe2) 0.1E-13
+
+===end-group===
+
 ~~~end-file~~~
