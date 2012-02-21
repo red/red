@@ -74,6 +74,7 @@ system: declare struct! [					;-- store runtime accessible system values
 ]
 
 #if target = 'IA-32 [
-	system/fpu/control-word: 0332h			;-- default control word, division by zero 
-	system/fpu/update						;-- and overflow raise exceptions. (@@ underflow)
+	system/fpu/control-word: 0322h			;-- default control word: division by zero, 
+											;-- underflow and overflow raise exceptions.
+	system/fpu/update
 ]

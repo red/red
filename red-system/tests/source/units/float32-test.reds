@@ -136,7 +136,7 @@ Red/System [
       as float32! switch ff1i [
         1 [1.0]
         2 [1.222090944E+33]
-        3 [9.99999E-45]
+        3 [9.99999E-30]
       ]
     ]
   --test-- "float32 return 1"
@@ -144,7 +144,7 @@ Red/System [
   --test-- "float32 return 2"
   --assert (as float32! 1.222090944E+33) = ff1 2
   --test-- "float32 return 3"
-  --assert (as float32! 9.99999E-45) = ff1 3
+  --assert (as float32! 9.99999E-30) = ff1 3
   
 ===end-group===
 
@@ -216,13 +216,13 @@ Red/System [
     ]
     
    --test-- "ewrfv0"
-  --assertf32~= as float32! 1.0 (fe1 * as float32! 1.0) as float32! 0.1E-13
+  --assertf32~= as float32! 1.0 (fe1 * as float32! 1.0) as float32! 1E-4
   
   --test-- "ewrfv1"
-  --assertf32~= as float32! 1.0 (as float32! 1.0) * fe1 as float32! 0.1E-13
+  --assertf32~= as float32! 1.0 (as float32! 1.0) * fe1 as float32! 1E-4
   
   --test-- "ewrfv2"
-  --assertf32~= as float32! 0.5 (fe1 / fe2) as float32! 0.1E-13
+  --assertf32~= as float32! 0.5 (fe1 / fe2) as float32! 1E-4
 
 ===end-group===
 
