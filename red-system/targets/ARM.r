@@ -750,11 +750,17 @@ make target-class [
 	
 	emit-save-last: does [
 		last-saved?: yes
-		emit-i32 #{e92d0001}						;-- PUSH {r0}
+		either find [float! float64!] compiler/last-type/1 [
+			emit-i32 #{e92d0003}					;-- PUSH {r0,r1}
+		][
+			emit-i32 #{e92d0001}					;-- PUSH {r0}
+		]
 	]
 
 	emit-restore-last: does [
-		emit-i32 #{e8bd0002}		   				;-- POP {r1}
+		unless find [float! float64! float32!] compiler/last-type/1 [
+			emit-i32 #{e8bd0002}		   			;-- POP {r1}
+		]
 	]
 
 	emit-casting: func [value [object!] alt? [logic!] /local old][
@@ -1690,8 +1696,8 @@ make target-class [
 						emit-float
 							#{ed9d0b00}				;-- FLDD d0, [sp]		; double precision float
 							#{ed9d0a00}				;-- FLDS s0, [sp]		; single precision float
-						emit-i32 #{e28dd0}			;-- ADD sp, sp, width
-						emit-i32 width
+						emit-i32 join #{e28dd0}		;-- ADD sp, sp, width
+							to char! width
 					][
 					 	emit-float 
 					 		#{ec410b10}				;-- FMDRR d0, r1, r0
@@ -1746,7 +1752,7 @@ make target-class [
 						#{ec410b11}					;-- FMDRR d1, r1, r0
 						#{ee010a10}					;-- FMSR s2, r0
 				]
-				if all [a <> 'reg block? right][
+				if block? right [
 					emit-float 
 						#{ec410b11}					;-- FMDRR d1, r1, r0
 						#{ee010a10}					;-- FMSR s2, r0
