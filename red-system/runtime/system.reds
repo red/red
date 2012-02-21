@@ -21,9 +21,9 @@ Red/System [
 #define FPU_X87_ROUNDING_ZERO		 3		;-- (truncate) rounded result is the closest to but no greater in absolute value than the infinitely precise result
 
 ;-- FPU values for system/fpu/option/precision
-#define FPU_X87_PRECISION_SINGLE	 0		;-- 24-bit mantissa
-#define FPU_X87_PRECISION_DOUBLE	 1		;-- 53-bit mantissa
-#define FPU_X87_PRECISION_DOUBLE_EXT 3		;-- 64-bit mantissa
+#define FPU_X87_PRECISION_SINGLE	 0		;-- 32-bit float, 24-bit mantissa
+#define FPU_X87_PRECISION_DOUBLE	 1		;-- 64-bit float, 53-bit mantissa
+#define FPU_X87_PRECISION_DOUBLE_EXT 3		;-- 80-bit float, 64-bit mantissa
 
 __stack!: alias struct! [
 	top		[int-ptr!]
@@ -32,7 +32,7 @@ __stack!: alias struct! [
 
 #switch target [
 	IA-32 [
-		x87-mask!: alias struct! [	
+		x87-mask!: alias struct! [			;-- x87 exception mask (true => disable exception)
 			precision	[logic!]
 			underflow	[logic!]
 			overflow	[logic!]
@@ -74,6 +74,6 @@ system: declare struct! [					;-- store runtime accessible system values
 ]
 
 #if target = 'IA-32 [
-	system/fpu/control-word: 037Ah			;-- default control word, division by zero
-	system/fpu/update						;-- and invalid operands raise exceptions.
+	system/fpu/control-word: 0332h			;-- default control word, division by zero 
+	system/fpu/update						;-- and overflow raise exceptions. (@@ underflow)
 ]
