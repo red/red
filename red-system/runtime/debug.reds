@@ -145,7 +145,7 @@ dump-hex4: func [
 ;-------------------------------------------
 ;-- Show FPU all internal options and exception masks
 ;-------------------------------------------
-show-fpu-state: func [/local value][
+show-fpu-info: func [/local value][
 	#switch target [
 		IA-32 [
 			print-wide [
