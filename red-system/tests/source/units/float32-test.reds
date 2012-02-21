@@ -219,7 +219,7 @@ Red/System [
   --assertf32~= as float32! 1.0 (fe1 * as float32! 1.0) as float32! 0.1E-13
   
   --test-- "ewrfv1"
-  --assertf32~= as float32! 1.0 (as float32! 1.0 * fe1) as float32! 0.1E-13
+  --assertf32~= as float32! 1.0 (as float32! 1.0) * fe1 as float32! 0.1E-13
   
   --test-- "ewrfv2"
   --assertf32~= as float32! 0.5 (fe1 / fe2) as float32! 0.1E-13

@@ -120,10 +120,9 @@ make target-class [
 	]
 	
 	emit-restore-last: does [
-		if find [float! float64!] compiler/last-type/1 [
-			emit #{58}								;-- POP eax
+		unless find [float! float64! float32!] compiler/last-type/1 [
+			emit #{5A}					   			;-- POP edx
 		]
-		emit #{5A}					   				;-- POP edx
 	]
 	
 	emit-casting: func [value [object!] alt? [logic!] /local old][
@@ -865,7 +864,7 @@ make target-class [
 				emit-push <last>
 			]
 			object! [
-				emit-casting value no
+				unless decimal? value/data [emit-casting value no]
 				either cdecl [
 					emit-push/with/cdecl value/data value
 				][
@@ -1304,7 +1303,13 @@ make target-class [
 					#{DD05}							;-- FLD [value]		; global
 					#{DD45}							;-- FLD [ebp+n]		; local
 			]
-			reg []
+			reg [
+				if block? compiler/unbox args/1 [	;-- a is saved on CPU stack
+					emit-float width #{DD0424}		;-- FLD [esp]		; push a
+					emit #{83C4} 					;-- ADD esp, 8|4
+					emit to-bin8 width
+				]
+			]
 		]
 		emit switch name [
 			+ [#{DEC1}]								;-- FADDP st0, st1
@@ -1344,6 +1349,7 @@ make target-class [
 				spec: emitter/store-value none args/1 compiler/get-type args/1
 				emit-float args/1 #{DD05}			;-- FLD [<float>]	; load immediate from data segment
 				emit-reloc-addr spec/2
+				set-width args/1
 			]
 			ref [			
 				emit-float-variable args/1
@@ -1356,13 +1362,11 @@ make target-class [
 					set-width/type compiler/last-type: args/1/type
 				]
 				if any [block? left block? right][
-					;probe compiler/last-type
-					emit-push <last>
-					if b <> 'reg [
-						emit-float width #{DD0424}	;-- FLD [esp]		; push a
-						emit #{83C4} 				;-- ADD esp, 8|4
-						emit to-bin8 width
-					]
+					unless block? right [emit-push <last>]
+					emit-float width #{DD0424}	;-- FLD [esp]		; push a
+					emit #{83C4} 				;-- ADD esp, 8|4
+					emit to-bin8 width
+					if block? right [emit-push <last>]
 				]
 				if path? left [
 					emit-push args/1				;-- late path loading
@@ -1375,7 +1379,12 @@ make target-class [
 			]
 		]
 		if path? right [emit-push args/2]
-		if all [a <> 'reg block? right][emit-push <last>]
+		if all [a <> 'reg block? right][
+			emit-push <last>
+			emit-float width #{DD0424}				;-- FLD [esp]		; push a
+			emit #{83C4} 							;-- ADD esp, 8|4
+			emit to-bin8 width
+		]
 		
 		case [
 			find comparison-op name [emit-float-comparison-op name a b args]

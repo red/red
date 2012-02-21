@@ -1984,7 +1984,7 @@ system-dialect: context [
 			
 			if ret: select spec return-def [
 				check-expected-type/ret name expr ret	;-- validate return value type
-				if object? expr [		
+				if all [object? expr not literal? expr/data][
 					emitter/target/emit-casting expr no	;-- insert runtime type casting if required
 					last-type: expr/type
 				]
