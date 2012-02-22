@@ -242,8 +242,10 @@ loader: context [
 					]
 				) :s
 				| s: #switch set name word! set cases block! e: (
-					if body: check-condition 'switch reduce [name cases][
+					either body: check-condition 'switch reduce [name cases][
 						change/part s body e
+					][
+						remove/part s e
 					]
 				) :s
 				| line-rule
