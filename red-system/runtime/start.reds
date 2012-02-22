@@ -1,0 +1,52 @@
+Red/System [
+	Title:   "Red/System OS-independent runtime"
+	Author:  "Nenad Rakocevic"
+	File: 	 %start.reds
+	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	License: {
+		Distributed under the Boost Software License, Version 1.0.
+		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+	}
+]
+
+#include %lib-names.reds
+
+__stack!: alias struct! [
+	top		[pointer! [integer!]]
+]
+
+system: declare struct! [							;-- trimmed down temporary system definition
+	stack		[__stack!]							;-- stack virtual access
+]
+
+#switch OS [
+	Linux [
+		#import [LIBC-file cdecl [
+			libc-start: "__libc_start_main" [
+				main [function! []]
+		        argc [integer!]
+				argv [pointer! [integer!]]
+				init [function! []]
+				finish [function! []]
+				loader-finish [function! []]
+				stack-end [pointer! [integer!]]
+			]
+		;   _init: "__libc_csu_init" []
+		;   _finish: "__libc_csu_fini" []
+		]]
+		
+		***__ptr: system/stack/top
+		***__argc: ***__ptr/value
+		***__argv: ***__ptr + 1
+		until [										;-- pass all arguments
+			***__ptr: ***__ptr + 1
+			***__ptr/value = 0
+		]
+		until [										;-- pass all environment variables
+			***__ptr: ***__ptr + 1
+			***__ptr/value = 0
+		]											;-- ptr should point to stack top now
+
+		libc-start :***-start ***__argc ***__argv null null null ***__ptr
+	]
+]
