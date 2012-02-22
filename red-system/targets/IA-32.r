@@ -1218,55 +1218,11 @@ make target-class [
 	
 	emit-float-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local spec float32?][
 		either compiler/job/cpu-version >= 6.0	[	;-- support for FCOMI* only with P6+
-			switch b [
-				imm [
-					spec: emitter/store-value none args/2 compiler/get-type args/2
-					emit-float args/2 #{DD05}		;-- FLD [<float>]
-					emit-reloc-addr spec/2
-				]
-				ref [
-					emit-float-variable args/2
-						#{DD05}						;-- FLD [value]		; global
-						#{DD45}						;-- FLD [ebp+n]		; local
-				]
-				reg [
-					float32?: 'float32! = first compiler/get-type args/2
-					if a = 'reg [
-						emit-float args/2 #{DD4424}	;-- FLD [esp+8|4]	; push a
-						emit to-bin8 pick [4 8] float32?
-					]
-					emit-float args/2 #{DD0424}		;-- FLD [esp]		; push b
-					emit #{83C4}					;-- ADD esp, 4|8|16
-					emit to-bin8 (pick [2 1] a = 'reg) * pick [4 8] float32?
-				]
-			]
 			emit #{DFF1}							;-- FCOMIP st0, st1
 			emit #{DDD8}							;-- FSTP st0		; pop 2nd argument
 		][
-			switch b [
-				imm [
-					spec: emitter/store-value none args/2 compiler/get-type args/2
-					emit-float args/2 #{DC1D}		;-- FCOMP [<float>]
-					emit-reloc-addr spec/2
-				]
-				ref [
-					emit-float-variable args/2
-						#{DC1D}						;-- FCOMP [value]	; global
-						#{DC5D}						;-- FCOMP [ebp+n]	; local
-				]
-				reg [
-					float32?: 'float32! = first compiler/get-type args/2
-					emit-float args/2 #{DD0424}		;-- FLD [esp]		; push b
-					if a = 'reg [
-						emit-float args/2 #{DD4424}	;-- FLD [esp+8]		; push a
-						emit to-bin8 pick [4 8] float32?
-					]
-					emit #{83C4}					;-- ADD esp, 4|8|16
-					emit to-bin8 (pick [2 1] a = 'reg) * pick [4 8] float32?
-					emit #{D8D9}					;-- FCOMP st0, st1
-					emit #{DDD8}					;-- FSTP st0		; pop 2nd argument
-				]
-			]
+			emit #{D8D9}							;-- FCOMP st0, st1
+			emit #{DDD8}							;-- FSTP st0		; pop 2nd argument
 			emit #{9BDFE0}							;-- FSTSW ax		; move FPU flags to ax
 			emit #{9B}								;-- FWAIT			; wait for FPU->CPU transfer completion
 			emit #{9E}								;-- SAHF			; move flags to CPU status flags
@@ -1291,26 +1247,6 @@ make target-class [
 			name: first [/]							;-- work around unaccepted '/ 
 		]
 		set-width args/1
-
-		switch b [
-			imm [
-				spec: emitter/store-value none args/2 compiler/get-type args/2
-				emit-float args/2 #{DD05}			;-- FLD [<float>]
-				emit-reloc-addr spec/2
-			]
-			ref [
-				emit-float-variable args/2
-					#{DD05}							;-- FLD [value]		; global
-					#{DD45}							;-- FLD [ebp+n]		; local
-			]
-			reg [
-				if block? compiler/unbox args/1 [	;-- a is saved on CPU stack
-					emit-float width #{DD0424}		;-- FLD [esp]		; push a
-					emit #{83C4} 					;-- ADD esp, 8|4
-					emit to-bin8 width
-				]
-			]
-		]
 		emit switch name [
 			+ [#{DEC1}]								;-- FADDP st0, st1
 			- [#{DEE9}]								;-- FSUBP st0, st1
@@ -1328,23 +1264,25 @@ make target-class [
 		emit-get-float-result
 	]
 
-	emit-float-operation: func [name [word!] args [block!] /local a b left right spec][
+	emit-float-operation: func [name [word!] args [block!] /local a b left right spec load-from-stack][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 
-		if all [
-			find comparison-op name
-			compiler/job/cpu-version >= 6.0			;-- support for FCOMIP only with P6+
-		][
-			reverse args							;-- arguments will be pushed in reverse order
-		]
+		if find comparison-op name [reverse args] 	;-- arguments will be pushed in reverse order
+		
 		set [a b] get-arguments-class args
 
 		;-- First operand processing
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
 		set-width left
+		
+		load-from-stack: [
+			emit-float width #{DD0424}				;-- FLD [esp]
+			emit #{83C4} 							;-- ADD esp, 8|4
+			emit to-bin8 width		
+		]
 
-		switch a [
+		switch a [									;-- load left operand on FPU stack
 			imm [
 				spec: emitter/store-value none args/1 compiler/get-type args/1
 				emit-float args/1 #{DD05}			;-- FLD [<float>]	; load immediate from data segment
@@ -1358,32 +1296,49 @@ make target-class [
 			]
 			reg [
 				if object? args/1 [
-					emit-casting args/1 no
+					if block? left [emit-casting args/1 no]
 					set-width/type compiler/last-type: args/1/type
 				]
-				if any [block? left block? right][
-					unless block? right [emit-push <last>]
-					emit-float width #{DD0424}	;-- FLD [esp]		; push a
-					emit #{83C4} 				;-- ADD esp, 8|4
-					emit to-bin8 width
-					if block? right [emit-push <last>]
+				if block? left [
+					if any [path? right b <> 'reg][emit-push <last>]
+					do load-from-stack
 				]
 				if path? left [
-					emit-push args/1				;-- late path loading
-					if b <> 'reg [
-						emit-float width #{DD0424}	;-- FLD [esp]		; push a
-						emit #{83C4} 				;-- ADD esp, 8|4
-						emit to-bin8 width
+					if block? right [
+						if all [object? args/2 block? right][
+							emit-casting args/1 no
+						]
+						emit-push <last>
 					]
+					emit-push args/1				;-- late path loading
+					do load-from-stack
 				]
 			]
-		]
-		if path? right [emit-push args/2]
-		if all [a <> 'reg block? right][
-			emit-push <last>
-			emit-float width #{DD0424}				;-- FLD [esp]		; push a
-			emit #{83C4} 							;-- ADD esp, 8|4
-			emit to-bin8 width
+		]		
+		switch b [									;-- load right operand on FPU stack
+			imm [
+				spec: emitter/store-value none args/2 compiler/get-type args/2
+				emit-float args/2 #{DD05}			;-- FLD [<float>]
+				emit-reloc-addr spec/2
+			]
+			ref [
+				emit-float-variable args/2
+					#{DD05}							;-- FLD [value]		; global
+					#{DD45}							;-- FLD [ebp+n]		; local
+			]
+			reg [
+				if all [object? args/2 block? right][
+					emit-casting args/2 no
+				]
+				if block? right [
+					if any [block? left a <> 'reg][emit-push args/2]
+					do load-from-stack
+				]
+				if path? right [
+					emit-push args/2
+					do load-from-stack
+				]
+			]
 		]
 		
 		case [
