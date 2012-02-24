@@ -19,8 +19,8 @@ Red/System [
     f: as float32! 1.222090944E+33
   --assert f = as float32! 1.222090944E+33
   --test-- "float32-3"
-    f: as float32! 9.99999E-45
-  --assert f = as float32! 9.99999E-45
+    f: as float32! 9.99999E-25
+  --assert f = as float32! 9.99999E-25
   --test-- "float32-4"
     f: as float32! 1.0
     f1: f
@@ -43,13 +43,13 @@ Red/System [
 	]
 	pi32: 3.1415927
 	
-	--test-- "float-ext-1"
+	--test-- "float32-ext-1"
 	--assert (as float32! -1.0) = as-float32 cos pi32
 	
-	;--test-- "float-ext-2"
+	;--test-- "float32-ext-2"
 	;--assert  (as float32! 0.0) = (as float32! sin pi32)		; not working, because of rounding error.
 	
-	--test-- "float-ext-3"
+	--test-- "float32-ext-3"
 	--assert (as float32! -1.0) = as-float32 cos 3.1415927
 	
 ===end-group===
@@ -73,7 +73,7 @@ Red/System [
   --assert 1 = ff as float32! 1.0 as float32! 2.0
   
   --test-- "float32-func-args-2"
-  --assert 1 = ff as float32! 1.222090944E+33 as float32! 9.99999E-45
+  --assert 1 = ff as float32! 1.222090944E+33 as float32! 9.99999E-25
   
 ===end-group===
 
@@ -171,10 +171,10 @@ Red/System [
   
   --test-- "float32-struct-3"
     sf3/a: as float32! 1.222090944E+33
-    sf3/b: as float32! 9.99999E-45
+    sf3/b: as float32! 9.99999E-25
     
   --assert (as float32! 1.222090944E+33) = sf3/a
-  --assert (as float32! 9.99999E-45) = sf3/b
+  --assert (as float32! 9.99999E-25) = sf3/b
     
   --test-- "float32-struct-4"
     sf4: declare struct! [
@@ -184,9 +184,9 @@ Red/System [
       b   [float32!]
     ]
     sf4/a: as float32! 1.222090944E+33
-    sf4/b: as float32! 9.99999E-45
+    sf4/b: as float32! 9.99999E-25
   --assert (as float32! 1.222090944E+33) = sf4/a
-  --assert (as float32! 9.99999E-45) = sf4/b
+  --assert (as float32! 9.99999E-25) = sf4/b
 
 ===end-group===
 
@@ -216,13 +216,13 @@ Red/System [
     ]
     
    --test-- "ewrfv0"
-  --assertf32~= as float32! 1.0 (fe1 * as float32! 1.0) as float32! 1E-4
+  --assertf32~= as float32! 1.0 (fe1 * as float32! 1.0) as float32! 0.1E-3
   
   --test-- "ewrfv1"
-  --assertf32~= as float32! 1.0 (as float32! 1.0) * fe1 as float32! 1E-4
+  --assertf32~= as float32! 1.0 (as float32! 1.0) * fe1 as float32! 0.1E-3
   
   --test-- "ewrfv2"
-  --assertf32~= as float32! 0.5 (fe1 / fe2) as float32! 1E-4
+  --assertf32~= as float32! 0.5 (fe1 / fe2) as float32! 0.1E-3
 
 ===end-group===
 
