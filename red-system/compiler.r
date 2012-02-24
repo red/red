@@ -1829,6 +1829,14 @@ system-dialect: context [
 			][
 				emitter/logic-to-integer expr/1			;-- runtime logic! conversion before storing
 			]
+			;if all [
+			;	not any [keep? variable]
+			;	block? expr
+			;	find functions/(expr/1)/4 return-def
+			;	any-float? last-type
+			;][		
+			;	emitter/target/emit-float-trash-last	;-- avoid leaving a FPU slot occupied,
+			;]											;-- if return value is not used.
 			
 			;-- storing result if assignement required
 			if variable [

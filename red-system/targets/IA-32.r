@@ -113,10 +113,9 @@ make target-class [
 	
 	emit-save-last: does [
 		last-saved?: yes
-		if find [float! float64!] compiler/last-type/1 [
-			emit #{52}								;-- PUSH edx
+		unless compiler/any-float? compiler/last-type [
+			emit #{50}								;-- PUSH eax
 		]
-		emit #{50}									;-- PUSH eax
 	]
 	
 	emit-restore-last: does [
@@ -153,26 +152,22 @@ make target-class [
 			]
 			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to float!"]]
-				either alt? [
-					emit #{52}						;-- PUSH edx
-				][
-					emit #{50}						;-- PUSH eax
+				if type/1 = 'integer! [
+					either alt? [
+						emit #{52}					;-- PUSH edx
+					][
+						emit #{50}					;-- PUSH eax
+					]
+					emit #{D90424}					;-- FLD dword [esp]		; load as 32-bit
+					emit #{83C404}					;-- ADD esp, 4			; free space
 				]
-				emit #{D90424}						;-- FLD dword [esp]		; load as 32-bit
-				emit #{83EC04}						;-- SUB esp, 4			; alloc space for 64-bit float
-				emit #{DD1C24}						;-- FSTP qword [esp]	; save as 64-bit
-				emit #{58}							;-- POP eax
-				emit #{5A}					   		;-- POP edx
 			]
 			all [value/type/1 = 'float32! find [float! float64!] type/1][
 				if verbose >= 3 [print [">>>converting from float! to float32!"]]
-				; @@ handle alt case?
-				emit #{52}							;-- PUSH edx
-				emit #{50}							;-- PUSH eax
-				emit #{DD0424}						;-- FLD qword [esp]		; load as 64-bit
-				emit #{83C404}						;-- ADD esp, 4			; reduce space for 32-bit float
+				emit #{83EC04}						;-- SUB esp, 4			; alloc space for 32-bit float
 				emit #{D91C24}						;-- FSTP dword [esp]	; save as 32-bit
-				emit #{58}							;-- POP eax
+				emit #{D90424}						;-- FLD dword [esp]		; load as 32-bit
+				emit #{83C404}						;-- ADD esp, 4			; free space
 			]
 		]
 	]
@@ -386,7 +381,6 @@ make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
-		/local type
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		
@@ -406,32 +400,18 @@ make target-class [
 				emit to-bin32 value
 			]
 			decimal! [
-				value: either all [cast cast/type/1 = 'float32!][
-					IEEE-754/to-binary32/rev value
-				][
-					value: IEEE-754/to-binary64/rev value
-					emit #{BA}						;-- MOV edx, high part
-					emit at value 5
-					value
-				]
-				emit #{B8}							;-- MOV eax, low part
-				emit copy/part value 4
+				set-width any [cast value]
+				emit-push any [cast value]
+				emit-float width #{DD0424}			;-- FLD [esp]
+				emit #{83C4} 						;-- ADD esp, 8|4
+				emit to-bin8 pick [4 8] to logic! all [cast cast/type/1 = 'float32!]
 			]
 			word! [
 				with-width-of value [
-					type: compiler/get-variable-spec value
-					either find [float! float64!] type/1 [
-						emit-variable value [
-							#{BE}					;-- LEA esi, value
-							'address
-							#{8B06}					;-- MOV eax, [esi]		; global
-							#{8B5604}				;-- MOV edx, [esi+4]	; global
-						][
-							#{8B45}					;-- MOV eax, [ebp+n]	; local
-							offset
-							#{8B55}					;-- MOV edx, [ebp+n+4]	; local
-							offset or #{04}
-						]
+					either compiler/any-float? compiler/get-variable-spec value [
+						emit-float-variable any [cast value]
+							#{DD05}					;-- FLD [value]		; global
+							#{DD45}					;-- FLD [ebp+n]		; local
 					][
 						either alt [
 							emit-variable-poly value
@@ -499,43 +479,15 @@ make target-class [
 				emit to-bin32 value
 			]
 			decimal! [
-				type: compiler/get-variable-spec name
-				either type/1 = 'float32! [
-					do store-dword
-					emit IEEE-754/to-binary32/rev value
-				][
-					value: IEEE-754/to-binary64/rev value ;-- loaded as big-endian
-					emit-variable name [
-						#{BE}						;-- LEA esi, name
-						'address
-						#{C706}						;-- MOV [esi], low-bits		; global
-						copy/part value 4
-						#{C74604}					;-- MOV [esi+4], high-bits	; global
-						at value 5
-					][
-						#{C745}						;-- MOV [ebp+n], low-bits		; local
-						offset
-						copy/part value 4
-						#{C745}						;-- MOV [ebp+(n+4)], high-bits	; local	
-						to-bin8 add to integer! offset 4
-						at value 5
-					]
-				]
+				emit-float-variable name 
+					#{DD1D}							;-- FSTP [name]			; global
+					#{DD5D}							;-- FSTP [ebp+n]		; local
 			]
 			word! [
-				type: compiler/get-variable-spec name
-				either find [float! float64!] type/1 [
-					emit-variable name [
-						#{BE}						;-- LEA esi, name
-						'address
-						#{8906}						;-- MOV [esi], eax		; global
-						#{895604}					;-- MOV [esi+4], edx	; global
-					][
-						#{8945}						;-- MOV [ebp+n], eax	; local
-						offset
-						#{8955}						;-- MOV [ebp+n+4], edx	; local
-						to-bin8 add to integer! offset 4
-					]
+				either compiler/any-float? compiler/get-variable-spec name [
+					emit-float-variable name 
+						#{DD1D}						;-- FSTP [name]			; global
+						#{DD5D}						;-- FSTP [ebp+n]		; local
 				][
 					set-width name				
 					emit-variable-poly name
@@ -565,7 +517,7 @@ make target-class [
 	]
 	
 	emit-access-path: func [
-		path [path! set-path!] spec [block! none!] /short /local offset type saved float64?
+		path [path! set-path!] spec [block! none!] /short /local offset type saved
 	][
 		if verbose >= 3 [print [">>>accessing path:" mold path]]
 
@@ -576,26 +528,25 @@ make target-class [
 		if short [return spec]
 		
 		saved: width
-		type: first compiler/resolve-type/with path/2 spec
-		float64?: find [float! float64!] type
+		type: compiler/resolve-type/with path/2 spec
 
-		set-width/type type							;-- adjust operations width to member value size
+		set-width/type type/1						;-- adjust operations width to member value size
 		offset: emitter/member-offset? spec path/2
 		
-		if float64? [								;-- load float high bits
-			width: 4
+		either compiler/any-float? type [
 			either zero? offset [
-				emit #{8B5004}						;-- MOV edx, [eax+4]
+				emit-float width #{DD00}			;-- FLD [eax]
 			][
-				emit #{8B90}						;-- MOV edx, [eax+offset+4]
-				emit to-bin32 offset + 4
+				emit-float width #{DD80}			;-- FLD [eax+offset]
+				emit to-bin32 offset
 			]
-		]
-		either zero? offset [
-			emit-poly [#{8A00} #{8B00}]				;-- MOV rA, [eax]
 		][
-			emit-poly [#{8A80} #{8B80}]				;-- MOV rA, [eax+offset]
-			emit to-bin32 offset
+			either zero? offset [
+				emit-poly [#{8A00} #{8B00}]			;-- MOV rA, [eax]
+			][
+				emit-poly [#{8A80} #{8B80}]			;-- MOV rA, [eax+offset]
+				emit to-bin32 offset
+			]
 		]
 		width: saved
 	]
@@ -643,18 +594,8 @@ make target-class [
 	]
 	
 	emit-pointer-path: func [
-		path [path! set-path!] parent [block! none!] /local opcodes idx type offset get64? set64?
+		path [path! set-path!] parent [block! none!] /local opcodes idx type offset
 	][
-		opcodes: pick [[							;-- store path opcodes --
-				[#{8810} #{8910}]					;-- MOV [eax], rD
-				[#{8890} #{8990}]					;-- MOV [eax + <idx> * sizeof(p/value)], rD
-				[#{881418} #{891498}]				;-- MOV [eax + ebx * sizeof(p/value)], rD
-			][										;-- load path opcodes --
-				[#{8A00} #{8B00}]					;-- MOV rA, [eax]
-				[#{8A80} #{8B80}]					;-- MOV rA, [eax + <idx> * sizeof(p/value)]
-				[#{8A0418} #{8B0498}]				;-- MOV rA, [eax + ebx * sizeof(p/value)]
-		]] set-path? path
-		
 		type: either parent [
 			compiler/resolve-type/with path/1 parent
 		][
@@ -662,33 +603,55 @@ make target-class [
 			compiler/resolve-type path/1
 		]
 		set-width/type type/2/1						;-- adjust operations width to pointed value size
-		if width = 8 [get64?: not set64?: set-path? path]
-		
 		idx: either path/2 = 'value [1][path/2]
+		
+		either compiler/any-float? type/2 [
+			opcodes: pick [[						;-- store path opcodes --
+				#{DD18}								;-- FSTP [eax]
+				#{DD98}								;-- FSTP [eax + <idx> * sizeof(p/value)]
+				#{DD1C}								;-- FSTP [eax + ebx * sizeof(p/value)]
+			][										;-- load path opcodes --
+				#{DD00}								;-- FLD [eax]
+				#{DD80}								;-- FLD [eax + <idx> * sizeof(p/value)]
+				#{DD04}								;-- FLD [eax + ebx * sizeof(p/value)]
+			]] set-path? path
 
-		either integer? idx [
-			either zero? idx: idx - 1 [				;-- indexes are one-based
-				if get64? [emit #{8B5004}]			;-- MOV edx, [eax+4]			 ; read high bits
-				emit-poly opcodes/1
-				if set64? [emit #{897004}]			;-- MOV [eax+4], esi			 ; store high bits
+			either integer? idx [
+				either zero? idx: idx - 1 [			;-- indexes are one-based
+					emit-float width opcodes/1
+				][
+					offset: idx * emitter/size-of? type/2/1	;-- scaled index up
+					emit-float width opcodes/2
+					emit to-bin32 offset
+				]
 			][
-				offset: idx * emitter/size-of? type/2/1	;-- scaled up index
-				if get64? [
-					emit #{8B90}					;-- MOV edx, [eax+offset+4]		 ; read high bits
-					emit to-bin32 offset + 4
-				]
-				emit-poly opcodes/2
-				emit to-bin32 offset
-				if set64? [
-					emit #{89B0}					;-- MOV [eax+offset+4], esi		 ; store high bits
-					emit to-bin32 offset + 4
-				]
+				emit-load-index idx
+				emit-float width opcodes/3
+				emit select [4 #{98} 8 #{D8}] width
 			]
 		][
-			emit-load-index idx
-			if get64? [emit #{8B54D804}]			;-- MOV edx, [eax + ebx * 8 + 4] ; read high bits
-			emit-poly opcodes/3
-			if set64? [emit #{8974D804}]			;-- MOV [eax + ebx * 8 + 4], esi ; store high bits
+			opcodes: pick [[						;-- store path opcodes --
+				[#{8810} #{8910}]					;-- MOV [eax], rD
+				[#{8890} #{8990}]					;-- MOV [eax + <idx> * sizeof(p/value)], rD
+				[#{881418} #{891498}]				;-- MOV [eax + ebx * sizeof(p/value)], rD
+			][										;-- load path opcodes --
+				[#{8A00} #{8B00}]					;-- MOV rA, [eax]
+				[#{8A80} #{8B80}]					;-- MOV rA, [eax + <idx> * sizeof(p/value)]
+				[#{8A0418} #{8B0498}]				;-- MOV rA, [eax + ebx * sizeof(p/value)]
+			]] set-path? path
+
+			either integer? idx [
+				either zero? idx: idx - 1 [			;-- indexes are one-based
+					emit-poly opcodes/1
+				][
+					offset: idx * emitter/size-of? type/2/1	;-- scaled index up
+					emit-poly opcodes/2
+					emit to-bin32 offset
+				]
+			][
+				emit-load-index idx
+				emit-poly opcodes/3
+			]
 		]
 	]
 	
@@ -704,7 +667,7 @@ make target-class [
 
 	emit-store-path: func [
 		path [set-path!] type [word!] value parent [block! none!]
-		/local idx offset float64?
+		/local idx offset
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
@@ -718,24 +681,24 @@ make target-class [
 			pointer!  [emit-pointer-path  path parent]
 			struct!   [
 				unless parent [parent: emit-access-path/short path parent]
-				type: first compiler/resolve-type/with path/2 parent
-				float64?: find [float! float64!] type
+				type: compiler/resolve-type/with path/2 parent
 				
-				set-width/type type				;-- adjust operations width to member value size
-				if float64? [width: 4]
-				either zero? offset: emitter/member-offset? parent path/2 [
-					emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
-				][
-					emit-poly [#{8890} #{8990}]	;-- MOV [eax+offset], rD
-					emit to-bin32 offset
-				]
-				if float64? [					;-- store float high bits
-					emit #{89F2}				;-- MOV edx, esi
+				set-width/type type/1				;-- adjust operations width to member value size
+				offset: emitter/member-offset? parent path/2
+				
+				either compiler/any-float? type [
 					either zero? offset [
-						emit #{895004}			;-- MOV [eax+4], edx
+						emit-float width #{DD18}	;-- FSTP [eax]
 					][
-						emit #{8990}			;-- MOV [eax+offset+4], edx
-						emit to-bin32 offset + 4
+						emit-float width #{DD98}	;-- FSTP [eax+offset]
+						emit to-bin32 offset
+					]
+				][
+					either zero? offset [
+						emit-poly [#{8810} #{8910}] ;-- MOV [eax], rD
+					][
+						emit-poly [#{8890} #{8990}]	;-- MOV [eax+offset], rD
+						emit to-bin32 offset
 					]
 				]
 			]
@@ -792,10 +755,13 @@ make target-class [
 		
 		switch type?/word value [
 			tag! [									;-- == <last>
-				if find [float! float64!] compiler/last-type/1 [
-					emit #{52}						;-- PUSH edx			; low part of 64-bit float
-				]															; high part in EAX
-				emit #{50}							;-- PUSH eax
+				either compiler/any-float? compiler/last-type [
+					set-width/type any [all [cast cast/type] compiler/last-type]
+					emit join #{83EC} to-bin8 width	;-- SUB esp, 8|4
+					emit-float width #{DD1C24}		;-- FSTP [esp]
+				][
+					emit #{50}						;-- PUSH eax
+				]
 			]
 			logic! [
 				emit #{31C0}						;--	XOR eax, eax		; eax = 0 (FALSE)	
@@ -1216,10 +1182,14 @@ make target-class [
 		]
 	]
 	
+	emit-float-trash-last: does [
+		emit #{DDD8}								;-- FSTP st0
+	]
+	
 	emit-float-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local spec float32?][
 		either compiler/job/cpu-version >= 6.0	[	;-- support for FCOMI* only with P6+
 			emit #{DFF1}							;-- FCOMIP st0, st1
-			emit #{DDD8}							;-- FSTP st0		; pop 2nd argument
+			emit-float-trash-last					;-- pop 2nd argument
 		][
 			emit #{D8D9}							;-- FCOMP st0, st1
 			emit #{DDD8}							;-- FSTP st0		; pop 2nd argument
@@ -1261,7 +1231,6 @@ make target-class [
 				][#{DEF9}]							;-- FDIVP st0, st1
 			]
 		]
-		emit-get-float-result
 	]
 
 	emit-float-operation: func [name [word!] args [block!] /local a b left right spec load-from-stack][
@@ -1299,17 +1268,7 @@ make target-class [
 					if block? left [emit-casting args/1 no]
 					set-width/type compiler/last-type: args/1/type
 				]
-				if block? left [
-					if any [path? right b <> 'reg][emit-push <last>]
-					do load-from-stack
-				]
 				if path? left [
-					if block? right [
-						if all [object? args/2 block? right][
-							emit-casting args/1 no
-						]
-						emit-push <last>
-					]
 					emit-push args/1				;-- late path loading
 					do load-from-stack
 				]
@@ -1330,15 +1289,17 @@ make target-class [
 				if all [object? args/2 block? right][
 					emit-casting args/2 no
 				]
-				if block? right [
-					if any [block? left a <> 'reg][emit-push args/2]
-					do load-from-stack
-				]
 				if path? right [
 					emit-push args/2
 					do load-from-stack
 				]
 			]
+		]
+		if all [
+			any [all [b = 'reg a <> 'reg] all [ a = 'reg b <> 'reg]]
+			find comparison-op name
+		][
+			emit #{D9C9}							;-- FXCH st0, st1
 		]
 		
 		case [
@@ -1399,23 +1360,6 @@ make target-class [
 			]
 		]
 	]
-	
-	emit-get-float-result: does [
-		emit join #{83EC} to-bin8 width				;-- SUB esp, 8|4
-		emit-float width #{DD1C24}					;-- FSTP [esp]
-		emit-pop									;-- POP eax			;  low part
-		if width = 8 [emit #{5A}]					;-- POP edx			;  high part 
-	]
-	
-	emit-return-float: func [fspec [block!] /local ret-type saved][
-		ret-type: select fspec/4 compiler/return-def
-		if all [ret-type compiler/any-float? ret-type][
-			saved: width
-			width: pick [4 8] ret-type/1 = 'float32!		
-			emit-get-float-result
-			width: saved
-		]
-	]
 		
 	emit-call-syscall: func [args [block!] fspec [block!]][
 		switch compiler/job/syscall [
@@ -1450,7 +1394,6 @@ make target-class [
 				if fspec/1 >= 6 [emit #{5D}]		;-- POP ebp			; restore frame pointer
 			]
 		]
-		emit-return-float fspec
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
@@ -1465,7 +1408,6 @@ make target-class [
 		if fspec/3 = 'cdecl [						;-- add calling cleanup when required
 			emit-cdecl-pop fspec args
 		]
-		emit-return-float fspec
 	]
 
 	emit-call-native: func [args [block!] fspec [block!] spec [block!] /local total][
