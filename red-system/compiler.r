@@ -2095,6 +2095,19 @@ system-dialect: context [
 		]
 	]
 
+	comp-start: has [script][
+		emitter/start-prolog
+		script: secure-clean-path runtime-path/start.reds
+ 		compiler/run/no-events job loader/process script script
+ 		emitter/start-epilog
+ 
+		;-- selective clean-up of compiler's internals
+ 		remove/part find compiler/globals 'system 2		;-- avoid 'system redefinition clash
+ 		remove/part find emitter/symbols 'system 4
+		clear compiler/definitions
+		clear compiler/aliased-types
+	]
+	
 	comp-runtime-prolog: has [script][
 		script: secure-clean-path runtime-path/common.reds
  		compiler/run/runtime job loader/process script script
@@ -2176,9 +2189,7 @@ system-dialect: context [
 			clean-up
 			loader/init
 			
-			unless opts/use-natives? [
-				emitter/target/emit-libc-init job		;-- init libC properly
-			]
+			unless opts/use-natives? [comp-start]		;-- init libC properly
 			if opts/runtime? [comp-runtime-prolog]
 			
 			set-verbose-level opts/verbosity
