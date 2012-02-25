@@ -1561,4 +1561,61 @@ make target-class [
 			]
 		]
 	]
+	
+	emit-libc-init: func [job [object!] /local base refs main-call][
+		if verbose >= 3 [print "^/>>>emitting LIBC-INIT"]
+
+		base: emitter/tail-ptr
+		
+		switch job/OS [
+			Linux [
+				compiler/process-import [
+					"libc.so.6" cdecl [
+						__libc_start_main:  "__libc_start_main" []
+						;__libc_csu_init: 	"__libc_csu_init"   []
+						;__libc_csu_fini: 	"__libc_csu_fini"   []
+					]
+				]
+				foreach opcode [
+					#{31ED}							;-- XOR ebp,ebp
+					#{5E}							;-- POP esi
+					#{89E1}                   		;-- MOV ecx, esp
+					#{83E4F0}                		;-- AND esp, FFFFFFF0h
+					#{50}							;-- PUSH eax
+					#{54}							;-- PUSH esp
+					#{52}							;-- PUSH edx
+					#{6A00} 						;-- PUSH null		; <init>
+					#{6A00} 						;-- PUSH null		; <fini>
+					#{51}							;-- PUSH ecx
+					#{56}							;-- PUSH esi
+					#{68} main          			;-- PUSH <main>
+					#{FF15} start          			;-- CALL FAR <libc-start>
+					#{F4}							;-- HLT				; dragons!  
+				][
+					either binary? opcode [
+						emit opcode
+					][
+						refs: switch opcode [
+							;init	[emitter/symbols/__libc_csu_init]
+							;fini	[emitter/symbols/__libc_csu_fini]
+							start	[emitter/symbols/__libc_start_main]
+							main	[main-call: emitter/tail-ptr none]
+						]
+						if refs [append refs/3 emitter/tail-ptr]
+						emit void-ptr
+					]
+				]
+				append emitter/symbols compose/deep [
+					***-start [native-ref (emitter/tail-ptr - 1) [(main-call)]]
+				]
+			]
+			Syllable [
+
+			]
+			MacOSX [
+			
+			]
+			
+		]
+	]
 ]
