@@ -37,7 +37,7 @@ Red/System [
 ;-------------------------------------------
 ;-- Retrieve command-line information from stack
 ;-------------------------------------------
-system/args-count:	pop
+system/args-count:	***__argc
 system/args-list:	as str-array! system/stack/top
 system/env-vars:	system/args-list + system/args-count + 1
 
