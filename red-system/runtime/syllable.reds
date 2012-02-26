@@ -34,11 +34,20 @@ Red/System [
 ;-------------------------------------------
 ;-- Retrieve command-line information from stack
 ;-------------------------------------------
-pop											;-- dummy value
-system/args-list: as str-array! pop			;-- &argv
-system/env-vars: as str-array! pop			;-- &envp
 
-***-on-start: func [/local c argv][
+#either use-natives? = yes [
+	pop										;-- dummy value
+	system/args-list: as str-array! pop		;-- &argv
+	system/env-vars:  as str-array! pop		;-- &envp
+
+][
+	;-- the current stack is pointing to main(int argc, void **argv, void **envp) C layout
+	;-- we avoid the double indirection by reusing our variables from %start.reds
+	system/args-list: as str-array! ***__argv
+	system/env-vars:  as str-array! ***__envp
+]
+
+***-get-argc: func [/local c argv][
 	argv: system/args-list
 	c: 0
 	while [argv/item <> null][
@@ -47,6 +56,6 @@ system/env-vars: as str-array! pop			;-- &envp
 	]
 	system/args-count: c
 ]
-***-on-start
-
+***-get-argc
+	
 #include %POSIX.reds
