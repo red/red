@@ -34,13 +34,26 @@ system: declare struct! [							;-- trimmed down temporary system definition
 			]
 		]]
 
+		;; Clear the frame pointer. The SVR4 ELF/i386 ABI suggests this, to
+		;; mark the outermost frame.
 		system/stack/frame: as pointer! [integer!] 0
+
+		;; Extract arguments from the call stack (which was setup by the
+		;; kernel).
 		***__argc: pop
 		***__argv: system/stack/top
-		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
-		push 0
-		***__stack_end: system/stack/top
 
+		;; Before pushing arguments for `libc-start`, align the stack to a
+		;; 128-bit boundary, to prevent misaligned access penalities.
+		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+
+		;; The call to `libc-start` takes 7 4-byte arguments (passed on the
+		;; stack). To keep the stack 128-bit aligned even after the call, we
+		;; push some garbage.
+		push 0
+
+		;; Finally, call into libc's startup routine.
+		***__stack_end: system/stack/top
 		libc-start :***-start ***__argc ***__argv null null null ***__stack_end
 	]
 ]
