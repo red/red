@@ -13,6 +13,7 @@ Red/System [
 
 __stack!: alias struct! [
 	top		[pointer! [integer!]]
+	frame	[pointer! [integer!]]
 ]
 
 system: declare struct! [							;-- trimmed down temporary system definition
@@ -35,8 +36,10 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		;   _finish: "__libc_csu_fini" []
 		]]
 		
+		system/stack/frame: as pointer! [integer!] 0
 		***__argc: pop
 		***__argv: system/stack/top
+		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
 
 		libc-start :***-start ***__argc ***__argv null null null ***__argv
 	]

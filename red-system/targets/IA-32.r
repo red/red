@@ -294,7 +294,7 @@ make target-class [
 	
 	emit-set-stack: func [value /frame][
 		if verbose >= 3 [print [">>>emitting SET-STACK" mold value]]
-		emit-load value
+		unless tag? value [emit-load value]
 		either frame [
 			emit #{89C5}							;-- MOV ebp, eax		
 		][
