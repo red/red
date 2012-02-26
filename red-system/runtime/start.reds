@@ -20,8 +20,10 @@ system: declare struct! [							;-- trimmed down temporary system definition
 	stack		[__stack!]							;-- stack virtual access
 ]
 
+
 #switch OS [
 	Windows []										;-- nothing to do, initialization occurs in DLL init entry point
+	MacOSX  []										;-- nothing to do @@
 	Syllable [
 		#import [LIBC-file cdecl [
 			libc-start: "__libc_start_main" [
