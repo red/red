@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 04/02/2012
-	Revision: 32
+	Date: 26/02/2012
+	Revision: 33
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -316,45 +316,29 @@ The reason for having a single precision floating point type is for making the i
 
 +++Syntax
 
- <sign><digits>.<digits>
-or using scientific notation:
+There is no literal form for float32! datatype values. To load a float32! constant, the method consist in provindg a float! literal and prefix it with a type casting to float32!.
 
- <sign><digits>E<exponent>
- <sign><digits>.<digits>E<exponent>
+Example:
 
-where:
- <sign>     : an optional + or - symbol
- <digits>   : one or more digits
- <exponent> : a positive or negative integer
- 
-Examples:
-
- 0.0
- 1.0
- -12345.6
- 3.1415927
- -1E3
- +1.23456E-27
- 
-A maximum of 8 digits are accepted for literal float! values, if more are specified, they will be dropped.
+ pi32: as float32! 3.1415927
  
 <i>For more information on single precision floating point numbers, see <a href="http://en.wikipedia.org/wiki/Single-precision_floating-point_format">Wikipedia</a></i>.
 
 +++Casting
 
-It is allowed to apply a type casting transformation on a float32! value to convert it to a float! value. Type casting to integer! is also allowed mainly for bits manipulation purpose (this is not a float32! to integer! conversion).
+It is allowed to apply a type casting transformation on a float32! value to convert it to a float! value. Type casting to integer! is also allowed mainly for bits manipulation purpose (this is not a float32! number to integer! number conversion).
 
 Examples:
 
- s: 3.1415927
+ s: as float32! 3.1415927
  print [
  	as float! s lf
  	as integer! s
  ]
  
 will output
-3.14159270000000
-1518260631
+ 3.14159270000000
+ 1518260631
  
 +++Math operations
 
@@ -2754,6 +2738,14 @@ will output:
 
 
 ===Document History
+
+*<b>26/02/2012 - revision 33</b>
+
+*>Removed misleading float32! syntax description and replaced by a simple explanation on how to form float32! literal values.
+
+*>Fixed code example in section 4.4.2, the `as float32!` type casting was missing.
+
+
 
 *<b>04/02/2012 - revision 32</b>
 
