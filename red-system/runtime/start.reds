@@ -38,7 +38,9 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		***__argc: pop
 		***__argv: system/stack/top
 		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+		push 0
+		***__stack_end: system/stack/top
 
-		libc-start :***-start ***__argc ***__argv null null null ***__argv
+		libc-start :***-start ***__argc ***__argv null null null ***__stack_end
 	]
 ]
