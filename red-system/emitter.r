@@ -563,15 +563,15 @@ emitter: context [
 	
 	start-prolog: does [								;-- libc init prolog
 		append compiler/functions [						;-- create a fake function to
-			***-start [0 native cdecl []]				;-- let the linker write the entry point
+			***_start [0 native cdecl []]				;-- let the linker write the entry point
 		]
 		append symbols [
-			***-start [native 0 []]
+			***_start [native 0 []]
 		]
 	]
 	
 	start-epilog: does [								;-- libc init epilog
-		poke second find/last symbols '***-start 2 tail-ptr - 1	;-- save the "main" entry point
+		poke second find/last symbols '***_start 2 tail-ptr - 1	;-- save the "main" entry point
 	]
 	
 	init: func [link? [logic!] job [object!]][

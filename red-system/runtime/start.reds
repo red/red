@@ -21,7 +21,11 @@ system: declare struct! [							;-- trimmed down temporary system definition
 ]
 
 #switch OS [
-	Linux [
+	Windows []										;-- nothing to do, initialization occurs in DLL init entry point
+	Syllable [
+		
+	]
+	#default [
 		#import [LIBC-file cdecl [
 			libc-start: "__libc_start_main" [
 				main 			[function! []]
@@ -54,6 +58,6 @@ system: declare struct! [							;-- trimmed down temporary system definition
 
 		;; Finally, call into libc's startup routine.
 		***__stack_end: system/stack/top
-		libc-start :***-start ***__argc ***__argv null null null ***__stack_end
+		libc-start :***_start ***__argc ***__argv null null null ***__stack_end
 	]
 ]
