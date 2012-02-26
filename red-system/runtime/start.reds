@@ -13,7 +13,6 @@ Red/System [
 
 __stack!: alias struct! [
 	top		[pointer! [integer!]]
-	frame	[pointer! [integer!]]
 ]
 
 system: declare struct! [							;-- trimmed down temporary system definition
@@ -34,7 +33,6 @@ system: declare struct! [							;-- trimmed down temporary system definition
 			]
 		]]
 
-		system/stack/frame: as pointer! [integer!] 0
 		***__argc: pop
 		***__argv: system/stack/top
 		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
