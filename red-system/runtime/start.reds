@@ -25,17 +25,15 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		#import [LIBC-file cdecl [
 			libc-start: "__libc_start_main" [
 				main 			[function! []]
-		        argc 			[integer!]
+				argc 			[integer!]
 				argv 			[pointer! [integer!]]
 				init 			[function! []]
 				finish 			[function! []]
 				loader-finish 	[function! []]
 				stack-end 		[pointer! [integer!]]
 			]
-		;   _init: "__libc_csu_init" []
-		;   _finish: "__libc_csu_fini" []
 		]]
-		
+
 		system/stack/frame: as pointer! [integer!] 0
 		***__argc: pop
 		***__argv: system/stack/top
