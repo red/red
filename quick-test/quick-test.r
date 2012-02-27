@@ -66,6 +66,8 @@ qt: make object! [
   comp-output: copy ""                 ;; output captured from compile
   output: copy ""                      ;; output captured from pgm exec
   exe: none                            ;; filepath to executable
+  reds-file?: true                     ;; true = running reds test file
+                                       ;; false = runnning test script
   
   summary-template: ".. - .................................... / "
   
@@ -187,6 +189,7 @@ qt: make object! [
   ]
   
   compile-and-run: func [src] [
+    reds-file?: true
     either exe: compile src [
       run exe
     ][
@@ -196,9 +199,11 @@ qt: make object! [
   ]
     
   compile-and-run-from-string: func [src] [
+    reds-file?: false
     either exe: compile-from-string src [
       run exe
     ][
+      
       compile-error "Supplied source"
       output: "Compilation failed"
     ]
@@ -217,7 +222,7 @@ qt: make object! [
   ][
     print join "" [src " - compiler error"]
     print comp-output
-    clear output                           ;; clear the ouptut from prevous test
+    clear output                           ;; clear the ouptut from previous test
     _signify-failure
   ]
   
@@ -241,8 +246,11 @@ qt: make object! [
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
-    if none <> find output "Runtime Error" [
-      _signify-failure
+    if all [
+      reds-file?
+      none <> find output "Runtime Error" 
+    ][
+     _signify-failure
     ]
   ]
   
@@ -252,6 +260,7 @@ qt: make object! [
       cmd                             ;; command to run
       test-name                     
   ][
+    reds-file?: true
     test-name: find/last/tail src "/"
     test-name: copy/part test-name find test-name "."
     print [ "running " test-name #"^(0D)"]
@@ -277,7 +286,7 @@ qt: make object! [
     do script
   ]
   
-  ;; This is for the temporary version of quick-test.red (in REBOL)
+  ;; This is for quick-unit-test.r (in REBOL)
   run-script-quiet: func [src [file!]][
     prin [ "running " find/last/tail src "/" #"^(0D)"]
     print: :_quiet-print
@@ -311,6 +320,7 @@ qt: make object! [
   add-to-run-totals: func [
     /local
       tests
+      
       asserts
       passes
       failures
@@ -410,6 +420,10 @@ qt: make object! [
     assert found? find qt/comp-output msg
   ]
   
+  assert-printed?: func [msg] [
+    assert found? find qt/output msg
+  ]
+  
   clean-compile-from-string: does [
     if exists? test-src-file [delete test-src-file]
     if all [exe exists? exe][delete exe]
@@ -496,6 +510,7 @@ qt: make object! [
   set '--run-test-file-quiet  :run-test-file-quiet
   set '--assert               :assert
   set '--assert-msg?          :assert-msg?
+  set '--assert-printed?      :assert-printed?
   set '--clean                :clean-compile-from-string
   set '===end-group===        :end-group
   set '~~~end-file~~~         :end-file
