@@ -215,7 +215,7 @@ Red/System [
       as float32! 2.0
     ]
     
-   --test-- "ewrfv0"
+  --test-- "ewrfv0"
   --assertf32~= as float32! 1.0 (fe1 * as float32! 1.0) as float32! 0.1E-3
   
   --test-- "ewrfv1"
@@ -223,6 +223,45 @@ Red/System [
   
   --test-- "ewrfv2"
   --assertf32~= as float32! 0.5 (fe1 / fe2) as float32! 0.1E-3
+
+===end-group===
+
+===start-group=== "float32 arguments to typed functions"
+    fatf1: function [
+      [typed]
+      count [integer!]
+      list [typed-value!]
+      return: [float32!]
+      /local
+        a [float32!]
+    ][
+      a: as float32! list/value 
+    ]
+    
+    fatf2: function [
+      [typed]
+      count [integer!]
+      list [typed-value!]
+      return: [float32!]
+      /local
+        a [float32!]
+        b [float32!]
+    ][
+      a: as float32! list/value 
+      list: list + 1
+      b: as float32! list/value
+      a + b
+    ]
+  
+  --test-- "fatf-1"
+  --assert (as float32! 2.0) = (fatf1 as float32! 2.0)
+  
+  --test-- "fatf-2"
+  --assert (as float32! 2.0) = ((fatf1 as float32! 1.0) + (fatf1 as float32! 1.0))
+  
+  --test-- "fatf-3"
+  --assert (as float32! 3.0) = fatf2 as float32! 1.0 as float! 2.0
+  
 
 ===end-group===
 
