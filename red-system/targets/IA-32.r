@@ -150,17 +150,32 @@ make target-class [
 				emit pick [#{81E2} #{25}] alt?    	;-- AND edx|eax, 000000FFh 
 				emit to-bin32 255
 			]
+			all [value/type/1 = 'float32! type/1 = 'integer!][
+				if verbose >= 3 [print [">>>converting from integer! to float32!"]]
+				either alt? [
+					emit #{52}						;-- PUSH edx
+				][
+					emit #{50}						;-- PUSH eax
+				]
+				emit #{D90424}						;-- FLD dword [esp]		; load as 32-bit
+				emit #{83C404}						;-- ADD esp, 4			; free space
+			]
 			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to float!"]]
-				if type/1 = 'integer! [
+				either type/1 = 'integer! [
 					either alt? [
 						emit #{52}					;-- PUSH edx
 					][
 						emit #{50}					;-- PUSH eax
 					]
 					emit #{D90424}					;-- FLD dword [esp]		; load as 32-bit
-					emit #{83C404}					;-- ADD esp, 4			; free space
+					emit #{83EC04}					;-- SUB esp, 4			; alloc more space for 64-bit float
+				][
+					emit #{83EC08}					;-- SUB esp, 8			; alloc space for 64-bit float
 				]
+				emit #{DD1C24}						;-- FSTP qword [esp]	; save as 64-bit
+				emit #{DD0424}						;-- FLD qword [esp]		; load as 64-bit
+				emit #{83C408}						;-- ADD esp, 8			; free space
 			]
 			all [value/type/1 = 'float32! find [float! float64!] type/1][
 				if verbose >= 3 [print [">>>converting from float! to float32!"]]
@@ -798,7 +813,9 @@ make target-class [
 			word! [
 				type: compiler/get-variable-spec value
 				either compiler/any-float? type [
-					either cdecl [width: 8][set-width/type type]	;-- promote to C double if required
+					either cdecl [width: 8][			;-- promote to C double if required
+						set-width/type any [all [cast cast/type] type]
+					]
 					
 					emit #{83EC}					;-- SUB esp, 8|4
 					emit to-bin8 width
@@ -830,7 +847,12 @@ make target-class [
 				emit-push <last>
 			]
 			object! [
-				unless decimal? value/data [emit-casting value no]
+				unless any [
+					path? value/data
+					compiler/any-float? compiler/get-type value/data 
+				][
+					emit-casting value no
+				]
 				either cdecl [
 					emit-push/with/cdecl value/data value
 				][
