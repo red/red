@@ -17,16 +17,5 @@ change-dir %../                    ;; revert to tests/ directory from runnable/
     }
   --assert-printed? "20001"
   
-  --test-- "p2"
-    --compile-and-run-this {
-      print [1.0 lf]
-    }
-  --assert-printed? "1.0"
-  
-  --test-- "p3"
-    --compile-and-run-this {
-      print [as-float32 1.0 lf]
-    }
-  --assert-printed? "1.0"
  
 ~~~end-file~~~
