@@ -265,5 +265,27 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "Casting float! arguments to float32!"
+
+    cfaf1: function [
+        a   [float!]
+        return: [float32!]
+    ][
+      as float32! a
+    ]
+    cfaf2: function [
+        a   [float!]
+        b   [float!]
+        return: [float32!]
+    ][
+      (as float32! a) + (as float32! b)
+    ]
+    
+  --test-- "cfaf1"
+  --assert (as float32! 1.0) = cfaf1 1.0
+  
+  --test-- "cfaf2"
+  --assertf32~= (as float32! 3.0) (cfaf2 1.0 2.0) (as float32! 0.1e-7)
+
 
 ~~~end-file~~~
