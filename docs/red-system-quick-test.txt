@@ -1,8 +1,8 @@
 Red/System Quick Test - A testing framework 
 
   Author: Peter W A Wood
-  Date: 5/07/2011
-  Version 0.5.0
+  Date: 29/02/2012
+  Version 0.8.0
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
 ===Introduction
@@ -12,7 +12,7 @@ As a result, quick-test is very fussy about where files are and it is not partic
 
 There are actually two aspects to Quick-Test. The first is quick-test.reds, a handful of Red/System functions which can be included in a Red/System program to write unit tests. This can easily be used on its own to test Red/System code and is not at all fussy about where files reside.
 
-A temporary addition has been made to this part of Quick-Test. It is quick-test.red which is currently written in REBOL and used for unit testing the bootstrapping Red compiler. It will be replaced by a Red version once the compiler is re-written in Red.
+A temporary addition has been made to this part of Quick-Test. It is quick-unit-test.r which is written in REBOL and used for unit testing the bootstrapping Red compiler.
 
 The second aspect is that Quick-Test is a full-test suite for Red/System itself and includes the files used to test Red/System.
 
@@ -28,18 +28,18 @@ Quick-Test consists of the following:
 
   quick-test.r - a REBOL script that supports testing compiler and executable output.
   quick-test.reds - a set of Red/System functions that supports writing tests in Red/System.
-  quick-test.red - a set of REBOL functions that supports writing tests in REBOL.
+  quick-unit-test.r - a set of REBOL functions that supports writing tests in REBOL.
   
-(The above are stored in the red-system/tests/quick-test/ directory.)
+(The above are stored in the Red/quick-test/ directory.)
   
-  run-all.r - a script which runs the complete set of Red/System tests.
+  run-all.r - a script(s) which runs a set of Red/System tests.
+            - run-all.r in Red/red-system/tests/ runs the Red/System test suite
+            - run-all.r in Red/red/tests/ will run the Red test suite*
+            - run-all.r in Red/ will run all the tests*
   run-test.r - a script which will run an individual test.
+             - stored in Red/quick-test/
   
-(Both the above are stored in the red-system/tests/ directory.)
-
-  run-all.r - a script that runs the complete set of Red tests.
-
-(Stored in the red/tests/ directory.)
+* to be written
   
 ===Directory Structure
 Quick-Test uses the following directory structure:
@@ -47,10 +47,11 @@ Quick-Test uses the following directory structure:
   Red/
     quick-test/                     ;; quick-test components
   red/
-    run-all.r                       ;; runs all Red tests
-    source/
-      compiler/                     ;; red compiler unit tests
-      runtime/                      ;; runtime tests
+    tests/
+      run-all.r                     ;; runs all Red tests
+      source/
+        compiler/                   ;; red compiler unit tests
+        runtime/                    ;; runtime tests
   red-system/
     tests/                          ;; the main test directory
       run-all.r                     ;; runs all Red/System tests
@@ -65,24 +66,37 @@ Quick-Test uses the following directory structure:
                                     ;; listed in .gitignore
 
 ===Running Tests
-The tests are designed to be run from a REBOL console session. This must be a REBOL/View console session under Windows.
+The tests are designed to be run from the command line or a REBOL console session. This must be a REBOL/View console session under Windows.
 
-To run all Red tests:
+The following examples assume that they have been run from the Red dir
+
+To run all Red tests from the console:
+  
+  rebol -s red/tests/run-all.r
+  
+To run all Red tests from the REBOL console:
+  
   do %red/tests/run-all.r
 
-To run all Red/System tests:
+To run all Red/System tests from the console:
+  rebol -s red-system/tests/run-all.r
+  
+To run all Red/System tests from the REBOL console:
   do %red-system/tests/run-all.r
   
-To run an individual test file (must be run from the red-system/tests/ directory):
-  do/args %run-test.r "%<file>"
+To run an individual test file from the console:
+  rebol -s quick-test/run-test.r "<file>"  
   
-  where <file> is the path to the file to be tested (from the red-system/tests/ directory).
+To run an individual test file from the REBOL console:
+  do/args %quick-test/run-test.r "<file>"
   
-  e.g.
-    The command to run the logic-test.reds test file which is in the units directory:
-    do/args %run-test.r "%source/units/logic-test.reds"
+  where <file> is the path to the file to be tested .
+  
+e.g. The command to run the logic-test.reds test file which is in the units directory:
+    do/args %quick-test/run-test.r "red-system/tests/source/units/logic-test.reds"
     
 (Note: %run-test.r can run both .r and .reds tests).
+(Note: When using run-test.r from within a REBOL console session, the file paths to both run-test.r and the test file msut be relative to the directory from which the REBOL session was launched (system/options/path).
 
 ===Writing Tests
 In terms of writing tests, Quick-Test is quite minimal by design. It provides only a simple assert function and a minimal set of test organisation functions.
@@ -198,6 +212,18 @@ The start of an individual test. The number of tests in a run and file are count
     
 An assertion. True = pass. False = fail. The number of assertions, passes and failures are counted and reported for each run and file.
 
+  --assertf~= <value> <value> <tolerance>
+    <value> :     a float! value
+    <tolerance> : a float! value
+    
+An assertion that two floating point numbers are approximately equal. The tolerance provided is used both as an absolute and relative tolerance. The calculation of the tolerance is a quite simplistic but has proved sufficient for its purpose.
+
+  --assertf32~= <value> <value> <tolerance>
+    <value> :     a float32! value
+    <tolerance> : a float32! value
+    
+AssetF~= for float32! values.
+
   ===end-group===
   
 Marks the end of a group of tests.
@@ -309,6 +335,11 @@ An assertion. True = pass. False = fail. The number of assertions, passes and fa
     <message> : an expected compiler messsage - string!
     
 Checks if the compiler has produced the expected message.
+
+  --assert-printed? <phrase>
+    <phrase> : expected runtime output - string!
+    
+Checks if the runtime output included the expected phrase.
 
   --clean
   

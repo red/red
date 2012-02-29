@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.7.1
+	Version: 0.8.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -27,22 +27,22 @@ qt: make object! [
   base-dir: system/script/path 
   base-dir: copy/part base-dir find base-dir "quick-test"
   ;; set the red/system compiler directory
-  comp-dir: join base-dir "red-system/"
+  comp-dir: base-dir/red-system
   ;; set the red/system runnable dir
-  runnable-dir: join comp-dir "tests/runnable/"
+  runnable-dir: comp-dir/tests/runnable
   ;; set the builds dir
-  builds-dir: join comp-dir "builds/"
+  builds-dir: comp-dir/builds
   ;; set the default base dir for tests
-  tests-dir: join comp-dir "tests/"
+  tests-dir: comp-dir/tests
   
   ;; set the version number
   version: system/script/header/version
   
   ;; set temporary files names
   ;;  use Red/red-system/runnable for temp files
-  comp-echo: join runnable-dir %comp-echo.txt
-  comp-r: join runnable-dir %comp.r
-  test-src-file: join %runnable/ "qt-test-comp.reds"
+  comp-echo: runnable-dir/comp-echo.txt
+  comp-r: runnable-dir/comp.r
+  test-src-file: runnable-dir/qt-test-comp.reds
   
   ;; set log file 
   log-file: join system/script/path "quick-test.log"
@@ -150,7 +150,8 @@ qt: make object! [
       echo (comp-echo)
       do/args %rsc.r "***src***"
     ]
-    replace comp "***src***" join tests-dir src
+    if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
+    replace comp "***src***" src
     write comp-r comp
 
     ;; compose command line and call it
@@ -165,8 +166,8 @@ qt: make object! [
     if exists? comp-r [delete comp-r]
     
     ;; move the executable from /builds to /tests/runnable
-    built: join builds-dir [exe]
-    runner: join runnable-dir [exe]
+    built: builds-dir/:exe
+    runner: runnable-dir/:exe
     
     if exists? built [
       write/binary runner read/binary built
@@ -212,7 +213,6 @@ qt: make object! [
   compile-from-string: func [src][
     ;-- add a default header if not provided
     if none = find src "Red/System" [insert src "Red/System []^/"]
-
     write test-src-file src
     compile test-src-file                  ;; returns path to executable or none
   ]
@@ -242,7 +242,7 @@ qt: make object! [
     /local
     exec [string!]                   ;; command to be executed
   ][
-    exec: to-local-file join runnable-dir [prog]
+    exec: to-local-file runnable-dir/:prog
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
@@ -279,9 +279,8 @@ qt: make object! [
      filename                     ;; filename of script 
      script                       ;; %runnable/filename
   ][
-    src: replace/all src "%" ""
     if not filename: copy find/last/tail src "/" [filename: copy src]
-    script: join runnable-dir [filename]
+    script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
     do script
   ]
