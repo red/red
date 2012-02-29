@@ -589,6 +589,8 @@ system-dialect: context [
 			]
 			if any [
 				all [type/1 = 'function! ctype/1 <> 'integer!]
+				all [find [float! float64!] ctype/1 not find [float! float64! float32!] type/1]
+				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
 				all [
 					find [c-string! pointer! struct!] ctype/1
@@ -1829,6 +1831,14 @@ system-dialect: context [
 			][
 				emitter/logic-to-integer expr/1			;-- runtime logic! conversion before storing
 			]
+			if all [
+				not any [keep? variable]
+				block? expr
+				find functions/(expr/1)/4 return-def
+				any-float? last-type
+			][
+				emitter/target/emit-float-trash-last	;-- avoid leaving a FPU slot occupied,
+			]											;-- if return value is not used.
 			
 			;-- storing result if assignement required
 			if variable [
@@ -1964,7 +1974,7 @@ system-dialect: context [
 						expr: fetch-expression/final
 					]
 					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
-					'else [expr: fetch-expression/final]
+					'else [expr: fetch-expression/final/keep]
 				]
 				emitter/target/on-root-level-entry
 			]
@@ -1987,13 +1997,6 @@ system-dialect: context [
 				if all [object? expr not literal? expr/data][
 					emitter/target/emit-casting expr no	;-- insert runtime type casting if required
 					last-type: expr/type
-				]
-				if all [
-					last-type/1 = 'logic!
-					block? expr
-					word? expr/1
-				][
-					emitter/logic-to-integer expr/1		;-- runtime logic! conversion before returning
 				]
 			]
 			emitter/leave name locals args-sz local-sz	;-- build function epilog
