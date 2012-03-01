@@ -857,6 +857,13 @@ system-dialect: context [
 				type: resolve-aliased type
 				if alias: select aliased-types expected/1 [expected: alias]
 			]
+			if all [
+				ret
+				block? expr
+				any [set-word? expr/1 set-path? expr/1]
+			][
+				type: none
+			]
 			unless any [
 				all [
 					object? expr
@@ -1971,7 +1978,7 @@ system-dialect: context [
 					]
 					paren? pc/1 [
 						unless infix? at pc 2 [raise-paren-error]
-						expr: fetch-expression/final
+						expr: fetch-expression/final/keep
 					]
 					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
 					'else [expr: fetch-expression/final/keep]
