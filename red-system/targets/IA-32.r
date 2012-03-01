@@ -424,7 +424,7 @@ make target-class [
 			word! [
 				with-width-of value [
 					either compiler/any-float? compiler/get-variable-spec value [
-						emit-float-variable any [cast value]
+						emit-float-variable value
 							#{DD05}					;-- FLD [value]		; global
 							#{DD45}					;-- FLD [ebp+n]		; local
 					][
@@ -1281,9 +1281,10 @@ make target-class [
 				set-width args/1
 			]
 			ref [			
-				emit-float-variable args/1
+				emit-float-variable left
 					#{DD05}							;-- FLD [value]		; global
 					#{DD45}							;-- FLD [ebp+n]		; local
+				if object? args/1 [emit-casting args/1 no]
 			]
 			reg [
 				if object? args/1 [
@@ -1303,9 +1304,10 @@ make target-class [
 				emit-reloc-addr spec/2
 			]
 			ref [
-				emit-float-variable args/2
+				emit-float-variable right
 					#{DD05}							;-- FLD [value]		; global
 					#{DD45}							;-- FLD [ebp+n]		; local
+				if object? args/2 [emit-casting args/2 no]
 			]
 			reg [
 				if all [object? args/2 block? right][
