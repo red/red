@@ -39,7 +39,7 @@ change-dir %../
 		
 	--test-- "simple inference 5"
 		--assert-compiles? {
-			foo: func [return: [integer!] /local a][a: 123]
+			foo: func [return: [integer!] /local a][a: 123 a]
 			bar: func [/local b][b: foo]
 		}
 		

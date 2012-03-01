@@ -148,6 +148,7 @@ Red/System [
         true
       ]
       i: 3
+      i
     ]
   --assert ret-test10 = 42
   --assert i = 1

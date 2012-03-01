@@ -235,7 +235,8 @@ Red/System [
       /local
         a [float32!]
     ][
-      a: as float32! list/value 
+      a: as float32! list/value
+      a
     ]
     
     fatf2: function [
@@ -260,7 +261,7 @@ Red/System [
   --assert (as float32! 2.0) = ((fatf1 as float32! 1.0) + (fatf1 as float32! 1.0))
   
   --test-- "fatf-3"
-  --assert (as float32! 3.0) = fatf2 as float32! 1.0 as float! 2.0
+  --assert (as float32! 3.0) = fatf2 [as float32! 1.0 as float32! 2.0]
   
 
 ===end-group===
@@ -287,6 +288,6 @@ Red/System [
   --test-- "cfaf2"
   --assertf32~= (as float32! 3.0) (cfaf2 1.0 2.0) (as float32! 0.1e-7)
 
-===end-group==
+===end-group===
 
 ~~~end-file~~~

@@ -73,6 +73,7 @@ Red/System [
 	    e11-b
 	  ][
 	    e11-b: 3
+	    e11-b
 	  ]
 	--assert 3 = e11-f
 	

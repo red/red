@@ -241,18 +241,19 @@ Red/System [
     fatf1: function [
       [typed]
       count [integer!]
-      list [typed-value!]
+      list [typed-float!]
       return: [float!]
       /local
         a [float!]
     ][
-      a: as float! list/value 
+      a: as float! list/value
+      a
     ]
     
     fatf2: function [
       [typed]
       count [integer!]
-      list [typed-value!]
+      list [typed-float!]
       return: [float!]
       /local
         a [float!]
@@ -271,7 +272,7 @@ Red/System [
   --assert 2.0 = fatf1 1.0 + fatf1 1.0
   
   --test-- "fatf-3"
-  --assert 3.0 = fatf2 1.0 2.0
+  --assert 3.0 = fatf2 [1.0 2.0]
   
 
 ===end-group===

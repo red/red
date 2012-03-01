@@ -21,12 +21,12 @@ change-dir %../                    ;; revert to tests/ directory from runnable/
     --compile-and-run-this {
       print [1.0 lf]
     }
-  --assert-printed? "1.0"
+  --assert-printed? "1"
   
   --test-- "p3"
     --compile-and-run-this {
       print [as-float32 1.0 lf]
     }
-  --assert-printed? "1.0"
+  --assert-printed? "1"
  
 ~~~end-file~~~
