@@ -2039,20 +2039,22 @@ system-dialect: context [
 			pc: next pc
 		]
 
-		run: func [obj [object!] src [block!] file [file!] /no-header /runtime][
+		run: func [obj [object!] src [block!] file [file!] /no-header /runtime /no-events][
 			runtime: to logic! runtime
 			job: obj
 			pc: src
 			script: secure-clean-path file
 			unless no-header [comp-header]
-			emitter/target/on-global-prolog runtime
+			unless no-events [emitter/target/on-global-prolog runtime]
 			comp-dialect
-			case [
-				runtime [
-					emitter/target/on-global-epilog yes	;-- postpone epilog event after comp-runtime-epilog
-				]
-				not job/runtime? [
-					emitter/target/on-global-epilog no
+			unless no-events [
+				case [
+					runtime [
+						emitter/target/on-global-epilog yes	;-- postpone epilog event after comp-runtime-epilog
+					]
+					not job/runtime? [
+						emitter/target/on-global-epilog no
+					]
 				]
 			]
 		]
@@ -2101,6 +2103,19 @@ system-dialect: context [
 				]
 			]
 		]
+	]
+
+	comp-start: has [script][
+		emitter/start-prolog
+		script: secure-clean-path runtime-path/start.reds
+ 		compiler/run/no-events job loader/process script script
+ 		emitter/start-epilog
+ 
+		;-- selective clean-up of compiler's internals
+ 		remove/part find compiler/globals 'system 2		;-- avoid 'system redefinition clash
+ 		remove/part find emitter/symbols 'system 4
+		clear compiler/definitions
+		clear compiler/aliased-types
 	]
 	
 	comp-runtime-prolog: has [script][
@@ -2183,6 +2198,8 @@ system-dialect: context [
 			
 			clean-up
 			loader/init
+			
+			unless opts/use-natives? [comp-start]		;-- init libC properly
 			if opts/runtime? [comp-runtime-prolog]
 			
 			set-verbose-level opts/verbosity

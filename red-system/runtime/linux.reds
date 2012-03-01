@@ -37,9 +37,17 @@ Red/System [
 ;-------------------------------------------
 ;-- Retrieve command-line information from stack
 ;-------------------------------------------
-system/args-count:	pop
-system/args-list:	as str-array! system/stack/top
-system/env-vars:	system/args-list + system/args-count + 1
+#either use-natives? = yes [
+	system/args-count:	pop
+	system/args-list:	as str-array! system/stack/top
+	system/env-vars:	system/args-list + system/args-count + 1
+][
+	;-- the current stack is pointing to main(int argc, void **argv, void **envp) C layout
+	;-- we avoid the double indirection by reusing our variables from %start.reds
+	system/args-count:	***__argc
+	system/args-list:	as str-array! ***__argv
+	system/env-vars:	system/args-list + system/args-count + 1
+]
 
 
 #include %POSIX.reds
