@@ -878,14 +878,14 @@ system-dialect: context [
 					expected/1 = 'function!
 					compare-func-specs name expr type/2 expected/2	 ;-- callback case
 				]
-				expected = type 						 ;-- normal single-type case
+				expected = type 						;-- normal single-type case
 				all [
 					type
 					type/1 = 'integer!
 					find enumerations expected/1		;-- TODO: add also a value check for enums
 				]
 			][
-				if expected = type [type: 'null]		 ;-- make null error msg explicit
+				if expected = type [type: 'null]		;-- make null error msg explicit
 				any [
 					backtrack any [all [block? expr expr/1] expr]
 					backtrack name
@@ -914,7 +914,7 @@ system-dialect: context [
 				not empty? spec: entry/2/4 
 				block? spec/1
 			][
-				spec: next spec						;-- jump over attributes block
+				spec: next spec							;-- jump over attributes block
 			]
 			list: []
 			foreach arg args [
@@ -926,7 +926,7 @@ system-dialect: context [
 					find emitter/target/comparison-op name
 					find emitter/target/bitwise-op name
 				]
-				not equal-types? list/1/1 list/2/1	;-- allow implicit casting for math ops only
+				not equal-types? list/1/1 list/2/1		;-- allow implicit casting for math ops only
 			][
 				backtrack name
 				throw-error [
