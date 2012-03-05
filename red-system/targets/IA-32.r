@@ -1457,7 +1457,8 @@ make target-class [
 			emit #{83E4F0}							;-- AND esp, -16
 			offset: 4								;-- account for saved edi
 			offset: offset + either issue? args/1 [
-				8									; @@ test if this works for all variadic cases
+				;8									; @@ test if this works for all variadic cases
+				call-arguments-size? args/2
 			][
 				call-arguments-size? args
 			]
