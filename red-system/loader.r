@@ -158,6 +158,9 @@ loader: context [
 			s: (do store-line)
 			some [
 				defs								;-- resolve definitions in a single pass
+				| 'comment [
+					string! | (throw-error "invalid comment string")
+				]
 				| s: #define set name word! set value skip e: (
 					compiler/check-enum-word/by-loader name
 					if verbose > 0 [print [mold name #":" mold value]]
