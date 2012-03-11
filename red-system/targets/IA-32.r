@@ -1456,11 +1456,9 @@ make target-class [
 			emit #{89E7}							;-- MOV edi, esp
 			emit #{83E4F0}							;-- AND esp, -16
 			offset: 4								;-- account for saved edi
-			offset: offset + either issue? args/1 [
-				8									; @@ test if this works for all variadic cases
-			][
-				call-arguments-size? args
-			]
+			if issue? args/1 [args: args/2]
+			offset: offset + call-arguments-size? args
+			
 			unless zero? offset: offset // 16 [
 				emit #{83EC}						;-- SUB esp, offset		; ensure call will be 16-bytes aligned
 				emit to-bin8 16 - offset
