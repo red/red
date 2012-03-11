@@ -40,7 +40,7 @@ make target-class [
 	byte-flag: 			#{00400000}					;-- trigger byte access in opcode
 	
 	pools: context [								;-- literals pools management
-		active?:	  yes							;-- yes => store in pools, no => store inlined
+		active?:	  no							;-- yes => store in pools, no => store inlined
 		values:		  make block! 2000				;-- [value instruction-pos sym-spec ...]
 		entry-points: make block! 100				;-- insertion points candidates for pools between functions
 		ins-points:	  make block! 100				;-- insertion points candidates for pools inlined in code
@@ -835,11 +835,11 @@ make target-class [
 
 	emit-set-stack: func [value /frame][
 		if verbose >= 3 [print [">>>emitting SET-STACK" mold value]]
-		emit-load value
+		unless tag? value [emit-load value]
 		either frame [
-			emit-i32 #{e1ab0000}					;-- MOV fp, r0
+			emit-i32 #{e1a0b000}					;-- MOV fp, r0
 		][
-			emit-i32 #{e1ad0000}					;-- MOV sp, r0
+			emit-i32 #{e1a0d000}					;-- MOV sp, r0
 		]
 	]
 
@@ -1277,7 +1277,8 @@ make target-class [
 
 		switch type?/word value [
 			tag! [									;-- == <last>
-				do either find [float! float64!] compiler/last-type/1 [
+				type: either cast [cast/type][compiler/last-type]
+				do either find [float! float64!] type/1 [
 					push-last64
 				][
 					push-last
@@ -1339,7 +1340,10 @@ make target-class [
 				emit-push <last>
 			]
 			object! [
-				unless compiler/literal? value/data [
+				unless any [
+					path? value/data
+					compiler/any-float? compiler/get-type value/data 
+				][
 					emit-casting value no
 				]
 				either cdecl [

@@ -17,6 +17,7 @@ target-class: context [
 	on-root-level-entry:	 none					;-- called after a root level expression or directive is compiled
 	emit-stack-align-prolog: none					;-- align stack on imported function calls
 	emit-stack-align-epilog: none					;-- unwind aligned stack
+	emit-float-trash-last:	 none					;-- FPU clean-up code after use in expression
 	
 	compiler: 	none								;-- just a short-cut
 	width: 		none								;-- current operand width in bytes
