@@ -1340,7 +1340,7 @@ will output:
  0040203E : c-string!					;-- pointer to "world" c-string 
  
 \note Compatibity with other attributes
-<b>Typed</b> attribute can only be used on its own or with the <b>callback</b> attribute.
+<b>Typed</b> attribute can only be used on its own or with the <b>cdecl</b> attribute.
 
 /note
 
@@ -1390,7 +1390,7 @@ It is possible to obtain a function address to pass it, for example, as argument
  
 Example:
 
- progress: func [[callback] count [integer!]][
+ progress: func [[cdecl] count [integer!]][
  	print "."							;-- make the user see some progress
  ]
 
