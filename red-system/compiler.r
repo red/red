@@ -2001,8 +2001,11 @@ system-dialect: context [
 			
 			if ret: select spec return-def [
 				check-expected-type/ret name expr ret	;-- validate return value type
-				if all [object? expr not literal? expr/data][
-					emitter/target/emit-casting expr no	;-- insert runtime type casting if required
+				if all [
+					object? expr 
+					find [block! tag!] type?/word expr/data
+				][
+					emitter/target/emit-casting expr no	;-- insert runtime type casting when required
 					last-type: expr/type
 				]
 			]

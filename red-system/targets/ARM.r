@@ -1340,10 +1340,7 @@ make target-class [
 				emit-push <last>
 			]
 			object! [
-				unless any [
-					path? value/data
-					compiler/any-float? compiler/get-type value/data 
-				][
+				unless path? value/data [
 					emit-casting value no
 				]
 				either cdecl [
@@ -1670,6 +1667,7 @@ make target-class [
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
 		set-width args/1
+		saved: width
 
 		switch a [									;-- load left operand in d0 or s0
 			imm [
@@ -1683,6 +1681,7 @@ make target-class [
 				]
 			]
 			ref [
+				set-width left
 				either width = 8 [
 					emit-float-variable args/1
 						#{ed930b00} 				;-- FLDD d0, [r3]			; global
@@ -1720,8 +1719,6 @@ make target-class [
 				if object? args/1 [emit-vfp-casting args/1]
 			]
 		]
-	
-		saved: width
 	
 		switch b [									;-- load right operand in d1 or s2
 			imm [
@@ -1771,7 +1768,7 @@ make target-class [
 				emit-float 							;-- load immediate from data segment
 					#{eeb40b41}						;-- FCMPD d0, d1
 					#{eeb40a41}						;-- FCMPS s0, s2
-				emit-i32 #{eef1fa10}				;-- FMSTAT			; transfer flags to CPU
+				emit-i32 #{eef1fa10}				;-- FMSTAT				; transfer flags to CPU
 			]
 			find math-op name [
 				either width = 8 [
