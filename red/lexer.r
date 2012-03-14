@@ -130,7 +130,7 @@ lexer: context [
 	]
 	
 	path-rule: [
-		pos: slash :pos (
+		pos: slash :pos (							;-- path detection barrier
 			stack/push path!
 			stack/push to type copy/part s e		;-- push 1st path element
 		)
