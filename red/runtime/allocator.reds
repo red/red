@@ -437,7 +437,7 @@ alloc-series-buffer: func [
 	/local series frame sz
 ][
 	assert positive? size					;-- size is not zero or negative
-	size: round-to size 16					;-- size is a multiple of 16 (one cell! size)
+	size: round-to-next size 16				;-- size is a multiple of 16 (one cell! size)
 	
 	frame: memory/s-active
 	sz: size + size? series-buffer!			;-- add series header size

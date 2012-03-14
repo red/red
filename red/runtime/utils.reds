@@ -18,5 +18,17 @@ round-to: func [
 	return: [integer!]							;-- nearest scale multiple
 ][
 	assert scale <> 0
+	(size - 1 + scale) and (negate scale)
+]
+
+;-------------------------------------------
+;-- Return an integer rounded to the next nearest multiple of scale parameter
+;-------------------------------------------
+round-to-next: func [
+	size 	[integer!]							;-- a memory region size
+	scale	[integer!]							;-- scale parameter
+	return: [integer!]							;-- nearest scale multiple
+][
+	assert scale <> 0
 	(size + scale) and (negate scale)
 ]
