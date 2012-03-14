@@ -129,19 +129,41 @@ lexer: context [
 		opt symbol-rule
 	]
 	
-	path-rule: [some [slash [begin-symbol-rule | paren-rule]] e:]
+	path-rule: [
+		pos: slash :pos (
+			stack/push path!
+			stack/push to type copy/part s e		;-- push 1st path element
+		)
+		some [
+			slash
+			s: [
+				begin-symbol-rule (type: word!)
+				| paren-rule 	  (type: paren!)
+				;@@ add more datatypes here
+			]
+			(stack/push to type copy/part s e)
+		]
+		(value: stack/pop path!)
+	]
 	
 	word-rule: 	[
-		(type: word!) s: begin-symbol-rule 
-		opt [path-rule (type: path!)] 
+		(type: word!) s: begin-symbol-rule [
+			path-rule (type: path!)					;-- path matched
+			| (value: copy/part s e)				;-- word matched
+		] 
 		opt [#":" (type: either type = word! [set-word!][set-path!])]
 	]
 	
 	get-word-rule: [#":" (type: get-word!) s: begin-symbol-rule]
 	
 	lit-word-rule: [
-		#"'" (type: lit-word!) s: begin-symbol-rule
-		opt [path-rule (type: lit-path!)]
+		#"'" (type: word!) s: begin-symbol-rule [
+			path-rule (type: lit-path!)				;-- path matched
+			| (
+				type: lit-word!
+				value: copy/part s e				;-- word matched
+			)
+		]
 	]
 	
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]
@@ -259,8 +281,8 @@ lexer: context [
 			comment-rule
 			| multiline-comment-rule
 			| integer-rule	  (stack/push load-integer   copy/part s e)
-			| word-rule		  (stack/push to type		 copy/part s e)
-			| lit-word-rule	  (stack/push to type		 copy/part s e)
+			| word-rule		  (stack/push to type value)
+			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to get-word!   copy/part s e)
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
@@ -295,7 +317,8 @@ lexer: context [
 		stk: []
 		
 		push: func [value][
-			either any [value = block! value = paren!][		
+			either any [value = block! value = paren! value = path!][
+				if value = path! [value: block!]
 				insert/only tail stk value: make value 1			
 				value
 			][
@@ -304,6 +327,8 @@ lexer: context [
 		]
 		
 		pop: func [type [datatype!]][
+			if type = path! [type: block!]
+			
 			if type <> type? last stk [
 				throw-error/with ["invalid" mold type "closing delimiter"]
 			]
