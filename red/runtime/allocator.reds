@@ -9,23 +9,6 @@ Red/System [
 	}
 ]
 
-;-- New built-in natives worth adding to Red/System??
-; get-bit n value
-; set-bit n value
-; clear-bit n value
-; bit-set? n value
-
-;-- cell header bits layout --
-;   31:		mark							;-- mark as referenced for the GC (mark phase)
-;   30:		lock							;-- lock slot for active thread access only
-;   29:		immutable						;-- mark as read-only (series only)
-;   28:		new-line						;-- new-line (LF) marker (before the slot)
-;   27:		big								;-- indicates a big series (big-frame!)
-;	26:		stack							;-- series buffer is allocated on stack (series only)
-;   25:		permanent						;-- protected from GC (system-critical series)
-;   25-8:	<reserved>
-;   7-0:	datatype ID						;-- datatype number
-
 #define _128KB				131072			; @@ create a dedicated datatype?
 #define _2MB				2097152
 #define _16MB				16777216
@@ -41,6 +24,12 @@ Red/System [
 	
 int-array!: alias struct! [ptr [int-ptr!]]
 
+;-- cell header bits layout --
+;   31:		lock							;-- lock series for active thread access only
+;   30:		new-line						;-- new-line (LF) marker (before the slot)
+;   29-8:	<reserved>
+;   7-0:	datatype ID						;-- datatype number
+
 cell!: alias struct! [
 	header	[integer!]						;-- cell's header flags
 	data1	[integer!]						;-- placeholders to make a 128-bit cell
@@ -48,18 +37,27 @@ cell!: alias struct! [
 	data3	[integer!]
 ]
 
+;-- series flags --
+;	31: 	used 							;-- 1 = used, 0 = free
+;	30: 	type 							;-- always 0 for series-buffer!
+;	29-28: 	insert-opt						;-- optimized insertions: 2 = head, 1 = tail, 0 = both
+;   27:		mark							;-- mark as referenced for the GC (mark phase)
+;   26:		lock							;-- lock series for active thread access only
+;   25:		immutable						;-- mark as read-only
+;   24:		big								;-- indicates a big series (big-frame!)
+;	23:		small							;-- reserved
+;	22:		stack							;-- series buffer is allocated on stack
+;   21:		permanent						;-- protected from GC (system-critical series)
+;	20-3: 	<reserved>
+;	4-0:	units							;-- size in bytes of atomic element stored in buffer
+											;-- 0: UTF-8, 1: binary! byte, 2: UTF-16, 4: UTF-32, 16: block! cell
 series-buffer!: alias struct! [
-	size	[integer!]						;-- bitfield (see below)
+	flags	[integer!]						;-- series flags
+	size	[integer!]						;-- size of allocated buffer
 	node	[int-ptr!]						;-- point back to referring node
 	head	[integer!]						;-- series buffer head index
 	tail	[integer!]						;-- series buffer tail index 
 ]
-;; size bitfield:
-;; 31: 		used (1 = used, 0 = free)
-;; 30: 		type (always 0 for series-buffer!)
-;; 29-28: 	insert-opt (2 = head, 1 = tail, 0 = both)
-;; 27-24: 	reserved
-;; 23-0: 	size of allocated buffer
 
 series-frame!: alias struct! [				;-- series frame header
 	next	[series-frame!]					;-- next frame or null
@@ -364,10 +362,10 @@ update-series-nodes: func [
 		series/node/value: as-integer (as byte-ptr! series) + size? series-buffer!
 		
 		;-- advance to the next series buffer
-		series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)
+		series: as series-buffer! (as byte-ptr! series) + series/size
 		
 		;-- exit when a freed series is met (<=> end of region)
-		zero? (series/size and series-in-use)
+		zero? (series/flags and series-in-use)
 	]
 ]
 
@@ -386,7 +384,7 @@ compact-series-frame: func [
 		free? [logic!] src [byte-ptr!] dst [byte-ptr!]
 ][
 	series: as series-buffer! (as byte-ptr! frame) + size? series-frame! ;-- point to first series buffer
-	free?: zero? (series/size and series-in-use)  ;-- true: series is not used
+	free?: zero? (series/flags and series-in-use)  ;-- true: series is not used
 	heap: frame/heap
 		
 	src: null								;-- src will point to start of buffer region to move down
@@ -406,8 +404,8 @@ compact-series-frame: func [
 			state: SM1_USED
 		]
 	 	;-- point to next series buffer
-		series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)
-		free?: zero? (series/size and series-in-use)  ;-- true: series is not used
+		series: as series-buffer! (as byte-ptr! series) + series/size
+		free?: zero? (series/flags and series-in-use)  ;-- true: series is not used
 
 		if all [state = SM1_USED any [free? series >= heap]][	;-- handle both normal and "exit" states
 			state: SM1_USED_END
@@ -437,7 +435,7 @@ alloc-series-buffer: func [
 	/local series frame sz
 ][
 	assert positive? size					;-- size is not zero or negative
-	size: round-to-next size 16				;-- size is a multiple of 16 (one cell! size)
+	size: round-to-next size size? cell!	;-- size is a multiple of cell! size
 	
 	frame: memory/s-active
 	sz: size + size? series-buffer!			;-- add series header size
@@ -453,12 +451,12 @@ alloc-series-buffer: func [
 		series: frame/heap
 	]
 	
-	assert sz < _16MB						;-- max series size allowed in a series frame
+	assert sz < _16MB						;-- max series size allowed in a series frame @@
 	
 	frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
 
-	series/size: sz 
-		or series-in-use 					;-- mark series as in-use
+	series/size: sz
+	series/flags: series-in-use 			;-- mark series as in-use
 		or flag-ins-both					;-- optimize for both head & tail insertions (default)
 		and not flag-series-big				;-- set type bit to 0 (= series)
 		
@@ -471,7 +469,7 @@ alloc-series-buffer: func [
 ;-- Allocate a node and a series from the active series frame, return the node
 ;-------------------------------------------
 alloc-series: func [
-	size	[integer!]						;-- size in multiple of 16 bytes (cell! size)
+	size	[integer!]						;-- size in multiple of cell! size
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local series node
 ][
@@ -496,11 +494,11 @@ free-series: func [
 	
 	series: as series-buffer! ((as byte-ptr! node/value) - size? series-buffer!) ;-- point back to series header
 	
-	assert not zero? (series/size and not series-in-use) ;-- ensure that 'used bit is set
-	series/size: series/size xor series-in-use	;-- clear 'used bit (enough to free the series)
+	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
+	series/flags: series/flags xor series-in-use 		  ;-- clear 'used bit (enough to free the series)
 	
 	if frame/heap = as series-buffer! (		;-- test if series is on top of heap
-		(as byte-ptr! node/value) +  (series/size and s-size-mask)
+		(as byte-ptr! node/value) +  series/size
 	) [
 		frame/heap = series					;-- cheap collecting of last allocated series
 	]
@@ -518,7 +516,7 @@ expand-series: func [
 	/local new
 ][
 	assert not null? series
-	assert new-sz > (series/size and s-size-mask)  ;-- ensure requested size is bigger than current one
+	assert new-sz > series/size 			;-- ensure requested size is bigger than current one
 	
 	new: alloc-series-buffer new-sz
 	series/node/value: as-integer new		;-- link node to new series buffer
@@ -530,8 +528,8 @@ expand-series: func [
 		as byte-ptr! series
 		series/size + size? series-buffer!
 	
-	assert not zero? (series/size and not series-in-use) ;-- ensure that 'used bit is set
-	series/size: series/size xor series-in-use	;-- clear 'used bit (enough to free the series)
+	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
+	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)
 	new	
 ]
 
@@ -640,16 +638,16 @@ free-big: func [
 		until [
 			print [
 				" - series #" count 
-				": size = "	(series/size and s-size-mask) - size? series-buffer!
+				": size = "	series/size - size? series-buffer!
 				", offset pos = " series/head ", tail pos = " series/tail
 				"    "
 			]
-			if series/size and flag-ins-head <> 0 [print "H"]
-			if series/size and flag-ins-tail <> 0 [print "T"]
+			if series/flags and flag-ins-head <> 0 [print "H"]
+			if series/flags and flag-ins-tail <> 0 [print "T"]
 			print lf
 			count: count + 1
 
-			series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)			
+			series: as series-buffer! (as byte-ptr! series) + series/size
 			series >= frame/heap
 		]
 		assert series = frame/heap
@@ -749,21 +747,21 @@ free-big: func [
 		
 		alt?: no
 		until [
-			block: either zero? (series/size and series-in-use) [
+			block: either zero? (series/flags and series-in-use) [
 				"."
 			][
 				alt?: not alt?
 				either alt? ["x"]["o"]
 			]
 			
-			size: ((series/size and s-size-mask) - size? series-buffer!) / 16
+			size: (series/size - size? series-buffer!) / 16
 			until [
 				print block
 				size: size - 1
 				zero? size
 			]
 			
-			series: as series-buffer! (as byte-ptr! series) + (series/size and s-size-mask)			
+			series: as series-buffer! (as byte-ptr! series) + series/size
 			series >= frame/heap
 		]
 		assert series = frame/heap
