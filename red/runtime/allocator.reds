@@ -16,11 +16,11 @@ Red/System [
 #define node-frame-size		[((nodes-per-frame * 2 * size? pointer!) + size? node-frame!)]
 
 #define series-in-use		80000000h		;-- mark a series as used (not collectable by the GC)
-#define flag-series-big		40000000h		;-- 1 = big, 0 = series
+#define flag-series-big		01000000h		;-- 1 = big, 0 = series
 #define flag-ins-head		10000000h		;-- optimize for head insertions
 #define flag-ins-tail		20000000h		;-- optimize for tail insertions
 #define flag-ins-both		30000000h		;-- optimize for both head & tail insertions
-#define s-size-mask			00FFFFFFh		;-- mask for 24-bit size field
+#define flag-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
 	
 int-array!: alias struct! [ptr [int-ptr!]]
 
@@ -49,7 +49,7 @@ cell!: alias struct! [
 ;	22:		stack							;-- series buffer is allocated on stack
 ;   21:		permanent						;-- protected from GC (system-critical series)
 ;	20-3: 	<reserved>
-;	4-0:	units							;-- size in bytes of atomic element stored in buffer
+;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: binary! byte, 2: UTF-16, 4: UTF-32, 16: block! cell
 series-buffer!: alias struct! [
 	flags	[integer!]						;-- series flags
@@ -431,6 +431,7 @@ compact-series-frame: func [
 ;-------------------------------------------
 alloc-series-buffer: func [
 	size	[integer!]						;-- size in bytes
+	unit	[integer!]						;-- size of atomic elements stored
 	return: [series-buffer!]				;-- return the new series buffer
 	/local series frame sz
 ][
@@ -456,7 +457,8 @@ alloc-series-buffer: func [
 	frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
 
 	series/size: sz
-	series/flags: series-in-use 			;-- mark series as in-use
+	series/flags: unit
+		or series-in-use 					;-- mark series as in-use
 		or flag-ins-both					;-- optimize for both head & tail insertions (default)
 		and not flag-series-big				;-- set type bit to 0 (= series)
 		
@@ -469,11 +471,12 @@ alloc-series-buffer: func [
 ;-- Allocate a node and a series from the active series frame, return the node
 ;-------------------------------------------
 alloc-series: func [
-	size	[integer!]						;-- size in multiple of cell! size
+	size	[integer!]						;-- number of elements to store
+	unit	[integer!]						;-- size of atomic elements stored
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local series node
 ][
-	series: alloc-series-buffer size
+	series: alloc-series-buffer (size << unit) unit
 	node: alloc-node						;-- get a new node
 	series/node: node						;-- link back series to node
 	;-- make node points to first usable byte of series buffer
@@ -518,7 +521,7 @@ expand-series: func [
 	assert not null? series
 	assert new-sz > series/size 			;-- ensure requested size is bigger than current one
 	
-	new: alloc-series-buffer new-sz
+	new: alloc-series-buffer new-sz series/flags and flag-unit-mask
 	series/node/value: as-integer new		;-- link node to new series buffer
 	
 	;TBD: honor flag-ins-head and flag-ins-tail when copying!
