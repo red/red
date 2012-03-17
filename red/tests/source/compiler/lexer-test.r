@@ -25,67 +25,67 @@ do %../../../lexer.r
 
 	--test-- "lexer-1"
 	src: {Red [] 123}
-	--assert [[] 123] = lexer/run src
+	--assert [[] 123] = lexer/process src
 	
 	--test-- "lexer-2"
 	src: {Red [] aa}
-	--assert [[] aa] = lexer/run src
+	--assert [[] aa] = lexer/process src
 	
 	--test-- "lexer-3"
 	src: {Red [] 'a}
-	--assert [[] 'a] = lexer/run src
+	--assert [[] 'a] = lexer/process src
 	
 	--test-- "lexer-4"
 	src: {Red [] a:}
-	--assert [[] a:] = lexer/run src
+	--assert [[] a:] = lexer/process src
 
 	--test-- "lexer-5"
 	src: {Red [] :a}
-	--assert [[] :a] = lexer/run src
+	--assert [[] :a] = lexer/process src
 
 	--test-- "lexer-6"
 	src: {Red [] /}
-	--assert [[] /] = lexer/run src
+	--assert [[] /] = lexer/process src
 
 	--test-- "lexer-7"
 	src: {Red [] /test}
-	--assert [[] /test] = lexer/run src
+	--assert [[] /test] = lexer/process src
 
 	--test-- "lexer-8"
 	src: {Red [] (a)}
-	--assert [[] (a)] = lexer/run src
+	--assert [[] (a)] = lexer/process src
 
 	--test-- "lexer-9"
 	src: {Red [] []}
-	--assert [[] []] = lexer/run src
+	--assert [[] []] = lexer/process src
 
 	--test-- "lexer-10"
 	src: {Red [] "t"}
-	--assert [[] "t"] = lexer/run src
+	--assert [[] "t"] = lexer/process src
 
 	--test-- "lexer-11"
 	src: {Red [] #"a"}
-	--assert [[] #"a"] = lexer/run src
+	--assert [[] #"a"] = lexer/process src
 
 	--test-- "lexer-12"
 	src: {Red [] #a}
-	--assert [[] #a] = lexer/run src
+	--assert [[] #a] = lexer/process src
 
 	--test-- "lexer-13"
 	src: {Red [] #{00}}
-	--assert [[] #{00}] = lexer/run src
+	--assert [[] #{00}] = lexer/process src
 
 	--test-- "lexer-14"
 	src: {Red [] foo/bar}
-	--assert [[] foo/bar] = lexer/run src
+	--assert [[] foo/bar] = lexer/process src
 
 	--test-- "lexer-15"
 	src: {Red [] 'foo/bar}
-	--assert [[] 'foo/bar] = lexer/run src
+	--assert [[] 'foo/bar] = lexer/process src
 
 	--test-- "lexer-16"
 	src: {Red [] foo/bar:}
-	--assert [[] foo/bar:] = lexer/run src
+	--assert [[] foo/bar:] = lexer/process src
 
 	
 	--test-- "lexer-17"
@@ -163,8 +163,7 @@ do %../../../lexer.r
 		foo/bar 'foo/bar foo/bar:
 		#[none] #[true ] #[false ]  
 	]
-?? result	
-	--assert result = probe lexer/run src
+	--assert result = lexer/process src
 
 
 	--test-- "lexer-20"
@@ -172,7 +171,7 @@ do %../../../lexer.r
 	    Red[]
 	    a: 1
 	  }
-	--assert [[] a: 1] = lexer/run src
+	--assert [[] a: 1] = lexer/process src
 
 	--test-- "lexer-21"
 	  output: copy ""
@@ -180,7 +179,7 @@ do %../../../lexer.r
 	    Red[]
 	    1: 1
 	  }
-	  lexer/run src
+	  lexer/process src
 	--assert output-contains? "*** Syntax Error: Invalid word! value"
 	--assert output-contains? "*** line: 2"
 	--assert output-contains?  {*** at: "1: 1}
@@ -191,7 +190,7 @@ do %../../../lexer.r
 	    Red/System[]
 	    a: 1
 	  }
-	  lexer/run src
+	  lexer/process src
 	--assert output-contains? "*** Syntax Error: Invalid Red program"
 	--assert output-contains? "*** line: 1"
 	--assert output-contains?  "*** at: {/System[]"

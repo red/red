@@ -427,7 +427,7 @@ lexer: context [
 		new
 	]
 	
-	run: func [src [string! binary!] /local blk][
+	process: func [src [string! binary!] /local blk][
 		line: 1
 		count?: yes
 		
