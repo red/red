@@ -8,15 +8,16 @@ Red/System [
 
 
 #include %../runtime/runtime.reds
+#include %../runtime/debug.reds
 
 ;-- add a minimal number of memory frames
 alloc-node-frame nodes-per-frame
 alloc-series-frame
 
 print [lf ">> allocating 3 series" lf]
-s1: alloc-series 5
-s2: alloc-series 100
-s3: alloc-series 5
+s1: alloc-series 5 1
+s2: alloc-series 100 1
+s3: alloc-series 5 1
 
 memory-stats 3
 
@@ -40,7 +41,7 @@ alt?: no
 series: as int-ptr! 0
 idx: 1
 until [
-	series: alloc-series either alt? [5][100]
+	series: alloc-series either alt? [5][100] 1
 	unless alt? [
 		array/idx: as-integer series
 		print-wide [idx ":" as byte-ptr! array/idx lf]
