@@ -9,10 +9,6 @@ Rebol [
 ;; setup
 store-halt: :halt
 halt: func [][]
-store-print: :print
-output: copy "" 
-print: func [v] [append output v]
-output-contains?: func [text [string!]][to-logic find output text]
 
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
@@ -174,34 +170,30 @@ do %../../../lexer.r
 	--assert [[] a: 1] = lexer/process src
 
 	--test-- "lexer-21"
-	  output: copy ""
 	  src: {
 	    Red[]
 	    1: 1
 	  }
 	  lexer/process src
-	--assert output-contains? "*** Syntax Error: Invalid word! value"
-	--assert output-contains? "*** line: 2"
-	--assert output-contains?  {*** at: "1: 1}
+	--assert-printed? "*** Syntax Error: Invalid word! value"
+	--assert-printed? "*** line: 2"
+	--assert-printed? {*** at: "1: 1}
 	  
 	--test-- "lexer-22"
-	  output: copy ""
 	  src: {
 	    Red/System[]
 	    a: 1
 	  }
 	  lexer/process src
-	--assert output-contains? "*** Syntax Error: Invalid Red program"
-	--assert output-contains? "*** line: 1"
-	--assert output-contains?  "*** at: {/System[]"
-	
+	--assert-printed? "*** Syntax Error: Invalid Red program"
+	--assert-printed? "*** line: 1"
+	--assert-printed?  "*** at: {/System[]"
 
 	  
 ~~~end-file~~~
 
 ;; tidy up
 halt: :store-halt
-print: :store-print
 system/options/quiet: :store-quiet-mode
 prin ""
 

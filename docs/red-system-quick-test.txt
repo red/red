@@ -1,12 +1,12 @@
 Red/System Quick Test - A testing framework 
 
   Author: Peter W A Wood
-  Date: 29/02/2012
-  Version 0.8.0
+  Date: 20/03/2012
+  Version 0.8.1
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
 ===Introduction
-Quick-Test is a small testing framework for Red/System. It is called quick-test as it was put together quickly to support the development of the "boot-strapped" version of Red/System. Hopefully, it also runs tests quite quickly and, perhaps more importantly, is a quick way to write meaningful tests.
+Quick-Test is a small testing framework for Red. It is called quick-test as it was put together quickly to support the development of the "boot-strapped" version of Red/System. Hopefully, it also runs tests quite quickly and, perhaps more importantly, is a quick way to write meaningful tests.
 
 As a result, quick-test is very fussy about where files are and it is not particularly fault tolerant. These were traded-off for an earlier implementation.
 
@@ -14,7 +14,7 @@ There are actually two aspects to Quick-Test. The first is quick-test.reds, a ha
 
 A temporary addition has been made to this part of Quick-Test. It is quick-unit-test.r which is written in REBOL and used for unit testing the bootstrapping Red compiler.
 
-The second aspect is that Quick-Test is a full-test suite for Red/System itself and includes the files used to test Red/System.
+The second aspect is that Quick-Test is a full-test suite for Red and Red/System themselves and includes the files used to test Red and Red/System.
 
 There are many improvements that could be made to quick-test. It is expected that quick-test will be replaced at the time when Red/System is re-written so they probably won't get made.
 
@@ -34,7 +34,7 @@ Quick-Test consists of the following:
   
   run-all.r - a script(s) which runs a set of Red/System tests.
             - run-all.r in Red/red-system/tests/ runs the Red/System test suite
-            - run-all.r in Red/red/tests/ will run the Red test suite*
+            - run-all.r in Red/red/tests/ runs the Red test suite
             - run-all.r in Red/ will run all the tests*
   run-test.r - a script which will run an individual test.
              - stored in Red/quick-test/
@@ -46,6 +46,10 @@ Quick-Test uses the following directory structure:
 
   Red/
     quick-test/                     ;; quick-test components
+      quick-test.r                  
+      quick-test.reds
+      quick-unit-test.r
+      run-test.r                    ;; runs an individual test
   red/
     tests/
       run-all.r                     ;; runs all Red tests
@@ -55,7 +59,6 @@ Quick-Test uses the following directory structure:
   red-system/
     tests/                          ;; the main test directory
       run-all.r                     ;; runs all Red/System tests
-      run-test.r                    ;; runs an individual Red/System test     
       source/                       ;; all test sources
         builtin/                    ;; tests for builtin functions (eg print)
         compiler/                   ;; tests of the compiler
@@ -181,12 +184,6 @@ Example 3: Test the output of a Red/System programs
 
 +++quick-test.reds
 
-/note 
-
-The syntax for quick-test.red is the same as that for quick-test.reds
-
-\note
-
   ***start-run*** <title>
     <title> : title of the test run - c-string!
   
@@ -301,10 +298,15 @@ Is used after a --compile-and-run or --compile-run-print to collect the totals f
     
 Runs an executable program. The output is captured in qt/output.
 
-  --run-red-test-quiet <file>
+  --run-unit-test <file>
     <file> : a REBOL script file - file!
     
-Runs a quick-test.red test written in REBOL in quiet mode.
+Runs a quick-unit-test.r test written in REBOL.
+
+--run-unit-test-quiet <file>
+    <file> : a REBOL script file - file!
+    
+Runs a quick-unit-test.r test written in REBOL in quiet mode.
 
   --run-script <file>
     <file> : a REBOL script - file!
@@ -361,6 +363,51 @@ Marks the end of a test run.
   
 Marks the end of a quiet-mode test run.
   
++++quick-unit-test.r
+
+Syntatically the quick-unit-test dialect is similar to the quick-test.reds dialect. There is one significant difference between them, quick-unit-test collects all the output from test and provides a means to interogate it.
+
+  ***start-run*** <title>
+    <title> : title of the test run - string!
+  
+Marks the start of the test run and initialises the run totals.
+
+  ~~~start-file~~~ <title>
+    <title> : title of the test file - string!
+    
+Marks the start of an individual test file.
+
+  ===start-group=== <title>
+    <title> : title of the test group - string!
+    
+Marks the start of a group of tests. Using groups in a test is optional.
+
+  --test-- <title>
+    <title> : title of an inidvidual test - string!
+    
+The start of an individual test. The number of tests in a run and file are counted and reported.
+
+  --assert <assertion>
+    <assertion> : a Red/System expression that returns a logic! value
+    
+An assertion. True = pass. False = fail. The number of assertions, passes and failures are counted and reported for each run and file.
+
+  --assert-printed? <value> 
+    <value> : text - string!
+    
+An assertion that the text was printed. 
+
+  ===end-group===
+  
+Marks the end of a group of tests.
+
+  ~~~end-file~~~
+
+Marks the end of a test file.
+
+  ***end-run***
+  
+Marks the end of a test run.
 
 
 ###

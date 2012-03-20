@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs the Red Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.1.0
+	Version: 0.2.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -22,7 +22,7 @@ start-time: now/precise
 ***start-run-quiet*** "Red Test Suite"
 
 ===start-group=== "Red compiler tests"
-  --run-red-test-quiet %source/compiler/lexer-test.r
+  --run-unit-test-quiet %source/compiler/lexer-test.r
 ===end-group===
 
 ===start-group=== "Red/System runtime tests"

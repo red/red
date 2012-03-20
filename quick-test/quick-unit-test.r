@@ -2,12 +2,19 @@ REBOL [
 	Title:   "Red Bootstrap unit testing framework"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-unit-test.r
-	Version: 0.1.0
+	Version: 0.2.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-qtr: make object! [
+qut: make object! [
+  
+  test-print: :print
+  test-prin: :prin
+  output: copy ""
+  set 'print func[v][append output rejoin [v lf]]
+  set 'prin func[v][append output reduce v]
+  
   ;; text fields
   run-name:     copy ""
   file-name:    copy ""
@@ -58,14 +65,14 @@ qtr: make object! [
   ][
     init-run
     run-name: title
-    prin ["***Starting*** " title lf lf]
+    test-prin ["***Starting*** " title lf lf]
   ]
   
   start-file: func [
     title [string!]
   ][
     init-file
-    prin ["~~~started test~~~ " title lf]
+    test-prin ["~~~started test~~~ " title lf]
     file-name: title
     group?: false
   ]
@@ -82,6 +89,7 @@ qtr: make object! [
   ][
     test-name: title
     file/tests: file/tests + 1
+    output: copy ""
   ]
   
   assert: func [
@@ -95,12 +103,16 @@ qtr: make object! [
       file/failures: file/failures + 1
       if group? [  
         if group-name-not-prined [
-          prin [lf "===group=== " group-name lf]
+          test-prin [lf "===group=== " group-name lf]
           group-name-not-prined: false
         ]
       ]
-      prin ["--test-- " test-name " FAILED**************" lf]
+      test-prin ["--test-- " test-name " FAILED**************" lf]
     ]
+  ]
+  
+  assert-printed?: func [msg] [
+    assert found? find qut/output msg
   ]
   
   end-group: func [] [
@@ -108,9 +120,9 @@ qtr: make object! [
   ]
   
   end-file: func [] [
-    prin [lf "~~~finished test~~~ " file-name lf]
+    test-prin [lf "~~~finished test~~~ " file-name lf]
     print-totals file
-    prin lf
+    test-prin lf
     
     ;; update run totals
     run/passes: run/passes + file/passes
@@ -120,19 +132,21 @@ qtr: make object! [
   ]
   
   end-run: func [][
-    prin ["***Finished*** " run-name lf]
+    test-prin ["***Finished*** " run-name lf]
     print-totals run
+    set 'print :test-print
+    set 'prin :test-print
   ]
   
   print-totals: func [
     data [object!]
   ][
-    prin ["  Number of Tests Performed:      " data/tests lf]
-    prin ["  Number of Assertions Performed: " data/asserts lf]
-    prin ["  Number of Assertions Passed:    " data/passes lf]
-    prin ["  Number of Assertions Failed:    " data/failures lf]
+    test-prin ["  Number of Tests Performed:      " data/tests lf]
+    test-prin ["  Number of Assertions Performed: " data/asserts lf]
+    test-prin ["  Number of Assertions Passed:    " data/passes lf]
+    test-prin ["  Number of Assertions Failed:    " data/failures lf]
     if data/failures <> 0 [
-      prin ["****************TEST FAILURES****************" lf]
+      test-prin ["****************TEST FAILURES****************" lf]
     ]
   ]
   
@@ -142,6 +156,7 @@ qtr: make object! [
   set '===start-group===      :start-group
   set '--test--               :start-test
   set '--assert               :assert
+  set '--assert-printed?      :assert-printed?
   set '===end-group===        :end-group
   set '~~~end-file~~~         :end-file
   set '***end-run***          :end-run
