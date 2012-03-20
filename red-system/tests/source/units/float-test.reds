@@ -277,6 +277,13 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "calculations"
 
+  --test-- "fc-1"
+    fc1: 2.0
+    fc1: fc1 / (fc1 - 1.0)
+  --assertf~= 2.0 fc1 0.1E-13
+  
+===end-group===
 
 ~~~end-file~~~

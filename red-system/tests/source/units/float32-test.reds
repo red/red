@@ -290,4 +290,13 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "calculations"
+
+  --test-- "fc-1"
+    fc1: as float32! 2.0
+    fc1: fc1 / (fc1 - as float32! 1.0)
+  --assertf32~= as float32! 2.0 fc1 as float32! 0.1E-7
+  
+===end-group===
+
 ~~~end-file~~~
