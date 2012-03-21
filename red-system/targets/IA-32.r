@@ -1319,9 +1319,9 @@ make target-class [
 				]
 			]
 		]
-		if all [
-			any [all [b = 'reg a <> 'reg] all [ a = 'reg b <> 'reg]]
-			find comparison-op name
+		if any [
+			all [b = 'reg a <> 'reg]
+			all [a = 'reg b <> 'reg]
 		][
 			emit #{D9C9}							;-- FXCH st0, st1
 		]
