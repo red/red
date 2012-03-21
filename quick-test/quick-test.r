@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.8.1
+	Version: 0.8.2
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -274,13 +274,14 @@ qt: make object! [
     reds-file?: false
     test-name: find/last/tail src "/"
     test-name: copy/part test-name find test-name "."
-    print [ "running " test-name #"^(0D)"]
+    prin [ "running " test-name #"^(0D)"]
     clear output
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
     call/output/wait cmd output
     add-to-run-totals
     write/append log-file output
     file/title: test-name
+    replace file/title "-test" ""
     _print-summary file
   ]
   
@@ -296,7 +297,6 @@ qt: make object! [
     do script
   ]
   
-  ;; This is for quick-unit-test.r (in REBOL)
   run-script-quiet: func [src [file!]][
     prin [ "running " find/last/tail src "/" #"^(0D)"]
     print: :_quiet-print
