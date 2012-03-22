@@ -22,6 +22,8 @@ Red/System [
 #define flag-ins-both		30000000h		;-- optimize for both head & tail insertions
 #define flag-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
 	
+#define node!				int-ptr!
+
 int-array!: alias struct! [ptr [int-ptr!]]
 
 ;-- cell header bits layout --
@@ -53,10 +55,10 @@ cell!: alias struct! [
 											;-- 0: UTF-8, 1: binary! byte, 2: UTF-16, 4: UTF-32, 16: block! cell
 series-buffer!: alias struct! [
 	flags	[integer!]						;-- series flags
-	size	[integer!]						;-- size of allocated buffer
 	node	[int-ptr!]						;-- point back to referring node
-	head	[integer!]						;-- series buffer head index
-	tail	[integer!]						;-- series buffer tail index 
+	size	[integer!]						;-- usable buffer size (series-buffer! struct excluded)
+	offset	[cell!]							;-- series buffer offset pointer (insert at head optimization)
+	tail	[cell!]							;-- series buffer tail pointer 
 ]
 
 series-frame!: alias struct! [				;-- series frame header
@@ -304,7 +306,7 @@ alloc-series-frame: func [
 	if size < memory/s-max [memory/s-size: size * 2]
 	
 	size: size + size? series-frame! 		;-- total required size for a series frame
-	frame: as series-frame! allocate-virtual size no ;-- R/W only
+	frame: as series-frame! allocate-virtual size no ;-- RW only
 	
 	either null? memory/s-head [
 		memory/s-head: frame				;-- first item in the list
@@ -362,7 +364,7 @@ update-series-nodes: func [
 		series/node/value: as-integer (as byte-ptr! series) + size? series-buffer!
 		
 		;-- advance to the next series buffer
-		series: as series-buffer! (as byte-ptr! series) + series/size
+		series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
 		
 		;-- exit when a freed series is met (<=> end of region)
 		zero? (series/flags and series-in-use)
@@ -404,7 +406,7 @@ compact-series-frame: func [
 			state: SM1_USED
 		]
 	 	;-- point to next series buffer
-		series: as series-buffer! (as byte-ptr! series) + series/size
+		series: as series-buffer! (as byte-ptr! series) + series/size  + size? series-buffer!
 		free?: zero? (series/flags and series-in-use)  ;-- true: series is not used
 
 		if all [state = SM1_USED any [free? series >= heap]][	;-- handle both normal and "exit" states
@@ -456,14 +458,14 @@ alloc-series-buffer: func [
 	
 	frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
 
-	series/size: sz
+	series/size: size
 	series/flags: unit
 		or series-in-use 					;-- mark series as in-use
 		or flag-ins-both					;-- optimize for both head & tail insertions (default)
 		and not flag-series-big				;-- set type bit to 0 (= series)
 		
-	series/head: size / 2					;-- position empty series at middle of buffer
-	series/tail: series/head
+	series/offset: as cell! (as byte-ptr! series + 1) + (size / unit / 2) ;-- position empty series at middle of buffer
+	series/tail: series/offset
 	series
 ]
 
@@ -501,7 +503,7 @@ free-series: func [
 	series/flags: series/flags xor series-in-use 		  ;-- clear 'used bit (enough to free the series)
 	
 	if frame/heap = as series-buffer! (		;-- test if series is on top of heap
-		(as byte-ptr! node/value) +  series/size
+		(as byte-ptr! node/value) +  series/size + size? series-buffer!
 	) [
 		frame/heap = series					;-- cheap collecting of last allocated series
 	]
@@ -519,7 +521,17 @@ expand-series: func [
 	/local new
 ][
 	assert not null? series
-	assert new-sz > series/size 			;-- ensure requested size is bigger than current one
+	assert any [
+		zero? new-sz
+		new-sz > series/size				;-- ensure requested size is bigger than current one
+	]
+	
+	if zero? new-sz [
+		new-sz: 2 * series/size
+		;if new-sz >= _2MB [
+		;	;TBD: alloc big
+		;]
+	]
 	
 	new: alloc-series-buffer new-sz series/flags and flag-unit-mask
 	series/node/value: as-integer new		;-- link node to new series buffer

@@ -7,7 +7,7 @@ Red/System [
 ]
 
 
-#include %../runtime/runtime.reds
+#include %../runtime/red.reds
 #include %../runtime/debug.reds
 
 ;-- add a minimal number of memory frames

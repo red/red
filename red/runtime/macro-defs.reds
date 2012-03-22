@@ -9,7 +9,7 @@ Red/System [
 	}
 ]
 
-;#define RED_TYPE_UNSET			0
+#define RED_TYPE_UNSET			0
 #define RED_TYPE_NONE			1
 #define RED_TYPE_LOGIC			2
 #define RED_TYPE_BLOCK			3
@@ -34,3 +34,5 @@ Red/System [
 ;#define RED_TYPE_FLOAT			21
 
 
+;#define BIT-SET? [v n][0 = (v and not 1 << n)]
+;#define set-bit [v n][...]
