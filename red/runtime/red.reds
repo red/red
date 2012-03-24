@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Red runtime global macro definitions"
+	Title:   "Red runtime wrapper"
 	Author:  "Nenad Rakocevic"
-	File: 	 %macro-defs.reds
+	File: 	 %red.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -38,3 +38,23 @@ Red/System [
 	RED_TYPE_BITSET
 	RED_TYPE_FLOAT
 ]
+
+;#include %macro-defs.reds
+#include %utils.reds
+#include %imports.reds
+;#include %threads.reds
+#include %allocator.reds
+;#include %collector.reds
+;#include %tokenizer.reds
+
+#define series!		series-buffer! 
+
+#include %datatypes/value.reds
+#include %datatypes/datatype.reds
+#include %datatypes/unset.reds
+#include %datatypes/none.reds
+#include %datatypes/logic.reds
+#include %datatypes/block.reds
+;#include %datatypes/context.reds
+;#include %datatypes/word.reds
+#include %datatypes/integer.reds
