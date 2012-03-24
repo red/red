@@ -21,8 +21,11 @@ Red/System [
 #define flag-ins-tail		20000000h		;-- optimize for tail insertions
 #define flag-ins-both		30000000h		;-- optimize for both head & tail insertions
 #define flag-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
-	
+
+#define type-mask			FFFFFF00h		;-- mask for clearing type ID in cell header
 #define node!				int-ptr!
+#define default-offset		-1				;-- for offset value in alloc-series calls
+
 
 int-array!: alias struct! [ptr [int-ptr!]]
 
@@ -434,6 +437,7 @@ compact-series-frame: func [
 alloc-series-buffer: func [
 	size	[integer!]						;-- size in bytes
 	unit	[integer!]						;-- size of atomic elements stored
+	offset	[integer!]						;-- force a given offset for series buffer
 	return: [series-buffer!]				;-- return the new series buffer
 	/local series frame sz
 ][
@@ -461,10 +465,15 @@ alloc-series-buffer: func [
 	series/size: size
 	series/flags: unit
 		or series-in-use 					;-- mark series as in-use
-		or flag-ins-both					;-- optimize for both head & tail insertions (default)
 		and not flag-series-big				;-- set type bit to 0 (= series)
 		
-	series/offset: as cell! (as byte-ptr! series + 1) + (size / unit / 2) ;-- position empty series at middle of buffer
+	either offset = default-offset [
+		offset: size / unit / 2
+		series/flags: series/flags or flag-ins-both	;-- optimize for both head & tail insertions (default)
+	][
+		series/flags: series/flags or flag-ins-tail ;-- optimize for tail insertions only
+	]
+	series/offset: as cell! (as byte-ptr! series + 1) + offset ;-- position empty series at middle of buffer
 	series/tail: series/offset
 	series
 ]
@@ -475,10 +484,11 @@ alloc-series-buffer: func [
 alloc-series: func [
 	size	[integer!]						;-- number of elements to store
 	unit	[integer!]						;-- size of atomic elements stored
+	offset	[integer!]						;-- force a given offset for series buffer
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local series node
 ][
-	series: alloc-series-buffer (size << unit) unit
+	series: alloc-series-buffer (size << unit) unit offset
 	node: alloc-node						;-- get a new node
 	series/node: node						;-- link back series to node
 	;-- make node points to first usable byte of series buffer
@@ -533,7 +543,7 @@ expand-series: func [
 		;]
 	]
 	
-	new: alloc-series-buffer new-sz series/flags and flag-unit-mask
+	new: alloc-series-buffer new-sz series/flags and flag-unit-mask default-offset
 	series/node/value: as-integer new		;-- link node to new series buffer
 	
 	;TBD: honor flag-ins-head and flag-ins-tail when copying!
