@@ -15,9 +15,9 @@ alloc-node-frame nodes-per-frame
 alloc-series-frame
 
 print [lf ">> allocating 3 series" lf]
-s1: alloc-series 5 1
-s2: alloc-series 100 1
-s3: alloc-series 5 1
+s1: alloc-series 5 1 default-offset
+s2: alloc-series 100 1 default-offset
+s3: alloc-series 5 1 default-offset
 
 memory-stats 3
 
@@ -41,7 +41,7 @@ alt?: no
 series: as int-ptr! 0
 idx: 1
 until [
-	series: alloc-series either alt? [5][100] 1
+	series: alloc-series either alt? [5][100] 1 default-offset
 	unless alt? [
 		array/idx: as-integer series
 		print-wide [idx ":" as byte-ptr! array/idx lf]
