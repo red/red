@@ -138,6 +138,7 @@ lexer: context [
 			slash
 			s: [
 				begin-symbol-rule (type: word!)
+				| integer-rule	  (type: integer!)
 				| paren-rule 	  (type: paren!)
 				;@@ add more datatypes here
 			]
