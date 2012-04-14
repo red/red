@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs the Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.8.0
+	Version: 0.8.1
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -64,55 +64,6 @@ make-if-needed? %source/units/auto-tests/float-auto-test.reds
 make-if-needed? %source/units/auto-tests/float32-auto-test.reds
                 %source/units/make-float32-auto-test.r
 
-;; make lib-test files if needed
-lib-test-len: length? read %source/units/lib-test-source.reds
-save-len: either exists? %source/units/len-lib-test.dat [
-  load %source/units/len-lib-test.dat
-][
-  -1
-]
-
-if any [
-  not exists? %source/units/auto-tests/lib-auto-test.reds
-  lib-test-len <> save-len 
-][
-  save %source/units/len-lib-test.dat lib-test-len
-  print "Making lib-test-auto.reds - shouldn't take long"
-  do %source/units/make-lib-auto-test.r                         
-]
-
-flib-test-len: length? read %source/units/float-lib-test-source.reds
-save-len: either exists? %source/units/len-flib-test.dat [
-  load %source/units/len-flib-test.dat
-][
-  -1
-]
-
-f32lib-test-len: length? read %source/units/float32-lib-test-source.reds
-f32-save-len: either exists? %source/units/len-f32lib-test.dat [
-  load %source/units/len-f32lib-test.dat
-][
-  -1
-]
-
-if any [
-  not exists? %source/units/auto-tests/float-lib-auto-test.reds
-  flib-test-len <> save-len 
-][
-  save %source/units/len-flib-test.dat flib-test-len
-  print "Making float-lib-test-auto.reds - shouldn't take long"
-  do %source/units/make-float-lib-auto-test.r                         
-]
-
-if any [
-  not exists? %source/units/auto-tests/float32-lib-auto-test.reds
-  f32lib-test-len <> f32-save-len 
-][
-  save %source/units/len-f32lib-test.dat f32lib-test-len
-  print "Making float32-lib-test-auto.reds - shouldn't take long"
-  do %source/units/make-float32-lib-auto-test.r                         
-]
-
 ;; run the tests
 print rejoin ["Run-All    v" system/script/header/version]
 print rejoin ["Quick-Test v" qt/version]
@@ -126,8 +77,7 @@ start-time: now/precise
 ***start-run-quiet*** "Red/System Test Suite"
 
 ===start-group=== "Datatype tests"
-  --run-test-file-quiet %source/units/logic-test.reds
- ; --run-test-file-quiet  %source/units/integer-test.reds   ;; excluded from ARM tests       
+  --run-test-file-quiet %source/units/logic-test.reds       
   --run-test-file-quiet %source/units/byte-test.reds
   --run-test-file-quiet %source/units/c-string-test.reds
   --run-test-file-quiet %source/units/struct-test.reds
@@ -139,6 +89,7 @@ start-time: now/precise
   --run-test-file-quiet %source/units/enum-test.reds
   --run-test-file-quiet %source/units/float-test.reds
   --run-test-file-quiet %source/units/float32-test.reds
+  --run-test-file-quiet %source/units/lib-test.reds
 ===end-group===
 
 ===start-group=== "Native functions tests"
@@ -171,9 +122,6 @@ start-time: now/precise
   --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/maths-auto-test.reds
-  --run-test-file-quiet  %source/units/auto-tests/lib-auto-test.reds ;; excluded from ARM tests
-  --run-test-file-quiet  %source/units/auto-tests/float-lib-auto-test.reds   ; not in Arm tests   
-  --run-test-file-quiet  %source/units/auto-tests/float32-lib-auto-test.reds ; not in Arm tests
   --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds
 ===end-group===
