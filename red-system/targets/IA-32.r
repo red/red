@@ -150,6 +150,16 @@ make target-class [
 				emit pick [#{81E2} #{25}] alt?    	;-- AND edx|eax, 000000FFh 
 				emit to-bin32 255
 			]
+			all [value/type/1 = 'integer! type/1 = 'float32!][
+				if verbose >= 3 [print [">>>converting from float32! to integer!"]]
+				emit #{83EC04}						;-- SUB esp, 4
+				emit #{D91C24}						;-- FSTP dword [esp]	; save as 32-bit
+				either alt? [
+					emit #{5A}						;-- POP edx
+				][
+					emit #{58}						;-- POP eax
+				]
+			]
 			all [value/type/1 = 'float32! type/1 = 'integer!][
 				if verbose >= 3 [print [">>>converting from integer! to float32!"]]
 				either alt? [
