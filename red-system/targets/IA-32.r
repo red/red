@@ -850,9 +850,11 @@ make target-class [
 			]
 			path! [
 				emitter/access-path value none
-				if cast [
+				compiler/last-type: either cast [
 					emit-casting cast no
-					compiler/last-type: cast/type
+					cast/type
+				][
+					compiler/resolve-path-type value
 				]
 				emit-push <last>
 			]
