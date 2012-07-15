@@ -1815,7 +1815,7 @@ system-dialect: context [
 			][
 				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment
-					all [set-path? variable literal? unbox expr] ;-- value loaded at lower level
+					set-path? variable 					;-- value loaded at lower level
 					tag? unbox expr
 				][
 					emitter/target/emit-load either boxed [boxed][expr]	;-- emit code for single value
