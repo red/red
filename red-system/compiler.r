@@ -31,6 +31,7 @@ system-dialect: context [
 		locals: 	 none								;-- currently compiled function specification block
 		definitions:  make block! 100
 		enumerations: make hash! 10
+		expr-call-stack: make block! 1					;-- simple stack of nested calls for a given expression
 		locals-init: []									;-- currently compiler function locals variable init list
 		func-name:	 none								;-- currently compiled function name
 		block-level: 0									;-- nesting level of input source block
@@ -575,6 +576,16 @@ system-dialect: context [
 			]
 			type
 		]
+		
+		push-call: func [action [word! set-word! set-path!]][
+			append expr-call-stack action
+			if verbose >= 4 [
+				new-line/all expr-call-stack off
+				?? expr-call-stack
+			]
+		]
+		
+		pop-calls: does [clear expr-call-stack]
 		
 		cast: func [obj [object!] /local value ctype type][
 			value: obj/data
@@ -1531,7 +1542,7 @@ system-dialect: context [
 		]
 		
 		comp-assignment: has [name value n enum][
-			name: pc/1
+			push-call name: pc/1
 			pc: next pc
 			if set-word? name [
 				check-keywords n: to word! name			;-- forbid keywords redefinition
@@ -1583,8 +1594,10 @@ system-dialect: context [
 		comp-word: func [/path symbol [word!] /local entry args n name expr attribute fetch id type][
 			name: any [symbol pc/1]
 			case [
-				entry: select keywords name [do entry]	;-- it's a reserved word
-				
+				entry: select keywords name [			;-- it's a reserved word
+					push-call pc/1
+					do entry
+				]
 				any [
 					all [locals find locals name]
 					find globals name
@@ -1604,6 +1617,7 @@ system-dialect: context [
 					not path
 					entry: find functions name 
 				][
+					push-call pc/1
 					pc: next pc							;-- it's a function
 					either attribute: check-variable-arity? entry/2/4 [
 						fetch: [
@@ -1843,6 +1857,7 @@ system-dialect: context [
 				block? expr
 				find functions/(expr/1)/4 return-def
 				any-float? last-type
+				not find [set-word! set-path!] type?/word expr-call-stack/1
 			][
 				emitter/target/emit-float-trash-last	;-- avoid leaving a FPU slot occupied,
 			]											;-- if return value is not used.
@@ -1953,6 +1968,7 @@ system-dialect: context [
 							all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]	
 							'else [expr: do fetch]
 						]
+						pop-calls
 					]
 				]
 			]
@@ -1983,6 +1999,7 @@ system-dialect: context [
 					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
 					'else [expr: fetch-expression/final/keep]
 				]
+				pop-calls
 				emitter/target/on-root-level-entry
 			]
 			expr
