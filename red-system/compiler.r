@@ -23,26 +23,26 @@ system-dialect: context [
 	loader: do bind load %loader.r 'self
 	
 	compiler: context [
-		job:		 none								;-- shortcut for job object
-		pc:			 none								;-- source code input cursor
-		script:		 none								;-- source script file name
-		none-type:	 [#[none]]							;-- marker for "no value returned"
-		last-type:	 none-type							;-- type of last value from an expression
-		locals: 	 none								;-- currently compiled function specification block
-		definitions:  make block! 100
-		enumerations: make hash! 10
+		job:		 	 none							;-- shortcut for job object
+		pc:			 	 none							;-- source code input cursor
+		script:		 	 none							;-- source script file name
+		none-type:	 	 [#[none]]						;-- marker for "no value returned"
+		last-type:	 	 none-type						;-- type of last value from an expression
+		locals: 	 	 none							;-- currently compiled function specification block
+		definitions:  	 make block! 100
+		enumerations: 	 make hash! 10
 		expr-call-stack: make block! 1					;-- simple stack of nested calls for a given expression
-		locals-init: []									;-- currently compiler function locals variable init list
-		func-name:	 none								;-- currently compiled function name
-		block-level: 0									;-- nesting level of input source block
-		verbose:  	 0									;-- logs verbosity level
+		locals-init: 	 []								;-- currently compiler function locals variable init list
+		func-name:	 	 none							;-- currently compiled function name
+		block-level: 	 0								;-- nesting level of input source block
+		verbose:  	 	 0								;-- logs verbosity level
 	
-		imports: 	   make block! 10					;-- list of imported functions
-		natives:	   make hash!  40					;-- list of functions to compile [name [specs] [body]...]
-		globals:  	   make hash!  40					;-- list of globally defined symbols from scripts
-		aliased-types: make hash!  10					;-- list of aliased type definitions
+		imports: 	   	 make block! 10					;-- list of imported functions
+		natives:	   	 make hash!  40					;-- list of functions to compile [name [specs] [body]...]
+		globals:  	   	 make hash!  40					;-- list of globally defined symbols from scripts
+		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
 		
-		resolve-alias?: yes								;-- YES: instruct the type resolution function to reduce aliases
+		resolve-alias?:  yes							;-- YES: instruct the type resolution function to reduce aliases
 		
 		debug-lines: reduce [							;-- runtime source line/file information storage
 			'records make block!  1000					;-- [address line file] records
@@ -1917,7 +1917,9 @@ system-dialect: context [
 				word? pc/1
 				not local-variable? pc/1
 				value: get-enumerator/value pc/1
-			][	change pc value ]
+			][
+				change pc value
+			]
 
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
