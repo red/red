@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs the Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.8.1
+	Version: 0.8.2
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -90,6 +90,7 @@ start-time: now/precise
   --run-test-file-quiet %source/units/float-test.reds
   --run-test-file-quiet %source/units/float32-test.reds
   --run-test-file-quiet %source/units/lib-test.reds
+  --run-test-file-quiet %source/units/get-pointer-test.reds
 ===end-group===
 
 ===start-group=== "Native functions tests"
