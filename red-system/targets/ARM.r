@@ -69,7 +69,7 @@ make target-class [
 				emit-i32 #{ea000000}				;-- B <after_value>
 				if spec [
 					spec: switch type?/word s [
-						get-word! [emitter/get-func-ref to word! s]
+						get-word! [emitter/get-symbol-ref to word! s]
 						word!	  [emitter/symbols/:s]
 						block!	  [s]
 					]
@@ -972,7 +972,16 @@ make target-class [
 				]
 			]
 			get-word! [
-				pools/collect/spec 0 value
+				either offset: select emitter/stack to word! value [
+					emit-i32 either negative? offset [
+						#{e24b00}					;-- SUB r0, fp, n
+					][
+						#{e28b00}					;-- ADD r0, fp, n
+					]
+					emit-i32 to-bin8 abs offset
+				][
+					pools/collect/spec 0 value
+				]
 			]
 			string! [
 				emit-load-literal [c-string!] value
@@ -1045,7 +1054,9 @@ make target-class [
 				]
 			]
 			get-word! [
-				pools/collect/spec 0 value
+				unless find emitter/stack to word! value [
+					pools/collect/spec 0 value
+				]
 				do store-word
 			]
 			string! paren! [
