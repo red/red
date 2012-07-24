@@ -91,6 +91,7 @@ start-time: now/precise
   --run-test-file-quiet %source/units/float32-test.reds
   --run-test-file-quiet %source/units/lib-test.reds
   --run-test-file-quiet %source/units/get-pointer-test.reds
+  --run-test-file-quiet %source/units/float-pointer-test.reds
 ===end-group===
 
 ===start-group=== "Native functions tests"
