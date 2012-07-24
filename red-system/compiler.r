@@ -473,7 +473,7 @@ system-dialect: context [
 			]
 		]
 		
-		get-type: func [value][
+		get-type: func [value /local type][
 			switch/default type?/word value [
 				none!	 [none-type]				;-- no type case (func with no return value)
 				tag!	 [either value = <last> [last-type][ [logic!] ]]
@@ -503,7 +503,15 @@ system-dialect: context [
 						[value/1 value/2]
 					]
 				]
-				get-word! [resolve-type to word! value]
+				get-word! [
+					type: resolve-type to word! value
+					switch/default type/1 [
+						function! [type]
+						integer! byte! float! float32! [compose/deep [pointer! [(type/1)]]]
+					][
+						throw-error ["invalid datatype for a get-word:" mold type]
+					]
+				]
 			][
 				throw-error ["not accepted datatype:" type? value]
 			]
@@ -1557,7 +1565,10 @@ system-dialect: context [
 					backtrack name
 					throw-error ["redeclaration of enumerator" name "from" enum]
 				]
-				if get-word? pc/1 [
+				if all [
+					get-word? pc/1
+					select functions to word! pc/1
+				][
 					throw-error "storing a function! requires a type casting"
 				]
 				unless all [locals find locals n][
@@ -1581,13 +1592,12 @@ system-dialect: context [
 		]
 		
 		comp-get-word: has [spec][
-			unless spec: select functions to word! pc/1 [
-				throw-error ["function" to word! pc/1 "not defined"] 
+			if spec: select functions to word! pc/1 [
+				unless spec/2 = 'native [
+					throw-error "get-word syntax only reserved for native functions for now"
+				]
+				unless spec/5 = 'callback [append spec 'callback]
 			]
-			unless spec/2 = 'native [
-				throw-error "get-word syntax only reserved for native functions for now"
-			]
-			unless spec/5 = 'callback [append spec 'callback]
 			also pc/1 pc: next pc
 		]
 	
@@ -1779,7 +1789,7 @@ system-dialect: context [
 				get-enumerator name
 			][
 				type: resolve-aliased type		
-				new: resolve-aliased get-type expr			
+				new: resolve-aliased get-type expr
 				
 				if type <> any [casted new][
 					backtrack set-word
@@ -1805,7 +1815,7 @@ system-dialect: context [
 			emitter/store name value type
 		]
 		
-		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type][	
+		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type][
 			;-- preprocessing expression
 			if all [block? expr find [set-word! set-path!] type?/word expr/1][
 				variable: expr/1

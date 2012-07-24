@@ -61,6 +61,16 @@ target-class: context [
 			to integer! log-2 n
 		]
 	]
+	
+	stack-encode: func [offset [integer!]][
+		if any [								;-- local variable case
+			offset < -128
+			offset > 127
+		][
+			compiler/throw-error "#code generation error: overflow in emit-variable"
+		]
+		skip debase/base to-hex offset 16 3		; @@ just to-char ??
+	]
 
 	emit: func [bin [binary! char! block!]][
 		if verbose >= 4 [print [">>>emitting code:" mold bin]]
@@ -84,13 +94,7 @@ target-class: context [
 		if object? name [name: compiler/unbox name]
 		
 		either offset: select emitter/stack name [
-			if any [								;-- local variable case
-				offset < -128
-				offset > 127
-			][
-				compiler/throw-error "#code generation error: overflow in emit-variable"
-			]
-			offset: skip debase/base to-hex offset 16 3	; @@ just to-char ??
+			offset: stack-encode offset 
 			either block? lcode [
 				emit reduce bind lcode 'offset
 			][

@@ -406,6 +406,7 @@ make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
+		/local offset
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		
@@ -451,8 +452,14 @@ make target-class [
 				]
 			]
 			get-word! [
-				emit #{B8}							;-- MOV eax, &name
-				emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
+				value: to word! value
+				either offset: select emitter/stack value [
+					emit #{8D45}					;-- LEA eax, [ebp+n]	; local
+					emit stack-encode offset		;-- n
+				][
+					emit #{B8}						;-- MOV eax, &name
+					emit-reloc-addr emitter/get-symbol-ref value	;-- symbol address
+				]
 			]
 			string! [
 				emit-load-literal [c-string!] value
@@ -521,8 +528,12 @@ make target-class [
 				]
 			]
 			get-word! [
-				do store-dword
-				emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
+				either find emitter/stack to word! value [
+					emit-store name <last> none
+				][
+					do store-dword
+					emit-reloc-addr emitter/get-symbol-ref to word! value	;-- symbol address
+				]
 			]
 			string! [
 				do store-dword

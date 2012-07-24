@@ -152,6 +152,16 @@ emitter: context [
 		]
 	]
 	
+	get-symbol-ref: func [name [word!] /local spec][
+		case [
+			find compiler/functions name [get-func-ref name]	;-- function case
+			spec: select symbols name [spec]					;-- global variable case
+			'else [
+				compiler/throw-error ["attempt to get a reference on unknown symbol" name]
+			]
+		]
+	]
+	
 	get-func-ref: func [name [word!] /local entry][
 		entry: find/last symbols name
 		if entry/2/1 = 'native [
