@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 26/02/2012
-	Revision: 33
+	Date: 25/07/2012
+	Revision: 34
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -838,6 +838,59 @@ would print
     
 \note Runtime macro byte-ptr!
 The runtime defines a byte-ptr! macro (just defined as: pointer! [byte!]) to be used as an equivalent to C void* for raw memory accesses.
+
+/note
+
++++Variable pointer
+
+It is possible to get a pointer on an existing variable for the following datatypes:
+
+* integer!
+
+* byte!
+
+* float!
+
+* float32!
+
+<b>Syntax</b>
+
+ :<variable>
+
+ <variable> : a variable name of allowed type.
+
+This expression will return a pointer value which type depends on the variable type, so:
+
+<div align="center">
+<table class="normal">
+<tr>
+<th>variable</th>
+<th>:variable</th>
+</tr><tr>
+<td>integer!</td>
+<td>pointer! [integer!]</td>
+</tr><tr>
+<td>byte!</td>
+<td>pointer! [byte!]</td>
+</tr><tr>
+<td>float!</td>
+<td>pointer! [float!]</td>
+</tr><tr>
+<td>float32!</td>
+<td>pointer! [float32!]</td>
+</tr>
+</table>
+</div>
+
+Example:
+
+	s: declare pointer! [integer!]
+	a: 123
+	s: :a
+	print s/value		;-- will output 123
+
+\note Pointer on local variable
+It is allowed to get a pointer on a local variable, however, <u>special attention</u> should be provided to avoid using such pointer once the function has returned, this would result in most cases in crashes caused by stack corruption!
 
 /note
 
@@ -2713,7 +2766,7 @@ will output:
 
 *Add a FORM function (convert any datatype to c-string!)
 
-*Add a SWITCH function: branch on different code blocks depending on a input value
+*<strike>Add a SWITCH function: branch on different code blocks depending on a input value</strike>
 
 *Add a INLINE function to inline machine code: inline #{1234...} and/or assembler
 
@@ -2732,12 +2785,20 @@ will output:
 
 *<strike>Support 0 and 1 as valid boolean results</strike> <i><b>REJECTED</b></i>
 
-*Extend the get-word! syntax to integer! variables.
+*<strike>Extend the get-word! syntax to integer! variables.</strike>
 
 *Support multiple nested type castings.
 
 
 ===Document History
+
+*<b>25/07/2012 - revision 34</b>
+
+*>Added description for variable pointer (get-word extended).
+
+*>Removed items already implemented from "Possible Evolutions" section.
+
+
 
 *<b>26/02/2012 - revision 33</b>
 
