@@ -945,8 +945,8 @@ make target-class [
 					emit-load-imm32 to integer! IEEE-754/to-binary32 value
 				][
 					spec: emitter/store-value none value [float!]
-					pools/collect/spec/with 0 spec/2 #{e59f2000}	;-- LDR r2, [pc, #offset]
-					emit-i32 #{e8920003} 							;-- LDM r2, {r0,r1}
+					pools/collect/spec/with 0 spec/2 #{e59f3000}	;-- LDR r3, [pc, #offset]
+					emit-i32 #{e8930003} 							;-- LDM r3, {r0,r1}
 				]
 			]
 			word! [
@@ -1134,9 +1134,13 @@ make target-class [
 		opcodes: pick [[							;-- store path opcodes --
 			#{e5002000}								;-- STR[B] r2, [r0]
 			#{e7802003}								;-- STR[B] r2, [r0, r3]
+			#{e0822003}								;-- ADD r2, r2, r3
+			#{e8820003}								;-- STM r2, {r0,r1}
 		][											;-- load path opcodes --
 			#{e5900000}								;-- LDR[B] r0, [r0]
 			#{e7900003}								;-- LDR[B] r0, [r0, r3]
+			#{e0800003}								;-- ADD r0, r0, r3
+			#{e8900003} 							;-- LDM r0, {r0,r1}
 		]] set-path? path
 
 		type: either parent [
@@ -1152,12 +1156,25 @@ make target-class [
 		idx: either path/2 = 'value [1][path/2]
 		scale: emitter/size-of? type/2/1
 
+		if all [set-path? path not parent width = 8][
+			emit-swap-regs/alt
+		]
+
 		either integer? idx [
 			either zero? idx: idx - 1 [				;-- indexes are one-based
-				emit-poly opcodes/1
+				either width = 8 [
+					emit-i32 opcodes/4
+				][
+					emit-poly opcodes/1
+				]
 			][
 				emit-load-imm32/reg idx * scale 3	;-- LDR r3, #idx
-				emit-poly opcodes/2
+				either width = 8 [
+					emit-i32 opcodes/3
+					emit-i32 opcodes/4
+				][
+					emit-poly opcodes/2
+				]
 			]
 		][
 			emit-load-index idx
@@ -1165,7 +1182,12 @@ make target-class [
 				emit-i32 #{e1a03003}				;-- LSL r3, r3, #log2(scale)
 					or debase/base to-hex shift/left power-of-2? scale 7 16
 			]
-			emit-poly opcodes/2
+			either width = 8 [
+				emit-i32 opcodes/3
+				emit-i32 opcodes/4
+			][
+				emit-poly opcodes/2
+			]
 		]
 	]
 	
