@@ -1831,6 +1831,26 @@ system-dialect: context [
 				boxed: expr
 				expr: cast expr
 			]
+			
+			;-- dead expressions elimination
+			if all [
+				not any [tail? pc variable]				;-- not last expression nor assignment value
+				1 >= length? expr-call-stack			;-- one (for math op) or no parent call
+				any [
+					all [
+						literal? expr					;-- literal, but not logic value
+						'logic! <> first get-type expr
+					]
+					all [
+						block? expr
+						functions/(expr/1)/2 = 'op		;-- math expression
+						any [							;-- no return value, or return value type <> logic!
+							not type: find functions/(expr/1)/4 return-def
+							type/2/1 <> 'logic!
+						]
+					]
+				]
+			][exit]
 
 			;-- emitting expression code
 			either block? expr [
@@ -1866,14 +1886,9 @@ system-dialect: context [
 			if all [									;-- clean FPU stack when required
 				not any [keep? variable]
 				any-float? last-type
-				any [
-					all [
-						block? expr
-						not find functions/(expr/1)/4 return-def
-						not find [set-word! set-path!] type?/word expr-call-stack/1
-					]
-					all [decimal? expr not tail? pc]	;-- catch single float values in the middle of code
-				]
+				block? expr
+				not find functions/(expr/1)/4 return-def
+				not find [set-word! set-path!] type?/word expr-call-stack/1
 			][			
 				emitter/target/emit-float-trash-last	;-- avoid leaving a FPU slot occupied,
 			]											;-- if return value is not used.
