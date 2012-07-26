@@ -1839,7 +1839,7 @@ system-dialect: context [
 			][
 				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment
-					set-path? variable 					;-- value loaded at lower level
+					all [set-path? variable not path? expr]	;-- value loaded at lower level
 					tag? unbox expr
 				][
 					emitter/target/emit-load either boxed [boxed][expr]	;-- emit code for single value
@@ -1862,13 +1862,19 @@ system-dialect: context [
 			][
 				emitter/logic-to-integer expr/1			;-- runtime logic! conversion before storing
 			]
-			if all [
+			
+			if all [									;-- clean FPU stack when required
 				not any [keep? variable]
-				block? expr
 				any-float? last-type
-				not find functions/(expr/1)/4 return-def
-				not find [set-word! set-path!] type?/word expr-call-stack/1
-			][
+				any [
+					all [
+						block? expr
+						not find functions/(expr/1)/4 return-def
+						not find [set-word! set-path!] type?/word expr-call-stack/1
+					]
+					all [decimal? expr not tail? pc]	;-- catch single float values in the middle of code
+				]
+			][			
 				emitter/target/emit-float-trash-last	;-- avoid leaving a FPU slot occupied,
 			]											;-- if return value is not used.
 			
