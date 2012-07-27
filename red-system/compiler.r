@@ -1887,8 +1887,10 @@ system-dialect: context [
 				not any [keep? variable]
 				any-float? last-type
 				block? expr
-				not find functions/(expr/1)/4 return-def
-				not find [set-word! set-path!] type?/word expr-call-stack/1
+				any [
+					not find functions/(expr/1)/4 return-def	;-- clean if no return value
+					1 = length? expr-call-stack					;-- or if return value not used
+				]
 			][			
 				emitter/target/emit-float-trash-last	;-- avoid leaving a FPU slot occupied,
 			]											;-- if return value is not used.
