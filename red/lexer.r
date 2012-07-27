@@ -137,8 +137,7 @@ lexer: context [
 		some [
 			slash
 			s: [
-				begin-symbol-rule (type: word!)
-				| integer-rule	  (type: integer!)
+				symbol-rule		  (type: word!)
 				| paren-rule 	  (type: paren!)
 				;@@ add more datatypes here
 			]
