@@ -139,6 +139,7 @@ lexer: context [
 			s: [
 				symbol-rule		  (type: word!)
 				| paren-rule 	  (type: paren!)
+				| get-word-rule
 				;@@ add more datatypes here
 			]
 			(stack/push to type copy/part s e)
