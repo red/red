@@ -89,7 +89,7 @@ system-dialect: context [
 			<		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			>=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			<=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
-			not		[1	inline	- [a [not-set!] 		   return: [logic!]]]	;@@ return should be not-set!
+			not		[1	inline	- [a [not-set!] 		   return: [not-set!]]]
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
 		]
@@ -485,7 +485,9 @@ system-dialect: context [
 				string!	 [[c-string!]]
 				path!	 [resolve-path-type value]
 				object!  [value/type]
-				block!	 [			
+				block!	 [
+					if value/1 = 'not [return get-type value/2]	;-- special case for NOT multitype native
+					
 					either 'op = second select functions value/1 [
 						either base-type? type: get-return-type value/1 [
 							type				;-- unique returned type, stop here
