@@ -1170,6 +1170,9 @@ make target-class [
 			imm/reg [								;-- eax = b
 				if path? right [
 					emit-load args/2				;-- late path loading
+					if object? args/2 [
+						emit-casting args/2 no
+					]
 				]
 				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA
 				emit-poly [#{B0} #{B8} args/1]		;-- MOV rA, a		; eax = a, edx = b
