@@ -1418,7 +1418,7 @@ system-dialect: context [
 		
 		comp-switch: has [expr save-type spec value values body bodies list types default][
 			pc: next pc
-			expr: fetch-expression/final				;-- compile argument
+			expr: fetch-expression/keep/final			;-- compile argument
 			if any [none? expr last-type = none-type][
 				throw-error "SWITCH argument has no return value"
 			]
@@ -1838,9 +1838,13 @@ system-dialect: context [
 			if all [
 				not any [tail? pc variable]				;-- not last expression nor assignment value
 				1 >= length? expr-call-stack			;-- one (for math op) or no parent call
+				'switch <> pick tail expr-call-stack -1
 				any [
 					all [
-						literal? expr					;-- literal, but not logic value
+						any [
+							word? expr 					;-- variable alone
+							literal? expr				;-- literal, but not logic value
+						]
 						'logic! <> first get-type expr
 					]
 					all [
