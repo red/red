@@ -1346,8 +1346,8 @@ make target-class [
 			]
 		]
 		if any [
-			all [b = 'reg any [all [a = 'ref block? right] a = 'imm]]
-			all [a = 'reg b <> 'reg]
+			all [b = 'reg any [all [a = 'ref block? right] all [a = 'imm block? right]]]
+			all [a = 'reg any [all [b = 'ref path? left] all [b = 'imm path? left]]]
 		][
 			emit #{D9C9}							;-- FXCH st0, st1
 		]
