@@ -292,11 +292,51 @@ Red/System [
 
 ===start-group=== "calculations"
 
-  --test-- "fc-1"
-    fc1: as float32! 2.0
-    fc1: fc1 / (fc1 - as float32! 1.0)
-  --assertf32~= as float32! 2.0 fc1 as float32! 0.1E-7
-  
+	fcfoo: func [a [float32!] return: [float32!]][a]
+	
+	fcptr: declare struct! [a [float32!]]
+	fcptr/a: as float32! 3.0 
+	
+	fc2: as float32! 3.0
+	
+	--test-- "fc-1"
+		fc1: as float32! 2.0
+		fc1: fc1 / (fc1 - as float32! 1.0)
+	--assertf32~= as float32! 2.0 fc1 as float32! 0.1E-7
+
+	--test-- "fc-2"
+	--assert (as float32! 5.0) - (as float32! 3.0) = as float32! 2.0			;-- imm/imm
+
+	--test-- "fc-3"
+	--assert (as float32! 5.0) - fc2 = as float32! 2.0							;-- imm/ref
+
+	--test-- "fc-4"
+	--assert (as float32! 5.0) - (fcfoo as float32! 3.0) = as float32! 2.0		;-- imm/reg(block!)
+
+	--test-- "fc-5"
+	--assertf32~= (as float32! 5.0) - fcptr/a as float32! 2.0 as float32! 1E-10		;-- imm/reg(path!)
+
+	--test-- "fc-6"
+	--assert fc2 - (as float32! 5.0) = as float32! -2.0							;-- ref/imm
+
+	--test-- "fc-7"
+	--assert fc2 - (fcfoo as float32! 5.0) = as float32! -2.0					;-- ref/reg(block!)
+
+	--test-- "fc-8"
+	--assert fc2 - fcptr/a = as float32! 0.0									;-- ref/reg(path!)
+
+	--test-- "fc-9"
+	--assertf32~= (fcfoo as float32! 5.0) - as float32! 3.0 as float32! 2.0 as float32! 1E-10	;-- reg(block!)/imm
+
+	--test-- "fc-10"
+	--assert (fcfoo as float32! 5.0) - (fcfoo as float32! 3.0) = as float32! 2.0	;-- reg(block!)/reg(block!)
+
+	--test-- "fc-11"
+	--assert (fcfoo as float32! 5.0) - fcptr/a = as float32! 2.0				;-- reg(block!)/reg(path!)
+	
+	--test-- "fc-12"
+	--assert fcptr/a - (fcfoo as float32! 5.0) = as float32! 2.0				;-- reg(path!)/reg(block!)
+
 ===end-group===
 
 ~~~end-file~~~

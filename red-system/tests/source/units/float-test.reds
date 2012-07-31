@@ -46,8 +46,8 @@ Red/System [
 	--test-- "float-ext-1"
 	--assert -1.0 = cos pi
 	
-	;--test-- "float-ext-2"
-	;--assert  0.0 = sin pi		; not working, because of rounding error.
+	--test-- "float-ext-2"
+	--assertf~= 0.0 sin pi	1E-10	; not working, because of rounding error.
 	
 	--test-- "float-ext-3"
 	--assert -1.0 = cos 3.14159265358979
@@ -279,11 +279,113 @@ Red/System [
 
 ===start-group=== "calculations"
 
-  --test-- "fc-1"
-    fc1: 2.0
-    fc1: fc1 / (fc1 - 1.0)
-  --assertf~= 2.0 fc1 0.1E-13
-  
+	fcfoo: func [a [float!] return: [float!]][a]
+	
+	fcptr: declare struct! [a [float!]]
+	fcptr/a: 3.0 
+	
+	fc2: 3.0
+
+	--test-- "fc-1"
+	fc1: 2.0
+	fc1: fc1 / (fc1 - 1.0)
+	--assertf~= 2.0 fc1 0.1E-13
+
+	--test-- "fc-2"
+	--assert 5.0 - 3.0 = 2.0							;-- imm/imm
+
+	--test-- "fc-3"
+	--assert 5.0 - fc2 = 2.0							;-- imm/ref
+
+	--test-- "fc-4"
+	--assert 5.0 - (fcfoo 3.0) = 2.0					;-- imm/reg(block!)
+
+	--test-- "fc-5"
+	print-line 5.0 - fcptr/a
+	--assertf~= 5.0 - fcptr/a 2.0 1E-10					;-- imm/reg(path!)
+
+	--test-- "fc-6"
+	--assert fc2 - 5.0 = -2.0							;-- ref/imm
+
+	--test-- "fc-7"
+	--assert fc2 - (fcfoo 5.0) = -2.0					;-- ref/reg(block!)
+
+	--test-- "fc-8"
+	--assert fc2 - fcptr/a = 0.0						;-- ref/reg(path!)
+
+	--test-- "fc-9"
+	--assertf~= (fcfoo 5.0) - 3.0 2.0 1E-10				;-- reg(block!)/imm
+
+	--test-- "fc-10"
+	--assert (fcfoo 5.0) - (fcfoo 3.0) = 2.0			;-- reg(block!)/reg(block!)
+
+	--test-- "fc-11"
+	--assert (fcfoo 5.0) - fcptr/a = 2.0				;-- reg(block!)/reg(path!)
+	
+	--test-- "fc-12"
+	--assert fcptr/a - (fcfoo 5.0) = 2.0				;-- reg(path!)/reg(block!)
+
+===end-group===
+
+===start-group=== "various regression tests from bugtracker"
+
+	--test-- "issue #227"
+	t: 2.2
+	ss: declare struct! [v [float!]]
+	ss/v: 2.0
+	--assertf~= t - ss/v 0.2 1E-10
+
+	--test-- "issue #226"
+	number: 10
+	array: declare pointer! [byte!]
+	array: as byte-ptr! :number
+	value: as integer! array/value
+	--assert (10 * as integer! array/value) = 100
+
+	--test-- "issue #225"
+	j: 1.0
+	f: 1.0
+	data: declare pointer! [float!]
+	data: :f
+	while [j < 10.0][
+		data/value: j
+		j
+		j: j + 1.0
+	]
+	--assertf~= j 9.0 1E-10
+
+	--test-- "issues #223"
+	a: as pointer! [float!] allocate 10 * size? float!
+	i: 1
+	f: 1.0
+	while [i <= 10][
+		f: f * 0.8
+		;print [f lf]
+		a/i: f 
+		i: i + 1
+	]
+	--assert i = 11
+
+	--test-- "issue #222"
+	s: declare struct! [value [float!]]
+	s/value: 1.0
+	a: as pointer! [float!] allocate 100 * size? float!
+	a/1: s/value    ; value must be in struct!
+	a/1: s/value    ; must be done twice
+	1.0 + 1.0          ; must be followed by an expression
+	if true [a/1: s/value] 
+	--assert a/1 = 1.0
+
+	--test-- "issue #221"
+	x: -1.0
+	y: either x < 0.0 [0.0 - x][x]
+	--assert y = 1.0
+	
+	fabs: func [x [float!] return: [float!] ][
+	    either x < 0.0 [0.0 - x][x]
+	]
+	--assert 3.14 = fabs -3.14
+
 ===end-group===
 
 ~~~end-file~~~
