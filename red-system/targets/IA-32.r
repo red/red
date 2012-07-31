@@ -1234,7 +1234,12 @@ make target-class [
 		emit #{DDD8}								;-- FSTP st0
 	]
 	
-	emit-float-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local spec float32?][
+	emit-float-comparison-op: func [
+		name [word!] a [word!] b [word!] args [block!] reversed? [logic!]
+		/local spec float32?
+	][
+		if reversed? [emit #{D9C9}]					;-- FXCH st0, st1
+		
 		either compiler/job/cpu-version >= 6.0	[	;-- support for FCOMI* only with P6+
 			emit #{DFF1}							;-- FCOMIP st0, st1
 			emit-float-trash-last					;-- pop 2nd argument
@@ -1248,7 +1253,7 @@ make target-class [
 	]
 	
 	emit-float-math-op: func [
-		name [word!] a [word!] b [word!] args [block!]
+		name [word!] a [word!] b [word!] args [block!] reversed? [logic!]
 		/local mod? scale c type spec
 	][
 		all [
@@ -1267,21 +1272,27 @@ make target-class [
 		set-width args/1
 		emit switch name [
 			+ [#{DEC1}]								;-- FADDP st0, st1
-			- [#{DEE9}]								;-- FSUBP st0, st1
+			- [pick [#{DEE1} #{DEE9}] reversed?]	;-- FSUB[R]P st0, st1
 			* [#{DEC9}]								;-- FMULP st0, st1
 			/ [
+				if all [mod? reversed?][
+					emit #{D9C9}					;-- FXCH st0, st1		; for modulo/remainder ops
+				]
 				switch/default mod? [
 					mod [#{D9F8}]					;-- FPREM st0, st1		; floating point remainder
 					rem [
 						compiler/last-type: [integer!]
 						#{D9F5}						;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
 					]
-				][#{DEF9}]							;-- FDIVP st0, st1
+				][pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
 			]
 		]
 	]
 
-	emit-float-operation: func [name [word!] args [block!] /local a b left right spec load-from-stack][
+	emit-float-operation: func [
+		name [word!] args [block!] 
+		/local a b left right spec load-from-stack reversed?
+	][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 
 		if find comparison-op name [reverse args] 	;-- arguments will be pushed in reverse order
@@ -1345,16 +1356,15 @@ make target-class [
 				]
 			]
 		]
-		if any [
+		
+		reversed?: to logic! any [
 			all [b = 'reg any [all [a = 'ref block? right] all [a = 'imm block? right]]]
 			all [a = 'reg any [all [b = 'ref path? left] all [b = 'imm path? left]]]
-		][
-			emit #{D9C9}							;-- FXCH st0, st1
 		]
 		
 		case [
-			find comparison-op name [emit-float-comparison-op name a b args]
-			find math-op	   name	[emit-float-math-op		  name a b args]
+			find comparison-op name [emit-float-comparison-op name a b args reversed?]
+			find math-op	   name	[emit-float-math-op		  name a b args reversed?]
 			true [
 				compiler/throw-error "unsupported operation on floats"
 			]
