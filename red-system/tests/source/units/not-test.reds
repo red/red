@@ -13,6 +13,8 @@ not-nfoo: func [a [logic!] return: [logic!]][not a]
 
 ~~~start-file~~~ "not"
 
+===start-group=== "logical not"
+
   --test-- "not-1" --assert false = not true
   --test-- "not-2" --assert not false
   --test-- "not-3" --assert not not true
@@ -60,6 +62,59 @@ not-nfoo: func [a [logic!] return: [logic!]][not a]
   --test-- "not-23" --assert 3 = (3 and not 4)
   --test-- "not-24" --assert 0 = (4 and 3)
 
+===end-group===
+
+===start-group=== "integer bitwise not"
+  --test-- "ib-not-1"
+  --assert -2 = not 1
+   --test-- "ib-not-2"
+    ibn1-i: 1
+  --assert -2 = not ibn1-i
+  --test-- "ib-not-3"
+  --assert FFFFFFFFh = not 0
+  --test-- "ib-not-3"
+  --assert 0 = not FFFFFFFFh
+  --test-- "ib-not-4"
+  --assert F0F0F0F0h = not 0F0F0F0Fh
+  --test-- "ib-not-5"
+  --assert 0F0F0F0Fh = not F0F0F0F0h
+  --test-- "ib-not-6"
+  --assert AAAAAAAAh = not 55555555h
+  --test-- "ib-not-7"
+  --assert 55555555h = not AAAAAAAAh
+  --test-- "ib-not-8"
+  --assert A5A5A5A5h = not 5A5A5A5Ah
+  --test-- "ib-not-9"
+  --assert 5A5A5A5Ah = not A5A5A5A5h
+  
+===end-group===
+comment {
+===start-group=== "byte bitwise not"
+  --test-- "bb-not-0"
+  --assert (as byte! 255) = not as byte! 0
+  --test-- "bb-not-1"
+  --assert #"^(FF)" = not as byte! 0
+  --test-- "bb-not-2"
+  --assert #"^(FF)" = not #"^(00)"
+  --test-- "bb-not-3"
+  --assert #"^(00)" = not #"^(FF)"
+  --test-- "bb-not-4"
+  --assert #"^(FF)" = not #"^(00)"
+  --test-- "bb-not-5"
+  --assert #"^(F0)" = not #"^(0F)"
+  --test-- "bb-not-6"
+  --assert #"^(AA)" = not #"^(55)"
+  --test-- "bb-not-7"
+  --assert #"^(55)" = not #"^(AA)"
+  --test-- "bb-not-8"
+  --assert #"^(5A)" = not #"^(A5)"
+  --test-- "bb-not-9"
+  --assert #"^(A5)" = not #"^(5A)"
+
+===end-group===
+  }
 ~~~end-file~~~
+
+
 
 ;TBD: write unit tests for bitwise NOT on integer
