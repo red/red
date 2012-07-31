@@ -301,7 +301,6 @@ Red/System [
 	--assert 5.0 - (fcfoo 3.0) = 2.0					;-- imm/reg(block!)
 
 	--test-- "fc-5"
-	print-line 5.0 - fcptr/a
 	--assertf~= 5.0 - fcptr/a 2.0 1E-10					;-- imm/reg(path!)
 
 	--test-- "fc-6"
@@ -352,7 +351,7 @@ Red/System [
 		j
 		j: j + 1.0
 	]
-	--assertf~= j 9.0 1E-10
+	--assertf~= j 10.0 1E-10
 
 	--test-- "issues #223"
 	a: as pointer! [float!] allocate 10 * size? float!
