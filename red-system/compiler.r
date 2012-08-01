@@ -54,7 +54,7 @@ system-dialect: context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: none								;-- global parsing rules helpers
 		
-		not-set!:	  [logic! integer!]					;-- reserved for internal use only
+		not-set!:	  [logic! integer! byte!]			;-- reserved for internal use only
 		number!: 	  [byte! integer!]					;-- reserved for internal use only
 		any-float!:	  [float! float32! float64!]		;-- reserved for internal use only
 		any-number!:  union number! any-float!			;-- reserved for internal use only
