@@ -18,6 +18,7 @@ system-dialect: context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
 	runtime-path: %runtime/
+	red-runtime-path: %../red/runtime/
 	nl: 		  newline
 	
 	loader: do bind load %loader.r 'self
@@ -2189,12 +2190,15 @@ system-dialect: context [
 		files [file! block!]							;-- source file or block of source files
 		/options
 			opts [object!]
+		/loaded 										;-- source code is already in LOADed format
+			src	[block!]
 		/local
-			comp-time link-time err src
+			comp-time link-time err
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
 			
+			unless opts [opts: make options-class []]
 			job: make-job opts last files				;-- last input filename is retained for output name
 			emitter/init opts/link? job
 			if opts/verbosity >= 10 [set-verbose-level opts/verbosity]
@@ -2206,8 +2210,14 @@ system-dialect: context [
 			if opts/runtime? [comp-runtime-prolog]
 			
 			set-verbose-level opts/verbosity
-			foreach file files [compiler/run job loader/process file file]
-			
+			foreach file files [
+				src: either loaded [
+					loader/process/with src file
+				][
+					loader/process file
+				]
+				compiler/run job src file
+			]
 			set-verbose-level 0
 			if opts/runtime? [comp-runtime-epilog]
 			

@@ -34,7 +34,7 @@ loader: context [
 	]
 
 	init: does [
-		include-dirs: reduce [runtime-path]
+		include-dirs: reduce [runtime-path red-runtime-path]
 		clear include-list
 		clear defs
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
@@ -270,8 +270,8 @@ loader: context [
 		insert src stack/1							;-- return source with hidden root header
 	]
 
-	process: func [input [file! string!] /short /local src err path][
-		if verbose > 0 [print ["processing" mold either file? input [input]['in-memory]]]
+	process: func [input [file! string! block!] /with name [file!] /short /local src err path][
+		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
 
 		if file? input [
 			if all [
@@ -285,16 +285,21 @@ loader: context [
 			]
 		]
 		unless short [
-			current-script: pick reduce [input 'in-memory] file? input
+			current-script: case [
+				file? input [input]
+				with		[name]
+				'else		['in-memory]
+			]
 		]
 		src: any [src input]						;-- process string-level compiler directives
 		if file? input [check-marker src]			;-- look for "Red/System" head marker
-		expand-string src
-
-		if error? set/any 'err try [src: load src][	;-- convert source to blocks
-			throw-error ["syntax error during LOAD phase:" mold disarm err]
+		
+		unless block? src [
+			expand-string src
+			if error? set/any 'err try [src: load src][	;-- convert source to blocks
+				throw-error ["syntax error during LOAD phase:" mold disarm err]
+			]
 		]
-
 		unless short [src: expand-block src]		;-- process block-level compiler directives
 		src
 	]
