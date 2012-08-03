@@ -143,6 +143,7 @@ start-time: now/precise
   --run-script-quiet %source/compiler/not-test.r
   --run-script-quiet %source/compiler/print-test.r
   --run-script-quiet %source/compiler/enum-test.r
+  --run-script-quiet %source/compiler/pointer-test.r
 ===end-group===
 
 ***end-run-quiet***
