@@ -1594,11 +1594,16 @@ system-dialect: context [
 		]
 		
 		comp-get-word: has [spec][
-			if spec: select functions to word! pc/1 [
-				unless spec/2 = 'native [
-					throw-error "get-word syntax only reserved for native functions for now"
+			case [
+				spec: select functions to word! pc/1 [
+					unless spec/2 = 'native [
+						throw-error "get-word syntax only reserved for native functions for now"
+					]
+					unless spec/5 = 'callback [append spec 'callback]
 				]
-				unless spec/5 = 'callback [append spec 'callback]
+				none? get-variable-spec to word! pc/1 [
+					throw-error "cannot get a pointer on an undefined variable"
+				]
 			]
 			also pc/1 pc: next pc
 		]
