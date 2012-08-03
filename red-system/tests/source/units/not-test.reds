@@ -88,7 +88,7 @@ not-nfoo: func [a [logic!] return: [logic!]][not a]
   --assert 5A5A5A5Ah = not A5A5A5A5h
   
 ===end-group===
-comment {
+
 ===start-group=== "byte bitwise not"
   --test-- "bb-not-0"
   --assert (as byte! 255) = not as byte! 0
@@ -112,7 +112,7 @@ comment {
   --assert #"^(A5)" = not #"^(5A)"
 
 ===end-group===
-  }
+
 ~~~end-file~~~
 
 
