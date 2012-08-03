@@ -1166,7 +1166,8 @@ make target-class [
 
 		set-width args/1							;-- set reg/mem access width
 		set [a b] get-arguments-class args
-		
+		last-saved?: no								;-- reset flag
+
 		;-- First operand processing
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
@@ -1220,7 +1221,6 @@ make target-class [
 				unless sorted? [emit #{92}]			;-- XCHG eax, edx	; eax = a, edx = b
 			]
 		]
-		last-saved?: no								;-- reset flag
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion on eax if required
 
 		;-- Operator and second operand processing

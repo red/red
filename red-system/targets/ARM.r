@@ -1603,6 +1603,7 @@ make target-class [
 
 		set-width args/1							;-- set reg/mem access width
 		set [a b] get-arguments-class args
+		last-saved?: no								;-- reset flag
 
 		;-- First operand processing
 		left:  compiler/unbox args/1
@@ -1654,7 +1655,6 @@ make target-class [
 				unless sorted? [emit-swap-regs]		;-- swap r0, r1	; r0 = a, r1 = b
 			]
 		]
-		last-saved?: no								;-- reset flag
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion if required
 
 		;-- Operator and second operand processing
