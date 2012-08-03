@@ -1356,7 +1356,7 @@ make target-class [
 				]
 			]
 			get-word! [
-				pools/collect/spec 0 value
+				emit-load value
 				do push-last						;-- PUSH &value
 			]
 			string! [

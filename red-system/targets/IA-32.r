@@ -784,7 +784,7 @@ make target-class [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
 		/with cast [object!]
 		/cdecl										;-- external call
-		/local spec type
+		/local spec type offset
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		if block? value [value: <last>]
@@ -851,8 +851,15 @@ make target-class [
 				]
 			]
 			get-word! [
-				emit #{68}							;-- PUSH &value
-				emit-reloc-addr emitter/get-func-ref to word! value	;-- value memory address
+				value: to word! value
+				either offset: select emitter/stack value [
+					emit #{8D45}					;-- LEA eax, [ebp+n]	; local
+					emit stack-encode offset		;-- n
+					emit #{50}						;-- PUSH eax
+				][
+					emit #{68}						;-- PUSH &value
+					emit-reloc-addr emitter/get-symbol-ref value	;-- symbol address
+				]
 			]
 			string! [
 				spec: emitter/store-value none value [c-string!]
