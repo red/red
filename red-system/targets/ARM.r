@@ -1691,8 +1691,16 @@ make target-class [
 		]
 	]
 
-	emit-float-operation: func [name [word!] args [block!] /local a b left right spec size saved][
+	emit-float-operation: func [name [word!] args [block!] /local a b left right spec size saved pop-a][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
+		
+		pop-a: [
+			emit-float
+				#{ed9d0b00}				;-- FLDD d0, [sp]		; double precision float
+				#{ed9d0a00}				;-- FLDS s0, [sp]		; single precision float
+			emit-i32 join #{e28dd0}		;-- ADD sp, sp, width
+				to char! width
+		]
 
 		set [a b] get-arguments-class args
 
@@ -1729,11 +1737,7 @@ make target-class [
 			reg [
 				if block? left [
 					either b = 'reg [
-						emit-float
-							#{ed9d0b00}				;-- FLDD d0, [sp]		; double precision float
-							#{ed9d0a00}				;-- FLDS s0, [sp]		; single precision float
-						emit-i32 join #{e28dd0}		;-- ADD sp, sp, width
-							to char! width
+						do pop-a
 					][
 					 	emit-float 
 					 		#{ec410b10}				;-- FMDRR d0, r1, r0
@@ -1787,6 +1791,7 @@ make target-class [
 						#{ee010a10}					;-- FMSR s2, r0
 				]
 				if block? right [
+					if path? left [do pop-a]
 					emit-float 
 						#{ec410b11}					;-- FMDRR d1, r1, r0
 						#{ee010a10}					;-- FMSR s2, r0
