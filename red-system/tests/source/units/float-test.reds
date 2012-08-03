@@ -373,7 +373,7 @@ Red/System [
 	a/1: s/value    ; must be done twice
 	1.0 + 1.0          ; must be followed by an expression
 	if true [a/1: s/value] 
-	--assert a/1 = 1.0
+	--assertf~= a/1 1.0 1E-10
 
 	--test-- "issue #221"
 	x: -1.0
