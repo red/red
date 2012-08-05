@@ -182,7 +182,7 @@ emitter: context [
 	]
 	
 	add-symbol: func [
-		name [word! tag!] ptr [integer!] /with refs [block! word! none!] /local spec
+		name [word! path! tag!] ptr [integer!] /with refs [block! word! none!] /local spec
 	][
 		spec: reduce [name reduce ['global ptr make block! 1 any [refs '-]]]
 		append symbols new-line spec yes
@@ -272,7 +272,7 @@ emitter: context [
 	]
 		
 	store-value: func [
-		name [word! none!]
+		name [word! path! none!]
 		value
 		type [block!]
 		/ref ref-ptr
@@ -289,7 +289,7 @@ emitter: context [
 	]
 	
 	store: func [
-		name [word!] value type [block!]
+		name [word! path!] value type [block!]
 		/local new new-global? ptr refs n-spec spec literal?
 	][
 		if new: select compiler/aliased-types type/1 [
@@ -512,10 +512,10 @@ emitter: context [
 		]
 	]
 	
-	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos var sz][
+	enter: func [name [word! path!] locals [block!] /local ret args-sz locals-sz pos var sz][
 		symbols/:name/2: tail-ptr						;-- store function's entry point
 		all [
-			spec: find/last symbols name
+			spec: find/only/last symbols name
 			spec/2/1 = 'native-ref						;-- function's address references
 			spec/2/2: tail-ptr - 1						;-- store zero-based entry point here too
 		]
@@ -543,7 +543,7 @@ emitter: context [
 		args-sz
 	]
 	
-	leave: func [name [word!] locals [block!] args-sz [integer!] locals-sz [integer!]][
+	leave: func [name [word! path!] locals [block!] args-sz [integer!] locals-sz [integer!]][
 		unless empty? exits [resolve-exit-points]
 		target/emit-epilog name locals args-sz locals-sz
 	]
@@ -552,8 +552,10 @@ emitter: context [
 		repend symbols [name reduce ['import none reloc]]
 	]
 	
-	add-native: func [name [word!] /local spec][
-		repend symbols [name spec: reduce ['native none make block! 5]]
+	add-native: func [name [word! path!] /local spec][
+		repend symbols [
+			name spec: reduce ['native none make block! 5]
+		]
 		spec
 	]
 	

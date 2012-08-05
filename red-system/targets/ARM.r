@@ -58,7 +58,7 @@ make target-class [
 		]
 		
 		;-- Collect a literal value to be stored in a pool
-		collect: func [value [integer!] /spec s [word! get-word! block!] /with opcode [binary!] /local pos][
+		collect: func [value [integer!] /spec s [word! path! get-word! block!] /with opcode [binary!] /local pos][	
 			either active? [
 				insert pos: tail values reduce [value emitter/tail-ptr s]
 				emit-reloc-addr/only next pos
@@ -69,9 +69,9 @@ make target-class [
 				emit-i32 #{ea000000}				;-- B <after_value>
 				if spec [
 					spec: switch type?/word s [
-						get-word! [emitter/get-symbol-ref to word! s]
-						word!	  [emitter/symbols/:s]
-						block!	  [s]
+						get-word!   [emitter/get-symbol-ref to word! s]
+						word! path! [emitter/symbols/:s]
+						block!	    [s]
 					]
 					
 					emit-reloc-addr spec/3
@@ -82,7 +82,7 @@ make target-class [
 		
 		;-- Collect a possible position in code for a literals pool
 		mark-entry-point: func [name][
-			if verbose > 0 [print ["new entry-point:" emitter/tail-ptr "(after" name #")"]]
+			if verbose > 0 [print ["new entry-point:" emitter/tail-ptr "(after" mold name #")"]]
 			
 			append entry-points emitter/tail-ptr
 		]
@@ -663,7 +663,7 @@ make target-class [
 	]
 	
 	emit-float-variable: func [
-		name [word! object!] gcode [binary!] lcode [binary!]
+		name [word! path! object!] gcode [binary!] lcode [binary!]
 		/local offset
 	][
 		if object? name [name: compiler/unbox name]
@@ -677,7 +677,7 @@ make target-class [
 	]
 
 	emit-variable: func [
-		name [word! object!] gcode [binary! block! none!] lcode [binary! block!]
+		name [word! path! object!] gcode [binary! block! none!] lcode [binary! block!]
 		/alt										;-- use alternative register (r1)
 		/local offset load-rel Rn
 	][
@@ -716,7 +716,7 @@ make target-class [
 	]
 	
 	emit-variable-poly: func [						;-- polymorphic variable access generation
-		name [word! object!]
+		name [word! path! object!]
 		g-code [binary!]							;-- opcodes for global variables
 		l-code [binary! block!]						;-- opcodes for local variables
 		/alt
@@ -1005,7 +1005,7 @@ make target-class [
 	]
 	
 	emit-store: func [
-		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
+		name [word! path!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
 		spec [block! none!]
 		/local store-qword store-word store-byte
 	][
@@ -1300,7 +1300,7 @@ make target-class [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
 		/with cast [object!]
 		/cdecl
-		/local push-last push-last64 spec type
+		/local push-last push-last64 spec type actions
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		if block? value [value: <last>]
@@ -1308,7 +1308,7 @@ make target-class [
 		push-last:  [emit-i32 #{e92d0001}]			;-- PUSH {r0}
 		push-last64: [emit-i32 #{e92d0003}]			;-- PUSH {r0,r1}
 
-		switch type?/word value [
+		switch type?/word value actions: [
 			tag! [									;-- == <last>
 				type: either cast [cast/type][compiler/last-type]
 				do either find [float! float64!] type/1 [
@@ -1365,15 +1365,22 @@ make target-class [
 				do push-last						;-- PUSH value
 			]
 			path! [
-				emitter/access-path value none
-				if cast [
-					emit-casting cast no
-					compiler/last-type: cast/type
+				either all [
+					not all [compiler/locals find compiler/locals value/1]
+					compiler/ns-path? value 
+				][
+					do select actions 'word!
+				][
+					emitter/access-path value none
+					if cast [
+						emit-casting cast no
+						compiler/last-type: cast/type
+					]
+					emit-push <last>
 				]
-				emit-push <last>
 			]
 			object! [
-				unless path? value/data [
+				unless all [path? value/data not compiler/ns-path? value/data][
 					emit-casting value no
 				]
 				either cdecl [
@@ -1951,10 +1958,10 @@ make target-class [
 		emit-i32 #{e8bd6000}						;-- POP {sp,lr}
 	]
 
-	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size][
-		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
+	emit-prolog: func [name [word! path!] locals [block!] locals-size [integer!] /local args-size][
+		if verbose >= 3 [print [">>>building:" uppercase mold name "prolog"]]
 		
-		fspec: select compiler/functions name
+		fspec: select/only compiler/functions name
 		if all [block? fspec/4/1 fspec/5 = 'callback][
 			;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
 			;; passed via regs r0-r3, further args are passed on the stack (pushed
@@ -2003,8 +2010,11 @@ make target-class [
 		]
 	]
 
-	emit-epilog: func [name locals [block!] args-size [integer!] locals-size [integer!]][
-		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
+	emit-epilog: func [
+		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
+		/local fspec
+	][
+		if verbose >= 3 [print [">>>building:" uppercase mold name "epilog"]]
 			
 		emit-i32 #{e1a0d00b}						;-- MOV sp, fp
 		emit-i32 #{e8bd4800}						;-- POP {fp,lr}
@@ -2019,6 +2029,8 @@ make target-class [
 				#{e28dd000}							;-- ADD sp, sp, args-size
 				round/to/ceiling args-size 4
 		]
+		
+		fspec: select/only compiler/functions name
 		
 		either all [block? fspec/4/1 fspec/5 = 'callback][
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
