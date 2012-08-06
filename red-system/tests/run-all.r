@@ -94,6 +94,10 @@ start-time: now/precise
   --run-test-file-quiet %source/units/float-pointer-test.reds
 ===end-group===
 
+===start-group=== "Context tests"
+  --run-test-file-quiet %source/units/namespace-test.reds
+===end-group===
+
 ===start-group=== "Native functions tests"
   --run-test-file-quiet %source/units/not-test.reds
   --run-test-file-quiet %source/units/size-test.reds

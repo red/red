@@ -27,6 +27,18 @@ Red/System [
       ]
     ]
     
+    i: 987
+	ctx: context [
+		i: 123
+		j: "test"
+		foo: func [return: [integer!]][
+			i: i + 1
+			i
+		]
+		--test-- "in-ns1"
+		--assert 124 = foo
+	]
+    
 ===start-group=== "basic"
 
   --test-- "ns1"
@@ -59,8 +71,15 @@ Red/System [
   --test-- "ns9"
     nmsp1/st/a: 1
   --assert nmsp1/st/a = 1
+  --test-- "ns10"
+  --assert ctx/j/1 = #"t"
+  --test-- "ns11"
+  --assert ctx/foo = 125
+  --test-- "ns12"
+    ctx/i: ctx/i + 1
+  --assert ctx/i = 126
+  --assert i = 987
 
-  
 ===end-group===
 
 ===start-group=== "hiding"
