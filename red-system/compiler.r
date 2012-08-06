@@ -1878,14 +1878,6 @@ system-dialect: context [
 			]
 		]
 		
-		prefix-ns: func [name [word!]][
-			either ns-path [
-				append copy ns-path to word! mold/flat name		;-- avoid newline issue in path
-			][
-				name
-			]
-		]
-		
 		comp-variable-assign: func [
 			set-word [set-word!] expr casted [block! none!]
 			/local name type new value
