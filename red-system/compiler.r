@@ -46,6 +46,7 @@ system-dialect: context [
 		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
 		
 		resolve-alias?:  yes							;-- YES: instruct the type resolution function to reduce aliases
+		decoration:		 #"."							;-- decoration separator for namespaces
 		
 		debug-lines: reduce [							;-- runtime source line/file information storage
 			'records make block!  1000					;-- [address line file] records
@@ -236,7 +237,24 @@ system-dialect: context [
 			compiler/comp-call '***-on-quit reduce [error <last>] ;-- raise a runtime error
 		]
 		
+		undecorate: func [value [word! path! set-word! set-path!] /local v][
+			unless find v: mold value decoration [return value]
+			
+			while [pos: find v decoration][
+				unless find ns-list to path! copy/part v pos [
+					pos: next pos
+					v: append replace/all copy/part head v pos decoration slash pos
+					return load v
+				]
+				v: at v pos + 1
+			]
+			value
+		]
+		
 		backtrack: func [value /local res][
+			if find [word! path! set-word! set-path!] type?/word value [
+				value: undecorate value
+			]
 			pc: any [res: find/only/reverse pc value pc]
 			to logic! res
 		]
@@ -1669,7 +1687,7 @@ system-dialect: context [
 		
 		decorate: func [path [path!] /global /set][
 			set: to logic! set
-			to get pick [set-word! word!] set replace/all mold path slash #"."
+			to get pick [set-word! word!] set replace/all mold path slash decoration
 		]
 		
 		ns-prefix: func [name [word!]][
