@@ -70,10 +70,47 @@ Red/System [
     l: false
     s: "not my string"
     fn: func [pi [pointer! [integer!]]] [pi/value: 987]
+    fn2: func[
+        i [integer!] 
+        return: [integer!]
+      ][ 3 * i]
+    st: declare struct! [
+        a [integer!]
+        b [integer!]
+    ]
   
   --test-- "nmh1"
     nmsp1/i: 789
   --assert i = 321
+  --test-- "nmh2"
+    nmsp1/f: 7.89
+  --assert f = 3.21
+  --test "nmh3"
+    nmsp1/f32: as float32! 7.89
+  --assert f32! = as float32! 3.21
+  --test "nmh4"
+    nmsp1/s: "str"
+  --assert 13 = length? s
+  --test "nmh5"
+    nmh5-i: 1
+    nmsp1/fn :nmh5-1
+  --assert 789 = nmh5-i
+  --test "nmh6"
+    nmh6-i: 1
+    fn :nmh6-i
+  --assert 987 = nmh5-1
+  --test "nmh7"
+    nmh7-i: 2
+  --assert 4 = nmsp1/fn2 nmh7-i
+  --assert 6 = fn2 nmh7-i
+  --test "nmh8"
+    st/a: 1
+    st/b: 2
+    nmsp1/st/a: 100
+    nmsp1/st/b: 200
+  --assert 1 = st/a
+  --assert 2 = st/b
+    
 
 ===end-group===
 
