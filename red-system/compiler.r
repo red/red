@@ -1694,7 +1694,11 @@ system-dialect: context [
 		]
 		
 		comp-path: has [path value][
-			either word? path: check-ns-prefix pc/1 [	;-- possible reduction to word! if ns-prefixed
+			path: pc/1
+			either all [
+				not all [locals find locals path/1]
+				word? path: check-ns-prefix path 		;-- possible reduction to word! if ns-prefixed
+			][
 				comp-word/with path
 			][
 				comp-word/path path/1					;-- check if root word is defined
