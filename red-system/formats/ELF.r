@@ -635,7 +635,7 @@ context [
 		collect [
 			foreach [name meta] job/symbols [
 				if meta/1 = 'native [
-					keep reduce [(append mold name ":F") (meta/2 - 1)]
+					keep reduce [(join name ":F") (meta/2 - 1)]
 				]
 			]
 		]

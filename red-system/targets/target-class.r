@@ -88,7 +88,7 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word! path! object!] gcode [binary! block!] lcode [binary! block!] 
+		name [word! object!] gcode [binary! block!] lcode [binary! block!] 
 		/local offset
 	][
 		if object? name [name: compiler/unbox name]
@@ -196,11 +196,11 @@ target-class: context [
 		reduce [a b]
 	]
 	
-	emit-call: func [name [word! path!] args [block!] sub? [logic!] /local spec fspec res][
+	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
-		fspec: select/only compiler/functions name
-		spec: any [select/only emitter/symbols name next fspec]
+		fspec: select compiler/functions name
+		spec: any [select emitter/symbols name next fspec]
 		type: first spec
 
 		switch type [

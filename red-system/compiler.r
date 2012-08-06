@@ -196,7 +196,7 @@ system-dialect: context [
 					join uppercase/part mold err 1 " error"
 				][reform err]
 				"^/*** in file:" mold script
-				either locals [join "^/*** in function: " mold func-name][""]
+				either locals [join "^/*** in function: " func-name][""]
 			]
 			if pc [
 				print [
@@ -338,11 +338,10 @@ system-dialect: context [
 			]
 		]
 		
-		get-variable-spec: func [name [word! path!] /short][
+		get-variable-spec: func [name [word!]][
 			any [
 				all [locals select locals name]
-				all [word? name select/only globals prefix-ns name]
-				all [not short select/only globals name]
+				select globals name
 			]
 		]
 		
@@ -409,16 +408,15 @@ system-dialect: context [
 			type
 		]
 		
-		resolve-type: func [name [word! path!] /with parent [block! none!] /local type][
+		resolve-type: func [name [word!] /with parent [block! none!] /local type][
 			type: any [
-				all [parent select/only parent name]
+				all [parent select parent name]
 				get-variable-spec name
 			]
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
 			]
 			if all [
-				word? name
 				not local-variable? name
 				any [
 					all [type find enumerations type/1]
@@ -500,16 +498,7 @@ system-dialect: context [
 				integer! [[integer!]]
 				decimal! [[float!]]
 				string!	 [[c-string!]]
-				path!	 [
-					either all [
-						not all [locals find locals value/1]
-						ns-path? value 
-					][
-						resolve-type value
-					][
-						resolve-path-type value
-					]
-				]
+				path!	 [resolve-path-type value]
 				object!  [value/type]
 				block!	 [
 					if value/1 = 'not [return get-type value/2]	;-- special case for NOT multitype native
@@ -585,7 +574,7 @@ system-dialect: context [
 			func?: all [
 				block? expr word? expr/1
 				not find comparison-op expr/1
-				spec: select/only functions expr/1 	;-- works for unary & binary functions only!
+				spec: select functions expr/1 		 ;-- works for unary & binary functions only!
 			]
 			type: case [
 				object? expr [
@@ -613,8 +602,8 @@ system-dialect: context [
 			type
 		]
 		
-		push-call: func [action [word! path! set-word! set-path!]][
-			append/only expr-call-stack action
+		push-call: func [action [word! set-word! set-path!]][
+			append expr-call-stack action
 			if verbose >= 4 [
 				new-line/all expr-call-stack off
 				?? expr-call-stack
@@ -686,17 +675,15 @@ system-dialect: context [
 			]
 		]
 		
-		add-symbol: func [name [word! path!] value type][
+		add-symbol: func [name [word!] value type][
 			unless type [type: get-type value]
-			repend globals [name type: compose [(type)]]
-			if ns-path [repend select/only ns-list ns-path [last name type]]
+			append globals reduce [name type: compose [(type)]]
 			type
 		]
 		
 		add-function: func [type [word!] spec [block!] cc [word!]][
-			if set-word? spec/1 [spec/1: to word! spec/1]
 			repend functions [
-				spec/1 reduce [get-arity spec/3 type cc new-line/all spec/3 off]
+				to word! spec/1 reduce [get-arity spec/3 type cc new-line/all spec/3 off]
 			]		
 		]
 		
@@ -817,7 +804,7 @@ system-dialect: context [
 		]
 		
 		check-func-name: func [name [word!] /only][
-			if find/only functions prefix-ns name [
+			if find functions name [
 				pc: back pc
 				throw-error ["attempt to redefine existing function name:" name]
 			]
@@ -828,7 +815,7 @@ system-dialect: context [
 				pc: back pc
 				throw-error ["attempt to redefine existing enumerator:" name]
 			]
-			if all [not only find any [locals globals] prefix-ns name][
+			if all [not only find any [locals globals] name][
 				pc: back pc
 				throw-error ["a variable is already using the same name:" name]
 			]
@@ -965,7 +952,7 @@ system-dialect: context [
 		check-arguments-type: func [name args /local entry spec list][
 			if find [set-word! set-path!] type?/word name [exit]
 			
-			entry: find/only functions name
+			entry: find functions name
 			if all [
 				not empty? spec: entry/2/4 
 				block? spec/1
@@ -1032,6 +1019,9 @@ system-dialect: context [
 		
 		fetch-func: func [name /local specs type cc][
 			name: to word! name
+			if ns-path [
+				name: decorate join ns-path to word! mold/flat name
+			]
 			check-func-name name
 			check-specs name specs: pc/2
 			type: 'native
@@ -1055,7 +1045,6 @@ system-dialect: context [
 					find specs/1 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
 				]
 			]
-			name: prefix-ns name
 			add-function type reduce [name none specs] cc
 			emitter/add-native name
 			repend natives [name specs pc/3 script all [ns-path copy ns-path]]
@@ -1634,6 +1623,13 @@ system-dialect: context [
 				unless all [locals find locals n][
 					check-func-name/only n				;-- avoid clashing with an existing function name
 				]
+			]		
+			if ns-path [
+				name: either set-word? name [
+					decorate/set join ns-path to word! mold/flat to word! name
+				][
+					check-ns-prefix name
+				]				
 			]
 			either none? value: fetch-expression [		;-- explicitly test for none!
 				none
@@ -1642,8 +1638,8 @@ system-dialect: context [
 			]
 		]
 		
-		comp-func-args: func [name [word! path!] entry [hash!] /local attribute fetch expr args n][
-			push-call pc/1
+		comp-func-args: func [name [word!] entry [hash!] /local attribute fetch expr args n][
+			push-call name
 			pc: next pc							;-- it's a function
 			either attribute: check-variable-arity? entry/2/4 [
 				fetch: [
@@ -1671,24 +1667,37 @@ system-dialect: context [
 			]
 		]
 		
-		comp-path: has [path value][
-			path: pc/1
-			either all [
-				not all [locals find locals path/1]
-				ns-path? path 
-			][
-				case [
-					find/only globals path [				;-- it's a ns/variable
-						last-type: resolve-type path
-						also path pc: next pc
-					]
-					entry: find/only functions path [
-						comp-func-args path entry
-					]
-					'else [throw-error ["undefined path:" mold path]]
+		decorate: func [path [path!] /global /set][
+			set: to logic! set
+			to get pick [set-word! word!] set replace/all mold path slash #"."
+		]
+		
+		ns-prefix: func [name [word!]][
+			decorate join ns-path to word! mold/flat to word! name
+		]
+		
+		
+		check-ns-prefix: func [path [path! set-path!] /set /local len c p][
+			len: length? path
+			p: to path! path
+			loop c: len - 1 [
+				if find/only ns-list copy/part p c [
+					c: c + 1
+					path: copy/part p c
+					change/part p decorate path c
+					if set [p: to set-path! p]
+					return either tail? next p [p/1][p]
 				]
+				c: c - 1
+			]
+			path
+		]
+		
+		comp-path: has [path value][
+			either word? path: check-ns-prefix pc/1 [	;-- possible reduction to word! if ns-prefixed
+				comp-word/with path
 			][
-				comp-word/path path/1						;-- check if root word is defined
+				comp-word/path path/1					;-- check if root word is defined
 				unless value: system-reflexion? path [
 					last-type: resolve-path-type path
 				]
@@ -1713,9 +1722,10 @@ system-dialect: context [
 	
 		comp-word: func [
 			/path symbol [word!]
-			/local entry args n name expr attribute fetch id type ns?
+			/with word [word!]
+			/local entry args n name expr attribute fetch id type ns
 		][
-			name: any [symbol pc/1]
+			name: any [word symbol pc/1]
 			case [
 				entry: select keywords name [			;-- it's a reserved word
 					push-call pc/1
@@ -1723,13 +1733,12 @@ system-dialect: context [
 				]
 				any [
 					all [locals find locals name]
-					ns?: all [ns-path find/only globals prefix-ns name]
+					all [ns-path find globals ns: ns-prefix name name: ns]
 					find globals name
-				][										;-- it's a variable
+				][										;-- it's a variable			
 					if not-initialized? name [
 						throw-error ["local variable" name "used before being initialized!"]
 					]
-					if ns? [name: prefix-ns name]
 					last-type: resolve-type name
 					also name pc: next pc
 				]
@@ -1740,9 +1749,13 @@ system-dialect: context [
 				]
 				all [
 					not path
-					entry: any [
-						find/only functions prefix-ns name	;-- function in namespace
-						find functions name					;-- function in global context
+					any [
+						all [
+							ns-path
+							entry: find functions ns: ns-prefix name
+							name: ns
+						]
+						entry: find functions name
 					]
 				][
 					comp-func-args name entry
@@ -1767,7 +1780,7 @@ system-dialect: context [
 			casting
 		]
 		
-		order-args: func [name [word! path!] args [block!]][
+		order-args: func [name [word!] args [block!]][
 			if any [
 				all [
 					find [import native infix] functions/:name/2
@@ -1788,7 +1801,7 @@ system-dialect: context [
 		]
 
 		comp-call: func [
-			name [word! path!] args [block!] /sub
+			name [word!] args [block!] /sub
 			/local list type res import? left right dup var-arity? saved? arg
 		][
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
@@ -1877,8 +1890,7 @@ system-dialect: context [
 			set-word [set-word!] expr casted [block! none!]
 			/local name type new value
 		][
-			name: to word! set-word
-			
+			name: to word! set-word		
 			if find aliased-types name [
 				backtrack set-word
 				throw-error "name already used for as an alias definition"
@@ -1887,8 +1899,7 @@ system-dialect: context [
 				init-local name expr casted				;-- mark as initialized and infer type if required
 			]		
 			either type: any [
-				all [ns-path get-variable-spec/short name]
-				all [none? ns-path get-variable-spec name]		;-- test if known variable (local or global)	
+				get-variable-spec name					;-- test if known variable (local or global)	
 				get-enumerator name
 			][
 				type: resolve-aliased type		
@@ -1907,7 +1918,7 @@ system-dialect: context [
 					backtrack set-word
 					throw-error "variable has to be initialized at root level"
 				]
-				type: add-symbol prefix-ns name unbox expr casted  ;-- if unknown add it to global context
+				type: add-symbol name unbox expr casted  ;-- if unknown add it to global context
 			]
 			if none? type/1 [
 				backtrack set-word
@@ -1915,7 +1926,7 @@ system-dialect: context [
 			]
 			value: unbox expr
 			if any [block? value path? value][value: <last>]
-			emitter/store prefix-ns name value type
+			emitter/store name value type
 		]
 		
 		comp-expression: func [expr keep? [logic!] /local variable boxed casting new? type][
@@ -2007,7 +2018,9 @@ system-dialect: context [
 				if all [boxed not casting][
 					casting: resolve-aliased boxed/type
 				]
-				unless boxed [boxed: expr]
+				unless boxed [boxed: expr]				
+				if set-path? variable [variable: check-ns-prefix/set variable]
+
 				switch type?/word variable [
 					set-word! [comp-variable-assign variable expr casting]
 					set-path! [comp-path-assign		variable boxed casting]
@@ -2148,7 +2161,7 @@ system-dialect: context [
 		]
 		
 		comp-func-body: func [
-			name [word! path!] spec [block!] body [block!]
+			name [word!] spec [block!] body [block!]
 			/local args-sz local-sz expr ret
 		][
 			locals: spec

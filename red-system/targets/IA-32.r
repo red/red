@@ -74,7 +74,7 @@ make target-class [
 		]
 	]
 	
-	emit-float-variable: func [name [word! path! object!] gcode [binary! block!] lcode [binary! block!]][
+	emit-float-variable: func [name [word! object!] gcode [binary! block!] lcode [binary! block!]][
 		if 'float32! = first compiler/get-type name [
 			gcode: gcode and #{F9FF}
 			lcode: lcode and #{F9FF} 
@@ -98,7 +98,7 @@ make target-class [
 	]
 	
 	emit-variable-poly: func [							;-- polymorphic variable access generation
-		name [word! path! object!]
+		name [word! object!]
 		    g8 [binary!] 		g32 [binary!]			;-- opcodes for global variables
 			l8 [binary! block!] l32 [binary! block!]	;-- opcodes for local variables
 	][
@@ -406,11 +406,11 @@ make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
-		/local offset actions
+		/local offset
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		
-		switch type?/word value actions: [
+		switch type?/word value [
 			char! [
 				emit #{B0}							;-- MOV al, value
 				emit value
@@ -465,11 +465,7 @@ make target-class [
 				emit-load-literal [c-string!] value
 			]
 			path! [
-				either compiler/ns-access? value [
-					do select actions 'word!
-				][
-					emitter/access-path value none
-				]
+				emitter/access-path value none
 			]
 			paren! [
 				emit-load-literal none value
@@ -489,7 +485,7 @@ make target-class [
 	]
 	
 	emit-store: func [
-		name [word! path!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
+		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
 		spec [block! none!]
 		/local store-dword type
 	][
@@ -788,12 +784,12 @@ make target-class [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
 		/with cast [object!]
 		/cdecl										;-- external call
-		/local spec type offset actions
+		/local spec type offset
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		if block? value [value: <last>]
 		
-		switch type?/word value actions: [
+		switch type?/word value [
 			tag! [									;-- == <last>
 				either compiler/any-float? compiler/last-type [
 					set-width/type any [all [cast cast/type] compiler/last-type]
@@ -871,22 +867,18 @@ make target-class [
 				emit-reloc-addr spec/2				;-- one-based index
 			]
 			path! [
-				either compiler/ns-access? value [
-					do select actions 'word!
+				emitter/access-path value none
+				compiler/last-type: either cast [
+					emit-casting cast no
+					cast/type
 				][
-					emitter/access-path value none
-					compiler/last-type: either cast [
-						emit-casting cast no
-						cast/type
-					][
-						compiler/resolve-path-type value
-					]
-					emit-push <last>
+					compiler/resolve-path-type value
 				]
+				emit-push <last>
 			]
 			object! [
 				unless any [
-					all [path? value/data not compiler/ns-path? value/data]
+					path? value/data
 					compiler/any-float? compiler/get-type value/data 
 				][
 					emit-casting value no
@@ -1524,8 +1516,8 @@ make target-class [
 		]
 	]
 
-	emit-prolog: func [name [word! path!] locals [block!] locals-size [integer!] /local fspec][
-		if verbose >= 3 [print [">>>building:" uppercase mold name "prolog"]]
+	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec][
+		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 
 		emit #{55}									;-- PUSH ebp
 		emit #{89E5}								;-- MOV ebp, esp
@@ -1533,7 +1525,7 @@ make target-class [
 			emit #{83EC}							;-- SUB esp, locals-size
 			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
-		fspec: select/only compiler/functions name
+		fspec: select compiler/functions name
 		if all [block? fspec/4/1 fspec/5 = 'callback][
 			emit #{53}								;-- PUSH ebx
 			emit #{56}								;-- PUSH esi
@@ -1542,12 +1534,12 @@ make target-class [
 	]
 
 	emit-epilog: func [
-		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
+		name [word!] locals [block!] args-size [integer!] locals-size [integer!]
 		/local fspec
 	][
-		if verbose >= 3 [print [">>>building:" uppercase mold name "epilog"]]
+		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
-		fspec: select/only compiler/functions name
+		fspec: select compiler/functions name
 		if all [block? fspec/4/1 fspec/5 = 'callback][
 			emit #{5F}								;-- POP edi
 			emit #{5E}								;-- POP esi
