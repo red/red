@@ -16,7 +16,7 @@ Red/System [
       f32: as float32! 2.46
       l: true
       s: "my string"
-      fn: func [pi [pointer! [integer!]]] [pi/value: 789]
+      fn: func [pi [pointer! [integer!]] return: [integer!]] [pi/value: 789 789]
       fn2: func [
         i [integer!] 
         return: [integer!]
@@ -38,18 +38,18 @@ Red/System [
   --test-- "ns4"
   --assert nmsp1/l
   --test-- "ns5"
+  --assert nmsp1/s/1 = #"m"
+  --assert nmsp1/s/2 = #"y"
+  --assert nmsp1/s/3 = #" "
+  --assert nmsp1/s/4 = #"s"
+  --assert nmsp1/s/5 = #"t"
+  --assert nmsp1/s/6 = #"r"
+  --assert nmsp1/s/7 = #"i"
+  --assert nmsp1/s/8 = #"n"
+  --assert nmsp1/s/9 = #"g"
+  --test-- "ns6"
     nmsp1/s: "hello"
   --assert 5 = length? nmsp1/s
-  --test-- "ns6"
-  --assert nmsp1/s/1 = #"m"
-  --assert nmsp1/s/1 = #"y"
-  --assert nmsp1/s/1 = #" "
-  --assert nmsp1/s/1 = #"s"
-  --assert nmsp1/s/1 = #"t"
-  --assert nmsp1/s/1 = #"r"
-  --assert nmsp1/s/1 = #"i"
-  --assert nmsp1/s/1 = #"n"
-  --assert nmsp1/s/1 = #"g"
   --test-- "ns7"
     ns1-b-i: 0
   --assert 789 = nmsp1/fn :ns1-b-i
@@ -85,25 +85,25 @@ Red/System [
   --test-- "nmh2"
     nmsp1/f: 7.89
   --assert f = 3.21
-  --test "nmh3"
+  --test-- "nmh3"
     nmsp1/f32: as float32! 7.89
-  --assert f32! = as float32! 3.21
-  --test "nmh4"
+  --assert nmsp1/f32 = as float32! 7.89
+  --test-- "nmh4"
     nmsp1/s: "str"
   --assert 13 = length? s
-  --test "nmh5"
+  --test-- "nmh5"
     nmh5-i: 1
-    nmsp1/fn :nmh5-1
+    nmsp1/fn :nmh5-i
   --assert 789 = nmh5-i
-  --test "nmh6"
+  --test-- "nmh6"
     nmh6-i: 1
     fn :nmh6-i
-  --assert 987 = nmh5-1
-  --test "nmh7"
+  --assert 987 = nmh6-i
+  --test-- "nmh7"
     nmh7-i: 2
   --assert 4 = nmsp1/fn2 nmh7-i
   --assert 6 = fn2 nmh7-i
-  --test "nmh8"
+  --test-- "nmh8"
     st/a: 1
     st/b: 2
     nmsp1/st/a: 100
