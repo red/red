@@ -621,7 +621,7 @@ system-dialect: context [
 		]
 		
 		push-call: func [action [word! set-word! set-path!]][
-			append expr-call-stack action
+			append/only expr-call-stack action
 			if verbose >= 4 [
 				new-line/all expr-call-stack off
 				?? expr-call-stack
@@ -1641,14 +1641,12 @@ system-dialect: context [
 				unless all [locals find locals n][
 					check-func-name/only n				;-- avoid clashing with an existing function name
 				]
-			]		
-			if ns-path [
-				name: either set-word? name [
-					decorate/set join ns-path to word! mold/flat to word! name
-				][
-					check-ns-prefix name
-				]				
+				if ns-path [
+					name: decorate/set join ns-path to word! mold/flat to word! name
+				]
 			]
+			if set-path? name [name: check-ns-prefix/set name]	
+			
 			either none? value: fetch-expression [		;-- explicitly test for none!
 				none
 			][				
@@ -1704,7 +1702,9 @@ system-dialect: context [
 					path: copy/part p c
 					change/part p decorate path c
 					if set [p: to set-path! p]
-					return either tail? next p [p/1][p]
+					return either tail? next p [
+						either set [to set-word! p/1][p/1]
+					][p]
 				]
 				c: c - 1
 			]
@@ -2032,7 +2032,7 @@ system-dialect: context [
 				if all [boxed not casting][
 					casting: resolve-aliased boxed/type
 				]
-				unless boxed [boxed: expr]				
+				unless boxed [boxed: expr]
 				if set-path? variable [variable: check-ns-prefix/set variable]
 
 				switch type?/word variable [
