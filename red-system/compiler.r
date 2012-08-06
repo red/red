@@ -323,6 +323,13 @@ system-dialect: context [
 			all [locals find locals name]
 		]
 		
+		ns-access?: func [value [path!]][
+			all [
+				not all [locals find locals value/1]
+				ns-path? value
+			]
+		]
+		
 		exists-variable?: func [name [word! set-word!]][
 			name: to word! name
 			to logic! any [

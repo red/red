@@ -926,11 +926,11 @@ make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
-		/local type offset spec
+		/local type offset spec actions
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 
-		switch type?/word value [
+		switch type?/word value actions: [
 			char! [
 				emit-load-imm32 to integer! value
 			]
@@ -987,7 +987,11 @@ make target-class [
 				emit-load-literal [c-string!] value
 			]
 			path! [
-				emitter/access-path value none
+				either compiler/ns-access? value [
+					do select actions 'word!
+				][
+					emitter/access-path value none
+				]
 			]
 			paren! [
 				emit-load-literal none value
@@ -1365,10 +1369,7 @@ make target-class [
 				do push-last						;-- PUSH value
 			]
 			path! [
-				either all [
-					not all [compiler/locals find compiler/locals value/1]
-					compiler/ns-path? value 
-				][
+				either compiler/ns-access? value [
 					do select actions 'word!
 				][
 					emitter/access-path value none
