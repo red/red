@@ -262,5 +262,54 @@ Red/System [
   --assert i4 = 0
 ===end-group===
 
+===start-group=== "pointers"
+  --test-- "nmp1"
+    i: 12345
+    nmsp5: context [
+      pi: declare pointer! [integer!]
+    ]
+    nmsp5/pi: :i
+  --assert nmsp5/pi/value = 12345
+  --test-- "nmp2"
+    pi: declare pointer! [integer!]
+    nmsp6: context [
+      i: 12345
+    ]
+    pi: :nmsp6/i
+  --assert pi/value = 12345
+===end-group===
+
+===start-group=== "nesting"
+  --test-- "nmm1"
+    nmsp7: context! [
+      i: 0
+      nmsp7-1 context! [
+        i: 1
+        j: i * nmsp7/i
+        nmsp7-2 context! [
+          i: 2
+          j: i * nmsp7/i
+          k: i * nmsp7-1/i
+          nmsp7-3 context! [
+            i: 3
+            j: i * nmsp7/i
+            k: i * nmsp7-1/i
+            l: i * nmsp7-2/i
+          ]
+        ]
+      ]
+    ]
+  --assert nmsp7/i = 0
+  --assert nmsp7/nmsp7-1/i = 1
+  --assert nmsp7/nmsp7-1/j = 0
+  --assert nmsp7/nmsp7-1/nmsp7-2/i = 2
+  --assert nmsp7/nmsp7-1/nmsp7-2/j = 0
+  --assert nmsp7/nmsp7-1/nmsp7-2/k = 2
+  --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/i = 3
+  --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/j = 0
+  --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/k = 3
+  --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/l = 6
+===end-group===
+
 ~~~end-file~~~
 
