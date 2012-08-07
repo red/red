@@ -1634,7 +1634,12 @@ system-dialect: context [
 					name: decorate/set join ns-path to word! mold/flat to word! name
 				]
 			]
-			if set-path? name [name: check-ns-prefix/set name]	
+			if set-path? name [
+				if all [ns-path not all [locals find locals name/1]][
+					name: join ns-path name
+				]
+				name: check-ns-prefix/set name
+			]
 			
 			either none? value: fetch-expression [		;-- explicitly test for none!
 				none
