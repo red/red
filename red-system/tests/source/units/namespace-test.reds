@@ -152,9 +152,9 @@ Red/System [
       s/4: #"l"
       s/5: #"o"
       st/a: 1
-      ;st/b: "hello"
-      ;st/c: 12345.678 
-      ;st/d: 1
+      st/b: "hello"
+      st/c: 12345.678 
+      st/d: 1
       until [
         i: i * j
         j: j - 1
@@ -247,7 +247,8 @@ Red/System [
       i2: 4
     ]
   --assert nmsp3/k = 6
-  --assert i2 = 4
+  --assert nmsp3/i2 = 4
+  --assert i2 = 0
   --test-- "nmga2"
       j3: 1
     nmsp4: context [
