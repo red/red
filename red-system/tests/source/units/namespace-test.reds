@@ -130,9 +130,136 @@ Red/System [
   --assert 1 = st/a
   --assert 2 = st/b
     
+===end-group===
+
+===start-group=== "initialisation"
+    nmsp2: context [
+      i: 2
+      j: 3
+      k: 0
+      s: "12345"
+      st: declare struct! [
+        a [integer!]
+        b [c-string!]
+        c [float!]
+        d [integer!]
+      ]
+      
+      k: i * j
+      s/1: #"h"
+      s/2: #"e"
+      s/3: #"l"
+      s/4: #"l"
+      s/5: #"o"
+      st/a: 1
+      ;st/b: "hello"
+      ;st/c: 12345.678 
+      ;st/d: 1
+      until [
+        i: i * j
+        j: j - 1
+        j < 1
+      ]  
+    ]
+  --test-- "nmi1"
+  --assert nmsp2/i = 12
+  --test-- "nmi2"
+  --assert nmsp2/j = 0
+  --test-- "nmi3"
+  --assert nmsp2/k = 6
+  --test-- "nmi4"
+  --assert nmsp2/s/1 = #"h"
+  --assert nmsp2/s/2 = #"e"
+  --assert nmsp2/s/3 = #"l"
+  --assert nmsp2/s/4 = #"l"
+  --assert nmsp2/s/5 = #"o"
+  --test-- "nmi5"
+  --assert nmsp2/st/a = 1
+  --test-- "nmi6"
+  --assert nmsp2/st/b/1 = #"h"
+  --assert nmsp2/st/b/2 = #"e"
+  --assert nmsp2/st/b/3 = #"l"
+  --assert nmsp2/st/b/4 = #"l"
+  --assert nmsp2/st/b/5 = #"o"
+  --test-- "nmi7"
+  --assert nmsp2/st/c = 12345.678
+  --test-- "nmi8"
+  --assert nmsp2/st/d = 1
+  
+===end-group===
+
+===start-group=== "multiple"
+    nmspa: context [
+      i: 1
+    ]
+    nmspb: context [
+      i: 2
+    ]
+    nmspc: context [
+      i: 3
+    ]
+    nmspd: context [
+      i: 4
+    ]
+    nmspe: context [
+      i: 5
+    ]
+    nmspf: context [
+      i: 6
+    ]
+    nmspg: context [
+      i: 7
+    ]
+    nmsph: context [
+      i: 8
+    ]
+    nmspi: context [
+      i: 9
+    ]
+    nmspj: context [
+      i: 10
+    ]
+    nmspk: context [
+      i: 11
+    ]
+  --test-- "nmm1"
+  --assert nmspa/i = 1
+  --assert nmspb/i = 2
+  --assert nmspc/i = 3
+  --assert nmspd/i = 4
+  --assert nmspe/i = 5
+  --assert nmspf/i = 6
+  --assert nmspg/i = 7
+  --assert nmsph/i = 8
+  --assert nmspi/i = 9
+  --assert nmspj/i = 10
+  --assert nmspk/i = 11
 
 ===end-group===
 
+===start-group=== "global access"
+  --test-- "nmga1"
+    i2: 0
+    j: 3
+    nmsp3: context [
+      i: 2
+      k: i * j
+      i2: 4
+    ]
+  --assert nmsp3/k = 6
+  --assert i2 = 4
+  --test-- "nmga2"
+      j3: 1
+    nmsp4: context [
+      i3: 2
+      k3: i3 * j3
+      i4: 4
+    ]
+    i4: 0
+    j3: 3
+  --assert nmsp4/k3 = 2
+  --assert i4 = 0
+===end-group===
 
 ~~~end-file~~~
 
