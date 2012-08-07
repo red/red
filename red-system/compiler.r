@@ -341,13 +341,6 @@ system-dialect: context [
 			all [locals find locals name]
 		]
 		
-		ns-access?: func [value [path!]][
-			all [
-				not all [locals find locals value/1]
-				ns-path? value
-			]
-		]
-		
 		exists-variable?: func [name [word! set-word!]][
 			name: to word! name
 			to logic! any [
@@ -500,10 +493,6 @@ system-dialect: context [
 			][
 				resolve-path-type/parent next path second type
 			]
-		]
-		
-		ns-path?: func [value [path!]][
-			find/only ns-list copy/part value (length? value) - 1
 		]
 		
 		get-type: func [value /local type][
@@ -1179,7 +1168,7 @@ system-dialect: context [
 			pc: next pc
 			
 			either ns-path [
-				append ns-path name
+				append ns-path to word! mold/flat name
 			][
 				ns-path: to lit-path! mold/flat name		;-- workaround newline flag remanence issue
 			]
