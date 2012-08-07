@@ -1735,6 +1735,21 @@ system-dialect: context [
 			]
 			also pc/1 pc: next pc
 		]
+
+		find-through: func [name [word!] /funcs /local c p][
+			if 1 < length? ns-path [
+				name: to word! mold/flat name
+				
+				loop c: (length? ns-path) - 1 [
+					p: decorate append copy/part ns-path c name
+					if find any [all [funcs functions] globals] p  [
+						return p
+					]
+					c: c - 1
+				]
+			]
+			name
+		]
 	
 		comp-word: func [
 			/path symbol [word!]
@@ -1749,7 +1764,14 @@ system-dialect: context [
 				]
 				any [
 					all [locals find locals name]
-					all [ns-path find globals ns: ns-prefix name name: ns]
+					all [
+						ns-path
+						any [
+							find globals ns: ns-prefix name		;-- lookup in current namespace
+							find globals ns: find-through name  ;-- walk through parent namespaces
+						]
+						name: ns
+					]
 					find globals name
 				][										;-- it's a variable			
 					if not-initialized? name [
@@ -1768,7 +1790,10 @@ system-dialect: context [
 					any [
 						all [
 							ns-path
-							entry: find functions ns: ns-prefix name
+							entry: any [
+								find functions ns: ns-prefix name			;-- lookup in current namespace
+								find functions ns: find-through/funcs name	;-- walk through parent namespaces
+							]
 							name: ns
 						]
 						entry: find functions name
