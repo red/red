@@ -281,20 +281,20 @@ Red/System [
 
 ===start-group=== "nesting"
   --test-- "nmm1"
-    nmsp7: context! [
+    nmsp7: context [
       i: 0
-      nmsp7-1 context! [
+      nmsp7-1: context [
         i: 1
         j: i * nmsp7/i
-        nmsp7-2 context! [
+        nmsp7-2: context [
           i: 2
           j: i * nmsp7/i
-          k: i * nmsp7-1/i
-          nmsp7-3 context! [
+          k: i * nmsp7/nmsp7-1/i
+          nmsp7-3: context [
             i: 3
             j: i * nmsp7/i
-            k: i * nmsp7-1/i
-            l: i * nmsp7-2/i
+            k: i * nmsp7/nmsp7-1/i
+            l: i * nmsp7/nmsp7-1/nmsp7-2/i
           ]
         ]
       ]
@@ -310,6 +310,13 @@ Red/System [
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/k = 3
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/l = 6
 ===end-group===
+
+===start-group=== "include"
+  --test-- "nminc1"
+    nmsp8: context [
+      #include %namespace-test-include.reds
+    ]
+  --assert 54321 = nmsp8/i
 
 ~~~end-file~~~
 
