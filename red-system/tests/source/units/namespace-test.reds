@@ -317,6 +317,33 @@ Red/System [
       #include %namespace-test-include.reds
     ]
   --assert 54321 = nmsp8/i
+  
+===end-group===
 
+===start-group=== "libs"
+    nmsp-lib: context [
+      #import [
+        LIBM-file cdecl [
+          abs-int: "abs" [
+            i       [integer!]
+            return: [integer!]
+          ]
+        ]
+      ]
+      #import [
+        LIBC-file cdecl [
+          strnlen: "strnlen" [
+            str     [c-string!]
+            maxlen  [integer!]
+            return: [integer!]
+          ]
+        ]
+      ]
+    ]
+  --test-- "nmlibs1"
+  --assert 1 = nmsp-lib/abs-int -1
+  --test-- "nmlibs2"
+  --assert 11 = nmsp-lib/strnlen "hello world" 20
+  
 ~~~end-file~~~
 
