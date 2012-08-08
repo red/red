@@ -1026,9 +1026,7 @@ system-dialect: context [
 		
 		fetch-func: func [name /local specs type cc][
 			name: to word! name
-			if ns-path [
-				name: decorate join ns-path to word! mold/flat name
-			]
+			if ns-path [name: ns-prefix name]
 			check-func-name name
 			check-specs name specs: pc/2
 			type: 'native
@@ -1112,7 +1110,7 @@ system-dialect: context [
 							specs:						;-- new function mapping marker
 							pos: set name set-word! (
 								name: to word! name
-								if ns-path [name: decorate join ns-path to word! mold/flat name]
+								if ns-path [name: ns-prefix name]
 								check-func-name name
 							)
 							pos: set id   string!   (repend list [id reloc: make block! 1])
@@ -1636,9 +1634,7 @@ system-dialect: context [
 				unless all [locals find locals n][
 					check-func-name/only n				;-- avoid clashing with an existing function name
 				]
-				if ns-path [
-					name: decorate/set join ns-path to word! mold/flat to word! name
-				]
+				if ns-path [name: ns-prefix/set name]
 			]
 			if set-path? name [
 				if all [ns-path not all [locals find locals name/1]][
@@ -1688,8 +1684,10 @@ system-dialect: context [
 			to get pick [set-word! word!] set replace/all mold path slash decoration
 		]
 		
-		ns-prefix: func [name [word!]][
-			decorate join ns-path to word! mold/flat to word! name
+		ns-prefix: func [name [word! path! set-word! set-path!] /set][
+			if set-word? name [name: to word! name]
+			name: join ns-path to word! mold/flat name
+			either set [decorate/set name][decorate name]
 		]
 		
 		
