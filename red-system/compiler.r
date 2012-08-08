@@ -1110,10 +1110,16 @@ system-dialect: context [
 					pos: into [
 						some [
 							specs:						;-- new function mapping marker
-							pos: set name set-word! (check-func-name name: to word! name)
+							pos: set name set-word! (
+								name: to word! name
+								if ns-path [name: decorate join ns-path to word! mold/flat name]
+								check-func-name name
+							)
 							pos: set id   string!   (repend list [id reloc: make block! 1])
 							pos: set spec block!    (
 								check-specs/extend name spec
+								specs: copy specs
+								specs/1: name
 								add-function 'import specs cc
 								emitter/import-function name reloc
 							)
