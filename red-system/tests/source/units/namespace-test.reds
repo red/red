@@ -270,13 +270,13 @@ Red/System [
     ]
     nmsp5/pi: :i
   --assert nmsp5/pi/value = 12345
-  --test-- "nmp2"
-    pi: declare pointer! [integer!]
-    nmsp6: context [
-      i: 12345
-    ]
-    pi: :nmsp6/i
-  --assert pi/value = 12345
+ ; --test-- "nmp2"						;-- getting a pointer on a variable in a context is not
+ ;   pi: declare pointer! [integer!]	;-- a supported feature. Use a local function to get such
+ ;   nmsp6: context [					;-- pointer.
+ ;     i: 12345
+ ;   ]
+ ;   pi: :nmsp6/i
+ ; --assert pi/value = 12345
 ===end-group===
 
 ===start-group=== "nesting"
