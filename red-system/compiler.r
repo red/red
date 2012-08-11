@@ -717,6 +717,77 @@ system-dialect: context [
 			true
 		]
 		
+		decorate: func [path [path!] /global /set][
+			set: to logic! set
+			to get pick [set-word! word!] set replace/all mold path slash decoration
+		]
+
+		ns-join: func [ns [path! word!] name [word! path! set-word! set-path!]][
+			join ns to word! mold/flat name
+		]
+
+		ns-prefix: func [name [word! path! set-word! set-path!] /set][
+			if set-word? name [name: to word! name]
+			name: ns-join ns-path name
+			either set [decorate/set name][decorate name]
+		]
+
+		find-with: func [name [word!] list [hash!]][
+			foreach ns with-stack [
+				if find list decorate ns-join ns name [return ns]
+			]
+			none
+		]
+
+		find-through: func [name [word!] list [hash!] /local c p][
+			if 1 < length? ns-path [
+				name: to word! mold/flat name
+
+				loop c: (length? ns-path) - 1 [
+					p: decorate append copy/part ns-path c name
+					if find list p  [return p]
+					c: c - 1
+				]
+			]
+			name
+		]
+
+		find-with-ns: func [name [word!] list [hash!]][
+			any [
+				all [
+					ns-path
+					any [
+						find list ns: ns-prefix name		  	;-- lookup in current namespace
+						find list ns: find-through name list  	;-- walk through parent namespaces
+					]
+					name: ns
+				]
+				all [
+					with-stack
+					ns: find-with name list
+					decorate ns-join ns name 
+				]
+			]
+		]
+
+		check-ns-prefix: func [path [path! set-path!] /set /local len c p][
+			len: length? path
+			p: to path! path
+			loop c: len - 1 [
+				if find/only ns-list copy/part p c [
+					c: c + 1
+					path: copy/part p c
+					change/part p decorate path c
+					if set [p: to set-path! p]
+					return either tail? next p [
+						either set [to set-word! p/1][p/1]
+					][p]
+				]
+				c: c - 1
+			]
+			path
+		]
+		
 		check-enum-word: func [name [word!] /by-loader /local error][
 			case [
 				any [
@@ -1019,10 +1090,18 @@ system-dialect: context [
 			]
 		]
 		
-		fetch-into: func [code [block! paren!] body [block!] /local save-pc][		;-- compile sub-block
+		fetch-into: func [								;-- compile sub-block
+			code [block! paren!] body [block!] /root
+			/local save-pc level
+		][
+			if root [
+				level: block-level						;-- save block level from parent context
+				clear expr-call-stack
+			]
 			save-pc: pc
 			pc: code
 			do body
+			if root [block-level: level]
 			next pc: save-pc
 		]
 		
@@ -1181,12 +1260,8 @@ system-dialect: context [
 			forall list [unless path? list/1 [list/1: to path! list/1]]
 			with-stack: unique list
 			
-			level: block-level							;-- save block level from parent context
-			clear expr-call-stack
+			fetch-into/root pc/3 [comp-dialect]
 			
-			fetch-into pc/3 [comp-dialect]
-			
-			block-level: level
 			pc: skip pc 3	
 			with-stack: stk
 			none
@@ -1209,12 +1284,8 @@ system-dialect: context [
 				repend ns-list [copy ns-path make hash! 32]
 			]
 
-			level: block-level							;-- save block level from parent context
-			clear expr-call-stack
-		
-			fetch-into pc/1 [comp-dialect]
+			fetch-into/root pc/1 [comp-dialect]
 			
-			block-level: level
 			remove back tail ns-path
 			if empty? ns-path [ns-path: none]
 			pc: next pc
@@ -1712,47 +1783,6 @@ system-dialect: context [
 			]
 		]
 		
-		decorate: func [path [path!] /global /set][
-			set: to logic! set
-			to get pick [set-word! word!] set replace/all mold path slash decoration
-		]
-		
-		ns-join: func [ns [path! word!] name [word! path! set-word! set-path!]][
-			join ns to word! mold/flat name
-		]
-		
-		ns-prefix: func [name [word! path! set-word! set-path!] /set][
-			if set-word? name [name: to word! name]
-			name: ns-join ns-path name
-			either set [decorate/set name][decorate name]
-		]
-		
-		
-		check-ns-prefix: func [path [path! set-path!] /set /local len c p][
-			len: length? path
-			p: to path! path
-			loop c: len - 1 [
-				if find/only ns-list copy/part p c [
-					c: c + 1
-					path: copy/part p c
-					change/part p decorate path c
-					if set [p: to set-path! p]
-					return either tail? next p [
-						either set [to set-word! p/1][p/1]
-					][p]
-				]
-				c: c - 1
-			]
-			path
-		]
-		
-		find-with: func [name [word!] list [hash!]][
-			foreach ns with-stack [
-				if find list decorate ns-join ns name [return ns]
-			]
-			none
-		]
-		
 		comp-path: has [path value][
 			path: pc/1
 			either all [
@@ -1782,37 +1812,6 @@ system-dialect: context [
 				]
 			]
 			also pc/1 pc: next pc
-		]
-
-		find-through: func [name [word!] list [hash!] /local c p][
-			if 1 < length? ns-path [
-				name: to word! mold/flat name
-				
-				loop c: (length? ns-path) - 1 [
-					p: decorate append copy/part ns-path c name
-					if find list p  [return p]
-					c: c - 1
-				]
-			]
-			name
-		]
-		
-		find-with-ns: func [name [word!] list [hash!]][
-			any [
-				all [
-					ns-path
-					any [
-						find list ns: ns-prefix name		  	;-- lookup in current namespace
-						find list ns: find-through name list  	;-- walk through parent namespaces
-					]
-					name: ns
-				]
-				all [
-					with-stack
-					ns: find-with name list
-					decorate ns-join ns name 
-				]
-			]
 		]
 	
 		comp-word: func [
