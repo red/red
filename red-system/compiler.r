@@ -732,7 +732,8 @@ system-dialect: context [
 			either set [decorate/set name][decorate name]
 		]
 
-		find-with: func [name [word!] list [hash!]][
+		find-with: func [name [word! set-word!] list [hash!]][
+			name: to word! name
 			foreach ns with-stack [
 				if find list decorate ns-join ns name [return ns]
 			]
@@ -752,7 +753,7 @@ system-dialect: context [
 			name
 		]
 
-		find-with-ns: func [name [word!] list [hash!]][
+		find-with-ns: func [name [word!] list [hash!] /local ns][
 			any [
 				all [
 					ns-path
@@ -1707,7 +1708,7 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-assignment: has [name value n enum][
+		comp-assignment: has [name value n enum ns][
 			push-call name: pc/1
 			pc: next pc
 			if set-word? name [
@@ -1731,6 +1732,11 @@ system-dialect: context [
 				]
 				unless all [locals find locals n][
 					check-func-name/only n				;-- avoid clashing with an existing function name
+				]			
+				all [
+					with-stack
+					ns: find-with name globals
+					name: decorate/set ns-join ns to word! name
 				]
 				if ns-path [name: ns-prefix/set name]
 			]
@@ -1749,7 +1755,7 @@ system-dialect: context [
 			
 			either none? value: fetch-expression [		;-- explicitly test for none!
 				none
-			][				
+			][
 				new-line/all reduce [name value] no
 			]
 		]
@@ -1862,7 +1868,13 @@ system-dialect: context [
 			unless all [
 				attempt [
 					casting: get-type any [
-						all [set-word? variable to word! variable]
+						all [
+							set-word? variable
+							any [
+								find-with-ns to word! variable globals
+								to word! variable
+							]
+						]
 						to path! variable
 					]
 				]
