@@ -345,5 +345,23 @@ Red/System [
   --test-- "nmlibs2"
   --assert 11 = nmsp-lib/strnlen "hello world" 20
   
+===end-group===
+
+===start-group=== "cross-reference"
+
+	nmxr1: context [c: 789 fooo: func [][nmxr2/e: 123]]
+	nmxr2: context [e: 456 f: nmxr1/c]
+
+	--test-- "ns-cross-1"
+	--assert nmxr2/e = 456
+	nmxr1/fooo
+	--assert nmxr2/e = 123
+	
+	--test-- "ns-cross-2"
+	--assert nmxr2/f = 789
+
+===end-group===
+
+
 ~~~end-file~~~
 
