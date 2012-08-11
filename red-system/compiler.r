@@ -1637,7 +1637,13 @@ system-dialect: context [
 				if ns-path [name: ns-prefix/set name]
 			]
 			if set-path? name [
-				if all [ns-path not all [locals find locals name/1]][
+				if all [
+					ns-path
+					not any [
+						all [locals find locals name/1]
+						find/only ns-list to path! name/1
+					]
+				][
 					name: join ns-path name
 				]
 				name: check-ns-prefix/set name
