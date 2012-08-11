@@ -42,6 +42,7 @@ system-dialect: context [
 		guesses:	   	 make hash!  40					;-- list of lazily defined symbols with namespace [ns/name [type line script]...]
 		ns-path:		 none							;-- namespaces access path
 		ns-list:		 make hash!  8					;-- namespaces definition list [name [word type...]...]
+		with-stack:		 none							;-- namespaces local prefixes stack
 		globals:  	   	 make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
 		
@@ -146,6 +147,7 @@ system-dialect: context [
 			declare		 [comp-declare]
 			null		 [comp-null]
 			context		 [comp-context]
+			with		 [comp-with]
 			
 			true		 [also true pc: next pc]		  ;-- converts word! to logic!
 			false		 [also false pc: next pc]		  ;-- converts word! to logic!
@@ -1165,6 +1167,31 @@ system-dialect: context [
 			]
 		]
 		
+		comp-with: has [ns stk list][
+			ns: pc/2
+			unless any [word? ns block? ns block? pc/3][
+				throw-error "WITH invalid argument"
+			]
+			unless block? ns [ns: reduce [ns]]
+			
+			stk: with-stack
+			with-stack: either with-stack [head insert with-stack ns][copy ns]
+			
+			list: with-stack
+			forall list [unless path? list/1 [list/1: to path! list/1]]
+			with-stack: unique list
+			
+			level: block-level							;-- save block level from parent context
+			clear expr-call-stack
+			
+			fetch-into pc/3 [comp-dialect]
+			
+			block-level: level
+			pc: skip pc 3	
+			with-stack: stk
+			none
+		]
+		
 		comp-context: has [name level][
 			unless block? pc/2 [throw-error "context specification block is missing"]
 		
@@ -1690,9 +1717,13 @@ system-dialect: context [
 			to get pick [set-word! word!] set replace/all mold path slash decoration
 		]
 		
+		ns-join: func [ns [path! word!] name [word! path! set-word! set-path!]][
+			join ns to word! mold/flat name
+		]
+		
 		ns-prefix: func [name [word! path! set-word! set-path!] /set][
 			if set-word? name [name: to word! name]
-			name: join ns-path to word! mold/flat name
+			name: ns-join ns-path name
 			either set [decorate/set name][decorate name]
 		]
 		
@@ -1713,6 +1744,13 @@ system-dialect: context [
 				c: c - 1
 			]
 			path
+		]
+		
+		find-with: func [name [word!] list [hash!]][
+			foreach ns with-stack [
+				if find list decorate ns-join ns name [return ns]
+			]
+			none
 		]
 		
 		comp-path: has [path value][
@@ -1746,19 +1784,35 @@ system-dialect: context [
 			also pc/1 pc: next pc
 		]
 
-		find-through: func [name [word!] /funcs /local c p][
+		find-through: func [name [word!] list [hash!] /local c p][
 			if 1 < length? ns-path [
 				name: to word! mold/flat name
 				
 				loop c: (length? ns-path) - 1 [
 					p: decorate append copy/part ns-path c name
-					if find any [all [funcs functions] globals] p  [
-						return p
-					]
+					if find list p  [return p]
 					c: c - 1
 				]
 			]
 			name
+		]
+		
+		find-with-ns: func [name [word!] list [hash!]][
+			any [
+				all [
+					ns-path
+					any [
+						find list ns: ns-prefix name		  	;-- lookup in current namespace
+						find list ns: find-through name list  	;-- walk through parent namespaces
+					]
+					name: ns
+				]
+				all [
+					with-stack
+					ns: find-with name list
+					decorate ns-join ns name 
+				]
+			]
 		]
 	
 		comp-word: func [
@@ -1774,16 +1828,9 @@ system-dialect: context [
 				]
 				any [
 					all [locals find locals name]
-					all [
-						ns-path
-						any [
-							find globals ns: ns-prefix name		;-- lookup in current namespace
-							find globals ns: find-through name  ;-- walk through parent namespaces
-						]
-						name: ns
-					]
+					all [ns: find-with-ns name globals name: ns]
 					find globals name
-				][										;-- it's a variable			
+				][										;-- it's a variable
 					if not-initialized? name [
 						throw-error ["local variable" name "used before being initialized!"]
 					]
@@ -1799,11 +1846,8 @@ system-dialect: context [
 					not path
 					any [
 						all [
-							ns-path
-							entry: any [
-								find functions ns: ns-prefix name			;-- lookup in current namespace
-								find functions ns: find-through/funcs name	;-- walk through parent namespaces
-							]
+							ns: find-with-ns name functions
+							entry: find functions ns
 							name: ns
 						]
 						entry: find functions name
