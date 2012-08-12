@@ -756,17 +756,17 @@ system-dialect: context [
 		find-with-ns: func [name [word!] list [hash!] /local ns][
 			any [
 				all [
+					with-stack
+					ns: find-with name list
+					decorate ns-join ns name 
+				]
+				all [
 					ns-path
 					any [
 						find list ns: ns-prefix name		  	;-- lookup in current namespace
 						find list ns: find-through name list  	;-- walk through parent namespaces
 					]
 					name: ns
-				]
-				all [
-					with-stack
-					ns: find-with name list
-					decorate ns-join ns name 
 				]
 			]
 		]
@@ -1731,26 +1731,29 @@ system-dialect: context [
 					throw-error "storing a function! requires a type casting"
 				]
 				unless all [locals find locals n][
-					check-func-name/only n				;-- avoid clashing with an existing function name
-				]			
-				all [
-					with-stack
-					ns: find-with name globals
-					name: decorate/set ns-join ns to word! name
+					check-func-name/only n				;-- avoid clashing with an existing function name		
+					any [
+						all [							;-- check if defined in WITH namespaces
+							with-stack
+							ns: find-with name globals
+							name: decorate/set ns-join ns to word! name
+						]
+						all [							;-- check if namespace prefixing is needed
+							ns-path
+							name: ns-prefix/set name
+						]
+					]
 				]
-				if ns-path [name: ns-prefix/set name]
 			]
 			if set-path? name [
-				if all [
-					ns-path
-					not any [
-						all [locals find locals name/1]
-						find/only ns-list to path! name/1
+				unless all [locals find locals name/1][
+					all [
+						ns-path
+						not find/only ns-list to path! name/1
+						name: join ns-path name
 					]
-				][
-					name: join ns-path name
+					name: check-ns-prefix/set name
 				]
-				name: check-ns-prefix/set name
 			]
 			
 			either none? value: fetch-expression [		;-- explicitly test for none!
@@ -1805,19 +1808,31 @@ system-dialect: context [
 			]
 		]
 		
-		comp-get-word: has [spec][
+		comp-get-word: has [spec name ns][
+			name: to word! pc/1
 			case [
-				spec: select functions to word! pc/1 [
+				any [
+					all [
+						ns: find-with-ns name functions
+						spec: select functions ns
+						name: ns
+					]
+					spec: select functions name
+				][			
 					unless spec/2 = 'native [
 						throw-error "get-word syntax only reserved for native functions for now"
 					]
 					unless spec/5 = 'callback [append spec 'callback]
 				]
-				none? get-variable-spec to word! pc/1 [
+				not	any [
+					all [locals find locals name]
+					all [ns: find-with-ns name globals name: ns]
+					find globals name
+				][
 					throw-error "cannot get a pointer on an undefined variable"
 				]
 			]
-			also pc/1 pc: next pc
+			also to get-word! name pc: next pc
 		]
 	
 		comp-word: func [
@@ -2117,8 +2132,6 @@ system-dialect: context [
 					casting: resolve-aliased boxed/type
 				]
 				unless boxed [boxed: expr]
-				if set-path? variable [variable: check-ns-prefix/set variable]
-
 				switch type?/word variable [
 					set-word! [comp-variable-assign variable expr casting]
 					set-path! [comp-path-assign		variable boxed casting]
