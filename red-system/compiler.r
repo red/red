@@ -684,6 +684,10 @@ system-dialect: context [
 			]
 		]
 		
+		add-ns-symbol: func [name [set-word!]][
+			append select/only ns-list ns-path to word! name
+		]
+		
 		add-symbol: func [name [word!] value type][
 			unless type [type: get-type value]
 			append globals reduce [name type: compose [(type)]]
@@ -1247,19 +1251,33 @@ system-dialect: context [
 			]
 		]
 		
-		comp-with: has [ns stk list][
+		comp-with: has [ns stk list words res][
 			ns: pc/2
 			unless any [word? ns block? ns block? pc/3][
 				throw-error "WITH invalid argument"
 			]
 			unless block? ns [ns: reduce [ns]]
+			list: stk: with-stack
 			
-			stk: with-stack
-			with-stack: either with-stack [head insert with-stack ns][copy ns]
+			forall ns [
+				unless path? ns/1 [ns/1: to path! ns/1]
+				unless find/only ns-list ns/1 [throw-error ["undefined context" ns/1]]
+			]
+			with-stack: unique either with-stack [head insert copy with-stack ns][copy ns]
 			
-			list: with-stack
-			forall list [unless path? list/1 [list/1: to path! list/1]]
-			with-stack: unique list
+			list: []
+			foreach ns with-stack [
+				either empty? res: intersect list words: to block! select/only ns-list ns [
+					append list words
+				][
+					throw-warning rejoin [
+						"contexts are using identical word"
+						pick ["s: " ": "] 1 < length? res
+						res
+					]
+				]
+			]
+			clear list
 			
 			fetch-into/root pc/3 [comp-dialect]
 			
@@ -1741,6 +1759,7 @@ system-dialect: context [
 						all [							;-- check if namespace prefixing is needed
 							ns-path
 							name: ns-prefix/set name
+							add-ns-symbol pc/-1
 						]
 					]
 				]
