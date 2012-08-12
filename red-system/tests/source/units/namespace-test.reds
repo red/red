@@ -277,9 +277,9 @@ Red/System [
     ]
     nmsp5/pi: :i
   --assert nmsp5/pi/value = 12345
-  ; --test-- "nmp2"						;-- getting a pointer on a variable in a context is not
-  ;   pi: declare pointer! [integer!]	;-- a supported feature. Use a local function to get such
-  ;   nmsp6: context [					;-- pointer.
+  ; --test-- "nmp2"						;-- getting a pointer on a variable in a context using a path
+  ;   pi: declare pointer! [integer!]	;-- is not a supported feature. Use a local function to
+  ;   nmsp6: context [					;-- get such pointer.
   ;     i: 12345
   ;   ]
   ;   pi: :nmsp6/i
@@ -316,8 +316,18 @@ Red/System [
             k: i * nmsp7/nmsp7-1/i
             l: i * nmsp7/nmsp7-1/nmsp7-2/i
           ]
+          --assert i = 2
+          --assert j = 0
+          --assert k = 2
+		  --assert nmsp7/i = 0
+		  --assert nmsp7/nmsp7-1/i = 1
+		  --assert nmsp7/nmsp7-1/j = 0
         ]
+        --assert i = 1
+        --assert j = 0
+        --assert nmsp7/i = 0
       ]
+      --assert i = 0
     ]
   --assert nmsp7/i = 0
   --assert nmsp7/nmsp7-1/i = 1
@@ -372,12 +382,12 @@ Red/System [
 	nmxr1: context [c: 789 fooo: func [][nmxr2/e: 123]]
 	nmxr2: context [e: 456 f: nmxr1/c]
 
-	--test-- "ns-cross-1"
+  --test-- "ns-cross-1"
 	--assert nmxr2/e = 456
 	nmxr1/fooo
 	--assert nmxr2/e = 123
 	
-	--test-- "ns-cross-2"
+  --test-- "ns-cross-2"
 	--assert nmxr2/f = 789
 
 ===end-group===
@@ -396,6 +406,23 @@ Red/System [
       --assert b = 123
     ]
     
+  --test-- "nsw3"
+    nsw3-nsp1: context [z: declare pointer! [integer!] fooo: func [][nsw3-nsp2/e: 123]]
+	nsw3-nsp2: context [e: 456]
+	
+	with nsw3-nsp1 [
+		c: 123
+		z: null
+	]
+	--assert nsw3-nsp1/z = null
+	
+	e: -1
+	with [nsw3-nsp1 nsw3-nsp2][
+		fooo
+		--assert e = 123
+	]
+	--assert e = -1
+	
 ===end-group===
 
 
