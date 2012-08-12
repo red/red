@@ -402,7 +402,7 @@ Red/System [
   --test-- "nsw2"
     nsw2-nsp1: context [b: 123]
     nsw2-nsp2: context [b: 456]
-    with [nsw2-nsp1 nsw-nsp2] [
+    with [nsw2-nsp1 nsw2-nsp2] [
       --assert b = 123
     ]
     
