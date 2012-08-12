@@ -79,6 +79,13 @@ Red/System [
     ctx/i: ctx/i + 1
   --assert ctx/i = 126
   --assert i = 987
+  --test-- "ns13"
+    ns13i: 1
+    ns13i-nsp: context [
+      ns13i: 2
+      get-ns13i: func [return: [integer!]] [ns13i]
+    ]
+  --assert 2 = ns13i-nsp/get-ns13i
 
 ===end-group===
 
@@ -270,13 +277,26 @@ Red/System [
     ]
     nmsp5/pi: :i
   --assert nmsp5/pi/value = 12345
- ; --test-- "nmp2"						;-- getting a pointer on a variable in a context is not
- ;   pi: declare pointer! [integer!]	;-- a supported feature. Use a local function to get such
- ;   nmsp6: context [					;-- pointer.
- ;     i: 12345
- ;   ]
- ;   pi: :nmsp6/i
- ; --assert pi/value = 12345
+  ; --test-- "nmp2"						;-- getting a pointer on a variable in a context is not
+  ;   pi: declare pointer! [integer!]	;-- a supported feature. Use a local function to get such
+  ;   nmsp6: context [					;-- pointer.
+  ;     i: 12345
+  ;   ]
+  ;   pi: :nmsp6/i
+  ; --assert pi/value = 12345
+  --test-- "nmp3"
+    nmsp6a: context [
+      i: 67890
+      get-addr-i: func [
+        return: [pointer! [integer!]]
+      ][
+        :i
+      ]
+    ]
+    pinmp3: declare pointer! [integer!]
+    pinmp3: nmsp6a/get-addr-i
+  --assert 67890 = pinmp3/value
+ 
 ===end-group===
 
 ===start-group=== "nesting"
@@ -360,6 +380,22 @@ Red/System [
 	--test-- "ns-cross-2"
 	--assert nmxr2/f = 789
 
+===end-group===
+
+===start-group=== "with"
+  --test-- "nsw1"
+    nsw1-nsp: context [b: 123]
+    with nsw1-nsp [
+      --assert b = 123
+    ]
+    
+  --test-- "nsw2"
+    nsw2-nsp1: context [b: 123]
+    nsw2-nsp2: context [b: 456]
+    with [nsw2-nsp1 nsw-nsp2] [
+      --assert b = 123
+    ]
+    
 ===end-group===
 
 
