@@ -404,24 +404,35 @@ Red/System [
     nsw2-nsp2: context [b: 456]
     with [nsw2-nsp1 nsw2-nsp2] [
       --assert b = 123
+      --assert nsw2-nsp1/b = 123
+      --assert nsw2-nsp2/b = 456
     ]
     
   --test-- "nsw3"
     nsw3-nsp1: context [z: declare pointer! [integer!] fooo: func [][nsw3-nsp2/e: 123]]
-	nsw3-nsp2: context [e: 456]
+    nsw3-nsp2: context [e: 456]
 	
-	with nsw3-nsp1 [
-		c: 123
-		z: null
-	]
+    with nsw3-nsp1 [
+      c: 123
+      z: null
+    ]
 	--assert nsw3-nsp1/z = null
 	
-	e: -1
-	with [nsw3-nsp1 nsw3-nsp2][
-		fooo
-		--assert e = 123
-	]
+	  e: -1
+	  with [nsw3-nsp1 nsw3-nsp2][
+	    fooo
+	    --assert e = 123
+	  ]
 	--assert e = -1
+	
+	--test-- "nsw4"
+    nsw4-nsp1: context [e: 456]
+    nsw4-nsp2: context [fooo: func [][e: 123]]
+    with [nsw4-nsp1 nsw4-nsp2] [
+      fooo
+      --assert e = 456
+    ]
+	
 	
 ===end-group===
 
