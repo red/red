@@ -296,7 +296,7 @@ system-dialect: context [
 			]
 		]
 		
-		system-reflexion?: func [path [path!] /local def][	
+		system-reflexion?: func [path [path! set-path!] /local def][
 			if path/1 = 'system [
 				switch path/2 [
 					alias [
@@ -310,6 +310,18 @@ system-dialect: context [
 						]
 						last-type: [integer!]
 						return get-alias-id def			;-- special encoding for aliases
+					]
+					words [
+						unless path/3 [
+							backtrack path
+							throw-error "invalid system/words path access"
+						]
+						path: remove/part copy path 2
+						return either 1 = length? path [
+							either set-path? path [to set-word! path/1][path/1]
+						][
+							path
+						]
 					]
 					; add new special reflective system path here
 				]
@@ -1773,6 +1785,7 @@ system-dialect: context [
 					]
 					name: check-ns-prefix/set name
 				]
+				if all [series? name value: system-reflexion? name][name: value]
 			]
 			
 			either none? value: fetch-expression [		;-- explicitly test for none!
