@@ -721,7 +721,7 @@ system-dialect: context [
 			true
 		]
 		
-		decorate: func [path [path!] /global /set][
+		ns-decorate: func [path [path!] /global /set][
 			set: to logic! set
 			to get pick [set-word! word!] set replace/all mold path slash decoration
 		]
@@ -733,23 +733,23 @@ system-dialect: context [
 		ns-prefix: func [name [word! path! set-word! set-path!] /set][
 			if set-word? name [name: to word! name]
 			name: ns-join ns-path name
-			either set [decorate/set name][decorate name]
+			either set [ns-decorate/set name][ns-decorate name]
 		]
 
-		find-with: func [name [word! set-word!] list [hash!]][
+		ns-resolve-with: func [name [word! set-word!] list [hash!]][
 			name: to word! name
 			foreach ns with-stack [
-				if find list decorate ns-join ns name [return ns]
+				if find list ns-decorate ns-join ns name [return ns]
 			]
 			none
 		]
 
-		find-through: func [name [word!] list [hash!] /local c p][
+		ns-find-through: func [name [word!] list [hash!] /local c p][
 			if 1 < length? ns-path [
 				name: to word! mold/flat name
 
 				loop c: (length? ns-path) - 1 [
-					p: decorate append copy/part ns-path c name
+					p: ns-decorate append copy/part ns-path c name
 					if find list p  [return p]
 					c: c - 1
 				]
@@ -757,18 +757,18 @@ system-dialect: context [
 			name
 		]
 
-		find-with-ns: func [name [word!] list [hash!] /local ns][
+		ns-find-with: func [name [word!] list [hash!] /local ns][
 			any [
 				all [
 					with-stack
-					ns: find-with name list
-					decorate ns-join ns name 
+					ns: ns-resolve-with name list
+					ns-decorate ns-join ns name 
 				]
 				all [
 					ns-path
 					any [
 						find list ns: ns-prefix name		  	;-- lookup in current namespace
-						find list ns: find-through name list  	;-- walk through parent namespaces
+						find list ns: ns-find-through name list ;-- walk through parent namespaces
 					]
 					name: ns
 				]
@@ -782,7 +782,7 @@ system-dialect: context [
 				if find/only ns-list copy/part p c [
 					c: c + 1
 					path: copy/part p c
-					change/part p decorate path c
+					change/part p ns-decorate path c
 					if set [p: to set-path! p]
 					return either tail? next p [
 						either set [to set-word! p/1][p/1]
@@ -1753,8 +1753,8 @@ system-dialect: context [
 					any [
 						all [							;-- check if defined in WITH namespaces
 							with-stack
-							ns: find-with name globals
-							name: decorate/set ns-join ns to word! name
+							ns: ns-resolve-with name globals
+							name: ns-decorate/set ns-join ns to word! name
 						]
 						all [							;-- check if namespace prefixing is needed
 							ns-path
@@ -1832,7 +1832,7 @@ system-dialect: context [
 			case [
 				any [
 					all [
-						ns: find-with-ns name functions
+						ns: ns-find-with name functions
 						spec: select functions ns
 						name: ns
 					]
@@ -1845,7 +1845,7 @@ system-dialect: context [
 				]
 				not	any [
 					all [locals find locals name]
-					all [ns: find-with-ns name globals name: ns]
+					all [ns: ns-find-with name globals name: ns]
 					find globals name
 				][
 					throw-error "cannot get a pointer on an undefined variable"
@@ -1867,7 +1867,7 @@ system-dialect: context [
 				]
 				any [
 					all [locals find locals name]
-					all [ns: find-with-ns name globals name: ns]
+					all [ns: ns-find-with name globals name: ns]
 					find globals name
 				][										;-- it's a variable
 					if not-initialized? name [
@@ -1885,7 +1885,7 @@ system-dialect: context [
 					not path
 					any [
 						all [
-							ns: find-with-ns name functions
+							ns: ns-find-with name functions
 							entry: find functions ns
 							name: ns
 						]
@@ -1905,7 +1905,7 @@ system-dialect: context [
 						all [
 							set-word? variable
 							any [
-								find-with-ns to word! variable globals
+								ns-find-with to word! variable globals
 								to word! variable
 							]
 						]
