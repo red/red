@@ -433,7 +433,31 @@ Red/System [
       --assert e = 456
     ]
 	
-	
+===end-group===
+
+===start-group=== "System/Words"
+
+  --test-- "nssw1"
+    nssw1-a: 1
+    nssw1-nmsp: context [
+      nssw1-a: 2
+      --assert 1 = system/words/nssw1-a
+      --assert 2 = nssw1-a
+      system/words/nssw1-a: 3
+    ]
+  --assert nssw1-a = 3
+  
+  --test-- 'nssw2'
+    nssw2-i: 1
+    nssw2-nmsp: context [
+     nssw2-i: 2
+     pi: declare pointer! [integer!]
+     pi: :system/words/nssw2-i
+     --assert pi/value = 1
+     pi/value = 3
+    ]
+  --assert nssw2-i = 3
+
 ===end-group===
 
 
