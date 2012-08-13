@@ -47,7 +47,7 @@ system-dialect: context [
 		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
 		
 		resolve-alias?:  yes							;-- YES: instruct the type resolution function to reduce aliases
-		decoration:		 #"."							;-- decoration separator for namespaces
+		decoration:		 slash							;-- decoration separator for namespaces
 		
 		debug-lines: reduce [							;-- runtime source line/file information storage
 			'records make block!  1000					;-- [address line file] records
