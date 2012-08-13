@@ -1301,7 +1301,7 @@ system-dialect: context [
 		comp-context: has [name level][
 			unless block? pc/2 [throw-error "context specification block is missing"]
 		
-			name: to word! pc/-1
+			check-keywords name: to word! pc/-1
 			pc: next pc
 			
 			either ns-path [
