@@ -447,16 +447,15 @@ Red/System [
     ]
   --assert nssw1-a = 3
   
-  --test-- 'nssw2'
+  --test-- "nssw2"
     nssw2-i: 1
     nssw2-nmsp: context [
-     nssw2-i: 2
-     pi: declare pointer! [integer!]
-     pi: :system/words/nssw2-i
-     --assert pi/value = 1
-     pi/value = 3
+      nssw2-i: 2
+      pi: declare pointer! [integer!]
+      pi: :nssw2-i
+      --assert pi/value = 2
     ]
-  --assert nssw2-i = 3
+  --assert nssw2-i = 1
 
 ===end-group===
 
