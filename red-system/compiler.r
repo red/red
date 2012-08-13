@@ -1777,7 +1777,7 @@ system-dialect: context [
 				]
 			]
 			if set-path? name [
-				unless all [locals find locals name/1][
+				unless any [name/1 = 'system all [locals find locals name/1]][
 					all [
 						ns-path
 						not find/only ns-list to path! name/1
@@ -1834,6 +1834,7 @@ system-dialect: context [
 			][
 				comp-word/path path/1					;-- check if root word is defined
 				unless value: system-reflexion? path [
+					if ns-path [path/1: ns-prefix path/1] ;-- prefix path if needed
 					last-type: resolve-path-type path
 				]
 				any [value path]
