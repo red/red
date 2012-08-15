@@ -459,6 +459,34 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "context as local variable"
+  --test-- "nscaslv1"
+    nsca1-nsmp1: context [
+      context: 1  
+    ]
+  --assert nsca1-nsmp1/context 1
+  --test-- "nscasv2"
+    nsca2-f: function [
+      return: [integer!]
+      /local
+        context
+    ][
+      context: 1
+      context
+    ]
+  --assert nsca2-f = 1
+  --test-- "nscasv3"
+    nsca3-f: function [
+      return: [integer!]
+      /local
+        context
+    ][
+      context: 1
+    ]
+  --assert nsca3-f = 1
+
+===end-group===
+
 
 ~~~end-file~~~
 
