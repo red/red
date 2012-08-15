@@ -808,7 +808,7 @@ system-dialect: context [
 		check-enum-word: func [name [word!] /by-loader /local error][
 			case [
 				any [
-					find keywords name
+					all [find keywords name name <> 'context]
 					name = 'comment
 				][
 					error: ["attempt to redefine a protected keyword:" name]
@@ -1742,7 +1742,13 @@ system-dialect: context [
 			push-call name: pc/1
 			pc: next pc
 			if set-word? name [
-				check-keywords n: to word! name			;-- forbid keywords redefinition
+				n: to word! name
+				unless all [
+					local-variable? n
+					n = 'context						;-- explicitly allow 'context name for local variables
+				][
+					check-keywords n					;-- forbid keywords redefinition
+				]
 				if find definitions n [
 					backtrack name
 					throw-error ["redeclaration of definition" name]
@@ -1875,7 +1881,10 @@ system-dialect: context [
 		][
 			name: any [word symbol pc/1]
 			case [
-				entry: select keywords name [			;-- it's a reserved word
+				all [
+					not all [local-variable? name name = 'context]
+					entry: select keywords name			;-- it's a reserved word
+				][
 					push-call pc/1
 					do entry
 				]
