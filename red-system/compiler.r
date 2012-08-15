@@ -811,7 +811,7 @@ system-dialect: context [
 					find keywords name
 					name = 'comment
 				][
-					error: ["attempt to redefined a protected keyword:" name]
+					error: ["attempt to redefine a protected keyword:" name]
 				]
 
 				find functions name [
@@ -859,7 +859,7 @@ system-dialect: context [
 				find keywords name
 				name = 'comment
 			][
-				throw-error ["attempt to redefined a protected keyword:" name]
+				throw-error ["attempt to redefine a protected keyword:" name]
 			]
 		]
 		
@@ -1760,7 +1760,7 @@ system-dialect: context [
 				][
 					throw-error "storing a function! requires a type casting"
 				]
-				unless all [locals find locals n][
+				unless local-variable? n [
 					check-func-name/only n				;-- avoid clashing with an existing function name		
 					any [
 						all [							;-- check if defined in WITH namespaces
@@ -1777,7 +1777,7 @@ system-dialect: context [
 				]
 			]
 			if set-path? name [
-				unless any [name/1 = 'system all [locals find locals name/1]][
+				unless any [name/1 = 'system local-variable? name/1][
 					all [
 						ns-path
 						not find/only ns-list to path! name/1
@@ -1827,7 +1827,7 @@ system-dialect: context [
 		comp-path: has [path value][
 			path: pc/1
 			either all [
-				not all [locals find locals path/1]
+				not local-variable? path/1
 				word? path: check-ns-prefix path 		;-- possible reduction to word! if ns-prefixed
 			][
 				comp-word/with path
@@ -1858,7 +1858,7 @@ system-dialect: context [
 					unless spec/5 = 'callback [append spec 'callback]
 				]
 				not	any [
-					all [locals find locals name]
+					local-variable? name
 					all [ns: ns-find-with name globals name: ns]
 					find globals name
 				][
@@ -1880,7 +1880,7 @@ system-dialect: context [
 					do entry
 				]
 				any [
-					all [locals find locals name]
+					local-variable? name
 					all [ns: ns-find-with name globals name: ns]
 					find globals name
 				][										;-- it's a variable
