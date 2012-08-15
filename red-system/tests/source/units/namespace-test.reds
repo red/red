@@ -475,15 +475,6 @@ Red/System [
       context
     ]
   --assert nsca2-f = 1
-  --test-- "nscasv3"
-    nsca3-f: function [
-      return: [integer!]
-      /local
-        context
-    ][
-      context: 1
-    ]
-  --assert nsca3-f = 1
 
 ===end-group===
 
