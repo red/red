@@ -460,11 +460,11 @@ Red/System [
 ===end-group===
 
 ===start-group=== "context as local variable"
-  --test-- "nscaslv1"
-    nsca1-nsmp1: context [
-      context: 1  
-    ]
-  --assert nsca1-nsmp1/context 1
+  ;--test-- "nscaslv1"
+  ;  nsca1-nsmp1: context [
+  ;    context: 1  							;-- this is not allowed as contexts can be nested, so
+  ;  ]										;-- you can't redefine 'context word there, but only
+  ;--assert nsca1-nsmp1/context 1			;-- in a function's body.
   --test-- "nscasv2"
     nsca2-f: function [
       return: [integer!]
