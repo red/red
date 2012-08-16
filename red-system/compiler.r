@@ -981,8 +981,6 @@ system-dialect: context [
 		
 		check-expected-type: func [name [word!] expr expected [block!] /ret /key /local type alias][
 			unless any [not none? expr key][return none]   ;-- expr == none for special keywords
-?? expr			
-?? locals
 			if all [
 				not all [object? expr expr/action = 'null] ;-- avoid null type resolution here
 				not none? expr							;-- expr can be false, so explicit check for none is required
