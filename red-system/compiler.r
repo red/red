@@ -441,12 +441,9 @@ system-dialect: context [
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
 			]
-			if all [
-				not local-variable? name
-				any [
-					all [type find enumerations type/1]
-					get-enumerator name
-				]
+			if any [
+				all [type find enumerations type/1]
+				get-enumerator name
 			][
 				return [integer!]
 			]
@@ -984,6 +981,8 @@ system-dialect: context [
 		
 		check-expected-type: func [name [word!] expr expected [block!] /ret /key /local type alias][
 			unless any [not none? expr key][return none]   ;-- expr == none for special keywords
+?? expr			
+?? locals
 			if all [
 				not all [object? expr expr/action = 'null] ;-- avoid null type resolution here
 				not none? expr							;-- expr can be false, so explicit check for none is required
