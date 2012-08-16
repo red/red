@@ -555,17 +555,21 @@ system-dialect: context [
 			]
 		]
 
-		get-enumerator: func[enum-name [word!] /value /local result][
+		get-enumerator: func [enum-name [word!] /value /local result][
 			foreach [enum-list-name enum-list-data] enumerations [
 				if result: select enum-list-data enum-name [
 					return either value [ result ][ reduce [enum-list-name] ]
 				]
 			]
 		]
-		set-enumerator: func[identifier [word!] name [word! block!] value [integer! word!] /local list][
+		
+		set-enumerator: func [identifier [word!] name [word! block!] value [integer! word!] /local list][
+			if ns-path [identifier: ns-prefix identifier]
+			
 			if word? name [name: reduce [name]]
 			forall name [
-				check-enum-word/by-loader name/1
+				if ns-path [name/1: ns-prefix name/1]
+				check-enum-word name/1
 			]
 			name: head name
 			
@@ -576,7 +580,7 @@ system-dialect: context [
 				word? value
 				none? value: get-enumerator/value value
 			][
-				loader/throw-error ["cannot resolve literal enum value for:" form name]
+				throw-error ["cannot resolve literal enum value for:" form name]
 			]
 			forall name [
 				if verbose > 3 [print ["Enum:" identifier "[" name/1 "=" value "]"]]
@@ -778,9 +782,13 @@ system-dialect: context [
 				]
 				all [
 					ns-path
-					any [
-						find list ns: ns-prefix name		  	;-- lookup in current namespace
-						find list ns: ns-find-through name list ;-- walk through parent namespaces
+					either list = enumerations [
+						get-enumerator ns: ns-prefix name
+					][
+						any [
+							find list ns: ns-prefix name		  	;-- lookup in current namespace
+							find list ns: ns-find-through name list ;-- walk through parent namespaces
+						]
 					]
 					name: ns
 				]
@@ -805,7 +813,7 @@ system-dialect: context [
 			path
 		]
 		
-		check-enum-word: func [name [word!] /by-loader /local error][
+		check-enum-word: func [name [word!] /local error][
 			case [
 				any [
 					all [find keywords name name <> 'context]
@@ -845,13 +853,7 @@ system-dialect: context [
 					error:  ["redeclaration of enumerator:" name ]
 				]
 			]
-			if error [
-				either by-loader [
-					loader/throw-error error
-				][
-					throw-error error
-				]
-			]
+			if error [throw-error error]
 		]
 		
 		check-keywords: func [name [word!]][
@@ -1244,6 +1246,32 @@ system-dialect: context [
 			]
 		]
 		
+		process-enum: func [name value /local enum-value enum-names][
+			unless word? name [throw-error "enumeration expected a word as name"]
+			
+			either block? value [
+				check-enum-word name 					;-- first checking enumeration identifier possible conflicts
+				parse value [
+					(enum-value: 0)
+					any [
+						[
+							copy enum-names word!
+							| (enum-names: make block! 10) some [
+								set enum-name set-word!
+								(append enum-names to word! enum-name)
+							]	set enum-value [integer! | word!]
+						] 
+						(enum-value: set-enumerator name enum-names enum-value)
+						| set enum-name 1 skip (
+							throw-error ["invalid enumeration:" to word! enum-name]
+						)
+					]
+				]
+			][
+				throw-error ["invalid enumeration (block required!):" mold value]
+			]
+		]
+		
 		comp-chunked: func [body [block!]][
 			emitter/chunks/start
 			do body
@@ -1254,6 +1282,7 @@ system-dialect: context [
 			switch/default pc/1 [
 				#import  [process-import  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
+				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
 				#script	 [								;-- internal compiler directive
 					compiler/script: secure-clean-path pc/2	;-- set the origin of following code
 					pc: skip pc 2
@@ -1832,10 +1861,19 @@ system-dialect: context [
 		
 		comp-path: has [path value][
 			path: pc/1
+			all [
+				word? last path
+				not local-variable? path/1
+			]
 			either all [
 				not local-variable? path/1
 				word? path: check-ns-prefix path 		;-- possible reduction to word! if ns-prefixed
 			][
+				if value: get-enumerator/value path [
+					last-type: [integer!]
+					pc: next pc
+					return value			
+				]
 				comp-word/with path
 			][
 				comp-word/path path/1					;-- check if root word is defined
@@ -1899,7 +1937,12 @@ system-dialect: context [
 					last-type: resolve-type name
 					also name pc: next pc
 				]
-				type: get-enumerator name [
+				type: all [
+					any [
+						all [ns: ns-find-with name enumerations get-enumerator name: ns]
+						get-enumerator name
+					]
+				][
 					last-type: type
 					if verbose >= 3 [print ["ENUMERATOR" name "=" last-type]]
 					also name pc: next pc
@@ -2181,6 +2224,22 @@ system-dialect: context [
 			]
 		]
 		
+		check-enum-symbol: has [value][
+			if all [									;-- if enum, replace it with its integer value
+				word? pc/1
+				not local-variable? pc/1
+				value: any [
+					all [
+						value: ns-find-with pc/1 enumerations
+						get-enumerator/value value
+					]
+					get-enumerator/value pc/1
+				]
+			][
+				change pc value
+			]
+		]
+		
 		infix?: func [pos [block! paren!] /local specs][
 			all [
 				not tail? pos
@@ -2210,6 +2269,7 @@ system-dialect: context [
 		
 		fetch-expression: func [/final /keep /local expr pass value][
 			check-infix-operators
+			
 			if verbose >= 4 [print ["<<<" mold pc/1]]
 			pass: [also pc/1 pc: next pc]
 			
@@ -2219,13 +2279,7 @@ system-dialect: context [
 			]
 			if job/debug? [store-dbg-lines]
 			
-			if all [
-				word? pc/1
-				not local-variable? pc/1
-				value: get-enumerator/value pc/1
-			][
-				change pc value
-			]
+			check-enum-symbol
 
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
