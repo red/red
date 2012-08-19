@@ -1858,13 +1858,16 @@ system-dialect: context [
 		
 		comp-path: has [path value][
 			path: pc/1
-			all [
-				word? last path
-				not local-variable? path/1
-			]
 			either all [
 				not local-variable? path/1
-				word? path: check-ns-prefix path 		;-- possible reduction to word! if ns-prefixed
+				any [
+					word? path: check-ns-prefix path 		;-- possible reduction to word! if ns-prefixed
+					all [
+						ns-path
+						word? value: check-ns-prefix join ns-path path 		;-- possible reduction to word! if ns-prefixed
+						path: value
+					]
+				]
 			][
 				if value: get-enumerator/value path [
 					last-type: [integer!]
