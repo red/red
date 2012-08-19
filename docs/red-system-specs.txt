@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 25/07/2012
-	Revision: 34
+	Date: 19/08/2012
+	Revision: 35
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1525,6 +1525,136 @@ Example:
  	var: 10								;-- 'var is a local variable here
  	foo + var + bar						;-- will return 14
  ]
+ 
+---Namespaces
+
+It is possible to define local namespaces to provide local contexts able to encapsulate source code.
+
+<b>Syntax</b>
+
+ <name>: context [<code>]
+
+ <name> : namespace identifier
+ <code> : body block of code
+ 
+Any code is allowed in the body block including function definitions. All variables and functions created will have a local name that can be accessed locally or from outside using context name prefix in a path notation:
+
+ <name>/<variable>						 ;-- reading a variable from outside
+ <name>/<variable>:						 ;-- setting a variable from outside
+ <name>/<func-name>						 ;-- invoking a function from outside
+
+The following elements are affected by namespace and become locally defined when declared in a context body block:
+
+* variables
+
+* functions
+
+* imported functions
+
+* enumerations
+
+Note: alias declarations remain global.
+
+<u>Example</u>:
+
+ b: 0
+ 
+ a: context [
+ 	b: 123
+
+ 	foo: func [/local b][
+ 		b: 1
+ 		print-line b
+ 	]
+
+ 	print-line b						;-- will output 123
+ 	foo									;-- will output 1
+ ]
+
+ print-line b							;-- will output 0
+ print-line a/b							;-- will output 123
+ a/foo									;-- will output 1
+ a/b: a/b + 1
+ print-line a/b							;-- will output 124
+
+
+\note Namespaces are not objects!
+Even if they look like objects, namespaces only exist at compilation time, so they cannot be manipulated at run-time.
+
+/note
+
++++Nested namespaces
+
+Nesting namespaces is allowed. When conflicting names are used for variables or functions, the nearest definition is used.
+
+<u>Example</u>:
+
+ a: context [
+ 	b: 123
+
+ 	c: context [
+ 		#enum colors! [red green blue]
+ 		b: "hello"
+ 		foo: func [][print-line b]
+ 	]
+
+ 	print-line b						;-- will output 123
+ 	c/foo								;-- will output hello
+ ]
+
+ print-line a/b							;-- will output 123
+ a/c/foo								;-- will output hello
+ print-line a/c/b/2						;-- will output e
+ print-line a/c/blue					;-- will output 2
+
+
++++Global context access
+
+From nested namespaces, in order to access an indentifier from global context when it is also defined locally, a special virtual path is provided to solve such cases:
+
+<b>Syntax</b>
+
+ system/words/<identifier>
+ system/words/<identifier>:				;-- when identifier is a variable name
+
+<u>Example</u>:
+
+ b: 123
+ 
+ a: context [
+ 	b: 0
+ 	print-line system/words/b			;-- will output 0
+ ]
+
++++WITH keyword
+
+In order to limit source code verbosity, the namespace prefix can be omitted if the source code is enclosed in a <b>with</b> body block.
+
+<b>Syntax</b>
+
+ with <name>    [<code>]
+ with [<names>] [<code>]				;-- alternative syntax for multiple names
+
+ <name>  : namespace identifier
+ <names> : list of namespace identifiers
+ <code>  : body block of code
+
+Note: If multiple namespaces are specified and if they share same identifier(s), priority is given to namespaces that are mentioned first.
+
+<u>Example</u>:
+
+ a: context [b: 0]
+ c: context [b: 1 d: 123]
+
+ with a [
+ 	print-line b						;-- will output 0
+ 	print-line c/b						;-- will output 1
+ ]
+
+ with [a c][
+ 	print-line d						;-- will output 123
+ 	print-line b						;-- will output 0 ('a is before 'c)
+ ]
 
 ===Infix operators
 
@@ -2667,13 +2797,14 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     >>			>=		    >>>
     alias 		all		    and
     any			as			assert
-    case		comment		declare
-    either	    exit	    false
-    func 	  	function    if
-    not			or		    pop
-    push		return      size?
-    switch 		true		until
-    while  		xor
+    case		comment		context
+    declare     either	    exit
+    false		func 	  	function
+    if			not			or
+    pop			push		return
+    size?		switch 		true
+    until		while  		with
+    xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -2791,6 +2922,13 @@ will output:
 
 
 ===Document History
+
+*<b>19/08/2012 - revision 35</b>
+
+*>Added namespaces description
+
+*>Added CONTEXT and WITH to keywords list.
+
 
 *<b>25/07/2012 - revision 34</b>
 
