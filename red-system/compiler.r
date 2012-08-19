@@ -123,7 +123,7 @@ system-dialect: context [
 		type-spec: [
 			pos: some type-syntax | set value word! (			;-- multiple types allowed for internal usage			
 				unless any [
-					find aliased-types value
+					find-aliased value
 					find enumerations value
 				][throw false]	;-- stop parsing if unresolved type
 			)
@@ -283,7 +283,7 @@ system-dialect: context [
 		get-type-id: func [value /local type alias][
 			with-alias-resolution off [type: resolve-expr-type value]
 			
-			either alias: find aliased-types type/1 [
+			either alias: find-aliased type/1 [
 				get-alias-id alias
 			][
 				type: resolve-aliased type
@@ -304,7 +304,7 @@ system-dialect: context [
 							backtrack path
 							throw-error "invalid system/alias path access"
 						]
-						unless def: find aliased-types path/3 [
+						unless def: find-aliased path/3 [
 							backtrack path
 							throw-error ["undefined alias name:" path/3]
 						]
@@ -417,6 +417,11 @@ system-dialect: context [
 			resolve-alias?: saved
 		]
 		
+		find-aliased: func [type [word!] /local ns][
+			if ns: ns-find-with type aliased-types [type: ns]
+			select aliased-types type
+		]
+		
 		resolve-aliased: func [type [block!] /local name][
 			name: type/1
 			all [
@@ -427,7 +432,7 @@ system-dialect: context [
 					find enumerations name
 					type: [integer!]
 				]
-				not type: select aliased-types name
+				not type: find-aliased name
 				throw-error ["unknown type:" type]
 			]
 			type
@@ -448,7 +453,7 @@ system-dialect: context [
 				return [integer!]
 			]
 			unless any [not resolve-alias? base-type? type/1][
-				type: select aliased-types type/1
+				type: find-aliased type/1
 			]
 			type
 		]
@@ -827,7 +832,7 @@ system-dialect: context [
 					error:  ["attempt to redefine existing definition:" name]
 				]
 
-				find aliased-types name [
+				find-aliased name [
 					error:  ["attempt to redefine existing alias definition:" name]
 				]
 
@@ -987,7 +992,7 @@ system-dialect: context [
 				first type: resolve-expr-type expr		;-- first => deep check that it's not [none]
 			][											;-- check if a type is returned or none
 				type: resolve-aliased type
-				if alias: select aliased-types expected/1 [expected: alias]
+				if alias: find-aliased expected/1 [expected: alias]
 			]
 			if all [
 				ret
@@ -1362,12 +1367,12 @@ system-dialect: context [
 				[pc/2 pc/3]
 			][
 				unless all [word? pc/2 resolve-aliased reduce [pc/2]][
-					throw-error [
-						"declaring literal for type" pc/2 "not supported"
-					]
+					throw-error ["declaring literal for type" pc/2 "not supported"]
 				]
+				value: pc/2
+				if ns-path [value: ns-prefix value]
 				offset: 2
-				['struct! pc/2]
+				['struct! value]
 			]
 			pc: skip pc offset
 			value
@@ -1384,7 +1389,7 @@ system-dialect: context [
 			
 			unless any [
 				parse blockify ctype type-syntax
-				find aliased-types ctype
+				find-aliased ctype
 			][
 				throw-error ["invalid target type casting:" ctype]
 			]
@@ -1434,7 +1439,13 @@ system-dialect: context [
 			unless pc/2 = 'struct! [
 				throw-error "ALIAS only works on struct! type"
 			]
-			if find aliased-types name: to word! pc/-1 [
+			name: to word! pc/-1
+			all [
+				not base-type? name
+				ns-path
+				name: ns-prefix name
+			]
+			if find aliased-types name [
 				pc: back pc
 				throw-error reform [
 					"alias name already defined as:"
@@ -1459,7 +1470,7 @@ system-dialect: context [
 				word? expr: pc/1
 				type: any [
 					all [base-type? expr expr]
-					select aliased-types expr
+					find-aliased expr
 				]
 				pc: next pc
 			][
