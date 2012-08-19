@@ -1553,7 +1553,7 @@ The following elements are affected by namespace and become locally defined when
 
 * enumerations
 
-Note: alias declarations remain global.
+* aliases
 
 <u>Example</u>:
 
