@@ -1291,7 +1291,7 @@ system-dialect: context [
 		
 		comp-with: has [ns stk list words res][
 			ns: pc/2
-			unless any [word? ns block? ns block? pc/3][
+			unless all [any [word? ns block? ns] block? pc/3][
 				throw-error "WITH invalid argument"
 			]
 			unless block? ns [ns: reduce [ns]]
