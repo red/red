@@ -1623,7 +1623,7 @@ From nested namespaces, in order to access an indentifier from global context wh
  
  a: context [
  	b: 0
- 	print-line system/words/b			;-- will output 0
+ 	print-line system/words/b			;-- will output 123
  ]
 
 +++WITH keyword
