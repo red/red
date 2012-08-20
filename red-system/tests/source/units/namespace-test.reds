@@ -362,9 +362,8 @@ Red/System [
       ]
       #import [
         LIBC-file cdecl [
-          strnlen: "strnlen" [
+          strlen: "strlen" [
             str     [c-string!]
-            maxlen  [integer!]
             return: [integer!]
           ]
         ]
@@ -373,7 +372,7 @@ Red/System [
   --test-- "nmlibs1"
   --assert 1 = nmsp-lib/abs-int -1
   --test-- "nmlibs2"
-  --assert 11 = nmsp-lib/strnlen "hello world" 20
+  --assert 11 = nmsp-lib/strlen "hello world"
   
 ===end-group===
 

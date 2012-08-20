@@ -49,9 +49,8 @@ lt-int!: alias struct! [
         return: [integer!]
       ]]
     ]
-    strnlen: "strnlen" [
+    strlen: "strlen" [
       str     [c-string!]
-      maxlen  [integer!]
       return: [integer!]
     ]
   ]
@@ -68,8 +67,7 @@ lt-int!: alias struct! [
   
   --test-- "lib3"
     s: "hello, world"
-  --assert 12 = strnlen s 32
-  --assert 5 = strnlen s 5
+  --assert 12 = strlen s 32
   
   --test-- "lib4"
     new: "123456789012"
