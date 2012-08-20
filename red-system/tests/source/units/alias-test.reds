@@ -84,5 +84,9 @@ Red/System [
   --assert a6-struct/s2/a = #"x"
   --assert a6-struct/s2/b = #"y"
   
+  --test-- "alias-7"						;-- regression test from issue #235
+	a!: alias struct! [a [byte!]]
+	--assert system/alias/a! = system/alias/a!
+  
 ~~~end-file~~~
 
