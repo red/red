@@ -283,7 +283,7 @@ system-dialect: context [
 		get-type-id: func [value /local type alias][
 			with-alias-resolution off [type: resolve-expr-type value]
 			
-			either alias: find-aliased type/1 [
+			either alias: find-aliased/position type/1 [		
 				get-alias-id alias
 			][
 				type: resolve-aliased type
@@ -304,7 +304,7 @@ system-dialect: context [
 							backtrack path
 							throw-error "invalid system/alias path access"
 						]
-						unless def: find-aliased path/3 [
+						unless def: find-aliased/position path/3 [
 							backtrack path
 							throw-error ["undefined alias name:" path/3]
 						]
@@ -417,9 +417,10 @@ system-dialect: context [
 			resolve-alias?: saved
 		]
 		
-		find-aliased: func [type [word!] /local ns][
+		find-aliased: func [type [word!] /position /local ns pos][
 			if ns: ns-find-with type aliased-types [type: ns]
-			select aliased-types type
+			pos: find aliased-types type
+			either position [pos][all [pos pos/2]]
 		]
 		
 		resolve-aliased: func [type [block!] /local name][
