@@ -742,7 +742,7 @@ system-dialect: context [
 		
 		ns-decorate: func [path [path!] /global /set][
 			set: to logic! set
-			to get pick [set-word! word!] set replace/all mold path slash decoration
+			to get pick [set-word! word!] set mold path	;-- unless / use: replace/all mold path slash decoration
 		]
 
 		ns-join: func [ns [path! word!] name [word! path! set-word! set-path!]][
