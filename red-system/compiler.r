@@ -124,6 +124,7 @@ system-dialect: context [
 			pos: some type-syntax | set value word! (			;-- multiple types allowed for internal usage			
 				unless any [
 					find-aliased value
+					ns-find-with value enumerations
 					find enumerations value
 				][throw false]	;-- stop parsing if unresolved type
 			)
@@ -786,7 +787,8 @@ system-dialect: context [
 				all [
 					ns-path
 					either list = enumerations [
-						get-enumerator ns: ns-prefix name
+						ns: ns-prefix name
+						any [find enumerations ns get-enumerator ns]
 					][
 						any [
 							find list ns: ns-prefix name		  	;-- lookup in current namespace
