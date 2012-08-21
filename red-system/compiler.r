@@ -149,6 +149,7 @@ system-dialect: context [
 			null		 [comp-null]
 			context		 [comp-context]
 			with		 [comp-with]
+			comment 	 [comp-comment]
 			
 			true		 [also true pc: next pc]		  ;-- converts word! to logic!
 			false		 [also false pc: next pc]		  ;-- converts word! to logic!
@@ -835,10 +836,7 @@ system-dialect: context [
 		
 		check-enum-word: func [name [word!] /local error][
 			case [
-				any [
-					all [find keywords name name <> 'context]
-					name = 'comment
-				][
+				all [find keywords name name <> 'context][
 					error: ["attempt to redefine a protected keyword:" name]
 				]
 
@@ -877,10 +875,7 @@ system-dialect: context [
 		]
 		
 		check-keywords: func [name [word!]][
-			if any [
-				find keywords name
-				name = 'comment
-			][
+			if find keywords name [
 				throw-error ["attempt to redefine a protected keyword:" name]
 			]
 		]
@@ -1310,6 +1305,12 @@ system-dialect: context [
 			][
 				throw-error ["unknown directive" pc/1]
 			]
+		]
+		
+		comp-comment: does [
+			pc: next pc
+			either block? pc/1 [pc: next pc][fetch-expression]
+			none
 		]
 		
 		comp-with: has [ns stk list words res][
@@ -2351,14 +2352,8 @@ system-dialect: context [
 					]
 				][
 					while [not tail? pc][
-						case [
-							paren? pc/1 [
-								unless infix? at pc 2 [raise-paren-error]
-								expr: do fetch
-							]
-							all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]	
-							'else [expr: do fetch]
-						]
+						if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
+						expr: do fetch
 						pop-calls
 					]
 				]
@@ -2387,7 +2382,6 @@ system-dialect: context [
 						unless infix? at pc 2 [raise-paren-error]
 						expr: fetch-expression/final/keep
 					]
-					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
 					'else [expr: fetch-expression/final/keep]
 				]
 				pop-calls
