@@ -567,7 +567,9 @@ system-dialect: context [
 			]
 		]
 		
-		set-enumerator: func [identifier [word!] name [word! block!] value [integer! word!] /local list][
+		set-enumerator: func [
+			identifier [word!] name [word! block!] value [integer! word!] /local list v
+		][
 			if ns-path [identifier: ns-prefix identifier]
 			
 			if word? name [name: reduce [name]]
@@ -582,7 +584,13 @@ system-dialect: context [
 			]
 			if all [
 				word? value
-				none? value: get-enumerator/value value
+				none? value: any [
+					all [
+						v: ns-find-with value enumerations
+						get-enumerator/value v
+					]
+					get-enumerator/value value
+				]
 			][
 				throw-error ["cannot resolve literal enum value for:" form name]
 			]
