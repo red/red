@@ -756,10 +756,17 @@ system-dialect: context [
 			either set [ns-decorate/set name][ns-decorate name]
 		]
 
-		ns-resolve-with: func [name [word! set-word!] list [hash!]][
+		ns-resolve-with: func [name [word! set-word!] list [hash!] /local enum][
 			name: to word! name
 			foreach ns with-stack [
-				if find list ns-decorate ns-join ns name [return ns]
+				either list = enumerations [
+					enum: ns-decorate ns-join ns name
+					if any [find enumerations enum get-enumerator enum][
+						return ns
+					]
+				][
+					if find list ns-decorate ns-join ns name [return ns]
+				]
 			]
 			none
 		]
