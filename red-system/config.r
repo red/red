@@ -39,12 +39,12 @@ Windows [
 	sub-system: 'GUI
 ]
 ;-------------------------
-;WinDLL [								; not supported yet
-;	OS:			'Windows
-;	;sub-system: 'GUI					; @@ check if required
-;	format: 	'PE
-;	type:		'DLL
-;]
+WinDLL [								; not supported yet
+	OS:			'Windows
+	sub-system: 'GUI
+	format: 	'PE
+	type:		'DLL
+]
 ;-------------------------
 Linux [									; Linux default target
 	OS:			'Linux

@@ -38,6 +38,7 @@ system-dialect: context [
 		verbose:  	 	 0								;-- logs verbosity level
 	
 		imports: 	   	 make block! 10					;-- list of imported functions
+		exports: 	   	 make block! 10					;-- list of exported symbols
 		natives:	   	 make hash!  40					;-- list of functions to compile [name [specs] [body]...]
 		guesses:	   	 make hash!  40					;-- list of lazily defined symbols with namespace [ns/name [type line script]...]
 		ns-path:		 none							;-- namespaces access path
@@ -1198,6 +1199,35 @@ system-dialect: context [
 			expr
 		]
 		
+		process-export: func [defs [block!] /local ns list type][
+			foreach name defs [
+				unless any [word? name path? name][
+					throw-error ["invalid exported symbol:" mold name]
+				]
+				case [
+					any [
+						all [ns: ns-find-with name globals name: ns]
+						find globals name
+					][
+						type: 'variables
+					]
+					any [
+						all [ns: ns-find-with name functions name: ns]
+						find functions name
+					][
+						type: 'functions
+					]
+					'else [
+						throw-error ["undefined exported symbol:" mold name]
+					]
+				]
+				unless list: select exports type [
+					repend/only exports [type list: make block! 1]
+				]
+				append list name
+			]
+		]
+		
 		process-import: func [defs [block!] /local lib list cc name specs spec id reloc][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			unless parse defs [
@@ -1284,6 +1314,7 @@ system-dialect: context [
 		comp-directive: has [body][
 			switch/default pc/1 [
 				#import  [process-import  pc/2  pc: skip pc 2]
+				#export  [process-export  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
 				#script	 [								;-- internal compiler directive
@@ -2526,6 +2557,7 @@ system-dialect: context [
 	clean-up: does [
 		compiler/ns-path: none
 		clear compiler/imports
+		clear compiler/exports
 		clear compiler/natives
 		clear compiler/ns-list
 		clear compiler/guesses
@@ -2624,6 +2656,11 @@ system-dialect: context [
 					code   [- 	(emitter/code-buf)]
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
+				]
+				unless empty? compiler/exports [
+					append job/sections compose/deep/only [
+						export [- - (compiler/exports)]
+					]
 				]
 				if opts/debug? [
 					job/debug-info: reduce ['lines compiler/debug-lines]
