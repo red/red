@@ -67,7 +67,7 @@ lt-int!: alias struct! [
   
   --test-- "lib3"
     s: "hello, world"
-  --assert 12 = strlen s 32
+  --assert 12 = strlen s
   
   --test-- "lib4"
     new: "123456789012"
