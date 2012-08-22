@@ -277,7 +277,7 @@ context [
 	get-timestamp: has [n t][
 		n: now
 		t: n/time
-		(n - 01/01/1970 * 24 * 3600)
+		(n - 01/01/1970 * 86400)			;-- 24 * 3600
 			+ (t/hour * 3600)
 			+ (t/minute * 60)
 			+ to integer! t/second
@@ -439,7 +439,7 @@ context [
 		
 		ed: make-struct export-directory none			;-- Export Directory Table
 		ed/flags:				0						;-- reserved
-		ed/timestamp:			1345585535				;-- epoch format
+		ed/timestamp:			get-timestamp			;-- epoch format
 		ed/major-version:		1						;TBD: retrieve it from script header
 		ed/minor-version:		0						;TBD: retrieve it from script header
 		ed/name-rva:			ptr + ((EAT-len + 4 + 2) * sym-nb) + dll-name-offset
