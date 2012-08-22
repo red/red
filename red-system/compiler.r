@@ -1075,8 +1075,17 @@ system-dialect: context [
 				spec: next spec							;-- jump over attributes block
 			]
 			list: []
-			foreach arg args [
-				append/only list check-expected-type name arg spec/2
+			forall args [
+				either all [decimal? args/1 spec/2/1 = 'float32!][
+					args/1:	make action-class [			;-- inject type casting to float32!
+						action: 'type-cast
+						type: [float32!]
+						data: args/1					;-- literal float!
+					]
+					append/only list spec/2				;-- pass-thru for float! values used as float32! arguments
+				][
+					append/only list check-expected-type name args/1 spec/2
+				]
 				spec: skip spec	2
 			]
 			if all [
