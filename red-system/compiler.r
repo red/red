@@ -1199,32 +1199,27 @@ system-dialect: context [
 			expr
 		]
 		
-		process-export: func [defs [block!] /local ns list type][
+		process-export: func [defs [block!] /local ns func? spec][
 			foreach name defs [
+				func?: no
 				unless any [word? name path? name][
 					throw-error ["invalid exported symbol:" mold name]
 				]
-				case [
-					any [
-						all [ns: ns-find-with name globals name: ns]
-						find globals name
-					][
-						type: 'variables
-					]
-					any [
-						all [ns: ns-find-with name functions name: ns]
-						find functions name
-					][
-						type: 'functions
-					]
-					'else [
-						throw-error ["undefined exported symbol:" mold name]
-					]
+				unless any [
+					all [ns: ns-find-with name globals name: ns]
+					find globals name
+					func?: all [ns: ns-find-with name functions name: ns]
+					func?: find functions name
+				][
+					throw-error ["undefined exported symbol:" mold name]
 				]
-				unless list: select exports type [
-					repend/only exports [type list: make block! 1]
+				append exports name
+				
+				if func? [
+					spec: select functions name
+					spec/3: 'cdecl
+					unless spec/5 = 'callback [append spec 'callback]
 				]
-				append list name
 			]
 		]
 		
@@ -1942,7 +1937,7 @@ system-dialect: context [
 					unless spec/2 = 'native [
 						throw-error "get-word syntax only reserved for native functions for now"
 					]
-					unless spec/5 = 'callback [append spec 'callback]
+					unless spec/5 = 'callback [append spec 'callback]	;@@ force cdecl ????
 				]
 				not	any [
 					local-variable? name
@@ -2657,7 +2652,7 @@ system-dialect: context [
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
 				]
-				unless empty? compiler/exports [
+				if all [job/type = 'dll not empty? compiler/exports][
 					append job/sections compose/deep/only [
 						export [- - (compiler/exports)]
 					]
