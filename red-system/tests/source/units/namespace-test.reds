@@ -479,20 +479,20 @@ Red/System [
 
 ===start-group=== "acessing alias from context"
 
-  --test-- "nsaa1 - issue #237"
-    nssa1-c: context [
-      s!: alias struct! [val [integer!]]
-      s: declare s!
-      s/val: 100
-    ]
-    nssa1-f: function [
-      p [nssa1-c/s!]
-    ][
-      P/val
-    ]
-  --assert 100 = nssa1-f
+  ;--test-- "nsaa1 - issue #237"
+  ;  nssa1-c: context [
+  ;    s!: alias struct! [val [integer!]]
+  ;    s: declare s!
+  ;    s/val: 100
+  ;  ]
+  ;  nssa1-f: function [
+  ;    p [nssa1-c/s!]						;-- path! in type specification are not supported (and
+  ;  ][										;-- probably will never be).
+  ;    P/val
+  ;  ]
+  ;--assert 100 = nssa1-f
   
-  --test-- "nsaa2 - issue #238'
+  --test-- "nsaa2 - issue #238"
     nssa2-c: context [
       s!: alias struct! [val [integer!]]
       s: declare s!
@@ -502,11 +502,12 @@ Red/System [
     with nssa2-c [
       nssa2-f: function [
         p [s!]
+        return: [integer!]
       ][
         p/val
       ]
     ]
-  --assert 200 = nssa-f 
+  --assert 200 = nssa2-f nssa2-c/s
   
 
 ===end-group===

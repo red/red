@@ -57,7 +57,7 @@ system-dialect: context [
 		pos:		none								;-- validation rules cursor for error reporting
 		return-def: to-set-word 'return					;-- return: keyword
 		fail:		[end skip]							;-- fail rule
-		rule: value: none								;-- global parsing rules helpers
+		rule: value: v: none							;-- global parsing rules helpers
 		
 		not-set!:	  [logic! integer! byte!]			;-- reserved for internal use only
 		number!: 	  [byte! integer!]					;-- reserved for internal use only
@@ -121,12 +121,12 @@ system-dialect: context [
 		]
 
 		type-spec: [
-			pos: some type-syntax | set value word! (			;-- multiple types allowed for internal usage			
+			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage			
 				unless any [
-					find-aliased value
-					ns-find-with value enumerations
+					all [v: find-aliased/prefix value pos/1: v]			;-- rewrite the type to prefix it
+					all [v: ns-find-with value enumerations pos/1: v]	;-- rewrite the type to prefix it
 					find enumerations value
-				][throw false]	;-- stop parsing if unresolved type
+				][throw false]							;-- stop parsing if unresolved type
 			)
 		]		
 		
@@ -419,8 +419,9 @@ system-dialect: context [
 			resolve-alias?: saved
 		]
 		
-		find-aliased: func [type [word!] /position /local ns pos][
+		find-aliased: func [type [word!] /prefix /position /local ns pos][
 			if ns: ns-find-with type aliased-types [type: ns]
+			if prefix [return any [ns type]]
 			pos: find aliased-types type
 			either position [pos][all [pos pos/2]]
 		]
