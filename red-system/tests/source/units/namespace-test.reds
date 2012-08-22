@@ -477,6 +477,39 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "acessing alias from context"
+
+  --test-- "nsaa1 - issue #237"
+    nssa1-c: context [
+      s!: alias struct! [val [integer!]]
+      s: declare s!
+      s/val: 100
+    ]
+    nssa1-f: function [
+      p [nssa1-c/s!]
+    ][
+      P/val
+    ]
+  --assert 100 = nssa1-f
+  
+  --test-- "nsaa2 - issue #238'
+    nssa2-c: context [
+      s!: alias struct! [val [integer!]]
+      s: declare s!
+      s/val: 200
+    ]
+
+    with nssa2-c [
+      nssa2-f: function [
+        p [s!]
+      ][
+        p/val
+      ]
+    ]
+  --assert 200 = nssa-f 
+  
+
+===end-group===
 
 ~~~end-file~~~
 
