@@ -147,7 +147,8 @@ rsc: context [
 		if result/2 [
 			print [
 				"...linking time:" tab tab round result/2/second * 1000 "ms^/"
-				"...output file size:" tab result/3 "bytes"
+				"...output file size:" tab result/3 "bytes^/"
+				"...output file name:" tab form result/4
 			]
 		]
 	]

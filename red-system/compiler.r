@@ -2612,7 +2612,7 @@ system-dialect: context [
 		/options
 			opts [object!]
 		/local
-			comp-time link-time err src
+			comp-time link-time err src output
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
@@ -2660,7 +2660,7 @@ system-dialect: context [
 				if opts/debug? [
 					job/debug-info: reduce ['lines compiler/debug-lines]
 				]
-				linker/build job
+				output: linker/build job
 			]
 		]
 		
@@ -2668,6 +2668,11 @@ system-dialect: context [
 		output-logs
 		if opts/link? [clean-up]
 
-		reduce [comp-time link-time any [all [job/buffer length? job/buffer] 0]]
+		reduce [
+			comp-time
+			link-time
+			any [all [job/buffer length? job/buffer] 0]
+			output
+		]
 	]
 ]

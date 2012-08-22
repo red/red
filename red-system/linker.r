@@ -136,6 +136,7 @@ linker: context [
 		if find get-modes file 'file-modes 'owner-execute [
 			set-modes file [owner-execute: true]
 		]
+		file
 	]
 
 ]
