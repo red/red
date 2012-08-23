@@ -1919,8 +1919,12 @@ system-dialect: context [
 			][
 				comp-word/path path/1					;-- check if root word is defined
 				unless value: system-reflexion? path [
-					if ns-path [path/1: ns-prefix path/1] ;-- prefix path if needed
-					last-type: resolve-path-type path
+					all [
+						ns-path
+						not local-variable? path/1
+						path/1: ns-prefix path/1		;-- prefix path if needed
+					]
+					last-type: resolve-path-type path				
 				]
 				any [value path]
 			]
