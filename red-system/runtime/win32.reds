@@ -15,6 +15,12 @@ Red/System [
 #define WIN_STD_OUTPUT_HANDLE	-11
 #define WIN_STD_ERROR_HANDLE	-12
 
+#define DLL_PROCESS_ATTACH 		 1
+#define DLL_THREAD_ATTACH  		 2
+#define DLL_THREAD_DETACH  		 3
+#define DLL_PROCESS_DETACH 		 0
+
+
 #if use-natives? = yes [
 	#import [
 		"kernel32.dll" stdcall [
@@ -114,16 +120,17 @@ win32-startup-ctx: context [
 		1
 	]
 
-	SetUnhandledExceptionFilter :exception-filter
-	SetErrorMode 1									;-- probably superseded by SetUnhandled...
-
-
-	;-- Runtime globals --
-
-	stdin:  GetStdHandle WIN_STD_INPUT_HANDLE
-	stdout: GetStdHandle WIN_STD_OUTPUT_HANDLE
-	stderr: GetStdHandle WIN_STD_ERROR_HANDLE
-
+	init: does [
+		SetUnhandledExceptionFilter :exception-filter
+		SetErrorMode 1								;-- probably superseded by SetUnhandled...
+		
+		;-- Runtime globals --
+		stdin:  GetStdHandle WIN_STD_INPUT_HANDLE
+		stdout: GetStdHandle WIN_STD_OUTPUT_HANDLE
+		stderr: GetStdHandle WIN_STD_ERROR_HANDLE
+		
+		#if use-natives? = no [on-start]		;-- allocate is not yet implemented as native function
+	]
 
 	;-- Runtime functions --
 
@@ -134,7 +141,7 @@ win32-startup-ctx: context [
 	;-------------------------------------------
 	;-- Retrieve command-line information from stack
 	;-------------------------------------------
-	***-on-start: func [/local c argv s args][
+	on-start: func [/local c argv s args][
 		c: 1											;-- account for executable name
 		argv: as pointer! [integer!] allocate 256 * 4	;-- max argc = 256
 
@@ -171,9 +178,33 @@ win32-startup-ctx: context [
 
 		memory-blocks/argv: argv
 	]
-	#if use-natives? = no [***-on-start]			;-- allocate is not yet implemented as native function
-
+	
 	on-quit: does [
-		free as byte-ptr! memory-blocks/argv	;-- free call is safe here (defined in all cases)
+		if memory-blocks/argv <> null [
+			free as byte-ptr! memory-blocks/argv	;-- free call is safe here (defined in all cases)
+		]
 	]
+	
+	#switch type [
+		exe [
+			init									;-- call init codes for executables only
+		]
+		dll [			
+			dll-entry-point: func [
+				hinstDLL   [integer!]            ;-- handle to DLL module
+				fdwReason  [integer!]            ;-- reason for calling function
+				lpReserved [integer!]            ;-- reserved
+				return:    [logic!]
+			][
+				switch fdwReason [
+					DLL_PROCESS_ATTACH [on-load 	   hinstDLL]
+					DLL_THREAD_ATTACH  [on-new-thread  hinstDLL]
+					DLL_THREAD_DETACH  [on-exit-thread hinstDLL]
+					DLL_PROCESS_DETACH [on-unload 	   hinstDLL]
+				]
+				true                             ;-- true: load DLL, false: abort loading
+			]
+		]
+	]
+	
 ]

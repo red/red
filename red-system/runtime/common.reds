@@ -105,6 +105,16 @@ form-type: func [
 	#include %lib-natives.reds
 ]
 
+#if type = 'dll [
+	;-- Default empty handlers (replaced at compile-time by user code)
+	on-load:   func [handle [integer!]][]
+	on-unload: func [handle [integer!]][]
+	#if OS = 'Windows [
+		on-new-thread:	func [handle [integer!]][]
+		on-exit-thread: func [handle [integer!]][]
+	]
+]
+
 #switch OS [								;-- loading OS-specific bindings
 	Windows  [#include %win32.reds]
 	Syllable [#include %syllable.reds]
@@ -185,7 +195,7 @@ form-type: func [
 	]
 	
 	#if OS = 'Windows [						;-- special exit handler for Windows
-		***-on-win32-quit
+		win32-startup-ctx/on-quit
 	]
 	quit status
 ]
