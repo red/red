@@ -501,10 +501,9 @@ context [
 		code-base: code-page * memory-align
 		
 		ep: either job/type = 'dll [
-			;either find job/sections/export/3 'on-load [
-			;	code-base + job/symbols/on-load/2 - 1	;-- dll: entry point provided
-			;][0]										;-- dll: no entry-point
-			0
+			either find job/sections/export/3 'on-load [
+				code-base + job/symbols/on-load/2 - 1	;-- dll: entry point provided
+			][0]										;-- dll: no entry-point
 		][
 			code-base									;-- exe: entry point
 		]
