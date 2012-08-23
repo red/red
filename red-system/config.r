@@ -15,13 +15,13 @@ REBOL [
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
 ;;  cpu-version:	<decimal!>					;-- CPU version (default for IA-32: 6.0, Pentium Pro, for ARM: 5.0)
 ;;	sub-system:		'GUI | 'console				;-- type of user interface
-;;	PIC?:			yes | no					;-- generate Position Independent Code
+;;	PIC?:			 yes | no					;-- generate Position Independent Code
 ;;	base-address:	<integer!>					;-- base image memory address
-;;	use-natives?:	yes | no					;-- use native functions instead of C bindings (when possible)
+;;	use-natives?:	 yes | no					;-- use native functions instead of C bindings (when possible)
 ;;	dynamic-linker:	none | <string!>			;-- ELF dynamic linker ("interpreter") to use
 ;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
-;;  literal-pool?:	yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
+;;  literal-pool?:	 yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
 ;;-------------------------------------------
 
 ;-------------------------
@@ -39,7 +39,7 @@ Windows [
 	sub-system: 'GUI
 ]
 ;-------------------------
-WinDLL [								; not supported yet
+WinDLL [
 	OS:			'Windows
 	sub-system: 'GUI
 	format: 	'PE
