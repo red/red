@@ -362,9 +362,8 @@ Red/System [
       ]
       #import [
         LIBC-file cdecl [
-          strnlen: "strnlen" [
+          strlen: "strlen" [
             str     [c-string!]
-            maxlen  [integer!]
             return: [integer!]
           ]
         ]
@@ -373,7 +372,7 @@ Red/System [
   --test-- "nmlibs1"
   --assert 1 = nmsp-lib/abs-int -1
   --test-- "nmlibs2"
-  --assert 11 = nmsp-lib/strnlen "hello world" 20
+  --assert 11 = nmsp-lib/strlen "hello world"
   
 ===end-group===
 
@@ -478,6 +477,40 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "acessing alias from context"
+
+  ;--test-- "nsaa1 - issue #237"
+  ;  nssa1-c: context [
+  ;    s!: alias struct! [val [integer!]]
+  ;    s: declare s!
+  ;    s/val: 100
+  ;  ]
+  ;  nssa1-f: function [
+  ;    p [nssa1-c/s!]						;-- path! in type specification are not supported (and
+  ;  ][										;-- probably will never be).
+  ;    P/val
+  ;  ]
+  ;--assert 100 = nssa1-f
+  
+  --test-- "nsaa2 - issue #238"
+    nssa2-c: context [
+      s!: alias struct! [val [integer!]]
+      s: declare s!
+      s/val: 200
+    ]
+
+    with nssa2-c [
+      nssa2-f: function [
+        p [s!]
+        return: [integer!]
+      ][
+        p/val
+      ]
+    ]
+  --assert 200 = nssa2-f nssa2-c/s
+  
+
+===end-group===
 
 ~~~end-file~~~
 

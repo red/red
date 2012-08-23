@@ -1614,8 +1614,10 @@ From nested namespaces, in order to access an indentifier from global context wh
 
 <b>Syntax</b>
 
- system/words/<identifier>
- system/words/<identifier>:				;-- when identifier is a variable name
+ system/words/<name>					;-- calling a function, reading a variable
+ system/words/<name>:					;-- setting a variable
+
+ <name> : identifer or access path
 
 <u>Example</u>:
 

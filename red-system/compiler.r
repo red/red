@@ -58,7 +58,7 @@ system-dialect: context [
 		pos:		none								;-- validation rules cursor for error reporting
 		return-def: to-set-word 'return					;-- return: keyword
 		fail:		[end skip]							;-- fail rule
-		rule: value: none								;-- global parsing rules helpers
+		rule: value: v: none							;-- global parsing rules helpers
 		
 		not-set!:	  [logic! integer! byte!]			;-- reserved for internal use only
 		number!: 	  [byte! integer!]					;-- reserved for internal use only
@@ -122,11 +122,13 @@ system-dialect: context [
 		]
 
 		type-spec: [
-			pos: some type-syntax | set value word! (			;-- multiple types allowed for internal usage			
+			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage
 				unless any [
-					find-aliased value
+					all [v: find-aliased/prefix value pos/1: v]			;-- rewrite the type to prefix it
+					find aliased-types value
+					all [v: ns-find-with value enumerations pos/1: v]	;-- rewrite the type to prefix it
 					find enumerations value
-				][throw false]	;-- stop parsing if unresolved type
+				][throw false]							;-- stop parsing if unresolved type
 			)
 		]		
 		
@@ -149,6 +151,7 @@ system-dialect: context [
 			null		 [comp-null]
 			context		 [comp-context]
 			with		 [comp-with]
+			comment 	 [comp-comment]
 			
 			true		 [also true pc: next pc]		  ;-- converts word! to logic!
 			false		 [also false pc: next pc]		  ;-- converts word! to logic!
@@ -418,8 +421,9 @@ system-dialect: context [
 			resolve-alias?: saved
 		]
 		
-		find-aliased: func [type [word!] /position /local ns pos][
+		find-aliased: func [type [word!] /prefix /position /local ns pos][
 			if ns: ns-find-with type aliased-types [type: ns]
+			if prefix [return ns]
 			pos: find aliased-types type
 			either position [pos][all [pos pos/2]]
 		]
@@ -567,7 +571,9 @@ system-dialect: context [
 			]
 		]
 		
-		set-enumerator: func [identifier [word!] name [word! block!] value [integer! word!] /local list][
+		set-enumerator: func [
+			identifier [word!] name [word! block!] value [integer! word!] /local list v
+		][
 			if ns-path [identifier: ns-prefix identifier]
 			
 			if word? name [name: reduce [name]]
@@ -582,7 +588,13 @@ system-dialect: context [
 			]
 			if all [
 				word? value
-				none? value: get-enumerator/value value
+				none? value: any [
+					all [
+						v: ns-find-with value enumerations
+						get-enumerator/value v
+					]
+					get-enumerator/value value
+				]
 			][
 				throw-error ["cannot resolve literal enum value for:" form name]
 			]
@@ -756,10 +768,17 @@ system-dialect: context [
 			either set [ns-decorate/set name][ns-decorate name]
 		]
 
-		ns-resolve-with: func [name [word! set-word!] list [hash!]][
+		ns-resolve-with: func [name [word! set-word!] list [hash!] /local enum][
 			name: to word! name
 			foreach ns with-stack [
-				if find list ns-decorate ns-join ns name [return ns]
+				either list = enumerations [
+					enum: ns-decorate ns-join ns name
+					if any [find enumerations enum get-enumerator enum][
+						return ns
+					]
+				][
+					if find list ns-decorate ns-join ns name [return ns]
+				]
 			]
 			none
 		]
@@ -787,7 +806,8 @@ system-dialect: context [
 				all [
 					ns-path
 					either list = enumerations [
-						get-enumerator ns: ns-prefix name
+						ns: ns-prefix name
+						any [find enumerations ns get-enumerator ns]
 					][
 						any [
 							find list ns: ns-prefix name		  	;-- lookup in current namespace
@@ -819,10 +839,7 @@ system-dialect: context [
 		
 		check-enum-word: func [name [word!] /local error][
 			case [
-				any [
-					all [find keywords name name <> 'context]
-					name = 'comment
-				][
+				all [find keywords name name <> 'context][
 					error: ["attempt to redefine a protected keyword:" name]
 				]
 
@@ -861,10 +878,7 @@ system-dialect: context [
 		]
 		
 		check-keywords: func [name [word!]][
-			if any [
-				find keywords name
-				name = 'comment
-			][
+			if find keywords name [
 				throw-error ["attempt to redefine a protected keyword:" name]
 			]
 		]
@@ -1063,8 +1077,17 @@ system-dialect: context [
 				spec: next spec							;-- jump over attributes block
 			]
 			list: []
-			foreach arg args [
-				append/only list check-expected-type name arg spec/2
+			forall args [
+				either all [decimal? args/1 spec/2/1 = 'float32!][
+					args/1:	make action-class [			;-- inject type casting to float32!
+						action: 'type-cast
+						type: [float32!]
+						data: args/1					;-- literal float!
+					]
+					append/only list spec/2				;-- pass-thru for float! values used as float32! arguments
+				][
+					append/only list check-expected-type name args/1 spec/2
+				]
 				spec: skip spec	2
 			]
 			if all [
@@ -1319,6 +1342,12 @@ system-dialect: context [
 			][
 				throw-error ["unknown directive" pc/1]
 			]
+		]
+		
+		comp-comment: does [
+			pc: next pc
+			either block? pc/1 [pc: next pc][fetch-expression]
+			none
 		]
 		
 		comp-with: has [ns stk list words res][
@@ -2133,13 +2162,15 @@ system-dialect: context [
 			]
 			if not-initialized? name [
 				init-local name expr casted				;-- mark as initialized and infer type if required
-			]		
+			]
 			either type: any [
 				get-variable-spec name					;-- test if known variable (local or global)	
 				get-enumerator name
 			][
-				type: resolve-aliased type		
-				new: resolve-aliased get-type expr
+				type: resolve-aliased type
+				value: get-type expr
+				if block? expr [parse value [type-spec]] ;-- prefix return type if required	
+				new: resolve-aliased value
 				
 				if type <> any [casted new][
 					backtrack set-word
@@ -2360,14 +2391,8 @@ system-dialect: context [
 					]
 				][
 					while [not tail? pc][
-						case [
-							paren? pc/1 [
-								unless infix? at pc 2 [raise-paren-error]
-								expr: do fetch
-							]
-							all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]	
-							'else [expr: do fetch]
-						]
+						if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
+						expr: do fetch
 						pop-calls
 					]
 				]
@@ -2396,7 +2421,6 @@ system-dialect: context [
 						unless infix? at pc 2 [raise-paren-error]
 						expr: fetch-expression/final/keep
 					]
-					all [word? pc/1 pc/1 = 'comment][pc: skip pc 2]
 					'else [expr: fetch-expression/final/keep]
 				]
 				pop-calls
