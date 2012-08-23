@@ -339,4 +339,17 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "implicit literal type casting of function arguments"
+  --test-- "fiitc1"
+    flitc1-f: function [
+      x       [float32!]
+      y       [float!]
+      z       [float32!]
+      return: [float32!]
+    ][
+      x + z
+    ]
+  --assert (as float32! 4.00) = flitc1-f 1.00 2.00 3.00
+===end-group===
+
 ~~~end-file~~~
