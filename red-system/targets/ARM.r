@@ -1955,7 +1955,7 @@ make target-class [
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 fspec/5 = 'callback][
+		if fspec/5 = 'callback [
 			;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
 			;; passed via regs r0-r3, further args are passed on the stack (pushed
 			;; right-to-left; i.e. the leftmost argument is at top-of-stack).
@@ -2025,7 +2025,7 @@ make target-class [
 		
 		fspec: select/only compiler/functions name
 		
-		either all [block? fspec/4/1 fspec/5 = 'callback][
+		either fspec/5 = 'callback [
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
 		][
