@@ -121,9 +121,10 @@ system-dialect: context [
 		]
 
 		type-spec: [
-			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage			
+			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage
 				unless any [
 					all [v: find-aliased/prefix value pos/1: v]			;-- rewrite the type to prefix it
+					find aliased-types value
 					all [v: ns-find-with value enumerations pos/1: v]	;-- rewrite the type to prefix it
 					find enumerations value
 				][throw false]							;-- stop parsing if unresolved type
@@ -421,7 +422,7 @@ system-dialect: context [
 		
 		find-aliased: func [type [word!] /prefix /position /local ns pos][
 			if ns: ns-find-with type aliased-types [type: ns]
-			if prefix [return any [ns type]]
+			if prefix [return ns]
 			pos: find aliased-types type
 			either position [pos][all [pos pos/2]]
 		]
@@ -2135,13 +2136,15 @@ system-dialect: context [
 			]
 			if not-initialized? name [
 				init-local name expr casted				;-- mark as initialized and infer type if required
-			]		
+			]
 			either type: any [
 				get-variable-spec name					;-- test if known variable (local or global)	
 				get-enumerator name
 			][
-				type: resolve-aliased type		
-				new: resolve-aliased get-type expr
+				type: resolve-aliased type
+				value: get-type expr
+				if block? expr [parse value [type-spec]] ;-- prefix return type if required	
+				new: resolve-aliased value
 				
 				if type <> any [casted new][
 					backtrack set-word
