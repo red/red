@@ -496,9 +496,18 @@ context [
 		append job/buffer form-struct fh
 	]
 
-	build-opt-header: func [job [object!] /local oh code-page ep][
-		code-page: ep-file-page
-		ep: either job/type = 'dll [0][code-page * memory-align]	;-- no entry-point for DLLs (for now)
+	build-opt-header: func [job [object!] /local oh code-page code-base ep][
+		code-page: ep-mem-page
+		code-base: code-page * memory-align
+		
+		ep: either job/type = 'dll [
+			;either find job/sections/export/3 'on-load [
+			;	code-base + job/symbols/on-load/2 - 1	;-- dll: entry point provided
+			;][0]										;-- dll: no entry-point
+			0
+		][
+			code-base									;-- exe: entry point
+		]
 		oh: make-struct optional-header none
 
 		oh/magic:				to integer! #{010B}		;-- PE32 magic number
@@ -508,7 +517,7 @@ context [
 		oh/initdata-size:		length? job/sections/data/2
 		oh/uninitdata-size:		0			
 		oh/entry-point-addr:	ep						;-- entry point is set to beginning of CODE
-		oh/code-base:			code-page * memory-align
+		oh/code-base:			code-base
 		oh/data-base:			(code-page + round/ceiling (length? job/sections/code/2) / memory-align) * memory-align
 		oh/image-base:			base-address
 		oh/memory-align:		memory-align
