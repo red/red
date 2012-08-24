@@ -1826,7 +1826,10 @@ system-dialect: context [
 				]
 				if all [
 					not local-variable? n
-					enum: get-enumerator n
+					enum: any [
+						all [ns: ns-find-with n enumerations get-enumerator n: ns]
+						get-enumerator n
+					]
 				][
 					backtrack name
 					throw-error ["redeclaration of enumerator" name "from" enum]
