@@ -37,10 +37,9 @@ Red/System [
 	]
 ]
 
-;-- Catching runtime errors --
-
 win32-startup-ctx: context [
 
+	;-- Catching runtime errors --
 	;; source: http://msdn.microsoft.com/en-us/library/aa363082(v=VS.85).aspx
 	
 	SEH_EXCEPTION_RECORD: alias struct! [
@@ -120,6 +119,15 @@ win32-startup-ctx: context [
 		1
 	]
 
+	;-- Runtime functions --
+
+	memory-blocks: declare struct! [
+		argv	[pointer! [integer!]]
+	]
+	
+	;-------------------------------------------
+	;-- Initialize environment
+	;-------------------------------------------
 	init: does [
 		SetUnhandledExceptionFilter :exception-filter
 		SetErrorMode 1								;-- probably superseded by SetUnhandled...
@@ -129,13 +137,9 @@ win32-startup-ctx: context [
 		stdout: GetStdHandle WIN_STD_OUTPUT_HANDLE
 		stderr: GetStdHandle WIN_STD_ERROR_HANDLE
 		
-		#if use-natives? = no [on-start]		;-- allocate is not yet implemented as native function
-	]
-
-	;-- Runtime functions --
-
-	memory-blocks: declare struct! [
-		argv	[pointer! [integer!]]
+		#if type = 'exe [
+			#if use-natives? = no [on-start]		;-- allocate is not yet implemented as native function
+		]
 	]
 
 	;-------------------------------------------
@@ -185,26 +189,25 @@ win32-startup-ctx: context [
 		]
 	]
 	
-	#switch type [
-		exe [
-			init									;-- call init codes for executables only
-		]
-		dll [			
-			dll-entry-point: func [
-				hinstDLL   [integer!]            ;-- handle to DLL module
-				fdwReason  [integer!]            ;-- reason for calling function
-				lpReserved [integer!]            ;-- reserved
-				return:    [logic!]
-			][
-				switch fdwReason [
-					DLL_PROCESS_ATTACH [on-load 	   hinstDLL]
-					DLL_THREAD_ATTACH  [on-new-thread  hinstDLL]
-					DLL_THREAD_DETACH  [on-exit-thread hinstDLL]
-					DLL_PROCESS_DETACH [on-unload 	   hinstDLL]
-				]
-				true                             ;-- true: load DLL, false: abort loading
+	#if type = 'exe [init]							;-- call init codes for executables only
+]
+
+#if type = 'dll [
+	***-dll-entry-point: func [
+		hinstDLL   [integer!]						;-- handle to DLL module
+		fdwReason  [integer!]						;-- reason for calling function
+		lpReserved [integer!]						;-- reserved
+		return:    [logic!]
+	][
+		switch fdwReason [
+			DLL_PROCESS_ATTACH [
+				win32-startup-ctx/init				;-- init Windows-specific handlers
+				on-load hinstDLL
 			]
+			DLL_THREAD_ATTACH  [on-new-thread  hinstDLL]
+			DLL_THREAD_DETACH  [on-exit-thread hinstDLL]
+			DLL_PROCESS_DETACH [on-unload 	   hinstDLL]
 		]
+		true										 ;-- true: load DLL, false: abort loading
 	]
-	
 ]

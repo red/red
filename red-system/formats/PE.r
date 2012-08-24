@@ -496,13 +496,14 @@ context [
 		append job/buffer form-struct fh
 	]
 
-	build-opt-header: func [job [object!] /local oh code-page code-base ep][
+	build-opt-header: func [job [object!] /local oh code-page code-base ep entry][
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
 		
 		ep: either job/type = 'dll [
-			either find job/sections/export/3 'on-load [
-				code-base + job/symbols/on-load/2 - 1	;-- dll: entry point provided
+			ep-fun: '***-dll-entry-point
+			either entry: select job/symbols '***-dll-entry-point [
+				code-base + entry/2 - 1					;-- dll: entry point provided
 			][0]										;-- dll: no entry-point
 		][
 			code-base									;-- exe: entry point

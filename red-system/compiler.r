@@ -2487,6 +2487,29 @@ system-dialect: context [
 			]
 			pc: next pc
 		]
+		
+		add-dll-callbacks: has [list code exp][			;-- add missing callbacks
+			list: copy [on-load on-unload]
+			if job/OS = 'Windows [
+				append list [on-new-thread on-exit-thread]
+			]
+			code: make block! 1
+			exp:  make block! 1
+			
+			foreach fun list [
+				unless find/skip natives fun 5 [
+					repend code [
+						to set-word! fun 'func [handle [integer!]][]	;-- stdcall
+					]
+				]
+				unless find exports fun [append exp fun]
+			]
+			unless empty? code [
+				repend code [#export exp]
+				pc: code
+				comp-dialect
+			]
+		]
 
 		run: func [obj [object!] src [block!] file [file!] /no-header /runtime /no-events][
 			runtime: to logic! runtime
@@ -2510,6 +2533,7 @@ system-dialect: context [
 		
 		finalize: does [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
+			if job/type = 'dll [add-dll-callbacks]
 			comp-natives
 			emitter/target/on-finalize
 			if verbose >= 2 [print ""]
