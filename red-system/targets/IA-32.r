@@ -43,15 +43,15 @@ make target-class [
 		]
 	]
 	
-	on-global-prolog: func [runtime? [logic!]][
+	on-global-prolog: func [runtime? [logic!] type [word!]][
 		patch-floats-definition 'set
 		if runtime? [
-			emit #{9BDBE3}							;-- FINIT			; init x87 FPU
+			if type = 'exe [emit-fpu-init]
 			fpu-cword: emitter/store-value none fpu-flags [integer!]
 		]
 	]
 	
-	on-global-epilog: func [runtime? [logic!]][
+	on-global-epilog: func [runtime? [logic!] type [word!]][
 		if runtime? [patch-floats-definition 'unset] ;-- restore definitions for next compilation jobs
 	]
 	
@@ -305,6 +305,10 @@ make target-class [
 	emit-fpu-update: does [
 		emit #{D92D}								;-- FLDCW <word>	; load 16-bit control word from memory
 		emit-reloc-addr fpu-cword/2					;-- one-based index
+	]
+	
+	emit-fpu-init: does [
+		emit #{9BDBE3}								;-- FINIT			; init x87 FPU
 	]
 	
 	emit-get-pc: does [

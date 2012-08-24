@@ -827,7 +827,7 @@ make target-class [
 		]
 	]
 
-	emit-fpu-set: emit-fpu-update: none				;-- not used for now
+	emit-fpu-set: emit-fpu-update: emit-fpu-init: none	;-- not used for now
 	
 	emit-get-pc: does [
 		emit-i32 #{e1a0000f}						;-- MOV r0, pc

@@ -423,6 +423,14 @@ emitter: context [
 								target/emit-fpu-update
 							]
 						]
+						init [
+							either set? [
+								compiler/backtrack path
+								compiler/throw-error "system/fpu/init is an action"
+							][
+								target/emit-fpu-init
+							]
+						]
 					]
 				]
 				; add here implicit system getters/setters

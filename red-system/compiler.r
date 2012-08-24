@@ -2518,15 +2518,15 @@ system-dialect: context [
 			pc: src
 			script: secure-clean-path file
 			unless no-header [comp-header]
-			unless no-events [emitter/target/on-global-prolog runtime]
+			unless no-events [emitter/target/on-global-prolog runtime job/type]
 			comp-dialect
 			unless no-events [
 				case [
 					runtime [
-						emitter/target/on-global-epilog yes	;-- postpone epilog event after comp-runtime-epilog
+						emitter/target/on-global-epilog yes	job/type ;-- postpone epilog event after comp-runtime-epilog
 					]
 					not job/runtime? [
-						emitter/target/on-global-epilog no
+						emitter/target/on-global-epilog no job/type
 					]
 				]
 			]
@@ -2601,7 +2601,7 @@ system-dialect: context [
 		if job/type = 'exe [
 			compiler/comp-call '***-on-quit [0 0]		;-- call runtime exit handler
 		]
-		emitter/target/on-global-epilog no
+		emitter/target/on-global-epilog no job/type
 	]
 	
 	clean-up: does [

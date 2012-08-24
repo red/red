@@ -120,7 +120,9 @@ win32-startup-ctx: context [
 	]
 
 	;-- Runtime functions --
-
+	
+	x87-cword: 0									;-- store previous control word in case it needs
+													;-- to be restored (on callbacks exit e.g.)
 	memory-blocks: declare struct! [
 		argv	[pointer! [integer!]]
 	]
@@ -129,6 +131,13 @@ win32-startup-ctx: context [
 	;-- Initialize environment
 	;-------------------------------------------
 	init: does [
+		#if target = 'IA-32 [
+			x87-cword: system/fpu/control-word 		;-- save previous x87 control word
+			system/fpu/init							;-- reset x87 state (@@ probably not safe for host program...)
+			system/fpu/control-word: 0322h			;-- default control word: division by zero, 
+													;-- underflow and overflow raise exceptions.
+			system/fpu/update
+		]
 		SetUnhandledExceptionFilter :exception-filter
 		SetErrorMode 1								;-- probably superseded by SetUnhandled...
 		
