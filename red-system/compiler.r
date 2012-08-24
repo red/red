@@ -1922,6 +1922,7 @@ system-dialect: context [
 					all [
 						ns-path
 						not local-variable? path/1
+						find select/only ns-list ns-path path/1
 						path/1: ns-prefix path/1		;-- prefix path if needed
 					]
 					last-type: resolve-path-type path				
@@ -2547,7 +2548,9 @@ system-dialect: context [
 	]
 	
 	comp-runtime-epilog: does [	
-		compiler/comp-call '***-on-quit [0 0]			;-- call runtime exit handler
+		if job/type = 'exe [
+			compiler/comp-call '***-on-quit [0 0]		;-- call runtime exit handler
+		]
 		emitter/target/on-global-epilog no
 	]
 	
