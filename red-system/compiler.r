@@ -1178,7 +1178,11 @@ system-dialect: context [
 			]
 			add-function type reduce [name none specs] cc
 			emitter/add-native name
-			repend natives [name specs pc/3 script all [ns-path copy ns-path]]
+			repend natives [
+				name specs pc/3 script
+				all [ns-path copy ns-path] 
+				all [with-stack copy with-stack]
+			]
 			pc: skip pc 3
 		]
 		
@@ -2435,7 +2439,7 @@ system-dialect: context [
 		]
 		
 		comp-natives: does [			
-			foreach [name spec body origin ns] natives [
+			foreach [name spec body origin ns ws] natives [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -2445,6 +2449,7 @@ system-dialect: context [
 				]
 				script: origin
 				ns-path: ns
+				with-stack: ws
 				comp-func-body name spec body
 			]
 		]
