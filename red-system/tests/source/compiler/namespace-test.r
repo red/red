@@ -39,7 +39,7 @@ change-dir %../
                                       ;-- use a local function to get such
                                       ;--  a pointer                              
   }
-  --assert-msg? "Currently compiler crashes - need error message"
+  --assert-msg? "get-path! syntax is not supported"
 ===end-group===
 
 ===start-group=== "context as local variable"

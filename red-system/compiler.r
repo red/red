@@ -1903,6 +1903,9 @@ system-dialect: context [
 		
 		comp-path: has [path value][
 			path: pc/1
+			if #":" = first mold path/1 [
+				throw-error "get-path! syntax is not supported"
+			]
 			either all [
 				not local-variable? path/1
 				any [

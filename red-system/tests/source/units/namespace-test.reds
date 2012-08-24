@@ -466,7 +466,7 @@ Red/System [
 
 ===end-group===
 
-===start-group=== "acessing alias from context"
+===start-group=== "accessing alias from context"
  
   --test-- "nsaa2 - issue #238"
     nssa2-c: context [
