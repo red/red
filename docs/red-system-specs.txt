@@ -1,7 +1,7 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 19/08/2012
+	Date: 24/08/2012
 	Revision: 35
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
@@ -190,6 +190,8 @@ Allowed types for variables are:
 
 
 ===Datatypes
+
+All the following datatypes are <a href="http://en.wikipedia.org/wiki/First-class_citizen">first-class citizens</a> of Red/System language.
 
 ---Integer!
 
@@ -626,7 +628,7 @@ Struct usage example:
 
 ---Pointer!
 
-Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, the only pointed datatypes allowed are integer! and byte! (logic! pointer is not needed). 
+Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, the only pointed datatypes allowed are integer!, float!, float32! and byte! (logic! pointer is not needed). 
 
 Byte! pointers are equivalent to c-string! references, the difference lies only in the interpretation of the pointed values. Byte! pointer is meant to point to a stream of byte without a specified bound, while c-string! references an array of bytes terminated by a null byte.
 
@@ -652,13 +654,13 @@ Examples:
  baz: declare pointer! [float!]			;-- equivalent to C's: double *baz;
 
 \note Pointer value initialization
-Do not assume any default value for a pointer value until it is initialized properly. In the current implementation, global pointer variables are set to 0 by default while local pointer variables default value is undefined. This might change in the future to adopt a default value more suitable for debugging (like 0BADBAD0h or similar hex trick).
+Do not assume any default value for a pointer value until it is initialized properly. In the current implementation, global pointer variables are set to <b>null</b> by default while local pointer variables default value is undefined. This might change in the future to adopt a default value more suitable for debugging (like 0BADBAD0h or similar hex trick).
  
 /note
 
 +++Declaration
 
-Pointer declaration is only required for local pointer variables in functions' specification block. In such case, the datatype declaration can be omitted and left to the inferencer to guess. (See "Type inference" section)
+Pointer declaration is only required for arguments in functions' specification block. For local pointer variables, the datatype declaration can be omitted and left to the inferencer to guess. (See "Type inference" section)
 
  pointer! [<datatype>]
 
@@ -2925,11 +2927,16 @@ will output:
 
 ===Document History
 
-*<b>19/08/2012 - revision 35</b>
+
+*<b>24/08/2012 - revision 35</b>
 
 *>Added namespaces description
 
 *>Added CONTEXT and WITH to keywords list.
+
+*>Improved pointer! declaration description (section 4.8.2)
+
+*>Added mention of first-class nature of datatypes.
 
 
 *<b>25/07/2012 - revision 34</b>
