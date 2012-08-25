@@ -488,13 +488,13 @@ context [
 	
 	build-section-reloc: func [
 		job [object!] name [word!] refs [block!]
-		/local block buffer data base type offset header open-block close-block
+		/local _4K block buffer base type offset header open-block close-block
 	][
-		buffer: make binary! 4096
-		data: job/sections/:name/2
+		_4K: 4096
+		buffer: make binary! _4K
 		base: section-addr?/memory job name
-		block: 0
 		type: to integer! #{3000}						;-- IMAGE_REL_BASED_HIGHLOW		
+		block: 0
 		
 		open-block: [
 			header: buffer
@@ -508,11 +508,11 @@ context [
 		do open-block
 		foreach offset refs [
 			offset: offset - 1
-			if offset - block > 4096 [
+			if offset - block > _4K [
 				do close-block
 				pad4 buffer
-				base: base + 4096
-				block: block + 4096
+				base: base + _4K
+				block: block + _4K
 			]
 			append buffer to-bin16 (offset - block) or type
 		]
