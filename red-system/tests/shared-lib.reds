@@ -39,7 +39,7 @@ i: 56
 
 ;-- Function are exported as is
 foo: func [
-	a 		[integer!]
+	a		[integer!]
 	return: [integer!]
 ][
 	a + 1
