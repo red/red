@@ -1222,8 +1222,14 @@ system-dialect: context [
 			expr
 		]
 		
-		process-export: func [defs [block!] /local ns func? spec][
-			foreach name defs [
+		process-export: has [defs cc ns func? spec][
+			if word? pc/2 [
+				unless find [stdcall cdecl] cc: pc/2 [
+					throw-error ["invalid calling convention specifier:" cc]
+				]
+				pc: next pc
+			]
+			foreach name pc/2 [
 				func?: no
 				unless any [word? name path? name][
 					throw-error ["invalid exported symbol:" mold name]
@@ -1240,7 +1246,7 @@ system-dialect: context [
 				
 				if func? [
 					spec: select functions name
-					spec/3: 'cdecl
+					spec/3: any [cc 'cdecl]
 					unless spec/5 = 'callback [append spec 'callback]
 				]
 			]
@@ -1248,6 +1254,7 @@ system-dialect: context [
 		
 		process-import: func [defs [block!] /local lib list cc name specs spec id reloc][
 			unless block? defs [throw-error "#import expects a block! as argument"]
+			
 			unless parse defs [
 				some [
 					pos: set lib string! (
