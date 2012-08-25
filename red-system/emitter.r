@@ -575,6 +575,7 @@ emitter: context [
 				foreach ref spec/3 [
 					target/patch-call code-buf ref ptr	;-- target-specific func call
 				]
+				clear spec/3
 			]
 		]
 	]

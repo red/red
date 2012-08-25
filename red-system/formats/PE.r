@@ -115,6 +115,7 @@ context [
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
 			import				#{C0000040}	;-- [read write initialized]
+			reloc				#{52000040} ;-- [read shared discardable initialized]
 			except				#{40000040}	;-- [read initialized]
 			rsrc				#{40000040}	;-- [read initialized]
 			code				#{60000020}	;-- [read code execute]
@@ -281,6 +282,13 @@ context [
 			+ (t/hour * 3600)
 			+ (t/minute * 60)
 			+ to integer! t/second
+	]
+	
+	pad4: func [s [binary!] /local rem][
+		unless zero? rem: (length? s) // 4 [
+			insert/dup tail s #{00} 4 - rem
+		]
+		s
 	]
 
 	pad-size?: func [buffer [binary!] /local rem][
@@ -477,6 +485,62 @@ context [
 		change next spec out
 		buffer: names: out: none
 	]
+	
+	build-section-reloc: func [
+		job [object!] name [word!] refs [block!]
+		/local block buffer data base type offset header open-block close-block
+	][
+		buffer: make binary! 4096
+		data: job/sections/:name/2
+		base: section-addr?/memory job name
+		block: 0
+		type: to integer! #{3000}						;-- IMAGE_REL_BASED_HIGHLOW		
+		
+		open-block: [
+			header: buffer
+			append buffer #{0000000000000000}			;-- reserve 64-bit for the header
+		]
+		close-block: [
+			change header to-bin32 base
+			change at header 5 to-bin32 length? header	;-- store header + buffer size
+		]
+		
+		do open-block
+		foreach offset refs [
+			offset: offset - 1
+			if offset - block > 4096 [
+				do close-block
+				pad4 buffer
+				base: base + 4096
+				block: block + 4096
+			]
+			append buffer to-bin16 (offset - block) or type
+		]
+		do close-block
+		
+		buffer
+	]
+	
+	build-reloc: func [job [object!] /local out code-refs data-refs][
+		out: make binary! 4096
+			
+		code-refs: make block! 1000
+		data-refs: make block! 100
+		foreach [name spec] job/symbols [
+			either all [spec/1 = 'global block? spec/4][
+				foreach ref spec/4 [append data-refs ref]
+			][
+				foreach ref spec/3 [append code-refs ref]
+			]
+		]
+		sort code-refs
+		sort data-refs
+			
+		unless empty? code-refs [append out build-section-reloc job 'code code-refs]
+		unless empty? data-refs [append out build-section-reloc job 'data data-refs]
+		
+		job/sections/reloc/2: out
+	]
 
 	build-header: func [job [object!] /local fh][
 		if find [exe dll] job/type [append job/buffer "PE^@^@"]	;-- image signature
@@ -533,7 +597,7 @@ context [
 		oh/headers-size:		code-page * file-align
 		oh/checksum:			0						;-- for drivers and DLL only
 		oh/sub-system:			select defs/sub-system job/sub-system
-		oh/dll-flags:			0 ;either job/type <> 'dll [0][to integer! defs/dll-flags/dynamic-base]
+		oh/dll-flags:			either job/type <> 'dll [0][to integer! defs/dll-flags/dynamic-base]
 		oh/stack-res-size:		to integer! #{00100000}
 		oh/stack-com-size:		to integer! #{00001000}
 		oh/heap-res-size:		to integer! #{00100000}
@@ -546,6 +610,8 @@ context [
 		if job/type = 'dll [
 			oh/export-addr:		named-sect-addr? job 'export
 			oh/export-size:		length? job/sections/export/2
+			oh/reloc-addr:		named-sect-addr? job 'reloc
+			oh/reloc-size:		length? job/sections/reloc/2
 		]	
 		append job/buffer form-struct oh
 	]
@@ -570,6 +636,10 @@ context [
 	build: func [job [object!] /local page out pad code-ptr][
 		clear imports-refs
 		
+		if job/type = 'dll [
+			append job/sections [reloc [- - -]]			;-- inject reloc section
+		]
+		
 		base-address: to integer! switch job/type [
 			exe	[defs/image/exe-base-address]
 			dll	[defs/image/dll-base-address]
@@ -582,7 +652,11 @@ context [
 		]
 		
 		build-import job								;-- populate import section buffer
-		if job/type = 'dll [build-export job]			;-- populate export section buffer
+		
+		if job/type = 'dll [
+			build-export job							;-- populate export section buffer
+			build-reloc job
+		]
 
 		out: job/buffer
 		append out defs/image/MSDOS-header
