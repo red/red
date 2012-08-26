@@ -837,6 +837,13 @@ system-dialect: context [
 			path
 		]
 		
+		check-with-prefix: func [path [path! set-path!] /local ns][
+			foreach with with-stack [
+				if ns: check-ns-prefix join with path [return ns]
+			]
+			path
+		]
+		
 		check-enum-word: func [name [word!] /local error][
 			case [
 				all [find keywords name name <> 'context][
@@ -1917,6 +1924,11 @@ system-dialect: context [
 					all [
 						ns-path
 						word? value: check-ns-prefix join ns-path path 		;-- possible reduction to word! if ns-prefixed
+						path: value
+					]
+					all [
+						with-stack
+						word? value: check-with-prefix path					;-- possible reduction to word! if within ns
 						path: value
 					]
 				]
