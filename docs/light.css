@@ -19,6 +19,17 @@ legend {font-weight: bold;}
 .fset, .fset p {background-color: #f0e090;}
 .fset  {border: solid #a0a0a0 1px;}
 .tail {color: gray; font-size: 8pt;}
+.normal {
+	border: 1px solid #888;
+	border-collapse:collapse;
+}
+.normal th, .normal td {
+	border: 1px solid #888;
+	font-size: 10pt;
+	padding: 12px 12px;
+}
+.normal td {text-align: left;}
+.normal th {background-color: #EEE;}
 .matrix {
 	border: 1px solid #888;
 	border-collapse:collapse;

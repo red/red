@@ -150,6 +150,16 @@ make target-class [
 				emit pick [#{81E2} #{25}] alt?    	;-- AND edx|eax, 000000FFh 
 				emit to-bin32 255
 			]
+			all [value/type/1 = 'integer! type/1 = 'float32!][
+				if verbose >= 3 [print [">>>converting from float32! to integer!"]]
+				emit #{83EC04}						;-- SUB esp, 4
+				emit #{D91C24}						;-- FSTP dword [esp]	; save as 32-bit
+				either alt? [
+					emit #{5A}						;-- POP edx
+				][
+					emit #{58}						;-- POP eax
+				]
+			]
 			all [value/type/1 = 'float32! type/1 = 'integer!][
 				if verbose >= 3 [print [">>>converting from integer! to float32!"]]
 				either alt? [
@@ -396,6 +406,7 @@ make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
+		/local offset
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		
@@ -441,8 +452,14 @@ make target-class [
 				]
 			]
 			get-word! [
-				emit #{B8}							;-- MOV eax, &name
-				emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
+				value: to word! value
+				either offset: select emitter/stack value [
+					emit #{8D45}					;-- LEA eax, [ebp+n]	; local
+					emit stack-encode offset		;-- n
+				][
+					emit #{B8}						;-- MOV eax, &name
+					emit-reloc-addr emitter/get-symbol-ref value	;-- symbol address
+				]
 			]
 			string! [
 				emit-load-literal [c-string!] value
@@ -511,8 +528,12 @@ make target-class [
 				]
 			]
 			get-word! [
-				do store-dword
-				emit-reloc-addr emitter/get-func-ref to word! value	;-- symbol address
+				either find emitter/stack to word! value [
+					emit-store name <last> none
+				][
+					do store-dword
+					emit-reloc-addr emitter/get-symbol-ref to word! value	;-- symbol address
+				]
 			]
 			string! [
 				do store-dword
@@ -763,7 +784,7 @@ make target-class [
 		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
 		/with cast [object!]
 		/cdecl										;-- external call
-		/local spec type
+		/local spec type offset
 	][
 		if verbose >= 3 [print [">>>pushing" mold value]]
 		if block? value [value: <last>]
@@ -830,8 +851,15 @@ make target-class [
 				]
 			]
 			get-word! [
-				emit #{68}							;-- PUSH &value
-				emit-reloc-addr emitter/get-func-ref to word! value	;-- value memory address
+				value: to word! value
+				either offset: select emitter/stack value [
+					emit #{8D45}					;-- LEA eax, [ebp+n]	; local
+					emit stack-encode offset		;-- n
+					emit #{50}						;-- PUSH eax
+				][
+					emit #{68}						;-- PUSH &value
+					emit-reloc-addr emitter/get-symbol-ref value	;-- symbol address
+				]
 			]
 			string! [
 				spec: emitter/store-value none value [c-string!]
@@ -840,9 +868,11 @@ make target-class [
 			]
 			path! [
 				emitter/access-path value none
-				if cast [
+				compiler/last-type: either cast [
 					emit-casting cast no
-					compiler/last-type: cast/type
+					cast/type
+				][
+					compiler/resolve-path-type value
 				]
 				emit-push <last>
 			]
@@ -1136,7 +1166,8 @@ make target-class [
 
 		set-width args/1							;-- set reg/mem access width
 		set [a b] get-arguments-class args
-		
+		last-saved?: no								;-- reset flag
+
 		;-- First operand processing
 		left:  compiler/unbox args/1
 		right: compiler/unbox args/2
@@ -1147,6 +1178,9 @@ make target-class [
 			imm/reg [								;-- eax = b
 				if path? right [
 					emit-load args/2				;-- late path loading
+					if object? args/2 [
+						emit-casting args/2 no
+					]
 				]
 				emit-poly [#{88C2} #{89C2}]			;-- MOV rD, rA
 				emit-poly [#{B0} #{B8} args/1]		;-- MOV rA, a		; eax = a, edx = b
@@ -1187,7 +1221,6 @@ make target-class [
 				unless sorted? [emit #{92}]			;-- XCHG eax, edx	; eax = a, edx = b
 			]
 		]
-		last-saved?: no								;-- reset flag
 		if object? args/1 [emit-casting args/1 no]	;-- do runtime conversion on eax if required
 
 		;-- Operator and second operand processing
@@ -1208,7 +1241,12 @@ make target-class [
 		emit #{DDD8}								;-- FSTP st0
 	]
 	
-	emit-float-comparison-op: func [name [word!] a [word!] b [word!] args [block!] /local spec float32?][
+	emit-float-comparison-op: func [
+		name [word!] a [word!] b [word!] args [block!] reversed? [logic!]
+		/local spec float32?
+	][
+		if reversed? [emit #{D9C9}]					;-- FXCH st0, st1
+		
 		either compiler/job/cpu-version >= 6.0	[	;-- support for FCOMI* only with P6+
 			emit #{DFF1}							;-- FCOMIP st0, st1
 			emit-float-trash-last					;-- pop 2nd argument
@@ -1222,7 +1260,7 @@ make target-class [
 	]
 	
 	emit-float-math-op: func [
-		name [word!] a [word!] b [word!] args [block!]
+		name [word!] a [word!] b [word!] args [block!] reversed? [logic!]
 		/local mod? scale c type spec
 	][
 		all [
@@ -1241,21 +1279,27 @@ make target-class [
 		set-width args/1
 		emit switch name [
 			+ [#{DEC1}]								;-- FADDP st0, st1
-			- [#{DEE9}]								;-- FSUBP st0, st1
+			- [pick [#{DEE1} #{DEE9}] reversed?]	;-- FSUB[R]P st0, st1
 			* [#{DEC9}]								;-- FMULP st0, st1
 			/ [
+				if all [mod? reversed?][
+					emit #{D9C9}					;-- FXCH st0, st1		; for modulo/remainder ops
+				]
 				switch/default mod? [
 					mod [#{D9F8}]					;-- FPREM st0, st1		; floating point remainder
 					rem [
 						compiler/last-type: [integer!]
 						#{D9F5}						;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
 					]
-				][#{DEF9}]							;-- FDIVP st0, st1
+				][pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
 			]
 		]
 	]
 
-	emit-float-operation: func [name [word!] args [block!] /local a b left right spec load-from-stack][
+	emit-float-operation: func [
+		name [word!] args [block!] 
+		/local a b left right spec load-from-stack reversed?
+	][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 
 		if find comparison-op name [reverse args] 	;-- arguments will be pushed in reverse order
@@ -1319,16 +1363,15 @@ make target-class [
 				]
 			]
 		]
-		if any [
-			all [b = 'reg a <> 'reg]
-			all [a = 'reg b <> 'reg]
-		][
-			emit #{D9C9}							;-- FXCH st0, st1
+		
+		reversed?: to logic! any [
+			all [b = 'reg any [all [a = 'ref block? right] all [a = 'imm block? right]]]
+			all [a = 'reg any [all [b = 'ref path? left] all [b = 'imm path? left]]]
 		]
 		
 		case [
-			find comparison-op name [emit-float-comparison-op name a b args]
-			find math-op	   name	[emit-float-math-op		  name a b args]
+			find comparison-op name [emit-float-comparison-op name a b args reversed?]
+			find math-op	   name	[emit-float-math-op		  name a b args reversed?]
 			true [
 				compiler/throw-error "unsupported operation on floats"
 			]

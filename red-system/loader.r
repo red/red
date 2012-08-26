@@ -158,11 +158,7 @@ loader: context [
 			s: (do store-line)
 			some [
 				defs								;-- resolve definitions in a single pass
-				| 'comment [
-					string! | (throw-error "invalid comment string")
-				]
 				| s: #define set name word! set value skip e: (
-					compiler/check-enum-word/by-loader name
 					if verbose > 0 [print [mold name #":" mold value]]
 					append compiler/definitions name
 					if word? value [value: to lit-word! value]
@@ -184,27 +180,14 @@ loader: context [
 					append defs rule
 					remove/part s e
 				) :s
-				| s: #enum set name word! set value skip e: (
+				| s: #enum word! set value skip e: (
 					either block? value [
 						saved: reduce [s e]
-						compiler/check-enum-word/by-loader name ;-- first checking enumeration identifier possible conflicts
 						parse value [
-							(enum-value: 0)
 							any [
 								any line-rule [
-									[
-										copy enum-names word! |
-										(enum-names: make block! 10)
-										some [
-											set enum-name set-word! any line-rule (append enum-names to word! enum-name)
-										]	set enum-value [integer! | word!]
-									] (
-										enum-value: compiler/set-enumerator name enum-names enum-value
-									)
-									|
-									set enum-name 1 skip (
-										throw-error ["invalid enumeration:" to-word enum-name]
-									)
+									[word! | some [set-word! any line-rule][integer! | word!]]
+									| skip
 								]
 							]
 						]
@@ -212,7 +195,7 @@ loader: context [
 					][
 						throw-error ["invalid enumeration (block required!):" mold value]
 					]
-					remove/part s e
+					s: e
 				) :s
 				| s: #include set name file! e: (
 					either included? name: find-path name [

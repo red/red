@@ -13,12 +13,12 @@ change-dir %../
 
   --test-- "enum-redec-1"
 	  --compile-this "#enum test! [print]"
-	--assert-msg? "*** Loading Error: attempt to redefine existing function name: print"
+	--assert-msg? "*** Compilation Error: attempt to redefine existing function name: print"
 	  --clean
 
 	--test-- "enum-redec-2"
 	  --compile-this "#enum print [foo]"
-	--assert-msg? "*** Loading Error: attempt to redefine existing function name: print"
+	--assert-msg? "*** Compilation Error: attempt to redefine existing function name: print"
 	  --clean
 
 	--test-- "enum-redec-3"
@@ -28,12 +28,12 @@ change-dir %../
 
 	--test-- "enum-redec-4"
 	  --compile-this "#enum test! [foo foo]"
-	--assert-msg? "*** Loading Error: redeclaration of enumerator: foo"
+	--assert-msg? "*** Compilation Error: redeclaration of enumerator: foo"
 	  --clean
 
 	--test-- "enum-redec-5"
 	  --compile-this "#enum test! [a] #enum test! [b]"
-	--assert-msg? "*** Loading Error: redeclaration of enum identifier: test!"
+	--assert-msg? "*** Compilation Error: redeclaration of enum identifier: test!"
 	  --clean
 
 	--test-- "enum-redec-6"
@@ -41,7 +41,7 @@ change-dir %../
 		  #define foo 3
 		  #enum test! [foo]
 		}
-	--assert-msg? "*** Loading Error: attempt to redefine existing definition: foo"
+	--assert-msg? "*** Compilation Error: attempt to redefine existing definition: foo"
 	  --clean
 
 	--test-- "enum-redec-7"
@@ -49,7 +49,7 @@ change-dir %../
 		  #enum test! [foo]
 		  #define foo 3
 		  }
-	--assert-msg? "*** Loading Error: redeclaration of enumerator: foo"
+	--assert-msg? "*** Compilation Error: attempt to redefine existing definition: foo"
 	  --clean
 
 	--test-- "enum-redec-8"
@@ -89,7 +89,7 @@ change-dir %../
 	  --compile-this {
 		  #enum test! [foo: bla]
 		}
-	--assert-msg? "*** Loading Error: cannot resolve literal enum value for: foo"
+	--assert-msg? "*** Compilation Error: cannot resolve literal enum value for: foo"
 	  --clean
 ===end-group===
 

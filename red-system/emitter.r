@@ -152,6 +152,16 @@ emitter: context [
 		]
 	]
 	
+	get-symbol-ref: func [name [word!] /local spec][
+		case [
+			find compiler/functions name [get-func-ref name]	;-- function case
+			spec: select symbols name [spec]					;-- global variable case
+			'else [
+				compiler/throw-error ["attempt to get a reference on unknown symbol" name]
+			]
+		]
+	]
+	
 	get-func-ref: func [name [word!] /local entry][
 		entry: find/last symbols name
 		if entry/2/1 = 'native [
@@ -250,7 +260,7 @@ emitter: context [
 			struct! [
 				ptr: tail data-buf
 				foreach [var type] spec [
-					if spec: select compiler/aliased-types type [type: spec]
+					if spec: compiler/find-aliased type/1 [type: spec]
 					type: either find [struct! c-string!] type/1 ['pointer!][type/1]
 					store-global value type none
 				]
@@ -268,7 +278,7 @@ emitter: context [
 		/ref ref-ptr
 		/local ptr new
 	][
-		if new: select compiler/aliased-types type/1 [
+		if new: compiler/find-aliased type/1 [
 			type: new
 		]
 		ptr: store-global value type/1 all [			;-- allocate value slot
@@ -282,7 +292,7 @@ emitter: context [
 		name [word!] value type [block!]
 		/local new new-global? ptr refs n-spec spec literal?
 	][
-		if new: select compiler/aliased-types type/1 [
+		if new: compiler/find-aliased type/1 [
 			type: new
 		]
 		new-global?: not any [							;-- TRUE if unknown global symbol
@@ -461,7 +471,7 @@ emitter: context [
 				select datatypes 'integer!
 			]
 			all [										;-- search in user-aliased types
-				type: select compiler/aliased-types type
+				type: compiler/find-aliased type
 				select datatypes type/1
 			]
 		]

@@ -52,3 +52,8 @@ For example, from Windows, to emit Linux executables:
 From Linux, to emit Windows console executables:
 
     >> do/args %rsc.r "-t MSDOS %tests/hello.reds"
+
+License
+-------------------------
+
+[BSD](http://www.opensource.org/licenses/bsd-3-clause) license, runtime under [BSL](http://www.boost.org/users/license.html) license. BSL is a bit more permissive license than BSD, so more suitable for the runtime parts.
