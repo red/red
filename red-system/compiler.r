@@ -2543,7 +2543,12 @@ system-dialect: context [
 		
 		finalize: does [
 			if verbose >= 2 [print "^/---^/Compiling native functions^/---"]
-			if job/type = 'dll [add-dll-callbacks]
+			if job/type = 'dll [
+				if empty? exports [
+					throw-error "missing #export directive for library production"
+				]
+				add-dll-callbacks
+			]
 			comp-natives
 			emitter/target/on-finalize
 			if verbose >= 2 [print ""]
