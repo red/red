@@ -205,6 +205,7 @@ win32-startup-ctx: context [
 	;-- source: http://msdn.microsoft.com/en-us/library/windows/desktop/ms682596(v=vs.85).aspx
 	
 	***-dll-entry-point: func [
+		[callback]
 		hinstDLL   [integer!]						;-- handle to DLL module
 		fdwReason  [integer!]						;-- reason for calling function
 		lpReserved [integer!]						;-- reserved

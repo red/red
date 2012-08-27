@@ -729,7 +729,10 @@ system-dialect: context [
 		add-function: func [type [word!] spec [block!] cc [word!]][
 			repend functions [
 				to word! spec/1 reduce [get-arity spec/3 type cc new-line/all spec/3 off]
-			]		
+			]
+			if all [block? spec/3/1 find spec/3/1 'callback][
+				append last functions 'callback
+			]
 		]
 		
 		compare-func-specs: func [
@@ -966,9 +969,10 @@ system-dialect: context [
 			]
 			cconv: ['cdecl | 'stdcall]
 			attribs: [
-				'infix | 'variadic | 'typed | cconv
+				'infix | 'variadic | 'typed | 'callback | cconv
 				| [cconv ['variadic | 'typed]]
 				| [['variadic | 'typed] cconv]
+				| ['callback cconv] | [cconv 'callback]
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
@@ -2510,10 +2514,8 @@ system-dialect: context [
 						to set-word! fun 'func [handle [integer!]][]	;-- stdcall
 					]
 				]
-				unless find exports fun [append exp fun]
 			]
 			unless empty? code [
-				repend code [#export exp]
 				pc: code
 				comp-dialect
 			]
