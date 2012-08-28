@@ -332,6 +332,14 @@ Red/System [
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/j = 0
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/k = 3
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/l = 6
+  
+  --test-- "nmm2"
+	  red: context [
+		c: context [set: func [return: [integer!]][1] ]
+		w: context [d: func [return: [integer!]][c/set] ]
+	  ]
+  --assert red/w/d = 1
+  
 ===end-group===
 
 ===start-group=== "include"
