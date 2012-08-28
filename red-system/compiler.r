@@ -783,13 +783,13 @@ system-dialect: context [
 			none
 		]
 
-		ns-find-through: func [name [word!] list [hash!] /local c p][
+		ns-find-through: func [name [word!] list [hash!] /compare :fun /local c p][ ; @@ compare...enums list needs a flat structure!
 			if 1 < length? ns-path [
 				name: to word! mold/flat name
-
+				
 				loop c: (length? ns-path) - 1 [
 					p: ns-decorate append copy/part ns-path c name
-					if find list p  [return p]
+					if any [all [compare fun p] find list p][return p]
 					c: c - 1
 				]
 			]
@@ -806,8 +806,10 @@ system-dialect: context [
 				all [
 					ns-path
 					either list = enumerations [
-						ns: ns-prefix name
-						any [find enumerations ns get-enumerator ns]
+						any [
+							get-enumerator ns: ns-prefix name		  ;-- lookup in current namespace
+							get-enumerator ns: ns-find-through/compare name list :get-enumerator ;-- walk through parent namespaces
+						]
 					][
 						any [
 							find list ns: ns-prefix name		  	;-- lookup in current namespace
@@ -819,10 +821,9 @@ system-dialect: context [
 			]
 		]
 
-		check-ns-prefix: func [path [path! set-path!] /set /local len c p][
-			len: length? path
-			p: to path! path
-			loop c: len - 1 [
+		check-ns-prefix: func [path [path! set-path!] /set /local c p][
+			p: to path! path			
+			loop c: (length? path) - 1 [
 				if find/only ns-list copy/part p c [
 					c: c + 1
 					path: copy/part p c
@@ -832,6 +833,15 @@ system-dialect: context [
 						either set [to set-word! p/1][p/1]
 					][p]
 				]
+				c: c - 1
+			]
+			path
+		]
+		
+		check-all-ns-prefix: func [path [path! set-path!] /local c p ns][
+			loop c: length? ns-path [
+				p: copy/part ns-path c				
+				if word? ns: check-ns-prefix join p path [return ns]
 				c: c - 1
 			]
 			path
@@ -1920,15 +1930,15 @@ system-dialect: context [
 			either all [
 				not local-variable? path/1
 				any [
-					word? path: check-ns-prefix path 		;-- possible reduction to word! if ns-prefixed
+					word? path: check-ns-prefix path 			;-- possible reduction to word! if ns-prefixed
 					all [
 						ns-path
-						word? value: check-ns-prefix join ns-path path 		;-- possible reduction to word! if ns-prefixed
+						word? value: check-all-ns-prefix path 	;-- possible reduction to word! if ns-prefixed
 						path: value
 					]
 					all [
 						with-stack
-						word? value: check-with-prefix path					;-- possible reduction to word! if within ns
+						word? value: check-with-prefix path		;-- possible reduction to word! if within ns
 						path: value
 					]
 				]
