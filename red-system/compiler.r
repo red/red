@@ -840,6 +840,13 @@ system-dialect: context [
 			path
 		]
 		
+		check-with-prefix: func [path [path! set-path!] /local ns][
+			foreach with with-stack [
+				if ns: check-ns-prefix join with path [return ns]
+			]
+			path
+		]
+		
 		check-enum-word: func [name [word!] /local error][
 			case [
 				all [find keywords name name <> 'context][
@@ -1183,7 +1190,11 @@ system-dialect: context [
 			]
 			add-function type reduce [name none specs] cc
 			emitter/add-native name
-			repend natives [name specs pc/3 script all [ns-path copy ns-path]]
+			repend natives [
+				name specs pc/3 script
+				all [ns-path copy ns-path] 
+				all [with-stack copy with-stack]
+			]
 			pc: skip pc 3
 		]
 		
@@ -1859,7 +1870,10 @@ system-dialect: context [
 				]
 				if all [
 					not local-variable? n
-					enum: get-enumerator n
+					enum: any [
+						all [ns: ns-find-with n enumerations get-enumerator n: ns]
+						get-enumerator n
+					]
 				][
 					backtrack name
 					throw-error ["redeclaration of enumerator" name "from" enum]
@@ -1936,6 +1950,9 @@ system-dialect: context [
 		
 		comp-path: has [path value][
 			path: pc/1
+			if #":" = first mold path/1 [
+				throw-error "get-path! syntax is not supported"
+			]
 			either all [
 				not local-variable? path/1
 				any [
@@ -1943,6 +1960,11 @@ system-dialect: context [
 					all [
 						ns-path
 						word? value: check-ns-prefix join ns-path path 		;-- possible reduction to word! if ns-prefixed
+						path: value
+					]
+					all [
+						with-stack
+						word? value: check-with-prefix path					;-- possible reduction to word! if within ns
 						path: value
 					]
 				]
@@ -2472,7 +2494,7 @@ system-dialect: context [
 		]
 		
 		comp-natives: does [			
-			foreach [name spec body origin ns] natives [
+			foreach [name spec body origin ns ws] natives [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -2482,6 +2504,7 @@ system-dialect: context [
 				]
 				script: origin
 				ns-path: ns
+				with-stack: ws
 				comp-func-body name spec body
 			]
 		]

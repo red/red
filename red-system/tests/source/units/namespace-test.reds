@@ -277,13 +277,6 @@ Red/System [
     ]
     nmsp5/pi: :i
   --assert nmsp5/pi/value = 12345
-  ; --test-- "nmp2"						;-- getting a pointer on a variable in a context using a path
-  ;   pi: declare pointer! [integer!]	;-- is not a supported feature. Use a local function to
-  ;   nmsp6: context [					;-- get such pointer.
-  ;     i: 12345
-  ;   ]
-  ;   pi: :nmsp6/i
-  ; --assert pi/value = 12345
   --test-- "nmp3"
     nmsp6a: context [
       i: 67890
@@ -459,11 +452,7 @@ Red/System [
 ===end-group===
 
 ===start-group=== "context as local variable"
-  ;--test-- "nscaslv1"
-  ;  nsca1-nsmp1: context [
-  ;    context: 1  							;-- this is not allowed as contexts can be nested, so
-  ;  ]										;-- you can't redefine 'context word there, but only
-  ;--assert nsca1-nsmp1/context 1			;-- in a function's body.
+  
   --test-- "nscasv2"
     nsca2-f: function [
       return: [integer!]
@@ -477,21 +466,8 @@ Red/System [
 
 ===end-group===
 
-===start-group=== "acessing alias from context"
-
-  ;--test-- "nsaa1 - issue #237"
-  ;  nssa1-c: context [
-  ;    s!: alias struct! [val [integer!]]
-  ;    s: declare s!
-  ;    s/val: 100
-  ;  ]
-  ;  nssa1-f: function [
-  ;    p [nssa1-c/s!]						;-- path! in type specification are not supported (and
-  ;  ][										;-- probably will never be).
-  ;    P/val
-  ;  ]
-  ;--assert 100 = nssa1-f
-  
+===start-group=== "accessing alias from context"
+ 
   --test-- "nsaa2 - issue #238"
     nssa2-c: context [
       s!: alias struct! [val [integer!]]
