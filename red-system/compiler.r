@@ -849,7 +849,9 @@ system-dialect: context [
 		
 		check-with-prefix: func [path [path! set-path!] /local ns][
 			foreach with with-stack [
-				if ns: check-ns-prefix join with path [return ns]
+				if find select/only ns-list with path/1 [
+					return check-ns-prefix join with path
+				]
 			]
 			path
 		]
@@ -1938,8 +1940,8 @@ system-dialect: context [
 					]
 					all [
 						with-stack
-						word? value: check-with-prefix path		;-- possible reduction to word! if within ns
-						path: value
+						path: check-with-prefix path
+						word? path								;-- possible reduction to word! if within ns
 					]
 				]
 			][
