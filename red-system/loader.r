@@ -278,9 +278,8 @@ loader: context [
 		if error? set/any 'err try [src: load/all src][	;-- convert source to blocks
 			throw-error ["syntax error during LOAD phase:" mold disarm err]
 		]
-?? src
-		unless short [src: expand-block src]		;-- process block-level compiler directives
-?? src		
+		
+		unless short [src: expand-block src]		;-- process block-level compiler directives	
 		src
 	]
 ]
