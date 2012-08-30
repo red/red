@@ -83,7 +83,7 @@ loader: context [
 		]
 	]
 
-	expand-string: func [src [string! binary!] /local value s e c lf-count ws i prev ins?][
+	expand-string: func [src [string! binary!] /local value s e c lf-count ws i prev ins? braces][
 		if verbose > 0 [print "running string preprocessor..."]
 
 		line: 1										;-- lines counter
@@ -95,13 +95,14 @@ loader: context [
 			]
 		)] 
 		ws:	[ws-chars | (ins?: yes) lf-count]
+		braces: ["{" any [(ins?: no) lf-count | non-cbracket] "}"]
 
 		parse/all/case src [						;-- not-LOAD-able syntax support
 			any [
 				(c: 0)
 				#";" to lf
 				| {"} thru {"}
-				| "{" any [(ins?: no) lf-count | non-cbracket] "}"
+				| "{" any [(ins?: no) lf-count | braces | non-cbracket] "}"
 				| ws s: ">>>" e: ws (
 					e: change/part s "-**" e		;-- convert >>> to -**
 				) :e
@@ -277,8 +278,9 @@ loader: context [
 		if error? set/any 'err try [src: load/all src][	;-- convert source to blocks
 			throw-error ["syntax error during LOAD phase:" mold disarm err]
 		]
-
+?? src
 		unless short [src: expand-block src]		;-- process block-level compiler directives
+?? src		
 		src
 	]
 ]
