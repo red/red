@@ -185,7 +185,7 @@ target-class: context [
 					char! 	 ['imm]
 					integer! ['imm]
 					decimal! ['imm]
-					word! 	 ['ref] 				;-- value need to be fetched
+					word! 	 ['ref] 				;-- value needs to be fetched
 					block!   ['reg] 				;-- value in accumulator (or in alt-acc)
 					path!    ['reg] 				;-- value in accumulator (or in alt-acc)
 				]
@@ -201,9 +201,8 @@ target-class: context [
 
 		fspec: select compiler/functions name
 		spec: any [select emitter/symbols name next fspec]
-		type: first spec
 
-		switch type [
+		switch first spec [
 			syscall [
 				emit-call-syscall args fspec
 			]
@@ -234,7 +233,6 @@ target-class: context [
 				if sub? [emitter/logic-to-integer name]
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: any [
-						;all [object? args/1 args/1/type]
 						all [not sub? block? args/1 compiler/last-type]
 						compiler/get-type args/1	;-- other ops return type of the first argument	
 					]
