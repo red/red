@@ -1522,8 +1522,8 @@ system-dialect: context [
 			unless set-word? pc/-1 [
 				throw-error "assignment expected for ALIAS"
 			]
-			unless pc/2 = 'struct! [
-				throw-error "ALIAS only works on struct! type"
+			unless find [struct! function!] pc/2 [
+				throw-error "ALIAS only allowed for struct! and function!"
 			]
 			name: to word! pc/-1
 			all [
@@ -1543,8 +1543,13 @@ system-dialect: context [
 				throw-error "a base type name cannot be defined as an alias name"
 			]
 			repend aliased-types [name reduce [pc/2 pc/3]]
-			unless catch [parse pos: pc/3 struct-syntax][
-				throw-error ["invalid struct syntax:" mold pos]
+			switch pc/2 [
+				struct! [
+					unless catch [parse pos: pc/3 struct-syntax][
+						throw-error ["invalid struct syntax:" mold pos]
+					]
+				]
+				function! [check-specs 'pointer pc/3]
 			]
 			pc: skip pc 3
 			none
