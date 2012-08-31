@@ -268,7 +268,7 @@ system-dialect: context [
 		blockify: func [value][either block? value [value][reduce [value]]]
 
 		literal?: func [value][
-			not any [word? value path? value block? value value = <last>]
+			not any [word? value get-word? value path? value block? value value = <last>]
 		]
 		
 		not-initialized?: func [name [word!] /local pos][
@@ -1170,6 +1170,14 @@ system-dialect: context [
 			next pc: save-pc
 		]
 		
+		get-cconv: func [specs [block!]][
+			pick [cdecl stdcall] to logic! all [
+				not empty? specs
+				block? specs/1
+				find specs/1 'cdecl
+			]
+		]
+		
 		fetch-func: func [name /local specs type cc][
 			name: to word! name
 			if ns-path [name: ns-prefix name]
@@ -1439,10 +1447,10 @@ system-dialect: context [
 		
 		comp-as: has [ctype ptr? expr][
 			ctype: pc/2
-			if ptr?: find [pointer! struct!] ctype [ctype: reduce [pc/2 pc/3]]
+			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
 			
 			unless any [
-				parse blockify ctype type-syntax
+				parse blockify ctype [func-pointer | type-syntax]
 				find-aliased ctype
 			][
 				throw-error ["invalid target type casting:" ctype]
@@ -2006,18 +2014,24 @@ system-dialect: context [
 			/local entry args n name expr attribute fetch id type ns
 		][
 			name: any [word symbol pc/1]
+			local?: local-variable? name
 			case [
 				all [
-					not all [local-variable? name name = 'context]
+					not all [local? name = 'context]
 					entry: select keywords name			;-- it's a reserved word
 				][
 					push-call pc/1
 					do entry
 				]
 				any [
-					local-variable? name
-					all [not root ns: ns-find-with name globals name: ns]
-					find globals name
+					local?
+					all [
+						any [
+							all [ns: ns-find-with name globals name: ns]
+							find globals name
+						]
+						'function! <> first get-type name	;-- pass-thru for function pointers
+					]
 				][										;-- it's a variable
 					if not-initialized? name [
 						throw-error ["local variable" name "used before being initialized!"]
@@ -2207,7 +2221,10 @@ system-dialect: context [
 					backtrack set-word
 					throw-error "variable has to be initialized at root level"
 				]
-				type: add-symbol name unbox expr casted  ;-- if unknown add it to global context
+				if all [casted casted/1 = 'function!][
+					add-function 'routine reduce [name none casted/2] get-cconv casted/2
+				]
+				type: add-symbol name unbox expr casted  ;-- if unknown add it to global context	
 			]
 			if none? type/1 [
 				backtrack set-word

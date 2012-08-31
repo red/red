@@ -185,7 +185,7 @@ target-class: context [
 					char! 	 ['imm]
 					integer! ['imm]
 					decimal! ['imm]
-					word! 	 ['ref] 				;-- value need to be fetched
+					word! 	 ['ref] 				;-- value needs to be fetched
 					block!   ['reg] 				;-- value in accumulator (or in alt-acc)
 					path!    ['reg] 				;-- value in accumulator (or in alt-acc)
 				]
@@ -196,12 +196,12 @@ target-class: context [
 		reduce [a b]
 	]
 	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res][
+	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
 		spec: any [select emitter/symbols name next fspec]
-		type: first spec
+		type: either fspec/2 = 'routine [fspec/2][first spec]
 
 		switch type [
 			syscall [
@@ -212,6 +212,9 @@ target-class: context [
 			]
 			native [
 				emit-call-native args fspec spec
+			]
+			routine [
+				emit-call-native/routine args fspec spec
 			]
 			inline [
 				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
@@ -234,7 +237,6 @@ target-class: context [
 				if sub? [emitter/logic-to-integer name]
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: any [
-						;all [object? args/1 args/1/type]
 						all [not sub? block? args/1 compiler/last-type]
 						compiler/get-type args/1	;-- other ops return type of the first argument	
 					]
