@@ -190,7 +190,7 @@ emitter: context [
 	]
 
 	store-global: func [value type [word!] spec [block! word! none!] /local size ptr][
-		if any [type = 'logic! logic? value][
+		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]

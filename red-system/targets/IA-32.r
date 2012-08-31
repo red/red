@@ -1481,7 +1481,7 @@ make target-class [
 		]
 	]
 
-	emit-call-native: func [args [block!] fspec [block!] spec [block!] /local total][
+	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine /local total][
 		if issue? args/1 [							;-- variadic call
 			emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
@@ -1491,8 +1491,12 @@ make target-class [
 			if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
 			emit-push total							;-- push arguments count
 		]
-		emit #{E8}									;-- CALL NEAR disp
-		emit-reloc-addr spec						;-- 32-bit relative displacement place-holder
+		either routine [
+			emit #{FF15}							;-- CALL FAR [addr]	; indirect call
+		][
+			emit #{E8}								;-- CALL NEAR disp
+		]
+		emit-reloc-addr spec						;-- 32-bit (FAR: pointer to addr, NEAR: relative displacement)
 		if fspec/3 = 'cdecl [						;-- in case of non-default calling convention
 			emit-cdecl-pop fspec args
 		]

@@ -1881,7 +1881,7 @@ make target-class [
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
 	]
 
-	emit-call-native: func [args [block!] fspec [block!] spec [block!]][
+	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine][
 		if issue? args/1 [							;-- variadic call
 			emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
