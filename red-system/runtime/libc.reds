@@ -31,7 +31,7 @@ Red/System [
 			return:		[byte-ptr!]
 		]
 		length?:	 "strlen" [
-			command		[c-string!]
+			buffer		[c-string!]
 			return:		[integer!]
 		]
 		quit:		 "exit" [
