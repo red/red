@@ -1861,7 +1861,6 @@ system-dialect: context [
 					throw-error "storing a function! requires a type casting"
 				]
 				unless local-variable? n [
-					check-func-name/only n				;-- avoid clashing with an existing function name		
 					any [
 						all [							;-- check if defined in WITH namespaces
 							with-stack
@@ -1874,6 +1873,7 @@ system-dialect: context [
 							add-ns-symbol pc/-1
 						]
 					]
+					check-func-name/only to word! name	;-- avoid clashing with an existing function name		
 				]
 			]
 			if set-path? name [
