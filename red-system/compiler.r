@@ -1931,7 +1931,7 @@ system-dialect: context [
 			either all [
 				not local-variable? path/1
 				any [
-					word? path: check-ns-prefix path 			;-- possible reduction to word! if ns-prefixed
+					word? path: check-ns-prefix path 	;-- possible reduction to word! if ns-prefixed
 					all [
 						ns-path
 						word? value: check-all-ns-prefix path 	;-- possible reduction to word! if ns-prefixed
@@ -1940,7 +1940,7 @@ system-dialect: context [
 					all [
 						with-stack
 						path: check-with-prefix path
-						word? path								;-- possible reduction to word! if within ns
+						word? path						;-- possible reduction to word! if within ns
 					]
 				]
 			][
@@ -1951,8 +1951,14 @@ system-dialect: context [
 				]
 				comp-word/with path
 			][
-				comp-word/path path/1					;-- check if root word is defined
-				unless value: system-reflexion? path [
+				either value: system-reflexion? path [
+					either path/2 = 'words [
+						return comp-word/with/root value ;-- re-route to global word resolution
+					][
+						pc: next pc
+					]
+				][
+					comp-word/path path/1				;-- check if root word is defined
 					all [
 						ns-path
 						not local-variable? path/1
@@ -1995,6 +2001,7 @@ system-dialect: context [
 		comp-word: func [
 			/path symbol [word!]
 			/with word [word!]
+			/root
 			/local entry args n name expr attribute fetch id type ns
 		][
 			name: any [word symbol pc/1]
@@ -2008,7 +2015,7 @@ system-dialect: context [
 				]
 				any [
 					local-variable? name
-					all [ns: ns-find-with name globals name: ns]
+					all [not root ns: ns-find-with name globals name: ns]
 					find globals name
 				][										;-- it's a variable
 					if not-initialized? name [
@@ -2019,7 +2026,7 @@ system-dialect: context [
 				]
 				type: all [
 					any [
-						all [ns: ns-find-with name enumerations get-enumerator name: ns]
+						all [not root ns: ns-find-with name enumerations get-enumerator name: ns]
 						get-enumerator name
 					]
 				][
@@ -2031,6 +2038,7 @@ system-dialect: context [
 					not path
 					any [
 						all [
+							not root
 							ns: ns-find-with name functions
 							entry: find functions ns
 							name: ns
