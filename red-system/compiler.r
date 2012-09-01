@@ -988,6 +988,7 @@ system-dialect: context [
 				'infix | 'variadic | 'typed | cconv
 				| [cconv ['variadic | 'typed]]
 				| [['variadic | 'typed] cconv]
+				| 'infix | 'variadic | 'typed | 'callback | cconv
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
