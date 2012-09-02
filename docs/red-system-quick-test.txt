@@ -66,6 +66,8 @@ Quick-Test uses the following directory structure:
       runnable/                     ;; the test executables
                                     ;; automatically created by Quick-Test
                                     ;; listed in .gitignore
+                                    ;; this directory can be emptied without impacting
+                                    ;;  quick-test
 
 ===Running Tests
 The tests are designed to be run from the command line or a REBOL console session. This must be a REBOL/View console session under Windows.
@@ -276,6 +278,11 @@ The start of an individual test. The number of tests in a run and file are count
     
 Compiles a Red/System source file. The output from the compiler is captured in qt/comp-ouput. If the compile is successful, qt/exe will contain the path to the executable file. It will be 'none if the compile failed.
 
+  --compile-dll <file>
+    <file> : Red/System source file - file!
+
+Compiles a Red/System source file as a dynamic link library. The output from the compiler is captured in qt/comp-output. The dll is stored in the tests/runnable directory. Use the qt/compile-ok? function to check if the compilation was successful.
+  
   --compile-this <source code>
     <source code> : Red/System source - string!
     
