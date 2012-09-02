@@ -985,8 +985,7 @@ system-dialect: context [
 			]
 			cconv: ['cdecl | 'stdcall]
 			attribs: [
-				'infix | 'variadic | 'typed | cconv
-				| [cconv ['variadic | 'typed]]
+				[cconv ['variadic | 'typed]]
 				| [['variadic | 'typed] cconv]
 				| 'infix | 'variadic | 'typed | 'callback | cconv
 			]
@@ -2017,7 +2016,7 @@ system-dialect: context [
 			/path symbol [word!]
 			/with word [word!]
 			/root
-			/local entry args n name expr attribute fetch id type ns
+			/local entry args n name expr attribute fetch id type ns local?
 		][
 			name: any [word symbol pc/1]
 			local?: local-variable? name
@@ -2033,7 +2032,7 @@ system-dialect: context [
 					local?
 					all [
 						any [
-							all [ns: ns-find-with name globals name: ns]
+							all [not root ns: ns-find-with name globals name: ns]
 							find globals name
 						]
 						'function! <> first get-type name	;-- pass-thru for function pointers
