@@ -25,7 +25,7 @@ change-dir %../
 	    ]
 	    f [:i]
 	  }
-	--assert-msg? "*** Compilation Error: cannot get a pointer on an undefined variable"
+	--assert-msg? "*** Compilation Error: cannot get a pointer on an undefined identifier"
 	  --clean
 	
 	--test-- "pointer error 2"
@@ -33,7 +33,7 @@ change-dir %../
 	    pi: declare pointer! [integer!]
 	    pi: :i
 	  }
-	--assert-msg? "*** Compilation Error: cannot get a pointer on an undefined variable"
+	--assert-msg? "*** Compilation Error: cannot get a pointer on an undefined identifier"
 	  --clean
 ===end-group===
 

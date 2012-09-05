@@ -291,11 +291,10 @@ system-dialect: context [
 				get-alias-id alias
 			][
 				type: resolve-aliased type
-				type: either type/1 = 'pointer! [
-					pick [int-ptr! byte-ptr!] type/2/1 = 'integer!
-				][
-					type/1
-				]
+				type: switch/default type/1 [
+					any-pointer! ['int-ptr!]
+					pointer! [pick [int-ptr! byte-ptr!] type/2/1 = 'integer!]
+				][type/1]
 				select emitter/datatype-ID type
 			]
 		]
@@ -2006,7 +2005,7 @@ system-dialect: context [
 					all [ns: ns-find-with name globals name: ns]
 					find globals name
 				][
-					throw-error "cannot get a pointer on an undefined variable"
+					throw-error "cannot get a pointer on an undefined identifier"
 				]
 			]
 			also to get-word! name pc: next pc
@@ -2645,7 +2644,7 @@ system-dialect: context [
 		job
 	]
 	
-	dt: func [code [block!] /local t0][
+	set 'dt func [code [block!] /local t0][
 		t0: now/time/precise
 		do code
 		now/time/precise - t0
