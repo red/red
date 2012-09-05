@@ -1340,6 +1340,7 @@ system-dialect: context [
 				#import  [process-import  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
+				#verbose [set-verbose-level pc/2 pc: skip pc 2]
 				#script	 [								;-- internal compiler directive
 					compiler/script: secure-clean-path pc/2	;-- set the origin of following code
 					pc: skip pc 2
