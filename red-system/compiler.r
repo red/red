@@ -1879,8 +1879,8 @@ system-dialect: context [
 				unless any [name/1 = 'system local-variable? name/1][
 					all [
 						ns-path
-						not find/only ns-list to path! name/1
-						name: join ns-path name
+						ns: ns-find-with name/1 globals
+						name/1: ns
 					]
 					name: check-ns-prefix/set name
 				]
@@ -1923,7 +1923,7 @@ system-dialect: context [
 			]
 		]
 		
-		comp-path: has [path value][
+		comp-path: has [path value ns][
 			path: pc/1
 			if #":" = first mold path/1 [
 				throw-error "get-path! syntax is not supported"
@@ -1962,8 +1962,8 @@ system-dialect: context [
 					all [
 						ns-path
 						not local-variable? path/1
-						find select/only ns-list ns-path path/1
-						path/1: ns-prefix path/1		;-- prefix path if needed
+						ns: ns-find-with path/1 globals
+						path/1: ns						;-- prefix path if needed
 					]
 					last-type: resolve-path-type path				
 				]
@@ -1982,7 +1982,7 @@ system-dialect: context [
 					]
 					spec: select functions name
 				][			
-					unless spec/2 = 'native [
+					unless find [native routine] spec/2 [
 						throw-error "get-word syntax only reserved for native functions for now"
 					]
 					unless spec/5 = 'callback [append spec 'callback]
