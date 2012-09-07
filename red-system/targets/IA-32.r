@@ -409,6 +409,7 @@ make target-class [
 		/local offset
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
+		alt: to logic! alt
 		
 		switch type?/word value [
 			char! [
@@ -436,8 +437,8 @@ make target-class [
 				with-width-of value [
 					either compiler/any-float? compiler/get-variable-spec value [
 						emit-float-variable value
-							#{DD05}					;-- FLD [value]		; global
-							#{DD45}					;-- FLD [ebp+n]		; local
+							#{DD05}					;-- FLD [value]			; global
+							#{DD45}					;-- FLD [ebp+n]			; local
 					][
 						either alt [
 							emit-variable-poly value
@@ -453,12 +454,30 @@ make target-class [
 			]
 			get-word! [
 				value: to word! value
-				either offset: select emitter/stack value [
-					emit #{8D45}					;-- LEA eax, [ebp+n]	; local
-					emit stack-encode offset		;-- n
+				either 'function! = first compiler/get-type value [
+					either alt [
+						emit-variable value
+							#{8B15}					;-- MOV edx, [value]	; global
+							#{8B55}					;-- MOV edx, [ebp+n]	; local
+					][
+						emit-variable value
+							#{A1}					;-- MOV eax, [value]	; global
+							#{8B45}					;-- MOV eax, [ebp+n]	; local	
+					]
 				][
-					emit #{B8}						;-- MOV eax, &name
-					emit-reloc-addr emitter/get-symbol-ref value	;-- symbol address
+					either offset: select emitter/stack value [
+						emit pick [
+							#{8D55}					;-- LEA edx, [ebp+n]	; local
+							#{8D45}					;-- LEA eax, [ebp+n]	; local
+						] alt
+						emit stack-encode offset	;-- n
+					][
+						emit pick [
+							#{BA}					;-- MOV edx, &name
+							#{B8}					;-- MOV eax, &name
+						] alt
+						emit-reloc-addr emitter/get-symbol-ref value	;-- symbol address
+					]
 				]
 			]
 			string! [
