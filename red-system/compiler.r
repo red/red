@@ -1052,8 +1052,13 @@ system-dialect: context [
 				all [
 					type
 					type/1 = 'function!
-					expected/1 = 'function!
-					compare-func-specs name expr type/2 expected/2	 ;-- callback case
+					any [
+						find [any-type! any-pointer!] expected/1
+						all [
+							expected/1 = 'function!
+							compare-func-specs name expr type/2 expected/2	 ;-- callback case
+						]
+					]
 				]
 				expected = type 						;-- normal single-type case
 				all [
