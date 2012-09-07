@@ -182,12 +182,13 @@ target-class: context [
 				 'reg								;-- value in accumulator
 			][
 				switch type?/word arg [
-					char! 	 ['imm]
-					integer! ['imm]
-					decimal! ['imm]
-					word! 	 ['ref] 				;-- value needs to be fetched
-					block!   ['reg] 				;-- value in accumulator (or in alt-acc)
-					path!    ['reg] 				;-- value in accumulator (or in alt-acc)
+					char! 	  ['imm]
+					integer!  ['imm]
+					decimal!  ['imm]
+					word! 	  ['ref] 				;-- value needs to be fetched
+					get-word! ['ref]
+					block!    ['reg] 				;-- value in accumulator (or in alt-acc)
+					path!     ['reg] 				;-- value in accumulator (or in alt-acc)
 				]
 			]
 			c: c + 1
