@@ -136,10 +136,10 @@ dump-hex: func [
 ;-- Dump memory on screen in hex format as array of 32-bit integers (handy wrapper on dump-hex)
 ;-------------------------------------------
 dump-hex4: func [
-	address	[byte-ptr!]						;-- memory address where the dump starts
-	return: [byte-ptr!]						;-- return the pointer (pass-thru)
+	address	[int-ptr!]						;-- memory address where the dump starts
+	return: [int-ptr!]						;-- return the pointer (pass-thru)
 ][	
-	dump-memory address 4
+	as int-ptr! dump-memory as byte-ptr! address 4
 ]
 
 ;-------------------------------------------
