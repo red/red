@@ -636,7 +636,7 @@ system-dialect: context [
 						none-type
 					]
 				]
-				'else [get-type expr]
+				'else [resolve-aliased get-type expr]
 			]
 			type
 		]
