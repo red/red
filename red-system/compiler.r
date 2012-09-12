@@ -379,6 +379,10 @@ system-dialect: context [
 			count
 		]
 		
+		any-path?: func [value][
+			find [path! set-path! lit-path!] type?/word value
+		]
+		
 		any-float?: func [type [block!]][
 			find any-float! type/1
 		]
@@ -465,9 +469,9 @@ system-dialect: context [
 		
 		resolve-struct-member-type: func [spec [block!] name [word!] /local type][
 			unless type: select spec name [
-				pc: skip pc -2
+				while [not all [any-path? pc/1 find pc/1 name]][pc: back pc]
 				throw-error [
-					"invalid struct member" name "in:" mold to path! pc/1
+					"invalid struct member" to lit-word! name "in:" mold to path! pc/1
 				]
 			]
 			either resolve-alias? [resolve-aliased type][type]
