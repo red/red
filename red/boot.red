@@ -26,7 +26,7 @@ typeset!:		make datatype! #get-definition TYPE_TYPESET
 set-word!:		make datatype! #get-definition TYPE_SET_WORD
 get-word!:		make datatype! #get-definition TYPE_GET_WORD
 lit-word!:		make datatype! #get-definition TYPE_LIT_WORD
-refinement!: 	make datatype! #get-definition TYPE_REFINEMENT
+refinement!:	make datatype! #get-definition TYPE_REFINEMENT
 binary!:		make datatype! #get-definition TYPE_BINARY
 paren!:			make datatype! #get-definition TYPE_PAREN
 char!:			make datatype! #get-definition TYPE_CHAR

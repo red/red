@@ -426,6 +426,13 @@ red: context [
 	
 	comp-directive: func [][
 		switch pc/1 [
+			#system [
+				unless block? pc/2 [
+					throw-error "#system requires a block argument"
+				]
+				emit pc/2
+				pc: skip pc 2
+			]
 			#get-definition [							;-- temporary directive
 				either value: select extracts/definitions pc/2 [
 					change/only/part pc value 2
