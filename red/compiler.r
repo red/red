@@ -406,22 +406,42 @@ red: context [
 		]
 	]
 	
-	check-infix-operators: has [name op][
+	search-expr-end: func [pos [block!]][
+		if infix? next pos [pos: search-expr-end skip pos 2]
+		pos
+	]
+	
+	check-infix-operators: has [name op pos end ops][
 		if infix? pc [return false]						;-- infix op already processed,
 														;-- or used in prefix mode.
 		if infix? next pc [
-			op: pc/2
-			name: any [select op-actions op op]
-			new-line skip tail output -2 yes
-			comp-expression/no-infix					;-- fetch left operand
-			pc: next pc									;-- jump over op word
-			comp-expression								;-- fetch right operand
-			emit reduce [
-				'do-apply (index? find actions to word! name)
+			pos: pc
+			end: search-expr-end pos					;-- recursive search of expression end
+			
+			ops: make block! 1
+			pos: end									;-- start from end of expression
+			until [
+				op: pos/-1			
+				name: any [select op-actions op op]
+				insert ops name							;-- remember ops in left-to-right order
+				emit-open-frame name
+				pos: skip pos -2						;-- process next previous op
+				pos = pc								;-- until we reach the beginning of expression
 			]
-			return true
+			
+			comp-expression/no-infix					;-- fetch first left operand
+			pc: next pc
+			
+			forall ops [
+				comp-expression/no-infix				;-- fetch right operand
+				emit to word! join "actions/" ops/1
+				insert-lf -1
+				emit-close-frame
+				unless tail? next ops [pc: next pc]		;-- jump over op word unless last operand
+			]
+			return true									;-- infix expression processed
 		]
-		false
+		false											;-- not an infix expression
 	]
 	
 	comp-directive: func [][
