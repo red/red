@@ -1899,13 +1899,18 @@ system-dialect: context [
 			]
 		]
 		
-		comp-func-args: func [name [word!] entry [hash!] /local attribute fetch expr args n][
+		comp-func-args: func [name [word!] entry [hash!] /local attribute fetch expr args n pos][
 			push-call name
 			pc: next pc							;-- it's a function
 			either attribute: check-variable-arity? entry/2/4 [
 				fetch: [
+					pos: pc
 					expr: fetch-expression
 					either attribute = 'typed [
+						if all [expr = <last> none? last-type/1][
+							pc: pos
+							throw-error "expression has no defined return type"
+						]
 						append args id: get-type-id expr
 						append/only args expr
 						append args pick [#_ 0] id = emitter/datatype-ID/float! ;-- 32-bit padding
