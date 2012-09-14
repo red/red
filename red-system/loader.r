@@ -82,6 +82,28 @@ loader: context [
 			do bind copy/part payload 3 job
 		]
 	]
+	
+	inject: func [args [block!] 'macro [paren! block!] s [block!] e [block!] /local rule pos i][
+		unless equal? length? args length? s/2 [
+			throw-error ["invalid macro arguments count in:" mold s/2]
+		]	
+		parse macro: copy/deep :macro rule: [
+			some [
+				into rule 
+				| pos: word! (
+					if i: find args pos/1 [
+						change/only pos pick s/2 index? :i
+					]
+				)
+				| skip
+			]
+		]
+		either paren? :macro [
+			change/part/only s macro e
+		][
+			change/part s macro e
+		]
+	]
 
 	expand-string: func [src [string! binary!] /local value s e c lf-count ws i prev ins?][
 		if verbose > 0 [print "running string preprocessor..."]
@@ -96,7 +118,7 @@ loader: context [
 		)] 
 		ws:	[ws-chars | (ins?: yes) lf-count]
 
-		parse/all/case src [						;-- not-LOAD-able syntax support
+		parse/all/case src [						;-- non-LOAD-able syntax preprocessing
 			any [
 				(c: 0)
 				#";" to lf
@@ -125,8 +147,8 @@ loader: context [
 
 	expand-block: func [
 		src [block!]
-		/local blk rule name value s e opr then-block else-block cases body
-			saved stack header mark idx prev enum-value enum-name enum-names line-rule
+		/local blk rule name value args s e opr then-block else-block cases body
+			saved stack header mark idx prev enum-value enum-name enum-names line-rule recurse
 	][
 		if verbose > 0 [print "running block preprocessor..."]
 		stack: append/only clear [] make block! 100
@@ -154,25 +176,40 @@ loader: context [
 				do store-line
 			) :s
 		]
+		recurse: [
+			saved: reduce [s e]
+			parse/case value rule: [
+				some [defs | into rule | skip] 		;-- resolve macros recursively
+			]
+			set [s e] saved
+		]
 		parse/case src blk: [
 			s: (do store-line)
 			some [
 				defs								;-- resolve definitions in a single pass
-				| s: #define set name word! set value skip e: (
+				| s: #define set name word! (args: none) [
+					set args paren! set value [block! | paren!]
+					| set value skip
+				  ] e: (
 					if verbose > 0 [print [mold name #":" mold value]]
 					append compiler/definitions name
-					if word? value [value: to lit-word! value]
-					either block? value [
-						saved: reduce [s e]
-						parse/case value rule: [
-							some [defs | into rule | skip] 	;-- resolve macros recursively
+					case [
+						args [
+							do recurse
+							rule: copy/deep [s: _ paren! e: (e: inject _ _ s e) :s]
+							rule/5/3: to block! :args	
+							rule/5/4: :value
 						]
-						set [s e] saved
-						rule: copy/deep [s: _ e: (e: change/part s copy/deep _ e) :s]
-						rule/4/5: :value
-					][
-						rule: copy/deep [s: _ e: (e: change/part s _ e) :s]
-						rule/4/4: :value
+						block? value [
+							do recurse
+							rule: copy/deep [s: _ e: (e: change/part s copy/deep _ e) :s]
+							rule/4/5: :value
+						]
+						'else [
+							if word? value [value: to lit-word! value]
+							rule: copy/deep [s: _ e: (e: change/part s _ e) :s]
+							rule/4/4: :value
+						]
 					]
 					rule/2: to lit-word! name
 
