@@ -1725,6 +1725,11 @@ system-dialect: context [
 			save-type: last-type			
 			check-body spec: pc/1
 			foreach w [values list types][set w make block! 8]
+			forall spec [								;-- resolve possible enumeration symbols
+				if all [word? spec/1 spec/1 <> 'default][
+					check-enum-symbol spec
+				]
+			]
 			
 			;-- check syntax and store parts in different lists
 			unless parse spec [
@@ -2351,19 +2356,19 @@ system-dialect: context [
 			]
 		]
 		
-		check-enum-symbol: has [value][
+		check-enum-symbol: func [code [any-block!] /local value][
 			if all [									;-- if enum, replace it with its integer value
-				word? pc/1
-				not local-variable? pc/1
+				word? code/1
+				not local-variable? code/1
 				value: any [
 					all [
-						value: ns-find-with pc/1 enumerations
+						value: ns-find-with code/1 enumerations
 						get-enumerator/value value
 					]
-					get-enumerator/value pc/1
+					get-enumerator/value code/1
 				]
 			][
-				change pc value
+				change code value
 			]
 		]
 		
@@ -2406,7 +2411,7 @@ system-dialect: context [
 			]
 			if job/debug? [store-dbg-lines]
 			
-			check-enum-symbol
+			check-enum-symbol pc
 
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
