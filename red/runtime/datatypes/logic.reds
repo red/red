@@ -9,27 +9,102 @@ Red/System [
 	}
 ]
 
-red-logic!: alias struct! [
-	header 	[integer!]							;-- cell header
-	value	[logic!]
-]
-
-true-value: declare red-logic!					;-- preallocate TRUE value
+true-value: declare red-logic!						;-- preallocate TRUE value
+true-value/header: TYPE_LOGIC
 true-value/value: true
 
-false-value: declare red-logic!					;-- preallocate FALSE value
+false-value: declare red-logic!						;-- preallocate FALSE value
+false-value/header: TYPE_LOGIC
 false-value/value: false
 
 
-append-logic: func [
-	blk			[node!]							;-- storage place (at tail of block)
-	value		[logic!]						;-- logic value
-	return:		[red-value!]					;-- return logic cell pointer
-	/local
-		cell 	[red-logic!]
-][
-	cell: as red-logic! alloc-at-tail blk
-	cell/header: RED_TYPE_LOGIC					;-- implicit reset of all header flags
-	cell/value: value
-	as red-value! cell
+logic: context [
+	verbose: 0
+		
+	;-- Actions -- 
+
+	make: func [
+		return:		[red-value!]					;-- return cell pointer
+		/local
+			cell 	[red-logic!]
+			args	[red-value!]
+			id		[red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/make"]]
+
+		args: stack/arguments
+		cell: as red-logic! args
+		
+		cell/header: TYPE_LOGIC						;-- implicit reset of all header flags
+		id: as red-integer! args + 1
+		assert id/header and get-type-mask = TYPE_INTEGER
+		cell/value: id/value <> 0
+		as red-value! cell
+	]
+	
+	datatype/register [
+		TYPE_LOGIC
+		;-- General actions --
+		:make
+		null			;random
+		null			;reflect
+		null			;to
+		null			;form
+		null			;mold
+		;-- Scalar actions --
+		null			;absolute
+		null			;add
+		null			;divide
+		null			;multiply
+		null			;negate
+		null			;power
+		null			;remainder
+		null			;round
+		null			;subtract
+		null			;even?
+		null			;odd?
+		;-- Bitwise actions --
+		null			;and~
+		null			;complement
+		null			;or~
+		null			;xor~
+		;-- Series actions --
+		null			;append
+		null			;at
+		null			;back
+		null			;change
+		null			;clear
+		null			;copy
+		null			;find
+		null			;head
+		null			;head?
+		null			;index?
+		null			;insert
+		null			;length?
+		null			;next
+		null			;pick
+		null			;poke
+		null			;remove
+		null			;reverse
+		null			;select
+		null			;sort
+		null			;skip
+		null			;swap
+		null			;tail
+		null			;tail?
+		null			;take
+		null			;trim
+		;-- I/O actions --
+		null			;create
+		null			;close
+		null			;delete
+		null			;modify
+		null			;open
+		null			;open?
+		null			;query
+		null			;read
+		null			;rename
+		null			;update
+		null			;write
+	]
 ]

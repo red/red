@@ -44,11 +44,11 @@ Red/System [
 	][
 		count: 1
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
-		head: as-integer ((as byte-ptr! series/offset) - (as byte-ptr! series) - size? series-buffer!)
-		tail: as-integer ((as byte-ptr! series/tail) - (as byte-ptr! series) - size? series-buffer!)
 		until [
+			head: as-integer ((as byte-ptr! series/offset) - (as byte-ptr! series) - size? series-buffer!)
+			tail: as-integer ((as byte-ptr! series/tail) - (as byte-ptr! series) - size? series-buffer!)
 			print [
-				" - series #" count 
+				" - " series
 				": size = "	series/size
 				", offset pos = " head ", tail pos = " tail
 				"    "

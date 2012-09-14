@@ -1,0 +1,552 @@
+REBOL [
+	Title:   "Red compiler"
+	Author:  "Nenad Rakocevic"
+	File: 	 %compiler.r
+	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+]
+
+do %../red-system/compiler.r
+
+red: context [
+	verbose:  	  0										;-- logs verbosity level
+	job: 		  none									;-- reference the current job object	
+	script:		  none
+	runtime-path: %runtime/
+	nl: 		  newline
+	symbols:	  make hash! 1000
+	ctx-stack:	  [gctx]
+	lexer: 		  do bind load %lexer.r 'self
+	extracts:	  do bind load %utils/extractor.r 'self	;-- @@ to be removed once we get redbin loader.
+	
+	pc: 		  none
+	locals:		  none
+	output:		  make block! 100
+	sym-table:	  make block! 1000
+	last-type:	  none
+	return-def:   to-set-word 'return					;-- return: keyword
+	s-counter:	  99									;-- series suffix counter (lit block depth max=99)
+
+	unboxed-set:  [integer! char! float! float32! logic!]
+	block-set:	  [block! paren! path! set-path! lit-path!]
+	string-set:	  [string! binary!]
+	series-set:	  union block-set string-set
+	
+	actions: 	  make block! 100
+	op-actions:	  make block! 20
+
+	functions: make hash! [
+		if			[virtual! [cond  [any-type!] true-blk [block!]]]
+		either		[virtual! [cond  [any-type!] true-blk [block!] false-blk [block!]]]
+		any			[virtual! [conds [block!]]]
+		all			[virtual! [conds [block!]]]
+		while		[virtual! [cond  [block!] body [block!]]]
+		until		[virtual! [body  [block!]]]
+		loop		[virtual! [body  [block!]]]
+		repeat		[virtual! [word  [word!] value [integer! series!] body [block!]]]
+		foreach 	[virtual! [word  [word!] series [series!] body [block!]]]
+		make		[action!  [type [datatype! word!] spec [any-type!]]]	;-- must be pre-defined
+	]
+	
+	keywords: make block! (length? functions) / 2
+	
+	foreach [name spec] functions [
+		if spec/1 = 'virtual! [
+			repend keywords [name reduce [to word! join "comp-" name]]
+		]
+	]
+	
+	;-- Optimizations for faster symbols lookups in Red/System compiler
+	word-push:     to word! "word/push"
+	word-get:      to word! "word/get"
+	word-set:      to word! "word/set"
+	stack-mark:    to word! "stack/mark"
+	stack-unwind:  to word! "stack/unwind"
+	stack-reset:   to word! "stack/reset"
+	block-push:    to word! "block/push"
+	block-append*: to word! "block/append*"
+
+	quit-on-error: does [
+		;clean-up
+		if system/options/args [quit/return 1]
+		halt
+	]
+
+	throw-error: func [err [word! string! block!]][
+		print [
+			"*** Compilation Error:"
+			either word? err [
+				join uppercase/part mold err 1 " error"
+			][reform err]
+			"^/*** in file:" mold script
+			;either locals [join "^/*** in function: " func-name][""]
+		]
+		if pc [
+			print [
+				;"*** at line:" calc-line lf
+				"*** near:" mold copy/part pc 8
+			]
+		]
+		quit-on-error
+	]
+	
+	any-function?: func [value [word!]][
+		find [native! action! op! function! routine!] value
+	]
+	
+	literal?: func [expr][
+		find [
+			char!
+			integer!
+			string!
+			file!
+			url!
+			tuple!
+			decimal!
+			refinement!
+			lit-word!
+			binary!
+			issue!
+		] type?/word expr
+	]
+	
+	insert-lf: func [pos][
+		new-line skip tail output pos yes
+	]
+	
+	emit: func [value][append output value]
+		
+	emit-src-comment: func [pos [block! paren!]][
+		emit reduce [
+			'------------| (mold/only clean-lf-deep copy/deep/part pos offset? pos pc)
+		]
+	]
+	
+	emit-push-word: func [name [word!]][	
+		emit word-push
+		emit decorate-symbol name
+		insert-lf -2
+	]
+	
+	emit-get-word: func [name [word!]][
+		emit word-get
+		emit decorate-symbol name
+		insert-lf -2
+	]
+	
+	emit-open-frame: func [name [word!]][
+		emit stack-mark
+		emit decorate-symbol name
+		insert-lf -2
+	]
+	
+	emit-close-frame: does [
+		emit stack-unwind
+		insert-lf -1
+	]
+	
+	get-counter: does [s-counter: s-counter + 1]
+	
+	clean-lf-deep: func [blk [block!] /local pos][
+		blk: copy/deep blk
+		parse blk rule: [
+			pos: (new-line/all pos off)
+			into rule | skip
+		]
+		blk
+	]
+
+	clean-lf-flag: func [name [word! lit-word! set-word! refinement!]][
+		mold/flat to word! name
+	]
+	
+	decorate-symbol: func [name [word!]][
+		to word! join "_" clean-lf-flag name
+	]
+	
+	add-symbol: func [name [word!] /local sym id][
+		unless find symbols name [
+			sym: decorate-symbol name
+			id: 1 + ((length? symbols) / 2)
+			repend symbols [name reduce [sym id]]
+			repend sym-table [
+				to set-word! sym 'word/load mold name
+			]
+			new-line skip tail sym-table -3 on
+		]
+	]
+	
+	get-symbol-id: func [name [word!]][
+		second select symbols name
+	]
+	
+	infix?: func [pos [block! paren!] /local specs][
+		all [
+			not tail? pos
+			word? pos/1
+			specs: select functions pos/1
+			'op! = specs/1
+		]
+	]
+	
+	fetch-functions: func [pos [block!] /local name][
+		name: to word! pos/1
+		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
+
+		switch pos/3 [
+			action! [append actions name]
+			op!     [repend op-actions [name to word! pos/4]]
+		]
+		repend functions [
+			name reduce [
+				pos/3
+				either pos/3 = 'op! [
+					second select functions to word! pos/4
+				][
+					clean-lf-deep pos/4
+				]
+			]
+		]
+	]
+	
+	emit-block: func [blk [block!] /sub level /local item value word][
+		unless sub [
+			emit-open-frame 'append
+			emit block-push
+			emit length? blk
+			insert-lf -2
+		]
+		level: 0
+		
+		forall blk [
+			either block? item: blk/1 [
+				emit-open-frame 'append
+				emit block-push
+				emit length? item
+				insert-lf -2
+				
+				level: level + 1
+				emit-block/sub item level
+				level: level - 1
+				
+				emit-close-frame
+				emit block-append*
+				insert-lf -1
+			][
+				if item = #get-definition [				;-- temporary directive
+					value: select extracts/definitions blk/2
+					change/only/part blk value 2
+					item: blk/1
+				]
+				
+				value: either any-word? item [
+					add-symbol word: to word! clean-lf-flag item
+					decorate-symbol word
+				][
+					item
+				]
+				emit to word! rejoin [form type? item slash 'push]
+				emit value
+				insert-lf -2
+				
+				emit block-append*
+				insert-lf -1
+			]
+		]
+		unless sub [emit-close-frame]
+	]
+	
+	comp-literal: func [root? [logic!] /local value][
+		value: pc/1
+		
+		either literal? value [
+			switch type?/word value [
+				char! [value: to integer! value]
+			]
+			emit to word! rejoin [form type? value slash 'push]
+			emit load mold value
+			insert-lf -2
+			if root? [
+				emit stack-reset							;-- drop root level last value
+				insert-lf -1
+			]
+		][
+			switch/default type?/word value [
+				block!		[emit-block value]
+				string!		[]
+				file!		[]
+				url!		[]
+				binary!		[]
+				issue!		[]
+			][
+				throw-error ["comp-literal: unsupported type" mold value]
+			]
+		]
+		pc: next pc
+	]
+	
+	;@@ old code, needs to be refactored
+	comp-path-part: func [path parent parent-type /local type][
+		switch type: get-type path/1 [
+			word!	  [
+				if find string-set type [
+					throw-error ["Invalid path value:" path/2]
+				]
+				repend output ['block/select decorate parent decorate path/2]
+			]
+			get-word! [
+
+			]
+			integer!  [
+				append output case [
+					find block-set parent-type  [[integer/get block/pick]]
+					find string-set parent-type ['pick-string]
+					'else [throw-error "Houston, we have a problem!"]	;@@ shouldn't happen
+				]
+				repend output [decorate parent path/1]
+			]
+			paren!	  [
+
+			]
+		]	
+		unless tail? path [comp-path-part next path path/1 type]
+	]
+	
+	;@@ old code, needs to be refactored
+	comp-path: has [path entry type][
+		path: pc/1
+		pc: next pc
+		either entry: find functions path/1 [			;-- function call
+			
+		][												;-- path access to series
+			type: get-type path/1
+			unless find series-set type	[
+				throw-error ["can't use path on" mold type "type"]
+			]
+			comp-path-part next path path/1 type
+		]
+	]
+		
+	comp-call: func [call [word! path!] spec [block!] /local item name][
+		either spec/1 = 'virtual! [
+			switch name keywords
+		][
+			name: either path? call [call/1][call]
+			name: to word! clean-lf-flag name
+
+			parse spec/2 [
+				any [
+					item: word! (comp-expression)		;-- fetch argument
+					| [
+						refinement! (
+							emit compose [
+								logic/push (to word! to logic! all [
+									path? call
+									find call to word! item
+								])
+							]
+						)
+						any [word! opt block! (comp-expression)] ;-- just optional argument
+					]
+					| set-word! skip
+					| skip
+				]
+			]
+
+			switch spec/1 [
+				native! 	[emit to word! join "natives/" to word! name]
+				action! 	[emit to word! join "actions/" name]
+				op!			[]
+				function!	[]
+			]
+			insert-lf -1
+		]
+	]
+	
+	comp-set-word: has [name value][
+		name: pc/1
+		pc: next pc
+		add-symbol name: to word! clean-lf-flag name
+		if infix? pc [
+			throw-error "invalid use of set-word as operand"
+		]
+		emit-open-frame 'set
+		emit-push-word name
+		comp-expression									;-- fetch a value
+		emit word-set
+		insert-lf -1
+		emit-close-frame
+	]
+
+	comp-word: func [/literal /final /local name entry][
+		name: to word! pc/1
+		pc: next pc
+		case [
+			all [not final name = 'make any-function? pc/1][
+				fetch-functions skip pc -2				;-- extract functions definitions
+				pc: back pc
+				comp-word/final
+			]
+			all [not literal entry: find functions name][
+				emit-open-frame name
+				comp-call name entry/2
+				emit-close-frame
+			]
+			entry: find symbols name [
+				either lit-word? pc/1 [
+					emit-push-word name
+				][
+					emit-get-word name
+				]
+			]
+			'else [
+				pc: back pc
+				throw-error ["undefined word" pc/1]
+			]
+		]
+	]
+	
+	check-infix-operators: has [name op][
+		if infix? pc [return false]						;-- infix op already processed,
+														;-- or used in prefix mode.
+		if infix? next pc [
+			op: pc/2
+			name: any [select op-actions op op]
+			new-line skip tail output -2 yes
+			comp-expression/no-infix					;-- fetch left operand
+			pc: next pc									;-- jump over op word
+			comp-expression								;-- fetch right operand
+			emit reduce [
+				'do-apply (index? find actions to word! name)
+			]
+			return true
+		]
+		false
+	]
+	
+	comp-directive: func [][
+		switch pc/1 [
+			#get-definition [							;-- temporary directive
+				either value: select extracts/definitions pc/2 [
+					change/only/part pc value 2
+					comp-expression						;-- continue expression fetching
+				][
+					pc: next pc
+				]
+			]
+			#load [										;-- temporary directive
+				change/part/only pc to do pc/2 pc/3 3 2
+				comp-expression							;-- continue expression fetching
+			]
+		]
+	]
+	
+	comp-expression: func [/no-infix /root /local saved][
+		unless no-infix [
+			if check-infix-operators [exit]
+		]
+
+		if tail? pc [
+			pc: back pc
+			throw-error "missing argument"
+		]
+		
+		switch/default type?/word pc/1 [
+			issue!		[comp-directive]
+			;-- active datatypes with specific literal form
+			set-word!	[comp-set-word]
+			word!		[comp-word]
+			get-word!	[comp-word/literal]
+			path! 		[comp-path]
+			set-path!	[comp-path-assignment]
+			paren!		[saved: pc pc: pc/1 comp-block pc: next saved]
+		][
+			comp-literal to logic! root
+		]
+	]
+	
+	comp-block: has [expr][
+		while [not tail? pc][
+			expr: pc
+			comp-expression/root
+			
+			if verbose > 2 [probe copy/part expr pc]
+			if verbose > 0 [emit-src-comment expr]
+		]
+	]
+	
+	comp-init: does [
+		add-symbol 'datatype!
+		foreach [name specs] functions [add-symbol name]
+
+		;-- Create datatype! datatype and word
+		emit [
+			word/push _datatype!
+			datatype/push TYPE_DATATYPE			
+			word/set
+			stack/reset
+		]
+	]
+	
+	comp-red: func [code [block!] /local out ctx pos][
+		out: copy/deep [
+			Red/System [origin: 'Red]
+			
+			#include %red.reds
+			
+			with red [
+				exec: context [
+				
+				]
+			]
+		]
+		output: out/7/3
+		
+		comp-init
+		
+		pc: load-source %red/boot.red					;-- compile Red's boot script
+		comp-block
+		
+		pc: code										;-- compile user code
+		pos: tail output
+		comp-block
+		
+		insert output [
+			------------| "Main program"
+		]
+		if verbose = 1 [probe skip pos 2]
+		
+		insert output sym-table
+		insert output [
+			------------| "Symbols"
+		]
+
+		output: out
+		if verbose > 1 [?? output]
+	]
+	
+	load-source: func [file [file! block!] /local src][
+		either file? file [
+			script: file
+			src: read/binary file
+			set [path file] split-path file
+			src: lexer/process src
+		][
+			script: 'memory
+			src: file
+		]
+		next src										;-- skip header block
+	]
+
+	compile: func [
+		file [file! block!]								;-- source file or block of code
+		opts [object!]
+		/local time
+	][
+		verbose: opts/verbosity
+		
+		time: dt [comp-red load-source file]
+		reduce [output time]
+	]
+]
+

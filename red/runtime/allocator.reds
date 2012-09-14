@@ -16,15 +16,23 @@ Red/System [
 #define node-frame-size		[((nodes-per-frame * 2 * size? pointer!) + size? node-frame!)]
 
 #define series-in-use		80000000h		;-- mark a series as used (not collectable by the GC)
-#define flag-series-big		01000000h		;-- 1 = big, 0 = series
-#define flag-ins-head		10000000h		;-- optimize for head insertions
-#define flag-ins-tail		20000000h		;-- optimize for tail insertions
 #define flag-ins-both		30000000h		;-- optimize for both head & tail insertions
+#define flag-ins-tail		20000000h		;-- optimize for tail insertions
+#define flag-ins-head		10000000h		;-- optimize for head insertions
+#define flag-series-big		01000000h		;-- 1 = big, 0 = series
+#define flag-series-small	00800000h		;-- series <= 16 bytes
+#define flag-series-stk		00400000h		;-- values block allocated on stack
+#define flag-series-nogc	00200000h		;-- protected from GC (system-critical series)
+
 #define flag-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
+#define series-free-mask	7FFFFFFFh		;-- mark a series as used (not collectable by the GC)
 
 #define type-mask			FFFFFF00h		;-- mask for clearing type ID in cell header
+#define get-type-mask		000000FFh		;-- mask for reading type ID in cell header
 #define node!				int-ptr!
 #define default-offset		-1				;-- for offset value in alloc-series calls
+
+#define series!				series-buffer! 
 
 
 int-array!: alias struct! [ptr [int-ptr!]]
@@ -357,14 +365,19 @@ free-series-frame: func [
 ]
 
 ;-------------------------------------------
-;-- Update node back-reference from moved series buffers
+;-- Update moved series internal pointers
 ;-------------------------------------------
-update-series-nodes: func [
+update-series: func [
 	series	[series-buffer!]				;-- start of series region with nodes to re-sync
+	offset	[integer!]
 ][
 	until [
 		;-- update the node pointer to the new series address
-		series/node/value: as-integer (as byte-ptr! series) + size? series-buffer!
+		series/node/value: as-integer series
+	
+		;-- update offset and tail pointers
+		series/offset: as cell! (as byte-ptr! series/offset) - offset
+		series/tail:   as cell! (as byte-ptr! series/tail) - offset
 		
 		;-- advance to the next series buffer
 		series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
@@ -378,8 +391,8 @@ update-series-nodes: func [
 ;-- Compact a series frame by moving down in-use series buffer regions
 ;-------------------------------------------
 #define SM1_INIT		1					;-- enter the state machine
-#define SM1_HOLE		2					;-- begin of contiguous region of freed buffers (hole)
-#define SM1_HOLE_END	3					;-- end of freed buffers region 
+#define SM1_GAP			2					;-- begin of contiguous region of freed buffers (hole)
+#define SM1_GAP_END		3					;-- end of freed buffers region 
 #define SM1_USED		4					;-- begin of contiguous region of buffers in use
 #define SM1_USED_END	5					;-- end of used buffers region 
 
@@ -398,13 +411,13 @@ compact-series-frame: func [
 
 	until [
 		if all [state = SM1_INIT free?][
-			dst: as byte-ptr! series		 ;-- start of "hole" region
-			state: SM1_HOLE
+			dst: as byte-ptr! series		 ;-- start of gap region
+			state: SM1_GAP
 		]
-		if all [state = SM1_HOLE not free?][ ;-- search for first used series (<=> end of hole)
-			state: SM1_HOLE_END
+		if all [state = SM1_GAP not free?][ ;-- search for first used series (<=> end of gap)
+			state: SM1_GAP_END
 		]
-		if state = SM1_HOLE_END [
+		if state = SM1_GAP_END [
 			src: as byte-ptr! series		 ;-- start of new "alive" region
 			state: SM1_USED
 		]
@@ -418,10 +431,10 @@ compact-series-frame: func [
 		if state = SM1_USED_END [
 			assert dst < src				 ;-- regions are moved down in memory
 			assert src < as byte-ptr! series ;-- src should point at least at series - series/size
-			copy-memory dst	src as-integer series - src
-			update-series-nodes as series-buffer! dst
+			copy-memory dst	src as-integer series - src			
+			update-series as series-buffer! dst as-integer src - dst
 			dst: dst + (as-integer series - src) ;-- points after moved region (ready for next move)
-			state: SM1_HOLE
+			state: SM1_GAP
 		]
 		series >= heap						;-- exit state machine
 	]
@@ -435,15 +448,15 @@ compact-series-frame: func [
 ;-- Allocate a series from the active series frame, return the series
 ;-------------------------------------------
 alloc-series-buffer: func [
-	size	[integer!]						;-- size in bytes
-	unit	[integer!]						;-- size of atomic elements stored
-	offset	[integer!]						;-- force a given offset for series buffer
+	usize	[integer!]						;-- size in units
+	unit	[integer!]						;-- size of atomic elements stored (in powers of 2)
+	offset	[integer!]						;-- force a given offset for series buffer (in bytes)
 	return: [series-buffer!]				;-- return the new series buffer
-	/local series frame sz
+	/local series size frame sz
 ][
-	assert positive? size					;-- size is not zero or negative
-	size: round-to-next size size? cell!	;-- size is a multiple of cell! size
-	
+	assert positive? usize					;-- size is not zero or negative
+	size: round-to-next usize << unit size? cell!	;-- size aligned to cell! size
+
 	frame: memory/s-active
 	sz: size + size? series-buffer!			;-- add series header size
 
@@ -466,14 +479,15 @@ alloc-series-buffer: func [
 	series/flags: unit
 		or series-in-use 					;-- mark series as in-use
 		and not flag-series-big				;-- set type bit to 0 (= series)
-		
+
 	either offset = default-offset [
-		offset: size / unit / 2
+		offset: size >> 1					;-- target middle of buffer
 		series/flags: series/flags or flag-ins-both	;-- optimize for both head & tail insertions (default)
 	][
 		series/flags: series/flags or flag-ins-tail ;-- optimize for tail insertions only
 	]
 	series/offset: as cell! (as byte-ptr! series + 1) + offset ;-- position empty series at middle of buffer
+	
 	series/tail: series/offset
 	series
 ]
@@ -483,17 +497,50 @@ alloc-series-buffer: func [
 ;-------------------------------------------
 alloc-series: func [
 	size	[integer!]						;-- number of elements to store
-	unit	[integer!]						;-- size of atomic elements stored
+	unit	[integer!]						;-- size of atomic elements stored in power of 2
 	offset	[integer!]						;-- force a given offset for series buffer
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local series node
 ][
-	series: alloc-series-buffer (size << unit) unit offset
+;	#if debug? = yes [print-wide ["allocating series:" size unit offset lf]]
+
+	series: alloc-series-buffer size unit offset
 	node: alloc-node						;-- get a new node
 	series/node: node						;-- link back series to node
-	;-- make node points to first usable byte of series buffer
-	node/value: as-integer (as byte-ptr! series) + size? series-buffer!
+	node/value: as-integer series ;(as byte-ptr! series) + size? series-buffer!
 	node									;-- return the node pointer
+]
+
+;-------------------------------------------
+;-- Wrapper on alloc-series for easy cells allocation
+;-------------------------------------------
+alloc-cells: func [
+	size	[integer!]						;-- number of 16 bytes cells to preallocate
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)	
+][
+	alloc-series size 4 0					;-- optimize by default for tail insertion
+]
+
+;-------------------------------------------
+;-- Wrapper on alloc-series for byte buffer allocation
+;-------------------------------------------
+alloc-bytes: func [
+	size	[integer!]						;-- number of 16 bytes cells to preallocate
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+][
+	alloc-series size 0 default-offset
+]
+
+;-------------------------------------------
+;-- Set series header flags
+;-------------------------------------------
+set-flag: func [
+	node	[node!]
+	flags	[integer!]
+	/local series
+][
+	series: as series-buffer! node/value
+	series/flags: (series/flags and not flags) or flags	;-- reset flags bits, then apply flags
 ]
 
 ;-------------------------------------------
@@ -506,18 +553,17 @@ free-series: func [
 ][
 	assert not null? frame
 	assert not null? node
+	assert not null? (as byte-ptr! node/value)
 	
-	series: as series-buffer! ((as byte-ptr! node/value) - size? series-buffer!) ;-- point back to series header
-	
+	series: as series-buffer! node/value
 	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
-	series/flags: series/flags xor series-in-use 		  ;-- clear 'used bit (enough to free the series)
+	series/flags: series/flags and series-free-mask		  ;-- clear 'used bit (enough to free the series)
 	
 	if frame/heap = as series-buffer! (		;-- test if series is on top of heap
 		(as byte-ptr! node/value) +  series/size + size? series-buffer!
 	) [
 		frame/heap = series					;-- cheap collecting of last allocated series
 	]
-	
 	free-node node
 ]
 
@@ -526,18 +572,19 @@ free-series: func [
 ;-------------------------------------------
 expand-series: func [
 	series  [series-buffer!]				;-- series to expand
-	new-sz	[integer!]						;-- new size
+	new-sz	[integer!]						;-- new size in units
 	return: [series-buffer!]				;-- return new series with new size
-	/local new
+	/local new units
 ][
 	assert not null? series
 	assert any [
 		zero? new-sz
 		new-sz > series/size				;-- ensure requested size is bigger than current one
 	]
+	units: series/flags and flag-unit-mask
 	
 	if zero? new-sz [
-		new-sz: 2 * series/size
+		new-sz: series/size * 2
 		;if new-sz >= _2MB [
 		;	;TBD: alloc big
 		;]

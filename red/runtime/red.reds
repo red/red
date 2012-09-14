@@ -9,52 +9,82 @@ Red/System [
 	}
 ]
 
-#enum datatypes! [
-	RED_TYPE_DATATYPE
-	RED_TYPE_UNSET
-	RED_TYPE_NONE
-	RED_TYPE_LOGIC
-	RED_TYPE_BLOCK
-	RED_TYPE_PAREN
-	RED_TYPE_INTEGER
-	RED_TYPE_CONTEXT
-	RED_TYPE_WORD
-	RED_TYPE_SET_WORD
-	RED_TYPE_GET_WORD
-	RED_TYPE_LIT_WORD
-	RED_TYPE_REFINEMENT
-	RED_TYPE_BINARY
-	RED_TYPE_STRING
-	RED_TYPE_CHAR
-	RED_TYPE_ISSUE
-	RED_TYPE_PATH
-	RED_TYPE_SET_PATH
-	RED_TYPE_LIT_PATH
-	RED_TYPE_NATIVE
-	RED_TYPE_ACTION
-	RED_TYPE_FUNCTION
-	RED_TYPE_OBJECT
-	RED_TYPE_PORT
-	RED_TYPE_BITSET
-	RED_TYPE_FLOAT
+red: context [
+
+	;-- Runtime sub-system --
+	
+	#include %macros.reds
+	#include %tools.reds
+	#include %imports.reds
+	;#include %threads.reds
+	#include %allocator.reds
+	;#include %collector.reds
+	;#include %tokenizer.reds
+	
+	;-- Datatypes --
+	
+	action-table: as int-ptr! allocate 256 * 50 * 4		;@@ wrap it in vector! when available?
+
+	#include %datatypes/structures.reds
+	#include %datatypes/common.reds
+	
+	#include %datatypes/datatype.reds
+	#include %datatypes/unset.reds
+	#include %datatypes/none.reds
+	#include %datatypes/logic.reds
+	#include %datatypes/block.reds
+	#include %datatypes/string.reds
+	#include %datatypes/integer.reds
+	#include %datatypes/symbol.reds
+	#include %datatypes/context.reds
+	#include %datatypes/word.reds
+	#include %datatypes/set-word.reds
+	#include %datatypes/refinement.reds
+	#include %datatypes/char.reds
+	#include %datatypes/action.reds
+	#include %datatypes/native.reds
+	#include %datatypes/op.reds
+	
+	;-- Debugging helpers --
+	
+	#include %debug-tools.reds
+	
+	;-- Core --
+	#include %actions.reds
+	#include %natives.reds
+	
+	;-- Booting... --
+	
+	;-- initialize memory before anything else
+	alloc-node-frame nodes-per-frame					;-- 5k nodes
+	alloc-series-frame									;-- first frame of 128KB
+	
+	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
+	root:	 	block/make-in null 2000					;-- root block		
+	symbols: 	block/make-in root 1000	 				;-- symbols table
+	global-ctx: _context/make root 1000 no				;-- global context
+	
+	#include %stack.reds
+	
+	stack/init
+	
+	#if debug? = yes [
+		verbosity: 0
+		red/datatype/verbose:	verbosity
+		red/unset/verbose:		verbosity
+		red/none/verbose:		verbosity
+		red/logic/verbose:		verbosity
+		red/block/verbose:		verbosity
+		red/string/verbose:		verbosity
+		red/integer/verbose:	verbosity
+		red/symbol/verbose:		verbosity
+		red/_context/verbose:	verbosity
+		red/word/verbose:		verbosity
+		red/set-word/verbose:	verbosity
+		red/refinement/verbose:	verbosity
+		red/char/verbose:		verbosity
+		
+		red/stack/verbose:		verbosity
+	]
+
 ]
-
-;#include %macro-defs.reds
-#include %utils.reds
-#include %imports.reds
-;#include %threads.reds
-#include %allocator.reds
-;#include %collector.reds
-;#include %tokenizer.reds
-
-#define series!		series-buffer! 
-
-#include %datatypes/value.reds
-#include %datatypes/datatype.reds
-#include %datatypes/unset.reds
-#include %datatypes/none.reds
-#include %datatypes/logic.reds
-#include %datatypes/block.reds
-;#include %datatypes/context.reds
-;#include %datatypes/word.reds
-#include %datatypes/integer.reds

@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Integer! datatype runtime functions"
+	Title:   "Action! datatype runtime functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %integer.reds
+	File: 	 %action.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -9,88 +9,50 @@ Red/System [
 	}
 ]
 
-integer: context [
+action: context [
 	verbose: 0
-
-	get: func [										;-- unboxing integer value
-		value		[red-value!]
-		return: 	[integer!]
-		/local
-			cell	[red-integer!]
-	][
-		cell: as red-integer! value
-		cell/value
-	]
 	
-	form-signed: func [
-		s [c-string!]
-		i [integer!]
-		return: [c-string!]
-		/local 
-			c [integer!]
-			n [logic!]
-	][
-		if zero? i [
-			s/1: #"0"
-			s/2: null-byte
-			return s
-		]
-		n:  negative? i
-		if n [i: negate i]
-		c: 11
-		while [i <> 0][
-			s/c: #"0" + (i // 10)
-			i: i / 10
-			c: c - 1
-		]
-		if n [s/c: #"-" c: c - 1]
-		i: 11 - c
-		s/i: null-byte
-		s + c
-	]
-
 	push: func [
-		value [integer!]
 		/local
-			cell  [red-integer!]
+			cell  [red-action!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "action/push"]]
 		
-		cell: as red-integer! stack/push
-		cell/header: TYPE_INTEGER
-		cell/value: value
+		cell: as red-action! stack/push
+		cell/header: TYPE_ACTION
+		;...TBD
 	]
+	
+	;-- Actions -- 
+	
+	make: func [
+		return:    [red-value!]						;-- return action cell pointer
+		/local
+			arg	   [red-value!]
+			action [red-action!]
+			spec   [red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "action/make"]]
 
-	;-- Actions --
-	
-	form: func [
-		part 		[integer!]
-		return: 	[integer!]
-		/local
-			arg		[red-integer!]
-			value	[integer!]
-			buffer	[red-string!]
-			series	[series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
+		arg:    stack/arguments
+		action: as red-action! arg
+		spec:   as red-block!  arg + 1
 		
-		arg: as red-integer! stack/arguments	
-		value: arg/value
-		buffer: as red-string! arg + 1
-		series: as series! buffer/node/value
-		series/offset: as cell! form-signed as c-string! series/offset value
-		part											;@@ implement full support for /part
+		action/header:  TYPE_ACTION					;-- implicit reset of all header flags
+		action/spec:    spec/node					; @@ copy spec block if not at head
+		;action/symbols: clean-spec spec 			; @@ TBD
+		
+		as red-value! action
 	]
-	
 
 	datatype/register [
-		TYPE_INTEGER
+		TYPE_ACTION
 		;-- General actions --
-		null			;make
+		:make
 		null			;random
 		null			;reflect
 		null			;to
-		:form
+		null			;form
 		null			;mold
 		;-- Scalar actions --
 		null			;absolute

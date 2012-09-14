@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Red runtime helper functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %utils.reds
+	File: 	 %tools.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.

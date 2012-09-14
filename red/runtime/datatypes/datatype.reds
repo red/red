@@ -9,18 +9,144 @@ Red/System [
 	}
 ]
 
-red-datatype!: alias struct! [
-	header 	[integer!]							;-- cell header only, no payload
+datatype: context [
+	verbose: 0
+
+	;-------------------------------------
+	;-- Load actions table with a new datatype set of function pointers
+	;--
+	;-- Input: block of values with type ID in first place followed by
+	;-- actions pointers.
+	;--
+	;-- Returns: -
+	;-------------------------------------
+	register: func [
+		[variadic]
+		count	[integer!]
+		list	[int-ptr!]
+		/local
+			type  [integer!]
+			index [integer!]
+	][
+		type: list/value
+		index: type << 8								;-- consume first argument (type ID)
+		list: list + 1
+		count: count - 1
+		
+		if count <> ACTIONS_NB [
+			print [
+				"*** Datatype Error: invalid actions count for type: " type lf
+				"*** Found: " count lf
+				"*** Expected: " ACTIONS_NB lf
+			]
+			halt
+		]
+		
+		until [
+			action-table/index: list/value
+			index: index + 1
+			list: list + 1
+			count: count - 1
+			zero? count
+		]
+	]
+	
+	push: func [
+		type	[integer!]
+		/local
+			dt  [red-datatype!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "datatype/push"]]
+
+		dt: as red-datatype! stack/push
+		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
+		dt/value: type
+	]
+	
+	;-- Actions --
+
+	make: func [
+		return:	 [red-value!]							;-- return datatype cell pointer
+		/local
+			arg  [red-value!]
+			dt   [red-datatype!]
+			type [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "datatype/make"]]
+		
+		arg: stack/arguments
+		dt:  as red-datatype! arg
+		
+		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
+		type: as red-integer! arg + 1
+		dt/value: type/value		
+		as red-value! dt
+	]
+	
+	register [
+		TYPE_DATATYPE
+		;-- General actions --
+		:make
+		null			;random
+		null			;reflect
+		null			;to
+		null			;form
+		null			;mold
+		;-- Scalar actions --
+		null			;absolute
+		null			;add
+		null			;divide
+		null			;multiply
+		null			;negate
+		null			;power
+		null			;remainder
+		null			;round
+		null			;subtract
+		null			;even?
+		null			;odd?
+		;-- Bitwise actions --
+		null			;and~
+		null			;complement
+		null			;or~
+		null			;xor~
+		;-- Series actions --
+		null			;append
+		null			;at
+		null			;back
+		null			;change
+		null			;clear
+		null			;copy
+		null			;find
+		null			;head
+		null			;head?
+		null			;index?
+		null			;insert
+		null			;length?
+		null			;next
+		null			;pick
+		null			;poke
+		null			;remove
+		null			;reverse
+		null			;select
+		null			;sort
+		null			;skip
+		null			;swap
+		null			;tail
+		null			;tail?
+		null			;take
+		null			;trim
+		;-- I/O actions --
+		null			;create
+		null			;close
+		null			;delete
+		null			;modify
+		null			;open
+		null			;open?
+		null			;query
+		null			;read
+		null			;rename
+		null			;update
+		null			;write
+	]
 ]
 
-append-datatype: func [
-	blk			[node!]							;-- storage place (at tail of block)
-	type		[integer!]						;-- type ID
-	return:		[red-value!]					;-- return unset cell pointer
-	/local
-		cell 	[red-datatype!]
-][
-	cell: as red-datatype! alloc-at-tail blk
-	cell/header: RED_TYPE_DATATYPE				;-- implicit reset of all header flags
-	as red-value! cell
-]

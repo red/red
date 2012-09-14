@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Integer! datatype runtime functions"
+	Title:   "Refinement! datatype runtime functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %integer.reds
+	File: 	 %refinement.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -9,88 +9,65 @@ Red/System [
 	}
 ]
 
-integer: context [
+refinement: context [
 	verbose: 0
-
-	get: func [										;-- unboxing integer value
-		value		[red-value!]
-		return: 	[integer!]
-		/local
-			cell	[red-integer!]
+	
+	load: func [
+		str 	[c-string!]
+		return:	[red-word!]
+		/local 
+			p	  [node!]
+			id    [integer!]							;-- symbol ID
+			cell  [red-word!]
 	][
-		cell: as red-integer! value
-		cell/value
+		#if debug? = yes [if verbose > 0 [print-line "refinement/load"]]
+		symbol/make str
+		id: block/rs-length? symbols
+		
+		cell: as red-word! alloc-at-tail root/node
+		cell/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
+		cell/ctx: 	 global-ctx
+		cell/symbol: id
+		cell/index:  _context/add global-ctx cell
+		cell
 	]
 	
-	form-signed: func [
-		s [c-string!]
-		i [integer!]
-		return: [c-string!]
-		/local 
-			c [integer!]
-			n [logic!]
-	][
-		if zero? i [
-			s/1: #"0"
-			s/2: null-byte
-			return s
-		]
-		n:  negative? i
-		if n [i: negate i]
-		c: 11
-		while [i <> 0][
-			s/c: #"0" + (i // 10)
-			i: i / 10
-			c: c - 1
-		]
-		if n [s/c: #"-" c: c - 1]
-		i: 11 - c
-		s/i: null-byte
-		s + c
-	]
-
 	push: func [
-		value [integer!]
-		/local
-			cell  [red-integer!]
+		w  [red-word!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "refinement/push"]]
 		
-		cell: as red-integer! stack/push
-		cell/header: TYPE_INTEGER
-		cell/value: value
+		w: word/push w
+		set-type as red-value! w TYPE_REFINEMENT
 	]
 
+	set: func [
+		/local
+			args [cell!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "refinement/set"]]
+		
+		args: stack/arguments
+		_context/set as red-word! args args + 1
+		stack/push-last args + 1
+	]
+	
+	get: does [
+		#if debug? = yes [if verbose > 0 [print-line "refinement/get"]]
+		
+		stack/push-last _context/get as red-word! stack/arguments
+	]
+	
 	;-- Actions --
 	
-	form: func [
-		part 		[integer!]
-		return: 	[integer!]
-		/local
-			arg		[red-integer!]
-			value	[integer!]
-			buffer	[red-string!]
-			series	[series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
-		
-		arg: as red-integer! stack/arguments	
-		value: arg/value
-		buffer: as red-string! arg + 1
-		series: as series! buffer/node/value
-		series/offset: as cell! form-signed as c-string! series/offset value
-		part											;@@ implement full support for /part
-	]
-	
-
 	datatype/register [
-		TYPE_INTEGER
+		TYPE_REFINEMENT
 		;-- General actions --
 		null			;make
 		null			;random
 		null			;reflect
 		null			;to
-		:form
+		null			;form
 		null			;mold
 		;-- Scalar actions --
 		null			;absolute

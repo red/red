@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Integer! datatype runtime functions"
+	Title:   "Char! datatype runtime functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %integer.reds
+	File: 	 %char.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -9,88 +9,39 @@ Red/System [
 	}
 ]
 
-integer: context [
-	verbose: 0
-
-	get: func [										;-- unboxing integer value
-		value		[red-value!]
-		return: 	[integer!]
-		/local
-			cell	[red-integer!]
-	][
-		cell: as red-integer! value
-		cell/value
-	]
-	
-	form-signed: func [
-		s [c-string!]
-		i [integer!]
-		return: [c-string!]
-		/local 
-			c [integer!]
-			n [logic!]
-	][
-		if zero? i [
-			s/1: #"0"
-			s/2: null-byte
-			return s
-		]
-		n:  negative? i
-		if n [i: negate i]
-		c: 11
-		while [i <> 0][
-			s/c: #"0" + (i // 10)
-			i: i / 10
-			c: c - 1
-		]
-		if n [s/c: #"-" c: c - 1]
-		i: 11 - c
-		s/i: null-byte
-		s + c
-	]
+char: context [
 
 	push: func [
-		value [integer!]
+		value	 [integer!]
 		/local
-			cell  [red-integer!]
+			cell [red-char!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/push"]]
-		
-		cell: as red-integer! stack/push
-		cell/header: TYPE_INTEGER
+		#if debug? = yes [if verbose > 0 [print-line "char/push"]]
+		cell: as red-char! stack/push
+		cell/header: TYPE_CHAR
 		cell/value: value
 	]
-
-	;-- Actions --
+	
+	;-- Actions -- 
 	
 	form: func [
-		part 		[integer!]
-		return: 	[integer!]
+		part 	[integer!]
 		/local
-			arg		[red-integer!]
-			value	[integer!]
-			buffer	[red-string!]
-			series	[series!]
+			arg [red-char!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
-		
-		arg: as red-integer! stack/arguments	
-		value: arg/value
-		buffer: as red-string! arg + 1
-		series: as series! buffer/node/value
-		series/offset: as cell! form-signed as c-string! series/offset value
-		part											;@@ implement full support for /part
+		arg: as red-char! stack/arguments
+		;...
 	]
 	
 
 	datatype/register [
-		TYPE_INTEGER
+		TYPE_CHAR
 		;-- General actions --
 		null			;make
 		null			;random
 		null			;reflect
 		null			;to
-		:form
+		null			;form
 		null			;mold
 		;-- Scalar actions --
 		null			;absolute

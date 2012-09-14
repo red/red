@@ -1,18 +1,13 @@
 Red/System [
-	Title:   "Common datatypes base functions"
+	Title:   "Common datatypes utility functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %value.reds
+	File: 	 %common.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
 	}
 ]
-
-#define red-value!	cell!
-
-last-value: declare red-value!
-last-value/header: RED_TYPE_UNSET
 
 set-type: func [
 	cell 		[cell!]
@@ -22,21 +17,31 @@ set-type: func [
 ]
 
 alloc-at-tail: func [
-	blk		[node!]
+	node	[node!]
 	return: [cell!]
 	/local 
 		s		[series!]
 		cell	[red-value!]
 ][
-	s: as series! blk/value
+	s: as series! node/value	
 	if (as byte-ptr! s/tail + 1) >= ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
 	
-	cell: as cell! (as byte-ptr! s + 1) + s/tail
+	cell: s/tail
 	;-- ensure that cell is within series boundary
 	assert (as byte-ptr! cell) < ((as byte-ptr! s + 1) + s/size)
 	
-	s/tail: s/tail + 1								;-- move tail to next cell
+	s/tail: s/tail + 1									;-- move tail to next cell
 	cell
+]
+
+copy-cell: func [
+	src [cell!]
+	dst [cell!]
+][
+	copy-memory											;@@ optimize for 16 bytes copying
+		as byte-ptr! dst
+		as byte-ptr! src
+		size? cell!
 ]
