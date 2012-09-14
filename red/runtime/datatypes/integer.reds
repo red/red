@@ -48,6 +48,29 @@ integer: context [
 		s/i: null-byte
 		s + c
 	]
+	
+	do-math: func [
+		type	  [integer!]
+		return:	  [red-integer!]
+		/local
+			left  [red-integer!]
+			right [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
+
+		left: as red-integer! stack/arguments
+		right: left + 1
+		assert left/header and get-type-mask = TYPE_INTEGER
+		assert right/header and get-type-mask = TYPE_INTEGER
+		
+		left/value: switch type [
+			OP_ADD [left/value + right/value]
+			OP_SUB [left/value - right/value]
+			OP_MUL [left/value * right/value]
+			OP_DIV [left/value / right/value]
+		]
+		left
+	]
 
 	push: func [
 		value [integer!]
@@ -82,7 +105,26 @@ integer: context [
 		part											;@@ implement full support for /part
 	]
 	
-
+	add: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
+		as red-value! do-math OP_ADD
+	]
+	
+	divide: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/divide"]]
+		as red-value! do-math OP_DIV
+	]
+		
+	multiply: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/multiply"]]
+		as red-value! do-math OP_MUL
+	]
+	
+	subtract: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/subtract"]]
+		as red-value! do-math OP_SUB
+	]	
+	
 	datatype/register [
 		TYPE_INTEGER
 		;-- General actions --
@@ -94,14 +136,14 @@ integer: context [
 		null			;mold
 		;-- Scalar actions --
 		null			;absolute
-		null			;add
-		null			;divide
-		null			;multiply
+		:add
+		:divide
+		:multiply
 		null			;negate
 		null			;power
 		null			;remainder
 		null			;round
-		null			;subtract
+		:subtract
 		null			;even?
 		null			;odd?
 		;-- Bitwise actions --

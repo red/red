@@ -124,6 +124,13 @@ Red/System [
 	;ACT_APPLY										;; add it? @@
 ]
 
+#enum math-op! [
+	OP_ADD
+	OP_SUB
+	OP_MUL
+	OP_DIV
+]
+
 #define ACTIONS_NB		57							;-- number of actions
 
 

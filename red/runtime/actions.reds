@@ -78,14 +78,56 @@ actions: context [
 
 	mold: func [][]
 	absolute: func [][]
-	add: func [][]
-	divide: func [][]
-	multiply: func [][]
+	
+	add: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/add"]]
+
+		action-add: as function! [							;-- needs to be globally bound
+			return:	[red-value!]							;-- addition resulting value
+		] get-action-ptr ACT_ADD
+		action-add
+	]
+	
+	divide: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/divide"]]
+
+		action-divide: as function! [						;-- needs to be globally bound
+			return:	[red-value!]							;-- division resulting value
+		] get-action-ptr ACT_DIVIDE
+		action-divide
+	]
+	
+	multiply: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/multiply"]]
+
+		action-multiply: as function! [						;-- needs to be globally bound
+			return:	[red-value!]							;-- multiplication resulting value
+		] get-action-ptr ACT_MULTIPLY
+		action-multiply
+	]
+	
 	negate: func [][]
 	power: func [][]
 	remainder: func [][]
 	round: func [][]
-	subtract: func [][]
+	
+	subtract: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/subtract"]]
+
+		action-subtract: as function! [						;-- needs to be globally bound
+			return:	[red-value!]							;-- addition resulting value
+		] get-action-ptr ACT_SUBTRACT
+		action-subtract
+	]
+	
 	even?: func [][]
 	odd?: func [][]
 	and~: func [][]
