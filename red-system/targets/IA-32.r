@@ -406,7 +406,7 @@ make target-class [
 		value [char! logic! integer! word! string! path! paren! get-word! object! decimal!]
 		/alt
 		/with cast [object!]
-		/local offset
+		/local offset spec
 	][
 		if verbose >= 3 [print [">>>loading" mold value]]
 		alt: to logic! alt
@@ -454,7 +454,11 @@ make target-class [
 			]
 			get-word! [
 				value: to word! value
-				either 'function! = first compiler/get-type value [
+				
+				either all [
+					spec: select compiler/functions value
+					spec/2 = 'routine
+				][
 					either alt [
 						emit-variable value
 							#{8B15}					;-- MOV edx, [value]	; global
