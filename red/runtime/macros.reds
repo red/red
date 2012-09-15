@@ -55,7 +55,7 @@ Red/System [
 #enum actions! [
 
 	;-- General actions --
-	ACT_MAKE
+	ACT_MAKE: 	1										;-- used as index in action-table (one-based)
 	ACT_RANDOM
 	ACT_REFLECT
 	ACT_TO

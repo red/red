@@ -22,15 +22,14 @@ context [
 		list: select data type
 		
 		index: 0
-		foreach word list [
-			switch type?/word word [
-				set-word! [
-					red/throw-error "extractor error: unsupported set-words!"
-				]
-				word! [
-					repend definitions [word index]
-					index: index + 1
-				]
+		forall list [
+			if set-word? list/1 [
+				list/1: to word! list/1
+				index: list/2
+			]
+			if word? list/1 [
+				repend definitions [list/1 index]
+				index: index + 1
 			]
 		]
 	]

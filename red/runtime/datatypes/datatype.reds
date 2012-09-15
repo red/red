@@ -29,7 +29,7 @@ datatype: context [
 			index [integer!]
 	][
 		type: list/value
-		index: type << 8								;-- consume first argument (type ID)
+		index: type << 8 + 1							;-- consume first argument (type ID), one-based index
 		list: list + 1
 		count: count - 1
 		
