@@ -447,17 +447,21 @@ system-dialect: context [
 			type
 		]
 		
-		resolve-type: func [name [word!] /with parent [block! none!] /local type][
+		resolve-type: func [name [word!] /with parent [block! none!] /local type local?][
 			type: any [
 				all [parent select parent name]
-				get-variable-spec name
+				local?: all [locals select locals name]
+				select globals name
 			]
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
 			]
-			if any [
-				all [type find enumerations type/1]
-				get-enumerator name
+			if all [
+				not local? 
+				any [
+					all [type find enumerations type/1]
+					get-enumerator name
+				]
 			][
 				return [integer!]
 			]
