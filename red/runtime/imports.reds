@@ -71,11 +71,26 @@ Red/System [
 	#define MMAP_PROT_RWX		07h				;-- PROT_READ | PROT_WRITE | PROT_EXEC
 
 	#switch OS [	
-		MacOSX	 [
+		MacOSX	[
+			#define SYSCALL_MMAP		197
+			#define SYSCALL_MUNMAP		73
+
 			#define MMAP_MAP_PRIVATE    02h
-			#define MMAP_MAP_ANONYMOUS  1000h			
+			#define MMAP_MAP_ANONYMOUS  1000h
+		]
+		Syllable [
+			#define SYSCALL_MMAP		222
+			#define SYSCALL_MUNMAP		223
+
+			#define MMAP_MAP_SHARED     10h
+			#define MMAP_MAP_PRIVATE    20h
+			#define MMAP_MAP_ANONYMOUS  80h
 		]
 		#default [
+			#define SYSCALL_MMAP2		192
+			#define SYSCALL_MUNMAP		91
+			#define SYSCALL_MMAP		SYSCALL_MMAP2
+
 			#define MMAP_MAP_SHARED     01h
 			#define MMAP_MAP_PRIVATE    02h
 			#define MMAP_MAP_ANONYMOUS  20h

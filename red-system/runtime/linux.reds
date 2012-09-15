@@ -11,10 +11,6 @@ Red/System [
 
 #define OS_TYPE		2
 
-#define SYSCALL_MMAP2		192
-#define SYSCALL_MUNMAP		91
-#define SYSCALL_MMAP		SYSCALL_MMAP2	;-- we use SYSCALL_MMAP identifer for compatibility reasons
-
 #define SA_SIGINFO  		00000004h		;-- POSIX value?
 #define SA_RESTART   		10000000h		;-- POSIX value?
 
