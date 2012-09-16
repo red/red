@@ -83,11 +83,27 @@ loader: context [
 		]
 	]
 	
-	inject: func [args [block!] 'macro [paren! block!] s [block!] e [block!] /local rule pos i][
+	copy-paths: func [s [series!]][
+		forall s [
+			case [
+				find [path! set-path! lit-path!] type?/word s/1 [
+					s/1: copy s/1
+				]
+				any [block? s/1 paren? s/1][
+					copy-paths s/1
+				]
+			]
+		]
+		s
+	]
+
+	inject: func [args [block!] 'macro s [block!] e [block!] /local rule pos i][
 		unless equal? length? args length? s/2 [
 			throw-error ["invalid macro arguments count in:" mold s/2]
 		]	
-		parse macro: copy/deep :macro rule: [
+ 		macro: copy-paths copy/deep macro
+
+		parse :macro rule: [
 			some [
 				into rule 
 				| pos: word! (
