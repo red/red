@@ -96,7 +96,7 @@ redc: context [
 		]
 		opts: make opts config
 		opts/config-name: config-name
-		opts/build-prefix: system/script/path
+		opts/build-prefix: system/options/path
 
 		;; Process -o/--output (if any).
 		if output [
