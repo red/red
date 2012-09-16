@@ -68,7 +68,7 @@ OS-allocate-virtual: func [
 		-1									;-- portable value
 		0
 
-	if negative? as-integer ptr [
+	if -1 = as-integer ptr [
 		raise-error RED_ERR_VMEM_OUT_OF_MEMORY as-integer system/pc
 	]
 	as int-ptr! ptr
