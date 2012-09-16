@@ -77,6 +77,9 @@ actions: context [
 	]
 
 	mold: func [][]
+	get-path: func [][]
+	set-path: func [][]
+	
 	absolute: func [][]
 	
 	add: func [

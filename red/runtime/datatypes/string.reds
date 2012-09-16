@@ -82,6 +82,8 @@ string: context [
 		null			;to
 		null			;form
 		null			;mold
+		null			;get-path
+		null			;set-path		
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

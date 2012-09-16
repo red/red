@@ -61,6 +61,8 @@ Red/System [
 	ACT_TO
 	ACT_FORM
 	ACT_MOLD
+	ACT_GETPATH
+	ACT_SETPATH
 	
 	;-- Scalar actions --
 	ACT_ABSOLUTE
@@ -131,7 +133,7 @@ Red/System [
 	OP_DIV
 ]
 
-#define ACTIONS_NB		57							;-- number of actions
+#define ACTIONS_NB		59							;-- number of actions
 
 
 #either debug? = yes [
