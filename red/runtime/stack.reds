@@ -26,19 +26,17 @@ stack: context [										;-- call stack
 	set-flag data/node flag-ins-tail					;-- optimize for tail insertion
 	
 	reset: func [
-		return: [cell!]
+		position [integer!]
+		return:  [cell!]
 		/local
-			s	[series!]
+			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
-
-		s: as series! data/node/value
-		s/tail: s/offset + frame-base + 1
-		either zero? frame-base [
-			s/tail: s/offset + 1
-		][
-			s/tail: s/offset + frame-base + 1
-		]
+		
+		assert positive? position
+		
+		s: GET_BUFFER(data)
+		s/tail: s/offset + frame-base + position		;-- position is one-based
 		s/tail
 	]
 
@@ -55,7 +53,7 @@ stack: context [										;-- call stack
 		frame/symbol: either null? call [-1][call/symbol]
 		frame/prev: frame-base
 		
-		s: as series! data/node/value
+		s: GET_BUFFER(data)
 		frame-base: (as-integer (as cell! frame) - s/offset) >> 4
 				#if debug? = yes [
 			if verbose > 1 [
@@ -73,7 +71,7 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
 
-		s: as series! data/node/value
+		s: GET_BUFFER(data)
 		frame: as frame! s/offset + frame-base
 		frame-base: frame/prev
 		either zero? frame-base [
@@ -103,14 +101,15 @@ stack: context [										;-- call stack
 	arguments: func [
 		return: [cell!]
 		/local
-			s [series!]
+			s 	[series!]
 	][
-		s: as series! data/node/value
-		s/offset + frame-base + 1
+		s: GET_BUFFER(data)
+		s/offset + frame-base + 1						;-- +1 for jumping over frame cell
 	]
 
 	push-last: func [
-		last [red-value!]
+		last	[red-value!]
+		return: [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/push-last"]]
 		
@@ -130,11 +129,12 @@ stack: context [										;-- call stack
 			/local
 				s	[series!]
 		][
-			s: as series! data/node/value
+			s: GET_BUFFER(data)
 			dump-memory
 				as byte-ptr! s/offset
 				4
 				(as-integer s/tail + 1 - s/offset) >> 4
+			print-line ["frame-base: " frame-base]
 			print-line ["tail: " s/tail]
 		]
 	]

@@ -203,7 +203,7 @@ red: context [
 				either pos/3 = 'op! [
 					second select functions to word! pos/4
 				][
-					clean-lf-deep pos/4
+					clean-lf-deep pos/4/1
 				]
 			]
 		]
@@ -232,6 +232,10 @@ red: context [
 				emit-close-frame
 				emit block-append*
 				insert-lf -1
+				if sub [
+					emit reduce [stack-reset 2]			;-- reset stack, but keep block as last value
+					insert-lf -2
+				]
 			][
 				if item = #get-definition [				;-- temporary directive
 					value: select extracts/definitions blk/2
@@ -251,6 +255,8 @@ red: context [
 				
 				emit block-append*
 				insert-lf -1
+				emit reduce [stack-reset 2]				;-- reset stack, but keep block as last value
+				insert-lf -2
 			]
 		]
 		unless sub [emit-close-frame]
@@ -267,7 +273,7 @@ red: context [
 			emit load mold value
 			insert-lf -2
 			if root? [
-				emit stack-reset							;-- drop root level last value
+				emit reduce [stack-reset 1]				;-- drop root level last value
 				insert-lf -1
 			]
 		][
@@ -511,7 +517,7 @@ red: context [
 			word/push _datatype!
 			datatype/push TYPE_DATATYPE			
 			word/set
-			stack/reset
+			stack/reset 1
 		]
 	]
 	
