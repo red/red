@@ -15,7 +15,14 @@ red: context [
 	
 	#include %macros.reds
 	#include %tools.reds
-	#include %imports.reds
+	
+	#switch OS [										;-- loading OS-specific bindings
+		Windows  [#include %platform/win32.reds]
+		Syllable [#include %platform/syllable.reds]
+		MacOSX	 [#include %platform/darwin.reds]
+		#default [#include %platform/linux.reds]
+	]
+	
 	;#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds

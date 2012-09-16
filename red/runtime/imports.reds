@@ -9,8 +9,6 @@ Red/System [
 	}
 ]
 
-#define OS-page-size	4096					;@@ target/OS dependent
-
 #either OS = 'Windows [
 	#import [
 		"kernel32.dll" stdcall [
@@ -28,6 +26,8 @@ Red/System [
 			]
 		]
 	]
+	
+	#define OS-page-size		4096
 	
 	#define VA_COMMIT_RESERVE	3000h			;-- MEM_COMMIT | MEM_RESERVE
 	#define VA_PAGE_RW			04h				;-- PAGE_READWRITE
@@ -72,6 +72,8 @@ Red/System [
 
 	#switch OS [	
 		MacOSX	[
+			#define SC_PAGE_SIZE		29
+			
 			#define SYSCALL_MMAP		197
 			#define SYSCALL_MUNMAP		73
 
@@ -79,6 +81,8 @@ Red/System [
 			#define MMAP_MAP_ANONYMOUS  1000h
 		]
 		Syllable [
+			#define SC_PAGE_SIZE		30
+			
 			#define SYSCALL_MMAP		222
 			#define SYSCALL_MUNMAP		223
 
@@ -86,7 +90,9 @@ Red/System [
 			#define MMAP_MAP_PRIVATE    20h
 			#define MMAP_MAP_ANONYMOUS  80h
 		]
-		#default [
+		#default [								;-- Linux
+			#define SC_PAGE_SIZE		30
+			
 			#define SYSCALL_MMAP2		192
 			#define SYSCALL_MUNMAP		91
 			#define SYSCALL_MMAP		SYSCALL_MMAP2
@@ -96,6 +102,17 @@ Red/System [
 			#define MMAP_MAP_ANONYMOUS  20h
 		]
 	]
+	
+	#import  [
+		LIBC-file cdecl [
+			sysconf: "sysconf" [
+				property	[integer!]
+				return:		[integer!]
+			]
+		]
+	]
+	
+	OS-page-size: sysconf SC_PAGE_SIZE
 
 	#syscall [
 		OS-mmap: SYSCALL_MMAP [
