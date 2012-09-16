@@ -140,3 +140,5 @@ Red/System [
 	#define ------------| 	comment
 ]
 
+#define TYPE_OF(value)		(value/header and get-type-mask)
+#define GET_BUFFER(series)  (as series! series/node/value)
