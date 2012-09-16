@@ -20,30 +20,21 @@ block: context [
 		(as-integer (series/tail - series/offset)) >> 4 - blk/head
 	]
 	
-	store: func [
-		blk 	[red-block!]
-		return: [red-block!]
-	][
-		copy-cell
-			as cell! blk
-			ALLOC_TAIL(root)
-		blk
-	]
-	
 	append*: func [
 		return: [red-block!]
 		/local
-			blk	[red-block!]
+			arg	[red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/append*"]]
-	
-		blk: as red-block! stack/arguments
-		assert TYPE_OF(blk) = TYPE_BLOCK
-		
+
+		arg: as red-block! stack/arguments
+		assert TYPE_OF(arg) = TYPE_BLOCK
+
 		copy-cell
-			stack/arguments + 1
-			ALLOC_TAIL(blk)
-		blk
+			as cell! arg + 1
+			ALLOC_TAIL(arg)
+			
+		arg
 	]
 
 	make-in: func [
@@ -111,12 +102,32 @@ block: context [
 
 	]
 	
-	length?: func [
+	length-of: func [
 		return: [integer!]
 	][
 		0
 	]
+	
+	pick: func [
+		return: [red-value!]
+		/local
+			blk	  [red-block!]
+			index [red-integer!]
+			s	  [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/pick"]]
 		
+		blk: as red-block! stack/arguments
+		index: as red-integer! blk + 1
+
+		assert TYPE_OF(blk)   = TYPE_BLOCK
+		assert TYPE_OF(index) = TYPE_INTEGER
+		
+		s: GET_BUFFER(blk)
+		;assert index within bounds!
+		stack/push-last s/offset + index/value - 1			;-- index is one-based
+	]
+	
 	datatype/register [
 		TYPE_BLOCK
 		;-- General actions --
@@ -159,7 +170,7 @@ block: context [
 		null			;insert
 		null			;length-of
 		null			;next
-		null			;pick
+		:pick
 		null			;poke
 		null			;remove
 		null			;reverse

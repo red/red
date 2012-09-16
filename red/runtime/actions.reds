@@ -150,7 +150,18 @@ actions: context [
 	insert: func [][]
 	length-of: func [][]
 	next: func [][]
-	pick: func [][]
+	
+	pick: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/pick"]]
+
+		action-pick: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_PICK
+		action-pick
+	]
+	
 	poke: func [][]
 	remove: func [][]
 	reverse: func [][]

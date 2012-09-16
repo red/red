@@ -203,7 +203,15 @@ append: make action! [[
 ;insert
 ;length?
 ;next
-;pick
+
+pick: make action! [[
+		series	 [series!]
+		index 	 [integer!]
+		return:  [any-value!]
+	]
+	#get-definition ACT_PICK
+]
+
 ;poke
 ;remove
 ;reverse
