@@ -20,7 +20,7 @@ symbol: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
 		
-		sym: as red-symbol! alloc-at-tail symbols/node	
+		sym: as red-symbol! ALLOC_TAIL(symbols)	
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/buffer: s									;-- permanent string buffer in data segment
 		sym

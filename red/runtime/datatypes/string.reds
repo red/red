@@ -35,7 +35,7 @@ string: context [
 		
 		assert (as byte-ptr! series/tail) < ((as byte-ptr! series) + series/size)
 
-		str: as red-string! alloc-at-tail parent/node
+		str: as red-string! ALLOC_TAIL(parent)
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 0
 		str/node: p

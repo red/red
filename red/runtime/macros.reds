@@ -142,3 +142,4 @@ Red/System [
 
 #define TYPE_OF(value)		(value/header and get-type-mask)
 #define GET_BUFFER(series)  (as series! series/node/value)
+#define ALLOC_TAIL(series)	[alloc-at-tail as red-block! series]

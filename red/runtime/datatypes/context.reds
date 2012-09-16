@@ -44,10 +44,10 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add"]]
 		
-		sym: alloc-at-tail ctx/symbols
+		sym: alloc-tail as series! ctx/symbols/value
 		copy-cell as cell! word sym
 		
-		value: alloc-at-tail ctx/values
+		value: alloc-tail as series! ctx/values/value
 		value/header: TYPE_NONE
 		
 		series: as series! ctx/values/value
@@ -97,7 +97,7 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/make"]]
 		
-		cell: as red-context! alloc-at-tail blk/node
+		cell: as red-context! ALLOC_TAIL(blk)
 		cell/header: TYPE_CONTEXT					;-- implicit reset of all header flags	
 		cell/symbols: alloc-series slots 2 0		;-- force offset at head of buffer
 

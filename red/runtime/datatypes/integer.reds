@@ -18,6 +18,7 @@ integer: context [
 		/local
 			cell	[red-integer!]
 	][
+		assert TYPE_OF(value) = TYPE_INTEGER
 		cell: as red-integer! value
 		cell/value
 	]
@@ -60,8 +61,9 @@ integer: context [
 
 		left: as red-integer! stack/arguments
 		right: left + 1
-		assert left/header and get-type-mask = TYPE_INTEGER
-		assert right/header and get-type-mask = TYPE_INTEGER
+		
+		assert TYPE_OF(left)  = TYPE_INTEGER
+		assert TYPE_OF(right) = TYPE_INTEGER
 		
 		left/value: switch type [
 			OP_ADD [left/value + right/value]
@@ -92,15 +94,19 @@ integer: context [
 		/local
 			arg		[red-integer!]
 			value	[integer!]
-			buffer	[red-string!]
+			str		[red-string!]
 			series	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
 		
-		arg: as red-integer! stack/arguments	
+		arg: as red-integer! stack/arguments
+		assert TYPE_OF(arg) = TYPE_INTEGER
 		value: arg/value
-		buffer: as red-string! arg + 1
-		series: as series! buffer/node/value
+		
+		str: as red-string! arg + 1
+		assert TYPE_OF(str) = TYPE_STRING
+		
+		series: GET_BUFFER(str)
 		series/offset: as cell! form-signed as c-string! series/offset value
 		part											;@@ implement full support for /part
 	]

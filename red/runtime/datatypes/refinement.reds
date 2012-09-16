@@ -24,7 +24,7 @@ refinement: context [
 		symbol/make str
 		id: block/rs-length? symbols
 		
-		cell: as red-word! alloc-at-tail root/node
+		cell: as red-word! ALLOC_TAIL(root)
 		cell/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
 		cell/ctx: 	 global-ctx
 		cell/symbol: id

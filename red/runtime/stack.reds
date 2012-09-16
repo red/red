@@ -122,7 +122,7 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/push"]]
 		
-		alloc-at-tail data/node
+		ALLOC_TAIL(data)
 	]
 
 	#if debug? = yes [	

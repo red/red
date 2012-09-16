@@ -16,7 +16,7 @@ block: context [
 		blk 	[red-block!]
 		return: [integer!]
 	][
-		series: as series-buffer! blk/node/value
+		series: GET_BUFFER(blk)
 		(as-integer (series/tail - series/offset)) >> 4 - blk/head
 	]
 	
@@ -26,7 +26,7 @@ block: context [
 	][
 		copy-cell
 			as cell! blk
-			alloc-at-tail root/node
+			ALLOC_TAIL(root)
 		blk
 	]
 	
@@ -42,7 +42,7 @@ block: context [
 		
 		copy-cell
 			stack/arguments + 1
-			alloc-at-tail blk/node
+			ALLOC_TAIL(blk)
 		blk
 	]
 
@@ -58,7 +58,7 @@ block: context [
 		blk: either null? parent [
 			_root
 		][
-			as red-block! alloc-at-tail parent/node
+			as red-block! ALLOC_TAIL(parent)
 		]		
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk/head: 	0
@@ -98,7 +98,7 @@ block: context [
 		blk: as red-block! stack/arguments
 		copy-cell
 			stack/arguments + 1
-			alloc-at-tail blk/node
+			ALLOC_TAIL(blk)
 		blk
 	]
 

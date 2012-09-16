@@ -17,13 +17,18 @@ set-type: func [
 ]
 
 alloc-at-tail: func [
-	node	[node!]
+	blk		[red-block!]
+	return: [cell!]
+][
+	alloc-tail as series! blk/node/value
+]
+
+alloc-tail: func [
+	s		[series!]
 	return: [cell!]
 	/local 
-		s		[series!]
 		cell	[red-value!]
 ][
-	s: as series! node/value	
 	if (as byte-ptr! s/tail + 1) >= ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
