@@ -120,9 +120,9 @@ datatype: context [
 		null			;find
 		null			;head
 		null			;head?
-		null			;index?
+		null			;index-of
 		null			;insert
-		null			;length?
+		null			;length-of
 		null			;next
 		null			;pick
 		null			;poke
