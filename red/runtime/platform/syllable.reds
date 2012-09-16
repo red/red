@@ -58,7 +58,7 @@ OS-allocate-virtual: func [
 ][
 	assert zero? (size and 0Fh)				;-- size is a multiple of 16
 	flags: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
-	flags: flags or (MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS << 4)
+	flags: flags or MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS
 	
 	ptr: OS-mmap null size flags -1	0
 
