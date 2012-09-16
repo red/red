@@ -42,11 +42,13 @@ alloc-tail: func [
 ]
 
 copy-cell: func [
-	src [cell!]
-	dst [cell!]
+	src		[cell!]
+	dst		[cell!]
+	return: [red-value!]
 ][
 	copy-memory											;@@ optimize for 16 bytes copying
 		as byte-ptr! dst
 		as byte-ptr! src
 		size? cell!
+	dst
 ]
