@@ -76,6 +76,7 @@ datatype: context [
 		
 		arg: stack/arguments
 		dt:  as red-datatype! arg
+		assert TYPE_OF(dt) = TYPE_DATATYPE
 		
 		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
 		type: as red-integer! arg + 1

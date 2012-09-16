@@ -38,6 +38,8 @@ op: context [
 		op:   as red-op! arg
 		spec: as red-block!  arg + 1
 		
+		assert TYPE_OF(spec) = TYPE_BLOCK
+		
 		op/header:  TYPE_OP						;-- implicit reset of all header flags
 		op/spec:    spec/node					; @@ copy spec block if not at head
 		;op/symbols: clean-spec spec 			; @@ TBD

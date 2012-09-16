@@ -9,7 +9,7 @@ Red/System [
 	}
 ]
 
-set-type: func [
+set-type: func [										;@@ convert to macro?
 	cell 		[cell!]
 	type		[integer!]
 ][

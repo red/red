@@ -38,6 +38,8 @@ native: context [
 		native: as red-native! arg
 		spec:   as red-block!  arg + 1
 		
+		assert TYPE_OF(spec) = TYPE_BLOCK
+		
 		native/header:  TYPE_NATIVE					;-- implicit reset of all header flags
 		native/spec:    spec/node					; @@ copy spec block if not at head
 		;native/symbols: clean-spec spec 			; @@ TBD

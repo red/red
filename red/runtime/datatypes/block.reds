@@ -38,7 +38,7 @@ block: context [
 		#if debug? = yes [if verbose > 0 [print-line "block/append*"]]
 	
 		blk: as red-block! stack/arguments
-		assert blk/header and get-type-mask = TYPE_BLOCK
+		assert TYPE_OF(blk) = TYPE_BLOCK
 		
 		copy-cell
 			stack/arguments + 1
@@ -58,6 +58,7 @@ block: context [
 		blk: either null? parent [
 			_root
 		][
+			assert TYPE_OF(parent) = TYPE_BLOCK
 			as red-block! ALLOC_TAIL(parent)
 		]		
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
@@ -96,6 +97,8 @@ block: context [
 	][
 		;@@ implement /part and /only support
 		blk: as red-block! stack/arguments
+		assert TYPE_OF(blk) = TYPE_BLOCK
+		
 		copy-cell
 			stack/arguments + 1
 			ALLOC_TAIL(blk)

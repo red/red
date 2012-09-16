@@ -37,6 +37,7 @@ action: context [
 		arg:    stack/arguments
 		action: as red-action! arg
 		spec:   as red-block!  arg + 1
+		
 		assert TYPE_OF(spec) = TYPE_BLOCK
 		
 		action/header:  TYPE_ACTION					;-- implicit reset of all header flags

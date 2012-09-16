@@ -24,6 +24,7 @@ _context: context [
 		series: as series! ctx/symbols/value
 		list: as red-integer! series/offset
 		end: as red-integer! series/tail
+		
 		while [list < end][
 			if list/value = symbol [
 				return (1 + as-integer list - as red-integer! series/offset) >> 4	;@@ log2(size? cell!) hardcoded

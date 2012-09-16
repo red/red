@@ -39,7 +39,9 @@ none: context [
 		#if debug? = yes [if verbose > 0 [print-line "none/form"]]
 
 		buffer: as red-string! stack/arguments + 1
+		assert TYPE_OF(buffer) = TYPE_STRING
 		series: as series! buffer/node/value
+		
 		copy-memory
 			as byte-ptr! series/offset
 			as byte-ptr! "none"

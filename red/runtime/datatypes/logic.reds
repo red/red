@@ -34,10 +34,12 @@ logic: context [
 
 		args: stack/arguments
 		cell: as red-logic! args
+		id: as red-integer! args + 1
+		
+		assert TYPE_OF(cell) = TYPE_LOGIC
+		assert TYPE_OF(id)   = TYPE_INTEGER
 		
 		cell/header: TYPE_LOGIC						;-- implicit reset of all header flags
-		id: as red-integer! args + 1
-		assert id/header and get-type-mask = TYPE_INTEGER
 		cell/value: id/value <> 0
 		as red-value! cell
 	]

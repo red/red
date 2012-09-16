@@ -22,6 +22,8 @@ natives: context [
 		
 		actions/form off
 		str: as red-string! stack/arguments + 1	
+		assert TYPE_OF(str) = TYPE_STRING
+		
 		series: as series! str/node/value
 		print-line as c-string! series/offset	;@@ unicode print!
 		stack/push-last unset-value
