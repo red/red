@@ -20,6 +20,34 @@ block: context [
 		(as-integer (series/tail - series/offset)) >> 4 - blk/head
 	]
 	
+	get-position: func [
+		base	   [integer!]
+		return:	   [integer!]
+		/local
+			blk	   [red-block!]
+			index  [red-integer!]
+			s	   [series!]
+			offset [integer!]
+			max	   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/navigate-to"]]
+
+		blk: as red-block! stack/arguments
+		index: as red-integer! blk + 1
+
+		assert TYPE_OF(blk)   = TYPE_BLOCK
+		assert TYPE_OF(index) = TYPE_INTEGER
+
+		s: GET_BUFFER(blk)
+
+		offset: blk/head + index/value - base			;-- index is one-based
+		if negative? offset [offset: 0]
+		max: (as-integer s/tail - s/offset) >> 4
+		if offset > max [offset: max]
+
+		offset
+	]
+	
 	append*: func [
 		return: [red-block!]
 		/local
@@ -103,30 +131,100 @@ block: context [
 	]
 	
 	length-of: func [
-		return: [integer!]
+		return: [red-value!]
+		/local
+			blk	[red-block!]
+			int [red-integer!]
+			s	[series!]
 	][
-		0
+		#if debug? = yes [if verbose > 0 [print-line "block/back"]]
+		
+		blk: as red-block! stack/arguments
+		assert TYPE_OF(blk) = TYPE_BLOCK
+		
+		s: GET_BUFFER(blk)
+		
+		int: as red-integer! blk
+		int/header: TYPE_INTEGER
+		int/value: (as-integer s/tail - s/offset - blk/head) >> 4
+		as red-value! int
+	]
+	
+	at: func [
+		return:	[red-value!]
+		/local
+			blk	[red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/at"]]
+		
+		blk: as red-block! stack/arguments
+		blk/head: get-position 1
+		as red-value! blk
+	]
+	
+	back: func [
+		return:	[red-value!]
+		/local
+			blk	[red-block!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/back"]]
+
+		blk: as red-block! stack/arguments
+		assert TYPE_OF(blk) = TYPE_BLOCK
+
+		s: GET_BUFFER(blk)
+
+		if (s/offset + blk/head - 1) >= s/offset [
+			blk/head: blk/head - 1
+		]
+		as red-value! blk
+	]
+	
+	next: func [
+		return:	   [red-value!]
+		/local
+			blk	   [red-block!]
+			s	   [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/next"]]
+	
+		blk: as red-block! stack/arguments
+		assert TYPE_OF(blk) = TYPE_BLOCK
+		
+		s: GET_BUFFER(blk)
+		
+		if (s/offset + blk/head + 1) <= s/tail [
+			blk/head: blk/head + 1
+		]
+		as red-value! blk
 	]
 	
 	pick: func [
-		return: [red-value!]
+		return:	   [red-value!]
 		/local
-			blk	  [red-block!]
-			index [red-integer!]
-			s	  [series!]
+			blk	   [red-block!]
+			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/pick"]]
 		
 		blk: as red-block! stack/arguments
-		index: as red-integer! blk + 1
-
-		assert TYPE_OF(blk)   = TYPE_BLOCK
-		assert TYPE_OF(index) = TYPE_INTEGER
-		
 		s: GET_BUFFER(blk)
-		;assert index within bounds!
-		stack/push-last s/offset + blk/head + index/value - 1	;-- index is one-based
+		stack/push-last s/offset + get-position 1
 	]
+	
+	skip: func [
+		return:	   [red-value!]
+		/local
+			blk	   [red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/skip"]]
+
+		blk: as red-block! stack/arguments
+		blk/head: get-position 0
+		as red-value! blk
+	]
+
 	
 	datatype/register [
 		TYPE_BLOCK
@@ -158,8 +256,8 @@ block: context [
 		null			;xor~
 		;-- Series actions --
 		null			;append
-		null			;at
-		null			;back
+		:at
+		:back
 		null			;change
 		null			;clear
 		null			;copy
@@ -168,15 +266,15 @@ block: context [
 		null			;head?
 		null			;index-of
 		null			;insert
-		null			;length-of
-		null			;next
+		:length-of
+		:next
 		:pick
 		null			;poke
 		null			;remove
 		null			;reverse
 		null			;select
 		null			;sort
-		null			;skip
+		:skip
 		null			;swap
 		null			;tail
 		null			;tail?

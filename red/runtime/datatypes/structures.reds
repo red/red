@@ -45,14 +45,14 @@ red-logic!: alias struct! [
 
 red-block!: alias struct! [
 	header 	[integer!]								;-- cell header
-	head	[integer!]								;-- block's head index
+	head	[integer!]								;-- block's head index (zero-based)
 	node	[node!]									;-- series node pointer
 	_pad	[integer!]
 ]
 
 red-string!: alias struct! [
 	header 	[integer!]								;-- cell header
-	head	[integer!]								;-- string's head index
+	head	[integer!]								;-- string's head index (zero-based)
 	node	[node!]									;-- series node pointer
 	_pad	[integer!]
 ]

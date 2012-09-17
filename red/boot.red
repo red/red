@@ -191,18 +191,45 @@ append: make action! [[
 	]
 	#get-definition ACT_APPEND
 ]
-;at
-;back
+
+at: make action! [[
+		series	 [series!]
+		index 	 [integer!]
+		return:  [any-value!]
+	]
+	#get-definition ACT_AT
+]
+
+back: make action! [[
+		series	 [series!]
+		return:  [series!]
+	]
+	#get-definition ACT_BACK
+]
+
 ;change
 ;clear
 ;copy
 ;find
 ;head
 ;head?
-;index?
+;index-of
 ;insert
-;length?
-;next
+
+length-of: make action! [[
+		series	 [series!]
+		return:  [series!]
+	]
+	#get-definition ACT_LENGTH_OF
+]
+
+
+next: make action! [[
+		series	 [series!]
+		return:  [series!]
+	]
+	#get-definition ACT_NEXT
+]
 
 pick: make action! [[
 		series	 [series!]
@@ -217,7 +244,15 @@ pick: make action! [[
 ;reverse
 ;select
 ;sort
-;skip
+
+skip: make action! [[
+		series	 [series!]
+		offset 	 [integer!]
+		return:  [any-value!]
+	]
+	#get-definition ACT_SKIP
+]
+
 ;swap
 ;tail
 ;tail?

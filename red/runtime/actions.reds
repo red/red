@@ -138,8 +138,29 @@ actions: context [
 	or~: func [][]
 	xor~: func [][]
 	append: func [][]
-	at: func [][]
-	back: func [][]
+	
+	at: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/at"]]
+
+		action-at: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_AT
+		action-at
+	]
+	
+	back: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/back"]]
+
+		action-back: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_BACK
+		action-back
+	]
+	
 	change: func [][]
 	clear: func [][]
 	copy: func [][]
@@ -148,8 +169,28 @@ actions: context [
 	head?: func [][]
 	index-of: func [][]
 	insert: func [][]
-	length-of: func [][]
-	next: func [][]
+	
+	length-of: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/length-of"]]
+
+		action-length-of: as function! [				;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_LENGTH_OF
+		action-length-of
+	]
+	
+	next: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/next"]]
+
+		action-next: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_NEXT
+		action-next
+	]
 	
 	pick: func [
 		return:	[red-value!]
@@ -167,7 +208,18 @@ actions: context [
 	reverse: func [][]
 	select: func [][]
 	sort: func [][]
-	skip: func [][]
+	
+	skip: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/skip"]]
+
+		action-skip: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_SKIP
+		action-skip
+	]
+	
 	swap: func [][]
 	tail: func [][]
 	tail?: func [][]
