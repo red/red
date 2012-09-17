@@ -1026,7 +1026,7 @@ make target-class [
 		
 		if all [
 			find [+ -] name							;-- pointer arithmetic only allowed for + & -
-			type: compiler/resolve-expr-type args/1
+			type: compiler/resolve-aliased compiler/resolve-expr-type args/1
 			not compiler/any-pointer? compiler/resolve-expr-type args/2	;-- no scaling if both operands are pointers		
 			scale: switch type/1 [
 				pointer! [emitter/size-of? type/2/1]		  ;-- scale factor: size of pointed value
