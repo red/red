@@ -18,6 +18,7 @@ red: context [
 	ctx-stack:	  [gctx]
 	lexer: 		  do bind load %lexer.r 'self
 	extracts:	  do bind load %utils/extractor.r 'self	;-- @@ to be removed once we get redbin loader.
+	sys-includes: make block! 1
 	
 	pc: 		  none
 	locals:		  none
@@ -115,6 +116,17 @@ red: context [
 	]
 	
 	emit: func [value][append output value]
+	
+	emit-sys-includes: func [src [block!]][
+		list: make block! 2 * length? sys-includes
+		foreach path sys-includes [
+			append list compose [
+				#include (path)
+			]
+			new-line back tail list no
+		]
+		insert at src 3 list
+	]
 		
 	emit-src-comment: func [pos [block! paren!]][
 		emit reduce [
@@ -459,6 +471,13 @@ red: context [
 				emit pc/2
 				pc: skip pc 2
 			]
+			#system-include [
+				unless block? pc/2 [
+					throw-error "#system-include requires a block argument"
+				]
+				append sys-includes pc/2
+				pc: skip pc 2
+			]
 			#get-definition [							;-- temporary directive
 				either value: select extracts/definitions pc/2 [
 					change/only/part pc value 2
@@ -553,6 +572,8 @@ red: context [
 		insert output [
 			------------| "Symbols"
 		]
+		
+		unless empty? sys-includes [emit-sys-includes out]
 
 		output: out
 		if verbose > 1 [?? output]

@@ -34,7 +34,7 @@ loader: context [
 	]
 
 	init: does [
-		include-dirs: reduce [runtime-path red-runtime-path]
+		include-dirs: reduce [runtime-path red-runtime-path %./]
 		clear include-list
 		clear defs
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
