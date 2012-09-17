@@ -11,7 +11,7 @@ REBOL [
 do %quick-test.r
 
 ;; set the base dir for the test source
-qt/tests-dir: system/options/path
+qt/tests-dir: what-dir
 
 print ["system/options/path " system/options/path]
 

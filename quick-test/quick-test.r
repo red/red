@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.8.2
+	Version: 0.9
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -24,7 +24,7 @@ qt: make object! [
   
   ;;;;;;;;;;; Setup ;;;;;;;;;;;;;;
   ;; set the base-dir to ....Red
-  base-dir: system/script/path 
+  base-dir: system/script/path
   base-dir: copy/part base-dir find base-dir "quick-test"
   ;; set the red/system compiler directory
   comp-dir: base-dir/red-system
@@ -129,6 +129,7 @@ qt: make object! [
         
   compile: func [
     src [file!]
+    /lib
     /local
       comp                          ;; compilation script
       cmd                           ;; compilation cmd
@@ -136,10 +137,23 @@ qt: make object! [
   ][
     clear comp-output
     ;; workout executable name
-    if not exe: copy find/last/tail src "/" [exe: copy src]
+    either find/last/tail src "/" [
+      exe: copy find/last/tail src "/"
+    ][
+      exe: copy src
+    ]
     exe: copy/part exe find exe "."
-    if windows-os? [
-      exe: join exe [".exe"]
+    either lib [
+      switch/default fourth system/version [
+        3  [exe: join exe [".dll"]]
+        2   [exe: join %lib [exe ".dylib"]]
+      ][
+        exe: join %lib [exe ".so"]
+      ]     
+    ][     
+      if windows-os? [
+        exe: join exe [".exe"]
+      ]
     ]
 
     ;; compose and write compilation script
@@ -148,8 +162,11 @@ qt: make object! [
       halt: :quit
       change-dir (comp-dir)
       echo (comp-echo)
-      do/args %rsc.r "***src***"
+      do/args %rsc.r "###lib###***src***"
     ]
+    
+    either lib [replace comp "###lib###" "-t WinDLL "][replace comp "###lib###" ""]
+    
     if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     replace comp "***src***" src
     write comp-r comp
@@ -172,7 +189,10 @@ qt: make object! [
     if exists? built [
       write/binary runner read/binary built
       delete built
-      if not windows-os? [
+      if all [
+        not windows-os?
+        not lib
+      ][
         r: open runner
         set-modes r [
           owner-execute: true
@@ -209,6 +229,17 @@ qt: make object! [
       output: "Compilation failed"
     ]
   ]
+  
+  compile-dll: func [
+    lib-src [file!]
+  ][
+    ;; compile the lib and copy the executable to the runnable dir
+    if not compile/lib lib-src [
+      compile-error lib-src
+      output: "Lib compilation failed"  
+    ]
+  ]
+  
     
   compile-from-string: func [src][
     ;-- add a default header if not provided
@@ -507,6 +538,7 @@ qt: make object! [
   set '===start-group===      :start-group
   set '--test--               :start-test
   set '--compile              :compile
+  set '--compile-dll          :compile-dll
   set '--compile-this         :compile-from-string
   set '--compile-and-run      :compile-and-run
   set '--compile-and-run-this :compile-and-run-from-string

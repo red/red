@@ -151,6 +151,11 @@ start-time: now/precise
   --run-script-quiet %source/compiler/namespace-test.r
 ===end-group===
 
+===start-group=== "dll-tests"
+  --run-script-quiet %source/units/dll-test.r
+===end-group===
+
+
 ***end-run-quiet***
 
 end-time: now/precise
