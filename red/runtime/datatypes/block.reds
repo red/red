@@ -125,7 +125,7 @@ block: context [
 		
 		s: GET_BUFFER(blk)
 		;assert index within bounds!
-		stack/push-last s/offset + index/value - 1			;-- index is one-based
+		stack/push-last s/offset + blk/head + index/value - 1	;-- index is one-based
 	]
 	
 	datatype/register [
