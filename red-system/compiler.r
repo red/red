@@ -1403,6 +1403,7 @@ system-dialect: context [
 		
 		comp-context: has [name level][
 			unless block? pc/2 [throw-error "context specification block is missing"]
+			unless set-word? pc/-1 [throw-error "context's name setting is missing"]
 		
 			check-keywords name: to word! pc/-1
 			pc: next pc
