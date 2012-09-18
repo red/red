@@ -122,11 +122,12 @@ system-dialect: context [
 		]
 
 		type-spec: [
-			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage
+			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage		
 				unless any [
 					all [v: find-aliased/prefix value pos/1: v]			;-- rewrite the type to prefix it
 					find aliased-types value
 					all [v: ns-find-with value enumerations pos/1: v]	;-- rewrite the type to prefix it
+					all [v: ns-find-with/only value enumerations pos/1: v]	;-- rewrite the type to prefix it
 					find enumerations value
 				][throw false]							;-- stop parsing if unresolved type
 			)
@@ -799,7 +800,7 @@ system-dialect: context [
 			name
 		]
 
-		ns-find-with: func [name [word!] list [hash!] /local ns][
+		ns-find-with: func [name [word!] list [hash!] /only /local ns][
 			any [
 				all [
 					with-stack
@@ -808,7 +809,7 @@ system-dialect: context [
 				]
 				all [
 					ns-path
-					either list = enumerations [
+					either all [not only list = enumerations][
 						any [
 							get-enumerator ns: ns-prefix name		  ;-- lookup in current namespace
 							get-enumerator ns: ns-find-through/compare name list :get-enumerator ;-- walk through parent namespaces
