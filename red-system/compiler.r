@@ -122,14 +122,13 @@ system-dialect: context [
 		]
 
 		type-spec: [
-			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage		
+			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage			
 				unless any [
 					all [v: find-aliased/prefix value pos/1: v]			;-- rewrite the type to prefix it
 					find aliased-types value
-					all [v: ns-find-with value enumerations pos/1: v]	;-- rewrite the type to prefix it
-					all [v: ns-find-with/only value enumerations pos/1: v]	;-- rewrite the type to prefix it
-					find enumerations value
-				][throw false]							;-- stop parsing if unresolved type
+					all [v: ns-find-with/type value enumerations pos/1: v]	;-- rewrite the type to prefix it
+					all [enum-type? value pos/1: 'integer!]
+				][throw false]							;-- stop parsing if unresolved type			
 			)
 		]		
 		
@@ -435,11 +434,11 @@ system-dialect: context [
 		resolve-aliased: func [type [block!] /local name][
 			name: type/1
 			all [
-				type/1								;-- ensure it is not #[none]
+				type/1								;-- ensure it is not [none]
 				not base-type? name
 				not find type-sets name
 				not all [
-					find enumerations name
+					enum-type? name
 					type: [integer!]
 				]
 				not type: find-aliased name
@@ -457,8 +456,8 @@ system-dialect: context [
 				return reduce ['function! functions/:name/4]
 			]
 			if any [
-				all [type find enumerations type/1]
-				get-enumerator name
+				enum-type? name
+				enum-id? name
 			][
 				return [integer!]
 			]
@@ -566,12 +565,25 @@ system-dialect: context [
 				throw-error ["not accepted datatype:" type? value]
 			]
 		]
+		
+		enum-type?: func [name [word!] /local type][
+			all [
+				type: select/skip enumerations name 3
+				reduce [type]
+			]
+		]
+		
+		enum-id?: func [name [word!] /local pos][
+			all [
+				pos: find/skip next enumerations name 3
+				reduce [pos/-1]
+			]
+		]
 
-		get-enumerator: func [enum-name [word!] /value /local result][
-			foreach [enum-list-name enum-list-data] enumerations [
-				if result: select enum-list-data enum-name [
-					return either value [ result ][ reduce [enum-list-name] ]
-				]
+		get-enumerator: func [name [word!] /value /local pos][
+			all [
+				pos: select/skip next enumerations name 3		;-- SELECT = FIND on hash!
+				pos/1
 			]
 		]
 		
@@ -587,24 +599,21 @@ system-dialect: context [
 			]
 			name: head name
 			
-			if none? list: select enumerations identifier [
-				append/only append enumerations identifier list: make hash! 10
-			]
 			if all [
 				word? value
 				none? value: any [
 					all [
 						v: ns-find-with value enumerations
-						get-enumerator/value v
+						get-enumerator v
 					]
-					get-enumerator/value value
+					get-enumerator value
 				]
 			][
 				throw-error ["cannot resolve literal enum value for:" form name]
 			]
 			forall name [
 				if verbose > 3 [print ["Enum:" identifier "[" name/1 "=" value "]"]]
-				repend list [name/1 value]
+				repend enumerations [identifier name/1 value]
 			]
 			value: value + 1
 		]
@@ -777,9 +786,7 @@ system-dialect: context [
 			foreach ns with-stack [
 				either list = enumerations [
 					enum: ns-decorate ns-join ns name
-					if any [find enumerations enum get-enumerator enum][
-						return ns
-					]
+					if any [enum-type? enum enum-id? enum][return ns]
 				][
 					if find list ns-decorate ns-join ns name [return ns]
 				]
@@ -800,7 +807,7 @@ system-dialect: context [
 			name
 		]
 
-		ns-find-with: func [name [word!] list [hash!] /only /local ns][
+		ns-find-with: func [name [word!] list [hash!] /type /local ns][
 			any [
 				all [
 					with-stack
@@ -809,10 +816,17 @@ system-dialect: context [
 				]
 				all [
 					ns-path
-					either all [not only list = enumerations][
-						any [
-							get-enumerator ns: ns-prefix name		  ;-- lookup in current namespace
-							get-enumerator ns: ns-find-through/compare name list :get-enumerator ;-- walk through parent namespaces
+					either list = enumerations [
+						either type [
+							any [
+								enum-type? ns: ns-prefix name		  ;-- lookup in current namespace
+								enum-type? ns: ns-find-through/compare name list :enum-type? ;-- walk through parent namespaces
+							]
+						][
+							any [
+								enum-id? ns: ns-prefix name		  ;-- lookup in current namespace
+								enum-id? ns: ns-find-through/compare name list :enum-id? ;-- walk through parent namespaces
+							]
 						]
 					][
 						any [
@@ -889,11 +903,11 @@ system-dialect: context [
 					error:  ["redeclaration of variable:" name]
 				]
 
-				find enumerations name [
+				enum-type? name [
 					error:  ["redeclaration of enum identifier:" name ]
 				]
 				
-				found? get-enumerator name [
+				enum-id? name [
 					error:  ["redeclaration of enumerator:" name ]
 				]
 			]
@@ -913,13 +927,13 @@ system-dialect: context [
 				word? ending [
 					either all [
 						not local-variable? ending
-						found? enum-value: get-enumerator/value ending
+						enum-value: get-enumerator ending
 					][
 						path/2: ending: enum-value
 					][
 						unless any [
 							get-variable-spec ending
-							found? value: get-enumerator/value ending
+							value: get-enumerator ending
 						][
 							backtrack path
 							throw-error ["undefined" type "index variable"]
@@ -948,10 +962,7 @@ system-dialect: context [
 				pc: back pc
 				throw-error ["attempt to redefine existing function name:" name]
 			]
-			if any [
-				find enumerations name
-				get-enumerator name
-			][
+			if any [enum-type? name	enum-id? name][
 				pc: back pc
 				throw-error ["attempt to redefine existing enumerator:" name]
 			]
@@ -1011,7 +1022,7 @@ system-dialect: context [
 			]
 			if block? args [
 				foreach [name type] args [
-					if get-enumerator name [
+					if enum-id? name [
 						throw-warning ["function's argument redeclares enumeration:" name]
 					]
 				]
@@ -1070,7 +1081,7 @@ system-dialect: context [
 				all [
 					type
 					type/1 = 'integer!
-					find enumerations expected/1		;-- TODO: add also a value check for enums
+					enum-type? expected/1				;-- TODO: add also a value check for enums
 				]
 			][
 				if expected = type [type: 'null]		;-- make null error msg explicit
@@ -1083,7 +1094,7 @@ system-dialect: context [
 						ret   [["wrong return type in function:" name]]
 						key   [[
 							uppercase form name "requires a conditional expression"
-							either find [while until] name ["as last expression"][""]						
+							either find [while until] name ["as last expression"][""]
 						]]
 						'else [["argument type mismatch on calling:" name]]
 					]
@@ -1247,7 +1258,7 @@ system-dialect: context [
 							word? expr/1
 							any [
 								get-variable-spec expr/1
-								get-enumerator expr/1
+								enum-id? expr/1
 							]
 						]
 						paren? expr/1
@@ -1876,8 +1887,8 @@ system-dialect: context [
 				if all [
 					not local-variable? n
 					enum: any [
-						all [ns: ns-find-with n enumerations get-enumerator n: ns]
-						get-enumerator n
+						all [ns: ns-find-with n enumerations enum-id? n: ns]
+						enum-id? n
 					]
 				][
 					backtrack name
@@ -1979,10 +1990,10 @@ system-dialect: context [
 					]
 				]
 			][
-				if value: get-enumerator/value path [
+				if value: get-enumerator path [
 					last-type: [integer!]
 					pc: next pc
-					return value			
+					return value
 				]
 				comp-word/with path
 			][
@@ -2000,7 +2011,7 @@ system-dialect: context [
 						ns: ns-find-with path/1 globals
 						path/1: ns						;-- prefix path if needed
 					]
-					last-type: resolve-path-type path				
+					last-type: resolve-path-type path
 				]
 				any [value path]
 			]
@@ -2067,8 +2078,8 @@ system-dialect: context [
 				]
 				type: all [
 					any [
-						all [not root ns: ns-find-with name enumerations get-enumerator name: ns]
-						get-enumerator name
+						all [not root ns: ns-find-with/type name enumerations enum-type? name: ns]
+						enum-type? name
 					]
 				][
 					last-type: type
@@ -2185,7 +2196,7 @@ system-dialect: context [
 		][
 			if all [
 				not local-variable? set-path/1
-				get-enumerator set-path/1
+				enum-id? set-path/1
 			][
 				backtrack set-path
 				throw-error ["enumeration cannot be used as path root:" set-path/1]
@@ -2227,7 +2238,7 @@ system-dialect: context [
 			]
 			either type: any [
 				get-variable-spec name					;-- test if known variable (local or global)	
-				get-enumerator name
+				enum-id? name
 			][
 				type: resolve-aliased type
 				value: get-type expr
@@ -2365,9 +2376,9 @@ system-dialect: context [
 				value: any [
 					all [
 						value: ns-find-with code/1 enumerations
-						get-enumerator/value value
+						get-enumerator value
 					]
-					get-enumerator/value code/1
+					get-enumerator code/1
 				]
 			][
 				change code value
