@@ -6,6 +6,9 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+do %utils/profiler.r
+profiler/active?: no
+
 do %utils/r2-forward.r
 do %utils/int-to-bin.r
 do %utils/IEEE-754.r
@@ -14,7 +17,7 @@ do %utils/secure-clean-path.r
 do %linker.r
 do %emitter.r
 
-system-dialect: context [
+system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
 	runtime-path: %runtime/
@@ -23,7 +26,7 @@ system-dialect: context [
 	
 	loader: do bind load %loader.r 'self
 	
-	compiler: context [
+	compiler: make-profilable context [
 		job:		 	 none							;-- shortcut for job object
 		pc:			 	 none							;-- source code input cursor
 		script:		 	 none							;-- source script file name
@@ -794,7 +797,7 @@ system-dialect: context [
 			none
 		]
 
-		ns-find-through: func [name [word!] list [hash!] /compare :fun /local c p][ ; @@ compare...enums list needs a flat structure!
+		ns-find-through: func [name [word!] list [hash!] /compare :fun /local c p][
 			if 1 < length? ns-path [
 				name: to word! mold/flat name
 				

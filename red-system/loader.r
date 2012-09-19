@@ -6,7 +6,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-loader: context [
+loader: make-profilable context [
 	verbose: 	  0
 	include-dirs: none
 	include-list: make hash! 20

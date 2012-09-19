@@ -6,7 +6,7 @@ REBOL [
 	License:	"BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-make target-class [
+make-profilable make target-class [
 	target:				'ARM
 	little-endian?:		yes
 	struct-align-size:	4

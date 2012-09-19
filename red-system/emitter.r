@@ -8,7 +8,7 @@ REBOL [
 
 do %targets/target-class.r
 
-emitter: context [
+emitter: make-profilable context [
 	code-buf: make binary! 100'000
 	data-buf: make binary! 100'000
 	symbols:  make hash! 1000			;-- [name [type address [relocs]] ...]
