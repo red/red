@@ -125,7 +125,7 @@ system-dialect: make-profilable context [
 		]
 
 		type-spec: [
-			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage			
+			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage		
 				unless any [
 					all [v: find-aliased/prefix value pos/1: v]			;-- rewrite the type to prefix it
 					find aliased-types value
@@ -1441,7 +1441,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		comp-declare: has [rule value pos offset][
+		comp-declare: has [rule value pos offset ns][
 			unless find [set-word! set-path!] type?/word pc/-1 [
 				throw-error "assignment expected before literal declaration"
 			]
@@ -1457,7 +1457,7 @@ system-dialect: make-profilable context [
 					throw-error ["declaring literal for type" pc/2 "not supported"]
 				]
 				value: pc/2
-				if ns-path [value: ns-prefix value]
+				if all [ns-path ns: find-aliased/prefix value][value: ns]
 				offset: 2
 				['struct! value]
 			]
