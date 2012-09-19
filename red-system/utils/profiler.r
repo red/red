@@ -64,7 +64,13 @@ REBOL [
 	}
 ]
 
-profiler: context [
+exportable: context [
+	export: func [words [block!]][						;-- export argument words to global context
+		foreach w words [set bind w system/words get :w]
+	]
+]
+
+profiler: make exportable [
 
 	;-- storage place for proxified functions
 	store: make block! 400
@@ -205,14 +211,14 @@ profiler: context [
 		]
 	]
 		
-	set 'set-active func [
+	set-active: func [
 		"Enable or disable the patching of functions"
 		mode [logic!]
 	][
 		active?: mode
 	]
 	
-	set 'make-profilable func [
+	make-profilable: func [
 		"Make all functions in a given object usable for profiling"
 		obj [object!]
 		/all "Apply to nested objects too (use with caution)"
@@ -251,8 +257,8 @@ profiler: context [
 		head clear skip find value #"." 3
 	]
 	
-	print-table: func [data [block!] /local ET line][
-		ET: data/3
+	print-table: func [data [block!] root [function! none!] /local ET line][
+		ET: any [all [:root third second second :root ] data/3]
 		ET: ET/second
 		
 		print [
@@ -279,20 +285,26 @@ profiler: context [
 		"Print a full pretty-printed report in console"
 		/only "Report only for selected object"
 			object [object!]
-		/all "Print report for all functions"
+		/all  "Print report for all functions"
+		/with "Provide a root function for % of ET calculation"
+			root [function!]
 		/count "Sort report table by calls count"
 	][
 		unless active? [exit]
 		
 		data: make block! 100
 		foreach [old name obj body] store [
-			repend data [name body/2/2 body/2/3]
+			if any [not only obj = object][
+				repend data [name body/2/2 body/2/3]
+			]
 		]
 		data: sort/skip/compare/reverse data 3 pick [2 3] to logic! count
 		unless all [data: copy/part data 3 * 20]		;-- top 20 only by default
 		
-		print-table data
+		print-table data :root
 	]
+	
+	export [make-profilable]
 ]
 
 ; profiler: make-profilable profiler					;-- include profiler's code in profiling
