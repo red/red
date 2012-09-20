@@ -11,7 +11,7 @@ Red/System [
 
 
 natives: context [
-	verbose: 1
+	verbose: 0
 
 	print: func [
 		/local
@@ -24,7 +24,7 @@ natives: context [
 		str: as red-string! stack/arguments + 1	
 		assert TYPE_OF(str) = TYPE_STRING
 		
-		series: as series! str/node/value
+		series: GET_BUFFER(str)
 		print-line as c-string! series/offset	;@@ unicode print!
 		stack/push-last unset-value
 	]
