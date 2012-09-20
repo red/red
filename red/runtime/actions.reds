@@ -165,9 +165,30 @@ actions: context [
 	clear: func [][]
 	copy: func [][]
 	find: func [][]
-	head: func [][]
+	
+	head: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/head"]]
+
+		action-head: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_HEAD
+		action-head
+	]
+	
 	head?: func [][]
-	index-of: func [][]
+	
+	index-of: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/index-of"]]
+
+		action-index-of: as function! [					;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_INDEX_OF
+		action-index-of
+	]
 	insert: func [][]
 	
 	length-of: func [
@@ -221,7 +242,18 @@ actions: context [
 	]
 	
 	swap: func [][]
-	tail: func [][]
+	
+	tail: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/tail"]]
+
+		action-tail: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_TAIL
+		action-tail
+	]
+	
 	tail?: func [][]
 	take: func [][]
 	trim: func [][]
