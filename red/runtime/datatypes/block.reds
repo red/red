@@ -241,16 +241,29 @@ block: context [
 	]
 	
 	pick: func [
-		return:	[red-value!]
+		return:	   [red-value!]
 		/local
-			blk	[red-block!]
-			s	[series!]
+			blk	   [red-block!]
+			index  [red-integer!]
+			s	   [series!]
+			offset [integer!]
+			max	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/pick"]]
 		
 		blk: as red-block! stack/arguments
+		index: as red-integer! blk + 1
 		s: GET_BUFFER(blk)
-		stack/push-last s/offset + get-position 1
+		
+		offset: blk/head + index/value - 1				;-- index is one-based
+		stack/push-last either any [
+			negative? offset
+			s/offset + offset > s/tail	
+		][
+			 none-value
+		][
+			s/offset + offset
+		]
 	]
 	
 	skip: func [
