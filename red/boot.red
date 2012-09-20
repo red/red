@@ -219,7 +219,12 @@ head: make action! [[
 	#get-definition ACT_HEAD
 ]
 
-;head?
+head?: make action! [[
+		series	 [series!]
+		return:  [logic!]
+	]
+	#get-definition ACT_HEAD?
+]
 
 index-of: make action! [[
 		series	 [series!]
@@ -276,7 +281,13 @@ tail: make action! [[
 	#get-definition ACT_TAIL
 ]
 
-;tail?
+tail?: make action! [[
+		series	 [series!]
+		return:  [logic!]
+	]
+	#get-definition ACT_TAIL?
+]
+
 ;take
 ;trim
 

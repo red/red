@@ -177,7 +177,16 @@ actions: context [
 		action-head
 	]
 	
-	head?: func [][]
+	head?: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/head?"]]
+
+		action-head?: as function! [					;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_HEAD?
+		action-head?
+	]
 	
 	index-of: func [
 		return:	[red-value!]
@@ -254,7 +263,18 @@ actions: context [
 		action-tail
 	]
 	
-	tail?: func [][]
+	tail?: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/tail?"]]
+
+		action-tail?: as function! [					;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_TAIL?
+		action-tail?
+	]
+
+	
 	take: func [][]
 	trim: func [][]
 	create: func [][]

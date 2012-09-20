@@ -9,11 +9,11 @@ Red/System [
 	}
 ]
 
-true-value: declare red-logic!						;-- preallocate TRUE value
+true-value: declare red-logic!							;-- preallocate TRUE value
 true-value/header: TYPE_LOGIC
 true-value/value: true
 
-false-value: declare red-logic!						;-- preallocate FALSE value
+false-value: declare red-logic!							;-- preallocate FALSE value
 false-value/header: TYPE_LOGIC
 false-value/value: false
 
@@ -24,11 +24,11 @@ logic: context [
 	;-- Actions -- 
 
 	make: func [
-		return:		[red-value!]					;-- return cell pointer
+		return:	 [red-value!]							;-- return cell pointer
 		/local
-			cell 	[red-logic!]
-			args	[red-value!]
-			id		[red-integer!]
+			cell [red-logic!]
+			args [red-value!]
+			id	 [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/make"]]
 
@@ -39,9 +39,34 @@ logic: context [
 		assert TYPE_OF(cell) = TYPE_DATATYPE
 		assert TYPE_OF(id)   = TYPE_INTEGER
 		
-		cell/header: TYPE_LOGIC						;-- implicit reset of all header flags
+		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
 		cell/value: id/value <> 0
 		as red-value! cell
+	]
+	
+	form: func [
+		part	   [integer!]
+		return:    [integer!]
+		/local
+			buffer [red-string!]
+			series [series!]
+			str	   [c-string!]
+			size   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/form"]]
+
+		boolean: as red-logic! stack/arguments
+		buffer: as red-string! boolean + 1
+		assert TYPE_OF(buffer) = TYPE_STRING
+		series: GET_BUFFER(buffer)
+	
+		str: either boolean/value [size: 5 "true"][size: 6 "false"]	
+		
+		copy-memory
+			as byte-ptr! series/offset
+			as byte-ptr! str
+			size										;-- includes null terminal character
+		part											;@@ implement full support for /part
 	]
 	
 	datatype/register [
@@ -51,7 +76,7 @@ logic: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path

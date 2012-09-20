@@ -141,6 +141,22 @@ block: context [
 		as red-value! blk
 	]
 	
+	head?: func [
+		return:	  [red-value!]
+		/local
+			blk	  [red-block!]
+			state [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/head?"]]
+
+		blk:   as red-block! stack/arguments
+		state: as red-logic! blk
+		
+		state/header: TYPE_LOGIC
+		state/value:  zero? blk/head
+		as red-value! state
+	]
+	
 	index-of: func [
 		return:	  [red-value!]
 		/local
@@ -149,11 +165,11 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/index-of"]]
 
-		blk: as red-block! stack/arguments
+		blk:   as red-block! stack/arguments
 		index: as red-integer! blk
 		
 		index/header: TYPE_INTEGER
-		index/value: blk/head + 1
+		index/value:  blk/head + 1
 		as red-value! index
 	]
 	
@@ -172,7 +188,7 @@ block: context [
 		
 		int: as red-integer! blk
 		int/header: TYPE_INTEGER
-		int/value: (as-integer s/tail - s/offset - blk/head) >> 4
+		int/value:  (as-integer s/tail - s/offset - blk/head) >> 4
 		as red-value! int
 	]
 	
@@ -263,6 +279,25 @@ block: context [
 		blk/head: (as-integer s/tail - s/offset) >> 4
 		as red-value! blk
 	]
+	
+	tail?: func [
+		return:	  [red-value!]
+		/local
+			blk	  [red-block!]
+			state [red-logic!]
+			s	  [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/tail?"]]
+
+		blk:   as red-block! stack/arguments
+		state: as red-logic! blk
+		
+		s: GET_BUFFER(blk)
+
+		state/header: TYPE_LOGIC
+		state/value:  (s/offset + blk/head) = s/tail
+		as red-value! state
+	]
 
 	
 	datatype/register [
@@ -302,7 +337,7 @@ block: context [
 		null			;copy
 		null			;find
 		:head
-		null			;head?
+		:head?
 		:index-of
 		null			;insert
 		:length-of
@@ -316,7 +351,7 @@ block: context [
 		:skip
 		null			;swap
 		:tail
-		null			;tail?
+		:tail?
 		null			;take
 		null			;trim
 		;-- I/O actions --
