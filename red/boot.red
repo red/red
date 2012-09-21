@@ -182,11 +182,11 @@ odd?: make action! [[
 append: make action! [[
 		series	   [series!]
 		value	   [any-value!]
-		/part
-			length [number! series!]
-		/only
-		/dup
-			count  [number!]
+		;/part
+		;	length [number! series!]
+		;/only
+		;/dup
+		;	count  [number!]
 		return:    [series!]
 	]
 	#get-definition ACT_APPEND
