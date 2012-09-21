@@ -347,7 +347,7 @@ red: context [
 					| [
 						refinement! (
 							emit compose [
-								logic/push (to word! to logic! all [
+								word/get (to word! join "_" to logic! all [
 									path? call
 									find call to word! item
 								])
