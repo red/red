@@ -9,7 +9,7 @@ Red/System [
 	}
 ]
 
-#define _128KB				131072			; @@ create a dedicated datatype?
+#define _256KB				262144			; @@ create a dedicated datatype?
 #define _2MB				2097152
 #define _16MB				16777216
 #define nodes-per-frame		5000
@@ -109,10 +109,10 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 ]
 
 memory/total: 	0
-memory/s-start: _128KB
+memory/s-start: _256KB
 memory/s-max: 	_2MB
 memory/s-size: 	memory/s-start
-;; (1) Series frames size will grow from 128KB up to 2MB (arbitrary selected). This
+;; (1) Series frames size will grow from 256KB up to 2MB (arbitrary selected). This
 ;; range will need fine-tuning with real Red apps. This growing size, with low starting value
 ;; will allow small apps to not consume much memory while avoiding to penalize big apps.
 
@@ -454,7 +454,7 @@ alloc-series-buffer: func [
 	return: [series-buffer!]				;-- return the new series buffer
 	/local series size frame sz
 ][
-	assert positive? usize					;-- size is not zero or negative
+	assert positive? usize
 	size: round-to-next usize << unit size? cell!	;-- size aligned to cell! size
 
 	frame: memory/s-active
@@ -574,8 +574,10 @@ expand-series: func [
 	series  [series-buffer!]				;-- series to expand
 	new-sz	[integer!]						;-- new size in units
 	return: [series-buffer!]				;-- return new series with new size
-	/local new units
+	/local new units delta
 ][
+	;#if debug? = yes [print-wide ["series expansion triggered for:" series new-sz lf]]
+	
 	assert not null? series
 	assert any [
 		zero? new-sz
@@ -584,24 +586,29 @@ expand-series: func [
 	units: series/flags and flag-unit-mask
 	
 	if zero? new-sz [
-		new-sz: series/size * 2
-		;if new-sz >= _2MB [
-		;	;TBD: alloc big
-		;]
+		new-sz: series/size * 2				;-- by default, alloc twice the old size
+		if new-sz >= _2MB [
+			assert false					;@@ make it fail for now
+			;TBD: alloc big
+		]
 	]
+
+	new: alloc-series-buffer new-sz >> units units 0
 	
-	new: alloc-series-buffer new-sz series/flags and flag-unit-mask default-offset
 	series/node/value: as-integer new		;-- link node to new series buffer
+	delta: as-integer series/tail - series/offset
 	
-	;TBD: honor flag-ins-head and flag-ins-tail when copying!
+	new/node:   series/node
+	new/tail:   as cell! (as byte-ptr! new/offset) + delta
 	
-	copy-memory 							;-- copy old series in new buffer (including header)
-		as byte-ptr! new
-		as byte-ptr! series
-		series/size + size? series-buffer!
+	;TBD: honor flag-ins-head and flag-ins-tail when copying!	
+	copy-memory 							;-- copy old series in new buffer
+		as byte-ptr! new/offset
+		as byte-ptr! series/offset
+		series/size
 	
 	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
-	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)
+	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)	
 	new	
 ]
 
