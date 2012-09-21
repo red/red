@@ -15,14 +15,10 @@ with red [
 	s1: alloc-bytes 5
 	s2: alloc-bytes 100
 	s3: alloc-bytes 5
-print-wide [s1 s2 s3 lf]
-dump-hex4 as byte-ptr! s1/value	
-dump-hex4 as byte-ptr! s2/value
-dump-hex4 as byte-ptr! s3/value
 
-;	memory-stats 3
+	memory-stats 3
 
-;	dump-series-frame memory/s-active
+	dump-series-frame memory/s-active
 
 	print [lf ">> freeing 2nd series" lf]
 	free-series memory/s-head s2
@@ -30,9 +26,6 @@ dump-hex4 as byte-ptr! s3/value
 	print [lf ">> compacting frame" lf]
 	compact-series-frame memory/s-active
 	dump-series-frame memory/s-active
-dump-hex4 as byte-ptr! s1/value	
-dump-hex4 as byte-ptr! s2/value
-dump-hex4 as byte-ptr! 001D00BCh
 
 	memory-stats 3
 
