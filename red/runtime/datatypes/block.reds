@@ -108,35 +108,6 @@ block: context [
 	][
 	
 	]
-	
-	append: func [
-		return:	  [red-value!]
-		/local
-			blk	  [red-block!]
-			value [red-value!]
-			src	  [red-block!]
-			s	  [series!]
-			cell  [red-value!]
-			i	  [integer!]
-	][
-		;@@ implement /part and /only support
-		blk: as red-block! stack/arguments
-		value: as red-value! blk + 1
-		
-		either TYPE_OF(value) = TYPE_BLOCK [			;@@ replace it with: typeset/any-block?
-			src: as red-block! value
-			s: GET_BUFFER(src)
-			cell: s/offset + src/head
-			
-			while [cell < s/tail][						;-- multiple values case		
-				copy-cell cell ALLOC_TAIL(blk)
-				cell: cell + 1
-			]
-		][												;-- single value case
-			copy-cell value	ALLOC_TAIL(blk)
-		]		
-		as red-value! blk
-	]
 
 	mold: func [
 		part	[integer!]
@@ -144,17 +115,7 @@ block: context [
 
 	]
 	
-	head: func [
-		return:	[red-value!]
-		/local
-			blk	[red-block!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/head"]]
-
-		blk: as red-block! stack/arguments
-		blk/head: 0
-		as red-value! blk
-	]
+	;--- Property reading actions ---
 	
 	head?: func [
 		return:	  [red-value!]
@@ -169,6 +130,25 @@ block: context [
 		
 		state/header: TYPE_LOGIC
 		state/value:  zero? blk/head
+		as red-value! state
+	]
+	
+	tail?: func [
+		return:	  [red-value!]
+		/local
+			blk	  [red-block!]
+			state [red-logic!]
+			s	  [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/tail?"]]
+
+		blk:   as red-block! stack/arguments
+		state: as red-logic! blk
+		
+		s: GET_BUFFER(blk)
+
+		state/header: TYPE_LOGIC
+		state/value:  (s/offset + blk/head) = s/tail
 		as red-value! state
 	]
 	
@@ -206,6 +186,8 @@ block: context [
 		int/value:  (as-integer s/tail - s/offset - blk/head) >> 4
 		as red-value! int
 	]
+	
+	;--- Navigation actions ---
 	
 	at: func [
 		return:	[red-value!]
@@ -254,33 +236,7 @@ block: context [
 		]
 		as red-value! blk
 	]
-	
-	pick: func [
-		return:	   [red-value!]
-		/local
-			blk	   [red-block!]
-			index  [red-integer!]
-			s	   [series!]
-			offset [integer!]
-			max	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/pick"]]
 		
-		blk: as red-block! stack/arguments
-		index: as red-integer! blk + 1
-		s: GET_BUFFER(blk)
-		
-		offset: blk/head + index/value - 1				;-- index is one-based
-		stack/push-last either any [
-			negative? offset
-			s/offset + offset >= s/tail	
-		][
-			none-value
-		][
-			s/offset + offset
-		]
-	]
-	
 	skip: func [
 		return:	[red-value!]
 		/local
@@ -290,6 +246,18 @@ block: context [
 
 		blk: as red-block! stack/arguments
 		blk/head: get-position 0
+		as red-value! blk
+	]
+	
+	head: func [
+		return:	[red-value!]
+		/local
+			blk	[red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/head"]]
+
+		blk: as red-block! stack/arguments
+		blk/head: 0
 		as red-value! blk
 	]
 	
@@ -308,26 +276,64 @@ block: context [
 		as red-value! blk
 	]
 	
-	tail?: func [
-		return:	  [red-value!]
+	;--- Reading actions ---
+	
+	pick: func [
+		return:	   [red-value!]
 		/local
-			blk	  [red-block!]
-			state [red-logic!]
-			s	  [series!]
+			blk	   [red-block!]
+			index  [red-integer!]
+			s	   [series!]
+			offset [integer!]
+			max	   [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "block/tail?"]]
+		#if debug? = yes [if verbose > 0 [print-line "block/pick"]]
 
-		blk:   as red-block! stack/arguments
-		state: as red-logic! blk
-		
+		blk: as red-block! stack/arguments
+		index: as red-integer! blk + 1
 		s: GET_BUFFER(blk)
 
-		state/header: TYPE_LOGIC
-		state/value:  (s/offset + blk/head) = s/tail
-		as red-value! state
+		offset: blk/head + index/value - 1				;-- index is one-based
+		stack/push-last either any [
+			negative? offset
+			s/offset + offset >= s/tail	
+		][
+			none-value
+		][
+			s/offset + offset
+		]
 	]
 	
 	;--- Modifying actions ---
+	
+	append: func [
+		return:	  [red-value!]
+		/local
+			blk	  [red-block!]
+			value [red-value!]
+			src	  [red-block!]
+			s	  [series!]
+			cell  [red-value!]
+			i	  [integer!]
+	][
+		;@@ implement /part and /only support
+		blk: as red-block! stack/arguments
+		value: as red-value! blk + 1
+
+		either TYPE_OF(value) = TYPE_BLOCK [			;@@ replace it with: typeset/any-block?
+			src: as red-block! value
+			s: GET_BUFFER(src)
+			cell: s/offset + src/head
+
+			while [cell < s/tail][						;-- multiple values case		
+				copy-cell cell ALLOC_TAIL(blk)
+				cell: cell + 1
+			]
+		][												;-- single value case
+			copy-cell value	ALLOC_TAIL(blk)
+		]		
+		as red-value! blk
+	]
 	
 	clear: func [
 		return:	[red-value!]
