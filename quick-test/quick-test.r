@@ -1,8 +1,8 @@
 REBOL [
-  Title:   "Simple testing framework for Red/System programs"
+  Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.8.2
+	Version: 0.9.0
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -10,20 +10,22 @@ REBOL [
 comment {
   This script makes some assumptions about the directory structure in which 
   files are stored. They are:
-    this script is stored in Red/quick-test
-    the Red/System compiler is stored in Red/red-system
-    the compiler must be run from Red/red-system
-    the compiler writes the executable to Red/red-system/builds
-    the default "base" dir for tests is Red/red-system/tests
+    this script is stored in Red/quick-test/
+    the Red compiler is stored in Red/
+    the Red/System compiler is stored in Red/red-system/
+    the Red/System compiler must be run from Red/red-system/
+    the Red/System compiler writes the executable to Red/red-system/builds/
+    the default dir for Red/System tests is Red/red-system/tests/
+    the default dir for Red tests is Red/red/tests/
     
- The default "base" test dir can be overriden by setting qt/tests-dir before
- any tests are processed
+ The default test dirs can be overriden by setting qt/rs-tests-dir and qt/r-tests-dir 
+ before any tests are processed
 }
 
 qt: make object! [
   
   ;;;;;;;;;;; Setup ;;;;;;;;;;;;;;
-  ;; set the base-dir to ....Red
+  ;; set the base-dir to ....Red/
   base-dir: system/script/path 
   base-dir: copy/part base-dir find base-dir "quick-test"
   ;; set the red/system compiler directory
@@ -35,20 +37,30 @@ qt: make object! [
   ;; set the default base dir for tests
   tests-dir: comp-dir/tests
   
+  ;; set the red dirs
+  r-runnable-dir: base-dir/red/tests/runnable
+  r-tests-dir: base-dir/red/tests
+  
   ;; set the version number
   version: system/script/header/version
   
   ;; set temporary files names
-  ;;  use Red/red-system/runnable for temp files
+  ;;  use Red/red-system/runnable for Red/System temp files
   comp-echo: runnable-dir/comp-echo.txt
   comp-r: runnable-dir/comp.r
   test-src-file: runnable-dir/qt-test-comp.reds
+  
+  ;; use Red/red/runnable for Red temp files
+  r-comp-echo: r-runnable-dir/comp-echo.txt
+  r-comp-r: r-runnable-dir/comp.r
+  r-test-src-file: r-runnable-dir/qt-test-comp.red
   
   ;; set log file 
   log-file: join system/script/path "quick-test.log"
 
   ;; make runnable directory if needed
   make-dir runnable-dir
+  make-dir r-runnable-dir
   
   ;; windows ?
   windows-os?: system/version/4 = 3
@@ -327,6 +339,102 @@ qt: make object! [
     output: copy ""
   ]
   
+  r-compile: func [
+    src [file!]
+    /local
+      comp                          ;; compilation script
+      cmd                           ;; compilation cmd
+      built                         ;; full path of compiler output
+  ][
+    clear comp-output
+    ;; workout executable name
+    either find src "/" [
+      exe: copy find/last/tail src "/"
+    ][
+      exe: copy src
+    ] 
+    exe: copy/part exe find exe "."
+    if windows-os? [
+      exe: join exe [".exe"]
+    ]
+    runner: r-runnable-dir/:exe
+
+    ;; compose and write compilation script
+    comp: mold compose [
+      REBOL []
+      halt: :quit
+      change-dir (base-dir)
+      echo (r-comp-echo)
+      do/args %red.r (join "-o " [runner " ***src***"])
+    ]
+    if #"/" <> first src [src: clean-path r-tests-dir/:src]     ;; relative path supplied
+    replace comp "***src***" src
+    write r-comp-r comp
+
+    ;; compose command line and call it
+    cmd: join to-local-file system/options/boot [" -sc " r-comp-r]
+    call/wait/output cmd make string! 1024	;; redirect output to anonymous buffer
+    
+    ;; collect compiler output & tidy up
+    if exists? r-comp-echo [
+    	comp-output: read r-comp-echo
+    	delete r-comp-echo
+    ]
+    if exists? r-comp-r [delete r-comp-r]
+    
+    either r-compile-ok? [
+      exe
+    ][
+      none
+    ]    
+  ]
+  
+  r-compile-ok?: func [] [
+    either find comp-output "output file size:" [true] [false]
+  ]
+  
+  r-compile-and-run: func [src] [
+    either exe: r-compile src [
+      r-run exe
+    ][
+      compile-error src
+      output: "Compilation failed"
+    ]
+  ]
+  
+  r-compile-and-run-from-string: func [src] [
+    either exe: r-compile-from-string src [
+      r-run exe
+    ][
+      
+      compile-error "Supplied source"
+      output: "Compilation failed"
+    ]
+  ]
+  
+  r-compile-from-string: func [src][
+    ;-- add a default header if not provided
+    if none = find src "Red" [insert src "Red []^/"]
+    write r-test-src-file src
+    r-compile r-test-src-file                  ;; returns path to executable or none
+  ]
+  
+  r-run: func [
+    prog [file!]
+    ;;/args                         ;; not yet needed
+      ;;parms [string!]             ;; not yet needed  
+    /local
+    exec [string!]                   ;; command to be executed
+  ][
+    exec: to-local-file r-runnable-dir/:prog
+    ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
+    clear output
+    call/output/wait exec output
+    if none <> find output "Runtime Error" [
+     _signify-failure
+    ]
+  ]
+  
   add-to-run-totals: func [
     /local
       tests
@@ -501,30 +609,34 @@ qt: make object! [
   
   ;; create the test "dialect"
   
-  set '***start-run***        :start-test-run
-  set '***start-run-quiet***  :start-test-run-quiet
-  set '~~~start-file~~~       :start-file
-  set '===start-group===      :start-group
-  set '--test--               :start-test
-  set '--compile              :compile
-  set '--compile-this         :compile-from-string
-  set '--compile-and-run      :compile-and-run
-  set '--compile-and-run-this :compile-and-run-from-string
-  set '--compile-run-print    :compile-run-print
-  set '--run                  :run
-  set '--add-to-run-totals    :add-to-run-totals
-  set '--run-unit-test        :run-unit-test
-  set '--run-unit-test-quiet  :run-unit-test-quiet
-  set '--run-script           :run-script
-  set '--run-script-quiet     :run-script-quiet
-  set '--run-test-file        :run-test-file
-  set '--run-test-file-quiet  :run-test-file-quiet
-  set '--assert               :assert
-  set '--assert-msg?          :assert-msg?
-  set '--assert-printed?      :assert-printed?
-  set '--clean                :clean-compile-from-string
-  set '===end-group===        :end-group
-  set '~~~end-file~~~         :end-file
-  set '***end-run***          :end-test-run
-  set '***end-run-quiet***    :end-test-run-quiet
+  set '***start-run***              :start-test-run
+  set '***start-run-quiet***        :start-test-run-quiet
+  set '~~~start-file~~~             :start-file
+  set '===start-group===            :start-group
+  set '--test--                     :start-test
+  set '--compile                    :compile
+  set '--compile-red                :r-compile
+  set '--compile-this               :compile-from-string
+  set '--compile-this-red           :r-compile-from-string
+  set '--compile-and-run            :compile-and-run
+  set '--compile-and-run-red        :r-compile-and-run 
+  set '--compile-and-run-this       :compile-and-run-from-string
+  set '--compile-and-run-this-red   :r-compile-and-run-from-string
+  set '--compile-run-print          :compile-run-print
+  set '--run                        :run
+  set '--add-to-run-totals          :add-to-run-totals
+  set '--run-unit-test              :run-unit-test
+  set '--run-unit-test-quiet        :run-unit-test-quiet
+  set '--run-script                 :run-script
+  set '--run-script-quiet           :run-script-quiet
+  set '--run-test-file              :run-test-file
+  set '--run-test-file-quiet        :run-test-file-quiet
+  set '--assert                     :assert
+  set '--assert-msg?                :assert-msg?
+  set '--assert-printed?            :assert-printed?
+  set '--clean                      :clean-compile-from-string
+  set '===end-group===              :end-group
+  set '~~~end-file~~~               :end-file
+  set '***end-run***                :end-test-run
+  set '***end-run-quiet***          :end-test-run-quiet
 ]

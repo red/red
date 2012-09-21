@@ -1,5 +1,5 @@
 Red/System [
-	Title:   "Red/System alias test script"
+	Title:   "Red/System runtime tools test"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %utils-test.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic & Peter W A Wood. All rights reserved."
@@ -7,9 +7,9 @@ Red/System [
 ]
 
 #include %../../../../quick-test/quick-test.reds
-#include %../../../runtime/utils.reds
+#include %../../../runtime/tools.reds
 
-~~~start-file~~~ "runtime utils"
+~~~start-file~~~ "runtime tools"
 
 ===start-group=== "round to"
 
