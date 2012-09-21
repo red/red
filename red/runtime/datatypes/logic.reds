@@ -64,7 +64,7 @@ logic: context [
 		
 		copy-memory
 			as byte-ptr! series/offset
-			as byte-ptr! str
+			as byte-ptr! str							;@@ mark buffer as "external/permanent"
 			size										;-- includes null terminal character
 		part											;@@ implement full support for /part
 	]

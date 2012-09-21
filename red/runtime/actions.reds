@@ -13,8 +13,8 @@ actions: context [
 	verbose: 0
 
 	get-action-ptr: func [
-		action	[integer!]									;-- action ID
-		return: [integer!]									;-- action pointer (datatype-dependent)
+		action	[integer!]								;-- action ID
+		return: [integer!]								;-- action pointer (datatype-dependent)
 		/local
 			arg  [red-value!]
 			type  [integer!]
@@ -29,7 +29,7 @@ actions: context [
 			type: dt/value
 		]
 		index: type << 8 + action
-		index: action-table/index							;-- lookup action function pointer
+		index: action-table/index						;-- lookup action function pointer
 
 		if zero? index [
 			print-line [
@@ -48,8 +48,8 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/make"]]
 
-		action-make: as function! [							;-- needs to be globally bound
-			return:	[red-value!]							;-- newly created value
+		action-make: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- newly created value
 		] get-action-ptr ACT_MAKE
 		action-make 
 	]
@@ -66,9 +66,9 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/form"]]
 
-		action-form: as function! [							;-- needs to be globally bound
-			part	[integer!]								;-- max bytes count
-			return: [integer!]								;-- remaining part count
+		action-form: as function! [						;-- needs to be globally bound
+			part	[integer!]							;-- max bytes count
+			return: [integer!]							;-- remaining part count
 		] get-action-ptr ACT_FORM
 
 		slot: as red-block! stack/push
@@ -87,8 +87,8 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/add"]]
 
-		action-add: as function! [							;-- needs to be globally bound
-			return:	[red-value!]							;-- addition resulting value
+		action-add: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- addition resulting value
 		] get-action-ptr ACT_ADD
 		action-add
 	]
@@ -98,8 +98,8 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/divide"]]
 
-		action-divide: as function! [						;-- needs to be globally bound
-			return:	[red-value!]							;-- division resulting value
+		action-divide: as function! [					;-- needs to be globally bound
+			return:	[red-value!]						;-- division resulting value
 		] get-action-ptr ACT_DIVIDE
 		action-divide
 	]
@@ -109,8 +109,8 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/multiply"]]
 
-		action-multiply: as function! [						;-- needs to be globally bound
-			return:	[red-value!]							;-- multiplication resulting value
+		action-multiply: as function! [					;-- needs to be globally bound
+			return:	[red-value!]						;-- multiplication resulting value
 		] get-action-ptr ACT_MULTIPLY
 		action-multiply
 	]
@@ -125,8 +125,8 @@ actions: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/subtract"]]
 
-		action-subtract: as function! [						;-- needs to be globally bound
-			return:	[red-value!]							;-- addition resulting value
+		action-subtract: as function! [					;-- needs to be globally bound
+			return:	[red-value!]						;-- addition resulting value
 		] get-action-ptr ACT_SUBTRACT
 		action-subtract
 	]
@@ -137,7 +137,17 @@ actions: context [
 	complement: func [][]
 	or~: func [][]
 	xor~: func [][]
-	append: func [][]
+	
+	append: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/append"]]
+
+		action-append: as function! [					;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_APPEND
+		action-append
+	]
 	
 	at: func [
 		return:	[red-value!]

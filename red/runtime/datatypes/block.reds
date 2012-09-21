@@ -110,17 +110,32 @@ block: context [
 	]
 	
 	append: func [
-		return: [red-block!]
+		return:	  [red-value!]
 		/local
-			blk	[red-block!]
+			blk	  [red-block!]
+			value [red-value!]
+			src	  [red-block!]
+			s	  [series!]
+			cell  [red-value!]
+			i	  [integer!]
 	][
 		;@@ implement /part and /only support
 		blk: as red-block! stack/arguments
+		value: as red-value! blk + 1
 		
-		copy-cell
-			stack/arguments + 1
-			ALLOC_TAIL(blk)
-		blk
+		either TYPE_OF(value) = TYPE_BLOCK [			;@@ replace it with: typeset/any-block?
+			src: as red-block! value
+			s: GET_BUFFER(src)
+			cell: s/offset + src/head
+			
+			while [cell < s/tail][						;-- multiple values case		
+				copy-cell cell ALLOC_TAIL(blk)
+				cell: cell + 1
+			]
+		][												;-- single value case
+			copy-cell value	ALLOC_TAIL(blk)
+		]		
+		as red-value! blk
 	]
 
 	mold: func [
@@ -180,7 +195,7 @@ block: context [
 			int [red-integer!]
 			s	[series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "block/back"]]
+		#if debug? = yes [if verbose > 0 [print-line "block/length-of"]]
 		
 		blk: as red-block! stack/arguments
 		
@@ -342,7 +357,7 @@ block: context [
 		null			;or~
 		null			;xor~
 		;-- Series actions --
-		null			;append
+		:append
 		:at
 		:back
 		null			;change

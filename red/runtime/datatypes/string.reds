@@ -51,7 +51,7 @@ string: context [
 			p	[node!]
 			str	[red-string!]
 	][
-		p: alloc-series size 0 default-offset
+		p: alloc-series size 0 0
 		set-type as cell! slot TYPE_STRING
 		slot/head: 0
 		slot/node: p
