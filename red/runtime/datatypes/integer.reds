@@ -45,8 +45,7 @@ integer: context [
 			c: c - 1
 		]
 		if n [s/c: #"-" c: c - 1]
-		i: 11 - c
-		s/i: null-byte
+		s/12: null-byte
 		s + c
 	]
 	
@@ -108,6 +107,7 @@ integer: context [
 		
 		series: GET_BUFFER(str)
 		series/offset: as cell! form-signed as c-string! series/offset value
+		series/tail: as cell! (as byte-ptr! series/tail) + 13
 		part											;@@ implement full support for /part
 	]
 	
