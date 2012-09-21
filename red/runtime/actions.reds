@@ -172,7 +172,18 @@ actions: context [
 	]
 	
 	change: func [][]
-	clear: func [][]
+	
+	clear: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/clear"]]
+
+		action-clear: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_CLEAR
+		action-clear
+	]
+	
 	copy: func [][]
 	find: func [][]
 	

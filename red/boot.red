@@ -208,7 +208,14 @@ back: make action! [[
 ]
 
 ;change
-;clear
+
+clear: make action! [[
+		series	 [series!]
+		return:  [series!]
+	]
+	#get-definition ACT_CLEAR
+]
+
 ;copy
 ;find
 

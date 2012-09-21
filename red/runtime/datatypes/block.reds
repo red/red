@@ -273,9 +273,9 @@ block: context [
 		offset: blk/head + index/value - 1				;-- index is one-based
 		stack/push-last either any [
 			negative? offset
-			s/offset + offset > s/tail	
+			s/offset + offset >= s/tail	
 		][
-			 none-value
+			none-value
 		][
 			s/offset + offset
 		]
@@ -326,6 +326,22 @@ block: context [
 		state/value:  (s/offset + blk/head) = s/tail
 		as red-value! state
 	]
+	
+	;--- Modifying actions ---
+	
+	clear: func [
+		return:	[red-value!]
+		/local
+			blk	[red-block!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/clear"]]
+
+		blk: as red-block! stack/arguments
+		s: GET_BUFFER(blk)
+		s/tail: s/offset + blk/head
+		as red-value! blk
+	]
 
 	
 	datatype/register [
@@ -361,7 +377,7 @@ block: context [
 		:at
 		:back
 		null			;change
-		null			;clear
+		:clear
 		null			;copy
 		null			;find
 		:head
