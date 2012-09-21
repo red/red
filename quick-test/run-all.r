@@ -25,7 +25,7 @@ system/options/quiet: true
 do %quick-test.r
 
 ;; run the tests
-print rejoin ["Quick-Test v" system/script/header/version]
+print rejoin ["Quick-Test v" qt/version]
 print rejoin ["REBOL " system/version]
 
 start-time: now/precise
