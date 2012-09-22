@@ -455,7 +455,7 @@ alloc-series-buffer: func [
 	/local series size frame sz
 ][
 	assert positive? usize
-	size: round-to-next usize << unit size? cell!	;-- size aligned to cell! size
+	size: round-to usize << unit size? cell!	;-- size aligned to cell! size
 
 	frame: memory/s-active
 	sz: size + size? series-buffer!			;-- add series header size
@@ -486,8 +486,8 @@ alloc-series-buffer: func [
 	][
 		series/flags: series/flags or flag-ins-tail ;-- optimize for tail insertions only
 	]
-	series/offset: as cell! (as byte-ptr! series + 1) + offset ;-- position empty series at middle of buffer
 	
+	series/offset: as cell! (as byte-ptr! series + 1) + offset
 	series/tail: series/offset
 	series
 ]
@@ -528,7 +528,7 @@ alloc-bytes: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
-	alloc-series size 0 default-offset
+	alloc-series size 0 0					;-- optimize by default for tail insertion
 ]
 
 ;-------------------------------------------
