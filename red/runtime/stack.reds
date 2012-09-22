@@ -55,7 +55,8 @@ stack: context [										;-- call stack
 		
 		s: GET_BUFFER(data)
 		frame-base: (as-integer (as cell! frame) - s/offset) >> 4
-				#if debug? = yes [
+		
+		#if debug? = yes [
 			if verbose > 1 [
 				print-line ["frame-base: " frame-base]
 				dump

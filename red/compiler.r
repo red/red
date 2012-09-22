@@ -37,22 +37,22 @@ red: context [
 	op-actions:	  make block! 20
 
 	functions: make hash! [
-		if			[virtual! [cond  [any-type!] true-blk [block!]]]
-		either		[virtual! [cond  [any-type!] true-blk [block!] false-blk [block!]]]
-		any			[virtual! [conds [block!]]]
-		all			[virtual! [conds [block!]]]
-		while		[virtual! [cond  [block!] body [block!]]]
-		until		[virtual! [body  [block!]]]
-		loop		[virtual! [body  [block!]]]
-		repeat		[virtual! [word  [word!] value [integer! series!] body [block!]]]
-		foreach 	[virtual! [word  [word!] series [series!] body [block!]]]
-		make		[action!  [type [datatype! word!] spec [any-type!]]]	;-- must be pre-defined
+		if			[intrinsic! [cond  [any-type!] true-blk [block!]]]
+		either		[intrinsic! [cond  [any-type!] true-blk [block!] false-blk [block!]]]
+		any			[intrinsic! [conds [block!]]]
+		all			[intrinsic! [conds [block!]]]
+		while		[intrinsic! [cond  [block!] body [block!]]]
+		until		[intrinsic! [body  [block!]]]
+		loop		[intrinsic! [body  [block!]]]
+		repeat		[intrinsic! [word  [word!] value [integer! series!] body [block!]]]
+		foreach 	[intrinsic! [word  [word!] series [series!] body [block!]]]
+		make		[action!    [type [datatype! word!] spec [any-type!]]]	;-- must be pre-defined
 	]
 	
 	keywords: make block! (length? functions) / 2
 	
 	foreach [name spec] functions [
-		if spec/1 = 'virtual! [
+		if spec/1 = 'intrinsic! [
 			repend keywords [name reduce [to word! join "comp-" name]]
 		]
 	]
@@ -335,7 +335,7 @@ red: context [
 	]
 		
 	comp-call: func [call [word! path!] spec [block!] /local item name][
-		either spec/1 = 'virtual! [
+		either spec/1 = 'intrinsic! [
 			switch name keywords
 		][
 			name: either path? call [call/1][call]
@@ -534,7 +534,7 @@ red: context [
 			Red/System [origin: 'Red]
 			
 			#include %red.reds
-			
+						
 			with red [
 				exec: context [
 				
