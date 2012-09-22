@@ -29,7 +29,7 @@ alloc-tail: func [
 	/local 
 		cell	[red-value!]
 ][
-	if (as byte-ptr! s/tail + 1) >= ((as byte-ptr! s + 1) + s/size) [
+	if (as byte-ptr! s/tail + 1) > ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
 	
