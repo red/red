@@ -348,6 +348,36 @@ block: context [
 		s/tail: s/offset + blk/head
 		as red-value! blk
 	]
+	
+	poke: func [
+		return:	   [red-value!]
+		/local
+			blk	   [red-block!]
+			index  [red-integer!]
+			s	   [series!]
+			offset [integer!]
+			max	   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/poke"]]
+
+		blk: as red-block! stack/arguments
+		index: as red-integer! blk + 1
+		s: GET_BUFFER(blk)
+
+		offset: blk/head + index/value - 1				;-- index is one-based
+		either any [
+			negative? offset
+			s/offset + offset >= s/tail	
+		][
+			;TBD: placeholder waiting for error! to be implemented
+			stack/push-last none-value					;@@ should raise an error!
+		][
+			copy-cell
+				as red-value! blk + 2
+				s/offset + offset
+		]
+		as red-value! blk
+	]
 
 	
 	datatype/register [
@@ -393,7 +423,7 @@ block: context [
 		:length-of
 		:next
 		:pick
-		null			;poke
+		:poke
 		null			;remove
 		null			;reverse
 		null			;select

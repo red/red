@@ -265,7 +265,15 @@ pick: make action! [[
 	#get-definition ACT_PICK
 ]
 
-;poke
+poke: make action! [[
+		series	 [series!]
+		index 	 [integer!]
+		value 	 [any-value!]
+		return:  [series!]
+	]
+	#get-definition ACT_POKE
+]
+
 ;remove
 ;reverse
 ;select

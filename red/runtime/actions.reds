@@ -254,7 +254,17 @@ actions: context [
 		action-pick
 	]
 	
-	poke: func [][]
+	poke: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/poke"]]
+
+		action-poke: as function! [						;-- needs to be globally bound
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr ACT_POKE
+		action-poke
+	]
+	
 	remove: func [][]
 	reverse: func [][]
 	select: func [][]
