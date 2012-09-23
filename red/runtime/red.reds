@@ -27,6 +27,7 @@ red: context [
 	#include %allocator.reds
 	;#include %collector.reds
 	;#include %tokenizer.reds
+	#include %unicode.reds
 	
 	;-- Datatypes --
 	

@@ -54,7 +54,7 @@ red-string!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
 	node	[node!]									;-- series node pointer
-	_pad	[integer!]
+	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
 ]
 
 red-symbol!: alias struct! [

@@ -61,7 +61,6 @@ actions: context [
 	form: func [
 		part [logic!]
 		/local
-			slot [red-block!]
 			str  [node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/form"]]
@@ -71,8 +70,7 @@ actions: context [
 			return: [integer!]							;-- remaining part count
 		] get-action-ptr ACT_FORM
 
-		slot: as red-block! stack/push
-		str: string/rs-make-at slot either part [16][16] ;@@ /part argument
+		str: string/rs-make-at stack/push either part [16][16] ;@@ /part argument
 		action-form 0
 	]
 

@@ -44,7 +44,7 @@ string: context [
 	]
 	
 	rs-make-at: func [
-		slot	[red-string!]
+		slot	[cell!]
 		size 	[integer!]								;-- number of cells to pre-allocate
 		return:	[node!]
 		/local 
@@ -52,16 +52,27 @@ string: context [
 			str	[red-string!]
 	][
 		p: alloc-series size 0 0
-		set-type as cell! slot TYPE_STRING
-		slot/head: 0
-		slot/node: p
+		set-type slot TYPE_STRING						;@@ decide to use or not 'set-type...
+		str: as red-string! slot
+		str/head: 0
+		str/node: p
 		p
 	]
 	
 	push: func [
-
+		src		[c-string!]								;-- UTF-8 source string buffer
+		return: [red-value!]
+		/local
+			str  [red-string!]
+			size [integer!]
 	][
-	
+		size: 1 + length? src
+		str: as red-string! stack/push
+		str/header: TYPE_STRING							;-- implicit reset of all header flags
+		str/head: 0
+		str/node: unicode/load-utf8 src size			;@@ try to avoid length? call
+		str/cache: either size < 64 [src][null]			;-- cache only small strings (experimental)
+		as red-value! str
 	]
 	
 	;-- Actions -- 
