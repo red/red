@@ -63,7 +63,7 @@ platform: context [
 		assert zero? (size and 0Fh)				;-- size is a multiple of 16
 		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
-		ptr: OS-mmap 
+		ptr: mmap 
 			null 
 			size
 			prot	
@@ -83,7 +83,7 @@ platform: context [
 	free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
-		if negative? OS-munmap as byte-ptr! ptr ptr/value [
+		if negative? munmap as byte-ptr! ptr ptr/value [
 			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
 		]
 	]

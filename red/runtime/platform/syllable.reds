@@ -33,7 +33,7 @@ platform: context [
 		]
 	]
 
-	OS-page-size: sysconf SC_PAGE_SIZE
+	page-size: sysconf SC_PAGE_SIZE
 
 	#syscall [
 		mmap: SYSCALL_MMAP [
@@ -63,7 +63,7 @@ platform: context [
 		flags: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 		flags: flags or MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS
 
-		ptr: OS-mmap null size flags -1	0
+		ptr: mmap null size flags -1 0
 
 		if -1 = as-integer ptr [
 			raise-error RED_ERR_VMEM_OUT_OF_MEMORY as-integer system/pc
@@ -77,7 +77,7 @@ platform: context [
 	free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
-		if negative? OS-munmap as byte-ptr! ptr ptr/value [
+		if negative? munmap as byte-ptr! ptr ptr/value [
 			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
 		]
 	]
