@@ -23,66 +23,71 @@ Red/System [
 #define SYSCALL_MMAP		SYSCALL_MMAP2
 
 
-#import  [
-	LIBC-file cdecl [
-		sysconf: "sysconf" [
-			property	[integer!]
+platform: context [
+
+	#import  [
+		LIBC-file cdecl [
+			sysconf: "sysconf" [
+				property	[integer!]
+				return:		[integer!]
+			]
+		]
+	]
+
+	page-size: sysconf SC_PAGE_SIZE
+
+	#syscall [
+		mmap: SYSCALL_MMAP [
+			address		[byte-ptr!]
+			size		[integer!]
+			protection	[integer!]
+			flags		[integer!]
+			fd			[integer!]
+			offset		[integer!]
+			return:		[byte-ptr!]
+		]
+		munmap: SYSCALL_MUNMAP [
+			address		[byte-ptr!]
+			size		[integer!]
 			return:		[integer!]
 		]
 	]
-]
+	
+	;-------------------------------------------
+	;-- Allocate paged virtual memory region from OS
+	;-------------------------------------------
+	allocate-virtual: func [
+		size 	[integer!]						;-- allocated size in bytes (page size multiple)
+		exec? 	[logic!]						;-- TRUE => executable region
+		return: [int-ptr!]						;-- allocated memory region pointer
+		/local ptr prot
+	][
+		assert zero? (size and 0Fh)				;-- size is a multiple of 16
+		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
-OS-page-size: sysconf SC_PAGE_SIZE
+		ptr: OS-mmap 
+			null 
+			size
+			prot	
+			MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS
+			-1									;-- portable value
+			0
 
-#syscall [
-	OS-mmap: SYSCALL_MMAP [
-		address		[byte-ptr!]
-		size		[integer!]
-		protection	[integer!]
-		flags		[integer!]
-		fd			[integer!]
-		offset		[integer!]
-		return:		[byte-ptr!]
+		if -1 = as-integer ptr [
+			raise-error RED_ERR_VMEM_OUT_OF_MEMORY as-integer system/pc
+		]
+		as int-ptr! ptr
 	]
-	OS-munmap: SYSCALL_MUNMAP [
-		address		[byte-ptr!]
-		size		[integer!]
-		return:		[integer!]
-	]
-]
-;-------------------------------------------
-;-- Allocate paged virtual memory region from OS (UNIX)
-;-------------------------------------------
-OS-allocate-virtual: func [
-	size 	[integer!]						;-- allocated size in bytes (page size multiple)
-	exec? 	[logic!]						;-- TRUE => executable region
-	return: [int-ptr!]						;-- allocated memory region pointer
-	/local ptr prot
-][
-	assert zero? (size and 0Fh)				;-- size is a multiple of 16
-	prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
-	ptr: OS-mmap 
-		null 
-		size
-		prot	
-		MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS
-		-1									;-- portable value
-		0
-
-	if -1 = as-integer ptr [
-		raise-error RED_ERR_VMEM_OUT_OF_MEMORY as-integer system/pc
+	;-------------------------------------------
+	;-- Free paged virtual memory region from OS
+	;-------------------------------------------	
+	free-virtual: func [
+		ptr [int-ptr!]							;-- address of memory region to release
+	][
+		if negative? OS-munmap as byte-ptr! ptr ptr/value [
+			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
+		]
 	]
-	as int-ptr! ptr
-]
-
-;-------------------------------------------
-;-- Free paged virtual memory region from OS (UNIX)
-;-------------------------------------------	
-OS-free-virtual: func [
-	ptr [int-ptr!]							;-- address of memory region to release
-][
-	if negative? OS-munmap as byte-ptr! ptr ptr/value [
-		raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
-	]
+	
 ]

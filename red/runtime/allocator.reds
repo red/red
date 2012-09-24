@@ -126,9 +126,9 @@ allocate-virtual: func [
 	return: [int-ptr!]						;-- allocated memory region pointer
 	/local ptr
 ][
-	size: round-to size + 4	OS-page-size	;-- account for header (one word)
+	size: round-to size + 4	platform/page-size	;-- account for header (one word)
 	memory/total: memory/total + size
-	ptr: OS-allocate-virtual size exec?
+	ptr: platform/allocate-virtual size exec?
 	ptr/value: size							;-- store size in header
 	ptr + 1									;-- return pointer after header
 ]
@@ -141,7 +141,7 @@ free-virtual: func [
 ][
 	ptr: ptr - 1							;-- return back to header
 	memory/total: memory/total - ptr/value
-	OS-free-virtual ptr
+	platform/free-virtual ptr
 ]
 
 ;-------------------------------------------
