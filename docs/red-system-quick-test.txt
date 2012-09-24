@@ -35,7 +35,7 @@ Quick-Test consists of the following:
   run-all.r - a script(s) which runs a set of Red/System tests.
             - run-all.r in Red/red-system/tests/ runs the Red/System test suite
             - run-all.r in Red/red/tests/ runs the Red test suite
-            - run-all.r in Red/quick-test/ runs all the tests
+            - run-all.r in Red/ runs all the tests
   run-test.r - a script which will run an individual test.
              - stored in Red/quick-test/
   
@@ -43,11 +43,11 @@ Quick-Test consists of the following:
 Quick-Test uses the following directory structure:
 
   Red/
+    run-all.r                       ;; runs combined Red & Red/System tests
     quick-test/                     ;; quick-test components
       quick-test.r                  
       quick-test.reds
       quick-unit-test.r
-      run-all.r                     ;; runs combined Red & Red/System tests
       run-test.r                    ;; runs an individual test
   red/
     tests/
@@ -74,11 +74,11 @@ The following examples assume that they have been run from the Red dir
 
 To run all Red & Red/System tests from the console:
   
-  rebol -s quick-test/run-all.r
+  rebol -s run-all.r
   
 To run all Red tests from the REBOL console:
   
-  do %quick-test/run-all.r
+  do %run-all.r
 
 To run all Red tests from the console:
   

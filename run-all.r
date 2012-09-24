@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs All Red and Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.1.0
+	Version: 0.2.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 ;; function to find and run-tests
@@ -21,6 +21,9 @@ run: func [dir [file!]][
 ;; supress script messages
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
+store-current-dir: what-dir
+
+change-dir %quick-test/
 
 do %quick-test.r
 
@@ -40,6 +43,7 @@ run %../red-system/tests/
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
 system/options/quiet: store-quiet-mode
+change-dir store-current-dir
 ask "hit enter to finish"
 print ""
 
