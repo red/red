@@ -1,4 +1,4 @@
-Red [
+﻿Red [
 	Title:   "Red minimal test script"
 	Author:  "Nenad Rakocevic"
 	File: 	 %hello.red
@@ -9,6 +9,5 @@ Red [
 	}
 ]
 
-answer: 42
-print answer
-
+print "Hello, world!"
+print "Χαῖρε, κόσμε!"

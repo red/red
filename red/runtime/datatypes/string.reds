@@ -25,7 +25,7 @@ string: context [
 		#if debug? = yes [if verbose > 0 [print-line "string/make-from"]]
 		
 		size: system/words/length? s
-		p: alloc-series size 0 flag-ins-tail			;-- align string data to head of buffer 
+		p: alloc-series size 1 0						;-- align string data to head of buffer 
 		series: as series! p/value 
 		copy-memory 
 			as byte-ptr! series/offset
@@ -51,7 +51,7 @@ string: context [
 			p	[node!]
 			str	[red-string!]
 	][
-		p: alloc-series size 0 0
+		p: alloc-series size 1 0
 		set-type slot TYPE_STRING						;@@ decide to use or not 'set-type...
 		str: as red-string! slot
 		str/head: 0
@@ -82,6 +82,21 @@ string: context [
 	][
 	
 	]
+	
+	form: func [
+		part 		[integer!]
+		return: 	[integer!]
+		/local
+			arg		[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/form"]]
+
+		arg: stack/arguments
+		copy-cell 
+			arg
+			arg + 1										;@@ free allocated series in actions/form!!
+		part											;@@ implement full support for /part
+	]
 
 	
 	datatype/register [
@@ -91,7 +106,7 @@ string: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path		

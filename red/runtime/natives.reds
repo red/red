@@ -25,7 +25,16 @@ natives: context [
 		assert TYPE_OF(str) = TYPE_STRING
 		
 		series: GET_BUFFER(str)
-		print-line as c-string! series/offset	;@@ unicode print!
+
+		switch GET_UNIT(series) [
+			Latin1 [platform/print-line-Latin1 as c-string! series/offset]
+			UCS-2  [platform/print-line-UCS2   as byte-ptr! series/offset]
+			UCS-4  [platform/print-line-UCS4   as int-ptr!  series/offset]
+			
+			default [
+				print-line ["Error: unknown string encoding:" GET_UNIT(series)]
+			]
+		]
 		stack/push-last unset-value
 	]
 	

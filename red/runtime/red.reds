@@ -22,6 +22,7 @@ red: context [
 		MacOSX	 [#include %platform/darwin.reds]
 		#default [#include %platform/linux.reds]
 	]
+	platform/init
 	
 	;#include %threads.reds
 	#include %allocator.reds

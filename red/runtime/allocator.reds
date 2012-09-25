@@ -24,7 +24,8 @@ Red/System [
 #define flag-series-stk		00400000h		;-- values block allocated on stack
 #define flag-series-nogc	00200000h		;-- protected from GC (system-critical series)
 
-#define flag-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
+#define flag-unit-mask		FFFFFFE0h		;-- mask for unit field in series-buffer!
+#define get-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
 #define series-free-mask	7FFFFFFFh		;-- mark a series as used (not collectable by the GC)
 
 #define type-mask			FFFFFF00h		;-- mask for clearing type ID in cell header
@@ -63,7 +64,7 @@ cell!: alias struct! [
 ;   21:		permanent						;-- protected from GC (system-critical series)
 ;	20-3: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
-											;-- 0: UTF-8, 1: binary! byte, 2: UTF-16, 4: UTF-32, 16: block! cell
+											;-- 0: UTF-8, 1: binary! byte, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
 	flags	[integer!]						;-- series flags
 	node	[int-ptr!]						;-- point back to referring node
@@ -449,13 +450,13 @@ compact-series-frame: func [
 ;-------------------------------------------
 alloc-series-buffer: func [
 	usize	[integer!]						;-- size in units
-	unit	[integer!]						;-- size of atomic elements stored (in powers of 2)
+	unit	[integer!]						;-- size of atomic elements stored
 	offset	[integer!]						;-- force a given offset for series buffer (in bytes)
 	return: [series-buffer!]				;-- return the new series buffer
 	/local series size frame sz
 ][
 	assert positive? usize
-	size: round-to usize << unit size? cell!	;-- size aligned to cell! size
+	size: round-to usize * unit size? cell!	;-- size aligned to cell! size
 
 	frame: memory/s-active
 	sz: size + size? series-buffer!			;-- add series header size
@@ -497,7 +498,7 @@ alloc-series-buffer: func [
 ;-------------------------------------------
 alloc-series: func [
 	size	[integer!]						;-- number of elements to store
-	unit	[integer!]						;-- size of atomic elements stored in power of 2
+	unit	[integer!]						;-- size of atomic elements stored
 	offset	[integer!]						;-- force a given offset for series buffer
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local series node
@@ -518,7 +519,7 @@ alloc-cells: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)	
 ][
-	alloc-series size 4 0					;-- optimize by default for tail insertion
+	alloc-series size 16 0					;-- optimize by default for tail insertion
 ]
 
 ;-------------------------------------------
@@ -528,7 +529,7 @@ alloc-bytes: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
-	alloc-series size 0 0					;-- optimize by default for tail insertion
+	alloc-series size 1 0					;-- optimize by default for tail insertion
 ]
 
 ;-------------------------------------------
@@ -593,7 +594,7 @@ expand-series: func [
 		]
 	]
 
-	new: alloc-series-buffer new-sz >> units units 0
+	new: alloc-series-buffer new-sz * units units 0
 	
 	series/node/value: as-integer new		;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset

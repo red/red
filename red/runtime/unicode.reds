@@ -9,6 +9,12 @@ Red/System [
 	}
 ]
 
+#enum encoding! [
+	Latin1: 1
+	UCS-2:  2
+	UCS-4:  4
+]
+
 unicode: context [
 
 	#define U_REPLACEMENT 	FFFDh
@@ -20,12 +26,6 @@ unicode: context [
 	;	3Fh				; U+003F = question mark
 	;	BFh				; U+00BF = inverted question mark
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
-
-	#enum encoding! [
-		Latin1: 1
-		UCS-2:  2
-		UCS-4:  4
-	]
 	
 	latin1-to-UCS2: func [
 		s		 [series!]
@@ -81,7 +81,7 @@ unicode: context [
 			cp	   [integer!]							; computed codepoint
 	][
 		assert positive? size 
-		node: alloc-series size 0 0
+		node: alloc-series size 1 0
 		
 		s:    as series! node/value
 		buf1: as byte-ptr! s/offset
@@ -224,6 +224,8 @@ unicode: context [
 			src: src + 1
 			zero? b1
 		] 												;-- end until
+		
+		s/flags: s/flags and flag-unit-mask or unit
 		
 		s/tail: as cell! switch unit [
 			Latin1 [buf1]

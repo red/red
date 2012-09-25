@@ -100,7 +100,7 @@ _context: context [
 		
 		cell: as red-context! ALLOC_TAIL(blk)
 		cell/header: TYPE_CONTEXT					;-- implicit reset of all header flags	
-		cell/symbols: alloc-series slots 2 0		;-- force offset at head of buffer
+		cell/symbols: alloc-series slots 16 0		;-- force offset at head of buffer
 
 		either stack? [
 			cell/values: null						;TBD: complete this code branch

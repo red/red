@@ -88,4 +88,7 @@ platform: context [
 		]
 	]
 	
+	init: does [
+	
+	]
 ]

@@ -23,7 +23,7 @@ integer: context [
 		cell/value
 	]
 	
-	form-signed: func [
+	form-signed: func [								;@@ replace with sprintf() call?
 		s [c-string!]
 		i [integer!]
 		return: [c-string!]

@@ -2710,6 +2710,7 @@ system-dialect: make-profilable context [
 		syscall:		'Linux			;-- syscalls convention: 'Linux | 'BSD
 		stack-align-16?: no				;-- yes => align stack to 16 bytes
 		literal-pool?:	no				;-- yes => use pools to store literals, no => store them inlined (default: no)
+		unicode?:		no				;-- yes => use Red Unicode API for printing on screen
 	]
 	
 	compile: func [

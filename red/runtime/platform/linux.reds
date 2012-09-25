@@ -90,4 +90,8 @@ platform: context [
 		]
 	]
 	
+	
+	init: does [
+		
+	]
 ]

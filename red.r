@@ -154,6 +154,7 @@ redc: context [
 		]
 		fail-try "Red/System Compiler" [
 			change-dir %red-system/
+			opts/unicode?: yes							;-- force Red/System to use Red's Unicode API
 			opts/verbosity: max 0 opts/verbosity - 3	;-- Red/System verbosity levels upped by 3
 			result: system-dialect/compile/options/loaded srcs opts result/1
 			change-dir %../
