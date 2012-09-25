@@ -164,7 +164,7 @@ platform: context [
 	;-- Print a Latin-1 string to console
 	;-------------------------------------------
 	print-Latin1: func [
-		str 	[c-string!]								;-- zero-terminated UCS-2 string
+		str 	[c-string!]								;-- zero-terminated Latin-1 string
 		/local
 			cp [integer!]								;-- codepoint
 	][
@@ -180,7 +180,7 @@ platform: context [
 	;-- Print a Latin-1 string with newline to console
 	;-------------------------------------------
 	print-line-Latin1: func [
-		str [c-string!]									;-- zero-terminated UCS-2 string
+		str [c-string!]									;-- zero-terminated Latin-1 string
 	][
 		assert str <> null
 		
