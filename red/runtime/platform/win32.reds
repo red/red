@@ -130,7 +130,6 @@ platform: context [
 			cp [integer!]								;-- codepoint
 	][
 		assert str <> null
-		
 		print-UCS4 str									;@@ throw an error on failure
 		putwchar 10										;-- newline
 	]
@@ -140,11 +139,8 @@ platform: context [
 	;-------------------------------------------
 	print-UCS2: func [
 		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
-		/local
-			res [integer!]
 	][
 		assert str <> null
-
 		wprintf str										;@@ throw an error on failure
 	]
 
@@ -155,7 +151,6 @@ platform: context [
 		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
 	][
 		assert str <> null
-		
 		wprintf str										;@@ throw an error on failure
 		putwchar 10										;-- newline
 	]
@@ -183,7 +178,6 @@ platform: context [
 		str [c-string!]									;-- zero-terminated Latin-1 string
 	][
 		assert str <> null
-		
 		print-Latin1 str
 		putwchar 10										;-- newline
 	]

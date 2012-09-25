@@ -25,6 +25,8 @@ Red/System [
 
 platform: context [
 
+	#include %POSIX.reds
+
 	#import  [
 		LIBC-file cdecl [
 			sysconf: "sysconf" [
@@ -92,6 +94,6 @@ platform: context [
 	
 	
 	init: does [
-		
+		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?
 	]
 ]
