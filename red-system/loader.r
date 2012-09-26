@@ -255,7 +255,7 @@ loader: make-profilable context [
 						s: remove/part s e			;-- already included, drop it
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
-						value: skip process/short name 2			;-- skip Red/System header
+						value: skip process/short/sub name 2		;-- skip Red/System header
 						e: change/part s value e
 						insert e reduce [			;-- put back the parent origin
 							#script current-script
@@ -306,15 +306,19 @@ loader: make-profilable context [
 		insert src stack/1							;-- return source with hidden root header
 	]
 
-	process: func [input [file! string! block!] /with name [file!] /short /local src err path][
+	process: func [input [file! string! block!] /sub /with name [file!] /short /local src err path][
 		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
 
 		if file? input [
 			if all [
 				%./ <> path: first split-path input	;-- is there a path in the filename?
-				not find include-dirs path
+				not find/only include-dirs path
 			][
-				insert include-dirs path			;-- register source's dir as include dir
+				either sub [
+					insert next include-dirs path		;-- register source folder as include dir
+				][
+					insert include-dirs path			;-- register root folder as *first* include dir
+				]
 			]
 			if error? set/any 'err try [src: as-string read/binary input][	;-- read source file
 				throw-error ["file access error:" mold disarm err]
