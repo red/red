@@ -1,4 +1,4 @@
-﻿Red [
+Red [
 	Title:   "Red minimal test script"
 	Author:  "Nenad Rakocevic"
 	File: 	 %hello.red
