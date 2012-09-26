@@ -584,7 +584,7 @@ expand-series: func [
 		zero? new-sz
 		new-sz > series/size				;-- ensure requested size is bigger than current one
 	]
-	units: series/flags and flag-unit-mask
+	units: series/flags and get-unit-mask
 	
 	if zero? new-sz [
 		new-sz: series/size * 2				;-- by default, alloc twice the old size

@@ -12,3 +12,5 @@
 print "Hello, world!"
 print "Χαῖρε, κόσμε!"
 print "你好, 世界"
+print "Dobrý den světe"
+

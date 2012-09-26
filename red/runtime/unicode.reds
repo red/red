@@ -178,7 +178,7 @@ unicode: context [
 						unit: UCS-2
 						s:    latin1-to-UCS2 s			;-- upgrade to UCS-2
 						buf1: as byte-ptr! s/tail
-						end:  buf1 + s/size
+						end:  (as byte-ptr! s/offset) + s/size
 						
 						buf1/1: as-byte cp and FFh
 						buf1/2: as-byte cp >> 8
@@ -195,16 +195,16 @@ unicode: context [
 						unit: UCS-4
 						s:    UCS2-to-UCS4 s			;-- upgrade to UCS-4
 						buf4: as int-ptr! s/tail
-						end:  (as byte-ptr! buf4) + s/size
+						end:  (as byte-ptr! s/offset) + s/size
 						
 						buf4/value: cp
 						buf4: buf4 + 1
 					][
-						if buf1 + 2 > end [
+						if buf1 >= end [
 							s/tail: as cell! buf1
 							s: expand-series s s/size + (size >> 2)	;-- increase size by 50% 
 							buf1: as byte-ptr! s/tail
-							end:  buf1 + s/size	
+							end: (as byte-ptr! s/offset) + s/size
 						]
 						buf1/1: as-byte cp and FFh
 						buf1/2: as-byte cp >> 8
@@ -212,10 +212,10 @@ unicode: context [
 					]
 				]
 				UCS-4 [
-					if buf4 + 1 > (as int-ptr! end) [
+					if buf4 >= (as int-ptr! end) [
 						s: expand-series s s/size + size ;-- increase size by 100% 
 						buf4: as int-ptr! s/tail
-						end: (as byte-ptr! buf4) + s/size	
+						end: (as byte-ptr! s/offset) + s/size	
 					]
 					buf4/value: cp
 					buf4: buf4 + 1
@@ -232,6 +232,8 @@ unicode: context [
 			UCS-2  [buf1]
 			UCS-4  [buf4]
 		]
+		assert s/size >= as-integer (s/tail - s/offset)
+		
 		node
 	]
 
