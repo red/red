@@ -37,8 +37,8 @@ unicode: context [
 			dst  [byte-ptr!]
 	][
 		used: as-integer s/tail - s/offset	
-		if used * 2 > s/size [							;-- ensure we have enough space
-			s: expand-series s used * 2
+		if used * 2 >= s/size [							;-- ensure we have enough space
+			s: expand-series s used * 2 + 1
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
