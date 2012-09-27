@@ -212,14 +212,10 @@ lexer: context [
 	]
 	
 	char-rule: [
-		{#"} (type: char! fail?: none) [
-			s: char-char (value: s/1)				;-- allowed UTF-1 chars
-			| newline-char (fail?: [end skip])		;-- fail rule
-			| copy value [UTF8-2 | UTF8-3 | UTF8-4] ( ;-- allowed Unicode chars
-				value: as-binary value
-			)
-			| escaped-char
-		] fail? {"}
+		{#"} (type: char!) [
+			s: escaped-char
+			| copy value UTF8-char (value: as-binary value) 
+		] {"}
 	]
 	
 	line-string: [
@@ -425,7 +421,7 @@ lexer: context [
 			throw-error/with "Unsupported or invalid UTF-8 encoding"
 		]	
 		
-		encode-char value							;-- special encoding for Unicode char!
+		encode-char to integer! value							;-- special encoding for Unicode char!
 	]
 	
 	encode-char: func [value [integer!]][

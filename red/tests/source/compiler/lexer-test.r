@@ -60,16 +60,16 @@ do %../../../lexer.r
 	--assert [[] "t"] = lexer/process src
 
 	--test-- "lexer-11"
-	src: {Red [] #"a" }
-	--assert "[[] #'00000061]" = mold lexer/process src
+	src: {Red [] #"a"}
+	--assert [[] #'00000061] = lexer/process src
 
 	--test-- "lexer-12"
 	src: {Red [] #a}
 	--assert [[] #a] = lexer/process src
 
 	--test-- "lexer-13"
-	src: {Red [] #'00000000 }
-	--assert "[[] #'00000000]" = mold lexer/process src
+	src: {Red [] #"^(00)"}
+	--assert [[] #'00000000] = lexer/process src
 
 	--test-- "lexer-14"
 	src: {Red [] foo/bar}
