@@ -111,6 +111,10 @@ red: context [
 		] type?/word expr
 	]
 	
+	unicode-char?: func [value [issue!]][
+		value/1 = #"'"
+	]
+	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
 	]
@@ -263,16 +267,21 @@ red: context [
 		unless sub [emit-close-frame]
 	]
 	
-	comp-literal: func [root? [logic!] /local value][
+	comp-literal: func [root? [logic!] /local value char?][
 		value: pc/1
-		
-		either literal? value [
-			switch type?/word value [
-				char! [value: to integer! value]
+		either any [
+			char?: all [issue? value unicode-char? value]
+			literal? value
+		][
+			either char? [
+				emit [char/push]
+				emit to integer! next value
+			][
+				emit to word! rejoin [form type? value slash 'push]
+				emit load mold value
 			]
-			emit to word! rejoin [form type? value slash 'push]
-			emit load mold value
 			insert-lf -2
+			
 			if root? [
 				emit reduce [stack-reset 1]				;-- drop root level last value
 				insert-lf -1
@@ -491,9 +500,14 @@ red: context [
 			pc: back pc
 			throw-error "missing argument"
 		]
-		
 		switch/default type?/word pc/1 [
-			issue!		[comp-directive]
+			issue!		[
+				either unicode-char? pc/1 [
+					comp-literal to logic! root			;-- special encoding for Unicode char!
+				][
+					comp-directive
+				]
+			]
 			;-- active datatypes with specific literal form
 			set-word!	[comp-set-word]
 			word!		[comp-word]

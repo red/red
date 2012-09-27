@@ -26,12 +26,10 @@ lexer: context [
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
-	ws-ASCII: charset " ^-^M"						;-- ASCII common whitespaces
-	ws-U+2k: charset [#"^(80)" - #"^(8A)"]			;-- Unicode spaces in the U+2000-U+200A range
-	
+	ws-ASCII:  charset " ^-^M"						;-- ASCII common whitespaces
+	ws-U+2k:   charset [#"^(80)" - #"^(8A)"]		;-- Unicode spaces in the U+2000-U+200A range
 	UTF8-tail: charset [#"^(80)" - #"^(BF)"]
-		
-	UTF8-1: charset [#"^(00)" - #"^(7F)"]
+	UTF8-1:    charset [#"^(00)" - #"^(7F)"]
 	
 	UTF8-2: reduce [
 		charset [#"^(C2)" - #"^(DF)"]
@@ -39,10 +37,10 @@ lexer: context [
 	]
 	
 	UTF8-3: reduce [
-		#{E0} charset [#"^(A0)" - #"^(BF)"] UTF8-tail
-		'| charset [#"^(E1)" - #"^(EC)"] 2 UTF8-tail
+		#{E0} 	 charset [#"^(A0)" - #"^(BF)"] UTF8-tail
+		'| 		 charset [#"^(E1)" - #"^(EC)"] 2 UTF8-tail
 		'| #{ED} charset [#"^(80)" - #"^(9F)"] UTF8-tail
-		'| charset [#"^(EE)" - #"^(EF)"] 2 UTF8-tail
+		'| 		 charset [#"^(EE)" - #"^(EF)"] 2 UTF8-tail
 	]
 	
 	UTF8-4: reduce [
@@ -215,9 +213,11 @@ lexer: context [
 	
 	char-rule: [
 		{#"} (type: char! fail?: none) [
-			s: char-char (value: to char! s/1)		;-- allowed UTF-1 chars
+			s: char-char (value: s/1)				;-- allowed UTF-1 chars
 			| newline-char (fail?: [end skip])		;-- fail rule
-			| copy value [UTF8-2 | UTF8-3 | UTF8-4]	;-- allowed Unicode chars
+			| copy value [UTF8-2 | UTF8-3 | UTF8-4] ( ;-- allowed Unicode chars
+				value: as-binary value
+			)
 			| escaped-char
 		] fail? {"}
 	]
@@ -290,7 +290,7 @@ lexer: context [
 			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
 			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 			| file-rule		  (stack/push to file!		 copy/part s e)
-			| char-rule		  (stack/push value)
+			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| escaped-rule    (stack/push value)
@@ -395,6 +395,41 @@ lexer: context [
 			]
 		]
 		new
+	]
+	
+	decode-UTF8-char: func [value][
+		if char? value [return encode-char to integer! value]
+		
+		value: switch/default length? value [
+			1 [value]
+			2 [
+				value: value and #{1F3F}
+				value: add shift/left value/1 6 value/2
+			]
+			3 [
+				value: value and #{0F3F3F}
+				value: add add
+					shift/left value/1 12
+					shift/left value/2 6
+					value/3
+			]
+			4 [
+				value: value and #{073F3F3F}
+				value: add add add
+					shift/left value/1 18
+					shift/left value/2 12
+					shift/left value/3 6
+					value/4
+			]
+		][
+			throw-error/with "Unsupported or invalid UTF-8 encoding"
+		]	
+		
+		encode-char value							;-- special encoding for Unicode char!
+	]
+	
+	encode-char: func [value [integer!]][
+		head insert to-hex value #"'"
 	]
 
 	load-integer: func [s [string!]][

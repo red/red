@@ -59,6 +59,47 @@ string: context [
 		p
 	]
 	
+	append-char: func [
+		s		[series!]
+		cp		[integer!]								;-- codepoint
+		/local
+			p1	[byte-ptr!]
+			p4	[int-ptr!]
+	][
+		switch GET_UNIT(s) [
+			Latin1 [
+				case [
+					cp <= FFh [
+						p1: alloc-tail-unit s 1
+						p1/value: as-byte cp
+					]
+					cp <= FFFFh [
+						s: unicode/latin1-to-UCS2 s
+						append-char s cp
+					]
+					true [
+						s: unicode/UCS2-to-UCS4 s
+						append-char s cp
+					]
+				]
+			]
+			UCS-2 [
+				either cp <= FFFFh [
+					p1: alloc-tail-unit s 2
+					p1/1: as-byte (cp and FFh)
+					p1/2: as-byte (cp >> 8)
+				][
+					s: unicode/UCS2-to-UCS4 s
+					append-char s cp
+				]
+			]
+			UCS-4 [
+				p4: as int-ptr! alloc-tail-unit s 4
+				p4/value: cp
+			]
+		]
+	]
+	
 	push: func [
 		src		[c-string!]								;-- UTF-8 source string buffer
 		return: [red-value!]

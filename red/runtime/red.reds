@@ -94,6 +94,7 @@ red: context [
 		red/char/verbose:		verbosity
 		
 		red/stack/verbose:		verbosity
+		red/unicode/verbose:	verbosity
 	]
 
 ]

@@ -16,6 +16,7 @@ Red/System [
 ]
 
 unicode: context [
+	verbose: 0
 
 	#define U_REPLACEMENT 	FFFDh
 	;	choose one of the following options
@@ -36,6 +37,8 @@ unicode: context [
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "unicode/latin1-to-UCS2"]]
+
 		used: as-integer s/tail - s/offset	
 		if used * 2 >= s/size [							;-- ensure we have enough space
 			s: expand-series s used * 2 + 1
@@ -51,6 +54,7 @@ unicode: context [
 			dst/1: src/1
 			dst/2: null-byte
 		]
+		s/flags: s/flags and flag-unit-mask or UCS-2	;-- s/unit: UCS-2
 		s
 	]
 	
@@ -59,7 +63,11 @@ unicode: context [
 		return:	 [series!]
 	][
 		assert false
+		
+		#if debug? = yes [if verbose > 0 [print-line "unicode/UCS2-to-UCS4"]]
+
 		;TBD
+		s/flags: s/flags and flag-unit-mask or UCS-4	;-- s/unit: UCS-4
 		s
 	]
 
@@ -80,6 +88,8 @@ unicode: context [
 			b4     [integer!]
 			cp	   [integer!]							; computed codepoint
 	][
+		#if debug? = yes [if verbose > 0 [print-line "unicode/load-utf8"]]
+
 		assert positive? size 
 		node: alloc-series size 1 0
 		
@@ -224,8 +234,6 @@ unicode: context [
 			src: src + 1
 			zero? b1
 		] 												;-- end until
-		
-		s/flags: s/flags and flag-unit-mask or unit
 		
 		s/tail: as cell! switch unit [
 			Latin1 [buf1]

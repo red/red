@@ -87,8 +87,8 @@ red-word!: alias struct! [
 
 red-char!: alias struct! [
 	header 	[integer!]								;-- cell header
-	value	[integer!]								;-- UCS-4 codepoint
 	_pad1	[integer!]
+	value	[integer!]								;-- UCS-4 codepoint
 	_pad2	[integer!]	
 ]
 

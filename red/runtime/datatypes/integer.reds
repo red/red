@@ -61,8 +61,14 @@ integer: context [
 		left: as red-integer! stack/arguments
 		right: left + 1
 		
-		assert TYPE_OF(left)  = TYPE_INTEGER
-		assert TYPE_OF(right) = TYPE_INTEGER
+		assert any [									;@@ replace by typeset check when possible
+			TYPE_OF(left) = TYPE_INTEGER
+			TYPE_OF(left) = TYPE_CHAR
+		]
+		assert any [
+			TYPE_OF(right) = TYPE_INTEGER
+			TYPE_OF(right) = TYPE_CHAR
+		]
 		
 		left/value: switch type [
 			OP_ADD [left/value + right/value]
@@ -99,7 +105,6 @@ integer: context [
 		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
 		
 		arg: as red-integer! stack/arguments
-		assert TYPE_OF(arg) = TYPE_INTEGER
 		value: arg/value
 		
 		str: as red-string! arg + 1

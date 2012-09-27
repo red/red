@@ -22,17 +22,90 @@ char: context [
 		cell/value: value
 	]
 	
-	;-- Actions -- 
+	;-- Actions --
 	
-	form: func [
-		part 	[integer!]
+	mold: func [
+		part 		[integer!]
 		/local
-			arg [red-char!]
+			arg		[red-char!]
+			str		[red-string!]
+			series	[series!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "char/mold"]]
+
 		arg: as red-char! stack/arguments
-		;...
+		str: as red-string! arg + 1
+		assert TYPE_OF(str) = TYPE_STRING
+
+		series: GET_BUFFER(str)
+		string/append-char series as-integer #"#"
+		string/append-char series as-integer #"^""
+		string/append-char series arg/value
+		string/append-char series as-integer #"^""
+		part											;@@ implement full support for /part
 	]
 	
+	form: func [
+		part 		[integer!]
+		/local
+			arg		[red-char!]
+			str		[red-string!]
+			series	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/form"]]
+
+		arg: as red-char! stack/arguments
+		str: as red-string! arg + 1
+		assert TYPE_OF(str) = TYPE_STRING
+
+		series: GET_BUFFER(str)
+		string/append-char series arg/value
+		part											;@@ implement full support for /part
+	]
+	
+	add: func [
+		return:  [red-value!]
+		/local
+			char [red-char!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/add"]]
+		char: as red-char! integer/do-math OP_ADD
+		char/header: TYPE_CHAR
+		as red-value! char 
+	]
+
+	divide: func [
+		return:  [red-value!]
+		/local
+			char [red-char!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/divide"]]
+		char: as red-char! integer/do-math OP_DIV
+		char/header: TYPE_CHAR
+		as red-value! char 
+	]
+
+	multiply: func [
+		return:  [red-value!]
+		/local
+			char [red-char!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/multiply"]]
+		char: as red-char! integer/do-math OP_MUL
+		char/header: TYPE_CHAR
+		as red-value! char 
+	]
+
+	subtract: func [
+		return:  [red-value!]
+		/local
+			char [red-char!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/subtract"]]
+		char: as red-char! integer/do-math OP_SUB
+		char/header: TYPE_CHAR
+		as red-value! char 
+	]
 
 	datatype/register [
 		TYPE_CHAR
@@ -41,20 +114,20 @@ char: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path
 		;-- Scalar actions --
 		null			;absolute
-		null			;add
-		null			;divide
-		null			;multiply
+		:add
+		:divide
+		:multiply
 		null			;negate
 		null			;power
 		null			;remainder
 		null			;round
-		null			;subtract
+		:subtract
 		null			;even?
 		null			;odd?
 		;-- Bitwise actions --
