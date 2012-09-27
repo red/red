@@ -213,9 +213,7 @@ block: context [
 
 		s: GET_BUFFER(blk)
 
-		if (s/offset + blk/head - 1) >= s/offset [
-			blk/head: blk/head - 1
-		]
+		if blk/head >= 1 [blk/head: blk/head - 1]
 		as red-value! blk
 	]
 	
