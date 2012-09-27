@@ -138,6 +138,78 @@ string: context [
 			arg + 1										;@@ free allocated series in actions/form!!
 		part											;@@ implement full support for /part
 	]
+	
+	;--- Property reading actions ---
+
+	head?: func [
+		return:	  [red-value!]
+		/local
+			str	  [red-string!]
+			state [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/head?"]]
+
+		str:   as red-string! stack/arguments
+		state: as red-logic! str
+
+		state/header: TYPE_LOGIC
+		state/value:  zero? str/head
+		as red-value! state
+	]
+
+	tail?: func [
+		return:	  [red-value!]
+		/local
+			str	  [red-string!]
+			state [red-logic!]
+			s	  [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/tail?"]]
+
+		str:   as red-string! stack/arguments
+		state: as red-logic! str
+
+		s: GET_BUFFER(str)
+
+		state/header: TYPE_LOGIC
+		state/value:  (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1)) = as byte-ptr! s/tail
+		as red-value! state
+	]
+
+	index-of: func [
+		return:	  [red-value!]
+		/local
+			str	  [red-string!]
+			index [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/index-of"]]
+
+		str:   as red-string! stack/arguments
+		index: as red-integer! str
+
+		index/header: TYPE_INTEGER
+		index/value:  str/head + 1
+		as red-value! index
+	]
+
+	length-of: func [
+		return: [red-value!]
+		/local
+			str	[red-string!]
+			int [red-integer!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/length-of"]]
+
+		str: as red-string! stack/arguments
+
+		s: GET_BUFFER(str)
+
+		int: as red-integer! str
+		int/header: TYPE_INTEGER
+		int/value:  ((as-integer s/tail - s/offset - str/head) >> (GET_UNIT(s) >> 1) - 1) ;-- terminal null excluded
+		as red-value! int
+	]
 
 	
 	datatype/register [
@@ -177,10 +249,10 @@ string: context [
 		null			;copy
 		null			;find
 		null			;head
-		null			;head?
-		null			;index-of
+		:head?
+		:index-of
 		null			;insert
-		null			;length-of
+		:length-of
 		null			;next
 		null			;pick
 		null			;poke
@@ -191,7 +263,7 @@ string: context [
 		null			;skip
 		null			;swap
 		null			;tail
-		null			;tail?
+		:tail?
 		null			;take
 		null			;trim
 		;-- I/O actions --
