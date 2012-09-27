@@ -60,16 +60,16 @@ do %../../../lexer.r
 	--assert [[] "t"] = lexer/process src
 
 	--test-- "lexer-11"
-	src: {Red [] #"a"}
-	--assert [[] #"a"] = lexer/process src
+	src: {Red [] #"a" }
+	--assert "[[] #'00000061]" = mold lexer/process src
 
 	--test-- "lexer-12"
 	src: {Red [] #a}
 	--assert [[] #a] = lexer/process src
 
 	--test-- "lexer-13"
-	src: {Red [] #{00}}
-	--assert [[] #{00}] = lexer/process src
+	src: {Red [] #'00000000 }
+	--assert "[[] #'00000000]" = mold lexer/process src
 
 	--test-- "lexer-14"
 	src: {Red [] foo/bar}
@@ -109,7 +109,7 @@ do %../../../lexer.r
 		}
 		%foo/bar.red "foo^@^^/bar"
 
-		#"a" #"^^/"	{
+		{
 	
 	test
 	^^(45)
@@ -142,7 +142,7 @@ do %../../../lexer.r
 		#{1234}
 		#{45788956AAFFEEFF}
 		%foo/bar.red "foo^@^/bar"
-		#"a" #"^/" {
+		{
 ^-
 ^-test
 ^-E
@@ -188,7 +188,10 @@ do %../../../lexer.r
 	--assert-printed? "*** Syntax Error: Invalid Red program"
 	--assert-printed? "*** line: 1"
 	--assert-printed?  "*** at: {/System[]"
-
+	
+	--test-- "lexer-23"
+	  src: {Red [] #"^^/"}
+	--assert "[[] #'0000000A]" = mold lexer/process src
 	  
 ~~~end-file~~~
 
@@ -196,4 +199,6 @@ do %../../../lexer.r
 halt: :store-halt
 system/options/quiet: :store-quiet-mode
 prin ""
+
+;;; #"a" #"^^/"
 
