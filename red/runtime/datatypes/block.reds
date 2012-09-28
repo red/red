@@ -283,7 +283,6 @@ block: context [
 			index  [red-integer!]
 			s	   [series!]
 			offset [integer!]
-			max	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/pick"]]
 
