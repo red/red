@@ -500,6 +500,7 @@ make-profilable make target-class [
 					][
 						emit-load/with value/data value
 					]
+					set-width value
 				]
 				;emit-casting value no
 				;compiler/last-type: value/type
