@@ -12,6 +12,34 @@ Red/System [
 string: context [
 	verbose: 0
 	
+	get-position: func [
+		base	   [integer!]
+		return:	   [integer!]
+		/local
+			str	   [red-string!]
+			index  [red-integer!]
+			s	   [series!]
+			offset [integer!]
+			max	   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/get-position"]]
+
+		str: as red-string! stack/arguments
+		index: as red-integer! str + 1
+
+		assert TYPE_OF(str)   = TYPE_STRING
+		assert TYPE_OF(index) = TYPE_INTEGER
+
+		s: GET_BUFFER(str)
+
+		offset: str/head + index/value - base			;-- index is one-based
+		if negative? offset [offset: 0]
+		max: (as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1)
+		if offset > max [offset: max]
+
+		offset
+	]
+	
 	make-from: func [
 		parent	[red-block!]
 		s 		[c-string!]								;-- input string buffer
@@ -70,8 +98,12 @@ string: context [
 			Latin1 [
 				case [
 					cp <= FFh [
+						p1: as byte-ptr! s/tail
+						p1/value: as-byte cp			;-- overwrite termination NUL character
+						s/tail: as cell! (as byte-ptr! s/tail) + 1	;-- safe to increment here
+						
 						p1: alloc-tail-unit s 1
-						p1/value: as-byte cp
+						p1/value: as-byte 0				;-- add it back
 					]
 					cp <= FFFFh [
 						s: unicode/latin1-to-UCS2 s
@@ -85,17 +117,26 @@ string: context [
 			]
 			UCS-2 [
 				either cp <= FFFFh [
-					p1: alloc-tail-unit s 2
-					p1/1: as-byte (cp and FFh)
+					p1: as byte-ptr! s/tail
+					p1/1: as-byte (cp and FFh)			;-- overwrite termination NUL character
 					p1/2: as-byte (cp >> 8)
+					s/tail: as cell! (as byte-ptr! s/tail) + 2	;-- safe to increment here
+					
+					p1: alloc-tail-unit s 2
+					p1/1: as-byte 0						;-- add it back
+					p1/2: as-byte 0
 				][
 					s: unicode/UCS2-to-UCS4 s
 					append-char s cp
 				]
 			]
 			UCS-4 [
+				p4: as int-ptr! s/tail
+				p4/value: cp							;-- overwrite termination NUL character
+				s/tail: as cell! (as int-ptr! s/tail) + 1	;-- safe to increment here
+				
 				p4: as int-ptr! alloc-tail-unit s 4
-				p4/value: cp
+				p4/value: 0								;-- add it back
 			]
 		]
 	]
@@ -207,8 +248,126 @@ string: context [
 
 		int: as red-integer! str
 		int/header: TYPE_INTEGER
-		int/value:  ((as-integer s/tail - s/offset - str/head) >> (GET_UNIT(s) >> 1) - 1) ;-- terminal null excluded
+		int/value:  (as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) - str/head
 		as red-value! int
+	]
+	
+	;--- Navigation actions ---
+
+	at: func [
+		return:	[red-value!]
+		/local
+			str	[red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/at"]]
+
+		str: as red-string! stack/arguments
+		str/head: get-position 1
+		as red-value! str
+	]
+
+	back: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/back"]]
+
+		block/back										;-- identical behaviour as block!
+	]
+
+	next: func [
+		return:	  [red-value!]
+		/local
+			str	  [red-string!]
+			s	  [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/next"]]
+
+		str: as red-string! stack/arguments
+
+		s: GET_BUFFER(str)
+
+		if (as byte-ptr! s/offset) + (str/head + 1 << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail [
+			str/head: str/head + 1
+		]
+		as red-value! str
+	]
+
+	skip: func [
+		return:	[red-value!]
+		/local
+			str	[red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/skip"]]
+
+		str: as red-string! stack/arguments
+		str/head: get-position 0
+		as red-value! str
+	]
+
+	head: func [
+		return:	[red-value!]
+		/local
+			str	[red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/head"]]
+
+		str: as red-string! stack/arguments
+		str/head: 0
+		as red-value! str
+	]
+
+	tail: func [
+		return:	[red-value!]
+		/local
+			str	[red-string!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/tail"]]
+
+		str: as red-string! stack/arguments
+		s: GET_BUFFER(str)
+
+		str/head: (as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1)
+		as red-value! str
+	]
+	
+	;--- Reading actions ---
+
+	pick: func [
+		return:	   [red-value!]
+		/local
+			str	   [red-string!]
+			index  [red-integer!]
+			char   [red-char!]
+			s	   [series!]
+			offset [integer!]
+			p1	   [byte-ptr!]
+			p4	   [int-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/pick"]]
+
+		str: as red-string! stack/arguments
+		index: as red-integer! str + 1
+		s: GET_BUFFER(str)
+
+		offset: str/head + index/value - 1				;-- index is one-based
+		p1: (as byte-ptr! s/offset) + (offset << (GET_UNIT(s) >> 1))
+		
+		either any [
+			negative? offset
+			p1 >= as byte-ptr! s/tail
+		][
+			stack/push-last none-value
+		][
+			char: as red-char! str
+			char/header: TYPE_CHAR		
+			char/value: switch GET_UNIT(s) [
+				Latin1 [as-integer p1/value]
+				UCS-2  [(as-integer p1/1) << 8 + p1/2]
+				UCS-4  [p4: as int-ptr! p1 p4/value]
+			]			
+			as red-value! char
+		]
 	]
 
 	
@@ -242,27 +401,27 @@ string: context [
 		null			;xor~
 		;-- Series actions --
 		null			;append
-		null			;at
-		null			;back
+		:at
+		:back
 		null			;change
 		null			;clear
 		null			;copy
 		null			;find
-		null			;head
+		:head
 		:head?
 		:index-of
 		null			;insert
 		:length-of
-		null			;next
-		null			;pick
+		:next
+		:pick
 		null			;poke
 		null			;remove
 		null			;reverse
 		null			;select
 		null			;sort
-		null			;skip
+		:skip
 		null			;swap
-		null			;tail
+		:tail
 		:tail?
 		null			;take
 		null			;trim

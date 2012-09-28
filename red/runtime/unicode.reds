@@ -235,12 +235,12 @@ unicode: context [
 			zero? b1
 		] 												;-- end until
 		
-		s/tail: as cell! switch unit [
-			Latin1 [buf1]
-			UCS-2  [buf1]
-			UCS-4  [buf4]
+		s/tail: as cell! switch unit [					;-- position s/tail just before the NUL character
+			Latin1 [buf1 - 1]
+			UCS-2  [buf1 - 2]
+			UCS-4  [buf4 - 1]
 		]
-		assert s/size >= as-integer (s/tail - s/offset)
+		assert s/size + GET_UNIT(s) >= as-integer (s/tail - s/offset)
 		
 		node
 	]
