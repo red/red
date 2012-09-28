@@ -61,12 +61,28 @@ unicode: context [
 	UCS2-to-UCS4: func [
 		s		 [series!]
 		return:	 [series!]
+		/local
+			used [integer!]
+			base [byte-ptr!]
+			src  [byte-ptr!]
+			dst  [int-ptr!]
 	][
-		assert false
-		
 		#if debug? = yes [if verbose > 0 [print-line "unicode/UCS2-to-UCS4"]]
 
-		;TBD
+		used: as-integer s/tail - s/offset	
+		if used * 2 >= s/size [							;-- ensure we have enough space
+			s: expand-series s used * 2 + 1
+		]
+		base: as byte-ptr! s/offset
+		src:  as byte-ptr! s/tail						;-- start from end
+		dst:  as int-ptr! (as byte-ptr! s/offset) + (used * 2)
+		s/tail: as cell! dst							;-- adjust to new tail
+
+		while [src > base][								;-- in-place conversion
+			src: src - 2
+			dst: dst - 1
+			dst/value: (as-integer src/2) << 8 + src/1
+		]
 		s/flags: s/flags and flag-unit-mask or UCS-4	;-- s/unit: UCS-4
 		s
 	]
