@@ -188,7 +188,7 @@ lexer: context [
 	
 	escaped-char: [
 		"^^(" [
-			s: [6 hexa | 4 hexa | 2 hexa] e: (		;-- Unicode values allowed up to 10FFFFh
+			s: [2 6 hexa] e: (						;-- Unicode values allowed up to 10FFFFh
 				value: encode-UTF8-char s e
 			)
 			| [
@@ -355,8 +355,12 @@ lexer: context [
 		clear lines
 	]
 	
+	pad-head: func [s [string!]][
+		head insert/dup s #"0" 8 - length? s
+	]
+	
 	encode-UTF8-char: func [s [string!] e [string!] /local c code new][	
-		c: trim/head debase/base copy/part s e 16
+		c: trim/head debase/base pad-head copy/part s e 16
 		code: to integer! c
 		
 		case [
