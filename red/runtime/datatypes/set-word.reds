@@ -50,13 +50,13 @@ set-word: context [
 		
 		args: stack/arguments
 		_context/set as red-word! args args + 1
-		stack/push-last args + 1
+		stack/set-last args + 1
 	]
 	
 	get: does [
 		#if debug? = yes [if verbose > 0 [print-line "set-word/get"]]
 		
-		stack/push-last _context/get as red-word! stack/arguments
+		stack/set-last _context/get as red-word! stack/arguments
 	]
 	
 	;-- Actions --

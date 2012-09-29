@@ -291,7 +291,7 @@ block: context [
 		s: GET_BUFFER(blk)
 
 		offset: blk/head + index/value - 1				;-- index is one-based
-		stack/push-last either any [
+		stack/set-last either any [
 			negative? offset
 			s/offset + offset >= s/tail	
 		][
@@ -367,7 +367,7 @@ block: context [
 			s/offset + offset >= s/tail	
 		][
 			;TBD: placeholder waiting for error! to be implemented
-			stack/push-last none-value					;@@ should raise an error!
+			stack/set-last none-value					;@@ should raise an error!
 		][
 			copy-cell
 				as red-value! blk + 2

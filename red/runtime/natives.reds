@@ -35,7 +35,7 @@ natives: context [
 				print-line ["Error: unknown string encoding:" GET_UNIT(series)]
 			]
 		]
-		stack/push-last unset-value
+		stack/set-last unset-value
 	]
 	
 ]

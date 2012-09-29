@@ -75,8 +75,6 @@ red: context [
 	
 	#include %stack.reds
 	
-	stack/init
-	
 	#if debug? = yes [
 		verbosity: 0
 		red/datatype/verbose:	verbosity
@@ -92,6 +90,9 @@ red: context [
 		red/set-word/verbose:	verbosity
 		red/refinement/verbose:	verbosity
 		red/char/verbose:		verbosity
+		
+		red/actions/verbose:	verbosity
+		red/natives/verbose:	verbosity
 		
 		red/stack/verbose:		verbosity
 		red/unicode/verbose:	verbosity

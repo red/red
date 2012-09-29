@@ -357,7 +357,7 @@ string: context [
 			negative? offset
 			p1 >= as byte-ptr! s/tail
 		][
-			stack/push-last none-value
+			stack/set-last none-value
 		][
 			char: as red-char! str
 			char/header: TYPE_CHAR		

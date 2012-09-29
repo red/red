@@ -12,131 +12,141 @@ Red/System [
 stack: context [										;-- call stack
 	verbose: 0
 
-	frame!: alias struct! [
+	call!: alias struct! [
 		header 	[integer!]								;-- cell header
 		symbol	[integer!]								;-- index in symbol table
 		spec	[node!]									;-- spec block (cleaned-up form)
-		prev	[integer!]								;-- index to beginning of previous stack frame
+		args	[red-value!]							;-- pointer to first argument in args stack
 	]
 
-	data: block/make-in root 2048						;-- stack series
-	frame-base: 0										;-- root frame has no previous frame
-	base: 0
+	arg-stk:  block/make-in root 1024					;-- argument stack (should never be relocated)
+	call-stk: block/make-in root 512					;-- call stack (should never be relocated)
 	
-	set-flag data/node flag-ins-tail					;-- optimize for tail insertion
+	set-flag arg-stk/node flag-series-fixed or flag-series-nogc
+	set-flag call-stk/node flag-series-fixed or flag-series-nogc
+	
+	;-- Shortcuts for stack buffers simpler and faster access
+	;-- (stack buffers are not resizable with such approach
+	;-- this can be made more flexible (but slower) if necessary
+	;-- in the future)
+	
+	args-series:  GET_BUFFER(arg-stk)
+	calls-series: GET_BUFFER(call-stk)
+	
+	a-end: as cell! (as byte-ptr! args-series)  + args-series/size
+	c-end: as cell! (as byte-ptr! calls-series) + calls-series/size
+	
+	arguments:	args-series/tail
+	bottom:  	args-series/offset
+	top:	 	args-series/tail
+	cbottom: 	calls-series/offset
+	ctop:	 	calls-series/tail
 	
 	reset: func [
-		position [integer!]
 		return:  [cell!]
 		/local
 			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
 		
-		assert positive? position
-		
-		s: GET_BUFFER(data)
-		s/tail: s/offset + frame-base + position		;-- position is one-based
-		s/tail
+		top: arguments + 1								;-- keep last value in arguments slot
+		arguments
 	]
 
 	mark: func [
-		call	[red-word!]
+		fun		 [red-word!]
 		/local
-			frame [frame!]
-			s	  [series!]
+			call [call!]
+			s	 [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
-		frame: as frame! push
-		frame/header: TYPE_STACKFRAME
-		frame/symbol: either null? call [-1][call/symbol]
-		frame/prev: frame-base
+		arguments: top
 		
-		s: GET_BUFFER(data)
-		frame-base: (as-integer (as cell! frame) - s/offset) >> 4
-		
-		#if debug? = yes [
-			if verbose > 1 [
-				print-line ["frame-base: " frame-base]
-				dump
-			]
+		if ctop = c-end [
+			print-line ["^/*** Error: call stack overflow!^/"]
+			halt
 		]
+		call: as call! ctop
+		call/header: TYPE_STACK_CALL
+		call/symbol: either null? fun [-1][fun/symbol]
+		call/args: arguments
+		ctop: ctop + 1
+		
+		#if debug? = yes [if verbose > 1 [dump]]
 	]
 		
 	unwind: func [
 		/local 
 			s	   [series!]
-			frame  [frame!]
+			call  [call!]
 			offset [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
 
-		s: GET_BUFFER(data)
-		frame: as frame! s/offset + frame-base
-		frame-base: frame/prev
-		either zero? frame-base [
-			s/tail: s/offset + 1
+		assert cbottom < ctop
+		ctop: ctop - 1
+		
+		either ctop = cbottom [
+			arguments: bottom
+			top: bottom
 		][
-			s/tail: as cell! frame + 1
-		]
-		copy-cell
-			as cell! frame + 1
-			as cell! frame
+			call: as call! ctop
+			top: call/args + 1
 			
-		#if debug? = yes [
-			if verbose > 1 [
-				print [
-					"frame-base: " frame-base lf
-					"tail: " s/tail lf
-				]
-				dump
-			]
+			call: call - 1
+			arguments: call/args
 		]
-	]
-	
-	init: does [
-		mark null
-	]
-	
-	arguments: func [
-		return: [cell!]
-		/local
-			s 	[series!]
-	][
-		s: GET_BUFFER(data)
-		s/offset + frame-base + 1						;-- +1 for jumping over frame cell
+		
+		#if debug? = yes [if verbose > 1 [dump]]
 	]
 
-	push-last: func [
+	set-last: func [
 		last	[red-value!]
 		return: [red-value!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "stack/push-last"]]
+		#if debug? = yes [if verbose > 0 [print-line "stack/set-last"]]
 		
-		copy-cell last arguments		
+		copy-cell last arguments
 	]
 	
 	push: func [
 		return: [cell!]
+		/local cell [cell!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/push"]]
 		
-		ALLOC_TAIL(data)
+		cell: top
+		top: top + 1
+		if top >= a-end [
+			print-line ["^/*** Error: arguments stack overflow!^/"]
+			halt
+		]
+		cell
 	]
 
 	#if debug? = yes [	
-		dump: func [										;-- debug purpose only
+		dump: func [									;-- debug purpose only
 			/local
 				s	[series!]
+				c	[series!]
 		][
-			s: GET_BUFFER(data)
+			print-line "^/---- Argument stack ----"
+			s: GET_BUFFER(args)
 			dump-memory
 				as byte-ptr! s/offset
 				4
 				(as-integer s/tail + 1 - s/offset) >> 4
-			print-line ["frame-base: " frame-base]
-			print-line ["tail: " s/tail]
+			print-line ["arguments: " arguments]
+			
+			print-line "^/---- Call stack ----"
+			c: GET_BUFFER(calls)
+			dump-memory
+				as byte-ptr! c/offset
+				4
+			(as-integer c/tail + 1 - c/offset) >> 4
+			
+			print-line ["c/tail: " c/tail]
 		]
 	]
 ]

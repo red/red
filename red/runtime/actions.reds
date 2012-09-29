@@ -70,6 +70,7 @@ actions: context [
 			return: [integer!]							;-- remaining part count
 		] get-action-ptr ACT_FORM
 
+		stack/reset	1									;-- keep last value
 		str: string/rs-make-at stack/push either part [16][16] ;@@ /part argument
 		action-form 0
 	]

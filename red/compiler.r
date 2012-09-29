@@ -56,6 +56,7 @@ red: context [
 			repend keywords [name reduce [to word! join "comp-" name]]
 		]
 	]
+	bind keywords self
 	
 	;-- Optimizations for faster symbols lookups in Red/System compiler
 	word-push:     to word! "word/push"
@@ -238,8 +239,8 @@ red: context [
 				emit block-append*
 				insert-lf -1
 				if sub [
-					emit reduce [stack-reset 2]			;-- reset stack, but keep block as last value
-					insert-lf -2
+					emit stack-reset					;-- reset stack, but keep block as last value
+					insert-lf -1
 				]
 			][
 				if item = #get-definition [				;-- temporary directive
@@ -260,8 +261,8 @@ red: context [
 				
 				emit block-append*
 				insert-lf -1
-				emit reduce [stack-reset 2]				;-- reset stack, but keep block as last value
-				insert-lf -2
+				emit stack-reset						;-- reset stack, but keep block as last value
+				insert-lf -1
 			]
 		]
 		unless sub [emit-close-frame]
@@ -283,7 +284,7 @@ red: context [
 			insert-lf -2
 			
 			if root? [
-				emit reduce [stack-reset 1]				;-- drop root level last value
+				emit stack-reset						;-- drop root level last value
 				insert-lf -1
 			]
 		][
@@ -345,8 +346,9 @@ red: context [
 		
 	comp-call: func [call [word! path!] spec [block!] /local item name][
 		either spec/1 = 'intrinsic! [
-			switch name keywords
+			switch call keywords
 		][
+			emit-open-frame call
 			name: either path? call [call/1][call]
 			name: to word! clean-lf-flag name
 
@@ -376,6 +378,7 @@ red: context [
 				function!	[]
 			]
 			insert-lf -1
+			emit-close-frame
 		]
 	]
 	
@@ -404,9 +407,7 @@ red: context [
 				comp-word/final
 			]
 			all [not literal entry: find functions name][
-				emit-open-frame name
 				comp-call name entry/2
-				emit-close-frame
 			]
 			entry: find symbols name [
 				either lit-word? pc/1 [
@@ -539,7 +540,7 @@ red: context [
 			word/push _datatype!
 			datatype/push TYPE_DATATYPE			
 			word/set
-			stack/reset 1
+			stack/reset
 		]
 	]
 	

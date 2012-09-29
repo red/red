@@ -49,7 +49,7 @@ Red/System [
 	TYPE_BITSET
 	TYPE_FLOAT
 	
-	TYPE_STACKFRAME
+	TYPE_STACK_CALL
 ]
 
 #enum actions! [

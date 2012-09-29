@@ -23,6 +23,7 @@ Red/System [
 #define flag-series-small	00800000h		;-- series <= 16 bytes
 #define flag-series-stk		00400000h		;-- values block allocated on stack
 #define flag-series-nogc	00200000h		;-- protected from GC (system-critical series)
+#define flag-series-fixed	00100000h		;-- series cannot be relocated (system-critical series)
 
 #define flag-unit-mask		FFFFFFE0h		;-- mask for unit field in series-buffer!
 #define get-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
@@ -62,7 +63,8 @@ cell!: alias struct! [
 ;	23:		small							;-- reserved
 ;	22:		stack							;-- series buffer is allocated on stack
 ;   21:		permanent						;-- protected from GC (system-critical series)
-;	20-3: 	<reserved>
+;   20:     fixed							;-- series cannot be relocated (system-critical series)
+;	19-3: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: binary! byte, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [

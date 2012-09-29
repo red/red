@@ -89,7 +89,7 @@ unicode: context [
 
 	load-utf8: func [
 		src		   [c-string!]							;-- UTF-8 input buffer (zero-terminated)
-		size	   [integer!]							;-- size of src in bytes
+		size	   [integer!]							;-- size of src in bytes (including terminal NUL)
 		return:	   [node!]
 		/local
 			node   [node!]
