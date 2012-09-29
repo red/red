@@ -596,7 +596,7 @@ expand-series: func [
 		]
 	]
 
-	new: alloc-series-buffer new-sz * units units 0
+	new: alloc-series-buffer new-sz / units units 0
 	
 	series/node/value: as-integer new		;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset

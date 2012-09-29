@@ -132,7 +132,7 @@ stack: context [										;-- call stack
 				c	[series!]
 		][
 			print-line "^/---- Argument stack ----"
-			s: GET_BUFFER(args)
+			s: GET_BUFFER(arg-stk)
 			dump-memory
 				as byte-ptr! s/offset
 				4
@@ -140,7 +140,7 @@ stack: context [										;-- call stack
 			print-line ["arguments: " arguments]
 			
 			print-line "^/---- Call stack ----"
-			c: GET_BUFFER(calls)
+			c: GET_BUFFER(call-stk)
 			dump-memory
 				as byte-ptr! c/offset
 				4
