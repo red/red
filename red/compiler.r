@@ -112,8 +112,8 @@ red: context [
 		] type?/word expr
 	]
 	
-	unicode-char?: func [value [issue!]][
-		value/1 = #"'"
+	unicode-char?: func [value][
+		all [issue? value value/1 = #"'"]
 	]
 	
 	insert-lf: func [pos][
@@ -249,11 +249,19 @@ red: context [
 					item: blk/1
 				]
 				
-				value: either any-word? item [
-					add-symbol word: to word! clean-lf-flag item
-					decorate-symbol word
-				][
-					item
+				value: case [
+					unicode-char? item [
+						value: item
+						item: #"_"						;-- placeholder just to pass the char! type to item
+						to integer! next value
+					]
+					any-word? item [
+						add-symbol word: to word! clean-lf-flag item
+						decorate-symbol word
+					]
+					'else [
+						item
+					]
 				]
 				emit to word! rejoin [form type? item slash 'push]
 				emit value
@@ -271,7 +279,7 @@ red: context [
 	comp-literal: func [root? [logic!] /local value char?][
 		value: pc/1
 		either any [
-			char?: all [issue? value unicode-char? value]
+			char?: unicode-char? value
 			literal? value
 		][
 			either char? [
