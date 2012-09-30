@@ -58,6 +58,12 @@ unicode: context [
 		s
 	]
 	
+	latin1-to-UCS4: func [
+	
+	][
+		;TBD
+	]
+	
 	UCS2-to-UCS4: func [
 		s		 [series!]
 		return:	 [series!]
@@ -199,7 +205,7 @@ unicode: context [
 			
 			switch unit [
 				Latin1 [
-					either cp > 255 [
+					either cp > 255 [					;@@ missing Latin1 => UCS-4 case!!
 						s/tail: as cell! buf1
 						unit: UCS-2
 						s:    latin1-to-UCS2 s			;-- upgrade to UCS-2
