@@ -90,55 +90,108 @@ string: context [
 	append-char: func [
 		s		[series!]
 		cp		[integer!]								;-- codepoint
+		return: [series!]
 		/local
-			p1	[byte-ptr!]
+			p	[byte-ptr!]
 			p4	[int-ptr!]
 	][
 		switch GET_UNIT(s) [
 			Latin1 [
 				case [
 					cp <= FFh [
-						p1: as byte-ptr! s/tail
-						p1/value: as-byte cp			;-- overwrite termination NUL character
 						s/tail: as cell! (as byte-ptr! s/tail) + 1	;-- safe to increment here
-						
-						p1: alloc-tail-unit s 1
-						p1/value: as-byte 0				;-- add it back
+						p: alloc-tail-unit s 1
+						p/0: as-byte cp					;-- overwrite termination NUL character
+						p/1: as-byte 0					;-- add it back at next position
+						s: GET_BUFFER(s)				;-- refresh s pointer if relocated by alloc-tail-unit
+						s/tail: as cell! p				;-- reset tail just before NUL					
 					]
 					cp <= FFFFh [
 						s: unicode/latin1-to-UCS2 s
-						append-char s cp
+						s: append-char s cp
 					]
 					true [
-						s: unicode/UCS2-to-UCS4 s
-						append-char s cp
+						--NOT_IMPLEMENTED--
+						;s: unicode/Latin1-to-UCS4 s
+						s: append-char s cp
 					]
 				]
 			]
 			UCS-2 [
 				either cp <= FFFFh [
-					p1: as byte-ptr! s/tail
-					p1/1: as-byte (cp and FFh)			;-- overwrite termination NUL character
-					p1/2: as-byte (cp >> 8)
 					s/tail: as cell! (as byte-ptr! s/tail) + 2	;-- safe to increment here
+					p: alloc-tail-unit s 2
 					
-					p1: alloc-tail-unit s 2
-					p1/1: as-byte 0						;-- add it back
-					p1/2: as-byte 0
+					p/-1: as-byte (cp and FFh)			;-- overwrite termination NUL character
+					p/0: as-byte (cp >> 8)
+					p/1: as-byte 0						;-- add it back
+					p/2: as-byte 0
+					
+					s: GET_BUFFER(s)					;-- refresh s pointer if relocated by alloc-tail-unit
+					s/tail: as cell! p 					;-- reset tail just before NUL
 				][
 					s: unicode/UCS2-to-UCS4 s
-					append-char s cp
+					s: append-char s cp
 				]
 			]
 			UCS-4 [
-				p4: as int-ptr! s/tail
-				p4/value: cp							;-- overwrite termination NUL character
 				s/tail: as cell! (as int-ptr! s/tail) + 1	;-- safe to increment here
-				
 				p4: as int-ptr! alloc-tail-unit s 4
-				p4/value: 0								;-- add it back
+				p4/0: cp								;-- overwrite termination NUL character
+				p4/1: 0									;-- add it back
+				s: GET_BUFFER(s)						;-- refresh s pointer if relocated by alloc-tail-unit
+				s/tail: as cell! p						;-- reset tail just before NUL
 			]
 		]
+		s
+	]
+	
+	poke-char: func [
+		s		[series!]
+		p		[byte-ptr!]
+		cp		[integer!]								;-- codepoint
+		return: [series!]
+		/local
+			p4	[int-ptr!]
+	][
+		switch GET_UNIT(s) [
+			Latin1 [
+				case [
+					cp <= FFh [
+						p/1: as-byte cp
+					]
+					cp <= FFFFh [
+						p: (as byte-ptr! s - 1) - p		;-- calc index value
+						s: unicode/latin1-to-UCS2 s
+						p: (as byte-ptr! s + 1) + ((as-integer p) << 1) ;-- determine the new position
+						s: poke-char s p cp
+					]
+					true [
+						--NOT_IMPLEMENTED--
+						;p: (as byte-ptr! s - 1) - p	;-- calc index value
+						;s: unicode/Latin1-to-UCS4 s
+						;p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- determine the new position
+						;s: poke-char s p cp
+					]
+				]
+			]
+			UCS-2 [
+				either cp <= FFFFh [
+					p/1: as-byte (cp and FFh)
+					p/2: as-byte (cp >> 8)
+				][
+					p: (as byte-ptr! s - 1) - p			;-- calc index value
+					s: unicode/UCS2-to-UCS4 s
+					p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- determine the new position
+					s: poke-char s p cp
+				]
+			]
+			UCS-4 [
+				p4: as int-ptr! p
+				p4/1: cp
+			]
+		]
+		s
 	]
 	
 	push: func [
@@ -340,6 +393,7 @@ string: context [
 			index  [red-integer!]
 			char   [red-char!]
 			s	   [series!]
+			idx	   [integer!]
 			offset [integer!]
 			p1	   [byte-ptr!]
 			p4	   [int-ptr!]
@@ -347,18 +401,24 @@ string: context [
 		#if debug? = yes [if verbose > 0 [print-line "string/pick"]]
 
 		str: as red-string! stack/arguments
-		index: as red-integer! str + 1
 		s: GET_BUFFER(str)
+		
+		index: as red-integer! str + 1
+		idx: index/value
+		
+		offset: str/head + idx - 1						;-- index is one-based
+		if negative? idx [offset: offset + 1]
 
-		offset: str/head + index/value - 1				;-- index is one-based
 		p1: (as byte-ptr! s/offset) + (offset << (GET_UNIT(s) >> 1))
 		
 		either any [
-			negative? offset
+			zero? idx
 			p1 >= as byte-ptr! s/tail
+			p1 <  as byte-ptr! s/offset
 		][
 			stack/set-last none-value
 		][
+			if negative? offset [offset: offset + 1]
 			char: as red-char! str
 			char/header: TYPE_CHAR		
 			char/value: switch GET_UNIT(s) [
@@ -368,6 +428,110 @@ string: context [
 			]			
 			as red-value! char
 		]
+	]
+	
+	;--- Modifying actions ---
+		
+	append: func [
+		return:	  [red-value!]
+		/local
+			str	  [red-string!]
+			value [red-value!]
+			char  [red-char!]
+			src	  [red-block!]
+			s	  [series!]
+			dst	  [series!]
+			cell  [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/append"]]
+
+		;@@ implement /part and /only support
+		str: as red-string! stack/arguments
+		value: as red-value! str + 1
+		dst: GET_BUFFER(str)
+
+		either TYPE_OF(value) = TYPE_BLOCK [			;@@ replace it with: typeset/any-block?
+			src: as red-block! value
+			s: GET_BUFFER(src)
+			cell: s/offset + src/head
+
+			while [cell < s/tail][						;-- multiple values case
+				either TYPE_OF(cell) = TYPE_CHAR [
+					char: as red-char! cell				
+					dst: append-char dst char/value
+				][
+					--NOT_IMPLEMENTED--						;@@ actions/form needs to take an argument!
+					;TBD once INSERT is implemented
+				]
+				cell: cell + 1
+			]
+		][												;-- single value case
+			either TYPE_OF(value) = TYPE_CHAR [
+				char: as red-char! value
+				dst: append-char dst char/value
+			][
+				actions/form no							;-- FORM value before appending
+				--NOT_IMPLEMENTED--
+				;TBD once INSERT is implemented
+			]
+		]		
+		as red-value! str
+	]
+
+	clear: func [
+		return:	[red-value!]
+		/local
+			str	[red-string!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/clear"]]
+
+		str: as red-string! stack/arguments
+		s: GET_BUFFER(str)
+		s/tail: as cell! (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1))	
+		as red-value! str
+	]
+
+	poke: func [
+		return:	   [red-value!]
+		/local
+			str	   [red-string!]
+			index  [red-integer!]
+			char   [red-char!]
+			s	   [series!]
+			idx	   [integer!]
+			offset [integer!]
+			pos	   [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/poke"]]
+
+		str: as red-string! stack/arguments
+		s: GET_BUFFER(str)
+		
+		index: as red-integer! str + 1
+		idx: index/value
+		
+		offset: str/head + idx - 1						;-- index is one-based
+		if negative? idx [offset: offset + 1]
+		
+		pos: (as byte-ptr! s/offset) + (offset << (GET_UNIT(s) >> 1))
+		
+		either any [
+			zero? idx
+			pos >= as byte-ptr! s/tail
+			pos <  as byte-ptr! s/offset
+		][
+			--NOT_IMPLEMENTED--
+			;TBD: waiting for error!
+		][
+			char: as red-char! str + 2
+			if TYPE_OF(char) <> TYPE_CHAR [
+				print-line "Error: POKE expected char! value"	;@@ replace by error! when ready
+				halt
+			]
+			poke-char s pos char/value
+		]
+		as red-value! str
 	]
 
 	
@@ -381,7 +545,7 @@ string: context [
 		:form
 		null			;mold
 		null			;get-path
-		null			;set-path		
+		null			;set-path
 		;-- Scalar actions --
 		null			;absolute
 		null			;add
@@ -400,11 +564,11 @@ string: context [
 		null			;or~
 		null			;xor~
 		;-- Series actions --
-		null			;append
+		:append
 		:at
 		:back
 		null			;change
-		null			;clear
+		:clear
 		null			;copy
 		null			;find
 		:head
@@ -414,7 +578,7 @@ string: context [
 		:length-of
 		:next
 		:pick
-		null			;poke
+		:poke
 		null			;remove
 		null			;reverse
 		null			;select

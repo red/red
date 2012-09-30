@@ -146,6 +146,10 @@ Red/System [
 #define GET_BUFFER(series)  (as series! series/node/value)
 #define GET_UNIT(series)	(series/flags and get-unit-mask)
 #define ALLOC_TAIL(series)	[alloc-at-tail as red-block! series]
+#define --NOT_IMPLEMENTED--	[
+	print-line "Error: feature not implemented yet!"
+	halt
+]
 
 #if debug? = yes [
 	#define dump4			[dump-hex4 as int-ptr!]

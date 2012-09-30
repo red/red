@@ -591,7 +591,7 @@ expand-series: func [
 	if zero? new-sz [
 		new-sz: series/size * 2				;-- by default, alloc twice the old size
 		if new-sz >= _2MB [
-			assert false					;@@ make it fail for now
+			--NOT_IMPLEMENTED--
 			;TBD: alloc big
 		]
 	]
