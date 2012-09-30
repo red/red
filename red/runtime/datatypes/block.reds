@@ -281,23 +281,31 @@ block: context [
 		/local
 			blk	   [red-block!]
 			index  [red-integer!]
+			cell   [red-value!]
 			s	   [series!]
+			idx    [integer!]
 			offset [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/pick"]]
 
 		blk: as red-block! stack/arguments
-		index: as red-integer! blk + 1
 		s: GET_BUFFER(blk)
+		
+		index: as red-integer! blk + 1
+		idx: index/value
 
 		offset: blk/head + index/value - 1				;-- index is one-based
+		if negative? idx [offset: offset + 1]
+		cell: s/offset + offset
+		
 		stack/set-last either any [
-			negative? offset
-			s/offset + offset >= s/tail	
+			zero? idx
+			cell >= s/tail
+			cell < s/offset
 		][
 			none-value
 		][
-			s/offset + offset
+			cell
 		]
 	]
 	
@@ -311,8 +319,9 @@ block: context [
 			src	  [red-block!]
 			s	  [series!]
 			cell  [red-value!]
-			i	  [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "block/append"]]
+
 		;@@ implement /part and /only support
 		blk: as red-block! stack/arguments
 		value: as red-value! blk + 1
@@ -351,27 +360,34 @@ block: context [
 		/local
 			blk	   [red-block!]
 			index  [red-integer!]
+			cell   [red-value!]
 			s	   [series!]
+			idx    [integer!]
 			offset [integer!]
-			max	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/poke"]]
 
 		blk: as red-block! stack/arguments
-		index: as red-integer! blk + 1
 		s: GET_BUFFER(blk)
+		
+		index: as red-integer! blk + 1
+		idx: index/value
 
 		offset: blk/head + index/value - 1				;-- index is one-based
+		if negative? idx [offset: offset + 1]
+		cell: s/offset + offset
+
 		either any [
-			negative? offset
-			s/offset + offset >= s/tail	
+			zero? idx
+			cell >= s/tail
+			cell < s/offset
 		][
 			;TBD: placeholder waiting for error! to be implemented
 			stack/set-last none-value					;@@ should raise an error!
 		][
 			copy-cell
 				as red-value! blk + 2
-				s/offset + offset
+				cell
 		]
 		as red-value! blk
 	]
