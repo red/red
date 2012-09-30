@@ -71,7 +71,8 @@ set-word: context [
 		null			;form
 		null			;mold
 		null			;get-path
-		null			;set-path	
+		null			;set-path
+		null			;compare		
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

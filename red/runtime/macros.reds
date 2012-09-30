@@ -63,6 +63,7 @@ Red/System [
 	ACT_MOLD
 	ACT_GETPATH
 	ACT_SETPATH
+	ACT_COMPARE
 	
 	;-- Scalar actions --
 	ACT_ABSOLUTE
@@ -133,7 +134,16 @@ Red/System [
 	OP_DIV
 ]
 
-#define ACTIONS_NB		59							;-- number of actions
+#enum comparison-op! [
+	COMP_EQUAL
+	COMP_STRICT_EQUAL
+	COMP_LESSER
+	COMP_LESSER_EQUAL
+	COMP_GREATER
+	COMP_GREATER_EQUAL
+]
+
+#define ACTIONS_NB		60							;-- number of actions
 
 
 #either debug? = yes [

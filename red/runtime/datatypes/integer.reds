@@ -116,6 +116,47 @@ integer: context [
 		part											;@@ implement full support for /part
 	]
 	
+	compare: func [
+		value1    [red-integer!]						;-- first operand
+		value2    [red-integer!]						;-- second operand
+		op	      [integer!]							;-- type of comparison
+		return:   [logic!]
+		/local
+			char  [red-char!]
+			type  [integer!]
+			left  [integer!]
+			right [integer!] 
+			res	  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/compare"]]
+		
+		type: TYPE_OF(value2)
+		left: value1/value
+		
+		switch type [
+			TYPE_INTEGER [
+				right: value2/value
+			]
+			TYPE_CHAR [
+				char: as red-char! value2				;@@ could be optimized as integer! and char!
+				right: char/value						;@@ structures are overlapping exactly
+			]
+			default [									;@@ Throw error! when ready
+				print-line ["Error: cannot compare integer! with type #" type]
+				halt
+			]
+		]
+		switch op [
+			COMP_EQUAL 			[res: left = right]
+			COMP_STRICT_EQUAL	[res: all [type = TYPE_INTEGER left = right]]
+			COMP_LESSER			[res: left <  right]
+			COMP_LESSER_EQUAL	[res: left <= right]
+			COMP_GREATER		[res: left >  right]
+			COMP_GREATER_EQUAL	[res: left >= right]
+		]
+		res
+	]
+	
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
@@ -134,7 +175,7 @@ integer: context [
 	subtract: func [return:	[red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/subtract"]]
 		as red-value! do-math OP_SUB
-	]	
+	]
 	
 	datatype/register [
 		TYPE_INTEGER
@@ -146,7 +187,8 @@ integer: context [
 		:form
 		null			;mold
 		null			;get-path
-		null			;set-path	
+		null			;set-path
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		:add

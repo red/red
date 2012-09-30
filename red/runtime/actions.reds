@@ -79,6 +79,24 @@ actions: context [
 	get-path: func [][]
 	set-path: func [][]
 	
+	compare: func [
+		value1  [red-value!]
+		value2  [red-value!]
+		op	    [integer!]
+		return: [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/compare"]]
+
+		action-compare: as function! [					;-- needs to be globally bound
+			value1  [red-value!]						;-- first operand
+			value2  [red-value!]						;-- second operand
+			op	    [integer!]							;-- type of comparison
+			return: [logic!]
+		] get-action-ptr ACT_COMPARE
+		
+		action-compare value1 value2 op
+	]
+	
 	absolute: func [][]
 	
 	add: func [
