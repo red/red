@@ -107,11 +107,11 @@ string: context [
 						s/tail: as cell! p				;-- reset tail just before NUL					
 					]
 					cp <= FFFFh [
-						s: unicode/latin1-to-UCS2 s
+						s: unicode/Latin1-to-UCS2 s
 						s: append-char s cp
 					]
 					true [
-						s: unicode/latin1-to-UCS4 s
+						s: unicode/Latin1-to-UCS4 s
 						s: append-char s cp
 					]
 				]
@@ -147,7 +147,7 @@ string: context [
 	
 	poke-char: func [
 		s		[series!]
-		p		[byte-ptr!]
+		p		[byte-ptr!]								;-- target passed as pointer to favor the general code path
 		cp		[integer!]								;-- codepoint
 		return: [series!]
 		/local
@@ -161,16 +161,15 @@ string: context [
 					]
 					cp <= FFFFh [
 						p: (as byte-ptr! s - 1) - p		;-- calc index value
-						s: unicode/latin1-to-UCS2 s
-						p: (as byte-ptr! s + 1) + ((as-integer p) << 1) ;-- determine the new position
+						s: unicode/Latin1-to-UCS2 s
+						p: (as byte-ptr! s + 1) + ((as-integer p) << 1) ;-- calc the new position
 						s: poke-char s p cp
 					]
 					true [
-						--NOT_IMPLEMENTED--
-						;p: (as byte-ptr! s - 1) - p	;-- calc index value
-						;s: unicode/Latin1-to-UCS4 s
-						;p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- determine the new position
-						;s: poke-char s p cp
+						p: (as byte-ptr! s - 1) - p		;-- calc index value
+						s: unicode/Latin1-to-UCS4 s
+						p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- calc the new position
+						s: poke-char s p cp
 					]
 				]
 			]
@@ -181,7 +180,7 @@ string: context [
 				][
 					p: (as byte-ptr! s - 1) - p			;-- calc index value
 					s: unicode/UCS2-to-UCS4 s
-					p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- determine the new position
+					p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- calc the new position
 					s: poke-char s p cp
 				]
 			]

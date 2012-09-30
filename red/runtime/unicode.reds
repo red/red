@@ -29,7 +29,7 @@ unicode: context [
 	;	BFh				; U+00BF = inverted question mark
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
 	
-	latin1-to-UCS2: func [
+	Latin1-to-UCS2: func [
 		s		 [series!]
 		return:	 [series!]
 		/local
@@ -38,7 +38,7 @@ unicode: context [
 			src  [byte-ptr!]
 			dst  [byte-ptr!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "unicode/latin1-to-UCS2"]]
+		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS2"]]
 
 		used: as-integer s/tail - s/offset	
 		if used * 2 >= s/size [							;-- ensure we have enough space
@@ -59,7 +59,7 @@ unicode: context [
 		s
 	]
 	
-	latin1-to-UCS4: func [
+	Latin1-to-UCS4: func [
 		s		 [series!]
 		return:	 [series!]
 		/local
@@ -68,7 +68,7 @@ unicode: context [
 			src  [byte-ptr!]
 			dst  [int-ptr!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "unicode/latin1-to-UCS4"]]
+		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS4"]]
 
 		used: as-integer s/tail - s/offset	
 		if used * 4 >= s/size [							;-- ensure we have enough space
@@ -238,7 +238,7 @@ unicode: context [
 						cp <= FFFFh [
 							s/tail: as cell! buf1
 							unit: UCS-2
-							s:    latin1-to-UCS2 s		;-- upgrade to UCS-2
+							s:    Latin1-to-UCS2 s		;-- upgrade to UCS-2
 							buf1: as byte-ptr! s/tail
 							end:  (as byte-ptr! s/offset) + s/size
 
@@ -249,7 +249,7 @@ unicode: context [
 						true [
 							s/tail: as cell! buf1
 							unit: UCS-2
-							s:    latin1-to-UCS4 s		;-- upgrade to UCS-4
+							s:    Latin1-to-UCS4 s		;-- upgrade to UCS-4
 							buf4: as int-ptr! s/tail
 							end:  (as byte-ptr! s/offset) + s/size
 
