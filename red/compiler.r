@@ -436,6 +436,13 @@ red: context [
 		pos
 	]
 	
+	make-func-prefix: func [name [word!]][
+		to word!  rejoin [								;@@ cache results locally
+			head remove back tail form functions/:name/1 "s/"
+			name
+		]
+	]
+	
 	check-infix-operators: has [name op pos end ops][
 		if infix? pc [return false]						;-- infix op already processed,
 														;-- or used in prefix mode.
@@ -459,7 +466,7 @@ red: context [
 			
 			forall ops [
 				comp-expression/no-infix				;-- fetch right operand
-				emit to word! join "actions/" ops/1
+				emit make-func-prefix ops/1
 				insert-lf -1
 				emit-close-frame
 				unless tail? next ops [pc: next pc]		;-- jump over op word unless last operand
