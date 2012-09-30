@@ -2113,7 +2113,7 @@ system-dialect: context [
 		order-args: func [name [word!] args [block!]][
 			if any [
 				all [
-					find [import native infix] functions/:name/2
+					find [import native infix routine] functions/:name/2
 					find [stdcall cdecl] functions/:name/3
 				]
 				all [
