@@ -24,6 +24,9 @@ Red/System [
 
 platform: context [
 
+	#define wprintf		printf
+	#define putwchar	[putchar as-byte]
+	
 	#include %_POSIX.reds
 
 	#import  [
