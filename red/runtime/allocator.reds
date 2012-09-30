@@ -66,7 +66,7 @@ cell!: alias struct! [
 ;   20:     fixed							;-- series cannot be relocated (system-critical series)
 ;	19-3: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
-											;-- 0: UTF-8, 1: binary! byte, 2: UCS-2, 4: UCS-4, 16: block! cell
+											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
 	flags	[integer!]						;-- series flags
 	node	[int-ptr!]						;-- point back to referring node

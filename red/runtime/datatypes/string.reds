@@ -111,8 +111,7 @@ string: context [
 						s: append-char s cp
 					]
 					true [
-						--NOT_IMPLEMENTED--
-						;s: unicode/Latin1-to-UCS4 s
+						s: unicode/latin1-to-UCS4 s
 						s: append-char s cp
 					]
 				]

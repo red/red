@@ -10,6 +10,7 @@ Red/System [
 ]
 
 #enum encoding! [
+	UTF-8:  0
 	Latin1: 1
 	UCS-2:  2
 	UCS-4:  4
@@ -41,7 +42,7 @@ unicode: context [
 
 		used: as-integer s/tail - s/offset	
 		if used * 2 >= s/size [							;-- ensure we have enough space
-			s: expand-series s used * 2 + 1
+			s: expand-series s (used + 1) * 2			;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
@@ -59,9 +60,32 @@ unicode: context [
 	]
 	
 	latin1-to-UCS4: func [
-	
+		s		 [series!]
+		return:	 [series!]
+		/local
+			used [integer!]
+			base [byte-ptr!]
+			src  [byte-ptr!]
+			dst  [int-ptr!]
 	][
-		;TBD
+		#if debug? = yes [if verbose > 0 [print-line "unicode/latin1-to-UCS4"]]
+
+		used: as-integer s/tail - s/offset	
+		if used * 4 >= s/size [							;-- ensure we have enough space
+			s: expand-series s (used + 1) * 4			;-- reserve one more for edge cases
+		]
+		base: as byte-ptr! s/offset
+		src:  as byte-ptr! s/tail						;-- start from end
+		dst:  as int-ptr! (as byte-ptr! s/offset) + (used * 4)
+		s/tail: as cell! dst							;-- adjust to new tail
+
+		while [src > base][								;-- in-place conversion
+			src: src - 1
+			dst: dst - 1
+			dst/value: as-integer src/1
+		]
+		s/flags: s/flags and flag-unit-mask or UCS-4	;-- s/unit: UCS-4
+		s
 	]
 	
 	UCS2-to-UCS4: func [
@@ -205,24 +229,37 @@ unicode: context [
 			
 			switch unit [
 				Latin1 [
-					either cp > 255 [					;@@ missing Latin1 => UCS-4 case!!
-						s/tail: as cell! buf1
-						unit: UCS-2
-						s:    latin1-to-UCS2 s			;-- upgrade to UCS-2
-						buf1: as byte-ptr! s/tail
-						end:  (as byte-ptr! s/offset) + s/size
-						
-						buf1/1: as-byte cp and FFh
-						buf1/2: as-byte cp >> 8
-						buf1: buf1 + 2
-					][
-						buf1/value: as-byte cp
-						buf1: buf1 + 1
-						assert buf1 <= end				;@@ should not happen if we're good
+					case [
+						cp <= FFh [
+							buf1/value: as-byte cp
+							buf1: buf1 + 1
+							assert buf1 <= end			;-- should not happen if we're good
+						]
+						cp <= FFFFh [
+							s/tail: as cell! buf1
+							unit: UCS-2
+							s:    latin1-to-UCS2 s		;-- upgrade to UCS-2
+							buf1: as byte-ptr! s/tail
+							end:  (as byte-ptr! s/offset) + s/size
+
+							buf1/1: as-byte cp and FFh
+							buf1/2: as-byte cp >> 8
+							buf1: buf1 + 2
+						]
+						true [
+							s/tail: as cell! buf1
+							unit: UCS-2
+							s:    latin1-to-UCS4 s		;-- upgrade to UCS-4
+							buf4: as int-ptr! s/tail
+							end:  (as byte-ptr! s/offset) + s/size
+
+							buf4/value: cp
+							buf4: buf4 + 1
+						]
 					]
 				]
 				UCS-2 [
-					either cp > 65535 [
+					either cp > FFFFh [
 						s/tail: as cell! buf1
 						unit: UCS-4
 						s:    UCS2-to-UCS4 s			;-- upgrade to UCS-4
@@ -262,7 +299,7 @@ unicode: context [
 			UCS-2  [buf1 - 2]
 			UCS-4  [buf4 - 1]
 		]
-		assert s/size + GET_UNIT(s) >= as-integer (s/tail - s/offset)
+		assert s/size - GET_UNIT(s) >= as-integer (s/tail - s/offset) ;-- tail points before NUL
 		
 		node
 	]
