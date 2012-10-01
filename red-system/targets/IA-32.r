@@ -387,7 +387,9 @@ make-profilable make target-class [
 					emit-casting boxed no
 					switch boxed/type/1 opcodes 
 				][
-					do opcodes/integer!
+					type: compiler/resolve-path-type value
+					compiler/last-type: type
+					switch type/1 opcodes
 				]
 			]
 		]
