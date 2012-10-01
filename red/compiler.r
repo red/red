@@ -67,6 +67,7 @@ red: context [
 	stack-reset:   to word! "stack/reset"
 	block-push:    to word! "block/push"
 	block-append*: to word! "block/append*"
+	logic-true?:   to word! "logic/true?"
 
 	quit-on-error: does [
 		;clean-up
@@ -309,6 +310,23 @@ red: context [
 		]
 		pc: next pc
 	]
+		
+	comp-if: does [
+		comp-expression		
+		emit compose [	
+			if (logic-true?)
+		]
+		comp-sub-block									;-- compile TRUE block
+	]
+	
+	comp-either: does [
+		comp-expression		
+		emit compose [	
+			either (logic-true?)
+		]
+		comp-sub-block									;-- compile TRUE block
+		comp-sub-block									;-- compile FALSE block
+	]
 	
 	;@@ old code, needs to be refactored
 	comp-path-part: func [path parent parent-type /local type][
@@ -534,6 +552,19 @@ red: context [
 		][
 			comp-literal to logic! root
 		]
+	]
+	
+	comp-sub-block: has [mark save][
+		mark: tail output
+
+		saved: pc
+		pc: pc/1										;-- dive in nested code
+		comp-block
+		pc: saved
+
+		change/part/only mark copy/deep mark tail mark	;-- put output code between [...]
+		clear next mark									;-- remove code at "above" level
+		pc: next pc										;-- step over block in source code
 	]
 	
 	comp-block: has [expr][

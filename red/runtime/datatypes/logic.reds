@@ -21,6 +21,23 @@ false-value/value: false
 logic: context [
 	verbose: 0
 		
+	true?: func [
+		return:  [logic!]
+		/local
+			arg	 [red-logic!]
+			type [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/true?"]]
+		
+		arg: as red-logic! stack/arguments
+		type: TYPE_OF(arg)
+		
+		not any [										;-- true if not none or false
+			type = TYPE_NONE
+			all [type = TYPE_LOGIC not arg/value]
+		]	
+	]
+	
 	;-- Actions -- 
 
 	make: func [
