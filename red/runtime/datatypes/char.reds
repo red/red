@@ -62,7 +62,52 @@ char: context [
 		string/append-char series arg/value
 		part											;@@ implement full support for /part
 	]
-	
+
+	compare: func [
+		value1    	[red-char!]							;-- first operand
+		value2    	[red-char!]							;-- second operand
+		op	      	[integer!]							;-- type of comparison
+		return:   	[logic!]
+		/local
+			integer [red-integer!]
+			type 	[integer!]
+			left  	[integer!]
+			right 	[integer!]
+			res	  	[logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/compare"]]
+
+		type: TYPE_OF(value2)
+		left: value1/value
+
+		switch type [
+			TYPE_INTEGER [
+				integer: as red-integer! value2			;@@ could be optimized as integer! and char!
+				right: integer/value					;@@ structures are overlapping exactly
+			]
+			TYPE_CHAR [
+				right: value2/value
+			]
+			default [									;@@ Throw error! when ready
+				either op = COMP_EQUAL [
+					return false
+				][
+					print-line ["Error: cannot compare char! with type #" type]
+					halt
+				]
+			]
+		]
+		switch op [
+			COMP_EQUAL 			[res: left = right]
+			COMP_STRICT_EQUAL	[res: all [type = TYPE_CHAR left = right]]
+			COMP_LESSER			[res: left <  right]
+			COMP_LESSER_EQUAL	[res: left <= right]
+			COMP_GREATER		[res: left >  right]
+			COMP_GREATER_EQUAL	[res: left >= right]
+		]
+		res
+	]
+
 	add: func [
 		return:  [red-value!]
 		/local
@@ -118,7 +163,7 @@ char: context [
 		null			;mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		:add
