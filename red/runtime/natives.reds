@@ -40,6 +40,7 @@ natives: context [
 	
 	compare: func [
 		op		   [integer!]
+		reverse	   [logic!]
 		return:    [red-logic!]
 		/local
 			args   [red-value!]
@@ -48,7 +49,7 @@ natives: context [
 		args: stack/arguments
 		result: as red-logic! args
 		res: actions/compare args args + 1 op
-		result/value: res
+		result/value: either reverse [not res][res]
 		result/header: TYPE_LOGIC
 		result
 	]
@@ -60,7 +61,17 @@ natives: context [
 			result [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/equal?"]]
-		compare COMP_EQUAL
+		compare COMP_EQUAL no
+	]
+	
+	not-equal?: func [
+		return:    [red-logic!]
+		/local
+			args   [red-value!]
+			result [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "native/not-equal?"]]
+		compare COMP_EQUAL yes
 	]
 	
 	strict-equal?: func [
@@ -70,7 +81,7 @@ natives: context [
 			result [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/strict-equal?"]]
-		compare COMP_STRICT_EQUAL
+		compare COMP_STRICT_EQUAL no
 	]
 	
 	lesser?: func [
@@ -80,7 +91,7 @@ natives: context [
 			result [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/lesser?"]]
-		compare COMP_LESSER
+		compare COMP_LESSER no
 	]
 	
 	greater?: func [
@@ -90,7 +101,7 @@ natives: context [
 			result [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/greater?"]]
-		compare COMP_GREATER
+		compare COMP_GREATER no
 	]
 	
 	lesser-or-equal?: func [
@@ -100,7 +111,7 @@ natives: context [
 			result [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "lesser-or-equal?"]]
-		compare COMP_LESSER_EQUAL
+		compare COMP_LESSER_EQUAL no
 	]	
 	
 	greater-or-equal?: func [
@@ -110,6 +121,6 @@ natives: context [
 			result [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "greater-or-equal?"]]
-		compare COMP_GREATER_EQUAL
+		compare COMP_GREATER_EQUAL no
 	]
 ]
