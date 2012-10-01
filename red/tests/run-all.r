@@ -27,6 +27,7 @@ start-time: now/precise
 
 ===start-group=== "Red/System runtime tests"
   --run-test-file-quiet %source/runtime/tools-test.reds
+  --run-test-file-quiet %source/runtime/unicode-test.reds
 ===end-group===
 
 ===start-group=== "Red Compiler tests"
