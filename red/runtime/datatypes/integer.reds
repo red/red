@@ -142,8 +142,12 @@ integer: context [
 				right: char/value						;@@ structures are overlapping exactly
 			]
 			default [									;@@ Throw error! when ready
-				print-line ["Error: cannot compare integer! with type #" type]
-				halt
+				either op = COMP_EQUAL [
+					return false
+				][
+					print-line ["Error: cannot compare integer! with type #" type]
+					halt
+				]
 			]
 		]
 		switch op [
