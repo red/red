@@ -28,8 +28,7 @@ logic: context [
 			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/true?"]]
-		
-		arg: as red-logic! stack/arguments
+		arg: as red-logic! stack/last-value
 		type: TYPE_OF(arg)
 		
 		not any [										;-- true if not none or false
@@ -86,6 +85,28 @@ logic: context [
 		part											;@@ implement full support for /part
 	]
 	
+	compare: func [
+		arg1      [red-logic!]							;-- first operand
+		arg2	  [red-logic!]							;-- second operand
+		op	      [integer!]							;-- type of comparison
+		return:   [logic!]
+		/local
+			type  [integer!]
+			res	  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/compare"]]
+
+		type: TYPE_OF(arg2)
+		switch op [
+			COMP_EQUAL 			[res:     all [type = TYPE_LOGIC arg1/value = arg2/value]]
+			COMP_STRICT_EQUAL	[res: not all [type = TYPE_LOGIC arg1/value = arg2/value]]
+			default [
+				print-line ["Error: cannot use: " op " on logic!"]
+			]
+		]
+		res
+	]
+	
 	datatype/register [
 		TYPE_LOGIC
 		;-- General actions --
@@ -97,7 +118,7 @@ logic: context [
 		null			;mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

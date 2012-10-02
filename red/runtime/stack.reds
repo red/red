@@ -42,6 +42,8 @@ stack: context [										;-- call stack
 	cbottom: 	calls-series/offset
 	ctop:	 	calls-series/tail
 	
+	last-value: arguments
+	
 	reset: func [
 		return:  [cell!]
 		/local
@@ -86,6 +88,8 @@ stack: context [										;-- call stack
 
 		assert cbottom < ctop
 		ctop: ctop - 1
+		
+		last-value: arguments							;-- for immediate use only!
 		
 		either ctop = cbottom [
 			arguments: bottom
