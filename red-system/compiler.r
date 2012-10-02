@@ -2554,7 +2554,7 @@ system-dialect: context [
 			exp:  make block! 1
 			
 			foreach fun list [
-				unless find/skip natives fun 5 [
+				unless find/skip natives fun 6 [
 					repend code [
 						to set-word! fun 'func [handle [integer!]][]	;-- stdcall
 					]
