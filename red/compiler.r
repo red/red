@@ -65,9 +65,12 @@ red: context [
 	stack-mark:    to word! "stack/mark"
 	stack-unwind:  to word! "stack/unwind"
 	stack-reset:   to word! "stack/reset"
+	stack-keep:    to word! "stack/keep"
 	block-push:    to word! "block/push"
 	block-append*: to word! "block/append*"
 	logic-true?:   to word! "logic/true?"
+	
+	set-last-none: does [compose [(stack-reset) none/push]]
 
 	quit-on-error: does [
 		;clean-up
@@ -240,7 +243,7 @@ red: context [
 				emit block-append*
 				insert-lf -1
 				if sub [
-					emit stack-reset					;-- reset stack, but keep block as last value
+					emit stack-keep						;-- reset stack, but keep block as last value
 					insert-lf -1
 				]
 			][
@@ -270,7 +273,7 @@ red: context [
 				
 				emit block-append*
 				insert-lf -1
-				emit stack-reset						;-- reset stack, but keep block as last value
+				emit stack-keep							;-- reset stack, but keep block as last value
 				insert-lf -1
 			]
 		]
@@ -293,7 +296,7 @@ red: context [
 			insert-lf -2
 			
 			if root? [
-				emit stack-reset						;-- drop root level last value
+				emit stack-keep							;-- drop root level last value
 				insert-lf -1
 			]
 		][
@@ -311,9 +314,46 @@ red: context [
 		pc: next pc
 	]
 		
+	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
+		list: back tail comp-chunked-block
+		
+		if empty? head list [
+			emit set-last-none
+			insert-lf -1
+			exit
+		]
+		bind test 'body
+		
+		;-- most nested test first (identical for ANY and ALL)
+		body: reduce ['unless logic-true? set-last-none]
+		new-line body yes
+		insert body list/1
+		
+		;-- emit expressions tree from leaf to root
+		while [not head? list][
+			list: back list
+			insert body stack-reset
+			new-line body yes
+			body: reduce test
+			new-line body yes
+			insert body list/1
+		]
+		emit body	
+	]
+	
+	comp-any: does [
+		comp-boolean-expressions 'any ['unless logic-true? body]
+	]
+	
+	comp-all: does [
+		comp-boolean-expressions 'all [
+			'either 'not logic-true? set-last-none body
+		]
+	]
+		
 	comp-if: does [
-		comp-expression		
-		emit compose [	
+		comp-expression
+		emit compose [
 			if (logic-true?)
 		]
 		comp-sub-block									;-- compile TRUE block
@@ -321,7 +361,7 @@ red: context [
 	
 	comp-either: does [
 		comp-expression		
-		emit compose [	
+		emit compose [
 			either (logic-true?)
 		]
 		comp-sub-block									;-- compile TRUE block
@@ -495,7 +535,7 @@ red: context [
 	]
 	
 	comp-directive: func [][
-		switch pc/1 [
+		switch/default pc/1 [
 			#system [
 				unless block? pc/2 [
 					throw-error "#system requires a block argument"
@@ -522,6 +562,8 @@ red: context [
 				change/part/only pc to do pc/2 pc/3 3 2
 				comp-expression							;-- continue expression fetching
 			]
+		][
+			throw-error ["Unknown directive:" pc/1]
 		]
 	]
 	
@@ -554,26 +596,45 @@ red: context [
 		]
 	]
 	
-	comp-sub-block: has [mark save][
+	comp-chunked-block: has [list mark saved][
+		list: clear []
+		saved: pc
+		pc: pc/1										;-- dive in nested code
+		mark: tail output
+		
+		comp-block/with [
+			append/only list copy mark
+			clear mark
+		]
+		
+		pc: next saved
+		list
+	]
+	
+	comp-sub-block: has [mark saved][
 		mark: tail output
 
 		saved: pc
 		pc: pc/1										;-- dive in nested code
 		comp-block
-		pc: saved
+		pc: next saved									;-- step over block in source code				
 
 		change/part/only mark copy/deep mark tail mark	;-- put output code between [...]
 		clear next mark									;-- remove code at "above" level
-		pc: next pc										;-- step over block in source code
 	]
 	
-	comp-block: has [expr][
+	comp-block: func [
+		/with body [block!]
+		/local expr
+	][
 		while [not tail? pc][
 			expr: pc
 			comp-expression/root
 			
 			if verbose > 2 [probe copy/part expr pc]
 			if verbose > 0 [emit-src-comment expr]
+			
+			if with [do body]
 		]
 	]
 	
@@ -586,7 +647,7 @@ red: context [
 			word/push _datatype!
 			datatype/push TYPE_DATATYPE			
 			word/set
-			stack/reset
+			stack/keep
 		]
 	]
 	

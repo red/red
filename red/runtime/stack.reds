@@ -43,7 +43,8 @@ stack: context [										;-- call stack
 	ctop:	 	calls-series/tail
 	
 	last-value: arguments
-	
+
+
 	reset: func [
 		return:  [cell!]
 		/local
@@ -51,7 +52,20 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
 		
+		top: arguments									;-- overwrite last value
+		last-value: arguments
+		arguments
+	]
+	
+	keep: func [
+		return:  [cell!]
+		/local
+			s	 [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/keep"]]
+		
 		top: arguments + 1								;-- keep last value in arguments slot
+		last-value: arguments
 		arguments
 	]
 
@@ -130,27 +144,21 @@ stack: context [										;-- call stack
 	]
 
 	#if debug? = yes [	
-		dump: func [									;-- debug purpose only
-			/local
-				s	[series!]
-				c	[series!]
-		][
+		dump: does [									;-- debug purpose only
 			print-line "^/---- Argument stack ----"
-			s: GET_BUFFER(arg-stk)
 			dump-memory
-				as byte-ptr! s/offset
+				as byte-ptr! bottom
 				4
-				(as-integer s/tail + 1 - s/offset) >> 4
+				(as-integer top + 1 - bottom) >> 4
 			print-line ["arguments: " arguments]
 			
 			print-line "^/---- Call stack ----"
-			c: GET_BUFFER(call-stk)
 			dump-memory
-				as byte-ptr! c/offset
+				as byte-ptr! cbottom
 				4
-			(as-integer c/tail + 1 - c/offset) >> 4
+			(as-integer ctop + 1 - cbottom) >> 4
 			
-			print-line ["c/tail: " c/tail]
+			print-line ["ctop: " ctop]
 		]
 	]
 ]
