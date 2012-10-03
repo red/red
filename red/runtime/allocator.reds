@@ -575,7 +575,7 @@ free-series: func [
 ;-------------------------------------------
 expand-series: func [
 	series  [series-buffer!]				;-- series to expand
-	new-sz	[integer!]						;-- new size in units
+	new-sz	[integer!]						;-- new size in bytes
 	return: [series-buffer!]				;-- return new series with new size
 	/local new units delta
 ][

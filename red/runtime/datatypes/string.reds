@@ -192,6 +192,61 @@ string: context [
 		s
 	]
 	
+	append-string: func [								;-- append str2 to str1
+		str1	  [red-string!]
+		str2	  [red-string!]
+		/local
+			s1	  [series!]
+			s2	  [series!]
+			unit1 [integer!]
+			unit2 [integer!]
+			size  [integer!]
+			size2 [integer!]
+			p	  [byte-ptr!]
+	][
+		s1: GET_BUFFER(str1)
+		s2: GET_BUFFER(str2)
+		unit1: GET_UNIT(s1)
+		unit2: GET_UNIT(s2)
+		
+		case [											;-- harmonize both encodings
+			unit1 < unit2 [
+				switch unit2 [
+					UCS-2 [s1: unicode/Latin1-to-UCS2 s1]
+					UCS-4 [
+						s1: either unit1 = Latin1 [
+							unicode/Latin1-to-UCS4 s1
+						][
+							unicode/UCS2-to-UCS4 s1
+						]
+					]
+				]
+				unit1: unit2
+			]
+			unit1 > unit2 [
+				switch unit1 [
+					UCS-2 [s2: unicode/Latin1-to-UCS2 s2]
+					UCS-4 [
+						s2: either unit2 = Latin1 [
+							unicode/Latin1-to-UCS4 s2
+						][
+							unicode/UCS2-to-UCS4 s2
+						]
+					]
+				]		
+			]
+			true [true]									;@@ catch all case to make compiler happy
+		]
+		size2: as-integer s2/tail - s2/offset - str2/head
+		size: (as-integer s1/tail - s1/offset - str1/head) + size2
+		
+		if s1/size < size [s1: expand-series s1 size + unit1]	;-- account for terminal NUL
+		
+		p: as byte-ptr! s1/tail
+		copy-memory	p as byte-ptr! s2/offset size2 + unit1		;-- copy NUL too
+		s1/tail: as cell! p + size2						;-- reset tail just before NUL
+	]
+	
 	push: func [
 		src		[c-string!]								;-- UTF-8 source string buffer
 		return: [red-value!]
@@ -454,23 +509,35 @@ string: context [
 			cell: s/offset + src/head
 
 			while [cell < s/tail][						;-- multiple values case
-				either TYPE_OF(cell) = TYPE_CHAR [
-					char: as red-char! cell				
-					dst: append-char dst char/value
-				][
-					--NOT_IMPLEMENTED--						;@@ actions/form needs to take an argument!
-					;TBD once INSERT is implemented
+				switch TYPE_OF(cell) [
+					TYPE_CHAR [
+						char: as red-char! cell				
+						dst: append-char dst char/value
+					]
+					TYPE_STRING [
+						append-string str as red-string! cell
+					]
+					default [
+						--NOT_IMPLEMENTED--						;@@ actions/form needs to take an argument!
+						;TBD once INSERT is implemented
+					]
 				]
 				cell: cell + 1
 			]
 		][												;-- single value case
-			either TYPE_OF(value) = TYPE_CHAR [
-				char: as red-char! value
-				dst: append-char dst char/value
-			][
-				actions/form no							;-- FORM value before appending
-				--NOT_IMPLEMENTED--
-				;TBD once INSERT is implemented
+			switch TYPE_OF(value) [
+				TYPE_CHAR [
+					char: as red-char! value
+					dst: append-char dst char/value
+				]
+				TYPE_STRING [
+					append-string str as red-string! value
+				]
+				default [
+					actions/form no							;-- FORM value before appending
+					--NOT_IMPLEMENTED--
+					;TBD once INSERT is implemented
+				]
 			]
 		]		
 		as red-value! str
