@@ -364,36 +364,32 @@ lexer: context [
 		code: to integer! c
 		
 		case [
-			code <= 127  [new: to char! last c]		;-- c <= 7Fh
+			code <= 127  [
+				new: to char! last c				;-- c <= 7Fh
+			]
 			code <= 2047 [							;-- c <= 07FFh
-				new: copy #{0000}
-				new/1: #"^(C0)"
-					or (shift/left to integer! (either code <= 255 [0][c/1]) and 7 2)
-					or shift/logical to integer! last c 6
-				new/2: #"^(80)" or (63 and last c)
+				new: (shift/left (shift code 6) or #"^(C0)" 8)
+						or (code and #"^(3F)") or #"^(80)"
 			]
 			code <= 65535 [							;-- c <= FFFFh
-				new: copy #{E00000}
-				new/1: #"^(E0)" or shift/logical to integer! c/1 4
-				new/2: #"^(80)" 
-					or (shift/left to integer! c/1 and 15 2)
-					or shift/logical to integer! c/2 6
-				new/3: #"^(80)" or (c/2 and 63)
+				new: (shift/left (shift code 12) or #"^(E0)" 16)
+						or (shift/left (shift code 6) and #"^(3F)" or #"^(80)" 8)
+						or (code and #"^(3F)") or #"^(80)"
 			]
 			code <= 1114111 [						;-- c <= 10FFFFh
-				new: copy #{F0000000}
-				new/2: #"^(80)"
-					or (shift/left to integer! c/1 and 3 4)
-					or (shift/logical to integer! c/2 4)
-				new/3: #"^(80)"
-					or (shift/left to integer! c/2 and 15 2)
-					or shift/logical to integer! c/3 6
-				new/4: #"^(80)" or (c/3 and 63)
+				new: (shift/left (shift code 18) or #"^(F0)" 24)
+						or (shift/left (shift code 12) and #"^(3F)" or #"^(80)" 16)
+						or (shift/left (shift code 6)  and #"^(3F)" or #"^(80)" 8)
+						or (code and #"^(3F)") or #"^(80)"
 			]
 			'else [
 				throw-error/with "Codepoints above U+10FFFF are not supported"
 			]
 		]
+		if integer? new [
+			new: debase/base to-hex new 16
+			remove-each byte new [byte = #"^(null)"]
+		]	
 		new
 	]
 	
@@ -425,7 +421,7 @@ lexer: context [
 			throw-error/with "Unsupported or invalid UTF-8 encoding"
 		]	
 		
-		encode-char to integer! value							;-- special encoding for Unicode char!
+		encode-char to integer! value				;-- special encoding for Unicode char!
 	]
 	
 	encode-char: func [value [integer!]][

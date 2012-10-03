@@ -332,10 +332,13 @@ red: context [
 		;-- emit expressions tree from leaf to root
 		while [not head? list][
 			list: back list
+			
 			insert body stack-reset
 			new-line body yes
+			
 			body: reduce test
 			new-line body yes
+			
 			insert body list/1
 		]
 		emit body	
