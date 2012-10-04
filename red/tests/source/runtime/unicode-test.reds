@@ -82,7 +82,21 @@ luu41:  lui-func "^(F0)^(90)^(80)^(80)"
 --assert luu41/4 = #"^(00)"
 
 --test-- "luu42"
-luu42:  lui-func "^(F4)^(8F)^(BF)^(BF)"
+luu42: lui-func "^(F4)^(8F)^(BF)^(BF)"
+print [{load utf-8 F48FBFBF} lf]
+print "first byte of first char! expected FF "
+prin-hex as integer! luu42/1
+print lf
+print "second byte of first char! expected FF "
+prin-hex as integer! luu42/2
+print lf
+print "third byte of first char! expected 10 "
+prin-hex as integer! luu42/3
+print lf
+print "fourth byte of first char! expected 00 "
+prin-hex as integer! luu42/4
+print lf
+
 --assert luu42/1 = #"^(FF)"
 --assert luu42/2 = #"^(FF)"
 --assert luu42/3 = #"^(10)"
@@ -90,6 +104,32 @@ luu42:  lui-func "^(F4)^(8F)^(BF)^(BF)"
 
 --test-- "luu43"
 luu43: lui-func "^(F0)^(90)^(80)^(80)^(F4)^(8F)^(BF)^(BF)"
+print [{load utf-8 F0908080F48FBFBF} lf]
+print "first byte of first char! expected 00 "
+prin-hex as integer! luu43/1
+print lf
+print "second byte of first char! expected 00 "
+prin-hex as integer! luu43/2
+print lf
+print "third byte of first char! expected 10 "
+prin-hex as integer! luu43/3
+print lf
+print "fourth byte of first char! expected 00 "
+prin-hex as integer! luu43/4
+print lf
+print "first byte of first char! expected FF "
+prin-hex as integer! luu43/5
+print lf
+print "second byte of first char! expected FF "
+prin-hex as integer! luu43/6
+print lf
+print "third byte of first char! expected 10 "
+prin-hex as integer! luu43/7
+print lf
+print "fourth byte of first char! expected 00 "
+prin-hex as integer! luu43/8
+print lf
+
 --assert luu43/1 = #"^(00)"
 --assert luu43/2 = #"^(00)"
 --assert luu43/3 = #"^(01)"
