@@ -6,12 +6,12 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-
 ;; include quick-test.r
 do %quick-test.r
 
 ;; set the base dir for the test source
-qt/tests-dir: system/options/path
+qt/tests-dir: system/script/path
+remove/part find/last qt/tests-dir "quick-test/" 11
 
 print rejoin ["Quick-Test v" qt/version]
 print rejoin ["Running under REBOL " system/version]
