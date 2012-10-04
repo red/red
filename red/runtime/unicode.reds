@@ -248,7 +248,7 @@ unicode: context [
 						]
 						true [
 							s/tail: as cell! buf1
-							unit: UCS-2
+							unit: UCS-4
 							s:    Latin1-to-UCS4 s		;-- upgrade to UCS-4
 							buf4: as int-ptr! s/tail
 							end:  (as byte-ptr! s/offset) + s/size
