@@ -12,7 +12,7 @@ Red/System [
 integer: context [
 	verbose: 0
 
-	get: func [										;-- unboxing integer value
+	get: func [											;-- unboxing integer value
 		value		[red-value!]
 		return: 	[integer!]
 		/local
@@ -23,20 +23,22 @@ integer: context [
 		cell/value
 	]
 	
-	form-signed: func [								;@@ replace with sprintf() call?
-		s [c-string!]
-		i [integer!]
+	form-signed: func [									;@@ replace with sprintf() call?
+		i 		[integer!]
 		return: [c-string!]
 		/local 
-			c [integer!]
-			n [logic!]
+			c 	[integer!]
+			n 	[logic!]
 	][
-		if zero? i [
-			s/1: #"0"
-			s/2: null-byte
-			return s
+		s: "-0000000000"								;-- 11 bytes wide	
+		if zero? i [									;-- zero special case
+			s/11: #"0"
+			return s + 10
 		]
-		n:  negative? i
+		if i = -2147483648 [							;-- min integer special case
+			return "-2147483648"
+		]
+		n: negative? i
 		if n [i: negate i]
 		c: 11
 		while [i <> 0][
@@ -45,7 +47,6 @@ integer: context [
 			c: c - 1
 		]
 		if n [s/c: #"-" c: c - 1]
-		s/12: null-byte
 		s + c
 	]
 	
@@ -94,25 +95,19 @@ integer: context [
 	;-- Actions --
 	
 	form: func [
-		part 		[integer!]
-		return: 	[integer!]
+		part 	[integer!]
+		return: [integer!]
 		/local
-			arg		[red-integer!]
-			value	[integer!]
-			str		[red-string!]
-			series	[series!]
+			int	[red-integer!]
+			str	[red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
 		
-		arg: as red-integer! stack/arguments
-		value: arg/value
-		
-		str: as red-string! arg + 1
+		int: as red-integer! stack/arguments
+		str: as red-string! int + 1
 		assert TYPE_OF(str) = TYPE_STRING
 		
-		series: GET_BUFFER(str)
-		series/offset: as cell! form-signed as c-string! series/offset value
-		series/tail: as cell! (as byte-ptr! series/tail) + 13
+		string/concatenate-literal str form-signed int/value
 		part											;@@ implement full support for /part
 	]
 	

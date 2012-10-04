@@ -67,7 +67,6 @@ string: context [
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 0
 		str/node: p
-		
 		p
 	]
 	
@@ -192,9 +191,10 @@ string: context [
 		s
 	]
 	
-	append-string: func [								;-- append str2 to str1
+	concatenate: func [									;-- append str2 to str1
 		str1	  [red-string!]
 		str2	  [red-string!]
+		keep?	  [logic!]								;-- do not change str2 encoding
 		/local
 			s1	  [series!]
 			s2	  [series!]
@@ -203,6 +203,7 @@ string: context [
 			size  [integer!]
 			size2 [integer!]
 			p	  [byte-ptr!]
+			cp	  [integer!]
 	][
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
@@ -223,7 +224,7 @@ string: context [
 				]
 				unit1: unit2
 			]
-			unit1 > unit2 [
+			all [unit1 > unit2 not keep?][
 				switch unit1 [
 					UCS-2 [s2: unicode/Latin1-to-UCS2 s2]
 					UCS-4 [
@@ -235,18 +236,48 @@ string: context [
 					]
 				]		
 			]
-			true [true]									;@@ catch all case to make compiler happy
+			true [true]									;@@ catch-all case to make compiler happy
 		]
 		size2: as-integer s2/tail - s2/offset - str2/head
 		size: (as-integer s1/tail - s1/offset - str1/head) + size2
 		
 		if s1/size < size [s1: expand-series s1 size + unit1]	;-- account for terminal NUL
 		
-		p: as byte-ptr! s1/tail
-		copy-memory	p as byte-ptr! s2/offset size2 + unit1		;-- copy NUL too
-		s1/tail: as cell! p + size2						;-- reset tail just before NUL
+		either all [keep? unit1 <> unit2][
+			p: as byte-ptr! s1/offset
+			while [not p/1 <> null-byte][
+				either unit2 = UCS-2 [
+					cp: (as-integer p/2) << 8 + p/1
+					p: p + 2
+				][
+					cp: as-integer p/1
+					p: p + 1
+				]
+				s1: append-char s1 cp
+			]
+		][
+			p: as byte-ptr! s1/tail
+			copy-memory	p as byte-ptr! s2/offset size2 + unit1	;-- copy NUL too
+			s1/tail: as cell! p + size2						;-- reset tail just before NUL
+		]
 	]
 	
+	concatenate-literal: func [
+		str		  [red-string!]
+		p		  [c-string!]							;-- Red/System literal string
+		/local
+			s	  [series!]
+	][
+		s: GET_BUFFER(str)
+		assert p/1 <> null-byte							;-- assume no empty string passed
+		
+		until [
+			append-char s as-integer p/1
+			p: p + 1
+			p/1 = null-byte
+		]
+	]
+
 	push: func [
 		src		[c-string!]								;-- UTF-8 source string buffer
 		return: [red-value!]
@@ -515,7 +546,7 @@ string: context [
 						dst: append-char dst char/value
 					]
 					TYPE_STRING [
-						append-string str as red-string! cell
+						concatenate str as red-string! cell no
 					]
 					default [
 						--NOT_IMPLEMENTED--						;@@ actions/form needs to take an argument!
@@ -531,7 +562,7 @@ string: context [
 					dst: append-char dst char/value
 				]
 				TYPE_STRING [
-					append-string str as red-string! value
+					concatenate str as red-string! value no
 				]
 				default [
 					actions/form no							;-- FORM value before appending

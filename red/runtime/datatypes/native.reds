@@ -46,6 +46,21 @@ native: context [
 		
 		as red-value! native
 	]
+	
+	form: func [
+		part	[integer!]
+		return: [integer!]
+		/local
+			str [red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "native/form"]]
+
+		str: as red-string! stack/arguments + 1
+		assert TYPE_OF(str) = TYPE_STRING
+
+		string/concatenate-literal str "?native?"
+		part											;@@ implement full support for /part
+	]
 
 	datatype/register [
 		TYPE_NATIVE
@@ -54,7 +69,7 @@ native: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path

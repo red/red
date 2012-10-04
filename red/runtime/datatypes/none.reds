@@ -38,22 +38,17 @@ none: context [
 	]
 	
 	form: func [
-		part		[integer!]
-		return: 	[integer!]
+		part	[integer!]
+		return: [integer!]
 		/local
-			buffer	[red-string!]
-			series	[series!]
+			str [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/form"]]
 
-		buffer: as red-string! stack/arguments + 1
-		assert TYPE_OF(buffer) = TYPE_STRING
-		series: as series! buffer/node/value
+		str: as red-string! stack/arguments + 1
+		assert TYPE_OF(str) = TYPE_STRING
 		
-		copy-memory
-			as byte-ptr! series/offset
-			as byte-ptr! "none"
-			5											;-- includes null terminal character
+		string/concatenate-literal str "none"
 		part											;@@ implement full support for /part
 	]
 	

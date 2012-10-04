@@ -61,27 +61,19 @@ logic: context [
 	]
 	
 	form: func [
-		part	   [integer!]
-		return:    [integer!]
+		part	 [integer!]
+		return:  [integer!]
 		/local
-			buffer [red-string!]
-			series [series!]
-			str	   [c-string!]
-			size   [integer!]
+			str	 [red-string!]
+			size [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/form"]]
 
 		boolean: as red-logic! stack/arguments
-		buffer: as red-string! boolean + 1
-		assert TYPE_OF(buffer) = TYPE_STRING
-		series: GET_BUFFER(buffer)
-	
-		str: either boolean/value [size: 5 "true"][size: 6 "false"]	
-		
-		copy-memory
-			as byte-ptr! series/offset
-			as byte-ptr! str							;@@ mark buffer as "external/permanent"
-			size										;-- includes null terminal character
+		str: as red-string! boolean + 1
+		assert TYPE_OF(str) = TYPE_STRING
+
+		string/concatenate-literal str either boolean/value ["true"]["false"]
 		part											;@@ implement full support for /part
 	]
 	

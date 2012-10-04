@@ -84,6 +84,21 @@ datatype: context [
 		as red-value! dt
 	]
 	
+	form: func [
+		part	[integer!]
+		return: [integer!]
+		/local
+			str [red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "datatype/form"]]
+
+		str: as red-string! stack/arguments + 1
+		assert TYPE_OF(str) = TYPE_STRING
+
+		string/concatenate-literal str "...TBD..."		;@@ TBD
+		part											;@@ implement full support for /part
+	]
+	
 	register [
 		TYPE_DATATYPE
 		;-- General actions --
@@ -91,7 +106,7 @@ datatype: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path

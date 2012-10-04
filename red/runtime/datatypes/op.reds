@@ -46,6 +46,21 @@ op: context [
 		
 		as red-value! op
 	]
+	
+	form: func [
+		part	[integer!]
+		return: [integer!]
+		/local
+			str [red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "op/form"]]
+
+		str: as red-string! stack/arguments + 1
+		assert TYPE_OF(str) = TYPE_STRING
+
+		string/concatenate-literal str "?op?"
+		part											;@@ implement full support for /part
+	]
 
 	datatype/register [
 		TYPE_OP
@@ -54,7 +69,7 @@ op: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path
