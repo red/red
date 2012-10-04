@@ -219,7 +219,9 @@ platform: context [
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
 	init: does [
-		_setmode fd-stdout _O_U16TEXT					;@@ throw an error on failure
-		_setmode fd-stderr _O_U16TEXT					;@@ throw an error on failure
+		#if unicode? = yes [
+			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
+			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
+		]
 	]
 ]
