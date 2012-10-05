@@ -21,14 +21,9 @@ refinement: context [
 			cell  [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "refinement/load"]]
-		symbol/make str
-		id: block/rs-length? symbols
 		
-		cell: as red-word! ALLOC_TAIL(root)
+		cell: word/load str
 		cell/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
-		cell/ctx: 	 global-ctx
-		cell/symbol: id
-		cell/index:  _context/add global-ctx cell
 		cell
 	]
 	
@@ -60,6 +55,17 @@ refinement: context [
 	
 	;-- Actions --
 	
+	form: func [
+		part 		[integer!]
+		return: 	[integer!]
+		/local
+			arg		[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "refinement/form"]]
+
+		word/form part									;@@ implement full support for /part
+	]
+	
 	datatype/register [
 		TYPE_REFINEMENT
 		;-- General actions --
@@ -67,7 +73,7 @@ refinement: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path

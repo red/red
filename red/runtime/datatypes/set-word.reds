@@ -61,6 +61,17 @@ set-word: context [
 	
 	;-- Actions --
 	
+	form: func [
+		part 		[integer!]
+		return: 	[integer!]
+		/local
+			arg		[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "set-word/form"]]
+
+		word/form part									;@@ implement full support for /part
+	]
+	
 	datatype/register [
 		TYPE_SET_WORD
 		;-- General actions --
@@ -68,11 +79,11 @@ set-word: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path
-		null			;compare		
+		null			;compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

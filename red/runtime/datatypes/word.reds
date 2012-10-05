@@ -20,9 +20,8 @@ word: context [
 			id    [integer!]							;-- symbol ID
 			cell  [red-word!]
 	][
-		symbol/make str
-		id: block/rs-length? symbols
-		
+		id: symbol/make str
+
 		cell: as red-word! ALLOC_TAIL(root)
 		cell/header: TYPE_WORD							;-- implicit reset of all header flags
 		cell/ctx: 	 global-ctx
@@ -72,6 +71,24 @@ word: context [
 	]
 	
 	;-- Actions --
+	
+	form: func [
+		part 	 [integer!]
+		return:  [integer!]
+		/local
+			word [red-word!]
+			s	 [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/form"]]
+		
+		word: as red-word! stack/arguments
+		s: GET_BUFFER(symbols)
+		copy-cell
+			s/offset + word/symbol - 1
+			as cell! word
+		
+		string/form part								;@@ implement full support for /part
+	]
 
 	datatype/register [
 		TYPE_WORD
@@ -80,7 +97,7 @@ word: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path

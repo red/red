@@ -60,7 +60,6 @@ _context: context [
 		value		[red-value!]
 		/local
 			values	[series!]
-			cell	[cell!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/set"]]
 		
@@ -68,8 +67,7 @@ _context: context [
 			word/index: find-word word/ctx word/symbol
 		]
 		values: as series! word/ctx/values/value
-		cell: values/offset + word/index
-		copy-cell value cell
+		copy-cell value values/offset + word/index
 	]
 
 	get: func [

@@ -59,9 +59,9 @@ red-string!: alias struct! [
 
 red-symbol!: alias struct! [
 	header 	[integer!]								;-- cell header
-	buffer	[c-string!]								;-- string buffer pointer
-	_pad1	[integer!]
-	_pad2	[integer!]
+	alias	[integer!]								;-- Alias symbol index
+	node	[node!]									;-- string series node pointer
+	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
 ]
 
 red-integer!: alias struct! [

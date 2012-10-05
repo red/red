@@ -22,7 +22,10 @@ natives: context [
 		
 		actions/form off
 		str: as red-string! stack/arguments + 1	
-		assert TYPE_OF(str) = TYPE_STRING
+		assert any [
+			TYPE_OF(str) = TYPE_STRING
+			TYPE_OF(str) = TYPE_SYMBOL					;-- symbol! and string! structs are overlapping
+		]
 		
 		series: GET_BUFFER(str)
 

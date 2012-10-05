@@ -12,18 +12,79 @@ Red/System [
 symbol: context [
 	verbose: 0
 	
+	same?: func [										;-- case-insensitive string comparison
+		str1	     [c-string!]
+		str2	     [c-string!]
+		return:      [integer!]
+		/local
+			aliased? [logic!]
+			c1	     [byte!]
+			c2	     [byte!]
+	][		
+		aliased?: no
+		c1:   str1/1
+		c2:   str2/1
+
+		while [c1 <> null-byte][
+			if c1 <> c2 [
+				if all [#"A" <= c1 c1 <= #"Z"][c1: c1 + 32]	;-- lowercase c1
+				if all [#"A" <= c2 c2 <= #"Z"][c2: c2 + 32] ;-- lowercase c2
+				if c1 <> c2 [return 0]				;-- not same case-insensitive character
+				aliased?: yes
+			]
+			str1: str1 + 1
+			str2: str2 + 1
+			c1: str1/1
+			c2: str2/1
+		]
+		case [
+			c2 <> null-byte [0]							;-- not matching
+			aliased? [-1]								;-- similar (case-insensitive matching)
+			true [1]									;-- same (case-sensitive matching)
+		]
+	]
+	
+	search: func [										;@@ use a faster lookup method later
+		str 	  [c-string!]							;-- UTF-8 string
+		return:	  [integer!]
+		/local
+			s	  [series!]
+			entry [red-symbol!]
+			end   [red-symbol!]
+			id	  [integer!]
+	][
+		s: GET_BUFFER(symbols)
+		entry: as red-symbol! s/offset
+		end:   as red-symbol! s/tail
+		i: 1
+		
+		while [entry < end][
+			id: same? entry/cache str
+			if id <> 0 [return id]						;-- matching symbol found
+			i: i + 1
+			entry: entry + 1
+		]
+		0												;-- no matching symbol
+	]
+	
 	make: func [
 		s 		[c-string!]								;-- input c-string!
-		return:	[red-symbol!]
+		return:	[integer!]
 		/local 
 			sym	[red-symbol!]
+			id	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
 		
+		id: search s
+		if positive? id [return id]
+		
 		sym: as red-symbol! ALLOC_TAIL(symbols)	
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
-		sym/buffer: s									;-- permanent string buffer in data segment
-		sym
+		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
+		sym/node:   unicode/load-utf8 s 1 + length? s
+		sym/cache:  s
+		either zero? id [block/rs-length? symbols][0 - id]
 	]
 	
 	push: func [
