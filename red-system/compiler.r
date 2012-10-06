@@ -43,7 +43,6 @@ system-dialect: make-profilable context [
 	
 		imports: 	   	 make block! 10					;-- list of imported functions
 		natives:	   	 make hash!  40					;-- list of functions to compile [name [specs] [body]...]
-		guesses:	   	 make hash!  40					;-- list of lazily defined symbols with namespace [ns/name [type line script]...]
 		ns-path:		 none							;-- namespaces access path
 		ns-list:		 make hash!  8					;-- namespaces definition list [name [word type...]...]
 		with-stack:		 none							;-- namespaces local prefixes stack
@@ -2656,11 +2655,10 @@ system-dialect: make-profilable context [
 	]
 	
 	clean-up: does [
-		compiler/ns-path: none
+		compiler/ns-path: compiler/with-stack: none
 		clear compiler/imports
 		clear compiler/natives
 		clear compiler/ns-list
-		clear compiler/guesses
 		clear compiler/globals
 		clear compiler/definitions
 		clear compiler/enumerations
