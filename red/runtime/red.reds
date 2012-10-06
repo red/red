@@ -32,7 +32,8 @@ red: context [
 	
 	;-- Datatypes --
 	
-	action-table: as int-ptr! allocate 256 * 50 * 4		;@@ wrap it in vector! when available?
+	action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table	
+	name-table: as int-ptr! allocate 50 * size? pointer!	 	 ;-- datatype names table
 
 	#include %datatypes/structures.reds
 	#include %datatypes/common.reds
@@ -47,7 +48,9 @@ red: context [
 	#include %datatypes/symbol.reds
 	#include %datatypes/context.reds
 	#include %datatypes/word.reds
+	#include %datatypes/lit-word.reds
 	#include %datatypes/set-word.reds
+	#include %datatypes/get-word.reds
 	#include %datatypes/refinement.reds
 	#include %datatypes/char.reds
 	#include %datatypes/action.reds
