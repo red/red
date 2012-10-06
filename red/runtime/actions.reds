@@ -24,10 +24,6 @@ actions: context [
 		arg: stack/arguments
 		type: arg/header and get-type-mask
 		
-		if type = TYPE_DATATYPE [
-			dt: as red-datatype! arg
-			type: dt/value
-		]
 		index: type << 8 + action
 		index: action-table/index						;-- lookup action function pointer
 
