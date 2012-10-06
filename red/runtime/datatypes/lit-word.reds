@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Set-word! datatype runtime functions"
+	Title:   "Lit-word! datatype runtime functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %set-word.reds
+	File: 	 %lit-word.reds
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -9,38 +9,38 @@ Red/System [
 	}
 ]
 
-set-word: context [
+lit-word: context [
 	verbose: 0
 	
 	load: func [
-		str 	[c-string!]
-		return:	[red-word!]
+		str 	 [c-string!]
+		return:	 [red-word!]
 		/local 
-			p	  [node!]
-			id    [integer!]							;-- symbol ID
-			cell  [red-word!]
+			p	 [node!]
+			id   [integer!]								;-- symbol ID
+			cell [red-word!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "set-word/load"]]
+		#if debug? = yes [if verbose > 0 [print-line "lit-word/load"]]
 		
 		cell: word/load str
-		cell/header: TYPE_SET_WORD					;-- implicit reset of all header flags
+		cell/header: TYPE_LIT_WORD						;-- implicit reset of all header flags
 		cell
 	]
 	
 	push: func [
 		w  [red-word!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "set-word/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "lit-word/push"]]
 		
 		w: red/word/push w
-		set-type as red-value! w TYPE_SET_WORD
+		set-type as red-value! w TYPE_LIT_WORD
 	]
 
 	set: func [
 		/local
 			args [cell!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "set-word/set"]]
+		#if debug? = yes [if verbose > 0 [print-line "lit-word/set"]]
 		
 		args: stack/arguments
 		_context/set as red-word! args args + 1
@@ -48,7 +48,7 @@ set-word: context [
 	]
 	
 	get: does [
-		#if debug? = yes [if verbose > 0 [print-line "set-word/get"]]
+		#if debug? = yes [if verbose > 0 [print-line "lit-word/get"]]
 		
 		stack/set-last _context/get as red-word! stack/arguments
 	]
@@ -61,13 +61,13 @@ set-word: context [
 		/local
 			arg		[red-value!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "set-word/form"]]
+		#if debug? = yes [if verbose > 0 [print-line "lit-word/form"]]
 
 		word/form part									;@@ implement full support for /part
 	]
 	
 	datatype/register [
-		TYPE_SET_WORD
+		TYPE_LIT_WORD
 		;-- General actions --
 		null			;make
 		null			;random
