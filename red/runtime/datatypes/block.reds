@@ -395,6 +395,7 @@ block: context [
 	
 	datatype/register [
 		TYPE_BLOCK
+		"block"
 		;-- General actions --
 		:make
 		null			;random

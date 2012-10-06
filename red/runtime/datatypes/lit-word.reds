@@ -68,6 +68,7 @@ lit-word: context [
 	
 	datatype/register [
 		TYPE_LIT_WORD
+		"lit-word"
 		;-- General actions --
 		null			;make
 		null			;random

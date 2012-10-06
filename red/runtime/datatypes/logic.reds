@@ -101,6 +101,7 @@ logic: context [
 	
 	datatype/register [
 		TYPE_LOGIC
+		"logic"
 		;-- General actions --
 		:make
 		null			;random

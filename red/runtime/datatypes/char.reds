@@ -154,6 +154,7 @@ char: context [
 
 	datatype/register [
 		TYPE_CHAR
+		"char"
 		;-- General actions --
 		null			;make
 		null			;random

@@ -178,6 +178,7 @@ integer: context [
 	
 	datatype/register [
 		TYPE_INTEGER
+		"integer"
 		;-- General actions --
 		null			;make
 		null			;random

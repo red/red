@@ -64,6 +64,7 @@ action: context [
 
 	datatype/register [
 		TYPE_ACTION
+		"action"
 		;-- General actions --
 		:make
 		null			;random

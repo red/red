@@ -29,9 +29,13 @@ datatype: context [
 			index [integer!]
 	][
 		type: list/value
-		index: type << 8 + 1							;-- consume first argument (type ID), one-based index
+		assert type < 50								;-- hard limit of action table
 		list: list + 1
-		count: count - 1
+		
+		index: type + 1									;-- one-based
+		name-table/index: list/value
+		list: list + 1
+		count: count - 2
 		
 		if count <> ACTIONS_NB [
 			print [
@@ -42,6 +46,7 @@ datatype: context [
 			halt
 		]
 		
+		index: type << 8 + 1							;-- consume first argument (type ID), one-based index
 		until [
 			action-table/index: list/value
 			index: index + 1
@@ -85,22 +90,27 @@ datatype: context [
 	]
 	
 	form: func [
-		part	[integer!]
-		return: [integer!]
+		part	 [integer!]
+		return:  [integer!]
 		/local
-			str [red-string!]
+			dt   [red-datatype!]
+			str  [red-string!]
+			name [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/form"]]
 
+		dt: as red-datatype! stack/arguments
 		str: as red-string! stack/arguments + 1
 		assert TYPE_OF(str) = TYPE_STRING
 
-		string/concatenate-literal str "...TBD..."		;@@ TBD
+		name: name-table + dt/value
+		string/concatenate-literal str as c-string! name/value
 		part											;@@ implement full support for /part
 	]
 	
 	register [
 		TYPE_DATATYPE
+		"datatype"
 		;-- General actions --
 		:make
 		null			;random

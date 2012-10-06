@@ -64,6 +64,7 @@ op: context [
 
 	datatype/register [
 		TYPE_OP
+		"op"
 		;-- General actions --
 		:make
 		null			;random
@@ -73,7 +74,7 @@ op: context [
 		null			;mold
 		null			;get-path
 		null			;set-path
-		null			;compare		
+		null			;compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

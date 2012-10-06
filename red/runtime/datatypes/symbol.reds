@@ -97,6 +97,7 @@ symbol: context [
 	
 	datatype/register [
 		TYPE_SYMBOL
+		"symbol"
 		;-- General actions --
 		null			;make
 		null			;random

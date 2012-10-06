@@ -68,6 +68,7 @@ refinement: context [
 	
 	datatype/register [
 		TYPE_REFINEMENT
+		"refinement"
 		;-- General actions --
 		null			;make
 		null			;random
@@ -77,7 +78,7 @@ refinement: context [
 		null			;mold
 		null			;get-path
 		null			;set-path
-		null			;compare		
+		null			;compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

@@ -68,6 +68,7 @@ get-word: context [
 	
 	datatype/register [
 		TYPE_GET_WORD
+		"get-word"
 		;-- General actions --
 		null			;make
 		null			;random

@@ -633,6 +633,7 @@ string: context [
 	
 	datatype/register [
 		TYPE_STRING
+		"string"
 		;-- General actions --
 		:make
 		null			;random

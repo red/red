@@ -54,6 +54,7 @@ none: context [
 	
 	datatype/register [
 		TYPE_NONE
+		"none"
 		;-- General actions --
 		:make
 		null			;random
@@ -63,7 +64,7 @@ none: context [
 		null			;mold
 		null			;get-path
 		null			;set-path
-		null			;compare		
+		null			;compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

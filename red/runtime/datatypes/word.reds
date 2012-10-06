@@ -92,6 +92,7 @@ word: context [
 
 	datatype/register [
 		TYPE_WORD
+		"word"
 		;-- General actions --
 		null			;make
 		null			;random
