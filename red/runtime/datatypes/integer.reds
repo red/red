@@ -106,6 +106,19 @@ integer: context [
 		part											;@@ implement full support for /part
 	]
 	
+	mold: func [
+		int		[red-integer!]
+		buffer	[red-string!]
+		part 	[integer!]
+		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/mold"]]
+
+		string/concatenate-literal buffer form-signed int/value
+		part											;@@ implement full support for /part
+	]
+	
 	compare: func [
 		value1    [red-integer!]						;-- first operand
 		value2    [red-integer!]						;-- second operand
@@ -180,7 +193,7 @@ integer: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		:compare

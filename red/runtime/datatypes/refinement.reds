@@ -56,13 +56,26 @@ refinement: context [
 	;-- Actions --
 	
 	form: func [
-		w	[red-word!]
+		w	    [red-word!]
 		buffer	[red-string!]
 		part 	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "refinement/form"]]
 
+		word/form w buffer part							;@@ implement full support for /part
+	]
+	
+	mold: func [
+		w	    [red-word!]
+		buffer	[red-string!]
+		part 	[integer!]
+		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "refinement/mold"]]
+
+		string/append-char GET_BUFFER(buffer) as-integer #"/"
 		word/form w buffer part							;@@ implement full support for /part
 	]
 	
@@ -75,7 +88,7 @@ refinement: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		null			;compare

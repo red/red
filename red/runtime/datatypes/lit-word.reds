@@ -66,6 +66,19 @@ lit-word: context [
 		word/form w buffer part							;@@ implement full support for /part
 	]
 	
+	mold: func [
+		w		[red-word!]
+		buffer	[red-string!]
+		part 	[integer!]
+		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "lit-word/mold"]]
+		
+		string/append-char GET_BUFFER(buffer) as-integer #"'"
+		word/form w buffer part							;@@ implement full support for /part
+	]
+	
 	datatype/register [
 		TYPE_LIT_WORD
 		"lit-word"
@@ -75,7 +88,7 @@ lit-word: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		null			;compare

@@ -310,7 +310,22 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/form"]]
 
-		string/concatenate buffer str no
+		concatenate buffer str no
+		part											;@@ implement full support for /part
+	]
+	
+	mold: func [
+		str		[red-string!]
+		buffer	[red-string!]
+		part 	[integer!]
+		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/mold"]]
+
+		append-char GET_BUFFER(buffer) as-integer #"^""
+		concatenate buffer str no
+		append-char GET_BUFFER(buffer) as-integer #"^""
 		part											;@@ implement full support for /part
 	]
 	
@@ -562,7 +577,7 @@ string: context [
 					concatenate str as red-string! value no
 				]
 				default [
-					actions/form* no					;-- FORM value before appending
+					;actions/form* no					;-- FORM value before appending
 					--NOT_IMPLEMENTED--
 					;TBD once INSERT is implemented
 				]
@@ -637,7 +652,7 @@ string: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		null			;compare

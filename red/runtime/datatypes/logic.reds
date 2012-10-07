@@ -72,6 +72,20 @@ logic: context [
 		part											;@@ implement full support for /part
 	]
 	
+	mold: func [
+		boolean	[red-logic!]
+		buffer	[red-string!]
+		part	[integer!]
+		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/mold"]]
+
+		form boolean buffer part
+		part											;@@ implement full support for /part
+	]
+
+	
 	compare: func [
 		arg1      [red-logic!]							;-- first operand
 		arg2	  [red-logic!]							;-- second operand
@@ -103,7 +117,7 @@ logic: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		:compare

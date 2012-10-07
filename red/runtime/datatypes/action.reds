@@ -60,6 +60,22 @@ action: context [
 		string/concatenate-literal buffer "?action?"
 		part											;@@ implement full support for /part
 	]
+	
+	mold: func [
+		value	[red-action!]
+		buffer	[red-string!]
+		part	[integer!]
+		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return: [integer!]
+		/local
+			str [red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "action/mold"]]
+
+		string/concatenate-literal buffer "make action! [...]" ;@@ TBD
+		part											;@@ implement full support for /part
+	]
+
 
 	datatype/register [
 		TYPE_ACTION
@@ -70,7 +86,7 @@ action: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		null			;compare

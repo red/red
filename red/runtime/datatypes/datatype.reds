@@ -104,6 +104,20 @@ datatype: context [
 		part											;@@ implement full support for /part
 	]
 	
+	mold: func [
+		dt		 [red-datatype!]
+		buffer	 [red-string!]
+		part	 [integer!]
+		flags    [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return:  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
+
+		part: part - form dt buffer part
+		string/append-char GET_BUFFER(buffer) as-integer #"!"
+		part											;@@ implement full support for /part
+	]
+	
 	register [
 		TYPE_DATATYPE
 		"datatype"
@@ -113,7 +127,7 @@ datatype: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		null			;compare

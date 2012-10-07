@@ -24,35 +24,30 @@ char: context [
 	
 	;-- Actions --
 	
-	mold: func [
-		part 		[integer!]
-		/local
-			arg		[red-char!]
-			str		[red-string!]
-			series	[series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "char/mold"]]
-
-		arg: as red-char! stack/arguments
-		str: as red-string! arg + 1
-		assert TYPE_OF(str) = TYPE_STRING
-
-		series: GET_BUFFER(str)
-		string/append-char series as-integer #"#"
-		string/append-char series as-integer #"^""
-		string/append-char series arg/value
-		string/append-char series as-integer #"^""
-		part											;@@ implement full support for /part
-	]
-	
 	form: func [
-		arg		 	[red-char!]
-		buffer		[red-string!]
-		part 		[integer!]
+		arg	    [red-char!]
+		buffer  [red-string!]
+		part    [integer!]
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "char/form"]]
 
 		string/append-char GET_BUFFER(buffer) arg/value
+		part											;@@ implement full support for /part
+	]
+	
+	mold: func [
+		arg	   [red-char!]
+		buffer [red-string!]
+		part   [integer!]
+		flags  [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/mold"]]
+
+		string/concatenate-literal buffer {#"}
+		string/append-char GET_BUFFER(buffer) arg/value
+		string/append-char GET_BUFFER(buffer) as-integer #"^""
 		part											;@@ implement full support for /part
 	]
 
@@ -154,7 +149,7 @@ char: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		:compare

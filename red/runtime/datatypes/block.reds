@@ -11,6 +11,8 @@ Red/System [
 
 block: context [
 	verbose: 0
+	
+	depth: 0											;-- used to trace nesting level for FORM/MOLD
 
 	rs-length?: func [
 		blk 	[red-block!]
@@ -127,7 +129,7 @@ block: context [
 			value: s/offset + i
 			value < s/tail
 		][
-			actions/form value buffer part
+			part: part - actions/form value buffer part
 			i: i + 1
 			
 			if TYPE_OF(value) <> TYPE_BLOCK [
@@ -138,9 +140,40 @@ block: context [
 	]
 	
 	mold: func [
-		part	[integer!]
+		blk		  [red-block!]
+		buffer	  [red-string!]
+		part 	  [integer!]
+		flags     [integer!]							;-- 0: /only, 1: /all, 2: /flat
+		return:   [integer!]
+		/local
+			s	  [series!]
+			value [red-value!]
+			i     [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "block/mold"]]
+		
+		string/append-char GET_BUFFER(buffer) as-integer #"["
 
+		s: GET_BUFFER(blk)			
+		i: blk/head
+		while [
+			value: s/offset + i
+			value < s/tail
+		][
+			depth: depth + 1
+			part: part - actions/mold value buffer part flags
+		
+			if positive? depth [
+				string/append-char GET_BUFFER(buffer) as-integer #" "
+			]
+			depth: depth - 1
+			i: i + 1
+		]
+		s: GET_BUFFER(buffer)
+		s/tail: as cell! (as byte-ptr! s/tail) - 1		;-- remove extra white space
+		
+		string/append-char s as-integer #"]"
+		part
 	]
 	
 	;--- Property reading actions ---
@@ -430,7 +463,7 @@ block: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		null			;compare

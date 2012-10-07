@@ -40,6 +40,18 @@ unset: context [
 		string/concatenate-literal buffer "unset"
 		part											;@@ implement full support for /part
 	]
+	
+	mold: func [
+		value	[red-unset!]
+		buffer	[red-string!]
+		part	[integer!]
+		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return:	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "unset/mold"]]
+		
+		part - form value buffer part					;@@ implement full support for /part
+	]
 
 	datatype/register [
 		TYPE_UNSET
@@ -50,7 +62,7 @@ unset: context [
 		null			;reflect
 		null			;to
 		:form
-		null			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		null			;compare

@@ -73,19 +73,22 @@ actions: context [
 	to*: func [][]
 
 	form*: func [
-		part 		[logic!]
 		/local
 			buffer  [red-string!]
+			part 	[logic!]
 	][
+		part: off										;@@ TBD
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push either part [16][16] ;@@ /part argument
 		form stack/arguments buffer -1
+		stack/set-last as red-value! buffer
 	]
 	
 	form: func [
-		value  [red-value!]								;-- FORM argument
-		buffer [red-string!]							;-- FORM buffer
-		part   [integer!]									;-- max bytes count
+		value   [red-value!]							;-- FORM argument
+		buffer  [red-string!]							;-- FORM buffer
+		part    [integer!]								;-- max bytes count
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/form"]]
 
@@ -99,8 +102,39 @@ actions: context [
 		action-form value buffer -1
 	]
 	
+	mold*: func [
+		/local
+			buffer  [red-string!]
+			flags 	[integer!]
+	][
+		flags: 0										;@@ fill flags testing refinements presence
+		stack/keep										;-- keep last value
+		buffer: string/rs-make-at stack/push 16			;@@ /part argument
+		mold stack/arguments buffer -1 flags
+		stack/set-last as red-value! buffer
+	]
+	
+	mold: func [
+		value   [red-value!]							;-- MOLD argument
+		buffer  [red-string!]							;-- MOLD buffer
+		part    [integer!]								;-- max bytes count
+		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/mold"]]
 
-	mold*: func [][]
+		action-mold: as function! [						;-- needs to be globally bound
+			value	[red-value!]						;-- FORM argument
+			buffer	[red-string!]						;-- FORM buffer
+			part	[integer!]							;-- max bytes count
+			flags	[integer!]							;-- 0: /only, 1: /all, 2: /flat
+			return: [integer!]							;-- remaining part count
+		] get-action-ptr value ACT_MOLD
+
+		action-mold value buffer -1 flags
+	]
+	
+	
 	get-path*: func [][]
 	set-path*: func [][]
 	
