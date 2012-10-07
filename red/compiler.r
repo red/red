@@ -242,10 +242,8 @@ red: context [
 				emit-close-frame
 				emit block-append*
 				insert-lf -1
-				if sub [
-					emit stack-keep						;-- reset stack, but keep block as last value
-					insert-lf -1
-				]
+				emit stack-keep							;-- reset stack, but keep block as last value
+				insert-lf -1
 			][
 				if item = #get-definition [				;-- temporary directive
 					value: select extracts/definitions blk/2
@@ -273,8 +271,10 @@ red: context [
 				
 				emit block-append*
 				insert-lf -1
-				emit stack-keep							;-- reset stack, but keep block as last value
-				insert-lf -1
+				unless tail? next blk [
+					emit stack-keep						;-- reset stack, but keep block as last value
+					insert-lf -1
+				]
 			]
 		]
 		unless sub [emit-close-frame]
@@ -650,7 +650,7 @@ red: context [
 			word/push _datatype!
 			datatype/push TYPE_DATATYPE			
 			word/set
-			stack/keep
+			stack/reset
 		]
 	]
 	
