@@ -15,18 +15,24 @@ natives: context [
 
 	print*: func [
 		/local
+			arg		[red-value!]
 			str		[red-string!]
 			series	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/print"]]
 		
-		actions/form* off
-		str: as red-string! stack/arguments + 1	
-		assert any [
-			TYPE_OF(str) = TYPE_STRING
-			TYPE_OF(str) = TYPE_SYMBOL					;-- symbol! and string! structs are overlapping
-		]
+		arg: stack/arguments
 		
+		either TYPE_OF(arg) = TYPE_STRING [
+			str: as red-string! arg
+		][
+			actions/form*
+			str: as red-string! arg + 1	
+			assert any [
+				TYPE_OF(str) = TYPE_STRING
+				TYPE_OF(str) = TYPE_SYMBOL					;-- symbol! and string! structs are overlapping
+			]
+		]
 		series: GET_BUFFER(str)
 
 		switch GET_UNIT(series) [
