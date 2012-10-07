@@ -108,7 +108,35 @@ block: context [
 	][
 	
 	]
-
+	
+	form: func [
+		blk		  [red-block!]
+		buffer	  [red-string!]
+		part 	  [integer!]
+		return:   [integer!]
+		/local
+			s	  [series!]
+			value [red-value!]
+			i     [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/form"]]
+		
+		i: blk/head
+		while [
+			s: GET_BUFFER(blk)		
+			value: s/offset + i
+			value < s/tail
+		][
+			actions/form value buffer part
+			i: i + 1
+			
+			if TYPE_OF(value) <> TYPE_BLOCK [
+				string/append-char GET_BUFFER(buffer) as-integer #" "
+			]
+		]
+		part
+	]
+	
 	mold: func [
 		part	[integer!]
 	][
@@ -401,11 +429,11 @@ block: context [
 		null			;random
 		null			;reflect
 		null			;to
-		null			;form
+		:form
 		null			;mold
 		null			;get-path
 		null			;set-path
-		null			;compare		
+		null			;compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

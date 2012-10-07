@@ -56,14 +56,14 @@ refinement: context [
 	;-- Actions --
 	
 	form: func [
-		part 		[integer!]
-		return: 	[integer!]
-		/local
-			arg		[red-value!]
+		w	[red-word!]
+		buffer	[red-string!]
+		part 	[integer!]
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "refinement/form"]]
 
-		word/form part									;@@ implement full support for /part
+		word/form w buffer part							;@@ implement full support for /part
 	]
 	
 	datatype/register [

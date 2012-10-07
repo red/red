@@ -56,6 +56,8 @@ get-word: context [
 	;-- Actions --
 	
 	form: func [
+		w			[red-word!]
+		buffer		[red-string!]
 		part 		[integer!]
 		return: 	[integer!]
 		/local
@@ -63,7 +65,7 @@ get-word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-word/form"]]
 
-		word/form part									;@@ implement full support for /part
+		word/form w buffer part							;@@ implement full support for /part
 	]
 	
 	datatype/register [

@@ -38,17 +38,14 @@ none: context [
 	]
 	
 	form: func [
+		value	[red-none!]
+		buffer	[red-string!]
 		part	[integer!]
 		return: [integer!]
-		/local
-			str [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/form"]]
-
-		str: as red-string! stack/arguments + 1
-		assert TYPE_OF(str) = TYPE_STRING
 		
-		string/concatenate-literal str "none"
+		string/concatenate-literal buffer "none"
 		part											;@@ implement full support for /part
 	]
 	

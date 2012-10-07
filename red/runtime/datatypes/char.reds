@@ -46,20 +46,13 @@ char: context [
 	]
 	
 	form: func [
+		arg		 	[red-char!]
+		buffer		[red-string!]
 		part 		[integer!]
-		/local
-			arg		[red-char!]
-			str		[red-string!]
-			series	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "char/form"]]
 
-		arg: as red-char! stack/arguments
-		str: as red-string! arg + 1
-		assert TYPE_OF(str) = TYPE_STRING
-
-		series: GET_BUFFER(str)
-		string/append-char series arg/value
+		string/append-char GET_BUFFER(buffer) arg/value
 		part											;@@ implement full support for /part
 	]
 

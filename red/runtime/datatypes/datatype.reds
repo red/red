@@ -90,21 +90,17 @@ datatype: context [
 	]
 	
 	form: func [
+		dt		 [red-datatype!]
+		buffer	 [red-string!]
 		part	 [integer!]
 		return:  [integer!]
 		/local
-			dt   [red-datatype!]
-			str  [red-string!]
 			name [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/form"]]
 
-		dt: as red-datatype! stack/arguments
-		str: as red-string! stack/arguments + 1
-		assert TYPE_OF(str) = TYPE_STRING
-
 		name: name-table + dt/value
-		string/concatenate-literal str as c-string! name/value
+		string/concatenate-literal buffer as c-string! name/value
 		part											;@@ implement full support for /part
 	]
 	

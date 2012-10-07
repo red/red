@@ -61,19 +61,14 @@ logic: context [
 	]
 	
 	form: func [
-		part	 [integer!]
-		return:  [integer!]
-		/local
-			str	 [red-string!]
-			size [integer!]
+		boolean	[red-logic!]
+		buffer	[red-string!]
+		part	[integer!]
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/form"]]
 
-		boolean: as red-logic! stack/arguments
-		str: as red-string! boolean + 1
-		assert TYPE_OF(str) = TYPE_STRING
-
-		string/concatenate-literal str either boolean/value ["true"]["false"]
+		string/concatenate-literal buffer either boolean/value ["true"]["false"]
 		part											;@@ implement full support for /part
 	]
 	

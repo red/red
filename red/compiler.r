@@ -441,8 +441,8 @@ red: context [
 			]
 
 			switch spec/1 [
-				native! 	[emit to word! join "natives/" to word! name]
-				action! 	[emit to word! join "actions/" name]
+				native! 	[emit to word! rejoin ["natives/" to word! name #"*"]]
+				action! 	[emit to word! rejoin ["actions/" name #"*"]]
 				op!			[]
 				function!	[]
 			]
@@ -500,7 +500,7 @@ red: context [
 	make-func-prefix: func [name [word!]][
 		to word!  rejoin [								;@@ cache results locally
 			head remove back tail form functions/:name/1 "s/"
-			name
+			name #"*"
 		]
 	]
 	

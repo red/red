@@ -26,7 +26,7 @@ action: context [
 	;-- Actions -- 
 	
 	make: func [
-		return:    [red-value!]						;-- return action cell pointer
+		return:    [red-value!]							;-- return action cell pointer
 		/local
 			arg	   [red-value!]
 			action [red-action!]
@@ -40,14 +40,16 @@ action: context [
 		
 		assert TYPE_OF(spec) = TYPE_BLOCK
 		
-		action/header:  TYPE_ACTION					;-- implicit reset of all header flags
-		action/spec:    spec/node					; @@ copy spec block if not at head
-		;action/symbols: clean-spec spec 			; @@ TBD
+		action/header:  TYPE_ACTION						;-- implicit reset of all header flags
+		action/spec:    spec/node						; @@ copy spec block if not at head
+		;action/symbols: clean-spec spec 				; @@ TBD
 		
 		as red-value! action
 	]
 	
 	form: func [
+		value	[red-action!]
+		buffer	[red-string!]
 		part	[integer!]
 		return: [integer!]
 		/local
@@ -55,10 +57,7 @@ action: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/form"]]
 
-		str: as red-string! stack/arguments + 1
-		assert TYPE_OF(str) = TYPE_STRING
-
-		string/concatenate-literal str "?action?"
+		string/concatenate-literal buffer "?action?"
 		part											;@@ implement full support for /part
 	]
 

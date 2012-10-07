@@ -95,19 +95,14 @@ integer: context [
 	;-- Actions --
 	
 	form: func [
+		int		[red-integer!]
+		buffer	[red-string!]
 		part 	[integer!]
 		return: [integer!]
-		/local
-			int	[red-integer!]
-			str	[red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
 		
-		int: as red-integer! stack/arguments
-		str: as red-string! int + 1
-		assert TYPE_OF(str) = TYPE_STRING
-		
-		string/concatenate-literal str form-signed int/value
+		string/concatenate-literal buffer form-signed int/value
 		part											;@@ implement full support for /part
 	]
 	

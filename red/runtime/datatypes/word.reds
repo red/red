@@ -73,21 +73,23 @@ word: context [
 	;-- Actions --
 	
 	form: func [
-		part 	 [integer!]
-		return:  [integer!]
+		w		[red-word!]
+		buffer	[red-string!]
+		part 	[integer!]
+		return: [integer!]
 		/local
-			word [red-word!]
-			s	 [series!]
+			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/form"]]
 		
-		word: as red-word! stack/arguments
 		s: GET_BUFFER(symbols)
-		copy-cell
-			s/offset + word/symbol - 1
-			as cell! word
 		
-		string/form part								;@@ implement full support for /part
+		string/form 
+			as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are overlapping
+			buffer
+			part
+		
+		part											;@@ implement full support for /part
 	]
 
 	datatype/register [

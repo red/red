@@ -13,14 +13,14 @@ Red/System [
 natives: context [
 	verbose: 0
 
-	print: func [
+	print*: func [
 		/local
 			str		[red-string!]
 			series	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/print"]]
 		
-		actions/form off
+		actions/form* off
 		str: as red-string! stack/arguments + 1	
 		assert any [
 			TYPE_OF(str) = TYPE_STRING
@@ -57,7 +57,7 @@ natives: context [
 		result
 	]
 	
-	equal?: func [
+	equal?*: func [
 		return:    [red-logic!]
 		/local
 			args   [red-value!]
@@ -67,7 +67,7 @@ natives: context [
 		compare COMP_EQUAL no
 	]
 	
-	not-equal?: func [
+	not-equal?*: func [
 		return:    [red-logic!]
 		/local
 			args   [red-value!]
@@ -77,7 +77,7 @@ natives: context [
 		compare COMP_EQUAL yes
 	]
 	
-	strict-equal?: func [
+	strict-equal?*: func [
 		return:    [red-logic!]
 		/local
 			args   [red-value!]
@@ -87,7 +87,7 @@ natives: context [
 		compare COMP_STRICT_EQUAL no
 	]
 	
-	lesser?: func [
+	lesser?*: func [
 		return:    [red-logic!]
 		/local
 			args   [red-value!]
@@ -97,7 +97,7 @@ natives: context [
 		compare COMP_LESSER no
 	]
 	
-	greater?: func [
+	greater?*: func [
 		return:    [red-logic!]
 		/local
 			args   [red-value!]
@@ -107,7 +107,7 @@ natives: context [
 		compare COMP_GREATER no
 	]
 	
-	lesser-or-equal?: func [
+	lesser-or-equal?*: func [
 		return:    [red-logic!]
 		/local
 			args   [red-value!]
@@ -117,7 +117,7 @@ natives: context [
 		compare COMP_LESSER_EQUAL no
 	]	
 	
-	greater-or-equal?: func [
+	greater-or-equal?*: func [
 		return:    [red-logic!]
 		/local
 			args   [red-value!]

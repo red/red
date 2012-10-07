@@ -73,7 +73,7 @@ string: context [
 	rs-make-at: func [
 		slot	[cell!]
 		size 	[integer!]								;-- number of cells to pre-allocate
-		return:	[node!]
+		return:	[red-string!]
 		/local 
 			p	[node!]
 			str	[red-string!]
@@ -83,7 +83,7 @@ string: context [
 		str: as red-string! slot
 		str/head: 0
 		str/node: p
-		p
+		str
 	]
 	
 	append-char: func [
@@ -98,12 +98,12 @@ string: context [
 			Latin1 [
 				case [
 					cp <= FFh [
-						s/tail: as cell! (as byte-ptr! s/tail) + 1	;-- safe to increment here
-						p: alloc-tail-unit s 1
+						s/tail: as cell! (as byte-ptr! s/tail) + 1	;-- safe to increment here					
+						p: alloc-tail-unit s 1					
 						p/0: as-byte cp					;-- overwrite termination NUL character
 						p/1: as-byte 0					;-- add it back at next position
 						s: GET_BUFFER(s)				;-- refresh s pointer if relocated by alloc-tail-unit
-						s/tail: as cell! p				;-- reset tail just before NUL					
+						s/tail: as cell! p				;-- reset tail just before NUL
 					]
 					cp <= FFFFh [
 						s: unicode/Latin1-to-UCS2 s
@@ -238,9 +238,9 @@ string: context [
 			]
 			true [true]									;@@ catch-all case to make compiler happy
 		]
-		size2: as-integer s2/tail - s2/offset - str2/head
-		size: (as-integer s1/tail - s1/offset - str1/head) + size2
 		
+		size2: as-integer (as byte-ptr! s2/tail - s2/offset) - str2/head
+		size: (as-integer (as byte-ptr! s1/tail - s1/offset )- str1/head) + size2
 		if s1/size < size [s1: expand-series s1 size + unit1]	;-- account for terminal NUL
 		
 		either all [keep? unit1 <> unit2][
@@ -258,7 +258,7 @@ string: context [
 		][
 			p: as byte-ptr! s1/tail
 			copy-memory	p as byte-ptr! s2/offset size2 + unit1	;-- copy NUL too
-			s1/tail: as cell! p + size2						;-- reset tail just before NUL
+			s1/tail: as cell! p + size2	- 1				;-- reset tail just before NUL
 		]
 	]
 	
@@ -272,7 +272,7 @@ string: context [
 		assert p/1 <> null-byte							;-- assume no empty string passed
 		
 		until [
-			append-char s as-integer p/1
+			s: append-char s as-integer p/1
 			p: p + 1
 			p/1 = null-byte
 		]
@@ -303,17 +303,14 @@ string: context [
 	]
 	
 	form: func [
-		part 		[integer!]
-		return: 	[integer!]
-		/local
-			arg		[red-value!]
+		str		[red-string!]
+		buffer	[red-string!]
+		part 	[integer!]
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/form"]]
 
-		arg: stack/arguments
-		copy-cell 
-			arg
-			arg + 1										;@@ free allocated series in actions/form!!
+		string/concatenate buffer str no
 		part											;@@ implement full support for /part
 	]
 	
@@ -549,7 +546,7 @@ string: context [
 						concatenate str as red-string! cell no
 					]
 					default [
-						--NOT_IMPLEMENTED--						;@@ actions/form needs to take an argument!
+						--NOT_IMPLEMENTED--				;@@ actions/form needs to take an argument!
 						;TBD once INSERT is implemented
 					]
 				]
@@ -565,7 +562,7 @@ string: context [
 					concatenate str as red-string! value no
 				]
 				default [
-					actions/form no							;-- FORM value before appending
+					actions/form* no					;-- FORM value before appending
 					--NOT_IMPLEMENTED--
 					;TBD once INSERT is implemented
 				]

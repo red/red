@@ -11,26 +11,44 @@ Red/System [
 
 actions: context [
 	verbose: 0
-
-	get-action-ptr: func [
+	
+	;@@ temporary stack-oriented version kept until internal API fully changed
+	get-action-ptr*: func [
 		action	[integer!]								;-- action ID
 		return: [integer!]								;-- action pointer (datatype-dependent)
 		/local
 			arg  [red-value!]
 			type  [integer!]
-			dt	  [red-datatype!]
 			index [integer!]
 	][
 		arg: stack/arguments
-		type: arg/header and get-type-mask
-		
-		index: type << 8 + action
+		index: TYPE_OF(arg) << 8 + action
 		index: action-table/index						;-- lookup action function pointer
 
 		if zero? index [
 			print-line [
 				"^/*** Script error: action " action
-				" not defined for type: " type
+				" not defined for type: " TYPE_OF(arg)
+			]
+			halt
+		]
+		index
+	]	
+
+	get-action-ptr: func [
+		value	[red-value!]
+		action	[integer!]								;-- action ID
+		return: [integer!]								;-- action pointer (datatype-dependent)
+		/local
+			index [integer!]
+	][
+		index: TYPE_OF(value) << 8 + action
+		index: action-table/index						;-- lookup action function pointer
+
+		if zero? index [
+			print-line [
+				"^/*** Script error: action " action
+				" not defined for type: " TYPE_OF(value)
 			]
 			halt
 		]
@@ -39,41 +57,52 @@ actions: context [
 
 	;--- Actions polymorphic calls ---
 
-	make: func [
+	make*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/make"]]
 
 		action-make: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- newly created value
-		] get-action-ptr ACT_MAKE
+		] get-action-ptr* ACT_MAKE
 		action-make 
 	]
 
-	random: func [][]
-	reflect: func [][]
-	to: func [][]
+	random*: func [][]
+	reflect*: func [][]
+	to*: func [][]
 
-	form: func [
-		part [logic!]
+	form*: func [
+		part 		[logic!]
 		/local
-			str  [node!]
+			buffer  [red-string!]
+	][
+		stack/keep										;-- keep last value
+		buffer: string/rs-make-at stack/push either part [16][16] ;@@ /part argument
+		form stack/arguments buffer -1
+	]
+	
+	form: func [
+		value  [red-value!]								;-- FORM argument
+		buffer [red-string!]							;-- FORM buffer
+		part   [integer!]									;-- max bytes count
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/form"]]
 
 		action-form: as function! [						;-- needs to be globally bound
+			value	[red-value!]						;-- FORM argument
+			buffer	[red-string!]						;-- FORM buffer
 			part	[integer!]							;-- max bytes count
 			return: [integer!]							;-- remaining part count
-		] get-action-ptr ACT_FORM
+		] get-action-ptr value ACT_FORM
 
-		stack/keep										;-- keep last value
-		str: string/rs-make-at stack/push either part [16][16] ;@@ /part argument
-		action-form 0
+		action-form value buffer -1
 	]
+	
 
-	mold: func [][]
-	get-path: func [][]
-	set-path: func [][]
+	mold*: func [][]
+	get-path*: func [][]
+	set-path*: func [][]
 	
 	compare: func [
 		value1  [red-value!]
@@ -88,248 +117,248 @@ actions: context [
 			value2  [red-value!]						;-- second operand
 			op	    [integer!]							;-- type of comparison
 			return: [logic!]
-		] get-action-ptr ACT_COMPARE
+		] get-action-ptr* ACT_COMPARE
 		
 		action-compare value1 value2 op
 	]
 	
-	absolute: func [][]
+	absolute*: func [][]
 	
-	add: func [
+	add*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/add"]]
 
 		action-add: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- addition resulting value
-		] get-action-ptr ACT_ADD
+		] get-action-ptr* ACT_ADD
 		action-add
 	]
 	
-	divide: func [
+	divide*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/divide"]]
 
 		action-divide: as function! [					;-- needs to be globally bound
 			return:	[red-value!]						;-- division resulting value
-		] get-action-ptr ACT_DIVIDE
+		] get-action-ptr* ACT_DIVIDE
 		action-divide
 	]
 	
-	multiply: func [
+	multiply*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/multiply"]]
 
 		action-multiply: as function! [					;-- needs to be globally bound
 			return:	[red-value!]						;-- multiplication resulting value
-		] get-action-ptr ACT_MULTIPLY
+		] get-action-ptr* ACT_MULTIPLY
 		action-multiply
 	]
 	
-	negate: func [][]
-	power: func [][]
-	remainder: func [][]
-	round: func [][]
+	negate*: func [][]
+	power*: func [][]
+	remainder*: func [][]
+	round*: func [][]
 	
-	subtract: func [
+	subtract*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/subtract"]]
 
 		action-subtract: as function! [					;-- needs to be globally bound
 			return:	[red-value!]						;-- addition resulting value
-		] get-action-ptr ACT_SUBTRACT
+		] get-action-ptr* ACT_SUBTRACT
 		action-subtract
 	]
 	
-	even?: func [][]
-	odd?: func [][]
-	and~: func [][]
-	complement: func [][]
-	or~: func [][]
-	xor~: func [][]
+	even?*: func [][]
+	odd?*: func [][]
+	and~*: func [][]
+	complement*: func [][]
+	or~*: func [][]
+	xor~*: func [][]
 	
-	append: func [
+	append*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/append"]]
 
 		action-append: as function! [					;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_APPEND
+		] get-action-ptr* ACT_APPEND
 		action-append
 	]
 	
-	at: func [
+	at*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/at"]]
 
 		action-at: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_AT
+		] get-action-ptr* ACT_AT
 		action-at
 	]
 	
-	back: func [
+	back*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/back"]]
 
 		action-back: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_BACK
+		] get-action-ptr* ACT_BACK
 		action-back
 	]
 	
-	change: func [][]
+	change*: func [][]
 	
-	clear: func [
+	clear*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/clear"]]
 
 		action-clear: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_CLEAR
+		] get-action-ptr* ACT_CLEAR
 		action-clear
 	]
 	
-	copy: func [][]
-	find: func [][]
+	copy*: func [][]
+	find*: func [][]
 	
-	head: func [
+	head*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/head"]]
 
 		action-head: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_HEAD
+		] get-action-ptr* ACT_HEAD
 		action-head
 	]
 	
-	head?: func [
+	head?*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/head?"]]
 
 		action-head?: as function! [					;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_HEAD?
+		] get-action-ptr* ACT_HEAD?
 		action-head?
 	]
 	
-	index-of: func [
+	index-of*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/index-of"]]
 
 		action-index-of: as function! [					;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_INDEX_OF
+		] get-action-ptr* ACT_INDEX_OF
 		action-index-of
 	]
-	insert: func [][]
+	insert*: func [][]
 	
-	length-of: func [
+	length-of*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/length-of"]]
 
 		action-length-of: as function! [				;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_LENGTH_OF
+		] get-action-ptr* ACT_LENGTH_OF
 		action-length-of
 	]
 	
-	next: func [
+	next*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/next"]]
 
 		action-next: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_NEXT
+		] get-action-ptr* ACT_NEXT
 		action-next
 	]
 	
-	pick: func [
+	pick*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/pick"]]
 
 		action-pick: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_PICK
+		] get-action-ptr* ACT_PICK
 		action-pick
 	]
 	
-	poke: func [
+	poke*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/poke"]]
 
 		action-poke: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_POKE
+		] get-action-ptr* ACT_POKE
 		action-poke
 	]
 	
-	remove: func [][]
-	reverse: func [][]
-	select: func [][]
-	sort: func [][]
+	remove*: func [][]
+	reverse*: func [][]
+	select*: func [][]
+	sort*: func [][]
 	
-	skip: func [
+	skip*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/skip"]]
 
 		action-skip: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_SKIP
+		] get-action-ptr* ACT_SKIP
 		action-skip
 	]
 	
-	swap: func [][]
+	swap*: func [][]
 	
-	tail: func [
+	tail*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/tail"]]
 
 		action-tail: as function! [						;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_TAIL
+		] get-action-ptr* ACT_TAIL
 		action-tail
 	]
 	
-	tail?: func [
+	tail?*: func [
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/tail?"]]
 
 		action-tail?: as function! [					;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr ACT_TAIL?
+		] get-action-ptr* ACT_TAIL?
 		action-tail?
 	]
 
 	
-	take: func [][]
-	trim: func [][]
-	create: func [][]
-	close: func [][]
-	delete: func [][]
-	modify: func [][]
-	open: func [][]
-	open?: func [][]
-	query: func [][]
-	read: func [][]
-	rename: func [][]
-	update: func [][]
-	write: func [][]
+	take*: func [][]
+	trim*: func [][]
+	create*: func [][]
+	close*: func [][]
+	delete*: func [][]
+	modify*: func [][]
+	open*: func [][]
+	open?*: func [][]
+	query*: func [][]
+	read*: func [][]
+	rename*: func [][]
+	update*: func [][]
+	write*: func [][]
 ]

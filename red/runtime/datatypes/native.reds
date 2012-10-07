@@ -48,17 +48,14 @@ native: context [
 	]
 	
 	form: func [
+		value	[red-native!]
+		buffer	[red-string!]
 		part	[integer!]
 		return: [integer!]
-		/local
-			str [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/form"]]
 
-		str: as red-string! stack/arguments + 1
-		assert TYPE_OF(str) = TYPE_STRING
-
-		string/concatenate-literal str "?native?"
+		string/concatenate-literal buffer "?native?"
 		part											;@@ implement full support for /part
 	]
 

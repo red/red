@@ -30,17 +30,14 @@ unset: context [
 	]
 
 	form: func [
+		value	[red-unset!]
+		buffer	[red-string!]
 		part	[integer!]
 		return:	[integer!]
-		/local
-			str	[red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/form"]]
 		
-		str: as red-string! stack/arguments + 1
-		assert TYPE_OF(str) = TYPE_STRING
-		
-		string/concatenate-literal str "unset"
+		string/concatenate-literal buffer "unset"
 		part											;@@ implement full support for /part
 	]
 
