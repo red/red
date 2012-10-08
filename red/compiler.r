@@ -24,9 +24,10 @@ red: context [
 	locals:		  none
 	output:		  make block! 100
 	sym-table:	  make block! 1000
+	literals:	  make block! 1000
 	last-type:	  none
 	return-def:   to-set-word 'return					;-- return: keyword
-	s-counter:	  99									;-- series suffix counter (lit block depth max=99)
+	s-counter:	  0										;-- series suffix counter
 
 	unboxed-set:  [integer! char! float! float32! logic!]
 	block-set:	  [block! paren! path! set-path! lit-path!]
@@ -66,8 +67,10 @@ red: context [
 	stack-unwind:  to word! "stack/unwind"
 	stack-reset:   to word! "stack/reset"
 	stack-keep:    to word! "stack/keep"
+	block-push*:   to word! "block/push*"
 	block-push:    to word! "block/push"
 	block-append*: to word! "block/append*"
+	string-push:   to word! "string/push"
 	logic-true?:   to word! "logic/true?"
 	
 	set-last-none: does [compose [(stack-reset) none/push]]
@@ -104,15 +107,15 @@ red: context [
 		find [
 			char!
 			integer!
-			string!
-			file!
-			url!
+;			string!
+;			file!
+;			url!
 			tuple!
 			decimal!
 			refinement!
 			lit-word!
-			binary!
-			issue!
+;			binary!
+;			issue!
 		] type?/word expr
 	]
 	
@@ -174,6 +177,10 @@ red: context [
 		to word! join "_" clean-lf-flag name
 	]
 	
+	decorate-series-var: func [name [word!]][
+		to word! join name get-counter
+	]
+	
 	add-symbol: func [name [word!] /local sym id][
 		unless find symbols name [
 			sym: decorate-symbol name
@@ -219,21 +226,22 @@ red: context [
 		]
 	]
 	
-	emit-block: func [blk [block!] /sub level /local item value word][
+	emit-block: func [blk [block!] /sub level /local name item value word action][
 		unless sub [
 			emit-open-frame 'append
-			emit block-push
+			emit to set-word! name: decorate-series-var 'blk
+			emit block-push*
 			emit length? blk
-			insert-lf -2
+			insert-lf -3
 		]
 		level: 0
 		
 		forall blk [
 			either block? item: blk/1 [
 				emit-open-frame 'append
-				emit block-push
+				emit block-push*
 				emit length? item
-				insert-lf -2
+				insert-lf -3
 				
 				level: level + 1
 				emit-block/sub item level
@@ -250,7 +258,7 @@ red: context [
 					change/only/part blk value 2
 					item: blk/1
 				]
-				
+				action: 'push
 				value: case [
 					unicode-char? item [
 						value: item
@@ -261,11 +269,15 @@ red: context [
 						add-symbol word: to word! clean-lf-flag item
 						decorate-symbol word
 					]
+					string? item [
+						action: 'load
+						item
+					]
 					'else [
 						item
 					]
 				]
-				emit to word! rejoin [form type? item slash 'push]
+				emit to word! rejoin [form type? item slash action]
 				emit value
 				insert-lf -2
 				
@@ -278,9 +290,18 @@ red: context [
 			]
 		]
 		unless sub [emit-close-frame]
+		name
 	]
 	
-	comp-literal: func [root? [logic!] /local value char?][
+	redirect-to-literals: func [body [block!] /local saved][
+		saved: output
+		output: literals
+		also
+			do body
+			output: saved
+	]
+	
+	comp-literal: func [root? [logic!] /local value char? name][
 		value: pc/1
 		either any [
 			char?: unicode-char? value
@@ -301,8 +322,23 @@ red: context [
 			]
 		][
 			switch/default type?/word value [
-				block!		[emit-block value]
-				string!		[]
+				block!		[
+					name: redirect-to-literals [emit-block value]
+					emit block-push
+					emit name
+					insert-lf -2
+				]
+				string!		[
+					redirect-to-literals [
+						emit to set-word! name: decorate-series-var 'str
+						emit [string/load]
+						emit value
+						insert-lf -3
+					]	
+					emit string-push
+					emit name
+					insert-lf -2
+				]
 				file!		[]
 				url!		[]
 				binary!		[]
@@ -681,6 +717,11 @@ red: context [
 			------------| "Main program"
 		]
 		if verbose = 1 [probe skip pos 2]
+				
+		insert output literals
+		insert output [
+			------------| "Literals"
+		]
 		
 		insert output sym-table
 		insert output [

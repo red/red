@@ -40,36 +40,6 @@ string: context [
 		offset
 	]
 	
-	make-from: func [
-		parent	[red-block!]
-		s 		[c-string!]								;-- input string buffer
-		return:	[node!]
-		/local 
-			size [integer!]
-			series [series!]
-			p	 [node!]
-			str	 [red-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "string/make-from"]]
-		
-		size: system/words/length? s
-		p: alloc-series size 1 0						;-- align string data to head of buffer 
-		series: as series! p/value 
-		copy-memory 
-			as byte-ptr! series/offset
-			as byte-ptr! s
-			size
-		series/tail: as cell! (as byte-ptr! series/tail) + size
-		
-		assert (as byte-ptr! series/tail) < ((as byte-ptr! series) + series/size)
-
-		str: as red-string! ALLOC_TAIL(parent)
-		str/header: TYPE_STRING							;-- implicit reset of all header flags
-		str/head: 0
-		str/node: p
-		p
-	]
-	
 	rs-make-at: func [
 		slot	[cell!]
 		size 	[integer!]								;-- number of cells to pre-allocate
@@ -278,20 +248,28 @@ string: context [
 		]
 	]
 
-	push: func [
-		src		[c-string!]								;-- UTF-8 source string buffer
-		return: [red-value!]
+	load: func [
+		src		 [c-string!]							;-- UTF-8 source string buffer
+		return:  [red-string!]
 		/local
 			str  [red-string!]
 			size [integer!]
 	][
 		size: 1 + length? src
-		str: as red-string! stack/push
+		str: as red-string! ALLOC_TAIL(root)
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 0
 		str/node: unicode/load-utf8 src size			;@@ try to avoid length? call
 		str/cache: either size < 64 [src][null]			;-- cache only small strings (experimental)
-		as red-value! str
+		str
+	]
+	
+	push: func [
+		str [red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/push"]]
+
+		copy-cell as red-value! str stack/push
 	]
 	
 	;-- Actions -- 

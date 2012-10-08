@@ -88,20 +88,30 @@ block: context [
 		blk
 	]
 	
-	push: func [
+	push*: func [
 		size	[integer!]
 		return: [red-block!]	
 		/local
 			blk [red-block!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "block/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "block/push*"]]
 		
-		blk: as red-block! stack/push
+		blk: as red-block! ALLOC_TAIL(root)
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk/head: 	0
-		blk/node: 	alloc-cells size	
+		blk/node: 	alloc-cells size
+		push blk
 		blk
 	]
+	
+	push: func [
+		blk [red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/push"]]
+
+		copy-cell as red-value! blk stack/push
+	]
+
 
 	;--- Actions ---
 	
