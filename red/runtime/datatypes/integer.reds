@@ -12,15 +12,25 @@ Red/System [
 integer: context [
 	verbose: 0
 
-	get: func [											;-- unboxing integer value
-		value		[red-value!]
-		return: 	[integer!]
+	get*: func [										;-- unboxing integer value from stack
+		return: [integer!]
 		/local
-			cell	[red-integer!]
+			int [red-integer!]
+	][
+		int: as red-integer! stack/arguments
+		assert TYPE_OF(int) = TYPE_INTEGER
+		int/value
+	]
+	
+	get: func [											;-- unboxing integer value
+		value	[red-value!]
+		return: [integer!]
+		/local
+			int [red-integer!]
 	][
 		assert TYPE_OF(value) = TYPE_INTEGER
-		cell: as red-integer! value
-		cell/value
+		int: as red-integer! value
+		int/value
 	]
 	
 	form-signed: func [									;@@ replace with sprintf() call?

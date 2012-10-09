@@ -25,9 +25,11 @@ red: context [
 	output:		  make block! 100
 	sym-table:	  make block! 1000
 	literals:	  make block! 1000
+	declarations: make block! 1000
 	last-type:	  none
 	return-def:   to-set-word 'return					;-- return: keyword
 	s-counter:	  0										;-- series suffix counter
+	depth:		  0										;-- expression nesting level counter
 
 	unboxed-set:  [integer! char! float! float32! logic!]
 	block-set:	  [block! paren! path! set-path! lit-path!]
@@ -47,6 +49,7 @@ red: context [
 		loop		[intrinsic! [body  [block!]]]
 		repeat		[intrinsic! [word  [word!] value [integer! series!] body [block!]]]
 		foreach 	[intrinsic! [word  [word!] series [series!] body [block!]]]
+		break		[intrinsic! []]	;@@ add /return option
 		make		[action!    [type [datatype! word!] spec [any-type!]]]	;-- must be pre-defined
 	]
 	
@@ -407,6 +410,35 @@ red: context [
 		comp-sub-block									;-- compile FALSE block
 	]
 	
+	comp-loop: has [name][
+		depth: depth + 1
+		
+		name: to word! join "i" depth
+		repend declarations [to set-word! name 0]		;-- declare variables at root level
+		new-line skip tail declarations -2 yes
+		
+		comp-expression									;@@ optimize case for literal counter
+		
+		emit to set-word! name
+		insert-lf -1
+		emit [
+			integer/get*
+			stack/reset
+			until
+		]
+		new-line skip tail output -3 off
+		
+		comp-sub-block									;-- compile loop's body
+		
+		repend last output [
+			to set-word! name name '- 1
+			name '= 0
+		]
+		new-line skip tail last output -3 on
+		new-line skip tail last output -7 on
+		depth: depth - 1
+	]
+	
 	;@@ old code, needs to be refactored
 	comp-path-part: func [path parent parent-type /local type][
 		switch type: get-type path/1 [
@@ -717,7 +749,12 @@ red: context [
 			------------| "Main program"
 		]
 		if verbose = 1 [probe skip pos 2]
-				
+		
+		insert output declarations
+		insert output [
+			------------| "Declarations"
+		]
+		
 		insert output literals
 		insert output [
 			------------| "Literals"
