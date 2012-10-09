@@ -75,7 +75,8 @@ red: context [
 	block-append*: to word! "block/append*"
 	string-push:   to word! "string/push"
 	logic-true?:   to word! "logic/true?"
-	
+	logic-false?:  to word! "logic/false?"
+
 	set-last-none: does [compose [(stack-reset) none/push]]
 
 	quit-on-error: does [
@@ -364,7 +365,7 @@ red: context [
 		bind test 'body
 		
 		;-- most nested test first (identical for ANY and ALL)
-		body: reduce ['unless logic-true? set-last-none]
+		body: reduce ['if logic-false? set-last-none]
 		new-line body yes
 		insert body list/1
 		
@@ -384,12 +385,12 @@ red: context [
 	]
 	
 	comp-any: does [
-		comp-boolean-expressions 'any ['unless logic-true? body]
+		comp-boolean-expressions 'any ['if logic-false? body]
 	]
 	
 	comp-all: does [
 		comp-boolean-expressions 'all [
-			'either 'not logic-true? set-last-none body
+			'either logic-false? set-last-none body
 		]
 	]
 		
@@ -444,9 +445,8 @@ red: context [
 			until
 		]
 		comp-sub-block									;-- compile body
-		insert tail last output [
-			logic/true?
-		]
+		append last output logic-true?
+		new-line back tail last output on
 	]
 	
 	comp-while: does [
@@ -454,9 +454,8 @@ red: context [
 			while
 		]
 		comp-sub-block									;-- compile condition
-		insert tail last output [
-			logic/true?
-		]
+		append last output logic-true?
+		new-line back tail last output on
 		comp-sub-block									;-- compile body
 	]
 	
