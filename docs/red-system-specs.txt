@@ -1374,7 +1374,7 @@ Example of definition:
     print ["count: " count lf]
     until [
   		print [list/value " : "]
-  		print [form-type list/type lf]	;-- to-type converts a type ID to a c-string
+  		print [form-type list/type lf]	;-- form-type converts a type ID to a c-string
   		list: list + 1
   		count: count - 1
   		zero? count
