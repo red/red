@@ -497,7 +497,7 @@ string: context [
 			char/header: TYPE_CHAR		
 			char/value: switch GET_UNIT(s) [
 				Latin1 [as-integer p1/value]
-				UCS-2  [(as-integer p1/1) << 8 + p1/2]
+				UCS-2  [(as-integer p1/2) << 8 + p1/1]
 				UCS-4  [p4: as int-ptr! p1 p4/value]
 			]			
 			as red-value! char
