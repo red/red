@@ -12,14 +12,22 @@ Red/System [
 
 natives: context [
 	verbose: 0
+	
+	lf?: no												;-- used to print or not an ending newline
 
-	print*: func [
+	print*: does [
+		lf?: yes
+		prin*
+		lf?: no
+	]
+	
+	prin*: func [
 		/local
 			arg		[red-value!]
 			str		[red-string!]
 			series	[series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "native/print"]]
+		#if debug? = yes [if verbose > 0 [print-line "native/prin"]]
 		
 		arg: stack/arguments
 		
@@ -35,13 +43,25 @@ natives: context [
 		]
 		series: GET_BUFFER(str)
 
-		switch GET_UNIT(series) [
-			Latin1 [platform/print-line-Latin1 as c-string! series/offset]
-			UCS-2  [platform/print-line-UCS2   as byte-ptr! series/offset]
-			UCS-4  [platform/print-line-UCS4   as int-ptr!  series/offset]
-			
-			default [
-				print-line ["Error: unknown string encoding:" GET_UNIT(series)]
+		either lf? [
+			switch GET_UNIT(series) [
+				Latin1 [platform/print-line-Latin1 as c-string! series/offset]
+				UCS-2  [platform/print-line-UCS2   as byte-ptr! series/offset]
+				UCS-4  [platform/print-line-UCS4   as int-ptr!  series/offset]
+
+				default [
+					print-line ["Error: unknown string encoding:" GET_UNIT(series)]
+				]
+			]
+		][
+			switch GET_UNIT(series) [
+				Latin1 [platform/print-Latin1 as c-string! series/offset]
+				UCS-2  [platform/print-UCS2   as byte-ptr! series/offset]
+				UCS-4  [platform/print-UCS4   as int-ptr!  series/offset]
+
+				default [
+					print-line ["Error: unknown string encoding:" GET_UNIT(series)]
+				]
 			]
 		]
 		stack/set-last unset-value

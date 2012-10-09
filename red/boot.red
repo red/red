@@ -348,6 +348,12 @@ print: make native! [[
 	none
 ]
 
+prin: make native! [[
+		value	[any-type!]
+	]
+	none
+]
+
 equal?: make native! [[
 		value1 [any-type!]
 		value2 [any-type!]
