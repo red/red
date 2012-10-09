@@ -121,14 +121,24 @@ natives: context [
 	lesser-or-equal?*: func [
 		return:    [red-logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "lesser-or-equal?"]]
+		#if debug? = yes [if verbose > 0 [print-line "native/lesser-or-equal?"]]
 		compare COMP_LESSER_EQUAL no
 	]	
 	
 	greater-or-equal?*: func [
 		return:    [red-logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "greater-or-equal?"]]
+		#if debug? = yes [if verbose > 0 [print-line "native/greater-or-equal?"]]
 		compare COMP_GREATER_EQUAL no
+	]
+	
+	not*: func [
+		/local bool [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "native/not"]]
+		
+		bool: as red-logic! stack/arguments
+		bool/value: logic/false?						;-- run test before modifyin stack
+		bool/header: TYPE_LOGIC
 	]
 ]

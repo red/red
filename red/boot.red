@@ -410,6 +410,12 @@ greater-or-equal?: make native! [[
 	none
 ]
 
+not: make native! [[
+		value [any-type!]
+	]
+	none
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

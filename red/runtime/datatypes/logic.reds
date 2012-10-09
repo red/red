@@ -23,15 +23,23 @@ logic: context [
 		
 	true?: func [
 		return:  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/true?"]]
+		
+		not false?										;-- true if not none or false
+	]
+	
+	false?: func [
+		return:  [logic!]
 		/local
 			arg	 [red-logic!]
 			type [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "logic/true?"]]
+		#if debug? = yes [if verbose > 0 [print-line "logic/false?"]]
 		arg: as red-logic! stack/last-value
 		type: TYPE_OF(arg)
 		
-		not any [										;-- true if not none or false
+		any [										;-- true if not none or false
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
 		]	
