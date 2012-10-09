@@ -54,6 +54,24 @@ _context: context [
 		series: as series! ctx/values/value
 		(as-integer series/tail - series/offset) >> 4
 	]
+	
+	set-integer: func [
+		word 		[red-word!]
+		value		[integer!]
+		/local
+			int 	[red-integer!]
+			values	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/set-integer"]]
+
+		if word/index = -1 [
+			word/index: find-word word/ctx word/symbol
+		]
+		values: as series! word/ctx/values/value
+		int: as red-integer! values/offset + word/index
+		int/header: TYPE_INTEGER
+		int/value: value
+	]
 
 	set: func [
 		word 		[red-word!]

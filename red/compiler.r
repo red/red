@@ -47,8 +47,9 @@ red: context [
 		while		[intrinsic! [cond  [block!] body [block!]]]
 		until		[intrinsic! [body  [block!]]]
 		loop		[intrinsic! [body  [block!]]]
-		repeat		[intrinsic! [word  [word!] value [integer! series!] body [block!]]]
-		foreach 	[intrinsic! [word  [word!] series [series!] body [block!]]]
+		repeat		[intrinsic! ['word  [word!] value [integer! series!] body [block!]]]
+		foreach 	[intrinsic! ['word  [word!] series [series!] body [block!]]]
+		forall		[intrinsic! ['word  [word!] body [block!]]]
 		break		[intrinsic! []]	;@@ add /return option
 		make		[action!    [type [datatype! word!] spec [any-type!]]]	;-- must be pre-defined
 	]
@@ -183,6 +184,16 @@ red: context [
 	
 	decorate-series-var: func [name [word!]][
 		to word! join name get-counter
+	]
+	
+	declare-variable: func [name [string!] /init value /local var set-var][
+		set-var: to set-word! var: to word! name
+
+		unless find declarations set-var [
+			repend declarations [set-var any [value 0]]	;-- declare variable at root level
+			new-line skip tail declarations -2 yes
+		]
+		reduce [var set-var]
 	]
 	
 	add-symbol: func [name [word!] /local sym id][
@@ -411,16 +422,14 @@ red: context [
 		comp-sub-block									;-- compile FALSE block
 	]
 	
-	comp-loop: has [name][
+	comp-loop: has [name set-name][
 		depth: depth + 1
 		
-		name: to word! join "i" depth
-		repend declarations [to set-word! name 0]		;-- declare variables at root level
-		new-line skip tail declarations -2 yes
+		set [name set-name] declare-variable join "i" depth
 		
 		comp-expression									;@@ optimize case for literal counter
 		
-		emit to set-word! name
+		emit set-name
 		insert-lf -1
 		emit [
 			integer/get*
@@ -432,7 +441,7 @@ red: context [
 		comp-sub-block									;-- compile body
 		
 		repend last output [
-			to set-word! name name '- 1
+			set-name name '- 1
 			name '= 0
 		]
 		new-line skip tail last output -3 on
@@ -458,6 +467,42 @@ red: context [
 		new-line back tail last output on
 		comp-sub-block									;-- compile body
 	]
+	
+	comp-repeat: has [name cnt set-cnt lim set-lim][
+		name: decorate-symbol pc/1
+		
+		depth: depth + 1
+
+		set [cnt set-cnt] declare-variable join "r" depth		;-- integer counter
+		set [lim set-lim] declare-variable join "rlim" depth	;-- counter limit
+		
+		pc: next pc
+		comp-expression									;-- compile 2nd argument
+		emit reduce [									;@@ only integer! argument supported
+			set-lim 'integer/get*
+			set-cnt 0
+		]
+		insert-lf -2
+		insert-lf -4
+
+		emit compose/deep [
+			while [
+				;-- set word 1 + get word
+				;-- TBD: set word next get word
+				(set-cnt) (cnt) + 1
+				_context/set-integer (name) (cnt)
+				;-- (get word) < value
+				;-- TBD: not tail? get word
+				(cnt) <= (lim)
+			]
+		]
+		new-line last output on
+		new-line skip tail last output -3 on
+		
+		comp-sub-block
+		depth: depth - 1
+	]
+	
 	
 	;@@ old code, needs to be refactored
 	comp-path-part: func [path parent parent-type /local type][
