@@ -449,6 +449,17 @@ red: context [
 		]
 	]
 	
+	comp-while: does [
+		emit [
+			while
+		]
+		comp-sub-block									;-- compile condition
+		insert tail last output [
+			logic/true?
+		]
+		comp-sub-block									;-- compile body
+	]
+	
 	;@@ old code, needs to be refactored
 	comp-path-part: func [path parent parent-type /local type][
 		switch type: get-type path/1 [
