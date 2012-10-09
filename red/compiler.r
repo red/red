@@ -428,7 +428,7 @@ red: context [
 		]
 		new-line skip tail output -3 off
 		
-		comp-sub-block									;-- compile loop's body
+		comp-sub-block									;-- compile body
 		
 		repend last output [
 			to set-word! name name '- 1
@@ -437,6 +437,16 @@ red: context [
 		new-line skip tail last output -3 on
 		new-line skip tail last output -7 on
 		depth: depth - 1
+	]
+	
+	comp-until: does [
+		emit [
+			until
+		]
+		comp-sub-block									;-- compile body
+		insert tail last output [
+			logic/true?
+		]
 	]
 	
 	;@@ old code, needs to be refactored
