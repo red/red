@@ -1528,9 +1528,9 @@ Example:
  	foo + var + bar						;-- will return 14
  ]
  
----Namespaces or Context
+---Namespaces
 
-It is possible to define local namespaces to provide local contexts able to encapsulate source code. 
+It is possible to define local namespaces to provide local contexts able to encapsulate source code.
 
 <b>Syntax</b>
 
@@ -2009,14 +2009,14 @@ will output:
 Example retrieving the returned value:
  a: 2
  year: switch a [
- 	0 [2011]
- 	1 [2012]
- 	2 [2013]
+ 	0 [2010]
+ 	1 [2011]
+ 	2 [2012]
  ]
  print ["Red will rock in " year]
 will output:
- Red will rock in 2013
-
+ Red will rock in 2012
+ 
 Example using multiple values for matching:
  input: 3
  switch input [
