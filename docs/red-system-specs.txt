@@ -97,7 +97,7 @@ Usage rules:
 
 *Inline comments are allowed anywhere in the source code
 
-*Multi-line comments are allowed anywhere in the source code, except in expressions. Exemple:
+*Multi-line comments are allowed anywhere in the source code, except in expressions. Example:
 
  a: 1 + comment {5} 4	; this will produce a compilation error
 
@@ -318,7 +318,7 @@ The reason for having a single precision floating point type is for making the i
 
 +++Syntax
 
-There is no literal form for float32! datatype values. To load a float32! constant, the method consist in provindg a float! literal and prefix it with a type casting to float32!.
+There is no literal form for float32! datatype values. To load a float32! constant, the method consist in providing a float! literal and prefix it with a type casting to float32!.
 
 Example:
 
@@ -1073,7 +1073,7 @@ The grammar rules are specified in <a href="http://en.wikipedia.org/wiki/Backus%
 
  <logic-literal> ::= "true" | "false"
 
- <math-op>       ::= "+" | "-" | "*" | "/" | "//"
+ <math-op>       ::= "+" | "-" | "*" | "/" | "//" | "%"
  <bitwise-op>    ::= "and" | "or" | "xor"
  <comparison-op> ::= "=" | "<>" | "<" | "<=" | ">=" | ">"
  <op>            ::= <math-op> | <bitwise-op>
@@ -1361,7 +1361,7 @@ Types are defined by the runtime as:
  #define alias?  			[1001 <=]
  
 \note Typed and imported function
-It is possible to use <b>typed</b> attribute for an imported function, but it needs to meet the specific stack layout required by this attribute, so should probably be reserverd only for imported function written in Red/System.
+It is possible to use <b>typed</b> attribute for an imported function, but it needs to meet the specific stack layout required by this attribute, so should probably be reserved only for imported function written in Red/System.
 
 /note
 
@@ -1528,9 +1528,9 @@ Example:
  	foo + var + bar						;-- will return 14
  ]
  
----Namespaces
+---Namespaces or Context
 
-It is possible to define local namespaces to provide local contexts able to encapsulate source code.
+It is possible to define local namespaces to provide local contexts able to encapsulate source code. 
 
 <b>Syntax</b>
 
@@ -1767,7 +1767,7 @@ These operators can be used only where a condition is allowed. See "Control flow
  
  value1 > value2
  
-<b>Lesser than</b>: <
+<b>Less than</b>: <
  
  value1 < value2
  
@@ -1775,7 +1775,7 @@ These operators can be used only where a condition is allowed. See "Control flow
  
  value1 >= value2
  
-<b>Lesser than or equal</b>: <=
+<b>Less than or equal</b>: <=
  
  value1 <= value2
  
@@ -2009,14 +2009,14 @@ will output:
 Example retrieving the returned value:
  a: 2
  year: switch a [
- 	0 [2010]
- 	1 [2011]
- 	2 [2012]
+ 	0 [2011]
+ 	1 [2012]
+ 	2 [2013]
  ]
  print ["Red will rock in " year]
 will output:
- Red will rock in 2012
- 
+ Red will rock in 2013
+
 Example using multiple values for matching:
  input: 3
  switch input [
