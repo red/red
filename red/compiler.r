@@ -497,23 +497,49 @@ red: context [
 	comp-foreach: has [word][
 		add-symbol word: pc/1
 		emit compose [
-			word/push (decorate-symbol word)
+			word/push (decorate-symbol word)			;-- word argument
 		]
 		insert-lf -2
-		
 		pc: next pc
-		comp-expression									;-- compile 2nd argument
+		
+		comp-expression									;-- compile series argument
 		;TBD: check if result is any-series!
 
 		emit-open-frame 'foreach
-		emit copy/deep [								;-- copy/deep require for R/S lines injection
+		emit copy/deep [								;-- copy/deep required for R/S lines injection
 			while [natives/foreach-next]
 		]
 		comp-sub-block									;-- compile body
 		emit-close-frame
 		emit [
-			stack/pop 2
+			stack/pop 2									;-- pop word and series arguments
 		]
+	]
+	
+	comp-forall: has [word][
+		;TBD: check if word argument refers to any-series!
+		word: decorate-symbol pc/1
+		emit compose [
+			word/push (word)							;-- word argument
+			word/get  (word)							;-- save series (for resetting on end)
+		]
+		insert-lf -4
+		pc: next pc
+		
+		emit-open-frame 'forall
+		emit copy/deep [								;-- copy/deep required for R/S lines injection
+			while [natives/forall-loop]
+		]
+		comp-sub-block									;-- compile body
+		append last output [							;-- inject at tail of body block
+			natives/forall-next							;-- move series to next position
+		]
+		emit compose [
+			natives/forall-end							;-- reset series
+			(stack-unwind)
+			stack/pop 2									;-- pop word and series arguments
+		]
+		insert-lf -3
 	]
 	
 	;@@ old code, needs to be refactored

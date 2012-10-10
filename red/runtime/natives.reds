@@ -144,12 +144,30 @@ natives: context [
 
 	;--- Natives helper functions ---
 	
+	loop?: func [
+		series     [red-series!]
+		return:    [logic!]	
+		/local
+			s	   [series!]
+			result [logic!]
+	][
+		s: GET_BUFFER(series)
+	
+		either TYPE_OF(series) = TYPE_BLOCK [			;@@ replace with any-block?/any-string? check
+			result: s/offset + series/head < s/tail
+		][
+			result: (as byte-ptr! s/offset)
+				+ (series/head << (GET_UNIT(s) >> 1))
+				< (as byte-ptr! s/tail)
+		]
+		result
+	]
+	
 	foreach-next: func [
 		return: [logic!]
 		/local
 			series [red-series!]
 			word   [red-word!]
-			s	   [series!]
 			result [logic!]
 	][
 		series: as red-series! stack/arguments - 1
@@ -168,17 +186,47 @@ natives: context [
 		stack/unwind
 		
 		_context/set word stack/last-value
+		result: loop? series
 		series/head: series/head + 1
-		s: GET_BUFFER(series)
-	
-		either TYPE_OF(series) = TYPE_BLOCK [			;@@ replace with any-block?/any-string? check
-			result: s/offset + series/head <= s/tail
-		][
-			result: (as byte-ptr! s/offset)
-				+ (series/head << (GET_UNIT(s) >> 1))
-				<= (as byte-ptr! s/tail)
-		]
 		result
+	]
+	
+	forall-loop: func [									;@@ inline?
+		return: [logic!]
+		/local
+			series [red-series!]
+			word   [red-word!]
+	][
+		word: as red-word! stack/arguments - 2
+		assert TYPE_OF(word) = TYPE_WORD
+
+		series: as red-series! _context/get word
+		loop? series
+	]
+	
+	forall-next: func [									;@@ inline?
+		/local
+			series [red-series!]
+	][
+		series: as red-series! _context/get as red-word! stack/arguments - 2
+		series/head: series/head + 1
+	]
+	
+	forall-end: func [									;@@ inline?
+		/local
+			series [red-series!]
+			word   [red-word!]
+	][
+		series: as red-series! stack/arguments - 1
+		word: as red-word! stack/arguments - 2
+		
+		assert any [									;@@ replace with any-block?/any-string? check
+			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_STRING
+		]
+		assert TYPE_OF(word) = TYPE_WORD
+
+		_context/set word as red-value! series			;-- reset series to its initial offset
 	]
 
 ]
