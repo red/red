@@ -141,4 +141,44 @@ natives: context [
 		bool/value: logic/false?						;-- run test before modifyin stack
 		bool/header: TYPE_LOGIC
 	]
+
+	;--- Natives helper functions ---
+	
+	foreach-next: func [
+		return: [logic!]
+		/local
+			series [red-series!]
+			word   [red-word!]
+			s	   [series!]
+			result [logic!]
+	][
+		series: as red-series! stack/arguments - 1
+		word:   as red-word!   stack/arguments - 2
+		
+		assert any [									;@@ replace with any-block?/any-string? check
+			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_STRING
+		]
+		assert TYPE_OF(word) = TYPE_WORD
+		
+		stack/mark exec/_pick							;@@ replace it with direct calls
+		copy-cell as red-value! series stack/push
+		integer/push 1
+		actions/pick*
+		stack/unwind
+		
+		_context/set (word) stack/last-value
+		series/head: series/head + 1
+		s: GET_BUFFER(series)
+	
+		either TYPE_OF(series) = TYPE_BLOCK [			;@@ replace with any-block?/any-string? check
+			result: s/offset + series/head <= s/tail
+		][
+			result: (as byte-ptr! s/offset)
+				+ (series/head << (GET_UNIT(s) >> 1))
+				<= (as byte-ptr! s/tail)
+		]
+		result
+	]
+
 ]

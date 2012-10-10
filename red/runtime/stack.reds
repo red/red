@@ -142,6 +142,12 @@ stack: context [										;-- call stack
 		]
 		cell
 	]
+	
+	pop: func [
+		positions [integer!]
+	][
+		top: top - positions
+	]
 
 	#if debug? = yes [	
 		dump: does [									;-- debug purpose only

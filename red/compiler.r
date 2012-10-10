@@ -493,7 +493,28 @@ red: context [
 		comp-sub-block
 		depth: depth - 1
 	]
-	
+		
+	comp-foreach: has [word][
+		add-symbol word: pc/1
+		emit compose [
+			word/push (decorate-symbol word)
+		]
+		insert-lf -2
+		
+		pc: next pc
+		comp-expression									;-- compile 2nd argument
+		;TBD: check if result is any-series!
+
+		emit-open-frame 'foreach
+		emit copy/deep [								;-- copy/deep require for R/S lines injection
+			while [natives/foreach-next]
+		]
+		comp-sub-block									;-- compile body
+		emit-close-frame
+		emit [
+			stack/pop 2
+		]
+	]
 	
 	;@@ old code, needs to be refactored
 	comp-path-part: func [path parent parent-type /local type][

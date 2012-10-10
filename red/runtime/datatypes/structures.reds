@@ -43,6 +43,13 @@ red-logic!: alias struct! [
 	_pad2	[integer!]
 ]
 
+red-series!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- series's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	_pad	[integer!]
+]
+
 red-block!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- block's head index (zero-based)
