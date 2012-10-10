@@ -492,7 +492,6 @@ string: context [
 		][
 			stack/set-last none-value
 		][
-			if negative? offset [offset: offset + 1]
 			char: as red-char! str
 			char/header: TYPE_CHAR		
 			char/value: switch GET_UNIT(s) [
