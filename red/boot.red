@@ -325,6 +325,80 @@ tail?: make action! [[
 ;-				Natives					  -
 ;------------------------------------------
 
+if: make native! [[
+		cond  	 [any-type!]
+		true-blk [block!]
+	]
+	none
+]
+
+either: make native! [[
+		cond  	  [any-type!]
+		true-blk  [block!]
+		false-blk [block!]
+	]
+	none
+]
+	
+any: make native! [[
+		conds [block!]
+	]
+	none
+]
+
+all: make native! [[
+		conds [block!]
+	]
+	none
+]
+
+while: make native! [[
+		cond [block!]
+		body [block!]
+	]
+	none
+]
+	
+until: make native! [[
+		body [block!]
+	]
+	none
+]
+
+loop: make native! [[
+		body [block!]
+	]
+	none
+]
+
+repeat: make native! [[
+		'word [word!]
+		value [integer! series!]
+		body  [block!]
+	]
+	none
+]
+
+foreach: make native! [[
+		'word  [word!]
+		series [series!]
+		body   [block!]
+	]
+]
+
+forall: make native! [[
+		'word [word!]
+		body  [block!]
+	]
+	none
+]
+
+;break: make native! [
+;	[]													;@@ add /return option
+;	none
+;]
+
+
 get: make native! [[
 		word	[word!]
 		/any
@@ -444,9 +518,12 @@ yes: on: true
 no: off: false
 ;empty?: :tail?
 
-tab: #"^-"
-cr: #"^M"
+tab:		 #"^-"
+cr: 		 #"^M"
 newline: lf: #"^/"
-escape: #"^["
-slash: #"/"
+escape:      #"^["
+slash: 		 #"/"
+sp: space: 	 #" "
+null: 		 #"^@"
+
 

@@ -38,30 +38,16 @@ red: context [
 	
 	actions: 	  make block! 100
 	op-actions:	  make block! 20
+	keywords: 	  make block! 10
+	
+	intrinsics:   [
+		if either any all while until loop repeat
+		foreach forall break
+	]
 
 	functions: make hash! [
-		if			[intrinsic! [cond  [any-type!] true-blk [block!]]]
-		either		[intrinsic! [cond  [any-type!] true-blk [block!] false-blk [block!]]]
-		any			[intrinsic! [conds [block!]]]
-		all			[intrinsic! [conds [block!]]]
-		while		[intrinsic! [cond  [block!] body [block!]]]
-		until		[intrinsic! [body  [block!]]]
-		loop		[intrinsic! [body  [block!]]]
-		repeat		[intrinsic! ['word  [word!] value [integer! series!] body [block!]]]
-		foreach 	[intrinsic! ['word  [word!] series [series!] body [block!]]]
-		forall		[intrinsic! ['word  [word!] body [block!]]]
-		break		[intrinsic! []]	;@@ add /return option
-		make		[action!    [type [datatype! word!] spec [any-type!]]]	;-- must be pre-defined
+		make [action! [type [datatype! word!] spec [any-type!]]]	;-- must be pre-defined
 	]
-	
-	keywords: make block! (length? functions) / 2
-	
-	foreach [name spec] functions [
-		if spec/1 = 'intrinsic! [
-			repend keywords [name reduce [to word! join "comp-" name]]
-		]
-	]
-	bind keywords self
 	
 	;-- Optimizations for faster symbols lookups in Red/System compiler
 	word-push:     to word! "word/push"
@@ -77,6 +63,15 @@ red: context [
 	string-push:   to word! "string/push"
 	logic-true?:   to word! "logic/true?"
 	logic-false?:  to word! "logic/false?"
+	
+	make-keywords: does [
+		foreach [name spec] functions [
+			if spec/1 = 'intrinsic! [
+				repend keywords [name reduce [to word! join "comp-" name]]
+			]
+		]
+		bind keywords self
+	]
 
 	set-last-none: does [compose [(stack-reset) none/push]]
 
@@ -112,15 +107,10 @@ red: context [
 		find [
 			char!
 			integer!
-;			string!
-;			file!
-;			url!
 			tuple!
 			decimal!
 			refinement!
 			lit-word!
-;			binary!
-;			issue!
 		] type?/word expr
 	]
 	
@@ -221,17 +211,18 @@ red: context [
 		]
 	]
 	
-	fetch-functions: func [pos [block!] /local name][
+	fetch-functions: func [pos [block!] /local name type][
 		name: to word! pos/1
 		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
 
-		switch pos/3 [
+		switch type: pos/3 [
+			native! [if find intrinsics name [type: 'intrinsic!]]
 			action! [append actions name]
 			op!     [repend op-actions [name to word! pos/4]]
 		]
 		repend functions [
 			name reduce [
-				pos/3
+				type
 				either pos/3 = 'op! [
 					second select functions to word! pos/4
 				][
@@ -473,11 +464,11 @@ red: context [
 		
 		depth: depth + 1
 
-		set [cnt set-cnt] declare-variable join "r" depth		;-- integer counter
-		set [lim set-lim] declare-variable join "rlim" depth	;-- counter limit
-		
 		pc: next pc
 		comp-expression									;-- compile 2nd argument
+		
+		set [cnt set-cnt] declare-variable join "r" depth		;-- integer counter
+		set [lim set-lim] declare-variable join "rlim" depth	;-- counter limit
 		emit reduce [									;@@ only integer! argument supported
 			set-lim 'integer/get*
 			set-cnt 0
@@ -805,6 +796,7 @@ red: context [
 		
 		pc: load-source %red/boot.red					;-- compile Red's boot script
 		comp-block
+		make-keywords									;-- register intrinsics functions
 		
 		pc: code										;-- compile user code
 		pos: tail output
