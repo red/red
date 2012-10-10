@@ -167,7 +167,7 @@ natives: context [
 		actions/pick*
 		stack/unwind
 		
-		_context/set (word) stack/last-value
+		_context/set word stack/last-value
 		series/head: series/head + 1
 		s: GET_BUFFER(series)
 	
