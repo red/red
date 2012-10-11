@@ -1320,6 +1320,10 @@ make-profilable make target-class [
 				][pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
 			]
 		]
+		if mod? [									;-- Trash st1 to keep the stack clean
+			emit #{D9C9}							;-- FXCH st0, st1		; st1 <=> st0
+			emit-float-trash-last					;-- drop st0
+		]
 	]
 
 	emit-float-operation: func [
