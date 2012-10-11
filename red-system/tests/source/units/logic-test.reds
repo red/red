@@ -331,6 +331,35 @@ Red/System [
   --test-- "logic-return-4"
     a: lgc-test2?
   --assert not a
+  
+	lgc-test3?: func [return: [logic!]][
+		either true [
+			1 = 3
+		][
+			false
+		]
+	]
+	
+ --test-- "logic-return-5"
+ --assert not lgc-test3?
+ 
+	lgc-test4?: func [return: [logic!]][
+		either false [
+			1 = 3
+		][
+			false
+		]
+	]
+	
+ --test-- "logic-return-6"
+ --assert not lgc-test4?
+ 
+	lgc-test5?: func [return: [logic!]][
+		either 1 < 2 [true] [false]
+	]
+
+ --test-- "logic-return-7"
+ --assert lgc-test5?
 
 ===end-group===
 
