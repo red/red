@@ -149,18 +149,16 @@ natives: context [
 		return:    [logic!]	
 		/local
 			s	   [series!]
-			result [logic!]
 	][
 		s: GET_BUFFER(series)
 	
 		either TYPE_OF(series) = TYPE_BLOCK [			;@@ replace with any-block?/any-string? check
-			result: s/offset + series/head < s/tail
+			s/offset + series/head < s/tail
 		][
-			result: (as byte-ptr! s/offset)
+			(as byte-ptr! s/offset)
 				+ (series/head << (GET_UNIT(s) >> 1))
 				< (as byte-ptr! s/tail)
 		]
-		result
 	]
 	
 	foreach-next: func [
