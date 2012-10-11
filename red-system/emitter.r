@@ -173,11 +173,13 @@ emitter: make-profilable context [
 		entry/2
 	]
 
-	logic-to-integer: func [op [word!]][
+	logic-to-integer: func [op [word! block!] /with chunk [block!] /local offset body][
+		if all [with block? op][op: op/1]
+		
 		if find target/comparison-op op [
 			set [offset body] chunks/make-boolean
 			branch/over/on/adjust body reduce [op] offset/1
-			merge body
+			either with [chunks/join chunk body][merge body]
 		]
 	]
 	

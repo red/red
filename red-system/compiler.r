@@ -1663,7 +1663,7 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
@@ -1671,13 +1671,8 @@ system-dialect: make-profilable context [
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
-			set [e-true c-true]   comp-block-chunked	;-- compile TRUE block		
+			set [e-true c-true]   comp-block-chunked	;-- compile TRUE block
 			set [e-false c-false] comp-block-chunked	;-- compile FALSE block
-		
-			offset: emitter/branch/over c-false
-			emitter/set-signed-state expr				;-- properly set signed/unsigned state	
-			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
-			emitter/merge emitter/chunks/join c-true c-false
 
 			t-true:  resolve-expr-type/quiet e-true
 			t-false: resolve-expr-type/quiet e-false
@@ -1687,7 +1682,23 @@ system-dialect: make-profilable context [
 				t-true:  resolve-aliased t-true			;-- alias resolution is safe here
 				t-false: resolve-aliased t-false
 				equal-types? t-true/1 t-false/1
-			][t-true][none-type]						;-- allow nesting if both blocks return same type		
+			][t-true][none-type]						;-- allow nesting if both blocks return same type
+
+			if all [
+				locals									;-- if in function body
+				tail? pc								;-- and if at tail of body
+				ret: select locals return-def			;-- and if function returns something
+				ret/1 = 'logic!							;-- and if it returns a logic! value
+				last-type/1 = 'logic!					;-- and if EITHER returns a logic! too
+			][
+				if block? e-true  [emitter/logic-to-integer/with e-true  c-true]
+				if block? e-false [emitter/logic-to-integer/with e-false c-false]
+			]
+		
+			offset: emitter/branch/over c-false
+			emitter/set-signed-state expr				;-- properly set signed/unsigned state
+			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
+			emitter/merge emitter/chunks/join c-true c-false
 			<last>
 		]
 		
@@ -2340,7 +2351,7 @@ system-dialect: make-profilable context [
 			;-- postprocessing result
 			if all [
 				any [keep? variable]					;-- if result needs to be stored
-				block? expr								;-- and if expr is a function call
+				block? expr								;-- and if expr is a function call		
 				last-type/1 = 'logic!					;-- which return type is logic!
 			][
 				emitter/logic-to-integer expr/1			;-- runtime logic! conversion before storing
@@ -2471,7 +2482,7 @@ system-dialect: make-profilable context [
 					while [not tail? pc][
 						if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
 						expr: do fetch
-						pop-calls
+						unless tail? pc [pop-calls]
 					]
 				]
 			]
