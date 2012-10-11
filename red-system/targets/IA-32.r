@@ -65,7 +65,7 @@ make-profilable make target-class [
 	
 	emit-float: func [arg opcode [binary!]][
 		emit either any [
-			arg = 4
+			arg == 4
 			'float32! = first compiler/get-type arg 
 		][
 			opcode and #{F9FF}
