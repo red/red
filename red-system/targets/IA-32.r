@@ -1308,15 +1308,12 @@ make-profilable make target-class [
 			- [pick [#{DEE1} #{DEE9}] reversed?]	;-- FSUB[R]P st0, st1
 			* [#{DEC9}]								;-- FMULP st0, st1
 			/ [
-				if all [mod? reversed?][
+				if all [mod? not reversed?][
 					emit #{D9C9}					;-- FXCH st0, st1		; for modulo/remainder ops
 				]
 				switch/default mod? [
 					mod [#{D9F8}]					;-- FPREM st0, st1		; floating point remainder
-					rem [
-						compiler/last-type: [integer!]
-						#{D9F5}						;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
-					]
+					rem [#{D9F5}]					;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
 				][pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
 			]
 		]
