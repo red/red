@@ -84,21 +84,20 @@ foreach op test-binary-ops [
         either op = "%" [
           expected: do reduce [round remainder operand1 operand2]
         ][
-          expected: do reduce [operand1 op operand2]
+          expected: to decimal! do reduce [operand1 op operand2]
         ]
       ][
-
-        expected: to decimal! expected
-        
         ;; test with literal values
         test-number: test-number + 1
         append tests join {  --test-- "float-auto-} [test-number {"^(0A)}]
         either op <> "%" [
           append tests "  --assertf~= "
+          append tests reform [expected " (" operand1 op operand2 ") " tol "^(0A)"]
         ][
-          append tests "  --assert "  
+          append tests "  --assert "
+          append tests reform [expected "= (" operand1 op operand2 ") ^(0A)"]
         ]
-        append tests reform [expected " (" operand1 op operand2 ") " tol "^(0A)"]
+        
         
         ;; test with variables
         test-number: test-number + 1
@@ -108,10 +107,12 @@ foreach op test-binary-ops [
         append tests rejoin ["      k:  i " op " j^(0A)"]
         either op <> "%" [
           append tests "  --assertf~= "
+          append tests reform [expected " k " tol "^(0A)"]
         ][
-          append tests "  --assert "  
+          append tests "  --assert "
+          append tests reform [expected "= k ^(0A)"]
         ]
-        append tests reform [expected " k " tol "^(0A)"]
+        
            
         ;; write tests to file
         write/append file-out tests
