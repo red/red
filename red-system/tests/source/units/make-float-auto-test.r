@@ -82,7 +82,7 @@ foreach op test-binary-ops [
       ;; only write a test if REBOL produces a result
       if attempt [
         either op = "%" [
-          expected: do reduce [round remainder operand1 operand2]
+          expected: to decimal! do reduce [remainder operand1 operand2]
         ][
           expected: to decimal! do reduce [operand1 op operand2]
         ]
@@ -90,14 +90,8 @@ foreach op test-binary-ops [
         ;; test with literal values
         test-number: test-number + 1
         append tests join {  --test-- "float-auto-} [test-number {"^(0A)}]
-        either op <> "%" [
-          append tests "  --assertf~= "
-          append tests reform [expected " (" operand1 op operand2 ") " tol "^(0A)"]
-        ][
-          append tests "  --assert "
-          append tests reform [expected "= (" operand1 op operand2 ") ^(0A)"]
-        ]
-        
+        append tests "  --assertf~= "
+        append tests reform [expected " (" operand1 op operand2 ") " tol "^(0A)"]
         
         ;; test with variables
         test-number: test-number + 1
@@ -105,14 +99,8 @@ foreach op test-binary-ops [
         append tests join "      i: " [operand1 "^(0A)"]
         append tests join "      j: " [operand2 "^(0A)"]
         append tests rejoin ["      k:  i " op " j^(0A)"]
-        either op <> "%" [
-          append tests "  --assertf~= "
-          append tests reform [expected " k " tol "^(0A)"]
-        ][
-          append tests "  --assert "
-          append tests reform [expected "= k ^(0A)"]
-        ]
-        
+        append tests "  --assertf~= "
+        append tests reform [expected " k " tol "^(0A)"]
            
         ;; write tests to file
         write/append file-out tests
