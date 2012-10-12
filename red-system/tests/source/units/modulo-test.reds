@@ -44,15 +44,15 @@ Red/System [
 
 ===start-group=== "float remainder"
 
-  --test-- "fr-1" --assert   1 =  9.0  %  4.0
-  --test-- "fr-2" --assert   1 =  9.0  % -4.0
-  --test-- "fr-3" --assert  -1 = -9.0  %  4.0
-  --test-- "fr-4" --assert  -1 = -9.0  % -4.0
-  --test-- "fr-5" --assert   1 =  8.5  %  4.0
-  --test-- "fr-6" --assert   0 =  8.49 %  4.0
-  --test-- "fr-7" --assert   1 =  9.0  %  3.9
-  --test-- "fr-8" --assert   4 =  8.9  %  4.46
-  --test-- "fr-9" --assert   0 =  8.9  %  4.25
+  --test-- "fr-1" --assert  9.0  %  4.0  =  1
+  --test-- "fr-2" --assert  9.0  % -4.0  =  1
+  --test-- "fr-3" --assert -9.0  %  4.0  = -1
+  --test-- "fr-4" --assert -9.0  % -4.0  = -1
+  --test-- "fr-5" --assert  8.5  %  4.0  =  1
+  --test-- "fr-6" --assert  8.49 %  4.0  =  0 
+  --test-- "fr-7" --assert  9.0  %  3.9  =  1
+  --test-- "fr-8" --assert  8.9  %  4.46 =  4
+  --test-- "fr-9" --assert  8.9  %  4.25 =  0
   
 ===end-group=== 
  
