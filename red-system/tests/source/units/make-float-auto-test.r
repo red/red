@@ -36,6 +36,7 @@ test-binary-ops: [
   -
   *
   /
+  //
 ]
 
 test-comparison-ops: [
