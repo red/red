@@ -304,7 +304,7 @@ The modulo and remainder operators have a special meaning when used on float! va
 
 * modulo (//): floating point remainder (result is a float!).
 
-* remainder (%): IEEE-754 rounded remainder (result is an integer!).
+* remainder (%): IEEE-754 rounded remainder (result is a float!).
 
 
 ---Float32!
