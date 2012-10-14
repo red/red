@@ -15,9 +15,6 @@ Red/System [
 
 #import [
 	LIBC-file cdecl [
-		putwchar: "putwchar" [
-			wchar		[integer!]						;-- wchar is 32-bit on UNIX 32-bit systems @@64-bit
-		]
 		wprintf: "wprintf" [
 			[variadic]
 			return: 	[integer!]
@@ -43,22 +40,22 @@ print-UCS4: func [
 	while [cp: str/value not zero? cp][
 		case [
 			cp <= 7Fh [
-				putwchar cp
+				putchar as-byte cp
 			]
 			cp <= 07FFh [
-				putwchar cp >> 6 or C0h
-				putwchar cp and 3Fh or 80h
+				putchar as-byte cp >> 6 or C0h
+				putchar as-byte cp and 3Fh or 80h
 			]
 			cp <= FFFFh [
-				putwchar cp >> 12 or E0h
-				putwchar cp >> 6 and 3Fh or 80h
-				putwchar cp and 3Fh or 80h
+				putchar as-byte cp >> 12 or E0h
+				putchar as-byte cp >> 6 and 3Fh or 80h
+				putchar as-byte cp and 3Fh or 80h
 			]
 			cp <= 001FFFFFh [
-				putwchar cp >> 18 or F0h
-				putwchar cp >> 12 and 3Fh or 80h
-				putwchar cp >>  6 and 3Fh or 80h
-				putwchar cp and 3Fh or 80h
+				putchar as-byte cp >> 18 or F0h
+				putchar as-byte cp >> 12 and 3Fh or 80h
+				putchar as-byte cp >>  6 and 3Fh or 80h
+				putchar as-byte cp and 3Fh or 80h
 			]
 			true [
 				print-line "Error in print-UCS4: codepoint > 1FFFFFh"
@@ -79,7 +76,7 @@ print-line-UCS4: func [
 	assert str <> null
 
 	print-UCS4 str										;@@ throw an error on failure
-	putwchar 10											;-- newline
+	putchar as-byte 10									;-- newline
 ]
 
 ;-------------------------------------------
@@ -99,16 +96,16 @@ print-UCS2: func [
 	][
 		case [
 			cp <= 7Fh [
-				putwchar cp
+				putchar as-byte cp
 			]
 			cp <= 07FFh [
-				putwchar cp >> 6 or C0h
-				putwchar cp and 3Fh or 80h
+				putchar as-byte cp >> 6 or C0h
+				putchar as-byte cp and 3Fh or 80h
 			]
 			true [
-				putwchar cp >> 12 or E0h
-				putwchar cp >> 6 and 3Fh or 80h
-				putwchar cp and 3Fh or 80h
+				putchar as-byte cp >> 12 or E0h
+				putchar as-byte cp >> 6 and 3Fh or 80h
+				putchar as-byte cp and 3Fh or 80h
 			]
 		]
 		str: str + 2
@@ -123,7 +120,7 @@ print-line-UCS2: func [
 ][
 	assert str <> null
 	print-UCS2 str
-	putwchar 10											;-- newline
+	putchar as-byte 10									;-- newline
 ]
 
 ;-------------------------------------------
@@ -144,7 +141,7 @@ print-line-Latin1: func [
 ][
 	assert str <> null
 	prin str
-	putwchar 10											;-- newline
+	putchar as-byte 10									;-- newline
 ]
 
 ;-------------------------------------------
@@ -154,7 +151,7 @@ print-line-Latin1: func [
 prin: func [s [c-string!] return: [c-string!] /local p][
 	p: s
 	while [p/1 <> null-byte][
-		putwchar as-integer p/1
+		putchar p/1
 		p: p + 1
 	]
 	s

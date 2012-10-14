@@ -94,6 +94,6 @@ platform: context [
 	
 	
 	init: does [
-		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?
+		setlocale __LC_CTYPE ""					;@@ check if "utf8" is present in returned string?
 	]
 ]
