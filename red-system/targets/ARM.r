@@ -1836,9 +1836,9 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-APCS-header: func [args [block!] cconv [word!] /local reg bits offset type size][
+	emit-APCS-header: func [args [block!] cconv [word!] /local reg bits offset type size stk][
 		if issue? args/1 [args: args/2]
-		reg: 0		
+		reg: stk: 0	
 		foreach arg reverse args [					;-- arguments are on stack in reverse order	
 			if arg <> #_ [							;-- bypass place-holder marker
 				type: compiler/get-type arg
@@ -1847,7 +1847,8 @@ make-profilable make target-class [
 				][
 					emitter/size-of? type
 				]
-				
+				if reg >= 4 [stk: stk + any [size 4]] ;-- account for extra args on stack
+													  ;-- ANY: workaround special variables from start.reds
 				set [bits offset] either 8 = size [
 					either reg <= 2 [
 						if odd? reg [reg: reg + 1]	;-- start 64-bit value on even register
@@ -1859,28 +1860,34 @@ make-profilable make target-class [
 					[1 1]							;-- use 1 reg
 				]
 				
-				unless zero? bits [
+				if all [reg < 4 not zero? bits][
 					emit-i32 #{e8bd00} 				;-- POP {rn[,rn+1]}
 					emit-i32 to char! shift/left bits reg
 				]
 				
 				reg: reg + offset
-				if reg >= 4 [exit]					;-- process only args that can be stored in r0-r3
 			]
 		]
+		stk											;-- return extra args on stack size for further adjustment
 	]
 	
-	emit-call-syscall: func [args [block!] fspec [block!]] [	; @@ check if it needs stack alignment too
-		emit-APCS-header args fspec/3
+	emit-call-syscall: func [args [block!] fspec [block!] /local extra][	; @@ check if it needs stack alignment too
+		extra: emit-APCS-header args fspec/3
 		emit-i32 #{e3a070}							;-- MOV r7, <syscall>
 		emit-i32 to-bin8 last fspec
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
+		unless zero? extra [
+			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments
+		]
 	]
 	
-	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
-		emit-APCS-header args fspec/3
+	emit-call-import: func [args [block!] fspec [block!] spec [block!] /local extra][
+		extra: emit-APCS-header args fspec/3
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
+		unless zero? extra [
+			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments
+		]
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
 	]
 
