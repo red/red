@@ -1838,7 +1838,7 @@ make-profilable make target-class [
 	
 	emit-APCS-header: func [args [block!] cconv [word!] /local reg bits offset type size stk][
 		if issue? args/1 [args: args/2]
-		reg: stk: 0	
+		reg: stk: 0
 		foreach arg reverse args [					;-- arguments are on stack in reverse order	
 			if arg <> #_ [							;-- bypass place-holder marker
 				type: compiler/get-type arg
@@ -1965,7 +1965,7 @@ make-profilable make target-class [
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 fspec/5 = 'callback][
+		if all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
 			;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
 			;; passed via regs r0-r3, further args are passed on the stack (pushed
 			;; right-to-left; i.e. the leftmost argument is at top-of-stack).
@@ -2035,7 +2035,7 @@ make-profilable make target-class [
 		
 		fspec: select/only compiler/functions name
 		
-		either all [block? fspec/4/1 fspec/5 = 'callback][
+		either all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
 		][

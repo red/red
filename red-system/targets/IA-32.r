@@ -1557,7 +1557,7 @@ make-profilable make target-class [
 			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 fspec/5 = 'callback][
+		if all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
 			emit #{53}								;-- PUSH ebx
 			emit #{56}								;-- PUSH esi
 			emit #{57}								;-- PUSH edi
@@ -1571,7 +1571,7 @@ make-profilable make target-class [
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 fspec/5 = 'callback][
+		if all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
 			emit #{5F}								;-- POP edi
 			emit #{5E}								;-- POP esi
 			emit #{5B}								;-- POP ebx
