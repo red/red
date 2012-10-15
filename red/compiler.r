@@ -890,6 +890,21 @@ red: context [
 		]
 		next src										;-- skip header block
 	]
+	
+	clean-up: does [
+		clear symbols
+		clear sys-global
+		clear output
+		clear sym-table
+		clear literals
+		clear declarations
+		clear actions
+		clear op-actions
+		clear keywords
+		clear skip functions 2							;-- keep MAKE definition
+		s-counter:	  0
+		depth:		  0
+	]
 
 	compile: func [
 		file [file! block!]								;-- source file or block of code
@@ -897,6 +912,7 @@ red: context [
 		/local time
 	][
 		verbose: opts/verbosity
+		clean-up
 		
 		time: dt [comp-red load-source file]
 		reduce [output time]
