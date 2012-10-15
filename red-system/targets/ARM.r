@@ -1885,10 +1885,10 @@ make-profilable make target-class [
 		extra: emit-APCS-header args fspec/3
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
+		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
 		unless zero? extra [
 			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments
 		]
-		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
 	]
 
 	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine][
