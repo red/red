@@ -1950,7 +1950,7 @@ make-profilable make target-class [
 			;if args/1 = #typed [size: size + 4]		;-- adjustment for typed functions
 			size: size + 4
 		]
-		size: size + call-arguments-size?/cdecl args
+		size: size + call-arguments-size?/cdecl skip args 4 ;-- don't count first 4 arguments!
 		unless zero? size // 8 [
 			emit-i32 #{e24dd004}					;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
 		]
