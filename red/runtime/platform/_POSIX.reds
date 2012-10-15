@@ -158,21 +158,21 @@ prin: func [s [c-string!] return: [c-string!] /local p][
 ]
 
 prin-int: func [i [integer!] return: [integer!]][
-	wprintf ["%i" i]									;-- UTF-8 literal string
+	printf ["%i" i]									;-- UTF-8 literal string
 	i
 ]
 
 prin-hex: func [i [integer!] return: [integer!]][
-	wprintf ["%08X" i]									;-- UTF-8 literal string
+	printf ["%08X" i]									;-- UTF-8 literal string
 	i
 ]
 
 prin-float: func [f [float!] return: [float!]][
-	wprintf ["%.14g" f]									;-- UTF-8 literal string
+	printf ["%.14g" f]									;-- UTF-8 literal string
 	f
 ]
 
 prin-float32: func [f [float32!] return: [float32!]][
-	wprintf ["%.7g" as-float f]							;-- UTF-8 literal string
+	printf ["%.7g" as-float f]							;-- UTF-8 literal string
 	f
 ]
