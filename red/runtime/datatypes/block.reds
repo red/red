@@ -348,29 +348,24 @@ block: context [
 	;--- Reading actions ---
 	
 	pick: func [
+		blk	       [red-block!]
+		index  	   [integer!]
 		return:	   [red-value!]
 		/local
-			blk	   [red-block!]
-			index  [red-integer!]
 			cell   [red-value!]
 			s	   [series!]
-			idx    [integer!]
 			offset [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/pick"]]
 
-		blk: as red-block! stack/arguments
 		s: GET_BUFFER(blk)
-		
-		index: as red-integer! blk + 1
-		idx: index/value
 
-		offset: blk/head + index/value - 1				;-- index is one-based
-		if negative? idx [offset: offset + 1]
+		offset: blk/head + index - 1					;-- index is one-based
+		if negative? index [offset: offset + 1]
 		cell: s/offset + offset
 		
-		stack/set-last either any [
-			zero? idx
+		either any [
+			zero? index
 			cell >= s/tail
 			cell < s/offset
 		][

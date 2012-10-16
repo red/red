@@ -321,15 +321,31 @@ actions: context [
 	
 	pick*: func [
 		return:	[red-value!]
+		/local
+			int [red-integer!]
+	][
+		int: as red-integer! stack/arguments + 1
+		
+		pick
+			as red-series!  stack/arguments
+			int/value	
+	]
+	
+	pick: func [
+		series	[red-series!]
+		index	[integer!]
+		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/pick"]]
 
 		action-pick: as function! [						;-- needs to be globally bound
+			series	[red-series!]
+			index	[integer!]
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_PICK
-		action-pick
+		] get-action-ptr as red-value! series ACT_PICK
+		stack/set-last action-pick series index
 	]
-	
+
 	poke*: func [
 		return:	[red-value!]
 	][

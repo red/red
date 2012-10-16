@@ -461,38 +461,33 @@ string: context [
 	;--- Reading actions ---
 
 	pick: func [
+		str	       [red-string!]
+		index  	   [integer!]
 		return:	   [red-value!]
 		/local
-			str	   [red-string!]
-			index  [red-integer!]
 			char   [red-char!]
 			s	   [series!]
-			idx	   [integer!]
 			offset [integer!]
 			p1	   [byte-ptr!]
 			p4	   [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/pick"]]
 
-		str: as red-string! stack/arguments
 		s: GET_BUFFER(str)
 		
-		index: as red-integer! str + 1
-		idx: index/value
-		
-		offset: str/head + idx - 1						;-- index is one-based
-		if negative? idx [offset: offset + 1]
+		offset: str/head + index - 1					;-- index is one-based
+		if negative? index [offset: offset + 1]
 
 		p1: (as byte-ptr! s/offset) + (offset << (GET_UNIT(s) >> 1))
 		
 		either any [
-			zero? idx
+			zero? index
 			p1 >= as byte-ptr! s/tail
 			p1 <  as byte-ptr! s/offset
 		][
-			stack/set-last none-value
+			none-value
 		][
-			char: as red-char! str
+			char: as red-char! stack/push
 			char/header: TYPE_CHAR		
 			char/value: switch GET_UNIT(s) [
 				Latin1 [as-integer p1/value]

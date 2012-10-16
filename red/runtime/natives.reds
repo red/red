@@ -138,7 +138,7 @@ natives: context [
 		#if debug? = yes [if verbose > 0 [print-line "native/not"]]
 		
 		bool: as red-logic! stack/arguments
-		bool/value: logic/false?						;-- run test before modifyin stack
+		bool/value: logic/false?						;-- run test before modifying stack
 		bool/header: TYPE_LOGIC
 	]
 
@@ -177,13 +177,7 @@ natives: context [
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
-		stack/mark exec/_pick							;@@ replace it with direct calls
-		copy-cell as red-value! series stack/push
-		integer/push 1
-		actions/pick*
-		stack/unwind
-		
-		_context/set word stack/last-value
+		_context/set word actions/pick series 1
 		result: loop? series
 		series/head: series/head + 1
 		result
