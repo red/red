@@ -327,7 +327,7 @@ actions: context [
 		int: as red-integer! stack/arguments + 1
 		
 		pick
-			as red-series!  stack/arguments
+			as red-series! stack/arguments
 			int/value	
 	]
 	

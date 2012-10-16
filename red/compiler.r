@@ -76,7 +76,7 @@ red: context [
 	set-last-none: does [compose [(stack-reset) none/push]]
 
 	quit-on-error: does [
-		;clean-up
+		clean-up
 		if system/options/args [quit/return 1]
 		halt
 	]
