@@ -1891,7 +1891,7 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine][
+	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine name [word!]][
 		if issue? args/1 [							;-- variadic call
 			emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
@@ -1901,8 +1901,15 @@ make-profilable make target-class [
 			if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
 			emit-push total							;-- push arguments count
 		]
-		emit-reloc-addr spec/3
-		emit-i32 #{eb000000}						;-- BL <disp>
+		either routine [							;-- test for function! pointer case
+			emit-variable name
+				#{e5900000}							;-- LDR r0, [r0]		; global
+				[]									;-- no local version @@
+			emit-i32 #{e1200030}					;-- BLX r0
+		][
+			emit-reloc-addr spec/3
+			emit-i32 #{eb000000}					;-- BL <disp>
+		]
 	]
 
 	patch-call: func [code-buf rel-ptr dst-ptr] [

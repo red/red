@@ -218,7 +218,7 @@ target-class: context [
 				either fspec/3 = 'cdecl [
 					emit-call-import args fspec spec
 				][
-					emit-call-native/routine args fspec spec
+					emit-call-native/routine args fspec spec name
 				]
 			]
 			inline [
