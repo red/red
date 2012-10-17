@@ -153,22 +153,26 @@ target-class: context [
 		]
 	]
 	
+	argument-size?: func [arg cdecl [logic!]][
+		max 
+			any [
+				all [object? arg arg/action = 'null emitter/size-of? 'integer!]
+				all [
+					type: compiler/get-type arg
+					any [
+						all [cdecl type/1 = 'float32! 8]	;-- promote to C double
+						emitter/size-of? type
+					]
+				]
+			]
+			stack-width
+	]
+	
 	call-arguments-size?: func [args [block!] /cdecl /local total type][
 		total: 0
 		foreach arg args [
 			if arg <> #_ [							;-- bypass place-holder marker
-				total: total + max 
-					any [
-						all [object? arg arg/action = 'null emitter/size-of? 'integer!]
-						all [
-							type: compiler/get-type arg
-							any [
-								all [cdecl type/1 = 'float32! 8]	;-- promote to C double
-								emitter/size-of? type
-							]
-						]
-					]
-					stack-width
+				total: total + argument-size? arg to logic! cdecl
 			]
 		]
 		total

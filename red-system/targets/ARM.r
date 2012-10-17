@@ -535,6 +535,17 @@ make-profilable make target-class [
 		pools/mark-ins-point
 	]
 	
+	arguments-on-stack?: func [args [block!] /cdecl /local total][
+		total: 0
+		forall args [
+			if args/1 <> #_ [						;-- bypass place-holder marker
+				total: total + argument-size? args/1 to logic! cdecl
+				if total >= 16 [return args]
+			]
+		]
+		none
+	]
+	
 	to-bin24: func [v [integer! char!]][
 		copy skip debase/base to-hex to integer! v 16 1
 	]
@@ -1954,12 +1965,14 @@ make-profilable make target-class [
 		size: 0
 		if issue? args/1 [
 			args: args/2
-			;if args/1 = #typed [size: size + 4]		;-- adjustment for typed functions
+			;if args/1 = #typed [size: size + 4]	;-- adjustment for typed functions
 			size: size + 4
 		]
-		size: size + call-arguments-size?/cdecl skip args 4 ;-- don't count first 4 arguments!
-		unless zero? size // 8 [
-			emit-i32 #{e24dd004}					;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
+		if args: arguments-on-stack?/cdecl args [	;-- skip arguments passed in r0-r3
+			size: size + call-arguments-size?/cdecl args
+			unless zero? size // 8 [
+				emit-i32 #{e24dd004}				;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
+			]
 		]
 		emit-i32 #{e92d5000}						;-- PUSH {ip,lr}		; save previous sp and lr value
 	]
