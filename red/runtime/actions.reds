@@ -73,13 +73,8 @@ actions: context [
 		
 		type: TYPE_OF(proto)
 		if type = TYPE_DATATYPE [
-			dt: as red-datatype! proto	
-			
-			type: either dt/value = TYPE_DATATYPE [
-				TYPE_DATATYPE	
-			][ 
-				dt/value
-			]
+			dt: as red-datatype! proto
+			type: dt/value
 		]
 
 		action-make: as function! [						;-- needs to be globally bound
