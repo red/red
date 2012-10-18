@@ -36,8 +36,8 @@ test-binary-ops: [
   -
   *
   /
-  //
- "%"
+;  //									;; not implemented fully yet
+; "%"									;; not implemented fully yet
 ]
 
 test-comparison-ops: [
