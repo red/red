@@ -18,15 +18,17 @@ unset: context [
 	;-- Actions -- 
 
 	make: func [
-		return:		[red-value!]						;-- return unset cell pointer
+		proto	 [red-value!]
+		spec	 [red-value!]
+		return:	 [red-unset!]
 		/local
-			cell 	[red-unset!]
+			cell [red-unset!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/make"]]
 		
-		cell: as red-unset! stack/arguments
+		cell: as red-unset! stack/push
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags
-		as red-value! cell
+		cell
 	]
 
 	form: func [

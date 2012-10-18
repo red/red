@@ -104,6 +104,24 @@ integer: context [
 
 	;-- Actions --
 	
+	make: func [
+		proto	 [red-value!]	
+		spec	 [red-value!]
+		return:	 [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/make"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER [
+				as red-integer! spec
+			]
+			default [
+				--NOT_IMPLEMENTED--
+				as red-integer! spec					;@@ just for making it compilable
+			]
+		]
+	]
+	
 	form: func [
 		int		[red-integer!]
 		buffer	[red-string!]
@@ -198,7 +216,7 @@ integer: context [
 		TYPE_INTEGER
 		"integer"
 		;-- General actions --
-		null			;make
+		:make
 		null			;random
 		null			;reflect
 		null			;to

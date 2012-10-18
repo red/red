@@ -116,9 +116,29 @@ block: context [
 	;--- Actions ---
 	
 	make: func [
-	
+		proto 	 [red-value!]
+		spec	 [red-value!]
+		return:	 [red-block!]
+		/local
+			blk  [red-block!]
+			size [integer!]
+			int	 [red-integer!]
 	][
-	
+		#if debug? = yes [if verbose > 0 [print-line "block/make"]]
+
+		size: 1
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER [
+				int: as red-integer! spec
+				size: int/value
+			]
+			default [--NOT_IMPLEMENTED--]
+		]
+		blk: as red-block! stack/push
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk/head: 	0
+		blk/node: 	alloc-cells size
+		blk
 	]
 	
 	form: func [

@@ -26,25 +26,22 @@ native: context [
 	;-- Actions -- 
 	
 	make: func [
-		return:    [red-value!]						;-- return native cell pointer
+		proto	   [red-value!]
+		spec	   [red-block!]
+		return:    [red-native!]					;-- return native cell pointer
 		/local
-			arg	   [red-value!]
 			native [red-native!]
-			spec   [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/make"]]
-
-		arg:    stack/arguments
-		native: as red-native! arg
-		spec:   as red-block!  arg + 1
 		
 		assert TYPE_OF(spec) = TYPE_BLOCK
 		
+		native: as red-native! stack/push
 		native/header:  TYPE_NATIVE					;-- implicit reset of all header flags
 		native/spec:    spec/node					; @@ copy spec block if not at head
 		;native/symbols: clean-spec spec 			; @@ TBD
 		
-		as red-value! native
+		native
 	]
 	
 	form: func [

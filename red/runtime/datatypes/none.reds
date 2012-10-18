@@ -30,11 +30,17 @@ none: context [
 	;-- Actions -- 
 
 	make: func [
-		return:		[red-value!]						;-- return cell pointer
+		proto	 [red-value!]
+		spec	 [red-value!]
+		return:	 [red-none!]
+		/local
+			cell [red-none!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/make"]]
 
-		push
+		cell: as red-none! stack/push
+		cell/header: TYPE_NONE							;-- implicit reset of all header flags
+		cell
 	]
 	
 	form: func [

@@ -26,25 +26,21 @@ op: context [
 	;-- Actions -- 
 	
 	make: func [
-		return:  [red-value!]						;-- return op cell pointer
+		proto	[red-value!]
+		spec	[red-block!]
+		return: [red-op!]
 		/local
-			arg	 [red-value!]
-			op	 [red-op!]
-			spec [red-block!]
+			op	[red-op!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/make"]]
 
-		arg:  stack/arguments
-		op:   as red-op! arg
-		;spec: as red-block!  arg + 1
+		;assert TYPE_OF(spec) = TYPE_BLOCK
 		
-		;assert TYPE_OF(spec) = TYPE_ACTION
-		
-		op/header:  TYPE_OP						;-- implicit reset of all header flags
+		op: as red-op! stack/push
+		op/header: TYPE_OP						;-- implicit reset of all header flags
 		;op/spec:    spec/node					; @@ copy spec block if not at head
 		;op/symbols: clean-spec spec 			; @@ TBD
-		
-		as red-value! op
+		op
 	]
 	
 	form: func [

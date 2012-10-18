@@ -47,7 +47,7 @@ logic: context [
 	
 	;-- Actions -- 
 
-	make: func [
+	make*: func [
 		return:	 [red-value!]							;-- return cell pointer
 		/local
 			cell [red-logic!]
@@ -66,6 +66,26 @@ logic: context [
 		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
 		cell/value: id/value <> 0
 		as red-value! cell
+	]
+	
+	make: func [
+		proto	 [red-value!]	
+		spec	 [red-value!]
+		return:	 [red-logic!]							;-- return cell pointer
+		/local
+			cell [red-logic!]
+			args [red-value!]
+			id	 [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/make"]]
+
+		assert TYPE_OF(spec) = TYPE_INTEGER
+		id: as red-integer! spec
+	
+		cell: as red-logic! stack/push
+		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
+		cell/value: id/value <> 0
+		cell
 	]
 	
 	form: func [

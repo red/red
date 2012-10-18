@@ -70,7 +70,7 @@ datatype: context [
 	
 	;-- Actions --
 
-	make: func [
+	make*: func [
 		return:	 [red-value!]							;-- return datatype cell pointer
 		/local
 			arg  [red-value!]
@@ -87,6 +87,24 @@ datatype: context [
 		type: as red-integer! arg + 1
 		dt/value: type/value		
 		as red-value! dt
+	]
+	
+	make: func [
+		proto 	[red-value!]
+		spec	[red-value!]
+		return:	[red-datatype!]							;-- return datatype cell pointer
+		/local
+			dt   [red-datatype!]
+			int [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "datatype/make"]]
+		
+		assert TYPE_OF(spec) = TYPE_INTEGER
+		int: as red-integer! spec
+		dt: as red-datatype! stack/push
+		dt/header: TYPE_DATATYPE
+		dt/value: int/value		
+		dt
 	]
 	
 	form: func [

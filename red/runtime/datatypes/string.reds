@@ -275,9 +275,30 @@ string: context [
 	;-- Actions -- 
 	
 	make: func [
-	
+		proto	 [red-value!]
+		spec	 [red-value!]
+		type	 [integer!]
+		return:	 [red-string!]
+		/local
+			str	 [red-string!]
+			size [integer!]
+			int	 [red-integer!]
 	][
-	
+		#if debug? = yes [if verbose > 0 [print-line "string/make"]]
+		
+		size: 1
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER [
+				int: as red-integer! spec
+				size: int/value
+			]
+			default [--NOT_IMPLEMENTED--]
+		]
+		str: as red-string! stack/push
+		str/header: TYPE_STRING							;-- implicit reset of all header flags
+		str/head: 	0
+		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
+		str
 	]
 	
 	form: func [

@@ -24,6 +24,30 @@ char: context [
 	
 	;-- Actions --
 	
+	make: func [
+		proto 	  [red-value!]
+		spec	  [red-value!]	
+		return:	  [red-char!]
+		/local
+			char  [red-char!]
+			int	  [red-integer!]
+			value [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/make"]]
+
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER [
+				int: as red-integer! spec
+				value: int/value
+			]
+			default [--NOT_IMPLEMENTED--]
+		]
+		char: as red-char! stack/push
+		char/header: TYPE_CHAR
+		char/value: value
+		char
+	]
+	
 	form: func [
 		arg	    [red-char!]
 		buffer  [red-string!]
@@ -144,7 +168,7 @@ char: context [
 		TYPE_CHAR
 		"char"
 		;-- General actions --
-		null			;make
+		:make
 		null			;random
 		null			;reflect
 		null			;to

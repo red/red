@@ -12,60 +12,83 @@ Red/System [
 actions: context [
 	verbose: 0
 	
+	get-action-ptr-from: func [
+		type	[integer!]								;-- datatype ID
+		action	[integer!]								;-- action ID
+		return: [integer!]								;-- action pointer (datatype-dependent)
+		/local
+			index [integer!]
+	][
+		index: type << 8 + action
+		index: action-table/index						;-- lookup action function pointer
+
+		if zero? index [
+			print-line [
+				"^/*** Script error: action " action
+				" not defined for type: " type
+			]
+			halt
+		]
+		index
+	]
+	
 	;@@ temporary stack-oriented version kept until internal API fully changed
 	get-action-ptr*: func [
 		action	[integer!]								;-- action ID
 		return: [integer!]								;-- action pointer (datatype-dependent)
 		/local
 			arg  [red-value!]
-			type  [integer!]
-			index [integer!]
 	][
 		arg: stack/arguments
-		index: TYPE_OF(arg) << 8 + action
-		index: action-table/index						;-- lookup action function pointer
-
-		if zero? index [
-			print-line [
-				"^/*** Script error: action " action
-				" not defined for type: " TYPE_OF(arg)
-			]
-			halt
-		]
-		index
+		get-action-ptr-from TYPE_OF(arg) action
 	]	
 
 	get-action-ptr: func [
-		value	[red-value!]
+		value	[red-value!]							;-- any-type! value
 		action	[integer!]								;-- action ID
 		return: [integer!]								;-- action pointer (datatype-dependent)
-		/local
-			index [integer!]
 	][
-		index: TYPE_OF(value) << 8 + action
-		index: action-table/index						;-- lookup action function pointer
-
-		if zero? index [
-			print-line [
-				"^/*** Script error: action " action
-				" not defined for type: " TYPE_OF(value)
-			]
-			halt
-		]
-		index
+		get-action-ptr-from TYPE_OF(value) action
 	]	
+
 
 	;--- Actions polymorphic calls ---
 
 	make*: func [
-		return:	[red-value!]
+		return:	 [red-value!]
+	][
+		stack/set-last make stack/arguments stack/arguments + 1
+	]
+
+	make: func [
+		proto 	 [red-value!]
+		spec	 [red-value!]
+		return:	 [red-value!]
+		/local
+			dt	 [red-datatype!]
+			int  [red-integer!]
+			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/make"]]
+		
+		type: TYPE_OF(proto)
+		if type = TYPE_DATATYPE [
+			dt: as red-datatype! proto	
+			
+			type: either dt/value = TYPE_DATATYPE [
+				TYPE_DATATYPE	
+			][ 
+				dt/value
+			]
+		]
 
 		action-make: as function! [						;-- needs to be globally bound
-			return:	[red-value!]						;-- newly created value
-		] get-action-ptr* ACT_MAKE
-		action-make 
+			proto 	 [red-value!]
+			spec	 [red-value!]
+			return:	 [red-value!]						;-- newly created value
+		] get-action-ptr-from type ACT_MAKE
+		
+		action-make proto spec
 	]
 
 	random*: func [][]
