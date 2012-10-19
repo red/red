@@ -276,8 +276,9 @@ red: context [
 						decorate-symbol word
 					]
 					string? item [
-						action: 'load
-						item
+						emit compose [tmp: string/load (item)]
+						insert-lf -3
+						'tmp
 					]
 					'else [
 						item
