@@ -460,6 +460,7 @@ red: context [
 	]
 	
 	comp-repeat: has [name cnt set-cnt lim set-lim][
+		add-symbol pc/1
 		name: decorate-symbol pc/1
 		
 		depth: depth + 1
