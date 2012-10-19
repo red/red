@@ -258,7 +258,7 @@ lexer: context [
 		]  any-ws #"]"
 	]
 	
-	comment-rule: [#";" to #"^/"]
+	comment-rule: [#";" [to #"^/" | to end]]
 	
 	multiline-comment-rule: [
 		"comment" any-ws #"{" (stop: not-mstr-char) any [
