@@ -57,17 +57,12 @@ word: context [
 	get: func [
 		word	 [red-word!]
 		return:  [red-value!]
-		/local
-			cell [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/get"]]
 		
-		cell: stack/push
 		copy-cell
 			as cell! _context/get word
-			cell
-		
-		cell
+			stack/push
 	]
 	
 	;-- Actions --
