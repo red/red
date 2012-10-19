@@ -34,7 +34,7 @@ platform: context [
 			putwchar: "putwchar" [
 				wchar		[integer!]					;-- wchar is 16-bit on Windows
 			]
-			wprintf: "wprintf_s" [
+			wprintf: "wprintf" [
 				[variadic]
 				return: 	[integer!]
 			]
