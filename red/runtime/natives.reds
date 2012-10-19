@@ -168,8 +168,8 @@ natives: context [
 			word   [red-word!]
 			result [logic!]
 	][
-		series: as red-series! stack/arguments - 1
-		word:   as red-word!   stack/arguments - 2
+		word:   as red-word!   stack/arguments - 1
+		series: as red-series! stack/arguments - 2
 		
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
@@ -189,7 +189,7 @@ natives: context [
 			series [red-series!]
 			word   [red-word!]
 	][
-		word: as red-word! stack/arguments - 2
+		word: as red-word! stack/arguments - 1
 		assert TYPE_OF(word) = TYPE_WORD
 
 		series: as red-series! _context/get word
@@ -200,7 +200,7 @@ natives: context [
 		/local
 			series [red-series!]
 	][
-		series: as red-series! _context/get as red-word! stack/arguments - 2
+		series: as red-series! _context/get as red-word! stack/arguments - 1
 		series/head: series/head + 1
 	]
 	
@@ -209,8 +209,8 @@ natives: context [
 			series [red-series!]
 			word   [red-word!]
 	][
-		series: as red-series! stack/arguments - 1
-		word: as red-word! stack/arguments - 2
+		word: 	as red-word!   stack/arguments - 1
+		series: as red-series! stack/arguments - 2
 		
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK

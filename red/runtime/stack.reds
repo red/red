@@ -157,6 +157,7 @@ stack: context [										;-- call stack
 				4
 				(as-integer top + 1 - bottom) >> 4
 			print-line ["arguments: " arguments]
+			print-line ["top: " top]
 			
 			print-line "^/---- Call stack ----"
 			dump-memory
