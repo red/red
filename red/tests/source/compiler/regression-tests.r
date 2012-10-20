@@ -840,7 +840,7 @@ REBOL [
   --assert-printed? "or112^/......"
   
   --test-- "or113"
-  --assert-printed? {or112^/test6:^/test3^//test2^/test5}
+  --assert-printed? {or113^/test6:^/test3^//test2^/test5}
   
   --test-- "or114"
   --assert-printed? "or114^/test5/test2test3test6:"
