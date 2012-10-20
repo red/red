@@ -288,13 +288,23 @@ loader: make-profilable context [
 					]
 				) :s
 				| line-rule
+				| s: issue! (
+					if s/1/1 = #"'" [
+						value: to integer! debase/base next s/1 16
+						either value > 255 [
+							throw-error ["unsupported literal byte:" next s/1]
+						][
+							s/1: to char! value
+						]
+					]
+				)
 				| path! | set-path!	| any-string!		;-- avoid diving into these series
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
 				  [into blk | block! | paren!]			;-- black magic...
 				  s: (
 					if any [block? s/-1 paren? s/-1][
 						header: last stack
-						change header length? header	;-- update header size					  		
+						change header length? header	;-- update header size
 						s/-1: insert s/-1 header		;-- insert hidden header
 						remove back tail stack
 					]
