@@ -284,7 +284,7 @@ red: context [
 						item
 					]
 				]
-				emit to word! rejoin [form type? item slash action]
+				emit to word! rejoin [form type? :item slash action]
 				emit value
 				insert-lf -2
 				
