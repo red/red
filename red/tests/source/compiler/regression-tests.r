@@ -841,7 +841,7 @@ REBOL [
   --assert-printed? {or110[1 2 3 test [3 4] #"u" /ref]}
   
   --test-- "or111"
-  --assert-printed? {or111[test5 /test2 test3 test6:]}
+  --assert-printed? {or111[test5 /test2 'test3 test6:]}
   
   --test-- "or112"
   --assert-printed? "or112......"
@@ -850,7 +850,7 @@ REBOL [
   --assert-printed? {or113test6:'test3/test2test5}
   
   --test-- "or114"
-  --assert-printed? "or114test5/test2test3test6:"
+  --assert-printed? "or114test5/test2'test3test6:"
   
   --test-- "or115"
   --assert-printed? "or115"                ;; unicode
@@ -868,10 +868,10 @@ REBOL [
   --assert-printed? "or119"                ;; unicode
   
   --test-- "or120"
-  --assert-printed? "or120test5/test2test3test6:"
+  --assert-printed? "or120test5/test2'test3test6:"
   
   --test-- "or121"
-  --assert-printed?  "or121/test2 test3 test6:"
+  --assert-printed?  "or121/test2 'test3 test6:"
   
   --test-- "or122"
   --assert-printed? "or1223"
