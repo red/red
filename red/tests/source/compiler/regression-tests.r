@@ -464,6 +464,12 @@ REBOL [
       print length-of list
       
     }
+    
+    ;; Windows console output is UTF-16LE for Red programs
+    ;; We need to remove the #"^(00)" chars from the output so
+    ;; that the tests will run cross-platform
+    
+    replace/all qt/output "^(00)" ""
 
 ===start-group=== "Basic"
 
