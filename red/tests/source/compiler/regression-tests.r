@@ -405,7 +405,6 @@ REBOL [
       
       prin "or112"
       loop 3 [loop 1 + 1 [prin "."]]
-      print
       ;loop 20'000'000 [tail? next "x"]
       
       
