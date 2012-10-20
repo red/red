@@ -417,6 +417,7 @@ REBOL [
       	head? list
       ]
       
+      
       prin "or114"
       while [not tail? list][
       	prin mold pick list 1
@@ -846,7 +847,7 @@ REBOL [
   --assert-printed? "or112......"
   
   --test-- "or113"
-  --assert-printed? {or113test6:test3/test2test5}
+  --assert-printed? {or113test6:'test3/test2test5}
   
   --test-- "or114"
   --assert-printed? "or114test5/test2test3test6:"
