@@ -212,6 +212,7 @@ string: context [
 		size2: as-integer (as byte-ptr! s2/tail - s2/offset) - str2/head
 		size: (as-integer (as byte-ptr! s1/tail - s1/offset )- str1/head) + size2
 		if s1/size < size [s1: expand-series s1 size + unit1]	;-- account for terminal NUL
+		if negative? str2/head [size2: size2 - 1]		;-- mismatch correction when symbol! is used as string!
 		
 		either all [keep? unit1 <> unit2][
 			p: as byte-ptr! s1/offset
@@ -228,7 +229,7 @@ string: context [
 		][
 			p: as byte-ptr! s1/tail
 			copy-memory	p as byte-ptr! s2/offset size2 + unit1	;-- copy NUL too
-			s1/tail: as cell! p + size2	- 1				;-- reset tail just before NUL
+			s1/tail: as cell! p + size2				;-- reset tail just before NUL
 		]
 	]
 	
