@@ -8,8 +8,8 @@ REBOL [
 
 ~~~start-file~~~ "Red print"
 
-  --test-- "Red print 1"
-    --compile-and-run-red %source/compiler/print-test.red
+ --test-- "Red print 1"
+   --compile-and-run-red %source/compiler/print-test.red
   --assert-printed? 1
   
   --test-- "Red print 2"

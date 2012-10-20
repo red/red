@@ -77,4 +77,17 @@ Red/System [
   
 ===end-group===
 
+===start-group=== "does"
+
+  --test-- "d1"
+    d1-a: 1
+    d1-b: 0
+    d1-d: does [d1-b: d1-a]
+    d1-d
+  --assert d1-a = d1-b
+  
+  
+
+===end-group===
+
 ~~~end-file~~~

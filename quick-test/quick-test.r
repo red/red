@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.9.0
+	Version: 0.9.1
 	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -414,7 +414,7 @@ qt: make object! [
   
   r-compile-from-string: func [src][
     ;-- add a default header if not provided
-    if none = find src "Red" [insert src "Red []^/"]
+    if none = find src "Red [" [insert src "Red []^/"]
     write r-test-src-file src
     r-compile r-test-src-file                  ;; returns path to executable or none
   ]

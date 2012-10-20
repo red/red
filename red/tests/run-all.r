@@ -32,6 +32,7 @@ start-time: now/precise
 
 ===start-group=== "Red Compiler tests"
   --run-script-quiet %source/compiler/print-test.r
+  --run-script-quiet %source/compiler/regression-tests.r
 ===end-group===
 
 ***end-run-quiet***
