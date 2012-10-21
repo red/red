@@ -1011,11 +1011,13 @@ system-dialect: make-profilable context [
 			unless catch [
 				parse specs [
 					pos: opt [into attribs]				;-- functions attributes
-					pos: copy args any [pos: word! into type-def]	;-- arguments definition
+					pos: opt string!
+					pos: copy args any [pos: word! into type-def opt string!]	;-- arguments definition
 					pos: opt [							;-- return type definition				
 						set value set-word! (					
 							rule: pick reduce [[into type-spec] fail] value = return-def
 						) rule
+						opt string!
 					]
 					pos: opt [/local copy locs some [pos: word! opt [into type-spec]]] ;-- local variables definition
 				]
@@ -1023,6 +1025,7 @@ system-dialect: make-profilable context [
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
 			]
 			if block? args [
+				remove-each s args [string? s]
 				foreach [name type] args [
 					if enum-id? name [
 						throw-warning ["function's argument redeclares enumeration:" name]
@@ -1205,6 +1208,9 @@ system-dialect: make-profilable context [
 			if ns-path [name: ns-prefix name]
 			check-func-name name
 			check-specs name specs: pc/2
+			specs: copy specs
+			remove-each s specs [string? s]
+			
 			type: 'native
 			cc:   'stdcall								;-- default calling convention
 			
