@@ -161,6 +161,45 @@ natives: context [
 		]
 	]
 	
+	set-many-to-many: func [
+		words	[red-block!]
+		series	[red-series!]
+		size	[integer!]
+		/local
+			i	[integer!]
+	][
+		i: 1
+		while [i <= size][
+			_context/set
+				as red-word! block/pick words i
+				actions/pick series i
+			i: i + 1
+		]
+	]
+	
+	foreach-next-block: func [
+		size	[integer!]								;-- number of words in the block
+		return: [logic!]
+		/local
+			series [red-series!]
+			blk    [red-block!]
+			result [logic!]
+	][
+		blk:    as red-block!  stack/arguments - 1
+		series: as red-series! stack/arguments - 2
+
+		assert any [									;@@ replace with any-block?/any-string? check
+			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_STRING
+		]
+		assert TYPE_OF(blk) = TYPE_BLOCK
+
+		set-many-to-many blk series size
+		result: loop? series
+		series/head: series/head + size
+		result
+	]
+	
 	foreach-next: func [
 		return: [logic!]
 		/local

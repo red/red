@@ -496,23 +496,33 @@ red: context [
 		depth: depth - 1
 	]
 		
-	comp-foreach: has [word][
-		add-symbol word: pc/1
+	comp-foreach: has [word blk name cond][
+		either block? pc/1 [
+			;TBD: raise error if not a block of words only
+			foreach word blk: pc/1 [add-symbol word]
+			name: redirect-to-literals [emit-block blk]
+		][
+			add-symbol word: pc/1
+		]
 		pc: next pc
 		
 		comp-expression									;-- compile series argument
 		;TBD: check if result is any-series!
-
-		emit compose [
-			stack/keep 1
-			word/push (decorate-symbol word)			;-- word argument
+		emit [stack/keep 1]
+		insert-lf -2
+		
+		emit compose either blk [
+			cond: compose [natives/foreach-next-block (length? blk)]
+			[block/push (name)]								;-- block argument
+		][
+			cond: compose [natives/foreach-next]
+			[word/push (decorate-symbol word)]			;-- word argument
 		]
-		new-line skip tail output -3 off
-		insert-lf -4
-
+		insert-lf -2
+		
 		emit-open-frame 'foreach
-		emit copy/deep [								;-- copy/deep required for R/S lines injection
-			while [natives/foreach-next]
+		emit compose/deep [
+			while [(cond)]
 		]
 		comp-sub-block									;-- compile body
 		emit-close-frame
