@@ -462,6 +462,14 @@ REBOL [
       
       prin "or122"
       print length-of list
+	  
+	  prin "or123"
+	  list: [11 #"v" 22 #"t" 33 #"z"]
+	  foreach [x y] list [
+		prin x
+		prin #":"
+		prin y
+	  ]	
       
     }
     
@@ -874,6 +882,9 @@ REBOL [
   
   --test-- "or122"
   --assert-printed? "or1223"
+
+  --test-- "or123"
+  --assert-printed? "or12311:v22:t33:z"
   
 ===end-group===
   
