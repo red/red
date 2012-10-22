@@ -124,9 +124,11 @@ red: context [
 	
 	emit: func [value][append output value]
 		
-	emit-src-comment: func [pos [block! paren!]][
+	emit-src-comment: func [pos [block! paren!] /local cmt][
+		cmt: trim/lines mold/only/flat clean-lf-deep copy/deep/part pos offset? pos pc
+		if 50 < length? cmt [cmt: append copy/part cmt 50 "..."]
 		emit reduce [
-			'------------| (mold/only clean-lf-deep copy/deep/part pos offset? pos pc)
+			'------------| (cmt)
 		]
 	]
 	
@@ -466,6 +468,9 @@ red: context [
 		
 		depth: depth + 1
 
+		emit stack-reset
+		insert-lf - 1
+		
 		pc: next pc
 		comp-expression									;-- compile 2nd argument
 		
