@@ -109,9 +109,8 @@ stack: context [										;-- call stack
 			arguments: bottom
 			top: bottom
 		][
-			call: as call! ctop
-			top: call/args + 1
-			
+			top: arguments + 1
+			call: as call! ctop			
 			call: call - 1
 			arguments: call/args
 		]
