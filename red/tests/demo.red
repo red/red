@@ -1,7 +1,7 @@
 Red [
 	Title: "Red alpha simple ASCII art demo"
 	Author: "Nenad Rakocevic"
-	File: %demo.r
+	File: %demo.red
 	Rights:  "Copyright (C) 2012 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
