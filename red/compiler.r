@@ -316,6 +316,10 @@ red: context [
 			char?: unicode-char? value
 			literal? value
 		][
+			if root? [
+				emit stack-reset						;-- reset top to arguments base
+				insert-lf -1
+			]
 			either char? [
 				emit [char/push]
 				emit to integer! next value
@@ -483,6 +487,7 @@ red: context [
 		insert-lf -2
 		insert-lf -4
 
+		emit-open-frame 'repeat
 		emit compose/deep [
 			while [
 				;-- set word 1 + get word
@@ -498,6 +503,7 @@ red: context [
 		new-line skip tail last output -3 on
 		
 		comp-sub-block
+		emit-close-frame
 		depth: depth - 1
 	]
 		
@@ -513,7 +519,7 @@ red: context [
 		
 		comp-expression									;-- compile series argument
 		;TBD: check if result is any-series!
-		emit [stack/keep 1]
+		emit stack-keep
 		insert-lf -2
 		
 		emit compose either blk [
@@ -783,6 +789,10 @@ red: context [
 			paren!		[saved: pc pc: pc/1 comp-block pc: next saved]
 		][
 			comp-literal to logic! root
+		]
+		if all [root not tail? pc][
+			emit stack-reset
+			insert-lf -1
 		]
 	]
 	
