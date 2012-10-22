@@ -169,7 +169,7 @@ actions: context [
 			value2  [red-value!]						;-- second operand
 			op	    [integer!]							;-- type of comparison
 			return: [logic!]
-		] get-action-ptr* ACT_COMPARE
+		] get-action-ptr value1 ACT_COMPARE
 		
 		action-compare value1 value2 op
 	]
