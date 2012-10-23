@@ -332,6 +332,13 @@ if: make native! [[
 	none
 ]
 
+unless: make native! [[
+		cond  	 [any-type!]
+		true-blk [block!]
+	]
+	none
+]
+
 either: make native! [[
 		cond  	  [any-type!]
 		true-blk  [block!]

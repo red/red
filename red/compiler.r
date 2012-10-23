@@ -41,7 +41,7 @@ red: context [
 	keywords: 	  make block! 10
 	
 	intrinsics:   [
-		if either any all while until loop repeat
+		if unless either any all while until loop repeat
 		foreach forall break
 	]
 
@@ -411,6 +411,14 @@ red: context [
 		comp-sub-block									;-- compile TRUE block
 	]
 	
+	comp-unless: does [
+		comp-expression
+		emit compose [
+			if (logic-false?)
+		]
+		comp-sub-block									;-- compile FALSE block
+	]
+
 	comp-either: does [
 		comp-expression		
 		emit compose [

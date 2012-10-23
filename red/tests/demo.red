@@ -43,7 +43,7 @@ foreach line data [
 			pick pattern cursor
 		]
 		if i > gap-end [
-			if not tail? line: skip line 2 [
+			unless tail? line: skip line 2 [
 				gap-start: pick line 1
 				gap-end: pick line 2
 			]
