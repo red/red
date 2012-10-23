@@ -1456,6 +1456,12 @@ system-dialect: make-profilable context [
 				unless catch [parse pos: pc/3 rule][
 					throw-error ["invalid literal syntax:" mold pos]
 				]
+				if all [
+					pc/2 = 'struct!
+					(length? pc/3) <> (length? unique/skip pc/3 2)
+				][
+					throw-error ["duplicate member name in struct:" mold pc/3]
+				]
 				offset: 3
 				[pc/2 pc/3]
 			][
