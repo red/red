@@ -6,7 +6,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-loader: context [
+loader: make-profilable context [
 	verbose: 	  0
 	include-dirs: none
 	include-list: make hash! 20
@@ -34,7 +34,7 @@ loader: context [
 	]
 
 	init: does [
-		include-dirs: reduce [runtime-path]
+		include-dirs: reduce [runtime-path red-runtime-path %./]
 		clear include-list
 		clear defs
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
@@ -288,13 +288,23 @@ loader: context [
 					]
 				) :s
 				| line-rule
+				| s: issue! (
+					if s/1/1 = #"'" [
+						value: to integer! debase/base next s/1 16
+						either value > 255 [
+							throw-error ["unsupported literal byte:" next s/1]
+						][
+							s/1: to char! value
+						]
+					]
+				)
 				| path! | set-path!	| any-string!		;-- avoid diving into these series
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
 				  [into blk | block! | paren!]			;-- black magic...
 				  s: (
 					if any [block? s/-1 paren? s/-1][
 						header: last stack
-						change header length? header	;-- update header size					  		
+						change header length? header	;-- update header size
 						s/-1: insert s/-1 header		;-- insert hidden header
 						remove back tail stack
 					]
@@ -306,8 +316,8 @@ loader: context [
 		insert src stack/1							;-- return source with hidden root header
 	]
 
-	process: func [input [file! string! block!] /sub /short /local src err path][
-		if verbose > 0 [print ["processing" mold either file? input [input]['in-memory]]]
+	process: func [input [file! string! block!] /sub /with name [file!] /short /local src err path][
+		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
 
 		if file? input [
 			if all [
@@ -325,16 +335,21 @@ loader: context [
 			]
 		]
 		unless short [
-			current-script: pick reduce [input 'in-memory] file? input
+			current-script: case [
+				file? input [input]
+				with		[name]
+				'else		['in-memory]
+			]
 		]
 		src: any [src input]						;-- process string-level compiler directives
 		if file? input [check-marker src]			;-- look for "Red/System" head marker
-		expand-string src
-
-		if error? set/any 'err try [src: load/all src][	;-- convert source to blocks
-			throw-error ["syntax error during LOAD phase:" mold disarm err]
+		
+		unless block? src [
+			expand-string src
+			if error? set/any 'err try [src: load src][	;-- convert source to blocks
+				throw-error ["syntax error during LOAD phase:" mold disarm err]
+			]
 		]
-
 		unless short [src: expand-block src]		;-- process block-level compiler directives
 		src
 	]

@@ -31,7 +31,7 @@ Red/System [
 			return:		[byte-ptr!]
 		]
 		length?:	 "strlen" [
-			command		[c-string!]
+			buffer		[c-string!]
 			return:		[integer!]
 		]
 		quit:		 "exit" [
@@ -44,31 +44,41 @@ Red/System [
 	]
 ]
 
-prin: func [s [c-string!] return: [c-string!] /local p][
-	p: s
-	while [p/1 <> null-byte][
-		putchar p/1
-		p: p + 1
+#either unicode? = yes [
+
+	#define prin			[red/platform/prin]
+	#define prin-int		[red/platform/prin-int]
+	#define prin-hex		[red/platform/prin-hex]
+	#define prin-float		[red/platform/prin-float]
+	#define prin-float32	[red/platform/prin-float32]
+	
+][
+	prin: func [s [c-string!] return: [c-string!] /local p][
+		p: s
+		while [p/1 <> null-byte][
+			putchar p/1
+			p: p + 1
+		]
+		s
 	]
-	s
-]
 
-prin-int: func [i [integer!] return: [integer!]][
-	printf ["%i" i]
-	i
-]
+	prin-int: func [i [integer!] return: [integer!]][
+		printf ["%i" i]
+		i
+	]
 
-prin-hex: func [i [integer!] return: [integer!]][
-	printf ["%08X" i]
-	i
-]
+	prin-hex: func [i [integer!] return: [integer!]][
+		printf ["%08X" i]
+		i
+	]
 
-prin-float: func [f [float!] return: [float!]][
-	printf ["%.14g" f]
-	f
-]
+	prin-float: func [f [float!] return: [float!]][
+		printf ["%.14g" f]
+		f
+	]
 
-prin-float32: func [f [float32!] return: [float32!]][
-	printf ["%.7g" as-float f]
-	f
+	prin-float32: func [f [float32!] return: [float32!]][
+		printf ["%.7g" as-float f]
+		f
+	]
 ]

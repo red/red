@@ -1,7 +1,7 @@
-Red/System [
-	Title:   "Red runtime wrapper"
+Red [
+	Title:   "Red minimal test script"
 	Author:  "Nenad Rakocevic"
-	File: 	 %runtime.reds
+	File: 	 %hello.red
 	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -9,10 +9,8 @@ Red/System [
 	}
 ]
 
-#include %macro-defs.reds
-#include %utils.reds
-#include %imports.reds
-;#include %threads.reds
-#include %allocator.reds
-;#include %collector.reds
-;#include %tokenizer.reds
+print "Hello, world!"
+print "Χαῖρε, κόσμε!"
+print "你好, 世界"
+print "Dobrý den světe"
+

@@ -6,6 +6,9 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+do %utils/profiler.r
+profiler/active?: no
+
 do %utils/r2-forward.r
 do %utils/int-to-bin.r
 do %utils/IEEE-754.r
@@ -14,15 +17,16 @@ do %utils/secure-clean-path.r
 do %linker.r
 do %emitter.r
 
-system-dialect: context [
+system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
 	runtime-path: %runtime/
+	red-runtime-path: %../red/runtime/
 	nl: 		  newline
 	
 	loader: do bind load %loader.r 'self
 	
-	compiler: context [
+	compiler: make-profilable context [
 		job:		 	 none							;-- shortcut for job object
 		pc:			 	 none							;-- source code input cursor
 		script:		 	 none							;-- source script file name
@@ -39,7 +43,6 @@ system-dialect: context [
 	
 		imports: 	   	 make block! 10					;-- list of imported functions
 		natives:	   	 make hash!  40					;-- list of functions to compile [name [specs] [body]...]
-		guesses:	   	 make hash!  40					;-- list of lazily defined symbols with namespace [ns/name [type line script]...]
 		ns-path:		 none							;-- namespaces access path
 		ns-list:		 make hash!  8					;-- namespaces definition list [name [word type...]...]
 		with-stack:		 none							;-- namespaces local prefixes stack
@@ -83,8 +86,8 @@ system-dialect: context [
 			and		[2	op		- [a [number!] b [number!] return: [number!]]]
 			or		[2	op		- [a [number!] b [number!] return: [number!]]]
 			xor		[2	op		- [a [number!] b [number!] return: [number!]]]
-			//		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- modulo
-			///		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- remainder (real syntax: %)
+			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
+			///		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
 			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned
@@ -121,13 +124,13 @@ system-dialect: context [
 		]
 
 		type-spec: [
-			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage
+			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage		
 				unless any [
 					all [v: find-aliased/prefix value pos/1: v]			;-- rewrite the type to prefix it
 					find aliased-types value
-					all [v: ns-find-with value enumerations pos/1: v]	;-- rewrite the type to prefix it
-					find enumerations value
-				][throw false]							;-- stop parsing if unresolved type
+					all [v: ns-find-with/type value enumerations pos/1: v]	;-- rewrite the type to prefix it
+					all [enum-type? value pos/1: 'integer!]
+				][throw false]							;-- stop parsing if unresolved type			
 			)
 		]		
 		
@@ -267,7 +270,7 @@ system-dialect: context [
 		blockify: func [value][either block? value [value][reduce [value]]]
 
 		literal?: func [value][
-			not any [word? value path? value block? value value = <last>]
+			not any [word? value get-word? value path? value block? value value = <last>]
 		]
 		
 		not-initialized?: func [name [word!] /local pos][
@@ -378,6 +381,10 @@ system-dialect: context [
 			count
 		]
 		
+		any-path?: func [value][
+			find [path! set-path! lit-path!] type?/word value
+		]
+		
 		any-float?: func [type [block!]][
 			find any-float! type/1
 		]
@@ -429,11 +436,11 @@ system-dialect: context [
 		resolve-aliased: func [type [block!] /local name][
 			name: type/1
 			all [
-				type/1								;-- ensure it is not #[none]
+				type/1								;-- ensure it is not [none]
 				not base-type? name
 				not find type-sets name
 				not all [
-					find enumerations name
+					enum-type? name
 					type: [integer!]
 				]
 				not type: find-aliased name
@@ -451,12 +458,9 @@ system-dialect: context [
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
 			]
-			if all [
-				not local? 
-				any [
-					all [type find enumerations type/1]
-					get-enumerator name
-				]
+			if any [
+				enum-type? name
+				enum-id? name
 			][
 				return [integer!]
 			]
@@ -468,9 +472,9 @@ system-dialect: context [
 		
 		resolve-struct-member-type: func [spec [block!] name [word!] /local type][
 			unless type: select spec name [
-				pc: skip pc -2
+				while [not all [any-path? pc/1 find pc/1 name]][pc: back pc]
 				throw-error [
-					"invalid struct member" name "in:" mold to path! pc/1
+					"invalid struct member" to lit-word! name "in:" mold to path! pc/1
 				]
 			]
 			either resolve-alias? [resolve-aliased type][type]
@@ -564,12 +568,25 @@ system-dialect: context [
 				throw-error ["not accepted datatype:" type? value]
 			]
 		]
+		
+		enum-type?: func [name [word!] /local type][
+			all [
+				type: select/skip enumerations name 3
+				reduce [type]
+			]
+		]
+		
+		enum-id?: func [name [word!] /local pos][
+			all [
+				pos: find/skip next enumerations name 3
+				reduce [pos/-1]
+			]
+		]
 
-		get-enumerator: func [enum-name [word!] /value /local result][
-			foreach [enum-list-name enum-list-data] enumerations [
-				if result: select enum-list-data enum-name [
-					return either value [ result ][ reduce [enum-list-name] ]
-				]
+		get-enumerator: func [name [word!] /value /local pos][
+			all [
+				pos: select/skip next enumerations name 3		;-- SELECT = FIND on hash!
+				pos/1
 			]
 		]
 		
@@ -585,24 +602,21 @@ system-dialect: context [
 			]
 			name: head name
 			
-			if none? list: select enumerations identifier [
-				append/only append enumerations identifier list: make hash! 10
-			]
 			if all [
 				word? value
 				none? value: any [
 					all [
 						v: ns-find-with value enumerations
-						get-enumerator/value v
+						get-enumerator v
 					]
-					get-enumerator/value value
+					get-enumerator value
 				]
 			][
 				throw-error ["cannot resolve literal enum value for:" form name]
 			]
 			forall name [
 				if verbose > 3 [print ["Enum:" identifier "[" name/1 "=" value "]"]]
-				repend list [name/1 value]
+				repend enumerations [identifier name/1 value]
 			]
 			value: value + 1
 		]
@@ -775,9 +789,7 @@ system-dialect: context [
 			foreach ns with-stack [
 				either list = enumerations [
 					enum: ns-decorate ns-join ns name
-					if any [find enumerations enum get-enumerator enum][
-						return ns
-					]
+					if any [enum-type? enum enum-id? enum][return ns]
 				][
 					if find list ns-decorate ns-join ns name [return ns]
 				]
@@ -785,7 +797,7 @@ system-dialect: context [
 			none
 		]
 
-		ns-find-through: func [name [word!] list [hash!] /compare :fun /local c p][ ; @@ compare...enums list needs a flat structure!
+		ns-find-through: func [name [word!] list [hash!] /compare :fun /local c p][
 			if 1 < length? ns-path [
 				name: to word! mold/flat name
 				
@@ -798,7 +810,7 @@ system-dialect: context [
 			name
 		]
 
-		ns-find-with: func [name [word!] list [hash!] /local ns][
+		ns-find-with: func [name [word!] list [hash!] /type /local ns][
 			any [
 				all [
 					with-stack
@@ -808,9 +820,16 @@ system-dialect: context [
 				all [
 					ns-path
 					either list = enumerations [
-						any [
-							get-enumerator ns: ns-prefix name		  ;-- lookup in current namespace
-							get-enumerator ns: ns-find-through/compare name list :get-enumerator ;-- walk through parent namespaces
+						either type [
+							any [
+								enum-type? ns: ns-prefix name		  ;-- lookup in current namespace
+								enum-type? ns: ns-find-through/compare name list :enum-type? ;-- walk through parent namespaces
+							]
+						][
+							any [
+								enum-id? ns: ns-prefix name		  ;-- lookup in current namespace
+								enum-id? ns: ns-find-through/compare name list :enum-id? ;-- walk through parent namespaces
+							]
 						]
 					][
 						any [
@@ -887,11 +906,11 @@ system-dialect: context [
 					error:  ["redeclaration of variable:" name]
 				]
 
-				find enumerations name [
+				enum-type? name [
 					error:  ["redeclaration of enum identifier:" name ]
 				]
 				
-				found? get-enumerator name [
+				enum-id? name [
 					error:  ["redeclaration of enumerator:" name ]
 				]
 			]
@@ -911,13 +930,13 @@ system-dialect: context [
 				word? ending [
 					either all [
 						not local-variable? ending
-						found? enum-value: get-enumerator/value ending
+						enum-value: get-enumerator ending
 					][
 						path/2: ending: enum-value
 					][
 						unless any [
 							get-variable-spec ending
-							found? value: get-enumerator/value ending
+							value: get-enumerator ending
 						][
 							backtrack path
 							throw-error ["undefined" type "index variable"]
@@ -946,10 +965,7 @@ system-dialect: context [
 				pc: back pc
 				throw-error ["attempt to redefine existing function name:" name]
 			]
-			if any [
-				find enumerations name
-				get-enumerator name
-			][
+			if any [enum-type? name	enum-id? name][
 				pc: back pc
 				throw-error ["attempt to redefine existing enumerator:" name]
 			]
@@ -987,20 +1003,22 @@ system-dialect: context [
 			]
 			cconv: ['cdecl | 'stdcall]
 			attribs: [
-				'infix | 'variadic | 'typed | cconv
-				| [cconv ['variadic | 'typed]]
+				[cconv ['variadic | 'typed]]
 				| [['variadic | 'typed] cconv]
+				| 'infix | 'variadic | 'typed | 'callback | cconv
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
 			unless catch [
 				parse specs [
 					pos: opt [into attribs]				;-- functions attributes
-					pos: copy args any [pos: word! into type-def]	;-- arguments definition
+					pos: opt string!
+					pos: copy args any [pos: word! into type-def opt string!]	;-- arguments definition
 					pos: opt [							;-- return type definition				
 						set value set-word! (					
 							rule: pick reduce [[into type-spec] fail] value = return-def
 						) rule
+						opt string!
 					]
 					pos: opt [/local copy locs some [pos: word! opt [into type-spec]]] ;-- local variables definition
 				]
@@ -1008,8 +1026,9 @@ system-dialect: context [
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
 			]
 			if block? args [
+				remove-each s args [string? s]
 				foreach [name type] args [
-					if get-enumerator name [
+					if enum-id? name [
 						throw-warning ["function's argument redeclares enumeration:" name]
 					]
 				]
@@ -1068,7 +1087,7 @@ system-dialect: context [
 				all [
 					type
 					type/1 = 'integer!
-					find enumerations expected/1		;-- TODO: add also a value check for enums
+					enum-type? expected/1				;-- TODO: add also a value check for enums
 				]
 			][
 				if expected = type [type: 'null]		;-- make null error msg explicit
@@ -1081,7 +1100,7 @@ system-dialect: context [
 						ret   [["wrong return type in function:" name]]
 						key   [[
 							uppercase form name "requires a conditional expression"
-							either find [while until] name ["as last expression"][""]						
+							either find [while until] name ["as last expression"][""]
 						]]
 						'else [["argument type mismatch on calling:" name]]
 					]
@@ -1177,11 +1196,22 @@ system-dialect: context [
 			next pc: save-pc
 		]
 		
+		get-cconv: func [specs [block!]][
+			pick [cdecl stdcall] to logic! all [
+				not empty? specs
+				block? specs/1
+				find specs/1 'cdecl
+			]
+		]
+		
 		fetch-func: func [name /local specs type cc][
 			name: to word! name
 			if ns-path [name: ns-prefix name]
 			check-func-name name
 			check-specs name specs: pc/2
+			specs: copy specs
+			remove-each s specs [string? s]
+			
 			type: 'native
 			cc:   'stdcall								;-- default calling convention
 			
@@ -1237,7 +1267,7 @@ system-dialect: context [
 							word? expr/1
 							any [
 								get-variable-spec expr/1
-								get-enumerator expr/1
+								enum-id? expr/1
 							]
 						]
 						paren? expr/1
@@ -1393,6 +1423,7 @@ system-dialect: context [
 		
 		comp-context: has [name level][
 			unless block? pc/2 [throw-error "context specification block is missing"]
+			unless set-word? pc/-1 [throw-error "context's name setting is missing"]
 		
 			check-keywords name: to word! pc/-1
 			pc: next pc
@@ -1416,7 +1447,7 @@ system-dialect: context [
 			none
 		]
 		
-		comp-declare: has [rule value pos offset][
+		comp-declare: has [rule value pos offset ns][
 			unless find [set-word! set-path!] type?/word pc/-1 [
 				throw-error "assignment expected before literal declaration"
 			]
@@ -1432,7 +1463,7 @@ system-dialect: context [
 					throw-error ["declaring literal for type" pc/2 "not supported"]
 				]
 				value: pc/2
-				if ns-path [value: ns-prefix value]
+				if all [ns-path ns: find-aliased/prefix value][value: ns]
 				offset: 2
 				['struct! value]
 			]
@@ -1447,10 +1478,10 @@ system-dialect: context [
 		
 		comp-as: has [ctype ptr? expr][
 			ctype: pc/2
-			if ptr?: find [pointer! struct!] ctype [ctype: reduce [pc/2 pc/3]]
+			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
 			
 			unless any [
-				parse blockify ctype type-syntax
+				parse blockify ctype [func-pointer | type-syntax]
 				find-aliased ctype
 			][
 				throw-error ["invalid target type casting:" ctype]
@@ -1498,8 +1529,8 @@ system-dialect: context [
 			unless set-word? pc/-1 [
 				throw-error "assignment expected for ALIAS"
 			]
-			unless pc/2 = 'struct! [
-				throw-error "ALIAS only works on struct! type"
+			unless find [struct! function!] pc/2 [
+				throw-error "ALIAS only allowed for struct! and function!"
 			]
 			name: to word! pc/-1
 			all [
@@ -1519,8 +1550,13 @@ system-dialect: context [
 				throw-error "a base type name cannot be defined as an alias name"
 			]
 			repend aliased-types [name reduce [pc/2 pc/3]]
-			unless catch [parse pos: pc/3 struct-syntax][
-				throw-error ["invalid struct syntax:" mold pos]
+			switch pc/2 [
+				struct! [
+					unless catch [parse pos: pc/3 struct-syntax][
+						throw-error ["invalid struct syntax:" mold pos]
+					]
+				]
+				function! [check-specs 'pointer pc/3]
 			]
 			pc: skip pc 3
 			none
@@ -1634,7 +1670,7 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
@@ -1642,13 +1678,8 @@ system-dialect: context [
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
-			set [e-true c-true]   comp-block-chunked	;-- compile TRUE block		
+			set [e-true c-true]   comp-block-chunked	;-- compile TRUE block
 			set [e-false c-false] comp-block-chunked	;-- compile FALSE block
-		
-			offset: emitter/branch/over c-false
-			emitter/set-signed-state expr				;-- properly set signed/unsigned state	
-			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
-			emitter/merge emitter/chunks/join c-true c-false
 
 			t-true:  resolve-expr-type/quiet e-true
 			t-false: resolve-expr-type/quiet e-false
@@ -1658,7 +1689,23 @@ system-dialect: context [
 				t-true:  resolve-aliased t-true			;-- alias resolution is safe here
 				t-false: resolve-aliased t-false
 				equal-types? t-true/1 t-false/1
-			][t-true][none-type]						;-- allow nesting if both blocks return same type		
+			][t-true][none-type]						;-- allow nesting if both blocks return same type
+
+			if all [
+				locals									;-- if in function body
+				tail? pc								;-- and if at tail of body
+				ret: select locals return-def			;-- and if function returns something
+				ret/1 = 'logic!							;-- and if it returns a logic! value
+				last-type/1 = 'logic!					;-- and if EITHER returns a logic! too
+			][
+				if block? e-true  [emitter/logic-to-integer/with e-true  c-true]
+				if block? e-false [emitter/logic-to-integer/with e-false c-false]
+			]
+		
+			offset: emitter/branch/over c-false
+			emitter/set-signed-state expr				;-- properly set signed/unsigned state
+			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
+			emitter/merge emitter/chunks/join c-true c-false
 			<last>
 		]
 		
@@ -1860,8 +1907,8 @@ system-dialect: context [
 				if all [
 					not local-variable? n
 					enum: any [
-						all [ns: ns-find-with n enumerations get-enumerator n: ns]
-						get-enumerator n
+						all [ns: ns-find-with n enumerations enum-id? n: ns]
+						enum-id? n
 					]
 				][
 					backtrack name
@@ -1963,10 +2010,10 @@ system-dialect: context [
 					]
 				]
 			][
-				if value: get-enumerator/value path [
+				if value: get-enumerator path [
 					last-type: [integer!]
 					pc: next pc
-					return value			
+					return value
 				]
 				comp-word/with path
 			][
@@ -1984,7 +2031,7 @@ system-dialect: context [
 						ns: ns-find-with path/1 globals
 						path/1: ns						;-- prefix path if needed
 					]
-					last-type: resolve-path-type path				
+					last-type: resolve-path-type path
 				]
 				any [value path]
 			]
@@ -2021,21 +2068,27 @@ system-dialect: context [
 			/path symbol [word!]
 			/with word [word!]
 			/root
-			/local entry args n name expr attribute fetch id type ns
+			/local entry args n name expr attribute fetch id type ns local?
 		][
 			name: any [word symbol pc/1]
+			local?: local-variable? name
 			case [
 				all [
-					not all [local-variable? name name = 'context]
+					not all [local? name = 'context]
 					entry: select keywords name			;-- it's a reserved word
 				][
 					push-call pc/1
 					do entry
 				]
 				any [
-					local-variable? name
-					all [not root ns: ns-find-with name globals name: ns]
-					find globals name
+					local?
+					all [
+						any [
+							all [not root ns: ns-find-with name globals name: ns]
+							find globals name
+						]
+						'function! <> first get-type name	;-- pass-thru for function pointers
+					]
 				][										;-- it's a variable
 					if not-initialized? name [
 						throw-error ["local variable" name "used before being initialized!"]
@@ -2045,8 +2098,8 @@ system-dialect: context [
 				]
 				type: all [
 					any [
-						all [not root ns: ns-find-with name enumerations get-enumerator name: ns]
-						get-enumerator name
+						all [not root ns: ns-find-with/type name enumerations enum-type? name: ns]
+						enum-type? name
 					]
 				][
 					last-type: type
@@ -2096,7 +2149,7 @@ system-dialect: context [
 		order-args: func [name [word!] args [block!]][
 			if any [
 				all [
-					find [import native infix] functions/:name/2
+					find [import native infix routine] functions/:name/2
 					find [stdcall cdecl] functions/:name/3
 				]
 				all [
@@ -2163,7 +2216,7 @@ system-dialect: context [
 		][
 			if all [
 				not local-variable? set-path/1
-				get-enumerator set-path/1
+				enum-id? set-path/1
 			][
 				backtrack set-path
 				throw-error ["enumeration cannot be used as path root:" set-path/1]
@@ -2205,7 +2258,7 @@ system-dialect: context [
 			]
 			either type: any [
 				get-variable-spec name					;-- test if known variable (local or global)	
-				get-enumerator name
+				enum-id? name
 			][
 				type: resolve-aliased type
 				value: get-type expr
@@ -2225,7 +2278,10 @@ system-dialect: context [
 					backtrack set-word
 					throw-error "variable has to be initialized at root level"
 				]
-				type: add-symbol name unbox expr casted  ;-- if unknown add it to global context
+				if all [casted casted/1 = 'function!][
+					add-function 'routine reduce [name none casted/2] get-cconv casted/2
+				]
+				type: add-symbol name unbox expr casted  ;-- if unknown add it to global context	
 			]
 			if none? type/1 [
 				backtrack set-word
@@ -2302,7 +2358,7 @@ system-dialect: context [
 			;-- postprocessing result
 			if all [
 				any [keep? variable]					;-- if result needs to be stored
-				block? expr								;-- and if expr is a function call
+				block? expr								;-- and if expr is a function call		
 				last-type/1 = 'logic!					;-- which return type is logic!
 			][
 				emitter/logic-to-integer expr/1			;-- runtime logic! conversion before storing
@@ -2340,9 +2396,9 @@ system-dialect: context [
 				value: any [
 					all [
 						value: ns-find-with code/1 enumerations
-						get-enumerator/value value
+						get-enumerator value
 					]
-					get-enumerator/value code/1
+					get-enumerator code/1
 				]
 			][
 				change code value
@@ -2433,7 +2489,7 @@ system-dialect: context [
 					while [not tail? pc][
 						if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
 						expr: do fetch
-						pop-calls
+						unless tail? pc [pop-calls]
 					]
 				]
 			]
@@ -2617,11 +2673,10 @@ system-dialect: context [
 	]
 	
 	clean-up: does [
-		compiler/ns-path: none
+		compiler/ns-path: compiler/with-stack: none
 		clear compiler/imports
 		clear compiler/natives
 		clear compiler/ns-list
-		clear compiler/guesses
 		clear compiler/globals
 		clear compiler/definitions
 		clear compiler/enumerations
@@ -2671,18 +2726,22 @@ system-dialect: context [
 		syscall:		'Linux			;-- syscalls convention: 'Linux | 'BSD
 		stack-align-16?: no				;-- yes => align stack to 16 bytes
 		literal-pool?:	no				;-- yes => use pools to store literals, no => store them inlined (default: no)
+		unicode?:		no				;-- yes => use Red Unicode API for printing on screen
 	]
 	
 	compile: func [
 		files [file! block!]							;-- source file or block of source files
 		/options
 			opts [object!]
+		/loaded 										;-- source code is already in LOADed format
+			src	[block!]
 		/local
-			comp-time link-time err src
+			comp-time link-time err
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
 			
+			unless opts [opts: make options-class []]
 			job: make-job opts last files				;-- last input filename is retained for output name
 			emitter/init opts/link? job
 			if opts/verbosity >= 10 [set-verbose-level opts/verbosity]
@@ -2694,8 +2753,14 @@ system-dialect: context [
 			if opts/runtime? [comp-runtime-prolog]
 			
 			set-verbose-level opts/verbosity
-			foreach file files [compiler/run job loader/process file file]
-			
+			foreach file files [
+				src: either loaded [
+					loader/process/with src file
+				][
+					loader/process file
+				]
+				compiler/run job src file
+			]
 			set-verbose-level 0
 			if opts/runtime? [comp-runtime-epilog]
 			

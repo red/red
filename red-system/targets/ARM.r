@@ -6,7 +6,7 @@ REBOL [
 	License:	"BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-make target-class [
+make-profilable make target-class [
 	target:				'ARM
 	little-endian?:		yes
 	struct-align-size:	4
@@ -535,6 +535,17 @@ make target-class [
 		pools/mark-ins-point
 	]
 	
+	arguments-on-stack?: func [args [block!] /cdecl /local total][
+		total: 0
+		forall args [
+			if args/1 <> #_ [						;-- bypass place-holder marker
+				total: total + argument-size? args/1 to logic! cdecl
+				if total >= 16 [return args]
+			]
+		]
+		none
+	]
+	
 	to-bin24: func [v [integer! char!]][
 		copy skip debase/base to-hex to integer! v 16 1
 	]
@@ -908,7 +919,9 @@ make target-class [
 					emit-casting boxed no
 					switch boxed/type/1 opcodes 
 				][
-					do opcodes/integer!
+					type: compiler/resolve-path-type value
+					compiler/last-type: type
+					switch type/1 opcodes
 				]
 			]
 		]
@@ -999,6 +1012,7 @@ make target-class [
 					][
 						emit-load/with value/data value
 					]
+					set-width value
 				]
 			]
 		]
@@ -1833,9 +1847,9 @@ make target-class [
 		]
 	]
 	
-	emit-APCS-header: func [args [block!] cconv [word!] /local reg bits offset type size][
+	emit-APCS-header: func [args [block!] cconv [word!] /local reg bits offset type size stk][
 		if issue? args/1 [args: args/2]
-		reg: 0		
+		reg: stk: 0
 		foreach arg reverse args [					;-- arguments are on stack in reverse order	
 			if arg <> #_ [							;-- bypass place-holder marker
 				type: compiler/get-type arg
@@ -1844,7 +1858,8 @@ make target-class [
 				][
 					emitter/size-of? type
 				]
-				
+				if reg >= 4 [stk: stk + any [size 4]] ;-- account for extra args on stack
+													  ;-- ANY: workaround special variables from start.reds
 				set [bits offset] either 8 = size [
 					either reg <= 2 [
 						if odd? reg [reg: reg + 1]	;-- start 64-bit value on even register
@@ -1856,32 +1871,38 @@ make target-class [
 					[1 1]							;-- use 1 reg
 				]
 				
-				unless zero? bits [
+				if all [reg < 4 not zero? bits][
 					emit-i32 #{e8bd00} 				;-- POP {rn[,rn+1]}
 					emit-i32 to char! shift/left bits reg
 				]
 				
 				reg: reg + offset
-				if reg >= 4 [exit]					;-- process only args that can be stored in r0-r3
 			]
 		]
+		stk											;-- return extra args on stack size for further adjustment
 	]
 	
-	emit-call-syscall: func [args [block!] fspec [block!]] [	; @@ check if it needs stack alignment too
-		emit-APCS-header args fspec/3
+	emit-call-syscall: func [args [block!] fspec [block!] /local extra][	; @@ check if it needs stack alignment too
+		extra: emit-APCS-header args fspec/3
 		emit-i32 #{e3a070}							;-- MOV r7, <syscall>
 		emit-i32 to-bin8 last fspec
 		emit-i32 #{ef000000}						;-- SVC 0		; @@ EABI syscall
+		unless zero? extra [
+			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments
+		]
 	]
 	
-	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
-		emit-APCS-header args fspec/3
+	emit-call-import: func [args [block!] fspec [block!] spec [block!] /local extra][
+		extra: emit-APCS-header args fspec/3
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
 		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
+		unless zero? extra [
+			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments
+		]
 	]
 
-	emit-call-native: func [args [block!] fspec [block!] spec [block!]][
+	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine name [word!]][
 		if issue? args/1 [							;-- variadic call
 			emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
@@ -1891,8 +1912,15 @@ make target-class [
 			if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
 			emit-push total							;-- push arguments count
 		]
-		emit-reloc-addr spec/3
-		emit-i32 #{eb000000}						;-- BL <disp>
+		either routine [							;-- test for function! pointer case
+			emit-variable name
+				#{e5900000}							;-- LDR r0, [r0]		; global
+				[]									;-- no local version @@
+			emit-i32 #{e1200030}					;-- BLX r0
+		][
+			emit-reloc-addr spec/3
+			emit-i32 #{eb000000}					;-- BL <disp>
+		]
 	]
 
 	patch-call: func [code-buf rel-ptr dst-ptr] [
@@ -1937,12 +1965,14 @@ make target-class [
 		size: 0
 		if issue? args/1 [
 			args: args/2
-			;if args/1 = #typed [size: size + 4]		;-- adjustment for typed functions
+			;if args/1 = #typed [size: size + 4]	;-- adjustment for typed functions
 			size: size + 4
 		]
-		size: size + call-arguments-size?/cdecl args
-		unless zero? size // 8 [
-			emit-i32 #{e24dd004}					;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
+		if args: arguments-on-stack?/cdecl args [	;-- skip arguments passed in r0-r3
+			size: size + call-arguments-size?/cdecl args
+			unless zero? size // 8 [
+				emit-i32 #{e24dd004}				;-- SUB sp, sp, #4		; ensure call will be 8-bytes aligned
+			]
 		]
 		emit-i32 #{e92d5000}						;-- PUSH {ip,lr}		; save previous sp and lr value
 	]
@@ -1955,7 +1985,7 @@ make target-class [
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 fspec/5 = 'callback][
+		if all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
 			;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
 			;; passed via regs r0-r3, further args are passed on the stack (pushed
 			;; right-to-left; i.e. the leftmost argument is at top-of-stack).
@@ -2025,7 +2055,7 @@ make target-class [
 		
 		fspec: select/only compiler/functions name
 		
-		either all [block? fspec/4/1 fspec/5 = 'callback][
+		either all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
 		][

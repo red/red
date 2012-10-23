@@ -36,6 +36,8 @@ test-binary-ops: [
   -
   *
   /
+;  //									;; not implemented fully yet
+; "%"									;; not implemented fully yet
 ]
 
 test-comparison-ops: [
@@ -78,10 +80,13 @@ foreach op test-binary-ops [
   foreach operand1 test-values [
     foreach operand2 test-values [
       ;; only write a test if REBOL produces a result
-      if attempt [expected: do reduce [operand1 op operand2]][
-        
-        expected: to decimal! expected
-        
+      if attempt [
+        either op = "%" [
+          expected: to decimal! do reduce [remainder operand1 operand2]
+        ][
+          expected: to decimal! do reduce [operand1 op operand2]
+        ]
+      ][
         ;; test with literal values
         test-number: test-number + 1
         append tests join {  --test-- "float-auto-} [test-number {"^(0A)}]

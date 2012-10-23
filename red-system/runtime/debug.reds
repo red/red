@@ -53,7 +53,7 @@ prin-hex-chars: func [
 	s: "00000000"
 	if zero? i [
 		s: "00000000"
-		print s + (8 - n) 
+		prin s + (8 - n) 
 		return i
 	]
 	c: 8
@@ -76,8 +76,9 @@ prin-hex-chars: func [
 dump-memory: func [
 	address	[byte-ptr!]						;-- memory address where the dump starts
 	unit	[integer!]						;-- size of memory chunks to print in hex format (1 or 4 bytes)
+	nb		[integer!]						;-- number of lines to print
 	return: [byte-ptr!]						;-- return the pointer (pass-thru)
-	/local offset ascii i byte int-ptr data-ptr
+	/local offset ascii i byte int-ptr data-ptr limit
 ][	
 	assert any [unit = 1 unit = 4]
 	
@@ -85,6 +86,7 @@ dump-memory: func [
 
 	offset: 0
 	ascii: "                "
+	limit: nb * 16
 	
 	data-ptr: address
 	until [
@@ -96,13 +98,13 @@ dump-memory: func [
 			if unit = 1 [
 				prin-hex-chars as-integer address/value 2
 				address: address + 1
-				print either i = 8 ["  "][" "]
+				prin either i = 8 ["  "][" "]
 			]
 			if all [unit = 4 zero? (i // 4)][
 				int-ptr: as int-ptr! address
 				prin-hex int-ptr/value
 				address: address + 4
-				print either i = 8 ["  "][" "]
+				prin either i = 8 ["  "][" "]
 			]
 			
 			byte: data-ptr/value
@@ -117,7 +119,7 @@ dump-memory: func [
 		]
 		print [space ascii lf]
 		offset: offset + 16
-		offset = 128
+		offset = limit
 	]
 	address
 ]
@@ -129,17 +131,17 @@ dump-hex: func [
 	address	[byte-ptr!]						;-- memory address where the dump starts
 	return: [byte-ptr!]						;-- return the pointer (pass-thru)
 ][	
-	dump-memory address 1
+	dump-memory address 1 8
 ]
 
 ;-------------------------------------------
 ;-- Dump memory on screen in hex format as array of 32-bit integers (handy wrapper on dump-hex)
 ;-------------------------------------------
 dump-hex4: func [
-	address	[byte-ptr!]						;-- memory address where the dump starts
-	return: [byte-ptr!]						;-- return the pointer (pass-thru)
+	address	[int-ptr!]						;-- memory address where the dump starts
+	return: [int-ptr!]						;-- return the pointer (pass-thru)
 ][	
-	dump-memory address 4
+	as int-ptr! dump-memory as byte-ptr! address 4 8
 ]
 
 ;-------------------------------------------

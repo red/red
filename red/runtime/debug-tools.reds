@@ -40,15 +40,17 @@ Red/System [
 	;-------------------------------------------
 	list-series-buffers: func [
 		frame	[series-frame!]
-		/local series alt? size block count
+		/local series alt? size block count head tail
 	][
 		count: 1
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 		until [
+			head: as-integer ((as byte-ptr! series/offset) - (as byte-ptr! series) - size? series-buffer!)
+			tail: as-integer ((as byte-ptr! series/tail) - (as byte-ptr! series) - size? series-buffer!)
 			print [
-				" - series #" count 
-				": size = "	series/size - size? series-buffer!
-				", offset pos = " series/head ", tail pos = " series/tail
+				" - " series
+				": size = "	series/size
+				", offset pos = " head ", tail pos = " tail
 				"    "
 			]
 			if series/flags and flag-ins-head <> 0 [print "H"]
@@ -56,7 +58,7 @@ Red/System [
 			print lf
 			count: count + 1
 
-			series: as series-buffer! (as byte-ptr! series) + series/size
+			series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
 			series >= frame/heap
 		]
 		assert series = frame/heap
@@ -163,14 +165,14 @@ Red/System [
 				either alt? ["x"]["o"]
 			]
 			
-			size: (series/size - size? series-buffer!) / 16
+			size: series/size / 16
 			until [
 				print block
 				size: size - 1
 				zero? size
 			]
 			
-			series: as series-buffer! (as byte-ptr! series) + series/size
+			series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
 			series >= frame/heap
 		]
 		assert series = frame/heap

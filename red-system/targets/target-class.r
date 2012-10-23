@@ -153,22 +153,26 @@ target-class: context [
 		]
 	]
 	
+	argument-size?: func [arg cdecl [logic!]][
+		max 
+			any [
+				all [object? arg arg/action = 'null emitter/size-of? 'integer!]
+				all [
+					type: compiler/get-type arg
+					any [
+						all [cdecl type/1 = 'float32! 8]	;-- promote to C double
+						emitter/size-of? type
+					]
+				]
+			]
+			stack-width
+	]
+	
 	call-arguments-size?: func [args [block!] /cdecl /local total type][
 		total: 0
 		foreach arg args [
 			if arg <> #_ [							;-- bypass place-holder marker
-				total: total + max 
-					any [
-						all [object? arg arg/action = 'null emitter/size-of? 'integer!]
-						all [
-							type: compiler/get-type arg
-							any [
-								all [cdecl type/1 = 'float32! 8]	;-- promote to C double
-								emitter/size-of? type
-							]
-						]
-					]
-					stack-width
+				total: total + argument-size? arg to logic! cdecl
 			]
 		]
 		total
@@ -197,12 +201,12 @@ target-class: context [
 		reduce [a b]
 	]
 	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res][
+	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
 		spec: any [select emitter/symbols name next fspec]
-		type: first spec
+		type: either fspec/2 = 'routine [fspec/2][first spec]
 
 		switch type [
 			syscall [
@@ -213,6 +217,13 @@ target-class: context [
 			]
 			native [
 				emit-call-native args fspec spec
+			]
+			routine [
+				either fspec/3 = 'cdecl [
+					emit-call-import args fspec spec
+				][
+					emit-call-native/routine args fspec spec name
+				]
 			]
 			inline [
 				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
@@ -235,7 +246,6 @@ target-class: context [
 				if sub? [emitter/logic-to-integer name]
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: any [
-						;all [object? args/1 args/1/type]
 						all [not sub? block? args/1 compiler/last-type]
 						compiler/get-type args/1	;-- other ops return type of the first argument	
 					]

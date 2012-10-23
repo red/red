@@ -26,12 +26,10 @@ lexer: context [
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
-	ws-ASCII: charset " ^-^M"						;-- ASCII common whitespaces
-	ws-U+2k: charset [#"^(80)" - #"^(8A)"]			;-- Unicode spaces in the U+2000-U+200A range
-	
+	ws-ASCII:  charset " ^-^M"						;-- ASCII common whitespaces
+	ws-U+2k:   charset [#"^(80)" - #"^(8A)"]		;-- Unicode spaces in the U+2000-U+200A range
 	UTF8-tail: charset [#"^(80)" - #"^(BF)"]
-		
-	UTF8-1: charset [#"^(00)" - #"^(7F)"]
+	UTF8-1:    charset [#"^(00)" - #"^(7F)"]
 	
 	UTF8-2: reduce [
 		charset [#"^(C2)" - #"^(DF)"]
@@ -39,10 +37,10 @@ lexer: context [
 	]
 	
 	UTF8-3: reduce [
-		#{E0} charset [#"^(A0)" - #"^(BF)"] UTF8-tail
-		'| charset [#"^(E1)" - #"^(EC)"] 2 UTF8-tail
+		#{E0} 	 charset [#"^(A0)" - #"^(BF)"] UTF8-tail
+		'| 		 charset [#"^(E1)" - #"^(EC)"] 2 UTF8-tail
 		'| #{ED} charset [#"^(80)" - #"^(9F)"] UTF8-tail
-		'| charset [#"^(EE)" - #"^(EF)"] 2 UTF8-tail
+		'| 		 charset [#"^(EE)" - #"^(EF)"] 2 UTF8-tail
 	]
 	
 	UTF8-4: reduce [
@@ -137,8 +135,10 @@ lexer: context [
 		some [
 			slash
 			s: [
-				begin-symbol-rule (type: word!)
-				| paren-rule 	  (type: paren!)
+				integer-rule
+				| symbol-rule	(type: word!)
+				| paren-rule 	(type: paren!)
+				| get-word-rule
 				;@@ add more datatypes here
 			]
 			(stack/push to type copy/part s e)
@@ -188,7 +188,7 @@ lexer: context [
 	
 	escaped-char: [
 		"^^(" [
-			s: [6 hexa | 4 hexa | 2 hexa] e: (		;-- Unicode values allowed up to 10FFFFh
+			s: [2 6 hexa] e: (						;-- Unicode values allowed up to 10FFFFh
 				value: encode-UTF8-char s e
 			)
 			| [
@@ -212,12 +212,10 @@ lexer: context [
 	]
 	
 	char-rule: [
-		{#"} (type: char! fail?: none) [
-			s: char-char (value: to char! s/1)		;-- allowed UTF-1 chars
-			| newline-char (fail?: [end skip])		;-- fail rule
-			| copy value [UTF8-2 | UTF8-3 | UTF8-4]	;-- allowed Unicode chars
-			| escaped-char
-		] fail? {"}
+		{#"} (type: char!) [
+			s: escaped-char
+			| copy value UTF8-char (value: as-binary value) 
+		] {"}
 	]
 	
 	line-string: [
@@ -260,7 +258,7 @@ lexer: context [
 		]  any-ws #"]"
 	]
 	
-	comment-rule: [#";" to #"^/"]
+	comment-rule: [#";" [to #"^/" | to end]]
 	
 	multiline-comment-rule: [
 		"comment" any-ws #"{" (stop: not-mstr-char) any [
@@ -288,7 +286,7 @@ lexer: context [
 			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
 			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 			| file-rule		  (stack/push to file!		 copy/part s e)
-			| char-rule		  (stack/push value)
+			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| escaped-rule    (stack/push value)
@@ -357,42 +355,77 @@ lexer: context [
 		clear lines
 	]
 	
+	pad-head: func [s [string!]][
+		head insert/dup s #"0" 8 - length? s
+	]
+	
 	encode-UTF8-char: func [s [string!] e [string!] /local c code new][	
-		c: trim/head debase/base copy/part s e 16
+		c: trim/head debase/base pad-head copy/part s e 16
 		code: to integer! c
 		
 		case [
-			code <= 127  [new: to char! last c]		;-- c <= 7Fh
+			code <= 127  [
+				new: to char! last c				;-- c <= 7Fh
+			]
 			code <= 2047 [							;-- c <= 07FFh
-				new: copy #{0000}
-				new/1: #"^(C0)"
-					or (shift/left to integer! (either code <= 255 [0][c/1]) and 7 2)
-					or shift/logical to integer! last c 6
-				new/2: #"^(80)" or (63 and last c)
+				new: (shift/left (shift code 6) or #"^(C0)" 8)
+						or (code and #"^(3F)") or #"^(80)"
 			]
 			code <= 65535 [							;-- c <= FFFFh
-				new: copy #{E00000}
-				new/1: #"^(E0)" or shift/logical to integer! c/1 4
-				new/2: #"^(80)" 
-					or (shift/left to integer! c/1 and 15 2)
-					or shift/logical to integer! c/2 6
-				new/3: #"^(80)" or (c/2 and 63)
+				new: (shift/left (shift code 12) or #"^(E0)" 16)
+						or (shift/left (shift code 6) and #"^(3F)" or #"^(80)" 8)
+						or (code and #"^(3F)") or #"^(80)"
 			]
 			code <= 1114111 [						;-- c <= 10FFFFh
-				new: copy #{F0000000}
-				new/2: #"^(80)"
-					or (shift/left to integer! c/1 and 3 4)
-					or (shift/logical to integer! c/2 4)
-				new/3: #"^(80)"
-					or (shift/left to integer! c/2 and 15 2)
-					or shift/logical to integer! c/3 6
-				new/4: #"^(80)" or (c/3 and 63)
+				new: (shift/left (shift code 18) or #"^(F0)" 24)
+						or (shift/left (shift code 12) and #"^(3F)" or #"^(80)" 16)
+						or (shift/left (shift code 6)  and #"^(3F)" or #"^(80)" 8)
+						or (code and #"^(3F)") or #"^(80)"
 			]
 			'else [
 				throw-error/with "Codepoints above U+10FFFF are not supported"
 			]
 		]
+		if integer? new [
+			new: debase/base to-hex new 16
+			remove-each byte new [byte = #"^(null)"]
+		]	
 		new
+	]
+	
+	decode-UTF8-char: func [value][
+		if char? value [return encode-char to integer! value]
+		
+		value: switch/default length? value [
+			1 [value]
+			2 [
+				value: value and #{1F3F}
+				value: add shift/left value/1 6 value/2
+			]
+			3 [
+				value: value and #{0F3F3F}
+				value: add add
+					shift/left value/1 12
+					shift/left value/2 6
+					value/3
+			]
+			4 [
+				value: value and #{073F3F3F}
+				value: add add add
+					shift/left value/1 18
+					shift/left value/2 12
+					shift/left value/3 6
+					value/4
+			]
+		][
+			throw-error/with "Unsupported or invalid UTF-8 encoding"
+		]	
+		
+		encode-char to integer! value				;-- special encoding for Unicode char!
+	]
+	
+	encode-char: func [value [integer!]][
+		head insert to-hex value #"'"
 	]
 
 	load-integer: func [s [string!]][

@@ -14,7 +14,8 @@ Red/System [
 #define negative?	  [0 > ]
 #define negate		  [0 -]
 #define null?		  [null =]
- 
+
+#define halt		  [quit 0]
 #define forever		  [while [true]]
 #define does		  [func []]
 #define unless		  [if not]

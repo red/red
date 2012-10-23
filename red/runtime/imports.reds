@@ -9,8 +9,6 @@ Red/System [
 	}
 ]
 
-#define OS-page-size	4096					;@@ target/OS dependent
-
 #either OS = 'Windows [
 	#import [
 		"kernel32.dll" stdcall [
@@ -28,6 +26,8 @@ Red/System [
 			]
 		]
 	]
+	
+	#define OS-page-size		4096
 	
 	#define VA_COMMIT_RESERVE	3000h			;-- MEM_COMMIT | MEM_RESERVE
 	#define VA_PAGE_RW			04h				;-- PAGE_READWRITE
@@ -69,13 +69,53 @@ Red/System [
 ][	
 	#define MMAP_PROT_RW		03h				;-- PROT_READ | PROT_WRITE
 	#define MMAP_PROT_RWX		07h				;-- PROT_READ | PROT_WRITE | PROT_EXEC
+
+	#switch OS [	
+		MacOSX	[
+			#define SC_PAGE_SIZE		29
+			
+			#define SYSCALL_MMAP		197
+			#define SYSCALL_MUNMAP		73
+
+			#define MMAP_MAP_PRIVATE    02h
+			#define MMAP_MAP_ANONYMOUS  1000h
+		]
+		Syllable [
+			#define SC_PAGE_SIZE		30
+			
+			#define SYSCALL_MMAP		222
+			#define SYSCALL_MUNMAP		223
+
+			#define MMAP_MAP_SHARED     10h
+			#define MMAP_MAP_PRIVATE    20h
+			#define MMAP_MAP_ANONYMOUS  80h
+		]
+		#default [								;-- Linux
+			#define SC_PAGE_SIZE		30
+			
+			#define SYSCALL_MMAP2		192
+			#define SYSCALL_MUNMAP		91
+			#define SYSCALL_MMAP		SYSCALL_MMAP2
+
+			#define MMAP_MAP_SHARED     01h
+			#define MMAP_MAP_PRIVATE    02h
+			#define MMAP_MAP_ANONYMOUS  20h
+		]
+	]
 	
-	#define MMAP_MAP_SHARED     01h
-	#define MMAP_MAP_PRIVATE    02h
-	#define MMAP_MAP_ANONYMOUS  20h
+	#import  [
+		LIBC-file cdecl [
+			sysconf: "sysconf" [
+				property	[integer!]
+				return:		[integer!]
+			]
+		]
+	]
+	
+	OS-page-size: sysconf SC_PAGE_SIZE
 
 	#syscall [
-		OS-mmap: SYSCALL_MMAP2 [
+		OS-mmap: SYSCALL_MMAP [
 			address		[byte-ptr!]
 			size		[integer!]
 			protection	[integer!]

@@ -8,7 +8,7 @@ REBOL [
 
 do %targets/target-class.r
 
-emitter: context [
+emitter: make-profilable context [
 	code-buf: make binary! 100'000
 	data-buf: make binary! 100'000
 	symbols:  make hash! 1000			;-- [name [type address [relocs]] ...]
@@ -173,11 +173,13 @@ emitter: context [
 		entry/2
 	]
 
-	logic-to-integer: func [op [word!]][
+	logic-to-integer: func [op [word! block!] /with chunk [block!] /local offset body][
+		if all [with block? op][op: op/1]
+		
 		if find target/comparison-op op [
 			set [offset body] chunks/make-boolean
 			branch/over/on/adjust body reduce [op] offset/1
-			merge body
+			either with [chunks/join chunk body][merge body]
 		]
 	]
 	
@@ -190,7 +192,7 @@ emitter: context [
 	]
 
 	store-global: func [value type [word!] spec [block! word! none!] /local size ptr][
-		if any [type = 'logic! logic? value][
+		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]

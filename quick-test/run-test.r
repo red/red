@@ -6,18 +6,14 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-
 ;; include quick-test.r
 do %quick-test.r
 
 ;; set the base dir for the test source
-qt/tests-dir: system/options/path
+qt/tests-dir: system/script/path
+remove/part find/last qt/tests-dir "quick-test/" 11
 
-print ["system/options/path " system/options/path]
-
-print ["qt/test-dir" qt/tests-dir]
-
-print rejoin ["Quick-Test v" system/script/header/version]
+print rejoin ["Quick-Test v" qt/version]
 print rejoin ["Running under REBOL " system/version]
 
 ;; get the name of the test file
@@ -29,7 +25,6 @@ either any [
 ][
   print "No valid test file supplied"
 ][
-  print ["run-test src " src]
   either find src ".reds" [
     ;; compile & run reds pgm                     
     either exe: qt/compile src [

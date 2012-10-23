@@ -6,7 +6,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-make target-class [
+make-profilable make target-class [
 	target: 'IA-32
 	little-endian?: yes
 	struct-align-size: 	4
@@ -65,7 +65,7 @@ make target-class [
 	
 	emit-float: func [arg opcode [binary!]][
 		emit either any [
-			arg = 4
+			arg == 4
 			'float32! = first compiler/get-type arg 
 		][
 			opcode and #{F9FF}
@@ -387,7 +387,9 @@ make target-class [
 					emit-casting boxed no
 					switch boxed/type/1 opcodes 
 				][
-					do opcodes/integer!
+					type: compiler/resolve-path-type value
+					compiler/last-type: type
+					switch type/1 opcodes
 				]
 			]
 		]
@@ -500,6 +502,7 @@ make target-class [
 					][
 						emit-load/with value/data value
 					]
+					set-width value
 				]
 				;emit-casting value no
 				;compiler/last-type: value/type
@@ -1305,17 +1308,18 @@ make target-class [
 			- [pick [#{DEE1} #{DEE9}] reversed?]	;-- FSUB[R]P st0, st1
 			* [#{DEC9}]								;-- FMULP st0, st1
 			/ [
-				if all [mod? reversed?][
+				if all [mod? not reversed?][
 					emit #{D9C9}					;-- FXCH st0, st1		; for modulo/remainder ops
 				]
 				switch/default mod? [
 					mod [#{D9F8}]					;-- FPREM st0, st1		; floating point remainder
-					rem [
-						compiler/last-type: [integer!]
-						#{D9F5}						;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
-					]
+					rem [#{D9F5}]					;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
 				][pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
 			]
+		]
+		if mod? [									;-- Trash st1 to keep the stack clean
+			emit #{D9C9}							;-- FXCH st0, st1		; st1 <=> st0
+			emit-float-trash-last					;-- drop st0
 		]
 	]
 
@@ -1500,7 +1504,7 @@ make target-class [
 		]
 	]
 
-	emit-call-native: func [args [block!] fspec [block!] spec [block!] /local total][
+	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine /local total][
 		if issue? args/1 [							;-- variadic call
 			emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
@@ -1510,8 +1514,12 @@ make target-class [
 			if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
 			emit-push total							;-- push arguments count
 		]
-		emit #{E8}									;-- CALL NEAR disp
-		emit-reloc-addr spec						;-- 32-bit relative displacement place-holder
+		either routine [
+			emit #{FF15}							;-- CALL FAR [addr]	; indirect call
+		][
+			emit #{E8}								;-- CALL NEAR disp
+		]
+		emit-reloc-addr spec						;-- 32-bit (FAR: pointer to addr, NEAR: relative displacement)
 		if fspec/3 = 'cdecl [						;-- in case of non-default calling convention
 			emit-cdecl-pop fspec args
 		]
@@ -1549,7 +1557,7 @@ make target-class [
 			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 fspec/5 = 'callback][
+		if all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
 			emit #{53}								;-- PUSH ebx
 			emit #{56}								;-- PUSH esi
 			emit #{57}								;-- PUSH edi
@@ -1563,7 +1571,7 @@ make target-class [
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 fspec/5 = 'callback][
+		if all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
 			emit #{5F}								;-- POP edi
 			emit #{5E}								;-- POP esi
 			emit #{5B}								;-- POP ebx
