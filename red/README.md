@@ -27,4 +27,4 @@ Command-line options:
 
     red script.red
     
-will be to compile and run it from memory directly. So the -o option will become mandatory in the future for generating an executable without running it. During the bootstrapping stage, it is complex to support that feature, but it will be implementd as soon as possible.
+will be to compile and run it from memory directly. So the -o option will become mandatory in the future for generating an executable without running it. During the bootstrapping stage, it is complex to support that feature, but it will be implemented as soon as possible.
