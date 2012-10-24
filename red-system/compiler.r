@@ -671,17 +671,17 @@ system-dialect: make-profilable context [
 		
 		cast: func [obj [object!] /local value ctype type][
 			value: obj/data
-			ctype: obj/type
+			ctype: resolve-aliased obj/type
 			type: get-type value
 
-			if type = ctype [
+			if all [type = ctype type/1 <> 'function!][
 				throw-warning/near [
 					"type casting from" type/1 
 					"to" ctype/1 "is not necessary"
 				] 'as
 			]
 			if any [
-				all [type/1 = 'function! ctype/1 <> 'integer!]
+				all [type/1 = 'function! not find [function! integer!] ctype/1]
 				all [find [float! float64!] ctype/1 not find [float! float64! float32!] type/1]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
