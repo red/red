@@ -3034,15 +3034,15 @@ will output:
 
 *<b>24/10/2012 - revision 36</b>
 
-*Added docstrings in function syntax.
+*>Added docstrings in function syntax.
 
-*NULL type ID note added.
+*>NULL type ID note added.
 
-*Added Function pointers alias and dereferencing descriptions.
+*>Added Function pointers alias and dereferencing descriptions.
 
-*Added parametrized macros description.
+*>Added parametrized macros description.
 
-*Added #verbose directive description.
+*>Added #verbose directive description.
 
 
 
