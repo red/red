@@ -2,7 +2,8 @@ REBOL [
 	Title:   "Information extractor from Red runtime source code"
 	Author:  "Nenad Rakocevic"
 	File: 	 %extractor.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 	Notes: {
 		These utility functions extract types ID and function definitions from Red

@@ -2,7 +2,8 @@ Red/System [
 	Title:   "Red/System switch function test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %switch-test.reds
-	Rights:  "Copyright (C) 2011, 2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012, 2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 

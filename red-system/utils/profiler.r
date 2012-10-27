@@ -2,7 +2,8 @@ REBOL [
 	Title:   "REBOL code profiling tool"
 	Author:  "Nenad Rakocevic"
 	File: 	 %profiler.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 	Usage: {
 		1) Include it in your existing application:

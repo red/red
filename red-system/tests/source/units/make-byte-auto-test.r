@@ -3,7 +3,8 @@ REBOL [
 	Author:  "Peter W A Wood"
 	File: 	 %make-integer-auto-test.r
 	Version: 0.2.0
-	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
