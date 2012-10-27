@@ -70,7 +70,7 @@ Currently supported targets are:
 
 <div align="center">
 <table>
-	<tr><th align="left">Target ID</th><th align="left">Description</th></tr>
+	<tr><th align="left" style="background-color: #DDD;">Target ID</th><th align="left" style="background-color: #DDD;">Description</th></tr>
 	<tr><td><b>MSDOS</b></td><td>Windows, x86, console-only applications</td></tr>
 	<tr><td><b>Windows</b></td><td>Windows, x86, native applications</td></tr>
 	<tr><td><b>Linux</b></td><td>GNU/Linux, x86</td></tr>
