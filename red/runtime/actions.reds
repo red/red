@@ -303,27 +303,27 @@ actions: context [
 		action-head?
 	]
 	
-	index-of*: func [
+	index?*: func [
 		return:	[red-value!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "actions/index-of"]]
+		#if debug? = yes [if verbose > 0 [print-line "actions/index?"]]
 
-		action-index-of: as function! [					;-- needs to be globally bound
+		action-index?: as function! [					;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_INDEX_OF
-		action-index-of
+		] get-action-ptr* ACT_INDEX?
+		action-index?
 	]
 	insert*: func [][]
 	
-	length-of*: func [
+	length?*: func [
 		return:	[red-value!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "actions/length-of"]]
+		#if debug? = yes [if verbose > 0 [print-line "actions/length?"]]
 
-		action-length-of: as function! [				;-- needs to be globally bound
+		action-length?: as function! [				;-- needs to be globally bound
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_LENGTH_OF
-		action-length-of
+		] get-action-ptr* ACT_LENGTH?
+		action-length?
 	]
 	
 	next*: func [

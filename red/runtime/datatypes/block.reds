@@ -259,14 +259,14 @@ block: context [
 		as red-value! index
 	]
 	
-	length-of: func [
+	length?: func [
 		return: [red-value!]
 		/local
 			blk	[red-block!]
 			int [red-integer!]
 			s	[series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "block/length-of"]]
+		#if debug? = yes [if verbose > 0 [print-line "block/length?"]]
 		
 		blk: as red-block! stack/arguments
 		
@@ -521,7 +521,7 @@ block: context [
 		:head?
 		:index-of
 		null			;insert
-		:length-of
+		:length?
 		:next
 		:pick
 		:poke

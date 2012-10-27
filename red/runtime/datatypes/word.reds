@@ -141,9 +141,9 @@ word: context [
 		null			;find
 		null			;head
 		null			;head?
-		null			;index-of
+		null			;index?
 		null			;insert
-		null			;length-of
+		null			;length?
 		null			;next
 		null			;pick
 		null			;poke

@@ -233,20 +233,20 @@ head?: make action! [[
 	#get-definition ACT_HEAD?
 ]
 
-index-of: make action! [[
+index?: make action! [[
 		series	 [series!]
 		return:  [integer!]
 	]
-	#get-definition ACT_INDEX_OF
+	#get-definition ACT_INDEX?
 ]
 
 ;insert
 
-length-of: make action! [[
+length?: make action! [[
 		series	 [series!]
 		return:  [integer!]
 	]
-	#get-definition ACT_LENGTH_OF
+	#get-definition ACT_LENGTH?
 ]
 
 

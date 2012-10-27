@@ -249,7 +249,7 @@ red: context [
 				emit-open-frame 'append
 				emit block-push*
 				emit length? item
-				insert-lf -3
+				insert-lf -2
 				
 				level: level + 1
 				emit-block/sub item level

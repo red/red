@@ -256,7 +256,7 @@ string: context [
 			str  [red-string!]
 			size [integer!]
 	][
-		size: 1 + length? src
+		size: 1 + system/words/length? src
 		str: as red-string! ALLOC_TAIL(root)
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 0
@@ -366,13 +366,13 @@ string: context [
 		as red-value! state
 	]
 
-	index-of: func [
+	index?: func [
 		return:	  [red-value!]
 		/local
 			str	  [red-string!]
 			index [red-integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "string/index-of"]]
+		#if debug? = yes [if verbose > 0 [print-line "string/index?"]]
 
 		str:   as red-string! stack/arguments
 		index: as red-integer! str
@@ -382,14 +382,14 @@ string: context [
 		as red-value! index
 	]
 
-	length-of: func [
+	length?: func [
 		return: [red-value!]
 		/local
 			str	[red-string!]
 			int [red-integer!]
 			s	[series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "string/length-of"]]
+		#if debug? = yes [if verbose > 0 [print-line "string/length?"]]
 
 		str: as red-string! stack/arguments
 
@@ -677,9 +677,9 @@ string: context [
 		null			;find
 		:head
 		:head?
-		:index-of
+		:index?
 		null			;insert
-		:length-of
+		:length?
 		:next
 		:pick
 		:poke

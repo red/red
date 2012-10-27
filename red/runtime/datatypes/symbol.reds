@@ -82,7 +82,7 @@ symbol: context [
 		sym: as red-symbol! ALLOC_TAIL(symbols)	
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
-		sym/node:   unicode/load-utf8 s 1 + length? s
+		sym/node:   unicode/load-utf8 s 1 + system/words/length? s
 		sym/cache:  s
 		either zero? id [block/rs-length? symbols][0 - id]
 	]
@@ -135,9 +135,9 @@ symbol: context [
 		null			;find
 		null			;head
 		null			;head?
-		null			;index-of
+		null			;index?
 		null			;insert
-		null			;length-of
+		null			;length?
 		null			;next
 		null			;pick
 		null			;poke

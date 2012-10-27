@@ -38,13 +38,13 @@ REBOL [
       print pick back next b 1
       
       prin "or8"
-      print length-of b
+      print length? b
       
       prin "or9"
-      print length-of next next b
+      print length? next next b
       
       prin "or10"
-      print length-of pick b 4
+      print length? pick b 4
       
       prin "or11"
       print pick at b 2 1
@@ -65,16 +65,16 @@ REBOL [
       print pick skip next b -1 1
       
       prin "or17"
-      print length-of tail b
+      print length? tail b
       
       prin "or18"
-      print length-of head tail b
+      print length? head tail b
       
       prin "or19"
-      print index-of b
+      print index? b
       
       prin "or20"
-      print index-of tail b
+      print index? tail b
       
       prin "or21"
       print head? b
@@ -91,15 +91,15 @@ REBOL [
  
       append b 123
       prin "or25"
-      print length-of b
+      print length? b
       
       prin "or26"
-      print pick b length-of b
+      print pick b length? b
       
       
       append b [7 8 9]
       prin "or27"
-      print length-of b
+      print length? b
       prin "or28"
       print pick tail b -2
       
@@ -113,12 +113,12 @@ REBOL [
       poke b 3 [5 4]
       
       prin "or30"
-      print length-of pick b 3
+      print length? pick b 3
       
       
       clear next next b
       prin "or31"
-      print length-of b
+      print length? b
       prin "or32"
       print pick b 3
       
@@ -159,10 +159,10 @@ REBOL [
       print tail? z
       
       prin "or42"
-      print length-of z
+      print length? z
       
       prin "or43"
-      print index-of z
+      print index? z
       
       ;--invalid UTF-8
       prin "or44"
@@ -174,7 +174,7 @@ REBOL [
       s: "toto"
       
       prin "or46"
-      print length-of s
+      print length? s
       
       prin "or47"
       print pick s 2
@@ -189,7 +189,7 @@ REBOL [
       print pick back next s 1
       
       prin "or51"
-      print length-of next next s
+      print length? next next s
       
       prin "or53"
       print pick at s 2 1
@@ -220,16 +220,16 @@ REBOL [
       print pick head tail s 1
       
       prin "or62"
-      print length-of tail s
+      print length? tail s
       
       prin "or63"
-      print length-of head tail s
+      print length? head tail s
       
       prin "or64"
-      print index-of s
+      print index? s
       
       prin "or65"
-      print index-of tail s
+      print index? tail s
       
       prin "or66"
       print head? s
@@ -244,7 +244,7 @@ REBOL [
       print tail? tail s
       
       prin "or70"
-      print length-of s
+      print length? s
       
       append s #"z"
       
@@ -252,7 +252,7 @@ REBOL [
       print s
       
       prin "or72"
-      print length-of s
+      print length? s
       
       append s [#"y" #"x"]
       
@@ -260,7 +260,7 @@ REBOL [
       print s
       
       prin "or74"
-      print length-of s
+      print length? s
       
       poke s 2 #"-"
       
@@ -274,12 +274,12 @@ REBOL [
       print s
       
       prin "or77"
-      print length-of s
+      print length? s
       
       clear at s 3
       
       prin "or78"
-      print length-of s
+      print length? s
       
       prin "or79"
       print 1 = 2
@@ -461,7 +461,7 @@ REBOL [
       prin newline
       
       prin "or122"
-      print length-of list
+      print length? list
 	  
 	  prin "or123"
 	  list: [11 #"v" 22 #"t" 33 #"z"]
