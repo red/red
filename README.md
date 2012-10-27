@@ -29,13 +29,13 @@ The compilation process should finish with a `...output file size` message. The 
 
 Command-line options:
 
-    -d				: switches into debug mode.
+    -d			: switches into debug mode.
     
-    -o <file>		: outputs executable to given path and/or filename.
+    -o <file>	: outputs executable to given path and/or filename.
     
-    -t <target>		: cross-compiles to another target (see table below).
+    -t <target>	: cross-compiles to another target (see table below).
     
-    -v <level>		: sets verbose mode. 1-3 are for Red only, above for Red/System.
+    -v <level>	: sets verbose mode. 1-3 are for Red only, above for Red/System.
     
 
 *Important*: Red will be distributed as a binary to end users and the effect of:
@@ -64,21 +64,24 @@ The `%rsc.r` script is only a wrapper script around the compiler, for testing pu
 Cross-compilation support
 -------------------------
 
-Cross-compilation is easily achieved by using a `-t` command line option followed by a target ID.` This command-line option works for both Red and Red/System compilers.
+Cross-compilation is easily achieved by using a `-t` command line option followed by a target ID. This command-line option works for both Red and Red/System compilers.
 
 Currently supported targets are:
 
+<div align="center">
 <table>
-	<tr><th>Target ID</th><th>Description</th></tr>
-	<tr><td><pre>MSDOS</pre></td><td>Windows, x86, console-only applications</td></tr>
-	<tr><td><pre>Windows</pre></td><td>Windows, x86, native applications</td></tr>
-	<tr><td><pre>Linux</pre></td><td>GNU/Linux, x86</td></tr>
-	<tr><td><pre>Linux-ARM</pre></td><td>GNU/Linux, ARMv5</td></tr>
-	<tr><td><pre>Darwin</pre></td><td>Mac OS X Intel, console-only applications</td></tr>
-	<tr><td><pre>Syllable</pre></td><td><a href="http://web.syllable.org/pages/index.html">Syllable 
+	<tr><th align="left">Target ID</th><th align="left">Description</th></tr>
+	<tr><td><b>MSDOS</b></td><td>Windows, x86, console-only applications</td></tr>
+	<tr><td><b>Windows</b></td><td>Windows, x86, native applications</td></tr>
+	<tr><td><b>Linux</b></td><td>GNU/Linux, x86</td></tr>
+	<tr><td><b>Linux-ARM</b></td><td>GNU/Linux, ARMv5</td></tr>
+	<tr><td><b>Darwin</b></td><td>Mac OS X Intel, console-only applications</td></tr>
+	<tr><td><b>Syllable</b></td><td><a href="http://web.syllable.org/pages/index.html">Syllable 
 	OS</a>, x86 </td></tr>
-	<tr><td><pre>Android</pre></td><td>Android, ARMv5</td></tr>
+	<tr><td><b>Android</b></td><td>Android, ARMv5</td></tr>
 </table>
+</div>
+<br/>
 
 For example, from Windows, to emit Linux executables:
 
