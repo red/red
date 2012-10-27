@@ -100,7 +100,7 @@ banner: func [width [integer!]][
 ]
 
 print-logo
-print ["/System v0.2.6 beta" lf lf]
+print ["/System v0.3.0 beta" lf lf]
 
 size: 20
 until [
