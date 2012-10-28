@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.9.1
+	Version: 0.9.2
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
@@ -606,7 +606,47 @@ qt: make object! [
       append print-line " **"
     ]
     print print-line
-]
+  ]
+  
+  make-if-needed?: func [
+    {This function is used by the Red run-all scripts to build the auto files
+     when necessary. It is not } 
+    auto-test-file [file!]
+    make-file [file!]
+    /lib-test
+    /local
+      stored-length   ; the length of the make... .r file used to build auto tests
+      stored-file-length
+      digit
+      number
+      rule
+  ][
+    auto-test-file: join tests-dir auto-test-file
+    make-file: join tests-dir make-file
+    
+    stored-file-length: does [
+      parse/all read auto-test-file rule
+      stored-length
+    ]
+    digit: charset [#"0" - #"9"]
+    number: [some digit]
+    rule: [
+      thru ";make-length:" 
+      copy stored-length number (stored-length: to integer! stored-length)
+      to end
+    ]
+    
+    if not exists? make-file [return]
+   
+    if any [
+      not exists? auto-test-file
+      stored-file-length <> length? read make-file
+      (modified? make-file) > (modified? auto-test-file)
+    ][
+      print ["Making" auto-test-file " - it will take a while"]
+      do make-file
+    ]
+  ]
   
   ;; create the test "dialect"
   

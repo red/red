@@ -2,16 +2,17 @@ REBOL [
   Title:   "Builds and Runs All Red and Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.2.0
+	Version: 0.2.1
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 ;; function to find and run-tests
-run: func [dir [file!]][
+run-all-script: func [dir [file!]][
   qt/tests-dir: dir
   foreach line read/lines dir/run-all.r [
     if any [
       find line "===start-group"
       find line "--run-"
+      find line "qt/make-if-needed?"
     ][
       do line
     ]
@@ -35,8 +36,8 @@ start-time: now/precise
 
 ***start-run-quiet*** "Complete Red Test Suite"
 
-run %../red/tests/
-run %../red-system/tests/
+run-all-script %../red/tests/
+run-all-script %../red-system/tests/
 
 ***end-run-quiet***
 
