@@ -7,7 +7,7 @@ REBOL [
 ]
 ;; function to find and run-tests
 run-all-script: func [dir [file!]][
-  qt/tests-dir: dir
+  qt/tests-dir: system/script/path/:dir
   foreach line read/lines dir/run-all.r [
     if any [
       find line "===start-group"
