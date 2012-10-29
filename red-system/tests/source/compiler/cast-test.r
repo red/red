@@ -114,7 +114,7 @@ compiled?: func [
     
     warning-test "integer!" {
         Red/System []
-         as integer! 1 = 1
+         (as integer! 1) = 1
     }
     
     warning-test "integer!" {
