@@ -217,23 +217,23 @@ compiled?: func [
 	}
 	--assert-msg? "type casting from float! to integer! is not allowed"
 	
-	--test-- "cast float32! error 8"
-	--compile-this {
-	  cfe8-int: as integer! as float32! 1.0
-	}
-	--assert-msg? "type casting from float32! to integer! is not allowed"
+	;--test-- "cast float32! error 8"
+	;--compile-this {
+	;  cfe8-int: as integer! as float32! 1.0
+	;}
+	;--assert-msg? "type casting from float32! to integer! is not allowed"
 	
 	--test-- "cast float! error 9"
 	--compile-this {
 	  cfe9-logic: as logic! 1.0
 	}
-	--assert-msg? "type casting from float! to integer! is not allowed"
+	--assert-msg? "type casting from float! to logic! is not allowed"
 	
 	--test-- "cast float32! error 10"
 	--compile-this {
 	  cfe10-logic: as logic! as float32! 1.0
 	}
-	--assert-msg? "type casting from float32! to integer! is not allowed"
+	--assert-msg? "type casting from float32! to logic! is not allowed"
 	
 	--test-- "cast byte! error 11"
 	--compile-this {
@@ -244,7 +244,7 @@ compiled?: func [
 	--test-- "cast byte! error 12"
 	--compile-this {
 	  c11e6-pointer: declare pointer! [integer!]
-		print as byte! cfe6-pointer
+		print as byte! c11e6-pointer
 	}
 	--assert-msg? "type casting from pointer! to byte! is not allowed"
 	
