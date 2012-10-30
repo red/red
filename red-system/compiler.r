@@ -655,7 +655,11 @@ system-dialect: make-profilable context [
 						none-type
 					]
 				]
-				'else [resolve-aliased get-type expr]
+				'else [
+					expr: get-type expr
+					if resolve-alias? [expr: resolve-aliased expr]
+					expr
+				]
 			]
 			type
 		]
