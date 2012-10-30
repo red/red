@@ -497,5 +497,17 @@ Red/System [
 
 ===end-group===
 
+===start-group=== "inline functions in namespace"
+
+    --test-- "ifin1 - issue 285"
+      ifin-func: func [i [integer!] return: [integer!]][i]
+      ifin-nsp: context [
+        f: func [[infix] a [integer!] b [integer!] return: [integer!]][a + b]
+        i: ifin-func 1 f 2
+      ]
+    --assert 3 = ifin-nsp/i
+
+===end-group===
+
 ~~~end-file~~~
 
