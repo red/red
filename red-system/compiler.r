@@ -684,6 +684,7 @@ system-dialect: make-profilable context [
 			if any [
 				all [type/1 = 'function! not find [function! integer!] ctype/1]
 				all [find [float! float64!] ctype/1 not find [float! float64! float32!] type/1]
+				all [find [float! float64!] type/1  not find [float! float64! float32!] ctype/1]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
 				all [
@@ -2175,7 +2176,7 @@ system-dialect: make-profilable context [
 
 		comp-call: func [
 			name [word!] args [block!] /sub
-			/local list type res import? left right dup var-arity? saved? arg
+			/local list type res import? left right dup var-arity? saved? arg expr
 		][
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
 				args/2
@@ -2191,9 +2192,11 @@ system-dialect: make-profilable context [
 			type: functions/:name/2
 			either type <> 'op [					
 				forall list [							;-- push function's arguments on stack
-					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
+					expr: list/1
+					if block? unbox expr [comp-expression expr yes]	;-- nested call
+					if object? expr [cast expr]
 					if type <> 'inline [
-						emitter/target/emit-argument list/1 functions/:name ;-- let target define how arguments are passed
+						emitter/target/emit-argument expr functions/:name ;-- let target define how arguments are passed
 					]
 				]
 			][											;-- nested calls as op argument require special handling
