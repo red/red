@@ -222,7 +222,7 @@ The 0x prefix is often used to mark a literal hexadecimal value. It could have b
 
 ---Byte!
 
-The byte! datatype's purpose is to represent unsigned integers in the 0-255 range. byte! is an alias for the internal uint8! datatype, both will be accepted, but byte! is the official one. 
+The byte! datatype's purpose is to represent unsigned integers in the 0-255 range.
 
 +++Syntax
 	
@@ -3003,7 +3003,7 @@ will output:
 	p[i] = 123;					p/i: 123
 
 
-*<strike>Add a uint8! (or char!) datatype</strike>
+*<strike>Add a uint8! datatype</strike>
 
 *Add a uint16! (or short!) datatype
 
@@ -3046,6 +3046,9 @@ will output:
 *<b>??/??/2012 - revision 37</b>
 
 *>Issue #280 fixed (missing function! as possible target in type casting matrix)
+
+*>Issue #283 fixed (uint8! mentions removed from document, only kept as possible evolutions)
+
 
 
 *<b>24/10/2012 - revision 36</b>
