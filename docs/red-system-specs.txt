@@ -941,7 +941,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <th>struct!</th>
 <th>float!</th>
 <th>float32!</th>
-<th>function! &sup2;</th>
+<th>function!</th>
 </tr><tr>
 
 <th>byte!</th>
@@ -1040,11 +1040,22 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="deny">ERROR</td>
 </tr>
 
+<th>function!</th>
+<td class="deny">ERROR</td>
+<td class="allow">as function!</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+</tr>
+
 </table>
 </div>
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
-&sup2; Function! is a pseudo-type that cannot be the target of a type casting.
 
 
 ===Expressions
@@ -3031,6 +3042,11 @@ will output:
 
 
 ===Document History
+
+*<b>??/??/2012 - revision 37</b>
+
+*>Issue #280 fixed (missing function! as possible target in type casting matrix)
+
 
 *<b>24/10/2012 - revision 36</b>
 
