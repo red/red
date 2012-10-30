@@ -1430,7 +1430,11 @@ system-dialect: make-profilable context [
 		comp-context: has [name level][
 			unless block? pc/2 [throw-error "context specification block is missing"]
 			unless set-word? pc/-1 [throw-error "context's name setting is missing"]
-		
+			unless zero? block-level [
+				pc: back pc
+				throw-error "context has to be declared at root level"
+			]
+			
 			check-keywords name: to word! pc/-1
 			if any [										;@@ factorize this out
 				find globals name
