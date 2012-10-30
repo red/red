@@ -1432,6 +1432,16 @@ system-dialect: make-profilable context [
 			unless set-word? pc/-1 [throw-error "context's name setting is missing"]
 		
 			check-keywords name: to word! pc/-1
+			if any [										;@@ factorize this out
+				find globals name
+				find functions name
+				find aliased-types name
+				find definitions name
+				find enumerations name
+			][
+				pc: back pc
+				throw-error "context name is already taken"
+			]
 			pc: next pc
 			
 			either ns-path [
