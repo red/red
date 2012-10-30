@@ -209,7 +209,10 @@ emitter: make-profilable context [
 	
 		switch/default type [
 			integer! [
-				unless integer? value [value: 0]
+				case [
+					decimal? value [value: to integer! value]
+					not integer? value [value: 0]
+				]
 				pad-data-buf target/default-align
 				ptr: tail data-buf			
 				value: debase/base to-hex value 16
