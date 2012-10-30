@@ -2920,11 +2920,11 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     case		comment		context
     declare     either	    exit
     false		func 	  	function
-    if			not			or
-    pop			push		return
-    size?		switch 		true
-    until		while  		with
-    xor
+    if			not			null
+    or			pop			push
+    return		size?		switch
+    true		until		while
+    with		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -3049,6 +3049,7 @@ will output:
 
 *>Issue #283 fixed (uint8! mentions removed from document, only kept as possible evolutions)
 
+*>Issue #286 fixed (missing `null` keyword in reserved keywords list)
 
 
 *<b>24/10/2012 - revision 36</b>
