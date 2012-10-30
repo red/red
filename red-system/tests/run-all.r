@@ -57,6 +57,7 @@ start-time: now/precise
 
 ===start-group=== "Context tests"
   --run-test-file-quiet %source/units/namespace-test.reds
+  --run-script-quiet %source/units/namespace-print-test.r
 ===end-group===
 
 ===start-group=== "Native functions tests"
