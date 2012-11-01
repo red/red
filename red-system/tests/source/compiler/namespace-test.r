@@ -93,6 +93,13 @@ change-dir %../
   }  
   --assert-msg? "*** Compilation Error: context has to be declared at root level"
 
+  --test-- "nmicd2 - name clash with previously delared word - issue #282"
+  --compile-this {
+    nmicd2-c: "hello"
+    nmicd2-c: context [b: 2]    
+  }
+  --assert-msg? "*** Compilation Error: context name is already taken"
+  
 ===end-group===
 
 ~~~end-file~~~
