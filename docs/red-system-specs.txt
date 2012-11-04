@@ -1702,7 +1702,7 @@ In order to limit source code verbosity, the namespace prefix can be omitted if 
  <names> : list of namespace identifiers
  <code>  : body block of code
 
-Note: If multiple namespaces are specified and if they share same identifier(s), priority is given to namespaces that are mentioned first.
+Note: If multiple namespaces are specified and if they share same identifier(s), the last defined namespace (from the compiler point of view) takes precedence.
 
 <u>Example</u>:
 
@@ -1710,13 +1710,13 @@ Note: If multiple namespaces are specified and if they share same identifier(s),
  c: context [b: 1 d: 123]
 
  with a [
- 	print-line b						;-- will output 0
- 	print-line c/b						;-- will output 1
+ 	print-line b						;-- will output 1
+ 	print-line a/b						;-- will output 0
  ]
 
  with [a c][
  	print-line d						;-- will output 123
- 	print-line b						;-- will output 0 ('a is before 'c)
+ 	print-line b						;-- will output 1 ('c is defined after 'a)
  ]
 
 ===Infix operators
@@ -3050,6 +3050,8 @@ will output:
 *>Issue #283 fixed (uint8! mentions removed from document, only kept as possible evolutions)
 
 *>Issue #286 fixed (missing `null` keyword in reserved keywords list)
+
+*>Changed precedence order in WITH namespaces list
 
 
 *<b>24/10/2012 - revision 36</b>
