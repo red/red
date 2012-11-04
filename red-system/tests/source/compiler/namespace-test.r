@@ -85,6 +85,23 @@ change-dir %../
   
 ===end-group===
        
+===start-group=== "Invalid context definitions"
+
+  --test-- "nmicd1 - Cannot define namespace in conditional block - issue #281"
+  --compile-this {
+    if false [nmicd1-c: context [d: 1]]
+  }  
+  --assert-msg? "*** Compilation Error: context has to be declared at root level"
+
+  --test-- "nmicd2 - name clash with previously delared word - issue #282"
+  --compile-this {
+    nmicd2-c: "hello"
+    nmicd2-c: context [b: 2]    
+  }
+  --assert-msg? "*** Compilation Error: context name is already taken"
+  
+===end-group===
+
 ~~~end-file~~~
 
 
