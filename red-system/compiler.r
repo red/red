@@ -1047,7 +1047,7 @@ system-dialect: make-profilable context [
 			][
 				spec: next spec							;-- jump over attributes block
 			]
-			list: []
+			list: clear []
 			forall args [
 				either all [decimal? args/1 spec/2/1 = 'float32!][
 					args/1:	make action-class [			;-- inject type casting to float32!
@@ -1074,20 +1074,24 @@ system-dialect: make-profilable context [
 					"^/*** left:" join list/1/1 #"," "right:" list/2/1
 				]
 			]
-			if all [
-				find emitter/target/math-op name				
-				any [
-					all [list/1/1 = 'byte! any-pointer? list/2]
-					all [list/2/1 = 'byte! any-pointer? list/1]
-				]
-			][
-				backtrack name
-				throw-error [
-					"arguments must be of same size for:" name
-					"^/*** left:" join list/1/1 #"," "right:" list/2/1
+			if find emitter/target/math-op name	[
+				case [
+					any [
+						all [list/1/1 = 'byte! any-pointer? list/2]
+						all [list/2/1 = 'byte! any-pointer? list/1]
+					][
+						backtrack name
+						throw-error [
+							"arguments must be of same size for:" name
+							"^/*** left:" join list/1/1 #"," "right:" list/2/1
+						]
+					]
+					any [string? unbox args/1 string? unbox args/2][
+						backtrack name
+						throw-error "a literal string cannot be used with a math operator"
+					]
 				]
 			]
-			clear list
 		]
 		
 		check-variable-arity?: func [spec [block!]][
