@@ -59,6 +59,12 @@ loader: make-profilable context [
 		]
 		throw-error ["include file access error:" mold file]
 	]
+	
+	check-macro-parameters: func [args [paren!]][
+		unless parse args [some word!][
+			throw-error ["only words can be used as macro parameters:" mold args]
+		]
+	]
 
 	check-marker: func [src [string!] /local pos][
 		unless parse/all src [any ws-all "Red/System" any ws-all #"[" to end][
@@ -208,6 +214,7 @@ loader: make-profilable context [
 					set args paren! set value [block! | paren!]
 					| set value skip
 				  ] e: (
+				  	if paren? args [check-macro-parameters args]
 					if verbose > 0 [print [mold name #":" mold value]]
 					append compiler/definitions name
 					case [
