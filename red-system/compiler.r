@@ -460,9 +460,9 @@ system-dialect: make-profilable context [
 			if all [not type find functions name][
 				return reduce ['function! functions/:name/4]
 			]
-			if any [
-				enum-type? name
-				enum-id? name
+			if all [
+				not local?
+				any [enum-type? name enum-id? name]
 			][
 				return [integer!]
 			]
