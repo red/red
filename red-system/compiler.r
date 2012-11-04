@@ -2047,7 +2047,7 @@ system-dialect: make-profilable context [
 			/path symbol [word!]
 			/with word [word!]
 			/root										;-- system/words/* pass-thru
-			/local entry args n name expr attribute fetch id type ns local?
+			/local entry name local? spec
 		][
 			name: pc/1
 			name: any [
@@ -2088,6 +2088,14 @@ system-dialect: make-profilable context [
 					not path
 					entry: find functions name
 				][
+					spec: entry/2/4
+					if all [
+						block? spec/1
+						find spec/1 'infix
+						path? pc/1
+					][
+						throw-error "infix functions cannot be called using a path"
+					]
 					comp-func-args name entry
 				]
 				'else [throw-error ["undefined symbol:" mold name]]
@@ -2369,7 +2377,7 @@ system-dialect: make-profilable context [
 			all [
 				not tail? pos
 				word? pos/1
-				specs: select functions pos/1
+				specs: select functions resolve-ns pos/1
 				find [op infix] specs/2
 			]
 		]
