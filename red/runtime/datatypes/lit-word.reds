@@ -33,7 +33,7 @@ lit-word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "lit-word/push"]]
 		
-		w: red/word/push w
+		w: word/push w
 		set-type as red-value! w TYPE_LIT_WORD
 	]
 

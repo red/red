@@ -33,7 +33,7 @@ set-word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-word/push"]]
 		
-		w: red/word/push w
+		w: word/push w
 		set-type as red-value! w TYPE_SET_WORD
 	]
 

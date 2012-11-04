@@ -46,7 +46,8 @@ system-dialect: make-profilable context [
 		natives:	   	 make hash!  40					;-- list of functions to compile [name [specs] [body]...]
 		ns-path:		 none							;-- namespaces access path
 		ns-list:		 make hash!  8					;-- namespaces definition list [name [word type...]...]
-		with-stack:		 none							;-- namespaces local prefixes stack
+		ns-stack:		 none							;-- namespaces resolution stack
+		sym-ctx-table:	 make hash!  100				;-- reverse lookup table for contexts
 		globals:  	   	 make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
 		
@@ -127,9 +128,9 @@ system-dialect: make-profilable context [
 		type-spec: [
 			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage		
 				unless any [
-					all [v: find-aliased/prefix value pos/1: v]			;-- rewrite the type to prefix it
+					all [v: find-aliased/prefix value v <> value find aliased-types v pos/1: v]			;-- rewrite the type to prefix it
 					find aliased-types value
-					all [v: ns-find-with/type value enumerations pos/1: v]	;-- rewrite the type to prefix it
+					all [v: resolve-ns value v <> value enum-type? v pos/1: v]	;-- rewrite the type to prefix it
 					all [enum-type? value pos/1: 'integer!]
 				][throw false]							;-- stop parsing if unresolved type			
 			)
@@ -428,7 +429,7 @@ system-dialect: make-profilable context [
 		]
 		
 		find-aliased: func [type [word!] /prefix /position /local ns pos][
-			if ns: ns-find-with type aliased-types [type: ns]
+			if all [ns: resolve-ns type find aliased-types ns][type: ns]
 			if prefix [return ns]
 			pos: find aliased-types type
 			either position [pos][all [pos pos/2]]
@@ -594,10 +595,12 @@ system-dialect: make-profilable context [
 		set-enumerator: func [
 			identifier [word!] name [word! block!] value [integer! word!] /local list v
 		][
+			store-ns-symbol identifier
 			if ns-path [identifier: ns-prefix identifier]
 			
 			if word? name [name: reduce [name]]
 			forall name [
+				store-ns-symbol name/1
 				if ns-path [name/1: ns-prefix name/1]
 				check-enum-word name/1
 			]
@@ -605,13 +608,7 @@ system-dialect: make-profilable context [
 			
 			if all [
 				word? value
-				none? value: any [
-					all [
-						v: ns-find-with value enumerations
-						get-enumerator v
-					]
-					get-enumerator value
-				]
+				none? value: get-enumerator resolve-ns value
 			][
 				throw-error ["cannot resolve literal enum value for:" form name]
 			]
@@ -738,6 +735,23 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		store-ns-symbol: func [name [word!]][
+			if ns-path [
+				either pos: find/skip sym-ctx-table name 2 [
+					either block? pos/2 [
+						if find/only pos/2 ns-path [exit]
+					][
+						if ns-path = pos/2 [exit]
+						pos/2: reduce [pos/2]
+					]
+					append/only pos/2 copy ns-path
+				][
+					append sym-ctx-table name
+					append/only sym-ctx-table copy ns-path
+				]
+			]
+		]
+		
 		add-ns-symbol: func [name [set-word!]][
 			append select/only ns-list ns-path to word! name
 		]
@@ -776,8 +790,7 @@ system-dialect: make-profilable context [
 		]
 		
 		ns-decorate: func [path [path!] /global /set][
-			set: to logic! set
-			to get pick [set-word! word!] set mold path	;-- unless / use: replace/all mold path slash decoration
+			to get pick [set-word! word!] to logic! set mold path	;-- unless / use: replace/all mold path slash decoration
 		]
 
 		ns-join: func [ns [path! word!] name [word! path! set-word! set-path!]][
@@ -788,99 +801,6 @@ system-dialect: make-profilable context [
 			if set-word? name [name: to word! name]
 			name: ns-join ns-path name
 			either set [ns-decorate/set name][ns-decorate name]
-		]
-
-		ns-resolve-with: func [name [word! set-word!] list [hash!] /local enum][
-			name: to word! name
-			foreach ns with-stack [
-				either list = enumerations [
-					enum: ns-decorate ns-join ns name
-					if any [enum-type? enum enum-id? enum][return ns]
-				][
-					if find list ns-decorate ns-join ns name [return ns]
-				]
-			]
-			none
-		]
-
-		ns-find-through: func [name [word!] list [hash!] /compare :fun /local c p][
-			if 1 < length? ns-path [
-				name: to word! mold/flat name
-				
-				loop c: (length? ns-path) - 1 [
-					p: ns-decorate append copy/part ns-path c name
-					if any [all [compare fun p] find list p][return p]
-					c: c - 1
-				]
-			]
-			name
-		]
-
-		ns-find-with: func [name [word!] list [hash!] /type /local ns][
-			any [
-				all [
-					with-stack
-					ns: ns-resolve-with name list
-					ns-decorate ns-join ns name 
-				]
-				all [
-					ns-path
-					either list = enumerations [
-						either type [
-							any [
-								enum-type? ns: ns-prefix name		  ;-- lookup in current namespace
-								enum-type? ns: ns-find-through/compare name list :enum-type? ;-- walk through parent namespaces
-							]
-						][
-							any [
-								enum-id? ns: ns-prefix name		  ;-- lookup in current namespace
-								enum-id? ns: ns-find-through/compare name list :enum-id? ;-- walk through parent namespaces
-							]
-						]
-					][
-						any [
-							find list ns: ns-prefix name		  	;-- lookup in current namespace
-							find list ns: ns-find-through name list ;-- walk through parent namespaces
-						]
-					]
-					name: ns
-				]
-			]
-		]
-
-		check-ns-prefix: func [path [path! set-path!] /set /local c p][
-			p: to path! path			
-			loop c: (length? path) - 1 [
-				if find/only ns-list copy/part p c [
-					c: c + 1
-					path: copy/part p c
-					change/part p ns-decorate path c
-					if set [p: to set-path! p]
-					return either tail? next p [
-						either set [to set-word! p/1][p/1]
-					][p]
-				]
-				c: c - 1
-			]
-			path
-		]
-		
-		check-all-ns-prefix: func [path [path! set-path!] /local c p ns][
-			loop c: length? ns-path [
-				p: copy/part ns-path c				
-				if word? ns: check-ns-prefix join p path [return ns]
-				c: c - 1
-			]
-			path
-		]
-		
-		check-with-prefix: func [path [path! set-path!] /local ns][
-			foreach with with-stack [
-				if find select/only ns-list with path/1 [
-					return check-ns-prefix join with path
-				]
-			]
-			path
 		]
 		
 		check-enum-word: func [name [word!] /local error][
@@ -1212,6 +1132,7 @@ system-dialect: make-profilable context [
 		
 		fetch-func: func [name /local specs type cc][
 			name: to word! name
+			store-ns-symbol name
 			if ns-path [name: ns-prefix name]
 			check-func-name name
 			check-specs name specs: pc/2
@@ -1243,8 +1164,8 @@ system-dialect: make-profilable context [
 			emitter/add-native name
 			repend natives [
 				name specs pc/3 script
-				all [ns-path copy ns-path] 
-				all [with-stack copy with-stack]
+				all [ns-path copy ns-path]
+				all [ns-stack copy/deep ns-stack]		;@@ /deep doesn't work on paths
 			]
 			pc: skip pc 3
 		]
@@ -1303,6 +1224,7 @@ system-dialect: make-profilable context [
 							specs:						;-- new function mapping marker
 							pos: set name set-word! (
 								name: to word! name
+								store-ns-symbol name
 								if ns-path [name: ns-prefix name]
 								check-func-name name
 							)
@@ -1392,22 +1314,21 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		comp-with: has [ns stk list words res][
+		comp-with: has [ns list with-ns words res][
 			ns: pc/2
 			unless all [any [word? ns block? ns] block? pc/3][
 				throw-error "WITH invalid argument"
 			]
 			unless block? ns [ns: reduce [ns]]
-			list: stk: with-stack
 			
 			forall ns [
 				unless path? ns/1 [ns/1: to path! ns/1]
 				unless find/only ns-list ns/1 [throw-error ["undefined context" ns/1]]
 			]
-			with-stack: unique either with-stack [head insert copy with-stack ns][copy ns]
+			with-ns: unique copy ns
 			
-			list: []
-			foreach ns with-stack [
+			list: clear []
+			foreach ns with-ns [
 				either empty? res: intersect list words: to block! select/only ns-list ns [
 					append list words
 				][
@@ -1418,12 +1339,18 @@ system-dialect: make-profilable context [
 					]
 				]
 			]
-			clear list
+
+			list: copy with-ns
+			forall list [if path? list/1 [list/1: list/1/1]]	;@@ remove
+			unless ns-stack [ns-stack: make block! 1]
+			append ns-stack list
 			
 			fetch-into/root pc/3 [comp-dialect]
 			
-			pc: skip pc 3	
-			with-stack: stk
+			pc: skip pc 3
+			clear skip tail ns-stack negate length? list
+			if empty? ns-stack [ns-stack: none]
+			
 			none
 		]
 		
@@ -1448,6 +1375,9 @@ system-dialect: make-profilable context [
 			]
 			pc: next pc
 			
+			unless ns-stack [ns-stack: make block! 1]
+			append ns-stack to word! mold/flat name
+			
 			either ns-path [
 				append ns-path to word! mold/flat name
 			][
@@ -1463,6 +1393,9 @@ system-dialect: make-profilable context [
 			
 			remove back tail ns-path
 			if empty? ns-path [ns-path: none]
+			remove back tail ns-stack
+			if empty? ns-stack [ns-stack: none]
+			
 			pc: next pc
 			none
 		]
@@ -1559,6 +1492,7 @@ system-dialect: make-profilable context [
 				throw-error "ALIAS only allowed for struct! and function!"
 			]
 			name: to word! pc/-1
+			store-ns-symbol name
 			all [
 				not base-type? name
 				ns-path
@@ -1920,6 +1854,8 @@ system-dialect: make-profilable context [
 			pc: next pc
 			if set-word? name [
 				n: to word! name
+				unless local-variable? n [store-ns-symbol n]
+				
 				unless all [
 					local-variable? n
 					n = 'context						;-- explicitly allow 'context name for local variables
@@ -1932,10 +1868,7 @@ system-dialect: make-profilable context [
 				]
 				if all [
 					not local-variable? n
-					enum: any [
-						all [ns: ns-find-with n enumerations enum-id? n: ns]
-						enum-id? n
-					]
+					enum: enum-id? n
 				][
 					backtrack name
 					throw-error ["redeclaration of enumerator" name "from" enum]
@@ -1947,29 +1880,14 @@ system-dialect: make-profilable context [
 					throw-error "storing a function! requires a type casting"
 				]
 				unless local-variable? n [
-					any [
-						all [							;-- check if defined in WITH namespaces
-							with-stack
-							ns: ns-resolve-with name globals
-							name: ns-decorate/set ns-join ns to word! name
-						]
-						all [							;-- check if namespace prefixing is needed
-							ns-path
-							name: ns-prefix/set name
-							add-ns-symbol pc/-1
-						]
-					]
+					if ns-path [add-ns-symbol pc/-1]
+					if all [ns: resolve-ns n ns <> n][name: to set-word! ns]
 					check-func-name/only to word! name	;-- avoid clashing with an existing function name		
 				]
 			]
 			if set-path? name [
 				unless any [name/1 = 'system local-variable? name/1][
-					all [
-						ns-path
-						ns: ns-find-with name/1 globals
-						name/1: ns
-					]
-					name: check-ns-prefix/set name
+					name: resolve-ns-path name
 				]
 				if all [series? name value: system-reflexion? name][name: value]
 			]
@@ -2015,6 +1933,30 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		resolve-ns-path: func [path [path! set-path!] /local new pos][
+			new: resolve-ns/path path/1					;-- try to prefix path/1
+
+			either find/only ns-list to path! new [		;-- check if (prefixed) path/1 is a namespace
+				new: to path! new
+				until [									;-- collect all ns prefixes from head
+					path: next path
+					append new path/1					;-- move each path value to new one
+					not find/only ns-list new			;-- while the new path is still a namespace
+				]
+				new: ns-decorate new					;-- prefix and convert to word 
+				unless tail? next path [				;-- if non-ns remains in path
+					new: append to path! new next path	;-- convert back to path by adding non-ns remain 
+				]
+				if set-path? path [
+					new: to either word? new [set-word!][set-path!] new
+				]
+				new
+			][
+				unless word? new [path/1: ns-decorate new]	;-- only prefix+convert path/1 if required
+				path
+			]
+		]
+		
 		comp-path: has [path value ns][
 			path: pc/1
 			if #":" = first mold path/1 [
@@ -2022,19 +1964,8 @@ system-dialect: make-profilable context [
 			]
 			either all [
 				not local-variable? path/1
-				any [
-					word? path: check-ns-prefix path 	;-- possible reduction to word! if ns-prefixed
-					all [
-						ns-path
-						word? value: check-all-ns-prefix path 	;-- possible reduction to word! if ns-prefixed
-						path: value
-					]
-					all [
-						with-stack
-						path: check-with-prefix path
-						word? path						;-- possible reduction to word! if within ns
-					]
-				]
+				path: resolve-ns-path path
+				word? path
 			][
 				if value: get-enumerator path [
 					last-type: [integer!]
@@ -2051,12 +1982,6 @@ system-dialect: make-profilable context [
 					]
 				][
 					comp-word/path path/1				;-- check if root word is defined
-					all [
-						ns-path
-						not local-variable? path/1
-						ns: ns-find-with path/1 globals
-						path/1: ns						;-- prefix path if needed
-					]
 					last-type: resolve-path-type path
 				]
 				any [value path]
@@ -2066,22 +1991,14 @@ system-dialect: make-profilable context [
 		comp-get-word: has [spec name ns][
 			name: to word! pc/1
 			case [
-				any [
-					all [
-						ns: ns-find-with name functions
-						spec: select functions ns
-						name: ns
-					]
-					spec: select functions name
-				][			
+				spec: select functions name: resolve-ns name [
 					unless find [native routine] spec/2 [
 						throw-error "get-word syntax only reserved for native functions for now"
 					]
 					unless spec/5 = 'callback [append spec 'callback]
 				]
 				not	any [
-					local-variable? name
-					all [ns: ns-find-with name globals name: ns]
+					local-variable? to word! pc/1
 					find globals name
 				][
 					throw-error "cannot get a pointer on an undefined identifier"
@@ -2089,14 +2006,57 @@ system-dialect: make-profilable context [
 			]
 			also to get-word! name pc: next pc
 		]
+		
+		match-ns: func [name [word!] ctx [word! path!] path /local pos][
+			either pos: find ns-stack either path? ctx [ctx/1][ctx][ ;-- match (1st) context with stack
+				if path? ctx [							;-- context hierarchy to match with stack
+					foreach level ctx [					;-- match each context with next one on stack
+						if pos/1 <> level [return none]	;-- if doesn't match, prefix doesn't apply
+						pos: next pos					;-- next stack entry
+					]
+				]
+				if path [return ns-join to path! ctx name] ;-- if /path, defer word conversion
+				ns-decorate ns-join to path! ctx name	;-- prefix and convert back to word
+			][
+				none									;-- no match on stack
+			]
+		]
+		
+		resolve-ns: func [name [word!] /path /local ctx][
+			unless ns-stack [return name]				;-- no current ns, pass-thru
+
+			if ctx: select/skip sym-ctx-table name 2 [	;-- fetch context candidates
+				ctx: ctx/1								;-- SELECT == FIND on hash!
+				either block? ctx [						;-- more than one candidate
+					ctx: tail ctx						;-- start from last defined context
+					until [
+						ctx: back ctx
+						if value: match-ns name ctx/1 path [
+							return value				;-- prefix name if context on stack
+						]
+						head? ctx
+					]									;-- no match found, pass-thru
+				][										;-- one parent context only
+					name: any [match-ns name ctx path name] ;-- prefix name if context is on stack
+				]
+			]
+			name
+		]
 	
 		comp-word: func [
 			/path symbol [word!]
 			/with word [word!]
-			/root
+			/root										;-- system/words/* pass-thru
 			/local entry args n name expr attribute fetch id type ns local?
 		][
-			name: any [word symbol pc/1]
+			name: pc/1
+			name: any [
+				word
+				symbol
+				all [local-variable? name name]			;-- pass-thru for locals
+				all [not root resolve-ns name]
+				name
+			]
 			local?: local-variable? name
 			case [
 				all [
@@ -2109,10 +2069,7 @@ system-dialect: make-profilable context [
 				any [
 					local?
 					all [
-						any [
-							all [not root ns: ns-find-with name globals name: ns]
-							find globals name
-						]
+						find globals name
 						'function! <> first get-type name	;-- pass-thru for function pointers
 					]
 				][										;-- it's a variable
@@ -2122,27 +2079,14 @@ system-dialect: make-profilable context [
 					last-type: resolve-type name
 					also name pc: next pc
 				]
-				type: all [
-					any [
-						all [not root ns: ns-find-with/type name enumerations enum-type? name: ns]
-						enum-type? name
-					]
-				][
+				type: enum-type? name [
 					last-type: type
 					if verbose >= 3 [print ["ENUMERATOR" name "=" last-type]]
 					also name pc: next pc
 				]
 				all [
 					not path
-					any [
-						all [
-							not root
-							ns: ns-find-with name functions
-							entry: find functions ns
-							name: ns
-						]
-						entry: find functions name
-					]
+					entry: find functions name
 				][
 					comp-func-args name entry
 				]
@@ -2154,13 +2098,7 @@ system-dialect: make-profilable context [
 			unless all [
 				attempt [
 					casting: get-type any [
-						all [
-							set-word? variable
-							any [
-								ns-find-with to word! variable globals
-								to word! variable
-							]
-						]
+						all [set-word? variable	to word! variable]
 						to path! variable
 					]
 				]
@@ -2421,13 +2359,7 @@ system-dialect: make-profilable context [
 			if all [									;-- if enum, replace it with its integer value
 				word? code/1
 				not local-variable? code/1
-				value: any [
-					all [
-						value: ns-find-with code/1 enumerations
-						get-enumerator value
-					]
-					get-enumerator code/1
-				]
+				value: get-enumerator resolve-ns code/1
 			][
 				change code value
 			]
@@ -2580,7 +2512,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-natives: does [			
-			foreach [name spec body origin ns ws] natives [
+			foreach [name spec body origin ns nss] natives [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -2590,7 +2522,7 @@ system-dialect: make-profilable context [
 				]
 				script: origin
 				ns-path: ns
-				with-stack: ws
+				ns-stack: nss
 				comp-func-body name spec body
 			]
 		]
@@ -2701,10 +2633,11 @@ system-dialect: make-profilable context [
 	]
 	
 	clean-up: does [
-		compiler/ns-path: compiler/with-stack: none
+		compiler/ns-path: none
 		clear compiler/imports
 		clear compiler/natives
 		clear compiler/ns-list
+		clear compiler/sym-ctx-table
 		clear compiler/globals
 		clear compiler/definitions
 		clear compiler/enumerations

@@ -50,21 +50,6 @@ red: context [
 		make [action! [type [datatype! word!] spec [any-type!]]]	;-- must be pre-defined
 	]
 	
-	;-- Optimizations for faster symbols lookups in Red/System compiler
-	word-push:     to word! "word/push"
-	word-get:      to word! "word/get"
-	word-set:      to word! "word/set"
-	stack-mark:    to word! "stack/mark"
-	stack-unwind:  to word! "stack/unwind"
-	stack-reset:   to word! "stack/reset"
-	stack-keep:    to word! "stack/keep"
-	block-push*:   to word! "block/push*"
-	block-push:    to word! "block/push"
-	block-append*: to word! "block/append*"
-	string-push:   to word! "string/push"
-	logic-true?:   to word! "logic/true?"
-	logic-false?:  to word! "logic/false?"
-	
 	make-keywords: does [
 		foreach [name spec] functions [
 			if spec/1 = 'intrinsic! [
@@ -74,7 +59,7 @@ red: context [
 		bind keywords self
 	]
 
-	set-last-none: does [compose [(stack-reset) none/push]]
+	set-last-none: does [copy [stack/reset none/push]]	;-- copy required for R/S line counting injection
 
 	quit-on-error: does [
 		clean-up
@@ -123,7 +108,9 @@ red: context [
 		new-line skip tail output pos yes
 	]
 	
-	emit: func [value][append output value]
+	emit: func [value][
+		either block? value [append output value][append/only output value]
+	]
 		
 	emit-src-comment: func [pos [block! paren!] /local cmt][
 		cmt: trim/lines mold/only/flat clean-lf-deep copy/deep/part pos offset? pos pc
@@ -134,25 +121,25 @@ red: context [
 	]
 	
 	emit-push-word: func [name [word!]][	
-		emit word-push
+		emit 'word/push
 		emit decorate-symbol name
 		insert-lf -2
 	]
 	
 	emit-get-word: func [name [word!]][
-		emit word-get
+		emit 'word/get
 		emit decorate-symbol name
 		insert-lf -2
 	]
 	
 	emit-open-frame: func [name [word!]][
-		emit stack-mark
+		emit 'stack/mark
 		emit decorate-symbol name
 		insert-lf -2
 	]
 	
 	emit-close-frame: does [
-		emit stack-unwind
+		emit 'stack/unwind
 		insert-lf -1
 	]
 	
@@ -239,7 +226,7 @@ red: context [
 		unless sub [
 			emit-open-frame 'append
 			emit to set-word! name: decorate-series-var 'blk
-			emit block-push*
+			emit 'block/push*
 			emit length? blk
 			insert-lf -3
 		]
@@ -248,7 +235,7 @@ red: context [
 		forall blk [
 			either block? item: blk/1 [
 				emit-open-frame 'append
-				emit block-push*
+				emit 'block/push*
 				emit length? item
 				insert-lf -2
 				
@@ -257,9 +244,9 @@ red: context [
 				level: level - 1
 				
 				emit-close-frame
-				emit block-append*
+				emit 'block/append*
 				insert-lf -1
-				emit stack-keep							;-- reset stack, but keep block as last value
+				emit 'stack/keep						;-- reset stack, but keep block as last value
 				insert-lf -1
 			][
 				if item = #get-definition [				;-- temporary directive
@@ -287,14 +274,14 @@ red: context [
 						item
 					]
 				]
-				emit to word! rejoin [form type? :item slash action]
+				emit load rejoin [form type? :item slash action]
 				emit value
 				insert-lf -2
 				
-				emit block-append*
+				emit 'block/append*
 				insert-lf -1
 				unless tail? next blk [
-					emit stack-keep						;-- reset stack, but keep block as last value
+					emit 'stack/keep					;-- reset stack, but keep block as last value
 					insert-lf -1
 				]
 			]
@@ -318,27 +305,27 @@ red: context [
 			literal? value
 		][
 			if root? [
-				emit stack-reset						;-- reset top to arguments base
+				emit 'stack/reset						;-- reset top to arguments base
 				insert-lf -1
 			]
 			either char? [
 				emit [char/push]
 				emit to integer! next value
 			][
-				emit to word! rejoin [form type? value slash 'push]
+				emit load rejoin [form type? value slash 'push]
 				emit load mold value
 			]
 			insert-lf -2
 			
 			if root? [
-				emit stack-keep							;-- drop root level last value
+				emit 'stack/keep						;-- drop root level last value
 				insert-lf -1
 			]
 		][
 			switch/default type?/word value [
 				block!		[
 					name: redirect-to-literals [emit-block value]
-					emit block-push
+					emit 'block/push
 					emit name
 					insert-lf -2
 				]
@@ -349,7 +336,7 @@ red: context [
 						emit value
 						insert-lf -3
 					]	
-					emit string-push
+					emit 'string/push
 					emit name
 					insert-lf -2
 				]
@@ -375,7 +362,7 @@ red: context [
 		bind test 'body
 		
 		;-- most nested test first (identical for ANY and ALL)
-		body: reduce ['if logic-false? set-last-none]
+		body: compose/deep [if logic/false? [(set-last-none)]]
 		new-line body yes
 		insert body list/1
 		
@@ -383,7 +370,7 @@ red: context [
 		while [not head? list][
 			list: back list
 			
-			insert body stack-reset
+			insert/only body 'stack/reset
 			new-line body yes
 			
 			body: reduce test
@@ -395,35 +382,35 @@ red: context [
 	]
 	
 	comp-any: does [
-		comp-boolean-expressions 'any ['if logic-false? body]
+		comp-boolean-expressions 'any ['if 'logic/false? body]
 	]
 	
 	comp-all: does [
 		comp-boolean-expressions 'all [
-			'either logic-false? set-last-none body
+			'either 'logic/false? set-last-none body
 		]
 	]
 		
 	comp-if: does [
 		comp-expression
-		emit compose [
-			if (logic-true?)
+		emit [
+			if logic/true?
 		]
 		comp-sub-block									;-- compile TRUE block
 	]
 	
 	comp-unless: does [
 		comp-expression
-		emit compose [
-			if (logic-false?)
+		emit [
+			if logic/false?
 		]
 		comp-sub-block									;-- compile FALSE block
 	]
 
 	comp-either: does [
 		comp-expression		
-		emit compose [
-			either (logic-true?)
+		emit [
+			either logic/true?
 		]
 		comp-sub-block									;-- compile TRUE block
 		comp-sub-block									;-- compile FALSE block
@@ -461,7 +448,7 @@ red: context [
 			until
 		]
 		comp-sub-block									;-- compile body
-		append last output logic-true?
+		append/only last output 'logic/true?
 		new-line back tail last output on
 	]
 	
@@ -470,7 +457,7 @@ red: context [
 			while
 		]
 		comp-sub-block									;-- compile condition
-		append last output logic-true?
+		append/only last output 'logic/true?
 		new-line back tail last output on
 		comp-sub-block									;-- compile body
 	]
@@ -481,7 +468,7 @@ red: context [
 		
 		depth: depth + 1
 
-		emit stack-reset
+		emit 'stack/reset
 		insert-lf - 1
 		
 		pc: next pc
@@ -528,7 +515,7 @@ red: context [
 		
 		comp-expression									;-- compile series argument
 		;TBD: check if result is any-series!
-		emit stack-keep
+		emit 'stack/keep
 		insert-lf -2
 		
 		emit compose either blk [
@@ -566,11 +553,10 @@ red: context [
 		append last output [							;-- inject at tail of body block
 			natives/forall-next							;-- move series to next position
 		]
-		emit compose [
+		emit [
 			natives/forall-end							;-- reset series
-			(stack-unwind)
+			stack/unwind
 		]
-		insert-lf -3
 	]
 	
 	;@@ old code, needs to be refactored
@@ -643,8 +629,8 @@ red: context [
 			]
 
 			switch spec/1 [
-				native! 	[emit to word! rejoin ["natives/" to word! name #"*"]]
-				action! 	[emit to word! rejoin ["actions/" name #"*"]]
+				native! 	[emit load rejoin ["natives/" to word! name #"*"]]
+				action! 	[emit load rejoin ["actions/" name #"*"]]
 				op!			[]
 				function!	[]
 			]
@@ -663,7 +649,7 @@ red: context [
 		emit-open-frame 'set
 		emit-push-word name
 		comp-expression									;-- fetch a value
-		emit word-set
+		emit 'word/set
 		insert-lf -1
 		emit-close-frame
 	]
@@ -700,7 +686,7 @@ red: context [
 	]
 	
 	make-func-prefix: func [name [word!]][
-		to word!  rejoin [								;@@ cache results locally
+		load rejoin [									;@@ cache results locally
 			head remove back tail form functions/:name/1 "s/"
 			name #"*"
 		]
@@ -800,7 +786,7 @@ red: context [
 			comp-literal to logic! root
 		]
 		if all [root not tail? pc][
-			emit stack-reset
+			emit 'stack/reset
 			insert-lf -1
 		]
 	]

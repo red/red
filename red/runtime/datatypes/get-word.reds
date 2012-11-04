@@ -33,7 +33,7 @@ get-word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-word/push"]]
 		
-		w: red/word/push w
+		w: word/push w
 		set-type as red-value! w TYPE_GET_WORD
 	]
 
