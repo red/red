@@ -58,8 +58,7 @@ lexer: context [
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"@" - #"_"]
-	printable-char: charset [#"^(20)" - #"^(7E)"]
-	char-char:		exclude printable-char charset {"^^}
+	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	integer-end:	charset {^{"])}
 	stop: 		    none
 	
@@ -70,6 +69,11 @@ lexer: context [
 	
 	UTF8-filtered-char: [
 		[pos: stop :pos (fail?: [end skip]) | UTF8-char e: (fail?: none)]
+		fail?
+	]
+	
+	UTF8-printable: [
+		[non-printable-char | not-str-char (fail?: [end skip]) | UTF8-char (fail?: none)]
 		fail?
 	]
 	
@@ -215,7 +219,7 @@ lexer: context [
 	char-rule: [
 		{#"} (type: char!) [
 			s: escaped-char
-			| copy value UTF8-char (value: as-binary value) 
+			| copy value UTF8-printable (value: as-binary value) 
 		] {"}
 	]
 	
