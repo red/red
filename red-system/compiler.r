@@ -50,6 +50,7 @@ system-dialect: make-profilable context [
 		sym-ctx-table:	 make hash!  100				;-- reverse lookup table for contexts
 		globals:  	   	 make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
+		keywords-list:	 make block! 20
 		
 		resolve-alias?:  yes							;-- YES: instruct the type resolution function to reduce aliases
 		decoration:		 slash							;-- decoration separator for namespaces
@@ -164,6 +165,9 @@ system-dialect: make-profilable context [
 			function 	 [raise-level-error "a function"] ;-- func declaration not allowed at this level
 			alias 		 [raise-level-error "an alias"]	  ;-- alias declaration not allowed at this level
 		]
+		
+		foreach [word action] keywords [append keywords-list word]
+		foreach [name spec] functions  [append keywords-list name]
 		
 		calc-line: has [idx head-end prev p header][
 			header: head pc

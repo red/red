@@ -64,6 +64,9 @@ loader: make-profilable context [
 		unless parse args [some word!][
 			throw-error ["only words can be used as macro parameters:" mold args]
 		]
+		unless empty? intersect to block! args compiler/keywords-list [
+			throw-error ["keywords cannot be used as macro parameters:" mold args]
+		]
 	]
 
 	check-marker: func [src [string!] /local pos][
