@@ -102,6 +102,22 @@ change-dir %../
   
 ===end-group===
 
+===start-group=== "inline functions"
+
+  --test-- "nsif1 issue #285"
+  
+  --compile-and-run-this {
+	  c: context [
+      f: func [[infix] a [integer!] b [integer!] return: [integer!]][a + b]
+      print "The answer is "
+      print 1 f 2
+      print lf
+    ]
+	}
+	--assert-printed? "The answer is 3"
+ 
+===end-group===
+
 ~~~end-file~~~
 
 
