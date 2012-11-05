@@ -69,7 +69,7 @@ do %../../../lexer.r
 	--assert [[] #a] = lexer/process src
 
 	--test-- "lexer-13"
-	src: {Red [] #"^(00)"}
+	src: {Red [] #"^^(00)"}
 	--assert [[] #'00000000] = lexer/process src
 
 	--test-- "lexer-14"
