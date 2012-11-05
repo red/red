@@ -370,7 +370,7 @@ lexer: context [
 		
 		case [
 			code <= 127  [
-				new: to char! last c				;-- c <= 7Fh
+				new: to char! code					;-- c <= 7Fh
 			]
 			code <= 2047 [							;-- c <= 07FFh
 				new: (shift/left (shift code 6) or #"^(C0)" 8)
