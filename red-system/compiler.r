@@ -1368,6 +1368,7 @@ system-dialect: make-profilable context [
 			
 			check-keywords name: to word! pc/-1
 			if any [										;@@ factorize this out
+				all [locals find locals name]
 				find globals name
 				find functions name
 				find aliased-types name
