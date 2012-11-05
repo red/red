@@ -45,8 +45,8 @@ system-dialect: make-profilable context [
 		imports: 	   	 make block! 10					;-- list of imported functions
 		natives:	   	 make hash!  40					;-- list of functions to compile [name [specs] [body]...]
 		ns-path:		 none							;-- namespaces access path
-		ns-list:		 make hash!  8					;-- namespaces definition list [name [word type...]...]
 		ns-stack:		 none							;-- namespaces resolution stack
+		ns-list:		 make hash!  8					;-- namespaces definition list [name [word type...]...]
 		sym-ctx-table:	 make hash!  100				;-- reverse lookup table for contexts
 		globals:  	   	 make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
@@ -2646,7 +2646,8 @@ system-dialect: make-profilable context [
 	]
 	
 	clean-up: does [
-		compiler/ns-path: none
+		compiler/ns-path: 
+		compiler/ns-stack: none
 		clear compiler/imports
 		clear compiler/natives
 		clear compiler/ns-list
