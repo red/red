@@ -118,6 +118,32 @@ change-dir %../
  
 ===end-group===
 
+===start-group=== "enum argument type in namespace"
+
+	--test-- "eatn1 - issue #293"
+	--compile-and-run-this {
+		c: context [
+			#enum e! [x]
+			f: function [a [e!] return: [logic!]][zero? a]
+		]
+		print c/f 0
+	}
+	--assert-printed? "true"
+	
+===end-group===
+
+===start-group=== "enum value not taking precedence over local variable"
+
+	--test-- "evntpolv - issue #290"
+	--compile-and-run-this {
+		#enum color! [a b c]
+		print #"a"
+	}
+	--assert-printed? "a"
+	
+===end-group===
+
+
 ~~~end-file~~~
 
 
