@@ -83,6 +83,7 @@ set-word: context [
 	
 	datatype/register [
 		TYPE_SET_WORD
+		TYPE_VALUE
 		"set-word"
 		;-- General actions --
 		null			;make

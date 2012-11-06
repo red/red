@@ -139,6 +139,7 @@ logic: context [
 	
 	datatype/register [
 		TYPE_LOGIC
+		TYPE_VALUE
 		"logic"
 		;-- General actions --
 		:make

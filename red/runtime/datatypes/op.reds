@@ -71,6 +71,7 @@ op: context [
 
 	datatype/register [
 		TYPE_OP
+		TYPE_VALUE
 		"op"
 		;-- General actions --
 		:make

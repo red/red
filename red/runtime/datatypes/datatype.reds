@@ -23,20 +23,25 @@ datatype: context [
 	;-------------------------------------
 	register: func [
 		[variadic]
-		count	[integer!]
-		list	[int-ptr!]
+		count		[integer!]
+		list		[int-ptr!]
 		/local
-			type  [integer!]
-			index [integer!]
+			type	[integer!]
+			index	[integer!]
+			parent	[integer!]
+			idx		[integer!]
 	][
 		type: list/value
 		assert type < 50								;-- hard limit of action table
 		list: list + 1
 		
+		parent: list/value
+		list: list + 1
+		
 		index: type + 1									;-- one-based
 		name-table/index: list/value
 		list: list + 1
-		count: count - 2
+		count: count - 3								;-- skip the "header" data
 		
 		if count <> ACTIONS_NB [
 			print [
@@ -49,7 +54,15 @@ datatype: context [
 		
 		index: type << 8 + 1							;-- consume first argument (type ID), one-based index
 		until [
-			action-table/index: list/value
+			action-table/index: either all [
+				parent <> TYPE_VALUE
+				list/value = INHERIT_ACTION
+			][
+				idx: parent << 8 + 1 + (ACTIONS_NB - count)
+				action-table/idx						;-- inherit action from parent
+			][
+				list/value
+			]
 			index: index + 1
 			list: list + 1
 			count: count - 1
@@ -139,6 +152,7 @@ datatype: context [
 	
 	register [
 		TYPE_DATATYPE
+		TYPE_VALUE
 		"datatype"
 		;-- General actions --
 		:make

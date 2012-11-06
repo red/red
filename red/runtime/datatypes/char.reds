@@ -167,6 +167,7 @@ char: context [
 
 	datatype/register [
 		TYPE_CHAR
+		TYPE_VALUE
 		"char"
 		;-- General actions --
 		:make

@@ -11,6 +11,7 @@ Red/System [
 ]
 
 #enum datatypes! [
+	TYPE_VALUE
 	TYPE_DATATYPE
 	TYPE_UNSET
 	TYPE_NONE
@@ -145,7 +146,7 @@ Red/System [
 ]
 
 #define ACTIONS_NB		60							;-- number of actions
-
+#define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
 #either debug? = yes [
 	#define ------------| 	print-line

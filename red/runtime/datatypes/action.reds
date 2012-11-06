@@ -77,6 +77,7 @@ action: context [
 
 	datatype/register [
 		TYPE_ACTION
+		TYPE_VALUE
 		"action"
 		;-- General actions --
 		:make

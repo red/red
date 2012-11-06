@@ -72,6 +72,7 @@ native: context [
 
 	datatype/register [
 		TYPE_NATIVE
+		TYPE_VALUE
 		"native"
 		;-- General actions --
 		:make

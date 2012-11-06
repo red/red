@@ -482,6 +482,7 @@ block: context [
 	
 	datatype/register [
 		TYPE_BLOCK
+		TYPE_VALUE
 		"block"
 		;-- General actions --
 		:make

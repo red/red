@@ -82,6 +82,7 @@ get-word: context [
 	
 	datatype/register [
 		TYPE_GET_WORD
+		TYPE_VALUE
 		"get-word"
 		;-- General actions --
 		null			;make

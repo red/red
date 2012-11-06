@@ -82,6 +82,7 @@ refinement: context [
 	
 	datatype/register [
 		TYPE_REFINEMENT
+		TYPE_VALUE
 		"refinement"
 		;-- General actions --
 		null			;make

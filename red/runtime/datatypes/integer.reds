@@ -215,6 +215,7 @@ integer: context [
 	
 	datatype/register [
 		TYPE_INTEGER
+		TYPE_VALUE
 		"integer"
 		;-- General actions --
 		:make

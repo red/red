@@ -640,6 +640,7 @@ string: context [
 	
 	datatype/register [
 		TYPE_STRING
+		TYPE_VALUE
 		"string"
 		;-- General actions --
 		:make

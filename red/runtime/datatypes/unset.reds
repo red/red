@@ -58,6 +58,7 @@ unset: context [
 
 	datatype/register [
 		TYPE_UNSET
+		TYPE_VALUE
 		"unset"
 		;-- General actions --
 		:make

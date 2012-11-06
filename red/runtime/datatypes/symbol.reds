@@ -98,6 +98,7 @@ symbol: context [
 	
 	datatype/register [
 		TYPE_SYMBOL
+		TYPE_VALUE
 		"symbol"
 		;-- General actions --
 		null			;make

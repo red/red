@@ -71,6 +71,7 @@ none: context [
 	
 	datatype/register [
 		TYPE_NONE
+		TYPE_VALUE
 		"none"
 		;-- General actions --
 		:make
