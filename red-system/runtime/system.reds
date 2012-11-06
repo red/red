@@ -53,7 +53,7 @@ __stack!: alias struct! [
 			mask		 [x87-mask!]
 			control-word [integer!]			;-- direct access to whole control word
 			epsilon		 [integer!]			;-- Ulp threshold for almost-equal op (not used yet)
-			update		 [integer!]			;-- action simulated using a read-only member
+			update		 [integer!]			;-- action simulated using a read-only member (dummy type)
 		]
 	]
 	ARM [
@@ -72,6 +72,7 @@ system: declare struct! [					;-- store runtime accessible system values
 	;cpu		[__cpu-struct!]				;-- reserved for later use
 	fpu			[__fpu-struct!]				;-- FPU settings
 	alias		[integer!]					;-- aliases ID virtual access
+	words		[integer!]					;-- global context accessor (dummy type)
 ]
 
 #if target = 'IA-32 [
