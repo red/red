@@ -10,7 +10,6 @@ Red/System [
 	}
 ]
 
-
 natives: context [
 	verbose: 0
 	
@@ -27,6 +26,7 @@ natives: context [
 			arg		[red-value!]
 			str		[red-string!]
 			series	[series!]
+			offset	[byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/prin"]]
 		
@@ -43,12 +43,13 @@ natives: context [
 			]
 		]
 		series: GET_BUFFER(str)
+		offset: (as byte-ptr! series/offset) + (str/head << (GET_UNIT(series) >> 1))
 
 		either lf? [
 			switch GET_UNIT(series) [
-				Latin1 [platform/print-line-Latin1 as c-string! series/offset]
-				UCS-2  [platform/print-line-UCS2   as byte-ptr! series/offset]
-				UCS-4  [platform/print-line-UCS4   as int-ptr!  series/offset]
+				Latin1 [platform/print-line-Latin1 as c-string! offset]
+				UCS-2  [platform/print-line-UCS2 				offset]
+				UCS-4  [platform/print-line-UCS4   as int-ptr!  offset]
 
 				default [
 					print-line ["Error: unknown string encoding:" GET_UNIT(series)]
@@ -56,9 +57,9 @@ natives: context [
 			]
 		][
 			switch GET_UNIT(series) [
-				Latin1 [platform/print-Latin1 as c-string! series/offset]
-				UCS-2  [platform/print-UCS2   as byte-ptr! series/offset]
-				UCS-4  [platform/print-UCS4   as int-ptr!  series/offset]
+				Latin1 [platform/print-Latin1 as c-string! offset]
+				UCS-2  [platform/print-UCS2   			   offset]
+				UCS-4  [platform/print-UCS4   as int-ptr!  offset]
 
 				default [
 					print-line ["Error: unknown string encoding:" GET_UNIT(series)]
