@@ -154,7 +154,7 @@ red: context [
 		blk
 	]
 
-	clean-lf-flag: func [name [word! lit-word! set-word! refinement!]][
+	clean-lf-flag: func [name [word! lit-word! set-word! get-word! refinement!]][
 		mold/flat to word! name
 	]
 	
@@ -222,7 +222,7 @@ red: context [
 		]
 	]
 	
-	emit-block: func [blk [block!] /sub level /local name item value word action][
+	emit-block: func [blk [block!] /sub level /local name item value word action type][
 		unless sub [
 			emit-open-frame 'append
 			emit to set-word! name: decorate-series-var 'blk
@@ -235,8 +235,10 @@ red: context [
 		forall blk [
 			item: blk/1
 			either any-block? item [
+				type: either all [path? item get-word? item/1]['get-path][type? item]
+				
 				emit-open-frame 'append
-				emit to lit-path! reduce [to word! form type? item 'push*]
+				emit to lit-path! reduce [to word! form type 'push*]
 				emit length? item
 				insert-lf -2
 				
@@ -787,15 +789,20 @@ red: context [
 			set-word!	[comp-set-word]
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
-			path! 		[comp-path]
-			set-path!	[comp-path-assignment]
-			get-path!	[comp-get-path]
 			paren!		[saved: pc pc: pc/1 comp-block pc: next saved]
+			set-path!	[comp-path-assignment]
+			path! 		[
+				either get-word? pc/1/1 [
+					comp-get-path
+				][
+					comp-path
+				]
+			]
 		][
 			comp-literal to logic! root
 		]
 		if all [root not tail? pc][
-			emit 'stack/reset
+			emit 'stack/reset							;-- clear stack from last root expression result
 			insert-lf -1
 		]
 	]
@@ -932,8 +939,8 @@ red: context [
 		clear op-actions
 		clear keywords
 		clear skip functions 2							;-- keep MAKE definition
-		s-counter:	  0
-		depth:		  0
+		s-counter: 0
+		depth:	   0
 	]
 
 	compile: func [

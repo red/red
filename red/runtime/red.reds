@@ -58,6 +58,9 @@ red: context [
 	#include %datatypes/native.reds
 	#include %datatypes/op.reds
 	#include %datatypes/path.reds
+	#include %datatypes/lit-path.reds
+	#include %datatypes/set-path.reds
+	#include %datatypes/get-path.reds
 	
 	;-- Debugging helpers --
 	
@@ -96,6 +99,9 @@ red: context [
 		red/refinement/verbose:	verbosity
 		red/char/verbose:		verbosity
 		red/path/verbose:		verbosity
+		red/lit-path/verbose:	verbosity
+		red/set-path/verbose:	verbosity
+		red/get-path/verbose:	verbosity
 		
 		red/actions/verbose:	verbosity
 		red/natives/verbose:	verbosity

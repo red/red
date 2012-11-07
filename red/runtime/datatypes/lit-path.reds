@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Path! datatype runtime functions"
+	Title:   "Lit-path! datatype runtime functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %path.reds
+	File: 	 %lit-path.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -10,19 +10,19 @@ Red/System [
 	}
 ]
 
-path: context [
+lit-path: context [
 	verbose: 0
 	
 	push*: func [
 		size	[integer!]
-		return: [red-path!]	
+		return: [red-lit-path!]	
 		/local
-			p 	[red-path!]
+			p 	[red-lit-path!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "path/push*"]]
+		#if debug? = yes [if verbose > 0 [print-line "lit-path/push*"]]
 		
-		p: as red-path! ALLOC_TAIL(root)
-		p/header: TYPE_PATH								;-- implicit reset of all header flags
+		p: as red-lit-path! ALLOC_TAIL(root)
+		p/header: TYPE_LIT_PATH							;-- implicit reset of all header flags
 		p/head:   0
 		p/node:   alloc-cells size
 		push p
@@ -30,11 +30,11 @@ path: context [
 	]
 	
 	push: func [
-		p [red-path!]
+		p [red-lit-path!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "path/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "lit-path/push"]]
 
-		p/header: TYPE_PATH								;@@ type casting (from block! to path!)
+		p/header: TYPE_LIT_PATH							;@@ type casting (from block! to path!)
 		copy-cell as red-value! p stack/push
 	]
 
@@ -44,49 +44,33 @@ path: context [
 	make: func [
 		proto 	 [red-value!]
 		spec	 [red-value!]
-		return:	 [red-path!]
+		return:	 [red-lit-path!]
 		/local
-			path [red-path!]
+			path [red-lit-path!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "path/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "lit-path/make"]]
 
-		path: as red-path! block/make proto spec
-		path/header: TYPE_PATH
+		path: as red-lit-path! block/make proto spec
+		path/header: TYPE_LIT_PATH
 		path
 	]
 	
 	form: func [
-		path	  [red-path!]
+		p		  [red-lit-path!]
 		buffer	  [red-string!]
 		part 	  [integer!]
 		return:   [integer!]
-		/local
-			s	  [series!]
-			value [red-value!]
-			i     [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "path/form"]]
+		#if debug? = yes [if verbose > 0 [print-line "lit-path/form"]]
 		
-		s: GET_BUFFER(path)
-		i: path/head
-		value: s/offset + i
-		
-		while [value < s/tail][
-			part: part - actions/form value buffer part
-			i: i + 1
-			s: GET_BUFFER(path)
-			value: s/offset + i
-			if value < s/tail [
-				string/append-char GET_BUFFER(buffer) as-integer slash
-			]
-		]
-		part
+		string/append-char GET_BUFFER(buffer) as-integer #"'"
+		path/form p buffer part
 	]
 	
 	datatype/register [
+		TYPE_LIT_PATH
 		TYPE_PATH
-		TYPE_BLOCK
-		"path"
+		"lit-path"
 		;-- General actions --
 		:make
 		null			;random
