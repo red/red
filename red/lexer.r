@@ -159,7 +159,18 @@ lexer: context [
 		opt [#":" (type: either type = word! [set-word!][set-path!])]
 	]
 	
-	get-word-rule: [#":" (type: get-word!) s: begin-symbol-rule]
+	get-word-rule: [
+		#":" (type: get-word!) s: begin-symbol-rule [
+			path-rule (
+				type: path!							;-- path matched
+				value/1: to get-word! value/1		;-- workaround missing get-path! in R2
+			)
+			| (
+				type: get-word!
+				value: copy/part s e				;-- word matched
+			)
+		]
+	]
 	
 	lit-word-rule: [
 		#"'" (type: word!) s: begin-symbol-rule [
@@ -286,7 +297,7 @@ lexer: context [
 			| integer-rule	  (stack/push load-integer   copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
-			| get-word-rule	  (stack/push to get-word!   copy/part s e)
+			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
 			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
