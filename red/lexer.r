@@ -57,7 +57,7 @@ lexer: context [
 	not-file-char:  charset {[](){}"%@:;}
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
-	caret-char:	    charset [#"@" - #"_"]
+	caret-char:	    charset [#"^(20)" - #"^(7F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	integer-end:	charset {^{"])}
 	stop: 		    none
@@ -207,12 +207,12 @@ lexer: context [
 			] 
 		] #")"
 		| #"^^" [
-			s: caret-char (value: to char! s/1 - #"@") 
-			| [
+			[
 				#"/" 	(value: #"^/")
 				| #"-"	(value: #"^-")
 				| #"?" 	(value: #"^(del)")
 			]
+			| s: caret-char (value: to char! s/1)
 		]
 	]
 	
