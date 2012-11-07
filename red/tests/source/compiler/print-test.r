@@ -15,6 +15,22 @@ REBOL [
   
   --test-- "Red print 2"
     --compile-and-run-this-red {print 2}
-  --assert-printed? 2  
+  --assert-printed? 2
+  
+  --test-- "Red print 3"
+    --compile-and-run-this-red {
+      s: "12345"
+      forall s [prin s]
+    }
+  --assert-printed? "123452345345455"
+  
+  --test-- "Red print 4"
+    --compile-and-run-this-red {
+      s: "12345"
+      prin "***"
+      prin next s
+      print "***"
+    }
+  --assert-printed? "***2345***"
 
 ~~~end-file~~~ 
