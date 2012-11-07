@@ -233,14 +233,15 @@ red: context [
 		level: 0
 		
 		forall blk [
-			either block? item: blk/1 [
+			item: blk/1
+			either any-block? item [
 				emit-open-frame 'append
-				emit 'block/push*
+				emit to lit-path! reduce [to word! form type? item 'push*]
 				emit length? item
 				insert-lf -2
 				
 				level: level + 1
-				emit-block/sub item level
+				emit-block/sub to block! item level
 				level: level - 1
 				
 				emit-close-frame
@@ -268,6 +269,7 @@ red: context [
 					string? item [
 						emit compose [tmp: string/load (item)]
 						insert-lf -3
+						new-line back tail output off
 						'tmp
 					]
 					'else [
@@ -323,13 +325,19 @@ red: context [
 			]
 		][
 			switch/default type?/word value [
-				block!		[
+				block!	[
 					name: redirect-to-literals [emit-block value]
 					emit 'block/push
 					emit name
 					insert-lf -2
 				]
-				string!		[
+				path!	[
+					name: redirect-to-literals [emit-block to block! value]
+					emit 'path/push
+					emit name
+					insert-lf -2
+				]
+				string!	[
 					redirect-to-literals [
 						emit to set-word! name: decorate-series-var 'str
 						emit [string/load]
@@ -340,10 +348,10 @@ red: context [
 					emit name
 					insert-lf -2
 				]
-				file!		[]
-				url!		[]
-				binary!		[]
-				issue!		[]
+				file!	[]
+				url!	[]
+				binary!	[]
+				issue!	[]
 			][
 				throw-error ["comp-literal: unsupported type" mold value]
 			]
@@ -781,6 +789,7 @@ red: context [
 			get-word!	[comp-word/literal]
 			path! 		[comp-path]
 			set-path!	[comp-path-assignment]
+			get-path!	[comp-get-path]
 			paren!		[saved: pc pc: pc/1 comp-block pc: next saved]
 		][
 			comp-literal to logic! root

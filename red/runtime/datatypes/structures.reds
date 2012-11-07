@@ -58,6 +58,34 @@ red-block!: alias struct! [
 	_pad	[integer!]
 ]
 
+red-path!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- path's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	_pad	[integer!]
+]
+
+red-lit-path!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- path's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	_pad	[integer!]
+]
+
+red-set-path!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- path's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	_pad	[integer!]
+]
+
+red-get-path!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- path's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	_pad	[integer!]
+]
+
 red-string!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
