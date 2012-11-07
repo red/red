@@ -195,7 +195,7 @@ block: context [
 			part: part - actions/mold value buffer part flags
 		
 			if positive? depth [
-				string/append-char GET_BUFFER(buffer) as-integer #" "
+				string/append-char GET_BUFFER(buffer) as-integer space
 			]
 			depth: depth - 1
 			i: i + 1
@@ -244,13 +244,13 @@ block: context [
 		as red-value! state
 	]
 	
-	index-of: func [
+	index?: func [
 		return:	  [red-value!]
 		/local
 			blk	  [red-block!]
 			index [red-integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "block/index-of"]]
+		#if debug? = yes [if verbose > 0 [print-line "block/index?"]]
 
 		blk:   as red-block! stack/arguments
 		index: as red-integer! blk
@@ -521,7 +521,7 @@ block: context [
 		null			;find
 		:head
 		:head?
-		:index-of
+		:index?
 		null			;insert
 		:length?
 		:next
