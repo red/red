@@ -29,10 +29,10 @@ emitter: make-profilable context [
 		;int8!		1	signed
 		byte!		1	unsigned
 		;int16!		2	signed
-		int32!		4	signed
+		;int32!		4	signed
 		integer!	4	signed
 		;int64!		8	signed
-		uint8!		1	unsigned
+		;uint8!		1	unsigned
 		;uint16!	2	unsigned
 		;uint32!	4	unsigned
 		;uint64!	8	unsigned

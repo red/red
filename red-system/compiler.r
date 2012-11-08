@@ -119,7 +119,7 @@ system-dialect: make-profilable context [
 		func-pointer: ['function! set value block! (check-specs '- value)]
 		
 		type-syntax: [
-			'logic! | 'int32! | 'integer! | 'uint8! | 'byte! | 'int16!
+			'logic! | 'integer! | 'byte! | 'int16!		;-- int16! needed for AVR8 backend
 			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
