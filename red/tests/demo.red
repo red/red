@@ -27,10 +27,10 @@ pattern: "Red"
 prin newline
 
 foreach line data [
-	cursor: 1 + pick line 1	
+	cursor: 1 + line/1
 	line: next line
-	gap-start: pick line 1
-	gap-end: pick line 2
+	gap-start: line/1
+	gap-end: line/2
 	prin tab
 	prin tab
 	
@@ -41,12 +41,12 @@ foreach line data [
 		][
 			#" "
 		][
-			pick pattern cursor
+			pattern/:cursor
 		]
 		if i > gap-end [
 			unless tail? line: skip line 2 [
-				gap-start: pick line 1
-				gap-end: pick line 2
+				gap-start: line/1
+				gap-end: line/2
 			]
 		]
 		
