@@ -61,6 +61,8 @@ red: context [
 
 	set-last-none: does [copy [stack/reset none/push]]	;-- copy required for R/S line counting injection
 
+	--not-implemented--: does [print "Feature not yet implemented!" halt]
+	
 	quit-on-error: does [
 		clean-up
 		if system/options/args [quit/return 1]
@@ -140,6 +142,16 @@ red: context [
 	
 	emit-close-frame: does [
 		emit 'stack/unwind
+		insert-lf -1
+	]
+	
+	emit-action: func [name [word!]][
+		emit load rejoin ["actions/" name #"*"]
+		insert-lf -1
+	]
+	
+	emit-native: func [name [word!]][
+		emit load rejoin ["natives/" name #"*"]
 		insert-lf -1
 	]
 	
@@ -569,45 +581,78 @@ red: context [
 		]
 	]
 	
-	;@@ old code, needs to be refactored
-	comp-path-part: func [path parent parent-type /local type][
-		switch type: get-type path/1 [
-			word!	  [
-				if find string-set type [
-					throw-error ["Invalid path value:" path/2]
+	emit-path: func [path [path!] /local value][
+		value: path/1
+		switch type?/word value [
+			word! [
+				either head? path [
+					emit-get-word value
+				][
+					emit-open-frame 'select
+					emit-path back path
+					emit-get-word value
+					insert-lf -2
+					emit-action 'pick
+					emit-close-frame
 				]
-				repend output ['block/select decorate parent decorate path/2]
 			]
 			get-word! [
-
+				emit-open-frame 'pick
+				emit-path back path
+				emit-get-word to word! value
+				insert-lf -2
+				emit-action 'pick
+				emit-close-frame
 			]
-			integer!  [
-				append output case [
-					find block-set parent-type  [[integer/get block/pick]]
-					find string-set parent-type ['pick-string]
-					'else [throw-error "Houston, we have a problem!"]	;@@ shouldn't happen
-				]
-				repend output [decorate parent path/1]
+			integer! [
+				emit-open-frame 'pick
+				emit-path back path
+				emit compose [integer/push (value)]
+				insert-lf -2
+				emit-action 'pick
+				emit-close-frame
 			]
-			paren!	  [
-
+			paren! [
+				--not-implemented--
 			]
-		]	
-		unless tail? path [comp-path-part next path path/1 type]
+			string!	[
+				--not-implemented--
+			]
+		]
 	]
 	
-	;@@ old code, needs to be refactored
-	comp-path: has [path entry type][
-		path: pc/1
-		pc: next pc
-		either entry: find functions path/1 [			;-- function call
-			
-		][												;-- path access to series
-			type: get-type path/1
-			unless find series-set type	[
-				throw-error ["can't use path on" mold type "type"]
+	comp-path: has [path vamue emit? get?][
+		path: copy pc/1
+		emit?: yes
+		
+		forall path [
+			switch/default type?/word value: path/1 [
+				word! [
+					if all [not get? find functions value][
+						either head? path [
+							comp-call path				;-- function with refinements call
+						][
+							--not-implemented--			;TBD: resolve access path to function
+						]
+						emit?: no						;-- no further emitted code needed
+					]
+				]
+				get-word! [
+					if head? path [
+						get?: yes
+						change path to word! path/1
+					]
+				]
+				integer! paren! string!	[
+					if head? path [path-head-error]
+				]
+			][
+				throw-error ["cannot use" mold type? value "value in path:" pc/1]
 			]
-			comp-path-part next path path/1 type
+		]
+		if emit? [
+			emit-path back tail path					;-- emit code recursively from tail
+			pc: next pc
 		]
 	]
 		
@@ -639,8 +684,8 @@ red: context [
 			]
 
 			switch spec/1 [
-				native! 	[emit load rejoin ["natives/" to word! name #"*"]]
-				action! 	[emit load rejoin ["actions/" name #"*"]]
+				native! 	[emit-native name]
+				action! 	[emit-action name]
 				op!			[]
 				function!	[]
 			]
@@ -791,13 +836,7 @@ red: context [
 			get-word!	[comp-word/literal]
 			paren!		[saved: pc pc: pc/1 comp-block pc: next saved]
 			set-path!	[comp-path-assignment]
-			path! 		[
-				either get-word? pc/1/1 [
-					comp-get-path
-				][
-					comp-path
-				]
-			]
+			path! 		[comp-path]
 		][
 			comp-literal to logic! root
 		]
