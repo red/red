@@ -140,7 +140,7 @@ lexer: context [
 		some [
 			slash
 			s: [
-				integer-rule
+				integer-number-rule
 				| symbol-rule	(type: word!)
 				| paren-rule 	(type: paren!)
 				| get-word-rule
@@ -188,9 +188,13 @@ lexer: context [
 	
 	slash-rule: [s: [slash opt slash] e:]
 		
-	integer-rule: [
+	integer-number-rule: [
 		(type: integer!)
 		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
+	]
+	
+	integer-rule: [
+		integer-number-rule
 		pos: [										;-- protection rule from typo with sticky words
 			[integer-end | ws-no-count | end] (fail?: none)
 			| skip (fail?: [end skip]) 
