@@ -366,9 +366,14 @@ An assertion. True = pass. False = fail. The number of assertions, passes and fa
 Checks if the compiler has produced the expected message.
 
   --assert-printed? <phrase>
-    <phrase> : expected runtime output - string!
+    <phrase> : expected string in runtime output - string!
     
 Checks if the runtime output included the expected phrase.
+
+  --assert-red-printed? <phrase>
+    <phrase> : expected string in Red runtime output - string!
+    
+Checks if the runtime output from a Red program included the expected phrase. Red program output Unicode (either UTF-8 or UTF-16LE). The phrase must be UTF-8 encoded.
 
   --clean
   

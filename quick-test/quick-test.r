@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.9.2
+	Version: 0.9.3
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
@@ -543,6 +543,20 @@ qt: make object! [
     assert found? find qt/output msg
   ]
   
+  assert-red-printed?: func[
+    msg
+    /local
+      output
+  ][
+    output: either windows-os? [
+      qt/utf-16le-to-utf-8 qt/output
+    ][
+      copy qt/output
+    ]
+    assert found? find output msg
+  ]
+      
+  
   clean-compile-from-string: does [
     if exists? test-src-file [delete test-src-file]
     if all [exe exists? exe][delete exe]
@@ -648,6 +662,41 @@ qt: make object! [
     ]
   ]
   
+  utf-16le-to-utf-8: func [
+    {Translates a utf-16LE encoded string to an utf-8 encoded one
+     the algorithm is copied from lexer.r                         }
+    in-str [string!]
+    /local
+      out-str
+      code
+  ][
+   out-str: copy ""
+   foreach [low high] to binary! in-str [
+     code: high * 256 + low
+     case [
+       code <= 127  [
+         append out-str to char! code					            ;-- c <= 7Fh
+       ]
+       code <= 2047 [							                        ;-- c <= 07FFh
+         append out-str (shift/left (shift code 6) or #"^(C0)" 8)
+					  	or (code and #"^(3F)") or #"^(80)"
+			 ]
+			 code <= 65535 [					                         		;-- c <= FFFFh
+			   append out-str (shift/left (shift code 12) or #"^(E0)" 16)
+						or (shift/left (shift code 6) and #"^(3F)" or #"^(80)" 8)
+						or (code and #"^(3F)") or #"^(80)"
+			 ]
+			 code <= 1114111 [						                        ;-- c <= 10FFFFh
+				append out-str (shift/left (shift code 18) or #"^(F0)" 24)
+						or (shift/left (shift code 12) and #"^(3F)" or #"^(80)" 16)
+						or (shift/left (shift code 6)  and #"^(3F)" or #"^(80)" 8)
+						or (code and #"^(3F)") or #"^(80)"
+			 ]                         ;-- Codepoints above U+10FFFF are not ignored"
+		 ]
+	 ]
+   out-str 
+  ]
+  
   ;; create the test "dialect"
   
   set '***start-run***              :start-test-run
@@ -675,6 +724,7 @@ qt: make object! [
   set '--assert                     :assert
   set '--assert-msg?                :assert-msg?
   set '--assert-printed?            :assert-printed?
+  set '--assert-red-printed?        :assert-red-printed?
   set '--clean                      :clean-compile-from-string
   set '===end-group===              :end-group
   set '~~~end-file~~~               :end-file

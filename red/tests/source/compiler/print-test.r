@@ -10,22 +10,19 @@ REBOL [
 ~~~start-file~~~ "Red print"
 
  --test-- "Red print 1"
-   --compile-and-run-red %source/compiler/print-test.red
-   replace/all qt/output "^(00)" ""       ;; remove le byte from Windows output  
-  --assert-printed? 1
+   --compile-and-run-red %source/compiler/print-test.red 
+  --assert-red-printed? 1
   
   --test-- "Red print 2"
     --compile-and-run-this-red {print 2}
-    replace/all qt/output "^(00)" ""
-  --assert-printed? 2
+  --assert-red-printed? 2
   
   --test-- "Red print 3"
     --compile-and-run-this-red {
       s: "12345"
       forall s [prin s]
     }
-    replace/all qt/output "^(00)" ""
-  --assert-printed? "123452345345455"
+  --assert-red-printed? "123452345345455"
   
   --test-- "Red print 4"
     --compile-and-run-this-red {
@@ -34,7 +31,6 @@ REBOL [
       prin next s
       print "***"
     }
-    replace/all qt/output "^(00)" ""
-  --assert-printed? "***2345***"
+  --assert-red-printed? "***2345***"
 
 ~~~end-file~~~ 
