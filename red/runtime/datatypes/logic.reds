@@ -40,10 +40,24 @@ logic: context [
 		arg: as red-logic! stack/last-value
 		type: TYPE_OF(arg)
 		
-		any [										;-- true if not none or false
+		any [											;-- true if not none or false
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
 		]	
+	]
+	
+	push: func [
+		value 	 [logic!]
+		return:	 [red-logic!]
+		/local
+			cell [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/push"]]
+
+		cell: as red-logic! stack/push
+		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
+		cell/value: value
+		cell
 	]
 	
 	;-- Actions -- 

@@ -41,6 +41,9 @@ red: context [
 	op-actions:	  make block! 20
 	keywords: 	  make block! 10
 	
+	actions-prefix: to path! 'actions
+	natives-prefix: to path! 'natives
+	
 	intrinsics:   [
 		if unless either any all while until loop repeat
 		foreach forall break
@@ -145,14 +148,16 @@ red: context [
 		insert-lf -1
 	]
 	
-	emit-action: func [name [word!]][
-		emit load rejoin ["actions/" name #"*"]
-		insert-lf -1
+	emit-action: func [name [word!] /with flags [integer!]][
+		emit join actions-prefix to word! join name #"*"
+		emit any [flags 0]
+		insert-lf -2
 	]
 	
-	emit-native: func [name [word!]][
-		emit load rejoin ["natives/" name #"*"]
-		insert-lf -1
+	emit-native: func [name [word!] /with flags [integer!]][
+		emit join natives-prefix to word! join name #"*"
+		emit any [flags 0]
+		insert-lf -2
 	]
 	
 	get-counter: does [s-counter: s-counter + 1]
@@ -643,16 +648,17 @@ red: context [
 		]
 	]
 	
-	comp-path: func [/set /local path value emit? get?][
+	comp-path: func [/set /local path value emit? get? entry][
 		path: copy pc/1
 		emit?: yes
 		
 		forall path [
 			switch/default type?/word value: path/1 [
 				word! [
-					if all [not set not get? find functions value][
+					if all [not set not get? entry: find functions value][
 						either head? path [
-							comp-call path				;-- call function with refinements
+							pc: next pc
+							comp-call path entry/2		;-- call function with refinements
 						][
 							--not-implemented--			;TBD: resolve access path to function
 						]
@@ -679,27 +685,45 @@ red: context [
 		]
 	]
 		
-	comp-call: func [call [word! path!] spec [block!] /local item name][
+	comp-call: func [
+		call [word! path!]
+		spec [block!]
+		/local item name compact? flags bit ref?
+	][
 		either spec/1 = 'intrinsic! [
 			switch call keywords
 		][
-			emit-open-frame call
+			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
+			flags: 0									;-- refinements storage in compact mode
+			bit: 1										;-- refinement flag bit
+			
 			name: either path? call [call/1][call]
 			name: to word! clean-lf-flag name
-
+			emit-open-frame name
+			
 			parse spec/2 [
 				any [
 					item: word! (comp-expression)		;-- fetch argument
 					| [
-						refinement! (
-							emit compose [
-								word/get (to word! join "_" to logic! all [
-									path? call
-									find call to word! item
-								])
+						item: refinement! (
+							ref?: to logic! all [
+								path? call
+								find call to word! item/1
+							]
+							either compact? [
+								if ref? [flags: flags or bit]
+								bit: bit * 2
+							][
+								emit compose [
+									logic/push (pick [true false] ref?)
+								]
 							]
 						)
-						any [word! opt block! (comp-expression)] ;-- just optional argument
+						any [
+							word!
+							opt block!
+							(if ref? [comp-expression])	;-- optional argument
+						]
 					]
 					| set-word! skip
 					| skip
@@ -707,12 +731,11 @@ red: context [
 			]
 
 			switch spec/1 [
-				native! 	[emit-native name]
-				action! 	[emit-action name]
+				native! 	[emit-native/with name flags]
+				action! 	[emit-action/with name flags]
 				op!			[]
 				function!	[]
 			]
-			insert-lf -1
 			emit-close-frame
 		]
 	]
