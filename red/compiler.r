@@ -581,36 +581,58 @@ red: context [
 		]
 	]
 	
-	emit-path: func [path [path!] /local value][
+	emit-path: func [path [path! set-path!] set? [logic!] /local value][
 		value: path/1
 		switch type?/word value [
 			word! [
-				either head? path [
-					emit-get-word value
-				][
-					emit-open-frame 'select
-					emit-path back path
-					emit-get-word value
-					insert-lf -2
-					emit-action 'pick
-					emit-close-frame
+				case [
+					head? path [
+						emit-get-word value
+					]
+					all [set? tail? next path][
+						emit-open-frame 'poke
+						emit-path back path
+						emit-get-word value
+						insert-lf -2
+						comp-expression					;-- fetch assigned value
+						emit-action 'poke
+						emit-close-frame
+					]
+					'else [
+						emit-open-frame 'select
+						emit-path back path set?
+						emit-get-word value
+						insert-lf -2
+						emit-action 'pick
+						emit-close-frame
+					]
 				]
 			]
 			get-word! [
 				emit-open-frame 'pick
-				emit-path back path
+				emit-path back path set?
 				emit-get-word to word! value
 				insert-lf -2
 				emit-action 'pick
 				emit-close-frame
 			]
 			integer! [
-				emit-open-frame 'pick
-				emit-path back path
-				emit compose [integer/push (value)]
-				insert-lf -2
-				emit-action 'pick
-				emit-close-frame
+				either all [set? tail? next path][
+					emit-open-frame 'poke
+					emit-path back path set?
+					emit compose [integer/push (value)]
+					insert-lf -2
+					comp-expression					;-- fetch assigned value
+					emit-action 'poke
+					emit-close-frame
+				][					
+					emit-open-frame 'pick
+					emit-path back path set?
+					emit compose [integer/push (value)]
+					insert-lf -2
+					emit-action 'pick
+					emit-close-frame
+				]
 			]
 			paren! [
 				--not-implemented--
@@ -621,16 +643,16 @@ red: context [
 		]
 	]
 	
-	comp-path: has [path vamue emit? get?][
+	comp-path: func [/set /local path value emit? get?][
 		path: copy pc/1
 		emit?: yes
 		
 		forall path [
 			switch/default type?/word value: path/1 [
 				word! [
-					if all [not get? find functions value][
+					if all [not set not get? find functions value][
 						either head? path [
-							comp-call path				;-- function with refinements call
+							comp-call path				;-- call function with refinements
 						][
 							--not-implemented--			;TBD: resolve access path to function
 						]
@@ -651,8 +673,9 @@ red: context [
 			]
 		]
 		if emit? [
-			emit-path back tail path					;-- emit code recursively from tail
-			pc: next pc
+			if set [pc: next pc]						;-- skip set-path to be ready to fetch argument
+			emit-path back tail path to logic! set		;-- emit code recursively from tail
+			unless set [pc: next pc]
 		]
 	]
 		
@@ -835,7 +858,7 @@ red: context [
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
 			paren!		[saved: pc pc: pc/1 comp-block pc: next saved]
-			set-path!	[comp-path-assignment]
+			set-path!	[comp-path/set]
 			path! 		[comp-path]
 		][
 			comp-literal to logic! root
