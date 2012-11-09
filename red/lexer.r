@@ -141,28 +141,30 @@ lexer: context [
 			slash
 			s: [
 				integer-number-rule
-				| symbol-rule	(type: word!)
-				| paren-rule 	(type: paren!)
-				| get-word-rule
+				| begin-symbol-rule			(type: word!)
+				| paren-rule 				(type: paren!)
+				| #":" s: begin-symbol-rule	(type: get-word!)
 				;@@ add more datatypes here
-			]
-			(stack/push to type copy/part s e)
+			] (
+				stack/push to type copy/part s e	;-- append path element
+				type: path!
+			)
+			opt [#":" (type: set-path!)]
 		]
-		(value: stack/pop path!)
+		(value: stack/pop type)
 	]
 	
 	word-rule: 	[
 		(type: word!) s: begin-symbol-rule [
-			path-rule (type: path!)					;-- path matched
+			path-rule 								;-- path matched
 			| (value: copy/part s e)				;-- word matched
+			opt [#":" (type: set-word!)]
 		] 
-		opt [#":" (type: either type = word! [set-word!][set-path!])]
 	]
 	
 	get-word-rule: [
 		#":" (type: get-word!) s: begin-symbol-rule [
 			path-rule (
-				type: path!							;-- path matched
 				value/1: to get-word! value/1		;-- workaround missing get-path! in R2
 			)
 			| (
@@ -345,7 +347,7 @@ lexer: context [
 		]
 		
 		pop: func [type [datatype!]][
-			if type = path! [type: block!]
+			if any [type = path! type = set-path!][type: block!]
 			
 			if type <> type? last stk [
 				throw-error/with ["invalid" mold type "closing delimiter"]
