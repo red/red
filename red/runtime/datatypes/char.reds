@@ -11,6 +11,7 @@ Red/System [
 ]
 
 char: context [
+	verbose: 0
 
 	push: func [
 		value	 [integer!]
