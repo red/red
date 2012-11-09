@@ -92,13 +92,12 @@ actions: context [
 	to*: func [][]
 
 	form*: func [
+		options	   [integer!]
 		/local
-			buffer  [red-string!]
-			part 	[logic!]
+			buffer [red-string!]
 	][
-		part: off										;@@ TBD
 		stack/keep										;-- keep last value
-		buffer: string/rs-make-at stack/push either part [16][16] ;@@ /part argument
+		buffer: string/rs-make-at stack/push 16			;@@ /part argument
 		form stack/arguments buffer -1
 		stack/set-last as red-value! buffer
 	]
@@ -122,14 +121,13 @@ actions: context [
 	]
 	
 	mold*: func [
+		options		[integer!]
 		/local
 			buffer  [red-string!]
-			flags 	[integer!]
 	][
-		flags: 0										;@@ fill flags testing refinements presence
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push 16			;@@ /part argument
-		mold stack/arguments buffer -1 flags
+		mold stack/arguments buffer -1 options
 		stack/set-last as red-value! buffer
 	]
 	
@@ -137,7 +135,7 @@ actions: context [
 		value   [red-value!]							;-- MOLD argument
 		buffer  [red-string!]							;-- MOLD buffer
 		part    [integer!]								;-- max bytes count
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/mold"]]
@@ -146,7 +144,7 @@ actions: context [
 			value	[red-value!]						;-- FORM argument
 			buffer	[red-string!]						;-- FORM buffer
 			part	[integer!]							;-- max bytes count
-			flags	[integer!]							;-- 0: /only, 1: /all, 2: /flat
+			flags	[integer!]
 			return: [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_MOLD
 

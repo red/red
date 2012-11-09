@@ -74,10 +74,15 @@ form: make action! [[
 ]
 
 mold: make action! [[
-		value	 [any-type!]
-		return:	 [string!]
+		value	  [any-type!]
+		/only
+		/all
+		/flat
+		/part
+			limit [integer!]
+		return:	  [string!]
 	]
-	#get-definition ACT_MOLD	
+	#get-definition ACT_MOLD
 ]
 
 ;-- Scalar actions --
@@ -86,7 +91,7 @@ absolute: make action! [[
 		value	 [number!]
 		return:  [number!]
 	]
-	#get-definition ACT_ABSOLUTE		
+	#get-definition ACT_ABSOLUTE
 ]
 
 add: make action! [[

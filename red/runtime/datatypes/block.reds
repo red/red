@@ -183,8 +183,9 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/mold"]]
 		
-		string/append-char GET_BUFFER(buffer) as-integer #"["
-
+		unless FLAG_SET?(REF_MOLD_ONLY) [
+			string/append-char GET_BUFFER(buffer) as-integer #"["
+		]
 		s: GET_BUFFER(blk)			
 		i: blk/head
 		while [
@@ -203,7 +204,9 @@ block: context [
 		s: GET_BUFFER(buffer)
 		s/tail: as cell! (as byte-ptr! s/tail) - 1		;-- remove extra white space
 		
-		string/append-char s as-integer #"]"
+		unless FLAG_SET?(REF_MOLD_ONLY) [
+			string/append-char s as-integer #"]"
+		]
 		part
 	]
 	

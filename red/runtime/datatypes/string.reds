@@ -572,7 +572,7 @@ string: context [
 					concatenate str as red-string! value no
 				]
 				default [
-					;actions/form* no					;-- FORM value before appending
+					;actions/form* 0					;-- FORM value before appending
 					--NOT_IMPLEMENTED--
 					;TBD once INSERT is implemented
 				]

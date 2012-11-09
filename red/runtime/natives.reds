@@ -35,7 +35,7 @@ natives: context [
 		either TYPE_OF(arg) = TYPE_STRING [
 			str: as red-string! arg
 		][
-			actions/form*
+			actions/form* 0
 			str: as red-string! arg + 1	
 			assert any [
 				TYPE_OF(str) = TYPE_STRING
