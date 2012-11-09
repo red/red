@@ -470,6 +470,34 @@ REBOL [
 		prin #":"
 		prin y
 	  ]	
+	  
+	  print "---Paths"
+	  
+	  prin "or124"
+	  prin 'a/b/c
+	  z: [a/b a/b/3: :a/b/c]
+	  
+	  prin "or125"
+	  prin mold z
+	  
+	  a: [x y z [3 4 5]]
+	  prin "or126"
+	  prin a/1
+	  prin "or127"
+	  prin mold a/4
+	  prin "or128"
+	  prin a/4/3
+
+	  b: 3
+	  prin "or129"
+	  prin a/:b
+
+	  a/2: 123
+	  a/4/1: #"t"
+	  b: 4
+	  a/:b/2: #"x"
+	  prin "or130"
+	  prin mold a
       
     }
     
@@ -880,6 +908,31 @@ REBOL [
   --test-- "or123"
   --assert-red-printed? "or12311:v22:t33:z"
   
+===end-group===
+
+===start-group=== "paths"
+
+  --test-- "or124"
+  --assert-red-printed?  "or124a/b/c"
+  
+  --test-- "or125"
+  --assert-red-printed?  "or125[a/b a/b/3: :a/b/c]"
+  
+  --test-- "or126"
+  --assert-red-printed?  "or126x"
+  
+  --test-- "or127"
+  --assert-red-printed?  "or127[3 4 5]"
+  
+  --test-- "or128"
+  --assert-red-printed?  "or1285"
+  
+  --test-- "or129"
+  --assert-red-printed?  "or129z"
+  
+  --test-- "or130"
+  --assert-red-printed?  {or130[x 123 z [#"t" #"x" 5]]}
+
 ===end-group===
   
 ~~~end-file~~~ 
