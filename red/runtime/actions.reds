@@ -95,10 +95,22 @@ actions: context [
 		options	   [integer!]
 		/local
 			buffer [red-string!]
+			part   [red-integer!]
+			part?  [logic!]
+			limit  [integer!]
 	][
+		part?: OPTION?(REF_FORM_PART)
+		limit: either part? [
+			part: as red-integer! stack/arguments + 1
+			part/value
+		][0]
+		
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push 16			;@@ /part argument
-		form stack/arguments buffer -1
+		limit: form stack/arguments buffer limit options
+		if all [part? negative? limit][
+			string/truncate-tail GET_BUFFER(buffer) limit
+		]
 		stack/set-last as red-value! buffer
 	]
 	
@@ -106,6 +118,7 @@ actions: context [
 		value   [red-value!]							;-- FORM argument
 		buffer  [red-string!]							;-- FORM buffer
 		part    [integer!]								;-- max bytes count
+		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/form"]]
@@ -114,10 +127,11 @@ actions: context [
 			value	[red-value!]						;-- FORM argument
 			buffer	[red-string!]						;-- FORM buffer
 			part	[integer!]							;-- max bytes count
+			flags   [integer!]
 			return: [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_FORM
 
-		action-form value buffer -1
+		action-form value buffer part flags
 	]
 	
 	mold*: func [

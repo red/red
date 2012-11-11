@@ -169,6 +169,7 @@ Red/System [
 #define GET_UNIT(series)	(series/flags and get-unit-mask)
 #define ALLOC_TAIL(series)	[alloc-at-tail series]
 #define FLAG_SET?(flag)		(flags and flag <> 0)
+#define OPTION?(flag)		(options and flag <> 0)
 
 #define --NOT_IMPLEMENTED--	[
 	print-line "Error: feature not implemented yet!"

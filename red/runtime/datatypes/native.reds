@@ -54,7 +54,7 @@ native: context [
 		#if debug? = yes [if verbose > 0 [print-line "native/form"]]
 
 		string/concatenate-literal buffer "?native?"
-		part											;@@ implement full support for /part
+		part - 8
 	]
 	
 	mold: func [

@@ -41,7 +41,7 @@ unset: context [
 		#if debug? = yes [if verbose > 0 [print-line "unset/form"]]
 		
 		string/concatenate-literal buffer "unset"
-		part											;@@ implement full support for /part
+		part - 5
 	]
 	
 	mold: func [

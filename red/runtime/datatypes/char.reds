@@ -59,7 +59,7 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/form"]]
 
 		string/append-char GET_BUFFER(buffer) arg/value
-		part											;@@ implement full support for /part
+		part - 1
 	]
 	
 	mold: func [

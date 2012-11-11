@@ -124,15 +124,18 @@ integer: context [
 	]
 	
 	form: func [
-		int		[red-integer!]
-		buffer	[red-string!]
-		part 	[integer!]
-		return: [integer!]
+		int		   [red-integer!]
+		buffer	   [red-string!]
+		part 	   [integer!]
+		return:    [integer!]
+		/local
+			formed [c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
 		
-		string/concatenate-literal buffer form-signed int/value
-		part											;@@ implement full support for /part
+		formed: form-signed int/value
+		string/concatenate-literal buffer formed
+		part - length? formed							;@@ optimize by removing length?
 	]
 	
 	mold: func [

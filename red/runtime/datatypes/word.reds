@@ -84,8 +84,6 @@ word: context [
 			as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are overlapping
 			buffer
 			part
-		
-		part											;@@ implement full support for /part
 	]
 	
 	mold: func [

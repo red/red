@@ -36,7 +36,7 @@ natives: context [
 			str: as red-string! arg
 		][
 			actions/form* 0
-			str: as red-string! arg + 1	
+			str: as red-string! stack/arguments + 1
 			assert any [
 				TYPE_OF(str) = TYPE_STRING
 				TYPE_OF(str) = TYPE_SYMBOL					;-- symbol! and string! structs are overlapping
@@ -51,8 +51,8 @@ natives: context [
 				UCS-2  [platform/print-line-UCS2 				offset]
 				UCS-4  [platform/print-line-UCS4   as int-ptr!  offset]
 
-				default [
-					print-line ["Error: unknown string encoding:" GET_UNIT(series)]
+				default [									;@@ replace by an assertion
+					print-line ["Error: unknown string encoding: " GET_UNIT(series)]
 				]
 			]
 		][
@@ -61,8 +61,8 @@ natives: context [
 				UCS-2  [platform/print-UCS2   			   offset]
 				UCS-4  [platform/print-UCS4   as int-ptr!  offset]
 
-				default [
-					print-line ["Error: unknown string encoding:" GET_UNIT(series)]
+				default [									;@@ replace by an assertion
+					print-line ["Error: unknown string encoding: " GET_UNIT(series)]
 				]
 			]
 		]

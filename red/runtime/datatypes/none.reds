@@ -53,7 +53,7 @@ none: context [
 		#if debug? = yes [if verbose > 0 [print-line "none/form"]]
 		
 		string/concatenate-literal buffer "none"
-		part											;@@ implement full support for /part
+		part - 4
 	]
 	
 	mold: func [

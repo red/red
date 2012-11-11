@@ -112,7 +112,7 @@ logic: context [
 		#if debug? = yes [if verbose > 0 [print-line "logic/form"]]
 
 		string/concatenate-literal buffer either boolean/value ["true"]["false"]
-		part											;@@ implement full support for /part
+		part - either boolean/value [4][5]
 	]
 	
 	mold: func [

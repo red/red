@@ -59,7 +59,7 @@ block: context [
 		#if debug? = yes [if verbose > 0 [print-line "block/append*"]]
 
 		arg: as red-block! stack/arguments
-		assert TYPE_OF(arg) = TYPE_BLOCK
+		;assert TYPE_OF(arg) = TYPE_BLOCK				;@@ disabled until we have ANY_BLOCK check
 
 		copy-cell
 			as cell! arg + 1
@@ -146,6 +146,7 @@ block: context [
 		blk		  [red-block!]
 		buffer	  [red-string!]
 		part 	  [integer!]
+		flags     [integer!]
 		return:   [integer!]
 		/local
 			s	  [series!]
@@ -156,15 +157,17 @@ block: context [
 		
 		i: blk/head
 		while [
-			s: GET_BUFFER(blk)		
+			s: GET_BUFFER(blk)
 			value: s/offset + i
 			value < s/tail
 		][
-			part: part - actions/form value buffer part
+			part: actions/form value buffer part flags
+			if all [not zero? flags part <= 0][return part]
 			i: i + 1
 			
 			if TYPE_OF(value) <> TYPE_BLOCK [
 				string/append-char GET_BUFFER(buffer) as-integer #" "
+				part: part - 1
 			]
 		]
 		part

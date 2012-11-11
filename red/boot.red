@@ -67,8 +67,10 @@ make: make action! [[									;-- this one works! ;-)
 ;to
 
 form: make action! [[
-		value	 [any-type!]
-		return:	 [string!]
+		value	  [any-type!]
+		/part
+			limit [integer!]
+		return:	  [string!]
 	]
 	#get-definition ACT_FORM
 ]

@@ -133,7 +133,7 @@ datatype: context [
 
 		name: name-table + dt/value
 		string/concatenate-literal buffer as c-string! name/value
-		part											;@@ implement full support for /part
+		part - length? as c-string! name/value
 	]
 	
 	mold: func [

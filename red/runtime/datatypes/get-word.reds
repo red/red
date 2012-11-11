@@ -64,7 +64,7 @@ get-word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-word/form"]]
 
-		word/form w buffer part							;@@ implement full support for /part
+		word/form w buffer part
 	]
 	
 	mold: func [

@@ -59,6 +59,7 @@ path: context [
 		path	  [red-path!]
 		buffer	  [red-string!]
 		part 	  [integer!]
+		flags     [integer!]
 		return:   [integer!]
 		/local
 			s	  [series!]
@@ -72,12 +73,15 @@ path: context [
 		value: s/offset + i
 		
 		while [value < s/tail][
-			part: part - actions/form value buffer part
+			part: actions/form value buffer part flags
+			if all [not zero? flags part <= 0][return part]
 			i: i + 1
+			
 			s: GET_BUFFER(path)
 			value: s/offset + i
 			if value < s/tail [
 				string/append-char GET_BUFFER(buffer) as-integer slash
+				part: part - 1
 			]
 		]
 		part

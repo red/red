@@ -57,6 +57,39 @@ string: context [
 		str
 	]
 	
+	get-length: func [
+		str		   [red-string!]
+		return:	   [integer!]
+		/local
+			s	   [series!]
+			offset [integer!]
+	][
+		s: GET_BUFFER(str)
+		offset: str/head
+		if negative? offset [offset: 0]					;-- @@ beware of symbol/index leaking here...
+		(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) - offset
+	]
+	
+	truncate-tail: func [
+		s	    [series!]
+		offset  [integer!]								;-- negative offset from tail
+		return: [series!]
+		/local
+			p	[byte-ptr!]
+			p4	[int-ptr!]
+	][
+		if zero? offset [return s]
+		assert negative? offset
+		
+		s/tail: as cell! (as byte-ptr! s/tail) + (offset * GET_UNIT(s))
+		switch GET_UNIT(s) [
+			Latin1 [p: as byte-ptr! s/tail p/1: as-byte 0]
+			UCS-2  [p: as byte-ptr! s/tail p/1: as-byte 0 p/2: as-byte 0]
+			UCS-4  [p4: as int-ptr! s/tail p4/1: 0]
+		]
+		s
+	]
+	
 	append-char: func [
 		s		[series!]
 		cp		[integer!]								;-- codepoint
@@ -311,8 +344,8 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/form"]]
 
-		concatenate buffer str no
-		part											;@@ implement full support for /part
+		concatenate buffer str no						;@@ missing /PART support
+		part - get-length str
 	]
 	
 	mold: func [

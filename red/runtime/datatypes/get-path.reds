@@ -59,12 +59,13 @@ get-path: context [
 		p		  [red-get-path!]
 		buffer	  [red-string!]
 		part 	  [integer!]
+		flags     [integer!]
 		return:   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/form"]]
 		
 		string/append-char GET_BUFFER(buffer) as-integer #":"
-		path/form p buffer part
+		path/form p buffer part - 1 flags
 	]
 	
 	datatype/register [

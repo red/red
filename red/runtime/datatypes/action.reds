@@ -56,7 +56,7 @@ action: context [
 		#if debug? = yes [if verbose > 0 [print-line "action/form"]]
 
 		string/concatenate-literal buffer "?action?"
-		part											;@@ implement full support for /part
+		part - 8
 	]
 	
 	mold: func [

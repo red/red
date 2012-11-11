@@ -53,7 +53,7 @@ op: context [
 		#if debug? = yes [if verbose > 0 [print-line "op/form"]]
 
 		string/concatenate-literal buffer "?op?"
-		part											;@@ implement full support for /part
+		part - 4
 	]
 	
 	mold: func [
