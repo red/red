@@ -6,6 +6,9 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+;; should we run non-interactively?
+batch-mode: all [system/options/args find system/options/args "--batch"]
+
 ;; supress script messages
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
@@ -116,12 +119,15 @@ start-time: now/precise
   --run-script-quiet %source/compiler/namespace-test.r
 ===end-group===
 
-***end-run-quiet***
+num-failures: ***end-run-quiet***
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
 system/options/quiet: store-quiet-mode
-ask "hit enter to finish"
-print ""
-
-
+either batch-mode [
+  quit/return either num-failures > 0 [1] [0]
+] [
+  ask "hit enter to finish"
+  print ""
+  num-failures
+]

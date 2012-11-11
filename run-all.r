@@ -19,6 +19,9 @@ run-all-script: func [dir [file!]][
   ]
 ]
 
+;; should we run non-interactively?
+batch-mode: all [system/options/args find system/options/args "--batch"]
+
 ;; supress script messages
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
@@ -39,13 +42,16 @@ start-time: now/precise
 run-all-script %../red/tests/
 run-all-script %../red-system/tests/
 
-***end-run-quiet***
+num-failures: ***end-run-quiet***
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
 system/options/quiet: store-quiet-mode
 change-dir store-current-dir
-ask "hit enter to finish"
-print ""
-
-
+either batch-mode [
+  quit/return either num-failures > 0 [1] [0]
+] [
+  ask "hit enter to finish"
+  print ""
+  num-failures
+]
