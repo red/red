@@ -20,6 +20,8 @@ do %../../../lexer.r
 
 ~~~start-file~~~ "lexer"
 
+===start-group=== "process"
+
 	--test-- "lexer-1"
 	src: {Red [] 123}
 	--assert [[] 123] = lexer/process src
@@ -83,7 +85,6 @@ do %../../../lexer.r
 	--test-- "lexer-16"
 	src: {Red [] foo/bar:}
 	--assert [[] foo/bar:] = lexer/process src
-
 	
 	--test-- "lexer-17"
 	src: {
@@ -194,6 +195,15 @@ do %../../../lexer.r
 	  src: {Red [] #"^^/"}
 	--assert "[[] #'0000000A]" = mold lexer/process src
 	  
+===end-group===
+
+===start-group=== "encode-UTF8-char"
+
+  --test-- "lex-euc-1"
+ ; --assert "^(CE)^(A7)" = lexer/encode-UTF8-char 935 
+
+===end-group===
+	
 ~~~end-file~~~
 
 ;; tidy up

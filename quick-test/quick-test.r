@@ -678,20 +678,26 @@ qt: make object! [
          append out-str to char! code					            ;-- c <= 7Fh
        ]
        code <= 2047 [							                        ;-- c <= 07FFh
-         append out-str (shift/left (shift code 6) or #"^(C0)" 8)
-					  	or (code and #"^(3F)") or #"^(80)"
+         append out-str join "" [ 
+           to char! ((shift code 6) and #"^(1F)" or #"^(C0)")
+					 to char! ((code and #"^(3F)") or #"^(80)")
+				 ]
 			 ]
 			 code <= 65535 [					                         		;-- c <= FFFFh
-			   append out-str (shift/left (shift code 12) or #"^(E0)" 16)
-						or (shift/left (shift code 6) and #"^(3F)" or #"^(80)" 8)
-						or (code and #"^(3F)") or #"^(80)"
+			   append out-str join "" [
+			     to char! ((shift code 12) and #"^(0F)" or #"^(E0)")
+			     to char! ((shift code 6) and #"^(3F)" or #"^(80)")
+			     to char! (code and #"^(3F)" or #"^(80)")
+			   ]
 			 ]
 			 code <= 1114111 [						                        ;-- c <= 10FFFFh
-				append out-str (shift/left (shift code 18) or #"^(F0)" 24)
-						or (shift/left (shift code 12) and #"^(3F)" or #"^(80)" 16)
-						or (shift/left (shift code 6)  and #"^(3F)" or #"^(80)" 8)
-						or (code and #"^(3F)") or #"^(80)"
-			 ]                         ;-- Codepoints above U+10FFFF are not ignored"
+			   append out-str join "" [
+			     to char! ((shift code 18) & ^"(07)" or #"^(F0)")
+					 to char! ((shift code 12) and #"^(3F)" or #"^(80)")
+					 to char! ((shift code 6)  and #"^(3F)" or #"^(80)")
+					 to char! (code and #"^(3F)" or #"^(80)")
+				 ]
+			 ]                         ;-- Codepoints above U+10FFFF are ignored"
 		 ]
 	 ]
    out-str 
