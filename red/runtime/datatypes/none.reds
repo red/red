@@ -48,6 +48,7 @@ none: context [
 		value	[red-none!]
 		buffer	[red-string!]
 		part	[integer!]
+		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/form"]]
@@ -60,13 +61,12 @@ none: context [
 		value	[red-none!]
 		buffer	[red-string!]
 		part	[integer!]
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/mold"]]
 
-		form value buffer part
-		part											;@@ implement full support for /part
+		form value buffer part flags
 	]
 	
 	datatype/register [

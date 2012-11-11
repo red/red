@@ -49,6 +49,7 @@ action: context [
 		value	[red-action!]
 		buffer	[red-string!]
 		part	[integer!]
+		flags   [integer!]
 		return: [integer!]
 		/local
 			str [red-string!]
@@ -63,7 +64,7 @@ action: context [
 		value	[red-action!]
 		buffer	[red-string!]
 		part	[integer!]
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags   [integer!]
 		return: [integer!]
 		/local
 			str [red-string!]
@@ -71,7 +72,7 @@ action: context [
 		#if debug? = yes [if verbose > 0 [print-line "action/mold"]]
 
 		string/concatenate-literal buffer "make action! [...]" ;@@ TBD
-		part											;@@ implement full support for /part
+		part - 17										;@@ implement full support for /part
 	]
 
 

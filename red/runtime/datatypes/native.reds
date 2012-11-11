@@ -49,6 +49,7 @@ native: context [
 		value	[red-native!]
 		buffer	[red-string!]
 		part	[integer!]
+		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/form"]]
@@ -61,13 +62,13 @@ native: context [
 		value	[red-native!]
 		buffer	[red-string!]
 		part	[integer!]
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/mold"]]
 
 		string/concatenate-literal buffer "make native! [...]"
-		part											;@@ implement full support for /part
+		part - 18
 	]
 
 	datatype/register [

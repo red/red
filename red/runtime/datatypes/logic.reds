@@ -107,6 +107,7 @@ logic: context [
 		boolean	[red-logic!]
 		buffer	[red-string!]
 		part	[integer!]
+		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/form"]]
@@ -119,13 +120,12 @@ logic: context [
 		boolean	[red-logic!]
 		buffer	[red-string!]
 		part	[integer!]
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/mold"]]
 
-		form boolean buffer part
-		part											;@@ implement full support for /part
+		form boolean buffer part flags
 	]
 
 	

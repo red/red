@@ -177,7 +177,7 @@ block: context [
 		blk		  [red-block!]
 		buffer	  [red-string!]
 		part 	  [integer!]
-		flags     [integer!]							;-- 0: /only, 1: /all, 2: /flat
+		flags     [integer!]
 		return:   [integer!]
 		/local
 			s	  [series!]
@@ -188,27 +188,32 @@ block: context [
 		
 		unless FLAG_SET?(REF_MOLD_ONLY) [
 			string/append-char GET_BUFFER(buffer) as-integer #"["
+			part: part - 1
 		]
-		s: GET_BUFFER(blk)			
+		s: GET_BUFFER(blk)
 		i: blk/head
 		while [
 			value: s/offset + i
 			value < s/tail
 		][
 			depth: depth + 1
-			part: part - actions/mold value buffer part flags
+			part: actions/mold value buffer part flags
+			if all [not zero? flags part <= 0][return part]
 		
 			if positive? depth [
 				string/append-char GET_BUFFER(buffer) as-integer space
+				part: part - 1
 			]
 			depth: depth - 1
 			i: i + 1
 		]
 		s: GET_BUFFER(buffer)
 		s/tail: as cell! (as byte-ptr! s/tail) - 1		;-- remove extra white space
+		part: part + 1
 		
 		unless FLAG_SET?(REF_MOLD_ONLY) [
 			string/append-char s as-integer #"]"
+			part: part - 1
 		]
 		part
 	]

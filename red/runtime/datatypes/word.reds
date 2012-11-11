@@ -72,6 +72,7 @@ word: context [
 		w		[red-word!]
 		buffer	[red-string!]
 		part 	[integer!]
+		flags	[integer!]
 		return: [integer!]
 		/local
 			s	[series!]
@@ -84,20 +85,21 @@ word: context [
 			as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are overlapping
 			buffer
 			part
+			flags
 	]
 	
 	mold: func [
 		w		[red-word!]
 		buffer	[red-string!]
 		part 	[integer!]
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags   [integer!]
 		return: [integer!]
 		/local
 			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/mold"]]
 
-		part - form w buffer part						;@@ implement full support for /part
+		form w buffer part flags
 	]
 
 	datatype/register [

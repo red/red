@@ -36,6 +36,7 @@ unset: context [
 		value	[red-unset!]
 		buffer	[red-string!]
 		part	[integer!]
+		flags	[integer!]
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/form"]]
@@ -48,12 +49,12 @@ unset: context [
 		value	[red-unset!]
 		buffer	[red-string!]
 		part	[integer!]
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags   [integer!]
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/mold"]]
 		
-		part - form value buffer part					;@@ implement full support for /part
+		form value buffer part flags
 	]
 
 	datatype/register [

@@ -54,6 +54,7 @@ char: context [
 		arg	    [red-char!]
 		buffer  [red-string!]
 		part    [integer!]
+		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "char/form"]]
@@ -66,7 +67,7 @@ char: context [
 		arg	   [red-char!]
 		buffer [red-string!]
 		part   [integer!]
-		flags  [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags  [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "char/mold"]]
@@ -74,7 +75,7 @@ char: context [
 		string/concatenate-literal buffer {#"}
 		string/append-char GET_BUFFER(buffer) arg/value
 		string/append-char GET_BUFFER(buffer) as-integer #"^""
-		part											;@@ implement full support for /part
+		part - 4
 	]
 
 	compare: func [

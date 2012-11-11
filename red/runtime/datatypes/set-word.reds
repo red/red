@@ -60,25 +60,26 @@ set-word: context [
 		w		[red-word!]
 		buffer	[red-string!]
 		part 	[integer!]
+		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-word/form"]]
 
-		word/form w buffer part
+		word/form w buffer part flags
 	]
 	
 	mold: func [
 		w		[red-word!]
 		buffer	[red-string!]
 		part 	[integer!]
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-word/mold"]]
 
-		part: part - word/form w buffer part			;@@ implement full support for /part
+		part: word/form w buffer part flags
 		string/append-char GET_BUFFER(buffer) as-integer #":"
-		part
+		part - 1
 	]
 	
 	datatype/register [

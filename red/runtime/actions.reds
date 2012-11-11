@@ -138,10 +138,22 @@ actions: context [
 		options		[integer!]
 		/local
 			buffer  [red-string!]
+			part   [red-integer!]
+			part?  [logic!]
+			limit  [integer!]
 	][
+		part?: OPTION?(REF_MOLD_PART)
+		limit: either part? [
+			part: as red-integer! stack/arguments + 1
+			part/value
+		][0]
+
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push 16			;@@ /part argument
-		mold stack/arguments buffer -1 options
+		limit: mold stack/arguments buffer limit options
+		if all [part? negative? limit][
+			string/truncate-tail GET_BUFFER(buffer) limit
+		]
 		stack/set-last as red-value! buffer
 	]
 	
@@ -162,7 +174,7 @@ actions: context [
 			return: [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_MOLD
 
-		action-mold value buffer -1 flags
+		action-mold value buffer part flags
 	]
 	
 	

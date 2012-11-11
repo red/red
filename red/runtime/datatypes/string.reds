@@ -340,11 +340,12 @@ string: context [
 		str		[red-string!]
 		buffer	[red-string!]
 		part 	[integer!]
+		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/form"]]
 
-		concatenate buffer str no						;@@ missing /PART support
+		concatenate buffer str no						;@@ missing internal /PART support
 		part - get-length str
 	]
 	
@@ -352,15 +353,15 @@ string: context [
 		str		[red-string!]
 		buffer	[red-string!]
 		part 	[integer!]
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/mold"]]
 
 		append-char GET_BUFFER(buffer) as-integer #"^""
-		concatenate buffer str no
+		concatenate buffer str no						;@@ missing internal /PART support
 		append-char GET_BUFFER(buffer) as-integer #"^""
-		part											;@@ implement full support for /part
+		part - 2 - get-length str
 	]
 	
 	;--- Property reading actions ---

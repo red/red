@@ -125,6 +125,7 @@ datatype: context [
 		dt		 [red-datatype!]
 		buffer	 [red-string!]
 		part	 [integer!]
+		flags    [integer!]
 		return:  [integer!]
 		/local
 			name [int-ptr!]
@@ -140,14 +141,14 @@ datatype: context [
 		dt		 [red-datatype!]
 		buffer	 [red-string!]
 		part	 [integer!]
-		flags    [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags    [integer!]
 		return:  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
 
-		part: part - form dt buffer part
+		part: form dt buffer part flags
 		string/append-char GET_BUFFER(buffer) as-integer #"!"
-		part											;@@ implement full support for /part
+		part - 1
 	]
 	
 	register [

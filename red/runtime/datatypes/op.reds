@@ -48,6 +48,7 @@ op: context [
 		value	[red-native!]
 		buffer	[red-string!]
 		part	[integer!]
+		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/form"]]
@@ -60,13 +61,13 @@ op: context [
 		value	[red-native!]
 		buffer	[red-string!]
 		part	[integer!]
-		flags   [integer!]								;-- 0: /only, 1: /all, 2: /flat
+		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/mold"]]
 
 		string/concatenate-literal buffer "op"
-		part											;@@ implement full support for /part
+		part - 2
 	]
 
 	datatype/register [
