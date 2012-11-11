@@ -124,7 +124,7 @@ REBOL [
       
       ;================ STRING =================
       
-      s: "HellƩo кошка"
+      s: {^(48)^(65)^(6C)^(6C)^(C6)^(A9)^(6F)^(20)^(D0)^(BA)^(D0)^(BE)^(D1)^(88)^(D0)^(BA)^(D0)^(B0)}              ;;"HellƩo кошка"
       
       prin "or33"
       print s
@@ -139,7 +139,7 @@ REBOL [
       print α + β
       
       prin "or36"
-      print "Χαῖρε, κόσμε!"
+      print {^(CE)^(A7)^(CE)^(B1)^(E1)^(BF)^(96)^(CF)^(81)^(CE)^(B5)^(2C)^(20)^(CE)^(BA)^(CF)^(8C)^(CF)^(83)^(CE)^(BC)^(CE)^(B5)^(21)}    ;"Χαῖρε, κόσμε!"
       
       prin "or37"
       print #"a"
@@ -150,7 +150,7 @@ REBOL [
       prin "or39"
       print #"a" + 1
       
-      z: "Χαῖρε, κόσμε!"
+      z: {^(CE)^(A7)^(CE)^(B1)^(E1)^(BF)^(96)^(CF)^(81)^(CE)^(B5)^(2C)^(20)^(CE)^(BA)^(CF)^(8C)^(CF)^(83)^(CE)^(BC)^(CE)^(B5)^(21)}        ;;"Χαῖρε, κόσμε!"
       
       prin "or40"
       print head? z
@@ -436,7 +436,7 @@ REBOL [
       prin "or118"
       repeat c 5 [prin "x"]
       
-      ;-- z: "Χαῖρε, κόσμε!"
+      z: {^(CE)^(A7)^(CE)^(B1)^(E1)^(BF)^(96)^(CF)^(81)^(CE)^(B5)^(2C)^(20)^(CE)^(BA)^(CF)^(8C)^(CF)^(83)^(CE)^(BC)^(CE)^(B5)^(21)} ;"Χαῖρε, κόσμε!"
       
       prin "or119"
       print newline
@@ -608,7 +608,7 @@ REBOL [
 ===start-group=== "String"
 
   --test-- "or33"
-  --assert-red-printed? "or33" ; unicode
+  --assert-red-printed? "or33HellƩo кошка" 
   
   --test-- "or34"
   --assert-red-printed? "or34123"
@@ -617,22 +617,22 @@ REBOL [
   --assert-red-printed? "or353"
   
   --test-- "or36"
-  --assert-red-printed? "or34" ; unicode
+  --assert-red-printed? "or36Χαῖρε, κόσμε!" 
   
   --test-- "or37"
   --assert-red-printed? "or37a"
   
   --test-- "or38"
-  --assert-red-printed? "or38" ; unicode
+  --assert-red-printed? "or38α"
   
   --test-- "or39"
   --assert-red-printed? "or39b"
   
   --test-- "or40"
-  --assert-red-printed? "or40" ; unicode
+  --assert-red-printed? "or40true" 
   
   --test-- "or41"
-  --assert-red-printed? "or41" ; unicode
+  --assert-red-printed? "or41false"
   
   --test-- "or42"
   --assert-red-printed? "or4213"
@@ -641,10 +641,10 @@ REBOL [
   --assert-red-printed? "or431"
   
   --test-- "or44"
-  --assert-red-printed? "or44" ; unicode
+  --assert-red-printed? "or44" ; unicode input not accepted
   
   --test-- "or45"
-  --assert-red-printed? "or45" ; unicode
+  --assert-red-printed? "or45" ; unicode input not accepted
   
   --test-- "or46"
   --assert-red-printed? "or464"
@@ -737,7 +737,7 @@ REBOL [
   --assert-red-printed? "or75t-tozyx"
   
   --test-- "or76"
-  --assert-red-printed? "or76"  ;unicode
+  --assert-red-printed? "or76t-tOzyxα"
   
   --test-- "or77"
   --assert-red-printed? "or778"
@@ -882,19 +882,31 @@ REBOL [
   --assert-red-printed? "or114test5/test2'test3test6:"
   
   --test-- "or115"
-  --assert-red-printed? "or115"                ;; unicode
+  --assert-red-printed? "or115Χαῖρε, κόσμε!"                
   
   --test-- "or116"
-  --assert-red-printed? "or116"                ;; unicode
+  --assert-red-printed? "or116Χ"                
   
   --test-- "or117"
-  --assert-red-printed? "or117"                ;; unicode
+  --assert-red-printed? {or117#"Χ"}                
   
   --test-- "or118"
-  --assert-red-printed? "or118"                ;; unicode
+  --assert-red-printed? "or118xxxxx"                
   
   --test-- "or119"
-  --assert-red-printed? "or119"                ;; unicode
+  --assert-red-printed? {char: Χ cp: 935}
+  --assert-red-printed? {char: α cp: 945}
+  --assert-red-printed? {char: ῖ cp: 8150}
+  --assert-red-printed? {char: ρ cp: 961}
+  --assert-red-printed? {char: ε cp: 949}
+  --assert-red-printed? {char: , cp: 44}
+  --assert-red-printed? {char:   cp: 32}
+  --assert-red-printed? {char: κ cp: 954}
+  --assert-red-printed? {char: ό cp: 972}
+  --assert-red-printed? {char: σ cp: 963}
+  --assert-red-printed? {char: μ cp: 956}
+  --assert-red-printed? {char: ε cp: 949}
+  --assert-red-printed? {char: ! cp: 33}
   
   --test-- "or120"
   --assert-red-printed? "or120test5/test2'test3test6:"
