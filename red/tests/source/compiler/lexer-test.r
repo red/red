@@ -196,13 +196,6 @@ do %../../../lexer.r
 	--assert "[[] #'0000000A]" = mold lexer/process src
 	  
 ===end-group===
-
-===start-group=== "encode-UTF8-char"
-
-  --test-- "lex-euc-1"
- ; --assert "^(CE)^(A7)" = lexer/encode-UTF8-char 935 
-
-===end-group===
 	
 ~~~end-file~~~
 
