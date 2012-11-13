@@ -582,13 +582,11 @@ qt: make object! [
   end-file: func [] [
     _end file "~~~finished test~~~" 
     _add-file-to-run-totals
-    file/failures
   ]
   
   end-test-run: func [] [
       print ""
     _end test-run "***Finished***"
-    test-run/failures
   ]
   
   end-test-run-quiet: func [] [
@@ -599,7 +597,6 @@ qt: make object! [
     write/append log-file print-output
     prin newline
     _print-summary test-run
-    test-run/failures
   ]
   
   _print-summary: func [

@@ -42,16 +42,16 @@ start-time: now/precise
 run-all-script %../red/tests/
 run-all-script %../red-system/tests/
 
-num-failures: ***end-run-quiet***
+***end-run-quiet***
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
 system/options/quiet: store-quiet-mode
 change-dir store-current-dir
 either batch-mode [
-  quit/return either num-failures > 0 [1] [0]
+  quit/return either qt/test-run/failures > 0 [1] [0]
 ] [
   ask "hit enter to finish"
   print ""
-  num-failures
+  qt/test-run/failures
 ]
