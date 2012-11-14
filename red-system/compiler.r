@@ -1424,6 +1424,7 @@ system-dialect: make-profilable context [
 				][
 					throw-error ["duplicate member name in struct:" mold pc/3]
 				]
+				if pc/3/1 = 'float64! [pc/3/1: 'float!]
 				offset: 3
 				[pc/2 pc/3]
 			][
