@@ -50,7 +50,8 @@ red: context [
 	]
 
 	functions: make hash! [
-		make [action! [type [datatype! word!] spec [any-type!]]]	;-- must be pre-defined
+	;---name--type--arity----------spec----------------------------refs--
+		make [action! 2 [type [datatype! word!] spec [any-type!]] #[none]]	;-- must be pre-defined
 	]
 	
 	make-keywords: does [
@@ -148,16 +149,24 @@ red: context [
 		insert-lf -1
 	]
 	
-	emit-action: func [name [word!] /with flags [integer!]][
+	emit-action: func [name [word!] /with options [block!]][
 		emit join actions-prefix to word! join name #"*"
-		emit any [flags 0]
-		insert-lf -2
+		insert-lf either with [
+			emit options
+			-1 - length? options
+		][
+			-1
+		]
 	]
 	
-	emit-native: func [name [word!] /with flags [integer!]][
+	emit-native: func [name [word!] /with options [block!]][
 		emit join natives-prefix to word! join name #"*"
-		emit any [flags 0]
-		insert-lf -2
+		insert-lf either with [
+			emit options
+			-1 - length? options
+		][
+			-1
+		]
 	]
 	
 	get-counter: does [s-counter: s-counter + 1]
@@ -218,7 +227,37 @@ red: context [
 		]
 	]
 	
-	fetch-functions: func [pos [block!] /local name type][
+	make-refs-table: func [spec [block!] /local mark pos arity list ref args][
+		arity: 0
+		parse spec [
+			any [
+				word! (arity: arity + 1)
+				| mark: refinement! (pos: mark) break
+				| skip
+			]
+		]
+		if all [pos pos/1 <> /local][
+			list: make block! 8
+			ref: 0
+			parse pos [
+				some [
+					pos: refinement! opt string! (
+						ref: ref + 1
+						if pos/1 = /local [return reduce [list arity]]
+						repend list [pos/1 ref 0]
+						args: 0
+					)
+					| word! opt block! opt string! (
+						change back tail list args: args + 1
+					)
+					| set-word! break
+				]
+			]
+		]
+		reduce [list arity]
+	]
+	
+	fetch-functions: func [pos [block!] /local name type spec refs arity][
 		name: to word! pos/1
 		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
 
@@ -227,16 +266,13 @@ red: context [
 			action! [append actions name]
 			op!     [repend op-actions [name to word! pos/4]]
 		]
-		repend functions [
-			name reduce [
-				type
-				either pos/3 = 'op! [
-					second select functions to word! pos/4
-				][
-					clean-lf-deep pos/4/1
-				]
-			]
+		spec: either pos/3 = 'op! [
+			third select functions to word! pos/4
+		][
+			clean-lf-deep pos/4/1
 		]
+		set [refs arity] make-refs-table spec
+		repend functions [name reduce [type arity spec refs]]
 	]
 	
 	emit-block: func [blk [block!] /sub level /local name item value word action type][
@@ -608,7 +644,7 @@ red: context [
 						emit-path back path set?
 						emit-get-word value
 						insert-lf -2
-						emit-action 'pick
+						emit-action 'select
 						emit-close-frame
 					]
 				]
@@ -688,51 +724,84 @@ red: context [
 	comp-call: func [
 		call [word! path!]
 		spec [block!]
-		/local item name compact? flags bit ref?
+		/local item name compact? refs ref? cnt pos ctx mark list offset
 	][
 		either spec/1 = 'intrinsic! [
 			switch call keywords
 		][
 			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
-			flags: 0									;-- refinements storage in compact mode
-			bit: 1										;-- refinement flag bit
+			refs: make block! 1							;-- refinements storage in compact mode
+			cnt: 0
 			
 			name: either path? call [call/1][call]
 			name: to word! clean-lf-flag name
 			emit-open-frame name
 			
-			parse spec/2 [
-				any [
-					item: word! (comp-expression)		;-- fetch argument
-					| [
-						item: refinement! (
-							ref?: to logic! all [
-								path? call
-								find call to word! item/1
+			loop spec/2 [comp-expression]				;-- fetch arguments
+			
+			either compact? [
+				refs: either spec/4 [
+					head insert/dup make block! 8 -1 (length? spec/4) / 3	;-- init with -1
+				][
+					[]									;-- function with no refinements
+				]
+				if path? call [
+					cnt: spec/2							;-- function base arity
+					foreach ref next call [
+						unless pos: find/skip spec/4 to refinement! ref 3 [
+							throw-error [call/1 "has no refinement called" ref]
+						]
+						poke refs pos/2 cnt				;-- set refinement's arguments base offset
+						loop pos/3 [comp-expression]	;-- fetch refinement arguments
+						cnt: cnt + pos/3				;-- increase by nb of arguments
+					]
+				]
+			][											;-- prepare function! stack layout
+				if path? call [
+					ctx: copy spec/4					;-- get a new context block
+					foreach ref next call [
+						unless pos: find/skip spec/4 to refinement! ref 3 [
+							throw-error [call/1 "has no refinement called" ref]
+						]
+						offset: pos/2 + spec/2
+						poke ctx offset true			;-- switch refinement to true in context
+						
+						unless zero? pos/3 [			;-- process refinement's arguments
+							insert at ctx offset + 1 list: make block! 1 ;-- add a adjacent block of code
+							loop pos/3 [
+								mark: tail output
+								comp-expression
+								append/only list copy mark
+								clear mark
 							]
-							either compact? [
-								if ref? [flags: flags or bit]
-								bit: bit * 2
-							][
-								emit compose [
-									logic/push (pick [true false] ref?)
-								]
-							]
-						)
-						any [
-							word!
-							opt block!
-							(if ref? [comp-expression])	;-- optional argument
 						]
 					]
-					| set-word! skip
-					| skip
+					forall ctx [						;-- push context values on stack
+						switch type?/word ctx/1 [
+							none!  [					;-- argument or local variable
+								either ref? [
+									comp-expression		;-- fetch refinement's argument
+								][
+									emit 'none/push		;-- unused refinement argument or local variable
+									insert-lf -1
+								]
+							]
+							logic! [					;-- refinement
+								ref?: ctx/1
+								emit compose [logic/push (ref?)] ;-- push refinement value (true/false)
+								insert-lf -2
+								if all [ref? block? ctx/2][
+									foreach code ctx/2 [emit code] ;-- emit pre-compiled arguments
+								]
+							]
+						]
+					]
 				]
 			]
-
+			
 			switch spec/1 [
-				native! 	[emit-native/with name flags]
-				action! 	[emit-action/with name flags]
+				native! 	[emit-native/with name refs]
+				action! 	[emit-action/with name refs]
 				op!			[]
 				function!	[]
 			]

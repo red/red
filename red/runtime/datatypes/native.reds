@@ -48,8 +48,8 @@ native: context [
 	form: func [
 		value	[red-native!]
 		buffer	[red-string!]
+		arg		[red-value!]
 		part	[integer!]
-		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/form"]]
@@ -61,8 +61,11 @@ native: context [
 	mold: func [
 		value	[red-native!]
 		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
 		part	[integer!]
-		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/mold"]]

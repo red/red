@@ -56,17 +56,32 @@ set-path: context [
 	]
 	
 	form: func [
-		p		  [red-set-path!]
-		buffer	  [red-string!]
-		part 	  [integer!]
-		flags     [integer!]
-		return:   [integer!]
+		p		[red-set-path!]
+		buffer	[red-string!]
+		arg		[red-value!]
+		part 	[integer!]
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-path/form"]]
 		
-		part: path/form p buffer part flags
+		part: path/form p buffer arg part
 		string/append-char GET_BUFFER(buffer) as-integer #":"
 		part - 1
+	]
+	
+	mold: func [
+		p		[red-set-path!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part 	[integer!]
+		return: [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "set-path/mold"]]
+
+		form p buffer arg part
 	]
 	
 	datatype/register [
@@ -79,7 +94,7 @@ set-path: context [
 		null			;reflect
 		null			;to
 		:form
-		:form			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		null			;compare

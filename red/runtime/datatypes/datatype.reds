@@ -124,8 +124,8 @@ datatype: context [
 	form: func [
 		dt		 [red-datatype!]
 		buffer	 [red-string!]
+		arg		 [red-value!]
 		part	 [integer!]
-		flags    [integer!]
 		return:  [integer!]
 		/local
 			name [int-ptr!]
@@ -140,13 +140,16 @@ datatype: context [
 	mold: func [
 		dt		 [red-datatype!]
 		buffer	 [red-string!]
+		only?	 [logic!]
+		all?	 [logic!]
+		flat?	 [logic!]
+		arg		 [red-value!]
 		part	 [integer!]
-		flags    [integer!]
 		return:  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
 
-		part: form dt buffer part flags
+		part: form dt buffer arg part
 		string/append-char GET_BUFFER(buffer) as-integer #"!"
 		part - 1
 	]

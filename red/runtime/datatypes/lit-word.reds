@@ -59,26 +59,29 @@ lit-word: context [
 	form: func [
 		w		[red-word!]
 		buffer	[red-string!]
+		arg		[red-value!]
 		part 	[integer!]
-		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "lit-word/form"]]
 
-		word/form w buffer part flags
+		word/form w buffer arg part 
 	]
 	
 	mold: func [
 		w		[red-word!]
 		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
 		part 	[integer!]
-		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "lit-word/mold"]]
 		
 		string/append-char GET_BUFFER(buffer) as-integer #"'"
-		word/form w buffer part - 1 flags
+		word/form w buffer arg part - 1
 	]
 	
 	datatype/register [

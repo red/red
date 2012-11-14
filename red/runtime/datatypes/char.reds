@@ -51,29 +51,32 @@ char: context [
 	]
 	
 	form: func [
-		arg	    [red-char!]
+		c	    [red-char!]
 		buffer  [red-string!]
+		arg		[red-value!]
 		part    [integer!]
-		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "char/form"]]
 
-		string/append-char GET_BUFFER(buffer) arg/value
+		string/append-char GET_BUFFER(buffer) c/value
 		part - 1
 	]
 	
 	mold: func [
-		arg	   [red-char!]
-		buffer [red-string!]
-		part   [integer!]
-		flags  [integer!]
+		c	    [red-char!]
+		buffer  [red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part    [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "char/mold"]]
 
 		string/concatenate-literal buffer {#"}
-		string/append-char GET_BUFFER(buffer) arg/value
+		string/append-char GET_BUFFER(buffer) c/value
 		string/append-char GET_BUFFER(buffer) as-integer #"^""
 		part - 4
 	]

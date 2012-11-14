@@ -126,8 +126,8 @@ integer: context [
 	form: func [
 		int		   [red-integer!]
 		buffer	   [red-string!]
+		arg		   [red-value!]
 		part 	   [integer!]
-		flags	   [integer!]
 		return:    [integer!]
 		/local
 			formed [c-string!]
@@ -137,6 +137,21 @@ integer: context [
 		formed: form-signed int/value
 		string/concatenate-literal buffer formed
 		part - length? formed							;@@ optimize by removing length?
+	]
+	
+	mold: func [
+		int		   [red-integer!]
+		buffer	   [red-string!]
+		only?	   [logic!]
+		all?	   [logic!]
+		flat?	   [logic!]
+		arg		   [red-value!]
+		part 	   [integer!]
+		return:    [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/mold"]]
+
+		form int buffer arg part
 	]
 	
 	compare: func [
@@ -214,7 +229,7 @@ integer: context [
 		null			;reflect
 		null			;to
 		:form
-		:form			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		:compare

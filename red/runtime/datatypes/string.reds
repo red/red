@@ -339,8 +339,8 @@ string: context [
 	form: func [
 		str		[red-string!]
 		buffer	[red-string!]
+		arg		[red-value!]
 		part 	[integer!]
-		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/form"]]
@@ -352,8 +352,11 @@ string: context [
 	mold: func [
 		str		[red-string!]
 		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
 		part 	[integer!]
-		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/mold"]]
@@ -558,21 +561,22 @@ string: context [
 	;--- Modifying actions ---
 		
 	append: func [
-		return:	  [red-value!]
+		str		 [red-string!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]
+		dup-arg	 [red-value!]
+		return:	 [red-value!]
 		/local
-			str	  [red-string!]
-			value [red-value!]
-			char  [red-char!]
-			src	  [red-block!]
-			s	  [series!]
-			dst	  [series!]
-			cell  [red-value!]
+			char [red-char!]
+			src	 [red-block!]
+			s	 [series!]
+			dst	 [series!]
+			cell [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/append"]]
 
 		;@@ implement /part and /only support
-		str: as red-string! stack/arguments
-		value: as red-value! str + 1
 		dst: GET_BUFFER(str)
 
 		either TYPE_OF(value) = TYPE_BLOCK [			;@@ replace it with: typeset/any-block?
@@ -606,7 +610,7 @@ string: context [
 					concatenate str as red-string! value no
 				]
 				default [
-					;actions/form* 0					;-- FORM value before appending
+					;actions/form* -1					;-- FORM value before appending
 					--NOT_IMPLEMENTED--
 					;TBD once INSERT is implemented
 				]

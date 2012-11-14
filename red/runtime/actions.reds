@@ -92,23 +92,25 @@ actions: context [
 	to*: func [][]
 
 	form*: func [
-		options	   [integer!]
+		part	   [integer!]
 		/local
+			arg	   [red-value!]
 			buffer [red-string!]
-			part   [red-integer!]
-			part?  [logic!]
+			int    [red-integer!]
 			limit  [integer!]
 	][
-		part?: OPTION?(REF_FORM_PART)
-		limit: either part? [
-			part: as red-integer! stack/arguments + 1
-			part/value
+		arg: stack/arguments + part
+		
+		limit: either part >= 0 [
+			int: as red-integer! arg
+			int/value
 		][0]
 		
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push 16			;@@ /part argument
-		limit: form stack/arguments buffer limit options
-		if all [part? negative? limit][
+		limit: form stack/arguments buffer arg limit
+		
+		if all [part >= 0 negative? limit][
 			string/truncate-tail GET_BUFFER(buffer) limit
 		]
 		stack/set-last as red-value! buffer
@@ -117,8 +119,8 @@ actions: context [
 	form: func [
 		value   [red-value!]							;-- FORM argument
 		buffer  [red-string!]							;-- FORM buffer
-		part    [integer!]								;-- max bytes count
-		flags   [integer!]
+		arg		[red-value!]							;-- max bytes count
+		part	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/form"]]
@@ -126,55 +128,73 @@ actions: context [
 		action-form: as function! [						;-- needs to be globally bound
 			value	[red-value!]						;-- FORM argument
 			buffer	[red-string!]						;-- FORM buffer
-			part	[integer!]							;-- max bytes count
-			flags   [integer!]
+			arg		[red-value!]						;-- max bytes count
+			part	[integer!]
 			return: [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_FORM
 
-		action-form value buffer part flags
+		action-form value buffer arg part
 	]
 	
 	mold*: func [
-		options		[integer!]
+		only	[integer!]
+		_all	[integer!]
+		flat	[integer!]
+		part	[integer!]
 		/local
-			buffer  [red-string!]
-			part   [red-integer!]
-			part?  [logic!]
+			arg	   [red-value!]
+			buffer [red-string!]
+			int    [red-integer!]
 			limit  [integer!]
 	][
-		part?: OPTION?(REF_MOLD_PART)
-		limit: either part? [
-			part: as red-integer! stack/arguments + 1
-			part/value
+		arg: stack/arguments + part
+		
+		limit: either part >= 0 [
+			int: as red-integer! arg
+			int/value
 		][0]
 
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push 16			;@@ /part argument
-		limit: mold stack/arguments buffer limit options
-		if all [part? negative? limit][
+		limit: mold 
+			stack/arguments
+			buffer
+			as logic! only + 1
+			as logic! _all + 1
+			as logic! flat + 1
+			arg
+			limit
+		
+		if all [part >= 0 negative? limit][
 			string/truncate-tail GET_BUFFER(buffer) limit
 		]
 		stack/set-last as red-value! buffer
 	]
 	
 	mold: func [
-		value   [red-value!]							;-- MOLD argument
-		buffer  [red-string!]							;-- MOLD buffer
-		part    [integer!]								;-- max bytes count
-		flags   [integer!]
-		return: [integer!]
+		value    [red-value!]							;-- MOLD argument
+		buffer   [red-string!]							;-- MOLD buffer
+		only?	 [logic!]
+		all?	 [logic!]
+		flat?	 [logic!]
+		arg		 [red-value!]
+		part     [integer!]								;-- max bytes count
+		return:  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/mold"]]
 
 		action-mold: as function! [						;-- needs to be globally bound
-			value	[red-value!]						;-- FORM argument
-			buffer	[red-string!]						;-- FORM buffer
-			part	[integer!]							;-- max bytes count
-			flags	[integer!]
-			return: [integer!]							;-- remaining part count
+			value	 [red-value!]						;-- FORM argument
+			buffer	 [red-string!]						;-- FORM buffer
+			only?	 [logic!]
+			all?	 [logic!]
+			flat?	 [logic!]
+			part-arg [red-value!]		
+			part	 [integer!]							;-- max bytes count
+			return:  [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_MOLD
 
-		action-mold value buffer part flags
+		action-mold value buffer only? all? flat? arg part
 	]
 	
 	
@@ -258,14 +278,39 @@ actions: context [
 	xor~*: func [][]
 	
 	append*: func [
+		part  [integer!]
+		only  [integer!]
+		dup   [integer!]
+	][
+		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
+		append
+			as red-series! stack/arguments
+			stack/arguments + 1
+			stack/arguments + part
+			as logic! only + 1
+			stack/arguments + dup
+	]
+	
+	append: func [
+		series  [red-series!]
+		value   [red-value!]
+		part	[red-value!]
+		only?	[logic!]
+		dup		[red-value!]
 		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/append"]]
 
 		action-append: as function! [					;-- needs to be globally bound
+			series  [red-series!]
+			value   [red-value!]
+			part	[red-value!]
+			only?	[logic!]
+			dup		[red-value!]
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_APPEND
-		action-append
+		] get-action-ptr as red-value! series ACT_APPEND
+		
+		action-append series value part only? dup
 	]
 	
 	at*: func [

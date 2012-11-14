@@ -48,8 +48,8 @@ action: context [
 	form: func [
 		value	[red-action!]
 		buffer	[red-string!]
+		arg		[red-value!]
 		part	[integer!]
-		flags   [integer!]
 		return: [integer!]
 		/local
 			str [red-string!]
@@ -63,8 +63,11 @@ action: context [
 	mold: func [
 		value	[red-action!]
 		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
 		part	[integer!]
-		flags   [integer!]
 		return: [integer!]
 		/local
 			str [red-string!]

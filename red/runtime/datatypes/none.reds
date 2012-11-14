@@ -47,8 +47,8 @@ none: context [
 	form: func [
 		value	[red-none!]
 		buffer	[red-string!]
+		arg		[red-value!]
 		part	[integer!]
-		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/form"]]
@@ -60,13 +60,16 @@ none: context [
 	mold: func [
 		value	[red-none!]
 		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
 		part	[integer!]
-		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/mold"]]
 
-		form value buffer part flags
+		form value buffer arg part
 	]
 	
 	datatype/register [

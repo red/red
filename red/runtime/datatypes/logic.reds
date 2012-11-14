@@ -106,8 +106,8 @@ logic: context [
 	form: func [
 		boolean	[red-logic!]
 		buffer	[red-string!]
+		arg		[red-value!]
 		part	[integer!]
-		flags	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/form"]]
@@ -119,13 +119,16 @@ logic: context [
 	mold: func [
 		boolean	[red-logic!]
 		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
 		part	[integer!]
-		flags   [integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/mold"]]
 
-		form boolean buffer part flags
+		form boolean buffer arg part
 	]
 
 	

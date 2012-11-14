@@ -35,8 +35,8 @@ unset: context [
 	form: func [
 		value	[red-unset!]
 		buffer	[red-string!]
+		arg		[red-value!]
 		part	[integer!]
-		flags	[integer!]
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/form"]]
@@ -48,13 +48,16 @@ unset: context [
 	mold: func [
 		value	[red-unset!]
 		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
 		part	[integer!]
-		flags   [integer!]
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/mold"]]
 		
-		form value buffer part flags
+		form value buffer arg part
 	]
 
 	datatype/register [

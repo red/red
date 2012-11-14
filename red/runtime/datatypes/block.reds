@@ -145,8 +145,8 @@ block: context [
 	form: func [
 		blk		  [red-block!]
 		buffer	  [red-string!]
+		arg		  [red-value!]
 		part 	  [integer!]
-		flags     [integer!]
 		return:   [integer!]
 		/local
 			s	  [series!]
@@ -161,8 +161,8 @@ block: context [
 			value: s/offset + i
 			value < s/tail
 		][
-			part: actions/form value buffer part flags
-			if all [not zero? flags part <= 0][return part]
+			part: actions/form value buffer arg part
+			if all [OPTION?(arg) part <= 0][return part]
 			i: i + 1
 			
 			if TYPE_OF(value) <> TYPE_BLOCK [
@@ -176,8 +176,11 @@ block: context [
 	mold: func [
 		blk		  [red-block!]
 		buffer	  [red-string!]
+		only?	  [logic!]
+		all?	  [logic!]
+		flat?	  [logic!]
+		arg		  [red-value!]
 		part 	  [integer!]
-		flags     [integer!]
 		return:   [integer!]
 		/local
 			s	  [series!]
@@ -186,7 +189,7 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/mold"]]
 		
-		unless FLAG_SET?(REF_MOLD_ONLY) [
+		unless only? [
 			string/append-char GET_BUFFER(buffer) as-integer #"["
 			part: part - 1
 		]
@@ -197,8 +200,8 @@ block: context [
 			value < s/tail
 		][
 			depth: depth + 1
-			part: actions/mold value buffer part flags
-			if all [not zero? flags part <= 0][return part]
+			part: actions/mold value buffer only? all? flat? arg part
+			if all [OPTION?(arg) part <= 0][return part]
 		
 			if positive? depth [
 				string/append-char GET_BUFFER(buffer) as-integer space
@@ -211,7 +214,7 @@ block: context [
 		s/tail: as cell! (as byte-ptr! s/tail) - 1		;-- remove extra white space
 		part: part + 1
 		
-		unless FLAG_SET?(REF_MOLD_ONLY) [
+		unless only? [
 			string/append-char s as-integer #"]"
 			part: part - 1
 		]
@@ -410,32 +413,68 @@ block: context [
 	;--- Modifying actions ---
 	
 	append: func [
+		blk		  [red-block!]
+		value	  [red-value!]
+		part-arg  [red-value!]
+		only?	  [logic!]
+		dup-arg	  [red-value!]
 		return:	  [red-value!]
 		/local
-			blk	  [red-block!]
-			value [red-value!]
 			src	  [red-block!]
-			s	  [series!]
 			cell  [red-value!]
+			limit [red-value!]
+			int	  [red-integer!]
+			b	  [red-block!]
+			s	  [series!]
+			cnt	  [integer!]
+			part  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/append"]]
-
-		;@@ implement /part and /only support
-		blk: as red-block! stack/arguments
-		value: as red-value! blk + 1
-
-		either TYPE_OF(value) = TYPE_BLOCK [			;@@ replace it with: typeset/any-block?
-			src: as red-block! value
-			s: GET_BUFFER(src)
-			cell: s/offset + src/head
-
-			while [cell < s/tail][						;-- multiple values case		
-				copy-cell cell ALLOC_TAIL(blk)
-				cell: cell + 1
+		
+		cnt:  1
+		part: -1
+		
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				b: as red-block! part-arg
+				assert all [
+					TYPE_OF(b) = TYPE_BLOCK
+					b/node = blk/node
+				]
+				b/head + 1								;-- /head is 0-based
 			]
-		][												;-- single value case
-			copy-cell value	ALLOC_TAIL(blk)
-		]		
+		]
+		if OPTION?(dup-arg) [
+			int: as red-integer! dup-arg
+			cnt: int/value
+		]
+		
+		while [not zero? cnt][							;-- /dup support
+			either all [
+				not only?								;-- /only support
+				any [
+					TYPE_OF(value) = TYPE_BLOCK			;@@ replace it with: typeset/any-block?
+					TYPE_OF(value) = TYPE_PATH			;@@ replace it with: typeset/any-block?
+				]
+			][
+				src: as red-block! value
+				if negative? part [part: rs-length? src] ;-- if not /part, use whole value length
+				s: GET_BUFFER(src)
+				cell: s/offset + src/head
+				limit: cell + part						;-- /part support
+
+				while [cell < limit][					;-- multiple values case
+					copy-cell cell ALLOC_TAIL(blk)
+					cell: cell + 1
+				]
+			][											;-- single value case
+				copy-cell value	ALLOC_TAIL(blk)
+			]
+			cnt: cnt - 1
+		]
 		as red-value! blk
 	]
 	

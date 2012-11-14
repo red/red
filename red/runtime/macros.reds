@@ -146,15 +146,6 @@ Red/System [
 	COMP_GREATER_EQUAL
 ]
 
-#enum ref-options! [
-	REF_MOLD_ONLY: 1
-	REF_MOLD_ALL:  2
-	REF_MOLD_FLAT: 4
-	REF_MOLD_PART: 8
-	
-	REF_FORM_PART: 1
-]
-
 #define ACTIONS_NB		60							;-- number of actions
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
@@ -169,7 +160,7 @@ Red/System [
 #define GET_UNIT(series)	(series/flags and get-unit-mask)
 #define ALLOC_TAIL(series)	[alloc-at-tail series]
 #define FLAG_SET?(flag)		(flags and flag <> 0)
-#define OPTION?(flag)		(options and flag <> 0)
+#define OPTION?(ref-ptr)	(ref-ptr > stack/arguments)	;-- a bit inelegant, but saves a lot of code
 
 #define --NOT_IMPLEMENTED--	[
 	print-line "Error: feature not implemented yet!"

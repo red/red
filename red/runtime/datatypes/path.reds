@@ -58,8 +58,8 @@ path: context [
 	form: func [
 		path	  [red-path!]
 		buffer	  [red-string!]
+		arg		  [red-value!]
 		part 	  [integer!]
-		flags     [integer!]
 		return:   [integer!]
 		/local
 			s	  [series!]
@@ -73,8 +73,8 @@ path: context [
 		value: s/offset + i
 		
 		while [value < s/tail][
-			part: actions/form value buffer part flags
-			if all [not zero? flags part <= 0][return part]
+			part: actions/form value buffer arg part
+			if all [OPTION?(arg) part <= 0][return part]
 			i: i + 1
 			
 			s: GET_BUFFER(path)
@@ -87,6 +87,21 @@ path: context [
 		part
 	]
 	
+	mold: func [
+		path	  [red-path!]
+		buffer	  [red-string!]
+		only?	  [logic!]
+		all?	  [logic!]
+		flat?	  [logic!]
+		arg		  [red-value!]
+		part 	  [integer!]
+		return:   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "path/mold"]]
+	
+		form path buffer arg part
+	]
+	
 	datatype/register [
 		TYPE_PATH
 		TYPE_BLOCK
@@ -97,7 +112,7 @@ path: context [
 		null			;reflect
 		null			;to
 		:form
-		:form			;mold
+		:mold
 		null			;get-path
 		null			;set-path
 		null			;compare
