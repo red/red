@@ -1537,6 +1537,7 @@ system-dialect: make-profilable context [
 				word? expr: pc/1
 				type: any [
 					all [base-type? expr expr]
+					all [enum-type? expr [integer!]]
 					find-aliased expr
 				]
 				pc: next pc
