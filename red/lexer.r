@@ -381,8 +381,9 @@ lexer: context [
 		head insert/dup s #"0" 8 - length? s
 	]
 	
-	encode-UTF8-char: func [s [string!] e [string!] /local c code new][	
-		c: trim/head debase/base pad-head copy/part s e 16
+	encode-UTF8-char: func [s [string!] e [string!] /local c code new][
+		c: debase/base pad-head copy/part s e 16
+		while [c/1 = 0][c: next c]					;-- trim heading zeros
 		code: to integer! c
 		
 		case [
