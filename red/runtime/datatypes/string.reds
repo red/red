@@ -196,8 +196,9 @@ string: context [
 	]
 	
 	concatenate: func [									;-- append str2 to str1
-		str1	  [red-string!]
-		str2	  [red-string!]
+		str1	  [red-string!]							;-- string! to extend
+		str2	  [red-string!]							;-- string! to append to str1
+		part	  [integer!]							;-- str2 characters to append, -1 means all
 		keep?	  [logic!]								;-- do not change str2 encoding
 		/local
 			s1	  [series!]
@@ -207,6 +208,8 @@ string: context [
 			size  [integer!]
 			size2 [integer!]
 			p	  [byte-ptr!]
+			limit [byte-ptr!]
+			p4	  [int-ptr!]
 			cp	  [integer!]
 	][
 		s1: GET_BUFFER(str1)
@@ -247,10 +250,12 @@ string: context [
 		size: (as-integer (as byte-ptr! s1/tail - s1/offset )- str1/head) + size2
 		if s1/size < size [s1: expand-series s1 size + unit1]	;-- account for terminal NUL
 		if negative? str2/head [size2: size2 - 1]		;-- mismatch correction when symbol! is used as string!
+		if all [part >= 0 part < size2][size2: part]	;-- optionally limit str2 characters to copy
 		
 		either all [keep? unit1 <> unit2][
 			p: as byte-ptr! s1/offset
-			while [not p/1 <> null-byte][
+			limit: p + size2
+			while [p < limit][
 				either unit2 = UCS-2 [
 					cp: (as-integer p/2) << 8 + p/1
 					p: p + 2
@@ -262,9 +267,15 @@ string: context [
 			]
 		][
 			p: as byte-ptr! s1/tail
-			copy-memory	p as byte-ptr! s2/offset size2 + unit1	;-- copy NUL too
-			s1/tail: as cell! p + size2				;-- reset tail just before NUL
+			copy-memory	p as byte-ptr! s2/offset size2
+			p: p + size2
 		]
+		switch unit1 [									;-- add terminal NUL
+			Latin1 [p/1: as-byte 0]
+			UCS-2  [p/1: as-byte 0 p/2: as-byte 0]
+			UCS-4  [p4: as int-ptr! p p4/1: 0]
+		]
+		s1/tail: as cell! p								;-- reset tail just before NUL
 	]
 	
 	concatenate-literal: func [
@@ -337,32 +348,46 @@ string: context [
 	]
 	
 	form: func [
-		str		[red-string!]
-		buffer	[red-string!]
-		arg		[red-value!]
-		part 	[integer!]
-		return: [integer!]
+		str		  [red-string!]
+		buffer	  [red-string!]
+		arg		  [red-value!]
+		part	  [integer!]
+		return:	  [integer!]
+		/local
+			int	  [red-integer!]
+			limit [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/form"]]
 
-		concatenate buffer str no						;@@ missing internal /PART support
+		limit: either OPTION?(arg) [
+			int: as red-integer! arg
+			int/value	
+		][-1]
+		concatenate buffer str limit no
 		part - get-length str
 	]
 	
 	mold: func [
-		str		[red-string!]
-		buffer	[red-string!]
-		only?	[logic!]
-		all?	[logic!]
-		flat?	[logic!]
-		arg		[red-value!]
-		part 	[integer!]
-		return: [integer!]
+		str		  [red-string!]
+		buffer	  [red-string!]
+		only?	  [logic!]
+		all?	  [logic!]
+		flat?	  [logic!]
+		arg		  [red-value!]
+		part	  [integer!]
+		return:	  [integer!]
+		/local
+			int	  [red-integer!]
+			limit [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/mold"]]
 
+		limit: either OPTION?(arg) [
+			int: as red-integer! arg
+			int/value	
+		][-1]
 		append-char GET_BUFFER(buffer) as-integer #"^""
-		concatenate buffer str no						;@@ missing internal /PART support
+		concatenate buffer str limit no
 		append-char GET_BUFFER(buffer) as-integer #"^""
 		part - 2 - get-length str
 	]
@@ -568,54 +593,82 @@ string: context [
 		dup-arg	 [red-value!]
 		return:	 [red-value!]
 		/local
-			char [red-char!]
-			src	 [red-block!]
-			s	 [series!]
-			dst	 [series!]
-			cell [red-value!]
+			src	  [red-block!]
+			cell  [red-value!]
+			limit [red-value!]
+			int	  [red-integer!]
+			char  [red-char!]
+			sp	  [red-string!]
+			s	  [series!]
+			dst	  [series!]
+			cnt	  [integer!]
+			part  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/append"]]
 
-		;@@ implement /part and /only support
-		dst: GET_BUFFER(str)
+		cnt:  1
+		part: -1
+		
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				sp: as red-string! part-arg
+				assert all [
+					TYPE_OF(sp) = TYPE_STRING
+					sp/node = str/node
+				]
+				sp/head + 1								;-- /head is 0-based
+			]
+		]
+		if OPTION?(dup-arg) [
+			int: as red-integer! dup-arg
+			cnt: int/value
+		]
 
-		either TYPE_OF(value) = TYPE_BLOCK [			;@@ replace it with: typeset/any-block?
-			src: as red-block! value
-			s: GET_BUFFER(src)
-			cell: s/offset + src/head
+		while [not zero? cnt][							;-- /dup support
+			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
+				src: as red-block! value
+				if negative? part [part: block/rs-length? src] ;-- if not /part, use whole value length
+				s: GET_BUFFER(src)
+				cell: s/offset + src/head
+				limit: cell + part						;-- /part support
 
-			while [cell < s/tail][						;-- multiple values case
-				switch TYPE_OF(cell) [
+				while [cell < limit][					;-- multiple values case
+					switch TYPE_OF(cell) [
+						TYPE_CHAR [
+							char: as red-char! cell				
+							append-char GET_BUFFER(str) char/value
+						]
+						TYPE_STRING [
+							concatenate str as red-string! cell part no
+						]
+						default [
+							--NOT_IMPLEMENTED--			;@@ actions/form needs to take an argument!
+							;TBD once INSERT is implemented
+						]
+					]
+					cell: cell + 1
+				]
+			][											;-- single value case
+				switch TYPE_OF(value) [
 					TYPE_CHAR [
-						char: as red-char! cell				
-						dst: append-char dst char/value
+						char: as red-char! value
+						append-char GET_BUFFER(str) char/value
 					]
 					TYPE_STRING [
-						concatenate str as red-string! cell no
+						concatenate str as red-string! value part no
 					]
 					default [
-						--NOT_IMPLEMENTED--				;@@ actions/form needs to take an argument!
+						;actions/form* -1				;-- FORM value before appending
+						--NOT_IMPLEMENTED--
 						;TBD once INSERT is implemented
 					]
 				]
-				cell: cell + 1
 			]
-		][												;-- single value case
-			switch TYPE_OF(value) [
-				TYPE_CHAR [
-					char: as red-char! value
-					dst: append-char dst char/value
-				]
-				TYPE_STRING [
-					concatenate str as red-string! value no
-				]
-				default [
-					;actions/form* -1					;-- FORM value before appending
-					--NOT_IMPLEMENTED--
-					;TBD once INSERT is implemented
-				]
-			]
-		]		
+			cnt: cnt - 1
+		]
 		as red-value! str
 	]
 
