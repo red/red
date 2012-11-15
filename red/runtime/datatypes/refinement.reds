@@ -56,18 +56,6 @@ refinement: context [
 	
 	;-- Actions --
 	
-	form: func [
-		w	    [red-word!]
-		buffer	[red-string!]
-		arg		[red-value!]
-		part 	[integer!]
-		return: [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "refinement/form"]]
-
-		word/form w buffer arg part
-	]
-	
 	mold: func [
 		w	    [red-word!]
 		buffer	[red-string!]
@@ -86,14 +74,14 @@ refinement: context [
 	
 	datatype/register [
 		TYPE_REFINEMENT
-		TYPE_VALUE
+		TYPE_WORD
 		"refinement"
 		;-- General actions --
 		null			;make
 		null			;random
 		null			;reflect
 		null			;to
-		:form
+		INHERIT_ACTION	;form
 		:mold
 		null			;get-path
 		null			;set-path

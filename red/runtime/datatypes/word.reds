@@ -105,7 +105,7 @@ word: context [
 
 	datatype/register [
 		TYPE_WORD
-		TYPE_VALUE
+		TYPE_SYMBOL
 		"word"
 		;-- General actions --
 		null			;make

@@ -56,18 +56,6 @@ set-word: context [
 	
 	;-- Actions --
 	
-	form: func [
-		w		[red-word!]
-		buffer	[red-string!]
-		arg		[red-value!]
-		part 	[integer!]
-		return: [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "set-word/form"]]
-
-		word/form w buffer arg part
-	]
-	
 	mold: func [
 		w		[red-word!]
 		buffer	[red-string!]
@@ -87,14 +75,14 @@ set-word: context [
 	
 	datatype/register [
 		TYPE_SET_WORD
-		TYPE_VALUE
+		TYPE_WORD
 		"set-word"
 		;-- General actions --
 		null			;make
 		null			;random
 		null			;reflect
 		null			;to
-		:form
+		INHERIT_ACTION	;form
 		:mold
 		null			;get-path
 		null			;set-path
