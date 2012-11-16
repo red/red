@@ -280,7 +280,7 @@ red: context [
 			emit-open-frame 'append
 			emit to set-word! name: decorate-series-var 'blk
 			emit 'block/push*
-			emit length? blk
+			emit max 1 length? blk
 			insert-lf -3
 		]
 		level: 0
@@ -292,7 +292,7 @@ red: context [
 				
 				emit-open-frame 'append
 				emit to lit-path! reduce [to word! form type 'push*]
-				emit length? item
+				emit max 1 length? item
 				insert-lf -2
 				
 				level: level + 1

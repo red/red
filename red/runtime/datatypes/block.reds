@@ -211,8 +211,10 @@ block: context [
 			i: i + 1
 		]
 		s: GET_BUFFER(buffer)
-		s/tail: as cell! (as byte-ptr! s/tail) - 1		;-- remove extra white space
-		part: part + 1
+		if i <> blk/head [								;-- test if not empty block
+			s/tail: as cell! (as byte-ptr! s/tail) - 1	;-- remove extra white space
+			part: part + 1
+		]
 		
 		unless only? [
 			string/append-char s as-integer #"]"
