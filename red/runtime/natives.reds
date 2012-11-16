@@ -143,6 +143,8 @@ natives: context [
 		bool/value: logic/false?						;-- run test before modifying stack
 		bool/header: TYPE_LOGIC
 	]
+	
+	halt*: does [halt]
 
 	;--- Natives helper functions ---
 	
