@@ -46,7 +46,7 @@ red: context [
 	
 	intrinsics:   [
 		if unless either any all while until loop repeat
-		foreach forall break
+		foreach forall break halt
 	]
 
 	functions: make hash! [
@@ -620,6 +620,10 @@ red: context [
 			natives/forall-end							;-- reset series
 			stack/unwind
 		]
+	]
+	
+	comp-halt: does [
+		emit 'halt
 	]
 	
 	emit-path: func [path [path! set-path!] set? [logic!] /local value][
