@@ -1242,7 +1242,7 @@ will return:
  
 <u>Notes</u>:
 
-*When the <b>infix</b> syntax is used, the postfix syntax is still allowed, but it will work only if there is no value on the left side of the function call. Example:
+*When the <b>infix</b> syntax is used, the prefix syntax is still allowed, but it will work only if there is no value on the left side of the function call. Example:
 
  func [return: [integer!]][
     avg 10 6                 			;-- will return 8 as well               
