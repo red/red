@@ -232,7 +232,7 @@ red: context [
 		]
 	]
 	
-	check-spec: func [spec [block!] /local symbols value pos][
+	check-spec: func [spec [block!] /local symbols value pos stop][
 		symbols: make block! length? spec
 		
 		unless parse spec [
@@ -669,7 +669,7 @@ red: context [
 			remove back tail locals-stack
 	]
 	
-	comp-func: has [name spec body symbols init ins-point][
+	comp-func: has [name spec body symbols init][
 		name: to word! pc/-1
 		pc: next pc
 		set [spec body] pc
