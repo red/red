@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.9.3
+	Version: 0.9.4
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
@@ -202,20 +202,28 @@ qt: make object! [
     ]    
   ]
   
-  compile-and-run: func [src] [
+  compile-and-run: func [src /error] [
     reds-file?: true
     either exe: compile src [
-      run exe
+      either error [
+        run/error  exe
+      ][
+        run exe
+      ]
     ][
       compile-error src
       output: "Compilation failed"
     ]
   ]
     
-  compile-and-run-from-string: func [src] [
+  compile-and-run-from-string: func [src /error] [
     reds-file?: false
     either exe: compile-from-string src [
-      run exe
+      either error [
+        run/error  exe
+      ][
+        run exe
+      ]
     ][
       
       compile-error "Supplied source"
@@ -243,17 +251,22 @@ qt: make object! [
     either find comp-output "output file size:" [true] [false]
   ] 
   
-  compile-run-print: func [src [file!]][
-    compile-and-run src
+  compile-run-print: func [src [file!] /error][
+    either error [
+      compile-and-run/error
+    ][
+      compile-and-run src
+    ]
     if output <> "Compilation failed" [print output]
   ]
   
   run: func [
     prog [file!]
     ;;/args                         ;; not yet needed
-      ;;parms [string!]             ;; not yet needed  
+      ;;parms [string!]             ;; not yet needed
+    /error                          ;; run time error expected
     /local
-    exec [string!]                   ;; command to be executed
+    exec [string!]                  ;; command to be executed
   ][
     exec: to-local-file runnable-dir/:prog
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
@@ -263,7 +276,7 @@ qt: make object! [
       reds-file?
       none <> find output "Runtime Error" 
     ][
-     _signify-failure
+      if not error [_signify-failure]
     ]
   ]
   
@@ -394,18 +407,26 @@ qt: make object! [
     either find comp-output "output file size:" [true] [false]
   ]
   
-  r-compile-and-run: func [src] [
+  r-compile-and-run: func [src /error] [
     either exe: r-compile src [
-      r-run exe
+      either error [
+        r-run/error  exe
+      ][
+        r-run exe
+      ]
     ][
       compile-error src
       output: "Compilation failed"
     ]
   ]
   
-  r-compile-and-run-from-string: func [src] [
+  r-compile-and-run-from-string: func [src /error] [
     either exe: r-compile-from-string src [
-      r-run exe
+      either error [
+        r-run/error  exe
+      ][
+        r-run exe
+      ]
     ][
       
       compile-error "Supplied source"
@@ -423,7 +444,8 @@ qt: make object! [
   r-run: func [
     prog [file!]
     ;;/args                         ;; not yet needed
-      ;;parms [string!]             ;; not yet needed  
+      ;;parms [string!]             ;; not yet needed 
+    /error                          ;; runtime error expected
     /local
     exec [string!]                   ;; command to be executed
   ][
@@ -432,7 +454,7 @@ qt: make object! [
     clear output
     call/output/wait exec output
     if none <> find output "Runtime Error" [
-     _signify-failure
+      if not error [_signify-failure]
     ]
   ]
   
