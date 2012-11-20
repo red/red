@@ -223,6 +223,16 @@ red: context [
 		second select symbols name
 	]
 	
+	push-locals: func [symbols [block!]][
+		append/only locals-stack symbols
+	]
+
+	pop-locals: does [
+		also
+			last locals-stack
+			remove back tail locals-stack
+	]
+	
 	infix?: func [pos [block! paren!] /local specs][
 		all [
 			not tail? pos
@@ -664,16 +674,6 @@ red: context [
 		insert-lf -1
 	]
 	
-	push-locals: func [symbols [block!]][
-		append/only locals-stack symbols
-	]
-	
-	pop-locals: does [
-		also
-			last locals-stack
-			remove back tail locals-stack
-	]
-	
 	comp-func: has [name spec body symbols init locals locals-nb][
 		name: to word! pc/-1
 		pc: next pc
@@ -694,7 +694,7 @@ red: context [
 		insert-lf -1
 		emit-close-frame
 
-		push-locals symbols
+		push-locals copy symbols
 		
 		forall symbols [
 			symbols/1: decorate-symbol symbols/1
@@ -729,7 +729,7 @@ red: context [
 			]
 		]
 		append init compose [
-			stack/mark (decorate-symbol name)
+			stack/mark (decorate-symbol name)			;@@ make a unique name
 		]
 		append last output [
 			stack/unwind
@@ -956,7 +956,7 @@ red: context [
 			]
 			all [
 				not empty? locals-stack
-				find last locals-stack decorate-symbol name ;@@ optimize this!
+				find last locals-stack name
 			][
 				comp-func-set name
 			]
@@ -971,7 +971,7 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /local name entry sym][
+	comp-word: func [/literal /final /local name entry][
 		name: to word! pc/1
 		pc: next pc
 		case [
@@ -989,9 +989,9 @@ red: context [
 				][
 					either all [
 						not empty? locals-stack
-						find last locals-stack sym: decorate-symbol name
+						find last locals-stack name
 					][
-						emit compose [stack/push (sym)]
+						emit compose [stack/push (decorate-symbol name)]
 						insert-lf -2
 					][
 						emit-get-word name
