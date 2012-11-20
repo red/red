@@ -1141,6 +1141,9 @@ red: context [
 
 		change/part/only mark copy/deep mark tail mark	;-- put output code between [...]
 		clear next mark									;-- remove code at "above" level
+		head insert last output [
+			stack/reset
+		]
 	]
 	
 	comp-block: func [
