@@ -16,6 +16,18 @@ none-value/header: TYPE_NONE
 none: context [
 	verbose: 0
 	
+	push-last: func [
+		return:		[red-value!]						;-- return cell pointer
+		/local
+			cell 	[red-none!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "none/push"]]
+
+		cell: as red-none! stack/arguments
+		cell/header: TYPE_NONE							;-- implicit reset of all header flags
+		as red-value! cell
+	]
+	
 	push: func [
 		return:		[red-value!]						;-- return cell pointer
 		/local

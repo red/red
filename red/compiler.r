@@ -64,7 +64,7 @@ red: context [
 		bind keywords self
 	]
 
-	set-last-none: does [copy [stack/reset none/push]]	;-- copy required for R/S line counting injection
+	set-last-none: does [copy [stack/reset none/push-last]]	;-- copy required for R/S line counting injection
 
 	--not-implemented--: does [print "Feature not yet implemented!" halt]
 	
