@@ -39,7 +39,7 @@ none: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/make"]]
 
-		cell: as red-none! stack/push
+		cell: as red-none! stack/push*
 		cell/header: TYPE_NONE							;-- implicit reset of all header flags
 		cell
 	]

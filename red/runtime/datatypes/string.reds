@@ -315,7 +315,7 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/push"]]
 
-		copy-cell as red-value! str stack/push
+		copy-cell as red-value! str stack/push*
 	]
 	
 	;-- Actions -- 
@@ -340,7 +340,7 @@ string: context [
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
-		str: as red-string! stack/push
+		str: as red-string! stack/push*
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 	0
 		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
@@ -572,7 +572,7 @@ string: context [
 		][
 			none-value
 		][
-			char: as red-char! stack/push
+			char: as red-char! stack/push*
 			char/header: TYPE_CHAR		
 			char/value: switch GET_UNIT(s) [
 				Latin1 [as-integer p1/value]

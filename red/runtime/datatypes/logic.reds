@@ -54,7 +54,7 @@ logic: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/push"]]
 
-		cell: as red-logic! stack/push
+		cell: as red-logic! stack/push*
 		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
 		cell/value: value
 		cell
@@ -97,7 +97,7 @@ logic: context [
 		assert TYPE_OF(spec) = TYPE_INTEGER
 		id: as red-integer! spec
 	
-		cell: as red-logic! stack/push
+		cell: as red-logic! stack/push*
 		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
 		cell/value: id/value <> 0
 		cell

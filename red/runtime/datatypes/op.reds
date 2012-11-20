@@ -19,7 +19,7 @@ op: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/push"]]
 		
-		cell: as red-op! stack/push
+		cell: as red-op! stack/push*
 		cell/header: TYPE_OP
 		;...TBD
 	]
@@ -37,7 +37,7 @@ op: context [
 
 		;assert TYPE_OF(spec) = TYPE_BLOCK
 		
-		op: as red-op! stack/push
+		op: as red-op! stack/push*
 		op/header: TYPE_OP						;-- implicit reset of all header flags
 		;op/spec:    spec/node					; @@ copy spec block if not at head
 		;op/symbols: clean-spec spec 			; @@ TBD

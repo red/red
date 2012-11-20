@@ -27,7 +27,7 @@ unset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/make"]]
 		
-		cell: as red-unset! stack/push
+		cell: as red-unset! stack/push*
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags
 		cell
 	]

@@ -19,7 +19,7 @@ action: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/push"]]
 		
-		cell: as red-action! stack/push
+		cell: as red-action! stack/push*
 		cell/header: TYPE_ACTION
 		;...TBD
 	]
@@ -37,7 +37,7 @@ action: context [
 		
 		assert TYPE_OF(spec) = TYPE_BLOCK
 		
-		action: as red-action! stack/push
+		action: as red-action! stack/push*
 		action/header:  TYPE_ACTION						;-- implicit reset of all header flags
 		action/spec:    spec/node						; @@ copy spec block if not at head
 		;action/symbols: clean-spec spec 				; @@ TBD

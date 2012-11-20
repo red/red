@@ -148,3 +148,14 @@ red-op!: alias struct! [
 	symbols	[node!]									;-- op cleaned-up spec block reference
 	_pad	[integer!]	
 ]
+
+red-function!: alias struct! [
+	header 	[integer!]								;-- cell header
+	spec	[node!]									;-- native spec block reference
+	ctx		[red-context!]							;-- function's context
+	more	[node!]									;-- additional members storage block:
+	;	body	 [node!]							;-- 	function's body block
+	;	symbols	 [node!]							;-- 	native cleaned-up spec block reference
+	;	native   [node!]							;-- 	JIT-compiled body (binary!)
+]
+

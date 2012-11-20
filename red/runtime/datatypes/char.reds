@@ -19,7 +19,7 @@ char: context [
 			cell [red-char!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "char/push"]]
-		cell: as red-char! stack/push
+		cell: as red-char! stack/push*
 		cell/header: TYPE_CHAR
 		cell/value: value
 	]
@@ -44,7 +44,7 @@ char: context [
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
-		char: as red-char! stack/push
+		char: as red-char! stack/push*
 		char/header: TYPE_CHAR
 		char/value: value
 		char

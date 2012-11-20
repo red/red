@@ -110,7 +110,7 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/push"]]
 
-		copy-cell as red-value! blk stack/push
+		copy-cell as red-value! blk stack/push*
 	]
 
 
@@ -135,7 +135,7 @@ block: context [
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
-		blk: as red-block! stack/push
+		blk: as red-block! stack/push*
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk/head: 	0
 		blk/node: 	alloc-cells size

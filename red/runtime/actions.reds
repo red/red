@@ -107,7 +107,7 @@ actions: context [
 		][0]
 		
 		stack/keep										;-- keep last value
-		buffer: string/rs-make-at stack/push 16			;@@ /part argument
+		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
 		limit: form stack/arguments buffer arg limit
 		
 		if all [part >= 0 negative? limit][
@@ -155,7 +155,7 @@ actions: context [
 		][0]
 
 		stack/keep										;-- keep last value
-		buffer: string/rs-make-at stack/push 16			;@@ /part argument
+		buffer: string/rs-make-at stack/push* 16		;@@ /part argument
 		limit: mold 
 			stack/arguments
 			buffer

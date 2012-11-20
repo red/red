@@ -19,7 +19,7 @@ native: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/push"]]
 		
-		cell: as red-native! stack/push
+		cell: as red-native! stack/push*
 		cell/header: TYPE_NATIVE
 		;...TBD
 	]
@@ -37,7 +37,7 @@ native: context [
 		
 		assert TYPE_OF(spec) = TYPE_BLOCK
 		
-		native: as red-native! stack/push
+		native: as red-native! stack/push*
 		native/header:  TYPE_NATIVE					;-- implicit reset of all header flags
 		native/spec:    spec/node					; @@ copy spec block if not at head
 		;native/symbols: clean-spec spec 			; @@ TBD

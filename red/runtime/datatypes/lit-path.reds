@@ -35,7 +35,7 @@ lit-path: context [
 		#if debug? = yes [if verbose > 0 [print-line "lit-path/push"]]
 
 		p/header: TYPE_LIT_PATH							;@@ type casting (from block! to path!)
-		copy-cell as red-value! p stack/push
+		copy-cell as red-value! p stack/push*
 	]
 
 

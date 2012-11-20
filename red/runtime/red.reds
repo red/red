@@ -61,6 +61,7 @@ red: context [
 	#include %datatypes/lit-path.reds
 	#include %datatypes/set-path.reds
 	#include %datatypes/get-path.reds
+	#include %datatypes/function.reds
 	
 	;-- Debugging helpers --
 	
@@ -79,7 +80,7 @@ red: context [
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	block/make-in null 2000					;-- root block		
 	symbols: 	block/make-in root 1000	 				;-- symbols table
-	global-ctx: _context/make root 1000 no				;-- global context
+	global-ctx: _context/create root 1000 no			;-- global context
 	
 	#include %stack.reds
 	
@@ -102,6 +103,7 @@ red: context [
 		red/lit-path/verbose:	verbosity
 		red/set-path/verbose:	verbosity
 		red/get-path/verbose:	verbosity
+		red/_function/verbose:	verbosity
 		
 		red/actions/verbose:	verbosity
 		red/natives/verbose:	verbosity

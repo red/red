@@ -97,7 +97,7 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get"]]
 		
-		assert all [								;-- ensure word is properly bound to a context
+		assert all [									;-- ensure word is properly bound to a context
 			not null? word/ctx
 			word/index > -1
 		]
@@ -105,26 +105,58 @@ _context: context [
 		values/offset + word/index
 	]
 
-	make: func [
-		blk			[red-block!]					;-- storage place (at tail of block)
-		slots		[integer!]						;-- max number of words in the context
-		stack?		[logic!]						;-- TRUE: alloc values on stack, FALSE: alloc them from heap
+	create: func [
+		blk			[red-block!]						;-- storage place (at tail of block)
+		slots		[integer!]							;-- max number of words in the context
+		stack?		[logic!]							;-- TRUE: alloc values on stack, FALSE: alloc them from heap
 		return:		[red-context!]
 		/local
 			cell 	[red-context!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "_context/make"]]
+		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
 		cell: as red-context! ALLOC_TAIL(blk)
-		cell/header: TYPE_CONTEXT					;-- implicit reset of all header flags	
-		cell/symbols: alloc-series slots 16 0		;-- force offset at head of buffer
+		cell/header: TYPE_CONTEXT						;-- implicit reset of all header flags	
+		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer
 
 		either stack? [
-			cell/values: null						;TBD: complete this code branch
+			cell/values: null							;TBD: complete this code branch
 		][
 			cell/values: alloc-cells slots
 		]
 		cell
+	]
+	
+	make: func [
+		spec	[red-block!]
+		stack?	[logic!]
+		return:	[red-context!]
+		/local
+			ctx	[red-context!]
+			cell [red-value!]
+			slot [red-value!]
+			s	 [series!]
+			type [integer!]
+	][
+		ctx: create root block/rs-length? symbols stack?
+		s: GET_BUFFER(spec)
+		cell: s/offset
+		
+		while [cell < s/tail][
+			type: TYPE_OF(cell)
+			if any [									;TBD: use typeset/any-word?
+				type = TYPE_WORD
+				type = TYPE_GET_WORD
+				type = TYPE_LIT_WORD
+				type = TYPE_REFINEMENT
+			][											;-- add new word to context
+				slot: alloc-tail as series! ctx/symbols/value
+				copy-cell cell slot
+				slot/header: TYPE_WORD
+			]
+			cell: cell + 1
+		]
+		ctx
 	]
 	
 	;-- Actions -- 

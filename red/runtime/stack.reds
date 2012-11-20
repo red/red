@@ -128,12 +128,39 @@ stack: context [										;-- call stack
 		copy-cell last arguments
 	]
 	
+	return-last: func [
+		return: [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/return-last"]]
+
+		copy-cell last-value arguments
+	]
+	
+	push*: func [
+		return:  [red-value!]
+		/local
+			cell [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/push*"]]
+
+		cell: top
+		top: top + 1
+		if top >= a-end [
+			print-line ["^/*** Error: arguments stack overflow!^/"]
+			halt
+		]
+		cell
+	]
+	
 	push: func [
-		return: [cell!]
-		/local cell [cell!]
+		value 	  [red-value!]
+		return:   [red-value!]
+		/local 
+			cell [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/push"]]
 		
+		copy-cell value top
 		cell: top
 		top: top + 1
 		if top >= a-end [

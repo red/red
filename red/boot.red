@@ -413,6 +413,20 @@ forall: make native! [[
 ;	none
 ;]
 
+func: make native! [[
+		spec [block!]
+		body [block!]
+	]
+	none
+]
+
+function: make native! [[
+		spec [block!]
+		body [block!]
+	]
+	none
+]
+
 
 get: make native! [[
 		word	[word!]

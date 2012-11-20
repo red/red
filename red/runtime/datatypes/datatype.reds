@@ -77,7 +77,7 @@ datatype: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/push"]]
 
-		dt: as red-datatype! stack/push
+		dt: as red-datatype! stack/push*
 		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
 		dt/value: type
 	]
@@ -115,7 +115,7 @@ datatype: context [
 		
 		assert TYPE_OF(spec) = TYPE_INTEGER
 		int: as red-integer! spec
-		dt: as red-datatype! stack/push
+		dt: as red-datatype! stack/push*
 		dt/header: TYPE_DATATYPE
 		dt/value: int/value		
 		dt

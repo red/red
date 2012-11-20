@@ -39,10 +39,25 @@ word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/push"]]
 		
-		cell: as red-word! stack/push
+		cell: as red-word! stack/push*
 		copy-cell as cell! word as cell! cell
 		cell
 	]
+	
+	push-local: func [
+		word	 [red-word!]
+		ctx		 [red-context!]
+		return:  [red-word!]
+		/local
+			cell [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
+
+		cell: push word
+		cell/ctx: ctx
+		cell
+	]
+
 
 	set: func [
 		/local
@@ -63,7 +78,7 @@ word: context [
 		
 		copy-cell
 			as cell! _context/get word
-			stack/push
+			stack/push*
 	]
 	
 	;-- Actions --

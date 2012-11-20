@@ -98,7 +98,7 @@ integer: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/push"]]
 		
-		cell: as red-integer! stack/push
+		cell: as red-integer! stack/push*
 		cell/header: TYPE_INTEGER
 		cell/value: value
 	]

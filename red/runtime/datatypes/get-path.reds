@@ -35,7 +35,7 @@ get-path: context [
 		#if debug? = yes [if verbose > 0 [print-line "get-path/push"]]
 
 		p/header: TYPE_GET_PATH							;@@ type casting (from block! to path!)
-		copy-cell as red-value! p stack/push
+		copy-cell as red-value! p stack/push*
 	]
 
 

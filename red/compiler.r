@@ -23,6 +23,7 @@ red: context [
 	
 	pc: 		  none
 	locals:		  none
+	locals-stack: make block! 32
 	output:		  make block! 100
 	sym-table:	  make block! 1000
 	literals:	  make block! 1000
@@ -46,7 +47,7 @@ red: context [
 	
 	intrinsics:   [
 		if unless either any all while until loop repeat
-		foreach forall break halt
+		foreach forall break halt func function
 	]
 
 	functions: make hash! [
@@ -185,7 +186,11 @@ red: context [
 	]
 	
 	decorate-symbol: func [name [word!]][
-		to word! join "_" clean-lf-flag name
+		to word! join "~" clean-lf-flag name
+	]
+	
+	decorate-func: func [name [word!]][
+		to word! join "f_" clean-lf-flag name
 	]
 	
 	decorate-series-var: func [name [word!]][
@@ -227,6 +232,29 @@ red: context [
 		]
 	]
 	
+	check-spec: func [spec [block!] /local symbols value pos][
+		symbols: make block! length? spec
+		
+		unless parse spec [
+			opt string!
+			any [
+				pos: [
+					word! opt block! opt string!
+					| lit-word!   	 opt string!
+					| get-word! 	 opt string!
+					| refinement!	 opt string!
+				] (append symbols to word! pos/1)
+			]
+			opt [
+				pos: set-word! (if pos/1 <> return-def [stop: [end skip]]) stop
+				pos: block! opt string!
+			]
+		][
+			throw-error ["invalid function spec block:" pos]
+		]
+		symbols
+	]
+	
 	make-refs-table: func [spec [block!] /local mark pos arity list ref args][
 		arity: 0
 		parse spec [
@@ -255,6 +283,11 @@ red: context [
 			]
 		]
 		reduce [list arity]
+	]
+	
+	add-function: func [name [word!] spec [block!] /local refs arity][
+		set [refs arity] make-refs-table spec
+		repend functions [name reduce ['function! arity spec refs]]
 	]
 	
 	fetch-functions: func [pos [block!] /local name type spec refs arity][
@@ -626,6 +659,68 @@ red: context [
 		emit 'halt
 	]
 	
+	push-locals: func [symbols [block!]][
+		append/only locals-stack symbols
+	]
+	
+	pop-locals: does [
+		also
+			last locals-stack
+			remove back tail locals-stack
+	]
+	
+	comp-func: has [name spec body symbols init ins-point][
+		name: to word! pc/-1
+		pc: next pc
+		set [spec body] pc
+		symbols: check-spec spec
+		add-function name spec
+		
+		set [spec body] redirect-to-literals [
+			reduce [emit-block spec emit-block body]
+		]
+		
+		emit-open-frame 'set
+		emit-push-word name
+		emit compose [
+			_function/push (spec) (body)
+		]
+		emit 'word/set
+		insert-lf -1
+		emit-close-frame
+
+		push-locals symbols
+		
+		forall symbols [
+			symbols/1: decorate-symbol symbols/1
+		]
+		emit reduce [
+			to set-word! decorate-func name 'func
+			head insert copy symbols /local
+		]
+		insert-lf -3
+		pc: next pc		
+
+		comp-sub-block									;-- compile function's body
+
+		pop-locals
+		init: make block! 4 * length? symbols
+		
+		forall symbols [
+			append init to set-word! symbols/1
+			new-line back tail init on
+			either head? symbols [
+				append/only init 'stack/arguments
+			][
+				repend init [symbols/-1 '+ 1]
+			]
+		]
+		append last output [
+			stack/return-last
+		]
+		insert last output init
+	]
+	
 	emit-path: func [path [path! set-path!] set? [logic!] /local value][
 		value: path/1
 		switch type?/word value [
@@ -791,7 +886,7 @@ red: context [
 								]
 							]
 							logic! [					;-- refinement
-								ref?: ctx/1
+								ref?: pick [true false] ctx/1	;-- logic! to word!
 								emit compose [logic/push (ref?)] ;-- push refinement value (true/false)
 								insert-lf -2
 								if all [ref? block? ctx/2][
@@ -807,10 +902,18 @@ red: context [
 				native! 	[emit-native/with name refs]
 				action! 	[emit-action/with name refs]
 				op!			[]
-				function!	[]
+				function!	[emit decorate-func name insert-lf -1]
 			]
 			emit-close-frame
 		]
+	]
+	
+	comp-func-set: func [name [word!]][
+		emit-open-frame 'set
+		comp-expression
+		emit compose [copy-cell stack/arguments (decorate-symbol name)]
+		insert-lf -3
+		emit-close-frame
 	]
 	
 	comp-set-word: has [name value][
@@ -820,15 +923,25 @@ red: context [
 		if infix? pc [
 			throw-error "invalid use of set-word as operand"
 		]
-		emit-open-frame 'set
-		emit-push-word name
-		comp-expression									;-- fetch a value
-		emit 'word/set
-		insert-lf -1
-		emit-close-frame
+		case [
+			pc/1 = 'func [
+				comp-func								;-- function definition needs special framing
+			]
+			not empty? locals-stack [
+				comp-func-set name
+			]
+			'else [
+				emit-open-frame 'set
+				emit-push-word name
+				comp-expression							;-- fetch a value
+				emit 'word/set
+				insert-lf -1
+				emit-close-frame
+			]
+		]
 	]
 
-	comp-word: func [/literal /final /local name entry][
+	comp-word: func [/literal /final /local name entry sym][
 		name: to word! pc/1
 		pc: next pc
 		case [
@@ -844,7 +957,15 @@ red: context [
 				either lit-word? pc/1 [
 					emit-push-word name
 				][
-					emit-get-word name
+					either all [
+						not empty? locals-stack
+						find last locals-stack sym: decorate-symbol name
+					][
+						emit compose [stack/push (sym)]
+						insert-lf -2
+					][
+						emit-get-word name
+					]
 				]
 			]
 			'else [
@@ -1013,7 +1134,7 @@ red: context [
 
 		;-- Create datatype! datatype and word
 		emit [
-			word/push _datatype!
+			word/push ~datatype!
 			datatype/push TYPE_DATATYPE			
 			word/set
 			stack/reset
@@ -1087,6 +1208,9 @@ red: context [
 	]
 	
 	clean-up: does [
+		unless empty? locals-stack [
+			make error! "locals-stack not empty"		;-- force an "internal error"
+		]
 		clear symbols
 		clear sys-global
 		clear output
