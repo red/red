@@ -669,7 +669,7 @@ red: context [
 			remove back tail locals-stack
 	]
 	
-	comp-func: has [name spec body symbols init][
+	comp-func: has [name spec body symbols init locals][
 		name: to word! pc/-1
 		pc: next pc
 		set [spec body] pc
@@ -694,13 +694,16 @@ red: context [
 		forall symbols [
 			symbols/1: decorate-symbol symbols/1
 		]
-		emit reduce [
-			to set-word! decorate-func name 'func
+		
+		locals: either empty? symbols [
+			symbols
+		][
 			head insert copy symbols /local
 		]
+		emit reduce [to set-word! decorate-func name 'func locals]
 		insert-lf -3
-		pc: next pc		
-
+		
+		pc: next pc
 		comp-sub-block									;-- compile function's body
 
 		pop-locals
