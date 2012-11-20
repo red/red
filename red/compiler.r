@@ -232,8 +232,9 @@ red: context [
 		]
 	]
 	
-	check-spec: func [spec [block!] /local symbols value pos stop][
+	check-spec: func [spec [block!] /local symbols value pos stop locals][
 		symbols: make block! length? spec
+		locals:  0
 		
 		unless parse spec [
 			opt string!
@@ -252,7 +253,10 @@ red: context [
 		][
 			throw-error ["invalid function spec block:" pos]
 		]
-		symbols
+		if pos: find/tail spec /local [
+			parse pos [any [word! (locals: locals + 1) | skip]]
+		]
+		reduce [symbols locals]
 	]
 	
 	make-refs-table: func [spec [block!] /local mark pos arity list ref args][
@@ -657,6 +661,7 @@ red: context [
 	
 	comp-halt: does [
 		emit 'halt
+		insert-lf -1
 	]
 	
 	push-locals: func [symbols [block!]][
@@ -669,11 +674,11 @@ red: context [
 			remove back tail locals-stack
 	]
 	
-	comp-func: has [name spec body symbols init locals][
+	comp-func: has [name spec body symbols init locals locals-nb][
 		name: to word! pc/-1
 		pc: next pc
 		set [spec body] pc
-		symbols: check-spec spec
+		set [symbols locals-nb] check-spec spec
 		add-function name spec
 		
 		set [spec body] redirect-to-literals [
@@ -718,7 +723,16 @@ red: context [
 				repend init [symbols/-1 '+ 1]
 			]
 		]
+		unless zero? locals-nb [
+			append init compose [
+				_function/init-locals (1 + locals-nb)
+			]
+		]
+		append init compose [
+			stack/mark (decorate-symbol name)
+		]
 		append last output [
+			stack/unwind
 			stack/return-last
 		]
 		insert last output init
@@ -859,17 +873,16 @@ red: context [
 					]
 				]
 			][											;-- prepare function! stack layout
-				if path? call [
+				either path? call [
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
 						unless pos: find/skip spec/4 to refinement! ref 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
 						offset: pos/2 + spec/2
-						poke ctx offset true			;-- switch refinement to true in context
-						
+						poke ctx offset true			;-- switch refinement to true in context						
 						unless zero? pos/3 [			;-- process refinement's arguments
-							insert at ctx offset + 1 list: make block! 1 ;-- add a adjacent block of code
+							insert/only at ctx offset + 1 list: make block! 1 ;-- add a adjacent block of code
 							loop pos/3 [
 								mark: tail output
 								comp-expression
@@ -895,6 +908,17 @@ red: context [
 								if all [ref? block? ctx/2][
 									foreach code ctx/2 [emit code] ;-- emit pre-compiled arguments
 								]
+							]
+						]
+					]
+				][
+					if spec/4 [
+						foreach [ref offset args] spec/4 [
+							emit [logic/push false]
+							insert-lf -2
+							loop args [
+								emit 'none/push
+								insert-lf -1
 							]
 						]
 					]
@@ -1026,7 +1050,7 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
-	comp-directive: func [][
+	comp-directive: does [
 		switch/default pc/1 [
 			#system [
 				unless block? pc/2 [

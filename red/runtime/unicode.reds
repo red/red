@@ -145,7 +145,8 @@ unicode: context [
 		end:  buf1 + s/size
 		unit: Latin1									;-- start with 1 byte/codepoint
 
-		assert not zero? as-integer src/1				;@@ ensure input string not empty
+		if zero? as-integer src/1 [return node]
+		;assert not zero? as-integer src/1				;@@ ensure input string not empty
 
 		;-- the first part of loop is Rudolf's code with very minor modifications
 		;-- (res/value replaced by cp, 'u renamed to 'src)

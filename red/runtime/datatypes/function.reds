@@ -13,6 +13,19 @@ Red/System [
 
 _function: context [
 	verbose: 0
+	
+	init-locals: func [
+		nb 	   [integer!]
+		/local
+			p  [red-value!]
+	][
+		until [
+			p: stack/push*
+			p/header: TYPE_NONE
+			nb: nb - 1
+			zero? nb
+		]
+	]
 
 	push: func [
 		spec	 [red-block!]

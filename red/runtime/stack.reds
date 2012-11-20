@@ -101,7 +101,7 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
 
-		assert cbottom < ctop
+		assert cbottom <= ctop
 		ctop: ctop - 1
 		
 		last-value: arguments							;-- for immediate use only!
