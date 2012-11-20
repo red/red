@@ -930,7 +930,10 @@ red: context [
 			pc/1 = 'func [
 				comp-func								;-- function definition needs special framing
 			]
-			not empty? locals-stack [
+			all [
+				not empty? locals-stack
+				find last locals-stack decorate-symbol name ;@@ optimize this!
+			][
 				comp-func-set name
 			]
 			'else [
