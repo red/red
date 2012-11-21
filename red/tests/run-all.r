@@ -2,7 +2,7 @@ REBOL [
   Title:   "Builds and Runs the Red Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.3.0
+	Version: 0.4.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -37,6 +37,11 @@ start-time: now/precise
   --run-script-quiet %source/compiler/print-test.r
   --run-script-quiet %source/compiler/regression-tests.r
   --run-script-quiet %source/compiler/run-time-error-test.r
+===end-group===
+
+===start-group=== "Red Units tests"
+  --run-test-file-quiet-red %source/units/logic-test.red
+  --run-test-file-quiet-red %source/units/conditional-test.red
 ===end-group===
 
 ***end-run-quiet***

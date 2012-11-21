@@ -42,9 +42,7 @@ either any [
   ][
     either %.red = suffix? src [
       ;; compile and run red pgm
-      --compile-and-run-red src
-      print qt/output
-      
+      --compile-run-print-red src
     ][
       either find read qt/tests-dir/:src "quick-unit-test.r" [
         --run-unit-test src
