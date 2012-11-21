@@ -117,7 +117,13 @@ Red/System [
   --assert 2 = ct-byte-nested #"^(C1)"  
   --assert 3 = ct-byte-nested #"^(F9)"  
   --assert 4 = ct-byte-nested #"^(C5)"  
-  --assert 5 = ct-byte-nested #"^(D1)"  
+  --assert 5 = ct-byte-nested #"^(D1)" 
+  
+  --test-- "either-true"
+  --assert 1 = either true [1] [0]
+  
+  --test-- "either-false"
+  --assert 1 = either false [0] [1]
     
 ~~~end-file~~~
 
