@@ -37,7 +37,8 @@ logic: context [
 			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/false?"]]
-		arg: as red-logic! stack/last-value
+		
+		arg: as red-logic! stack/arguments
 		type: TYPE_OF(arg)
 		
 		any [											;-- true if not none or false

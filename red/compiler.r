@@ -489,7 +489,9 @@ red: context [
 			
 			insert body list/1
 		]
-		emit body	
+		emit-open-frame type
+		emit body
+		emit-close-frame
 	]
 	
 	comp-any: does [
@@ -503,14 +505,17 @@ red: context [
 	]
 		
 	comp-if: does [
+		emit-open-frame 'if
 		comp-expression
 		emit [
 			if logic/true?
 		]
 		comp-sub-block									;-- compile TRUE block
+		emit-close-frame
 	]
 	
 	comp-unless: does [
+		emit-open-frame 'unless
 		comp-expression
 		emit [
 			if logic/false?
@@ -519,12 +524,14 @@ red: context [
 	]
 
 	comp-either: does [
+		emit-open-frame 'either
 		comp-expression		
 		emit [
 			either logic/true?
 		]
 		comp-sub-block									;-- compile TRUE block
 		comp-sub-block									;-- compile FALSE block
+		emit-close-frame
 	]
 	
 	comp-loop: has [name set-name][
@@ -593,6 +600,8 @@ red: context [
 		]
 		insert-lf -2
 		insert-lf -4
+		emit 'stack/reset
+		insert-lf -1
 
 		emit-open-frame 'repeat
 		emit compose/deep [
