@@ -738,8 +738,11 @@ red: context [
 				_function/init-locals (1 + locals-nb)
 			]
 		]
+		name: decorate-symbol name
+		if find symbols name [name: to path! reduce ['exec name]]
+		
 		append init compose [
-			stack/mark (decorate-symbol name)			;@@ make a unique name
+			stack/mark (name)			;@@ make a unique name for function's body frame
 		]
 		append last output [
 			stack/unwind
