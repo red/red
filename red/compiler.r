@@ -850,7 +850,7 @@ red: context [
 	comp-call: func [
 		call [word! path!]
 		spec [block!]
-		/local item name compact? refs ref? cnt pos ctx mark list offset
+		/local item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref args
 	][
 		either spec/1 = 'intrinsic! [
 			switch call keywords
@@ -883,16 +883,25 @@ red: context [
 					]
 				]
 			][											;-- prepare function! stack layout
+				emit-no-ref: [
+					emit [logic/push false]
+					insert-lf -2
+					loop args [
+						emit 'none/push
+						insert-lf -1
+					]
+				]
 				either path? call [
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
 						unless pos: find/skip spec/4 to refinement! ref 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
-						offset: pos/2 + spec/2
-						poke ctx offset true			;-- switch refinement to true in context						
+						offset: pos/2 + spec/2 + 1
+						poke ctx index? pos true		;-- switch refinement to true in context
 						unless zero? pos/3 [			;-- process refinement's arguments
-							insert/only at ctx offset + 1 list: make block! 1 ;-- add a adjacent block of code
+							list: make block! 1
+							insert/only at ctx offset list ;-- add a adjacent block of code
 							loop pos/3 [
 								mark: tail output
 								comp-expression
@@ -903,19 +912,14 @@ red: context [
 					]
 					forall ctx [						;-- push context values on stack
 						switch type?/word ctx/1 [
-							none!  [					;-- argument or local variable
-								either ref? [
-									comp-expression		;-- fetch refinement's argument
-								][
-									emit 'none/push		;-- unused refinement argument or local variable
-									insert-lf -1
-								]
+							refinement! [				;-- unused refinement
+								args: ctx/3
+								do emit-no-ref
 							]
-							logic! [					;-- refinement
-								ref?: pick [true false] ctx/1	;-- logic! to word!
-								emit compose [logic/push (ref?)] ;-- push refinement value (true/false)
+							logic! [					;-- used refinement
+								emit [logic/push true]
 								insert-lf -2
-								if all [ref? block? ctx/2][
+								if block? ctx/2 [
 									foreach code ctx/2 [emit code] ;-- emit pre-compiled arguments
 								]
 							]
@@ -923,14 +927,7 @@ red: context [
 					]
 				][
 					if spec/4 [
-						foreach [ref offset args] spec/4 [
-							emit [logic/push false]
-							insert-lf -2
-							loop args [
-								emit 'none/push
-								insert-lf -1
-							]
-						]
+						foreach [ref offset args] spec/4 emit-no-ref
 					]
 				]
 			]
