@@ -13,6 +13,7 @@ red: context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
 	script:		  none
+	main-path:	  none
 	runtime-path: %runtime/
 	nl: 		  newline
 	symbols:	  make hash! 1000
@@ -1050,8 +1051,20 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
-	comp-directive: does [
+	comp-directive: has [file][
 		switch/default pc/1 [
+			#include [
+				unless file? file: pc/2 [
+					throw-error ["#include requires a file argument:" pc/2]
+				]
+				if slash <> pick file 1 [
+					file: rejoin [system/options/path main-path file]
+				]
+				unless exists? file [
+					throw-error ["include file not found:" pc/2]
+				]
+				change/part pc load-source file 2
+			]
 			#system [
 				unless block? pc/2 [
 					throw-error "#system requires a block argument"
@@ -1230,9 +1243,7 @@ red: context [
 	load-source: func [file [file! block!] /local src][
 		either file? file [
 			script: file
-			src: read/binary file
-			set [path file] split-path file
-			src: lexer/process src
+			src: lexer/process read/binary file
 		][
 			script: 'memory
 			src: file
@@ -1265,6 +1276,7 @@ red: context [
 	][
 		verbose: opts/verbosity
 		clean-up
+		main-path: first split-path file
 		
 		time: dt [comp-red load-source file]
 		reduce [output time]
