@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.9.4
+	Version: 0.9.5
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
@@ -420,6 +420,18 @@ qt: make object! [
     ]
   ]
   
+  r-compile-run-print: func [src [file!] /error][
+    either error [
+      r-compile-and-run/error
+    ][
+      r-compile-and-run src
+    ]
+    if windows-os? [
+      output: qt/utf-16le-to-utf-8 output
+    ]
+    if output <> "Compilation failed" [print output]
+  ]
+  
   r-compile-and-run-from-string: func [src /error] [
     either exe: r-compile-from-string src [
       either error [
@@ -456,6 +468,25 @@ qt: make object! [
     if none <> find output "Runtime Error" [
       if not error [_signify-failure]
     ]
+  ]
+  
+  r-run-test-file: func [src [file!]][
+    file/reset
+    file/title: find/last/tail to string! src "/"
+    replace file/title "-test.red" ""
+    r-compile-run-print src
+    add-to-run-totals
+  ]
+  
+  r-run-test-file-quiet: func [src [file!]][
+    prin [ "running " find/last/tail src "/" #"^(0D)"]
+    print: :_quiet-print
+    print-output: copy ""
+    r-run-test-file src
+    print: :_save-print
+    write/append log-file print-output
+    _print-summary file
+    output: copy ""
   ]
   
   add-to-run-totals: func [
@@ -741,6 +772,7 @@ qt: make object! [
   set '--compile-and-run-this       :compile-and-run-from-string
   set '--compile-and-run-this-red   :r-compile-and-run-from-string
   set '--compile-run-print          :compile-run-print
+  set '--compile-run-print-red      :r-compile-run-print
   set '--run                        :run
   set '--add-to-run-totals          :add-to-run-totals
   set '--run-unit-test              :run-unit-test
@@ -748,7 +780,9 @@ qt: make object! [
   set '--run-script                 :run-script
   set '--run-script-quiet           :run-script-quiet
   set '--run-test-file              :run-test-file
+  set '--run-test-file-red          :r-run-test-file
   set '--run-test-file-quiet        :run-test-file-quiet
+  set '--run-test-file-quiet-red    :r-run-test-file-quiet
   set '--assert                     :assert
   set '--assert-msg?                :assert-msg?
   set '--assert-printed?            :assert-printed?
