@@ -173,7 +173,7 @@ red: context [
 	
 	get-counter: does [s-counter: s-counter + 1]
 	
-	clean-lf-deep: func [blk [block!] /local pos][
+	clean-lf-deep: func [blk [block! paren!] /local pos][
 		blk: copy/deep blk
 		parse blk rule: [
 			pos: (new-line/all pos off)
@@ -431,6 +431,12 @@ red: context [
 				block!	[
 					name: redirect-to-literals [emit-block value]
 					emit 'block/push
+					emit name
+					insert-lf -2
+				]
+				paren!	[
+					name: redirect-to-literals [emit-block to block! value]
+					emit 'paren/push
 					emit name
 					insert-lf -2
 				]
@@ -1015,7 +1021,7 @@ red: context [
 		]
 	]
 	
-	search-expr-end: func [pos [block!]][
+	search-expr-end: func [pos [block! paren!]][
 		if infix? next pos [pos: search-expr-end skip pos 2]
 		pos
 	]

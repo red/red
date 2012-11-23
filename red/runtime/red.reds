@@ -62,6 +62,7 @@ red: context [
 	#include %datatypes/set-path.reds
 	#include %datatypes/get-path.reds
 	#include %datatypes/function.reds
+	#include %datatypes/paren.reds
 	
 	;-- Debugging helpers --
 	
@@ -104,6 +105,7 @@ red: context [
 		red/set-path/verbose:	verbosity
 		red/get-path/verbose:	verbosity
 		red/_function/verbose:	verbosity
+		red/paren/verbose:		verbosity
 		
 		red/actions/verbose:	verbosity
 		red/natives/verbose:	verbosity

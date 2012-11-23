@@ -112,6 +112,45 @@ block: context [
 
 		copy-cell as red-value! blk stack/push*
 	]
+	
+	mold-each: func [
+		blk		  [red-block!]
+		buffer	  [red-string!]
+		only?	  [logic!]
+		all?	  [logic!]
+		flat?	  [logic!]
+		arg		  [red-value!]
+		part 	  [integer!]
+		return:   [integer!]
+		/local
+			s	  [series!]
+			value [red-value!]
+			i     [integer!]
+	][
+		s: GET_BUFFER(blk)
+		i: blk/head
+		while [
+			value: s/offset + i
+			value < s/tail
+		][
+			depth: depth + 1
+			part: actions/mold value buffer only? all? flat? arg part
+			if all [OPTION?(arg) part <= 0][return part]
+
+			if positive? depth [
+				string/append-char GET_BUFFER(buffer) as-integer space
+				part: part - 1
+			]
+			depth: depth - 1
+			i: i + 1
+		]
+		s: GET_BUFFER(buffer)
+		if i <> blk/head [								;-- test if not empty block
+			s/tail: as cell! (as byte-ptr! s/tail) - 1	;-- remove extra white space
+			part: part + 1
+		]
+		part
+	]
 
 
 	;--- Actions ---
@@ -193,31 +232,10 @@ block: context [
 			string/append-char GET_BUFFER(buffer) as-integer #"["
 			part: part - 1
 		]
-		s: GET_BUFFER(blk)
-		i: blk/head
-		while [
-			value: s/offset + i
-			value < s/tail
-		][
-			depth: depth + 1
-			part: actions/mold value buffer only? all? flat? arg part
-			if all [OPTION?(arg) part <= 0][return part]
-		
-			if positive? depth [
-				string/append-char GET_BUFFER(buffer) as-integer space
-				part: part - 1
-			]
-			depth: depth - 1
-			i: i + 1
-		]
-		s: GET_BUFFER(buffer)
-		if i <> blk/head [								;-- test if not empty block
-			s/tail: as cell! (as byte-ptr! s/tail) - 1	;-- remove extra white space
-			part: part + 1
-		]
+		part: mold-each blk buffer only? all? flat? arg part
 		
 		unless only? [
-			string/append-char s as-integer #"]"
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
 			part: part - 1
 		]
 		part
