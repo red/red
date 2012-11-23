@@ -545,7 +545,7 @@ halt: make native! [
 
 
 ;------------------------------------------
-;-				Others					  -
+;-				Scalars					  -
 ;------------------------------------------
 
 yes: on: true
@@ -560,4 +560,14 @@ slash: 		 #"/"
 sp: space: 	 #" "
 null: 		 #"^@"
 
+;------------------------------------------
+;-			   Mezzanines				  -
+;------------------------------------------
 
+first:	func [s [series!]][pick s 1]					;-- temporary definitions, should be natives
+second:	func [s [series!]][pick s 2]
+third:	func [s [series!]][pick s 3]
+fourth:	func [s [series!]][pick s 4]
+fifth:	func [s [series!]][pick s 5]
+
+last:	func [s [series!]][pick back tail s 1]
