@@ -140,6 +140,7 @@ Red/System [
 
 #enum comparison-op! [
 	COMP_EQUAL
+	COMP_NOT_EQUAL
 	COMP_STRICT_EQUAL
 	COMP_LESSER
 	COMP_LESSER_EQUAL

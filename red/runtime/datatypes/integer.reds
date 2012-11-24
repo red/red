@@ -190,6 +190,7 @@ integer: context [
 		]
 		switch op [
 			COMP_EQUAL 			[res: left = right]
+			COMP_NOT_EQUAL 		[res: left <> right]
 			COMP_STRICT_EQUAL	[res: all [type = TYPE_INTEGER left = right]]
 			COMP_LESSER			[res: left <  right]
 			COMP_LESSER_EQUAL	[res: left <= right]

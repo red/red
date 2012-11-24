@@ -146,8 +146,9 @@ logic: context [
 
 		type: TYPE_OF(arg2)
 		switch op [
-			COMP_EQUAL 			[res:     all [type = TYPE_LOGIC arg1/value = arg2/value]]
-			COMP_STRICT_EQUAL	[res: not all [type = TYPE_LOGIC arg1/value = arg2/value]]
+			COMP_EQUAL 
+			COMP_STRICT_EQUAL	[res:     all [type = TYPE_LOGIC arg1/value = arg2/value]]
+			COMP_NOT_EQUAL		[res:     any [type <> TYPE_LOGIC arg1/value <> arg2/value]]
 			default [
 				print-line ["Error: cannot use: " op " on logic!"]
 			]
