@@ -16,6 +16,11 @@ system/options/quiet: true
 do %../../quick-test/quick-test.r
 qt/tests-dir: system/script/path
 
+;; make auto files if needed
+;; do not split these statements over two lines
+make-dir %source/units/auto-tests
+qt/make-if-needed? %source/units/auto-tests/integer-auto-test.red %source/units/make-integer-auto-test.r
+
 ;; run the tests
 print rejoin ["Quick-Test v" qt/version]
 print rejoin ["REBOL " system/version]
@@ -42,6 +47,10 @@ start-time: now/precise
 ===start-group=== "Red Units tests"
   --run-test-file-quiet-red %source/units/logic-test.red
   --run-test-file-quiet-red %source/units/conditional-test.red
+===end-group===
+
+===start-group=== "Auto-tests"
+  --run-test-file-quiet-red %source/units/auto-tests/integer-auto-test.red
 ===end-group===
 
 ***end-run-quiet***

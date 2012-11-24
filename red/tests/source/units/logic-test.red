@@ -227,7 +227,7 @@ qt-print-totals: func [
 
 ===start-group=== "passing logic! as function's argument tests"
     log-foo: func [a [logic!] return: [logic!]][a]
-comment {  
+
   --test-- "logic-arg-1"    
   --assert log-foo true
 
@@ -252,8 +252,7 @@ comment {
   --assert not log-foo 3 = 4
 
 ===end-group===
-}
- comment {
+
 ===start-group=== "all with logic!"
 
   --test-- "logic-all-1"
@@ -323,7 +322,7 @@ comment {
   --test-- "logic-all-14"
     a: all [1 = 2 3 <> 4]
   --assert not a
-  }
+  
   --test-- "logic-all-15"
   --assert not log-foo all [1 = 2]
    
