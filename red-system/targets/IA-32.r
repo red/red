@@ -1314,7 +1314,8 @@ make-profilable make target-class [
 				]
 				switch/default mod? [
 					mod [#{D9F8}]					;-- FPREM st0, st1		; floating point remainder
-					rem [#{D9F5}]					;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
+					rem [#{D9F8}]					;-- FPREM st0, st1 		; floating point remainder
+					;rem [#{D9F5}]					;-- FPREM1 st0, st1 	; rounded remainder (IEEE)
 				][pick [#{DEF1} #{DEF9}] reversed?]	;-- FDIV[R]P st0, st1
 			]
 		]
