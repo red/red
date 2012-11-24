@@ -564,6 +564,8 @@ null: 		 #"^@"
 ;-			   Mezzanines				  -
 ;------------------------------------------
 
+probe: func [value][print mold value]
+
 first:	func [s [series!]][pick s 1]					;-- temporary definitions, should be natives
 second:	func [s [series!]][pick s 2]
 third:	func [s [series!]][pick s 3]
