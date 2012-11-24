@@ -154,6 +154,29 @@ datatype: context [
 		part - 1
 	]
 	
+	compare: func [
+		arg1      [red-datatype!]						;-- first operand
+		arg2	  [red-datatype!]						;-- second operand
+		op	      [integer!]							;-- type of comparison
+		return:   [logic!]
+		/local
+			type  [integer!]
+			res	  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "datatype/compare"]]
+
+		type: TYPE_OF(arg2)
+		switch op [
+			COMP_EQUAL 
+			COMP_STRICT_EQUAL [res: all [type = TYPE_DATATYPE  arg1/value = arg2/value]]
+			COMP_NOT_EQUAL	  [res: any [type <> TYPE_DATATYPE arg1/value <> arg2/value]]
+			default [
+				print-line ["Error: cannot use: " op " comparison on datatype! value"]
+			]
+		]
+		res
+	]
+	
 	register [
 		TYPE_DATATYPE
 		TYPE_VALUE
@@ -167,7 +190,7 @@ datatype: context [
 		:mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

@@ -59,6 +59,29 @@ unset: context [
 		
 		form value buffer arg part
 	]
+	
+	compare: func [
+		arg1      [red-unset!]							;-- first operand
+		arg2	  [red-unset!]							;-- second operand
+		op	      [integer!]							;-- type of comparison
+		return:   [logic!]
+		/local
+			type  [integer!]
+			res	  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "unset/compare"]]
+
+		type: TYPE_OF(arg2)
+		switch op [
+			COMP_EQUAL 
+			COMP_STRICT_EQUAL [res: type =  TYPE_UNSET]
+			COMP_NOT_EQUAL	  [res: type <> TYPE_UNSET]
+			default [
+				print-line ["Error: cannot use: " op " comparison on unset! value"]
+			]
+		]
+		res
+	]
 
 	datatype/register [
 		TYPE_UNSET
@@ -73,7 +96,7 @@ unset: context [
 		:mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

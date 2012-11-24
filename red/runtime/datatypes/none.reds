@@ -84,6 +84,29 @@ none: context [
 		form value buffer arg part
 	]
 	
+	compare: func [
+		arg1      [red-none!]							;-- first operand
+		arg2	  [red-none!]							;-- second operand
+		op	      [integer!]							;-- type of comparison
+		return:   [logic!]
+		/local
+			type  [integer!]
+			res	  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "none/compare"]]
+
+		type: TYPE_OF(arg2)
+		switch op [
+			COMP_EQUAL 
+			COMP_STRICT_EQUAL [res: type =  TYPE_NONE]
+			COMP_NOT_EQUAL	  [res: type <> TYPE_NONE]
+			default [
+				print-line ["Error: cannot use: " op " comparison on none! value"]
+			]
+		]
+		res
+	]
+
 	datatype/register [
 		TYPE_NONE
 		TYPE_VALUE
@@ -97,7 +120,7 @@ none: context [
 		:mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add
