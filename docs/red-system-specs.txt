@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 24/10/2012
-	Revision: 36
+	Date: 24/11/2012
+	Revision: 37
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -300,12 +300,7 @@ will output
 
 All Red/System math operators (+, -, *, /, //, %) are supported. The default rounding method on results is "rounding to nearest". Both operands need to be of float! types (no implicit casting).
 
-The modulo and remainder operators have a special meaning when used on float! values:
-
-* modulo (//): floating point remainder (result is a float!).
-
-* remainder (%): IEEE-754 rounded remainder (result is a float!).
-
+The modulo (//) and remainder (%) operators give the same results when used on float! values.
 
 ---Float32!
 
@@ -346,12 +341,7 @@ will output
 
 All Red/System math operators (+, -, *, /, //, %) are supported. The default rounding method on results is "rounding to nearest". Both operands need to be of float32! types (no implicit casting).
 
-The modulo and remainder operators have a special meaning when used on float32! values:
-
-* modulo (//): floating point remainder (result is a float32!).
-
-* remainder (%): IEEE-754 rounded remainder (result is an integer!).
-
+The modulo (//) and remainder (%) operators give the same results when used on float32! values.
 
 ---Logic!
 
@@ -3043,7 +3033,7 @@ will output:
 
 ===Document History
 
-*<b>??/??/2012 - revision 37</b>
+*<b>24/11/2012 - revision 37</b>
 
 *>Issue #280 fixed (missing function! as possible target in type casting matrix)
 
@@ -3052,6 +3042,8 @@ will output:
 *>Issue #286 fixed (missing `null` keyword in reserved keywords list)
 
 *>Changed precedence order in WITH namespaces list
+
+*>Changed description of modulo/remainder for floats, now they give the same result.
 
 
 *<b>24/10/2012 - revision 36</b>
