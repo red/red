@@ -51,10 +51,10 @@ Red/System [
   --test-- "fr-4" --assert -9.0  % -4.0  = -1.0
   --test-- "fr-5" --assert  8.5  %  4.0  =  0.5
 
-  --test-- "fr-6" --assertf~=  8.49 %  4.0    0.01	1E6
-  --test-- "fr-7" --assertf~=  9.0  %  3.9    0.2	1E6
-  --test-- "fr-8" --assertf~=  8.9  %  4.46  -0.02	1E6
-  --test-- "fr-9" --assertf~=  8.9  %  4.25   0.3	1E6
+  --test-- "fr-6" --assertf~=  8.49 %  4.0    0.01	1E-6
+  --test-- "fr-7" --assertf~=  9.0  %  3.9    0.2	1E-6
+  --test-- "fr-8" --assertf~=  8.9  %  4.46  -0.02	1E-6
+  --test-- "fr-9" --assertf~=  8.9  %  4.25   0.3	1E-6
 
   --test-- "f32r-1" --assert (as-float32 9.0)  % (as-float32 4.0)  = as-float32 1.0
   --test-- "f32r-2" --assert (as-float32 9.0)  % (as-float32 -4.0) = as-float32 1.0
@@ -62,10 +62,10 @@ Red/System [
   --test-- "f32r-4" --assert (as-float32 -9.0) % (as-float32 -4.0) = as-float32 -1.0
   --test-- "f32r-5" --assert (as-float32 8.5)  % (as-float32 4.0) = as-float32 0.5
 
-  --test-- "f32r-6" --assertf32~= (as-float32 8.49) % (as-float32 4.0)  (as-float32 0.01) 1E6
-  --test-- "f32r-7" --assertf32~= (as-float32 9.0)  % (as-float32 3.9)  (as-float32 0.2) 1E6
-  --test-- "f32r-8" --assertf32~= (as-float32 8.9)  % (as-float32 4.46) (as-float32 -0.02) 1E6
-  --test-- "f32r-9" --assertf32~= (as-float32 8.9)  % (as-float32 4.25) (as-float32 0.3) 1E6
+  --test-- "f32r-6" --assertf32~= (as-float32 8.49) % (as-float32 4.0)  (as-float32 0.01) 1E-6
+  --test-- "f32r-7" --assertf32~= (as-float32 9.0)  % (as-float32 3.9)  (as-float32 0.2) 1E-6
+  --test-- "f32r-8" --assertf32~= (as-float32 8.9)  % (as-float32 4.46) (as-float32 -0.02) 1E-6
+  --test-- "f32r-9" --assertf32~= (as-float32 8.9)  % (as-float32 4.25) (as-float32 0.3) 1E-6
 
 ===end-group=== 
 
