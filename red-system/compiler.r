@@ -251,7 +251,7 @@ system-dialect: make-profilable context [
 			compiler/comp-call '***-on-quit reduce [error <last>] ;-- raise a runtime error
 		]
 		
-		undecorate: func [value [word! path! set-word! set-path!] /local v][
+		undecorate: func [value [word! path! set-word! set-path!] /local v pos][
 			unless find v: mold value decoration [return value]
 			
 			while [pos: find v decoration][
@@ -577,8 +577,8 @@ system-dialect: make-profilable context [
 		
 		enum-type?: func [name [word!] /local type][
 			all [
-				type: select/skip enumerations name 3
-				reduce [type]
+				type: find/skip enumerations name 3			;-- SELECT/SKIP on hash! unreliable!
+				reduce [next type]
 			]
 		]
 		
@@ -591,8 +591,8 @@ system-dialect: make-profilable context [
 
 		get-enumerator: func [name [word!] /value /local pos][
 			all [
-				pos: select/skip next enumerations name 3		;-- SELECT = FIND on hash!
-				pos/1
+				pos: find/skip next enumerations name 3		;-- SELECT/SKIP on hash! unreliable!
+				pos/2
 			]
 		]
 		
@@ -739,7 +739,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		store-ns-symbol: func [name [word!]][
+		store-ns-symbol: func [name [word!] /local pos][
 			if ns-path [
 				either pos: find/skip sym-ctx-table name 2 [
 					either block? pos/2 [
@@ -926,7 +926,7 @@ system-dialect: make-profilable context [
 		
 		check-specs: func [
 			name specs /extend
-			/local type type-def spec-type attribs value args locs cconv
+			/local type type-def spec-type attribs value args locs cconv pos
 		][
 			unless block? specs [
 				throw-error "function definition requires a specification block"
@@ -1041,7 +1041,7 @@ system-dialect: make-profilable context [
 			type
 		]
 		
-		check-arguments-type: func [name args /local entry spec list][
+		check-arguments-type: func [name args /local entry spec list type][
 			if find [set-word! set-path!] type?/word name [exit]
 			
 			entry: find functions name
@@ -1217,7 +1217,7 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc][
+		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			unless parse defs [
 				some [
@@ -1252,7 +1252,7 @@ system-dialect: make-profilable context [
 			]		
 		]
 		
-		process-syscall: func [defs [block!] /local name id spec][
+		process-syscall: func [defs [block!] /local name id spec pos][
 			unless block? defs [throw-error "#syscall expects a block! as argument"]
 			unless parse defs [
 				some [
@@ -1494,7 +1494,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-alias: has [name][
+		comp-alias: has [name pos][
 			unless set-word? pc/-1 [
 				throw-error "assignment expected for ALIAS"
 			]
@@ -1720,7 +1720,7 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
-		comp-switch: has [expr save-type spec value values body bodies list types default][
+		comp-switch: has [expr save-type spec value values body bodies list types default pos][
 			pc: next pc
 			expr: fetch-expression/keep/final			;-- compile argument
 			if any [none? expr last-type = none-type][
@@ -2036,8 +2036,8 @@ system-dialect: make-profilable context [
 		resolve-ns: func [name [word!] /path /local ctx][
 			unless ns-stack [return name]				;-- no current ns, pass-thru
 
-			if ctx: select/skip sym-ctx-table name 2 [	;-- fetch context candidates
-				ctx: ctx/1								;-- SELECT == FIND on hash!
+			if ctx: find/skip sym-ctx-table name 2 [	;-- fetch context candidates
+				ctx: ctx/2								;-- SELECT/SKIP on hash! unreliable!
 				either block? ctx [						;-- more than one candidate
 					ctx: tail ctx						;-- start from last defined context
 					until [
@@ -2058,7 +2058,7 @@ system-dialect: make-profilable context [
 			/path symbol [word!]
 			/with word [word!]
 			/root										;-- system/words/* pass-thru
-			/local entry name local? spec
+			/local entry name local? spec type
 		][
 			name: pc/1
 			name: any [

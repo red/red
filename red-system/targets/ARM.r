@@ -775,7 +775,7 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-casting: func [value [object!] alt? [logic!] /local old][
+	emit-casting: func [value [object!] alt? [logic!] /local old type][
 		type: compiler/get-type value/data	
 		case [
 			value/type/1 = 'logic! [
@@ -1022,7 +1022,7 @@ make-profilable make target-class [
 	emit-store: func [
 		name [word!] value [char! logic! integer! word! string! paren! tag! get-word! decimal!]
 		spec [block! none!]
-		/local store-qword store-word store-byte
+		/local store-qword store-word store-byte type
 	][
 		if verbose >= 3 [print [">>>storing" mold name mold value]]
 		if value = <last> [value: 'last]			;-- force word! code path in switch block
@@ -1216,7 +1216,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset size][
+	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset size type][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		
 		size: emitter/size-of? compiler/get-type value
@@ -1686,7 +1686,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-vfp-casting: func [value [object!] /right [logic!]][
+	emit-vfp-casting: func [value [object!] /right [logic!] /local type][
 		type: compiler/get-type value/data	
 		case [
 			all [find [float! float64!] value/type/1 find [float32! integer!] type/1][

@@ -154,7 +154,7 @@ target-class: context [
 		]
 	]
 	
-	argument-size?: func [arg cdecl [logic!]][
+	argument-size?: func [arg cdecl [logic!] /local type][
 		max 
 			any [
 				all [object? arg arg/action = 'null emitter/size-of? 'integer!]

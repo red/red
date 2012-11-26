@@ -125,7 +125,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-casting: func [value [object!] alt? [logic!] /local old][
+	emit-casting: func [value [object!] alt? [logic!] /local type old][
 		type: compiler/get-type value/data	
 		case [
 			value/type/1 = 'logic! [
