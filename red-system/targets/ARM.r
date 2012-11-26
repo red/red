@@ -1216,7 +1216,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset size type][
+	emit-store-path: func [path [set-path!] type [word!] value parent [block! none!] /local idx offset size][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 		
 		size: emitter/size-of? compiler/get-type value
@@ -1930,9 +1930,9 @@ make-profilable make target-class [
 			emit-push total							;-- push arguments count
 		]
 		either routine [							;-- test for function! pointer case
-			emit-variable name
+			emit-variable pick tail fspec -2
 				#{e5900000}							;-- LDR r0, [r0]		; global
-				[]									;-- no local version @@
+				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
 			emit-i32 #{e1200030}					;-- BLX r0
 		][
 			emit-reloc-addr spec/3

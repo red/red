@@ -89,7 +89,7 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word! object!] gcode [binary! block!] lcode [binary! block!] 
+		name [word! object!] gcode [binary! block! none!] lcode [binary! block!] 
 		/local offset
 	][
 		if object? name [name: compiler/unbox name]

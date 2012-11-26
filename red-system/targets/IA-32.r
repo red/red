@@ -1506,7 +1506,7 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine /local total][
+	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine name [word!] /local total][
 		if issue? args/1 [							;-- variadic call
 			emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
 													;-- (required to clear stack on stdcall return)
@@ -1517,11 +1517,20 @@ make-profilable make target-class [
 			emit-push total							;-- push arguments count
 		]
 		either routine [
-			emit #{FF15}							;-- CALL FAR [addr]	; indirect call
+			either 'local = last fspec [
+				emit-variable 
+					pick tail fspec -2
+					none
+					#{8B45}							;-- MOV eax, [ebp+n]	; local	
+				emit #{FFD0} 						;-- CALL eax			; direct call
+			][
+				emit #{FF15}						;-- CALL FAR [addr]		; indirect call
+				emit-reloc-addr spec				;-- 32-bit pointer to addr
+			]
 		][
 			emit #{E8}								;-- CALL NEAR disp
+			emit-reloc-addr spec					;-- 32-bit relative displacement
 		]
-		emit-reloc-addr spec						;-- 32-bit (FAR: pointer to addr, NEAR: relative displacement)
 		if fspec/3 = 'cdecl [						;-- in case of non-default calling convention
 			emit-cdecl-pop fspec args
 		]

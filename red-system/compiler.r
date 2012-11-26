@@ -350,7 +350,7 @@ system-dialect: make-profilable context [
 		]
 		
 		get-return-type: func [name [word!] /local type][
-			type: select functions/:name/4 return-def
+			type: select functions/(decorate-fun name)/4 return-def
 			unless type [
 				backtrack name
 				throw-error ["return type missing in function:" name]
@@ -462,7 +462,7 @@ system-dialect: make-profilable context [
 				select globals name
 			]
 			if all [not type find functions name][
-				return reduce ['function! functions/:name/4]
+				return reduce ['function! functions/(decorate-fun name)/4]
 			]
 			if any [
 				all [not local?	any [enum-type? name enum-id? name]]
@@ -544,7 +544,7 @@ system-dialect: make-profilable context [
 				block!	 [
 					if value/1 = 'not [return get-type value/2]	;-- special case for NOT multitype native
 					
-					either 'op = second select functions value/1 [
+					either 'op = second get-function-spec value/1 [
 						either base-type? type: get-return-type value/1 [
 							type				;-- unique returned type, stop here
 						][
@@ -725,6 +725,55 @@ system-dialect: make-profilable context [
 				]
 			]
 			value
+		]
+		
+		decorate-function: func [name [word!]][
+			to word! join "_local_" form name
+		]
+		
+		find-functions: func [name [word!]][
+			if all [
+				locals
+				type: select locals name
+				type/1 = 'function!
+			][
+				name: decorate-function name
+			]
+			find functions name
+		]
+
+		get-function-spec: func [name [word!] /local spec][
+			all [
+				spec: find-functions name
+				spec/2
+			]
+		]
+
+		decorate-fun: func [name [word!] /local type][
+			either all [
+				locals
+				type: select locals name
+				block? type
+				type/1 = 'function!
+			][
+				decorate-function name
+			][
+				name
+			]
+		]
+
+		remove-func-pointers: has [vars name][
+			vars: any [find/tail locals /local []]
+			forall vars [
+				if all [
+					word? vars/1
+					block? vars/2
+					vars/2/1 = 'function!
+				][
+					name: decorate-function vars/1
+					remove/part find functions name 2
+				]
+			]
 		]
 		
 		init-local: func [name [word!] expr casted [block! none!] /local pos type][
@@ -2078,10 +2127,19 @@ system-dialect: make-profilable context [
 					do entry
 				]
 				any [
-					local?
+					all [
+						local?
+						any [
+							all [						;-- block local function pointers
+								block? type: select locals name
+								'function! <> type/1
+							]
+							not block? type				;-- pass-thru
+						]
+					]
 					all [
 						find globals name
-						'function! <> first get-type name	;-- pass-thru for function pointers
+						'function! <> first get-type name	;-- block function pointers
 					]
 				][										;-- it's a variable
 					if not-initialized? name [
@@ -2097,7 +2155,7 @@ system-dialect: make-profilable context [
 				]
 				all [
 					not path
-					entry: find functions name
+					entry: find-functions name
 				][
 					spec: entry/2/4
 					if all [
@@ -2153,6 +2211,7 @@ system-dialect: make-profilable context [
 			name [word!] args [block!] /sub
 			/local list type res import? left right dup var-arity? saved? arg expr
 		][
+			name: decorate-fun name
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
 				args/2
 			][
@@ -2231,7 +2290,7 @@ system-dialect: make-profilable context [
 		
 		comp-variable-assign: func [
 			set-word [set-word!] expr casted [block! none!]
-			/local name type new value
+			/local name type new value fun-name
 		][
 			name: to word! set-word		
 			if find aliased-types name [
@@ -2241,6 +2300,17 @@ system-dialect: make-profilable context [
 			if not-initialized? name [
 				init-local name expr casted				;-- mark as initialized and infer type if required
 			]
+
+			if all [
+				casted
+				casted/1 = 'function!
+				local-variable? name
+			][
+				fun-name: to word! join "_local_" form name
+				add-function 'routine reduce [fun-name none casted/2] get-cconv casted/2
+				append last functions reduce [name 'local]
+			]
+			
 			either type: any [
 				get-variable-spec name					;-- test if known variable (local or global)	
 				enum-id? name
@@ -2309,7 +2379,7 @@ system-dialect: make-profilable context [
 					]
 					all [
 						block? expr
-						functions/(expr/1)/2 = 'op		;-- math expression
+						functions/(decorate-fun expr/1)/2 = 'op	;-- math expression
 						any [							;-- no return value, or return value type <> logic!
 							not type: find functions/(expr/1)/4 return-def
 							type/2/1 <> 'logic!
@@ -2526,6 +2596,7 @@ system-dialect: make-profilable context [
 				]
 			]
 			emitter/leave name locals args-sz local-sz	;-- build function epilog
+			remove-func-pointers
 			clear locals-init
 			locals: func-name: none
 		]
