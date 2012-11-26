@@ -1182,7 +1182,7 @@ red: context [
 			expr: pc
 			comp-expression/root
 			
-			if verbose > 2 [probe copy/part expr pc]
+			if all [verbose > 2 positive? offset? pc expr][probe copy/part expr pc]
 			if verbose > 0 [emit-src-comment expr]
 			
 			if with [do body]

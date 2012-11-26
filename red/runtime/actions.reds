@@ -69,6 +69,7 @@ actions: context [
 			dt	 [red-datatype!]
 			int  [red-integer!]
 			type [integer!]
+			action-make
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/make"]]
 		
@@ -78,7 +79,7 @@ actions: context [
 			type: dt/value
 		]
 
-		action-make: as function! [						;-- needs to be globally bound
+		action-make: as function! [
 			proto 	 [red-value!]
 			spec	 [red-value!]
 			return:	 [red-value!]						;-- newly created value
@@ -122,10 +123,12 @@ actions: context [
 		arg		[red-value!]							;-- max bytes count
 		part	[integer!]
 		return: [integer!]
+		/local
+			action-form
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/form"]]
 
-		action-form: as function! [						;-- needs to be globally bound
+		action-form: as function! [
 			value	[red-value!]						;-- FORM argument
 			buffer	[red-string!]						;-- FORM buffer
 			arg		[red-value!]						;-- max bytes count
@@ -180,10 +183,12 @@ actions: context [
 		arg		 [red-value!]
 		part     [integer!]								;-- max bytes count
 		return:  [integer!]
+		/local
+			action-mold
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/mold"]]
 
-		action-mold: as function! [						;-- needs to be globally bound
+		action-mold: as function! [
 			value	 [red-value!]						;-- FORM argument
 			buffer	 [red-string!]						;-- FORM buffer
 			only?	 [logic!]
@@ -206,10 +211,12 @@ actions: context [
 		value2  [red-value!]
 		op	    [integer!]
 		return: [logic!]
+		/local
+			action-compare
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/compare"]]
 
-		action-compare: as function! [					;-- needs to be globally bound
+		action-compare: as function! [
 			value1  [red-value!]						;-- first operand
 			value2  [red-value!]						;-- second operand
 			op	    [integer!]							;-- type of comparison
@@ -223,10 +230,12 @@ actions: context [
 	
 	add*: func [
 		return:	[red-value!]
+		/local
+			action-add
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/add"]]
 
-		action-add: as function! [						;-- needs to be globally bound
+		action-add: as function! [
 			return:	[red-value!]						;-- addition resulting value
 		] get-action-ptr* ACT_ADD
 		action-add
@@ -234,10 +243,12 @@ actions: context [
 	
 	divide*: func [
 		return:	[red-value!]
+		/local
+			action-divide
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/divide"]]
 
-		action-divide: as function! [					;-- needs to be globally bound
+		action-divide: as function! [
 			return:	[red-value!]						;-- division resulting value
 		] get-action-ptr* ACT_DIVIDE
 		action-divide
@@ -245,10 +256,12 @@ actions: context [
 	
 	multiply*: func [
 		return:	[red-value!]
+		/local
+			action-multiply
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/multiply"]]
 
-		action-multiply: as function! [					;-- needs to be globally bound
+		action-multiply: as function! [
 			return:	[red-value!]						;-- multiplication resulting value
 		] get-action-ptr* ACT_MULTIPLY
 		action-multiply
@@ -261,10 +274,12 @@ actions: context [
 	
 	subtract*: func [
 		return:	[red-value!]
+		/local
+			action-subtract
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/subtract"]]
 
-		action-subtract: as function! [					;-- needs to be globally bound
+		action-subtract: as function! [
 			return:	[red-value!]						;-- addition resulting value
 		] get-action-ptr* ACT_SUBTRACT
 		action-subtract
@@ -298,10 +313,12 @@ actions: context [
 		only?	[logic!]
 		dup		[red-value!]
 		return:	[red-value!]
+		/local
+			action-append
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/append"]]
 
-		action-append: as function! [					;-- needs to be globally bound
+		action-append: as function! [
 			series  [red-series!]
 			value   [red-value!]
 			part	[red-value!]
@@ -315,10 +332,12 @@ actions: context [
 	
 	at*: func [
 		return:	[red-value!]
+		/local
+			action-at
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/at"]]
 
-		action-at: as function! [						;-- needs to be globally bound
+		action-at: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_AT
 		action-at
@@ -326,10 +345,12 @@ actions: context [
 	
 	back*: func [
 		return:	[red-value!]
+		/local
+			action-back
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/back"]]
 
-		action-back: as function! [						;-- needs to be globally bound
+		action-back: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_BACK
 		action-back
@@ -339,10 +360,12 @@ actions: context [
 	
 	clear*: func [
 		return:	[red-value!]
+		/local
+			action-clear
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/clear"]]
 
-		action-clear: as function! [						;-- needs to be globally bound
+		action-clear: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_CLEAR
 		action-clear
@@ -353,10 +376,12 @@ actions: context [
 	
 	head*: func [
 		return:	[red-value!]
+		/local
+			action-head
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/head"]]
 
-		action-head: as function! [						;-- needs to be globally bound
+		action-head: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_HEAD
 		action-head
@@ -364,10 +389,12 @@ actions: context [
 	
 	head?*: func [
 		return:	[red-value!]
+		/local
+			action-head?
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/head?"]]
 
-		action-head?: as function! [					;-- needs to be globally bound
+		action-head?: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_HEAD?
 		action-head?
@@ -375,10 +402,12 @@ actions: context [
 	
 	index?*: func [
 		return:	[red-value!]
+		/local
+			action-index?
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/index?"]]
 
-		action-index?: as function! [					;-- needs to be globally bound
+		action-index?: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_INDEX?
 		action-index?
@@ -387,10 +416,12 @@ actions: context [
 	
 	length?*: func [
 		return:	[red-value!]
+		/local
+			action-length?
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/length?"]]
 
-		action-length?: as function! [				;-- needs to be globally bound
+		action-length?: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_LENGTH?
 		action-length?
@@ -398,10 +429,12 @@ actions: context [
 	
 	next*: func [
 		return:	[red-value!]
+		/local
+			action-next
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/next"]]
 
-		action-next: as function! [						;-- needs to be globally bound
+		action-next: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_NEXT
 		action-next
@@ -423,10 +456,12 @@ actions: context [
 		series	[red-series!]
 		index	[integer!]
 		return:	[red-value!]
+		/local
+			action-pick
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/pick"]]
 
-		action-pick: as function! [						;-- needs to be globally bound
+		action-pick: as function! [
 			series	[red-series!]
 			index	[integer!]
 			return:	[red-value!]						;-- picked value from series
@@ -436,10 +471,12 @@ actions: context [
 
 	poke*: func [
 		return:	[red-value!]
+		/local
+			action-poke
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/poke"]]
 
-		action-poke: as function! [						;-- needs to be globally bound
+		action-poke: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_POKE
 		action-poke
@@ -452,10 +489,12 @@ actions: context [
 	
 	skip*: func [
 		return:	[red-value!]
+		/local
+			action-skip
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/skip"]]
 
-		action-skip: as function! [						;-- needs to be globally bound
+		action-skip: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_SKIP
 		action-skip
@@ -465,10 +504,12 @@ actions: context [
 	
 	tail*: func [
 		return:	[red-value!]
+		/local
+			action-tail
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/tail"]]
 
-		action-tail: as function! [						;-- needs to be globally bound
+		action-tail: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_TAIL
 		action-tail
@@ -476,10 +517,12 @@ actions: context [
 	
 	tail?*: func [
 		return:	[red-value!]
+		/local
+			action-tail?
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/tail?"]]
 
-		action-tail?: as function! [					;-- needs to be globally bound
+		action-tail?: as function! [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_TAIL?
 		action-tail?
