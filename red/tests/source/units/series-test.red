@@ -156,6 +156,7 @@ qt-print-totals: func [
 	--assert 3 = third sf1-ser
 	--assert 4 = fourth sf1-ser
 	--assert 5 = fifth sf1-ser
+	--assert 5 = last sf1-ser
 
 	--test-- "series-fstff-2"
 	  sf2-ser:  [1 2 3 4 5]
@@ -164,6 +165,7 @@ qt-print-totals: func [
 	--test-- "series-fstff-3"
 	  sf3-ser:  "12345"
 	--assert 49 = first sf3-ser
+	--assert 53 = last sf3-ser
 	
 	--test-- "series-fstff-4"
 	  sf4-ser:  [1 2 3 4 5]
@@ -176,7 +178,124 @@ qt-print-totals: func [
 	--test-- "series-fstff-6"
 	  stf6-ser: #{000102}
 	;;--assert 0 = first stf6-ser
+	
+	--test-- "series-fstff-7"
+	;--assert 'a = first [a b c d]
 	  
+===end-group===
+
+===start-group=== "pick"
+
+  --test-- "series-pick-1"
+  --assert none = pick "" 1
+  
+  --test-- "series-pick-2"
+  --assert none = pick "" 0
+  
+  --test-- "series-pick-3"
+  --assert none = pick "" 2
+  
+  --test-- "series-pick-4"
+  --assert 49 = pick "12345" 1
+  
+  --test-- "series-pick-5"
+  --assert 53 = pick "12345" 5
+  
+  --test-- "series-pick-6"
+  --assert 1 = pick [1 2 3 4 5] 1
+  
+  --test-- "series-pick-7"
+  --assert 2 = pick [1 2 3 4 5] 2
+  
+  --test-- "series-pick-8"
+  --assert 4 = pick [1 2 3 4 5] 4
+  
+  --test-- "series-pick-9"
+  --assert 5 = pick [1 2 3 4 5] 5
+  
+  --test-- "series-pick-10"
+  --assert 2 = pick next next next [1 2 3 4 5] -2
+  
+  --test-- "series-pick-11"
+  --assert 3 = pick next next next [1 2 3 4 5] -1
+  
+  --test-- "series-pick-12"
+  --assert none = pick next next next [1 2 3 4 5] 0
+  
+===end-group===
+
+===start-group=== "select"
+  --test-- "series-select-1"
+  ;--assert 2 = select [1 2 3 4 5] 1
+===end-group===
+
+===start-group=== "next"
+  --test-- "series-next-1"
+  --assert 2 = first next [1 2 3 4 5]
+  --test-- "series-next-2"
+  --assert 3 = first next next [1 2 3 4 5]
+  --test-- "series-next-3"
+  --assert 4 = first next next next [1 2 3 4 5]
+  --test-- "series-next-4"
+  --assert 5 = first next next next next [1 2 3 4 5]
+  --test-- "series-next-5"
+  --assert none = first next next next next next [1 2 3 4 5]
+  --test-- "series-next-6"
+  --assert 50 = first next "12345"
+  --test-- "series-next-7"
+  --assert 51 = first next next "12345"
+  --test-- "series-next-8"
+  --assert 52 = first next next next "12345"
+  --test-- "series-next-9"
+  --assert 53 = first next next next next "12345"
+  --test-- "series-next-10"
+  --assert none = first next next next next next "12345"  
+===end-group===
+
+===start-group=== "back"
+--test-- "series-back-1"
+  --assert 1 = first back next [1 2 3 4 5]
+  --test-- "series-back-2"
+  --assert 1 = first back back next next [1 2 3 4 5]
+  --test-- "series-back-3"
+  --assert 1 = first back back back next next next [1 2 3 4 5]
+  --test-- "series-back-4"
+  --assert 1 = first back back back back next next next next [1 2 3 4 5]
+  --test-- "series-back-5"
+  --assert 1 = first back back back back back next next next next next [1 2 3 4 5]
+  --test-- "series-back-6"
+  --assert 49 = first back next "12345"
+  --test-- "series-back-7"
+  --assert 50 = first back next next "12345"
+  --test-- "series-back-8"
+  --assert 51 = first back next next next "12345"
+  --test-- "series-back-9"
+  --assert 52 = first back next next next next "12345"
+  --test-- "series-back-10"
+  --assert 53 = first back next next next next next "12345"
+  --test-- "series-back-11"
+  --assert 49 = first back "12345"
+===end-group===
+
+===start-group=== "tail"
+  --test-- "series-tail-1"
+  --assert 5 = first back tail [1 2 3 4 5]
+  --test-- "seried-tail-2" 
+  --assert none = pick tail [1 2 3 4 5] 1
+===end-group===
+
+===start-group=== "append"
+  --test-- "series-append-1"
+  --assert 6 = last append [1 2 3 4 5] 6
+  --test-- "series-append-2"
+  --assert 6 = last append [1 2 3 4] [5 6]
+  --assert 4 = fourth append [1 2 3 4] [5 6]
+  --assert 5 = fifth append [1 2 3 4] [5 6]
+  --test-- "series-append-3"
+  --assert 55 = last append "12345" "67"
+  --test-- "series-append-4"
+  --assert 233 = last append "abcde" "é" ;; utf-8 C3 A9
+  
 ===end-group===
 
 ~~~end-file~~~
