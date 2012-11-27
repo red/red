@@ -159,7 +159,7 @@ logic: context [
 	datatype/register [
 		TYPE_LOGIC
 		TYPE_VALUE
-		"logic"
+		"logic!"
 		;-- General actions --
 		:make
 		null			;random

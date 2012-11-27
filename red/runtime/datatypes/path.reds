@@ -105,7 +105,7 @@ path: context [
 	datatype/register [
 		TYPE_PATH
 		TYPE_BLOCK
-		"path"
+		"path!"
 		;-- General actions --
 		:make
 		null			;random

@@ -86,7 +86,7 @@ unset: context [
 	datatype/register [
 		TYPE_UNSET
 		TYPE_VALUE
-		"unset"
+		"unset!"
 		;-- General actions --
 		:make
 		null			;random

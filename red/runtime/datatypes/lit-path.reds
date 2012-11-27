@@ -86,7 +86,7 @@ lit-path: context [
 	datatype/register [
 		TYPE_LIT_PATH
 		TYPE_PATH
-		"lit-path"
+		"lit-path!"
 		;-- General actions --
 		:make
 		null			;random

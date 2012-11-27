@@ -82,7 +82,7 @@ action: context [
 	datatype/register [
 		TYPE_ACTION
 		TYPE_VALUE
-		"action"
+		"action!"
 		;-- General actions --
 		:make
 		null			;random

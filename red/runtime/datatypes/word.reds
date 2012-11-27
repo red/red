@@ -121,7 +121,7 @@ word: context [
 	datatype/register [
 		TYPE_WORD
 		TYPE_SYMBOL
-		"word"
+		"word!"
 		;-- General actions --
 		null			;make
 		null			;random

@@ -110,7 +110,7 @@ none: context [
 	datatype/register [
 		TYPE_NONE
 		TYPE_VALUE
-		"none"
+		"none!"
 		;-- General actions --
 		:make
 		null			;random

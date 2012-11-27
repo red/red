@@ -87,7 +87,7 @@ set-path: context [
 	datatype/register [
 		TYPE_SET_PATH
 		TYPE_PATH
-		"set-path"
+		"set-path!"
 		;-- General actions --
 		:make
 		null			;random

@@ -55,7 +55,7 @@ _function: context [
 	datatype/register [
 		TYPE_FUNCTION
 		TYPE_CONTEXT
-		"function"
+		"function!"
 		;-- General actions --
 		null			;make
 		null			;random

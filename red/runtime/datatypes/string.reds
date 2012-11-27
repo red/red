@@ -293,6 +293,25 @@ string: context [
 			p/1 = null-byte
 		]
 	]
+	
+	concatenate-literal-part: func [
+		str	   [red-string!]
+		p	   [c-string!]								;-- Red/System literal string
+		part   [integer!]								;-- number of bytes to append
+		/local
+			s	  [series!]
+	][
+		s: GET_BUFFER(str)
+		assert p/1 <> null-byte							;-- assume no empty string passed
+		assert positive? part
+
+		until [
+			s: append-char s as-integer p/1
+			p: p + 1
+			part: part - 1
+			zero? part
+		]
+	]
 
 	load: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
@@ -732,7 +751,7 @@ string: context [
 	datatype/register [
 		TYPE_STRING
 		TYPE_VALUE
-		"string"
+		"string!"
 		;-- General actions --
 		:make
 		null			;random

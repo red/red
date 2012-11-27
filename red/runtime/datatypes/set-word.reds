@@ -76,7 +76,7 @@ set-word: context [
 	datatype/register [
 		TYPE_SET_WORD
 		TYPE_WORD
-		"set-word"
+		"set-word!"
 		;-- General actions --
 		null			;make
 		null			;random

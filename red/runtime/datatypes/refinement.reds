@@ -75,7 +75,7 @@ refinement: context [
 	datatype/register [
 		TYPE_REFINEMENT
 		TYPE_WORD
-		"refinement"
+		"refinement!"
 		;-- General actions --
 		null			;make
 		null			;random

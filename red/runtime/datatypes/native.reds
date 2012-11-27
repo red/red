@@ -77,7 +77,7 @@ native: context [
 	datatype/register [
 		TYPE_NATIVE
 		TYPE_VALUE
-		"native"
+		"native!"
 		;-- General actions --
 		:make
 		null			;random

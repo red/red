@@ -99,7 +99,7 @@ symbol: context [
 	datatype/register [
 		TYPE_SYMBOL
 		TYPE_VALUE
-		"symbol"
+		"symbol!"
 		;-- General actions --
 		null			;make
 		null			;random

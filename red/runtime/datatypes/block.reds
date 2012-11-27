@@ -553,7 +553,7 @@ block: context [
 	datatype/register [
 		TYPE_BLOCK
 		TYPE_VALUE
-		"block"
+		"block!"
 		;-- General actions --
 		:make
 		null			;random

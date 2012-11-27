@@ -164,7 +164,7 @@ _context: context [
 	datatype/register [
 		TYPE_CONTEXT
 		TYPE_VALUE
-		"context"
+		"context!"
 		;-- General actions --
 		null			;make
 		null			;random

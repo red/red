@@ -233,7 +233,7 @@ integer: context [
 	datatype/register [
 		TYPE_INTEGER
 		TYPE_VALUE
-		"integer"
+		"integer!"
 		;-- General actions --
 		:make
 		null			;random

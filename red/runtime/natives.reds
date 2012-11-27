@@ -141,6 +141,26 @@ natives: context [
 		bool/value: logic/false?						;-- run test before modifying stack
 		bool/header: TYPE_LOGIC
 	]
+	
+	type?*: func [
+		word?	 [integer!]
+		return:  [red-value!]
+		/local
+			dt	 [red-datatype!]
+			w	 [red-word!]
+			name [names!]
+	][
+		either negative? word? [
+			dt: as red-datatype! stack/arguments		;-- overwrite argument
+			dt/value: TYPE_OF(dt)						;-- extract type before overriding
+			dt/header: TYPE_DATATYPE
+			as red-value! dt
+		][
+			w: as red-word! stack/arguments				;-- overwrite argument
+			name: name-table + TYPE_OF(w)				;-- point to the right datatype name record
+			stack/set-last as red-value! name/word
+		]
+	]
 
 	;--- Natives helper functions ---
 	

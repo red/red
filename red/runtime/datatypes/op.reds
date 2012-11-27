@@ -76,7 +76,7 @@ op: context [
 	datatype/register [
 		TYPE_OP
 		TYPE_VALUE
-		"op"
+		"op!"
 		;-- General actions --
 		:make
 		null			;random

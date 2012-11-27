@@ -33,9 +33,6 @@ red: context [
 	
 	;-- Datatypes --
 	
-	action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table	
-	name-table: as int-ptr! allocate 50 * size? pointer!	 	 ;-- datatype names table
-
 	#include %datatypes/structures.reds
 	#include %datatypes/common.reds
 	
@@ -82,6 +79,8 @@ red: context [
 	root:	 	block/make-in null 2000					;-- root block		
 	symbols: 	block/make-in root 1000	 				;-- symbols table
 	global-ctx: _context/create root 1000 no			;-- global context
+	
+	datatype/make-words									;-- build datatype names as word! values
 	
 	#include %stack.reds
 	

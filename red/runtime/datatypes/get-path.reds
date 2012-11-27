@@ -86,7 +86,7 @@ get-path: context [
 	datatype/register [
 		TYPE_GET_PATH
 		TYPE_PATH
-		"get-path"
+		"get-path!"
 		;-- General actions --
 		:make
 		null			;random

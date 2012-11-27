@@ -174,7 +174,7 @@ char: context [
 	datatype/register [
 		TYPE_CHAR
 		TYPE_VALUE
-		"char"
+		"char!"
 		;-- General actions --
 		:make
 		null			;random

@@ -10,6 +10,17 @@ Red/System [
 	}
 ]
 
+names!: alias struct! [
+	buffer	[c-string!]								;-- datatype name string
+	size	[integer!]								;-- buffer size - 1 (not counting terminal `!`)
+	word	[red-word!]								;-- datatype name as word! value
+]
+
+name-table: as names! allocate 50 * size? names!	 ;-- datatype names table
+
+action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table	
+
+
 set-type: func [										;@@ convert to macro?
 	cell 		[cell!]
 	type		[integer!]

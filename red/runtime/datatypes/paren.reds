@@ -87,7 +87,7 @@ paren: context [
 	datatype/register [
 		TYPE_PAREN
 		TYPE_BLOCK
-		"paren"
+		"paren!"
 		;-- General actions --
 		:make
 		null			;random

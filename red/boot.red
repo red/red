@@ -524,6 +524,13 @@ halt: make native! [
 	none
 ]
 
+type?: make native! [[
+		value [any-type!]
+		/word
+	]
+	none
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

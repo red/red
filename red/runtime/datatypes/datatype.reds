@@ -12,6 +12,21 @@ Red/System [
 
 datatype: context [
 	verbose: 0
+	top-id:  0											;-- last type ID registered
+	
+	make-words: func [
+		/local
+			name [names!]
+			i	 [integer!]
+	][
+		i: 1
+		until [
+			name: name-table + i
+			name/word: word/load name/buffer
+			i: i + 1
+			i > top-id
+		]
+	]
 
 	;-------------------------------------
 	;-- Load actions table with a new datatype set of function pointers
@@ -30,16 +45,19 @@ datatype: context [
 			index	[integer!]
 			parent	[integer!]
 			idx		[integer!]
+			name	[names!]
 	][
 		type: list/value
 		assert type < 50								;-- hard limit of action table
+		if type > top-id [top-id: type]					;@@ unreliable, needs automatic type IDs
 		list: list + 1
 		
 		parent: list/value
 		list: list + 1
 		
-		index: type + 1									;-- one-based
-		name-table/index: list/value
+		name: name-table + type
+		name/buffer: as c-string! list/value			;-- store datatype string name
+		name/size: (length? name/buffer) - 1			;-- store string size (not counting terminal `!`)
 		list: list + 1
 		count: count - 3								;-- skip the "header" data
 		
@@ -128,13 +146,13 @@ datatype: context [
 		part	 [integer!]
 		return:  [integer!]
 		/local
-			name [int-ptr!]
+			name [names!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/form"]]
-
+		
 		name: name-table + dt/value
-		string/concatenate-literal buffer as c-string! name/value
-		part - length? as c-string! name/value
+		string/concatenate-literal-part buffer name/buffer name/size
+		part - name/size
 	]
 	
 	mold: func [
@@ -149,9 +167,9 @@ datatype: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
 
-		part: form dt buffer arg part
-		string/append-char GET_BUFFER(buffer) as-integer #"!"
-		part - 1
+		name: name-table + dt/value	
+		string/concatenate-literal-part buffer name/buffer name/size + 1
+		part - name/size - 1
 	]
 	
 	compare: func [
@@ -180,7 +198,7 @@ datatype: context [
 	register [
 		TYPE_DATATYPE
 		TYPE_VALUE
-		"datatype"
+		"datatype!"
 		;-- General actions --
 		:make
 		null			;random
