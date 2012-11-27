@@ -708,7 +708,7 @@ system-dialect: make-profilable context [
 			switch ctype/1 [
 				byte! [
 					switch type/1 [
-						integer! [value: value and 255]
+						integer! [value: to char! value and 255]
 						logic! 	 [value: pick [#"^(01)" #"^(00)"] value]
 					]
 				]
