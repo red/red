@@ -349,9 +349,11 @@ system-dialect: make-profilable context [
 			either object? value [value/data][value]
 		]
 		
-		get-return-type: func [name [word!] /local type][
-			type: select functions/(decorate-fun name)/4 return-def
-			unless type [
+		get-return-type: func [name [word!] /local type spec][
+			unless all [
+				spec: find-functions name
+				type: select spec/2/4 return-def
+			][
 				backtrack name
 				throw-error ["return type missing in function:" name]
 			]
@@ -374,10 +376,17 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		select-globals: func [name [word!] /local pos][
+			all [
+				pos: find globals name
+				pos/2
+			]
+		]
+		
 		get-variable-spec: func [name [word!]][
 			any [
 				all [locals select locals name]
-				select globals name
+				select-globals name
 			]
 		]
 		
@@ -459,7 +468,7 @@ system-dialect: make-profilable context [
 			type: any [
 				all [parent select parent name]
 				local?: all [locals select locals name]
-				select globals name
+				select-globals name
 			]
 			if all [not type find functions name][
 				return reduce ['function! functions/(decorate-fun name)/4]
@@ -633,7 +642,8 @@ system-dialect: make-profilable context [
 			func?: all [
 				block? expr word? expr/1
 				not find comparison-op expr/1
-				spec: select functions expr/1 		 ;-- works for unary & binary functions only!
+				spec: find functions expr/1 		 ;-- works for unary & binary functions only!
+				spec: spec/2
 			]
 			type: case [
 				object? expr [
@@ -806,7 +816,7 @@ system-dialect: make-profilable context [
 		]
 		
 		add-ns-symbol: func [name [set-word!]][
-			append select/only ns-list ns-path to word! name
+			append second find/only ns-list ns-path to word! name
 		]
 		
 		add-symbol: func [name [word!] value type][
@@ -1386,7 +1396,7 @@ system-dialect: make-profilable context [
 			
 			list: clear []
 			foreach ns with-ns [
-				either empty? res: intersect list words: to block! select/only ns-list ns [
+				either empty? res: intersect list words: to block! second find/only ns-list ns [
 					append list words
 				][
 					throw-warning rejoin [
@@ -1935,7 +1945,7 @@ system-dialect: make-profilable context [
 				]
 				if all [
 					get-word? pc/1
-					select functions to word! pc/1
+					find functions to word! pc/1
 				][
 					throw-error "storing a function! requires a type casting"
 				]
@@ -2051,7 +2061,7 @@ system-dialect: make-profilable context [
 		comp-get-word: has [spec name ns][
 			name: to word! pc/1
 			case [
-				spec: select functions name: resolve-ns name [
+				all [spec: find functions name: resolve-ns name spec: spec/2][
 					unless find [native routine] spec/2 [
 						throw-error "get-word syntax only reserved for native functions for now"
 					]
@@ -2458,7 +2468,8 @@ system-dialect: make-profilable context [
 			all [
 				not tail? pos
 				word? pos/1
-				specs: select functions resolve-ns pos/1
+				specs: find functions resolve-ns pos/1
+				specs: specs/2
 				find [op infix] specs/2
 			]
 		]
