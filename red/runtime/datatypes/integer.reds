@@ -220,6 +220,16 @@ integer: context [
 		as red-value! do-math OP_SUB
 	]
 	
+	negate: func [
+		return: [red-integer!]
+		/local
+			int [red-integer!]
+	][
+		int: as red-integer! stack/arguments
+		int/value: 0 - int/value
+		int 											;-- re-use argument slot for return value
+	]
+	
 	datatype/register [
 		TYPE_INTEGER
 		TYPE_VALUE
@@ -239,7 +249,7 @@ integer: context [
 		:add
 		:divide
 		:multiply
-		null			;negate
+		:negate
 		null			;power
 		null			;remainder
 		null			;round

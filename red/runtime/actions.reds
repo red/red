@@ -267,7 +267,20 @@ actions: context [
 		action-multiply
 	]
 	
-	negate*: func [][]
+	negate*: func [
+		return:	[red-value!]
+		/local
+			action-negate
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/negate"]]
+
+		action-negate: as function! [
+			return:	[red-value!]						;-- negated value
+		] get-action-ptr* ACT_NEGATE
+		action-negate
+	]
+	
+	
 	power*: func [][]
 	remainder*: func [][]
 	round*: func [][]
