@@ -2724,7 +2724,10 @@ system-dialect: make-profilable context [
 	
 	clean-up: does [
 		compiler/ns-path: 
-		compiler/ns-stack: none
+		compiler/ns-stack: 
+		compiler/locals: none
+		compiler/resolve-alias?:  yes
+		
 		clear compiler/imports
 		clear compiler/natives
 		clear compiler/ns-list
@@ -2736,6 +2739,7 @@ system-dialect: make-profilable context [
 		clear compiler/user-functions
 		clear compiler/debug-lines/records
 		clear compiler/debug-lines/files
+		clear emitter/symbols
 	]
 	
 	make-job: func [opts [object!] file [file!] /local job][
