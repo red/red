@@ -138,7 +138,7 @@ _context: context [
 			s	 [series!]
 			type [integer!]
 	][
-		ctx: create root block/rs-length? symbols stack?
+		ctx: create root block/rs-length? spec stack?
 		s: GET_BUFFER(spec)
 		cell: s/offset
 		
