@@ -516,7 +516,7 @@ red: context [
 		emit [
 			if logic/true?
 		]
-		comp-sub-block									;-- compile TRUE block
+		comp-sub-block 'if-body							;-- compile TRUE block
 		emit-close-frame
 	]
 	
@@ -526,7 +526,7 @@ red: context [
 		emit [
 			if logic/false?
 		]
-		comp-sub-block									;-- compile FALSE block
+		comp-sub-block 'unless-body						;-- compile FALSE block
 	]
 
 	comp-either: does [
@@ -535,8 +535,8 @@ red: context [
 		emit [
 			either logic/true?
 		]
-		comp-sub-block									;-- compile TRUE block
-		comp-sub-block									;-- compile FALSE block
+		comp-sub-block 'either-true						;-- compile TRUE block
+		comp-sub-block 'either-false					;-- compile FALSE block
 		emit-close-frame
 	]
 	
@@ -556,7 +556,7 @@ red: context [
 		]
 		new-line skip tail output -3 off
 		
-		comp-sub-block									;-- compile body
+		comp-sub-block 'loop-body						;-- compile body
 		
 		repend last output [
 			set-name name '- 1
@@ -571,7 +571,7 @@ red: context [
 		emit [
 			until
 		]
-		comp-sub-block									;-- compile body
+		comp-sub-block 'until-body						;-- compile body
 		append/only last output 'logic/true?
 		new-line back tail last output on
 	]
@@ -580,10 +580,10 @@ red: context [
 		emit [
 			while
 		]
-		comp-sub-block									;-- compile condition
+		comp-sub-block 'while-condition					;-- compile condition
 		append/only last output 'logic/true?
 		new-line back tail last output on
-		comp-sub-block									;-- compile body
+		comp-sub-block 'while-body						;-- compile body
 	]
 	
 	comp-repeat: has [name cnt set-cnt lim set-lim][
@@ -624,7 +624,7 @@ red: context [
 		new-line last output on
 		new-line skip tail last output -3 on
 		
-		comp-sub-block
+		comp-sub-block 'repeat-body
 		emit-close-frame
 		depth: depth - 1
 	]
@@ -657,7 +657,7 @@ red: context [
 		emit compose/deep [
 			while [(cond)]
 		]
-		comp-sub-block									;-- compile body
+		comp-sub-block 'foreach-body					;-- compile body
 		emit-close-frame
 	]
 	
@@ -675,7 +675,7 @@ red: context [
 		emit copy/deep [								;-- copy/deep required for R/S lines injection
 			while [natives/forall-loop]
 		]
-		comp-sub-block									;-- compile body
+		comp-sub-block 'forall-body						;-- compile body
 		append last output [							;-- inject at tail of body block
 			natives/forall-next							;-- move series to next position
 		]
@@ -723,7 +723,7 @@ red: context [
 		insert-lf -3
 		
 		pc: next pc
-		comp-sub-block									;-- compile function's body
+		comp-sub-block 'func-body						;-- compile function's body
 
 		pop-locals
 		init: make block! 4 * length? symbols
@@ -1157,9 +1157,15 @@ red: context [
 		list
 	]
 	
-	comp-sub-block: has [mark saved][
+	comp-sub-block: func [origin [word!] /local mark saved][
+		unless block? pc/1 [
+			throw-error [
+				"expected a block for" uppercase form origin
+				"instead of" mold type? pc/1 "value"
+			]
+		]
+		
 		mark: tail output
-
 		saved: pc
 		pc: pc/1										;-- dive in nested code
 		comp-block
