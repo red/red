@@ -295,6 +295,9 @@ qt-print-totals: func [
   --assert 55 = last append "12345" "67"
   --test-- "series-append-4"
   --assert 233 = last append "abcde" "é" ;; utf-8 C3 A9
+  --test-- "series-append-5"
+  --assert 49 = last append "abcdeé" "1" ;; utf-8 C3 A9
+  
   
 ===end-group===
 
