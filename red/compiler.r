@@ -513,8 +513,8 @@ red: context [
 	comp-if: does [
 		emit-open-frame 'if
 		comp-expression
-		emit [
-			if logic/true?
+		emit compose/deep [
+			either logic/false? [(set-last-none)]
 		]
 		comp-sub-block 'if-body							;-- compile TRUE block
 		emit-close-frame
