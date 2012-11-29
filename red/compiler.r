@@ -29,6 +29,7 @@ red: context [
 	sym-table:	  make block! 1000
 	literals:	  make block! 1000
 	declarations: make block! 1000
+	bodies:		  make block! 1000
 	last-type:	  none
 	return-def:   to-set-word 'return					;-- return: keyword
 	s-counter:	  0										;-- series suffix counter
@@ -690,26 +691,10 @@ red: context [
 		insert-lf -1
 	]
 	
-	comp-func: has [name spec body symbols init locals locals-nb][
-		name: to word! pc/-1
-		pc: next pc
-		set [spec body] pc
-		set [symbols locals-nb] check-spec spec
-		add-function name spec
-		
-		set [spec body] redirect-to-literals [
-			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
-		]
-		
-		emit-open-frame 'set							;-- function value creation
-		emit-push-word name
-		emit compose [
-			_function/push (spec) (body)
-		]
-		emit 'word/set
-		insert-lf -1
-		emit-close-frame
-
+	comp-func-body: func [
+		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
+		/local init locals
+	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [
 			symbols/1: decorate-symbol symbols/1
@@ -721,9 +706,8 @@ red: context [
 		]
 		emit reduce [to set-word! decorate-func name 'func locals]
 		insert-lf -3
-		
-		pc: next pc
-		comp-sub-block 'func-body						;-- compile function's body
+
+		comp-sub-block/with 'func-body body				;-- compile function's body
 
 		pop-locals
 		init: make block! 4 * length? symbols
@@ -753,6 +737,32 @@ red: context [
 			stack/return-last							;-- set last value on stack
 		]
 		insert last output init
+	]
+	
+	comp-func: has [name spec body symbols locals-nb][
+		name: to word! pc/-1
+		pc: next pc
+		set [spec body] pc
+		set [symbols locals-nb] check-spec spec
+		add-function name spec
+		
+		set [spec body] redirect-to-literals [
+			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
+		]
+		
+		emit-open-frame 'set							;-- function value creation
+		emit-push-word name
+		emit compose [
+			_function/push (spec) (body)
+		]
+		emit 'word/set
+		insert-lf -1
+		emit-close-frame
+		
+		repend bodies [									;-- save context for deferred function compilation
+			name pc/1 pc/2 symbols locals-nb locals-stack
+		]
+		pc: skip pc 2
 	]
 	
 	emit-path: func [path [path! set-path!] set? [logic!] /local value][
@@ -1157,8 +1167,8 @@ red: context [
 		list
 	]
 	
-	comp-sub-block: func [origin [word!] /local mark saved][
-		unless block? pc/1 [
+	comp-sub-block: func [origin [word!] /with body /local mark saved][
+		unless any [with block? pc/1][
 			throw-error [
 				"expected a block for" uppercase form origin
 				"instead of" mold type? pc/1 "value"
@@ -1167,7 +1177,7 @@ red: context [
 		
 		mark: tail output
 		saved: pc
-		pc: pc/1										;-- dive in nested code
+		pc: any [body pc/1]								;-- dive in nested code
 		comp-block
 		pc: next saved									;-- step over block in source code				
 
@@ -1193,6 +1203,13 @@ red: context [
 		]
 	]
 	
+	comp-bodies: does [
+		foreach [name spec body symbols locals-nb stack] bodies [
+			locals-stack: stack
+			comp-func-body name spec body symbols locals-nb
+		]
+	]
+	
 	comp-init: does [
 		add-symbol 'datatype!
 		foreach [name specs] functions [add-symbol name]
@@ -1206,20 +1223,18 @@ red: context [
 		]
 	]
 	
-	comp-red: func [code [block!] /local out ctx pos][
+	comp-red: func [code [block!] /local out main script user pos][
 		out: copy/deep [
 			Red/System [origin: 'Red]
 			
 			#include %red.reds
 						
 			with red [
-				exec: context [
-				
-				]
+				exec: context <script>
 			]
 		]
-		output: out/7/3
 		
+		output: make block! 10000
 		comp-init
 		
 		pc: load-source %red/boot.red					;-- compile Red's boot script
@@ -1227,36 +1242,50 @@ red: context [
 		make-keywords									;-- register intrinsics functions
 		
 		pc: code										;-- compile user code
-		pos: tail output
+		user: tail output
 		comp-block
 		
-		insert output [
-			------------| "Main program"
-		]
-		if verbose = 1 [probe skip pos 2]
+		main: output
+		output: make block! 1000
 		
-		insert output declarations
-		insert output [
-			------------| "Declarations"
-		]
+		comp-bodies										;-- compile deferred functions
 		
-		insert output literals
-		insert output [
-			------------| "Literals"
-		]
+		;-- assemble all parts together in right order
+		script: make block! 10'000
 		
-		insert output sym-table
-		insert output [
+		append script [
 			------------| "Symbols"
 		]
+		append script sym-table
+		append script [
+			------------| "Literals"
+		]
+		append script literals
+		append script [
+			------------| "Declarations"
+		]
+		append script declarations
+		pos: tail script
+		append script [
+			------------| "Functions"
+		]
+		append script output
+		if verbose = 2 [probe pos]
+		
+		append script [
+			------------| "Main program"
+		]
+		append script main
+		if find [1 2] verbose [probe user]
 		
 		unless empty? sys-global [
 			insert at out 3 sys-global
 			new-line at out 3 yes
 		]
 
-		output: out
-		if verbose > 1 [?? output]
+		out/7/3: script									;-- inject compilation result in template
+		output:  out
+		if verbose > 2 [?? output]
 	]
 	
 	load-source: func [file [file! block!] /local src][
@@ -1280,6 +1309,7 @@ red: context [
 		clear sym-table
 		clear literals
 		clear declarations
+		clear bodies
 		clear actions
 		clear op-actions
 		clear keywords
