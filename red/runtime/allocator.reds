@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-#define _256KB				262144			; @@ create a dedicated datatype?
+#define _512KB				524288
 #define _2MB				2097152
 #define _16MB				16777216
 #define nodes-per-frame		5000
@@ -113,7 +113,7 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 ]
 
 memory/total: 	0
-memory/s-start: _256KB
+memory/s-start: _512KB
 memory/s-max: 	_2MB
 memory/s-size: 	memory/s-start
 ;; (1) Series frames size will grow from 256KB up to 2MB (arbitrary selected). This

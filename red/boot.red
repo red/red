@@ -189,7 +189,7 @@ odd?: make action! [[
 
 append: make action! [[
 		series	   [series!]
-		value	   [any-value!]
+		value	   [any-type!]
 		/part
 			length [number! series!]
 		/only
@@ -268,7 +268,7 @@ next: make action! [[
 pick: make action! [[
 		series	 [series!]
 		index 	 [integer!]
-		return:  [any-value!]
+		return:  [any-type!]
 	]
 	#get-definition ACT_PICK
 ]
@@ -276,7 +276,7 @@ pick: make action! [[
 poke: make action! [[
 		series	 [series!]
 		index 	 [integer!]
-		value 	 [any-value!]
+		value 	 [any-type!]
 		return:  [series!]
 	]
 	#get-definition ACT_POKE
@@ -583,3 +583,27 @@ fourth:	func [s [series!]][pick s 4]
 fifth:	func [s [series!]][pick s 5]
 
 last:	func [s [series!]][pick back tail s 1]
+
+
+action?:	 func [value [any-type!]][action!	= type? value]
+block?:		 func [value [any-type!]][block!	= type? value]
+char?: 		 func [value [any-type!]][char!		= type? value]
+datatype?:	 func [value [any-type!]][datatype!	= type? value]
+function?:	 func [value [any-type!]][function!	= type? value]
+get-path?:	 func [value [any-type!]][get-path!	= type? value]
+get-word?:	 func [value [any-type!]][get-word!	= type? value]
+integer?:    func [value [any-type!]][integer!	= type? value]
+lit-path?:	 func [value [any-type!]][lit-path!	= type? value]
+lit-word?:	 func [value [any-type!]][lit-word!	= type? value]
+logic?:		 func [value [any-type!]][logic!	= type? value]
+native?:	 func [value [any-type!]][native!	= type? value]
+none?:		 func [value [any-type!]][none!		= type? value]
+op?:		 func [value [any-type!]][op!		= type? value]
+paren?:		 func [value [any-type!]][paren!	= type? value]
+path?:		 func [value [any-type!]][path!		= type? value]
+refinement?: func [value [any-type!]][refinement! = type? value]
+set-path?:	 func [value [any-type!]][set-path!	= type? value]
+set-word?:	 func [value [any-type!]][set-word!	= type? value]
+string?:	 func [value [any-type!]][string!	= type? value]
+unset?:		 func [value [any-type!]][unset!	= type? value]
+word?:		 func [value [any-type!]][word!		= type? value]
