@@ -698,10 +698,10 @@ red: context [
 		add-function name spec
 		
 		set [spec body] redirect-to-literals [
-			reduce [emit-block spec emit-block body]
+			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
 		]
 		
-		emit-open-frame 'set
+		emit-open-frame 'set							;-- function value creation
 		emit-push-word name
 		emit compose [
 			_function/push (spec) (body)
@@ -710,12 +710,10 @@ red: context [
 		insert-lf -1
 		emit-close-frame
 
-		push-locals copy symbols
-		
+		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [
 			symbols/1: decorate-symbol symbols/1
 		]
-		
 		locals: either empty? symbols [
 			symbols
 		][
@@ -730,7 +728,7 @@ red: context [
 		pop-locals
 		init: make block! 4 * length? symbols
 		
-		forall symbols [
+		forall symbols [								;-- assign local variable to Red arguments
 			append init to set-word! symbols/1
 			new-line back tail init on
 			either head? symbols [
@@ -739,7 +737,7 @@ red: context [
 				repend init [symbols/-1 '+ 1]
 			]
 		]
-		unless zero? locals-nb [
+		unless zero? locals-nb [						;-- init local words on stack
 			append init compose [
 				_function/init-locals (1 + locals-nb)
 			]
@@ -747,12 +745,12 @@ red: context [
 		name: decorate-symbol name
 		if find symbols name [name: to path! reduce ['exec name]]
 		
-		append init compose [
+		append init compose [							;-- body stack frame
 			stack/mark (name)			;@@ make a unique name for function's body frame
 		]
 		append last output [
-			stack/unwind
-			stack/return-last
+			stack/unwind								;-- closing body stack frame
+			stack/return-last							;-- set last value on stack
 		]
 		insert last output init
 	]
