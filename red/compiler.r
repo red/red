@@ -740,10 +740,37 @@ red: context [
 		insert last output init
 	]
 	
-	comp-func: has [name spec body symbols locals-nb][
+	collect-words: func [spec [block!] body [block!] /local pos ignore words rule new][
+		if pos: find spec /extern [
+			ignore: pos/2
+			clear pos
+		]
+		words: make block! 1
+		
+		parse body rule: [
+			any [
+				pos: set-word! (
+					new: to word! pos/1
+					unless all [ignore find ignore new][append words new]
+				)
+				| path! | set-path! | lit-path!			;-- avoid 'into visiting them
+				| into rule
+				| skip
+			]
+		]		
+		unless empty? words [
+			append spec /local
+			append spec words
+		]
+	]
+	
+	comp-func: func [/collect /local name spec body symbols locals-nb][
 		name: to word! pc/-1
 		pc: next pc
 		set [spec body] pc
+		if collect [
+			collect-words spec body
+		]
 		set [symbols locals-nb] check-spec spec
 		add-function name spec
 		
@@ -764,6 +791,10 @@ red: context [
 			name pc/1 pc/2 symbols locals-nb locals-stack
 		]
 		pc: skip pc 2
+	]
+	
+	comp-function: does [
+		comp-func/collect
 	]
 	
 	emit-path: func [path [path! set-path!] set? [logic!] /local value][
@@ -865,7 +896,7 @@ red: context [
 		]
 	]
 	
-	comp-argument: func [spec [block!] nb [integer!] /ref name [refinement!]][
+	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!]][
 		if ref [spec: find/tail spec name]
 		loop nb [
 			while [not any-word? spec/1][				;-- skip types blocks
@@ -899,7 +930,7 @@ red: context [
 			name: to word! clean-lf-flag name
 			emit-open-frame name
 			
-			comp-argument spec/3 spec/2					;-- fetch arguments
+			comp-arguments spec/3 spec/2					;-- fetch arguments
 			
 			either compact? [
 				refs: either spec/4 [
@@ -915,7 +946,7 @@ red: context [
 							throw-error [call/1 "has no refinement called" ref]
 						]
 						poke refs pos/2 cnt				;-- set refinement's arguments base offset
-						comp-argument/ref spec/3 pos/3 ref ;-- fetch refinement arguments
+						comp-arguments/ref spec/3 pos/3 ref ;-- fetch refinement arguments
 						cnt: cnt + pos/3				;-- increase by nb of arguments
 					]
 				]
@@ -941,7 +972,7 @@ red: context [
 							insert/only at ctx offset list ;-- add a adjacent block of code
 							loop pos/3 [
 								mark: tail output
-								comp-argument/ref spec/3 1 to refinement! ref
+								comp-arguments/ref spec/3 1 to refinement! ref
 								append/only list copy mark
 								clear mark
 							]
@@ -995,9 +1026,8 @@ red: context [
 			throw-error "invalid use of set-word as operand"
 		]
 		case [
-			pc/1 = 'func [
-				comp-func								;-- function definition needs special framing
-			]
+			pc/1 = 'func	 [comp-func]				;-- function definition needs special framing
+			pc/1 = 'function [comp-func/collect]
 			all [
 				not empty? locals-stack
 				find last locals-stack name
