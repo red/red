@@ -271,11 +271,12 @@ red: context [
 		reduce [symbols locals]
 	]
 	
-	make-refs-table: func [spec [block!] /local mark pos arity list ref args][
+	make-refs-table: func [spec [block!] /local mark pos arity arg-rule list ref args][
 		arity: 0
+		arg-rule: [word! | lit-word! | get-word!]
 		parse spec [
 			any [
-				word! (arity: arity + 1)
+				arg-rule (arity: arity + 1)
 				| mark: refinement! (pos: mark) break
 				| skip
 			]
@@ -291,7 +292,7 @@ red: context [
 						repend list [pos/1 ref 0]
 						args: 0
 					)
-					| word! opt block! opt string! (
+					| arg-rule opt block! opt string! (
 						change back tail list args: args + 1
 					)
 					| set-word! break
@@ -863,6 +864,24 @@ red: context [
 			unless set [pc: next pc]
 		]
 	]
+	
+	comp-argument: func [spec [block!] nb [integer!] /ref name [refinement!]][
+		if ref [spec: find/tail spec name]
+		loop nb [
+			while [not any-word? spec/1][				;-- skip types blocks
+				spec: next spec
+			]
+			switch type?/word spec/1 [
+				lit-word! [
+					emit-push-word pc/1					;@@ add specific type checking
+					pc: next pc
+				]
+				get-word! [comp-literal no]
+				word!     [comp-expression]
+			]
+			spec: next spec
+		]
+	]
 		
 	comp-call: func [
 		call [word! path!]
@@ -880,7 +899,7 @@ red: context [
 			name: to word! clean-lf-flag name
 			emit-open-frame name
 			
-			loop spec/2 [comp-expression]				;-- fetch arguments
+			comp-argument spec/3 spec/2					;-- fetch arguments
 			
 			either compact? [
 				refs: either spec/4 [
@@ -891,11 +910,12 @@ red: context [
 				if path? call [
 					cnt: spec/2							;-- function base arity
 					foreach ref next call [
-						unless pos: find/skip spec/4 to refinement! ref 3 [
+						ref: to refinement! ref
+						unless pos: find/skip spec/4 ref 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
 						poke refs pos/2 cnt				;-- set refinement's arguments base offset
-						loop pos/3 [comp-expression]	;-- fetch refinement arguments
+						comp-argument/ref spec/3 pos/3 ref ;-- fetch refinement arguments
 						cnt: cnt + pos/3				;-- increase by nb of arguments
 					]
 				]
@@ -921,7 +941,7 @@ red: context [
 							insert/only at ctx offset list ;-- add a adjacent block of code
 							loop pos/3 [
 								mark: tail output
-								comp-expression
+								comp-argument/ref spec/3 1 to refinement! ref
 								append/only list copy mark
 								clear mark
 							]
