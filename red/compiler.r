@@ -743,6 +743,9 @@ red: context [
 	collect-words: func [spec [block!] body [block!] /local pos ignore words rule new][
 		if pos: find spec /extern [
 			ignore: pos/2
+			unless empty? intersect ignore spec [
+				throw-error ["duplicate word specified in function spec:" mold spec]
+			]
 			clear pos
 		]
 		words: make block! 1
@@ -757,7 +760,7 @@ red: context [
 				| into rule
 				| skip
 			]
-		]		
+		]
 		unless empty? words [
 			append spec /local
 			append spec words
