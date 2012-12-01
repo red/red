@@ -263,6 +263,15 @@ red: context [
 		][
 			throw-error ["invalid function spec block:" pos]
 		]
+		forall spec [
+			if all [
+				word? spec/1
+				find next spec spec/1
+			][
+				pc: skip pc -2
+				throw-error ["duplicate word definition:" spec/1]
+			]
+		]
 		if pos: find/tail spec /local [
 			parse pos [any [word! (locals: locals + 1) | skip]]
 		]
@@ -742,7 +751,8 @@ red: context [
 		if pos: find spec /extern [
 			ignore: pos/2
 			unless empty? intersect ignore spec [
-				throw-error ["duplicate word specified in function spec:" mold spec]
+				pc: skip pc -2
+				throw-error ["duplicate word definition in function:" pc/1]
 			]
 			clear pos
 		]
