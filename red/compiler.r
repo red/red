@@ -252,10 +252,8 @@ red: context [
 			opt string!
 			any [
 				pos: [
-					word! opt block! opt string!
-					| lit-word!   	 opt string!
-					| get-word! 	 opt string!
-					| refinement!	 opt string!
+					[word! | lit-word! | get-word!] opt block! opt string!
+					| refinement! opt string!
 				] (append symbols to word! pos/1)
 			]
 			opt [
