@@ -2794,6 +2794,7 @@ system-dialect: make-profilable context [
 		stack-align-16?: no				;-- yes => align stack to 16 bytes
 		literal-pool?:	no				;-- yes => use pools to store literals, no => store them inlined (default: no)
 		unicode?:		no				;-- yes => use Red Unicode API for printing on screen
+		red-only?:		no				;-- yes => stop compilation at Red/System level and display output
 	]
 	
 	compile: func [

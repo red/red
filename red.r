@@ -85,6 +85,7 @@ redc: context [
 				| ["-o" | "--output"]  		set output skip
 				| ["-t" | "--target"]  		set target skip
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
+				| "--red-only"				(opts/red-only?: yes)
 				;| "--custom"				;@@ pass-thru for Red/System specific arguments
 				| set filename skip (append srcs load-filename filename)
 			]
@@ -146,7 +147,7 @@ redc: context [
 			result: red/compile srcs/1 opts
 		]
 		print ["^/...compilation time:" tab round result/2/second * 1000 "ms"]
-
+		if opts/red-only? [exit]
 	;--- 2nd pass: Red/System compiler ---
 		
 		print [
