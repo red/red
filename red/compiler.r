@@ -741,9 +741,8 @@ red: context [
 			stack/mark (name)			;@@ make a unique name for function's body frame
 		]
 		append last output [
-			stack/unwind								;-- closing body stack frame
-			stack/return-last							;-- set last value on stack
-		]
+			stack/unwind-last							;-- closing body stack frame,
+		]												;-- and propagating last value
 		insert last output init
 	]
 	

@@ -43,8 +43,6 @@ stack: context [										;-- call stack
 	cbottom: 	calls-series/offset
 	ctop:	 	calls-series/tail
 	
-	last-value: arguments
-
 
 	reset: func [
 		return:  [cell!]
@@ -54,7 +52,6 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
 		
 		top: arguments									;-- overwrite last value
-		last-value: arguments
 		arguments
 	]
 	
@@ -66,7 +63,6 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/keep"]]
 		
 		top: arguments + 1								;-- keep last value in arguments slot
-		last-value: arguments
 		arguments
 	]
 
@@ -104,8 +100,6 @@ stack: context [										;-- call stack
 		assert cbottom <= ctop
 		ctop: ctop - 1
 		
-		last-value: arguments							;-- for immediate use only!
-		
 		either ctop = cbottom [
 			arguments: bottom
 			top: bottom
@@ -118,6 +112,18 @@ stack: context [										;-- call stack
 		
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
+	
+	unwind-last: func [
+		return:  [red-value!]
+		/local
+			last [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-last"]]
+
+		last: arguments
+		unwind
+		copy-cell last arguments
+	]
 
 	set-last: func [
 		last	[red-value!]
@@ -126,14 +132,6 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/set-last"]]
 		
 		copy-cell last arguments
-	]
-	
-	return-last: func [
-		return: [red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "stack/return-last"]]
-
-		copy-cell last-value arguments
 	]
 	
 	push*: func [
