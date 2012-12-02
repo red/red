@@ -49,7 +49,7 @@ red: context [
 	
 	intrinsics:   [
 		if unless either any all while until loop repeat
-		foreach forall break halt func function
+		foreach forall break halt func function does has
 	]
 
 	functions: make hash! [
@@ -775,37 +775,47 @@ red: context [
 		]
 	]
 	
-	comp-func: func [/collect /local name spec body symbols locals-nb][
+	comp-func: func [/collect /does /has /local name spec body symbols locals-nb spec-blk body-blk][
 		name: to word! pc/-1
 		pc: next pc
 		set [spec body] pc
-		if collect [
-			collect-words spec body
+		case [
+			collect [collect-words spec body]
+			does	[body: spec spec: make block! 1 pc: back pc]
+			has		[spec: head insert copy spec /local]
 		]
 		set [symbols locals-nb] check-spec spec
 		add-function name spec
 		
-		set [spec body] redirect-to-literals [
+		set [spec-blk body-blk] redirect-to-literals [
 			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
 		]
 		
 		emit-open-frame 'set							;-- function value creation
 		emit-push-word name
 		emit compose [
-			_function/push (spec) (body)
+			_function/push (spec-blk) (body-blk)
 		]
 		emit 'word/set
 		insert-lf -1
 		emit-close-frame
 		
 		repend bodies [									;-- save context for deferred function compilation
-			name pc/1 pc/2 symbols locals-nb locals-stack
+			name spec body symbols locals-nb locals-stack
 		]
 		pc: skip pc 2
 	]
 	
 	comp-function: does [
 		comp-func/collect
+	]
+	
+	comp-does: does [
+		comp-func/does
+	]
+	
+	comp-has: does [
+		comp-func/has
 	]
 	
 	emit-path: func [path [path! set-path!] set? [logic!] /local value][
@@ -1037,8 +1047,10 @@ red: context [
 			throw-error "invalid use of set-word as operand"
 		]
 		case [
-			pc/1 = 'func	 [comp-func]				;-- function definition needs special framing
-			pc/1 = 'function [comp-func/collect]
+			pc/1 = 'func	 [comp-func]
+			pc/1 = 'function [comp-function]
+			pc/1 = 'has		 [comp-has]
+			pc/1 = 'does	 [comp-does]
 			all [
 				not empty? locals-stack
 				find last locals-stack name

@@ -427,6 +427,19 @@ function: make native! [[
 	none
 ]
 
+does: make native! [[
+		body [block!]
+	]
+	none
+]
+
+has: make native! [[
+		vars [block!]
+		body [block!]
+	]
+	none
+]
+
 
 get: make native! [[
 		word	[word!]
