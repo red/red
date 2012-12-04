@@ -123,6 +123,27 @@ stack: context [										;-- call stack
 		copy-cell last arguments
 	]
 
+	unroll: func [
+		flags	 [integer!]
+		/local
+			last [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/unroll"]]
+
+		last: arguments
+		assert cbottom < ctop
+		until [		
+			ctop: ctop - 2
+			any [
+				zero? (flags and ctop/1)
+				cbottom <= ctop
+			]
+		]
+		ctop: ctop + 2
+		unwind
+		copy-cell last arguments
+	]
+
 	set-last: func [
 		last	[red-value!]
 		return: [red-value!]

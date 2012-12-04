@@ -440,6 +440,14 @@ has: make native! [[
 	none
 ]
 
+exit: make native! [[] none]
+
+return: make native! [[
+		value [any-type!]
+	]
+	none
+]
+
 
 get: make native! [[
 		word	[word!]

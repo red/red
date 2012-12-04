@@ -50,6 +50,7 @@ red: context [
 	intrinsics:   [
 		if unless either any all while until loop repeat
 		foreach forall break halt func function does has
+		exit return
 	]
 
 	functions: make hash! [
@@ -823,6 +824,23 @@ red: context [
 	
 	comp-has: does [
 		comp-func/has
+	]
+	
+	comp-exit: does [
+		pc: next pc
+		emit [
+			copy-cell unset-value stack/arguments
+			stack/unroll stack/FLAG_FUNCTION
+			exit
+		]
+	]
+
+	comp-return: does [
+		comp-expression
+		emit [
+			stack/unroll stack/FLAG_FUNCTION
+			exit
+		]
 	]
 	
 	emit-path: func [path [path! set-path!] set? [logic!] /local value][
