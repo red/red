@@ -141,8 +141,16 @@ red: context [
 		insert-lf -2
 	]
 	
-	emit-open-frame: func [name [word!]][
-		emit 'stack/mark
+	emit-open-frame: func [name [word!] /local type][
+		emit case [
+			'function! = all [
+				type: find functions name
+				first first next type
+			]['stack/mark-func]
+			name = 'try	  ['stack/mark-try]
+			name = 'catch ['stack/mark-catch]
+			'else		  ['stack/mark-native]
+		]
 		emit decorate-symbol name
 		insert-lf -2
 	]
@@ -738,7 +746,7 @@ red: context [
 		if find symbols name [name: to path! reduce ['exec name]]
 		
 		append init compose [							;-- body stack frame
-			stack/mark (name)			;@@ make a unique name for function's body frame
+			stack/mark-native (name)	;@@ make a unique name for function's body frame
 		]
 		append last output [
 			stack/unwind-last							;-- closing body stack frame,

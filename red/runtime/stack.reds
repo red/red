@@ -12,14 +12,37 @@ Red/System [
 
 stack: context [										;-- call stack
 	verbose: 0
+	
+	#define MARK_STACK(type) [
+		func [
+			fun [red-word!]
+		][
+			#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
-	call!: alias struct! [
-		header 	[integer!]								;-- cell header
-		symbol	[integer!]								;-- index in symbol table
-		spec	[node!]									;-- spec block (cleaned-up form)
-		args	[red-value!]							;-- pointer to first argument in args stack
+			if ctop = c-end [
+				print-line ["^/*** Error: call stack overflow!^/"]
+				halt
+			]
+			ctop/1: type or (fun/symbol << 8)
+			ctop/2: as-integer arguments
+			arguments: top								;-- top of stack becomes frame base
+			ctop: ctop + 2
+
+			#if debug? = yes [if verbose > 1 [dump]]
+		]
 	]
-
+	
+	;-- header flags
+	#enum flags! [
+		FLAG_FUNCTION:	80000000h						;-- function! call
+		FLAG_NATIVE:	40000000h						;-- native! or action! call
+		FLAG_ROUTINE:	20000000h						;--	<reserved>
+		FLAG_TRY:		10000000h						;--	TRY native
+		FLAG_CATCH:		08000000h						;-- CATCH native
+		FLAG_THROW_ATR:	04000000h						;-- Throw function attribut
+		FLAG_CATCH_ATR:	02000000h						;--	Catch function attribut
+	]
+	
 	arg-stk:  block/make-in root 1024					;-- argument stack (should never be relocated)
 	call-stk: block/make-in root 512					;-- call stack (should never be relocated)
 	
@@ -34,14 +57,14 @@ stack: context [										;-- call stack
 	args-series:  GET_BUFFER(arg-stk)
 	calls-series: GET_BUFFER(call-stk)
 	
-	a-end: as cell! (as byte-ptr! args-series)  + args-series/size
-	c-end: as cell! (as byte-ptr! calls-series) + calls-series/size
+	a-end: as cell!    (as byte-ptr! args-series)  + args-series/size
+	c-end: as int-ptr! (as byte-ptr! calls-series) + calls-series/size
 	
 	arguments:	args-series/tail
 	bottom:  	args-series/offset
 	top:	 	args-series/tail
-	cbottom: 	calls-series/offset
-	ctop:	 	calls-series/tail
+	cbottom: 	as int-ptr! calls-series/offset
+	ctop:	 	as int-ptr! calls-series/tail
 	
 
 	reset: func [
@@ -65,49 +88,24 @@ stack: context [										;-- call stack
 		top: arguments + 1								;-- keep last value in arguments slot
 		arguments
 	]
-
-	mark: func [
-		fun		 [red-word!]
-		/local
-			call [call!]
-			s	 [series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
-
-		arguments: top
+	
+	mark-native: MARK_STACK(FLAG_NATIVE)
+	mark-func:	 MARK_STACK(FLAG_FUNCTION)
+	mark-try:	 MARK_STACK(FLAG_TRY)
+	mark-catch:	 MARK_STACK(FLAG_CATCH)
 		
-		if ctop = c-end [
-			print-line ["^/*** Error: call stack overflow!^/"]
-			halt
-		]
-		call: as call! ctop
-		call/header: TYPE_STACK_CALL
-		call/symbol: either null? fun [-1][fun/symbol]
-		call/args: arguments
-		ctop: ctop + 1
-		
-		#if debug? = yes [if verbose > 1 [dump]]
-	]
-		
-	unwind: func [
-		/local 
-			s	   [series!]
-			call  [call!]
-			offset [integer!]
-	][
+	unwind: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
 
 		assert cbottom <= ctop
-		ctop: ctop - 1
+		ctop: ctop - 2
 		
 		either ctop = cbottom [
 			arguments: bottom
 			top: bottom
 		][
-			top: arguments + 1
-			call: as call! ctop			
-			call: call - 1
-			arguments: call/args
+			top: arguments + 1							;-- keep last value on stack
+			arguments: as red-value! ctop/2
 		]
 		
 		#if debug? = yes [if verbose > 1 [dump]]
@@ -153,19 +151,11 @@ stack: context [										;-- call stack
 	push: func [
 		value 	  [red-value!]
 		return:   [red-value!]
-		/local 
-			cell [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/push"]]
 		
 		copy-cell value top
-		cell: top
-		top: top + 1
-		if top >= a-end [
-			print-line ["^/*** Error: arguments stack overflow!^/"]
-			halt
-		]
-		cell
+		push*
 	]
 	
 	pop: func [

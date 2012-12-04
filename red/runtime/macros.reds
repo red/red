@@ -52,8 +52,6 @@ Red/System [
 	TYPE_PORT
 	TYPE_BITSET
 	TYPE_FLOAT
-	
-	TYPE_STACK_CALL
 ]
 
 #enum actions! [
