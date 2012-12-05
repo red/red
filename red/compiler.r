@@ -112,6 +112,10 @@ red: context [
 		] type?/word expr
 	]
 	
+	local-word?: func [name [word!]][
+		all [not empty? locals-stack find last locals-stack name]
+	]
+	
 	unicode-char?: func [value][
 		all [issue? value value/1 = #"'"]
 	]
@@ -1128,19 +1132,28 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /local name entry][
+	comp-word: func [/literal /final /local name local?][
 		name: to word! pc/1
 		pc: next pc
+		local?: local-word? name
 		case [
-			all [not final name = 'make any-function? pc/1][
+			all [
+				not final
+				not local?
+				name = 'make any-function? pc/1
+			][
 				fetch-functions skip pc -2				;-- extract functions definitions
 				pc: back pc
 				comp-word/final
 			]
-			all [not literal entry: find functions name][
+			all [
+				not literal
+				not local?
+				entry: find functions name
+			][
 				comp-call name entry/2
 			]
-			entry: find symbols name [
+			find symbols name [
 				either lit-word? pc/1 [
 					emit-push-word name
 				][
