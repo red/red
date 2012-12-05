@@ -983,7 +983,7 @@ red: context [
 			name: to word! clean-lf-flag name
 			emit-open-frame name
 			
-			comp-arguments spec/3 spec/2					;-- fetch arguments
+			comp-arguments spec/3 spec/2				;-- fetch arguments
 			
 			either compact? [
 				refs: either spec/4 [
@@ -1004,15 +1004,15 @@ red: context [
 					]
 				]
 			][											;-- prepare function! stack layout
-				emit-no-ref: [
-					emit [logic/push false]
+				emit-no-ref: [							;-- populate stack for unused refinement
+					emit [logic/push false]				;-- unused refinement is set to FALSE
 					insert-lf -2
 					loop args [
-						emit 'none/push
+						emit 'none/push					;-- unused arguments are set to NONE
 						insert-lf -1
 					]
 				]
-				either path? call [
+				either path? call [						;-- call with refinements?
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
 						unless pos: find/skip spec/4 to refinement! ref 3 [
@@ -1046,7 +1046,7 @@ red: context [
 							]
 						]
 					]
-				][
+				][										;-- call with no refinements
 					if spec/4 [
 						foreach [ref offset args] spec/4 emit-no-ref
 					]
