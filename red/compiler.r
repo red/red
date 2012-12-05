@@ -137,7 +137,14 @@ red: context [
 	]
 	
 	emit-get-word: func [name [word!]][
-		emit 'word/get
+		either all [
+			not empty? locals-stack
+			find last locals-stack name
+		][
+			emit 'stack/push							;-- local word
+		][
+			emit 'word/get								;-- global word
+		]
 		emit decorate-symbol name
 		insert-lf -2
 	]
@@ -1109,15 +1116,7 @@ red: context [
 				either lit-word? pc/1 [
 					emit-push-word name
 				][
-					either all [
-						not empty? locals-stack
-						find last locals-stack name
-					][
-						emit compose [stack/push (decorate-symbol name)]
-						insert-lf -2
-					][
-						emit-get-word name
-					]
+					emit-get-word name
 				]
 			]
 			'else [
