@@ -297,7 +297,14 @@ qt-print-totals: func [
   --assert 233 = last append "abcde" "é" ;; utf-8 C3 A9
   --test-- "series-append-5"
   --assert 49 = last append "abcdeé" "1" ;; utf-8 C3 A9
-  
+  --test-- "series-append-6"
+  --assert 10000 = last append "abcde" "^(E2)^(9C)^(90)^(0A)" 
+  --test-- "series-append-7"
+  --assert 48 = last append "abcde^(E2)^(9C)^(90)^(0A)" "0"
+  --test-- "series-append-8"
+  --assert 10000 = last append "abcdeé" "^(E2)^(9C)^(90)^(0A)"
+  --test-- "series-append-7"
+  --assert 233 = last append "abcde^(E2)^(9C)^(90)^(0A)" "é"
   
 ===end-group===
 
