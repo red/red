@@ -35,6 +35,7 @@ red: context [
 	return-def:   to-set-word 'return					;-- return: keyword
 	s-counter:	  0										;-- series suffix counter
 	depth:		  0										;-- expression nesting level counter
+	booting?:	  none									;-- YES: compiling boot script
 
 	unboxed-set:  [integer! char! float! float32! logic!]
 	block-set:	  [block! paren! path! set-path! lit-path!]
@@ -259,6 +260,12 @@ red: context [
 			word? pos/1
 			specs: select functions pos/1
 			'op! = specs/1
+		]
+	]
+	
+	check-redefined: func [name [word!] /local pos][
+		if pos: find functions name [
+			remove/part pos 2							;-- remove function definition
 		]
 	]
 	
@@ -1095,6 +1102,9 @@ red: context [
 		if infix? pc [
 			throw-error "invalid use of set-word as operand"
 		]
+		if all [not booting? find intrinsics name][
+			throw-error ["attempt to redefine a keyword:" name]
+		]
 		case [
 			pc/1 = 'func	 [comp-func]
 			pc/1 = 'function [comp-function]
@@ -1107,6 +1117,7 @@ red: context [
 				comp-func-set name
 			]
 			'else [
+				check-redefined name
 				emit-open-frame 'set
 				emit-push-word name
 				comp-expression							;-- fetch a value
@@ -1352,8 +1363,10 @@ red: context [
 		comp-init
 		
 		pc: load-source %red/boot.red					;-- compile Red's boot script
+		booting?: yes
 		comp-block
 		make-keywords									;-- register intrinsics functions
+		booting?: no
 		
 		pc: code										;-- compile user code
 		user: tail output
