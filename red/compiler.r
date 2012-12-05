@@ -30,6 +30,7 @@ red: context [
 	literals:	  make block! 1000
 	declarations: make block! 1000
 	bodies:		  make block! 1000
+	ssa-names: 	  make block! 10						;-- unique names lookup table (SSA form)
 	last-type:	  none
 	return-def:   to-set-word 'return					;-- return: keyword
 	s-counter:	  0										;-- series suffix counter
@@ -207,7 +208,8 @@ red: context [
 		to word! join "~" clean-lf-flag name
 	]
 	
-	decorate-func: func [name [word!]][
+	decorate-func: func [name [word!] /strict /local new][
+		if all [not strict new: select ssa-names name][name: new]
 		to word! join "f_" clean-lf-flag name
 	]
 	
@@ -258,6 +260,19 @@ red: context [
 			specs: select functions pos/1
 			'op! = specs/1
 		]
+	]
+	
+	check-func-name: func [name [word!] /local new pos][
+		if find functions name [
+			new: to word! append mold/flat name get-counter
+			either pos: find ssa-names name [
+				pos/2: new
+			][
+				repend ssa-names [name new]
+			]
+			name: new
+		]
+		name
 	]
 	
 	check-spec: func [spec [block!] /local symbols value pos stop locals][
@@ -728,7 +743,7 @@ red: context [
 		][
 			head insert copy symbols /local
 		]
-		emit reduce [to set-word! decorate-func name 'func locals]
+		emit reduce [to set-word! decorate-func/strict name 'func locals]
 		insert-lf -3
 
 		comp-sub-block/with 'func-body body				;-- compile function's body
@@ -791,7 +806,9 @@ red: context [
 	]
 	
 	comp-func: func [/collect /does /has /local name spec body symbols locals-nb spec-blk body-blk][
-		name: to word! pc/-1
+		name: check-func-name to word! pc/-1
+		add-symbol to word! clean-lf-flag name
+		
 		pc: next pc
 		set [spec body] pc
 		case [
