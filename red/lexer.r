@@ -189,6 +189,8 @@ lexer: context [
 	refinement-rule: [slash (type: refinement!) s: symbol-rule]
 	
 	slash-rule: [s: [slash opt slash] e:]
+	
+	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
 		
 	integer-number-rule: [
 		(type: integer!)
@@ -301,6 +303,7 @@ lexer: context [
 			comment-rule
 			| multiline-comment-rule
 			| integer-rule	  (stack/push load-integer   copy/part s e)
+			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
@@ -449,6 +452,10 @@ lexer: context [
 	
 	encode-char: func [value [integer!]][
 		head insert to-hex value #"'"
+	]
+	
+	decode-hexa: func [s [string!]][
+		to integer! debase/base s 16
 	]
 
 	load-integer: func [s [string!]][
