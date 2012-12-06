@@ -12,7 +12,7 @@ do %../red-system/compiler.r
 red: context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
-	script:		  none
+	script-name:  none
 	main-path:	  none
 	runtime-path: %runtime/
 	nl: 		  newline
@@ -85,7 +85,7 @@ red: context [
 			either word? err [
 				join uppercase/part mold err 1 " error"
 			][reform err]
-			"^/*** in file:" mold script
+			"^/*** in file:" mold script-name
 			;either locals [join "^/*** in function: " func-name][""]
 		]
 		if pc [
@@ -1231,7 +1231,7 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
-	comp-directive: has [file][
+	comp-directive: has [file saved][
 		switch/default pc/1 [
 			#include [
 				unless file? file: pc/2 [
@@ -1243,7 +1243,9 @@ red: context [
 				unless exists? file [
 					throw-error ["include file not found:" pc/2]
 				]
+				saved: script-name
 				change/part pc load-source file 2
+				script-name: saved
 			]
 			#system [
 				unless block? pc/2 [
@@ -1395,7 +1397,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		pc: load-source %red/boot.red					;-- compile Red's boot script
+		pc: load-source/hidden %red/boot.red			;-- compile Red's boot script
 		booting?: yes
 		comp-block
 		make-keywords									;-- register intrinsics functions
@@ -1448,12 +1450,12 @@ red: context [
 		if verbose > 2 [?? output]
 	]
 	
-	load-source: func [file [file! block!] /local src][
+	load-source: func [file [file! block!] /hidden /local src][
 		either file? file [
-			script: file
+			unless hidden [script-name: file]
 			src: lexer/process read/binary file
 		][
-			script: 'memory
+			unless hidden [script-name: 'memory]
 			src: file
 		]
 		next src										;-- skip header block
