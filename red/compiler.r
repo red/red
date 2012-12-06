@@ -109,7 +109,7 @@ red: context [
 			decimal!
 			refinement!
 			lit-word!
-		] type?/word expr
+		] type?/word :expr
 	]
 	
 	local-word?: func [name [word!]][
@@ -142,13 +142,14 @@ red: context [
 		insert-lf -2
 	]
 	
-	emit-get-word: func [name [word!]][
+	emit-get-word: func [name [word!] /local new][
 		either all [
 			not empty? locals-stack
 			find last locals-stack name
 		][
 			emit 'stack/push							;-- local word
 		][
+			if new: select ssa-names name [name: new]	;@@ add a check for funtion! type
 			emit 'word/get								;-- global word
 		]
 		emit decorate-symbol name
@@ -458,18 +459,24 @@ red: context [
 		value: pc/1
 		either any [
 			char?: unicode-char? value
-			literal? value
+			literal? :value
 		][
 			if root? [
 				emit 'stack/reset						;-- reset top to arguments base
 				insert-lf -1
 			]
-			either char? [
-				emit [char/push]
-				emit to integer! next value
-			][
-				emit load rejoin [form type? value slash 'push]
-				emit load mold value
+			case [
+				char? [
+					emit [char/push]
+					emit to integer! next value
+				]
+				lit-word? :value [
+					emit-push-word value
+				]
+				'else [
+					emit load rejoin [form type? value slash 'push]
+					emit load mold value
+				]
 			]
 			insert-lf -2
 			
@@ -844,7 +851,7 @@ red: context [
 		emit-close-frame
 		
 		repend bodies [									;-- save context for deferred function compilation
-			name spec body symbols locals-nb locals-stack
+			name spec body symbols locals-nb copy locals-stack copy ssa-names
 		]
 		pc: skip pc 2
 	]
@@ -1134,13 +1141,14 @@ red: context [
 
 	comp-word: func [/literal /final /local name local?][
 		name: to word! pc/1
-		pc: next pc
+		pc: next pc										;@@ move it deeper
 		local?: local-word? name
 		case [
 			all [
 				not final
 				not local?
-				name = 'make any-function? pc/1
+				name = 'make
+				any-function? pc/1
 			][
 				fetch-functions skip pc -2				;-- extract functions definitions
 				pc: back pc
@@ -1154,7 +1162,7 @@ red: context [
 				comp-call name entry/2
 			]
 			find symbols name [
-				either lit-word? pc/1 [
+				either lit-word? pc/-1 [
 					emit-push-word name
 				][
 					emit-get-word name
@@ -1342,8 +1350,9 @@ red: context [
 	]
 	
 	comp-bodies: does [
-		foreach [name spec body symbols locals-nb stack] bodies [
+		foreach [name spec body symbols locals-nb stack ssa] bodies [
 			locals-stack: stack
+			ssa-names: ssa
 			comp-func-body name spec body symbols locals-nb
 		]
 	]

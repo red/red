@@ -115,6 +115,7 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
+		if zero? slots [slots: 1]
 		cell: as red-context! ALLOC_TAIL(blk)
 		cell/header: TYPE_CONTEXT						;-- implicit reset of all header flags	
 		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer

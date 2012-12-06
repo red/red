@@ -89,7 +89,29 @@ actions: context [
 	]
 
 	random*: func [][]
-	reflect*: func [][]
+	
+	reflect*: func [
+		return: [red-value!]
+	][
+		reflect stack/arguments as red-word! stack/arguments + 1
+	]
+	
+	reflect: func [
+		value	[red-value!]
+		field	[red-word!]
+		return: [red-value!]
+		/local
+			action-reflect
+	][
+		action-reflect: as function! [
+			value	[red-value!]
+			field	[integer!]
+			return:	[red-value!]
+		] get-action-ptr-from TYPE_OF(value) ACT_REFLECT
+			
+		action-reflect value field/symbol
+	]
+	
 	to*: func [][]
 
 	form*: func [

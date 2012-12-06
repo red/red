@@ -82,6 +82,13 @@ red: context [
 	
 	datatype/make-words									;-- build datatype names as word! values
 	
+	words/_spec:	word/load "spec"
+	words/_body:	word/load "body"
+	words/_words:	word/load "words"
+	words/spec:		words/_spec/symbol
+	words/body:		words/_body/symbol
+	words/words:	words/_words/symbol
+	
 	#include %stack.reds
 	
 	#if debug? = yes [

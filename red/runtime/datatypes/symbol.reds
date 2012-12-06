@@ -27,11 +27,13 @@ symbol: context [
 		c2:   str2/1
 
 		while [c1 <> null-byte][
-			if c1 <> c2 [
+			aliased?: either c1 = c2 [
+				no
+			][
 				if all [#"A" <= c1 c1 <= #"Z"][c1: c1 + 32]	;-- lowercase c1
 				if all [#"A" <= c2 c2 <= #"Z"][c2: c2 + 32] ;-- lowercase c2
-				if c1 <> c2 [return 0]				;-- not same case-insensitive character
-				aliased?: yes
+				if c1 <> c2 [return 0]					;-- not same case-insensitive character
+				yes
 			]
 			str1: str1 + 1
 			str2: str2 + 1
@@ -39,9 +41,9 @@ symbol: context [
 			c2: str2/1
 		]
 		case [
-			c2 <> null-byte [0]							;-- not matching
-			aliased? [-1]								;-- similar (case-insensitive matching)
-			true [1]									;-- same (case-sensitive matching)
+			c2 <> null-byte [ 0]						;-- not matching
+			aliased? 		[-1]						;-- similar (case-insensitive matching)
+			true 			[ 1]						;-- same (case-sensitive matching)
 		]
 	]
 	
@@ -53,6 +55,7 @@ symbol: context [
 			entry [red-symbol!]
 			end   [red-symbol!]
 			id	  [integer!]
+			i	  [integer!]
 	][
 		s: GET_BUFFER(symbols)
 		entry: as red-symbol! s/offset
@@ -61,7 +64,7 @@ symbol: context [
 		
 		while [entry < end][
 			id: same? entry/cache str
-			if id <> 0 [return id]						;-- matching symbol found
+			if id <> 0 [return i]						;-- matching symbol found
 			i: i + 1
 			entry: entry + 1
 		]

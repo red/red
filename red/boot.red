@@ -63,7 +63,14 @@ make: make action! [[									;-- this one works! ;-)
 ]
 
 ;random
-;reflect
+
+reflect: make action! [[
+		value	[any-type!]
+		field 	[word!]
+	]
+	#get-definition ACT_REFLECT
+]
+
 ;to
 
 form: make action! [[

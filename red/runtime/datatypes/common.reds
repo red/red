@@ -84,3 +84,24 @@ copy-cell: func [
 		size? cell!
 	dst
 ]
+
+
+words: context [
+	_spec:	as red-word! 0
+	_body:	as red-word! 0
+	_words:	as red-word! 0
+	
+	spec: 	-1
+	body:	-1
+	words:	-1
+	
+	build: does [
+		_spec:	word/load "spec"
+		_body:	word/load "body"
+		_words:	word/load "words"
+		
+		spec:  _spec/symbol
+		body:  _body/symbol
+		words: _words/symbol
+	]
+]
