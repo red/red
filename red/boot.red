@@ -635,3 +635,6 @@ set-word?:	 func [value [any-type!]][set-word!	= type? value]
 string?:	 func [value [any-type!]][string!	= type? value]
 unset?:		 func [value [any-type!]][unset!	= type? value]
 word?:		 func [value [any-type!]][word!		= type? value]
+
+spec-of: func [value][reflect :value 'spec]
+body-of: func [value][reflect :value 'body]
