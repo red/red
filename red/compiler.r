@@ -268,6 +268,16 @@ red: context [
 		]
 	]
 	
+	check-invalid-call: func [name [word!]][
+		if all [
+			find [exit return] name
+			empty? locals-stack
+		][
+			pc: back pc
+			throw-error "EXIT or RETURN used outside of a function"
+		]
+	]
+	
 	check-redefined: func [name [word!] /local pos][
 		if pos: find functions name [
 			remove/part pos 2							;-- remove function definition
@@ -1159,6 +1169,7 @@ red: context [
 				not local?
 				entry: find functions name
 			][
+				check-invalid-call name
 				comp-call name entry/2
 			]
 			find symbols name [
