@@ -66,7 +66,7 @@ _function: context [
 			field = words/body [
 				s: as series! fun/more/value
 				blk: as red-block! s/offset
-				copy-cell as red-value! blk stack/arguments
+				stack/set-last as red-value! blk
 			]
 			field = words/words [
 				--NOT_IMPLEMENTED--						;@@ build the words block from spec
