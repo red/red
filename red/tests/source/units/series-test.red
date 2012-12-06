@@ -298,19 +298,19 @@ qt-print-totals: func [
   --test-- "series-append-5"
   --assert 49 = last append "abcdeé" "1" ;; utf-8 C3 A9
   --test-- "series-append-6"
-  --assert 10000 = last append "abcde" "^(E2)^(9C)^(90)" 
+  --assert 10000 = last append "abcde" "✐"
   --test-- "series-append-7"
-  --assert 48 = last append "abcde^(E2)^(9C)^(90)" "0"
+  --assert 48 = last append "abcde^(2710)" "0"
   --test-- "series-append-8"
-  --assert 10000 = last append "abcdeé" "^(E2)^(9C)^(90)"
+  --assert 10000 = last append "abcdeé" "^(2710)"
   --test-- "series-append-9"
-  --assert 233 = last append "abcde^(E2)^(9C)^(90)" "é"
+  --assert 233 = last append "abcde^(2710)" "é"
   --test-- "series-append-10"
-  --assert 65536 = last append "abcde" "^(F0)^(90)^(80)^(80)"   
+  --assert 65536 = last append "abcde" "^(010000)"   
   --test-- "series-append-11"
-  --assert 48 = last append "abcde^(F0)^(90)^(80)^(80)" "0"
+  --assert 48 = last append "abcde^(010000)" "0"
   --test-- "series=append-12"
-  --assert 65536 = last append "abcde^(E2)^(9C)^(90)é" "^(F0)^(90)^(80)^(80)" 
+  --assert 65536 = last append "abcde^(2710)é" "^(010000)" 
   
 ===end-group===
 
