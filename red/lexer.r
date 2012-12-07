@@ -146,7 +146,11 @@ lexer: context [
 				| #":" s: begin-symbol-rule	(type: get-word!)
 				;@@ add more datatypes here
 			] (
-				stack/push to type copy/part s e	;-- append path element
+				stack/push either type = paren! [	;-- append path element
+					value
+				][
+					to type copy/part s e
+				]
 				type: path!
 			)
 			opt [#":" (type: set-path!)]

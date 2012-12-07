@@ -1464,9 +1464,6 @@ red: context [
 	]
 	
 	clean-up: does [	
-		unless empty? locals-stack [
-			make error! "locals-stack not empty"		;-- force an "internal error"
-		]
 		clear symbols
 		clear sys-global
 		clear output
