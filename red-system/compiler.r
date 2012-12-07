@@ -690,10 +690,10 @@ system-dialect: make-profilable context [
 			ctype: resolve-aliased obj/type
 			type: get-type value
 
-			if all [type = ctype type/1 <> 'function!][
+			if all [type = obj/type type/1 <> 'function!][
 				throw-warning/near [
 					"type casting from" type/1 
-					"to" ctype/1 "is not necessary"
+					"to" obj/type/1 "is not necessary"
 				] 'as
 			]
 			if any [
