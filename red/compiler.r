@@ -1368,6 +1368,8 @@ red: context [
 			ssa-names: ssa
 			comp-func-body name spec body symbols locals-nb
 		]
+		clear locals-stack
+		clear ssa-names
 	]
 	
 	comp-init: does [
@@ -1461,7 +1463,7 @@ red: context [
 		next src										;-- skip header block
 	]
 	
-	clean-up: does [
+	clean-up: does [	
 		unless empty? locals-stack [
 			make error! "locals-stack not empty"		;-- force an "internal error"
 		]
