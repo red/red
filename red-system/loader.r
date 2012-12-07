@@ -116,7 +116,11 @@ loader: make-profilable context [
 		parse :macro rule: [
 			some [
 				into rule 
-				| pos: [word! (type: word!) | set-word! (type: set-word!)] (
+				| pos: [
+					word! 		(type: word!) 
+					| set-word! (type: set-word!)
+					| get-word! (type: get-word!)
+				] (
 					if i: find args to word! pos/1 [
 						change/only pos to type pick s/2 index? :i
 					]
