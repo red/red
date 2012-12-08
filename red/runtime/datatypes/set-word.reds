@@ -73,6 +73,21 @@ set-word: context [
 		part - 1
 	]
 	
+	compare: func [
+		arg1	[red-word!]								;-- first operand
+		arg2	[red-word!]								;-- second operand
+		op		[integer!]								;-- type of comparison
+		return:	[logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "set-word/compare"]]
+
+		either op = COMP_STRICT_EQUAL [
+			all [TYPE_OF(arg2) = TYPE_SET_WORD arg1/symbol = arg2/symbol]
+		][
+			word/compare arg1 arg2 op
+		]
+	]
+	
 	datatype/register [
 		TYPE_SET_WORD
 		TYPE_WORD
@@ -86,7 +101,7 @@ set-word: context [
 		:mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

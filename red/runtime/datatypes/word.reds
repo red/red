@@ -119,10 +119,10 @@ word: context [
 	]
 	
 	compare: func [
-		arg1     [red-word!]							;-- first operand
+		arg1	 [red-word!]							;-- first operand
 		arg2	 [red-word!]							;-- second operand
-		op	     [integer!]								;-- type of comparison
-		return:  [logic!]
+		op		 [integer!]								;-- type of comparison
+		return:	 [logic!]
 		/local
 			type [integer!]
 			res	 [logic!]
@@ -153,7 +153,7 @@ word: context [
 				res: not compare arg1 arg2 op
 			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on word! value"]
+				print-line ["Error: cannot use: " op " comparison on any-word! value"]
 			]
 		]
 		res
