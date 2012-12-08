@@ -211,6 +211,8 @@ string: context [
 			limit [byte-ptr!]
 			p4	  [int-ptr!]
 			cp	  [integer!]
+			h1	  [integer!]
+			h2	  [integer!]
 	][
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
@@ -246,10 +248,12 @@ string: context [
 			true [true]									;@@ catch-all case to make compiler happy
 		]
 		
-		size2: as-integer (as byte-ptr! s2/tail - s2/offset) - str2/head
-		size: (as-integer (as byte-ptr! s1/tail - s1/offset )- str1/head) + size2
+		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str2/head]	;-- make symbol! used as string! pass safely
+		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head]	;-- make symbol! used as string! pass safely
+		
+		size2: as-integer (as byte-ptr! s2/tail - s2/offset) - h2
+		size: (as-integer (as byte-ptr! s1/tail - s1/offset )- h1) + size2
 		if s1/size < size [s1: expand-series s1 size + unit1]	;-- account for terminal NUL
-		if negative? str2/head [size2: size2 - 1]		;-- mismatch correction when symbol! is used as string!
 		if all [part >= 0 part < size2][size2: part]	;-- optionally limit str2 characters to copy
 		
 		either all [keep? unit1 <> unit2][

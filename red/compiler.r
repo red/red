@@ -17,6 +17,7 @@ red: context [
 	runtime-path: %runtime/
 	nl: 		  newline
 	symbols:	  make hash! 1000
+	aliases: 	  make hash! 100
 	ctx-stack:	  [gctx]
 	lexer: 		  do bind load %lexer.r 'self
 	extracts:	  do bind load %utils/extractor.r 'self	;-- @@ to be removed once we get redbin loader.
@@ -210,7 +211,8 @@ red: context [
 		mold/flat to word! name
 	]
 	
-	decorate-symbol: func [name [word!]][
+	decorate-symbol: func [name [word!] /local pos][
+		if pos: find/case/skip aliases name 2 [name: pos/2]
 		to word! join "~" clean-lf-flag name
 	]
 	
@@ -233,8 +235,13 @@ red: context [
 		reduce [var set-var]
 	]
 	
-	add-symbol: func [name [word!] /local sym id][
-		unless find symbols name [
+	add-symbol: func [name [word!] /local sym id alias][
+		unless find/case symbols name [
+			if find symbols name [
+				if find/case/skip aliases name 2 [exit]
+				alias: to word! join name get-counter
+				repend aliases [name alias]
+			]
 			sym: decorate-symbol name
 			id: 1 + ((length? symbols) / 2)
 			repend symbols [name reduce [sym id]]
@@ -481,6 +488,7 @@ red: context [
 					emit to integer! next value
 				]
 				lit-word? :value [
+					add-symbol value
 					emit-push-word value
 				]
 				'else [
@@ -1377,9 +1385,9 @@ red: context [
 		foreach [name specs] functions [add-symbol name]
 
 		;-- Create datatype! datatype and word
-		emit [
-			word/push ~datatype!
-			datatype/push TYPE_DATATYPE			
+		emit compose [
+			word/push (decorate-symbol 'datatype!)
+			datatype/push TYPE_DATATYPE
 			word/set
 			stack/reset
 		]
@@ -1465,6 +1473,7 @@ red: context [
 	
 	clean-up: does [	
 		clear symbols
+		clear aliases
 		clear sys-global
 		clear output
 		clear sym-table

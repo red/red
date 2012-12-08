@@ -38,7 +38,7 @@ symbol: context [
 			str1: str1 + 1
 			str2: str2 + 1
 			c1: str1/1
-			c2: str2/1
+			c2: str2/1									;@@ unsafe memory access
 		]
 		case [
 			c2 <> null-byte [ 0]						;-- not matching
@@ -64,7 +64,9 @@ symbol: context [
 		
 		while [entry < end][
 			id: same? entry/cache str
-			if id <> 0 [return i]						;-- matching symbol found
+			if id <> 0 [
+				return either positive? id [i][0 - i]	;-- matching symbol found
+			]
 			i: i + 1
 			entry: entry + 1
 		]
@@ -88,7 +90,19 @@ symbol: context [
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
 		sym/node:   unicode/load-utf8 s 1 + system/words/length? s
 		sym/cache:  s
-		either zero? id [block/rs-length? symbols][0 - id]
+		block/rs-length? symbols
+	]
+	
+	resolve: func [
+		id		[integer!]
+		return:	[integer!]
+		/local
+			sym	[red-symbol!]
+			s	[series!]
+	][
+		s: GET_BUFFER(symbols)
+		sym: as red-symbol! s/offset + id - 1
+		either positive? sym/alias [sym/alias][id]
 	]
 	
 	push: func [

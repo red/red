@@ -117,6 +117,47 @@ word: context [
 
 		form w buffer arg part
 	]
+	
+	compare: func [
+		arg1     [red-word!]							;-- first operand
+		arg2	 [red-word!]							;-- second operand
+		op	     [integer!]								;-- type of comparison
+		return:  [logic!]
+		/local
+			type [integer!]
+			res	 [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/compare"]]
+
+		type: TYPE_OF(arg2)
+		switch op [
+			COMP_EQUAL [
+				res: all [
+					any [								;@@ replace by ANY_WORD? when available
+						type = TYPE_WORD
+						type = TYPE_GET_WORD
+						type = TYPE_SET_WORD
+						type = TYPE_LIT_WORD
+						type = TYPE_REFINEMENT
+					]
+					(symbol/resolve arg1/symbol) = (symbol/resolve arg2/symbol)
+				]
+			]
+			COMP_STRICT_EQUAL [
+				res: all [
+					type = TYPE_WORD
+					arg1/symbol = arg2/symbol
+				]
+			]
+			COMP_NOT_EQUAL [
+				res: not compare arg1 arg2 op
+			]
+			default [
+				print-line ["Error: cannot use: " op " comparison on word! value"]
+			]
+		]
+		res
+	]
 
 	datatype/register [
 		TYPE_WORD
@@ -131,7 +172,7 @@ word: context [
 		:mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add
