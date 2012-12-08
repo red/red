@@ -72,20 +72,20 @@ action: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
-		/local
-			str [red-string!]
-			blk	[red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/mold"]]
 
 		string/concatenate-literal buffer "make action! ["
 		
-		blk: as red-block! stack/push*					;@@ overwrite rather stack/arguments?
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/node:	action/spec
-		blk/head:	0
+		part: block/mold								;-- mold spec
+			native/reflect action words/spec
+			buffer
+			only?
+			all?
+			flat?
+			arg
+			part - 14
 		
-		part: block/mold blk buffer only? all? flat? arg part - 14	;-- spec
 		string/concatenate-literal buffer "]"
 		part - 1
 	]

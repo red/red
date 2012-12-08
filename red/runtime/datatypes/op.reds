@@ -96,19 +96,20 @@ op: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
-		/local
-			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/mold"]]
 
 		string/concatenate-literal buffer "make op! ["
 		
-		blk: as red-block! stack/push*					;@@ overwrite rather stack/arguments?
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/node:	op/spec
-		blk/head:	0
+		part: block/mold								;-- mold spec
+			native/reflect op words/spec
+			buffer
+			only?
+			all?
+			flat?
+			arg
+			part - 10
 		
-		part: block/mold blk buffer only? all? flat? arg part - 10	;-- spec
 		string/concatenate-literal buffer "]"
 		part - 1
 

@@ -51,7 +51,7 @@ native: context [
 	reflect: func [
 		native	[red-native!]
 		field	[integer!]
-		return:	[red-value!]
+		return:	[red-block!]
 		/local
 			blk [red-block!]
 	][
@@ -69,7 +69,7 @@ native: context [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
 		]
-		as red-value! blk								;@@ TBD: remove it when all cases implemented
+		blk												;@@ TBD: remove it when all cases implemented
 	]
 	
 	form: func [
@@ -94,19 +94,20 @@ native: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
-		/local
-			blk	[red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/mold"]]
 
 		string/concatenate-literal buffer "make native! ["
-
-		blk: as red-block! stack/push*					;@@ overwrite rather stack/arguments?
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/node:	native/spec
-		blk/head:	0
-
-		part: block/mold blk buffer only? all? flat? arg part - 14	;-- spec
+		
+		part: block/mold
+			reflect native words/spec					;-- mold spec
+			buffer
+			only?
+			all?
+			flat?
+			arg
+			part - 14
+		
 		string/concatenate-literal buffer "]"
 		part - 1
 	]

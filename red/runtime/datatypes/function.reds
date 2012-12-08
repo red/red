@@ -54,7 +54,7 @@ _function: context [
 	reflect: func [
 		fun		[red-function!]
 		field	[integer!]
-		return:	[red-value!]
+		return:	[red-block!]
 		/local
 			blk [red-block!]
 			s	[series!]
@@ -75,7 +75,7 @@ _function: context [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
 		]
-		as red-value! blk								;@@ TBD: remove it when all cases implemented
+		blk												;@@ TBD: remove it when all cases implemented
 	]
 	
 	form: func [
