@@ -32,11 +32,14 @@ native: context [
 		return:    [red-native!]					;-- return native cell pointer
 		/local
 			native [red-native!]
+			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/make"]]
 		
 		assert TYPE_OF(spec) = TYPE_BLOCK
-		
+		s: GET_BUFFER(spec)
+		spec: as red-block! s/offset
+
 		native: as red-native! stack/push*
 		native/header:  TYPE_NATIVE					;-- implicit reset of all header flags
 		native/spec:    spec/node					; @@ copy spec block if not at head
@@ -59,7 +62,7 @@ native: context [
 	]
 	
 	mold: func [
-		value	[red-native!]
+		native	[red-native!]
 		buffer	[red-string!]
 		only?	[logic!]
 		all?	[logic!]
@@ -67,11 +70,21 @@ native: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
+		/local
+			blk	[red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/mold"]]
 
-		string/concatenate-literal buffer "make native! [...]"
-		part - 18
+		string/concatenate-literal buffer "make native! ["
+
+		blk: as red-block! stack/push*					;@@ overwrite rather stack/arguments?
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk/node:	native/spec
+		blk/head:	0
+
+		part: block/mold blk buffer only? all? flat? arg part - 14	;-- spec
+		string/concatenate-literal buffer "]"
+		part - 1
 	]
 
 	datatype/register [

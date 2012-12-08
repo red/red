@@ -27,20 +27,50 @@ op: context [
 	;-- Actions -- 
 	
 	make: func [
-		proto	[red-value!]
-		spec	[red-block!]
-		return: [red-op!]
+		proto		[red-value!]
+		spec		[red-block!]						;-- type casted to red-block! to avoid an additional var
+		return:		[red-op!]
 		/local
-			op	[red-op!]
+			op		[red-op!]
+			blk		[red-block!]
+			native	[red-native!]
+			fun		[red-function!]
+			type	[integer!]
+			node	[node!]
+			s		[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/make"]]
 
-		;assert TYPE_OF(spec) = TYPE_BLOCK
+		type: TYPE_OF(spec)
+		assert any [
+			TYPE_OF(spec) = TYPE_BLOCK
+			TYPE_OF(spec) = TYPE_ACTION					;@@ replace with ANY_NATIVE? when available
+			TYPE_OF(spec) = TYPE_NATIVE
+			TYPE_OF(spec) = TYPE_OP
+			TYPE_OF(spec) = TYPE_FUNCTION
+		]
+		node: switch type [
+			TYPE_BLOCK [
+				s: GET_BUFFER(spec)
+				blk: as red-block! s/offset
+				blk/node
+			]
+			TYPE_ACTION
+			TYPE_NATIVE
+			TYPE_OP [
+				native: as red-native! spec
+				native/spec
+			]
+			TYPE_FUNCTION [
+				fun: as red-function! spec
+				fun/spec/node
+			]
+		]
 		
 		op: as red-op! stack/push*
-		op/header: TYPE_OP						;-- implicit reset of all header flags
-		;op/spec:    spec/node					; @@ copy spec block if not at head
-		;op/symbols: clean-spec spec 			; @@ TBD
+		op/header: TYPE_OP								;-- implicit reset of all header flags
+		op/spec:   node									; @@ copy spec block
+		;op/symbols: clean-spec spec 					; @@ TBD
 		op
 	]
 	
@@ -58,7 +88,7 @@ op: context [
 	]
 	
 	mold: func [
-		value	[red-native!]
+		op		[red-native!]
 		buffer	[red-string!]
 		only?	[logic!]
 		all?	[logic!]
@@ -66,11 +96,22 @@ op: context [
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
+		/local
+			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/mold"]]
 
-		string/concatenate-literal buffer "op"
-		part - 2
+		string/concatenate-literal buffer "make op! ["
+		
+		blk: as red-block! stack/push*					;@@ overwrite rather stack/arguments?
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk/node:	op/spec
+		blk/head:	0
+		
+		part: block/mold blk buffer only? all? flat? arg part - 10	;-- spec
+		string/concatenate-literal buffer "]"
+		part - 1
+
 	]
 
 	datatype/register [

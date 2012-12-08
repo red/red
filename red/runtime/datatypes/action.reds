@@ -32,10 +32,13 @@ action: context [
 		return:    [red-action!]							;-- return action cell pointer
 		/local
 			action [red-action!]
+			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/make"]]
 		
 		assert TYPE_OF(spec) = TYPE_BLOCK
+		s: GET_BUFFER(spec)
+		spec: as red-block! s/offset
 		
 		action: as red-action! stack/push*
 		action/header:  TYPE_ACTION						;-- implicit reset of all header flags
@@ -61,7 +64,7 @@ action: context [
 	]
 	
 	mold: func [
-		value	[red-action!]
+		action	[red-action!]
 		buffer	[red-string!]
 		only?	[logic!]
 		all?	[logic!]
@@ -71,11 +74,20 @@ action: context [
 		return: [integer!]
 		/local
 			str [red-string!]
+			blk	[red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/mold"]]
 
-		string/concatenate-literal buffer "make action! [...]" ;@@ TBD
-		part - 17										;@@ implement full support for /part
+		string/concatenate-literal buffer "make action! ["
+		
+		blk: as red-block! stack/push*					;@@ overwrite rather stack/arguments?
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk/node:	action/spec
+		blk/head:	0
+		
+		part: block/mold blk buffer only? all? flat? arg part - 14	;-- spec
+		string/concatenate-literal buffer "]"
+		part - 1
 	]
 
 
