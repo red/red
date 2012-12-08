@@ -29,7 +29,7 @@ native: context [
 	make: func [
 		proto	   [red-value!]
 		spec	   [red-block!]
-		return:    [red-native!]					;-- return native cell pointer
+		return:    [red-native!]						;-- return native cell pointer
 		/local
 			native [red-native!]
 			s	   [series!]
@@ -41,11 +41,35 @@ native: context [
 		spec: as red-block! s/offset
 
 		native: as red-native! stack/push*
-		native/header:  TYPE_NATIVE					;-- implicit reset of all header flags
-		native/spec:    spec/node					; @@ copy spec block if not at head
-		;native/symbols: clean-spec spec 			; @@ TBD
+		native/header:  TYPE_NATIVE						;-- implicit reset of all header flags
+		native/spec:    spec/node						; @@ copy spec block if not at head
+		;native/symbols: clean-spec spec 				; @@ TBD
 		
 		native
+	]
+	
+	reflect: func [
+		native	[red-native!]
+		field	[integer!]
+		return:	[red-value!]
+		/local
+			blk [red-block!]
+	][
+		case [
+			field = words/spec [
+				blk: as red-block! stack/arguments
+				blk/header: TYPE_BLOCK					;-- implicit reset of all header flags
+				blk/node:	native/spec
+				blk/head:	0
+			]
+			field = words/words [
+				--NOT_IMPLEMENTED--						;@@ build the words block from spec
+			]
+			true [
+				--NOT_IMPLEMENTED--						;@@ raise error
+			]
+		]
+		as red-value! blk								;@@ TBD: remove it when all cases implemented
 	]
 	
 	form: func [
@@ -94,7 +118,7 @@ native: context [
 		;-- General actions --
 		:make
 		null			;random
-		null			;reflect
+		:reflect
 		null			;to
 		:form
 		:mold

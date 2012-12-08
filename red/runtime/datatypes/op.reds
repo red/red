@@ -116,12 +116,12 @@ op: context [
 
 	datatype/register [
 		TYPE_OP
-		TYPE_VALUE
+		TYPE_NATIVE
 		"op!"
 		;-- General actions --
 		:make
 		null			;random
-		null			;reflect
+		INHERIT_ACTION	;reflect
 		null			;to
 		:form
 		:mold

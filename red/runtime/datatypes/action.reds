@@ -93,12 +93,12 @@ action: context [
 
 	datatype/register [
 		TYPE_ACTION
-		TYPE_VALUE
+		TYPE_NATIVE
 		"action!"
 		;-- General actions --
 		:make
 		null			;random
-		null			;reflect
+		INHERIT_ACTION	;reflect
 		null			;to
 		:form
 		:mold

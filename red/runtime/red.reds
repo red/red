@@ -51,8 +51,8 @@ red: context [
 	#include %datatypes/get-word.reds
 	#include %datatypes/refinement.reds
 	#include %datatypes/char.reds
-	#include %datatypes/action.reds
 	#include %datatypes/native.reds
+	#include %datatypes/action.reds
 	#include %datatypes/op.reds
 	#include %datatypes/path.reds
 	#include %datatypes/lit-path.reds
