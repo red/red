@@ -107,7 +107,7 @@ loader: make-profilable context [
 		s
 	]
 
-	inject: func [args [block!] 'macro s [block!] e [block!] /local rule pos i type][
+	inject: func [args [block!] 'macro s [block!] e [block!] /local rule pos i type value][
 		unless equal? length? args length? s/2 [
 			throw-error ["invalid macro arguments count in:" mold s/2]
 		]	
@@ -122,7 +122,12 @@ loader: make-profilable context [
 					| get-word! (type: get-word!)
 				] (
 					if i: find args to word! pos/1 [
-						change/only pos to type pick s/2 index? :i
+						value: pick s/2 index? :i
+						change/only pos either type = word! [
+							value						;-- word! => pass-thru value
+						][
+							to type value				;-- get/set => convert value
+						]
 					]
 				)
 				| skip
