@@ -13,7 +13,7 @@ Red/System [
 symbol: context [
 	verbose: 0
 	
-	same?: func [										;-- case-insensitive string comparison
+	same?: func [										;-- case-insensitive UTF-8 string comparison
 		str1	     [c-string!]
 		str2	     [c-string!]
 		return:      [integer!]

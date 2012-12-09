@@ -415,6 +415,97 @@ string: context [
 		part - 2 - get-length str
 	]
 	
+	compare: func [
+		str1	  [red-string!]							;-- first operand
+		str2	  [red-string!]							;-- second operand
+		op		  [integer!]							;-- type of comparison
+		return:	  [logic!]
+		/local
+			type  [integer!]
+			s1	  [series!]
+			s2	  [series!]
+			unit1 [integer!]
+			unit2 [integer!]
+			size  [integer!]
+			size2 [integer!]
+			end	  [byte-ptr!]
+			p1	  [byte-ptr!]
+			p2	  [byte-ptr!]
+			p4	  [int-ptr!]
+			c1	  [integer!]
+			c2	  [integer!]
+			lax?  [logic!]
+			res	  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/compare"]]
+
+		type: TYPE_OF(str2)
+		if type <> TYPE_STRING [
+			return switch op [
+				COMP_EQUAL
+				COMP_STRICT_EQUAL [false]
+				COMP_NOT_EQUAL 	  [true]
+				default [
+					--NOT_IMPLEMENTED--					;@@ add error handling
+					false
+				]
+			]
+		]
+		s1: GET_BUFFER(str1)
+		s2: GET_BUFFER(str2)
+		unit1: GET_UNIT(s1)
+		unit2: GET_UNIT(s2)
+		size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
+		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1)- str2/head
+		
+		if size1 <> size2 [								;-- shortcut exit for different sizes
+			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
+			if op = COMP_NOT_EQUAL [return true]
+		]
+		if zero? size1 [								;-- shortcut exit for empty strings
+			return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+		]
+		
+		end: as byte-ptr! s1/offset						;-- only one "end" is needed
+		p1:  as byte-ptr! s1/offset
+		p2:  as byte-ptr! s2/offset
+		lax?: op <> COMP_STRICT_EQUAL
+		
+		until [	
+			switch unit1 [
+				Latin1 [c1: as-integer p1/1]
+				UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
+				UCS-4  [p4: as int-ptr! p1 c1: p4/1]
+			]
+			switch unit2 [
+				Latin1 [c2: as-integer p2/1]
+				UCS-2  [c2: (as-integer p2/2) << 8 + p2/1]
+				UCS-4  [p4: as int-ptr! p2 c2: p4/1]
+			]
+			if lax? [
+				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
+				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+			]
+			p1: p1 + unit1
+			p2: p2 + unit2
+			any [
+				c1 <> c2
+				p1 > end
+			]
+		]
+		switch op [
+			COMP_EQUAL 			[res: c1 = c2]
+			COMP_NOT_EQUAL 		[res: c1 <> c2]
+			COMP_STRICT_EQUAL	[res: c1 = c2]
+			COMP_LESSER			[res: c1 <  c2]
+			COMP_LESSER_EQUAL	[res: c1 <= c2]
+			COMP_GREATER		[res: c1 >  c2]
+			COMP_GREATER_EQUAL	[res: c1 >= c2]
+		]
+		res
+	]
+
+	
 	;--- Property reading actions ---
 
 	head?: func [
@@ -765,7 +856,7 @@ string: context [
 		:mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add
