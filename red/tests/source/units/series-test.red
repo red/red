@@ -180,53 +180,11 @@ qt-print-totals: func [
 	;;--assert 0 = first stf6-ser
 	
 	--test-- "series-fstff-7"
-	;--assert 'a = first [a b c d]
+	--assert 'a = first [a b c d]
+	
+	--test-- "series-fstff-8"
+	--assert 'a = first first first first first first first first first [[[[[[[[[a]]]]]]]]]
 	  
-===end-group===
-
-===start-group=== "pick"
-
-  --test-- "series-pick-1"
-  --assert none = pick "" 1
-  
-  --test-- "series-pick-2"
-  --assert none = pick "" 0
-  
-  --test-- "series-pick-3"
-  --assert none = pick "" 2
-  
-  --test-- "series-pick-4"
-  --assert 49 = pick "12345" 1
-  
-  --test-- "series-pick-5"
-  --assert 53 = pick "12345" 5
-  
-  --test-- "series-pick-6"
-  --assert 1 = pick [1 2 3 4 5] 1
-  
-  --test-- "series-pick-7"
-  --assert 2 = pick [1 2 3 4 5] 2
-  
-  --test-- "series-pick-8"
-  --assert 4 = pick [1 2 3 4 5] 4
-  
-  --test-- "series-pick-9"
-  --assert 5 = pick [1 2 3 4 5] 5
-  
-  --test-- "series-pick-10"
-  --assert 2 = pick next next next [1 2 3 4 5] -2
-  
-  --test-- "series-pick-11"
-  --assert 3 = pick next next next [1 2 3 4 5] -1
-  
-  --test-- "series-pick-12"
-  --assert none = pick next next next [1 2 3 4 5] 0
-  
-===end-group===
-
-===start-group=== "select"
-  --test-- "series-select-1"
-  ;--assert 2 = select [1 2 3 4 5] 1
 ===end-group===
 
 ===start-group=== "next"
@@ -282,6 +240,75 @@ qt-print-totals: func [
   --assert 5 = first back tail [1 2 3 4 5]
   --test-- "seried-tail-2" 
   --assert none = pick tail [1 2 3 4 5] 1
+===end-group===
+
+===start-group=== "pick"
+
+  --test-- "series-pick-1"
+  --assert none = pick "" 1
+  
+  --test-- "series-pick-2"
+  --assert none = pick "" 0
+  
+  --test-- "series-pick-3"
+  --assert none = pick "" 2
+  
+  --test-- "series-pick-4"
+  --assert 49 = pick "12345" 1
+  
+  --test-- "series-pick-5"
+  --assert 53 = pick "12345" 5
+  
+  --test-- "series-pick-6"
+  --assert 1 = pick [1 2 3 4 5] 1
+  
+  --test-- "series-pick-7"
+  --assert 2 = pick [1 2 3 4 5] 2
+  
+  --test-- "series-pick-8"
+  --assert 4 = pick [1 2 3 4 5] 4
+  
+  --test-- "series-pick-9"
+  --assert 5 = pick [1 2 3 4 5] 5
+  
+  --test-- "series-pick-10"
+  --assert 2 = pick next next next [1 2 3 4 5] -2
+  
+  --test-- "series-pick-11"
+  --assert 3 = pick next next next [1 2 3 4 5] -1
+  
+  --test-- "series-pick-12"
+  --assert none = pick next next next [1 2 3 4 5] 0
+  
+  --test-- "series-pick-13"
+  --assert none = pick "12345" -1
+  
+  --test-- "series-pick-14"
+    sp14-i: 1
+  --assert 1 = pick [1 2 3 4 5] sp14-i
+  
+  --test-- "series-pick-15"
+    sp15-i: 4
+  --assert 4 = pick [1 2 3 4 5] sp15-i
+  
+  --test-- "series-pick-16"
+    sp16-i: -2
+  --assert 2 = pick next next next [1 2 3 4 5] sp16-i
+  
+  --test-- "series-pick-17"
+    sp17-i: 0
+  --assert none = pick next next next [1 2 3 4 5] sp17-i
+  
+  --test-- "series-pick-18"
+    sp18-i: -1
+  --assert none = pick "12345" sp18-i
+  
+  
+===end-group===
+
+===start-group=== "select"
+  --test-- "series-select-1"
+  ;--assert 2 = select [1 2 3 4 5] 1
 ===end-group===
 
 ===start-group=== "append"
