@@ -90,16 +90,23 @@ _context: context [
 	]
 
 	get: func [
-		word		[red-word!]
-		return:		[cell!]
+		word	   [red-word!]
+		return:	   [cell!]
 		/local
-			values	[series!]
+			values [series!]
+			sym	   [red-symbol!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get"]]
 		
-		assert all [									;-- ensure word is properly bound to a context
-			not null? word/ctx
-			word/index > -1
+		if any [										;-- ensure word is properly bound to a context
+			null? word/ctx
+			word/index = -1
+		][
+			sym: symbol/get word/symbol
+			print-line [
+				"*** Error: word '" sym/cache " has no value"
+			]
+			halt
 		]
 		values: as series! word/ctx/values/value
 		values/offset + word/index

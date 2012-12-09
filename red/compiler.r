@@ -1386,9 +1386,11 @@ red: context [
 
 		;-- Create datatype! datatype and word
 		emit compose [
+			stack/mark-native ~set
 			word/push (decorate-symbol 'datatype!)
 			datatype/push TYPE_DATATYPE
 			word/set
+			stack/unwind
 			stack/reset
 		]
 	]

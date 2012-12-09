@@ -93,6 +93,16 @@ symbol: context [
 		block/rs-length? symbols
 	]
 	
+	get: func [
+		id		[integer!]
+		return:	[red-symbol!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(symbols)
+		as red-symbol! s/offset + id - 1
+	]
+	
 	resolve: func [
 		id		[integer!]
 		return:	[integer!]
