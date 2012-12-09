@@ -83,6 +83,18 @@ lit-path: context [
 		form p buffer arg part - 1
 	]
 	
+	compare: func [
+		value1	   [red-block!]							;-- first operand
+		value2	   [red-block!]							;-- second operand
+		op		   [integer!]							;-- type of comparison
+		return:	   [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "lit-path/compare"]]
+
+		if TYPE_OF(value2) <> TYPE_LIT_PATH [RETURN_COMPARE_OTHER]
+		block/compare-each value1 value2 op
+	]
+
 	datatype/register [
 		TYPE_LIT_PATH
 		TYPE_PATH
@@ -96,7 +108,7 @@ lit-path: context [
 		:mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add
