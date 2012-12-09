@@ -421,7 +421,6 @@ string: context [
 		op		  [integer!]							;-- type of comparison
 		return:	  [logic!]
 		/local
-			type  [integer!]
 			s1	  [series!]
 			s2	  [series!]
 			unit1 [integer!]
@@ -439,8 +438,7 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare"]]
 
-		type: TYPE_OF(str2)
-		if type <> TYPE_STRING [
+		if TYPE_OF(str2) <> TYPE_STRING [
 			return switch op [
 				COMP_EQUAL
 				COMP_STRICT_EQUAL [false]
@@ -466,9 +464,9 @@ string: context [
 			return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
 		]
 		
-		end: as byte-ptr! s1/offset						;-- only one "end" is needed
-		p1:  as byte-ptr! s1/offset
-		p2:  as byte-ptr! s2/offset
+		end: as byte-ptr! s1/tail						;-- only one "end" is needed
+		p1:  (as byte-ptr! s1/offset) + (str1/head - 1 << (unit1 >> 1))
+		p2:  (as byte-ptr! s2/offset) + (str2/head - 1 << (unit2 >> 1))
 		lax?: op <> COMP_STRICT_EQUAL
 		
 		until [	
