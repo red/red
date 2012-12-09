@@ -102,6 +102,19 @@ path: context [
 		form path buffer arg part
 	]
 	
+	compare: func [
+		value1	   [red-block!]							;-- first operand
+		value2	   [red-block!]							;-- second operand
+		op		   [integer!]							;-- type of comparison
+		return:	   [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "path/compare"]]
+
+		if TYPE_OF(value2) <> TYPE_PATH [RETURN_COMPARE_OTHER]
+		block/compare-each value1 value2 op
+	]
+	
+	
 	datatype/register [
 		TYPE_PATH
 		TYPE_BLOCK
@@ -115,7 +128,7 @@ path: context [
 		:mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add

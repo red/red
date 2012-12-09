@@ -152,6 +152,49 @@ block: context [
 		part
 	]
 
+	compare-each: func [
+		blk1	   [red-block!]							;-- first operand
+		blk2	   [red-block!]							;-- second operand
+		op		   [integer!]							;-- type of comparison
+		return:	   [logic!]
+		/local
+			s1	   [series!]
+			s2	   [series!]
+			size1  [integer!]
+			size2  [integer!]
+			end	   [red-value!]
+			value1 [red-value!]
+			value2 [red-value!]
+			res	   [logic!]
+	][
+		s1: GET_BUFFER(blk1)
+		s2: GET_BUFFER(blk2)
+		size1: (as-integer s1/tail - s1/offset) - blk1/head
+		size2: (as-integer s2/tail - s2/offset) - blk2/head
+
+		if size1 <> size2 [								;-- shortcut exit for different sizes
+			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
+			if op = COMP_NOT_EQUAL [return true]
+		]
+		if zero? size1 [								;-- shortcut exit for empty blocks
+			return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+		]
+		
+		value1: s1/offset + blk1/head
+		value2: s2/offset + blk2/head
+		end: s1/tail									;-- only one "end" is needed
+		until [
+			res: actions/compare value1 value2 op
+			value1: value1 + 1
+			value2: value2 + 1
+			any [
+				not res
+				value1 >= end
+			]
+		]
+		if op = COMP_NOT_EQUAL [res: not res]
+		res
+	]
 
 	;--- Actions ---
 	
@@ -246,47 +289,11 @@ block: context [
 		blk2	   [red-block!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
 		return:	   [logic!]
-		/local
-			s1	   [series!]
-			s2	   [series!]
-			size1  [integer!]
-			size2  [integer!]
-			end	   [red-value!]
-			value1 [red-value!]
-			value2 [red-value!]
-			res	   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare"]]
 		
 		if TYPE_OF(blk2) <> TYPE_BLOCK [RETURN_COMPARE_OTHER]
-		
-		s1: GET_BUFFER(blk1)
-		s2: GET_BUFFER(blk2)
-		size1: (as-integer s1/tail - s1/offset) - blk1/head
-		size2: (as-integer s2/tail - s2/offset) - blk2/head
-
-		if size1 <> size2 [								;-- shortcut exit for different sizes
-			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
-			if op = COMP_NOT_EQUAL [return true]
-		]
-		if zero? size1 [								;-- shortcut exit for empty blocks
-			return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
-		]
-		
-		value1: s1/offset + blk1/head
-		value2: s2/offset + blk2/head
-		end: s1/tail									;-- only one "end" is needed
-		until [
-			res: actions/compare value1 value2 op
-			value1: value1 + 1
-			value2: value2 + 1
-			any [
-				not res
-				value1 >= end
-			]
-		]
-		if op = COMP_NOT_EQUAL [res: not res]
-		res
+		compare-each blk1 blk2 op
 	]
 	
 	;--- Property reading actions ---

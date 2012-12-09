@@ -150,7 +150,7 @@ word: context [
 				]
 			]
 			COMP_NOT_EQUAL [
-				res: not compare arg1 arg2 op
+				res: not compare arg1 arg2 COMP_EQUAL
 			]
 			default [
 				print-line ["Error: cannot use: " op " comparison on any-word! value"]
