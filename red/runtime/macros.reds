@@ -167,6 +167,18 @@ Red/System [
 	halt
 ]
 
+#define RETURN_COMPARE_OTHER [
+	return switch op [
+			COMP_EQUAL
+			COMP_STRICT_EQUAL [false]
+			COMP_NOT_EQUAL 	  [true]
+			default [
+				--NOT_IMPLEMENTED--					;@@ add error handling
+				false
+			]
+		]
+]
+
 #if debug? = yes [
 	#define dump4			[dump-hex4 as int-ptr!]
 	#define dump1			[dump-hex  as byte-ptr!]

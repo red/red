@@ -258,17 +258,8 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare"]]
 		
-		if TYPE_OF(blk2) <> TYPE_BLOCK [
-			return switch op [
-				COMP_EQUAL
-				COMP_STRICT_EQUAL [false]
-				COMP_NOT_EQUAL 	  [true]
-				default [
-					--NOT_IMPLEMENTED--					;@@ add error handling
-					false
-				]
-			]
-		]
+		if TYPE_OF(blk2) <> TYPE_BLOCK [RETURN_COMPARE_OTHER]
+		
 		s1: GET_BUFFER(blk1)
 		s2: GET_BUFFER(blk2)
 		size1: (as-integer s1/tail - s1/offset) - blk1/head

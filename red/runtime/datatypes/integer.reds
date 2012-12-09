@@ -177,17 +177,7 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
-			default [
-				return switch op [
-					COMP_EQUAL
-					COMP_STRICT_EQUAL [false]
-					COMP_NOT_EQUAL 	  [true]
-					default [
-						--NOT_IMPLEMENTED--				;@@ add error handling
-						false
-					]
-				]
-			]
+			default [RETURN_COMPARE_OTHER]
 		]
 		switch op [
 			COMP_EQUAL 			[res: left = right]

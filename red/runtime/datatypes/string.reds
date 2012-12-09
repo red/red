@@ -438,17 +438,8 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare"]]
 
-		if TYPE_OF(str2) <> TYPE_STRING [
-			return switch op [
-				COMP_EQUAL
-				COMP_STRICT_EQUAL [false]
-				COMP_NOT_EQUAL 	  [true]
-				default [
-					--NOT_IMPLEMENTED--					;@@ add error handling
-					false
-				]
-			]
-		]
+		if TYPE_OF(str2) <> TYPE_STRING [RETURN_COMPARE_OTHER]
+		
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
