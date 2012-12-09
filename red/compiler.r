@@ -976,6 +976,7 @@ red: context [
 						either head? path [
 							pc: next pc
 							comp-call path entry/2		;-- call function with refinements
+							exit
 						][
 							--not-implemented--			;TBD: resolve access path to function
 						]
