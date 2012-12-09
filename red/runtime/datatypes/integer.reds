@@ -161,17 +161,15 @@ integer: context [
 		return:   [logic!]
 		/local
 			char  [red-char!]
-			type  [integer!]
 			left  [integer!]
 			right [integer!] 
 			res	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/compare"]]
 		
-		type: TYPE_OF(value2)
 		left: value1/value
 		
-		switch type [
+		switch TYPE_OF(value2) [
 			TYPE_INTEGER [
 				right: value2/value
 			]
@@ -179,19 +177,22 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
-			default [									;@@ Throw error! when ready
-				either op = COMP_EQUAL [
-					return false
-				][
-					print-line ["Error: cannot compare integer! with type #" type]
-					halt
+			default [
+				return switch op [
+					COMP_EQUAL
+					COMP_STRICT_EQUAL [false]
+					COMP_NOT_EQUAL 	  [true]
+					default [
+						--NOT_IMPLEMENTED--				;@@ add error handling
+						false
+					]
 				]
 			]
 		]
 		switch op [
 			COMP_EQUAL 			[res: left = right]
 			COMP_NOT_EQUAL 		[res: left <> right]
-			COMP_STRICT_EQUAL	[res: all [type = TYPE_INTEGER left = right]]
+			COMP_STRICT_EQUAL	[res: all [TYPE_OF(value2) = TYPE_INTEGER left = right]]
 			COMP_LESSER			[res: left <  right]
 			COMP_LESSER_EQUAL	[res: left <= right]
 			COMP_GREATER		[res: left >  right]

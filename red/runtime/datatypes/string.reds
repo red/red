@@ -465,8 +465,8 @@ string: context [
 		]
 		
 		end: as byte-ptr! s1/tail						;-- only one "end" is needed
-		p1:  (as byte-ptr! s1/offset) + (str1/head - 1 << (unit1 >> 1))
-		p2:  (as byte-ptr! s2/offset) + (str2/head - 1 << (unit2 >> 1))
+		p1:  (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
+		p2:  (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
 		lax?: op <> COMP_STRICT_EQUAL
 		
 		until [	
@@ -488,7 +488,7 @@ string: context [
 			p2: p2 + unit2
 			any [
 				c1 <> c2
-				p1 > end
+				p1 >= end
 			]
 		]
 		switch op [
