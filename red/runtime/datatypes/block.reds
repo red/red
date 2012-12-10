@@ -506,7 +506,7 @@ block: context [
 			][
 				b: as red-block! part
 				unless all [
-					TYPE_OF(b) = TYPE_BLOCK
+					TYPE_OF(b) = TYPE_OF(blk)			;-- handles ANY-BLOCK!
 					b/node = blk/node
 				][
 					print "*** Error: invalid /part series argument"	;@@ replace with error!

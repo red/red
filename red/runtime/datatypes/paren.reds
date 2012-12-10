@@ -124,7 +124,7 @@ paren: context [
 		null			;change
 		INHERIT_ACTION	;clear
 		null			;copy
-		null			;find
+		INHERIT_ACTION	;find
 		INHERIT_ACTION	;head
 		INHERIT_ACTION	;head?
 		INHERIT_ACTION	;index?
