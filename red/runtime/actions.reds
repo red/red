@@ -407,7 +407,72 @@ actions: context [
 	]
 	
 	copy*: func [][]
-	find*: func [][]
+	
+	find*: func [
+		part	 [integer!]
+		only	 [integer!]
+		case-arg [integer!]
+		any-arg  [integer!]
+		with-arg [integer!]
+		skip	 [integer!]
+		last	 [integer!]
+		reverse	 [integer!]
+		tail	 [integer!]
+		match	 [integer!]
+	][
+		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
+		find
+			as red-series! stack/arguments
+			stack/arguments + 1
+			stack/arguments + part
+			as logic! only + 1
+			as logic! case-arg + 1
+			as logic! any-arg + 1
+			as red-string!  stack/arguments + with-arg
+			as red-integer! stack/arguments + skip
+			as logic! last + 1
+			as logic! reverse + 1
+			as logic! tail + 1
+			as logic! match + 1
+	]
+		
+	find: func [
+		series   [red-series!]
+		value    [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		tail?	 [logic!]
+		match?	 [logic!]
+		return:  [red-value!]
+		/local
+			action-find
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/find"]]
+	
+		action-find: as function! [
+			series   [red-series!]
+			value    [red-value!]
+			part	 [red-value!]
+			only?	 [logic!]
+			case?	 [logic!]
+			any?	 [logic!]
+			with-arg [red-string!]
+			skip	 [red-integer!]
+			last?	 [logic!]
+			reverse? [logic!]
+			tail?	 [logic!]
+			match?	 [logic!]
+			return:  [red-value!]
+		] get-action-ptr as red-value! series ACT_FIND
+			
+		action-find series value part only? case? any? with-arg skip last? reverse? tail? match?
+	]
 	
 	head*: func [
 		return:	[red-value!]

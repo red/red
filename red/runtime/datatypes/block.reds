@@ -455,6 +455,100 @@ block: context [
 		as red-value! blk
 	]
 	
+	find: func [
+		blk		 [red-block!]
+		value    [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]								;@@ always /only for now
+		case?	 [logic!]
+		any?	 [logic!]
+		with	 [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		tail?	 [logic!]
+		match?	 [logic!]								;@@ not implemented
+		return:  [red-value!]
+		/local
+			s	 [series!]
+			slot [red-value!]
+			end  [red-value!]
+			int	 [red-integer!]
+			b	 [red-block!]
+			step [integer!]
+			part?[logic!]
+			op	 [integer!]
+			res  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
+		
+		s: GET_BUFFER(blk)
+		if s/offset = s/tail [							;-- early exit if blk is empty
+			blk/header: TYPE_NONE
+			return s/offset
+		]
+		step:  1
+		part?: no
+		
+		if OPTION?(skip) [
+			assert TYPE_OF(skip) = TYPE_INTEGER
+			step: skip/value
+		]
+		if OPTION?(part) [
+			part: either TYPE_OF(part) = TYPE_INTEGER [
+				int: as red-integer! part
+				s/offset + int/value - 1				;-- int argument is 1-based
+			][
+				b: as red-block! part
+				unless all [
+					TYPE_OF(b) = TYPE_BLOCK
+					b/node = blk/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				s/offset + b/head
+			]
+			part?: yes
+		]
+		case [
+			last? [
+				step: 0 - step
+				slot: either part? [part][s/tail - 1]
+				end: s/offset
+			]
+			reverse? [
+				step: 0 - step
+				slot: either part? [part][s/offset + blk/head]
+				end: s/offset
+			]
+			true [
+				slot: s/offset + blk/head
+				end: either part? [part + 1][s/tail]	;-- + 1 => compensate for the '>= test
+			]
+		]
+		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		reverse?: any [reverse? last?]					;-- reduce both flags to one
+		
+		until [
+			res: actions/compare slot value op
+			slot: slot + step
+			any [
+				res
+				all [reverse? slot <= end]
+				all [not reverse? slot >= end]
+			]
+		]
+		unless tail? [slot: slot - step]				;-- point before/after found value
+		
+		either res [
+			blk/head: (as-integer slot - s/offset) >> 4	;-- just change the head position on stack
+		][
+			blk/header: TYPE_NONE						;-- change the stack 1st argument to none.
+		]
+		slot
+	]
+	
 	;--- Reading actions ---
 	
 	pick: func [
@@ -643,7 +737,7 @@ block: context [
 		null			;change
 		:clear
 		null			;copy
-		null			;find
+		:find
 		:head
 		:head?
 		:index?
