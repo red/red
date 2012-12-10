@@ -13,16 +13,6 @@ Red/System [
 paren: context [
 	verbose: 0
 	
-	depth: 0
-	
-	append*: func [
-		return: [red-paren!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "paren/append*"]]
-
-		block/append*
-	]
-	
 	push*: func [
 		size	  [integer!]
 		return:   [red-paren!]	
