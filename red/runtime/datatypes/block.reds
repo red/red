@@ -456,29 +456,34 @@ block: context [
 	]
 	
 	find: func [
-		blk		 [red-block!]
-		value    [red-value!]
-		part	 [red-value!]
-		only?	 [logic!]								;@@ always /only for now
-		case?	 [logic!]
-		any?	 [logic!]
-		with	 [red-string!]
-		skip	 [red-integer!]
-		last?	 [logic!]
-		reverse? [logic!]
-		tail?	 [logic!]
-		match?	 [logic!]								;@@ not implemented
-		return:  [red-value!]
+		blk			[red-block!]
+		value		[red-value!]
+		part		[red-value!]
+		only?		[logic!]
+		case?		[logic!]
+		any?		[logic!]
+		with		[red-string!]
+		skip		[red-integer!]
+		last?		[logic!]
+		reverse?	[logic!]
+		tail?		[logic!]
+		match?		[logic!]
+		return:		[red-value!]
 		/local
-			s	 [series!]
-			slot [red-value!]
-			end  [red-value!]
-			int	 [red-integer!]
-			b	 [red-block!]
-			step [integer!]
-			part?[logic!]
-			op	 [integer!]
-			res  [logic!]
+			s		[series!]
+			s2		[series!]
+			slot	[red-value!]
+			slot2	[red-value!]
+			end		[red-value!]
+			end2	[red-value!]
+			int		[red-integer!]
+			b		[red-block!]
+			values	[integer!]
+			step	[integer!]
+			n		[integer!]
+			part?	[logic!]
+			op		[integer!]
+			res		[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
 		
@@ -511,6 +516,25 @@ block: context [
 			]
 			part?: yes
 		]
+		
+		values: either only? [0][						;-- values > 0 => series comparison mode
+			either any [								;@@ replace with ANY_BLOCK?
+				TYPE_OF(value) = TYPE_BLOCK
+				TYPE_OF(value) = TYPE_PAREN
+				TYPE_OF(value) = TYPE_PATH
+				TYPE_OF(value) = TYPE_GET_PATH
+				TYPE_OF(value) = TYPE_SET_PATH
+				TYPE_OF(value) = TYPE_LIT_PATH
+			][
+				b: as red-block! value
+				s2: GET_BUFFER(b)
+				value: s2/offset + b/head
+				end2: s2/tail
+				(as-integer s2/tail - s2/offset) >> 4 - b/head - 1 ;-- -1 => adjusted for loop comparison
+			][0]
+		]
+		if negative? values [values: 0]					;-- empty value series case
+		
 		case [
 			last? [
 				step: 0 - step
@@ -527,16 +551,32 @@ block: context [
 				end: either part? [part + 1][s/tail]	;-- + 1 => compensate for the '>= test
 			]
 		]
-		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL] ;-- warning: /case <> STRICT...
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		
 		until [
-			res: actions/compare slot value op
+			either zero? values [
+				res: actions/compare slot value op		;-- atomic comparison
+			][
+				n: 0
+				slot2: slot
+				until [									;-- series comparison
+					res: actions/compare slot2 value + n op
+					slot2: slot2 + 1
+					n: n + 1
+					any [
+						not res							;-- no match
+						n = values						;-- values exhausted
+						slot2 >= end2					;-- block series tail reached
+					]
+				]
+			]
 			slot: slot + step
 			any [
-				res
-				all [reverse? slot <= end]
-				all [not reverse? slot >= end]
+				match?									;-- /match option limits to one comparison
+				all [not match? res]					;-- match found
+				all [reverse? slot <= end]				;-- head of block series reached
+				all [not reverse? slot >= end]			;-- tail of block series reached
 			]
 		]
 		unless tail? [slot: slot - step]				;-- point before/after found value
