@@ -341,5 +341,50 @@ qt-print-totals: func [
   
 ===end-group===
 
+===start-group=== "series-equal"
+
+  --test-- "series-equal-1"
+  --assert [] = []
+  
+  --test-- "series-equal-2"
+    se2-b: []
+  --assert [] = se2-b
+  
+  --test-- "series-equal-3"
+    se3-b: []
+  --assert se3-b = []
+  
+  --test-- "series-equal-4"
+    se4-b: [1]
+  --assert se4-b = [1]
+  
+  --test-- "series-equal-5"
+    se5-b: ["abcde"]
+  --assert se5-b = ["abcde"]
+  
+===end-group===
+
+===start-group=== "series-find"
+
+  --test-- "series-find-1"
+  --assert 3 = first find [1 2 3 4 5] 3 
+  
+  --test-- "series-find-2"
+  --assert 'a = first find [a b c d e] 'a
+  
+  --test-- "series-find-3"
+  --assert 'e = first find [a b c d e] 'e
+  
+  --test-- "series-find-4"
+  --assert none = find [] 'a
+  
+  --test-- "series-find-5"
+  --assert none = find [1 2 3 4] 'a
+  
+  --test-- "series-find-6"
+  --assert none = find next [a b c d e] 'a
+
+===end-group===
+
 ~~~end-file~~~
 
