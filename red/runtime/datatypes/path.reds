@@ -103,15 +103,15 @@ path: context [
 	]
 	
 	compare: func [
-		value1	   [red-block!]							;-- first operand
-		value2	   [red-block!]							;-- second operand
+		value1	   [red-path!]							;-- first operand
+		value2	   [red-path!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
 		return:	   [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/compare"]]
 
 		if TYPE_OF(value2) <> TYPE_PATH [RETURN_COMPARE_OTHER]
-		block/compare-each value1 value2 op
+		block/compare-each as red-block! value1 as red-block! value2 op
 	]
 	
 	

@@ -83,6 +83,18 @@ paren: context [
 		part - 1
 	]
 	
+	compare: func [
+		value1	   [red-paren!]							;-- first operand
+		value2	   [red-paren!]							;-- second operand
+		op		   [integer!]							;-- type of comparison
+		return:	   [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "paren/compare"]]
+
+		if TYPE_OF(value2) <> TYPE_PAREN [RETURN_COMPARE_OTHER]
+		block/compare-each as red-block! value1 as red-block! value2 op
+	]
+
 		
 	datatype/register [
 		TYPE_PAREN
@@ -97,7 +109,7 @@ paren: context [
 		:mold
 		null			;get-path
 		null			;set-path
-		null			;compare
+		:compare
 		;-- Scalar actions --
 		null			;absolute
 		null			;add
