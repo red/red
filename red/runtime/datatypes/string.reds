@@ -733,6 +733,7 @@ string: context [
 				end: either part? [limit + unit][as byte-ptr! s/tail] ;-- + unit => compensate for the '>= test
 			]
 		]
+		if match? [tail?: yes]
 		case?: not case?								;-- inverted case? meaning
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
@@ -836,7 +837,7 @@ string: context [
 						p2 >= end2						;-- block series tail reached
 					]
 				]
-				if all [match? found?][buffer: p1]
+				if all [match? found?][buffer: p1 - 1]
 			]
 			buffer: buffer + step
 			any [
