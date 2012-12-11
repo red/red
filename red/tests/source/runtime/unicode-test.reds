@@ -23,7 +23,7 @@ with red [
       str           [c-string!]
   ][
 
-    n: unicode/load-utf8 utf8-str size? utf8-str
+    n: unicode/load-utf8 utf8-str 1 + system/words/length? utf8-str
     s: as series! n/value
     str: as c-string! s/offset
     str
