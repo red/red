@@ -553,6 +553,7 @@ block: context [
 		]
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL] ;-- warning: /case <> STRICT...
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
+		if match? [tail?: yes]
 		
 		until [
 			either zero? values [
@@ -570,6 +571,7 @@ block: context [
 						slot2 >= end2					;-- block series tail reached
 					]
 				]
+				if all [match? found?][slot: slot2 + 1]
 			]
 			slot: slot + step
 			any [
