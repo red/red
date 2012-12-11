@@ -57,7 +57,13 @@ word: context [
 		cell/ctx: ctx
 		cell
 	]
-
+	
+	get-buffer: func [
+		w		[red-word!]
+		return: [red-symbol!]
+	][
+		symbol/get w/symbol
+	]
 
 	set: func [
 		/local

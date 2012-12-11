@@ -248,7 +248,7 @@ string: context [
 			true [true]									;@@ catch-all case to make compiler happy
 		]
 		
-		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str2/head]	;-- make symbol! used as string! pass safely
+		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head]	;-- make symbol! used as string! pass safely
 		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head]	;-- make symbol! used as string! pass safely
 		
 		size2: as-integer (as byte-ptr! s2/tail - s2/offset) - h2
@@ -257,7 +257,7 @@ string: context [
 		if all [part >= 0 part < size2][size2: part]	;-- optionally limit str2 characters to copy
 		
 		either all [keep? unit1 <> unit2][
-			p: as byte-ptr! s1/offset
+			p: (as byte-ptr! s1/offset) + (h1 << (unit1 >> 1))
 			limit: p + size2
 			while [p < limit][
 				either unit2 = UCS-2 [
@@ -271,7 +271,7 @@ string: context [
 			]
 		][
 			p: as byte-ptr! s1/tail
-			copy-memory	p as byte-ptr! s2/offset size2
+			copy-memory	p (as byte-ptr! s2/offset) + (h2 << (unit2 >> 1)) size2
 			p: p + size2
 		]
 		switch unit1 [									;-- add terminal NUL
@@ -646,6 +646,213 @@ string: context [
 		as red-value! str
 	]
 	
+	find: func [
+		str			[red-string!]
+		value		[red-value!]
+		part		[red-value!]
+		only?		[logic!]
+		case?		[logic!]
+		any?		[logic!]							;@@ not implemented
+		with		[red-string!]						;@@ not implemented
+		skip		[red-integer!]
+		last?		[logic!]
+		reverse?	[logic!]
+		tail?		[logic!]
+		match?		[logic!]
+		return:		[byte-ptr!]
+		/local
+			s		[series!]
+			s2		[series!]
+			buffer	[byte-ptr!]
+			pattern	[byte-ptr!]
+			end		[byte-ptr!]
+			end2	[byte-ptr!]
+			int		[red-integer!]
+			char	[red-char!]
+			str2	[red-string!]
+			unit	[encoding!]
+			unit2	[encoding!]
+			head2	[integer!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+			p4		[int-ptr!]
+			c1		[integer!]
+			c2		[integer!]
+			step	[integer!]
+			limit	[byte-ptr!]
+			part?	[logic!]
+			op		[integer!]
+			found?	[logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/find"]]
+
+		s: GET_BUFFER(str)
+		if s/offset = s/tail [							;-- early exit if string is empty
+			str/header: TYPE_NONE
+			return as byte-ptr! s/offset
+		]
+		unit: GET_UNIT(s)
+		step: 1
+		part?: no
+
+		;-- Options processing --
+		
+		if OPTION?(skip) [
+			assert TYPE_OF(skip) = TYPE_INTEGER
+			step: skip/value
+		]
+		if OPTION?(part) [
+			limit: either TYPE_OF(part) = TYPE_INTEGER [
+				int: as red-integer! part
+				(as byte-ptr! s/offset) + (int/value - 1 << (unit >> 1)) ;-- int argument is 1-based
+			][
+				str2: as red-string! part
+				unless all [
+					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
+					str2/node = str/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				(as byte-ptr! s/offset) + (str2/head << (unit >> 1))
+			]
+			part?: yes
+		]
+
+		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		end: 	 as byte-ptr! s/tail
+		pattern: null
+		
+		case [
+			last? [
+				step: 0 - step
+				buffer: either part? [limit][(as byte-ptr! s/tail) - unit]
+				end: as byte-ptr! s/offset
+			]
+			reverse? [
+				step: 0 - step
+				buffer: either part? [limit][(as byte-ptr! s/offset) + (str/head << (unit >> 1))]
+				end: as byte-ptr! s/offset
+			]
+			true [
+				buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+				end: either part? [limit + unit][as byte-ptr! s/tail] ;-- + unit => compensate for the '>= test
+			]
+		]
+		case?: not case?								;-- inverted case? meaning
+		reverse?: any [reverse? last?]					;-- reduce both flags to one
+		step: step << (unit >> 1)
+		
+		;-- Value argument processing --
+		
+		switch TYPE_OF(value) [
+			TYPE_CHAR [
+				char: as red-char! value
+				c2: char/value
+				if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+			]
+			TYPE_STRING TYPE_WORD [
+				either TYPE_OF(value) = TYPE_WORD [
+					str2: as red-string! word/get-buffer as red-word! value
+					head2: 0							;-- str2/head = -1 (casted from symbol!)
+				][
+					str2: as red-string! value
+					head2: str2/head
+				]
+				s2: GET_BUFFER(str2)
+				unit2: GET_UNIT(s2)
+				case [									;-- adjust value string encoding
+					unit < unit2 [
+						--NOT_IMPLEMENTED--
+						;switch unit2 [
+						;	UCS-2 [s2: unicode/UCS2-to-Latin1 s2]
+						;	UCS-4 [
+						;		s2: either unit = Latin1 [
+						;			unicode/UCS4-to-Latin1 s2
+						;		][
+						;			unicode/UCS4-to-UCS2 s2
+						;		]
+						;	]
+						;]
+					]
+					unit > unit2 [
+						switch unit [
+							UCS-2 [s2: unicode/Latin1-to-UCS2 s2]
+							UCS-4 [
+								s2: either unit2 = Latin1 [
+									unicode/Latin1-to-UCS4 s2
+								][
+									unicode/UCS2-to-UCS4 s2
+								]
+							]
+						]
+					]
+					true [true]							;-- just to make the compiler happy
+				]
+				pattern: (as byte-ptr! s2/offset) + (head2 << (unit >> 1))
+				end2:    (as byte-ptr! s2/tail)
+			]
+			default [
+				str/header: TYPE_NONE
+				return null
+			]
+		]
+		
+		;-- Search loop --
+
+		until [
+			either pattern = null [
+				switch unit [
+					Latin1 [c1: as-integer buffer/1]
+					UCS-2  [c1: (as-integer buffer/2) << 8 + buffer/1]
+					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
+				]
+				if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
+				found?: c1 = c2
+			][
+				p1: buffer
+				p2: pattern
+				until [									;-- series comparison
+					switch unit [
+						Latin1 [found?: p1/1 = p2/1]
+						UCS-2  [
+							found?: ((as-integer p1/2) << 8 + p1/1)
+								  = ((as-integer p2/2) << 8 + p2/1)
+						]
+						UCS-4  [
+							p4: as int-ptr! p1
+							c1: p4/1
+							p4: as int-ptr! p2
+							found?: c1 = p4/1
+						]
+					]
+					p1: p1 + unit
+					p2: p2 + unit
+					any [
+						not found?						;-- no match
+						p1 >= end						;-- search buffer exhausted
+						p2 >= end2						;-- block series tail reached
+					]
+				]
+			]
+			buffer: buffer + step
+			any [
+				match?									;-- /match option limits to one comparison
+				all [not match? found?]					;-- match found
+				all [reverse? buffer <= end]			;-- head of block series reached
+				all [not reverse? buffer >= end]		;-- tail of block series reached
+			]
+		]
+		unless tail? [buffer: buffer - step]			;-- point before/after found value
+
+		either found? [
+			str/head: (as-integer buffer - s/offset) >> (unit >> 1)	;-- just change the head position on stack
+		][
+			str/header: TYPE_NONE						;-- change the stack 1st argument to none.
+		]
+		buffer
+	]
+	
 	;--- Reading actions ---
 
 	pick: func [
@@ -830,7 +1037,6 @@ string: context [
 		]
 		as red-value! str
 	]
-
 	
 	datatype/register [
 		TYPE_STRING
@@ -870,7 +1076,7 @@ string: context [
 		null			;change
 		:clear
 		null			;copy
-		null			;find
+		:find
 		:head
 		:head?
 		:index?

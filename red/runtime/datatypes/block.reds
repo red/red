@@ -483,7 +483,7 @@ block: context [
 			n		[integer!]
 			part?	[logic!]
 			op		[integer!]
-			res		[logic!]
+			found?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
 		
@@ -556,16 +556,16 @@ block: context [
 		
 		until [
 			either zero? values [
-				res: actions/compare slot value op		;-- atomic comparison
+				found?: actions/compare slot value op	;-- atomic comparison
 			][
 				n: 0
 				slot2: slot
 				until [									;-- series comparison
-					res: actions/compare slot2 value + n op
+					found?: actions/compare slot2 value + n op
 					slot2: slot2 + 1
 					n: n + 1
 					any [
-						not res							;-- no match
+						not found?						;-- no match
 						n = values						;-- values exhausted
 						slot2 >= end2					;-- block series tail reached
 					]
@@ -574,14 +574,14 @@ block: context [
 			slot: slot + step
 			any [
 				match?									;-- /match option limits to one comparison
-				all [not match? res]					;-- match found
+				all [not match? found?]					;-- match found
 				all [reverse? slot <= end]				;-- head of block series reached
 				all [not reverse? slot >= end]			;-- tail of block series reached
 			]
 		]
 		unless tail? [slot: slot - step]				;-- point before/after found value
 		
-		either res [
+		either found? [
 			blk/head: (as-integer slot - s/offset) >> 4	;-- just change the head position on stack
 		][
 			blk/header: TYPE_NONE						;-- change the stack 1st argument to none.
