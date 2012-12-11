@@ -184,7 +184,19 @@ qt-print-totals: func [
 	
 	--test-- "series-fstff-8"
 	--assert 'a = first first first first first first first first first [[[[[[[[[a]]]]]]]]]
+	
+	--test-- "series-fstff-9"
+	--assert #"^(00)" = first "^(00)"
+	
+	--test-- "series-fstff-10"
+	--assert #"^(00)" = first "^(00)a" 
 	  
+	--test-- "series-fstff-11"
+	--assert #"^(00)" = second "a^(00)"
+	
+	--test-- "series-fstff-12"
+	--assert #"^(00)" = second "a^(00)b"
+	
 ===end-group===
 
 ===start-group=== "next"
@@ -207,11 +219,15 @@ qt-print-totals: func [
   --test-- "series-next-9"
   --assert 53 = first next next next next "12345"
   --test-- "series-next-10"
-  --assert none = first next next next next next "12345"  
+  --assert none = first next next next next next "12345"
+  --test-- "series-next-11"
+  --assert #"^(00)" = first next "a^(00)"
+  --test-- "series-next-12"
+  --assert #"^(00)" = first next "a^(00)b" 
 ===end-group===
 
 ===start-group=== "back"
---test-- "series-back-1"
+  --test-- "series-back-1"
   --assert 1 = first back next [1 2 3 4 5]
   --test-- "series-back-2"
   --assert 1 = first back back next next [1 2 3 4 5]
@@ -383,6 +399,92 @@ qt-print-totals: func [
   
   --test-- "series-find-6"
   --assert none = find next [a b c d e] 'a
+  
+  --test-- "series-find-7"
+  --assert 51 = first find "12345" "3"
+  
+  --test-- "series-find-8"
+  --assert 51 = first find "12345" "^(33)"
+  
+  --test-- "series-find-9"
+  --assert 51 = first find "12345" first "^(33)"
+  
+  --test-- "series-find-10"
+  --assert 51 = first find "12345" #"3"
+  
+  --test-- "series-find-11"
+  --assert 51 = first find "12345" #"^(33)"
+  
+  --test-- "series-find-12"
+  --assert #"3" = first find "12345" #"3"
+  
+  --test-- "series-find-13"
+  --assert #"a" = first find "abcdefghijklmno" #"a"
+  
+  --test-- "series-find-14"
+  --assert "ghijklmno" = find "abcdefghijklmno" "ghij"
+  
+  --test-- "series-find-15"
+  --assert #"o" = first find "abcdefghijklmno" #"o"
+  
+  --test-- "series-find-16"
+  --assert "o" = find "abcdefghijklmno" #"o"
+  
+  --test-- "series-find-17"
+  --assert #"o" = first find "abcdefghijklmno" "o"
+  
+  --test-- "series-find-18"
+  --assert "o" = find "abcdefghijklmno" "o"
+  
+  --test-- "series-find-19"
+  --assert none = find "" #"a"
+  
+  --test-- "series-find-20"
+  --assert none = find "" #"^(00)"
+  
+  --test-- "series-find-21"
+  --assert none = find "" ""
+  
+  --test-- "series-find-22"
+  --assert "^(00)" = find "^(00)" "^(00)"
+  
+  --test-- "series-find-23"
+  --assert "a^(00)" = find "a^(00)" "a^(00)"
+  
+  --test-- "series-find-24"
+  --assert "^(00)a" = find "^(00)a" "^(00)a"
+  
+  --test-- "series-find-25"
+  --assert "^(00)" = find "^(00)" #"^(00)"
+  
+  --test-- "series-find-26"
+  ;--assert #"^(00)" = first find "^(00)" #"^(00)"
+  ;; runtime error generated as find incorrectly returns none
+  
+  --test-- "series-find-27"
+  --assert #"é" = first find "abcdeé" #"é" 
+  
+  --test-- "series-find-28"
+  --assert "é" = find "abcdeé" "é" 
+  
+  --test-- "series-find-29"
+  --assert "é" = find append "abcde" "é" "é" 
+  
+  --test-- "series-find-30"
+  --assert 10000 = first find "abcde✐" "✐"
+  
+  --test-- "series-find-31"
+  --assert none = find "012345" 48
+  
+  --test-- "series-find-32"
+  --assert "^(010000)" = find "abcde^(2710)é^(010000)" "^(010000)" 
+  
+  --test-- "series-find-33"
+  --assert "^(010000)cde^(2710)é" = find "ab^(010000)cde^(2710)é" #"^(010000)"
+  
+  --test-- "series-find-34"
+  --assert "^(010000)cde^(2710)é" = find "ab^(010000)cde^(2710)é" "^(010000)"
+  
 
 ===end-group===
 
