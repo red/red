@@ -809,18 +809,25 @@ string: context [
 				p2: pattern
 				until [									;-- series comparison
 					switch unit [
-						Latin1 [found?: p1/1 = p2/1]
+						Latin1 [
+							c1: as-integer p1/1
+							c2: as-integer p2/1
+						]
 						UCS-2  [
-							found?: ((as-integer p1/2) << 8 + p1/1)
-								  = ((as-integer p2/2) << 8 + p2/1)
+							c1: (as-integer p1/2) << 8 + p1/1
+							c2: (as-integer p2/2) << 8 + p2/1
 						]
 						UCS-4  [
 							p4: as int-ptr! p1
 							c1: p4/1
 							p4: as int-ptr! p2
-							found?: c1 = p4/1
+							c2: p4/1
 						]
 					]
+					if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
+					if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+					found?: c1 = c2
+					
 					p1: p1 + unit
 					p2: p2 + unit
 					any [
@@ -829,6 +836,7 @@ string: context [
 						p2 >= end2						;-- block series tail reached
 					]
 				]
+				if all [match? found?][buffer: p1]
 			]
 			buffer: buffer + step
 			any [
