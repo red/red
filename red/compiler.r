@@ -157,6 +157,12 @@ red: context [
 		insert-lf -2
 	]
 	
+	emit-load-string: func [buffer [string!]][
+		emit 'string/load
+		emit buffer
+		emit 1 + length? buffer							;-- account for terminal zero
+	]
+	
 	emit-open-frame: func [name [word!] /local type][
 		emit case [
 			'function! = all [
@@ -439,8 +445,9 @@ red: context [
 						decorate-symbol word
 					]
 					string? item [
-						emit compose [tmp: string/load (item)]
-						insert-lf -3
+						emit [tmp:]
+						insert-lf -1
+						emit-load-string item
 						new-line back tail output off
 						'tmp
 					]
@@ -525,9 +532,8 @@ red: context [
 				string!	[
 					redirect-to-literals [
 						emit to set-word! name: decorate-series-var 'str
-						emit [string/load]
-						emit value
-						insert-lf -3
+						insert-lf -1
+						emit-load-string value
 					]	
 					emit 'string/push
 					emit name

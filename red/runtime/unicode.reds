@@ -145,7 +145,7 @@ unicode: context [
 		end:  buf1 + s/size
 		unit: Latin1									;-- start with 1 byte/codepoint
 
-		if zero? as-integer src/1 [return node]
+		if size = 1 [return node]						;-- terminal NUL accounted
 		;assert not zero? as-integer src/1				;@@ ensure input string not empty
 
 		;-- the first part of loop is Rudolf's code with very minor modifications
@@ -180,6 +180,7 @@ unicode: context [
 	;								cp = 0				; even so, must allow U+0000
 	;							][
 									src: src + 1
+									size: size - 1
 	;							]
 							]
 						]
@@ -198,6 +199,7 @@ unicode: context [
 	;								cp > 7FFh			; optional test for overlong
 								][
 									src: src + 2
+									size: size - 2
 								]
 							]
 						]
@@ -219,6 +221,7 @@ unicode: context [
 	;								cp > FFFFh			; optional test for overlong
 								][
 									src: src + 3
+									size: size - 3
 								]
 							]
 						]
@@ -293,7 +296,8 @@ unicode: context [
 				]
 			]
 			src: src + 1
-			zero? b1
+			size: size - 1
+			zero? size
 		] 												;-- end until
 		
 		s/tail: as cell! switch unit [					;-- position s/tail just before the NUL character

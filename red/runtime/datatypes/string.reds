@@ -319,16 +319,15 @@ string: context [
 
 	load: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
+		size	 [integer!]
 		return:  [red-string!]
 		/local
 			str  [red-string!]
-			size [integer!]
 	][
-		size: 1 + system/words/length? src
 		str: as red-string! ALLOC_TAIL(root)
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 0
-		str/node: unicode/load-utf8 src size			;@@ try to avoid length? call
+		str/node: unicode/load-utf8 src size
 		str/cache: either size < 64 [src][null]			;-- cache only small strings (experimental)
 		str
 	]
