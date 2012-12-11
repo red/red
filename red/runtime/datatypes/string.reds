@@ -718,11 +718,6 @@ string: context [
 			]
 			part?: yes
 		]
-
-		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-		end: 	 as byte-ptr! s/tail
-		pattern: null
-		
 		case [
 			last? [
 				step: 0 - step
@@ -742,6 +737,7 @@ string: context [
 		case?: not case?								;-- inverted case? meaning
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
+		pattern: null
 		
 		;-- Value argument processing --
 		
