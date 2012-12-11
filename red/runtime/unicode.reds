@@ -134,16 +134,18 @@ unicode: context [
 			b3     [integer!]
 			b4     [integer!]
 			cp	   [integer!]							; computed codepoint
+			count  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/load-utf8"]]
 
 		assert positive? size 
 		node: alloc-series size 1 0
 		
-		s:    as series! node/value
-		buf1: as byte-ptr! s/offset
-		end:  buf1 + s/size
-		unit: Latin1									;-- start with 1 byte/codepoint
+		s:     as series! node/value
+		buf1:  as byte-ptr! s/offset
+		end:   buf1 + s/size
+		unit:  Latin1									;-- start with 1 byte/codepoint
+		count: size
 
 		if size = 1 [return node]						;-- terminal NUL accounted
 		;assert not zero? as-integer src/1				;@@ ensure input string not empty
@@ -180,7 +182,7 @@ unicode: context [
 	;								cp = 0				; even so, must allow U+0000
 	;							][
 									src: src + 1
-									size: size - 1
+									count: count - 1
 	;							]
 							]
 						]
@@ -199,7 +201,7 @@ unicode: context [
 	;								cp > 7FFh			; optional test for overlong
 								][
 									src: src + 2
-									size: size - 2
+									count: count - 2
 								]
 							]
 						]
@@ -221,7 +223,7 @@ unicode: context [
 	;								cp > FFFFh			; optional test for overlong
 								][
 									src: src + 3
-									size: size - 3
+									count: count - 3
 								]
 							]
 						]
@@ -287,17 +289,18 @@ unicode: context [
 				]
 				UCS-4 [
 					if buf4 >= (as int-ptr! end) [
+						s/tail: as cell! buf4
 						s: expand-series s s/size + size ;-- increase size by 100% 
 						buf4: as int-ptr! s/tail
-						end: (as byte-ptr! s/offset) + s/size	
+						end: (as byte-ptr! s/offset) + s/size
 					]
 					buf4/value: cp
 					buf4: buf4 + 1
 				]
 			]
 			src: src + 1
-			size: size - 1
-			zero? size
+			count: count - 1
+			zero? count
 		] 												;-- end until
 		
 		s/tail: as cell! switch unit [					;-- position s/tail just before the NUL character
