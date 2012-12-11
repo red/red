@@ -106,6 +106,13 @@ none: context [
 		]
 		res
 	]
+	
+	clear:	 does []									;-- arguments can be safely omitted
+	find:    does []
+	length?: does []
+	remove:  does []
+	select:  does []
+	take:	 does []
 
 	datatype/register [
 		TYPE_NONE
@@ -143,26 +150,26 @@ none: context [
 		null			;at
 		null			;back
 		null			;change
-		null			;clear
+		:clear
 		null			;copy
-		null			;find
+		:find
 		null			;head
 		null			;head?
 		null			;index?
 		null			;insert
-		null			;length?
+		:length?
 		null			;next
 		null			;pick
 		null			;poke
-		null			;remove
+		:remove
 		null			;reverse
-		null			;select
+		:select
 		null			;sort
 		null			;skip
 		null			;swap
 		null			;tail
 		null			;tail?
-		null			;take
+		:take
 		null			;trim
 		;-- I/O actions --
 		null			;create
