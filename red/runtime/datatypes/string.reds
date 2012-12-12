@@ -759,34 +759,6 @@ string: context [
 				]
 				s2: GET_BUFFER(str2)
 				unit2: GET_UNIT(s2)
-				case [									;-- adjust value string encoding
-					unit < unit2 [
-						--NOT_IMPLEMENTED--
-						;switch unit2 [
-						;	UCS-2 [s2: unicode/UCS2-to-Latin1 s2]
-						;	UCS-4 [
-						;		s2: either unit = Latin1 [
-						;			unicode/UCS4-to-Latin1 s2
-						;		][
-						;			unicode/UCS4-to-UCS2 s2
-						;		]
-						;	]
-						;]
-					]
-					unit > unit2 [
-						switch unit [
-							UCS-2 [s2: unicode/Latin1-to-UCS2 s2]
-							UCS-4 [
-								s2: either unit2 = Latin1 [
-									unicode/Latin1-to-UCS4 s2
-								][
-									unicode/UCS2-to-UCS4 s2
-								]
-							]
-						]
-					]
-					true [true]							;-- just to make the compiler happy
-				]
 				pattern: (as byte-ptr! s2/offset) + (head2 << (unit >> 1))
 				end2:    (as byte-ptr! s2/tail)
 			]
@@ -811,20 +783,33 @@ string: context [
 				p1: buffer
 				p2: pattern
 				until [									;-- series comparison
-					switch unit [
-						Latin1 [
-							c1: as-integer p1/1
-							c2: as-integer p2/1
+					either unit = unit2 [
+						switch unit [
+							Latin1 [
+								c1: as-integer p1/1
+								c2: as-integer p2/1
+							]
+							UCS-2  [
+								c1: (as-integer p1/2) << 8 + p1/1
+								c2: (as-integer p2/2) << 8 + p2/1
+							]
+							UCS-4  [
+								p4: as int-ptr! p1
+								c1: p4/1
+								p4: as int-ptr! p2
+								c2: p4/1
+							]
 						]
-						UCS-2  [
-							c1: (as-integer p1/2) << 8 + p1/1
-							c2: (as-integer p2/2) << 8 + p2/1
+					][
+						switch unit [
+							Latin1 [c1: as-integer p1/1]
+							UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
+							UCS-4  [p4: as int-ptr! p1 c1: p4/1]
 						]
-						UCS-4  [
-							p4: as int-ptr! p1
-							c1: p4/1
-							p4: as int-ptr! p2
-							c2: p4/1
+						switch unit2 [
+							Latin1 [c2: as-integer p2/1]
+							UCS-2  [c2: (as-integer p2/2) << 8 + p2/1]
+							UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 						]
 					]
 					if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
