@@ -771,6 +771,93 @@ block: context [
 		]
 		as red-value! blk
 	]
+	
+	;--- Misc actions ---
+	
+	copy: func [
+		blk	    	[red-block!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		types		[red-value!]
+		return:		[red-series!]
+		/local
+			int		[red-integer!]
+			b		[red-block!]
+			offset	[red-value!]
+			slot	[red-value!]
+			buffer	[series!]
+			new		[node!]
+			part	[integer!]
+			slots	[integer!]
+			type	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/copy"]]
+		
+		s: GET_BUFFER(blk)
+		
+		slots:	rs-length? blk
+		new: 	alloc-cells slots
+		buffer: as series! new/value
+		offset: s/offset + blk/head
+		part:   as-integer s/tail - offset
+		
+		if OPTION?(types) [--NOT_IMPLEMENTED--]
+		
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				case [
+					int/value > (part >> 4) [part >> 4]
+					positive? int/value 	[int/value]
+					true					[0]
+				]
+			][
+				b: as red-block! part-arg
+				unless all [
+					TYPE_OF(b) = TYPE_OF(blk)			;-- handles ANY-BLOCK!
+					b/node = blk/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				b/head
+			]
+			slots: part
+			part: part << 4
+		]
+		
+		unless zero? part [
+			copy-memory 
+				as byte-ptr! buffer/offset
+				as byte-ptr! offset
+				part
+				
+			buffer/tail: buffer/offset + slots
+		]
+		blk/node: new									;-- reuse the block slot
+		
+		if deep? [
+			slot: buffer/offset
+			until [
+				type: TYPE_OF(slot)
+				if any [								;@@ replace with ANY_SERIES?
+					type = TYPE_BLOCK
+					type = TYPE_PAREN
+					type = TYPE_PATH
+					type = TYPE_GET_PATH
+					type = TYPE_SET_PATH
+					type = TYPE_LIT_PATH
+					type = TYPE_STRING
+				][
+					actions/copy as red-series! slot null yes null
+				]
+				slot: slot + 1
+				slot >= buffer/tail
+			]
+		]
+		
+		as red-series! blk
+	]
 
 	
 	datatype/register [
@@ -810,7 +897,7 @@ block: context [
 		:back
 		null			;change
 		:clear
-		null			;copy
+		:copy
 		:find
 		:head
 		:head?

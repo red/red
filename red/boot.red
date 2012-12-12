@@ -231,7 +231,17 @@ clear: make action! [[
 	#get-definition ACT_CLEAR
 ]
 
-;copy
+copy: make action! [[
+		value	 [series!]
+		/part
+			length [number! series!]
+		/deep
+		/types
+			kind [datatype!]
+		return:  [series!]
+	]
+	#get-definition ACT_COPY
+]
 
 find: make action! [[
 		series	 [series! none!]

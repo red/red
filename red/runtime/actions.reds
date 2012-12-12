@@ -406,7 +406,40 @@ actions: context [
 		action-clear
 	]
 	
-	copy*: func [][]
+	copy*: func [
+		part	[integer!]
+		deep	[integer!]
+		types	[integer!]
+		return:	[red-series!]
+	][
+		copy
+			as red-series! stack/arguments
+			stack/arguments + part
+			as logic! deep + 1
+			stack/arguments + types
+	]
+	
+	copy: func [
+		series  [red-series!]
+		part	[red-value!]
+		deep?	[logic!]
+		types	[red-value!]
+		return:	[red-series!]
+		/local
+			action-copy
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/copy"]]
+			
+		action-copy: as function! [
+			series  [red-series!]
+			part	[red-value!]
+			deep?	[logic!]
+			types	[red-value!]
+			return: [red-series!]
+		] get-action-ptr as red-value! series ACT_COPY
+					
+		action-copy series part deep? types
+	]
 	
 	find*: func [
 		part	 [integer!]
