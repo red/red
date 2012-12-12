@@ -152,7 +152,7 @@ path: context [
 		INHERIT_ACTION	;back
 		null			;change
 		INHERIT_ACTION	;clear
-		null			;copy
+		INHERIT_ACTION	;copy
 		INHERIT_ACTION	;find
 		INHERIT_ACTION	;head
 		INHERIT_ACTION	;head?
