@@ -584,7 +584,65 @@ actions: context [
 	
 	remove*: func [][]
 	reverse*: func [][]
-	select*: func [][]
+	
+	select*: func [
+		part	 [integer!]
+		only	 [integer!]
+		case-arg [integer!]
+		any-arg  [integer!]
+		with-arg [integer!]
+		skip	 [integer!]
+		last	 [integer!]
+		reverse	 [integer!]
+	][
+		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
+		select
+			as red-series! stack/arguments
+			stack/arguments + 1
+			stack/arguments + part
+			as logic! only + 1
+			as logic! case-arg + 1
+			as logic! any-arg + 1
+			as red-string!  stack/arguments + with-arg
+			as red-integer! stack/arguments + skip
+			as logic! last + 1
+			as logic! reverse + 1
+	]
+
+	select: func [
+		series   [red-series!]
+		value    [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		return:  [red-value!]
+		/local
+			action-select
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/select"]]
+
+		action-select: as function! [
+			series   [red-series!]
+			value    [red-value!]
+			part	 [red-value!]
+			only?	 [logic!]
+			case?	 [logic!]
+			any?	 [logic!]
+			with-arg [red-string!]
+			skip	 [red-integer!]
+			last?	 [logic!]
+			reverse? [logic!]
+			return:  [red-value!]
+		] get-action-ptr as red-value! series ACT_SELECT
+
+		action-select series value part only? case? any? with-arg skip last? reverse?
+	]
+	
 	sort*: func [][]
 	
 	skip*: func [

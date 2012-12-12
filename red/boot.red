@@ -310,7 +310,26 @@ poke: make action! [[
 
 ;remove
 ;reverse
-;select
+
+select: make action! [[
+		series	 [series! none!]
+		value 	 [any-type!]
+		/part
+			length [number! series!]
+		/only
+		/case
+		/any
+		/with
+			wild [string!]
+		/skip
+			size [integer!]
+		/last
+		/reverse
+	]
+	#get-definition ACT_SELECT
+]
+
+
 ;sort
 
 skip: make action! [[

@@ -652,7 +652,7 @@ string: context [
 		only?		[logic!]
 		case?		[logic!]
 		any?		[logic!]							;@@ not implemented
-		with		[red-string!]						;@@ not implemented
+		with-arg	[red-string!]						;@@ not implemented
 		skip		[red-integer!]
 		last?		[logic!]
 		reverse?	[logic!]
@@ -695,6 +695,8 @@ string: context [
 		part?: no
 
 		;-- Options processing --
+		
+		if any [any? OPTION?(with-arg)][--NOT_IMPLEMENTED--]
 		
 		if OPTION?(skip) [
 			assert TYPE_OF(skip) = TYPE_INTEGER
@@ -855,6 +857,47 @@ string: context [
 			str/header: TYPE_NONE						;-- change the stack 1st argument to none.
 		]
 		buffer
+	]
+	
+	select: func [
+		str		 [red-string!]
+		value	 [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		tail?	 [logic!]
+		match?	 [logic!]
+		return:	 [byte-ptr!]
+		/local
+			s	 [series!]
+			p	 [byte-ptr!]
+			p4	 [int-ptr!]
+			char [red-char!]
+	][
+		p: find str value part only? case? any? with-arg skip last? reverse? no no
+		
+		if TYPE_OF(str) <> TYPE_NONE [
+			s: GET_BUFFER(str)
+			p: (as byte-ptr! s/offset) + ((str/head + 1) << (GET_UNIT(s) >> 1))
+			
+			either p < as byte-ptr! s/tail [
+				char: as red-char! str
+				char/header: TYPE_CHAR
+				char/value: switch GET_UNIT(s) [
+					Latin1 [as-integer p/value]
+					UCS-2  [(as-integer p/2) << 8 + p/1]
+					UCS-4  [p4: as int-ptr! p p4/value]
+				]
+			][
+				str/header: TYPE_NONE
+			]
+		]
+		p
 	]
 	
 	;--- Reading actions ---
@@ -1091,7 +1134,7 @@ string: context [
 		:poke
 		null			;remove
 		null			;reverse
-		null			;select
+		:select
 		null			;sort
 		:skip
 		null			;swap

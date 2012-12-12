@@ -462,7 +462,7 @@ block: context [
 		only?		[logic!]
 		case?		[logic!]
 		any?		[logic!]
-		with		[red-string!]
+		with-arg	[red-string!]
 		skip		[red-integer!]
 		last?		[logic!]
 		reverse?	[logic!]
@@ -589,6 +589,38 @@ block: context [
 			blk/header: TYPE_NONE						;-- change the stack 1st argument to none.
 		]
 		slot
+	]
+	
+	select: func [
+		blk		 [red-block!]
+		value	 [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		tail?	 [logic!]
+		match?	 [logic!]
+		return:	 [red-value!]
+		/local
+			s	 [series!]
+			p	 [red-value!]
+	][
+		p: find blk value part only? case? any? with-arg skip last? reverse? no no
+		
+		if TYPE_OF(blk) <> TYPE_NONE [
+			s: GET_BUFFER(blk)
+			p: s/offset + blk/head + 1
+			either p < s/tail [
+				stack/set-last p
+			][
+				blk/header: TYPE_NONE
+			]
+		]
+		p
 	]
 	
 	;--- Reading actions ---
@@ -790,7 +822,7 @@ block: context [
 		:poke
 		null			;remove
 		null			;reverse
-		null			;select
+		:select
 		null			;sort
 		:skip
 		null			;swap
