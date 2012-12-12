@@ -70,23 +70,29 @@ string: context [
 		(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) - offset
 	]
 	
+	add-terminal-NUL: func [
+		p	   [byte-ptr!]
+		unit   [integer!]
+		/local
+			p4 [int-ptr!]
+	][
+		switch unit [
+			Latin1 [p/1: as-byte 0]
+			UCS-2  [p/1: as-byte 0 p/2: as-byte 0]
+			UCS-4  [p4: as int-ptr! p p4/1: 0]
+		]
+	]
+	
 	truncate-tail: func [
 		s	    [series!]
 		offset  [integer!]								;-- negative offset from tail
 		return: [series!]
-		/local
-			p	[byte-ptr!]
-			p4	[int-ptr!]
 	][
 		if zero? offset [return s]
 		assert negative? offset
 		
 		s/tail: as cell! (as byte-ptr! s/tail) + (offset * GET_UNIT(s))
-		switch GET_UNIT(s) [
-			Latin1 [p: as byte-ptr! s/tail p/1: as-byte 0]
-			UCS-2  [p: as byte-ptr! s/tail p/1: as-byte 0 p/2: as-byte 0]
-			UCS-4  [p4: as int-ptr! s/tail p4/1: 0]
-		]
+		add-terminal-NUL as byte-ptr! s/tail GET_UNIT(s)
 		s
 	]
 	
@@ -209,7 +215,6 @@ string: context [
 			size2 [integer!]
 			p	  [byte-ptr!]
 			limit [byte-ptr!]
-			p4	  [int-ptr!]
 			cp	  [integer!]
 			h1	  [integer!]
 			h2	  [integer!]
@@ -274,11 +279,7 @@ string: context [
 			copy-memory	p (as byte-ptr! s2/offset) + (h2 << (unit2 >> 1)) size2
 			p: p + size2
 		]
-		switch unit1 [									;-- add terminal NUL
-			Latin1 [p/1: as-byte 0]
-			UCS-2  [p/1: as-byte 0 p/2: as-byte 0]
-			UCS-4  [p4: as int-ptr! p p4/1: 0]
-		]
+		add-terminal-NUL p unit1
 		s1/tail: as cell! p								;-- reset tail just before NUL
 	]
 	
@@ -406,7 +407,7 @@ string: context [
 
 		limit: either OPTION?(arg) [
 			int: as red-integer! arg
-			int/value	
+			int/value
 		][-1]
 		append-char GET_BUFFER(buffer) as-integer #"^""
 		concatenate buffer str limit no
@@ -1070,6 +1071,73 @@ string: context [
 		as red-value! str
 	]
 	
+	;--- Misc actions ---
+
+	copy: func [
+		str	    	[red-string!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		types		[red-value!]
+		return:		[red-series!]
+		/local
+			int		[red-integer!]
+			str2	[red-string!]
+			offset	[integer!]
+			s		[series!]
+			buffer	[series!]
+			new		[node!]
+			unit	[integer!]
+			part	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/copy"]]
+
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+
+		offset: str/head << (unit >> 1)
+		part: (as-integer s/tail - s/offset) - offset
+
+		if OPTION?(types) [--NOT_IMPLEMENTED--]
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				case [
+					int/value > (part >> (unit >> 1)) [part >> (unit >> 1)]
+					positive? int/value [int/value]
+					true				[0]
+				]
+			][
+				str2: as red-string! part-arg
+				unless all [
+					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
+					str2/node = str/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				str2/head
+			]
+			part: part << (unit >> 1)
+		]
+		
+		new: 	alloc-bytes part + unit
+		buffer: as series! new/value
+		
+		unless zero? part [
+			copy-memory 
+				as byte-ptr! buffer/offset
+				(as byte-ptr! s/offset) + offset
+				part
+
+			buffer/tail: as cell! (as byte-ptr! buffer/offset) + part
+		]
+		add-terminal-NUL as byte-ptr! buffer/tail unit
+		str/node: new									;-- reuse the block slot
+		str/head: 0										;-- reset head offset
+		as red-series! str
+	]
+	
 	datatype/register [
 		TYPE_STRING
 		TYPE_VALUE
@@ -1107,7 +1175,7 @@ string: context [
 		:back
 		null			;change
 		:clear
-		null			;copy
+		:copy
 		:find
 		:head
 		:head?
