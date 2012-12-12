@@ -471,6 +471,68 @@ red: context [
 		name
 	]
 	
+	emit-path: func [path [path! set-path!] set? [logic!] /local value][
+		value: path/1
+		switch type?/word value [
+			word! [
+				case [
+					head? path [
+						emit-get-word value
+					]
+					all [set? tail? next path][
+						emit-open-frame 'poke
+						emit-path back path
+						emit-get-word value
+						insert-lf -2
+						comp-expression					;-- fetch assigned value
+						emit-action 'poke
+						emit-close-frame
+					]
+					'else [
+						emit-open-frame 'select
+						emit-path back path set?
+						emit-get-word value
+						insert-lf -2
+						emit-action 'select
+						emit-close-frame
+					]
+				]
+			]
+			get-word! [
+				emit-open-frame 'pick
+				emit-path back path set?
+				emit-get-word to word! value
+				insert-lf -2
+				emit-action 'pick
+				emit-close-frame
+			]
+			integer! [
+				either all [set? tail? next path][
+					emit-open-frame 'poke
+					emit-path back path set?
+					emit compose [integer/push (value)]
+					insert-lf -2
+					comp-expression					;-- fetch assigned value
+					emit-action 'poke
+					emit-close-frame
+				][
+					emit-open-frame 'pick
+					emit-path back path set?
+					emit compose [integer/push (value)]
+					insert-lf -2
+					emit-action 'pick
+					emit-close-frame
+				]
+			]
+			paren! [
+				--not-implemented--
+			]
+			string!	[
+				--not-implemented--
+			]
+		]
+	]
+	
 	redirect-to-literals: func [body [block!] /local saved][
 		saved: output
 		output: literals
@@ -906,68 +968,6 @@ red: context [
 		emit [
 			stack/unroll stack/FLAG_FUNCTION
 			exit
-		]
-	]
-	
-	emit-path: func [path [path! set-path!] set? [logic!] /local value][
-		value: path/1
-		switch type?/word value [
-			word! [
-				case [
-					head? path [
-						emit-get-word value
-					]
-					all [set? tail? next path][
-						emit-open-frame 'poke
-						emit-path back path
-						emit-get-word value
-						insert-lf -2
-						comp-expression					;-- fetch assigned value
-						emit-action 'poke
-						emit-close-frame
-					]
-					'else [
-						emit-open-frame 'select
-						emit-path back path set?
-						emit-get-word value
-						insert-lf -2
-						emit-action 'select
-						emit-close-frame
-					]
-				]
-			]
-			get-word! [
-				emit-open-frame 'pick
-				emit-path back path set?
-				emit-get-word to word! value
-				insert-lf -2
-				emit-action 'pick
-				emit-close-frame
-			]
-			integer! [
-				either all [set? tail? next path][
-					emit-open-frame 'poke
-					emit-path back path set?
-					emit compose [integer/push (value)]
-					insert-lf -2
-					comp-expression					;-- fetch assigned value
-					emit-action 'poke
-					emit-close-frame
-				][					
-					emit-open-frame 'pick
-					emit-path back path set?
-					emit compose [integer/push (value)]
-					insert-lf -2
-					emit-action 'pick
-					emit-close-frame
-				]
-			]
-			paren! [
-				--not-implemented--
-			]
-			string!	[
-				--not-implemented--
-			]
 		]
 	]
 	
