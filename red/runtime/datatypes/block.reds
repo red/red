@@ -796,8 +796,6 @@ block: context [
 		s: GET_BUFFER(blk)
 		
 		slots:	rs-length? blk
-		new: 	alloc-cells slots
-		buffer: as series! new/value
 		offset: s/offset + blk/head
 		part:   as-integer s/tail - offset
 		
@@ -826,6 +824,9 @@ block: context [
 			part: part << 4
 		]
 		
+		new: 	alloc-cells slots
+		buffer: as series! new/value
+		
 		unless zero? part [
 			copy-memory 
 				as byte-ptr! buffer/offset
@@ -835,6 +836,7 @@ block: context [
 			buffer/tail: buffer/offset + slots
 		]
 		blk/node: new									;-- reuse the block slot
+		blk/head: 0										;-- reset head offset
 		
 		if deep? [
 			slot: buffer/offset
