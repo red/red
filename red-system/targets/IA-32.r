@@ -615,6 +615,7 @@ make-profilable make target-class [
 	]
 		
 	emit-load-index: func [idx [word!]][
+		unless compiler/local-variable? idx [idx: compiler/resolve-ns idx]
 		emit-variable idx
 			#{8B1D}									;-- MOV ebx, [idx]		; global
 			#{8B5D}									;-- MOV ebx, [ebp+n]	; local

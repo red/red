@@ -924,8 +924,9 @@ system-dialect: make-profilable context [
 						path/2: ending: enum-value
 					][
 						unless any [
-							get-variable-spec ending
-							value: get-enumerator ending
+							local-variable? ending
+							find globals ending: resolve-ns ending
+							get-enumerator ending
 						][
 							backtrack path
 							throw-error ["undefined" type "index variable"]
