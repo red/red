@@ -164,7 +164,7 @@ path: context [
 		INHERIT_ACTION	;poke
 		null			;remove
 		null			;reverse
-		null			;select
+		INHERIT_ACTION	;select
 		null			;sort
 		INHERIT_ACTION	;skip
 		null			;swap
