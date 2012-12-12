@@ -491,9 +491,9 @@ red: context [
 					'else [
 						emit-open-frame 'select
 						emit-path back path set?
-						emit-get-word value
+						emit-push-word value
 						insert-lf -2
-						emit-action 'select
+						emit-action/with 'select [-1 -1 -1 -1 -1 -1 -1 -1]
 						emit-close-frame
 					]
 				]
