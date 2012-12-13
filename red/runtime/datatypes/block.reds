@@ -169,8 +169,8 @@ block: context [
 	][
 		s1: GET_BUFFER(blk1)
 		s2: GET_BUFFER(blk2)
-		size1: (as-integer s1/tail - s1/offset) - blk1/head
-		size2: (as-integer s2/tail - s2/offset) - blk2/head
+		size1: (as-integer s1/tail - s1/offset) >> 4 - blk1/head
+		size2: (as-integer s2/tail - s2/offset) >> 4 - blk2/head
 
 		if size1 <> size2 [								;-- shortcut exit for different sizes
 			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
