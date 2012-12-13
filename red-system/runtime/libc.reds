@@ -25,7 +25,13 @@ Red/System [
 			size		[integer!]
 			return:		[byte-ptr!]
 		]
-		copy-memory: "memmove" [
+		move-memory: "memmove" [
+			target		[byte-ptr!]
+			source		[byte-ptr!]
+			size		[integer!]
+			return:		[byte-ptr!]
+		]
+		copy-memory: "memcpy" [
 			target		[byte-ptr!]
 			source		[byte-ptr!]
 			size		[integer!]
