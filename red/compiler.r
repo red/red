@@ -481,8 +481,12 @@ red: context [
 					]
 					all [set? tail? next path][
 						emit-open-frame 'poke
-						emit-path back path
-						emit-get-word value
+						emit-open-frame 'find
+						emit-path back path set?
+						emit-push-word value
+						emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
+						emit-close-frame
+						emit [integer/push 2] 
 						insert-lf -2
 						comp-expression					;-- fetch assigned value
 						emit-action 'poke
@@ -499,12 +503,22 @@ red: context [
 				]
 			]
 			get-word! [
-				emit-open-frame 'pick
-				emit-path back path set?
-				emit-get-word to word! value
-				insert-lf -2
-				emit-action 'pick
-				emit-close-frame
+				either all [set? tail? next path][
+					emit-open-frame 'poke
+					emit-path back path set?
+					emit-get-word to word! value
+					insert-lf -2
+					comp-expression						;-- fetch assigned value
+					emit-action 'poke
+					emit-close-frame
+				][
+					emit-open-frame 'pick
+					emit-path back path set?
+					emit-get-word to word! value
+					insert-lf -2
+					emit-action 'pick
+					emit-close-frame
+				]
 			]
 			integer! [
 				either all [set? tail? next path][
@@ -512,7 +526,7 @@ red: context [
 					emit-path back path set?
 					emit compose [integer/push (value)]
 					insert-lf -2
-					comp-expression					;-- fetch assigned value
+					comp-expression						;-- fetch assigned value
 					emit-action 'poke
 					emit-close-frame
 				][
