@@ -159,7 +159,7 @@ do %../../../lexer.r
 			print [now]
 		]
 		foo/bar 'foo/bar foo/bar:
-		#[none] #[true ] #[false ]  
+		none true false
 	]
 	--assert result = lexer/process src
 

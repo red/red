@@ -217,8 +217,8 @@ qt-print-totals: func [
   --test-- "ie-same-datatype-22"
   --assert #"z" = #"z"
   
-  --test-- "ie-same-datatype-23"
-  --assert  #"e" = #"è"
+  ;--test-- "ie-same-datatype-23"
+  ;--assert  #"e" = #"è"							;; not a supported feature
   
   --test-- "ie-same-datatype-24"
   --assert #"^(010000)" = #"^(010000)"
