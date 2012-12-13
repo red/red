@@ -273,9 +273,9 @@ lexer: context [
 	
 	escaped-rule: [
 		"#[" any-ws [
-			"none" 	  (value: none)
-			| "true"  (value: true)
-			| "false" (value: false)
+			"none" 	  (value: 'none)
+			| "true"  (value: 'true)
+			| "false" (value: 'false)
 			| s: [
 				"none!" | "logic!" | "block!" | "integer!" | "word!" 
 				| "set-word!" | "get-word!" | "lit-word!" | "refinement!"
@@ -306,6 +306,7 @@ lexer: context [
 		pos: (e: none) s: [
 			comment-rule
 			| multiline-comment-rule
+			| escaped-rule    (stack/push value)
 			| integer-rule	  (stack/push load-integer   copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| word-rule		  (stack/push to type value)
@@ -318,7 +319,6 @@ lexer: context [
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
-			| escaped-rule    (stack/push value)
 			| string-rule	  (stack/push load-string s e)
 			| binary-rule	  (stack/push load-binary s e)
 		]
