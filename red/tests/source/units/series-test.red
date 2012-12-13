@@ -324,7 +324,13 @@ qt-print-totals: func [
 
 ===start-group=== "select"
   --test-- "series-select-1"
-  ;--assert 2 = select [1 2 3 4 5] 1
+  --assert 2 = select [1 2 3 4 5] 1
+  --test-- "series-select-2"
+  --assert 5 = select [1 2 3 4 5] 4
+  --test-- "series-select-1"
+  --assert none = select [1 2 3 4 5] 0
+  --test-- "series-select-1"
+  --assert none = select [1 2 3 4 5] 5
 ===end-group===
 
 ===start-group=== "append"
@@ -458,8 +464,7 @@ qt-print-totals: func [
   --assert "^(00)" = find "^(00)" #"^(00)"
   
   --test-- "series-find-26"
-  ;--assert #"^(00)" = first find "^(00)" #"^(00)"
-  ;; runtime error generated as find incorrectly returns none
+  --assert #"^(00)" = first find "^(00)" #"^(00)"
   
   --test-- "series-find-27"
   --assert #"é" = first find "abcdeé" #"é" 
