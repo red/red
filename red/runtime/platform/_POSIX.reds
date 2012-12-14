@@ -62,7 +62,7 @@ print-UCS4: func [
 				print-line "Error in print-UCS4: codepoint > 1FFFFFh"
 			]
 		]
-		str: str + 2
+		str: str + 1
 	]
 ]
 
