@@ -1528,11 +1528,14 @@ make-profilable make target-class [
 			][
 				either b = 'reg [
 					emit-swap-regs					;-- swap r0, r1		; put operands in right order
-				][									;-- 'b will now be stored in reg, so save 'a			
+					emit-i32 #{e92d0002}			;-- PUSH {r1}	; save r1 (a) from corruption
+				][									;-- 'b will now be stored in reg, so save 'a
+					emit-i32 #{e92d0001}			;-- PUSH {r0}	; save r0 (a) from corruption
 					emit-move-alt					;-- MOV r1, r0
 					emit-load args/2
 				]
 				emit-math-op '* 'reg 'imm reduce [arg2 scale]	;@@ refactor that using barrel shifter
+				emit-i32 #{e8bd0002}				;-- POP {r1}		; restore pointer in r1
 				if name = '- [emit-swap-regs]		;-- swap r0, r1		; put operands in right order
 				b: 'reg
 			]
