@@ -20,6 +20,7 @@ qt/tests-dir: system/script/path
 ;; do not split these statements over two lines
 make-dir %source/units/auto-tests
 qt/make-if-needed? %source/units/auto-tests/integer-auto-test.red %source/units/make-integer-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/infix-equal-auto-test.red %source/units/make-equal-auto-test.r
 qt/make-if-needed? %source/units/auto-tests/equal-auto-test.red %source/units/make-equal-auto-test.r
 
 ;; run the tests
@@ -49,11 +50,11 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/logic-test.red
   --run-test-file-quiet-red %source/units/conditional-test.red
   --run-test-file-quiet-red %source/units/series-test.red
-  --run-test-file-quiet-red %source/units/infix-equal-test.red
 ===end-group===
 
 ===start-group=== "Auto-tests"
   --run-test-file-quiet-red %source/units/auto-tests/integer-auto-test.red
+  --run-test-file-quiet-red %source/units/auto-tests/infix-equal-auto-test.red
   --run-test-file-quiet-red %source/units/auto-tests/equal-auto-test.red
 ===end-group===
 
