@@ -824,7 +824,7 @@ block: context [
 			part: part << 4
 		]
 		
-		new: 	alloc-cells slots
+		new: 	alloc-cells slots + 1
 		buffer: as series! new/value
 		
 		unless zero? part [

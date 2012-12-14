@@ -1528,9 +1528,9 @@ make-profilable make target-class [
 			][
 				either b = 'reg [
 					emit-swap-regs					;-- swap r0, r1		; put operands in right order
-					emit-i32 #{e92d0002}			;-- PUSH {r1}	; save r1 (a) from corruption
+					emit-i32 #{e92d0002}			;-- PUSH {r1}		; save r1 (a) from corruption
 				][									;-- 'b will now be stored in reg, so save 'a
-					emit-i32 #{e92d0001}			;-- PUSH {r0}	; save r0 (a) from corruption
+					emit-i32 #{e92d0001}			;-- PUSH {r0}		; save r0 (a) from corruption
 					emit-move-alt					;-- MOV r1, r0
 					emit-load args/2
 				]

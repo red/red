@@ -148,7 +148,7 @@ string: context [
 				p4/0: cp								;-- overwrite termination NUL character
 				p4/1: 0									;-- add it back
 				s: GET_BUFFER(s)						;-- refresh s pointer if relocated by alloc-tail-unit
-				s/tail: as cell! p						;-- reset tail just before NUL
+				s/tail: as cell! p4						;-- reset tail just before NUL
 			]
 		]
 		s
@@ -253,16 +253,20 @@ string: context [
 			true [true]									;@@ catch-all case to make compiler happy
 		]
 		
-		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head]	;-- make symbol! used as string! pass safely
-		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head]	;-- make symbol! used as string! pass safely
+		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (unit2 >> 1)]	;-- make symbol! used as string! pass safely
+		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (unit1 >> 1)]	;-- make symbol! used as string! pass safely
 		
-		size2: as-integer (as byte-ptr! s2/tail - s2/offset) - h2
-		size: (as-integer (as byte-ptr! s1/tail - s1/offset )- h1) + size2
+		size2: (as-integer s2/tail - s2/offset) - h2
+		size:  (as-integer s1/tail - s1/offset) - h1 + size2
 		if s1/size < size [s1: expand-series s1 size + unit1]	;-- account for terminal NUL
-		if all [part >= 0 part < size2][size2: part]	;-- optionally limit str2 characters to copy
+		
+		if part >= 0 [
+			part: part << (unit2 >> 1)
+			if part < size2 [size2: part]				;-- optionally limit str2 characters to copy
+		]
 		
 		either all [keep? unit1 <> unit2][
-			p: (as byte-ptr! s1/offset) + (h1 << (unit1 >> 1))
+			p: (as byte-ptr! s1/offset) + h1
 			limit: p + size2
 			while [p < limit][
 				either unit2 = UCS-2 [
@@ -276,7 +280,7 @@ string: context [
 			]
 		][
 			p: as byte-ptr! s1/tail
-			copy-memory	p (as byte-ptr! s2/offset) + (h2 << (unit2 >> 1)) size2
+			copy-memory	p (as byte-ptr! s2/offset) + h2 size2
 			p: p + size2
 		]
 		add-terminal-NUL p unit1
