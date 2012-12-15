@@ -574,15 +574,23 @@ actions: context [
 	]
 	
 	pick*: func [
-		return:	[red-value!]
+		return:	 [red-value!]
 		/local
-			int [red-integer!]
+			arg  [red-value!]
+			int  [red-integer!]
+			bool [red-logic!]
+			idx  [integer!]
 	][
-		int: as red-integer! stack/arguments + 1
+		arg: stack/arguments + 1
+		idx: switch TYPE_OF(arg) [
+			TYPE_INTEGER [int: as red-integer! arg int/value]
+			TYPE_LOGIC	 [bool: as red-logic! arg 2 - as-integer bool/value]
+			default		 [--NOT_IMPLEMENTED-- 0]
+		]
 		
 		pick
 			as red-series! stack/arguments
-			int/value	
+			idx
 	]
 	
 	pick: func [
