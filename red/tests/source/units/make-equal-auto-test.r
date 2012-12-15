@@ -213,7 +213,7 @@ start-group: func [
   title [string!]
 ][
   group-title: title
-  gropu-test-no: 0
+  group-test-no: 0
   add-test-text join {===start-group=== "} [title {"}]
 ]
   
@@ -270,6 +270,13 @@ add-equal-test {'a} {first [a:]}
 add-equal-test {(first [a:])} {first [a:]}
 add-equal-test {(first [:a])} {first [:a]}
 add-equal-test {[a b c d e]} {first [[a b c d e]]}
+add-test-text {===end-group===}
+
+start-group {implcit-cast}
+add-equal-test {#"0"} {48}
+add-equal-test {48} {#"0"}
+add-equal-test {#"^^(2710)"} {10000}
+add-equal-test {#"^^(010000)"} {65536}
 add-test-text {===end-group===}
 
 add-test-text {~~~end-file~~~}
