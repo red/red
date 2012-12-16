@@ -303,7 +303,7 @@ next: make action! [[
 
 pick: make action! [[
 		series	 [series!]
-		index 	 [integer!]
+		index 	 [integer! logic!]
 		return:  [any-type!]
 	]
 	#get-definition ACT_PICK
@@ -311,7 +311,7 @@ pick: make action! [[
 
 poke: make action! [[
 		series	 [series!]
-		index 	 [integer!]
+		index 	 [integer! logic!]
 		value 	 [any-type!]
 		return:  [series!]
 	]
