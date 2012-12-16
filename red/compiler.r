@@ -150,7 +150,7 @@ red: context [
 		][
 			emit 'stack/push							;-- local word
 		][
-			if new: select ssa-names name [name: new]	;@@ add a check for funtion! type
+			if new: select ssa-names name [name: new]	;@@ add a check for function! type
 			emit 'word/get								;-- global word
 		]
 		emit decorate-symbol name
@@ -1178,7 +1178,7 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /local name local?][
+	comp-word: func [/literal /final /local name local? alter][
 		name: to word! pc/1
 		pc: next pc										;@@ move it deeper
 		local?: local-word? name
@@ -1198,6 +1198,9 @@ red: context [
 				not local?
 				entry: find functions name
 			][
+				if alter: select ssa-names name [
+					entry: find functions alter
+				]
 				check-invalid-call name
 				comp-call name entry/2
 			]
