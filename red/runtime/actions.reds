@@ -50,7 +50,22 @@ actions: context [
 		return: [integer!]								;-- action pointer (datatype-dependent)
 	][
 		get-action-ptr-from TYPE_OF(value) action
-	]	
+	]
+	
+	get-index-argument: func [
+		return:	 [integer!]
+		/local
+			arg  [red-value!]
+			int  [red-integer!]
+			bool [red-logic!]
+	][
+		arg: stack/arguments + 1
+		switch TYPE_OF(arg) [
+			TYPE_INTEGER [int: as red-integer! arg int/value]
+			TYPE_LOGIC	 [bool: as red-logic! arg 2 - as-integer bool/value]
+			default		 [--NOT_IMPLEMENTED-- 0]
+		]
+	]
 
 
 	;--- Actions polymorphic calls ---
@@ -575,22 +590,10 @@ actions: context [
 	
 	pick*: func [
 		return:	 [red-value!]
-		/local
-			arg  [red-value!]
-			int  [red-integer!]
-			bool [red-logic!]
-			idx  [integer!]
 	][
-		arg: stack/arguments + 1
-		idx: switch TYPE_OF(arg) [
-			TYPE_INTEGER [int: as red-integer! arg int/value]
-			TYPE_LOGIC	 [bool: as red-logic! arg 2 - as-integer bool/value]
-			default		 [--NOT_IMPLEMENTED-- 0]
-		]
-		
 		pick
 			as red-series! stack/arguments
-			idx
+			get-index-argument
 	]
 	
 	pick: func [
@@ -607,10 +610,24 @@ actions: context [
 			index	[integer!]
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr as red-value! series ACT_PICK
+		
 		stack/set-last action-pick series index
 	]
-
+	
 	poke*: func [
+		return:	[red-value!]
+	][	
+		poke
+			as red-series! stack/arguments
+			get-index-argument
+			stack/arguments + 2
+	]
+
+
+	poke: func [
+		series	[red-series!]
+		index	[integer!]
+		data    [red-value!]
 		return:	[red-value!]
 		/local
 			action-poke
@@ -618,9 +635,13 @@ actions: context [
 		#if debug? = yes [if verbose > 0 [print-line "actions/poke"]]
 
 		action-poke: as function! [
+			series	[red-series!]
+			index	[integer!]
+			data    [red-value!]
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr* ACT_POKE
-		action-poke
+		
+		action-poke series index data
 	]
 	
 	remove*: func [][]

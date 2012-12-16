@@ -736,38 +736,32 @@ block: context [
 	]
 	
 	poke: func [
+		blk		   [red-block!]
+		index	   [integer!]
+		data       [red-value!]
 		return:	   [red-value!]
 		/local
-			blk	   [red-block!]
-			index  [red-integer!]
 			cell   [red-value!]
 			s	   [series!]
-			idx    [integer!]
 			offset [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/poke"]]
 
-		blk: as red-block! stack/arguments
 		s: GET_BUFFER(blk)
 		
-		index: as red-integer! blk + 1
-		idx: index/value
-
-		offset: blk/head + index/value - 1				;-- index is one-based
-		if negative? idx [offset: offset + 1]
+		offset: blk/head + index - 1					;-- index is one-based
+		if negative? index [offset: offset + 1]
 		cell: s/offset + offset
 
 		either any [
-			zero? idx
+			zero? index
 			cell >= s/tail
 			cell < s/offset
 		][
 			;TBD: placeholder waiting for error! to be implemented
 			stack/set-last none-value					;@@ should raise an error!
 		][
-			copy-cell
-				as red-value! blk + 2
-				cell
+			copy-cell data cell
 		]
 		as red-value! blk
 	]
