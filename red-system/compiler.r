@@ -1722,12 +1722,17 @@ system-dialect: make-profilable context [
 				equal-types? t-true/1 t-false/1
 			][t-true][none-type]						;-- allow nesting if both blocks return same type
 
-			if all [
-				locals									;-- if in function body
-				tail? pc								;-- and if at tail of body
-				ret: select locals return-def			;-- and if function returns something
-				ret/1 = 'logic!							;-- and if it returns a logic! value
-				last-type/1 = 'logic!					;-- and if EITHER returns a logic! too
+			if any [
+				all [
+					locals								;-- if in function body
+					tail? pc							;-- and if at tail of body
+					ret: select locals return-def		;-- and if function returns something
+					ret/1 = 'logic!						;-- and if it returns a logic! value
+				]
+				all [
+					not empty? expr-call-stack
+					last-type/1 = 'logic!				;-- and if EITHER returns a logic! too
+				]
 			][
 				if block? e-true  [emitter/logic-to-integer/with e-true  c-true]
 				if block? e-false [emitter/logic-to-integer/with e-false c-false]
