@@ -53,7 +53,7 @@ red: context [
 	intrinsics:   [
 		if unless either any all while until loop repeat
 		foreach forall break halt func function does has
-		exit return
+		exit return switch
 	]
 
 	functions: make hash! [
@@ -983,6 +983,53 @@ red: context [
 			stack/unroll stack/FLAG_FUNCTION
 			exit
 		]
+	]
+	
+	comp-switch: has [mark name arg body list cnt pos][
+		mark: tail output								;-- pre-compile the SWITCH argument
+		comp-expression
+		arg: copy mark
+		clear mark
+		
+		body: pc/1
+		pc: next pc										;-- move pasted SWITCH body
+		
+		unless block? body [
+			throw-error "SWITCH expects a block as second argument"
+		]
+		list: make block! 4
+		cnt: 1
+		foreach w body [								;-- build a [value index] pairs list
+			either block? w [cnt: cnt + 1][repend list [w cnt]]
+		]
+		name: redirect-to-literals [emit-block list]
+		
+		emit-open-frame 'select							;-- SWITCH lookup frame
+		emit compose [block/push (name)]
+		insert-lf -2
+		emit arg
+		emit [integer/push 2]							;-- /skip 2
+		insert-lf -2
+		emit-action/with 'select [-1 -1 -1 -1 -1 3 -1 -1] ;-- select/skip
+		emit-close-frame
+		
+		emit [switch integer/get*]
+		insert-lf -2
+		
+		clear list
+		cnt: 1
+		parse body [									;-- build SWITCH cases
+			some [pos: block! (
+				mark: tail output
+				comp-sub-block/with 'switch-body pos/1
+				pc: back pc								;-- restore PC position (no block consumed)
+				repend list [cnt mark/1]
+				clear mark
+				cnt: cnt + 1
+			) | skip]
+		]
+		append/only output list
+		emit 'stack/reset
 	]
 	
 	comp-path: func [/set /local path value emit? get? entry][

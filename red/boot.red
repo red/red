@@ -503,6 +503,14 @@ return: make native! [[
 	none
 ]
 
+switch: make native! [[
+		value [any-type!]
+		cases [block!]
+		/default
+			case [block!]
+	]
+	none
+]
 
 get: make native! [[
 		word	[word!]
