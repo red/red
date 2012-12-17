@@ -985,7 +985,15 @@ red: context [
 		]
 	]
 	
-	comp-switch: has [mark name arg body list cnt pos][
+	comp-switch: has [mark name arg body list cnt pos default?][
+		if path? pc/-1 [
+			foreach ref next pc/-1 [
+				switch/default ref [
+					default [default?: yes]
+					;all []
+				][throw-error ["SWITCH has no refinement called" ref]]
+			]
+		]
 		mark: tail output								;-- pre-compile the SWITCH argument
 		comp-expression
 		arg: copy mark
@@ -1028,11 +1036,19 @@ red: context [
 				cnt: cnt + 1
 			) | skip]
 		]
+		
+		append list 'default							;-- process default case
+		either default? [
+			comp-sub-block 'switch-default				;-- compile default block
+			append/only list last output
+			clear back tail output
+		][
+			append/only list copy [0]					;-- placeholder for keeping R/S compiler happy
+		]
 		append/only output list
-		emit 'stack/reset
 	]
 	
-	comp-path: func [/set /local path value emit? get? entry][
+	comp-path: func [/set /local path value emit? get? entry alter][
 		path: copy pc/1
 		emit?: yes
 		
@@ -1040,6 +1056,9 @@ red: context [
 			switch/default type?/word value: path/1 [
 				word! [
 					if all [not set not get? entry: find functions value][
+						if alter: select ssa-names value [
+							entry: find functions alter
+						]
 						either head? path [
 							pc: next pc
 							comp-call path entry/2		;-- call function with refinements
@@ -1094,7 +1113,7 @@ red: context [
 		/local item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref args
 	][
 		either spec/1 = 'intrinsic! [
-			switch call keywords
+			switch any [all [path? call call/1] call] keywords
 		][
 			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
 			refs: make block! 1							;-- refinements storage in compact mode
