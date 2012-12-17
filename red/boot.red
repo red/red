@@ -512,6 +512,13 @@ switch: make native! [[
 	none
 ]
 
+case: make native! [[
+		cases [block!]
+		/all
+	]
+	none
+]
+
 get: make native! [[
 		word	[word!]
 		/any

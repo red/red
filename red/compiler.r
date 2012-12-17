@@ -53,7 +53,7 @@ red: context [
 	intrinsics:   [
 		if unless either any all while until loop repeat
 		foreach forall break halt func function does has
-		exit return switch
+		exit return switch case
 	]
 
 	functions: make hash! [
@@ -1046,6 +1046,65 @@ red: context [
 			append/only list copy [0]					;-- placeholder for keeping R/S compiler happy
 		]
 		append/only output list
+	]
+	
+	comp-case: has [all? path saved list mark body][
+		if path? path: pc/-1 [
+			either path/2 = 'all [all?: yes][
+				throw-error ["CASE has no refinement called" path/2]
+			]
+		]
+		unless block? pc/1 [
+			throw-error "CASE expects a block as argument"
+		]
+		
+		saved: pc
+		pc: pc/1
+		list: make block! length? pc
+		
+		while [not tail? pc][							;-- precompile all conditions and cases
+			mark: tail output
+			comp-expression								;-- process condition
+			append/only list copy mark
+			clear mark
+			append/only list comp-sub-block 'case		;-- process case block
+			clear back tail output
+		]
+		pc: next saved
+		
+		either all? [
+			foreach [test body] list [					;-- /all mode
+				emit-open-frame 'case
+				emit test
+				emit compose/deep [
+					either logic/false? [(set-last-none)]
+				]
+				append/only output body
+				emit-close-frame
+			]
+		][												;-- default single selection mode
+			list: skip tail list -2
+			body: reduce ['either 'logic/true? list/2 set-last-none]
+			new-line body yes
+			insert body list/1
+			
+			;-- emit expressions tree from leaf to root
+			while [not head? list][
+				list: skip list -2
+				
+				insert/only body 'stack/reset
+				new-line body yes
+				
+				body: reduce ['either 'logic/true? list/2 body]
+				new-line body yes
+				insert body list/1
+			]
+			
+			emit-open-frame 'case
+			emit body
+			emit-close-frame
+		]
+		
 	]
 	
 	comp-path: func [/set /local path value emit? get? entry alter][
