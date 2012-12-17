@@ -1000,7 +1000,7 @@ red: context [
 		clear mark
 		
 		body: pc/1
-		pc: next pc										;-- move pasted SWITCH body
+		pc: next pc										;-- move passed SWITCH body
 		
 		unless block? body [
 			throw-error "SWITCH expects a block as second argument"

@@ -478,11 +478,13 @@ block: context [
 			end2	[red-value!]
 			int		[red-integer!]
 			b		[red-block!]
+			dt		[red-datatype!]
 			values	[integer!]
 			step	[integer!]
 			n		[integer!]
 			part?	[logic!]
 			op		[integer!]
+			type	[integer!]
 			found?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
@@ -517,14 +519,15 @@ block: context [
 			part?: yes
 		]
 		
+		type: TYPE_OF(value)
 		values: either only? [0][						;-- values > 0 => series comparison mode
 			either any [								;@@ replace with ANY_BLOCK?
-				TYPE_OF(value) = TYPE_BLOCK
-				TYPE_OF(value) = TYPE_PAREN
-				TYPE_OF(value) = TYPE_PATH
-				TYPE_OF(value) = TYPE_GET_PATH
-				TYPE_OF(value) = TYPE_SET_PATH
-				TYPE_OF(value) = TYPE_LIT_PATH
+				type = TYPE_BLOCK
+				type = TYPE_PAREN
+				type = TYPE_PATH
+				type = TYPE_GET_PATH
+				type = TYPE_SET_PATH
+				type = TYPE_LIT_PATH
 			][
 				b: as red-block! value
 				s2: GET_BUFFER(b)
@@ -555,9 +558,18 @@ block: context [
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		if match? [tail?: yes]
 		
+		type: either type = TYPE_DATATYPE [
+			dt: as red-datatype! value
+			dt/value
+		][-1]											;-- disable "type searching" mode
+		
 		until [
 			either zero? values [
-				found?: actions/compare slot value op	;-- atomic comparison
+				found?: either positive? type [
+					type = TYPE_OF(slot)		;-- simple type comparison
+				][
+					actions/compare slot value op ;-- atomic comparison
+				]
 			][
 				n: 0
 				slot2: slot
