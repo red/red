@@ -152,7 +152,7 @@ qt-print-totals: func [
 
 ===start-group=== "basic repeat tests"
 
-  --test-- "br1"                    ;; Documenting non-local index counter
+  --test-- "br1"                      ;; Documenting non-local index counter
     br1-i: 0
     repeat br1-i 100 [ ]
   --assert 101 = br1-i                
@@ -160,11 +160,11 @@ qt-print-totals: func [
   --test-- "br2"                      ;; Documenting non-local index counter
     br2-i: -99
     repeat br2-i 100 [ ]
-  --assert 101 br2-i 
+  --assert 101 = br2-i 
   
   --test-- "br3"                      ;; Documenting non-local index counter
     repeat br3-i 100 [ ]
-  --assert 101 br3-i 
+  --assert 101 = br3-i 
   
 ===end-group===
 
@@ -177,7 +177,38 @@ qt-print-totals: func [
       bul-i > 10
     ]
   --assert bu1-i = 11 
+  
 ===end-group=== 
+
+===start-group=== "basic loop tests"
+
+  --test-- "bl1"                      ;; Documenting non-local index counter
+    i: 10
+    loop i [i: i - 1]
+  --assert i = 0
+  
+ ; --test-- "bl2"                      ;; Documenting non-local index counter
+ ;   i: -1
+ ;   loop i [i: i + 1]
+ ; --assert i = 0 
+  
+  --test-- "bl3"                      ;; Documenting non-local index counter
+    i: 0
+    loop i [i: i + 1]
+  --assert i = 0 
+  
+===end-group===
+
+===start-group=== "mixed tests"
+        
+    --test-- "ml1"                      ;; Documenting non-local index counter
+    a: 0
+    repeat c 4 [
+		loop 5 [a: a + 1]
+	]
+    --assert a = 20 
+
+===end-group===
     
 ~~~end-file~~~
 
