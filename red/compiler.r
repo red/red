@@ -1044,6 +1044,7 @@ red: context [
 			clear back tail output
 		][
 			append/only list copy [0]					;-- placeholder for keeping R/S compiler happy
+			pc: next pc									;-- compensate for comp-sub-block pc reset
 		]
 		append/only output list
 	]
