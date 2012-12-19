@@ -1218,11 +1218,11 @@ red: context [
 						unless pos: find/skip spec/4 to refinement! ref 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
-						offset: pos/2 + spec/2 + 1
+						offset: pos/2 + 1
 						poke ctx index? pos true		;-- switch refinement to true in context
 						unless zero? pos/3 [			;-- process refinement's arguments
 							list: make block! 1
-							insert/only at ctx offset list ;-- add a adjacent block of code
+							ctx/:offset: list 			;-- compiled refinement arguments storage
 							loop pos/3 [
 								mark: tail output
 								comp-arguments/ref spec/3 1 to refinement! ref
