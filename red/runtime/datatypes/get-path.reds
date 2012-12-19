@@ -80,7 +80,7 @@ get-path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/mold"]]
 
-		form p buffer arg part - 1
+		form p buffer arg part
 	]
 	
 	compare: func [

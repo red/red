@@ -133,10 +133,11 @@ block: context [
 			value: s/offset + i
 			value < s/tail
 		][
+			if all [OPTION?(arg) part <= 0][return part]
+			
 			depth: depth + 1
 			part: actions/mold value buffer only? all? flat? arg part
-			if all [OPTION?(arg) part <= 0][return part]
-
+			
 			if positive? depth [
 				string/append-char GET_BUFFER(buffer) as-integer space
 				part: part - 1
@@ -236,19 +237,21 @@ block: context [
 			i     [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/form"]]
-		
+
+		s: GET_BUFFER(blk)
 		i: blk/head
+		
 		while [
-			s: GET_BUFFER(blk)
 			value: s/offset + i
 			value < s/tail
 		][
-			part: actions/form value buffer arg part
 			if all [OPTION?(arg) part <= 0][return part]
+			
+			part: actions/form value buffer arg part
 			i: i + 1
 			
-			if TYPE_OF(value) <> TYPE_BLOCK [
-				string/append-char GET_BUFFER(buffer) as-integer #" "
+			if 	s/offset + i < s/tail [
+				string/append-char GET_BUFFER(buffer) as-integer space
 				part: part - 1
 			]
 		]
