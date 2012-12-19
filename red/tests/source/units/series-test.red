@@ -358,9 +358,36 @@ qt-print-totals: func [
   --assert 65536 = last append "abcde" "^(010000)"   
   --test-- "series-append-11"
   --assert 48 = last append "abcde^(010000)" "0"
-  --test-- "series=append-12"
+  --test-- "series-append-12"
   --assert 65536 = last append "abcde^(2710)é" "^(010000)" 
   
+  --test-- "series-append-13"
+	blk: make block! 1
+	append blk 'x/y
+	append/only blk  'r/s
+	--assert "[x y r/s]" = mold blk
+
+  --test-- "series-append-14"
+	blk: [1 2]
+	append/dup/part blk [4 5 6] 3 2
+	--assert "[1 2 4 5 4 5 4 5]" = mold blk
+	
+  --test-- "series-append-15"
+	blk: [1 2]
+	append/dup/part blk [4 5 6] 2 3
+	--assert "[1 2 4 5 6 4 5 6]" = mold blk	
+
+  --test-- "series-append-16"
+	str: "12"
+	append/dup/part str "456" 3 2 
+	--assert str = "12454545"
+
+  --test-- "series-append-17"
+	str: "12"
+	append/part/dup str "456" 3 2 
+	--assert str = "12456456"
+
+	
 ===end-group===
 
 ===start-group=== "series-equal"
