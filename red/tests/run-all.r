@@ -51,6 +51,8 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/conditional-test.red
   --run-test-file-quiet-red %source/units/series-test.red
   --run-test-file-quiet-red %source/units/serialization-test.red
+  --run-test-file-quiet-red %source/units/function-test.red
+  
 ===end-group===
 
 ===start-group=== "Auto-tests"
