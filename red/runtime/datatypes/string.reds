@@ -1065,8 +1065,9 @@ string: context [
 				halt
 			]
 			poke-char s pos char/value
+			stack/set-last as red-value! char
 		]
-		as red-value! str
+		as red-value! char
 	]
 	
 	;--- Misc actions ---

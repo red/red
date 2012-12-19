@@ -777,8 +777,9 @@ block: context [
 			stack/set-last none-value					;@@ should raise an error!
 		][
 			copy-cell data cell
+			stack/set-last data
 		]
-		as red-value! blk
+		as red-value! data
 	]
 	
 	;--- Misc actions ---
