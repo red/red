@@ -132,16 +132,15 @@ stack: context [										;-- call stack
 
 		last: arguments
 		assert cbottom < ctop
-		until [		
+		until [
 			ctop: ctop - 2
 			any [
-				zero? (flags and ctop/1)
-				cbottom <= ctop
+				flags and ctop/1 = flags
+				ctop <= cbottom
 			]
 		]
-		ctop: ctop + 2
-		unwind
-		copy-cell last arguments
+		ctop: ctop + 2									;-- ctop points past the current call frame
+		copy-cell last as red-value! ctop/2
 	]
 
 	set-last: func [
@@ -199,7 +198,7 @@ stack: context [										;-- call stack
 			dump-memory
 				as byte-ptr! cbottom
 				4
-			(as-integer ctop + 1 - cbottom) >> 4
+			(as-integer ctop + 2 - cbottom) >> 4
 			
 			print-line ["ctop: " ctop]
 		]
