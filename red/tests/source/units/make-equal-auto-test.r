@@ -201,6 +201,17 @@ add-test: func [] [
     [group-title "-" group-test-no {"} newline]
 ]
 
+add-test-with-code: func [
+  code        [string!]
+  assertion   [string!]
+][
+  add-test
+  append infix-src join code newline
+  append prefix-src join code newline
+  append infix-src join {--assert } [assertion newline]
+  append prefix-src join {--assert } [assertion newline]
+]
+  
 add-test-text: func [
   text  [string!]
 ][
@@ -270,6 +281,10 @@ add-equal-test {'a} {first [a:]}
 add-equal-test {(first [a:])} {first [a:]}
 add-equal-test {(first [:a])} {first [:a]}
 add-equal-test {[a b c d e]} {first [[a b c d e]]}
+add-test-with-code {ea-result: 1 = 1} {ea-result = true}
+add-test-with-code {ea-result: 1 = 0} {ea-result = false}
+add-test-with-code {ea-result: equal? 1 1} {ea-result = true}
+add-test-with-code {ea-result: equal? 1 0} {ea-result = false}
 add-test-text {===end-group===}
 
 start-group {implcit-cast}
@@ -277,6 +292,8 @@ add-equal-test {#"0"} {48}
 add-equal-test {48} {#"0"}
 add-equal-test {#"^^(2710)"} {10000}
 add-equal-test {#"^^(010000)"} {65536}
+add-test-with-code {ea-result: #"1" = 49} {ea-result = true}
+add-test-with-code {ea-result: equal? #"^^(010000)" 10000} {ea-result = false}
 add-test-text {===end-group===}
 
 add-test-text {~~~end-file~~~}
