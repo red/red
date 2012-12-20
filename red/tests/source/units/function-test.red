@@ -208,6 +208,11 @@ qt-print-totals: func [
 		--assert 2 = foo9
 		--assert 3 = foo9
 	
+	--test-- "fun-10"
+		foo10: func [a][a + 0]
+		foo10: func [][1]
+		--assert 1 = foo10 "dummy"						;-- make it crash if wrong function referenced
+	
 ===end-group===
 
 ===start-group=== "Alternate constructor tests"
@@ -267,10 +272,10 @@ qt-print-totals: func [
 		--assert 34 = ret5
 		
 	--test-- "fun-ret-6"
-		ret6: does [
+		ret6: func [i [integer!]][
 			until [
 				if true [
-					if true [
+					if i = 0 [
 						if true [return 0]
 						return 1
 					]
@@ -280,13 +285,30 @@ qt-print-totals: func [
 				true
 			]
 		]
-		--assert 0 = ret6
-		
+		--assert 0 = ret6 0
+		--assert 2 = ret6 1
 		
 
 ===end-group===
 
 ===start-group=== "Reflection"
+	
+	--test-- "fun-ref-1"
+		ref1: func [a b][a + b]
+		--assert [a b] = spec-of :ref1
+		--assert [a + b] = body-of :ref1
+	 
+	--test-- "fun-ref-2"
+		--assert (spec-of :append) = [
+			series [series!] value [any-type!] /part length [number! series!]
+			/only /dup count [number!] return: [series!]
+		]
+	
+	--test-- "fun-ref-3"
+		--assert (spec-of :set) = [word [lit-word!] /any value [any-type!] return: [any-type!]]
+		
+	--test-- "fun-ref-4"
+		--assert (spec-of :<) = [value1 [any-type!] value2 [any-type!]]
 
 ===end-group===
 
