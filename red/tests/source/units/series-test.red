@@ -516,8 +516,78 @@ qt-print-totals: func [
   
   --test-- "series-find-34"
   --assert "^(010000)cde^(2710)é" = find "ab^(010000)cde^(2710)é" "^(010000)"
-  
 
+	--test-- "series-find-35"  
+		a: [2 3 5 test #"A" a/b 5 "tesT"]
+		append a datatype!
+		--assert 3 = index? find a 5
+	
+	--test-- "series-find-36"
+		--assert 8 = index? find a "test"
+
+	--test-- "series-find-37"
+		--assert none? find a 99
+
+	--test-- "series-find-38"
+		--assert none? find/skip a 'test 2
+		
+	--test-- "series-find-39"
+		--assert 4 = index? find/skip a 'test 3
+
+	--test-- "series-find-40"
+		--assert 7 = index? find/last a 5
+		
+	--test-- "series-find-41"
+		--assert 2 = index? find/reverse skip a 4 3
+
+	--test-- "series-find-42"
+		--assert 8 = index? find skip a 3 "test"
+		
+	--test-- "series-find-43"
+		--assert none? find/last/part a 3 1
+
+	--test-- "series-find-44"
+		--assert 2 = index? find/last/part a 3 2
+
+	--test-- "series-find-45"
+		--assert none? find/part a 'test 3
+
+	--test-- "series-find-46"
+		--assert 4 = index? find/part a 'test 4
+
+	--test-- "series-find-47"
+		--assert 2 = index? find a [3 5]
+		
+	--test-- "series-find-48"
+		--assert 3 = index? find a [5 'test]
+	
+	--test-- "series-find-49"
+		--assert none? find a 'a/b
+	
+	--test-- "series-find-50"
+		--assert 6 = index? find/only a 'a/b
+
+	--test-- "series-find-51"
+		--assert 2 = index? find/match a 2
+
+	--test-- "series-find-52"
+		--assert none? find/match a 3
+
+	--test-- "series-find-53"
+		--assert 4 = index? find/match a [2 3 5]
+
+	--test-- "series-find-54"
+		--assert none? find/match next a [2 3 5]
+		
+	--test-- "series-find-55"
+		--assert 4 = index? find/tail a 5
+
+	--test-- "series-find-56"
+		--assert 3 = index? find 'a/b/3/d 3
+		
+	--test-- "series-find-57"
+		--assert 2 = index? find 'a/b/3/d 'b
+		
 ===end-group===
 
 ~~~end-file~~~
