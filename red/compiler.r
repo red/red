@@ -1018,10 +1018,10 @@ red: context [
 		emit arg
 		emit [integer/push 2]							;-- /skip 2
 		insert-lf -2
-		emit-action/with 'select [-1 -1 -1 -1 -1 3 -1 -1] ;-- select/skip
+		emit-action/with 'select [-1 -1 -1 -1 -1 2 -1 -1] ;-- select/skip
 		emit-close-frame
 		
-		emit [switch integer/get*]
+		emit [switch integer/get-any*]
 		insert-lf -2
 		
 		clear list
@@ -1044,7 +1044,6 @@ red: context [
 			clear back tail output
 		][
 			append/only list copy [0]					;-- placeholder for keeping R/S compiler happy
-			pc: next pc									;-- compensate for comp-sub-block pc reset
 		]
 		append/only output list
 	]

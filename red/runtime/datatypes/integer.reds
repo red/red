@@ -23,6 +23,15 @@ integer: context [
 		int/value
 	]
 	
+	get-any*: func [									;-- special get* variant for SWITCH
+		return: [integer!]
+		/local
+			int [red-integer!]
+	][
+		int: as red-integer! stack/arguments
+		either TYPE_OF(int) = TYPE_INTEGER [int/value][0] ;-- accept NONE values
+	]
+	
 	get: func [											;-- unboxing integer value
 		value	[red-value!]
 		return: [integer!]
