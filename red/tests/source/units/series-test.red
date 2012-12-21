@@ -327,10 +327,35 @@ qt-print-totals: func [
   --assert 2 = select [1 2 3 4 5] 1
   --test-- "series-select-2"
   --assert 5 = select [1 2 3 4 5] 4
-  --test-- "series-select-1"
+  --test-- "series-select-3"
   --assert none = select [1 2 3 4 5] 0
-  --test-- "series-select-1"
+  --test-- "series-select-4"
   --assert none = select [1 2 3 4 5] 5
+  
+	--test-- "series-select-5"
+		a: [2 3 5 test #"A" a/b 5 "tesT"]
+		--assert #"A" = select a 'test
+		
+	--test-- "series-select-6"
+		list: [a 1 b 2 c 3]
+		--assert 2 = list/b
+		
+	--test-- "series-select-6"
+		--assert 'test = select/skip a 5 2
+
+	--test-- "series-select-7"
+		s: "Hello, Red World!"
+		--assert #"e" = select s #"r"
+
+	--test-- "series-select-8"
+		--assert #"l" = select/last s #"r"
+
+	--test-- "series-select-9"
+		--assert #"d" = select/skip s "e" 2
+
+	--test-- "series-select-10"
+		--assert none? select s #"!"
+  
 ===end-group===
 
 ===start-group=== "append"
