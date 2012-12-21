@@ -588,6 +588,62 @@ qt-print-totals: func [
 	--test-- "series-find-57"
 		--assert 2 = index? find 'a/b/3/d 'b
 		
+	--test-- "series-find-58"
+		s: "Hello, Red World!"
+		--assert 6 = index? find s ","
+
+	--test-- "series-find-59"
+		--assert 8 = index? find s "Red"
+
+	--test-- "series-find-60"
+		--assert 8 = index? find s "red"
+
+	--test-- "series-find-61"
+		--assert 6 = index? find s #","
+
+	--test-- "series-find-62"
+		--assert 1 = index? find "^(00)" "^(00)"
+
+	--test-- "series-find-63"
+		--assert 5 = index? find/skip s #"o" 2
+		
+	--test-- "series-find-64"
+		--assert 13 = index? find/skip s #"o" 3
+
+	--test-- "series-find-65"
+		--assert 15 = index? find/last s #"l"
+
+	--test-- "series-find-66"
+		--assert 13 = index? find/last s "o"
+
+	--test-- "series-find-67"
+		--assert none? find/part s #"o" 4
+
+	--test-- "series-find-68"
+		--assert 5 = index? find/part s #"o" 5
+
+	--test-- "series-find-69"
+		--assert 2 = index? find/match s #"h"
+
+	--test-- "series-find-70"
+		--assert 5 = index? find/match s "hell"
+
+	--test-- "series-find-71"
+		--assert 5 = index? find/match s "Hell"
+
+	--test-- "series-find-72"
+		--assert none? find/match/case s "hell"
+
+	--test-- "series-find-73"
+		--assert 5 = index? find/match/case s "Hell"
+
+	--test-- "series-find-74"
+		--assert none? find/match next s "hell"
+
+	--test-- "series-find-75"
+		--assert 8 = index? find/case s "Red"
+
+		
 ===end-group===
 
 ~~~end-file~~~
