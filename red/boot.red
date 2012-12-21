@@ -529,8 +529,8 @@ get: make native! [[
 
 set: make native! [[
 		word	[lit-word!]
-		/any
 		value	[any-type!]
+		/any		
 		return: [any-type!]
 	]
 	none
