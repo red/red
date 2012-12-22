@@ -18,9 +18,27 @@ block: context [
 	rs-length?: func [
 		blk 	[red-block!]
 		return: [integer!]
+		/local
+			s	[series!]
 	][
-		series: GET_BUFFER(blk)
-		(as-integer (series/tail - series/offset)) >> 4 - blk/head
+		s: GET_BUFFER(blk)
+		(as-integer (s/tail - s/offset)) >> 4 - blk/head
+	]
+	
+	rs-head: func [
+		blk 	[red-block!]
+		return: [red-value!]
+	][
+		s: GET_BUFFER(blk)
+		s/offset
+	]
+	
+	rs-tail: func [
+		blk 	[red-block!]
+		return: [red-value!]
+	][
+		s: GET_BUFFER(blk)
+		s/tail
 	]
 	
 	get-position: func [

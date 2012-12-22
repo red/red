@@ -162,6 +162,9 @@ Red/System [
 #define FLAG_SET?(flag)		(flags and flag <> 0)
 #define OPTION?(ref-ptr)	(ref-ptr > stack/arguments)	;-- a bit inelegant, but saves a lot of code
 
+
+#define SET_RETURN(value)	[stack/set-last as red-value! value]
+
 #define --NOT_IMPLEMENTED--	[
 	print-line "Error: feature not implemented yet!"
 	halt

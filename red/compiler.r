@@ -53,7 +53,7 @@ red: context [
 	intrinsics:   [
 		if unless either any all while until loop repeat
 		foreach forall break halt func function does has
-		exit return switch case
+		exit return switch case routine
 	]
 
 	functions: make hash! [
@@ -217,6 +217,10 @@ red: context [
 		mold/flat to word! name
 	]
 	
+	decorate-type: func [type [word!]][
+		to word! join "red-" mold/flat type
+	]
+	
 	decorate-symbol: func [name [word!] /local pos][
 		if pos: find/case/skip aliases name 2 [name: pos/2]
 		to word! join "~" clean-lf-flag name
@@ -281,6 +285,18 @@ red: context [
 		]
 	]
 	
+	convert-types: func [spec [block!] /local value][
+		forall spec [
+			if spec/1 = /local [break]					;-- avoid processing local variable
+			if all [
+				block? value: spec/1
+				not find [integer! logic!] value/1 
+			][
+				value/1: decorate-type value/1
+			]
+		]
+	]
+	
 	check-invalid-call: func [name [word!]][
 		if all [
 			find [exit return] name
@@ -326,8 +342,9 @@ red: context [
 				pos: set-word! (if pos/1 <> return-def [stop: [end skip]]) stop
 				pos: block! opt string!
 			]
+			opt [/local some [pos: word! pos: opt block! pos: opt string!]]
 		][
-			throw-error ["invalid function spec block:" pos]
+			throw-error ["invalid function spec block:" mold pos]
 		]
 		forall spec [
 			if all [
@@ -375,9 +392,9 @@ red: context [
 		reduce [list arity]
 	]
 	
-	add-function: func [name [word!] spec [block!] /local refs arity][
+	add-function: func [name [word!] spec [block!] /type kind [word!] /local refs arity][
 		set [refs arity] make-refs-table spec
-		repend functions [name reduce ['function! arity spec refs]]
+		repend functions [name reduce [any [kind 'function!] arity spec refs]]
 	]
 	
 	fetch-functions: func [pos [block!] /local name type spec refs arity][
@@ -545,6 +562,40 @@ red: context [
 				--not-implemented--
 			]
 		]
+	]
+		
+	emit-routine: func [name [word!] spec [block!] /local type cnt offset][
+		emit [arg: stack/arguments]
+		insert-lf -2
+
+		offset: 0
+		if all [
+			type: select spec return-def
+			find [integer! logic!] type/1 
+		][
+			offset: 1
+			append/only output append to path! form get spec/2/1 'box
+		]		
+		emit name
+		cnt: 0
+
+		forall spec [
+			if any [spec/1 = /local set-word? spec/1][
+				spec: head spec
+				break									;-- avoid processing local variable	
+			]
+			unless block? spec/1 [
+				either find [integer! logic!] spec/2/1 [
+					append/only output append to path! form get spec/2/1 'get
+				][
+					emit reduce ['as spec/2/1]
+				]
+				emit 'arg
+				unless head? spec [emit reduce ['+ cnt]]
+				cnt: cnt + 1
+			]
+		]
+		insert-lf negate cnt * 2 + offset + 1
 	]
 	
 	redirect-to-literals: func [body [block!] /local saved][
@@ -968,6 +1019,40 @@ red: context [
 		comp-func/has
 	]
 	
+	comp-routine: has [name spec body spec-blk body-blk][
+		name: check-func-name to word! pc/-1
+		add-symbol to word! clean-lf-flag name
+		pc: next pc
+		set [spec body] pc
+
+		check-spec spec
+		add-function/type name spec 'routine!
+		
+		set [spec-blk body-blk] redirect-to-literals [
+			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
+		]
+
+		;emit-open-frame 'set							;-- routine value creation
+		;emit-push-word name
+		;emit compose [
+		;	routine/push (spec-blk) (body-blk)
+		;]
+		;emit 'word/set
+		;insert-lf -1
+		;emit-close-frame
+		
+		emit reduce [to set-word! name 'func]
+		insert-lf -2
+
+		convert-types spec
+		
+		init: make block! length? spec
+		
+		append/only output spec
+		append/only output body
+		pc: skip pc 2
+	]
+	
 	comp-exit: does [
 		pc: next pc
 		emit [
@@ -1256,7 +1341,8 @@ red: context [
 				native! 	[emit-native/with name refs]
 				action! 	[emit-action/with name refs]
 				op!			[]
-				function!	[emit decorate-func name insert-lf -1]
+				function! 	[emit decorate-func name insert-lf -1]
+				routine!	[emit-routine name spec/3]
 			]
 			emit-close-frame
 		]
@@ -1285,6 +1371,7 @@ red: context [
 			pc/1 = 'function [comp-function]
 			pc/1 = 'has		 [comp-has]
 			pc/1 = 'does	 [comp-does]
+			pc/1 = 'routine	 [comp-routine]
 			all [
 				not empty? locals-stack
 				find last locals-stack name

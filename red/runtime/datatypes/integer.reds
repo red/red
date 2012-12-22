@@ -43,6 +43,16 @@ integer: context [
 		int/value
 	]
 	
+	box: func [
+		value	[integer!]
+		/local
+			int [red-integer!]
+	][
+		int: as red-integer! stack/arguments
+		int/header: TYPE_INTEGER
+		int/value: value
+	]
+	
 	form-signed: func [									;@@ replace with sprintf() call?
 		i 		[integer!]
 		return: [c-string!]
