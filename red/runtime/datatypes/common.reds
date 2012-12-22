@@ -22,8 +22,8 @@ action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump ta
 
 
 set-type: func [										;@@ convert to macro?
-	cell 		[cell!]
-	type		[integer!]
+	cell [cell!]
+	type [integer!]
 ][
 	cell/header: cell/header and type-mask or type
 ]
@@ -36,10 +36,10 @@ alloc-at-tail: func [
 ]
 
 alloc-tail: func [
-	s		[series!]
-	return: [cell!]
+	s		 [series!]
+	return:  [cell!]
 	/local 
-		cell	[red-value!]
+		cell [red-value!]
 ][
 	if (as byte-ptr! s/tail + 1) > ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0

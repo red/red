@@ -13,6 +13,29 @@ Red/System [
 string: context [
 	verbose: 0
 	
+	rs-length?: func [
+		str	    [red-string!]
+		return: [integer!]
+	][
+		get-length str
+	]
+
+	rs-head: func [
+		str	    [red-string!]
+		return: [byte-ptr!]
+	][
+		s: GET_BUFFER(str)
+		as byte-ptr! s/offset
+	]
+
+	rs-tail: func [
+		str	    [red-string!]
+		return: [byte-ptr!]
+	][
+		s: GET_BUFFER(str)
+		as byte-ptr! s/tail
+	]
+	
 	get-position: func [
 		base	   [integer!]
 		return:	   [integer!]

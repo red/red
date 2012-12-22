@@ -1031,7 +1031,13 @@ red: context [
 		set [spec-blk body-blk] redirect-to-literals [
 			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
 		]
-
+		
+		emit reduce [to set-word! name 'func]
+		insert-lf -2
+		convert-types spec
+		append/only output spec
+		append/only output body
+		
 		emit-open-frame 'set							;-- routine value creation
 		emit-push-word name
 		emit compose [
@@ -1040,16 +1046,7 @@ red: context [
 		emit 'word/set
 		insert-lf -1
 		emit-close-frame
-		
-		emit reduce [to set-word! name 'func]
-		insert-lf -2
 
-		convert-types spec
-		
-		init: make block! length? spec
-		
-		append/only output spec
-		append/only output body
 		pc: skip pc 2
 	]
 	
