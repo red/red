@@ -166,3 +166,12 @@ red-function!: alias struct! [
 	;	native   [node!]							;-- 	JIT-compiled body (binary!)
 ]
 
+red-routine!: alias struct! [
+	header 	[integer!]								;-- cell header
+	spec	[red-block!]							;-- routine spec block reference
+	symbols	[node!]									;-- routine cleaned-up spec block reference
+	more	[node!]									;-- additional members storage block:
+	;	body	 [red-block!]						;-- 	routine's body block
+	;	symbols	 [red-block!]						;-- 	routine cleaned-up spec block reference
+	;	native   [node!]							;-- 	compiled body (binary!)
+]

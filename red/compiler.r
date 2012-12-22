@@ -1032,14 +1032,14 @@ red: context [
 			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
 		]
 
-		;emit-open-frame 'set							;-- routine value creation
-		;emit-push-word name
-		;emit compose [
-		;	routine/push (spec-blk) (body-blk)
-		;]
-		;emit 'word/set
-		;insert-lf -1
-		;emit-close-frame
+		emit-open-frame 'set							;-- routine value creation
+		emit-push-word name
+		emit compose [
+			routine/push (spec-blk) (body-blk)
+		]
+		emit 'word/set
+		insert-lf -1
+		emit-close-frame
 		
 		emit reduce [to set-word! name 'func]
 		insert-lf -2
