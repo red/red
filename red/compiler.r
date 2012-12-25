@@ -1690,7 +1690,7 @@ red: context [
 			new-line at out 3 yes
 		]
 
-		out/7/3: script									;-- inject compilation result in template
+		change/only find last out <script> script		;-- inject compilation result in template
 		output:  out
 		if verbose > 2 [?? output]
 	]
