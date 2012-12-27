@@ -10,6 +10,11 @@ Red/System [
 	}
 ]
 
+#define RETURN_NONE [
+	stack/reset
+	none/push-last
+]
+
 natives: context [
 	verbose: 0
 	lf?: 	 no											;-- used to print or not an ending newline
@@ -38,9 +43,31 @@ natives: context [
 	
 	;--- Natives ----
 	
-	if*: 		does []
-	unless*:	does []
-	either*:	does []
+	if*: does [
+		either logic/false? [
+			RETURN_NONE
+		][
+			interpreter/eval as red-block! stack/arguments + 1
+		]
+	]
+	
+	unless*: does [
+		either logic/false? [
+			interpreter/eval as red-block! stack/arguments + 1
+		][
+			RETURN_NONE
+		]
+	]
+	
+	either*: func [
+		/local
+			offset [integer!]
+	][
+		offset: either logic/true? [1][2]
+		interpreter/eval as red-block! stack/arguments + offset
+	]
+	
+	
 	any*:		does []
 	all*:		does []
 	while*:		does []
