@@ -275,12 +275,16 @@ interpreter: context [
 	][
 		value: block/rs-head code
 		tail:  block/rs-tail code
+
+		stack/mark-native words/_body					;-- outer stack frame
 		
 		while [value < tail][
 			if verbose > 0 [log "root loop..."]
 			value: eval-expression code value no no
 			if value + 1 < tail [stack/reset]
-		]	
+		]
+		
+		stack/unwind-last
 	]
 	
 ]
