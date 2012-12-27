@@ -465,7 +465,7 @@ qt: make object! [
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
-    if none <> find output "Runtime Error" [
+    if none <> find output "Script Error" [
       if not error [_signify-failure]
     ]
   ]
