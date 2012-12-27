@@ -13,8 +13,9 @@ Red/System [
 set-word: context [
 	verbose: 0
 	
-	load: func [
+	load-in: func [
 		str 	[c-string!]
+		blk		[red-block!]
 		return:	[red-word!]
 		/local 
 			p	  [node!]
@@ -23,9 +24,16 @@ set-word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-word/load"]]
 		
-		cell: word/load str
+		cell: word/load-in str blk
 		cell/header: TYPE_SET_WORD					;-- implicit reset of all header flags
 		cell
+	]
+	
+	load: func [
+		str 	[c-string!]
+		return:	[red-word!]
+	][
+		load-in str root
 	]
 	
 	push: func [

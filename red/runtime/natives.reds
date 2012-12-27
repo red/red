@@ -12,8 +12,58 @@ Red/System [
 
 natives: context [
 	verbose: 0
+	lf?: 	 no											;-- used to print or not an ending newline
 	
-	lf?: no												;-- used to print or not an ending newline
+	table: as int-ptr! allocate NATIVES_NB * size? integer!
+	top: 0
+
+	register: func [
+		[variadic]
+		count	   [integer!]
+		list	   [int-ptr!]
+		/local
+			offset [integer!]
+	][
+		offset: 0
+		
+		until [
+			table/top: list/value
+			top: top + 1
+			assert top < NATIVES_NB
+			list: list + 1
+			count: count - 1
+			zero? count
+		]
+	]
+	
+	;--- Natives ----
+	
+	if*: 		does []
+	unless*:	does []
+	either*:	does []
+	any*:		does []
+	all*:		does []
+	while*:		does []
+	until*:		does []
+	loop*:		does []
+	repeat*:	does []
+	foreach*:	does []
+	forall*:	does []
+	func*:		does []
+	function*:	does []
+	does*:		does []
+	has*:		does []
+	exit*:		does []
+	return*:	does []
+	switch*:	does []
+	case*:		does []
+	
+	do*: does [
+		interpreter/eval as red-block! stack/arguments	
+	]
+	
+	get*:		does []
+	set*:		does []
 
 	print*: does [
 		lf?: yes
@@ -132,6 +182,8 @@ natives: context [
 		compare COMP_GREATER_EQUAL
 	]
 	
+	same?*: does []
+	
 	not*: func [
 		/local bool [red-logic!]
 	][
@@ -141,6 +193,8 @@ natives: context [
 		bool/value: logic/false?						;-- run test before modifying stack
 		bool/header: TYPE_LOGIC
 	]
+	
+	halt*: does [halt]
 	
 	type?*: func [
 		word?	 [integer!]
@@ -160,6 +214,16 @@ natives: context [
 			name: name-table + TYPE_OF(w)				;-- point to the right datatype name record
 			stack/set-last as red-value! name/word
 		]
+	]
+	
+	load*: func [
+		/local
+			str [red-string!]
+			s	[series!]
+	][
+		str: as red-string! stack/arguments
+		s: GET_BUFFER(str)
+		tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
 	]
 
 	;--- Natives helper functions ---
@@ -278,6 +342,45 @@ natives: context [
 		assert TYPE_OF(word) = TYPE_WORD
 
 		_context/set word as red-value! series			;-- reset series to its initial offset
+	]
+	
+	register [
+		:if*
+		:unless*
+		:either*
+		:any*
+		:all*
+		:while*
+		:until*
+		:loop*
+		:repeat*
+		:foreach*
+		:forall*
+		:func*
+		:function*
+		:does*
+		:has*
+		:exit*
+		:return*
+		:switch*
+		:case*
+		:do*
+		:get*
+		:set*
+		:print*
+		:prin*
+		:equal?*
+		:not-equal?*
+		:strict-equal?*
+		:lesser?*
+		:greater?*
+		:lesser-or-equal?*
+		:greater-or-equal?*
+		:same?*
+		:not*
+		:halt*
+		:type?*
+		:load*
 	]
 
 ]

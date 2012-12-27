@@ -37,6 +37,7 @@ context [
 	
 	extract-defs 'datatypes!
 	extract-defs 'actions!
+	extract-defs 'natives!
 	
 	data: none
 ]

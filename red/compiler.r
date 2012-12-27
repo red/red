@@ -994,9 +994,11 @@ red: context [
 		
 		emit-open-frame 'set							;-- function value creation
 		emit-push-word name
-		emit compose [
-			_function/push (spec-blk) (body-blk)
+		emit reduce [
+			'_function/push spec-blk body-blk 
+			'as 'integer! to get-word! decorate-func/strict name
 		]
+		insert-lf -5
 		emit 'word/set
 		insert-lf -1
 		emit-close-frame

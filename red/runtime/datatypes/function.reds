@@ -30,9 +30,11 @@ _function: context [
 	push: func [
 		spec	 [red-block!]
 		body	 [red-block!]
+		code	 [integer!]
 		return:	 [red-context!]							;-- return function's local context
 		/local
 			cell [red-function!]
+			more [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
@@ -42,9 +44,16 @@ _function: context [
 		cell/ctx:	 _context/make spec yes
 		cell/more:	 alloc-cells 3
 		
+		more: as series! cell/more/value
 		copy-cell
 			as cell! body
-			alloc-tail as series! cell/more/value
+			alloc-tail more
+		
+		alloc-tail more									;-- reserved place for "symbols"
+		
+		slot: as red-native! alloc-tail more
+		slot/header: TYPE_NATIVE
+		slot/code: code
 		
 		cell/ctx
 	]

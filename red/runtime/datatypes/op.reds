@@ -38,6 +38,7 @@ op: context [
 			type	[integer!]
 			node	[node!]
 			s		[series!]
+			code	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/make"]]
 
@@ -59,6 +60,7 @@ op: context [
 			TYPE_NATIVE
 			TYPE_OP [
 				native: as red-native! spec
+				code: native/code
 				native/spec
 			]
 			TYPE_FUNCTION [
@@ -71,6 +73,9 @@ op: context [
 		op/header: TYPE_OP								;-- implicit reset of all header flags
 		op/spec:   node									; @@ copy spec block
 		;op/symbols: clean-spec spec 					; @@ TBD
+		
+		op/code: code
+		
 		op
 	]
 	

@@ -16,6 +16,36 @@ Red/System [
 
 #if debug? = yes [
 
+	dump-globals: func [
+		/local sym-table val-table len s symbol value w sym val syms i
+	][
+		sym-table: global-ctx/symbols
+		val-table: global-ctx/values
+		
+		s: as series! sym-table/value
+		len: (as-integer s/tail - s/offset) >> 4
+		symbol: s/offset
+		
+		s: as series! val-table/value
+		value: s/offset
+		
+		s: GET_BUFFER(symbols)
+		syms: as red-symbol! s/offset
+		
+		print-line "Global Context"
+		print-line "--------------"
+		i: 0
+		until [
+			w: as red-word! symbol + i
+			sym: syms + w/symbol
+			val: value + i	
+			print-line [i ": " sym/cache "^- : " TYPE_OF(val)]
+			i: i + 1
+			i + 1 = len
+		]
+	]
+
+
 	;-------------------------------------------
 	;-- Print usage stats about a given frame
 	;-------------------------------------------

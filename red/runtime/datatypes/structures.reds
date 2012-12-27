@@ -139,21 +139,21 @@ red-action!: alias struct! [
 	header 	[integer!]								;-- cell header
 	spec	[node!]									;-- action spec block reference
 	symbols	[node!]									;-- action cleaned-up spec block reference
-	_pad	[integer!]	
+	code	[integer!]								;-- native code function pointer
 ]
 
 red-native!: alias struct! [
 	header 	[integer!]								;-- cell header
 	spec	[node!]									;-- native spec block reference
 	symbols	[node!]									;-- native cleaned-up spec block reference
-	_pad	[integer!]	
+	code	[integer!]								;-- native code function pointer
 ]
 
 red-op!: alias struct! [
 	header 	[integer!]								;-- cell header
 	spec	[node!]									;-- op spec block reference
 	symbols	[node!]									;-- op cleaned-up spec block reference
-	_pad	[integer!]	
+	code	[integer!]								;-- native code function pointer
 ]
 
 red-function!: alias struct! [

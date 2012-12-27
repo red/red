@@ -33,6 +33,7 @@ action: context [
 		/local
 			action [red-action!]
 			s	   [series!]
+			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/make"]]
 		
@@ -44,6 +45,9 @@ action: context [
 		action/header:  TYPE_ACTION						;-- implicit reset of all header flags
 		action/spec:    spec/node						; @@ copy spec block if not at head
 		;action/symbols: clean-spec spec 				; @@ TBD
+			
+		index: (integer/get s/offset + 1) - 1			;-- action IDs are one-based
+		action/code: actions/table/index
 		
 		action
 	]

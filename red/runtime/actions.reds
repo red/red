@@ -13,6 +13,29 @@ Red/System [
 actions: context [
 	verbose: 0
 	
+	table: as int-ptr! allocate ACTIONS_NB * size? integer!
+	
+	register: func [
+		[variadic]
+		count	[integer!]
+		list	[int-ptr!]
+		/local
+			offset [integer!]
+			index  [integer!]
+	][
+		offset: 0
+		index:  0
+		
+		until [
+			table/index: list/value
+			index: index + 1
+			list: list + 1
+			count: count - 1
+			zero? count
+		]
+		assert index = ACTIONS_NB 
+	]
+	
 	get-action-ptr-from: func [
 		type	[integer!]								;-- datatype ID
 		action	[integer!]								;-- action ID
@@ -252,7 +275,7 @@ actions: context [
 			action-compare
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/compare"]]
-
+		
 		action-compare: as function! [
 			value1  [red-value!]						;-- first operand
 			value2  [red-value!]						;-- second operand
@@ -762,4 +785,72 @@ actions: context [
 	rename*: func [][]
 	update*: func [][]
 	write*: func [][]
+	
+	register [
+		;-- General actions --
+		:make*
+		null			;random
+		null			;reflect
+		null			;to
+		:form*
+		:mold*
+		null			;get-path
+		null			;set-path
+		:compare
+		;-- Scalar actions --
+		null			;absolute
+		:add*
+		:divide*
+		:multiply*
+		null			;negate
+		null			;power
+		null			;remainder
+		null			;round
+		:subtract*
+		null			;even?
+		null			;odd?
+		;-- Bitwise actions --
+		null			;and~
+		null			;complement
+		null			;or~
+		null			;xor~
+		;-- Series actions --
+		:append*
+		:at*
+		:back*
+		null			;change
+		:clear*
+		:copy*
+		:find*
+		:head*
+		:head?*
+		:index?*
+		null			;insert
+		:length?*
+		:next*
+		:pick*
+		:poke*
+		null			;remove
+		null			;reverse
+		:select*
+		null			;sort
+		:skip*
+		null			;swap
+		:tail*
+		:tail?*
+		null			;take
+		null			;trim
+		;-- I/O actions --
+		null			;create
+		null			;close
+		null			;delete
+		null			;modify
+		null			;open
+		null			;open?
+		null			;query
+		null			;read
+		null			;rename
+		null			;update
+		null			;write
+	]
 ]

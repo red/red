@@ -33,6 +33,7 @@ native: context [
 		/local
 			native [red-native!]
 			s	   [series!]
+			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/make"]]
 		
@@ -45,6 +46,8 @@ native: context [
 		native/spec:    spec/node						; @@ copy spec block if not at head
 		;native/symbols: clean-spec spec 				; @@ TBD
 		
+		index: integer/get s/offset + 1
+		native/code: natives/table/index
 		native
 	]
 	

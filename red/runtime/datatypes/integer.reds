@@ -110,16 +110,29 @@ integer: context [
 		left
 	]
 
-	push: func [
-		value [integer!]
+	load-in: func [
+		value 	[integer!]
+		blk	  	[red-block!]
 		/local
-			cell  [red-integer!]
+			int [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/load-in"]]
+		
+		int: as red-integer! ALLOC_TAIL(blk)
+		int/header: TYPE_INTEGER
+		int/value: value
+	]
+	
+	push: func [
+		value	[integer!]
+		/local
+			int [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/push"]]
 		
-		cell: as red-integer! stack/push*
-		cell/header: TYPE_INTEGER
-		cell/value: value
+		int: as red-integer! stack/push*
+		int/header: TYPE_INTEGER
+		int/value: value
 	]
 
 	;-- Actions --

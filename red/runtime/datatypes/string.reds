@@ -25,7 +25,7 @@ string: context [
 		return: [byte-ptr!]
 	][
 		s: GET_BUFFER(str)
-		as byte-ptr! s/offset
+		as byte-ptr! s/offset + (str/head << (GET_UNIT(s) >> 1))
 	]
 
 	rs-tail: func [
@@ -345,19 +345,28 @@ string: context [
 		]
 	]
 
-	load: func [
+	load-in: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
+		blk		 [red-block!]
 		return:  [red-string!]
 		/local
 			str  [red-string!]
 	][
-		str: as red-string! ALLOC_TAIL(root)
+		str: as red-string! ALLOC_TAIL(blk)
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 0
 		str/node: unicode/load-utf8 src size
 		str/cache: either size < 64 [src][null]			;-- cache only small strings (experimental)
 		str
+	]
+	
+	load: func [
+		src		 [c-string!]							;-- UTF-8 source string buffer
+		size	 [integer!]
+		return:  [red-string!]
+	][
+		load-in src size root
 	]
 	
 	push: func [

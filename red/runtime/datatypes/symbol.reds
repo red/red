@@ -73,6 +73,24 @@ symbol: context [
 		0												;-- no matching symbol
 	]
 	
+	duplicate: func [
+		src		 [c-string!]
+		return:  [c-string!]
+		/local
+			node [node!]
+			dst  [c-string!]
+			s	 [series!]
+			len	 [integer!]
+	][
+		len: 1 + length? src							;-- account for terminal NUL
+		node: alloc-bytes len							;@@ TBD: mark this buffer as protected!
+		s: as series! node/value
+		dst: as c-string! s/offset
+		
+		copy-memory as byte-ptr! dst as byte-ptr! src len
+		dst
+	]
+	
 	make: func [
 		s 		[c-string!]								;-- input c-string!
 		return:	[integer!]
@@ -89,7 +107,7 @@ symbol: context [
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
 		sym/node:   unicode/load-utf8 s 1 + system/words/length? s
-		sym/cache:  s
+		sym/cache:  duplicate s
 		block/rs-length? symbols
 	]
 	

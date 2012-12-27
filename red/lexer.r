@@ -45,8 +45,8 @@ lexer: context [
 	]
 	
 	UTF8-4: reduce [
-		#{F0} charset [#"^(90)" - #"^(BF)"] 2 UTF8-tail
-		'| charset [#"^(F1)" - #"^(F3)"] 3 UTF8-tail
+		#{F0} 	 charset [#"^(90)" - #"^(BF)"] 2 UTF8-tail
+		'| 		 charset [#"^(F1)" - #"^(F3)"] 3 UTF8-tail
 		'| #{F4} charset [#"^(80)" - #"^(8F)"] 2 UTF8-tail
 	]
 	

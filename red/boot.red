@@ -392,14 +392,14 @@ if: make native! [[
 		cond  	 [any-type!]
 		true-blk [block!]
 	]
-	none
+	#get-definition NAT_IF
 ]
 
 unless: make native! [[
 		cond  	 [any-type!]
 		true-blk [block!]
 	]
-	none
+	#get-definition NAT_UNLESS
 ]
 
 either: make native! [[
@@ -407,38 +407,38 @@ either: make native! [[
 		true-blk  [block!]
 		false-blk [block!]
 	]
-	none
+	#get-definition NAT_EITHER
 ]
 	
 any: make native! [[
 		conds [block!]
 	]
-	none
+	#get-definition NAT_ANY
 ]
 
 all: make native! [[
 		conds [block!]
 	]
-	none
+	#get-definition NAT_ALL
 ]
 
 while: make native! [[
 		cond [block!]
 		body [block!]
 	]
-	none
+	#get-definition NAT_WHILE
 ]
 	
 until: make native! [[
 		body [block!]
 	]
-	none
+	#get-definition NAT_UNTIL
 ]
 
 loop: make native! [[
 		body [block!]
 	]
-	none
+	#get-definition NAT_LOOP
 ]
 
 repeat: make native! [[
@@ -446,7 +446,7 @@ repeat: make native! [[
 		value [integer! series!]
 		body  [block!]
 	]
-	none
+	#get-definition NAT_REPEAT
 ]
 
 foreach: make native! [[
@@ -454,13 +454,14 @@ foreach: make native! [[
 		series [series!]
 		body   [block!]
 	]
+	#get-definition NAT_FOREACH
 ]
 
 forall: make native! [[
 		'word [word!]
 		body  [block!]
 	]
-	none
+	#get-definition NAT_FORALL
 ]
 
 ;break: make native! [
@@ -472,35 +473,38 @@ func: make native! [[
 		spec [block!]
 		body [block!]
 	]
-	none
+	#get-definition NAT_FUNC
 ]
 
 function: make native! [[
 		spec [block!]
 		body [block!]
 	]
-	none
+	#get-definition NAT_FUNCTION
 ]
 
 does: make native! [[
 		body [block!]
 	]
-	none
+	#get-definition NAT_DOES
 ]
 
 has: make native! [[
 		vars [block!]
 		body [block!]
 	]
-	none
+	#get-definition NAT_HAS
 ]
 
-exit: make native! [[] none]
+exit: make native! [
+	[]
+	#get-definition NAT_EXIT
+]
 
 return: make native! [[
 		value [any-type!]
 	]
-	none
+	#get-definition NAT_RETURN
 ]
 
 switch: make native! [[
@@ -509,14 +513,20 @@ switch: make native! [[
 		/default
 			case [block!]
 	]
-	none
+	#get-definition NAT_SWITCH
 ]
 
 case: make native! [[
 		cases [block!]
 		/all
 	]
-	none
+	#get-definition NAT_CASE
+]
+
+do: make native! [[
+		value [any-type!]
+	]
+	#get-definition NAT_DO
 ]
 
 get: make native! [[
@@ -524,7 +534,7 @@ get: make native! [[
 		/any
 		return: [any-type!]
 	] 
-	none
+	#get-definition NAT_GET
 ]
 
 set: make native! [[
@@ -533,93 +543,102 @@ set: make native! [[
 		/any		
 		return: [any-type!]
 	]
-	none
+	#get-definition NAT_SET
 ]
 
 print: make native! [[
 		value	[any-type!]
 	]
-	none
+	#get-definition NAT_PRINT
 ]
 
 prin: make native! [[
 		value	[any-type!]
 	]
-	none
+	#get-definition NAT_PRIN
 ]
 
 equal?: make native! [[
 		value1 [any-type!]
 		value2 [any-type!]
 	]
-	none
+	#get-definition NAT_EQUAL?
 ]
 
 not-equal?: make native! [[
 		value1 [any-type!]
 		value2 [any-type!]
 	]
-	none
+	#get-definition NAT_NOT_EQUAL?
 ]
 
 strict-equal?: make native! [[
 		value1 [any-type!]
 		value2 [any-type!]
 	]
-	none
-]
-
-same?: make native! [[
-		value1 [any-type!]
-		value2 [any-type!]
-	]
-	none
+	#get-definition NAT_STRICT_EQUAL?
 ]
 
 lesser?: make native! [[
 		value1 [any-type!]
 		value2 [any-type!]
 	]
-	none
+	#get-definition NAT_LESSER?
 ]
 
 greater?: make native! [[
 		value1 [any-type!]
 		value2 [any-type!]
 	]
-	none
+	#get-definition NAT_GREATER?
 ]
 
 lesser-or-equal?: make native! [[
 		value1 [any-type!]
 		value2 [any-type!]
 	]
-	none
+	#get-definition NAT_LESSER_OR_EQUAL?
 ]
 
 greater-or-equal?: make native! [[
 		value1 [any-type!]
 		value2 [any-type!]
 	]
-	none
+	#get-definition NAT_GREATER_OR_EQUAL?
+]
+
+same?: make native! [[
+		value1 [any-type!]
+		value2 [any-type!]
+	]
+	#get-definition NAT_SAME?
 ]
 
 not: make native! [[
 		value [any-type!]
 	]
-	none
+	#get-definition NAT_NOT
 ]
 
 halt: make native! [
 	[]
-	none
+	#get-definition NAT_HALT
 ]
 
 type?: make native! [[
 		value [any-type!]
 		/word
 	]
-	none
+	#get-definition NAT_TYPE?
+]
+
+load: make native! [[
+		source [file! url! string! binary! block!]
+		/header
+		/all
+		/type [word! none!]
+	]
+	#get-definition NAT_LOAD
 ]
 
 ;------------------------------------------

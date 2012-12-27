@@ -19,16 +19,16 @@ _context: context [
 		return:	[integer!]								;-- value > 0: success, value = -1: failure
 		/local
 			series	[series!]
-			list	[red-integer!]
-			end		[red-integer!]
+			list	[red-word!]
+			end		[red-word!]
 	][
 		series: as series! ctx/symbols/value
-		list: as red-integer! series/offset
-		end: as red-integer! series/tail
+		list:   as red-word! series/offset
+		end:    as red-word! series/tail
 		
 		while [list < end][
-			if list/value = symbol [
-				return (1 + as-integer list - as red-integer! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
+			if list/symbol = symbol [
+				return (as-integer list - as red-word! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
 			]
 			list: list + 1
 		]
@@ -43,8 +43,12 @@ _context: context [
 			sym		[cell!]	
 			value	[cell!]
 			series  [series!]
+			id		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add"]]
+		
+		id: find-word ctx word/symbol
+		if id <> -1 [return id]
 		
 		sym: alloc-tail as series! ctx/symbols/value
 		copy-cell as cell! word sym
@@ -53,7 +57,7 @@ _context: context [
 		value/header: TYPE_NONE
 		
 		series: as series! ctx/values/value
-		(as-integer series/tail - series/offset) >> 4
+		(as-integer series/tail - series/offset) >> 4 - 1
 	]
 	
 	set-integer: func [
@@ -91,7 +95,7 @@ _context: context [
 
 	get: func [
 		word	   [red-word!]
-		return:	   [cell!]
+		return:	   [red-value!]
 		/local
 			values [series!]
 			sym	   [red-symbol!]

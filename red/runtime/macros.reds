@@ -128,6 +128,45 @@ Red/System [
 	;ACT_APPLY										;; add it? @@
 ]
 
+#enum natives! [
+	NAT_IF
+	NAT_UNLESS
+	NAT_EITHER
+	NAT_ANY
+	NAT_ALL
+	NAT_WHILE
+	NAT_UNTIL
+	NAT_LOOP
+	NAT_REPEAT
+	NAT_FOREACH
+	NAT_FORALL
+	NAT_FUNC
+	NAT_FUNCTION
+	NAT_DOES
+	NAT_HAS
+	NAT_EXIT
+	NAT_RETURN
+	NAT_SWITCH
+	NAT_CASE
+	NAT_DO
+	NAT_GET
+	NAT_SET
+	NAT_PRINT
+	NAT_PRIN
+	NAT_EQUAL?
+	NAT_NOT_EQUAL?
+	NAT_STRICT_EQUAL?
+	NAT_LESSER?
+	NAT_GREATER?
+	NAT_LESSER_OR_EQUAL?
+	NAT_GREATER_OR_EQUAL?
+	NAT_SAME?
+	NAT_NOT
+	NAT_HALT
+	NAT_TYPE?
+	NAT_LOAD
+]
+
 #enum math-op! [
 	OP_ADD
 	OP_SUB
@@ -145,6 +184,7 @@ Red/System [
 	COMP_GREATER_EQUAL
 ]
 
+#define NATIVES_NB		100							;-- max number of natives (arbitrary set)
 #define ACTIONS_NB		60							;-- number of actions
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 

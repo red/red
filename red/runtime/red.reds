@@ -28,7 +28,6 @@ red: context [
 	;#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds
-	;#include %tokenizer.reds
 	#include %unicode.reds
 	
 	;-- Datatypes --
@@ -67,6 +66,7 @@ red: context [
 	#include %debug-tools.reds
 	
 	;-- Core --
+	#include %tokenizer.reds
 	#include %actions.reds
 	#include %natives.reds
 	
@@ -85,6 +85,7 @@ red: context [
 	words/build											;-- create symbols used internally
 	
 	#include %stack.reds
+	#include %interpreter.reds
 	
 	#if debug? = yes [
 		verbosity: 0
