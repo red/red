@@ -733,9 +733,11 @@ red: context [
 		emit-open-frame 'unless
 		comp-expression
 		emit [
-			if logic/false?
+			either logic/false?
 		]
 		comp-sub-block 'unless-body						;-- compile FALSE block
+		append/only output set-last-none
+		emit-close-frame
 	]
 
 	comp-either: does [
