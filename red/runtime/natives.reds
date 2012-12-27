@@ -47,29 +47,58 @@ natives: context [
 		either logic/false? [
 			RETURN_NONE
 		][
-			interpreter/eval as red-block! stack/arguments + 1
+			interpreter/eval as red-block! stack/arguments + 1 no
 		]
 	]
 	
 	unless*: does [
+		stack/mark-native words/_body
 		either logic/false? [
-			interpreter/eval as red-block! stack/arguments + 1
+			interpreter/eval as red-block! stack/arguments + 1 no
 		][
 			RETURN_NONE
 		]
 	]
 	
 	either*: func [
-		/local
-			offset [integer!]
+		/local offset [integer!]
 	][
 		offset: either logic/true? [1][2]
-		interpreter/eval as red-block! stack/arguments + offset
+		interpreter/eval as red-block! stack/arguments + offset no
 	]
 	
+	any*: func [
+		/local
+			value [red-value!]
+			tail  [red-value!]
+	][
+		value: block/rs-head as red-block! stack/arguments
+		tail:  block/rs-tail as red-block! stack/arguments
+		
+		while [value < tail][
+			value: interpreter/eval-next value tail
+			if logic/true? [exit]
+		]
+		RETURN_NONE
+	]
 	
-	any*:		does []
-	all*:		does []
+	all*: func [
+		/local
+			value [red-value!]
+			tail  [red-value!]
+	][
+		value: block/rs-head as red-block! stack/arguments
+		tail:  block/rs-tail as red-block! stack/arguments
+		
+		while [value < tail][
+			value: interpreter/eval-next value tail
+			if logic/false? [
+				RETURN_NONE
+				exit
+			]
+		]
+	]
+	
 	while*:		does []
 	until*:		does []
 	loop*:		does []
@@ -86,7 +115,7 @@ natives: context [
 	case*:		does []
 	
 	do*: does [
-		interpreter/eval as red-block! stack/arguments	
+		interpreter/eval as red-block! stack/arguments no
 	]
 	
 	get*:		does []

@@ -16,7 +16,7 @@ Red/System [
 		halt
 	]
 	if verbose > 0 [log "fetching argument"]
-	pc: eval-expression code pc no yes					;-- eval argument
+	pc: eval-expression pc end no yes					;-- eval argument
 	count: count + 1
 ]
 
@@ -52,8 +52,8 @@ interpreter: context [
 	
 	eval-infix: func [
 		value 	  [red-value!]
-		code	  [red-block!]
 		pc		  [red-value!]
+		end		  [red-value!]
 		sub?	  [logic!]
 		return:   [red-value!]
 		/local
@@ -63,9 +63,9 @@ interpreter: context [
 		if verbose > 0 [log "infix detected!"]
 		
 		stack/mark-native as red-word! pc + 1
-		eval-expression code pc yes	yes
+		eval-expression pc end yes	yes
 		pc: pc + 2								;-- skip both left operand and operator
-		pc: eval-expression code pc no yes		;-- eval right operand
+		pc: eval-expression pc end no yes		;-- eval right operand
 		op: as red-op! value
 		call-op: as function! [] op/code
 		call-op
@@ -80,15 +80,14 @@ interpreter: context [
 
 	eval-arguments: func [
 		native 	  [red-native!]
-		code	  [red-block!]
 		pc		  [red-value!]
+		end	  	  [red-value!]
 		return:   [red-value!]
 		/local
 			fun	  [red-function!]
 			func? [logic!]
 			value [red-value!]
 			tail  [red-value!]
-			end	  [red-value!]
 			count [integer!]
 			s	  [series!]
 			ref?  [logic!]
@@ -104,7 +103,6 @@ interpreter: context [
 		value: s/offset
 		tail:  s/tail
 		
-		end:    block/rs-tail code
 		count:  0
 		offset: 0
 		ref?:	no
@@ -142,8 +140,8 @@ interpreter: context [
 	]
 	
 	eval-expression: func [
-		code	  [red-block!]
 		pc		  [red-value!]
+		end	  	  [red-value!]
 		infix	  [logic!]								;-- TRUE => don't check for infix
 		sub?	  [logic!]
 		return:   [red-value!]
@@ -161,7 +159,7 @@ interpreter: context [
 		][
 			value: _context/get next
 			if TYPE_OF(value) = TYPE_OP [
-				return eval-infix value code pc sub?
+				return eval-infix value pc end sub?
 			]
 		]
 
@@ -170,7 +168,7 @@ interpreter: context [
 		switch TYPE_OF(pc) [
 			TYPE_PAREN [
 				stack/mark-native as red-word! pc		;@@ ~paren
-				eval as red-block! pc
+				eval as red-block! pc no
 				either sub? [stack/unwind][stack/unwind-last]
 				pc: pc + 1
 			]
@@ -178,7 +176,7 @@ interpreter: context [
 				stack/mark-native as red-word! pc		;@@ ~set
 				word/push as red-word! pc
 				pc: pc + 1
-				pc: eval-expression code pc no yes
+				pc: eval-expression pc end no yes
 				word/set
 				either sub? [stack/unwind][stack/unwind-last]
 				
@@ -207,7 +205,7 @@ interpreter: context [
 					TYPE_NATIVE [
 						if verbose > 0 [log "pushing action/native"]
 						stack/mark-native as red-word! pc
-						pc: eval-arguments as red-native! value code pc
+						pc: eval-arguments as red-native! value pc end
 						exec as red-native! value
 						either sub? [stack/unwind][stack/unwind-last]
 						
@@ -219,7 +217,7 @@ interpreter: context [
 					TYPE_FUNCTION [
 						if verbose > 0 [log "pushing function"]
 						stack/mark-func as red-word! pc	;@@
-						pc: eval-arguments as red-native! value code pc
+						pc: eval-arguments as red-native! value pc end
 						fun: as red-function! value
 						s: as series! fun/more/value
 						;eval as red-block! s/offset	;@@ eval body version (add an option for that)
@@ -266,6 +264,18 @@ interpreter: context [
 		]
 		pc
 	]
+
+	eval-next: func [
+		value	[red-value!]
+		tail	[red-value!]
+		return: [red-value!]							;-- return start of next expression
+	][
+		stack/mark-native words/_body					;-- outer stack frame
+		value: eval-expression value tail no no
+		if value + 1 < tail [stack/reset]
+		stack/unwind-last
+		value
+	]
 	
 	eval: func [
 		code	  [red-block!]
@@ -280,7 +290,7 @@ interpreter: context [
 		
 		while [value < tail][
 			if verbose > 0 [log "root loop..."]
-			value: eval-expression code value no no
+			value: eval-expression value tail no no
 			if value + 1 < tail [stack/reset]
 		]
 		
