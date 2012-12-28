@@ -22,6 +22,8 @@ make-dir %source/units/auto-tests
 qt/make-if-needed? %source/units/auto-tests/integer-auto-test.red %source/units/make-integer-auto-test.r
 qt/make-if-needed? %source/units/auto-tests/infix-equal-auto-test.red %source/units/make-equal-auto-test.r
 qt/make-if-needed? %source/units/auto-tests/equal-auto-test.red %source/units/make-equal-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/infix-not-equal-auto-test.red %source/units/make-not-equal-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/not-equal-auto-test.red %source/units/make-not-equal-auto-test.r
 
 ;; run the tests
 print rejoin ["Quick-Test v" qt/version]
@@ -60,6 +62,8 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/auto-tests/integer-auto-test.red
   --run-test-file-quiet-red %source/units/auto-tests/infix-equal-auto-test.red
   --run-test-file-quiet-red %source/units/auto-tests/equal-auto-test.red
+  --run-test-file-quiet-red %source/units/auto-tests/infix-not-equal-auto-test.red
+  --run-test-file-quiet-red %source/units/auto-tests/not-equal-auto-test.red
 ===end-group===
 
 ***end-run-quiet***
