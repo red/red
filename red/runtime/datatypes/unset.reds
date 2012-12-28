@@ -16,6 +16,19 @@ unset-value/header: TYPE_UNSET
 unset: context [
 	verbose: 0
 	
+	push-last: func [
+		return:	 [red-unset!]
+		/local
+			cell [red-unset!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "unset/push-last"]]
+
+		cell: as red-unset! stack/arguments
+		cell/header: TYPE_UNSET							;-- implicit reset of all header flags
+		cell
+	]
+
+	
 	;-- Actions -- 
 
 	make: func [

@@ -15,6 +15,11 @@ Red/System [
 	none/push-last
 ]
 
+#define RETURN_UNSET [
+	stack/reset
+	unset/push-last
+]
+
 natives: context [
 	verbose: 0
 	lf?: 	 no											;-- used to print or not an ending newline
@@ -99,10 +104,84 @@ natives: context [
 		]
 	]
 	
-	while*:		does []
-	until*:		does []
-	loop*:		does []
-	repeat*:	does []
+	while*:	func [
+		/local
+			cond [red-block!]
+			body [red-block!]
+	][
+		cond: as red-block! stack/arguments
+		body: as red-block! stack/arguments + 1
+		
+		stack/mark-native words/_body
+		while [
+			interpreter/eval cond
+			logic/true?
+		][
+			interpreter/eval body
+		]
+		stack/unwind
+		RETURN_UNSET
+	]
+	
+	until*: func [
+		/local
+			body [red-block!]
+	][
+		body: as red-block! stack/arguments
+
+		stack/mark-native words/_body
+		until [
+			interpreter/eval body
+			logic/true?
+		]
+		stack/unwind-last
+	]
+	
+	loop*: func [
+		/local
+			body [red-block!]
+			i	 [integer!]
+	][
+		i: integer/get*
+		unless positive? i [exit]						;-- if counter <= 0, no loops
+		body: as red-block! stack/arguments + 1
+	
+		stack/mark-native words/_body
+		until [	
+			interpreter/eval body
+			i: i - 1
+			zero? i
+		]
+		stack/unwind-last
+	]
+	
+	repeat*: func [
+		/local
+			w	   [red-word!]
+			body   [red-block!]
+			count  [red-integer!]
+			cnt	   [integer!]
+			i	   [integer!]
+	][
+		w: 	   as red-word!    stack/arguments
+		count: as red-integer! stack/arguments + 1
+		body:  as red-block!   stack/arguments + 2
+		
+		i: integer/get as red-value! count
+		unless positive? i [exit]						;-- if counter <= 0, no loops
+		count/value: 1
+	
+		stack/mark-native words/_body
+		until [	
+			_context/set w as red-value! count
+			interpreter/eval body
+			count/value: count/value + 1
+			i: i - 1
+			zero? i
+		]
+		stack/unwind-last
+	]
+	
 	foreach*:	does []
 	forall*:	does []
 	func*:		does []

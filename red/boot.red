@@ -436,14 +436,15 @@ until: make native! [[
 ]
 
 loop: make native! [[
-		body [block!]
+		count [integer!]
+		body  [block!]
 	]
 	#get-definition NAT_LOOP
 ]
 
 repeat: make native! [[
 		'word [word!]
-		value [integer! series!]
+		value [integer!]
 		body  [block!]
 	]
 	#get-definition NAT_REPEAT

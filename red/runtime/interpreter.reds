@@ -10,13 +10,25 @@ Red/System [
 	}
 ]
 
-#define EVAL_ARGUMENT [
+#define EVAL_CHECK_INPUT [
 	if pc >= end [
 		print-line "*** Interpreter Error: missing argument..."
 		halt
 	]
-	if verbose > 0 [log "fetching argument"]
+]
+
+#define EVAL_ARGUMENT [
+	EVAL_CHECK_INPUT
+	if verbose > 0 [log "evaluating argument"]
 	pc: eval-expression pc end no yes					;-- eval argument
+	count: count + 1
+]
+
+#define EVAL_FETCH_ARGUMENT [
+	EVAL_CHECK_INPUT
+	if verbose > 0 [log "fetching argument"]
+	stack/push pc
+	pc: pc + 1
 	count: count + 1
 ]
 
@@ -123,9 +135,8 @@ interpreter: context [
 						offset: offset + 1
 					]
 				]
-				TYPE_GET_WORD [
-					--NOT_IMPLEMENTED--
-				]
+				TYPE_LIT_WORD [EVAL_FETCH_ARGUMENT]
+				TYPE_GET_WORD [EVAL_FETCH_ARGUMENT]
 				TYPE_REFINEMENT [
 					ref-array/offset: -1
 					ref?: no
