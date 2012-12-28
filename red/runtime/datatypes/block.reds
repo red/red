@@ -211,7 +211,6 @@ block: context [
 				value1 >= end
 			]
 		]
-		if op = COMP_NOT_EQUAL [res: not res]
 		res
 	]
 
