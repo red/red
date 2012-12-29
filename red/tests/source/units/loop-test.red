@@ -181,10 +181,10 @@ qt-print-totals: func [
 ===start-group=== "basic until tests"
 
   --test-- "bu1"
-    bul-i: 0
+    bu1-i: 0
     until [
       bu1-i: bu1-i + 1
-      bul-i > 10
+      bu1-i > 10
     ]
   --assert bu1-i = 11 
   
