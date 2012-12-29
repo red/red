@@ -117,6 +117,7 @@ natives: context [
 			interpreter/eval cond
 			logic/true?
 		][
+			stack/reset
 			interpreter/eval body
 		]
 		stack/unwind
@@ -131,6 +132,7 @@ natives: context [
 
 		stack/mark-native words/_body
 		until [
+			stack/reset
 			interpreter/eval body
 			logic/true?
 		]
@@ -143,11 +145,15 @@ natives: context [
 			i	 [integer!]
 	][
 		i: integer/get*
-		unless positive? i [exit]						;-- if counter <= 0, no loops
+		unless positive? i [							;-- if counter <= 0, no loops
+			RETURN_NONE
+			exit
+		]
 		body: as red-block! stack/arguments + 1
 	
 		stack/mark-native words/_body
-		until [	
+		until [
+			stack/reset
 			interpreter/eval body
 			i: i - 1
 			zero? i
@@ -168,11 +174,15 @@ natives: context [
 		body:  as red-block!   stack/arguments + 2
 		
 		i: integer/get as red-value! count
-		unless positive? i [exit]						;-- if counter <= 0, no loops
+		unless positive? i [							;-- if counter <= 0, no loops
+			RETURN_NONE
+			exit
+		]
 		count/value: 1
 	
 		stack/mark-native words/_body
-		until [	
+		until [
+			stack/reset
 			_context/set w as red-value! count
 			interpreter/eval body
 			count/value: count/value + 1

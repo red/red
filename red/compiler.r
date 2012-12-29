@@ -770,7 +770,6 @@ red: context [
 		]
 		mark: tail output
 		emit [
-			stack/reset
 			until
 		]
 		new-line skip tail output -3 off
