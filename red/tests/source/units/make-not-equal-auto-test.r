@@ -230,7 +230,7 @@ start-group: func [
   
 
 ;; processing 
-replace test-src {***MAKELENGTH***} length? read %make-equal-auto-test.r
+replace test-src {***MAKELENGTH***} length? read %make-not-equal-auto-test.r
 infix-src: copy test-src
 replace infix-src {***FILE***} :infix-file
 prefix-src: copy test-src
@@ -249,7 +249,7 @@ add-not-equal-test "['a]" "['b]"
 add-not-equal-test "[a:]" "[b:]"
 add-not-equal-test "[:a]" "[b:]"
 add-not-equal-test "[abcde]" "[abcdef]"
-add-not-equal-test "[a b c d]" "[a b c d]"
+add-not-equal-test "[a b c d]" "[a c d]"
 add-not-equal-test "[b c d]" "next [a b c d e]"
 add-not-equal-test "[b c d]" "(next [a b c d e])"
 add-not-equal-test {"a"} {"b"}

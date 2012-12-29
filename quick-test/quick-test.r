@@ -396,6 +396,7 @@ qt: make object! [
     ]
     if exists? r-comp-r [delete r-comp-r]
     
+    
     either r-compile-ok? [
       exe
     ][
@@ -425,9 +426,6 @@ qt: make object! [
       r-compile-and-run/error
     ][
       r-compile-and-run src
-    ]
-    if windows-os? [
-      output: qt/utf-16le-to-utf-8 output
     ]
     if output <> "Compilation failed" [print output]
   ]
@@ -465,6 +463,7 @@ qt: make object! [
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
+    if windows-os? [output: qt/utf-16le-to-utf-8 output]
     if none <> find output "Script Error" [
       if not error [_signify-failure]
     ]
@@ -598,14 +597,7 @@ qt: make object! [
   
   assert-red-printed?: func[
     msg
-    /local
-      output
   ][
-    output: either windows-os? [
-      qt/utf-16le-to-utf-8 qt/output
-    ][
-      copy qt/output
-    ]
     assert found? find output msg
   ]
       
