@@ -98,6 +98,11 @@ red: context [
 		quit-on-error
 	]
 	
+	convert-to-block: func [mark [block!]][
+		change/part/only mark copy/deep mark tail mark	;-- put code between [...]
+		clear next mark									;-- remove code at "upper" level
+	]
+	
 	any-function?: func [value [word!]][
 		find [native! action! op! function! routine!] value
 	]
@@ -751,17 +756,20 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-loop: has [name set-name][
+	comp-loop: has [name set-name mark][
 		depth: depth + 1
 		
 		set [name set-name] declare-variable join "i" depth
 		
 		comp-expression									;@@ optimize case for literal counter
 		
-		emit set-name
-		insert-lf -1
+		emit compose [(set-name) integer/get*]
+		insert-lf -2
+		emit compose/deep [
+			either (name) <= 0 [(set-last-none)]
+		]
+		mark: tail output
 		emit [
-			integer/get*
 			stack/reset
 			until
 		]
@@ -776,6 +784,8 @@ red: context [
 		new-line skip tail last output -3 on
 		new-line skip tail last output -7 on
 		depth: depth - 1
+		
+		convert-to-block mark
 	]
 	
 	comp-until: does [
@@ -1585,8 +1595,7 @@ red: context [
 		comp-block
 		pc: next saved									;-- step over block in source code				
 
-		change/part/only mark copy/deep mark tail mark	;-- put output code between [...]
-		clear next mark									;-- remove code at "above" level
+		convert-to-block mark
 		head insert last output [
 			stack/reset
 		]
