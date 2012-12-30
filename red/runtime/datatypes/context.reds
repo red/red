@@ -15,7 +15,7 @@ _context: context [
 	
 	find-word: func [
 		ctx		[red-context!]
-		symbol	[integer!]
+		sym		[integer!]
 		return:	[integer!]								;-- value > 0: success, value = -1: failure
 		/local
 			series	[series!]
@@ -25,9 +25,10 @@ _context: context [
 		series: as series! ctx/symbols/value
 		list:   as red-word! series/offset
 		end:    as red-word! series/tail
+		sym:	symbol/resolve sym
 		
 		while [list < end][
-			if list/symbol = symbol [
+			if list/symbol = sym [
 				return (as-integer list - as red-word! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
 			]
 			list: list + 1
