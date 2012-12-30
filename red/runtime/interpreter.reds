@@ -283,7 +283,6 @@ interpreter: context [
 	][
 		stack/mark-native words/_body					;-- outer stack frame
 		value: eval-expression value tail no no
-		if value + 1 < tail [stack/reset]
 		stack/unwind-last
 		value
 	]

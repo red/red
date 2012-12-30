@@ -13,6 +13,7 @@ Red/System [
 #define RETURN_NONE [
 	stack/reset
 	none/push-last
+	exit
 ]
 
 #define RETURN_UNSET [
@@ -97,10 +98,7 @@ natives: context [
 		
 		while [value < tail][
 			value: interpreter/eval-next value tail
-			if logic/false? [
-				RETURN_NONE
-				exit
-			]
+			if logic/false? [RETURN_NONE]
 		]
 	]
 	
@@ -145,10 +143,8 @@ natives: context [
 			i	 [integer!]
 	][
 		i: integer/get*
-		unless positive? i [							;-- if counter <= 0, no loops
-			RETURN_NONE
-			exit
-		]
+		unless positive? i [RETURN_NONE]				;-- if counter <= 0, no loops
+		
 		body: as red-block! stack/arguments + 1
 	
 		stack/mark-native words/_body
@@ -174,10 +170,8 @@ natives: context [
 		body:  as red-block!   stack/arguments + 2
 		
 		i: integer/get as red-value! count
-		unless positive? i [							;-- if counter <= 0, no loops
-			RETURN_NONE
-			exit
-		]
+		unless positive? i [RETURN_NONE]				;-- if counter <= 0, no loops
+		
 		count/value: 1
 	
 		stack/mark-native words/_body
@@ -192,16 +186,139 @@ natives: context [
 		stack/unwind-last
 	]
 	
-	foreach*:	does []
-	forall*:	does []
+	foreach*: func [
+		/local
+			value [red-value!]
+			body  [red-block!]
+			size  [integer!]
+	][
+		value: stack/arguments
+		body: as red-block! stack/arguments + 2
+		
+		stack/push stack/arguments + 1					;-- copy arguments to stack top in reverse order
+		stack/push value								;-- (required by foreach-next)
+		
+		stack/mark-native words/_body
+		
+		either TYPE_OF(value) = TYPE_BLOCK [
+			size: block/rs-length? as red-block! value
+			
+			while [foreach-next-block size][			;-- foreach [..]
+				stack/reset
+				interpreter/eval body
+			]
+		][
+			while [foreach-next][						;-- foreach <word!>
+				stack/reset
+				interpreter/eval body
+			]
+		]
+		stack/unwind-last
+	]
+	
+	forall*: func [
+		/local
+			w 	   [red-word!]
+			body   [red-block!]
+			saved  [red-value!]
+			series [red-series!]
+	][
+		w:    as red-word!  stack/arguments
+		body: as red-block! stack/arguments + 1
+		
+		saved: word/get w							;-- save series (for resetting on end)
+		w: word/push w								;-- word argument
+		
+		stack/mark-native words/_body
+		while [
+			loop? as red-series! _context/get w
+		][
+			stack/reset
+			interpreter/eval body
+			series: as red-series! _context/get w
+			series/head: series/head + 1
+		]
+		stack/unwind-last
+		_context/set w saved
+	]
+	
+	
 	func*:		does []
 	function*:	does []
 	does*:		does []
 	has*:		does []
 	exit*:		does []
 	return*:	does []
-	switch*:	does []
-	case*:		does []
+		
+	switch*: func [
+		default? [integer!]								;@@ not implemented yet
+		/local
+			pos	 [red-value!]
+			blk  [red-block!]
+			end  [red-value!]
+			s	 [series!]
+	][
+		blk: as red-block! stack/arguments + 1
+		
+		pos: actions/find
+			as red-series! blk
+			stack/arguments
+			null
+			no
+			no
+			no
+			null
+			null
+			no
+			no
+			yes											;-- /tail
+			no
+			
+		either TYPE_OF(blk) = TYPE_NONE [
+			;TBD: add default block processing
+			0
+		][
+			s: GET_BUFFER(blk)
+			end: s/tail
+			
+			while [pos < end][							;-- find first following block
+				if TYPE_OF(pos) = TYPE_BLOCK [
+					stack/reset
+					interpreter/eval as red-block! pos	;-- do the block
+					exit								;-- early exit with last value on stack
+				]
+				pos: pos + 1
+			]
+		]
+		RETURN_NONE
+	]
+	
+	case*: func [
+		all? 	  [integer!]							;@@ not implemented yet
+		/local
+			value [red-value!]
+			tail  [red-value!]
+	][
+		value: block/rs-head as red-block! stack/arguments
+		tail:  block/rs-tail as red-block! stack/arguments
+		if value = tail [RETURN_NONE]
+		
+		while [value < tail][
+			value: interpreter/eval-next value tail		;-- eval condition
+			either logic/true? [
+				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
+					stack/reset
+					interpreter/eval as red-block! value
+				][
+					value: interpreter/eval-next value tail
+				]
+				exit									;-- early exit with last value on stack
+			][
+				value: value + 1						;-- single value only allowed for cases bodies
+			]
+		]
+		RETURN_NONE
+	]
 	
 	do*: does [
 		interpreter/eval as red-block! stack/arguments no

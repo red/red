@@ -28,6 +28,8 @@ block: context [
 	rs-head: func [
 		blk 	[red-block!]
 		return: [red-value!]
+		/local
+			s	[series!]
 	][
 		s: GET_BUFFER(blk)
 		s/offset
@@ -36,6 +38,8 @@ block: context [
 	rs-tail: func [
 		blk 	[red-block!]
 		return: [red-value!]
+		/local
+			s	[series!]
 	][
 		s: GET_BUFFER(blk)
 		s/tail
@@ -586,9 +590,9 @@ block: context [
 		until [
 			either zero? values [
 				found?: either positive? type [
-					type = TYPE_OF(slot)		;-- simple type comparison
+					type = TYPE_OF(slot)				;-- simple type comparison
 				][
-					actions/compare slot value op ;-- atomic comparison
+					actions/compare slot value op		;-- atomic comparison
 				]
 			][
 				n: 0

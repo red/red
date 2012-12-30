@@ -862,11 +862,11 @@ red: context [
 		comp-expression									;-- compile series argument
 		;TBD: check if result is any-series!
 		emit 'stack/keep
-		insert-lf -2
+		insert-lf -1
 		
 		emit compose either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
-			[block/push (name)]								;-- block argument
+			[block/push (name)]							;-- block argument
 		][
 			cond: compose [natives/foreach-next]
 			[word/push (decorate-symbol word)]			;-- word argument
