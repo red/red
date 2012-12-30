@@ -323,8 +323,30 @@ natives: context [
 		interpreter/eval as red-block! stack/arguments no
 	]
 	
-	get*:		does []
-	set*:		does []
+	get*: func [
+		any? [integer!]
+	][
+		stack/set-last _context/get as red-word! stack/arguments
+	]
+	
+	set*: func [
+		any? [integer!]
+		/local
+			w	  [red-word!]
+			value [red-value!]
+			blk	  [red-block!]
+	][
+		w: as red-word! stack/arguments
+		value: stack/arguments + 1
+		
+		either TYPE_OF(w) = TYPE_BLOCK [
+			blk: as red-block! w
+			set-many blk value block/rs-length? blk
+			stack/set-last value
+		][
+			stack/set-last _context/set w value
+		]
+	]
 
 	print*: does [
 		lf?: yes
@@ -506,18 +528,25 @@ natives: context [
 		]
 	]
 	
-	set-many-to-many: func [
-		words	[red-block!]
-		series	[red-series!]
-		size	[integer!]
+	set-many: func [
+		words [red-block!]
+		value [red-value!]
+		size  [integer!]
 		/local
-			i	[integer!]
+			v		[red-value!]
+			blk		[red-block!]
+			i		[integer!]
+			block?	[logic!]
 	][
+		block?: TYPE_OF(value) = TYPE_BLOCK
+		if block? [blk: as red-block! value]
 		i: 1
-		while [i <= size][
+		
+		while [i <= size][		
+			v: either block? [block/pick blk i][value]
 			_context/set
 				as red-word! block/pick words i
-				actions/pick series i
+				v
 			i: i + 1
 		]
 	]
@@ -539,7 +568,7 @@ natives: context [
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
-		set-many-to-many blk series size
+		set-many blk as red-value! series size
 		result: loop? series
 		series/head: series/head + size
 		result

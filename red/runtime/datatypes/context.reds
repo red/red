@@ -82,6 +82,7 @@ _context: context [
 	set: func [
 		word 		[red-word!]
 		value		[red-value!]
+		return:		[red-value!]
 		/local
 			values	[series!]
 	][
