@@ -58,7 +58,6 @@ natives: context [
 	]
 	
 	unless*: does [
-		stack/mark-native words/_body
 		either logic/false? [
 			interpreter/eval as red-block! stack/arguments + 1 no
 		][

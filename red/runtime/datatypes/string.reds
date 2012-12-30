@@ -23,6 +23,8 @@ string: context [
 	rs-head: func [
 		str	    [red-string!]
 		return: [byte-ptr!]
+		/local
+			s	[series!]
 	][
 		s: GET_BUFFER(str)
 		as byte-ptr! s/offset + (str/head << (GET_UNIT(s) >> 1))
@@ -31,6 +33,8 @@ string: context [
 	rs-tail: func [
 		str	    [red-string!]
 		return: [byte-ptr!]
+		/local
+			s	[series!]
 	][
 		s: GET_BUFFER(str)
 		as byte-ptr! s/tail
