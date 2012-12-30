@@ -295,6 +295,10 @@ interpreter: context [
 	][
 		value: block/rs-head code
 		tail:  block/rs-tail code
+		if value = tail [
+			stack/set-last unset-value
+			exit
+		]
 
 		stack/mark-native words/_body					;-- outer stack frame
 		
