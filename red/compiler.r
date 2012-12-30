@@ -53,7 +53,7 @@ red: context [
 	intrinsics:   [
 		if unless either any all while until loop repeat
 		foreach forall break halt func function does has
-		exit return switch case routine
+		exit return switch case routine set get
 	]
 
 	functions: make hash! [
@@ -148,8 +148,9 @@ red: context [
 		insert-lf -2
 	]
 	
-	emit-get-word: func [name [word!] /local new][
+	emit-get-word: func [name [word!] /lex-scope /local new][
 		either all [
+			not lex-scope
 			not empty? locals-stack
 			find last locals-stack name
 		][
@@ -1202,6 +1203,14 @@ red: context [
 		
 	]
 	
+	comp-set: does [									;@@ add /any handling
+		comp-set-word/native
+	]
+	
+	comp-get: does [									;@@ add /any handling
+		emit-get-word/lex-scope to word! pc/1
+	]
+	
 	comp-path: func [/set /local path value emit? get? entry alter][
 		path: copy pc/1
 		emit?: yes
@@ -1366,7 +1375,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-set-word: has [name value][
+	comp-set-word: func [/native /local name value][
 		name: pc/1
 		pc: next pc
 		add-symbol name: to word! clean-lf-flag name
@@ -1393,8 +1402,12 @@ red: context [
 				emit-open-frame 'set
 				emit-push-word name
 				comp-expression							;-- fetch a value
-				emit 'word/set
-				insert-lf -1
+				either native [
+					emit-native/with 'set [-1]			;@@ refinement not handled yet
+				][
+					emit 'word/set
+					insert-lf -1
+				]
 				emit-close-frame
 			]
 		]
