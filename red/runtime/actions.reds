@@ -790,7 +790,7 @@ actions: context [
 		;-- General actions --
 		:make*
 		null			;random
-		null			;reflect
+		:reflect*
 		null			;to
 		:form*
 		:mold*
