@@ -1617,6 +1617,11 @@ red: context [
 		/with body [block!]
 		/local expr
 	][
+		if tail? pc [
+			emit [unset/push-last]
+			insert-lf -1
+			exit
+		]
 		while [not tail? pc][
 			expr: pc
 			comp-expression/root
