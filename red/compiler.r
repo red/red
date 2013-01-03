@@ -580,7 +580,7 @@ red: context [
 			find [integer! logic!] type/1 
 		][
 			offset: 1
-			append/only output append to path! form get spec/2/1 'box
+			append/only output append to path! form get type/1 'box
 		]		
 		emit name
 		cnt: 0
