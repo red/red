@@ -1504,9 +1504,8 @@ red: context [
 				unless file? file: pc/2 [
 					throw-error ["#include requires a file argument:" pc/2]
 				]
-				if slash <> pick file 1 [
-					file: rejoin [system/options/path main-path file]
-				]
+				if slash <> pick file 1 [file: main-path/:file]
+				
 				unless exists? file [
 					throw-error ["include file not found:" pc/2]
 				]
