@@ -1299,6 +1299,7 @@ system-dialect: make-profilable context [
 							pos: set id   string!   (repend list [id reloc: make block! 1])
 							pos: set spec block!    (
 								check-specs/extend name spec
+								remove-each s spec [string? s]
 								specs: copy specs
 								specs/1: name
 								add-function 'import specs cc
@@ -1320,6 +1321,8 @@ system-dialect: make-profilable context [
 					pos: set id   integer!
 					pos: set spec block!    (
 						check-specs/extend name spec
+						spec: copy spec
+						remove-each s spec [string? s]
 						add-function 'syscall reduce [name none spec] 'syscall
 						append last functions id		;-- extend definition with syscode
 					)
