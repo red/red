@@ -60,6 +60,7 @@ red: context [
 	#include %datatypes/function.reds
 	#include %datatypes/routine.reds
 	#include %datatypes/paren.reds
+	#include %datatypes/issue.reds
 	
 	;-- Debugging helpers --
 	
@@ -74,7 +75,7 @@ red: context [
 	
 	;-- initialize memory before anything else
 	alloc-node-frame nodes-per-frame					;-- 5k nodes
-	alloc-series-frame									;-- first frame of 128KB
+	alloc-series-frame									;-- first frame of 512KB
 	
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	block/make-in null 2000					;-- root block		
@@ -109,6 +110,7 @@ red: context [
 		red/_function/verbose:	verbosity
 		red/routine/verbose:	verbosity
 		red/paren/verbose:		verbosity
+		red/issue/verbose:		verbosity
 		
 		red/actions/verbose:	verbosity
 		red/natives/verbose:	verbosity

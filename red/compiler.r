@@ -107,13 +107,14 @@ red: context [
 		find [native! action! op! function! routine!] value
 	]
 	
-	literal?: func [expr][
+	scalar?: func [expr][
 		find [
 			char!
 			integer!
 			tuple!
 			decimal!
 			refinement!
+			issue!
 			lit-word!
 		] type?/word :expr
 	]
@@ -467,6 +468,10 @@ red: context [
 						add-symbol word: to word! clean-lf-flag item
 						decorate-symbol word
 					]
+					issue? item [
+						add-symbol word: to word! form item
+						decorate-symbol word
+					]
 					string? item [
 						emit [tmp:]
 						insert-lf -1
@@ -616,7 +621,7 @@ red: context [
 		value: pc/1
 		either any [
 			char?: unicode-char? value
-			literal? :value
+			scalar? :value
 		][
 			if root? [
 				emit 'stack/reset						;-- reset top to arguments base
@@ -630,6 +635,12 @@ red: context [
 				lit-word? :value [
 					add-symbol value
 					emit-push-word value
+				]
+				issue? value [
+					add-symbol value: load form value
+					emit 'issue/push
+					emit decorate-symbol value
+					insert-lf -2
 				]
 				'else [
 					emit load rejoin [form type? value slash 'push]
@@ -675,7 +686,6 @@ red: context [
 				file!	[]
 				url!	[]
 				binary!	[]
-				issue!	[]
 			][
 				throw-error ["comp-literal: unsupported type" mold value]
 			]
@@ -1499,7 +1509,7 @@ red: context [
 	]
 	
 	comp-directive: has [file saved][
-		switch/default pc/1 [
+		switch pc/1 [
 			#include [
 				unless file? file: pc/2 [
 					throw-error ["#include requires a file argument:" pc/2]
@@ -1512,6 +1522,7 @@ red: context [
 				saved: script-name
 				change/part pc load-source file 2
 				script-name: saved
+				true
 			]
 			#system [
 				unless block? pc/2 [
@@ -1519,6 +1530,7 @@ red: context [
 				]
 				emit pc/2
 				pc: skip pc 2
+				true
 			]
 			#system-global [
 				unless block? pc/2 [
@@ -1526,6 +1538,7 @@ red: context [
 				]
 				append sys-global pc/2
 				pc: skip pc 2
+				true
 			]
 			#get-definition [							;-- temporary directive
 				either value: select extracts/definitions pc/2 [
@@ -1534,13 +1547,13 @@ red: context [
 				][
 					pc: next pc
 				]
+				true
 			]
 			#load [										;-- temporary directive
 				change/part/only pc to do pc/2 pc/3 3 2
 				comp-expression							;-- continue expression fetching
+				true
 			]
-		][
-			throw-error ["Unknown directive:" pc/1]
 		]
 	]
 	
@@ -1558,7 +1571,9 @@ red: context [
 				either unicode-char? pc/1 [
 					comp-literal to logic! root			;-- special encoding for Unicode char!
 				][
-					comp-directive
+					unless comp-directive [
+						comp-literal to logic! root
+					]
 				]
 			]
 			;-- active datatypes with specific literal form
