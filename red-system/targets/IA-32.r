@@ -363,8 +363,12 @@ make-profilable make target-class [
 			]
 			word! [
 				emit-load value
-				if boxed [emit-casting boxed no]
-				type: first compiler/resolve-aliased compiler/get-variable-spec value
+				type: either boxed [
+					emit-casting boxed no
+					boxed/type/1
+				][
+					first compiler/resolve-aliased compiler/get-variable-spec value
+				]
 				if find [pointer! c-string! struct!] type [ ;-- type casting trap
 					type: 'logic!
 				]
