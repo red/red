@@ -617,7 +617,7 @@ red: context [
 			output: saved
 	]
 	
-	comp-literal: func [root? [logic!] /local value char? name][
+	comp-literal: func [root? [logic!] /local value char? name w][
 		value: pc/1
 		either any [
 			char?: unicode-char? value
@@ -636,10 +636,10 @@ red: context [
 					add-symbol value
 					emit-push-word value
 				]
-				issue? value [
-					add-symbol value: load form value
-					emit 'issue/push
-					emit decorate-symbol value
+				find [refinement! issue!] type?/word value [
+					add-symbol w: to word! form value
+					emit load rejoin [form type? value slash 'push]
+					emit decorate-symbol w
 					insert-lf -2
 				]
 				'else [
