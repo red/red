@@ -1136,7 +1136,7 @@ red: context [
 			some [pos: block! (
 				mark: tail output
 				comp-sub-block/with 'switch-body pos/1
-				pc: back pc								;-- restore PC position (no block consumed)
+				unless tail? pc [pc: back pc]			;-- restore PC position (no block consumed)
 				repend list [cnt mark/1]
 				clear mark
 				cnt: cnt + 1
