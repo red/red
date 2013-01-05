@@ -2,7 +2,7 @@ Red Programming Language
 ------------------------
 **Red** is a new programming language strongly inspired by [REBOL](http://rebol.com), but with a broader field of usage thanks to its native-code compiler, from system programming to high-level scripting, while providing a modern support for concurrency and multi-core CPU.
 
-The language is in its early bootstrap phase, once fully done, it will be self-hosted. The Red software stack contains also another language, **Red/System**, which is a low-level DSL. It is a limited C-level language with a REBOL look'n feel, required to build Red's runtime library and be the target language of Red's compiler. More information at [red-lang.org](http://www.red-lang.org).
+The language is in its early bootstrap phase, once fully done, it will be self-hosted. The Red software stack contains also another language, **Red/System**, which is a low-level dialect of Red. It is a limited C-level language with a Red look'n feel, required to build Red's runtime library and be the target language of Red's compiler. More information at [red-lang.org](http://www.red-lang.org).
 
 
 Running the Red hello script
