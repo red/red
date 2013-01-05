@@ -609,12 +609,18 @@ system-dialect: make-profilable context [
 			identifier [word!] name [word! block!] value [integer! word!] /local list v
 		][
 			store-ns-symbol identifier
-			if ns-path [identifier: ns-prefix identifier]
+			if ns-path [
+				add-ns-symbol to set-word! identifier
+				identifier: ns-prefix identifier
+			]
 			
 			if word? name [name: reduce [name]]
 			forall name [
 				store-ns-symbol name/1
-				if ns-path [name/1: ns-prefix name/1]
+				if ns-path [
+					add-ns-symbol to set-word! name/1
+					name/1: ns-prefix name/1
+				]
 				check-enum-word name/1
 			]
 			name: head name
@@ -802,9 +808,13 @@ system-dialect: make-profilable context [
 			if ns-path [
 				either pos: find/skip sym-ctx-table name 2 [
 					either block? pos/2 [
+						foreach ns pos/2 [if find/only ns-stack ns [exit]]
 						if find/only pos/2 ns-path [exit]
 					][
-						if ns-path = pos/2 [exit]
+						if any [
+							ns-path = pos/2
+							find/only ns-stack pos/2
+						][exit]
 						pos/2: reduce [pos/2]
 					]
 					append/only pos/2 copy ns-path
@@ -815,8 +825,21 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		add-ns-symbol: func [name [set-word!]][
-			append second find/only ns-list ns-path to word! name
+		add-ns-symbol: func [name [set-word!] /local ctx ns][
+			name: to word! name
+			if find second find/only ns-list ns-path name [exit]
+			if ns-stack [
+				ctx: tail ns-stack
+				until [
+					ctx: back ctx
+					if all [
+						ns: find/only ns-list to path! ctx/1
+						find second ns name 
+					][exit]
+					head? ctx
+				]
+			]
+			append second find/only ns-list ns-path name
 		]
 		
 		add-symbol: func [name [word!] value type][
@@ -1201,6 +1224,7 @@ system-dialect: make-profilable context [
 		fetch-func: func [name /local specs type cc][
 			name: to word! name
 			store-ns-symbol name
+			if ns-path [add-ns-symbol pc/-1]
 			if ns-path [name: ns-prefix name]
 			check-func-name name
 			check-specs name specs: pc/2
@@ -1385,7 +1409,7 @@ system-dialect: make-profilable context [
 			none
 		]
 		
-		comp-with: has [ns list with-ns words res][
+		comp-with: has [ns list with-ns words res ctx][
 			ns: pc/2
 			unless all [any [word? ns block? ns] block? pc/3][
 				throw-error "WITH invalid argument"
@@ -1393,7 +1417,7 @@ system-dialect: make-profilable context [
 			unless block? ns [ns: reduce [ns]]
 			
 			forall ns [
-				unless path? ns/1 [ns/1: to path! ns/1]
+				ns/1: either path? ctx: resolve-ns/path ns/1 [ctx][to path! ctx]
 				unless find/only ns-list ns/1 [throw-error ["undefined context" ns/1]]
 			]
 			with-ns: unique copy ns
@@ -1412,7 +1436,6 @@ system-dialect: make-profilable context [
 			]
 
 			list: copy with-ns
-			forall list [if path? list/1 [list/1: list/1/1]]	;@@ remove
 			unless ns-stack [ns-stack: make block! 1]
 			append ns-stack list
 			
@@ -1566,6 +1589,7 @@ system-dialect: make-profilable context [
 			]
 			name: to word! pc/-1
 			store-ns-symbol name
+			if ns-path [add-ns-symbol pc/-1]
 			all [
 				not base-type? name
 				ns-path
@@ -2086,6 +2110,20 @@ system-dialect: make-profilable context [
 			also to get-word! name pc: next pc
 		]
 		
+		direct-match-ns: func [ctx [path!] name [word!] path /local ns][
+			if all [
+				any [
+					all [ns-stack find/only ns-stack ctx]
+					all [ns-path find/only ns-path ctx]
+				]
+				ns: find/only ns-list ctx
+				find ns/2 name
+			][
+				if path [return ns-join to path! ctx name] ;-- if /path, defer word conversion
+				ns-decorate ns-join ctx name
+			]
+		]
+		
 		match-ns: func [name [word!] ctx [word! path!] path /local pos][
 			either pos: find ns-stack either path? ctx [ctx/1][ctx][ ;-- match (1st) context with stack
 				if path? ctx [							;-- context hierarchy to match with stack
@@ -2110,13 +2148,20 @@ system-dialect: make-profilable context [
 					ctx: tail ctx						;-- start from last defined context
 					until [
 						ctx: back ctx
-						if value: match-ns name ctx/1 path [
+						if value: any [
+							match-ns name ctx/1 path 
+							direct-match-ns ctx/1 name path
+						][
 							return value				;-- prefix name if context on stack
 						]
 						head? ctx
 					]									;-- no match found, pass-thru
 				][										;-- one parent context only
-					name: any [match-ns name ctx path name] ;-- prefix name if context is on stack
+					name: any [
+						match-ns name ctx path		 	;-- prefix name if context is on stack
+						direct-match-ns ctx name path
+						name
+					]
 				]
 			]
 			name
