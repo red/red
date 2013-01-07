@@ -55,6 +55,7 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/serialization-test.red
   --run-test-file-quiet-red %source/units/function-test.red
   --run-test-file-quiet-red %source/units/loop-test.red
+  --run-test-file-quiet-red %source/units/type-test.red
   
 ===end-group===
 
