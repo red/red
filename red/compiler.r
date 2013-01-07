@@ -242,7 +242,7 @@ red: context [
 		to word! join name get-counter
 	]
 	
-	declare-variable: func [name [string!] /init value /local var set-var][
+	declare-variable: func [name [string! word!] /init value /local var set-var][
 		set-var: to set-word! var: to word! name
 
 		unless find declarations set-var [
@@ -576,7 +576,8 @@ red: context [
 	]
 		
 	emit-routine: func [name [word!] spec [block!] /local type cnt offset][
-		emit [arg: stack/arguments]
+		declare-variable/init 'r_arg to paren! [as red-value! 0]
+		emit [r_arg: stack/arguments]
 		insert-lf -2
 
 		offset: 0
@@ -601,7 +602,7 @@ red: context [
 				][
 					emit reduce ['as spec/2/1]
 				]
-				emit 'arg
+				emit 'r_arg
 				unless head? spec [emit reduce ['+ cnt]]
 				cnt: cnt + 1
 			]
