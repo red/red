@@ -592,6 +592,7 @@ red: context [
 		cnt: 0
 
 		forall spec [
+			if string? spec/1 [break]
 			if any [spec/1 = /local set-word? spec/1][
 				spec: head spec
 				break									;-- avoid processing local variable	
