@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %boot.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -681,6 +681,17 @@ null: 		 #"^@"
 ;------------------------------------------
 ;-			   Mezzanines				  -
 ;------------------------------------------
+
+quit-return: routine [
+	status			[integer!]
+][
+	quit status
+]
+quit: func [
+	/return status	[integer!]
+][
+	quit-return any [status 0]
+]
 
 probe: func [value][
 	print mold value 

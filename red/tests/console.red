@@ -103,7 +103,6 @@ input: routine [
 	SET_RETURN(str)
 ]
 
-quit: :halt
 q: :quit
 
 init-console "Red Console (Xmas demo edition!)"
