@@ -21,6 +21,28 @@ false-value/value: false
 
 logic: context [
 	verbose: 0
+	
+	
+	get: func [											;-- unboxing integer value
+		value	 [red-value!]
+		return:  [logic!]
+		/local
+			cell [red-logic!]
+	][
+		assert TYPE_OF(value) = TYPE_LOGIC
+		cell: as red-logic! value
+		cell/value
+	]
+	
+	box: func [
+		value	 [logic!]
+		/local
+			cell [red-logic!]
+	][
+		cell: as red-logic! stack/arguments
+		cell/header: TYPE_LOGIC
+		cell/value: value
+	]
 		
 	true?: func [
 		return:  [logic!]
