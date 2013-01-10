@@ -273,9 +273,9 @@ lexer: context [
 	
 	escaped-rule: [
 		"#[" any-ws [
-			"none" 	  (value: 'none)
-			| "true"  (value: 'true)
-			| "false" (value: 'false)
+			"none" 	  (value: none)
+			| "true"  (value: true)
+			| "false" (value: false)
 			| s: [
 				"none!" | "logic!" | "block!" | "integer!" | "word!" 
 				| "set-word!" | "get-word!" | "lit-word!" | "refinement!"

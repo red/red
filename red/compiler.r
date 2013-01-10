@@ -109,6 +109,10 @@ red: context [
 	
 	scalar?: func [expr][
 		find [
+			unset!
+			none!
+			logic!
+			datatype!
 			char!
 			integer!
 			tuple!
@@ -452,32 +456,38 @@ red: context [
 				emit 'stack/keep						;-- reset stack, but keep block as last value
 				insert-lf -1
 			][
-				if item = #get-definition [				;-- temporary directive
+				if :item = #get-definition [			;-- temporary directive
 					value: select extracts/definitions blk/2
 					change/only/part blk value 2
 					item: blk/1
 				]
 				action: 'push
 				value: case [
-					unicode-char? item [
+					unicode-char? :item [
 						value: item
 						item: #"_"						;-- placeholder just to pass the char! type to item
 						to integer! next value
 					]
-					any-word? item [
+					any-word? :item [
 						add-symbol word: to word! clean-lf-flag item
 						decorate-symbol word
 					]
-					issue? item [
+					issue? :item [
 						add-symbol word: to word! form item
 						decorate-symbol word
 					]
-					string? item [
+					string? :item [
 						emit [tmp:]
 						insert-lf -1
 						emit-load-string item
 						new-line back tail output off
 						'tmp
+					]
+					find [logic! unset! datatype!] type?/word :item [
+						to word! form :item
+					]
+					none? :item [
+						[]								;-- no argument
 					]
 					'else [
 						item
@@ -631,22 +641,26 @@ red: context [
 			]
 			case [
 				char? [
-					emit [char/push]
+					emit 'char/push
 					emit to integer! next value
 				]
 				lit-word? :value [
 					add-symbol value
 					emit-push-word value
 				]
-				find [refinement! issue!] type?/word value [
+				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
 					emit load rejoin [form type? value slash 'push]
 					emit decorate-symbol w
 					insert-lf -2
 				]
+				none? :value [
+					emit 'none/push
+					insert-lf -1
+				]
 				'else [
-					emit load rejoin [form type? value slash 'push]
-					emit load mold value
+					emit load rejoin [form type? :value slash 'push]
+					emit load mold :value
 				]
 			]
 			insert-lf -2
