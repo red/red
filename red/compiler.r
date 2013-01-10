@@ -1161,6 +1161,7 @@ red: context [
 		
 		append list 'default							;-- process default case
 		either default? [
+			pc: back pc									;-- counter comp-sub-block pc change
 			comp-sub-block 'switch-default				;-- compile default block
 			append/only list last output
 			clear back tail output
