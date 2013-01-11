@@ -33,8 +33,9 @@ _function: context [
 		code	 [integer!]
 		return:	 [red-context!]							;-- return function's local context
 		/local
-			cell [red-function!]
-			more [series!]
+			cell   [red-function!]
+			native [red-native!]
+			more   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
@@ -51,9 +52,9 @@ _function: context [
 		
 		alloc-tail more									;-- reserved place for "symbols"
 		
-		slot: as red-native! alloc-tail more
-		slot/header: TYPE_NATIVE
-		slot/code: code
+		native: as red-native! alloc-tail more
+		native/header: TYPE_NATIVE
+		native/code: code
 		
 		cell/ctx
 	]

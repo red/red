@@ -36,7 +36,9 @@ interpreter: context [
 	verbose: 0
 
 	ref-array: as int-ptr! allocate 64 * size? integer!	;-- for natives/actions refinements handling
-	offset: 0
+	offset: 0											;-- refinements counter for last call
+	count:  0											;-- arguments counter for last call
+	return-type: -1										;-- return type for routine calls
 	
 	log: func [msg [c-string!]][
 		print "eval: "
@@ -49,6 +51,7 @@ interpreter: context [
 			index [integer!]
 			call
 	][
+		call: as function! [] native/code
 		index: 0
 		if positive? offset [
 			until [
@@ -58,8 +61,52 @@ interpreter: context [
 				zero? offset
 			]
 		]
-		call: as function! [] native/code
 		call
+	]
+	
+	exec-routine: func [
+		routine [red-routine!]
+		/local
+			native [red-native!]
+			arg	   [red-value!]
+			bool   [red-logic!]
+			int	   [red-integer!]
+			s	   [series!]
+			ret	   [integer!]
+			call
+	][
+		s: as series! routine/more/value
+		native: as red-native! s/offset + 2
+		call: as function! [return: [integer!]] native/code
+		count: count - 1								;-- zero-based stack access
+		
+		while [count >= 0][
+			arg: stack/arguments + count
+			switch TYPE_OF(arg) [
+				TYPE_LOGIC	 [push logic/get arg]
+				TYPE_INTEGER [push integer/get arg]
+				default		 [push arg]
+			]
+			count: count - 1
+		]
+		either positive? return-type [
+			ret: call
+			switch return-type [
+				TYPE_LOGIC	[
+					bool: as red-logic! stack/arguments
+					bool/header: TYPE_LOGIC
+					bool/value: ret <> 0
+				]
+				TYPE_INTEGER [
+					int: as red-integer! stack/arguments
+					int/header: TYPE_INTEGER
+					int/value: ret
+				]
+				default [assert true]					;-- should never happen
+			]
+		][
+			call
+		]
 	]
 	
 	eval-infix: func [
@@ -76,8 +123,8 @@ interpreter: context [
 		
 		stack/mark-native as red-word! pc + 1
 		eval-expression pc end yes	yes
-		pc: pc + 2								;-- skip both left operand and operator
-		pc: eval-expression pc end no yes		;-- eval right operand
+		pc: pc + 2										;-- skip both left operand and operator
+		pc: eval-expression pc end no yes				;-- eval right operand
 		op: as red-op! value
 		call-op: as function! [] op/code
 		call-op
@@ -91,22 +138,24 @@ interpreter: context [
 	]
 
 	eval-arguments: func [
-		native 	  [red-native!]
-		pc		  [red-value!]
-		end	  	  [red-value!]
-		return:   [red-value!]
+		native 	[red-native!]
+		pc		[red-value!]
+		end	  	[red-value!]
+		return: [red-value!]
 		/local
-			fun	  [red-function!]
-			func? [logic!]
-			value [red-value!]
-			tail  [red-value!]
-			count [integer!]
-			s	  [series!]
-			ref?  [logic!]
+			fun	  	  [red-function!]
+			function? [logic!]
+			routine?  [logic!]
+			value	  [red-value!]
+			tail	  [red-value!]
+			dt		  [red-datatype!]
+			s		  [series!]
+			ref?	  [logic!]
 	][
-		func?: TYPE_OF(native) = TYPE_FUNCTION
+		function?: TYPE_OF(native) = TYPE_FUNCTION
+		routine?:  TYPE_OF(native) = TYPE_ROUTINE
 		
-		s: as series! either func? [
+		s: as series! either any [function? routine?][
 			fun: as red-function! native
 			fun/spec/node/value
 		][
@@ -115,9 +164,10 @@ interpreter: context [
 		value: s/offset
 		tail:  s/tail
 		
-		count:  0
-		offset: 0
-		ref?:	no
+		count:  	 0
+		offset: 	 0
+		return-type: -1
+		ref?:		 no
 		
 		while [value < tail][
 			if verbose > 0 [print-line ["eval: spec entry type: " TYPE_OF(value)]]
@@ -142,7 +192,16 @@ interpreter: context [
 					ref?: no
 					offset: offset + 1
 				]
-				TYPE_SET_WORD [return pc]
+				TYPE_SET_WORD [
+					if routine? [
+						value: block/pick (as red-block! value + 1) 1
+						assert TYPE_OF(value) = TYPE_WORD
+						dt: as red-datatype! _context/get as red-word! value
+						assert TYPE_OF(dt) = TYPE_DATATYPE
+						return-type: dt/value
+					]
+					return pc
+				]
 				default [0]
 			]
 			value: value + 1
@@ -214,7 +273,7 @@ interpreter: context [
 				switch TYPE_OF(value) [
 					TYPE_ACTION 
 					TYPE_NATIVE [
-						if verbose > 0 [log "pushing action/native"]
+						if verbose > 0 [log "pushing action/native frame"]
 						stack/mark-native as red-word! pc
 						pc: eval-arguments as red-native! value pc end
 						exec as red-native! value
@@ -225,8 +284,20 @@ interpreter: context [
 							print-line ["eval: action/native return type: " TYPE_OF(value)]
 						]
 					]
+					TYPE_ROUTINE [
+						if verbose > 0 [log "pushing routine frame"]
+						stack/mark-native as red-word! pc
+						pc: eval-arguments as red-native! value pc end
+						exec-routine as red-routine! value
+						either sub? [stack/unwind][stack/unwind-last]
+
+						if verbose > 0 [
+							value: stack/arguments
+							print-line ["eval: routine return type: " TYPE_OF(value)]
+						]
+					]
 					TYPE_FUNCTION [
-						if verbose > 0 [log "pushing function"]
+						if verbose > 0 [log "pushing function frame"]
 						stack/mark-func as red-word! pc	;@@
 						pc: eval-arguments as red-native! value pc end
 						fun: as red-function! value

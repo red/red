@@ -17,9 +17,12 @@ routine: context [
 	push: func [
 		spec	 [red-block!]
 		body	 [red-block!]
+		code	 [integer!]
 		return:	 [red-routine!]							;-- return function's local context
 		/local
-			cell [red-routine!]
+			cell   [red-routine!]
+			native [red-native!]
+			more   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/push"]]
 
@@ -28,9 +31,16 @@ routine: context [
 		cell/spec:	 spec
 		cell/more:	 alloc-cells 3
 		
+		more: as series! cell/more/value
 		copy-cell
 			as cell! body
-			alloc-tail as series! cell/more/value
+			alloc-tail more
+
+		alloc-tail more									;-- reserved place for "symbols"
+
+		native: as red-native! alloc-tail more
+		native/header: TYPE_NATIVE
+		native/code: code
 		
 		cell
 	]

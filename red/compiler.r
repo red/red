@@ -1083,7 +1083,7 @@ red: context [
 		emit-open-frame 'set							;-- routine value creation
 		emit-push-word name
 		emit compose [
-			routine/push (spec-blk) (body-blk)
+			routine/push (spec-blk) (body-blk) as integer! (to get-word! name)
 		]
 		emit 'word/set
 		insert-lf -1

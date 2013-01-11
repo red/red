@@ -87,21 +87,29 @@ copy-cell: func [
 
 
 words: context [
-	_spec:	as red-word! 0
-	_body:	as red-word! 0
-	_words:	as red-word! 0
+	_spec:		as red-word! 0
+	_body:		as red-word! 0
+	_words:		as red-word! 0
+	_logic!:	as red-word! 0
+	_integer!:	as red-word! 0
 	
-	spec: 	-1
-	body:	-1
-	words:	-1
+	spec:		-1
+	body:		-1
+	words:		-1
+	logic!:		-1
+	integer!:	-1
 	
 	build: does [
-		_spec:	word/load "spec"
-		_body:	word/load "body"
-		_words:	word/load "words"
+		_spec:		word/load "spec"
+		_body:		word/load "body"
+		_words:		word/load "words"
+		_logic!:	word/load "logic!"
+		_integer!:	word/load "integer!"
 		
-		spec:  _spec/symbol
-		body:  _body/symbol
-		words: _words/symbol
+		spec:		_spec/symbol
+		body:		_body/symbol
+		words:		_words/symbol
+		logic!:		_logic!/symbol
+		integer!:	_integer!/symbol
 	]
 ]
