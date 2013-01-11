@@ -1317,7 +1317,10 @@ system-dialect: make-profilable context [
 							pos: set name set-word! (
 								name: to word! name
 								store-ns-symbol name
-								if ns-path [name: ns-prefix name]
+								if ns-path [
+									add-ns-symbol to set-word! name
+									name: ns-prefix name
+								]
 								check-func-name name
 							)
 							pos: set id   string!   (repend list [id reloc: make block! 1])
