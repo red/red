@@ -602,7 +602,9 @@ red: context [
 		cnt: 0
 
 		forall spec [
-			if string? spec/1 [remove spec]
+			if string? spec/1 [
+				if tail? remove spec [break]
+			]
 			if any [spec/1 = /local set-word? spec/1][
 				spec: head spec
 				break									;-- avoid processing local variable	
