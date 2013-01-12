@@ -55,7 +55,7 @@ _context: context [
 		copy-cell as cell! word sym
 		
 		value: alloc-tail as series! ctx/values/value
-		value/header: TYPE_NONE
+		value/header: TYPE_UNSET
 		
 		series: as series! ctx/values/value
 		(as-integer series/tail - series/offset) >> 4 - 1
