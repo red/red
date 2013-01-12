@@ -139,6 +139,7 @@ system-dialect: make-profilable context [
 		
 		keywords: make hash! [
 			;&			 [throw-error "reserved for future use"]
+			?? 			 [comp-print-debug]
 			as			 [comp-as]
 			assert		 [comp-assert]
 			size? 		 [comp-size?]
@@ -1404,6 +1405,15 @@ system-dialect: make-profilable context [
 			][
 				throw-error ["unknown directive" pc/1]
 			]
+		]
+		
+		comp-print-debug: has [out][
+			unless word? name: pc/2 [
+				throw-error "?? needs a word as argument"
+			]
+			out: compose/deep [print-line [(join name ": ") (name)]]
+			change/part pc out 2
+			none
 		]
 		
 		comp-comment: does [

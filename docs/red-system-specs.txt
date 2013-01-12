@@ -2905,16 +2905,16 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     < 			<< 			<= 
     <>			= 			>
     >>			>=		    >>>
-    alias 		all		    and
-    any			as			assert
-    case		comment		context
-    declare     either	    exit
-    false		func 	  	function
-    if			not			null
-    or			pop			push
-    return		size?		switch
-    true		until		while
-    with		xor
+    ??			alias 		all
+    and   		any			as
+    assert		case		comment
+    context		declare     either
+    exit		false		func
+    function	if			not
+    null		or			pop
+    push		return		size?
+    switch		true		until
+    while		with		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
