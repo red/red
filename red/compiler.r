@@ -1695,7 +1695,7 @@ red: context [
 		out: copy/deep [
 			Red/System [origin: 'Red]
 			
-			#include %red.reds
+			#include %../red/runtime/red.reds
 						
 			with red [
 				exec: context <script>

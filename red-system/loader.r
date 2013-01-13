@@ -9,8 +9,8 @@ REBOL [
 
 loader: make-profilable context [
 	verbose: 	  0
-	include-dirs: none
 	include-list: make hash! 20
+	ssp-stack: 	  make block! 5
 	defs:		  make block! 100
 
 	hex-chars: 	  charset "0123456789ABCDEF"
@@ -35,7 +35,6 @@ loader: make-profilable context [
 	]
 
 	init: does [
-		include-dirs: reduce [runtime-path red-runtime-path %./]
 		clear include-list
 		clear defs
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
@@ -49,15 +48,15 @@ loader: make-profilable context [
 		]
 	]
 
-	find-path: func [file [file!]][
-		either slash = first file [
-			if exists? file [return file] 		;-- absolute path check
-		][
-			foreach dir include-dirs [			;-- relative path check using known directories
-				if exists? dir/:file [return dir/:file]
-			]
-		]
-		throw-error ["include file access error:" mold file]
+	push-system-path: func [file [file!] /local path][
+		append ssp-stack system/script/path
+		path: split-path get-modes file 'full-path
+		system/script/path: path/1
+		path/2
+	]
+	
+	pop-system-path: does [
+		system/script/path: take/last ssp-stack
 	]
 	
 	check-macro-parameters: func [args [paren!]][
@@ -271,13 +270,15 @@ loader: make-profilable context [
 					s: e
 				) :s
 				| s: #include set name file! e: (
-					either included? name: find-path name [
+					either included? name [
 						s: remove/part s e			;-- already included, drop it
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
+						name: push-system-path name
 						value: skip process/short/sub name 2		;-- skip Red/System header
 						e: change/part s value e
 						insert e reduce [			;-- put back the parent origin
+							#pop-path
 							#script current-script
 						]
 						insert s reduce [			;-- mark code origin	
@@ -306,6 +307,10 @@ loader: make-profilable context [
 					][
 						remove/part s e
 					]
+				) :s
+				| s: #pop-path e: (
+					pop-system-path
+					s: remove s
 				) :s
 				| line-rule
 				| s: issue! (
@@ -336,19 +341,16 @@ loader: make-profilable context [
 		insert src stack/1							;-- return source with hidden root header
 	]
 
-	process: func [input [file! string! block!] /sub /with name [file!] /short /local src err path][
+	process: func [
+		input [file! string! block!] /sub /with name [file!] /short
+		/local src err path ssp pushed?
+	][
 		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
 
 		if file? input [
-			if all [
-				%./ <> path: first split-path input	;-- is there a path in the filename?
-				not find/only include-dirs path
-			][
-				either sub [
-					insert next include-dirs path		;-- register source folder as include dir
-				][
-					insert include-dirs path			;-- register root folder as *first* include dir
-				]
+			if find input %/ [ ;-- is there a path in the filename?
+				input: push-system-path input
+				pushed?: yes
 			]
 			if error? set/any 'err try [src: as-string read/binary input][	;-- read source file
 				throw-error ["file access error:" mold disarm err]
@@ -371,6 +373,7 @@ loader: make-profilable context [
 			]
 		]
 		unless short [src: expand-block src]		;-- process block-level compiler directives
+		if pushed? [pop-system-path]
 		src
 	]
 ]
