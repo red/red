@@ -62,5 +62,18 @@ Red [
 	--assert "^(010000)" = find "abcde^(010000)" "^(010000)"   
 ===end-group===
 
+===start-group=== "find/part"
+	--test-- "find/part-1"
+	--assert none = find/part "1234" "1" 0
+	--test-- "find/part-2"
+	--assert "1234" = find/part "1234" "1" 1
+	--test-- "find/part-3"
+	--assert "234" = find/part "1234" "2" 2
+	--test-- "find/part-4"
+	--assert "234" = find/part "1234" "2" 4
+	--test-- "find/part-5"
+	--assert "234" = find/part "1234" "2" 5
+===end-group===
+
 ~~~end-file~~~
 
