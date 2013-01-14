@@ -128,6 +128,7 @@ redc: context [
 	main: has [srcs opts build-dir result saved] [
 		set [srcs opts] parse-options
 
+		forall srcs [srcs/1: get-modes srcs/1 'full-path]
 		;; If we use a build directory, ensure it exists.
 		if all [opts/build-prefix find opts/build-prefix %/] [
 			build-dir: copy/part opts/build-prefix find/last opts/build-prefix %/
