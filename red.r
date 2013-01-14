@@ -116,8 +116,11 @@ redc: context [
 		;; Process input sources.
 		if empty? srcs [fail "No source files specified."]
 		
-		foreach src srcs [		
-			unless exists? src [
+		forall srcs [
+			if slash <> first srcs/1 [								;-- if relative path
+				srcs/1: clean-path join system/options/path srcs/1	;-- add working dir path
+			]
+			unless exists? srcs/1 [
 				fail ["Cannot access source file:" src]
 			]
 		]
@@ -128,7 +131,6 @@ redc: context [
 	main: has [srcs opts build-dir result saved] [
 		set [srcs opts] parse-options
 
-		forall srcs [srcs/1: get-modes srcs/1 'full-path]
 		;; If we use a build directory, ensure it exists.
 		if all [opts/build-prefix find opts/build-prefix %/] [
 			build-dir: copy/part opts/build-prefix find/last opts/build-prefix %/
