@@ -73,6 +73,27 @@ Red [
 	--assert "234" = find/part "1234" "2" 4
 	--test-- "find/part-5"
 	--assert "234" = find/part "1234" "2" 5
+	--test-- "find/part-6"
+	--assert none = find/part "1234" "3" 2
+	--test-- "find/part-7"
+	--assert none = find/part [1 2 3 4] 1 0
+	--test-- "find/part-8"
+	--assert [1 2 3 4] = find/part [1 2 3 4] 1 1
+	--test-- "find/part-9"
+	--assert [2 3 4] = find/part [1 2 3 4] 2 2
+	--test-- "find/part-10"
+	--assert [2 3 4] = find/part [1 2 3 4] [2 3] 4
+	--test-- "find/part-11"
+	--assert none = find/part [1 2 3 4] [2 3] 2
+	--test-- "find/part-12"
+	--assert none = find/part [1 2 3 4] 3 2
+===end-group===
+
+===start-group=== "find/only"
+	--test-- "find/only-1"
+	--assert [[2 3] 4] = find/only [1 [2 3] 4] [2 3]
+	--test-- "find/only-2"
+	--assert none = find/only [1 2 3 4] [2 3]
 ===end-group===
 
 ~~~end-file~~~
