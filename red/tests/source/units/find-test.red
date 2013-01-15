@@ -96,5 +96,14 @@ Red [
 	--assert none = find/only [1 2 3 4] [2 3]
 ===end-group===
 
+===start-group=== "find/case"
+	--test-- "find/case-1"
+	--assert "abcde" = find/case "Aabcde" "a"
+	--test-- "find/case-2"
+	--assert "Abcde" = find/case "aAbcde" "A"
+	--test-- "find/case-3"
+	--assert none = find/case "è" "E"
+===end-group===
+
 ~~~end-file~~~
 
