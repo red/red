@@ -121,7 +121,7 @@ redc: context [
 				srcs/1: clean-path join system/options/path srcs/1	;-- add working dir path
 			]
 			unless exists? srcs/1 [
-				fail ["Cannot access source file:" src]
+				fail ["Cannot access source file:" srcs/1]
 			]
 		]
 
