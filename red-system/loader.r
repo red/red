@@ -347,8 +347,18 @@ loader: make-profilable context [
 	][
 		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
 
+		if with [									;-- push alternate filename on stack
+			push-system-path join first split-path name %.
+			pushed?: yes
+		]
+
 		if file? input [
-			if find input %/ [ ;-- is there a path in the filename?
+			if input = %red.reds [					;-- special processing for Red runtime
+				system/script/path: join ssp-stack/1 %../red/runtime/
+				input: push-system-path join system/script/path input
+				pushed?: yes
+			]
+			if find input %/ [ 						;-- is there a path in the filename?
 				input: push-system-path input
 				pushed?: yes
 			]
@@ -363,11 +373,11 @@ loader: make-profilable context [
 				'else		['in-memory]
 			]
 		]
-		src: any [src input]						;-- process string-level compiler directives
+		src: any [src input]
 		if file? input [check-marker src]			;-- look for "Red/System" head marker
 		
 		unless block? src [
-			expand-string src
+			expand-string src						;-- process string-level compiler directives
 			if error? set/any 'err try [src: load src][	;-- convert source to blocks
 				throw-error ["syntax error during LOAD phase:" mold disarm err]
 			]
