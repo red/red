@@ -50,7 +50,8 @@ loader: make-profilable context [
 
 	push-system-path: func [file [file!] /local path][
 		append ssp-stack system/script/path
-		path: split-path get-modes file 'full-path
+		if slash <> first file [file: get-modes file 'full-path]
+		path: split-path file
 		system/script/path: path/1
 		path/2
 	]
