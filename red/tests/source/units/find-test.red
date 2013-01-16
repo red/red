@@ -55,9 +55,9 @@ Red [
 	--test-- "find-21"
 	--assert none = find "abcdeé" "ée"
 	--test-- "find-22"
-	--assert "✐" = "abcde✐" "✐"            ;; code point 10000 (decimal)
+	--assert "✐" = find "abcde✐" "✐"            ;; code point 10000 (decimal)
 	--test-- "find-23"
-	--assert none = "abcde✐" "ed✐"
+	--assert none = find "abcde✐" "ed✐"
 	--test-- "find-24"
 	--assert "^(010000)" = find "abcde^(010000)" "^(010000)"   
 ===end-group===
@@ -103,6 +103,34 @@ Red [
 	--assert "Abcde" = find/case "aAbcde" "A"
 	--test-- "find/case-3"
 	--assert none = find/case "è" "E"
+===end-group===
+
+===start-group=== "find/any"      ; not yet implemented
+	--test-- "find/any-1"
+	;--assert "12345" = find/any "12345" "*"
+	--test-- "find/any-2"
+	;--assert "12345" = find/any "12345" "?"
+	--test-- "find/any-3"
+	;--assert "2345" = find/any "12345" "2?3"
+	--test-- "find/any-4"
+	;assert "2345" = find/any "12345" "2*"
+	--test-- "find/any-5"
+	;assert "e✐" = find/any "abcde✐" "e?"        ;; code point 10000 (decimal)
+	--test-- "find/any-6"
+	;assert "e✐f" = find/any "abcde✐f" "?f" 
+	--test-- "find/any-7"
+	;assert "e✐" = find/any "abcde✐" "e*" 
+	--test-- "find/any-8"
+	;assert "abcde✐f" = find/any "abcde✐f" "*f" 
+	--test-- "find/any-9"
+	;assert "e^(010000)" = find/any "abcde^(010000)" "e?"        
+	--test-- "find/any-10"
+	;assert "e^(010000)f" = find/any "abcde^(010000)f" "?f" 
+	--test-- "find/any-11"
+	;assert "e^(010000)" = find/any "abcde^(010000)" "e*" 
+	--test-- "find/any-12"
+	;assert "abcde^(010000)f" = find/any "abcde^(010000)f" "*f" 
+	
 ===end-group===
 
 ~~~end-file~~~
