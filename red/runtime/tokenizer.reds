@@ -55,8 +55,9 @@ tokenizer: context [
 		blk		[red-block!]
 		return: [c-string!]
 		/local
-			e	[c-string!]
-			c	[byte!]
+			e	  [c-string!]
+			c	  [byte!]
+			saved [byte!]
 	][
 		s: s + 1										;-- skip first double quote
 		e: s + 1
@@ -67,7 +68,10 @@ tokenizer: context [
 			c: e/1
 		]
 		if c <> #"^"" [throw-error ERR_STRING_DELIMIT]
+		saved: e/1										;@@ allocate a new buffer instead
+		e/1: null-byte
 		string/load-in s (as-integer e - s) + 1 blk
+		e/1: saved
 		either c = #"^"" [e + 1][e]
 	]
 	
