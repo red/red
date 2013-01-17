@@ -177,8 +177,12 @@ interpreter: context [
 						EVAL_ARGUMENT
 					][
 						either ref? [
-							ref-array/offset: count
-							EVAL_ARGUMENT
+							either any [function? routine?][
+								none/push
+							][
+								ref-array/offset: count
+								EVAL_ARGUMENT
+							]
 						][
 							ref-array/offset: -1
 						]
@@ -188,9 +192,15 @@ interpreter: context [
 				TYPE_LIT_WORD [EVAL_FETCH_ARGUMENT]
 				TYPE_GET_WORD [EVAL_FETCH_ARGUMENT]
 				TYPE_REFINEMENT [
-					ref-array/offset: -1
-					ref?: no
-					offset: offset + 1
+					ref?: yes
+					either any [function? routine?][
+						;TBD: check here if refinement is used
+						logic/push false
+						offset: 1
+					][
+						ref-array/offset: -1
+						offset: offset + 1
+					]
 				]
 				TYPE_SET_WORD [
 					if routine? [
