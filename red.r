@@ -62,7 +62,7 @@ redc: context [
 	]
 
 	parse-options: has [
-		args srcs opts output target verbose filename config config-name
+		args srcs opts output target verbose filename config config-name base-path
 	] [
 		args: any [system/options/args parse any [system/script/args ""] none]
 
@@ -96,9 +96,10 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
+		base-path: system/script/parent/path
 		opts: make opts config
 		opts/config-name: config-name
-		opts/build-prefix: system/options/path
+		opts/build-prefix: base-path
 
 		;; Process -o/--output (if any).
 		if output [
@@ -116,9 +117,12 @@ redc: context [
 		;; Process input sources.
 		if empty? srcs [fail "No source files specified."]
 		
-		foreach src srcs [		
-			unless exists? src [
-				fail ["Cannot access source file:" src]
+		forall srcs [
+			if slash <> first srcs/1 [								;-- if relative path
+				srcs/1: clean-path join base-path srcs/1			;-- add working dir path
+			]
+			unless exists? srcs/1 [
+				fail ["Cannot access source file:" srcs/1]
 			]
 		]
 
