@@ -96,7 +96,7 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
-		base-path: any [system/options/path system/script/path]
+		base-path: system/script/parent/path
 		opts: make opts config
 		opts/config-name: config-name
 		opts/build-prefix: base-path
