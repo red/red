@@ -234,6 +234,7 @@ lexer: context [
 				#"/" 	(value: #"^/")
 				| #"-"	(value: #"^-")
 				| #"?" 	(value: #"^(del)")
+				| #"^^" (value: #"^^")				;-- caret escaping case
 			]
 			| s: caret-char (value: s/1 - 64)
 		]
