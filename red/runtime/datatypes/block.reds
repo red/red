@@ -516,7 +516,7 @@ block: context [
 		s: GET_BUFFER(blk)
 		if s/offset = s/tail [							;-- early exit if blk is empty
 			blk/header: TYPE_NONE
-			return s/offset
+			return as red-value! blk
 		]
 		step:  1
 		part?: no
@@ -530,7 +530,7 @@ block: context [
 				int: as red-integer! part
 				if int/value <= 0 [						;-- early exit if part <= 0
 					blk/header: TYPE_NONE
-					return s/offset
+					return as red-value! blk
 				]
 				s/offset + int/value - 1				;-- int argument is 1-based
 			][
@@ -561,7 +561,7 @@ block: context [
 				s2: GET_BUFFER(b)
 				value: s2/offset + b/head
 				end2: s2/tail
-				(as-integer s2/tail - s2/offset) >> 4 - b/head ;-- -1 => adjusted for loop comparison
+				(as-integer s2/tail - s2/offset) >> 4 - b/head
 			][0]
 		]
 		if negative? values [values: 0]					;-- empty value series case
@@ -574,8 +574,12 @@ block: context [
 			]
 			reverse? [
 				step: 0 - step
-				slot: either part? [part][s/offset + blk/head]
+				slot: either part? [part][s/offset + blk/head - 1]
 				end: s/offset
+				if slot < end [							;-- early exit if blk/head = 0
+					blk/header: TYPE_NONE
+					return as red-value! blk
+				]
 			]
 			true [
 				slot: s/offset + blk/head
