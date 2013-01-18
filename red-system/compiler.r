@@ -1411,7 +1411,14 @@ system-dialect: make-profilable context [
 			unless word? name: pc/2 [
 				throw-error "?? needs a word as argument"
 			]
-			out: compose/deep [print-line [(join name ": ") (name)]]
+			out: next next compose/deep [
+				2 (to pair! reduce [calc-line 1])		;-- hidden line offset header
+				print-line [
+					2 (to pair! reduce [calc-line 1])	;-- hidden line offset header
+					(join name ": ") (name)
+				]
+			]
+			out/2: next next out/2
 			change/part pc out 2
 			none
 		]
