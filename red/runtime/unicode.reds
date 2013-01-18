@@ -117,10 +117,101 @@ unicode: context [
 		s/flags: s/flags and flag-unit-mask or UCS-4	;-- s/unit: UCS-4
 		s
 	]
+	
+	decode-utf8-char: func [
+		src		[c-string!]
+		cnt		[int-ptr!]								;-- pointer to size of next char in bytes
+		return: [integer!]
+		/local
+			b1  [integer!]								;-- up to four bytes in a UTF-8 sequence		
+			b2  [integer!]								;-- for computing purposes they are of integer! type
+			b3  [integer!]
+			b4  [integer!]
+			cp  [integer!]								; computed codepoint
+	][
+		b1: as-integer src/1
+		
+		either b1 < 80h	[								; single byte (ASCII)
+			cp: b1										; and we are done
+			cnt/value: 1
+		][
+			cp: U_REPLACEMENT
+			; assume error by default - this simplifies code greatly
+			; cp is now only set if a correct sequence has been decoded
 
-	load-utf8: func [
+			unless b1 < C0h [							; 80h - BFh may not start a sequence
+				case  [
+					b1 < E0h [							; start of two-byte sequence
+						if cnt/value < 2 [return -1]
+						b2: as-integer src/2
+						if all [
+							b2 >= 80h b2 < C0h
+						][
+							cp:	(b1 - C0h << 6) or
+								(b2 - 80h)
+;							if any [
+;								cp > 7Fh				; optional test for overlong
+;								cp = 0					; even so, must allow U+0000
+;							][
+								cnt/value: 2
+;							]
+						]
+					]
+					b1 < F0h [							; start of three-byte sequence
+						if cnt/value < 3 [return -1]
+						b2: as-integer src/2
+						b3: as-integer src/3
+						if all [
+							b2 >= 80h b2 < C0h
+							b3 >= 80h b3 < C0h
+						][
+							cp:	(b1 - E0h << 12) or
+								(b2 - 80h <<  6) or
+								(b3 - 80h)
+							if all [
+								any [cp < DC00h cp > DCFFh]
+;								cp > 7FFh				; optional test for overlong
+							][
+								cnt/value: 3
+							]
+						]
+					]
+					b1 < F8h [							; start of four-byte sequence
+						if cnt/value < 4 [return -1]
+						b2: as-integer src/2
+						b3: as-integer src/3
+						b4: as-integer src/4
+						if all [
+							b2 >= 80h b2 < C0h
+							b3 >= 80h b3 < C0h
+							b4 >= 80h b4 < C0h
+						][
+							cp:	(b1 - F0h << 18) or
+								(b2 - 80h << 12) or
+								(b3 - 80h <<  6) or
+								(b4 - 80h)
+							if all [
+								cp <= 0010FFFFh
+;								cp > FFFFh				; optional test for overlong
+							][
+								cnt/value: 4
+							]
+						]
+					]
+;					true [
+;						error case						;@@ throw an error! value
+;					]
+				]
+			]
+		]	
+		cp
+	]
+
+	load-utf8-buffer: func [
 		src		   [c-string!]							;-- UTF-8 input buffer (zero-terminated)
 		size	   [integer!]							;-- size of src in bytes (including terminal NUL)
+		dst		   [series!]							;-- optional output string! series
+		remain	   [int-ptr!]							;-- number of undecoded bytes at end of buffer
 		return:	   [node!]
 		/local
 			node   [node!]
@@ -129,20 +220,24 @@ unicode: context [
 			buf4   [int-ptr!]
 			end    [byte-ptr!]
 			unit   [integer!]
-			b1 	   [integer!]							;-- up to four bytes in a UTF-8 sequence
-			b2	   [integer!]							;-- for computing purposes they are of integer! type
-			b3     [integer!]
-			b4     [integer!]
-			cp	   [integer!]							; computed codepoint
+			cp	   [integer!]							;-- computed codepoint
 			count  [integer!]
+			used   [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "unicode/load-utf8"]]
+		#if debug? = yes [if verbose > 0 [print-line "unicode/load-utf8-buffer"]]
 
 		assert positive? size 
-		node: alloc-series size 1 0
 		
-		s:     as series! node/value
+		either null? dst [								;-- test if output buffer is provided
+			node: alloc-series size 1 0
+			s: as series! node/value
+		][
+			node: dst/node
+			s: dst
+		]
+		
 		buf1:  as byte-ptr! s/offset
+		buf4:  null
 		end:   buf1 + s/size
 		unit:  Latin1									;-- start with 1 byte/codepoint
 		count: size
@@ -155,83 +250,16 @@ unicode: context [
 		;-- original source code: https://gist.github.com/1325840
 		
 		until [
-			b1: as-integer src/1
-
 			; cycling through res is done at the end; likewise for src
 			; to account for this, as soon as a multiple byte sequence is consumed
 			; the pointer in src is moved one less than the number of bytes consumed
 
-			either b1 < 80h	[							; single byte (ASCII)
-				cp: b1									; and we are done
-			][
-				cp: U_REPLACEMENT
-				; assume error by default - this simplifies code greatly
-				; cp is now only set if a correct sequence has been decoded
-
-				unless b1 < C0h [						; 80h - BFh may not start a sequence
-					case  [
-						b1 < E0h [						; start of two-byte sequence
-							b2: as-integer src/2
-							if all [
-								b2 >= 80h b2 < C0h
-							][
-								cp:	(b1 - C0h << 6) or
-									(b2 - 80h)
-	;							if any [
-	;								cp > 7Fh			; optional test for overlong
-	;								cp = 0				; even so, must allow U+0000
-	;							][
-									src: src + 1
-									count: count - 1
-	;							]
-							]
-						]
-						b1 < F0h [						; start of three-byte sequence
-							b2: as-integer src/2
-							b3: as-integer src/3
-							if all [
-								b2 >= 80h b2 < C0h
-								b3 >= 80h b3 < C0h
-							][
-								cp:	(b1 - E0h << 12) or
-									(b2 - 80h <<  6) or
-									(b3 - 80h)
-								if all [
-									any [cp < DC00h cp > DCFFh]
-	;								cp > 7FFh			; optional test for overlong
-								][
-									src: src + 2
-									count: count - 2
-								]
-							]
-						]
-						b1 < F8h [						; start of four-byte sequence
-							b2: as-integer src/2
-							b3: as-integer src/3
-							b4: as-integer src/4
-							if all [
-								b2 >= 80h b2 < C0h
-								b3 >= 80h b3 < C0h
-								b4 >= 80h b4 < C0h
-							][
-								cp:	(b1 - F0h << 18) or
-									(b2 - 80h << 12) or
-									(b3 - 80h <<  6) or
-									(b4 - 80h)
-								if all [
-									cp <= 0010FFFFh
-	;								cp > FFFFh			; optional test for overlong
-								][
-									src: src + 3
-									count: count - 3
-								]
-							]
-						]
-	;					true [
-	;						error case					;@@ throw an error! value
-	;					]
-					]
-				]
+			used: count									;-- pass number of remaining bytes in input stream
+			cp: decode-utf8-char src :used
+			if cp = -1 [								;-- premature exit if buffer incomplete
+				s/tail: as cell! either unit = UCS-4 [buf4][buf1]	;-- position s/tail at end of loaded characters (no NUL terminator)
+				remain/value: count						;-- return the number of unprocessed bytes
+				return node
 			]
 			
 			switch unit [
@@ -298,8 +326,9 @@ unicode: context [
 					buf4: buf4 + 1
 				]
 			]
-			src: src + 1
-			count: count - 1
+			
+			count: count - used
+			src: src + used
 			zero? count
 		] 												;-- end until
 		
@@ -312,5 +341,22 @@ unicode: context [
 		
 		node
 	]
+	
+	load-utf8-stream: func [
+		src		   [c-string!]							;-- UTF-8 input buffer (not NUL-terminated)
+		size	   [integer!]							;-- size of src buffer in bytes (excluding NUL if any)
+		output	   [red-string!]						;-- output buffer to append new chars to
+		remain	   [int-ptr!]							;-- number of undecoded bytes at end of input buffer
+		return:	   [node!]
+	][
+		load-utf8-buffer src size GET_BUFFER(output) remain
+	]
 
+	load-utf8: func [
+		src		   [c-string!]							;-- UTF-8 input buffer (zero-terminated)
+		size	   [integer!]							;-- size of src in bytes (including terminal NUL)
+		return:	   [node!]
+	][
+		load-utf8-buffer src size null null
+	]
 ]

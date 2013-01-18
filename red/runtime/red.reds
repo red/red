@@ -28,12 +28,12 @@ red: context [
 	;#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds
-	#include %unicode.reds
 	
 	;-- Datatypes --
 	
 	#include %datatypes/structures.reds
 	#include %datatypes/common.reds
+	#include %unicode.reds
 	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
