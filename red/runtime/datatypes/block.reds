@@ -528,6 +528,10 @@ block: context [
 		if OPTION?(part) [
 			part: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
+				if int/value <= 0 [						;-- early exit if part <= 0
+					blk/header: TYPE_NONE
+					return s/offset
+				]
 				s/offset + int/value - 1				;-- int argument is 1-based
 			][
 				b: as red-block! part
@@ -557,7 +561,7 @@ block: context [
 				s2: GET_BUFFER(b)
 				value: s2/offset + b/head
 				end2: s2/tail
-				(as-integer s2/tail - s2/offset) >> 4 - b/head - 1 ;-- -1 => adjusted for loop comparison
+				(as-integer s2/tail - s2/offset) >> 4 - b/head ;-- -1 => adjusted for loop comparison
 			][0]
 		]
 		if negative? values [values: 0]					;-- empty value series case
@@ -580,7 +584,6 @@ block: context [
 		]
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL] ;-- warning: /case <> STRICT...
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
-		if match? [tail?: yes]
 		
 		type: either type = TYPE_DATATYPE [
 			dt: as red-datatype! value
@@ -594,6 +597,7 @@ block: context [
 				][
 					actions/compare slot value op		;-- atomic comparison
 				]
+				if match? [slot: slot + 1]				;-- /match option returns tail of match
 			][
 				n: 0
 				slot2: slot
@@ -604,10 +608,12 @@ block: context [
 					any [
 						not found?						;-- no match
 						n = values						;-- values exhausted
-						slot2 >= end2					;-- block series tail reached
+						all [reverse?     slot2 <= end]	;-- block series head reached
+						all [not reverse? slot2 >= end]	;-- block series tail reached
 					]
 				]
-				if all [match? found?][slot: slot2 + 1]
+				if all [n < values slot2 >= end][found?: no] ;-- partial match case
+				if all [match? found?][slot: slot2]		;-- slot2 points to tail of match
 			]
 			slot: slot + step
 			any [
