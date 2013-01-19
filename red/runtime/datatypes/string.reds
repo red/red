@@ -746,6 +746,10 @@ string: context [
 		if OPTION?(part) [
 			limit: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
+				if int/value <= 0 [						;-- early exit if part <= 0
+					str/header: TYPE_NONE
+					return as byte-ptr! s/offset
+				]
 				(as byte-ptr! s/offset) + (int/value - 1 << (unit >> 1)) ;-- int argument is 1-based
 			][
 				str2: as red-string! part
@@ -768,15 +772,18 @@ string: context [
 			]
 			reverse? [
 				step: 0 - step
-				buffer: either part? [limit][(as byte-ptr! s/offset) + (str/head << (unit >> 1))]
+				buffer: either part? [limit][(as byte-ptr! s/offset) + (str/head - 1 << (unit >> 1))]
 				end: as byte-ptr! s/offset
+				if buffer < end [							;-- early exit if str/head = 0
+					str/header: TYPE_NONE
+					return buffer
+				]
 			]
 			true [
 				buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 				end: either part? [limit + unit][as byte-ptr! s/tail] ;-- + unit => compensate for the '>= test
 			]
 		]
-		if match? [tail?: yes]
 		case?: not case?								;-- inverted case? meaning
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
@@ -810,7 +817,6 @@ string: context [
 		]
 		
 		;-- Search loop --
-
 		until [
 			either pattern = null [
 				switch unit [
@@ -820,6 +826,7 @@ string: context [
 				]
 				if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
 				found?: c1 = c2
+				if match? [buffer: buffer + 1]			;-- /match option returns tail of match
 			][
 				p1: buffer
 				p2: pattern
@@ -858,14 +865,24 @@ string: context [
 					found?: c1 = c2
 					
 					p1: p1 + unit
-					p2: p2 + unit
+					p2: p2 + unit2
 					any [
 						not found?						;-- no match
-						p1 >= end						;-- search buffer exhausted
-						p2 >= end2						;-- block series tail reached
+						p2 >= end2						;-- searched string tail reached
+						all [reverse? p1 <= end]		;-- search buffer exhausted at head
+						all [not reverse? p1 >= end]	;-- search buffer exhausted at tail
 					]
 				]
-				if all [match? found?][buffer: p1 - 1]
+				if all [
+					found?
+					p2 < end2							;-- search string tail not reached
+					any [								;-- search buffer exhausted
+						all [reverse? p1 <= end]
+						all [not reverse? p1 >= end]
+					]
+				][found?: no] 							;-- partial match case, make it fail
+
+				if all [found? any [match? tail?]][buffer: p1]
 			]
 			buffer: buffer + step
 			any [
@@ -875,8 +892,8 @@ string: context [
 				all [not reverse? buffer >= end]		;-- tail of block series reached
 			]
 		]
-		unless tail? [buffer: buffer - step]			;-- point before/after found value
-
+		buffer: buffer - step							;-- compensate for extra step
+		
 		either found? [
 			str/head: (as-integer buffer - s/offset) >> (unit >> 1)	;-- just change the head position on stack
 		][

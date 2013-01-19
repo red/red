@@ -616,7 +616,7 @@ block: context [
 						all [not reverse? slot2 >= end]	;-- block series tail reached
 					]
 				]
-				if all [n < values slot2 >= end][found?: no] ;-- partial match case
+				if all [n < values slot2 >= end][found?: no] ;-- partial match case, make it fail
 				if all [match? found?][slot: slot2]		;-- slot2 points to tail of match
 			]
 			slot: slot + step

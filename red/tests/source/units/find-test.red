@@ -26,8 +26,8 @@ Red [
 	--assert none = find [1 2 3 4] "1"
 	--test-- "find-7" 
 	--assert "12345" = find "12345" #"1"
-	--test-- "find-8" 
-	--assert "12345" = find "12345" 1
+	;--test-- "find-8" 							;; unsupported case, it is unsure if it will be implemented or not
+	;--assert "12345" = find "12345" 1			;; keeping it here commented for further reference.
 	--test-- "find-9" 
 	--assert "12345" = find "12345" "1"
 	--test-- "find-10" 
@@ -274,7 +274,7 @@ Red [
   --test-- "find/reverse-3"
   ;--assert [3 3 2 1] = find/reverse tail [1 2 3 3 2 1] [3 3]
   --test-- "find/reverse-4"
-  --assert none = find/reverse back back back tail "123321" "33"
+  --assert "3321" = find/reverse back back back tail "123321" "33"
   --test-- "find/reverse-5"
   --assert "3321" = find/reverse back back back tail"123321" "3"
   --test-- "find/reverse-6"
