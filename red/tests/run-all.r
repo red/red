@@ -57,6 +57,7 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/loop-test.red
   --run-test-file-quiet-red %source/units/type-test.red
   --run-test-file-quiet-red %source/units/find-test.red
+  --run-test-file-quiet-red %source/units/select-test.red
   
 ===end-group===
 
