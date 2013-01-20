@@ -111,7 +111,7 @@ Red [
 	--test-- "find/any-2"
 	;--assert "12345" = find/any "12345" "?"
 	--test-- "find/any-3"
-	;--assert "2345" = find/any "12345" "2?3"
+	;--assert "2345" = find/any "12345" "2?4"
 	--test-- "find/any-4"
 	;assert "2345" = find/any "12345" "2*"
 	--test-- "find/any-5"
@@ -272,7 +272,7 @@ Red [
   --test-- "find/reverse-2"
   --assert [2 1] = find/reverse tail [1 2 3 4 3 2 1] 2
   --test-- "find/reverse-3"
-  ;--assert [3 3 2 1] = find/reverse tail [1 2 3 3 2 1] [3 3]
+  --assert [3 3 2 1] = find/reverse tail [1 2 3 3 2 1] [3 3]
   --test-- "find/reverse-4"
   --assert "3321" = find/reverse back back back tail "123321" "33"
   --test-- "find/reverse-5"
