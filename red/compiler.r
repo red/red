@@ -101,7 +101,11 @@ red: context [
 	
 	process-include-paths: func [code [block!] /local rule file][
 		parse code rule: [
-			#include file: (file/1: clean-path join script-path file/1)
+			#include file: (
+				if slash <> first file/1 [
+					file/1: clean-path join script-path file/1
+				]
+			)
 			| into rule
 			| skip
 		]
@@ -1542,9 +1546,10 @@ red: context [
 				unless file? file: pc/2 [
 					throw-error ["#include requires a file argument:" pc/2]
 				]
-				if slash <> pick file 1 [file: main-path/:file]
-				script-path: first split-path clean-path file
-
+				if slash <> pick file 1 [
+					file: main-path/:file
+					script-path: first split-path clean-path file
+				]
 				unless exists? file [
 					throw-error ["include file not found:" pc/2]
 				]
