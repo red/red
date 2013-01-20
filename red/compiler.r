@@ -13,6 +13,7 @@ red: context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
 	script-name:  none
+	script-path:  none
 	main-path:	  none
 	runtime-path: %runtime/
 	nl: 		  newline
@@ -96,6 +97,14 @@ red: context [
 			]
 		]
 		quit-on-error
+	]
+	
+	process-include-paths: func [code [block!] /local rule file][
+		parse code rule: [
+			#include file: (file/1: clean-path join script-path file/1)
+			| into rule
+			| skip
+		]
 	]
 	
 	convert-to-block: func [mark [block!]][
@@ -1534,7 +1543,8 @@ red: context [
 					throw-error ["#include requires a file argument:" pc/2]
 				]
 				if slash <> pick file 1 [file: main-path/:file]
-				
+				script-path: first split-path clean-path file
+
 				unless exists? file [
 					throw-error ["include file not found:" pc/2]
 				]
@@ -1547,6 +1557,7 @@ red: context [
 				unless block? pc/2 [
 					throw-error "#system requires a block argument"
 				]
+				process-include-paths pc/2
 				emit pc/2
 				pc: skip pc 2
 				true
@@ -1555,6 +1566,7 @@ red: context [
 				unless block? pc/2 [
 					throw-error "#system-global requires a block argument"
 				]
+				process-include-paths pc/2
 				append sys-global pc/2
 				pc: skip pc 2
 				true
