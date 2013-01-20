@@ -1,8 +1,8 @@
 Red Programming Language
 ------------------------
-**Red** is a new programming language strongly inspired by [REBOL](http://rebol.com), but with a broader field of usage thanks to its native-code compiler, from system programming to high-level scripting, while providing a modern support for concurrency and multi-core CPU.
+**Red** is a new programming language strongly inspired by [REBOL](http://rebol.com), but with a broader field of usage thanks to its native-code compiler, from system programming to high-level scripting, while providing modern support for concurrency and multi-core CPUs.
 
-The language is in its early bootstrap phase, once fully done, it will be self-hosted. The Red software stack contains also another language, **Red/System**, which is a low-level dialect of Red. It is a limited C-level language with a Red look'n feel, required to build Red's runtime library and be the target language of Red's compiler. More information at [red-lang.org](http://www.red-lang.org).
+The language is in its early bootstrap phase, once complete it will be self-hosted. The Red software stack also contains another language, **Red/System**, which is a low-level dialect of Red. It is a limited C-level language with a Red look'n feel, required to build Red's runtime library and be the target language of Red's compiler. More information at [red-lang.org](http://www.red-lang.org).
 
 
 Running the Red hello script
@@ -15,7 +15,7 @@ The compiler and linker are currently written in REBOL and can produce Windows, 
 
 1. Extract the `rebol` binary, put it in root folder, that's all!
 
-1. Let's test it: run `./rebol`, you'll see a `>>` prompt appear. Windows users need to click on the `rebol.exe` file to run it.
+1. Let's test it: run `./rebol`, you'll see a `>>` prompt appear. Windows users need to double-click on the `rebol.exe` file to run it.
 
 1. From the REBOL console type:
 
