@@ -921,12 +921,30 @@ string: context [
 			p	 [byte-ptr!]
 			p4	 [int-ptr!]
 			char [red-char!]
+			str2   [red-string!]
+			head2  [integer!]
+			offset [integer!]
 	][
 		p: find str value part only? case? any? with-arg skip last? reverse? no no
 		
 		if TYPE_OF(str) <> TYPE_NONE [
+			offset: switch TYPE_OF(value) [
+				TYPE_STRING TYPE_WORD [
+					either TYPE_OF(value) = TYPE_WORD [
+						str2: as red-string! word/get-buffer as red-word! value
+						head2: 0							;-- str2/head = -1 (casted from symbol!)
+					][
+						str2: as red-string! value
+						head2: str2/head
+					]
+					s: GET_BUFFER(str2)
+					(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) - head2
+				]
+				default [1]
+			]
+		
 			s: GET_BUFFER(str)
-			p: (as byte-ptr! s/offset) + ((str/head + 1) << (GET_UNIT(s) >> 1))
+			p: (as byte-ptr! s/offset) + ((str/head + offset) << (GET_UNIT(s) >> 1))
 			
 			either p < as byte-ptr! s/tail [
 				char: as red-char! str

@@ -652,14 +652,33 @@ block: context [
 		match?	 [logic!]
 		return:	 [red-value!]
 		/local
-			s	 [series!]
-			p	 [red-value!]
+			s	   [series!]
+			p	   [red-value!]
+			b	   [red-block!]
+			type   [integer!]
+			offset [integer!]
 	][
 		p: find blk value part only? case? any? with-arg skip last? reverse? no no
 		
 		if TYPE_OF(blk) <> TYPE_NONE [
+			offset: either only? [1][					;-- values > 0 => series comparison mode
+				type: TYPE_OF(value)
+				either any [							;@@ replace with ANY_BLOCK?
+					type = TYPE_BLOCK
+					type = TYPE_PAREN
+					type = TYPE_PATH
+					type = TYPE_GET_PATH
+					type = TYPE_SET_PATH
+					type = TYPE_LIT_PATH
+				][
+					b: as red-block! value
+					s: GET_BUFFER(b)
+					(as-integer s/tail - s/offset) >> 4 - b/head
+				][1]
+			]
 			s: GET_BUFFER(blk)
-			p: s/offset + blk/head + 1
+			p: s/offset + blk/head + offset
+			
 			either p < s/tail [
 				stack/set-last p
 			][

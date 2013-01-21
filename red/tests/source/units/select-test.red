@@ -26,8 +26,8 @@ Red [
 	--assert none = select [1 2 3 4] "1"
 	--test-- "select-7" 
 	--assert #"2" = select "12345" #"1"
-	--test-- "select-8" 
-	--assert #"2" = select "12345" 1
+	;--test-- "select-8" 								;; unsupported case, it is unsure if it will be implemented or not
+	;--assert #"2" = select "12345" 1					;; keeping it here commented for further reference.
 	--test-- "select-9" 
 	--assert #"2" = select "12345" "1"
 	--test-- "select-10" 
@@ -59,7 +59,7 @@ Red [
 	--test-- "select-23"
 	--assert none = select "abcde✐" "ed✐"
 	--test-- "select-24"
-	--assert "#f" = select "abcde^(010000)f" "^(010000)"   
+	--assert #"f" = select "abcde^(010000)f" "^(010000)"   
 ===end-group===
 
 ===start-group=== "select/part"
@@ -82,7 +82,7 @@ Red [
 	--test-- "select/part-9"
 	--assert 3 = select/part [1 2 3 4] 2 2
 	--test-- "select/part-10"
-	--assert 3 = select/part [1 2 3 4] [2 3] 4
+	--assert 4 = select/part [1 2 3 4] [2 3] 4
 	--test-- "select/part-11"
 	--assert none = select/part [1 2 3 4] [2 3] 2
 	--test-- "select/part-12"
@@ -169,7 +169,7 @@ Red [
   --test-- "select/skip-4"
   --assert none = select/skip [1 2 3 4 5 1 6 6 6 6 1 2 3 4 5 1 2 3 4 5] [6 7] 5
   --test-- "select/skip-5"
-  --assert "7" = select/skip "12345166661234567890" "6" 5
+  --assert #"7" = select/skip "12345166661234567890" "6" 5
   --test-- "select/skip-6"
   --assert none = select/skip "12345166661234557890" "6" 5
 ===end-group===
