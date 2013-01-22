@@ -229,6 +229,7 @@ interpreter: context [
 			next  [red-word!]
 			value [red-value!]
 			fun	  [red-function!]
+			w	  [red-word!]
 			s	  [series!]
 	][
 		next: as red-word! pc + 1
@@ -273,7 +274,8 @@ interpreter: context [
 				pc: pc + 1
 			]
 			TYPE_LIT_WORD [
-				word/push as red-word! pc				;@@ type??
+				w: word/push as red-word! pc			;-- push lit-word! on stack
+				w/header: TYPE_WORD						;-- set correct value type on stack
 				pc: pc + 1
 			]
 			TYPE_WORD [
