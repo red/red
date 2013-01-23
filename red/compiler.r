@@ -1137,8 +1137,6 @@ red: context [
 		clear mark
 		
 		body: pc/1
-		pc: next pc										;-- move passed SWITCH body
-		
 		unless block? body [
 			throw-error "SWITCH expects a block as second argument"
 		]
@@ -1167,16 +1165,16 @@ red: context [
 			some [pos: block! (
 				mark: tail output
 				comp-sub-block/with 'switch-body pos/1
-				unless tail? pc [pc: back pc]			;-- restore PC position (no block consumed)
+				pc: back pc			;-- restore PC position (no block consumed)
 				repend list [cnt mark/1]
 				clear mark
 				cnt: cnt + 1
 			) | skip]
 		]
+		unless empty? body [pc: next pc]
 		
 		append list 'default							;-- process default case
 		either default? [
-			pc: back pc									;-- counter comp-sub-block pc change
 			comp-sub-block 'switch-default				;-- compile default block
 			append/only list last output
 			clear back tail output
