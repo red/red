@@ -166,7 +166,7 @@ red: context [
 		insert-lf -2
 	]
 	
-	emit-get-word: func [name [word!] /lex-scope /local new][
+	emit-get-word: func [name [word!] /lex-scope /literal /local new][
 		either all [
 			not lex-scope
 			not empty? locals-stack
@@ -175,7 +175,7 @@ red: context [
 			emit 'stack/push							;-- local word
 		][
 			if new: select ssa-names name [name: new]	;@@ add a check for function! type
-			emit 'word/get								;-- global word
+			emit pick [get-word/get word/get] to logic! literal	;-- global word
 		]
 		emit decorate-symbol name
 		insert-lf -2
@@ -1485,7 +1485,11 @@ red: context [
 				either lit-word? pc/-1 [
 					emit-push-word name
 				][
-					emit-get-word name
+					either literal [
+						emit-get-word/literal name
+					][
+						emit-get-word name
+					]
 				]
 			]
 			'else [

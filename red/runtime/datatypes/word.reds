@@ -87,12 +87,17 @@ word: context [
 	get: func [
 		word	 [red-word!]
 		return:  [red-value!]
+		/local
+			value [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/get"]]
 		
-		copy-cell
-			as cell! _context/get word
-			stack/push*
+		value: copy-cell _context/get word stack/push*
+
+		if TYPE_OF(value) = TYPE_LIT_WORD [
+			value/header: TYPE_WORD						;-- cast lit-word! to word!
+		]
+		value
 	]
 	
 	;-- Actions --

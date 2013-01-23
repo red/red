@@ -56,10 +56,15 @@ get-word: context [
 		stack/set-last args + 1
 	]
 	
-	get: does [
+	get: func [
+		word	 [red-word!]
+		return:  [red-value!]
+	][
 		#if debug? = yes [if verbose > 0 [print-line "get-word/get"]]
 		
-		stack/set-last _context/get as red-word! stack/arguments
+		copy-cell
+			as cell! _context/get word
+			stack/push*
 	]
 	
 	;-- Actions --
