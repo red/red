@@ -1,5 +1,5 @@
 REBOL [
-  Title:   "Generates Red equal? tests"
+	Title:   "Generates Red equal? tests"
 	Author:  "Peter W A Wood"
 	File: 	 %make-equal-auto-test.r
 	Version: 0.1.0
