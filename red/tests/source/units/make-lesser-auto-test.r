@@ -88,7 +88,7 @@ start-group: func [
 ]
   
 ;; processing 
-replace test-src {***MAKELENGTH***} length? read %make-equal-auto-test.r
+replace test-src {***MAKELENGTH***} length? read %make-lesser-auto-test.r
 infix-src: copy test-src
 replace infix-src {***FILE***} :infix-file
 prefix-src: copy test-src
