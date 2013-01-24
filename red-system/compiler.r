@@ -2417,7 +2417,10 @@ system-dialect: make-profilable context [
 					backtrack set-word
 					throw-error "variable has to be initialized at root level"
 				]
-				if all [casted casted/1 = 'function!][
+				if any [
+					all [casted casted/1 = 'function!]
+					all [expr = <last> casted: last-type last-type/1 = 'function!]
+				][
 					add-function 'routine reduce [name none casted/2] get-cconv casted/2
 				]
 				type: add-symbol name unbox expr casted  ;-- if unknown add it to global context	
