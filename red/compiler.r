@@ -1008,8 +1008,14 @@ red: context [
 			]
 			clear pos
 		]
+		foreach item spec [								;-- add all arguments to ignore list
+			if find [word! lit-word! get-word!] type?/word item [
+				unless ignore [ignore: make block! 1]
+				append ignore to word! :item
+			]
+		]
 		words: make block! 1
-		
+
 		parse body rule: [
 			any [
 				pos: set-word! (
