@@ -82,7 +82,7 @@ lexer: context [
 		pos: #"^/" (
 			if count? [
 				line: line + 1 
-				append/only lines stack/tail?
+				append/only lines to block! stack/tail?
 			]
 		)
 		| ws-ASCII									;-- only the common whitespaces are matched
