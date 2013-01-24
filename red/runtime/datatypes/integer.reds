@@ -18,7 +18,7 @@ integer: context [
 		/local
 			int [red-integer!]
 	][
-		int: as red-integer! stack/arguments
+		int: as red-integer! stack/arguments			;@@ stack/top
 		assert TYPE_OF(int) = TYPE_INTEGER
 		int/value
 	]
@@ -28,7 +28,7 @@ integer: context [
 		/local
 			int [red-integer!]
 	][
-		int: as red-integer! stack/arguments
+		int: as red-integer! stack/top
 		either TYPE_OF(int) = TYPE_INTEGER [int/value][0] ;-- accept NONE values
 	]
 	

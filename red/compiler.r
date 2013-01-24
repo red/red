@@ -1131,6 +1131,7 @@ red: context [
 				][throw-error ["SWITCH has no refinement called" ref]]
 			]
 		]
+		emit-open-frame 'switch
 		mark: tail output								;-- pre-compile the SWITCH argument
 		comp-expression
 		arg: copy mark
@@ -1182,6 +1183,7 @@ red: context [
 			append/only list copy [0]					;-- placeholder for keeping R/S compiler happy
 		]
 		append/only output list
+		emit-close-frame
 	]
 	
 	comp-case: has [all? path saved list mark body][
