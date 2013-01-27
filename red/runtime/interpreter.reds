@@ -192,7 +192,7 @@ interpreter: context [
 				TYPE_LIT_WORD [EVAL_FETCH_ARGUMENT]
 				TYPE_GET_WORD [EVAL_FETCH_ARGUMENT]
 				TYPE_REFINEMENT [
-					ref?: yes
+					ref?: no							;@@ set it correctly once path supported
 					either any [function? routine?][
 						;TBD: check here if refinement is used
 						logic/push false
