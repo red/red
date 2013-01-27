@@ -1020,7 +1020,12 @@ red: context [
 			any [
 				pos: set-word! (
 					new: to word! pos/1
-					unless all [ignore find ignore new][append words new]
+					unless any [
+						all [ignore	find ignore new]
+						find words new
+					][
+						append words new
+					]
 				)
 				| path! | set-path! | lit-path!			;-- avoid 'into visiting them
 				| into rule
