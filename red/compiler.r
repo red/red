@@ -1453,8 +1453,13 @@ red: context [
 			'else [
 				check-redefined name
 				emit-open-frame 'set
-				emit-push-word name
-				comp-expression							;-- fetch a value
+				either native [							;-- 1st argument
+					pc: back pc
+					comp-expression						;-- fetch a value
+				][
+					emit-push-word name					;-- push set-word
+				]
+				comp-expression							;-- fetch a value (2nd argument)
 				either native [
 					emit-native/with 'set [-1]			;@@ refinement not handled yet
 				][

@@ -166,7 +166,7 @@ Red [
 		]
 	
 	--test-- "fun-ref-3"
-		--assert (spec-of :set) = [word [lit-word!] value [any-type!] /any return: [any-type!]]
+		--assert (spec-of :set) = [word [any-word!] value [any-type!] /any return: [any-type!]]
 		
 	--test-- "fun-ref-4"
 		--assert (spec-of :<) = [value1 [any-type!] value2 [any-type!]]
