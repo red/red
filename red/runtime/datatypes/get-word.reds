@@ -37,12 +37,28 @@ get-word: context [
 	]
 	
 	push: func [
-		w  [red-word!]
+		w  		[red-word!]
+		return: [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-word/push"]]
 		
 		w: word/push w
 		set-type as red-value! w TYPE_GET_WORD
+		w
+	]
+	
+	push-local: func [
+		word	 [red-word!]
+		ctx		 [red-context!]
+		return:  [red-word!]
+		/local
+			cell [red-word!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "get-word/push-local"]]
+
+		cell: push word
+		cell/ctx: ctx
+		cell
 	]
 
 	set: func [

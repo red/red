@@ -439,7 +439,10 @@ red: context [
 		repend functions [name reduce [type arity spec refs]]
 	]
 	
-	emit-block: func [blk [block!] /sub level /local name item value word action type][
+	emit-block: func [
+		blk [block!] /sub level [integer!] /bind ctx [word!]
+		/local name item value word action type
+	][
 		unless sub [
 			emit-open-frame 'append
 			emit to set-word! name: decorate-series-var 'blk
@@ -460,7 +463,11 @@ red: context [
 				insert-lf -2
 				
 				level: level + 1
-				emit-block/sub to block! item level
+				either bind [
+					emit-block/sub/bind to block! item level ctx
+				][
+					emit-block/sub to block! item level
+				]
 				level: level - 1
 				
 				emit-close-frame
@@ -483,7 +490,14 @@ red: context [
 					]
 					any-word? :item [
 						add-symbol word: to word! clean-lf-flag item
-						decorate-symbol word
+						value: decorate-symbol word
+						either all [bind local-word? to word! :item][
+							action: 'push-local
+							reduce [value ctx]
+						][
+							value
+						]
+						
 					]
 					issue? :item [
 						add-symbol word: to word! form item
@@ -508,7 +522,7 @@ red: context [
 				]
 				emit load rejoin [form type? :item slash action]
 				emit value
-				insert-lf -2
+				insert-lf -1 - either block? value [length? value][1]
 				
 				emit 'block/append*
 				insert-lf -1
@@ -1052,8 +1066,13 @@ red: context [
 		set [symbols locals-nb] check-spec spec
 		add-function name spec
 		
-		set [spec-blk body-blk] redirect-to-literals [
-			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
+		redirect-to-literals [							;-- store spec and body blocks
+			push-locals symbols
+			spec-blk: emit-block spec
+			emit compose [_ctx: _context/make (spec-blk) yes]	;-- build context with value on stack
+			insert-lf -4
+			body-blk: emit-block/bind body '_ctx
+			pop-locals
 		]
 		
 		emit-open-frame 'set							;-- function value creation
@@ -1062,7 +1081,8 @@ red: context [
 			'_function/push spec-blk body-blk 
 			'as 'integer! to get-word! decorate-func/strict name
 		]
-		insert-lf -5
+		insert-lf -6
+		new-line skip tail output -3 no
 		emit 'word/set
 		insert-lf -1
 		emit-close-frame
