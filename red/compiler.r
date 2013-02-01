@@ -1651,7 +1651,7 @@ red: context [
 	]
 	
 	comp-chunked-block: has [list mark saved][
-		list: clear []
+		list: make block! 1
 		saved: pc
 		pc: pc/1										;-- dive in nested code
 		mark: tail output
