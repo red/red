@@ -1374,17 +1374,15 @@ red: context [
 						unless pos: find/skip spec/4 to refinement! ref 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
-						offset: pos/2 + 1
+						offset: 2 + index? pos
 						poke ctx index? pos true		;-- switch refinement to true in context
-						unless zero? pos/3 [			;-- process refinement's arguments
+						unless zero? args: pos/3 [		;-- process refinement's arguments
 							list: make block! 1
 							ctx/:offset: list 			;-- compiled refinement arguments storage
-							loop pos/3 [
-								mark: tail output
-								comp-arguments/ref spec/3 1 to refinement! ref
-								append/only list copy mark
-								clear mark
-							]
+							mark: tail output
+							comp-arguments/ref spec/3 args to refinement! ref
+							append/only list copy mark
+							clear mark
 						]
 					]
 					forall ctx [						;-- push context values on stack
@@ -1396,8 +1394,8 @@ red: context [
 							logic! [					;-- used refinement
 								emit [logic/push true]
 								insert-lf -2
-								if block? ctx/2 [
-									foreach code ctx/2 [emit code] ;-- emit pre-compiled arguments
+								if block? ctx/3 [
+									foreach code ctx/3 [emit code] ;-- emit pre-compiled arguments
 								]
 							]
 						]
