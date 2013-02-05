@@ -350,23 +350,29 @@ red: context [
 		name
 	]
 	
-	check-spec: func [spec [block!] /local symbols value pos stop locals][
+	check-spec: func [spec [block!] /local symbols value pos stop locals return?][
 		symbols: make block! length? spec
 		locals:  0
 		
 		unless parse spec [
 			opt string!
 			any [
-				pos: [
+				pos: /local (append symbols 'local) some [
+					pos: word! (
+						append symbols to word! pos/1
+						locals: locals + 1
+					)
+					pos: opt block! pos: opt string!
+				]
+				| set-word! (
+					if any [return? pos/1 <> return-def][stop: [end skip]]
+					return?: yes						;-- allow only one return: statement
+				) stop pos: block! opt string!
+				| [
 					[word! | lit-word! | get-word!] opt block! opt string!
 					| refinement! opt string!
 				] (append symbols to word! pos/1)
 			]
-			opt [
-				pos: set-word! (if pos/1 <> return-def [stop: [end skip]]) stop
-				pos: block! opt string!
-			]
-			opt [/local some [pos: word! pos: opt block! pos: opt string!]]
 		][
 			throw-error ["invalid function spec block:" mold pos]
 		]
@@ -378,9 +384,6 @@ red: context [
 				pc: skip pc -2
 				throw-error ["duplicate word definition:" spec/1]
 			]
-		]
-		if pos: find/tail spec /local [
-			parse pos [any [word! (locals: locals + 1) | skip]]
 		]
 		reduce [symbols locals]
 	]
