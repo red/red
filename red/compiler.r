@@ -899,9 +899,9 @@ red: context [
 		comp-sub-block 'while-body						;-- compile body
 	]
 	
-	comp-repeat: has [name cnt set-cnt lim set-lim][
+	comp-repeat: has [name word cnt set-cnt lim set-lim action][
 		add-symbol pc/1
-		name: decorate-symbol pc/1
+		name: decorate-symbol word: pc/1
 		
 		depth: depth + 1
 
@@ -922,13 +922,18 @@ red: context [
 		emit 'stack/reset
 		insert-lf -1
 
+		action: either local-word? word [
+			'integer/set								;-- set the value slot on stack
+		][
+			'_context/set-integer						;-- set the word value in global context
+		]
 		emit-open-frame 'repeat
 		emit compose/deep [
 			while [
 				;-- set word 1 + get word
 				;-- TBD: set word next get word
 				(set-cnt) (cnt) + 1
-				_context/set-integer (name) (cnt)
+				(action) (name) (cnt)
 				;-- (get word) < value
 				;-- TBD: not tail? get word
 				(cnt) <= (lim)
@@ -936,6 +941,7 @@ red: context [
 		]
 		new-line last output on
 		new-line skip tail last output -3 on
+		new-line skip tail last output -6 on
 		
 		comp-sub-block 'repeat-body
 		emit-close-frame
