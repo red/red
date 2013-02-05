@@ -776,8 +776,6 @@ block: context [
 				]
 			][											;-- single value case
 				copy-cell value	ALLOC_TAIL(blk)
-s: GET_BUFFER(blk)
-dump4 s
 			]
 			cnt: cnt - 1
 		]
