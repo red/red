@@ -19,7 +19,8 @@ red: context [
 	nl: 		  newline
 	symbols:	  make hash! 1000
 	aliases: 	  make hash! 100
-	ctx-stack:	  [gctx]
+	contexts:	  make hash! 100						;-- storage for statically compiled contexts
+	ctx-stack:	  make block! 8							;-- contexts access path
 	lexer: 		  do bind load %lexer.r 'self
 	extracts:	  do bind load %utils/extractor.r 'self	;-- @@ to be removed once we get redbin loader.
 	sys-global:   make block! 1
@@ -160,18 +161,21 @@ red: context [
 		]
 	]
 	
-	emit-push-word: func [name [word!]][	
-		emit 'word/push
-		emit decorate-symbol name
-		insert-lf -2
+	emit-push-word: func [name [word!]][
+		either local-word? name [
+			emit 'word/push-local
+			emit prefix-global decorate-symbol name
+			emit last ctx-stack
+			insert-lf -3
+		][
+			emit 'word/push
+			emit decorate-symbol name
+			insert-lf -2
+		]
 	]
 	
 	emit-get-word: func [name [word!] /lex-scope /literal /local new][
-		either all [
-			not lex-scope
-			not empty? locals-stack
-			find last locals-stack name
-		][
+		either all [not lex-scope local-word? name][
 			emit 'stack/push							;-- local word
 		][
 			if new: select ssa-names name [name: new]	;@@ add a check for function! type
@@ -241,6 +245,10 @@ red: context [
 		mold/flat to word! name
 	]
 	
+	prefix-global: func [word [word!]][
+		append to path! 'exec word
+	]
+	
 	decorate-type: func [type [word!]][
 		to word! join "red-" mold/flat type
 	]
@@ -288,6 +296,17 @@ red: context [
 	
 	get-symbol-id: func [name [word!]][
 		second select symbols name
+	]
+	
+	push-context: func [ctx [block!] /local name][
+		append contexts name: to word! join "ctx" get-counter
+		append/only contexts ctx
+		append ctx-stack name
+		name
+	]
+	
+	pop-context: does [
+		clear skip tail ctx-stack -2
 	]
 	
 	push-locals: func [symbols [block!]][
@@ -493,7 +512,7 @@ red: context [
 						value: decorate-symbol word
 						either all [bind local-word? to word! :item][
 							action: 'push-local
-							reduce [value ctx]
+							reduce [prefix-global value ctx]
 						][
 							value
 						]
@@ -672,6 +691,7 @@ red: context [
 				char? [
 					emit 'char/push
 					emit to integer! next value
+					insert-lf -2
 				]
 				lit-word? :value [
 					add-symbol value
@@ -690,10 +710,9 @@ red: context [
 				'else [
 					emit load rejoin [form type? :value slash 'push]
 					emit load mold :value
+					insert-lf -2
 				]
 			]
-			insert-lf -2
-			
 			if root? [
 				emit 'stack/keep						;-- drop root level last value
 				insert-lf -1
@@ -1002,7 +1021,7 @@ red: context [
 			]
 		]
 		name: decorate-symbol name
-		if find symbols name [name: to path! reduce ['exec name]]
+		if find symbols name [name: prefix-global name]
 		
 		append init compose [							;-- body stack frame
 			stack/mark-native (name)	;@@ make a unique name for function's body frame
@@ -1052,7 +1071,7 @@ red: context [
 		]
 	]
 	
-	comp-func: func [/collect /does /has /local name spec body symbols locals-nb spec-blk body-blk][
+	comp-func: func [/collect /does /has /local name spec body symbols locals-nb spec-blk body-blk ctx][
 		name: check-func-name to word! pc/-1
 		add-symbol to word! clean-lf-flag name
 		
@@ -1069,9 +1088,12 @@ red: context [
 		redirect-to-literals [							;-- store spec and body blocks
 			push-locals symbols
 			spec-blk: emit-block spec
-			emit compose [_ctx: _context/make (spec-blk) yes]	;-- build context with value on stack
+			ctx: push-context symbols
+			emit compose [
+				(to set-word! ctx) _context/make (spec-blk) yes	;-- build context with value on stack
+			]
 			insert-lf -4
-			body-blk: emit-block/bind body '_ctx
+			body-blk: emit-block/bind body ctx
 			pop-locals
 		]
 		
@@ -1088,8 +1110,9 @@ red: context [
 		emit-close-frame
 		
 		repend bodies [									;-- save context for deferred function compilation
-			name spec body symbols locals-nb copy locals-stack copy ssa-names
+			name spec body symbols locals-nb copy locals-stack copy ssa-names probe copy ctx-stack
 		]
+		pop-context
 		pc: skip pc 2
 	]
 	
@@ -1726,9 +1749,10 @@ red: context [
 	]
 	
 	comp-bodies: does [
-		foreach [name spec body symbols locals-nb stack ssa] bodies [
+		foreach [name spec body symbols locals-nb stack ssa ctx] bodies [
 			locals-stack: stack
 			ssa-names: ssa
+			ctx-stack: ctx
 			comp-func-body name spec body symbols locals-nb
 		]
 		clear locals-stack
@@ -1832,6 +1856,8 @@ red: context [
 		clear symbols
 		clear aliases
 		clear sys-global
+		clear contexts
+		clear ctx-stack
 		clear output
 		clear sym-table
 		clear literals
