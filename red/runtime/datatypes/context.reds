@@ -37,28 +37,30 @@ _context: context [
 	]
 
 	add: func [
-		ctx			[red-context!]
-		word 		[red-word!]
-		return:		[integer!]
+		ctx		[red-context!]
+		word 	[red-word!]
+		return:	[integer!]
 		/local
-			sym		[cell!]	
-			value	[cell!]
-			series  [series!]
-			id		[integer!]
+			sym	  [cell!]
+			value [cell!]
+			s  	  [series!]
+			id	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add"]]
 		
 		id: find-word ctx word/symbol
 		if id <> -1 [return id]
 		
-		sym: alloc-tail as series! ctx/symbols/value
+		s: as series! ctx/symbols/value
+		sym: alloc-tail s
 		copy-cell as cell! word sym
 		
-		value: alloc-tail as series! ctx/values/value
-		value/header: TYPE_UNSET
+		unless ON_STACK?(ctx) [
+			value: alloc-tail as series! ctx/values/value
+			value/header: TYPE_UNSET
+		]
 		
-		series: as series! ctx/values/value
-		(as-integer series/tail - series/offset) >> 4 - 1
+		(as-integer s/tail - s/offset) >> 4 - 1
 	]
 	
 	set-integer: func [
@@ -67,14 +69,21 @@ _context: context [
 		/local
 			int 	[red-integer!]
 			values	[series!]
+			ctx		[red-context!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/set-integer"]]
 
+		ctx: word/ctx
+		
 		if word/index = -1 [
-			word/index: find-word word/ctx word/symbol
+			word/index: find-word ctx word/symbol
 		]
-		values: as series! word/ctx/values/value
-		int: as red-integer! values/offset + word/index
+		int: as red-integer! either ON_STACK?(ctx) [
+			(as red-value! ctx/values) + word/index
+		][
+			values: as series! word/ctx/values/value
+			values/offset + word/index
+		]
 		int/header: TYPE_INTEGER
 		int/value: value
 	]
@@ -85,14 +94,21 @@ _context: context [
 		return:		[red-value!]
 		/local
 			values	[series!]
+			ctx		[red-context!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/set"]]
 		
+		ctx: word/ctx
+		
 		if word/index = -1 [
-			word/index: find-word word/ctx word/symbol
+			word/index: find-word ctx word/symbol
 		]
-		values: as series! word/ctx/values/value
-		copy-cell value values/offset + word/index
+		either ON_STACK?(ctx) [
+			copy-cell value (as red-value! ctx/values) + word/index
+		][
+			values: as series! ctx/values/value
+			copy-cell value values/offset + word/index
+		]
 	]
 
 	get: func [
@@ -101,11 +117,14 @@ _context: context [
 		/local
 			values [series!]
 			sym	   [red-symbol!]
+			ctx	   [red-context!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get"]]
 		
+		ctx: word/ctx
+		
 		if any [										;-- ensure word is properly bound to a context
-			null? word/ctx
+			null? ctx
 			word/index = -1
 		][
 			sym: symbol/get word/symbol
@@ -114,8 +133,12 @@ _context: context [
 			]
 			halt
 		]
-		values: as series! word/ctx/values/value
-		values/offset + word/index
+		either ON_STACK?(ctx) [
+			(as red-value! ctx/values) + word/index
+		][
+			values: as series! ctx/values/value
+			values/offset + word/index
+		]
 	]
 
 	create: func [
@@ -134,7 +157,8 @@ _context: context [
 		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer
 
 		either stack? [
-			cell/values: null							;TBD: complete this code branch
+			cell/header: TYPE_CONTEXT or flag-series-stk
+			cell/values: null							;-- will be set to stack frame dynamically
 		][
 			cell/values: alloc-cells slots
 		]
@@ -146,15 +170,17 @@ _context: context [
 		stack?	[logic!]
 		return:	[red-context!]
 		/local
-			ctx	[red-context!]
+			ctx	 [red-context!]
 			cell [red-value!]
-			slot [red-value!]
+			slot [red-word!]
 			s	 [series!]
 			type [integer!]
+			i	 [integer!]
 	][
 		ctx: create root block/rs-length? spec stack?
 		s: GET_BUFFER(spec)
 		cell: s/offset
+		i: 0
 		
 		while [cell < s/tail][
 			type: TYPE_OF(cell)
@@ -164,11 +190,14 @@ _context: context [
 				type = TYPE_LIT_WORD
 				type = TYPE_REFINEMENT
 			][											;-- add new word to context
-				slot: alloc-tail as series! ctx/symbols/value
-				copy-cell cell slot
+				slot: as red-word! alloc-tail as series! ctx/symbols/value
+				copy-cell cell as red-value! slot
 				slot/header: TYPE_WORD
+				slot/ctx: ctx
+				slot/index: i
 			]
 			cell: cell + 1
+			i: i + 1
 		]
 		ctx
 	]

@@ -53,17 +53,16 @@ word: context [
 	]
 	
 	push-local: func [
-		word	 [red-word!]
-		ctx		 [red-context!]
-		return:  [red-word!]
+		ctx		[red-context!]
+		index	[integer!]
+		return: [red-word!]
 		/local
-			cell [red-word!]
+			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
 
-		cell: push word
-		cell/ctx: ctx
-		cell
+		s: as series! ctx/symbols/value
+		push as red-word! s/offset + index
 	]
 	
 	get-buffer: func [

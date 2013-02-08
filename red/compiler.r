@@ -161,11 +161,16 @@ red: context [
 		]
 	]
 	
+	get-word-index: func [name [word!] ctx [word!]][
+		ctx: select contexts ctx
+		(index? find ctx name) - 1						;-- 0-based access in context table
+	]
+	
 	emit-push-word: func [name [word!]][
 		either local-word? name [
 			emit 'word/push-local
-			emit prefix-global decorate-symbol name
 			emit last ctx-stack
+			emit get-word-index name last ctx-stack
 			insert-lf -3
 		][
 			emit 'word/push
@@ -245,7 +250,7 @@ red: context [
 		mold/flat to word! name
 	]
 	
-	prefix-global: func [word [word!]][
+	prefix-global: func [word [word!]][					;@@ to be removed?
 		append to path! 'exec word
 	]
 	
@@ -512,7 +517,7 @@ red: context [
 						value: decorate-symbol word
 						either all [bind local-word? to word! :item][
 							action: 'push-local
-							reduce [prefix-global value ctx]
+							reduce [ctx get-word-index to word! :item ctx]
 						][
 							value
 						]
@@ -959,11 +964,8 @@ red: context [
 	comp-forall: has [word][
 		;TBD: check if word argument refers to any-series!
 		word: decorate-symbol pc/1
-		emit compose [
-			word/get  (word)							;-- save series (for resetting on end)
-			word/push (word)							;-- word argument
-		]
-		insert-lf -4
+		emit-get-word pc/1								;-- save series (for resetting on end)
+		emit-push-word pc/1								;-- word argument
 		pc: next pc
 		
 		emit-open-frame 'forall
@@ -987,7 +989,7 @@ red: context [
 	
 	comp-func-body: func [
 		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
-		/local init locals
+		/local init locals ctx-values
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [
@@ -1003,8 +1005,16 @@ red: context [
 
 		comp-sub-block/with 'func-body body				;-- compile function's body
 
+		;-- Function's prolog --
 		pop-locals
 		init: make block! 4 * length? symbols
+		ctx-values: append to path! last ctx-stack 'values
+		
+		append init compose [							;-- point context values series to stack
+			push (ctx-values)							;-- save previous context values pointer
+			(to set-path! ctx-values) as node! stack/arguments
+		]
+		new-line skip tail init -4 on
 		
 		forall symbols [								;-- assign local variable to Red arguments
 			append init to set-word! symbols/1
@@ -1021,14 +1031,19 @@ red: context [
 			]
 		]
 		name: decorate-symbol name
-		if find symbols name [name: prefix-global name]
+		if find symbols name [name: prefix-global name]	;@@
 		
 		append init compose [							;-- body stack frame
 			stack/mark-native (name)	;@@ make a unique name for function's body frame
 		]
-		append last output [
-			stack/unwind-last							;-- closing body stack frame,
-		]												;-- and propagating last value
+		
+		;-- Function's epilog --
+		append last output compose [
+			stack/unwind-last							;-- closing body stack frame, and propagating last value
+			(to set-path! ctx-values) as node! pop		;-- restore context values pointer
+		]
+		new-line skip tail last output -4 yes
+		
 		insert last output init
 	]
 	
@@ -1088,7 +1103,7 @@ red: context [
 		redirect-to-literals [							;-- store spec and body blocks
 			push-locals symbols
 			spec-blk: emit-block spec
-			ctx: push-context symbols
+			ctx: push-context copy symbols
 			emit compose [
 				(to set-word! ctx) _context/make (spec-blk) yes	;-- build context with value on stack
 			]
@@ -1110,7 +1125,7 @@ red: context [
 		emit-close-frame
 		
 		repend bodies [									;-- save context for deferred function compilation
-			name spec body symbols locals-nb copy locals-stack copy ssa-names probe copy ctx-stack
+			name spec body symbols locals-nb copy locals-stack copy ssa-names copy ctx-stack
 		]
 		pop-context
 		pc: skip pc 2
