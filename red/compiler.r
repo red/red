@@ -682,7 +682,7 @@ red: context [
 			output: saved
 	]
 	
-	comp-literal: func [root? [logic!] /local value char? name w][
+	comp-literal: func [root? [logic!] /local value char? name w make-block][
 		value: pc/1
 		either any [
 			char?: unicode-char? value
@@ -723,21 +723,31 @@ red: context [
 				insert-lf -1
 			]
 		][
+			make-block: [
+				redirect-to-literals [
+					value: to block! value
+					either empty? ctx-stack [
+						emit-block value
+					][
+						emit-block/bind value last ctx-stack
+					]
+				]
+			]
 			switch/default type?/word value [
 				block!	[
-					name: redirect-to-literals [emit-block value]
+					name: do make-block
 					emit 'block/push
 					emit name
 					insert-lf -2
 				]
 				paren!	[
-					name: redirect-to-literals [emit-block to block! value]
+					name: do make-block
 					emit 'paren/push
 					emit name
 					insert-lf -2
 				]
 				path!	[
-					name: redirect-to-literals [emit-block to block! value]
+					name: do make-block
 					emit 'path/push
 					emit name
 					insert-lf -2
