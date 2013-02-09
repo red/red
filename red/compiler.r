@@ -179,8 +179,8 @@ red: context [
 		]
 	]
 	
-	emit-get-word: func [name [word!] /lex-scope /literal /local new][
-		either all [not lex-scope local-word? name][
+	emit-get-word: func [name [word!] /literal /local new][
+		either local-word? name [
 			emit 'stack/push							;-- local word
 		][
 			if new: select ssa-names name [name: new]	;@@ add a check for function! type
@@ -1319,7 +1319,15 @@ red: context [
 	]
 	
 	comp-get: does [									;@@ add /any handling
-		emit-get-word/lex-scope to word! pc/1
+		either lit-word? pc/1 [
+			emit-get-word to word! pc/1
+			pc: next pc
+		][
+			emit-open-frame 'get
+			comp-expression
+			emit-native/with 'get [-1]
+			emit-close-frame
+		]
 	]
 	
 	comp-path: func [/set /local path value emit? get? entry alter][
@@ -1556,7 +1564,7 @@ red: context [
 				comp-call name entry/2
 			]
 			find symbols name [
-				either lit-word? pc/-1 [
+				either lit-word? pc/-1 [				;@@
 					emit-push-word name
 				][
 					either literal [
