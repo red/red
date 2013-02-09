@@ -288,10 +288,6 @@ block: context [
 		arg		  [red-value!]
 		part 	  [integer!]
 		return:   [integer!]
-		/local
-			s	  [series!]
-			value [red-value!]
-			i     [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/mold"]]
 		
