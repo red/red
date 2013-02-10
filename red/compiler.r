@@ -18,6 +18,7 @@ red: context [
 	runtime-path: %runtime/
 	nl: 		  newline
 	symbols:	  make hash! 1000
+	globals:	  make hash! 1000						;-- words defined in global context
 	aliases: 	  make hash! 100
 	contexts:	  make hash! 100						;-- storage for statically compiled contexts
 	ctx-stack:	  make block! 8							;-- contexts access path
@@ -41,7 +42,7 @@ red: context [
 	booting?:	  none									;-- YES: compiling boot script
 
 	unboxed-set:  [integer! char! float! float32! logic!]
-	block-set:	  [block! paren! path! set-path! lit-path!]
+	block-set:	  [block! paren! path! set-path! lit-path!]	;@@ missing get-path!
 	string-set:	  [string! binary!]
 	series-set:	  union block-set string-set
 	
@@ -303,6 +304,15 @@ red: context [
 		second select symbols name
 	]
 	
+	add-global: func [name [word!]][
+		unless any [
+			local-word? name
+			find globals name
+		][
+			repend globals [name 'unset!]
+		]
+	]
+	
 	push-context: func [ctx [block!] /local name][
 		append contexts name: to word! join "ctx" get-counter
 		append/only contexts ctx
@@ -312,6 +322,15 @@ red: context [
 	
 	pop-context: does [
 		clear skip tail ctx-stack -2
+	]
+	
+	find-contexts: func [name [word!]][
+		ctx: tail ctx-stack
+		while [not head? ctx][
+			ctx: back ctx
+			if find select contexts ctx/1 name [return ctx/1]
+		]
+		none
 	]
 	
 	push-locals: func [symbols [block!]][
@@ -900,8 +919,9 @@ red: context [
 	]
 	
 	comp-repeat: has [name word cnt set-cnt lim set-lim action][
-		add-symbol pc/1
-		name: decorate-symbol word: pc/1
+		add-symbol word: pc/1
+		add-global word
+		name: decorate-symbol word
 		
 		depth: depth + 1
 
@@ -951,10 +971,14 @@ red: context [
 	comp-foreach: has [word blk name cond][
 		either block? pc/1 [
 			;TBD: raise error if not a block of words only
-			foreach word blk: pc/1 [add-symbol word]
+			foreach word blk: pc/1 [
+				add-symbol word
+				add-global word
+			]
 			name: redirect-to-literals [emit-block blk]
 		][
 			add-symbol word: pc/1
+			add-global word
 		]
 		pc: next pc
 		
@@ -1105,9 +1129,13 @@ red: context [
 		]
 	]
 	
-	comp-func: func [/collect /does /has /local name spec body symbols locals-nb spec-blk body-blk ctx][
+	comp-func: func [
+		/collect /does /has
+		/local name word spec body symbols locals-nb spec-blk body-blk ctx
+	][
 		name: check-func-name to word! pc/-1
-		add-symbol to word! clean-lf-flag name
+		add-symbol word: to word! clean-lf-flag name
+		add-global word
 		
 		pc: next pc
 		set [spec body] pc
@@ -1162,9 +1190,11 @@ red: context [
 		comp-func/has
 	]
 	
-	comp-routine: has [name spec body spec-blk body-blk][
+	comp-routine: has [name word spec body spec-blk body-blk][
 		name: check-func-name to word! pc/-1
-		add-symbol to word! clean-lf-flag name
+		add-symbol word: to word! clean-lf-flag name
+		add-global word
+		
 		pc: next pc
 		set [spec body] pc
 
@@ -1515,6 +1545,8 @@ red: context [
 		name: pc/1
 		pc: next pc
 		add-symbol name: to word! clean-lf-flag name
+		add-global name
+		
 		if infix? pc [
 			throw-error "invalid use of set-word as operand"
 		]
@@ -1558,6 +1590,7 @@ red: context [
 		name: to word! pc/1
 		pc: next pc										;@@ move it deeper
 		local?: local-word? name
+		
 		case [
 			all [
 				not final
@@ -1580,7 +1613,10 @@ red: context [
 				check-invalid-call name
 				comp-call name entry/2
 			]
-			find symbols name [
+			any [
+				find globals name
+				find-contexts name
+			][
 				either lit-word? pc/-1 [				;@@
 					emit-push-word name
 				][
@@ -1801,7 +1837,11 @@ red: context [
 	
 	comp-init: does [
 		add-symbol 'datatype!
-		foreach [name specs] functions [add-symbol name]
+		add-global 'datatype!
+		foreach [name specs] functions [
+			add-symbol name
+			add-global name
+		]
 
 		;-- Create datatype! datatype and word
 		emit compose [
