@@ -34,6 +34,7 @@ char!:			make datatype! #get-definition TYPE_CHAR
 issue!:			make datatype! #get-definition TYPE_ISSUE
 path!:			make datatype! #get-definition TYPE_PATH
 set-path!:		make datatype! #get-definition TYPE_SET_PATH
+get-path!:		make datatype! #get-definition TYPE_GET_PATH
 lit-path!:		make datatype! #get-definition TYPE_LIT_PATH	
 native!:		make datatype! #get-definition TYPE_NATIVE
 action!:		make datatype! #get-definition TYPE_ACTION
