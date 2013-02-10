@@ -195,9 +195,9 @@ _context: context [
 				slot/header: TYPE_WORD
 				slot/ctx: ctx
 				slot/index: i
+				i: i + 1
 			]
 			cell: cell + 1
-			i: i + 1
 		]
 		ctx
 	]
