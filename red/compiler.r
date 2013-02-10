@@ -1935,6 +1935,7 @@ red: context [
 	clean-up: does [	
 		clear symbols
 		clear aliases
+		clear globals
 		clear sys-global
 		clear contexts
 		clear ctx-stack
