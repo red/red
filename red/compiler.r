@@ -1364,7 +1364,15 @@ red: context [
 	]
 	
 	comp-set: does [									;@@ add /any handling
-		comp-set-word/native
+		either lit-word? pc/1 [
+			comp-set-word/native
+		][
+			emit-open-frame 'set
+			comp-expression
+			comp-expression
+			emit-native/with 'set [-1]
+			emit-close-frame
+		]
 	]
 	
 	comp-get: does [									;@@ add /any handling
