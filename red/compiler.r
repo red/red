@@ -103,13 +103,15 @@ red: context [
 	
 	process-include-paths: func [code [block!] /local rule file][
 		parse code rule: [
-			#include file: (
-				if all [script-path slash <> first file/1][
-					file/1: clean-path join script-path file/1
-				]
-			)
-			| into rule
-			| skip
+			some [
+				#include file: (
+					if all [script-path slash <> first file/1][
+						file/1: clean-path join script-path file/1
+					]
+				)
+				| into rule
+				| skip
+			]
 		]
 	]
 	
