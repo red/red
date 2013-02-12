@@ -1025,8 +1025,10 @@ system-dialect: make-profilable context [
 
 			unless catch [
 				parse specs [
-					pos: opt [into attribs]				;-- functions attributes
-					pos: opt string!
+					opt [								;-- function's attribute and main doc-string
+						string! opt [into attribs]		;-- can be specified in any order
+						| into attribs opt string!
+					]
 					pos: copy args any [pos: word! into type-def opt string!]	;-- arguments definition
 					pos: opt [							;-- return type definition				
 						set value set-word! (					
@@ -1182,12 +1184,12 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		check-variable-arity?: func [spec [block!]][
+		check-variable-arity?: func [spec [block!] /local attribs][
 			all [
-				block? spec/1
+				attribs: get-attributes spec
 				any [
-					all [find spec/1 'variadic 'variadic]
-					all [find spec/1 'typed 'typed]
+					all [find attribs 'variadic 'variadic]
+					all [find attribs 'typed 'typed]
 				]
 			]
 		]
@@ -1214,15 +1216,29 @@ system-dialect: make-profilable context [
 			next pc: save-pc
 		]
 		
-		get-cconv: func [specs [block!]][
-			pick [cdecl stdcall] to logic! all [
-				not empty? specs
-				block? specs/1
-				find specs/1 'cdecl
+		get-attributes: func [spec [block!]][
+			any [
+				all [block? spec/1 spec/1]
+				all [string? spec/1 block? spec/2 spec/2]
 			]
 		]
 		
-		fetch-func: func [name /local specs type cc][
+		find-attribute: func [spec [block!] name [word!]][
+			either list: get-attributes spec [
+				to logic! find list name
+			][
+				false
+			]
+		]
+		
+		get-cconv: func [specs [block!]][
+			pick [cdecl stdcall] to logic! all [
+				not empty? specs
+				find-attribute specs 'cdecl
+			]
+		]
+		
+		fetch-func: func [name /local specs type cc attribs][
 			name: to word! name
 			store-ns-symbol name
 			if ns-path [add-ns-symbol pc/-1]
@@ -1237,10 +1253,10 @@ system-dialect: make-profilable context [
 			
 			if all [
 				not empty? specs
-				block? specs/1
+				attribs: get-attributes specs
 			][
 				case [
-					find specs/1 'infix [
+					find attribs 'infix [
 						if 2 <> get-arity specs [
 							throw-error [
 								"infix function requires 2 arguments, found"
@@ -1249,8 +1265,8 @@ system-dialect: make-profilable context [
 						]
 						type: 'infix
 					]
-					find specs/1 'cdecl   [cc: 'cdecl]
-					find specs/1 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
+					find attribs 'cdecl   [cc: 'cdecl]
+					find attribs 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
 				]
 			]
 			add-function type reduce [name none specs] cc
@@ -2243,8 +2259,7 @@ system-dialect: make-profilable context [
 				][
 					spec: entry/2/4
 					if all [
-						block? spec/1
-						find spec/1 'infix
+						find-attribute spec 'infix
 						path? pc/1
 					][
 						throw-error "infix functions cannot be called using a path"

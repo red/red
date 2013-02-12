@@ -1452,8 +1452,7 @@ make-profilable make target-class [
 			if block? arg [arg: <last>]
 			either all [
 				fspec/3 = 'cdecl 
-				block? fspec/4/1
-				find fspec/4/1 'variadic			;-- only for vararg C functions
+				compiler/find-attribute fspec/4 'variadic	;-- only for vararg C functions
 			][
 				emit-push/cdecl arg					;-- promote float32! to float!
 			][
@@ -1563,7 +1562,7 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec][
+	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 
 		emit #{55}									;-- PUSH ebp
@@ -1573,7 +1572,10 @@ make-profilable make target-class [
 			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
+		if all [
+			attribs: compiler/get-attributes fspec/4
+			any [find attribs 'cdecl find attribs 'stdcall]
+		][
 			emit #{53}								;-- PUSH ebx
 			emit #{56}								;-- PUSH esi
 			emit #{57}								;-- PUSH edi
@@ -1582,12 +1584,15 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word!] locals [block!] args-size [integer!] locals-size [integer!]
-		/local fspec
+		/local fspec attribs
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
+		if all [
+			attribs: compiler/get-attributes fspec/4
+			any [find attribs 'cdecl find attribs 'stdcall]
+		][
 			emit #{5F}								;-- POP edi
 			emit #{5E}								;-- POP esi
 			emit #{5B}								;-- POP ebx

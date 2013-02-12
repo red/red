@@ -1971,8 +1971,7 @@ make-profilable make target-class [
 			if block? arg [arg: <last>]
 			either all [
 				fspec/3 = 'cdecl 
-				block? fspec/4/1
-				find fspec/4/1 'variadic			;-- only for vararg C functions
+				compiler/find-attribute fspec/4 'variadic	;-- only for vararg C functions
 			][
 				emit-push/cdecl arg					;-- promote float32! to float!
 			][
@@ -2006,11 +2005,14 @@ make-profilable make target-class [
 		emit-i32 #{e8bd6000}						;-- POP {sp,lr}
 	]
 
-	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size][
+	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size attribs][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		fspec: select compiler/functions name
-		if all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
+		if all [
+			attribs: compiler/get-attributes fspec/4
+			any [find attribs 'cdecl find attribs 'stdcall]
+		][
 			;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
 			;; passed via regs r0-r3, further args are passed on the stack (pushed
 			;; right-to-left; i.e. the leftmost argument is at top-of-stack).
@@ -2060,7 +2062,7 @@ make-profilable make target-class [
 
 	emit-epilog: func [
 		name [word! path!] locals [block!] args-size [integer!] locals-size [integer!]
-		/local fspec
+		/local fspec attribs
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 			
@@ -2080,7 +2082,10 @@ make-profilable make target-class [
 		
 		fspec: select/only compiler/functions name
 		
-		either all [block? fspec/4/1 any [find fspec/4/1 'cdecl find fspec/4/1 'stdcall]][
+		either all [
+			attribs: compiler/get-attributes fspec/4
+			any [find attribs 'cdecl find attribs 'stdcall]
+		][
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
 		][
