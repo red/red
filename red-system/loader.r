@@ -41,7 +41,7 @@ loader: make-profilable context [
 	]
 	
 	relative-path?: func [file [file!]][
-		not find [#"/" #"~"] first file
+		not find "/~" first file
 	]
 
 	included?: func [file [file!]][

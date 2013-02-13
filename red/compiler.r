@@ -102,7 +102,7 @@ red: context [
 	]
 	
 	relative-path?: func [file [file!]][
-		not find [#"/" #"~"] first file
+		not find "/~" first file
 	]
 	
 	process-include-paths: func [code [block!] /local rule file][
