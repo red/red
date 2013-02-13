@@ -39,6 +39,10 @@ loader: make-profilable context [
 		clear defs
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
 	]
+	
+	relative-path?: func [file [file!]][
+		not find [#"/" #"~"] first file
+	]
 
 	included?: func [file [file!]][
 		file: get-modes file 'full-path
@@ -50,7 +54,7 @@ loader: make-profilable context [
 
 	push-system-path: func [file [file!] /local path][
 		append ssp-stack system/script/path
-		if slash <> first file [file: get-modes file 'full-path]
+		if relative-path? file [file: get-modes file 'full-path]
 		path: split-path file
 		system/script/path: path/1
 		path/2

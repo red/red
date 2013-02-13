@@ -101,11 +101,15 @@ red: context [
 		quit-on-error
 	]
 	
+	relative-path?: func [file [file!]][
+		not find [#"/" #"~"] first file
+	]
+	
 	process-include-paths: func [code [block!] /local rule file][
 		parse code rule: [
 			some [
 				#include file: (
-					if all [script-path slash <> first file/1][
+					if all [script-path relative-path? file/1][
 						file/1: clean-path join script-path file/1
 					]
 				)
@@ -1700,7 +1704,7 @@ included-list: make block! 20
 				]
 				append include-stk script-path
 				
-				script-path: either slash <> first file [
+				script-path: either relative-path? file [
 					file: clean-path join any [script-path main-path] file
 					first split-path file
 				][
