@@ -2,13 +2,14 @@ REBOL [
 	Title:   "Red/System code emitter"
 	Author:  "Nenad Rakocevic"
 	File: 	 %emitter.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
 do %targets/target-class.r
 
-emitter: context [
+emitter: make-profilable context [
 	code-buf: make binary! 100'000
 	data-buf: make binary! 100'000
 	symbols:  make hash! 1000			;-- [name [type address [relocs]] ...]
@@ -28,10 +29,10 @@ emitter: context [
 		;int8!		1	signed
 		byte!		1	unsigned
 		;int16!		2	signed
-		int32!		4	signed
+		;int32!		4	signed
 		integer!	4	signed
 		;int64!		8	signed
-		uint8!		1	unsigned
+		;uint8!		1	unsigned
 		;uint16!	2	unsigned
 		;uint32!	4	unsigned
 		;uint64!	8	unsigned
@@ -173,11 +174,13 @@ emitter: context [
 		entry/2
 	]
 
-	logic-to-integer: func [op [word!]][
+	logic-to-integer: func [op [word! block!] /with chunk [block!] /local offset body][
+		if all [with block? op][op: op/1]
+		
 		if find target/comparison-op op [
 			set [offset body] chunks/make-boolean
 			branch/over/on/adjust body reduce [op] offset/1
-			merge body
+			either with [chunks/join chunk body][merge body]
 		]
 	]
 	
@@ -206,7 +209,10 @@ emitter: context [
 	
 		switch/default type [
 			integer! [
-				unless integer? value [value: 0]
+				case [
+					decimal? value [value: to integer! value]
+					not integer? value [value: 0]
+				]
 				pad-data-buf target/default-align
 				ptr: tail data-buf			
 				value: debase/base to-hex value 16

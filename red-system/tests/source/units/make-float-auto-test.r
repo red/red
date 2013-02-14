@@ -3,7 +3,8 @@ REBOL [
 	Author:  "Peter W A Wood"
 	File: 	 %make-float-auto-test.r
 	Version: 0.1.0
-	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -36,6 +37,8 @@ test-binary-ops: [
   -
   *
   /
+;  //									;; not implemented fully yet
+; "%"									;; not implemented fully yet
 ]
 
 test-comparison-ops: [
@@ -78,10 +81,13 @@ foreach op test-binary-ops [
   foreach operand1 test-values [
     foreach operand2 test-values [
       ;; only write a test if REBOL produces a result
-      if attempt [expected: do reduce [operand1 op operand2]][
-        
-        expected: to decimal! expected
-        
+      if attempt [
+        either op = "%" [
+          expected: to decimal! do reduce [remainder operand1 operand2]
+        ][
+          expected: to decimal! do reduce [operand1 op operand2]
+        ]
+      ][
         ;; test with literal values
         test-number: test-number + 1
         append tests join {  --test-- "float-auto-} [test-number {"^(0A)}]

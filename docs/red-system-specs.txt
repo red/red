@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 24/08/2012
-	Revision: 35
+	Date: 24/11/2012
+	Revision: 37
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -97,7 +97,7 @@ Usage rules:
 
 *Inline comments are allowed anywhere in the source code
 
-*Multi-line comments are allowed anywhere in the source code, except in expressions. Exemple:
+*Multi-line comments are allowed anywhere in the source code, except in expressions. Example:
 
  a: 1 + comment {5} 4	; this will produce a compilation error
 
@@ -222,7 +222,7 @@ The 0x prefix is often used to mark a literal hexadecimal value. It could have b
 
 ---Byte!
 
-The byte! datatype's purpose is to represent unsigned integers in the 0-255 range. byte! is an alias for the internal uint8! datatype, both will be accepted, but byte! is the official one. 
+The byte! datatype's purpose is to represent unsigned integers in the 0-255 range.
 
 +++Syntax
 	
@@ -300,12 +300,7 @@ will output
 
 All Red/System math operators (+, -, *, /, //, %) are supported. The default rounding method on results is "rounding to nearest". Both operands need to be of float! types (no implicit casting).
 
-The modulo and remainder operators have a special meaning when used on float! values:
-
-* modulo (//): floating point remainder (result is a float!).
-
-* remainder (%): IEEE-754 rounded remainder (result is an integer!).
-
+The modulo (//) and remainder (%) operators give the same results when used on float! values.
 
 ---Float32!
 
@@ -318,7 +313,7 @@ The reason for having a single precision floating point type is for making the i
 
 +++Syntax
 
-There is no literal form for float32! datatype values. To load a float32! constant, the method consist in provindg a float! literal and prefix it with a type casting to float32!.
+There is no literal form for float32! datatype values. To load a float32! constant, the method consist in providing a float! literal and prefix it with a type casting to float32!.
 
 Example:
 
@@ -346,12 +341,7 @@ will output
 
 All Red/System math operators (+, -, *, /, //, %) are supported. The default rounding method on results is "rounding to nearest". Both operands need to be of float32! types (no implicit casting).
 
-The modulo and remainder operators have a special meaning when used on float32! values:
-
-* modulo (//): floating point remainder (result is a float32!).
-
-* remainder (%): IEEE-754 rounded remainder (result is an integer!).
-
+The modulo (//) and remainder (%) operators give the same results when used on float32! values.
 
 ---Logic!
 
@@ -941,7 +931,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <th>struct!</th>
 <th>float!</th>
 <th>float32!</th>
-<th>function! &sup2;</th>
+<th>function!</th>
 </tr><tr>
 
 <th>byte!</th>
@@ -1040,11 +1030,22 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="deny">ERROR</td>
 </tr>
 
+<th>function!</th>
+<td class="deny">ERROR</td>
+<td class="allow">as function!</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+<td class="deny">ERROR</td>
+</tr>
+
 </table>
 </div>
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
-&sup2; Function! is a pseudo-type that cannot be the target of a type casting.
 
 
 ===Expressions
@@ -1073,7 +1074,7 @@ The grammar rules are specified in <a href="http://en.wikipedia.org/wiki/Backus%
 
  <logic-literal> ::= "true" | "false"
 
- <math-op>       ::= "+" | "-" | "*" | "/" | "//"
+ <math-op>       ::= "+" | "-" | "*" | "/" | "//" | "%"
  <bitwise-op>    ::= "and" | "or" | "xor"
  <comparison-op> ::= "=" | "<>" | "<" | "<=" | ">=" | ">"
  <op>            ::= <math-op> | <bitwise-op>
@@ -1148,9 +1149,12 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
 
  <name>: func | function [
  	[<attributes>]						;-- optional part
+ 	"<function purpose>"				;-- optional doc-string
  	<argument> [<datatype>]
+ 	 "<argument description>"			;-- optional doc-string
  	...
  	return: [<datatype>]				;-- returned value type (optional part)
+ 	"<returned value description>"		;-- optional doc-string
  	/local								;-- local variables (optional part)
  	<local> [<datatype>]
  	...
@@ -1165,6 +1169,8 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
                 float! | float32! | c-string! | struct! [<members>]
  <local>	  : local variable
  <body>		  : function's body code
+ 
+Doc-strings are just optional documentation that can be processed by any external tool, they have no runtime effect.
 
 <b>Examples</b>
 
@@ -1226,7 +1232,7 @@ will return:
  
 <u>Notes</u>:
 
-*When the <b>infix</b> syntax is used, the postfix syntax is still allowed, but it will work only if there is no value on the left side of the function call. Example:
+*When the <b>infix</b> syntax is used, the prefix syntax is still allowed, but it will work only if there is no value on the left side of the function call. Example:
 
  func [return: [integer!]][
     avg 10 6                 			;-- will return 8 as well               
@@ -1360,8 +1366,10 @@ Types are defined by the runtime as:
  #define any-struct?		[1000 <=]
  #define alias?  			[1001 <=]
  
+NULL value type ID is set by convention to type-int-ptr! ID (pointer! [integer!]).
+ 
 \note Typed and imported function
-It is possible to use <b>typed</b> attribute for an imported function, but it needs to meet the specific stack layout required by this attribute, so should probably be reserverd only for imported function written in Red/System.
+It is possible to use <b>typed</b> attribute for an imported function, but it needs to meet the specific stack layout required by this attribute, so should probably be reserved only for imported function written in Red/System.
 
 /note
 
@@ -1374,7 +1382,7 @@ Example of definition:
     print ["count: " count lf]
     until [
   		print [list/value " : "]
-  		print [form-type list/type lf]	;-- to-type converts a type ID to a c-string
+  		print [form-type list/type lf]	;-- form-type converts a type ID to a c-string
   		list: list + 1
   		count: count - 1
   		zero? count
@@ -1451,9 +1459,48 @@ Example:
 
  get-file "bigfile.avi" :progress		;-- blocking job would call 'progress
                                         ;-- periodically
-                                        
+
+A function pointer can be assigned to a variable for later use or dereferencing. Such variable cannot be passed as argument to other functions, nor returned by a function. Function pointer pseudo-type is not a first class datatype.
+
 <u>Note</u>: Function address is returned as a function pointer pseudo-type, so it cannot be used as-is in expressions, but it can be safely casted to an integer! if required.
 
++++Function definition alias
+
+In order to avoid repeating function specification, it is possible to define aliases by using ALIAS keyword.
+
+<b>Syntax</b>
+
+ <name>: alias function! [<spec>]
+
+ <name> : aliased identifier (by convention, a ! suffix is added)
+ <spec> : a function valid specification block
+ 
+Example:
+
+ foo!: alias function! [n [integer!] return: [integer!]]
+ 
+ bar: func [f [foo!]][...]
+
++++Function dereferencing
+
+A function pointer can be dereferenced so that the function being pointed at will be called, like any other function. Correct number and type of arguments needs to be passed.
+
+Example:
+
+ foo!: alias function! [n [integer!] return: [integer!]]
+ 
+ inc: func [n [integer!] return: [integer!]][
+ 	n + 1
+ ]
+ 
+ bar: as foo! :inc
+ 
+ print bar 2							;-- will output 3
+ 
+\note Implementation limitation
+Currently, only function pointers stored in global variables can be dereferenced.
+
+/note
 
 ---Premature exiting
 
@@ -1629,6 +1676,8 @@ From nested namespaces, in order to access an indentifier from global context wh
  	b: 0
  	print-line system/words/b			;-- will output 123
  ]
+ 
+Any global context identifier can be retrieved this way.
 
 +++WITH keyword
 
@@ -1643,7 +1692,7 @@ In order to limit source code verbosity, the namespace prefix can be omitted if 
  <names> : list of namespace identifiers
  <code>  : body block of code
 
-Note: If multiple namespaces are specified and if they share same identifier(s), priority is given to namespaces that are mentioned first.
+Note: If multiple namespaces are specified and if they share same identifier(s), the last defined namespace (from the compiler point of view) takes precedence.
 
 <u>Example</u>:
 
@@ -1651,13 +1700,13 @@ Note: If multiple namespaces are specified and if they share same identifier(s),
  c: context [b: 1 d: 123]
 
  with a [
- 	print-line b						;-- will output 0
- 	print-line c/b						;-- will output 1
+ 	print-line b						;-- will output 1
+ 	print-line a/b						;-- will output 0
  ]
 
  with [a c][
  	print-line d						;-- will output 123
- 	print-line b						;-- will output 0 ('a is before 'c)
+ 	print-line b						;-- will output 1 ('c is defined after 'a)
  ]
 
 ===Infix operators
@@ -1767,7 +1816,7 @@ These operators can be used only where a condition is allowed. See "Control flow
  
  value1 > value2
  
-<b>Lesser than</b>: <
+<b>Less than</b>: <
  
  value1 < value2
  
@@ -1775,7 +1824,7 @@ These operators can be used only where a condition is allowed. See "Control flow
  
  value1 >= value2
  
-<b>Lesser than or equal</b>: <=
+<b>Less than or equal</b>: <=
  
  value1 <= value2
  
@@ -2476,6 +2525,44 @@ will output:
  
 <u>Note</u>: Parens are required in this example on test expressions so that the compiler performs the second infix expression (the and operator) before the first (the equal operator).
  
++++Parametrized macros
+
+A more powerful macro version is possible, taking one or several parameters as input that get replaced in the emitted template.
+
+Syntax (declaration):
+
+    #define <name>(arg1 arg2 ...) <body>
+
+    <name> : macro identifier
+    <body> : macro body (block! or paren! value)
+
+Syntax (usage):
+
+    <name>(value1 value2 ...)
+    
+If the body is a block! value, its content replaces the name and parameters passed in the source code. If the body is a paren! value, the parens are kept after replacement in source code.
+
+<u>Notes</u>:
+
+* The replacement process in the body block is done deeply in all series found, including paths.
+
+* Nested macros are fully supported.
+
+Examples:
+
+ #define MAX(a b) (either a > b [a][b])
+
+ print MAX(3 4)							;-- will print 4
+
+ #define SW(identifier) [system/words/identifier]
+
+ a: 123
+ print SW(a)							;-- will print 123
+ 
+\note Naming convention
+By convention, such parametrized macro names should be capitalized, so they can be more easily spotted in source code.
+
+/note
  
 ---#enum
 
@@ -2673,6 +2760,25 @@ Valid option names and allowed values are listed in %config.r file, in a comment
  
 <u>Note</u>: if the argument is a word, it does not need to be prefixed with ' character in a #switch block.
 
+---#verbose
+
+This directive allows to locally change or overwrite the verbosity compilation option.
+
+<b>Syntax</b>
+
+ #verbose <level>
+
+ <level> : integer value from 0 (no logs) to 11 (exhaustive logs).
+ 
+It is mostly used for local debugging of the compilation process by framing the source lines to log between two #verbose directives.
+
+Example:
+
+ #verbose 9
+ print "hello"							;-- maximum logs emitted
+ #verbose 0
+ print "world"							;-- no logs emitted
+ 
 ===Source code organization
 
 ---Source files suffix
@@ -2799,16 +2905,16 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     < 			<< 			<= 
     <>			= 			>
     >>			>=		    >>>
-    alias 		all		    and
-    any			as			assert
-    case		comment		context
-    declare     either	    exit
-    false		func 	  	function
-    if			not			or
-    pop			push		return
-    size?		switch 		true
-    until		while  		with
-    xor
+    ??			alias 		all
+    and   		any			as
+    assert		case		comment
+    context		declare     either
+    exit		false		func
+    function	if			not
+    null		or			pop
+    push		return		size?
+    switch		true		until
+    while		with		xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -2887,7 +2993,7 @@ will output:
 	p[i] = 123;					p/i: 123
 
 
-*<strike>Add a uint8! (or char!) datatype</strike>
+*<strike>Add a uint8! datatype</strike>
 
 *Add a uint16! (or short!) datatype
 
@@ -2926,6 +3032,32 @@ will output:
 
 
 ===Document History
+
+*<b>24/11/2012 - revision 37</b>
+
+*>Issue #280 fixed (missing function! as possible target in type casting matrix)
+
+*>Issue #283 fixed (uint8! mentions removed from document, only kept as possible evolutions)
+
+*>Issue #286 fixed (missing `null` keyword in reserved keywords list)
+
+*>Changed precedence order in WITH namespaces list
+
+*>Changed description of modulo/remainder for floats, now they give the same result.
+
+
+*<b>24/10/2012 - revision 36</b>
+
+*>Added docstrings in function syntax.
+
+*>NULL type ID note added.
+
+*>Added Function pointers alias and dereferencing descriptions.
+
+*>Added parametrized macros description.
+
+*>Added #verbose directive description.
+
 
 
 *<b>24/08/2012 - revision 35</b>

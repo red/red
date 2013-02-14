@@ -2,14 +2,15 @@ REBOL [
 	Title:   "Red/System source program loader"
 	Author:  "Nenad Rakocevic"
 	File: 	 %loader.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-loader: context [
+loader: make-profilable context [
 	verbose: 	  0
-	include-dirs: none
 	include-list: make hash! 20
+	ssp-stack: 	  make block! 5
 	defs:		  make block! 100
 
 	hex-chars: 	  charset "0123456789ABCDEF"
@@ -34,7 +35,6 @@ loader: context [
 	]
 
 	init: does [
-		include-dirs: reduce [runtime-path]
 		clear include-list
 		clear defs
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
@@ -48,15 +48,25 @@ loader: context [
 		]
 	]
 
-	find-path: func [file [file!]][
-		either slash = first file [
-			if exists? file [return file] 		;-- absolute path check
-		][
-			foreach dir include-dirs [			;-- relative path check using known directories
-				if exists? dir/:file [return dir/:file]
-			]
+	push-system-path: func [file [file!] /local path][
+		append ssp-stack system/script/path
+		if slash <> first file [file: get-modes file 'full-path]
+		path: split-path file
+		system/script/path: path/1
+		path/2
+	]
+	
+	pop-system-path: does [
+		system/script/path: take/last ssp-stack
+	]
+	
+	check-macro-parameters: func [args [paren!]][
+		unless parse args [some word!][
+			throw-error ["only words can be used as macro parameters:" mold args]
 		]
-		throw-error ["include file access error:" mold file]
+		unless empty? intersect to block! args compiler/keywords-list [
+			throw-error ["keywords cannot be used as macro parameters:" mold args]
+		]
 	]
 
 	check-marker: func [src [string!] /local pos][
@@ -82,8 +92,55 @@ loader: context [
 			do bind copy/part payload 3 job
 		]
 	]
+	
+	copy-paths: func [s [series!]][
+		forall s [
+			case [
+				find [path! set-path! lit-path!] type?/word s/1 [
+					s/1: copy s/1
+				]
+				any [block? s/1 paren? s/1][
+					copy-paths s/1
+				]
+			]
+		]
+		s
+	]
 
-	expand-string: func [src [string! binary!] /local value s e c lf-count ws i prev ins? braces][
+	inject: func [args [block!] 'macro s [block!] e [block!] /local rule pos i type value][
+		unless equal? length? args length? s/2 [
+			throw-error ["invalid macro arguments count in:" mold s/2]
+		]	
+ 		macro: copy-paths copy/deep macro
+
+		parse :macro rule: [
+			some [
+				into rule 
+				| pos: [
+					word! 		(type: word!) 
+					| set-word! (type: set-word!)
+					| get-word! (type: get-word!)
+				] (
+					if i: find args to word! pos/1 [
+						value: pick s/2 index? :i
+						change/only pos either type = word! [
+							value						;-- word! => pass-thru value
+						][
+							to type value				;-- get/set => convert value
+						]
+					]
+				)
+				| skip
+			]
+		]
+		either paren? :macro [
+			change/part/only s macro e
+		][
+			change/part s macro e
+		]
+	]
+
+	expand-string: func [src [string! binary!] /local value s e c lf-count ws i prev ins?][
 		if verbose > 0 [print "running string preprocessor..."]
 
 		line: 1										;-- lines counter
@@ -97,7 +154,7 @@ loader: context [
 		ws:	[ws-chars | (ins?: yes) lf-count]
 		braces: ["{" any [(ins?: no) lf-count | non-cbracket] "}"]
 
-		parse/all/case src [						;-- not-LOAD-able syntax support
+		parse/all/case src [						;-- non-LOAD-able syntax preprocessing
 			any [
 				(c: 0)
 				#";" to lf
@@ -126,8 +183,8 @@ loader: context [
 
 	expand-block: func [
 		src [block!]
-		/local blk rule name value s e opr then-block else-block cases body
-			saved stack header mark idx prev enum-value enum-name enum-names line-rule
+		/local blk rule name value args s e opr then-block else-block cases body
+			saved stack header mark idx prev enum-value enum-name enum-names line-rule recurse
 	][
 		if verbose > 0 [print "running block preprocessor..."]
 		stack: append/only clear [] make block! 100
@@ -155,25 +212,41 @@ loader: context [
 				do store-line
 			) :s
 		]
+		recurse: [
+			saved: reduce [s e]
+			parse/case value rule: [
+				some [defs | into rule | skip] 		;-- resolve macros recursively
+			]
+			set [s e] saved
+		]
 		parse/case src blk: [
 			s: (do store-line)
 			some [
 				defs								;-- resolve definitions in a single pass
-				| s: #define set name word! set value skip e: (
+				| s: #define set name word! (args: none) [
+					set args paren! set value [block! | paren!]
+					| set value skip
+				  ] e: (
+				  	if paren? args [check-macro-parameters args]
 					if verbose > 0 [print [mold name #":" mold value]]
 					append compiler/definitions name
-					if word? value [value: to lit-word! value]
-					either block? value [
-						saved: reduce [s e]
-						parse/case value rule: [
-							some [defs | into rule | skip] 	;-- resolve macros recursively
+					case [
+						args [
+							do recurse
+							rule: copy/deep [s: _ paren! e: (e: inject _ _ s e) :s]
+							rule/5/3: to block! :args	
+							rule/5/4: :value
 						]
-						set [s e] saved
-						rule: copy/deep [s: _ e: (e: change/part s copy/deep _ e) :s]
-						rule/4/5: :value
-					][
-						rule: copy/deep [s: _ e: (e: change/part s _ e) :s]
-						rule/4/4: :value
+						block? value [
+							do recurse
+							rule: copy/deep [s: _ e: (e: change/part s copy/deep _ e) :s]
+							rule/4/5: :value
+						]
+						'else [
+							if word? value [value: to lit-word! value]
+							rule: copy/deep [s: _ e: (e: change/part s _ e) :s]
+							rule/4/4: :value
+						]
 					]
 					rule/2: to lit-word! name
 
@@ -199,13 +272,15 @@ loader: context [
 					s: e
 				) :s
 				| s: #include set name file! e: (
-					either included? name: find-path name [
+					either included? name [
 						s: remove/part s e			;-- already included, drop it
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
+						name: push-system-path name
 						value: skip process/short/sub name 2		;-- skip Red/System header
 						e: change/part s value e
 						insert e reduce [			;-- put back the parent origin
+							#pop-path
 							#script current-script
 						]
 						insert s reduce [			;-- mark code origin	
@@ -235,14 +310,28 @@ loader: context [
 						remove/part s e
 					]
 				) :s
+				| s: #pop-path e: (
+					pop-system-path
+					s: remove s
+				) :s
 				| line-rule
+				| s: issue! (
+					if s/1/1 = #"'" [
+						value: to integer! debase/base next s/1 16
+						either value > 255 [
+							throw-error ["unsupported literal byte:" next s/1]
+						][
+							s/1: to char! value
+						]
+					]
+				)
 				| path! | set-path!	| any-string!		;-- avoid diving into these series
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
 				  [into blk | block! | paren!]			;-- black magic...
 				  s: (
 					if any [block? s/-1 paren? s/-1][
 						header: last stack
-						change header length? header	;-- update header size					  		
+						change header length? header	;-- update header size
 						s/-1: insert s/-1 header		;-- insert hidden header
 						remove back tail stack
 					]
@@ -254,36 +343,49 @@ loader: context [
 		insert src stack/1							;-- return source with hidden root header
 	]
 
-	process: func [input [file! string! block!] /sub /short /local src err path][
-		if verbose > 0 [print ["processing" mold either file? input [input]['in-memory]]]
+	process: func [
+		input [file! string! block!] /sub /with name [file!] /short
+		/local src err path ssp pushed?
+	][
+		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
+
+		if with [									;-- push alternate filename on stack
+			push-system-path join first split-path name %.
+			pushed?: yes
+		]
 
 		if file? input [
-			if all [
-				%./ <> path: first split-path input	;-- is there a path in the filename?
-				not find/only include-dirs path
-			][
-				either sub [
-					insert next include-dirs path		;-- register source folder as include dir
-				][
-					insert include-dirs path			;-- register root folder as *first* include dir
-				]
+			if input = %red.reds [					;-- special processing for Red runtime
+				system/script/path: join ssp-stack/1 %../red/runtime/
+				input: push-system-path join system/script/path input
+				pushed?: yes
+			]
+			if find input %/ [ 						;-- is there a path in the filename?
+				input: push-system-path input
+				pushed?: yes
 			]
 			if error? set/any 'err try [src: as-string read/binary input][	;-- read source file
 				throw-error ["file access error:" mold disarm err]
 			]
 		]
 		unless short [
-			current-script: pick reduce [input 'in-memory] file? input
+			current-script: case [
+				file? input [input]
+				with		[name]
+				'else		['in-memory]
+			]
 		]
-		src: any [src input]						;-- process string-level compiler directives
+		src: any [src input]
 		if file? input [check-marker src]			;-- look for "Red/System" head marker
-		expand-string src
-
-		if error? set/any 'err try [src: load/all src][	;-- convert source to blocks
-			throw-error ["syntax error during LOAD phase:" mold disarm err]
-		]
 		
-		unless short [src: expand-block src]		;-- process block-level compiler directives	
+		unless block? src [
+			expand-string src						;-- process string-level compiler directives
+			if error? set/any 'err try [src: load src][	;-- convert source to blocks
+				throw-error ["syntax error during LOAD phase:" mold disarm err]
+			]
+		]
+		unless short [src: expand-block src]		;-- process block-level compiler directives
+		if pushed? [pop-system-path]
 		src
 	]
 ]

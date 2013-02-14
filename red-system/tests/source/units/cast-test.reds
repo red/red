@@ -2,7 +2,8 @@ Red/System [
 	Title:   "Red/System datatype casting test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %cast-test.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -90,6 +91,19 @@ Red/System [
 	 t/d: as-byte 0
 	 h: as-integer t/a
 	 --assert h = 1
+	 
+	 --test-- "byte-cast-14"              ;-- issue 317
+	   bc14-a: as byte! 1
+	   bc14-b: as byte! 2
+	   bc14-c: as byte! 3
+	   bc14-d: as byte! 4
+	   bc14-e: as byte! 5
+	   bc14-a: as byte! 0
+	 --assert #"^(00)" = bc14-a
+	 --assert #"^(02)" = bc14-b
+	 --assert #"^(03)" = bc14-c
+	 --assert #"^(04)" = bc14-d
+	 --assert #"^(05)" = bc14-e
 	
 ===end-group===
 

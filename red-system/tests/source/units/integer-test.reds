@@ -3,7 +3,8 @@ Red/System [
 	Author:  "Peter W A Wood"
 	File: 	 %integer-test.reds
 	Version: 0.1.1
-	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 

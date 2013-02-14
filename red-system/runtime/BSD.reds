@@ -2,15 +2,13 @@ Red/System [
 	Title:   "Red/System BSD common runtime"
 	Author:  "Nenad Rakocevic"
 	File: 	 %BSD.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
 ]
-
-#define SYSCALL_MMAP		197
-#define SYSCALL_MUNMAP		73
 
 #define SA_SIGINFO  		0040h
 #define SA_RESTART   		0002h

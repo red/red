@@ -2,7 +2,8 @@ REBOL [
 	Title:   "Red/System code emitter base object"
 	Author:  "Nenad Rakocevic"
 	File: 	 %target-class.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -88,7 +89,7 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word! object!] gcode [binary! block!] lcode [binary! block!] 
+		name [word! object!] gcode [binary! block! none!] lcode [binary! block!] 
 		/local offset
 	][
 		if object? name [name: compiler/unbox name]
@@ -153,22 +154,26 @@ target-class: context [
 		]
 	]
 	
+	argument-size?: func [arg cdecl [logic!] /local type][
+		max 
+			any [
+				all [object? arg arg/action = 'null emitter/size-of? 'integer!]
+				all [
+					type: compiler/get-type arg
+					any [
+						all [cdecl type/1 = 'float32! 8]	;-- promote to C double
+						emitter/size-of? type
+					]
+				]
+			]
+			stack-width
+	]
+	
 	call-arguments-size?: func [args [block!] /cdecl /local total type][
 		total: 0
 		foreach arg args [
 			if arg <> #_ [							;-- bypass place-holder marker
-				total: total + max 
-					any [
-						all [object? arg arg/action = 'null emitter/size-of? 'integer!]
-						all [
-							type: compiler/get-type arg
-							any [
-								all [cdecl type/1 = 'float32! 8]	;-- promote to C double
-								emitter/size-of? type
-							]
-						]
-					]
-					stack-width
+				total: total + argument-size? arg to logic! cdecl
 			]
 		]
 		total
@@ -182,12 +187,13 @@ target-class: context [
 				 'reg								;-- value in accumulator
 			][
 				switch type?/word arg [
-					char! 	 ['imm]
-					integer! ['imm]
-					decimal! ['imm]
-					word! 	 ['ref] 				;-- value needs to be fetched
-					block!   ['reg] 				;-- value in accumulator (or in alt-acc)
-					path!    ['reg] 				;-- value in accumulator (or in alt-acc)
+					char! 	  ['imm]
+					integer!  ['imm]
+					decimal!  ['imm]
+					word! 	  ['ref] 				;-- value needs to be fetched
+					get-word! ['ref]
+					block!    ['reg] 				;-- value in accumulator (or in alt-acc)
+					path!     ['reg] 				;-- value in accumulator (or in alt-acc)
 				]
 			]
 			c: c + 1
@@ -217,7 +223,7 @@ target-class: context [
 				either fspec/3 = 'cdecl [
 					emit-call-import args fspec spec
 				][
-					emit-call-native/routine args fspec spec
+					emit-call-native/routine args fspec spec name
 				]
 			]
 			inline [

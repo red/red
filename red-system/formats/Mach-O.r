@@ -2,7 +2,8 @@ REBOL [
 	Title:	 "Red/System Mach-O format emitter"
 	Author:  "Nenad Rakocevic"
 	File:	 %Mach-O.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 

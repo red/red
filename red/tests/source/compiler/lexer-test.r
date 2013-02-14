@@ -2,7 +2,8 @@ Rebol [
 	Title:   "Red lexer test script"
 	Author:  "Peter W A Wood"
 	File: 	 %byte-test.reds
-	Rights:  "Copyright (C) 2011 Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -18,6 +19,8 @@ do %../../../lexer.r
 
 
 ~~~start-file~~~ "lexer"
+
+===start-group=== "process"
 
 	--test-- "lexer-1"
 	src: {Red [] 123}
@@ -61,15 +64,15 @@ do %../../../lexer.r
 
 	--test-- "lexer-11"
 	src: {Red [] #"a"}
-	--assert [[] #"a"] = lexer/process src
+	--assert [[] #'00000061] = lexer/process src
 
 	--test-- "lexer-12"
 	src: {Red [] #a}
 	--assert [[] #a] = lexer/process src
 
 	--test-- "lexer-13"
-	src: {Red [] #{00}}
-	--assert [[] #{00}] = lexer/process src
+	src: {Red [] #"^^(00)"}
+	--assert [[] #'00000000] = lexer/process src
 
 	--test-- "lexer-14"
 	src: {Red [] foo/bar}
@@ -82,7 +85,6 @@ do %../../../lexer.r
 	--test-- "lexer-16"
 	src: {Red [] foo/bar:}
 	--assert [[] foo/bar:] = lexer/process src
-
 	
 	--test-- "lexer-17"
 	src: {
@@ -109,7 +111,7 @@ do %../../../lexer.r
 		}
 		%foo/bar.red "foo^@^^/bar"
 
-		#"a" #"^^/"	{
+		{
 	
 	test
 	^^(45)
@@ -142,13 +144,13 @@ do %../../../lexer.r
 		#{1234}
 		#{45788956AAFFEEFF}
 		%foo/bar.red "foo^@^/bar"
-		#"a" #"^/" {
+		{
 ^-
 ^-test
 ^-E
 ^-¢
 ^-¢
-^-¬
+^-€
 ^-𤭢
 ^-}
 		either a = b [
@@ -157,7 +159,7 @@ do %../../../lexer.r
 			print [now]
 		]
 		foo/bar 'foo/bar foo/bar:
-		#[none] #[true ] #[false ]  
+		#[none] #[true] #[false]
 	]
 	--assert result = lexer/process src
 
@@ -188,12 +190,19 @@ do %../../../lexer.r
 	--assert-printed? "*** Syntax Error: Invalid Red program"
 	--assert-printed? "*** line: 1"
 	--assert-printed?  "*** at: {/System[]"
-
+	
+	--test-- "lexer-23"
+	  src: {Red [] #"^^/"}
+	--assert "[[] #'0000000A]" = mold lexer/process src
 	  
+===end-group===
+	
 ~~~end-file~~~
 
 ;; tidy up
 halt: :store-halt
 system/options/quiet: :store-quiet-mode
 prin ""
+
+;;; #"a" #"^^/"
 

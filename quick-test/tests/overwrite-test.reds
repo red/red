@@ -2,7 +2,8 @@ Red/System [
   Title:   "Tests for overwrite function"
 	Author:  "Peter W A Wood"
 	File: 	 %overwrite-test.reds
-	Rights:  copyright (c) 2011 Peter W A Wood
+	Tabs:	 4
+	Rights:  copyright (c) 2011-2012 Peter W A Wood
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 

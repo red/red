@@ -17,7 +17,7 @@ change-dir %../                        ;; to tests dir
 src: {
 Red/System []
 
-#include %../../quick-test/quick-test.reds
+#include %../../../quick-test/quick-test.reds
 
 #import [
   "***pre***test-dll1***post***" cdecl [

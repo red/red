@@ -2,7 +2,8 @@ Red/System [
 	Title:   "Red/System conditonal test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %conditional-test.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -116,7 +117,13 @@ Red/System [
   --assert 2 = ct-byte-nested #"^(C1)"  
   --assert 3 = ct-byte-nested #"^(F9)"  
   --assert 4 = ct-byte-nested #"^(C5)"  
-  --assert 5 = ct-byte-nested #"^(D1)"  
+  --assert 5 = ct-byte-nested #"^(D1)" 
+  
+  --test-- "either-true"
+  --assert 1 = either true [1] [0]
+  
+  --test-- "either-false"
+  --assert 1 = either false [0] [1]
     
 ~~~end-file~~~
 

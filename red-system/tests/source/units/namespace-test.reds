@@ -2,7 +2,8 @@ Red/System [
 	Title:   "Red/System null test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %namespace-test.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -229,7 +230,7 @@ Red/System [
     nmspk: context [
       i: 11
     ]
-  --test-- "nmm1"
+  --test-- "nsm1"
   --assert nmspa/i = 1
   --assert nmspb/i = 2
   --assert nmspc/i = 3
@@ -332,6 +333,14 @@ Red/System [
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/j = 0
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/k = 3
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/l = 6
+  
+  --test-- "nmm2"
+	  red: context [
+		c: context [set: func [return: [integer!]][1] ]
+		w: context [d: func [return: [integer!]][c/set] ]
+	  ]
+  --assert red/w/d = 1
+  
 ===end-group===
 
 ===start-group=== "include"
@@ -395,7 +404,7 @@ Red/System [
     nsw2-nsp1: context [b: 123]
     nsw2-nsp2: context [b: 456]
     with [nsw2-nsp1 nsw2-nsp2] [
-      --assert b = 123
+      --assert b = 456
       --assert nsw2-nsp1/b = 123
       --assert nsw2-nsp2/b = 456
     ]
@@ -485,6 +494,18 @@ Red/System [
     ]
   --assert 200 = nssa2-f nssa2-c/s
   
+
+===end-group===
+
+===start-group=== "inline functions in namespace"
+
+    --test-- "ifin1 - issue 285"
+      ifin-func: func [i [integer!] return: [integer!]][i]
+      ifin-nsp: context [
+        f: func [[infix] a [integer!] b [integer!] return: [integer!]][a + b]
+        i: ifin-func 1 f 2
+      ]
+    --assert 3 = ifin-nsp/i
 
 ===end-group===
 

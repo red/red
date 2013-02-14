@@ -2,17 +2,15 @@ Red/System [
 	Title:   "Red/System Linux runtime"
 	Author:  "Nenad Rakocevic"
 	File: 	 %linux.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
 ]
 
 #define OS_TYPE		2
-
-#define SYSCALL_MMAP2		192
-#define SYSCALL_MUNMAP		91
 
 #define SA_SIGINFO  		00000004h		;-- POSIX value?
 #define SA_RESTART   		10000000h		;-- POSIX value?

@@ -2,7 +2,8 @@ REBOL [
 	Title:   "Red/System compiler wrapper"
 	Author:  "Nenad Rakocevic, Andreas Bolka"
 	File: 	 %rsc.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic, Andreas Bolka. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic, Andreas Bolka. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 	Usage:   {
 		do/args %rsc.r "[-v <integer!>] path/source.reds"

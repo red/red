@@ -2,18 +2,17 @@ REBOL [
 	Title:   "Red/System cast test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %cast-test.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
 change-dir %../
 
 compiled?: func [
-  source [string!]
+  src [string!]
 ][
-  write %runnable/cast.reds source 
-  exe: --compile src: %runnable/cast.reds
-  if exists? %runnable/cast.reds [delete %runnable/cast.reds]
+  exe: --compile-this src
   if all [
     exe
     exists? exe
@@ -107,6 +106,21 @@ compiled?: func [
          i: 0
          0 = as integer! i
     }
+    
+    warning-test "integer!" {
+        Red/System []
+         1 = as integer! 1
+    }
+    
+    warning-test "integer!" {
+        Red/System []
+         (as integer! 1) = 1
+    }
+    
+    warning-test "integer!" {
+        Red/System []
+         print as integer! 1
+    }
 
   --test-- "logic! warning special case"
     result: false
@@ -177,7 +191,75 @@ compiled?: func [
 		s: as c-string! :foo
 	}
 	--assert-msg? "type casting from function! to c-string! is not allowed"
-       
+	
+	--test-- "cast byte! error 4"
+	--compile-this {
+		cfe4-byte: as byte! 1.0
+	}
+	--assert-msg? "type casting from float! to byte! is not allowed"
+	
+	--test-- "cast byte! error 5"
+	--compile-this {
+		cfe5-byte: as byte! "a pointer"
+	}
+	--assert-msg? "type casting from c-string! to byte! is not allowed"
+	
+	--test-- "cast byte! error 6"
+	--compile-this {
+	  cfe6-pointer: declare pointer! [integer!]
+		cfe6-byte: as byte! cfe6-pointer
+	}
+	--assert-msg? "type casting from pointer! to byte! is not allowed"
+	
+	--test-- "cast float! error 7"
+	--compile-this {
+	  cfe7-int: as integer! 1.0
+	}
+	--assert-msg? "type casting from float! to integer! is not allowed"
+	
+	;--test-- "cast float32! error 8"
+	;--compile-this {
+	;  cfe8-int: as integer! as float32! 1.0
+	;}
+	;--assert-msg? "type casting from float32! to integer! is not allowed"
+	
+	--test-- "cast float! error 9"
+	--compile-this {
+	  cfe9-logic: as logic! 1.0
+	}
+	--assert-msg? "type casting from float! to logic! is not allowed"
+	
+	--test-- "cast float32! error 10"
+	--compile-this {
+	  cfe10-logic: as logic! as float32! 1.0
+	}
+	--assert-msg? "type casting from float32! to logic! is not allowed"
+	
+	--test-- "cast byte! error 11"
+	--compile-this {
+		print as byte! "a pointer"
+	}
+	--assert-msg? "type casting from c-string! to byte! is not allowed"
+	
+	--test-- "cast byte! error 12"
+	--compile-this {
+	  c11e6-pointer: declare pointer! [integer!]
+		print as byte! c11e6-pointer
+	}
+	--assert-msg? "type casting from pointer! to byte! is not allowed"
+	
+	--test-- "cast byte! error 13"
+	--compile-this {
+		print as byte! 1.0
+	}
+	--assert-msg? "type casting from float! to byte! is not allowed"
+	
+	--test-- "cast logic! error 14"
+	--compile-this {
+		print as logic! 1.0
+	}
+	--assert-msg? "type casting from float! to logic! is not allowed"
+	      
 ~~~end-file~~~
 
 

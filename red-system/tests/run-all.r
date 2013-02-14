@@ -2,44 +2,12 @@ REBOL [
   Title:   "Builds and Runs the Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.8.2
+	Version: 0.8.3
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-make-if-needed?: func [
-  auto-test-file [file!]
-  make-file [file!]
-  /lib-test
-  /local
-    stored-length   ; the length of the make... .r file used to build auto tests
-    stored-file-length
-    digit
-    number
-    rule
-][
-  stored-file-length: does [
-    parse/all read auto-test-file rule
-    stored-length
-  ]
-  digit: charset [#"0" - #"9"]
-  number: [some digit]
-  rule: [
-    thru ";make-length:" 
-    copy stored-length number (stored-length: to integer! stored-length)
-    to end
-  ]
-  
-  if not exists? make-file [return]
- 
-  if any [
-    not exists? auto-test-file
-    stored-file-length <> length? read make-file
-    (modified? make-file) > (modified? auto-test-file)
-  ][
-    print ["Making" auto-test-file " - it will take a while"]
-    do make-file
-  ]
-]
+;; should we run non-interactively?
+batch-mode: all [system/options/args find system/options/args "--batch"]
 
 ;; supress script messages
 store-quiet-mode: system/options/quiet
@@ -49,20 +17,16 @@ do %../../quick-test/quick-test.r
 qt/tests-dir: system/script/path
 
 ;; make auto files if needed
-make-if-needed? %source/units/auto-tests/byte-auto-test.reds
-                %source/units/make-byte-auto-test.r
+;; do not split these statements over two lines
+qt/make-if-needed? %source/units/auto-tests/byte-auto-test.reds %source/units/make-byte-auto-test.r
                       
-make-if-needed? %source/units/auto-tests/integer-auto-test.reds
-                %source/units/make-integer-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/integer-auto-test.reds %source/units/make-integer-auto-test.r
                 
-make-if-needed? %source/units/auto-tests/maths-auto-test.reds
-                %source/units/make-maths-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/maths-auto-test.reds %source/units/make-maths-auto-test.r
 
-make-if-needed? %source/units/auto-tests/float-auto-test.reds
-                %source/units/make-float-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/float-auto-test.reds %source/units/make-float-auto-test.r
                 
-make-if-needed? %source/units/auto-tests/float32-auto-test.reds
-                %source/units/make-float32-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/float32-auto-test.reds %source/units/make-float32-auto-test.r
 
 ;; run the tests
 print rejoin ["Run-All    v" system/script/header/version]
@@ -124,6 +88,10 @@ start-time: now/precise
   --run-test-file-quiet %source/units/conditional-test.reds
 ===end-group===
 
+===start-group=== "Runtime tests"
+  --run-test-file-quiet %source/runtime/common-test.reds
+===end-group===
+
 ===start-group=== "Auto-tests"
   --run-test-file-quiet %source/units/auto-tests/byte-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/integer-auto-test.reds
@@ -161,7 +129,10 @@ start-time: now/precise
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
 system/options/quiet: store-quiet-mode
-ask "hit enter to finish"
-print ""
-
-
+either batch-mode [
+  quit/return either qt/test-run/failures > 0 [1] [0]
+] [
+  ask "hit enter to finish"
+  print ""
+  qt/test-run/failures
+]

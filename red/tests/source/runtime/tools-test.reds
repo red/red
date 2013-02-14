@@ -1,15 +1,16 @@
 Red/System [
-	Title:   "Red/System alias test script"
+	Title:   "Red/System runtime tools test"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %utils-test.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
 #include %../../../../quick-test/quick-test.reds
-#include %../../../runtime/utils.reds
+#include %../../../runtime/tools.reds
 
-~~~start-file~~~ "runtime utils"
+~~~start-file~~~ "runtime tools"
 
 ===start-group=== "round to"
 

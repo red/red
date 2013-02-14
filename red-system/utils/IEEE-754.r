@@ -2,7 +2,8 @@ REBOL [
 	Title:    "Red/System IEEE-754 library"
 	Author:   "Nenad Rakocevic"
 	File: 	  %IEEE-754.r
-	Rights:   "Copyright (C) 2000-2011 Eric Long, Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:   "Copyright (C) 2000-2011-2012 Eric Long, Nenad Rakocevic. All rights reserved."
 	License:  "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 	Comment:  {
 		64-bit split/to-native functions from http://www.nwlink.com/~ecotope1/reb/decimal.r

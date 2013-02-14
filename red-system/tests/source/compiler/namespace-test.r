@@ -85,6 +85,65 @@ change-dir %../
   
 ===end-group===
        
+===start-group=== "Invalid context definitions"
+
+  --test-- "nmicd1 - Cannot define namespace in conditional block - issue #281"
+  --compile-this {
+    if false [nmicd1-c: context [d: 1]]
+  }  
+  --assert-msg? "*** Compilation Error: context has to be declared at root level"
+
+  --test-- "nmicd2 - name clash with previously delared word - issue #282"
+  --compile-this {
+    nmicd2-c: "hello"
+    nmicd2-c: context [b: 2]    
+  }
+  --assert-msg? "*** Compilation Error: context name is already taken"
+  
+===end-group===
+
+===start-group=== "inline functions"
+
+  --test-- "nsif1 issue #285"
+  
+  --compile-and-run-this {
+	  c: context [
+      f: func [[infix] a [integer!] b [integer!] return: [integer!]][a + b]
+      print "The answer is "
+      print 1 f 2
+      print lf
+    ]
+	}
+	--assert-printed? "The answer is 3"
+ 
+===end-group===
+
+===start-group=== "enum argument type in namespace"
+
+	--test-- "eatn1 - issue #293"
+	--compile-and-run-this {
+		c: context [
+			#enum e! [x]
+			f: function [a [e!] return: [logic!]][zero? a]
+		]
+		print c/f 0
+	}
+	--assert-printed? "true"
+	
+===end-group===
+
+===start-group=== "enum value not taking precedence over local variable"
+
+	--test-- "evntpolv - issue #290"
+	--compile-and-run-this {
+		#enum color! [a b c]
+		print #"a"
+	}
+	--assert-printed? "a"
+	
+===end-group===
+
+
 ~~~end-file~~~
 
 

@@ -2,10 +2,11 @@ Red/System [
 	Title:   "Red runtime debugging functions"
 	Author:  "Nenad Rakocevic"
 	File: 	 %debug.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -14,6 +15,36 @@ Red/System [
 ;===========================================
 
 #if debug? = yes [
+
+	dump-globals: func [
+		/local sym-table val-table len s symbol value w sym val syms i
+	][
+		sym-table: global-ctx/symbols
+		val-table: global-ctx/values
+		
+		s: as series! sym-table/value
+		len: (as-integer s/tail - s/offset) >> 4
+		symbol: s/offset
+		
+		s: as series! val-table/value
+		value: s/offset
+		
+		s: GET_BUFFER(symbols)
+		syms: as red-symbol! s/offset
+		
+		print-line "Global Context"
+		print-line "--------------"
+		i: 0
+		until [
+			w: as red-word! symbol + i
+			sym: syms + w/symbol
+			val: value + i	
+			print-line [i ": " sym/cache "^- : " TYPE_OF(val)]
+			i: i + 1
+			i + 1 = len
+		]
+	]
+
 
 	;-------------------------------------------
 	;-- Print usage stats about a given frame
@@ -40,15 +71,17 @@ Red/System [
 	;-------------------------------------------
 	list-series-buffers: func [
 		frame	[series-frame!]
-		/local series alt? size block count
+		/local series alt? size block count head tail
 	][
 		count: 1
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 		until [
+			head: as-integer ((as byte-ptr! series/offset) - (as byte-ptr! series) - size? series-buffer!)
+			tail: as-integer ((as byte-ptr! series/tail) - (as byte-ptr! series) - size? series-buffer!)
 			print [
-				" - series #" count 
-				": size = "	series/size - size? series-buffer!
-				", offset pos = " series/head ", tail pos = " series/tail
+				" - " series
+				": size = "	series/size
+				", offset pos = " head ", tail pos = " tail
 				"    "
 			]
 			if series/flags and flag-ins-head <> 0 [print "H"]
@@ -56,7 +89,7 @@ Red/System [
 			print lf
 			count: count + 1
 
-			series: as series-buffer! (as byte-ptr! series) + series/size
+			series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
 			series >= frame/heap
 		]
 		assert series = frame/heap
@@ -163,14 +196,14 @@ Red/System [
 				either alt? ["x"]["o"]
 			]
 			
-			size: (series/size - size? series-buffer!) / 16
+			size: series/size / 16
 			until [
 				print block
 				size: size - 1
 				zero? size
 			]
 			
-			series: as series-buffer! (as byte-ptr! series) + series/size
+			series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
 			series >= frame/heap
 		]
 		assert series = frame/heap

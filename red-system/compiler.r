@@ -2,9 +2,13 @@ REBOL [
 	Title:   "Red/System compiler"
 	Author:  "Nenad Rakocevic"
 	File: 	 %compiler.r
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
+
+do %utils/profiler.r
+profiler/active?: no
 
 do %utils/r2-forward.r
 do %utils/int-to-bin.r
@@ -14,15 +18,16 @@ do %utils/secure-clean-path.r
 do %linker.r
 do %emitter.r
 
-system-dialect: context [
+system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
 	runtime-path: %runtime/
+	red-runtime-path: %../red/runtime/
 	nl: 		  newline
 	
 	loader: do bind load %loader.r 'self
 	
-	compiler: context [
+	compiler: make-profilable context [
 		job:		 	 none							;-- shortcut for job object
 		pc:			 	 none							;-- source code input cursor
 		script:		 	 none							;-- source script file name
@@ -40,12 +45,13 @@ system-dialect: context [
 		imports: 	   	 make block! 10					;-- list of imported functions
 		exports: 	   	 make block! 10					;-- list of exported symbols
 		natives:	   	 make hash!  40					;-- list of functions to compile [name [specs] [body]...]
-		guesses:	   	 make hash!  40					;-- list of lazily defined symbols with namespace [ns/name [type line script]...]
 		ns-path:		 none							;-- namespaces access path
+		ns-stack:		 none							;-- namespaces resolution stack
 		ns-list:		 make hash!  8					;-- namespaces definition list [name [word type...]...]
-		with-stack:		 none							;-- namespaces local prefixes stack
+		sym-ctx-table:	 make hash!  100				;-- reverse lookup table for contexts
 		globals:  	   	 make hash!  40					;-- list of globally defined symbols from scripts
 		aliased-types: 	 make hash!  10					;-- list of aliased type definitions
+		keywords-list:	 make block! 20
 		
 		resolve-alias?:  yes							;-- YES: instruct the type resolution function to reduce aliases
 		decoration:		 slash							;-- decoration separator for namespaces
@@ -84,8 +90,8 @@ system-dialect: context [
 			and		[2	op		- [a [number!] b [number!] return: [number!]]]
 			or		[2	op		- [a [number!] b [number!] return: [number!]]]
 			xor		[2	op		- [a [number!] b [number!] return: [number!]]]
-			//		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- modulo
-			///		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- remainder (real syntax: %)
+			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
+			///		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
 			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned
@@ -114,7 +120,7 @@ system-dialect: context [
 		func-pointer: ['function! set value block! (check-specs '- value)]
 		
 		type-syntax: [
-			'logic! | 'int32! | 'integer! | 'uint8! | 'byte! | 'int16!
+			'logic! | 'integer! | 'byte! | 'int16!		;-- int16! needed for AVR8 backend
 			| 'float! | 'float32! | 'float64!
 			| 'c-string!
 			| 'pointer! into [pointer-syntax]
@@ -122,18 +128,19 @@ system-dialect: context [
 		]
 
 		type-spec: [
-			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage
+			pos: some type-syntax | pos: set value word! (	;-- multiple types allowed for internal usage		
 				unless any [
-					all [v: find-aliased/prefix value pos/1: v]			;-- rewrite the type to prefix it
+					all [v: find-aliased/prefix value v <> value find aliased-types v pos/1: v]			;-- rewrite the type to prefix it
 					find aliased-types value
-					all [v: ns-find-with value enumerations pos/1: v]	;-- rewrite the type to prefix it
-					find enumerations value
-				][throw false]							;-- stop parsing if unresolved type
+					all [v: resolve-ns value v <> value enum-type? v pos/1: v]	;-- rewrite the type to prefix it
+					all [enum-type? value pos/1: 'integer!]
+				][throw false]							;-- stop parsing if unresolved type			
 			)
 		]		
 		
 		keywords: make hash! [
 			;&			 [throw-error "reserved for future use"]
+			?? 			 [comp-print-debug]
 			as			 [comp-as]
 			assert		 [comp-assert]
 			size? 		 [comp-size?]
@@ -160,6 +167,9 @@ system-dialect: context [
 			function 	 [raise-level-error "a function"] ;-- func declaration not allowed at this level
 			alias 		 [raise-level-error "an alias"]	  ;-- alias declaration not allowed at this level
 		]
+		
+		foreach [word action] keywords [append keywords-list word]
+		foreach [name spec] functions  [append keywords-list name]
 		
 		calc-line: has [idx head-end prev p header][
 			header: head pc
@@ -243,7 +253,7 @@ system-dialect: context [
 			compiler/comp-call '***-on-quit reduce [error <last>] ;-- raise a runtime error
 		]
 		
-		undecorate: func [value [word! path! set-word! set-path!] /local v][
+		undecorate: func [value [word! path! set-word! set-path!] /local v pos][
 			unless find v: mold value decoration [return value]
 			
 			while [pos: find v decoration][
@@ -291,11 +301,10 @@ system-dialect: context [
 				get-alias-id alias
 			][
 				type: resolve-aliased type
-				type: either type/1 = 'pointer! [
-					pick [int-ptr! byte-ptr!] type/2/1 = 'integer!
-				][
-					type/1
-				]
+				type: switch/default type/1 [
+					any-pointer! ['int-ptr!]
+					pointer! [pick [int-ptr! byte-ptr!] type/2/1 = 'integer!]
+				][type/1]
 				select emitter/datatype-ID type
 			]
 		]
@@ -342,9 +351,11 @@ system-dialect: context [
 			either object? value [value/data][value]
 		]
 		
-		get-return-type: func [name [word!] /local type][
-			type: select functions/:name/4 return-def
-			unless type [
+		get-return-type: func [name [word!] /local type spec][
+			unless all [
+				spec: find-functions name
+				type: select spec/2/4 return-def
+			][
 				backtrack name
 				throw-error ["return type missing in function:" name]
 			]
@@ -367,10 +378,17 @@ system-dialect: context [
 			]
 		]
 		
+		select-globals: func [name [word!] /local pos][
+			all [
+				pos: find globals name
+				pos/2
+			]
+		]
+		
 		get-variable-spec: func [name [word!]][
 			any [
 				all [locals select locals name]
-				select globals name
+				select-globals name
 			]
 		]
 		
@@ -378,6 +396,10 @@ system-dialect: context [
 			count: 0
 			parse spec [opt block! any [word! block! (count: count + 1)]]
 			count
+		]
+		
+		any-path?: func [value][
+			find [path! set-path! lit-path!] type?/word value
 		]
 		
 		any-float?: func [type [block!]][
@@ -422,7 +444,7 @@ system-dialect: context [
 		]
 		
 		find-aliased: func [type [word!] /prefix /position /local ns pos][
-			if ns: ns-find-with type aliased-types [type: ns]
+			if all [ns: resolve-ns type find aliased-types ns][type: ns]
 			if prefix [return ns]
 			pos: find aliased-types type
 			either position [pos][all [pos pos/2]]
@@ -431,11 +453,11 @@ system-dialect: context [
 		resolve-aliased: func [type [block!] /local name][
 			name: type/1
 			all [
-				type/1								;-- ensure it is not #[none]
+				type/1								;-- ensure it is not [none]
 				not base-type? name
 				not find type-sets name
 				not all [
-					find enumerations name
+					enum-type? name
 					type: [integer!]
 				]
 				not type: find-aliased name
@@ -444,17 +466,18 @@ system-dialect: context [
 			type
 		]
 		
-		resolve-type: func [name [word!] /with parent [block! none!] /local type][
+		resolve-type: func [name [word!] /with parent [block! none!] /local type local?][
 			type: any [
 				all [parent select parent name]
-				get-variable-spec name
+				local?: all [locals select locals name]
+				select-globals name
 			]
 			if all [not type find functions name][
-				return reduce ['function! functions/:name/4]
+				return reduce ['function! functions/(decorate-fun name)/4]
 			]
 			if any [
-				all [type find enumerations type/1]
-				get-enumerator name
+				all [not local?	any [enum-type? name enum-id? name]]
+				enum-type? type/1
 			][
 				return [integer!]
 			]
@@ -466,9 +489,9 @@ system-dialect: context [
 		
 		resolve-struct-member-type: func [spec [block!] name [word!] /local type][
 			unless type: select spec name [
-				pc: skip pc -2
+				while [not all [any-path? pc/1 find pc/1 name]][pc: back pc]
 				throw-error [
-					"invalid struct member" name "in:" mold to path! pc/1
+					"invalid struct member" to lit-word! name "in:" mold to path! pc/1
 				]
 			]
 			either resolve-alias? [resolve-aliased type][type]
@@ -532,7 +555,7 @@ system-dialect: context [
 				block!	 [
 					if value/1 = 'not [return get-type value/2]	;-- special case for NOT multitype native
 					
-					either 'op = second select functions value/1 [
+					either 'op = second get-function-spec value/1 [
 						either base-type? type: get-return-type value/1 [
 							type				;-- unique returned type, stop here
 						][
@@ -562,45 +585,57 @@ system-dialect: context [
 				throw-error ["not accepted datatype:" type? value]
 			]
 		]
+		
+		enum-type?: func [name [word!] /local type][
+			all [
+				type: find/skip enumerations name 3			;-- SELECT/SKIP on hash! unreliable!
+				reduce [next type]
+			]
+		]
+		
+		enum-id?: func [name [word!] /local pos][
+			all [
+				pos: find/skip next enumerations name 3
+				reduce [pos/-1]
+			]
+		]
 
-		get-enumerator: func [enum-name [word!] /value /local result][
-			foreach [enum-list-name enum-list-data] enumerations [
-				if result: select enum-list-data enum-name [
-					return either value [ result ][ reduce [enum-list-name] ]
-				]
+		get-enumerator: func [name [word!] /value /local pos][
+			all [
+				pos: find/skip next enumerations name 3		;-- SELECT/SKIP on hash! unreliable!
+				pos/2
 			]
 		]
 		
 		set-enumerator: func [
 			identifier [word!] name [word! block!] value [integer! word!] /local list v
 		][
-			if ns-path [identifier: ns-prefix identifier]
+			store-ns-symbol identifier
+			if ns-path [
+				add-ns-symbol to set-word! identifier
+				identifier: ns-prefix identifier
+			]
 			
 			if word? name [name: reduce [name]]
 			forall name [
-				if ns-path [name/1: ns-prefix name/1]
+				store-ns-symbol name/1
+				if ns-path [
+					add-ns-symbol to set-word! name/1
+					name/1: ns-prefix name/1
+				]
 				check-enum-word name/1
 			]
 			name: head name
 			
-			if none? list: select enumerations identifier [
-				append/only append enumerations identifier list: make hash! 10
-			]
 			if all [
 				word? value
-				none? value: any [
-					all [
-						v: ns-find-with value enumerations
-						get-enumerator/value v
-					]
-					get-enumerator/value value
-				]
+				none? value: get-enumerator resolve-ns value
 			][
 				throw-error ["cannot resolve literal enum value for:" form name]
 			]
 			forall name [
 				if verbose > 3 [print ["Enum:" identifier "[" name/1 "=" value "]"]]
-				repend list [name/1 value]
+				repend enumerations [identifier name/1 value]
 			]
 			value: value + 1
 		]
@@ -615,7 +650,8 @@ system-dialect: context [
 			func?: all [
 				block? expr word? expr/1
 				not find comparison-op expr/1
-				spec: select functions expr/1 		 ;-- works for unary & binary functions only!
+				spec: find functions expr/1 		 ;-- works for unary & binary functions only!
+				spec: spec/2
 			]
 			type: case [
 				object? expr [
@@ -638,7 +674,11 @@ system-dialect: context [
 						none-type
 					]
 				]
-				'else [get-type expr]
+				'else [
+					expr: get-type expr
+					if resolve-alias? [expr: resolve-aliased expr]
+					expr
+				]
 			]
 			type
 		]
@@ -655,18 +695,19 @@ system-dialect: context [
 		
 		cast: func [obj [object!] /local value ctype type][
 			value: obj/data
-			ctype: obj/type
+			ctype: resolve-aliased obj/type
 			type: get-type value
 
-			if type = ctype [
+			if all [type = obj/type type/1 <> 'function!][
 				throw-warning/near [
 					"type casting from" type/1 
-					"to" ctype/1 "is not necessary"
+					"to" obj/type/1 "is not necessary"
 				] 'as
 			]
 			if any [
-				all [type/1 = 'function! ctype/1 <> 'integer!]
+				all [type/1 = 'function! not find [function! integer!] ctype/1]
 				all [find [float! float64!] ctype/1 not find [float! float64! float32!] type/1]
+				all [find [float! float64!] type/1  not find [float! float64! float32!] ctype/1]
 				all [type/1 = 'float32! not find [float! float64! integer!] ctype/1]
 				all [ctype/1 = 'byte! find [c-string! pointer! struct!] type/1]
 				all [
@@ -685,7 +726,7 @@ system-dialect: context [
 			switch ctype/1 [
 				byte! [
 					switch type/1 [
-						integer! [value: value and 255]
+						integer! [value: to char! value and 255]
 						logic! 	 [value: pick [#"^(01)" #"^(00)"] value]
 					]
 				]
@@ -704,6 +745,55 @@ system-dialect: context [
 			value
 		]
 		
+		decorate-function: func [name [word!]][
+			to word! join "_local_" form name
+		]
+		
+		find-functions: func [name [word!]][
+			if all [
+				locals
+				type: select locals name
+				type/1 = 'function!
+			][
+				name: decorate-function name
+			]
+			find functions name
+		]
+
+		get-function-spec: func [name [word!] /local spec][
+			all [
+				spec: find-functions name
+				spec/2
+			]
+		]
+
+		decorate-fun: func [name [word!] /local type][
+			either all [
+				locals
+				type: select locals name
+				block? type
+				type/1 = 'function!
+			][
+				decorate-function name
+			][
+				name
+			]
+		]
+
+		remove-func-pointers: has [vars name][
+			vars: any [find/tail locals /local []]
+			forall vars [
+				if all [
+					word? vars/1
+					block? vars/2
+					vars/2/1 = 'function!
+				][
+					name: decorate-function vars/1
+					remove/part find functions name 2
+				]
+			]
+		]
+		
 		init-local: func [name [word!] expr casted [block! none!] /local pos type][
 			append locals-init name					;-- mark as initialized
 			pos: find locals name
@@ -716,8 +806,42 @@ system-dialect: context [
 			]
 		]
 		
-		add-ns-symbol: func [name [set-word!]][
-			append select/only ns-list ns-path to word! name
+		store-ns-symbol: func [name [word!] /local pos][
+			if ns-path [
+				either pos: find/skip sym-ctx-table name 2 [
+					either block? pos/2 [
+						foreach ns pos/2 [if find/only ns-stack ns [exit]]
+						if find/only pos/2 ns-path [exit]
+					][
+						if any [
+							ns-path = pos/2
+							find/only ns-stack pos/2
+						][exit]
+						pos/2: reduce [pos/2]
+					]
+					append/only pos/2 copy ns-path
+				][
+					append sym-ctx-table name
+					append/only sym-ctx-table copy ns-path
+				]
+			]
+		]
+		
+		add-ns-symbol: func [name [set-word!] /local ctx ns][
+			name: to word! name
+			if find second find/only ns-list ns-path name [exit]
+			if ns-stack [
+				ctx: tail ns-stack
+				until [
+					ctx: back ctx
+					if all [
+						ns: find/only ns-list to path! ctx/1
+						find second ns name 
+					][exit]
+					head? ctx
+				]
+			]
+			append second find/only ns-list ns-path name
 		]
 		
 		add-symbol: func [name [word!] value type][
@@ -730,7 +854,7 @@ system-dialect: context [
 			repend functions [
 				to word! spec/1 reduce [get-arity spec/3 type cc new-line/all spec/3 off]
 			]
-			if all [block? spec/3/1 find spec/3/1 'callback][
+			if find-attribute spec/3 'callback [
 				append last functions 'callback
 			]
 		]
@@ -757,8 +881,7 @@ system-dialect: context [
 		]
 		
 		ns-decorate: func [path [path!] /global /set][
-			set: to logic! set
-			to get pick [set-word! word!] set mold path	;-- unless / use: replace/all mold path slash decoration
+			to get pick [set-word! word!] to logic! set mold path	;-- unless / use: replace/all mold path slash decoration
 		]
 
 		ns-join: func [ns [path! word!] name [word! path! set-word! set-path!]][
@@ -769,82 +892,6 @@ system-dialect: context [
 			if set-word? name [name: to word! name]
 			name: ns-join ns-path name
 			either set [ns-decorate/set name][ns-decorate name]
-		]
-
-		ns-resolve-with: func [name [word! set-word!] list [hash!] /local enum][
-			name: to word! name
-			foreach ns with-stack [
-				either list = enumerations [
-					enum: ns-decorate ns-join ns name
-					if any [find enumerations enum get-enumerator enum][
-						return ns
-					]
-				][
-					if find list ns-decorate ns-join ns name [return ns]
-				]
-			]
-			none
-		]
-
-		ns-find-through: func [name [word!] list [hash!] /local c p][
-			if 1 < length? ns-path [
-				name: to word! mold/flat name
-
-				loop c: (length? ns-path) - 1 [
-					p: ns-decorate append copy/part ns-path c name
-					if find list p  [return p]
-					c: c - 1
-				]
-			]
-			name
-		]
-
-		ns-find-with: func [name [word!] list [hash!] /local ns][
-			any [
-				all [
-					with-stack
-					ns: ns-resolve-with name list
-					ns-decorate ns-join ns name 
-				]
-				all [
-					ns-path
-					either list = enumerations [
-						ns: ns-prefix name
-						any [find enumerations ns get-enumerator ns]
-					][
-						any [
-							find list ns: ns-prefix name		  	;-- lookup in current namespace
-							find list ns: ns-find-through name list ;-- walk through parent namespaces
-						]
-					]
-					name: ns
-				]
-			]
-		]
-
-		check-ns-prefix: func [path [path! set-path!] /set /local len c p][
-			len: length? path
-			p: to path! path
-			loop c: len - 1 [
-				if find/only ns-list copy/part p c [
-					c: c + 1
-					path: copy/part p c
-					change/part p ns-decorate path c
-					if set [p: to set-path! p]
-					return either tail? next p [
-						either set [to set-word! p/1][p/1]
-					][p]
-				]
-				c: c - 1
-			]
-			path
-		]
-		
-		check-with-prefix: func [path [path! set-path!] /local ns][
-			foreach with with-stack [
-				if ns: check-ns-prefix join with path [return ns]
-			]
-			path
 		]
 		
 		check-enum-word: func [name [word!] /local error][
@@ -876,11 +923,11 @@ system-dialect: context [
 					error:  ["redeclaration of variable:" name]
 				]
 
-				find enumerations name [
+				enum-type? name [
 					error:  ["redeclaration of enum identifier:" name ]
 				]
 				
-				found? get-enumerator name [
+				enum-id? name [
 					error:  ["redeclaration of enumerator:" name ]
 				]
 			]
@@ -900,13 +947,14 @@ system-dialect: context [
 				word? ending [
 					either all [
 						not local-variable? ending
-						found? enum-value: get-enumerator/value ending
+						enum-value: get-enumerator ending
 					][
 						path/2: ending: enum-value
 					][
 						unless any [
-							get-variable-spec ending
-							found? value: get-enumerator/value ending
+							local-variable? ending
+							find globals ending: resolve-ns ending
+							get-enumerator ending
 						][
 							backtrack path
 							throw-error ["undefined" type "index variable"]
@@ -935,10 +983,7 @@ system-dialect: context [
 				pc: back pc
 				throw-error ["attempt to redefine existing function name:" name]
 			]
-			if any [
-				find enumerations name
-				get-enumerator name
-			][
+			if any [enum-type? name	enum-id? name][
 				pc: back pc
 				throw-error ["attempt to redefine existing enumerator:" name]
 			]
@@ -969,7 +1014,7 @@ system-dialect: context [
 		
 		check-specs: func [
 			name specs /extend
-			/local type type-def spec-type attribs value args locs cconv
+			/local type type-def spec-type attribs value args locs cconv pos
 		][
 			unless block? specs [
 				throw-error "function definition requires a specification block"
@@ -978,19 +1023,22 @@ system-dialect: context [
 			attribs: [
 				[cconv ['variadic | 'typed]]
 				| [['variadic | 'typed] cconv]
-				| ['callback cconv] | [cconv 'callback]
 				| 'infix | 'variadic | 'typed | 'callback | cconv
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
 			unless catch [
 				parse specs [
-					pos: opt [into attribs]				;-- functions attributes
-					pos: copy args any [pos: word! into type-def]	;-- arguments definition
+					opt [								;-- function's attribute and main doc-string
+						string! opt [into attribs]		;-- can be specified in any order
+						| into attribs opt string!
+					]
+					pos: copy args any [pos: word! into type-def opt string!]	;-- arguments definition
 					pos: opt [							;-- return type definition				
 						set value set-word! (					
 							rule: pick reduce [[into type-spec] fail] value = return-def
 						) rule
+						opt string!
 					]
 					pos: opt [/local copy locs some [pos: word! opt [into type-spec]]] ;-- local variables definition
 				]
@@ -998,8 +1046,9 @@ system-dialect: context [
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
 			]
 			if block? args [
+				remove-each s args [string? s]
 				foreach [name type] args [
-					if get-enumerator name [
+					if enum-id? name [
 						throw-warning ["function's argument redeclares enumeration:" name]
 					]
 				]
@@ -1046,14 +1095,19 @@ system-dialect: context [
 				all [
 					type
 					type/1 = 'function!
-					expected/1 = 'function!
-					compare-func-specs name expr type/2 expected/2	 ;-- callback case
+					any [
+						find [any-type! any-pointer!] expected/1
+						all [
+							expected/1 = 'function!
+							compare-func-specs name expr type/2 expected/2	 ;-- callback case
+						]
+					]
 				]
 				expected = type 						;-- normal single-type case
 				all [
 					type
 					type/1 = 'integer!
-					find enumerations expected/1		;-- TODO: add also a value check for enums
+					enum-type? expected/1				;-- TODO: add also a value check for enums
 				]
 			][
 				if expected = type [type: 'null]		;-- make null error msg explicit
@@ -1066,7 +1120,7 @@ system-dialect: context [
 						ret   [["wrong return type in function:" name]]
 						key   [[
 							uppercase form name "requires a conditional expression"
-							either find [while until] name ["as last expression"][""]						
+							either find [while until] name ["as last expression"][""]
 						]]
 						'else [["argument type mismatch on calling:" name]]
 					]
@@ -1077,7 +1131,7 @@ system-dialect: context [
 			type
 		]
 		
-		check-arguments-type: func [name args /local entry spec list][
+		check-arguments-type: func [name args /local entry spec list type][
 			if find [set-word! set-path!] type?/word name [exit]
 			
 			entry: find functions name
@@ -1087,7 +1141,7 @@ system-dialect: context [
 			][
 				spec: next spec							;-- jump over attributes block
 			]
-			list: []
+			list: clear []
 			forall args [
 				either all [decimal? args/1 spec/2/1 = 'float32!][
 					args/1:	make action-class [			;-- inject type casting to float32!
@@ -1114,28 +1168,32 @@ system-dialect: context [
 					"^/*** left:" join list/1/1 #"," "right:" list/2/1
 				]
 			]
-			if all [
-				find emitter/target/math-op name				
-				any [
-					all [list/1/1 = 'byte! any-pointer? list/2]
-					all [list/2/1 = 'byte! any-pointer? list/1]
-				]
-			][
-				backtrack name
-				throw-error [
-					"arguments must be of same size for:" name
-					"^/*** left:" join list/1/1 #"," "right:" list/2/1
+			if find emitter/target/math-op name	[
+				case [
+					any [
+						all [list/1/1 = 'byte! any-pointer? list/2]
+						all [list/2/1 = 'byte! any-pointer? list/1]
+					][
+						backtrack name
+						throw-error [
+							"arguments must be of same size for:" name
+							"^/*** left:" join list/1/1 #"," "right:" list/2/1
+						]
+					]
+					any [string? unbox args/1 string? unbox args/2][
+						backtrack name
+						throw-error "a literal string cannot be used with a math operator"
+					]
 				]
 			]
-			clear list
 		]
 		
-		check-variable-arity?: func [spec [block!]][
+		check-variable-arity?: func [spec [block!] /local attribs][
 			all [
-				block? spec/1
+				attribs: get-attributes spec
 				any [
-					all [find spec/1 'variadic 'variadic]
-					all [find spec/1 'typed 'typed]
+					all [find attribs 'variadic 'variadic]
+					all [find attribs 'typed 'typed]
 				]
 			]
 		]
@@ -1162,28 +1220,47 @@ system-dialect: context [
 			next pc: save-pc
 		]
 		
-		get-cconv: func [specs [block!]][
-			pick [cdecl stdcall] to logic! all [
-				not empty? specs
-				block? specs/1
-				find specs/1 'cdecl
+		get-attributes: func [spec [block!]][
+			any [
+				all [block? spec/1 spec/1]
+				all [string? spec/1 block? spec/2 spec/2]
 			]
 		]
 		
-		fetch-func: func [name /local specs type cc][
+		find-attribute: func [spec [block!] name [word!]][
+			either list: get-attributes spec [
+				to logic! find list name
+			][
+				false
+			]
+		]
+		
+		get-cconv: func [specs [block!]][
+			pick [cdecl stdcall] to logic! all [
+				not empty? specs
+				find-attribute specs 'cdecl
+			]
+		]
+		
+		fetch-func: func [name /local specs type cc attribs][
 			name: to word! name
+			store-ns-symbol name
+			if ns-path [add-ns-symbol pc/-1]
 			if ns-path [name: ns-prefix name]
 			check-func-name name
 			check-specs name specs: pc/2
+			specs: copy specs
+			remove-each s specs [string? s]
+			
 			type: 'native
 			cc:   'stdcall								;-- default calling convention
 			
 			if all [
 				not empty? specs
-				block? specs/1
+				attribs: get-attributes specs
 			][
 				case [
-					find specs/1 'infix [
+					find attribs 'infix [
 						if 2 <> get-arity specs [
 							throw-error [
 								"infix function requires 2 arguments, found"
@@ -1192,16 +1269,16 @@ system-dialect: context [
 						]
 						type: 'infix
 					]
-					find specs/1 'cdecl   [cc: 'cdecl]
-					find specs/1 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
+					find attribs 'cdecl   [cc: 'cdecl]
+					find attribs 'stdcall [cc: 'stdcall]	;-- get ready when fastcall will be the default cc
 				]
 			]
 			add-function type reduce [name none specs] cc
 			emitter/add-native name
 			repend natives [
 				name specs pc/3 script
-				all [ns-path copy ns-path] 
-				all [with-stack copy with-stack]
+				all [ns-path copy ns-path]
+				all [ns-stack copy/deep ns-stack]		;@@ /deep doesn't work on paths
 			]
 			pc: skip pc 3
 		]
@@ -1230,7 +1307,7 @@ system-dialect: context [
 							word? expr/1
 							any [
 								get-variable-spec expr/1
-								get-enumerator expr/1
+								enum-id? expr/1
 							]
 						]
 						paren? expr/1
@@ -1258,10 +1335,10 @@ system-dialect: context [
 					throw-error ["invalid exported symbol:" mold name]
 				]
 				unless any [
-					all [ns: ns-find-with name globals name: ns]
+					;all [ns: ns-find-with name globals name: ns]
 					find globals name
-					func?: all [ns: ns-find-with name functions name: ns]
-					func?: find functions name
+					;func?: all [ns: ns-find-with name functions name: ns]
+					func?: find-functions name
 				][
 					throw-error ["undefined exported symbol:" mold name]
 				]
@@ -1275,7 +1352,7 @@ system-dialect: context [
 			]
 		]
 		
-		process-import: func [defs [block!] /local lib list cc name specs spec id reloc][
+		process-import: func [defs [block!] /local lib list cc name specs spec id reloc pos][
 			unless block? defs [throw-error "#import expects a block! as argument"]
 			
 			unless parse defs [
@@ -1291,12 +1368,17 @@ system-dialect: context [
 							specs:						;-- new function mapping marker
 							pos: set name set-word! (
 								name: to word! name
-								if ns-path [name: ns-prefix name]
+								store-ns-symbol name
+								if ns-path [
+									add-ns-symbol to set-word! name
+									name: ns-prefix name
+								]
 								check-func-name name
 							)
 							pos: set id   string!   (repend list [id reloc: make block! 1])
 							pos: set spec block!    (
 								check-specs/extend name spec
+								remove-each s spec [string? s]
 								specs: copy specs
 								specs/1: name
 								add-function 'import specs cc
@@ -1310,7 +1392,7 @@ system-dialect: context [
 			]		
 		]
 		
-		process-syscall: func [defs [block!] /local name id spec][
+		process-syscall: func [defs [block!] /local name id spec pos][
 			unless block? defs [throw-error "#syscall expects a block! as argument"]
 			unless parse defs [
 				some [
@@ -1318,6 +1400,8 @@ system-dialect: context [
 					pos: set id   integer!
 					pos: set spec block!    (
 						check-specs/extend name spec
+						spec: copy spec
+						remove-each s spec [string? s]
 						add-function 'syscall reduce [name none spec] 'syscall
 						append last functions id		;-- extend definition with syscode
 					)
@@ -1365,6 +1449,7 @@ system-dialect: context [
 				#export  [process-export  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
+				#verbose [set-verbose-level pc/2 pc: skip pc 2]
 				#script	 [								;-- internal compiler directive
 					compiler/script: secure-clean-path pc/2	;-- set the origin of following code
 					pc: skip pc 2
@@ -1374,29 +1459,44 @@ system-dialect: context [
 			]
 		]
 		
+		comp-print-debug: has [out][
+			unless word? name: pc/2 [
+				throw-error "?? needs a word as argument"
+			]
+			out: next next compose/deep [
+				2 (to pair! reduce [calc-line 1])		;-- hidden line offset header
+				print-line [
+					2 (to pair! reduce [calc-line 1])	;-- hidden line offset header
+					(join name ": ") (name)
+				]
+			]
+			out/2: next next out/2
+			change/part pc out 2
+			none
+		]
+		
 		comp-comment: does [
 			pc: next pc
 			either block? pc/1 [pc: next pc][fetch-expression]
 			none
 		]
 		
-		comp-with: has [ns stk list words res][
+		comp-with: has [ns list with-ns words res ctx][
 			ns: pc/2
 			unless all [any [word? ns block? ns] block? pc/3][
 				throw-error "WITH invalid argument"
 			]
 			unless block? ns [ns: reduce [ns]]
-			list: stk: with-stack
 			
 			forall ns [
-				unless path? ns/1 [ns/1: to path! ns/1]
+				ns/1: either path? ctx: resolve-ns/path ns/1 [ctx][to path! ctx]
 				unless find/only ns-list ns/1 [throw-error ["undefined context" ns/1]]
 			]
-			with-stack: unique either with-stack [head insert copy with-stack ns][copy ns]
+			with-ns: unique copy ns
 			
-			list: []
-			foreach ns with-stack [
-				either empty? res: intersect list words: to block! select/only ns-list ns [
+			list: clear []
+			foreach ns with-ns [
+				either empty? res: intersect list words: to block! second find/only ns-list ns [
 					append list words
 				][
 					throw-warning rejoin [
@@ -1406,20 +1506,44 @@ system-dialect: context [
 					]
 				]
 			]
-			clear list
+
+			list: copy with-ns
+			unless ns-stack [ns-stack: make block! 1]
+			append ns-stack list
 			
 			fetch-into/root pc/3 [comp-dialect]
 			
-			pc: skip pc 3	
-			with-stack: stk
+			pc: skip pc 3
+			clear skip tail ns-stack negate length? list
+			if empty? ns-stack [ns-stack: none]
+			
 			none
 		]
 		
 		comp-context: has [name level][
 			unless block? pc/2 [throw-error "context specification block is missing"]
-		
+			unless set-word? pc/-1 [throw-error "context's name setting is missing"]
+			unless zero? block-level [
+				pc: back pc
+				throw-error "context has to be declared at root level"
+			]
+			
 			check-keywords name: to word! pc/-1
+			if any [										;@@ factorize this out
+				all [locals find locals name]
+				find globals name
+				find functions name
+				find aliased-types name
+				find definitions name
+				find enumerations name
+			][
+				pc: back pc
+				throw-error "context name is already taken"
+			]
 			pc: next pc
+			
+			unless ns-stack [ns-stack: make block! 1]
+			append ns-stack to word! mold/flat name
 			
 			either ns-path [
 				append ns-path to word! mold/flat name
@@ -1436,11 +1560,14 @@ system-dialect: context [
 			
 			remove back tail ns-path
 			if empty? ns-path [ns-path: none]
+			remove back tail ns-stack
+			if empty? ns-stack [ns-stack: none]
+			
 			pc: next pc
 			none
 		]
 		
-		comp-declare: has [rule value pos offset][
+		comp-declare: has [rule value pos offset ns][
 			unless find [set-word! set-path!] type?/word pc/-1 [
 				throw-error "assignment expected before literal declaration"
 			]
@@ -1449,6 +1576,13 @@ system-dialect: context [
 				unless catch [parse pos: pc/3 rule][
 					throw-error ["invalid literal syntax:" mold pos]
 				]
+				if all [
+					pc/2 = 'struct!
+					(length? pc/3) <> (length? unique/skip pc/3 2)
+				][
+					throw-error ["duplicate member name in struct:" mold pc/3]
+				]
+				if pc/3/1 = 'float64! [pc/3/1: 'float!]
 				offset: 3
 				[pc/2 pc/3]
 			][
@@ -1456,7 +1590,7 @@ system-dialect: context [
 					throw-error ["declaring literal for type" pc/2 "not supported"]
 				]
 				value: pc/2
-				if ns-path [value: ns-prefix value]
+				if all [ns-path ns: find-aliased/prefix value][value: ns]
 				offset: 2
 				['struct! value]
 			]
@@ -1518,7 +1652,7 @@ system-dialect: context [
 			]
 		]
 		
-		comp-alias: has [name][
+		comp-alias: has [name pos][
 			unless set-word? pc/-1 [
 				throw-error "assignment expected for ALIAS"
 			]
@@ -1526,6 +1660,8 @@ system-dialect: context [
 				throw-error "ALIAS only allowed for struct! and function!"
 			]
 			name: to word! pc/-1
+			store-ns-symbol name
+			if ns-path [add-ns-symbol pc/-1]
 			all [
 				not base-type? name
 				ns-path
@@ -1561,6 +1697,7 @@ system-dialect: context [
 				word? expr: pc/1
 				type: any [
 					all [base-type? expr expr]
+					all [enum-type? expr [integer!]]
 					find-aliased expr
 				]
 				pc: next pc
@@ -1663,7 +1800,7 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false][
+		comp-either: has [expr e-true e-false c-true c-false offset t-true t-false ret][
 			pc: next pc
 			expr: fetch-expression/final				;-- compile expression
 			check-conditional 'either expr				;-- verify conditional expression
@@ -1671,13 +1808,8 @@ system-dialect: context [
 			check-body pc/1								;-- check TRUE block
 			check-body pc/2								;-- check FALSE block
 			
-			set [e-true c-true]   comp-block-chunked	;-- compile TRUE block		
+			set [e-true c-true]   comp-block-chunked	;-- compile TRUE block
 			set [e-false c-false] comp-block-chunked	;-- compile FALSE block
-		
-			offset: emitter/branch/over c-false
-			emitter/set-signed-state expr				;-- properly set signed/unsigned state	
-			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
-			emitter/merge emitter/chunks/join c-true c-false
 
 			t-true:  resolve-expr-type/quiet e-true
 			t-false: resolve-expr-type/quiet e-false
@@ -1687,7 +1819,28 @@ system-dialect: context [
 				t-true:  resolve-aliased t-true			;-- alias resolution is safe here
 				t-false: resolve-aliased t-false
 				equal-types? t-true/1 t-false/1
-			][t-true][none-type]						;-- allow nesting if both blocks return same type		
+			][t-true][none-type]						;-- allow nesting if both blocks return same type
+
+			if any [
+				all [
+					locals								;-- if in function body
+					tail? pc							;-- and if at tail of body
+					ret: select locals return-def		;-- and if function returns something
+					ret/1 = 'logic!						;-- and if it returns a logic! value
+				]
+				all [
+					not empty? expr-call-stack
+					last-type/1 = 'logic!				;-- and if EITHER returns a logic! too
+				]
+			][
+				if block? e-true  [emitter/logic-to-integer/with e-true  c-true]
+				if block? e-false [emitter/logic-to-integer/with e-false c-false]
+			]
+		
+			offset: emitter/branch/over c-false
+			emitter/set-signed-state expr				;-- properly set signed/unsigned state
+			emitter/branch/over/adjust/on c-true negate offset expr/1	;-- skip over JMP-exit
+			emitter/merge emitter/chunks/join c-true c-false
 			<last>
 		]
 		
@@ -1731,7 +1884,7 @@ system-dialect: context [
 			<last>
 		]
 		
-		comp-switch: has [expr save-type spec value values body bodies list types default][
+		comp-switch: has [expr save-type spec value values body bodies list types default pos][
 			pc: next pc
 			expr: fetch-expression/keep/final			;-- compile argument
 			if any [none? expr last-type = none-type][
@@ -1740,6 +1893,11 @@ system-dialect: context [
 			save-type: last-type			
 			check-body spec: pc/1
 			foreach w [values list types][set w make block! 8]
+			forall spec [								;-- resolve possible enumeration symbols
+				if all [word? spec/1 spec/1 <> 'default][
+					check-enum-symbol spec
+				]
+			]
 			
 			;-- check syntax and store parts in different lists
 			unless parse spec [
@@ -1871,6 +2029,8 @@ system-dialect: context [
 			pc: next pc
 			if set-word? name [
 				n: to word! name
+				unless local-variable? n [store-ns-symbol n]
+				
 				unless all [
 					local-variable? n
 					n = 'context						;-- explicitly allow 'context name for local variables
@@ -1883,44 +2043,26 @@ system-dialect: context [
 				]
 				if all [
 					not local-variable? n
-					enum: any [
-						all [ns: ns-find-with n enumerations get-enumerator n: ns]
-						get-enumerator n
-					]
+					enum: enum-id? n
 				][
 					backtrack name
 					throw-error ["redeclaration of enumerator" name "from" enum]
 				]
 				if all [
 					get-word? pc/1
-					select functions to word! pc/1
+					find functions to word! pc/1
 				][
 					throw-error "storing a function! requires a type casting"
 				]
 				unless local-variable? n [
-					check-func-name/only n				;-- avoid clashing with an existing function name		
-					any [
-						all [							;-- check if defined in WITH namespaces
-							with-stack
-							ns: ns-resolve-with name globals
-							name: ns-decorate/set ns-join ns to word! name
-						]
-						all [							;-- check if namespace prefixing is needed
-							ns-path
-							name: ns-prefix/set name
-							add-ns-symbol pc/-1
-						]
-					]
+					if ns-path [add-ns-symbol pc/-1]
+					if all [ns: resolve-ns n ns <> n][name: to set-word! ns]
+					check-func-name/only to word! name	;-- avoid clashing with an existing function name		
 				]
 			]
 			if set-path? name [
 				unless any [name/1 = 'system local-variable? name/1][
-					all [
-						ns-path
-						not find/only ns-list to path! name/1
-						name: join ns-path name
-					]
-					name: check-ns-prefix/set name
+					name: resolve-ns-path name
 				]
 				if all [series? name value: system-reflexion? name][name: value]
 			]
@@ -1932,13 +2074,18 @@ system-dialect: context [
 			]
 		]
 		
-		comp-func-args: func [name [word!] entry [hash!] /local attribute fetch expr args n][
+		comp-func-args: func [name [word!] entry [hash!] /local attribute fetch expr args n pos][
 			push-call name
 			pc: next pc							;-- it's a function
 			either attribute: check-variable-arity? entry/2/4 [
 				fetch: [
+					pos: pc
 					expr: fetch-expression
 					either attribute = 'typed [
+						if all [expr = <last> none? last-type/1][
+							pc: pos
+							throw-error "expression has no defined return type"
+						]
 						append args id: get-type-id expr
 						append/only args expr
 						append args pick [#_ 0] id = emitter/datatype-ID/float! ;-- 32-bit padding
@@ -1961,43 +2108,56 @@ system-dialect: context [
 			]
 		]
 		
-		comp-path: has [path value][
+		resolve-ns-path: func [path [path! set-path!] /local new pos][
+			new: resolve-ns/path path/1					;-- try to prefix path/1
+
+			either find/only ns-list to path! new [		;-- check if (prefixed) path/1 is a namespace
+				new: to path! new
+				until [									;-- collect all ns prefixes from head
+					path: next path
+					append new path/1					;-- move each path value to new one
+					not find/only ns-list new			;-- while the new path is still a namespace
+				]
+				new: ns-decorate new					;-- prefix and convert to word 
+				unless tail? next path [				;-- if non-ns remains in path
+					new: append to path! new next path	;-- convert back to path by adding non-ns remain 
+				]
+				if set-path? path [
+					new: to either word? new [set-word!][set-path!] new
+				]
+				new
+			][
+				unless word? new [path/1: ns-decorate new]	;-- only prefix+convert path/1 if required
+				path
+			]
+		]
+		
+		comp-path: has [path value ns][
 			path: pc/1
 			if #":" = first mold path/1 [
 				throw-error "get-path! syntax is not supported"
 			]
 			either all [
 				not local-variable? path/1
-				any [
-					word? path: check-ns-prefix path 		;-- possible reduction to word! if ns-prefixed
-					all [
-						ns-path
-						word? value: check-ns-prefix join ns-path path 		;-- possible reduction to word! if ns-prefixed
-						path: value
-					]
-					all [
-						with-stack
-						word? value: check-with-prefix path					;-- possible reduction to word! if within ns
-						path: value
-					]
-				]
+				path: resolve-ns-path path
+				word? path
 			][
-				if value: get-enumerator/value path [
+				if value: get-enumerator path [
 					last-type: [integer!]
 					pc: next pc
-					return value			
+					return value
 				]
 				comp-word/with path
 			][
-				comp-word/path path/1					;-- check if root word is defined
-				unless value: system-reflexion? path [
-					all [
-						ns-path
-						not local-variable? path/1
-						find select/only ns-list ns-path path/1
-						path/1: ns-prefix path/1		;-- prefix path if needed
+				either value: system-reflexion? path [
+					either path/2 = 'words [
+						return comp-word/with/root value ;-- re-route to global word resolution
+					][
+						pc: next pc
 					]
-					last-type: resolve-path-type path				
+				][
+					comp-word/path path/1				;-- check if root word is defined
+					last-type: resolve-path-type path
 				]
 				any [value path]
 			]
@@ -2006,36 +2166,94 @@ system-dialect: context [
 		comp-get-word: has [spec name ns][
 			name: to word! pc/1
 			case [
-				any [
-					all [
-						ns: ns-find-with name functions
-						spec: select functions ns
-						name: ns
-					]
-					spec: select functions name
-				][			
-					unless spec/2 = 'native [
+				all [spec: find functions name: resolve-ns name spec: spec/2][
+					unless find [native routine] spec/2 [
 						throw-error "get-word syntax only reserved for native functions for now"
 					]
 					unless spec/5 = 'callback [append spec 'callback]	;@@ force cdecl ????
 				]
 				not	any [
-					local-variable? name
-					all [ns: ns-find-with name globals name: ns]
+					local-variable? to word! pc/1
 					find globals name
 				][
-					throw-error "cannot get a pointer on an undefined variable"
+					throw-error "cannot get a pointer on an undefined identifier"
 				]
 			]
 			also to get-word! name pc: next pc
+		]
+		
+		direct-match-ns: func [ctx [path!] name [word!] path /local ns][
+			if all [
+				any [
+					all [ns-stack find/only ns-stack ctx]
+					all [ns-path find/only ns-path ctx]
+				]
+				ns: find/only ns-list ctx
+				find ns/2 name
+			][
+				if path [return ns-join to path! ctx name] ;-- if /path, defer word conversion
+				ns-decorate ns-join ctx name
+			]
+		]
+		
+		match-ns: func [name [word!] ctx [word! path!] path /local pos][
+			either pos: find ns-stack either path? ctx [ctx/1][ctx][ ;-- match (1st) context with stack
+				if path? ctx [							;-- context hierarchy to match with stack
+					foreach level ctx [					;-- match each context with next one on stack
+						if pos/1 <> level [return none]	;-- if doesn't match, prefix doesn't apply
+						pos: next pos					;-- next stack entry
+					]
+				]
+				if path [return ns-join to path! ctx name] ;-- if /path, defer word conversion
+				ns-decorate ns-join to path! ctx name	;-- prefix and convert back to word
+			][
+				none									;-- no match on stack
+			]
+		]
+		
+		resolve-ns: func [name [word!] /path /local ctx][
+			unless ns-stack [return name]				;-- no current ns, pass-thru
+
+			if ctx: find/skip sym-ctx-table name 2 [	;-- fetch context candidates
+				ctx: ctx/2								;-- SELECT/SKIP on hash! unreliable!
+				either block? ctx [						;-- more than one candidate
+					ctx: tail ctx						;-- start from last defined context
+					until [
+						ctx: back ctx
+						if value: any [
+							match-ns name ctx/1 path 
+							direct-match-ns ctx/1 name path
+						][
+							return value				;-- prefix name if context on stack
+						]
+						head? ctx
+					]									;-- no match found, pass-thru
+				][										;-- one parent context only
+					name: any [
+						match-ns name ctx path		 	;-- prefix name if context is on stack
+						direct-match-ns ctx name path
+						name
+					]
+				]
+			]
+			name
 		]
 	
 		comp-word: func [
 			/path symbol [word!]
 			/with word [word!]
-			/local entry args n name expr attribute fetch id type ns local?
+			/root										;-- system/words/* pass-thru
+			/local entry name local? spec type
 		][
-			name: any [word symbol pc/1]
+			name: pc/1
+			name: any [
+				word
+				symbol
+				all [local-variable? name name]			;-- pass-thru for locals
+				all [not root resolve-ns name]
+				name
+			]
+			local?: local-variable? name
 			local?: local-variable? name
 			case [
 				all [
@@ -2046,13 +2264,19 @@ system-dialect: context [
 					do entry
 				]
 				any [
-					local?
 					all [
+						local?
 						any [
-							all [ns: ns-find-with name globals name: ns]
-							find globals name
+							all [						;-- block local function pointers
+								block? type: select locals name
+								'function! <> type/1
+							]
+							not block? type				;-- pass-thru
 						]
-						'function! <> first get-type name	;-- pass-thru for function pointers
+					]
+					all [
+						find globals name
+						'function! <> first get-type name	;-- block function pointers
 					]
 				][										;-- it's a variable
 					if not-initialized? name [
@@ -2061,27 +2285,22 @@ system-dialect: context [
 					last-type: resolve-type name
 					also name pc: next pc
 				]
-				type: all [
-					any [
-						all [ns: ns-find-with name enumerations get-enumerator name: ns]
-						get-enumerator name
-					]
-				][
+				type: enum-type? name [
 					last-type: type
 					if verbose >= 3 [print ["ENUMERATOR" name "=" last-type]]
 					also name pc: next pc
 				]
 				all [
 					not path
-					any [
-						all [
-							ns: ns-find-with name functions
-							entry: find functions ns
-							name: ns
-						]
-						entry: find functions name
-					]
+					entry: find-functions name
 				][
+					spec: entry/2/4
+					if all [
+						find-attribute spec 'infix
+						path? pc/1
+					][
+						throw-error "infix functions cannot be called using a path"
+					]
 					comp-func-args name entry
 				]
 				'else [throw-error ["undefined symbol:" mold name]]
@@ -2092,13 +2311,7 @@ system-dialect: context [
 			unless all [
 				attempt [
 					casting: get-type any [
-						all [
-							set-word? variable
-							any [
-								ns-find-with to word! variable globals
-								to word! variable
-							]
-						]
+						all [set-word? variable	to word! variable]
 						to path! variable
 					]
 				]
@@ -2132,8 +2345,9 @@ system-dialect: context [
 
 		comp-call: func [
 			name [word!] args [block!] /sub
-			/local list type res import? left right dup var-arity? saved? arg
+			/local list type res import? left right dup var-arity? saved? arg expr
 		][
+			name: decorate-fun name
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
 				args/2
 			][
@@ -2148,9 +2362,11 @@ system-dialect: context [
 			type: functions/:name/2
 			either type <> 'op [					
 				forall list [							;-- push function's arguments on stack
-					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
+					expr: list/1
+					if block? unbox expr [comp-expression expr yes]	;-- nested call
+					if object? expr [cast expr]
 					if type <> 'inline [
-						emitter/target/emit-argument list/1 functions/:name ;-- let target define how arguments are passed
+						emitter/target/emit-argument expr functions/:name ;-- let target define how arguments are passed
 					]
 				]
 			][											;-- nested calls as op argument require special handling
@@ -2180,7 +2396,7 @@ system-dialect: context [
 		][
 			if all [
 				not local-variable? set-path/1
-				get-enumerator set-path/1
+				enum-id? set-path/1
 			][
 				backtrack set-path
 				throw-error ["enumeration cannot be used as path root:" set-path/1]
@@ -2210,7 +2426,7 @@ system-dialect: context [
 		
 		comp-variable-assign: func [
 			set-word [set-word!] expr casted [block! none!]
-			/local name type new value
+			/local name type new value fun-name
 		][
 			name: to word! set-word		
 			if find aliased-types name [
@@ -2220,9 +2436,20 @@ system-dialect: context [
 			if not-initialized? name [
 				init-local name expr casted				;-- mark as initialized and infer type if required
 			]
+
+			if all [
+				casted
+				casted/1 = 'function!
+				local-variable? name
+			][
+				fun-name: to word! join "_local_" form name
+				add-function 'routine reduce [fun-name none casted/2] get-cconv casted/2
+				append last functions reduce [name 'local]
+			]
+			
 			either type: any [
 				get-variable-spec name					;-- test if known variable (local or global)	
-				get-enumerator name
+				enum-id? name
 			][
 				type: resolve-aliased type
 				value: get-type expr
@@ -2242,7 +2469,10 @@ system-dialect: context [
 					backtrack set-word
 					throw-error "variable has to be initialized at root level"
 				]
-				if all [casted casted/1 = 'function!][
+				if any [
+					all [casted casted/1 = 'function!]
+					all [expr = <last> casted: last-type last-type/1 = 'function!]
+				][
 					add-function 'routine reduce [name none casted/2] get-cconv casted/2
 				]
 				type: add-symbol name unbox expr casted  ;-- if unknown add it to global context	
@@ -2288,7 +2518,7 @@ system-dialect: context [
 					]
 					all [
 						block? expr
-						functions/(expr/1)/2 = 'op		;-- math expression
+						functions/(decorate-fun expr/1)/2 = 'op	;-- math expression
 						any [							;-- no return value, or return value type <> logic!
 							not type: find functions/(expr/1)/4 return-def
 							type/2/1 <> 'logic!
@@ -2322,7 +2552,7 @@ system-dialect: context [
 			;-- postprocessing result
 			if all [
 				any [keep? variable]					;-- if result needs to be stored
-				block? expr								;-- and if expr is a function call
+				block? expr								;-- and if expr is a function call		
 				last-type/1 = 'logic!					;-- which return type is logic!
 			][
 				emitter/logic-to-integer expr/1			;-- runtime logic! conversion before storing
@@ -2353,19 +2583,13 @@ system-dialect: context [
 			]
 		]
 		
-		check-enum-symbol: has [value][
+		check-enum-symbol: func [code [any-block!] /local value][
 			if all [									;-- if enum, replace it with its integer value
-				word? pc/1
-				not local-variable? pc/1
-				value: any [
-					all [
-						value: ns-find-with pc/1 enumerations
-						get-enumerator/value value
-					]
-					get-enumerator/value pc/1
-				]
+				word? code/1
+				not local-variable? code/1
+				value: get-enumerator resolve-ns code/1
 			][
-				change pc value
+				change code value
 			]
 		]
 		
@@ -2373,7 +2597,8 @@ system-dialect: context [
 			all [
 				not tail? pos
 				word? pos/1
-				specs: select functions pos/1
+				specs: find functions resolve-ns pos/1
+				specs: specs/2
 				find [op infix] specs/2
 			]
 		]
@@ -2408,7 +2633,7 @@ system-dialect: context [
 			]
 			if job/debug? [store-dbg-lines]
 			
-			check-enum-symbol
+			check-enum-symbol pc
 
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
@@ -2453,7 +2678,7 @@ system-dialect: context [
 					while [not tail? pc][
 						if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
 						expr: do fetch
-						pop-calls
+						unless tail? pc [pop-calls]
 					]
 				]
 			]
@@ -2511,12 +2736,13 @@ system-dialect: context [
 				]
 			]
 			emitter/leave name locals args-sz local-sz	;-- build function epilog
+			remove-func-pointers
 			clear locals-init
 			locals: func-name: none
 		]
 		
 		comp-natives: does [			
-			foreach [name spec body origin ns ws] natives [
+			foreach [name spec body origin ns nss] natives [
 				if verbose >= 2 [
 					print [
 						"---------------------------------------^/"
@@ -2526,7 +2752,7 @@ system-dialect: context [
 				]
 				script: origin
 				ns-path: ns
-				with-stack: ws
+				ns-stack: nss
 				comp-func-body name spec body
 			]
 		]
@@ -2664,12 +2890,16 @@ system-dialect: context [
 	]
 	
 	clean-up: does [
-		compiler/ns-path: none
+		compiler/ns-path: 
+		compiler/ns-stack: 
+		compiler/locals: none
+		compiler/resolve-alias?:  yes
+		
 		clear compiler/imports
 		clear compiler/exports
 		clear compiler/natives
 		clear compiler/ns-list
-		clear compiler/guesses
+		clear compiler/sym-ctx-table
 		clear compiler/globals
 		clear compiler/definitions
 		clear compiler/enumerations
@@ -2677,6 +2907,7 @@ system-dialect: context [
 		clear compiler/user-functions
 		clear compiler/debug-lines/records
 		clear compiler/debug-lines/files
+		clear emitter/symbols
 	]
 	
 	make-job: func [opts [object!] file [file!] /local job][
@@ -2689,7 +2920,7 @@ system-dialect: context [
 		job
 	]
 	
-	dt: func [code [block!] /local t0][
+	set 'dt func [code [block!] /local t0][
 		t0: now/time/precise
 		do code
 		now/time/precise - t0
@@ -2719,18 +2950,23 @@ system-dialect: context [
 		syscall:		'Linux			;-- syscalls convention: 'Linux | 'BSD
 		stack-align-16?: no				;-- yes => align stack to 16 bytes
 		literal-pool?:	no				;-- yes => use pools to store literals, no => store them inlined (default: no)
+		unicode?:		no				;-- yes => use Red Unicode API for printing on screen
+		red-only?:		no				;-- yes => stop compilation at Red/System level and display output
 	]
 	
 	compile: func [
 		files [file! block!]							;-- source file or block of source files
 		/options
 			opts [object!]
+		/loaded 										;-- source code is already in LOADed format
+			src	[block!]
 		/local
-			comp-time link-time err src output
+			comp-time link-time err
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
 			
+			unless opts [opts: make options-class []]
 			job: make-job opts last files				;-- last input filename is retained for output name
 			emitter/init opts/link? job
 			if opts/verbosity >= 10 [set-verbose-level opts/verbosity]
@@ -2742,8 +2978,14 @@ system-dialect: context [
 			if opts/runtime? [comp-runtime-prolog]
 			
 			set-verbose-level opts/verbosity
-			foreach file files [compiler/run job loader/process file file]
-			
+			foreach file files [
+				src: either loaded [
+					loader/process/with src file
+				][
+					loader/process file
+				]
+				compiler/run job src file
+			]
 			set-verbose-level 0
 			if opts/runtime? [comp-runtime-epilog]
 			

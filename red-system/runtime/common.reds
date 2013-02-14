@@ -2,10 +2,11 @@ Red/System [
 	Title:   "Red/System OS-independent runtime"
 	Author:  "Nenad Rakocevic"
 	File: 	 %common.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/red-system/runtime/BSL-License.txt
+		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
 ]
 
@@ -14,12 +15,13 @@ Red/System [
 #define negative?	  [0 > ]
 #define negate		  [0 -]
 #define null?		  [null =]
- 
+
+#define halt		  [quit 0]
 #define forever		  [while [true]]
 #define does		  [func []]
 #define unless		  [if not]
 #define	raise-error	  ***-on-quit
-#define ?? 			  print-line			;-- DEPRECATED since 14/02/2012
+#define probe		  print-line
  
 #define as-byte		  [as byte!]
 #define as-logic	  [as logic!]

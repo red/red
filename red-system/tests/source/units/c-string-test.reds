@@ -2,7 +2,8 @@ Red/System [
 	Title:   "Red/System c-string! datatype test script"
 	Author:  "Nenad Rakocevic"
 	File: 	 %c-string-test.reds
-	Rights:  "Copyright (C) 2011 Nenad Rakocevic. All rights reserved."
+	Tabs:	 4
+	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
