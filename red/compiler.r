@@ -101,15 +101,21 @@ red: context [
 		quit-on-error
 	]
 	
+	relative-path?: func [file [file!]][
+		not find "/~" first file
+	]
+	
 	process-include-paths: func [code [block!] /local rule file][
 		parse code rule: [
-			#include file: (
-				if all [script-path slash <> first file/1][
-					file/1: clean-path join script-path file/1
-				]
-			)
-			| into rule
-			| skip
+			some [
+				#include file: (
+					if all [script-path relative-path? file/1][
+						file/1: clean-path join script-path file/1
+					]
+				)
+				| into rule
+				| skip
+			]
 		]
 	]
 	
@@ -1687,25 +1693,41 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
+include-stk: make block! 3
+included-list: make block! 20
+
 	comp-directive: has [file saved][
 		switch pc/1 [
 			#include [
 				unless file? file: pc/2 [
 					throw-error ["#include requires a file argument:" pc/2]
 				]
-				script-path: either slash <> first file [
-					file: main-path/:file
-					first split-path clean-path file
+				append include-stk script-path
+				
+				script-path: either relative-path? file [
+					file: clean-path join any [script-path main-path] file
+					first split-path file
 				][
 					none
 				]
 				unless exists? file [
 					throw-error ["include file not found:" pc/2]
 				]
-				saved: script-name
-				change/part pc load-source file 2
-				script-name: saved
+				either find included-list file [
+					script-path: take/last include-stk
+					remove/part pc 2
+				][
+					saved: script-name
+					insert skip pc 2 #pop-path
+					change/part pc load-source file 2
+					script-name: saved
+					append included-list file
+				]
 				true
+			]
+			#pop-path [
+				script-path: take/last include-stk
+				pc: next pc
 			]
 			#system [
 				unless block? pc/2 [
