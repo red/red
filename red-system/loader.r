@@ -331,7 +331,7 @@ loader: make-profilable context [
 					if any [block? s/-1 paren? s/-1][
 						header: last stack
 						change header length? header	;-- update header size
-						s/-1: insert s/-1 header		;-- insert hidden header
+						s/-1: insert copy s/-1 header	;-- insert hidden header
 						remove back tail stack
 					]
 				  )
