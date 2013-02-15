@@ -128,9 +128,12 @@ _context: context [
 			word/index = -1
 		][
 			sym: symbol/get word/symbol
-			print-line [
-				"*** Error: word '" sym/cache " has no value"
-			]
+			print-line ["*** Error: word '" sym/cache " has no value"]
+			halt
+		]
+		if null? ctx/values [
+			sym: symbol/get word/symbol
+			print-line ["*** Error: undefined context for word '" sym/cache]
 			halt
 		]
 		either ON_STACK?(ctx) [
