@@ -328,7 +328,7 @@ loader: make-profilable context [
 						]
 					]
 				)
-				| path! | set-path!	| any-string!		;-- avoid diving into these series
+				| path! | set-path!						;-- avoid diving into these series
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
 				  [into blk | block! | paren!]			;-- black magic...
 				  s: (
