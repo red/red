@@ -184,7 +184,11 @@ interpreter: context [
 								EVAL_ARGUMENT
 							]
 						][
-							ref-array/offset: -1
+							either any [function? routine?][
+								none/push
+							][
+								ref-array/offset: -1
+							]
 						]
 						offset: offset + 1
 					]
