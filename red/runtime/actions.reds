@@ -662,7 +662,7 @@ actions: context [
 			index	[integer!]
 			data    [red-value!]
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_POKE
+		] get-action-ptr as red-value! series ACT_POKE
 		
 		action-poke series index data
 	]
