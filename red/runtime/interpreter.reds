@@ -223,6 +223,99 @@ interpreter: context [
 		pc
 	]
 	
+	eval-path: func [
+		pc	 [red-value!]								;-- path to evaluate
+		set? [logic!]
+		/local 
+			path   [red-path!]
+			head   [red-value!]
+			tail   [red-value!]
+			slot   [red-value!]
+			value  [red-value!]
+			result [red-value!]
+			int	   [red-integer!]
+	][
+		if verbose > 0 [print-line "eval: path"]
+		
+		path:  as red-path! pc
+		head:  block/rs-head as red-block! path
+		tail:  block/rs-tail as red-block! path
+		slot:  head
+		
+		if TYPE_OF(slot) <> TYPE_WORD [
+			print-line "*** Error: path value must start with a word!"
+			halt
+		]
+		
+		result: null
+		
+		while [slot < tail][
+			if verbose > 1 [print-line ["slot type: " TYPE_OF(slot)]]
+			
+			value: either TYPE_OF(slot) = TYPE_GET_WORD [
+				_context/get as red-word! slot
+			][
+				slot
+			]
+			
+			switch TYPE_OF(value) [
+				TYPE_WORD [
+					either slot = head [
+						result: _context/get as red-word! value
+						switch TYPE_OF(result) [
+							TYPE_ACTION					;@@ replace with TYPE_ANY_FUNCTION
+							TYPE_NATIVE
+							TYPE_ROUTINE
+							TYPE_FUNCTION [
+
+							]
+							TYPE_BLOCK 					;@@ replace with TYPE_SERIES
+							TYPE_PATH
+							TYPE_LIT_PATH
+							TYPE_GET_PATH
+							TYPE_SET_PATH
+							TYPE_STRING [
+
+							]
+							;TYPE_OBJECT
+							;TYPE_PORT [
+							;
+							;]
+						]
+					][
+						result: either all [set? slot + 1 = tail][
+							actions/find as red-series! result value null no no no null null no no no no
+							value: stack/top - 1		;@@ internalize it somehow...
+							actions/poke as red-series! value 2 stack/arguments
+							
+							stack/arguments
+						][
+							actions/select as red-series! result value null no no no null null no no
+							stack/top - 1
+						]
+					]
+				]
+				TYPE_PAREN [
+					--NOT_IMPLEMENTED--
+				]
+				TYPE_INTEGER [
+					int: as red-integer! value
+					result: either all [set? slot + 1 = tail][
+						actions/poke as red-series! result int/value stack/arguments
+						stack/arguments
+					][				
+						actions/pick as red-series! result int/value
+					]
+				]
+				TYPE_STRING [
+					--NOT_IMPLEMENTED--
+				]
+			]
+			slot: slot + 1
+		]
+		stack/set-last result
+	]
+	
 	eval-expression: func [
 		pc		  [red-value!]
 		end	  	  [red-value!]
@@ -240,6 +333,7 @@ interpreter: context [
 		
 		if all [
 			not infix
+			next < end
 			TYPE_OF(next) = TYPE_WORD
 		][
 			value: _context/get next
@@ -271,7 +365,10 @@ interpreter: context [
 				]
 			]
 			TYPE_SET_PATH [
-				--NOT_IMPLEMENTED--
+				value: pc
+				pc: pc + 1
+				pc: eval-expression pc end no no
+				eval-path value yes
 			]
 			TYPE_GET_WORD [
 				word/get as red-word! pc
@@ -343,7 +440,8 @@ interpreter: context [
 				]
 			]
 			TYPE_PATH [
-				--NOT_IMPLEMENTED--
+				eval-path pc no
+				pc: pc + 1
 			]
 			TYPE_LIT_PATH [
 				--NOT_IMPLEMENTED--
