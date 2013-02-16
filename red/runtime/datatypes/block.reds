@@ -510,6 +510,7 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
 		
+		stack/push*										;-- extra push to avoid overwritting last value @@
 		result: stack/push as red-value! blk
 		
 		s: GET_BUFFER(blk)

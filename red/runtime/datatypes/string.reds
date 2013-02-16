@@ -727,6 +727,7 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/find"]]
 
+		stack/push*										;-- extra push to avoid overwritting last value @@
 		result: stack/push as red-value! str
 		
 		s: GET_BUFFER(str)
