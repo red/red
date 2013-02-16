@@ -496,6 +496,7 @@ block: context [
 			slot2	[red-value!]
 			end		[red-value!]
 			end2	[red-value!]
+			result	[red-value!]
 			int		[red-integer!]
 			b		[red-block!]
 			dt		[red-datatype!]
@@ -509,10 +510,12 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
 		
+		result: stack/push as red-value! blk
+		
 		s: GET_BUFFER(blk)
 		if s/offset = s/tail [							;-- early exit if blk is empty
-			blk/header: TYPE_NONE
-			return as red-value! blk
+			result/header: TYPE_NONE
+			return result
 		]
 		step:  1
 		part?: no
@@ -525,8 +528,8 @@ block: context [
 			part: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
 				if int/value <= 0 [						;-- early exit if part <= 0
-					blk/header: TYPE_NONE
-					return as red-value! blk
+					result/header: TYPE_NONE
+					return result
 				]
 				s/offset + int/value - 1				;-- int argument is 1-based
 			][
@@ -573,8 +576,8 @@ block: context [
 				slot: either part? [part][s/offset + blk/head - 1]
 				end: s/offset
 				if slot < end [							;-- early exit if blk/head = 0
-					blk/header: TYPE_NONE
-					return as red-value! blk
+					result/header: TYPE_NONE
+					return result
 				]
 			]
 			true [
@@ -626,9 +629,10 @@ block: context [
 		unless tail? [slot: slot - step]				;-- point before/after found value
 		
 		either found? [
+			blk: as red-block! result
 			blk/head: (as-integer slot - s/offset) >> 4	;-- just change the head position on stack
 		][
-			blk/header: TYPE_NONE						;-- change the stack 1st argument to none.
+			result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 		]
 		slot
 	]
@@ -651,12 +655,14 @@ block: context [
 			s	   [series!]
 			p	   [red-value!]
 			b	   [red-block!]
+			result [red-value!]
 			type   [integer!]
 			offset [integer!]
 	][
 		p: find blk value part only? case? any? with-arg skip last? reverse? no no
+		result: stack/top - 1
 		
-		if TYPE_OF(blk) <> TYPE_NONE [
+		if TYPE_OF(result) <> TYPE_NONE [
 			offset: either only? [1][					;-- values > 0 => series comparison mode
 				type: TYPE_OF(value)
 				either any [							;@@ replace with ANY_BLOCK?
@@ -672,13 +678,14 @@ block: context [
 					(as-integer s/tail - s/offset) >> 4 - b/head
 				][1]
 			]
+			blk: as red-block! result
 			s: GET_BUFFER(blk)
 			p: s/offset + blk/head + offset
 			
 			either p < s/tail [
-				stack/set-last p
+				copy-cell p result
 			][
-				blk/header: TYPE_NONE
+				result/header: TYPE_NONE
 			]
 		]
 		p

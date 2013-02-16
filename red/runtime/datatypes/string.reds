@@ -707,6 +707,7 @@ string: context [
 			pattern	[byte-ptr!]
 			end		[byte-ptr!]
 			end2	[byte-ptr!]
+			result	[red-value!]
 			int		[red-integer!]
 			char	[red-char!]
 			str2	[red-string!]
@@ -726,9 +727,11 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/find"]]
 
+		result: stack/push as red-value! str
+		
 		s: GET_BUFFER(str)
 		if s/offset = s/tail [							;-- early exit if string is empty
-			str/header: TYPE_NONE
+			result/header: TYPE_NONE
 			return as byte-ptr! s/offset
 		]
 		unit: GET_UNIT(s)
@@ -747,7 +750,7 @@ string: context [
 			limit: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
 				if int/value <= 0 [						;-- early exit if part <= 0
-					str/header: TYPE_NONE
+					result/header: TYPE_NONE
 					return as byte-ptr! s/offset
 				]
 				(as byte-ptr! s/offset) + (int/value - 1 << (unit >> 1)) ;-- int argument is 1-based
@@ -775,7 +778,7 @@ string: context [
 				buffer: either part? [limit][(as byte-ptr! s/offset) + (str/head - 1 << (unit >> 1))]
 				end: as byte-ptr! s/offset
 				if buffer < end [							;-- early exit if str/head = 0
-					str/header: TYPE_NONE
+					result/header: TYPE_NONE
 					return buffer
 				]
 			]
@@ -811,7 +814,7 @@ string: context [
 				end2:    (as byte-ptr! s2/tail)
 			]
 			default [
-				str/header: TYPE_NONE
+				result/header: TYPE_NONE
 				return null
 			]
 		]
@@ -895,9 +898,10 @@ string: context [
 		buffer: buffer - step							;-- compensate for extra step
 		
 		either found? [
+			str: as red-string! result
 			str/head: (as-integer buffer - s/offset) >> (unit >> 1)	;-- just change the head position on stack
 		][
-			str/header: TYPE_NONE						;-- change the stack 1st argument to none.
+			result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 		]
 		buffer
 	]
@@ -917,17 +921,19 @@ string: context [
 		match?	 [logic!]
 		return:	 [byte-ptr!]
 		/local
-			s	 [series!]
-			p	 [byte-ptr!]
-			p4	 [int-ptr!]
-			char [red-char!]
+			s	   [series!]
+			p	   [byte-ptr!]
+			p4	   [int-ptr!]
+			char   [red-char!]
+			result [red-value!]
 			str2   [red-string!]
 			head2  [integer!]
 			offset [integer!]
 	][
 		p: find str value part only? case? any? with-arg skip last? reverse? no no
+		result: stack/top - 1
 		
-		if TYPE_OF(str) <> TYPE_NONE [
+		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [
 				TYPE_STRING TYPE_WORD [
 					either TYPE_OF(value) = TYPE_WORD [
@@ -942,12 +948,12 @@ string: context [
 				]
 				default [1]
 			]
-		
+			str: as red-string! result
 			s: GET_BUFFER(str)
 			p: (as byte-ptr! s/offset) + ((str/head + offset) << (GET_UNIT(s) >> 1))
 			
 			either p < as byte-ptr! s/tail [
-				char: as red-char! str
+				char: as red-char! result
 				char/header: TYPE_CHAR
 				char/value: switch GET_UNIT(s) [
 					Latin1 [as-integer p/value]
@@ -955,7 +961,7 @@ string: context [
 					UCS-4  [p4: as int-ptr! p p4/value]
 				]
 			][
-				str/header: TYPE_NONE
+				result/header: TYPE_NONE
 			]
 		]
 		p

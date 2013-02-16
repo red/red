@@ -505,6 +505,8 @@ actions: context [
 			as logic! reverse + 1
 			as logic! tail + 1
 			as logic! match + 1
+			
+		stack/set-last stack/top - 1
 	]
 		
 	find: func [
@@ -692,6 +694,8 @@ actions: context [
 			as red-integer! stack/arguments + skip
 			as logic! last + 1
 			as logic! reverse + 1
+			
+		stack/set-last stack/top - 1
 	]
 
 	select: func [
