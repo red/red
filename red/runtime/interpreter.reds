@@ -233,6 +233,7 @@ interpreter: context [
 			slot   [red-value!]
 			value  [red-value!]
 			result [red-value!]
+			saved  [red-value!]
 			int	   [red-integer!]
 	][
 		if verbose > 0 [print-line "eval: path"]
@@ -241,6 +242,7 @@ interpreter: context [
 		head:  block/rs-head as red-block! path
 		tail:  block/rs-tail as red-block! path
 		slot:  head
+		saved: stack/top
 		
 		if TYPE_OF(slot) <> TYPE_WORD [
 			print-line "*** Error: path value must start with a word!"
@@ -313,7 +315,8 @@ interpreter: context [
 			]
 			slot: slot + 1
 		]
-		stack/set-last result
+		stack/top: saved
+		stack/push result
 	]
 	
 	eval-expression: func [
