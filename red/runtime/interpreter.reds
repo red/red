@@ -224,20 +224,21 @@ interpreter: context [
 	]
 	
 	eval-path-element: func [
-		slot    [red-value!]
-		head    [red-value!]
-		tail    [red-value!]
-		result  [red-value!]
-		set?    [logic!]
-		return: [red-value!]
+		slot     [red-value!]
+		head     [red-value!]
+		tail     [red-value!]
+		result   [red-value!]
+		alt-slot [red-value!]							;-- alternative element (computed from paren)
+		set?     [logic!]
+		return:  [red-value!]
 		/local
 			value  [red-value!]
 			int	   [red-integer!]
 	][
-		value: either TYPE_OF(slot) = TYPE_GET_WORD [
-			_context/get as red-word! slot
-		][
-			slot
+		value: case [
+			TYPE_OF(slot) = TYPE_GET_WORD [_context/get as red-word! slot]
+			null? alt-slot [slot]
+			true		   [alt-slot]
 		]
 		switch TYPE_OF(value) [
 			TYPE_WORD [
@@ -274,7 +275,10 @@ interpreter: context [
 				]
 			]
 			TYPE_PAREN [
-				--NOT_IMPLEMENTED--
+				stack/mark-native words/_body			;@@ ~paren
+				eval as red-block! value				;-- eval paren content
+				stack/unwind				
+				result: eval-path-element slot head tail result stack/top - 1 set?
 			]
 			TYPE_INTEGER [
 				int: as red-integer! value
@@ -321,7 +325,7 @@ interpreter: context [
 		while [slot < tail][
 			if verbose > 1 [print-line ["slot type: " TYPE_OF(slot)]]
 			
-			result: eval-path-element slot head tail result set?
+			result: eval-path-element slot head tail result null set?
 			slot: slot + 1
 		]
 		
@@ -360,7 +364,7 @@ interpreter: context [
 		switch TYPE_OF(pc) [
 			TYPE_PAREN [
 				stack/mark-native as red-word! pc		;@@ ~paren
-				eval as red-block! pc no
+				eval as red-block! pc
 				either sub? [stack/unwind][stack/unwind-last]
 				pc: pc + 1
 			]
