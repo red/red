@@ -699,7 +699,7 @@ string: context [
 		reverse?	[logic!]
 		tail?		[logic!]
 		match?		[logic!]
-		return:		[byte-ptr!]
+		return:		[red-value!]
 		/local
 			s		[series!]
 			s2		[series!]
@@ -727,13 +727,12 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/find"]]
 
-		stack/push*										;-- extra push to avoid overwritting last value @@
 		result: stack/push as red-value! str
 		
 		s: GET_BUFFER(str)
 		if s/offset = s/tail [							;-- early exit if string is empty
 			result/header: TYPE_NONE
-			return as byte-ptr! s/offset
+			return result
 		]
 		unit: GET_UNIT(s)
 		step: 1
@@ -752,7 +751,7 @@ string: context [
 				int: as red-integer! part
 				if int/value <= 0 [						;-- early exit if part <= 0
 					result/header: TYPE_NONE
-					return as byte-ptr! s/offset
+					return result
 				]
 				(as byte-ptr! s/offset) + (int/value - 1 << (unit >> 1)) ;-- int argument is 1-based
 			][
@@ -780,7 +779,7 @@ string: context [
 				end: as byte-ptr! s/offset
 				if buffer < end [							;-- early exit if str/head = 0
 					result/header: TYPE_NONE
-					return buffer
+					return result
 				]
 			]
 			true [
@@ -816,7 +815,7 @@ string: context [
 			]
 			default [
 				result/header: TYPE_NONE
-				return null
+				return result
 			]
 		]
 		
@@ -904,7 +903,7 @@ string: context [
 		][
 			result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 		]
-		buffer
+		result
 	]
 	
 	select: func [
@@ -920,7 +919,7 @@ string: context [
 		reverse? [logic!]
 		tail?	 [logic!]
 		match?	 [logic!]
-		return:	 [byte-ptr!]
+		return:	 [red-value!]
 		/local
 			s	   [series!]
 			p	   [byte-ptr!]
@@ -931,8 +930,7 @@ string: context [
 			head2  [integer!]
 			offset [integer!]
 	][
-		p: find str value part only? case? any? with-arg skip last? reverse? no no
-		result: stack/top - 1
+		result: find str value part only? case? any? with-arg skip last? reverse? no no
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [
@@ -965,7 +963,7 @@ string: context [
 				result/header: TYPE_NONE
 			]
 		]
-		p
+		result
 	]
 	
 	;--- Reading actions ---

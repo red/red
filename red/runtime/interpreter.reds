@@ -286,14 +286,11 @@ interpreter: context [
 						]
 					][
 						result: either all [set? slot + 1 = tail][
-							actions/find as red-series! result value null no no no null null no no no no
-							value: stack/top - 1		;@@ internalize it somehow...
+							value: actions/find as red-series! result value null no no no null null no no no no
 							actions/poke as red-series! value 2 stack/arguments
-							
 							stack/arguments
 						][
 							actions/select as red-series! result value null no no no null null no no
-							stack/top - 1
 						]
 					]
 				]
@@ -370,7 +367,7 @@ interpreter: context [
 			TYPE_SET_PATH [
 				value: pc
 				pc: pc + 1
-				pc: eval-expression pc end no no
+				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
 				eval-path value yes
 			]
 			TYPE_GET_WORD [

@@ -510,7 +510,6 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
 		
-		stack/push*										;-- extra push to avoid overwritting last value @@
 		result: stack/push as red-value! blk
 		
 		s: GET_BUFFER(blk)
@@ -635,7 +634,7 @@ block: context [
 		][
 			result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 		]
-		slot
+		result
 	]
 	
 	select: func [
@@ -660,8 +659,7 @@ block: context [
 			type   [integer!]
 			offset [integer!]
 	][
-		p: find blk value part only? case? any? with-arg skip last? reverse? no no
-		result: stack/top - 1
+		result: find blk value part only? case? any? with-arg skip last? reverse? no no
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: either only? [1][					;-- values > 0 => series comparison mode
@@ -689,7 +687,7 @@ block: context [
 				result/header: TYPE_NONE
 			]
 		]
-		p
+		result
 	]
 	
 	;--- Reading actions ---

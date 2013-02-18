@@ -492,7 +492,7 @@ actions: context [
 		match	 [integer!]
 	][
 		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
-		find
+		stack/set-last find
 			as red-series! stack/arguments
 			stack/arguments + 1
 			stack/arguments + part
@@ -505,8 +505,6 @@ actions: context [
 			as logic! reverse + 1
 			as logic! tail + 1
 			as logic! match + 1
-			
-		stack/set-last stack/top - 1
 	]
 		
 	find: func [
@@ -683,7 +681,7 @@ actions: context [
 		reverse	 [integer!]
 	][
 		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
-		select
+		stack/set-last select
 			as red-series! stack/arguments
 			stack/arguments + 1
 			stack/arguments + part
@@ -694,8 +692,6 @@ actions: context [
 			as red-integer! stack/arguments + skip
 			as logic! last + 1
 			as logic! reverse + 1
-			
-		stack/set-last stack/top - 1
 	]
 
 	select: func [
