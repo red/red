@@ -223,6 +223,75 @@ interpreter: context [
 		pc
 	]
 	
+	eval-path-element: func [
+		slot    [red-value!]
+		head    [red-value!]
+		tail    [red-value!]
+		result  [red-value!]
+		set?    [logic!]
+		return: [red-value!]
+		/local
+			value  [red-value!]
+			int	   [red-integer!]
+	][
+		value: either TYPE_OF(slot) = TYPE_GET_WORD [
+			_context/get as red-word! slot
+		][
+			slot
+		]
+		switch TYPE_OF(value) [
+			TYPE_WORD [
+				either slot = head [
+					result: _context/get as red-word! value
+					switch TYPE_OF(result) [
+						TYPE_ACTION						;@@ replace with TYPE_ANY_FUNCTION
+						TYPE_NATIVE
+						TYPE_ROUTINE
+						TYPE_FUNCTION [
+
+						]
+						TYPE_BLOCK 						;@@ replace with TYPE_SERIES
+						TYPE_PATH
+						TYPE_LIT_PATH
+						TYPE_GET_PATH
+						TYPE_SET_PATH
+						TYPE_STRING [
+
+						]
+						;TYPE_OBJECT
+						;TYPE_PORT [
+						;
+						;]
+					]
+				][
+					result: either all [set? slot + 1 = tail][
+						value: actions/find as red-series! result value null no no no null null no no no no
+						actions/poke as red-series! value 2 stack/arguments
+						stack/arguments
+					][
+						actions/select as red-series! result value null no no no null null no no
+					]
+				]
+			]
+			TYPE_PAREN [
+				--NOT_IMPLEMENTED--
+			]
+			TYPE_INTEGER [
+				int: as red-integer! value
+				result: either all [set? slot + 1 = tail][
+					actions/poke as red-series! result int/value stack/arguments
+					stack/arguments
+				][				
+					actions/pick as red-series! result int/value
+				]
+			]
+			TYPE_STRING [
+				--NOT_IMPLEMENTED--
+			]
+		]
+		result
+	]
+	
 	eval-path: func [
 		pc	 [red-value!]								;-- path to evaluate
 		set? [logic!]
@@ -231,10 +300,8 @@ interpreter: context [
 			head   [red-value!]
 			tail   [red-value!]
 			slot   [red-value!]
-			value  [red-value!]
 			result [red-value!]
 			saved  [red-value!]
-			int	   [red-integer!]
 	][
 		if verbose > 0 [print-line "eval: path"]
 		
@@ -254,64 +321,10 @@ interpreter: context [
 		while [slot < tail][
 			if verbose > 1 [print-line ["slot type: " TYPE_OF(slot)]]
 			
-			value: either TYPE_OF(slot) = TYPE_GET_WORD [
-				_context/get as red-word! slot
-			][
-				slot
-			]
-			
-			switch TYPE_OF(value) [
-				TYPE_WORD [
-					either slot = head [
-						result: _context/get as red-word! value
-						switch TYPE_OF(result) [
-							TYPE_ACTION					;@@ replace with TYPE_ANY_FUNCTION
-							TYPE_NATIVE
-							TYPE_ROUTINE
-							TYPE_FUNCTION [
-
-							]
-							TYPE_BLOCK 					;@@ replace with TYPE_SERIES
-							TYPE_PATH
-							TYPE_LIT_PATH
-							TYPE_GET_PATH
-							TYPE_SET_PATH
-							TYPE_STRING [
-
-							]
-							;TYPE_OBJECT
-							;TYPE_PORT [
-							;
-							;]
-						]
-					][
-						result: either all [set? slot + 1 = tail][
-							value: actions/find as red-series! result value null no no no null null no no no no
-							actions/poke as red-series! value 2 stack/arguments
-							stack/arguments
-						][
-							actions/select as red-series! result value null no no no null null no no
-						]
-					]
-				]
-				TYPE_PAREN [
-					--NOT_IMPLEMENTED--
-				]
-				TYPE_INTEGER [
-					int: as red-integer! value
-					result: either all [set? slot + 1 = tail][
-						actions/poke as red-series! result int/value stack/arguments
-						stack/arguments
-					][				
-						actions/pick as red-series! result int/value
-					]
-				]
-				TYPE_STRING [
-					--NOT_IMPLEMENTED--
-				]
-			]
+			result: eval-path-element slot head tail result set?
 			slot: slot + 1
 		]
+		
 		stack/top: saved
 		stack/push result
 	]
