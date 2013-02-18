@@ -457,7 +457,9 @@ interpreter: context [
 				pc: pc + 1
 			]
 			TYPE_LIT_PATH [
-				--NOT_IMPLEMENTED--
+				value: stack/push pc
+				value/header: TYPE_PATH
+				pc: pc + 1
 			]
 			TYPE_OP [
 				--NOT_IMPLEMENTED--						;-- op used in prefix mode
