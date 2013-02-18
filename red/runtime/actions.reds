@@ -614,7 +614,7 @@ actions: context [
 	pick*: func [
 		return:	 [red-value!]
 	][
-		pick
+		stack/set-last pick
 			as red-series! stack/arguments
 			get-index-argument
 	]
@@ -634,7 +634,7 @@ actions: context [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr as red-value! series ACT_PICK
 		
-		stack/set-last action-pick series index
+		action-pick series index
 	]
 	
 	poke*: func [

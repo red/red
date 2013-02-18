@@ -281,7 +281,7 @@ interpreter: context [
 				result: either all [set? slot + 1 = tail][
 					actions/poke as red-series! result int/value stack/arguments
 					stack/arguments
-				][				
+				][
 					actions/pick as red-series! result int/value
 				]
 			]
