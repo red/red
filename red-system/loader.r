@@ -383,7 +383,7 @@ loader: make-profilable context [
 		
 		unless block? src [
 			expand-string src						;-- process string-level compiler directives
-			if error? set/any 'err try [src: load src][	;-- convert source to blocks
+			if error? set/any 'err try [src: load/all src][	;-- convert source to blocks
 				throw-error ["syntax error during LOAD phase:" mold disarm err]
 			]
 		]
