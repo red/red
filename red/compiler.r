@@ -327,7 +327,7 @@ red: context [
 	]
 	
 	pop-context: does [
-		clear skip tail ctx-stack -2
+		clear back tail ctx-stack
 	]
 	
 	find-contexts: func [name [word!]][
