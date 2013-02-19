@@ -10,45 +10,47 @@ REBOL [
 do %../red-system/compiler.r
 
 red: context [
-	verbose:  	  0										;-- logs verbosity level
-	job: 		  none									;-- reference the current job object	
-	script-name:  none
-	script-path:  none
-	main-path:	  none
-	runtime-path: %runtime/
-	nl: 		  newline
-	symbols:	  make hash! 1000
-	globals:	  make hash! 1000						;-- words defined in global context
-	aliases: 	  make hash! 100
-	contexts:	  make hash! 100						;-- storage for statically compiled contexts
-	ctx-stack:	  make block! 8							;-- contexts access path
-	lexer: 		  do bind load %lexer.r 'self
-	extracts:	  do bind load %utils/extractor.r 'self	;-- @@ to be removed once we get redbin loader.
-	sys-global:   make block! 1
+	verbose:	   0									;-- logs verbosity level
+	job: 		   none									;-- reference the current job object	
+	script-name:   none
+	script-path:   none
+	main-path:	   none
+	runtime-path:  %runtime/
+	include-stk:   make block! 3
+	included-list: make block! 20
+	symbols:	   make hash! 1000
+	globals:	   make hash! 1000						;-- words defined in global context
+	aliases: 	   make hash! 100
+	contexts:	   make hash! 100						;-- storage for statically compiled contexts
+	ctx-stack:	   make block! 8						;-- contexts access path
+	lexer: 		   do bind load %lexer.r 'self
+	extracts:	   do bind load %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
+	sys-global:    make block! 1
+	 
+	pc: 		   none
+	locals:		   none
+	locals-stack:  make block! 32
+	output:		   make block! 100
+	sym-table:	   make block! 1000
+	literals:	   make block! 1000
+	declarations:  make block! 1000
+	bodies:		   make block! 1000
+	ssa-names: 	   make block! 10						;-- unique names lookup table (SSA form)
+	last-type:	   none
+	return-def:    to-set-word 'return					;-- return: keyword
+	s-counter:	   0									;-- series suffix counter
+	depth:		   0									;-- expression nesting level counter
+	booting?:	   none									;-- YES: compiling boot script
+	nl: 		   newline
+ 
+	unboxed-set:   [integer! char! float! float32! logic!]
+	block-set:	   [block! paren! path! set-path! lit-path!]	;@@ missing get-path!
+	string-set:	   [string! binary!]
+	series-set:	   union block-set string-set
 	
-	pc: 		  none
-	locals:		  none
-	locals-stack: make block! 32
-	output:		  make block! 100
-	sym-table:	  make block! 1000
-	literals:	  make block! 1000
-	declarations: make block! 1000
-	bodies:		  make block! 1000
-	ssa-names: 	  make block! 10						;-- unique names lookup table (SSA form)
-	last-type:	  none
-	return-def:   to-set-word 'return					;-- return: keyword
-	s-counter:	  0										;-- series suffix counter
-	depth:		  0										;-- expression nesting level counter
-	booting?:	  none									;-- YES: compiling boot script
-
-	unboxed-set:  [integer! char! float! float32! logic!]
-	block-set:	  [block! paren! path! set-path! lit-path!]	;@@ missing get-path!
-	string-set:	  [string! binary!]
-	series-set:	  union block-set string-set
-	
-	actions: 	  make block! 100
-	op-actions:	  make block! 20
-	keywords: 	  make block! 10
+	actions: 	   make block! 100
+	op-actions:	   make block! 20
+	keywords: 	   make block! 10
 	
 	actions-prefix: to path! 'actions
 	natives-prefix: to path! 'natives
@@ -1692,9 +1694,6 @@ red: context [
 		]
 		false											;-- not an infix expression
 	]
-	
-include-stk: make block! 3
-included-list: make block! 20
 
 	comp-directive: has [file saved][
 		switch pc/1 [
@@ -1962,7 +1961,9 @@ included-list: make block! 20
 		next src										;-- skip header block
 	]
 	
-	clean-up: does [	
+	clean-up: does [
+		clear include-stk
+		clear included-list
 		clear symbols
 		clear aliases
 		clear globals

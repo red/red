@@ -237,8 +237,8 @@ interpreter: context [
 	][
 		value: case [
 			TYPE_OF(slot) = TYPE_GET_WORD [_context/get as red-word! slot]
-			null? alt-slot [slot]
-			true		   [alt-slot]
+			null? alt-slot 				  [slot]
+			true		   				  [alt-slot]
 		]
 		switch TYPE_OF(value) [
 			TYPE_WORD [
