@@ -657,9 +657,6 @@ red: context [
 					emit-close-frame
 				]
 			]
-			paren! [
-				--not-implemented--
-			]
 			string!	[
 				--not-implemented--
 			]
@@ -776,9 +773,13 @@ red: context [
 					emit name
 					insert-lf -2
 				]
-				path!	[
+				path! set-path!	[
 					name: do make-block
-					emit 'path/push
+					either lit-path? pc/1 [
+						emit 'path/push
+					][
+						emit join to path! to word! form type? pc/1 'push
+					]
 					emit name
 					insert-lf -2
 				]
@@ -1395,9 +1396,32 @@ red: context [
 		]
 	]
 	
-	comp-path: func [/set /local path value emit? get? entry alter][
+	comp-path: func [/set /local path value emit? get? entry alter saved after][
 		path: copy pc/1
 		emit?: yes
+		
+		if find path paren! [
+			emit-open-frame 'body
+			if set [
+				saved: pc
+				pc: next pc
+				comp-expression
+				after: pc
+				pc: saved
+			]
+			comp-literal no
+			pc: back pc
+			
+			unless set [emit [stack/mark-native words/_body]]	;@@ not clean...
+			emit compose [
+				interpreter/eval-path stack/top - 1 (to word! form to logic! set)
+			]
+			unless set [emit [stack/unwind-last]]
+			
+			emit-close-frame
+			pc: either set [after][next pc]
+			exit
+		]
 		
 		forall path [
 			switch/default type?/word value: path/1 [
@@ -1430,8 +1454,8 @@ red: context [
 			]
 		]
 		if emit? [
-			if set [pc: next pc]						;-- skip set-path to be ready to fetch argument
-			emit-path back tail path to logic! set		;-- emit code recursively from tail
+			if set [pc: next pc]					;-- skip set-path to be ready to fetch argument
+			emit-path back tail path to logic! set	;-- emit code recursively from tail
 			unless set [pc: next pc]
 		]
 	]
@@ -1763,7 +1787,7 @@ red: context [
 		]
 	]
 	
-	comp-expression: func [/no-infix /root /local saved][
+	comp-expression: func [/no-infix /root][
 		unless no-infix [
 			if check-infix-operators [exit]
 		]
@@ -1786,7 +1810,7 @@ red: context [
 			set-word!	[comp-set-word]
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
-			paren!		[saved: pc pc: pc/1 comp-block pc: next saved]
+			paren!		[comp-next-block]
 			set-path!	[comp-path/set]
 			path! 		[comp-path]
 		][
@@ -1796,6 +1820,13 @@ red: context [
 			emit 'stack/reset							;-- clear stack from last root expression result
 			insert-lf -1
 		]
+	]
+	
+	comp-next-block: func [/with blk /local saved][
+		saved: pc
+		pc: any [blk pc/1]
+		comp-block
+		pc: next saved
 	]
 	
 	comp-chunked-block: has [list mark saved][

@@ -198,8 +198,7 @@ stack: context [										;-- call stack
 			dump-memory
 				as byte-ptr! cbottom
 				4
-			(as-integer ctop + 2 - cbottom) >> 4
-			
+				(as-integer ctop + 4 - cbottom) >> 4
 			print-line ["ctop: " ctop]
 		]
 	]
