@@ -531,6 +531,13 @@ do: make native! [[
 	#get-definition NAT_DO
 ]
 
+reduce: make native! [[
+		value [any-type!]
+		/into
+	]
+	#get-definition NAT_REDUCE
+]
+
 get: make native! [[
 		word	[word!]
 		/any

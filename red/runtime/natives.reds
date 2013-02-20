@@ -508,6 +508,12 @@ natives: context [
 		s: GET_BUFFER(str)
 		tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
 	]
+	
+	reduce*: func [
+	
+	][
+	
+	]
 
 	;--- Natives helper functions ---
 	
@@ -671,6 +677,7 @@ natives: context [
 		:halt*
 		:type?*
 		:load*
+		:reduce*
 	]
 
 ]

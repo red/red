@@ -58,7 +58,7 @@ red: context [
 	intrinsics:   [
 		if unless either any all while until loop repeat
 		foreach forall break halt func function does has
-		exit return switch case routine set get
+		exit return switch case routine set get reduce
 	]
 
 	functions: make hash! [
@@ -1372,6 +1372,28 @@ red: context [
 		
 	]
 	
+	comp-reduce: has [list][
+		list: comp-chunked-block
+		
+		emit-open-frame 'reduce
+		either path? pc/-2 [						;-- -2 => account for block argument
+			comp-expression							;-- compile /into argument
+		][
+			emit 'block/push-only*					;-- create a fresh new block on stack only
+			emit max 1 length? list
+			insert-lf -2
+		]
+		foreach chunk list [
+			emit chunk
+			emit 'block/append*
+			insert-lf -1
+			emit 'stack/keep						;-- reset stack, but keep block as last value
+			insert-lf -1
+		]
+		remove back tail output
+		emit-close-frame
+	]
+	
 	comp-set: does [									;@@ add /any handling
 		either lit-word? pc/1 [
 			comp-set-word/native
@@ -1590,7 +1612,7 @@ red: context [
 		if infix? pc [
 			throw-error "invalid use of set-word as operand"
 		]
-		if all [not booting? find intrinsics name][
+		if all [not booting? find intrinsics name][		
 			throw-error ["attempt to redefine a keyword:" name]
 		]
 		case [
@@ -1835,7 +1857,7 @@ red: context [
 		pc: pc/1										;-- dive in nested code
 		mark: tail output
 		
-		comp-block/with [
+		comp-block/no-root/with [
 			append/only list copy mark
 			clear mark
 		]
@@ -1866,6 +1888,7 @@ red: context [
 	
 	comp-block: func [
 		/with body [block!]
+		/no-root
 		/local expr
 	][
 		if tail? pc [
@@ -1875,7 +1898,7 @@ red: context [
 		]
 		while [not tail? pc][
 			expr: pc
-			comp-expression/root
+			either no-root [comp-expression][comp-expression/root]
 			
 			if all [verbose > 2 positive? offset? pc expr][probe copy/part expr pc]
 			if verbose > 0 [emit-src-comment expr]

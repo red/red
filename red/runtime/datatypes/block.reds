@@ -111,6 +111,14 @@ block: context [
 		blk
 	]
 	
+	push: func [
+		blk [red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/push"]]
+
+		copy-cell as red-value! blk stack/push*
+	]
+	
 	push*: func [
 		size	[integer!]
 		return: [red-block!]	
@@ -127,12 +135,19 @@ block: context [
 		blk
 	]
 	
-	push: func [
-		blk [red-block!]
+	push-only*: func [
+		size	[integer!]
+		return: [red-block!]
+		/local
+			blk [red-block!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "block/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "block/push-only*"]]
 
-		copy-cell as red-value! blk stack/push*
+		blk: as red-block! stack/push*
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk/head: 	0
+		blk/node: 	alloc-cells size
+		blk
 	]
 	
 	mold-each: func [

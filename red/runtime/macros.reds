@@ -164,6 +164,7 @@ Red/System [
 	NAT_HALT
 	NAT_TYPE?
 	NAT_LOAD
+	NAT_REDUCE
 ]
 
 #enum math-op! [
