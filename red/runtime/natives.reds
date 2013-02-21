@@ -510,9 +510,31 @@ natives: context [
 	]
 	
 	reduce*: func [
-	
+		into [integer!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			blk	  [red-block!]
 	][
-	
+		value: block/rs-head as red-block! stack/arguments
+		tail:  block/rs-tail as red-block! stack/arguments
+		
+		stack/mark-native words/_body
+		
+		blk: either negative? into [
+			block/push-only* (as-integer tail - value) >> 4
+		][
+			as red-block! stack/arguments + into
+		]
+		
+		while [value < tail][
+			stack/mark-native words/_body				;-- inner stack frame
+			value: interpreter/eval-expression value tail no yes
+			stack/unwind
+			block/append*
+			stack/keep									;-- preserve the reduced block on stack
+		]
+		stack/unwind-last
 	]
 
 	;--- Natives helper functions ---

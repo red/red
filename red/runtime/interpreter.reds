@@ -122,7 +122,7 @@ interpreter: context [
 		if verbose > 0 [log "infix detected!"]
 		
 		stack/mark-native as red-word! pc + 1
-		eval-expression pc end yes	yes
+		eval-expression pc end yes yes
 		pc: pc + 2										;-- skip both left operand and operator
 		pc: eval-expression pc end no yes				;-- eval right operand
 		op: as red-op! value
