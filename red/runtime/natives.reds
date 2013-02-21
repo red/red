@@ -515,16 +515,23 @@ natives: context [
 			value [red-value!]
 			tail  [red-value!]
 			blk	  [red-block!]
+			arg	  [red-value!]
 	][
-		value: block/rs-head as red-block! stack/arguments
-		tail:  block/rs-tail as red-block! stack/arguments
+		arg: stack/arguments
+		if TYPE_OF(arg) <> TYPE_BLOCK [
+			interpreter/eval-expression arg arg + 1 no no
+			exit
+		]
+		
+		value: block/rs-head as red-block! arg
+		tail:  block/rs-tail as red-block! arg
 		
 		stack/mark-native words/_body
 		
 		blk: either negative? into [
 			block/push-only* (as-integer tail - value) >> 4
 		][
-			as red-block! stack/arguments + into
+			as red-block! arg + into
 		]
 		
 		while [value < tail][
