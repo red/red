@@ -81,7 +81,7 @@ natives: context [
 		tail:  block/rs-tail as red-block! stack/arguments
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail
+			value: interpreter/eval-next value tail no
 			if logic/true? [exit]
 		]
 		RETURN_NONE
@@ -96,7 +96,7 @@ natives: context [
 		tail:  block/rs-tail as red-block! stack/arguments
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail
+			value: interpreter/eval-next value tail no
 			if logic/false? [RETURN_NONE]
 		]
 	]
@@ -303,13 +303,13 @@ natives: context [
 		if value = tail [RETURN_NONE]
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail		;-- eval condition
+			value: interpreter/eval-next value tail no	;-- eval condition
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
 					stack/reset
 					interpreter/eval as red-block! value
 				][
-					value: interpreter/eval-next value tail
+					value: interpreter/eval-next value tail no
 				]
 				exit									;-- early exit with last value on stack
 			][
@@ -528,9 +528,7 @@ natives: context [
 		]
 		
 		while [value < tail][
-			stack/mark-native words/_body				;-- inner stack frame
-			value: interpreter/eval-expression value tail no yes
-			stack/unwind
+			value: interpreter/eval-next value tail yes
 			block/append*
 			stack/keep									;-- preserve the reduced block on stack
 		]

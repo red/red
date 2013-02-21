@@ -483,11 +483,12 @@ interpreter: context [
 	eval-next: func [
 		value	[red-value!]
 		tail	[red-value!]
+		sub?	[logic!]
 		return: [red-value!]							;-- return start of next expression
 	][
 		stack/mark-native words/_body					;-- outer stack frame
-		value: eval-expression value tail no no
-		stack/unwind-last
+		value: eval-expression value tail no sub?
+		either sub? [stack/unwind][stack/unwind-last]
 		value
 	]
 	
