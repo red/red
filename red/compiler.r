@@ -1369,7 +1369,6 @@ red: context [
 			emit body
 			emit-close-frame
 		]
-		
 	]
 	
 	comp-reduce: has [list][
@@ -1382,7 +1381,12 @@ red: context [
 			exit
 		]
 		
-		list: comp-chunked-block					;-- compile literal block
+		list: either empty? pc/1 [
+			pc: next pc								;-- pass the empty source block
+			make block! 1
+		][
+			comp-chunked-block						;-- compile literal block
+		]
 		
 		emit-open-frame 'reduce
 		either path? pc/-2 [						;-- -2 => account for block argument
@@ -1399,7 +1403,7 @@ red: context [
 			emit 'stack/keep						;-- reset stack, but keep block as last value
 			insert-lf -1
 		]
-		remove back tail output
+		unless empty? list [remove back tail output] ;-- remove the extra 'stack/keep
 		emit-close-frame
 	]
 	
