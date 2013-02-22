@@ -94,7 +94,22 @@ Red [
 		--assert none = do [reduce none]
 		
 	--test-- "reduce-14"
-		--assert [3 z] = reduce [1 + length? reduce [3 + 4 789] 'z]
+		--assert [[]] = reduce [reduce []]
+	
+	--test-- "reduce-15"
+		--assert [3 z] = reduce [
+			1 + length? reduce [3 + 4 789] 'z
+		]
+	
+	--test-- "reduce-16"
+		--assert [[]] = do [reduce [reduce []]]
+	
+	--test-- "reduce-17"
+		--assert [3 z] = do [
+			reduce [
+				1 + length? reduce [3 + 4 789] 'z
+			]
+		]
 	
 ===end-group===
 
