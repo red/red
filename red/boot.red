@@ -534,8 +534,19 @@ do: make native! [[
 reduce: make native! [[
 		value [any-type!]
 		/into
+			out [any-block!]
 	]
 	#get-definition NAT_REDUCE
+]
+
+compose: make native! [[
+		value [block!]
+		/deep
+		/only
+		/into
+			out [any-block!]
+	]
+	#get-definition NAT_COMPOSE
 ]
 
 get: make native! [[

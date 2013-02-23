@@ -518,7 +518,7 @@ natives: context [
 			arg	  [red-value!]
 	][
 		arg: stack/arguments
-		if TYPE_OF(arg) <> TYPE_BLOCK [
+		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
 			interpreter/eval-expression arg arg + 1 no no
 			exit
 		]
@@ -540,6 +540,86 @@ natives: context [
 			stack/keep									;-- preserve the reduced block on stack
 		]
 		stack/unwind-last
+	]
+	
+	compose-block: func [
+		blk		[red-block!]
+		deep?	[logic!]
+		only?	[logic!]
+		into	[integer!]
+		root?	[logic!]
+		return: [red-block!]
+		/local
+			value  [red-value!]
+			tail   [red-value!]
+			new	   [red-block!]
+			result [red-value!]
+	][
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
+		
+		new: either all [root? into >= 0][
+			as red-block! stack/arguments + into
+		][
+			block/push-only* (as-integer tail - value) >> 4	
+		]
+			
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_BLOCK [
+					blk: either deep? [
+						compose-block as red-block! value deep? only? into no
+					][
+						as red-block! value
+					]
+					copy-cell as red-value! blk ALLOC_TAIL(new)
+					stack/pop 1							;-- avoid temp blocks accumulating on stack
+				]
+				TYPE_PAREN [
+					blk: as red-block! value
+					unless zero? block/rs-length? blk [
+						interpreter/eval blk
+						result: stack/arguments
+						blk: as red-block! result 
+						
+						unless any [
+							TYPE_OF(result) = TYPE_UNSET
+							all [
+								TYPE_OF(result) = TYPE_BLOCK
+								zero? block/rs-length? blk
+							]
+						][
+							either any [
+								only? 
+								TYPE_OF(result) <> TYPE_BLOCK
+							][
+								copy-cell result ALLOC_TAIL(new)
+							][
+								block/rs-append-block new as red-block! result
+							]
+						]
+					]
+				]
+				default [
+					copy-cell value ALLOC_TAIL(new)
+				]
+			]
+			value: value + 1
+		]
+		new
+	]
+	
+	compose*: func [
+		deep? [logic!]
+		only? [logic!]
+		into  [integer!]
+	][
+		arg: stack/arguments
+		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
+			interpreter/eval-expression arg arg + 1 no no
+			exit
+		]
+		stack/set-last as red-value! compose-block as red-block! arg deep? only? into yes
 	]
 
 	;--- Natives helper functions ---
@@ -705,6 +785,7 @@ natives: context [
 		:type?*
 		:load*
 		:reduce*
+		:compose*
 	]
 
 ]
