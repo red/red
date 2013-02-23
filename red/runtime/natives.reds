@@ -610,16 +610,22 @@ natives: context [
 	]
 	
 	compose*: func [
-		deep? [logic!]
-		only? [logic!]
-		into  [integer!]
+		deep [integer!]
+		only [integer!]
+		into [integer!]
 	][
 		arg: stack/arguments
 		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
 			interpreter/eval-expression arg arg + 1 no no
 			exit
 		]
-		stack/set-last as red-value! compose-block as red-block! arg deep? only? into yes
+		stack/set-last 
+			as red-value! compose-block
+				as red-block! arg
+				as logic! deep + 1 
+				as logic! only + 1
+				into
+				yes
 	]
 
 	;--- Natives helper functions ---
