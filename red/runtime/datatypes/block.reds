@@ -32,7 +32,7 @@ block: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(blk)
-		s/offset
+		s/offset + blk/head
 	]
 	
 	rs-tail: func [
@@ -43,6 +43,35 @@ block: context [
 	][
 		s: GET_BUFFER(blk)
 		s/tail
+	]
+	
+	rs-append: func [
+		blk		[red-block!]
+		value	[red-value!]
+		return: [red-block!]
+	][
+		copy-cell value ALLOC_TAIL(blk)
+		blk
+	]
+	
+	rs-append-block: func [
+		blk		[red-block!]
+		blk2	[red-block!]
+		return: [red-block!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			s	  [series!]
+	][
+		s: GET_BUFFER(blk2)
+		value: s/offset + blk/head
+		tail:  s/tail
+
+		while [value < tail][
+			copy-cell value ALLOC_TAIL(blk)
+			value: value + 1
+		]
+		blk
 	]
 	
 	get-position: func [
