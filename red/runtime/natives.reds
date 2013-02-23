@@ -53,13 +53,13 @@ natives: context [
 		either logic/false? [
 			RETURN_NONE
 		][
-			interpreter/eval as red-block! stack/arguments + 1 no
+			interpreter/eval as red-block! stack/arguments + 1
 		]
 	]
 	
 	unless*: does [
 		either logic/false? [
-			interpreter/eval as red-block! stack/arguments + 1 no
+			interpreter/eval as red-block! stack/arguments + 1
 		][
 			RETURN_NONE
 		]
@@ -69,7 +69,7 @@ natives: context [
 		/local offset [integer!]
 	][
 		offset: either logic/true? [1][2]
-		interpreter/eval as red-block! stack/arguments + offset no
+		interpreter/eval as red-block! stack/arguments + offset
 	]
 	
 	any*: func [
@@ -320,7 +320,7 @@ natives: context [
 	]
 	
 	do*: does [
-		interpreter/eval as red-block! stack/arguments no
+		interpreter/eval as red-block! stack/arguments
 	]
 	
 	get*: func [
