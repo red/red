@@ -935,7 +935,7 @@ red: context [
 		depth: depth + 1
 
 		emit 'stack/reset
-		insert-lf - 1
+		insert-lf -1
 		
 		pc: next pc
 		comp-expression									;-- compile 2nd argument
