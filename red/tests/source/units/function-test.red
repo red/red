@@ -173,5 +173,15 @@ Red [
 
 ===end-group===
 
+===start-group=== "Reported issues"
+  --test-- "issue #415"
+    i415-f: func [] [
+      g: func [] [1]
+      g
+    ]
+  --assert 1 = i415-f
+
+===end-group===
+
 ~~~end-file~~~
 

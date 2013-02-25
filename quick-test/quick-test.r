@@ -260,6 +260,14 @@ qt: make object! [
     if output <> "Compilation failed" [print output]
   ]
   
+  compiled?: func [
+    src [string!]
+  ][
+    exe: compile-from-string src
+    clean-compile-from-string
+    qt/compile-ok?
+  ]
+  
   run: func [
     prog [file!]
     ;;/args                         ;; not yet needed
@@ -765,6 +773,7 @@ qt: make object! [
   set '--compile-and-run-this-red   :r-compile-and-run-from-string
   set '--compile-run-print          :compile-run-print
   set '--compile-run-print-red      :r-compile-run-print
+  set '--compiled?                  :compiled?
   set '--run                        :run
   set '--add-to-run-totals          :add-to-run-totals
   set '--run-unit-test              :run-unit-test
