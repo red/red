@@ -563,7 +563,6 @@ natives: context [
 		][
 			block/push-only* (as-integer tail - value) >> 4	
 		]
-			
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_BLOCK [
@@ -573,7 +572,6 @@ natives: context [
 						as red-block! value
 					]
 					copy-cell as red-value! blk ALLOC_TAIL(new)
-					stack/pop 1							;-- avoid temp blocks accumulating on stack
 				]
 				TYPE_PAREN [
 					blk: as red-block! value

@@ -801,6 +801,7 @@ red: context [
 			]
 		]
 		pc: next pc
+		name
 	]
 		
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
@@ -1905,7 +1906,7 @@ red: context [
 		/local expr
 	][
 		if tail? pc [
-			emit [unset/push-last]
+			emit 'unset/push-last
 			insert-lf -1
 			exit
 		]
