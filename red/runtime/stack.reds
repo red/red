@@ -181,6 +181,8 @@ stack: context [										;-- call stack
 	pop: func [
 		positions [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/pop"]]
+		
 		top: top - positions
 	]
 

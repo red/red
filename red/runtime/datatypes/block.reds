@@ -903,7 +903,7 @@ block: context [
 		
 		slots:	rs-length? blk
 		offset: s/offset + blk/head
-		part:   as-integer s/tail - offset
+		part:   as-integer s/tail - offset				;@@ should be `part: slots`
 		
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 		
