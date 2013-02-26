@@ -546,7 +546,7 @@ natives: context [
 		blk		[red-block!]
 		deep?	[logic!]
 		only?	[logic!]
-		into	[integer!]
+		into	[red-block!]
 		root?	[logic!]
 		return: [red-block!]
 		/local
@@ -558,8 +558,8 @@ natives: context [
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
 		
-		new: either all [root? into >= 0][
-			as red-block! stack/arguments + into
+		new: either all [root? OPTION?(into)][
+			into
 		][
 			block/push-only* (as-integer tail - value) >> 4	
 		]
@@ -583,6 +583,7 @@ natives: context [
 						unless any [
 							TYPE_OF(result) = TYPE_UNSET
 							all [
+								not only?
 								TYPE_OF(result) = TYPE_BLOCK
 								zero? block/rs-length? blk
 							]
@@ -622,7 +623,7 @@ natives: context [
 				as red-block! arg
 				as logic! deep + 1 
 				as logic! only + 1
-				into
+				as red-block! stack/arguments + into
 				yes
 	]
 
