@@ -202,7 +202,6 @@ emitter: make-profilable context [
 			value: 0
 		]
 		if find compiler/enumerations type [type: 'integer!]
-		if string? value [type: 'c-string!]				;-- force c-string! in case of type casting
 		
 		size: size-of? type
 		ptr: tail data-buf
@@ -317,6 +316,7 @@ emitter: make-profilable context [
 				name: none								;-- anonymous data storing
 			]
 			if any [not new-global? string? value paren? value][
+				if string? value [type: [c-string!]]		;-- force c-string! in case of type casting
 				spec: store-value/ref name value type refs  ;-- store new value in data buffer
 			]
 			if n-spec [spec: n-spec]
