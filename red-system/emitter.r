@@ -202,6 +202,7 @@ emitter: make-profilable context [
 			value: 0
 		]
 		if find compiler/enumerations type [type: 'integer!]
+		if string? value [type: 'c-string!]				;-- force c-string! in case of type casting
 		
 		size: size-of? type
 		ptr: tail data-buf
