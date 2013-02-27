@@ -170,16 +170,28 @@ red: context [
 		]
 	]
 	
-	get-word-index: func [name [word!] ctx [word!]][
-		ctx: select contexts ctx
-		(index? find ctx name) - 1						;-- 0-based access in context table
+	get-word-index: func [name [word!] /with c [word!] /local ctx pos list][
+		if with [
+			ctx: select contexts c
+			return (index? find ctx name) - 1
+		]
+		list: tail ctx-stack
+		until [											;-- search backward in parent contexts
+			list: back list
+			ctx: select contexts list/1
+			if pos: find ctx name [
+				return (index? pos) - 1					;-- 0-based access in context table
+			]
+			head? list
+		]
+		throw-error ["Should not happen: not found context for word: " mold name]
 	]
 	
 	emit-push-word: func [name [word!]][
 		either local-word? name [
 			emit 'word/push-local
 			emit last ctx-stack
-			emit get-word-index name last ctx-stack
+			emit get-word-index name
 			insert-lf -3
 		][
 			emit 'word/push
@@ -547,7 +559,7 @@ red: context [
 						value: decorate-symbol word
 						either all [bind local-word? to word! :item][
 							action: 'push-local
-							reduce [ctx get-word-index to word! :item ctx]
+							reduce [ctx get-word-index/with to word! :item ctx]
 						][
 							value
 						]
