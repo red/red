@@ -17,13 +17,6 @@ Red/System [
 	]
 ]
 
-#define EVAL_ARGUMENT [
-	EVAL_CHECK_INPUT
-	if verbose > 0 [log "evaluating argument"]
-	pc: eval-expression pc end no yes					;-- eval argument
-	count: count + 1
-]
-
 #define EVAL_FETCH_ARGUMENT [
 	EVAL_CHECK_INPUT
 	if verbose > 0 [log "fetching argument"]
@@ -35,9 +28,6 @@ Red/System [
 interpreter: context [
 	verbose: 0
 
-	ref-array: as int-ptr! allocate 64 * size? integer!	;-- for natives/actions refinements handling
-	offset: 0											;-- refinements counter for last call
-	count:  0											;-- arguments counter for last call
 	return-type: -1										;-- return type for routine calls
 	
 	log: func [msg [c-string!]][
@@ -45,27 +35,28 @@ interpreter: context [
 		print-line msg
 	]
 	
-	exec: func [
-		native	  [red-native!]							;-- works for action! too
-		/local
-			index [integer!]
-			call
+	find-refinement?: func [
+		ref		[red-word!]
+		path	[red-path!]
+		slot	[red-word!]
+		end		[red-value!]
+		return: [logic!]
 	][
-		call: as function! [] native/code
-		index: 0
-		if positive? offset [
-			until [
-				system/words/push ref-array/index
-				index: index + 1
-				offset: offset - 1
-				zero? offset
+		while [slot < end][
+			if TYPE_OF(slot) <> TYPE_WORD [
+				print-line "*** Error: function call with non-word refinement!"
+				halt
 			]
+			if (symbol/resolve slot/symbol) = (symbol/resolve ref/symbol) [
+				return yes
+			]
+			slot: slot + 1
 		]
-		call
+		no
 	]
 	
 	exec-routine: func [
-		routine [red-routine!]
+		fun	 [red-routine!]
 		/local
 			native [red-native!]
 			arg	   [red-value!]
@@ -73,12 +64,13 @@ interpreter: context [
 			int	   [red-integer!]
 			s	   [series!]
 			ret	   [integer!]
+			count  [integer!]
 			call
 	][
-		s: as series! routine/more/value
+		s: as series! fun/more/value
 		native: as red-native! s/offset + 2
 		call: as function! [return: [integer!]] native/code
-		count: count - 1								;-- zero-based stack access
+		count: (routine/get-arity fun) - 1				;-- zero-based stack access
 		
 		while [count >= 0][
 			arg: stack/arguments + count
@@ -102,7 +94,7 @@ interpreter: context [
 					int/header: TYPE_INTEGER
 					int/value: ret
 				]
-				default [assert true]					;-- should never happen
+				default [assert false]					;-- should never happen
 			]
 		][
 			call
@@ -141,6 +133,8 @@ interpreter: context [
 		native 	[red-native!]
 		pc		[red-value!]
 		end	  	[red-value!]
+		path	[red-path!]
+		pos 	[red-value!]
 		return: [red-value!]
 		/local
 			fun	  	  [red-function!]
@@ -149,13 +143,21 @@ interpreter: context [
 			value	  [red-value!]
 			tail	  [red-value!]
 			dt		  [red-datatype!]
+			path-end  [red-value!]
 			s		  [series!]
+			required? [logic!]
 			ref?	  [logic!]
+			index	  [integer!]
+			count	  [integer!]
+			prev	  [integer!]
+			size	  [integer!]
+			ref-array [int-ptr!]
+			call
 	][
-		function?: TYPE_OF(native) = TYPE_FUNCTION
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
+		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
 		
-		s: as series! either any [function? routine?][
+		s: as series! either function? [
 			fun: as red-function! native
 			fun/spec/node/value
 		][
@@ -164,46 +166,67 @@ interpreter: context [
 		value: s/offset
 		tail:  s/tail
 		
-		count:  	 0
-		offset: 	 0
+		unless null? path [
+			path-end: block/rs-tail as red-block! path
+			if pos + 1 = path-end [path: null]			;-- no refinement following the function
+		]												;-- so, process it as a non-path call
+		
+		count:  	 0									;-- nb of fetched arguments (used as offset)
+		index: 	 	 1
 		return-type: -1
 		ref?:		 no
+		required?:	 yes								;-- yes: processing mandatory args, no: optonal args
+		
+		size: as-integer tail - value
+		ref-array: system/stack/top - size
+		system/stack/top: ref-array						;-- reserve space on native stack for refs array
 		
 		while [value < tail][
 			if verbose > 0 [print-line ["eval: spec entry type: " TYPE_OF(value)]]
 			switch TYPE_OF(value) [
 				TYPE_WORD [
-					either zero? offset [
-						EVAL_ARGUMENT
-					][
+					unless required? [
 						either ref? [
-							either any [function? routine?][
-								none/push
-							][
-								ref-array/offset: count
-								EVAL_ARGUMENT
+							unless function? [
+								prev: index - 1			;-- overwrite previous entry if it was a ref marker
+								either negative? ref-array/prev [
+									ref-array/prev: count
+									index: prev
+								][
+									ref-array/index: count
+								]
+								
 							]
 						][
-							either any [function? routine?][
+							either function? [
 								none/push
 							][
-								ref-array/offset: -1
+								ref-array/index: -1
 							]
 						]
-						offset: offset + 1
+						index: index + 1
+					]
+					if any [required? ref?][
+						EVAL_CHECK_INPUT
+						if verbose > 0 [log "evaluating argument"]
+						pc: eval-expression pc end no yes	;-- eval argument
+						count: count + 1
 					]
 				]
 				TYPE_LIT_WORD [EVAL_FETCH_ARGUMENT]
 				TYPE_GET_WORD [EVAL_FETCH_ARGUMENT]
 				TYPE_REFINEMENT [
-					ref?: no							;@@ set it correctly once path supported
-					either any [function? routine?][
-						;TBD: check here if refinement is used
-						logic/push false
-						offset: 1
+					if required? [required?: no]		;-- no more mandatory arguments
+					
+					ref?: either null? path [no][
+						find-refinement? as red-word! value path as red-word! pos path-end
+					]
+					
+					either function? [
+						logic/push ref?
 					][
-						ref-array/offset: -1
-						offset: offset + 1
+						ref-array/index: either ref? [count][-1]
+						index: index + 1
 					]
 				]
 				TYPE_SET_WORD [
@@ -214,11 +237,16 @@ interpreter: context [
 						assert TYPE_OF(dt) = TYPE_DATATYPE
 						return-type: dt/value
 					]
-					return pc
 				]
-				default [0]
+				default [0]								;-- ignore other values
 			]
 			value: value + 1
+		]
+		
+		unless function? [
+			system/stack/top: ref-array					;-- reset native stack to our custom arguments frame
+			call: as function! [] native/code			;-- direct call for actions/natives
+			call
 		]
 		pc
 	]
@@ -249,7 +277,7 @@ interpreter: context [
 						TYPE_NATIVE
 						TYPE_ROUTINE
 						TYPE_FUNCTION [
-
+							return result
 						]
 						TYPE_BLOCK 						;@@ replace with TYPE_SERIES
 						TYPE_PATH
@@ -263,6 +291,9 @@ interpreter: context [
 						;TYPE_PORT [
 						;
 						;]
+						default [
+							;; TBD raise an error
+						]
 					]
 				][
 					result: either all [set? slot + 1 = tail][
@@ -297,8 +328,11 @@ interpreter: context [
 	]
 	
 	eval-path: func [
-		pc	 [red-value!]								;-- path to evaluate
-		set? [logic!]
+		value   [red-value!]
+		pc		[red-value!]							;-- path to evaluate
+		end		[red-value!]
+		set?	[logic!]
+		return: [red-value!]
 		/local 
 			path   [red-path!]
 			head   [red-value!]
@@ -309,7 +343,7 @@ interpreter: context [
 	][
 		if verbose > 0 [print-line "eval: path"]
 		
-		path:  as red-path! pc
+		path:  as red-path! value
 		head:  block/rs-head as red-block! path
 		tail:  block/rs-tail as red-block! path
 		slot:  head
@@ -326,11 +360,83 @@ interpreter: context [
 			if verbose > 1 [print-line ["slot type: " TYPE_OF(slot)]]
 			
 			result: eval-path-element slot head tail result null set?
+			
+			switch TYPE_OF(result) [
+				TYPE_ACTION						;@@ replace with TYPE_ANY_FUNCTION
+				TYPE_NATIVE
+				TYPE_ROUTINE
+				TYPE_FUNCTION [
+					pc: eval-code result pc end yes path slot
+					return pc
+				]
+				default [0]
+			]
 			slot: slot + 1
 		]
 		
 		stack/top: saved
 		stack/push result
+		pc
+	]
+	
+	eval-code: func [
+		value	[red-value!]
+		pc		[red-value!]
+		end		[red-value!]
+		sub?	[logic!]
+		path	[red-path!]
+		slot 	[red-value!]
+		return: [red-value!]
+		/local
+			fun	   [red-function!]
+			native [red-native!]
+			s	   [series!]
+			call 
+	][
+		switch TYPE_OF(value) [
+			TYPE_ACTION 
+			TYPE_NATIVE [
+				if verbose > 0 [log "pushing action/native frame"]
+				stack/mark-native as red-word! pc
+				pc: eval-arguments as red-native! value pc end path slot 	;-- fetch args and exec
+				either sub? [stack/unwind][stack/unwind-last]
+
+				if verbose > 0 [
+					value: stack/arguments
+					print-line ["eval: action/native return type: " TYPE_OF(value)]
+				]
+			]
+			TYPE_ROUTINE [
+				if verbose > 0 [log "pushing routine frame"]
+				stack/mark-native as red-word! pc
+				pc: eval-arguments as red-native! value pc end path slot
+				exec-routine as red-routine! value
+				either sub? [stack/unwind][stack/unwind-last]
+
+				if verbose > 0 [
+					value: stack/arguments
+					print-line ["eval: routine return type: " TYPE_OF(value)]
+				]
+			]
+			TYPE_FUNCTION [
+				if verbose > 0 [log "pushing function frame"]
+				stack/mark-func as red-word! pc	;@@
+				pc: eval-arguments as red-native! value pc end path slot
+				fun: as red-function! value
+				s: as series! fun/more/value
+				;eval as red-block! s/offset	;@@ eval body version (add an option for that)
+				native: as red-native! s/offset + 2
+				call: as function! [] native/code
+				call
+				either sub? [stack/unwind][stack/unwind-last]
+
+				if verbose > 0 [
+					value: stack/arguments
+					print-line ["eval: function return type: " TYPE_OF(value)]
+				]
+			]
+		]
+		pc
 	]
 	
 	eval-expression: func [
@@ -342,9 +448,7 @@ interpreter: context [
 		/local
 			next  [red-word!]
 			value [red-value!]
-			fun	  [red-function!]
 			w	  [red-word!]
-			s	  [series!]
 	][
 		next: as red-word! pc + 1
 		
@@ -385,7 +489,7 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
-				eval-path value yes
+				pc: eval-path value pc end yes
 			]
 			TYPE_GET_WORD [
 				word/get as red-word! pc
@@ -401,45 +505,11 @@ interpreter: context [
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [
-					TYPE_ACTION 
-					TYPE_NATIVE [
-						if verbose > 0 [log "pushing action/native frame"]
-						stack/mark-native as red-word! pc
-						pc: eval-arguments as red-native! value pc end
-						exec as red-native! value
-						either sub? [stack/unwind][stack/unwind-last]
-						
-						if verbose > 0 [
-							value: stack/arguments
-							print-line ["eval: action/native return type: " TYPE_OF(value)]
-						]
-					]
-					TYPE_ROUTINE [
-						if verbose > 0 [log "pushing routine frame"]
-						stack/mark-native as red-word! pc
-						pc: eval-arguments as red-native! value pc end
-						exec-routine as red-routine! value
-						either sub? [stack/unwind][stack/unwind-last]
-
-						if verbose > 0 [
-							value: stack/arguments
-							print-line ["eval: routine return type: " TYPE_OF(value)]
-						]
-					]
+					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
+					TYPE_NATIVE
+					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						if verbose > 0 [log "pushing function frame"]
-						stack/mark-func as red-word! pc	;@@
-						pc: eval-arguments as red-native! value pc end
-						fun: as red-function! value
-						s: as series! fun/more/value
-						;eval as red-block! s/offset	;@@ eval body version (add an option for that)
-						exec as red-native! s/offset + 2
-						either sub? [stack/unwind][stack/unwind-last]
-												
-						if verbose > 0 [
-							value: stack/arguments
-							print-line ["eval: function return type: " TYPE_OF(value)]
-						]
+						pc: eval-code value pc end sub? null null
 					]
 					default [
 						if verbose > 0 [log "getting word value"]
@@ -457,8 +527,9 @@ interpreter: context [
 				]
 			]
 			TYPE_PATH [
-				eval-path pc no
+				value: pc
 				pc: pc + 1
+				pc: eval-path value pc end no
 			]
 			TYPE_LIT_PATH [
 				value: stack/push pc
