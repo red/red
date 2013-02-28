@@ -14,6 +14,37 @@ Red/System [
 routine: context [
 	verbose: 0
 	
+	get-arity: func [
+		value	[red-routine!]
+		return: [integer!]
+	][
+		value/header >> 25 and 1Fh
+	]
+	
+	set-arity: func [
+		value	[red-routine!]
+		/local
+			slot  [red-value!]
+			tail  [red-value!]
+			s	  [series!]
+			count [integer!]
+	][
+		s: as series! value/spec/node/value
+		
+		slot:  s/offset
+		tail:  s/tail
+		count: 0
+		
+		while [slot < tail][
+			if TYPE_OF(slot) = TYPE_WORD [
+				count: count + 1
+			]
+			slot: slot + 1
+		]
+		
+		value/header: (value/header and flag-arity-mask) or (count << 25)
+	]
+	
 	push: func [
 		spec	 [red-block!]
 		body	 [red-block!]
@@ -42,6 +73,7 @@ routine: context [
 		native/header: TYPE_NATIVE
 		native/code: code
 		
+		set-arity cell
 		cell
 	]
 		
