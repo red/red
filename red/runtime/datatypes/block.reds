@@ -172,6 +172,7 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/push-only*"]]
 
+		if zero? size [size: 1]
 		blk: as red-block! stack/push*
 		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
 		blk/head: 	0
