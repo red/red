@@ -75,9 +75,9 @@ Red [
 		a: 123
 		--assert [123 8 z] = do [reduce [a 3 + 5 'z]]
 	
-	;--test-- "reduce-10"
-	;	blk: [a b c]
-	;	--assert [a b c 7 123] = do [reduce/into [3 + 4 a] blk]		;; refinements not supported yet by DO
+	--test-- "reduce-10"
+		blk: [a b c]
+		--assert [a b c 7 123] = do [reduce/into [3 + 4 a] blk]
 	
 	--test-- "reduce-11"
 		code: [1 + 3 a 'z append "hell" #"o"]
@@ -125,8 +125,8 @@ Red [
 	--assert  [] = compose/deep []
 	--assert  [] = compose/deep/only []
 	--assert  [] = do [compose []]
-	;--assert [] = do [compose/deep []]						;; refinements not supported yet by DO
-	;--assert [] = do [compose/deep/only []]
+	--assert [] = do [compose/deep []]
+	--assert [] = do [compose/deep/only []]
 	
 	--test-- "compose-2"
 	--assert [1 [2] "3" a 'b c: :d] = compose [1 [2] "3" a 'b c: :d]
@@ -158,7 +158,7 @@ Red [
 	
 	--test-- "compose-9"
 	--assert [[]] = compose/only [([])]
-	;--assert [[]] = do [compose/only [([])]]				;; refinements not supported yet by DO
+	--assert [[]] = do [compose/only [([])]]
 	
 	--test-- "compose-10"
 	--assert [1 2 3] = compose [([1 2 3])]
@@ -174,27 +174,27 @@ Red [
 	
 	--test-- "compose-13"
 	--assert [[1]] = compose/deep [[(7 - 6)]]
-	;--assert [[1]] = do [compose/deep [[(7 - 6)]]]			;; refinements not supported yet by DO
+	--assert [[1]] = do [compose/deep [[(7 - 6)]]]
 	
 	--test-- "compose-14"
 	--assert [[]] = compose/deep [[([])]]
-	;--assert [[]] = do [compose/deep [[([])]]]				;; refinements not supported yet by DO
+	--assert [[]] = do [compose/deep [[([])]]]
 	
 	--test-- "compose-15"
 	--assert [[[]]] = compose/deep/only [[([])]]
-	;--assert [[[]]] = do [compose/deep/only [[([])]]]		;; refinements not supported yet by DO
+	--assert [[[]]] = do [compose/deep/only [[([])]]]
 	
 	--test-- "compose-16"
 	--assert [[8] x [9] y] = compose/deep [[(2 + 6)] x [(4 + 5)] y]
-	;--assert [[8] x [9] y] = do [compose/deep [[(2 + 6)] x [(4 + 5)] y]]		;; refinements not supported yet by DO
+	--assert [[8] x [9] y] = do [compose/deep [[(2 + 6)] x [(4 + 5)] y]]
 	
 	--test-- "compose-17"
 	--assert [a 3 b 789 1 2 3] = compose [a (1 + 2) b () (print "") ([]) 789 ([1 2 3])]
-	;--assert [a 3 b 789 1 2 3] = compose [a (1 + 2) b () (print "") ([]) 789 ([1 2 3])] 	;; refinements not supported yet by DO
+	--assert [a 3 b 789 1 2 3] = compose [a (1 + 2) b () (print "") ([]) 789 ([1 2 3])]
 
 	--test-- "compose-18"
 	--assert [a 3 b [] 789 [1 2 3]] = compose/only [a (1 + 2) b () (print "") ([]) 789 ([1 2 3])]
-	;--assert [a 3 b [] 789 [1 2 3]] = compose/only [a (1 + 2) b () (print "") ([]) 789 ([1 2 3])] 	;; refinements not supported yet by DO
+	--assert [a 3 b [] 789 [1 2 3]] = compose/only [a (1 + 2) b () (print "") ([]) 789 ([1 2 3])]
 	
 	--test-- "compose-19"
 	--assert [a [3] 8 b [2 3 [x "hello" x]]] = compose/deep [
@@ -202,23 +202,24 @@ Red [
 			2 3 [x (append "hell" #"o") x]
 		]
 	]
-	;--assert [a [3] 8 b [2 3 [x "hello" x]]] = do [		;; refinements not supported yet by DO
-	;	compose/deep [
-	;		a [(1 + 2)] (9 - 1) b [
-	;			2 3 [x (append "hell" #"o") x]
-	;		]
-	;	]
-	;]
+	--assert [a [3] 8 b [2 3 [x "hello" x]]] = do [		;; refinements not supported yet by DO
+		compose/deep [
+			a [(1 + 2)] (9 - 1) b [
+				2 3 [x (append "hell" #"o") x]
+			]
+		]
+	]
 
 	--test-- "compose-20"
 	a: [1 2 3]
 	--assert [1 2 3 r 7] = compose/into [r (1 + 6)] a
-	;--assert [1 2 3 r 7] = do [compose/into [r (1 + 6)] a] ;; refinements not supported yet by DO
+	a: [1 2 3]
+	--assert [1 2 3 r 7] = do [compose/into [r (1 + 6)] a]
 	
 	--test-- "compose-21"
 	a: [(mold 2 + 3)]
 	--assert ["5"] = compose a
-	;--assert ["5"] = do [compose a]						;; refinements not supported yet by DO
+	--assert ["5"] = do [compose a]
 	
 	
 ===end-group===
