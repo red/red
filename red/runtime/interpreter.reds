@@ -25,6 +25,21 @@ Red/System [
 	count: count + 1
 ]
 
+#define CHECK_INFIX [
+	next: as red-word! pc
+
+	if all [
+		next < end
+		TYPE_OF(next) = TYPE_WORD
+	][
+		value: _context/get next
+		if TYPE_OF(value) = TYPE_OP [
+			if verbose > 0 [log "infix detected!"]
+			pc: eval-infix value pc end
+		]
+	]
+]
+
 interpreter: context [
 	verbose: 0
 
@@ -105,27 +120,25 @@ interpreter: context [
 		value 	  [red-value!]
 		pc		  [red-value!]
 		end		  [red-value!]
-		sub?	  [logic!]
 		return:   [red-value!]
 		/local
+			next  [red-word!]
 			op	  [red-op!]
 			call-op
 	][
-		if verbose > 0 [log "infix detected!"]
-		
-		stack/mark-native as red-word! pc + 1
-		eval-expression pc end yes yes
-		pc: pc + 2										;-- skip both left operand and operator
-		pc: eval-expression pc end no yes				;-- eval right operand
+		stack/keep
+		pc: pc + 1										;-- skip operator
+		pc: eval-expression pc end yes yes				;-- eval right operand
 		op: as red-op! value
 		call-op: as function! [] op/code
 		call-op
-		either sub? [stack/unwind][stack/unwind-last]
 
 		if verbose > 0 [
 			value: stack/arguments
 			print-line ["eval: op return type: " TYPE_OF(value)]
 		]
+		
+		CHECK_INFIX
 		pc
 	]
 
@@ -442,7 +455,7 @@ interpreter: context [
 	eval-expression: func [
 		pc		  [red-value!]
 		end	  	  [red-value!]
-		infix	  [logic!]								;-- TRUE => don't check for infix
+		prefix	  [logic!]								;-- TRUE => don't check for infix
 		sub?	  [logic!]
 		return:   [red-value!]
 		/local
@@ -450,19 +463,6 @@ interpreter: context [
 			value [red-value!]
 			w	  [red-word!]
 	][
-		next: as red-word! pc + 1
-		
-		if all [
-			not infix
-			next < end
-			TYPE_OF(next) = TYPE_WORD
-		][
-			value: _context/get next
-			if TYPE_OF(value) = TYPE_OP [
-				return eval-infix value pc end sub?
-			]
-		]
-
 		if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]
 		
 		switch TYPE_OF(pc) [
@@ -548,6 +548,8 @@ interpreter: context [
 				pc: pc + 1
 			]
 		]
+		
+		unless prefix [CHECK_INFIX]
 		pc
 	]
 
