@@ -531,7 +531,7 @@ natives: context [
 		blk: either negative? into [
 			block/push-only* (as-integer tail - value) >> 4
 		][
-			as red-block! arg + into
+			as red-block! stack/push arg + into
 		]
 		
 		while [value < tail][
