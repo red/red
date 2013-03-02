@@ -241,8 +241,15 @@ natives: context [
 		_context/set w saved
 	]
 	
+	func*: does [
+		_function/push 
+			as red-block! stack/arguments
+			as red-block! stack/arguments + 1
+			0
+		stack/set-last stack/top - 1
+	]
 	
-	func*:		does []
+	
 	function*:	does []
 	does*:		does []
 	has*:		does []

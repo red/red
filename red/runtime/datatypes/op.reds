@@ -65,7 +65,7 @@ op: context [
 			]
 			TYPE_FUNCTION [
 				fun: as red-function! spec
-				fun/spec/node
+				fun/spec
 			]
 		]
 		

@@ -26,8 +26,6 @@ Red/System [
 ]
 
 #define CHECK_INFIX [
-	next: as red-word! pc
-
 	if all [
 		next < end
 		TYPE_OF(next) = TYPE_WORD
@@ -35,7 +33,7 @@ Red/System [
 		value: _context/get next
 		if TYPE_OF(value) = TYPE_OP [
 			if verbose > 0 [log "infix detected!"]
-			pc: eval-infix value pc end
+			infix?: yes
 		]
 	]
 ]
@@ -68,6 +66,18 @@ interpreter: context [
 			slot: slot + 1
 		]
 		no
+	]
+	
+	eval-function: func [
+		fun  [red-function!]
+		body [red-block!]
+		/local
+			saved
+	][
+		saved: fun/ctx/values
+		fun/ctx/values: as node! stack/arguments
+		eval body
+		fun/ctx/values: saved
 	]
 	
 	exec-routine: func [
@@ -122,8 +132,9 @@ interpreter: context [
 		end		  [red-value!]
 		return:   [red-value!]
 		/local
-			next  [red-word!]
-			op	  [red-op!]
+			next   [red-word!]
+			infix? [logic!]
+			op	   [red-op!]
 			call-op
 	][
 		stack/keep
@@ -132,13 +143,17 @@ interpreter: context [
 		op: as red-op! value
 		call-op: as function! [] op/code
 		call-op
+		stack/unwind
 
 		if verbose > 0 [
 			value: stack/arguments
 			print-line ["eval: op return type: " TYPE_OF(value)]
 		]
 		
+		infix?: no
+		next: as red-word! pc
 		CHECK_INFIX
+		if infix? [pc: eval-infix value pc end]
 		pc
 	]
 
@@ -172,10 +187,11 @@ interpreter: context [
 		
 		s: as series! either function? [
 			fun: as red-function! native
-			fun/spec/node/value
+			fun/spec/value
 		][
 			native/spec/value
 		]
+		
 		value: s/offset
 		tail:  s/tail
 		
@@ -437,10 +453,15 @@ interpreter: context [
 				pc: eval-arguments as red-native! value pc end path slot
 				fun: as red-function! value
 				s: as series! fun/more/value
-				;eval as red-block! s/offset	;@@ eval body version (add an option for that)
+				
 				native: as red-native! s/offset + 2
-				call: as function! [] native/code
-				call
+				either zero? native/code [
+					eval-function fun as red-block! s/offset
+				][
+					call: as function! [] native/code
+					call
+					0
+				]
 				either sub? [stack/unwind][stack/unwind-last]
 
 				if verbose > 0 [
@@ -459,11 +480,24 @@ interpreter: context [
 		sub?	  [logic!]
 		return:   [red-value!]
 		/local
-			next  [red-word!]
-			value [red-value!]
-			w	  [red-word!]
+			next   [red-word!]
+			value  [red-value!]
+			w	   [red-word!]
+			op	   [red-value!]
+			infix? [logic!]
 	][
 		if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]
+		
+		infix?: no
+		unless prefix [
+			next: as red-word! pc + 1
+			CHECK_INFIX
+			if infix? [
+				stack/mark-native as red-word! pc + 1
+				sub?: yes								;-- force sub? for infix expressions
+				op: value
+			]
+		]
 		
 		switch TYPE_OF(pc) [
 			TYPE_PAREN [
@@ -549,7 +583,7 @@ interpreter: context [
 			]
 		]
 		
-		unless prefix [CHECK_INFIX]
+		if infix? [pc: eval-infix op pc end]
 		pc
 	]
 
@@ -570,11 +604,13 @@ interpreter: context [
 		/local
 			value [red-value!]
 			tail  [red-value!]
+			arg	  [red-value!]
 	][
 		value: block/rs-head code
 		tail:  block/rs-tail code
 		if value = tail [
-			stack/set-last unset-value
+			arg: stack/arguments
+			arg/header: TYPE_UNSET
 			exit
 		]
 

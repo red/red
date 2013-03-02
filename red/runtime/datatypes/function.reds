@@ -14,6 +14,46 @@ Red/System [
 _function: context [
 	verbose: 0
 	
+	bind: func [
+		body [red-block!]
+		ctx	 [red-context!]
+		/local
+			value [red-value!]
+			end	  [red-value!]
+			w	  [red-word!]
+			idx	  [integer!]
+			type  [integer!]
+	][
+		value: block/rs-head body
+		end:   block/rs-tail body
+
+		while [value < end][
+			switch TYPE_OF(value) [	
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_SET_WORD
+				TYPE_REFINEMENT [
+					w: as red-word! value
+					idx: _context/find-word ctx w/symbol
+					if idx >= 0 [
+						w/ctx:   ctx
+						w/index: idx
+					]
+				]
+				TYPE_BLOCK 					;@@ replace with TYPE_ANY_BLOCK
+				TYPE_PAREN 
+				TYPE_PATH
+				TYPE_LIT_PATH
+				TYPE_SET_PATH
+				TYPE_GET_PATH	[
+					bind as red-block! value ctx
+				]
+				default [0]
+			]
+			value: value + 1
+		]
+	]
+	
 	init-locals: func [
 		nb 	   [integer!]
 		/local
@@ -41,7 +81,7 @@ _function: context [
 
 		cell: as red-function! stack/push*
 		cell/header: TYPE_FUNCTION						;-- implicit reset of all header flags
-		cell/spec:	 spec
+		cell/spec:	 spec/node
 		cell/ctx:	 _context/make spec yes
 		cell/more:	 alloc-cells 3
 		
@@ -56,6 +96,7 @@ _function: context [
 		native/header: TYPE_NATIVE
 		native/code: code
 		
+		bind body cell/ctx
 		cell/ctx
 	]
 		
@@ -71,7 +112,10 @@ _function: context [
 	][
 		case [
 			field = words/spec [
-				stack/set-last as red-value! fun/spec
+				blk: as red-block! stack/arguments
+				blk/header: TYPE_BLOCK
+				blk/head: 0
+				blk/node: fun/spec
 			]
 			field = words/body [
 				s: as series! fun/more/value
@@ -112,11 +156,18 @@ _function: context [
 		return: [integer!]
 		/local
 			s	[series!]
+			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "function/mold"]]
 
 		string/concatenate-literal buffer "func "
-		part: block/mold fun/spec buffer only? all? flat? arg part - 5		;-- spec
+		
+		blk: as red-block! stack/push*
+		blk/header: TYPE_BLOCK
+		blk/head: 0
+		blk/node: fun/spec
+		part: block/mold blk buffer only? all? flat? arg part - 5			;-- spec
+		
 		s: as series! fun/more/value
 		block/mold as red-block! s/offset buffer only? all? flat? arg part	;-- body
 	]

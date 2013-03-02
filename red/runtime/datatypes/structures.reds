@@ -158,7 +158,7 @@ red-op!: alias struct! [
 
 red-function!: alias struct! [
 	header 	[integer!]								;-- cell header
-	spec	[red-block!]							;-- native spec block reference
+	spec	[node!]									;-- native spec block buffer reference
 	ctx		[red-context!]							;-- function's context
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	function's body block
@@ -168,7 +168,7 @@ red-function!: alias struct! [
 
 red-routine!: alias struct! [
 	header 	[integer!]								;-- cell header
-	spec	[red-block!]							;-- routine spec block reference
+	spec	[node!]									;-- routine spec block buffer reference
 	symbols	[node!]									;-- routine cleaned-up spec block reference
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	routine's body block
