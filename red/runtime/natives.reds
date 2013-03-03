@@ -242,13 +242,13 @@ natives: context [
 	]
 	
 	func*: does [
+		_function/validate as red-block! stack/arguments
 		_function/push 
 			as red-block! stack/arguments
 			as red-block! stack/arguments + 1
 			0
 		stack/set-last stack/top - 1
 	]
-	
 	
 	function*:	does []
 	does*:		does []

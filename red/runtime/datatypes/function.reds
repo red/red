@@ -14,6 +14,52 @@ Red/System [
 _function: context [
 	verbose: 0
 	
+	validate: func [									;-- temporary mimalist spec checking
+		spec [red-block!]
+		/local
+			value  [red-value!]
+			end	   [red-value!]
+			next   [red-value!]
+			block? [logic!]
+	][
+		value: block/rs-head spec
+		end:   block/rs-tail spec
+		
+		while [value < end][
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD [
+					next: value + 1
+					block?: all [
+						next < end
+						TYPE_OF(next) = TYPE_BLOCK
+					]
+					value: value + either block? [2][1]
+				]
+				TYPE_SET_WORD [
+					next: value + 1
+					unless all [
+						next < end
+						TYPE_OF(next) = TYPE_BLOCK
+					][
+						print-line "*** Error: return: not followed by type in function spec"
+						halt
+					]
+					value: next
+				]
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT
+				TYPE_STRING [
+					value: value + 1
+				]
+				default [
+					print-line "*** Error: invalid value in function spec"
+					halt
+				]
+			]
+		]
+	]
+	
 	bind: func [
 		body [red-block!]
 		ctx	 [red-context!]
