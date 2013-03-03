@@ -118,6 +118,17 @@ block: context [
 			
 		arg
 	]
+	
+	make-at: func [
+		blk		[red-block!]
+		size	[integer!]
+		return: [red-block!]
+	][
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk/head: 	0
+		blk/node: 	alloc-cells size
+		blk
+	]
 
 	make-in: func [
 		parent	[red-block!]
@@ -133,11 +144,8 @@ block: context [
 		][
 			assert TYPE_OF(parent) = TYPE_BLOCK
 			as red-block! ALLOC_TAIL(parent)
-		]		
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/head: 	0
-		blk/node: 	alloc-cells size	
-		blk
+		]
+		make-at blk size
 	]
 	
 	push: func [
@@ -156,10 +164,7 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/push*"]]
 		
-		blk: as red-block! ALLOC_TAIL(root)
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/head: 	0
-		blk/node: 	alloc-cells size
+		blk: make-at as red-block! ALLOC_TAIL(root) size
 		push blk
 		blk
 	]
@@ -173,11 +178,7 @@ block: context [
 		#if debug? = yes [if verbose > 0 [print-line "block/push-only*"]]
 
 		if zero? size [size: 1]
-		blk: as red-block! stack/push*
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/head: 	0
-		blk/node: 	alloc-cells size
-		blk
+		make-at as red-block! stack/push* size
 	]
 	
 	mold-each: func [
@@ -284,11 +285,7 @@ block: context [
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
-		blk: as red-block! stack/push*
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/head: 	0
-		blk/node: 	alloc-cells size
-		blk
+		make-at as red-block! stack/push* size
 	]
 	
 	form: func [
