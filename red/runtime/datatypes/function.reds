@@ -160,8 +160,8 @@ _function: context [
 			field = words/spec [
 				blk: as red-block! stack/arguments
 				blk/header: TYPE_BLOCK
-				blk/head: 0
 				blk/node: fun/spec
+				blk/head: 0
 			]
 			field = words/body [
 				s: as series! fun/more/value
