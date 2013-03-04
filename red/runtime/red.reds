@@ -84,6 +84,7 @@ red: context [
 	
 	datatype/make-words									;-- build datatype names as word! values
 	words/build											;-- create symbols used internally
+	refinements/build									;-- create refinements used internally
 	
 	#include %stack.reds
 	#include %interpreter.reds

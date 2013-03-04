@@ -128,6 +128,13 @@ red-word!: alias struct! [
 	index	[integer!]								;-- index in context
 ]
 
+red-refinement!: alias struct! [
+	header 	[integer!]								;-- cell header
+	ctx		[red-context!]
+	symbol	[integer!]								;-- index in symbol table
+	index	[integer!]								;-- index in context
+]
+
 red-char!: alias struct! [
 	header 	[integer!]								;-- cell header
 	_pad1	[integer!]

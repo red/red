@@ -251,8 +251,16 @@ natives: context [
 	]
 	
 	function*:	does []
-	does*:		does []
-	has*:		does []
+	
+	does*: does []
+	
+	has*: does [
+		block/insert-value 
+			as red-block! stack/arguments
+			as red-value! refinements/local
+		func*
+	]
+	
 	exit*:		does []
 	return*:	does []
 		

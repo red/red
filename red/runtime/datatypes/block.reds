@@ -102,6 +102,30 @@ block: context [
 		offset
 	]
 	
+	insert-value: func [
+		blk		[red-block!]
+		value	[red-value!]
+		return: [red-block!]
+		/local
+			head   [red-value!]
+			s	   [series!]
+			size   [integer!]
+	][
+		s: GET_BUFFER(blk)
+		size: (as-integer (s/tail - (s/offset + blk/head))) + size? cell!
+		if size > s/size [s: expand-series s size]
+		head: s/offset + blk/head
+		
+		move-memory										;-- make space
+			as byte-ptr! head + 1
+			as byte-ptr! head
+			as-integer s/tail - head
+			
+		s/tail: s/tail + 1	
+		copy-cell value head
+		blk
+	]
+	
 	append*: func [
 		return: [red-block!]
 		/local

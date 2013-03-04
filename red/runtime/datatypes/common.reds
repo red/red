@@ -113,3 +113,11 @@ words: context [
 		integer!:	_integer!/symbol
 	]
 ]
+
+refinements: context [
+	local: as red-refinement! 0
+	
+	build: does [
+		local: refinement/load "local"
+	]
+]
