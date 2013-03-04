@@ -67,7 +67,10 @@ REBOL [
 
 exportable: context [
 	export: func [words [block!]][						;-- export argument words to global context
-		foreach w words [set bind w system/words get :w]
+		foreach w words [
+			comment [set bind w system/words get :w] ;-- Rebol2 way
+			set bind w bind? 'system get :w ;-- Rebol3 way?
+		]
 	]
 ]
 
@@ -82,26 +85,29 @@ profiler: make exportable [
 	;-- temporary stack for nested objects used by 'make-profilable
 	obj-stack: make block! 1
 	
-	;-- in order to avoid collision with function's arguments and refinements, only
-	;-- non-typable words are used as local variables in the proxy function. The 
+	;-- in order to avoid collision with function's arguments and refinements,
+	;-- unique words are used as local variables in the proxy function. The 
 	;-- following definitions are just handy shortcuts
 	
-	_stat: to word! "<s>"								;-- superman's logo ;)
-	_arg:  to word! "<a>"
-	_cmd:  to word! "<c>"
-	_fun:  to word! "<f>"
-	_path: to word! "<p>"
-	_time: to word! "<t>"
-	_ret:  to word! "<r>"
-	
-	set_stat: to set-word! _stat
-	set_arg:  to set-word! _arg
-	set_cmd:  to set-word! _cmd
-	set_fun:  to set-word! _fun
-	set_path: to set-word! _path
-	get_path: to get-word! _path
-	_arg1:	  to path! reduce [_arg 1]
+	uniquify-word: func [s /local str] [
+		str: rejoin either r3? [
+			[s {-} 1020]								;-- sekrit Blue # ;)
+		] [
+			[{<} first s {>}]							;-- R3 can't do ATM
+		]
+		
+		reduce [(to word! str) (to set-word! str) (to get-word! str)] 
+	]
 
+	set [_stat set_stat] uniquify-word "stat"
+	set [_arg set_arg] uniquify-word "arg"
+	set [_cmd set_cmd] uniquify-word "cmd"
+	set [_fun set_fun] uniquify-word "fun"
+	set [_path set_path get_path] uniquify-word "path"
+	set [_time set_time] uniquify-word "time"
+	set [_ret] uniquify-word "ret"
+	
+	_arg1: to path! reduce [_arg 1]
 
 	clean: func [spec [block!]][
 		;-- remove everything we don't need in function's spec block

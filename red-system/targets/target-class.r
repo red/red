@@ -35,22 +35,25 @@ target-class: context [
 	bitwise-op:	   [and or xor]
 	bitshift-op:   [>> << -**]
 	
-	opp-conditions: [
+	;-- compose is necessary to bypass tag parsing bug in Rebol 2 in order
+	;-- to format the data for use by Rebol 3 select
+	;-- http://stackoverflow.com/questions/14368508/
+	opp-conditions: compose/deep [
 	;-- condition ------ opposite condition --
-		overflow?		 not-overflow?
-		not-overflow?	 overflow?			
-		=				 <>
-		<>				 =
-		even?			 odd?
-		odd?			 even?
-		<				 >=
-		>=				 <
-		<=				 >
-		>				 <=
+		overflow?		 [not-overflow?]
+		not-overflow?	 [overflow?]	
+		=				 [<>]
+		<>				 [=]
+		even?			 [odd?]
+		odd?			 [even?]
+		(to-word "<")	 [(to-word ">=")]
+		(to-word ">=")	 [(to-word "<")]
+		(to-word "<=")	 [(to-word ">")]
+		(to-word ">")	 [(to-word "<=")]
 	]
 	
 	opposite?: func [cond [word!]][
-		first select/skip opp-conditions cond 2
+		first select opp-conditions cond
 	]
 	
 	power-of-2?: func [n [integer! char!]][
@@ -70,7 +73,7 @@ target-class: context [
 		][
 			compiler/throw-error "#code generation error: overflow in emit-variable"
 		]
-		skip debase/base to-hex offset 16 3		; @@ just to-char ??
+		integer-to-bytes/width offset 1		; @@ just to-char ??
 	]
 
 	emit: func [bin [binary! char! block!]][

@@ -10,16 +10,21 @@ REBOL [
 
 int-to-bin: context [
 	little-endian?: yes
+
+	set 'to-bin func [v [integer!] size [integer!] /local bytes] [
+		bytes: integer-to-bytes/width v size
+		either little-endian? [reverse bytes] [bytes]
+	]
 	
-	set 'to-bin8 func [v [integer! char!]][
-		to binary! to char! 256 + v and 255
+	set 'to-bin8 func [v [integer!]] [
+		to-bin v 1
 	]
 
-	set 'to-bin16 func [v [integer! char!]][			;TBD: add big-endian support
-		reverse skip debase/base to-hex to integer! v 16 2
+	set 'to-bin16 func [v [integer!]] [
+		to-bin v 2
 	]
 
-	set 'to-bin32 func [v [integer! char!]][			;TBD: add big-endian support
-		reverse debase/base to-hex to integer! v 16
+	set 'to-bin32 func [v [integer!]] [
+		to-bin v 4
 	]
 ]

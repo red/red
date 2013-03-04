@@ -204,7 +204,7 @@ tokenizer: context [
 				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD]
 				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD]
 				all [#"0" <= c c <= #"9"][src: scan-integer src blk]
-				all [#" " <= c c <= #"ÿ"][src: scan-word src blk TYPE_WORD]
+				all [#" " <= c c <= #"^(FF)"][src: scan-word src blk TYPE_WORD]
 			]
 		]	
 		if null? parent [

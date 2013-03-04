@@ -69,7 +69,12 @@ make-profilable make target-class [
 			arg == 4
 			'float32! = first compiler/get-type arg 
 		][
-			opcode and #{F9FF}
+			switch/default length? opcode [
+				3 [opcode and #{F9FFFF}]
+				2 [opcode and #{F9FF}]
+			] [
+				compiler/throw-error ["invalid opcode length:" length? opcode]
+			]
 		][
 			opcode
 		]
@@ -77,6 +82,10 @@ make-profilable make target-class [
 	
 	emit-float-variable: func [name [word! object!] gcode [binary! block!] lcode [binary! block!]][
 		if 'float32! = first compiler/get-type name [
+			assert [
+				2 = length? gcode
+				2 = length? lcode
+			]
 			gcode: gcode and #{F9FF}
 			lcode: lcode and #{F9FF} 
 		]
@@ -244,7 +253,7 @@ make-profilable make target-class [
 					compiler/throw-error ["invalid FPU mask name:" mask]
 				]
 				emit #{25}							;-- AND eax, 2^bit
-				emit to-bin32 shift/left 1 bit
+				emit to-bin32 shift-left 1 bit
 			]
 			;cword []								;-- control word is already in eax
 		]
@@ -288,13 +297,13 @@ make-profilable make target-class [
 				][
 					compiler/throw-error ["invalid FPU mask name:" mask]
 				]
-				emit to-bin32 complement shift/left 1 bit
+				emit to-bin32 complement shift-left 1 bit
 			]
 		]
 		either cword [
 			emit #{B8}								;-- MOV eax, <value>
 		][
-			value: shift/left value bit
+			value: shift-left value bit
 			emit #{0D}								;-- OR eax, <value>	
 		]
 		emit to-bin32 value
@@ -1523,7 +1532,7 @@ make-profilable make target-class [
 		either routine [
 			either 'local = last fspec [
 				emit-variable 
-					pick tail fspec -2
+					first back back tail fspec
 					none
 					#{8B45}							;-- MOV eax, [ebp+n]	; local	
 				emit #{FFD0} 						;-- CALL eax			; direct call

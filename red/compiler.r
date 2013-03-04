@@ -75,6 +75,16 @@ red: context [
 		bind keywords self
 	]
 
+	type-string: func [type [word! datatype!] /local result] [
+		;-- For perplexing reasons, R2's form would remove the
+		;-- exclamation points from types, e.g. form block! was
+		;-- just "block"
+
+		result: mold type
+		assert [#"!" = last result]
+		to word! head remove back tail result
+	]
+
 	set-last-none: does [copy [stack/reset none/push-last]]	;-- copy required for R/S line counting injection
 
 	--not-implemented--: does [print "Feature not yet implemented!" halt]
@@ -151,7 +161,10 @@ red: context [
 	]
 	
 	unicode-char?: func [value][
-		all [issue? value value/1 = #"'"]
+		all [
+			issue? value
+			#"'" = second mold value					;-- to-string differs in R2 and R3
+		]
 	]
 	
 	insert-lf: func [pos][
@@ -211,10 +224,25 @@ red: context [
 		insert-lf -2
 	]
 	
-	emit-load-string: func [buffer [string!]][
+	emit-load-string: func [buffer [string!] /local outstring][
 		emit 'string/load
-		emit buffer
-		emit 1 + length? buffer							;-- account for terminal zero
+		
+		;-- This is tricky because if we are in R2 our string may be 
+		;-- bytes already encoded as UTF-8.  This will produce invalid
+		;-- source code as input to Red/System, as it cannot handle
+		;-- UTF-8 encoded source (it only thinks it can because R2
+		;-- blindly passes those strings through as bytes).
+		;--     http://stackoverflow.com/questions/15077974/
+		
+		;-- Further complicating things is that if Red is compiling in
+		;-- memory and not round-tripping through a file, then there will
+		;-- be no LOAD.  We need to do escaping inside the string if we
+		;-- target a file, otherwise we can keep it in the munged format.
+		;-- That would be done when we write the file out (which Red currently
+		;-- does not support, and if it did that would be for debugging only)
+		
+		emit r2-escape-string/count buffer 'bytes
+		emit 1 + bytes				;-- account for terminal zero
 	]
 	
 	emit-open-frame: func [name [word!] /local type][
@@ -267,8 +295,15 @@ red: context [
 		blk
 	]
 
-	clean-lf-flag: func [name [word! lit-word! set-word! get-word! refinement!]][
-		mold/flat to word! name
+	clean-lf-flag: func [name [word! lit-word! set-word! get-word! refinement!] /local str][
+		str: mold/flat to word! name
+
+		;-- Issue about what's a legal word! in R3, things like < and > are
+		;-- only allowed in cases where they are on the "exception list"
+		
+		replace/all str "<" "__LT__"
+		replace/all str ">" "__GT__"
+		str
 	]
 	
 	prefix-global: func [word [word!]][					;@@ to be removed?
@@ -521,10 +556,12 @@ red: context [
 		forall blk [
 			item: blk/1
 			either any-block? :item [
-				type: either all [path? item get-word? item/1]['get-path][type? :item]
+				type: either all [path? item get-word? item/1]['get-path!][type? :item]
 				
 				emit-open-frame 'append
-				emit to lit-path! reduce [to word! form type 'push*]
+				
+				;-- Was lit-path! here, don't know what good that did
+				emit to path! reduce [type-string type 'push*]
 				emit max 1 length? item
 				insert-lf -2
 				
@@ -550,9 +587,10 @@ red: context [
 				action: 'push
 				value: case [
 					unicode-char? :item [
+						assert [issue? item]
 						value: item
 						item: #"_"						;-- placeholder just to pass the char! type to item
-						to integer! next value
+						binary-to-int32 debase/base next next mold value 16
 					]
 					any-word? :item [
 						add-symbol word: to word! clean-lf-flag item
@@ -586,7 +624,8 @@ red: context [
 						item
 					]
 				]
-				emit load rejoin [form type? :item slash action]
+
+				emit load rejoin [type-string type? :item slash action]
 				emit value
 				insert-lf -1 - either block? value [length? value][1]
 				
@@ -675,7 +714,7 @@ red: context [
 		]
 	]
 		
-	emit-routine: func [name [word!] spec [block!] /local type cnt offset][
+	emit-routine: func [name [word!] spec [block!] /local type cnt offset bound][
 		declare-variable/init 'r_arg to paren! [as red-value! 0]
 		emit [r_arg: stack/arguments]
 		insert-lf -2
@@ -686,7 +725,7 @@ red: context [
 			find [integer! logic!] type/1 
 		][
 			offset: 1
-			append/only output append to path! form get type/1 'box
+			append/only output append to path! type-string get type/1 'box
 		]		
 		emit name
 		cnt: 0
@@ -701,7 +740,15 @@ red: context [
 			]
 			unless block? spec/1 [
 				either find [integer! logic!] spec/2/1 [
-					append/only output append to path! form get spec/2/1 'get
+					;-- This is another issue of different binding.  The spec
+					;-- is for instance [status [integer!]] and so the code
+					;-- [get spec/2/1] is attempting to GET 'integer! ...
+					;-- In Rebol 2 and Rebol 3 this works fine at the starting
+					;-- command line, but in this context the GET does not
+					;-- work in R3 without binding it somehow.
+
+					bound: bind spec/2/1 bind? 'system
+					append/only output append to path! type-string get bound 'get
 				][
 					emit reduce ['as spec/2/1]
 				]
@@ -734,7 +781,14 @@ red: context [
 			case [
 				char? [
 					emit 'char/push
-					emit to integer! next value
+
+					;-- was [emit to integer! next value], but...
+					;-- Incoming value is an issue like ﻿#'0000002F
+					;-- R2 and R3 can TO INTEGER! issues without apostrophes
+					;-- Yet they are words in R3, and to string! behaves
+					;-- differently; mold is consistent, though.
+					
+					emit to integer! to issue! head remove/part mold value 2
 					insert-lf -2
 				]
 				lit-word? :value [
@@ -743,7 +797,7 @@ red: context [
 				]
 				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
-					emit load rejoin [form type? value slash 'push]
+					emit load rejoin [type-string type? value slash 'push]
 					emit decorate-symbol w
 					insert-lf -2
 				]
@@ -752,7 +806,7 @@ red: context [
 					insert-lf -1
 				]
 				'else [
-					emit load rejoin [form type? :value slash 'push]
+					emit load rejoin [type-string type? :value slash 'push]
 					emit load mold :value
 					insert-lf -2
 				]
@@ -785,7 +839,7 @@ red: context [
 					emit name
 					insert-lf -2
 				]
-				path! set-path!	[
+				path! set-path! lit-path! [
 					name: do make-block
 					either lit-path? pc/1 [
 						emit 'path/push
@@ -1087,7 +1141,7 @@ red: context [
 			either head? symbols [
 				append/only init 'stack/arguments
 			][
-				repend init [symbols/-1 '+ 1]
+				repend init [first back symbols '+ 1]
 			]
 		]
 		unless zero? locals-nb [						;-- init local words on stack
@@ -1155,7 +1209,7 @@ red: context [
 		/collect /does /has
 		/local name word spec body symbols locals-nb spec-blk body-blk ctx
 	][
-		name: check-func-name to word! pc/-1
+		name: check-func-name to word! first back pc
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
 		
@@ -1213,7 +1267,7 @@ red: context [
 	]
 	
 	comp-routine: has [name word spec body spec-blk body-blk][
-		name: check-func-name to word! pc/-1
+		name: check-func-name to word! first back pc
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
 		
@@ -1263,8 +1317,8 @@ red: context [
 	]
 	
 	comp-switch: has [mark name arg body list cnt pos default?][
-		if path? pc/-1 [
-			foreach ref next pc/-1 [
+		if path? first back pc [
+			foreach ref next first back pc [
 				switch/default ref [
 					default [default?: yes]
 					;all []
@@ -1327,7 +1381,7 @@ red: context [
 	]
 	
 	comp-case: has [all? path saved list mark body][
-		if path? path: pc/-1 [
+		if path? path: first back pc [
 			either path/2 = 'all [all?: yes][
 				throw-error ["CASE has no refinement called" path/2]
 			]
@@ -1674,7 +1728,7 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /local name local? alter][
+	comp-word: func [/literal /final /local name local? alter entry mapped][
 		name: to word! pc/1
 		pc: next pc										;@@ move it deeper
 		local?: local-word? name
@@ -1744,7 +1798,7 @@ red: context [
 			ops: make block! 1
 			pos: end									;-- start from end of expression
 			until [
-				op: pos/-1			
+				op: first back pos			
 				name: any [select op-actions op op]
 				insert ops name							;-- remember ops in left-to-right order
 				emit-open-frame name
@@ -1767,7 +1821,7 @@ red: context [
 		false											;-- not an infix expression
 	]
 
-	comp-directive: has [file saved][
+	comp-directive: has [file saved target][
 		switch pc/1 [
 			#include [
 				unless file? file: pc/2 [
@@ -1828,7 +1882,30 @@ red: context [
 				true
 			]
 			#load [										;-- temporary directive
-				change/part/only pc to do pc/2 pc/3 3 2
+				;-- this fairly cryptic code originally read as
+				comment [
+					change/part/only pc to do pc/2 pc/3 3 2
+				]
+				
+				;-- Sample pc in
+				;--     ﻿[#load set-word! "+" make op! :add]
+				
+				;-- Sample pc out
+				;--     [﻿+: make op! :add]
+
+				;-- In R2 this was do pc/2 (e.g. do set-word!) but something
+				;-- about the binding has changed in R3. Even though set-word!
+				;-- is globally defined, it comes up as not defined for DO
+				;-- in this context.  This hacks around it, find better way.
+				
+				either pc/2 = 'set-word! [
+					target: set-word!
+				] [
+					print "non set-word! used with #load, see red/compiler.r"
+					halt
+				]
+								 
+				change/part/only pc to target pc/3 3 2
 				comp-expression							;-- continue expression fetching
 				true
 			]
@@ -2033,7 +2110,7 @@ red: context [
 	load-source: func [file [file! block!] /hidden /local src][
 		either file? file [
 			unless hidden [script-name: file]
-			src: lexer/process read/binary file
+			src: lexer/process read-binary file
 		][
 			unless hidden [script-name: 'memory]
 			src: file

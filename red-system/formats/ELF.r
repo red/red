@@ -260,31 +260,31 @@ context [
 		sections: collect-structure-names structure 'section
 
 		commands: compose/deep [
-			"rx"			skip (base-address)
-			"rw"			skip (defs/page-size)
+			["rx" skip]				(base-address)
+			["rw" skip] 			(defs/page-size)
 
-			".hash"			meta [link ".dynsym"]
-			".dynsym"		meta [link ".dynstr" info ".interp"]
-			".rel.text"		meta [link ".dynsym" info ".text"]
-			".dynamic"		meta [link ".dynstr"]
-			".stab"			meta [link ".stabstr"]
+			[".hash" meta]			[link ".dynsym"]
+			[".dynsym" meta]		[link ".dynstr" info ".interp"]
+			[".rel.text" meta]		[link ".dynsym" info ".text"]
+			[".dynamic" meta]		[link ".dynstr"]
+			[".stab" meta]			[link ".stabstr"]
 
-			"ehdr"			size elf-header
-			"phdr"			size [program-header	length? segments]
-			".hash"			size [machine-word		2 + 2 + length? symbols]
-			".dynsym"		size [elf-symbol		1 + length? symbols]
-			".rel.text"		size [elf-relocation	length? symbols]
-			".data"			size (data-size)
-			".data.rel.ro"	size [machine-word		length? symbols]
-			".dynamic"		size [elf-dynamic		9 + length? libraries]
-			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
-			"shdr"			size [section-header	length? sections]
+			["ehdr" size]			elf-header
+			["phdr" size]			[program-header	length? segments]
+			[".hash" size]			[machine-word 2 + 2 + length? symbols]
+			[".dynsym" size]		[elf-symbol 1 + length? symbols]
+			[".rel.text" size]		[elf-relocation	length? symbols]
+			[".data" size]			(data-size)
+			[".data.rel.ro" size]	[machine-word length? symbols]
+			[".dynamic" size]		[elf-dynamic 9 + length? libraries]
+			[".stab" size]			[stab-entry	2 + ((length? natives) / 2)]
+			["shdr" size]			[section-header	length? sections]
 
-			".interp"		data (to-c-string dynamic-linker)
-			".dynstr"		data (to-elf-strtab join libraries symbols)
-			".text"			data (job/sections/code/2)
-			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
-			".shstrtab"		data (to-elf-strtab sections)
+			[".interp" data]		(to-c-string dynamic-linker)
+			[".dynstr" data]		(to-elf-strtab join libraries symbols)
+			[".text" data]			(job/sections/code/2)
+			[".stabstr" data]		(to-elf-strtab join ["%_"] extract natives 2)
+			[".shstrtab" data]		(to-elf-strtab sections)
 		]
 
 		layout: layout-binary structure commands
@@ -660,7 +660,7 @@ context [
 	;; -- File structure/file commands helpers --
 
 	remove-elements: func [structure elements /local begin mark name children] [
-		parse structure [
+		parse structure any-parsefix [
 			any [
 				begin: (children: none)
 				word! ;; type
@@ -669,7 +669,14 @@ context [
 				opt [set children block!]
 				mark: (
 					if children [remove-elements children elements]
-					if any [find elements name  attempt [empty? children]] [
+					if any [
+						find elements name
+						all [
+							not none? children
+							;-- empty? errors in R2 on none, hence the above
+							empty? children
+						]
+					] [
 						mark: remove/part begin mark
 					]
 				) :mark
@@ -694,15 +701,16 @@ context [
 	]
 
 	find-skip: func [commands [block!] name [string!]] [
-		any [select commands reduce [name 'skip] 0]
+		any [select/only commands reduce [name 'skip] 0]
 	]
 
 	find-size: func [commands [block!] name [string!] /local data spec] [
-		if data: select commands reduce [name 'data] [
+		if data: select/only commands reduce [name 'data] [
 			return size-of data
 		]
 
-		if spec: select commands reduce [name 'size] [
+		if spec: select/only commands reduce [name 'size] [
+			
 			;; size spec variant 1: `value`
 			if integer? spec [return spec]
 
@@ -720,7 +728,7 @@ context [
 	find-entry-size: func [commands [block!] name [string!] /local spec] [
 		;; Items with a `[element num-elements]` size command have an entry
 		;; size, everything else does not.
-		either block? spec: select commands reduce [name 'size] [
+		either block? spec: select/only commands reduce [name 'size] [
 			size-of first reduce spec
 		] [
 			0
@@ -732,7 +740,7 @@ context [
 	] [
 		append
 			reduce ['type meta/1 'flags meta/2 'align meta/3]
-			any [select commands reduce [name 'meta] []]
+			any [select/only commands reduce [name 'meta] []]
 	]
 
 	complete-sizes: func [
@@ -750,14 +758,14 @@ context [
 					set children block!
 					(
 						total: total + size: complete-sizes children commands
-						repend commands [name 'size size]
+						append commands compose/deep [[(name) size] (size)]
 					)
 				|
 					(
 						size: find-size commands name
 						;; Ensure all leaf nodes are padded to 32-bit multiples.
 						if not zero? pad: (4 - (size // 4)) // 4 [ ;; @@ Make alignment target-specific.
-							repend commands [name 'pad pad]
+							repend commands compose/deep [[(name) pad] (pad)]
 						]
 						total: total + size + pad
 					)
@@ -777,7 +785,7 @@ context [
 		layout: copy []
 
 		emit: func [n t o a s m d /local p] [
-			p: any [select commands reduce [name 'pad] 0]
+			p: any [select/only commands reduce [name 'pad] 0]
 			repend layout [
 				n reduce [
 					'type t 'offset o 'address a 'size s 'pad p 'meta m 'data d
@@ -801,7 +809,7 @@ context [
 					address: address + find-skip commands name
 					size: find-size commands name
 					meta: merge-meta commands name meta
-					data: select commands reduce [name 'data]
+					data: select/only commands reduce [name 'data]
 				)
 				[
 					into [
@@ -863,19 +871,22 @@ context [
 		base + ((size-of machine-word) * any [ind (-1 + index? find syms sym)])
 	]
 
-	to-c-string: func [data [string! binary!]] [join as-binary data #{00}]
+	to-c-string: func [data [string! binary!]] [
+		;-- No AS-BINARY in R3...
+		join to-binary data #{00}
+	]
 
 	to-elf-strtab: func [items [block!]] [
 		join #{00} map-each item items [to-c-string form item]
 	]
 
 	to-elf-symbol-info: func [binding [integer!] type [integer!]] [
-		(shift/left binding 4) + (type and 15)
+		(shift-left binding 4) + (type and 15)
 	]
 
 	;; -- Helpers for working with various binary data intermediaries --
 
-	serialize-data: func [data [block! object! binary! none!]] [
+	serialize-data: func [data [block! object! binary! none!] /local bin] [
 		case [
 			block? data		[rejoin map-each item data [serialize-data item]]
 			struct? data	[form-struct data]

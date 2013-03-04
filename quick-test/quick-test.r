@@ -8,6 +8,8 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+do %../red-system/utils/r2-forward.r
+
 comment {
   This script makes some assumptions about the directory structure in which 
   files are stored. They are:
@@ -76,8 +78,8 @@ qt: make object! [
 	]
   ;;;;;;;;;;; End Setup ;;;;;;;;;;;;;;
   
-  comp-output: copy ""                 ;; output captured from compile
-  output: copy ""                      ;; output captured from pgm exec
+  comp-output: copy {}                 ;; output captured from compile
+  output: copy #{}                     ;; output captured from pgm exec
   exe: none                            ;; filepath to executable
   reds-file?: true                     ;; true = running reds test file
                                        ;; false = runnning test script
@@ -169,11 +171,16 @@ qt: make object! [
 
     ;; compose command line and call it
     cmd: join to-local-file system/options/boot [" -sc " comp-r]
-    call/wait/output cmd make string! 1024	;; redirect output to anonymous buffer
+    either r3? [
+        ;; call in r3 is incomplete
+        call/wait rejoin [cmd " > /dev/null"]
+    ] [
+        call/wait/output cmd make string! 1024	;; redirect output to anonymous buffer
+    ]
     
     ;; collect compiler output & tidy up
     if exists? comp-echo [
-    	comp-output: read comp-echo
+    	comp-output: read-binary comp-echo
     	delete comp-echo
     ]
     if exists? comp-r [delete comp-r]
@@ -183,16 +190,20 @@ qt: make object! [
     runner: runnable-dir/:exe
     
     if exists? built [
-      write/binary runner read/binary built
+      write-binary runner read-binary built
       delete built
-      if not windows-os? [
-        r: open runner
-        set-modes r [
-          owner-execute: true
-          group-execute: true
-        ]
-        close r
-      ]
+      if not r3? [
+		  if not windows-os? [
+			r: open runner
+			set-modes r [
+			  owner-execute: true
+			  group-execute: true
+			]
+			close r
+		  ]
+		] [
+			make-owner-executable to-local-file runner
+		]
     ]
     
     either compile-ok? [
@@ -212,11 +223,11 @@ qt: make object! [
       ]
     ][
       compile-error src
-      output: "Compilation failed"
+      output: to binary! "Compilation failed"
     ]
   ]
     
-  compile-and-run-from-string: func [src /error] [
+  compile-and-run-from-string: func [src [string! binary!] /error] [
     reds-file?: false
     either exe: compile-from-string src [
       either error [
@@ -227,13 +238,19 @@ qt: make object! [
     ][
       
       compile-error "Supplied source"
-      output: "Compilation failed"
+      output: to binary! "Compilation failed"
     ]
   ]
     
-  compile-from-string: func [src][
+  compile-from-string: func [src [string! binary!]][
+  	if string? src [
+		src: to binary! r2-utf8-checked src
+	]
+  	
     ;-- add a default header if not provided
-    if none = find src "Red/System" [insert src "Red/System []^/"]
+    if none = find src to binary! "Red/System" [
+    	insert src to binary! "Red/System []^/"
+    ]
     write test-src-file src
     compile test-src-file                  ;; returns path to executable or none
   ]
@@ -242,13 +259,13 @@ qt: make object! [
     src [file! string!]
   ][
     print join "" [src " - compiler error"]
-    print comp-output
+    print to string! comp-output
     clear output                           ;; clear the ouptut from previous test
     _signify-failure
   ]
   
   compile-ok?: func [] [
-    either find comp-output "output file size:" [true] [false]
+    either find comp-output to binary! "output file size:" [true] [false]
   ] 
   
   compile-run-print: func [src [file!] /error][
@@ -257,7 +274,7 @@ qt: make object! [
     ][
       compile-and-run src
     ]
-    if output <> "Compilation failed" [print output]
+    if output <> to binary! "Compilation failed" [print to string! output]
   ]
   
   compiled?: func [
@@ -279,10 +296,28 @@ qt: make object! [
     exec: to-local-file runnable-dir/:prog
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
-    call/output/wait exec output
+    either r3? [
+    	;; was having strange thing where this wasn't executable, doublecheck
+    	;; necessity later prior to checkin
+    	make-owner-executable to file! exec
+    	
+        ;; call in R3 is incomplete
+        tempfile: %qut-call-r3.tmp
+        call/wait rejoin [exec " > " to string! tempfile]
+        append output read-binary tempfile
+    ] [
+    	use [outstring] [
+    		outstring: {}
+        	call/output/wait exec outstring
+        	
+        	;-- R2 strings don't technically have unicode codepoints, they are
+        	;-- just binary blocks passing the information through...
+        	append output as-binary outstring
+        ]
+    ]
     if all [
       reds-file?
-      none <> find output "Runtime Error" 
+      none <> find output to binary! "Runtime Error" 
     ][
       if not error [_signify-failure]
     ]
@@ -311,7 +346,21 @@ qt: make object! [
     prin [ "running " test-name #"^(0D)"]
     clear output
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    call/output/wait cmd output
+    either r3? [
+        ;; call in R3 is incomplete
+        tempfile: %qut-call-r3.tmp
+        call/wait rejoin [cmd " > " to string! tempfile]
+        append output read-binary tempfile
+    ] [ 
+    	use [outstring] [
+    		outstring: {}
+        	call/output/wait cmd outstring
+        	
+       		;-- R2 strings don't technically have unicode codepoints, they are
+        	;-- just binary blocks passing the information through...
+        	append output as-binary outstring
+ 		]
+    ]
     add-to-run-totals
     write/append log-file output
     file/title: test-name
@@ -327,7 +376,7 @@ qt: make object! [
   ][
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
-    write to file! script read join tests-dir [src]
+    write to file! script read-string join tests-dir [src]
     do script
   ]
   
@@ -358,7 +407,7 @@ qt: make object! [
     print: :_save-print
     write/append log-file print-output
     _print-summary file
-    output: copy ""
+    output: copy #{}
   ]
   
   r-compile: func [
@@ -395,11 +444,16 @@ qt: make object! [
 
     ;; compose command line and call it
     cmd: join to-local-file system/options/boot [" -sc " r-comp-r]
-    call/wait/output cmd make string! 1024	;; redirect output to anonymous buffer
+    either r3? [
+        ;; call in r3 is incomplete
+        call/wait rejoin [cmd " > /dev/null"]
+    ] [
+        call/wait/output cmd make string! 1024	;; redirect output to anonymous buffer
+    ]
     
     ;; collect compiler output & tidy up
     if exists? r-comp-echo [
-    	comp-output: read r-comp-echo
+    	comp-output: read-binary r-comp-echo
     	delete r-comp-echo
     ]
     if exists? r-comp-r [delete r-comp-r]
@@ -413,7 +467,7 @@ qt: make object! [
   ]
   
   r-compile-ok?: func [] [
-    either find comp-output "output file size:" [true] [false]
+    either find comp-output to binary! "output file size:" [true] [false]
   ]
   
   r-compile-and-run: func [src /error] [
@@ -425,7 +479,7 @@ qt: make object! [
       ]
     ][
       compile-error src
-      output: "Compilation failed"
+      output: to binary! "Compilation failed"
     ]
   ]
   
@@ -435,10 +489,10 @@ qt: make object! [
     ][
       r-compile-and-run src
     ]
-    if output <> "Compilation failed" [print output]
+    if output <> to binary! "Compilation failed" [print output]
   ]
   
-  r-compile-and-run-from-string: func [src /error] [
+  r-compile-and-run-from-string: func [src [binary! string!] /error] [
     either exe: r-compile-from-string src [
       either error [
         r-run/error  exe
@@ -448,13 +502,17 @@ qt: make object! [
     ][
       
       compile-error "Supplied source"
-      output: "Compilation failed"
+      output: to binary! "Compilation failed"
     ]
   ]
   
-  r-compile-from-string: func [src][
+  r-compile-from-string: func [src [binary! string!]][
+  	if string? src [
+		src: to binary! r2-utf8-checked src
+	]
+
     ;-- add a default header if not provided
-    if none = find src "Red [" [insert src "Red []^/"]
+    if none = find src to binary! "Red [" [insert src to binary! "Red []^/"]
     write r-test-src-file src
     r-compile r-test-src-file                  ;; returns path to executable or none
   ]
@@ -470,9 +528,23 @@ qt: make object! [
     exec: to-local-file r-runnable-dir/:prog
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
-    call/output/wait exec output
+    either r3? [
+        ;; call in R3 is incomplete
+        tempfile: %qut-call-r3.tmp
+        call/wait rejoin [exec " > " to string! tempfile]
+        append output read-binary tempfile
+	] [
+	    use [outstring] [
+    		outstring: {}
+        	call/output/wait exec outstring
+        	
+        	;-- R2 strings don't technically have unicode codepoints, they are
+        	;-- just binary blocks passing the information through...
+        	append output as-binary outstring
+        ]
+	]
     if windows-os? [output: qt/utf-16le-to-utf-8 output]
-    if none <> find output "Script Error" [
+    if none <> find output to binary! "Script Error" [
       if not error [_signify-failure]
     ]
   ]
@@ -493,7 +565,7 @@ qt: make object! [
     print: :_save-print
     write/append log-file print-output
     _print-summary file
-    output: copy ""
+    output: copy #{}
   ]
   
   add-to-run-totals: func [
@@ -518,7 +590,7 @@ qt: make object! [
       thru "Number of Assertions Failed:" whitespace copy failures number
       to end
     ]
-    if parse/all output rule [
+    if parse/all to string! output rule [
       file/no-tests: file/no-tests + to integer! tests
       file/no-asserts: file/no-asserts + to integer! asserts
       file/passes: file/passes + to integer! passed
@@ -595,17 +667,23 @@ qt: make object! [
     ]
   ]
   
-  assert-msg?: func [msg][
+  assert-msg?: func [msg [string! binary!]][
+    if string? msg [
+    	msg: to binary! r2-utf8-checked msg
+    ]
     assert found? find qt/comp-output msg
   ]
   
-  assert-printed?: func [msg] [
+  assert-printed?: func [msg [string!]] [
     assert found? find qt/output msg
   ]
   
-  assert-red-printed?: func[
-    msg
+  assert-red-printed?: func [
+    msg [string! binary!]
   ][
+    if string? msg [
+    	msg: to binary! r2-utf8-checked msg
+    ]
     assert found? find output msg
   ]
       
@@ -692,7 +770,7 @@ qt: make object! [
     make-file: join tests-dir make-file
     
     stored-file-length: does [
-      parse/all read auto-test-file rule
+      parse/all read-string auto-test-file rule
       stored-length
     ]
     digit: charset [#"0" - #"9"]
@@ -703,11 +781,11 @@ qt: make object! [
       to end
     ]
     
-    if not exists? make-file [return]
+    if not exists? make-file [return none]
    
     if any [
       not exists? auto-test-file
-      stored-file-length <> length? read make-file
+      stored-file-length <> length? read-string make-file
       (modified? make-file) > (modified? auto-test-file)
     ][
       print ["Making" auto-test-file " - it will take a while"]
@@ -716,15 +794,15 @@ qt: make object! [
   ]
   
   utf-16le-to-utf-8: func [
-    {Translates a utf-16LE encoded string to an utf-8 encoded one
+    {Translates a utf-16LE encoded binary to an utf-8 encoded one
      the algorithm is copied from lexer.r                         }
-    in-str [string!]
+    in-str [binary!]
     /local
       out-str
       code
   ][
-   out-str: copy ""
-   foreach [low high] to binary! in-str [
+   out-str: copy #{}
+   foreach [low high] in-str [
      code: high * 256 + low
      case [
        code <= 127  [
