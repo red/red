@@ -158,9 +158,9 @@ _function: context [
 	][
 		case [
 			field = words/spec [
-				blk: as red-block! stack/arguments
+				blk: as red-block! stack/arguments		;-- overwrite the function slot on stack
 				blk/header: TYPE_BLOCK
-				blk/node: fun/spec
+				blk/node: fun/spec						;-- order of assignments matters
 				blk/head: 0
 			]
 			field = words/body [
