@@ -252,7 +252,11 @@ natives: context [
 	
 	function*:	does []
 	
-	does*: does []
+	does*: does [
+		copy-cell stack/arguments stack/push*
+		block/make-at as red-block! stack/arguments 1
+		func*
+	]
 	
 	has*: does [
 		block/insert-value 
