@@ -14,6 +14,60 @@ Red/System [
 _function: context [
 	verbose: 0
 	
+	
+	collect-deep: func [
+		list [red-block!]
+		spec [red-block!]
+		blk  [red-block!]
+		/local
+			value  [red-value!]
+			end	   [red-value!]
+			result [red-value!]
+			word   [red-value!]
+	][
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_SET_WORD [
+					word: stack/push value
+					word/header: TYPE_WORD				;-- convert the set-word! into a word!
+					
+					result: block/find list word null no no no null null no no no no
+					
+					if TYPE_OF(result) = TYPE_NONE [
+						block/rs-append list word
+					]
+					stack/pop 2							;-- remove word and FIND result from stack
+				]
+				TYPE_BLOCK
+				TYPE_PAREN [
+					collect-deep list spec as red-block! blk
+				]
+				default [0]
+			]
+			value: value + 1
+		]
+	]
+	
+	collect-words: func [
+		spec	[red-block!]
+		body	[red-block!]
+		return: [red-block!]
+		/local
+			list [red-block!]
+	][
+		list: block/push* 8
+		block/insert-value list as red-value! refinements/local
+		collect-deep list spec body
+		
+		if 1 < block/rs-length? list [
+			block/rs-append-block spec list
+		]
+		list
+	]
+	
 	validate: func [									;-- temporary mimalist spec checking
 		spec [red-block!]
 		/local

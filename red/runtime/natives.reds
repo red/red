@@ -250,7 +250,12 @@ natives: context [
 		stack/set-last stack/top - 1
 	]
 	
-	function*:	does []
+	function*:	does [
+		_function/collect-words
+			as red-block! stack/arguments
+			as red-block! stack/arguments + 1
+		func*
+	]
 	
 	does*: does [
 		copy-cell stack/arguments stack/push*
