@@ -8,7 +8,23 @@ REBOL [
 
 ~~~start-file~~~ "Old Regression tests"
 
-    --compile-and-run-this-red {
+	alpha-utf8: #{CEB1}
+  beta-utf8: #{CEB2}
+  sigma-utf8: #{CF83}
+  iota-utf8: #{E1BF96}
+  rho-utf8: #{CF81}
+  epsilon-utf8: #{CEB5}
+  kappa-utf8: #{CEB5}
+  omicron-utf8: #{CF8C}
+  mu-utf8: #{CEBC}  
+	
+    ;; Hell capital sigma o, then cat in russian      
+    hello-cat-utf8: #{48656C6CC6A96F20D0BAD0BED188D0BAD0B0}
+      
+    ;; Hello, World! in Greek
+	hello-greek-utf8: #{CEA7CEB1E1BF96CF81CEB52C20CEBACF8CCF83CEBCCEB521}
+	
+    --compile-and-run-this-red rejoin [#{} {
       ;================ BASIC =================
       prin "or1"
       print 789
@@ -124,7 +140,7 @@ REBOL [
       
       ;================ STRING =================
       
-      s: {^(48)^(65)^(6C)^(6C)^(C6)^(A9)^(6F)^(20)^(D0)^(BA)^(D0)^(BE)^(D1)^(88)^(D0)^(BA)^(D0)^(B0)}              ;;"HellƩo кошка"
+      s: "} hello-cat-utf8 to binary! {"
       
       prin "or33"
       print s
@@ -133,24 +149,24 @@ REBOL [
       print 123
       
       
-      α: 1
-      β: 2
+      } alpha-utf8 {: 1
+      } beta-utf8 {: 2
       prin "or35"
-      print α + β
+      print } to binary! { + } beta-utf8 {
       
       prin "or36"
-      print {^(CE)^(A7)^(CE)^(B1)^(E1)^(BF)^(96)^(CF)^(81)^(CE)^(B5)^(2C)^(20)^(CE)^(BA)^(CF)^(8C)^(CF)^(83)^(CE)^(BC)^(CE)^(B5)^(21)}    ;"Χαῖρε, κόσμε!"
+      print "} hello-greek-utf8 to binary! {"
       
       prin "or37"
       print #"a"
       
       prin "or38"
-      print #"α"
+      print #"} alpha-utf8 to binary! {"
       
       prin "or39"
       print #"a" + 1
       
-      z: {^(CE)^(A7)^(CE)^(B1)^(E1)^(BF)^(96)^(CF)^(81)^(CE)^(B5)^(2C)^(20)^(CE)^(BA)^(CF)^(8C)^(CF)^(83)^(CE)^(BC)^(CE)^(B5)^(21)}        ;;"Χαῖρε, κόσμε!"
+      z: "} hello-greek-utf8 to binary! {"
       
       prin "or40"
       print head? z
@@ -166,11 +182,16 @@ REBOL [
       
       ;--invalid UTF-8
       prin "or44"
-      ;print "^(D801)^(DC81)"            
-      
+      print "^^(D801)^^(DC81)"
+} 
+;-- This codepoint is simply too high to be represented currently by R3
+;-- in a string! ... hence would have to be a binary in the Red/System
+;-- dialect output.  R2 cheats by having fake strings that are really
+;-- just binaries under the hood, though it knows nothing of Unicode
+comment {      
       prin "or45"
-      ;print "^(10481)"              
-      
+      print "^^(10481)"          
+} {
       s: "toto"
       
       prin "or46"
@@ -268,7 +289,7 @@ REBOL [
       print s
       
       poke at s 5 -1 #"O"
-      append s #"α"
+      append s #"} alpha-utf8 {"
       
       prin "or76"
       print s
@@ -354,10 +375,12 @@ REBOL [
       
       prin "or100"
       print all [1 < 5 true 1 + 2 <= 3]
-      
-      c: "^(10FFFF)"
-      ;c: #"^(10FFFF)"
-      
+}
+;-- Another codepoint simply too high to be MOLDed and LOADed as R3 string!
+comment {       
+      c: "^^(10FFFF)"
+      ;c: #"^^(10FFFF)"
+} {      
       print "---APPEND"
       
       prin "or101"
@@ -367,10 +390,10 @@ REBOL [
       print append "tαst" "hello"
       
       prin "or103"
-      print append "test" "hαllo"
+      print append "test" "h} alpha-utf8 {llo"
       
       prin "or104"
-      print append "test" ["h" #"σ" "llo"]
+      print append "test" ["h" #"} sigma-utf8 {" "llo"]
       
       print "---Symbols"
       list: [test5 /test2 'test3 test6:]
@@ -436,7 +459,7 @@ REBOL [
       prin "or118"
       repeat c 5 [prin "x"]
       
-      z: {^(CE)^(A7)^(CE)^(B1)^(E1)^(BF)^(96)^(CF)^(81)^(CE)^(B5)^(2C)^(20)^(CE)^(BA)^(CF)^(8C)^(CF)^(83)^(CE)^(BC)^(CE)^(B5)^(21)} ;"Χαῖρε, κόσμε!"
+      z: "} hello-greek-utf8 {"
       
       prin "or119"
       print newline
@@ -499,7 +522,7 @@ REBOL [
 	  prin "or130"
 	  prin mold a
       
-    }
+    }]
     
 ===start-group=== "Basic"
 
@@ -608,7 +631,7 @@ REBOL [
 ===start-group=== "String"
 
   --test-- "or33"
-  --assert-red-printed? "or33HellƩo кошка" 
+  --assert-red-printed? rejoin [#{} "or33" hello-cat-utf8]
   
   --test-- "or34"
   --assert-red-printed? "or34123"
@@ -617,13 +640,13 @@ REBOL [
   --assert-red-printed? "or353"
   
   --test-- "or36"
-  --assert-red-printed? "or36Χαῖρε, κόσμε!" 
+  --assert-red-printed? rejoin [#{} "or36" hello-greek-utf8] 
   
   --test-- "or37"
   --assert-red-printed? "or37a"
   
   --test-- "or38"
-  --assert-red-printed? "or38α"
+  --assert-red-printed? rejoin [#{} "or38" alpha-utf8]
   
   --test-- "or39"
   --assert-red-printed? "or39b"
@@ -737,7 +760,7 @@ REBOL [
   --assert-red-printed? "or75t-tozyx"
   
   --test-- "or76"
-  --assert-red-printed? "or76t-tOzyxα"
+  --assert-red-printed? rejoin [#{} "or76t-tOzyx" alpha-utf8]
   
   --test-- "or77"
   --assert-red-printed? "or778"
@@ -882,7 +905,7 @@ REBOL [
   --assert-red-printed? "or114test5/test2'test3test6:"
   
   --test-- "or115"
-  --assert-red-printed? "or115Χαῖρε, κόσμε!"                
+  --assert-red-printed? rejoin [#{} "or115" hello-greek-utf8]                
   
   --test-- "or116"
   --assert-red-printed? "or116Χ"                
@@ -892,20 +915,20 @@ REBOL [
   
   --test-- "or118"
   --assert-red-printed? "or118xxxxx"                
-  
+    
   --test-- "or119"
   --assert-red-printed? {char: Χ cp: 935}
-  --assert-red-printed? {char: α cp: 945}
-  --assert-red-printed? {char: ῖ cp: 8150}
-  --assert-red-printed? {char: ρ cp: 961}
-  --assert-red-printed? {char: ε cp: 949}
+  --assert-red-printed? rejoin [#{} {char: } alpha-utf8 { cp: 945}]
+  --assert-red-printed? rejoin [#{} {char: } iota-utf8 { cp: 8150}]
+  --assert-red-printed? rejoin [#{} {char: } rho-utf8 { cp: 961}]
+  --assert-red-printed? rejoin [#{} {char: } omicron-utf8 { cp: 949}]
   --assert-red-printed? {char: , cp: 44}
   --assert-red-printed? {char:   cp: 32}
-  --assert-red-printed? {char: κ cp: 954}
-  --assert-red-printed? {char: ό cp: 972}
-  --assert-red-printed? {char: σ cp: 963}
-  --assert-red-printed? {char: μ cp: 956}
-  --assert-red-printed? {char: ε cp: 949}
+  --assert-red-printed? rejoin [#{} {char: } kappa-utf8 { cp: 954}]
+  --assert-red-printed? rejoin [#{} {char: } omicron-utf8 { cp: 972}]
+  --assert-red-printed? rejoin [#{} {char: } sigma-utf8 { cp: 963}]
+  --assert-red-printed? rejoin [#{} {char: } mu-utf8 { cp: 956}]
+  --assert-red-printed? rejoin [#{} {char: } epsilon-utf8 { cp: 949}]
   --assert-red-printed? {char: ! cp: 33}
   
   --test-- "or120"

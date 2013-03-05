@@ -19,7 +19,8 @@ REBOL [
 ;-- script trimmed down to the function only
 ;-- most of comments and unit tests removed
 ;-- minor changes in the function body ("/" factorized, index? replaced by offset?)
-;--
+;-- Changed to use the word "constraint" instead of R3 parse keyword LIMIT
+
 ;-- Full script can be found here: http://www.rebol.org/view-script.r?script=secure-clean-path.r
 
 
@@ -28,7 +29,7 @@ secure-clean-path: func [
     /limit               {Limit paths relative to this root}
     root   [any-string!] {The root path (Default "", not applied if "")}
     /nocopy              {Modify target instead of copy}
-    /local root-rule a b c slash dot
+    /local root-rule a b c slash dot constraint
 ] [
 	dot: "."
 	slash: "/"
@@ -41,7 +42,7 @@ secure-clean-path: func [
     ]
     
     if parse/all target [
-        root-rule limit:
+        root-rule constraint:
         any [
             a: dot [slash | end] (remove/part a 2) :a |
             a: some slash b: (remove/part a b) :a |
@@ -49,8 +50,8 @@ secure-clean-path: func [
                 loop (offset? a b) - 1 [
                     either all [
                         b: find/reverse back a slash
-                        -1 <= offset? limit b
-                    ] [a: next b] [a: limit  break]
+                        -1 <= offset? constraint b
+                    ] [a: next b] [a: constraint break]
                 ]
             ) :a (
                 remove/part a c

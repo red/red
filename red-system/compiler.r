@@ -7,10 +7,11 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+do %utils/r2-forward.r
+
 do %utils/profiler.r
 profiler/active?: no
 
-do %utils/r2-forward.r
 do %utils/int-to-bin.r
 do %utils/IEEE-754.r
 do %utils/virtual-struct.r
@@ -427,7 +428,7 @@ system-dialect: make-profilable context [
 				types/1: resolve-aliased types/1	;-- reduce aliases and pseudo-types
 				if all [
 					not head? types
-					not equal-types? types/-1/1 types/1/1
+					not equal-types? first (first back types) types/1/1
 				][
 					return none-type
 				]
@@ -595,7 +596,7 @@ system-dialect: make-profilable context [
 		enum-id?: func [name [word!] /local pos][
 			all [
 				pos: find/skip next enumerations name 3
-				reduce [pos/-1]
+				reduce [first back pos]
 			]
 		]
 
@@ -849,10 +850,12 @@ system-dialect: make-profilable context [
 			type
 		]
 		
-		add-function: func [type [word!] spec [block!] cc [word!]][
+		add-function: func [type [word!] spec [block!] cc [word!] /local temp][
+			assert [word? spec/1]
 			repend functions [
-				to word! spec/1 reduce [get-arity spec/3 type cc new-line/all spec/3 off]
-			]		
+				spec/1
+				reduce [get-arity spec/3 type cc new-line/all spec/3 off]
+			]
 		]
 		
 		compare-func-specs: func [
@@ -1010,7 +1013,7 @@ system-dialect: make-profilable context [
 		
 		check-specs: func [
 			name specs /extend
-			/local type type-def spec-type attribs value args locs cconv pos
+			/local type type-def spec-type attribs value args locs cconv pos spec-rule
 		][
 			unless block? specs [
 				throw-error "function definition requires a specification block"
@@ -1024,7 +1027,7 @@ system-dialect: make-profilable context [
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
 			unless catch [
-				parse specs [
+				parse some-parsefix any-parsefix specs [
 					opt [								;-- function's attribute and main doc-string
 						string! opt [into attribs]		;-- can be specified in any order
 						| into attribs opt string!
@@ -1241,7 +1244,7 @@ system-dialect: make-profilable context [
 		fetch-func: func [name /local specs type cc attribs][
 			name: to word! name
 			store-ns-symbol name
-			if ns-path [add-ns-symbol pc/-1]
+			if ns-path [add-ns-symbol first back pc]
 			if ns-path [name: ns-prefix name]
 			check-func-name name
 			check-specs name specs: pc/2
@@ -1456,7 +1459,9 @@ system-dialect: make-profilable context [
 				ns/1: either path? ctx: resolve-ns/path ns/1 [ctx][to path! ctx]
 				unless find/only ns-list ns/1 [throw-error ["undefined context" ns/1]]
 			]
-			with-ns: unique copy ns
+			
+			;-- R3 unique seems to be missing features
+			with-ns: unique-extended copy ns
 			
 			list: clear []
 			foreach ns with-ns [
@@ -1486,13 +1491,13 @@ system-dialect: make-profilable context [
 		
 		comp-context: has [name level][
 			unless block? pc/2 [throw-error "context specification block is missing"]
-			unless set-word? pc/-1 [throw-error "context's name setting is missing"]
+			unless set-word? first back pc [throw-error "context's name setting is missing"]
 			unless zero? block-level [
 				pc: back pc
 				throw-error "context has to be declared at root level"
 			]
 			
-			check-keywords name: to word! pc/-1
+			check-keywords name: to word! first back pc
 			if any [										;@@ factorize this out
 				all [locals find locals name]
 				find globals name
@@ -1512,7 +1517,9 @@ system-dialect: make-profilable context [
 			either ns-path [
 				append ns-path to word! mold/flat name
 			][
-				ns-path: to lit-path! mold/flat name		;-- workaround newline flag remanence issue
+				;-- Was to lit-path!, but R2 throws that away unless you use
+				;-- :ns-path instead of ns-path
+				ns-path: to path! mold/flat name		;-- workaround newline flag remanence issue
 			]
 			either find/only ns-list ns-path [
 				throw-error ["context" name "already defined"]
@@ -1532,7 +1539,7 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-declare: has [rule value pos offset ns][
-			unless find [set-word! set-path!] type?/word pc/-1 [
+			unless find [set-word! set-path!] type?/word first back pc [
 				throw-error "assignment expected before literal declaration"
 			]
 			value: to paren! reduce either find [pointer! struct!] pc/2 [
@@ -1617,15 +1624,15 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-alias: has [name pos][
-			unless set-word? pc/-1 [
+			unless set-word? first back pc [
 				throw-error "assignment expected for ALIAS"
 			]
 			unless find [struct! function!] pc/2 [
 				throw-error "ALIAS only allowed for struct! and function!"
 			]
-			name: to word! pc/-1
+			name: to word! first back pc
 			store-ns-symbol name
-			if ns-path [add-ns-symbol pc/-1]
+			if ns-path [add-ns-symbol first back pc]
 			all [
 				not base-type? name
 				ns-path
@@ -2019,7 +2026,7 @@ system-dialect: make-profilable context [
 					throw-error "storing a function! requires a type casting"
 				]
 				unless local-variable? n [
-					if ns-path [add-ns-symbol pc/-1]
+					if ns-path [add-ns-symbol first back pc]
 					if all [ns: resolve-ns n ns <> n][name: to set-word! ns]
 					check-func-name/only to word! name	;-- avoid clashing with an existing function name		
 				]
@@ -2470,7 +2477,10 @@ system-dialect: make-profilable context [
 			if all [
 				not any [tail? pc variable]				;-- not last expression nor assignment value
 				1 >= length? expr-call-stack			;-- one (for math op) or no parent call
-				'switch <> pick tail expr-call-stack -1
+				any [
+					empty? expr-call-stack
+					'switch <> first back tail expr-call-stack
+				]
 				any [
 					all [
 						any [
@@ -2659,7 +2669,7 @@ system-dialect: make-profilable context [
 						find [func function] pc/2
 					][
 						pc: next pc
-						fetch-func pc/-1				;-- allow function declaration at root level only
+						fetch-func first back pc				;-- allow function declaration at root level only
 					]
 					all [set-word? pc/1 pc/2 = 'alias][
 						pc: next pc
@@ -2846,7 +2856,7 @@ system-dialect: make-profilable context [
 	]
 	
 	make-job: func [opts [object!] file [file!] /local job][
-		job: construct/with third opts linker/job-class	
+		job: construct/with body-of opts linker/job-class	
 		unless job/build-basename [
 			file: last split-path file					;-- remove path
 			file: to-file first parse file "."			;-- remove extension

@@ -132,11 +132,9 @@ linker: context [
 
 		file: make-filename job
 		if verbose >= 1 [print ["output file:" file]]
-		write/binary/direct file job/buffer
+		write-binary/direct file job/buffer
 		
-		if find get-modes file 'file-modes 'owner-execute [
-			set-modes file [owner-execute: true]
-		]
+		make-owner-executable file
 	]
 
 ]

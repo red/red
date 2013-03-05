@@ -7,8 +7,8 @@ REBOL [
 ]
 ;; function to find and run-tests
 run-all-script: func [dir [file!]][
-  qt/tests-dir: system/script/path/:dir
-  foreach line read/lines dir/run-all.r [
+  qt/tests-dir: qt/base-dir/:dir
+  foreach line read/lines qt/tests-dir/run-all.r [
     if any [
       find line "===start-group"
       find line "--run-"
@@ -39,8 +39,8 @@ start-time: now/precise
 
 ***start-run-quiet*** "Complete Red Test Suite"
 
-run-all-script %../red/tests/
-run-all-script %../red-system/tests/
+run-all-script %red/tests/
+run-all-script %red-system/tests/
 
 ***end-run-quiet***
 

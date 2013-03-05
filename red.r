@@ -24,17 +24,15 @@ redc: context [
 	fail-try: func [component body /local err] [
 		if error? set/any 'err try body [
 			err: disarm err
+			probe err
 			foreach w [arg1 arg2 arg3][
 				set w either unset? get/any in err w [none][
 					get/any in err w
 				]
 			]
-			fail [
+			fail compose [
 				"***" component "Internal Error:"
-				system/error/(err/type)/type #":"
-				reduce system/error/(err/type)/(err/id) newline
-				"*** Where:" mold/flat err/where newline
-				"*** Near: " mold/flat err/near newline
+				(readable-error-block err)
 			]
 		]
 	]
@@ -96,7 +94,7 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
-		base-path: system/script/parent/path
+		base-path: system/script/path 						;-- was system/script/parent/path but r3 returns none
 		opts: make opts config
 		opts/config-name: config-name
 		opts/build-prefix: base-path
@@ -177,3 +175,6 @@ redc: context [
 
 	fail-try "Driver" [main]
 ]
+
+;-- script will evaluate to whatever is at the end here, literal of type unset!
+#[unset!]

@@ -192,20 +192,30 @@ emitter: make-profilable context [
 		spec
 	]
 
-	store-global: func [value type [word!] spec [block! word! none!] /local size ptr][
+	store-global: func [value type [word!] spec [block! word! none!] /local size ptr stringbuf ch stop-ptr][
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if all [value = <last> not find [float! float!64] type][
+		;-- R3 will currently compare [<last> = "last"] as true 
+		if all [
+			tag? value
+			value = <last>
+			not find [float! float!64] type
+		] [
 			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
 		if find compiler/enumerations type [type: 'integer!]
 		
 		size: size-of? type
-		ptr: tail data-buf
-		
+
+		add-data-buf: func [bin [binary! integer!] /local ptr] [
+			ptr: tail data-buf
+			;-- Helpful point for tracing things going wrong at index? ptr
+			append ptr bin ;-- Will makes sure integer is [0 .. 255]
+			ptr
+		]
 	
 		switch/default type [
 			integer! [
@@ -214,40 +224,57 @@ emitter: make-profilable context [
 					not integer? value [value: 0]
 				]
 				pad-data-buf target/default-align
-				ptr: tail data-buf			
-				value: debase/base to-hex value 16
-				either target/little-endian? [
-					value: tail value
-					loop size [append ptr to char! (first value: skip value -1)]
+				value: integer-to-bytes/width value size
+								
+				ptr: add-data-buf either target/little-endian? [
+					reverse copy value
 				][
-					append ptr skip tail value negate size		;-- truncate if required
+					value
 				]
 			]
 			byte! [
 				either integer? value [
-					value: to char! value and 255		;-- truncate if required
+					value: integer-to-bytes/width value 1
 				][
-					unless char? value [value: #"^@"]
+					either char? value [
+						value: integer-to-bytes/width (to integer! value) 1
+					][
+						value: #{00}
+					]
 				]
-				append ptr value
+				ptr: add-data-buf value
 			]
 			float! float64! [
 				pad-data-buf 8							;-- align 64-bit floats on 64-bit
-				ptr: tail data-buf
 				unless decimal? value [value: 0.0]
-				append ptr IEEE-754/to-binary64/rev value	;-- stored in little-endian
+				ptr: add-data-buf IEEE-754/to-binary64/rev value	;-- stored in little-endian
 			]
 			float32! [	
 				pad-data-buf target/default-align			
-				ptr: tail data-buf
+
 				value: compiler/unbox value
 				unless decimal? value [value: 0.0]
-				append ptr IEEE-754/to-binary32/rev value	;-- stored in little-endian
+				ptr: add-data-buf IEEE-754/to-binary32/rev value	;-- stored in little-endian
 			]
 			c-string! [
 				either string? value [
-					repend ptr [value null]
+					;-- Here we have a problem as phrased by this SO Q&A
+					;--     http://stackoverflow.com/questions/15077974/
+					;-- When Red/System loads a "codepoint" like ^(80) it does
+					;-- not want the UTF-8 two-byte representation.  It wants
+					;-- the literal byte #{80}.  This is not how R3 sees
+					;-- string encodings, and if Red/System wants *proper*
+					;-- codepoints then this notion will need to be dropped.
+					;-- The compromise until R2 is ditched is that string
+					;-- codepoints must encoded as byte values, so no
+					;-- proper Unicode for Red/System until then.  So this
+					;-- function is the moment we have to deal with the
+					;-- "fake escaping".  :-/
+					
+					ptr: add-data-buf r2-string-to-binary/unsafe/unescape value
+					add-data-buf #{00}
 				][
+					assert [integer! = type? value]
 					pad-data-buf target/ptr-size		;-- pointer alignment can be <> of integer
 					ptr: tail data-buf	
 					store-global value 'integer! none

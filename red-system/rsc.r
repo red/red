@@ -24,17 +24,15 @@ rsc: context [
 	fail-try: func [component body /local err] [
 		if error? set/any 'err try body [
 			err: disarm err
+			probe err
 			foreach w [arg1 arg2 arg3][
 				set w either unset? get/any in err w [none][
 					get/any in err w
 				]
 			]
-			fail [
+			fail compose [
 				"***" component "Internal Error:"
-				system/error/(err/type)/type #":"
-				reduce system/error/(err/type)/(err/id) newline
-				"*** Where:" mold/flat err/where newline
-				"*** Near: " mold/flat err/near newline
+				(readable-error-block err)
 			]
 		]
 	]
@@ -155,3 +153,6 @@ rsc: context [
 
 	fail-try "Driver" [main]
 ]
+
+;-- script will evaluate to whatever is at the end here, literal of type unset!
+#[unset!]

@@ -8,6 +8,8 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+do %../red-system/utils/r2-forward.r
+
 qut: make object! [
   
   test-print: :print

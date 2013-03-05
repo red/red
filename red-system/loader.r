@@ -45,7 +45,7 @@ loader: make-profilable context [
 	]
 
 	included?: func [file [file!]][
-		file: get-modes file 'full-path
+		file: clean-path file
 		either find include-list file [true][
 			append include-list file
 			false
@@ -53,15 +53,22 @@ loader: make-profilable context [
 	]
 
 	push-system-path: func [file [file!] /local path][
+		if empty? ssp-stack [
+			;-- Just as change-dir seems to be necessary in R3, to get
+			;-- things off the ground we have to calibrate system/script/path
+			;-- somehow.  Here we use the current directory, is there a better
+			;-- solution?
+			system/script/path: what-dir
+		]
 		append ssp-stack system/script/path
-		if relative-path? file [file: get-modes file 'full-path]
+		if relative-path? file [file: clean-path file]
 		path: split-path file
-		system/script/path: path/1
+		system/script/path: change-dir path/1
 		path/2
 	]
 	
 	pop-system-path: does [
-		system/script/path: take/last ssp-stack
+		system/script/path: change-dir take/last ssp-stack
 	]
 	
 	check-macro-parameters: func [args [paren!]][
@@ -111,7 +118,7 @@ loader: make-profilable context [
 		s
 	]
 
-	inject: func [args [block!] 'macro s [block!] e [block!] /local rule pos i type value][
+	inject: func [args [block!] macro s [block! paren!] e [block! paren!] /local rule pos i type value b][
 		unless equal? length? args length? s/2 [
 			throw-error ["invalid macro arguments count in:" mold s/2]
 		]	
@@ -119,7 +126,7 @@ loader: make-profilable context [
 
 		parse :macro rule: [
 			some [
-				into rule 
+				b: any-block! :b into rule 
 				| pos: [
 					word! 		(type: word!) 
 					| set-word! (type: set-word!)
@@ -144,7 +151,7 @@ loader: make-profilable context [
 		]
 	]
 
-	expand-string: func [src [string! binary!] /local value s e c lf-count ws i prev ins?][
+	expand-string: func [src [string!] /local value s e c lf-count ws i prev ins?][
 		if verbose > 0 [print "running string preprocessor..."]
 
 		line: 1										;-- lines counter
@@ -173,7 +180,7 @@ loader: make-profilable context [
 				s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
 				e: [hex-delim | ws-all | #";" to lf | end] (
 					either find [2 4 8] c [
-						e: change/part s to integer! to issue! value e
+						e: change/part s binary-to-int32 (debase/base value 16) e
 					][
 						throw-error ["invalid hex literal:" copy/part s 40]
 					]
@@ -187,7 +194,7 @@ loader: make-profilable context [
 	expand-block: func [
 		src [block!]
 		/local blk rule name value args s e opr then-block else-block cases body
-			saved stack header mark idx prev enum-value enum-name enum-names line-rule recurse
+			saved stack header mark idx prev enum-value enum-name enum-names line-rule recurse b hexstring
 	][
 		if verbose > 0 [print "running block preprocessor..."]
 		stack: append/only clear [] make block! 100
@@ -199,7 +206,7 @@ loader: make-profilable context [
 			idx: index? s
 			mark: to pair! reduce [line idx]
 			either all [
-				prev: pick tail header -1
+				prev: first back tail header
 				pair? prev
 				prev/2 = idx 						;-- test if previous marker is at the same series position
 			][
@@ -211,18 +218,27 @@ loader: make-profilable context [
 		line-rule: [
 			s: #L set line integer! e: (
 				s: remove/part s 2
+
+				;-- In R3 this requires versions later than fc51038c01
+				;-- https://github.com/rebol/r3/pull/70
 				new-line s yes
+				
 				do store-line
 			) :s
 		]
 		recurse: [
 			saved: reduce [s e]
-			parse/case value rule: [
-				some [defs | into rule | skip] 		;-- resolve macros recursively
+			parse/case value rule: some-parsefix [
+				;-- Rebol 3 will switch parse modes on into, so if you started
+				;-- with a block rule it will descend into a string; we only
+				;-- want to recurse in the case of a block...prefixing the into
+				;-- with [b: any-block! :b] works also in Rebol 2
+				
+				some [defs | b: any-block! :b into rule | skip] 	;-- resolve macros recursively
 			]
 			set [s e] saved
 		]
-		parse/case src blk: [
+		parse/case src blk: some-parsefix [
 			s: (do store-line)
 			some [
 				defs								;-- resolve definitions in a single pass
@@ -236,9 +252,14 @@ loader: make-profilable context [
 					case [
 						args [
 							do recurse
-							rule: copy/deep [s: _ paren! e: (e: inject _ _ s e) :s]
+							
+							;-- Rebol 3 differentiates between lit-word params
+							;-- and get-word params, and lit-word params will
+							;-- evaluate parenthesized expressions at callsites
+							;-- http://stackoverflow.com/questions/14532596/
+							rule: copy/deep [s: _ paren! e: (e: inject _ quote _ s e) :s]
 							rule/5/3: to block! :args	
-							rule/5/4: :value
+							rule/5/5: :value
 						]
 						block? value [
 							do recurse
@@ -260,7 +281,7 @@ loader: make-profilable context [
 				| s: #enum word! set value skip e: (
 					either block? value [
 						saved: reduce [s e]
-						parse value [
+						parse value any-parsefix [
 							any [
 								any line-rule [
 									[word! | some [set-word! any line-rule][integer! | word!]]
@@ -319,23 +340,27 @@ loader: make-profilable context [
 				) :s
 				| line-rule
 				| s: issue! (
-					if s/1/1 = #"'" [
-						value: to integer! debase/base next s/1 16
-						either value > 255 [
-							throw-error ["unsupported literal byte:" next s/1]
-						][
+					hexstring: mold s/1
+					if #"'" = second hexstring [
+						replace hexstring #"'" #"{"
+						append hexstring #"}"
+						value: load hexstring
+						either 1 = length? value [
+							value: binary-to-int32 value
 							s/1: to char! value
+						][
+							throw-error ["unsupported literal byte:" hexstring]
 						]
 					]
 				)
 				| path! | set-path!						;-- avoid diving into these series
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
-				  [into blk | block! | paren!]			;-- black magic...
+				  [b: any-block! :b into blk | block! | paren!]			;-- black magic...
 				  s: (
-					if any [block? s/-1 paren? s/-1][
+					if any [block? first back s paren? first back s][
 						header: last stack
 						change header length? header	;-- update header size
-						s/-1: insert copy s/-1 header	;-- insert hidden header
+						poke back s 1 insert copy first back s header		;-- insert hidden header
 						remove back tail stack
 					]
 				  )
@@ -359,7 +384,7 @@ loader: make-profilable context [
 
 		if file? input [
 			if input = %red.reds [					;-- special processing for Red runtime
-				system/script/path: join ssp-stack/1 %../red/runtime/
+				system/script/path: change-dir join ssp-stack/1 %../red/runtime/
 				input: push-system-path join system/script/path input
 				pushed?: yes
 			]
@@ -367,7 +392,7 @@ loader: make-profilable context [
 				input: push-system-path input
 				pushed?: yes
 			]
-			if error? set/any 'err try [src: as-string read/binary input][	;-- read source file
+			if error? set/any 'err try [src: read-string input][	;-- read source file
 				throw-error ["file access error:" mold disarm err]
 			]
 		]

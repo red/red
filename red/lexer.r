@@ -135,7 +135,10 @@ lexer: context [
 	path-rule: [
 		pos: slash :pos (							;-- path detection barrier
 			stack/push path!
-			stack/push to type copy/part s e		;-- push 1st path element
+			;-- push 1st path element
+						
+			;-- Cannot do TO WORD! directly from a BINARY!
+			stack/push to type to string! copy/part (bin-pos s) (bin-pos e)
 		)
 		some [
 			slash
@@ -149,7 +152,8 @@ lexer: context [
 				stack/push either type = paren! [	;-- append path element
 					value
 				][
-					to type copy/part s e
+					;-- Cannot do TO WORD! directly from a BINARY!
+					to type to string! copy/part (bin-pos s) (bin-pos e)
 				]
 				type: path!
 			)
@@ -161,7 +165,9 @@ lexer: context [
 	word-rule: 	[
 		(type: word!) s: begin-symbol-rule [
 			path-rule 								;-- path matched
-			| (value: copy/part s e)				;-- word matched
+			| (										;-- word matched
+				value: to string! copy/part (bin-pos s) (bin-pos e)
+			)
 			opt [#":" (type: set-word!)]
 		] 
 	]
@@ -173,7 +179,7 @@ lexer: context [
 			)
 			| (
 				type: get-word!
-				value: copy/part s e				;-- word matched
+				value: to string! copy/part (bin-pos s) (bin-pos e)
 			)
 		]
 	]
@@ -183,7 +189,7 @@ lexer: context [
 			path-rule (type: lit-path!)				;-- path matched
 			| (
 				type: lit-word!
-				value: copy/part s e				;-- word matched
+				value: to string! copy/part (bin-pos s) (bin-pos e)
 			)
 		]
 	]
@@ -217,33 +223,35 @@ lexer: context [
 	escaped-char: [
 		"^^(" [
 			s: [2 6 hexa] e: (						;-- Unicode values allowed up to 10FFFFh
-				value: encode-UTF8-char s e
+				value: encode-UTF8-char (bin-pos s) (bin-pos e)
 			)
 			| [
-				"null" 	 (value: #"^(00)")
-				| "back" (value: #"^(08)")
-				| "tab"  (value: #"^(09)")
-				| "line" (value: #"^(0A)")
-				| "page" (value: #"^(0C)")
-				| "esc"  (value: #"^(1B)")
-				| "del"	 (value: #"^(7F)")
+				"null" 	 (value: #{00})
+				| "back" (value: #{08})
+				| "tab"  (value: #{09})
+				| "line" (value: #{0A})
+				| "page" (value: #{0C})
+				| "esc"  (value: #{1B})
+				| "del"	 (value: #{7F})
 			] 
 		] #")"
 		| #"^^" [
 			[
-				#"/" 	(value: #"^/")
-				| #"-"	(value: #"^-")
-				| #"?" 	(value: #"^(del)")
-				| #"^^" (value: #"^^")				;-- caret escaping case
+				#"/" 	(value: #{0A})
+				| #"-"	(value: #{09})
+				| #"?" 	(value: #{7F})
+				| #"^^" (value: #{5E})				;-- caret escaping case
 			]
-			| s: caret-char (value: s/1 - 64)
+			| s: caret-char (
+				value: integer-to-bytes/width ((first (bin-pos s)) - 64) 1
+			)
 		]
 	]
 	
 	char-rule: [
 		{#"} (type: char!) [
 			s: escaped-char
-			| copy value UTF8-printable (value: as-binary value) 
+			| copy value UTF8-printable (value: bin-capture value)
 		] {"}
 	]
 	
@@ -283,7 +291,9 @@ lexer: context [
 				| "binary!" | "string!"	| "char!" | "bitset!" | "path!"
 				| "set-path!" | "lit-path!" | "native!"	| "action!"
 				| "issue!" | "paren!" | "function!"
-			] e: (value: get to word! copy/part s e)
+			] e: (
+				value: get to word! copy/part (bin-pos s) (bin-pos e)
+			)
 		]  any-ws #"]"
 	]
 	
@@ -307,21 +317,50 @@ lexer: context [
 		pos: (e: none) s: [
 			comment-rule
 			| multiline-comment-rule
-			| escaped-rule    (stack/push value)
-			| integer-rule	  (stack/push load-integer   copy/part s e)
-			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
+			| escaped-rule	  (stack/push value)
+			| integer-rule (
+				stack/push load-integer copy/part (bin-pos s) (bin-pos e)
+			)
+			| hexa-rule (
+				stack/push decode-hexa copy/part (bin-pos s) (bin-pos e)
+			)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
-			| refinement-rule (stack/push to refinement! copy/part s e)
-			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
-			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
-			| file-rule		  (stack/push to file!		 copy/part s e)
-			| char-rule		  (stack/push decode-UTF8-char value)
+			| refinement-rule (
+				;-- This is convoluted due to an R3 bug in TO that won't allow
+				;-- issue characters (like starting with a number) in refinement
+				;-- unless you go through an issue intermidiary.  Also there's
+				;-- what may be a general Rebol problem about not being able
+				;-- to convert directly from binary to word with an implied
+				;-- string decoding...you have to convert to string
+				
+				stack/push to refinement! either r3? [
+					to issue! to string! copy/part (bin-pos s) (bin-pos e)
+				] [
+					to string! copy/part (bin-pos s) (bin-pos e)
+				]
+			)
+			| slash-rule (
+				stack/push to word! to string! copy/part (bin-pos s) (bin-pos e)
+			)
+			| issue-rule (
+				stack/push to issue! to string! copy/part (bin-pos s) (bin-pos e)
+			)
+			| file-rule (
+				stack/push to file! to string! copy/part (bin-pos s) (bin-pos e)
+			)
+			| char-rule (
+				stack/push encode-char decode-UTF8-char value
+			)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
-			| string-rule	  (stack/push load-string s e)
-			| binary-rule	  (stack/push load-binary s e)
+			| string-rule	  (
+				stack/push load-string (bin-pos s) (bin-pos e)
+			)
+			| binary-rule (
+				stack/push load-binary (bin-pos s) (bin-pos e)
+			)
 		]
 	]
 	
@@ -367,7 +406,7 @@ lexer: context [
 		reset: does [clear stk]
 	]
 	
-	throw-error: func [/with msg [string! block!]][
+	throw-error: func [/with msg [string! block!] /binary][
 		print rejoin [
 			"*** Syntax Error: " either with [
 				uppercase/part reform msg 1
@@ -375,7 +414,13 @@ lexer: context [
 				reform ["Invalid" mold type "value"]
 			]
 			"^/*** line: " line
-			"^/*** at: " mold copy/part pos 40
+			"^/*** at: " either binary [
+				mold copy/part pos 40
+			] [
+				;-- Note this conversion might give you gibberish in R2,
+				;-- since it doesn't understand UTF8.
+				mold to string! copy/part pos 40
+			]
 		]
 		halt
 	]
@@ -385,109 +430,133 @@ lexer: context [
 		clear lines
 	]
 	
-	pad-head: func [s [string!]][
+	pad-head: func [s [binary!]][
 		head insert/dup s #"0" 8 - length? s
 	]
 	
-	encode-UTF8-char: func [s [string!] e [string!] /local c code new][
+	encode-UTF8-char: func [s [binary!] e [binary!] /local c code new][
 		c: debase/base pad-head copy/part s e 16
 		while [c/1 = 0][c: next c]					;-- trim heading zeros
 		code: to integer! c
 		
 		case [
 			code <= 127  [
-				new: to char! code					;-- c <= 7Fh
+				new: code							;-- c <= 7Fh
 			]
 			code <= 2047 [							;-- c <= 07FFh
-				new: (shift/left (shift code 6) or #"^(C0)" 8)
+				new: (shift-left (shift-right code 6) or #"^(C0)" 8)
 						or (code and #"^(3F)") or #"^(80)"
 			]
 			code <= 65535 [							;-- c <= FFFFh
-				new: (shift/left (shift code 12) or #"^(E0)" 16)
-						or (shift/left (shift code 6) and #"^(3F)" or #"^(80)" 8)
+				new: (shift-left (shift-right code 12) or #"^(E0)" 16)
+						or (shift-left (shift-right code 6) and #"^(3F)" or #"^(80)" 8)
 						or (code and #"^(3F)") or #"^(80)"
 			]
 			code <= 1114111 [						;-- c <= 10FFFFh
-				new: (shift/left (shift code 18) or #"^(F0)" 24)
-						or (shift/left (shift code 12) and #"^(3F)" or #"^(80)" 16)
-						or (shift/left (shift code 6)  and #"^(3F)" or #"^(80)" 8)
+				new: (shift-left (shift-right code 18) or #"^(F0)" 24)
+						or (shift-left (shift-right code 12) and #"^(3F)" or #"^(80)" 16)
+						or (shift-left (shift-right code 6)  and #"^(3F)" or #"^(80)" 8)
 						or (code and #"^(3F)") or #"^(80)"
 			]
 			'else [
 				throw-error/with "Codepoints above U+10FFFF are not supported"
 			]
 		]
-		if integer? new [
-			new: debase/base to-hex new 16
-			remove-each byte new [byte = #"^(null)"]
-		]	
-		new
+		assert [integer? new]
+		either new < 0 [
+			;-- Special case for R2 with 32-bit integers... with this
+			;-- method of encoding by shift and bits, we can wind up with
+			;-- a negative number.  integer-to-bytes by default currently
+			;-- requires you to specify a width for negative numbers,
+			;-- but otherwise gives you just enough bytes to represent
+			;-- the positive number.
+			assert [not r3?]
+			new: integer-to-bytes/width new 4
+		] [
+			new: integer-to-bytes new
+		]
 	]
 	
-	decode-UTF8-char: func [value][
-		if char? value [return encode-char to integer! value]
+	decode-UTF8-char: func [value [binary! char!]][
+		if char? value [return to integer! value]
 		
 		value: switch/default length? value [
 			1 [value]
 			2 [
 				value: value and #{1F3F}
-				value: add shift/left value/1 6 value/2
+				value: add shift-left value/1 6 value/2
 			]
 			3 [
 				value: value and #{0F3F3F}
 				value: add add
-					shift/left value/1 12
-					shift/left value/2 6
+					shift-left value/1 12
+					shift-left value/2 6
 					value/3
 			]
 			4 [
 				value: value and #{073F3F3F}
 				value: add add add
-					shift/left value/1 18
-					shift/left value/2 12
-					shift/left value/3 6
+					shift-left value/1 18
+					shift-left value/2 12
+					shift-left value/3 6
 					value/4
 			]
 		][
-			throw-error/with "Unsupported or invalid UTF-8 encoding"
+			throw-error/with/binary "Unsupported or invalid UTF-8 encoding"
 		]	
 		
-		encode-char to integer! value				;-- special encoding for Unicode char!
+		to integer! value				;-- special encoding for Unicode char!
 	]
 	
-	encode-char: func [value [integer!]][
-		head insert to-hex value #"'"
-	]
-	
-	decode-hexa: func [s [string!]][
-		to integer! debase/base s 16
+	encode-char: func [value [integer!] /local hexstring][
+		assert [
+			parse (mold integer-to-bytes/width value 4) [
+				"#{" copy hexstring to "}" skip
+			]
+		] 
+		insert hexstring {'}
+		to issue! hexstring
 	]
 
-	load-integer: func [s [string!]][
-		unless attempt [s: to integer! s][throw-error]
+	decode-hexa: func [s [binary!]][
+		binary-to-int32 s
+	]
+
+	load-integer: func [s [binary!]][
+		unless attempt [s: to integer! to-string s][throw-error]
 		s
 	]
 
-	load-string: func [s [string!] e [string!] /local new][
-		new: make string! offset? s e				;-- allocated size close to final size
+	load-string: func [s [binary!] e [binary!] /local new encoded checked][		
+		new: make binary! offset? s e				;-- allocated size close to final size
+
+		;-- R3 will not (at present) successfully string convert
+		;-- the buffer at the end if any codepoints are above #"^(FFFF)"
+		
+		checked: func [encoded [binary!]] [
+			if r3? [assert [65535 >= decode-UTF8-char encoded]]
+			encoded
+		]
 
 		parse/all/case s [
 			some [
-				escaped-char (insert tail new value)
+				escaped-char (insert tail new checked value)
 				| s: UTF8-filtered-char e: (		;-- already set to right filter	
-					insert/part tail new s e
+					insert tail new checked copy/part (bin-pos s) (bin-pos e) 
 				)
 			]										;-- exit on matching " or }
 		]
-		new
+		
+		;-- Fake in R2 (just passes thru all UTF8 data), real in R3
+		to string! new
 	]
 	
-	load-binary: func [s [string!] e [string!] /local new byte][
+	load-binary: func [s [binary!] e [binary!] /local new byte][
 		new: make binary! (offset? s e) / 2			;-- allocated size above final size
 
 		parse/all/case s [
 			some [
-				copy byte 2 hexa (insert tail new debase/base byte 16)
+				copy byte 2 hexa (insert tail new debase/base (bin-capture byte) 16)
 				| ws | comment-rule
 				| #"}" end skip
 			]
@@ -496,6 +565,20 @@ lexer: context [
 	]
 	
 	process: func [src [string! binary!] /local blk][
+		if string? src [
+		  	;-- This limitiation is to keep R2-Red working the same and on
+		  	;-- the same compatible subset of input as Unicode-based R3-Red.
+		  	;-- Although this check will not be necessary when R2 compatibility
+		  	;-- is not interesting any more, it should be pointed out that
+		  	;-- if R3 is not updated it will only allow codepoints up to
+  			;-- ^(FFFF).  Red's current codepoint limit is ^(10FFFF), so it
+  			;-- allows 16 times as many characters...thus programs must be
+  			;-- provided in binary! and not as a string! to take advantage
+  			;-- of these additional characters.
+
+			src: to binary! r2-utf8-checked src
+		]
+		
 		line: 1
 		count?: yes
 		

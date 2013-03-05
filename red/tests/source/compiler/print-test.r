@@ -11,11 +11,11 @@ REBOL [
 
  --test-- "Red print 1"
    --compile-and-run-red %source/compiler/print-test.red 
-  --assert-red-printed? 1
+  --assert-red-printed? "1"
   
   --test-- "Red print 2"
     --compile-and-run-this-red {print 2}
-  --assert-red-printed? 2
+  --assert-red-printed? "2"
   
   --test-- "Red print 3"
     --compile-and-run-this-red {

@@ -48,11 +48,11 @@ IEEE-754: context [
 		set [sign exp frac] split64 n
 		out: make binary! 8
 		loop 6 [
-			insert out to char! byte: frac // 256
+			insert out integer-to-bytes/width byte: to integer! (frac // 256) 1
 			frac: frac - byte / 256
 		]
-		insert out to char! exp // 16 * 16  + frac
-		insert out to char! exp / 16 + (128 * sign)
+		insert out integer-to-bytes/width to integer! (exp // 16 * 16  + frac) 1
+		insert out integer-to-bytes/width to integer! (exp / 16 + (128 * sign)) 1
 		either rev [copy reverse out][out]
 	]
 
@@ -92,11 +92,11 @@ IEEE-754: context [
 		set [sign exp frac] split32 n
 		out: make binary! 4
 		loop 2 [
-			insert out to char! byte: frac // 256
+			insert out integer-to-bytes/width to integer! (byte: frac // 256) 1
 			frac: frac - byte / 256
 		]
-	    insert out to char! exp * 128 // 256  + frac
-	    insert out to char! exp / 2 + (128 * sign)
+	    insert out integer-to-bytes/width to integer! (exp * 128 // 256  + frac) 1
+	    insert out integer-to-bytes/width to integer! (exp / 2 + (128 * sign)) 1
 		either rev [copy reverse out][out]
 	]
-]
+]
