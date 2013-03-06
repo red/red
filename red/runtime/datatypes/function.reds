@@ -16,9 +16,9 @@ _function: context [
 	
 	
 	collect-deep: func [
-		list [red-block!]
-		spec [red-block!]
-		blk  [red-block!]
+		list   [red-block!]
+		ignore [red-block!]
+		blk    [red-block!]
 		/local
 			value  [red-value!]
 			end	   [red-value!]
@@ -34,16 +34,17 @@ _function: context [
 					word: stack/push value
 					word/header: TYPE_WORD				;-- convert the set-word! into a word!
 					
-					result: block/find list word null no no no null null no no no no
+					result: block/find ignore word null no no no null null no no no no
 					
 					if TYPE_OF(result) = TYPE_NONE [
 						block/rs-append list word
+						block/rs-append ignore word
 					]
 					stack/pop 2							;-- remove word and FIND result from stack
 				]
 				TYPE_BLOCK
 				TYPE_PAREN [
-					collect-deep list spec as red-block! blk
+					collect-deep list ignore as red-block! blk
 				]
 				default [0]
 			]
@@ -56,11 +57,49 @@ _function: context [
 		body	[red-block!]
 		return: [red-block!]
 		/local
-			list [red-block!]
-	][
+			list	[red-block!]
+			ignore	[red-block!]
+			extern	[red-block!]
+			value	[red-value!]
+			tail	[red-value!]
+			s		[series!]
+	][	
 		list: block/push* 8
-		block/insert-value list as red-value! refinements/local
-		collect-deep list spec body
+		block/rs-append list as red-value! refinements/local
+		
+		ignore: block/clone spec no
+		block/rs-append ignore as red-value! refinements/local
+		
+		value:  as red-value! refinements/extern		;-- process optional /extern
+		extern: as red-block! block/find spec value null no no no null null no no no no
+		if TYPE_OF(extern) <> TYPE_NONE [
+			s: GET_BUFFER(spec)
+			s/tail: s/offset + extern/head				;-- cut /extern and extern words out			
+		]
+		stack/pop 1										;-- remove FIND result from stack
+		
+		value:  block/rs-head ignore
+		tail:	block/rs-tail ignore
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_WORD 	  [0]						;-- do nothing
+				TYPE_REFINEMENT
+				TYPE_GET_WORD
+				TYPE_SET_WORD [
+					value/header: TYPE_WORD				;-- convert it to a word!
+				]
+				default [
+					if value > extern [
+						print-line ["*** Error: invalid /extern values"]
+						halt
+					]
+				]
+			]
+			value: value + 1
+		]
+		
+		collect-deep list ignore body
 		
 		if 1 < block/rs-length? list [
 			block/rs-append-block spec list

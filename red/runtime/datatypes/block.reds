@@ -64,7 +64,7 @@ block: context [
 			s	  [series!]
 	][
 		s: GET_BUFFER(blk2)
-		value: s/offset + blk/head
+		value: s/offset + blk2/head
 		tail:  s/tail
 
 		while [value < tail][
@@ -100,6 +100,50 @@ block: context [
 		if offset > max [offset: max]
 
 		offset
+	]
+	
+	clone: func [
+		blk 	[red-block!]
+		deep?	[logic!]
+		return: [red-block!]
+		/local
+			new	   [red-block!]
+			target [series!]
+			value  [red-value!]
+			tail   [red-value!]
+			result [red-block!]
+			size   [integer!]
+	][
+		assert TYPE_OF(blk) = TYPE_BLOCK
+		
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
+		size:  as-integer tail - value					;-- size in bytes
+		
+		new: as red-block! stack/push*
+		new/header: TYPE_BLOCK
+		new/head:   0
+		new/node:	alloc-cells size >> 4
+		target: 	GET_BUFFER(new)
+		
+		copy-memory
+			as byte-ptr! target/offset
+			as byte-ptr! value
+			size
+			
+		target/tail: target/offset + (size >> 4)
+		
+		if deep? [
+			while [value < tail][
+				if TYPE_OF(value) = TYPE_BLOCK [
+					result: clone as red-block! value yes
+					copy-cell as red-value! result value
+					stack/pop 1
+				]
+				value: value + 1
+			]
+		]
+		new
 	]
 	
 	insert-value: func [
