@@ -143,7 +143,7 @@ interpreter: context [
 		op: as red-op! value
 		call-op: as function! [] op/code
 		call-op
-		stack/unwind
+		stack/unwind-last
 
 		if verbose > 0 [
 			value: stack/arguments
