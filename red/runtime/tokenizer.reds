@@ -118,6 +118,7 @@ tokenizer: context [
 			all [
 				c <> null-byte
 				c <> #" "
+				c <> #"/"
 				c <> #"^/"
 				c <> #"^M"
 				c <> #"^-"
@@ -134,18 +135,62 @@ tokenizer: context [
 			e: e + 1
 			c: e/1
 		]
-		set?: e/1 = #":"
-		saved: e/1										;@@ allocate a new buffer instead
-		e/1: null-byte
-		case [
-			type = TYPE_GET_WORD	[get-word/load-in s blk]
-			type = TYPE_LIT_WORD	[lit-word/load-in s blk]
-			type = TYPE_REFINEMENT	[refinement/load-in s blk]
-			set?				 	[set-word/load-in s blk]
-			true				 	[word/load-in s blk]
-		]	
-		e/1: saved
-		either set? [e + 1][e]
+		set?:  e/1 = #":"
+		path?: e/1 = slash
+		
+		either path? [
+			return scan-path s e blk type = TYPE_LIT_WORD
+		][
+			saved: e/1										;@@ allocate a new buffer instead
+			e/1: null-byte
+			case [
+				type = TYPE_GET_WORD	[get-word/load-in s blk]
+				type = TYPE_LIT_WORD	[lit-word/load-in s blk]
+				type = TYPE_REFINEMENT	[refinement/load-in s blk]
+				set?				 	[set-word/load-in s blk]
+				true				 	[word/load-in s blk]
+			]	
+			e/1: saved
+			return either set? [e + 1][e]
+		]
+	]
+	
+	scan-path: func [
+		s		 [c-string!]
+		src		 [c-string!]
+		blk		 [red-block!]
+		lit?	 [logic!]
+		return:  [c-string!]
+		/local
+			path  [red-block!]
+			saved [byte!]
+			set?  [logic!]
+	][
+		path: block/make-in blk 4						;-- arbitrary start size
+		
+		saved: src/1									;-- push first element
+		src/1: null-byte
+		word/load-in s path								;-- store undecorated word
+		src/1: saved
+		c: src/1
+		
+		while [c = #"/"][
+			src: src + 1
+			c: src/1
+			case [
+				c = #"("  [src: scan-paren src + 1 path]
+				c = #":"  [src: scan-word src + 1 path TYPE_GET_WORD]
+				all [#"0" <= c c <= #"9"][src: scan-integer src path]
+				all [#" " < c c <= #"ÿ"][src: scan-word src path TYPE_WORD]
+			]
+		]
+		
+		path/header: case [
+			;set? [TYPE_SET_PATH]
+			lit? [TYPE_LIT_PATH]
+			true [TYPE_PATH]
+		]
+		src
 	]
 	
 	scan-block: func [
@@ -206,7 +251,7 @@ tokenizer: context [
 				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD]
 				c = #"/"  [src: scan-word src + 1 blk TYPE_REFINEMENT]
 				all [#"0" <= c c <= #"9"][src: scan-integer src blk]
-				all [#" " <= c c <= #"ÿ"][src: scan-word src blk TYPE_WORD]
+				all [#" " <  c c <= #"ÿ"][src: scan-word src blk TYPE_WORD]
 			]
 		]	
 		if null? parent [
