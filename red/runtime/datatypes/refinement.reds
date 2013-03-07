@@ -13,19 +13,25 @@ Red/System [
 refinement: context [
 	verbose: 0
 	
-	load: func [
-		str 	[c-string!]
-		return:	[red-word!]
+	load-in: func [
+		str 	 [c-string!]
+		blk		 [red-block!]
+		return:	 [red-word!]
 		/local 
-			p	  [node!]
-			id    [integer!]							;-- symbol ID
-			cell  [red-word!]
+			cell [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "refinement/load"]]
 		
-		cell: word/load str
+		cell: word/load-in str blk
 		cell/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
 		cell
+	]
+	
+	load: func [
+		str 	[c-string!]
+		return:	[red-word!]
+	][
+		load-in str root
 	]
 	
 	push: func [

@@ -18,7 +18,6 @@ word: context [
 		blk		[red-block!]
 		return:	[red-word!]
 		/local 
-			p	  [node!]
 			id    [integer!]							;-- symbol ID
 			cell  [red-word!]
 	][

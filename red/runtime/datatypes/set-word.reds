@@ -18,8 +18,6 @@ set-word: context [
 		blk		[red-block!]
 		return:	[red-word!]
 		/local 
-			p	  [node!]
-			id    [integer!]							;-- symbol ID
 			cell  [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-word/load"]]

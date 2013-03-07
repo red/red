@@ -138,10 +138,11 @@ tokenizer: context [
 		saved: e/1										;@@ allocate a new buffer instead
 		e/1: null-byte
 		case [
-			type = TYPE_GET_WORD [get-word/load-in s blk]
-			type = TYPE_LIT_WORD [lit-word/load-in s blk]
-			set?				 [set-word/load-in s blk]
-			true				 [word/load-in s blk]
+			type = TYPE_GET_WORD	[get-word/load-in s blk]
+			type = TYPE_LIT_WORD	[lit-word/load-in s blk]
+			type = TYPE_REFINEMENT	[refinement/load-in s blk]
+			set?				 	[set-word/load-in s blk]
+			true				 	[word/load-in s blk]
 		]	
 		e/1: saved
 		either set? [e + 1][e]
@@ -203,6 +204,7 @@ tokenizer: context [
 				c = #"("  [src: scan-paren src + 1 blk]
 				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD]
 				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD]
+				c = #"/"  [src: scan-word src + 1 blk TYPE_REFINEMENT]
 				all [#"0" <= c c <= #"9"][src: scan-integer src blk]
 				all [#" " <= c c <= #"ÿ"][src: scan-word src blk TYPE_WORD]
 			]
