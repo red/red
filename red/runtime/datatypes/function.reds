@@ -145,6 +145,7 @@ _function: context [
 				]
 				TYPE_LIT_WORD
 				TYPE_REFINEMENT
+				TYPE_BLOCK
 				TYPE_STRING [
 					value: value + 1
 				]
