@@ -97,7 +97,7 @@ stack: context [										;-- call stack
 	unwind: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
 
-		assert cbottom <= ctop
+		assert cbottom < ctop
 		ctop: ctop - 2
 		
 		either ctop = cbottom [
