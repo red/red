@@ -130,6 +130,7 @@ interpreter: context [
 		value 	  [red-value!]
 		pc		  [red-value!]
 		end		  [red-value!]
+		sub?	  [logic!]
 		return:   [red-value!]
 		/local
 			next   [red-word!]
@@ -143,7 +144,6 @@ interpreter: context [
 		op: as red-op! value
 		call-op: as function! [] op/code
 		call-op
-		stack/unwind-last
 
 		if verbose > 0 [
 			value: stack/arguments
@@ -153,7 +153,7 @@ interpreter: context [
 		infix?: no
 		next: as red-word! pc
 		CHECK_INFIX
-		if infix? [pc: eval-infix value pc end]
+		if infix? [pc: eval-infix value pc end sub?]
 		pc
 	]
 
@@ -476,7 +476,7 @@ interpreter: context [
 	eval-expression: func [
 		pc		  [red-value!]
 		end	  	  [red-value!]
-		prefix	  [logic!]								;-- TRUE => don't check for infix
+		prefix?	  [logic!]								;-- TRUE => don't check for infix
 		sub?	  [logic!]
 		return:   [red-value!]
 		/local
@@ -489,7 +489,7 @@ interpreter: context [
 		if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]
 		
 		infix?: no
-		unless prefix [
+		unless prefix? [
 			next: as red-word! pc + 1
 			CHECK_INFIX
 			if infix? [
@@ -583,7 +583,12 @@ interpreter: context [
 			]
 		]
 		
-		if infix? [pc: eval-infix op pc end]
+		if infix? [
+			pc: eval-infix op pc end sub?
+			unless prefix? [
+				either sub? [stack/unwind][stack/unwind-last]
+			]
+		]
 		pc
 	]
 
