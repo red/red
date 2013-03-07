@@ -104,12 +104,14 @@ tokenizer: context [
 		s		  [c-string!]
 		blk		  [red-block!]
 		type	  [integer!]
+		in-path?  [logic!]
 		return:   [c-string!]
 		/local
 			e	  [c-string!]
 			c	  [byte!]
 			saved [byte!]
 			set?  [logic!]
+			path? [logic!]
 	][
 		e: s + 1
 		c: e/1
@@ -135,8 +137,8 @@ tokenizer: context [
 			e: e + 1
 			c: e/1
 		]
-		set?:  e/1 = #":"
-		path?: e/1 = slash
+		set?:  all [e/1 = #":"  not in-path?]
+		path?: all [e/1 = slash not in-path?]
 		
 		either path? [
 			return scan-path s e blk type = TYPE_LIT_WORD
@@ -173,24 +175,27 @@ tokenizer: context [
 		word/load-in s path								;-- store undecorated word
 		src/1: saved
 		c: src/1
+		set?: no
 		
 		while [c = #"/"][
 			src: src + 1
 			c: src/1
 			case [
 				c = #"("  [src: scan-paren src + 1 path]
-				c = #":"  [src: scan-word src + 1 path TYPE_GET_WORD]
+				c = #":"  [src: scan-word src + 1 path TYPE_GET_WORD yes]
 				all [#"0" <= c c <= #"9"][src: scan-integer src path]
-				all [#" " < c c <= #"ÿ"][src: scan-word src path TYPE_WORD]
+				all [#" " < c c <= #"ÿ"][src: scan-word src path TYPE_WORD yes]
 			]
+			c: src/1
+			if c = #":" [set?: yes]
 		]
 		
 		path/header: case [
-			;set? [TYPE_SET_PATH]
+			set? [TYPE_SET_PATH]
 			lit? [TYPE_LIT_PATH]
 			true [TYPE_PATH]
 		]
-		src
+		either set? [src + 1][src]
 	]
 	
 	scan-block: func [
@@ -247,11 +252,11 @@ tokenizer: context [
 				c = #"^"" [src: scan-string src blk]
 				c = #"["  [src: scan-block src + 1 blk]
 				c = #"("  [src: scan-paren src + 1 blk]
-				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD]
-				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD]
-				c = #"/"  [src: scan-word src + 1 blk TYPE_REFINEMENT]
+				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD no]
+				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD no]
+				c = #"/"  [src: scan-word src + 1 blk TYPE_REFINEMENT no]
 				all [#"0" <= c c <= #"9"][src: scan-integer src blk]
-				all [#" " <  c c <= #"ÿ"][src: scan-word src blk TYPE_WORD]
+				all [#" " <  c c <= #"ÿ"][src: scan-word src blk TYPE_WORD no]
 			]
 		]	
 		if null? parent [
