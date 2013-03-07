@@ -211,9 +211,9 @@ tokenizer: context [
 			case [
 				c = #"("  [src: scan-paren src + 1 path]
 				c = #":"  [src: scan-word src + 1 path TYPE_GET_WORD yes]
-				c = #"-"  [src: scan-minus src blk]
+				c = #"-"  [src: scan-minus src path]
 				all [#"0" <= c c <= #"9"][src: scan-integer src path no]
-				all [#" " < c c <= #"ÿ"][src: scan-word src path TYPE_WORD yes]
+				all [#" " <  c c <= #"ÿ"][src: scan-word src path TYPE_WORD yes]
 				yes [throw-error ERR_INVALID_PATH]
 			]
 			c: src/1
