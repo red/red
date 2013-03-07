@@ -88,6 +88,7 @@ tokenizer: context [
 	scan-integer: func [
 		s		 [c-string!]
 		blk		 [red-block!]
+		neg?	 [logic!]
 		return:  [c-string!]
 		/local
 			e	 [c-string!]
@@ -106,8 +107,24 @@ tokenizer: context [
 			e: e + 1
 			c: e/1
 		]
+		if neg? [i: 0 - i]
 		integer/load-in i blk
 		e
+	]
+	
+	scan-minus: func [
+		src		[c-string!]
+		blk		[red-block!]
+		return:	[c-string!]
+		/local
+			c	[byte!]
+	][
+		c: src/2
+		either all [#"0" <= c c <= #"9"][
+			scan-integer src + 1 blk yes
+		][
+			scan-word src blk TYPE_WORD no
+		]
 	]
 	
 	scan-word: func [
@@ -194,7 +211,8 @@ tokenizer: context [
 			case [
 				c = #"("  [src: scan-paren src + 1 path]
 				c = #":"  [src: scan-word src + 1 path TYPE_GET_WORD yes]
-				all [#"0" <= c c <= #"9"][src: scan-integer src path]
+				c = #"-"  [src: scan-minus src blk]
+				all [#"0" <= c c <= #"9"][src: scan-integer src path no]
 				all [#" " < c c <= #"ÿ"][src: scan-word src path TYPE_WORD yes]
 				yes [throw-error ERR_INVALID_PATH]
 			]
@@ -268,7 +286,8 @@ tokenizer: context [
 				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD no]
 				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD no]
 				c = #"/"  [src: scan-word src + 1 blk TYPE_REFINEMENT no]
-				all [#"0" <= c c <= #"9"][src: scan-integer src blk]
+				c = #"-"  [src: scan-minus src blk]
+				all [#"0" <= c c <= #"9"][src: scan-integer src blk no]
 				all [#" " <  c c <= #"ÿ"][src: scan-word src blk TYPE_WORD no]
 			]
 		]	
