@@ -17,6 +17,7 @@ tokenizer: context [
 		ERR_PREMATURE_END
 		ERR_STRING_DELIMIT
 		ERR_INVALID_INTEGER
+		ERR_INVALID_PATH
 	]
 
 	throw-error: func [id [integer!]][
@@ -25,6 +26,7 @@ tokenizer: context [
 			ERR_PREMATURE_END	["unmatched ] closing bracket"]
 			ERR_STRING_DELIMIT 	["string ending delimiter not found"]
 			ERR_INVALID_INTEGER	["invalid integer"]
+			ERR_INVALID_PATH	["invalid path"]
 		]
 		print-line #"!"
 	]
@@ -185,6 +187,7 @@ tokenizer: context [
 				c = #":"  [src: scan-word src + 1 path TYPE_GET_WORD yes]
 				all [#"0" <= c c <= #"9"][src: scan-integer src path]
 				all [#" " < c c <= #"ÿ"][src: scan-word src path TYPE_WORD yes]
+				yes [throw-error ERR_INVALID_PATH]
 			]
 			c: src/1
 			if c = #":" [set?: yes]
