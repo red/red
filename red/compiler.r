@@ -1462,7 +1462,7 @@ red: context [
 			
 			unless set [emit [stack/mark-native words/_body]]	;@@ not clean...
 			emit compose [
-				interpreter/eval-path stack/top - 1 (to word! form to logic! set)
+				interpreter/eval-path stack/top - 1 null null (to word! form to logic! set)
 			]
 			unless set [emit [stack/unwind-last]]
 			
