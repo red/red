@@ -51,6 +51,14 @@ tokenizer: context [
 		]
 		src
 	]
+	
+	scan-comment: func [
+		s		[c-string!]
+		return: [c-string!]
+	][
+		while [not any [s/1 = #"^/" s/1 = null-byte]][s: s + 1]
+		s
+	]
 
 	scan-string: func [
 		s		[c-string!]
@@ -134,6 +142,7 @@ tokenizer: context [
 				c <> #")"
 				c <> #"{"
 				c <> #"}"
+				c <> #";"
 			]
 		][
 			e: e + 1
@@ -252,6 +261,7 @@ tokenizer: context [
 			]
 		][		
 			case [
+				c = #";"  [src: scan-comment src]
 				c = #"^"" [src: scan-string src blk]
 				c = #"["  [src: scan-block src + 1 blk]
 				c = #"("  [src: scan-paren src + 1 blk]
