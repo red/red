@@ -63,6 +63,7 @@ _function: context [
 			value	[red-value!]
 			tail	[red-value!]
 			s		[series!]
+			extern? [logic!]
 	][	
 		list: block/push* 8
 		block/rs-append list as red-value! refinements/local
@@ -72,7 +73,9 @@ _function: context [
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
 		extern: as red-block! block/find spec value null no no no null null no no no no
-		if TYPE_OF(extern) <> TYPE_NONE [
+		extern?: TYPE_OF(extern) <> TYPE_NONE
+		
+		if extern? [
 			s: GET_BUFFER(spec)
 			s/tail: s/offset + extern/head				;-- cut /extern and extern words out			
 		]
@@ -90,7 +93,7 @@ _function: context [
 					value/header: TYPE_WORD				;-- convert it to a word!
 				]
 				default [
-					if value > extern [
+					if extern? [
 						print-line ["*** Error: invalid /extern values"]
 						halt
 					]
