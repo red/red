@@ -183,6 +183,7 @@ tokenizer: context [
 			case [
 				type = TYPE_GET_WORD	[get-word/load-in s blk]
 				type = TYPE_LIT_WORD	[lit-word/load-in s blk]
+				type = TYPE_ISSUE		[issue/load-in s blk]
 				type = TYPE_REFINEMENT	[refinement/load-in s + 1 blk]
 				set?				 	[set-word/load-in s blk]
 				true				 	[word/load-in s blk]
@@ -290,6 +291,7 @@ tokenizer: context [
 				c = #"^"" [src: scan-string src blk]
 				c = #"["  [src: scan-block src + 1 blk]
 				c = #"("  [src: scan-paren src + 1 blk]
+				c = #"#"  [src: scan-word src + 1 blk TYPE_ISSUE no]
 				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD no]
 				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD no]
 				c = #"/"  [src: scan-word src blk TYPE_REFINEMENT no]
