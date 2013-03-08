@@ -16,6 +16,7 @@ tokenizer: context [
 	#enum errors! [
 		ERR_PREMATURE_END
 		ERR_STRING_DELIMIT
+		ERR_MULTI_STRING_DELIMIT
 		ERR_INVALID_INTEGER
 		ERR_INVALID_PATH
 	]
@@ -23,10 +24,11 @@ tokenizer: context [
 	throw-error: func [id [integer!]][
 		print "*** Load Error: "
 		print switch id [
-			ERR_PREMATURE_END	["unmatched ] closing bracket"]
-			ERR_STRING_DELIMIT 	["string ending delimiter not found"]
-			ERR_INVALID_INTEGER	["invalid integer"]
-			ERR_INVALID_PATH	["invalid path"]
+			ERR_PREMATURE_END		 ["unmatched ] closing bracket"]
+			ERR_STRING_DELIMIT 		 [{string ending delimiter " not found}]
+			ERR_MULTI_STRING_DELIMIT ["string ending delimiter } not found"]
+			ERR_INVALID_INTEGER		 ["invalid integer"]
+			ERR_INVALID_PATH		 ["invalid path"]
 		]
 		print-line #"!"
 	]
@@ -58,6 +60,41 @@ tokenizer: context [
 	][
 		while [not any [s/1 = #"^/" s/1 = null-byte]][s: s + 1]
 		s
+	]
+	
+	scan-string-multi: func [
+		s		[c-string!]
+		blk		[red-block!]
+		return: [c-string!]
+		/local
+			e	  [c-string!]
+			c	  [byte!]
+			saved [byte!]
+			count [integer!]
+	][
+		s: s + 1										;-- skip first double quote
+		e: s + 1
+		c: e/1
+		count: 1
+
+		while [all [c <> null-byte count > 0]][
+			while [all [c <> null-byte c <> #"}"]][
+				if c = #"{" [count: count + 1]
+				e: e + 1
+				c: e/1
+				if c = #"^^" [
+					e: e + 2							;-- skip next character (escaped)
+					c: e/1
+				]
+			]
+			if c = #"}" [count: count - 1]
+		]
+		if c <> #"}" [throw-error ERR_MULTI_STRING_DELIMIT]
+		saved: e/1										;@@ allocate a new buffer instead
+		e/1: null-byte
+		string/load-in s (as-integer e - s) + 1 blk
+		e/1: saved
+		either c = #"}" [e + 1][e]
 	]
 
 	scan-string: func [
@@ -289,6 +326,7 @@ tokenizer: context [
 			case [
 				c = #";"  [src: scan-comment src]
 				c = #"^"" [src: scan-string src blk]
+				c = #"{"  [src: scan-string-multi src blk]
 				c = #"["  [src: scan-block src + 1 blk]
 				c = #"("  [src: scan-paren src + 1 blk]
 				c = #"#"  [src: scan-word src + 1 blk TYPE_ISSUE no]
