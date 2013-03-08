@@ -168,6 +168,13 @@ tokenizer: context [
 		set?:  all [e/1 = #":"  not in-path?]
 		path?: all [e/1 = slash not in-path?]
 		
+		if all [
+			type = TYPE_REFINEMENT
+			s + 1 = e
+		][
+			type: TYPE_WORD								;-- / as word case
+		]
+		
 		either path? [
 			return scan-path s e blk type = TYPE_LIT_WORD
 		][
@@ -176,7 +183,7 @@ tokenizer: context [
 			case [
 				type = TYPE_GET_WORD	[get-word/load-in s blk]
 				type = TYPE_LIT_WORD	[lit-word/load-in s blk]
-				type = TYPE_REFINEMENT	[refinement/load-in s blk]
+				type = TYPE_REFINEMENT	[refinement/load-in s + 1 blk]
 				set?				 	[set-word/load-in s blk]
 				true				 	[word/load-in s blk]
 			]	
@@ -285,7 +292,7 @@ tokenizer: context [
 				c = #"("  [src: scan-paren src + 1 blk]
 				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD no]
 				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD no]
-				c = #"/"  [src: scan-word src + 1 blk TYPE_REFINEMENT no]
+				c = #"/"  [src: scan-word src blk TYPE_REFINEMENT no]
 				c = #"-"  [src: scan-minus src blk]
 				all [#"0" <= c c <= #"9"][src: scan-integer src blk no]
 				all [#" " <  c c <= #"ÿ"][src: scan-word src blk TYPE_WORD no]
