@@ -44,7 +44,7 @@ _function: context [
 				]
 				TYPE_BLOCK
 				TYPE_PAREN [
-					collect-deep list ignore as red-block! blk
+					collect-deep list ignore as red-block! value
 				]
 				default [0]
 			]

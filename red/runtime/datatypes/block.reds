@@ -113,27 +113,32 @@ block: context [
 			tail   [red-value!]
 			result [red-block!]
 			size   [integer!]
+			empty? [logic!]
 	][
 		assert TYPE_OF(blk) = TYPE_BLOCK
 		
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
-		size:  as-integer tail - value					;-- size in bytes
+		size:  (as-integer tail - value) >> 4
+		
+		empty?: zero? size
+		if empty? [size: 1]
 		
 		new: as red-block! stack/push*
 		new/header: TYPE_BLOCK
 		new/head:   0
-		new/node:	alloc-cells size >> 4
-		target: 	GET_BUFFER(new)
+		new/node:	alloc-cells size
 		
-		copy-memory
-			as byte-ptr! target/offset
-			as byte-ptr! value
-			size
-			
-		target/tail: target/offset + (size >> 4)
+		unless empty? [
+			target: GET_BUFFER(new)
+			copy-memory
+				as byte-ptr! target/offset
+				as byte-ptr! value
+				size << 4
+			target/tail: target/offset + size
+		]
 		
-		if deep? [
+		if all [deep? not empty?][
 			while [value < tail][
 				if TYPE_OF(value) = TYPE_BLOCK [
 					result: clone as red-block! value yes
