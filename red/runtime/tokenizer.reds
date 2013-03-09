@@ -107,7 +107,7 @@ tokenizer: context [
 			saved [byte!]
 	][
 		s: s + 1										;-- skip first double quote
-		e: s + 1
+		e: s
 		c: e/1
 		
 		while [all [c <> null-byte c <> #"^""]][
