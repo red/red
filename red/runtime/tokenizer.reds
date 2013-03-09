@@ -17,8 +17,10 @@ tokenizer: context [
 		ERR_PREMATURE_END
 		ERR_STRING_DELIMIT
 		ERR_MULTI_STRING_DELIMIT
+		ERR_CHAR_DELIMIT
 		ERR_INVALID_INTEGER
 		ERR_INVALID_PATH
+		ERR_INVALID_CHAR
 	]
 
 	throw-error: func [id [integer!]][
@@ -27,8 +29,10 @@ tokenizer: context [
 			ERR_PREMATURE_END		 ["unmatched ] closing bracket"]
 			ERR_STRING_DELIMIT 		 [{string ending delimiter " not found}]
 			ERR_MULTI_STRING_DELIMIT ["string ending delimiter } not found"]
+			ERR_CHAR_DELIMIT		 [{char ending delimiter " not found}]
 			ERR_INVALID_INTEGER		 ["invalid integer"]
 			ERR_INVALID_PATH		 ["invalid path"]
+			ERR_INVALID_CHAR		 ["invalid char"]
 		]
 		print-line #"!"
 	]
@@ -60,6 +64,39 @@ tokenizer: context [
 	][
 		while [not any [s/1 = #"^/" s/1 = null-byte]][s: s + 1]
 		s
+	]
+	
+	scan-char: func [
+		s		[c-string!]
+		blk		[red-block!]
+		return: [c-string!]
+		/local
+			c	 [byte!]
+			byte [byte!]
+	][
+		byte: either s/1 = #"^^" [
+			s: s + 1
+			c: s/1
+			either all [#"@" <= c c <= #"Z"][
+				c - #"@"
+			][
+				switch c [
+					#"^"" [#"^""]
+					#"/"  [#"^/"]
+					#"-"  [#"^-"]
+					#"?"  [#"^~"]
+					#"^^" [#"^^"]
+					default [throw-error ERR_INVALID_CHAR]
+				]
+			]
+		][
+			s/1
+		]
+		s: s + 1
+		if s/1 <> #"^"" [throw-error ERR_CHAR_DELIMIT]
+		
+		char/load-in as-integer byte blk
+		s + 1
 	]
 	
 	scan-string-multi: func [
@@ -325,15 +362,22 @@ tokenizer: context [
 		][		
 			case [
 				c = #";"  [src: scan-comment src]
+				c = #"-"  [src: scan-minus src blk]
 				c = #"^"" [src: scan-string src blk]
 				c = #"{"  [src: scan-string-multi src blk]
 				c = #"["  [src: scan-block src + 1 blk]
 				c = #"("  [src: scan-paren src + 1 blk]
-				c = #"#"  [src: scan-word src + 1 blk TYPE_ISSUE no]
 				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD no]
 				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD no]
 				c = #"/"  [src: scan-word src blk TYPE_REFINEMENT no]
-				c = #"-"  [src: scan-minus src blk]
+				c = #"#"  [
+					c: src/2
+					either c = #"^"" [
+						src: scan-char src + 2 blk
+					][
+						src: scan-word src + 1 blk TYPE_ISSUE no
+					]
+				]
 				all [#"0" <= c c <= #"9"][src: scan-integer src blk no]
 				all [#" " <  c c <= #"ÿ"][src: scan-word src blk TYPE_WORD no]
 			]
