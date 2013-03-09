@@ -586,7 +586,7 @@ red: context [
 						item
 					]
 				]
-				emit load rejoin [form type? :item slash action]
+				emit to path! reduce [to word! form type? :item action]
 				emit value
 				insert-lf -1 - either block? value [length? value][1]
 				
@@ -743,7 +743,7 @@ red: context [
 				]
 				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
-					emit load rejoin [form type? value slash 'push]
+					emit to path! reduce [to word! form type? value 'push]
 					emit decorate-symbol w
 					insert-lf -2
 				]
@@ -752,7 +752,7 @@ red: context [
 					insert-lf -1
 				]
 				'else [
-					emit load rejoin [form type? :value slash 'push]
+					emit to path! reduce [to word! form type? :value 'push]
 					emit load mold :value
 					insert-lf -2
 				]
@@ -790,7 +790,7 @@ red: context [
 					either lit-path? pc/1 [
 						emit 'path/push
 					][
-						emit join to path! to word! form type? pc/1 'push
+						emit to path! reduce [to word! form type? pc/1 'push]
 					]
 					emit name
 					insert-lf -2
