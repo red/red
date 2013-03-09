@@ -211,9 +211,9 @@ red: context [
 		insert-lf -2
 	]
 	
-	emit-load-string: func [buffer [string!]][
-		emit 'string/load
-		emit buffer
+	emit-load-string: func [buffer [string! file!]][
+		emit to path! reduce [to word! form type? buffer 'load]
+		emit form buffer
 		emit 1 + length? buffer							;-- account for terminal zero
 	]
 	
@@ -569,7 +569,7 @@ red: context [
 						add-symbol word: to word! form item
 						decorate-symbol word
 					]
-					string? :item [
+					find [string! file!] type?/word :item [
 						emit [tmp:]
 						insert-lf -1
 						emit-load-string item
@@ -795,18 +795,16 @@ red: context [
 					emit name
 					insert-lf -2
 				]
-				string!	[
+				string!	file! url! [
 					redirect-to-literals [
 						emit to set-word! name: decorate-series-var 'str
 						insert-lf -1
 						emit-load-string value
 					]	
-					emit 'string/push
+					emit to path! reduce [to word! form type? value 'push]
 					emit name
 					insert-lf -2
 				]
-				file!	[]
-				url!	[]
 				binary!	[]
 			][
 				throw-error ["comp-literal: unsupported type" mold value]
