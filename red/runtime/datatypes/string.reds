@@ -13,6 +13,8 @@ Red/System [
 string: context [
 	verbose: 0
 	
+	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
+	
 	rs-length?: func [
 		str	    [red-string!]
 		return: [integer!]
@@ -430,6 +432,34 @@ string: context [
 		part - get-length str
 	]
 	
+	sniff-chars: func [
+		p	  [byte-ptr!]
+		tail  [byte-ptr!]
+		unit  [integer!]
+		curly [int-ptr!]
+		quote [int-ptr!]
+		nl	  [int-ptr!]
+		/local
+			cp [integer!]
+			p4 [int-ptr!]
+	][
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			switch cp [
+				#"{"    [if curly/value >= 0 [curly/value: curly/value + 1]]
+				#"}"    [curly/value: curly/value - 1]
+				#"^""   [quote/value: quote/value + 1]
+				#"^/"   [nl/value: 	  nl/value + 1]
+				default [0]
+			]
+			p: p + unit
+		]
+	]
+	
 	mold: func [
 		str		  [red-string!]
 		buffer	  [red-string!]
@@ -442,17 +472,67 @@ string: context [
 		/local
 			int	  [red-integer!]
 			limit [integer!]
+			s	  [series!]
+			unit  [integer!]
+			cp	  [integer!]
+			p	  [byte-ptr!]
+			p4	  [int-ptr!]
+			tail  [byte-ptr!]
+			curly [integer!]
+			quote [integer!]
+			nl	  [integer!]
+			open  [byte!]
+			close [byte!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/mold"]]
 
 		limit: either OPTION?(arg) [
 			int: as red-integer! arg
 			int/value
-		][-1]
-		append-char GET_BUFFER(buffer) as-integer #"^""
-		concatenate buffer str limit no
-		append-char GET_BUFFER(buffer) as-integer #"^""
-		part - 2 - get-length str
+		][0]
+		
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: as byte-ptr! s/offset + (str/head << (unit >> 1))
+		
+		tail: either zero? limit [
+			as byte-ptr! s/tail
+		][
+			p + (limit << (unit >> 1))
+		]
+		
+		curly: 0
+		quote: 0
+		nl:    0
+		sniff-chars p tail unit :curly :quote :nl
+		
+		either any [
+			nl >= 3
+			negative? curly
+			positive? quote
+			BRACES_THRESHOLD <= get-length str
+		][
+			open:  #"{"
+			close: #"}"
+		][
+			open:  #"^""
+			close: #"^""
+		]
+		
+		append-char GET_BUFFER(buffer) as-integer open
+		
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			append-char GET_BUFFER(buffer) cp
+			p: p + unit
+		]
+		
+		append-char GET_BUFFER(buffer) as-integer close
+		part - 2 - get-length str						;@@ recompute added size
 	]
 	
 	compare: func [
