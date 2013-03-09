@@ -61,6 +61,7 @@ red: context [
 	#include %datatypes/routine.reds
 	#include %datatypes/paren.reds
 	#include %datatypes/issue.reds
+	#include %datatypes/file.reds
 	
 	;-- Debugging helpers --
 	
@@ -112,6 +113,7 @@ red: context [
 		red/routine/verbose:	verbosity
 		red/paren/verbose:		verbosity
 		red/issue/verbose:		verbosity
+		red/file/verbose:		verbosity
 		
 		red/actions/verbose:	verbosity
 		red/natives/verbose:	verbosity

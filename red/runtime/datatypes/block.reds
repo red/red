@@ -1027,6 +1027,7 @@ block: context [
 					type = TYPE_SET_PATH
 					type = TYPE_LIT_PATH
 					type = TYPE_STRING
+					type = TYPE_FILE
 				][
 					actions/copy as red-series! slot null yes null
 				]

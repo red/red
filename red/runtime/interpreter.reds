@@ -313,7 +313,8 @@ interpreter: context [
 						TYPE_LIT_PATH
 						TYPE_GET_PATH
 						TYPE_SET_PATH
-						TYPE_STRING [
+						TYPE_STRING
+						TYPE_FILE [
 
 						]
 						;TYPE_OBJECT

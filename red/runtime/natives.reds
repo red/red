@@ -389,7 +389,10 @@ natives: context [
 		
 		arg: stack/arguments
 		
-		either TYPE_OF(arg) = TYPE_STRING [
+		either any [
+			TYPE_OF(arg) = TYPE_STRING 						;@@ replace by ANY_STRING?
+			TYPE_OF(arg) = TYPE_FILE
+		][
 			str: as red-string! arg
 		][
 			actions/form* -1
@@ -707,6 +710,7 @@ natives: context [
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
 			TYPE_OF(series) = TYPE_STRING
+			TYPE_OF(series) = TYPE_FILE
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
@@ -729,6 +733,7 @@ natives: context [
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
 			TYPE_OF(series) = TYPE_STRING
+			TYPE_OF(series) = TYPE_FILE
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
@@ -770,6 +775,7 @@ natives: context [
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
 			TYPE_OF(series) = TYPE_STRING
+			TYPE_OF(series) = TYPE_FILE
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 

@@ -13,6 +13,45 @@ Red/System [
 
 tokenizer: context [
 
+	#define NOT_DELIMITER?(c) [
+		all [
+			c <> null-byte
+			c <> #" "
+			c <> #"/"
+			c <> #"^/"
+			c <> #"^M"
+			c <> #"^-"
+			c <> #":"
+			c <> #"^""
+			c <> #"["
+			c <> #"]"
+			c <> #"("
+			c <> #")"
+			c <> #"{"
+			c <> #"}"
+			c <> #";"
+		]
+	]
+	
+	#define NOT_FILE_DELIMITER?(c) [
+		all [
+			c <> null-byte
+			c <> #" "
+			c <> #"^/"
+			c <> #"^M"
+			c <> #"^-"
+			c <> #":"
+			c <> #"^""
+			c <> #"["
+			c <> #"]"
+			c <> #"("
+			c <> #")"
+			c <> #"{"
+			c <> #"}"
+			c <> #";"
+		]
+	]
+
 	#enum errors! [
 		ERR_PREMATURE_END
 		ERR_STRING_DELIMIT
@@ -155,6 +194,30 @@ tokenizer: context [
 		either c = #"^"" [e + 1][e]
 	]
 	
+	scan-file: func [
+		s		[c-string!]
+		blk		[red-block!]
+		return: [c-string!]
+		/local
+			e	  [c-string!]
+			c	  [byte!]
+			saved [byte!]
+	][
+		s: s + 1										;-- skip first double quote
+		e: s
+		c: e/1
+		
+		while [NOT_FILE_DELIMITER?(c)][
+			e: e + 1
+			c: e/1
+		]
+		saved: e/1										;@@ allocate a new buffer instead
+		e/1: null-byte
+		file/load-in s (as-integer e - s) + 1 blk
+		e/1: saved
+		e
+	]
+	
 	scan-integer: func [
 		s		 [c-string!]
 		blk		 [red-block!]
@@ -213,25 +276,7 @@ tokenizer: context [
 		e: s + 1
 		c: e/1
 
-		while [
-			all [
-				c <> null-byte
-				c <> #" "
-				c <> #"/"
-				c <> #"^/"
-				c <> #"^M"
-				c <> #"^-"
-				c <> #":"
-				c <> #"^""
-				c <> #"["
-				c <> #"]"
-				c <> #"("
-				c <> #")"
-				c <> #"{"
-				c <> #"}"
-				c <> #";"
-			]
-		][
+		while [NOT_DELIMITER?(c)][
 			e: e + 1
 			c: e/1
 		]
@@ -361,6 +406,7 @@ tokenizer: context [
 				c = #"-"  [src: scan-minus src blk]
 				c = #"^"" [src: scan-string src blk]
 				c = #"{"  [src: scan-string-multi src blk]
+				c = #"%"  [src: scan-file src blk]
 				c = #"["  [src: scan-block src + 1 blk]
 				c = #"("  [src: scan-paren src + 1 blk]
 				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD no]

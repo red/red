@@ -57,7 +57,10 @@ string: context [
 		str: as red-string! stack/arguments
 		index: as red-integer! str + 1
 
-		assert TYPE_OF(str)   = TYPE_STRING
+		assert any [
+			TYPE_OF(str) = TYPE_STRING					;@@ ANY_STRING?
+			TYPE_OF(str) = TYPE_FILE
+		]
 		assert TYPE_OF(index) = TYPE_INTEGER
 
 		s: GET_BUFFER(str)
@@ -558,7 +561,17 @@ string: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare"]]
 
-		if TYPE_OF(str2) <> TYPE_STRING [RETURN_COMPARE_OTHER]
+		if any [
+			all [
+				op = COMP_STRICT_EQUAL
+				TYPE_OF(str2) <> TYPE_STRING
+			]
+			all [
+				op <> COMP_STRICT_EQUAL
+				TYPE_OF(str2) <> TYPE_STRING
+				TYPE_OF(str2) <> TYPE_FILE
+			]
+		][RETURN_COMPARE_OTHER]
 		
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
@@ -880,7 +893,7 @@ string: context [
 				c2: char/value
 				if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
 			]
-			TYPE_STRING TYPE_WORD [
+			TYPE_STRING TYPE_FILE TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
 					str2: as red-string! word/get-buffer as red-word! value
 					head2: 0							;-- str2/head = -1 (casted from symbol!)
@@ -1014,7 +1027,7 @@ string: context [
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [
-				TYPE_STRING TYPE_WORD [
+				TYPE_STRING TYPE_FILE TYPE_WORD [
 					either TYPE_OF(value) = TYPE_WORD [
 						str2: as red-string! word/get-buffer as red-word! value
 						head2: 0							;-- str2/head = -1 (casted from symbol!)
@@ -1119,7 +1132,8 @@ string: context [
 			][
 				sp: as red-string! part-arg
 				assert all [
-					TYPE_OF(sp) = TYPE_STRING
+					TYPE_OF(sp) = TYPE_STRING			;@@ replace by ANY_STRING?
+					TYPE_OF(sp) = TYPE_FILE
 					sp/node = str/node
 				]
 				sp/head + 1								;-- /head is 0-based
@@ -1144,7 +1158,7 @@ string: context [
 							char: as red-char! cell				
 							append-char GET_BUFFER(str) char/value
 						]
-						TYPE_STRING [
+						TYPE_STRING TYPE_FILE [
 							concatenate str as red-string! cell part no
 						]
 						default [
@@ -1160,7 +1174,7 @@ string: context [
 						char: as red-char! value
 						append-char GET_BUFFER(str) char/value
 					]
-					TYPE_STRING [
+					TYPE_STRING TYPE_FILE [
 						concatenate str as red-string! value part no
 					]
 					default [
