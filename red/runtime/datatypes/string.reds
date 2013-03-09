@@ -29,7 +29,7 @@ string: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(str)
-		as byte-ptr! s/offset + (str/head << (GET_UNIT(s) >> 1))
+		(as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1))
 	]
 
 	rs-tail: func [
@@ -493,7 +493,7 @@ string: context [
 		
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		p: as byte-ptr! s/offset + (str/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		
 		tail: either zero? limit [
 			as byte-ptr! s/tail
