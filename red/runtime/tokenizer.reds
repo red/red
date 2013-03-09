@@ -117,12 +117,8 @@ tokenizer: context [
 		while [all [c <> null-byte count > 0]][
 			while [all [c <> null-byte c <> #"}"]][
 				if c = #"{" [count: count + 1]
-				e: e + 1
+				e: e + either c = #"^^" [2][1]
 				c: e/1
-				if c = #"^^" [
-					e: e + 2							;-- skip next character (escaped)
-					c: e/1
-				]
 			]
 			if c = #"}" [count: count - 1]
 		]
@@ -148,7 +144,7 @@ tokenizer: context [
 		c: e/1
 		
 		while [all [c <> null-byte c <> #"^""]][
-			e: e + 1
+			e: e + either c = #"^^" [2][1]
 			c: e/1
 		]
 		if c <> #"^"" [throw-error ERR_STRING_DELIMIT]
