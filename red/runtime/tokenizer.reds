@@ -149,7 +149,7 @@ tokenizer: context [
 			count [integer!]
 	][
 		s: s + 1										;-- skip first double quote
-		e: s + 1
+		e: s
 		c: e/1
 		count: 1
 
