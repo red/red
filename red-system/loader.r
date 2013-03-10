@@ -161,6 +161,7 @@ loader: make-profilable context [
 			any [
 				(c: 0)
 				#";" to lf
+				| {#"^^} skip thru {"}
 				| {"} thru {"}
 				| "{" any [(ins?: no) lf-count | non-cbracket] "}"
 				| ws s: ">>>" e: ws (
