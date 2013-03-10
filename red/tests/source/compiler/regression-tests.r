@@ -888,7 +888,7 @@ REBOL [
   --assert-red-printed? "or116Χ"                
   
   --test-- "or117"
-  --assert-red-printed? {or117#"Χ"}                
+  --assert-red-printed? {or117#"^(CE)"}                
   
   --test-- "or118"
   --assert-red-printed? "or118xxxxx"                
