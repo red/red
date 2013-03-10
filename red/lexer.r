@@ -236,6 +236,9 @@ lexer: context [
 				| #"-"	(value: #"^-")
 				| #"?" 	(value: #"^(del)")
 				| #"^^" (value: #"^^")				;-- caret escaping case
+				| #"{"	(value: #"{")
+				| #"}"	(value: #"}")
+				| #"^""	(value: #"^"")
 			]
 			| s: caret-char (value: s/1 - 64)
 		]
