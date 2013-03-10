@@ -14,6 +14,63 @@ string: context [
 	verbose: 0
 	
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
+	#define MAX_ESC_CHARS		60h	
+	
+	escape-chars: allocate MAX_ESC_CHARS
+
+	fill-table: func [
+		/local
+			c [byte!]
+			i [integer!]
+	][
+		i: 0
+		while [i <= as-integer #"@"][
+			escape-chars/i: null-byte
+			i: i + 1
+		]
+	
+		escape-chars/9:  #"-"
+		escape-chars/10: #"/"
+		escape-chars/34: #"^""
+		
+		c: #"@"
+		while [c <= #"_"][
+			i: 1 + as-integer c 
+			escape-chars/i: c
+			c: c + 1
+		]
+	]
+	fill-table											;-- fill table on loading
+	
+	to-hex: func [
+		cp		[integer!]								;-- codepoint <= 10FFFFh
+		return: [c-string!]
+		/local
+			s [c-string!]
+			h [c-string!]
+			c [integer!]
+			i [integer!]
+	][
+		assert cp <= 0010FFFFh
+		
+		s: "000000"
+		h: "0123456789ABCDEF"
+		
+		if zero? cp [
+			s/5: #"0"
+			s/6: #"0"
+			return s + 5
+		]
+		
+		c: 6
+		while [cp <> 0][
+			i: cp and 15 + 1								;-- cp // 16 + 1
+			s/c: h/i
+			cp: cp >> 4
+			c: c - 1
+		]
+		s + c
+	]
 	
 	rs-length?: func [
 		str	    [red-string!]
@@ -463,6 +520,29 @@ string: context [
 		]
 	]
 	
+	append-escaped-char: func [
+		buffer	[red-string!]
+		cp	    [integer!]
+		/local
+			idx [integer!]
+	][
+		idx: cp + 1
+		case [
+			any [cp > 7Fh cp = 1Eh][
+				append-char GET_BUFFER(buffer) as-integer #"^^"
+				append-char GET_BUFFER(buffer) as-integer #"("
+				concatenate-literal buffer to-hex cp
+				append-char GET_BUFFER(buffer) as-integer #")"
+			]
+			all [cp < MAX_ESC_CHARS escape-chars/idx <> null-byte][
+				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
+			]
+			true [
+				append-char GET_BUFFER(buffer) cp
+			]
+		]
+	]
+	
 	mold: func [
 		str		  [red-string!]
 		buffer	  [red-string!]
@@ -473,19 +553,20 @@ string: context [
 		part	  [integer!]
 		return:	  [integer!]
 		/local
-			int	  [red-integer!]
-			limit [integer!]
-			s	  [series!]
-			unit  [integer!]
-			cp	  [integer!]
-			p	  [byte-ptr!]
-			p4	  [int-ptr!]
-			tail  [byte-ptr!]
-			curly [integer!]
-			quote [integer!]
-			nl	  [integer!]
-			open  [byte!]
-			close [byte!]
+			int	   [red-integer!]
+			limit  [integer!]
+			s	   [series!]
+			unit   [integer!]
+			cp	   [integer!]
+			p	   [byte-ptr!]
+			p4	   [int-ptr!]
+			head   [byte-ptr!]
+			tail   [byte-ptr!]
+			curly  [integer!]
+			quote  [integer!]
+			nl	   [integer!]
+			open   [byte!]
+			close  [byte!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/mold"]]
 
@@ -497,12 +578,14 @@ string: context [
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
 		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		head: p
 		
-		tail: either zero? limit [
+		tail: either zero? limit [						;@@ rework that part
 			as byte-ptr! s/tail
 		][
-			p + (limit << (unit >> 1))
+			p + (part << (unit >> 1))
 		]
+		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 		
 		curly: 0
 		quote: 0
@@ -530,12 +613,27 @@ string: context [
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
-			append-char GET_BUFFER(buffer) cp
+			either open =  #"{" [
+				switch cp [
+					#"{" #"}" [
+						append-char GET_BUFFER(buffer) as-integer #"^^"
+						append-char GET_BUFFER(buffer) cp
+					]
+					#"^/" #"^"" [
+						append-char GET_BUFFER(buffer) cp
+					]
+					default [
+						append-escaped-char buffer cp
+					]
+				]
+			][
+				append-escaped-char buffer cp
+			]
 			p: p + unit
 		]
 		
 		append-char GET_BUFFER(buffer) as-integer close
-		part - 2 - get-length str						;@@ recompute added size
+		part - ((as-integer tail - head) >> (unit >> 1)) - 2
 	]
 	
 	compare: func [
