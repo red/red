@@ -32,5 +32,16 @@ REBOL [
       print "***"
     }
   --assert-red-printed? "***2345***"
-
+  
+  --test-- "issue #427"
+    issue427-f: func [
+      /local count
+    ][
+      repeat count 5 [
+        print count
+      ]
+    ]
+    issue427-f
+  --assert-red-printed? "1\n2\n3\n4\n5\n"
+  
 ~~~end-file~~~ 

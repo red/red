@@ -90,6 +90,36 @@ Red [
     --assert a = 20 
 
 ===end-group===
+
+===start-group=== "specific issues"
+
+  --test-- "issue #427-1"
+    issue427-acc: 0
+    issue427-f: func [
+      /local count
+    ][
+      count: #"a"
+      repeat count 5 [
+        issue427-acc: issue427-acc + count
+      ]
+      count
+    ]
+  --assert #"a"= issue427-f
+  --assert 15 = issue427-acc
+  
+  --test-- "issue #427-2"
+    issue427-acc: 0
+    issue427-f: func [
+      /local count
+    ][
+      repeat count 5 [
+        issue427-acc: issue427-acc + count
+      ]
+    ]
+    issue427-f
+  --assert 15 = issue427-acc
+  
+===end-group===
     
 ~~~end-file~~~
 
