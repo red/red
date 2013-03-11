@@ -343,8 +343,27 @@ natives: context [
 		RETURN_NONE
 	]
 	
-	do*: does [
-		interpreter/eval as red-block! stack/arguments
+	do*: func [
+		/local
+			arg [red-value!]
+			str	[red-string!]
+			s	[series!]
+	][
+		arg: stack/arguments
+		switch TYPE_OF(arg) [
+			TYPE_BLOCK [
+				interpreter/eval as red-block! arg
+			]
+			TYPE_STRING [
+				str: as red-string! arg
+				s: GET_BUFFER(str)
+				tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
+				do*
+			]
+			default [
+				interpreter/eval-expression arg arg + 1 no no
+			]
+		]
 	]
 	
 	get*: func [
@@ -527,6 +546,10 @@ natives: context [
 	]
 	
 	load*: func [
+		header? [integer!]
+		all?	[integer!]
+		type?	[integer!]
+		return: [red-value!]
 		/local
 			str [red-string!]
 			s	[series!]
@@ -534,6 +557,14 @@ natives: context [
 		str: as red-string! stack/arguments
 		s: GET_BUFFER(str)
 		tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
+		
+		blk: as red-block! stack/arguments
+		if TYPE_OF(blk) = TYPE_BLOCK [
+			if all [negative? all? 1 = block/rs-length? blk][
+				stack/set-last block/pick as red-series! blk 1
+			]
+		]
+		stack/arguments
 	]
 	
 	reduce*: func [
