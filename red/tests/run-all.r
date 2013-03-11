@@ -60,6 +60,7 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/select-test.red
   --run-test-file-quiet-red %source/units/binding-test.red
   --run-test-file-quiet-red %source/units/evaluation-test.red
+  --run-test-file-quiet-red %source/units/load-test.red
   
 ===end-group===
 
