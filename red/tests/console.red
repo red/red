@@ -115,7 +115,7 @@ print {
 while [true][
 	unless tail? line: input [
 		code: load/all line	
-		unless all [block? code tail? code][
+		unless tail? code [
 			result: do code
 			unless unset? result [
 				prin "== "

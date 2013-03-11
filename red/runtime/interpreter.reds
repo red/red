@@ -303,7 +303,7 @@ interpreter: context [
 					result: _context/get as red-word! value
 					switch TYPE_OF(result) [
 						TYPE_UNSET [
-							print-line "*** Error: word in path has no value!"
+							return unset-value
 						]
 						TYPE_ACTION						;@@ replace with TYPE_ANY_FUNCTION
 						TYPE_NATIVE
@@ -395,6 +395,11 @@ interpreter: context [
 			result: eval-path-element slot head tail result null set?
 			
 			switch TYPE_OF(result) [
+				TYPE_UNSET [
+					print-line "*** Error: word in path has no value!"
+					stack/push result
+					return pc
+				]
 				TYPE_ACTION						;@@ replace with TYPE_ANY_FUNCTION
 				TYPE_NATIVE
 				TYPE_ROUTINE
