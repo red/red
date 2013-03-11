@@ -61,5 +61,12 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f w w
 	
 ===end-group===
 
+===start-group=== "mold strings"
+	--test-- "mold-string-1"
+	--assert {"abcde"} = mold {abcde}
+	--test-- "mold-string-2"
+	--assert {"^^(3A7)^^(3B1)^^(1FD6)^^(3C1)^^(3B5), ^^(3BA)^^(3CC)^^(3C3)^^(3BC)^^(3B5)"} = mold "Χαῖρε, κόσμε"
+===end-group===
+
 ~~~end-file~~~
 
