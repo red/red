@@ -302,6 +302,9 @@ interpreter: context [
 				either slot = head [
 					result: _context/get as red-word! value
 					switch TYPE_OF(result) [
+						TYPE_UNSET [
+							print-line "*** Error: word in path has no value!"
+						]
 						TYPE_ACTION						;@@ replace with TYPE_ANY_FUNCTION
 						TYPE_NATIVE
 						TYPE_ROUTINE
@@ -540,6 +543,10 @@ interpreter: context [
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [
+					TYPE_UNSET [
+						print-line "*** Error: word has no value!"
+						stack/set-last unset-value
+					]
 					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
 					TYPE_NATIVE
 					TYPE_ROUTINE
