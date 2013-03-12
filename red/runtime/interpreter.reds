@@ -535,12 +535,12 @@ interpreter: context [
 				pc: eval-path value pc end yes
 			]
 			TYPE_GET_WORD [
-				word/get as red-word! pc
+				copy-cell _context/get as red-word! pc stack/push*
 				pc: pc + 1
 			]
 			TYPE_LIT_WORD [
 				w: word/push as red-word! pc			;-- push lit-word! on stack
-				w/header: TYPE_WORD						;-- set correct value type on stack
+				w/header: TYPE_WORD						;-- coerce it to a word!
 				pc: pc + 1
 			]
 			TYPE_WORD [
@@ -551,6 +551,10 @@ interpreter: context [
 					TYPE_UNSET [
 						print-line "*** Error: word has no value!"
 						stack/set-last unset-value
+					]
+					TYPE_LIT_WORD [
+						w: word/push as red-word! value	;-- push lit-word! on stack
+						w/header: TYPE_WORD				;-- coerce it to a word!
 					]
 					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
 					TYPE_NATIVE
