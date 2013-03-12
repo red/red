@@ -708,7 +708,7 @@ qt: make object! [
     if any [
       not exists? auto-test-file
       stored-file-length <> length? read make-file
-      (modified? make-file) > (modified? auto-test-file)
+      0:00 < difference modified? make-file modified? auto-test-file
     ][
       print ["Making" auto-test-file " - it will take a while"]
       do make-file
