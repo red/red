@@ -42,6 +42,6 @@ REBOL [
       ]
     ]
     issue427-f
-  --assert-red-printed? "1\n2\n3\n4\n5\n"
+  --assert-red-printed? "1^/2^/3^/4^/5^/"
   
 ~~~end-file~~~ 

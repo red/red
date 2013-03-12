@@ -942,6 +942,11 @@ red: context [
 		add-symbol word: pc/1
 		add-global word
 		name: decorate-symbol word
+		action: either local-word? word [
+			'natives/repeat-set							;-- set the value slot on stack
+		][
+			'_context/set-integer						;-- set the word value in global context
+		]
 		
 		depth: depth + 1
 
@@ -953,27 +958,30 @@ red: context [
 		
 		set [cnt set-cnt] declare-variable join "r" depth		;-- integer counter
 		set [lim set-lim] declare-variable join "rlim" depth	;-- counter limit
-		emit reduce [									;@@ only integer! argument supported
-			set-lim 'integer/get*
-			set-cnt 0
+		emit reduce either local-word? word [					;@@ only integer! argument supported
+			[
+				set-lim 'natives/repeat-init* name
+				set-cnt 0
+			]
+		][
+			[
+				set-lim 'integer/get*
+				'_context/set-integer name lim
+				set-cnt 0
+			]
 		]
 		insert-lf -2
-		insert-lf -4
+		insert-lf -5
+		insert-lf -7
 		emit 'stack/reset
 		insert-lf -1
-
-		action: either local-word? word [
-			'integer/set								;-- set the value slot on stack
-		][
-			'_context/set-integer						;-- set the word value in global context
-		]
+		
 		emit-open-frame 'repeat
 		emit compose/deep [
 			while [
 				;-- set word 1 + get word
 				;-- TBD: set word next get word
 				(set-cnt) (cnt) + 1
-				(action) (name) (cnt)
 				;-- (get word) < value
 				;-- TBD: not tail? get word
 				(cnt) <= (lim)
@@ -984,6 +992,8 @@ red: context [
 		new-line skip tail last output -6 on
 		
 		comp-sub-block 'repeat-body
+		insert last output reduce [action name cnt]
+		new-line last output on
 		emit-close-frame
 		depth: depth - 1
 	]

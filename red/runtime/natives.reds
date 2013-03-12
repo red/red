@@ -813,6 +813,31 @@ natives: context [
 		_context/set word as red-value! series			;-- reset series to its initial offset
 	]
 	
+	repeat-init*: func [
+		cell  	[red-value!]
+		return: [integer!]
+		/local
+			int [red-integer!]
+	][
+		copy-cell stack/arguments cell
+		int: as red-integer! cell
+		int/value										;-- overlapping /value field for integer! and char!
+	]
+	
+	repeat-set: func [
+		cell  [red-value!]
+		value [integer!]
+		/local
+			int [red-integer!]
+	][
+		assert any [
+			TYPE_OF(cell) = TYPE_INTEGER
+			TYPE_OF(cell) = TYPE_CHAR
+		]
+		int: as red-integer! cell
+		int/value: value								;-- overlapping /value field for integer! and char!
+	]
+	
 	register [
 		:if*
 		:unless*

@@ -16,16 +16,16 @@ Red [
   --test-- "br1"                      ;; Documenting non-local index counter
     br1-i: 0
     repeat br1-i 100 [ ]
-  --assert 101 = br1-i                
+  --assert 100 = br1-i                
   
   --test-- "br2"                      ;; Documenting non-local index counter
     br2-i: -99
     repeat br2-i 100 [ ]
-  --assert 101 = br2-i 
+  --assert 100 = br2-i 
   
   --test-- "br3"                      ;; Documenting non-local index counter
     repeat br3-i 100 [ ]
-  --assert 101 = br3-i
+  --assert 100 = br3-i
   
   --test-- "br4"
     br4-i: 0
@@ -104,7 +104,7 @@ Red [
       ]
       count
     ]
-  --assert #"a"= issue427-f
+  --assert 5  = issue427-f
   --assert 15 = issue427-acc
   
   --test-- "issue #427-2"

@@ -64,8 +64,9 @@ _context: context [
 	]
 	
 	set-integer: func [
-		word 		[red-word!]
-		value		[integer!]
+		word 	[red-word!]
+		value	[integer!]
+		return:	[integer!]
 		/local
 			int 	[red-integer!]
 			values	[series!]
@@ -86,6 +87,7 @@ _context: context [
 		]
 		int/header: TYPE_INTEGER
 		int/value: value
+		value
 	]
 
 	set: func [
