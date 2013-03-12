@@ -87,6 +87,8 @@ Red [
 	--assert none = find/part [1 2 3 4] [2 3] 2
 	--test-- "find/part-12"
 	--assert none = find/part [1 2 3 4] 3 2
+	--test-- "find/part-13"
+	--assert none = find/part "Χαῖρε, κόσμε!" "Χαῖ" 2
 ===end-group===
 
 ===start-group=== "find/only"
