@@ -274,14 +274,16 @@ natives: context [
 	return*:	does []
 		
 	switch*: func [
-		default? [integer!]								;@@ not implemented yet
+		default? [integer!]
 		/local
 			pos	 [red-value!]
 			blk  [red-block!]
+			alt  [red-block!]
 			end  [red-value!]
 			s	 [series!]
 	][
 		blk: as red-block! stack/arguments + 1
+		alt: as red-block! stack/arguments + 2
 		
 		pos: actions/find
 			as red-series! blk
@@ -297,9 +299,13 @@ natives: context [
 			yes											;-- /tail
 			no
 			
-		either TYPE_OF(blk) = TYPE_NONE [
-			;TBD: add default block processing
-			0
+		either TYPE_OF(pos) = TYPE_NONE [
+			either negative? default? [
+				RETURN_NONE
+			][
+				interpreter/eval alt
+				exit									;-- early exit with last value on stack
+			]
 		][
 			s: GET_BUFFER(blk)
 			end: s/tail
