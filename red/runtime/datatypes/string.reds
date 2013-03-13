@@ -535,6 +535,7 @@ string: context [
 				append-char GET_BUFFER(buffer) as-integer #")"
 			]
 			all [cp < MAX_ESC_CHARS escape-chars/idx <> null-byte][
+				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
 			]
 			true [
