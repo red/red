@@ -76,7 +76,7 @@ Red [
 	--test-- "case-basic-11"
 	ci:  1
 	cia: 2
-	cia: case [ci = 1 [switch ci [1 [3] true [4]]]]
+	cia: case [ci = 1 [switch/default ci [1 [3]][4]]]
 	--assert cia = 3
 	
 ===end-group===
@@ -147,7 +147,7 @@ Red [
 		--test-- "case-loc-11"
 		ci:  1
 		cia: 2
-		cia: case [ci = 1 [switch ci [1 [3] default [4]]]]
+		cia: case [ci = 1 [switch/default ci [1 [3]][4]]]
 		--assert cia = 3
 	]
 	case-fun
