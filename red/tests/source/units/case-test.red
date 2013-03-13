@@ -76,7 +76,7 @@ Red [
 	--test-- "case-basic-11"
 	ci:  1
 	cia: 2
-	cia: case [ci = 1 [switch ci [1 [3] default [4]]]]
+	cia: case [ci = 1 [switch ci [1 [3] true [4]]]]
 	--assert cia = 3
 	
 ===end-group===
@@ -156,8 +156,6 @@ Red [
 
 ===start-group=== "case integer!"
 	
-#define case-int-1 [case [ ci = 1 [cia: 1] ci = 2 [cia: 2] true [cia: 3]]]
-
 	--test-- "case-int-1"
 	  ci: 1
 	  cia: 0
