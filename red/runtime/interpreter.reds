@@ -218,22 +218,14 @@ interpreter: context [
 						either ref? [
 							unless function? [
 								prev: index - 1			;-- overwrite previous entry if it was a ref marker
-								either negative? ref-array/prev [
+								if negative? ref-array/prev [
 									ref-array/prev: count
 									index: prev
-								][
-									ref-array/index: count
 								]
-								
 							]
 						][
-							either function? [
-								none/push
-							][
-								ref-array/index: -1
-							]
+							if function? [none/push]
 						]
-						index: index + 1
 					]
 					if any [required? ref?][
 						EVAL_CHECK_INPUT

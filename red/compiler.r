@@ -473,7 +473,7 @@ red: context [
 						args: 0
 					)
 					| arg-rule opt block! opt string! (
-						change back tail list args: args + 1
+						change back tail list args: args + 1	;@@ one argument by refinement max!!
 					)
 					| set-word! break
 				]
