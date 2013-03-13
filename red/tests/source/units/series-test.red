@@ -40,7 +40,7 @@ Red [
 	--assert 53 = fifth sf5-ser
 	
 	--test-- "series-fstff-6"
-	  stf6-ser: #{000102}
+	;;  stf6-ser: #{000102}
 	;;--assert 0 = first stf6-ser
 	
 	--test-- "series-fstff-7"
