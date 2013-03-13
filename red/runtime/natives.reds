@@ -307,6 +307,7 @@ natives: context [
 			while [pos < end][							;-- find first following block
 				if TYPE_OF(pos) = TYPE_BLOCK [
 					stack/reset
+					pos: block/pick as red-series! pos 1
 					interpreter/eval as red-block! pos	;-- do the block
 					exit								;-- early exit with last value on stack
 				]
