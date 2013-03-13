@@ -523,6 +523,7 @@ string: context [
 	append-escaped-char: func [
 		buffer	[red-string!]
 		cp	    [integer!]
+		char?	[logic!]
 		/local
 			idx [integer!]
 	][
@@ -535,7 +536,7 @@ string: context [
 				append-char GET_BUFFER(buffer) as-integer #")"
 			]
 			all [cp < MAX_ESC_CHARS escape-chars/idx <> null-byte][
-				append-char GET_BUFFER(buffer) as-integer #"^^"
+				if char? [append-char GET_BUFFER(buffer) as-integer #"^^"]
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
 			]
 			true [
@@ -624,11 +625,11 @@ string: context [
 						append-char GET_BUFFER(buffer) cp
 					]
 					default [
-						append-escaped-char buffer cp
+						append-escaped-char buffer cp no
 					]
 				]
 			][
-				append-escaped-char buffer cp
+				append-escaped-char buffer cp no
 			]
 			p: p + unit
 		]
