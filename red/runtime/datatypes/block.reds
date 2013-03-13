@@ -370,6 +370,7 @@ block: context [
 		/local
 			s	  [series!]
 			value [red-value!]
+			prev  [integer!]
 			i     [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/form"]]
@@ -383,10 +384,14 @@ block: context [
 		][
 			if all [OPTION?(arg) part <= 0][return part]
 			
+			prev: part
 			part: actions/form value buffer arg part
 			i: i + 1
 			
-			if 	s/offset + i < s/tail [
+			if all [
+				part <> prev
+				s/offset + i < s/tail
+			][
 				string/append-char GET_BUFFER(buffer) as-integer space
 				part: part - 1
 			]
