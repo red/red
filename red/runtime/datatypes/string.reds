@@ -36,9 +36,9 @@ string: context [
 			i: i + 1
 		]
 		
-		escape-chars/9:  #"-"
-		escape-chars/10: #"/"
-		escape-chars/34: #"^""
+		escape-chars/10: #"-"							;-- 9  + 1 (adjust for 1-base)
+		escape-chars/11: #"/"							;-- 10 + 1 (adjust for 1-base)
+		escape-chars/35: #"^""							;-- 34 + 1 (adjust for 1-base)
 	]
 	fill-table											;-- fill table on loading
 	
