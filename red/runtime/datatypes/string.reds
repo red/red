@@ -23,22 +23,22 @@ string: context [
 			c [byte!]
 			i [integer!]
 	][
-		i: 0
-		while [i <= as-integer #"@"][
+		i: 1
+		c:  #"@"
+		while [c <= #"_"][
+			escape-chars/i: c
+			i: i + 1
+			c: c + 1
+		]
+		
+		while [i < MAX_ESC_CHARS][
 			escape-chars/i: null-byte
 			i: i + 1
 		]
-	
+		
 		escape-chars/9:  #"-"
 		escape-chars/10: #"/"
 		escape-chars/34: #"^""
-		
-		c: #"@"
-		while [c <= #"_"][
-			i: 1 + as-integer c 
-			escape-chars/i: c
-			c: c + 1
-		]
 	]
 	fill-table											;-- fill table on loading
 	
@@ -523,7 +523,6 @@ string: context [
 	append-escaped-char: func [
 		buffer	[red-string!]
 		cp	    [integer!]
-		char?	[logic!]
 		/local
 			idx [integer!]
 	][
@@ -536,7 +535,7 @@ string: context [
 				append-char GET_BUFFER(buffer) as-integer #")"
 			]
 			all [cp < MAX_ESC_CHARS escape-chars/idx <> null-byte][
-				if char? [append-char GET_BUFFER(buffer) as-integer #"^^"]
+				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
 			]
 			true [
@@ -625,11 +624,11 @@ string: context [
 						append-char GET_BUFFER(buffer) cp
 					]
 					default [
-						append-escaped-char buffer cp no
+						append-escaped-char buffer cp
 					]
 				]
 			][
-				append-escaped-char buffer cp no
+				append-escaped-char buffer cp
 			]
 			p: p + unit
 		]
