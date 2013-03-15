@@ -19,6 +19,7 @@ file-list: [
 	%conditional-test.red								%auto-tests/interpreter-conditional-test.red
 	%evaluation-test.red								%auto-tests/interpreter-evaluation-test.red
 	%find-test.red										%auto-tests/interpreter-find-test.red
+	%function-test.red								%auto-tests/interpreter-function-test.red
 	%load-test.red										%auto-tests/interpreter-load-test.red
 	%logic-test.red										%auto-tests/interpreter-logic-test.red
 	%loop-test.red										%auto-tests/interpreter-loop-test.red
@@ -26,6 +27,7 @@ file-list: [
 	%serialization-test.red								%auto-tests/interpreter-serialization-test.red
 	%series-test.red									%auto-tests/interpreter-series-test.red
 	%type-test.red										%auto-tests/interpreter-type-test.red
+	%switch-test.red										%auto-tests/interpreter-switch-test.red
 	%auto-tests/equal-auto-test.red						%auto-tests/interp-equal-auto-test.red
 	%auto-tests/greater-auto-test.red					%auto-tests/interp-greater-auto-test.red
 	%auto-tests/infix-equal-auto-test.red				%auto-tests/interp-inf-equal-auto-test.red
@@ -94,12 +96,4 @@ foreach [file-in file-out] file-list [
 ]
 
 print [number-of-files "files were generated"]
-
-
-
-
-
-
-
-
 
