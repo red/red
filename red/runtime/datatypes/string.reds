@@ -99,6 +99,20 @@ string: context [
 		as byte-ptr! s/tail
 	]
 	
+	get-char: func [
+		p	    [byte-ptr!]
+		unit	[integer!]
+		return: [integer!]
+		/local
+			p4	[int-ptr!]
+	][
+		switch unit [
+			Latin1 [as-integer p/value]
+			UCS-2  [(as-integer p/2) << 8 + p/1]
+			UCS-4  [p4: as int-ptr! p p4/value]
+		]
+	]
+	
 	get-position: func [
 		base	   [integer!]
 		return:	   [integer!]

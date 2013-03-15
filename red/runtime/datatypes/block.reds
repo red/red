@@ -370,6 +370,7 @@ block: context [
 		/local
 			s	  [series!]
 			value [red-value!]
+			unit  [integer!]
 			prev  [integer!]
 			i     [integer!]
 	][
@@ -377,23 +378,34 @@ block: context [
 
 		s: GET_BUFFER(blk)
 		i: blk/head
+		value: s/offset + i
 		
-		while [
-			value: s/offset + i
-			value < s/tail
-		][
+		while [value < s/tail][
 			if all [OPTION?(arg) part <= 0][return part]
 			
 			prev: part
 			part: actions/form value buffer arg part
 			i: i + 1
+			value: s/offset + i
 			
 			if all [
 				part <> prev
-				s/offset + i < s/tail
+				value < s/tail
 			][
 				string/append-char GET_BUFFER(buffer) as-integer space
 				part: part - 1
+			]
+		]
+		
+		s: GET_BUFFER(buffer)
+		
+		if s/offset < s/tail [
+			unit: GET_UNIT(s)
+			i: string/get-char (as byte-ptr! s/tail) - unit unit
+			
+			if i = as-integer space [
+				s/tail: as red-value! ((as byte-ptr! s/tail) - unit)  ;-- trim tail space
+				part: part + 1
 			]
 		]
 		part
