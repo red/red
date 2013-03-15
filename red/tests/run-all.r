@@ -88,6 +88,7 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/auto-tests/interpreter-conditional-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interpreter-evaluation-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interpreter-find-test.red
+  --run-test-file-quiet-red %source/units/auto-tests/interpreter-function-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interpreter-load-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interpreter-logic-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interpreter-loop-test.red

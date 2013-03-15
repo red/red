@@ -34,14 +34,16 @@ REBOL [
   --assert-red-printed? "***2345***"
   
   --test-- "issue #427"
-    issue427-f: func [
-      /local count
-    ][
-      repeat count 5 [
-        print count
+    --compile-and-run-this-red {
+      issue427-f: func [
+        /local count
+      ][
+        repeat count 5 [
+          print count
+        ]
       ]
-    ]
-    issue427-f
+      issue427-f
+    }
   --assert-red-printed? "1^/2^/3^/4^/5^/"
   
 ~~~end-file~~~ 

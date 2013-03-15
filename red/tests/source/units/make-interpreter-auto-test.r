@@ -19,6 +19,7 @@ file-list: [
 	%conditional-test.red								%auto-tests/interpreter-conditional-test.red
 	%evaluation-test.red								%auto-tests/interpreter-evaluation-test.red
 	%find-test.red										%auto-tests/interpreter-find-test.red
+	%function-test.red								%auto-tests/interpreter-function-test.red
 	%load-test.red										%auto-tests/interpreter-load-test.red
 	%logic-test.red										%auto-tests/interpreter-logic-test.red
 	%loop-test.red										%auto-tests/interpreter-loop-test.red
