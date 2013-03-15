@@ -156,6 +156,7 @@ word: context [
 						type = TYPE_SET_WORD
 						type = TYPE_LIT_WORD
 						type = TYPE_REFINEMENT
+						type = TYPE_ISSUE
 					]
 					(symbol/resolve arg1/symbol) = (symbol/resolve arg2/symbol)
 				]
