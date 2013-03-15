@@ -10,12 +10,12 @@ REBOL [
 ~~~start-file~~~ "Red print"
 
  --test-- "Red print 1"
-   --compile-and-run-red %source/compiler/print-test.red 
+   --compile-and-run-this-red {print 1} 
   --assert-red-printed? 1
   
   --test-- "Red print 2"
-    --compile-and-run-this-red {print 2}
-  --assert-red-printed? 2
+  --compile-and-run-this-red {print [1 2 3]}
+  --assert-red-printed? 1 2 3
   
   --test-- "Red print 3"
     --compile-and-run-this-red {
