@@ -80,7 +80,6 @@ Red [
 	--assert sb6-j = "boron"
 	
 	--test-- "switch-basic-7"
-	comment { This test produces a compile error - undefined word c"
 		sb7-i: [a b c]
 		sb7-j: "REBOL"
 		switch sb7-i [
@@ -89,10 +88,6 @@ Red [
 			[b c a]				[sb7-j: "Peter"]
 		]
 	--assert sb7-j = "Red"
-	The following assert is a simple to highlight the compilation error"
-	It should be removed when the issue is resolved.
-	}
-	--assert false
 	
 	--test-- "switch-basic-8"
 		sb8-i: %Nenad
@@ -118,14 +113,14 @@ Red [
 		sb10-i: true
 		sb10-j: "REBOL"
 		switch sb10-i [
-			false	 	[sb10-j: "Earl"]
-			true		[sb10-j: "Red"]
-			true		[sb10-j: "Peter"]
+			#[false]	[sb10-j: "Earl"]
+			#[true]		[sb10-j: "Red"]
+			#[true]		[sb10-j: "Peter"]
 		]
 	--assert sb10-j = "Red"
 	
 	--test-- "switch-basic-11"
-		sb11-i: (1 2 3)
+		sb11-i: first [(1 2 3)]
 		sb11-j: "REBOL"
 		switch sb11-i [
 			(3 2 1)	 	[sb11-j: "Earl"]
@@ -145,7 +140,7 @@ Red [
 	--assert sb12-j = "Red"
 	
 	--test-- "switch-basic-13"
-		sb13-i: (2)
+		sb13-i: first [(2)]
 		sb13-j: "REBOL"
 		switch sb13-i [
 			(1)	 	[sb13-j: "Earl"]
@@ -236,22 +231,22 @@ Red [
 
 ===end-group===
 
-===start-group=== "switch-all"
-	
-	--test-- "switch-all-1"
-	comment { /all not yet implemented 
-		sa1-i: 1
-		sa1-j: 0
-		switch/all sa1-i [
-			0	[sa1-j: sa1j + 1]
-			1	[sa1-j: sa1j + 2]
-			2	[sa1-j: sa1j + 4]
-		]
-	--assert sa1-j = 6 
-	Following assert to highlight switch/all not yet implemented
-	}
-	--assert false
-===end-group===
+;===start-group=== "switch-all"			;; not sure if it will be implemented.
+;	
+;	--test-- "switch-all-1"
+;	comment { /all not yet implemented 
+;		sa1-i: 1
+;		sa1-j: 0
+;		switch/all sa1-i [
+;			0	[sa1-j: sa1j + 1]
+;			1	[sa1-j: sa1j + 2]
+;			2	[sa1-j: sa1j + 4]
+;		]
+;	--assert sa1-j = 6 
+;	Following assert to highlight switch/all not yet implemented
+;	}
+;	--assert false
+;===end-group===
 
 ~~~end-file~~~
 
