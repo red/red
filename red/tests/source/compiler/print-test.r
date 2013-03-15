@@ -39,11 +39,11 @@ REBOL [
         /local count
       ][
         repeat count 5 [
-          print count
+          prin count
         ]
       ]
       issue427-f
     }
-  --assert-red-printed? "1^/2^/3^/4^/5^/"
+  --assert-red-printed? "12345"
   
 ~~~end-file~~~ 
