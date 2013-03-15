@@ -1270,7 +1270,7 @@ red: context [
 		]
 	]
 	
-	comp-switch: has [mark name arg body list cnt pos default?][
+	comp-switch: has [mark name arg body list cnt pos default? value][
 		if path? pc/-1 [
 			foreach ref next pc/-1 [
 				switch/default ref [
@@ -1291,8 +1291,11 @@ red: context [
 		]
 		list: make block! 4
 		cnt: 1
-		foreach w body [								;-- build a [value index] pairs list
-			either block? w [cnt: cnt + 1][repend list [w cnt]]
+		parse body [									;-- build a [value index] pairs list
+			any [
+				value: skip (repend list [value/1 cnt])
+				to block! skip (cnt: cnt + 1)
+			]
 		]
 		name: redirect-to-literals [emit-block list]
 		
@@ -1302,7 +1305,7 @@ red: context [
 		emit arg
 		emit [integer/push 2]							;-- /skip 2
 		insert-lf -2
-		emit-action/with 'select [-1 -1 -1 -1 -1 2 -1 -1] ;-- select/skip
+		emit-action/with 'select [-1 0 -1 -1 -1 2 -1 -1] ;-- select/only/skip
 		emit-close-frame
 		
 		emit [switch integer/get-any*]
@@ -1311,14 +1314,14 @@ red: context [
 		clear list
 		cnt: 1
 		parse body [									;-- build SWITCH cases
-			some [pos: block! (
+			any [skip to block! pos: (
 				mark: tail output
 				comp-sub-block/with 'switch-body pos/1
 				pc: back pc			;-- restore PC position (no block consumed)
 				repend list [cnt mark/1]
 				clear mark
 				cnt: cnt + 1
-			) | skip]
+			) skip]
 		]
 		unless empty? body [pc: next pc]
 		

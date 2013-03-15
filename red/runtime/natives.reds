@@ -289,7 +289,7 @@ natives: context [
 			as red-series! blk
 			stack/arguments
 			null
-			no
+			yes											;-- /only
 			no
 			no
 			null
