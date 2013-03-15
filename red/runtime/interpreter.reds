@@ -10,21 +10,6 @@ Red/System [
 	}
 ]
 
-#define EVAL_CHECK_INPUT [
-	if pc >= end [
-		print-line "*** Interpreter Error: missing argument..."
-		halt
-	]
-]
-
-#define EVAL_FETCH_ARGUMENT [
-	EVAL_CHECK_INPUT
-	if verbose > 0 [log "fetching argument"]
-	stack/push pc
-	pc: pc + 1
-	count: count + 1
-]
-
 #define CHECK_INFIX [
 	if all [
 		next < end
@@ -38,6 +23,21 @@ Red/System [
 	]
 ]
 
+#define FETCH_ARGUMENT [
+	if pc >= end [
+		print-line "*** Interpreter Error: missing argument..."
+		halt
+	]
+	either TYPE_OF(value) = TYPE_WORD [
+		if verbose > 0 [log "evaluating argument"]
+		pc: eval-expression pc end no yes
+	][
+		if verbose > 0 [log "fetching argument"]
+		stack/push pc
+		pc: pc + 1
+	]
+]
+
 interpreter: context [
 	verbose: 0
 
@@ -48,24 +48,79 @@ interpreter: context [
 		print-line msg
 	]
 	
-	find-refinement?: func [
-		ref		[red-word!]
-		path	[red-path!]
-		slot	[red-word!]
-		end		[red-value!]
-		return: [logic!]
+	eval-option: func [
+		pc		  [red-value!]
+		end		  [red-value!]
+		value	  [red-value!]
+		tail	  [red-value!]
+		word	  [red-word!]
+		offset	  [int-ptr!]
+		args	  [int-ptr!]
+		function? [logic!]
+		return:	  [red-value!]
+		/local
+			ref	  [red-refinement!]
+			slot  [red-logic!]
+			type  [integer!]
+			pos	  [integer!]
+			idx	  [integer!]
+			pos2  [integer!]
 	][
-		while [slot < end][
-			if TYPE_OF(slot) <> TYPE_WORD [
-				print-line "*** Error: function call with non-word refinement!"
-				halt
+		pos:  0											;-- stack offset
+		idx:  1											;-- native stack ref-array index
+		args/value: 0
+		
+		while [value < tail][
+		
+			switch TYPE_OF(value) [
+				TYPE_REFINEMENT [
+					ref: as red-refinement! value
+					either (symbol/resolve ref/symbol) = (symbol/resolve word/symbol) [
+						slot: as red-logic! stack/arguments + pos
+						slot/value: true
+						
+						value: value + 1
+						pos2: pos + 1
+						while [
+							type: TYPE_OF(value)
+							all [
+								value < tail
+								any [
+									type = TYPE_WORD
+									type = TYPE_GET_WORD
+									type = TYPE_LIT_WORD
+								]
+							]
+						][
+							FETCH_ARGUMENT
+							if function? [
+								copy-cell stack/top - 1 stack/arguments + pos2 
+								stack/pop 1
+							]
+							pos2: pos2 + 1
+							args/value: args/value + 1
+							value: value + 1
+						]
+						unless function? [offset/value: idx]
+						return pc
+					][
+						idx: idx + 1
+					]
+					pos: pos + 1
+				]
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					pos: pos + 1
+				]
+				default [0]
 			]
-			if (symbol/resolve slot/symbol) = (symbol/resolve ref/symbol) [
-				return yes
-			]
-			slot: slot + 1
+			
+			value: value + 1
 		]
-		no
+		print-line "Error: refinement not found!"
+		halt
+		null
 	]
 	
 	eval-function: func [
@@ -156,7 +211,7 @@ interpreter: context [
 		if infix? [pc: eval-infix value pc end sub?]
 		pc
 	]
-
+	
 	eval-arguments: func [
 		native 	[red-native!]
 		pc		[red-value!]
@@ -169,15 +224,16 @@ interpreter: context [
 			function? [logic!]
 			routine?  [logic!]
 			value	  [red-value!]
+			head	  [red-value!]
 			tail	  [red-value!]
 			dt		  [red-datatype!]
 			path-end  [red-value!]
 			s		  [series!]
 			required? [logic!]
-			ref?	  [logic!]
 			index	  [integer!]
 			count	  [integer!]
-			prev	  [integer!]
+			offset	  [integer!]
+			args	  [integer!]
 			size	  [integer!]
 			ref-array [int-ptr!]
 			call
@@ -192,7 +248,8 @@ interpreter: context [
 			native/spec/value
 		]
 		
-		value: s/offset
+		head:  s/offset
+		value: head
 		tail:  s/tail
 		
 		unless null? path [
@@ -200,53 +257,40 @@ interpreter: context [
 			if pos + 1 = path-end [path: null]			;-- no refinement following the function
 		]												;-- so, process it as a non-path call
 		
-		count:  	 0									;-- nb of fetched arguments (used as offset)
+		count:  	 0									;-- base arity (mandatory arguments only)
 		index: 	 	 1
+		args:		 -1
+		offset:		 -1
 		return-type: -1
 		ref?:		 no
-		required?:	 yes								;-- yes: processing mandatory args, no: optonal args
+		required?:	 yes								;-- yes: processing mandatory args, no: optional args
 		
-		size: as-integer tail - value
-		ref-array: system/stack/top - size
-		system/stack/top: ref-array						;-- reserve space on native stack for refs array
+		unless function? [
+			size: as-integer tail - value				;@@ takes more space than really needed
+			ref-array: system/stack/top - size
+			system/stack/top: ref-array					;-- reserve space on native stack for refs array
+		]
 		
 		while [value < tail][
 			if verbose > 0 [print-line ["eval: spec entry type: " TYPE_OF(value)]]
 			switch TYPE_OF(value) [
-				TYPE_WORD [
-					unless required? [
-						either ref? [
-							unless function? [
-								prev: index - 1			;-- overwrite previous entry if it was a ref marker
-								if negative? ref-array/prev [
-									ref-array/prev: count
-									index: prev
-								]
-							]
-						][
-							if function? [none/push]
-						]
-					]
-					if any [required? ref?][
-						EVAL_CHECK_INPUT
-						if verbose > 0 [log "evaluating argument"]
-						pc: eval-expression pc end no yes	;-- eval argument
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					either required? [
+						FETCH_ARGUMENT
 						count: count + 1
+					][
+						if function? [none/push]
 					]
 				]
-				TYPE_LIT_WORD [EVAL_FETCH_ARGUMENT]
-				TYPE_GET_WORD [EVAL_FETCH_ARGUMENT]
 				TYPE_REFINEMENT [
 					if required? [required?: no]		;-- no more mandatory arguments
 					
-					ref?: either null? path [no][
-						find-refinement? as red-word! value path as red-word! pos path-end
-					]
-					
 					either function? [
-						logic/push ref?
+						logic/push false
 					][
-						ref-array/index: either ref? [count][-1]
+						ref-array/index: -1
 						index: index + 1
 					]
 				]
@@ -262,6 +306,26 @@ interpreter: context [
 				default [0]								;-- ignore other values
 			]
 			value: value + 1
+		]
+		
+		unless routine? [
+			if path <> null [
+				pos: pos + 1
+				
+				while [pos < path-end][
+					pc: eval-option pc end head tail as red-word! pos :offset :args function?
+					
+					unless function? [
+						either args > 0 [
+							ref-array/offset: count + args - 1
+							count: count + args
+						][
+							ref-array/offset: 0
+						]
+					]
+					pos: pos + 1
+				]	
+			]
 		]
 		
 		unless function? [
