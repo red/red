@@ -324,7 +324,7 @@ natives: context [
 	]
 	
 	case*: func [
-		all? 	  [integer!]							;@@ not implemented yet
+		all? 	  [integer!]
 		/local
 			value [red-value!]
 			tail  [red-value!]
@@ -342,7 +342,7 @@ natives: context [
 				][
 					value: interpreter/eval-next value tail no
 				]
-				exit									;-- early exit with last value on stack
+				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
 			][
 				value: value + 1						;-- single value only allowed for cases bodies
 			]
