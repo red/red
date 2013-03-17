@@ -1353,6 +1353,57 @@ string: context [
 		as red-value! char
 	]
 	
+	remove: func [
+		str	 	 [red-string!]
+		part-arg [red-value!]
+		return:	 [red-string!]
+		/local
+			s		[series!]
+			part	[integer!]
+			unit	[integer!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+			int		[red-integer!]
+			str2	[red-string!]
+	][
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+		
+		if head = tail [return str]						;-- early exit if nothing to remove
+
+		part: unit
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				str2: as red-string! part-arg
+				unless all [
+					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
+					str2/node = str/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				str2/head - str/head
+			]
+			if part <= 0 [return str]					;-- early exit if negative /part index
+			part: part << (unit >> 1)
+		]
+
+		if head + part < tail [
+			copy-memory 
+				head
+				head + part
+				as-integer tail - (head + part)
+		]
+		s/tail: as red-value! tail - part
+		str
+	]
+	
 	;--- Misc actions ---
 
 	copy: func [
@@ -1467,7 +1518,7 @@ string: context [
 		:next
 		:pick
 		:poke
-		null			;remove
+		:remove
 		null			;reverse
 		:select
 		null			;sort

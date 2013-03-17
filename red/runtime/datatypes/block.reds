@@ -966,6 +966,48 @@ block: context [
 		as red-value! data
 	]
 	
+	remove: func [
+		blk	 	 [red-block!]
+		part-arg [red-value!]
+		return:	 [red-block!]
+		/local
+			s		[series!]
+			part	[integer!]
+			head	[red-value!]
+			int		[red-integer!]
+			b		[red-block!]
+	][
+		s: GET_BUFFER(blk)
+		head: s/offset + blk/head
+		if head = s/tail [return blk]					;-- early exit if nothing to remove
+		
+		part: 1
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				b: as red-block! part-arg
+				assert all [
+					TYPE_OF(b) = TYPE_BLOCK
+					b/node = blk/node
+				]
+				b/head - blk/head
+			]
+			if part <= 0 [return blk]					;-- early exit if negative /part index
+		]
+
+		if head + part < s/tail [
+			copy-memory 
+				as byte-ptr! head
+				as byte-ptr! head + part
+				as-integer s/tail - (head + part)
+		]
+		s/tail: s/tail - part
+		blk
+	]
+	
 	;--- Misc actions ---
 	
 	copy: func [
@@ -1104,7 +1146,7 @@ block: context [
 		:next
 		:pick
 		:poke
-		null			;remove
+		:remove
 		null			;reverse
 		:select
 		null			;sort

@@ -667,7 +667,32 @@ actions: context [
 		action-poke series index data
 	]
 	
-	remove*: func [][]
+	remove*: func [
+		part [integer!]
+	][	
+		remove
+			as red-series! stack/arguments
+			stack/arguments + part
+	]
+	
+	remove: func [
+		series  [red-series!]
+		part	[red-value!]
+		return:	[red-value!]
+		/local
+			action-remove
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/remove"]]
+		
+		action-remove: as function! [
+			series	[red-series!]
+			part	[red-value!]
+			return:	[red-value!]
+		] get-action-ptr as red-value! series ACT_REMOVE
+		
+		action-remove series part
+	]
+	
 	reverse*: func [][]
 	
 	select*: func [
@@ -830,7 +855,7 @@ actions: context [
 		:next*
 		:pick*
 		:poke*
-		null			;remove
+		:remove*
 		null			;reverse
 		:select*
 		null			;sort

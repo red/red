@@ -320,7 +320,15 @@ poke: make action! [[
 	#get-definition ACT_POKE
 ]
 
-;remove
+remove: make action! [[
+		series	 [series! none!]
+		/part
+			length [number! series!]
+		return:  [series! none!]
+	]
+	#get-definition ACT_REMOVE
+]
+
 ;reverse
 
 select: make action! [[

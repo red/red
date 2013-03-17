@@ -110,7 +110,16 @@ none: context [
 	clear:	 does []									;-- arguments can be safely omitted
 	find:    does []
 	length?: does []
-	remove:  does []
+	
+	remove:  func [
+		series	[red-series!]
+		part	[red-value!]
+		return:	[integer!]
+	][
+		push-last
+		0
+	]
+	
 	select:  does []
 	take:	 does []
 
