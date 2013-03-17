@@ -345,6 +345,7 @@ select: make action! [[
 			size [integer!]
 		/last
 		/reverse
+		return:  [any-type!]
 	]
 	#get-definition ACT_SELECT
 ]
