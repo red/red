@@ -111,8 +111,8 @@ Red [
 		value: "Hello Nenad"
 	--assert string! = type? :value
 	--test-- "type?gwv-11"
-		value: print ""
-	--assert unset! = type? :value
+	  set/any 'value print ""
+	--assert unset! = type? get/any 'value
 	--test-- "type?gwv-12"
 		value: 'a
 	--assert word! = type? :value
