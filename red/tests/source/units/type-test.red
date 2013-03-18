@@ -33,7 +33,7 @@ Red [
 	--test-- "type?ul-10"
 	--assert string! = type? first ["1234566789"]
 	;--test-- "type?ul-11"
-	;--assert unset! = type? first [#[unset!]]
+	;--assert unset! = type? first [prin ""]
 	--test-- "type?ul-12"
 	--assert word! = type? first [a]
 	--test-- "type?ul-13"
@@ -69,8 +69,8 @@ Red [
 		value: "Hello Nenad"
 	--assert string! = type? value
 	--test-- "type?wv-10"
-		value: print ""
-	--assert unset! = type? value
+		set/any 'value print ""
+	--assert unset! = type? get/any 'value
 	--test-- "type?wv-11"
 		value: 'a
 	--assert word! = type? value
