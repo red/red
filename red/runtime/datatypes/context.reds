@@ -104,6 +104,7 @@ _context: context [
 		
 		if word/index = -1 [
 			word/index: find-word ctx word/symbol
+			if word/index = -1 [add ctx word]
 		]
 		either ON_STACK?(ctx) [
 			copy-cell value (as red-value! ctx/values) + word/index

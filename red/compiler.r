@@ -200,12 +200,16 @@ red: context [
 		]
 	]
 	
-	emit-get-word: func [name [word!] /literal /local new][
+	emit-get-word: func [name [word!] /any? /literal /local new][
 		either local-word? name [
 			emit 'stack/push							;-- local word
 		][
 			if new: select ssa-names name [name: new]	;@@ add a check for function! type
-			emit pick [get-word/get word/get] to logic! literal	;-- global word
+			emit case [									;-- global word
+				literal ['get-word/get]
+				any?	['word/get-any]
+				'else	['word/get]
+			]
 		]
 		emit decorate-symbol name
 		insert-lf -2
@@ -1431,9 +1435,14 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-set: does [									;@@ add /any handling
+	comp-set: has [name][
 		either lit-word? pc/1 [
-			comp-set-word/native
+			name: to word! pc/1
+			either local-word? name [
+				comp-local-set/any? name
+			][
+				comp-set-word/native
+			]
 		][
 			emit-open-frame 'set
 			comp-expression
@@ -1443,9 +1452,13 @@ red: context [
 		]
 	]
 	
-	comp-get: does [									;@@ add /any handling
+	comp-get: does [
 		either lit-word? pc/1 [
-			emit-get-word to word! pc/1
+			either path? pc/-1 [						;@@ add check for validaty of refinements		
+				emit-get-word/any? to word! pc/1
+			][
+				emit-get-word to word! pc/1
+			]
 			pc: next pc
 		][
 			emit-open-frame 'get
@@ -1632,11 +1645,18 @@ red: context [
 		]
 	]
 	
-	comp-func-set: func [name [word!]][
+	comp-local-set: func [name [word!] /any? /local offset][
 		emit-open-frame 'set
 		comp-expression
-		emit compose [copy-cell stack/arguments (decorate-symbol name)]
-		insert-lf -3
+		offset: either any? [
+			emit [copy-cell stack/arguments]
+			-3
+		][
+			emit 'word/set-local
+			-2
+		]
+		emit decorate-symbol name
+		insert-lf offset
 		emit-close-frame
 	]
 	
@@ -1658,12 +1678,7 @@ red: context [
 			pc/1 = 'has		 [comp-has]
 			pc/1 = 'does	 [comp-does]
 			pc/1 = 'routine	 [comp-routine]
-			all [
-				not empty? locals-stack
-				find last locals-stack name
-			][
-				comp-func-set name
-			]
+			local-word? name [comp-local-set name]
 			'else [
 				check-redefined name
 				emit-open-frame 'set
