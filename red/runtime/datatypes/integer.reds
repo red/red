@@ -111,8 +111,8 @@ integer: context [
 	]
 
 	load-in: func [
-		value 	[integer!]
 		blk	  	[red-block!]
+		value 	[integer!]
 		/local
 			int [red-integer!]
 	][

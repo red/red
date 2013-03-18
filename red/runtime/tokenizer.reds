@@ -241,7 +241,7 @@ tokenizer: context [
 			c: e/1
 		]
 		if neg? [i: 0 - i]
-		integer/load-in i blk
+		integer/load-in blk i
 		e
 	]
 	

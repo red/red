@@ -691,6 +691,28 @@ natives: context [
 				as red-block! stack/arguments + into
 				yes
 	]
+	
+	stats*: func [
+		show [integer!]
+		info [integer!]
+		/local
+			blk [red-block!]
+	][
+		case [
+			show >= 0 [
+				;TBD
+				integer/box memory/total
+			]
+			info >= 0 [
+				blk: block/push* 5
+				memory-info blk 2
+				stack/set-last as red-value! blk
+			]
+			true [
+				integer/box memory/total
+			]
+		]
+	]
 
 	;--- Natives helper functions ---
 	
@@ -884,6 +906,7 @@ natives: context [
 		:load*
 		:reduce*
 		:compose*
+		:stats*
 	]
 
 ]

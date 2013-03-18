@@ -167,6 +167,7 @@ Red/System [
 	NAT_LOAD
 	NAT_REDUCE
 	NAT_COMPOSE
+	NAT_STATS
 ]
 
 #enum math-op! [

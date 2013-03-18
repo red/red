@@ -671,6 +671,14 @@ load: make native! [[
 	#get-definition NAT_LOAD
 ]
 
+stats: make native! [[
+		/show
+		/info
+		return: [integer! block!]
+	]
+	#get-definition NAT_STATS
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
