@@ -1944,7 +1944,7 @@ red: context [
 		/local expr
 	][
 		if tail? pc [
-			emit 'unset/push-last
+			emit 'unset/push
 			insert-lf -1
 			exit
 		]
