@@ -548,6 +548,7 @@ interpreter: context [
 			next   [red-word!]
 			value  [red-value!]
 			w	   [red-word!]
+			sym	   [red-symbol!]
 			op	   [red-value!]
 			infix? [logic!]
 	][
@@ -600,6 +601,11 @@ interpreter: context [
 				pc: pc + 1
 			]
 			TYPE_WORD [
+				if verbose > 0 [
+					w: as red-word! pc
+					sym: symbol/get w/symbol
+					print-line ["eval: '" sym/cache]
+				]
 				value: _context/get as red-word! pc
 				pc: pc + 1
 				
