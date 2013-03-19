@@ -64,6 +64,7 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/evaluation-test.red
   --run-test-file-quiet-red %source/units/load-test.red
   --run-test-file-quiet-red %source/units/switch-test.red
+  --run-test-file-quiet-red %source/units/case-test.red
 ===end-group===
 
 ===start-group=== "Auto-tests"
