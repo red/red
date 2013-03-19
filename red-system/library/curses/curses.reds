@@ -30,7 +30,8 @@ curses: context [
       #define curses-library "pdcurses.dll"
     ]
     MacOSX    [
-      #define curses-library "ncurses.dylib"    ; TODO: check this
+      #include %curses-macosx.reds                 ; TODO: missing file, to be written with macosx curses.h
+      #define curses-library "libncurses.5.dylib"  ; TODO: check this
     ]
     #default  [
       #include %curses-linux.reds
