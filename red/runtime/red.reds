@@ -93,34 +93,34 @@ red: context [
 	
 	#if debug? = yes [
 		verbosity: 0
-		red/datatype/verbose:	verbosity
-		red/unset/verbose:		verbosity
-		red/none/verbose:		verbosity
-		red/logic/verbose:		verbosity
-		red/block/verbose:		verbosity
-		red/string/verbose:		verbosity
-		red/integer/verbose:	verbosity
-		red/symbol/verbose:		verbosity
-		red/_context/verbose:	verbosity
-		red/word/verbose:		verbosity
-		red/set-word/verbose:	verbosity
-		red/refinement/verbose:	verbosity
-		red/char/verbose:		verbosity
-		red/path/verbose:		verbosity
-		red/lit-path/verbose:	verbosity
-		red/set-path/verbose:	verbosity
-		red/get-path/verbose:	verbosity
-		red/_function/verbose:	verbosity
-		red/routine/verbose:	verbosity
-		red/paren/verbose:		verbosity
-		red/issue/verbose:		verbosity
-		red/file/verbose:		verbosity
+		datatype/verbose:	verbosity
+		unset/verbose:		verbosity
+		none/verbose:		verbosity
+		logic/verbose:		verbosity
+		block/verbose:		verbosity
+		string/verbose:		verbosity
+		integer/verbose:	verbosity
+		symbol/verbose:		verbosity
+		_context/verbose:	verbosity
+		word/verbose:		verbosity
+		set-word/verbose:	verbosity
+		refinement/verbose:	verbosity
+		char/verbose:		verbosity
+		path/verbose:		verbosity
+		lit-path/verbose:	verbosity
+		set-path/verbose:	verbosity
+		get-path/verbose:	verbosity
+		_function/verbose:	verbosity
+		routine/verbose:	verbosity
+		paren/verbose:		verbosity
+		issue/verbose:		verbosity
+		file/verbose:		verbosity
 		
-		red/actions/verbose:	verbosity
-		red/natives/verbose:	verbosity
+		actions/verbose:	verbosity
+		natives/verbose:	verbosity
 		
-		red/stack/verbose:		verbosity
-		red/unicode/verbose:	verbosity
+		stack/verbose:		verbosity
+		unicode/verbose:	verbosity
 	]
 
 ]
