@@ -14,7 +14,7 @@ Red [
 	#either OS = 'Windows [
 		#import [
 			"kernel32.dll" stdcall [
-				AttachConsole: "AttachConsole" [
+				AttachConsole: 	 "AttachConsole" [
 					processID		[integer!]
 					return:			[integer!]
 				]
@@ -22,7 +22,7 @@ Red [
 					title			[c-string!]
 					return:			[integer!]
 				]
-				ReadConsole: "ReadConsoleA" [
+				ReadConsole: 	 "ReadConsoleA" [
 					consoleInput	[integer!]
 					buffer			[byte-ptr!]
 					charsToRead		[integer!]
@@ -36,11 +36,11 @@ Red [
 		#switch OS [
 			MacOSX [  ; TODO: check this
 				#define ReadLine-library "libreadline.dylib"
-				#define History-library "libhistory.dylib"
+				#define History-library  "libhistory.dylib"
 			]
 			#default [
 				#define ReadLine-library "libreadline.so.6"
-				#define History-library "libhistory.so.6"
+				#define History-library  "libhistory.so.6"
 			]
 		]
 		#import [
@@ -77,12 +77,9 @@ init-console: routine [
 
 input: routine [
 	/local
-		len ret str buffer
-		line
+		len ret str buffer line
 ][
 	#either OS = 'Windows [
-		prin "red>> "
-
 		len: 0
 		buffer: allocate 128
 		ret: ReadConsole stdin buffer 127 :len null
@@ -92,7 +89,7 @@ input: routine [
 		str: string/load as c-string! buffer len
 ;		free buffer
 	][
-		line: read-line "red>> "
+		line: read-line ""
 		if line = null [halt]  ; EOF
 
 		add-history line
@@ -103,24 +100,89 @@ input: routine [
 	SET_RETURN(str)
 ]
 
-q: :quit
+c: none													;@@ fix me
 
-init-console "Red Console (Xmas demo edition!)"
+count-delimiters: func [
+	buffer	[string!]
+	return: [block!]
+	/local list
+][
+	list: copy [0 0]
+	
+	foreach c buffer [
+		switch c [
+			#"[" [list/1: list/1 + 1]
+			#"]" [list/1: list/1 - 1]
+			#"{" [list/2: list/2 + 1]
+			#"}" [list/2: list/2 - 1]
+		]
+	]
+	list
+]
 
-print {
--=== Red Console pre-alpha version ===-
-(only Latin-1 input supported)
-}
+clear-CR: function [str [string!]][
+	if crlf = pos: skip tail str -2 [remove pos]
+]
 
-while [true][
-	unless tail? line: input [
-		code: load/all line	
+do-console: function [][
+	buffer: make string! 10000
+	prompt: red-prompt: "red>> "
+	mode:  'mono
+	
+	switch-mode: [
+		mode: case [
+			cnt/1 > 0 ['block]
+			cnt/2 > 0 ['string]
+			'else 	  [
+				prompt: red-prompt
+				do eval
+				mode: 'mono								;@@ fix me
+			]
+		]
+		prompt: switch mode [
+			block  ["[^-"]
+			string ["{^-"]
+			mono   [red-prompt]
+		]
+	]
+	
+	eval: [
+		code: load/all buffer
 		unless tail? code [
 			set/any 'result do code
 			unless unset? :result [
-				prin "== "
-				probe result
+				print ["==" mold :result]				;@@ use mold/part
+			]
+		]
+		clear buffer
+	]
+
+	while [true][
+		prin prompt
+		
+		unless tail? line: input [
+			if crlf = pos: skip tail line -2 [remove pos]	;-- clear extra CR (Windows)
+			
+			append buffer line
+			cnt: count-delimiters buffer
+			
+			switch mode [
+				block  [if cnt/1 <= 0 [do switch-mode]]
+				string [if cnt/2 <= 0 [do switch-mode]]
+				mono   [do either any [cnt/1 > 0 cnt/2 > 0][switch-mode][eval]]
 			]
 		]
 	]
 ]
+
+
+q: :quit												;@@ fix me
+
+init-console "Red Console (Xmas demo edition!)"
+
+print {
+-=== Red Console alpha version ===-
+(only Latin-1 input supported)
+}
+
+do-console
