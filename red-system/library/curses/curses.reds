@@ -1010,24 +1010,24 @@ curses: context [
       return:   [window!]
       /local src
     ][
-        scr: initscr
-        raw
-        echo-off
-        curs-set 0         ; no cursor
-        keypad scr true    ; return Fkeys
-        halfdelay 1
-        start-color
-        return scr
+      scr: initscr
+      raw
+      echo-off
+      curs-set 0         ; no cursor
+      keypad scr true    ; return Fkeys
+      halfdelay 1
+      start-color
+      return scr
     ]
 
     init-console: func [
       return:   [window!]
       /local src
     ][
-        scr: initscr
-        keypad scr true    ; return Fkeys
-        scrollok stdscr true
-        return scr
+      scr: initscr
+      keypad scr true    ; return Fkeys
+      scrollok scr true
+      return scr
     ]
 
   ] ; with curses
