@@ -427,6 +427,7 @@ natives: context [
 		][
 			str: as red-string! arg
 		][
+			block/rs-clear buffer-blk
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
 			

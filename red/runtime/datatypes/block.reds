@@ -45,6 +45,15 @@ block: context [
 		s/tail
 	]
 	
+	rs-clear: func [
+		blk 	[red-block!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(blk)
+		s/tail: s/offset + blk/head
+	]
+	
 	rs-append: func [
 		blk		[red-block!]
 		value	[red-value!]
