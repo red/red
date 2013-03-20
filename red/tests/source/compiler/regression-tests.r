@@ -376,7 +376,7 @@ REBOL [
       list: [test5 /test2 'test3 test6:]
       
       prin "or105"
-      print pick list 1
+      print mold pick list 1
       
       prin "or106"
       print pick list 2
@@ -385,7 +385,7 @@ REBOL [
       print pick list 3
       
       prin "or108"
-      print pick list 4
+      print mold pick list 4
       
       print integer!
       print datatype!
@@ -393,7 +393,7 @@ REBOL [
       q: [1 2 3 test [3 4] #"u" /ref]
       
       prin "or109"
-      print q
+      print mold q
       
       print "---MOLD"
       
@@ -474,7 +474,7 @@ REBOL [
 	  print "---Paths"
 	  
 	  prin "or124"
-	  prin 'a/b/c
+	  prin mold 'a/b/c
 	  z: [a/b a/b/3: :a/b/c]
 	  
 	  prin "or125"
@@ -482,7 +482,7 @@ REBOL [
 	  
 	  a: [x y z [3 4 5]]
 	  prin "or126"
-	  prin a/1
+	  prin mold a/1
 	  prin "or127"
 	  prin mold a/4
 	  prin "or128"
@@ -490,7 +490,7 @@ REBOL [
 
 	  b: 3
 	  prin "or129"
-	  prin a/:b
+	  prin mold a/:b
 
 	  a/2: 123
 	  a/4/1: #"t"
@@ -860,7 +860,7 @@ REBOL [
   --assert-red-printed? "or108test6"
   
   --test-- "or109"
-  --assert-red-printed? "or1091 2 3 test 3 4 u ref"
+  --assert-red-printed? {or109[1 2 3 test [3 4] #"u" /ref]}
 
 ===end-group===
 
