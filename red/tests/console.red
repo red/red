@@ -116,8 +116,8 @@ while [true][
 	unless tail? line: input [
 		code: load/all line	
 		unless tail? code [
-			result: do code
-			unless unset? result [
+			set/any 'result do code
+			unless unset? :result [
 				prin "== "
 				probe result
 			]
