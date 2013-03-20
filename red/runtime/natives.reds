@@ -27,6 +27,12 @@ natives: context [
 	
 	table: as int-ptr! allocate NATIVES_NB * size? integer!
 	top: 0
+	
+	buffer-blk: as red-block! 0
+	
+	init: does [
+		buffer-blk: block/make-in red/root 32			;-- block buffer for PRIN's reduce/into
+	]
 
 	register: func [
 		[variadic]
@@ -399,7 +405,7 @@ natives: context [
 	]
 
 	print*: does [
-		lf?: yes
+		lf?: yes											;@@ get rid of this global state
 		prin*
 		lf?: no
 	]
@@ -421,6 +427,10 @@ natives: context [
 		][
 			str: as red-string! arg
 		][
+			stack/push as red-value! buffer-blk
+			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
+			
+			reduce* 1
 			actions/form* -1
 			str: as red-string! stack/arguments + 1
 			assert any [
