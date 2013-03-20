@@ -702,6 +702,7 @@ stats: make native! [[
 ;------------------------------------------
 ;-				Scalars					  -
 ;------------------------------------------
+Red: true												;-- ultimate Truth ;-) (pre-defines Red word)
 
 yes: on: true
 no: off: false
@@ -714,6 +715,7 @@ escape:      #"^["
 slash: 		 #"/"
 sp: space: 	 #" "
 null: 		 #"^@"
+crlf:		 "^M^/"
 
 ;------------------------------------------
 ;-			   Mezzanines				  -
@@ -730,12 +732,19 @@ quit: func [
 	quit-return any [status 0]
 ]
 
+empty?: func [
+	series	[string!]
+	return:	[logic!]
+][
+	tail? series
+]
+
 probe: func [value][
 	print mold value 
 	value
 ]
 
-first:	func [s [series!]][pick s 1]					;-- temporary definitions, should be natives
+first:	func [s [series!]][pick s 1]					;@@ temporary definitions, should be natives ?
 second:	func [s [series!]][pick s 2]
 third:	func [s [series!]][pick s 3]
 fourth:	func [s [series!]][pick s 4]
