@@ -1439,13 +1439,13 @@ red: context [
 		either lit-word? pc/1 [
 			name: to word! pc/1
 			either local-word? name [
+				pc: next pc
 				comp-local-set/any? name
 			][
 				comp-set-word/native
 			]
 		][
 			emit-open-frame 'set
-			comp-expression
 			comp-expression
 			emit-native/with 'set [-1]
 			emit-close-frame
