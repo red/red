@@ -276,8 +276,12 @@ natives: context [
 		func*
 	]
 	
-	exit*:		does []
-	return*:	does []
+	exit*: does [
+		print "*** Error: EXIT not yet implemented for interpreter"
+	]
+	return*:	does [
+		print "*** Error: RETURN not yet implemented for interpreter"
+	]
 		
 	switch*: func [
 		default? [integer!]
