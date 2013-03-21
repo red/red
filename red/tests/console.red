@@ -100,14 +100,12 @@ input: routine [
 	SET_RETURN(str)
 ]
 
-c: none													;@@ fix me
-
-count-delimiters: func [
+count-delimiters: function [
 	buffer	[string!]
 	return: [block!]
-	/local list
 ][
 	list: copy [0 0]
+	c: none
 	
 	foreach c buffer [
 		switch c [
@@ -136,7 +134,7 @@ do-console: function [][
 			'else 	  [
 				prompt: red-prompt
 				do eval
-				mode: 'mono								;@@ fix me
+				'mono
 			]
 		]
 		prompt: switch mode [
@@ -174,9 +172,6 @@ do-console: function [][
 		]
 	]
 ]
-
-
-q: :quit												;@@ fix me
 
 init-console "Red Console (Xmas demo edition!)"
 
