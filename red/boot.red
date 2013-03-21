@@ -739,6 +739,12 @@ empty?: func [
 	tail? series
 ]
 
+??: func [value][
+	prin mold value
+	prin ": "
+	probe :value
+]
+
 probe: func [value][
 	print mold value 
 	value
