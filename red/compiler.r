@@ -1021,12 +1021,12 @@ red: context [
 		emit 'stack/keep
 		insert-lf -1
 		
-		emit compose either blk [
+		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
-			[block/push (name)]							;-- block argument
+			emit compose [block/push (name)]			;-- block argument
 		][
 			cond: compose [natives/foreach-next]
-			[word/push (decorate-symbol word)]			;-- word argument
+			emit-push-word word							;-- word argument
 		]
 		insert-lf -2
 		
