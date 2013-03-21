@@ -733,7 +733,7 @@ quit: func [
 ]
 
 empty?: func [
-	series	[string!]
+	series	[series!]
 	return:	[logic!]
 ][
 	tail? series
