@@ -241,10 +241,10 @@ system-dialect: make-profilable context [
 			throw-error "multiple type casting not allowed"
 		]
 		
-		raise-paren-error: does [
-			pc: back pc
-			throw-error "parens are only allowed nested in an expression"
-		]
+		;raise-paren-error: does [
+		;	pc: back pc
+		;	throw-error "parens are only allowed nested in an expression"
+		;]
 		
 		raise-runtime-error: func [error [integer!]][
 			emitter/target/emit-get-pc				;-- get current CPU program counter address
@@ -2639,7 +2639,7 @@ system-dialect: make-profilable context [
 					]
 				][
 					while [not tail? pc][
-						if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
+						;if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
 						expr: do fetch
 						unless tail? pc [pop-calls]
 					]
@@ -2666,7 +2666,7 @@ system-dialect: make-profilable context [
 						comp-alias						;-- allow alias declaration at root level only
 					]
 					paren? pc/1 [
-						unless infix? at pc 2 [raise-paren-error]
+						;unless infix? at pc 2 [raise-paren-error]
 						expr: fetch-expression/final/keep
 					]
 					'else [expr: fetch-expression/final/keep]
