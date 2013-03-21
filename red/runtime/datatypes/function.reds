@@ -21,6 +21,7 @@ _function: context [
 		blk    [red-block!]
 		/local
 			value  [red-value!]
+			tail   [red-value!]
 			end	   [red-value!]
 			result [red-value!]
 			word   [red-value!]
@@ -64,7 +65,7 @@ _function: context [
 			tail	[red-value!]
 			s		[series!]
 			extern? [logic!]
-	][	
+	][
 		list: block/push* 8
 		block/rs-append list as red-value! refinements/local
 		
