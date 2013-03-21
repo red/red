@@ -48,6 +48,15 @@ interpreter: context [
 		print-line msg
 	]
 	
+	print-symbol: func [
+		word [red-word!]
+		/local
+			sym [red-symbol!]
+	][
+		sym: symbol/get word/symbol
+		print sym/cache
+	]
+	
 	eval-option: func [
 		pc		  [red-value!]
 		end		  [red-value!]
@@ -118,7 +127,9 @@ interpreter: context [
 			
 			value: value + 1
 		]
-		print-line "Error: refinement not found!"
+		print "Error: refinement /"
+		print-symbol word
+		print-line " not found!"
 		halt
 		null
 	]
@@ -606,9 +617,8 @@ interpreter: context [
 			]
 			TYPE_WORD [
 				if verbose > 0 [
-					w: as red-word! pc
-					sym: symbol/get w/symbol
-					print-line ["eval: '" sym/cache]
+					print-line "eval: '"
+					print-symbol as red-word! pc
 				]
 				value: _context/get as red-word! pc
 				pc: pc + 1
