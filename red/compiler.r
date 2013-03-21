@@ -1447,6 +1447,7 @@ red: context [
 		][
 			emit-open-frame 'set
 			comp-expression
+			comp-expression
 			emit-native/with 'set [-1]
 			emit-close-frame
 		]
