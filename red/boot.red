@@ -739,10 +739,10 @@ empty?: func [
 	tail? series
 ]
 
-??: func [value][
-	prin mold value
+??: func ['value [word!]][
+	prin mold :value
 	prin ": "
-	probe :value
+	probe get/any :value
 ]
 
 probe: func [value][
