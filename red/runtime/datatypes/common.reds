@@ -92,6 +92,10 @@ words: context [
 	_words:		as red-word! 0
 	_logic!:	as red-word! 0
 	_integer!:	as red-word! 0
+	_windows:	as red-word! 0
+	_syllable:	as red-word! 0
+	_macosx:	as red-word! 0
+	_linux:		as red-word! 0
 	
 	spec:		-1
 	body:		-1
@@ -105,6 +109,11 @@ words: context [
 		_words:		word/load "words"
 		_logic!:	word/load "logic!"
 		_integer!:	word/load "integer!"
+		
+		_windows:	word/load "Windows"
+		_syllable:	word/load "Syllable"
+		_macosx:	word/load "MacOSX"
+		_linux:		word/load "Linux"
 		
 		spec:		_spec/symbol
 		body:		_body/symbol
