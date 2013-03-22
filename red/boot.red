@@ -787,7 +787,7 @@ word?:		 func [value [any-type!]][word!		= type? value]
 spec-of: func [value][reflect :value 'spec]
 body-of: func [value][reflect :value 'body]
 
-system?: routine [][
+platform?: routine [][
 	#switch OS [
 		Windows  [SET_RETURN(words/_windows)]
 		Syllable [SET_RETURN(words/_syllable)]

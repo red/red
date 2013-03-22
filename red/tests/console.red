@@ -59,6 +59,8 @@ Red [
 	]
 ]
 
+Windows?: platform? = 'Windows
+
 init-console: routine [
 	str [string!]
 	/local
@@ -156,7 +158,7 @@ do-console: function [][
 			append buffer line
 			cnt: count-delimiters buffer
 
-			either system? = 'Windows [
+			either Windows? [
 				remove skip tail buffer -2			;-- clear extra CR (Windows)
 			][
 				append buffer lf					;-- Unix
@@ -173,7 +175,7 @@ do-console: function [][
 
 q: :quit
 
-if system? = 'Windows [init-console "Red Console"]
+if Windows? [init-console "Red Console"]
 
 print {
 -=== Red Console alpha version ===-
