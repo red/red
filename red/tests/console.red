@@ -64,24 +64,24 @@ init-console: routine [
 	/local
 		ret
 ][
-	#either OS = 'Windows [
+	#if OS = 'Windows [
 		;ret: AttachConsole -1
 		;if zero? ret [print-line "ReadConsole failed!" halt]
 		
 		ret: SetConsoleTitle as c-string! string/rs-head str
-		if zero? ret [print-line "ReadConsole failed!" halt]
-	][
-		print-line as-c-string string/rs-head str
+		if zero? ret [print-line "SetConsoleTitle failed!" halt]
 	]
 ]
 
 input: routine [
+	prompt [string!]
 	/local
 		len ret str buffer line
 ][
 	#either OS = 'Windows [
 		len: 0
 		buffer: allocate 128
+		print as c-string! string/rs-head prompt
 		ret: ReadConsole stdin buffer 127 :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
 		len: len + 1
@@ -89,7 +89,7 @@ input: routine [
 		str: string/load as c-string! buffer len
 ;		free buffer
 	][
-		line: read-line ""
+		line: read-line as c-string! string/rs-head prompt
 		if line = null [halt]  ; EOF
 
 		add-history line
@@ -152,14 +152,15 @@ do-console: function [][
 	]
 
 	while [true][
-		prin prompt
-		
-		unless tail? line: input [
+		unless tail? line: input prompt [
 			append buffer line
 			cnt: count-delimiters buffer
 
-			if crlf = pos: skip tail buffer -2 [remove pos]	;-- clear extra CR (Windows)
-			if lf <> last buffer [append buffer lf]			;-- Unix
+			either system? = 'Windows [
+				remove skip tail buffer -2			;-- clear extra CR (Windows)
+			][
+				append buffer lf					;-- Unix
+			]
 			
 			switch mode [
 				block  [if cnt/1 <= 0 [do switch-mode]]
@@ -172,7 +173,7 @@ do-console: function [][
 
 q: :quit
 
-init-console "Red Console"
+if system? = 'Windows [init-console "Red Console"]
 
 print {
 -=== Red Console alpha version ===-
