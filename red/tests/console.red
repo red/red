@@ -118,10 +118,6 @@ count-delimiters: function [
 	list
 ]
 
-clear-CR: function [str [string!]][
-	if crlf = pos: skip tail str -2 [remove pos]
-]
-
 do-console: function [][
 	buffer: make string! 10000
 	prompt: red-prompt: "red>> "
@@ -159,10 +155,11 @@ do-console: function [][
 		prin prompt
 		
 		unless tail? line: input [
-			if crlf = pos: skip tail line -2 [remove pos]	;-- clear extra CR (Windows)
-			
 			append buffer line
 			cnt: count-delimiters buffer
+
+			if crlf = pos: skip tail buffer -2 [remove pos]	;-- clear extra CR (Windows)
+			if lf <> last buffer [append buffer lf]			;-- Unix
 			
 			switch mode [
 				block  [if cnt/1 <= 0 [do switch-mode]]
@@ -173,7 +170,9 @@ do-console: function [][
 	]
 ]
 
-init-console "Red Console (Xmas demo edition!)"
+q: :quit
+
+init-console "Red Console"
 
 print {
 -=== Red Console alpha version ===-
