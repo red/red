@@ -34,9 +34,8 @@ Red [
 		]
 	][
 		#switch OS [
-			MacOSX [  ; TODO: check this
+			MacOSX [
 				#define ReadLine-library "libreadline.dylib"
-				#define History-library  "libhistory.dylib"
 			]
 			#default [
 				#define ReadLine-library "libreadline.so.6"
@@ -50,9 +49,11 @@ Red [
 					return:			[c-string!]
 				]
 			]
-			History-library cdecl [
-				add-history: "add_history" [  ; Add line to the history.
-					line			[c-string!]
+			#if OS <> 'MacOSX [
+				History-library cdecl [
+					add-history: "add_history" [  ; Add line to the history.
+						line		[c-string!]
+					]
 				]
 			]
 		]
@@ -94,7 +95,7 @@ input: routine [
 		line: read-line as c-string! string/rs-head prompt
 		if line = null [halt]  ; EOF
 
-		add-history line
+		 #if OS <> 'MacOSX [add-history line]
 
 		str: string/load line  1 + length? line
 ;		free as byte-ptr! line
