@@ -221,7 +221,23 @@ Red [
 	--assert ["5"] = compose a
 	--assert ["5"] = do [compose a]
 	
-	
+===end-group===
+
+===start-group=== "unset value passing"
+
+	--test-- "unset-1"
+		--assert unset! = type? set/any 'xyz ()
+		--assert unset! = type? get/any 'xyz
+		--assert unset! = type? :xyz
+
+	--test-- "unset-2"
+		test-unset: has [zyx][
+			--assert unset! = type? set/any 'zyx ()
+			--assert unset! = type? get/any 'zyx
+			--assert unset! = type? :zyx
+		]
+		test-unset
+
 ===end-group===
 
 ~~~end-file~~~
