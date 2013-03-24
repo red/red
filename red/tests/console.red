@@ -48,6 +48,16 @@ Red [
 					prompt			[c-string!]
 					return:			[c-string!]
 				]
+				rl-bind-key: "rl_bind_key" [
+					key				[integer!]
+					command			[integer!]
+					return:			[integer!]
+				]
+				rl-insert:	 "rl_insert" [
+					count			[integer!]
+					key				[integer!]
+					return:			[integer!]
+				]
 			]
 			#if OS <> 'MacOSX [
 				History-library cdecl [
@@ -57,6 +67,16 @@ Red [
 				]
 			]
 		]
+
+		rl-insert-wrapper: func [
+			[cdecl]
+			count   [integer!]
+			key	    [integer!]
+			return: [integer!]
+		][
+			rl-insert count key
+		]
+		
 	]
 ]
 
@@ -67,12 +87,14 @@ init-console: routine [
 	/local
 		ret
 ][
-	#if OS = 'Windows [
+	#either OS = 'Windows [
 		;ret: AttachConsole -1
 		;if zero? ret [print-line "ReadConsole failed!" halt]
 		
 		ret: SetConsoleTitle as c-string! string/rs-head str
 		if zero? ret [print-line "SetConsoleTitle failed!" halt]
+	][
+		rl-bind-key as-integer tab as-integer :rl-insert-wrapper
 	]
 ]
 
@@ -176,7 +198,7 @@ do-console: function [][
 
 q: :quit
 
-if Windows? [init-console "Red Console"]
+init-console "Red Console"
 
 print {
 -=== Red Console alpha version ===-
