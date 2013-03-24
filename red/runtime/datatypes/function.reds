@@ -176,6 +176,7 @@ _function: context [
 				TYPE_WORD
 				TYPE_GET_WORD
 				TYPE_SET_WORD
+				TYPE_LIT_WORD
 				TYPE_REFINEMENT [
 					w: as red-word! value
 					idx: _context/find-word ctx w/symbol
