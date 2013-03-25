@@ -80,7 +80,7 @@ Red [
 	]
 ]
 
-Windows?: platform? = 'Windows
+Windows?: system/platform = 'Windows
 
 init-console: routine [
 	str [string!]

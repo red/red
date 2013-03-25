@@ -1794,7 +1794,7 @@ red: context [
 		false											;-- not an infix expression
 	]
 
-	comp-directive: has [file saved][
+	comp-directive: has [file saved version][
 		switch pc/1 [
 			#include [
 				unless file? file: pc/2 [
@@ -1858,6 +1858,9 @@ red: context [
 				change/part/only pc to do pc/2 pc/3 3 2
 				comp-expression							;-- continue expression fetching
 				true
+			]
+			#version [
+				change pc rejoin [load %version.r ", " now]
 			]
 		]
 	]

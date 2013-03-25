@@ -787,11 +787,23 @@ word?:		 func [value [any-type!]][word!		= type? value]
 spec-of: func [value][reflect :value 'spec]
 body-of: func [value][reflect :value 'body]
 
-platform?: routine [][
-	#switch OS [
-		Windows  [SET_RETURN(words/_windows)]
-		Syllable [SET_RETURN(words/_syllable)]
-		MacOSX	 [SET_RETURN(words/_macosx)]
-		#default [SET_RETURN(words/_linux)]
+system: function [
+	/version
+	/words
+	/platform
+][
+	case [
+		version [#version]
+		words	[#system [_context/get-words]]
+		platform [
+			#system [
+				#switch OS [
+					Windows  [SET_RETURN(words/_windows)]
+					Syllable [SET_RETURN(words/_syllable)]
+					MacOSX	 [SET_RETURN(words/_macosx)]
+					#default [SET_RETURN(words/_linux)]
+				]
+			]
+		]
 	]
 ]

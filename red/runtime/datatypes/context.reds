@@ -208,6 +208,20 @@ _context: context [
 		ctx
 	]
 	
+	get-words: func [
+		/local
+			blk	[red-block!]
+	][
+		blk: as red-block! stack/push*
+		blk/header: TYPE_BLOCK
+		blk/head: 	0
+		blk/node: 	global-ctx/symbols 
+		
+		copy-cell 										;-- reposition cloned block at right place
+			as red-value! block/clone blk no
+			as red-value! blk
+	]
+	
 	;-- Actions -- 
 	
 	datatype/register [

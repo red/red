@@ -124,7 +124,7 @@ red-integer!: alias struct! [
 red-context!: alias struct! [
 	header 	[integer!]								;-- cell header
 	symbols	[node!]									;-- array of 32-bit symbols ID
-	values	[node!]									;-- block of values
+	values	[node!]									;-- block of values (do not move this field!)
 	_pad	[integer!]
 ]
 
