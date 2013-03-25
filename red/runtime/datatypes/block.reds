@@ -378,16 +378,19 @@ block: context [
 		return:   [integer!]
 		/local
 			s	  [series!]
+			buf	  [series!]
 			value [red-value!]
 			unit  [integer!]
 			prev  [integer!]
 			i     [integer!]
+			c	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/form"]]
 
 		s: GET_BUFFER(blk)
 		i: blk/head
 		value: s/offset + i
+		c: 0
 		
 		while [value < s/tail][
 			if all [OPTION?(arg) part <= 0][return part]
@@ -401,8 +404,19 @@ block: context [
 				part <> prev
 				value < s/tail
 			][
-				string/append-char GET_BUFFER(buffer) as-integer space
-				part: part - 1
+				buf:  GET_BUFFER(buffer)
+				unit: GET_UNIT(buf)
+				c: string/get-char (as byte-ptr! buf/tail) - unit unit
+				
+				unless any [
+					c = as-integer #" "
+					c = as-integer #"^/"
+					c = as-integer #"^M"
+					c = as-integer #"^-"
+				][
+					string/append-char buf as-integer space
+					part: part - 1
+				]
 			]
 		]
 		
