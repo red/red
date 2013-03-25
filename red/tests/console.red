@@ -167,10 +167,16 @@ do-console: function [][
 	
 	eval: [
 		code: load/all buffer
+		
 		unless tail? code [
 			set/any 'result do code
+			
 			unless unset? :result [
-				print ["==" mold :result]				;@@ use mold/part
+				if 67 = length? result: mold/part :result 67 [	;-- optimized for width = 72
+					clear back tail result
+					append result "..."
+				]
+				print ["==" result]
 			]
 		]
 		clear buffer
