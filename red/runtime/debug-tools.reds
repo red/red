@@ -29,8 +29,8 @@ memory-info: func [
 		if verbose >= 2 [
 			free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
 			list: block/make-in nodes 8
-			integer/load-in list free-nodes
 			integer/load-in list n-frame/nodes - free-nodes
+			integer/load-in list free-nodes
 			integer/load-in list n-frame/nodes
 		]
 		n-frame: n-frame/next
