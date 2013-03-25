@@ -56,13 +56,16 @@ false: 			make logic! 0
 ;-				Actions					  -
 ;------------------------------------------
 
-make: make action! [[									;-- this one works! ;-)
-		type	 [any-type!]
-		spec	 [any-type!]
-		return:  [any-type!]
+make: make action! [
+	[									;--	this one works!	;-)
+		"Construct a new value."
+		type	 [any-type!] "The datatype or a prototype value."
+		spec	 [any-type!] "The specification	of the new value."
+		return:  [any-type!] "Returns the specified datatype."
 	]
 	#get-definition ACT_MAKE
 ]
+
 
 ;random
 
@@ -98,14 +101,18 @@ mold: make action! [[
 
 ;-- Scalar actions --
 
-absolute: make action! [[
+absolute: make action! [
+    [
+        "Returns the non-negative value."
 		value	 [number!]
 		return:  [number!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
 
-add: make action! [[
+add: make action! [
+    [
+        "Returns the total of the two values."
 		value1	 [number!]
 		value2	 [number!]
 		return:  [number!]
@@ -113,15 +120,19 @@ add: make action! [[
 	#get-definition ACT_ADD
 ]
 
-divide: make action! [[
-		value1	 [number!]
-		value2	 [number!]
+divide: make action! [
+    [
+        "Returns the quotient of two values."
+		value1	 [number!] "The dividend (numerator)."
+		value2	 [number!] "The divisor (denominator)."
 		return:  [number!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
-multiply: make action! [[
+multiply: make action! [
+    [
+        "Returns one value scaled by another."
 		value1	 [number!]
 		value2	 [number!]
 		return:  [number!]
@@ -129,7 +140,9 @@ multiply: make action! [[
 	#get-definition ACT_MULTIPLY
 ]
 
-negate: make action! [[
+negate: make action! [
+    [
+        "Returns the value with the opposite sign."
 		number 	 [number!]
 		return:  [number!]
 	]
