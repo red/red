@@ -789,8 +789,8 @@ natives: context [
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
-		set-many blk as red-value! series size
 		result: loop? series
+		if result [set-many blk as red-value! series size]
 		series/head: series/head + size
 		result
 	]
@@ -812,8 +812,8 @@ natives: context [
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
-		_context/set word actions/pick series 1
 		result: loop? series
+		if result [_context/set word actions/pick series 1]
 		series/head: series/head + 1
 		result
 	]
