@@ -97,7 +97,7 @@ stack: context [										;-- call stack
 	unwind: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
 
-		assert cbottom <= ctop
+		assert cbottom < ctop
 		ctop: ctop - 2
 		
 		either ctop = cbottom [
@@ -181,6 +181,8 @@ stack: context [										;-- call stack
 	pop: func [
 		positions [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/pop"]]
+		
 		top: top - positions
 	]
 
@@ -198,8 +200,7 @@ stack: context [										;-- call stack
 			dump-memory
 				as byte-ptr! cbottom
 				4
-			(as-integer ctop + 2 - cbottom) >> 4
-			
+				(as-integer ctop + 4 - cbottom) >> 4
 			print-line ["ctop: " ctop]
 		]
 	]

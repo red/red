@@ -32,7 +32,7 @@ block: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(blk)
-		s/offset
+		s/offset + blk/head
 	]
 	
 	rs-tail: func [
@@ -43,6 +43,44 @@ block: context [
 	][
 		s: GET_BUFFER(blk)
 		s/tail
+	]
+	
+	rs-clear: func [
+		blk 	[red-block!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(blk)
+		s/tail: s/offset + blk/head
+	]
+	
+	rs-append: func [
+		blk		[red-block!]
+		value	[red-value!]
+		return: [red-block!]
+	][
+		copy-cell value ALLOC_TAIL(blk)
+		blk
+	]
+	
+	rs-append-block: func [
+		blk		[red-block!]
+		blk2	[red-block!]
+		return: [red-block!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			s	  [series!]
+	][
+		s: GET_BUFFER(blk2)
+		value: s/offset + blk2/head
+		tail:  s/tail
+
+		while [value < tail][
+			copy-cell value ALLOC_TAIL(blk)
+			value: value + 1
+		]
+		blk
 	]
 	
 	get-position: func [
@@ -73,6 +111,79 @@ block: context [
 		offset
 	]
 	
+	clone: func [
+		blk 	[red-block!]
+		deep?	[logic!]
+		return: [red-block!]
+		/local
+			new	   [red-block!]
+			target [series!]
+			value  [red-value!]
+			tail   [red-value!]
+			result [red-block!]
+			size   [integer!]
+			empty? [logic!]
+	][
+		assert TYPE_OF(blk) = TYPE_BLOCK
+		
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
+		size:  (as-integer tail - value) >> 4
+		
+		empty?: zero? size
+		if empty? [size: 1]
+		
+		new: as red-block! stack/push*
+		new/header: TYPE_BLOCK
+		new/head:   0
+		new/node:	alloc-cells size
+		
+		unless empty? [
+			target: GET_BUFFER(new)
+			copy-memory
+				as byte-ptr! target/offset
+				as byte-ptr! value
+				size << 4
+			target/tail: target/offset + size
+		]
+		
+		if all [deep? not empty?][
+			while [value < tail][
+				if TYPE_OF(value) = TYPE_BLOCK [
+					result: clone as red-block! value yes
+					copy-cell as red-value! result value
+					stack/pop 1
+				]
+				value: value + 1
+			]
+		]
+		new
+	]
+	
+	insert-value: func [
+		blk		[red-block!]
+		value	[red-value!]
+		return: [red-block!]
+		/local
+			head   [red-value!]
+			s	   [series!]
+			size   [integer!]
+	][
+		s: GET_BUFFER(blk)
+		size: (as-integer (s/tail - (s/offset + blk/head))) + size? cell!
+		if size > s/size [s: expand-series s size]
+		head: s/offset + blk/head
+		
+		move-memory										;-- make space
+			as byte-ptr! head + 1
+			as byte-ptr! head
+			as-integer s/tail - head
+			
+		s/tail: s/tail + 1	
+		copy-cell value head
+		blk
+	]
+	
 	append*: func [
 		return: [red-block!]
 		/local
@@ -89,6 +200,17 @@ block: context [
 			
 		arg
 	]
+	
+	make-at: func [
+		blk		[red-block!]
+		size	[integer!]
+		return: [red-block!]
+	][
+		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
+		blk/head: 	0
+		blk/node: 	alloc-cells size
+		blk
+	]
 
 	make-in: func [
 		parent	[red-block!]
@@ -104,11 +226,16 @@ block: context [
 		][
 			assert TYPE_OF(parent) = TYPE_BLOCK
 			as red-block! ALLOC_TAIL(parent)
-		]		
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/head: 	0
-		blk/node: 	alloc-cells size	
-		blk
+		]
+		make-at blk size
+	]
+	
+	push: func [
+		blk [red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/push"]]
+
+		copy-cell as red-value! blk stack/push*
 	]
 	
 	push*: func [
@@ -119,20 +246,21 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/push*"]]
 		
-		blk: as red-block! ALLOC_TAIL(root)
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/head: 	0
-		blk/node: 	alloc-cells size
+		blk: make-at as red-block! ALLOC_TAIL(root) size
 		push blk
 		blk
 	]
 	
-	push: func [
-		blk [red-block!]
+	push-only*: func [
+		size	[integer!]
+		return: [red-block!]
+		/local
+			blk [red-block!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "block/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "block/push-only*"]]
 
-		copy-cell as red-value! blk stack/push*
+		if zero? size [size: 1]
+		make-at as red-block! stack/push* size
 	]
 	
 	mold-each: func [
@@ -239,11 +367,7 @@ block: context [
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
-		blk: as red-block! stack/push*
-		blk/header: TYPE_BLOCK							;-- implicit reset of all header flags
-		blk/head: 	0
-		blk/node: 	alloc-cells size
-		blk
+		make-at as red-block! stack/push* size
 	]
 	
 	form: func [
@@ -254,26 +378,57 @@ block: context [
 		return:   [integer!]
 		/local
 			s	  [series!]
+			buf	  [series!]
 			value [red-value!]
+			unit  [integer!]
+			prev  [integer!]
 			i     [integer!]
+			c	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/form"]]
 
 		s: GET_BUFFER(blk)
 		i: blk/head
+		value: s/offset + i
+		c: 0
 		
-		while [
-			value: s/offset + i
-			value < s/tail
-		][
+		while [value < s/tail][
 			if all [OPTION?(arg) part <= 0][return part]
 			
+			prev: part
 			part: actions/form value buffer arg part
 			i: i + 1
+			value: s/offset + i
 			
-			if 	s/offset + i < s/tail [
-				string/append-char GET_BUFFER(buffer) as-integer space
-				part: part - 1
+			if all [
+				part <> prev
+				value < s/tail
+			][
+				buf:  GET_BUFFER(buffer)
+				unit: GET_UNIT(buf)
+				c: string/get-char (as byte-ptr! buf/tail) - unit unit
+				
+				unless any [
+					c = as-integer #" "
+					c = as-integer #"^/"
+					c = as-integer #"^M"
+					c = as-integer #"^-"
+				][
+					string/append-char buf as-integer space
+					part: part - 1
+				]
+			]
+		]
+		
+		s: GET_BUFFER(buffer)
+		
+		if s/offset < s/tail [
+			unit: GET_UNIT(s)
+			i: string/get-char (as byte-ptr! s/tail) - unit unit
+			
+			if i = as-integer space [
+				s/tail: as red-value! ((as byte-ptr! s/tail) - unit)  ;-- trim tail space
+				part: part + 1
 			]
 		]
 		part
@@ -496,6 +651,7 @@ block: context [
 			slot2	[red-value!]
 			end		[red-value!]
 			end2	[red-value!]
+			result	[red-value!]
 			int		[red-integer!]
 			b		[red-block!]
 			dt		[red-datatype!]
@@ -509,10 +665,12 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
 		
+		result: stack/push as red-value! blk
+		
 		s: GET_BUFFER(blk)
 		if s/offset = s/tail [							;-- early exit if blk is empty
-			blk/header: TYPE_NONE
-			return as red-value! blk
+			result/header: TYPE_NONE
+			return result
 		]
 		step:  1
 		part?: no
@@ -525,8 +683,8 @@ block: context [
 			part: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
 				if int/value <= 0 [						;-- early exit if part <= 0
-					blk/header: TYPE_NONE
-					return as red-value! blk
+					result/header: TYPE_NONE
+					return result
 				]
 				s/offset + int/value - 1				;-- int argument is 1-based
 			][
@@ -573,8 +731,8 @@ block: context [
 				slot: either part? [part][s/offset + blk/head - 1]
 				end: s/offset
 				if slot < end [							;-- early exit if blk/head = 0
-					blk/header: TYPE_NONE
-					return as red-value! blk
+					result/header: TYPE_NONE
+					return result
 				]
 			]
 			true [
@@ -626,11 +784,12 @@ block: context [
 		unless tail? [slot: slot - step]				;-- point before/after found value
 		
 		either found? [
+			blk: as red-block! result
 			blk/head: (as-integer slot - s/offset) >> 4	;-- just change the head position on stack
 		][
-			blk/header: TYPE_NONE						;-- change the stack 1st argument to none.
+			result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 		]
-		slot
+		result
 	]
 	
 	select: func [
@@ -651,12 +810,13 @@ block: context [
 			s	   [series!]
 			p	   [red-value!]
 			b	   [red-block!]
+			result [red-value!]
 			type   [integer!]
 			offset [integer!]
 	][
-		p: find blk value part only? case? any? with-arg skip last? reverse? no no
+		result: find blk value part only? case? any? with-arg skip last? reverse? no no
 		
-		if TYPE_OF(blk) <> TYPE_NONE [
+		if TYPE_OF(result) <> TYPE_NONE [
 			offset: either only? [1][					;-- values > 0 => series comparison mode
 				type: TYPE_OF(value)
 				either any [							;@@ replace with ANY_BLOCK?
@@ -672,16 +832,17 @@ block: context [
 					(as-integer s/tail - s/offset) >> 4 - b/head
 				][1]
 			]
+			blk: as red-block! result
 			s: GET_BUFFER(blk)
 			p: s/offset + blk/head + offset
 			
 			either p < s/tail [
-				stack/set-last p
+				copy-cell p result
 			][
-				blk/header: TYPE_NONE
+				result/header: TYPE_NONE
 			]
 		]
-		p
+		result
 	]
 	
 	;--- Reading actions ---
@@ -828,6 +989,48 @@ block: context [
 		as red-value! data
 	]
 	
+	remove: func [
+		blk	 	 [red-block!]
+		part-arg [red-value!]
+		return:	 [red-block!]
+		/local
+			s		[series!]
+			part	[integer!]
+			head	[red-value!]
+			int		[red-integer!]
+			b		[red-block!]
+	][
+		s: GET_BUFFER(blk)
+		head: s/offset + blk/head
+		if head = s/tail [return blk]					;-- early exit if nothing to remove
+		
+		part: 1
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				b: as red-block! part-arg
+				assert all [
+					TYPE_OF(b) = TYPE_BLOCK
+					b/node = blk/node
+				]
+				b/head - blk/head
+			]
+			if part <= 0 [return blk]					;-- early exit if negative /part index
+		]
+
+		if head + part < s/tail [
+			copy-memory 
+				as byte-ptr! head
+				as byte-ptr! head + part
+				as-integer s/tail - (head + part)
+		]
+		s/tail: s/tail - part
+		blk
+	]
+	
 	;--- Misc actions ---
 	
 	copy: func [
@@ -853,7 +1056,7 @@ block: context [
 		
 		slots:	rs-length? blk
 		offset: s/offset + blk/head
-		part:   as-integer s/tail - offset
+		part:   as-integer s/tail - offset				;@@ should be `part: slots`
 		
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 		
@@ -906,6 +1109,7 @@ block: context [
 					type = TYPE_SET_PATH
 					type = TYPE_LIT_PATH
 					type = TYPE_STRING
+					type = TYPE_FILE
 				][
 					actions/copy as red-series! slot null yes null
 				]
@@ -965,7 +1169,7 @@ block: context [
 		:next
 		:pick
 		:poke
-		null			;remove
+		:remove
 		null			;reverse
 		:select
 		null			;sort

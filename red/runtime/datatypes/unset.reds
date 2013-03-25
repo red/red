@@ -27,8 +27,19 @@ unset: context [
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags
 		cell
 	]
-
 	
+	push: func [
+		return:	 [red-unset!]
+		/local
+			cell [red-unset!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "unset/push"]]
+
+		cell: as red-unset! stack/push*
+		cell/header: TYPE_UNSET							;-- implicit reset of all header flags
+		cell
+	]
+
 	;-- Actions -- 
 
 	make: func [

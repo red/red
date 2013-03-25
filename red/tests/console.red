@@ -14,7 +14,7 @@ Red [
 	#either OS = 'Windows [
 		#import [
 			"kernel32.dll" stdcall [
-				AttachConsole: "AttachConsole" [
+				AttachConsole: 	 "AttachConsole" [
 					processID		[integer!]
 					return:			[integer!]
 				]
@@ -22,7 +22,7 @@ Red [
 					title			[c-string!]
 					return:			[integer!]
 				]
-				ReadConsole: "ReadConsoleA" [
+				ReadConsole: 	 "ReadConsoleA" [
 					consoleInput	[integer!]
 					buffer			[byte-ptr!]
 					charsToRead		[integer!]
@@ -34,13 +34,12 @@ Red [
 		]
 	][
 		#switch OS [
-			MacOSX [  ; TODO: check this
+			MacOSX [
 				#define ReadLine-library "libreadline.dylib"
-				#define History-library "libhistory.dylib"
 			]
 			#default [
 				#define ReadLine-library "libreadline.so.6"
-				#define History-library "libhistory.so.6"
+				#define History-library  "libhistory.so.6"
 			]
 		]
 		#import [
@@ -49,15 +48,39 @@ Red [
 					prompt			[c-string!]
 					return:			[c-string!]
 				]
+				rl-bind-key: "rl_bind_key" [
+					key				[integer!]
+					command			[integer!]
+					return:			[integer!]
+				]
+				rl-insert:	 "rl_insert" [
+					count			[integer!]
+					key				[integer!]
+					return:			[integer!]
+				]
 			]
-			History-library cdecl [
-				add-history: "add_history" [  ; Add line to the history.
-					line			[c-string!]
+			#if OS <> 'MacOSX [
+				History-library cdecl [
+					add-history: "add_history" [  ; Add line to the history.
+						line		[c-string!]
+					]
 				]
 			]
 		]
+
+		rl-insert-wrapper: func [
+			[cdecl]
+			count   [integer!]
+			key	    [integer!]
+			return: [integer!]
+		][
+			rl-insert count key
+		]
+		
 	]
 ]
+
+Windows?: system/platform = 'Windows
 
 init-console: routine [
 	str [string!]
@@ -69,22 +92,21 @@ init-console: routine [
 		;if zero? ret [print-line "ReadConsole failed!" halt]
 		
 		ret: SetConsoleTitle as c-string! string/rs-head str
-		if zero? ret [print-line "ReadConsole failed!" halt]
+		if zero? ret [print-line "SetConsoleTitle failed!" halt]
 	][
-		print-line as-c-string string/rs-head str
+		rl-bind-key as-integer tab as-integer :rl-insert-wrapper
 	]
 ]
 
 input: routine [
+	prompt [string!]
 	/local
-		len ret str buffer
-		line
+		len ret str buffer line
 ][
 	#either OS = 'Windows [
-		prin "red>> "
-
 		len: 0
 		buffer: allocate 128
+		print as c-string! string/rs-head prompt
 		ret: ReadConsole stdin buffer 127 :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
 		len: len + 1
@@ -92,10 +114,10 @@ input: routine [
 		str: string/load as c-string! buffer len
 ;		free buffer
 	][
-		line: read-line "red>> "
+		line: read-line as c-string! string/rs-head prompt
 		if line = null [halt]  ; EOF
 
-		add-history line
+		 #if OS <> 'MacOSX [add-history line]
 
 		str: string/load line  1 + length? line
 ;		free as byte-ptr! line
@@ -103,24 +125,90 @@ input: routine [
 	SET_RETURN(str)
 ]
 
-q: :quit
+count-delimiters: function [
+	buffer	[string!]
+	return: [block!]
+][
+	list: copy [0 0]
+	c: none
+	
+	foreach c buffer [
+		switch c [
+			#"[" [list/1: list/1 + 1]
+			#"]" [list/1: list/1 - 1]
+			#"{" [list/2: list/2 + 1]
+			#"}" [list/2: list/2 - 1]
+		]
+	]
+	list
+]
 
-init-console "Red Console (Xmas demo edition!)"
-
-print {
--=== Red Console pre-alpha version ===-
-(only Latin-1 input supported)
-}
-
-while [true][
-	unless tail? line: input [
-		code: load line
+do-console: function [][
+	buffer: make string! 10000
+	prompt: red-prompt: "red>> "
+	mode:  'mono
+	
+	switch-mode: [
+		mode: case [
+			cnt/1 > 0 ['block]
+			cnt/2 > 0 ['string]
+			'else 	  [
+				prompt: red-prompt
+				do eval
+				'mono
+			]
+		]
+		prompt: switch mode [
+			block  ["[^-"]
+			string ["{^-"]
+			mono   [red-prompt]
+		]
+	]
+	
+	eval: [
+		code: load/all buffer
+		
 		unless tail? code [
-			result: do code
-			unless unset? result [
-				prin "== "
-				probe result
+			set/any 'result do code
+			
+			unless unset? :result [
+				if 67 = length? result: mold/part :result 67 [	;-- optimized for width = 72
+					clear back tail result
+					append result "..."
+				]
+				print ["==" result]
+			]
+		]
+		clear buffer
+	]
+
+	while [true][
+		unless tail? line: input prompt [
+			append buffer line
+			cnt: count-delimiters buffer
+
+			either Windows? [
+				remove skip tail buffer -2			;-- clear extra CR (Windows)
+			][
+				append buffer lf					;-- Unix
+			]
+			
+			switch mode [
+				block  [if cnt/1 <= 0 [do switch-mode]]
+				string [if cnt/2 <= 0 [do switch-mode]]
+				mono   [do either any [cnt/1 > 0 cnt/2 > 0][switch-mode][eval]]
 			]
 		]
 	]
 ]
+
+q: :quit
+
+init-console "Red Console"
+
+print {
+-=== Red Console alpha version ===-
+(only Latin-1 input supported)
+}
+
+do-console

@@ -27,6 +27,12 @@ natives: context [
 	
 	table: as int-ptr! allocate NATIVES_NB * size? integer!
 	top: 0
+	
+	buffer-blk: as red-block! 0
+	
+	init: does [
+		buffer-blk: block/make-in red/root 32			;-- block buffer for PRIN's reduce/into
+	]
 
 	register: func [
 		[variadic]
@@ -53,13 +59,13 @@ natives: context [
 		either logic/false? [
 			RETURN_NONE
 		][
-			interpreter/eval as red-block! stack/arguments + 1 no
+			interpreter/eval as red-block! stack/arguments + 1
 		]
 	]
 	
 	unless*: does [
 		either logic/false? [
-			interpreter/eval as red-block! stack/arguments + 1 no
+			interpreter/eval as red-block! stack/arguments + 1
 		][
 			RETURN_NONE
 		]
@@ -69,7 +75,7 @@ natives: context [
 		/local offset [integer!]
 	][
 		offset: either logic/true? [1][2]
-		interpreter/eval as red-block! stack/arguments + offset no
+		interpreter/eval as red-block! stack/arguments + offset
 	]
 	
 	any*: func [
@@ -81,7 +87,7 @@ natives: context [
 		tail:  block/rs-tail as red-block! stack/arguments
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail
+			value: interpreter/eval-next value tail no
 			if logic/true? [exit]
 		]
 		RETURN_NONE
@@ -96,7 +102,7 @@ natives: context [
 		tail:  block/rs-tail as red-block! stack/arguments
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail
+			value: interpreter/eval-next value tail no
 			if logic/false? [RETURN_NONE]
 		]
 	]
@@ -241,29 +247,59 @@ natives: context [
 		_context/set w saved
 	]
 	
+	func*: does [
+		_function/validate as red-block! stack/arguments
+		_function/push 
+			as red-block! stack/arguments
+			as red-block! stack/arguments + 1
+			0
+		stack/set-last stack/top - 1
+	]
 	
-	func*:		does []
-	function*:	does []
-	does*:		does []
-	has*:		does []
-	exit*:		does []
-	return*:	does []
+	function*:	does [
+		_function/collect-words
+			as red-block! stack/arguments
+			as red-block! stack/arguments + 1
+		func*
+	]
+	
+	does*: does [
+		copy-cell stack/arguments stack/push*
+		block/make-at as red-block! stack/arguments 1
+		func*
+	]
+	
+	has*: does [
+		block/insert-value 
+			as red-block! stack/arguments
+			as red-value! refinements/local
+		func*
+	]
+	
+	exit*: does [
+		print "*** Error: EXIT not yet implemented for interpreter"
+	]
+	return*:	does [
+		print "*** Error: RETURN not yet implemented for interpreter"
+	]
 		
 	switch*: func [
-		default? [integer!]								;@@ not implemented yet
+		default? [integer!]
 		/local
 			pos	 [red-value!]
 			blk  [red-block!]
+			alt  [red-block!]
 			end  [red-value!]
 			s	 [series!]
 	][
 		blk: as red-block! stack/arguments + 1
+		alt: as red-block! stack/arguments + 2
 		
 		pos: actions/find
 			as red-series! blk
 			stack/arguments
 			null
-			no
+			yes											;-- /only
 			no
 			no
 			null
@@ -273,9 +309,13 @@ natives: context [
 			yes											;-- /tail
 			no
 			
-		either TYPE_OF(blk) = TYPE_NONE [
-			;TBD: add default block processing
-			0
+		either TYPE_OF(pos) = TYPE_NONE [
+			either negative? default? [
+				RETURN_NONE
+			][
+				interpreter/eval alt
+				exit									;-- early exit with last value on stack
+			]
 		][
 			s: GET_BUFFER(blk)
 			end: s/tail
@@ -283,6 +323,7 @@ natives: context [
 			while [pos < end][							;-- find first following block
 				if TYPE_OF(pos) = TYPE_BLOCK [
 					stack/reset
+					pos: block/pick as red-series! pos 1
 					interpreter/eval as red-block! pos	;-- do the block
 					exit								;-- early exit with last value on stack
 				]
@@ -293,7 +334,7 @@ natives: context [
 	]
 	
 	case*: func [
-		all? 	  [integer!]							;@@ not implemented yet
+		all? 	  [integer!]
 		/local
 			value [red-value!]
 			tail  [red-value!]
@@ -303,15 +344,15 @@ natives: context [
 		if value = tail [RETURN_NONE]
 		
 		while [value < tail][
-			value: interpreter/eval-next value tail		;-- eval condition
+			value: interpreter/eval-next value tail no	;-- eval condition
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
 					stack/reset
 					interpreter/eval as red-block! value
 				][
-					value: interpreter/eval-next value tail
+					value: interpreter/eval-next value tail no
 				]
-				exit									;-- early exit with last value on stack
+				if negative? all? [exit]				;-- early exit with last value on stack (unless /all)
 			][
 				value: value + 1						;-- single value only allowed for cases bodies
 			]
@@ -319,8 +360,27 @@ natives: context [
 		RETURN_NONE
 	]
 	
-	do*: does [
-		interpreter/eval as red-block! stack/arguments no
+	do*: func [
+		/local
+			arg [red-value!]
+			str	[red-string!]
+			s	[series!]
+	][
+		arg: stack/arguments
+		switch TYPE_OF(arg) [
+			TYPE_BLOCK [
+				interpreter/eval as red-block! arg
+			]
+			TYPE_STRING [
+				str: as red-string! arg
+				s: GET_BUFFER(str)
+				tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
+				do*
+			]
+			default [
+				interpreter/eval-expression arg arg + 1 no no
+			]
+		]
 	]
 	
 	get*: func [
@@ -349,7 +409,7 @@ natives: context [
 	]
 
 	print*: does [
-		lf?: yes
+		lf?: yes											;@@ get rid of this global state
 		prin*
 		lf?: no
 	]
@@ -365,9 +425,17 @@ natives: context [
 		
 		arg: stack/arguments
 		
-		either TYPE_OF(arg) = TYPE_STRING [
+		either any [
+			TYPE_OF(arg) = TYPE_STRING 						;@@ replace by ANY_STRING?
+			TYPE_OF(arg) = TYPE_FILE
+		][
 			str: as red-string! arg
 		][
+			block/rs-clear buffer-blk
+			stack/push as red-value! buffer-blk
+			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
+			
+			reduce* 1
 			actions/form* -1
 			str: as red-string! stack/arguments + 1
 			assert any [
@@ -500,6 +568,10 @@ natives: context [
 	]
 	
 	load*: func [
+		header? [integer!]
+		all?	[integer!]
+		type?	[integer!]
+		return: [red-value!]
 		/local
 			str [red-string!]
 			s	[series!]
@@ -507,6 +579,154 @@ natives: context [
 		str: as red-string! stack/arguments
 		s: GET_BUFFER(str)
 		tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
+		
+		blk: as red-block! stack/arguments
+		if TYPE_OF(blk) = TYPE_BLOCK [
+			if all [negative? all? 1 = block/rs-length? blk][
+				stack/set-last block/pick as red-series! blk 1
+			]
+		]
+		stack/arguments
+	]
+	
+	reduce*: func [
+		into [integer!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			blk	  [red-block!]
+			arg	  [red-value!]
+	][
+		arg: stack/arguments
+		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
+			interpreter/eval-expression arg arg + 1 no no
+			exit
+		]
+		
+		value: block/rs-head as red-block! arg
+		tail:  block/rs-tail as red-block! arg
+		
+		stack/mark-native words/_body
+		
+		blk: either negative? into [
+			block/push-only* (as-integer tail - value) >> 4
+		][
+			as red-block! stack/push arg + into
+		]
+		
+		while [value < tail][
+			value: interpreter/eval-next value tail yes
+			block/append*
+			stack/keep									;-- preserve the reduced block on stack
+		]
+		stack/unwind-last
+	]
+	
+	compose-block: func [
+		blk		[red-block!]
+		deep?	[logic!]
+		only?	[logic!]
+		into	[red-block!]
+		root?	[logic!]
+		return: [red-block!]
+		/local
+			value  [red-value!]
+			tail   [red-value!]
+			new	   [red-block!]
+			result [red-value!]
+	][
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
+		
+		new: either all [root? OPTION?(into)][
+			into
+		][
+			block/push-only* (as-integer tail - value) >> 4	
+		]
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_BLOCK [
+					blk: either deep? [
+						compose-block as red-block! value deep? only? into no
+					][
+						as red-block! value
+					]
+					copy-cell as red-value! blk ALLOC_TAIL(new)
+				]
+				TYPE_PAREN [
+					blk: as red-block! value
+					unless zero? block/rs-length? blk [
+						interpreter/eval blk
+						result: stack/arguments
+						blk: as red-block! result 
+						
+						unless any [
+							TYPE_OF(result) = TYPE_UNSET
+							all [
+								not only?
+								TYPE_OF(result) = TYPE_BLOCK
+								zero? block/rs-length? blk
+							]
+						][
+							either any [
+								only? 
+								TYPE_OF(result) <> TYPE_BLOCK
+							][
+								copy-cell result ALLOC_TAIL(new)
+							][
+								block/rs-append-block new as red-block! result
+							]
+						]
+					]
+				]
+				default [
+					copy-cell value ALLOC_TAIL(new)
+				]
+			]
+			value: value + 1
+		]
+		new
+	]
+	
+	compose*: func [
+		deep [integer!]
+		only [integer!]
+		into [integer!]
+	][
+		arg: stack/arguments
+		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
+			interpreter/eval-expression arg arg + 1 no no
+			exit
+		]
+		stack/set-last 
+			as red-value! compose-block
+				as red-block! arg
+				as logic! deep + 1 
+				as logic! only + 1
+				as red-block! stack/arguments + into
+				yes
+	]
+	
+	stats*: func [
+		show [integer!]
+		info [integer!]
+		/local
+			blk [red-block!]
+	][
+		case [
+			show >= 0 [
+				;TBD
+				integer/box memory/total
+			]
+			info >= 0 [
+				blk: block/push* 5
+				memory-info blk 2
+				stack/set-last as red-value! blk
+			]
+			true [
+				integer/box memory/total
+			]
+		]
 	]
 
 	;--- Natives helper functions ---
@@ -565,6 +785,7 @@ natives: context [
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
 			TYPE_OF(series) = TYPE_STRING
+			TYPE_OF(series) = TYPE_FILE
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
@@ -587,6 +808,7 @@ natives: context [
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
 			TYPE_OF(series) = TYPE_STRING
+			TYPE_OF(series) = TYPE_FILE
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
@@ -628,10 +850,36 @@ natives: context [
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
 			TYPE_OF(series) = TYPE_STRING
+			TYPE_OF(series) = TYPE_FILE
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 
 		_context/set word as red-value! series			;-- reset series to its initial offset
+	]
+	
+	repeat-init*: func [
+		cell  	[red-value!]
+		return: [integer!]
+		/local
+			int [red-integer!]
+	][
+		copy-cell stack/arguments cell
+		int: as red-integer! cell
+		int/value										;-- overlapping /value field for integer! and char!
+	]
+	
+	repeat-set: func [
+		cell  [red-value!]
+		value [integer!]
+		/local
+			int [red-integer!]
+	][
+		assert any [
+			TYPE_OF(cell) = TYPE_INTEGER
+			TYPE_OF(cell) = TYPE_CHAR
+		]
+		int: as red-integer! cell
+		int/value: value								;-- overlapping /value field for integer! and char!
 	]
 	
 	register [
@@ -671,6 +919,9 @@ natives: context [
 		:halt*
 		:type?*
 		:load*
+		:reduce*
+		:compose*
+		:stats*
 	]
 
 ]

@@ -1700,7 +1700,7 @@ Note: If multiple namespaces are specified and if they share same identifier(s),
  c: context [b: 1 d: 123]
 
  with a [
- 	print-line b						;-- will output 1
+ 	print-line b						;-- will output 0
  	print-line a/b						;-- will output 0
  ]
 

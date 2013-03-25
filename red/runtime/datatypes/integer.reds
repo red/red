@@ -43,17 +43,6 @@ integer: context [
 		int/value
 	]
 	
-	set: func [
-		cell  [red-value!]
-		value [integer!]
-		/local
-			int [red-integer!]
-	][
-		assert TYPE_OF(cell) = TYPE_INTEGER
-		int: as red-integer! cell
-		int/value: value
-	]
-	
 	box: func [
 		value	[integer!]
 		/local
@@ -122,8 +111,8 @@ integer: context [
 	]
 
 	load-in: func [
-		value 	[integer!]
 		blk	  	[red-block!]
+		value 	[integer!]
 		/local
 			int [red-integer!]
 	][

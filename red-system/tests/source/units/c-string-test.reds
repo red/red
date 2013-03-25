@@ -3,7 +3,7 @@ Red/System [
 	Author:  "Nenad Rakocevic"
 	File: 	 %c-string-test.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -89,6 +89,10 @@ string-local-foo: func [
 	--assert stringC/1 = #"e"
 ]
 string-local-foo
+
+===end-group===
+
+===start-group=== "reported issues"
 
 ===end-group===
 

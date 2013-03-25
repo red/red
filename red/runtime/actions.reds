@@ -492,7 +492,7 @@ actions: context [
 		match	 [integer!]
 	][
 		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
-		find
+		stack/set-last find
 			as red-series! stack/arguments
 			stack/arguments + 1
 			stack/arguments + part
@@ -614,7 +614,7 @@ actions: context [
 	pick*: func [
 		return:	 [red-value!]
 	][
-		pick
+		stack/set-last pick
 			as red-series! stack/arguments
 			get-index-argument
 	]
@@ -634,7 +634,7 @@ actions: context [
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr as red-value! series ACT_PICK
 		
-		stack/set-last action-pick series index
+		action-pick series index
 	]
 	
 	poke*: func [
@@ -662,12 +662,37 @@ actions: context [
 			index	[integer!]
 			data    [red-value!]
 			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_POKE
+		] get-action-ptr as red-value! series ACT_POKE
 		
 		action-poke series index data
 	]
 	
-	remove*: func [][]
+	remove*: func [
+		part [integer!]
+	][	
+		remove
+			as red-series! stack/arguments
+			stack/arguments + part
+	]
+	
+	remove: func [
+		series  [red-series!]
+		part	[red-value!]
+		return:	[red-value!]
+		/local
+			action-remove
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/remove"]]
+		
+		action-remove: as function! [
+			series	[red-series!]
+			part	[red-value!]
+			return:	[red-value!]
+		] get-action-ptr as red-value! series ACT_REMOVE
+		
+		action-remove series part
+	]
+	
 	reverse*: func [][]
 	
 	select*: func [
@@ -681,7 +706,7 @@ actions: context [
 		reverse	 [integer!]
 	][
 		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
-		select
+		stack/set-last select
 			as red-series! stack/arguments
 			stack/arguments + 1
 			stack/arguments + part
@@ -830,7 +855,7 @@ actions: context [
 		:next*
 		:pick*
 		:poke*
-		null			;remove
+		:remove*
 		null			;reverse
 		:select*
 		null			;sort

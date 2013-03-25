@@ -23,6 +23,7 @@ integer!:		make datatype! #get-definition TYPE_INTEGER
 word!:			make datatype! #get-definition TYPE_WORD
 error!:			make datatype! #get-definition TYPE_ERROR
 typeset!:		make datatype! #get-definition TYPE_TYPESET
+file!:			make datatype! #get-definition TYPE_FILE
 
 set-word!:		make datatype! #get-definition TYPE_SET_WORD
 get-word!:		make datatype! #get-definition TYPE_GET_WORD
@@ -319,7 +320,15 @@ poke: make action! [[
 	#get-definition ACT_POKE
 ]
 
-;remove
+remove: make action! [[
+		series	 [series! none!]
+		/part
+			length [number! series!]
+		return:  [series! none!]
+	]
+	#get-definition ACT_REMOVE
+]
+
 ;reverse
 
 select: make action! [[
@@ -336,6 +345,7 @@ select: make action! [[
 			size [integer!]
 		/last
 		/reverse
+		return:  [any-type!]
 	]
 	#get-definition ACT_SELECT
 ]
@@ -531,6 +541,24 @@ do: make native! [[
 	#get-definition NAT_DO
 ]
 
+reduce: make native! [[
+		value [any-type!]
+		/into
+			out [any-block!]
+	]
+	#get-definition NAT_REDUCE
+]
+
+compose: make native! [[
+		value [block!]
+		/deep
+		/only
+		/into
+			out [any-block!]
+	]
+	#get-definition NAT_COMPOSE
+]
+
 get: make native! [[
 		word	[word!]
 		/any
@@ -643,6 +671,14 @@ load: make native! [[
 	#get-definition NAT_LOAD
 ]
 
+stats: make native! [[
+		/show
+		/info
+		return: [integer! block!]
+	]
+	#get-definition NAT_STATS
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
@@ -666,6 +702,7 @@ load: make native! [[
 ;------------------------------------------
 ;-				Scalars					  -
 ;------------------------------------------
+Red: true												;-- ultimate Truth ;-) (pre-defines Red word)
 
 yes: on: true
 no: off: false
@@ -678,6 +715,7 @@ escape:      #"^["
 slash: 		 #"/"
 sp: space: 	 #" "
 null: 		 #"^@"
+crlf:		 "^M^/"
 
 ;------------------------------------------
 ;-			   Mezzanines				  -
@@ -694,12 +732,25 @@ quit: func [
 	quit-return any [status 0]
 ]
 
+empty?: func [
+	series	[series!]
+	return:	[logic!]
+][
+	tail? series
+]
+
+??: func ['value [word!]][
+	prin mold :value
+	prin ": "
+	probe get/any :value
+]
+
 probe: func [value][
 	print mold value 
 	value
 ]
 
-first:	func [s [series!]][pick s 1]					;-- temporary definitions, should be natives
+first:	func [s [series!]][pick s 1]					;@@ temporary definitions, should be natives ?
 second:	func [s [series!]][pick s 2]
 third:	func [s [series!]][pick s 3]
 fourth:	func [s [series!]][pick s 4]
@@ -712,10 +763,12 @@ action?:	 func [value [any-type!]][action!	= type? value]
 block?:		 func [value [any-type!]][block!	= type? value]
 char?: 		 func [value [any-type!]][char!		= type? value]
 datatype?:	 func [value [any-type!]][datatype!	= type? value]
+file?:		 func [value [any-type!]][file!		= type? value]
 function?:	 func [value [any-type!]][function!	= type? value]
 get-path?:	 func [value [any-type!]][get-path!	= type? value]
 get-word?:	 func [value [any-type!]][get-word!	= type? value]
 integer?:    func [value [any-type!]][integer!	= type? value]
+issue?:    	 func [value [any-type!]][issue!	= type? value]
 lit-path?:	 func [value [any-type!]][lit-path!	= type? value]
 lit-word?:	 func [value [any-type!]][lit-word!	= type? value]
 logic?:		 func [value [any-type!]][logic!	= type? value]
@@ -733,3 +786,24 @@ word?:		 func [value [any-type!]][word!		= type? value]
 
 spec-of: func [value][reflect :value 'spec]
 body-of: func [value][reflect :value 'body]
+
+system: function [
+	/version
+	/words
+	/platform
+][
+	case [
+		version [#version]
+		words	[#system [_context/get-words]]
+		platform [
+			#system [
+				#switch OS [
+					Windows  [SET_RETURN(words/_windows)]
+					Syllable [SET_RETURN(words/_syllable)]
+					MacOSX	 [SET_RETURN(words/_macosx)]
+					#default [SET_RETURN(words/_linux)]
+				]
+			]
+		]
+	]
+]

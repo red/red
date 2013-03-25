@@ -133,7 +133,7 @@ paren: context [
 		INHERIT_ACTION	;next
 		INHERIT_ACTION	;pick
 		INHERIT_ACTION	;poke
-		null			;remove
+		INHERIT_ACTION	;remove
 		null			;reverse
 		INHERIT_ACTION	;select
 		null			;sort

@@ -12,6 +12,19 @@ Red/System [
 
 char: context [
 	verbose: 0
+	
+	load-in: func [
+		value [integer!]
+		blk	  [red-block!]
+		/local
+			cell [red-char!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/load-in"]]
+
+		cell: as red-char! ALLOC_TAIL(blk)
+		cell/header: TYPE_CHAR
+		cell/value: value
+	]
 
 	push: func [
 		value	 [integer!]
@@ -76,7 +89,7 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/mold"]]
 
 		string/concatenate-literal buffer {#"}
-		string/append-char GET_BUFFER(buffer) c/value
+		string/append-escaped-char buffer c/value
 		string/append-char GET_BUFFER(buffer) as-integer #"^""
 		part - 4
 	]

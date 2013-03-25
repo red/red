@@ -14,6 +14,191 @@ Red/System [
 _function: context [
 	verbose: 0
 	
+	
+	collect-deep: func [
+		list   [red-block!]
+		ignore [red-block!]
+		blk    [red-block!]
+		/local
+			value  [red-value!]
+			tail   [red-value!]
+			end	   [red-value!]
+			result [red-value!]
+			word   [red-value!]
+	][
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_SET_WORD [
+					word: stack/push value
+					word/header: TYPE_WORD				;-- convert the set-word! into a word!
+					
+					result: block/find ignore word null no no no null null no no no no
+					
+					if TYPE_OF(result) = TYPE_NONE [
+						block/rs-append list word
+						block/rs-append ignore word
+					]
+					stack/pop 2							;-- remove word and FIND result from stack
+				]
+				TYPE_BLOCK
+				TYPE_PAREN [
+					collect-deep list ignore as red-block! value
+				]
+				default [0]
+			]
+			value: value + 1
+		]
+	]
+	
+	collect-words: func [
+		spec	[red-block!]
+		body	[red-block!]
+		return: [red-block!]
+		/local
+			list	[red-block!]
+			ignore	[red-block!]
+			extern	[red-block!]
+			value	[red-value!]
+			tail	[red-value!]
+			s		[series!]
+			extern? [logic!]
+	][
+		list: block/push* 8
+		block/rs-append list as red-value! refinements/local
+		
+		ignore: block/clone spec no
+		block/rs-append ignore as red-value! refinements/local
+		
+		value:  as red-value! refinements/extern		;-- process optional /extern
+		extern: as red-block! block/find spec value null no no no null null no no no no
+		extern?: TYPE_OF(extern) <> TYPE_NONE
+		
+		if extern? [
+			s: GET_BUFFER(spec)
+			s/tail: s/offset + extern/head				;-- cut /extern and extern words out			
+		]
+		stack/pop 1										;-- remove FIND result from stack
+		
+		value:  block/rs-head ignore
+		tail:	block/rs-tail ignore
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_WORD 	  [0]						;-- do nothing
+				TYPE_REFINEMENT
+				TYPE_GET_WORD
+				TYPE_SET_WORD [
+					value/header: TYPE_WORD				;-- convert it to a word!
+				]
+				default [
+					if extern? [
+						print-line ["*** Error: invalid /extern values"]
+						halt
+					]
+				]
+			]
+			value: value + 1
+		]
+		
+		collect-deep list ignore body
+		
+		if 1 < block/rs-length? list [
+			block/rs-append-block spec list
+		]
+		list
+	]
+	
+	validate: func [									;-- temporary mimalist spec checking
+		spec [red-block!]
+		/local
+			value  [red-value!]
+			end	   [red-value!]
+			next   [red-value!]
+			block? [logic!]
+	][
+		value: block/rs-head spec
+		end:   block/rs-tail spec
+		
+		while [value < end][
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD [
+					next: value + 1
+					block?: all [
+						next < end
+						TYPE_OF(next) = TYPE_BLOCK
+					]
+					value: value + either block? [2][1]
+				]
+				TYPE_SET_WORD [
+					next: value + 1
+					unless all [
+						next < end
+						TYPE_OF(next) = TYPE_BLOCK
+					][
+						print-line "*** Error: return: not followed by type in function spec"
+						halt
+					]
+					value: next
+				]
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT
+				TYPE_BLOCK
+				TYPE_STRING [
+					value: value + 1
+				]
+				default [
+					print-line "*** Error: invalid value in function spec"
+					halt
+				]
+			]
+		]
+	]
+	
+	bind: func [
+		body [red-block!]
+		ctx	 [red-context!]
+		/local
+			value [red-value!]
+			end	  [red-value!]
+			w	  [red-word!]
+			idx	  [integer!]
+			type  [integer!]
+	][
+		value: block/rs-head body
+		end:   block/rs-tail body
+
+		while [value < end][
+			switch TYPE_OF(value) [	
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_SET_WORD
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT [
+					w: as red-word! value
+					idx: _context/find-word ctx w/symbol
+					if idx >= 0 [
+						w/ctx:   ctx
+						w/index: idx
+					]
+				]
+				TYPE_BLOCK 					;@@ replace with TYPE_ANY_BLOCK
+				TYPE_PAREN 
+				TYPE_PATH
+				TYPE_LIT_PATH
+				TYPE_SET_PATH
+				TYPE_GET_PATH	[
+					bind as red-block! value ctx
+				]
+				default [0]
+			]
+			value: value + 1
+		]
+	]
+	
 	init-locals: func [
 		nb 	   [integer!]
 		/local
@@ -41,7 +226,7 @@ _function: context [
 
 		cell: as red-function! stack/push*
 		cell/header: TYPE_FUNCTION						;-- implicit reset of all header flags
-		cell/spec:	 spec
+		cell/spec:	 spec/node
 		cell/ctx:	 _context/make spec yes
 		cell/more:	 alloc-cells 3
 		
@@ -56,6 +241,7 @@ _function: context [
 		native/header: TYPE_NATIVE
 		native/code: code
 		
+		bind body cell/ctx
 		cell/ctx
 	]
 		
@@ -71,7 +257,10 @@ _function: context [
 	][
 		case [
 			field = words/spec [
-				stack/set-last as red-value! fun/spec
+				blk: as red-block! stack/arguments		;-- overwrite the function slot on stack
+				blk/header: TYPE_BLOCK
+				blk/node: fun/spec						;-- order of assignments matters
+				blk/head: 0
 			]
 			field = words/body [
 				s: as series! fun/more/value
@@ -112,11 +301,18 @@ _function: context [
 		return: [integer!]
 		/local
 			s	[series!]
+			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "function/mold"]]
 
 		string/concatenate-literal buffer "func "
-		part: block/mold fun/spec buffer only? all? flat? arg part - 5		;-- spec
+		
+		blk: as red-block! stack/push*
+		blk/header: TYPE_BLOCK
+		blk/head: 0
+		blk/node: fun/spec
+		part: block/mold blk buffer only? all? flat? arg part - 5			;-- spec
+		
 		s: as series! fun/more/value
 		block/mold as red-block! s/offset buffer only? all? flat? arg part	;-- body
 	]

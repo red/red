@@ -10,6 +10,12 @@ Red/System [
 	}
 ]
 
+#define CHECK_UNSET(value) [
+	if TYPE_OF(value) = TYPE_UNSET [
+		print-line "*** Error: word has no value!"
+	]
+]
+
 word: context [
 	verbose: 0
 	
@@ -18,7 +24,6 @@ word: context [
 		blk		[red-block!]
 		return:	[red-word!]
 		/local 
-			p	  [node!]
 			id    [integer!]							;-- symbol ID
 			cell  [red-word!]
 	][
@@ -74,13 +79,34 @@ word: context [
 
 	set: func [
 		/local
-			args [red-value!]
+			value [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/set"]]
 		
-		args: stack/arguments
-		_context/set as red-word! args args + 1
-		stack/set-last args + 1
+		value: stack/arguments + 1
+		CHECK_UNSET(value)
+		_context/set as red-word! stack/arguments value
+		stack/set-last value
+	]
+	
+	set-local: func [
+		slot	 [red-value!]
+		return:  [red-value!]
+		/local
+			value [red-value!]
+	][
+		value: stack/arguments
+		CHECK_UNSET(value)
+		copy-cell value slot
+	]
+	
+	get-any: func [
+		word	 [red-word!]
+		return:  [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/get-any"]]
+
+		copy-cell _context/get word stack/push*
 	]
 	
 	get: func [
@@ -92,7 +118,7 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get"]]
 		
 		value: copy-cell _context/get word stack/push*
-
+		CHECK_UNSET(value)
 		if TYPE_OF(value) = TYPE_LIT_WORD [
 			value/header: TYPE_WORD						;-- cast lit-word! to word!
 		]
@@ -157,6 +183,7 @@ word: context [
 						type = TYPE_SET_WORD
 						type = TYPE_LIT_WORD
 						type = TYPE_REFINEMENT
+						type = TYPE_ISSUE
 					]
 					(symbol/resolve arg1/symbol) = (symbol/resolve arg2/symbol)
 				]

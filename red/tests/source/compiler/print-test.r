@@ -10,12 +10,12 @@ REBOL [
 ~~~start-file~~~ "Red print"
 
  --test-- "Red print 1"
-   --compile-and-run-red %source/compiler/print-test.red 
+   --compile-and-run-this-red {print 1} 
   --assert-red-printed? 1
   
   --test-- "Red print 2"
-    --compile-and-run-this-red {print 2}
-  --assert-red-printed? 2
+  --compile-and-run-this-red {print [1 2 3]}
+  --assert-red-printed? 1 2 3
   
   --test-- "Red print 3"
     --compile-and-run-this-red {
@@ -32,5 +32,18 @@ REBOL [
       print "***"
     }
   --assert-red-printed? "***2345***"
-
+  
+  --test-- "issue #427"
+    --compile-and-run-this-red {
+      issue427-f: func [
+        /local count
+      ][
+        repeat count 5 [
+          prin count
+        ]
+      ]
+      issue427-f
+    }
+  --assert-red-printed? "12345"
+  
 ~~~end-file~~~ 

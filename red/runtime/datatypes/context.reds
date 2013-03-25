@@ -64,8 +64,9 @@ _context: context [
 	]
 	
 	set-integer: func [
-		word 		[red-word!]
-		value		[integer!]
+		word 	[red-word!]
+		value	[integer!]
+		return:	[integer!]
 		/local
 			int 	[red-integer!]
 			values	[series!]
@@ -86,6 +87,7 @@ _context: context [
 		]
 		int/header: TYPE_INTEGER
 		int/value: value
+		value
 	]
 
 	set: func [
@@ -102,6 +104,7 @@ _context: context [
 		
 		if word/index = -1 [
 			word/index: find-word ctx word/symbol
+			if word/index = -1 [add ctx word]
 		]
 		either ON_STACK?(ctx) [
 			copy-cell value (as red-value! ctx/values) + word/index
@@ -128,9 +131,12 @@ _context: context [
 			word/index = -1
 		][
 			sym: symbol/get word/symbol
-			print-line [
-				"*** Error: word '" sym/cache " has no value"
-			]
+			print-line ["*** Error: word '" sym/cache " has no value"]
+			halt
+		]
+		if null? ctx/values [
+			sym: symbol/get word/symbol
+			print-line ["*** Error: undefined context for word '" sym/cache]
 			halt
 		]
 		either ON_STACK?(ctx) [
@@ -200,6 +206,20 @@ _context: context [
 			cell: cell + 1
 		]
 		ctx
+	]
+	
+	get-words: func [
+		/local
+			blk	[red-block!]
+	][
+		blk: as red-block! stack/push*
+		blk/header: TYPE_BLOCK
+		blk/head: 	0
+		blk/node: 	global-ctx/symbols 
+		
+		copy-cell 										;-- reposition cloned block at right place
+			as red-value! block/clone blk no
+			as red-value! blk
 	]
 	
 	;-- Actions -- 

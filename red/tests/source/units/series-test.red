@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %series-test.red
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012, 2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -40,7 +40,7 @@ Red [
 	--assert 53 = fifth sf5-ser
 	
 	--test-- "series-fstff-6"
-	  stf6-ser: #{000102}
+	;;  stf6-ser: #{000102}
 	;;--assert 0 = first stf6-ser
 	
 	--test-- "series-fstff-7"
@@ -531,8 +531,73 @@ Red [
 
 	--test-- "series-find-75"
 		--assert 8 = index? find/case s "Red"
-
 		
+===end-group===
+
+===start-group=== "remove"
+
+	--test-- "remove-blk-1"
+		a: [1 2 3]
+		--assert [2 3] = remove a
+		--assert [2 3] = a
+
+	--test-- "remove-blk-2"
+		a: [1 2 3]
+		--assert [3] = remove next a
+		--assert [1 3] = a
+
+	--test-- "remove-blk-3"
+		--assert tail? head remove []
+
+	--test-- "remove-blk-4"
+		a: [1 2 3]
+		--assert [3] = remove/part a 2
+		--assert [3] = a
+
+	--test-- "remove-blk-5"
+		a: [1 2 3]
+		--assert [1 2 3] = remove/part a a
+
+	--test-- "remove-blk-6"
+		a: [1 2 3]
+		--assert [2 3] = remove/part a next a
+		--assert [2 3] = a
+	
+	--test-- "remove-blk-7"
+		a: [1 2 3]
+		--assert [1 2 3] =  remove/part a 0
+
+	--test-- "remove-str-1"
+		a: "123"
+		--assert "23" = remove a
+		--assert "23" = a
+
+	--test-- "remove-str-2"
+		a: "123"
+		--assert "3" = remove next a
+		--assert "13" = a
+
+	--test-- "remove-str-3"
+		--assert tail? head remove ""
+
+	--test-- "remove-str-4"
+		a: "123"
+		--assert "3" = remove/part a 2
+		--assert "3" = a
+
+	--test-- "remove-str-5"
+		a: "123"
+		--assert "123" = remove/part a a
+
+	--test-- "remove-str-6"
+		a: "123"
+		--assert "23"= remove/part a next a
+		--assert "23" = a
+	
+	--test-- "remove-str-7"
+		a: "123"
+		--assert "123" = remove/part a 0
+
 ===end-group===
 
 ~~~end-file~~~

@@ -85,5 +85,5 @@ print-line: func [
 	[typed]	count [integer!] list [typed-value!]
 ][
 	_print count list no
-	prin newline
+	prin-byte lf
 ]

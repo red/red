@@ -13,18 +13,65 @@ Red/System [
 
 tokenizer: context [
 
+	#define NOT_DELIMITER?(c) [
+		all [
+			c <> null-byte
+			c <> #" "
+			c <> #"/"
+			c <> #"^/"
+			c <> #"^M"
+			c <> #"^-"
+			c <> #":"
+			c <> #"^""
+			c <> #"["
+			c <> #"]"
+			c <> #"("
+			c <> #")"
+			c <> #"{"
+			c <> #"}"
+			c <> #";"
+		]
+	]
+	
+	#define NOT_FILE_DELIMITER?(c) [
+		all [
+			c <> null-byte
+			c <> #" "
+			c <> #"^/"
+			c <> #"^M"
+			c <> #"^-"
+			c <> #":"
+			c <> #"^""
+			c <> #"["
+			c <> #"]"
+			c <> #"("
+			c <> #")"
+			c <> #"{"
+			c <> #"}"
+			c <> #";"
+		]
+	]
+
 	#enum errors! [
 		ERR_PREMATURE_END
 		ERR_STRING_DELIMIT
+		ERR_MULTI_STRING_DELIMIT
+		ERR_CHAR_DELIMIT
 		ERR_INVALID_INTEGER
+		ERR_INVALID_PATH
+		ERR_INVALID_CHAR
 	]
 
 	throw-error: func [id [integer!]][
 		print "*** Load Error: "
 		print switch id [
-			ERR_PREMATURE_END	["unmatched ] closing bracket"]
-			ERR_STRING_DELIMIT 	["string ending delimiter not found"]
-			ERR_INVALID_INTEGER	["invalid integer"]
+			ERR_PREMATURE_END		 ["unmatched ] closing bracket"]
+			ERR_STRING_DELIMIT 		 [{string ending delimiter " not found}]
+			ERR_MULTI_STRING_DELIMIT ["string ending delimiter } not found"]
+			ERR_CHAR_DELIMIT		 [{char ending delimiter " not found}]
+			ERR_INVALID_INTEGER		 ["invalid integer"]
+			ERR_INVALID_PATH		 ["invalid path"]
+			ERR_INVALID_CHAR		 ["invalid char"]
 		]
 		print-line #"!"
 	]
@@ -49,6 +96,78 @@ tokenizer: context [
 		]
 		src
 	]
+	
+	scan-comment: func [
+		s		[c-string!]
+		return: [c-string!]
+	][
+		while [not any [s/1 = #"^/" s/1 = null-byte]][s: s + 1]
+		s
+	]
+	
+	scan-char: func [
+		s		[c-string!]
+		blk		[red-block!]
+		return: [c-string!]
+		/local
+			c	 [byte!]
+			byte [byte!]
+	][
+		byte: either s/1 = #"^^" [
+			s: s + 1
+			c: s/1
+			either all [#"@" <= c c <= #"Z"][
+				c - #"@"
+			][
+				switch c [
+					#"^"" [#"^""]
+					#"/"  [#"^/"]
+					#"-"  [#"^-"]
+					#"?"  [#"^~"]
+					#"^^" [#"^^"]
+					default [throw-error ERR_INVALID_CHAR]
+				]
+			]
+		][
+			s/1
+		]
+		s: s + 1
+		if s/1 <> #"^"" [throw-error ERR_CHAR_DELIMIT]
+		
+		char/load-in as-integer byte blk
+		s + 1
+	]
+	
+	scan-string-multi: func [
+		s		[c-string!]
+		blk		[red-block!]
+		return: [c-string!]
+		/local
+			e	  [c-string!]
+			c	  [byte!]
+			saved [byte!]
+			count [integer!]
+	][
+		s: s + 1										;-- skip first double quote
+		e: s
+		c: e/1
+		count: 1
+
+		while [all [c <> null-byte count > 0]][
+			while [all [c <> null-byte c <> #"}"]][
+				if c = #"{" [count: count + 1]
+				e: e + either c = #"^^" [2][1]
+				c: e/1
+			]
+			if c = #"}" [count: count - 1]
+		]
+		if c <> #"}" [throw-error ERR_MULTI_STRING_DELIMIT]
+		saved: e/1										;@@ allocate a new buffer instead
+		e/1: null-byte
+		string/load-in s (as-integer e - s) + 1 blk
+		e/1: saved
+		either c = #"}" [e + 1][e]
+	]
 
 	scan-string: func [
 		s		[c-string!]
@@ -60,11 +179,11 @@ tokenizer: context [
 			saved [byte!]
 	][
 		s: s + 1										;-- skip first double quote
-		e: s + 1
+		e: s
 		c: e/1
 		
 		while [all [c <> null-byte c <> #"^""]][
-			e: e + 1
+			e: e + either c = #"^^" [2][1]
 			c: e/1
 		]
 		if c <> #"^"" [throw-error ERR_STRING_DELIMIT]
@@ -75,9 +194,34 @@ tokenizer: context [
 		either c = #"^"" [e + 1][e]
 	]
 	
+	scan-file: func [
+		s		[c-string!]
+		blk		[red-block!]
+		return: [c-string!]
+		/local
+			e	  [c-string!]
+			c	  [byte!]
+			saved [byte!]
+	][
+		s: s + 1										;-- skip first double quote
+		e: s
+		c: e/1
+		
+		while [NOT_FILE_DELIMITER?(c)][
+			e: e + 1
+			c: e/1
+		]
+		saved: e/1										;@@ allocate a new buffer instead
+		e/1: null-byte
+		file/load-in s (as-integer e - s) + 1 blk
+		e/1: saved
+		e
+	]
+	
 	scan-integer: func [
 		s		 [c-string!]
 		blk		 [red-block!]
+		neg?	 [logic!]
 		return:  [c-string!]
 		/local
 			e	 [c-string!]
@@ -96,55 +240,115 @@ tokenizer: context [
 			e: e + 1
 			c: e/1
 		]
-		integer/load-in i blk
+		if neg? [i: 0 - i]
+		integer/load-in blk i
 		e
+	]
+	
+	scan-minus: func [
+		src		[c-string!]
+		blk		[red-block!]
+		return:	[c-string!]
+		/local
+			c	[byte!]
+	][
+		c: src/2
+		either all [#"0" <= c c <= #"9"][
+			scan-integer src + 1 blk yes
+		][
+			scan-word src blk TYPE_WORD no
+		]
 	]
 	
 	scan-word: func [
 		s		  [c-string!]
 		blk		  [red-block!]
 		type	  [integer!]
+		in-path?  [logic!]
 		return:   [c-string!]
 		/local
 			e	  [c-string!]
 			c	  [byte!]
 			saved [byte!]
 			set?  [logic!]
+			path? [logic!]
 	][
 		e: s + 1
 		c: e/1
 
-		while [
-			all [
-				c <> null-byte
-				c <> #" "
-				c <> #"^/"
-				c <> #"^M"
-				c <> #"^-"
-				c <> #":"
-				c <> #"^""
-				c <> #"["
-				c <> #"]"
-				c <> #"("
-				c <> #")"
-				c <> #"{"
-				c <> #"}"
-			]
-		][
+		while [NOT_DELIMITER?(c)][
 			e: e + 1
 			c: e/1
 		]
-		set?: e/1 = #":"
-		saved: e/1										;@@ allocate a new buffer instead
-		e/1: null-byte
-		case [
-			type = TYPE_GET_WORD [get-word/load-in s blk]
-			type = TYPE_LIT_WORD [lit-word/load-in s blk]
-			set?				 [set-word/load-in s blk]
-			true				 [word/load-in s blk]
-		]	
-		e/1: saved
-		either set? [e + 1][e]
+		set?:  all [e/1 = #":"  not in-path?]
+		path?: all [e/1 = slash not in-path?]
+		
+		if all [
+			type = TYPE_REFINEMENT
+			s + 1 = e
+		][
+			type: TYPE_WORD								;-- / as word case
+		]
+		
+		either path? [
+			return scan-path s e blk type = TYPE_LIT_WORD
+		][
+			saved: e/1										;@@ allocate a new buffer instead
+			e/1: null-byte
+			case [
+				type = TYPE_GET_WORD	[get-word/load-in s blk]
+				type = TYPE_LIT_WORD	[lit-word/load-in s blk]
+				type = TYPE_ISSUE		[issue/load-in s blk]
+				type = TYPE_REFINEMENT	[refinement/load-in s + 1 blk]
+				set?				 	[set-word/load-in s blk]
+				true				 	[word/load-in s blk]
+			]	
+			e/1: saved
+			return either set? [e + 1][e]
+		]
+	]
+	
+	scan-path: func [
+		s		 [c-string!]
+		src		 [c-string!]
+		blk		 [red-block!]
+		lit?	 [logic!]
+		return:  [c-string!]
+		/local
+			path  [red-block!]
+			saved [byte!]
+			set?  [logic!]
+	][
+		path: block/make-in blk 4						;-- arbitrary start size
+		
+		saved: src/1									;-- push first element
+		src/1: null-byte
+		word/load-in s path								;-- store undecorated word
+		src/1: saved
+		c: src/1
+		set?: no
+		
+		while [c = #"/"][
+			src: src + 1
+			c: src/1
+			case [
+				c = #"("  [src: scan-paren src + 1 path]
+				c = #":"  [src: scan-word src + 1 path TYPE_GET_WORD yes]
+				c = #"-"  [src: scan-minus src path]
+				all [#"0" <= c c <= #"9"][src: scan-integer src path no]
+				all [#" " <  c c <= #"ÿ"][src: scan-word src path TYPE_WORD yes]
+				yes [throw-error ERR_INVALID_PATH]
+			]
+			c: src/1
+			if c = #":" [set?: yes]
+		]
+		
+		path/header: case [
+			set? [TYPE_SET_PATH]
+			lit? [TYPE_LIT_PATH]
+			true [TYPE_PATH]
+		]
+		either set? [src + 1][src]
 	]
 	
 	scan-block: func [
@@ -198,13 +402,26 @@ tokenizer: context [
 			]
 		][		
 			case [
+				c = #";"  [src: scan-comment src]
+				c = #"-"  [src: scan-minus src blk]
 				c = #"^"" [src: scan-string src blk]
+				c = #"{"  [src: scan-string-multi src blk]
+				c = #"%"  [src: scan-file src blk]
 				c = #"["  [src: scan-block src + 1 blk]
 				c = #"("  [src: scan-paren src + 1 blk]
-				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD]
-				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD]
-				all [#"0" <= c c <= #"9"][src: scan-integer src blk]
-				all [#" " <= c c <= #"ÿ"][src: scan-word src blk TYPE_WORD]
+				c = #":"  [src: scan-word src + 1 blk TYPE_GET_WORD no]
+				c = #"'"  [src: scan-word src + 1 blk TYPE_LIT_WORD no]
+				c = #"/"  [src: scan-word src blk TYPE_REFINEMENT no]
+				c = #"#"  [
+					c: src/2
+					either c = #"^"" [
+						src: scan-char src + 2 blk
+					][
+						src: scan-word src + 1 blk TYPE_ISSUE no
+					]
+				]
+				all [#"0" <= c c <= #"9"][src: scan-integer src blk no]
+				all [#" " <  c c <= #"ÿ"][src: scan-word src blk TYPE_WORD no]
 			]
 		]	
 		if null? parent [

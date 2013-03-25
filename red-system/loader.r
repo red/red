@@ -39,6 +39,10 @@ loader: make-profilable context [
 		clear defs
 		insert defs <no-match>					;-- required to avoid empty rule (causes infinite loop)
 	]
+	
+	relative-path?: func [file [file!]][
+		not find "/~" first file
+	]
 
 	included?: func [file [file!]][
 		file: get-modes file 'full-path
@@ -50,7 +54,7 @@ loader: make-profilable context [
 
 	push-system-path: func [file [file!] /local path][
 		append ssp-stack system/script/path
-		if slash <> first file [file: get-modes file 'full-path]
+		if relative-path? file [file: get-modes file 'full-path]
 		path: split-path file
 		system/script/path: path/1
 		path/2
@@ -158,6 +162,7 @@ loader: make-profilable context [
 			any [
 				(c: 0)
 				#";" to lf
+				| {#"^^} skip thru {"}
 				| {"} thru {"}
 				| "{" any [(ins?: no) lf-count | braces | non-cbracket] "}"
 				| ws s: ">>>" e: ws (
@@ -325,14 +330,14 @@ loader: make-profilable context [
 						]
 					]
 				)
-				| path! | set-path!	| any-string!		;-- avoid diving into these series
+				| path! | set-path!						;-- avoid diving into these series
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
 				  [into blk | block! | paren!]			;-- black magic...
 				  s: (
 					if any [block? s/-1 paren? s/-1][
 						header: last stack
 						change header length? header	;-- update header size
-						s/-1: insert s/-1 header		;-- insert hidden header
+						s/-1: insert copy s/-1 header	;-- insert hidden header
 						remove back tail stack
 					]
 				  )

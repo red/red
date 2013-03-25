@@ -100,6 +100,13 @@ red-string!: alias struct! [
 	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
 ]
 
+red-file!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+]
+
 red-symbol!: alias struct! [
 	header 	[integer!]								;-- cell header
 	alias	[integer!]								;-- Alias symbol index
@@ -117,11 +124,18 @@ red-integer!: alias struct! [
 red-context!: alias struct! [
 	header 	[integer!]								;-- cell header
 	symbols	[node!]									;-- array of 32-bit symbols ID
-	values	[node!]									;-- block of values
+	values	[node!]									;-- block of values (do not move this field!)
 	_pad	[integer!]
 ]
 
 red-word!: alias struct! [
+	header 	[integer!]								;-- cell header
+	ctx		[red-context!]
+	symbol	[integer!]								;-- index in symbol table
+	index	[integer!]								;-- index in context
+]
+
+red-refinement!: alias struct! [
 	header 	[integer!]								;-- cell header
 	ctx		[red-context!]
 	symbol	[integer!]								;-- index in symbol table
@@ -158,7 +172,7 @@ red-op!: alias struct! [
 
 red-function!: alias struct! [
 	header 	[integer!]								;-- cell header
-	spec	[red-block!]							;-- native spec block reference
+	spec	[node!]									;-- native spec block buffer reference
 	ctx		[red-context!]							;-- function's context
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	function's body block
@@ -168,7 +182,7 @@ red-function!: alias struct! [
 
 red-routine!: alias struct! [
 	header 	[integer!]								;-- cell header
-	spec	[red-block!]							;-- routine spec block reference
+	spec	[node!]									;-- routine spec block buffer reference
 	symbols	[node!]									;-- routine cleaned-up spec block reference
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	routine's body block

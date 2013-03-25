@@ -10,6 +10,59 @@ Red/System [
 	}
 ]
 
+;-------------------------------------------
+;-- Memory stats
+;-------------------------------------------
+memory-info: func [
+	blk		[red-block!]
+	verbose [integer!]						;-- stat verbosity level (1, 2 or 3)
+	/local
+		n-frame s-frame b-frame free-nodes base list nodes series bigs
+][
+	assert all [1 <= verbose verbose <= 3]
+
+;-- Node frames stats --
+	nodes: block/make-in blk 8
+	n-frame: memory/n-head
+
+	while [n-frame <> null][
+		if verbose >= 2 [
+			free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
+			list: block/make-in nodes 8
+			integer/load-in list n-frame/nodes - free-nodes
+			integer/load-in list free-nodes
+			integer/load-in list n-frame/nodes
+		]
+		n-frame: n-frame/next
+	]
+
+;-- Series frames stats --
+	series: block/make-in blk 8
+	s-frame: memory/s-head
+
+	while [s-frame <> null][
+		if verbose >= 2 [
+			base: (as byte-ptr! s-frame) + size? series-frame!
+			list: block/make-in series 8
+			integer/load-in list as-integer s-frame/tail - as byte-ptr! s-frame/heap
+			integer/load-in list as-integer (as byte-ptr! s-frame/heap) - base
+			integer/load-in list  as-integer s-frame/tail - base
+		]
+		s-frame: s-frame/next
+	]
+
+;-- Big frames stats --
+	bigs: block/make-in blk 8
+	b-frame: memory/b-head
+
+	while [b-frame <> null][
+		if verbose >= 2 [
+			integer/load-in bigs b-frame/size
+		]
+		b-frame: b-frame/next
+	]
+]
+
 ;===========================================
 ;== Debugging functions
 ;===========================================

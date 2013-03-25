@@ -13,6 +13,7 @@ lexer: context [
 	line: 	none									;-- source code lines counter
 	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
+	cnt:	none									;-- counts nested {} in multi-line strings
 	pos:	none									;-- source input position (error reporting)
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
@@ -235,6 +236,9 @@ lexer: context [
 				| #"-"	(value: #"^-")
 				| #"?" 	(value: #"^(del)")
 				| #"^^" (value: #"^^")				;-- caret escaping case
+				| #"{"	(value: #"{")
+				| #"}"	(value: #"}")
+				| #"^""	(value: #"^"")
 			]
 			| s: caret-char (value: s/1 - 64)
 		]
@@ -253,11 +257,21 @@ lexer: context [
 		e: {"}
 	]
 	
-	multiline-string: [
-		#"{" s: (type: string! stop: not-mstr-char)
-		any [counted-newline | "^^}" | UTF8-filtered-char]
-		e: #"}"
+	nested-curly-braces: [
+		(cnt: 1 fail?: none)
+		any [
+			[
+				counted-newline 
+				| "^^{" | "^^}"
+				| #"{" (cnt: cnt + 1)
+				| e: #"}" (if zero? cnt: cnt - 1 [fail?: [end skip]])
+				| UTF8-char
+			] fail?
+		]
+		#"}"
 	]
+	
+	multiline-string: [#"{" s: (type: string!) nested-curly-braces]
 	
 	string-rule: [line-string | multiline-string]
 	
@@ -290,9 +304,7 @@ lexer: context [
 	comment-rule: [#";" [to #"^/" | to end]]
 	
 	multiline-comment-rule: [
-		"comment" any-ws #"{" (stop: not-mstr-char) any [
-			counted-newline | "^^}" | UTF8-filtered-char
-		] #"}"
+		"comment" any-ws #"{" nested-curly-braces
 	]
 	
 	wrong-delimiters: [
@@ -347,7 +359,7 @@ lexer: context [
 		push: func [value][
 			either any [value = block! value = paren! value = path!][
 				if value = path! [value: block!]
-				insert/only tail stk value: make value 1			
+				insert/only tail stk value: make value 1
 				value
 			][
 				insert/only tail last stk :value
@@ -468,15 +480,14 @@ lexer: context [
 		s
 	]
 
-	load-string: func [s [string!] e [string!] /local new][
+	load-string: func [s [string!] e [string!] /local new filter][
 		new: make string! offset? s e				;-- allocated size close to final size
+		filter: get pick [UTF8-char UTF8-filtered-char] s/-1 = #"{"
 
-		parse/all/case s [
-			some [
-				escaped-char (insert tail new value)
-				| s: UTF8-filtered-char e: (		;-- already set to right filter	
-					insert/part tail new s e
-				)
+		parse/all/case copy/part s e [
+			any [
+				escaped-char   (insert tail new value)
+				| s: filter e: (insert/part tail new s e)
 			]										;-- exit on matching " or }
 		]
 		new
