@@ -748,7 +748,7 @@ red: context [
 				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
 					emit to path! reduce [to word! form type? value 'push]
-					emit decorate-symbol w
+					emit to path! reduce ['exec decorate-symbol w]
 					insert-lf -2
 				]
 				none? :value [
