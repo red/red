@@ -14,17 +14,58 @@ Red/System [
 _function: context [
 	verbose: 0
 	
+	collect-word: func [
+		value  [red-value!]
+		list   [red-block!]
+		ignore [red-block!]
+		/local		
+			result [red-value!]
+			word   [red-value!]
+	][
+		word: stack/push value
+		word/header: TYPE_WORD							;-- convert the set-word! into a word!
+
+		result: block/find ignore word null no no no null null no no no no
+
+		if TYPE_OF(result) = TYPE_NONE [
+			block/rs-append list word
+			block/rs-append ignore word
+		]
+		stack/pop 2										;-- remove word and FIND result from stack
+	]
+	
+	collect-many-words: func [
+		blk	   [red-block!]
+		list   [red-block!]
+		ignore [red-block!]
+		/local		
+			slot  [red-value!]
+			tail  [red-value!]
+	][
+		slot: block/rs-head blk
+		tail: block/rs-tail blk
+		
+		while [slot < tail][
+			assert any [								;-- replace with ANY_WORD?
+				TYPE_OF(slot) = TYPE_WORD
+				TYPE_OF(slot) = TYPE_GET_WORD
+				TYPE_OF(slot) = TYPE_LIT_WORD
+			]
+			collect-word slot list ignore
+			slot: slot + 1
+		]
+	]
 	
 	collect-deep: func [
 		list   [red-block!]
 		ignore [red-block!]
 		blk    [red-block!]
 		/local
-			value  [red-value!]
-			tail   [red-value!]
-			end	   [red-value!]
-			result [red-value!]
-			word   [red-value!]
+			value [red-value!]
+			tail  [red-value!]
+			w	  [red-word!]
+			many? [logic!]
+			slot  [red-value!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
@@ -32,16 +73,28 @@ _function: context [
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_SET_WORD [
-					word: stack/push value
-					word/header: TYPE_WORD				;-- convert the set-word! into a word!
-					
-					result: block/find ignore word null no no no null null no no no no
-					
-					if TYPE_OF(result) = TYPE_NONE [
-						block/rs-append list word
-						block/rs-append ignore word
+					collect-word value list ignore
+				]
+				TYPE_WORD [
+					w: as red-word! value
+					many?: any [
+						EQUAL_SYMBOLS?(w/symbol words/foreach)
+						;EQUAL_SYMBOLS?(w/symbol words/remove-each)
 					]
-					stack/pop 2							;-- remove word and FIND result from stack
+					if any [
+						many?
+						EQUAL_SYMBOLS?(w/symbol words/repeat)
+						EQUAL_SYMBOLS?(w/symbol words/forall)
+					][
+						if value + 1 < tail [
+							slot: value + 1
+							either all [many? TYPE_OF(slot) = TYPE_BLOCK][
+								collect-many-words as red-block! slot list ignore
+							][
+								collect-word slot list ignore
+							]
+						]
+					]
 				]
 				TYPE_BLOCK
 				TYPE_PAREN [

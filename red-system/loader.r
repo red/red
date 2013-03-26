@@ -97,14 +97,15 @@ loader: make-profilable context [
 		]
 	]
 	
-	copy-paths: func [s [series!]][
+	copy-deep: func [s [series!]][
+		s: copy/deep s
 		forall s [
 			case [
 				find [path! set-path! lit-path!] type?/word s/1 [
-					s/1: copy s/1
+					s/1: copy/deep s/1
 				]
 				any [block? s/1 paren? s/1][
-					copy-paths s/1
+					s/1: copy-deep s/1
 				]
 			]
 		]
@@ -115,8 +116,7 @@ loader: make-profilable context [
 		unless equal? length? args length? s/2 [
 			throw-error ["invalid macro arguments count in:" mold s/2]
 		]	
- 		macro: copy-paths copy/deep macro
-
+ 		macro: copy-deep macro
 		parse :macro rule: [
 			some [
 				into rule 

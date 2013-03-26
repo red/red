@@ -84,7 +84,7 @@ interpreter: context [
 			switch TYPE_OF(value) [
 				TYPE_REFINEMENT [
 					ref: as red-refinement! value
-					either (symbol/resolve ref/symbol) = (symbol/resolve word/symbol) [
+					either EQUAL_WORDS?(ref word) [
 						slot: as red-logic! stack/arguments + pos
 						slot/value: true
 						

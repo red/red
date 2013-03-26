@@ -96,12 +96,18 @@ words: context [
 	_syllable:	as red-word! 0
 	_macosx:	as red-word! 0
 	_linux:		as red-word! 0
+	_repeat:	as red-word! 0
+	_foreach:	as red-word! 0
+	_forall:	as red-word! 0
 	
 	spec:		-1
 	body:		-1
 	words:		-1
 	logic!:		-1
 	integer!:	-1
+	repeat:		-1
+	foreach:	-1
+	forall:		-1
 	
 	build: does [
 		_spec:		word/load "spec"
@@ -115,11 +121,18 @@ words: context [
 		_macosx:	word/load "MacOSX"
 		_linux:		word/load "Linux"
 		
+		_repeat:	word/load "repeat"
+		_foreach:	word/load "foreach"
+		_forall:	word/load "forall"
+		
 		spec:		_spec/symbol
 		body:		_body/symbol
 		words:		_words/symbol
 		logic!:		_logic!/symbol
 		integer!:	_integer!/symbol
+		repeat:		_repeat/symbol
+		foreach:	_foreach/symbol
+		forall:		_forall/symbol
 	]
 ]
 
