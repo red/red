@@ -425,61 +425,61 @@ tail?: make action! [[
 
 if: make native! [
 	[
-		"If condition is TRUE, evaluate block; else return NONE."
-		cond  	 [any-type!] "Test condition."
-		then-blk [block!] "Block to evaluate."
+		"If condition is true, evaluate block; else return NONE."
+		cond  	 [any-type!]
+		then-blk [block!]
 	]
 	#get-definition NAT_IF
 ]
 
 unless: make native! [
 	[
-		"If condition is not TRUE, evaluate block; else return NONE."
-		cond  	 [any-type!] "Test condition."
-		then-blk [block!] "Block to evaluate."
+		"If condition is not true, evaluate block; else return NONE."
+		cond  	 [any-type!]
+		then-blk [block!]
 	]
 	#get-definition NAT_UNLESS
 ]
 
 either: make native! [
 	[
-		"If condition is TRUE, eval true-block; else eval false-blk."
-		cond  	  [any-type!] "Test condition."
-		true-blk  [block!] "Block to evaluate if condition is TRUE."
-		false-blk [block!] "Block to evaluate if condition is not TRUE."
+		"If condition is true, eval true-block; else eval false-blk."
+		cond  	  [any-type!]
+		true-blk  [block!]
+		false-blk [block!]
 	]
 	#get-definition NAT_EITHER
 ]
 	
 any: make native! [
 	[
-		"Evaluates conditions, returning at the first that is TRUE."
-		conds [block!] "Test conditions."
+		"Evaluates conditions, returning at the first that is true."
+		conds [block!]
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [
 	[
-		"Evaluates conditions, returning at the first that is not TRUE."
-		conds [block!] "Test conditions."
+		"Evaluates conditions, returning at the first that is not true."
+		conds [block!]
 	]
 	#get-definition NAT_ALL
 ]
 
 while: make native! [
 	[
-		"Evaluates body until condition is TRUE."
-		cond [block!] "Test condition."
-		body [block!] "Block to evaluate."
+		"Evaluates body until condition is true."
+		cond [block!]
+		body [block!]
 	]
 	#get-definition NAT_WHILE
 ]
 	
 until: make native! [
 	[
-		"Evaluates body until it is TRUE."
-		body [block!] "Block to evaluate."
+		"Evaluates body until it is true."
+		body [block!]
 	]
 	#get-definition NAT_UNTIL
 ]
@@ -487,8 +487,8 @@ until: make native! [
 loop: make native! [
 	[
 		"Evaluates body a number of times."
-		count [integer!] "Number of times to evaluate body."
-		body  [block!]   "Block to evaluate."
+		count [integer!]
+		body  [block!]
 	]
 	#get-definition NAT_LOOP
 ]
@@ -498,7 +498,7 @@ repeat: make native! [
 		"Evaluates body a number of times, tracking iteration count."
 		'word [word!]    "Iteration counter. Not local to loop."
 		value [integer!] "Number of times to evaluate body."
-		body  [block!]   "Block to evaluate."
+		body  [block!]
 	]
 	#get-definition NAT_REPEAT
 ]
@@ -506,9 +506,9 @@ repeat: make native! [
 foreach: make native! [
 	[
 		"Evaluates body for each value in a series."
-		'word  [word!]   "Word, or words, to set on each iteration."
-		series [series!] "Series to iterate over."
-		body   [block!]  "Block to evaluate."
+		'word  [word!]   "Word, or words, to set on each iteration"
+		series [series!]
+		body   [block!]
 	]
 	#get-definition NAT_FOREACH
 ]
@@ -516,8 +516,8 @@ foreach: make native! [
 forall: make native! [
 	[
 		"Evaluates body for all values in a series."
-		'word [word!]   "Word referring to series to iterate over."
-		body  [block!]  "Block to evaluate."
+		'word [word!]   "Word referring to series to iterate over"
+		body  [block!]
 	]
 	#get-definition NAT_FORALL
 ]
@@ -527,27 +527,35 @@ forall: make native! [
 ;	none
 ;]
 
-func: make native! [[
+func: make native! [
+	[
+		"Defines a function with a given specification and body to evaluate."
 		spec [block!]
 		body [block!]
 	]
 	#get-definition NAT_FUNC
 ]
 
-function: make native! [[
+function: make native! [
+	[
+		"Defines a function, making all words found in body local variables."
 		spec [block!]
 		body [block!]
 	]
 	#get-definition NAT_FUNCTION
 ]
 
-does: make native! [[
+does: make native! [
+	[
+		"Defines a function with no arguments or local variables."
 		body [block!]
 	]
 	#get-definition NAT_DOES
 ]
 
-has: make native! [[
+has: make native! [
+	[
+		"Defines a function with local variables, but no arguments."
 		vars [block!]
 		body [block!]
 	]
@@ -555,171 +563,219 @@ has: make native! [[
 ]
 
 exit: make native! [
-	[]
+	[
+		"Exits from a function, returning UNSET."
+	]
 	#get-definition NAT_EXIT
 ]
 
-return: make native! [[
+return: make native! [
+	[
+		"Exits from a function, returning the given value."
 		value [any-type!]
 	]
 	#get-definition NAT_RETURN
 ]
 
-switch: make native! [[
-		value [any-type!]
+switch: make native! [
+	[
+		"Evaluates the first block following the value found in cases."
+		value [any-type!] "The value to match"
 		cases [block!]
-		/default
-			case [block!]
+		/default "Specify a default block, if value is not found in cases"
+			case [block!] "Default block to evaluate"
 	]
 	#get-definition NAT_SWITCH
 ]
 
-case: make native! [[
-		cases [block!]
-		/all
+case: make native! [
+	[
+		"Evaluates the block following the first true condition."
+		cases [block!] "Block of condition-block pairs"
+		/all "Test all conditions, evaluating the block following each true condition"
 	]
 	#get-definition NAT_CASE
 ]
 
-do: make native! [[
+do: make native! [
+	[
+		"Evaluates a value, returning the last evaluation result."
 		value [any-type!]
 	]
 	#get-definition NAT_DO
 ]
 
-reduce: make native! [[
+reduce: make native! [
+	[
+		"Evaluate a value, returning all evaluation results."
 		value [any-type!]
-		/into
-			out [any-block!]
+		/into "Put results in out block, instead of creating a new block"
+			out [any-block!] "Target block for results, when /into is used"
 	]
 	#get-definition NAT_REDUCE
 ]
 
-compose: make native! [[
+compose: make native! [
+	[
+		"Evaluates parens in a value, returning all evaluation results."
 		value [block!]
-		/deep
-		/only
-		/into
-			out [any-block!]
+		/deep "Compose nested blocks"
+		/only "Compose nested blocks as blocks containing their values"
+		/into "Put results in out block, instead of creating a new block"
+			out [any-block!] "Target block for results, when /into is used"
 	]
 	#get-definition NAT_COMPOSE
 ]
 
-get: make native! [[
+get: make native! [
+	[
+		"Returns the value a word refers to."
 		word	[word!]
-		/any
+		/any "If word has no value, return UNSET rather than causing an error"
 		return: [any-type!]
 	] 
 	#get-definition NAT_GET
 ]
 
-set: make native! [[
-		word	[any-word!]
-		value	[any-type!]
-		/any		
+set: make native! [
+	[
+		"Sets the value one or more words refer to."
+		word	[any-word! block!] "Word or block of words to set"
+		value	[any-type!] "Value or block of values to assign to words"
+		/any "If word has no value, return UNSET rather than causing an error"
 		return: [any-type!]
 	]
 	#get-definition NAT_SET
 ]
 
-print: make native! [[
+print: make native! [
+	[
+		"Writes a value followed by a newline to stdout."
 		value	[any-type!]
 	]
 	#get-definition NAT_PRINT
 ]
 
-prin: make native! [[
+prin: make native! [
+	[
+		"Writes a value to stdout."
 		value	[any-type!]
 	]
 	#get-definition NAT_PRIN
 ]
 
-equal?: make native! [[
+equal?: make native! [
+	[
+		"Returns true if two values are equal."
 		value1 [any-type!]
 		value2 [any-type!]
 	]
 	#get-definition NAT_EQUAL?
 ]
 
-not-equal?: make native! [[
+not-equal?: make native! [
+	[
+		"Returns true if two values are not equal."
 		value1 [any-type!]
 		value2 [any-type!]
 	]
 	#get-definition NAT_NOT_EQUAL?
 ]
 
-strict-equal?: make native! [[
+strict-equal?: make native! [
+	[
+		"Returns true if two values are equal, and also the same datatype."
 		value1 [any-type!]
 		value2 [any-type!]
 	]
 	#get-definition NAT_STRICT_EQUAL?
 ]
 
-lesser?: make native! [[
+lesser?: make native! [
+	[
+		"Returns true if the first value is less than the second."
 		value1 [any-type!]
 		value2 [any-type!]
 	]
 	#get-definition NAT_LESSER?
 ]
 
-greater?: make native! [[
+greater?: make native! [
+	[
+		"Returns true if the first value is greater than the second."
 		value1 [any-type!]
 		value2 [any-type!]
 	]
 	#get-definition NAT_GREATER?
 ]
 
-lesser-or-equal?: make native! [[
+lesser-or-equal?: make native! [
+	[
+		"Returns true if the first value is less than or equal to the second."
 		value1 [any-type!]
 		value2 [any-type!]
 	]
 	#get-definition NAT_LESSER_OR_EQUAL?
 ]
 
-greater-or-equal?: make native! [[
+greater-or-equal?: make native! [
+	[
+		"Returns true if the first value is greater than or equal to the second."
 		value1 [any-type!]
 		value2 [any-type!]
 	]
 	#get-definition NAT_GREATER_OR_EQUAL?
 ]
 
-same?: make native! [[
+same?: make native! [
+	[
+		"Returns true if two values have the same identity."
 		value1 [any-type!]
 		value2 [any-type!]
 	]
 	#get-definition NAT_SAME?
 ]
 
-not: make native! [[
+not: make native! [
+	[
+		"Returns the negation (logical complement) of a value."
 		value [any-type!]
 	]
 	#get-definition NAT_NOT
 ]
 
 halt: make native! [
-	[]
+	[
+		"Stops evaluation."
+	]
 	#get-definition NAT_HALT
 ]
 
-type?: make native! [[
+type?: make native! [
+	[
+		"Returns the datatype of a value."
 		value [any-type!]
-		/word
+		/word "Return a word value, rather than a datatype value"
 	]
 	#get-definition NAT_TYPE?
 ]
 
-load: make native! [[
+load: make native! [
+	[
+		"Returns a value or block of values by reading and evaluating a source."
 		source [file! url! string! binary! block!]
-		/header
-		/all
-		/type [word! none!]
+		/header "TBD: Include Red header as a loaded value"
+		/all    "TBD: Don't evaluate Red header"
+		/type [word! none!] "TBD:"
 	]
 	#get-definition NAT_LOAD
 ]
 
-stats: make native! [[
-		/show
-		/info
+stats: make native! [
+	[
+		"Returns interpreter statistics."
+		/show "Output formatted results"
+		/info "TBD:"
 		return: [integer! block!]
 	]
 	#get-definition NAT_STATS
@@ -768,75 +824,95 @@ crlf:		 "^M^/"
 ;------------------------------------------
 
 quit-return: routine [
-	status			[integer!]
+	"Stops evaluation and exits the interpreter with a given status."
+	status			[integer!] "Process termination value to return"
 ][
 	quit status
 ]
 quit: func [
-	/return status	[integer!]
+	"Stops evaluation and exits the interpreter."
+	/return status	[integer!] "Return an exit status"
 ][
 	quit-return any [status 0]
 ]
 
 empty?: func [
+	"Returns true if a series is at its tail."
 	series	[series!]
 	return:	[logic!]
 ][
 	tail? series
 ]
 
-??: func ['value [word!]][
+??: func [
+	"Prints a word and the value it refers to (molded)."
+	'value [word!]
+][
 	prin mold :value
 	prin ": "
 	probe get/any :value
 ]
 
-probe: func [value][
+probe: func [
+	"Returns a value after printing its molded form."
+	value
+][
 	print mold value 
 	value
 ]
 
-first:	func [s [series!]][pick s 1]					;@@ temporary definitions, should be natives ?
-second:	func [s [series!]][pick s 2]
-third:	func [s [series!]][pick s 3]
-fourth:	func [s [series!]][pick s 4]
-fifth:	func [s [series!]][pick s 5]
+first:	func ["Returns the first value in a series."  s [series!]] [pick s 1]	;@@ temporary definitions, should be natives ?
+second:	func ["Returns the second value in a series." s [series!]] [pick s 2]
+third:	func ["Returns the third value in a series."  s [series!]] [pick s 3]
+fourth:	func ["Returns the fourth value in a series." s [series!]] [pick s 4]
+fifth:	func ["Returns the fifth value in a series."  s [series!]] [pick s 5]
 
-last:	func [s [series!]][pick back tail s 1]
+last:	func ["Returns the last value in a series."  s [series!]][pick back tail s 1]
 
 
-action?:	 func [value [any-type!]][action!	= type? value]
-block?:		 func [value [any-type!]][block!	= type? value]
-char?: 		 func [value [any-type!]][char!		= type? value]
-datatype?:	 func [value [any-type!]][datatype!	= type? value]
-file?:		 func [value [any-type!]][file!		= type? value]
-function?:	 func [value [any-type!]][function!	= type? value]
-get-path?:	 func [value [any-type!]][get-path!	= type? value]
-get-word?:	 func [value [any-type!]][get-word!	= type? value]
-integer?:    func [value [any-type!]][integer!	= type? value]
-issue?:    	 func [value [any-type!]][issue!	= type? value]
-lit-path?:	 func [value [any-type!]][lit-path!	= type? value]
-lit-word?:	 func [value [any-type!]][lit-word!	= type? value]
-logic?:		 func [value [any-type!]][logic!	= type? value]
-native?:	 func [value [any-type!]][native!	= type? value]
-none?:		 func [value [any-type!]][none!		= type? value]
-op?:		 func [value [any-type!]][op!		= type? value]
-paren?:		 func [value [any-type!]][paren!	= type? value]
-path?:		 func [value [any-type!]][path!		= type? value]
-refinement?: func [value [any-type!]][refinement! = type? value]
-set-path?:	 func [value [any-type!]][set-path!	= type? value]
-set-word?:	 func [value [any-type!]][set-word!	= type? value]
-string?:	 func [value [any-type!]][string!	= type? value]
-unset?:		 func [value [any-type!]][unset!	= type? value]
-word?:		 func [value [any-type!]][word!		= type? value]
+action?:	 func ["Returns true if the value is this type." value [any-type!]] [action!	= type? value]
+block?:		 func ["Returns true if the value is this type." value [any-type!]] [block!	= type? value]
+char?: 		 func ["Returns true if the value is this type." value [any-type!]] [char!		= type? value]
+datatype?:	 func ["Returns true if the value is this type." value [any-type!]] [datatype!	= type? value]
+file?:		 func ["Returns true if the value is this type." value [any-type!]] [file!		= type? value]
+function?:	 func ["Returns true if the value is this type." value [any-type!]] [function!	= type? value]
+get-path?:	 func ["Returns true if the value is this type." value [any-type!]] [get-path!	= type? value]
+get-word?:	 func ["Returns true if the value is this type." value [any-type!]] [get-word!	= type? value]
+integer?:    func ["Returns true if the value is this type." value [any-type!]] [integer!	= type? value]
+issue?:    	 func ["Returns true if the value is this type." value [any-type!]] [issue!	= type? value]
+lit-path?:	 func ["Returns true if the value is this type." value [any-type!]] [lit-path!	= type? value]
+lit-word?:	 func ["Returns true if the value is this type." value [any-type!]] [lit-word!	= type? value]
+logic?:		 func ["Returns true if the value is this type." value [any-type!]] [logic!	= type? value]
+native?:	 func ["Returns true if the value is this type." value [any-type!]] [native!	= type? value]
+none?:		 func ["Returns true if the value is this type." value [any-type!]] [none!		= type? value]
+op?:		 func ["Returns true if the value is this type." value [any-type!]] [op!		= type? value]
+paren?:		 func ["Returns true if the value is this type." value [any-type!]] [paren!	= type? value]
+path?:		 func ["Returns true if the value is this type." value [any-type!]] [path!		= type? value]
+refinement?: func ["Returns true if the value is this type." value [any-type!]] [refinement! = type? value]
+set-path?:	 func ["Returns true if the value is this type." value [any-type!]] [set-path!	= type? value]
+set-word?:	 func ["Returns true if the value is this type." value [any-type!]] [set-word!	= type? value]
+string?:	 func ["Returns true if the value is this type." value [any-type!]] [string!	= type? value]
+unset?:		 func ["Returns true if the value is this type." value [any-type!]] [unset!	= type? value]
+word?:		 func ["Returns true if the value is this type." value [any-type!]] [word!		= type? value]
 
-spec-of: func [value][reflect :value 'spec]
-body-of: func [value][reflect :value 'body]
+spec-of: func [
+	"Returns the spec of the value, for types that support reflection."
+	value
+][
+	reflect :value 'spec
+]
+body-of: func [
+	"Returns the body of the value, for types that support reflection."
+	value
+][
+	reflect :value 'body
+]
 
 system: function [
-	/version
-	/words
-	/platform
+	"Returns information about the interpreter."
+	/version	"Return the system version"
+	/words		"Return a block of global words available"
+	/platform	"Return a word identifying the operating system"
 ][
 	case [
 		version [#version]
@@ -850,6 +926,9 @@ system: function [
 					#default [SET_RETURN(words/_linux)]
 				]
 			]
+		]
+		'else [
+			print "Please specify a system refinement value (/version, /words, or /platform)."
 		]
 	]
 ]
