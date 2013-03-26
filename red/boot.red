@@ -58,7 +58,7 @@ false: 			make logic! 0
 
 make: make action! [
 	[									;--	this one works!	;-)
-		"Construct a new value."
+		"Returns a new value made from a specification for that value's type."
 		type	 [any-type!] "The datatype or a prototype value."
 		spec	 [any-type!] "The specification	of the new value."
 		return:  [any-type!] "Returns the specified datatype."
@@ -112,7 +112,7 @@ absolute: make action! [
 
 add: make action! [
     [
-        "Returns the total of the two values."
+        "Returns the sum of the two values."
 		value1	 [number!]
 		value2	 [number!]
 		return:  [number!]
@@ -132,7 +132,7 @@ divide: make action! [
 
 multiply: make action! [
     [
-        "Returns one value scaled by another."
+        "Returns one value multiplied by another."
 		value1	 [number!]
 		value2	 [number!]
 		return:  [number!]
@@ -142,23 +142,28 @@ multiply: make action! [
 
 negate: make action! [
     [
-        "Returns the value with the opposite sign."
+        "Returns the inverse value."
 		number 	 [number!]
 		return:  [number!]
 	]
 	#get-definition ACT_NEGATE
 ]
 
-power: make action! [[
-		number	 [number!]
-		exponent [number!]
+power: make action! [
+    [
+        "Returns a number raised to a given power (exponent)."
+		number	 [number!] "Base value."
+		exponent [number!] "The power (index) to raise the base value by."
 		return:	 [number!]
 	]
 	#get-definition ACT_POWER
 ]
 
-remainder: make action! [[
-		value 	 [number!]
+remainder: make action! [
+    [
+        "Returns what is left over when one value is divided by another."
+		value1 	 [number!]
+		value2 	 [number!]
 		return:  [number!]
 	]
 	#get-definition ACT_REMAINDER
@@ -178,7 +183,9 @@ round: make action! [[
 	#get-definition ACT_ROUND
 ]
 
-subtract: make action! [[
+subtract: make action! [
+    [
+        "Returns the difference between two values."
 		value1	 [number!]
 		value2	 [number!]
 		return:  [number!]
@@ -186,14 +193,18 @@ subtract: make action! [[
 	#get-definition ACT_SUBTRACT
 ]
 
-even?: make action! [[
+even?: make action! [
+    [
+        "Returns true if the number is evenly divisible by 2."
 		number 	 [number!]
 		return:  [number!]
 	]
 	#get-definition ACT_EVEN?
 ]
 
-odd?: make action! [[
+odd?: make action! [
+    [
+        "Returns true if the number has a remainder of 1 when divided by 2."
 		number 	 [number!]
 		return:  [number!]
 	]
@@ -412,79 +423,101 @@ tail?: make action! [[
 ;-				Natives					  -
 ;------------------------------------------
 
-if: make native! [[
-		cond  	 [any-type!]
-		true-blk [block!]
+if: make native! [
+    [
+        "If condition is TRUE, evaluate block; else return NONE."
+		cond  	 [any-type!] "Test condition."
+		then-blk [block!] "Block to evaluate."
 	]
 	#get-definition NAT_IF
 ]
 
-unless: make native! [[
-		cond  	 [any-type!]
-		true-blk [block!]
+unless: make native! [
+    [
+        "If condition is not TRUE, evaluate block; else return NONE."
+		cond  	 [any-type!] "Test condition."
+		then-blk [block!] "Block to evaluate."
 	]
 	#get-definition NAT_UNLESS
 ]
 
-either: make native! [[
-		cond  	  [any-type!]
-		true-blk  [block!]
-		false-blk [block!]
+either: make native! [
+    [
+        "If condition is TRUE, eval true-block; else eval false-blk."
+		cond  	  [any-type!] "Test condition."
+		true-blk  [block!] "Block to evaluate if condition is TRUE."
+		false-blk [block!] "Block to evaluate if condition is not TRUE."
 	]
 	#get-definition NAT_EITHER
 ]
 	
-any: make native! [[
-		conds [block!]
+any: make native! [
+    [
+        "Evaluates conditions, returning at the first that is TRUE."
+		conds [block!] "Test conditions."
 	]
 	#get-definition NAT_ANY
 ]
 
-all: make native! [[
-		conds [block!]
+all: make native! [
+    [
+        "Evaluates conditions, returning at the first that is not TRUE."
+		conds [block!] "Test conditions."
 	]
 	#get-definition NAT_ALL
 ]
 
-while: make native! [[
-		cond [block!]
-		body [block!]
+while: make native! [
+    [
+        "Evaluates body until condition is TRUE."
+		cond [block!] "Test condition."
+		body [block!] "Block to evaluate."
 	]
 	#get-definition NAT_WHILE
 ]
 	
-until: make native! [[
-		body [block!]
+until: make native! [
+    [
+        "Evaluates body until it is TRUE."
+		body [block!] "Block to evaluate."
 	]
 	#get-definition NAT_UNTIL
 ]
 
-loop: make native! [[
-		count [integer!]
-		body  [block!]
+loop: make native! [
+    [
+        "Evaluates body a number of times."
+		count [integer!] "Number of times to evaluate body."
+		body  [block!]   "Block to evaluate."
 	]
 	#get-definition NAT_LOOP
 ]
 
-repeat: make native! [[
-		'word [word!]
-		value [integer!]
-		body  [block!]
+repeat: make native! [
+    [
+        "Evaluates body a number of times, tracking iteration count."
+		'word [word!]    "Iteration counter. Not local to loop."
+		value [integer!] "Number of times to evaluate body."
+		body  [block!]   "Block to evaluate."
 	]
 	#get-definition NAT_REPEAT
 ]
 
-foreach: make native! [[
-		'word  [word!]
-		series [series!]
-		body   [block!]
+foreach: make native! [
+    [
+        "Evaluates body for each value in a series."
+		'word  [word!]   "Word, or words, to set on each iteration."
+		series [series!] "Series to iterate over."
+		body   [block!]  "Block to evaluate."
 	]
 	#get-definition NAT_FOREACH
 ]
 
-forall: make native! [[
-		'word [word!]
-		body  [block!]
+forall: make native! [
+    [
+        "Evaluates body for all values in a series."
+		'word [word!]   "Word referring to series to iterate over."
+		body  [block!]  "Block to evaluate."
 	]
 	#get-definition NAT_FORALL
 ]
