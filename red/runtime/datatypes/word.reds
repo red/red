@@ -185,7 +185,7 @@ word: context [
 						type = TYPE_REFINEMENT
 						type = TYPE_ISSUE
 					]
-					EQUAL_SYMBOLS?(arg1 arg2)
+					EQUAL_WORDS?(arg1 arg2)
 				]
 			]
 			COMP_STRICT_EQUAL [
