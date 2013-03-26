@@ -102,8 +102,8 @@ mold: make action! [[
 ;-- Scalar actions --
 
 absolute: make action! [
-    [
-        "Returns the non-negative value."
+	[
+		"Returns the non-negative value."
 		value	 [number!]
 		return:  [number!]
 	]
@@ -111,8 +111,8 @@ absolute: make action! [
 ]
 
 add: make action! [
-    [
-        "Returns the sum of the two values."
+	[
+		"Returns the sum of the two values."
 		value1	 [number!]
 		value2	 [number!]
 		return:  [number!]
@@ -121,8 +121,8 @@ add: make action! [
 ]
 
 divide: make action! [
-    [
-        "Returns the quotient of two values."
+	[
+		"Returns the quotient of two values."
 		value1	 [number!] "The dividend (numerator)."
 		value2	 [number!] "The divisor (denominator)."
 		return:  [number!]
@@ -131,8 +131,8 @@ divide: make action! [
 ]
 
 multiply: make action! [
-    [
-        "Returns one value multiplied by another."
+	[
+		"Returns one value multiplied by another."
 		value1	 [number!]
 		value2	 [number!]
 		return:  [number!]
@@ -141,8 +141,8 @@ multiply: make action! [
 ]
 
 negate: make action! [
-    [
-        "Returns the inverse value."
+	[
+		"Returns the inverse value."
 		number 	 [number!]
 		return:  [number!]
 	]
@@ -150,8 +150,8 @@ negate: make action! [
 ]
 
 power: make action! [
-    [
-        "Returns a number raised to a given power (exponent)."
+	[
+		"Returns a number raised to a given power (exponent)."
 		number	 [number!] "Base value."
 		exponent [number!] "The power (index) to raise the base value by."
 		return:	 [number!]
@@ -160,8 +160,8 @@ power: make action! [
 ]
 
 remainder: make action! [
-    [
-        "Returns what is left over when one value is divided by another."
+	[
+		"Returns what is left over when one value is divided by another."
 		value1 	 [number!]
 		value2 	 [number!]
 		return:  [number!]
@@ -184,8 +184,8 @@ round: make action! [[
 ]
 
 subtract: make action! [
-    [
-        "Returns the difference between two values."
+	[
+		"Returns the difference between two values."
 		value1	 [number!]
 		value2	 [number!]
 		return:  [number!]
@@ -194,8 +194,8 @@ subtract: make action! [
 ]
 
 even?: make action! [
-    [
-        "Returns true if the number is evenly divisible by 2."
+	[
+		"Returns true if the number is evenly divisible by 2."
 		number 	 [number!]
 		return:  [number!]
 	]
@@ -203,8 +203,8 @@ even?: make action! [
 ]
 
 odd?: make action! [
-    [
-        "Returns true if the number has a remainder of 1 when divided by 2."
+	[
+		"Returns true if the number has a remainder of 1 when divided by 2."
 		number 	 [number!]
 		return:  [number!]
 	]
@@ -424,8 +424,8 @@ tail?: make action! [[
 ;------------------------------------------
 
 if: make native! [
-    [
-        "If condition is TRUE, evaluate block; else return NONE."
+	[
+		"If condition is TRUE, evaluate block; else return NONE."
 		cond  	 [any-type!] "Test condition."
 		then-blk [block!] "Block to evaluate."
 	]
@@ -433,8 +433,8 @@ if: make native! [
 ]
 
 unless: make native! [
-    [
-        "If condition is not TRUE, evaluate block; else return NONE."
+	[
+		"If condition is not TRUE, evaluate block; else return NONE."
 		cond  	 [any-type!] "Test condition."
 		then-blk [block!] "Block to evaluate."
 	]
@@ -442,8 +442,8 @@ unless: make native! [
 ]
 
 either: make native! [
-    [
-        "If condition is TRUE, eval true-block; else eval false-blk."
+	[
+		"If condition is TRUE, eval true-block; else eval false-blk."
 		cond  	  [any-type!] "Test condition."
 		true-blk  [block!] "Block to evaluate if condition is TRUE."
 		false-blk [block!] "Block to evaluate if condition is not TRUE."
@@ -452,24 +452,24 @@ either: make native! [
 ]
 	
 any: make native! [
-    [
-        "Evaluates conditions, returning at the first that is TRUE."
+	[
+		"Evaluates conditions, returning at the first that is TRUE."
 		conds [block!] "Test conditions."
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [
-    [
-        "Evaluates conditions, returning at the first that is not TRUE."
+	[
+		"Evaluates conditions, returning at the first that is not TRUE."
 		conds [block!] "Test conditions."
 	]
 	#get-definition NAT_ALL
 ]
 
 while: make native! [
-    [
-        "Evaluates body until condition is TRUE."
+	[
+		"Evaluates body until condition is TRUE."
 		cond [block!] "Test condition."
 		body [block!] "Block to evaluate."
 	]
@@ -477,16 +477,16 @@ while: make native! [
 ]
 	
 until: make native! [
-    [
-        "Evaluates body until it is TRUE."
+	[
+		"Evaluates body until it is TRUE."
 		body [block!] "Block to evaluate."
 	]
 	#get-definition NAT_UNTIL
 ]
 
 loop: make native! [
-    [
-        "Evaluates body a number of times."
+	[
+		"Evaluates body a number of times."
 		count [integer!] "Number of times to evaluate body."
 		body  [block!]   "Block to evaluate."
 	]
@@ -494,8 +494,8 @@ loop: make native! [
 ]
 
 repeat: make native! [
-    [
-        "Evaluates body a number of times, tracking iteration count."
+	[
+		"Evaluates body a number of times, tracking iteration count."
 		'word [word!]    "Iteration counter. Not local to loop."
 		value [integer!] "Number of times to evaluate body."
 		body  [block!]   "Block to evaluate."
@@ -504,8 +504,8 @@ repeat: make native! [
 ]
 
 foreach: make native! [
-    [
-        "Evaluates body for each value in a series."
+	[
+		"Evaluates body for each value in a series."
 		'word  [word!]   "Word, or words, to set on each iteration."
 		series [series!] "Series to iterate over."
 		body   [block!]  "Block to evaluate."
@@ -514,8 +514,8 @@ foreach: make native! [
 ]
 
 forall: make native! [
-    [
-        "Evaluates body for all values in a series."
+	[
+		"Evaluates body for all values in a series."
 		'word [word!]   "Word referring to series to iterate over."
 		body  [block!]  "Block to evaluate."
 	]
