@@ -98,16 +98,19 @@ interpreter: context [
 									type = TYPE_WORD
 									type = TYPE_GET_WORD
 									type = TYPE_LIT_WORD
+									type = TYPE_STRING
 								]
 							]
 						][
-							FETCH_ARGUMENT
-							if function? [
-								copy-cell stack/top - 1 stack/arguments + pos2 
-								stack/pop 1
+							unless type = TYPE_STRING [
+								FETCH_ARGUMENT
+								if function? [
+									copy-cell stack/top - 1 stack/arguments + pos2 
+									stack/pop 1
+								]
+								pos2: pos2 + 1
+								args/value: args/value + 1
 							]
-							pos2: pos2 + 1
-							args/value: args/value + 1
 							value: value + 1
 						]
 						unless function? [offset/value: idx]
