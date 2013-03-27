@@ -177,3 +177,17 @@ prin-float32: func [f [float32!] return: [float32!]][
 	printf ["%.7g" as-float f]							;-- UTF-8 literal string
 	f
 ]
+
+;-------------------------------------------
+;-- Changes console text color
+;-------------------------------------------	
+set-ansi-color: func [color [integer!]][
+	either color = 7 [ ;-- 7 = white
+		print "^[[0m"
+	][ 
+		print [
+			"^[[" either color >= 7 [1][0] ";3"
+			color and 7	"m"					;-- mask only right 3 bits for color
+		]
+	]
+]

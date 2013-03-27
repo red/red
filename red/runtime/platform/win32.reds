@@ -63,6 +63,11 @@ platform: context [
 				size		[integer!]
 				return:		[integer!]
 			]
+			SetConsoleTextAttribute: "SetConsoleTextAttribute" [
+				handle 		[integer!]
+				attributes  [integer!]
+				return:		[integer!]
+			]
 		]
 	]
 
@@ -214,6 +219,13 @@ platform: context [
 	prin-float32: func [f [float32!] return: [float32!]][
 		wprintf ["^(00)%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
 		f
+	]
+	
+	;-------------------------------------------
+	;-- Changes console text color
+	;-------------------------------------------	
+	set-ansi-color: func [color [integer!]][
+		SetConsoleTextAttribute stdout color
 	]
 	
 	;-------------------------------------------

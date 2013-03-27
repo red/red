@@ -725,6 +725,12 @@ stats: make native! [[
 	#get-definition NAT_STATS
 ]
 
+set-ansi-color: make native! [[
+		ansi-code [integer!]
+	]
+	#get-definition NAT_SET_ANSI_COLOR
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
