@@ -1,5 +1,5 @@
 Red [
-	Title:   "Red case series test script"
+	Title:   "Red series test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %series-test.red
 	Tabs:	 4

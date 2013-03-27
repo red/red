@@ -66,6 +66,7 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/switch-test.red
   --run-test-file-quiet-red %source/units/case-test.red
   --run-test-file-quiet-red %source/units/routine-test.red
+  --run-test-file-quiet-red %source/units/append-test.red
 ===end-group===
 
 ===start-group=== "Auto-tests"
@@ -99,6 +100,7 @@ start-time: now/precise
   --run-test-file-quiet-red %source/units/auto-tests/interpreter-series-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interpreter-type-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interpreter-switch-test.red
+  --run-test-file-quiet-red %source/units/auto-tests/interpreter-append-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interp-equal-auto-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interp-greater-auto-test.red
   --run-test-file-quiet-red %source/units/auto-tests/interp-inf-equal-auto-test.red
