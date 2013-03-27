@@ -168,6 +168,7 @@ Red/System [
 	NAT_REDUCE
 	NAT_COMPOSE
 	NAT_STATS
+	NAT_SET_ANSI_COLOR
 ]
 
 #enum math-op! [

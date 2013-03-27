@@ -93,7 +93,9 @@ platform: context [
 		]
 	]
 	
-	
+	;-------------------------------------------
+	;-- Do platform-specific initialization tasks
+	;-------------------------------------------
 	init: does [
 		setlocale __LC_CTYPE ""					;@@ check if "utf8" is present in returned string?
 	]

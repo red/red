@@ -729,6 +729,14 @@ natives: context [
 		]
 	]
 
+	set-ansi-color*: func[
+		/local
+			color [red-integer!]
+	][
+		color: as red-integer! stack/arguments
+		platform/set-ansi-color color/value
+		RETURN_UNSET
+	]
 	;--- Natives helper functions ---
 	
 	loop?: func [
@@ -922,6 +930,7 @@ natives: context [
 		:reduce*
 		:compose*
 		:stats*
+		:set-ansi-color*
 	]
 
 ]
