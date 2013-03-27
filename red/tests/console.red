@@ -176,7 +176,10 @@ do-console: function [][
 					clear back tail result
 					append result "..."
 				]
-				print ["==" result]
+				set-ansi-color ansi-light-green
+				prin  "== "
+				set-ansi-color ansi-white
+				print result
 			]
 		]
 		clear buffer
@@ -206,9 +209,32 @@ q: :quit
 
 init-console "Red Console"
 
-print {
--=== Red Console alpha version ===-
-(only Latin-1 input supported)
-}
+ansi-black:          0
+ansi-green:          2
+ansi-magenta:        5
+ansi-white:          7
+ansi-light-green:    10
+either Windows? [
+	ansi-blue:        1
+	ansi-red:         4
+	ansi-cyan:        3
+	ansi-yellow:      6
+	ansi-light-blue:  9
+	ansi-light-red:   12
+][
+	ansi-blue:        4
+	ansi-red:         1
+	ansi-cyan:        6
+	ansi-yellow:      3
+	ansi-light-blue:  12
+	ansi-light-red:   9
+]
+
+set-ansi-color ansi-light-red
+print {-=== Red Console alpha version ===-}
+set-ansi-color ansi-red
+print {(only Latin-1 input supported)^/}
+set-ansi-color ansi-white
+
 
 do-console
