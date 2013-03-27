@@ -130,7 +130,7 @@ divide: make action! [[
 ]
 
 multiply: make action! [[
-		"Returns one value multiplied by another."
+		"Returns the product of two values."
 		value1	 [number!]
 		value2	 [number!]
 		return:  [number!]
@@ -405,7 +405,7 @@ tail: make action! [[
 ]
 
 tail?: make action! [[
-		"Returns true if a series is at or past its last value."
+		"Returns true if a series is past its last value."
 		series	 [series!]
 		return:  [logic!]
 	]
@@ -597,7 +597,7 @@ do: make native! [[
 ]
 
 reduce: make native! [[
-		"Evaluate a value, returning all evaluation results."
+		"Returns a copy of a block, evaluating all expressions."
 		value [any-type!]
 		/into "Put results in out block, instead of creating a new block"
 			out [any-block!] "Target block for results, when /into is used"
@@ -606,7 +606,7 @@ reduce: make native! [[
 ]
 
 compose: make native! [[
-		"Evaluates parens in a value, returning all evaluation results."
+		"Returns a copy of a block, evaluating only parens."
 		value [block!]
 		/deep "Compose nested blocks"
 		/only "Compose nested blocks as blocks containing their values"
@@ -626,7 +626,7 @@ get: make native! [[
 ]
 
 set: make native! [[
-		"Sets the value one or more words refer to."
+		"Sets the value(s) one or more words refer to."
 		word	[any-word! block!] "Word or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
 		/any "If word has no value, return UNSET rather than causing an error"
@@ -636,14 +636,14 @@ set: make native! [[
 ]
 
 print: make native! [[
-		"Writes a value followed by a newline to stdout."
+		"Outputs a value followed by a newline."
 		value	[any-type!]
 	]
 	#get-definition NAT_PRINT
 ]
 
 prin: make native! [[
-		"Writes a value to stdout."
+		"Outputs a value."
 		value	[any-type!]
 	]
 	#get-definition NAT_PRIN
@@ -746,8 +746,8 @@ load: make native! [[
 
 stats: make native! [[
 		"Returns interpreter statistics."
-		/show "Output formatted results"
-		/info "TBD:"
+		/show "TBD:"
+		/info "Output formatted results"
 		return: [integer! block!]
 	]
 	#get-definition NAT_STATS
@@ -796,13 +796,13 @@ crlf:		 "^M^/"
 ;------------------------------------------
 
 quit-return: routine [
-	"Stops evaluation and exits the interpreter with a given status."
+	"Stops evaluation and exits the program with a given status."
 	status			[integer!] "Process termination value to return"
 ][
 	quit status
 ]
 quit: func [
-	"Stops evaluation and exits the interpreter."
+	"Stops evaluation and exits the program."
 	/return status	[integer!] "Return an exit status"
 ][
 	quit-return any [status 0]
