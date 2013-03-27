@@ -60,6 +60,8 @@ red: context [
 		foreach forall break halt func function does has
 		exit return switch case routine set get reduce
 	]
+	
+	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
 
 	functions: make hash! [
 	;---name--type--arity----------spec----------------------------refs--
@@ -1124,7 +1126,7 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos ignore words rule new][
+	collect-words: func [spec [block!] body [block!] /local pos ignore words rule word][
 		if pos: find spec /extern [
 			ignore: pos/2
 			unless empty? intersect ignore spec [
@@ -1140,16 +1142,30 @@ red: context [
 			]
 		]
 		words: make block! 1
-
+		
+		make-local: [
+			unless any [
+				all [ignore	find ignore word]
+				find words word
+			][
+				append words word
+			]
+		]
 		parse body rule: [
 			any [
 				pos: set-word! (
-					new: to word! pos/1
-					unless any [
-						all [ignore	find ignore new]
-						find words new
+					word: to word! pos/1
+					do make-local
+				)
+				| pos: word! (
+					if all [
+						find word-iterators pos/1
+						pos/2
 					][
-						append words new
+						foreach word any [
+							all [block? pos/2 pos/2]
+							reduce [pos/2]
+						] make-local
 					]
 				)
 				| path! | set-path! | lit-path!			;-- avoid 'into visiting them
