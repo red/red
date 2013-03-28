@@ -153,6 +153,11 @@ Red [
 ===end-group===
 
 ===start-group=== "Reflection"
+	clean-strings: func [blk [block!]][
+		blk: copy blk
+		forall blk [if string? blk/1 [remove blk blk: back blk]]
+		blk
+	]
 	
 	--test-- "fun-ref-1"
 		ref1: func [a b][a + b]
@@ -160,16 +165,19 @@ Red [
 		--assert [a + b] = body-of :ref1
 	 
 	--test-- "fun-ref-2"
-		--assert (spec-of :append) = [
+		blk: clean-strings spec-of :append	
+		--assert blk = [
 			series [series!] value [any-type!] /part length [number! series!]
 			/only /dup count [number!] return: [series!]
 		]
 	
 	--test-- "fun-ref-3"
-		--assert (spec-of :set) = [word [any-word!] value [any-type!] /any return: [any-type!]]
+		blk: clean-strings spec-of :set	
+		--assert blk = [word [any-word! block!] value [any-type!] /any return: [any-type!]]
 		
 	--test-- "fun-ref-4"
-		--assert (spec-of :<) = [value1 [any-type!] value2 [any-type!]]
+		blk: clean-strings spec-of :<
+		--assert blk = [value1 [any-type!] value2 [any-type!]]
 
 ===end-group===
 
