@@ -539,6 +539,7 @@ function: make native! [[
 		"Defines a function, making all words found in body local variables."
 		spec [block!]
 		body [block!]
+		/extern	"Exclude words that follow this refinement"
 	]
 	#get-definition NAT_FUNCTION
 ]
