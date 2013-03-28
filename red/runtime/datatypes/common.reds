@@ -87,52 +87,56 @@ copy-cell: func [
 
 
 words: context [
-	_spec:		as red-word! 0
-	_body:		as red-word! 0
-	_words:		as red-word! 0
-	_logic!:	as red-word! 0
-	_integer!:	as red-word! 0
-	_windows:	as red-word! 0
-	_syllable:	as red-word! 0
-	_macosx:	as red-word! 0
-	_linux:		as red-word! 0
-	_repeat:	as red-word! 0
-	_foreach:	as red-word! 0
-	_forall:	as red-word! 0
+	_spec:			as red-word! 0
+	_body:			as red-word! 0
+	_words:			as red-word! 0
+	_logic!:		as red-word! 0
+	_integer!:		as red-word! 0
+	_windows:		as red-word! 0
+	_syllable:		as red-word! 0
+	_macosx:		as red-word! 0
+	_linux:			as red-word! 0
+	_repeat:		as red-word! 0
+	_foreach:		as red-word! 0
+	_map-each:		as red-word! 0
+	_remove-each:	as red-word! 0
 	
-	spec:		-1
-	body:		-1
-	words:		-1
-	logic!:		-1
-	integer!:	-1
-	repeat:		-1
-	foreach:	-1
-	forall:		-1
+	spec:			-1
+	body:			-1
+	words:			-1
+	logic!:			-1
+	integer!:		-1
+	repeat:			-1
+	foreach:		-1
+	map-each:		-1
+	remove-each:	-1
 	
 	build: does [
-		_spec:		word/load "spec"
-		_body:		word/load "body"
-		_words:		word/load "words"
-		_logic!:	word/load "logic!"
-		_integer!:	word/load "integer!"
+		_spec:			word/load "spec"
+		_body:			word/load "body"
+		_words:			word/load "words"
+		_logic!:		word/load "logic!"
+		_integer!:		word/load "integer!"
 		
-		_windows:	word/load "Windows"
-		_syllable:	word/load "Syllable"
-		_macosx:	word/load "MacOSX"
-		_linux:		word/load "Linux"
+		_windows:		word/load "Windows"
+		_syllable:		word/load "Syllable"
+		_macosx:		word/load "MacOSX"
+		_linux:			word/load "Linux"
 		
-		_repeat:	word/load "repeat"
-		_foreach:	word/load "foreach"
-		_forall:	word/load "forall"
+		_repeat:		word/load "repeat"
+		_foreach:		word/load "foreach"
+		_map-each:		word/load "map-each"
+		_remove-each:	word/load "remove-each"
 		
-		spec:		_spec/symbol
-		body:		_body/symbol
-		words:		_words/symbol
-		logic!:		_logic!/symbol
-		integer!:	_integer!/symbol
-		repeat:		_repeat/symbol
-		foreach:	_foreach/symbol
-		forall:		_forall/symbol
+		spec:			_spec/symbol
+		body:			_body/symbol
+		words:			_words/symbol
+		logic!:			_logic!/symbol
+		integer!:		_integer!/symbol
+		repeat:			_repeat/symbol
+		foreach:		_foreach/symbol
+		map-each:		_map-each/symbol
+		remove-each:	_remove-each/symbol
 	]
 ]
 
