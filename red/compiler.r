@@ -1004,14 +1004,20 @@ red: context [
 		depth: depth - 1
 	]
 		
-	comp-foreach: has [word blk name cond][
+	comp-foreach: has [word blk name cond ctx][
 		either block? pc/1 [
 			;TBD: raise error if not a block of words only
 			foreach word blk: pc/1 [
 				add-symbol word
 				add-global word
 			]
-			name: redirect-to-literals [emit-block blk]
+			name: redirect-to-literals [
+				either ctx: find-contexts to word! blk/1 [
+					emit-block/bind blk ctx
+				][
+					emit-block blk
+				]
+			]
 		][
 			add-symbol word: pc/1
 			add-global word
