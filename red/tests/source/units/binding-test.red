@@ -43,6 +43,57 @@
 	
 ===end-group===
 
+===start-group=== "Dynamic binding"
+
+	--test-- "dyn-bind-1"
+		a: 0
+		fun-bind-10: func [code /local a][
+			a: 1
+			do bind code 'a
+		]
+		--assert 3 = fun-bind-10 [a + 2]
+		--assert a = 0
+
+	--test-- "dyn-bind-2"
+		a: 0
+		fun-bind-11: func [code /local a][
+			a: 1
+			do bind/copy code 'a
+		]
+		z: [a + 2]
+		--assert 3 = fun-bind-11 z
+		--assert a = 0
+		--assert 2 = do z
+	
+	--test-- "dyn-bind-3"
+		a: 0
+		fun-bind-12: func [code /local a][
+			a: 1
+			do bind code :fun-bind-12
+		]
+		--assert 3 = fun-bind-12 [a + 2]
+		--assert a = 0
+
+
+	--test-- "dyn-bind-4"
+		a: 0
+		fun-bind-13: func [word /local a][
+			a: 1
+			get bind word 'a
+		]		
+		--assert 1 = fun-bind-13 'a
+		--assert a = 0
+		
+	--test-- "dyn-bind-5"
+		a: 0
+		fun-bind-14: func [word /local a][
+			a: 1
+			get bind word :fun-bind-14
+		]
+		--assert 1 = fun-bind-14 'a
+		--assert a = 0
+
+===end-group===
 
 ~~~end-file~~~
 
