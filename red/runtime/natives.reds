@@ -252,6 +252,7 @@ natives: context [
 		_function/push 
 			as red-block! stack/arguments
 			as red-block! stack/arguments + 1
+			null
 			0
 		stack/set-last stack/top - 1
 	]
@@ -762,7 +763,7 @@ natives: context [
 						ctx
 			]
 		][
-			word: as red-word! ref
+			word: as red-word! value
 			word/ctx: ctx
 			word/index: _context/find-word ctx word/symbol
 		]

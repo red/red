@@ -1218,10 +1218,10 @@ red: context [
 		emit-open-frame 'set							;-- function value creation
 		emit-push-word name
 		emit reduce [
-			'_function/push spec-blk body-blk 
+			'_function/push spec-blk body-blk ctx
 			'as 'integer! to get-word! decorate-func/strict name
 		]
-		insert-lf -6
+		insert-lf -7
 		new-line skip tail output -3 no
 		emit 'word/set
 		insert-lf -1
