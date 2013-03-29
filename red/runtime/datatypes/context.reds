@@ -223,8 +223,9 @@ _context: context [
 	]
 	
 	bind: func [
-		body [red-block!]
-		ctx	 [red-context!]
+		body	[red-block!]
+		ctx		[red-context!]
+		return: [red-block!]
 		/local
 			value [red-value!]
 			end	  [red-value!]
@@ -261,6 +262,7 @@ _context: context [
 			]
 			value: value + 1
 		]
+		body
 	]
 	
 	;-- Actions -- 
