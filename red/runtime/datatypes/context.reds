@@ -222,6 +222,47 @@ _context: context [
 			as red-value! blk
 	]
 	
+	bind: func [
+		body [red-block!]
+		ctx	 [red-context!]
+		/local
+			value [red-value!]
+			end	  [red-value!]
+			w	  [red-word!]
+			idx	  [integer!]
+			type  [integer!]
+	][
+		value: block/rs-head body
+		end:   block/rs-tail body
+
+		while [value < end][
+			switch TYPE_OF(value) [	
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_SET_WORD
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT [
+					w: as red-word! value
+					idx: _context/find-word ctx w/symbol
+					if idx >= 0 [
+						w/ctx:   ctx
+						w/index: idx
+					]
+				]
+				TYPE_BLOCK 					;@@ replace with TYPE_ANY_BLOCK
+				TYPE_PAREN 
+				TYPE_PATH
+				TYPE_LIT_PATH
+				TYPE_SET_PATH
+				TYPE_GET_PATH	[
+					bind as red-block! value ctx
+				]
+				default [0]
+			]
+			value: value + 1
+		]
+	]
+	
 	;-- Actions -- 
 	
 	datatype/register [

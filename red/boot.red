@@ -754,6 +754,15 @@ stats: make native! [[
 	#get-definition NAT_STATS
 ]
 
+bind: make native! [[
+		word 	[block! any-word!]
+		context [any-word! any-object!]
+		/copy
+		return: [block! any-word!]
+	]
+	#get-definition NAT_BIND
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

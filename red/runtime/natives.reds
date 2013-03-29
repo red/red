@@ -728,6 +728,41 @@ natives: context [
 			]
 		]
 	]
+	
+	bind*: func [
+		copy [integer!]
+		/local
+			value [red-value!]
+			ref	  [red-value!]
+			fun	  [red-function!]
+			word  [red-word!]
+			ctx	  [red-context!]
+	][
+		value: stack/arguments
+		ref: value + 1
+		
+		either any [
+			TYPE_OF(ref) = TYPE_FUNCTION
+			;TYPE_OF(ref) = TYPE_OBJECT
+		][
+			fun: as red-function! ref
+			ctx: fun/ctx
+		][
+			word: as red-word! ref
+			ctx: word/ctx
+		]
+		
+		either TYPE_OF(value) = TYPE_BLOCK [
+			;if copy >= 0 [
+				; clone
+			;]
+			_context/bind as red-block! value ctx
+		][
+			word: as red-word! ref
+			word/ctx: ctx
+			word/index: _context/find-word ctx word/symbol
+		]
+	]
 
 	;--- Natives helper functions ---
 	
@@ -922,6 +957,7 @@ natives: context [
 		:reduce*
 		:compose*
 		:stats*
+		:bind*
 	]
 
 ]
