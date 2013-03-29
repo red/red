@@ -181,6 +181,30 @@ Red [
 
 ===end-group===
 
+===start-group=== "Capturing of iterators counter word(s)"
+
+	--test-- "fun-capt-1"
+		f1: function [] [repeat ii 5 [ii]]
+		--assert none <> find spec-of :f1 'ii
+		f1
+		--assert unset? get/any 'ii
+	
+	--test-- "fun-capt-2"
+		f2: function [] [foreach ii [1 2 3] [ii]]
+		--assert none <> find spec-of :f2 'ii
+		f2
+		--assert unset? get/any 'ii
+
+	--test-- "fun-capt-3"
+		f3: function [] [foreach [ii jj] [1 2 3 4] [ii jj]]
+		--assert none <> find spec-of :f3 'ii
+		--assert none <> find spec-of :f3 'jj
+		f3
+		--assert unset? get/any 'ii
+		--assert unset? get/any 'jj
+
+===end-group===
+
 ===start-group=== "Reported issues"
   --test-- "issue #415"
     i415-f: func [] [
