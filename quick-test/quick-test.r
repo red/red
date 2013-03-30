@@ -472,7 +472,10 @@ qt: make object! [
     clear output
     call/output/wait exec output
     if windows-os? [output: qt/utf-16le-to-utf-8 output]
-    if none <> find output "Script Error" [
+    if any [
+    	none <> find output "Script Error"
+    	none <> find output "Runtime Error"
+    ][
       if not error [_signify-failure]
     ]
   ]
