@@ -42,7 +42,19 @@ refinement: context [
 		w: word/push w
 		set-type as red-value! w TYPE_REFINEMENT
 	]
-
+	
+	push-local: func [
+		ctx		[red-context!]
+		index	[integer!]
+		return: [red-refinement!]
+		/local
+			ref [red-refinement!]
+	][
+		ref: as red-refinement! word/push-local ctx index
+		ref/header: TYPE_REFINEMENT
+		ref
+	]
+	
 	set: func [
 		/local
 			args [cell!]
