@@ -353,7 +353,7 @@ poke: make action! [[
 remove: make action! [[
 		"Removes the value, and returns the series, at the current series index."
 		series	 [series! none!]
-		/part "Removes multiple values, or values up to the given series index"
+		/part "Removes a number of values, or values up to the given series index"
 			length [number! series!]
 		return:  [series! none!]
 	]
