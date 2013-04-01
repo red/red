@@ -1035,7 +1035,13 @@ string: context [
 				]
 				if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
 				found?: c1 = c2
-				if match? [buffer: buffer + 1]			;-- /match option returns tail of match
+				
+				if any [
+					match?								;-- /match option returns tail of match (no loop)
+					all [found? tail?]					;-- /tail option too, but only when found pattern
+				][
+					buffer: buffer + step
+				]
 			][
 				p1: buffer
 				p2: pattern
