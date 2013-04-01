@@ -139,7 +139,7 @@ multiply: make action! [[
 ]
 
 negate: make action! [[
-		"Returns the inverse value."
+		"Returns the opposite (additive inverse) value."
 		number 	 [number!]
 		return:  [number!]
 	]
@@ -353,7 +353,7 @@ poke: make action! [[
 remove: make action! [[
 		"Removes the value, and returns the series, at the current series index."
 		series	 [series! none!]
-		/part "Removes multiple values, or values up to the given series index"
+		/part "Removes a number of values, or values up to the given series index"
 			length [number! series!]
 		return:  [series! none!]
 	]
@@ -507,7 +507,7 @@ repeat: make native! [[
 
 foreach: make native! [[
 		"Evaluates body for each value in a series."
-		'word  [word!]   "Word, or words, to set on each iteration"
+		'word  [word! block!]   "Word, or words, to set on each iteration"
 		series [series!]
 		body   [block!]
 	]
@@ -630,7 +630,7 @@ set: make native! [[
 		"Sets the value(s) one or more words refer to."
 		word	[any-word! block!] "Word or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
-		/any "If word has no value, return UNSET rather than causing an error"
+		/any "Allow UNSET as a value rather than causing an error"
 		return: [any-type!]
 	]
 	#get-definition NAT_SET
