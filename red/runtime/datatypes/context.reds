@@ -35,6 +35,35 @@ _context: context [
 		]
 		-1												;-- search failed
 	]
+	
+	add-global: func [
+		symbol	[integer!]
+		return: [red-word!]
+		/local
+			word  [red-word!]
+			value [cell!]
+			s  	  [series!]
+			id	  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
+
+		id: find-word global-ctx symbol
+		s: as series! global-ctx/symbols/value
+		
+		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
+		
+		s: as series! global-ctx/symbols/value
+		word: as red-word! alloc-tail s
+		
+		word/header: TYPE_WORD							;-- implicit reset of all header flags
+		word/ctx: 	 global-ctx
+		word/symbol: symbol
+		word/index:  (as-integer s/tail - s/offset) >> 4 - 1
+
+		value: alloc-tail as series! global-ctx/values/value
+		value/header: TYPE_UNSET
+		word
+	]
 
 	add: func [
 		ctx		[red-context!]
