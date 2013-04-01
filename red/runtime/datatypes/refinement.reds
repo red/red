@@ -30,8 +30,12 @@ refinement: context [
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
+		/local 
+			cell  [red-word!]
 	][
-		load-in str root
+		cell: word/load str
+		cell/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
+		cell
 	]
 	
 	push: func [

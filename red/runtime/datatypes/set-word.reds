@@ -30,8 +30,12 @@ set-word: context [
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
+		/local 
+			cell  [red-word!]
 	][
-		load-in str root
+		cell: word/load str
+		cell/header: TYPE_SET_WORD					;-- implicit reset of all header flags
+		cell
 	]
 	
 	push: func [

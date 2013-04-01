@@ -28,10 +28,14 @@ lit-word: context [
 	]
 	
 	load: func [
-		str 	 [c-string!]
-		return:	 [red-word!]
+		str 	[c-string!]
+		return:	[red-word!]
+		/local 
+			cell [red-word!]
 	][
-		load-in str root
+		cell: word/load str
+		cell/header: TYPE_LIT_WORD						;-- implicit reset of all header flags
+		cell
 	]
 	
 	push: func [
