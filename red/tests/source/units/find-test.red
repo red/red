@@ -244,6 +244,11 @@ Red [
   --assert none = find/tail "her^(010000) and now" "here^(010000)"
   --test-- "find/tail-16"
   --assert [and now] = find/tail [he✐re and now] 'he✐re
+  --test-- "find/tail-17 issue #457"
+  --assert "de" = find/tail "abcde" #"c"
+  --test-- "find-tail-18"
+  --assert "de" = find/tail "abc^^de" #"^^"
+  
 ===end-group===
 
 ===start-group=== "find/last"
