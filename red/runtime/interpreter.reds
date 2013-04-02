@@ -620,7 +620,7 @@ interpreter: context [
 			]
 			TYPE_WORD [
 				if verbose > 0 [
-					print-line "eval: '"
+					print "eval: '"
 					print-symbol as red-word! pc
 				]
 				value: _context/get as red-word! pc
