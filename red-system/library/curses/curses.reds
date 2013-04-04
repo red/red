@@ -2,6 +2,7 @@ Red/System [
   Title:   "Red/System curses Binding"
   Author:  "Bruno Anselme"
   EMail:   "be.red@free.fr"
+  File:    %curses.reds
   Rights:  "Copyright (c) 2013 Bruno Anselme"
   License: {
     Distributed under the Boost Software License, Version 1.0.
@@ -53,6 +54,10 @@ curses: context [
       return:   [integer!]
     ]
     wrefresh: "wrefresh" [    ; Print it on the real screen.
+      wid       [window!]
+      return:   [integer!]
+    ]
+    wnoutrefresh: "wnoutrefresh" [ ; Mark window to be refreshed
       wid       [window!]
       return:   [integer!]
     ]
@@ -259,10 +264,6 @@ curses: context [
       wid       [window!]
       row       [integer!]
       col       [integer!]
-      return:   [integer!]
-    ]
-    ungetch: "ungetch" [      ; Push a character onto the input queue.
-      ch        [integer!]
       return:   [integer!]
     ]
     getnstr: "getnstr" [      ; Get almost n bytes from input.
@@ -545,6 +546,7 @@ curses: context [
       return:   [integer!]
     ]
     wclrtoeol: "wclrtoeol" [  ; Erase the current line from the cursor to the end of the line inside the specified window
+      wid       [window!]
       return:   [integer!]
     ]
     clrtobot: "clrtobot" [    ; Clear all lines following the cursor.
@@ -911,6 +913,11 @@ curses: context [
     isendwin: "isendwin" [        ; Determine whether a screen has been refreshed.
       return:   [logic!]
     ]
+    ripoffline: "ripoffline" [    ; Reserves a screen line for use by the application.
+      line      [integer!]
+      init      [integer!]        ; pointer on init: function [ [cdecl] wid [integer!] cols [integer!]
+      return:   [integer!]
+    ]
 
     def-prog-mode: "def_prog_mode" [       ; Saves the current terminal modes as the "program" (in Curses) state for use by reset_prog_mode.
       return:   [integer!]
@@ -927,7 +934,22 @@ curses: context [
     baudrate: "baudrate" [        ; Returns the output speed of the terminal in bits per second.
       return:   [integer!]
     ]
-
+    #switch OS [
+      Windows   [
+        ungetch: "PDC_ungetch" [  ; Push a character onto the input queue.
+          ch        [integer!]
+          return:   [integer!]
+        ]
+      ]
+      MacOSX    [
+      ]
+      #default  [
+        ungetch: "ungetch" [      ; Push a character onto the input queue.
+          ch        [integer!]
+          return:   [integer!]
+        ]
+      ]
+    ] ; #switch OS
   ] ; cdecl
   ] ; #import [curses-library
 
@@ -951,57 +973,94 @@ curses: context [
       return stdscr
     ]
 
-    color-set: function [   ; Set terminal color pair
+    color-set: function [   "Set terminal color pair"
       pair    [integer!]
     ][
       _color_set pair 0
     ]
 
-    wcolor-set: function [  ; Set window color pair
+    wcolor-set: function [  "Set window color pair"
       wid     [window!]
       pair    [integer!]
     ][
       _wcolor_set wid pair 0
     ]
 
-    getch: function [  ; Wait for user input. Not avaliable on Windows, so redefined here
-      return:   [integer!]
+    getch: function [  "Wait for user input. Not avaliable on Windows, so redefined here"
+      return:  [integer!]
     ][
       return wgetch stdscr
     ]
 
-    printw-attr: function [  ; printw surrounded by attribute on/off
+    printw-attr: function [  "printw surrounded by attribute on/off"
       attr     [integer!]
       txt      [c-string!]
-      return:  [integer!]
     ][
       attron attr
       printw [ txt ]
       attroff attr
     ]
 
-    wprintw-attr: function [  ; wprintw surrounded by attribute on/off
+    wprintw-attr: function [  "wprintw surrounded by attribute on/off"
       wid      [window!]
       attr     [integer!]
       txt      [c-string!]
-      return:  [integer!]
     ][
       wattron wid attr
       wprintw [ wid txt ]
       wattroff wid attr
     ]
 
-    color-pair: func [
-      pair      [integer!]
-      return:   [integer!]
+    mvwprintw-attr: function [  "wprintw surrounded by attribute on/off"
+      wid      [window!]
+      row      [integer!]
+      col      [integer!]
+      attr     [integer!]
+      txt      [c-string!]
+    ][
+      wmove wid row col
+      wattron wid attr
+      wprintw [ wid txt ]
+      wattroff wid attr
+    ]
+    color-pair: function [
+      pair     [integer!]
+      return:  [integer!]
     ][
       return (pair << PDC_COLOR_SHIFT) and A_COLOR
     ]
-    pair-number: func [
-      pair      [integer!]
-      return:   [integer!]
+    pair-number: function [
+      pair     [integer!]
+      return:  [integer!]
     ][
       return (pair and A_COLOR) >> PDC_COLOR_SHIFT
+    ]
+
+    _top_line: 0                    ; Pointer to top line window
+    _bottom_line: 0                 ; Pointer to bottom line window
+    _top_cols: 0                    ; Number of columns in top line window
+    _bottom_cols: 0                 ; Number of columns in bottom line window
+
+    init-top-line: function [       "Callback function for ripoffline"
+      [cdecl]
+      wid      [window!]
+      cols     [integer!]
+;      return:  [int-ptr!]
+    ][
+      _top_line: wid
+      _top_cols: cols
+;      return 0
+    ]
+
+    init-bottom-line: function [    "Callback function for ripoffline"
+      [cdecl]
+      wid      [window!]
+      cols     [integer!]
+;      return:  [int-ptr!]
+    ][
+      _bottom_line: wid
+      _bottom_cols: cols
+;      return 0
     ]
 
   ; Test interface --------------------------------------------------------------------

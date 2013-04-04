@@ -1,7 +1,8 @@
 Red/System [
-  Title:   "curses example: display Red and curses information"
+  Title:   "Curses example: display Red and curses information"
   Author:  "Bruno Anselme"
   EMail:   "be.red@free.fr"
+  File:    %curses-example.reds
   Rights:  "Copyright (c) 2013 Bruno Anselme"
   License: {
     Distributed under the Boost Software License, Version 1.0.
@@ -215,7 +216,7 @@ with curses [
     memcur: curs-set 0
     car: #"^(0)"
     either (key and FFFFFF00h) = 0 [
-      car: as byte! (key and 0000007Fh )
+      car: as byte! (key and 000000FFh )
       mvprintw [ (nb-rows - 2)  3
                  "Character pressed (int-hex-char) : %4d -   %02Xh - %c         "
                  as integer! car
@@ -289,6 +290,44 @@ with curses [
     return 0
   ]
 ;-------------------------------------
+  draw-charset: func [
+    win      [window!]
+    mask     [integer!]
+    col      [integer!]
+    /local car [integer!] row
+  ][
+    row: 3
+    wmove win row col
+    car: 32
+    until [
+      waddch win (mask or car)
+      car: car + 1
+      if (car % 32) = 0 [
+        row: row + 1
+        wmove win row col
+      ]
+      car = 256
+    ]
+  ]
+;-------------------------------------
+  show-charset: func [  ; Create the characters window
+    return:  [window!]
+    /local win
+  ][
+    win: newwin 18 67 1 1
+    wcolor-set win 6
+    box win 0 0
+    mvwprintw [ win 0 3 " Characters set " ]
+    mvwprintw [ win 1 10 "Normal charset" ]
+    draw-charset win A_NORMAL      1
+    mvwprintw [ win 1 44 "Alt charset" ]
+    draw-charset win A_ALTCHARSET  34
+    mvwprintw-attr win 12 5 (A_REVERSE or A_BLINK) " Warning "
+    wprintw [ win " : Linux uses an alternate charset" ]
+    mvwprintw [ win 13 17 "Windows uses a 8 bits charset" ]
+    return win
+  ]
+;-------------------------------------
   show-menu: func [  ; Create the menu window
     return:  [window!]
     /local win
@@ -304,6 +343,8 @@ with curses [
     mvwprintw [ win  5 2 "5 Check terminal features" ]
     mvwprintw [ win  6 2 "6 Mini screen editor" ]
     mvwprintw [ win  7 2 "7 Test string input" ]
+    mvwprintw [ win  8 2 "8 Display charset" ]
+;    mvwprintw [ win  9 2 "Accents éèàùüâô" ]
     mvwprintw [ win 10 2 "Ctrl+Q to exit" ]
     return win
   ]
@@ -340,6 +381,7 @@ with curses [
           #"5"      [ win-demo: show-features ]
           #"6"      [ win-demo: show-edit ]
           #"7"      [ win-demo: show-input ]
+          #"8"      [ win-demo: show-charset ]
           default [  ]
         ]
         wrefresh win-menu
@@ -349,9 +391,43 @@ with curses [
     ]
   ]
 ;-------------------------------------
+  init-menu-bar: func [    ; callback function for ripoffline
+    [cdecl]
+    wid      [integer!]
+    cols     [integer!]
+;    return:  [integer!]
+  ][
+    menu-bar: wid
+;    return 0
+  ]
+;-------------------------------------
+  init-status-bar: func [    ; callback function for ripoffline
+    [cdecl]
+    wid      [integer!]
+    cols     [integer!]
+;    return:  [integer!]
+  ][
+    status-bar: wid
+;    return 0
+  ]
+;-------------------------------------
+  menu-bar: 0
+  status-bar: 0
+  ripoffline  1 as integer! :init-menu-bar
+  ripoffline -1 as integer! :init-status-bar
   screen: init-screen
   init-color-pairs
   color-set 3
+
+  wcolor-set menu-bar 49
+  werase menu-bar
+  wcolor-set status-bar 25
+  werase status-bar
+  wprintw  [ menu-bar "Line reserved for Menu bar" ]
+  wnoutrefresh menu-bar
+  wprintw  [ status-bar "Line reserved for Status bar" ]
+  wnoutrefresh status-bar
+
   box screen 0 0
   mvprintw [ 0 2 " The Red/System Curses Show " ]
   win-demo: 0

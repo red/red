@@ -1,8 +1,8 @@
 REBOL [
-  Title:   "Compilation script for curses-example.reds"
+  Title:   "Compilation script for Red/System examples"
   Author:  "Bruno Anselme"
   EMail:   "be.red@free.fr"
-  File:    %compile-curses-example.r
+  File:    %compile-examples.r
   Rights:  "Copyright (c) 2013 Bruno Anselme"
   License: {
     Distributed under the Boost Software License, Version 1.0.
@@ -15,14 +15,21 @@ REBOL [
 
 windows: all [(system/version/4 = 3) (system/version/5 = 1)]
 
-appname: "curses-example"
+compile: func [
+  appname [string!]
+][
+  print [ "------ Compiling" appname "------" ]
+  do/args %rsc.r rejoin [ wdir appname %.reds ]
+
+  either windows [
+    print rejoin [ "Destination file :  ../../builds/" appname ".exe" ]
+  ][
+    print rejoin [ "Destination file : ../../../builds/" appname ]
+  ]
+]
+
 wdir: what-dir
 change-dir %../../../                ; locate here your red-system directory
-print [ "------ Compiling" appname "------" ]
-do/args %rsc.r rejoin [ wdir  %curses-example.reds ]
+compile "curses-example"
+compile "panel-example"
 
-either windows [
-  print rejoin [ "Destination file :  ../../builds/" appname ".exe" ]
-][
-  print rejoin [ "Destination file : ../../../builds/" appname ]
-]
