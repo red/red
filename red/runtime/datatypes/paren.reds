@@ -118,7 +118,7 @@ paren: context [
 		null			;or~
 		null			;xor~
 		;-- Series actions --
-		INHERIT_ACTION	;append
+		null			;append
 		INHERIT_ACTION	;at
 		INHERIT_ACTION	;back
 		null			;change
@@ -128,7 +128,7 @@ paren: context [
 		INHERIT_ACTION	;head
 		INHERIT_ACTION	;head?
 		INHERIT_ACTION	;index?
-		null			;insert
+		INHERIT_ACTION	;insert
 		INHERIT_ACTION	;length?
 		INHERIT_ACTION	;next
 		INHERIT_ACTION	;pick
