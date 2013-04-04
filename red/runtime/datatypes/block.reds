@@ -450,7 +450,7 @@ block: context [
 			string/append-char GET_BUFFER(buffer) as-integer #"["
 			part: part - 1
 		]
-		part: mold-each blk buffer only? all? flat? arg part
+		part: mold-each blk buffer no all? flat? arg part
 		
 		unless only? [
 			string/append-char GET_BUFFER(buffer) as-integer #"]"
