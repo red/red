@@ -1284,21 +1284,23 @@ string: context [
 		append?	 [logic!]
 		return:	 [red-value!]
 		/local
-			src	  [red-block!]
-			cell  [red-value!]
-			limit [red-value!]
-			int	  [red-integer!]
-			char  [red-char!]
-			sp	  [red-string!]
-			s	  [series!]
-			s2	  [series!]
-			cnt	  [integer!]
-			part  [integer!]
-			unit  [integer!]
-			i	  [integer!]
-			added [integer!]
-			ins-p [byte-ptr!]
-			tail? [logic!]
+			src		  [red-block!]
+			cell	  [red-value!]
+			limit	  [red-value!]
+			int		  [red-integer!]
+			char	  [red-char!]
+			sp		  [red-string!]
+			form-slot [red-value!]
+			form-buf  [red-string!]
+			s		  [series!]
+			s2		  [series!]
+			cnt		  [integer!]
+			part	  [integer!]
+			unit	  [integer!]
+			i		  [integer!]
+			added	  [integer!]
+			type	  [integer!]
+			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
 
@@ -1324,6 +1326,8 @@ string: context [
 			cnt: int/value
 		]
 		
+		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
+		
 		s: GET_BUFFER(str)
 		tail?: any [
 			(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) = str/head
@@ -1344,30 +1348,35 @@ string: context [
 				limit: value + 1
 			]
 			while [cell < limit][						;-- multiple values case
-				switch TYPE_OF(cell) [
-					TYPE_CHAR [
-						char: as red-char! cell
-						s: GET_BUFFER(str)
-						either tail? [
-							append-char s char/value
-						][
-							insert-char s str/head + i char/value
-							i: i + 1
-							added: added + 1
-						]
+				type: TYPE_OF(cell)
+				
+				either type = TYPE_CHAR [
+					char: as red-char! cell
+					s: GET_BUFFER(str)
+					either tail? [
+						append-char s char/value
+					][
+						insert-char s str/head + i char/value
+						i: i + 1
+						added: added + 1
 					]
-					TYPE_STRING TYPE_FILE [
-						either tail? [
-							concatenate str as red-string! cell part no no
-						][
-							concatenate str as red-string! cell part no yes
-						]
-						added: added + rs-length? as red-string! cell
+				][
+					either any [
+						type = TYPE_STRING				;@@ replace with ANY_STRING?
+						type = TYPE_FILE 
+					][
+						form-buf: as red-string! cell
+					][
+						;TBD: free previous form-buf node and series buffer
+						form-buf: string/rs-make-at form-slot 16
+						actions/form cell form-buf null 0
 					]
-					default [
-						--NOT_IMPLEMENTED--			;@@ actions/form needs to take an argument!
-						;TBD once INSERT is implemented
+					either tail? [
+						concatenate str form-buf part no no
+					][
+						concatenate str form-buf part no yes
 					]
+					added: added + rs-length? form-buf
 				]
 				cell: cell + 1
 			]
