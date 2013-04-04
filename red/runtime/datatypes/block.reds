@@ -983,6 +983,11 @@ block: context [
 			]
 			cnt: cnt - 1
 		]
+		unless append? [
+			blk/head: blk/head + slots
+			s: GET_BUFFER(blk)
+			assert s/offset + blk/head <= s/tail
+		]
 		as red-value! blk
 	]
 	
