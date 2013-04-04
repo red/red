@@ -294,5 +294,13 @@ Red [
   --assert "^(010000)5678" = find/reverse tail "1234^(010000)5678" "^(010000)"
 ===end-group===
 
+===start-group=== "find/last/tail"
+	--test-- "find/last/tail-1 issue #459"
+	--assert [7 8] = find/last/tail [1 2 3 4 5 6 3 7 8] 3
+	--test-- "find/last/tail-2 issue #459"
+	--assert "78" = find/last/tail "123456378" #"3"
+	--test-- "find/last/tail-3"
+	--assert "78" = find/last/tail "123456378" "3"
+
 ~~~end-file~~~
 
