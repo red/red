@@ -22,6 +22,18 @@ Red/System [
 
 curses: context [
 
+  #define __LC_CTYPE 0
+  #define __LC_ALL   6
+  #import [
+    LIBC-file cdecl [
+      setlocale: "setlocale" [
+        category  [integer!]
+        locale    [c-string!]
+        return:   [c-string!]
+      ]
+    ]
+  ]
+
   #define window!  integer!
   #define sysfile! integer!
 
@@ -39,11 +51,6 @@ curses: context [
       #define curses-library "libncursesw.so.5"
     ]
   ]
-
-    cchar!: alias struct! [
-      attr   [integer!]
-      chars  [c-string!]
-    ]
 
   #import [curses-library cdecl [
     version: "curses_version" [  ; Return curses library version.
@@ -334,16 +341,16 @@ curses: context [
 
     ; Print to screen
 
-    echochar: "echo_wchar" [    ; Echo wide-character and immediately refresh the screen.
+    echochar: "echochar" [    ; Echo wide-character and immediately refresh the screen.
       ch        [integer!]
       return:   [integer!]
     ]
-    wechochar: "wecho_wchar" [  ; Echo wide-character and immediately refresh the window.
+    wechochar: "wechochar" [  ; Echo wide-character and immediately refresh the window.
       wid       [window!]
       ch        [integer!]
       return:   [integer!]
     ]
-    addch: "add_wch" [          ; Put wide-character from current cursor position inside stdscr.
+    addch: "addch" [          ; Put wide-character from current cursor position inside stdscr.
       ch        [integer!]
       return:   [integer!]
     ]
@@ -356,9 +363,9 @@ curses: context [
       str       [c-string!]
       return:   [integer!]
     ]
-    waddch: "wadd_wch" [        ; Put wide-character from current cursor position into window.
+    waddch: "waddch" [        ; Put wide-character from current cursor position into window.
       wid       [window!]
-      ch        [cchar!]
+      ch        [integer!]
       return:   [integer!]
     ]
     mvaddch: "mvaddch" [      ; Put character from specified current cursor position inside stdscr.

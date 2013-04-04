@@ -294,28 +294,19 @@ with curses [
     win      [window!]
     mask     [integer!]
     col      [integer!]
-    /local car [cchar!] i row
+    /local car [integer!] row
   ][
     row: 3
     wmove win row col
-    i: 32
-    car: declare cchar!
-    car/chars: make-c-string 5
-    car/attr: A_REVERSE
-    car/chars/1: #"^(E2)"
-    car/chars/2: #"^(82)"
-    car/chars/3: #"^(AC)"
-    car/chars/4: #"^(00)"
-    car/chars/5: #"^(00)"
+    car: 32
     until [
-      car/chars/4: car/chars/4 + 1
-;      waddch win car
-      i: i + 1
-      if (i % 32) = 0 [
+      waddch win (mask or car)
+      car: car + 1
+      if (car % 32) = 0 [
         row: row + 1
         wmove win row col
       ]
-      i = 256
+      car = 127
     ]
   ]
 ;-------------------------------------
@@ -328,7 +319,6 @@ with curses [
     box win 0 0
     mvwprintw [ win 0 3 " Characters set " ]
     mvwprintw [ win 1 10 "Normal charset" ]
-    mvwprintw [ win 2 2 "Caractères accentués" ]
     draw-charset win A_NORMAL      1
     mvwprintw [ win 1 44 "Alt charset" ]
     draw-charset win A_ALTCHARSET  34
@@ -421,6 +411,7 @@ with curses [
 ;    return 0
   ]
 ;-------------------------------------
+  setlocale __LC_ALL ""         ;@@ check if "utf8" is present in returned string?
   menu-bar: 0
   status-bar: 0
   ripoffline  1 as integer! :init-menu-bar
