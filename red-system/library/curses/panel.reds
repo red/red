@@ -25,10 +25,10 @@ panel: context [
       #define panel-library "pdcurses.dll"
     ]
     MacOSX    [
-      #define panel-library "panel.dylib"    ; TODO: check this
+      #define panel-library "panelw.dylib"    ; TODO: check this
     ]
     #default  [
-      #define panel-library "libpanel.so.5"
+      #define panel-library "libpanelw.so.5"
     ]
   ]
 

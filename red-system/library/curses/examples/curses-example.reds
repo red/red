@@ -294,19 +294,28 @@ with curses [
     win      [window!]
     mask     [integer!]
     col      [integer!]
-    /local car [integer!] row
+    /local car [cchar!] i row
   ][
     row: 3
     wmove win row col
-    car: 32
+    i: 32
+    car: declare cchar!
+    car/chars: make-c-string 5
+    car/attr: A_REVERSE
+    car/chars/1: #"^(E2)"
+    car/chars/2: #"^(82)"
+    car/chars/3: #"^(AC)"
+    car/chars/4: #"^(00)"
+    car/chars/5: #"^(00)"
     until [
-      waddch win (mask or car)
-      car: car + 1
-      if (car % 32) = 0 [
+      car/chars/4: car/chars/4 + 1
+;      waddch win car
+      i: i + 1
+      if (i % 32) = 0 [
         row: row + 1
         wmove win row col
       ]
-      car = 256
+      i = 256
     ]
   ]
 ;-------------------------------------
@@ -319,6 +328,7 @@ with curses [
     box win 0 0
     mvwprintw [ win 0 3 " Characters set " ]
     mvwprintw [ win 1 10 "Normal charset" ]
+    mvwprintw [ win 2 2 "Caractères accentués" ]
     draw-charset win A_NORMAL      1
     mvwprintw [ win 1 44 "Alt charset" ]
     draw-charset win A_ALTCHARSET  34

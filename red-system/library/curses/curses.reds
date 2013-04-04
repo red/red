@@ -31,14 +31,19 @@ curses: context [
       #define curses-library "pdcurses.dll"
     ]
     MacOSX    [
-      #include %curses-macosx.reds                 ; TODO: missing file, to be written with macosx curses.h
-      #define curses-library "libncurses.5.dylib"  ; TODO: check this
+      #include %curses-macosx.reds                  ; TODO: missing file, to be written with macosx curses.h
+      #define curses-library "libncursesw.5.dylib"  ; TODO: check this
     ]
     #default  [
       #include %curses-linux.reds
-      #define curses-library "libncurses.so.5"
+      #define curses-library "libncursesw.so.5"
     ]
   ]
+
+    cchar!: alias struct! [
+      attr   [integer!]
+      chars  [c-string!]
+    ]
 
   #import [curses-library cdecl [
     version: "curses_version" [  ; Return curses library version.
@@ -83,15 +88,6 @@ curses: context [
       return:   [integer!]
     ]
     echo-off: "noecho" [      ; Disable terminal echo.
-      return:   [integer!]
-    ]
-    echochar: "echochar" [    ; Echo single-byte character and rendition to screen and refresh.
-      ch        [integer!]
-      return:   [integer!]
-    ]
-    wechochar: "wechochar" [  ; Echo single-byte character and rendition to a window and refresh.
-      wid       [window!]
-      ch        [integer!]
       return:   [integer!]
     ]
 
@@ -338,7 +334,16 @@ curses: context [
 
     ; Print to screen
 
-    addch: "addch" [          ; Put character from current cursor position inside stdscr.
+    echochar: "echo_wchar" [    ; Echo wide-character and immediately refresh the screen.
+      ch        [integer!]
+      return:   [integer!]
+    ]
+    wechochar: "wecho_wchar" [  ; Echo wide-character and immediately refresh the window.
+      wid       [window!]
+      ch        [integer!]
+      return:   [integer!]
+    ]
+    addch: "add_wch" [          ; Put wide-character from current cursor position inside stdscr.
       ch        [integer!]
       return:   [integer!]
     ]
@@ -351,9 +356,9 @@ curses: context [
       str       [c-string!]
       return:   [integer!]
     ]
-    waddch: "waddch" [        ; Put character from current cursor position into window.
+    waddch: "wadd_wch" [        ; Put wide-character from current cursor position into window.
       wid       [window!]
-      ch        [integer!]
+      ch        [cchar!]
       return:   [integer!]
     ]
     mvaddch: "mvaddch" [      ; Put character from specified current cursor position inside stdscr.

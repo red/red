@@ -31,5 +31,5 @@ compile: func [
 wdir: what-dir
 change-dir %../../../                ; locate here your red-system directory
 compile "curses-example"
-compile "panel-example"
+;compile "panel-example"
 
