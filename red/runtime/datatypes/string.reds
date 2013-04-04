@@ -186,7 +186,7 @@ string: context [
 		]
 	]
 	
-	truncate-tail: func [
+	truncate-from-tail: func [
 		s	    [series!]
 		offset  [integer!]								;-- negative offset from tail
 		return: [series!]
@@ -257,6 +257,44 @@ string: context [
 		s
 	]
 	
+	insert-char: func [
+		s		[series!]
+		offset	[integer!]								;-- offset from head in codepoints
+		cp		[integer!]								;-- codepoint
+		return: [series!]
+		/local
+			p	 [byte-ptr!]
+			unit [integer!]
+	][
+		switch GET_UNIT(s) [
+			Latin1 [
+				case [
+					cp <= FFh 	[0]
+					cp <= FFFFh [s: unicode/Latin1-to-UCS2 s]
+					true 		[s: unicode/Latin1-to-UCS4 s]
+				]
+			]
+			UCS-2 [if cp > FFFFh [s: unicode/UCS2-to-UCS4 s]]
+			UCS-4 [0]
+		]
+		unit: GET_UNIT(s)
+		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
+			s: expand-series s 0
+		]
+		p: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+	
+		move-memory										;-- make space
+			p + unit
+			p
+			as-integer (as byte-ptr! s/tail) - p
+
+		s/tail: as cell! (as byte-ptr! s/tail) + unit
+		add-terminal-NUL as byte-ptr! s/tail unit
+		
+		poke-char s p cp
+		s
+	]
+	
 	poke-char: func [
 		s		[series!]
 		p		[byte-ptr!]								;-- target passed as pointer to favor the general code path
@@ -309,6 +347,7 @@ string: context [
 		str2	  [red-string!]							;-- string! to append to str1
 		part	  [integer!]							;-- str2 characters to append, -1 means all
 		keep?	  [logic!]								;-- do not change str2 encoding
+		insert?	  [logic!]								;-- insert str2 at str1 index instead of appending
 		/local
 			s1	  [series!]
 			s2	  [series!]
@@ -356,8 +395,8 @@ string: context [
 			true [true]									;@@ catch-all case to make compiler happy
 		]
 		
-		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (unit2 >> 1)]	;-- make symbol! used as string! pass safely
-		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (unit1 >> 1)]	;-- make symbol! used as string! pass safely
+		h1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head << (unit1 >> 1)]	;-- make symbol! used as string! pass safely
+		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (unit2 >> 1)]	;-- make symbol! used as string! pass safely
 		
 		size2: (as-integer s2/tail - s2/offset) - h2
 		size:  (as-integer s1/tail - s1/offset) - h1 + size2
@@ -366,6 +405,12 @@ string: context [
 		if part >= 0 [
 			part: part << (unit2 >> 1)
 			if part < size2 [size2: part]				;-- optionally limit str2 characters to copy
+		]
+		if insert? [
+			move-memory									;-- make space
+				(as byte-ptr! s1/offset) + h1 + size2
+				(as byte-ptr! s1/offset) + h1
+				(as-integer s1/tail - s1/offset) - h1
 		]
 		
 		either all [keep? unit1 <> unit2][
@@ -379,15 +424,25 @@ string: context [
 					cp: as-integer p/1
 					p: p + 1
 				]
-				s1: append-char s1 cp
+				s1: either insert? [
+					poke-char s1 p cp
+				][
+					append-char s1 cp
+				]
 			]
 		][
-			p: as byte-ptr! s1/tail
+			p: either insert? [
+				(as byte-ptr! s1/offset) + h1
+			][
+				as byte-ptr! s1/tail
+			]
 			copy-memory	p (as byte-ptr! s2/offset) + h2 size2
 			p: p + size2
 		]
+		if insert? [p: (as byte-ptr! s1/tail) + size2] 
+		
 		add-terminal-NUL p unit1
-		s1/tail: as cell! p								;-- reset tail just before NUL
+		s1/tail: as cell! p							;-- reset tail just before NUL
 	]
 	
 	concatenate-literal: func [
@@ -502,7 +557,7 @@ string: context [
 			int: as red-integer! arg
 			int/value	
 		][-1]
-		concatenate buffer str limit no
+		concatenate buffer str limit no no
 		part - get-length str
 	]
 	
@@ -1220,12 +1275,13 @@ string: context [
 	
 	;--- Modifying actions ---
 		
-	append: func [
+	insert: func [
 		str		 [red-string!]
 		value	 [red-value!]
 		part-arg [red-value!]
 		only?	 [logic!]
 		dup-arg	 [red-value!]
+		append?	 [logic!]
 		return:	 [red-value!]
 		/local
 			src	  [red-block!]
@@ -1235,11 +1291,16 @@ string: context [
 			char  [red-char!]
 			sp	  [red-string!]
 			s	  [series!]
-			dst	  [series!]
+			s2	  [series!]
 			cnt	  [integer!]
 			part  [integer!]
+			unit  [integer!]
+			i	  [integer!]
+			added [integer!]
+			ins-p [byte-ptr!]
+			tail? [logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "string/append"]]
+		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
 
 		cnt:  1
 		part: -1
@@ -1262,48 +1323,60 @@ string: context [
 			int: as red-integer! dup-arg
 			cnt: int/value
 		]
-
+		
+		s: GET_BUFFER(str)
+		tail?: any [
+			(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) = str/head
+			append?
+		]
+		i: 0
+		added: 0
+		
 		while [not zero? cnt][							;-- /dup support
 			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
 				src: as red-block! value
-				if negative? part [part: block/rs-length? src] ;-- if not /part, use whole value length
-				s: GET_BUFFER(src)
-				cell: s/offset + src/head
+				if negative? part [part: block/rs-length? src] 	;-- if not /part, use whole value length
+				s2: GET_BUFFER(src)
+				cell:  s2/offset + src/head
 				limit: cell + part						;-- /part support
-
-				while [cell < limit][					;-- multiple values case
-					switch TYPE_OF(cell) [
-						TYPE_CHAR [
-							char: as red-char! cell				
-							append-char GET_BUFFER(str) char/value
-						]
-						TYPE_STRING TYPE_FILE [
-							concatenate str as red-string! cell part no
-						]
-						default [
-							--NOT_IMPLEMENTED--			;@@ actions/form needs to take an argument!
-							;TBD once INSERT is implemented
-						]
-					]
-					cell: cell + 1
-				]
-			][											;-- single value case
-				switch TYPE_OF(value) [
+			][
+				cell:  value
+				limit: value + 1
+			]
+			while [cell < limit][						;-- multiple values case
+				switch TYPE_OF(cell) [
 					TYPE_CHAR [
-						char: as red-char! value
-						append-char GET_BUFFER(str) char/value
+						char: as red-char! cell
+						s: GET_BUFFER(str)
+						either tail? [
+							append-char s char/value
+						][
+							insert-char s str/head + i char/value
+							i: i + 1
+							added: added + 1
+						]
 					]
 					TYPE_STRING TYPE_FILE [
-						concatenate str as red-string! value part no
+						either tail? [
+							concatenate str as red-string! cell part no no
+						][
+							concatenate str as red-string! cell part no yes
+						]
+						added: added + rs-length? as red-string! cell
 					]
 					default [
-						;actions/form* -1				;-- FORM value before appending
-						--NOT_IMPLEMENTED--
+						--NOT_IMPLEMENTED--			;@@ actions/form needs to take an argument!
 						;TBD once INSERT is implemented
 					]
 				]
+				cell: cell + 1
 			]
 			cnt: cnt - 1
+		]
+		unless append? [
+			str/head: str/head + added
+			s: GET_BUFFER(str)
+			assert (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail
 		]
 		as red-value! str
 	]
@@ -1509,7 +1582,7 @@ string: context [
 		null			;or~
 		null			;xor~
 		;-- Series actions --
-		:append
+		null			;append
 		:at
 		:back
 		null			;change
@@ -1519,7 +1592,7 @@ string: context [
 		:head
 		:head?
 		:index?
-		null			;insert
+		:insert
 		:length?
 		:next
 		:pick

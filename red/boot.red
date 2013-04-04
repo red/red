@@ -312,7 +312,19 @@ index?: make action! [[
 	#get-definition ACT_INDEX?
 ]
 
-;insert
+insert: make action! [[
+		"Inserts value(s) at series index; returns series head."
+		series	   [series!]
+		value	   [any-type!]
+		/part "Limit the number of values inserted"
+			length [number! series!]
+		/only "Insert block types as single values (overrides /part)"
+		/dup  "Duplicate the inserted values"
+			count  [number!]
+		return:    [series!]
+	]
+	#get-definition ACT_INSERT
+]
 
 length?: make action! [[
 		"Returns the number of values in the series, from the current index to the tail."
