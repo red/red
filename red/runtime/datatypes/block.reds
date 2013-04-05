@@ -781,7 +781,8 @@ block: context [
 				all [not reverse? slot >= end]			;-- tail of block series reached
 			]
 		]
-		unless tail? [slot: slot - step]				;-- point before/after found value
+		unless all [tail? not reverse?][slot: slot - step]	;-- point before/after found value
+		if all [tail? reverse?][slot: slot - step]			;-- additional step for reversed search
 		
 		either found? [
 			blk: as red-block! result

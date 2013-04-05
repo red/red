@@ -1093,7 +1093,7 @@ string: context [
 				
 				if any [
 					match?								;-- /match option returns tail of match (no loop)
-					all [found? tail?]					;-- /tail option too, but only when found pattern
+					all [found? tail? not reverse?]		;-- /tail option too, but only when found pattern
 				][
 					buffer: buffer + step
 				]
@@ -1163,6 +1163,9 @@ string: context [
 			]
 		]
 		buffer: buffer - step							;-- compensate for extra step
+		if all [tail? reverse? null? pattern][			;-- additional step for tailed reversed search
+			buffer: buffer - step
+		]
 		
 		either found? [
 			str: as red-string! result
