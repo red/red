@@ -206,12 +206,24 @@ Red [
 ===end-group===
 
 ===start-group=== "Reported issues"
-  --test-- "issue #415"
-    i415-f: func [] [
-      g: func [] [1]
-      g
-    ]
-  --assert 1 = i415-f
+  	--test-- "ri1 issue #415"
+    	i415-f: func [] [
+    		g: func [] [1]
+    		g
+    	]
+    --assert 1 = i415-f
+  
+  	--test-- "ri2 issue #461"
+  		ri2-fn: func ['word] [mold :word]
+  	--assert ":+" = ri2-fn :+
+  	
+  	--test-- "ri3 issue #461"
+  		ri3-fn: func ['word] [mold :word]
+  	--assert "'+" = ri3-fn '+
+  	
+  	--test-- "ri4 issue #461"
+  		ri4-fn: func ['word] [mold :word]
+  	--assert "+" = ri4-fn +
 
 ===end-group===
 
