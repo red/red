@@ -301,6 +301,7 @@ Red [
 	--assert "78" = find/last/tail "123456378" #"3"
 	--test-- "find/last/tail-3"
 	--assert "78" = find/last/tail "123456378" "3"
+===end-group===
 
 ~~~end-file~~~
 
