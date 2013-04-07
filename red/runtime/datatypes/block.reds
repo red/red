@@ -450,7 +450,7 @@ block: context [
 			string/append-char GET_BUFFER(buffer) as-integer #"["
 			part: part - 1
 		]
-		part: mold-each blk buffer only? all? flat? arg part
+		part: mold-each blk buffer no all? flat? arg part
 		
 		unless only? [
 			string/append-char GET_BUFFER(buffer) as-integer #"]"
@@ -781,7 +781,8 @@ block: context [
 				all [not reverse? slot >= end]			;-- tail of block series reached
 			]
 		]
-		unless tail? [slot: slot - step]				;-- point before/after found value
+		unless all [tail? not reverse?][slot: slot - step]	;-- point before/after found value
+		if all [tail? reverse?][slot: slot - step]			;-- additional step for reversed search
 		
 		either found? [
 			blk: as red-block! result
@@ -877,24 +878,31 @@ block: context [
 	
 	;--- Modifying actions ---
 	
-	append: func [
+	insert: func [
 		blk		  [red-block!]
 		value	  [red-value!]
 		part-arg  [red-value!]
 		only?	  [logic!]
 		dup-arg	  [red-value!]
+		append?	  [logic!]
 		return:	  [red-value!]
 		/local
-			src	  [red-block!]
-			cell  [red-value!]
-			limit [red-value!]
-			int	  [red-integer!]
-			b	  [red-block!]
-			s	  [series!]
-			cnt	  [integer!]
-			part  [integer!]
+			src		[red-block!]
+			cell	[red-value!]
+			limit	[red-value!]
+			head	[red-value!]
+			int		[red-integer!]
+			b		[red-block!]
+			s		[series!]
+			cnt		[integer!]
+			part	[integer!]
+			size	[integer!]
+			slots	[integer!]
+			values?	[logic!]
+			head?	[logic!]
+			tail?	[logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "block/append"]]
+		#if debug? = yes [if verbose > 0 [print-line "block/insert"]]
 		
 		cnt:  1
 		part: -1
@@ -917,28 +925,69 @@ block: context [
 			cnt: int/value
 		]
 		
+		values?: all [
+			not only?									;-- /only support
+			any [
+				TYPE_OF(value) = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_PATH				;@@ replace it with: typeset/any-block?
+			]
+		]
+		size: either values? [
+			src: as red-block! value
+			rs-length? src
+		][
+			1
+		]
+		if any [negative? part part > size][part: size] ;-- truncate if off-range part value
+		
+		s: GET_BUFFER(blk)
+		head?: zero? blk/head
+		tail?: any [(s/offset + blk/head = s/tail) append?]
+		slots: part * cnt
+		
+		unless tail? [									;TBD: process head? case separately
+			size: (as-integer (s/tail - (s/offset + blk/head))) + (slots * size? cell!)
+			if size > s/size [s: expand-series s size]
+			head: s/offset + blk/head
+			move-memory									;-- make space
+				as byte-ptr! head + slots
+				as byte-ptr! head
+				as-integer s/tail - head
+			
+			s/tail: s/tail + slots
+		]
+		
 		while [not zero? cnt][							;-- /dup support
-			either all [
-				not only?								;-- /only support
-				any [
-					TYPE_OF(value) = TYPE_BLOCK			;@@ replace it with: typeset/any-block?
-					TYPE_OF(value) = TYPE_PATH			;@@ replace it with: typeset/any-block?
-				]
-			][
-				src: as red-block! value
-				if negative? part [part: rs-length? src] ;-- if not /part, use whole value length
+			either values? [
 				s: GET_BUFFER(src)
 				cell: s/offset + src/head
 				limit: cell + part						;-- /part support
 
-				while [cell < limit][					;-- multiple values case
-					copy-cell cell ALLOC_TAIL(blk)
-					cell: cell + 1
+				either tail? [
+					while [cell < limit][				;-- multiple values case
+						copy-cell cell ALLOC_TAIL(blk)
+						cell: cell + 1
+					]
+				][
+					while [cell < limit][				;-- multiple values case
+						copy-cell cell head
+						head: head + 1
+						cell: cell + 1
+					]
 				]
 			][											;-- single value case
-				copy-cell value	ALLOC_TAIL(blk)
+				either tail? [
+					copy-cell value ALLOC_TAIL(blk)
+				][
+					copy-cell value head
+				]
 			]
 			cnt: cnt - 1
+		]
+		unless append? [
+			blk/head: blk/head + slots
+			s: GET_BUFFER(blk)
+			assert s/offset + blk/head <= s/tail
 		]
 		as red-value! blk
 	]
@@ -1154,7 +1203,7 @@ block: context [
 		null			;or~
 		null			;xor~
 		;-- Series actions --
-		:append
+		null			;append
 		:at
 		:back
 		null			;change
@@ -1164,7 +1213,7 @@ block: context [
 		:head
 		:head?
 		:index?
-		null			;insert
+		:insert
 		:length?
 		:next
 		:pick

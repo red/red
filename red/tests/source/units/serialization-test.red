@@ -37,9 +37,12 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 	--assert molded = mold blk
 	
 	--test-- "mold-6"
-	repeat i 132 [
-		--assert (copy/part molded i) = mold/part blk i
-	]
+		repeat i 132 [
+			--assert (copy/part molded i) = mold/part blk i
+		]
+	
+	--test-- "mold-7"
+	--assert "[a [b] c]" = mold [a [b] c]	
 	
 ===end-group===
 
@@ -69,6 +72,22 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 	--assert {"abcde"} = mold {abcde}
 	--test-- "mold-string-2"
 	--assert {"^^(3A7)^^(3B1)^^(1FD6)^^(3C1)^^(3B5), ^^(3BA)^^(3CC)^^(3C3)^^(3BC)^^(3B5)"} = mold "Χαῖρε, κόσμε"
+===end-group===
+
+===start-group=== "mold/only"
+	--test-- "mold/only-1 issue #458"
+	--assert "a [b] c" = mold/only [a [b] c]
+	--test-- "mold/only-2"
+	--assert {"a"} = mold/only "a"
+	--test-- "mold/only-3"
+		a: 1
+		b: 2
+		c: 3
+	--assert {3} = mold/only (a (b) c)
+	--test-- "mold/only-4"
+	--assert "a" = mold/only [a]
+	--test-- "mold/only-5"
+	--assert "a [b] c [d [e] f] g" = mold/only [a [b] c [d [e] f] g]
 ===end-group===
 
 ~~~end-file~~~
