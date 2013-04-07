@@ -55,12 +55,11 @@ alloc-tail: func [
 
 alloc-tail-unit: func [
 	s		 [series!]
+	unit 	 [integer!]
 	return:  [byte-ptr!]
 	/local 
 		p	 [byte-ptr!]
-		unit [integer!]
 ][
-	unit: GET_UNIT(s)
 	if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]

@@ -29,6 +29,7 @@ file-list: [
 	%type-test.red										%auto-tests/interpreter-type-test.red
 	%switch-test.red									%auto-tests/interpreter-switch-test.red
 	%append-test.red									%auto-tests/interpreter-append-test.red
+	%insert-test.red									%auto-tests/interpreter-insert-test.red
 	%auto-tests/equal-auto-test.red						%auto-tests/interp-equal-auto-test.red
 	%auto-tests/greater-auto-test.red					%auto-tests/interp-greater-auto-test.red
 	%auto-tests/infix-equal-auto-test.red				%auto-tests/interp-inf-equal-auto-test.red
