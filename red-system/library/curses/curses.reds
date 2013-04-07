@@ -31,6 +31,11 @@ curses: context [
         locale    [c-string!]
         return:   [c-string!]
       ]
+      find-str: "strstr" [      ; Return first occurence of target in src or null if not found
+        src       [c-string!]
+        target    [c-string!]
+        return:   [c-string!]
+      ]
     ]
   ]
 

@@ -135,6 +135,7 @@ with curses [
     mvwprintw [ win 3  2 "Application      : %s" system/args-list/item ]
     mvwprintw [ win 4  2 "OS               : %s" op-sys ]
     mvwprintw [ win 5  2 "Screen size      : %dx%d" getmaxx screen getmaxy screen ]
+    mvwprintw [ win 6  2 "UTF-8            : %s" either UTF-8 [ "true" ][ "false" ]]
     win
   ]
 ;-------------------------------------
@@ -411,7 +412,14 @@ with curses [
 ;    return 0
   ]
 ;-------------------------------------
-  setlocale __LC_ALL ""         ;@@ check if "utf8" is present in returned string?
+  locale: ""
+  UTF-8: false
+  if op-num <> 1 [                          ; not Windows
+    locale: setlocale __LC_ALL "fr_FR.iso885915"           ;@@ check if "utf8" is present in returned string?
+    if null <> find-str locale "UTF-8" [
+      UTF-8: true
+    ]
+  ]
   menu-bar: 0
   status-bar: 0
   ripoffline  1 as integer! :init-menu-bar
@@ -426,7 +434,11 @@ with curses [
   werase status-bar
   wprintw  [ menu-bar "Line reserved for Menu bar" ]
   wnoutrefresh menu-bar
-  wprintw  [ status-bar "Line reserved for Status bar" ]
+  either op-num = 1 [
+    wprintw  [ status-bar "Line reserved for Status bar" ]
+  ][
+    wprintw  [ status-bar locale ]
+  ]
   wnoutrefresh status-bar
 
   box screen 0 0
