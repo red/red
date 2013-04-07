@@ -1563,7 +1563,6 @@ red: context [
 			]
 			switch type?/word spec/1 [
 				lit-word! [
-probe pc/1				
 					emit-push-word to word! pc/1		;@@ add specific type checking
 					pc: next pc
 				]
