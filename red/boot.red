@@ -57,7 +57,7 @@ false: 			make logic! 0
 ;------------------------------------------
 
 make: make action! [[									;--	this one works!	;-)
-		"Returns a new value made from a specification for that value's type."
+		"Returns a new value made from a spec for that value's type."
 		type	 [any-type!] "The datatype or a prototype value."
 		spec	 [any-type!] "The specification	of the new value."
 		return:  [any-type!] "Returns the specified datatype."
@@ -268,7 +268,7 @@ copy: make action! [[
 ]
 
 find: make action! [[
-		"Returns the series where a value is found; NONE if value is not found."
+		"Returns the series where a value is found, or NONE."
 		series	 [series! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
@@ -363,7 +363,7 @@ poke: make action! [[
 ]
 
 remove: make action! [[
-		"Removes the value, and returns the series, at the current series index."
+		"Returns the series at the same index after removing a value."
 		series	 [series! none!]
 		/part "Removes a number of values, or values up to the given series index"
 			length [number! series!]
@@ -375,7 +375,7 @@ remove: make action! [[
 ;reverse
 
 select: make action! [[
-		"Find a value in a series and return the next value; NONE if value not found."
+		"Find a value in a series and return the next value, or NONE."
 		series	 [series! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
@@ -472,14 +472,14 @@ either: make native! [[
 ]
 	
 any: make native! [[
-		"Evaluates conditions, returning at the first that is true."
+		"Evaluates, returning at the first that is true."
 		conds [block!]
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [[
-		"Evaluates conditions, returning at the first that is not true."
+		"Evaluates, returning at the first that is not true."
 		conds [block!]
 	]
 	#get-definition NAT_ALL
@@ -540,7 +540,7 @@ forall: make native! [[
 ;]
 
 func: make native! [[
-		"Defines a function with a given specification and body to evaluate."
+		"Defines a function with a given spec and body."
 		spec [block!]
 		body [block!]
 	]
@@ -548,7 +548,7 @@ func: make native! [[
 ]
 
 function: make native! [[
-		"Defines a function, making all words found in body local variables."
+		"Defines a function, making all words found in body local."
 		spec [block!]
 		body [block!]
 		/extern	"Exclude words that follow this refinement"
@@ -890,13 +890,13 @@ unset?:		 func ["Returns true if the value is this type." value [any-type!]] [un
 word?:		 func ["Returns true if the value is this type." value [any-type!]] [word!		= type? :value]
 
 spec-of: func [
-	"Returns the spec of the value, for types that support reflection."
+	"Returns the spec of a value that supports reflection."
 	value
 ][
 	reflect :value 'spec
 ]
 body-of: func [
-	"Returns the body of the value, for types that support reflection."
+	"Returns the body of a value that supports reflection."
 	value
 ][
 	reflect :value 'body
