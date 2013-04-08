@@ -17,8 +17,26 @@ Red/System [
 	][
 		value: _context/get next
 		if TYPE_OF(value) = TYPE_OP [
-			if verbose > 0 [log "infix detected!"]
-			infix?: yes
+			either next = as red-word! pc [
+				if verbose > 0 [log "infix detected!"]
+				infix?: yes
+			][
+				if TYPE_OF(pc) = TYPE_WORD [
+					left: _context/get as red-word! pc
+				]
+				unless all [
+					TYPE_OF(pc) = TYPE_WORD
+					any [
+						TYPE_OF(left) = TYPE_ACTION
+						TYPE_OF(left) = TYPE_NATIVE
+						TYPE_OF(left) = TYPE_FUNCTION
+					]
+					literal-first-arg? as red-native! left	;-- a literal argument is expected
+				][
+					if verbose > 0 [log "infix detected!"]
+					infix?: yes
+				]
+			]
 		]
 	]
 ]
@@ -59,6 +77,35 @@ interpreter: context [
 	][
 		sym: symbol/get word/symbol
 		print-line sym/cache
+	]
+	
+	literal-first-arg?: func [
+		native 	[red-native!]
+		return: [logic!]
+		/local
+			fun	  	  [red-function!]
+			value	  [red-value!]
+			tail	  [red-value!]
+			s		  [series!]
+	][
+		s: as series! either TYPE_OF(native) = TYPE_FUNCTION [
+			fun: as red-function! native
+			fun/spec/value
+		][
+			native/spec/value
+		]
+		value: s/offset
+		tail:  s/tail
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_WORD 		[return no]
+				TYPE_LIT_WORD	[return yes]
+				default 		[0]
+			]
+			value: value + 1
+		]
+		no
 	]
 	
 	eval-option: func [
@@ -207,6 +254,7 @@ interpreter: context [
 		return:   [red-value!]
 		/local
 			next   [red-word!]
+			left   [red-value!]
 			infix? [logic!]
 			op	   [red-op!]
 			call-op
@@ -565,6 +613,7 @@ interpreter: context [
 		/local
 			next   [red-word!]
 			value  [red-value!]
+			left   [red-value!]
 			w	   [red-word!]
 			sym	   [red-symbol!]
 			op	   [red-value!]
