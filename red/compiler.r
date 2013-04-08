@@ -369,12 +369,29 @@ red: context [
 			remove back tail locals-stack
 	]
 	
+	literal-first-arg?: func [spec [block!]][
+		parse spec [
+			any [
+				word! 		(return no)
+				| lit-word! (return yes)
+				| /local	(return no)
+				| skip
+			]
+		]
+		no
+	]
+	
 	infix?: func [pos [block! paren!] /local specs][
 		all [
 			not tail? pos
 			word? pos/1
 			specs: select functions pos/1
 			'op! = specs/1
+			not all [									;-- check if a literal argument is not expected
+				word? pos/-1
+				specs: select functions pos/-1
+				literal-first-arg? specs/3				;-- literal arg needed, disable infix mode
+			]
 		]
 	]
 	
@@ -1555,7 +1572,7 @@ red: context [
 		]
 	]
 	
-	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!]][
+	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!] /local word][
 		if ref [spec: find/tail spec name]
 		loop nb [
 			while [not any-word? spec/1][				;-- skip types blocks
@@ -1563,8 +1580,22 @@ red: context [
 			]
 			switch type?/word spec/1 [
 				lit-word! [
-					emit-push-word to word! pc/1		;@@ add specific type checking
-					pc: next pc
+					add-symbol word: to word! pc/1
+					
+					switch/default type?/word pc/1 [
+						get-word! [
+							comp-expression
+						]
+						lit-word! [
+							emit 'lit-word/push
+							emit decorate-symbol word
+							insert-lf -2
+							pc: next pc
+						]
+					][
+						emit-push-word word				;@@ add specific type checking
+						pc: next pc
+					]
 				]
 				get-word! [comp-literal no]
 				word!     [comp-expression]
