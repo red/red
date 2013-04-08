@@ -135,7 +135,7 @@ with curses [
     mvwprintw [ win 3  2 "Application      : %s" system/args-list/item ]
     mvwprintw [ win 4  2 "OS               : %s" op-sys ]
     mvwprintw [ win 5  2 "Screen size      : %dx%d" getmaxx screen getmaxy screen ]
-    mvwprintw [ win 6  2 "UTF-8            : %s" either UTF-8 [ "true" ][ "false" ]]
+    mvwprintw [ win 6  2 "UTF-8            : %s" either curses/UTF-8 [ "true" ][ "false" ]]
     win
   ]
 ;-------------------------------------
@@ -215,15 +215,15 @@ with curses [
   ][
     nb-rows: getmaxy screen
     memcur: curs-set 0
-    car: #"^(0)"
+    car: 0
     either (key and FFFFFF00h) = 0 [
-      car: as byte! (key and 000000FFh )
+      car: key and 000000FFh
       mvprintw [ (nb-rows - 2)  3
-                 "Character pressed (int-hex-char) : %4d -   %02Xh - %c         "
-                 as integer! car
-                 as integer! car
-                 (either (car >= #" ") [ car ][ #" " ])
+                 "Character pressed (int-hex-char) : %4d -   %02Xh -            "
+                 car
+                 car
                ]
+      mvaddch (nb-rows - 2)  53 car
     ][
       if key <> FFFFFFFFh [
         mvprintw [ (nb-rows - 2)  3
@@ -237,7 +237,7 @@ with curses [
     refresh
     wrefresh win-demo
     curs-set memcur
-    return car
+    return as byte! car
   ]
 ;-------------------------------------
   show-edit: func [  ; Create the test input window
@@ -257,7 +257,7 @@ with curses [
     mvwprintw [ win-demo 5  2 "Input text anywhere" ]
     mvwprintw [ win-demo 7  2 "Esc to quit Screen Editor" ]
     wmove win-demo 1 2
-    if op-num = 1 [ move (wy + 1) (wx + 2) ]  ; Buggy Windows cursor management
+    if op-num = 1 [ move wy (wx + 2) ]  ; Buggy Windows cursor management
     curs-set 1
     wrefresh win-demo
     until [
@@ -276,11 +276,11 @@ with curses [
           KEY_RIGHT   [ wmove win-demo getcury win-demo ((getcurx win-demo) + 1) ]
           default     [
             if ((key and A_ATTRIBUTES) = 0) [
-              wprintw [ win-demo "%c" car ]
+              waddch win-demo as integer! car
             ]
           ]
         ]
-        if op-num = 1 [ move (wy + getcury win-demo) (wx + getcurx win-demo) ]  ; Buggy Windows cursor management
+        if op-num = 1 [ move (wy - 1 + getcury win-demo) (wx + getcurx win-demo) ]  ; Buggy Windows cursor management
         wrefresh win-demo
       ]
       all [ ((key and A_ATTRIBUTES) = 0) (car = #"^(1B)") ]
@@ -307,7 +307,7 @@ with curses [
         row: row + 1
         wmove win row col
       ]
-      car = 127
+      car = 255
     ]
   ]
 ;-------------------------------------
@@ -412,14 +412,6 @@ with curses [
 ;    return 0
   ]
 ;-------------------------------------
-  locale: ""
-  UTF-8: false
-  if op-num <> 1 [                          ; not Windows
-    locale: setlocale __LC_ALL "fr_FR.iso885915"           ;@@ check if "utf8" is present in returned string?
-    if null <> find-str locale "UTF-8" [
-      UTF-8: true
-    ]
-  ]
   menu-bar: 0
   status-bar: 0
   ripoffline  1 as integer! :init-menu-bar
@@ -437,7 +429,7 @@ with curses [
   either op-num = 1 [
     wprintw  [ status-bar "Line reserved for Status bar" ]
   ][
-    wprintw  [ status-bar locale ]
+    wprintw  [ status-bar curses/locale ]
   ]
   wnoutrefresh status-bar
 

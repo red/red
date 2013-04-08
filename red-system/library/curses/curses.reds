@@ -1106,5 +1106,17 @@ curses: context [
       return scr
     ]
 
+    locale: ""
+    UTF-8: false
+    #switch OS [
+      Windows   [
+      ]
+      #default  [
+        locale: setlocale __LC_ALL ""           ;@@ check if "utf8" is present in returned string?
+        if null <> find-str locale "UTF-8" [
+          UTF-8: true
+        ]
+      ]
+    ] ; #switch OS
   ] ; with curses
 ] ; context curses

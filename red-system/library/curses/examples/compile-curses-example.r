@@ -22,7 +22,7 @@ compile: func [
   do/args %rsc.r rejoin [ wdir appname %.reds ]
 
   either windows [
-    print rejoin [ "Destination file :  ../../builds/" appname ".exe" ]
+    print rejoin [ "Destination file :  ../../../builds/" appname ".exe" ]
   ][
     print rejoin [ "Destination file : ../../../builds/" appname ]
   ]
