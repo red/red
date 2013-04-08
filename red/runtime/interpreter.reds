@@ -33,7 +33,11 @@ Red/System [
 		pc: eval-expression pc end no yes
 	][
 		if verbose > 0 [log "fetching argument"]
-		stack/push pc
+		either TYPE_OF(pc) = TYPE_GET_WORD [
+			copy-cell _context/get as red-word! pc stack/push*
+		][
+			stack/push pc
+		]
 		pc: pc + 1
 	]
 ]
@@ -54,7 +58,7 @@ interpreter: context [
 			sym [red-symbol!]
 	][
 		sym: symbol/get word/symbol
-		print sym/cache
+		print-line sym/cache
 	]
 	
 	eval-option: func [
