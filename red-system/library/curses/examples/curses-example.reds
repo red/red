@@ -1,7 +1,8 @@
 Red/System [
-  Title:   "curses example: display Red and curses information"
+  Title:   "Curses example: display Red and curses information"
   Author:  "Bruno Anselme"
   EMail:   "be.red@free.fr"
+  File:    %curses-example.reds
   Rights:  "Copyright (c) 2013 Bruno Anselme"
   License: {
     Distributed under the Boost Software License, Version 1.0.
@@ -134,6 +135,7 @@ with curses [
     mvwprintw [ win 3  2 "Application      : %s" system/args-list/item ]
     mvwprintw [ win 4  2 "OS               : %s" op-sys ]
     mvwprintw [ win 5  2 "Screen size      : %dx%d" getmaxx screen getmaxy screen ]
+    mvwprintw [ win 6  2 "UTF-8            : %s" either UTF-8 [ "true" ][ "false" ]]
     win
   ]
 ;-------------------------------------
@@ -189,7 +191,7 @@ with curses [
     wgetstr win str
     echo-off
     raw
-    mvwprintw [ win 4  2 "You wrote  : %s " str ]
+    mvwprintw [ win 5  2 "You wrote  : %s " str ]
     curs-set 0
     win
   ]
@@ -213,15 +215,15 @@ with curses [
   ][
     nb-rows: getmaxy screen
     memcur: curs-set 0
-    car: #"^(0)"
+    car: 0
     either (key and FFFFFF00h) = 0 [
-      car: as byte! (key and 0000007Fh )
+      car: key and 000000FFh
       mvprintw [ (nb-rows - 2)  3
-                 "Character pressed (int-hex-char) : %4d -   %02Xh - %c         "
-                 as integer! car
-                 as integer! car
-                 (either (car >= #" ") [ car ][ #" " ])
+                 "Character pressed (int-hex-char) : %4d -   %02Xh -            "
+                 car
+                 car
                ]
+      mvaddch (nb-rows - 2)  53 car
     ][
       if key <> FFFFFFFFh [
         mvprintw [ (nb-rows - 2)  3
@@ -235,7 +237,7 @@ with curses [
     refresh
     wrefresh win-demo
     curs-set memcur
-    return car
+    return as byte! car
   ]
 ;-------------------------------------
   show-edit: func [  ; Create the test input window
@@ -255,7 +257,7 @@ with curses [
     mvwprintw [ win-demo 5  2 "Input text anywhere" ]
     mvwprintw [ win-demo 7  2 "Esc to quit Screen Editor" ]
     wmove win-demo 1 2
-    if op-num = 1 [ move (wy + 1) (wx + 2) ]  ; Buggy Windows cursor management
+    if op-num = 1 [ move wy (wx + 2) ]  ; Buggy Windows cursor management
     curs-set 1
     wrefresh win-demo
     until [
@@ -274,11 +276,11 @@ with curses [
           KEY_RIGHT   [ wmove win-demo getcury win-demo ((getcurx win-demo) + 1) ]
           default     [
             if ((key and A_ATTRIBUTES) = 0) [
-              wprintw [ win-demo "%c" car ]
+              waddch win-demo as integer! car
             ]
           ]
         ]
-        if op-num = 1 [ move (wy + getcury win-demo) (wx + getcurx win-demo) ]  ; Buggy Windows cursor management
+        if op-num = 1 [ move (wy - 1 + getcury win-demo) (wx + getcurx win-demo) ]  ; Buggy Windows cursor management
         wrefresh win-demo
       ]
       all [ ((key and A_ATTRIBUTES) = 0) (car = #"^(1B)") ]
@@ -287,6 +289,47 @@ with curses [
     wbkgdset win-demo A_NORMAL
     del-win-demo
     return 0
+  ]
+;-------------------------------------
+  draw-charset: func [
+    win      [window!]
+    mask     [integer!]
+    col      [integer!]
+    /local car [integer!] row limit
+  ][
+    row: 3
+    wmove win row col
+    car: 32
+    either UTF-8 [ limit: 127 ][ limit: 255 ]
+    until [
+      waddch win (mask or car)
+      car: car + 1
+      if (car % 32) = 0 [
+        row: row + 1
+        wmove win row col
+      ]
+      car = limit
+    ]
+  ]
+;-------------------------------------
+  show-charset: func [  ; Create the characters window
+    return:  [window!]
+    /local win
+  ][
+    win: newwin 18 67 1 1
+    wcolor-set win 6
+    box win 0 0
+    mvwprintw [ win 0 3 " Characters set " ]
+    mvwprintw [ win 1 10 "Normal charset" ]
+    draw-charset win A_NORMAL      1
+    mvwprintw [ win 1 44 "Alt charset" ]
+    draw-charset win A_ALTCHARSET  34
+    if UTF-8 [
+      mvwprintw-attr win 12 5 (A_REVERSE or A_BLINK) " Warning "
+      wprintw [ win " : UTF-8 charset" ]
+      mvwprintw [ win 13 17 "Only 7 bits chars are displayed" ]
+    ]
+    return win
   ]
 ;-------------------------------------
   show-menu: func [  ; Create the menu window
@@ -304,6 +347,8 @@ with curses [
     mvwprintw [ win  5 2 "5 Check terminal features" ]
     mvwprintw [ win  6 2 "6 Mini screen editor" ]
     mvwprintw [ win  7 2 "7 Test string input" ]
+    mvwprintw [ win  8 2 "8 Display charset" ]
+;    mvwprintw [ win  9 2 "Accents éèàùüâô" ]
     mvwprintw [ win 10 2 "Ctrl+Q to exit" ]
     return win
   ]
@@ -340,6 +385,7 @@ with curses [
           #"5"      [ win-demo: show-features ]
           #"6"      [ win-demo: show-edit ]
           #"7"      [ win-demo: show-input ]
+          #"8"      [ win-demo: show-charset ]
           default [  ]
         ]
         wrefresh win-menu
@@ -349,9 +395,47 @@ with curses [
     ]
   ]
 ;-------------------------------------
+  init-menu-bar: func [    ; callback function for ripoffline
+    [cdecl]
+    wid      [integer!]
+    cols     [integer!]
+;    return:  [integer!]
+  ][
+    menu-bar: wid
+;    return 0
+  ]
+;-------------------------------------
+  init-status-bar: func [    ; callback function for ripoffline
+    [cdecl]
+    wid      [integer!]
+    cols     [integer!]
+;    return:  [integer!]
+  ][
+    status-bar: wid
+;    return 0
+  ]
+;-------------------------------------
+  menu-bar: 0
+  status-bar: 0
+  ripoffline  1 as integer! :init-menu-bar
+  ripoffline -1 as integer! :init-status-bar
   screen: init-screen
   init-color-pairs
   color-set 3
+
+  wcolor-set menu-bar 49
+  werase menu-bar
+  wcolor-set status-bar 25
+  werase status-bar
+  wprintw  [ menu-bar "Line reserved for Menu bar" ]
+  wnoutrefresh menu-bar
+  either op-num = 1 [
+    wprintw  [ status-bar "Line reserved for Status bar" ]
+  ][
+    wprintw  [ status-bar curses/locale ]
+  ]
+  wnoutrefresh status-bar
+
   box screen 0 0
   mvprintw [ 0 2 " The Red/System Curses Show " ]
   win-demo: 0

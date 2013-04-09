@@ -2,6 +2,7 @@ Red/System [
   Title:   "Red/System curses Binding"
   Author:  "Bruno Anselme"
   EMail:   "be.red@free.fr"
+  File:    %curses.reds
   Rights:  "Copyright (c) 2013 Bruno Anselme"
   License: {
     Distributed under the Boost Software License, Version 1.0.
@@ -21,6 +22,23 @@ Red/System [
 
 curses: context [
 
+  #define __LC_CTYPE 0
+  #define __LC_ALL   6
+  #import [
+    LIBC-file cdecl [
+      setlocale: "setlocale" [
+        category  [integer!]
+        locale    [c-string!]
+        return:   [c-string!]
+      ]
+      find-str: "strstr" [      ; Return first occurence of target in src or null if not found
+        src       [c-string!]
+        target    [c-string!]
+        return:   [c-string!]
+      ]
+    ]
+  ]
+
   #define window!  integer!
   #define sysfile! integer!
 
@@ -30,12 +48,12 @@ curses: context [
       #define curses-library "pdcurses.dll"
     ]
     MacOSX    [
-      #include %curses-macosx.reds                 ; TODO: missing file, to be written with macosx curses.h
-      #define curses-library "libncurses.5.dylib"  ; TODO: check this
+      #include %curses-macosx.reds                  ; TODO: missing file, to be written with macosx curses.h
+      #define curses-library "libncursesw.5.dylib"  ; TODO: check this
     ]
     #default  [
       #include %curses-linux.reds
-      #define curses-library "libncurses.so.5"
+      #define curses-library "libncursesw.so.5"
     ]
   ]
 
@@ -53,6 +71,10 @@ curses: context [
       return:   [integer!]
     ]
     wrefresh: "wrefresh" [    ; Print it on the real screen.
+      wid       [window!]
+      return:   [integer!]
+    ]
+    wnoutrefresh: "wnoutrefresh" [ ; Mark window to be refreshed
       wid       [window!]
       return:   [integer!]
     ]
@@ -78,15 +100,6 @@ curses: context [
       return:   [integer!]
     ]
     echo-off: "noecho" [      ; Disable terminal echo.
-      return:   [integer!]
-    ]
-    echochar: "echochar" [    ; Echo single-byte character and rendition to screen and refresh.
-      ch        [integer!]
-      return:   [integer!]
-    ]
-    wechochar: "wechochar" [  ; Echo single-byte character and rendition to a window and refresh.
-      wid       [window!]
-      ch        [integer!]
       return:   [integer!]
     ]
 
@@ -261,10 +274,6 @@ curses: context [
       col       [integer!]
       return:   [integer!]
     ]
-    ungetch: "ungetch" [      ; Push a character onto the input queue.
-      ch        [integer!]
-      return:   [integer!]
-    ]
     getnstr: "getnstr" [      ; Get almost n bytes from input.
       str       [c-string!]
       n         [integer!]
@@ -337,7 +346,16 @@ curses: context [
 
     ; Print to screen
 
-    addch: "addch" [          ; Put character from current cursor position inside stdscr.
+    echochar: "echochar" [    ; Echo wide-character and immediately refresh the screen.
+      ch        [integer!]
+      return:   [integer!]
+    ]
+    wechochar: "wechochar" [  ; Echo wide-character and immediately refresh the window.
+      wid       [window!]
+      ch        [integer!]
+      return:   [integer!]
+    ]
+    addch: "addch" [          ; Put wide-character from current cursor position inside stdscr.
       ch        [integer!]
       return:   [integer!]
     ]
@@ -350,7 +368,7 @@ curses: context [
       str       [c-string!]
       return:   [integer!]
     ]
-    waddch: "waddch" [        ; Put character from current cursor position into window.
+    waddch: "waddch" [        ; Put wide-character from current cursor position into window.
       wid       [window!]
       ch        [integer!]
       return:   [integer!]
@@ -545,6 +563,7 @@ curses: context [
       return:   [integer!]
     ]
     wclrtoeol: "wclrtoeol" [  ; Erase the current line from the cursor to the end of the line inside the specified window
+      wid       [window!]
       return:   [integer!]
     ]
     clrtobot: "clrtobot" [    ; Clear all lines following the cursor.
@@ -911,6 +930,11 @@ curses: context [
     isendwin: "isendwin" [        ; Determine whether a screen has been refreshed.
       return:   [logic!]
     ]
+    ripoffline: "ripoffline" [    ; Reserves a screen line for use by the application.
+      line      [integer!]
+      init      [integer!]        ; pointer on init: function [ [cdecl] wid [integer!] cols [integer!]
+      return:   [integer!]
+    ]
 
     def-prog-mode: "def_prog_mode" [       ; Saves the current terminal modes as the "program" (in Curses) state for use by reset_prog_mode.
       return:   [integer!]
@@ -927,7 +951,22 @@ curses: context [
     baudrate: "baudrate" [        ; Returns the output speed of the terminal in bits per second.
       return:   [integer!]
     ]
-
+    #switch OS [
+      Windows   [
+        ungetch: "PDC_ungetch" [  ; Push a character onto the input queue.
+          ch        [integer!]
+          return:   [integer!]
+        ]
+      ]
+      MacOSX    [
+      ]
+      #default  [
+        ungetch: "ungetch" [      ; Push a character onto the input queue.
+          ch        [integer!]
+          return:   [integer!]
+        ]
+      ]
+    ] ; #switch OS
   ] ; cdecl
   ] ; #import [curses-library
 
@@ -951,57 +990,94 @@ curses: context [
       return stdscr
     ]
 
-    color-set: function [   ; Set terminal color pair
+    color-set: function [   "Set terminal color pair"
       pair    [integer!]
     ][
       _color_set pair 0
     ]
 
-    wcolor-set: function [  ; Set window color pair
+    wcolor-set: function [  "Set window color pair"
       wid     [window!]
       pair    [integer!]
     ][
       _wcolor_set wid pair 0
     ]
 
-    getch: function [  ; Wait for user input. Not avaliable on Windows, so redefined here
-      return:   [integer!]
+    getch: function [  "Wait for user input. Not avaliable on Windows, so redefined here"
+      return:  [integer!]
     ][
       return wgetch stdscr
     ]
 
-    printw-attr: function [  ; printw surrounded by attribute on/off
+    printw-attr: function [  "printw surrounded by attribute on/off"
       attr     [integer!]
       txt      [c-string!]
-      return:  [integer!]
     ][
       attron attr
       printw [ txt ]
       attroff attr
     ]
 
-    wprintw-attr: function [  ; wprintw surrounded by attribute on/off
+    wprintw-attr: function [  "wprintw surrounded by attribute on/off"
       wid      [window!]
       attr     [integer!]
       txt      [c-string!]
-      return:  [integer!]
     ][
       wattron wid attr
       wprintw [ wid txt ]
       wattroff wid attr
     ]
 
-    color-pair: func [
-      pair      [integer!]
-      return:   [integer!]
+    mvwprintw-attr: function [  "wprintw surrounded by attribute on/off"
+      wid      [window!]
+      row      [integer!]
+      col      [integer!]
+      attr     [integer!]
+      txt      [c-string!]
+    ][
+      wmove wid row col
+      wattron wid attr
+      wprintw [ wid txt ]
+      wattroff wid attr
+    ]
+    color-pair: function [
+      pair     [integer!]
+      return:  [integer!]
     ][
       return (pair << PDC_COLOR_SHIFT) and A_COLOR
     ]
-    pair-number: func [
-      pair      [integer!]
-      return:   [integer!]
+    pair-number: function [
+      pair     [integer!]
+      return:  [integer!]
     ][
       return (pair and A_COLOR) >> PDC_COLOR_SHIFT
+    ]
+
+    _top_line: 0                    ; Pointer to top line window
+    _bottom_line: 0                 ; Pointer to bottom line window
+    _top_cols: 0                    ; Number of columns in top line window
+    _bottom_cols: 0                 ; Number of columns in bottom line window
+
+    init-top-line: function [       "Callback function for ripoffline"
+      [cdecl]
+      wid      [window!]
+      cols     [integer!]
+;      return:  [int-ptr!]
+    ][
+      _top_line: wid
+      _top_cols: cols
+;      return 0
+    ]
+
+    init-bottom-line: function [    "Callback function for ripoffline"
+      [cdecl]
+      wid      [window!]
+      cols     [integer!]
+;      return:  [int-ptr!]
+    ][
+      _bottom_line: wid
+      _bottom_cols: cols
+;      return 0
     ]
 
   ; Test interface --------------------------------------------------------------------
@@ -1030,5 +1106,17 @@ curses: context [
       return scr
     ]
 
+    locale: ""
+    UTF-8: false
+    #switch OS [
+      Windows   [
+      ]
+      #default  [
+        locale: setlocale __LC_ALL ""           ;@@ check if "utf8" is present in returned string?
+        if null <> find-str locale "UTF-8" [
+          UTF-8: true
+        ]
+      ]
+    ] ; #switch OS
   ] ; with curses
 ] ; context curses

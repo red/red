@@ -1,7 +1,8 @@
 Red/System [
-  Title:    "Windows Curses binding constant"
+  Title:   "Windows Red/System Curses binding constant"
   Author:  "Bruno Anselme"
   EMail:   "be.red@free.fr"
+  File:    %curses-win32.reds
   Rights:  "Copyright (c) 2013 Bruno Anselme"
   License: {
     Distributed under the Boost Software License, Version 1.0.

@@ -1,7 +1,8 @@
 Red/System [
-  Title:    "Linux Curses binding constant"
+  Title:   "Linux Red/System Curses binding constant"
   Author:  "Bruno Anselme"
   EMail:   "be.red@free.fr"
+  File:    %curses-linux.reds
   Rights:  "Copyright (c) 2013 Bruno Anselme"
   License: {
     Distributed under the Boost Software License, Version 1.0.
@@ -150,4 +151,14 @@ Red/System [
     KEY_EVENT:     019Bh    ; We were interrupted by an event
 
     KEY_MAX:       01FFh    ; Maximum key value is    019Bh
+
+    ; Not included in Linux curses.h. Added manually with Windows constant names.
+    CTL_UP:        0236h  ; ctl-up arrow
+    CTL_DOWN:      020Dh  ; ctl-down arrow
+    CTL_LEFT:      0221h  ; Control-Left-Arrow
+    CTL_RIGHT:     0230h
+    CTL_PGUP:      022Bh
+    CTL_PGDN:      0226h
+    CTL_HOME:      0217h
+    CTL_END:       0207h
   ]
