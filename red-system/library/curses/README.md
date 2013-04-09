@@ -3,9 +3,7 @@ Curses library for Red/System
 
 This is a low level binding for Curses and Panel libraries.
 
-Curses for Red/System now uses wide-characters functions.
-
-UTF-8 encoding will be supported when Red will be ready.
+Curses for Red/System now uses wide-characters library (libncursesw.so).
 
 Requirements
 ------------
@@ -22,12 +20,11 @@ Requirements
 
     The panel library is include in PDCurses.
 
-
 *   **MacOSX**
 
     Help needed to check the right library name, write `%curses-macosx.reds` (may be identical to `%curses-linux.reds`) and test.
 
-Running the Red/System curses-examples
+Running the Red/System curses examples
 ------------------------
 
 1. This binding is provided with two examples for curses and panel libraries.

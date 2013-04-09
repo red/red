@@ -135,7 +135,7 @@ with curses [
     mvwprintw [ win 3  2 "Application      : %s" system/args-list/item ]
     mvwprintw [ win 4  2 "OS               : %s" op-sys ]
     mvwprintw [ win 5  2 "Screen size      : %dx%d" getmaxx screen getmaxy screen ]
-    mvwprintw [ win 6  2 "UTF-8            : %s" either curses/UTF-8 [ "true" ][ "false" ]]
+    mvwprintw [ win 6  2 "UTF-8            : %s" either UTF-8 [ "true" ][ "false" ]]
     win
   ]
 ;-------------------------------------
@@ -191,7 +191,7 @@ with curses [
     wgetstr win str
     echo-off
     raw
-    mvwprintw [ win 4  2 "You wrote  : %s " str ]
+    mvwprintw [ win 5  2 "You wrote  : %s " str ]
     curs-set 0
     win
   ]
@@ -295,11 +295,12 @@ with curses [
     win      [window!]
     mask     [integer!]
     col      [integer!]
-    /local car [integer!] row
+    /local car [integer!] row limit
   ][
     row: 3
     wmove win row col
     car: 32
+    either UTF-8 [ limit: 127 ][ limit: 255 ]
     until [
       waddch win (mask or car)
       car: car + 1
@@ -307,7 +308,7 @@ with curses [
         row: row + 1
         wmove win row col
       ]
-      car = 255
+      car = limit
     ]
   ]
 ;-------------------------------------
@@ -323,9 +324,11 @@ with curses [
     draw-charset win A_NORMAL      1
     mvwprintw [ win 1 44 "Alt charset" ]
     draw-charset win A_ALTCHARSET  34
-    mvwprintw-attr win 12 5 (A_REVERSE or A_BLINK) " Warning "
-    wprintw [ win " : Linux uses an alternate charset" ]
-    mvwprintw [ win 13 17 "Windows uses a 8 bits charset" ]
+    if UTF-8 [
+      mvwprintw-attr win 12 5 (A_REVERSE or A_BLINK) " Warning "
+      wprintw [ win " : UTF-8 charset" ]
+      mvwprintw [ win 13 17 "Only 7 bits chars are displayed" ]
+    ]
     return win
   ]
 ;-------------------------------------
