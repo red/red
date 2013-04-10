@@ -11,6 +11,8 @@ Red/System [
   Purpose: "Debugging functions for zlib.reds development."
 ]
 
+#include %../../runtime/debug.reds
+
   ;-------------------------------------------
   ;-- Dump memory on screen in hex format  (Based on Nenad's dump-memory)
   ;-------------------------------------------
@@ -24,7 +26,6 @@ Red/System [
     print lf
     offset: 0
     ascii: "                "
-
     data-ptr: address
     until [
   ;    print [address ": " ]
@@ -33,7 +34,6 @@ Red/System [
       i: 0
       until [
         i: i + 1
-
         prin-hex-chars as-integer address/value 2
         address: address + 1
         prin either i = 8 ["  "][" "]
@@ -44,7 +44,6 @@ Red/System [
         ][
           byte
         ]
-
         data-ptr: data-ptr + 1
         i = 16
       ]
@@ -52,6 +51,7 @@ Red/System [
       offset: offset + 16
       offset > limit
     ]
+    print lf
     address
   ]
   ;-------------------------------------------

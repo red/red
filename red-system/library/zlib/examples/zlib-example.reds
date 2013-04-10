@@ -15,14 +15,13 @@ Red/System [
 ]
 
 
-#include %../../../runtime/debug.reds
 #include %../zlib.reds
 #include %../zutils.reds
 
   #switch OS [
-    Windows   [ op-sys: "Windows" op-num: 1 ]
-    MacOSX    [ op-sys: "MacOSX"  op-num: 2 ]
-    #default  [ op-sys: "Linux"   op-num: 0 ]
+    Windows   [ op-sys: "Windows" ]
+    MacOSX    [ op-sys: "MacOSX"  ]
+    #default  [ op-sys: "Linux"   ]
   ]
 
 
@@ -36,15 +35,14 @@ Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deseru
 
   print [ text lf ]
 
-  buffer: allocate (CHUNK * size? byte!)
-  ret: compress as byte-ptr! text length? text buffer Z_DEFAULT_COMPRESSION
+  buffer: allocate ((length? text) + 1)  ; Buffer size set to text size
+  byte-count: compress (as byte-ptr! text) (length? text) buffer Z_DEFAULT_COMPRESSION
 
-  print [ lf "Compressed size : " ret " bytes" lf ]
 
-;  hex-dump buffer ret
-;  print lf
-  print bin-to-str buffer ret
-  print lf
+;  hex-dump buffer byte-count
+  print [ bin-to-str buffer byte-count lf ]
+  print [ "Text size       : " length? text " bytes" lf ]
+  print [ "Compressed size : " byte-count " bytes" lf ]
 
   free buffer
 ]
