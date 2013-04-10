@@ -125,17 +125,16 @@ zlib: context [
     ]
 
     compress: func [
-      data     [byte-ptr!]
+      buf-in   [byte-ptr!]
       count    [integer!]
+      buf-out  [byte-ptr!]
       level    [integer!]
-      return:  [byte-ptr!]
+      return:  [integer!]
       /local ret flush have nbytes
-             strm  [z_stream!]
-             src   [byte-ptr!]
-             dest  [byte-ptr!]
+             strm     [z_stream!]
     ][
-      buf-in:  allocate (CHUNK * size? byte!)
-      buf-out: allocate (CHUNK * size? byte!)
+;      buf-in:  allocate (CHUNK * size? byte!)
+;      buf-out: allocate (CHUNK * size? byte!)
       strm: as z_stream! allocate (size? z_stream!)
 
       ; allocate deflate state
@@ -149,19 +148,20 @@ zlib: context [
       if count > CHUNK [
         print "Error buffer size"
       ]
-      copy-memory buf-in data count
+;      copy-memory buf-in data count
       flush: Z_FINISH
       strm/avail_in: count
       strm/next_in: buf-in
       strm/avail_out: CHUNK
       strm/next_out: buf-out
       ret: deflate strm flush
+      have: CHUNK - strm/avail_out
       deflateEnd strm
 
       free as byte-ptr! strm
 ;      free buf-out
-      free buf-in
-      return buf-out
+;      free buf-in
+      return have
     ]
 
   ] ; with zlib
