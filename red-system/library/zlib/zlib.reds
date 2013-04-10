@@ -112,7 +112,7 @@ zlib: context [
   ] ; #import [z-library
 
   ; Higher level interface --------------------------------------------------------------------
-  #define CHUNK 16384
+;  #define CHUNK 16384
 
   with zlib [
 
@@ -133,11 +133,7 @@ zlib: context [
       /local ret flush have nbytes
              strm     [z_stream!]
     ][
-;      buf-in:  allocate (CHUNK * size? byte!)
-;      buf-out: allocate (CHUNK * size? byte!)
       strm: as z_stream! allocate (size? z_stream!)
-
-      ; allocate deflate state
       strm/zalloc: Z_NULL
       strm/zfree: Z_NULL
       strm/opaque: Z_NULL
@@ -145,22 +141,15 @@ zlib: context [
       if ret <> Z_OK [
         print "Error deflateInit"
       ]
-      if count > CHUNK [
-        print "Error buffer size"
-      ]
-;      copy-memory buf-in data count
       flush: Z_FINISH
       strm/avail_in: count
       strm/next_in: buf-in
-      strm/avail_out: CHUNK
+      strm/avail_out: count
       strm/next_out: buf-out
       ret: deflate strm flush
-      have: CHUNK - strm/avail_out
+      have: count - strm/avail_out
       deflateEnd strm
-
       free as byte-ptr! strm
-;      free buf-out
-;      free buf-in
       return have
     ]
 
