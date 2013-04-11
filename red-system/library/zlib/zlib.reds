@@ -31,7 +31,6 @@ zlib: context [
 
   #define opaque!  integer!
   #define Z_NULL  0             ; for initializing zalloc, zfree, opaque
-  #define ZLIB_VERSION "1.2.6"
 
   ; Allowed flush values.
   #define Z_NO_FLUSH       0
@@ -72,27 +71,6 @@ zlib: context [
     ]
   ]
 
-  z_stream!: alias struct! [
-    next_in        [byte-ptr!]     ; next input byte
-    avail_in       [integer!]      ; number of bytes available at next_in
-    total_in       [integer!]      ; total number of input bytes read so far
-
-    next_out       [byte-ptr!]     ; next output byte should be put there
-    avail_out      [integer!]      ; remaining free space at next_out
-    total_out      [integer!]      ; total number of bytes output so far
-
-    msg            [c-string!]     ; last error message, NULL if no error
-    state          [integer!]      ; not visible by applications
-
-    zalloc         [opaque!]       ; used to allocate the internal state (function pointer)
-    zfree          [opaque!]       ; used to free the internal state (function pointer)
-    opaque         [opaque!]       ; private data object passed to zalloc and zfree (function pointer)
-
-    data_type      [integer!]      ; best guess about the data type: binary or text
-    adler          [integer!]      ; adler32 value of the uncompressed data
-    reserved       [integer!]      ; reserved for future use
-  ]
-
 
   #import [z-library cdecl [
     version: "zlibVersion" [       ; Return zlib library version.
@@ -125,9 +103,6 @@ zlib: context [
   ] ; #import [z-library
 
   ; Higher level interface --------------------------------------------------------------------
-
-;  #define CHUNK 16384
-  #define CHUNK 384
 
   with zlib [
 
@@ -172,14 +147,26 @@ zlib: context [
       /local ret out-buf tmp
       out-count    [integer!]
     ][
-      out-count: 2 * in-count
-      out-buf: allocate out-count                       ; allocate the size of original buffer
+      out-count: 2 * in-count                             ; allocate twice the size of original buffer
+      out-buf: allocate out-count
       if out-buf = NULL [
         print [ "Decompress Error : Output buffer allocation error." lf ]
         return NULL
       ]
-      ret: z-uncompress out-buf :out-count in-buf in-count
-      print [ ret lf ]
+      until [
+        ret: z-uncompress out-buf :out-count in-buf in-count
+        if ret = Z_BUF_ERROR [                            ; need to expand output buffer
+          out-count: 2 * out-count                        ; double buffer size
+          tmp: re-allocate out-buf out-count              ; Resize output buffer to minimum size
+          either tmp = NULL [                             ; reallocation failed, uses current output buffer
+            print [ "Decompress Error : Impossible to reallocate output buffer." lf ]
+            ret: Z_MEM_ERROR
+          ][                                              ; reallocation succeeded, uses reallocated buffer
+            out-buf: tmp
+          ]
+        ]
+        any [ (ret = Z_OK) (ret = Z_MEM_ERROR) (ret = Z_STREAM_ERROR) ]
+      ]
       either ret = Z_OK [
         tmp: re-allocate out-buf out-count              ; Resize output buffer to minimum size
         either tmp = NULL [                             ; reallocation failed, uses current output buffer
