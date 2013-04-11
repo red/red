@@ -24,7 +24,6 @@ Red/System [
     #default  [ op-sys: "Linux"   ]
   ]
 
-
 with [ zlib ] [
   print [ "Zlib version : " version lf ]
 
@@ -33,16 +32,15 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.}
 
-  print [ text lf ]
-
   buffer: allocate ((length? text) + 1)  ; Buffer size set to text size
   byte-count: compress (as byte-ptr! text) (length? text) buffer Z_DEFAULT_COMPRESSION
 
-
+  print [ "Original text     : " lf text lf ]
 ;  hex-dump buffer byte-count
-  print [ bin-to-str buffer byte-count lf ]
-  print [ "Text size       : " length? text " bytes" lf ]
-  print [ "Compressed size : " byte-count " bytes" lf ]
+  print [ "Compressed data   : " lf bin-to-str buffer byte-count lf ]
+  print [ "Text size         : " length? text " bytes" lf ]
+  print [ "Compressed size   : " byte-count " bytes" lf ]
+  print [ "Compression ratio : " (100 * byte-count / (length? text)) "%" lf ]
 
   free buffer
 ]

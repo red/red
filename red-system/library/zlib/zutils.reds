@@ -15,6 +15,7 @@ Red/System [
 
   ;-------------------------------------------
   ;-- Dump memory on screen in hex format  (Based on Nenad's dump-memory)
+  ;-- Base address is 0000h
   ;-------------------------------------------
   hex-dump: func [
     address [byte-ptr!]           ;-- memory address where the dump starts
