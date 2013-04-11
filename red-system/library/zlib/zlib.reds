@@ -140,7 +140,9 @@ zlib: context [
   ] ; #import [z-library
 
   ; Higher level interface --------------------------------------------------------------------
+
 ;  #define CHUNK 16384
+  #define CHUNK 384
 
   with zlib [
 
@@ -160,34 +162,53 @@ zlib: context [
     ]
 
     compress: func [
-      buf-in   [byte-ptr!]           "Pointer to source data"
-      count    [integer!]            "Source data count (bytes)"
-      buf-out  [byte-ptr!]           "Pre-allocated data buffer, big enough !"
-      level    [integer!]            "Compression level"
-      return:  [integer!]            "Compressed data count"
-      /local ret flush byte-count
+      buf-in       [byte-ptr!]           "Pointer to source data"
+      in-count     [integer!]            "Source data count (bytes)"
+      out-count    [int-ptr!]            "Pointer to integer, returns output buffer size"
+      level        [integer!]            "Compression level"
+      return:      [byte-ptr!]           "Pointer to compressed data"
+      /local ret flush buf-out tmp
              strm     [z_stream!]
     ][
+      out-count/value: 0
       strm: as z_stream! allocate (size? z_stream!)
+      if strm = NULL [
+        print [ "Compress: Memory allocation error." lf ]
+        return NULL
+      ]
+      buf-out: allocate in-count         ; allocate the size of original buffer
+      if buf-out = NULL [
+        print [ "Compress: Output buffer allocation error." lf ]
+        return NULL
+      ]
       strm/zalloc: Z_NULL
       strm/zfree: Z_NULL
       strm/opaque: Z_NULL
       ret: deflateInit strm level
       if ret <> Z_OK [
-        print "Error deflateInit"
+        print [ "Compress: Error deflateInit : " ret lf ]
         deflateEnd strm
-        return Z_ERRNO
+        out-count/value: 0
+        free buf-out
+        return NULL
       ]
       flush: Z_FINISH
-      strm/avail_in: count
+      strm/avail_in: in-count
       strm/next_in: buf-in
-      strm/avail_out: count
+      strm/avail_out: in-count
       strm/next_out: buf-out
       ret: deflate strm flush
-      byte-count: count - strm/avail_out
+      out-count/value: in-count - strm/avail_out
       deflateEnd strm
       free as byte-ptr! strm
-      return byte-count
+      ; Resize output buffer to minimum size
+      tmp: re-allocate buf-out out-count/value
+      either tmp = NULL [    ; reallocation failed, uses current output buffer
+        print [ "Compress: Impossible to reallocate output buffer." lf ]
+      ][                     ; reallocation succeeded, uses reallocated buffer
+        buf-out: tmp
+      ]
+      return buf-out
     ]
 
 comment {
