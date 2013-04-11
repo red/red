@@ -16,7 +16,6 @@ Red/System [
 
 
 #include %../zlib.reds
-#include %../zutils.reds
 
   #switch OS [
     Windows   [ op-sys: "Windows" ]
@@ -46,5 +45,8 @@ Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deseru
     print [ "Compression ratio : " (100 * byte-count / (length? text)) "%" lf ]
   ]
 
+  print [ lf lf ]
+  dec: as c-string! decompress buffer byte-count
+  print [ dec lf ]
   free buffer
 ]

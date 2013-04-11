@@ -99,40 +99,25 @@ zlib: context [
       return:   [c-string!]
     ]
 
-    deflateInit_: "deflateInit_" [
-      strm         [z_stream!]
-      level        [integer!]
-      version      [c-string!]
-      stream_size  [integer!]
+    compressBound: "compressBound" [
+      sourceLen    [integer!]
       return:      [integer!]
     ]
 
-    deflateEnd: "deflateEnd" [
-      strm         [z_stream!]
+    z-compress: "compress2" [
+      out-buf      [byte-ptr!]           "Pointer to destination data"
+      out-count    [int-ptr!]            "Pointer to destination size, returns output buffer size"
+      in-buf       [byte-ptr!]           "Pointer to source data"
+      in-count     [integer!]            "Source data count (bytes)"
+      level        [integer!]            "Compression level"
       return:      [integer!]
     ]
 
-    deflate: "deflate" [
-      strm         [z_stream!]
-      flush        [integer!]
-      return:      [integer!]
-    ]
-
-    inflateInit_: "inflateInit_" [
-      strm         [z_stream!]
-      version      [c-string!]
-      stream_size  [integer!]
-      return:      [integer!]
-    ]
-
-    inflateEnd: "inflateEnd" [
-      strm         [z_stream!]
-      return:      [integer!]
-    ]
-
-    inflate: "inflate" [
-      strm         [z_stream!]
-      flush        [integer!]
+    z-uncompress: "uncompress" [
+      out-buf      [byte-ptr!]           "Pointer to destination data"
+      out-count    [int-ptr!]            "Pointer to destination size, returns output buffer size"
+      in-buf       [byte-ptr!]           "Pointer to source data"
+      in-count     [integer!]            "Source data count (bytes)"
       return:      [integer!]
     ]
 
@@ -146,105 +131,102 @@ zlib: context [
 
   with zlib [
 
-    inflateInit: function [
-      strm         [z_stream!]
-      return:      [integer!]
-    ][
-      inflateInit_ strm version size? z_stream!
-    ]
-
-    deflateInit: function [
-      strm         [z_stream!]
-      level        [integer!]
-      return:      [integer!]
-    ][
-      deflateInit_ strm level version size? z_stream!
-    ]
-
     compress: func [
-      buf-in       [byte-ptr!]           "Pointer to source data"
+      in-buf       [byte-ptr!]           "Pointer to source data"
       in-count     [integer!]            "Source data count (bytes)"
       out-count    [int-ptr!]            "Pointer to integer, returns output buffer size"
       level        [integer!]            "Compression level"
       return:      [byte-ptr!]           "Pointer to compressed data"
-      /local ret flush buf-out tmp
-             strm     [z_stream!]
+      /local ret out-buf tmp
     ][
-      out-count/value: 0
-      strm: as z_stream! allocate (size? z_stream!)
-      if strm = NULL [
-        print [ "Compress: Memory allocation error." lf ]
+      out-count/value: compressBound in-count
+      out-buf: allocate out-count/value         ; allocate the size of original buffer
+      if out-buf = NULL [
+        print [ "Compress Error : Output buffer allocation error." lf ]
         return NULL
       ]
-      buf-out: allocate in-count         ; allocate the size of original buffer
-      if buf-out = NULL [
-        print [ "Compress: Output buffer allocation error." lf ]
+      ret: z-compress out-buf out-count in-buf in-count level
+      either ret = Z_OK [
+        tmp: re-allocate out-buf out-count/value        ; Resize output buffer to minimum size
+        either tmp = NULL [                             ; reallocation failed, uses current output buffer
+          print [ "Compress Warning : Impossible to reallocate output buffer." lf ]
+        ][                                              ; reallocation succeeded, uses reallocated buffer
+          out-buf: tmp
+        ]
+        return out-buf
+      ][
+        case [
+          ret = Z_MEM_ERROR    [ print [ "Compress Error : not enough memory." lf ] ]
+          ret = Z_BUF_ERROR    [ print [ "Compress Error : not enough room in the output buffer." lf ] ]
+          ret = Z_STREAM_ERROR [ print [ "Compress Error : invalid compression level parameter." lf ] ]
+        ]
+        free out-buf
         return NULL
       ]
-      strm/zalloc: Z_NULL
-      strm/zfree: Z_NULL
-      strm/opaque: Z_NULL
-      ret: deflateInit strm level
-      if ret <> Z_OK [
-        print [ "Compress: Error deflateInit : " ret lf ]
-        deflateEnd strm
-        out-count/value: 0
-        free buf-out
-        return NULL
-      ]
-      flush: Z_FINISH
-      strm/avail_in: in-count
-      strm/next_in: buf-in
-      strm/avail_out: in-count
-      strm/next_out: buf-out
-      ret: deflate strm flush
-      out-count/value: in-count - strm/avail_out
-      deflateEnd strm
-      free as byte-ptr! strm
-      ; Resize output buffer to minimum size
-      tmp: re-allocate buf-out out-count/value
-      either tmp = NULL [    ; reallocation failed, uses current output buffer
-        print [ "Compress: Impossible to reallocate output buffer." lf ]
-      ][                     ; reallocation succeeded, uses reallocated buffer
-        buf-out: tmp
-      ]
-      return buf-out
-    ]
+    ] ; compress
 
-comment {
     decompress: func [
-      buf-in   [byte-ptr!]           "Pointer to source data"
-      count    [integer!]            "Source data count (bytes)"
-      buf-out  [byte-ptr!]           "Pre-allocated data buffer, big enough !"
-      level    [integer!]            "Compression level"
-      return:  [integer!]            "Compressed data count"
-      /local ret flush byte-count
-             strm     [z_stream!]
+      in-buf       [byte-ptr!]           "Pointer to source data"
+      in-count     [integer!]            "Source data count (bytes)"
+      return:      [byte-ptr!]           "Pointer to compressed data"
+      /local ret out-buf tmp
+      out-count    [integer!]
     ][
-      strm: as z_stream! allocate (size? z_stream!)
-      strm/zalloc: Z_NULL
-      strm/zfree: Z_NULL
-      strm/opaque: Z_NULL
-      strm/avail_in: 0
-      strm/next_in: Z_NULL
-      ret: inflateInit strm
-      if ret <> Z_OK [
-        print "Error inflateInit"
-        inflateEnd strm
-        return Z_ERRNO
+      out-count: 2 * in-count
+      out-buf: allocate out-count                       ; allocate the size of original buffer
+      if out-buf = NULL [
+        print [ "Decompress Error : Output buffer allocation error." lf ]
+        return NULL
       ]
-      strm/avail_in: count
-      strm/next_in: buf-in
-      strm/avail_out: count
-      strm/next_out: buf-out
-
-
-      ret: inflate strm
-      byte-count: count - strm/avail_out
-      inflateEnd strm
-      free as byte-ptr! strm
-      return byte-count
+      ret: z-uncompress out-buf :out-count in-buf in-count
+      print [ ret lf ]
+      either ret = Z_OK [
+        tmp: re-allocate out-buf out-count              ; Resize output buffer to minimum size
+        either tmp = NULL [                             ; reallocation failed, uses current output buffer
+          print [ "Decompress Warning : Impossible to reallocate output buffer." lf ]
+        ][                                              ; reallocation succeeded, uses reallocated buffer
+          out-buf: tmp
+        ]
+        return out-buf
+      ][
+        case [
+          ret = Z_MEM_ERROR    [ print [ "Decompress Error : not enough memory." lf ] ]
+          ret = Z_BUF_ERROR    [ print [ "Decompress Error : not enough room in the output buffer." lf ] ]
+          ret = Z_STREAM_ERROR [ print [ "Decompress Error : invalid compression level parameter." lf ] ]
+        ]
+      ]
+      return out-buf
     ]
-}
+
+    bin-to-str: func [             "Convert a byte array into an hex string."
+      address [byte-ptr!]          "Memory address where the conversion starts"
+      limit   [integer!]           "Number of bytes to convert"
+      return: [c-string!]          "Return a c string"
+      /local i str cnum byte major minor
+    ][
+      str: make-c-string (1 + (2 * limit))
+      i: 0
+      cnum: 0
+      until [
+        byte: as integer! address/value
+        minor: byte // 16
+        if minor > 9 [minor: minor + 7]         ;-- 7 = (#"A" - 1) - #"9"
+        byte: byte >>> 4
+        major: byte // 16
+        if major > 9 [major: major + 7]         ;-- 7 = (#"A" - 1) - #"9"
+
+        cnum: cnum + 1
+        str/cnum: #"0" + major
+        cnum: cnum + 1
+        str/cnum: #"0" + minor
+
+        address: address + 1
+        i: i + 1
+        i = limit
+      ]
+      cnum: cnum + 1
+      str/cnum: #"^(00)"  ; c string ending char
+      str
+    ]
   ] ; with zlib
 ] ; context zlib
