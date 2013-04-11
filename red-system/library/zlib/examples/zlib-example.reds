@@ -32,15 +32,19 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.}
 
-  buffer: allocate ((length? text) + 1)  ; Buffer size set to text size
-  byte-count: compress (as byte-ptr! text) (length? text) buffer Z_DEFAULT_COMPRESSION
+  byte-count: 0
+  buffer: compress (as byte-ptr! text) (length? text) :byte-count Z_DEFAULT_COMPRESSION
 
-  print [ "Original text     : " lf text lf ]
-;  hex-dump buffer byte-count
-  print [ "Compressed data   : " lf bin-to-str buffer byte-count lf ]
-  print [ "Text size         : " length? text " bytes" lf ]
-  print [ "Compressed size   : " byte-count " bytes" lf ]
-  print [ "Compression ratio : " (100 * byte-count / (length? text)) "%" lf ]
+  either buffer = NULL [
+    print [ "Error compressing..." lf ]
+  ][
+    print [ "Original text     : " lf text lf ]
+  ;  hex-dump buffer byte-count
+    print [ "Compressed data   : " lf bin-to-str buffer byte-count lf ]
+    print [ "Text size         : " length? text " bytes" lf ]
+    print [ "Compressed size   : " byte-count " bytes" lf ]
+    print [ "Compression ratio : " (100 * byte-count / (length? text)) "%" lf ]
+  ]
 
   free buffer
 ]
