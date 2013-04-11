@@ -19,6 +19,16 @@ Red/System [
 
 zlib: context [
 
+  #import [
+    LIBC-file cdecl [
+      re-allocate:  "realloc" [
+        base       [byte-ptr!]
+        size       [integer!]
+        return:    [byte-ptr!]
+      ]
+    ]
+  ]
+
   #define opaque!  integer!
   #define Z_NULL  0             ; for initializing zalloc, zfree, opaque
   #define ZLIB_VERSION "1.2.6"
@@ -108,6 +118,24 @@ zlib: context [
       return:      [integer!]
     ]
 
+    inflateInit_: "inflateInit_" [
+      strm         [z_stream!]
+      version      [c-string!]
+      stream_size  [integer!]
+      return:      [integer!]
+    ]
+
+    inflateEnd: "inflateEnd" [
+      strm         [z_stream!]
+      return:      [integer!]
+    ]
+
+    inflate: "inflate" [
+      strm         [z_stream!]
+      flush        [integer!]
+      return:      [integer!]
+    ]
+
   ] ; cdecl
   ] ; #import [z-library
 
@@ -116,21 +144,28 @@ zlib: context [
 
   with zlib [
 
+    inflateInit: function [
+      strm         [z_stream!]
+      return:      [integer!]
+    ][
+      inflateInit_ strm version size? z_stream!
+    ]
+
     deflateInit: function [
       strm         [z_stream!]
       level        [integer!]
       return:      [integer!]
     ][
-      deflateInit_ strm level ZLIB_VERSION size? z_stream!
+      deflateInit_ strm level version size? z_stream!
     ]
 
     compress: func [
-      buf-in   [byte-ptr!]
-      count    [integer!]
-      buf-out  [byte-ptr!]
-      level    [integer!]
-      return:  [integer!]
-      /local ret flush have nbytes
+      buf-in   [byte-ptr!]           "Pointer to source data"
+      count    [integer!]            "Source data count (bytes)"
+      buf-out  [byte-ptr!]           "Pre-allocated data buffer, big enough !"
+      level    [integer!]            "Compression level"
+      return:  [integer!]            "Compressed data count"
+      /local ret flush byte-count
              strm     [z_stream!]
     ][
       strm: as z_stream! allocate (size? z_stream!)
@@ -140,6 +175,8 @@ zlib: context [
       ret: deflateInit strm level
       if ret <> Z_OK [
         print "Error deflateInit"
+        deflateEnd strm
+        return Z_ERRNO
       ]
       flush: Z_FINISH
       strm/avail_in: count
@@ -147,11 +184,46 @@ zlib: context [
       strm/avail_out: count
       strm/next_out: buf-out
       ret: deflate strm flush
-      have: count - strm/avail_out
+      byte-count: count - strm/avail_out
       deflateEnd strm
       free as byte-ptr! strm
-      return have
+      return byte-count
     ]
 
+comment {
+    decompress: func [
+      buf-in   [byte-ptr!]           "Pointer to source data"
+      count    [integer!]            "Source data count (bytes)"
+      buf-out  [byte-ptr!]           "Pre-allocated data buffer, big enough !"
+      level    [integer!]            "Compression level"
+      return:  [integer!]            "Compressed data count"
+      /local ret flush byte-count
+             strm     [z_stream!]
+    ][
+      strm: as z_stream! allocate (size? z_stream!)
+      strm/zalloc: Z_NULL
+      strm/zfree: Z_NULL
+      strm/opaque: Z_NULL
+      strm/avail_in: 0
+      strm/next_in: Z_NULL
+      ret: inflateInit strm
+      if ret <> Z_OK [
+        print "Error inflateInit"
+        inflateEnd strm
+        return Z_ERRNO
+      ]
+      strm/avail_in: count
+      strm/next_in: buf-in
+      strm/avail_out: count
+      strm/next_out: buf-out
+
+
+      ret: inflate strm
+      byte-count: count - strm/avail_out
+      inflateEnd strm
+      free as byte-ptr! strm
+      return byte-count
+    ]
+}
   ] ; with zlib
 ] ; context zlib
