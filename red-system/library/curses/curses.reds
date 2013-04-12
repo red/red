@@ -31,9 +31,9 @@ curses: context [
         locale    [c-string!]
         return:   [c-string!]
       ]
-      find-str: "strstr" [      ; Return first occurence of target in src or null if not found
-        src       [c-string!]
-        target    [c-string!]
+      find-string: "strstr" [      ; Return first occurence of substring in string or null if not found
+        string    [c-string!]
+        substring [c-string!]
         return:   [c-string!]
       ]
     ]
@@ -1113,7 +1113,7 @@ curses: context [
       ]
       #default  [
         locale: setlocale __LC_ALL ""           ;@@ check if "utf8" is present in returned string?
-        if null <> find-str locale "UTF-8" [
+        if null <> find-string locale "UTF-8" [
           UTF-8: true
         ]
       ]
