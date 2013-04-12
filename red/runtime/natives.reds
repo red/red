@@ -252,6 +252,7 @@ natives: context [
 		_function/push 
 			as red-block! stack/arguments
 			as red-block! stack/arguments + 1
+			null
 			0
 		stack/set-last stack/top - 1
 	]
@@ -728,6 +729,45 @@ natives: context [
 			]
 		]
 	]
+	
+	bind*: func [
+		copy [integer!]
+		/local
+			value [red-value!]
+			ref	  [red-value!]
+			fun	  [red-function!]
+			word  [red-word!]
+			ctx	  [red-context!]
+	][
+		value: stack/arguments
+		ref: value + 1
+		
+		either any [
+			TYPE_OF(ref) = TYPE_FUNCTION
+			;TYPE_OF(ref) = TYPE_OBJECT
+		][
+			fun: as red-function! ref
+			ctx: fun/ctx
+		][
+			word: as red-word! ref
+			ctx: word/ctx
+		]
+		
+		either TYPE_OF(value) = TYPE_BLOCK [
+			either negative? copy [
+				_context/bind as red-block! value ctx
+			][
+				stack/set-last 
+					as red-value! _context/bind
+						block/clone as red-block! value yes
+						ctx
+			]
+		][
+			word: as red-word! value
+			word/ctx: ctx
+			word/index: _context/find-word ctx word/symbol
+		]
+	]
 
 	;--- Natives helper functions ---
 	
@@ -789,8 +829,8 @@ natives: context [
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
-		set-many blk as red-value! series size
 		result: loop? series
+		if result [set-many blk as red-value! series size]
 		series/head: series/head + size
 		result
 	]
@@ -812,8 +852,8 @@ natives: context [
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
-		_context/set word actions/pick series 1
 		result: loop? series
+		if result [_context/set word actions/pick series 1]
 		series/head: series/head + 1
 		result
 	]
@@ -922,6 +962,7 @@ natives: context [
 		:reduce*
 		:compose*
 		:stats*
+		:bind*
 	]
 
 ]

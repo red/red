@@ -172,7 +172,7 @@ actions: context [
 		limit: form stack/arguments buffer arg limit
 		
 		if all [part >= 0 negative? limit][
-			string/truncate-tail GET_BUFFER(buffer) limit
+			string/truncate-from-tail GET_BUFFER(buffer) limit
 		]
 		stack/set-last as red-value! buffer
 	]
@@ -229,7 +229,7 @@ actions: context [
 			limit
 		
 		if all [part >= 0 negative? limit][
-			string/truncate-tail GET_BUFFER(buffer) limit
+			string/truncate-from-tail GET_BUFFER(buffer) limit
 		]
 		stack/set-last as red-value! buffer
 	]
@@ -371,36 +371,13 @@ actions: context [
 		dup   [integer!]
 	][
 		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
-		append
+		insert
 			as red-series! stack/arguments
 			stack/arguments + 1
 			stack/arguments + part
 			as logic! only + 1
 			stack/arguments + dup
-	]
-	
-	append: func [
-		series  [red-series!]
-		value   [red-value!]
-		part	[red-value!]
-		only?	[logic!]
-		dup		[red-value!]
-		return:	[red-value!]
-		/local
-			action-append
-	][
-		#if debug? = yes [if verbose > 0 [print-line "actions/append"]]
-
-		action-append: as function! [
-			series  [red-series!]
-			value   [red-value!]
-			part	[red-value!]
-			only?	[logic!]
-			dup		[red-value!]
-			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr as red-value! series ACT_APPEND
-		
-		action-append series value part only? dup
+			yes
 	]
 	
 	at*: func [
@@ -583,7 +560,47 @@ actions: context [
 		] get-action-ptr* ACT_INDEX?
 		action-index?
 	]
-	insert*: func [][]
+
+	insert*: func [
+		part  [integer!]
+		only  [integer!]
+		dup   [integer!]
+	][
+		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
+		insert
+			as red-series! stack/arguments
+			stack/arguments + 1
+			stack/arguments + part
+			as logic! only + 1
+			stack/arguments + dup
+			no
+	]
+	
+	insert: func [
+		series  [red-series!]
+		value   [red-value!]
+		part	[red-value!]
+		only?	[logic!]
+		dup		[red-value!]
+		append? [logic!]
+		return:	[red-value!]
+		/local
+			action-insert
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/insert"]]
+
+		action-insert: as function! [
+			series  [red-series!]
+			value   [red-value!]
+			part	[red-value!]
+			only?	[logic!]
+			dup		[red-value!]
+			append? [logic!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr as red-value! series ACT_INSERT
+		
+		action-insert series value part only? dup append?
+	]
 	
 	length?*: func [
 		return:	[red-value!]
@@ -850,7 +867,7 @@ actions: context [
 		:head*
 		:head?*
 		:index?*
-		null			;insert
+		:insert*
 		:length?*
 		:next*
 		:pick*

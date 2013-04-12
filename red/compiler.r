@@ -60,6 +60,8 @@ red: context [
 		foreach forall break halt func function does has
 		exit return switch case routine set get reduce
 	]
+	
+	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
 
 	functions: make hash! [
 	;---name--type--arity----------spec----------------------------refs--
@@ -367,12 +369,29 @@ red: context [
 			remove back tail locals-stack
 	]
 	
+	literal-first-arg?: func [spec [block!]][
+		parse spec [
+			any [
+				word! 		(return no)
+				| lit-word! (return yes)
+				| /local	(return no)
+				| skip
+			]
+		]
+		no
+	]
+	
 	infix?: func [pos [block! paren!] /local specs][
 		all [
 			not tail? pos
 			word? pos/1
 			specs: select functions pos/1
 			'op! = specs/1
+			not all [									;-- check if a literal argument is not expected
+				word? pos/-1
+				specs: select functions pos/-1
+				literal-first-arg? specs/3				;-- literal arg needed, disable infix mode
+			]
 		]
 	]
 	
@@ -1002,14 +1021,20 @@ red: context [
 		depth: depth - 1
 	]
 		
-	comp-foreach: has [word blk name cond][
+	comp-foreach: has [word blk name cond ctx][
 		either block? pc/1 [
 			;TBD: raise error if not a block of words only
 			foreach word blk: pc/1 [
 				add-symbol word
 				add-global word
 			]
-			name: redirect-to-literals [emit-block blk]
+			name: redirect-to-literals [
+				either ctx: find-contexts to word! blk/1 [
+					emit-block/bind blk ctx
+				][
+					emit-block blk
+				]
+			]
 		][
 			add-symbol word: pc/1
 			add-global word
@@ -1124,7 +1149,7 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos ignore words rule new][
+	collect-words: func [spec [block!] body [block!] /local pos ignore words rule word][
 		if pos: find spec /extern [
 			ignore: pos/2
 			unless empty? intersect ignore spec [
@@ -1140,16 +1165,30 @@ red: context [
 			]
 		]
 		words: make block! 1
-
+		
+		make-local: [
+			unless any [
+				all [ignore	find ignore word]
+				find words word
+			][
+				append words word
+			]
+		]
 		parse body rule: [
 			any [
 				pos: set-word! (
-					new: to word! pos/1
-					unless any [
-						all [ignore	find ignore new]
-						find words new
+					word: to word! pos/1
+					do make-local
+				)
+				| pos: word! (
+					if all [
+						find word-iterators pos/1
+						pos/2
 					][
-						append words new
+						foreach word any [
+							all [block? pos/2 pos/2]
+							reduce [pos/2]
+						] make-local
 					]
 				)
 				| path! | set-path! | lit-path!			;-- avoid 'into visiting them
@@ -1196,10 +1235,10 @@ red: context [
 		emit-open-frame 'set							;-- function value creation
 		emit-push-word name
 		emit reduce [
-			'_function/push spec-blk body-blk 
+			'_function/push spec-blk body-blk ctx
 			'as 'integer! to get-word! decorate-func/strict name
 		]
-		insert-lf -6
+		insert-lf -7
 		new-line skip tail output -3 no
 		emit 'word/set
 		insert-lf -1
@@ -1533,7 +1572,7 @@ red: context [
 		]
 	]
 	
-	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!]][
+	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!] /local word][
 		if ref [spec: find/tail spec name]
 		loop nb [
 			while [not any-word? spec/1][				;-- skip types blocks
@@ -1541,8 +1580,22 @@ red: context [
 			]
 			switch type?/word spec/1 [
 				lit-word! [
-					emit-push-word pc/1					;@@ add specific type checking
-					pc: next pc
+					add-symbol word: to word! pc/1
+					
+					switch/default type?/word pc/1 [
+						get-word! [
+							comp-expression
+						]
+						lit-word! [
+							emit 'lit-word/push
+							emit decorate-symbol word
+							insert-lf -2
+							pc: next pc
+						]
+					][
+						emit-push-word word				;@@ add specific type checking
+						pc: next pc
+					]
 				]
 				get-word! [comp-literal no]
 				word!     [comp-expression]

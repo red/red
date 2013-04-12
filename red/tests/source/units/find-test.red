@@ -244,6 +244,11 @@ Red [
   --assert none = find/tail "her^(010000) and now" "here^(010000)"
   --test-- "find/tail-16"
   --assert [and now] = find/tail [he✐re and now] 'he✐re
+  --test-- "find/tail-17 issue #457"
+  --assert "de" = find/tail "abcde" #"c"
+  --test-- "find-tail-18"
+  --assert "de" = find/tail "abc^^de" #"^^"
+  
 ===end-group===
 
 ===start-group=== "find/last"
@@ -287,6 +292,15 @@ Red [
   --assert "✐5678" = find/reverse tail "1234✐5678" "✐"
   --test-- "find/reverse-9" 
   --assert "^(010000)5678" = find/reverse tail "1234^(010000)5678" "^(010000)"
+===end-group===
+
+===start-group=== "find/last/tail"
+	--test-- "find/last/tail-1 issue #459"
+	--assert [7 8] = find/last/tail [1 2 3 4 5 6 3 7 8] 3
+	--test-- "find/last/tail-2 issue #459"
+	--assert "78" = find/last/tail "123456378" #"3"
+	--test-- "find/last/tail-3"
+	--assert "78" = find/last/tail "123456378" "3"
 ===end-group===
 
 ~~~end-file~~~

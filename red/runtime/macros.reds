@@ -168,6 +168,7 @@ Red/System [
 	NAT_REDUCE
 	NAT_COMPOSE
 	NAT_STATS
+	NAT_BIND
 ]
 
 #enum math-op! [
@@ -204,6 +205,8 @@ Red/System [
 #define FLAG_SET?(flag)		(flags and flag <> 0)
 #define OPTION?(ref-ptr)	(ref-ptr > stack/arguments)	;-- a bit inelegant, but saves a lot of code
 #define ON_STACK?(ctx)		(ctx/header and flag-series-stk <> 0)
+#define EQUAL_SYMBOLS?(a b) ((symbol/resolve a) = (symbol/resolve b))
+#define EQUAL_WORDS?(a b) 	((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
 
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 

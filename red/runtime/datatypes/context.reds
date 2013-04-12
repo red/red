@@ -35,6 +35,35 @@ _context: context [
 		]
 		-1												;-- search failed
 	]
+	
+	add-global: func [
+		symbol	[integer!]
+		return: [red-word!]
+		/local
+			word  [red-word!]
+			value [cell!]
+			s  	  [series!]
+			id	  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
+
+		id: find-word global-ctx symbol
+		s: as series! global-ctx/symbols/value
+		
+		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
+		
+		s: as series! global-ctx/symbols/value
+		word: as red-word! alloc-tail s
+		
+		word/header: TYPE_WORD							;-- implicit reset of all header flags
+		word/ctx: 	 global-ctx
+		word/symbol: symbol
+		word/index:  (as-integer s/tail - s/offset) >> 4 - 1
+
+		value: alloc-tail as series! global-ctx/values/value
+		value/header: TYPE_UNSET
+		word
+	]
 
 	add: func [
 		ctx		[red-context!]
@@ -220,6 +249,49 @@ _context: context [
 		copy-cell 										;-- reposition cloned block at right place
 			as red-value! block/clone blk no
 			as red-value! blk
+	]
+	
+	bind: func [
+		body	[red-block!]
+		ctx		[red-context!]
+		return: [red-block!]
+		/local
+			value [red-value!]
+			end	  [red-value!]
+			w	  [red-word!]
+			idx	  [integer!]
+			type  [integer!]
+	][
+		value: block/rs-head body
+		end:   block/rs-tail body
+
+		while [value < end][
+			switch TYPE_OF(value) [	
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_SET_WORD
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT [
+					w: as red-word! value
+					idx: _context/find-word ctx w/symbol
+					if idx >= 0 [
+						w/ctx:   ctx
+						w/index: idx
+					]
+				]
+				TYPE_BLOCK 					;@@ replace with TYPE_ANY_BLOCK
+				TYPE_PAREN 
+				TYPE_PATH
+				TYPE_LIT_PATH
+				TYPE_SET_PATH
+				TYPE_GET_PATH	[
+					bind as red-block! value ctx
+				]
+				default [0]
+			]
+			value: value + 1
+		]
+		body
 	]
 	
 	;-- Actions -- 

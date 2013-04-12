@@ -14,17 +14,58 @@ Red/System [
 _function: context [
 	verbose: 0
 	
+	collect-word: func [
+		value  [red-value!]
+		list   [red-block!]
+		ignore [red-block!]
+		/local		
+			result [red-value!]
+			word   [red-value!]
+	][
+		word: stack/push value
+		word/header: TYPE_WORD							;-- convert the set-word! into a word!
+
+		result: block/find ignore word null no no no null null no no no no
+
+		if TYPE_OF(result) = TYPE_NONE [
+			block/rs-append list word
+			block/rs-append ignore word
+		]
+		stack/pop 2										;-- remove word and FIND result from stack
+	]
+	
+	collect-many-words: func [
+		blk	   [red-block!]
+		list   [red-block!]
+		ignore [red-block!]
+		/local		
+			slot  [red-value!]
+			tail  [red-value!]
+	][
+		slot: block/rs-head blk
+		tail: block/rs-tail blk
+		
+		while [slot < tail][
+			assert any [								;-- replace with ANY_WORD?
+				TYPE_OF(slot) = TYPE_WORD
+				TYPE_OF(slot) = TYPE_GET_WORD
+				TYPE_OF(slot) = TYPE_LIT_WORD
+			]
+			collect-word slot list ignore
+			slot: slot + 1
+		]
+	]
 	
 	collect-deep: func [
 		list   [red-block!]
 		ignore [red-block!]
 		blk    [red-block!]
 		/local
-			value  [red-value!]
-			tail   [red-value!]
-			end	   [red-value!]
-			result [red-value!]
-			word   [red-value!]
+			value [red-value!]
+			tail  [red-value!]
+			w	  [red-word!]
+			many? [logic!]
+			slot  [red-value!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
@@ -32,16 +73,28 @@ _function: context [
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_SET_WORD [
-					word: stack/push value
-					word/header: TYPE_WORD				;-- convert the set-word! into a word!
-					
-					result: block/find ignore word null no no no null null no no no no
-					
-					if TYPE_OF(result) = TYPE_NONE [
-						block/rs-append list word
-						block/rs-append ignore word
+					collect-word value list ignore
+				]
+				TYPE_WORD [
+					w: as red-word! value
+					many?: any [
+						EQUAL_SYMBOLS?(w/symbol words/foreach)
+						;EQUAL_SYMBOLS?(w/symbol words/remove-each)
+						;EQUAL_SYMBOLS?(w/symbol words/map-each)
 					]
-					stack/pop 2							;-- remove word and FIND result from stack
+					if any [
+						many?
+						EQUAL_SYMBOLS?(w/symbol words/repeat)
+					][
+						if value + 1 < tail [
+							slot: value + 1
+							either all [many? TYPE_OF(slot) = TYPE_BLOCK][
+								collect-many-words as red-block! slot list ignore
+							][
+								collect-word slot list ignore
+							]
+						]
+					]
 				]
 				TYPE_BLOCK
 				TYPE_PAREN [
@@ -158,47 +211,6 @@ _function: context [
 		]
 	]
 	
-	bind: func [
-		body [red-block!]
-		ctx	 [red-context!]
-		/local
-			value [red-value!]
-			end	  [red-value!]
-			w	  [red-word!]
-			idx	  [integer!]
-			type  [integer!]
-	][
-		value: block/rs-head body
-		end:   block/rs-tail body
-
-		while [value < end][
-			switch TYPE_OF(value) [	
-				TYPE_WORD
-				TYPE_GET_WORD
-				TYPE_SET_WORD
-				TYPE_LIT_WORD
-				TYPE_REFINEMENT [
-					w: as red-word! value
-					idx: _context/find-word ctx w/symbol
-					if idx >= 0 [
-						w/ctx:   ctx
-						w/index: idx
-					]
-				]
-				TYPE_BLOCK 					;@@ replace with TYPE_ANY_BLOCK
-				TYPE_PAREN 
-				TYPE_PATH
-				TYPE_LIT_PATH
-				TYPE_SET_PATH
-				TYPE_GET_PATH	[
-					bind as red-block! value ctx
-				]
-				default [0]
-			]
-			value: value + 1
-		]
-	]
-	
 	init-locals: func [
 		nb 	   [integer!]
 		/local
@@ -215,22 +227,23 @@ _function: context [
 	push: func [
 		spec	 [red-block!]
 		body	 [red-block!]
+		ctx		 [red-context!]							;-- if not null, context is predefined by compiler
 		code	 [integer!]
 		return:	 [red-context!]							;-- return function's local context
 		/local
-			cell   [red-function!]
+			fun    [red-function!]
 			native [red-native!]
 			more   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
 
-		cell: as red-function! stack/push*
-		cell/header: TYPE_FUNCTION						;-- implicit reset of all header flags
-		cell/spec:	 spec/node
-		cell/ctx:	 _context/make spec yes
-		cell/more:	 alloc-cells 3
+		fun: as red-function! stack/push*
+		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
+		fun/spec:	 spec/node
+		fun/ctx:	 either null? ctx [_context/make spec yes][ctx]
+		fun/more:	 alloc-cells 3
 		
-		more: as series! cell/more/value
+		more: as series! fun/more/value
 		copy-cell
 			as cell! body
 			alloc-tail more
@@ -241,8 +254,8 @@ _function: context [
 		native/header: TYPE_NATIVE
 		native/code: code
 		
-		bind body cell/ctx
-		cell/ctx
+		if null? ctx [_context/bind body fun/ctx]		;-- do not bind if predefined context (already done)
+		fun/ctx
 	]
 		
 	;-- Actions -- 

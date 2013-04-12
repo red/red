@@ -153,6 +153,11 @@ Red [
 ===end-group===
 
 ===start-group=== "Reflection"
+	clean-strings: func [blk [block!]][
+		blk: copy blk
+		forall blk [if string? blk/1 [remove blk blk: back blk]]
+		blk
+	]
 	
 	--test-- "fun-ref-1"
 		ref1: func [a b][a + b]
@@ -160,26 +165,65 @@ Red [
 		--assert [a + b] = body-of :ref1
 	 
 	--test-- "fun-ref-2"
-		--assert (spec-of :append) = [
+		blk: clean-strings spec-of :append	
+		--assert blk = [
 			series [series!] value [any-type!] /part length [number! series!]
 			/only /dup count [number!] return: [series!]
 		]
 	
 	--test-- "fun-ref-3"
-		--assert (spec-of :set) = [word [any-word!] value [any-type!] /any return: [any-type!]]
+		blk: clean-strings spec-of :set	
+		--assert blk = [word [any-word! block!] value [any-type!] /any return: [any-type!]]
 		
 	--test-- "fun-ref-4"
-		--assert (spec-of :<) = [value1 [any-type!] value2 [any-type!]]
+		blk: clean-strings spec-of :<
+		--assert blk = [value1 [any-type!] value2 [any-type!]]
+
+===end-group===
+
+===start-group=== "Capturing of iterators counter word(s)"
+
+	--test-- "fun-capt-1"
+		f1: function [] [repeat ii 5 [ii]]
+		--assert none <> find spec-of :f1 'ii
+		f1
+		--assert unset? get/any 'ii
+	
+	--test-- "fun-capt-2"
+		f2: function [] [foreach ii [1 2 3] [ii]]
+		--assert none <> find spec-of :f2 'ii
+		f2
+		--assert unset? get/any 'ii
+
+	--test-- "fun-capt-3"
+		f3: function [] [foreach [ii jj] [1 2 3 4] [ii jj]]
+		--assert none <> find spec-of :f3 'ii
+		--assert none <> find spec-of :f3 'jj
+		f3
+		--assert unset? get/any 'ii
+		--assert unset? get/any 'jj
 
 ===end-group===
 
 ===start-group=== "Reported issues"
-  --test-- "issue #415"
-    i415-f: func [] [
-      g: func [] [1]
-      g
-    ]
-  --assert 1 = i415-f
+  	--test-- "ri1 issue #415"
+    	i415-f: func [] [
+    		g: func [] [1]
+    		g
+    	]
+    --assert 1 = i415-f
+  
+  	--test-- "ri2 issue #461"
+  		ri2-fn: func ['word] [:word]
+  	--assert op? ri2-fn :+
+  	
+  	--test-- "ri3 issue #461"
+  		ri3-fn: func ['word] [mold :word]
+  	--assert "'+" = ri3-fn '+
+  	
+  	--test-- "ri4 issue #461"
+  		ri4-fn: func ['word] [mold :word]
+  	--assert "+" = ri4-fn +
 
 ===end-group===
 
