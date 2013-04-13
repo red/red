@@ -26,9 +26,10 @@ target-class: context [
 	last-saved?: no									;-- TRUE => operand saved in another register
 	verbose:  	0									;-- logs verbosity level
 	
-	emit-casting: emit-call-syscall: emit-call-import:
+	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue
 	emit-call-native: emit-not: emit-push: emit-pop:
-	emit-integer-operation: emit-float-operation: none ;-- just pre-bind word to avoid contexts issue
+	emit-integer-operation: emit-float-operation: 
+	emit-throw:	none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   [+ - * / // ///]
@@ -232,6 +233,7 @@ target-class: context [
 					not			[emit-not args/1]
 					push		[emit-push args/1]
 					pop			[emit-pop]
+					throw		[emit-throw args/1]
 				] name
 				if name = 'not [res: compiler/get-type args/1]
 			]

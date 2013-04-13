@@ -1561,6 +1561,20 @@ make-profilable make target-class [
 			emit #{5C}								;-- POP esp
 		]
 	]
+	
+	emit-throw: func [value [integer! word!]][
+		emit-load value
+		
+		emit #{5E}									;-- _loop:	POP esi		; get flag
+		emit #{C9}									;-- 		LEAVE
+		emit #{5F}									;-- 		POP edi		; read return address
+		emit #{39C6}								;-- 		CMP esi, eax
+		emit #{7302}								;-- 		JAE _exit
+		emit #{EBF7}								;-- 		JMP _loop	; unwind next frame
+		emit #{89C2}								;--         MOV edx, eax
+		emitter/access-path to set-path! 'system/thrown <last>
+		emit #{FFE7}								;-- _exit:	JMP edi
+	]
 
 	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
@@ -1580,6 +1594,8 @@ make-profilable make target-class [
 			emit #{56}								;-- PUSH esi
 			emit #{57}								;-- PUSH edi
 		]
+		
+		emit-push pick [-1 0] to logic! all [attribs find attribs 'catch]	;--catch flag
 	]
 
 	emit-epilog: func [
@@ -1588,6 +1604,8 @@ make-profilable make target-class [
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
 
+		emit #{5A}									;-- POP edx (catch flag)
+		
 		fspec: select compiler/functions name
 		if all [
 			attribs: compiler/get-attributes fspec/4
