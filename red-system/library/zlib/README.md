@@ -22,13 +22,15 @@ Requirements
 Running the Red/System curses examples
 ------------------------
 
-1. This binding is provided with an example.
+1. This binding is provided with two examples.
 
 1. From the REBOL console type :
 
     `change-dir %red-system`
 
-    `do/args %rsc.r "%library/zlib/examples/zlib-example.reds"`, the compilation process should finish with a `...output file size` message.
+    `do/args %rsc.r "%library/zlib/examples/zlib-mem-example.reds"`, the compilation process should finish with a `...output file size` message.
+
+    `do/args %rsc.r "%library/zlib/examples/zlib-disk-example.reds"`, the compilation process should finish with a `...output file size` message.
 
 1. From command line, use the REBOL compilation script :
 
@@ -44,9 +46,9 @@ Running the Red/System curses examples
 
 1. The resulting binary is in `red-system/builds/`, go try it!
 
-    Linux users run `zlib-example` from command line.
+    Linux users run `zlib-mem-example` or `zlib-mem-example` from command line.
 
-    Windows users need to open a DOS console and run `zlib-example.exe` from there.
+    Windows users need to open a DOS console and run `zlib-mem-example.exe` or `zlib-disk-example.exe` from there.
 
 ZLib binding usage
 ------------------
@@ -60,7 +62,7 @@ ZLib binding usage
       return:      [byte-ptr!]           "Pointer to compressed data"
     ]
 </pre>
-* Example
+*Example*
 <pre>
     with zlib [
       text: "Hello Red world"
@@ -78,7 +80,7 @@ ZLib binding usage
       return:      [byte-ptr!]           "Pointer to compressed data"
     ]
 </pre>
-* Example
+*Example*
 <pre>
     with zlib [
       decompressed-text: as c-string! <b>decompress</b> buffer count

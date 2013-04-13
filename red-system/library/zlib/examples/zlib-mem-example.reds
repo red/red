@@ -19,9 +19,9 @@ Red/System [
 
 print [ "Zlib version : " zlib/version lf ]
 
-test-compression: func [
+test-mem-compress: func [
   text      [c-string!]
-  /local byte-count buffer dec-text
+  /local byte-count buffer decomp-text
 ][
   print [ lf "----------------------------------------" lf ]
   byte-count: 0
@@ -30,25 +30,25 @@ test-compression: func [
   either buffer = NULL [
     print [ "Error compressing..." lf ]
   ][
-    dec-text: as c-string! zlib/decompress buffer byte-count
+    decomp-text: as c-string! zlib/decompress buffer byte-count
     print [ "Original text     : " lf text lf ]
     print [ "Compressed data   : " lf zlib/bin-to-str buffer byte-count lf ]
     print [ "Text size         : " length? text " bytes" lf ]
     print [ "Compressed size   : " byte-count " bytes" lf ]
     print [ "Compression ratio : " (100 * byte-count / (length? text)) "%" lf ]
-    print [ "Decompressed text : " lf dec-text lf ]
-    free as byte-ptr! dec-text
+    print [ "Decompressed text : " lf decomp-text lf ]
+    free as byte-ptr! decomp-text
     free buffer
   ]
 ]
 
-  test-compression {Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+  test-mem-compress {Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.}
 
   ; Repeated string, highly compressible
-  test-compression {Hello Red world, Hello Red world, Hello Red world, Hello Red world,
+  test-mem-compress {Hello Red world, Hello Red world, Hello Red world, Hello Red world,
 Hello Red world, Hello Red world, Hello Red world, Hello Red world,
 Hello Red world, Hello Red world, Hello Red world, Hello Red world,
 Hello Red world, Hello Red world, Hello Red world, Hello Red world,

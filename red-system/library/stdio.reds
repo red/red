@@ -22,10 +22,7 @@ Red/System [
   system/fpu/update
 ]
 
-#define variant!     integer!
-#define opaque!     [struct! [dummy [variant!]]]
-
-file!:              alias opaque!
+#define file!     integer!
 
 #import [ LIBC-file cdecl [
     open-file: "fopen" [           "Open file."
@@ -69,4 +66,19 @@ file!:              alias opaque!
       return:     [integer!]       "Chunks read"
     ]
   ]
+
+] ; #import
+
+file-tail?: function ["End-of-file status."
+  file          [file!]
+  return:       [logic!]
+][
+  as-logic file-tail file
+]
+
+file-error?: function ["File status."
+  file          [file!]
+  return:       [logic!]
+][
+  as-logic file-error file
 ]

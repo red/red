@@ -61,6 +61,8 @@ zlib: context [
   #define Z_BEST_COMPRESSION       9
   #define Z_DEFAULT_COMPRESSION   -1
 
+  #define CHUNK 16384                   ; Buffer size for file (de)compression
+
   #switch OS [
     Windows   [
       #define z-library "zlib1.dll"
@@ -73,10 +75,67 @@ zlib: context [
     ]
   ]
 
+  z_stream!: alias struct! [
+    next_in        [byte-ptr!]     ; next input byte
+    avail_in       [integer!]      ; number of bytes available at next_in
+    total_in       [integer!]      ; total number of input bytes read so far
+
+    next_out       [byte-ptr!]     ; next output byte should be put there
+    avail_out      [integer!]      ; remaining free space at next_out
+    total_out      [integer!]      ; total number of bytes output so far
+
+    msg            [c-string!]     ; last error message, NULL if no error
+    state          [integer!]      ; not visible by applications
+
+    zalloc         [opaque!]       ; used to allocate the internal state (function pointer)
+    zfree          [opaque!]       ; used to free the internal state (function pointer)
+    opaque         [opaque!]       ; private data object passed to zalloc and zfree (function pointer)
+
+    data_type      [integer!]      ; best guess about the data type: binary or text
+    adler          [integer!]      ; adler32 value of the uncompressed data
+    reserved       [integer!]      ; reserved for future use
+  ]
 
   #import [z-library cdecl [
     version: "zlibVersion" [       ; Return zlib library version.
       return:   [c-string!]
+    ]
+
+    deflateInit_: "deflateInit_" [
+      strm         [z_stream!]
+      level        [integer!]
+      version      [c-string!]
+      stream_size  [integer!]
+      return:      [integer!]
+    ]
+
+    z-deflateEnd: "deflateEnd" [
+      strm         [z_stream!]
+      return:      [integer!]
+    ]
+
+    z-deflate: "deflate" [
+      strm         [z_stream!]
+      flush        [integer!]
+      return:      [integer!]
+    ]
+
+    inflateInit_: "inflateInit_" [
+      strm         [z_stream!]
+      version      [c-string!]
+      stream_size  [integer!]
+      return:      [integer!]
+    ]
+
+    z-inflateEnd: "inflateEnd" [
+      strm         [z_stream!]
+      return:      [integer!]
+    ]
+
+    z-inflate: "inflate" [
+      strm         [z_stream!]
+      flush        [integer!]
+      return:      [integer!]
     ]
 
     compressBound: "compressBound" [
@@ -104,9 +163,93 @@ zlib: context [
   ] ; cdecl
   ] ; #import [z-library
 
-  ; Higher level interface --------------------------------------------------------------------
+  ; Higher level interface ---------------------------- ---------------------------------------
 
   with zlib [
+
+     z-inflateInit: function [
+      strm         [z_stream!]
+      return:      [integer!]
+    ][
+      inflateInit_ strm version size? z_stream!
+    ]
+
+    z-deflateInit: function [
+      strm         [z_stream!]
+      level        [integer!]
+      return:      [integer!]
+    ][
+      deflateInit_ strm level version size? z_stream!
+    ]
+
+#define END_Z_FUNC   [z-deflateEnd strm  free buf-out  free buf-in  free as byte-ptr! strm]
+
+    deflate: function [
+      src          [file!]
+      dest         [file!]
+      level        [integer!]
+      return:      [integer!]
+      /local ret have flush buf-in buf-out
+             strm     [z_stream!]
+    ][
+      strm: as z_stream! allocate (size? z_stream!)
+      if strm = NULL [
+        print [ "Deflate: Memory allocation error." lf ]
+        return Z_ERRNO
+      ]
+      buf-in: allocate CHUNK
+      if buf-in = NULL [
+        print [ "Deflate: Input buffer allocation error." lf ]
+        free as byte-ptr! strm
+        return Z_ERRNO
+      ]
+      buf-out: allocate CHUNK
+      if buf-out = NULL [
+        print [ "Deflate: Output buffer allocation error." lf ]
+        free buf-in
+        free as byte-ptr! strm
+        return Z_ERRNO
+      ]
+      strm/zalloc: Z_NULL
+      strm/zfree: Z_NULL
+      strm/opaque: Z_NULL
+      ret: z-deflateInit strm level
+      if ret <> Z_OK [
+        print [ "Deflate: Error deflateInit : " ret lf ]
+        END_Z_FUNC
+        return Z_ERRNO
+      ]
+      until [
+        strm/avail_in: read-file buf-in 1 CHUNK src
+        if file-error? src [
+          print [ "Deflate: Input file error : " ret lf ]
+          END_Z_FUNC
+          return Z_ERRNO ; FIXME: find best error number
+        ]
+        either file-tail? src [ flush: Z_FINISH ][ flush: Z_NO_FLUSH ]
+        strm/next_in: buf-in
+        until [
+          strm/avail_out: CHUNK
+          strm/next_out: buf-out
+          ret: z-deflate strm flush
+          if ret = Z_STREAM_ERROR [
+            print [ "Deflate: Data stream error" lf ]
+            END_Z_FUNC
+            return Z_ERRNO
+          ]
+          have: CHUNK - strm/avail_out
+          ret: write-file buf-out 1 have dest
+          if any [ (ret <> have) (file-error?  dest) ][
+            END_Z_FUNC
+            return Z_ERRNO
+          ]
+          strm/avail_out <> 0
+        ]
+        flush = Z_FINISH
+      ]
+      END_Z_FUNC
+      return Z_OK
+    ]
 
     compress: func [                     "Compress a byte array"
       in-buf       [byte-ptr!]           "Pointer to source data"
