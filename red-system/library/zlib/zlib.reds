@@ -106,12 +106,12 @@ zlib: context [
 
   with zlib [
 
-    compress: func [
+    compress: func [                     "Compress a byte array"
       in-buf       [byte-ptr!]           "Pointer to source data"
       in-count     [integer!]            "Source data count (bytes)"
       out-count    [int-ptr!]            "Pointer to integer, returns output buffer size"
       level        [integer!]            "Compression level"
-      return:      [byte-ptr!]           "Pointer to compressed data"
+      return:      [byte-ptr!]           "Returns a pointer to compressed data"
       /local ret out-buf tmp
     ][
       out-count/value: compressBound in-count
@@ -140,10 +140,10 @@ zlib: context [
       ]
     ] ; compress
 
-    decompress: func [
+    decompress: func [                   "Decompress a byte array"
       in-buf       [byte-ptr!]           "Pointer to source data"
       in-count     [integer!]            "Source data count (bytes)"
-      return:      [byte-ptr!]           "Pointer to compressed data"
+      return:      [byte-ptr!]           "Return a pointer to decompressed data"
       /local ret out-buf tmp
       out-count    [integer!]
     ][
