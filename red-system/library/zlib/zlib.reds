@@ -17,6 +17,8 @@ Red/System [
   }
 ]
 
+#include %../stdio.reds
+
 zlib: context [
 
   #import [
