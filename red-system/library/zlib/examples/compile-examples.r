@@ -30,6 +30,6 @@ compile: func [
 
 wdir: what-dir
 change-dir %../../../                ; locate here your red-system directory
-;compile "zlib-mem-example"
+compile "zlib-mem-example"
 compile "zlib-disk-example"
 
