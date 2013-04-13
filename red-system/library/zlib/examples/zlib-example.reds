@@ -19,7 +19,7 @@ Red/System [
 
 print [ "Zlib version : " zlib/version lf ]
 
-test-functions: func [
+test-compression: func [
   text      [c-string!]
   /local byte-count buffer dec-text
 ][
@@ -42,13 +42,13 @@ test-functions: func [
   ]
 ]
 
-  test-functions {Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+  test-compression {Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.}
 
-  ; Repeating string, highly compressible
-  test-functions {Hello Red world, Hello Red world, Hello Red world, Hello Red world,
+  ; Repeated string, highly compressible
+  test-compression {Hello Red world, Hello Red world, Hello Red world, Hello Red world,
 Hello Red world, Hello Red world, Hello Red world, Hello Red world,
 Hello Red world, Hello Red world, Hello Red world, Hello Red world,
 Hello Red world, Hello Red world, Hello Red world, Hello Red world,
