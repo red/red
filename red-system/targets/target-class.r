@@ -233,7 +233,10 @@ target-class: context [
 					not			[emit-not args/1]
 					push		[emit-push args/1]
 					pop			[emit-pop]
-					throw		[emit-throw args/1]
+					throw		[
+						compiler/last-type: [integer!]
+						emit-throw args/1
+					]
 				] name
 				if name = 'not [res: compiler/get-type args/1]
 			]

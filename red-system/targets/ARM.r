@@ -2004,6 +2004,20 @@ make-profilable make target-class [
 	emit-stack-align-epilog: func [args [block!]][
 		emit-i32 #{e8bd6000}						;-- POP {sp,lr}
 	]
+	
+	emit-throw: func [value [integer! word!]][
+		emit-load value
+
+		emit-i32 #{e8bd0004}						;-- _loop:	POP {r2}	; get flag
+		emit-i32 #{e1a0d00b}						;-- 		MOV sp, fp
+		emit-i32 #{e8bd4800}						;-- 		POP {fp,lr}
+		emit-i32 #{e1520000}						;-- 		CMP r2, r0
+		emit-i32 #{2a000000}						;-- 		BHS _exit
+		emit-i32 #{eafffff8}						;-- 		B _loop		; unwind next frame
+													;-- _exit:  
+		emitter/access-path to set-path! 'system/thrown <last>
+		emit-i32 #{e1a0f00e}						;--			MOV pc, lr
+	]
 
 	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size attribs][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
@@ -2058,6 +2072,8 @@ make-profilable make target-class [
 			emit-i32 join #{e24dd0}					;-- SUB sp, sp, locals-size
 				to char! round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
+		
+		emit-push pick [-1 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 	]
 
 	emit-epilog: func [
@@ -2065,7 +2081,9 @@ make-profilable make target-class [
 		/local fspec attribs
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
-			
+		
+		emit-i32 #{e8bd0004}						;-- POP {r2} 		; dropping catch flag
+		
 		emit-i32 #{e1a0d00b}						;-- MOV sp, fp
 		emit-i32 #{e8bd4800}						;-- POP {fp,lr}
 
