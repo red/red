@@ -18,15 +18,12 @@ qt/tests-dir: system/script/path
 
 ;; make auto files if needed
 ;; do not split these statements over two lines
-qt/make-if-needed? %source/units/auto-tests/byte-auto-test.reds %source/units/make-byte-auto-test.r
-                      
-qt/make-if-needed? %source/units/auto-tests/integer-auto-test.reds %source/units/make-integer-auto-test.r
-                
+qt/make-if-needed? %source/units/auto-tests/byte-auto-test.reds %source/units/make-byte-auto-test.r                 
+qt/make-if-needed? %source/units/auto-tests/integer-auto-test.reds %source/units/make-integer-auto-test.r    
 qt/make-if-needed? %source/units/auto-tests/maths-auto-test.reds %source/units/make-maths-auto-test.r
-
 qt/make-if-needed? %source/units/auto-tests/float-auto-test.reds %source/units/make-float-auto-test.r
-                
 qt/make-if-needed? %source/units/auto-tests/float32-auto-test.reds %source/units/make-float32-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/dylib-auto-test.reds %source/units/make-dylib-auto-test.r
 
 ;; run the tests
 print rejoin ["Run-All    v" system/script/header/version]
@@ -98,6 +95,8 @@ start-time: now/precise
   --run-test-file-quiet %source/units/auto-tests/maths-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds
+  --run-test-file-quiet  %source/units/auto-tests/dylib-auto-test.reds ;; not ARM
+
 ===end-group===
 
 ===start-group=== "Compiler Tests"
@@ -119,11 +118,6 @@ start-time: now/precise
   --run-script-quiet %source/compiler/namespace-test.r
   --run-script-quiet %source/compiler/compiles-ok-test.r
 ===end-group===
-
-===start-group=== "dll-tests"
-  --run-script-quiet %source/units/dll-test.r
-===end-group===
-
 
 ***end-run-quiet***
 

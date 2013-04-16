@@ -143,9 +143,11 @@ qt: make object! [
   compile: func [
     src [file!]
     /lib
+     target [string!]
     /local
       comp                          ;; compilation script
       cmd                           ;; compilation cmd
+      exe							;; executable name
       built                         ;; full path of compiler output
   ][
     clear comp-output
@@ -157,9 +159,9 @@ qt: make object! [
     ]
     exe: copy/part exe find exe "."
     either lib [
-      switch/default fourth system/version [
-        3  [exe: join exe [".dll"]]
-        2   [exe: join %lib [exe ".dylib"]]
+      switch/default target [
+        "WinDLL"	[exe: join exe [".dll"]]
+        "OSX"   	[exe: join %lib [exe ".dylib"]]
       ][
         exe: join %lib [exe ".so"]
       ]     
@@ -178,7 +180,7 @@ qt: make object! [
       do/args %rsc.r "###lib###***src***"
     ]
     
-    either lib [replace comp "###lib###" "-t WinDLL "][replace comp "###lib###" ""]
+  either lib [replace comp "###lib###" join "-t " [target " "]][replace comp "###lib###" ""]
     
     if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     replace comp "***src***" src
@@ -253,12 +255,16 @@ qt: make object! [
   
   compile-dll: func [
     lib-src [file!]
+    target	[string!]
+    /local
+    	dll
   ][
     ;; compile the lib and copy the executable to the runnable dir
-    if not compile/lib lib-src [
+    if not dll: compile/lib lib-src target [
       compile-error lib-src
       output: "Lib compilation failed"  
     ]
+    dll
   ]
   
     
