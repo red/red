@@ -109,6 +109,16 @@ zlib: context [
       return:      [integer!]
     ]
 
+    deflateInit2_: "deflateInit2_" [
+      strm         [z_stream!]
+      level        [integer!]
+      method       [integer!]
+      windowBits   [integer!]
+      memlevel     [integer!]
+      strategy     [integer!]
+      return:      [integer!]
+    ]
+
     z-deflateEnd: "deflateEnd" [
       strm         [z_stream!]
       return:      [integer!]
@@ -180,6 +190,18 @@ zlib: context [
       return:      [integer!]
     ][
       deflateInit_ strm level version size? z_stream!
+    ]
+
+    z-deflateInit2: function [
+      strm         [z_stream!]
+      level        [integer!]
+      method       [integer!]
+      windowBits   [integer!]
+      memlevel     [integer!]
+      strategy     [integer!]
+      return:      [integer!]
+    ][
+      deflateInit2_ strm level Z_DEFLATED (15 or 32) 8 Z_DEFAULT_STRATEGY
     ]
 
 #define END_Z_FUNC   [z-deflateEnd strm  free buf-out  free buf-in  free as byte-ptr! strm]
