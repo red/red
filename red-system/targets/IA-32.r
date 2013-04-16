@@ -15,7 +15,7 @@ make-profilable make target-class [
 	default-align:		4
 	stack-width:		4
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
-	args-offset:		8							;-- stack frame offset to arguments (esp + ebp)
+	args-offset:		8							;-- stack frame offset to arguments (ebp + ret-addr)
 	branch-offset-size:	4							;-- size of JMP offset
 	
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
@@ -1565,37 +1565,39 @@ make-profilable make target-class [
 	emit-throw: func [value [integer! word!]][
 		emit-load value
 		
-		emit #{5E}									;-- _loop:	POP esi		; get flag
-		emit #{C9}									;-- 		LEAVE
+		emit #{C9}									;-- _loop:	LEAVE
 		emit #{5F}									;-- 		POP edi		; read return address
-		emit #{39C6}								;-- 		CMP esi, eax
-		emit #{7302}								;-- 		JAE _exit
-		emit #{EBF7}								;-- 		JMP _loop	; unwind next frame
-		emit #{89C2}								;--	_exit:	MOV edx, eax
+		emit #{3945FC}								;--			CMP [ebp-4], eax ; compare with catch flag
+		emit #{72F9}								;-- 		JB _loop
+		emit #{89C2}								;--			MOV edx, eax
 		emitter/access-path to set-path! 'system/thrown <last>
-		emit #{FFE7}								;--			JMP edi
+		
+		emit #{83FF00}								;--			CMP edi, 0
+		emit #{7402}								;--			JZ _end
+		emit #{FFE7}								;--			JMP edi		; resume in caller
+													;-- _end:
 	]
 
 	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 
+		fspec: select compiler/functions name
+		attribs: compiler/get-attributes fspec/4
+			
 		emit #{55}									;-- PUSH ebp
 		emit #{89E5}								;-- MOV ebp, esp
+
+		emit-push pick [-1 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
+
 		unless zero? locals-size [
 			emit #{83EC}							;-- SUB esp, locals-size
 			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
-		fspec: select compiler/functions name
-		if all [
-			attribs: compiler/get-attributes fspec/4
-			any [find attribs 'cdecl find attribs 'stdcall]
-		][
+		if all [attribs	any [find attribs 'cdecl find attribs 'stdcall]][
 			emit #{53}								;-- PUSH ebx
 			emit #{56}								;-- PUSH esi
 			emit #{57}								;-- PUSH edi
 		]
-		
-		emit-push pick [-1 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 	]
 
 	emit-epilog: func [
@@ -1603,8 +1605,6 @@ make-profilable make target-class [
 		/local fspec attribs
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
-
-		emit #{5F}									;-- POP edi 		; dropping catch flag
 		
 		fspec: select compiler/functions name
 		if all [
@@ -1615,7 +1615,7 @@ make-profilable make target-class [
 			emit #{5E}								;-- POP esi
 			emit #{5B}								;-- POP ebx
 		]
-		emit #{C9}									;-- LEAVE
+		emit #{C9}									;-- LEAVE			; catch flag is skipped
 		either any [
 			zero? args-size
 			fspec/3 = 'cdecl
