@@ -571,19 +571,6 @@ has: make native! [[
 	#get-definition NAT_HAS
 ]
 
-exit: make native! [[
-		"Exits from a function, returning UNSET."
-	]
-	#get-definition NAT_EXIT
-]
-
-return: make native! [[
-		"Exits from a function, returning the given value."
-		value [any-type!]
-	]
-	#get-definition NAT_RETURN
-]
-
 switch: make native! [[
 		"Evaluates the first block following the value found in cases."
 		value [any-type!] "The value to match"
