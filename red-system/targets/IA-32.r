@@ -1587,7 +1587,7 @@ make-profilable make target-class [
 		emit #{55}									;-- PUSH ebp
 		emit #{89E5}								;-- MOV ebp, esp
 
-		emit-push pick [-1 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
+		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 
 		unless zero? locals-size [
 			emit #{83EC}							;-- SUB esp, locals-size
