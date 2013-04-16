@@ -188,6 +188,12 @@ Red/System [
 	COMP_GREATER_EQUAL
 ]
 
+#enum exceptions! [
+	NO_EXCEPTION
+	THROWN_EXIT
+	THROWN_RETURN
+]
+
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)
 #define ACTIONS_NB		60							;-- number of actions
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
