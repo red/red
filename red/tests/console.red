@@ -136,7 +136,7 @@ count-delimiters: function [
 		either in-comment? [
 			switch c [
 				#"^/" [in-comment?: false]
-			]	        
+			]
 		][
 			switch c [
 				#";" [in-comment?: true]
