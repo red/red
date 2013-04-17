@@ -99,6 +99,8 @@ words: context [
 	_foreach:		as red-word! 0
 	_map-each:		as red-word! 0
 	_remove-each:	as red-word! 0
+	_exit:			as red-word! 0
+	_return:		as red-word! 0
 	
 	spec:			-1
 	body:			-1
@@ -109,6 +111,8 @@ words: context [
 	foreach:		-1
 	map-each:		-1
 	remove-each:	-1
+	exit*:			-1
+	return*:		-1
 	
 	build: does [
 		_spec:			word/load "spec"
@@ -116,7 +120,9 @@ words: context [
 		_words:			word/load "words"
 		_logic!:		word/load "logic!"
 		_integer!:		word/load "integer!"
-		
+		_exit:			word/load "exit"
+		_return:		word/load "return"
+
 		_windows:		word/load "Windows"
 		_syllable:		word/load "Syllable"
 		_macosx:		word/load "MacOSX"
@@ -136,6 +142,8 @@ words: context [
 		foreach:		_foreach/symbol
 		map-each:		_map-each/symbol
 		remove-each:	_remove-each/symbol
+		exit*:			_exit/symbol
+		return*:		_return/symbol
 	]
 ]
 

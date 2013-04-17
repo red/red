@@ -534,6 +534,7 @@ alloc-bytes: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
+	if zero? size [size: 16]
 	alloc-series size 1 0					;-- optimize by default for tail insertion
 ]
 

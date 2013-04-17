@@ -600,5 +600,49 @@ Red [
 
 ===end-group===
 
+===start-group=== "clear"
+	
+	--test-- "clear-1"
+		c1-b: [1 2 3 4 5]
+	--assert [] = clear c1-b
+	
+	--test-- "clear-2"
+		c2-s: "a"
+	--assert "" = clear c2-s
+	
+	--test-- "clear-3"
+		c3-s: "é"
+	--assert "" = clear c2-s
+	
+	--test-- "clear-4"
+		c4-s: "✐"
+	--assert "" = clear c4-s
+	
+	--test-- "clear-5"
+		c5-s: "^(2710)"
+	--assert "" = clear c5-s
+	
+	--test-- "clear-6"
+		c6-b: [a [b] c]
+		clear second c6-b
+	--assert [a [] c] = c6-b
+	
+	--test-- "clear-7"
+		c7-b: [a b c d e f]
+		c7-b: next next next c7-b
+	--assert [a b c] = head clear c7-b
+	
+	--test-- "clear-8"
+		c8-b: "123^(2710)"
+		c8-b: next next next c8-b
+	--assert "123" = head clear c8-b
+	
+	--test-- "clear-9"
+		c9-b: "^(2710)123"
+		c9-b:  next c9-b
+		--assert "^(2710)" = head clear c9-b
+	
+===end-group===
+
 ~~~end-file~~~
 

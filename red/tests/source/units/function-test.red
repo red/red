@@ -214,8 +214,8 @@ Red [
     --assert 1 = i415-f
   
   	--test-- "ri2 issue #461"
-  		ri2-fn: func ['word] [mold :word]
-  	--assert ":+" = ri2-fn :+
+  		ri2-fn: func ['word] [:word]
+  	--assert op? ri2-fn :+
   	
   	--test-- "ri3 issue #461"
   		ri3-fn: func ['word] [mold :word]
