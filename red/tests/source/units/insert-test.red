@@ -29,8 +29,8 @@ Red [
 	--test-- "insert-5"
 	--assert 49 = first head insert "abcdeé" "1" ;; utf-8 C3 A9
 	--test-- "insert-6"
-	--assert 10000 = first insert insert "abcde" "✐"
-	--assert 10000 = first insert insert "abcde" #"✐"
+	--assert 10000 = first head insert "abcde" "✐"
+	--assert 10000 = first head insert "abcde" #"✐"
 	--test-- "insert-7"
 	--assert #"0" = first head insert "abcde^(2710)" "0"
 	--assert #"0" = first head insert "abcde^(2710)" #"0"
