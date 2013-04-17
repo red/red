@@ -144,8 +144,6 @@ Red/System [
 	NAT_FUNCTION
 	NAT_DOES
 	NAT_HAS
-	NAT_EXIT
-	NAT_RETURN
 	NAT_SWITCH
 	NAT_CASE
 	NAT_DO
@@ -186,6 +184,12 @@ Red/System [
 	COMP_LESSER_EQUAL
 	COMP_GREATER
 	COMP_GREATER_EQUAL
+]
+
+#enum exceptions! [
+	NO_EXCEPTION
+	THROWN_EXIT
+	THROWN_RETURN
 ]
 
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)

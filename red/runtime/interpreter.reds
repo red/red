@@ -17,8 +17,26 @@ Red/System [
 	][
 		value: _context/get next
 		if TYPE_OF(value) = TYPE_OP [
-			if verbose > 0 [log "infix detected!"]
-			infix?: yes
+			either next = as red-word! pc [
+				if verbose > 0 [log "infix detected!"]
+				infix?: yes
+			][
+				if TYPE_OF(pc) = TYPE_WORD [
+					left: _context/get as red-word! pc
+				]
+				unless all [
+					TYPE_OF(pc) = TYPE_WORD
+					any [
+						TYPE_OF(left) = TYPE_ACTION
+						TYPE_OF(left) = TYPE_NATIVE
+						TYPE_OF(left) = TYPE_FUNCTION
+					]
+					literal-first-arg? as red-native! left	;-- a literal argument is expected
+				][
+					if verbose > 0 [log "infix detected!"]
+					infix?: yes
+				]
+			]
 		]
 	]
 ]
@@ -33,7 +51,11 @@ Red/System [
 		pc: eval-expression pc end no yes
 	][
 		if verbose > 0 [log "fetching argument"]
-		stack/push pc
+		either TYPE_OF(pc) = TYPE_GET_WORD [
+			copy-cell _context/get as red-word! pc stack/push*
+		][
+			stack/push pc
+		]
 		pc: pc + 1
 	]
 ]
@@ -42,6 +64,7 @@ interpreter: context [
 	verbose: 0
 
 	return-type: -1										;-- return type for routine calls
+	in-func?:	 0										;@@ make it thread-safe?
 	
 	log: func [msg [c-string!]][
 		print "eval: "
@@ -54,7 +77,36 @@ interpreter: context [
 			sym [red-symbol!]
 	][
 		sym: symbol/get word/symbol
-		print sym/cache
+		print-line sym/cache
+	]
+	
+	literal-first-arg?: func [
+		native 	[red-native!]
+		return: [logic!]
+		/local
+			fun	  	  [red-function!]
+			value	  [red-value!]
+			tail	  [red-value!]
+			s		  [series!]
+	][
+		s: as series! either TYPE_OF(native) = TYPE_FUNCTION [
+			fun: as red-function! native
+			fun/spec/value
+		][
+			native/spec/value
+		]
+		value: s/offset
+		tail:  s/tail
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_WORD 		[return no]
+				TYPE_LIT_WORD	[return yes]
+				default 		[0]
+			]
+			value: value + 1
+		]
+		no
 	]
 	
 	eval-option: func [
@@ -138,15 +190,18 @@ interpreter: context [
 	]
 	
 	eval-function: func [
+		[catch]
 		fun  [red-function!]
 		body [red-block!]
 		/local
 			saved
 	][
+		in-func?: in-func? + 1
 		saved: fun/ctx/values
 		fun/ctx/values: as node! stack/arguments
 		eval body
 		fun/ctx/values: saved
+		in-func?: in-func? - 1
 	]
 	
 	exec-routine: func [
@@ -203,6 +258,7 @@ interpreter: context [
 		return:   [red-value!]
 		/local
 			next   [red-word!]
+			left   [red-value!]
 			infix? [logic!]
 			op	   [red-op!]
 			call-op
@@ -561,9 +617,10 @@ interpreter: context [
 		/local
 			next   [red-word!]
 			value  [red-value!]
+			left   [red-value!]
 			w	   [red-word!]
-			sym	   [red-symbol!]
 			op	   [red-value!]
+			sym	   [integer!]
 			infix? [logic!]
 	][
 		if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]
@@ -624,6 +681,29 @@ interpreter: context [
 					print-symbol as red-word! pc
 				]
 				value: _context/get as red-word! pc
+				
+				if positive? in-func? [
+					w: as red-word! pc
+					sym: w/symbol
+					case [
+						sym = words/exit* [
+							copy-cell unset-value stack/arguments
+							stack/unroll stack/FLAG_FUNCTION
+							throw THROWN_EXIT
+						]
+						sym = words/return* [
+							pc: pc + 1
+							either pc >= end [
+								copy-cell unset-value stack/arguments
+							][
+								pc: eval-expression pc end no yes
+							]
+							stack/unroll stack/FLAG_FUNCTION
+							throw THROWN_RETURN
+						]
+						true [0]
+					]
+				]
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [
@@ -722,7 +802,6 @@ interpreter: context [
 			value: eval-expression value tail no no
 			if value + 1 < tail [stack/reset]
 		]
-		
 		stack/unwind-last
 	]
 	

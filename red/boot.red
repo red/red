@@ -57,7 +57,7 @@ false: 			make logic! 0
 ;------------------------------------------
 
 make: make action! [[									;--	this one works!	;-)
-		"Returns a new value made from a specification for that value's type."
+		"Returns a new value made from a spec for that value's type."
 		type	 [any-type!] "The datatype or a prototype value."
 		spec	 [any-type!] "The specification	of the new value."
 		return:  [any-type!] "Returns the specified datatype."
@@ -268,7 +268,7 @@ copy: make action! [[
 ]
 
 find: make action! [[
-		"Returns the series where a value is found; NONE if value is not found."
+		"Returns the series where a value is found, or NONE."
 		series	 [series! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
@@ -363,7 +363,7 @@ poke: make action! [[
 ]
 
 remove: make action! [[
-		"Removes the value, and returns the series, at the current series index."
+		"Returns the series at the same index after removing a value."
 		series	 [series! none!]
 		/part "Removes a number of values, or values up to the given series index"
 			length [number! series!]
@@ -375,7 +375,7 @@ remove: make action! [[
 ;reverse
 
 select: make action! [[
-		"Find a value in a series and return the next value; NONE if value not found."
+		"Find a value in a series and return the next value, or NONE."
 		series	 [series! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
@@ -472,14 +472,14 @@ either: make native! [[
 ]
 	
 any: make native! [[
-		"Evaluates conditions, returning at the first that is true."
+		"Evaluates, returning at the first that is true."
 		conds [block!]
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [[
-		"Evaluates conditions, returning at the first that is not true."
+		"Evaluates, returning at the first that is not true."
 		conds [block!]
 	]
 	#get-definition NAT_ALL
@@ -540,7 +540,7 @@ forall: make native! [[
 ;]
 
 func: make native! [[
-		"Defines a function with a given specification and body to evaluate."
+		"Defines a function with a given spec and body."
 		spec [block!]
 		body [block!]
 	]
@@ -548,7 +548,7 @@ func: make native! [[
 ]
 
 function: make native! [[
-		"Defines a function, making all words found in body local variables."
+		"Defines a function, making all words found in body local."
 		spec [block!]
 		body [block!]
 		/extern	"Exclude words that follow this refinement"
@@ -569,19 +569,6 @@ has: make native! [[
 		body [block!]
 	]
 	#get-definition NAT_HAS
-]
-
-exit: make native! [[
-		"Exits from a function, returning UNSET."
-	]
-	#get-definition NAT_EXIT
-]
-
-return: make native! [[
-		"Exits from a function, returning the given value."
-		value [any-type!]
-	]
-	#get-definition NAT_RETURN
 ]
 
 switch: make native! [[
@@ -864,39 +851,39 @@ fifth:	func ["Returns the fifth value in a series."  s [series!]] [pick s 5]
 last:	func ["Returns the last value in a series."  s [series!]][pick back tail s 1]
 
 
-action?:	 func ["Returns true if the value is this type." value [any-type!]] [action!	= type? value]
-block?:		 func ["Returns true if the value is this type." value [any-type!]] [block!	= type? value]
-char?: 		 func ["Returns true if the value is this type." value [any-type!]] [char!		= type? value]
-datatype?:	 func ["Returns true if the value is this type." value [any-type!]] [datatype!	= type? value]
-file?:		 func ["Returns true if the value is this type." value [any-type!]] [file!		= type? value]
-function?:	 func ["Returns true if the value is this type." value [any-type!]] [function!	= type? value]
-get-path?:	 func ["Returns true if the value is this type." value [any-type!]] [get-path!	= type? value]
-get-word?:	 func ["Returns true if the value is this type." value [any-type!]] [get-word!	= type? value]
-integer?:    func ["Returns true if the value is this type." value [any-type!]] [integer!	= type? value]
-issue?:    	 func ["Returns true if the value is this type." value [any-type!]] [issue!	= type? value]
-lit-path?:	 func ["Returns true if the value is this type." value [any-type!]] [lit-path!	= type? value]
-lit-word?:	 func ["Returns true if the value is this type." value [any-type!]] [lit-word!	= type? value]
-logic?:		 func ["Returns true if the value is this type." value [any-type!]] [logic!	= type? value]
-native?:	 func ["Returns true if the value is this type." value [any-type!]] [native!	= type? value]
-none?:		 func ["Returns true if the value is this type." value [any-type!]] [none!		= type? value]
-op?:		 func ["Returns true if the value is this type." value [any-type!]] [op!		= type? value]
-paren?:		 func ["Returns true if the value is this type." value [any-type!]] [paren!	= type? value]
-path?:		 func ["Returns true if the value is this type." value [any-type!]] [path!		= type? value]
-refinement?: func ["Returns true if the value is this type." value [any-type!]] [refinement! = type? value]
-set-path?:	 func ["Returns true if the value is this type." value [any-type!]] [set-path!	= type? value]
-set-word?:	 func ["Returns true if the value is this type." value [any-type!]] [set-word!	= type? value]
-string?:	 func ["Returns true if the value is this type." value [any-type!]] [string!	= type? value]
-unset?:		 func ["Returns true if the value is this type." value [any-type!]] [unset!	= type? value]
-word?:		 func ["Returns true if the value is this type." value [any-type!]] [word!		= type? value]
+action?:	 func ["Returns true if the value is this type." value [any-type!]] [action!	= type? :value]
+block?:		 func ["Returns true if the value is this type." value [any-type!]] [block!		= type? :value]
+char?: 		 func ["Returns true if the value is this type." value [any-type!]] [char!		= type? :value]
+datatype?:	 func ["Returns true if the value is this type." value [any-type!]] [datatype!	= type? :value]
+file?:		 func ["Returns true if the value is this type." value [any-type!]] [file!		= type? :value]
+function?:	 func ["Returns true if the value is this type." value [any-type!]] [function!	= type? :value]
+get-path?:	 func ["Returns true if the value is this type." value [any-type!]] [get-path!	= type? :value]
+get-word?:	 func ["Returns true if the value is this type." value [any-type!]] [get-word!	= type? :value]
+integer?:    func ["Returns true if the value is this type." value [any-type!]] [integer!	= type? :value]
+issue?:    	 func ["Returns true if the value is this type." value [any-type!]] [issue!		= type? :value]
+lit-path?:	 func ["Returns true if the value is this type." value [any-type!]] [lit-path!	= type? :value]
+lit-word?:	 func ["Returns true if the value is this type." value [any-type!]] [lit-word!	= type? :value]
+logic?:		 func ["Returns true if the value is this type." value [any-type!]] [logic!		= type? :value]
+native?:	 func ["Returns true if the value is this type." value [any-type!]] [native!	= type? :value]
+none?:		 func ["Returns true if the value is this type." value [any-type!]] [none!		= type? :value]
+op?:		 func ["Returns true if the value is this type." value [any-type!]] [op!		= type? :value]
+paren?:		 func ["Returns true if the value is this type." value [any-type!]] [paren!		= type? :value]
+path?:		 func ["Returns true if the value is this type." value [any-type!]] [path!		= type? :value]
+refinement?: func ["Returns true if the value is this type." value [any-type!]] [refinement! = type? :value]
+set-path?:	 func ["Returns true if the value is this type." value [any-type!]] [set-path!	= type? :value]
+set-word?:	 func ["Returns true if the value is this type." value [any-type!]] [set-word!	= type? :value]
+string?:	 func ["Returns true if the value is this type." value [any-type!]] [string!	= type? :value]
+unset?:		 func ["Returns true if the value is this type." value [any-type!]] [unset!		= type? :value]
+word?:		 func ["Returns true if the value is this type." value [any-type!]] [word!		= type? :value]
 
 spec-of: func [
-	"Returns the spec of the value, for types that support reflection."
+	"Returns the spec of a value that supports reflection."
 	value
 ][
 	reflect :value 'spec
 ]
 body-of: func [
-	"Returns the body of the value, for types that support reflection."
+	"Returns the body of a value that supports reflection."
 	value
 ][
 	reflect :value 'body

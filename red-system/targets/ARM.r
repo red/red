@@ -1036,7 +1036,7 @@ make-profilable make target-class [
 			emit-variable-64 name
 				#{e8820003}							;-- STM r2, {r0,r1}			; global, low + high
 				#{e58b0000}							;-- STR r0, [fp, #[-]n]		; local, low bits
-				#{e58b1004}							;-- STR r1, [fp, #[-]n]		; local, high bits
+				#{e58b1000}							;-- STR r1, [fp, #[-]n]		; local, high bits
 		]
 		store-word: [
 			emit-variable/alt name
@@ -2004,15 +2004,29 @@ make-profilable make target-class [
 	emit-stack-align-epilog: func [args [block!]][
 		emit-i32 #{e8bd6000}						;-- POP {sp,lr}
 	]
+	
+	emit-throw: func [value [integer! word!]][
+		emit-load value
+
+		emit-i32 #{e1a0d00b}						;-- 		MOV sp, fp		; unwind 1st frame
+		emit-i32 #{e8bd4800}						;-- 		POP {fp,lr}
+		emit-i32 #{e24bd004}						;-- _loop:	SUB sp, fp, #4
+		emit-i32 #{e8bd0004}						;-- 		POP {r2} 		; get flag
+		emit-i32 #{e1520000}						;-- 		CMP r2, r0
+		emit-i32 #{38bd4800}						;-- 		POPLO {fp,lr} 	; unwind frame if r2 < r0
+		emit-i32 #{3afffffa}						;-- 		BLO _loop		; next frame
+													;-- _exit:  
+		emitter/access-path to set-path! 'system/thrown <last>
+		emit-i32 #{e1a0f00e}						;--			MOV pc, lr
+	]
 
 	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size attribs][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		fspec: select compiler/functions name
-		if all [
-			attribs: compiler/get-attributes fspec/4
-			any [find attribs 'cdecl find attribs 'stdcall]
-		][
+		attribs: compiler/get-attributes fspec/4
+		
+		if all [attribs any [find attribs 'cdecl find attribs 'stdcall]][
 			;; we use a simple prolog, which maintains ABI compliance: args 0-3 are
 			;; passed via regs r0-r3, further args are passed on the stack (pushed
 			;; right-to-left; i.e. the leftmost argument is at top-of-stack).
@@ -2054,6 +2068,9 @@ make-profilable make target-class [
 		emit-i32 #{e92d4800}						;-- PUSH {fp,lr}
 		emit-i32 #{e1a0b00d}						;-- MOV fp, sp
 		
+		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
+		emit-push 0									;-- keep stack aligned on 64-bit
+		
 		unless zero? locals-size [
 			emit-i32 join #{e24dd0}					;-- SUB sp, sp, locals-size
 				to char! round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
@@ -2065,8 +2082,8 @@ make-profilable make target-class [
 		/local fspec attribs
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "epilog"]]
-			
-		emit-i32 #{e1a0d00b}						;-- MOV sp, fp
+		
+		emit-i32 #{e1a0d00b}						;-- MOV sp, fp		; catch flag is skipped
 		emit-i32 #{e8bd4800}						;-- POP {fp,lr}
 
 		either compiler/check-variable-arity? locals [

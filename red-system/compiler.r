@@ -103,6 +103,7 @@ system-dialect: make-profilable context [
 			not		[1	inline	- [a [not-set!] 		   return: [not-set!]]]
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
+			throw	[1	inline	- [n [integer!]]]
 		]
 		
 		user-functions: tail functions					;-- marker for user functions
@@ -1019,7 +1020,7 @@ system-dialect: make-profilable context [
 			attribs: [
 				[cconv ['variadic | 'typed]]
 				| [['variadic | 'typed] cconv]
-				| 'infix | 'variadic | 'typed | 'callback | cconv
+				| 'catch | 'infix | 'variadic | 'typed | 'callback | cconv
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 

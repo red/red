@@ -93,8 +93,55 @@ Red [
 		append/dup ad4-s #" " 10
 	--assert 11 = length? ad4-s
 	--assert "           " = ad4-s
-
+	
+	;; test append/dup5 is premature at this stage
+	comment {
+	--test-- "append/dup5"
+		ad5-s: copy " "
+		append/dup ad5-s #" " 2147483647
+	--assert 2147483647 = length? ad5-s
+	}
 ===end-group===
+
+;; these tests are premature at this stage
+comment { 
+===start-group=== "big strings" 
+	
+	--test-- "bg1"
+		bg1-s: copy ""
+		loop 2147483647 [
+			append bg1-s #"a"
+		]
+	--assert 2147483647 = length? bg1-s
+		clear bg-1
+	
+	--test-- "bg2"
+		bg2-s: copy ""
+		loop 2147483647 [
+			append bg2-s #"é"
+		]
+	--assert 2147483647 = length? bg2-s
+		clear bg2-s
+	
+	--test-- "bg3"
+		bg3-s: copy ""
+		loop 2147483647 [
+			append bg3-s #"✐"
+		]
+	--assert 2147483647 = length? bg3-s
+		clear bg3-s
+	
+		--test-- "bg4"
+		bg4-s: copy ""
+		loop 2147483647 [
+			append bg4-s #"^(2710)"
+		]
+	--assert 2147483647 = length? bg4-s
+		clear bg4-s
+		
+===end-group===
+}
+
 
 ~~~end-file~~~
 
