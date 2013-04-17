@@ -133,12 +133,19 @@ count-delimiters: function [
 	c: none
 	
 	foreach c buffer [
-		switch c [
-			#"[" [list/1: list/1 + 1]
-			#"]" [list/1: list/1 - 1]
-			#"{" [list/2: list/2 + 1]
-			#"}" [list/2: list/2 - 1]
-		]
+	    either in-comment? [
+    		switch c [
+    		    #"^/" [in-comment?: false]
+            ]	        
+	    ][
+    		switch c [
+    		    #";" [in-comment?: true]
+    			#"[" [list/1: list/1 + 1]
+    			#"]" [list/1: list/1 - 1]
+    			#"{" [list/2: list/2 + 1]
+    			#"}" [list/2: list/2 - 1]
+    		]
+    	]
 	]
 	list
 ]
