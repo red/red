@@ -53,20 +53,20 @@ Running the Red REPL
     
 1. From Unix, just type `console` from prompt, Windows users need to open a DOS console and run `console.exe` from there, or just click on the executable from Explorer (but you will miss the error messages then). Once the console launched, you should see a banner and a prompt:
 
-    -=== Red Console alpha version ===-
-    (only Latin-1 input supported)
-    
-    red>>
+        -=== Red Console alpha version ===-
+        (only Latin-1 input supported)
+        
+        red>>
 
 1. You can use it to test rapidly some Red code:
 
-    red>> 1 + 2
-    == 3
-    
-    red>> inc: func [n][n + 1]
-    == func [n][n + 1]
-    red>> inc 123
-    == 124
+        red>> 1 + 2
+        == 3
+        
+        red>> inc: func [n][n + 1]
+        == func [n][n + 1]
+        red>> inc 123
+        == 124
 
 Running the Red/System hello script
 ------------------------
