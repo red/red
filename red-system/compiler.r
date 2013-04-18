@@ -54,6 +54,7 @@ system-dialect: make-profilable context [
 		
 		resolve-alias?:  yes							;-- YES: instruct the type resolution function to reduce aliases
 		decoration:		 slash							;-- decoration separator for namespaces
+		shift-right-sym: to word! ">>>"					;-- workaround REBOL LOAD limitation
 		
 		debug-lines: reduce [							;-- runtime source line/file information storage
 			'records make block!  1000					;-- [address line file] records
@@ -105,6 +106,8 @@ system-dialect: make-profilable context [
 			pop		[0	inline	- [						   return: [integer!]]]
 			throw	[1	inline	- [n [integer!]]]
 		]
+		
+		repend functions [shift-right-sym copy functions/-**]
 		
 		user-functions: tail functions					;-- marker for user functions
 		
@@ -2211,6 +2214,8 @@ system-dialect: make-profilable context [
 			/local entry name local? spec type
 		][
 			name: pc/1
+			if name = shift-right-sym [name: '-**]		;-- replace '>>> words produced by Red layer
+
 			name: any [
 				word
 				symbol
