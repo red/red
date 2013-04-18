@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 24/11/2012
-	Revision: 37
+	Date: 18/04/2013
+	Revision: 38
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1407,6 +1407,15 @@ will output:
 
 /note
 
++++Catch
+
+Allows the function to catch runtime exceptions. The execution will resume inside the function just after the call where the exception occured. See <a href="#section-6.8">Exceptions</a> section for more info.
+
+\note Compatibity with other attributes
+<b>Catch</b> attribute can only be used on its own.
+
+/note
+
 ---Type inference
 
 Functions offer a limited type inference possibility for local variables.
@@ -1529,6 +1538,98 @@ Immediately quits the function and returns a value.
  	"ok"								;-- return "ok" if a <> 0
  ]
 
+---Exceptions
+
+Exit and Return are sometimes not enough when it is needed to interrupt current execution and go back through several parent calls before resuming execution. Exceptions are solving such case by providing a way to resume execution from a parent caller anywhere in the calling hierarchy, up to global code level.
+
++++Throwing an exception
+
+Raising a new exception is done by calling the <b>throw</b> function followed by an integer value used as the exception ID.
+
+<b>Syntax</b>
+
+ throw <id>
+
+ <id> : integer value used as exception ID
+ 
+<b>Throw</b> will produce an exception that will move up through the parent calls until one with a <b>catch</b> attribute is found. If no such attribute is found, the exception will stop once global code is reached and resume execution from there.
+
+<u>Note</u>: if <b>throw</b> is used from a function that has the <b>catch</b> attribute, the exception will still be raised and go through parent calls. Only a parent call with a <b>catch</b> attribute can stop it. This way, when a function catches an exception, it can re-<b>throw</b> it if required.
+
+Example:
+
+ baz: does [
+ 	print " "
+ 	throw 123
+ 	print "<hidden>"
+ ]
+ bar: does [
+ 	print "hello"
+ 	baz
+ 	print "<hidden>"
+ ]
+ foo: func [[catch]][
+ 	bar
+ 	print "world"
+ ]
+
+ foo
+will output:
+ hello world
+ 
+\note No callbacks support
+The exception mechanism does not work across external calls, so a callback function must not use <b>throw</b>, else a crash will be the likely outcome.
+
+/note
+
++++Reading exception value
+
+The integer argument passed to <b>throw</b> is propagated with the exception, it can be read using a system access path: <b>system/thrown</b>
+
+<b>Syntax</b>
+
+ system/thrown							;-- read access (returns an integer)
+ system/thrown: <id>					;-- write access
+
+ <id>  : integer value
+ 
+The <b>system/thrown</b> path can be both read and written. It can be used to take different actions depending on the thrown value. The write access exists so that the value can be resetted manually when needed. It is recommended to reset it to 0 in such cases.
+ 
+<b>Examples<b>
+
+ foo									;-- taken from previous example
+ print system/thrown
+will output:
+ 123
+ 
+A dispatching use case would look like this:
+
+ foo: does [throw 10]
+ bar: does [throw 20]
+ baz: does [throw 30]
+
+ dispatch: func [[catch] n [integer!]][
+ 	system/thrown: 0					;-- this is only useful if no exception occurs
+
+ 	switch n [
+ 		1 [foo]
+ 		2 [bar]
+ 		3 [baz]
+ 		default [
+ 			print-line "do nothing"
+ 		]
+ 	]
+ 	switch system/thrown [
+ 		0  [print "no exception occured"]
+ 		10 [print "foo"]
+ 		20 [print "bar"]
+ 		30 [print "baz"]
+ 	]
+ ]
+
+ dispatch 2
+will output:
+	bar
 
 ===Scoping
 
@@ -2913,8 +3014,9 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     function	if			not
     null		or			pop
     push		return		size?
-    switch		true		until
-    while		with		xor
+    switch		throw		true
+    until		while		with
+    xor
     
 \note Bootstrap constraints
 Both -** (internal representation for >>>) and /// (internal representation for %) are required to workaround REBOL's lexical scanner limitations. Those symbols will be removed from the reserved keywords list once the bootstrap phase will end.
@@ -2983,6 +3085,8 @@ will output:
 *Add support for functions refinements (same as in REBOL)
 
 *<strike>Infer functions return value datatype</strike>
+
+*Accept an integer parameter for [catch] attribute to set manually the catching level (to avoid manual exception re-throwing).
  
 ---New datatypes
 
@@ -3032,6 +3136,15 @@ will output:
 
 
 ===Document History
+
+*<b>18/04/2013 - revision 38</b>
+
+*>Added "Exceptions" section.
+
+*>Added "Catch" attribute entry in "Attributes" section.
+
+*>Added "throw" to keywords list.
+
 
 *<b>24/11/2012 - revision 37</b>
 
