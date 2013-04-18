@@ -67,7 +67,7 @@ test-script-footer: {
 
 ;; dll target
 dll-target: switch/default fourth system/version [
-	3 ["WinDLL"]
+	3 ["Windows"]
 ][
 	none
 ]

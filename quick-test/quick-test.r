@@ -160,7 +160,7 @@ qt: make object! [
     exe: copy/part exe find exe "."
     either lib [
       switch/default target [
-        "WinDLL"	[exe: join exe [".dll"]]
+        "Windows"	[exe: join exe [".dll"]]
         "OSX"   	[exe: join %lib [exe ".dylib"]]
       ][
         exe: join %lib [exe ".so"]
@@ -180,7 +180,7 @@ qt: make object! [
       do/args %rsc.r "###lib###***src***"
     ]
     
-  either lib [replace comp "###lib###" join "-t " [target " "]][replace comp "###lib###" ""]
+  either lib [replace comp "###lib###" join "-dlib -t " [target " "]][replace comp "###lib###" ""]
     
     if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     replace comp "***src***" src
