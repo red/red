@@ -123,6 +123,3 @@ License
 -------------------------
 Both Red and Red/System are published under [BSD](http://www.opensource.org/licenses/bsd-3-clause) license, runtime is under [BSL](http://www.boost.org/users/license.html) license. BSL is a bit more permissive license than BSD, more suitable for the runtime parts.
 
-
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/dockimbel/Red/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
