@@ -64,6 +64,7 @@ interpreter: context [
 	verbose: 0
 
 	return-type: -1										;-- return type for routine calls
+	in-func?:	 0										;@@ make it thread-safe?
 	
 	log: func [msg [c-string!]][
 		print "eval: "
@@ -189,15 +190,18 @@ interpreter: context [
 	]
 	
 	eval-function: func [
+		[catch]
 		fun  [red-function!]
 		body [red-block!]
 		/local
 			saved
 	][
+		in-func?: in-func? + 1
 		saved: fun/ctx/values
 		fun/ctx/values: as node! stack/arguments
 		eval body
 		fun/ctx/values: saved
+		in-func?: in-func? - 1
 	]
 	
 	exec-routine: func [
@@ -615,8 +619,8 @@ interpreter: context [
 			value  [red-value!]
 			left   [red-value!]
 			w	   [red-word!]
-			sym	   [red-symbol!]
 			op	   [red-value!]
+			sym	   [integer!]
 			infix? [logic!]
 	][
 		if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]
@@ -677,6 +681,29 @@ interpreter: context [
 					print-symbol as red-word! pc
 				]
 				value: _context/get as red-word! pc
+				
+				if positive? in-func? [
+					w: as red-word! pc
+					sym: w/symbol
+					case [
+						sym = words/exit* [
+							copy-cell unset-value stack/arguments
+							stack/unroll stack/FLAG_FUNCTION
+							throw THROWN_EXIT
+						]
+						sym = words/return* [
+							pc: pc + 1
+							either pc >= end [
+								copy-cell unset-value stack/arguments
+							][
+								pc: eval-expression pc end no yes
+							]
+							stack/unroll stack/FLAG_FUNCTION
+							throw THROWN_RETURN
+						]
+						true [0]
+					]
+				]
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [
@@ -775,7 +802,6 @@ interpreter: context [
 			value: eval-expression value tail no no
 			if value + 1 < tail [stack/reset]
 		]
-		
 		stack/unwind-last
 	]
 	

@@ -276,13 +276,6 @@ natives: context [
 			as red-value! refinements/local
 		func*
 	]
-	
-	exit*: does [
-		print "*** Error: EXIT not yet implemented for interpreter"
-	]
-	return*:	does [
-		print "*** Error: RETURN not yet implemented for interpreter"
-	]
 		
 	switch*: func [
 		default? [integer!]
@@ -938,8 +931,6 @@ natives: context [
 		:function*
 		:does*
 		:has*
-		:exit*
-		:return*
 		:switch*
 		:case*
 		:do*

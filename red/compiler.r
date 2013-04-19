@@ -1760,6 +1760,8 @@ red: context [
 		local?: local-word? name
 		
 		case [
+			name = 'exit	[comp-exit]
+			name = 'return	[comp-return]
 			all [
 				not final
 				not local?

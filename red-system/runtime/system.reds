@@ -74,6 +74,7 @@ system: declare struct! [					;-- store runtime accessible system values
 	fpu			[__fpu-struct!]				;-- FPU settings
 	alias		[integer!]					;-- aliases ID virtual access
 	words		[integer!]					;-- global context accessor (dummy type)
+	thrown		[integer!]					;-- last THROWn value
 ]
 
 #if type = 'exe [

@@ -549,7 +549,7 @@ emitter: make-profilable context [
 				][
 					sz: target/stack-slot-max			;-- type to be inferred
 				]				
-				repend stack [var locals-sz: locals-sz - sz]	;-- store stack offsets
+				repend stack [var (locals-sz: locals-sz - sz) - 4]	;-- store stack offsets
 			]
 			locals-sz: abs locals-sz
 		]

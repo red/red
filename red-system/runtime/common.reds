@@ -54,6 +54,8 @@ Red/System [
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]
 
+#define CATCH_ALL		-1
+
 ;-- Global variables definition --
 stdout:		-1								;-- uninitialized default value
 stdin:		-1								;-- uninitialized default value
@@ -191,3 +193,8 @@ form-type: func [
 	]
 	quit status
 ]
+
+
+system/stack/frame: system/stack/top		;-- @@ reposition frame pointer just after the catch flag
+push CATCH_ALL								;-- exceptions root barrier
+push 0										;-- keep stack aligned on 64-bit
