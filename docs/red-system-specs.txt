@@ -1595,7 +1595,7 @@ The integer argument passed to <b>throw</b> is propagated with the exception, it
  
 The <b>system/thrown</b> path can be both read and written. It can be used to take different actions depending on the thrown value. The write access exists so that the value can be resetted manually when needed. It is recommended to reset it to 0 in such cases.
  
-<b>Examples<b>
+<b>Examples</b>
 
  foo									;-- taken from previous example
  print system/thrown
