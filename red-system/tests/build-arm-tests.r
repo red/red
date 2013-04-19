@@ -16,6 +16,7 @@ system/options/quiet: true
 file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
 a-file-name: ["%" some file-chars ".reds" ] 
 a-test-file: ["--run-test-file-quiet " copy file a-file-name]
+a-dll-file: ["--compile-dll " copy file a-file-name]
 
 ;; make the Arm dir if needed
 arm-dir: %runnable/arm-tests/
@@ -23,6 +24,23 @@ make-dir arm-dir
 
 ;; empty the Arm dir
 foreach file read arm-dir [delete join arm-dir file]
+
+;; compile any dlls
+dlls: copy []
+src: read %source/units/make-dylib-auto-test.r
+parse/all src [any [a-dll-file (append dlls to file! file) | skip] end]
+probe dlls
+foreach dll dlls [
+	change-dir %../
+	insert next dll "tests/"
+	do/args %rsc.r join "-dlib -t Linux-ARM " dll
+	lib: copy find/last/tail dll "/"
+	print lib 
+	insert lib"lib"
+	lib: replace lib ".reds" ".so"
+	write/binary join %tests/runnable/arm-tests/ lib read/binary join %builds/ lib	
+]
+		
 
 ;; get the list of test source files
 test-files: copy []
