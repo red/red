@@ -34,6 +34,7 @@ context [
 		ev-current		1			;; the "current" version we're adhering to
 
 		et-exec			2			;; executable file
+		et-dyn			3			;; shared object file
 
 		em-386			3			;; intel 80386
 		em-arm			40			;; ARM
@@ -313,6 +314,7 @@ context [
 			build-ehdr
 				job/os
 				job/target
+				job/type
 				get-offset "phdr"
 				get-offset "shdr"
 				get-address ".text"
@@ -405,6 +407,7 @@ context [
 	build-ehdr: func [
 		target-os [word!]
 		target-arch [word!]
+		target-type [word!]
 		phdr-offset [integer!]
 		shdr-offset [integer!]
 		text-address [integer!]
@@ -420,7 +423,6 @@ context [
 		eh/ident-class:		defs/elfclass32
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
-		eh/type:			defs/et-exec
 		eh/version:			defs/ev-current
 		eh/entry:			text-address
 		eh/phoff:			phdr-offset
@@ -434,6 +436,11 @@ context [
 		eh/shstrndx:		index? find section-names ".shstrtab"
 
 		;; Target-specific header fields.
+
+		eh/type: select reduce [
+			'exe defs/et-exec
+			'dll defs/et-dyn
+		] target-type
 
 		switch target-arch [
 			ia-32	[
