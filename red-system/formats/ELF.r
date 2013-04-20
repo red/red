@@ -216,7 +216,7 @@ context [
 		job [object!]
 		/local
 			base-address dynamic-linker
-			libraries symbols natives
+			libraries imports natives
 			structure segments sections commands layout
 			data-size
 			get-address get-offset get-size get-meta get-data set-data
@@ -225,7 +225,7 @@ context [
 		base-address: any [job/base-address defs/base-address]
 		dynamic-linker: any [job/dynamic-linker ""]
 
-		set [libraries symbols] collect-import-names job
+		set [libraries imports] collect-import-names job
 		natives: collect-natives job
 
 		structure: copy default-structure
@@ -234,7 +234,7 @@ context [
 			remove-elements structure [".interp"]
 		]
 
-		if empty? symbols [
+		if empty? imports [
 			remove-elements structure [
 				".interp"
 				".hash"
@@ -273,17 +273,17 @@ context [
 
 			"ehdr"			size elf-header
 			"phdr"			size [program-header	length? segments]
-			".hash"			size [machine-word		2 + 2 + length? symbols]
-			".dynsym"		size [elf-symbol		1 + length? symbols]
-			".rel.text"		size [elf-relocation	length? symbols]
+			".hash"			size [machine-word		2 + 2 + length? imports]
+			".dynsym"		size [elf-symbol		1 + length? imports]
+			".rel.text"		size [elf-relocation	length? imports]
 			".data"			size (data-size)
-			".data.rel.ro"	size [machine-word		length? symbols]
+			".data.rel.ro"	size [machine-word		length? imports]
 			".dynamic"		size [elf-dynamic		9 + length? libraries]
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [section-header	length? sections]
 
 			".interp"		data (to-c-string dynamic-linker)
-			".dynstr"		data (to-elf-strtab join libraries symbols)
+			".dynstr"		data (to-elf-strtab join libraries imports)
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
@@ -326,13 +326,13 @@ context [
 			[build-phdr map-each segment segments [layout/:segment]]
 
 		set-data ".hash"
-			[build-hash symbols]
+			[build-hash imports]
 
 		set-data ".dynsym"
-			[build-dynsym symbols get-data ".dynstr"]
+			[build-dynsym imports get-data ".dynstr"]
 
 		set-data ".rel.text"
-			[build-reltext job/target symbols get-address ".data.rel.ro"]
+			[build-reltext job/target imports get-address ".data.rel.ro"]
 
 		set-data ".data" [
 			if job/debug? [
@@ -345,7 +345,7 @@ context [
 		]
 
 		set-data ".data.rel.ro"
-			[build-relro symbols]
+			[build-relro imports]
 
 		set-data ".dynamic" [
 			build-dynamic
@@ -388,7 +388,7 @@ context [
 			if job/PIC? [relro-offset: relro-offset - get-address ".text"]
 			resolve-import-refs
 				job
-				symbols
+				imports
 				get-data ".text"
 				relro-offset
 		]
