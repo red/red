@@ -136,17 +136,17 @@ make-profilable make target-class [
 				if verbose >= 3 [print [">>>converting from" mold/flat type/1 "to logic!"]]
 				old: width
 				set-width/type type/1
-				emit #{31DB}						;--		   XOR ebx, ebx
+				emit #{31FF}						;--		   XOR edi, edi
 				either alt? [
 					emit-poly [#{80FA00} #{83FA00}]	;-- 	   CMP rD, 0
 					emit #{7401}					;--        JZ _exit
-					emit #{43}						;-- 	   INC ebx
-					emit #{89DA}					;-- _exit: MOV edx, ebx
+					emit #{47}						;-- 	   INC edi
+					emit #{89FA}					;-- _exit: MOV edx, edi
 				][
 					emit-poly [#{3C00} #{83F800}]	;-- 	   CMP rA, 0
 					emit #{7401}					;--        JZ _exit
-					emit #{43}						;-- 	   INC ebx
-					emit #{89D8}					;-- _exit: MOV eax, ebx
+					emit #{47}						;-- 	   INC edi
+					emit #{89F8}					;-- _exit: MOV eax, edi
 				]
 				width: old
 			]
@@ -629,9 +629,9 @@ make-profilable make target-class [
 	emit-load-index: func [idx [word!]][
 		unless compiler/local-variable? idx [idx: compiler/resolve-ns idx]
 		emit-variable idx
-			#{8B1D}									;-- MOV ebx, [idx]		; global
-			#{8B5D}									;-- MOV ebx, [ebp+n]	; local
-		emit #{4B}									;-- DEC ebx				; one-based index
+			#{8B3D}									;-- MOV edi, [idx]		; global
+			#{8B7D}									;-- MOV edi, [ebp+n]	; local
+		emit #{4F}									;-- DEC edi				; one-based index
 	]
 	
 	emit-c-string-path: func [path [path! set-path!] parent [block! none!] /local opcodes idx][
@@ -649,11 +649,11 @@ make-profilable make target-class [
 		opcodes: pick [[							;-- store path opcodes --
 				#{8816}								;-- MOV [esi], dl			; first	
 				#{8896}								;-- MOV [esi + idx], dl 	; n-th
-				#{88141E}							;-- MOV [esi + ebx], dl 	; variable index
+				#{88143E}							;-- MOV [esi + edi], dl 	; variable index
 			][										;-- load path opcodes --
 				#{8A06}								;-- MOV al, [esi]			; first
 				#{8A86}								;-- MOV al, [esi + idx]		; n-th
-				#{8A041E}							;-- MOV al, [esi + ebx]		; variable index
+				#{8A043E}							;-- MOV al, [esi + edi]		; variable index
 		]] set-path? path
 		
 		either integer? idx: path/2 [
@@ -685,11 +685,11 @@ make-profilable make target-class [
 			opcodes: pick [[						;-- store path opcodes --
 				#{DD18}								;-- FSTP [eax]
 				#{DD98}								;-- FSTP [eax + <idx> * sizeof(p/value)]
-				#{DD1C}								;-- FSTP [eax + ebx * sizeof(p/value)]
+				#{DD1C}								;-- FSTP [eax + edi * sizeof(p/value)]
 			][										;-- load path opcodes --
 				#{DD00}								;-- FLD [eax]
 				#{DD80}								;-- FLD [eax + <idx> * sizeof(p/value)]
-				#{DD04}								;-- FLD [eax + ebx * sizeof(p/value)]
+				#{DD04}								;-- FLD [eax + edi * sizeof(p/value)]
 			]] set-path? path
 
 			either integer? idx [
@@ -703,17 +703,17 @@ make-profilable make target-class [
 			][
 				emit-load-index idx
 				emit-float width opcodes/3
-				emit select [4 #{98} 8 #{D8}] width
+				emit select [4 #{B8} 8 #{F8}] width
 			]
 		][
 			opcodes: pick [[						;-- store path opcodes --
 				[#{8810} #{8910}]					;-- MOV [eax], rD
 				[#{8890} #{8990}]					;-- MOV [eax + <idx> * sizeof(p/value)], rD
-				[#{881418} #{891498}]				;-- MOV [eax + ebx * sizeof(p/value)], rD
+				[#{881438} #{8914B8}]				;-- MOV [eax + edi * sizeof(p/value)], rD
 			][										;-- load path opcodes --
 				[#{8A00} #{8B00}]					;-- MOV rA, [eax]
 				[#{8A80} #{8B80}]					;-- MOV rA, [eax + <idx> * sizeof(p/value)]
-				[#{8A0418} #{8B0498}]				;-- MOV rA, [eax + ebx * sizeof(p/value)]
+				[#{8A0438} #{8B04B8}]				;-- MOV rA, [eax + edi * sizeof(p/value)]
 			]] set-path? path
 
 			either integer? idx [
@@ -1107,7 +1107,7 @@ make-profilable make target-class [
 			]
 			* [
 				op-poly: [
-					emit-poly [#{F6EA} #{F7EA}] ;-- IMUL rD 			; commutable op
+					emit-poly [#{F6EA} #{F7EA}] 	;-- IMUL rD 			; commutable op
 				]
 				switch b [
 					imm [
@@ -1126,8 +1126,8 @@ make-profilable make target-class [
 							with-width-of/alt args/2 [							
 								emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
 							]
-							emit #{89D3}				   ;-- MOV ebx, edx
-							emit-poly [#{F6EB} #{F7EB}]	   ;-- IMUL rB		; result in ax|eax|edx:eax
+							emit #{89D1}				   ;-- MOV ecx, edx
+							emit-poly [#{F6E9} #{F7E9}]	   ;-- IMUL rC		; result in ax|eax|edx:eax
 							unless width = 1 [emit #{5A}]  ;-- POP edx
 						]
 					]
@@ -1144,10 +1144,10 @@ make-profilable make target-class [
 				op-poly: [
 					either width = 1 [				;-- 8-bit unsigned
 						emit #{B400}				;-- MOV ah, 0			; clean-up garbage in ah
-						emit #{F6F3}				;-- DIV bl
+						emit #{F6F1}				;-- DIV cl
 					][
 						emit-sign-extension			;-- 16/32-bit signed
-						emit-poly [#{F6FB} #{F7FB}]	;-- IDIV rB ; rA / rB
+						emit-poly [#{F6F9} #{F7F9}]	;-- IDIV rC ; rA / rC
 					]
 				]
 				switch b [
@@ -1156,17 +1156,17 @@ make-profilable make target-class [
 						with-width-of/alt args/2 [							
 							emit-poly [#{B2} #{BA} args/2] ;-- MOV rD, value
 						]
-						emit #{89D3}				;-- MOV ebx, edx
+						emit #{89D1}				;-- MOV ecx, edx
 						do op-poly
 					]
 					ref [
 						emit #{52}					;-- PUSH edx	; save edx from corruption
 						emit-load/alt args/2
-						emit #{89D3}				;-- MOV ebx, edx
+						emit #{89D1}				;-- MOV ecx, edx
 						do op-poly
 					]
 					reg [
-						emit #{89D3}				;-- MOV ebx, edx		; ebx = b
+						emit #{89D1}				;-- MOV ecx, edx		; ecx = b
 						do op-poly
 					]
 				]
@@ -1182,11 +1182,11 @@ make-profilable make target-class [
 						emit #{0FBAE0}				;--   	  BT rA, 7|15|31 ; @@ better way ?
 						emit c
 						emit #{730A}				;-- 	  JNC exit		 ; (won't work with ax)
-						emit #{0FBAE3}				;-- 	  BT rB, 7|15|31 ; @@ better way ?
+						emit #{0FBAE1}				;-- 	  BT rC, 7|15|31 ; @@ better way ?
 						emit c
 						emit #{7302}				;-- 	  JNC add		 ; (won't work with ax)
-						emit-poly [#{F6DB} #{F7DB}]	;--		  NEG rB
-						emit-poly [#{00D8} #{01D8}]	;-- add:  ADD rA, rB
+						emit-poly [#{F6D9} #{F7D9}]	;--		  NEG rC
+						emit-poly [#{00C8} #{01C8}]	;-- add:  ADD rA, rC
 					]								;-- exit:
 				]
 				if any [							;-- in case edx was saved on stack
@@ -1475,6 +1475,10 @@ make-profilable make target-class [
 				emit #{83EC04}						;-- SUB esp, 4		; extra entry (BSD convention)			
 			]
 			Linux [
+				if PIC? [
+					emit #{53}						;-- PUSH ebx
+					emit #{83C404}					;-- ADD esp, 4
+				]
 				if fspec/1 >= 6 [
 					emit #{89E8}					;-- MOV eax, ebp	; save frame pointer
 				]
@@ -1488,6 +1492,11 @@ make-profilable make target-class [
 						#{5D}						;-- POP ebp			; get 6th arg in reg
 					] 1 + fspec/1 - c
 				]
+				if PIC? [
+					emit #{8B5C24}					;-- MOV ebx, [esp-c-1]
+					emit to-bin8 256 - c - 1
+					emit #{53}						;-- PUSH ebx
+				]
 				if fspec/1 >= 6 [
 					emit #{50}						;-- PUSH eax		; save frame pointer on stack
 				]
@@ -1500,6 +1509,7 @@ make-profilable make target-class [
 			BSD [emit-cdecl-pop fspec args]			;-- BSD syscall cconv (~ cdecl)
 			Linux [
 				if fspec/1 >= 6 [emit #{5D}]		;-- POP ebp			; restore frame pointer
+				if PIC? [emit #{5B}]				;-- POP ebx			; restore IP-relative pointer
 			]
 		]
 	]
@@ -1640,10 +1650,10 @@ make-profilable make target-class [
 			;; stdcall/reds: Consume original arguments from stack.
 			either compiler/check-variable-arity? locals [
 				emit #{5E}							;-- POP esi			; retrieve the return address
-				emit #{5B}							;-- POP ebx			; skip arguments count
-				emit #{5B}							;-- POP ebx			; skip arguments pointer
-				emit #{5B}							;-- POP ebx			; get stack offset
-				emit #{01DC}						;-- ADD esp, ebx	; skip arguments list (clears stack)
+				emit #{59}							;-- POP ecx			; skip arguments count
+				emit #{59}							;-- POP ecx			; skip arguments pointer
+				emit #{59}							;-- POP ecx			; get stack offset
+				emit #{01CC}						;-- ADD esp, ecx	; skip arguments list (clears stack)
 				emit #{56}							;-- PUSH esi		; push return address
 				emit #{C3}							;-- RET
 			][
