@@ -47,6 +47,10 @@ make-profilable make target-class [
 	on-global-prolog: func [runtime? [logic!] type [word!]][
 		patch-floats-definition 'set
 		if runtime? [
+			if PIC? [
+				emit #{E800000000}					;-- CALL next		; call the next instruction
+				emit #{5B}							;-- POP ebx
+			]
 			if type = 'exe [emit-fpu-init]
 			fpu-cword: emitter/store-value none fpu-flags [integer!]
 		]

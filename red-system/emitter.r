@@ -609,6 +609,7 @@ emitter: make-profilable context [
 		clear stack
 		target: do rejoin [%targets/ job/target %.r]
 		target/compiler: compiler: system-dialect/compiler
+		target/PIC?: job/PIC?
 		target/void-ptr: head insert/dup copy #{} null target/ptr-size
 		int-to-bin/little-endian?: target/little-endian?
 	]

@@ -19,6 +19,7 @@ target-class: context [
 	emit-stack-align-prolog: none					;-- align stack on imported function calls
 	emit-stack-align-epilog: none					;-- unwind aligned stack
 	emit-float-trash-last:	 none					;-- FPU clean-up code after use in expression
+	PIC?:					 none					;-- PIC flag set from compilation job options
 	
 	compiler: 	none								;-- just a short-cut
 	width: 		none								;-- current operand width in bytes
