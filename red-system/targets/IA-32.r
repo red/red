@@ -86,6 +86,18 @@ make-profilable make target-class [
 		]
 		emit-variable name gcode lcode
 	]
+	
+	load-float-variable: func [name [word! object!]][
+		emit-float-variable name
+			#{DD05}									;-- FLD [value]			; global
+			#{DD45}									;-- FLD [ebp+n]			; local
+	]
+	
+	store-float-variable: func [name [word! object!]][
+		emit-float-variable name
+			#{DD1D}									;-- FSTP [name]			; global
+			#{DD5D}									;-- FSTP [ebp+n]		; local
+	]
 		
 	emit-poly: func [spec [block!] /local w to-bin][	;-- polymorphic code generation
 		spec: reduce spec
@@ -451,9 +463,7 @@ make-profilable make target-class [
 			word! [
 				with-width-of value [
 					either compiler/any-float? compiler/get-variable-spec value [
-						emit-float-variable value
-							#{DD05}					;-- FLD [value]			; global
-							#{DD45}					;-- FLD [ebp+n]			; local
+						load-float-variable value
 					][
 						either alt [
 							emit-variable-poly value
@@ -550,15 +560,11 @@ make-profilable make target-class [
 				emit to-bin32 value
 			]
 			decimal! [
-				emit-float-variable name 
-					#{DD1D}							;-- FSTP [name]			; global
-					#{DD5D}							;-- FSTP [ebp+n]		; local
+				store-float-variable name
 			]
 			word! [
 				either compiler/any-float? compiler/get-variable-spec name [
-					emit-float-variable name 
-						#{DD1D}						;-- FSTP [name]			; global
-						#{DD5D}						;-- FSTP [ebp+n]		; local
+					store-float-variable name
 				][
 					set-width name				
 					emit-variable-poly name
@@ -880,9 +886,7 @@ make-profilable make target-class [
 					
 					emit #{83EC}					;-- SUB esp, 8|4
 					emit to-bin8 width
-					emit-float-variable value
-						#{DD05}						;-- FLD [value]			; global
-						#{DD45}						;-- FLD [ebp+n]			; local
+					load-float-variable value
 					emit-float width #{DD1C24}		;-- FSTP [esp]			; push double on stack
 				][
 					emit-variable value
@@ -1367,9 +1371,7 @@ make-profilable make target-class [
 				set-width args/1
 			]
 			ref [			
-				emit-float-variable left
-					#{DD05}							;-- FLD [value]		; global
-					#{DD45}							;-- FLD [ebp+n]		; local
+				load-float-variable left
 				if object? args/1 [emit-casting args/1 no]
 			]
 			reg [
@@ -1390,9 +1392,7 @@ make-profilable make target-class [
 				emit-reloc-addr spec/2
 			]
 			ref [
-				emit-float-variable right
-					#{DD05}							;-- FLD [value]		; global
-					#{DD45}							;-- FLD [ebp+n]		; local
+				load-float-variable right
 				if object? args/2 [emit-casting args/2 no]
 			]
 			reg [
