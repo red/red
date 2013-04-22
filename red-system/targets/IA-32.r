@@ -44,13 +44,13 @@ make-profilable make target-class [
 		]
 	]
 	
-	on-global-prolog: func [runtime? [logic!] type [word!]][
+	on-global-prolog: func [runtime? [logic!] type [word!] /local offset][
 		patch-floats-definition 'set
 		if runtime? [
 			if PIC? [
-				emit #{E800000000}					;-- CALL next		; call the next instruction
-				emit #{5B}							;-- POP ebx
-				emit #{83EB05}						;-- SUB ebx, 5		; adjust to beginning of CODE segment
+				offset: emit-get-pc/ebx
+				emit #{83EB}						;-- SUB ebx, <offset>	; adjust to beginning of CODE segment
+				emit to-bin8 offset
 			]
 			if type = 'exe [emit-fpu-init]
 			fpu-cword: emitter/store-value none fpu-flags [integer!]
@@ -353,9 +353,14 @@ make-profilable make target-class [
 		emit #{9BDBE3}								;-- FINIT			; init x87 FPU
 	]
 	
-	emit-get-pc: does [
+	emit-get-pc: func [/ebx][
 		emit #{E800000000}							;-- CALL next		; call the next instruction
-		emit-pop									;-- get eip in eax
+		either ebx [
+			emit #{5B}								;-- POP ebx			; get eip in ebx
+		][
+			emit-pop								;-- get eip in eax
+		]
+		5											;-- return adjustment offset (CALL size)
 	]
 	
 	emit-set-stack: func [value /frame][
@@ -1673,7 +1678,7 @@ make-profilable make target-class [
 													;-- _end:
 	]
 
-	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs][
+	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs offset][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 
 		fspec: select compiler/functions name
@@ -1695,6 +1700,12 @@ make-profilable make target-class [
 			emit #{53}								;-- PUSH ebx
 			emit #{56}								;-- PUSH esi
 			emit #{57}								;-- PUSH edi
+			
+			if PIC? [
+				offset: emit-get-pc/ebx
+				emit #{81EB}						;-- SUB ebx, <offset>
+				emit to-bin32 emitter/tail-ptr + 1 - offset	;-- +1 adjustment for CALL first opcode
+			]
 		]
 	]
 

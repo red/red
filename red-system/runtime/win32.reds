@@ -84,6 +84,7 @@ win32-startup-ctx: context [
 	]
 
 	exception-filter: func [
+		[stdcall]
 		record  [SEH_EXCEPTION_RECORD]
 		return: [integer!]
 		/local code error
