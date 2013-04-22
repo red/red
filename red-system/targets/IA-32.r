@@ -1597,12 +1597,22 @@ make-profilable make target-class [
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
 		either compiler/job/OS = 'MacOSX [
-			emit #{B8}								;-- MOV eax, addr
+			either PIC? [
+				emit #{8B83}						;-- MOV eax, [ebx+disp]	 ; PIC
+			][
+				emit #{B8}							;-- MOV eax, addr
+			]
 			emit-reloc-addr spec
 			emit #{FFD0} 							;-- CALL eax		; direct call
-		][	
-			emit #{FF15}							;-- CALL FAR [addr]	; indirect call
-			emit-reloc-addr spec
+		][
+			either PIC? [
+				emit #{8B83}						;-- MOV eax, [ebx+disp]	 ; PIC
+				emit-reloc-addr spec
+				emit #{FFD0} 						;-- CALL eax
+			][
+				emit #{FF15}						;-- CALL FAR [addr]	; indirect call
+				emit-reloc-addr spec
+			]
 		]
 		if fspec/3 = 'cdecl [						;-- add calling cleanup when required
 			emit-cdecl-pop fspec args

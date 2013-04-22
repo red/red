@@ -352,11 +352,13 @@ context [
 		linker/resolve-symbol-refs job cbuf dbuf code data pointer
 	]
 
-	resolve-import-refs: func [job [object!] /local code][
+	resolve-import-refs: func [job [object!] /local code code-base][
 		code: job/sections/code/2
-
+		code-base: section-addr?/memory job 'code
+		
 		foreach [ptr list] imports-refs [
-			ptr: base-address + ptr		
+			ptr: either job/PIC? [ptr - code-base][base-address + ptr]
+			
 			foreach [def reloc] list [
 				pointer/value: ptr 
 				foreach ref reloc [change at code ref form-struct pointer]	;TBD: check endianness + x-compilation
