@@ -133,6 +133,17 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-indirect-call: func [spec [block!]][
+		either PIC? [
+			emit #{8B83}							;-- MOV eax, [ebx+disp]	; PIC
+			emit-reloc-addr spec
+			emit #{FFD0} 							;-- CALL eax
+		][
+			emit #{FF15}							;-- CALL FAR [addr]		; global
+			emit-reloc-addr spec
+		]
+	]
+	
 	emit-save-last: does [
 		last-saved?: yes
 		unless compiler/any-float? compiler/last-type [
@@ -1605,14 +1616,7 @@ make-profilable make target-class [
 			emit-reloc-addr spec
 			emit #{FFD0} 							;-- CALL eax		; direct call
 		][
-			either PIC? [
-				emit #{8B83}						;-- MOV eax, [ebx+disp]	 ; PIC
-				emit-reloc-addr spec
-				emit #{FFD0} 						;-- CALL eax
-			][
-				emit #{FF15}						;-- CALL FAR [addr]	; indirect call
-				emit-reloc-addr spec
-			]
+			emit-indirect-call spec
 		]
 		if fspec/3 = 'cdecl [						;-- add calling cleanup when required
 			emit-cdecl-pop fspec args
@@ -1638,8 +1642,7 @@ make-profilable make target-class [
 					#{8B45}							;-- MOV eax, [ebp+n]	; local	
 				emit #{FFD0} 						;-- CALL eax			; direct call
 			][
-				emit #{FF15}						;-- CALL FAR [addr]		; indirect call
-				emit-reloc-addr spec				;-- 32-bit pointer to addr
+				emit-indirect-call spec
 			]
 		][
 			emit #{E8}								;-- CALL NEAR disp
