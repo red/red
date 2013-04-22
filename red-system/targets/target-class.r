@@ -30,7 +30,7 @@ target-class: context [
 	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
-	emit-throw:	none
+	emit-throw:	on-init: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   [+ - * / // ///]

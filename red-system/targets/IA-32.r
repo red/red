@@ -44,14 +44,17 @@ make-profilable make target-class [
 		]
 	]
 	
+	on-init: does [
+		if PIC? [
+			offset: emit-get-pc/ebx
+			emit #{83EB}						;-- SUB ebx, <offset>	; adjust to beginning of CODE segment
+			emit to-bin8 offset
+		]	
+	]
+	
 	on-global-prolog: func [runtime? [logic!] type [word!] /local offset][
 		patch-floats-definition 'set
 		if runtime? [
-			if PIC? [
-				offset: emit-get-pc/ebx
-				emit #{83EB}						;-- SUB ebx, <offset>	; adjust to beginning of CODE segment
-				emit to-bin8 offset
-			]
 			if type = 'exe [emit-fpu-init]
 			fpu-cword: emitter/store-value none fpu-flags [integer!]
 		]
@@ -239,6 +242,11 @@ make-profilable make target-class [
 			emit #{B8}								;-- MOV eax, value		; global
 		]
 		emit-reloc-addr spec/2						;-- one-based index
+	]
+	
+	emit-load-literal-ptr: func [spec [block!]][
+		emit #{8D83}								;-- LEA eax, [ebx+disp] ; PIC
+		emit-reloc-addr spec
 	]
 	
 	emit-fpu-get: func [

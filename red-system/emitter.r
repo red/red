@@ -19,6 +19,7 @@ emitter: make-profilable context [
 	
 	target:	  none						;-- target code emitter object placeholder
 	compiler: none						;-- just a short-cut
+	libc-init?:		 none				;-- TRUE if currently processing libc init part
 
 		
 	pointer: make-struct [
@@ -185,9 +186,9 @@ emitter: make-profilable context [
 	]
 	
 	add-symbol: func [
-		name [word! tag!] ptr [integer!] /with refs [block! word! none!] /local spec
+		name [word! tag!] ptr [integer!] /local spec
 	][
-		spec: reduce [name reduce ['global ptr make block! 1 any [refs '-]]]
+		spec: reduce [name reduce ['global ptr make block! 1 '-]]
 		append symbols new-line spec yes
 		spec
 	]
@@ -281,7 +282,6 @@ emitter: make-profilable context [
 		name [word! none!]
 		value
 		type [block!]
-		/ref ref-ptr
 		/local ptr new
 	][
 		if new: compiler/find-aliased type/1 [
@@ -291,12 +291,12 @@ emitter: make-profilable context [
 			type/1 = 'struct!
 			type/2
 		]
-		add-symbol/with any [name <data>] ptr ref-ptr	;-- add variable/value to globals table
+		add-symbol any [name <data>] ptr				;-- add variable/value to globals table
 	]
 	
 	store: func [
 		name [word!] value type [block!]
-		/local new new-global? ptr refs n-spec spec literal?
+		/local new new-global? ptr refs n-spec spec literal? saved
 	][
 		if new: compiler/find-aliased type/1 [
 			type: new
@@ -313,11 +313,16 @@ emitter: make-profilable context [
 				ptr: store-global value 'pointer! none	;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
 				refs: reduce [ptr + 1]					;-- reference value from variable slot
+				saved: name
 				name: none								;-- anonymous data storing
 			]
 			if any [not new-global? string? value paren? value][
 				if string? value [type: [c-string!]]		;-- force c-string! in case of type casting
-				spec: store-value/ref name value type refs  ;-- store new value in data buffer
+				spec: store-value name value type		;-- store new value in data buffer
+			]
+			if all [new-global? spec compiler/job/PIC? not libc-init?][
+				target/emit-load-literal-ptr spec/2		;-- load value address
+				target/emit-store saved value n-spec	;-- store it in pointer variable
 			]
 			if n-spec [spec: n-spec]
 		][

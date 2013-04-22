@@ -2871,6 +2871,7 @@ system-dialect: make-profilable context [
 	]
 
 	comp-start: has [script][
+		emitter/libc-init?: yes
 		emitter/start-prolog
 		script: secure-clean-path runtime-path/start.reds
  		compiler/run/no-events job loader/process script script
@@ -2881,6 +2882,7 @@ system-dialect: make-profilable context [
  		remove/part find emitter/symbols 'system 4
 		clear compiler/definitions
 		clear compiler/aliased-types
+		emitter/libc-init?: no
 	]
 	
 	comp-runtime-prolog: has [script][
@@ -2979,6 +2981,7 @@ system-dialect: make-profilable context [
 			
 			clean-up
 			loader/init
+			emitter/target/on-init
 			
 			unless opts/use-natives? [comp-start]		;-- init libC properly
 			if opts/runtime? [comp-runtime-prolog]
