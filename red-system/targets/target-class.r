@@ -91,31 +91,51 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word! object!] gcode [binary! block! none!] lcode [binary! block!] 
+		name [word! object!] 
+		gcode [binary! block! none!]				;-- global opcodes
+		pcode [binary! block! none!]				;-- PIC opcodes
+		lcode [binary! block!] 						;-- local opcodes
 		/local offset
 	][
 		if object? name [name: compiler/unbox name]
 		
-		either offset: select emitter/stack name [
-			offset: stack-encode offset 
-			either block? lcode [
-				emit reduce bind lcode 'offset
-			][
-				emit lcode
-				emit offset
-			]
-		][											;-- global variable case
-			either block? gcode [
-				foreach code reduce gcode [
-					either code = 'address [
-						emit-reloc-addr emitter/symbols/:name	
-					][
-						emit code	
-					]
+		case [
+			offset: select emitter/stack name [
+				offset: stack-encode offset 			;-- local variable case
+				either block? lcode [
+					emit reduce bind lcode 'offset
+				][
+					emit lcode
+					emit offset
 				]
-			][
-				emit gcode
-				emit-reloc-addr emitter/symbols/:name
+			]
+			PIC? [										;-- global variable case (PIC version)
+				either block? pcode [
+					foreach code reduce pcode [
+						either code = 'address [
+							emit-reloc-addr emitter/symbols/:name
+						][
+							emit code
+						]
+					]
+				][
+					emit pcode
+					emit-reloc-addr emitter/symbols/:name
+				]
+			]
+			'global [									;-- global variable case
+				either block? gcode [
+					foreach code reduce gcode [
+						either code = 'address [
+							emit-reloc-addr emitter/symbols/:name
+						][
+							emit code
+						]
+					]
+				][
+					emit gcode
+					emit-reloc-addr emitter/symbols/:name
+				]
 			]
 		]
 	]

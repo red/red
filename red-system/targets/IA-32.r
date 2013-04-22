@@ -50,6 +50,7 @@ make-profilable make target-class [
 			if PIC? [
 				emit #{E800000000}					;-- CALL next		; call the next instruction
 				emit #{5B}							;-- POP ebx
+				emit #{83EB05}						;-- SUB ebx, 5		; adjust to beginning of CODE segment
 			]
 			if type = 'exe [emit-fpu-init]
 			fpu-cword: emitter/store-value none fpu-flags [integer!]
@@ -79,23 +80,26 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-float-variable: func [name [word! object!] gcode [binary! block!] lcode [binary! block!]][
+	emit-float-variable: func [name [word! object!] gcode [binary!] pcode [binary!] lcode [binary!]][
 		if 'float32! = first compiler/get-type name [
 			gcode: gcode and #{F9FF}
+			pcode: pcode and #{F9FF}
 			lcode: lcode and #{F9FF} 
 		]
-		emit-variable name gcode lcode
+		emit-variable name gcode pcode lcode
 	]
 	
 	load-float-variable: func [name [word! object!]][
 		emit-float-variable name
 			#{DD05}									;-- FLD [value]			; global
+			#{DD83}									;-- FLD [ebx+disp]		; PIC
 			#{DD45}									;-- FLD [ebp+n]			; local
 	]
 	
 	store-float-variable: func [name [word! object!]][
 		emit-float-variable name
 			#{DD1D}									;-- FSTP [name]			; global
+			#{DD9B}									;-- FSTP [ebx+disp]		; PIC
 			#{DD5D}									;-- FSTP [ebp+n]		; local
 	]
 		
@@ -117,13 +121,14 @@ make-profilable make target-class [
 	emit-variable-poly: func [							;-- polymorphic variable access generation
 		name [word! object!]
 		    g8 [binary!] 		g32 [binary!]			;-- opcodes for global variables
+		    p8 [binary!] 		p32 [binary!]			;-- opcodes for global variables (PIC)
 			l8 [binary! block!] l32 [binary! block!]	;-- opcodes for local variables
 	][
 		with-width-of name [
 			switch width [
-				1 [emit-variable name g8 l8]				;-- 8-bit
-				2 [emit #{66} emit-variable name g32 l32]	;-- 16-bit
-				4 [emit-variable name g32 l32]				;-- 32-bit
+				1 [emit-variable name g8 p8 l8]					;-- 8-bit
+				2 [emit #{66} emit-variable name g32 p32 l32]	;-- 16-bit
+				4 [emit-variable name g32 p32 l32]				;-- 32-bit
 			]
 		]
 	]
@@ -217,7 +222,11 @@ make-profilable make target-class [
 	emit-load-literal: func [type [block! none!] value /local spec][	
 		unless type [type: compiler/get-type value]
 		spec: emitter/store-value none value type
-		emit #{B8}									;-- MOV eax, value
+		either PIC? [
+			emit #{8D83}							;-- LEA eax, [ebx+disp] ; PIC
+		][
+			emit #{B8}								;-- MOV eax, value		; global
+		]
 		emit-reloc-addr spec/2						;-- one-based index
 	]
 	
@@ -229,7 +238,11 @@ make-profilable make target-class [
 		/local value bit 
 	][
 		unless type [
-			emit #{A1}								;-- MOV eax, [fpu-cword]
+			either PIC? [
+				emit #{8B83}						;-- MOV eax, [ebx+disp]	 ; PIC
+			][
+				emit #{A1}							;-- MOV eax, [fpu-cword] ; global
+			]
 			emit-reloc-addr fpu-cword/2				;-- one-based index
 		]
 		case [
@@ -279,7 +292,11 @@ make-profilable make target-class [
 	][
 		value: to integer! value	
 		unless cword [
-			emit #{A1}								;-- MOV eax, [fpu-cword]
+			either PIC? [
+				emit #{8B83}						;-- MOV eax, [ebx+disp]	 ; PIC
+			][
+				emit #{A1}							;-- MOV eax, [fpu-cword] ; global
+			]
 			emit-reloc-addr fpu-cword/2				;-- one-based index
 			emit #{25}								;-- AND eax, 2^bit
 		]
@@ -315,12 +332,20 @@ make-profilable make target-class [
 		]
 		emit to-bin32 value
 		
-		emit #{A3}									;-- MOV [fpu-cword], eax
+		either PIC? [
+			emit #{8983}							;-- MOV [ebx+disp], eax	  ; PIC
+		][
+			emit #{A3}								;-- MOV [fpu-cword], eax  ; global
+		]
 		emit-reloc-addr fpu-cword/2					;-- one-based index
 	]
 	
 	emit-fpu-update: does [
-		emit #{D92D}								;-- FLDCW <word>	; load 16-bit control word from memory
+		either PIC? [								;-- load 16-bit control word
+			emit #{D9AB}							;-- FLDCW [ebx+disp]	; PIC
+		][
+			emit #{D92D}							;-- FLDCW <word>	 	; global
+		]
 		emit-reloc-addr fpu-cword/2					;-- one-based index
 	]
 	
@@ -468,10 +493,12 @@ make-profilable make target-class [
 						either alt [
 							emit-variable-poly value
 								#{8A15} #{8B15}		;-- MOV rD, [value]		; global
+								#{8A93} #{8B93}		;-- MOV rD, [ebx+disp]	; PIC
 								#{8A55} #{8B55}		;-- MOV rD, [ebp+n]		; local
 						][
 							emit-variable-poly value
 								#{A0}   #{A1}		;-- MOV rA, [value]		; global
+								#{8A83} #{8B83}		;-- MOV rA, [ebx+disp]	; PIC
 								#{8A45} #{8B45}		;-- MOV rA, [ebp+n]		; local	
 						]
 					]
@@ -487,10 +514,12 @@ make-profilable make target-class [
 					either alt [
 						emit-variable value
 							#{8B15}					;-- MOV edx, [value]	; global
+							#{8B93}					;-- MOV edx, [ebx+disp]	; PIC
 							#{8B55}					;-- MOV edx, [ebp+n]	; local
 					][
 						emit-variable value
 							#{A1}					;-- MOV eax, [value]	; global
+							#{8B83}					;-- MOV eax, [ebx+disp]	; PIC
 							#{8B45}					;-- MOV eax, [ebp+n]	; local	
 					]
 				][
@@ -501,10 +530,17 @@ make-profilable make target-class [
 						] alt
 						emit stack-encode offset	;-- n
 					][
-						emit pick [
-							#{BA}					;-- MOV edx, &name
-							#{B8}					;-- MOV eax, &name
-						] alt
+						either PIC? [
+							emit pick [
+								#{8D93}				;-- LEA edx, [ebx+disp] ; &name
+								#{8D83}				;-- LEA eax, [ebx+disp] ; &name
+							] alt
+						][
+							emit pick [
+								#{BA}				;-- MOV edx, &name
+								#{B8}				;-- MOV eax, &name
+							] alt
+						]
 						emit-reloc-addr emitter/get-symbol-ref value	;-- symbol address
 					]
 				]
@@ -545,14 +581,16 @@ make-profilable make target-class [
 		store-dword: [
 			emit-variable name
 				#{C705}								;-- MOV dword [name], value		; global
+				#{C783}								;-- MOV dword [ebx+disp], value	; PIC
 				#{C745}								;-- MOV dword [ebp+n], value	; local
 		]
-		
+				
 		switch type?/word value [
 			char! [
 				emit-variable name
-					#{C605}							;-- MOV byte [name], value
-					#{C645}							;-- MOV byte [ebp+n], value
+					#{C605}							;-- MOV byte [name], value		; global
+					#{C683}							;-- MOV byte [ebx+disp], value	; PIC
+					#{C645}							;-- MOV byte [ebp+n], value		; local
 				emit value
 			]
 			integer! [
@@ -568,25 +606,41 @@ make-profilable make target-class [
 				][
 					set-width name				
 					emit-variable-poly name
-						#{A2} 	#{A3}				;-- MOV [name], rA		; global variable
-						#{8845} #{8945}				;-- MOV [ebp+n], rA		; local variable
+						#{A2} 	#{A3}				;-- MOV [name], rA		; global
+						#{8883} #{8983}				;-- MOV [ebx+disp], rA	; PIC
+						#{8845} #{8945}				;-- MOV [ebp+n], rA		; local
 				]
 			]
 			get-word! [
 				either find emitter/stack to word! value [
 					emit-store name <last> none
 				][
-					do store-dword
-					emit-reloc-addr emitter/get-symbol-ref to word! value	;-- symbol address
+					value: emitter/get-symbol-ref to word! value	;-- symbol address
+					either PIC? [
+						emit #{8D83}				;-- LEA eax, [ebx+disp]	; PIC
+						emit-reloc-addr value
+						emit-variable name
+						#{A3}						;-- MOV [name], eax		; global
+						#{8983}						;-- MOV [ebx+disp], eax	; PIC
+						#{8945}						;-- MOV [ebp+n], eax	; local
+					][
+						do store-dword
+						emit-reloc-addr value
+					]
+					
 				]
 			]
-			string! [
-				do store-dword
-				emit-reloc-addr spec/2
-			]
+			string!
 			paren! [
-				do store-dword
-				emit-reloc-addr spec/2
+				either PIC? [
+					emit-variable name
+						#{A3}						;-- MOV [name], eax		; global
+						#{8983}						;-- MOV [ebx+disp], eax	; PIC
+						#{8945}						;-- MOV [ebp+n], eax	; local
+				][
+					do store-dword
+					emit-reloc-addr spec/2
+				]
 			]
 		]
 	]
@@ -594,6 +648,7 @@ make-profilable make target-class [
 	emit-init-path: func [name [word!]][
 		emit-variable name
 			#{A1}									;-- MOV eax, [name]			; global
+			#{8B83}									;-- MOV eax, [ebx+disp]		; PIC
 			#{8B45}									;-- MOV eax, [ebp+n]		; local
 	]
 	
@@ -636,6 +691,7 @@ make-profilable make target-class [
 		unless compiler/local-variable? idx [idx: compiler/resolve-ns idx]
 		emit-variable idx
 			#{8B3D}									;-- MOV edi, [idx]		; global
+			#{8BBB}									;-- MOV edi, [ebx+disp]	; PIC
 			#{8B7D}									;-- MOV edi, [ebp+n]	; local
 		emit #{4F}									;-- DEC edi				; one-based index
 	]
@@ -646,11 +702,8 @@ make-profilable make target-class [
 		][
 			emit-variable path/1
 				#{8B35}								;-- MOV esi, [value1]	; global
-				[
-					#{8D45}							;-- LEA eax, [ebp+n]	; local
-					offset							;-- n
-					#{8B30}							;-- MOV esi, [eax]
-				]
+				#{8BB3}								;-- MOV esi, [ebx+disp]	; PIC	@@
+				#{8B75}								;-- MOV esi, [ebp+n]	; local
 		]
 		opcodes: pick [[							;-- store path opcodes --
 				#{8816}								;-- MOV [esi], dl			; first	
@@ -891,6 +944,7 @@ make-profilable make target-class [
 				][
 					emit-variable value
 						#{FF35}						;-- PUSH [value]		; global
+						#{FFB3}						;-- PUSH [ebx+disp]		; PIC
 						#{FF75}						;-- PUSH [ebp+n]		; local
 				]
 			]
@@ -901,14 +955,27 @@ make-profilable make target-class [
 					emit stack-encode offset		;-- n
 					emit #{50}						;-- PUSH eax
 				][
-					emit #{68}						;-- PUSH &value
-					emit-reloc-addr emitter/get-symbol-ref value	;-- symbol address
+					either PIC? [
+						emit #{8D83}				;-- LEA eax, [ebx+disp]	; PIC
+						emit-reloc-addr emitter/get-symbol-ref value
+						emit #{50}					;-- PUSH eax
+					][
+						emit #{68}					;-- PUSH &value			; global
+						emit-reloc-addr emitter/get-symbol-ref value
+					]
 				]
 			]
 			string! [
 				spec: emitter/store-value none value [c-string!]
-				emit #{68}							;-- PUSH value
-				emit-reloc-addr spec/2				;-- one-based index
+				either PIC? [
+					emit #{8D83}					;-- LEA eax, [ebx+disp]	; PIC
+					emit-reloc-addr spec/2			;-- one-based index
+					emit #{50}						;-- PUSH eax
+				][
+					emit #{68}						;-- PUSH value			; global
+					emit-reloc-addr spec/2			;-- one-based index
+				]
+				
 			]
 			path! [
 				emitter/access-path value none
@@ -949,6 +1016,7 @@ make-profilable make target-class [
 			ref [
 				emit-variable args/2
 					#{8A0D}							;-- MOV cl, byte [value]	; global
+					#{8A8B}							;-- MOV cl, byte [ebx+disp]	; PIC
 					#{8A4D}							;-- MOV cl, byte [ebp+n]	; local
 			]
 			reg [emit #{88D1}]						;-- MOV cl, dl
@@ -1366,7 +1434,11 @@ make-profilable make target-class [
 		switch a [									;-- load left operand on FPU stack
 			imm [
 				spec: emitter/store-value none args/1 compiler/get-type args/1
-				emit-float args/1 #{DD05}			;-- FLD [<float>]	; load immediate from data segment
+				either PIC? [
+					emit-float args/1 #{DD83}		;-- FLD [ebx+disp]	; PIC
+				][
+					emit-float args/1 #{DD05}		;-- FLD [<float>]	; global
+				]
 				emit-reloc-addr spec/2
 				set-width args/1
 			]
@@ -1388,7 +1460,11 @@ make-profilable make target-class [
 		switch b [									;-- load right operand on FPU stack
 			imm [
 				spec: emitter/store-value none args/2 compiler/get-type args/2
-				emit-float args/2 #{DD05}			;-- FLD [<float>]
+				either PIC? [
+					emit-float args/2 #{DD83}		;-- FLD [ebx+disp]	; PIC
+				][
+					emit-float args/2 #{DD05}		;-- FLD [<float>]	; global
+				]
 				emit-reloc-addr spec/2
 			]
 			ref [
@@ -1543,6 +1619,7 @@ make-profilable make target-class [
 				emit-variable 
 					pick tail fspec -2
 					none
+					none
 					#{8B45}							;-- MOV eax, [ebp+n]	; local	
 				emit #{FFD0} 						;-- CALL eax			; direct call
 			][
@@ -1612,7 +1689,7 @@ make-profilable make target-class [
 			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
 		if any [
-			fspec/5 = 'callback
+			;fspec/5 = 'callback
 			all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
 		][
 			emit #{53}								;-- PUSH ebx
@@ -1629,7 +1706,7 @@ make-profilable make target-class [
 		
 		fspec: select compiler/functions name
 		if any [
-			fspec/5 = 'callback
+			;fspec/5 = 'callback
 			all [
 				attribs: compiler/get-attributes fspec/4
 				any [find attribs 'cdecl find attribs 'stdcall]

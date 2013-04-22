@@ -33,22 +33,26 @@ linker: context [
 	]
 	
 	resolve-symbol-refs: func [
-		job [object!] 
-		cbuf [binary!]								;-- code buffer
-		dbuf [binary!]								;-- data buffer
+		job 	 [object!] 
+		cbuf 	 [binary!]							;-- code buffer
+		dbuf 	 [binary!]							;-- data buffer
 		code-ptr [integer!]							;-- code memory address
 		data-ptr [integer!]							;-- data memory address
-		pointer [object!]
+		pointer	 [object!]
+		/local 
+			data-offset
 	][
+		data-offset: either job/PIC? [data-ptr - code-ptr][data-ptr]
+		
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
 				switch spec/1 [
 					global [						;-- code to data references
-						pointer/value: data-ptr + spec/2
+						pointer/value: data-offset + spec/2
 						foreach ref spec/3 [change at cbuf ref form-struct pointer]
 					]
 					native-ref [					;-- code to code references
-						pointer/value: code-ptr + spec/2
+						pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
 						foreach ref spec/3 [change at cbuf ref form-struct pointer]
 					]
 				]
