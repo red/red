@@ -95,88 +95,12 @@ zlib: context [
     ]
   ]
 
-  z_stream!: alias struct! [
-    next_in        [byte-ptr!]     ; next input byte
-    avail_in       [integer!]      ; number of bytes available at next_in
-    total_in       [integer!]      ; total number of input bytes read so far
-
-    next_out       [byte-ptr!]     ; next output byte should be put there
-    avail_out      [integer!]      ; remaining free space at next_out
-    total_out      [integer!]      ; total number of bytes output so far
-
-    msg            [c-string!]     ; last error message, NULL if no error
-    state          [integer!]      ; not visible by applications
-
-    zalloc         [opaque!]       ; used to allocate the internal state (function pointer)
-    zfree          [opaque!]       ; used to free the internal state (function pointer)
-    opaque         [opaque!]       ; private data object passed to zalloc and zfree (function pointer)
-
-    data_type      [integer!]      ; best guess about the data type: binary or text
-    adler          [integer!]      ; adler32 value of the uncompressed data
-    reserved       [integer!]      ; reserved for future use
-  ]
-
   #import [z-library cdecl [
     version: "zlibVersion" [       ; Return zlib library version.
       return:   [c-string!]
     ]
 
-    deflateInit_: "deflateInit_" [
-      strm         [z_stream!]
-      level        [integer!]
-      version      [c-string!]
-      stream_size  [integer!]
-      return:      [integer!]
-    ]
-
-    deflateInit2_: "deflateInit2_" [
-      strm         [z_stream!]
-      level        [integer!]
-      method       [integer!]
-      windowBits   [integer!]
-      memlevel     [integer!]
-      strategy     [integer!]
-      return:      [integer!]
-    ]
-
-    z-deflateEnd: "deflateEnd" [
-      strm         [z_stream!]
-      return:      [integer!]
-    ]
-
-    z-deflate: "deflate" [
-      strm         [z_stream!]
-      flush        [integer!]
-      return:      [integer!]
-    ]
-
-    inflateInit_: "inflateInit_" [
-      strm         [z_stream!]
-      version      [c-string!]
-      stream_size  [integer!]
-      return:      [integer!]
-    ]
-
-    inflateInit2_: "inflateInit2_" [
-      strm         [z_stream!]
-      windowBits   [integer!]
-      version      [c-string!]
-      stream_size  [integer!]
-      return:      [integer!]
-    ]
-
-    z-inflateEnd: "inflateEnd" [
-      strm         [z_stream!]
-      return:      [integer!]
-    ]
-
-    z-inflate: "inflate" [
-      strm         [z_stream!]
-      flush        [integer!]
-      return:      [integer!]
-    ]
-
-    compressBound: "compressBound" [
+    z-compressBound: "compressBound" [
       sourceLen    [integer!]
       return:      [integer!]
     ]
@@ -240,47 +164,6 @@ zlib: context [
   ; Higher level interface ---------------------------- ---------------------------------------
 
   with zlib [
-
-     z-inflateInit: function [
-      strm         [z_stream!]
-      return:      [integer!]
-    ][
-      inflateInit_ strm version size? z_stream!
-    ]
-
-     z-inflateInit2: function [
-      strm         [z_stream!]
-      windowBits   [integer!]
-      return:      [integer!]
-    ][
-      inflateInit2_ strm windowBits version size? z_stream!
-    ]
-
-    z-deflateInit: function [
-      strm         [z_stream!]
-      level        [integer!]
-      return:      [integer!]
-    ][
-      deflateInit_ strm level version size? z_stream!
-    ]
-
-    z-deflateInit2: function [
-      strm         [z_stream!]
-      level        [integer!]
-      method       [integer!]
-      windowBits   [integer!]
-      memlevel     [integer!]
-      strategy     [integer!]
-      return:      [integer!]
-    ][
-      deflateInit2_ strm level Z_DEFLATED (WINDOW_BITS or ENABLE_ZLIB_GZIP) 8 Z_DEFAULT_STRATEGY
-    ]
-
-
-
-; Macros freeing allocated structures and buffers
-#define END_Z_DEFLATE   [z-deflateEnd strm  free buf-out  free buf-in  free as byte-ptr! strm]
-#define END_Z_INFLATE   [z-inflateEnd strm  free buf-out  free buf-in  free as byte-ptr! strm]
 
     gunzip: function [             "Gunzip a file into another file"
       file-in      [c-string!]     "A gzipped file"
@@ -365,7 +248,7 @@ zlib: context [
       return:      [byte-ptr!]           "Returns a pointer to compressed data"
       /local ret out-buf tmp
     ][
-      out-count/value: compressBound in-count
+      out-count/value: z-compressBound in-count
       out-buf: allocate out-count/value         ; allocate the size of original buffer
       if out-buf = NULL [
         print [ "Compress Error : Output buffer allocation error." lf ]
