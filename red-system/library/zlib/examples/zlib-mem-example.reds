@@ -1,8 +1,8 @@
 Red/System [
-  Title:   "ZLib example"
+  Title:   "ZLib, memory compression example"
   Author:  "Bruno Anselme"
   EMail:   "be.red@free.fr"
-  File:    %zlib-example.reds
+  File:    %zlib-mem-example.reds
   Rights:  "Copyright (c) 2013 Bruno Anselme"
   License: {
     Distributed under the Boost Software License, Version 1.0.
@@ -14,9 +14,9 @@ Red/System [
   }
 ]
 
-
 #include %../zlib.reds
 
+print [ "Memory compression example" lf ]
 print [ "Zlib version : " zlib/version lf ]
 
 test-mem-compress: func [
@@ -25,7 +25,7 @@ test-mem-compress: func [
 ][
   print [ lf "----------------------------------------" lf ]
   byte-count: 0
-  buffer: zlib/compress (as byte-ptr! text) (length? text) :byte-count Z_DEFAULT_COMPRESSION
+  buffer: zlib/compress (as byte-ptr! text) ((length? text) + 1) :byte-count Z_DEFAULT_COMPRESSION    ; length + 1 to include ending null char
 
   either buffer = NULL [
     print [ "Error compressing..." lf ]

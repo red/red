@@ -19,7 +19,7 @@ Requirements
     Help needed to check the right library name, and test.
 
 
-Running the Red/System curses examples
+Running the Red/System zlib examples
 ------------------------
 
 1. This binding is provided with two examples.
@@ -67,7 +67,7 @@ ZLib binding usage
     with zlib [
       text: "Hello Red world"
       count: 0
-      buffer: <b>compress</b> (as byte-ptr! text) (length? text) :count Z_DEFAULT_COMPRESSION
+      buffer: <b>compress</b> (as byte-ptr! text) ((length? text) + 1) :count Z_DEFAULT_COMPRESSION    ; length + 1 to include ending null char
       print bin-to-str buffer count      ; Print buffer converted into string
     ]
 </pre>
