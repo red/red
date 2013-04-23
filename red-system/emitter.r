@@ -594,7 +594,7 @@ emitter: make-profilable context [
 	
 	start-prolog: does [								;-- libc init prolog
 		append compiler/functions [						;-- create a fake function to
-			***_start [0 native cdecl []]				;-- let the linker write the entry point
+			***_start [0 native cdecl [] callback]		;-- let the linker write the entry point
 		]
 		append symbols [
 			***_start [native 0 []]
@@ -603,6 +603,7 @@ emitter: make-profilable context [
 	
 	start-epilog: does [								;-- libc init epilog
 		poke second find/last symbols '***_start 2 tail-ptr - 1	;-- save the "main" entry point
+		target/emit-prolog '***_start [] 0
 	]
 	
 	init: func [link? [logic!] job [object!]][

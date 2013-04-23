@@ -1594,7 +1594,7 @@ make-profilable make target-class [
 				]
 				if PIC? [
 					emit #{8B5C24}					;-- MOV ebx, [esp-c-1]
-					emit to-bin8 256 - c - 1
+					emit to-bin8 negate (fspec/1 + 1) * 4
 					emit #{53}						;-- PUSH ebx
 				]
 				if fspec/1 >= 6 [
