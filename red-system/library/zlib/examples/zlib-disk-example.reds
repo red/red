@@ -19,6 +19,7 @@ Red/System [
 
 print [ "Zlib version : " zlib/version lf ]
 
+comment {
 test-disk-deflate: func [
   f-in        [c-string!]
   f-out       [c-string!]
@@ -46,8 +47,13 @@ test-disk-deflate: func [
   close-file fnum-out
   return 0
 ]
+}
 
-file-in:  "zlib-mem-example.reds"
-file-out: "zlib-mem-example.reds.z"
 
-test-disk-deflate file-in file-out
+
+;file-in:  "zlib-mem-example.reds"
+;file-out: "zlib-mem-example.reds.z"
+
+gzip-file: "zlib-mem-example.reds.gz"
+zlib/gunzip gzip-file
+print lf

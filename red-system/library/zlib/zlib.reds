@@ -32,6 +32,7 @@ zlib: context [
   ]
 
   #define opaque!  integer!
+  #define gzfile!  integer!
   #define Z_NULL  0             ; for initializing zalloc, zfree, opaque
 
   ; Allowed flush values.
@@ -60,6 +61,25 @@ zlib: context [
   #define Z_BEST_SPEED             1
   #define Z_BEST_COMPRESSION       9
   #define Z_DEFAULT_COMPRESSION   -1
+
+  ; Possible values of the data_type field
+  #define Z_BINARY     0
+  #define Z_TEXT       1
+  #define Z_ASCII      1                ; For compatibility with 1.2.2 and earlier
+  #define Z_UNKNOWN    2
+
+  ; The deflate compression method (the only one supported in this version)
+  #define Z_DEFLATED   8
+
+  ; Compression strategy
+  #define Z_FILTERED            1
+  #define Z_HUFFMAN_ONLY        2
+  #define Z_RLE                 3
+  #define Z_FIXED               4
+  #define Z_DEFAULT_STRATEGY    0
+
+  #define WINDOW_BITS      15
+  #define ENABLE_ZLIB_GZIP 32
 
   #define CHUNK 16384                   ; Buffer size for file (de)compression
 
@@ -137,6 +157,14 @@ zlib: context [
       return:      [integer!]
     ]
 
+    inflateInit2_: "inflateInit2_" [
+      strm         [z_stream!]
+      windowBits   [integer!]
+      version      [c-string!]
+      stream_size  [integer!]
+      return:      [integer!]
+    ]
+
     z-inflateEnd: "inflateEnd" [
       strm         [z_stream!]
       return:      [integer!]
@@ -170,6 +198,35 @@ zlib: context [
       return:      [integer!]
     ]
 
+    gzopen: "gzopen" [
+      filename     [c-string!]
+      mode         [c-string!]
+      return:      [gzfile!]
+    ]
+
+    gzclose: "gzclose" [
+      file         [gzfile!]
+      return:      [integer!]
+    ]
+
+    gzread: "gzread" [
+      file         [gzfile!]
+      buffer       [byte-ptr!]
+      length       [integer!]
+      return:      [integer!]
+    ]
+
+    gzeof: "gzeof" [
+      file         [gzfile!]
+      return:      [integer!]
+    ]
+
+    gzerror: "gzerror" [
+      file         [gzfile!]
+      errnum       [int-ptr!]
+      return:      [c-string!]
+    ]
+
   ] ; cdecl
   ] ; #import [z-library
 
@@ -182,6 +239,14 @@ zlib: context [
       return:      [integer!]
     ][
       inflateInit_ strm version size? z_stream!
+    ]
+
+     z-inflateInit2: function [
+      strm         [z_stream!]
+      windowBits   [integer!]
+      return:      [integer!]
+    ][
+      inflateInit2_ strm windowBits version size? z_stream!
     ]
 
     z-deflateInit: function [
@@ -201,10 +266,43 @@ zlib: context [
       strategy     [integer!]
       return:      [integer!]
     ][
-      deflateInit2_ strm level Z_DEFLATED (15 or 32) 8 Z_DEFAULT_STRATEGY
+      deflateInit2_ strm level Z_DEFLATED (WINDOW_BITS or ENABLE_ZLIB_GZIP) 8 Z_DEFAULT_STRATEGY
     ]
 
-#define END_Z_FUNC   [z-deflateEnd strm  free buf-out  free buf-in  free as byte-ptr! strm]
+
+
+; Macros freeing allocated structures and buffers
+#define END_Z_DEFLATE   [z-deflateEnd strm  free buf-out  free buf-in  free as byte-ptr! strm]
+#define END_Z_INFLATE   [z-inflateEnd strm  free buf-out  free buf-in  free as byte-ptr! strm]
+
+    gunzip: function [
+      filename     [c-string!]
+      return:      [integer!]
+      /local file  [gzfile!]
+        error      [integer!]
+        buffer     [byte-ptr!]
+        bytes-read [integer!]
+
+    ][
+      file: gzopen filename "rb"
+      if file = 0 [
+        print [ "gzopen of " filename " failed." lf ]
+        quit 1
+      ]
+      buffer: allocate CHUNK
+      if buffer = NULL [
+        print [ "Ungzip: Buffer allocation error." lf ]
+        return Z_ERRNO
+      ]
+      until [
+        bytes-read: gzread file buffer (CHUNK - 1)
+        buffer/bytes-read: #"^(00)"
+        print as c-string! buffer
+        0 <> (gzeof file)
+      ]
+      gzclose file
+      return 0
+    ]
 
     deflate: function [
       src          [file!]
@@ -238,14 +336,14 @@ zlib: context [
       ret: z-deflateInit strm level
       if ret <> Z_OK [
         print [ "Deflate: Error deflateInit : " ret lf ]
-        END_Z_FUNC
+        END_Z_DEFLATE
         return Z_ERRNO
       ]
       until [
         strm/avail_in: read-file buf-in 1 CHUNK src
         if file-error? src [
           print [ "Deflate: Input file error : " ret lf ]
-          END_Z_FUNC
+          END_Z_DEFLATE
           return Z_ERRNO ; FIXME: find best error number
         ]
         either file-tail? src [ flush: Z_FINISH ][ flush: Z_NO_FLUSH ]
@@ -256,20 +354,20 @@ zlib: context [
           ret: z-deflate strm flush
           if ret = Z_STREAM_ERROR [
             print [ "Deflate: Data stream error" lf ]
-            END_Z_FUNC
+            END_Z_DEFLATE
             return Z_ERRNO
           ]
           have: CHUNK - strm/avail_out
           ret: write-file buf-out 1 have dest
           if any [ (ret <> have) (file-error?  dest) ][
-            END_Z_FUNC
+            END_Z_DEFLATE
             return Z_ERRNO
           ]
           strm/avail_out <> 0
         ]
         flush = Z_FINISH
       ]
-      END_Z_FUNC
+      END_Z_DEFLATE
       return Z_OK
     ]
 
