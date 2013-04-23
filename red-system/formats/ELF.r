@@ -385,7 +385,11 @@ context [
 				job
 				symbols
 				get-data ".text"
-				get-address ".data.rel.ro"
+				either job/PIC? [
+					(get-address ".data.rel.ro") - get-address ".text"
+				][
+					get-address ".data.rel.ro"
+				]
 		]
 
 		;; Concatenate the layout data into the output binary.
