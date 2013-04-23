@@ -1715,7 +1715,7 @@ make-profilable make target-class [
 			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
 		]
 		if any [
-			;fspec/5 = 'callback
+			fspec/5 = 'callback
 			all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
 		][
 			emit #{53}								;-- PUSH ebx
@@ -1738,7 +1738,7 @@ make-profilable make target-class [
 		
 		fspec: select compiler/functions name
 		if any [
-			;fspec/5 = 'callback
+			fspec/5 = 'callback
 			all [
 				attribs: compiler/get-attributes fspec/4
 				any [find attribs 'cdecl find attribs 'stdcall]
