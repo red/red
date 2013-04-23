@@ -81,6 +81,8 @@ qt: make object! [
   exe: none                            ;; filepath to executable
   reds-file?: true                     ;; true = running reds test file
                                        ;; false = runnning test script
+  red-file?: true					   ;; true = running red test file
+  									   ;; fales = running test script
   
   summary-template: ".. - .................................... / "
   
@@ -202,13 +204,17 @@ qt: make object! [
     ]    
   ]
   
-  compile-and-run: func [src /error] [
+  compile-and-run: func [src /error /pgm] [
     reds-file?: true
     either exe: compile src [
       either error [
         run/error  exe
       ][
-        run exe
+      	  either pgm [
+      	  	  run/pgm exe
+      	  ][
+      	  	  run exe
+      	  ]
       ]
     ][
       compile-error src
@@ -273,6 +279,7 @@ qt: make object! [
     ;;/args                         ;; not yet needed
       ;;parms [string!]             ;; not yet needed
     /error                          ;; run time error expected
+    /pgm							;; a program not a test
     /local
     exec [string!]                  ;; command to be executed
   ][
@@ -282,9 +289,17 @@ qt: make object! [
     call/output/wait exec output
     if all [
       reds-file?
-      none <> find output "Runtime Error" 
-    ][
-      if not error [_signify-failure]
+      not pgm
+      any [
+      	  all [
+      	   none <> find output "Runtime Error"
+      	   not error
+      	  ]
+      	  none = find output "Passed"
+      ]
+    ][	
+    print "signify failure"
+      _signify-failure
     ]
   ]
   
@@ -417,6 +432,7 @@ qt: make object! [
   ]
   
   r-compile-and-run: func [src /error] [
+  	red-file?: true
     either exe: r-compile src [
       either error [
         r-run/error  exe
@@ -446,13 +462,13 @@ qt: make object! [
         r-run exe
       ]
     ][
-      
       compile-error "Supplied source"
       output: "Compilation failed"
     ]
   ]
   
   r-compile-from-string: func [src][
+  	red-file?: false
     ;-- add a default header if not provided
     if none = find src "Red [" [insert src "Red []^/"]
     write r-test-src-file src
@@ -472,11 +488,20 @@ qt: make object! [
     clear output
     call/output/wait exec output
     if windows-os? [output: qt/utf-16le-to-utf-8 output]
-    if any [
-    	none <> find output "Script Error"
-    	none <> find output "Runtime Error"
+    if all [
+    	red-file?
+    	any [
+    		all [
+    			not error
+    			any [
+    				none <> find output "Script Error"
+    				none <> find output "Runtime Error"
+    			]
+    		]
+    		none = find output "Passed"
+    	]
     ][
-      if not error [_signify-failure]
+    	_signify-failure
     ]
   ]
   
