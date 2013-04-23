@@ -47,7 +47,7 @@ make-profilable make target-class [
 	on-init: does [
 		if PIC? [
 			offset: emit-get-pc/ebx
-			emit #{83EB}						;-- SUB ebx, <offset>	; adjust to beginning of CODE segment
+			emit #{83EB}							;-- SUB ebx, <offset>	; adjust to beginning of CODE segment
 			emit to-bin8 offset
 		]	
 	]
@@ -62,6 +62,19 @@ make-profilable make target-class [
 	
 	on-global-epilog: func [runtime? [logic!] type [word!]][
 		if runtime? [patch-floats-definition 'unset] ;-- restore definitions for next compilation jobs
+		if all [
+			not runtime?
+			compiler/job/type = 'exe
+			not find [Windows MacOSX] compiler/job/OS 
+		][
+			emit-pop								;-- pop zero padding
+			emit-pop								;-- pop CATCH_ALL barrier
+			emit #{5D}								;-- POP ebp
+			args: switch/default compiler/job/OS [
+				Syllable [6]
+			][7]
+			emit-epilog '***_start [] args * 4 0	;-- restore all before returning in __libc_start_main()
+		]
 	]
 	
 	add-condition: func [op [word!] data [binary!]][

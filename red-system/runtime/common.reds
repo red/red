@@ -194,7 +194,7 @@ form-type: func [
 	quit status
 ]
 
-
+push system/stack/frame						;-- save previous frame pointer
 system/stack/frame: system/stack/top		;-- @@ reposition frame pointer just after the catch flag
 push CATCH_ALL								;-- exceptions root barrier
 push 0										;-- keep stack aligned on 64-bit

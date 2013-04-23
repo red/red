@@ -2891,7 +2891,10 @@ system-dialect: make-profilable context [
 	]
 	
 	comp-runtime-epilog: does [	
-		if job/type = 'exe [
+		if all [
+			job/type = 'exe
+			find [Windows MacOSX] compiler/job/OS
+		][
 			compiler/comp-call '***-on-quit [0 0]		;-- call runtime exit handler
 		]
 		emitter/target/on-global-epilog no job/type
