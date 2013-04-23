@@ -11,18 +11,12 @@ change-dir %../
 
 ;=== Helper functions ===
 --assert-compiles?: func [src [string!] /local exe][
-	exe: --compile-this src
- 	either exe [
-      --run exe
-      --assert qt/output = ""
-    ][
-      qt/compile-error src 
-    ]
+	exe: --compile-and-run-this src
+ 	--assert qt/output = ""
     --clean
 ]
 
 ;=== end of helper functions ===
-
 
 ~~~start-file~~~ "inference-compile"
 
