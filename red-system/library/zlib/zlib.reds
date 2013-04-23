@@ -216,6 +216,13 @@ zlib: context [
       return:      [integer!]
     ]
 
+    gzwrite: "gzwrite" [
+      file         [gzfile!]
+      buffer       [byte-ptr!]
+      length       [integer!]
+      return:      [integer!]
+    ]
+
     gzeof: "gzeof" [
       file         [gzfile!]
       return:      [integer!]
@@ -275,99 +282,78 @@ zlib: context [
 #define END_Z_DEFLATE   [z-deflateEnd strm  free buf-out  free buf-in  free as byte-ptr! strm]
 #define END_Z_INFLATE   [z-inflateEnd strm  free buf-out  free buf-in  free as byte-ptr! strm]
 
-    gunzip: function [
-      filename     [c-string!]
+    gunzip: function [             "Gunzip a file into another file"
+      file-in      [c-string!]     "A gzipped file"
+      file-out     [c-string!]
       return:      [integer!]
-      /local file  [gzfile!]
+      /local
+        file       [file!]
+        zfile      [gzfile!]
         error      [integer!]
         buffer     [byte-ptr!]
         bytes-read [integer!]
 
     ][
-      file: gzopen filename "rb"
+      zfile: gzopen file-in "rb"
+      if zfile = 0 [
+        print [ "gunzip: gzopen of " file-in " failed." lf ]
+        return Z_ERRNO
+      ]
+      file: open-file file-out "wb"
       if file = 0 [
-        print [ "gzopen of " filename " failed." lf ]
-        quit 1
+        print [ "gunzip: Error opening " file-out lf ]
+        return Z_ERRNO
       ]
       buffer: allocate CHUNK
       if buffer = NULL [
-        print [ "Ungzip: Buffer allocation error." lf ]
+        print [ "gunzip: Buffer allocation error." lf ]
         return Z_ERRNO
       ]
       until [
-        bytes-read: gzread file buffer (CHUNK - 1)
-        buffer/bytes-read: #"^(00)"
-        print as c-string! buffer
-        0 <> (gzeof file)
+        bytes-read: gzread zfile buffer (CHUNK - 1)
+        write-file buffer bytes-read 1 file
+        0 <> (gzeof zfile)
       ]
-      gzclose file
-      return 0
+      close-file file
+      gzclose zfile
+      free buffer
+      return Z_OK
     ]
 
-    deflate: function [
-      src          [file!]
-      dest         [file!]
-      level        [integer!]
+    gzip: function [               "Gzip a file into another file"
+      file-in      [c-string!]
+      file-out     [c-string!]     "A gzipped file"
       return:      [integer!]
-      /local ret have flush buf-in buf-out
-             strm     [z_stream!]
+      /local
+        file       [file!]
+        zfile      [gzfile!]
+        error      [integer!]
+        buffer     [byte-ptr!]
+        bytes-read [integer!]
     ][
-      strm: as z_stream! allocate (size? z_stream!)
-      if strm = NULL [
-        print [ "Deflate: Memory allocation error." lf ]
+      file: open-file file-in "rb"
+      if file = 0 [
+        print [ "gzip: Error opening " file-in lf ]
         return Z_ERRNO
       ]
-      buf-in: allocate CHUNK
-      if buf-in = NULL [
-        print [ "Deflate: Input buffer allocation error." lf ]
-        free as byte-ptr! strm
+      zfile: gzopen file-out "wb"
+      if zfile = 0 [
+        print [ "gzip: Error opening " file-out lf ]
         return Z_ERRNO
       ]
-      buf-out: allocate CHUNK
-      if buf-out = NULL [
-        print [ "Deflate: Output buffer allocation error." lf ]
-        free buf-in
-        free as byte-ptr! strm
-        return Z_ERRNO
-      ]
-      strm/zalloc: Z_NULL
-      strm/zfree: Z_NULL
-      strm/opaque: Z_NULL
-      ret: z-deflateInit strm level
-      if ret <> Z_OK [
-        print [ "Deflate: Error deflateInit : " ret lf ]
-        END_Z_DEFLATE
+      buffer: allocate CHUNK
+      if buffer = NULL [
+        print [ "gzip: Buffer allocation error." lf ]
         return Z_ERRNO
       ]
       until [
-        strm/avail_in: read-file buf-in 1 CHUNK src
-        if file-error? src [
-          print [ "Deflate: Input file error : " ret lf ]
-          END_Z_DEFLATE
-          return Z_ERRNO ; FIXME: find best error number
-        ]
-        either file-tail? src [ flush: Z_FINISH ][ flush: Z_NO_FLUSH ]
-        strm/next_in: buf-in
-        until [
-          strm/avail_out: CHUNK
-          strm/next_out: buf-out
-          ret: z-deflate strm flush
-          if ret = Z_STREAM_ERROR [
-            print [ "Deflate: Data stream error" lf ]
-            END_Z_DEFLATE
-            return Z_ERRNO
-          ]
-          have: CHUNK - strm/avail_out
-          ret: write-file buf-out 1 have dest
-          if any [ (ret <> have) (file-error?  dest) ][
-            END_Z_DEFLATE
-            return Z_ERRNO
-          ]
-          strm/avail_out <> 0
-        ]
-        flush = Z_FINISH
+        bytes-read: read-file buffer 1 CHUNK file
+        gzwrite zfile buffer bytes-read
+        file-tail? file
       ]
-      END_Z_DEFLATE
+      close-file file
+      gzclose zfile
+      free buffer
       return Z_OK
     ]
 
