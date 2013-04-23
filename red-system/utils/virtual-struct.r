@@ -96,7 +96,7 @@ virtual-struct!: context [
 		n: any [n alignment]
 		
 		foreach name members [
-			type: select obj/__vs-spec name
+			type: second find obj/__vs-spec name
 			value: get in obj name
 			
 			append out switch/default type/1 [
