@@ -2890,14 +2890,12 @@ system-dialect: make-profilable context [
  		compiler/run/runtime job loader/process script script
 	]
 	
-	comp-runtime-epilog: does [	
-		if all [
-			job/type = 'exe
-			find [Windows MacOSX] compiler/job/OS
+	comp-runtime-epilog: does [
+		either job/need-main? [
+			emitter/target/on-global-epilog no job/type	;-- emit main() epilog
 		][
 			compiler/comp-call '***-on-quit [0 0]		;-- call runtime exit handler
 		]
-		emitter/target/on-global-epilog no job/type
 	]
 	
 	clean-up: does [
@@ -2955,7 +2953,8 @@ system-dialect: make-profilable context [
 		runtime?:		yes				;-- include Red/System runtime
 		use-natives?:	no				;-- force use of native functions instead of C bindings
 		debug?:			no				;-- emit debug information into binary
-		PIC?:			no				;-- compile using Position Independent Code
+		need-main?:		no				;-- yes => emit a function prolog/epilog around global code
+		PIC?:			no				;-- generate Position Independent Code
 		base-address:	none			;-- base image memory address
 		dynamic-linker: none			;-- ELF dynamic linker ("interpreter")
 		syscall:		'Linux			;-- syscalls convention: 'Linux | 'BSD
@@ -2986,7 +2985,21 @@ system-dialect: make-profilable context [
 			loader/init
 			emitter/target/on-init
 			
-			unless opts/use-natives? [comp-start]		;-- init libC properly
+			job/need-main?: to logic! any [
+				job/need-main?							;-- pass-thru if set in config file
+				all [
+					job/type = 'exe
+					not find [Windows MacOSX] job/OS
+				]
+			]
+			
+			if all [
+				job/need-main?
+				opts/use-natives?
+			][
+				comp-start								;-- init libC properly
+			]
+			
 			if opts/runtime? [comp-runtime-prolog]
 			
 			set-verbose-level opts/verbosity

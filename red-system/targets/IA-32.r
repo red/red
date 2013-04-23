@@ -64,8 +64,7 @@ make-profilable make target-class [
 		if runtime? [patch-floats-definition 'unset] ;-- restore definitions for next compilation jobs
 		if all [
 			not runtime?
-			compiler/job/type = 'exe
-			not find [Windows MacOSX] compiler/job/OS 
+			compiler/job/need-main?
 		][
 			emit-pop								;-- pop zero padding
 			emit-pop								;-- pop CATCH_ALL barrier
