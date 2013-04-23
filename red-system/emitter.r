@@ -186,9 +186,9 @@ emitter: make-profilable context [
 	]
 	
 	add-symbol: func [
-		name [word! tag!] ptr [integer!] /local spec
+		name [word! tag!] ptr [integer!] /with refs [block! word! none!] /local spec
 	][
-		spec: reduce [name reduce ['global ptr make block! 1 '-]]
+		spec: reduce [name reduce ['global ptr make block! 1 any [refs '-]]]
 		append symbols new-line spec yes
 		spec
 	]
@@ -282,6 +282,7 @@ emitter: make-profilable context [
 		name [word! none!]
 		value
 		type [block!]
+		/ref ref-ptr
 		/local ptr new
 	][
 		if new: compiler/find-aliased type/1 [
@@ -291,7 +292,7 @@ emitter: make-profilable context [
 			type/1 = 'struct!
 			type/2
 		]
-		add-symbol any [name <data>] ptr				;-- add variable/value to globals table
+		add-symbol/with any [name <data>] ptr ref-ptr	;-- add variable/value to globals table
 	]
 	
 	store: func [
@@ -317,8 +318,12 @@ emitter: make-profilable context [
 				name: none								;-- anonymous data storing
 			]
 			if any [not new-global? string? value paren? value][
-				if string? value [type: [c-string!]]		;-- force c-string! in case of type casting
-				spec: store-value name value type		;-- store new value in data buffer
+				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
+				spec: either compiler/job/PIC? [
+					store-value name value type			;-- store new value in data buffer
+				][
+					store-value/ref name value type refs  ;-- store it with hardcoded pointer address
+				]
 			]
 			if all [new-global? spec compiler/job/PIC? not libc-init?][
 				target/emit-load-literal-ptr spec/2		;-- load value address
