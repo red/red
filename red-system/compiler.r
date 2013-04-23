@@ -2995,7 +2995,7 @@ system-dialect: make-profilable context [
 			
 			if all [
 				job/need-main?
-				opts/use-natives?
+				not opts/use-natives?
 			][
 				comp-start								;-- init libC properly
 			]
