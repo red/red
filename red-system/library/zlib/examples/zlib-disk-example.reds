@@ -49,11 +49,12 @@ test-disk-deflate: func [
 ]
 }
 
+file-to-zip: "zlib-mem-example.reds"
+zipped-file: "zlib-mem-example.reds.gz"
+unzipped-file: "unzipped-mem-example.reds"
 
+print [ "Gzip " file-to-zip " into " zipped-file lf ]
+zlib/gzip file-to-zip zipped-file
 
-;file-in:  "zlib-mem-example.reds"
-;file-out: "zlib-mem-example.reds.z"
-
-gzip-file: "zlib-mem-example.reds.gz"
-zlib/gunzip gzip-file
-print lf
+print [ "Gunzip " zipped-file " into " unzipped-file lf ]
+zlib/gunzip zipped-file unzipped-file
