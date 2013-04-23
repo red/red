@@ -219,6 +219,7 @@ context [
 			structure segments sections commands layout
 			data-size
 			get-address get-offset get-size get-meta get-data set-data
+			relro-offset
 	] [
 		base-address: any [job/base-address defs/base-address]
 		dynamic-linker: any [job/dynamic-linker ""]
@@ -381,15 +382,13 @@ context [
 
 		;; Resolve import (library function) references.
 		if has-element ".data.rel.ro" [
+			relro-offset: get-address ".data.rel.ro"
+			if job/PIC? [relro-offset: relro-offset - get-address ".text"]
 			resolve-import-refs
 				job
 				symbols
 				get-data ".text"
-				either job/PIC? [
-					(get-address ".data.rel.ro") - get-address ".text"
-				][
-					get-address ".data.rel.ro"
-				]
+				relro-offset
 		]
 
 		;; Concatenate the layout data into the output binary.
@@ -647,13 +646,13 @@ context [
 	]
 
 	resolve-import-refs: func [
-		job [object!] symbols [block!] code [binary!] relro-address [integer!]
+		job [object!] symbols [block!] code [binary!] relro-offset [integer!]
 		/local rel
 	] [
 		rel: make-struct machine-word none
 		foreach [libname libimports] job/sections/import/3 [
 			foreach [symbol callsites] libimports [
-				rel/value: rel-address-of/symbol relro-address symbols symbol
+				rel/value: rel-address-of/symbol relro-offset symbols symbol
 				foreach callsite callsites [
 					change/part at code callsite serialize-data rel size-of rel
 				]
