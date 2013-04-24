@@ -82,7 +82,7 @@ qt: make object! [
   reds-file?: true                     ;; true = running reds test file
                                        ;; false = runnning test script
   red-file?: true					   ;; true = running red test file
-  									   ;; fales = running test script
+  									   ;; false = running test script
   
   summary-template: ".. - .................................... / "
   
