@@ -47,7 +47,7 @@ Running the Red/System curses examples
 
     `rebol.exe -s compile-examples.r`  Windows
 
-    This script buid all examples included in this directory.
+    This script builds all examples included in this directory.
 
 1. The resulting binaries are in `red-system/builds/`, go try them!
 

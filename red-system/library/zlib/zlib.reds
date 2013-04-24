@@ -166,8 +166,8 @@ zlib: context [
   with zlib [
 
     gunzip: function [             "Gunzip a file into another file"
-      file-in      [c-string!]     "A gzipped file"
-      file-out     [c-string!]
+      file-in      [c-string!]     "Name of the file to be unzipped"
+      file-out     [c-string!]     "Name of the output unzipped file"
       return:      [integer!]
       /local
         file       [file!]
@@ -204,8 +204,8 @@ zlib: context [
     ]
 
     gzip: function [               "Gzip a file into another file"
-      file-in      [c-string!]
-      file-out     [c-string!]     "A gzipped file"
+      file-in      [c-string!]     "Name of the file to be zipped"
+      file-out     [c-string!]     "Name of the output zipped file"
       return:      [integer!]
       /local
         file       [file!]
