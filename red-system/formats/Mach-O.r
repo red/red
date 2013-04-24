@@ -436,9 +436,10 @@ context [
 	resolve-import-refs: func [job [object!] /local code base][
 		code: job/sections/code/2
 		base: get-section-addr '__jump_table
+		if job/PIC? [base: base - get-section-addr '__text]
 
 		foreach [ptr reloc] imports-refs [
-			pointer/value: ptr: base + ptr
+			pointer/value: base + ptr
 			foreach ref reloc [
 				change at code ref form-struct pointer 	;TBD: check endianness + x-compilation
 			]
