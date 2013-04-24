@@ -12,22 +12,18 @@ change-dir %../
 ~~~start-file~~~ "exit-err"
 
   --test-- "simple test of compile and run"
-    --compile-this "test: does [exit] test" 
-    either exe [
-      --run exe
-      --assert qt/output = ""
-    ][
-      qt/compile-error src 
-    ]
+    --compile-and-run-this "test: does [exit] test" 
+    --assert qt/output = ""
     --clean
 
   --test-- "exit as last statement in until block"
 	--compile-this "until [exit]"
-	--assert-msg? "*** Compilation Error: exit is not allowed outside of a function"
+  --assert-msg? "*** Compilation Error: exit is not allowed outside of a function"
 	--clean
 	
+  --test-- "exit-err-3"
 	--compile-this "foo: does [until [exit]]"
-	--assert-msg? "*** Compilation Error: UNTIL requires a conditional expression as last expression"
+  --assert-msg? "*** Compilation Error: UNTIL requires a conditional expression as last expression"
 	--clean
 
 ~~~end-file~~~

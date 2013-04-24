@@ -39,6 +39,7 @@ start-time: now/precise
 
 ***start-run-quiet*** "Complete Red Test Suite"
 
+do %../red/tests/source/units/make-interpreter-auto-test.r
 run-all-script %../red/tests/
 run-all-script %../red-system/tests/
 

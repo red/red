@@ -1071,7 +1071,7 @@ block: context [
 		]
 
 		if head + part < s/tail [
-			copy-memory 
+			move-memory 
 				as byte-ptr! head
 				as byte-ptr! head + part
 				as-integer s/tail - (head + part)

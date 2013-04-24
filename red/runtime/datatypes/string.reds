@@ -1486,7 +1486,7 @@ string: context [
 		]
 
 		if head + part < tail [
-			copy-memory 
+			move-memory 
 				head
 				head + part
 				as-integer tail - (head + part)

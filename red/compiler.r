@@ -262,6 +262,15 @@ red: context [
 		]
 	]
 	
+	emit-exit-function: does [
+		emit compose [
+			stack/unroll stack/FLAG_FUNCTION
+			(append to set-path! last ctx-stack 'values) as node! pop
+			exit
+		]
+		insert-lf -5
+	]
+	
 	get-counter: does [s-counter: s-counter + 1]
 	
 	clean-lf-deep: func [blk [block! paren!] /local pos][
@@ -1300,17 +1309,13 @@ red: context [
 		pc: next pc
 		emit [
 			copy-cell unset-value stack/arguments
-			stack/unroll stack/FLAG_FUNCTION
-			exit
 		]
+		emit-exit-function
 	]
 
 	comp-return: does [
 		comp-expression
-		emit [
-			stack/unroll stack/FLAG_FUNCTION
-			exit
-		]
+		emit-exit-function
 	]
 	
 	comp-switch: has [mark name arg body list cnt pos default? value][
