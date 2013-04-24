@@ -564,9 +564,12 @@ context [
 		append job/buffer form-struct fh
 	]
 
-	build-opt-header: func [job [object!] /local oh code-page code-base ep entry][
+	build-opt-header: func [job [object!] /local oh code-page code-base ep entry flags][
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
+		
+		flags: to integer! defs/dll-flags/dynamic-base
+						or defs/dll-flags/nx-compat
 		
 		ep: either job/type = 'dll [
 			ep-fun: '***-dll-entry-point
@@ -601,7 +604,7 @@ context [
 		oh/headers-size:		code-page * file-align
 		oh/checksum:			0						;-- for drivers and DLL only
 		oh/sub-system:			select defs/sub-system job/sub-system
-		oh/dll-flags:			either job/type <> 'dll [0][to integer! defs/dll-flags/dynamic-base]
+		oh/dll-flags:			flags
 		oh/stack-res-size:		to integer! #{00100000}
 		oh/stack-com-size:		to integer! #{00001000}
 		oh/heap-res-size:		to integer! #{00100000}
