@@ -16,13 +16,13 @@ Requirements
 
 *   **MacOSX**
 
-    Help needed to check the right library name, and test.
+    Help needed to check the right library name, and test. Contact me at be.red@free.fr
 
 
 Running the Red/System zlib examples
 ------------------------
 
-1. This binding is provided with two examples.
+1. This binding is provided with two examples for in-memory (compress) and on-disk compression (gzip).
 
 1. From the REBOL console type :
 
@@ -42,11 +42,11 @@ Running the Red/System zlib examples
 
     `rebol.exe -s compile-examples.r`  (Windows)
 
-    This script buid the example included in this directory.
+    This script builds all examples included in this directory.
 
 1. The resulting binary is in `red-system/builds/`, go try it!
 
-    Linux users run `zlib-mem-example` or `zlib-mem-example` from command line.
+    Linux users run `zlib-mem-example` or `zlib-disk-example` from command line.
 
     Windows users need to open a DOS console and run `zlib-mem-example.exe` or `zlib-disk-example.exe` from there.
 
@@ -85,6 +85,36 @@ ZLib binding usage
     with zlib [
       decompressed-text: as c-string! <b>decompress</b> buffer count
       print decompressed-text
+    ]
+</pre>
+
+3. On disk compression :
+<pre>
+    <b>gzip</b>: function [
+      file-in      [c-string!]     "Name of the file to be zipped"
+      file-out     [c-string!]     "Name of the output zipped file"
+      return:      [integer!]
+    ]
+</pre>
+*Example*
+<pre>
+    with zlib [
+      <b>gzip</b> "filename.txt" "filename.gz"
+    ]
+</pre>
+
+4. On disk decompression :
+<pre>
+    <b>gunzip</b>: function [             "Gunzip a file into another file"
+      file-in      [c-string!]     "Name of the file to be unzipped"
+      file-out     [c-string!]     "Name of the output unzipped file"
+      return:      [integer!]
+    ]
+</pre>
+*Example*
+<pre>
+    with zlib [
+      <b>gunzip</b> "filename.gz" "filename.txt"
     ]
 </pre>
 
