@@ -172,6 +172,10 @@ system-dialect: make-profilable context [
 			alias 		 [raise-level-error "an alias"]	  ;-- alias declaration not allowed at this level
 		]
 		
+		calling-keywords: [								;-- keywords accepted in expr-call-stack
+			?? as assert size? if either case switch until while any all return
+		]
+		
 		foreach [word action] keywords [append keywords-list word]
 		foreach [name spec] functions  [append keywords-list name]
 		
@@ -2167,14 +2171,21 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-get-word: has [spec name ns][
+		comp-get-word: has [spec name ns symbol][
 			name: to word! pc/1
 			case [
 				all [spec: find functions name: resolve-ns name spec: spec/2][
 					unless find [native routine] spec/2 [
 						throw-error "get-word syntax only reserved for native functions for now"
 					]
-					unless spec/5 = 'callback [append spec 'callback]	;@@ force cdecl ????
+					if all [
+						symbol: last expr-call-stack
+						spec: find functions symbol
+						spec/2/2 = 'import				;-- only flag it when passed to external calls
+						spec/5 <> 'callback
+					][
+						append spec 'callback			;@@ force cdecl ????
+					]
 				]
 				not	any [
 					local-variable? to word! pc/1
@@ -2266,7 +2277,7 @@ system-dialect: make-profilable context [
 					not all [local? name = 'context]
 					entry: select keywords name			;-- it's a reserved word
 				][
-					push-call pc/1
+					if find calling-keywords name [push-call pc/1]
 					do entry
 				]
 				any [
