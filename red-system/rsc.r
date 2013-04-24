@@ -99,13 +99,14 @@ rsc: context [
 		base-path: system/script/parent/path
 		opts: make opts config
 		opts/config-name: config-name
-		opts/build-prefix: base-path
 
 		;; Process -o/--output (if any).
 		if output [
 			opts/build-basename: load-filename output
-			if slash = first opts/build-basename [
+			either slash = first opts/build-basename [
 				opts/build-prefix: %""
+			] [
+				opts/build-prefix: base-path
 			]
 		]
 
