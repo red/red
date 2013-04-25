@@ -68,6 +68,8 @@ start-time: now/precise
   	--run-test-file-quiet-red %source/units/routine-test.red
   	--run-test-file-quiet-red %source/units/append-test.red
   	--run-test-file-quiet-red %source/units/insert-test.red
+  	--run-test-file-quiet-red %source/units/make-test.red
+
 ===end-group===
 
 ===start-group=== "Auto-tests"
