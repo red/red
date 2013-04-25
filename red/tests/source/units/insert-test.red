@@ -259,5 +259,19 @@ Red [
 	
 ===end-group===
 
+===start-group=== "insert reported issues"
+
+	--test-- "iri1 - issue #460"
+	--assert "1" = head insert "" 1
+	
+	--test-- "iri2 - issue #460"
+	--assert "a" = head insert "" 'a
+	
+	--test-- "iri3 - issue #460"
+	--assert "abc" = head insert "" #abc
+	
+
+===end-group===
+
 ~~~end-file~~~
 
