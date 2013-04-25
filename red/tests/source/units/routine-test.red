@@ -102,6 +102,24 @@ Red [
 	--assert not rs4-r true
 	
 ===end-group===	
+
+===start-group=== "routine reported issues"
+
+	--test-- "rri1 - issue #468"
+		rri1-r: routine [
+			return:			[integer!]
+			/local
+				b			[byte!]
+				cp          [integer!]
+		][
+			cp: 1
+			b: as byte! (cp >>> 6)
+			cp: as integer! b
+			cp
+		]
+	--assert 0 = rri1-r
+
+===end-group===
 	
 ~~~end-file~~~
 
