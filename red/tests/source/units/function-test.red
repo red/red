@@ -263,6 +263,16 @@ Red [
   	--assert [2 12] = ri8-fn
   	--assert 100 = ri8-i
   	--assert 200 = ri8-j
+  	
+  	--test-- "ri9 issue #443"
+  		ri9-fn: function[][
+  			ri9-b: copy []
+  			foreach [ri9-i ri9-j] [1 2 3 4] [append ri9-b ri9-i * ri9-j]
+  			ri9-b
+  		]
+  	--assert [2 12] = ri9-fn
+  	--assert unset! = type? get 'ri9-i
+  	--assert unset! = type? get 'ri9-j
 
 ===end-group===
 
