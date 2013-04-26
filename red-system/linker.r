@@ -29,7 +29,7 @@ linker: context [
 		symbols:									;-- symbols table
 		output:										;-- output file name (without extension)
 		debug-info:									;-- debugging informations
-		buffer: none
+		buffer: none								;-- output buffer
 	]
 	
 	resolve-symbol-refs: func [

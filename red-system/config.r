@@ -95,6 +95,15 @@ Darwin [
 	syscall:	'BSD
 	stack-align-16?: yes
 ]
+DarwinSO [
+	OS:			'MacOSX
+	format: 	'Mach-O
+	type:		'dll
+	sub-system: 'console
+	syscall:	'BSD
+	stack-align-16?: yes
+	PIC?:		yes
+]
 ;-------------------------
 ;OSX [									; not supported yet
 ;	OS:			'MacOSX

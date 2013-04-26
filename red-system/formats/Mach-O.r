@@ -53,6 +53,7 @@ context [
 			bindstoweak     65536	; ?? (MH_BINDS_TO_WEAK)
 			allowstackexec  131072	; ?? (MH_ALLOW_STACK_EXECUTION)
 			validflags      262143	; ?? 0003ffff (mask)
+			noreexported	1048576	; no re-exported dynamic libraries
 		]
 		load-type [					;-- Constants for the cmd field of all load commands
 			req_dyld 		-2147483648
@@ -265,7 +266,7 @@ context [
 
 	;-- Globals --
 	
-	segments: [
+	segments-layout: [
 	;-- class ------ name ------ mem --- file - rights - payload - memalign
 	;						   - off sz  off sz	-
 	  segment		__PAGEZERO   0	page 0 	 0	[]		  - 	   page []
@@ -285,6 +286,7 @@ context [
 	load-cmds-nb:		0
 	load-cmds-sz:		0
 	stub-size:			5					;-- imported functions slot size
+	segments:			none
 
 	;-- Mach-O structure builders --
 	
@@ -302,7 +304,7 @@ context [
 			page [defs/page-size]
 			word [4]						;-- 4 => 32-bit, 8 => 64-bit @@
 			byte [1]
-		][4]								;-- 4 => 32-bit, 8 => 64-bit @@								
+		][4]								;-- 4 => 32-bit, 8 => 64-bit @@
 	]
 	
 	sections?: func [list [block!]][(length? list) / 9]
@@ -312,7 +314,8 @@ context [
 			segment  [segment-sz]
 			uthread  [length? form-struct unix-thread-cmd]
 			dylinker [length? form-struct dylinker-cmd]
-			lddylib  [length? form-struct load-dylib-cmd]
+			lddylib
+			id_dylib [length? form-struct load-dylib-cmd]
 			symtab	 [length? form-struct symtab-cmd]
 			dysymtab [length? form-struct dysymtab-cmd]
 		]
@@ -343,7 +346,7 @@ context [
 	]
 	
 	get-section-addr: func [name [word!] /local addr][
-		parse segments [some [into [thru name set addr skip | none] | skip]]	
+		parse segments [some [into [thru name set addr skip | none] | skip]]
 		addr
 	]
 	
@@ -377,7 +380,7 @@ context [
 		
 		header-sz: load-cmds-sz + length? form-struct mach-header
 		addr: 0
-		fpos: header-sz
+		fpos: 0
 		
 		seg: segments
 		until [
@@ -389,7 +392,7 @@ context [
 				hd-sz: either seg/2 = '__TEXT [header-sz][0]	;-- account for headers
 				size: either seg/8 = '- [0][length? job/sections/(seg/8)/2]
 				while [not tail? sec][
-					sz: length? job/sections/(sec/8)/2					
+					sz: length? job/sections/(sec/8)/2
 					sec/3: addr: round/ceiling/to addr + hd-sz get-ceiling sec/9 ;-- offset in memory (section)
 					sec/4: sz							;-- size in memory (section)
 					sec/5: fpos: round/ceiling/to fpos + hd-sz get-ceiling sec/9 ;-- offset in file (section)
@@ -500,23 +503,83 @@ context [
 			]
 			'symbols reduce [
 				reduce [cnt length? sym-tbl length? dy-sym-tbl length? str-tbl]
-				rejoin [sym-tbl dy-sym-tbl str-tbl]
+				reduce [sym-tbl dy-sym-tbl str-tbl]
 			]
 		]
 	]
 	
-	build-dysymtab-command: func [job [object!] spec [block!] /local sc sym-info][
+	resolve-exports: func [job [object!] /local code data][
+		code: get-section-addr '__text
+		data: get-section-addr '__data
+		
+		foreach [offset data? ref] job/sections/export/4 [
+			pointer/value: offset + get pick [data code] data?
+			change ref form-struct pointer
+		]
+	]
+	
+	build-exports: func [
+		job [object!]
+		/local name exports symbols sym-tbl str-tbl spec data? list value
+	][
+		remove/part find segments 'uthread 10
+		remove/part find segments '__PAGEZERO 10
+		remove/part find segments 'dylinker 10
+		
+		insert skip find segments '__LINKEDIT 9 [
+			id_dylib		-			 -	 -   -	 -   - 		  -		   -	[]
+		]
+		segments/id_dylib: name: pad4 to-c-string form join 
+			job/build-basename
+			select defs/extensions job/type
+		
+		;if name/1 <> slash [insert name "/usr/lib/"]
+		
+		exports:   job/sections/export/3
+		symbols:   job/sections/symbols
+		sym-tbl:   symbols/2/1
+		str-tbl:   symbols/2/3
+		list: 	   make block! length? exports
+		
+		foreach sym sort exports [						;-- sorted symbols by name
+			spec: job/symbols/:sym
+			data?: spec/1 = 'global
+			
+			entry: make-struct nlist none
+			entry/n-strx:  length? str-tbl
+			entry/n-type:  to integer! defs/sym-type/n-sect or defs/sym-type/n-ext
+			entry/n-sect:  pick [2 1] data?				;-- hardcoded section counters
+			entry/n-desc:  0
+			entry/n-value: 0
+			append sym-tbl form-struct entry
+			value: either data? [spec/2][spec/2 - 1]	;-- code refs are 1-based
+			repend list [value data? skip tail sym-tbl -4]	;-- deferred addresses calculation
+			
+			append str-tbl join "_" to-c-string form sym
+		]
+		symbols/1/1: symbols/1/1 + length? exports
+		symbols/1/2: length? sym-tbl
+		symbols/1/4: length? str-tbl
+		symbols/2/1: sym-tbl
+		symbols/2/3: str-tbl
+		
+		append symbols/1 length? exports
+		append/only job/sections/export list
+	]
+	
+	build-dysymtab-command: func [job [object!] spec [block!] /local sc sym-info undef-syms-nb][
 		sym-info: job/sections/symbols/1
+		undef-syms-nb: sym-info/1 - any [sym-info/5 0]
 
 		sc: make-struct dysymtab-cmd none
 		sc/cmd:			   defs/load-type/dysymtab
 		sc/size:		   get-struct-size 'dysymtab
 		sc/ilocalsym:	   0
 		sc/nlocalsym:	   0
-		sc/iextdefsym:	   0
-		sc/nextdefsym:	   0
+		sc/iextdefsym:	   either job/type = 'dll [undef-syms-nb][0]
+		sc/nextdefsym:	   either job/type = 'dll [sym-info/5][0]
 		sc/iundefsym:	   0
-		sc/nundefsym:	   sym-info/1
+		sc/nundefsym:	   undef-syms-nb
 		sc/tocoff:		   0
 		sc/ntoc:		   0
 		sc/modtaboff:	   0
@@ -524,7 +587,7 @@ context [
 		sc/extrefsymoff:   0
 		sc/nextrefsyms:	   0
 		sc/indirectsymoff: (third get-segment-info '__LINKEDIT) + sym-info/2
-		sc/nindirectsyms:  sym-info/1
+		sc/nindirectsyms:  undef-syms-nb
 		sc/extreloff:	   0
 		sc/nextrel:		   0
 		sc/locreloff:	   0
@@ -547,13 +610,15 @@ context [
 		sc
 	]
 	
-	build-lddylib-command: func [job [object!] spec [block!] /local lc][
+	build-lddylib-command: func [job [object!] spec [block!] /alt /local lc type][
+		type: pick [id_dylib load_dylib] alt: to logic! alt
+		
 		lc: make-struct load-dylib-cmd none
-		lc/cmd:			defs/load-type/load_dylib
+		lc/cmd:			defs/load-type/:type
 		lc/size:		(get-struct-size 'lddylib) + length? spec/2
 		lc/offset:		24
 		lc/timestamp:	2
-		lc/version:		to integer! #{007D0000}	;-- 128.0.0
+		lc/version:		to integer! pick [ #{00010000} #{007D0000}] alt	;-- 1.0.0 | 128.0.0
 		lc/compat:		to integer! #{00000000}	;-- 0.0.0		@@ should be configurable
 		lc: form-struct lc
 		append lc spec/2
@@ -608,7 +673,7 @@ context [
 		sc/maxprot:		either empty? spec/7 [0][get-rights? [r w x]]
 		sc/initprot:	get-rights? spec/7
 		sc/nsects:		sections? spec/10
-		sc/flags:		4						;-- SG_NORELOC
+		sc/flags:		pick [4 0] job/type = 'exe		;-- SG_NORELOC for exe only
 		sc: form-struct sc
 		change at sc 9 to-c-string spec/2
 		sc
@@ -619,15 +684,18 @@ context [
 		mh/magic:			to integer! #{FEEDFACE}
 		mh/cpu-type:		7					;-- CPU_TYPE_I386
 		mh/cpu-sub-type:	3					;-- CPU_SUBTYPE_I386_ALL
-		mh/file-type:		defs/file-type/execute
+		mh/file-type:		switch job/type [
+								exe [defs/file-type/execute]
+								dll [defs/file-type/dylib]
+							]
 		mh/nb-cmds:			load-cmds-nb
 		mh/sz-cmds:			load-cmds-sz
 		mh/flags:			defs/flags/noundefs
 		if dylink? [
 			mh/flags: mh/flags 
 				or defs/flags/dyldlink
-				or defs/flags/subsections
-				;or defs/flags/bindatload
+				;or defs/flags/subsections
+				or defs/flags/noreexported
 		]
 		form-struct mh
 	]
@@ -636,17 +704,21 @@ context [
 		job [object!]
 		/local
 			base-address dynamic-linker out sections
-
-	] [
-		base-address: any [job/base-address defs/base-address]
+	][
+		segments: copy/deep segments-layout
+		
+		base-address: 	any [job/base-address defs/base-address]
 		dynamic-linker: any [job/dynamic-linker ""]
 		
 		dylink?: not empty? job/sections/import/3
 		
 		clear imports-refs
 		if dylink? [build-imports job]
-		
+		if job/type = 'dll [build-exports job]
+	
 		prepare-headers job
+		
+		if job/type = 'dll [resolve-exports job]
 		
 		out: job/buffer
 		append out build-mach-header job
@@ -659,6 +731,7 @@ context [
 				lddylib  [build-lddylib-command  job seg]
 				symtab	 [build-symtab-command 	 job seg]
 				dysymtab [build-dysymtab-command job seg]
+				id_dylib [build-lddylib-command/alt  job seg]
 			]
 			unless empty? sections: seg/10 [
 				forskip sections 9 [
@@ -675,7 +748,7 @@ context [
 	
 		if dylink? [
 			emit-page-aligned out job/sections/jmptbl/2
-			emit-page-aligned out job/sections/symbols/2
+			emit-page-aligned out rejoin job/sections/symbols/2
 		]
 	]
 ]
