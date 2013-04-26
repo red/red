@@ -246,6 +246,23 @@ Red [
   		ri7-g: func [][true]
   		ri7-f: func [][g]
   	--assert ri7-f
+  	
+  	--test-- "ri8 issue #443"
+  		ri8-fn: func[
+  			/local
+  				ri8-b
+  				ri8-i
+  				ri8-j
+  		][
+  			ri8-b: copy []
+  			foreach [ri8-i ri8-j] [1 2 3 4] [append ri8-b ri8-i * ri8-j]
+  			ri8-b
+  		]
+  		ri8-i: 100
+  		ri8-j: 200
+  	--assert [2 12] = ri8-fn
+  	--assert 100 = ri8-i
+  	--assert 200 = ri8-j
 
 ===end-group===
 
