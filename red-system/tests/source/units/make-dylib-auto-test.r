@@ -34,19 +34,41 @@ Red/System [
 libs: {
 
 #import [
-  "***test-dll1***" cdecl [
-    dll1-add-one: "add-one" [
-      i       [integer!]
-      return: [integer!]
+	"***test-dll1***" cdecl [
+    	dll1-add-one: "add-one" [
+        	i       		[integer!]
+        	return: 		[integer!]
+        ]
     ]
-  ]
+    "***test-dll2***" cdecl [
+  	    dll2-negate: "neg" [
+  		    i				[integer!]
+  		    return:			[integer!]
+  	    ]
+  	    dll2-negatef: "negf" [
+  		    f				[float!]
+  		    return:			[float!]
+  	    ]
+  	    dll2-negatef32: "negf32" [
+  			f32				[float32!]
+  			return:	   		[float32!]
+  		]
+  		dll2-true-false: "true-false" [
+  			l				[logic!]
+  			return:			[logic!]
+  		]
+  		dll2-odd-or-even: "odd-or-even" [
+  			s				[c-string!]
+  			return:			[c-string!]
+  		]
+    ]	
 ]
 
 }
 
 ;; the tests
 tests: {
-===start-group=== "Simple function calls"
+===start-group=== "One function exported"
 
 	--test-- "dllf1"
 	--assert 2 = dll1-add-one 1
@@ -57,6 +79,25 @@ tests: {
 	--test-- "dllf3"
 	--assert -2147483648 = dll1-add-one 2147483647
 
+===end-group===
+
+===start-group=== "Multi function export"
+
+	--test-- "mfe1"
+	--assert -1 = dll2-negate 1
+	
+	--test-- "mfe2"
+	--assert -1.0 = dll2-negatef 1.0
+	
+	--test-- "mfe3"
+	--assert (as float32! -1.0) = dll2-negatef32 (as float32! 1.0)
+	
+	--test-- "mfe4"
+	--assert false = dll2-true-false true
+	
+	--test-- "mfe5"
+	--assert "odd" = dll2-odd-or-even "Hello"
+	
 ===end-group===
 }
 
@@ -82,6 +123,8 @@ write file-out test-script-header
 if dll-target [
 	dll1-name: --compile-dll %source/units/test-dll1.reds dll-target
 	replace libs "***test-dll1***" dll1-name
+	dll2-name: --compile-dll %source/units/test-dll2.reds dll-target
+	replace libs "***test-dll2***" dll2-name
 	write/append file-out libs
 	write/append file-out tests	
 ]
