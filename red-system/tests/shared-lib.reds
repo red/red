@@ -11,27 +11,60 @@ Red/System [
 	}
 ]
 
-;-- The following callbacks declarations are Windows-specific for now.
-;-- They are all optional and do not need to be added to export block.
+;-- The following callbacks are all optional and do not need to be added to export block.
+;-- If you use them, pay attention to platform-specific function prototypes
 
-;-- Raised when the DLL is loaded ('load/library from REBOL)
-on-load: func [handle [integer!]][
-	print-line "on-load executed"
-]
+#switch OS [
+	Windows [
+		;-- Raised when the DLL is loaded ('load/library from REBOL)
+		on-load: func [handle [integer!]][
+			print-line "on-load executed"
+		]
 
-;-- Raised when the DLL is unloaded ('free from REBOL)
-on-unload: func [handle [integer!]][
-	print-line "on-unload executed"
-]
+		;-- Raised when the DLL is unloaded ('free from REBOL)
+		on-unload: func [handle [integer!]][
+			print-line "on-unload executed"
+		]
 
-;-- Raised when a new thread is launched
-on-new-thread: func [handle [integer!]][
-	print-line "on-new-thread executed"
-]
+		;-- Raised when a new thread is launched
+		on-new-thread: func [handle [integer!]][
+			print-line "on-new-thread executed"
+		]
 
-;-- Raised when a thread is exiting
-on-exit-thread: func [handle [integer!]][
-	print-line "on-exit-thread executed"
+		;-- Raised when a thread is exiting
+		on-exit-thread: func [handle [integer!]][
+			print-line "on-exit-thread executed"
+		]
+	]
+	MacOSX [
+		program-vars!: alias struct! [
+			mh				[byte-ptr!]
+			NXArgcPtr		[int-ptr!]
+			NXArgcPtr		[struct! [p [struct! [s [c-string!]]]]]
+			environPtr		[struct! [p [struct! [s [c-string!]]]]]
+			__prognamePtr	[struct! [s [c-string!]]]
+		]
+		
+		;-- Raised when the DLL is loaded ('load/library from REBOL)
+		on-load: func [
+			[cdecl]
+			argc	[integer!]
+			argv	[struct! [s [c-string!]]]
+			envp	[struct! [s [c-string!]]]
+			apple	[struct! [s [c-string!]]]			;-- ??
+			pvars	[program-vars!]
+		][
+			print-line "on-load executed"
+		]
+
+		;-- Raised when the DLL is unloaded ('free from REBOL)
+		on-unload: func [[cdecl]][
+			print-line "on-unload executed"
+		]
+	]
+	#default [											;-- Linux
+	
+	]
 ]
 
 ;-- Global variables can be exported too
