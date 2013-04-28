@@ -115,8 +115,9 @@ rsc: context [
 		]
 		
 		;; Process -dlib/--dynamic-lib (if any).
-		if type [
+		if type = 'dll [
 			opts/type: type
+			if opts/OS <> 'Windows [opts/PIC?: yes]
 		]
 
 		;; Process input sources.
