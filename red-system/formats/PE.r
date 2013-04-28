@@ -568,8 +568,8 @@ context [
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
 		
-		flags: to integer! defs/dll-flags/dynamic-base
-						or defs/dll-flags/nx-compat
+		flags: to integer! defs/dll-flags/nx-compat
+		if job/PIC? [flags: flags or defs/dll-flags/dynamic-base]
 		
 		ep: either job/type = 'dll [
 			ep-fun: '***-dll-entry-point
