@@ -280,13 +280,13 @@ context [
 	  uthread		-			 -	 -   -	 -   - 		  -		   -	[]
 	]
 	
-	imports-refs:		make block! 10		;-- [ptr [refs] ...]
-	dylink?:			no					;-- yes => dynamic library linking required
+	imports-refs:		make block! 10					;-- [ptr [refs] ...]
+	dylink?:			no								;-- yes => dynamic library linking required
 	segment-sz:			length? form-struct segment-command
 	section-sz:			length? form-struct section-header
 	load-cmds-nb:		0
 	load-cmds-sz:		0
-	stub-size:			5					;-- imported functions slot size
+	stub-size:			5								;-- imported functions slot size
 	segments:			none
 
 	;-- Mach-O structure builders --
@@ -307,9 +307,9 @@ context [
 	get-ceiling: func [type [word!]][
 		switch/default type [
 			page [defs/page-size]
-			word [4]						;-- 4 => 32-bit, 8 => 64-bit @@
+			word [4]									;-- 4 => 32-bit, 8 => 64-bit @@
 			byte [1]
-		][4]								;-- 4 => 32-bit, 8 => 64-bit @@
+		][4]											;-- 4 => 32-bit, 8 => 64-bit @@
 	]
 	
 	sections?: func [list [block!]][(length? list) / 9]
@@ -370,7 +370,7 @@ context [
 	process-debug-info: func [job [object!]][
 		linker/build-debug-lines job get-section-addr '__text pointer
 	]
-		
+	
 	prepare-headers: func [
 		job [object!]
 		/local seg sec addr fpos get-value size sz header-sz hd-sz
@@ -469,7 +469,7 @@ context [
 		sym-tbl:    make binary! 1024
 		dy-sym-tbl: make binary! 1024
 		str-tbl: 	make binary! 1024
-		append str-tbl #{00000000}					;-- start with 4 null bytes @@
+		append str-tbl #{00000000}						;-- start with 4 null bytes @@
 		
 		insert find segments 'uthread [
 			segment			__IMPORT	 ?	 ? 	 ?	 ?	[r w x]	  -   	   page [
@@ -483,7 +483,7 @@ context [
 		]
 		segments/dylinker: pad4 to-c-string "/usr/lib/dyld"
 		
-		lib: 1										;-- one-based index
+		lib: 1											;-- one-based index
 		cnt: 0
 		foreach [name list] job/sections/import/3 [
 			name: to-c-string name
@@ -495,7 +495,7 @@ context [
 				entry: make-struct nlist none
 				entry/n-strx:  length? str-tbl
 				entry/n-type:  to integer! defs/sym-type/n-undf or defs/sym-type/n-ext
-				entry/n-sect:  0					;-- NO_SECT
+				entry/n-sect:  0						;-- NO_SECT
 				entry/n-desc:  (to integer! defs/sym-desc/undef-lazy) or shift/left lib 8
 				entry/n-value: 0
 				append sym-tbl form-struct entry
@@ -551,7 +551,7 @@ context [
 			pointer/value: get-section-addr '__mod_term_func
 			change skip reloc 8  form-struct pointer	;-- relocation address
 			change skip reloc 12 defs/reloc-bits		;-- relocation flags
-		]	
+		]
 	]
 	
 	build-exports: func [
@@ -690,7 +690,7 @@ context [
 		dl/size:		(get-struct-size 'dylinker) + length? spec/2
 		dl/offset:		12
 		dl: form-struct dl
-		append dl spec/2	
+		append dl spec/2
 		dl
 	]
 	
@@ -698,7 +698,7 @@ context [
 		ut: make-struct unix-thread-cmd none
 		ut/cmd:			defs/load-type/unixthread
 		ut/size:		get-struct-size 'uthread
-		ut/flavor:		1							;-- x86_THREAD_STATE32
+		ut/flavor:		1								;-- x86_THREAD_STATE32
 		ut/count:		16
 		ut/eip:			get-section-addr '__text
 		form-struct ut
@@ -737,12 +737,12 @@ context [
 		change at sc 9 to-c-string spec/2
 		sc
 	]
-		
+	
 	build-mach-header: func [job [object!] /local mh][
 		mh: make-struct mach-header none
 		mh/magic:			to integer! #{FEEDFACE}
-		mh/cpu-type:		7					;-- CPU_TYPE_I386
-		mh/cpu-sub-type:	3					;-- CPU_SUBTYPE_I386_ALL
+		mh/cpu-type:		7							;-- CPU_TYPE_I386
+		mh/cpu-sub-type:	3							;-- CPU_SUBTYPE_I386_ALL
 		mh/file-type:		switch job/type [
 								exe [defs/file-type/execute]
 								dll [defs/file-type/dylib]
