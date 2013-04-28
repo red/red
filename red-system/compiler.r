@@ -2789,10 +2789,7 @@ system-dialect: make-profilable context [
 		]
 		
 		add-dll-callbacks: has [list code exp][			;-- add missing callbacks
-			list: copy [on-load on-unload]
-			if job/OS = 'Windows [
-				append list [on-new-thread on-exit-thread]
-			]
+			list: copy [on-load on-unload on-new-thread on-exit-thread]
 			code: make block! 1
 			exp:  make block! 1
 			
@@ -2835,7 +2832,7 @@ system-dialect: make-profilable context [
 				if empty? exports [
 					throw-error "missing #export directive for library production"
 				]
-				add-dll-callbacks
+				if job/OS = 'Windows [add-dll-callbacks] ;-- make sure they are defined
 			]
 			comp-natives
 			emitter/target/on-finalize
