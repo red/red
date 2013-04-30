@@ -123,6 +123,21 @@ red: context [
 		]
 	]
 	
+	process-calls: func [code [block!] /local rule pos mark][
+		parse code rule: [
+			some [
+				#call pos: (
+					mark: tail output
+					process-call-directive pos/1
+					change/part back pos mark 2
+					clear mark
+				)
+				| into rule
+				| skip
+			]
+		]
+	]
+	
 	convert-to-block: func [mark [block!]][
 		change/part/only mark copy/deep mark tail mark	;-- put code between [...]
 		clear next mark									;-- remove code at "upper" level
@@ -1283,6 +1298,8 @@ red: context [
 		check-spec spec
 		add-function/type name spec 'routine!
 		
+		process-calls body								;-- process #call directives
+		
 		set [spec-blk body-blk] redirect-to-literals [
 			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
 		]
@@ -1853,8 +1870,47 @@ red: context [
 		]
 		false											;-- not an infix expression
 	]
+	
+	process-call-directive: func [body [block!] /local name spec][
+		name: to word! clean-lf-flag body/1
+		if any [
+			not spec: select functions name
+			not spec/1 = 'function!
+		][
+			throw-error ["invalid #call function name:" name]
+		]
+		emit-open-frame name
+		
+		types: spec/3
+		body: next body
+		
+		loop spec/2 [
+			types: find/tail types word!
+			unless block? types/1 [
+				throw-error ["type undefined for" types/1 "in function" name]
+			]
+			emit to path! reduce [to word! form get types/1/1 'push]
+			insert-lf -1
+			case [
+				none? body/1 [
+					throw-error ["missing argument(s) in #call body"]
+				]
+				body/1 = 'as [
+					emit copy/part body 3
+					body: skip body 3
+				]
+				'else [
+					emit body/1
+					body: next body
+				]
+			]
+		]
+		emit decorate-func name
+		insert-lf -1
+		emit-close-frame
+	]
 
-	comp-directive: has [file saved version][
+	comp-directive: has [file saved version mark][
 		switch pc/1 [
 			#include [
 				unless file? file: pc/2 [
@@ -1892,7 +1948,10 @@ red: context [
 					throw-error "#system requires a block argument"
 				]
 				process-include-paths pc/2
+				process-calls pc/2
+				mark: tail output
 				emit pc/2
+				new-line mark on
 				pc: skip pc 2
 				true
 			]
