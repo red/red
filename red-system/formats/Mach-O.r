@@ -815,8 +815,12 @@ context [
 			emit-page-aligned out job/sections/jmptbl/2
 		]
 		either job/type = 'dll [
-			append out rejoin job/sections/symbols/2
-			emit-page-aligned out job/sections/reloc-info/2
+			either find job/sections 'initfuncs [
+				append out rejoin job/sections/symbols/2
+				emit-page-aligned out job/sections/reloc-info/2
+			][
+				emit-page-aligned out rejoin job/sections/symbols/2
+			]
 		][
 			emit-page-aligned out rejoin job/sections/symbols/2
 		]
