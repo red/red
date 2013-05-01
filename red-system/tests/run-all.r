@@ -95,7 +95,7 @@ start-time: now/precise
   --run-test-file-quiet %source/units/auto-tests/maths-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds
-  --run-test-file-quiet  %source/units/auto-tests/dylib-auto-test.reds ;; not ARM
+  --run-test-file-quiet %source/units/auto-tests/dylib-auto-test.reds
 
 ===end-group===
 

@@ -161,9 +161,9 @@ qt: make object! [
     either lib [
       switch/default target [
         "Windows"	[exe: join exe [".dll"]]
-        "OSX"   	[exe: join %lib [exe ".dylib"]]
+        "Darwin"   	[exe: join exe [".dylib"]]
       ][
-        exe: join %lib [exe ".so"]
+      	  exe: join exe [".so"]
       ]     
     ][     
       if windows-os? [
