@@ -44,7 +44,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	on-init: does [
+	on-init: has [offset][
 		if PIC? [
 			offset: emit-get-pc/ebx
 			emit #{83EB}							;-- SUB ebx, <offset>	; adjust to beginning of CODE segment
