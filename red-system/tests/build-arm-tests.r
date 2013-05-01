@@ -29,17 +29,16 @@ foreach file read arm-dir [delete join arm-dir file]
 dlls: copy []
 src: read %source/units/make-dylib-auto-test.r
 parse/all src [any [a-dll-file (append dlls to file! file) | skip] end]
-probe dlls
+save-dir: what-dir
+change-dir %../
 foreach dll dlls [
-	change-dir %../
 	insert next dll "tests/"
 	do/args %rsc.r join "-dlib -t Linux-ARM " dll
 	lib: copy find/last/tail dll "/"
-	print lib 
-	insert lib"lib"
 	lib: replace lib ".reds" ".so"
 	write/binary join %tests/runnable/arm-tests/ lib read/binary join %builds/ lib	
 ]
+change-dir :save-dir
 		
 
 ;; get the list of test source files
@@ -48,6 +47,7 @@ all-tests: read %run-all.r
 parse/all all-tests [any [a-test-file (append test-files to file! file) | skip] end]
 
 ;; compile the tests and move the executables to runnable/arm-tests
+save-dir: what-dir
 change-dir %../
 foreach test-file test-files [
   insert next test-file "tests/"
@@ -56,7 +56,7 @@ foreach test-file test-files [
   exe: replace exe ".reds" ""
   write/binary join %tests/runnable/arm-tests/ exe read/binary join %builds/ exe
 ]
-change-dir %tests/
+change-dir :save-dir
 
 ;; copy the bash script and mark it as executable
 write/binary %runnable/arm-tests/run-all.sh read/binary %run-all.sh

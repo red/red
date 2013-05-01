@@ -96,7 +96,7 @@ tests: {
 	--assert false = dll2-true-false true
 	
 	--test-- "mfe5"
-	--assert "odd" = dll2-odd-or-even "Hello"
+	;--assert "odd" = dll2-odd-or-even "Hello"
 	
 ===end-group===
 }
@@ -108,6 +108,7 @@ test-script-footer: {
 
 ;; dll target
 dll-target: switch/default fourth system/version [
+	2 ["Darwin"]
 	3 ["Windows"]
 ][
 	none
@@ -121,10 +122,15 @@ write file-out test-script-header
 
 ;; update the #include statements, write them and the tests
 if dll-target [
-	dll1-name: --compile-dll %source/units/test-dll1.reds dll-target
-	replace libs "***test-dll1***" dll1-name
-	dll2-name: --compile-dll %source/units/test-dll2.reds dll-target
-	replace libs "***test-dll2***" dll2-name
+	dll1-name: --compile-dll %source/units/libtest-dll1.reds dll-target
+	dll2-name: --compile-dll %source/units/libtest-dll2.reds dll-target
+	either dll-target = "Windows" [
+		replace libs "***test-dll1***" dll1-name
+		replace libs "***test-dll2***" dll2-name
+	][
+		replace libs "***test-dll1***" qt/runnable-dir/:dll1-name
+		replace libs "***test-dll2***" qt/runnable-dir/:dll2-name
+	]
 	write/append file-out libs
 	write/append file-out tests	
 ]
