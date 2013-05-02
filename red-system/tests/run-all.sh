@@ -4,7 +4,10 @@ echo "Red/System test log\n" > quick-test.log
 failures=0;
 for exe in *;
  	do
- 		if [ "$exe" != "run-all.sh" ] && [ "$exe" != "quick-test.log" ] 
+ 		filename=$(basename "$exe")
+		extension="${filename##*.}"
+		filename="${filename%.*}"
+ 		if [ "$extension" == "$filename" ]
  		then
  			chmod +x $exe;
  			printf "$exe is running \r";
