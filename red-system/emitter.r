@@ -597,9 +597,10 @@ emitter: make-profilable context [
 		]
 	]
 	
-	start-prolog: does [								;-- libc init prolog
-		append compiler/functions [						;-- create a fake function to
-			***_start [0 native cdecl [] callback]		;-- let the linker write the entry point
+	start-prolog: has [args][							;-- libc init prolog
+		args: pick [6 7] system-dialect/job/OS = 'Syllable
+		append compiler/functions compose/deep [		;-- create a fake function to
+			***_start [(args) native cdecl [] callback]	;-- let the linker write the entry point
 		]
 		append symbols [
 			***_start [native 0 []]
