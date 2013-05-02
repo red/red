@@ -10,29 +10,30 @@ Quick-Test is a small testing framework for Red. It is called quick-test as it w
 
 As a result, quick-test is very fussy about where files are and it is not particularly fault tolerant. These were traded-off for an earlier implementation.
 
-There are actually two aspects to Quick-Test. The first is quick-test.reds, a handful of Red/System functions which can be included in a Red/System program to write unit tests. This can easily be used on its own to test Red/System code and is not at all fussy about where files reside.
+There are actually two aspects to Quick-Test. The first is quick-test.red and quick-test.reds, a handful of Red and Red/System functions respectively which can be included in a Red or Red/System program to write unit tests. These can easily be used on their own to test Red and Red/System code and are not at all fussy about where files reside.
 
 A temporary addition has been made to this part of Quick-Test. It is quick-unit-test.r which is written in REBOL and used for unit testing the bootstrapping Red compiler.
 
 The second aspect is that Quick-Test is a full-test suite for Red and Red/System themselves and includes the files used to test Red and Red/System.
 
-There are many improvements that could be made to quick-test. It is expected that quick-test will be replaced at the time when Red/System is re-written so they probably won't get made.
+There are many improvements that could be made to quick-test. It is expected that quick-test will be replaced at the time when Red and Red/System is re-written so they probably won't get made.
 
 ===Types of Tests
-Quick-Test supports four types of tests - tests of Red/System code, tests of Red/System programs, tests of the Red/System compiler behaviour and tests of the Red compiler behaviour. Temporarily, Quick-Test also supports REBOL unit tests for the Red compiler.
+Quick-Test supports four types of tests - tests of Red or Red/System code, tests of Red and Red/System programs, tests of the Red/System compiler behaviour and tests of the Red compiler behaviour. Temporarily, Quick-Test also supports REBOL unit tests for the Red compiler.
 
-The first type of tests are written in Red/System, the other four in REBOL.
+The first type of tests are written in Red or Red/System, the other four in REBOL.
 
 ===Quick-Test Components
 Quick-Test consists of the following:
 
   quick-test.r - a REBOL script that supports testing compiler and executable output of both Red and Red/System programs.
   quick-test.reds - a set of Red/System functions that supports writing tests in Red/System.
+  quick-test.red - a set of Red functions that supports writing tests in Red.
   quick-unit-test.r - a set of REBOL functions that supports writing tests in REBOL.
   
 (The above are stored in the Red/quick-test/ directory.)
   
-  run-all.r - a script(s) which runs a set of Red/System tests.
+  run-all.r - a script(s) which runs a set of Red and/or Red/System tests.
             - run-all.r in Red/red-system/tests/ runs the Red/System test suite
             - run-all.r in Red/red/tests/ runs the Red test suite
             - run-all.r in Red/ runs all the tests
@@ -40,7 +41,7 @@ Quick-Test consists of the following:
              - stored in Red/quick-test/
   
 ===Directory Structure
-Quick-Test uses the following directory structure:
+Quick-Test uses the following Red directory structure:
 
   Red/
     run-all.r                       ;; runs combined Red & Red/System tests
@@ -278,9 +279,9 @@ The start of an individual test. The number of tests in a run and file are count
     
 Compiles a Red/System source file. The output from the compiler is captured in qt/comp-ouput. If the compile is successful, qt/exe will contain the path to the executable file. It will be 'none if the compile failed.
 
-  --compile-dll <file>
+  --compile-dll <file> <target>
     <file> : Red/System source file - file!
-
+    <target> : The Red/System compiler target ID 
 Compiles a Red/System source file as a dynamic link library. The output from the compiler is captured in qt/comp-output. The dll is stored in the tests/runnable directory. Use the qt/compile-ok? function to check if the compilation was successful.
   
  --compile-red <file>
