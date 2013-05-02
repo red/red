@@ -701,12 +701,16 @@ make-profilable make target-class [
 			emit-load-local/float lcode offset
 		][											;-- global variable case
 			pools/collect/spec/with 0 name #{e59f3000}	;-- LDR r3, [pc, #offset]
+			if PIC? [emit-i32 #{e0833009}]				;-- ADD r3, sb
 			emit-i32 gcode
 		]
 	]
 
 	emit-variable: func [
-		name [word! object!] gcode [binary! block! none!] lcode [binary! block!]
+		name  [word! object!]
+		gcode [binary! block! none!]
+		pcode [binary! block! none!]
+		lcode [binary! block!]
 		/alt										;-- use alternative register (r1)
 		/local offset opcode Rn
 	][
@@ -718,22 +722,16 @@ make-profilable make target-class [
 			opcode: #{e59f0000}
 			
 			either alt [
-				opcode: opcode or #{00001000}	;-- use r1 instead of r0
+				opcode: opcode or #{00001000}		;-- use r1 instead of r0
 			][
 				if all [gcode not zero? Rn: gcode/3 and #"^(F0)"][
-					opcode: copy load-rel
+					opcode: copy opcode
 					opcode/3: to char! Rn			;-- use same Rn
 				]
 			]
 			pools/collect/spec/with 0 name opcode	;-- LDR r0|r1|Rn, [pc, #offset]
-			if PIC? [
-				Rn: opcode/3 and #"^(F0)"
-				opcode: copy #{e0800009}
-				opcode/2: #"^(80)" or to char! shift Rn 4
-				opcode/3: to char! Rn
-				emit-i32 opcode					;-- ADD r0|r1|Rn, sb, r0|r1|Rn
-			]
-			if gcode [emit-i32 gcode]
+			opcode: get pick [pcode gcode] PIC?
+			if opcode [emit-i32 opcode]
 		]
 	]
 	
@@ -747,6 +745,7 @@ make-profilable make target-class [
 			emit-load-local l-high offset + 4
 		][
 			pools/collect/spec/with 0 name #{e59f2000}	;-- LDR r2, [pc, #offset]
+			if PIC? [emit-i32 #{e0822009}]				;-- ADD r2, sb
 			emit-i32 gcode
 		]
 	]
@@ -754,20 +753,40 @@ make-profilable make target-class [
 	emit-variable-poly: func [						;-- polymorphic variable access generation
 		name [word! object!]
 		g-code [binary!]							;-- opcodes for global variables
+		p-code [binary! none!]						;-- opcodes for global variables
 		l-code [binary! block!]						;-- opcodes for local variables
 		/alt
 	][
 		with-width-of name [
 			if width = 1 [
 				g-code: g-code or byte-flag
+				if p-code [p-code: p-code or byte-flag]
 				l-code: l-code or byte-flag
 			]
 			either alt [
-				emit-variable/alt name g-code l-code
+				emit-variable/alt name g-code p-code l-code
 			][
-				emit-variable name g-code l-code
+				emit-variable name g-code p-code l-code
+			]
+			if all [
+				PIC?
+				none? p-code
+				none? select emitter/stack name
+			][										;-- no specific PIC opcode case (LDM/STM)
+				emit-i32 pick [
+					#{e0811009}						;-- ADD r1, sb
+					#{e0800009}						;-- ADD r0, sb
+				] to logic! alt
+				emit-i32 g-code
 			]
 		]
+	]
+	
+	emit-load-symbol: func [name [word!]][
+		emit-variable name
+			#{e5900000}								;-- LDR r0, [r0]		; global
+			#{e7900009}								;-- LDR r0, [r0, sb]	; PIC
+			#{e59b0000}								;-- LDR r0, [fp, #[-]n]	; local
 	]
 	
 	emit-move-alt: does [emit-i32 #{e1a01000}]		;-- MOV r1, r0
@@ -992,6 +1011,7 @@ make-profilable make target-class [
 				][
 					spec: emitter/store-value none value [float!]
 					pools/collect/spec/with 0 spec/2 #{e59f3000}	;-- LDR r3, [pc, #offset]
+					if PIC? [emit-i32 #{e0833009}]					;-- ADD r3, sb
 					emit-i32 #{e8930003} 							;-- LDM r3, {r0,r1}
 				]
 			]
@@ -1000,6 +1020,7 @@ make-profilable make target-class [
 				either find [float! float64!] type/1 [
 					emit-variable-poly value
 						#{e8900003} 				;-- LDM r0, {r0,r1}		; global
+						none
 						#{e59b0000}					;-- LDR r0, [fp, #[-]n]	; local, low bits @@ test!!
 					
 					if offset: select emitter/stack value [
@@ -1009,10 +1030,12 @@ make-profilable make target-class [
 					either alt [
 						emit-variable-poly/alt value
 							#{e5911000}				;-- LDR r1, [r1]		; global
+							#{e7911009}				;-- LDR r1, [r1, sb]	; PIC
 							#{e59b1000}				;-- LDR r1, [fp, #[-]n]	; local
 					][
 						emit-variable-poly value
 							#{e5900000} 			;-- LDR r0, [r0]		; global
+							#{e7900009}				;-- LDR r0, [r0, sb]	; PIC
 							#{e59b0000}				;-- LDR r0, [fp, #[-]n]	; local
 					]
 				]
@@ -1069,13 +1092,15 @@ make-profilable make target-class [
 		]
 		store-word: [
 			emit-variable/alt name
-				#{e5010000}							;-- STR r0, [r1]
-				#{e58b0000}							;-- STR r0, [fp, #[-]n]
+				#{e5010000}							;-- STR r0, [r1]			; global
+				#{e7810009}							;-- STR r0, [r1, sb]		; PIC
+				#{e58b0000}							;-- STR r0, [fp, #[-]n]		; local
 		]
 		store-byte: [
 			emit-variable/alt name
-				#{e5410000}							;-- STRB r0, [r1]
-				#{e5cb0000}							;-- STRB r0, [fp, #[-]n]
+				#{e5410000}							;-- STRB r0, [r1]			; global
+				#{e7c10009}							;-- STRB r0, [r1, sb]		; PIC
+				#{e5cb0000}							;-- STRB r0, [fp, #[-]n]	; local
 		]
 
 		switch type?/word value [
@@ -1115,9 +1140,7 @@ make-profilable make target-class [
 	]
 	
 	emit-init-path: func [name [word!]][
-		emit-variable name
-			#{e5900000}								;-- LDR r0, [r0]		; global
-			#{e59b0000}								;-- LDR r0, [fp, #[-]n]	; local
+		emit-load-symbol name
 	]
 
 	emit-access-path: func [
@@ -1147,16 +1170,13 @@ make-profilable make target-class [
 		unless compiler/local-variable? idx [idx: compiler/resolve-ns idx]
 		emit-variable idx
 			#{e5933000}								;-- LDR r3, [r3]		; global
+			#{e7933009}								;-- LDR r3, [r3, sb]	; PIC
 			#{e59b3000}								;-- LDR r3, [fp, #[-]n]	; local
 		emit-i32 #{e2433001}						;-- SUB r3, r3, #1		; one-based index
 	]
 
 	emit-c-string-path: func [path [path! set-path!] parent [block! none!] /local opcodes idx][
-		unless parent [
-			emit-variable path/1
-				#{e5900000}							;-- LDR r0, [r0]		; global
-				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
-		]
+		unless parent [emit-init-path path/1]
 		opcodes: pick [[							;-- store path opcodes --
 			#{e5402000}								;-- STRB r2, [r0]		; first
 			#{e7c02003}								;-- STRB r2, [r0, r3] 	; nth | variable index
@@ -1196,10 +1216,7 @@ make-profilable make target-class [
 		type: either parent [
 			compiler/resolve-type/with path/1 parent
 		][
-			emit-variable path/1
-				#{e5900000}							;-- LDR r0, [r0]		; global
-				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
-
+			emit-init-path path/1
 			compiler/resolve-type path/1
 		]
 		set-width/type type/2/1						;-- adjust operations width to pointed value size
@@ -1386,6 +1403,7 @@ make-profilable make target-class [
 				][
 					spec: emitter/store-value none value [float!]
 					pools/collect/spec/with 0 spec/2 #{e59f2000}	;-- LDR r2, [pc, #offset]
+					if PIC? [emit-i32 #{e0822009}]	;-- ADD r2, sb
 					emit-i32 #{e8920003} 			;-- LDM r2, {r0,r1}
 					emit-i32 #{e92d0003}			;-- PUSH {r0,r1}
 				]
@@ -1398,10 +1416,8 @@ make-profilable make target-class [
 				][
 					emit-load value
 					do push-last64
-				][			
-					emit-variable value
-						#{e5900000} 				;-- LDR r0, [r0]		; global
-						#{e59b0000}					;-- LDR r0, [fp, #[-]n]	; local
+				][
+					emit-load-symbol value
 					do push-last
 				]
 			]
@@ -1438,7 +1454,8 @@ make-profilable make target-class [
 		switch b [
 			ref [
 				emit-variable args/2
-					#{e5d03000}						;-- LDRB r3, [r0]		; global
+					#{e5d03000}						;-- LDRB r3, [r0]			; global
+					#{e7d03009}						;-- LDRB r3, [r0, sb]		; PIC
 					#{e5db3000}						;-- LDRB r3, [fp, #[-]n]	; local
 			]
 			reg [emit-i32 #{e1a03001}]				;-- MOV r3, r1
@@ -1770,6 +1787,7 @@ make-profilable make target-class [
 				][
 					spec: emitter/store-value none args/1 compiler/get-type args/1
 					pools/collect/spec/with 0 spec/2 #{e59f3000}	;-- LDR r3, [pc, #offset]
+					if PIC? [emit-i32 #{e0833009}]	;-- ADD r3, sb
 					emit-i32 #{ed930b00}			;-- FLDD d0, [r3]
 				]
 			]
@@ -1818,6 +1836,7 @@ make-profilable make target-class [
 				][
 					spec: emitter/store-value none args/2 compiler/get-type args/2
 					pools/collect/spec/with 0 spec/2 #{e59f3000}	;-- LDR r3, [pc, #offset]
+					if PIC? [emit-i32 #{e0833009}]	;-- ADD r3, sb
 					emit-i32 #{ed931b00}			;-- FLDD d1, [r3]
 				]
 			]
@@ -1968,9 +1987,7 @@ make-profilable make target-class [
 			emit-push total							;-- push arguments count
 		]
 		either routine [							;-- test for function! pointer case
-			emit-variable pick tail fspec -2
-				#{e5900000}							;-- LDR r0, [r0]		; global
-				#{e59b0000}							;-- LDR r0, [fp, #[-]n]	; local
+			emit-load-symbol pick tail fspec -2
 			emit-i32 #{e1200030}					;-- BLX r0
 		][
 			emit-reloc-addr spec/3
