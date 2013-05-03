@@ -231,7 +231,12 @@ posix-startup-ctx: context [
 
 #switch type [
 	dll [
-		***-dll-entry-point: does [posix-startup-ctx/init]
+		***-dll-entry-point: func [
+			[cdecl]
+		][
+			posix-startup-ctx/init
+			on-load
+		]
 	]
 	exe [
 		posix-startup-ctx/init

@@ -37,17 +37,8 @@ Red/System [
 		]
 	]
 	MacOSX [
-		program-vars!: alias struct! [
-			mh				[byte-ptr!]
-			NXArgcPtr		[int-ptr!]
-			NXArgcPtr		[struct! [p [struct! [s [c-string!]]]]]
-			environPtr		[struct! [p [struct! [s [c-string!]]]]]
-			__prognamePtr	[struct! [s [c-string!]]]
-		]
-		
 		;-- Raised when the DLL is loaded ('load/library from REBOL)
 		on-load: func [
-			[cdecl]
 			argc	[integer!]
 			argv	[struct! [s [c-string!]]]
 			envp	[struct! [s [c-string!]]]
@@ -63,7 +54,15 @@ Red/System [
 		]
 	]
 	#default [											;-- Linux
-	
+		;-- Raised when the DLL is loaded ('load/library from REBOL)
+		on-load: func [][
+			print-line "on-load executed"
+		]
+
+		;-- Raised when the DLL is unloaded ('free from REBOL)
+		on-unload: func [][
+			print-line "on-unload executed"
+		]
 	]
 ]
 

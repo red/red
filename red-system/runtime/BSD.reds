@@ -221,7 +221,25 @@ bsd-startup-ctx: context [
 
 #switch type [
 	dll [
-		***-dll-entry-point: does [bsd-startup-ctx/init]
+		program-vars!: alias struct! [
+			mh				[byte-ptr!]
+			NXArgcPtr		[int-ptr!]
+			NXArgcPtr		[struct! [p [struct! [s [c-string!]]]]]
+			environPtr		[struct! [p [struct! [s [c-string!]]]]]
+			__prognamePtr	[struct! [s [c-string!]]]
+		]
+		
+		***-dll-entry-point: func [
+			[cdecl]
+			argc	[integer!]
+			argv	[struct! [s [c-string!]]]
+			envp	[struct! [s [c-string!]]]
+			apple	[struct! [s [c-string!]]]
+			pvars	[program-vars!]
+		][
+			bsd-startup-ctx/init
+			on-load argc argv envp apple pvars
+		]
 	]
 	exe [
 		bsd-startup-ctx/init
