@@ -2788,15 +2788,40 @@ system-dialect: make-profilable context [
 			pc: next pc
 		]
 		
+		get-proto: func [name [word!]][
+			switch/default job/OS [
+				Windows [
+					[handle [integer!]]
+				]
+				MacOSX [
+					pick [
+						[
+							argc	[integer!]
+							argv	[struct! [s [c-string!]]]
+							envp	[struct! [s [c-string!]]]
+							apple	[struct! [s [c-string!]]]
+							pvars	[program-vars!]
+						]
+						[[cdecl]]
+					] name = 'on-load
+				]
+			][											;-- Linux
+				[[cdecl]]
+			]
+		]
+		
 		add-dll-callbacks: has [list code exp][			;-- add missing callbacks
-			list: copy [on-load on-unload on-new-thread on-exit-thread]
+			list: copy [on-load on-unload]
+			if job/OS = 'Windows [
+				append list [on-new-thread on-exit-thread]
+			]
 			code: make block! 1
 			exp:  make block! 1
 			
 			foreach fun list [
 				unless find/skip natives fun 6 [
 					repend code [
-						to set-word! fun 'func [handle [integer!]][]	;-- stdcall
+						to set-word! fun 'func get-proto fun []	;-- stdcall
 					]
 				]
 			]
@@ -2832,7 +2857,7 @@ system-dialect: make-profilable context [
 				if empty? exports [
 					throw-error "missing #export directive for library production"
 				]
-				if job/OS = 'Windows [add-dll-callbacks] ;-- make sure they are defined
+				add-dll-callbacks 						;-- make sure they are defined
 			]
 			comp-natives
 			emitter/target/on-finalize
