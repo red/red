@@ -572,7 +572,6 @@ context [
 		if job/PIC? [flags: flags or defs/dll-flags/dynamic-base]
 		
 		ep: either job/type = 'dll [
-			ep-fun: '***-dll-entry-point
 			either entry: select job/symbols '***-dll-entry-point [
 				code-base + entry/2 - 1					;-- dll: entry point provided
 			][0]										;-- dll: no entry-point
