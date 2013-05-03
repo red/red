@@ -9,7 +9,7 @@ REBOL [
     See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
   }
   Usage:   {
-    from command line : pathtorebol/rebol -s compile-curses-example.r
+    from command line : pathtorebol/rebol -s compile-examples.r
   }
 ]
 
