@@ -534,7 +534,7 @@ context [
 			buffer: buffer/2/2
 			reloc:  job/sections/reloc-info/2
 			
-			spec: select job/symbols 'on-load			;-- on-load pointer storing
+			spec: select job/symbols '***-dll-entry-point			;-- on-load pointer storing
 			pointer/value: spec/2 - 1 + code
 			change buffer form-struct pointer
 			
@@ -570,7 +570,7 @@ context [
 			select defs/extensions job/type
 		
 		if all [
-			spec: select job/symbols 'on-load
+			spec: select job/symbols '***-dll-entry-point
 			spec/1 = 'native
 		][
 			append pick find segments '__DATA 9 [
