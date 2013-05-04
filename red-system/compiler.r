@@ -1342,10 +1342,9 @@ system-dialect: make-profilable context [
 				unless any [word? name path? name][
 					throw-error ["invalid exported symbol:" mold name]
 				]
+				if path? name [name: resolve-ns-path name]
 				unless any [
-					;all [ns: ns-find-with name globals name: ns]
 					find globals name
-					;func?: all [ns: ns-find-with name functions name: ns]
 					func?: find-functions name
 				][
 					throw-error ["undefined exported symbol:" mold name]
