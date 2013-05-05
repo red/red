@@ -222,7 +222,10 @@ context [
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset
 	] [
-		base-address: any [job/base-address defs/base-address]
+		base-address: case [
+			job/type = 'dll [0]
+			true			[any [job/base-address defs/base-address]]
+		]
 		dynamic-linker: any [job/dynamic-linker ""]
 
 		set [libraries imports] collect-import-names job
