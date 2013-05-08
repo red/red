@@ -34,6 +34,7 @@ context [
 		ev-current		1			;; the "current" version we're adhering to
 
 		et-exec			2			;; executable file
+		et-dyn			3			;; shared object file
 
 		em-386			3			;; intel 80386
 		em-arm			40			;; ARM
@@ -67,6 +68,7 @@ context [
 
 		stb-global		1			;; global symbol
 
+		stt-object		1			;; symbol is a data object
 		stt-func		2			;; symbol is a code object
 
 		stv-default		0			;; default symbol visibility
@@ -215,16 +217,20 @@ context [
 		job [object!]
 		/local
 			base-address dynamic-linker
-			libraries symbols natives
+			libraries imports exports natives
 			structure segments sections commands layout
 			data-size
 			get-address get-offset get-size get-meta get-data set-data
 			relro-offset
 	] [
-		base-address: any [job/base-address defs/base-address]
+		base-address: case [
+			job/type = 'dll [0]
+			true			[any [job/base-address defs/base-address]]
+		]
 		dynamic-linker: any [job/dynamic-linker ""]
 
-		set [libraries symbols] collect-import-names job
+		set [libraries imports] collect-import-names job
+		exports: collect-exports job
 		natives: collect-natives job
 
 		structure: copy default-structure
@@ -233,14 +239,17 @@ context [
 			remove-elements structure [".interp"]
 		]
 
-		if empty? symbols [
+		if empty? imports [
 			remove-elements structure [
 				".interp"
+			]
+		]
+
+		if all [empty? imports empty? exports] [
+			remove-elements structure [
 				".hash"
 				".dynstr"
 				".dynsym"
-				".rel.text"
-				".data.rel.ro"
 				".dynamic"
 			]
 		]
@@ -272,17 +281,17 @@ context [
 
 			"ehdr"			size elf-header
 			"phdr"			size [program-header	length? segments]
-			".hash"			size [machine-word		2 + 2 + length? symbols]
-			".dynsym"		size [elf-symbol		1 + length? symbols]
-			".rel.text"		size [elf-relocation	length? symbols]
+			".hash"			size [machine-word		2 + 2 + (length? imports) + ((length? exports) / 2)]
+			".dynsym"		size [elf-symbol		1 + (length? imports) + ((length? exports) / 2)]
+			".rel.text"		size [elf-relocation	length? imports]
 			".data"			size (data-size)
-			".data.rel.ro"	size [machine-word		length? symbols]
+			".data.rel.ro"	size [machine-word		length? imports]
 			".dynamic"		size [elf-dynamic		9 + length? libraries]
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [section-header	length? sections]
 
 			".interp"		data (to-c-string dynamic-linker)
-			".dynstr"		data (to-elf-strtab join libraries symbols)
+			".dynstr"		data (to-elf-strtab compose [(libraries) (imports) (extract exports 2)])
 			".text"			data (job/sections/code/2)
 			".stabstr"		data (to-elf-strtab join ["%_"] extract natives 2)
 			".shstrtab"		data (to-elf-strtab sections)
@@ -313,6 +322,7 @@ context [
 			build-ehdr
 				job/os
 				job/target
+				job/type
 				get-offset "phdr"
 				get-offset "shdr"
 				get-address ".text"
@@ -324,13 +334,21 @@ context [
 			[build-phdr map-each segment segments [layout/:segment]]
 
 		set-data ".hash"
-			[build-hash symbols]
+			[build-hash compose [(imports) (extract exports 2)]]
 
-		set-data ".dynsym"
-			[build-dynsym symbols get-data ".dynstr"]
+		set-data ".dynsym" [
+			build-dynsym
+				imports
+				exports
+				get-data ".dynstr"
+				get-address ".text"
+				section-index-of sections ".text"
+				get-address ".data"
+				section-index-of sections ".data"
+		]
 
 		set-data ".rel.text"
-			[build-reltext job/target symbols get-address ".data.rel.ro"]
+			[build-reltext job/target imports get-address ".data.rel.ro"]
 
 		set-data ".data" [
 			if job/debug? [
@@ -343,7 +361,7 @@ context [
 		]
 
 		set-data ".data.rel.ro"
-			[build-relro symbols]
+			[build-relro imports]
 
 		set-data ".dynamic" [
 			build-dynamic
@@ -386,7 +404,7 @@ context [
 			if job/PIC? [relro-offset: relro-offset - get-address ".text"]
 			resolve-import-refs
 				job
-				symbols
+				imports
 				get-data ".text"
 				relro-offset
 		]
@@ -405,6 +423,7 @@ context [
 	build-ehdr: func [
 		target-os [word!]
 		target-arch [word!]
+		target-type [word!]
 		phdr-offset [integer!]
 		shdr-offset [integer!]
 		text-address [integer!]
@@ -420,7 +439,6 @@ context [
 		eh/ident-class:		defs/elfclass32
 		eh/ident-data:		defs/elfdata2lsb
 		eh/ident-version:	defs/ev-current
-		eh/type:			defs/et-exec
 		eh/version:			defs/ev-current
 		eh/entry:			text-address
 		eh/phoff:			phdr-offset
@@ -434,6 +452,11 @@ context [
 		eh/shstrndx:		index? find section-names ".shstrtab"
 
 		;; Target-specific header fields.
+
+		eh/type: select reduce [
+			'exe defs/et-exec
+			'dll defs/et-dyn
+		] target-type
 
 		switch target-arch [
 			ia-32	[
@@ -488,19 +511,47 @@ context [
 		]
 	]
 
-	build-dynsym: func [symbols [block!] dynstr [binary!] /local result entry] [
+	build-dynsym: func [
+		imports [block!]
+		exports [block!]
+		dynstr [binary!]
+		text-address [integer!]
+		text-index [integer!]
+		data-address [integer!]
+		data-index [integer!]
+		/local result entry export-base export-type export-index
+	] [
 		result: copy []
 
 		;; Symbol #0: undefined symbol
 		append result make-struct elf-symbol none
 
-		foreach symbol symbols [
+		foreach symbol imports [
 			entry: make-struct elf-symbol none
 			entry/name: strtab-index-of dynstr symbol
 			entry/value: 0 ;; Unknown, for imported symbols.
 			entry/info: to-elf-symbol-info defs/stb-global defs/stt-func
 			entry/other: defs/stv-default
 			entry/shndx: defs/shn-undef
+			append result entry
+		]
+
+		foreach [symbol meta] exports [
+			set [export-base export-type export-index] case [
+				meta/type = 'global [
+					reduce [data-address defs/stt-object data-index]
+				]
+				true [
+					reduce [text-address defs/stt-func text-index]
+				]
+			]
+			entry: make-struct elf-symbol none
+			entry/name: strtab-index-of dynstr symbol
+			entry/value: export-base + meta/offset
+			entry/info: to-elf-symbol-info defs/stb-global export-type
+			entry/size: meta/size
+			entry/other: defs/stv-default
+			entry/shndx: export-index
 			append result entry
 		]
 
@@ -633,6 +684,51 @@ context [
 			]
 		]
 		reduce [libraries symbols]
+	]
+
+	collect-exports: func [
+		job [object!]
+		/local current-tail code-tail data-tail symbol-offset symbol-size
+	] [
+		if job/type <> 'dll [return make block! 0]
+
+		code-tail: length? job/sections/code/2
+		data-tail: length? job/sections/data/2
+		collect [
+			foreach [meta symbol] reverse copy job/symbols [
+				catch [
+					case [
+						find [import native-ref] meta/1 [
+							throw 'continue
+						]
+						'global = meta/1 [
+							symbol-offset: meta/2
+							symbol-size: data-tail - symbol-offset
+							data-tail: symbol-offset
+						]
+						'native = meta/1 [
+							;; Code symbols have 1-based offsets, data symbols
+							;; have 0-based offsets in job/symbols ...
+							symbol-offset: meta/2 - 1
+							symbol-size: code-tail - symbol-offset
+							code-tail: symbol-offset
+						]
+						true [
+							make error! reform ["Unhandled symbol type:" meta/1]
+						]
+					]
+					if find job/sections/export/3 symbol [
+						keep compose/deep [
+							(form symbol) [
+								type (meta/1)
+								offset (symbol-offset)
+								size (symbol-size)
+							]
+						]
+					]
+				]
+			]
+		]
 	]
 
 	collect-natives: func [job [object!]] [
