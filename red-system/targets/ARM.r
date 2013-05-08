@@ -1977,19 +1977,19 @@ make-profilable make target-class [
 	]
 
 	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine name [word!]][
-		if issue? args/1 [							;-- variadic call
-			emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
-													;-- (required to clear stack on stdcall return)
-			emit-i32 #{e28dc004}					;-- ADD ip, sp, #4	; skip last pushed value
-			emit-i32 #{e92d1000}					;-- PUSH {ip}		; push arguments list pointer
-			total: length? args/2
-			if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
-			emit-push total							;-- push arguments count
-		]
 		either routine [							;-- test for function! pointer case
 			emit-load-symbol pick tail fspec -2
 			emit-i32 #{e1200030}					;-- BLX r0
 		][
+			if issue? args/1 [							;-- variadic call
+				emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
+														;-- (required to clear stack on stdcall return)
+				emit-i32 #{e28dc004}					;-- ADD ip, sp, #4	; skip last pushed value
+				emit-i32 #{e92d1000}					;-- PUSH {ip}		; push arguments list pointer
+				total: length? args/2
+				if args/1 = #typed [total: total / 3]	;-- typed args have 3 components
+				emit-push total							;-- push arguments count
+			]
 			emit-reloc-addr spec/3
 			emit-i32 #{eb000000}					;-- BL <disp>
 		]
