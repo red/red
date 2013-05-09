@@ -242,11 +242,7 @@ target-class: context [
 				emit-call-native args fspec spec
 			]
 			routine [
-				either fspec/3 = 'cdecl [
-					emit-call-import args fspec spec
-				][
-					emit-call-native/routine args fspec spec name
-				]
+				emit-call-native/routine args fspec spec name
 			]
 			inline [
 				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
