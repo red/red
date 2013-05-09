@@ -37,9 +37,9 @@ Java_JNIdemo_doMain: func [
 ][
 	jni: env/jni
 	class: jni/FindClass env "java/awt/Frame"
-	frame: instanciate [env class "(Ljava/lang/String;)V" "Red AWT/JNI demo"]
+	frame: instantiate [env class "(Ljava/lang/String;)V" "Red AWT/JNI demo"]
 
-	label: instanciate [
+	label: instantiate [
 		env
 		jni/FindClass env "java/awt/Label"
 		"(Ljava/lang/String;I)V"
@@ -56,7 +56,7 @@ Java_JNIdemo_doMain: func [
 	id: get-method env class "setVisible" "(Z)V"
 	jni/CallObjectMethod [env frame id JNI_TRUE]
 	
-	event: instanciate [env jni/FindClass env "events" "()V"]
+	event: instantiate [env jni/FindClass env "events" "()V"]
 	
 	id: get-method env class "addWindowListener" "(Ljava/awt/event/WindowListener;)V"
 	jni/CallObjectMethod [env frame id event]

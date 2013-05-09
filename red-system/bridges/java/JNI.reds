@@ -285,7 +285,7 @@ get-method: func [
 	id
 ]
 
-instanciate: func [
+instantiate: func [
 	[typed]
 	count	[integer!]
 	list	[typed-value!]
