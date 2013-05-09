@@ -569,7 +569,7 @@ context [
 		code-base: code-page * memory-align
 		
 		flags: to integer! defs/dll-flags/nx-compat
-		if job/PIC? [flags: flags or defs/dll-flags/dynamic-base]
+		if job/PIC? [flags: flags or to integer! defs/dll-flags/dynamic-base]
 		
 		ep: either job/type = 'dll [
 			either entry: select job/symbols '***-dll-entry-point [
