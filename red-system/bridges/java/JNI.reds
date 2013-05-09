@@ -19,7 +19,7 @@ Red/System [
 #define jstring!	int-ptr!
 
 #define JNI-ptr!	[struct! [jni [JNI!]]]
-
+#define JVM-ptr!	[struct! [ptr [JVM!]]]
 
 #switch OS [
 	Windows  [#define JNICALL stdcall]
@@ -41,11 +41,11 @@ JVM!: alias struct! [
     reserved1					[int-ptr!]
     reserved2					[int-ptr!]
     
-    DestroyJavaVM 				[function! [vm [JVM!] return: [jint!]]]
-	AttachCurrentThread			[function! [vm [JVM!] penv [struct! [p [int-ptr!]]] args [byte-ptr!] return: [jint!]]]
-	DetachCurrentThread 		[function! [vm [JVM!] return: [jint!]]]
-    GetEnv						[function! [vm [JVM!] penv [struct! [p [int-ptr!]]] version [integer!] return: [jint!]]]
-    AttachCurrentThreadAsDaemon [function! [vm [JVM!] penv [struct! [p [int-ptr!]]] args [byte-ptr!] return: [jint!]]]
+    DestroyJavaVM 				[function! [[JNICALL] vm [JVM-ptr!] return: [jint!]]]
+	AttachCurrentThread			[function! [[JNICALL] vm [JVM-ptr!] penv [struct! [p [int-ptr!]]] args [byte-ptr!] return: [jint!]]]
+	DetachCurrentThread 		[function! [[JNICALL] vm [JVM-ptr!] return: [jint!]]]
+    GetEnv						[function! [[JNICALL] vm [JVM-ptr!] penv [struct! [p [int-ptr!]]] version [integer!] return: [jint!]]]
+    AttachCurrentThreadAsDaemon [function! [[JNICALL] vm [JVM-ptr!] penv [struct! [p [int-ptr!]]] args [byte-ptr!] return: [jint!]]]
 ]
 
 JNI!: alias struct! [
@@ -56,7 +56,7 @@ JNI!: alias struct! [
 	
 	GetVersion					[func-ptr!]
 	DefineClass					[func-ptr!]
-	FindClass					[function! [env [JNI-ptr!] name [c-string!] return: [jclass!]]]
+	FindClass					[function! [[JNICALL] env [JNI-ptr!] name [c-string!] return: [jclass!]]]
 	FromReflectedMethod			[func-ptr!]
 	FromReflectedField			[func-ptr!]
 	ToReflectedMethod			[func-ptr!]
@@ -82,15 +82,15 @@ JNI!: alias struct! [
 	EnsureLocalCapacity			[func-ptr!]
 	
 	AllocObject					[func-ptr!]
-	NewObject					[function! [return: [jobject!]]] ;-- stack frame is manually constructed
+	NewObject					[function! [[JNICALL] return: [jobject!]]] ;-- stack frame is manually constructed
 	NewObjectV					[func-ptr!]
 	NewObjectA					[func-ptr!]
 	
 	GetObjectClass				[func-ptr!]
 	IsInstanceOf				[func-ptr!]
-	GetMethodID					[function! [env [JNI-ptr!] class [jclass!] name [c-string!] sig [c-string!] return: [jmethodID!]]]
+	GetMethodID					[function! [[JNICALL] env [JNI-ptr!] class [jclass!] name [c-string!] sig [c-string!] return: [jmethodID!]]]
 	
-	CallObjectMethod			[function! [[variadic]	return: [jobject!]]]
+	CallObjectMethod			[function! [[JNICALL variadic] return: [jobject!]]]
 	CallObjectMethodV			[func-ptr!]
 	CallObjectMethodA			[func-ptr!]
 	
@@ -259,7 +259,7 @@ JNI!: alias struct! [
 	GetStringChars				[func-ptr!]
 	ReleaseStringChars			[func-ptr!]
 	
-	NewStringUTF				[function! [env [JNI-ptr!] bytes [c-string!] return: [jobject!]]]
+	NewStringUTF				[function! [[JNICALL] env [JNI-ptr!] bytes [c-string!] return: [jobject!]]]
 	GetStringUTFLength			[func-ptr!]
 	GetStringUTFChars			[func-ptr!]
 	ReleaseStringUTFChars		[func-ptr!]
