@@ -1,6 +1,8 @@
 JNI low-level binding
 ------------------------
 
+A 32-bit JVM is required for this to work. 
+
 In order to compile the example JNIdemo script, follow these steps:
 
 On Windows:
@@ -25,8 +27,6 @@ On Unix:
         $ javac JNIdemo.java
         $ java -Djava.library.path=. JNIdemo
 
-If you are using a 64-bit JVM, use the following command line for launching the app:
-
-        $ java -d32 -Djava.library.path=. JNIdemo
-
 You should see an AWT window opening with a small message.
+
+_Note: On Mac OSX, using the -d32 option allows to load the 32-bit JNI library, but some exceptions are thrown on exit anyway._
