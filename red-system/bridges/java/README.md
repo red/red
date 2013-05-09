@@ -5,7 +5,7 @@ In order to compile the example JNIdemo script, follow these steps:
 
 1. Compile the JNIdemo.reds script as a shared library:
 
-        >> do/args %rsc.r "%bridge/java/JNIdemo.reds -o %bridge/java/JNIdemo"
+        >> do/args %rsc.r "%bridges/java/JNIdemo.reds -o %bridges/java/JNIdemo"
 
 2. Compile and run the JNIdemo.java app from console:
 
