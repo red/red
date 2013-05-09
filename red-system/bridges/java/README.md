@@ -25,5 +25,8 @@ On Unix:
         $ javac JNIdemo.java
         $ java -Djava.library.path=. JNIdemo
 
+If you are using a 64-bit JVM, use the following command line for launching the app:
+
+        $ java -d32 -Djava.library.path=. JNIdemo
 
 You should see an AWT window opening with a small message.
