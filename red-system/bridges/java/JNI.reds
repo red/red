@@ -191,9 +191,9 @@ JNI!: alias struct! [
 	SetFloatField				[func-ptr!]
 	SetDoubleField				[func-ptr!]
 	
-	GetStaticMethodID			[func-ptr!]
+	GetStaticMethodID			[function! [[JNICALL] env [JNI-ptr!] class [jclass!] name [c-string!] sig [c-string!] return: [jmethodID!]]]
 	
-	CallStaticObjectMethod		[func-ptr!]
+	CallStaticObjectMethod		[function! [[JNICALL variadic] return: [jobject!]]]
 	CallStaticObjectMethodV		[func-ptr!]
 	CallStaticObjectMethodA		[func-ptr!]
 	
@@ -281,7 +281,21 @@ get-method: func [
 		id 	[jmethodID!]
 ][
 	id: env/jni/GetMethodID env class name sig
-	if null? id [print-line ["error: GetMethodID failed on " name]]
+	if null? id [print-line ["error: GetMethodID failed on " name sig]]
+	id
+]
+
+get-static-method: func [
+	env		[JNI-env!]
+	class	[jclass!]
+	name	[c-string!]
+	sig		[c-string!]
+	return: [jmethodID!]
+	/local
+		id 	[jmethodID!]
+][
+	id: env/jni/GetStaticMethodID env class name sig
+	if null? id [print-line ["error: GetStaticMethodID failed on " name sig]]
 	id
 ]
 

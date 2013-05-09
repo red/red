@@ -17,10 +17,17 @@ Java_events_Receive: func [
 	env		[JNI-env!]
 	this	[jobject!]
 	event	[integer!]
+	/local
+		sys [jclass!]
+		id  [jmethodID!]
 ][
 	print ["event received: " event lf]
 	switch event [
-		201 [quit 0]
+		201 [
+			sys: env/jni/FindClass env "java/lang/System"
+			id: get-static-method env sys "exit" "(I)V"
+			env/jni/CallStaticObjectMethod [env sys id 0]
+		]
 	]
 ]
 
