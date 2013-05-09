@@ -1646,11 +1646,12 @@ make-profilable make target-class [
 	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine name [word!] /local total][
 		either routine [
 			either 'local = last fspec [
-				emit-variable 
-					pick tail fspec -2
-					none
-					none
-					#{8B45}							;-- MOV eax, [ebp+n]	; local	
+				name: pick tail fspec -2
+				either find form name slash [
+					emitter/access-path load form name none
+				][
+					emit-variable name none	none #{8B45} ;-- MOV eax, [ebp+n]	; local	
+				]
 				emit #{FFD0} 						;-- CALL eax			; direct call
 			][
 				emit-indirect-call spec

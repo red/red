@@ -116,7 +116,7 @@ system-dialect: make-profilable context [
 		
 		struct-syntax: [
 			pos: opt [into ['align integer! opt ['big | 'little]]]	;-- struct's attributes
-			pos: some [word! into type-spec]						;-- struct's members
+			pos: some [word! into [func-pointer | type-spec]]		;-- struct's members
 		]
 		
 		pointer-syntax: ['integer! | 'byte! | 'float32! | 'float64! | 'float!]
@@ -505,7 +505,7 @@ system-dialect: make-profilable context [
 			either resolve-alias? [resolve-aliased type][type]
 		]
 		
-		resolve-path-type: func [path [path! set-path!] /parent prev /local type path-error saved][
+		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error saved][
 			path-error: [
 				pc: skip pc -2
 				throw-error "invalid path value"
@@ -521,7 +521,9 @@ system-dialect: make-profilable context [
 						type: resolve-type path/1
 					]
 				]
-			][reduce [type?/word path/1]]
+			][
+				type: reduce [type?/word path/1]
+			]
 			
 			unless type path-error
 			
@@ -540,11 +542,19 @@ system-dialect: make-profilable context [
 							backtrack path
 							throw-error ["invalid struct member" path/2]
 						]
-						resolve-struct-member-type type/2 path/2
+						type: resolve-struct-member-type type/2 path/2
+						if all [not short type/1 = 'function!][
+							type: select type/2 return-def
+						]
+						type
 					]
 				] path-error
 			][
-				resolve-path-type/parent next path second type
+				either short [
+					resolve-path-type/parent/short next path second type
+				][
+					resolve-path-type/parent next path second type
+				]
 			]
 		]
 		
@@ -2139,7 +2149,7 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-path: has [path value ns][
+		comp-path: has [path value ns type name][
 			path: pc/1
 			if #":" = first mold path/1 [
 				throw-error "get-path! syntax is not supported"
@@ -2156,15 +2166,24 @@ system-dialect: make-profilable context [
 				]
 				comp-word/with path
 			][
-				either value: system-reflexion? path [
-					either path/2 = 'words [
-						return comp-word/with/root value ;-- re-route to global word resolution
-					][
-						pc: next pc
+				case [
+					value: system-reflexion? path [
+						either path/2 = 'words [
+							return comp-word/with/root value ;-- re-route to global word resolution
+						][
+							pc: next pc
+						]
 					]
-				][
-					comp-word/path path/1				;-- check if root word is defined
-					last-type: resolve-path-type path
+					'function! = first type: resolve-path-type/short path [
+						name: to word! form path
+						add-function 'routine reduce [name none type/2] get-cconv type/2
+						append last functions reduce [name 'local]
+						return comp-func-args name skip tail functions -2
+					]
+					'else [
+						comp-word/path path/1				;-- check if root word is defined
+						last-type: resolve-path-type path
+					]
 				]
 				any [value path]
 			]
@@ -2458,7 +2477,7 @@ system-dialect: make-profilable context [
 				casted/1 = 'function!
 				local-variable? name
 			][
-				fun-name: to word! join "_local_" form name
+				fun-name: decorate-function name
 				add-function 'routine reduce [fun-name none casted/2] get-cconv casted/2
 				append last functions reduce [name 'local]
 			]

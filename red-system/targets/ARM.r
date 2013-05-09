@@ -1978,7 +1978,15 @@ make-profilable make target-class [
 
 	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine name [word!]][
 		either routine [							;-- test for function! pointer case
-			emit-load-symbol pick tail fspec -2
+			name: pick tail fspec -2
+			either all [
+				'local = last fspec
+				find form name slash 
+			][
+				emitter/access-path load form name none
+			][
+				emit-load-symbol name
+			]
 			emit-i32 #{e1200030}					;-- BLX r0
 		][
 			if issue? args/1 [							;-- variadic call
