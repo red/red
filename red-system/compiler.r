@@ -2200,9 +2200,9 @@ system-dialect: make-profilable context [
 						symbol: last expr-call-stack
 						spec: find functions symbol
 						spec/2/2 = 'import				;-- only flag it when passed to external calls
-						spec/5 <> 'callback
+						spec/2/5 <> 'callback
 					][
-						append spec 'callback			;@@ force cdecl ????
+						append spec/2 'callback			;@@ force cdecl ????
 					]
 				]
 				not	any [
