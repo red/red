@@ -25,14 +25,10 @@ natives: context [
 	verbose: 0
 	lf?: 	 no											;-- used to print or not an ending newline
 	
-	table: as int-ptr! allocate NATIVES_NB * size? integer!
+	table: declare int-ptr!
 	top: 0
 	
 	buffer-blk: as red-block! 0
-	
-	init: does [
-		buffer-blk: block/make-in red/root 32			;-- block buffer for PRIN's reduce/into
-	]
 
 	register: func [
 		[variadic]
@@ -915,45 +911,50 @@ natives: context [
 		int/value: value								;-- overlapping /value field for integer! and char!
 	]
 	
-	register [
-		:if*
-		:unless*
-		:either*
-		:any*
-		:all*
-		:while*
-		:until*
-		:loop*
-		:repeat*
-		:foreach*
-		:forall*
-		:func*
-		:function*
-		:does*
-		:has*
-		:switch*
-		:case*
-		:do*
-		:get*
-		:set*
-		:print*
-		:prin*
-		:equal?*
-		:not-equal?*
-		:strict-equal?*
-		:lesser?*
-		:greater?*
-		:lesser-or-equal?*
-		:greater-or-equal?*
-		:same?*
-		:not*
-		:halt*
-		:type?*
-		:load*
-		:reduce*
-		:compose*
-		:stats*
-		:bind*
+	init: does [
+		table: as int-ptr! allocate NATIVES_NB * size? integer!
+		buffer-blk: block/make-in red/root 32			;-- block buffer for PRIN's reduce/into
+
+		register [
+			:if*
+			:unless*
+			:either*
+			:any*
+			:all*
+			:while*
+			:until*
+			:loop*
+			:repeat*
+			:foreach*
+			:forall*
+			:func*
+			:function*
+			:does*
+			:has*
+			:switch*
+			:case*
+			:do*
+			:get*
+			:set*
+			:print*
+			:prin*
+			:equal?*
+			:not-equal?*
+			:strict-equal?*
+			:lesser?*
+			:greater?*
+			:lesser-or-equal?*
+			:greater-or-equal?*
+			:same?*
+			:not*
+			:halt*
+			:type?*
+			:load*
+			:reduce*
+			:compose*
+			:stats*
+			:bind*
+		]
 	]
 
 ]

@@ -94,75 +94,76 @@ action: context [
 		part - 1
 	]
 
-
-	datatype/register [
-		TYPE_ACTION
-		TYPE_NATIVE
-		"action!"
-		;-- General actions --
-		:make
-		null			;random
-		INHERIT_ACTION	;reflect
-		null			;to
-		:form
-		:mold
-		null			;get-path
-		null			;set-path
-		null			;compare
-		;-- Scalar actions --
-		null			;absolute
-		null			;add
-		null			;divide
-		null			;multiply
-		null			;negate
-		null			;power
-		null			;remainder
-		null			;round
-		null			;subtract
-		null			;even?
-		null			;odd?
-		;-- Bitwise actions --
-		null			;and~
-		null			;complement
-		null			;or~
-		null			;xor~
-		;-- Series actions --
-		null			;append
-		null			;at
-		null			;back
-		null			;change
-		null			;clear
-		null			;copy
-		null			;find
-		null			;head
-		null			;head?
-		null			;index?
-		null			;insert
-		null			;length?
-		null			;next
-		null			;pick
-		null			;poke
-		null			;remove
-		null			;reverse
-		null			;select
-		null			;sort
-		null			;skip
-		null			;swap
-		null			;tail
-		null			;tail?
-		null			;take
-		null			;trim
-		;-- I/O actions --
-		null			;create
-		null			;close
-		null			;delete
-		null			;modify
-		null			;open
-		null			;open?
-		null			;query
-		null			;read
-		null			;rename
-		null			;update
-		null			;write
+	init: does [
+		datatype/register [
+			TYPE_ACTION
+			TYPE_NATIVE
+			"action!"
+			;-- General actions --
+			:make
+			null			;random
+			INHERIT_ACTION	;reflect
+			null			;to
+			:form
+			:mold
+			null			;get-path
+			null			;set-path
+			null			;compare
+			;-- Scalar actions --
+			null			;absolute
+			null			;add
+			null			;divide
+			null			;multiply
+			null			;negate
+			null			;power
+			null			;remainder
+			null			;round
+			null			;subtract
+			null			;even?
+			null			;odd?
+			;-- Bitwise actions --
+			null			;and~
+			null			;complement
+			null			;or~
+			null			;xor~
+			;-- Series actions --
+			null			;append
+			null			;at
+			null			;back
+			null			;change
+			null			;clear
+			null			;copy
+			null			;find
+			null			;head
+			null			;head?
+			null			;index?
+			null			;insert
+			null			;length?
+			null			;next
+			null			;pick
+			null			;poke
+			null			;remove
+			null			;reverse
+			null			;select
+			null			;sort
+			null			;skip
+			null			;swap
+			null			;tail
+			null			;tail?
+			null			;take
+			null			;trim
+			;-- I/O actions --
+			null			;create
+			null			;close
+			null			;delete
+			null			;modify
+			null			;open
+			null			;open?
+			null			;query
+			null			;read
+			null			;rename
+			null			;update
+			null			;write
+		]
 	]
 ]

@@ -11,7 +11,6 @@ Red/System [
 ]
 
 red: context [
-
 	;-- Runtime sub-system --
 	
 	#include %macros.reds
@@ -23,7 +22,6 @@ red: context [
 		MacOSX	 [#include %platform/darwin.reds]
 		#default [#include %platform/linux.reds]
 	]
-	platform/init
 	
 	;#include %threads.reds
 	#include %allocator.reds
@@ -71,56 +69,98 @@ red: context [
 	#include %tokenizer.reds
 	#include %actions.reds
 	#include %natives.reds
-	
-	;-- Booting... --
-	
-	;-- initialize memory before anything else
-	alloc-node-frame nodes-per-frame					;-- 5k nodes
-	alloc-series-frame									;-- first frame of 512KB
-	
-	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
-	root:	 	block/make-in null 2000					;-- root block		
-	symbols: 	block/make-in root 1000	 				;-- symbols table
-	global-ctx: _context/create root 1000 no			;-- global context
-	
-	datatype/make-words									;-- build datatype names as word! values
-	words/build											;-- create symbols used internally
-	refinements/build									;-- create refinements used internally
-	natives/init										;-- native specific init code
-	
 	#include %stack.reds
 	#include %interpreter.reds
-	
-	#if debug? = yes [
-		verbosity: 0
-		datatype/verbose:	verbosity
-		unset/verbose:		verbosity
-		none/verbose:		verbosity
-		logic/verbose:		verbosity
-		block/verbose:		verbosity
-		string/verbose:		verbosity
-		integer/verbose:	verbosity
-		symbol/verbose:		verbosity
-		_context/verbose:	verbosity
-		word/verbose:		verbosity
-		set-word/verbose:	verbosity
-		refinement/verbose:	verbosity
-		char/verbose:		verbosity
-		path/verbose:		verbosity
-		lit-path/verbose:	verbosity
-		set-path/verbose:	verbosity
-		get-path/verbose:	verbosity
-		_function/verbose:	verbosity
-		routine/verbose:	verbosity
-		paren/verbose:		verbosity
-		issue/verbose:		verbosity
-		file/verbose:		verbosity
-		
-		actions/verbose:	verbosity
-		natives/verbose:	verbosity
-		
-		stack/verbose:		verbosity
-		unicode/verbose:	verbosity
-	]
 
+	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
+	root:	 	declare red-block!						;-- root block		
+	symbols: 	declare red-block! 						;-- symbols table
+	global-ctx: declare red-context!					;-- global context
+
+	;-- Booting... --
+	
+	init: does [
+		platform/init
+		init-mem										;@@ needs a local context
+		
+		name-table: as names! allocate 50 * size? names!	 ;-- datatype names table
+		action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table	
+
+		datatype/init
+		unset/init
+		none/init
+		logic/init
+		block/init
+		string/init
+		integer/init
+		symbol/init
+		_context/init
+		word/init
+		lit-word/init
+		set-word/init
+		get-word/init
+		refinement/init
+		char/init
+		native/init
+		action/init
+		op/init
+		path/init
+		lit-path/init
+		set-path/init
+		get-path/init
+		_function/init
+		routine/init
+		paren/init
+		issue/init
+		file/init
+		
+		actions/init
+		
+		;-- initialize memory before anything else
+		alloc-node-frame nodes-per-frame				;-- 5k nodes
+		alloc-series-frame								;-- first frame of 512KB
+
+		root:	 	block/make-in null 2000	
+		symbols: 	block/make-in root 1000
+		global-ctx: _context/create root 1000 no
+
+		datatype/make-words								;-- build datatype names as word! values
+		words/build										;-- create symbols used internally
+		refinements/build								;-- create refinements used internally
+		natives/init									;-- native specific init code
+		
+		stack/init
+		
+		#if debug? = yes [
+			verbosity: 0
+			datatype/verbose:	verbosity
+			unset/verbose:		verbosity
+			none/verbose:		verbosity
+			logic/verbose:		verbosity
+			block/verbose:		verbosity
+			string/verbose:		verbosity
+			integer/verbose:	verbosity
+			symbol/verbose:		verbosity
+			_context/verbose:	verbosity
+			word/verbose:		verbosity
+			set-word/verbose:	verbosity
+			refinement/verbose:	verbosity
+			char/verbose:		verbosity
+			path/verbose:		verbosity
+			lit-path/verbose:	verbosity
+			set-path/verbose:	verbosity
+			get-path/verbose:	verbosity
+			_function/verbose:	verbosity
+			routine/verbose:	verbosity
+			paren/verbose:		verbosity
+			issue/verbose:		verbosity
+			file/verbose:		verbosity
+
+			actions/verbose:	verbosity
+			natives/verbose:	verbosity
+
+			stack/verbose:		verbosity
+			unicode/verbose:	verbosity
+		]
+	]
 ]

@@ -62,7 +62,7 @@ redc: context [
 	]
 
 	parse-options: has [
-		args srcs opts output target verbose filename config config-name base-path
+		args srcs opts output target verbose filename config config-name base-path type
 	] [
 		args: any [system/options/args parse any [system/script/args ""] none]
 
@@ -86,6 +86,8 @@ redc: context [
 				| ["-t" | "--target"]  		set target skip
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
 				| "--red-only"				(opts/red-only?: yes)
+				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
+				;| ["-slib" | "--static-lib"] (type 'lib)
 				;| "--custom"				;@@ pass-thru for Red/System specific arguments
 				| set filename skip (append srcs load-filename filename)
 			]
@@ -112,6 +114,12 @@ redc: context [
 			unless attempt [opts/verbosity: to integer! trim verbose] [
 				fail ["Invalid verbosity:" verbose]
 			]
+		]
+		
+		;; Process -dlib/--dynamic-lib (if any).
+		if type = 'dll [
+			opts/type: type
+			if opts/OS <> 'Windows [opts/PIC?: yes]
 		]
 		
 		;; Process input sources.

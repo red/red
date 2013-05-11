@@ -16,7 +16,7 @@ string: context [
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
 	#define MAX_ESC_CHARS		60h	
 	
-	escape-chars: allocate MAX_ESC_CHARS
+	escape-chars: declare byte-ptr!
 
 	fill-table: func [
 		/local
@@ -40,7 +40,6 @@ string: context [
 		escape-chars/11: #"/"							;-- 10 + 1 (adjust for 1-base)
 		escape-chars/35: #"^""							;-- 34 + 1 (adjust for 1-base)
 	]
-	fill-table											;-- fill table on loading
 	
 	to-hex: func [
 		cp		[integer!]								;-- codepoint <= 10FFFFh
@@ -1562,74 +1561,79 @@ string: context [
 		as red-series! str
 	]
 	
-	datatype/register [
-		TYPE_STRING
-		TYPE_VALUE
-		"string!"
-		;-- General actions --
-		:make
-		null			;random
-		null			;reflect
-		null			;to
-		:form
-		:mold
-		null			;get-path
-		null			;set-path
-		:compare
-		;-- Scalar actions --
-		null			;absolute
-		null			;add
-		null			;divide
-		null			;multiply
-		null			;negate
-		null			;power
-		null			;remainder
-		null			;round
-		null			;subtract
-		null			;even?
-		null			;odd?
-		;-- Bitwise actions --
-		null			;and~
-		null			;complement
-		null			;or~
-		null			;xor~
-		;-- Series actions --
-		null			;append
-		:at
-		:back
-		null			;change
-		:clear
-		:copy
-		:find
-		:head
-		:head?
-		:index?
-		:insert
-		:length?
-		:next
-		:pick
-		:poke
-		:remove
-		null			;reverse
-		:select
-		null			;sort
-		:skip
-		null			;swap
-		:tail
-		:tail?
-		null			;take
-		null			;trim
-		;-- I/O actions --
-		null			;create
-		null			;close
-		null			;delete
-		null			;modify
-		null			;open
-		null			;open?
-		null			;query
-		null			;read
-		null			;rename
-		null			;update
-		null			;write
+	init: does [
+		escape-chars: allocate MAX_ESC_CHARS
+		fill-table
+	
+		datatype/register [
+			TYPE_STRING
+			TYPE_VALUE
+			"string!"
+			;-- General actions --
+			:make
+			null			;random
+			null			;reflect
+			null			;to
+			:form
+			:mold
+			null			;get-path
+			null			;set-path
+			:compare
+			;-- Scalar actions --
+			null			;absolute
+			null			;add
+			null			;divide
+			null			;multiply
+			null			;negate
+			null			;power
+			null			;remainder
+			null			;round
+			null			;subtract
+			null			;even?
+			null			;odd?
+			;-- Bitwise actions --
+			null			;and~
+			null			;complement
+			null			;or~
+			null			;xor~
+			;-- Series actions --
+			null			;append
+			:at
+			:back
+			null			;change
+			:clear
+			:copy
+			:find
+			:head
+			:head?
+			:index?
+			:insert
+			:length?
+			:next
+			:pick
+			:poke
+			:remove
+			null			;reverse
+			:select
+			null			;sort
+			:skip
+			null			;swap
+			:tail
+			:tail?
+			null			;take
+			null			;trim
+			;-- I/O actions --
+			null			;create
+			null			;close
+			null			;delete
+			null			;modify
+			null			;open
+			null			;open?
+			null			;query
+			null			;read
+			null			;rename
+			null			;update
+			null			;write
+		]
 	]
 ]
