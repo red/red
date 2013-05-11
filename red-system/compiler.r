@@ -485,11 +485,11 @@ system-dialect: make-profilable context [
 			]
 			if any [
 				all [not local?	any [enum-type? name enum-id? name]]
-				enum-type? type/1
+				all [type enum-type? type/1]
 			][
 				return [integer!]
 			]
-			unless any [not resolve-alias? base-type? type/1][
+			unless any [not resolve-alias? none? type base-type? type/1][
 				type: find-aliased type/1
 			]
 			type
