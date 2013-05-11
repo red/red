@@ -129,12 +129,12 @@ red: context [
 		]
 	]
 	
-	process-calls: func [code [block!] /local rule pos mark][
+	process-calls: func [code [block!] /global /local rule pos mark][
 		parse code rule: [
 			some [
 				#call pos: (
 					mark: tail output
-					process-call-directive pos/1
+					process-call-directive pos/1 to logic! global
 					change/part back pos mark 2
 					clear mark
 				)
@@ -313,6 +313,10 @@ red: context [
 	
 	decorate-type: func [type [word!]][
 		to word! join "red-" mold/flat type
+	]
+	
+	decorate-exec-ctx: func [name [word!]][
+		append to path! 'exec name
 	]
 	
 	decorate-symbol: func [name [word!] /local pos][
@@ -1886,7 +1890,7 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
-	process-call-directive: func [body [block!] /local name spec][
+	process-call-directive: func [body [block!] global? /local name spec][
 		name: to word! clean-lf-flag body/1
 		if any [
 			not spec: select functions name
@@ -1894,7 +1898,13 @@ red: context [
 		][
 			throw-error ["invalid #call function name:" name]
 		]
-		emit-open-frame name
+		either global? [
+			emit 'red/stack/mark-func
+			emit decorate-exec-ctx decorate-symbol name
+			insert-lf -2
+		][
+			emit-open-frame name
+		]
 		
 		types: spec/3
 		body: next body
@@ -1920,9 +1930,17 @@ red: context [
 				]
 			]
 		]
-		emit decorate-func name
+		name: decorate-func name
+		if global? [name: decorate-exec-ctx name]
+		emit name
 		insert-lf -1
-		emit-close-frame
+		
+		either global? [
+			emit 'red/stack/unwind
+			insert-lf -1
+		][
+			emit-close-frame
+		]
 	]
 
 	comp-directive: has [file saved version mark][
@@ -2222,6 +2240,7 @@ red: context [
 ;		if find [1 2] verbose [probe user]
 		
 		unless empty? sys-global [
+			process-calls/global sys-global				;-- lazy #call processing
 			insert at out 3 sys-global
 			new-line at out 3 yes
 		]
@@ -2278,6 +2297,7 @@ red: context [
 		if find [1 2] verbose [probe user]
 		
 		unless empty? sys-global [
+			process-calls/global sys-global				;-- lazy #call processing
 			insert at out 3 sys-global
 			new-line at out 3 yes
 		]
