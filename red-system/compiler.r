@@ -359,6 +359,11 @@ system-dialect: make-profilable context [
 			either object? value [value/data][value]
 		]
 		
+		clear-docstrings: func [spec [block!]][
+			remove-each s spec [string? s]
+			spec
+		]
+		
 		get-return-type: func [name [word!] /local type spec][
 			unless all [
 				spec: find-functions name
@@ -1064,7 +1069,7 @@ system-dialect: make-profilable context [
 				throw-error rejoin ["invalid definition for function " name ": " mold pos]
 			]
 			if block? args [
-				remove-each s args [string? s]
+				clear-docstrings args
 				foreach [name type] args [
 					if enum-id? name [
 						throw-warning ["function's argument redeclares enumeration:" name]
@@ -1268,7 +1273,7 @@ system-dialect: make-profilable context [
 			check-func-name name
 			check-specs name specs: pc/2
 			specs: copy specs
-			remove-each s specs [string? s]
+			clear-docstrings specs
 			
 			type: 'native
 			cc:   'stdcall								;-- default calling convention
@@ -1395,7 +1400,7 @@ system-dialect: make-profilable context [
 							pos: set id   string!   (repend list [id reloc: make block! 1])
 							pos: set spec block!    (
 								check-specs/extend name spec
-								remove-each s spec [string? s]
+								clear-docstrings spec
 								specs: copy specs
 								specs/1: name
 								add-function 'import specs cc
@@ -1418,7 +1423,7 @@ system-dialect: make-profilable context [
 					pos: set spec block!    (
 						check-specs/extend name spec
 						spec: copy spec
-						remove-each s spec [string? s]
+						clear-docstrings spec
 						add-function 'syscall reduce [name none spec] 'syscall
 						append last functions id		;-- extend definition with syscode
 					)
@@ -2176,6 +2181,8 @@ system-dialect: make-profilable context [
 					]
 					'function! = first type: resolve-path-type/short path [
 						name: to word! form path
+						check-specs name type/2
+						clear-docstrings type/2
 						add-function 'routine reduce [name none type/2] get-cconv type/2
 						append last functions reduce [name 'local]
 						return comp-func-args name skip tail functions -2
