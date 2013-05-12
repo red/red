@@ -1890,7 +1890,7 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
-	process-call-directive: func [body [block!] global? /local name spec][
+	process-call-directive: func [body [block!] global? /local name spec cmd][
 		name: to word! clean-lf-flag body/1
 		if any [
 			not spec: select functions name
@@ -1914,7 +1914,9 @@ red: context [
 			unless block? types/1 [
 				throw-error ["type undefined for" types/1 "in function" name]
 			]
-			emit to path! reduce [to word! form get types/1/1 'push]
+			cmd: to path! reduce [to word! form get types/1/1 'push]
+			if global? [insert cmd 'red]
+			emit cmd
 			insert-lf -1
 			case [
 				none? body/1 [
@@ -1938,9 +1940,12 @@ red: context [
 		either global? [
 			emit 'red/stack/unwind
 			insert-lf -1
+			emit 'red/stack/reset
 		][
 			emit-close-frame
+			emit 'stack/reset
 		]
+		insert-lf -1
 	]
 
 	comp-directive: has [file saved version mark][
