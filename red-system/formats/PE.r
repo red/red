@@ -339,6 +339,51 @@ context [
 			]
 		]
 	]
+	
+	rsrc-directory: make-struct [
+		characteristics	[integer!]
+		timestamp		[integer!]
+		major			[short]
+		minor			[short]
+		name-entries	[short]
+		id-entries		[short]
+	] none
+	
+	rsrc-entry: make-struct [
+		name-rva		[integer!]
+		id				[integer!]
+		data-rva		[integer!]
+		sub-rva			[integer!]
+	] none
+	
+	rsrc-data: make-struct [
+		data-rva		[integer!]
+		size			[integer!]
+		codepage		[integer!]
+		reserved		[integer!]				;-- must be 0
+	] none
+	
+	
+	build-rsrc: func [job [object!] /local buffer ptr table][
+		buffer: make binary! 100'000
+		ptr: 	section-addr?/memory job find/last job/sections word!
+		
+		table: make-struct rsrc-directory none
+		table/characteristics: 0
+		table/timestamp: 	   0
+		table/major: 		   0
+		table/minor:		   0
+		table/name-entries:	   0
+		table/id-entries:	   1
+		append buffer form-struct table
+		
+		entry: make-struct rsrc-entry none
+		entry/name-rva
+		
+		append job/sections compose/deep [
+			rsrc [- (buffer)]
+		]
+	]
 
 	build-import: func [
 		job [object!]
@@ -472,6 +517,9 @@ context [
 		if job/debug? [
 			code-ptr: entry-point-address? job
 			linker/build-debug-lines job code-ptr pointer
+		]
+		if job/icon-file [
+			build-rsrc job
 		]
 		
 		build-import job					;-- populate import section buffer

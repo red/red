@@ -23,6 +23,7 @@ REBOL [
 ;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
 ;;  literal-pool?:	yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
+;;	icon-file:		none | <file!>				;-- .ico file for Windows executable (temporary option)
 ;;-------------------------------------------
 
 ;-------------------------
@@ -38,6 +39,7 @@ Windows [
 	format: 	'PE
 	type:		'exe
 	sub-system: 'GUI
+	icon-file:  %cws.ico	
 ]
 ;-------------------------
 ;WinDLL [								; not supported yet
