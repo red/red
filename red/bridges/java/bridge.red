@@ -147,6 +147,7 @@ Red [
 		this	[jobject!]
 		event	[integer!]
 	][
+		jni-env: env
 		#call [on-java-event event]
 	]
 	
