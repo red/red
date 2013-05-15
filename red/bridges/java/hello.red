@@ -30,7 +30,7 @@ main: function [][
 	frame: java-new [java.awt.Frame "Red AWT/JNI demo"]
 	label: java-new [
 		java.awt.Label
-		"AWT app built from Red/System through JNI!"
+		"AWT app built from Red through Java bridge!"
 		label.CENTER
 	]
 	java-do [frame/add label]	
