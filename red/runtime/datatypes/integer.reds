@@ -45,12 +45,14 @@ integer: context [
 	
 	box: func [
 		value	[integer!]
+		return: [red-integer!]
 		/local
 			int [red-integer!]
 	][
 		int: as red-integer! stack/arguments
 		int/header: TYPE_INTEGER
 		int/value: value
+		int
 	]
 	
 	form-signed: func [									;@@ replace with sprintf() call?
