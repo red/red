@@ -17,6 +17,7 @@ Red/System [
 #define jobject!	int-ptr!
 #define jclass!		int-ptr!
 #define jstring!	int-ptr!
+#define jboolean!	int-ptr!
 
 #define JNI-ptr!	[struct! [jni [JNI!]]]
 #define JVM-ptr!	[struct! [ptr [JVM!]]]
@@ -57,7 +58,7 @@ JNI!: alias struct! [
 	GetVersion					[func-ptr!]
 	DefineClass					[func-ptr!]
 	FindClass					[function! [[JNICALL] env [JNI-ptr!] name [c-string!] return: [jclass!]]]
-	FromReflectedMethod			[func-ptr!]
+	FromReflectedMethod			[function! [[JNICALL] env [JNI-ptr!] method [jobject!] return: [jmethodID!]]]
 	FromReflectedField			[func-ptr!]
 	ToReflectedMethod			[func-ptr!]
 	GetSuperclass				[func-ptr!]
@@ -86,7 +87,7 @@ JNI!: alias struct! [
 	NewObjectV					[func-ptr!]
 	NewObjectA					[func-ptr!]
 	
-	GetObjectClass				[func-ptr!]
+	GetObjectClass				[function! [[JNICALL] env [JNI-ptr!] obj [jobject!] return: [jclass!]]]
 	IsInstanceOf				[func-ptr!]
 	GetMethodID					[function! [[JNICALL] env [JNI-ptr!] class [jclass!] name [c-string!] sig [c-string!] return: [jmethodID!]]]
 	
@@ -261,10 +262,13 @@ JNI!: alias struct! [
 	
 	NewStringUTF				[function! [[JNICALL] env [JNI-ptr!] bytes [c-string!] return: [jobject!]]]
 	GetStringUTFLength			[func-ptr!]
-	GetStringUTFChars			[func-ptr!]
-	ReleaseStringUTFChars		[func-ptr!]
+	GetStringUTFChars			[function! [[JNICALL] env [JNI-ptr!] str [jstring!] isCopy [struct! [c [jboolean!]]] return: [c-string!]]]
+	ReleaseStringUTFChars		[function! [[JNICALL] env [JNI-ptr!] str [jstring!] buf [c-string!]]]
 	
-	
+	GetArrayLength				[function! [[JNICALL] env [JNI-ptr!] array [jobject!] return: [jint!]]]
+	NewObjectArray				[func-ptr!]
+	GetObjectArrayElement		[function! [[JNICALL] env [JNI-ptr!] array [jobject!] idx [jint!] return: [jobject!]]]
+	SetObjectArrayElement		[func-ptr!]
 	;...
 ]
 
