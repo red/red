@@ -320,6 +320,15 @@ to-Red-type: func [type [word!]][
 	select/skip java-types-table type 2
 ]
 
+java-process-args: function [args [block!]][
+	forall args [
+		if block? args/1 [
+			args/1: any [args/1/1 args/1/2]				;-- replace block with id
+		]
+	]
+	args
+]
+
 java-match-method: function [list [block!] spec [block!] fun [word!]][	
 	foreach [name entry] list [
 		if name <> fun [return none]
@@ -329,16 +338,11 @@ java-match-method: function [list [block!] spec [block!] fun [word!]][
 			args: spec
 			match?: yes
 			foreach required proto [
-				type: either block? args/1 [
-					args/1/3							;-- argument is object or class
-				][
-					type?/word args/1
+				unless block? args/1 [					;-- is object or class?
+					type: type?/word args/1
+					expected: to-Red-type required
+					match?: all [match? type = expected];-- cumulative matching
 				]
-				unless expected: to-Red-type required [
-					expected: type ;required			;@@ temporary hack for objects
-					args/1: any [args/1/1 args/1/2]
-				]
-				match?: all [match? type = expected]	;-- cumulative matching
 				args: next args
 			]
 			if match? [return entry/1]
@@ -413,7 +417,7 @@ java-do: func [spec [block!] /local obj method id][
 	unless id: java-match-method pos spec method [
 		print ["Error: no matching method found for " form method]
 		exit
-	]	
-	spec: append reduce [obj/1 id] spec
+	]
+	spec: append reduce [obj/1 id] java-process-args spec
 	~java-invoke spec
 ]
