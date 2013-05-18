@@ -1648,7 +1648,7 @@ make-profilable make target-class [
 			either 'local = last fspec [
 				name: pick tail fspec -2
 				either find form name slash [
-					emitter/access-path load form name none
+					emitter/access-path name none
 				][
 					emit-variable name none	none #{8B45} ;-- MOV eax, [ebp+n]	; local	
 				]

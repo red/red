@@ -2184,7 +2184,7 @@ system-dialect: make-profilable context [
 						check-specs name type/2
 						clear-docstrings type/2
 						add-function 'routine reduce [name none type/2] get-cconv type/2
-						append last functions reduce [name 'local]
+						append last functions reduce [path 'local]
 						return comp-func-args name skip tail functions -2
 					]
 					'else [
