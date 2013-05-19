@@ -111,7 +111,7 @@ context [
 			write				#{80000000}	;-- can be written to
 		]
 		s-type [
-			BSS					#{C0000040}	;-- [read write initialized]
+			BSS					#{C0000080}	;-- [read write uninitialized]
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
 			import				#{C0000040}	;-- [read write initialized]
@@ -255,8 +255,11 @@ context [
 	ILT-size:			4					;-- Import Lookup Table size (8 for 64-bit)
 	pointer-size:		4					;-- Pointer size (8 for 64-bit)
 	imports-refs:		make block! 10		;-- [ptr [DLL imports] ...]
+	initdata-size:      0
+	uninitdata-size:    0
 	opt-header-size:	length? form-struct optional-header
-
+	opt-header:         none
+	
 	get-timestamp: has [n t][
 		n: now
 		t: n/time
@@ -366,20 +369,20 @@ context [
 	
 	build-rsrc: func [job [object!] /local buffer ptr table][
 		buffer: make binary! 100'000
-		ptr: 	section-addr?/memory job find/last job/sections word!
+		;ptr: 	section-addr?/memory job first find/last job/sections word!
 		
 		table: make-struct rsrc-directory none
 		table/characteristics: 0
 		table/timestamp: 	   0
-		table/major: 		   0
+		table/major: 		   4
 		table/minor:		   0
 		table/name-entries:	   0
-		table/id-entries:	   1
+		table/id-entries:	   0
 		append buffer form-struct table
 		
-		entry: make-struct rsrc-entry none
-		entry/name-rva
-		
+		;entry: make-struct rsrc-entry none
+		;entry/name-rva
+
 		append job/sections compose/deep [
 			rsrc [- (buffer)]
 		]
@@ -461,7 +464,7 @@ context [
 		oh/major-link-version:  linker/version/1
 		oh/minor-link-version:	linker/version/2
 		oh/code-size:			length? job/sections/code/2
-		oh/initdata-size:		length? job/sections/data/2
+		oh/initdata-size:		0
 		oh/uninitdata-size:		0			
 		oh/entry-point-addr:	code-page * memory-align		;-- entry point is set to beginning of CODE
 		oh/code-base:			code-page * memory-align
@@ -490,8 +493,11 @@ context [
 		;-- data directory
 		oh/import-addr:			import-addr? job			
 		oh/import-size:			length? job/sections/import/2
-
-		append job/buffer form-struct oh
+		if find job/sections 'rsrc [
+			oh/rsrc-addr:			section-addr? job 'rsrc		
+			oh/rsrc-size:			length? job/sections/rsrc/2
+		]
+		oh
 	]
 
 	build-section-header: func [job [object!] name [word!] spec [block!] /local sh s][
@@ -500,39 +506,63 @@ context [
 		sh/virtual-size: 	length? spec/2
 		sh/virtual-address:	section-addr?/memory job name
 		sh/raw-data-size: 	file-align * round/ceiling (length? spec/2) / file-align
-		sh/raw-data-ptr:	(section-addr?/file job name) - file-align
+		sh/raw-data-ptr:	(section-addr?/file job name); - file-align
 		sh/relocations-ptr:	0				;-- image or obj with no relocations
 		sh/line-num-ptr:	0
 		sh/relocations-nb:	0				;-- zero for executable images
 		sh/line-num-nb:		0
 		sh/flags:			to integer! select defs/s-type name		
 
+		case [
+			64 = (sh/flags and 64) [; 64 = #{00000040} = initialized data
+				initdata-size: initdata-size + sh/raw-data-size
+			]
+			128 = (sh/flags and 128) [
+				uninitdata-size: uninitdata-size + sh/raw-data-size
+			]
+		]
+		switch name [
+			code [opt-header/code-base: sh/virtual-address]
+			data [opt-header/data-base: sh/virtual-address]
+		]
 		change s: form-struct sh append uppercase form name null	
 		change spec s	
 	]
 
 	build: func [job [object!] /local page out pad code-ptr][
 		clear imports-refs
-
+		initdata-size: uninitdata-size: 0
+		
 		if job/debug? [
 			code-ptr: entry-point-address? job
 			linker/build-debug-lines job code-ptr pointer
 		]
-		if job/icon-file [
-			build-rsrc job
-		]
 		
 		build-import job					;-- populate import section buffer
 
+		;if job/icon-file [
+			build-rsrc job
+		;]
+		
 		out: job/buffer
 		append out defs/image/MSDOS-header
 		build-header job	
-		build-opt-header job
 
+		opt-header: build-opt-header job
+		
 		foreach [name spec] job/sections [
 			build-section-header job name spec
+		]
+		opt-header/initdata-size:	initdata-size
+		opt-header/uninitdata-size: uninitdata-size
+		opt-header/entry-point-addr: opt-header/code-base
+
+		append job/buffer form-struct opt-header
+
+		foreach [name spec] job/sections [
 			append job/buffer spec/1
 		]
+		
 		insert/dup tail job/buffer null pad-size? job/buffer
 
 		resolve-import-refs job				;-- resolve DLL imports references
