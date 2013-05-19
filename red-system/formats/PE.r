@@ -353,10 +353,8 @@ context [
 	] none
 	
 	rsrc-entry: make-struct [
-		name-rva		[integer!]
-		id				[integer!]
-		data-rva		[integer!]
-		sub-rva			[integer!]
+		name-id         [integer!]            ; if used in named entry, the value is rva to string, else id
+		data            [integer!]            ; acording the hight bit it depends if it's rva to data or subdirectory
 	] none
 	
 	rsrc-data: make-struct [
