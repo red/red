@@ -1868,7 +1868,7 @@ system-dialect: make-profilable context [
 		
 		comp-case: has [cases list test body op bodies offset types][
 			pc: next pc
-			check-body cases: pc/1
+			cases: pc/1
 			list:  make block! 8
 			types: make block! 8
 			
@@ -1877,7 +1877,6 @@ system-dialect: make-profilable context [
 					append/only list comp-block-chunked/only/test 'case
 					cases: pc							;-- set cursor after the expression
 				]
-				check-body cases/1
 				fetch-into cases [						;-- compile case body
 					append/only list body: comp-block-chunked
 					append/only types resolve-expr-type/quiet body/1
