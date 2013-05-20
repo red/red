@@ -833,13 +833,9 @@ system-dialect: make-profilable context [
 			if ns-path [
 				either pos: find/skip sym-ctx-table name 2 [
 					either block? pos/2 [
-						foreach ns pos/2 [if find/only ns-stack ns [exit]]
 						if find/only pos/2 ns-path [exit]
 					][
-						if any [
-							ns-path = pos/2
-							find/only ns-stack pos/2
-						][exit]
+						if ns-path = pos/2 [exit]
 						pos/2: reduce [pos/2]
 					]
 					append/only pos/2 copy ns-path
@@ -2294,7 +2290,6 @@ system-dialect: make-profilable context [
 				all [not root resolve-ns name]
 				name
 			]
-			local?: local-variable? name
 			local?: local-variable? name
 			case [
 				all [
