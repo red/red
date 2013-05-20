@@ -111,7 +111,7 @@ context [
 			write				#{80000000}	;-- can be written to
 		]
 		s-type [
-			BSS					#{C0000040}	;-- [read write initialized]
+			BSS					#{C0000080}	;-- [read write uninitialized]
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
 			import				#{C0000040}	;-- [read write initialized]
@@ -255,8 +255,11 @@ context [
 	ILT-size:			4					;-- Import Lookup Table size (8 for 64-bit)
 	pointer-size:		4					;-- Pointer size (8 for 64-bit)
 	imports-refs:		make block! 10		;-- [ptr [DLL imports] ...]
+	initdata-size:      0
+	uninitdata-size:    0
 	opt-header-size:	length? form-struct optional-header
-
+	opt-header:         none
+	
 	get-timestamp: has [n t][
 		n: now
 		t: n/time
@@ -350,13 +353,11 @@ context [
 	] none
 	
 	rsrc-entry: make-struct [
-		name-rva		[integer!]
-		id				[integer!]
-		data-rva		[integer!]
-		sub-rva			[integer!]
+		name-id         [integer!]            ; if used in named entry, the value is rva to string, else id
+		data            [integer!]            ; acording the hight bit it depends if it's rva to data or subdirectory
 	] none
 	
-	rsrc-data: make-struct [
+	rsrc-data-entry: make-struct [
 		data-rva		[integer!]
 		size			[integer!]
 		codepage		[integer!]
@@ -364,24 +365,135 @@ context [
 	] none
 	
 	
-	build-rsrc: func [job [object!] /local buffer ptr table][
-		buffer: make binary! 100'000
-		ptr: 	section-addr?/memory job find/last job/sections word!
+	build-rsrc: func [
+		job [object!]
+		/local 
+			table section values entry data-entry
+			buffer-A buffer-B buffer-C buffer-D buffer-E
+			ptr ptr-B ptr-C ptr-D ptr-E
+			
+	][
+		append job/sections section: [
+			rsrc [- -]
+		]
+		;ptr is needed for data values as these use virtual adress space
+		ptr: section-addr?/memory job first find/last job/sections word!
 		
+		;== TODO: this is just hardcoded RSRC structure for the beginning (very simple icon)
+		values: [
+			3 [
+				1 [#{
+2800000010000000200000000100040000000000800000000000000000000000
+100000000000000004002E0000000000F0F3F5000A018000AEB9BD0000000000
+0000000000000000000000000000000000000000000000000000000000000000
+0000000000000000033333333333333003333333333333300333333333333330
+1111111111111111110333333333301111033333333330111103333333333011
+1111111111111111111103333330111111110333333011111111033333301111
+1111111111111111111111422411111111111142241111111111114224111111
+1111114444111111000000000000000000000000FFFF0000C0030000C0030000
+C0030000FFFF0000F00F0000F00F0000F00F0000FFFF0000FC3F0000FC3F0000
+FC3F0000FC3F0000
+}]
+			]
+			14 [
+				1 [
+					#{0000010001001010100000000000280100000100}
+				]
+			]
+		]
+		
+		;A] root-table
+		;A]   |__entry-subdirectory-1
+		;A]   |__entry-subdirectory-2
+		;ptr-B
+		;B] subdirectory-1-table
+		;B]    |__entry-data-description-1
+		;B] subdirectory-2-table
+		;B]    |__entry-data-description-2
+		;ptr-C
+		;C] data-1-table
+		;C]    |__entry-data-1
+		;C] data-2-table
+		;C]    |__entry-data-2
+		;ptr-D
+		;D] data-1
+		;D] data-2
+		;ptr-E
+		;E] data-1-raw
+		;E] data-2-raw
+		
+		;table size is 16B
+		;entry size is 8B
+		
+		buffer-A: make binary! 1024
+		buffer-B: make binary! 1024
+		buffer-C: make binary! 1024
+		buffer-D: make binary! 1024
+		buffer-E: make binary! 100'000
+		
+		data-entry: make-struct rsrc-data-entry none
+		;root-table:
 		table: make-struct rsrc-directory none
 		table/characteristics: 0
 		table/timestamp: 	   0
-		table/major: 		   0
+		table/major: 		   4
 		table/minor:		   0
 		table/name-entries:	   0
-		table/id-entries:	   1
-		append buffer form-struct table
+		table/id-entries:	   (length? values) / 2
+		append buffer-A form-struct table
 		
-		entry: make-struct rsrc-entry none
-		entry/name-rva
+		ptr-B: (table/id-entries * 8) + length? buffer-A
+		ptr-C: ptr-D: ptr-E: 0
 		
-		append job/sections compose/deep [
-			rsrc [- (buffer)]
+		foreach [dir subdir] values [
+			ptr-C: ptr-C + 16 ;subdirectory-table
+			foreach [dir data] subdir [
+				ptr-C: ptr-C + 8  ;subdirectory-entry
+				ptr-D: ptr-D + 16 + (8 * length? data) ;data-table + data entries
+				ptr-E: ptr-E + (16 * length? data)    
+			]
+		]
+		ptr-C: ptr-C + ptr-B
+		ptr-D: ptr-D + ptr-C
+		ptr-E: ptr-E + ptr-D 
+		
+		foreach [dir subdir] values [
+			;root entries
+			entry: make-struct rsrc-entry none
+			entry/name-id: dir
+			entry/data: (ptr-B + length? buffer-B) or -2147483648
+			append buffer-A form-struct entry
+			
+			foreach [dir data] subdir [
+				;subdirectory table + entry
+				table/id-entries: 1
+				append buffer-B form-struct table
+				entry/name-id: dir
+				entry/data: (ptr-C + length? buffer-C) or -2147483648
+				append buffer-B form-struct entry
+				;data description table + entry
+				table/id-entries: 1
+				append buffer-C form-struct table
+				entry/name-id: 0
+				entry/data: (ptr-D + length? buffer-D) ;xor -2147483648
+				append buffer-C form-struct entry
+				
+				foreach raw data [
+					data-entry/data-rva: ptr + ptr-E + length? buffer-E
+					data-entry/size: length? raw
+					data-entry/codepage: 0
+					data-entry/reserved: 0
+					append buffer-D form-struct data-entry
+					append buffer-E raw
+				]
+			]			
+		]
+		section/2/2: rejoin [
+			buffer-A
+			buffer-B
+			buffer-C
+			buffer-D
+			buffer-E
 		]
 	]
 
@@ -461,7 +573,7 @@ context [
 		oh/major-link-version:  linker/version/1
 		oh/minor-link-version:	linker/version/2
 		oh/code-size:			length? job/sections/code/2
-		oh/initdata-size:		length? job/sections/data/2
+		oh/initdata-size:		0
 		oh/uninitdata-size:		0			
 		oh/entry-point-addr:	code-page * memory-align		;-- entry point is set to beginning of CODE
 		oh/code-base:			code-page * memory-align
@@ -490,8 +602,11 @@ context [
 		;-- data directory
 		oh/import-addr:			import-addr? job			
 		oh/import-size:			length? job/sections/import/2
-
-		append job/buffer form-struct oh
+		if find job/sections 'rsrc [
+			oh/rsrc-addr:			section-addr? job 'rsrc		
+			oh/rsrc-size:			length? job/sections/rsrc/2
+		]
+		oh
 	]
 
 	build-section-header: func [job [object!] name [word!] spec [block!] /local sh s][
@@ -500,39 +615,63 @@ context [
 		sh/virtual-size: 	length? spec/2
 		sh/virtual-address:	section-addr?/memory job name
 		sh/raw-data-size: 	file-align * round/ceiling (length? spec/2) / file-align
-		sh/raw-data-ptr:	(section-addr?/file job name) - file-align
+		sh/raw-data-ptr:	(section-addr?/file job name); - file-align
 		sh/relocations-ptr:	0				;-- image or obj with no relocations
 		sh/line-num-ptr:	0
 		sh/relocations-nb:	0				;-- zero for executable images
 		sh/line-num-nb:		0
 		sh/flags:			to integer! select defs/s-type name		
 
+		case [
+			64 = (sh/flags and 64) [; 64 = #{00000040} = initialized data
+				initdata-size: initdata-size + sh/raw-data-size
+			]
+			128 = (sh/flags and 128) [
+				uninitdata-size: uninitdata-size + sh/raw-data-size
+			]
+		]
+		switch name [
+			code [opt-header/code-base: sh/virtual-address]
+			data [opt-header/data-base: sh/virtual-address]
+		]
 		change s: form-struct sh append uppercase form name null	
 		change spec s	
 	]
 
 	build: func [job [object!] /local page out pad code-ptr][
 		clear imports-refs
-
+		initdata-size: uninitdata-size: 0
+		
 		if job/debug? [
 			code-ptr: entry-point-address? job
 			linker/build-debug-lines job code-ptr pointer
 		]
-		if job/icon-file [
-			build-rsrc job
-		]
 		
 		build-import job					;-- populate import section buffer
 
+		;if job/icon-file [
+			build-rsrc job
+		;]
+		
 		out: job/buffer
 		append out defs/image/MSDOS-header
 		build-header job	
-		build-opt-header job
 
+		opt-header: build-opt-header job
+		
 		foreach [name spec] job/sections [
 			build-section-header job name spec
+		]
+		opt-header/initdata-size:	initdata-size
+		opt-header/uninitdata-size: uninitdata-size
+		opt-header/entry-point-addr: opt-header/code-base
+
+		append job/buffer form-struct opt-header
+
+		foreach [name spec] job/sections [
 			append job/buffer spec/1
 		]
+		
 		insert/dup tail job/buffer null pad-size? job/buffer
 
 		resolve-import-refs job				;-- resolve DLL imports references
