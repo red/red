@@ -66,7 +66,7 @@ Red [
 			str			  [c-string!]
 			size		  [integer!]
 			sz			  [integer!]
-			idx			  [integer!]	
+			idx			  [integer!]
 			i			  [integer!]
 			word		  [red-word!]
 	][
@@ -74,14 +74,14 @@ Red [
 		
 		jni: env/jni
 		
-		cls: jni/FindClass env "java/lang/Class"	
+		cls: jni/FindClass env "java/lang/Class"
 		either init? [
 			method: jni/FindClass env "java/lang/reflect/Constructor"
 			id: get-method env cls "getConstructors" "()[Ljava/lang/reflect/Constructor;"
 		][
 			method: jni/FindClass env "java/lang/reflect/Method"
 			getReturnType: get-method env method "getReturnType" "()Ljava/lang/Class;"
-			id: get-method env cls "getMethods" "()[Ljava/lang/reflect/Method;"
+			id: get-method env cls "getDeclaredMethods" "()[Ljava/lang/reflect/Method;"
 		]
 		list: jni/CallObjectMethod [env class id]
 		size: jni/GetArrayLength env list
@@ -111,26 +111,54 @@ Red [
 			
 			unless init? [
 				;--- Get method return type ---
-				name: jni/CallObjectMethod [env obj getReturnType]		
+				name: jni/CallObjectMethod [env obj getReturnType]
 				cls: jni/GetObjectClass env name
-				cls.getName: get-method env cls "getName" "()Ljava/lang/String;"						
+				cls.getName: get-method env cls "getName" "()Ljava/lang/String;"
 				name: jni/CallObjectMethod [env name cls.getName]
 				store-type env name
 			]
 			
 			;--- Get method arguments ---
-			cls-list: jni/CallObjectMethod [env obj getParams]		
+			cls-list: jni/CallObjectMethod [env obj getParams]
 			sz: jni/GetArrayLength env cls-list
 			i: 0
 			while [i < sz][
 				obj: jni/GetObjectArrayElement env cls-list i
 				cls: jni/GetObjectClass env obj
-				cls.getName: get-method env cls "getName" "()Ljava/lang/String;"						
+				cls.getName: get-method env cls "getName" "()Ljava/lang/String;"
 				name: jni/CallObjectMethod [env obj cls.getName]
 				store-type env name
 				i: i + 1
 			]
 			idx: idx + 1
+		]
+	]
+	
+	fetch-super-class: func [
+		env		[JNI-env!]
+		class	[jclass!]
+		/local
+			cls 			[jclass!]
+			getSuperclass	[jmethodID!]
+			getName			[jmethodID!]
+			src				[c-string!]
+			name			[jobject!]
+			word			[red-word!]
+			str				[c-string!]
+	][
+		cls: env/jni/FindClass env "java/lang/Class"
+		getSuperclass: get-method env cls "getSuperclass" "()Ljava/lang/Class;"
+		class: env/jni/CallObjectMethod [env class getSuperclass]
+		unless null? class [
+			#call [~java-parent-id-event as integer! class]
+
+			getName: get-method env cls "getName" "()Ljava/lang/String;"
+			name: env/jni/CallObjectMethod [env class getName]
+
+			str: env/jni/GetStringUTFChars env name null
+			word: red/word/load str
+			#call [~java-parent-name-event word]
+			env/jni/ReleaseStringUTFChars env name str
 		]
 	]
 	
@@ -163,9 +191,10 @@ Red [
 ;--			obj-id | none
 ;--			class-id
 ;--			class-name
+;-- 		parent-id
+;--			parent-name
 ;--			['init  [id '- [arg-type1 arg-type2 ...] ...]
-;--			method1 [id '- [arg-type1 arg-type2 ...]
-;--			...
+;--			[method1 [id '- [arg-type1 arg-type2 ...] ...]
 ;--		]
 ;--		...
 ;-- ]
@@ -174,16 +203,20 @@ Red [
 ~method:	none
 
 ~java-new-constructor-event: does [
-	append ~class/4 'init
-	append/only ~class/4 ~method: reduce [none '- make block! 2]
+	append ~class/6 'init
+	append/only ~class/6 ~method: reduce [none '- make block! 2]
 ]
 
 ~java-new-method-event: func [word [word!]][
-	append ~class word
-	append/only ~class ~method: reduce [none none make block! 2]
+	append ~class/7 word
+	append/only ~class/7 ~method: reduce [none none make block! 2]
 ]
 
 ~java-method-id-event: func [id [integer!]][~method/1: id]
+
+~java-parent-id-event: func [id [integer!]][~class/4: id]
+
+~java-parent-name-event: func [word [word!]][~class/5: word]
 
 ~java-type-event: func [type [word!] array? [logic!]][
 	if array? [type: reduce [type]]
@@ -215,6 +248,7 @@ Red [
 	cls: as jclass! id
 	enum-methods env cls yes							;-- fetch constructors
 	enum-methods env cls no								;-- fetch methods
+	fetch-super-class env cls
 	true
 ]
 
@@ -245,7 +279,7 @@ Red [
 	value: value - 1
 	while [value >= head][
 		switch TYPE_OF(value) [
-			TYPE_STRING [		
+			TYPE_STRING [
 				push jni/NewStringUTF 
 					jni-env
 					as-c-string string/rs-head as red-string! value
@@ -281,7 +315,7 @@ Red [
 	value: value - 1
 	while [value >= head][
 		switch TYPE_OF(value) [
-			TYPE_STRING [		
+			TYPE_STRING [
 				push jni/NewStringUTF 
 					jni-env
 					as-c-string string/rs-head as red-string! value
@@ -329,11 +363,11 @@ java-process-args: function [args [block!]][
 	args
 ]
 
-java-match-method: function [list [block!] spec [block!] fun [word!]][	
+java-match-method: function [list [block!] spec [block!] fun [word!]][
 	foreach [name entry] list [
 		if name <> fun [return none]
 		
-		proto: entry/3		
+		proto: entry/3
 		if (length? proto) = length? spec [
 			args: spec
 			match?: yes
@@ -351,36 +385,47 @@ java-match-method: function [list [block!] spec [block!] fun [word!]][
 	none
 ]
 
-;====== Public API ======
-
-java-new: func [spec [block!] /local name class cls id obj][
-	name: spec/1
-	
-	unless class: select/skip ~classes name 2 [
-		append ~classes name							;-- original class name
-		append/only ~classes class: make block! 1000	;-- class data
-		append class none								;-- instance id (for objects only)
+java-fetch-class: func [name [word!] /with cls [integer!] /local class][
+	append ~classes name								;-- original class name
+	append/only ~classes class: make block! 1000		;-- class data
+	append class none									;-- instance id (for objects only)
+	unless with [
 		cls: ~java-get-class-id replace/all form name dot slash
 		if cls = 0 [
 			print ["Error: not found class" form spec/1]
 			exit
 		]
-		append class cls								;-- class id
-		append class spec/1								;-- class name (original form)
-		append/only class make block! 2					;-- constructors block
-		
-		~class: class
-		~java-populate cls								;-- fetch methods and fields
-		~class: ~method: none
+	]
+	append class cls									;-- class id
+	append class name									;-- class name (original form)
+	append class 0										;-- parent id
+	append class none									;-- parent name
+	append/only class make block! 2						;-- constructors block
+	append/only class make block! 40					;-- methods block
+
+	~class: class
+	~java-populate cls									;-- fetch methods and fields
+	~class: ~method: none
+	class
+]
+
+;====== Public API ======
+
+java-new: func [spec [block!] /local name class id obj][
+	name: spec/1
+	
+	class: any [
+		select/skip ~classes name 2
+		java-fetch-class name
 	]
 	
 	;-- Find matching constructor
 	spec: reduce next spec
 	
-	either tail? class/4 [
+	either tail? class/6 [
 		id: ~java-instantiate-abstract class/2
 	][
-		unless id: java-match-method class/4 spec 'init [
+		unless id: java-match-method class/6 spec 'init [
 			print ["Error: no matching constructor found for class" form spec/1]
 			exit
 		]
@@ -395,8 +440,8 @@ java-new: func [spec [block!] /local name class cls id obj][
 	obj
 ]
 
-java-do: func [spec [block!] /local obj method id][
-	unless path? spec/1 [
+java-do: func [spec [block!] /local call obj method id class][
+	unless path? call: spec/1 [
 		print ["Error: object/method expected as first argument in " mold spec]
 		exit
 	]
@@ -408,16 +453,29 @@ java-do: func [spec [block!] /local obj method id][
 		print ["Error:" form :obj "is not a Java object!"]
 		exit
 	]
-	unless pos: find obj method: spec/1/2 [						;@@ replace with `get spec/1`
-		print ["Error: method" mold :action "not found!"]
-		exit
-	]
+	method: spec/1/2
 	spec: reduce next spec
+	class: obj
 	
-	unless id: java-match-method pos spec method [
-		print ["Error: no matching method found for " form method]
+	while [
+		all [
+			not all [
+				pos: find class/7 method
+				id: java-match-method pos spec method
+			]
+			class/5
+		]
+	][
+		class: any [
+			select/skip ~classes class/5 2
+			java-fetch-class/with class/5 class/4
+		]
+	]
+	unless id [
+		print ["Error: no matching method found for: " form call]
 		exit
 	]
+	
 	spec: append reduce [obj/1 id] java-process-args spec
 	~java-invoke spec
 ]
