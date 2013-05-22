@@ -162,7 +162,11 @@ Red [
 	--test-- "fun-ref-1"
 		ref1: func [a b][a + b]
 		--assert [a b] = spec-of :ref1
-		--assert [a + b] = body-of :ref1
+		body: body-of :ref1
+		--assert any [
+			[a + b] = body
+			none? body									;-- if option store-bodies = no
+		]
 	 
 	--test-- "fun-ref-2"
 		blk: clean-strings spec-of :append	

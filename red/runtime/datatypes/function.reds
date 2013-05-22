@@ -233,6 +233,7 @@ _function: context [
 		/local
 			fun    [red-function!]
 			native [red-native!]
+			value  [red-value!]
 			more   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
@@ -244,17 +245,17 @@ _function: context [
 		fun/more:	 alloc-cells 3
 		
 		more: as series! fun/more/value
-		copy-cell
-			as cell! body
-			alloc-tail more
-		
+		value: either null? body [none-value][as red-value! body]
+		copy-cell value alloc-tail more					;-- store body block or none
 		alloc-tail more									;-- reserved place for "symbols"
 		
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE
 		native/code: code
 		
-		if null? ctx [_context/bind body fun/ctx]		;-- do not bind if predefined context (already done)
+		if all [null? ctx not null? body][
+			_context/bind body fun/ctx					;-- do not bind if predefined context (already done)
+		]
 		fun/ctx
 	]
 		

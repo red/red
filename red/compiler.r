@@ -1265,7 +1265,7 @@ red: context [
 				(to set-word! ctx) _context/make (spec-blk) yes	;-- build context with value on stack
 			]
 			insert-lf -4
-			body-blk: emit-block/bind body ctx
+			body-blk: either job/store-bodies? [emit-block/bind body ctx]['null]
 			pop-locals
 		]
 		
