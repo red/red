@@ -77,7 +77,7 @@ JNI!: alias struct! [
 	
 	NewGlobalRef				[func-ptr!]
 	DeleteGlobalRef				[func-ptr!]
-	DeleteLocalRef				[func-ptr!]
+	DeleteLocalRef				[function! [[JNICALL] env [JNI-ptr!] obj [jobject!]]]
 	IsSameObject				[func-ptr!]
 	NewLocalRef					[func-ptr!]
 	EnsureLocalCapacity			[func-ptr!]

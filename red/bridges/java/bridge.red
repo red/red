@@ -89,7 +89,6 @@ Red [
 		getName:   get-method env method "getName" "()Ljava/lang/String;"
 		getParams: get-method env method "getParameterTypes" "()[Ljava/lang/Class;"
 		
-		
 		idx: 0
 		while [idx < size][
 			obj: jni/GetObjectArrayElement env list idx
@@ -122,14 +121,18 @@ Red [
 			cls-list: jni/CallObjectMethod [env obj getParams]
 			sz: jni/GetArrayLength env cls-list
 			i: 0
+			jni/DeleteLocalRef env obj					;-- release method object
+			
 			while [i < sz][
 				obj: jni/GetObjectArrayElement env cls-list i
 				cls: jni/GetObjectClass env obj
 				cls.getName: get-method env cls "getName" "()Ljava/lang/String;"
 				name: jni/CallObjectMethod [env obj cls.getName]
 				store-type env name
+				jni/DeleteLocalRef env obj				;-- release Class object
 				i: i + 1
 			]
+			jni/DeleteLocalRef env cls-list				;-- release Class array
 			idx: idx + 1
 		]
 	]
