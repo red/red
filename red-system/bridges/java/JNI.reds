@@ -75,8 +75,8 @@ JNI!: alias struct! [
 	PushLocalFrame				[func-ptr!]
 	PopLocalFrame				[func-ptr!]
 	
-	NewGlobalRef				[func-ptr!]
-	DeleteGlobalRef				[func-ptr!]
+	NewGlobalRef				[function! [[JNICALL] env [JNI-ptr!] obj [jobject!] return: [jobject!]]]
+	DeleteGlobalRef				[function! [[JNICALL] env [JNI-ptr!] ref [jobject!]]]
 	DeleteLocalRef				[function! [[JNICALL] env [JNI-ptr!] obj [jobject!]]]
 	IsSameObject				[func-ptr!]
 	NewLocalRef					[func-ptr!]

@@ -141,6 +141,7 @@ Red [
 		env		[JNI-env!]
 		class	[jclass!]
 		/local
+			jni				[JNI!]
 			cls 			[jclass!]
 			getSuperclass	[jmethodID!]
 			getName			[jmethodID!]
@@ -149,19 +150,23 @@ Red [
 			word			[red-word!]
 			str				[c-string!]
 	][
-		cls: env/jni/FindClass env "java/lang/Class"
+		jni: env/jni
+		
+		cls: jni/FindClass env "java/lang/Class"
 		getSuperclass: get-method env cls "getSuperclass" "()Ljava/lang/Class;"
-		class: env/jni/CallObjectMethod [env class getSuperclass]
+		class: jni/CallObjectMethod [env class getSuperclass]
+		
 		unless null? class [
+			class: jni/NewGlobalRef env class
 			#call [~java-parent-id-event as integer! class]
 
 			getName: get-method env cls "getName" "()Ljava/lang/String;"
-			name: env/jni/CallObjectMethod [env class getName]
+			name: jni/CallObjectMethod [env class getName]
 
-			str: env/jni/GetStringUTFChars env name null
+			str: jni/GetStringUTFChars env name null
 			word: red/word/load str
 			#call [~java-parent-name-event word]
-			env/jni/ReleaseStringUTFChars env name str
+			jni/ReleaseStringUTFChars env name str
 		]
 	]
 	
@@ -237,7 +242,9 @@ Red [
 	/local 
 		id  [jclass!]
 ][
-	as-integer jni-env/jni/FindClass jni-env as c-string! string/rs-head name
+	as-integer jni-env/jni/NewGlobalRef
+		jni-env
+		jni-env/jni/FindClass jni-env as c-string! string/rs-head name
 ]
 
 ~java-populate: routine [
@@ -263,7 +270,7 @@ Red [
 	init-id: get-method jni-env as jclass! cls "<init>" "()V"
 	push cls											;-- class id
 	push jni-env	
-	as-integer jni-env/jni/NewObject
+	as-integer jni-env/jni/NewGlobalRef jni-env jni-env/jni/NewObject
 ]
 
 ~java-instantiate: routine [
