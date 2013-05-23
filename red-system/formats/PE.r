@@ -444,7 +444,7 @@ context [
 		
 		dll-name-offset: length? names
 		append names rejoin [							;-- store DLL name
-			job/build-basename
+			last split-path job/build-basename
 			select defs/extensions job/type
 			null
 		]
