@@ -2921,6 +2921,18 @@ system-dialect: make-profilable context [
 			]
 		]
 	]
+	
+	emit-main-prolog: has [name spec][
+		either job/type = 'exe [
+			emitter/target/on-init
+		][												;-- wrap global code in a function
+			name: '***-main
+			compiler/add-function 'native reduce [name none []] 'stdcall
+			spec: emitter/add-native name
+			spec/2: 1
+			emitter/target/emit-prolog name [] 0
+		]
+	]
 
 	comp-start: has [script][
 		emitter/libc-init?: yes
@@ -2946,7 +2958,10 @@ system-dialect: make-profilable context [
 		either job/need-main? [
 			emitter/target/on-global-epilog no job/type	;-- emit main() epilog
 		][
-			compiler/comp-call '***-on-quit [0 0]		;-- call runtime exit handler
+			switch job/type [
+				exe [compiler/comp-call '***-on-quit [0 0]]	;-- call runtime exit handler
+				dll [emitter/target/emit-epilog '***-main [] 0 0]
+			]
 		]
 	]
 	
@@ -3036,7 +3051,7 @@ system-dialect: make-profilable context [
 			
 			clean-up
 			loader/init
-			emitter/target/on-init
+			emit-main-prolog
 			
 			job/need-main?: to logic! any [
 				job/need-main?							;-- pass-thru if set in config file
