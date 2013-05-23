@@ -237,6 +237,7 @@ bsd-startup-ctx: context [
 			apple	[struct! [s [c-string!]]]
 			pvars	[program-vars!]
 		][
+			***-main
 			bsd-startup-ctx/init
 			on-load argc argv envp apple pvars
 		]
