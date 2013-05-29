@@ -59,6 +59,7 @@ integer: context [
 		i 		[integer!]
 		return: [c-string!]
 		/local 
+			s	[c-string!]
 			c 	[integer!]
 			n 	[logic!]
 	][
