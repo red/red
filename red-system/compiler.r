@@ -2046,7 +2046,7 @@ system-dialect: make-profilable context [
 			pc: next pc
 			if set-word? name [
 				n: to word! name
-				unless local-variable? n [store-ns-symbol n]
+				unless any [locals local-variable? n][store-ns-symbol n]
 				
 				unless all [
 					local-variable? n
@@ -2072,7 +2072,7 @@ system-dialect: make-profilable context [
 					throw-error "storing a function! requires a type casting"
 				]
 				unless local-variable? n [
-					if ns-path [add-ns-symbol pc/-1]
+					if all [ns-path none? locals][add-ns-symbol pc/-1]
 					if all [ns: resolve-ns n ns <> n][name: to set-word! ns]
 					check-func-name/only to word! name	;-- avoid clashing with an existing function name		
 				]
@@ -2381,7 +2381,7 @@ system-dialect: make-profilable context [
 
 		comp-call: func [
 			name [word!] args [block!] /sub
-			/local list type res import? left right dup var-arity? saved? arg expr
+			/local list type res align? left right dup var-arity? saved? arg expr
 		][
 			name: decorate-fun name
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
@@ -2392,8 +2392,11 @@ system-dialect: make-profilable context [
 			]
 			order-args name list						;-- reorder argument according to cconv
 
-			import?: functions/:name/2 = 'import		;@@ syscalls don't seem to need special alignment??
-			if import? [emitter/target/emit-stack-align-prolog args]
+			align?: any [
+				functions/:name/2 = 'import		;@@ syscalls don't seem to need special alignment??
+			;	functions/:name/2 = 'routine
+			]
+			if align? [emitter/target/emit-stack-align-prolog args]
 
 			type: functions/:name/2
 			either type <> 'op [					
@@ -2422,7 +2425,7 @@ system-dialect: make-profilable context [
 			][
 				set-last-type functions/:name/4			;-- catch nested calls return type
 			]
-			if import? [emitter/target/emit-stack-align-epilog args]
+			if align? [emitter/target/emit-stack-align-epilog args]
 			res
 		]
 				
