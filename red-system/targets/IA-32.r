@@ -844,7 +844,6 @@ make-profilable make target-class [
 
 		if parent [emit #{89C2}]					;-- MOV edx, eax			; save value/address
 		unless value = <last> [emit-load value]
-		emit #{89D6}								;-- MOV esi, edx
 		emit #{92}									;-- XCHG eax, edx			; save value/restore address
 
 		switch type [
