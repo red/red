@@ -112,14 +112,21 @@ loader: make-profilable context [
 		s
 	]
 
-	inject: func [args [block!] 'macro s [block!] e [block!] /local rule pos i type value][
+	inject: func [args [block!] 'macro s [block!] e [block!] /local rule pos i type value path][
 		unless equal? length? args length? s/2 [
 			throw-error ["invalid macro arguments count in:" mold s/2]
 		]	
  		macro: copy-deep macro
 		parse :macro rule: [
 			some [
-				into rule 
+				pos: set path [path! | set-path!] (
+					forall path [
+						if i: find args path/1 [
+							value: pick s/2 index? :i
+							change/part path value 1
+						]
+					]
+				)
 				| pos: [
 					word! 		(type: word!) 
 					| set-word! (type: set-word!)
@@ -130,10 +137,16 @@ loader: make-profilable context [
 						change/only pos either type = word! [
 							value						;-- word! => pass-thru value
 						][
+							all [
+								path: find [path! set-path!] type?/word value
+								find [word! set-word!] to word! type
+								type: get path/1
+							]
 							to type value				;-- get/set => convert value
 						]
 					]
 				)
+				| into rule
 				| skip
 			]
 		]
