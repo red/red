@@ -2433,6 +2433,9 @@ system-dialect: make-profilable context [
 			set-path [set-path!] expr casted [block! none!]
 			/local type new value
 		][
+			value: unbox expr
+			if any [block? value path? value][emitter/target/emit-move-path-alt]
+			
 			if all [
 				not local-variable? set-path/1
 				enum-id? set-path/1
@@ -2455,7 +2458,6 @@ system-dialect: make-profilable context [
 					"^/*** found:" mold any [casted new]
 				]
 			]		
-			value: unbox expr
 			emitter/access-path set-path either any [block? value path? value][
 				 <last>
 			][

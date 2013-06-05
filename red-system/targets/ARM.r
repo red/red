@@ -803,6 +803,10 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-move-path-alt: does [
+		emit-i32 #{e1a02000}						;-- MOV r2, r0
+	]
+	
 	emit-save-last: does [
 		last-saved?: yes
 		either find [float! float64!] compiler/last-type/1 [
@@ -1273,14 +1277,14 @@ make-profilable make target-class [
 		
 		size: emitter/size-of? compiler/get-type value
 													;-- @@ separate 64/32-bit conventions, too messy...
-		if parent [emit-i32 #{e1a02000}]			;-- MOV r2, r0		; save value/address
 		unless value = <last> [
+			if parent [emit-i32 #{e1a02000}]		;-- MOV r2, r0		; save value/address
 			emit-load value							; @@ generates duplicate value loading sometimes
 			if all [not parent size = 8][
 				emit-i32 #{e1a02000}				;-- MOV r2, r0		; save value/address
 			]
+			if size <> 8 [emit-swap-regs/alt]			;-- save value/restore address
 		]
-		if size <> 8 [emit-swap-regs/alt]			;-- save value/restore address
 
 		switch type [
 			c-string! [emit-c-string-path path parent]

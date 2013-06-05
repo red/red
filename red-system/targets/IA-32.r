@@ -159,6 +159,10 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-move-path-alt: does [
+		emit #{89C2}								;-- MOV edx, eax
+	]
+	
 	emit-save-last: does [
 		last-saved?: yes
 		unless compiler/any-float? compiler/last-type [
@@ -842,9 +846,11 @@ make-profilable make target-class [
 	][
 		if verbose >= 3 [print [">>>storing path:" mold path mold value]]
 
-		if parent [emit #{89C2}]					;-- MOV edx, eax			; save value/address
-		unless value = <last> [emit-load value]
-		emit #{92}									;-- XCHG eax, edx			; save value/restore address
+		unless value = <last> [
+			if parent [emit #{89C2}]				;-- MOV edx, eax			; save value/address
+			emit-load value
+			emit #{92}								;-- XCHG eax, edx			; save value/restore address
+		]
 
 		switch type [
 			c-string! [emit-c-string-path path parent]
