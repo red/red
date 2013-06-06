@@ -1,0 +1,40 @@
+===start-group=== "One function exported"
+
+	--test-- "dllf1"
+	--assert 2 = dll1-add-one 1
+  
+	--test-- "dllf2"    
+	--assert -2147483647 = dll1-add-one -2147483648
+  
+	--test-- "dllf3"
+	--assert -2147483648 = dll1-add-one 2147483647
+
+===end-group===
+
+===start-group=== "Multi function export"
+
+	--test-- "mfe1"
+	--assert -1 = dll2-negate 1
+	
+	--test-- "mfe2"
+	--assert -1.0 = dll2-negatef 1.0
+	
+	--test-- "mfe3"
+	--assert (as float32! -1.0) = dll2-negatef32 (as float32! 1.0)
+	
+	--test-- "mfe4"
+	--assert false = dll2-true-false true
+	
+	--test-- "mfe5"
+	;--assert "odd" = dll2-odd-or-even "Hello"
+	
+===end-group===
+
+;===start-group=== "Simple callback"
+;	
+;	--test-- "sc1"
+;		sc1-i: 0
+;		sc1-f: function [[cdecl] i [integer!]][sc1-i: i]
+;	--assert 1 = dll2-callbacki 1 :sc1-f
+;	
+;===end-group=== 

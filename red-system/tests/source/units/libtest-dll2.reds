@@ -50,5 +50,12 @@ odd-or-even: func [
 	either 0 = (len % 2) [answer: "even"][answer: "odd"]
 	answer	
 ]
+
+;callbacki: func [
+;	i				[integer!]
+;	f				[function! [i [integer!]]]
+;][
+;	f i	
+;]
 	
 #export [neg negf negf32 true-false odd-or-even]
