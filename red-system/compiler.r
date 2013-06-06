@@ -2434,8 +2434,9 @@ system-dialect: make-profilable context [
 			/local type new value
 		][
 			value: unbox expr
-			if any [block? value path? value][emitter/target/emit-move-path-alt]
-			
+			if find [block! path! tag!] type?/word value [
+				emitter/target/emit-move-path-alt		;-- save assigned value
+			]
 			if all [
 				not local-variable? set-path/1
 				enum-id? set-path/1
