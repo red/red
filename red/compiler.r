@@ -1241,9 +1241,9 @@ red: context [
 	
 	comp-func: func [
 		/collect /does /has
-		/local name word spec body symbols locals-nb spec-blk body-blk ctx
+		/local name word spec body symbols locals-nb spec-blk body-blk ctx src-name
 	][
-		name: check-func-name to word! pc/-1
+		name: check-func-name src-name: to word! pc/-1
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
 		
@@ -1270,7 +1270,7 @@ red: context [
 		]
 		
 		emit-open-frame 'set							;-- function value creation
-		emit-push-word name
+		emit-push-word src-name
 		emit reduce [
 			'_function/push spec-blk body-blk ctx
 			'as 'integer! to get-word! decorate-func/strict name
