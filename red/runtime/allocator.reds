@@ -472,6 +472,13 @@ alloc-series-buffer: func [
 	series: frame/heap
 	if ((as byte-ptr! series) + sz) >= frame/tail [
 		; TBD: trigger a GC pass from here and update memory/s-active
+		if sz >= memory/s-size [				;@@ temporary checks
+			memory/s-size: memory/s-max
+		]
+		if sz >= memory/s-max [				;@@ temporary checks
+			print-line "Memory error: series too big!"
+			--NOT_IMPLEMENTED--
+		]
 		frame: alloc-series-frame
 		memory/s-active: frame				;@@ to be removed once GC implemented
 		series: frame/heap
