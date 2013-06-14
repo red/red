@@ -96,13 +96,18 @@ rsc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
+		base-path: system/script/parent/path
 		opts: make opts config
 		opts/config-name: config-name
 
 		;; Process -o/--output (if any).
 		if output [
-			opts/build-prefix: %""
 			opts/build-basename: load-filename output
+			either slash = first opts/build-basename [
+				opts/build-prefix: %""
+			] [
+				opts/build-prefix: base-path
+			]
 		]
 
 		;; Process -v/--verbose (if any).
@@ -114,9 +119,12 @@ rsc: context [
 
 		;; Process input sources.
 		if empty? srcs [fail "No source files specified."]
-		foreach src srcs [
-			unless exists? src [
-				fail ["Cannot access source file:" src]
+		forall srcs [
+			if slash <> first srcs/1 [								;-- if relative path
+				srcs/1: clean-path join base-path srcs/1			;-- add working dir path
+			]
+			unless exists? srcs/1 [
+				fail ["Cannot access source file:" srcs/1]
 			]
 		]
 

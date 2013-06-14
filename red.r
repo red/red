@@ -103,8 +103,10 @@ redc: context [
 
 		;; Process -o/--output (if any).
 		if output [
-			opts/build-prefix: %""
 			opts/build-basename: load-filename output
+			if slash = first opts/build-basename [
+				opts/build-prefix: %""
+			]
 		]
 
 		;; Process -v/--verbose (if any).

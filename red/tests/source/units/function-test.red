@@ -224,6 +224,55 @@ Red [
   	--test-- "ri4 issue #461"
   		ri4-fn: func ['word] [mold :word]
   	--assert "+" = ri4-fn +
+  	
+  	--test-- "ri5 issue #420"
+  		ri5-fn: function [][
+  			g: func [] [true]
+  			g
+  		]
+  	--assert ri5-fn
+  	
+  	--test-- "ri6 issue #420"
+  		ri6-fn: func [
+  			/local
+  				g
+  		][
+  			g: func [] [true]
+  			g
+  		]
+  	--assert ri6-fn
+  	
+  	--test-- "ri7 issue #420"
+  		ri7-g: func [][true]
+  		ri7-f: func [][g]
+  	--assert ri7-f
+  	
+  	--test-- "ri8 issue #443"
+  		ri8-fn: func[
+  			/local
+  				ri8-b
+  				ri8-i
+  				ri8-j
+  		][
+  			ri8-b: copy []
+  			foreach [ri8-i ri8-j] [1 2 3 4] [append ri8-b ri8-i * ri8-j]
+  			ri8-b
+  		]
+  		ri8-i: 100
+  		ri8-j: 200
+  	--assert [2 12] = ri8-fn
+  	--assert 100 = ri8-i
+  	--assert 200 = ri8-j
+  	
+  	--test-- "ri9 issue #443"
+  		ri9-fn: function[][
+  			ri9-b: copy []
+  			foreach [ri9-i ri9-j] [1 2 3 4] [append ri9-b ri9-i * ri9-j]
+  			ri9-b
+  		]
+  	--assert [2 12] = ri9-fn
+  	--assert unset! = type? get 'ri9-i
+  	--assert unset! = type? get 'ri9-j
 
 ===end-group===
 

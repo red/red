@@ -19,7 +19,7 @@ file-list: [
 	%conditional-test.red								%auto-tests/interpreter-conditional-test.red
 	%evaluation-test.red								%auto-tests/interpreter-evaluation-test.red
 	%find-test.red										%auto-tests/interpreter-find-test.red
-	%function-test.red								%auto-tests/interpreter-function-test.red
+	%function-test.red								    %auto-tests/interpreter-function-test.red
 	%load-test.red										%auto-tests/interpreter-load-test.red
 	%logic-test.red										%auto-tests/interpreter-logic-test.red
 	%loop-test.red										%auto-tests/interpreter-loop-test.red
@@ -30,6 +30,8 @@ file-list: [
 	%switch-test.red									%auto-tests/interpreter-switch-test.red
 	%append-test.red									%auto-tests/interpreter-append-test.red
 	%insert-test.red									%auto-tests/interpreter-insert-test.red
+	%make-test.red									    %auto-tests/interpreter-make-test.red
+	%system-test.red									%auto-tests/interpreter-system-test.red
 	%auto-tests/equal-auto-test.red						%auto-tests/interp-equal-auto-test.red
 	%auto-tests/greater-auto-test.red					%auto-tests/interp-greater-auto-test.red
 	%auto-tests/infix-equal-auto-test.red				%auto-tests/interp-inf-equal-auto-test.red
