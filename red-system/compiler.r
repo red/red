@@ -2415,7 +2415,7 @@ system-dialect: make-profilable context [
 			
 			if args/1 <> #custom [
 				type: functions/:name/2
-				either type <> 'op [					
+				either type <> 'op [
 					forall list [						;-- push function's arguments on stack
 						expr: list/1
 						if block? unbox expr [comp-expression expr yes]	;-- nested call
@@ -2432,7 +2432,7 @@ system-dialect: make-profilable context [
 						emitter/target/emit-save-last	;-- optionally save left argument result
 					]
 					if block? unbox list/2 [comp-expression list/2 yes]	;-- nested call
-					if saved? [emitter/target/emit-restore-last]			
+					if saved? [emitter/target/emit-restore-last]
 				]
 			]
 			res: emitter/target/emit-call name args to logic! sub
@@ -3080,7 +3080,7 @@ system-dialect: make-profilable context [
 				job/need-main?							;-- pass-thru if set in config file
 				all [
 					job/type = 'exe
-					not find [Windows MacOSX] job/OS			
+					not find [Windows MacOSX] job/OS
 				]
 			]
 			

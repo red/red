@@ -1925,38 +1925,50 @@ make-profilable make target-class [
 	]
 	
 	emit-APCS-header: func [args [block!] cconv [word!] /local reg bits offset type size stk][
-		if issue? args/1 [args: args/2]
-		reg: stk: 0
-		foreach arg reverse args [					;-- arguments are on stack in reverse order	
-			if arg <> #_ [							;-- bypass place-holder marker
-				type: compiler/get-type arg
-				size: either all [cconv = 'cdecl type/1 = 'float32!][
-					8								;-- promote to C double
-				][
-					emitter/size-of? type
-				]
-				if reg >= 4 [stk: stk + any [size 4]] ;-- account for extra args on stack
-													  ;-- ANY: workaround special variables from start.reds
-				set [bits offset] either 8 = size [
-					either reg <= 2 [
-						if odd? reg [reg: reg + 1]	;-- start 64-bit value on even register
-						[3 2]						;-- use 2 regs
-					][
-						[0 2]						;-- no space in regs to store a 64-bit value
-					]
-				][	
-					[1 1]							;-- use 1 reg
-				]
-				
-				if all [reg < 4 not zero? bits][
-					emit-i32 #{e8bd00} 				;-- POP {rn[,rn+1]}
-					emit-i32 to char! shift/left bits reg
-				]
-				
-				reg: reg + offset
+		either args/1 = #custom [
+			repeat reg min args/2/1 4 [
+				emit-i32 #{e8bd00} 					;-- POP {rn[,rn+1]}
+				emit-i32 to char! shift/left 1 reg - 1
 			]
+			max 0 args/2/1 - 4						;-- return extra args on stack count
+		][
+			if issue? args/1 [args: args/2]
+			reg: stk: 0
+		
+			foreach arg reverse args [				;-- arguments are on stack in reverse order	
+				if arg <> #_ [						;-- bypass place-holder marker
+					type: compiler/get-type arg
+					size: either all [
+						cconv = 'cdecl
+						type/1 = 'float32!
+					][
+						8							;-- promote to C double
+					][
+						emitter/size-of? type
+					]
+					if reg >= 4 [stk: stk + any [size 4]] ;-- account for extra args on stack
+														  ;-- ANY: workaround special variables from start.reds
+					set [bits offset] either 8 = size [
+						either reg <= 2 [
+							if odd? reg [reg: reg + 1]	;-- start 64-bit value on even register
+							[3 2]					;-- use 2 regs
+						][
+							[0 2]					;-- no space in regs to store a 64-bit value
+						]
+					][	
+						[1 1]						;-- use 1 reg
+					]
+
+					if all [reg < 4 not zero? bits][
+						emit-i32 #{e8bd00} 			;-- POP {rn[,rn+1]}
+						emit-i32 to char! shift/left bits reg
+					]
+					
+					reg: reg + offset
+				]
+			]
+			stk										;-- return extra args on stack count
 		]
-		stk											;-- return extra args on stack size for further adjustment
 	]
 	
 	emit-call-syscall: func [args [block!] fspec [block!] /local extra][	; @@ check if it needs stack alignment too
@@ -1973,16 +1985,30 @@ make-profilable make target-class [
 		extra: emit-APCS-header args fspec/3
 		pools/collect/spec/with 0 spec #{e59fc000}	;-- MOV ip, #(.data.rel.ro + symbol_offset)
 		if PIC? [emit-i32 #{e08cc009}]				;-- ADD ip, sb
-		emit-i32 #{e1a0e00f}						;-- MOV lr, pc		; @@ save lr on stack??
-		emit-i32 #{e51cf000}						;-- LDR pc, [ip]
-		unless zero? extra [
+		emit-i32 #{e59cc000}						;-- LDR ip, [ip]
+		emit-i32 #{e12fff3c}						;-- BLX ip
+		unless zero? extra [						;-- _next:
 			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments
 		]
 	]
-
-	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine name [word!]][
+	
+	emit-call-native: func [
+		args [block!] fspec [block!] spec [block!] /routine name [word!]
+		/local attribs extra
+	][
 		either routine [							;-- test for function! pointer case
+			if any [
+				fspec/5 = 'callback
+				all [
+					attribs: compiler/get-attributes fspec/4
+					any [find attribs 'cdecl find attribs 'stdcall]
+				]
+			][
+				extra: emit-APCS-header args fspec/3
+			]
 			name: pick tail fspec -2
+			
+			emit-i32 #{e1a0c000}					;-- MOV r12, r0
 			either all [
 				'local = last fspec
 				find form name slash 
@@ -1991,7 +2017,12 @@ make-profilable make target-class [
 			][
 				emit-load-symbol name
 			]
-			emit-i32 #{e1200030}					;-- BLX r0
+			emit-i32 #{e1a0a000}					;-- MOV r10, r0
+			emit-i32 #{e1a0000c}					;-- MOV r0, r12
+			emit-i32 #{e120003a}					;-- BLX r10
+			if all [extra positive? extra][
+				emit-op-imm32 #{e28dd000} extra		;-- ADD sp, sp, extra	; skip extra stack arguments
+			]
 		][
 			if issue? args/1 [							;-- variadic call
 				emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
@@ -2048,7 +2079,6 @@ make-profilable make target-class [
 		size: 0
 		if issue? args/1 [
 			args: args/2
-			;if args/1 = #typed [size: size + 4]	;-- adjustment for typed functions
 			size: size + 4
 		]
 		if args: arguments-on-stack?/cdecl args [	;-- skip arguments passed in r0-r3
@@ -2062,6 +2092,8 @@ make-profilable make target-class [
 
 	emit-stack-align-epilog: func [args [block!]][
 		emit-i32 #{e8bd6000}						;-- POP {sp,lr}
+		;emit-i32 #{e49dd004}						;-- POP sp				;@@ ARMv7 version?
+		;emit-i32 #{e49de004}						;-- POP lr				;@@ ARMv7 version?
 	]
 	
 	emit-throw: func [value [integer! word!]][
@@ -2159,9 +2191,11 @@ make-profilable make target-class [
 			emit-i32 #{e8bd0004}					;-- POP {r2}		; get stack offset
 			emit-i32 #{e08dd002}					;-- ADD sp, sp, r2	; skip arguments list (clears stack)
 		][
-			emit-op-imm32
-				#{e28dd000}							;-- ADD sp, sp, args-size
-				round/to/ceiling args-size 4
+			unless zero? args-size [
+				emit-op-imm32
+					#{e28dd000}						;-- ADD sp, sp, args-size
+					round/to/ceiling args-size 4
+			]
 		]
 		
 		fspec: select/only compiler/functions name
@@ -2174,7 +2208,8 @@ make-profilable make target-class [
 			]
 		][
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
-			emit-i32 #{e8bd8ff0}					;-- LDMFD sp!, {r4-r11, pc}
+			emit-i32 #{e8bd4ff0}					;-- LDMFD sp!, {r4-r11, lr}
+			emit-i32 #{e12fff1e}					;-- BX lr
 		][
 			emit-i32 #{e1a0f00e}					;-- MOV pc, lr
 		]
