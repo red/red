@@ -64,12 +64,21 @@ Linux [									; Linux default target
 ;]
 ;-------------------------
 Android [
-	OS:			'Linux
+	OS:			'Android
 	format:		'ELF
 	target:		'ARM
 	type:		'exe
-	base-address: 32768					; 8000h
 	dynamic-linker: "/system/bin/linker"
+	store-bodies?: no
+]
+;-------------------------
+Android-x86 [
+	OS:			'Android
+	format:		'ELF
+	target:		'IA-32
+	type:		'exe
+	dynamic-linker: "/system/bin/linker"
+	store-bodies?: no
 ]
 ;-------------------------
 Linux-ARM [

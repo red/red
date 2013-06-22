@@ -1040,9 +1040,9 @@ system-dialect: make-profilable context [
 			]
 			cconv: ['cdecl | 'stdcall]
 			attribs: [
-				[cconv ['variadic | 'typed]]
-				| [['variadic | 'typed] cconv]
-				| 'catch | 'infix | 'variadic | 'typed | 'callback | cconv
+				[cconv ['variadic | 'typed | 'custom]]
+				| [['variadic | 'typed | 'custom] cconv]
+				| 'catch | 'infix | 'variadic | 'typed | 'custom | 'callback | cconv
 			]
 			type-def: pick [[func-pointer | type-spec] [type-spec]] to logic! extend
 
@@ -1213,6 +1213,7 @@ system-dialect: make-profilable context [
 				any [
 					all [find attribs 'variadic 'variadic]
 					all [find attribs 'typed 'typed]
+					all [find attribs 'custom 'custom]
 				]
 			]
 		]
@@ -2378,10 +2379,20 @@ system-dialect: make-profilable context [
 				reverse args
 			]
 		]
+		
+		external-call?: func [spec [block!] /local attribs][
+			any [
+				spec/5 = 'callback
+				all [
+					attribs: get-attributes spec/4
+					any [find attribs 'cdecl find attribs 'stdcall]
+				]
+			]
+		]
 
 		comp-call: func [
 			name [word!] args [block!] /sub
-			/local list type res align? left right dup var-arity? saved? arg expr
+			/local list type res align? left right dup var-arity? saved? arg expr spec
 		][
 			name: decorate-fun name
 			list: either issue? args/1 [				;-- bypass type-checking for variable arity calls
@@ -2392,31 +2403,37 @@ system-dialect: make-profilable context [
 			]
 			order-args name list						;-- reorder argument according to cconv
 
-			align?: any [
-				functions/:name/2 = 'import		;@@ syscalls don't seem to need special alignment??
-			;	functions/:name/2 = 'routine
+			spec: functions/:name
+			align?: all [
+				args/1 <> #custom
+				any [
+					spec/2 = 'import						;@@ syscalls don't seem to need special alignment??
+					all [spec/2 = 'routine external-call? spec]
+				]
 			]
 			if align? [emitter/target/emit-stack-align-prolog args]
-
-			type: functions/:name/2
-			either type <> 'op [					
-				forall list [							;-- push function's arguments on stack
-					expr: list/1
-					if block? unbox expr [comp-expression expr yes]	;-- nested call
-					if object? expr [cast expr]
-					if type <> 'inline [
-						emitter/target/emit-argument expr functions/:name ;-- let target define how arguments are passed
+			
+			if args/1 <> #custom [
+				type: functions/:name/2
+				either type <> 'op [					
+					forall list [						;-- push function's arguments on stack
+						expr: list/1
+						if block? unbox expr [comp-expression expr yes]	;-- nested call
+						if object? expr [cast expr]
+						if type <> 'inline [
+							emitter/target/emit-argument expr functions/:name ;-- let target define how arguments are passed
+						]
 					]
+				][										;-- nested calls as op argument require special handling
+					if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
+					left:  unbox list/1
+					right: unbox list/2
+					if saved?: all [block? left any [block? right path? right]][
+						emitter/target/emit-save-last	;-- optionally save left argument result
+					]
+					if block? unbox list/2 [comp-expression list/2 yes]	;-- nested call
+					if saved? [emitter/target/emit-restore-last]			
 				]
-			][											;-- nested calls as op argument require special handling
-				if block? unbox list/1 [comp-expression list/1 yes]	;-- nested call
-				left:  unbox list/1
-				right: unbox list/2
-				if saved?: all [block? left any [block? right path? right]][
-					emitter/target/emit-save-last		;-- optionally save left argument result
-				]
-				if block? unbox list/2 [comp-expression list/2 yes]	;-- nested call
-				if saved? [emitter/target/emit-restore-last]			
 			]
 			res: emitter/target/emit-call name args to logic! sub
 
@@ -3063,7 +3080,7 @@ system-dialect: make-profilable context [
 				job/need-main?							;-- pass-thru if set in config file
 				all [
 					job/type = 'exe
-					not find [Windows MacOSX] job/OS
+					not find [Windows MacOSX] job/OS			
 				]
 			]
 			

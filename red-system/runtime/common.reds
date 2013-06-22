@@ -113,6 +113,7 @@ form-type: func [
 	Windows  [#include %win32.reds]
 	Syllable [#include %syllable.reds]
 	MacOSX	 [#include %darwin.reds]
+	Android	 [#include %android.reds]
 	#default [#include %linux.reds]
 ]
 

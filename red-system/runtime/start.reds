@@ -65,6 +65,39 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		***__stack_end: system/stack/top
 		libc-start :***_start ***__argv ***__envp null null ***__stack_end		
 	]
+	
+	Android [
+		#import [LIBC-file cdecl [
+			libc-init: "__libc_init" [
+				args 			[pointer! [integer!]]
+				onexit 			[function! []]
+				main 			[function! []]
+				structors		[pointer! [integer!]]
+			]
+		]]
+		
+		;; Clear the frame pointer. The SVR4 ELF/i386 ABI suggests this, to
+		;; mark the outermost frame.
+		system/stack/frame: as pointer! [integer!] 0
+
+		;; Extract arguments from the call stack (which was setup by the
+		;; kernel).
+		***__argc: pop
+		***__argv: system/stack/top
+		
+		system/stack/top: system/stack/top - 4			;-- simulate a structors struct on stack
+		push 0											;-- preinit
+		push 0											;-- init
+		push 0											;-- fini
+
+		;; Before pushing arguments for `libc-start`, align the stack to a
+		;; 128-bit boundary, to prevent misaligned access penalities.
+		;system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
+		
+		;; Finally, call into Bionic's startup routine.
+		libc-init ***__argv - 1 null :***_start ***__argv - 16
+	]
+	
 	#default [										;-- for SVR4 fully conforming UNIX platforms
 		#import [LIBC-file cdecl [
 			libc-start: "__libc_start_main" [
