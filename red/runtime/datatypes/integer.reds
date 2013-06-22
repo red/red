@@ -128,6 +128,7 @@ integer: context [
 	
 	push: func [
 		value	[integer!]
+		return: [red-integer!]
 		/local
 			int [red-integer!]
 	][
@@ -136,6 +137,7 @@ integer: context [
 		int: as red-integer! stack/push*
 		int/header: TYPE_INTEGER
 		int/value: value
+		int
 	]
 
 	;-- Actions --
