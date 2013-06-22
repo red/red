@@ -934,7 +934,6 @@ replace: func [
 	either all [
 		pos: series
 		either any-series? :pattern [
-			p-len: length? pattern
 			while [pos: find pos pattern][
 				remove/part pos len
 				pos: insert pos value
@@ -950,3 +949,5 @@ replace: func [
 	]
 	series
 ]
+
+zero?: func [value [number!]][value = 0]
