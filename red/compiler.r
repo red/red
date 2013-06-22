@@ -1300,7 +1300,7 @@ red: context [
 		comp-func/has
 	]
 	
-	comp-routine: has [name word spec body spec-blk body-blk][
+	comp-routine: has [name word spec spec* body spec-blk body-blk][
 		name: check-func-name to word! pc/-1
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
@@ -1313,11 +1313,14 @@ red: context [
 		
 		process-calls body								;-- process #call directives
 		
-		set [spec-blk body-blk] redirect-to-literals [
-			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
+		clear find spec*: copy spec /local
+		spec-blk: redirect-to-literals [emit-block spec*]
+		body-blk: either job/store-bodies? [
+			redirect-to-literals [emit-block body]
+		][
+			'null
 		]
 		convert-types spec
-		
 		either no-global? [
 			repend bodies [								;-- saved for deferred inclusion
 				name spec body none none none none none
