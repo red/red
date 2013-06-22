@@ -15,6 +15,7 @@ Red/System [
 #define jmethodID!	int-ptr!
 #define jint!		integer!
 #define jobject!	int-ptr!
+#define jarray!		int-ptr!
 #define jclass!		int-ptr!
 #define jstring!	int-ptr!
 #define jboolean!	int-ptr!
@@ -69,7 +70,7 @@ JNI!: alias struct! [
 	ThrowNew					[func-ptr!]
 	ExceptionOccurred			[func-ptr!]
 	ExceptionDescribe			[func-ptr!]
-	ExceptionClear				[func-ptr!]
+	ExceptionClear				[function! [[JNICALL] env [JNI-ptr!]]]
 	FatalError					[func-ptr!]
 	
 	PushLocalFrame				[func-ptr!]
@@ -83,9 +84,9 @@ JNI!: alias struct! [
 	EnsureLocalCapacity			[func-ptr!]
 	
 	AllocObject					[func-ptr!]
-	NewObject					[function! [[JNICALL] return: [jobject!]]] ;-- stack frame is manually constructed
+	NewObject					[function! [[JNICALL variadic] return: [jobject!]]] ;-- stack frame is manually constructed
 	NewObjectV					[func-ptr!]
-	NewObjectA					[func-ptr!]
+	NewObjectA					[function! [[JNICALL custom] return: [jobject!]]]
 	
 	GetObjectClass				[function! [[JNICALL] env [JNI-ptr!] obj [jobject!] return: [jclass!]]]
 	IsInstanceOf				[func-ptr!]
@@ -93,47 +94,47 @@ JNI!: alias struct! [
 	
 	CallObjectMethod			[function! [[JNICALL variadic] return: [jobject!]]]
 	CallObjectMethodV			[func-ptr!]
-	CallObjectMethodA			[func-ptr!]
+	CallObjectMethodA			[function! [[JNICALL custom] return: [jobject!]]]
 	
 	CallBooleanMethod			[func-ptr!]
 	CallBooleanMethodV			[func-ptr!]
-	CallBooleanMethodA			[func-ptr!]
+	CallBooleanMethodA			[function! [[JNICALL custom] return: [jboolean!]]]
 	
 	CallByteMethod				[func-ptr!]
 	CallByteMethodV				[func-ptr!]
-	CallByteMethodA				[func-ptr!]
+	CallByteMethodA				[function! [[JNICALL custom] return: [jobject!]]]
 	
 	CallCharMethod				[func-ptr!]
 	CallCharMethodV				[func-ptr!]
-	CallCharMethodA				[func-ptr!]
+	CallCharMethodA				[function! [[JNICALL custom] return: [jint!]]]
 	
 	CallShortMethod				[func-ptr!]
 	CallShortMethodV			[func-ptr!]
-	CallShortMethodA			[func-ptr!]
+	CallShortMethodA			[function! [[JNICALL custom] return: [jint!]]]
 	
 	CallIntMethod				[func-ptr!]
 	CallIntMethodV				[func-ptr!]
-	CallIntMethodA				[func-ptr!]
+	CallIntMethodA				[function! [[JNICALL custom] return: [jint!]]]
 	
 	CallLongMethod				[func-ptr!]
 	CallLongMethodV				[func-ptr!]
-	CallLongMethodA				[func-ptr!]
+	CallLongMethodA				[function! [[JNICALL custom] return: [jint!]]]
 	
 	CallFloatMethod				[func-ptr!]
 	CallFloatMethodV			[func-ptr!]
-	CallFloatMethodA			[func-ptr!]
+	CallFloatMethodA			[function! [[JNICALL custom] return: [jobject!]]]
 
 	CallDoubleMethod			[func-ptr!]
 	CallDoubleMethodV			[func-ptr!]
-	CallDoubleMethodA			[func-ptr!]
+	CallDoubleMethodA			[function! [[JNICALL custom] return: [jobject!]]]
 
-	CallVoidMethod				[func-ptr!]
+	CallVoidMethod				[function! [[JNICALL variadic]]]
 	CallVoidMethodV				[func-ptr!]
-	CallVoidMethodA				[func-ptr!]
+	CallVoidMethodA				[function! [[JNICALL custom]]]
 	
 	CallNonvirtualObjectMethod	[func-ptr!]
 	CallNonvirtualObjectMethodV	[func-ptr!]
-	CallNonvirtualObjectMethodA	[func-ptr!]
+	CallNonvirtualObjectMethodA	[function! [[JNICALL custom] return: [jobject!]]]
 	
 	CallNonvirtualBooleanMethod	 [func-ptr!]
 	CallNonvirtualBooleanMethodV [func-ptr!]
@@ -266,10 +267,73 @@ JNI!: alias struct! [
 	ReleaseStringUTFChars		[function! [[JNICALL] env [JNI-ptr!] str [jstring!] buf [c-string!]]]
 	
 	GetArrayLength				[function! [[JNICALL] env [JNI-ptr!] array [jobject!] return: [jint!]]]
-	NewObjectArray				[func-ptr!]
+	NewObjectArray				[function! [[JNICALL] env [JNI-ptr!] size [jint!] type [jclass!] init [jobject!] return: [jarray!]]]
 	GetObjectArrayElement		[function! [[JNICALL] env [JNI-ptr!] array [jobject!] idx [jint!] return: [jobject!]]]
-	SetObjectArrayElement		[func-ptr!]
-	;...
+	SetObjectArrayElement		[function! [[JNICALL] env [JNI-ptr!] array [jobject!] idx [jint!] obj [jobject!] return: [jobject!]]]
+	
+	NewBooleanArray				[func-ptr!]
+	NewByteArray				[func-ptr!]
+	NewCharArray				[func-ptr!]
+	NewShortArray				[func-ptr!]
+	NewIntArray					[func-ptr!]
+	NewLongArray				[func-ptr!]
+	NewFloatArray				[func-ptr!]
+	NewDoubleArray				[func-ptr!]
+	
+	GetBooleanArrayElements		[func-ptr!]
+	GetByteArrayElements		[func-ptr!]
+	GetCharArrayElements		[func-ptr!]
+	GetShortArrayElements		[func-ptr!]
+	GetIntArrayElements			[func-ptr!]
+	GetLongArrayElements		[func-ptr!]
+	GetFloatArrayElements		[func-ptr!]
+	GetDoubleArrayElements		[func-ptr!]
+	
+	ReleaseBooleanArrayElements	[func-ptr!]
+	ReleaseByteArrayElements	[func-ptr!]
+	ReleaseCharArrayElements	[func-ptr!]
+	ReleaseShortArrayElements	[func-ptr!]
+	ReleaseIntArrayElements		[func-ptr!]
+	ReleaseLongArrayElements	[func-ptr!]
+	ReleaseFloatArrayElements	[func-ptr!]
+	ReleaseDoubleArrayElements	[func-ptr!]
+	
+	GetBooleanArrayRegion		[func-ptr!]
+	GetByteArrayRegion			[func-ptr!]
+	GetCharArrayRegion			[func-ptr!]
+	GetShortArrayRegion			[func-ptr!]
+	GetIntArrayRegion			[func-ptr!]
+	GetLongArrayRegion			[func-ptr!]
+	GetFloatArrayRegion			[func-ptr!]
+	GetDoubleArrayRegion		[func-ptr!]
+	
+	SetBooleanArrayRegion		[func-ptr!]
+	SetByteArrayRegion			[func-ptr!]
+	SetCharArrayRegion			[func-ptr!]
+	SetShortArrayRegion			[func-ptr!]
+	SetIntArrayRegion			[func-ptr!]
+	SetLongArrayRegion			[func-ptr!]
+	SetFloatArrayRegion			[func-ptr!]
+	SetDoubleArrayRegion		[func-ptr!]
+	
+	RegisterNatives				[func-ptr!]
+	UnregisterNatives			[func-ptr!]
+	MonitorEnter				[func-ptr!]
+	MonitorExit					[func-ptr!]
+	GetJavaVM					[func-ptr!]
+	GetStringRegion				[func-ptr!]
+	GetStringUTFRegion			[func-ptr!]
+	GetPrimitiveArrayCritical	[func-ptr!]
+	ReleasePrimitiveArrayCritical [func-ptr!]
+	GetStringCritical			[func-ptr!]
+	ReleaseStringCritical		[func-ptr!]
+	NewWeakGlobalRef			[func-ptr!]
+	DeleteWeakGlobalRef			[func-ptr!]
+	ExceptionCheck				[function! [[JNICALL] env [JNI-ptr!] return: [logic!]]]
+	NewDirectByteBuffer			[func-ptr!]
+	GetDirectBufferAddress		[func-ptr!]
+	GetDirectBufferCapacity		[func-ptr!]
+	GetObjectRefType			[func-ptr!]
 ]
 
 JNI-env!: alias JNI-ptr!
@@ -334,7 +398,8 @@ instantiate: func [
 		]
 		count: count - 1
 	]
-	env/jni/NewObject
+	env/jni/NewObject 0									;@@ temporary change for Red bridge
+	;env/jni/NewObject
 ]
 
 JNI_OnLoad: func [
@@ -342,7 +407,7 @@ JNI_OnLoad: func [
 	reserved [byte-ptr!]
 	return:  [integer!]
 ][
-	#if OS = 'Linux [***-dll-entry-point]				;@@ temporary workaround until ELF emitter handles it	
+	#if OS = 'Linux [***-dll-entry-point]				;@@ temporary workaround until ELF emitter handles it
 	version-1.6
 ]
 
