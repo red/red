@@ -10,14 +10,6 @@ Red/System [
 	}
 ]
 
-newline: "^/"							
-
-lf:  	 #"^/"								;-- Line-feed
-cr:  	 #"^M"
-tab: 	 #"^-"
-space:	 #" "
-slash:	 #"/"
-
 ;-------------------------------------------
 ;-- Print in console a single byte as an ASCII character
 ;-------------------------------------------

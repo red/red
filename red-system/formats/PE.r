@@ -8,6 +8,19 @@ REBOL [
 ]
 
 context [
+
+	Imagehlplib: load/library %Imagehlp.dll
+	
+	int-ptr!: make struct! [n [integer!]] none
+	
+	MapFileAndCheckSum: make routine! [
+		Filename	[string!]
+		HeaderSum	[struct! [n [integer!]]]
+		CheckSum	[struct! [n [integer!]]]
+		return:		[integer!]
+	] Imagehlplib "MapFileAndCheckSumA" 
+	
+	
 	defs: [
 		image [
 			exe-base-address	#{00400000}
@@ -28,6 +41,7 @@ context [
 			obj %.obj
 			lib %.lib
 			dll %.dll
+			drv %.sys
 		]
 		machine [
 		;--  CPU -------- ID ------ Endianness
@@ -547,7 +561,7 @@ context [
 	]
 
 	build-header: func [job [object!] /local fh][
-		if find [exe dll] job/type [append job/buffer "PE^@^@"]	;-- image signature
+		if find [exe dll drv] job/type [append job/buffer "PE^@^@"]	;-- image signature
 
 		fh: make-struct file-header none
 		fh/machine: 		 to integer! select defs/machine job/target
@@ -558,8 +572,9 @@ context [
 		fh/flags:			 to integer! defs/c-flags/executable-image 
 								or defs/c-flags/relocs-stripped
 								or defs/c-flags/machine-32bit
-		if job/type = 'dll [
-			fh/flags: fh/flags or to integer! defs/c-flags/dll
+		switch job/type [
+			dll [fh/flags: fh/flags or to integer! defs/c-flags/dll]
+			;drv [fh/flags: fh/flags or to integer! defs/c-flags/system]
 		]
 		append job/buffer form-struct fh
 	]
@@ -569,12 +584,21 @@ context [
 		code-base: code-page * memory-align
 		
 		flags: to integer! defs/dll-flags/nx-compat
-		if job/PIC? [flags: flags or to integer! defs/dll-flags/dynamic-base]
+		case/all [
+			job/PIC? 		[flags: flags or to integer! defs/dll-flags/dynamic-base]
+			job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
+		]
 		
-		ep: either job/type = 'dll [
-			either entry: select job/symbols '***-dll-entry-point [
-				code-base + entry/2 - 1					;-- dll: entry point provided
-			][0]										;-- dll: no entry-point
+		ep: switch/default job/type [
+			dll [
+				either entry: select job/symbols '***-dll-entry-point [
+					code-base + entry/2 - 1					;-- dll: entry point provided
+				][0]										;-- dll: no entry-point
+			]
+			drv [
+				entry: select job/symbols '***-drv-entry-point
+				code-base + entry/2 - 1
+			]
 		][
 			code-base									;-- exe: entry point
 		]
@@ -601,7 +625,7 @@ context [
 		oh/win32-ver-value:		0						;-- reserved, must be zero
 		oh/image-size:			image-size? job
 		oh/headers-size:		code-page * file-align
-		oh/checksum:			0						;-- for drivers and DLL only
+		oh/checksum:			either job/type = 'drv [123456][0]	;-- for drivers and DLL only (dummy default)
 		oh/sub-system:			select defs/sub-system job/sub-system
 		oh/dll-flags:			flags
 		oh/stack-res-size:		to integer! #{00100000}
@@ -646,9 +670,10 @@ context [
 			append job/sections [reloc [- - -]]			;-- inject reloc section
 		]
 		
-		base-address: to integer! switch job/type [
+		base-address: to integer! switch/default job/type [
 			exe	[defs/image/exe-base-address]
-			dll	[defs/image/dll-base-address]
+		][
+			defs/image/dll-base-address
 		]
 		precalc-entry-point job
 
@@ -682,6 +707,39 @@ context [
 			pad: pad-size? spec/2
 			append job/buffer spec/2
 			insert/dup tail job/buffer null pad
+		]
+	]
+	
+	on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
+		if job/type = 'drv [
+			file-sum: make struct! int-ptr! [0]
+			chk-sum:  make struct! int-ptr! [0]
+
+			res: MapFileAndCheckSum
+				to-local-file get-modes file 'full-path
+				file-sum
+				chk-sum
+
+			if res <> 0 [
+				print [
+					"*** Linker Error: checksum calculation failed^/"
+					"*** Reason: " select res [
+						1 "Could not open the file."
+						2 "Could not map the file."
+						3 "Could not map a view of the file."
+						4 "Could not convert the file name to Unicode."
+					]
+				]
+			]
+
+			offset: (length? defs/image/MSDOS-header) + ((5 + 17) * 4) + 1
+
+			buffer: read/binary file
+
+			pointer/value: chk-sum/n
+			change/part at buffer offset form-struct pointer 4
+
+			write/binary file buffer
 		]
 	]
 ]

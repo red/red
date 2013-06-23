@@ -3035,7 +3035,7 @@ system-dialect: make-profilable context [
 		build-basename:	none			;-- base name to use for output file name (none: derive from input name)
 		build-suffix:	none			;-- suffix to use for output file name (none: derive from output type)
 		format:			none			;-- file format
-		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj)
+		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj | 'drv)
 		target:			'IA-32			;-- CPU target
 		cpu-version:	6.0				;-- CPU version (default: Pentium Pro)
 		verbosity:		0				;-- logs verbosity level

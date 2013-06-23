@@ -21,7 +21,7 @@ linker: context [
 	
 	job-class: context [
 		format: 									;-- 'PE | 'ELF | 'Mach-o
-		type: 										;-- 'exe | 'obj | 'lib | 'dll
+		type: 										;-- 'exe | 'obj | 'lib | 'dll | 'drv
 		target:										;-- CPU identifier
 		sections:									;-- code/data sections
 		flags:										;-- global flags
@@ -125,7 +125,7 @@ linker: context [
 		]
 	]
 	
-	build: func [job [object!] /local file][
+	build: func [job [object!] /local file fun][
 		unless job/target [job/target: cpu-class]
 		job/buffer: make binary! 100 * 1024
 	
@@ -137,6 +137,10 @@ linker: context [
 		file: make-filename job
 		if verbose >= 1 [print ["output file:" file]]
 		write/binary/direct file job/buffer
+		
+		if fun: in file-emitter 'on-file-written [
+			do reduce [get fun job file]
+		]
 		
 		if find get-modes file 'file-modes 'owner-execute [
 			set-modes file [owner-execute: true]

@@ -12,7 +12,7 @@ REBOL [
 ;;-------------------------------------------
 ;;	OS:				'Windows | 'Linux | 'MacOSX | 'Syllable	;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
-;;	type:			'exe | 'obj | 'lib | 'dll	;-- file type
+;;	type:			'exe | 'dll | 'drv			;-- file type
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
 ;;  cpu-version:	<decimal!>					;-- CPU version (default for IA-32: 6.0, Pentium Pro, for ARM: 5.0)
 ;;	sub-system:		'GUI | 'console				;-- type of user interface
@@ -43,9 +43,18 @@ Windows [
 ;-------------------------
 WinDLL [
 	OS:			'Windows
-	sub-system: 'GUI
 	format: 	'PE
 	type:		'DLL
+	sub-system: 'GUI
+	store-bodies?: no
+]
+WinDRV [
+	OS:			'Windows
+	format: 	'PE
+	type:		'drv
+	sub-system: 'driver
+	use-natives?: yes
+	store-bodies?: no
 ]
 ;-------------------------
 Linux [									; Linux default target
