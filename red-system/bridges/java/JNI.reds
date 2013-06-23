@@ -407,7 +407,7 @@ JNI_OnLoad: func [
 	reserved [byte-ptr!]
 	return:  [integer!]
 ][
-	#if OS = 'Linux [***-dll-entry-point]				;@@ temporary workaround until ELF emitter handles it
+	#if format = 'ELF [***-dll-entry-point]				;@@ temporary workaround until ELF emitter handles it
 	version-1.6
 ]
 
