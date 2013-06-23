@@ -86,9 +86,9 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		***__argv: system/stack/top
 		
 		system/stack/top: system/stack/top - 4			;-- simulate a structors struct on stack
-		push 0											;-- preinit
-		push 0											;-- init
 		push 0											;-- fini
+		push 0											;-- init
+		push 0											;-- preinit
 
 		;; Before pushing arguments for `libc-start`, align the stack to a
 		;; 128-bit boundary, to prevent misaligned access penalities.
