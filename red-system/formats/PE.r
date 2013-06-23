@@ -9,17 +9,18 @@ REBOL [
 
 context [
 
-	Imagehlplib: load/library %Imagehlp.dll
-	
-	int-ptr!: make struct! [n [integer!]] none
-	
-	MapFileAndCheckSum: make routine! [
-		Filename	[string!]
-		HeaderSum	[struct! [n [integer!]]]
-		CheckSum	[struct! [n [integer!]]]
-		return:		[integer!]
-	] Imagehlplib "MapFileAndCheckSumA" 
-	
+	if find system/components 'Library [
+		Imagehlplib: load/library %Imagehlp.dll
+
+		int-ptr!: make struct! [n [integer!]] none
+
+		MapFileAndCheckSum: make routine! [
+			Filename	[string!]
+			HeaderSum	[struct! [n [integer!]]]
+			CheckSum	[struct! [n [integer!]]]
+			return:		[integer!]
+		] Imagehlplib "MapFileAndCheckSumA" 
+	]
 	
 	defs: [
 		image [
@@ -735,10 +736,8 @@ context [
 			offset: (length? defs/image/MSDOS-header) + ((5 + 17) * 4) + 1
 
 			buffer: read/binary file
-
 			pointer/value: chk-sum/n
 			change/part at buffer offset form-struct pointer 4
-
 			write/binary file buffer
 		]
 	]
