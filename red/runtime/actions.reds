@@ -24,7 +24,7 @@ actions: context [
 			index  [integer!]
 	][
 		offset: 0
-		index:  0
+		index:  1
 		
 		until [
 			table/index: list/value
@@ -33,7 +33,7 @@ actions: context [
 			count: count - 1
 			zero? count
 		]
-		assert index = ACTIONS_NB 
+		assert index = (ACTIONS_NB + 1)
 	]
 	
 	get-action-ptr-from: func [

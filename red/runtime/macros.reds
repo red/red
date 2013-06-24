@@ -125,11 +125,11 @@ Red/System [
 	ACT_UPDATE
 	ACT_WRITE
 
-	;ACT_APPLY										;; add it? @@
+	;ACT_APPLY											;; add it? @@
 ]
 
 #enum natives! [
-	NAT_IF
+	NAT_IF: 	1										;-- one-based index
 	NAT_UNLESS
 	NAT_EITHER
 	NAT_ANY

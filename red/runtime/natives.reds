@@ -26,7 +26,7 @@ natives: context [
 	lf?: 	 no											;-- used to print or not an ending newline
 	
 	table: declare int-ptr!
-	top: 0
+	top: 1
 	
 	buffer-blk: as red-block! 0
 
@@ -42,7 +42,7 @@ natives: context [
 		until [
 			table/top: list/value
 			top: top + 1
-			assert top < NATIVES_NB
+			assert top <= NATIVES_NB
 			list: list + 1
 			count: count - 1
 			zero? count

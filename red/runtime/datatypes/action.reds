@@ -46,7 +46,7 @@ action: context [
 		action/spec:    spec/node						; @@ copy spec block if not at head
 		;action/symbols: clean-spec spec 				; @@ TBD
 			
-		index: (integer/get s/offset + 1) - 1			;-- action IDs are one-based
+		index: (integer/get s/offset + 1)				;-- action IDs are one-based
 		action/code: actions/table/index
 		
 		action
