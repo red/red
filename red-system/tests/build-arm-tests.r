@@ -18,9 +18,16 @@ a-file-name: ["%" some file-chars ".reds" ]
 a-test-file: ["--run-test-file-quiet " copy file a-file-name]
 a-dll-file: ["--compile-dll " copy file a-file-name]
 
+target: ask {
+Choose ARM target:
+1) Linux
+2) Android
+=> }
+target: pick ["Linux-ARM" "Android"] to-integer target
+
 ;; helper function
 compile-test: func [test-file [file!]] [
-		do/args %rsc.r join "-t Linux-ARM " test-file
+		do/args %rsc.r rejoin ["-t " target " " test-file]
 		exe: copy find/last/tail test-file "/"
 		exe: replace exe ".reds" ""
 		write/binary join %tests/runnable/arm-tests/ exe read/binary join %builds/ exe	
@@ -42,7 +49,7 @@ change-dir %../
 foreach dll dlls [
 	if none = find dll "dylib" [
 	insert next dll "tests/"
-	do/args %rsc.r join "-dlib -t Linux-ARM " dll
+	do/args %rsc.r rejoin ["-dlib -t " target " " dll]
 	lib: copy find/last/tail dll "/"
 	lib: replace lib ".reds" ".so"
 	write/binary join %tests/runnable/arm-tests/ lib read/binary join %builds/ lib	
