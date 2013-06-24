@@ -687,6 +687,9 @@ context [
 	]
 
 	collect-exports: func [
+		{Collect a list of exported objects: symbol, type, offset and size. As
+		the object size is not yet stored in the symbol or exports table, we
+		have to compute it here.}
 		job [object!]
 		/local current-tail code-tail data-tail symbol-offset symbol-size
 	] [
