@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Red/System Linux runtime"
+	Title:   "Red/System Android runtime"
 	Author:  "Nenad Rakocevic"
-	File: 	 %linux.reds
+	File: 	 %android.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -12,42 +12,5 @@ Red/System [
 
 #define OS_TYPE		5
 
-#define SA_SIGINFO  		00000004h		;-- POSIX value?
-#define SA_RESTART   		10000000h		;-- POSIX value?
+#include %linux.reds
 
-#syscall [
-	write: 4 [
-		fd		[integer!]
-		buffer	[c-string!]
-		count	[integer!]
-		return: [integer!]
-	]
-]
-
-
-#if use-natives? = yes [
-	#syscall [
-		quit: 1 [							;-- "exit" syscall
-			status	[integer!]
-		]
-	]
-]
-
-;-------------------------------------------
-;-- Retrieve command-line information from stack
-;-------------------------------------------
-#if type = 'exe [
-	#either use-natives? = yes [
-		system/args-count:	pop
-		system/args-list:	as str-array! system/stack/top
-		system/env-vars:	system/args-list + system/args-count + 1
-	][
-		;-- the current stack is pointing to main(int argc, void **argv, void **envp) C layout
-		;-- we avoid the double indirection by reusing our variables from %start.reds
-		system/args-count:	***__argc
-		system/args-list:	as str-array! ***__argv
-		system/env-vars:	system/args-list + system/args-count + 1
-	]
-]
-
-#include %POSIX.reds

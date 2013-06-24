@@ -10,41 +10,53 @@ Red/System [
 	}
 ]
 
-sigaction!: alias struct! [
-	handler		[integer!]					;-- Warning: compiled as union on most UNIX
-	mask0		[integer!]					;-- glibc/Hurd insane inheritage...
-	mask1		[integer!]	
-	mask2		[integer!]	
-	mask3		[integer!]	
-	mask4		[integer!]	
-	mask5		[integer!]
-	mask6		[integer!]	
-	mask7		[integer!]	
-	mask8		[integer!]	
-	mask9		[integer!]	
-	mask10		[integer!]	
-	mask11		[integer!]	
-	mask12		[integer!]	
-	mask13		[integer!]	
-	mask14		[integer!]	
-	mask15		[integer!]	
-	mask16		[integer!]	
-	mask17		[integer!]	
-	mask18		[integer!]	
-	mask19		[integer!]	
-	mask20		[integer!]	
-	mask21		[integer!]	
-	mask22		[integer!]	
-	mask23		[integer!]	
-	mask24		[integer!]	
-	mask25		[integer!]	
-	mask26		[integer!]	
-	mask27		[integer!]	
-	mask28		[integer!]	
-	mask29		[integer!]	
-	mask30		[integer!]	
-	mask31		[integer!]
-	flags		[integer!]
+#define SA_SIGINFO   00000004h
+#define SA_RESTART   10000000h
+
+#either OS = 'Android [						;-- Damn FrankenSystem!
+	sigaction!: alias struct! [
+		handler		[integer!]				;-- Warning: compiled as C union on most UNIX
+		mask		[integer!]				;-- bit array
+		flags		[integer!]
+		;... remaining fields skipped
+	]
+][
+	sigaction!: alias struct! [
+		handler		[integer!]				;-- Warning: compiled as union on most UNIX
+		mask0		[integer!]				;-- glibc/Hurd insane inheritage...
+		mask1		[integer!]	
+		mask2		[integer!]	
+		mask3		[integer!]	
+		mask4		[integer!]	
+		mask5		[integer!]
+		mask6		[integer!]	
+		mask7		[integer!]	
+		mask8		[integer!]	
+		mask9		[integer!]	
+		mask10		[integer!]	
+		mask11		[integer!]	
+		mask12		[integer!]	
+		mask13		[integer!]	
+		mask14		[integer!]	
+		mask15		[integer!]	
+		mask16		[integer!]	
+		mask17		[integer!]	
+		mask18		[integer!]	
+		mask19		[integer!]	
+		mask20		[integer!]	
+		mask21		[integer!]	
+		mask22		[integer!]	
+		mask23		[integer!]	
+		mask24		[integer!]	
+		mask25		[integer!]	
+		mask26		[integer!]	
+		mask27		[integer!]	
+		mask28		[integer!]	
+		mask29		[integer!]	
+		mask30		[integer!]	
+		mask31		[integer!]
+		flags		[integer!]
+	]
 ]
 
 siginfo!: alias struct! [
