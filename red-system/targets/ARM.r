@@ -2091,9 +2091,8 @@ make-profilable make target-class [
 	]
 
 	emit-stack-align-epilog: func [args [block!]][
-		emit-i32 #{e8bd6000}						;-- POP {sp,lr}
-		;emit-i32 #{e49dd004}						;-- POP sp				;@@ ARMv7 version?
-		;emit-i32 #{e49de004}						;-- POP lr				;@@ ARMv7 version?
+		emit-i32 #{e8bd5000}						;-- POP {ip,lr}			; use ip as replacement to sp
+		emit-i32 #{e1a0d00c}                        ;-- MOV sp, ip			; to workaround SIGILLs on ARMv7
 	]
 	
 	emit-throw: func [value [integer! word!]][
