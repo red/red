@@ -9,7 +9,10 @@ REBOL [
 
 context [
 
-	if find system/components 'Library [
+	if all [
+		system/version/4 = 3
+		find system/components 'Library 
+	][
 		Imagehlplib: load/library %Imagehlp.dll
 
 		int-ptr!: make struct! [n [integer!]] none
