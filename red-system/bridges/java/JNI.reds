@@ -84,7 +84,7 @@ JNI!: alias struct! [
 	EnsureLocalCapacity			[func-ptr!]
 	
 	AllocObject					[func-ptr!]
-	NewObject					[function! [[JNICALL variadic] return: [jobject!]]] ;-- stack frame is manually constructed
+	NewObject					[function! [[JNICALL variadic] return: [jobject!]]]
 	NewObjectV					[func-ptr!]
 	NewObjectA					[function! [[JNICALL custom] return: [jobject!]]]
 	
