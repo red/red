@@ -380,6 +380,13 @@ emitter: make-profilable context [
 								target/emit-get-stack/frame
 							]
 						]
+						align [
+							if set? [
+								compiler/backtrack path
+								compiler/throw-error "cannot modify system/stack/align"
+							]
+							target/emit-stack-align
+						]
 					]
 				]
 				pc [

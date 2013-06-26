@@ -1930,7 +1930,7 @@ make-profilable make target-class [
 				emit-i32 #{e8bd00} 					;-- POP {rn[,rn+1]}
 				emit-i32 to char! shift/left 1 reg - 1
 			]
-			max 0 args/2/1 - 4						;-- return extra args on stack count
+			stack-width * max 0 args/2/1 - 4		;-- return extra args on stack count
 		][
 			if issue? args/1 [args: args/2]
 			reg: stk: 0
@@ -2068,6 +2068,12 @@ make-profilable make target-class [
 				emit-push arg
 			]
 		]
+	]
+	
+	emit-stack-align: does [
+		emit-i32 #{e1a0c00d}						;-- MOV ip, sp
+		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
+		emit-i32 #{e1a0000c}						;-- MOV r0, ip
 	]
 	
 	emit-stack-align-prolog: func [args [block!] /local size][

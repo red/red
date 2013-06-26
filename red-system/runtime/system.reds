@@ -29,6 +29,7 @@ Red/System [
 __stack!: alias struct! [
 	top		[int-ptr!]
 	frame	[int-ptr!]
+	align	[int-ptr!]
 ]
 
 #switch target [

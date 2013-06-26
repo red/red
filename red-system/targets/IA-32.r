@@ -1679,6 +1679,12 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-stack-align: does [
+		emit #{89E7}								;-- MOV edi, esp
+		emit #{83E4F0}								;-- AND esp, -16
+		emit #{89F8}								;-- MOV eax, edi
+	]
+
 	emit-stack-align-prolog: func [args [block!] /local offset][
 		if compiler/job/stack-align-16? [
 			emit #{89E7}							;-- MOV edi, esp
