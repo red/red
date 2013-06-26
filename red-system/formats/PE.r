@@ -667,7 +667,7 @@ context [
 	build: func [job [object!] /local page out pad code-ptr][
 		clear imports-refs
 		
-		if job/type = 'dll [
+		if find [dll drv] job/type [
 			append job/sections [reloc [- - -]]			;-- inject reloc section
 		]
 		
@@ -685,10 +685,9 @@ context [
 		
 		build-import job								;-- populate import section buffer
 		
-		if job/type = 'dll [
-			build-export job							;-- populate export section buffer
-			build-reloc job
-		]
+		if job/type = 'dll [build-export job]			;-- populate export section buffer
+		
+		if find [dll drv] job/type [build-reloc job]
 
 		out: job/buffer
 		append out defs/image/MSDOS-header
