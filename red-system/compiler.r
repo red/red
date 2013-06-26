@@ -2381,7 +2381,7 @@ system-dialect: make-profilable context [
 		]
 		
 		external-call?: func [spec [block!] /local attribs][
-			any [
+			to logic! any [
 				spec/5 = 'callback
 				all [
 					attribs: get-attributes spec/4
@@ -2407,7 +2407,7 @@ system-dialect: make-profilable context [
 			align?: all [
 				args/1 <> #custom
 				any [
-					spec/2 = 'import						;@@ syscalls don't seem to need special alignment??
+					spec/2 = 'import					;@@ syscalls don't seem to need special alignment??
 					all [spec/2 = 'routine external-call? spec]
 				]
 			]
