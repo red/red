@@ -1547,6 +1547,7 @@ string: context [
 		
 		new: 	alloc-bytes part + unit
 		buffer: as series! new/value
+		buffer/flags: s/flags							;@@ filter flags?
 		
 		unless zero? part [
 			copy-memory 
