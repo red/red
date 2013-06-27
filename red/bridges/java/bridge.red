@@ -272,7 +272,7 @@ Red [
 	][	
 		env: jni-env
 		jni: env/jni
-		#call [on-java-event face event-click]
+		#call [on-java-event face event-click 0]
 	]
 	
 	#either OS = 'Android [
@@ -663,7 +663,7 @@ java-fetch-class: func [name [word!] /with cls [integer!] /local class][
 
 ;====== Public API ======
 
-java-verbose: 1
+java-verbose: 0
 
 to-java-object: func [obj-id [integer!] /local class cls name][
 	class: reduce [
