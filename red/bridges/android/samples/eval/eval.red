@@ -11,7 +11,7 @@ Red [
 	}
 ]
 
-#include %../../bridge.red
+#include %../../../java/bridge.red
 
 
 on-java-event: function [face [integer!] type [integer!] event [integer!]][
