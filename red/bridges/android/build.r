@@ -3,11 +3,11 @@ REBOL [
 	Author:  "Nenad Rakocevic"
 	File: 	 %build.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+	Rights:  "Copyright (C) 2013 Nenad Rakocevic. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-verbose: yes
+verbose: no
 
 tools-URL: http://static.red-lang.org/droid-tools/
 build-root-dir: %builds/
@@ -26,24 +26,30 @@ run: func [cmd [string!]][
 	either verbose [call/console cmd][call/wait cmd]
 ]
 
+OS: system/version/4
+
 unless exists? build-root-dir [
 	log "Creating building folders..."
 	make-dir build-root-dir
 	make-dir/deep tools-dir
 	make-dir/deep tools-dir/api
+	
 	log "Downloading Android binary tools..."
-	log "^- jli.dll..."
-	write/binary tools-dir/jli.dll read/binary tools-URL/jli.dll
-	log "^- aapt..."
-	write/binary tools-dir/aapt.exe read/binary tools-URL/aapt.exe
-	;log "^- jarsigner..."
-	;write/binary tools-dir/jarsigner.exe read/binary tools-URL/jarsigner.exe
-	log "^- keytool..."
-	write/binary tools-dir/keytool.exe read/binary tools-URL/keytool.exe
-	log "^- zipalign..."
-	write/binary tools-dir/zipalign.exe read/binary tools-URL/zipalign.exe
-	log "^- android.jar..."
+	files: switch OS [
+		3 [[%jli.dll %aapt.exe %keytool.exe %zipalign.exe]]	;-- Windows
+		4 [[%aapt %zipalign]]								;-- Linux
+		5 [[%aapt %zipalign]]								;-- OSX
+	]
+	sys: select [3 %win/ 4 %linux/ 5 %osx/] OS
+	
+	foreach file files [
+		prin rejoin [tab file "..."]
+		write/binary tools-dir/:file read/binary tools-URL/:sys/:file
+		print "done"
+	]
+	prin "^-android.jar(18MB)..."
 	write/binary tools-dir/api/android.jar read/binary tools-URL/api/android.jar
+	print "done"
 ]
 
 prj-src-dir: %samples/eval/
@@ -53,13 +59,37 @@ bin-dir: build-root-dir/:prj-name
 
 make-dir bin-dir
 make-dir/deep bin-dir/lib/armeabi
+make-dir/deep bin-dir/lib/x86
 
-;-- compile Red app --
-do/args %../../../red.r reform [
-	"-t Android -dlib" prj-src-dir/eval.red
-	"-o " rejoin [%../red/bridges/android/ bin-dir/lib/armeabi "/libRed"]
+attempt [delete bin-dir/lib/armeabi/libRed.so]
+attempt [delete bin-dir/lib/x86/libRed.so]
+
+res: ask {
+Choose CPU target (ENTER = default):
+1) ARM (default)
+2) x86
+3) both
+=> }
+options: [
+	["Android" %armeabi]
+	["Android-x86" %x86]
 ]
 
+opts: switch/default trim/all res [
+	"2" [reduce [options/2]]
+	"3" [options]
+][
+	reduce [options/1]
+]
+
+;-- compile Red app into a shared library --
+foreach job opts [
+	set [target dst-dir] job
+	do/args %../../../red.r reform [
+		"-t " target " -dlib" prj-src-dir/eval.red
+		"-o " rejoin [%../red/bridges/android/ bin-dir/lib/:dst-dir "/libRed"]
+	]
+]
 ;---
 
 copy-file %dex/classes.dex bin-dir
@@ -67,7 +97,8 @@ copy-file %dex/classes.dex bin-dir
 
 unless exists? keystore [
 	cmd: reform [
-		tools-dir/keytool {
+		either OS = 3 [to-local-file tools-dir/keytool]["keytool"]
+		{
 			-genkeypair
 			-validity 10000
 			-dname "CN=Red,
@@ -89,7 +120,7 @@ unless exists? keystore [
 ]
 
 cmd: reform [
-	tools-dir/aapt {
+	to-local-file tools-dir/aapt {
 		 package
 		 -v
 		 -f
@@ -119,7 +150,7 @@ log "Signing apk..."
 run cmd
 
 cmd: reform [
-	tools-dir/zipalign 
+	to-local-file tools-dir/zipalign 
 	"-v -f 4"
 	to-local-file rejoin [build-root-dir name %-signed.apk] 
 	to-local-file rejoin [build-root-dir name %.apk]
@@ -130,4 +161,5 @@ run cmd
 attempt [delete rejoin [build-root-dir name %-signed.apk]]
 attempt [delete rejoin [build-root-dir name %-unsigned.apk]]
 
+print "...all done!"
 halt
