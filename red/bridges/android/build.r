@@ -35,6 +35,8 @@ unless exists? build-root-dir [
 	make-dir/deep tools-dir/api
 	
 	log "Downloading Android binary tools..."
+	system/schemes/default/timeout: 0:05:00					;-- be nice with slow connections
+	
 	files: switch OS [
 		3 [[%jli.dll %aapt.exe %keytool.exe %zipalign.exe]]	;-- Windows
 		4 [[%aapt %zipalign]]								;-- Linux
