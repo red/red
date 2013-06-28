@@ -45,6 +45,7 @@ unless exists? build-root-dir [
 	foreach file files [
 		prin rejoin [tab file "..."]
 		write/binary tools-dir/:file read/binary tools-URL/:sys/:file
+		if OS <> 3 [run reform ["chmod +x" tools-dir/:file]]
 		print "done"
 	]
 	prin "^-android.jar(18MB)..."
