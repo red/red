@@ -644,6 +644,8 @@ context [
 		if job/type = 'dll [
 			oh/export-addr:		named-sect-addr? job 'export
 			oh/export-size:		length? job/sections/export/2
+		]
+		if find [dll drv] job/type [
 			oh/reloc-addr:		named-sect-addr? job 'reloc
 			oh/reloc-size:		length? job/sections/reloc/2
 		]	
