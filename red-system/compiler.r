@@ -2984,6 +2984,7 @@ system-dialect: make-profilable context [
 			switch job/type [
 				exe [compiler/comp-call '***-on-quit [0 0]]	;-- call runtime exit handler
 				dll [emitter/target/emit-epilog '***-main [] 0 0]
+				drv [emitter/target/emit-epilog '***-main [] 0 0]
 			]
 		]
 	]
