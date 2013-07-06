@@ -29,6 +29,7 @@ linker: context [
 		symbols:									;-- symbols table
 		output:										;-- output file name (without extension)
 		debug-info:									;-- debugging informations
+		base-address:								;-- base address
 		buffer: none								;-- output buffer
 	]
 	

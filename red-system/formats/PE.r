@@ -29,6 +29,8 @@ context [
 		image [
 			exe-base-address	#{00400000}
 			dll-base-address	#{10000000}
+			drv-base-address	#{00010000}
+			
 			MSDOS-header #{
 				4D5A800001000000 04001000FFFF0000
 				4001000000000000 4000000000000000
@@ -573,9 +575,13 @@ context [
 		fh/timestamp: 		 get-timestamp
 		fh/symbols-ptr: 	 0
 		fh/opt-headers-size: opt-header-size
-		fh/flags:			 to integer! defs/c-flags/executable-image 
-								or defs/c-flags/relocs-stripped
-								or defs/c-flags/machine-32bit
+		fh/flags:			 to integer! defs/c-flags/executable-image
+									  or defs/c-flags/machine-32bit
+		
+		unless find job/sections 'reloc	[
+			fh/flags: fh/flags or to integer! defs/c-flags/relocs-stripped
+		]
+		
 		switch job/type [
 			dll [fh/flags: fh/flags or to integer! defs/c-flags/dll]
 			;drv [fh/flags: fh/flags or to integer! defs/c-flags/system]
@@ -592,6 +598,8 @@ context [
 			job/PIC? 		[flags: flags or to integer! defs/dll-flags/dynamic-base]
 			job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
 		]
+		
+		if job/type = 'drv [flags: 0]						;@@temporary flags disabling
 		
 		ep: switch/default job/type [
 			dll [
@@ -676,10 +684,14 @@ context [
 			append job/sections [reloc [- - -]]			;-- inject reloc section
 		]
 		
-		base-address: to integer! switch/default job/type [
-			exe	[defs/image/exe-base-address]
-		][
-			defs/image/dll-base-address
+		base-address: any [
+			job/base-address
+			to integer! switch/default job/type [
+				exe	[defs/image/exe-base-address]
+				drv [defs/image/drv-base-address]
+			][
+				defs/image/dll-base-address
+			]
 		]
 		precalc-entry-point job
 
