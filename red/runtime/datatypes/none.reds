@@ -11,7 +11,6 @@ Red/System [
 ]
 
 none-value: declare red-value!							;-- preallocate none! value
-none-value/header: TYPE_NONE
 
 none: context [
 	verbose: 0
@@ -123,74 +122,78 @@ none: context [
 	select:  does []
 	take:	 does []
 
-	datatype/register [
-		TYPE_NONE
-		TYPE_VALUE
-		"none!"
-		;-- General actions --
-		:make
-		null			;random
-		null			;reflect
-		null			;to
-		:form
-		:mold
-		null			;get-path
-		null			;set-path
-		:compare
-		;-- Scalar actions --
-		null			;absolute
-		null			;add
-		null			;divide
-		null			;multiply
-		null			;negate
-		null			;power
-		null			;remainder
-		null			;round
-		null			;subtract
-		null			;even?
-		null			;odd?
-		;-- Bitwise actions --
-		null			;and~
-		null			;complement
-		null			;or~
-		null			;xor~
-		;-- Series actions --
-		null			;append
-		null			;at
-		null			;back
-		null			;change
-		:clear
-		null			;copy
-		:find
-		null			;head
-		null			;head?
-		null			;index?
-		null			;insert
-		:length?
-		null			;next
-		null			;pick
-		null			;poke
-		:remove
-		null			;reverse
-		:select
-		null			;sort
-		null			;skip
-		null			;swap
-		null			;tail
-		null			;tail?
-		:take
-		null			;trim
-		;-- I/O actions --
-		null			;create
-		null			;close
-		null			;delete
-		null			;modify
-		null			;open
-		null			;open?
-		null			;query
-		null			;read
-		null			;rename
-		null			;update
-		null			;write
+	init: does [
+		none-value/header: TYPE_NONE
+		
+		datatype/register [
+			TYPE_NONE
+			TYPE_VALUE
+			"none!"
+			;-- General actions --
+			:make
+			null			;random
+			null			;reflect
+			null			;to
+			:form
+			:mold
+			null			;get-path
+			null			;set-path
+			:compare
+			;-- Scalar actions --
+			null			;absolute
+			null			;add
+			null			;divide
+			null			;multiply
+			null			;negate
+			null			;power
+			null			;remainder
+			null			;round
+			null			;subtract
+			null			;even?
+			null			;odd?
+			;-- Bitwise actions --
+			null			;and~
+			null			;complement
+			null			;or~
+			null			;xor~
+			;-- Series actions --
+			null			;append
+			null			;at
+			null			;back
+			null			;change
+			:clear
+			null			;copy
+			:find
+			null			;head
+			null			;head?
+			null			;index?
+			null			;insert
+			:length?
+			null			;next
+			null			;pick
+			null			;poke
+			:remove
+			null			;reverse
+			:select
+			null			;sort
+			null			;skip
+			null			;swap
+			null			;tail
+			null			;tail?
+			:take
+			null			;trim
+			;-- I/O actions --
+			null			;create
+			null			;close
+			null			;delete
+			null			;modify
+			null			;open
+			null			;open?
+			null			;query
+			null			;read
+			null			;rename
+			null			;update
+			null			;write
+		]
 	]
 ]

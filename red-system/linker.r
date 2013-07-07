@@ -21,7 +21,7 @@ linker: context [
 	
 	job-class: context [
 		format: 									;-- 'PE | 'ELF | 'Mach-o
-		type: 										;-- 'exe | 'obj | 'lib | 'dll
+		type: 										;-- 'exe | 'obj | 'lib | 'dll | 'drv
 		target:										;-- CPU identifier
 		sections:									;-- code/data sections
 		flags:										;-- global flags
@@ -29,26 +29,31 @@ linker: context [
 		symbols:									;-- symbols table
 		output:										;-- output file name (without extension)
 		debug-info:									;-- debugging informations
-		buffer: none
+		base-address:								;-- base address
+		buffer: none								;-- output buffer
 	]
 	
 	resolve-symbol-refs: func [
-		job [object!] 
-		cbuf [binary!]								;-- code buffer
-		dbuf [binary!]								;-- data buffer
+		job 	 [object!] 
+		cbuf 	 [binary!]							;-- code buffer
+		dbuf 	 [binary!]							;-- data buffer
 		code-ptr [integer!]							;-- code memory address
 		data-ptr [integer!]							;-- data memory address
-		pointer [object!]
+		pointer	 [object!]
+		/local 
+			data-offset
 	][
+		data-offset: either job/PIC? [data-ptr - code-ptr][data-ptr]
+		
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
 				switch spec/1 [
 					global [						;-- code to data references
-						pointer/value: data-ptr + spec/2
+						pointer/value: data-offset + spec/2
 						foreach ref spec/3 [change at cbuf ref form-struct pointer]
 					]
 					native-ref [					;-- code to code references
-						pointer/value: code-ptr + spec/2
+						pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
 						foreach ref spec/3 [change at cbuf ref form-struct pointer]
 					]
 				]
@@ -121,7 +126,7 @@ linker: context [
 		]
 	]
 	
-	build: func [job [object!] /local file][
+	build: func [job [object!] /local file fun][
 		unless job/target [job/target: cpu-class]
 		job/buffer: make binary! 100 * 1024
 	
@@ -134,9 +139,14 @@ linker: context [
 		if verbose >= 1 [print ["output file:" file]]
 		write/binary/direct file job/buffer
 		
+		if fun: in file-emitter 'on-file-written [
+			do reduce [get fun job file]
+		]
+		
 		if find get-modes file 'file-modes 'owner-execute [
 			set-modes file [owner-execute: true]
 		]
+		file
 	]
 
 ]

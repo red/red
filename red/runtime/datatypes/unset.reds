@@ -11,7 +11,6 @@ Red/System [
 ]
 
 unset-value: declare red-value!							;-- preallocate unset! value
-unset-value/header: TYPE_UNSET
 
 unset: context [
 	verbose: 0
@@ -107,74 +106,78 @@ unset: context [
 		res
 	]
 
-	datatype/register [
-		TYPE_UNSET
-		TYPE_VALUE
-		"unset!"
-		;-- General actions --
-		:make
-		null			;random
-		null			;reflect
-		null			;to
-		:form
-		:mold
-		null			;get-path
-		null			;set-path
-		:compare
-		;-- Scalar actions --
-		null			;absolute
-		null			;add
-		null			;divide
-		null			;multiply
-		null			;negate
-		null			;power
-		null			;remainder
-		null			;round
-		null			;subtract
-		null			;even?
-		null			;odd?
-		;-- Bitwise actions --
-		null			;and~
-		null			;complement
-		null			;or~
-		null			;xor~
-		;-- Series actions --
-		null			;append
-		null			;at
-		null			;back
-		null			;change
-		null			;clear
-		null			;copy
-		null			;find
-		null			;head
-		null			;head?
-		null			;index?
-		null			;insert
-		null			;length?
-		null			;next
-		null			;pick
-		null			;poke
-		null			;remove
-		null			;reverse
-		null			;select
-		null			;sort
-		null			;skip
-		null			;swap
-		null			;tail
-		null			;tail?
-		null			;take
-		null			;trim
-		;-- I/O actions --
-		null			;create
-		null			;close
-		null			;delete
-		null			;modify
-		null			;open
-		null			;open?
-		null			;query
-		null			;read
-		null			;rename
-		null			;update
-		null			;write
+	init: does [
+		unset-value/header: TYPE_UNSET
+
+		datatype/register [
+			TYPE_UNSET
+			TYPE_VALUE
+			"unset!"
+			;-- General actions --
+			:make
+			null			;random
+			null			;reflect
+			null			;to
+			:form
+			:mold
+			null			;get-path
+			null			;set-path
+			:compare
+			;-- Scalar actions --
+			null			;absolute
+			null			;add
+			null			;divide
+			null			;multiply
+			null			;negate
+			null			;power
+			null			;remainder
+			null			;round
+			null			;subtract
+			null			;even?
+			null			;odd?
+			;-- Bitwise actions --
+			null			;and~
+			null			;complement
+			null			;or~
+			null			;xor~
+			;-- Series actions --
+			null			;append
+			null			;at
+			null			;back
+			null			;change
+			null			;clear
+			null			;copy
+			null			;find
+			null			;head
+			null			;head?
+			null			;index?
+			null			;insert
+			null			;length?
+			null			;next
+			null			;pick
+			null			;poke
+			null			;remove
+			null			;reverse
+			null			;select
+			null			;sort
+			null			;skip
+			null			;swap
+			null			;tail
+			null			;tail?
+			null			;take
+			null			;trim
+			;-- I/O actions --
+			null			;create
+			null			;close
+			null			;delete
+			null			;modify
+			null			;open
+			null			;open?
+			null			;query
+			null			;read
+			null			;rename
+			null			;update
+			null			;write
+		]
 	]
 ]

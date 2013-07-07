@@ -61,6 +61,13 @@ stdout:		-1								;-- uninitialized default value
 stdin:		-1								;-- uninitialized default value
 stderr:		-1								;-- uninitialized default value
 
+newline: "^/"
+
+lf:  	 #"^/"								;-- Line-feed
+cr:  	 #"^M"
+tab: 	 #"^-"
+space:	 #" "
+slash:	 #"/"
 
 str-array!: alias struct! [
 	item [c-string!]
@@ -110,91 +117,105 @@ form-type: func [
 ]
 
 #switch OS [								;-- loading OS-specific bindings
-	Windows  [#include %win32.reds]
+	Windows  [
+		#either type = 'drv [
+			#include %win32-driver.reds
+		][
+			#include %win32.reds
+		]
+	]
 	Syllable [#include %syllable.reds]
 	MacOSX	 [#include %darwin.reds]
+	Android	 [#include %android.reds]
 	#default [#include %linux.reds]
 ]
 
-#include %utils.reds						;-- load additional utility functions
+#if type <> 'drv [
 
-#if debug? = yes [#include %debug.reds]		;-- loads optionally debug functions
+	#include %utils.reds					;-- load additional utility functions
 
-;-- Run-time error handling --
 
-#define RED_ERR_VMEM_RELEASE_FAILED		96
-#define RED_ERR_VMEM_OUT_OF_MEMORY		97
+	#if debug? = yes [#include %debug.reds]	;-- loads optionally debug functions
 
-***-on-quit: func [							;-- global exit handler
-	status [integer!]
-	address [integer!]
-	/local msg
-][
-	unless zero? status [
-		print [lf "*** Runtime Error " status ": "]
-		
-		msg: switch status [
-			1	["access violation"]
-			2	["invalid alignment"]
-			3	["breakpoint"]
-			4	["single step"]
-			5	["bounds exceeded"]
-			6	["float denormal operan"]
-			7	["float divide by zero"]
-			8	["float inexact result"]
-			9	["float invalid operation"]
-			10	["float overflow"]
-			11	["float stack check"]
-			12	["float underflow"]
-			13	["integer divide by zero"]
-			14	["integer overflow"]
-			15	["privileged instruction"]
-			16	["invalid virtual address"]
-			17	["illegal instruction"]
-			18	["non-continuable exception"]
-			19	["stack error or overflow"]
-			20	["invalid disposition"]
-			21	["guard page"]
-			22	["invalid handle"]
-			23	["illegal operand"]
-			24	["illegal addressing mode"]
-			25	["illegal trap"]
-			26	["coprocessor error"]
-			27	["non-existant physical address"]
-			28	["object specific hardware error"]		
-			29	["hardware memory error consumed AR"]
-			30	["hardware memory error consumed AO"]
-			31	["privileged register"]
-			32	["segmentation fault"]		;-- generic SIGSEGV message
-			33	["FPU error"]				;-- generic SIGFPE message
-			34	["Bus error"]				;-- generic SIGBUS message
-		
-			96	["virtual memory release failed"]
-			97	["out of memory"]
-			98	["assertion failed"]
-			99	["unknown error"]
-		
-			100	["no value matched in CASE"]
-			101	["no value matched in SWITCH"]
-			
-			default ["unknown error code!"]
+	;-- Run-time error handling --
+
+	#define RED_ERR_VMEM_RELEASE_FAILED		96
+	#define RED_ERR_VMEM_OUT_OF_MEMORY		97
+
+	***-on-quit: func [						;-- global exit handler
+		status  [integer!]
+		address [integer!]
+		/local 
+			msg [c-string!]
+	][
+		unless zero? status [
+			print [lf "*** Runtime Error " status ": "]
+
+			msg: switch status [
+				1	["access violation"]
+				2	["invalid alignment"]
+				3	["breakpoint"]
+				4	["single step"]
+				5	["bounds exceeded"]
+				6	["float denormal operan"]
+				7	["float divide by zero"]
+				8	["float inexact result"]
+				9	["float invalid operation"]
+				10	["float overflow"]
+				11	["float stack check"]
+				12	["float underflow"]
+				13	["integer divide by zero"]
+				14	["integer overflow"]
+				15	["privileged instruction"]
+				16	["invalid virtual address"]
+				17	["illegal instruction"]
+				18	["non-continuable exception"]
+				19	["stack error or overflow"]
+				20	["invalid disposition"]
+				21	["guard page"]
+				22	["invalid handle"]
+				23	["illegal operand"]
+				24	["illegal addressing mode"]
+				25	["illegal trap"]
+				26	["coprocessor error"]
+				27	["non-existant physical address"]
+				28	["object specific hardware error"]		
+				29	["hardware memory error consumed AR"]
+				30	["hardware memory error consumed AO"]
+				31	["privileged register"]
+				32	["segmentation fault"]	;-- generic SIGSEGV message
+				33	["FPU error"]			;-- generic SIGFPE message
+				34	["Bus error"]			;-- generic SIGBUS message
+
+				96	["virtual memory release failed"]
+				97	["out of memory"]
+				98	["assertion failed"]
+				99	["unknown error"]
+
+				100	["no value matched in CASE"]
+				101	["no value matched in SWITCH"]
+
+				default ["unknown error code!"]
+			]
+			print msg
+
+			#either debug? = yes [
+				__print-debug-line as byte-ptr! address
+			][
+				print [lf "*** at: " as byte-ptr! address "h" lf]
+			]
 		]
-		print msg
-		
-		#either debug? = yes [
-			__print-debug-line as byte-ptr! address
-		][
-			print [lf "*** at: " as byte-ptr! address "h" lf]
+
+		#if OS = 'Windows [					;-- special exit handler for Windows
+			win32-startup-ctx/on-quit
 		]
+		quit status
 	]
-	
-	#if OS = 'Windows [						;-- special exit handler for Windows
-		***-on-win32-quit
-	]
-	quit status
 ]
 
-
-system/stack/frame: system/stack/top		;-- @@ reposition frame pointer just after the catch flag
+#if type = 'exe [
+	push system/stack/frame					;-- save previous frame pointer
+	system/stack/frame: system/stack/top	;-- @@ reposition frame pointer just after the catch flag
+]
 push CATCH_ALL								;-- exceptions root barrier
 push 0										;-- keep stack aligned on 64-bit

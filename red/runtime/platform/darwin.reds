@@ -36,7 +36,7 @@ platform: context [
 		]
 	]
 
-	page-size: sysconf SC_PAGE_SIZE
+	page-size: 0
 
 	#syscall [
 		mmap: SYSCALL_MMAP [
@@ -92,6 +92,7 @@ platform: context [
 	]
 	
 	init: does [
+		page-size: sysconf SC_PAGE_SIZE
 		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?
 	]
 ]

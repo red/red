@@ -19,6 +19,7 @@ target-class: context [
 	emit-stack-align-prolog: none					;-- align stack on imported function calls
 	emit-stack-align-epilog: none					;-- unwind aligned stack
 	emit-float-trash-last:	 none					;-- FPU clean-up code after use in expression
+	PIC?:					 none					;-- PIC flag set from compilation job options
 	
 	compiler: 	none								;-- just a short-cut
 	width: 		none								;-- current operand width in bytes
@@ -29,7 +30,7 @@ target-class: context [
 	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
-	emit-throw:	none
+	emit-throw:	on-init: emit-alt-last: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   [+ - * / // ///]
@@ -90,31 +91,51 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word! object!] gcode [binary! block! none!] lcode [binary! block!] 
+		name [word! object!] 
+		gcode [binary! block! none!]				;-- global opcodes
+		pcode [binary! block! none!]				;-- PIC opcodes
+		lcode [binary! block!] 						;-- local opcodes
 		/local offset
 	][
 		if object? name [name: compiler/unbox name]
 		
-		either offset: select emitter/stack name [
-			offset: stack-encode offset 
-			either block? lcode [
-				emit reduce bind lcode 'offset
-			][
-				emit lcode
-				emit offset
-			]
-		][											;-- global variable case
-			either block? gcode [
-				foreach code reduce gcode [
-					either code = 'address [
-						emit-reloc-addr emitter/symbols/:name	
-					][
-						emit code	
-					]
+		case [
+			offset: select emitter/stack name [
+				offset: stack-encode offset 			;-- local variable case
+				either block? lcode [
+					emit reduce bind lcode 'offset
+				][
+					emit lcode
+					emit offset
 				]
-			][
-				emit gcode
-				emit-reloc-addr emitter/symbols/:name
+			]
+			PIC? [										;-- global variable case (PIC version)
+				either block? pcode [
+					foreach code reduce pcode [
+						either code = 'address [
+							emit-reloc-addr emitter/symbols/:name
+						][
+							emit code
+						]
+					]
+				][
+					emit pcode
+					emit-reloc-addr emitter/symbols/:name
+				]
+			]
+			'global [									;-- global variable case
+				either block? gcode [
+					foreach code reduce gcode [
+						either code = 'address [
+							emit-reloc-addr emitter/symbols/:name
+						][
+							emit code
+						]
+					]
+				][
+					emit gcode
+					emit-reloc-addr emitter/symbols/:name
+				]
 			]
 		]
 	]
@@ -221,11 +242,7 @@ target-class: context [
 				emit-call-native args fspec spec
 			]
 			routine [
-				either fspec/3 = 'cdecl [
-					emit-call-import args fspec spec
-				][
-					emit-call-native/routine args fspec spec name
-				]
+				emit-call-native/routine args fspec spec name
 			]
 			inline [
 				if block? args/1 [args/1: <last>]	;-- works only for unary functions	

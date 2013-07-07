@@ -78,47 +78,48 @@ length?: func [							;; return the number of characters from a c-string value ;
 	as-integer s - base 				;-- do not count the terminal zero
 ]
 
+#if type <> 'drv [
 
-;-- Debugging helper functions --
+	;-- Debugging helper functions --
 
-prin-int: func [i [integer!] return: [integer!] /local s c n][
-	;-- modified version of form-signed by Rudolf W. MEIJER (https://gist.github.com/952998)
-	;-- used in signal handlers, so dynamic allocation removed to limit interferences
-	
-	if zero? i [prin "0" return 0]
-	s: "-0000000000"					;-- 11 bytes wide
-	if i = -2147483648 [prin "-2147483648" return i]
-	n: negative? i
-	if n [i: negate i]
-	c: 11
-	while [i <> 0][
-		s/c: #"0" + (i // 10)
-		i: i / 10
-		c: c - 1
+	prin-int: func [i [integer!] return: [integer!] /local s c n][
+		;-- modified version of form-signed by Rudolf W. MEIJER (https://gist.github.com/952998)
+		;-- used in signal handlers, so dynamic allocation removed to limit interferences
+
+		if zero? i [prin "0" return 0]
+		s: "-0000000000"					;-- 11 bytes wide
+		if i = -2147483648 [prin "-2147483648" return i]
+		n: negative? i
+		if n [i: negate i]
+		c: 11
+		while [i <> 0][
+			s/c: #"0" + (i // 10)
+			i: i / 10
+			c: c - 1
+		]
+		if n [s/c: #"-" c: c - 1]
+		prin s + c
+		i
 	]
-	if n [s/c: #"-" c: c - 1]
-	prin s + c
-	i
-]
 
-prin-hex: func [i [integer!] return: [integer!] /local s c d ret][
-	;-- modified version of form-hex by Rudolf W. MEIJER (https://gist.github.com/952998)
-	;-- used in signal handlers, so dynamic allocation removed to limit interferences 
-	
-	if zero? i [prin "0" return i]
-	s: "00000000"
-	c: 8
-	ret: i
-	until [
-		d: i // 16
-		if d > 9 [d: d + 7]				;-- 7 = (#"A" - 1) - #"9"
-		s/c: #"0" + d
-		i: i >>> 4
-		c: c - 1
-		zero? c							;-- iterate on all 8 bytes to overwrite previous values
+	prin-hex: func [i [integer!] return: [integer!] /local s c d ret][
+		;-- modified version of form-hex by Rudolf W. MEIJER (https://gist.github.com/952998)
+		;-- used in signal handlers, so dynamic allocation removed to limit interferences 
+
+		if zero? i [prin "0" return i]
+		s: "00000000"
+		c: 8
+		ret: i
+		until [
+			d: i // 16
+			if d > 9 [d: d + 7]				;-- 7 = (#"A" - 1) - #"9"
+			s/c: #"0" + d
+			i: i >>> 4
+			c: c - 1
+			zero? c							;-- iterate on all 8 bytes to overwrite previous values
+		]
+		prin s
+		ret
 	]
-	prin s
-	ret
+
 ]
-
-

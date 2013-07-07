@@ -78,74 +78,76 @@ file: context [
 		string/form file buffer arg part - 1
 	]
 	
-	datatype/register [
-		TYPE_FILE
-		TYPE_STRING
-		"file!"
-		;-- General actions --
-		:make
-		null			;random
-		null			;reflect
-		null			;to
-		INHERIT_ACTION	;form
-		:mold
-		null			;get-path
-		null			;set-path
-		INHERIT_ACTION	;:compare
-		;-- Scalar actions --
-		null			;absolute
-		null			;add
-		null			;divide
-		null			;multiply
-		null			;negate
-		null			;power
-		null			;remainder
-		null			;round
-		null			;subtract
-		null			;even?
-		null			;odd?
-		;-- Bitwise actions --
-		null			;and~
-		null			;complement
-		null			;or~
-		null			;xor~
-		;-- Series actions --
-		null			;append
-		INHERIT_ACTION	;at
-		INHERIT_ACTION	;back
-		null			;change
-		INHERIT_ACTION	;clear
-		INHERIT_ACTION	;copy
-		INHERIT_ACTION	;find
-		INHERIT_ACTION	;head
-		INHERIT_ACTION	;head?
-		INHERIT_ACTION	;index?
-		INHERIT_ACTION	;insert
-		INHERIT_ACTION	;length?
-		INHERIT_ACTION	;next
-		INHERIT_ACTION	;pick
-		INHERIT_ACTION	;poke
-		INHERIT_ACTION	;remove
-		null			;reverse
-		INHERIT_ACTION	;select
-		null			;sort
-		INHERIT_ACTION	;skip
-		null			;swap
-		INHERIT_ACTION	;tail
-		INHERIT_ACTION	;tail?
-		null			;take
-		null			;trim
-		;-- I/O actions --
-		null			;create
-		null			;close
-		null			;delete
-		null			;modify
-		null			;open
-		null			;open?
-		null			;query
-		null			;read
-		null			;rename
-		null			;update
-		null			;write
+	init: does [
+		datatype/register [
+			TYPE_FILE
+			TYPE_STRING
+			"file!"
+			;-- General actions --
+			:make
+			null			;random
+			null			;reflect
+			null			;to
+			INHERIT_ACTION	;form
+			:mold
+			null			;get-path
+			null			;set-path
+			INHERIT_ACTION	;:compare
+			;-- Scalar actions --
+			null			;absolute
+			null			;add
+			null			;divide
+			null			;multiply
+			null			;negate
+			null			;power
+			null			;remainder
+			null			;round
+			null			;subtract
+			null			;even?
+			null			;odd?
+			;-- Bitwise actions --
+			null			;and~
+			null			;complement
+			null			;or~
+			null			;xor~
+			;-- Series actions --
+			null			;append
+			INHERIT_ACTION	;at
+			INHERIT_ACTION	;back
+			null			;change
+			INHERIT_ACTION	;clear
+			INHERIT_ACTION	;copy
+			INHERIT_ACTION	;find
+			INHERIT_ACTION	;head
+			INHERIT_ACTION	;head?
+			INHERIT_ACTION	;index?
+			INHERIT_ACTION	;insert
+			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;next
+			INHERIT_ACTION	;pick
+			INHERIT_ACTION	;poke
+			INHERIT_ACTION	;remove
+			null			;reverse
+			INHERIT_ACTION	;select
+			null			;sort
+			INHERIT_ACTION	;skip
+			null			;swap
+			INHERIT_ACTION	;tail
+			INHERIT_ACTION	;tail?
+			null			;take
+			null			;trim
+			;-- I/O actions --
+			null			;create
+			null			;close
+			null			;delete
+			null			;modify
+			null			;open
+			null			;open?
+			null			;query
+			null			;read
+			null			;rename
+			null			;update
+			null			;write
+		]
 	]
 ]

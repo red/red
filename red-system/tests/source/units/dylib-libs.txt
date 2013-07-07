@@ -1,0 +1,35 @@
+#import [
+	"***test-dll1***" cdecl [
+    	dll1-add-one: "add-one" [
+        	i       		[integer!]
+        	return: 		[integer!]
+        ]
+    ]
+    "***test-dll2***" cdecl [
+  	    dll2-negate: "neg" [
+  		    i				[integer!]
+  		    return:			[integer!]
+  	    ]
+  	    dll2-negatef: "negf" [
+  		    f				[float!]
+  		    return:			[float!]
+  	    ]
+  	    dll2-negatef32: "negf32" [
+  			f32				[float32!]
+  			return:	   		[float32!]
+  		]
+  		dll2-true-false: "true-false" [
+  			l				[logic!]
+  			return:			[logic!]
+  		]
+  		dll2-odd-or-even: "odd-or-even" [
+  			s				[c-string!]
+  			return:			[c-string!]
+  		]
+  		;dll2-callbacki: "callbacki" [
+  		;	i				[integer!]
+  		;	f				[function! [i [integer!]]]
+  		;]
+    ]	
+]
+

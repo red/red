@@ -16,9 +16,8 @@ names!: alias struct! [
 	word	[red-word!]								;-- datatype name as word! value
 ]
 
-name-table: as names! allocate 50 * size? names!	 ;-- datatype names table
-
-action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table	
+name-table:   declare names! 						;-- datatype names table
+action-table: declare int-ptr!						;-- actions jump table
 
 
 set-type: func [										;@@ convert to macro?

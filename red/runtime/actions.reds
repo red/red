@@ -13,7 +13,7 @@ Red/System [
 actions: context [
 	verbose: 0
 	
-	table: as int-ptr! allocate ACTIONS_NB * size? integer!
+	table: declare int-ptr!
 	
 	register: func [
 		[variadic]
@@ -24,7 +24,7 @@ actions: context [
 			index  [integer!]
 	][
 		offset: 0
-		index:  0
+		index:  1
 		
 		until [
 			table/index: list/value
@@ -33,7 +33,7 @@ actions: context [
 			count: count - 1
 			zero? count
 		]
-		assert index = ACTIONS_NB 
+		assert index = (ACTIONS_NB + 1)
 	]
 	
 	get-action-ptr-from: func [
@@ -828,71 +828,76 @@ actions: context [
 	update*: func [][]
 	write*: func [][]
 	
-	register [
-		;-- General actions --
-		:make*
-		null			;random
-		:reflect*
-		null			;to
-		:form*
-		:mold*
-		null			;get-path
-		null			;set-path
-		:compare
-		;-- Scalar actions --
-		null			;absolute
-		:add*
-		:divide*
-		:multiply*
-		null			;negate
-		null			;power
-		null			;remainder
-		null			;round
-		:subtract*
-		null			;even?
-		null			;odd?
-		;-- Bitwise actions --
-		null			;and~
-		null			;complement
-		null			;or~
-		null			;xor~
-		;-- Series actions --
-		:append*
-		:at*
-		:back*
-		null			;change
-		:clear*
-		:copy*
-		:find*
-		:head*
-		:head?*
-		:index?*
-		:insert*
-		:length?*
-		:next*
-		:pick*
-		:poke*
-		:remove*
-		null			;reverse
-		:select*
-		null			;sort
-		:skip*
-		null			;swap
-		:tail*
-		:tail?*
-		null			;take
-		null			;trim
-		;-- I/O actions --
-		null			;create
-		null			;close
-		null			;delete
-		null			;modify
-		null			;open
-		null			;open?
-		null			;query
-		null			;read
-		null			;rename
-		null			;update
-		null			;write
+	
+	init: does [
+		table: as int-ptr! allocate ACTIONS_NB * size? integer!
+		
+		register [
+			;-- General actions --
+			:make*
+			null			;random
+			:reflect*
+			null			;to
+			:form*
+			:mold*
+			null			;get-path
+			null			;set-path
+			:compare
+			;-- Scalar actions --
+			null			;absolute
+			:add*
+			:divide*
+			:multiply*
+			null			;negate
+			null			;power
+			null			;remainder
+			null			;round
+			:subtract*
+			null			;even?
+			null			;odd?
+			;-- Bitwise actions --
+			null			;and~
+			null			;complement
+			null			;or~
+			null			;xor~
+			;-- Series actions --
+			:append*
+			:at*
+			:back*
+			null			;change
+			:clear*
+			:copy*
+			:find*
+			:head*
+			:head?*
+			:index?*
+			:insert*
+			:length?*
+			:next*
+			:pick*
+			:poke*
+			:remove*
+			null			;reverse
+			:select*
+			null			;sort
+			:skip*
+			null			;swap
+			:tail*
+			:tail?*
+			null			;take
+			null			;trim
+			;-- I/O actions --
+			null			;create
+			null			;close
+			null			;delete
+			null			;modify
+			null			;open
+			null			;open?
+			null			;query
+			null			;read
+			null			;rename
+			null			;update
+			null			;write
+		]
 	]
 ]
