@@ -564,11 +564,9 @@ natives: context [
 		return: [red-value!]
 		/local
 			str [red-string!]
-			s	[series!]
 	][
 		str: as red-string! stack/arguments
-		s: GET_BUFFER(str)
-		tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
+		tokenizer/scan as c-string! string/rs-head str null	;@@ temporary limited to Latin-1
 		
 		blk: as red-block! stack/arguments
 		if TYPE_OF(blk) = TYPE_BLOCK [
