@@ -1235,7 +1235,7 @@ red: context [
 			]
 		]
 		unless empty? words [
-			append spec /local
+			unless find spec /local [append spec /local]
 			append spec words
 		]
 	]
