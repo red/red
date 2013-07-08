@@ -425,7 +425,7 @@ natives: context [
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
 			
-			reduce* 1
+			if TYPE_OF(arg) = TYPE_BLOCK [reduce* 1]
 			actions/form* -1
 			str: as red-string! stack/arguments + 1
 			assert any [
