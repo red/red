@@ -114,11 +114,15 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 	b-head	 [big-frame!]					;-- head of big frames list
 ]
 
-memory/total: 	0
-memory/s-start: _512KB
-memory/s-max: 	_2MB
-memory/s-size: 	memory/s-start
-;; (1) Series frames size will grow from 256KB up to 2MB (arbitrary selected). This
+
+init-mem: does [
+	memory/total: 	0
+	memory/s-start: _512KB
+	memory/s-max: 	_2MB
+	memory/s-size: 	memory/s-start
+]
+
+;; (1) Series frames size will grow from 512KB up to 2MB (arbitrary selected). This
 ;; range will need fine-tuning with real Red apps. This growing size, with low starting value
 ;; will allow small apps to not consume much memory while avoiding to penalize big apps.
 

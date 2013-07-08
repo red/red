@@ -45,18 +45,21 @@ integer: context [
 	
 	box: func [
 		value	[integer!]
+		return: [red-integer!]
 		/local
 			int [red-integer!]
 	][
 		int: as red-integer! stack/arguments
 		int/header: TYPE_INTEGER
 		int/value: value
+		int
 	]
 	
 	form-signed: func [									;@@ replace with sprintf() call?
 		i 		[integer!]
 		return: [c-string!]
 		/local 
+			s	[c-string!]
 			c 	[integer!]
 			n 	[logic!]
 	][
@@ -125,6 +128,7 @@ integer: context [
 	
 	push: func [
 		value	[integer!]
+		return: [red-integer!]
 		/local
 			int [red-integer!]
 	][
@@ -133,6 +137,7 @@ integer: context [
 		int: as red-integer! stack/push*
 		int/header: TYPE_INTEGER
 		int/value: value
+		int
 	]
 
 	;-- Actions --
@@ -253,74 +258,76 @@ integer: context [
 		int 											;-- re-use argument slot for return value
 	]
 	
-	datatype/register [
-		TYPE_INTEGER
-		TYPE_VALUE
-		"integer!"
-		;-- General actions --
-		:make
-		null			;random
-		null			;reflect
-		null			;to
-		:form
-		:mold
-		null			;get-path
-		null			;set-path
-		:compare
-		;-- Scalar actions --
-		null			;absolute
-		:add
-		:divide
-		:multiply
-		:negate
-		null			;power
-		null			;remainder
-		null			;round
-		:subtract
-		null			;even?
-		null			;odd?
-		;-- Bitwise actions --
-		null			;and~
-		null			;complement
-		null			;or~
-		null			;xor~
-		;-- Series actions --
-		null			;append
-		null			;at
-		null			;back
-		null			;change
-		null			;clear
-		null			;copy
-		null			;find
-		null			;head
-		null			;head?
-		null			;index?
-		null			;insert
-		null			;length?
-		null			;next
-		null			;pick
-		null			;poke
-		null			;remove
-		null			;reverse
-		null			;select
-		null			;sort
-		null			;skip
-		null			;swap
-		null			;tail
-		null			;tail?
-		null			;take
-		null			;trim
-		;-- I/O actions --
-		null			;create
-		null			;close
-		null			;delete
-		null			;modify
-		null			;open
-		null			;open?
-		null			;query
-		null			;read
-		null			;rename
-		null			;update
-		null			;write
+	init: does [
+		datatype/register [
+			TYPE_INTEGER
+			TYPE_VALUE
+			"integer!"
+			;-- General actions --
+			:make
+			null			;random
+			null			;reflect
+			null			;to
+			:form
+			:mold
+			null			;get-path
+			null			;set-path
+			:compare
+			;-- Scalar actions --
+			null			;absolute
+			:add
+			:divide
+			:multiply
+			:negate
+			null			;power
+			null			;remainder
+			null			;round
+			:subtract
+			null			;even?
+			null			;odd?
+			;-- Bitwise actions --
+			null			;and~
+			null			;complement
+			null			;or~
+			null			;xor~
+			;-- Series actions --
+			null			;append
+			null			;at
+			null			;back
+			null			;change
+			null			;clear
+			null			;copy
+			null			;find
+			null			;head
+			null			;head?
+			null			;index?
+			null			;insert
+			null			;length?
+			null			;next
+			null			;pick
+			null			;poke
+			null			;remove
+			null			;reverse
+			null			;select
+			null			;sort
+			null			;skip
+			null			;swap
+			null			;tail
+			null			;tail?
+			null			;take
+			null			;trim
+			;-- I/O actions --
+			null			;create
+			null			;close
+			null			;delete
+			null			;modify
+			null			;open
+			null			;open?
+			null			;query
+			null			;read
+			null			;rename
+			null			;update
+			null			;write
+		]
 	]
 ]

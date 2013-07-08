@@ -8,6 +8,7 @@ Red/System [
 
 #include %../../../../quick-test/quick-test.reds
 #include %../../../runtime/red.reds
+red/init
 
 ~~~start-file~~~ "unicode"
 

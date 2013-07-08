@@ -12,17 +12,18 @@ REBOL [
 ;;-------------------------------------------
 ;;	OS:				'Windows | 'Linux | 'MacOSX | 'Syllable	;-- operating system name
 ;;	format:			'PE  | 'ELF | 'Mach-o		;-- file format
-;;	type:			'exe | 'obj | 'lib | 'dll	;-- file type
+;;	type:			'exe | 'dll | 'drv			;-- file type
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
 ;;  cpu-version:	<decimal!>					;-- CPU version (default for IA-32: 6.0, Pentium Pro, for ARM: 5.0)
 ;;	sub-system:		'GUI | 'console				;-- type of user interface
-;;	PIC?:			yes | no					;-- generate Position Independent Code
+;;	PIC?:			 yes | no					;-- generate Position Independent Code
 ;;	base-address:	<integer!>					;-- base image memory address
-;;	use-natives?:	yes | no					;-- use native functions instead of C bindings (when possible)
+;;	use-natives?:	 yes | no					;-- use native functions instead of C bindings (when possible)
 ;;	dynamic-linker:	none | <string!>			;-- ELF dynamic linker ("interpreter") to use
 ;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
-;;  literal-pool?:	yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
+;;  literal-pool?:	 yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
+;;  red-store-bodies?:	 yes | no				;-- no => do not store function! value bodies (default: yes)
 ;;-------------------------------------------
 
 ;-------------------------
@@ -40,12 +41,21 @@ Windows [
 	sub-system: 'GUI
 ]
 ;-------------------------
-;WinDLL [								; not supported yet
-;	OS:			'Windows
-;	;sub-system: 'GUI					; @@ check if required
-;	format: 	'PE
-;	type:		'DLL
-;]
+WinDLL [
+	OS:			'Windows
+	format: 	'PE
+	type:		'DLL
+	sub-system: 'GUI
+	red-store-bodies?: no
+]
+WinDRV [
+	OS:			'Windows
+	format: 	'PE
+	type:		'drv
+	sub-system: 'driver
+	use-natives?: yes
+	red-store-bodies?: no
+]
 ;-------------------------
 Linux [									; Linux default target
 	OS:			'Linux
@@ -63,12 +73,21 @@ Linux [									; Linux default target
 ;]
 ;-------------------------
 Android [
-	OS:			'Linux
+	OS:			'Android
 	format:		'ELF
 	target:		'ARM
 	type:		'exe
-	base-address: 32768					; 8000h
 	dynamic-linker: "/system/bin/linker"
+	red-store-bodies?: no
+]
+;-------------------------
+Android-x86 [
+	OS:			'Android
+	format:		'ELF
+	target:		'IA-32
+	type:		'exe
+	dynamic-linker: "/system/bin/linker"
+	red-store-bodies?: no
 ]
 ;-------------------------
 Linux-ARM [
@@ -94,6 +113,15 @@ Darwin [
 	sub-system: 'console
 	syscall:	'BSD
 	stack-align-16?: yes
+]
+DarwinSO [
+	OS:			'MacOSX
+	format: 	'Mach-O
+	type:		'dll
+	sub-system: 'console
+	syscall:	'BSD
+	stack-align-16?: yes
+	PIC?:		yes
 ]
 ;-------------------------
 ;OSX [									; not supported yet

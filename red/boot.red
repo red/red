@@ -799,6 +799,7 @@ slash: 		 #"/"
 sp: space: 	 #" "
 null: 		 #"^@"
 crlf:		 "^M^/"
+dot:		 #"."
 
 ;------------------------------------------
 ;-			   Mezzanines				  -
@@ -876,6 +877,13 @@ string?:	 func ["Returns true if the value is this type." value [any-type!]] [st
 unset?:		 func ["Returns true if the value is this type." value [any-type!]] [unset!		= type? :value]
 word?:		 func ["Returns true if the value is this type." value [any-type!]] [word!		= type? :value]
 
+any-series?: func [value][
+	find [												;@@ To be replaced with a typeset check
+		block! paren! path! lit-path! set-path!
+		get-path! string! file!
+	] type?/word :value
+]
+
 spec-of: func [
 	"Returns the spec of a value that supports reflection."
 	value
@@ -913,3 +921,33 @@ system: function [
 		]
 	]
 ]
+
+replace: func [
+	series [series!]
+	pattern
+	value
+	/all
+	/local pos len
+][
+	len: either any-series? :pattern [length? pattern][1]
+	
+	either all [
+		pos: series
+		either any-series? :pattern [
+			while [pos: find pos pattern][
+				remove/part pos len
+				pos: insert pos value
+			]
+		][
+			while [pos: find pos pattern][pos/1: value]
+		]
+	][
+		if pos: find series pattern [
+			remove/part pos len
+			insert pos value
+		]
+	]
+	series
+]
+
+zero?: func [value [number!]][value = 0]

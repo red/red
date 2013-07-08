@@ -19,6 +19,7 @@ emitter: make-profilable context [
 	
 	target:	  none						;-- target code emitter object placeholder
 	compiler: none						;-- just a short-cut
+	libc-init?:		 none				;-- TRUE if currently processing libc init part
 
 		
 	pointer: make-struct [
@@ -296,7 +297,7 @@ emitter: make-profilable context [
 	
 	store: func [
 		name [word!] value type [block!]
-		/local new new-global? ptr refs n-spec spec literal?
+		/local new new-global? ptr refs n-spec spec literal? saved
 	][
 		if new: compiler/find-aliased type/1 [
 			type: new
@@ -313,11 +314,20 @@ emitter: make-profilable context [
 				ptr: store-global value 'pointer! none	;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
 				refs: reduce [ptr + 1]					;-- reference value from variable slot
+				saved: name
 				name: none								;-- anonymous data storing
 			]
 			if any [not new-global? string? value paren? value][
-				if string? value [type: [c-string!]]		;-- force c-string! in case of type casting
-				spec: store-value/ref name value type refs  ;-- store new value in data buffer
+				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
+				spec: either compiler/job/PIC? [
+					store-value name value type			;-- store new value in data buffer
+				][
+					store-value/ref name value type refs  ;-- store it with hardcoded pointer address
+				]
+			]
+			if all [new-global? spec compiler/job/PIC? not libc-init?][
+				target/emit-load-literal-ptr spec/2		;-- load value address
+				target/emit-store saved value n-spec	;-- store it in pointer variable
 			]
 			if n-spec [spec: n-spec]
 		][
@@ -369,6 +379,13 @@ emitter: make-profilable context [
 							][
 								target/emit-get-stack/frame
 							]
+						]
+						align [
+							if set? [
+								compiler/backtrack path
+								compiler/throw-error "cannot modify system/stack/align"
+							]
+							target/emit-stack-align
 						]
 					]
 				]
@@ -428,6 +445,14 @@ emitter: make-profilable context [
 								compiler/throw-error "system/fpu/update is an action"
 							][
 								target/emit-fpu-update
+							]
+						]
+						init [
+							either set? [
+								compiler/backtrack path
+								compiler/throw-error "system/fpu/init is an action"
+							][
+								target/emit-fpu-init
 							]
 						]
 					]
@@ -574,13 +599,15 @@ emitter: make-profilable context [
 				foreach ref spec/3 [
 					target/patch-call code-buf ref ptr	;-- target-specific func call
 				]
+				clear spec/3
 			]
 		]
 	]
 	
-	start-prolog: does [								;-- libc init prolog
-		append compiler/functions [						;-- create a fake function to
-			***_start [0 native cdecl []]				;-- let the linker write the entry point
+	start-prolog: has [args][							;-- libc init prolog
+		args: pick [6 7] system-dialect/job/OS = 'Syllable
+		append compiler/functions compose/deep [		;-- create a fake function to
+			***_start [(args) native cdecl [] callback]	;-- let the linker write the entry point
 		]
 		append symbols [
 			***_start [native 0 []]
@@ -589,6 +616,7 @@ emitter: make-profilable context [
 	
 	start-epilog: does [								;-- libc init epilog
 		poke second find/last symbols '***_start 2 tail-ptr - 1	;-- save the "main" entry point
+		target/emit-prolog '***_start [] 0
 	]
 	
 	init: func [link? [logic!] job [object!]][
@@ -600,6 +628,7 @@ emitter: make-profilable context [
 		clear stack
 		target: do rejoin [%targets/ job/target %.r]
 		target/compiler: compiler: system-dialect/compiler
+		target/PIC?: job/PIC?
 		target/void-ptr: head insert/dup copy #{} null target/ptr-size
 		int-to-bin/little-endian?: target/little-endian?
 	]

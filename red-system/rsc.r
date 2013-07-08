@@ -62,7 +62,7 @@ rsc: context [
 	]
 
 	parse-options: has [
-		args srcs opts output target verbose filename config config-name
+		args srcs opts output target verbose type filename config config-name
 	] [
 		args: any [system/options/args parse any [system/script/args ""] none]
 
@@ -81,12 +81,14 @@ rsc: context [
 
 		parse args [
 			any [
-				  ["-r" | "--no-runtime"]   (opts/runtime?: no)
-				| ["-g" | "--debug-stabs"]  (opts/debug?: yes)
+				  ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
+				| ["-g" | "--debug-stabs"]  (opts/debug?: yes)		;@@ overridable by config!
 				| ["-l" | "--literal-pool"] (opts/literal-pool?: yes)
 				| ["-o" | "--output"]  		set output skip
 				| ["-t" | "--target"]  		set target skip
 				| ["-v" | "--verbose"] 		set verbose skip
+				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
+				;| ["-slib" | "--static-lib"] (type 'lib)
 				| set filename skip (append srcs load-filename filename)
 			]
 		]
@@ -115,6 +117,12 @@ rsc: context [
 			unless attempt [opts/verbosity: to integer! trim verbose] [
 				fail ["Invalid verbosity:" verbose]
 			]
+		]
+		
+		;; Process -dlib/--dynamic-lib (if any).
+		if type = 'dll [
+			opts/type: type
+			if opts/OS <> 'Windows [opts/PIC?: yes]
 		]
 
 		;; Process input sources.
@@ -156,7 +164,8 @@ rsc: context [
 		if result/2 [
 			print [
 				"...linking time:" tab tab round result/2/second * 1000 "ms^/"
-				"...output file size:" tab result/3 "bytes"
+				"...output file size:" tab result/3 "bytes^/"
+				"...output file name:" tab form result/4
 			]
 		]
 	]

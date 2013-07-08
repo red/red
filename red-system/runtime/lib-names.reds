@@ -23,13 +23,12 @@ Red/System [
 	  #define LIBC-file	"libc.dylib"
 	  #define LIBM-file	"libc.dylib"
 	]
-	#default [
-		#either config-name = 'Android [	;-- @@ see if declaring it as an OS wouldn't be too costly
-			#define LIBC-file	"libc.so"
-			#define LIBM-file	"libm.so"
-		][
-			#define LIBC-file	"libc.so.6"	;-- Linux
-			#define LIBM-file	"libm.so.6"	
-		]
+	Android [
+		#define LIBC-file	"libc.so"
+		#define LIBM-file	"libm.so"
+	]
+	#default [											;-- Linux
+		#define LIBC-file	"libc.so.6"
+		#define LIBM-file	"libm.so.6"	
 	]
 ]

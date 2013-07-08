@@ -17,6 +17,13 @@ file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
 a-file-name: ["%" some file-chars ".red" ] 
 a-test-file: ["--run-test-file-quiet-red " copy file a-file-name]
 
+target: ask {
+Choose ARM target:
+1) Linux
+2) Android
+=> }
+target: pick ["Linux-ARM" "Android"] to-integer target
+
 ;; make the Arm dir if needed
 arm-dir: %runnable/arm-tests/
 make-dir arm-dir
@@ -32,7 +39,7 @@ parse/all all-tests [any [a-test-file (append test-files to file! file) | skip] 
 ;; compile the tests into to runnable/arm-tests
  
 foreach test-file test-files [
-  do/args %../../red.r join "-t Linux-ARM " test-file
+  do/args %../../red.r rejoin ["-t " target " " test-file]
   exe: copy find/last/tail test-file "/"
   exe: replace exe ".red" ""
   write/binary join %runnable/arm-tests/ exe read/binary exe

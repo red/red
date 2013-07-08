@@ -13,6 +13,7 @@ do %quick-test.r
 qt/tests-dir: system/script/path
 remove/part find/last qt/tests-dir "quick-test/" 11
 qt/r-tests-dir: qt/tests-dir
+qt/tests-dir: what-dir
 
 print rejoin ["Quick-Test v" qt/version]
 print rejoin ["Running under REBOL " system/version]

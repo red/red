@@ -1170,75 +1170,76 @@ block: context [
 		as red-series! blk
 	]
 
-	
-	datatype/register [
-		TYPE_BLOCK
-		TYPE_VALUE
-		"block!"
-		;-- General actions --
-		:make
-		null			;random
-		null			;reflect
-		null			;to
-		:form
-		:mold
-		null			;get-path
-		null			;set-path
-		:compare
-		;-- Scalar actions --
-		null			;absolute
-		null			;add
-		null			;divide
-		null			;multiply
-		null			;negate
-		null			;power
-		null			;remainder
-		null			;round
-		null			;subtract
-		null			;even?
-		null			;odd?
-		;-- Bitwise actions --
-		null			;and~
-		null			;complement
-		null			;or~
-		null			;xor~
-		;-- Series actions --
-		null			;append
-		:at
-		:back
-		null			;change
-		:clear
-		:copy
-		:find
-		:head
-		:head?
-		:index?
-		:insert
-		:length?
-		:next
-		:pick
-		:poke
-		:remove
-		null			;reverse
-		:select
-		null			;sort
-		:skip
-		null			;swap
-		:tail
-		:tail?
-		null			;take
-		null			;trim
-		;-- I/O actions --
-		null			;create
-		null			;close
-		null			;delete
-		null			;modify
-		null			;open
-		null			;open?
-		null			;query
-		null			;read
-		null			;rename
-		null			;update
-		null			;write
+	init: does [
+		datatype/register [
+			TYPE_BLOCK
+			TYPE_VALUE
+			"block!"
+			;-- General actions --
+			:make
+			null			;random
+			null			;reflect
+			null			;to
+			:form
+			:mold
+			null			;get-path
+			null			;set-path
+			:compare
+			;-- Scalar actions --
+			null			;absolute
+			null			;add
+			null			;divide
+			null			;multiply
+			null			;negate
+			null			;power
+			null			;remainder
+			null			;round
+			null			;subtract
+			null			;even?
+			null			;odd?
+			;-- Bitwise actions --
+			null			;and~
+			null			;complement
+			null			;or~
+			null			;xor~
+			;-- Series actions --
+			null			;append
+			:at
+			:back
+			null			;change
+			:clear
+			:copy
+			:find
+			:head
+			:head?
+			:index?
+			:insert
+			:length?
+			:next
+			:pick
+			:poke
+			:remove
+			null			;reverse
+			:select
+			null			;sort
+			:skip
+			null			;swap
+			:tail
+			:tail?
+			null			;take
+			null			;trim
+			;-- I/O actions --
+			null			;create
+			null			;close
+			null			;delete
+			null			;modify
+			null			;open
+			null			;open?
+			null			;query
+			null			;read
+			null			;rename
+			null			;update
+			null			;write
+		]
 	]
 ]

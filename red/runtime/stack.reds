@@ -13,6 +13,18 @@ Red/System [
 stack: context [										;-- call stack
 	verbose: 0
 	
+	arg-stk:		declare red-block!					;-- argument stack (should never be relocated)
+	call-stk:		declare red-block!					;-- call stack (should never be relocated)
+	args-series:	declare series!
+	calls-series:	declare series!
+	a-end: 			declare red-value!
+	c-end: 			declare int-ptr!
+	arguments:		declare red-value!
+	bottom:  		declare red-value!
+	top:	 		declare red-value!
+	cbottom: 		declare int-ptr!
+	ctop:	 		declare int-ptr!
+	
 	#define MARK_STACK(type) [
 		func [
 			fun [red-word!]
@@ -43,29 +55,30 @@ stack: context [										;-- call stack
 		FLAG_CATCH_ATR:	02000000h						;--	Catch function attribut
 	]
 	
-	arg-stk:  block/make-in root 1024					;-- argument stack (should never be relocated)
-	call-stk: block/make-in root 512					;-- call stack (should never be relocated)
-	
-	set-flag arg-stk/node flag-series-fixed or flag-series-nogc
-	set-flag call-stk/node flag-series-fixed or flag-series-nogc
-	
-	;-- Shortcuts for stack buffers simpler and faster access
-	;-- (stack buffers are not resizable with such approach
-	;-- this can be made more flexible (but slower) if necessary
-	;-- in the future)
-	
-	args-series:  GET_BUFFER(arg-stk)
-	calls-series: GET_BUFFER(call-stk)
-	
-	a-end: as cell!    (as byte-ptr! args-series)  + args-series/size
-	c-end: as int-ptr! (as byte-ptr! calls-series) + calls-series/size
-	
-	arguments:	args-series/tail
-	bottom:  	args-series/offset
-	top:	 	args-series/tail
-	cbottom: 	as int-ptr! calls-series/offset
-	ctop:	 	as int-ptr! calls-series/tail
-	
+	init: does [
+		arg-stk:  block/make-in root 1024
+		call-stk: block/make-in root 512
+
+		set-flag arg-stk/node flag-series-fixed or flag-series-nogc
+		set-flag call-stk/node flag-series-fixed or flag-series-nogc
+
+		;-- Shortcuts for stack buffers simpler and faster access
+		;-- (stack buffers are not resizable with such approach
+		;-- this can be made more flexible (but slower) if necessary
+		;-- in the future)
+
+		args-series:  GET_BUFFER(arg-stk)
+		calls-series: GET_BUFFER(call-stk)
+
+		a-end: as cell!    (as byte-ptr! args-series)  + args-series/size
+		c-end: as int-ptr! (as byte-ptr! calls-series) + calls-series/size
+
+		arguments:	args-series/tail
+		bottom:  	args-series/offset
+		top:	 	args-series/tail
+		cbottom: 	as int-ptr! calls-series/offset
+		ctop:	 	as int-ptr! calls-series/tail
+	]
 
 	reset: func [
 		return:  [cell!]

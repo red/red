@@ -17,16 +17,27 @@ Red/System [
 #define MMAP_MAP_PRIVATE    02h
 #define MMAP_MAP_ANONYMOUS  20h
 
-#define SC_PAGE_SIZE		30
+#either OS = 'Android [
+	#define SC_PAGE_SIZE	28h
+][
+	#define SC_PAGE_SIZE	1Eh
+]
 
 #define SYSCALL_MMAP2		192
 #define SYSCALL_MUNMAP		91
 #define SYSCALL_MMAP		SYSCALL_MMAP2
 
-
 platform: context [
-
-	#include %POSIX.reds
+	
+	#either OS = 'Android [
+		#either type = 'exe [
+			#include %POSIX.reds
+		][
+			#include %android.reds
+		]
+	][
+		#include %POSIX.reds
+	]
 
 	#import  [
 		LIBC-file cdecl [
@@ -37,7 +48,7 @@ platform: context [
 		]
 	]
 
-	page-size: sysconf SC_PAGE_SIZE
+	page-size: 0
 
 	#syscall [
 		mmap: SYSCALL_MMAP [
@@ -95,6 +106,9 @@ platform: context [
 	
 	
 	init: does [
-		setlocale __LC_CTYPE ""					;@@ check if "utf8" is present in returned string?
+		page-size: sysconf SC_PAGE_SIZE			;@@ add error checking!
+		#if type = 'exe [
+			setlocale __LC_CTYPE ""					;@@ check if "utf8" is present in returned string?
+		]
 	]
 ]

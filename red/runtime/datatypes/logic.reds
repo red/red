@@ -10,18 +10,9 @@ Red/System [
 	}
 ]
 
-true-value: declare red-logic!							;-- preallocate TRUE value
-true-value/header: TYPE_LOGIC
-true-value/value: true
-
-false-value: declare red-logic!							;-- preallocate FALSE value
-false-value/header: TYPE_LOGIC
-false-value/value: false
-
 
 logic: context [
 	verbose: 0
-	
 	
 	get: func [											;-- unboxing integer value
 		value	 [red-value!]
@@ -178,74 +169,76 @@ logic: context [
 		res
 	]
 	
-	datatype/register [
-		TYPE_LOGIC
-		TYPE_VALUE
-		"logic!"
-		;-- General actions --
-		:make
-		null			;random
-		null			;reflect
-		null			;to
-		:form
-		:mold
-		null			;get-path
-		null			;set-path
-		:compare
-		;-- Scalar actions --
-		null			;absolute
-		null			;add
-		null			;divide
-		null			;multiply
-		null			;negate
-		null			;power
-		null			;remainder
-		null			;round
-		null			;subtract
-		null			;even?
-		null			;odd?
-		;-- Bitwise actions --
-		null			;and~
-		null			;complement
-		null			;or~
-		null			;xor~
-		;-- Series actions --
-		null			;append
-		null			;at
-		null			;back
-		null			;change
-		null			;clear
-		null			;copy
-		null			;find
-		null			;head
-		null			;head?
-		null			;index?
-		null			;insert
-		null			;length?
-		null			;next
-		null			;pick
-		null			;poke
-		null			;remove
-		null			;reverse
-		null			;select
-		null			;sort
-		null			;skip
-		null			;swap
-		null			;tail
-		null			;tail?
-		null			;take
-		null			;trim
-		;-- I/O actions --
-		null			;create
-		null			;close
-		null			;delete
-		null			;modify
-		null			;open
-		null			;open?
-		null			;query
-		null			;read
-		null			;rename
-		null			;update
-		null			;write
+	init: does [
+		datatype/register [
+			TYPE_LOGIC
+			TYPE_VALUE
+			"logic!"
+			;-- General actions --
+			:make
+			null			;random
+			null			;reflect
+			null			;to
+			:form
+			:mold
+			null			;get-path
+			null			;set-path
+			:compare
+			;-- Scalar actions --
+			null			;absolute
+			null			;add
+			null			;divide
+			null			;multiply
+			null			;negate
+			null			;power
+			null			;remainder
+			null			;round
+			null			;subtract
+			null			;even?
+			null			;odd?
+			;-- Bitwise actions --
+			null			;and~
+			null			;complement
+			null			;or~
+			null			;xor~
+			;-- Series actions --
+			null			;append
+			null			;at
+			null			;back
+			null			;change
+			null			;clear
+			null			;copy
+			null			;find
+			null			;head
+			null			;head?
+			null			;index?
+			null			;insert
+			null			;length?
+			null			;next
+			null			;pick
+			null			;poke
+			null			;remove
+			null			;reverse
+			null			;select
+			null			;sort
+			null			;skip
+			null			;swap
+			null			;tail
+			null			;tail?
+			null			;take
+			null			;trim
+			;-- I/O actions --
+			null			;create
+			null			;close
+			null			;delete
+			null			;modify
+			null			;open
+			null			;open?
+			null			;query
+			null			;read
+			null			;rename
+			null			;update
+			null			;write
+		]
 	]
 ]

@@ -26,6 +26,11 @@ red: context [
 	lexer: 		   do bind load %lexer.r 'self
 	extracts:	   do bind load %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
 	sys-global:    make block! 1
+	lit-vars: 	   reduce [
+		'block	   make hash! 1000
+		'string	   make hash! 1000
+		'context   make hash! 1000
+	]
 	 
 	pc: 		   none
 	locals:		   none
@@ -41,6 +46,7 @@ red: context [
 	s-counter:	   0									;-- series suffix counter
 	depth:		   0									;-- expression nesting level counter
 	booting?:	   none									;-- YES: compiling boot script
+	no-global?:	   no									;-- YES: put global code in a function
 	nl: 		   newline
  
 	unboxed-set:   [integer! char! float! float32! logic!]
@@ -116,6 +122,21 @@ red: context [
 					if all [script-path relative-path? file/1][
 						file/1: clean-path join script-path file/1
 					]
+				)
+				| into rule
+				| skip
+			]
+		]
+	]
+	
+	process-calls: func [code [block!] /global /local rule pos mark][
+		parse code rule: [
+			some [
+				#call pos: (
+					mark: tail output
+					process-call-directive pos/1 to logic! global
+					change/part back pos mark 2
+					clear mark
 				)
 				| into rule
 				| skip
@@ -294,6 +315,10 @@ red: context [
 		to word! join "red-" mold/flat type
 	]
 	
+	decorate-exec-ctx: func [name [word!]][
+		append to path! 'exec name
+	]
+	
 	decorate-symbol: func [name [word!] /local pos][
 		if pos: find/case/skip aliases name 2 [name: pos/2]
 		to word! join "~" clean-lf-flag name
@@ -304,8 +329,11 @@ red: context [
 		to word! join "f_" clean-lf-flag name
 	]
 	
-	decorate-series-var: func [name [word!]][
-		to word! join name get-counter
+	decorate-series-var: func [name [word!] /local new list][
+		new: to word! join name get-counter
+		list: select lit-vars select [blk block str string ctx context] name
+		if all [list not find list new][append list new]
+		new
 	]
 	
 	declare-variable: func [name [string! word!] /init value /local var set-var][
@@ -322,7 +350,7 @@ red: context [
 		unless find/case symbols name [
 			if find symbols name [
 				if find/case/skip aliases name 2 [exit]
-				alias: to word! join name get-counter
+				alias: decorate-series-var name
 				repend aliases [name alias]
 			]
 			sym: decorate-symbol name
@@ -349,7 +377,7 @@ red: context [
 	]
 	
 	push-context: func [ctx [block!] /local name][
-		append contexts name: to word! join "ctx" get-counter
+		append contexts name: decorate-series-var 'ctx
 		append/only contexts ctx
 		append ctx-stack name
 		name
@@ -1213,9 +1241,9 @@ red: context [
 	
 	comp-func: func [
 		/collect /does /has
-		/local name word spec body symbols locals-nb spec-blk body-blk ctx
+		/local name word spec body symbols locals-nb spec-blk body-blk ctx src-name
 	][
-		name: check-func-name to word! pc/-1
+		name: check-func-name src-name: to word! pc/-1
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
 		
@@ -1237,12 +1265,12 @@ red: context [
 				(to set-word! ctx) _context/make (spec-blk) yes	;-- build context with value on stack
 			]
 			insert-lf -4
-			body-blk: emit-block/bind body ctx
+			body-blk: either job/red-store-bodies? [emit-block/bind body ctx]['null]
 			pop-locals
 		]
 		
 		emit-open-frame 'set							;-- function value creation
-		emit-push-word name
+		emit-push-word src-name
 		emit reduce [
 			'_function/push spec-blk body-blk ctx
 			'as 'integer! to get-word! decorate-func/strict name
@@ -1272,7 +1300,7 @@ red: context [
 		comp-func/has
 	]
 	
-	comp-routine: has [name word spec body spec-blk body-blk][
+	comp-routine: has [name word spec spec* body spec-blk body-blk][
 		name: check-func-name to word! pc/-1
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
@@ -1283,15 +1311,26 @@ red: context [
 		check-spec spec
 		add-function/type name spec 'routine!
 		
-		set [spec-blk body-blk] redirect-to-literals [
-			reduce [emit-block spec emit-block body]	;-- store spec and body blocks
-		]
+		process-calls body								;-- process #call directives
 		
-		emit reduce [to set-word! name 'func]
-		insert-lf -2
+		clear find spec*: copy spec /local
+		spec-blk: redirect-to-literals [emit-block spec*]
+		body-blk: either job/red-store-bodies? [
+			redirect-to-literals [emit-block body]
+		][
+			'null
+		]
 		convert-types spec
-		append/only output spec
-		append/only output body
+		either no-global? [
+			repend bodies [								;-- saved for deferred inclusion
+				name spec body none none none none none
+			]
+		][
+			emit reduce [to set-word! name 'func]
+			insert-lf -2
+			append/only output spec
+			append/only output body
+		]
 		
 		emit-open-frame 'set							;-- routine value creation
 		emit-push-word name
@@ -1853,8 +1892,66 @@ red: context [
 		]
 		false											;-- not an infix expression
 	]
+	
+	process-call-directive: func [body [block!] global? /local name spec cmd][
+		name: to word! clean-lf-flag body/1
+		if any [
+			not spec: select functions name
+			not spec/1 = 'function!
+		][
+			throw-error ["invalid #call function name:" name]
+		]
+		either global? [
+			emit 'red/stack/mark-func
+			emit decorate-exec-ctx decorate-symbol name
+			insert-lf -2
+		][
+			emit-open-frame name
+		]
+		
+		types: spec/3
+		body: next body
+		
+		loop spec/2 [
+			types: find/tail types word!
+			unless block? types/1 [
+				throw-error ["type undefined for" types/1 "in function" name]
+			]
+			cmd: to path! reduce [to word! form get types/1/1 'push]
+			if global? [insert cmd 'red]
+			emit cmd
+			insert-lf -1
+			case [
+				none? body/1 [
+					throw-error ["missing argument(s) in #call body"]
+				]
+				body/1 = 'as [
+					emit copy/part body 3
+					body: skip body 3
+				]
+				'else [
+					emit body/1
+					body: next body
+				]
+			]
+		]
+		name: decorate-func name
+		if global? [name: decorate-exec-ctx name]
+		emit name
+		insert-lf -1
+		
+		either global? [
+			emit 'red/stack/unwind
+			insert-lf -1
+			emit 'red/stack/reset
+		][
+			emit-close-frame
+			emit 'stack/reset
+		]
+		insert-lf -1
+	]
 
-	comp-directive: has [file saved version][
+	comp-directive: has [file saved version mark][
 		switch pc/1 [
 			#include [
 				unless file? file: pc/2 [
@@ -1892,7 +1989,10 @@ red: context [
 					throw-error "#system requires a block argument"
 				]
 				process-include-paths pc/2
+				process-calls pc/2
+				mark: tail output
 				emit pc/2
+				new-line mark on
 				pc: skip pc 2
 				true
 			]
@@ -2025,10 +2125,17 @@ red: context [
 	
 	comp-bodies: does [
 		foreach [name spec body symbols locals-nb stack ssa ctx] bodies [
-			locals-stack: stack
-			ssa-names: ssa
-			ctx-stack: ctx
-			comp-func-body name spec body symbols locals-nb
+			either none? symbols [						;-- routine in no-global? mode
+				emit reduce [to set-word! name 'func]
+				insert-lf -2
+				append/only output spec
+				append/only output body
+			][
+				locals-stack: stack
+				ssa-names: ssa
+				ctx-stack: ctx
+				comp-func-body name spec body symbols locals-nb
+			]
 		]
 		clear locals-stack
 		clear ssa-names
@@ -2053,17 +2160,7 @@ red: context [
 		]
 	]
 	
-	comp-red: func [code [block!] /local out main script user pos][
-		out: copy/deep [
-			Red/System [origin: 'Red]
-			
-			#include %red.reds
-						
-			with red [
-				exec: context <script>
-			]
-		]
-		
+	comp-source: func [code [block!] /local user main][
 		output: make block! 10000
 		comp-init
 		
@@ -2081,6 +2178,103 @@ red: context [
 		output: make block! 1000
 		
 		comp-bodies										;-- compile deferred functions
+		
+		reduce [user main]
+	]
+	
+	comp-as-lib: func [code [block!] /local user main defs pos][
+		out: copy/deep [
+			Red/System [
+				type:   'dll
+				origin: 'Red
+			]
+
+			#include %red.reds
+			
+			with red [
+				exec: context [
+					<declarations>
+					init: func [/local tmp] <script>
+				]
+			]
+			on-load: does [
+				red/init
+				exec/init
+			]
+		]
+		
+		set [user main] comp-source code
+		
+		defs: make block! 10'000
+		
+		foreach [type cast][
+			block	red-block!
+			string	red-string!
+			context red-context!
+		][
+			foreach name lit-vars/:type [
+				repend defs [to set-word! name 'as cast 0]
+				new-line skip tail defs -4 on
+			]
+		]
+		foreach [name spec] symbols [
+			repend defs [to set-word! spec/1 'as 'red-word! 0]
+			new-line skip tail defs -4 on
+		]
+		append defs [
+			------------| "Declarations"
+		]
+		append defs declarations
+		pos: tail defs
+		append defs [
+			------------| "Functions"
+		]
+		append defs output
+;		if verbose = 2 [probe pos]
+		
+		script: make block! 10'000
+		append script [
+			------------| "Symbols"
+		]
+		append script sym-table
+		append script [
+			------------| "Literals"
+		]
+		append script literals
+		append script [
+			------------| "Main program"
+		]
+		append script main
+;		if find [1 2] verbose [probe user]
+		
+		unless empty? sys-global [
+			process-calls/global sys-global				;-- lazy #call processing
+			insert at out 3 sys-global
+			new-line at out 3 yes
+		]
+		
+		pos: third pick tail out -4
+		change/only find pos <script> script
+		remove pos: find pos <declarations>
+		insert pos defs
+		
+		output: out
+		if verbose > 2 [?? output]
+	]
+	
+	comp-as-exe: func [code [block!] /local out user main][
+		out: copy/deep [
+			Red/System [origin: 'Red]
+
+			#include %red.reds
+			red/init
+			
+			with red [
+				exec: context <script>
+			]
+		]
+		
+		set [user main] comp-source code
 		
 		;-- assemble all parts together in right order
 		script: make block! 10'000
@@ -2111,12 +2305,13 @@ red: context [
 		if find [1 2] verbose [probe user]
 		
 		unless empty? sys-global [
+			process-calls/global sys-global				;-- lazy #call processing
 			insert at out 3 sys-global
 			new-line at out 3 yes
 		]
 
 		change/only find last out <script> script		;-- inject compilation result in template
-		output:  out
+		output: out
 		if verbose > 2 [?? output]
 	]
 	
@@ -2149,6 +2344,9 @@ red: context [
 		clear op-actions
 		clear keywords
 		clear skip functions 2							;-- keep MAKE definition
+		clear lit-vars/block
+		clear lit-vars/string
+		clear lit-vars/context
 		s-counter: 0
 		depth:	   0
 	]
@@ -2156,13 +2354,18 @@ red: context [
 	compile: func [
 		file [file! block!]								;-- source file or block of code
 		opts [object!]
-		/local time
+		/local time src
 	][
 		verbose: opts/verbosity
+		job: opts
 		clean-up
 		main-path: first split-path file
+		no-global?: job/type = 'dll
 		
-		time: dt [comp-red load-source file]
+		time: dt [
+			src: load-source file
+			either no-global? [comp-as-lib src][comp-as-exe src]
+		]
 		reduce [output time]
 	]
 ]

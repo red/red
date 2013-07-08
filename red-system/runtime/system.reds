@@ -29,6 +29,7 @@ Red/System [
 __stack!: alias struct! [
 	top		[int-ptr!]
 	frame	[int-ptr!]
+	align	[int-ptr!]
 ]
 
 #switch target [
@@ -53,7 +54,8 @@ __stack!: alias struct! [
 			mask		 [x87-mask!]
 			control-word [integer!]			;-- direct access to whole control word
 			epsilon		 [integer!]			;-- Ulp threshold for almost-equal op (not used yet)
-			update		 [integer!]			;-- action simulated using a read-only member (dummy type)
+			update		 [integer!]			;-- action simulated using a read-only member
+			init		 [integer!]			;-- action simulated using a read-only member
 		]
 	]
 	ARM [
@@ -76,8 +78,10 @@ system: declare struct! [					;-- store runtime accessible system values
 	thrown		[integer!]					;-- last THROWn value
 ]
 
-#if target = 'IA-32 [
-	system/fpu/control-word: 0322h			;-- default control word: division by zero, 
+#if type = 'exe [
+	#if target = 'IA-32 [
+		system/fpu/control-word: 0322h		;-- default control word: division by zero, 
 											;-- underflow and overflow raise exceptions.
-	system/fpu/update
+		system/fpu/update
+	]
 ]

@@ -20,6 +20,7 @@ context [
 
 		base-address	0
 		page-size		4096		;-- target-dependent
+		reloc-bits		#{00000104}	;-- r_symbolnum = 1, r_pcrel = 0; r_length = 2; r_extern = 0; r_type = 0
 		
 		file-type [					;-- Constants for the filetype field of the mach_header
 			object   		1     	; relocatable object file
@@ -53,6 +54,7 @@ context [
 			bindstoweak     65536	; ?? (MH_BINDS_TO_WEAK)
 			allowstackexec  131072	; ?? (MH_ALLOW_STACK_EXECUTION)
 			validflags      262143	; ?? 0003ffff (mask)
+			noreexported	1048576	; no re-exported dynamic libraries
 		]
 		load-type [					;-- Constants for the cmd field of all load commands
 			req_dyld 		-2147483648
@@ -265,7 +267,7 @@ context [
 
 	;-- Globals --
 	
-	segments: [
+	segments-layout: [
 	;-- class ------ name ------ mem --- file - rights - payload - memalign
 	;						   - off sz  off sz	-
 	  segment		__PAGEZERO   0	page 0 	 0	[]		  - 	   page []
@@ -278,19 +280,24 @@ context [
 	  uthread		-			 -	 -   -	 -   - 		  -		   -	[]
 	]
 	
-	imports-refs:		make block! 10		;-- [ptr [refs] ...]
-	dylink?:			no					;-- yes => dynamic library linking required
+	imports-refs:		make block! 10					;-- [ptr [refs] ...]
+	dylink?:			no								;-- yes => dynamic library linking required
 	segment-sz:			length? form-struct segment-command
 	section-sz:			length? form-struct section-header
 	load-cmds-nb:		0
 	load-cmds-sz:		0
-	stub-size:			5					;-- imported functions slot size
+	stub-size:			5								;-- imported functions slot size
+	segments:			none
 
 	;-- Mach-O structure builders --
 	
+	make-buffer: func [size [integer!]][
+		head insert/dup make binary! size #{00} size
+	]
+	
 	to-c-string: func [value][join value null]
 	
-	pad4: func [s [string!] /local rem][
+	pad4: func [s [string! binary!] /local rem][
 		unless zero? rem: (length? s) // 4 [
 			insert/dup tail s #"^@" 4 - rem
 		]
@@ -300,9 +307,9 @@ context [
 	get-ceiling: func [type [word!]][
 		switch/default type [
 			page [defs/page-size]
-			word [4]						;-- 4 => 32-bit, 8 => 64-bit @@
+			word [4]									;-- 4 => 32-bit, 8 => 64-bit @@
 			byte [1]
-		][4]								;-- 4 => 32-bit, 8 => 64-bit @@								
+		][4]											;-- 4 => 32-bit, 8 => 64-bit @@
 	]
 	
 	sections?: func [list [block!]][(length? list) / 9]
@@ -312,7 +319,8 @@ context [
 			segment  [segment-sz]
 			uthread  [length? form-struct unix-thread-cmd]
 			dylinker [length? form-struct dylinker-cmd]
-			lddylib  [length? form-struct load-dylib-cmd]
+			lddylib
+			id_dylib [length? form-struct load-dylib-cmd]
 			symtab	 [length? form-struct symtab-cmd]
 			dysymtab [length? form-struct dysymtab-cmd]
 		]
@@ -339,11 +347,19 @@ context [
 					or flags/attr_self_modifying_code
 					or flags/symbol_stubs
 			]
+			initfuncs [
+				flags/mod_init_func_pointers
+					or flags/attr_loc_reloc
+			]
+			termfuncs [
+				flags/mod_term_func_pointers
+					or flags/attr_loc_reloc
+			]
 		][flags/regular]
 	]
 	
 	get-section-addr: func [name [word!] /local addr][
-		parse segments [some [into [thru name set addr skip | none] | skip]]	
+		parse segments [some [into [thru name set addr skip | none] | skip]]
 		addr
 	]
 	
@@ -354,7 +370,7 @@ context [
 	process-debug-info: func [job [object!]][
 		linker/build-debug-lines job get-section-addr '__text pointer
 	]
-		
+	
 	prepare-headers: func [
 		job [object!]
 		/local seg sec addr fpos get-value size sz header-sz hd-sz
@@ -377,7 +393,7 @@ context [
 		
 		header-sz: load-cmds-sz + length? form-struct mach-header
 		addr: 0
-		fpos: header-sz
+		fpos: 0
 		
 		seg: segments
 		until [
@@ -389,7 +405,7 @@ context [
 				hd-sz: either seg/2 = '__TEXT [header-sz][0]	;-- account for headers
 				size: either seg/8 = '- [0][length? job/sections/(seg/8)/2]
 				while [not tail? sec][
-					sz: length? job/sections/(sec/8)/2					
+					sz: length? job/sections/(sec/8)/2
 					sec/3: addr: round/ceiling/to addr + hd-sz get-ceiling sec/9 ;-- offset in memory (section)
 					sec/4: sz							;-- size in memory (section)
 					sec/5: fpos: round/ceiling/to fpos + hd-sz get-ceiling sec/9 ;-- offset in file (section)
@@ -436,9 +452,10 @@ context [
 	resolve-import-refs: func [job [object!] /local code base][
 		code: job/sections/code/2
 		base: get-section-addr '__jump_table
+		if job/PIC? [base: base - get-section-addr '__text]
 
 		foreach [ptr reloc] imports-refs [
-			pointer/value: ptr: base + ptr
+			pointer/value: base + ptr
 			foreach ref reloc [
 				change at code ref form-struct pointer 	;TBD: check endianness + x-compilation
 			]
@@ -452,7 +469,7 @@ context [
 		sym-tbl:    make binary! 1024
 		dy-sym-tbl: make binary! 1024
 		str-tbl: 	make binary! 1024
-		append str-tbl #{00000000}					;-- start with 4 null bytes @@
+		append str-tbl #{00000000}						;-- start with 4 null bytes @@
 		
 		insert find segments 'uthread [
 			segment			__IMPORT	 ?	 ? 	 ?	 ?	[r w x]	  -   	   page [
@@ -466,7 +483,7 @@ context [
 		]
 		segments/dylinker: pad4 to-c-string "/usr/lib/dyld"
 		
-		lib: 1										;-- one-based index
+		lib: 1											;-- one-based index
 		cnt: 0
 		foreach [name list] job/sections/import/3 [
 			name: to-c-string name
@@ -478,7 +495,7 @@ context [
 				entry: make-struct nlist none
 				entry/n-strx:  length? str-tbl
 				entry/n-type:  to integer! defs/sym-type/n-undf or defs/sym-type/n-ext
-				entry/n-sect:  0					;-- NO_SECT
+				entry/n-sect:  0						;-- NO_SECT
 				entry/n-desc:  (to integer! defs/sym-desc/undef-lazy) or shift/left lib 8
 				entry/n-value: 0
 				append sym-tbl form-struct entry
@@ -486,7 +503,7 @@ context [
 				pointer/value: cnt
 				append dy-sym-tbl form-struct pointer
 				
-				repend imports-refs [cnt * stub-size reloc]		;-- store symbol jump table offset
+				repend imports-refs [cnt * stub-size reloc]	;-- store symbol jump table offset
 				
 				append str-tbl join "_" to-c-string def
 				cnt: cnt + 1
@@ -499,23 +516,129 @@ context [
 			]
 			'symbols reduce [
 				reduce [cnt length? sym-tbl length? dy-sym-tbl length? str-tbl]
-				rejoin [sym-tbl dy-sym-tbl str-tbl]
+				reduce [sym-tbl dy-sym-tbl str-tbl]
 			]
 		]
 	]
 	
-	build-dysymtab-command: func [job [object!] spec [block!] /local sc sym-info][
+	resolve-exports: func [job [object!] /local code data buffer reloc spec][
+		code: get-section-addr '__text
+		data: get-section-addr '__data
+		
+		foreach [offset data? ref] job/sections/export/4 [
+			pointer/value: offset + get pick [data code] data?
+			change ref form-struct pointer
+		]
+		
+		if buffer: find job/sections 'initfuncs [
+			buffer: buffer/2/2
+			reloc:  job/sections/reloc-info/2
+			
+			spec: select job/symbols '***-dll-entry-point			;-- on-load pointer storing
+			pointer/value: spec/2 - 1 + code
+			change buffer form-struct pointer
+			
+			pointer/value: get-section-addr '__mod_init_func
+			change reloc form-struct pointer			;-- relocation address
+			change skip reloc 4 defs/reloc-bits			;-- relocation flags
+			
+			buffer: job/sections/termfuncs/2
+			
+			spec: select job/symbols 'on-unload			;-- on-unload pointer storing
+			pointer/value: spec/2 - 1 + code
+			change buffer form-struct pointer
+			
+			pointer/value: get-section-addr '__mod_term_func
+			change skip reloc 8  form-struct pointer	;-- relocation address
+			change skip reloc 12 defs/reloc-bits		;-- relocation flags
+		]
+	]
+	
+	build-exports: func [
+		job [object!]
+		/local name exports symbols sym-tbl str-tbl spec data? list value
+	][
+		remove/part find segments 'uthread 10
+		remove/part find segments '__PAGEZERO 10
+		remove/part find segments 'dylinker 10
+		
+		insert skip find segments '__LINKEDIT 9 [
+			id_dylib		-			 -	 -   -	 -   - 		  -		   -	[]
+		]
+		segments/id_dylib: name: pad4 to-c-string form join 
+			job/build-basename
+			select defs/extensions job/type
+		
+		if all [
+			spec: select job/symbols '***-dll-entry-point
+			spec/1 = 'native
+		][
+			append pick find segments '__DATA 9 [
+				section __mod_init_func	 ?	 ?   ?   ? 	- initfuncs word
+				section __mod_term_func	 ?	 ?   ?   ? 	- termfuncs word
+			]
+			repend job/sections [
+				'initfuncs  reduce ['- make-buffer 4]
+				'termfuncs  reduce ['- make-buffer 4]
+				'reloc-info reduce ['- make-buffer 16]
+			]
+		]
+		
+		;if name/1 <> slash [insert name "/usr/lib/"]
+		
+		exports:   job/sections/export/3
+		symbols:   job/sections/symbols
+		sym-tbl:   symbols/2/1
+		str-tbl:   symbols/2/3
+		list: 	   make block! length? exports
+		
+		foreach sym sort exports [						;-- sorted symbols by name
+			spec: job/symbols/:sym
+			data?: spec/1 = 'global
+			
+			entry: make-struct nlist none
+			entry/n-strx:  length? str-tbl
+			entry/n-type:  to integer! defs/sym-type/n-sect or defs/sym-type/n-ext
+			entry/n-sect:  pick [2 1] data?				;-- hardcoded section counters
+			entry/n-desc:  0
+			entry/n-value: 0
+			append sym-tbl form-struct entry
+			value: either data? [spec/2][spec/2 - 1]	;-- code refs are 1-based
+			repend list [value data? skip tail sym-tbl -4]	;-- deferred addresses calculation
+			
+			append str-tbl join "_" to-c-string form sym
+		]
+		pad4 str-tbl
+		symbols/1/1: symbols/1/1 + length? exports
+		symbols/1/2: length? sym-tbl
+		symbols/1/4: length? str-tbl
+		symbols/2/1: sym-tbl
+		symbols/2/3: str-tbl
+		
+		append symbols/1 length? exports
+		append/only job/sections/export list
+	]
+	
+	build-dysymtab-command: func [
+		job [object!] spec [block!]
+		/local sc sym-info undef-syms-nb reloc reloffset
+	][
 		sym-info: job/sections/symbols/1
+		undef-syms-nb: sym-info/1 - any [sym-info/5 0]
+		if reloc: select job/sections 'reloc-info [
+			reloffset: (third get-segment-info '__LINKEDIT)
+				+ sym-info/2 + sym-info/3 + sym-info/4
+		]
 
 		sc: make-struct dysymtab-cmd none
 		sc/cmd:			   defs/load-type/dysymtab
 		sc/size:		   get-struct-size 'dysymtab
 		sc/ilocalsym:	   0
 		sc/nlocalsym:	   0
-		sc/iextdefsym:	   0
-		sc/nextdefsym:	   0
+		sc/iextdefsym:	   either job/type = 'dll [undef-syms-nb][0]
+		sc/nextdefsym:	   either job/type = 'dll [sym-info/5][0]
 		sc/iundefsym:	   0
-		sc/nundefsym:	   sym-info/1
+		sc/nundefsym:	   undef-syms-nb
 		sc/tocoff:		   0
 		sc/ntoc:		   0
 		sc/modtaboff:	   0
@@ -523,11 +646,11 @@ context [
 		sc/extrefsymoff:   0
 		sc/nextrefsyms:	   0
 		sc/indirectsymoff: (third get-segment-info '__LINKEDIT) + sym-info/2
-		sc/nindirectsyms:  sym-info/1
+		sc/nindirectsyms:  undef-syms-nb
 		sc/extreloff:	   0
 		sc/nextrel:		   0
-		sc/locreloff:	   0
-		sc/nlocrel:		   0
+		sc/locreloff:	   either reloc [reloffset][0]
+		sc/nlocrel:		   either reloc [(length? reloc/2) / 8][0]
 		sc: form-struct sc
 		sc
 	]
@@ -546,13 +669,15 @@ context [
 		sc
 	]
 	
-	build-lddylib-command: func [job [object!] spec [block!] /local lc][
+	build-lddylib-command: func [job [object!] spec [block!] /alt /local lc type][
+		type: pick [id_dylib load_dylib] alt: to logic! alt
+		
 		lc: make-struct load-dylib-cmd none
-		lc/cmd:			defs/load-type/load_dylib
+		lc/cmd:			defs/load-type/:type
 		lc/size:		(get-struct-size 'lddylib) + length? spec/2
 		lc/offset:		24
 		lc/timestamp:	2
-		lc/version:		to integer! #{007D0000}	;-- 128.0.0
+		lc/version:		to integer! pick [ #{00010000} #{007D0000}] alt	;-- 1.0.0 | 128.0.0
 		lc/compat:		to integer! #{00000000}	;-- 0.0.0		@@ should be configurable
 		lc: form-struct lc
 		append lc spec/2
@@ -565,7 +690,7 @@ context [
 		dl/size:		(get-struct-size 'dylinker) + length? spec/2
 		dl/offset:		12
 		dl: form-struct dl
-		append dl spec/2	
+		append dl spec/2
 		dl
 	]
 	
@@ -573,7 +698,7 @@ context [
 		ut: make-struct unix-thread-cmd none
 		ut/cmd:			defs/load-type/unixthread
 		ut/size:		get-struct-size 'uthread
-		ut/flavor:		1							;-- x86_THREAD_STATE32
+		ut/flavor:		1								;-- x86_THREAD_STATE32
 		ut/count:		16
 		ut/eip:			get-section-addr '__text
 		form-struct ut
@@ -607,26 +732,29 @@ context [
 		sc/maxprot:		either empty? spec/7 [0][get-rights? [r w x]]
 		sc/initprot:	get-rights? spec/7
 		sc/nsects:		sections? spec/10
-		sc/flags:		4						;-- SG_NORELOC
+		sc/flags:		pick [4 0] job/type = 'exe		;-- SG_NORELOC for exe only
 		sc: form-struct sc
 		change at sc 9 to-c-string spec/2
 		sc
 	]
-		
+	
 	build-mach-header: func [job [object!] /local mh][
 		mh: make-struct mach-header none
 		mh/magic:			to integer! #{FEEDFACE}
-		mh/cpu-type:		7					;-- CPU_TYPE_I386
-		mh/cpu-sub-type:	3					;-- CPU_SUBTYPE_I386_ALL
-		mh/file-type:		defs/file-type/execute
+		mh/cpu-type:		7							;-- CPU_TYPE_I386
+		mh/cpu-sub-type:	3							;-- CPU_SUBTYPE_I386_ALL
+		mh/file-type:		switch job/type [
+								exe [defs/file-type/execute]
+								dll [defs/file-type/dylib]
+							]
 		mh/nb-cmds:			load-cmds-nb
 		mh/sz-cmds:			load-cmds-sz
 		mh/flags:			defs/flags/noundefs
 		if dylink? [
 			mh/flags: mh/flags 
 				or defs/flags/dyldlink
-				or defs/flags/subsections
-				;or defs/flags/bindatload
+				;or defs/flags/subsections
+				or defs/flags/noreexported
 		]
 		form-struct mh
 	]
@@ -634,18 +762,22 @@ context [
 	build: func [
 		job [object!]
 		/local
-			base-address dynamic-linker out sections
-
-	] [
-		base-address: any [job/base-address defs/base-address]
+			base-address dynamic-linker out sections data
+	][
+		segments: copy/deep segments-layout
+		
+		base-address: 	any [job/base-address defs/base-address]
 		dynamic-linker: any [job/dynamic-linker ""]
 		
 		dylink?: not empty? job/sections/import/3
 		
 		clear imports-refs
 		if dylink? [build-imports job]
-		
+		if job/type = 'dll [build-exports job]
+	
 		prepare-headers job
+		
+		if job/type = 'dll [resolve-exports job]
 		
 		out: job/buffer
 		append out build-mach-header job
@@ -658,6 +790,7 @@ context [
 				lddylib  [build-lddylib-command  job seg]
 				symtab	 [build-symtab-command 	 job seg]
 				dysymtab [build-dysymtab-command job seg]
+				id_dylib [build-lddylib-command/alt job seg]
 			]
 			unless empty? sections: seg/10 [
 				forskip sections 9 [
@@ -670,11 +803,26 @@ context [
 		resolve-data-refs job
 		
 		emit-page-aligned out job/sections/code/2
-		emit-page-aligned out job/sections/data/2
-	
+		
+		data: job/sections/data/2
+		if find job/sections 'initfuncs [
+			append pad4 data job/sections/initfuncs/2
+			append data job/sections/termfuncs/2
+		]
+		emit-page-aligned out data
+		
 		if dylink? [
 			emit-page-aligned out job/sections/jmptbl/2
-			emit-page-aligned out job/sections/symbols/2
+		]
+		either job/type = 'dll [
+			either find job/sections 'initfuncs [
+				append out rejoin job/sections/symbols/2
+				emit-page-aligned out job/sections/reloc-info/2
+			][
+				emit-page-aligned out rejoin job/sections/symbols/2
+			]
+		][
+			emit-page-aligned out rejoin job/sections/symbols/2
 		]
 	]
 ]
