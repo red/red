@@ -1798,10 +1798,22 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /local name local? alter][
+	comp-word: func [/literal /final /local name local? alter emit-word][
 		name: to word! pc/1
 		pc: next pc										;@@ move it deeper
 		local?: local-word? name
+		
+		emit-word: [
+			either lit-word? pc/-1 [				;@@
+				emit-push-word name
+			][
+				either literal [
+					emit-get-word/literal name
+				][
+					emit-get-word name
+				]
+			]
+		]
 		
 		case [
 			name = 'exit	[comp-exit]
@@ -1831,19 +1843,15 @@ red: context [
 				find globals name
 				find-contexts name
 			][
-				either lit-word? pc/-1 [				;@@
-					emit-push-word name
-				][
-					either literal [
-						emit-get-word/literal name
-					][
-						emit-get-word name
-					]
-				]
+				do emit-word
 			]
 			'else [
-				pc: back pc
-				throw-error ["undefined word" pc/1]
+				either job/red-strict-check? [
+					pc: back pc
+					throw-error ["undefined word" pc/1]
+				][
+					do emit-word
+				]
 			]
 		]
 	]

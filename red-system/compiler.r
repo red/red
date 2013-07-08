@@ -3054,6 +3054,7 @@ system-dialect: make-profilable context [
 		unicode?:		no				;-- yes => use Red Unicode API for printing on screen
 		red-only?:		no				;-- yes => stop compilation at Red/System level and display output
 		red-store-bodies?: yes			;-- no => do not store function! value bodies (body-of will return none)
+		red-strict-check?: yes			;-- no => defers undefined word errors reporting at run-time
 	]
 	
 	compile: func [
