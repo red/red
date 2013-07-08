@@ -1360,8 +1360,8 @@ string: context [
 					][
 						insert-char s str/head + i char/value
 						i: i + 1
-						added: added + 1
 					]
+					added: added + 1
 				][
 					either any [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?
