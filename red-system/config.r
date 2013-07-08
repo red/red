@@ -23,7 +23,7 @@ REBOL [
 ;;  syscall:		'Linux | 'BSD				;-- syscalls calling convention (default to Linux)
 ;;  stack-align-16?: yes | no					;-- yes => align stack to 16 bytes (default: no)
 ;;  literal-pool?:	 yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
-;;	store-bodies?:	 yes | no					;-- no => do not store function! value bodies (default: yes)
+;;  red-store-bodies?:	 yes | no				;-- no => do not store function! value bodies (default: yes)
 ;;-------------------------------------------
 
 ;-------------------------
@@ -46,7 +46,7 @@ WinDLL [
 	format: 	'PE
 	type:		'DLL
 	sub-system: 'GUI
-	store-bodies?: no
+	red-store-bodies?: no
 ]
 WinDRV [
 	OS:			'Windows
@@ -54,7 +54,7 @@ WinDRV [
 	type:		'drv
 	sub-system: 'driver
 	use-natives?: yes
-	store-bodies?: no
+	red-store-bodies?: no
 ]
 ;-------------------------
 Linux [									; Linux default target
@@ -78,7 +78,7 @@ Android [
 	target:		'ARM
 	type:		'exe
 	dynamic-linker: "/system/bin/linker"
-	store-bodies?: no
+	red-store-bodies?: no
 ]
 ;-------------------------
 Android-x86 [
@@ -87,7 +87,7 @@ Android-x86 [
 	target:		'IA-32
 	type:		'exe
 	dynamic-linker: "/system/bin/linker"
-	store-bodies?: no
+	red-store-bodies?: no
 ]
 ;-------------------------
 Linux-ARM [

@@ -1265,7 +1265,7 @@ red: context [
 				(to set-word! ctx) _context/make (spec-blk) yes	;-- build context with value on stack
 			]
 			insert-lf -4
-			body-blk: either job/store-bodies? [emit-block/bind body ctx]['null]
+			body-blk: either job/red-store-bodies? [emit-block/bind body ctx]['null]
 			pop-locals
 		]
 		
@@ -1315,7 +1315,7 @@ red: context [
 		
 		clear find spec*: copy spec /local
 		spec-blk: redirect-to-literals [emit-block spec*]
-		body-blk: either job/store-bodies? [
+		body-blk: either job/red-store-bodies? [
 			redirect-to-literals [emit-block body]
 		][
 			'null

@@ -3053,7 +3053,7 @@ system-dialect: make-profilable context [
 		literal-pool?:	no				;-- yes => use pools to store literals, no => store them inlined (default: no)
 		unicode?:		no				;-- yes => use Red Unicode API for printing on screen
 		red-only?:		no				;-- yes => stop compilation at Red/System level and display output
-		store-bodies?:	yes				;-- no => do not store function! value bodies (body-of will return none)
+		red-store-bodies?: yes			;-- no => do not store function! value bodies (body-of will return none)
 	]
 	
 	compile: func [
