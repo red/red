@@ -666,6 +666,7 @@ red: context [
 		value: path/1
 		switch type?/word value [
 			word! [
+				add-symbol value: to word! clean-lf-flag value
 				case [
 					head? path [
 						emit-get-word value
