@@ -561,12 +561,20 @@ natives: context [
 		header? [integer!]
 		all?	[integer!]
 		type?	[integer!]
+		into 	[integer!]
 		return: [red-value!]
 		/local
 			str [red-string!]
+			dst [red-block!]
 	][
 		str: as red-string! stack/arguments
-		tokenizer/scan as c-string! string/rs-head str null	;@@ temporary limited to Latin-1
+		dst: null
+		
+		if into >= 0 [
+			dst: as red-block! stack/push stack/arguments + into
+		]	
+		tokenizer/scan as c-string! string/rs-head str dst	;@@ temporary limited to Latin-1
+		unless null? dst [stack/set-last as red-value! dst]
 		
 		blk: as red-block! stack/arguments
 		if TYPE_OF(blk) = TYPE_BLOCK [

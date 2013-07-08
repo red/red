@@ -356,7 +356,7 @@ tokenizer: context [
 		blk		[red-block!]
 		return: [c-string!]
 	][
-		src: scan src blk
+		src: scan src block/make-in blk 4				;-- arbitrary start size
 		src + 1											;-- skip ] character
 	]
 	
@@ -368,7 +368,7 @@ tokenizer: context [
 			s	 [series!]
 			slot [red-value!]
 	][
-		src: scan src blk
+		src: scan src block/make-in blk 4				;-- arbitrary start size
 		s: GET_BUFFER(blk)
 		slot: s/tail - 1
 		slot/header: TYPE_PAREN
@@ -389,7 +389,7 @@ tokenizer: context [
 		blk: either null? parent [
 			block/push* 4								;-- arbitrary start size
 		][
-			block/make-in parent 4						;-- arbitrary start size
+			parent
 		]
 		
 		while [

@@ -739,7 +739,9 @@ load: make native! [[
 		source [file! url! string! binary! block!]
 		/header "TBD: Include Red header as a loaded value"
 		/all    "TBD: Don't evaluate Red header"
-		/type [word! none!] "TBD:"
+		/type	"TBD:"
+		/into "Put results in out block, instead of creating a new block"
+			out [block!] "Target block for results, when /into is used"
 	]
 	#get-definition NAT_LOAD
 ]
