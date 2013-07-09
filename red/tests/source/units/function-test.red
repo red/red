@@ -229,27 +229,27 @@ Red [
   		ri4-fn: func ['word] [mold :word]
   	--assert "+" = ri4-fn +
   	
-  	--test-- "ri5 issue #420"
-  		ri5-fn: function [][
-  			g: func [] [true]
-  			g
-  		]
-  	--assert ri5-fn
+  	;--test-- "ri5 issue #420"
+  	;	ri5-fn: function [][
+  	;		g: func [] [true]
+  	;		g
+  	;	]
+  	;--assert ri5-fn
   	
-  	--test-- "ri6 issue #420"
-  		ri6-fn: func [
-  			/local
-  				g
-  		][
-  			g: func [] [true]
-  			g
-  		]
-  	--assert ri6-fn
+  	;--test-- "ri6 issue #420"
+  	;	ri6-fn: func [
+  	;		/local
+  	;			g
+  	;	][
+  	;		g: func [] [true]
+  	;		g
+  	;	]
+  	;--assert ri6-fn
   	
-  	--test-- "ri7 issue #420"
-  		ri7-g: func [][true]
-  		ri7-f: func [][g]
-  	--assert ri7-f
+  	;--test-- "ri7 issue #420"
+  	;	ri7-g: func [][true]
+  	;	ri7-f: func [][g]
+  	;--assert ri7-f
   	
   	--test-- "ri8 issue #443"
   		ri8-fn: func[
