@@ -35,7 +35,7 @@ compile-test: func [test-file [file!]] [
 
 ;; make the Arm dir if needed
 arm-dir: %runnable/arm-tests/
-make-dir arm-dir
+make-dir/deep arm-dir
 
 ;; empty the Arm dir
 foreach file read arm-dir [delete join arm-dir file]
@@ -110,6 +110,3 @@ close runner
 system/options/quiet: store-quiet-mode
 
 print "ARM tests built"
-  
-  
-
