@@ -7,7 +7,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-do %../red-system/compiler.r
+do %red-system/compiler.r
 
 red: context [
 	verbose:	   0									;-- logs verbosity level
@@ -23,8 +23,8 @@ red: context [
 	aliases: 	   make hash! 100
 	contexts:	   make hash! 100						;-- storage for statically compiled contexts
 	ctx-stack:	   make block! 8						;-- contexts access path
-	lexer: 		   do bind load %lexer.r 'self
-	extracts:	   do bind load %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
+	lexer: 		   do bind load %red/lexer.r 'self
+	extracts:	   do bind load %red/utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
 		'block	   make hash! 1000
