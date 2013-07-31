@@ -548,7 +548,12 @@ system-dialect: make-profilable context [
 							throw-error ["invalid struct member" path/2]
 						]
 						type: resolve-struct-member-type type/2 path/2
-						if all [not short type/1 = 'function!][
+						
+						if all [
+							not short
+							not set-path? path
+							type/1 = 'function!
+						][
 							type: select type/2 return-def
 						]
 						type
