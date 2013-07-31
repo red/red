@@ -135,6 +135,7 @@ string: context [
 
 		s: GET_BUFFER(str)
 
+		if all [base = 1 index/value <= 0][base: base - 1]
 		offset: str/head + index/value - base			;-- index is one-based
 		if negative? offset [offset: 0]
 		max: (as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1)

@@ -103,6 +103,7 @@ block: context [
 
 		s: GET_BUFFER(blk)
 
+		if all [base = 1 index/value <= 0][base: base - 1]
 		offset: blk/head + index/value - base			;-- index is one-based
 		if negative? offset [offset: 0]
 		max: (as-integer s/tail - s/offset) >> 4
