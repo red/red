@@ -533,6 +533,7 @@ qt: make object! [
     			any [
     				none <> find output "Script Error"
     				none <> find output "Runtime Error"
+    				none <> find output "*** Error:"
     			]
     		]
     		none = find output "Passed"
