@@ -292,6 +292,11 @@ Red [
   --assert "✐5678" = find/reverse tail "1234✐5678" "✐"
   --test-- "find/reverse-9" 
   --assert "^(010000)5678" = find/reverse tail "1234^(010000)5678" "^(010000)"
+  --test-- "find/reverse-9" 
+  --test-- "ab" = find/reverse tail "ab" #"a"			;-- issue #505
+  --test-- "ab" = find/reverse tail "ab" "ab"
+  --test-- [a b] = find/reverse tail [a b] 'a 			;-- issue #505
+  --test-- [a b] = find/reverse tail [a b] [a b]
 ===end-group===
 
 ===start-group=== "find/last/tail"
