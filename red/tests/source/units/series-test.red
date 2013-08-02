@@ -644,5 +644,33 @@ Red [
 	
 ===end-group===
 
+===start-group=== "at"
+	
+	--test-- "at-1 #issue 501"
+	--assert "c" = at tail "abc" -1
+	--assert "" = at tail "abc" 0
+	
+	--test-- "at-2"
+	--assert "bcde" = at "abcde" 2
+	--assert "abcde" = at "abcde" 1
+	--assert "abcde" = at "abcde" 0
+	--assert "abcde" = at "abcde" -1
+	--assert "abcde" = at "abcde" -256
+	--assert "e" = at "abcde" 5
+	--assert "" = at "abcde" 6
+	--assert "" = at "abcde" 1028
+	
+	--test-- "at-3"
+	--assert [b c d e] = at [a b c d e] 2
+	--assert [a b c d e] = at [a b c d e] 1
+	--assert [a b c d e] = at [a b c d e] 0
+	--assert [a b c d e] = at [a b c d e] -1
+	--assert [a b c d e] = at [a b c d e] -256
+	--assert [e] = at [a b c d e] 5
+	--assert [] = at [a b c d e] 6
+	--assert [] = at [a b c d e] 1028
+	
+===end-group===
+
 ~~~end-file~~~
 
