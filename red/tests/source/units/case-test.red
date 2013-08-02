@@ -276,7 +276,11 @@ Red [
   --assert false = case [ cl = true [true] cl = false [false] true [true]]
 
 ===end-group===
-  
+
+===start-group=== "case reported issues"
+
+	--test-- "case-issue-504"
+	--assert 1 = case [true 1 false 2] 
 
 ~~~end-file~~~
 
