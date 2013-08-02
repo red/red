@@ -686,7 +686,7 @@ string: context [
 			either open =  #"{" [
 				switch cp [
 					#"{" #"}" [
-						append-char GET_BUFFER(buffer) as-integer #"^^"
+						if curly <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
 						append-char GET_BUFFER(buffer) cp
 					]
 					#"^/" #"^"" [
