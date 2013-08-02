@@ -778,7 +778,7 @@ block: context [
 			any [
 				match?									;-- /match option limits to one comparison
 				all [not match? found?]					;-- match found
-				all [reverse? slot <= end]				;-- head of block series reached
+				all [reverse? slot < end]				;-- head of block series reached
 				all [not reverse? slot >= end]			;-- tail of block series reached
 			]
 		]

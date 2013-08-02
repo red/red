@@ -1158,7 +1158,7 @@ string: context [
 			any [
 				match?									;-- /match option limits to one comparison
 				all [not match? found?]					;-- match found
-				all [reverse? buffer <= end]			;-- head of block series reached
+				all [reverse? buffer < end]				;-- head of block series reached
 				all [not reverse? buffer >= end]		;-- tail of block series reached
 			]
 		]
