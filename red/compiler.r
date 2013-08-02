@@ -1425,7 +1425,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-case: has [all? path saved list mark body][
+	comp-case: has [all? path saved list mark body chunk][
 		if path? path: pc/-1 [
 			either path/2 = 'all [all?: yes][
 				throw-error ["CASE has no refinement called" path/2]
@@ -1444,8 +1444,21 @@ red: context [
 			comp-expression								;-- process condition
 			append/only list copy mark
 			clear mark
-			append/only list comp-sub-block 'case		;-- process case block
-			clear back tail output
+			case [
+				tail? pc [
+					throw-error "CASE is missing a value"
+				]
+				block? pc/1 [
+					append/only list comp-sub-block 'case		;-- process case block
+					clear back tail output
+				]
+				'else [
+					chunk: tail output
+					comp-expression/no-infix/root
+					append/only list copy chunk
+					clear chunk
+				]
+			]
 		]
 		pc: next saved
 		
