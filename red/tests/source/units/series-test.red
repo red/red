@@ -394,6 +394,9 @@ Red [
   --test-- "series-find-30"
   --assert 10000 = first find "abcde✐" "✐"
   
+  --test-- "series-find-30a"
+  --assert 10000 = first find "abcde✐" #"✐"
+  
   --test-- "series-find-31"
   --assert none = find "012345" 48
   
