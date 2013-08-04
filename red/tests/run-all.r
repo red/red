@@ -70,7 +70,6 @@ start-time: now/precise
   	--run-test-file-quiet-red %source/units/insert-test.red
   	--run-test-file-quiet-red %source/units/make-test.red
   	--run-test-file-quiet-red %source/units/system-test.red
-  	--run-test-file-quiet-red %source/units/mold-test.red
 ===end-group===
 
 ===start-group=== "Auto-tests"
@@ -106,9 +105,7 @@ start-time: now/precise
   	--run-test-file-quiet-red %source/units/auto-tests/interpreter-switch-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interpreter-append-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interpreter-insert-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-make-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interpreter-system-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-mold-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interp-equal-auto-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interp-greater-auto-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interp-inf-equal-auto-test.red
