@@ -93,8 +93,8 @@ emitter: make-profilable context [
 		join: func [a [block!] b [block!] /local bytes][
 			bytes: length? a/1
 			foreach ptr b/2 [
-				unless none? ptr [				;-- workaround past-end blocks
-					ptr/1: ptr/1 + bytes		;-- adjust relocs
+				if all [ptr integer? ptr/1][			;-- workaround past-end blocks
+					ptr/1: ptr/1 + bytes				;-- adjust relocs
 				]
 			]
 			append a/1 b/1
@@ -115,8 +115,8 @@ emitter: make-profilable context [
 			over [
 				size: target/emit-branch chunk/1 cond offset			
 				foreach ptr chunk/2 [
-					unless none? ptr [			;-- workaround past-end blocks
-						ptr/1: ptr/1 + size		;-- adjust relocs
+					if all [ptr integer? ptr/1][		;-- workaround past-end blocks
+						ptr/1: ptr/1 + size				;-- adjust relocs
 					]
 				]
 				size
