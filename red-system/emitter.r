@@ -92,6 +92,9 @@ emitter: make-profilable context [
 
 		join: func [a [block!] b [block!] /local bytes][
 			bytes: length? a/1
+			remove-each ptr b/2 [						;-- attempt at fixing R2 memory corruptions
+				any [none? ptr not block? ptr not integer? ptr/1]
+			]
 			foreach ptr b/2 [
 				if all [ptr integer? ptr/1][			;-- workaround past-end blocks
 					ptr/1: ptr/1 + bytes				;-- adjust relocs
