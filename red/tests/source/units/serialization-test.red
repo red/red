@@ -81,10 +81,10 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 	--assert {"abcde"} = mold "abcde"
 	
 	--test-- "mold-string5"
-	--assert {"abc^(2710)def"} = mold "abc✐def"
+	--assert {"abc^^(2710)def"} = mold "abc✐def"
 	
 	--test-- "mold-string6"
-	--assert {"abc^(10000)def"} = mold "abc^(010000)def"
+	--assert {"abc^^(10000)def"} = mold "abc^(010000)def"
 ===end-group===
 
 ===start-group=== "logic"
