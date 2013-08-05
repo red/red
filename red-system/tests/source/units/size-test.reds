@@ -97,7 +97,7 @@ Red/System [
 		i		[integer!]
 		f		[float!]
 	]
-	--assert 16 = size? sz18-struct!
+	--assert 12 = size? sz18-struct!
 	
 ===end-group===
 

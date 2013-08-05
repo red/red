@@ -117,7 +117,7 @@ start-time: now/precise
   --run-script-quiet %source/compiler/pointer-test.r
   --run-script-quiet %source/compiler/namespace-test.r
   --run-script-quiet %source/compiler/compiles-ok-test.r
-  --run-test-file-quiet %source/compiler/define-test.reds
+;  --run-test-file-quiet %source/compiler/define-test.reds
 
 ===end-group===
 
