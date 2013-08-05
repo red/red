@@ -662,7 +662,7 @@ red: context [
 		name
 	]
 	
-	emit-path: func [path [path! set-path!] set? [logic!] /local value][
+	emit-path: func [path [path! set-path!] set? [logic!] /local value mark][
 		value: path/1
 		switch type?/word value [
 			word! [
@@ -704,11 +704,22 @@ red: context [
 					emit-action 'poke
 					emit-close-frame
 				][
-					emit-open-frame 'pick
+					add-symbol 'pick-select
+					emit-open-frame 'pick-select
 					emit-path back path set?
 					emit-get-word to word! value
-					insert-lf -2
+					
+					emit copy/deep [either stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
+					insert-lf -4
+					
+					mark: tail output					;-- PICK action
 					emit-action 'pick
+					convert-to-block mark
+					
+					mark: tail output					;-- SELECT action
+					emit-action/with 'select [-1 -1 -1 -1 -1 -1 -1 -1]
+					convert-to-block mark
+					
 					emit-close-frame
 				]
 			]
