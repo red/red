@@ -2101,12 +2101,13 @@ red: context [
 	]
 	
 	comp-chunked-block: has [list mark saved][
-		list: make block! 1
+		list: make block! 10
 		saved: pc
 		pc: pc/1										;-- dive in nested code
 		mark: tail output
 		
 		comp-block/no-root/with [
+			mold mark									;-- black magic, fixes #509, R2 internal memory corruption
 			append/only list copy mark
 			clear mark
 		]
