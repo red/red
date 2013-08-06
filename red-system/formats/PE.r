@@ -132,7 +132,7 @@ context [
 			write				#{80000000}	;-- can be written to
 		]
 		s-type [
-			BSS					#{C0000040}	;-- [read write initialized]
+			BSS					#{C0000000}	;-- [read write]
 			data				#{C0000040}	;-- [read write initialized]
 			export				#{40000040}	;-- [read initialized]
 			import				#{C0000040}	;-- [read write initialized]
