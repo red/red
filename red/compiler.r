@@ -1553,6 +1553,14 @@ red: context [
 				comp-set-word/native
 			]
 		][
+			if block? pc/1 [						;-- if words are literals, register them
+				foreach w pc/1 [
+					add-symbol w: to word! w
+					unless local-word? w [
+						add-global w				;-- register it as global
+					]
+				]
+			]
 			emit-open-frame 'set
 			comp-expression
 			comp-expression
