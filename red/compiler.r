@@ -1460,12 +1460,17 @@ red: context [
 					throw-error "CASE is missing a value"
 				]
 				block? pc/1 [
-					append/only list comp-sub-block 'case		;-- process case block
+					append/only list comp-sub-block 'case	;-- process case block
 					clear back tail output
 				]
 				'else [
 					chunk: tail output
 					comp-expression/no-infix/root
+					all [								;-- fixes #512
+						not empty? chunk
+						chunk/1 <> 'stack/reset
+						insert/only chunk 'stack/reset
+					]
 					append/only list copy chunk
 					clear chunk
 				]
