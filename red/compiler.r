@@ -699,7 +699,26 @@ red: context [
 					emit-open-frame 'poke
 					emit-path back path set?
 					emit-get-word to word! value
+					
+					emit copy/deep [unless stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
+					insert-lf -4
+					
+					mark: tail output					;-- SELECT action
+					emit [stack/pop 1]					;-- overwrite the get-word on stack top
 					insert-lf -2
+					emit-open-frame 'find
+					emit-path back path set?
+					emit-get-word to word! value
+					emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
+					emit-action 'index?
+					emit [stack/pop 2]
+					insert-lf -2
+					emit [integer/push 1]
+					insert-lf -2
+					emit-action 'add
+					emit-close-frame
+					convert-to-block mark
+					
 					comp-expression						;-- fetch assigned value
 					emit-action 'poke
 					emit-close-frame
