@@ -692,6 +692,9 @@ string: context [
 					#"^/" #"^"" [
 						append-char GET_BUFFER(buffer) cp
 					]
+					#"^^" [
+						concatenate-literal buffer "^^^^^^^^"
+					]
 					default [
 						append-escaped-char buffer cp
 					]
