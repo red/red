@@ -597,7 +597,11 @@ string: context [
 	][
 		idx: cp + 1
 		case [
-			any [cp > 7Fh cp = 1Eh][
+			cp = 5Eh [
+				append-char GET_BUFFER(buffer) as-integer #"^^"
+				append-char GET_BUFFER(buffer) as-integer #"^^"
+			]
+			cp > 7Fh [
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
 				concatenate-literal buffer to-hex cp
@@ -693,7 +697,7 @@ string: context [
 						append-char GET_BUFFER(buffer) cp
 					]
 					#"^^" [
-						concatenate-literal buffer "^^^^^^^^"
+						concatenate-literal buffer "^^^^"
 					]
 					default [
 						append-escaped-char buffer cp

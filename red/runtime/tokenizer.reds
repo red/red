@@ -76,6 +76,41 @@ tokenizer: context [
 		print-line #"!"
 	]
 	
+	preprocess: func [
+		str [red-string!]
+		/local
+			src	 [byte-ptr!]
+			tail [byte-ptr!]
+			dst	 [byte-ptr!]
+			s	 [series!]
+			c	 [byte!]
+	][
+		s: 		GET_BUFFER(str)
+		src:	string/rs-head str
+		tail:   string/rs-tail str
+		dst:	src
+		
+		while [src < tail][
+			either src/1 = #"^^" [
+				src: src + 1
+				c: src/1
+				dst/1: switch c [
+					#"-"	[#"^-"]
+					#"/"	[#"^/"]
+					#"^""	[#"^""]
+					#"^^"	[#"^^"]
+					default [src/1 - #"@"]
+				]
+			][
+				if dst <> src [dst/1: src/1]
+			]
+			src: src + 1
+			dst: dst + 1
+		]
+		dst/1: null-byte
+		s/tail:	as red-value! dst
+	]
+	
 	skip-spaces: func [
 		src		[c-string!]
 		return: [c-string!]
@@ -164,7 +199,7 @@ tokenizer: context [
 		if c <> #"}" [throw-error ERR_MULTI_STRING_DELIMIT]
 		saved: e/1										;@@ allocate a new buffer instead
 		e/1: null-byte
-		string/load-in s (as-integer e - s) + 1 blk
+		preprocess string/load-in s (as-integer e - s) + 1 blk
 		e/1: saved
 		either c = #"}" [e + 1][e]
 	]
@@ -189,7 +224,7 @@ tokenizer: context [
 		if c <> #"^"" [throw-error ERR_STRING_DELIMIT]
 		saved: e/1										;@@ allocate a new buffer instead
 		e/1: null-byte
-		string/load-in s (as-integer e - s) + 1 blk
+		preprocess string/load-in s (as-integer e - s) + 1 blk
 		e/1: saved
 		either c = #"^"" [e + 1][e]
 	]
