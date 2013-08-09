@@ -222,7 +222,7 @@ init-console "Red Console"
 
 print {
 -=== Red Console alpha version ===-
-(only Latin-1 input supported)
+(only ASCII input supported)
 }
 
 do-console
