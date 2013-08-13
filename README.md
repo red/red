@@ -103,6 +103,7 @@ Currently supported targets are:
 	<tr><td><b>Syllable</b></td><td><a href="http://web.syllable.org/pages/index.html">Syllable 
 	OS</a>, x86 </td></tr>
 	<tr><td><b>Android</b></td><td>Android, ARMv5</td></tr>
+	<tr><td><b>Android-x86</b></td><td>Android, x86</td></tr>
 </table>
 </div>
 <br/>
