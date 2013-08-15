@@ -132,7 +132,11 @@ linker: context [
 	
 		clean-imports job/sections/import
 	
-		file-emitter: do rejoin [%formats/ job/format %.r]
+		file-emitter: either encap? [
+			do-cache rejoin [%red-system/formats/ job/format %.r]
+		][
+			do rejoin [%formats/ job/format %.r]
+		]
 		file-emitter/build job
 
 		file: make-filename job

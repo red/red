@@ -201,6 +201,7 @@ loader: make-profilable context [
 
 	expand-block: func [
 		src [block!]
+		/own
 		/local blk rule name value args s e opr then-block else-block cases body
 			saved stack header mark idx prev enum-value enum-name enum-names line-rule recurse
 	][
@@ -295,7 +296,12 @@ loader: make-profilable context [
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
 						name: push-system-path name
-						value: skip process/short/sub name 2		;-- skip Red/System header
+						either all [encap? own][
+							name: join %red-system/runtime/ name
+							value: skip process/short/sub/own name 2	;-- skip Red/System header
+						][
+							value: skip process/short/sub name 2		;-- skip Red/System header
+						]
 						e: change/part s value e
 						insert e reduce [			;-- put back the parent origin
 							#pop-path
@@ -362,11 +368,13 @@ loader: make-profilable context [
 	]
 
 	process: func [
-		input [file! string! block!] /sub /with name [file!] /short
-		/local src err path ssp pushed?
+		input [file! string! block!] /sub /with name [file!] /short /own
+		/local src err path ssp pushed? raw
 	][
 		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
-
+		
+		if own [raw: input]
+		
 		if with [									;-- push alternate filename on stack
 			push-system-path join first split-path name %.
 			pushed?: yes
@@ -382,7 +390,13 @@ loader: make-profilable context [
 				input: push-system-path input
 				pushed?: yes
 			]
-			if error? set/any 'err try [src: as-string read/binary input][	;-- read source file
+			if error? set/any 'err try [			;-- read source file
+				src: as-string either all [encap? own][
+					read-binary-cache raw
+				][
+					read/binary input
+				]
+			][
 				throw-error ["file access error:" mold disarm err]
 			]
 		]
@@ -402,7 +416,13 @@ loader: make-profilable context [
 				throw-error ["syntax error during LOAD phase:" mold disarm err]
 			]
 		]
-		unless short [src: expand-block src]		;-- process block-level compiler directives
+		unless short [								;-- process block-level compiler directives
+			src: either all [encap? own][
+				expand-block/own src
+			][
+				expand-block src
+			]
+		]
 		if pushed? [pop-system-path]
 		src
 	]

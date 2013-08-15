@@ -35,6 +35,7 @@ encap-fs: context [
 			load any [get-cache file file]
 		]
 		set 'read-cache func [file [file!]][any [get-cache file read file]]
+		set 'read-binary-cache func [file [file!]][any [get-cache file read/binary file]]
 		set 'exists?-cache func [file [file!]][to logic! find cache file]
 	][
 		set 'set-cache func [list [block!] /local out cdir emit rule name stk][
@@ -46,18 +47,16 @@ encap-fs: context [
 				insert tail out "^/^-"
 				insert tail out file
 				either find/only text-files suffix? file [
-					insert tail out "^-^-" ;#include "
+					insert tail out "^-^-"
 					insert tail out mold read filename
-					;insert tail out "}"
 				][
-					;insert tail out "^-^-#include-binary "
 					insert tail out read/binary filename
 				]
 				
 			]
 			rule: [
-				some [			
-					set name [file! | path! | word!] (				
+				some [
+					set name [file! | path! | word!] (
 						if not file? :name [name: do reduce [:name]]
 						either slash = last name [
 							append stk copy append cdir name
@@ -74,11 +73,12 @@ encap-fs: context [
 			]
 			parse list rule
 			append out "^/]"
-			write %.cache.efs out
+			out
 		]
 		set 'exists?-cache :exists?
 		set 'do-cache func [file][do load file]
 		set 'load-cache set 'load-cache-binary: :load
 		set 'read-cache :read
+		set 'read-binary-cache func [file [file!]][read/binary file]
 	]
 ]

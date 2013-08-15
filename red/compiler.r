@@ -7,7 +7,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-do %red-system/compiler.r
+do-cache %red-system/compiler.r
 
 red: context [
 	verbose:	   0									;-- logs verbosity level
@@ -23,8 +23,8 @@ red: context [
 	aliases: 	   make hash! 100
 	contexts:	   make hash! 100						;-- storage for statically compiled contexts
 	ctx-stack:	   make block! 8						;-- contexts access path
-	lexer: 		   do bind load %red/lexer.r 'self
-	extracts:	   do bind load %red/utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
+	lexer: 		   do bind load-cache %red/lexer.r 'self
+	extracts:	   do bind load-cache %red/utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
 		'block	   make hash! 1000
@@ -2029,7 +2029,7 @@ red: context [
 				true
 			]
 			#version [
-				change pc rejoin [load %version.r ", " now]
+				change pc rejoin [load-cache %version.r ", " now]
 			]
 		]
 	]
@@ -2327,7 +2327,7 @@ red: context [
 	load-source: func [file [file! block!] /hidden /local src][
 		either file? file [
 			unless hidden [script-name: file]
-			src: lexer/process read/binary file
+			src: lexer/process read-binary-cache file
 		][
 			unless hidden [script-name: 'memory]
 			src: file

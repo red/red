@@ -7,25 +7,24 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-do %utils/profiler.r
+do-cache %red-system/utils/profiler.r
 profiler/active?: no
 
-do %utils/r2-forward.r
-do %utils/int-to-bin.r
-do %utils/IEEE-754.r
-do %utils/virtual-struct.r
-do %utils/secure-clean-path.r
-do %linker.r
-do %emitter.r
+do-cache %red-system/utils/r2-forward.r
+do-cache %red-system/utils/int-to-bin.r
+do-cache %red-system/utils/IEEE-754.r
+do-cache %red-system/utils/virtual-struct.r
+do-cache %red-system/utils/secure-clean-path.r
+do-cache %red-system/linker.r
+do-cache %red-system/emitter.r
 
 system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
-	runtime-path: %runtime/
-	red-runtime-path: %../red/runtime/
+	runtime-path: pick [%red-system/runtime/ %runtime/] encap?
 	nl: 		  newline
 	
-	loader: do bind load %loader.r 'self
+	loader: do bind load-cache %red-system/loader.r 'self
 	
 	compiler: make-profilable context [
 		job:		 	 none							;-- shortcut for job object
@@ -2961,7 +2960,7 @@ system-dialect: make-profilable context [
 		emitter/libc-init?: yes
 		emitter/start-prolog
 		script: secure-clean-path runtime-path/start.reds
- 		compiler/run/no-events job loader/process script script
+ 		compiler/run/no-events job loader/process/own script script
  		emitter/start-epilog
  
 		;-- selective clean-up of compiler's internals
@@ -2974,7 +2973,7 @@ system-dialect: make-profilable context [
 	
 	comp-runtime-prolog: has [script][
 		script: secure-clean-path runtime-path/common.reds
- 		compiler/run/runtime job loader/process script script
+ 		compiler/run/runtime job loader/process/own script script
 	]
 	
 	comp-runtime-epilog: does [
