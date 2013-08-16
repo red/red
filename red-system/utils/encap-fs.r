@@ -82,7 +82,6 @@ encap-fs: context [
 			]
 			parse list rule
 			append out "^/]"
-			write %.cache.efs out
 			out
 		]
 		set 'exists?-cache :exists?
