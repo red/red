@@ -2971,9 +2971,20 @@ system-dialect: make-profilable context [
 		emitter/libc-init?: no
 	]
 	
-	comp-runtime-prolog: has [script][
-		script: secure-clean-path runtime-path/common.reds
+	comp-runtime-prolog: func [red? [logic!] /local script][
+		script: either encap? [
+			set-cache-base %red-system/runtime/
+			%common.reds
+		][
+			secure-clean-path runtime-path/common.reds
+		]
  		compiler/run/runtime job loader/process/own script script
+ 		if red? [
+ 			set-cache-base %red/runtime/
+ 			script: %red.reds
+ 			compiler/run/runtime job loader/process/own script script
+ 		]
+ 		set-cache-base none
 	]
 	
 	comp-runtime-epilog: does [
@@ -3093,7 +3104,7 @@ system-dialect: make-profilable context [
 				comp-start								;-- init libC properly
 			]
 			
-			if opts/runtime? [comp-runtime-prolog]
+			if opts/runtime? [comp-runtime-prolog to logic! loaded]
 			
 			set-verbose-level opts/verbosity
 			foreach file files [

@@ -13,7 +13,8 @@ context [
 		system/version/4 = 3
 		find system/components 'Library 
 	][
-		Imagehlplib: load/library %Imagehlp.dll
+		path: to-rebol-file get-env "SystemRoot"		;-- workaround issues on 64-bit editions
+		Imagehlplib: load/library path/System32/Imagehlp.dll
 
 		int-ptr!: make struct! [n [integer!]] none
 

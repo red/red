@@ -2197,8 +2197,6 @@ red: context [
 				type:   'dll
 				origin: 'Red
 			]
-
-			#include %red.reds
 			
 			with red [
 				exec: context [
@@ -2275,7 +2273,6 @@ red: context [
 		out: copy/deep [
 			Red/System [origin: 'Red]
 
-			#include %red.reds
 			red/init
 			
 			with red [

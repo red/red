@@ -7,11 +7,19 @@ encap-fs: context [
 	verbose: 0
 	cache: none
 	root: system/script/path
+	base: none
 	text-files: [%.r %.red %.reds]
 
 	get-cache: func [file][
 		if verbose > 0 [print ["[encap-fs] cache read :" mold file]]
 		if verbose > 1 [print ["[encap-fs] translated :" mold join root file]]
+		all [
+			verbose > 0
+			none? select cache file
+			print ["not in cache: " mold file]
+		]
+		if base [file: base/:file]
+		
 		either file [
 			select cache file
 		][
@@ -23,6 +31,7 @@ encap-fs: context [
 
 	either encap? [
 		set 'set-cache 	none
+		set 'set-cache-base func [path [file! none!]][base: path]
 		set 'do-cache	func [file [file!]][do any [get-cache file file]]
 		set 'load-cache func [file [file!]][
 			either block? file: any [get-cache file file][
@@ -73,9 +82,11 @@ encap-fs: context [
 			]
 			parse list rule
 			append out "^/]"
+			write %.cache.efs out
 			out
 		]
 		set 'exists?-cache :exists?
+		set 'set-cache-base none
 		set 'do-cache func [file][do load file]
 		set 'load-cache set 'load-cache-binary: :load
 		set 'read-cache :read

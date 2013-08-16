@@ -45,7 +45,7 @@ loader: make-profilable context [
 	]
 
 	included?: func [file [file!]][
-		file: get-modes file 'full-path
+		attempt [file: get-modes file 'full-path]
 		either find include-list file [true][
 			append include-list file
 			false
@@ -295,11 +295,10 @@ loader: make-profilable context [
 						s: remove/part s e			;-- already included, drop it
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
-						name: push-system-path name
 						either all [encap? own][
-							name: join %red-system/runtime/ name
 							value: skip process/short/sub/own name 2	;-- skip Red/System header
 						][
+							name: push-system-path name
 							value: skip process/short/sub name 2		;-- skip Red/System header
 						]
 						e: change/part s value e
@@ -381,14 +380,16 @@ loader: make-profilable context [
 		]
 
 		if file? input [
-			if input = %red.reds [					;-- special processing for Red runtime
-				system/script/path: join ssp-stack/1 %../red/runtime/
-				input: push-system-path join system/script/path input
-				pushed?: yes
-			]
-			if find input %/ [ 						;-- is there a path in the filename?
-				input: push-system-path input
-				pushed?: yes
+			unless own [
+				if input = %red.reds [				;-- special processing for Red runtime
+					system/script/path: join ssp-stack/1 %../red/runtime/
+					input: push-system-path join system/script/path input
+					pushed?: yes
+				]
+				if find input %/ [ 					;-- is there a path in the filename?
+					input: push-system-path input
+					pushed?: yes
+				]
 			]
 			if error? set/any 'err try [			;-- read source file
 				src: as-string either all [encap? own][
