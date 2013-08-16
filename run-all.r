@@ -5,17 +5,29 @@ REBOL [
 	Version: 0.2.1
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
-;; function to find and run-tests
-run-all-script: func [dir [file!]][
+
+
+;; function to find and run-tests and to build auto tests if needed
+run-all-script: func [
+	dir [file!]
+	/auto-tests
+][
   qt/tests-dir: system/script/path/:dir
   foreach line read/lines dir/run-all.r [
-    if any [
-      find line "===start-group"
-      find line "--run-"
-      find line "qt/make-if-needed?"
-    ][
-      do line
-    ]
+  	  either auto-tests [
+  	  	  if any [
+  	  	  	  find line "qt/make-if-needed?"
+  	  	  ][
+  	  	  	  do line
+  	  	  ]
+  	  ][
+  	  	  if any [
+  	  	  	  find line "===start-group"
+  	  	  	  find line "--run-"
+  	  	  ][
+  	  	  	  do line
+  	  	  ]
+  	  ]
   ]
 ]
 
@@ -39,6 +51,8 @@ start-time: now/precise
 
 ***start-run-quiet*** "Complete Red Test Suite"
 
+run-all-script/auto-tests %../red/tests/
+run-all-script/auto-tests %../red-system/tests/
 do %../red/tests/source/units/make-interpreter-auto-test.r
 run-all-script %../red/tests/
 run-all-script %../red-system/tests/
