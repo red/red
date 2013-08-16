@@ -54,6 +54,7 @@ start-time: now/precise
   	--run-test-file-quiet-red %source/units/logic-test.red
   	--run-test-file-quiet-red %source/units/conditional-test.red
   	--run-test-file-quiet-red %source/units/series-test.red
+  	--run-test-file-quiet-red %source/units/path-test.red
   	--run-test-file-quiet-red %source/units/serialization-test.red
   	--run-test-file-quiet-red %source/units/function-test.red
   	--run-test-file-quiet-red %source/units/loop-test.red
@@ -105,7 +106,6 @@ start-time: now/precise
   	--run-test-file-quiet-red %source/units/auto-tests/interpreter-switch-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interpreter-append-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interpreter-insert-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-make-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interpreter-system-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interp-equal-auto-test.red
   	--run-test-file-quiet-red %source/units/auto-tests/interp-greater-auto-test.red

@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 18/04/2013
-	Revision: 38
+	Date: 09/08/2013
+	Revision: 39
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -508,7 +508,8 @@ Declaring a struct! value is achieved by using the DECLARE STRUCT! sequence foll
  
  <member>   : a valid identifier
  <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
-              float! | float32! | c-string! | struct! [<members>]
+              float! | float32! | c-string! | struct! [<members>] |
+              function! [<spec>]
               
 The returned value of DECLARE STRUCT! is the memory address of the newly created struct! value.
 
@@ -544,6 +545,8 @@ From last example, that would give:
  s/a: 123								;-- writing 123 in member 'a in struct 's
  s/b: "hello"
  bar: s/c/d								;-- deep read/write access is also possible
+ 
+<u>Note</u>: Accessing a function! pointer member will result in dereferencing the pointer.
  
 +++Struct arithmetic
 
@@ -587,7 +590,8 @@ Aliasing syntax:
  <name>     : the name to use as alias
  <member>   : a valid identifier
  <datatype> : integer! | byte! | pointer! [integer! | byte!] | logic! |
-              float! | float32! | c-string! | struct! [<members>]
+              float! | float32! | c-string! | struct! [<members>] |
+              function! [<spec>]
               
 Struct value declaration using an aliased definition:
 
@@ -1034,9 +1038,9 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="deny">ERROR</td>
 <td class="allow">as function!</td>
 <td class="deny">ERROR</td>
-<td class="deny">ERROR</td>
-<td class="deny">ERROR</td>
-<td class="deny">ERROR</td>
+<td class="allow">as function!</td>
+<td class="allow">as function!</td>
+<td class="allow">as function!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1274,9 +1278,13 @@ Example:
  foo :compare							;-- pass the function pointer
 
 \note Stdcall support
-The <b>stdcall</b> attribute is also accepted, but currently as no effect, as it is already the default calling convention in Red/System.
+The <b>stdcall</b> attribute is also accepted (it is already the default calling convention in Red/System), but will have no effect for internal functions. Imported functions with such attribute will be compiled as callbacks, but in such case, the more explicit <b>callback</b> attribute should be used. This attribute might be removed in the future.
   
 /note
+
++++Callback
+
+The purpose of the <b>callback</b> attribute is to manually force a callback compilation mode for a function that the compiler failed to infer as a callback. It can be used as a more meaningful replacement for <b>stdcall</b> when used on Windows.
 
 +++Variadic
 
@@ -1407,6 +1415,24 @@ will output:
 
 /note
 
++++Custom
+
+It is sometimes desirable to have full control over the native stack layout of a function call, for example, when the function call needs to be dynamically constructed. The <b>custom</b> attribute allows you to manually <b>push</b> values on stack and still generate a correct function call with adequate stack cleanups. This is most useful with imported C functiosn that relies on <b>cdecl</b> convention, which requires the caller to clean-up the stack. The <b>custom</b> attribute will take care of it in a cross-platform way.
+
+Example:
+
+    foo: as function! [[custom]] <imported-c-function>
+    push 123
+    push 0
+    foo 2          						;-- custom call with 2 arguments
+
+A custom call requires an integer number that is consumed internally by the compiler. That integer specifies the number of arguments pushed on stack (which will be cleaned up when the call returns).
+
+\note Stack alignment
+Stack alignment constraints are not enforced by the <b>custom</b> attribute, so be sure to respect the platform-specific conventions with regards to alignment (mainly concerns MacOSX and ARM-based platforms). In order to do it in a clean and cross-platform way, use the <b>system/stack/align</b> call.
+
+/note
+
 +++Catch
 
 Allows the function to catch runtime exceptions. The execution will resume inside the function just after the call where the exception occured. See <a href="#section-6.8">Exceptions</a> section for more info.
@@ -1501,15 +1527,20 @@ Example:
  inc: func [n [integer!] return: [integer!]][
  	n + 1
  ]
- 
+
  bar: as foo! :inc
- 
+
  print bar 2							;-- will output 3
  
-\note Implementation limitation
-Currently, only function pointers stored in global variables can be dereferenced.
+Alternatively, you can dereference a function! pointer stored as a struct member by just accessing it.
 
-/note
+ s: declare struct! [
+ 	inc [function! [n [integer!] return: [integer!]]]
+ ]
+
+ s/inc: :inc
+
+ probe s/inc 3							;-- will output 4
 
 ---Premature exiting
 
@@ -2373,6 +2404,16 @@ Do not use it unless you know exactly what you are doing, else your program will
 
 /note
 
+---stack/align
+
+Ensures that native stack is properly aligned at the point of calling, according to target ABI requirements. It returns the newly aligned stack pointer.
+
+<b>Syntax</b>
+
+ system/stack/align
+
+ return: a pointer value of type: pointer! [integer!]
+
 ---pc
 
 Retrieve the CPU program counter value.
@@ -2469,7 +2510,7 @@ Red/System is able to load external shared libraries at the time a Red/System ex
  <argument>		 : function's argument indentifier
  <datatype>		 : integer! | byte! | pointer! [integer! | byte!] |
                    float! | float32! | c-string! | struct! [<members>] |
-                   function! [<specification>]
+                   function! [<spec>]
 
 <u>Notes</u>:
 
@@ -2879,7 +2920,59 @@ Example:
  print "hello"							;-- maximum logs emitted
  #verbose 0
  print "world"							;-- no logs emitted
- 
+
+---#call
+
+As a dialect of Red, Red/System can call back a Red-level function, passing arguments, using a compiler directive.
+
+<b>Syntax</b>
+
+ #call [<red-fun-name> <arg1>...<argn>]
+
+ <red-fun-name>  : a Red word referring to a function! value.
+ <arg1>...<argn> : list of arguments.
+
+The arguments should be passed as pointers to Red values of the expected type, except for integer! and logic! datatypes, that can be passed inlined, without requiring any boxing. When required, for pointer arguments, a simple type casting is allowed.
+
+Once the Red function returns, the normal execution of Red/System code continues. The Red return value cannot be directly retrieved currently, but it should be accessible from Red arguments stack. The Red function <b>must</b> have all arguments typed, else a compilation error will occur.
+
+<b>Example</b>
+
+ Red []
+
+ inc: func [n][n + 1]
+
+ #system [
+ 	#call [inc 123]
+ 	int: as red-integer! stack/arguments
+ 	print int/value						;-- will print 124
+ ]
+
+\note Requires Red compiler
+The <b>#call</b> directive needs to be processed by the Red compiler, so it cannot be used in Red/System standalone applications. The legal places to use it are:
+
+* a Red routine
+
+* in a #system directive
+
+* in a #system-global directive
+
+/note
+
+---#export
+
+When generating shared library, the Red/System toolchain needs to know which identifiers will be exposed to third-party users of the library. This is achieved using the <b>#export</b> compiler directive.
+
+<b>Syntax</b>
+
+ #export [<symbols>]
+ #export <cconv> [<symbols>]
+
+ <symbols> : one or several function or global variable name
+ <cconv>   : optional calling convention word (stdcall or cdecl)
+    
+One or several #export directives can be used in the same Red/System library code.
+    
 ===Source code organization
 
 ---Source files suffix
@@ -2973,28 +3066,91 @@ can be processed without issues.
 
 <i>TBD</i>
 
-===Integration in Red
 
-As a dialect of Red, Red/System code will be callable from Red source code directly using one of these two methods:
+---Shared library program
 
-<b>At runtime</b>: using the <b>DO</b> function with refinement:
+You can use global code in your shared library program, but this is not recommended, as it might be unsupported in the future. All your code should be in functions.
 
-	do/system [...Red/System code...]
-	
-<b>At compile-time</b>: using a Red compiler directive:
+<u>Note</u>: All shared library programs needs to export at least one symbol using the <b>#export</b> directive or a compilation error will occur.
 
-	#system [...Red/System code...]
-	
-\note Red/System functions export
-It will be possible to export some Red/System functions to be callable from the Red language layer. The method for such export hasn't been decided yet. Among possible options, it can be:
+A shared library might implement one or several of the callbacks below:
 
-*A special attribute in header that will list the functions to export
+* <b>on-load</b> : called when the library is loaded by the host
 
-*A function's attribute in the specification block
+* <b>on-unload</b> : called when the library is freed by the host
 
-*A compiler directive
+The specifications for these callbacks are system-specific:
+
+<b>Windows</b>
+
+ on-load:        func [hModule [integer!]][...]
+ on-unload:      func [hModule [integer!]][...]
+ on-new-thread:  func [hModule [integer!]][...]	;-- Windows-specific callback
+ on-exit-thread: func [hModule [integer!]][...]	;-- Windows-specific callback
+
+<b>MacOS X</b>
+
+ on-load: func [
+	argc	[integer!]
+	argv	[struct! [s [c-string!]]]
+	envp	[struct! [s [c-string!]]]
+	apple	[struct! [s [c-string!]]]
+	pvars	[program-vars!]
+ ][...]
+ 
+ on-unload: func [[cdecl]][...]
+
+<b>Others</b>
+
+ on-load:   func [][...]
+ on-unload: func [][...]
+ 
+\note ELF unfinished shared library support
+On OS that require ELF format, like Linux, the callbacks will not be automatically called, so until this part gets implemented, you need to use a special version for <b>on-load</b>:
+
+ on-load: func [][
+ 	#if format = 'ELF [***-dll-entry-point]
+ 	...
+ ]
+ 
+<b>On-unload</b> will not be called.
 
 /note
+
+---Driver program (experimental)
+
+It is possible to generate kernel drivers with Red/System. The same remarks as for shared library programs apply to a driver program.
+
+The driver entry point is a <b>on-load</b> function in Red/System that has the following specification:
+
+ on-load: func [
+ 	DriverObject [driver-object!]   ;-- predefined type (empty struct for now)
+   	RegistryPath [byte-ptr!]		;-- Unicode string (UTF-16LE)
+   	return: [integer!]
+ ][...]
+ 
+A minimal Windows driver would look like:
+
+ Red/System []
+
+ #enum NTSTATUS! [
+ 	STATUS_SUCCESS
+ ]
+
+ on-load: func [
+ 	DriverObject [driver-object!]   ;-- predefined type (empty struct for now)
+    RegistryPath [byte-ptr!]		;-- Unicode string (UTF-16LE)
+    return: [NTSTATUS!]
+ ][
+ 	STATUS_SUCCESS
+ ]
+
+\note Experimental support
+
+Currently it is only supported on Windows platforms.
+
+/note
+
 
 ===Reserved keywords
 
@@ -3136,6 +3292,26 @@ will output:
 
 
 ===Document History
+
+*<b>09/08/2013 - revision 39</b>
+
+*>Extended function! pointer description to struct members. Updated type casting matrix accordingly.
+
+*>Added function! as valid struct member.
+
+*>Added back the <b>callback</b> attribut description.
+
+*>Added <b>custom</b> attribut description.
+
+*>Added <b>system/stack/align</b> description.
+
+*>Added <b>#call</b> compiler directive description.
+
+*>Added <b>#export</b> compiler directive description.
+
+*>Added shared library and driver programs layouts sections.
+
+
 
 *<b>18/04/2013 - revision 38</b>
 

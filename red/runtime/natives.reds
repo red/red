@@ -361,6 +361,10 @@ natives: context [
 			TYPE_BLOCK [
 				interpreter/eval as red-block! arg
 			]
+			TYPE_PATH [
+				interpreter/eval-path arg arg arg + 1 no
+				stack/set-last arg + 1
+			]
 			TYPE_STRING [
 				str: as red-string! arg
 				s: GET_BUFFER(str)

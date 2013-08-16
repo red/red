@@ -198,6 +198,15 @@ stack: context [										;-- call stack
 		
 		top: top - positions
 	]
+	
+	top-type?: func [
+		return:  [integer!]
+		/local
+			cell [red-value!]
+	][
+		cell: top - 1
+		TYPE_OF(cell)
+	]
 
 	#if debug? = yes [	
 		dump: does [									;-- debug purpose only

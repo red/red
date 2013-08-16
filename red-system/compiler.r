@@ -547,7 +547,12 @@ system-dialect: make-profilable context [
 							throw-error ["invalid struct member" path/2]
 						]
 						type: resolve-struct-member-type type/2 path/2
-						if all [not short type/1 = 'function!][
+						
+						if all [
+							not short
+							not set-path? path
+							type/1 = 'function!
+						][
 							type: select type/2 return-def
 						]
 						type
@@ -2589,6 +2594,10 @@ system-dialect: make-profilable context [
 			either block? expr [
 				type: comp-call expr/1 next expr 		;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
+				if all [variable boxed][				;-- process casting if result assigned to variable
+					emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
+					last-type: boxed/type
+				]
 			][
 				last-type: either not any [
 					all [new? literal? unbox expr]		;-- if new variable, value will be store in data segment

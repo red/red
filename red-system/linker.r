@@ -47,14 +47,19 @@ linker: context [
 		
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
-				switch spec/1 [
-					global [						;-- code to data references
-						pointer/value: data-offset + spec/2
-						foreach ref spec/3 [change at cbuf ref form-struct pointer]
+				all [
+					any [
+						all [
+							spec/1 = 'global		;-- code to data references
+							pointer/value: data-offset + spec/2
+						]
+						all [
+							spec/1 = 'native-ref	;-- code to code references
+							pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
+						]
 					]
-					native-ref [					;-- code to code references
-						pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
-						foreach ref spec/3 [change at cbuf ref form-struct pointer]
+					foreach ref spec/3 [
+						if integer? ref [change at cbuf ref form-struct pointer]
 					]
 				]
 			]

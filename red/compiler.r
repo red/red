@@ -662,7 +662,7 @@ red: context [
 		name
 	]
 	
-	emit-path: func [path [path! set-path!] set? [logic!] /local value][
+	emit-path: func [path [path! set-path!] set? [logic!] /local value mark][
 		value: path/1
 		switch type?/word value [
 			word! [
@@ -699,16 +699,46 @@ red: context [
 					emit-open-frame 'poke
 					emit-path back path set?
 					emit-get-word to word! value
+					
+					emit copy/deep [unless stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
+					insert-lf -4
+					
+					mark: tail output					;-- SELECT action
+					emit [stack/pop 1]					;-- overwrite the get-word on stack top
 					insert-lf -2
+					emit-open-frame 'find
+					emit-path back path set?
+					emit-get-word to word! value
+					emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
+					emit-action 'index?
+					emit [stack/pop 2]
+					insert-lf -2
+					emit [integer/push 1]
+					insert-lf -2
+					emit-action 'add
+					emit-close-frame
+					convert-to-block mark
+					
 					comp-expression						;-- fetch assigned value
 					emit-action 'poke
 					emit-close-frame
 				][
-					emit-open-frame 'pick
+					add-symbol 'pick-select
+					emit-open-frame 'pick-select
 					emit-path back path set?
 					emit-get-word to word! value
-					insert-lf -2
+					
+					emit copy/deep [either stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
+					insert-lf -4
+					
+					mark: tail output					;-- PICK action
 					emit-action 'pick
+					convert-to-block mark
+					
+					mark: tail output					;-- SELECT action
+					emit-action/with 'select [-1 -1 -1 -1 -1 -1 -1 -1]
+					convert-to-block mark
+					
 					emit-close-frame
 				]
 			]
@@ -1425,7 +1455,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-case: has [all? path saved list mark body][
+	comp-case: has [all? path saved list mark body chunk][
 		if path? path: pc/-1 [
 			either path/2 = 'all [all?: yes][
 				throw-error ["CASE has no refinement called" path/2]
@@ -1444,8 +1474,26 @@ red: context [
 			comp-expression								;-- process condition
 			append/only list copy mark
 			clear mark
-			append/only list comp-sub-block 'case		;-- process case block
-			clear back tail output
+			case [
+				tail? pc [
+					throw-error "CASE is missing a value"
+				]
+				block? pc/1 [
+					append/only list comp-sub-block 'case	;-- process case block
+					clear back tail output
+				]
+				'else [
+					chunk: tail output
+					comp-expression/no-infix/root
+					all [								;-- fixes #512
+						not empty? chunk
+						chunk/1 <> 'stack/reset
+						insert/only chunk 'stack/reset
+					]
+					append/only list copy chunk
+					clear chunk
+				]
+			]
 		]
 		pc: next saved
 		
@@ -1529,6 +1577,14 @@ red: context [
 				comp-set-word/native
 			]
 		][
+			if block? pc/1 [						;-- if words are literals, register them
+				foreach w pc/1 [
+					add-symbol w: to word! w
+					unless local-word? w [
+						add-global w				;-- register it as global
+					]
+				]
+			]
 			emit-open-frame 'set
 			comp-expression
 			comp-expression
@@ -2077,12 +2133,13 @@ red: context [
 	]
 	
 	comp-chunked-block: has [list mark saved][
-		list: make block! 1
+		list: make block! 10
 		saved: pc
 		pc: pc/1										;-- dive in nested code
 		mark: tail output
 		
 		comp-block/no-root/with [
+			mold mark									;-- black magic, fixes #509, R2 internal memory corruption
 			append/only list copy mark
 			clear mark
 		]

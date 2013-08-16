@@ -26,7 +26,7 @@ target: pick ["Linux-ARM" "Android"] to-integer target
 
 ;; make the Arm dir if needed
 arm-dir: %runnable/arm-tests/
-make-dir arm-dir
+make-dir/deep arm-dir
 
 ;; empty the Arm dir
 foreach file read arm-dir [delete join arm-dir file]

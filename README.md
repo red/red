@@ -54,7 +54,7 @@ Running the Red REPL
 1. From Unix, just type `console` from prompt, Windows users need to open a DOS console and run `console.exe` from there, or just click on the executable from Explorer (but you will miss the error messages then). Once the console launched, you should see a banner and a prompt:
 
         -=== Red Console alpha version ===-
-        (only Latin-1 input supported)
+        (only ASCII input supported)
         
         red>>
 
@@ -103,6 +103,7 @@ Currently supported targets are:
 	<tr><td><b>Syllable</b></td><td><a href="http://web.syllable.org/pages/index.html">Syllable 
 	OS</a>, x86 </td></tr>
 	<tr><td><b>Android</b></td><td>Android, ARMv5</td></tr>
+	<tr><td><b>Android-x86</b></td><td>Android, x86</td></tr>
 </table>
 </div>
 <br/>
