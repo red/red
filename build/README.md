@@ -11,7 +11,7 @@ In order to build a Red binary:
 
 2. Make a copy of **encap-paths.r.sample** file and name it **encap-paths.r**.
 
-3. Edit **encap-paths.r** and adjust the paths to your Rebol SDK folders.
+3. Edit **encap-paths.r** file and adjust the paths to your Rebol SDK folders.
 
 4. Open a Rebol console, and CD to the **%build/** folder.
 
@@ -23,10 +23,10 @@ In order to build a Red binary:
         
 6. After a few seconds, a new **red** binary will be available in the **build/bin/** folder.
 
-7. That's all!
+7. Enjoy!
 
 
-Usage
+Red Command-Line Usage
 ------------------------
 
 Syntax
