@@ -2968,7 +2968,12 @@ system-dialect: make-profilable context [
 	comp-start: has [script][
 		emitter/libc-init?: yes
 		emitter/start-prolog
-		script: secure-clean-path runtime-path/start.reds
+		script:	either encap? [
+			set-cache-base %red-system/runtime/
+			%start.reds
+		][
+			secure-clean-path runtime-path/start.reds
+		]
  		compiler/run/no-events job loader/process/own script script
  		emitter/start-epilog
  

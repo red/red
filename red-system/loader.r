@@ -34,6 +34,18 @@ loader: make-profilable context [
 		compiler/quit-on-error
 	]
 
+	count-slash: func [file /local cnt][
+		cnt: 0
+		parse file [some [slash (cnt: cnt + 1) | skip]]
+		cnt
+	]
+
+	pop-encap-path: func [cnt [integer!]][
+		path: tail encap-fs/base
+		loop cnt + 1 [path: find/reverse path slash]
+		clear next path
+	]
+
 	init: does [
 		clear include-list
 		clear defs
@@ -45,6 +57,8 @@ loader: make-profilable context [
 	]
 
 	included?: func [file [file!]][
+		if encap? [file: join encap-fs/base file]
+		
 		attempt [file: get-modes file 'full-path]
 		either find include-list file [true][
 			append include-list file
@@ -296,15 +310,22 @@ loader: make-profilable context [
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
 						either all [encap? own][
+							mark: tail encap-fs/base
 							value: skip process/short/sub/own name 2	;-- skip Red/System header
 						][
 							name: push-system-path name
 							value: skip process/short/sub name 2		;-- skip Red/System header
 						]
 						e: change/part s value e
-						insert e reduce [			;-- put back the parent origin
-							#pop-path
-							#script current-script
+
+						value: either all [encap? own not empty? mark][
+							count-slash mark
+						][
+							0
+						]
+						insert e reduce [
+							#pop-path value
+							#script current-script	;-- put back the parent origin
 						]
 						insert s reduce [			;-- mark code origin	
 							#script name
@@ -333,9 +354,13 @@ loader: make-profilable context [
 						remove/part s e
 					]
 				) :s
-				| s: #pop-path e: (
-					pop-system-path
-					s: remove s
+				| s: #pop-path set value integer! e: (
+					either all [encap? own][
+						unless zero? value [pop-encap-path value]
+					][
+						pop-system-path
+					]
+					s: remove/part s 2
 				) :s
 				| line-rule
 				| s: issue! (
@@ -380,11 +405,15 @@ loader: make-profilable context [
 		]
 
 		if file? input [
-			unless encap? [
-				if find input %/ [ 					;-- is there a path in the filename?
+			if find input %/ [ 						;-- is there a path in the filename?
+				either encap? [
+					input: split-path input
+					append encap-fs/base input/1
+					raw: input/2
+				][
 					input: push-system-path input
-					pushed?: yes
 				]
+				pushed?: yes
 			]
 			if error? set/any 'err try [			;-- read source file
 				src: as-string either all [encap? own][

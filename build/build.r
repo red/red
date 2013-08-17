@@ -7,15 +7,18 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-;-- Parameters
-encapper: 		%enpro.exe
-bin:			%bin/
-cache-file:		%bin/sources.r
-
 Windows?: system/version/4 = 3
 
-red: %red
-if Windows? [append red %.exe]
+;-- Parameters
+encapper: 		%enpro
+bin:			%bin/
+cache-file:		%bin/sources.r
+red: 			%red
+
+if Windows? [
+	append red %.exe
+	append encapper %.exe
+]
 
 log: func [msg [string! block!]][
 	print reform msg
@@ -51,5 +54,5 @@ if Windows? [
 ;-- Remove temporary files
 attempt [delete cache-file]
 
-log join "File output: build/bin/red" form red
+log join "File output: build/bin/" form red
 
