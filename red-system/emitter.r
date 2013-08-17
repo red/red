@@ -630,14 +630,15 @@ emitter: make-profilable context [
 		target/emit-prolog '***_start [] 0
 	]
 	
-	init: func [link? [logic!] job [object!]][
+	init: func [link? [logic!] job [object!] /local path][
 		if link? [
 			clear code-buf
 			clear data-buf
 			clear symbols
 		]
 		clear stack
-		target: do-cache rejoin [%red-system/targets/ job/target %.r]
+		path: pick [%red-system/targets/ %targets/] encap?
+		target: do-cache rejoin [path job/target %.r]
 		target/compiler: compiler: system-dialect/compiler
 		target/PIC?: job/PIC?
 		target/void-ptr: head insert/dup copy #{} null target/ptr-size

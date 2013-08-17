@@ -8,10 +8,13 @@ REBOL [
 	Usage:   {
 		do/args %red.r "-o path/source.red"
 	}
+	Encap: [quiet secure none title "Red" no-window] 
 ]
 
+unless value? 'encap-fs [do %red-system/utils/encap-fs.r]
+
 unless all [value? 'red object? :red][
-	do %red/compiler.r
+	do-cache %red/compiler.r
 ]
 
 redc: context [
@@ -54,7 +57,7 @@ redc: context [
 	]
 
 	load-targets: func [/local targets] [
-		targets: load %red-system/config.r
+		targets: load-cache %red-system/config.r
 		if exists? %red-system/custom-targets.r [
 			insert targets load %red-system/custom-targets.r
 		]
@@ -98,7 +101,9 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
-		base-path: system/script/parent/path
+		;base-path: system/script/parent/path
+		base-path: system/options/path
+
 		opts: make opts config
 		opts/config-name: config-name
 		opts/build-prefix: base-path
@@ -169,11 +174,11 @@ redc: context [
 			"Compiling to native code..." newline
 		]
 		fail-try "Red/System Compiler" [
-			change-dir %red-system/
+			unless encap? [change-dir %red-system/]
 			opts/unicode?: yes							;-- force Red/System to use Red's Unicode API
 			opts/verbosity: max 0 opts/verbosity - 3	;-- Red/System verbosity levels upped by 3
 			result: system-dialect/compile/options/loaded srcs opts result/1
-			change-dir %../
+			unless encap? [change-dir %../]
 		]
 		print ["...compilation time:" tab round result/1/second * 1000 "ms"]
 		

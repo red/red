@@ -380,12 +380,7 @@ loader: make-profilable context [
 		]
 
 		if file? input [
-			unless own [
-				if input = %red.reds [				;-- special processing for Red runtime
-					system/script/path: join ssp-stack/1 %../red/runtime/
-					input: push-system-path join system/script/path input
-					pushed?: yes
-				]
+			unless encap? [
 				if find input %/ [ 					;-- is there a path in the filename?
 					input: push-system-path input
 					pushed?: yes
