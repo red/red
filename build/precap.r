@@ -12,4 +12,4 @@ REBOL [
 #include %../red-system/utils/encap-fs.r
 do #include-string %bin/sources.r
 
-do #include-string %../red-encap.r
+do #include-string %../red.r
