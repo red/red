@@ -159,19 +159,20 @@ redc: context [
 		
 		print [
 			newline
-			"-= Red Compiler =-" newline
+			"-=== Red Compiler" read-cache %version.r "===-" newline newline
 			"Compiling" srcs "..."
 		]
 		fail-try "Red Compiler" [
 			result: red/compile srcs/1 opts
 		]
-		print ["^/...compilation time:" tab round result/2/second * 1000 "ms"]
+		print ["...compilation time:" tab round result/2/second * 1000 "ms"]
 		if opts/red-only? [exit]
+		
 	;--- 2nd pass: Red/System compiler ---
 		
 		print [
 			newline
-			"Compiling to native code..." newline
+			"Compiling to native code..."
 		]
 		fail-try "Red/System Compiler" [
 			unless encap? [change-dir %red-system/]
