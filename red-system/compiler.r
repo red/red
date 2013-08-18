@@ -3088,7 +3088,7 @@ system-dialect: make-profilable context [
 		/loaded 										;-- source code is already in LOADed format
 			src	[block!]
 		/local
-			comp-time link-time err
+			comp-time link-time err output
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]

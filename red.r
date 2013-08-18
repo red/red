@@ -63,6 +63,20 @@ redc: context [
 		]
 		targets
 	]
+	
+	red-system?: func [file [file!] /local ws rs?][
+		ws: charset " ^-^/^M"
+		parse/all/case read file [
+			some [
+				thru "Red"
+				opt ["/System" (rs?: yes)]
+				any ws 
+				#"[" (return to logic! rs?)
+				to end
+			]
+		]
+		no
+	]
 
 	parse-options: has [
 		args srcs opts output target verbose filename config config-name base-path type
@@ -84,7 +98,8 @@ redc: context [
 
 		parse args [
 			any [
-				["-d" | "--debug"]  		(opts/debug?: yes)
+				["-r" | "--no-runtime"]     (opts/runtime?: no)		;@@ overridable by config!
+				| ["-d" | "--debug" | "--debug-stabs"]	(opts/debug?: yes)
 				| ["-o" | "--output"]  		set output skip
 				| ["-t" | "--target"]  		set target skip
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
@@ -144,29 +159,34 @@ redc: context [
 		reduce [srcs opts]
 	]
 
-	main: has [srcs opts build-dir result saved] [
+	main: has [srcs opts build-dir result saved rs? prefix] [
 		set [srcs opts] parse-options
+		
+		rs?: red-system? srcs/1
 
 		;; If we use a build directory, ensure it exists.
-		if all [opts/build-prefix find opts/build-prefix %/] [
-			build-dir: copy/part opts/build-prefix find/last opts/build-prefix %/
+		if all [prefix: opts/build-prefix find prefix %/] [
+			build-dir: copy/part prefix find/last prefix %/
 			unless attempt [make-dir/deep build-dir] [
 				fail ["Cannot access build dir:" build-dir]
 			]
 		]
-		
-	;--- 1st pass: Red compiler ---
 		
 		print [
 			newline
 			"-=== Red Compiler" read-cache %version.r "===-" newline newline
 			"Compiling" srcs "..."
 		]
-		fail-try "Red Compiler" [
-			result: red/compile srcs/1 opts
+		
+		unless rs? [
+	;--- 1st pass: Red compiler ---
+			
+			fail-try "Red Compiler" [
+				result: red/compile srcs/1 opts
+			]
+			print ["...compilation time:" tab round result/2/second * 1000 "ms"]
+			if opts/red-only? [exit]
 		]
-		print ["...compilation time:" tab round result/2/second * 1000 "ms"]
-		if opts/red-only? [exit]
 		
 	;--- 2nd pass: Red/System compiler ---
 		
@@ -176,17 +196,22 @@ redc: context [
 		]
 		fail-try "Red/System Compiler" [
 			unless encap? [change-dir %red-system/]
-			opts/unicode?: yes							;-- force Red/System to use Red's Unicode API
-			opts/verbosity: max 0 opts/verbosity - 3	;-- Red/System verbosity levels upped by 3
-			result: system-dialect/compile/options/loaded srcs opts result/1
+			result: either rs? [
+				system-dialect/compile/options srcs opts
+			][
+				opts/unicode?: yes							;-- force Red/System to use Red's Unicode API
+				opts/verbosity: max 0 opts/verbosity - 3	;-- Red/System verbosity levels upped by 3
+				system-dialect/compile/options/loaded srcs opts result/1
+			]
 			unless encap? [change-dir %../]
 		]
-		print ["...compilation time:" tab round result/1/second * 1000 "ms"]
+		print ["...compilation time :" round result/1/second * 1000 "ms"]
 		
 		if result/2 [
 			print [
-				"...linking time:    " tab round result/2/second * 1000 "ms^/"
-				"...output file size:" tab result/3 "bytes"
+				"...linking time     :" round result/2/second * 1000 "ms^/"
+				"...output file size :" result/3 "bytes^/"
+				"...output file      :" to-local-file result/4
 			]
 		]
 	]
