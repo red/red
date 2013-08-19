@@ -22,27 +22,48 @@ redc: context [
 	Windows?: system/version/4 = 3
 	
 	if encap? [
-		temp-dir: either Windows? [
-			sys-path: to-rebol-file get-env "SystemRoot"
-			shell32: load/library sys-path/System32/shell32.dll
-			
-			CSIDL_COMMON_APPDATA: to integer! #{00000023}
-			
-			SHGetFolderPath: make routine! [
-					hwndOwner 	[integer!]
-					nFolder		[integer!]
-					hToken		[integer!]
-					dwFlags		[integer!]
-					pszPath		[string!]
-					return: 	[integer!]
-			] shell32 "SHGetFolderPathA"
-
-			path: head insert/dup make string! 255 null 255
-			unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
-				fail "SHGetFolderPath failed: can't determine temp folder path"
+		temp-dir: switch/default system/version/4 [
+			2 [											;-- MacOS X
+				libc: load/library %libc.dylib
+				call: make routine! [cmd [string!]] libc "system"
+				%/tmp/red/
 			]
-			append dirize to-rebol-file trim path %Red/
-		][
+			3 [											;-- Windows
+				sys-path: to-rebol-file get-env "SystemRoot"
+				shell32: load/library sys-path/System32/shell32.dll
+				libc:  	 load/library sys-path/System32/msvcrt.dll
+
+				CSIDL_COMMON_APPDATA: to integer! #{00000023}
+
+				SHGetFolderPath: make routine! [
+						hwndOwner 	[integer!]
+						nFolder		[integer!]
+						hToken		[integer!]
+						dwFlags		[integer!]
+						pszPath		[string!]
+						return: 	[integer!]
+				] shell32 "SHGetFolderPathA"
+
+				sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
+
+				path: head insert/dup make string! 255 null 255
+				unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
+					fail "SHGetFolderPath failed: can't determine temp folder path"
+				]
+				append dirize to-rebol-file trim path %Red/
+			]
+		][												;-- Linux (default)
+			any [
+				exists? libc: %libc.so.6
+				exists? libc: %/lib32/libc.so.6
+				exists? libc: %/lib/i386-linux-gnu/libc.so.6	; post 11.04 Ubuntu
+				exists? libc: %/lib/libc.so.6
+				exists? libc: %/System/Index/lib/libc.so.6  	; GoboLinux package
+				exists? libc: %/system/index/framework/libraries/libc.so.6  ; Syllable
+				exists? libc: %/lib/libc.so.5
+			]
+			libc: load/library libc
+			call: make routine! [cmd [string!]] libc "system"
 			%/tmp/red/
 		]
 	]
@@ -143,14 +164,9 @@ redc: context [
 			system-dialect/compile/options/loaded script opts result/1
 			
 			delete script
-			
-			if Windows? [
-				do-cache %red/utils/call.r
-				call: :win-call							;-- replace the buggy CALL native
-			]
 		]
 		
-		call/wait to-local-file exe
+		sys-call to-local-file exe						;-- replace the buggy CALL native
 		quit/return 0
 	]
 
