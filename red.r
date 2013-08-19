@@ -143,9 +143,11 @@ redc: context [
 			system-dialect/compile/options/loaded script opts result/1
 			
 			delete script
-				
-			do-cache %red/utils/call.r
-			call: :win-call								;-- replace the buggy CALL native
+			
+			if Windows? [
+				do-cache %red/utils/call.r
+				call: :win-call							;-- replace the buggy CALL native
+			]
 		]
 		
 		call/wait to-local-file exe
