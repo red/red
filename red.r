@@ -25,7 +25,7 @@ redc: context [
 		temp-dir: switch/default system/version/4 [
 			2 [											;-- MacOS X
 				libc: load/library %libc.dylib
-				call: make routine! [cmd [string!]] libc "system"
+				sys-call: make routine! [cmd [string!]] libc "system"
 				%/tmp/red/
 			]
 			3 [											;-- Windows
@@ -63,7 +63,7 @@ redc: context [
 				exists? libc: %/lib/libc.so.5
 			]
 			libc: load/library libc
-			call: make routine! [cmd [string!]] libc "system"
+			sys-call: make routine! [cmd [string!]] libc "system"
 			%/tmp/red/
 		]
 	]
