@@ -47,7 +47,8 @@ call/wait reform [encapper "precap.r -o" bin/:red]
 if Windows? [
 	log "Fixing `sub-system` PE flag..."
 	buffer: read/binary bin/:red
-	buffer/325: #"^(03)"
+	flag: skip find/tail/case buffer "PE" 90
+	flag/1: #"^(03)"
 	write/binary bin/:red buffer
 ]
 
