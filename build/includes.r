@@ -71,7 +71,11 @@ write %build/bin/sources.r set-cache [
 			]
 		]
 		%utils/ [
-			%extractor.r				
+			%extractor.r
+			%call.r
+		]
+		%tests/ [
+			%console.red
 		]
 	]
 	%red-system/ [

@@ -18,6 +18,47 @@ unless all [value? 'red object? :red][
 ]
 
 redc: context [
+
+	Windows?: system/version/4 = 3
+	
+	if encap? [
+		temp-dir: either Windows? [
+			sys-path: to-rebol-file get-env "SystemRoot"
+			shell32: load/library sys-path/System32/shell32.dll
+			
+			CSIDL_COMMON_APPDATA: to integer! #{00000023}
+			
+			SHGetFolderPath: make routine! [
+					hwndOwner 	[integer!]
+					nFolder		[integer!]
+					hToken		[integer!]
+					dwFlags		[integer!]
+					pszPath		[string!]
+					return: 	[integer!]
+			] shell32 "SHGetFolderPathA"
+
+			path: head insert/dup make string! 255 null 255
+			unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
+				fail "SHGetFolderPath failed: can't determine temp folder path"
+			]
+			append dirize to-rebol-file trim path %Red/
+		][
+			%/tmp/red/
+		]
+	]
+	
+	;; Select a default target based on the REBOL version.
+	default-target: does [
+		any [
+			select [
+				2 "Darwin"
+				3 "MSDOS"
+				4 "Linux"
+			] system/version/4
+			"MSDOS"
+		]
+	]
+
 	fail: func [value] [
 		print value
 		if system/options/args [quit/return 1]
@@ -77,21 +118,46 @@ redc: context [
 		]
 		no
 	]
+	
+	run-console: has [opts result script exe][
+		script: temp-dir/red-console.red
+		exe: temp-dir/console
+		if Windows? [append exe %.exe]
+		
+		unless exists? temp-dir [make-dir temp-dir]
+		
+		unless exists? exe [
+			write script read-cache %red/tests/console.red
+
+			opts: make system-dialect/options-class [
+				link?: yes
+				unicode?: yes
+				config-name: to word! default-target
+				build-basename: %console
+				build-prefix: temp-dir
+			]
+			opts: make opts select load-targets opts/config-name
+
+			print "Pre-compiling Red console..."
+			result: red/compile script opts
+			system-dialect/compile/options/loaded script opts result/1
+			
+			delete script
+				
+			do-cache %red/utils/call.r
+			call: :win-call								;-- replace the buggy CALL native
+		]
+		
+		call/wait to-local-file exe
+		quit/return 0
+	]
 
 	parse-options: has [
 		args srcs opts output target verbose filename config config-name base-path type
 	] [
 		args: any [system/options/args parse any [system/script/args ""] none]
 
-		;; Select a default target based on the REBOL version.
-		target: any [
-			select [
-				2 "Darwin"
-				3 "MSDOS"
-				4 "Linux"
-			] system/version/4
-			"MSDOS"
-		]
+		target: default-target
 
 		srcs: copy []
 		opts: make system-dialect/options-class [link?: yes]
@@ -145,7 +211,13 @@ redc: context [
 		]
 		
 		;; Process input sources.
-		if empty? srcs [fail "No source files specified."]
+		if empty? srcs [
+			either encap? [
+				run-console
+			][
+				fail "No source files specified."
+			]
+		]
 		
 		forall srcs [
 			if slash <> first srcs/1 [								;-- if relative path
