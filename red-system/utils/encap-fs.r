@@ -8,7 +8,7 @@ encap-fs: context [
 	cache: none
 	root: system/script/path
 	base: none
-	text-files: [%.r %.red %.reds]
+	text-files: [%.r %.red %.reds %.txt]
 
 	get-cache: func [file][
 		if verbose > 0 [print ["[encap-fs] cache read :" mold file]]

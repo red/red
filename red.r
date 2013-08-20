@@ -172,6 +172,7 @@ redc: context [
 
 	parse-options: has [
 		args srcs opts output target verbose filename config config-name base-path type
+		mode
 	] [
 		args: any [system/options/args parse any [system/script/args ""] none]
 
@@ -182,17 +183,26 @@ redc: context [
 
 		parse args [
 			any [
-				["-r" | "--no-runtime"]     (opts/runtime?: no)		;@@ overridable by config!
+				  ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
 				| ["-d" | "--debug" | "--debug-stabs"]	(opts/debug?: yes)
 				| ["-o" | "--output"]  		set output skip
 				| ["-t" | "--target"]  		set target skip
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
+				| ["-h" | "--help"]			(mode: 'help)
+				| ["-V" | "--version"]		(mode: 'version)
 				| "--red-only"				(opts/red-only?: yes)
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
 				;| ["-slib" | "--static-lib"] (type 'lib)
-				;| "--custom"				;@@ pass-thru for Red/System specific arguments
 				| set filename skip (append srcs load-filename filename)
 			]
+		]
+		
+		if mode [
+			switch mode [
+				help	[print read-cache %usage.txt]
+				version [print load-cache %version.r]
+			]
+			quit/return 0
 		]
 
 		;; Process -t/--target first, so that all other command-line options

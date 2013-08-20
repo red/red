@@ -12,6 +12,7 @@ do %red-system/utils/encap-fs.r
 
 write %build/bin/sources.r set-cache [
 	%version.r
+	%usage.txt
 	%red/ [
 		%boot.red
 		%compiler.r
