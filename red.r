@@ -29,28 +29,33 @@ redc: context [
 				%/tmp/red/
 			]
 			3 [											;-- Windows
-				sys-path: to-rebol-file get-env "SystemRoot"
-				shell32: load/library sys-path/System32/shell32.dll
-				libc:  	 load/library sys-path/System32/msvcrt.dll
+				either lib?: find system/components 'Library [
+					sys-path: to-rebol-file get-env "SystemRoot"
+					shell32: load/library sys-path/System32/shell32.dll
+					libc:  	 load/library sys-path/System32/msvcrt.dll
 
-				CSIDL_COMMON_APPDATA: to integer! #{00000023}
+					CSIDL_COMMON_APPDATA: to integer! #{00000023}
 
-				SHGetFolderPath: make routine! [
-						hwndOwner 	[integer!]
-						nFolder		[integer!]
-						hToken		[integer!]
-						dwFlags		[integer!]
-						pszPath		[string!]
-						return: 	[integer!]
-				] shell32 "SHGetFolderPathA"
+					SHGetFolderPath: make routine! [
+							hwndOwner 	[integer!]
+							nFolder		[integer!]
+							hToken		[integer!]
+							dwFlags		[integer!]
+							pszPath		[string!]
+							return: 	[integer!]
+					] shell32 "SHGetFolderPathA"
 
-				sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
+					sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
 
-				path: head insert/dup make string! 255 null 255
-				unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
-					fail "SHGetFolderPath failed: can't determine temp folder path"
+					path: head insert/dup make string! 255 null 255
+					unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
+						fail "SHGetFolderPath failed: can't determine temp folder path"
+					]
+					append dirize to-rebol-file trim path %Red/
+				][
+					sys-call: func [cmd][call/wait cmd]
+					append to-rebol-file get-env "ALLUSERSPROFILE" %/Red/
 				]
-				append dirize to-rebol-file trim path %Red/
 			]
 		][												;-- Linux (default)
 			any [
@@ -164,6 +169,11 @@ redc: context [
 			system-dialect/compile/options/loaded script opts result/1
 			
 			delete script
+			
+			if all [Windows? not lib?][
+				print "Please run red.exe again to access the console."
+				quit/return 1
+			]
 		]
 		
 		sys-call to-local-file exe						;-- replace the buggy CALL native
