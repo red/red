@@ -29,20 +29,50 @@ In order to build a Red binary:
 Red Command-Line Usage
 ------------------------
 
-Syntax
+Usage: 
 
-    red <options> <script>
-    
-with:
+    red [options] [file]
 
-    <script>: Red script filename with optional path.
+**[file]**
 
-    <options>:
+Any Red or Red/System source file. If no file and no option is provided, the REPL will be launched.
+
+**[options]**
+
+    -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
+                                     is supported for Linux targets.
     
-        -d			: switches into debug mode.
+    -dlib, --dynamic-lib           : Generate a shared library from the source
+                                     file.
     
-        -o <file>	: outputs executable to given path and/or filename.
+    -h, --help                     : Output this help text.
     
-        -t <target>	: cross-compiles to another target (see table below).
+    -o <file>, --output <file>     : Specify a non-default [path/][name] for
+                                     the generated binary file.
     
-        -v <level>	: sets verbose mode. 1-3 are for Red only, above for Red/System.
+    -r, --no-runtime               : Do not include runtime during Red/System
+                                     source compilation.
+    
+    -t <ID>, --target <ID>         : Cross-compile to a different platform
+                                     target than the current one (see targets
+                                     table below).
+	
+    -v <level>, --verbose <level>  : Set compilation verbosity level, 1-3 for
+                                     Red, 4-11 for Red/System.
+	
+    -V, --version                  : Output binary version string.
+	
+    --red-only                     : Stop just after Red-level compilation. 
+                                     Use higher verbose level to see compiler
+                                     output. (internal debugging purpose)
+	
+Cross-compilation targets:
+
+    MSDOS        : Windows, x86, console-only applications
+    Windows      : Windows, x86, native applications
+    Linux        : GNU/Linux, x86
+    Linux-ARM    : GNU/Linux, ARMv5
+    Darwin       : Mac OS X Intel, console-only applications
+    Syllable     : Syllable OS, x86
+    Android      : Android, ARMv5
+    Android-x86	 : Android, x86
