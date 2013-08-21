@@ -145,6 +145,13 @@ redc: context [
 		no
 	]
 	
+	safe-to-local-file: func [file [file!]][
+		if find file: to-local-file file #" " [
+			file: rejoin [{"} file {"}]					;-- avoid issues with blanks in path
+		]
+		file
+	]
+	
 	run-console: has [opts result script exe][
 		script: temp-dir/red-console.red
 		exe: temp-dir/console
@@ -176,7 +183,7 @@ redc: context [
 			]
 		]
 		
-		sys-call to-local-file exe						;-- replace the buggy CALL native
+		sys-call safe-to-local-file exe					;-- replace the buggy CALL native
 		quit/return 0
 	]
 
