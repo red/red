@@ -327,4 +327,5 @@ redc: context [
 	]
 
 	fail-try "Driver" [main]
+	quit/return 0
 ]
