@@ -791,6 +791,9 @@ red: context [
 				break									;-- avoid processing local variable	
 			]
 			unless block? spec/1 [
+				unless block? spec/2 [
+					insert/only next spec [red-value!]
+				]
 				either find [integer! logic!] spec/2/1 [
 					append/only output append to path! form get spec/2/1 'get
 				][
