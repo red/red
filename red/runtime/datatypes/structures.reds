@@ -123,8 +123,15 @@ red-integer!: alias struct! [
 
 red-context!: alias struct! [
 	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- array of 32-bit symbols ID
+	symbols	[node!]									;-- array of symbols ID
 	values	[node!]									;-- block of values (do not move this field!)
+	_pad	[integer!]
+]
+
+red-object!: alias struct! [
+	header 	[integer!]								;-- cell header
+	symbols	[node!]									;-- array of symbols ID
+	values	[node!]									;-- block of values
 	_pad	[integer!]
 ]
 

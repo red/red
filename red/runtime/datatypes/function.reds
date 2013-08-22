@@ -331,7 +331,7 @@ _function: context [
 		block/mold as red-block! s/offset buffer only? all? flat? arg part	;-- body
 	]
 
-		init: does [
+	init: does [
 		datatype/register [
 			TYPE_FUNCTION
 			TYPE_CONTEXT
