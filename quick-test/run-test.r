@@ -12,7 +12,6 @@ do %quick-test.r
 ;; set the base dir for the test source
 qt/tests-dir: system/script/path
 remove/part find/last qt/tests-dir "quick-test/" 11
-qt/r-tests-dir: qt/tests-dir
 qt/tests-dir: what-dir
 
 print rejoin ["Quick-Test v" qt/version]
@@ -33,13 +32,7 @@ either any [
 ][
   either %.reds = suffix? src [
     ;; compile & run reds pgm                     
-    either exe: qt/compile src [
-      qt/run exe
-      print qt/output
-    ][
-      print "Compile Error!!!"
-      print qt/comp-output
-    ]
+    --compile-run-print src
   ][
     either %.red = suffix? src [
       ;; compile and run red pgm

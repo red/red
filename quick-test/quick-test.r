@@ -2,25 +2,21 @@ REBOL [
   Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.9.5
+	Version: 0.10.1
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
 comment {
-  This script makes some assumptions about the directory structure in which 
-  files are stored. They are:
-    this script is stored in Red/quick-test/
-    the Red compiler is stored in Red/
-    the Red/System compiler is stored in Red/red-system/
-    the Red/System compiler must be run from Red/red-system/
-    the Red/System compiler writes the executable to Red/red-system/builds/
-    the default dir for Red/System tests is Red/red-system/tests/
-    the default dir for Red tests is Red/red/tests/
-    
- The default test dirs can be overriden by setting qt/rs-tests-dir and qt/r-tests-dir 
- before any tests are processed
+	This script makes some assumptions about the directory structure in which 
+	files are stored. They are:
+    	this script is stored in Red/quick-test/
+    	the Red & Red/System compiler is stored in Red/
+    	the default dir for tests is Red/red-system/tests/
+    	
+ The default test dirs can be overriden by setting qt/tests-dir before tests are
+ processed
 }
 
 qt: make object! [
@@ -29,39 +25,26 @@ qt: make object! [
   ;; set the base-dir to ....Red/
   base-dir: system/script/path
   base-dir: copy/part base-dir find base-dir "quick-test"
-  ;; set the red/system compiler directory
-  comp-dir: base-dir/red-system
   ;; set the red/system runnable dir
-  runnable-dir: comp-dir/tests/runnable
-  ;; set the builds dir
-  builds-dir: comp-dir/builds
+  runnable-dir: base-dir/quick-test/runnable
   ;; set the default base dir for tests
-  tests-dir: comp-dir/tests
-  
-  ;; set the red dirs
-  r-runnable-dir: base-dir/red/tests/runnable
-  r-tests-dir: base-dir/red/tests
+  tests-dir: base-dir/red-system/tests
   
   ;; set the version number
   version: system/script/header/version
   
   ;; set temporary files names
-  ;;  use Red/red-system/runnable for Red/System temp files
+  ;;  use Red/quick-test/runnable for temp files
   comp-echo: runnable-dir/comp-echo.txt
   comp-r: runnable-dir/comp.r
   test-src-file: runnable-dir/qt-test-comp.reds
-  
-  ;; use Red/red/runnable for Red temp files
-  r-comp-echo: r-runnable-dir/comp-echo.txt
-  r-comp-r: r-runnable-dir/comp.r
-  r-test-src-file: r-runnable-dir/qt-test-comp.red
+  r-test-src-file: runnable-dir/qt-test-comp.red
   
   ;; set log file 
   log-file: join system/script/path "quick-test.log"
 
   ;; make runnable directory if needed
   make-dir runnable-dir
-  make-dir r-runnable-dir
   
   ;; windows ?
   windows-os?: system/version/4 = 3
@@ -142,15 +125,14 @@ qt: make object! [
     append print-output join "" [reduce val "^/"]
   ]
         
-  compile: func [
-    src [file!]
-    /lib
-     target [string!]
-    /local
-      comp                          ;; compilation script
-      cmd                           ;; compilation cmd
-      exe							;; executable name
-      built                         ;; full path of compiler output
+  	compile: func [
+  		src [file!]
+  		/lib
+  	  		target [string!]
+  	  	/local
+  	  		comp                          	;; compilation script
+  	  		cmd                           	;; compilation cmd
+  	  		exe								;; executable name
   ][
     clear comp-output
     ;; workout executable name
@@ -166,26 +148,32 @@ qt: make object! [
         "Darwin"   	[exe: join exe [".dylib"]]
       ][
       	  exe: join exe [".so"]
-      ]     
+      ]
+      exe
     ][     
       if windows-os? [
         exe: join exe [".exe"]
       ]
     ]
-
+    
     ;; compose and write compilation script
-    comp: mold compose [
+    comp: mold compose/deep [
       REBOL []
       halt: :quit
-      change-dir (comp-dir)
       echo (comp-echo)
-      do/args %rsc.r "###lib###***src***"
+      do/args (reduce base-dir/red.r) (join " -o " [
+      	  	  reduce runnable-dir/:exe " ###lib###***src***" 
+      ])
     ]
     
-  either lib [replace comp "###lib###" join "-dlib -t " [target " "]][replace comp "###lib###" ""]
+  either lib [
+	replace comp "###lib###" join "-dlib -t " [target " "]
+  ][
+	replace comp "###lib###" ""
+	]
     
     if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
-    replace comp "***src***" src
+    replace comp "***src***"  clean-path src
     write comp-r comp
 
     ;; compose command line and call it
@@ -198,27 +186,6 @@ qt: make object! [
     	delete comp-echo
     ]
     if exists? comp-r [delete comp-r]
-    
-    ;; move the executable from /builds to /tests/runnable
-    built: builds-dir/:exe
-    runner: runnable-dir/:exe
-    
-    if exists? built [
-      write/binary runner read/binary built
-      delete built
-      if all [
-        not windows-os?
-        not lib
-      ][
-        r: open runner
-        set-modes r [
-          owner-execute: true
-          group-execute: true
-        ]
-        close r
-      ]
-    ]
-    
     either compile-ok? [
       exe
     ][
@@ -239,6 +206,7 @@ qt: make object! [
       	  ]
       ]
     ][
+      print type? exe
       compile-error src
       output: "Compilation failed"
     ]
@@ -285,18 +253,17 @@ qt: make object! [
     src [file! string!]
   ][
     print join "" [src " - compiler error"]
-    print comp-output
     clear output                           ;; clear the ouptut from previous test
     _signify-failure
   ]
   
   compile-ok?: func [] [
-    either find comp-output "output file size:" [true] [false]
+    either find comp-output "output file size :" [true] [false]
   ] 
   
   compile-run-print: func [src [file!] /error][
     either error [
-      compile-and-run/error
+      compile-and-run/error src
     ][
       compile-and-run src
     ]
@@ -431,41 +398,37 @@ qt: make object! [
     if windows-os? [
       exe: join exe [".exe"]
     ]
-    runner: r-runnable-dir/:exe
+    runner: runnable-dir/:exe
 
     ;; compose and write compilation script
     comp: mold compose [
       REBOL []
       halt: :quit
       change-dir (base-dir)
-      echo (r-comp-echo)
+      echo (comp-echo)
       do/args %red.r (join "-o " [runner " ***src***"])
     ]
-    if #"/" <> first src [src: clean-path r-tests-dir/:src]     ;; relative path supplied
+    if #"/" <> first src [src: clean-path tests-dir/:src]     ;; relative path supplied
     replace comp "***src***" src
-    write r-comp-r comp
+    write comp-r comp
 
     ;; compose command line and call it
-    cmd: join to-local-file system/options/boot [" -sc " r-comp-r]
+    cmd: join to-local-file system/options/boot [" -sc " comp-r]
     call/wait/output cmd make string! 1024	;; redirect output to anonymous buffer
     
     ;; collect compiler output & tidy up
-    if exists? r-comp-echo [
-    	comp-output: read r-comp-echo
-    	delete r-comp-echo
+    if exists? comp-echo [
+    	comp-output: read comp-echo
+    	delete comp-echo
     ]
-    if exists? r-comp-r [delete r-comp-r]
+    if exists? comp-r [delete comp-r]
     
     
-    either r-compile-ok? [
+    either compile-ok? [
       exe
     ][
       none
     ]    
-  ]
-  
-  r-compile-ok?: func [] [
-    either find comp-output "output file size:" [true] [false]
   ]
   
   r-compile-and-run: func [src /error] [
@@ -520,7 +483,7 @@ qt: make object! [
     /local
     exec [string!]                   ;; command to be executed
   ][
-    exec: to-local-file r-runnable-dir/:prog
+    exec: to-local-file runnable-dir/:prog
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
