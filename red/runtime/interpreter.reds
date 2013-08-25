@@ -306,6 +306,7 @@ interpreter: context [
 			args	  [integer!]
 			size	  [integer!]
 			ref-array [int-ptr!]
+			ret-set?  [logic!]
 			call
 	][
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
@@ -331,7 +332,6 @@ interpreter: context [
 		index: 	 	 1
 		args:		 -1
 		offset:		 -1
-		return-type: -1
 		ref?:		 no
 		required?:	 yes								;-- yes: processing mandatory args, no: optional args
 		
@@ -366,6 +366,7 @@ interpreter: context [
 				]
 				TYPE_SET_WORD [
 					if routine? [
+						ret-set?: yes
 						value: block/pick (as red-block! value + 1) 1
 						assert TYPE_OF(value) = TYPE_WORD
 						dt: as red-datatype! _context/get as red-word! value
@@ -377,6 +378,8 @@ interpreter: context [
 			]
 			value: value + 1
 		]
+		
+		unless ret-set? [return-type: -1]				;-- set the default correctly in case of nested calls
 		
 		unless routine? [
 			if path <> null [
