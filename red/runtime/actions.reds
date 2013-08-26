@@ -262,8 +262,27 @@ actions: context [
 		action-mold value buffer only? all? flat? arg part
 	]
 	
+	eval-path: func [
+		parent	[red-value!]
+		element	[red-value!]
+		set?	[logic!]
+		return:	[red-value!]
+		/local
+			value		[red-value!]
+			action-path
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/eval-path"]]
+				
+		action-path: as function! [
+			parent	[red-value!]
+			element	[red-value!]
+			set?	[logic!]
+			return:	[red-value!]
+		] get-action-ptr parent ACT_EVALPATH
+		
+		action-path parent element set?
+	]
 	
-	get-path*: func [][]
 	set-path*: func [][]
 	
 	compare: func [
@@ -840,7 +859,7 @@ actions: context [
 			null			;to
 			:form*
 			:mold*
-			null			;get-path
+			:eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --

@@ -90,9 +90,9 @@ file: context [
 			null			;to
 			INHERIT_ACTION	;form
 			:mold
-			null			;get-path
+			INHERIT_ACTION	;eval-path
 			null			;set-path
-			INHERIT_ACTION	;:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

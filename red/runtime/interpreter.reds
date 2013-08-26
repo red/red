@@ -406,86 +406,6 @@ interpreter: context [
 		pc
 	]
 	
-	eval-path-element: func [
-		slot     [red-value!]
-		head     [red-value!]
-		tail     [red-value!]
-		result   [red-value!]
-		alt-slot [red-value!]							;-- alternative element (computed from paren)
-		set?     [logic!]
-		return:  [red-value!]
-		/local
-			value  [red-value!]
-			int	   [red-integer!]
-	][
-		value: case [
-			TYPE_OF(slot) = TYPE_GET_WORD [_context/get as red-word! slot]
-			null? alt-slot 				  [slot]
-			true		   				  [alt-slot]
-		]
-		switch TYPE_OF(value) [
-			TYPE_WORD [
-				either slot = head [
-					result: _context/get as red-word! value
-					switch TYPE_OF(result) [
-						TYPE_UNSET [
-							return unset-value
-						]
-						TYPE_ACTION						;@@ replace with TYPE_ANY_FUNCTION
-						TYPE_NATIVE
-						TYPE_ROUTINE
-						TYPE_FUNCTION [
-							return result
-						]
-						TYPE_BLOCK 						;@@ replace with TYPE_SERIES
-						TYPE_PATH
-						TYPE_LIT_PATH
-						TYPE_GET_PATH
-						TYPE_SET_PATH
-						TYPE_STRING
-						TYPE_FILE [
-
-						]
-						;TYPE_OBJECT
-						;TYPE_PORT [
-						;
-						;]
-						default [
-							;; TBD raise an error
-						]
-					]
-				][
-					result: either all [set? slot + 1 = tail][
-						value: actions/find as red-series! result value null no no no null null no no no no
-						actions/poke as red-series! value 2 stack/arguments
-						stack/arguments
-					][
-						actions/select as red-series! result value null no no no null null no no
-					]
-				]
-			]
-			TYPE_PAREN [
-				stack/mark-native words/_body			;@@ ~paren
-				eval as red-block! value				;-- eval paren content
-				stack/unwind				
-				result: eval-path-element slot head tail result stack/top - 1 set?
-			]
-			TYPE_INTEGER [
-				int: as red-integer! value
-				result: either all [set? slot + 1 = tail][
-					actions/poke as red-series! result int/value stack/arguments
-					stack/arguments
-				][
-					actions/pick as red-series! result int/value
-				]
-			]
-			TYPE_STRING [
-				--NOT_IMPLEMENTED--
-			]
-		]
-		result
-	]
-	
 	eval-path: func [
 		value   [red-value!]
 		pc		[red-value!]							;-- path to evaluate
@@ -496,50 +416,69 @@ interpreter: context [
 			path   [red-path!]
 			head   [red-value!]
 			tail   [red-value!]
-			slot   [red-value!]
-			result [red-value!]
+			item   [red-value!]
+			parent [red-value!]
 			saved  [red-value!]
 	][
 		if verbose > 0 [print-line "eval: path"]
 		
-		path:  as red-path! value
-		head:  block/rs-head as red-block! path
-		tail:  block/rs-tail as red-block! path
-		slot:  head
-		saved: stack/top
+		path:   as red-path! value
+		head:   block/rs-head as red-block! path
+		tail:   block/rs-tail as red-block! path
+		item:   head + 1
+		saved:  stack/top
 		
-		if TYPE_OF(slot) <> TYPE_WORD [
+		if TYPE_OF(head) <> TYPE_WORD [
 			print-line "*** Error: path value must start with a word!"
 			halt
 		]
 		
-		result: null
-		
-		while [slot < tail][
-			if verbose > 1 [print-line ["slot type: " TYPE_OF(slot)]]
+		parent: _context/get as red-word! head
+				
+		while [item < tail][
+			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
-			result: eval-path-element slot head tail result null set?
-			
-			switch TYPE_OF(result) [
+			value: either any [
+				TYPE_OF(item) = TYPE_GET_WORD 
+				all [parent = head TYPE_OF(item) = TYPE_WORD]
+			][
+				_context/get as red-word! item
+			][
+				item
+			]
+			switch TYPE_OF(value) [
 				TYPE_UNSET [
 					print-line "*** Error: word in path has no value!"
-					stack/push result
+					stack/push parent
 					return pc
 				]
-				TYPE_ACTION						;@@ replace with TYPE_ANY_FUNCTION
+				TYPE_PAREN [
+					stack/mark-native words/_body		;@@ ~paren
+					eval as red-block! value			;-- eval paren content
+					stack/unwind
+					value: stack/top - 1
+				]
+				default [0]								;-- pass-thru
+			]
+			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
+			
+			switch TYPE_OF(parent) [
+				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
 				TYPE_NATIVE
 				TYPE_ROUTINE
 				TYPE_FUNCTION [
-					pc: eval-code result pc end yes path slot
+					pc: eval-code parent pc end yes path item - 1
 					return pc
 				]
 				default [0]
 			]
-			slot: slot + 1
+			
+			parent: actions/eval-path parent value all [set? item + 1 = tail]
+			item: item + 1
 		]
 		
 		stack/top: saved
-		stack/push result
+		stack/push parent
 		pc
 	]
 	

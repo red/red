@@ -62,8 +62,8 @@ Red/System [
 	ACT_TO
 	ACT_FORM
 	ACT_MOLD
-	ACT_GETPATH
-	ACT_SETPATH
+	ACT_EVALPATH
+	ACT_SETPATH											;@@ Deprecate it?
 	ACT_COMPARE
 	
 	;-- Scalar actions --

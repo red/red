@@ -97,7 +97,7 @@ paren: context [
 			null			;to
 			INHERIT_ACTION	;form
 			:mold
-			null			;get-path
+			INHERIT_ACTION	;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --

@@ -108,7 +108,7 @@ set-path: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			INHERIT_ACTION	;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --

@@ -472,6 +472,41 @@ block: context [
 		compare-each blk1 blk2 op
 	]
 	
+	eval-path: func [
+		parent	[red-block!]							;-- implicit type casting
+		element	[red-value!]
+		set?	[logic!]
+		return:	[red-value!]
+		/local
+			int [red-integer!]
+	][
+		switch TYPE_OF(element) [
+			TYPE_INTEGER [
+				int: as red-integer! element
+				either set? [
+					poke parent int/value stack/arguments
+					stack/arguments
+				][
+					pick parent int/value
+				]
+			]
+			TYPE_WORD [
+				either set? [
+					element: find parent element null no no no null null no no no no
+					actions/poke as red-series! element 2 stack/arguments
+					stack/arguments
+				][
+					select parent element null no no no null null no no
+				]
+			]
+			default [
+				print-line "*** Error: invalid value in path!"
+				halt
+				null
+			]
+		]
+	]
+	
 	;--- Property reading actions ---
 	
 	head?: func [
@@ -805,8 +840,6 @@ block: context [
 		skip	 [red-integer!]
 		last?	 [logic!]
 		reverse? [logic!]
-		tail?	 [logic!]
-		match?	 [logic!]
 		return:	 [red-value!]
 		/local
 			s	   [series!]
@@ -1183,7 +1216,7 @@ block: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			:eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --

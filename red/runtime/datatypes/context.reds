@@ -142,19 +142,17 @@ _context: context [
 			copy-cell value values/offset + word/index
 		]
 	]
-
-	get: func [
+	
+	get-with: func [
 		word	   [red-word!]
+		ctx	   	   [red-context!]
 		return:	   [red-value!]
 		/local
 			values [series!]
 			sym	   [red-symbol!]
-			ctx	   [red-context!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "_context/get"]]
-		
-		ctx: word/ctx
-		
+		#if debug? = yes [if verbose > 0 [print-line "_context/get-with"]]
+
 		if any [										;-- ensure word is properly bound to a context
 			null? ctx
 			word/index = -1
@@ -174,6 +172,19 @@ _context: context [
 			values: as series! ctx/values/value
 			values/offset + word/index
 		]
+	]
+
+	get: func [
+		word	   [red-word!]
+		return:	   [red-value!]
+		/local
+			values [series!]
+			sym	   [red-symbol!]
+			ctx	   [red-context!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/get"]]
+		
+		get-with word word/ctx
 	]
 
 	create: func [
