@@ -130,6 +130,30 @@ object: context [
 		part - 1
 	]
 	
+	eval-path: func [
+		parent	[red-object!]							;-- implicit type casting
+		element	[red-value!]
+		set?	[logic!]
+		return:	[red-value!]
+		/local
+			word [red-word!]
+			ctx  [red-context!]
+	][
+		word: as red-word! element
+		ctx:  as red-context! parent 
+
+		if word/ctx <> ctx [							;-- bind the word to object's context
+			word/index: _context/find-word ctx word/symbol
+			word/ctx: ctx
+		]
+		either set? [
+			_context/set-in word stack/arguments ctx 
+			stack/arguments
+		][
+			_context/get-in word ctx
+		]
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_OBJECT
@@ -142,7 +166,7 @@ object: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			:eval-path
 			null			;set-path
 			null			;compare
 			;-- Scalar actions --

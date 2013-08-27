@@ -438,9 +438,24 @@ interpreter: context [
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
 			
+			switch TYPE_OF(parent) [
+				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+				TYPE_NATIVE
+				TYPE_ROUTINE
+				TYPE_FUNCTION [
+					pc: eval-code parent pc end yes path item - 1
+					return pc
+				]
+				default [0]
+			]
+			
 			value: either any [
 				TYPE_OF(item) = TYPE_GET_WORD 
-				all [parent = head TYPE_OF(item) = TYPE_WORD]
+				all [
+					parent = head
+					TYPE_OF(item) = TYPE_WORD
+					TYPE_OF(parent) <> TYPE_OBJECT
+				]
 			][
 				_context/get as red-word! item
 			][
@@ -461,17 +476,6 @@ interpreter: context [
 				default [0]								;-- pass-thru
 			]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
-			
-			switch TYPE_OF(parent) [
-				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
-				TYPE_NATIVE
-				TYPE_ROUTINE
-				TYPE_FUNCTION [
-					pc: eval-code parent pc end yes path item - 1
-					return pc
-				]
-				default [0]
-			]
 			
 			parent: actions/eval-path parent value all [set? item + 1 = tail]
 			item: item + 1

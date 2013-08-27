@@ -119,17 +119,15 @@ _context: context [
 		value
 	]
 
-	set: func [
+	set-in: func [
 		word 		[red-word!]
 		value		[red-value!]
+		ctx			[red-context!]
 		return:		[red-value!]
 		/local
 			values	[series!]
-			ctx		[red-context!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "_context/set"]]
-		
-		ctx: word/ctx
+		#if debug? = yes [if verbose > 0 [print-line "_context/set-in"]]
 		
 		if word/index = -1 [
 			word/index: find-word ctx word/symbol
@@ -143,7 +141,21 @@ _context: context [
 		]
 	]
 	
-	get-with: func [
+	set: func [
+		word	   [red-word!]
+		value	   [red-value!]
+		return:	   [red-value!]
+		/local
+			values [series!]
+			sym	   [red-symbol!]
+			ctx	   [red-context!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/set"]]
+
+		set-in word value word/ctx
+	]
+	
+	get-in: func [
 		word	   [red-word!]
 		ctx	   	   [red-context!]
 		return:	   [red-value!]
@@ -184,7 +196,7 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get"]]
 		
-		get-with word word/ctx
+		get-in word word/ctx
 	]
 
 	create: func [
