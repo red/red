@@ -892,12 +892,15 @@ spec-of: func [
 ][
 	reflect :value 'spec
 ]
+
 body-of: func [
 	"Returns the body of a value that supports reflection."
 	value
 ][
 	reflect :value 'body
 ]
+
+context: func [spec [block!]][make object! spec]
 
 system: function [
 	"Returns information about the interpreter."
