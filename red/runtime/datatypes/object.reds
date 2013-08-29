@@ -59,6 +59,27 @@ object: context [
 		part
 	]
 	
+	rebind: func [
+		fun		[red-function!]
+		ctx 	[red-context!]
+		/local
+			s	 [series!]
+			more [red-value!]
+	][
+		s: as series! fun/more/value
+		more: s/offset
+		
+		if TYPE_OF(more) = TYPE_NONE [
+			print-line "*** Error: COPY stuck on missing function's body block"
+			halt
+		]
+		_context/bind as red-block! more ctx
+		_context/bind as red-block! more fun/ctx
+		
+		more: more + 2
+		more/header: TYPE_UNSET			;-- invalidate compiled body
+	]
+	
 	make-at: func [
 		cell	[red-object!]
 		slots	[integer!]
@@ -208,9 +229,9 @@ object: context [
 					TYPE_FILE [
 						actions/copy value value null yes null ;-- overwrite the value
 					]
-					;TYPE_FUNCTION [
-					
-					;]
+					TYPE_FUNCTION [
+						rebind as red-function! value as red-context! new
+					]
 					default [0]
 				]
 				value: value + 1
