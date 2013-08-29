@@ -83,6 +83,8 @@ _context: context [
 		s: as series! ctx/symbols/value
 		sym: alloc-tail s
 		copy-cell as cell! word sym
+		sym/header: TYPE_WORD							;-- force word! type
+		s: as series! ctx/symbols/value					;-- refreshing pointer after alloc-tail
 		
 		unless ON_STACK?(ctx) [
 			value: alloc-tail as series! ctx/values/value
