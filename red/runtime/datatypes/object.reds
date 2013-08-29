@@ -57,7 +57,18 @@ object: context [
 			value: value + 1
 		]
 		part
-	] 
+	]
+	
+	make-at: func [
+		cell	[red-object!]
+		slots	[integer!]
+		return: [red-object!]
+	][
+		cell/header:  TYPE_OBJECT
+		cell/symbols: alloc-cells slots
+		cell/values:  alloc-cells slots
+		cell
+	]
 	
 	;-- Actions -- 
 	
@@ -67,34 +78,17 @@ object: context [
 		return:	[red-object!]
 		/local
 			obj	 [red-object!]
-			cell [red-value!]
-			slot [red-word!]
-			s	 [series!]
-			type [integer!]
-			i	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
-		obj: as red-object! _context/create root block/rs-length? spec no
-		obj/header: TYPE_OBJECT
+		obj: as red-object! ALLOC_TAIl(root)
 		
-		s: GET_BUFFER(spec)
-		cell: s/offset
-		i: 0
-		
-		while [cell < s/tail][							;-- collecting context's set-words
-			type: TYPE_OF(cell)
-			if type = TYPE_SET_WORD [					;-- add new word to context
-				slot: as red-word! alloc-tail as series! obj/symbols/value
-				copy-cell cell as red-value! slot
-				slot/header: TYPE_WORD
-				slot/ctx: as red-context! obj
-				slot/index: i
-				i: i + 1
-			]
-			cell: cell + 1
+		either TYPE_OF(proto) = TYPE_OBJECT [
+			copy proto obj null yes null				;-- /deep
+		][
+			make-at obj 4								;-- arbitrary value
 		]
-		
+		_context/collect-set-words as red-context! obj spec		
 		_context/bind spec as red-context! obj
 		interpreter/eval spec
 		obj
@@ -154,6 +148,78 @@ object: context [
 		]
 	]
 	
+	copy: func [
+		obj      [red-object!]
+		new	  	 [red-object!]
+		part-arg [red-value!]
+		deep?	 [logic!]
+		types	 [red-value!]
+		return:	 [red-object!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			src	  [series!]
+			dst	  [series!]
+			size  [integer!]
+			slots [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "object/copy"]]
+		
+		if OPTION?(types) [--NOT_IMPLEMENTED--]
+
+		if OPTION?(part-arg) [
+			print-line "***Error: copy/part is not supported on objects"
+			halt
+		]
+
+		src:	as series! obj/symbols/value
+		size:   as-integer src/tail - src/offset
+		slots:	size >> 4
+		
+		new: make-at new slots
+		
+		;-- process SYMBOLS
+		dst: as series! new/symbols/value
+		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
+		dst/size: size
+		dst/tail: dst/offset + slots
+		_context/set-context-each as red-context! new dst
+		
+		;-- process VALUES
+		src: as series! obj/values/value
+		dst: as series! new/values/value
+		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
+		dst/size: size
+		dst/tail: dst/offset + slots
+		
+		if deep? [
+			value: dst/offset
+			tail:  dst/tail
+			
+			while [value < tail][
+				switch TYPE_OF(value) [					;@@ replace it with ANY_SERIES?()
+					TYPE_BLOCK
+					TYPE_PAREN
+					TYPE_PATH
+					TYPE_SET_PATH
+					TYPE_GET_PATH
+					TYPE_LIT_PATH
+					TYPE_STRING
+					TYPE_FILE [
+						actions/copy value value null yes null ;-- overwrite the value
+					]
+					;TYPE_FUNCTION [
+					
+					;]
+					default [0]
+				]
+				value: value + 1
+			]
+		]
+
+		new
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_OBJECT
@@ -192,7 +258,7 @@ object: context [
 			null			;back
 			null			;change
 			null			;clear
-			null			;copy
+			:copy
 			null			;find
 			null			;head
 			null			;head?

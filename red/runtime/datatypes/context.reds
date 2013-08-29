@@ -319,6 +319,43 @@ _context: context [
 		body
 	]
 	
+	set-context-each: func [
+		ctx	[red-context!]
+		s	[series!]
+		/local
+			p	 [red-word!]
+			tail [red-word!]
+	][
+		p:	  as red-word! s/offset 
+		tail: as red-word! s/tail
+
+		while [p < tail][
+			p/ctx: ctx
+			p: p + 1
+		]
+	]
+	
+	collect-set-words: func [
+		ctx	 [red-context!]
+		spec [red-block!]
+		/local
+			cell [red-value!]
+			tail [red-value!]
+			word [red-word!]
+			s	 [series!]
+	][
+		s: GET_BUFFER(spec)
+		cell: s/offset
+		tail: s/tail
+
+		while [cell < tail][
+			if TYPE_OF(cell) = TYPE_SET_WORD [
+				_context/add ctx as red-word! cell
+			]
+			cell: cell + 1
+		]
+	]
+	
 	;-- Actions -- 
 	
 	init: does [
