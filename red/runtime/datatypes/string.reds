@@ -1539,6 +1539,7 @@ string: context [
 
 	copy: func [
 		str	    	[red-string!]
+		new			[red-string!]
 		part-arg	[red-value!]
 		deep?		[logic!]
 		types		[red-value!]
@@ -1549,7 +1550,7 @@ string: context [
 			offset	[integer!]
 			s		[series!]
 			buffer	[series!]
-			new		[node!]
+			node	[node!]
 			unit	[integer!]
 			part	[integer!]
 	][
@@ -1585,8 +1586,8 @@ string: context [
 			part: part << (unit >> 1)
 		]
 		
-		new: 	alloc-bytes part + unit
-		buffer: as series! new/value
+		node: 	alloc-bytes part + unit
+		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
 		
 		unless zero? part [
@@ -1598,9 +1599,10 @@ string: context [
 			buffer/tail: as cell! (as byte-ptr! buffer/offset) + part
 		]
 		add-terminal-NUL as byte-ptr! buffer/tail unit
-		str/node: new									;-- reuse the block slot
-		str/head: 0										;-- reset head offset
-		as red-series! str
+		
+		new/node: node
+		new/head: 0
+		as red-series! new
 	]
 	
 	init: does [

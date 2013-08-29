@@ -444,35 +444,41 @@ actions: context [
 		part	[integer!]
 		deep	[integer!]
 		types	[integer!]
-		return:	[red-series!]
+		return:	[red-value!]
 	][
-		copy
-			as red-series! stack/arguments
+		stack/set-last copy
+			stack/arguments
+			stack/push*
 			stack/arguments + part
 			as logic! deep + 1
 			stack/arguments + types
 	]
 	
 	copy: func [
-		series  [red-series!]
+		series  [red-value!]
+		new		[red-value!]
 		part	[red-value!]
 		deep?	[logic!]
 		types	[red-value!]
-		return:	[red-series!]
+		return:	[red-value!]
 		/local
 			action-copy
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/copy"]]
+		
+		new/header: series/header
 			
 		action-copy: as function! [
-			series  [red-series!]
+			series  [red-value!]
+			new		[red-value!]
 			part	[red-value!]
 			deep?	[logic!]
 			types	[red-value!]
 			return: [red-series!]
 		] get-action-ptr as red-value! series ACT_COPY
 					
-		action-copy series part deep? types
+		action-copy series new part deep? types
+		new
 	]
 	
 	find*: func [

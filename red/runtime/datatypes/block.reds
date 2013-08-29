@@ -1118,6 +1118,7 @@ block: context [
 	
 	copy: func [
 		blk	    	[red-block!]
+		new			[red-block!]
 		part-arg	[red-value!]
 		deep?		[logic!]
 		types		[red-value!]
@@ -1128,7 +1129,7 @@ block: context [
 			offset	[red-value!]
 			slot	[red-value!]
 			buffer	[series!]
-			new		[node!]
+			node	[node!]
 			part	[integer!]
 			slots	[integer!]
 			type	[integer!]
@@ -1166,8 +1167,8 @@ block: context [
 			part: part << 4
 		]
 		
-		new: 	alloc-cells slots + 1
-		buffer: as series! new/value
+		node: 	alloc-cells slots + 1
+		buffer: as series! node/value
 		
 		unless zero? part [
 			copy-memory 
@@ -1177,8 +1178,9 @@ block: context [
 				
 			buffer/tail: buffer/offset + slots
 		]
-		blk/node: new									;-- reuse the block slot
-		blk/head: 0										;-- reset head offset
+		
+		new/node: node
+		new/head: 0
 		
 		if deep? [
 			slot: buffer/offset
@@ -1194,7 +1196,7 @@ block: context [
 					type = TYPE_STRING
 					type = TYPE_FILE
 				][
-					actions/copy as red-series! slot null yes null
+					actions/copy slot slot null yes null	;-- overwrite the slot value
 				]
 				slot: slot + 1
 				slot >= buffer/tail
