@@ -64,6 +64,31 @@ _context: context [
 		value/header: TYPE_UNSET
 		word
 	]
+	
+	add-with: func [
+		ctx		[red-context!]
+		word	[red-word!]
+		value	[red-value!]
+		return: [red-value!]
+		/local
+			sym	[red-word!]
+			s  	[series!]
+			id	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/add-with"]]
+
+		id: find-word ctx word/symbol
+		if id <> -1 [return null]
+
+		s: as series! ctx/symbols/value
+		sym: as red-word! alloc-tail s
+		copy-cell as cell! word as cell! sym
+		sym/ctx: ctx
+		sym/index: (as-integer s/tail - s/offset) >> 4 - 1
+		
+		s: as series! ctx/symbols/value					;-- refreshing pointer after alloc-tail
+		copy-cell value alloc-tail as series! ctx/values/value
+	]
 
 	add: func [
 		ctx		[red-context!]
@@ -367,7 +392,7 @@ _context: context [
 
 		while [cell < tail][
 			if TYPE_OF(cell) = TYPE_SET_WORD [
-				_context/add ctx as red-word! cell
+				add ctx as red-word! cell
 			]
 			cell: cell + 1
 		]

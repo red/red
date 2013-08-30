@@ -74,6 +74,49 @@ object: context [
 		part
 	]
 	
+	extend: func [
+		ctx	  [red-context!]
+		spec  [red-context!]
+		/local
+			syms  [red-value!]
+			tail  [red-value!]
+			vals  [red-value!]
+			value [red-value!]
+			s	  [series!]
+	][
+		s: as series! spec/symbols/value
+		syms: s/offset
+		tail: s/tail
+
+		s: as series! spec/values/value
+		vals: s/offset
+
+		while [syms < tail][
+			value: _context/add-with ctx as red-word! syms vals
+			
+			unless null? value [
+				switch TYPE_OF(value) [					;@@ replace it with ANY_SERIES?()
+					TYPE_BLOCK
+					TYPE_PAREN
+					TYPE_PATH
+					TYPE_SET_PATH
+					TYPE_GET_PATH
+					TYPE_LIT_PATH
+					TYPE_STRING
+					TYPE_FILE [
+						actions/copy value value null yes null ;-- overwrite the value
+					]
+					TYPE_FUNCTION [
+						rebind as red-function! value ctx
+					]
+					default [0]
+				]
+			]
+			syms: syms + 1
+			vals: vals + 1
+		]
+	]
+	
 	rebind: func [
 		fun		[red-function!]
 		ctx 	[red-context!]
@@ -106,27 +149,42 @@ object: context [
 		cell
 	]
 	
-	;-- Actions -- 
+	;-- Actions --
 	
 	make: func [
 		proto	[red-object!]
-		spec	[red-block!]
+		spec	[red-value!]
 		return:	[red-object!]
 		/local
-			obj	 [red-object!]
+			obj	[red-object!]
+			ctx [red-context!]
+			blk [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
-		obj: as red-object! ALLOC_TAIl(root)
+		obj: as red-object! ALLOC_TAIL(root)
+		ctx: as red-context! obj
 		
 		either TYPE_OF(proto) = TYPE_OBJECT [
 			copy proto obj null yes null				;-- /deep
 		][
 			make-at obj 4								;-- arbitrary value
 		]
-		_context/collect-set-words as red-context! obj spec	
-		_context/bind spec as red-context! obj yes
-		interpreter/eval spec
+		switch TYPE_OF(spec) [
+			TYPE_OBJECT [
+				extend ctx as red-context! spec
+			]
+			TYPE_BLOCK [
+				blk: as red-block! spec
+				_context/collect-set-words ctx blk
+				_context/bind blk ctx yes
+				interpreter/eval blk
+			]
+			default [
+				print-line "*** Error: invalid spec value for object construction"
+				halt
+			]
+		]
 		obj
 	]
 	
