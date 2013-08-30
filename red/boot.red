@@ -900,6 +900,20 @@ body-of: func [
 	reflect :value 'body
 ]
 
+words-of: func [
+	"Returns the list of words of a value that supports reflection."
+	value
+][
+	reflect :value 'words
+]
+
+values-of: func [
+	"Returns the list of values of a value that supports reflection."
+	value
+][
+	reflect :value 'values
+]
+
 context: func [spec [block!]][make object! spec]
 
 system: function [
