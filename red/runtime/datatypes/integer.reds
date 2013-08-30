@@ -177,14 +177,15 @@ integer: context [
 	]
 	
 	mold: func [
-		int		   [red-integer!]
-		buffer	   [red-string!]
-		only?	   [logic!]
-		all?	   [logic!]
-		flat?	   [logic!]
-		arg		   [red-value!]
-		part 	   [integer!]
-		return:    [integer!]
+		int		[red-integer!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part 	[integer!]
+		indent	[integer!]		
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/mold"]]
 

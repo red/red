@@ -272,6 +272,7 @@ block: context [
 		flat?	  [logic!]
 		arg		  [red-value!]
 		part 	  [integer!]
+		indent	  [integer!]
 		return:   [integer!]
 		/local
 			s	  [series!]
@@ -287,7 +288,7 @@ block: context [
 			if all [OPTION?(arg) part <= 0][return part]
 			
 			depth: depth + 1
-			part: actions/mold value buffer only? all? flat? arg part
+			part: actions/mold value buffer only? all? flat? arg part indent
 			
 			if positive? depth [
 				string/append-char GET_BUFFER(buffer) as-integer space
@@ -436,14 +437,15 @@ block: context [
 	]
 	
 	mold: func [
-		blk		  [red-block!]
-		buffer	  [red-string!]
-		only?	  [logic!]
-		all?	  [logic!]
-		flat?	  [logic!]
-		arg		  [red-value!]
-		part 	  [integer!]
-		return:   [integer!]
+		blk		[red-block!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part	[integer!]
+		indent	[integer!]
+		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/mold"]]
 		
@@ -451,7 +453,7 @@ block: context [
 			string/append-char GET_BUFFER(buffer) as-integer #"["
 			part: part - 1
 		]
-		part: mold-each blk buffer no all? flat? arg part
+		part: mold-each blk buffer no all? flat? arg part indent
 		
 		unless only? [
 			string/append-char GET_BUFFER(buffer) as-integer #"]"

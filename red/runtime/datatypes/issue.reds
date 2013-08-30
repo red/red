@@ -57,6 +57,7 @@ issue: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part 	[integer!]
+		indent	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "issue/mold"]]

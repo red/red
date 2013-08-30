@@ -13,6 +13,23 @@ Red/System [
 object: context [
 	verbose: 0
 	
+	do-indent: func [
+		buffer	[red-string!]
+		tabs	[integer!]
+		part	[integer!]
+		return:	[integer!]
+		/local
+			n [integer!]
+	][
+		n: tabs
+		until [
+			string/concatenate-literal buffer "    "
+			n: n - 1
+			zero? n
+		]
+		part - (4 * tabs)
+	]
+	
 	serialize: func [
 		obj		[red-object!]
 		buffer	[red-string!]
@@ -21,7 +38,8 @@ object: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part	[integer!]
-		indent? [logic!]
+		indent?	[logic!]
+		tabs	[integer!]
 		return: [integer!]
 		/local
 			syms	[series!]
@@ -38,16 +56,13 @@ object: context [
 		value: 	values/offset
 		
 		while [sym < s-tail][
-			if indent? [
-				string/concatenate-literal buffer "    "
-				part: part - 4
-			]
+			if indent? [part: do-indent buffer tabs part]
 			
-			part: word/mold as red-word! sym buffer no no flat? arg part
+			part: word/mold as red-word! sym buffer no no flat? arg part tabs
 			string/concatenate-literal buffer ": "
 			part: part - 2
 			
-			part: actions/mold value buffer only? all? flat? arg part
+			part: actions/mold value buffer only? all? flat? arg part tabs
 			
 			if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
 				string/append-char GET_BUFFER(buffer) as-integer lf
@@ -124,7 +139,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/form"]]
 
-		serialize obj buffer no no no arg part no
+		serialize obj buffer no no no arg part no 0
 	]
 	
 	mold: func [
@@ -135,12 +150,14 @@ object: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part	[integer!]
+		indent	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
 		
 		string/concatenate-literal buffer "make object! [^/"
-		part: serialize obj buffer only? all? flat? arg part - 15 yes
+		part: serialize obj buffer only? all? flat? arg part - 15 yes indent + 1
+		if indent > 0 [part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]

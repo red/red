@@ -227,6 +227,7 @@ actions: context [
 			as logic! flat + 1
 			arg
 			limit
+			0
 		
 		if all [part >= 0 negative? limit][
 			string/truncate-from-tail GET_BUFFER(buffer) limit
@@ -242,6 +243,7 @@ actions: context [
 		flat?	 [logic!]
 		arg		 [red-value!]
 		part     [integer!]								;-- max bytes count
+		indent	 [integer!]
 		return:  [integer!]
 		/local
 			action-mold
@@ -256,10 +258,11 @@ actions: context [
 			flat?	 [logic!]
 			part-arg [red-value!]		
 			part	 [integer!]							;-- max bytes count
+			indent	 [integer!]
 			return:  [integer!]							;-- remaining part count
 		] get-action-ptr value ACT_MOLD
 
-		action-mold value buffer only? all? flat? arg part
+		action-mold value buffer only? all? flat? arg part indent
 	]
 	
 	eval-path: func [

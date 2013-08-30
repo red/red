@@ -618,14 +618,15 @@ string: context [
 	]
 	
 	mold: func [
-		str		  [red-string!]
-		buffer	  [red-string!]
-		only?	  [logic!]
-		all?	  [logic!]
-		flat?	  [logic!]
-		arg		  [red-value!]
-		part	  [integer!]
-		return:	  [integer!]
+		str		[red-string!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part	[integer!]
+		indent	[integer!]
+		return:	[integer!]
 		/local
 			int	   [red-integer!]
 			limit  [integer!]

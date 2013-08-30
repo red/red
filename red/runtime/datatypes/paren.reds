@@ -62,13 +62,14 @@ paren: context [
 		flat?	  [logic!]
 		arg		  [red-value!]
 		part 	  [integer!]
+		indent	[integer!]
 		return:   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "paren/mold"]]
 		
 		string/append-char GET_BUFFER(buffer) as-integer #"("
 		part: part - 1
-		part: block/mold-each paren buffer only? all? flat? arg part
+		part: block/mold-each paren buffer only? all? flat? arg part indent
 		string/append-char GET_BUFFER(buffer) as-integer #")"
 		part - 1
 	]

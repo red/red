@@ -156,14 +156,15 @@ datatype: context [
 	]
 	
 	mold: func [
-		dt		 [red-datatype!]
-		buffer	 [red-string!]
-		only?	 [logic!]
-		all?	 [logic!]
-		flat?	 [logic!]
-		arg		 [red-value!]
-		part	 [integer!]
-		return:  [integer!]
+		dt		[red-datatype!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part	[integer!]
+		indent	[integer!]
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
 

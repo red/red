@@ -75,6 +75,7 @@ action: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part	[integer!]
+		indent	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/mold"]]
@@ -89,6 +90,7 @@ action: context [
 			flat?
 			arg
 			part - 14
+			indent
 		
 		string/concatenate-literal buffer "]"
 		part - 1

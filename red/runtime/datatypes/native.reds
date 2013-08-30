@@ -96,6 +96,7 @@ native: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part	[integer!]
+		indent	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/mold"]]
@@ -110,6 +111,7 @@ native: context [
 			flat?
 			arg
 			part - 14
+			indent
 		
 		string/concatenate-literal buffer "]"
 		part - 1

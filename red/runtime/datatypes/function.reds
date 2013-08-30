@@ -312,6 +312,7 @@ _function: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part	[integer!]
+		indent	[integer!]
 		return: [integer!]
 		/local
 			s	[series!]
@@ -325,10 +326,10 @@ _function: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 0
 		blk/node: fun/spec
-		part: block/mold blk buffer only? all? flat? arg part - 5			;-- spec
+		part: block/mold blk buffer only? all? flat? arg part - 5 indent	;-- spec
 		
 		s: as series! fun/more/value
-		block/mold as red-block! s/offset buffer only? all? flat? arg part	;-- body
+		block/mold as red-block! s/offset buffer only? all? flat? arg part indent	;-- body
 	]
 
 	init: does [
