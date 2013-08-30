@@ -1596,12 +1596,13 @@ red: context [
 		]
 	]
 	
-	comp-get: does [
+	comp-get: has [symbol][
 		either lit-word? pc/1 [
+			add-symbol symbol: to word! pc/1
 			either path? pc/-1 [						;@@ add check for validaty of refinements		
-				emit-get-word/any? to word! pc/1
+				emit-get-word/any? symbol
 			][
-				emit-get-word to word! pc/1
+				emit-get-word symbol
 			]
 			pc: next pc
 		][
