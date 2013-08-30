@@ -57,10 +57,9 @@ block: context [
 	rs-append: func [
 		blk		[red-block!]
 		value	[red-value!]
-		return: [red-block!]
+		return: [red-value!]
 	][
 		copy-cell value ALLOC_TAIL(blk)
-		blk
 	]
 	
 	rs-append-block: func [

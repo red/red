@@ -135,8 +135,12 @@ object: context [
 		field	[integer!]
 		return:	[red-block!]
 		/local
-			blk [red-block!]
-			s	[series!]
+			blk   [red-block!]
+			syms  [red-value!]
+			vals  [red-value!]
+			tail  [red-value!]
+			value [red-value!]
+			s	  [series!]
 	][
 		blk: 		as red-block! stack/push*
 		blk/header: TYPE_BLOCK
@@ -145,20 +149,36 @@ object: context [
 		case [
 			field = words/words [
 				blk/node: obj/symbols
-				stack/set-last as red-value! block/clone blk no
+				blk: block/clone blk no
 			]
 			field = words/values [
 				blk/node: obj/values
-				stack/set-last as red-value! block/clone blk no
+				blk: block/clone blk no
 			]
 			field = words/body [
-				--NOT_IMPLEMENTED--
+				blk/node: obj/symbols
+				blk/node: alloc-cells block/rs-length? blk
+				
+				s: as series! obj/symbols/value
+				syms: s/offset
+				tail: s/tail
+				
+				s: as series! obj/values/value
+				vals: s/offset
+				
+				while [syms < tail][
+					value: block/rs-append blk syms
+					value/header: TYPE_SET_WORD
+					block/rs-append blk vals
+					syms: syms + 1
+					vals: vals + 1
+				]
 			]
 			true [
 				--NOT_IMPLEMENTED--						;@@ raise error
 			]
 		]
-		blk												;@@ TBD: remove it when all cases implemented
+		as red-block! stack/set-last as red-value! blk
 	]
 	
 	form: func [
