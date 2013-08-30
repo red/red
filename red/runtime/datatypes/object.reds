@@ -130,6 +130,37 @@ object: context [
 		obj
 	]
 	
+	reflect: func [
+		obj		[red-object!]
+		field	[integer!]
+		return:	[red-block!]
+		/local
+			blk [red-block!]
+			s	[series!]
+	][
+		blk: 		as red-block! stack/push*
+		blk/header: TYPE_BLOCK
+		blk/head: 	0
+		
+		case [
+			field = words/words [
+				blk/node: obj/symbols
+				stack/set-last as red-value! block/clone blk no
+			]
+			field = words/values [
+				blk/node: obj/values
+				stack/set-last as red-value! block/clone blk no
+			]
+			field = words/body [
+				--NOT_IMPLEMENTED--
+			]
+			true [
+				--NOT_IMPLEMENTED--						;@@ raise error
+			]
+		]
+		blk												;@@ TBD: remove it when all cases implemented
+	]
+	
 	form: func [
 		obj		[red-object!]
 		buffer	[red-string!]
@@ -266,7 +297,7 @@ object: context [
 			;-- General actions --
 			:make
 			null			;random
-			null			;reflect
+			:reflect
 			null			;to
 			:form
 			:mold
