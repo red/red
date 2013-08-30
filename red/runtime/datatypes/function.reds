@@ -254,7 +254,7 @@ _function: context [
 		native/code: code
 		
 		if all [null? ctx not null? body][
-			_context/bind body fun/ctx					;-- do not bind if predefined context (already done)
+			_context/bind body fun/ctx no				;-- do not bind if predefined context (already done)
 		]
 		fun/ctx
 	]

@@ -754,12 +754,13 @@ natives: context [
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			either negative? copy [
-				_context/bind as red-block! value ctx
+				_context/bind as red-block! value ctx no
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes
 						ctx
+						no
 			]
 		][
 			word: as red-word! value

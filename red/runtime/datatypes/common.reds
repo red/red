@@ -100,6 +100,7 @@ words: context [
 	_remove-each:	as red-word! 0
 	_exit:			as red-word! 0
 	_return:		as red-word! 0
+	_self:			as red-word! 0
 	
 	spec:			-1
 	body:			-1
@@ -112,6 +113,7 @@ words: context [
 	remove-each:	-1
 	exit*:			-1
 	return*:		-1
+	self:			-1
 	
 	build: does [
 		_spec:			word/load "spec"
@@ -132,6 +134,8 @@ words: context [
 		_map-each:		word/load "map-each"
 		_remove-each:	word/load "remove-each"
 		
+		_self:			word/load "self"
+		
 		spec:			_spec/symbol
 		body:			_body/symbol
 		words:			_words/symbol
@@ -143,6 +147,7 @@ words: context [
 		remove-each:	_remove-each/symbol
 		exit*:			_exit/symbol
 		return*:		_return/symbol
+		self:			_self/symbol
 	]
 ]
 

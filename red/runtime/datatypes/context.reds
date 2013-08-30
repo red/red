@@ -167,6 +167,13 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-with"]]
 
+		if all [
+			TYPE_OF(ctx) = TYPE_OBJECT
+			word/index = -1
+			word/symbol = words/self
+		][
+			return as red-value! word/ctx				;-- special resolution for SELF
+		]
 		if any [										;-- ensure word is properly bound to a context
 			null? ctx
 			word/index = -1
@@ -279,6 +286,7 @@ _context: context [
 	bind: func [
 		body	[red-block!]
 		ctx		[red-context!]
+		self?	[logic!]
 		return: [red-block!]
 		/local
 			value [red-value!]
@@ -298,19 +306,28 @@ _context: context [
 				TYPE_LIT_WORD
 				TYPE_REFINEMENT [
 					w: as red-word! value
-					idx: _context/find-word ctx w/symbol
-					if idx >= 0 [
-						w/ctx:   ctx
-						w/index: idx
+					either all [						;-- special processing of SELF word	
+						self?
+						TYPE_OF(value) = TYPE_WORD
+						w/symbol = words/self
+					][			
+						w/ctx: ctx						;-- make SELF refer to this context (half-bound)
+						w/index: -1						;-- make it fail if resolved out of context
+					][
+						idx: _context/find-word ctx w/symbol
+						if idx >= 0 [
+							w/ctx:   ctx
+							w/index: idx
+						]
 					]
 				]
-				TYPE_BLOCK 					;@@ replace with TYPE_ANY_BLOCK
-				TYPE_PAREN 
+				TYPE_BLOCK 								;@@ replace with TYPE_ANY_BLOCK
+				TYPE_PAREN
 				TYPE_PATH
 				TYPE_LIT_PATH
 				TYPE_SET_PATH
 				TYPE_GET_PATH	[
-					bind as red-block! value ctx
+					bind as red-block! value ctx self?
 				]
 				default [0]
 			]

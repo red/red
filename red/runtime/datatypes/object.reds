@@ -88,8 +88,8 @@ object: context [
 			print-line "*** Error: COPY stuck on missing function's body block"
 			halt
 		]
-		_context/bind as red-block! more ctx
-		_context/bind as red-block! more fun/ctx
+		_context/bind as red-block! more ctx yes
+		_context/bind as red-block! more fun/ctx no
 		
 		more: more + 2
 		more/header: TYPE_UNSET			;-- invalidate compiled body
@@ -124,8 +124,8 @@ object: context [
 		][
 			make-at obj 4								;-- arbitrary value
 		]
-		_context/collect-set-words as red-context! obj spec		
-		_context/bind spec as red-context! obj
+		_context/collect-set-words as red-context! obj spec	
+		_context/bind spec as red-context! obj yes
 		interpreter/eval spec
 		obj
 	]
