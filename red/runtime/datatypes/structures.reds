@@ -125,26 +125,26 @@ red-context!: alias struct! [
 	header 	[integer!]								;-- cell header
 	symbols	[node!]									;-- array of symbols ID
 	values	[node!]									;-- block of values (do not move this field!)
-	_pad	[integer!]
+	self	[node!]									;-- indirect auto-reference (optimization)
 ]
 
 red-object!: alias struct! [
 	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- array of symbols ID
-	values	[node!]									;-- block of values
-	_pad	[integer!]
+	ctx		[node!]									;-- context reference
+	_pad1	[integer!]
+	_pad2	[integer!]
 ]
 
 red-word!: alias struct! [
 	header 	[integer!]								;-- cell header
-	ctx		[red-context!]
+	ctx		[node!]									;-- context reference
 	symbol	[integer!]								;-- index in symbol table
 	index	[integer!]								;-- index in context
 ]
 
 red-refinement!: alias struct! [
 	header 	[integer!]								;-- cell header
-	ctx		[red-context!]
+	ctx		[node!]									;-- context reference
 	symbol	[integer!]								;-- index in symbol table
 	index	[integer!]								;-- index in context
 ]
@@ -180,7 +180,7 @@ red-op!: alias struct! [
 red-function!: alias struct! [
 	header 	[integer!]								;-- cell header
 	spec	[node!]									;-- native spec block buffer reference
-	ctx		[red-context!]							;-- function's context
+	ctx		[node!]									;-- function's context
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	function's body block
 	;	symbols	 [red-block!]						;-- 	native cleaned-up spec block reference

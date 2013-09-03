@@ -227,9 +227,9 @@ _function: context [
 	push: func [
 		spec	 [red-block!]
 		body	 [red-block!]
-		ctx		 [red-context!]							;-- if not null, context is predefined by compiler
+		ctx		 [node!]								;-- if not null, context is predefined by compiler
 		code	 [integer!]
-		return:	 [red-context!]							;-- return function's local context
+		return:	 [node!]								;-- return function's local context reference
 		/local
 			fun    [red-function!]
 			native [red-native!]
@@ -241,7 +241,7 @@ _function: context [
 		fun: as red-function! stack/push*
 		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
 		fun/spec:	 spec/node
-		fun/ctx:	 either null? ctx [_context/make spec yes][ctx]
+		fun/ctx:	 either null? ctx [_context/make spec yes no][ctx]
 		fun/more:	 alloc-cells 3
 		
 		more: as series! fun/more/value
@@ -254,7 +254,7 @@ _function: context [
 		native/code: code
 		
 		if all [null? ctx not null? body][
-			_context/bind body fun/ctx no				;-- do not bind if predefined context (already done)
+			_context/bind body GET_CTX(fun) no			;-- do not bind if predefined context (already done)
 		]
 		fun/ctx
 	]

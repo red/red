@@ -42,14 +42,16 @@ object: context [
 		tabs	[integer!]
 		return: [integer!]
 		/local
+			ctx		[red-context!]
 			syms	[series!]
 			values	[series!]
 			sym		[red-value!]
 			s-tail	[red-value!]
 			value	[red-value!]
 	][
-		syms:   as series! obj/symbols/value
-		values: as series! obj/values/value
+		ctx: 	GET_CTX(obj)
+		syms:   as series! ctx/symbols/value
+		values: as series! ctx/values/value
 		
 		sym:	syms/offset
 		s-tail: syms/tail
@@ -132,21 +134,20 @@ object: context [
 			halt
 		]
 		_context/bind as red-block! more ctx yes
-		_context/bind as red-block! more fun/ctx no
+		_context/bind as red-block! more GET_CTX(fun) no
 		
 		more: more + 2
 		more/header: TYPE_UNSET			;-- invalidate compiled body
 	]
 	
 	make-at: func [
-		cell	[red-object!]
+		obj		[red-object!]
 		slots	[integer!]
 		return: [red-object!]
 	][
-		cell/header:  TYPE_OBJECT
-		cell/symbols: alloc-cells slots
-		cell/values:  alloc-cells slots
-		cell
+		obj/header: TYPE_OBJECT
+		obj/ctx: _context/create slots no yes
+		obj
 	]
 	
 	;-- Actions --
@@ -156,23 +157,26 @@ object: context [
 		spec	[red-value!]
 		return:	[red-object!]
 		/local
-			obj	[red-object!]
-			ctx [red-context!]
-			blk [red-block!]
+			obj	 [red-object!]
+			obj2 [red-object!]
+			ctx  [red-context!]
+			blk  [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
-		obj: as red-object! ALLOC_TAIL(root)
-		ctx: as red-context! obj
+		obj: as red-object! stack/push*
 		
 		either TYPE_OF(proto) = TYPE_OBJECT [
 			copy proto obj null yes null				;-- /deep
 		][
 			make-at obj 4								;-- arbitrary value
 		]
+		ctx: GET_CTX(obj)
+		
 		switch TYPE_OF(spec) [
 			TYPE_OBJECT [
-				extend ctx as red-context! spec
+				obj2: as red-object! spec
+				extend ctx GET_CTX(obj2)
 			]
 			TYPE_BLOCK [
 				blk: as red-block! spec
@@ -193,6 +197,7 @@ object: context [
 		field	[integer!]
 		return:	[red-block!]
 		/local
+			ctx	  [red-context!]
 			blk   [red-block!]
 			syms  [red-value!]
 			vals  [red-value!]
@@ -204,24 +209,26 @@ object: context [
 		blk/header: TYPE_BLOCK
 		blk/head: 	0
 		
+		ctx: GET_CTX(obj)
+		
 		case [
 			field = words/words [
-				blk/node: obj/symbols
+				blk/node: ctx/symbols
 				blk: block/clone blk no
 			]
 			field = words/values [
-				blk/node: obj/values
+				blk/node: ctx/values
 				blk: block/clone blk no
 			]
 			field = words/body [
-				blk/node: obj/symbols
+				blk/node: ctx/symbols
 				blk/node: alloc-cells block/rs-length? blk
 				
-				s: as series! obj/symbols/value
+				s: as series! ctx/symbols/value
 				syms: s/offset
 				tail: s/tail
 				
-				s: as series! obj/values/value
+				s: as series! ctx/values/value
 				vals: s/offset
 				
 				while [syms < tail][
@@ -281,11 +288,11 @@ object: context [
 			ctx  [red-context!]
 	][
 		word: as red-word! element
-		ctx:  as red-context! parent 
+		ctx:  GET_CTX(parent)
 
-		if word/ctx <> ctx [							;-- bind the word to object's context
+		if word/ctx <> parent/ctx [						;-- bind the word to object's context
 			word/index: _context/find-word ctx word/symbol
-			word/ctx: ctx
+			word/ctx: parent/ctx
 		]
 		either set? [
 			_context/set-in word stack/arguments ctx 
@@ -303,6 +310,8 @@ object: context [
 		types	 [red-value!]
 		return:	 [red-object!]
 		/local
+			ctx	  [red-context!]
+			nctx  [red-context!]
 			value [red-value!]
 			tail  [red-value!]
 			src	  [series!]
@@ -319,22 +328,24 @@ object: context [
 			halt
 		]
 
-		src:	as series! obj/symbols/value
+		ctx:	GET_CTX(obj)
+		src:	as series! ctx/symbols/value
 		size:   as-integer src/tail - src/offset
 		slots:	size >> 4
 		
-		new: make-at new slots
+		new:  make-at new slots
+		nctx: GET_CTX(new)
 		
 		;-- process SYMBOLS
-		dst: as series! new/symbols/value
+		dst: as series! nctx/symbols/value
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
 		dst/size: size
 		dst/tail: dst/offset + slots
-		_context/set-context-each as red-context! new dst
+		_context/set-context-each dst new/ctx
 		
 		;-- process VALUES
-		src: as series! obj/values/value
-		dst: as series! new/values/value
+		src: as series! ctx/values/value
+		dst: as series! nctx/values/value
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
 		dst/size: size
 		dst/tail: dst/offset + slots
@@ -356,7 +367,7 @@ object: context [
 						actions/copy value value null yes null ;-- overwrite the value
 					]
 					TYPE_FUNCTION [
-						rebind as red-function! value as red-context! new
+						rebind as red-function! value nctx
 					]
 					default [0]
 				]

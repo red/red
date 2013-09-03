@@ -194,13 +194,15 @@ interpreter: context [
 		fun  [red-function!]
 		body [red-block!]
 		/local
-			saved
+			ctx	  [red-context!]
+			saved [node!]
 	][
 		in-func?: in-func? + 1
-		saved: fun/ctx/values
-		fun/ctx/values: as node! stack/arguments
+		ctx: GET_CTX(fun)
+		saved: ctx/values
+		ctx/values: as node! stack/arguments
 		eval body
-		fun/ctx/values: saved
+		ctx/values: saved
 		in-func?: in-func? - 1
 	]
 	

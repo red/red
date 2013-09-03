@@ -284,9 +284,9 @@ red: context [
 	]
 	
 	emit-exit-function: does [
-		emit compose [
+		emit [
 			stack/unroll stack/FLAG_FUNCTION
-			(append to set-path! last ctx-stack 'values) as node! pop
+			ctx/values: as node! pop
 			exit
 		]
 		insert-lf -5
@@ -1162,17 +1162,11 @@ red: context [
 	
 	comp-func-body: func [
 		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
-		/local init locals ctx-values
+		/local init locals
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
-		forall symbols [
-			symbols/1: decorate-symbol symbols/1
-		]
-		locals: either empty? symbols [
-			symbols
-		][
-			head insert copy symbols /local
-		]
+		forall symbols [symbols/1: decorate-symbol symbols/1]
+		locals: append copy [/local ctx] symbols
 		emit reduce [to set-word! decorate-func/strict name 'func locals]
 		insert-lf -3
 
@@ -1181,11 +1175,11 @@ red: context [
 		;-- Function's prolog --
 		pop-locals
 		init: make block! 4 * length? symbols
-		ctx-values: append to path! last ctx-stack 'values
 		
 		append init compose [							;-- point context values series to stack
-			push (ctx-values)							;-- save previous context values pointer
-			(to set-path! ctx-values) as node! stack/arguments
+			ctx: TO_CTX(to paren! last ctx-stack)
+			push ctx/values								;-- save previous context values pointer
+			ctx/values: as node! stack/arguments
 		]
 		new-line skip tail init -4 on
 		
@@ -1213,7 +1207,7 @@ red: context [
 		;-- Function's epilog --
 		append last output compose [
 			stack/unwind-last							;-- closing body stack frame, and propagating last value
-			(to set-path! ctx-values) as node! pop		;-- restore context values pointer
+			ctx/values: as node! pop					;-- restore context values pointer
 		]
 		new-line skip tail last output -4 yes
 		
@@ -1296,7 +1290,7 @@ red: context [
 			spec-blk: emit-block spec
 			ctx: push-context copy symbols
 			emit compose [
-				(to set-word! ctx) _context/make (spec-blk) yes	;-- build context with value on stack
+				(to set-word! ctx) _context/make (spec-blk) yes no	;-- build context with value on stack
 			]
 			insert-lf -4
 			body-blk: either job/red-store-bodies? [emit-block/bind body ctx]['null]

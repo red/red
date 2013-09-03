@@ -736,7 +736,7 @@ natives: context [
 			ref	  [red-value!]
 			fun	  [red-function!]
 			word  [red-word!]
-			ctx	  [red-context!]
+			ctx	  [node!]
 	][
 		value: stack/arguments
 		ref: value + 1
@@ -754,18 +754,18 @@ natives: context [
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			either negative? copy [
-				_context/bind as red-block! value ctx no
+				_context/bind as red-block! value TO_CTX(ctx) no
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes
-						ctx
+						TO_CTX(ctx)
 						no
 			]
 		][
 			word: as red-word! value
 			word/ctx: ctx
-			word/index: _context/find-word ctx word/symbol
+			word/index: _context/find-word TO_CTX(ctx) word/symbol
 		]
 	]
 

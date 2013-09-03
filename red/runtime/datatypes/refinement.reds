@@ -48,13 +48,13 @@ refinement: context [
 	]
 	
 	push-local: func [
-		ctx		[red-context!]
+		node	[node!]
 		index	[integer!]
 		return: [red-refinement!]
 		/local
 			ref [red-refinement!]
 	][
-		ref: as red-refinement! word/push-local ctx index
+		ref: as red-refinement! word/push-local node index
 		ref/header: TYPE_REFINEMENT
 		ref
 	]

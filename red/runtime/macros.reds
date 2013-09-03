@@ -211,6 +211,8 @@ Red/System [
 #define ON_STACK?(ctx)		(ctx/header and flag-series-stk <> 0)
 #define EQUAL_SYMBOLS?(a b) ((symbol/resolve a) = (symbol/resolve b))
 #define EQUAL_WORDS?(a b) 	((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
+#define TO_CTX(node)		(as red-context! ((as series! node/value) + 1))
+#define GET_CTX(obj)		(as red-context! ((as series! obj/ctx/value) + 1))
 
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 

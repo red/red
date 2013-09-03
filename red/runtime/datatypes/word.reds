@@ -33,7 +33,7 @@ word: context [
 		cell/header: TYPE_WORD							;-- implicit reset of all header flags
 		cell/ctx: 	 global-ctx
 		cell/symbol: id
-		cell/index:  _context/add global-ctx cell
+		cell/index:  _context/add TO_CTX(global-ctx) cell
 		cell
 	]
 	
@@ -58,14 +58,16 @@ word: context [
 	]
 	
 	push-local: func [
-		ctx		[red-context!]
+		node	[node!]
 		index	[integer!]
 		return: [red-word!]
 		/local
+			ctx	[red-context!]
 			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
-
+		
+		ctx: TO_CTX(node)
 		s: as series! ctx/symbols/value
 		push as red-word! s/offset + index
 	]

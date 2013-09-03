@@ -26,7 +26,9 @@ Red/System [
 #define flag-series-nogc	00200000h		;-- protected from GC (system-critical series)
 #define flag-series-fixed	00100000h		;-- series cannot be relocated (system-critical series)
 
-#define flag-arity-mask		C1FFFFFFh		;-- mask for routines arity field
+#define flag-arity-mask		C1FFFFFFh		;-- mask for readind routines arity field
+#define flag-self-mask		FEFFFFFFh		;-- mask for reading routines arity field
+#define set-self-mask		01000000h		;-- mask for setting routines arity field
 #define flag-unit-mask		FFFFFFE0h		;-- mask for unit field in series-buffer!
 #define get-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
 #define series-free-mask	7FFFFFFFh		;-- mark a series as used (not collectable by the GC)
@@ -45,7 +47,8 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;   31:		lock							;-- lock series for active thread access only
 ;   30:		new-line						;-- new-line (LF) marker (before the slot)
 ;	29-25:	arity							;-- arity for routine! functions.
-;   24-8:	<reserved>
+;	24:		self?							;-- self-aware context flag
+;   23-8:	<reserved>
 ;   7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [

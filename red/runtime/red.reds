@@ -76,7 +76,7 @@ red: context [
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	declare red-block!						;-- root block		
 	symbols: 	declare red-block! 						;-- symbols table
-	global-ctx: declare red-context!					;-- global context
+	global-ctx: declare node!							;-- global context
 
 	;-- Booting... --
 	
@@ -124,7 +124,7 @@ red: context [
 
 		root:	 	block/make-in null 2000	
 		symbols: 	block/make-in root 1000
-		global-ctx: _context/create root 1000 no
+		global-ctx: _context/create 1000 no no
 
 		datatype/make-words								;-- build datatype names as word! values
 		words/build										;-- create symbols used internally

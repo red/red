@@ -50,14 +50,16 @@ lit-word: context [
 	]
 	
 	push-local: func [
-		ctx		[red-context!]
+		node	[node!]
 		index	[integer!]
 		return: [red-word!]
 		/local
-			s	 [series!]
+			ctx	[red-context!]
+			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "lit-word/push-local"]]
 
+		ctx: TO_CTX(node)
 		s: as series! ctx/symbols/value
 		push as red-word! s/offset + index
 	]
