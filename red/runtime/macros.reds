@@ -167,6 +167,7 @@ Red/System [
 	NAT_COMPOSE
 	NAT_STATS
 	NAT_BIND
+	NAT_IN
 ]
 
 #enum math-op! [

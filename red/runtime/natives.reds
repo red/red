@@ -768,6 +768,37 @@ natives: context [
 			word/index: _context/find-word TO_CTX(ctx) word/symbol
 		]
 	]
+	
+	in*: func [
+		/local
+			obj  [red-object!]
+			ctx  [red-context!]
+			word [red-word!]
+	][
+		obj:  as red-object! stack/arguments
+		word: as red-word! stack/arguments + 1
+		ctx: GET_CTX(obj)
+
+		switch TYPE_OF(word) [
+			TYPE_WORD
+			TYPE_GET_WORD
+			TYPE_SET_WORD
+			TYPE_LIT_WORD
+			TYPE_REFINEMENT [
+				stack/set-last as red-value!
+				either negative? _context/bind-word ctx word [
+					none-value
+				][
+					word
+				]
+			]
+			TYPE_BLOCK
+			TYPE_PAREN [
+				0
+			]
+			default [0]
+		]
+	]
 
 	;--- Natives helper functions ---
 	
@@ -965,6 +996,7 @@ natives: context [
 			:compose*
 			:stats*
 			:bind*
+			:in*
 		]
 	]
 

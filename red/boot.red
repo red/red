@@ -764,6 +764,14 @@ bind: make native! [[
 	#get-definition NAT_BIND
 ]
 
+in: make native! [[
+		object [any-object!]
+		word   [any-word! block! paren!]
+	]
+	#get-definition NAT_IN
+]
+
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

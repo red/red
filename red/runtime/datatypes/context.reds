@@ -325,6 +325,21 @@ _context: context [
 			as red-value! blk
 	]
 	
+	bind-word: func [
+		ctx		[red-context!]
+		word	[red-word!]
+		return:	[integer!]
+		/local
+			idx [integer!]
+	][
+		idx: find-word ctx word/symbol
+		if idx >= 0 [
+			word/ctx: ctx/self
+			word/index: idx
+		]
+		idx
+	]
+	
 	bind: func [
 		body	[red-block!]
 		ctx		[red-context!]
@@ -334,7 +349,6 @@ _context: context [
 			value [red-value!]
 			end	  [red-value!]
 			w	  [red-word!]
-			idx	  [integer!]
 			type  [integer!]
 	][
 		value: block/rs-head body
@@ -356,11 +370,7 @@ _context: context [
 						w/ctx: ctx/self					;-- make SELF refer to this context (half-bound)
 						w/index: -1						;-- make it fail if resolved out of context
 					][
-						idx: _context/find-word ctx w/symbol
-						if idx >= 0 [
-							w/ctx: ctx/self
-							w/index: idx
-						]
+						bind-word ctx w
 					]
 				]
 				TYPE_BLOCK 								;@@ replace with TYPE_ANY_BLOCK
