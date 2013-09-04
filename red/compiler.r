@@ -1685,21 +1685,26 @@ red: context [
 			]
 			switch type?/word spec/1 [
 				lit-word! [
-					add-symbol word: to word! pc/1
-					
 					switch/default type?/word pc/1 [
 						get-word! [
+							add-symbol to word! pc/1
 							comp-expression
 						]
 						lit-word! [
+							add-symbol word: to word! pc/1
 							emit 'lit-word/push
 							emit decorate-symbol word
 							insert-lf -2
 							pc: next pc
 						]
+						word! [
+							add-symbol word: to word! pc/1
+							emit-push-word word				;@@ add specific type checking
+							pc: next pc
+						]
+						paren! [comp-expression]
 					][
-						emit-push-word word				;@@ add specific type checking
-						pc: next pc
+						comp-literal no
 					]
 				]
 				get-word! [comp-literal no]

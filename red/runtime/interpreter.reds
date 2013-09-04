@@ -51,10 +51,22 @@ Red/System [
 		pc: eval-expression pc end no yes
 	][
 		if verbose > 0 [log "fetching argument"]
-		either TYPE_OF(pc) = TYPE_GET_WORD [
-			copy-cell _context/get as red-word! pc stack/push*
-		][
-			stack/push pc
+		switch TYPE_OF(pc) [
+			TYPE_GET_WORD [
+				copy-cell _context/get as red-word! pc stack/push*
+			]
+			TYPE_PAREN [
+				either TYPE_OF(value) = TYPE_LIT_WORD [
+					stack/mark-native as red-word! pc		;@@ ~paren
+					eval as red-block! pc
+					stack/unwind
+				][
+					stack/push pc
+				]
+			]
+			default [
+				stack/push pc
+			]
 		]
 		pc: pc + 1
 	]
