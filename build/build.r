@@ -15,9 +15,13 @@ bin:			%bin/
 cache-file:		%bin/sources.r
 red: 			%red
 
-if Windows? [
+either Windows? [
 	append red %.exe
 	append encapper %.exe
+][
+	if exists? encapper [
+		insert encapper %./
+	]
 ]
 
 log: func [msg [string! block!]][
