@@ -126,6 +126,7 @@ object: context [
 			s	 [series!]
 			more [red-value!]
 			blk  [red-block!]
+			spec [red-block!]
 	][
 		s: as series! fun/more/value
 		more: s/offset
@@ -134,15 +135,19 @@ object: context [
 			print-line "*** Error: COPY stuck on missing function's body block"
 			halt
 		]
+		spec: as red-block! stack/push*
+		spec/head: 0
+		spec/node: fun/spec
+		
 		blk: block/clone as red-block! more yes
-		copy-cell as red-value! blk s/offset
-		blk: as red-block! s/offset
+		_context/bind blk ctx yes						;-- rebind new body to object
+		_function/push spec blk	fun/ctx null			;-- recreate function
+		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
+		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
 		
-		_context/bind blk ctx yes
-		_context/bind blk GET_CTX(fun) no
-		
-		more: more + 2
-		more/header: TYPE_UNSET			;-- invalidate compiled body
+		s: as series! fun/more/value
+		more: s/offset + 2
+		more/header: TYPE_UNSET							;-- invalidate compiled body
 	]
 	
 	make-at: func [
