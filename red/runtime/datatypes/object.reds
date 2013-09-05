@@ -125,6 +125,7 @@ object: context [
 		/local
 			s	 [series!]
 			more [red-value!]
+			blk  [red-block!]
 	][
 		s: as series! fun/more/value
 		more: s/offset
@@ -133,8 +134,12 @@ object: context [
 			print-line "*** Error: COPY stuck on missing function's body block"
 			halt
 		]
-		_context/bind as red-block! more ctx yes
-		_context/bind as red-block! more GET_CTX(fun) no
+		blk: block/clone as red-block! more yes
+		copy-cell as red-value! blk s/offset
+		blk: as red-block! s/offset
+		
+		_context/bind blk ctx yes
+		_context/bind blk GET_CTX(fun) no
 		
 		more: more + 2
 		more/header: TYPE_UNSET			;-- invalidate compiled body
