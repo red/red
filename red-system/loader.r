@@ -407,9 +407,9 @@ loader: make-profilable context [
 		if file? input [
 			if find input %/ [ 						;-- is there a path in the filename?
 				either encap? [
-					input: split-path input
-					append encap-fs/base input/1
-					raw: input/2
+					raw: split-path input
+					if encap-fs/base [append encap-fs/base raw/1]
+					raw: raw/2
 				][
 					input: push-system-path input
 				]
