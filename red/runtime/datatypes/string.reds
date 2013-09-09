@@ -693,7 +693,7 @@ string: context [
 						if curly <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
 						append-char GET_BUFFER(buffer) cp
 					]
-					#"^/" #"^"" [
+					#"^"" [
 						append-char GET_BUFFER(buffer) cp
 					]
 					#"^^" [
