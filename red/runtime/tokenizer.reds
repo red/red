@@ -196,12 +196,13 @@ tokenizer: context [
 			]
 			if c = #"}" [
 				count: count - 1
-				if e/2 <> null-byte [
-					e: e + 1
-					c: e/1
-				]
+				e: e + 1
+				c: e/1
 			]
 		]
+		e: e - 1
+		c: e/1
+		
 		if c <> #"}" [throw-error ERR_MULTI_STRING_DELIMIT]
 		saved: e/1										;@@ allocate a new buffer instead
 		e/1: null-byte
