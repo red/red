@@ -227,9 +227,11 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
-		;base-path: system/script/parent/path
-		base-path: system/options/path
-
+		base-path: either encap? [
+			system/options/home
+		][
+			system/script/parent/path
+		]
 		opts: make opts config
 		opts/config-name: config-name
 		opts/build-prefix: base-path
