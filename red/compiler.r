@@ -63,7 +63,7 @@ red: context [
 	
 	intrinsics:   [
 		if unless either any all while until loop repeat
-		foreach forall break halt func function does has
+		foreach forall break func function does has
 		exit return switch case routine set get reduce
 	]
 	
@@ -1153,11 +1153,6 @@ red: context [
 			natives/forall-end							;-- reset series
 			stack/unwind
 		]
-	]
-	
-	comp-halt: does [
-		emit 'halt
-		insert-lf -1
 	]
 	
 	comp-func-body: func [
