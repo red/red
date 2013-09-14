@@ -1529,12 +1529,13 @@ red: context [
 		]
 	]
 	
-	comp-reduce: has [list][
+	comp-reduce: has [list into?][
 		unless block? pc/1 [
+			into?: path? pc/-1
 			emit-open-frame 'reduce
 			comp-expression							;-- compile not-literal-block argument
-			if path? pc/-1 [comp-expression]		;-- optionally compile /into argument
-			emit-native/with 'reduce reduce [pick [1 -1] path? pc/-1]
+			if into? [comp-expression]				;-- optionally compile /into argument
+			emit-native/with 'reduce reduce [pick [1 -1] into?]
 			emit-close-frame
 			exit
 		]
