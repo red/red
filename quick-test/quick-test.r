@@ -37,6 +37,9 @@ qt: make object! [
   ;; set the version number
   version: system/script/header/version
   
+  ;; switch for binary compiler usage
+  binary?: false
+  
   ;; default binary compiler path
   bin-compiler: base-dir/build/bin/red
   
@@ -177,7 +180,7 @@ qt: make object! [
     ]
     
     ;; compose and write compilation script
-    either bin [
+    either binary? [
     	either lib [
     		cmd: join "" [to-local-file bin-compiler " -o " 
     					  to-local-file runnable-dir/:exe
@@ -191,8 +194,6 @@ qt: make object! [
     		]  		
     	]
     	comp-output: make string! 1024
-    	print cmd 
-    	halt
     	call/wait/output cmd comp-output
     ][
     	comp: mold compose/deep [
@@ -232,9 +233,10 @@ qt: make object! [
     ]    
   ]
   
-  compile-and-run: func [src /error /pgm /bin] [
+  compile-and-run: func [src /error /pgm] [
     source-file?: true
-    either exe: either bin [compile/bin src] [compile src] [
+    print ["src " src]
+    either exe: compile src [
       either error [
         run/error  exe
       ][
@@ -245,7 +247,6 @@ qt: make object! [
       	  ]
       ]
     ][
-      print type? exe
       compile-error src
       output: "Compilation failed"
     ]
@@ -302,15 +303,11 @@ qt: make object! [
     either find comp-output "output file size :" [true] [false]
   ] 
   
-  compile-run-print: func [src [file!] /error /bin][
+  compile-run-print: func [src [file!] /error][
   	  either error [
   	  	  compile-and-run/error src
   	  ][
-  	  	  either bin [
-  	  	  	  compile-and-run/bin src
-  	  	  ][
-  	  	  	  compile-and-run src
-  	  	  ]
+  	  	  compile-and-run src
     ]
     if output <> "Compilation failed" [print output]
   ]
@@ -395,7 +392,9 @@ qt: make object! [
     do script
   ]
   
-  run-script-quiet: func [src [file!]][
+  run-script-quiet: func [
+  	src [file!]
+  ][
     prin [ "running " find/last/tail src "/" #"^(0D)"]
     print: :_quiet-print
     print-output: copy ""
@@ -406,7 +405,9 @@ qt: make object! [
     _print-summary file
   ]
   
-  run-test-file: func [src [file!]][
+  run-test-file: func [
+  	src [file!]
+  ][
     file/reset
     file/title: find/last/tail to string! src "/"
     replace file/title "-test.reds" ""
@@ -414,7 +415,9 @@ qt: make object! [
     add-to-run-totals
   ]
   
-  run-test-file-quiet: func [src [file!]][
+  run-test-file-quiet: func [
+  	src [file!]
+  	][
     prin [ "running " find/last/tail src "/" #"^(0D)"]
     print: :_quiet-print
     print-output: copy ""
