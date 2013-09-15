@@ -54,7 +54,9 @@ start-time: now/precise
 run-all-script/auto-tests %../red/tests/
 run-all-script/auto-tests %../red-system/tests/
 do %../red/tests/source/units/make-interpreter-auto-test.r
+qt/script-header: "Red []"
 run-all-script %../red/tests/
+qt/script-header: "Red/System []"
 run-all-script %../red-system/tests/
 
 ***end-run-quiet***

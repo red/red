@@ -10,6 +10,7 @@ change-dir %../                   ;; revert to tests/ dir (from runnable)
 
   --test-- "int-literals-1"
   --compile-this {
+      Red/System [] 
       i: FFFFFFFFh
     }
   --assert qt/compile-ok?

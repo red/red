@@ -173,6 +173,7 @@ compiled?: func [
  
 	--test-- "cast function! error 1"
 	--compile-this {
+		Red/System []
 		foo: func [a [integer!]][]
 		b: as byte! :foo
 	}
@@ -180,6 +181,7 @@ compiled?: func [
 	
 	--test-- "cast function! error 2"
 	--compile-this {
+		Red/System []
 		foo: func [a [integer!]][]
 		l: as logic! :foo
 	}
@@ -187,6 +189,7 @@ compiled?: func [
 	
 	--test-- "cast function! error 3"
 	--compile-this {
+		Red/System [] 
 		foo: func [a [integer!]][]
 		s: as c-string! :foo
 	}
@@ -194,18 +197,21 @@ compiled?: func [
 	
 	--test-- "cast byte! error 4"
 	--compile-this {
+		Red/System [] 
 		cfe4-byte: as byte! 1.0
 	}
 	--assert-msg? "type casting from float! to byte! is not allowed"
 	
 	--test-- "cast byte! error 5"
 	--compile-this {
+		Red/System [] 
 		cfe5-byte: as byte! "a pointer"
 	}
 	--assert-msg? "type casting from c-string! to byte! is not allowed"
 	
 	--test-- "cast byte! error 6"
 	--compile-this {
+	  Red/System [] 
 	  cfe6-pointer: declare pointer! [integer!]
 		cfe6-byte: as byte! cfe6-pointer
 	}
@@ -213,36 +219,42 @@ compiled?: func [
 	
 	--test-- "cast float! error 7"
 	--compile-this {
+	  Red/System [] 
 	  cfe7-int: as integer! 1.0
 	}
 	--assert-msg? "type casting from float! to integer! is not allowed"
 	
-	;--test-- "cast float32! error 8"
-	;--compile-this {
-	;  cfe8-int: as integer! as float32! 1.0
-	;}
-	;--assert-msg? "type casting from float32! to integer! is not allowed"
+	--test-- "cast float32! error 8"
+	--compile-this {
+	  Red/System []
+	  cfe8-int: as integer! as float32! 1.0
+	}
+	--assert-msg? "type casting from float32! to integer! is not allowed"
 	
 	--test-- "cast float! error 9"
 	--compile-this {
+	  Red/System []
 	  cfe9-logic: as logic! 1.0
 	}
 	--assert-msg? "type casting from float! to logic! is not allowed"
 	
 	--test-- "cast float32! error 10"
 	--compile-this {
+	  Red/System []
 	  cfe10-logic: as logic! as float32! 1.0
 	}
 	--assert-msg? "type casting from float32! to logic! is not allowed"
 	
 	--test-- "cast byte! error 11"
 	--compile-this {
+	  	Red/System []
 		print as byte! "a pointer"
 	}
 	--assert-msg? "type casting from c-string! to byte! is not allowed"
 	
 	--test-- "cast byte! error 12"
 	--compile-this {
+	  Red/System []
 	  c11e6-pointer: declare pointer! [integer!]
 		print as byte! c11e6-pointer
 	}
@@ -250,16 +262,17 @@ compiled?: func [
 	
 	--test-- "cast byte! error 13"
 	--compile-this {
+	  Red/System []
 		print as byte! 1.0
 	}
 	--assert-msg? "type casting from float! to byte! is not allowed"
 	
 	--test-- "cast logic! error 14"
 	--compile-this {
+	  Red/System []
 		print as logic! 1.0
 	}
 	--assert-msg? "type casting from float! to logic! is not allowed"
 	      
 ~~~end-file~~~
-
 
