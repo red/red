@@ -785,7 +785,10 @@ system-dialect: make-profilable context [
 			][
 				name: decorate-function name
 			]
-			find functions name
+			any [
+				find functions name
+				find functions resolve-ns name
+			]
 		]
 
 		get-function-spec: func [name [word!] /local spec][
@@ -2199,25 +2202,22 @@ system-dialect: make-profilable context [
 		
 		comp-get-word: has [spec name ns symbol][
 			name: to word! pc/1
-			case [
-				all [spec: find functions name: resolve-ns name spec: spec/2][
-					unless find [native routine] spec/2 [
-						throw-error "get-word syntax only reserved for native functions for now"
-					]
-					if all [
-						symbol: last expr-call-stack
-						spec: find functions symbol
-						spec/2/2 = 'import				;-- only flag it when passed to external calls
-						spec/2/5 <> 'callback
-					][
-						append spec/2 'callback			;@@ force cdecl ????
-					]
+			comp-word/with/check name
+			
+			if all [
+				spec: find functions name: resolve-ns name
+				spec: spec/2
+			][
+				unless find [native routine] spec/2 [
+					throw-error "get-word syntax only reserved for native functions for now"
 				]
-				not	any [
-					local-variable? to word! pc/1
-					find globals name
+				if all [
+					symbol: last expr-call-stack
+					spec: find functions symbol
+					spec/2/2 = 'import					;-- only flag it when passed to external calls
+					spec/2/5 <> 'callback
 				][
-					throw-error "cannot get a pointer on an undefined identifier"
+					append spec/2 'callback				;@@ force cdecl ????
 				]
 			]
 			also to get-word! name pc: next pc
@@ -2284,6 +2284,7 @@ system-dialect: make-profilable context [
 			/path symbol [word!]
 			/with word [word!]
 			/root										;-- system/words/* pass-thru
+			/check										;-- check word validity, do not consume input
 			/local entry name local? spec type
 		][
 			name: pc/1
@@ -2303,7 +2304,7 @@ system-dialect: make-profilable context [
 					entry: select keywords name			;-- it's a reserved word
 				][
 					if find calling-keywords name [push-call pc/1]
-					do entry
+					unless check [do entry]
 				]
 				any [
 					all [
@@ -2325,12 +2326,12 @@ system-dialect: make-profilable context [
 						throw-error ["local variable" name "used before being initialized!"]
 					]
 					last-type: resolve-type name
-					also name pc: next pc
+					unless check [also name pc: next pc]
 				]
 				type: enum-type? name [
 					last-type: type
 					if verbose >= 3 [print ["ENUMERATOR" name "=" last-type]]
-					also name pc: next pc
+					unless check [also name pc: next pc]
 				]
 				all [
 					not path
@@ -2343,7 +2344,7 @@ system-dialect: make-profilable context [
 					][
 						throw-error "infix functions cannot be called using a path"
 					]
-					comp-func-args name entry
+					unless check [comp-func-args name entry]
 				]
 				'else [throw-error ["undefined symbol:" mold name]]
 			]
