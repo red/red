@@ -364,10 +364,13 @@ system-dialect: make-profilable context [
 			spec
 		]
 		
-		get-return-type: func [name [word!] /local type spec][
+		get-return-type: func [name [word!] /check /local type spec][
 			unless all [
 				spec: find-functions name
-				type: select spec/2/4 return-def
+				any [
+					type: select spec/2/4 return-def
+					check
+				]
 			][
 				backtrack name
 				throw-error ["return type missing in function:" name]
@@ -2629,14 +2632,15 @@ system-dialect: make-profilable context [
 			
 			if all [									;-- clean FPU stack when required
 				not any [keep? variable]
-				any-float? last-type
 				block? expr
+				word? expr/1
+				any-float? get-return-type/check expr/1
 				any [
 					not find functions/(expr/1)/4 return-def	;-- clean if no return value
 					1 = length? expr-call-stack					;-- or if return value not used
 				]
-			][			
-				emitter/target/emit-float-trash-last	;-- avoid leaving a FPU slot occupied,
+			][
+				emitter/target/emit-float-trash-last	;-- avoid leaving a x86 FPU slot occupied,
 			]											;-- if return value is not used.
 			
 			;-- storing result if assignement required
