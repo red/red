@@ -410,6 +410,7 @@ loader: make-profilable context [
 					raw: split-path input
 					if encap-fs/base [append encap-fs/base raw/1]
 					raw: raw/2
+					push-system-path input
 				][
 					input: push-system-path input
 				]
