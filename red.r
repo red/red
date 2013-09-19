@@ -336,5 +336,5 @@ redc: context [
 	]
 
 	fail-try "Driver" [main]
-	quit/return 0
+	if encap? [quit/return 0]
 ]
