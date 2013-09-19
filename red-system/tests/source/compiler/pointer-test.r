@@ -15,6 +15,7 @@ change-dir %../
 
 	--test-- "pointer error 1"
 	--compile-this {
+	    Red/System [] 
 	    f: func [
 	      [typed]
 	      count           [integer!]
@@ -30,6 +31,7 @@ change-dir %../
 	
 	--test-- "pointer error 2"
 	--compile-this {
+	    Red/System [] 
 	    pi: declare pointer! [integer!]
 	    pi: :i
 	  }

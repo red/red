@@ -31,8 +31,21 @@ run-all-script: func [
   ]
 ]
 
-;; should we run non-interactively?
-batch-mode: all [system/options/args find system/options/args "--batch"]
+batch-mode: false
+if system/options/args  [
+	;; should we run non-interactively?
+	batch-mode: find system/options/args "--batch"
+
+	;; should we use the binary compiler?
+	args: parse system/script/args " "
+	if find system/script/args "--binary" [
+		qt/binary?: true]
+		;; did the user supply a path to the binary?
+		all [
+			temp: select args "--binary"
+			qt/bin-compiler: temp
+		]
+]
 
 ;; supress script messages
 store-quiet-mode: system/options/quiet
@@ -54,7 +67,9 @@ start-time: now/precise
 run-all-script/auto-tests %../red/tests/
 run-all-script/auto-tests %../red-system/tests/
 do %../red/tests/source/units/make-interpreter-auto-test.r
+qt/script-header: "Red []"
 run-all-script %../red/tests/
+qt/script-header: "Red/System []"
 run-all-script %../red-system/tests/
 
 ***end-run-quiet***

@@ -17,6 +17,7 @@ change-dir %../
 
 	--test-- "simple callback 1"
 		--compile-this {
+			Red/System []
 			#import [
 				"foo.dll" cdecl [
 					foo: "foo" [
@@ -46,6 +47,7 @@ change-dir %../
 
 	--test-- "inference error 1"
 		--compile-this {
+			Red/System []
 			#import [
 				"foo.dll" cdecl [
 					foo: "foo" [
@@ -70,6 +72,7 @@ change-dir %../
 		
 	--test-- "inference error 2"
 		--compile-this {
+			Red/System []
 			#import [
 				"foo.dll" cdecl [
 					foo: "foo" [

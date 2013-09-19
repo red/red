@@ -10,6 +10,7 @@ change-dir %../                   ;; revert to tests/ dir (from runnable)
 
   --test-- "sample compilation error test"
   --compile-this {
+	  Red/System []
       i := 1;
     }
   --assert parse qt/comp-output [
@@ -23,6 +24,7 @@ change-dir %../                   ;; revert to tests/ dir (from runnable)
 
  --test-- "error line reporting test"
   --compile-this {
+	  Red/System []
       foo: func [][
       	if true [
       		either true [

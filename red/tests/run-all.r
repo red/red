@@ -2,7 +2,7 @@ REBOL [
 	Title:   "Builds and Runs the Red Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.4.0
+	Version: 0.5.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -15,6 +15,9 @@ system/options/quiet: true
 
 do %../../quick-test/quick-test.r
 qt/tests-dir: system/script/path
+
+;; set the default script header
+qt/script-header: "Red []"
 
 ;; make auto files if needed
 ;; do not split these statements over two lines
@@ -51,73 +54,73 @@ start-time: now/precise
 ===end-group===
 
 ===start-group=== "Red Units tests"
-  	--run-test-file-quiet-red %source/units/logic-test.red
-  	--run-test-file-quiet-red %source/units/conditional-test.red
-  	--run-test-file-quiet-red %source/units/series-test.red
-  	--run-test-file-quiet-red %source/units/path-test.red
-  	--run-test-file-quiet-red %source/units/serialization-test.red
-  	--run-test-file-quiet-red %source/units/function-test.red
-  	--run-test-file-quiet-red %source/units/loop-test.red
-  	--run-test-file-quiet-red %source/units/type-test.red
-  	--run-test-file-quiet-red %source/units/find-test.red
-  	--run-test-file-quiet-red %source/units/select-test.red
-  	--run-test-file-quiet-red %source/units/binding-test.red
-  	--run-test-file-quiet-red %source/units/evaluation-test.red
-  	--run-test-file-quiet-red %source/units/load-test.red
-  	--run-test-file-quiet-red %source/units/switch-test.red
-  	--run-test-file-quiet-red %source/units/case-test.red
-  	--run-test-file-quiet-red %source/units/routine-test.red
-  	--run-test-file-quiet-red %source/units/append-test.red
-  	--run-test-file-quiet-red %source/units/insert-test.red
-  	--run-test-file-quiet-red %source/units/make-test.red
-  	--run-test-file-quiet-red %source/units/system-test.red
+  	--run-test-file-quiet %source/units/logic-test.red
+  	--run-test-file-quiet %source/units/conditional-test.red
+  	--run-test-file-quiet %source/units/series-test.red
+  	--run-test-file-quiet %source/units/path-test.red
+  	--run-test-file-quiet %source/units/serialization-test.red
+  	--run-test-file-quiet %source/units/function-test.red
+  	--run-test-file-quiet %source/units/loop-test.red
+  	--run-test-file-quiet %source/units/type-test.red
+  	--run-test-file-quiet %source/units/find-test.red
+  	--run-test-file-quiet %source/units/select-test.red
+  	--run-test-file-quiet %source/units/binding-test.red
+  	--run-test-file-quiet %source/units/evaluation-test.red
+  	--run-test-file-quiet %source/units/load-test.red
+  	--run-test-file-quiet %source/units/switch-test.red
+  	--run-test-file-quiet %source/units/case-test.red
+  	--run-test-file-quiet %source/units/routine-test.red
+  	--run-test-file-quiet %source/units/append-test.red
+  	--run-test-file-quiet %source/units/insert-test.red
+  	--run-test-file-quiet %source/units/make-test.red
+  	--run-test-file-quiet %source/units/system-test.red
 ===end-group===
 
 ===start-group=== "Auto-tests"
-  	--run-test-file-quiet-red %source/units/auto-tests/integer-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/infix-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/infix-not-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/not-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/infix-lesser-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/lesser-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/infix-lesser-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/lesser-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/infix-greater-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/greater-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/infix-greater-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/greater-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/integer-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/infix-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/infix-not-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/not-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/infix-lesser-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/lesser-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/infix-lesser-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/lesser-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/infix-greater-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/greater-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/infix-greater-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/greater-equal-auto-test.red
 ===end-group===
 
 ===start-group=== "Interpreter Auto-tests"
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-binding-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-case-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-conditional-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-evaluation-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-find-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-function-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-load-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-logic-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-loop-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-select-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-serialization-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-series-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-type-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-switch-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-append-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-insert-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interpreter-system-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-greater-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-inf-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-inf-greater-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-inf-lesser-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-inf-lesser-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-inf-not-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-integer-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-lesser-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-lesser-equal-auto-test.red
-  	--run-test-file-quiet-red %source/units/auto-tests/interp-not-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-binding-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-case-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-conditional-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-evaluation-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-find-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-function-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-load-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-logic-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-loop-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-select-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-serialization-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-series-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-type-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-switch-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-append-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-insert-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interpreter-system-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-greater-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-inf-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-inf-greater-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-inf-lesser-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-inf-lesser-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-inf-not-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-integer-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-lesser-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-lesser-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-not-equal-auto-test.red
 ===end-group===
 
 ***end-run-quiet***

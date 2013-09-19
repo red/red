@@ -16,6 +16,9 @@ system/options/quiet: true
 do %../../quick-test/quick-test.r
 qt/tests-dir: system/script/path
 
+;; set the default script header
+qt/script-header: "Red/System []"
+
 ;; make auto files if needed
 ;; do not split these statements over two lines
 qt/make-if-needed? %source/units/auto-tests/byte-auto-test.reds %source/units/make-byte-auto-test.r                 

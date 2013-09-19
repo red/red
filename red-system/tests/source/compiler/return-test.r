@@ -12,23 +12,23 @@ change-dir %../
 ~~~start-file~~~ "return-err"
 
   --test-- "return as last statement in until block"
-	--compile-this "until [return]"
+	--compile-this "Red/System [] until [return]"
 	--assert-msg? "*** Compilation Error: return is not allowed outside of a function"
 	--clean
 	
-	--compile-this "foo: func [][until [return]]"
+	--compile-this "Red/System [] foo: func [][until [return]]"
 	--assert-msg? "*** Compilation Error: RETURN keyword used without return: declaration in foo"
 	--clean
 	
-	--compile-this "foo: func [return: [integer!]][until [return]]"
+	--compile-this "Red/System [] foo: func [return: [integer!]][until [return]]"
 	--assert-msg? "*** Compilation Error: missing argument"
 	--clean
 	
-	--compile-this "foo: func [return: [integer!]][until [return true]]"
+	--compile-this "Red/System [] foo: func [return: [integer!]][until [return true]]"
 	--assert-msg? "*** Compilation Error: wrong return type in function: foo"
 	--clean
 	
-	--compile-this "foo: func [return: [integer!]][until [return 123]]"
+	--compile-this "Red/System [] foo: func [return: [integer!]][until [return 123]]"
 	--assert-msg? "*** Compilation Error: UNTIL requires a conditional expression"
 	--clean
 	
