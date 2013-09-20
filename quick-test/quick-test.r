@@ -70,7 +70,9 @@ qt: make object! [
 		set 'call :win-call
 	]
 	
-	;; script header parse rule - assumes parsing without /all
+	;; script header parse rules - assumes parsing without /all
+	red?: false
+	red-header-rule: [any [["red" any " " "[" thru end] (red?: true )| skip]]
 	script-header-rule: [
 		(no-script-header?: true) 
 		any [ 
@@ -158,6 +160,7 @@ qt: make object! [
   	  		exe								;; executable name
   ][
     clear comp-output
+    
     ;; workout executable name
     either find/last/tail src "/" [
       exe: copy find/last/tail src "/"
@@ -179,6 +182,13 @@ qt: make object! [
       ]
     ]
     
+    ;; find the path to the src
+    if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
+    
+    ;; red/system or red
+    red?: false
+    parse read src red-header-rule
+
     ;; compose and write compilation script
     either binary? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
@@ -211,7 +221,6 @@ qt: make object! [
     		replace comp "###lib###" ""
     	]
     
-    	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     	replace comp "***src***"  clean-path src
     	write comp-r comp
 
@@ -334,6 +343,7 @@ qt: make object! [
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
+    if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
     if all [
       source-file?
       not pgm
