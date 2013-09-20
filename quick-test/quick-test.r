@@ -72,7 +72,7 @@ qt: make object! [
 	
 	;; script header parse rules - assumes parsing without /all
 	red?: false
-	red-header-rule: [any [["red" any " " "[" thru end] (red?: true )| skip]]
+	red-header-rule: [any ["red" any " " "[" (red?: true ) thru end | skip]]
 	script-header-rule: [
 		(no-script-header?: true) 
 		any [ 
