@@ -181,16 +181,17 @@ qt: make object! [
     
     ;; compose and write compilation script
     either binary? [
+    	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     	either lib [
     		cmd: join "" [to-local-file bin-compiler " -o " 
     					  to-local-file runnable-dir/:exe
     					  " -dlib -t " target
-    					  to-local-file tests-dir/:src
+    					  to-local-file src
     		]
     	][
     		cmd: join "" [to-local-file bin-compiler " -o " 
     					  to-local-file runnable-dir/:exe " "
-    					  to-local-file tests-dir/:src	
+    					  to-local-file src	
     		]  		
     	]
     	comp-output: make string! 1024
@@ -235,7 +236,6 @@ qt: make object! [
   
   compile-and-run: func [src /error /pgm] [
     source-file?: true
-    print ["src " src]
     either exe: compile src [
       either error [
         run/error  exe

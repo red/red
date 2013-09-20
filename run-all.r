@@ -32,6 +32,7 @@ run-all-script: func [
 ]
 
 batch-mode: false
+binary?: false
 if system/options/args  [
 	;; should we run non-interactively?
 	batch-mode: find system/options/args "--batch"
@@ -39,12 +40,10 @@ if system/options/args  [
 	;; should we use the binary compiler?
 	args: parse system/script/args " "
 	if find system/script/args "--binary" [
-		qt/binary?: true]
-		;; did the user supply a path to the binary?
-		all [
-			temp: select args "--binary"
-			qt/bin-compiler: temp
-		]
+		binary?: true
+		bin-compiler: select args "--binary"
+		if bin-compiler = "--batch" [bin-compiler: none]
+	]
 ]
 
 ;; supress script messages
@@ -55,6 +54,10 @@ store-current-dir: what-dir
 change-dir %quick-test/
 
 do %quick-test.r
+if binary? [
+	qt/binary?: binary?
+	if bin-compiler [qt/bin-compiler: bin-compiler]
+]
 
 ;; run the tests
 print rejoin ["Quick-Test v" qt/version]
