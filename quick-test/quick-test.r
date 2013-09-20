@@ -288,6 +288,7 @@ qt: make object! [
     	insert src join script-header "^/"
     ]
     write test-src-file src
+    print ["test-src-file" test-src-file]
     compile test-src-file                  ;; returns path to executable or none
   ]
   
@@ -389,6 +390,7 @@ qt: make object! [
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
+    print ["script" script]
     do script
   ]
   
