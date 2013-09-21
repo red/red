@@ -72,7 +72,9 @@ qt: make object! [
 	
 	;; script header parse rules - assumes parsing without /all
 	red?: false
-	red-header-rule: [any [["red" any " " "[" thru end] (red?: true )| skip]]
+	red-header: ["red" any " " "[" to end (red?: true)]
+	red-system-header: ["red/system" any " " "[" to end (red?: false)]
+	red?-rule: [(red?: false) any [red-system-header | red-header | skip]]
 	script-header-rule: [
 		(no-script-header?: true) 
 		any [ 
@@ -187,7 +189,7 @@ qt: make object! [
     
     ;; red/system or red
     red?: false
-    parse read src red-header-rule
+    parse read src red?-rule
 
     ;; compose and write compilation script
     either binary? [
@@ -297,7 +299,6 @@ qt: make object! [
     	insert src join script-header "^/"
     ]
     write test-src-file src
-    print ["test-src-file" test-src-file]
     compile test-src-file                  ;; returns path to executable or none
   ]
   
