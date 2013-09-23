@@ -74,6 +74,13 @@ Red [
 		foo10: func [][1]
 		--assert 1 = foo10 "dummy"						;-- make it crash if wrong function referenced
 	
+	--test-- "fun-11"
+		non-evaluated: func ['param] [param]
+		res: first [(1 + 2)]
+		--assert quote (1 + 2) = res
+		--assert non-evaluated (quote (1 + 2)) = res
+		--assert non-evaluated quote (1 + 2) = 3
+
 ===end-group===
 
 ===start-group=== "Alternate constructor tests"

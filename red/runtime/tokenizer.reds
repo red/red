@@ -183,7 +183,7 @@ tokenizer: context [
 			saved [byte!]
 			count [integer!]
 	][
-		s: s + 1										;-- skip first double quote
+		s: s + 1										;-- skip opening brace
 		e: s
 		c: e/1
 		count: 1
@@ -194,8 +194,15 @@ tokenizer: context [
 				e: e + either c = #"^^" [2][1]
 				c: e/1
 			]
-			if c = #"}" [count: count - 1]
+			if c = #"}" [
+				count: count - 1
+				e: e + 1
+				c: e/1
+			]
 		]
+		e: e - 1
+		c: e/1
+		
 		if c <> #"}" [throw-error ERR_MULTI_STRING_DELIMIT]
 		saved: e/1										;@@ allocate a new buffer instead
 		e/1: null-byte

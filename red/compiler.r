@@ -63,7 +63,7 @@ red: context [
 	
 	intrinsics:   [
 		if unless either any all while until loop repeat
-		foreach forall break halt func function does has
+		foreach forall break func function does has
 		exit return switch case routine set get reduce
 	]
 	
@@ -1155,11 +1155,6 @@ red: context [
 		]
 	]
 	
-	comp-halt: does [
-		emit 'halt
-		insert-lf -1
-	]
-	
 	comp-func-body: func [
 		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
 		/local init locals ctx-values
@@ -1534,12 +1529,13 @@ red: context [
 		]
 	]
 	
-	comp-reduce: has [list][
+	comp-reduce: has [list into?][
 		unless block? pc/1 [
+			into?: path? pc/-1
 			emit-open-frame 'reduce
 			comp-expression							;-- compile not-literal-block argument
-			if path? pc/-1 [comp-expression]		;-- optionally compile /into argument
-			emit-native/with 'reduce reduce [pick [1 -1] path? pc/-1]
+			if into? [comp-expression]				;-- optionally compile /into argument
+			emit-native/with 'reduce reduce [pick [1 -1] into?]
 			emit-close-frame
 			exit
 		]
@@ -1596,12 +1592,13 @@ red: context [
 		]
 	]
 	
-	comp-get: does [
+	comp-get: has [symbol][
 		either lit-word? pc/1 [
+			add-symbol symbol: to word! pc/1
 			either path? pc/-1 [						;@@ add check for validaty of refinements		
-				emit-get-word/any? to word! pc/1
+				emit-get-word/any? symbol
 			][
-				emit-get-word to word! pc/1
+				emit-get-word symbol
 			]
 			pc: next pc
 		][
@@ -1684,21 +1681,26 @@ red: context [
 			]
 			switch type?/word spec/1 [
 				lit-word! [
-					add-symbol word: to word! pc/1
-					
 					switch/default type?/word pc/1 [
 						get-word! [
+							add-symbol to word! pc/1
 							comp-expression
 						]
 						lit-word! [
+							add-symbol word: to word! pc/1
 							emit 'lit-word/push
 							emit decorate-symbol word
 							insert-lf -2
 							pc: next pc
 						]
+						word! [
+							add-symbol word: to word! pc/1
+							emit-push-word word				;@@ add specific type checking
+							pc: next pc
+						]
+						paren! [comp-expression]
 					][
-						emit-push-word word				;@@ add specific type checking
-						pc: next pc
+						comp-literal no
 					]
 				]
 				get-word! [comp-literal no]
