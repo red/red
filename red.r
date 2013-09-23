@@ -159,10 +159,13 @@ redc: context [
 		
 		unless exists? temp-dir [make-dir temp-dir]
 		
-		unless exists? exe [
+		if any [
+			not exists? exe 
+			(modified? exe) < modified? system/options/boot	;-- check that console is up to date.
+		][
 			write script read-cache %red/tests/console.red
 
-			opts: make system-dialect/options-class [
+			opts: make system-dialect/options-class [		;-- minimal set of compilation options
 				link?: yes
 				unicode?: yes
 				config-name: to word! default-target
