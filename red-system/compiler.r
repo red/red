@@ -2203,11 +2203,11 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-get-word: has [spec name ns symbol][
-			name: to word! pc/1
+			name: resolve-ns to word! pc/1
 			comp-word/with/check name
 			
 			if all [
-				spec: find functions name: resolve-ns name
+				spec: find functions name
 				spec: spec/2
 			][
 				unless find [native routine] spec/2 [
