@@ -146,7 +146,10 @@ redc: context [
 	]
 	
 	safe-to-local-file: func [file [file!]][
-		if find file: to-local-file file #" " [
+		if all [
+			find file: to-local-file file #" "
+			Windows?
+		][
 			file: rejoin [{"} file {"}]					;-- avoid issues with blanks in path
 		]
 		file

@@ -83,7 +83,10 @@ simple-io: context [
 					bytes		[integer!]
 					return:		[integer!]
 				]
-				_stat:	"stat" [
+				;--- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
+				
+				_stat:	"__xstat" [
+					version		[integer!]
 					filename	[c-string!]
 					restrict	[stat!]
 					return:		[integer!]
@@ -131,7 +134,7 @@ simple-io: context [
 			GetFileSize file null
 		][
 			s: declare stat!
-			_stat filename s
+			_stat 3 filename s
 			s/st_size
 		]
 	]
