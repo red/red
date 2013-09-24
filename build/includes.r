@@ -31,6 +31,7 @@ write %build/bin/sources.r set-cache [
 			%tokenizer.reds
 			%tools.reds
 			%unicode.reds
+			%simple-io.reds
 			%datatypes/ [
 				%action.reds
 				%block.reds

@@ -152,7 +152,7 @@ redc: context [
 		file
 	]
 	
-	run-console: has [opts result script exe][
+	run-console: func [/with file [string!] /local opts result script exe][
 		script: temp-dir/red-console.red
 		exe: temp-dir/console
 		if Windows? [append exe %.exe]
@@ -185,7 +185,7 @@ redc: context [
 				quit/return 1
 			]
 		]
-		
+		if with [repend exe [#" " file]]
 		sys-call safe-to-local-file exe					;-- replace the buggy CALL native
 		quit/return 0
 	]
@@ -267,6 +267,10 @@ redc: context [
 			][
 				fail "No source files specified."
 			]
+		]
+		
+		if all [encap? none? output none? type][
+			run-console/with filename
 		]
 		
 		forall srcs [
