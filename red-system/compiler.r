@@ -3001,10 +3001,11 @@ system-dialect: make-profilable context [
 		]
  		compiler/run/runtime job loader/process/own script script
  		
- 		set-cache-base %./
- 		compiler/run/runtime job loader/process red/sys-global %***sys-global.reds
-		
  		if red? [
+ 			unless empty? red/sys-global [
+				set-cache-base %./
+				compiler/run/runtime job loader/process red/sys-global %***sys-global.reds
+ 			]
  			set-cache-base %red/runtime/
  			script: pick [%red.reds %../red/runtime/red.reds] encap?
  			compiler/run/runtime job loader/process/own script script
