@@ -51,12 +51,45 @@ simple-io: context [
 			]
 		]
 	][
+		#define O_RDONLY	0
+		
+		stat!: alias struct! [
+			st_dev		[integer!]
+			st_ino		[integer!]
+			st_mode		[integer!]
+			st_nlink	[integer!]
+			st_uid		[integer!]
+			st_gid		[integer!]
+			st_rdev		[integer!]
+			st_size		[integer!]
+			st_blksize	[integer!]
+			st_blocks	[integer!]
+			st_atime	[integer!]
+			st_mtime	[integer!]
+			st_ctime	[integer!]
+		]
+		
 		#import [
 			LIBC-file cdecl [
 				_open:	"open" [
 					filename	[c-string!]
 					flags		[integer!]
 					mode		[integer!]
+					return:		[integer!]
+				]
+				_read:	"read" [
+					file		[integer!]
+					buffer		[byte-ptr!]
+					bytes		[integer!]
+					return:		[integer!]
+				]
+				_stat:	"stat" [
+					filename	[c-string!]
+					restrict	[stat!]
+					return:		[integer!]
+				]
+				_close:	"close" [
+					file		[integer!]
 					return:		[integer!]
 				]
 			]
@@ -79,7 +112,7 @@ simple-io: context [
 				FILE_ATTRIBUTE_NORMAL
 				null
 		][
-			
+			file: _open filename O_RDONLY 0
 		]
 		if file = -1 [
 			print-line "*** Error: File not found"
@@ -89,13 +122,17 @@ simple-io: context [
 	]
 	
 	file-size?: func [
-		file	[integer!]
-		return:	[integer!]
+		file	 [integer!]
+		filename [c-string!]
+		return:	 [integer!]
+		/local s
 	][
 		#either OS = 'Windows [
 			GetFileSize file null
 		][
-		
+			s: declare stat!
+			_stat filename s
+			s/st_size
 		]
 	]
 	
@@ -107,19 +144,21 @@ simple-io: context [
 		/local
 			read-sz [integer!]
 			res		[integer!]
+			error?	[logic!]
 	][
 		#either OS = 'Windows [
 			read-sz: -1
 			res: ReadFile file buffer size :read-sz null
-			
-			if any [zero? res read-sz <> size][
-				print-line "*** Error: cannot read file"
-				quit -3
-			]
-			res
+			error?: any [zero? res read-sz <> size]
 		][
-
+			res: _read file buffer size
+			error?: res <= 0
 		]
+		if error? [
+			print-line "*** Error: cannot read file"
+			quit -3
+		]
+		res
 	]
 	
 	close-file: func [
@@ -129,7 +168,7 @@ simple-io: context [
 		#either OS = 'Windows [
 			CloseHandle file
 		][
-
+			_close file
 		]
 	]
 	
@@ -143,7 +182,7 @@ simple-io: context [
 			str		[red-string!]
 	][
 		file: open-file filename
-		size: file-size? file
+		size: file-size? file filename
 		if size <= 0 [
 			print-line "*** Error: empty file"
 			quit -2
