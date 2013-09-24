@@ -2072,7 +2072,9 @@ red: context [
 					throw-error "#system-global requires a block argument"
 				]
 				process-include-paths pc/2
-				append sys-global copy/deep [Red/System []]
+				unless sys-global/1 = 'Red/System [
+					append sys-global copy/deep [Red/System []]
+				]
 				append sys-global pc/2
 				pc: skip pc 2
 				true
