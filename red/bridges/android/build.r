@@ -90,7 +90,7 @@ foreach job opts [
 	set [target dst-dir] job
 	do/args %../../../red.r reform [
 		"-t " target " -dlib" prj-src-dir/eval.red
-		"-o " rejoin [%../red/bridges/android/ bin-dir/lib/:dst-dir "/libRed"]
+		"-o " join bin-dir/lib/:dst-dir "/libRed"
 	]
 ]
 ;---
