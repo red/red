@@ -119,6 +119,7 @@ red: context [
 		parse code rule: [
 			some [
 				#include file: (
+					script-path: any [script-path main-path]
 					if all [script-path relative-path? file/1][
 						file/1: clean-path join script-path file/1
 					]
