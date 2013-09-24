@@ -1480,7 +1480,9 @@ system-dialect: make-profilable context [
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose [set-verbose-level pc/2 pc: skip pc 2]
 				#script	 [								;-- internal compiler directive
-					compiler/script: secure-clean-path pc/2	;-- set the origin of following code
+					unless pc/2 = 'in-memory [
+						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
+					]
 					pc: skip pc 2
 				]
 			][
@@ -2998,6 +3000,10 @@ system-dialect: make-profilable context [
 			secure-clean-path runtime-path/common.reds
 		]
  		compiler/run/runtime job loader/process/own script script
+ 		
+ 		set-cache-base %./
+ 		compiler/run/runtime job loader/process red/sys-global %***sys-global.reds
+		
  		if red? [
  			set-cache-base %red/runtime/
  			script: pick [%red.reds %../red/runtime/red.reds] encap?

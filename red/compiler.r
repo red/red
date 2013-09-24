@@ -2071,6 +2071,7 @@ red: context [
 					throw-error "#system-global requires a block argument"
 				]
 				process-include-paths pc/2
+				append sys-global copy/deep [Red/System []]
 				append sys-global pc/2
 				pc: skip pc 2
 				true
@@ -2318,8 +2319,6 @@ red: context [
 		
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
-			insert at out 3 sys-global
-			new-line at out 3 yes
 		]
 		
 		pos: third pick tail out -4
@@ -2374,8 +2373,6 @@ red: context [
 		
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
-			insert at out 3 sys-global
-			new-line at out 3 yes
 		]
 
 		change/only find last out <script> script		;-- inject compilation result in template
