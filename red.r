@@ -194,14 +194,14 @@ redc: context [
 	]
 
 	parse-options: has [
-		args srcs opts output target verbose filename config config-name base-path type
+		args src opts output target verbose filename config config-name base-path type
 		mode
 	] [
-		args: any [system/options/args parse any [system/script/args ""] none]
-
+		args: any [
+			system/options/args
+			parse any [system/script/args ""] none
+		]
 		target: default-target
-
-		srcs: copy []
 		opts: make system-dialect/options-class [link?: yes]
 
 		parse args [
@@ -216,7 +216,7 @@ redc: context [
 				| "--red-only"				(opts/red-only?: yes)
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
 				;| ["-slib" | "--static-lib"] (type 'lib)
-				| set filename skip (append srcs load-filename filename)
+				| set filename skip (src: load-filename filename)
 			]
 		]
 		
@@ -264,7 +264,7 @@ redc: context [
 		]
 		
 		;; Process input sources.
-		if empty? srcs [
+		unless src [
 			either encap? [
 				run-console
 			][
@@ -276,22 +276,20 @@ redc: context [
 			run-console/with filename
 		]
 		
-		forall srcs [
-			if slash <> first srcs/1 [								;-- if relative path
-				srcs/1: clean-path join base-path srcs/1			;-- add working dir path
-			]
-			unless exists? srcs/1 [
-				fail ["Cannot access source file:" srcs/1]
-			]
+		if slash <> first src [							;-- if relative path
+			src: clean-path join base-path src			;-- add working dir path
+		]
+		unless exists? src [
+			fail ["Cannot access source file:" src]
 		]
 
-		reduce [srcs opts]
+		reduce [src opts]
 	]
 
-	main: has [srcs opts build-dir result saved rs? prefix] [
-		set [srcs opts] parse-options
+	main: has [src opts build-dir result saved rs? prefix] [
+		set [src opts] parse-options
 		
-		rs?: red-system? srcs/1
+		rs?: red-system? src
 
 		;; If we use a build directory, ensure it exists.
 		if all [prefix: opts/build-prefix find prefix %/] [
@@ -304,14 +302,14 @@ redc: context [
 		print [
 			newline
 			"-=== Red Compiler" read-cache %version.r "===-" newline newline
-			"Compiling" srcs "..."
+			"Compiling" src "..."
 		]
 		
 		unless rs? [
 	;--- 1st pass: Red compiler ---
 			
 			fail-try "Red Compiler" [
-				result: red/compile srcs/1 opts
+				result: red/compile src opts
 			]
 			print ["...compilation time:" tab round result/2/second * 1000 "ms"]
 			if opts/red-only? [exit]
@@ -326,11 +324,11 @@ redc: context [
 		fail-try "Red/System Compiler" [
 			unless encap? [change-dir %red-system/]
 			result: either rs? [
-				system-dialect/compile/options srcs opts
+				system-dialect/compile/options src opts
 			][
 				opts/unicode?: yes							;-- force Red/System to use Red's Unicode API
 				opts/verbosity: max 0 opts/verbosity - 3	;-- Red/System verbosity levels upped by 3
-				system-dialect/compile/options/loaded srcs opts result/1
+				system-dialect/compile/options/loaded src opts result/1
 			]
 			unless encap? [change-dir %../]
 		]
