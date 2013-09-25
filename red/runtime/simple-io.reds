@@ -78,14 +78,16 @@ simple-io: context [
 			stat!: alias struct! [
 				st_dev		[integer!]
 				st_ino		[integer!]
-				st_mode		[integer!]
-				st_nlink	[integer!]
+				st_modelink	[integer!]					;-- st_mode & st_link are both 16bit fields
 				st_uid		[integer!]
 				st_gid		[integer!]
 				st_rdev		[integer!]
-				st_atime	[integer!]					;-- struct timespec
-				st_mtime	[integer!]					;-- struct timespec
-				st_ctime	[integer!]					;-- struct timespec
+				atv_sec		[integer!]					;-- struct timespec inlined
+				atv_msec	[integer!]
+				mtv_sec		[integer!]					;-- struct timespec inlined
+				mtv_msec	[integer!]
+				ctv_sec		[integer!]					;-- struct timespec inlined
+				ctv_msec	[integer!]
 				st_size		[integer!]
 				st_blocks	[integer!]
 				st_blksize	[integer!]
@@ -95,8 +97,8 @@ simple-io: context [
 			#import [
 				LIBC-file cdecl [
 					;--- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
-					_stat:	"stat" [
-						filename	[c-string!]
+					_stat:	"fstat" [
+						file		[integer!]
 						restrict	[stat!]
 						return:		[integer!]
 					]
@@ -169,7 +171,7 @@ simple-io: context [
 			]
 			MacOSX [
 				s: declare stat!
-				_stat filename s
+				_stat file s
 				s/st_size
 			]
 			#default [
