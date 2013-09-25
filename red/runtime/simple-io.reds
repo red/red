@@ -166,6 +166,7 @@ simple-io: context [
 		#switch OS [
 			Windows [
 				GetFileSize file null
+			]
 			MacOSX [
 				s: declare stat!
 				_stat filename s
