@@ -206,7 +206,8 @@ redc: context [
 
 		parse args [
 			any [
-				  ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
+				  ["-c"	| "--compile"]		(type: 'exe)
+				| ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
 				| ["-d" | "--debug" | "--debug-stabs"]	(opts/debug?: yes)
 				| ["-o" | "--output"]  		set output skip
 				| ["-t" | "--target"]  		set target skip
@@ -216,8 +217,8 @@ redc: context [
 				| "--red-only"				(opts/red-only?: yes)
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
 				;| ["-slib" | "--static-lib"] (type 'lib)
-				| set filename skip (src: load-filename filename)
 			]
+			set filename skip (src: load-filename filename)
 		]
 		
 		if mode [
@@ -261,6 +262,14 @@ redc: context [
 		if type = 'dll [
 			opts/type: type
 			if opts/OS <> 'Windows [opts/PIC?: yes]
+		]
+		
+		;; Check options combination syntax
+		if all [any [type output] none? src][			;-- -c | -o | -dlib + filename
+			fail "Source file is missing"
+		]
+		if all [output output/1 = #"-"][				;-- -o (not followed by option)
+			fail "Missing output file or path"
 		]
 		
 		;; Process input sources.
