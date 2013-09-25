@@ -123,9 +123,9 @@ simple-io: context [
 			#import [
 				LIBC-file cdecl [
 					;--- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
-					_stat:	"__xstat" [
+					_stat:	"__fxstat" [
 						version		[integer!]
-						filename	[c-string!]
+						file		[integer!]
 						restrict	[stat!]
 						return:		[integer!]
 					]
@@ -161,7 +161,6 @@ simple-io: context [
 	
 	file-size?: func [
 		file	 [integer!]
-		filename [c-string!]
 		return:	 [integer!]
 		/local s
 	][
@@ -176,7 +175,7 @@ simple-io: context [
 			]
 			#default [
 				s: declare stat!
-				_stat 3 filename s
+				_stat 3 file s
 				s/st_size
 			]
 		]
@@ -228,7 +227,7 @@ simple-io: context [
 			str		[red-string!]
 	][
 		file: open-file filename
-		size: file-size? file filename
+		size: file-size? file
 		if size <= 0 [
 			print-line "*** Error: empty file"
 			quit -2
