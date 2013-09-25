@@ -53,22 +53,6 @@ simple-io: context [
 	][
 		#define O_RDONLY	0
 		
-		stat!: alias struct! [
-			st_dev		[integer!]
-			st_ino		[integer!]
-			st_mode		[integer!]
-			st_nlink	[integer!]
-			st_uid		[integer!]
-			st_gid		[integer!]
-			st_rdev		[integer!]
-			st_size		[integer!]
-			st_blksize	[integer!]
-			st_blocks	[integer!]
-			st_atime	[integer!]
-			st_mtime	[integer!]
-			st_ctime	[integer!]
-		]
-		
 		#import [
 			LIBC-file cdecl [
 				_open:	"open" [
@@ -83,17 +67,66 @@ simple-io: context [
 					bytes		[integer!]
 					return:		[integer!]
 				]
-				;--- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
-				
-				_stat:	"__xstat" [
-					version		[integer!]
-					filename	[c-string!]
-					restrict	[stat!]
-					return:		[integer!]
-				]
 				_close:	"close" [
 					file		[integer!]
 					return:		[integer!]
+				]
+			]
+		]
+		
+		#either OS = 'MacOSX [
+			stat!: alias struct! [
+				st_dev		[integer!]
+				st_ino		[integer!]
+				st_mode		[integer!]
+				st_nlink	[integer!]
+				st_uid		[integer!]
+				st_gid		[integer!]
+				st_rdev		[integer!]
+				st_atime	[integer!]					;-- struct timespec
+				st_mtime	[integer!]					;-- struct timespec
+				st_ctime	[integer!]					;-- struct timespec
+				st_size		[integer!]
+				st_blocks	[integer!]
+				st_blksize	[integer!]
+				st_flags	[integer!]
+				st_gen		[integer!]
+			]
+			#import [
+				LIBC-file cdecl [
+					;--- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
+					_stat:	"stat" [
+						filename	[c-string!]
+						restrict	[stat!]
+						return:		[integer!]
+					]
+				]
+			]
+		][
+			stat!: alias struct! [
+				st_dev		[integer!]
+				st_ino		[integer!]
+				st_mode		[integer!]
+				st_nlink	[integer!]
+				st_uid		[integer!]
+				st_gid		[integer!]
+				st_rdev		[integer!]
+				st_size		[integer!]
+				st_blksize	[integer!]
+				st_blocks	[integer!]
+				st_atime	[integer!]
+				st_mtime	[integer!]
+				st_ctime	[integer!]
+			]
+			#import [
+				LIBC-file cdecl [
+					;--- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
+					_stat:	"__xstat" [
+						version		[integer!]
+						filename	[c-string!]
+						restrict	[stat!]
+						return:		[integer!]
+					]
 				]
 			]
 		]
@@ -130,12 +163,19 @@ simple-io: context [
 		return:	 [integer!]
 		/local s
 	][
-		#either OS = 'Windows [
-			GetFileSize file null
-		][
-			s: declare stat!
-			_stat 3 filename s
-			s/st_size
+		#switch OS [
+			Windows [
+				GetFileSize file null
+			MacOSX [
+				s: declare stat!
+				_stat filename s
+				s/st_size
+			]
+			#default [
+				s: declare stat!
+				_stat 3 filename s
+				s/st_size
+			]
 		]
 	]
 	
