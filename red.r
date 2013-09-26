@@ -266,7 +266,7 @@ redc: context [
 		
 		;; Check common syntax mistakes
 		if all [
-			any [type output target verbose]			;-- -c | -o | -dlib | -t | -v
+			any [type output verbose]					;-- -c | -o | -dlib | -t | -v
 			none? src
 		][
 			fail "Source file is missing"
