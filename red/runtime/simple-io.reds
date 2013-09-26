@@ -96,7 +96,7 @@ simple-io: context [
 			]
 			#import [
 				LIBC-file cdecl [
-					;--- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
+					;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
 					_stat:	"fstat" [
 						file		[integer!]
 						restrict	[stat!]
@@ -105,24 +105,40 @@ simple-io: context [
 				]
 			]
 		][
-			stat!: alias struct! [
-				st_dev		[integer!]
-				st_ino		[integer!]
-				st_mode		[integer!]
-				st_nlink	[integer!]
-				st_uid		[integer!]
-				st_gid		[integer!]
-				st_rdev		[integer!]
-				st_size		[integer!]
-				st_blksize	[integer!]
-				st_blocks	[integer!]
-				st_atime	[integer!]
-				st_mtime	[integer!]
-				st_ctime	[integer!]
+			#either OS = 'Syllable [
+				;-- http://glibc.sourcearchive.com/documentation/2.7-18lenny7/glibc-2_87_2bits_2stat_8h_source.html
+				stat!: alias struct! [
+					st_mode		[integer!]
+					st_ino		[integer!]
+					st_dev		[integer!]
+					st_nlink	[integer!]
+					st_uid		[integer!]
+					st_gid		[integer!]
+					filler1		[integer!]				;-- not in spec above...
+					filler2		[integer!]				;-- not in spec above...
+					st_size		[integer!]
+					;...incomplete...
+				]
+			][
+				stat!: alias struct! [
+					st_dev		[integer!]
+					st_ino		[integer!]
+					st_mode		[integer!]
+					st_nlink	[integer!]
+					st_uid		[integer!]
+					st_gid		[integer!]
+					st_rdev		[integer!]
+					st_size		[integer!]
+					st_blksize	[integer!]
+					st_blocks	[integer!]
+					st_atime	[integer!]
+					st_mtime	[integer!]
+					st_ctime	[integer!]
+				]
 			]
 			#import [
 				LIBC-file cdecl [
-					;--- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
+					;-- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
 					_stat:	"__fxstat" [
 						version		[integer!]
 						file		[integer!]
