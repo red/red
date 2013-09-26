@@ -210,7 +210,7 @@ redc: context [
 				| ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
 				| ["-d" | "--debug" | "--debug-stabs"]	(opts/debug?: yes)
 				| ["-o" | "--output"]  		set output skip
-				| ["-t" | "--target"]  		set target skip
+				| ["-t" | "--target"]  		set target skip (type: 'exe)
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
