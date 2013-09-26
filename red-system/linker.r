@@ -123,12 +123,16 @@ linker: context [
 		]
 	]
 
-	make-filename: func [job [object!]][
-		rejoin [
-			any [job/build-prefix %""]
-			job/build-basename
-			any [job/build-suffix select file-emitter/defs/extensions job/type]
+	make-filename: func [job [object!] /local base provided suffix][
+		provided: suffix? base: job/build-basename
+		suffix: any [
+			job/build-suffix
+			select file-emitter/defs/extensions job/type
 		]
+		if any [none? suffix suffix <> provided][
+			base: join base suffix
+		]
+		join any [job/build-prefix %""] base
 	]
 	
 	build: func [job [object!] /local file fun][
