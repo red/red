@@ -359,6 +359,7 @@ redc: context [
 				"...output file      :" to-local-file result/4
 			]
 		]
+		unless Windows? [print ""]							;-- extra LF for more readable output
 	]
 
 	fail-try "Driver" [main]
