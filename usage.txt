@@ -1,9 +1,12 @@
 
 Usage: red [options] [file]
 
-file: any Red or Red/System source file. If no file and no option is provided, the REPL will be launched.
+[file]: any Red or Red/System source file. Any Red or Red/System source file. If no file and no option is provided, the REPL will be launched. If a file with no option is provided, the file will be simply run by the interpreter (it is expected to be a Red script with no Red/System code).
 
-options:
+[options]:
+    -c, --compile                  : Generate an executable in the working
+                                     folder.
+
     -d, --debug, --debug-stabs     : Compile source file in debug mode. STABS
                                      is supported for Linux targets.
     
@@ -33,8 +36,8 @@ options:
 	
 Cross-compilation targets:
 
-    MSDOS        : Windows, x86, console-only applications
-    Windows      : Windows, x86, native applications
+    MSDOS        : Windows, x86, console (+ GUI) applications
+    Windows      : Windows, x86, GUI applications
     Linux        : GNU/Linux, x86
     Linux-ARM    : GNU/Linux, ARMv5
     Darwin       : Mac OS X Intel, console-only applications
