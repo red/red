@@ -155,16 +155,22 @@ redc: context [
 		file
 	]
 	
-	run-console: func [/with file [string!] /local opts result script exe][
+	run-console: func [/with file [string!] /local opts result script exe .exe sob][
 		script: temp-dir/red-console.red
 		exe: temp-dir/console
-		if Windows? [append exe %.exe]
+		.exe: %.exe
+		sob: system/options/boot
+		
+		if Windows? [
+			append exe .exe
+			if .exe <> skip tail sob -4 [append sob .exe]
+		]
 		
 		unless exists? temp-dir [make-dir temp-dir]
 		
 		if any [
 			not exists? exe 
-			(modified? exe) < modified? system/options/boot	;-- check that console is up to date.
+			(modified? exe) < modified? sob					;-- check that console is up to date.
 		][
 			write script read-cache %red/tests/console.red
 
@@ -177,7 +183,7 @@ redc: context [
 			]
 			opts: make opts select load-targets opts/config-name
 
-			print "Pre-compiling Red console..."
+			print "Pre-compiling Red REPL..."
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result/1
 			
@@ -235,7 +241,7 @@ redc: context [
 			fail ["Unknown target:" target]
 		]
 		base-path: either encap? [
-			system/options/home
+			system/options/path
 		][
 			system/script/parent/path
 		]
