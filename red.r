@@ -204,7 +204,7 @@ redc: context [
 		target: default-target
 		opts: make system-dialect/options-class [link?: yes]
 
-		parse args [
+		parse/case args [
 			any [
 				  ["-c"	| "--compile"]		(type: 'exe)
 				| ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
@@ -264,8 +264,11 @@ redc: context [
 			if opts/OS <> 'Windows [opts/PIC?: yes]
 		]
 		
-		;; Check options combination syntax
-		if all [any [type output] none? src][			;-- -c | -o | -dlib + filename
+		;; Check common syntax mistakes
+		if all [
+			any [type output target verbose]			;-- -c | -o | -dlib | -t | -v
+			none? src
+		][
 			fail "Source file is missing"
 		]
 		if all [output output/1 = #"-"][				;-- -o (not followed by option)
