@@ -24,20 +24,20 @@ The Red toolchain comes as a single **half-megabyte** executable file that you c
 
 4. From a shell (works from DOS too), run it with:
 
-        red hello.red
+        $ red hello.red
         
 5. You should see the Hello World! output.
 
 6. Want to generate a compiled executable from that program?
 
-        red -c hello.red
-        ./hello
+        $ red -c hello.red
+        $ ./hello
         
 7. Want to cross-compile to another supported platform?
 
-        red -t Windows hello.red
-        red -t Darwin hello.red
-        red -t Linux-ARM hello.red
+        $ red -t Windows hello.red
+        $ red -t Darwin hello.red
+        $ red -t Linux-ARM hello.red
 
 **The command-line options are:**
 
