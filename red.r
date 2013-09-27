@@ -251,9 +251,13 @@ redc: context [
 
 		;; Process -o/--output (if any).
 		if output [
-			opts/build-basename: load-filename output
-			if slash = first opts/build-basename [
-				opts/build-prefix: %""
+			either slash = last output [
+				attempt [opts/build-prefix: to-rebol-file output]
+			][
+				opts/build-basename: load-filename output
+				if slash = first opts/build-basename [
+					opts/build-prefix: %""
+				]
 			]
 		]
 

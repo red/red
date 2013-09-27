@@ -3048,10 +3048,15 @@ system-dialect: make-profilable context [
 	
 	make-job: func [opts [object!] file [file!] /local job][
 		job: construct/with third opts linker/job-class	
-		unless job/build-basename [
-			file: last split-path file					;-- remove path
-			file: to-file first parse file "."			;-- remove extension
-			job/build-basename: file
+		file: last split-path file					;-- remove path
+		file: to-file first parse file "."			;-- remove extension
+		case [
+			none? job/build-basename [
+				job/build-basename: file
+			]
+			slash = last job/build-basename [
+				append job/build-basename file
+			]
 		]
 		job
 	]
