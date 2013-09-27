@@ -137,7 +137,7 @@ linker: context [
 	
 	build: func [job [object!] /local file fun][
 		unless job/target [job/target: cpu-class]
-		job/buffer: make binary! 100 * 1024
+		job/buffer: make binary! 512 * 1024
 	
 		clean-imports job/sections/import
 	

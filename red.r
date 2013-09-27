@@ -183,7 +183,7 @@ redc: context [
 			]
 			opts: make opts select load-targets opts/config-name
 
-			print "Pre-compiling Red REPL..."
+			print "Pre-compiling Red console..."
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result/1
 			
@@ -201,7 +201,7 @@ redc: context [
 
 	parse-options: has [
 		args src opts output target verbose filename config config-name base-path type
-		mode
+		mode target?
 	] [
 		args: any [
 			system/options/args
@@ -216,7 +216,7 @@ redc: context [
 				| ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
 				| ["-d" | "--debug" | "--debug-stabs"]	(opts/debug?: yes)
 				| ["-o" | "--output"]  		set output skip
-				| ["-t" | "--target"]  		set target skip (type: 'exe)
+				| ["-t" | "--target"]  		set target skip (target?: yes)
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
 				| ["-h" | "--help"]			(mode: 'help)
 				| ["-V" | "--version"]		(mode: 'version)
@@ -276,7 +276,7 @@ redc: context [
 		
 		;; Check common syntax mistakes
 		if all [
-			any [type output verbose]					;-- -c | -o | -dlib | -t | -v
+			any [type output verbose target?]			;-- -c | -o | -dlib | -t | -v
 			none? src
 		][
 			fail "Source file is missing"
