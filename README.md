@@ -22,7 +22,7 @@ The Red toolchain comes as a single **half-megabyte** executable file that you c
 
 3. Save it under the name: **hello.red**
 
-4. From a shell (works from DOS too), run it with:
+4. From a terminal (works from DOS too), run it with:
 
         $ red hello.red
         
