@@ -194,8 +194,9 @@ redc: context [
 				quit/return 1
 			]
 		]
+		exe: safe-to-local-file exe
 		if with [repend exe [#" " file]]
-		sys-call safe-to-local-file exe					;-- replace the buggy CALL native
+		sys-call exe									;-- replace the buggy CALL native
 		quit/return 0
 	]
 
