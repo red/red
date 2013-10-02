@@ -24,7 +24,14 @@ Red [
 	--test-- "load-9"  --assert ""		 = load "{}"
 	--test-- "load-10" --assert "{"		 = load "{^{}"
 	--test-- "load-11" --assert {"}		 = load {{"}}
-
+	--test-- "load-12" --assert "^/" 	 = load "{^/}^/"
+	--test-- "load-13" --assert "^/" 	 = load "{^/}"
+	--test-- "load-14" --assert "{^/}"	 = load {{{^/}}}
+	--test-- "load-15" --assert {{"x"}}	 = load {{{"x"}}}
+	--test-- "load-16" --assert "{x}"	 = load {{{x}}}
+	--test-- "load-17" --assert {"x"}	 = load {{"x"}}
+	--test-- "load-18" --assert "x"		 = load {{x}}
+	
 ===end-group===
     
 ~~~end-file~~~
