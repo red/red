@@ -2,25 +2,25 @@ REBOL [
   Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.9.5
+	Version: 0.11.0
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
 comment {
-  This script makes some assumptions about the directory structure in which 
-  files are stored. They are:
-    this script is stored in Red/quick-test/
-    the Red compiler is stored in Red/
-    the Red/System compiler is stored in Red/red-system/
-    the Red/System compiler must be run from Red/red-system/
-    the Red/System compiler writes the executable to Red/red-system/builds/
-    the default dir for Red/System tests is Red/red-system/tests/
-    the default dir for Red tests is Red/red/tests/
-    
- The default test dirs can be overriden by setting qt/rs-tests-dir and qt/r-tests-dir 
- before any tests are processed
+	This script makes some assumptions about the directory structure in which 
+	files are stored. They are:
+    	this script is stored in Red/quick-test/
+    	the Red & Red/System compiler is stored in Red/
+    	the default dir for tests is Red/red-system/tests/
+    	
+    	The default test dirs can be overriden by setting qt/tests-dir before
+    	tests are processed
+    	The default script header for code supplied as string is Red [], this 
+    	can be overriden by setting qt/script-header
+    	The default location of the compiler binary is Red/build/bin, this can
+    	be overriden by setting qt/bin-compiler
 }
 
 qt: make object! [
@@ -29,39 +29,34 @@ qt: make object! [
   ;; set the base-dir to ....Red/
   base-dir: system/script/path
   base-dir: copy/part base-dir find base-dir "quick-test"
-  ;; set the red/system compiler directory
-  comp-dir: base-dir/red-system
   ;; set the red/system runnable dir
-  runnable-dir: comp-dir/tests/runnable
-  ;; set the builds dir
-  builds-dir: comp-dir/builds
+  runnable-dir: base-dir/quick-test/runnable
   ;; set the default base dir for tests
-  tests-dir: comp-dir/tests
-  
-  ;; set the red dirs
-  r-runnable-dir: base-dir/red/tests/runnable
-  r-tests-dir: base-dir/red/tests
+  tests-dir: base-dir/red-system/tests
   
   ;; set the version number
   version: system/script/header/version
   
+  ;; switch for binary compiler usage
+  binary?: false
+  
+  ;; default binary compiler path
+  bin-compiler: base-dir/build/bin/red
+  
+  ;; default script header to be inserted into code supplied in string form
+  script-header: "Red []"
+  
   ;; set temporary files names
-  ;;  use Red/red-system/runnable for Red/System temp files
+  ;;  use Red/quick-test/runnable for temp files
   comp-echo: runnable-dir/comp-echo.txt
   comp-r: runnable-dir/comp.r
-  test-src-file: runnable-dir/qt-test-comp.reds
-  
-  ;; use Red/red/runnable for Red temp files
-  r-comp-echo: r-runnable-dir/comp-echo.txt
-  r-comp-r: r-runnable-dir/comp.r
-  r-test-src-file: r-runnable-dir/qt-test-comp.red
+  test-src-file: runnable-dir/qt-test-comp.red
   
   ;; set log file 
   log-file: join system/script/path "quick-test.log"
 
   ;; make runnable directory if needed
   make-dir runnable-dir
-  make-dir r-runnable-dir
   
   ;; windows ?
   windows-os?: system/version/4 = 3
@@ -74,16 +69,30 @@ qt: make object! [
 		do %call.r					               
 		set 'call :win-call
 	]
-  ;;;;;;;;;;; End Setup ;;;;;;;;;;;;;;
+	
+	;; script header parse rules - assumes parsing without /all
+	red?: false
+	red-header: ["red" any " " "[" to end (red?: true)]
+	red-system-header: ["red/system" any " " "[" to end (red?: false)]
+	red?-rule: [(red?: false) any [red-system-header | red-header | skip]]
+	script-header-rule: [
+		(no-script-header?: true) 
+		any [ 
+				[["red/system" | "red"] any " " "[" (no-script-header?: false)]
+			|
+				skip
+		]
+	]
+
+	;;;;;;;;; End Setup ;;;;;;;;;;;;;;
   
   comp-output: copy ""                 ;; output captured from compile
   output: copy ""                      ;; output captured from pgm exec
   exe: none                            ;; filepath to executable
-  reds-file?: true                     ;; true = running reds test file
+  source-file?: true                   ;; true = running  test file
                                        ;; false = runnning test script
-  red-file?: true					   ;; true = running red test file
-  									   ;; false = running test script
-  
+				  
+
   summary-template: ".. - .................................... / "
   
   data: make object! [
@@ -142,17 +151,18 @@ qt: make object! [
     append print-output join "" [reduce val "^/"]
   ]
         
-  compile: func [
-    src [file!]
-    /lib
-     target [string!]
-    /local
-      comp                          ;; compilation script
-      cmd                           ;; compilation cmd
-      exe							;; executable name
-      built                         ;; full path of compiler output
+  	compile: func [
+  		src [file!]
+  		/bin
+  		/lib
+  	  		target [string!]	
+  	  	/local
+  	  		comp                          	;; compilation script
+  	  		cmd                           	;; compilation cmd
+  	  		exe								;; executable name
   ][
     clear comp-output
+    
     ;; workout executable name
     either find/last/tail src "/" [
       exe: copy find/last/tail src "/"
@@ -166,31 +176,61 @@ qt: make object! [
         "Darwin"   	[exe: join exe [".dylib"]]
       ][
       	  exe: join exe [".so"]
-      ]     
+      ]
+      exe
     ][     
       if windows-os? [
         exe: join exe [".exe"]
       ]
     ]
+    
+    ;; find the path to the src
+    if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
+    
+    ;; red/system or red
+    red?: false
+    parse read src red?-rule
 
     ;; compose and write compilation script
-    comp: mold compose [
-      REBOL []
-      halt: :quit
-      change-dir (comp-dir)
-      echo (comp-echo)
-      do/args %rsc.r "###lib###***src***"
-    ]
+    either binary? [
+    	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
+    	either lib [
+    		cmd: join "" [to-local-file bin-compiler " -o " 
+    					  to-local-file runnable-dir/:exe
+    					  " -dlib -t " target
+    					  to-local-file src
+    		]
+    	][
+    		cmd: join "" [to-local-file bin-compiler " -o " 
+    					  to-local-file runnable-dir/:exe " "
+    					  to-local-file src	
+    		]  		
+    	]
+    	comp-output: make string! 1024
+    	call/wait/output cmd comp-output
+    ][
+    	comp: mold compose/deep [
+    	  REBOL []
+    	  halt: :quit
+    	  echo (comp-echo)
+    	  do/args (reduce base-dir/red.r) (join " -o " [
+    	  	  	  reduce runnable-dir/:exe " ###lib###***src***" 
+    	  ])
+    	]
+    	either lib [
+    		replace comp "###lib###" join "-dlib -t " [target " "]
+    	][
+    		replace comp "###lib###" ""
+    	]
     
-  either lib [replace comp "###lib###" join "-dlib -t " [target " "]][replace comp "###lib###" ""]
-    
-    if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
-    replace comp "***src***" src
-    write comp-r comp
+    	replace comp "***src***"  clean-path src
+    	write comp-r comp
 
-    ;; compose command line and call it
-    cmd: join to-local-file system/options/boot [" -sc " comp-r]
-    call/wait/output cmd make string! 1024	;; redirect output to anonymous buffer
+    	;; compose command line and call it
+    	cmd: join to-local-file system/options/boot [" -sc " comp-r]
+    	call/wait/output cmd make string! 1024	;; redirect output to anonymous
+    											;; buffer
+    ]
     
     ;; collect compiler output & tidy up
     if exists? comp-echo [
@@ -198,27 +238,6 @@ qt: make object! [
     	delete comp-echo
     ]
     if exists? comp-r [delete comp-r]
-    
-    ;; move the executable from /builds to /tests/runnable
-    built: builds-dir/:exe
-    runner: runnable-dir/:exe
-    
-    if exists? built [
-      write/binary runner read/binary built
-      delete built
-      if all [
-        not windows-os?
-        not lib
-      ][
-        r: open runner
-        set-modes r [
-          owner-execute: true
-          group-execute: true
-        ]
-        close r
-      ]
-    ]
-    
     either compile-ok? [
       exe
     ][
@@ -227,7 +246,7 @@ qt: make object! [
   ]
   
   compile-and-run: func [src /error /pgm] [
-    reds-file?: true
+    source-file?: true
     either exe: compile src [
       either error [
         run/error  exe
@@ -245,7 +264,7 @@ qt: make object! [
   ]
     
   compile-and-run-from-string: func [src /error] [
-    reds-file?: false
+    source-file?: false
     either exe: compile-from-string src [
       either error [
         run/error  exe
@@ -273,10 +292,12 @@ qt: make object! [
     dll
   ]
   
-    
   compile-from-string: func [src][
     ;-- add a default header if not provided
-    if none = find src "Red/System" [insert src "Red/System []^/"]
+    parse src script-header-rule
+    if no-script-header? [
+    	insert src join script-header "^/"
+    ]
     write test-src-file src
     compile test-src-file                  ;; returns path to executable or none
   ]
@@ -285,20 +306,19 @@ qt: make object! [
     src [file! string!]
   ][
     print join "" [src " - compiler error"]
-    print comp-output
     clear output                           ;; clear the ouptut from previous test
     _signify-failure
   ]
   
   compile-ok?: func [] [
-    either find comp-output "output file size:" [true] [false]
+    either find comp-output "output file size :" [true] [false]
   ] 
   
   compile-run-print: func [src [file!] /error][
-    either error [
-      compile-and-run/error
-    ][
-      compile-and-run src
+  	  either error [
+  	  	  compile-and-run/error src
+  	  ][
+  	  	  compile-and-run src
     ]
     if output <> "Compilation failed" [print output]
   ]
@@ -324,8 +344,9 @@ qt: make object! [
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
+    if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
     if all [
-      reds-file?
+      source-file?
       not pgm
       any [
       	  all [
@@ -346,7 +367,7 @@ qt: make object! [
       cmd                             ;; command to run
       test-name                     
   ][
-    reds-file?: false
+    source-file?: false
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
     call/wait cmd
   ]
@@ -357,7 +378,7 @@ qt: make object! [
       cmd                             ;; command to run
       test-name                     
   ][
-    reds-file?: false
+    source-file?: false
     test-name: find/last/tail src "/"
     test-name: copy/part test-name find test-name "."
     prin [ "running " test-name #"^(0D)"]
@@ -380,10 +401,13 @@ qt: make object! [
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
+    print ["script" script]
     do script
   ]
   
-  run-script-quiet: func [src [file!]][
+  run-script-quiet: func [
+  	src [file!]
+  ][
     prin [ "running " find/last/tail src "/" #"^(0D)"]
     print: :_quiet-print
     print-output: copy ""
@@ -394,7 +418,9 @@ qt: make object! [
     _print-summary file
   ]
   
-  run-test-file: func [src [file!]][
+  run-test-file: func [
+  	src [file!]
+  ][
     file/reset
     file/title: find/last/tail to string! src "/"
     replace file/title "-test.reds" ""
@@ -402,160 +428,13 @@ qt: make object! [
     add-to-run-totals
   ]
   
-  run-test-file-quiet: func [src [file!]][
+  run-test-file-quiet: func [
+  	src [file!]
+  	][
     prin [ "running " find/last/tail src "/" #"^(0D)"]
     print: :_quiet-print
     print-output: copy ""
     run-test-file src
-    print: :_save-print
-    write/append log-file print-output
-    _print-summary file
-    output: copy ""
-  ]
-  
-  r-compile: func [
-    src [file!]
-    /local
-      comp                          ;; compilation script
-      cmd                           ;; compilation cmd
-      built                         ;; full path of compiler output
-  ][
-    clear comp-output
-    ;; workout executable name
-    either find src "/" [
-      exe: copy find/last/tail src "/"
-    ][
-      exe: copy src
-    ] 
-    exe: copy/part exe find exe "."
-    if windows-os? [
-      exe: join exe [".exe"]
-    ]
-    runner: r-runnable-dir/:exe
-
-    ;; compose and write compilation script
-    comp: mold compose [
-      REBOL []
-      halt: :quit
-      change-dir (base-dir)
-      echo (r-comp-echo)
-      do/args %red.r (join "-o " [runner " ***src***"])
-    ]
-    if #"/" <> first src [src: clean-path r-tests-dir/:src]     ;; relative path supplied
-    replace comp "***src***" src
-    write r-comp-r comp
-
-    ;; compose command line and call it
-    cmd: join to-local-file system/options/boot [" -sc " r-comp-r]
-    call/wait/output cmd make string! 1024	;; redirect output to anonymous buffer
-    
-    ;; collect compiler output & tidy up
-    if exists? r-comp-echo [
-    	comp-output: read r-comp-echo
-    	delete r-comp-echo
-    ]
-    if exists? r-comp-r [delete r-comp-r]
-    
-    
-    either r-compile-ok? [
-      exe
-    ][
-      none
-    ]    
-  ]
-  
-  r-compile-ok?: func [] [
-    either find comp-output "output file size:" [true] [false]
-  ]
-  
-  r-compile-and-run: func [src /error] [
-  	red-file?: true
-    either exe: r-compile src [
-      either error [
-        r-run/error  exe
-      ][
-        r-run exe
-      ]
-    ][
-      compile-error src
-      output: "Compilation failed"
-    ]
-  ]
-  
-  r-compile-run-print: func [src [file!] /error][
-    either error [
-      r-compile-and-run/error
-    ][
-      r-compile-and-run src
-    ]
-    if output <> "Compilation failed" [print output]
-  ]
-  
-  r-compile-and-run-from-string: func [src /error] [
-    either exe: r-compile-from-string src [
-      either error [
-        r-run/error  exe
-      ][
-        r-run exe
-      ]
-    ][
-      compile-error "Supplied source"
-      output: "Compilation failed"
-    ]
-  ]
-  
-  r-compile-from-string: func [src][
-  	red-file?: false
-    ;-- add a default header if not provided
-    if none = find src "Red [" [insert src "Red []^/"]
-    write r-test-src-file src
-    r-compile r-test-src-file                  ;; returns path to executable or none
-  ]
-  
-  r-run: func [
-    prog [file!]
-    ;;/args                         ;; not yet needed
-      ;;parms [string!]             ;; not yet needed 
-    /error                          ;; runtime error expected
-    /local
-    exec [string!]                   ;; command to be executed
-  ][
-    exec: to-local-file r-runnable-dir/:prog
-    ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
-    clear output
-    call/output/wait exec output
-    if windows-os? [output: qt/utf-16le-to-utf-8 output]
-    if all [
-    	red-file?
-    	any [
-    		all [
-    			not error
-    			any [
-    				none <> find output "Script Error"
-    				none <> find output "Runtime Error"
-    				none <> find output "*** Error:"
-    			]
-    		]
-    		none = find output "Passed"
-    	]
-    ][
-    	_signify-failure
-    ]
-  ]
-  
-  r-run-test-file: func [src [file!]][
-    file/reset
-    file/title: find/last/tail to string! src "/"
-    replace file/title "-test.red" ""
-    r-compile-run-print src
-    add-to-run-totals
-  ]
-  
-  r-run-test-file-quiet: func [src [file!]][
-    prin [ "running " find/last/tail src "/" #"^(0D)"]
-    print: :_quiet-print
-    print-output: copy ""
-    r-run-test-file src
     print: :_save-print
     write/append log-file print-output
     _print-summary file
@@ -668,13 +547,6 @@ qt: make object! [
   assert-printed?: func [msg] [
     assert found? find qt/output msg
   ]
-  
-  assert-red-printed?: func[
-    msg
-  ][
-    assert found? find output msg
-  ]
-      
   
   clean-compile-from-string: does [
     if exists? test-src-file [delete test-src-file]
@@ -830,16 +702,16 @@ qt: make object! [
   set '===start-group===            :start-group
   set '--test--                     :start-test
   set '--compile                    :compile
-  set '--compile-red                :r-compile
+  set '--compile-red                :compile
   set '--compile-dll          		:compile-dll
   set '--compile-this               :compile-from-string
-  set '--compile-this-red           :r-compile-from-string
+  set '--compile-this-red           :compile-from-string
   set '--compile-and-run            :compile-and-run
-  set '--compile-and-run-red        :r-compile-and-run 
+  set '--compile-and-run-red        :compile-and-run 
   set '--compile-and-run-this       :compile-and-run-from-string
-  set '--compile-and-run-this-red   :r-compile-and-run-from-string
+  set '--compile-and-run-this-red   :compile-and-run-from-string
   set '--compile-run-print          :compile-run-print
-  set '--compile-run-print-red      :r-compile-run-print
+  set '--compile-run-print-red      :compile-run-print
   set '--compiled?                  :compiled?
   set '--run                        :run
   set '--add-to-run-totals          :add-to-run-totals
@@ -848,13 +720,13 @@ qt: make object! [
   set '--run-script                 :run-script
   set '--run-script-quiet           :run-script-quiet
   set '--run-test-file              :run-test-file
-  set '--run-test-file-red          :r-run-test-file
+  set '--run-test-file-red          :run-test-file
   set '--run-test-file-quiet        :run-test-file-quiet
-  set '--run-test-file-quiet-red    :r-run-test-file-quiet
+  set '--run-test-file-quiet-red    :run-test-file-quiet
   set '--assert                     :assert
   set '--assert-msg?                :assert-msg?
   set '--assert-printed?            :assert-printed?
-  set '--assert-red-printed?        :assert-red-printed?
+  set '--assert-red-printed?        :assert-printed?
   set '--clean                      :clean-compile-from-string
   set '===end-group===              :end-group
   set '~~~end-file~~~               :end-file

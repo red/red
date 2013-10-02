@@ -31,8 +31,20 @@ run-all-script: func [
   ]
 ]
 
-;; should we run non-interactively?
-batch-mode: all [system/options/args find system/options/args "--batch"]
+batch-mode: false
+binary?: false
+if system/options/args  [
+	;; should we run non-interactively?
+	batch-mode: find system/options/args "--batch"
+
+	;; should we use the binary compiler?
+	args: parse system/script/args " "
+	if find system/script/args "--binary" [
+		binary?: true
+		bin-compiler: select args "--binary"
+		if bin-compiler = "--batch" [bin-compiler: none]
+	]
+]
 
 ;; supress script messages
 store-quiet-mode: system/options/quiet
@@ -42,6 +54,10 @@ store-current-dir: what-dir
 change-dir %quick-test/
 
 do %quick-test.r
+if binary? [
+	qt/binary?: binary?
+	if bin-compiler [qt/bin-compiler: bin-compiler]
+]
 
 ;; run the tests
 print rejoin ["Quick-Test v" qt/version]
@@ -54,7 +70,9 @@ start-time: now/precise
 run-all-script/auto-tests %../red/tests/
 run-all-script/auto-tests %../red-system/tests/
 do %../red/tests/source/units/make-interpreter-auto-test.r
+qt/script-header: "Red []"
 run-all-script %../red/tests/
+qt/script-header: "Red/System []"
 run-all-script %../red-system/tests/
 
 ***end-run-quiet***

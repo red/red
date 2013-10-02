@@ -40,7 +40,7 @@ write file-out test-script-header
 ;; update the #include statements, write them and the tests
 if dll-target [
 	dll1-name: --compile-dll %source/units/libtest-dll1.reds dll-target
-	dll2-name: --compile-dll %source/units/libtest-dll2.reds dll-target
+	dll2-name: --compile-dll %source/units/libtest-dll2.reds dll-target 
 	either dll-target = "Windows" [
 		replace libs "***test-dll1***" dll1-name
 		replace libs "***test-dll2***" dll2-name

@@ -694,7 +694,7 @@ string: context [
 						if curly <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
 						append-char GET_BUFFER(buffer) cp
 					]
-					#"^/" #"^"" [
+					#"^"" [
 						append-char GET_BUFFER(buffer) cp
 					]
 					#"^^" [
@@ -1104,7 +1104,9 @@ string: context [
 				c2: char/value
 				if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
 			]
-			TYPE_STRING TYPE_FILE TYPE_WORD [
+			TYPE_STRING
+			TYPE_FILE
+			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
 					str2: as red-string! word/get-buffer as red-word! value
 					head2: 0							;-- str2/head = -1 (casted from symbol!)
@@ -1114,7 +1116,7 @@ string: context [
 				]
 				s2: GET_BUFFER(str2)
 				unit2: GET_UNIT(s2)
-				pattern: (as byte-ptr! s2/offset) + (head2 << (unit >> 1))
+				pattern: (as byte-ptr! s2/offset) + (head2 << (unit2 >> 1))
 				end2:    (as byte-ptr! s2/tail)
 			]
 			default [

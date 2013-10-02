@@ -1361,7 +1361,10 @@ make-profilable make target-class [
 			]
 			reg/reg [								;-- eax = b, edx = a
 				if path? left [
-					if block? args/2 [				;-- edx = b
+					if any [
+						args/2 = <last>				;-- inlined statement
+						block? args/2				;-- function call
+					][								;-- edx = b
 						emit #{92}					;-- XCHG eax, edx
 						sorted?: yes				;-- eax = a, edx = b
 					]

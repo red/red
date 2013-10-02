@@ -51,10 +51,22 @@ Red/System [
 		pc: eval-expression pc end no yes
 	][
 		if verbose > 0 [log "fetching argument"]
-		either TYPE_OF(pc) = TYPE_GET_WORD [
-			copy-cell _context/get as red-word! pc stack/push*
-		][
-			stack/push pc
+		switch TYPE_OF(pc) [
+			TYPE_GET_WORD [
+				copy-cell _context/get as red-word! pc stack/push*
+			]
+			TYPE_PAREN [
+				either TYPE_OF(value) = TYPE_LIT_WORD [
+					stack/mark-native as red-word! pc		;@@ ~paren
+					eval as red-block! pc
+					stack/unwind
+				][
+					stack/push pc
+				]
+			]
+			default [
+				stack/push pc
+			]
 		]
 		pc: pc + 1
 	]
@@ -308,6 +320,7 @@ interpreter: context [
 			args	  [integer!]
 			size	  [integer!]
 			ref-array [int-ptr!]
+			ret-set?  [logic!]
 			call
 	][
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
@@ -333,7 +346,6 @@ interpreter: context [
 		index: 	 	 1
 		args:		 -1
 		offset:		 -1
-		return-type: -1
 		ref?:		 no
 		required?:	 yes								;-- yes: processing mandatory args, no: optional args
 		
@@ -368,6 +380,7 @@ interpreter: context [
 				]
 				TYPE_SET_WORD [
 					if routine? [
+						ret-set?: yes
 						value: block/pick (as red-block! value + 1) 1
 						assert TYPE_OF(value) = TYPE_WORD
 						dt: as red-datatype! _context/get as red-word! value
@@ -379,6 +392,8 @@ interpreter: context [
 			]
 			value: value + 1
 		]
+		
+		unless ret-set? [return-type: -1]				;-- set the default correctly in case of nested calls
 		
 		unless routine? [
 			if path <> null [

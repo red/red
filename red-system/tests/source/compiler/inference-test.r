@@ -21,19 +21,20 @@ change-dir %../
 ~~~start-file~~~ "inference-compile"
 
 	--test-- "simple inference 1"
-		--assert-compiles? "foo: func [/local a][a: 1]"
+		--assert-compiles? "Red/System [] foo: func [/local a][a: 1]"
 		
 	--test-- "simple inference 2"
-		--assert-compiles? {foo: func [/local a b][a: true b: #"A"]}
+		--assert-compiles? {Red/System [] foo: func [/local a b][a: true b: #"A"]}
 	
 	--test-- "simple inference 3"
-		--assert-compiles? {foo: func [/local a][a: either true ["A"]["B"]]}
+		--assert-compiles? {Red/System [] foo: func [/local a][a: either true ["A"]["B"]]}
 		
 	--test-- "simple inference 4"
-		--assert-compiles? "foo: func [/local a][while [true][a: 1]]"
+		--assert-compiles? "Red/System [] foo: func [/local a][while [true][a: 1]]"
 		
 	--test-- "simple inference 5"
 		--assert-compiles? {
+			Red/System [] 
 			foo: func [return: [integer!] /local a][a: 123 a]
 			bar: func [/local b][b: foo]
 		}
@@ -44,7 +45,7 @@ change-dir %../
 ~~~start-file~~~ "inference-err"
 
 	--test-- "inference error"
-		--compile-this "foo: func [/local a][a]"
+		--compile-this "Red/System [] foo: func [/local a][a]"
 		--assert-msg? "*** Compilation Error: local variable a used before being initialized!"
 		--clean
 	

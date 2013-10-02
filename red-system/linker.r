@@ -123,21 +123,29 @@ linker: context [
 		]
 	]
 
-	make-filename: func [job [object!]][
-		rejoin [
-			any [job/build-prefix %""]
-			job/build-basename
-			any [job/build-suffix select file-emitter/defs/extensions job/type]
+	make-filename: func [job [object!] /local base provided suffix][
+		provided: suffix? base: job/build-basename
+		suffix: any [
+			job/build-suffix
+			select file-emitter/defs/extensions job/type
 		]
+		if any [none? suffix suffix <> provided][
+			base: join base suffix
+		]
+		join any [job/build-prefix %""] base
 	]
 	
 	build: func [job [object!] /local file fun][
 		unless job/target [job/target: cpu-class]
-		job/buffer: make binary! 100 * 1024
+		job/buffer: make binary! 512 * 1024
 	
 		clean-imports job/sections/import
 	
-		file-emitter: do rejoin [%formats/ job/format %.r]
+		file-emitter: either encap? [
+			do-cache rejoin [%red-system/formats/ job/format %.r]
+		][
+			do rejoin [%formats/ job/format %.r]
+		]
 		file-emitter/build job
 
 		file: make-filename job

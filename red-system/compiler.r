@@ -7,25 +7,24 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-do %utils/profiler.r
+do-cache %red-system/utils/profiler.r
 profiler/active?: no
 
-do %utils/r2-forward.r
-do %utils/int-to-bin.r
-do %utils/IEEE-754.r
-do %utils/virtual-struct.r
-do %utils/secure-clean-path.r
-do %linker.r
-do %emitter.r
+do-cache %red-system/utils/r2-forward.r
+do-cache %red-system/utils/int-to-bin.r
+do-cache %red-system/utils/IEEE-754.r
+do-cache %red-system/utils/virtual-struct.r
+do-cache %red-system/utils/secure-clean-path.r
+do-cache %red-system/linker.r
+do-cache %red-system/emitter.r
 
 system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
-	runtime-path: %runtime/
-	red-runtime-path: %../red/runtime/
+	runtime-path: pick [%red-system/runtime/ %runtime/] encap?
 	nl: 		  newline
 	
-	loader: do bind load %loader.r 'self
+	loader: do bind load-cache %red-system/loader.r 'self
 	
 	compiler: make-profilable context [
 		job:		 	 none							;-- shortcut for job object
@@ -364,10 +363,13 @@ system-dialect: make-profilable context [
 			spec
 		]
 		
-		get-return-type: func [name [word!] /local type spec][
+		get-return-type: func [name [word!] /check /local type spec][
 			unless all [
 				spec: find-functions name
-				type: select spec/2/4 return-def
+				any [
+					type: select spec/2/4 return-def
+					check
+				]
 			][
 				backtrack name
 				throw-error ["return type missing in function:" name]
@@ -785,7 +787,10 @@ system-dialect: make-profilable context [
 			][
 				name: decorate-function name
 			]
-			find functions name
+			any [
+				find functions name
+				find functions resolve-ns name
+			]
 		]
 
 		get-function-spec: func [name [word!] /local spec][
@@ -1475,7 +1480,9 @@ system-dialect: make-profilable context [
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose [set-verbose-level pc/2 pc: skip pc 2]
 				#script	 [								;-- internal compiler directive
-					compiler/script: secure-clean-path pc/2	;-- set the origin of following code
+					unless pc/2 = 'in-memory [
+						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
+					]
 					pc: skip pc 2
 				]
 			][
@@ -2198,26 +2205,23 @@ system-dialect: make-profilable context [
 		]
 		
 		comp-get-word: has [spec name ns symbol][
-			name: to word! pc/1
-			case [
-				all [spec: find functions name: resolve-ns name spec: spec/2][
-					unless find [native routine] spec/2 [
-						throw-error "get-word syntax only reserved for native functions for now"
-					]
-					if all [
-						symbol: last expr-call-stack
-						spec: find functions symbol
-						spec/2/2 = 'import				;-- only flag it when passed to external calls
-						spec/2/5 <> 'callback
-					][
-						append spec/2 'callback			;@@ force cdecl ????
-					]
+			name: resolve-ns to word! pc/1
+			comp-word/with/check name
+			
+			if all [
+				spec: find functions name
+				spec: spec/2
+			][
+				unless find [native routine] spec/2 [
+					throw-error "get-word syntax only reserved for native functions for now"
 				]
-				not	any [
-					local-variable? to word! pc/1
-					find globals name
+				if all [
+					symbol: last expr-call-stack
+					spec: find functions symbol
+					spec/2/2 = 'import					;-- only flag it when passed to external calls
+					spec/2/5 <> 'callback
 				][
-					throw-error "cannot get a pointer on an undefined identifier"
+					append spec/2 'callback				;@@ force cdecl ????
 				]
 			]
 			also to get-word! name pc: next pc
@@ -2284,6 +2288,7 @@ system-dialect: make-profilable context [
 			/path symbol [word!]
 			/with word [word!]
 			/root										;-- system/words/* pass-thru
+			/check										;-- check word validity, do not consume input
 			/local entry name local? spec type
 		][
 			name: pc/1
@@ -2303,7 +2308,7 @@ system-dialect: make-profilable context [
 					entry: select keywords name			;-- it's a reserved word
 				][
 					if find calling-keywords name [push-call pc/1]
-					do entry
+					unless check [do entry]
 				]
 				any [
 					all [
@@ -2325,12 +2330,12 @@ system-dialect: make-profilable context [
 						throw-error ["local variable" name "used before being initialized!"]
 					]
 					last-type: resolve-type name
-					also name pc: next pc
+					unless check [also name pc: next pc]
 				]
 				type: enum-type? name [
 					last-type: type
 					if verbose >= 3 [print ["ENUMERATOR" name "=" last-type]]
-					also name pc: next pc
+					unless check [also name pc: next pc]
 				]
 				all [
 					not path
@@ -2343,7 +2348,7 @@ system-dialect: make-profilable context [
 					][
 						throw-error "infix functions cannot be called using a path"
 					]
-					comp-func-args name entry
+					unless check [comp-func-args name entry]
 				]
 				'else [throw-error ["undefined symbol:" mold name]]
 			]
@@ -2628,14 +2633,15 @@ system-dialect: make-profilable context [
 			
 			if all [									;-- clean FPU stack when required
 				not any [keep? variable]
-				any-float? last-type
 				block? expr
+				word? expr/1
+				any-float? get-return-type/check expr/1
 				any [
 					not find functions/(expr/1)/4 return-def	;-- clean if no return value
 					1 = length? expr-call-stack					;-- or if return value not used
 				]
-			][			
-				emitter/target/emit-float-trash-last	;-- avoid leaving a FPU slot occupied,
+			][
+				emitter/target/emit-float-trash-last	;-- avoid leaving a x86 FPU slot occupied,
 			]											;-- if return value is not used.
 			
 			;-- storing result if assignement required
@@ -2969,8 +2975,13 @@ system-dialect: make-profilable context [
 	comp-start: has [script][
 		emitter/libc-init?: yes
 		emitter/start-prolog
-		script: secure-clean-path runtime-path/start.reds
- 		compiler/run/no-events job loader/process script script
+		script:	either encap? [
+			set-cache-base %red-system/runtime/
+			%start.reds
+		][
+			secure-clean-path runtime-path/start.reds
+		]
+ 		compiler/run/no-events job loader/process/own script script
  		emitter/start-epilog
  
 		;-- selective clean-up of compiler's internals
@@ -2981,9 +2992,25 @@ system-dialect: make-profilable context [
 		emitter/libc-init?: no
 	]
 	
-	comp-runtime-prolog: has [script][
-		script: secure-clean-path runtime-path/common.reds
- 		compiler/run/runtime job loader/process script script
+	comp-runtime-prolog: func [red? [logic!] /local script][
+		script: either encap? [
+			set-cache-base %red-system/runtime/
+			%common.reds
+		][
+			secure-clean-path runtime-path/common.reds
+		]
+ 		compiler/run/runtime job loader/process/own script script
+ 		
+ 		if red? [
+ 			unless empty? red/sys-global [
+				set-cache-base %./
+				compiler/run/runtime job loader/process red/sys-global %***sys-global.reds
+ 			]
+ 			set-cache-base %red/runtime/
+ 			script: pick [%red.reds %../red/runtime/red.reds] encap?
+ 			compiler/run/runtime job loader/process/own script script
+ 		]
+ 		set-cache-base none
 	]
 	
 	comp-runtime-epilog: does [
@@ -3021,10 +3048,15 @@ system-dialect: make-profilable context [
 	
 	make-job: func [opts [object!] file [file!] /local job][
 		job: construct/with third opts linker/job-class	
-		unless job/build-basename [
-			file: last split-path file					;-- remove path
-			file: to-file first parse file "."			;-- remove extension
-			job/build-basename: file
+		file: last split-path file					;-- remove path
+		file: to-file first parse file "."			;-- remove extension
+		case [
+			none? job/build-basename [
+				job/build-basename: file
+			]
+			slash = last job/build-basename [
+				append job/build-basename file
+			]
 		]
 		job
 	]
@@ -3073,7 +3105,7 @@ system-dialect: make-profilable context [
 		/loaded 										;-- source code is already in LOADed format
 			src	[block!]
 		/local
-			comp-time link-time err
+			comp-time link-time err output
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
@@ -3103,7 +3135,7 @@ system-dialect: make-profilable context [
 				comp-start								;-- init libC properly
 			]
 			
-			if opts/runtime? [comp-runtime-prolog]
+			if opts/runtime? [comp-runtime-prolog to logic! loaded]
 			
 			set-verbose-level opts/verbosity
 			foreach file files [

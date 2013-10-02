@@ -97,6 +97,8 @@ natives: context [
 		value: block/rs-head as red-block! stack/arguments
 		tail:  block/rs-tail as red-block! stack/arguments
 		
+		if value = tail [RETURN_NONE]
+		
 		while [value < tail][
 			value: interpreter/eval-next value tail no
 			if logic/false? [RETURN_NONE]

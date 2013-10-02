@@ -7,7 +7,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-do %../red-system/compiler.r
+do-cache %red-system/compiler.r
 
 red: context [
 	verbose:	   0									;-- logs verbosity level
@@ -23,8 +23,8 @@ red: context [
 	aliases: 	   make hash! 100
 	contexts:	   make hash! 100						;-- storage for statically compiled contexts
 	ctx-stack:	   make block! 8						;-- contexts access path
-	lexer: 		   do bind load %lexer.r 'self
-	extracts:	   do bind load %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
+	lexer: 		   do bind load-cache %red/lexer.r 'self
+	extracts:	   do bind load-cache %red/utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
 		'block	   make hash! 1000
@@ -63,7 +63,7 @@ red: context [
 	
 	intrinsics:   [
 		if unless either any all while until loop repeat
-		foreach forall break halt func function does has
+		foreach forall break func function does has
 		exit return switch case routine set get reduce
 	]
 	
@@ -119,6 +119,7 @@ red: context [
 		parse code rule: [
 			some [
 				#include file: (
+					script-path: any [script-path main-path]
 					if all [script-path relative-path? file/1][
 						file/1: clean-path join script-path file/1
 					]
@@ -1155,11 +1156,6 @@ red: context [
 		]
 	]
 	
-	comp-halt: does [
-		emit 'halt
-		insert-lf -1
-	]
-	
 	comp-func-body: func [
 		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
 		/local init locals
@@ -1528,12 +1524,13 @@ red: context [
 		]
 	]
 	
-	comp-reduce: has [list][
+	comp-reduce: has [list into?][
 		unless block? pc/1 [
+			into?: path? pc/-1
 			emit-open-frame 'reduce
 			comp-expression							;-- compile not-literal-block argument
-			if path? pc/-1 [comp-expression]		;-- optionally compile /into argument
-			emit-native/with 'reduce reduce [pick [1 -1] path? pc/-1]
+			if into? [comp-expression]				;-- optionally compile /into argument
+			emit-native/with 'reduce reduce [pick [1 -1] into?]
 			emit-close-frame
 			exit
 		]
@@ -1590,12 +1587,13 @@ red: context [
 		]
 	]
 	
-	comp-get: does [
+	comp-get: has [symbol][
 		either lit-word? pc/1 [
+			add-symbol symbol: to word! pc/1
 			either path? pc/-1 [						;@@ add check for validaty of refinements		
-				emit-get-word/any? to word! pc/1
+				emit-get-word/any? symbol
 			][
-				emit-get-word to word! pc/1
+				emit-get-word symbol
 			]
 			pc: next pc
 		][
@@ -1678,21 +1676,26 @@ red: context [
 			]
 			switch type?/word spec/1 [
 				lit-word! [
-					add-symbol word: to word! pc/1
-					
 					switch/default type?/word pc/1 [
 						get-word! [
+							add-symbol to word! pc/1
 							comp-expression
 						]
 						lit-word! [
+							add-symbol word: to word! pc/1
 							emit 'lit-word/push
 							emit decorate-symbol word
 							insert-lf -2
 							pc: next pc
 						]
+						word! [
+							add-symbol word: to word! pc/1
+							emit-push-word word				;@@ add specific type checking
+							pc: next pc
+						]
+						paren! [comp-expression]
 					][
-						emit-push-word word				;@@ add specific type checking
-						pc: next pc
+						comp-literal no
 					]
 				]
 				get-word! [comp-literal no]
@@ -2063,6 +2066,9 @@ red: context [
 					throw-error "#system-global requires a block argument"
 				]
 				process-include-paths pc/2
+				unless sys-global/1 = 'Red/System [
+					append sys-global copy/deep [Red/System []]
+				]
 				append sys-global pc/2
 				pc: skip pc 2
 				true
@@ -2082,7 +2088,7 @@ red: context [
 				true
 			]
 			#version [
-				change pc rejoin [load %version.r ", " now]
+				change pc rejoin [load-cache %version.r ", " now]
 			]
 		]
 	]
@@ -2251,8 +2257,6 @@ red: context [
 				type:   'dll
 				origin: 'Red
 			]
-
-			#include %red.reds
 			
 			with red [
 				exec: context [
@@ -2312,8 +2316,6 @@ red: context [
 		
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
-			insert at out 3 sys-global
-			new-line at out 3 yes
 		]
 		
 		pos: third pick tail out -4
@@ -2329,7 +2331,6 @@ red: context [
 		out: copy/deep [
 			Red/System [origin: 'Red]
 
-			#include %red.reds
 			red/init
 			
 			with red [
@@ -2369,8 +2370,6 @@ red: context [
 		
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
-			insert at out 3 sys-global
-			new-line at out 3 yes
 		]
 
 		change/only find last out <script> script		;-- inject compilation result in template
@@ -2381,7 +2380,7 @@ red: context [
 	load-source: func [file [file! block!] /hidden /local src][
 		either file? file [
 			unless hidden [script-name: file]
-			src: lexer/process read/binary file
+			src: lexer/process read-binary-cache file
 		][
 			unless hidden [script-name: 'memory]
 			src: file

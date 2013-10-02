@@ -70,8 +70,8 @@ append tests "}^(0A)^(0A)"
 append tests join ";make-length:" 
                   [length? read %make-float-auto-test.r "^(0A)^(0A)"]
 append tests "#include %../../../../../quick-test/quick-test.reds^(0A)^(0A)"
-append tests {~~~start-file~~~ "Auto-generated tests for integers"^(0A)^(0A)}
-append tests {===start-group=== "Auto-generated tests for integers"^(0A)^(0A)}
+append tests {~~~start-file~~~ "Auto-generated tests for float"^(0A)^(0A)}
+append tests {===start-group=== "Auto-generated tests for float"^(0A)^(0A)}
 
 write file-out tests
 tests: copy ""
