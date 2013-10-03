@@ -158,22 +158,22 @@ red-char!: alias struct! [
 
 red-action!: alias struct! [
 	header 	[integer!]								;-- cell header
-	spec	[node!]									;-- action spec block reference
 	symbols	[node!]									;-- action cleaned-up spec block reference
+	spec	[node!]									;-- action spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
 
 red-native!: alias struct! [
 	header 	[integer!]								;-- cell header
-	spec	[node!]									;-- native spec block reference
 	symbols	[node!]									;-- native cleaned-up spec block reference
+	spec	[node!]									;-- native spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
 
 red-op!: alias struct! [
 	header 	[integer!]								;-- cell header
-	spec	[node!]									;-- op spec block reference
 	symbols	[node!]									;-- op cleaned-up spec block reference
+	spec	[node!]									;-- op spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
 
@@ -189,8 +189,8 @@ red-function!: alias struct! [
 
 red-routine!: alias struct! [
 	header 	[integer!]								;-- cell header
-	spec	[node!]									;-- routine spec block buffer reference
 	symbols	[node!]									;-- routine cleaned-up spec block reference
+	spec	[node!]									;-- routine spec block buffer reference	
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	routine's body block
 	;	symbols	 [red-block!]						;-- 	routine cleaned-up spec block reference
