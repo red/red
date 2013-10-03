@@ -99,7 +99,7 @@ tokenizer: context [
 					#"/"	[#"^/"]
 					#"^""	[#"^""]
 					#"^^"	[#"^^"]
-					default [src/1 - #"@"]
+					default [src/1]
 				]
 			][
 				if dst <> src [dst/1: src/1]
