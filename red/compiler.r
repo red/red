@@ -2277,7 +2277,7 @@ red: context [
 		foreach [type cast][
 			block	red-block!
 			string	red-string!
-			context red-context!
+			context node!
 		][
 			foreach name lit-vars/:type [
 				repend defs [to set-word! name 'as cast 0]
