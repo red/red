@@ -284,7 +284,7 @@ qt: make object! [
     /local
     	dll
   ][
-    ;; compile the lib and copy the executable to the runnable dir
+    ;; compile the lib into the runnable dir
     if not dll: compile/lib lib-src target [
       compile-error lib-src
       output: "Lib compilation failed"  
