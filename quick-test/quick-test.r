@@ -401,7 +401,6 @@ qt: make object! [
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
-    print ["script" script]
     do script
   ]
   
