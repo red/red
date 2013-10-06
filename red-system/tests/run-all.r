@@ -40,6 +40,29 @@ start-time: now/precise
 
 ***start-run-quiet*** "Red/System Test Suite"
 
+===start-group=== "Compiler Tests"
+  --run-script-quiet %source/compiler/alias-test.r
+  --run-script-quiet %source/compiler/cast-test.r
+  --run-script-quiet %source/compiler/comp-err-test.r
+  --run-script-quiet %source/compiler/exit-test.r
+  --run-script-quiet %source/compiler/int-literals-test.r
+  --run-script-quiet %source/compiler/output-test.r
+  --run-script-quiet %source/compiler/return-test.r
+  --run-script-quiet %source/compiler/cond-expr-test.r
+  --run-script-quiet %source/compiler/inference-test.r
+  --run-script-quiet %source/compiler/callback-test.r
+  --run-script-quiet %source/compiler/infix-test.r
+  --run-script-quiet %source/compiler/not-test.r
+  --run-script-quiet %source/compiler/print-test.r
+  --run-script-quiet %source/compiler/enum-test.r
+  --run-script-quiet %source/compiler/pointer-test.r
+  --run-script-quiet %source/compiler/namespace-test.r
+  --run-script-quiet %source/compiler/compiles-ok-test.r
+  --run-script-quiet %source/compiler/dylib-test.r
+  ;--run-test-file-quiet %source/compiler/define-test.reds
+
+===end-group===
+
 ===start-group=== "Datatype tests"
   --run-test-file-quiet %source/units/logic-test.reds       
   --run-test-file-quiet %source/units/byte-test.reds
@@ -99,28 +122,6 @@ start-time: now/precise
   --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/dylib-auto-test.reds
-
-===end-group===
-
-===start-group=== "Compiler Tests"
-  --run-script-quiet %source/compiler/alias-test.r
-  --run-script-quiet %source/compiler/cast-test.r
-  --run-script-quiet %source/compiler/comp-err-test.r
-  --run-script-quiet %source/compiler/exit-test.r
-  --run-script-quiet %source/compiler/int-literals-test.r
-  --run-script-quiet %source/compiler/output-test.r
-  --run-script-quiet %source/compiler/return-test.r
-  --run-script-quiet %source/compiler/cond-expr-test.r
-  --run-script-quiet %source/compiler/inference-test.r
-  --run-script-quiet %source/compiler/callback-test.r
-  --run-script-quiet %source/compiler/infix-test.r
-  --run-script-quiet %source/compiler/not-test.r
-  --run-script-quiet %source/compiler/print-test.r
-  --run-script-quiet %source/compiler/enum-test.r
-  --run-script-quiet %source/compiler/pointer-test.r
-  --run-script-quiet %source/compiler/namespace-test.r
-  --run-script-quiet %source/compiler/compiles-ok-test.r
-;  --run-test-file-quiet %source/compiler/define-test.reds
 
 ===end-group===
 
