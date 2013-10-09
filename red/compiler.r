@@ -1643,9 +1643,9 @@ red: context [
 							comp-call path entry/2		;-- call function with refinements
 							exit
 						][
-							--not-implemented--			;TBD: resolve access path to function
+							;--not-implemented--			;TBD: resolve access path to function
 						]
-						emit?: no						;-- no further emitted code needed
+						;emit?: no						;-- no further emitted code needed
 					]
 				]
 				get-word! [
