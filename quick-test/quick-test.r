@@ -93,7 +93,7 @@ qt: make object! [
                                        ;; false = runnning test script
 				  
 
-  summary-template: ".. - .................................... / "
+  summary-template: ".. - .................................................. / "
   
   data: make object! [
     title: copy ""
