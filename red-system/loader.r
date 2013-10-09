@@ -57,8 +57,6 @@ loader: make-profilable context [
 	]
 
 	included?: func [file [file!]][
-		if encap? [file: join encap-fs/base file]
-		
 		attempt [file: get-modes file 'full-path]
 		either find include-list file [true][
 			append include-list file
