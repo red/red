@@ -197,7 +197,7 @@ qt: make object! [
     	either lib [
     		cmd: join "" [to-local-file bin-compiler " -o " 
     					  to-local-file runnable-dir/:exe
-    					  " -dlib -t " target
+    					  " -dlib -t " target " "
     					  to-local-file src
     		]
     	][
