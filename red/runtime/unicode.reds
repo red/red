@@ -231,15 +231,19 @@ unicode: context [
 		either null? dst [								;-- test if output buffer is provided
 			node: alloc-series size 1 0
 			s: as series! node/value
+			unit:  Latin1									;-- start with 1 byte/codepoint
 		][
 			node: dst/node
 			s: dst
+			unit: GET_UNIT(s)
+			if s/size / unit < size [
+				s: expand-series s size * unit
+			]
 		]
 		
 		buf1:  as byte-ptr! s/offset
 		buf4:  null
 		end:   buf1 + s/size
-		unit:  Latin1									;-- start with 1 byte/codepoint
 		count: size
 
 		if size = 1 [return node]						;-- terminal NUL accounted

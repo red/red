@@ -91,10 +91,17 @@ Red/System [
 	a: 3 * (size? pointer!) * 2 
 	b: 3 * 2 * (size? pointer!)
 	--assert a = b
-
+	
+	--test-- "sz-18 issue #503"
+	sz18-struct!: alias struct! [
+		i		[integer!]
+		f		[float!]
+	]
+	--assert 12 = size? sz18-struct!
+	
 ===end-group===
 
-===start-group=== "Size of literals and global variables"
+===start-group=== "Size of literals and local variables"
 
 sz-foo: func [
 	/local

@@ -16,6 +16,9 @@ system/options/quiet: true
 do %../../quick-test/quick-test.r
 qt/tests-dir: system/script/path
 
+;; set the default script header
+qt/script-header: "Red/System []"
+
 ;; make auto files if needed
 ;; do not split these statements over two lines
 qt/make-if-needed? %source/units/auto-tests/byte-auto-test.reds %source/units/make-byte-auto-test.r                 
@@ -36,6 +39,29 @@ start-time: now/precise
 ;;  the filename will be excluded from the ARM tests
 
 ***start-run-quiet*** "Red/System Test Suite"
+
+===start-group=== "Compiler Tests"
+  --run-script-quiet %source/compiler/alias-test.r
+  --run-script-quiet %source/compiler/cast-test.r
+  --run-script-quiet %source/compiler/comp-err-test.r
+  --run-script-quiet %source/compiler/exit-test.r
+  --run-script-quiet %source/compiler/int-literals-test.r
+  --run-script-quiet %source/compiler/output-test.r
+  --run-script-quiet %source/compiler/return-test.r
+  --run-script-quiet %source/compiler/cond-expr-test.r
+  --run-script-quiet %source/compiler/inference-test.r
+  --run-script-quiet %source/compiler/callback-test.r
+  --run-script-quiet %source/compiler/infix-test.r
+  --run-script-quiet %source/compiler/not-test.r
+  --run-script-quiet %source/compiler/print-test.r
+  --run-script-quiet %source/compiler/enum-test.r
+  --run-script-quiet %source/compiler/pointer-test.r
+  --run-script-quiet %source/compiler/namespace-test.r
+  --run-script-quiet %source/compiler/compiles-ok-test.r
+  --run-script-quiet %source/compiler/dylib-test.r
+  ;--run-test-file-quiet %source/compiler/define-test.reds
+
+===end-group===
 
 ===start-group=== "Datatype tests"
   --run-test-file-quiet %source/units/logic-test.reds       
@@ -99,35 +125,16 @@ start-time: now/precise
 
 ===end-group===
 
-===start-group=== "Compiler Tests"
-  --run-script-quiet %source/compiler/alias-test.r
-  --run-script-quiet %source/compiler/cast-test.r
-  --run-script-quiet %source/compiler/comp-err-test.r
-  --run-script-quiet %source/compiler/exit-test.r
-  --run-script-quiet %source/compiler/int-literals-test.r
-  --run-script-quiet %source/compiler/output-test.r
-  --run-script-quiet %source/compiler/return-test.r
-  --run-script-quiet %source/compiler/cond-expr-test.r
-  --run-script-quiet %source/compiler/inference-test.r
-  --run-script-quiet %source/compiler/callback-test.r
-  --run-script-quiet %source/compiler/infix-test.r
-  --run-script-quiet %source/compiler/not-test.r
-  --run-script-quiet %source/compiler/print-test.r
-  --run-script-quiet %source/compiler/enum-test.r
-  --run-script-quiet %source/compiler/pointer-test.r
-  --run-script-quiet %source/compiler/namespace-test.r
-  --run-script-quiet %source/compiler/compiles-ok-test.r
-===end-group===
-
 ***end-run-quiet***
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
 system/options/quiet: store-quiet-mode
 either batch-mode [
-  quit/return either qt/test-run/failures > 0 [1] [0]
-] [
-  ask "hit enter to finish"
-  print ""
-  qt/test-run/failures
+	quit/return either qt/test-run/failures > 0 [1] [0]
+][
+	print "The test output was logged to Red/quick-test/quick-test.log"
+	ask "hit enter to finish"
+	print ""
+	qt/test-run/failures
 ]

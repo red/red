@@ -13,32 +13,33 @@ change-dir %../
 ===start-group=== "Enum redeclaration errors"
 
   --test-- "enum-redec-1"
-	  --compile-this "#enum test! [print]"
+	  --compile-this "Red/System [] #enum test! [print]"
 	--assert-msg? "*** Compilation Error: attempt to redefine existing function name: print"
 	  --clean
 
 	--test-- "enum-redec-2"
-	  --compile-this "#enum print [foo]"
+	  --compile-this "Red/System [] #enum print [foo]"
 	--assert-msg? "*** Compilation Error: attempt to redefine existing function name: print"
 	  --clean
 
 	--test-- "enum-redec-3"
-    --compile-this "#enum test! [foo] foo: 3"
+    --compile-this "Red/System [] #enum test! [foo] foo: 3"
 	--assert-msg? "*** Compilation Error: redeclaration of enumerator foo from test!"
 	  --clean
 
 	--test-- "enum-redec-4"
-	  --compile-this "#enum test! [foo foo]"
+	  --compile-this "Red/System [] #enum test! [foo foo]"
 	--assert-msg? "*** Compilation Error: redeclaration of enumerator: foo"
 	  --clean
 
 	--test-- "enum-redec-5"
-	  --compile-this "#enum test! [a] #enum test! [b]"
+	  --compile-this "Red/System [] #enum test! [a] #enum test! [b]"
 	--assert-msg? "*** Compilation Error: redeclaration of enum identifier: test!"
 	  --clean
 
 	--test-- "enum-redec-6"
 	  --compile-this {
+	  	  Red/System [] 
 		  #define foo 3
 		  #enum test! [foo]
 		}
@@ -47,6 +48,7 @@ change-dir %../
 
 	--test-- "enum-redec-7"
 	  --compile-this {
+	  	  Red/System [] 
 		  #enum test! [foo]
 		  #define foo 3
 		  }
@@ -55,6 +57,7 @@ change-dir %../
 
 	--test-- "enum-redec-8"
 	  --compile-this {
+		  Red/System [] 
 		  #enum test! [foo]
 		  p: declare struct! [a [test!]]
 		  p/a: "a"
@@ -64,6 +67,7 @@ change-dir %../
 
 	--test-- "enum-redec-9"
 	  --compile-this {
+		  Red/System [] 
 		  #enum test! [foo]
 		  p: declare pointer! [test!]}
 	--assert-msg? "*** Compilation Error: invalid literal syntax: [test!]"
@@ -71,6 +75,7 @@ change-dir %../
 
 	--test-- "enum-redec-10"
 	  --compile-this {
+		  Red/System [] 
 		  #enum test! [foo: 3]
 		  f: func[foo [c-string!]][print foo]
 		  f "bar"
@@ -80,6 +85,7 @@ change-dir %../
 	  
 	--test-- "enum-redec-11"
 	  --compile-this {
+		  Red/System []
 		  #enum test! [foo]
 		  foo/1: 3
 		}
@@ -88,6 +94,7 @@ change-dir %../
 	  
 	--test-- "enum-redec-12"
 	  --compile-this {
+		  Red/System [] 
 		  #enum test! [foo: bla]
 		}
 	--assert-msg? "*** Compilation Error: cannot resolve literal enum value for: foo"

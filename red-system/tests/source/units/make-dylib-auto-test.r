@@ -31,6 +31,14 @@ dll-target: switch/default fourth system/version [
 	"Linux"
 ]
 
+;; workout dll names 
+suffix: switch/default fourth system/version [
+	2 [".dylib"]
+	3 [".dll"]
+][
+	".so"	
+]
+
 ;;; Processing
 
 ;; update the test header with the current make file length and write it
@@ -39,8 +47,8 @@ write file-out test-script-header
 
 ;; update the #include statements, write them and the tests
 if dll-target [
-	dll1-name: --compile-dll %source/units/libtest-dll1.reds dll-target
-	dll2-name: --compile-dll %source/units/libtest-dll2.reds dll-target
+	dll1-name: join %libtest-dll1 suffix
+	dll2-name: join %libtest-dll2 suffix 
 	either dll-target = "Windows" [
 		replace libs "***test-dll1***" dll1-name
 		replace libs "***test-dll2***" dll2-name

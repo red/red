@@ -7,7 +7,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-do %targets/target-class.r
+do-cache %red-system/targets/target-class.r
 
 emitter: make-profilable context [
 	code-buf: make binary! 100'000
@@ -92,7 +92,14 @@ emitter: make-profilable context [
 
 		join: func [a [block!] b [block!] /local bytes][
 			bytes: length? a/1
-			foreach ptr b/2 [ptr/1: ptr/1 + bytes]		;-- adjust relocs
+			remove-each ptr b/2 [						;-- attempt at fixing R2 memory corruptions
+				any [none? ptr not block? ptr not integer? ptr/1]
+			]
+			foreach ptr b/2 [
+				if all [ptr integer? ptr/1][			;-- workaround past-end blocks
+					ptr/1: ptr/1 + bytes				;-- adjust relocs
+				]
+			]
 			append a/1 b/1
 			append a/2 b/2		
 			a
@@ -110,7 +117,11 @@ emitter: make-profilable context [
 		case [
 			over [
 				size: target/emit-branch chunk/1 cond offset			
-				foreach ptr chunk/2 [ptr/1: ptr/1 + size]	;-- adjust relocs
+				foreach ptr chunk/2 [
+					if all [ptr integer? ptr/1][		;-- workaround past-end blocks
+						ptr/1: ptr/1 + size				;-- adjust relocs
+					]
+				]
 				size
 			]
 			back [
@@ -619,14 +630,15 @@ emitter: make-profilable context [
 		target/emit-prolog '***_start [] 0
 	]
 	
-	init: func [link? [logic!] job [object!]][
+	init: func [link? [logic!] job [object!] /local path][
 		if link? [
 			clear code-buf
 			clear data-buf
 			clear symbols
 		]
 		clear stack
-		target: do rejoin [%targets/ job/target %.r]
+		path: pick [%red-system/targets/ %targets/] encap?
+		target: do-cache rejoin [path job/target %.r]
 		target/compiler: compiler: system-dialect/compiler
 		target/PIC?: job/PIC?
 		target/void-ptr: head insert/dup copy #{} null target/ptr-size

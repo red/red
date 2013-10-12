@@ -97,6 +97,8 @@ natives: context [
 		value: block/rs-head as red-block! stack/arguments
 		tail:  block/rs-tail as red-block! stack/arguments
 		
+		if value = tail [RETURN_NONE]
+		
 		while [value < tail][
 			value: interpreter/eval-next value tail no
 			if logic/false? [RETURN_NONE]
@@ -361,6 +363,10 @@ natives: context [
 			TYPE_BLOCK [
 				interpreter/eval as red-block! arg
 			]
+			TYPE_PATH [
+				interpreter/eval-path arg arg arg + 1 no
+				stack/set-last arg + 1
+			]
 			TYPE_STRING [
 				str: as red-string! arg
 				s: GET_BUFFER(str)
@@ -425,7 +431,7 @@ natives: context [
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
 			
-			reduce* 1
+			if TYPE_OF(arg) = TYPE_BLOCK [reduce* 1]
 			actions/form* -1
 			str: as red-string! stack/arguments + 1
 			assert any [
@@ -561,14 +567,20 @@ natives: context [
 		header? [integer!]
 		all?	[integer!]
 		type?	[integer!]
+		into 	[integer!]
 		return: [red-value!]
 		/local
 			str [red-string!]
-			s	[series!]
+			dst [red-block!]
 	][
 		str: as red-string! stack/arguments
-		s: GET_BUFFER(str)
-		tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
+		dst: null
+		
+		if into >= 0 [
+			dst: as red-block! stack/push stack/arguments + into
+		]	
+		tokenizer/scan as c-string! string/rs-head str dst	;@@ temporary limited to Latin-1
+		unless null? dst [stack/set-last as red-value! dst]
 		
 		blk: as red-block! stack/arguments
 		if TYPE_OF(blk) = TYPE_BLOCK [

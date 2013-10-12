@@ -74,6 +74,13 @@ Red [
 		foo10: func [][1]
 		--assert 1 = foo10 "dummy"						;-- make it crash if wrong function referenced
 	
+	--test-- "fun-11"
+		non-evaluated: func ['param] [param]
+		res: first [(1 + 2)]
+		--assert quote (1 + 2) = res
+		--assert non-evaluated (quote (1 + 2)) = res
+		--assert non-evaluated quote (1 + 2) = 3
+
 ===end-group===
 
 ===start-group=== "Alternate constructor tests"
@@ -229,27 +236,27 @@ Red [
   		ri4-fn: func ['word] [mold :word]
   	--assert "+" = ri4-fn +
   	
-  	--test-- "ri5 issue #420"
-  		ri5-fn: function [][
-  			g: func [] [true]
-  			g
-  		]
-  	--assert ri5-fn
+  	;--test-- "ri5 issue #420"
+  	;	ri5-fn: function [][
+  	;		g: func [] [true]
+  	;		g
+  	;	]
+  	;--assert ri5-fn
   	
-  	--test-- "ri6 issue #420"
-  		ri6-fn: func [
-  			/local
-  				g
-  		][
-  			g: func [] [true]
-  			g
-  		]
-  	--assert ri6-fn
+  	;--test-- "ri6 issue #420"
+  	;	ri6-fn: func [
+  	;		/local
+  	;			g
+  	;	][
+  	;		g: func [] [true]
+  	;		g
+  	;	]
+  	;--assert ri6-fn
   	
-  	--test-- "ri7 issue #420"
-  		ri7-g: func [][true]
-  		ri7-f: func [][g]
-  	--assert ri7-f
+  	;--test-- "ri7 issue #420"
+  	;	ri7-g: func [][true]
+  	;	ri7-f: func [][g]
+  	;--assert ri7-f
   	
   	--test-- "ri8 issue #443"
   		ri8-fn: func[
@@ -269,14 +276,18 @@ Red [
   	--assert 200 = ri8-j
   	
   	--test-- "ri9 issue #443"
+  		ri9-i: -1
+  		ri9-j: -2
   		ri9-fn: function[][
   			ri9-b: copy []
   			foreach [ri9-i ri9-j] [1 2 3 4] [append ri9-b ri9-i * ri9-j]
   			ri9-b
   		]
   	--assert [2 12] = ri9-fn
-  	--assert unset! = type? get 'ri9-i
-  	--assert unset! = type? get 'ri9-j
+  	--assert ri9-i = -1
+  	--assert ri9-j = -2
+  	;--assert unset! = type? get 'ri9-i		;-- temporary disabled to avoid the hardcoded error msg
+  	;--assert unset! = type? get 'ri9-j
 
 ===end-group===
 

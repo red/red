@@ -34,6 +34,18 @@ loader: make-profilable context [
 		compiler/quit-on-error
 	]
 
+	count-slash: func [file /local cnt][
+		cnt: 0
+		parse file [some [slash (cnt: cnt + 1) | skip]]
+		cnt
+	]
+
+	pop-encap-path: func [cnt [integer!]][
+		path: tail encap-fs/base
+		loop cnt + 1 [path: find/reverse path slash]
+		clear next path
+	]
+
 	init: does [
 		clear include-list
 		clear defs
@@ -45,7 +57,9 @@ loader: make-profilable context [
 	]
 
 	included?: func [file [file!]][
-		file: get-modes file 'full-path
+		if encap? [file: join encap-fs/base file]
+		
+		attempt [file: get-modes file 'full-path]
 		either find include-list file [true][
 			append include-list file
 			false
@@ -201,6 +215,7 @@ loader: make-profilable context [
 
 	expand-block: func [
 		src [block!]
+		/own
 		/local blk rule name value args s e opr then-block else-block cases body
 			saved stack header mark idx prev enum-value enum-name enum-names line-rule recurse
 	][
@@ -294,12 +309,23 @@ loader: make-profilable context [
 						s: remove/part s e			;-- already included, drop it
 					][
 						if verbose > 0 [print ["...including file:" mold name]]
-						name: push-system-path name
-						value: skip process/short/sub name 2		;-- skip Red/System header
+						either all [encap? own][
+							mark: tail encap-fs/base
+							value: skip process/short/sub/own name 2	;-- skip Red/System header
+						][
+							name: push-system-path name
+							value: skip process/short/sub name 2		;-- skip Red/System header
+						]
 						e: change/part s value e
-						insert e reduce [			;-- put back the parent origin
-							#pop-path
-							#script current-script
+
+						value: either all [encap? own not empty? mark][
+							count-slash mark
+						][
+							0
+						]
+						insert e reduce [
+							#pop-path value
+							#script current-script	;-- put back the parent origin
 						]
 						insert s reduce [			;-- mark code origin	
 							#script name
@@ -328,9 +354,13 @@ loader: make-profilable context [
 						remove/part s e
 					]
 				) :s
-				| s: #pop-path e: (
-					pop-system-path
-					s: remove s
+				| s: #pop-path set value integer! e: (
+					either all [encap? own][
+						unless zero? value [pop-encap-path value]
+					][
+						pop-system-path
+					]
+					s: remove/part s 2
 				) :s
 				| line-rule
 				| s: issue! (
@@ -362,27 +392,37 @@ loader: make-profilable context [
 	]
 
 	process: func [
-		input [file! string! block!] /sub /with name [file!] /short
-		/local src err path ssp pushed?
+		input [file! string! block!] /sub /with name [file!] /short /own
+		/local src err path ssp pushed? raw
 	][
 		if verbose > 0 [print ["processing" mold either file? input [input][any [name 'in-memory]]]]
-
+		
+		if own [raw: input]
+		
 		if with [									;-- push alternate filename on stack
 			push-system-path join first split-path name %.
 			pushed?: yes
 		]
 
 		if file? input [
-			if input = %red.reds [					;-- special processing for Red runtime
-				system/script/path: join ssp-stack/1 %../red/runtime/
-				input: push-system-path join system/script/path input
-				pushed?: yes
-			]
 			if find input %/ [ 						;-- is there a path in the filename?
-				input: push-system-path input
+				either encap? [
+					raw: split-path input
+					if encap-fs/base [append encap-fs/base raw/1]
+					raw: raw/2
+					push-system-path input
+				][
+					input: push-system-path input
+				]
 				pushed?: yes
 			]
-			if error? set/any 'err try [src: as-string read/binary input][	;-- read source file
+			if error? set/any 'err try [			;-- read source file
+				src: as-string either all [encap? own][
+					read-binary-cache raw
+				][
+					read/binary input
+				]
+			][
 				throw-error ["file access error:" mold disarm err]
 			]
 		]
@@ -402,7 +442,13 @@ loader: make-profilable context [
 				throw-error ["syntax error during LOAD phase:" mold disarm err]
 			]
 		]
-		unless short [src: expand-block src]		;-- process block-level compiler directives
+		unless short [								;-- process block-level compiler directives
+			src: either all [encap? own][
+				expand-block/own src
+			][
+				expand-block src
+			]
+		]
 		if pushed? [pop-system-path]
 		src
 	]

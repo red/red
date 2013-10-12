@@ -76,6 +76,42 @@ tokenizer: context [
 		print-line #"!"
 	]
 	
+	preprocess: func [
+		str [red-string!]
+		/local
+			src	 [byte-ptr!]
+			tail [byte-ptr!]
+			dst	 [byte-ptr!]
+			s	 [series!]
+			c	 [byte!]
+	][
+		s: 		GET_BUFFER(str)
+		src:	string/rs-head str
+		tail:   string/rs-tail str
+		dst:	src
+		
+		while [src < tail][
+			either src/1 = #"^^" [
+				src: src + 1
+				c: src/1
+				dst/1: switch c [
+					#"-"	[#"^-"]
+					#"/"	[#"^/"]
+					#"^""	[#"^""]
+					#"^^"	[#"^^"]
+					#"{"	[#"{"]
+					default [src/1 - #"@"]
+				]
+			][
+				if dst <> src [dst/1: src/1]
+			]
+			src: src + 1
+			dst: dst + 1
+		]
+		dst/1: null-byte
+		s/tail:	as red-value! dst
+	]
+	
 	skip-spaces: func [
 		src		[c-string!]
 		return: [c-string!]
@@ -148,7 +184,7 @@ tokenizer: context [
 			saved [byte!]
 			count [integer!]
 	][
-		s: s + 1										;-- skip first double quote
+		s: s + 1										;-- skip opening brace
 		e: s
 		c: e/1
 		count: 1
@@ -159,12 +195,19 @@ tokenizer: context [
 				e: e + either c = #"^^" [2][1]
 				c: e/1
 			]
-			if c = #"}" [count: count - 1]
+			if c = #"}" [
+				count: count - 1
+				e: e + 1
+				c: e/1
+			]
 		]
+		e: e - 1
+		c: e/1
+		
 		if c <> #"}" [throw-error ERR_MULTI_STRING_DELIMIT]
 		saved: e/1										;@@ allocate a new buffer instead
 		e/1: null-byte
-		string/load-in s (as-integer e - s) + 1 blk
+		preprocess string/load-in s (as-integer e - s) + 1 blk
 		e/1: saved
 		either c = #"}" [e + 1][e]
 	]
@@ -189,7 +232,7 @@ tokenizer: context [
 		if c <> #"^"" [throw-error ERR_STRING_DELIMIT]
 		saved: e/1										;@@ allocate a new buffer instead
 		e/1: null-byte
-		string/load-in s (as-integer e - s) + 1 blk
+		preprocess string/load-in s (as-integer e - s) + 1 blk
 		e/1: saved
 		either c = #"^"" [e + 1][e]
 	]
@@ -356,7 +399,7 @@ tokenizer: context [
 		blk		[red-block!]
 		return: [c-string!]
 	][
-		src: scan src blk
+		src: scan src block/make-in blk 4				;-- arbitrary start size
 		src + 1											;-- skip ] character
 	]
 	
@@ -368,7 +411,7 @@ tokenizer: context [
 			s	 [series!]
 			slot [red-value!]
 	][
-		src: scan src blk
+		src: scan src block/make-in blk 4				;-- arbitrary start size
 		s: GET_BUFFER(blk)
 		slot: s/tail - 1
 		slot/header: TYPE_PAREN
@@ -389,7 +432,7 @@ tokenizer: context [
 		blk: either null? parent [
 			block/push* 4								;-- arbitrary start size
 		][
-			block/make-in parent 4						;-- arbitrary start size
+			parent
 		]
 		
 		while [

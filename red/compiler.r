@@ -7,7 +7,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-do %../red-system/compiler.r
+do-cache %red-system/compiler.r
 
 red: context [
 	verbose:	   0									;-- logs verbosity level
@@ -23,8 +23,8 @@ red: context [
 	aliases: 	   make hash! 100
 	contexts:	   make hash! 100						;-- storage for statically compiled contexts
 	ctx-stack:	   make block! 8						;-- contexts access path
-	lexer: 		   do bind load %lexer.r 'self
-	extracts:	   do bind load %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
+	lexer: 		   do bind load-cache %red/lexer.r 'self
+	extracts:	   do bind load-cache %red/utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
 		'block	   make hash! 1000
@@ -63,7 +63,7 @@ red: context [
 	
 	intrinsics:   [
 		if unless either any all while until loop repeat
-		foreach forall break halt func function does has
+		foreach forall break func function does has
 		exit return switch case routine set get reduce
 	]
 	
@@ -119,6 +119,7 @@ red: context [
 		parse code rule: [
 			some [
 				#include file: (
+					script-path: any [script-path main-path]
 					if all [script-path relative-path? file/1][
 						file/1: clean-path join script-path file/1
 					]
@@ -662,10 +663,11 @@ red: context [
 		name
 	]
 	
-	emit-path: func [path [path! set-path!] set? [logic!] /local value][
+	emit-path: func [path [path! set-path!] set? [logic!] /local value mark][
 		value: path/1
 		switch type?/word value [
 			word! [
+				add-symbol value: to word! clean-lf-flag value
 				case [
 					head? path [
 						emit-get-word value
@@ -698,16 +700,46 @@ red: context [
 					emit-open-frame 'poke
 					emit-path back path set?
 					emit-get-word to word! value
+					
+					emit copy/deep [unless stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
+					insert-lf -4
+					
+					mark: tail output					;-- SELECT action
+					emit [stack/pop 1]					;-- overwrite the get-word on stack top
 					insert-lf -2
+					emit-open-frame 'find
+					emit-path back path set?
+					emit-get-word to word! value
+					emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
+					emit-action 'index?
+					emit [stack/pop 2]
+					insert-lf -2
+					emit [integer/push 1]
+					insert-lf -2
+					emit-action 'add
+					emit-close-frame
+					convert-to-block mark
+					
 					comp-expression						;-- fetch assigned value
 					emit-action 'poke
 					emit-close-frame
 				][
-					emit-open-frame 'pick
+					add-symbol 'pick-select
+					emit-open-frame 'pick-select
 					emit-path back path set?
 					emit-get-word to word! value
-					insert-lf -2
+					
+					emit copy/deep [either stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
+					insert-lf -4
+					
+					mark: tail output					;-- PICK action
 					emit-action 'pick
+					convert-to-block mark
+					
+					mark: tail output					;-- SELECT action
+					emit-action/with 'select [-1 -1 -1 -1 -1 -1 -1 -1]
+					convert-to-block mark
+					
 					emit-close-frame
 				]
 			]
@@ -760,6 +792,9 @@ red: context [
 				break									;-- avoid processing local variable	
 			]
 			unless block? spec/1 [
+				unless block? spec/2 [
+					insert/only next spec [red-value!]
+				]
 				either find [integer! logic!] spec/2/1 [
 					append/only output append to path! form get spec/2/1 'get
 				][
@@ -1121,11 +1156,6 @@ red: context [
 		]
 	]
 	
-	comp-halt: does [
-		emit 'halt
-		insert-lf -1
-	]
-	
 	comp-func-body: func [
 		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
 		/local init locals ctx-values
@@ -1234,7 +1264,7 @@ red: context [
 			]
 		]
 		unless empty? words [
-			append spec /local
+			unless find spec /local [append spec /local]
 			append spec words
 		]
 	]
@@ -1424,7 +1454,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-case: has [all? path saved list mark body][
+	comp-case: has [all? path saved list mark body chunk][
 		if path? path: pc/-1 [
 			either path/2 = 'all [all?: yes][
 				throw-error ["CASE has no refinement called" path/2]
@@ -1443,8 +1473,26 @@ red: context [
 			comp-expression								;-- process condition
 			append/only list copy mark
 			clear mark
-			append/only list comp-sub-block 'case		;-- process case block
-			clear back tail output
+			case [
+				tail? pc [
+					throw-error "CASE is missing a value"
+				]
+				block? pc/1 [
+					append/only list comp-sub-block 'case	;-- process case block
+					clear back tail output
+				]
+				'else [
+					chunk: tail output
+					comp-expression/no-infix/root
+					all [								;-- fixes #512
+						not empty? chunk
+						chunk/1 <> 'stack/reset
+						insert/only chunk 'stack/reset
+					]
+					append/only list copy chunk
+					clear chunk
+				]
+			]
 		]
 		pc: next saved
 		
@@ -1482,12 +1530,13 @@ red: context [
 		]
 	]
 	
-	comp-reduce: has [list][
+	comp-reduce: has [list into?][
 		unless block? pc/1 [
+			into?: path? pc/-1
 			emit-open-frame 'reduce
 			comp-expression							;-- compile not-literal-block argument
-			if path? pc/-1 [comp-expression]		;-- optionally compile /into argument
-			emit-native/with 'reduce reduce [pick [1 -1] path? pc/-1]
+			if into? [comp-expression]				;-- optionally compile /into argument
+			emit-native/with 'reduce reduce [pick [1 -1] into?]
 			emit-close-frame
 			exit
 		]
@@ -1528,6 +1577,14 @@ red: context [
 				comp-set-word/native
 			]
 		][
+			if block? pc/1 [						;-- if words are literals, register them
+				foreach w pc/1 [
+					add-symbol w: to word! w
+					unless local-word? w [
+						add-global w				;-- register it as global
+					]
+				]
+			]
 			emit-open-frame 'set
 			comp-expression
 			comp-expression
@@ -1536,12 +1593,13 @@ red: context [
 		]
 	]
 	
-	comp-get: does [
+	comp-get: has [symbol][
 		either lit-word? pc/1 [
+			add-symbol symbol: to word! pc/1
 			either path? pc/-1 [						;@@ add check for validaty of refinements		
-				emit-get-word/any? to word! pc/1
+				emit-get-word/any? symbol
 			][
-				emit-get-word to word! pc/1
+				emit-get-word symbol
 			]
 			pc: next pc
 		][
@@ -1591,9 +1649,9 @@ red: context [
 							comp-call path entry/2		;-- call function with refinements
 							exit
 						][
-							--not-implemented--			;TBD: resolve access path to function
+							;--not-implemented--			;TBD: resolve access path to function
 						]
-						emit?: no						;-- no further emitted code needed
+						;emit?: no						;-- no further emitted code needed
 					]
 				]
 				get-word! [
@@ -1624,21 +1682,26 @@ red: context [
 			]
 			switch type?/word spec/1 [
 				lit-word! [
-					add-symbol word: to word! pc/1
-					
 					switch/default type?/word pc/1 [
 						get-word! [
+							add-symbol to word! pc/1
 							comp-expression
 						]
 						lit-word! [
+							add-symbol word: to word! pc/1
 							emit 'lit-word/push
 							emit decorate-symbol word
 							insert-lf -2
 							pc: next pc
 						]
+						word! [
+							add-symbol word: to word! pc/1
+							emit-push-word word				;@@ add specific type checking
+							pc: next pc
+						]
+						paren! [comp-expression]
 					][
-						emit-push-word word				;@@ add specific type checking
-						pc: next pc
+						comp-literal no
 					]
 				]
 				get-word! [comp-literal no]
@@ -1798,10 +1861,22 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /local name local? alter][
+	comp-word: func [/literal /final /local name local? alter emit-word][
 		name: to word! pc/1
 		pc: next pc										;@@ move it deeper
 		local?: local-word? name
+		
+		emit-word: [
+			either lit-word? pc/-1 [				;@@
+				emit-push-word name
+			][
+				either literal [
+					emit-get-word/literal name
+				][
+					emit-get-word name
+				]
+			]
+		]
 		
 		case [
 			name = 'exit	[comp-exit]
@@ -1831,19 +1906,15 @@ red: context [
 				find globals name
 				find-contexts name
 			][
-				either lit-word? pc/-1 [				;@@
-					emit-push-word name
-				][
-					either literal [
-						emit-get-word/literal name
-					][
-						emit-get-word name
-					]
-				]
+				do emit-word
 			]
 			'else [
-				pc: back pc
-				throw-error ["undefined word" pc/1]
+				either job/red-strict-check? [
+					pc: back pc
+					throw-error ["undefined word" pc/1]
+				][
+					do emit-word
+				]
 			]
 		]
 	]
@@ -2001,6 +2072,9 @@ red: context [
 					throw-error "#system-global requires a block argument"
 				]
 				process-include-paths pc/2
+				unless sys-global/1 = 'Red/System [
+					append sys-global copy/deep [Red/System []]
+				]
 				append sys-global pc/2
 				pc: skip pc 2
 				true
@@ -2020,7 +2094,7 @@ red: context [
 				true
 			]
 			#version [
-				change pc rejoin [load %version.r ", " now]
+				change pc rejoin [load-cache %version.r ", " now]
 			]
 		]
 	]
@@ -2068,12 +2142,13 @@ red: context [
 	]
 	
 	comp-chunked-block: has [list mark saved][
-		list: make block! 1
+		list: make block! 10
 		saved: pc
 		pc: pc/1										;-- dive in nested code
 		mark: tail output
 		
 		comp-block/no-root/with [
+			mold mark									;-- black magic, fixes #509, R2 internal memory corruption
 			append/only list copy mark
 			clear mark
 		]
@@ -2188,8 +2263,6 @@ red: context [
 				type:   'dll
 				origin: 'Red
 			]
-
-			#include %red.reds
 			
 			with red [
 				exec: context [
@@ -2249,8 +2322,6 @@ red: context [
 		
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
-			insert at out 3 sys-global
-			new-line at out 3 yes
 		]
 		
 		pos: third pick tail out -4
@@ -2266,7 +2337,6 @@ red: context [
 		out: copy/deep [
 			Red/System [origin: 'Red]
 
-			#include %red.reds
 			red/init
 			
 			with red [
@@ -2306,8 +2376,6 @@ red: context [
 		
 		unless empty? sys-global [
 			process-calls/global sys-global				;-- lazy #call processing
-			insert at out 3 sys-global
-			new-line at out 3 yes
 		]
 
 		change/only find last out <script> script		;-- inject compilation result in template
@@ -2318,7 +2386,7 @@ red: context [
 	load-source: func [file [file! block!] /hidden /local src][
 		either file? file [
 			unless hidden [script-name: file]
-			src: lexer/process read/binary file
+			src: lexer/process read-binary-cache file
 		][
 			unless hidden [script-name: 'memory]
 			src: file

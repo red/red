@@ -82,6 +82,20 @@ Red [
 
 Windows?: system/platform = 'Windows
 
+read-argument: routine [
+	/local
+		args [str-array!]
+		str	 [red-string!]
+][
+	if system/args-count <> 2 [
+		SET_RETURN(none-value)
+		exit
+	]
+	args: system/args-list + 1							;-- skip binary filename
+	str: simple-io/read-txt args/item
+	SET_RETURN(str)
+]
+
 init-console: routine [
 	str [string!]
 	/local
@@ -112,7 +126,7 @@ input: routine [
 		len: len + 1
 		buffer/len: null-byte
 		str: string/load as c-string! buffer len
-;		free buffer
+		free buffer
 	][
 		line: read-line as c-string! string/rs-head prompt
 		if line = null [halt]  ; EOF
@@ -133,17 +147,24 @@ count-delimiters: function [
 	c: none
 	
 	foreach c buffer [
-		either in-comment? [
-			switch c [
-				#"^/" [in-comment?: false]
+		case [
+			escaped? [
+				escaped?: no
 			]
-		][
-			switch c [
-				#";" [in-comment?: true]
-				#"[" [list/1: list/1 + 1]
-				#"]" [list/1: list/1 - 1]
-				#"{" [list/2: list/2 + 1]
-				#"}" [list/2: list/2 - 1]
+			in-comment? [
+				switch c [
+					#"^/" [in-comment?: no]
+				]
+			]
+			'else [
+				switch c [
+					#"^^" [escaped?: yes]
+					#";"  [if zero? list/2 [in-comment?: yes]]
+					#"["  [list/1: list/1 + 1]
+					#"]"  [list/1: list/1 - 1]
+					#"{"  [list/2: list/2 + 1]
+					#"}"  [list/2: list/2 - 1]
+				]
 			]
 		]
 	]
@@ -211,11 +232,24 @@ do-console: function [][
 
 q: :quit
 
+if script: read-argument [
+	script: load script
+	either any [
+		script/1 <> 'Red
+		not block? script/2 
+	][
+		print "*** Error: not a Red program!"
+	][
+		do skip script 2
+	]
+	quit
+]
+
 init-console "Red Console"
 
 print {
 -=== Red Console alpha version ===-
-(only Latin-1 input supported)
+(only ASCII input supported)
 }
 
 do-console

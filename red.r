@@ -8,13 +8,83 @@ REBOL [
 	Usage:   {
 		do/args %red.r "-o path/source.red"
 	}
+	Encap: [quiet secure none title "Red" no-window] 
 ]
 
+unless value? 'encap-fs [do %red-system/utils/encap-fs.r]
+
 unless all [value? 'red object? :red][
-	do %red/compiler.r
+	do-cache %red/compiler.r
 ]
 
 redc: context [
+
+	Windows?: system/version/4 = 3
+	
+	if encap? [
+		temp-dir: switch/default system/version/4 [
+			2 [											;-- MacOS X
+				libc: load/library %libc.dylib
+				sys-call: make routine! [cmd [string!]] libc "system"
+				%/tmp/red/
+			]
+			3 [											;-- Windows
+				either lib?: find system/components 'Library [
+					sys-path: to-rebol-file get-env "SystemRoot"
+					shell32: load/library sys-path/System32/shell32.dll
+					libc:  	 load/library sys-path/System32/msvcrt.dll
+
+					CSIDL_COMMON_APPDATA: to integer! #{00000023}
+
+					SHGetFolderPath: make routine! [
+							hwndOwner 	[integer!]
+							nFolder		[integer!]
+							hToken		[integer!]
+							dwFlags		[integer!]
+							pszPath		[string!]
+							return: 	[integer!]
+					] shell32 "SHGetFolderPathA"
+
+					sys-call: make routine! [cmd [string!] return: [integer!]] libc "system"
+
+					path: head insert/dup make string! 255 null 255
+					unless zero? SHGetFolderPath 0 CSIDL_COMMON_APPDATA 0 0 path [
+						fail "SHGetFolderPath failed: can't determine temp folder path"
+					]
+					append dirize to-rebol-file trim path %Red/
+				][
+					sys-call: func [cmd][call/wait cmd]
+					append to-rebol-file get-env "ALLUSERSPROFILE" %/Red/
+				]
+			]
+		][												;-- Linux (default)
+			any [
+				exists? libc: %libc.so.6
+				exists? libc: %/lib32/libc.so.6
+				exists? libc: %/lib/i386-linux-gnu/libc.so.6	; post 11.04 Ubuntu
+				exists? libc: %/lib/libc.so.6
+				exists? libc: %/System/Index/lib/libc.so.6  	; GoboLinux package
+				exists? libc: %/system/index/framework/libraries/libc.so.6  ; Syllable
+				exists? libc: %/lib/libc.so.5
+			]
+			libc: load/library libc
+			sys-call: make routine! [cmd [string!]] libc "system"
+			%/tmp/red/
+		]
+	]
+	
+	;; Select a default target based on the REBOL version.
+	default-target: does [
+		any [
+			select [
+				2 "Darwin"
+				3 "MSDOS"
+				4 "Linux"
+			] system/version/4
+			"MSDOS"
+		]
+	]
+
 	fail: func [value] [
 		print value
 		if system/options/args [quit/return 1]
@@ -54,43 +124,116 @@ redc: context [
 	]
 
 	load-targets: func [/local targets] [
-		targets: load %red-system/config.r
+		targets: load-cache %red-system/config.r
 		if exists? %red-system/custom-targets.r [
 			insert targets load %red-system/custom-targets.r
 		]
 		targets
 	]
+	
+	red-system?: func [file [file!] /local ws rs?][
+		ws: charset " ^-^/^M"
+		parse/all/case read file [
+			some [
+				thru "Red"
+				opt ["/System" (rs?: yes)]
+				any ws 
+				#"[" (return to logic! rs?)
+				to end
+			]
+		]
+		no
+	]
+	
+	safe-to-local-file: func [file [file!]][
+		if all [
+			find file: to-local-file file #" "
+			Windows?
+		][
+			file: rejoin [{"} file {"}]					;-- avoid issues with blanks in path
+		]
+		file
+	]
+	
+	run-console: func [/with file [string!] /local opts result script exe .exe sob][
+		script: temp-dir/red-console.red
+		exe: temp-dir/console
+		.exe: %.exe
+		sob: system/options/boot
+		
+		if Windows? [
+			append exe .exe
+			if .exe <> skip tail sob -4 [append sob .exe]
+		]
+		
+		unless exists? temp-dir [make-dir temp-dir]
+		
+		if any [
+			not exists? exe 
+			(modified? exe) < modified? sob					;-- check that console is up to date.
+		][
+			write script read-cache %red/tests/console.red
+
+			opts: make system-dialect/options-class [		;-- minimal set of compilation options
+				link?: yes
+				unicode?: yes
+				config-name: to word! default-target
+				build-basename: %console
+				build-prefix: temp-dir
+			]
+			opts: make opts select load-targets opts/config-name
+
+			print "Pre-compiling Red console..."
+			result: red/compile script opts
+			system-dialect/compile/options/loaded script opts result/1
+			
+			delete script
+			
+			if all [Windows? not lib?][
+				print "Please run red.exe again to access the console."
+				quit/return 1
+			]
+		]
+		exe: safe-to-local-file exe
+		if with [repend exe [#" " file]]
+		sys-call exe									;-- replace the buggy CALL native
+		quit/return 0
+	]
 
 	parse-options: has [
-		args srcs opts output target verbose filename config config-name base-path type
+		args src opts output target verbose filename config config-name base-path type
+		mode target?
 	] [
-		args: any [system/options/args parse any [system/script/args ""] none]
-
-		;; Select a default target based on the REBOL version.
-		target: any [
-			select [
-				2 "Darwin"
-				3 "MSDOS"
-				4 "Linux"
-			] system/version/4
-			"MSDOS"
+		args: any [
+			system/options/args
+			parse any [system/script/args ""] none
 		]
-
-		srcs: copy []
+		target: default-target
 		opts: make system-dialect/options-class [link?: yes]
 
-		parse args [
+		parse/case args [
 			any [
-				["-d" | "--debug"]  		(opts/debug?: yes)
+				  ["-c"	| "--compile"]		(type: 'exe)
+				| ["-r" | "--no-runtime"]   (opts/runtime?: no)		;@@ overridable by config!
+				| ["-d" | "--debug" | "--debug-stabs"]	(opts/debug?: yes)
 				| ["-o" | "--output"]  		set output skip
-				| ["-t" | "--target"]  		set target skip
+				| ["-t" | "--target"]  		set target skip (target?: yes)
 				| ["-v" | "--verbose"] 		set verbose skip	;-- 1-3: Red, >3: Red/System
+				| ["-h" | "--help"]			(mode: 'help)
+				| ["-V" | "--version"]		(mode: 'version)
 				| "--red-only"				(opts/red-only?: yes)
 				| ["-dlib" | "--dynamic-lib"] (type: 'dll)
 				;| ["-slib" | "--static-lib"] (type 'lib)
-				;| "--custom"				;@@ pass-thru for Red/System specific arguments
-				| set filename skip (append srcs load-filename filename)
 			]
+			set filename skip (src: load-filename filename)
+		]
+		
+		if mode [
+			switch mode [
+				help	[print read-cache %usage.txt]
+				version [print load-cache %version.r]
+			]
+			quit/return 0
 		]
 
 		;; Process -t/--target first, so that all other command-line options
@@ -98,16 +241,24 @@ redc: context [
 		unless config: select load-targets config-name: to word! trim target [
 			fail ["Unknown target:" target]
 		]
-		base-path: system/script/parent/path
+		base-path: either encap? [
+			system/options/path
+		][
+			system/script/parent/path
+		]
 		opts: make opts config
 		opts/config-name: config-name
 		opts/build-prefix: base-path
 
 		;; Process -o/--output (if any).
 		if output [
-			opts/build-basename: load-filename output
-			if slash = first opts/build-basename [
-				opts/build-prefix: %""
+			either slash = last output [
+				attempt [opts/build-prefix: to-rebol-file output]
+			][
+				opts/build-basename: load-filename output
+				if slash = first opts/build-basename [
+					opts/build-prefix: %""
+				]
 			]
 		]
 
@@ -124,66 +275,98 @@ redc: context [
 			if opts/OS <> 'Windows [opts/PIC?: yes]
 		]
 		
-		;; Process input sources.
-		if empty? srcs [fail "No source files specified."]
+		;; Check common syntax mistakes
+		if all [
+			any [type output verbose target?]			;-- -c | -o | -dlib | -t | -v
+			none? src
+		][
+			fail "Source file is missing"
+		]
+		if all [output output/1 = #"-"][				;-- -o (not followed by option)
+			fail "Missing output file or path"
+		]
 		
-		forall srcs [
-			if slash <> first srcs/1 [								;-- if relative path
-				srcs/1: clean-path join base-path srcs/1			;-- add working dir path
-			]
-			unless exists? srcs/1 [
-				fail ["Cannot access source file:" srcs/1]
+		;; Process input sources.
+		unless src [
+			either encap? [
+				run-console
+			][
+				fail "No source files specified."
 			]
 		]
+		
+		if all [encap? none? output none? type][
+			run-console/with filename
+		]
+		
+		if slash <> first src [							;-- if relative path
+			src: clean-path join base-path src			;-- add working dir path
+		]
+		unless exists? src [
+			fail ["Cannot access source file:" src]
+		]
 
-		reduce [srcs opts]
+		reduce [src opts]
 	]
 
-	main: has [srcs opts build-dir result saved] [
-		set [srcs opts] parse-options
+	main: has [src opts build-dir result saved rs? prefix] [
+		set [src opts] parse-options
+		
+		rs?: red-system? src
 
 		;; If we use a build directory, ensure it exists.
-		if all [opts/build-prefix find opts/build-prefix %/] [
-			build-dir: copy/part opts/build-prefix find/last opts/build-prefix %/
+		if all [prefix: opts/build-prefix find prefix %/] [
+			build-dir: copy/part prefix find/last prefix %/
 			unless attempt [make-dir/deep build-dir] [
 				fail ["Cannot access build dir:" build-dir]
 			]
 		]
 		
-	;--- 1st pass: Red compiler ---
-		
 		print [
 			newline
-			"-= Red Compiler =-" newline
-			"Compiling" srcs "..."
+			"-=== Red Compiler" read-cache %version.r "===-" newline newline
+			"Compiling" src "..."
 		]
-		fail-try "Red Compiler" [
-			result: red/compile srcs/1 opts
+		
+		unless rs? [
+	;--- 1st pass: Red compiler ---
+			
+			fail-try "Red Compiler" [
+				result: red/compile src opts
+			]
+			print ["...compilation time:" tab round result/2/second * 1000 "ms"]
+			if opts/red-only? [exit]
 		]
-		print ["^/...compilation time:" tab round result/2/second * 1000 "ms"]
-		if opts/red-only? [exit]
+		
 	;--- 2nd pass: Red/System compiler ---
 		
 		print [
 			newline
-			"Compiling to native code..." newline
+			"Compiling to native code..."
 		]
 		fail-try "Red/System Compiler" [
-			change-dir %red-system/
-			opts/unicode?: yes							;-- force Red/System to use Red's Unicode API
-			opts/verbosity: max 0 opts/verbosity - 3	;-- Red/System verbosity levels upped by 3
-			result: system-dialect/compile/options/loaded srcs opts result/1
-			change-dir %../
+			unless encap? [change-dir %red-system/]
+			result: either rs? [
+				system-dialect/compile/options src opts
+			][
+				opts/unicode?: yes							;-- force Red/System to use Red's Unicode API
+				opts/verbosity: max 0 opts/verbosity - 3	;-- Red/System verbosity levels upped by 3
+				system-dialect/compile/options/loaded src opts result/1
+			]
+			unless encap? [change-dir %../]
 		]
-		print ["...compilation time:" tab round result/1/second * 1000 "ms"]
+		print ["...compilation time :" round result/1/second * 1000 "ms"]
 		
 		if result/2 [
 			print [
-				"...linking time:    " tab round result/2/second * 1000 "ms^/"
-				"...output file size:" tab result/3 "bytes"
+				"...linking time     :" round result/2/second * 1000 "ms^/"
+				"...output file size :" result/3 "bytes^/"
+				"...output file      :" to-local-file result/4
 			]
 		]
+		unless Windows? [print ""]							;-- extra LF for more readable output
 	]
 
 	fail-try "Driver" [main]
+	if encap? [quit/return 0]
 ]

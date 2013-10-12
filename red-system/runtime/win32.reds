@@ -115,6 +115,7 @@ win32-startup-ctx: context [
 			80000001h [21]							;-- guard page
 			C0000008h [22]							;-- invalid handle
 			C000013Ah [0]							;-- CTRL-C exit
+			default	  [99]
 		]
 
 		***-on-quit error record/error/address

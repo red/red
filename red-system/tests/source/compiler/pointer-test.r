@@ -15,6 +15,7 @@ change-dir %../
 
 	--test-- "pointer error 1"
 	--compile-this {
+	    Red/System [] 
 	    f: func [
 	      [typed]
 	      count           [integer!]
@@ -25,15 +26,16 @@ change-dir %../
 	    ]
 	    f [:i]
 	  }
-	--assert-msg? "*** Compilation Error: cannot get a pointer on an undefined identifier"
+	--assert-msg? "*** Compilation Error: undefined symbol: i"
 	  --clean
 	
 	--test-- "pointer error 2"
 	--compile-this {
+	    Red/System [] 
 	    pi: declare pointer! [integer!]
 	    pi: :i
 	  }
-	--assert-msg? "*** Compilation Error: cannot get a pointer on an undefined identifier"
+	--assert-msg? "*** Compilation Error: undefined symbol: i"
 	  --clean
 ===end-group===
 

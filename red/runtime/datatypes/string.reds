@@ -135,6 +135,7 @@ string: context [
 
 		s: GET_BUFFER(str)
 
+		if all [base = 1 index/value <= 0][base: base - 1]
 		offset: str/head + index/value - base			;-- index is one-based
 		if negative? offset [offset: 0]
 		max: (as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1)
@@ -596,7 +597,11 @@ string: context [
 	][
 		idx: cp + 1
 		case [
-			any [cp > 7Fh cp = 1Eh][
+			cp = 5Eh [
+				append-char GET_BUFFER(buffer) as-integer #"^^"
+				append-char GET_BUFFER(buffer) as-integer #"^^"
+			]
+			cp > 7Fh [
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
 				concatenate-literal buffer to-hex cp
@@ -685,11 +690,14 @@ string: context [
 			either open =  #"{" [
 				switch cp [
 					#"{" #"}" [
-						append-char GET_BUFFER(buffer) as-integer #"^^"
+						if curly <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
 						append-char GET_BUFFER(buffer) cp
 					]
-					#"^/" #"^"" [
+					#"^"" [
 						append-char GET_BUFFER(buffer) cp
+					]
+					#"^^" [
+						concatenate-literal buffer "^^^^"
 					]
 					default [
 						append-escaped-char buffer cp
@@ -1060,7 +1068,9 @@ string: context [
 				c2: char/value
 				if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
 			]
-			TYPE_STRING TYPE_FILE TYPE_WORD [
+			TYPE_STRING
+			TYPE_FILE
+			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
 					str2: as red-string! word/get-buffer as red-word! value
 					head2: 0							;-- str2/head = -1 (casted from symbol!)
@@ -1070,7 +1080,7 @@ string: context [
 				]
 				s2: GET_BUFFER(str2)
 				unit2: GET_UNIT(s2)
-				pattern: (as byte-ptr! s2/offset) + (head2 << (unit >> 1))
+				pattern: (as byte-ptr! s2/offset) + (head2 << (unit2 >> 1))
 				end2:    (as byte-ptr! s2/tail)
 			]
 			default [
@@ -1157,7 +1167,7 @@ string: context [
 			any [
 				match?									;-- /match option limits to one comparison
 				all [not match? found?]					;-- match found
-				all [reverse? buffer <= end]			;-- head of block series reached
+				all [reverse? buffer < end]				;-- head of block series reached
 				all [not reverse? buffer >= end]		;-- tail of block series reached
 			]
 		]
@@ -1360,8 +1370,8 @@ string: context [
 					][
 						insert-char s str/head + i char/value
 						i: i + 1
-						added: added + 1
 					]
+					added: added + 1
 				][
 					either any [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?

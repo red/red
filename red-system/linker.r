@@ -47,14 +47,19 @@ linker: context [
 		
 		foreach [name spec] job/symbols [
 			unless empty? spec/3 [
-				switch spec/1 [
-					global [						;-- code to data references
-						pointer/value: data-offset + spec/2
-						foreach ref spec/3 [change at cbuf ref form-struct pointer]
+				all [
+					any [
+						all [
+							spec/1 = 'global		;-- code to data references
+							pointer/value: data-offset + spec/2
+						]
+						all [
+							spec/1 = 'native-ref	;-- code to code references
+							pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
+						]
 					]
-					native-ref [					;-- code to code references
-						pointer/value: either job/PIC? [spec/2][code-ptr + spec/2]
-						foreach ref spec/3 [change at cbuf ref form-struct pointer]
+					foreach ref spec/3 [
+						if integer? ref [change at cbuf ref form-struct pointer]
 					]
 				]
 			]
@@ -118,21 +123,29 @@ linker: context [
 		]
 	]
 
-	make-filename: func [job [object!]][
-		rejoin [
-			any [job/build-prefix %""]
-			job/build-basename
-			any [job/build-suffix select file-emitter/defs/extensions job/type]
+	make-filename: func [job [object!] /local base provided suffix][
+		provided: suffix? base: job/build-basename
+		suffix: any [
+			job/build-suffix
+			select file-emitter/defs/extensions job/type
 		]
+		if any [none? suffix suffix <> provided][
+			base: join base suffix
+		]
+		join any [job/build-prefix %""] base
 	]
 	
 	build: func [job [object!] /local file fun][
 		unless job/target [job/target: cpu-class]
-		job/buffer: make binary! 100 * 1024
+		job/buffer: make binary! 512 * 1024
 	
 		clean-imports job/sections/import
 	
-		file-emitter: do rejoin [%formats/ job/format %.r]
+		file-emitter: either encap? [
+			do-cache rejoin [%red-system/formats/ job/format %.r]
+		][
+			do rejoin [%formats/ job/format %.r]
+		]
 		file-emitter/build job
 
 		file: make-filename job
