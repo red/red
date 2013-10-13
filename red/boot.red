@@ -772,7 +772,7 @@ parse: make native! [[
 		;/strict
 		return: [logic!]
 	]
-	#get-definition NAT_BIND
+	#get-definition NAT_PARSE
 ]
 
 ;------------------------------------------
