@@ -25,6 +25,19 @@ block: context [
 		(as-integer (s/tail - s/offset)) >> 4 - blk/head
 	]
 	
+	rs-next: func [
+		blk 	[red-block!]
+		return: [logic!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(blk)
+		if (s/offset + blk/head + 1) <= s/tail [
+			blk/head: blk/head + 1
+		]
+		s/offset + blk/head = s/tail
+	]
+	
 	rs-head: func [
 		blk 	[red-block!]
 		return: [red-value!]
@@ -59,8 +72,7 @@ block: context [
 		value	[red-value!]
 		return: [red-block!]
 	][
-		copy-cell value ALLOC_TAIL(blk)
-		blk
+		as red-block! copy-cell value ALLOC_TAIL(blk)
 	]
 	
 	rs-append-block: func [
@@ -578,18 +590,11 @@ block: context [
 		return:	[red-value!]
 		/local
 			blk	[red-block!]
-			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/next"]]
 	
-		blk: as red-block! stack/arguments
-		
-		s: GET_BUFFER(blk)
-		
-		if (s/offset + blk/head + 1) <= s/tail [
-			blk/head: blk/head + 1
-		]
-		as red-value! blk
+		rs-next as red-block! stack/arguments
+		stack/arguments
 	]
 		
 	skip: func [

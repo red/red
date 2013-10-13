@@ -77,6 +77,22 @@ string: context [
 	][
 		get-length str
 	]
+	
+	rs-next: func [
+		str 	[red-string!]
+		return: [logic!]
+		/local
+			s	   [series!]
+			offset [integer!]
+	][
+		s: GET_BUFFER(str)
+		offset: str/head + 1 << (GET_UNIT(s) >> 1)
+		
+		if (as byte-ptr! s/offset) + offset <= as byte-ptr! s/tail [
+			str/head: str/head + 1
+		]
+		(as byte-ptr! s/offset) + offset = as byte-ptr! s/tail
+	]
 
 	rs-head: func [
 		str	    [red-string!]
@@ -899,20 +915,11 @@ string: context [
 
 	next: func [
 		return:	  [red-value!]
-		/local
-			str	  [red-string!]
-			s	  [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/next"]]
 
-		str: as red-string! stack/arguments
-
-		s: GET_BUFFER(str)
-
-		if (as byte-ptr! s/offset) + (str/head + 1 << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail [
-			str/head: str/head + 1
-		]
-		as red-value! str
+		rs-next as red-string! stack/arguments
+		stack/arguments
 	]
 
 	skip: func [
