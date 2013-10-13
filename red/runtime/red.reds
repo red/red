@@ -69,6 +69,7 @@ red: context [
 	#include %tokenizer.reds
 	#include %actions.reds
 	#include %natives.reds
+	#include %parse.reds
 	#include %stack.reds
 	#include %interpreter.reds
 	#include %simple-io.reds							;-- temporary file IO support
@@ -159,6 +160,7 @@ red: context [
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity
+			parser/verbose:		verbosity
 
 			stack/verbose:		verbosity
 			unicode/verbose:	verbosity

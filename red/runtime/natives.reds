@@ -769,14 +769,31 @@ natives: context [
 			word/index: _context/find-word ctx word/symbol
 		]
 	]
+	
+	parse*: func [
+		all?  [integer!]
+		case? [integer!]
+		;strict? [integer!]
+		/local
+			match? [logic!]
+	][
+		match?: parser/process
+			as red-series! stack/arguments
+			as red-block!  stack/arguments + 1
+			as logic! all? + 1 
+			as logic! case? + 1
+			;as logic! strict? + 1
+			
+		stack/set-last as red-value! logic/push match?
+	]
 
 	;--- Natives helper functions ---
 	
 	loop?: func [
-		series     [red-series!]
-		return:    [logic!]	
+		series  [red-series!]
+		return: [logic!]	
 		/local
-			s	   [series!]
+			s [series!]
 	][
 		s: GET_BUFFER(series)
 	
@@ -966,6 +983,7 @@ natives: context [
 			:compose*
 			:stats*
 			:bind*
+			:parse*
 		]
 	]
 

@@ -764,6 +764,17 @@ bind: make native! [[
 	#get-definition NAT_BIND
 ]
 
+parse: make native! [[
+		input [series!]
+		rules [block!]
+		/all
+		/case
+		;/strict
+		return: [logic!]
+	]
+	#get-definition NAT_BIND
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
