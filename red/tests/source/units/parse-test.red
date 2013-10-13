@@ -3,7 +3,7 @@ Red [
 	Author:  "Nenad Rakocevic"
 	File: 	 %parse-test.reds
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -42,38 +42,38 @@ Red [
 		
 	--test-- "blk-21"
 		res: 0	
-		--assert parse [a] ['a (res: 1)]
-		--assert res = 1
+	--assert parse [a] ['a (res: 1)]
+	--assert res = 1
 		
 	--test-- "blk-22"
 		res: 0	
-		--assert not parse [a] ['b (res: 1)]
-		--assert res = 0
+	--assert not parse [a] ['b (res: 1)]
+	--assert res = 0
 		
 	--test-- "blk-23"
 		res: 0	
-		--assert parse [] [[(res: 1)]]
-		--assert res = 1
+	--assert parse [] [[(res: 1)]]
+	--assert res = 1
 
 	--test-- "blk-24"
 		res: 0	
-		--assert parse [a] [['a (res: 1)]]
-		--assert res = 1
+	--assert parse [a] [['a (res: 1)]]
+	--assert res = 1
 
 	--test-- "blk-25"
 		res: 0	
-		--assert not parse [a] [['b (res: 1)]]
-		--assert res = 0
+	--assert not parse [a] [['b (res: 1)]]
+	--assert res = 0
 		
 	--test-- "blk-26"
 		res: 0	
-		--assert parse [a 123] ['a (res: 1) [char! (res: 2) | integer! (res: 3)]]
-		--assert res = 3
+	--assert parse [a 123] ['a (res: 1) [char! (res: 2) | integer! (res: 3)]]
+	--assert res = 3
 		
 	--test-- "blk-27"
 		res: 0	
-		--assert not parse [a 123] ['a (res: 1) [char! (res: 2) | string! (res: 3)]]
-		--assert res = 1
+	--assert not parse [a 123] ['a (res: 1) [char! (res: 2) | string! (res: 3)]]
+	--assert res = 1
 
 	--test-- "blk-28"	--assert not parse		[a a]		[1 ['a]]
    	--test-- "blk-29"	--assert parse			[a a]		[2 ['a]]
@@ -114,46 +114,71 @@ Red [
 
 	--test-- "blk-59"
 		p: none
-		--assert parse [] [p:]
-		--assert tail? p
+	--assert parse [] [p:]
+	--assert tail? p
 	
 	--test-- "blk-60"
 		p: none
-		--assert parse [] [[[p:]]]
-		--assert tail? p
+	--assert parse [] [[[p:]]]
+	--assert tail? p
 
 		
 	--test-- "blk-61"
 		p: none
-		--assert parse [a] [p: 'a]
-		--assert p = [a]
+	--assert parse [a] [p: 'a]
+	--assert p = [a]
 		
 	--test-- "blk-62"
 		p: none
-		--assert parse [a] ['a p:]
-		--assert tail? p
+	--assert parse [a] ['a p:]
+	--assert tail? p
 		
 	--test-- "blk-63"
 		p: none
-		--assert parse [a] ['a [p:]]
-		--assert tail? p
+	--assert parse [a] ['a [p:]]
+	--assert tail? p
 		
 	--test-- "blk-64"
 		p: none
-		--assert not parse [a b] ['a p:]
-		--assert p = [b]
+	--assert not parse [a b] ['a p:]
+	--assert p = [b]
 	
 	--test-- "blk-65"
 		p: none
-		--assert parse [a b] ['a [p:]['b | 'c]]
-		--assert p = [b]
+	--assert parse [a b] ['a [p:]['b | 'c]]
+	--assert p = [b]
 		
 	--test-- "blk-66"
 		p: none
-		--assert parse [a a a b b] [3 'a p: 2 'b :p [2 'b]]
-		--assert p = [b b]
+	--assert parse [a a a b b] [3 'a p: 2 'b :p [2 'b]]
+	--assert p = [b b]
 	
 ===end-group===
+
+===start-group=== "block-end"
+
+	--test-- "blk-end-1"
+	--assert parse [a] ['a end]
+	
+	--test-- "blk-end-2"
+	--assert not parse [a b] ['a end]
+	
+	--test-- "blk-end-3"
+	--assert parse [a] [skip end]
+	
+	--test-- "blk-end-4"
+	--assert not parse [a b] [skip end]
+	
+	--test-- "blk-end-5"
+	--assert parse [] [end]
+	
+	--test-- "blk-end-6"
+		be6: 0
+		--assert parse [] [end (be6: 1)]
+	--assert be6 = 1		
+
+===end-group===
+
 ===start-group=== "String"
 
 	--test-- "str-1" 	--assert parse		""			[]
@@ -178,43 +203,43 @@ Red [
 	
 	--test-- "str-20"
 		res: 0	
-		--assert parse "" [(res: 1)]
-		--assert res = 1
+	--assert parse "" [(res: 1)]
+	--assert res = 1
 		
 	--test-- "str-21"
 		res: 0	
-		--assert parse "a" [#"a" (res: 1)]
-		--assert res = 1
+	--assert parse "a" [#"a" (res: 1)]
+	--assert res = 1
 		
 	--test-- "str-22"
 		res: 0	
-		--assert not parse "a" [#"b" (res: 1)]
-		--assert res = 0
+	--assert not parse "a" [#"b" (res: 1)]
+	--assert res = 0
 		
 	--test-- "str-23"
 		res: 0	
-		--assert parse "" [[(res: 1)]]
-		--assert res = 1
+	--assert parse "" [[(res: 1)]]
+	--assert res = 1
 
 	--test-- "str-24"
 		res: 0	
-		--assert parse "a" [[#"a" (res: 1)]]
-		--assert res = 1
+	--assert parse "a" [[#"a" (res: 1)]]
+	--assert res = 1
 
 	--test-- "str-25"
 		res: 0	
-		--assert not parse "a" [[#"b" (res: 1)]]
-		--assert res = 0
+	--assert not parse "a" [[#"b" (res: 1)]]
+	--assert res = 0
 		
 	--test-- "str-26"
 		res: 0	
-		--assert parse "ab" [#"a" (res: 1) [#"c" (res: 2) | #"b" (res: 3)]]
-		--assert res = 3
+	--assert parse "ab" [#"a" (res: 1) [#"c" (res: 2) | #"b" (res: 3)]]
+	--assert res = 3
 		
 	--test-- "str-27"
 		res: 0	
-		--assert not parse "ab" [#"a" (res: 1) [#"c" (res: 2) | #"d" (res: 3)]]
-		--assert res = 1
+	--assert not parse "ab" [#"a" (res: 1) [#"c" (res: 2) | #"d" (res: 3)]]
+	--assert res = 1
 
 	--test-- "str-28"	--assert not parse		"aa"		[1 [#"a"]]
    	--test-- "str-29"	--assert parse			"aa"		[2 [#"a"]]
@@ -256,44 +281,44 @@ Red [
 
 	--test-- "str-59"
 		p: none
-		--assert parse "" [p:]
-		--assert tail? p
+	--assert parse "" [p:]
+	--assert tail? p
 	
 	--test-- "str-60"
 		p: none
-		--assert parse "" [[[p:]]]
-		--assert tail? p
+	--assert parse "" [[[p:]]]
+	--assert tail? p
 
 		
 	--test-- "str-61"
 		p: none
-		--assert parse "a" [p: #"a"]
-		--assert p = "a"
+	--assert parse "a" [p: #"a"]
+	--assert p = "a"
 		
 	--test-- "str-62"
 		p: none
-		--assert parse "a" [#"a" p:]
-		--assert tail? p
+	--assert parse "a" [#"a" p:]
+	--assert tail? p
 		
 	--test-- "str-63"
 		p: none
-		--assert parse "a" [#"a" [p:]]
-		--assert tail? p
+	--assert parse "a" [#"a" [p:]]
+	--assert tail? p
 		
 	--test-- "str-64"
 		p: none
-		--assert not parse "ab" [#"a" p:]
-		--assert p = "b"
+	--assert not parse "ab" [#"a" p:]
+	--assert p = "b"
 	
 	--test-- "str-65"
 		p: none
-		--assert parse "ab" [#"a" [p:][#"b" | #"c"]]
-		--assert p = "b"
+	--assert parse "ab" [#"a" [p:][#"b" | #"c"]]
+	--assert p = "b"
 		
 	--test-- "str-66"
 		p: none
-		--assert parse "aaabb" [3 #"a" p: 2 #"b" :p [2 "b"]]
-		--assert p = "bb"
+	--assert parse "aaabb" [3 #"a" p: 2 #"b" :p [2 "b"]]
+	--assert p = "bb"
 	
 ===end-group===
     
