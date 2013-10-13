@@ -51,6 +51,10 @@ Red/System [
 	TYPE_PORT
 	TYPE_BITSET
 	TYPE_FLOAT
+	
+	;-- internal use only --
+	TYPE_TRIPLE
+	TYPE_POSITIONS
 ]
 
 #enum actions! [
@@ -167,6 +171,7 @@ Red/System [
 	NAT_COMPOSE
 	NAT_STATS
 	NAT_BIND
+	NAT_PARSE
 ]
 
 #enum math-op! [

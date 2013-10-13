@@ -101,6 +101,23 @@ words: context [
 	_exit:			as red-word! 0
 	_return:		as red-word! 0
 	
+	_any:			as red-word! 0
+	_copy:			as red-word! 0
+	_end:			as red-word! 0
+	_fail:			as red-word! 0
+	_into:			as red-word! 0
+	_opt:			as red-word! 0
+	_not:			as red-word! 0
+	_quote:			as red-word! 0
+	_reject:		as red-word! 0
+	_set:			as red-word! 0
+	_skip:			as red-word! 0
+	_some:			as red-word! 0
+	_thru:			as red-word! 0
+	_to:			as red-word! 0
+	_none:			as red-word! 0
+	_pipe:			as red-word! 0
+	
 	spec:			-1
 	body:			-1
 	words:			-1
@@ -112,6 +129,24 @@ words: context [
 	remove-each:	-1
 	exit*:			-1
 	return*:		-1
+	
+	any*:			-1
+	break*:			-1
+	copy:			-1
+	end:			-1
+	fail:			-1
+	into:			-1
+	opt:			-1
+	not*:			-1
+	quote:			-1
+	reject:			-1
+	set:			-1
+	skip:			-1
+	some:			-1
+	thru:			-1
+	to:				-1
+	none:			-1
+	pipe:			-1
 	
 	build: does [
 		_spec:			word/load "spec"
@@ -132,6 +167,25 @@ words: context [
 		_map-each:		word/load "map-each"
 		_remove-each:	word/load "remove-each"
 		
+		_any:			word/load "any"
+		_break:			word/load "break"
+		_copy:			word/load "copy"
+		_end:			word/load "end"
+		_fail:			word/load "fail"
+		_into:			word/load "into"
+		_opt:			word/load "opt"
+		_not:			word/load "not"
+		_quote:			word/load "quote"
+		_reject:		word/load "reject"
+		_set:			word/load "set"	
+		_skip:			word/load "skip"
+		_some:			word/load "some"
+		_thru:			word/load "thru"
+		_to:			word/load "to"	
+		_none:			word/load "none"
+		_pipe:			word/load "|"
+		
+		
 		spec:			_spec/symbol
 		body:			_body/symbol
 		words:			_words/symbol
@@ -143,6 +197,24 @@ words: context [
 		remove-each:	_remove-each/symbol
 		exit*:			_exit/symbol
 		return*:		_return/symbol
+		
+		any*:			_any/symbol
+		break*:			_break/symbol
+		copy:			_copy/symbol
+		end:			_end/symbol
+		fail:			_fail/symbol
+		into:			_into/symbol
+		opt:			_opt/symbol
+		not*:			_not/symbol
+		quote:			_quote/symbol
+		reject:			_reject/symbol
+		set:			_set/symbol
+		skip:			_skip/symbol
+		some:			_some/symbol
+		thru:			_thru/symbol
+		to:				_to/symbol
+		none:			_none/symbol
+		pipe:			_pipe/symbol
 	]
 ]
 
