@@ -72,19 +72,57 @@ parser: context [
 		]
 	]
 	
-	advance: func [
+	skip-spaces: func [
 		str		[red-string!]
-		value	[red-value!]							;-- char! or string! value
 		return:	[logic!]
 		/local
 			s	 [series!]
-	][	
-		either TYPE_OF(value) = TYPE_CHAR [
+			unit [integer!]
+			p	 [byte-ptr!]
+			p4	 [int-ptr!]
+			tail [byte-ptr!]
+			cnt	 [integer!]
+			c    [byte!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p:    string/rs-head str
+		tail: string/rs-tail str
+		cnt: 0
+		
+		while [p < tail][							;-- jump over whitespaces
+			c: as-byte switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			if all [c <> #" " c <> #"^-" c <> #"^/" c <> #"^M"][
+				str/head: str/head + cnt
+				return no
+			]
+			cnt: cnt + 1
+			p: p + unit
+		]
+		unless zero? cnt [str/head: str/head + cnt]
+		yes
+	]
+	
+	advance: func [
+		str		[red-string!]
+		value	[red-value!]							;-- char! or string! value
+		over?	[logic!]
+		return:	[logic!]
+		/local
+			end? [logic!]
+	][
+		end?: either TYPE_OF(value) = TYPE_CHAR [
 			string/rs-next str
 		][
 			assert TYPE_OF(value) = TYPE_STRING
 			string/rs-skip str string/rs-length? as red-string! value
 		]
+		if over? [end?: skip-spaces str]
+		end?
 	]
 	
 	find-altern: func [									;-- search for next '| symbol
@@ -129,6 +167,7 @@ parser: context [
 		token	[red-value!]
 		min		[integer!]
 		max		[integer!]
+		over?	[logic!]
 		return: [logic!]
 		/local
 			w	   [red-word!]
@@ -177,7 +216,7 @@ parser: context [
 				][
 					until [
 						match?: string/match? as red-string! input token COMP_EQUAL
-						end?: all [match? advance as red-string! input token]	;-- consume matched input
+						end?: all [match? advance as red-string! input token over?]	;-- consume matched input
 						cnt: cnt + 1
 						any [
 							not match?
@@ -209,7 +248,7 @@ parser: context [
 	do-rule: func [	
 		job		[red-block!]
 		rule	[red-block!]
-		all?	[logic!]
+		over?	[logic!]
 		case?	[logic!]
 		return: [logic!]
 		/local
@@ -387,6 +426,7 @@ parser: context [
 								type = TYPE_STRING
 								type = TYPE_FILE
 							][
+								if over? [skip-spaces as red-string! input]
 								zero? string/rs-length? as red-string! input
 							][
 								zero? block/rs-length? input
@@ -407,7 +447,7 @@ parser: context [
 						type = TYPE_FILE
 					][
 						match?: string/match? as red-string! input cmd COMP_EQUAL
-						all [match? advance as red-string! input cmd]	;-- consume matched input
+						all [match? advance as red-string! input cmd over?]	;-- consume matched input
 					][
 						match?: actions/compare block/rs-head input cmd COMP_EQUAL
 						all [match? block/rs-next input]				;-- consume matched input
@@ -423,7 +463,7 @@ parser: context [
 						PUSH_RULE_INFO(min max type)
 						ST_PUSH_RULE
 					][
-						match?: do-loop-token input cmd min max
+						match?: do-loop-token input cmd min max over?
 						either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
 					]
 				]
@@ -553,7 +593,7 @@ parser: context [
 	process: func [
 		input [red-series!]
 		rule  [red-block!]
-		all?  [logic!]
+		over?  [logic!]
 		case? [logic!]
 		;strict? [logic!]
 		return: [logic!]
@@ -566,8 +606,18 @@ parser: context [
 		series: block/make-in job 8					;-- pos 2: input stack block @@TBD: alloc statically
 		block/make-in job 32						;-- pos 3: rule stack block  @@TBD: alloc statically
 		
-		block/rs-append series as red-value! input
+		input: block/rs-append series as red-value! input	;-- input now points to the series stack entry
 		
-		do-rule job rule all? case?
+		if all [
+			over?
+			any [									;TBD: replace with ANY_STRING
+				TYPE_OF(input) = TYPE_STRING
+				TYPE_OF(input) = TYPE_FILE
+			]
+		][
+			skip-spaces as red-string! input
+		]
+		
+		do-rule job rule over? case?
 	]
 ]

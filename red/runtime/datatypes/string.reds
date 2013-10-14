@@ -393,10 +393,11 @@ string: context [
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
-		size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
-		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1)- str2/head
 
 		unless match? [
+			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
+			size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1)- str2/head
+
 			if size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
 				if op = COMP_NOT_EQUAL [return true]
@@ -409,7 +410,7 @@ string: context [
 		p1:  (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
 		p2:  (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
 		lax?: op <> COMP_STRICT_EQUAL
-
+		
 		until [	
 			switch unit1 [
 				Latin1 [c1: as-integer p1/1]

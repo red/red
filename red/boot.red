@@ -767,7 +767,7 @@ bind: make native! [[
 parse: make native! [[
 		input [series!]
 		rules [block!]
-		/all
+		/over
 		/case
 		;/strict
 		return: [logic!]

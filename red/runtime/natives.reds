@@ -771,7 +771,7 @@ natives: context [
 	]
 	
 	parse*: func [
-		all?  [integer!]
+		over? [integer!]
 		case? [integer!]
 		;strict? [integer!]
 		/local
@@ -780,7 +780,7 @@ natives: context [
 		match?: parser/process
 			as red-series! stack/arguments
 			as red-block!  stack/arguments + 1
-			as logic! all? + 1 
+			as logic! over? + 1 
 			as logic! case? + 1
 			;as logic! strict? + 1
 			
