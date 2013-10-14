@@ -78,20 +78,29 @@ string: context [
 		get-length str
 	]
 	
-	rs-next: func [
+	rs-skip: func [
 		str 	[red-string!]
+		len		[integer!]
 		return: [logic!]
 		/local
 			s	   [series!]
 			offset [integer!]
 	][
+		assert len >= 0
 		s: GET_BUFFER(str)
-		offset: str/head + 1 << (GET_UNIT(s) >> 1)
-		
+		offset: str/head + len << (GET_UNIT(s) >> 1)
+
 		if (as byte-ptr! s/offset) + offset <= as byte-ptr! s/tail [
-			str/head: str/head + 1
+			str/head: str/head + len
 		]
 		(as byte-ptr! s/offset) + offset = as byte-ptr! s/tail
+	]
+	
+	rs-next: func [
+		str 	[red-string!]
+		return: [logic!]
+	][
+		rs-skip str 1
 	]
 
 	rs-head: func [
@@ -356,6 +365,116 @@ string: context [
 			]
 		]
 		s
+	]
+	
+	equal?: func [
+		str1	  [red-string!]							;-- first operand
+		str2	  [red-string!]							;-- second operand
+		op		  [integer!]							;-- type of comparison
+		match?	  [logic!]								;-- match str1 within str2 (sizes matter less)
+		return:	  [logic!]
+		/local
+			s1	  [series!]
+			s2	  [series!]
+			unit1 [integer!]
+			unit2 [integer!]
+			size1 [integer!]
+			size2 [integer!]
+			end	  [byte-ptr!]
+			p1	  [byte-ptr!]
+			p2	  [byte-ptr!]
+			p4	  [int-ptr!]
+			c1	  [integer!]
+			c2	  [integer!]
+			lax?  [logic!]
+			res	  [logic!]
+	][
+		s1: GET_BUFFER(str1)
+		s2: GET_BUFFER(str2)
+		unit1: GET_UNIT(s1)
+		unit2: GET_UNIT(s2)
+		size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
+		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1)- str2/head
+
+		unless match? [
+			if size1 <> size2 [							;-- shortcut exit for different sizes
+				if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
+				if op = COMP_NOT_EQUAL [return true]
+			]
+			if zero? size1 [							;-- shortcut exit for empty strings
+				return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+			]
+		]
+		end: as byte-ptr! s2/tail						;-- only one "end" is needed
+		p1:  (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
+		p2:  (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
+		lax?: op <> COMP_STRICT_EQUAL
+
+		until [	
+			switch unit1 [
+				Latin1 [c1: as-integer p1/1]
+				UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
+				UCS-4  [p4: as int-ptr! p1 c1: p4/1]
+			]
+			switch unit2 [
+				Latin1 [c2: as-integer p2/1]
+				UCS-2  [c2: (as-integer p2/2) << 8 + p2/1]
+				UCS-4  [p4: as int-ptr! p2 c2: p4/1]
+			]
+			if lax? [
+				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
+				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+			]
+			p1: p1 + unit1
+			p2: p2 + unit2
+			any [
+				c1 <> c2
+				p2 >= end
+			]
+		]
+		switch op [
+			COMP_EQUAL			[res: c1 = c2]
+			COMP_NOT_EQUAL		[res: c1 <> c2]
+			COMP_STRICT_EQUAL	[res: c1 = c2]
+			COMP_LESSER			[res: c1 <  c2]
+			COMP_LESSER_EQUAL	[res: c1 <= c2]
+			COMP_GREATER		[res: c1 >  c2]
+			COMP_GREATER_EQUAL	[res: c1 >= c2]
+		]
+		res
+	]
+
+	match?: func [
+		str	    [red-string!]
+		value   [red-value!]							;-- char! or string! value
+		op		[integer!]
+		return: [logic!]
+		/local
+			char [red-char!]
+			s	 [series!]
+			unit [integer!]
+			c1	 [integer!]
+			c2	 [integer!]
+	][
+		either TYPE_OF(value) = TYPE_CHAR [
+			char: as red-char! value
+			c1: char/value
+			
+			s: GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			c2: get-char 
+				(as byte-ptr! s/offset) + (str/head << (unit >> 1))
+				unit
+			
+			if op <> COMP_STRICT_EQUAL [
+				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
+				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+			]
+			c1 = c2
+		][
+			assert TYPE_OF(value) = TYPE_STRING
+			equal? str as red-string! value op yes
+		]
 	]
 	
 	concatenate: func [									;-- append str2 to str1
@@ -734,21 +853,6 @@ string: context [
 		str2	  [red-string!]							;-- second operand
 		op		  [integer!]							;-- type of comparison
 		return:	  [logic!]
-		/local
-			s1	  [series!]
-			s2	  [series!]
-			unit1 [integer!]
-			unit2 [integer!]
-			size1 [integer!]
-			size2 [integer!]
-			end	  [byte-ptr!]
-			p1	  [byte-ptr!]
-			p2	  [byte-ptr!]
-			p4	  [int-ptr!]
-			c1	  [integer!]
-			c2	  [integer!]
-			lax?  [logic!]
-			res	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare"]]
 
@@ -764,58 +868,7 @@ string: context [
 			]
 		][RETURN_COMPARE_OTHER]
 		
-		s1: GET_BUFFER(str1)
-		s2: GET_BUFFER(str2)
-		unit1: GET_UNIT(s1)
-		unit2: GET_UNIT(s2)
-		size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
-		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1)- str2/head
-		
-		if size1 <> size2 [								;-- shortcut exit for different sizes
-			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
-			if op = COMP_NOT_EQUAL [return true]
-		]
-		if zero? size1 [								;-- shortcut exit for empty strings
-			return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
-		]
-		
-		end: as byte-ptr! s1/tail						;-- only one "end" is needed
-		p1:  (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
-		p2:  (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
-		lax?: op <> COMP_STRICT_EQUAL
-		
-		until [	
-			switch unit1 [
-				Latin1 [c1: as-integer p1/1]
-				UCS-2  [c1: (as-integer p1/2) << 8 + p1/1]
-				UCS-4  [p4: as int-ptr! p1 c1: p4/1]
-			]
-			switch unit2 [
-				Latin1 [c2: as-integer p2/1]
-				UCS-2  [c2: (as-integer p2/2) << 8 + p2/1]
-				UCS-4  [p4: as int-ptr! p2 c2: p4/1]
-			]
-			if lax? [
-				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
-				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
-			]
-			p1: p1 + unit1
-			p2: p2 + unit2
-			any [
-				c1 <> c2
-				p1 >= end
-			]
-		]
-		switch op [
-			COMP_EQUAL			[res: c1 = c2]
-			COMP_NOT_EQUAL		[res: c1 <> c2]
-			COMP_STRICT_EQUAL	[res: c1 = c2]
-			COMP_LESSER			[res: c1 <  c2]
-			COMP_LESSER_EQUAL	[res: c1 <= c2]
-			COMP_GREATER		[res: c1 >  c2]
-			COMP_GREATER_EQUAL	[res: c1 >= c2]
-		]
-		res
+		equal? str1 str2 op no							;-- match?: no
 	]
 
 	
@@ -914,7 +967,7 @@ string: context [
 	]
 
 	next: func [
-		return:	  [red-value!]
+		return:	[red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/next"]]
 

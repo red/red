@@ -65,9 +65,25 @@ parser: context [
 			ST_NEXT_INPUT	 ["ST_NEXT_INPUT"]
 			ST_NEXT_ACTION	 ["ST_NEXT_ACTION"]
 			ST_MATCH		 ["ST_MATCH"]
+			ST_LOOP_MATCH	 ["ST_LOOP_MATCH"]
 			ST_FIND_ALTERN	 ["ST_FIND_ALTERN"]
 			ST_WORD			 ["ST_WORD"]
 			ST_EXIT			 ["ST_EXIT"]
+		]
+	]
+	
+	advance: func [
+		str		[red-string!]
+		value	[red-value!]							;-- char! or string! value
+		return:	[logic!]
+		/local
+			s	 [series!]
+	][	
+		either TYPE_OF(value) = TYPE_CHAR [
+			string/rs-next str
+		][
+			assert TYPE_OF(value) = TYPE_STRING
+			string/rs-skip str string/rs-length? as red-string! value
 		]
 	]
 	
@@ -118,11 +134,14 @@ parser: context [
 			w	   [red-word!]
 			len	   [integer!]
 			cnt	   [integer!]
+			type   [integer!]
+			type-i [integer!]
 			match? [logic!]
 			end?   [logic!]
 	][
 		w: null
-		type: TYPE_OF(token)
+		type:   TYPE_OF(token)
+		type-i: TYPE_OF(input)
 		
 		if type = TYPE_WORD [
 			w: as red-word! token
@@ -130,20 +149,20 @@ parser: context [
 		]
 		
 		len: either any [						;TBD: replace with ANY_STRING
-			type = TYPE_STRING
-			type = TYPE_FILE
+			type-i = TYPE_STRING
+			type-i = TYPE_FILE
 		][
 			string/rs-length? as red-string! input
 		][
 			block/rs-length? as red-block! input
-		]	
+		]
 		if len < min [return no]				;-- input too short
 		
 		case [
 			type = TYPE_BITSET [
 				--NOT_IMPLEMENTED--
 			]
-			all [
+			all [								;-- SKIP special case
 				w <> null
 				words/skip = symbol/resolve w/symbol
 			][
@@ -152,15 +171,13 @@ parser: context [
 			]
 			true [
 				cnt: 0
-				
 				either any [					;TBD: replace with ANY_STRING
-					type = TYPE_STRING
-					type = TYPE_FILE
+					type-i = TYPE_STRING
+					type-i = TYPE_FILE
 				][
 					until [
-						;match?: string/match input token COMP_EQUAL
-						match?: false
-						end?: string/rs-next as red-string! input
+						match?: string/match? as red-string! input token COMP_EQUAL
+						end?: all [match? advance as red-string! input token]	;-- consume matched input
 						cnt: cnt + 1
 						any [
 							not match?
@@ -171,7 +188,7 @@ parser: context [
 				][
 					until [
 						match?:	actions/compare block/rs-head input token COMP_EQUAL
-						end?: block/rs-next input
+						end?: all [match? block/rs-next input]	;-- consume matched input
 						cnt: cnt + 1
 						any [
 							not match?
@@ -180,12 +197,10 @@ parser: context [
 						]
 					]
 				]	
-				len: either match? [1][
+				unless match? [
 					cnt: cnt - 1
 					match?: either max = R_NONE [min <= cnt][all [min <= cnt cnt <= max]]
-					2
 				]
-				if input/head >= len [input/head: input/head - len]
 			]
 		]
 		match?
@@ -352,6 +367,7 @@ parser: context [
 					]
 				]
 				ST_NEXT_INPUT [
+					type: TYPE_OF(input)
 					end?: either any [					;TBD: replace with ANY_STRING
 						type = TYPE_STRING
 						type = TYPE_FILE
@@ -366,10 +382,16 @@ parser: context [
 					cmd: cmd + 1
 					state: either cmd = tail [
 						either 3 = block/rs-length? rules [
-							match?: all [
+							type: TYPE_OF(input)
+							match?: either any [		;TBD: replace with ANY_STRING?
+								type = TYPE_STRING
+								type = TYPE_FILE
+							][
+								zero? string/rs-length? as red-string! input
+							][
 								zero? block/rs-length? input
-								1 = block/rs-length? series
 							]
+							match?: all [match? 1 = block/rs-length? series]
 							ST_EXIT
 						][
 							ST_POP_RULE
@@ -380,16 +402,17 @@ parser: context [
 				]
 				ST_MATCH [
 					type: TYPE_OF(input)
-					match?: either any [				;TBD: replace with ANY_STRING?
+					end?: either any [					;TBD: replace with ANY_STRING?
 						type = TYPE_STRING
 						type = TYPE_FILE
 					][
-						;string/match as red-string! input cmd COMP_EQUAL
-						false
+						match?: string/match? as red-string! input cmd COMP_EQUAL
+						all [match? advance as red-string! input cmd]	;-- consume matched input
 					][
-						actions/compare block/rs-head input cmd COMP_EQUAL
+						match?: actions/compare block/rs-head input cmd COMP_EQUAL
+						all [match? block/rs-next input]				;-- consume matched input
 					]
-					state: either match? [ST_NEXT_INPUT][ST_FIND_ALTERN]
+					state: either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
 				]
 				ST_LOOP_MATCH [
 					cmd: cmd + 1
@@ -401,7 +424,7 @@ parser: context [
 						ST_PUSH_RULE
 					][
 						match?: do-loop-token input cmd min max
-						either match? [ST_NEXT_INPUT][ST_FIND_ALTERN]
+						either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
 					]
 				]
 				ST_FIND_ALTERN [
@@ -439,6 +462,7 @@ parser: context [
 						]
 						sym = words/end [				;-- END
 							end?: yes
+							type: TYPE_OF(input)
 							match?: either any [					;TBD: replace with ANY_STRING
 								type = TYPE_STRING
 								type = TYPE_FILE
