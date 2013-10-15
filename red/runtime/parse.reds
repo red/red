@@ -306,6 +306,7 @@ parser: context [
 					rule: block/rs-append rules as red-value! rule
 					cmd:  block/rs-head rule
 					tail: block/rs-tail rule			;TBD: protect current rule block from changes
+					value: cmd
 					state: either cmd = tail [ST_POP_RULE][ST_DO_ACTION]
 				]
 				ST_POP_RULE [
@@ -342,6 +343,7 @@ parser: context [
 						rule: take-last rules
 						cmd:  block/rs-head rule
 						tail: block/rs-tail rule
+						value: cmd
 						
 						state: either end? [
 							if all [t/min > 0 cnt < t/min][match?: no]
@@ -352,24 +354,33 @@ parser: context [
 					]
 				]
 				ST_DO_ACTION [
-					type: TYPE_OF(cmd)
-					switch type [
+					type: TYPE_OF(value)				;-- value is used in this state instead of cmd
+					switch type [						;-- allows to enter the state with cmd or :cmd (if word!)
 						TYPE_WORD 	[
 							state: ST_WORD
 						]
 						TYPE_BLOCK 	[
 							rule/head: rule/head + 
 								((as-integer cmd - block/rs-head rule) >> 4) ;-- sync head with cmd
-							rule: as red-block! cmd
+							rule: as red-block! value
 							PUSH_RULE_INFO(R_NONE R_NONE R_NONE)
 							state: ST_PUSH_RULE
-						]	
+						]
+						TYPE_DATATYPE [
+							dt: as red-datatype! value
+							value: block/rs-head input
+							match?: TYPE_OF(value) = dt/value
+							state: either match? [ST_NEXT_INPUT][ST_FIND_ALTERN]
+						]
+						TYPE_BITSET [
+							--NOT_IMPLEMENTED--
+						]
 						TYPE_SET_WORD [
-							_context/set as red-word! cmd as red-value! input
+							_context/set as red-word! value as red-value! input
 							state: ST_NEXT_ACTION
 						]
 						TYPE_GET_WORD [
-							new: as red-series! _context/get as red-word! cmd
+							new: as red-series! _context/get as red-word! value
 							either all [
 								TYPE_OF(new) = TYPE_OF(input)
 								new/node = input/node
@@ -381,8 +392,14 @@ parser: context [
 							]
 						]
 						TYPE_INTEGER [
-							int:  as red-integer! cmd
+							int:  as red-integer! value
 							int2: as red-integer! cmd + 1
+							if all [
+								int2 < tail
+								TYPE_OF(int2) = TYPE_WORD
+							][
+								int2: as red-integer! _context/get as red-word! cmd + 1
+							]
 							upper?: TYPE_OF(int2) = TYPE_INTEGER
 							if any [
 								int2 = tail
@@ -398,7 +415,7 @@ parser: context [
 							
 						]
 						TYPE_PAREN [
-							interpreter/eval as red-block! cmd
+							interpreter/eval as red-block! value
 							state: ST_NEXT_ACTION
 						]
 						default [						;-- try to match a literal value
@@ -424,6 +441,7 @@ parser: context [
 					state: either cmd = tail [
 						either 3 = block/rs-length? rules [ST_END][ST_POP_RULE]
 					][
+						value: cmd
 						ST_DO_ACTION
 					]
 				]
@@ -466,6 +484,7 @@ parser: context [
 				ST_FIND_ALTERN [
 					state: either find-altern rule [
 						cmd: block/rs-head rule			;-- rule head changed by find-altern
+						value: cmd
 						ST_DO_ACTION
 					][
 						match?: no
@@ -552,31 +571,8 @@ parser: context [
 							state: ST_NEXT_ACTION
 						]
 						true [
-							dt: as red-datatype! _context/get w
-							switch TYPE_OF(dt) [
-								TYPE_BLOCK [
-									rule/head: rule/head + 
-										((as-integer cmd - block/rs-head rule) >> 4) ;-- sync head with cmd
-									rule: as red-block! dt
-									PUSH_RULE_INFO(R_NONE R_NONE R_NONE)
-									state: ST_PUSH_RULE
-								]
-								TYPE_DATATYPE [
-									value: block/rs-head input
-									match?: TYPE_OF(value) = dt/value
-									state: either match? [ST_NEXT_INPUT][ST_FIND_ALTERN]
-								]
-								TYPE_BITSET [
-									--NOT_IMPLEMENTED--
-								]
-								default [
-									print-line [
-										"*** Parse Error: datatype not supported:"
-										TYPE_OF(dt)
-									]
-									halt
-								]
-							]
+							value: _context/get w
+							state: ST_DO_ACTION
 						]
 					]
 				]
