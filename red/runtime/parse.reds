@@ -31,6 +31,7 @@ parser: context [
 		ST_LOOP_MATCH
 		ST_FIND_ALTERN
 		ST_WORD
+		ST_END
 		ST_EXIT
 	]
 	
@@ -68,6 +69,7 @@ parser: context [
 			ST_LOOP_MATCH	 ["ST_LOOP_MATCH"]
 			ST_FIND_ALTERN	 ["ST_FIND_ALTERN"]
 			ST_WORD			 ["ST_WORD"]
+			ST_END			 ["ST_END"]
 			ST_EXIT			 ["ST_EXIT"]
 		]
 	]
@@ -308,7 +310,7 @@ parser: context [
 				]
 				ST_POP_RULE [
 					either 3 = block/rs-length? rules [
-						state: ST_EXIT
+						state: ST_END
 					][
 						loop?: no
 						s: GET_BUFFER(rules)
@@ -343,8 +345,7 @@ parser: context [
 						
 						state: either end? [
 							if all [t/min > 0 cnt < t/min][match?: no]
-							if match? [match?: cmd + 1 = tail]
-							either 3 = block/rs-length? rules [ST_EXIT][ST_POP_RULE]
+							either 3 = block/rs-length? rules [ST_NEXT_ACTION][ST_POP_RULE]
 						][
 							either loop? [ST_DO_ACTION][ST_NEXT_ACTION]
 						]
@@ -418,53 +419,48 @@ parser: context [
 					state: ST_NEXT_ACTION
 				]
 				ST_NEXT_ACTION [
-					cmd: cmd + 1
+					if cmd < tail [cmd: cmd + 1]
+					
 					state: either cmd = tail [
-						either 3 = block/rs-length? rules [
-							type: TYPE_OF(input)
-							match?: either any [		;TBD: replace with ANY_STRING?
-								type = TYPE_STRING
-								type = TYPE_FILE
-							][
-								if over? [skip-spaces as red-string! input]
-								zero? string/rs-length? as red-string! input
-							][
-								zero? block/rs-length? input
-							]
-							match?: all [match? 1 = block/rs-length? series]
-							ST_EXIT
-						][
-							ST_POP_RULE
-						]
+						either 3 = block/rs-length? rules [ST_END][ST_POP_RULE]
 					][
 						ST_DO_ACTION
 					]
 				]
 				ST_MATCH [
-					type: TYPE_OF(input)
-					end?: either any [					;TBD: replace with ANY_STRING?
-						type = TYPE_STRING
-						type = TYPE_FILE
+					either end? [
+						state: ST_POP_RULE
 					][
-						match?: string/match? as red-string! input cmd COMP_EQUAL
-						all [match? advance as red-string! input cmd over?]	;-- consume matched input
-					][
-						match?: actions/compare block/rs-head input cmd COMP_EQUAL
-						all [match? block/rs-next input]				;-- consume matched input
+						type: TYPE_OF(input)
+						end?: either any [					;TBD: replace with ANY_STRING?
+							type = TYPE_STRING
+							type = TYPE_FILE
+						][
+							match?: string/match? as red-string! input cmd COMP_EQUAL
+							all [match? advance as red-string! input cmd over?]	;-- consume matched input
+						][
+							match?: actions/compare block/rs-head input cmd COMP_EQUAL
+							all [match? block/rs-next input]				;-- consume matched input
+						]				
+						state: either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
 					]
-					state: either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
 				]
 				ST_LOOP_MATCH [
-					cmd: cmd + 1
-					state: either TYPE_OF(cmd) = TYPE_BLOCK [
-						rule/head: rule/head + 
-							((as-integer cmd - block/rs-head rule) >> 4) ;-- sync head with cmd
-						rule: as red-block! cmd
-						PUSH_RULE_INFO(min max type)
-						ST_PUSH_RULE
+					if cmd < tail [cmd: cmd + 1]
+					
+					either all [cmd = tail][
+						state: either 3 = block/rs-length? rules [ST_END][ST_POP_RULE]
 					][
-						match?: do-loop-token input cmd min max over?
-						either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
+						state: either TYPE_OF(cmd) = TYPE_BLOCK [
+							rule/head: rule/head + 
+								((as-integer cmd - block/rs-head rule) >> 4) ;-- sync head with cmd
+							rule: as red-block! cmd
+							PUSH_RULE_INFO(min max type)
+							ST_PUSH_RULE
+						][
+							match?: do-loop-token input cmd min max over?
+							either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
+						]
 					]
 				]
 				ST_FIND_ALTERN [
@@ -583,6 +579,27 @@ parser: context [
 							]
 						]
 					]
+				]
+				ST_END [
+					if match? [match?: cmd = tail]
+					type: TYPE_OF(input)
+					
+					cnt: either any [				;TBD: replace with ANY_STRING?
+						type = TYPE_STRING
+						type = TYPE_FILE
+					][
+						if over? [skip-spaces as red-string! input]
+						string/rs-length? as red-string! input
+					][
+						block/rs-length? input
+					]
+					if any [
+						cnt > 0
+						1 < block/rs-length? series
+					][
+						match?: no
+					]
+					state: ST_EXIT
 				]
 			]
 			state = ST_EXIT
