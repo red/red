@@ -57,6 +57,18 @@ block: context [
 		s: GET_BUFFER(blk)
 		s/tail
 	]
+
+	rs-abs-at: func [
+		blk 	[red-block!]
+		pos		[integer!]
+		return: [red-value!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(blk)
+		assert s/offset + pos < s/tail
+		s/offset + pos
+	]
 	
 	rs-clear: func [
 		blk 	[red-block!]
@@ -1132,7 +1144,7 @@ block: context [
 					print "*** Error: invalid /part series argument"	;@@ replace with error!
 					halt
 				]
-				b/head
+				b/head - blk/head
 			]
 			slots: part
 			part: part << 4

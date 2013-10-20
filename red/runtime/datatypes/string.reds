@@ -123,6 +123,25 @@ string: context [
 		as byte-ptr! s/tail
 	]
 	
+	rs-abs-at: func [
+		str	       [red-string!]
+		pos  	   [integer!]
+		return:	   [integer!]
+		/local
+			char   [red-char!]
+			s	   [series!]
+			offset [integer!]
+			p	   [byte-ptr!]
+			unit   [integer!]
+	][
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+
+		p: (as byte-ptr! s/offset) + (pos << (unit >> 1))
+		assert p < as byte-ptr! s/tail
+		get-char p unit
+	]
+	
 	get-char: func [
 		p	    [byte-ptr!]
 		unit	[integer!]
@@ -1263,12 +1282,12 @@ string: context [
 		/local
 			s	   [series!]
 			p	   [byte-ptr!]
-			p4	   [int-ptr!]
 			char   [red-char!]
 			result [red-value!]
 			str2   [red-string!]
 			head2  [integer!]
 			offset [integer!]
+			unit   [integer!]
 	][
 		result: find str value part only? case? any? with-arg skip last? reverse? no no
 		
@@ -1289,16 +1308,14 @@ string: context [
 			]
 			str: as red-string! result
 			s: GET_BUFFER(str)
-			p: (as byte-ptr! s/offset) + ((str/head + offset) << (GET_UNIT(s) >> 1))
+			unit: GET_UNIT(s)
+			
+			p: (as byte-ptr! s/offset) + ((str/head + offset) << (unit >> 1))
 			
 			either p < as byte-ptr! s/tail [
 				char: as red-char! result
 				char/header: TYPE_CHAR
-				char/value: switch GET_UNIT(s) [
-					Latin1 [as-integer p/value]
-					UCS-2  [(as-integer p/2) << 8 + p/1]
-					UCS-4  [p4: as int-ptr! p p4/value]
-				]
+				char/value:  get-char p unit
 			][
 				result/header: TYPE_NONE
 			]
@@ -1316,17 +1333,18 @@ string: context [
 			char   [red-char!]
 			s	   [series!]
 			offset [integer!]
+			unit   [integer!]
 			p1	   [byte-ptr!]
-			p4	   [int-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/pick"]]
 
 		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
 		
 		offset: str/head + index - 1					;-- index is one-based
 		if negative? index [offset: offset + 1]
 
-		p1: (as byte-ptr! s/offset) + (offset << (GET_UNIT(s) >> 1))
+		p1: (as byte-ptr! s/offset) + (offset << (unit >> 1))
 		
 		either any [
 			zero? index
@@ -1337,11 +1355,7 @@ string: context [
 		][
 			char: as red-char! stack/push*
 			char/header: TYPE_CHAR		
-			char/value: switch GET_UNIT(s) [
-				Latin1 [as-integer p1/value]
-				UCS-2  [(as-integer p1/2) << 8 + p1/1]
-				UCS-4  [p4: as int-ptr! p1 p4/value]
-			]			
+			char/value:  get-char p1 unit
 			as red-value! char
 		]
 	]
