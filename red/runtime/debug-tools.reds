@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Red runtime debugging functions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %debug.reds
+	File: 	 %debug-tools.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -90,7 +90,7 @@ memory-info: func [
 		i: 0
 		until [
 			w: as red-word! symbol + i
-			sym: syms + w/symbol
+			sym: syms + w/symbol - 1
 			val: value + i	
 			print-line [i ": " sym/cache "^- : " TYPE_OF(val)]
 			i: i + 1
