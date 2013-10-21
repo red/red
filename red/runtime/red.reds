@@ -160,7 +160,7 @@ red: context [
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity
-			parser/verbose:		verbosity
+			;parser/verbose:	verbosity
 
 			stack/verbose:		verbosity
 			unicode/verbose:	verbosity

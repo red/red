@@ -54,7 +54,6 @@ Red/System [
 	
 	;-- internal use only --
 	TYPE_TRIPLE
-	TYPE_POSITIONS
 ]
 
 #enum actions! [
