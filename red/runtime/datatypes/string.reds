@@ -124,13 +124,11 @@ string: context [
 	]
 	
 	rs-abs-at: func [
-		str	       [red-string!]
-		pos  	   [integer!]
-		return:	   [integer!]
+		str	    [red-string!]
+		pos  	[integer!]
+		return:	[integer!]
 		/local
-			char   [red-char!]
 			s	   [series!]
-			offset [integer!]
 			p	   [byte-ptr!]
 			unit   [integer!]
 	][
@@ -1624,7 +1622,7 @@ string: context [
 					print "*** Error: invalid /part series argument"	;@@ replace with error!
 					halt
 				]
-				str2/head
+				str2/head - str/head
 			]
 			part: part << (unit >> 1)
 		]
