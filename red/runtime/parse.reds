@@ -681,6 +681,10 @@ parser: context [
 							TYPE_WORD [
 								state: ST_WORD
 							]
+							TYPE_INTEGER [
+								value: cmd
+								state: ST_DO_ACTION
+							]
 							default [
 								either min = R_NONE [
 									either any [type = R_TO type = R_THRU][
