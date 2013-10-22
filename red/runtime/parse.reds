@@ -60,23 +60,25 @@ parser: context [
 		pad    [integer!]
 	]
 	
-	print-state: func [s [integer!]][
-		print "state: "
-		print-line switch s [
-			ST_PUSH_BLOCK	 ["ST_PUSH_BLOCK"]
-			ST_POP_BLOCK	 ["ST_POP_BLOCK"]
-			ST_PUSH_RULE	 ["ST_PUSH_RULE"]
-			ST_POP_RULE	 	 ["ST_POP_RULE"]
-			ST_CHECK_PENDING ["ST_CHECK_PENDING"]
-			ST_DO_ACTION	 ["ST_DO_ACTION"]
-			ST_NEXT_INPUT	 ["ST_NEXT_INPUT"]
-			ST_NEXT_ACTION	 ["ST_NEXT_ACTION"]
-			ST_MATCH		 ["ST_MATCH"]
-			ST_MATCH_RULE	 ["ST_MATCH_RULE"]
-			ST_FIND_ALTERN	 ["ST_FIND_ALTERN"]
-			ST_WORD			 ["ST_WORD"]
-			ST_END			 ["ST_END"]
-			ST_EXIT			 ["ST_EXIT"]
+	#if debug? = yes [
+		print-state: func [s [integer!]][
+			print "state: "
+			print-line switch s [
+				ST_PUSH_BLOCK	 ["ST_PUSH_BLOCK"]
+				ST_POP_BLOCK	 ["ST_POP_BLOCK"]
+				ST_PUSH_RULE	 ["ST_PUSH_RULE"]
+				ST_POP_RULE	 	 ["ST_POP_RULE"]
+				ST_CHECK_PENDING ["ST_CHECK_PENDING"]
+				ST_DO_ACTION	 ["ST_DO_ACTION"]
+				ST_NEXT_INPUT	 ["ST_NEXT_INPUT"]
+				ST_NEXT_ACTION	 ["ST_NEXT_ACTION"]
+				ST_MATCH		 ["ST_MATCH"]
+				ST_MATCH_RULE	 ["ST_MATCH_RULE"]
+				ST_FIND_ALTERN	 ["ST_FIND_ALTERN"]
+				ST_WORD			 ["ST_WORD"]
+				ST_END			 ["ST_END"]
+				ST_EXIT			 ["ST_EXIT"]
+			]
 		]
 	]
 	
