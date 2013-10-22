@@ -380,7 +380,6 @@ parser: context [
 			upper? [logic!]
 			end?   [logic!]
 			match? [logic!]
-			below? [logic!]
 			loop?  [logic!]
 			pop?   [logic!]
 	][
@@ -522,14 +521,16 @@ parser: context [
 							default [
 								t: as triple! s/tail - 3
 								cnt: t/state
-								below?: cnt < t/min
-								loop?: either t/max = R_NONE [match?][cnt < t/max]
-								t/state: cnt + 1
-								unless match? [match?: any [t/min <= cnt zero? t/min]]
 								
-								either any [end? not loop?][
-									if all [match? below?][match?: no]
+								either match? [
+									loop?: either t/max = R_NONE [match?][cnt < t/max]
 								][
+									match?: any [t/min <= (cnt - 1) zero? t/min]
+								]
+								either any [end? not loop?][
+									if all [match? cnt < t/min][match?: no]
+								][
+									t/state: cnt + 1
 									cmd: (block/rs-head rule) + p/rule ;-- loop rule
 									state: ST_NEXT_ACTION
 									pop?: no
