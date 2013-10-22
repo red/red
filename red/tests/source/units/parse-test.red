@@ -1,9 +1,9 @@
 Red [
-	Title:   "Red PARSE test script"
-	Author:  "Nenad Rakocevic"
-	File: 	 %parse-test.reds
-	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Title:	"Red PARSE test script"
+	Author:	"Nenad Rakocevic"
+	File:	%parse-test.reds
+	Tabs:	4
+	Rights:	"Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
@@ -398,6 +398,8 @@ Red [
 
 ===start-group=== "block-skipping"
 
+	wa: ['a]
+	
 	--test-- "blk-sk1" 	--assert parse		[]			[to end]
 	--test-- "blk-sk2" 	--assert parse		[]			[thru end]
 	--test-- "blk-sk3" 	--assert parse		[a]			[to end]
@@ -426,9 +428,24 @@ Red [
 	--test-- "blk-sk24"	--assert parse		[z z a b c]	[to ['c | 'b | 'a] 3 skip]
 	--test-- "blk-sk25"	--assert parse		[z z a b c]	[to ['a | 'b | 'c] 3 skip]
 
-	--test-- "blk-sk24"	--assert parse		[z z a b c]	[thru ['c | 'b | 'a] 2 skip]
-	--test-- "blk-sk25"	--assert parse		[z z a b c]	[thru ['a | 'b | 'c] 2 skip]
+	--test-- "blk-sk26"	--assert parse		[z z a b c]	[thru ['c | 'b | 'a] 2 skip]
+	--test-- "blk-sk27"	--assert parse		[z z a b c]	[thru ['a | 'b | 'c] 2 skip]
+	
+	--test-- "blk-sk28"	--assert parse		[b b a a c]	[thru 2 'a 'c]
+	--test-- "blk-sk29"	--assert parse		[b b a a c]	[thru 2 'a 'c]
+	--test-- "blk-sk30"	--assert parse		[b b a a c]	[thru [2 'a] 'c]
+	--test-- "blk-sk31"	--assert parse		[b b a a c]	[thru some 'a 'c]
+	--test-- "blk-sk32"	--assert parse		[b b a a c]	[thru [some 'a] 'c]
+	--test-- "blk-sk33"	--assert parse		[b b a a c]	[thru [some 'x | 2 'a] 'c]
+	--test-- "blk-sk34"	--assert parse		[b b a a c]	[thru 2 wa 'c]
+	--test-- "blk-sk35"	--assert parse		[b b a a c]	[thru some wa 'c]
+	
+	--test-- "blk-sk36"	--assert parse 		[1 "hello"]	[thru "hello"]
 
+	--test-- "blk-sk37"
+		res: 0
+		--assert parse [1 "hello" a 1 2 3 b] [thru "hello" skip copy res to 'b skip]
+		--assert res = [1 2 3]
 
 ===end-group===
 
@@ -789,6 +806,9 @@ Red [
 
 ===start-group=== "string-skipping"
 
+	str: "Lorem ipsum dolor sit amet."
+	wa: [#"a"]
+	
 	--test-- "str-sk1" 	--assert parse		""			[to end]
 	--test-- "str-sk2" 	--assert parse		""			[thru end]
 	--test-- "str-sk3" 	--assert parse		"a"			[to end]
@@ -812,14 +832,32 @@ Red [
 	--test-- "str-sk20"	--assert parse		"ab"		[to [#"a"] 2 skip]
 	--test-- "str-sk21"	--assert parse		"ab"		[thru [#"a"] skip]
 	--test-- "str-sk22"	--assert parse		"aaab"		[to [#"a"] to end]
-	--test-- "str-sk33"	--assert parse		"aaba"		[skip thru [#"a"] 2 skip]
+	--test-- "str-sk23"	--assert parse		"aaba"		[skip thru [#"a"] 2 skip]
 	
 	--test-- "str-sk24"	--assert parse		"zzabc"		[to [#"c" | #"b" | #"a"] 3 skip]
 	--test-- "str-sk25"	--assert parse		"zzabc"		[to [#"a" | #"b" | #"c"] 3 skip]
 
 	--test-- "str-sk26"	--assert parse		"zzabc"		[thru [#"c" | #"b" | #"a"] 2 skip]
 	--test-- "str-sk27"	--assert parse		"zzabc"		[thru [#"a" | #"b" | #"c"] 2 skip]
+	--test-- "str-sk28"	--assert parse		"bbaaac"	[thru 3 #"a" #"c"]
+	--test-- "str-sk29"	--assert parse		"bbaaac"	[thru 3 "a" "c"]
+	--test-- "str-sk30"	--assert parse		"bbaaac"	[thru 3 wa #"c"]
+	--test-- "str-sk31"	--assert parse		"bbaaac"	[thru [3 "a"] "c"]
+	--test-- "str-sk32"	--assert parse		"bbaaac"	[thru some "a" "c"]
+	--test-- "str-sk33"	--assert parse		"bbaaac"	[thru [some #"a"] "c"]
+	--test-- "str-sk34"	--assert parse		"bbaaac"	[thru [some #"x" | "aaa"] "c"]
+	
+	--test-- "str-sk35"	--assert parse 		str 		[thru "amet" skip]
 
+	--test-- "str-sk36"
+		res: 0
+		--assert parse str [thru "ipsum" skip copy res to #" " to end]
+		--assert res = "dolor"
+
+	--test-- "str-sk37"
+		res: 0
+		--assert parse str [thru #"p" res: to end]
+		--assert 9 = index? res 
 	
 ===end-group===
     
