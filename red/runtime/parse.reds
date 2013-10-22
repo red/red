@@ -13,11 +13,24 @@ Red/System [
 parser: context [
 	verbose: 0
 	
-	#define PUSH_POSITIONS [
+	#define PARSE_PUSH_POSITIONS [
 		p: as positions! ALLOC_TAIL(rules)
 		p/header: TYPE_TRIPLE
 		p/rule:	  (as-integer cmd - block/rs-head rule) >> 4	;-- save cmd position
 		p/input:  input/head									;-- save input position
+	]
+	
+	#define PARSE_SET_INPUT_LENGTH(word) [
+		type: TYPE_OF(input)
+		word: either any [				;TBD: replace with ANY_STRING?
+			type = TYPE_STRING
+			type = TYPE_FILE
+		][
+			if over? [skip-spaces as red-string! input]
+			string/rs-length? as red-string! input
+		][
+			block/rs-length? input
+		]
 	]
 
 	#enum states! [
@@ -162,27 +175,108 @@ parser: context [
 		-1
 	]
 	
-	find-token: func [
+	adjust-input-index: func [
+		input	[red-series!]
+		pos		[positions!]
+		base    [integer!]
+		offset  [integer!]
+		return: [logic!]
+	][
+		input/head: input/head + base + offset
+		pos/input: either zero? input/head [0][input/head - base]
+		yes
+	]
+	
+	find-token?: func [									;-- optimized fast token lookup
+		rules	[red-block!]							;-- (could be optimized even further)
 		input	[red-series!]
 		token	[red-value!]
 		return: [logic!]
 		/local
-			head   [red-value!]
-			tail   [red-value!]
-			value  [red-value!]
-			len	   [integer!]
-			cnt	   [integer!]
-			type   [integer!]
-			match? [logic!]
-			end?   [logic!]
+			pos	  [positions!]
+			head  [red-value!]
+			tail  [red-value!]
+			value [red-value!]
+			char  [red-char!]
+			s	  [series!]
+			p	  [byte-ptr!]
+			phead [byte-ptr!]
+			ptail [byte-ptr!]
+			p4	  [int-ptr!]
+			cp	  [integer!]
+			size  [integer!]
+			unit  [integer!]
+			type  [integer!]
 	][
+		s: GET_BUFFER(rules)
+		pos: as positions! s/tail - 2
+		
 		type: TYPE_OF(input)
-		either any [									;TBD: replace with ANY_STRING
+		either any [									;TBD: replace with ANY_STRING + TYPE_BINARY
 			type = TYPE_STRING
 			type = TYPE_FILE
+			type = TYPE_BINARY
 		][
-			--NOT_IMPLEMENTED--
-			no
+			switch TYPE_OF(token) [
+				TYPE_STRING
+				TYPE_FILE
+				TYPE_BINARY [
+					size: string/rs-length? as red-string! token
+					if (string/rs-length? as red-string! input) < size [return no]
+					
+					s: GET_BUFFER(input)
+					unit: (GET_UNIT(s) >> 1)
+					
+					until [
+						if string/equal? as red-string! input as red-string! token COMP_EQUAL yes [
+							return adjust-input-index input pos size 0
+						]
+						input/head: input/head + 1
+						(as byte-ptr! s/offset) + (input/head + size << unit) = as byte-ptr! s/tail
+					]
+				]
+				TYPE_CHAR [
+					char: as red-char! token
+					cp: char/value
+
+					s: GET_BUFFER(input)
+					unit: GET_UNIT(s)
+					phead: (as byte-ptr! s/offset) + (input/head << (unit >> 1))
+					ptail: as byte-ptr! s/tail
+					p: phead
+
+					switch unit [
+						Latin1 [
+							while [p < ptail][
+								if p/value = as-byte cp [
+									return adjust-input-index input pos 1 (as-integer p - phead)
+								]
+								p: p + 1
+							]
+						]
+						UCS-2 [
+							while [p < ptail][
+								if (as-integer p/2) << 8 + p/1 = cp [
+									return adjust-input-index input pos 1 ((as-integer p - phead) >> 1)
+								]
+								p: p + 2
+							]
+						]
+						UCS-4 [
+							p4: as int-ptr! p
+							while [p4 < as int-ptr! ptail][
+								if p4/value = cp [
+									return adjust-input-index input pos 1 ((as-integer p4 - phead) >> 2)
+								]
+								p4: p4 + 1
+							]
+						]
+					]
+				]
+				default [
+					print-line "*** Parse Error: invalid literal value to match on string"
+				]
+			]
 		][
 			head:  block/rs-head input
 			tail:  block/rs-tail input
@@ -190,13 +284,12 @@ parser: context [
 			
 			while [value < tail][
 				if actions/compare value token COMP_EQUAL [
-					input/head: (as-integer value - head) >> 4
-					return true
+					return adjust-input-index input pos 1 ((as-integer value - head) >> 4)
 				]
 				value: value + 1
 			]
-			false
 		]
+		no
 	]
 	
 	loop-token: func [
@@ -214,15 +307,7 @@ parser: context [
 			match? [logic!]
 			end?   [logic!]
 	][
-		type: TYPE_OF(input)
-		len: either any [								;TBD: replace with ANY_STRING
-			type = TYPE_STRING
-			type = TYPE_FILE
-		][
-			string/rs-length? as red-string! input
-		][
-			block/rs-length? as red-block! input
-		]
+		PARSE_SET_INPUT_LENGTH(len)
 		if len < min [return no]						;-- input too short
 		
 		either TYPE_OF(token)= TYPE_BITSET [
@@ -322,7 +407,7 @@ parser: context [
 			switch state [
 				ST_PUSH_BLOCK [
 					none/rs-push rules
-					PUSH_POSITIONS
+					PARSE_PUSH_POSITIONS
 					block/rs-append rules as red-value! rule
 					copy-cell value as red-value! rule
 					cmd:  block/rs-head rule
@@ -337,6 +422,7 @@ parser: context [
 						loop?: no
 						s: GET_BUFFER(rules)
 						copy-cell s/tail - 1 as red-value! rule
+						assert TYPE_OF(rule) = TYPE_BLOCK
 						p: as positions! s/tail - 2
 						cmd: (block/rs-head rule) + p/rule
 						tail: block/rs-tail rule
@@ -360,7 +446,7 @@ parser: context [
 						t/max:	  max
 						t/state:  1
 					]
-					PUSH_POSITIONS
+					PARSE_PUSH_POSITIONS
 					int: as red-integer! ALLOC_TAIL(rules)
 					int/header: TYPE_INTEGER
 					int/value: type
@@ -597,12 +683,13 @@ parser: context [
 							]
 							default [
 								either min = R_NONE [
-									;either any [type = R_TO type = R_THRU][
-									;	match?: find-token input cmd
-									;	state: ST_POP_RULE
-									;][
-									value: cmd
-									state: ST_DO_ACTION
+									either any [type = R_TO type = R_THRU][
+										match?: find-token? rules input cmd
+										state: ST_POP_RULE
+									][
+										value: cmd
+										state: ST_DO_ACTION
+									]
 								][
 									match?: loop-token input cmd min max :cnt over?
 
@@ -611,6 +698,8 @@ parser: context [
 									value: s/tail - 1
 									state: ST_CHECK_PENDING
 								]
+								PARSE_SET_INPUT_LENGTH(cnt)
+								end?: zero? cnt
 							]
 						]
 					]
@@ -656,15 +745,7 @@ parser: context [
 							state: ST_PUSH_RULE
 						]
 						sym = words/end [				;-- END
-							type: TYPE_OF(input)
-							cnt: either any [			;TBD: replace with ANY_STRING
-								type = TYPE_STRING
-								type = TYPE_FILE
-							][
-								string/rs-length? as red-string! input
-							][
-								block/rs-length? as red-block! input
-							]
+							PARSE_SET_INPUT_LENGTH(cnt)
 							match?: zero? cnt
 							state: ST_POP_RULE
 						]
@@ -733,7 +814,7 @@ parser: context [
 						]
 						sym = words/none [				;-- NONE
 							match?: yes
-							state: ST_POP_RULE
+							state: ST_CHECK_PENDING
 						]
 						true [
 							value: _context/get w
@@ -743,17 +824,8 @@ parser: context [
 				]
 				ST_END [
 					if match? [match?: cmd = tail]
-					type: TYPE_OF(input)
 					
-					cnt: either any [				;TBD: replace with ANY_STRING?
-						type = TYPE_STRING
-						type = TYPE_FILE
-					][
-						if over? [skip-spaces as red-string! input]
-						string/rs-length? as red-string! input
-					][
-						block/rs-length? input
-					]
+					PARSE_SET_INPUT_LENGTH(cnt)
 					if any [
 						cnt > 0
 						1 < block/rs-length? series
