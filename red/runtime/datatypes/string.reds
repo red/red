@@ -388,7 +388,7 @@ string: context [
 		str1	  [red-string!]							;-- first operand
 		str2	  [red-string!]							;-- second operand
 		op		  [integer!]							;-- type of comparison
-		match?	  [logic!]								;-- match str1 within str2 (sizes matter less)
+		match?	  [logic!]								;-- match str2 within str1 (sizes matter less)
 		return:	  [logic!]
 		/local
 			s1	  [series!]
