@@ -529,10 +529,9 @@ parser: context [
 								][
 									match?: any [t/min <= (cnt - 1) zero? t/min]
 								]
-								if break? [
-									loop?:  no
-									break?: no
-								]
+								if break? [loop?:  no break?: no]
+								if input/head = p/input [loop?: no]	;-- exit loop if no input consumed
+								
 								either any [end? not loop?][
 									if all [match? cnt < t/min][match?: no]
 								][
