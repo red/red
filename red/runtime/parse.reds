@@ -787,6 +787,7 @@ parser: context [
 							state: ST_PUSH_RULE
 						]
 						sym = words/not* [				;-- NOT
+							min:   R_NONE
 							type:  R_NOT
 							state: ST_PUSH_RULE
 						]
