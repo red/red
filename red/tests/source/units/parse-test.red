@@ -449,6 +449,18 @@ Red [
 
 ===end-group===
 
+===start-group=== "block-misc"
+
+	--test-- "blk-m1"	--assert parse 		[]			[break]
+	--test-- "blk-m2"	--assert not parse 	[a]			[break]
+	--test-- "blk-m3"	--assert parse 		[a]			[[break 'b] 'a]
+	--test-- "blk-m4"	--assert parse 		[a]			[['b | break] 'a]
+	--test-- "blk-m5"	--assert parse 		[a a]		[some ['b | break] 2 'a]
+	--test-- "blk-m6"	--assert parse 		[a a]		[some ['b | [break]] 2 'a]
+	--test-- "blk-m7"	--assert not parse 	[a a]		[some ['b | 2 ['c | break]] 2 'a]
+
+===end-group===
+
 ===start-group=== "string"
 
 	--test-- "str-1" 	--assert parse		""			[]
@@ -859,6 +871,18 @@ Red [
 		--assert parse str [thru #"p" res: to end]
 		--assert 9 = index? res 
 	
+===end-group===
+
+===start-group=== "string-misc"
+
+	--test-- "str-m1"	--assert parse 		""			[break]
+	--test-- "str-m2"	--assert not parse 	"a"			[break]
+	--test-- "str-m3"	--assert parse 		"a"			[[break #"b"] #"a"]
+	--test-- "str-m4"	--assert parse 		"a"			[[#"b" | break] #"a"]
+	--test-- "str-m5"	--assert parse 		"aa"		[some [#"b" | break] 2 #"a"]
+	--test-- "str-m6"	--assert parse 		"aa"		[some [#"b" | [break]] 2 #"a"]
+	--test-- "str-m7"	--assert not parse 	"aa"		[some [#"b" | 2 [#"c" | break]] 2 #"a"]
+
 ===end-group===
     
 ~~~end-file~~~
