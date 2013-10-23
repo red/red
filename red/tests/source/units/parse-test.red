@@ -884,6 +884,33 @@ Red [
 	--test-- "str-m7"	--assert not parse 	"aa"		[some [#"b" | 2 [#"c" | break]] 2 #"a"]
 
 ===end-group===
+
+===start-group=== "string-unicode"
+	
+	--test-- "str-uni1"		--assert parse		"abcdé" 	[#"a" #"b" #"c" #"d" #"é"]
+	--test-- "str-uni2"		--assert parse		"abcdé" 	["abcdé"]
+	--test-- "str-uni3"		--assert not parse	"abcde" 	[#"a" #"b" #"c" #"d" #"é"]
+	--test-- "str-uni4"		--assert parse 		"abcdé" 	[#"a" #"b" #"c" #"d" #"é"]
+
+	--test-- "str-uni5" 
+		--assert parse "abcdé✐" [#"a" #"b" #"c" #"d" #"é" #"✐"]
+
+	--test-- "str-uni6"		--assert parse		"abcdé✐"	["abcdé✐"]
+	--test-- "str-uni7"		--assert not parse	"abcdé"		["abcdé✐"]
+	--test-- "str-uni8"		--assert not parse	"ab✐cdé"	["abcdé✐"]
+	--test-- "str-uni9"		--assert not parse	"abcdé✐"	["abcdé"]
+	--test-- "str-uni10"	--assert parse		"✐abcdé"	["✐abcdé"]
+
+	--test-- "str-uni11" 
+		--assert parse "abcdé✐^(010000)" [#"a" #"b" #"c" #"d" #"é" #"✐" #"^(010000)"]
+
+	--test-- "str-uni12"	--assert parse		"ab^(010000)cdé✐"	["ab^(010000)cdé✐"]
+	--test-- "str-uni13"	--assert not parse	"abcdé" 			["abc^(010000)dé"]
+	--test-- "str-uni14"	--assert not parse	"^(010000)abcdé"	["a^(010000)bcdé"]
+	--test-- "str-uni15"	--assert not parse	"abcdé^(010000)"	["abcdé"]
+	--test-- "str-uni16"	--assert parse		"^(010000)abcdé"	["^(010000)abcdé"]
+	
+===end-group=== 
     
 ~~~end-file~~~
 
