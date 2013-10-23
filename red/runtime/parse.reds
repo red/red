@@ -382,11 +382,13 @@ parser: context [
 			match? [logic!]
 			loop?  [logic!]
 			pop?   [logic!]
+			break? [logic!]
 	][
 		int: as red-integer! block/rs-head job
 		state:  int/value
 		match?: yes
 		end?:   no
+		break?: no
 		value:	null
 		type:	-1
 		min:	-1
@@ -526,6 +528,10 @@ parser: context [
 									loop?: either t/max = R_NONE [match?][cnt < t/max]
 								][
 									match?: any [t/min <= (cnt - 1) zero? t/min]
+								]
+								if break? [
+									loop?:  no
+									break?: no
 								]
 								either any [end? not loop?][
 									if all [match? cnt < t/min][match?: no]
@@ -739,6 +745,8 @@ parser: context [
 						]
 						sym = words/break* [			;-- BREAK
 							match?: yes
+							break?: yes
+							cmd: tail
 							state: ST_POP_BLOCK
 						]
 						sym = words/copy [				;-- COPY
