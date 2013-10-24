@@ -389,6 +389,7 @@ parser: context [
 		match?: yes
 		end?:   no
 		break?: no
+		pop?:	no
 		value:	null
 		type:	-1
 		min:	-1
@@ -400,7 +401,7 @@ parser: context [
 		input:  as red-series! block/rs-head series
 
 		cmd: (block/rs-head rule) - 1					;-- decrement to compensate for starting increment
-		tail: block/rs-tail rule						;TBD: protect current rule block from changes	
+		tail: block/rs-tail rule						;TBD: protect current rule block from changes
 		
 		until [
 			#if debug? = yes [if verbose > 0 [print-state state]]
@@ -430,7 +431,7 @@ parser: context [
 						s/tail: s/tail - 3
 						
 						state: either zero? block/rs-length? rules [
-							either match? [ST_NEXT_ACTION][ST_END]
+							either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
 						][
 							value: s/tail - 1
 							either TYPE_OF(value) = TYPE_INTEGER [ST_POP_RULE][ST_NEXT_ACTION]
@@ -461,7 +462,7 @@ parser: context [
 						s/offset + rules/head = s/tail	;-- rules stack empty already
 						TYPE_OF(value) = TYPE_BLOCK    
 					][
-						state: ST_NEXT_ACTION
+						state: either pop? [ST_POP_BLOCK][ST_NEXT_ACTION]
 					][
 						pop?: yes
 						p: as positions! s/tail - 2
@@ -548,6 +549,7 @@ parser: context [
 							state:  ST_CHECK_PENDING
 						]
 					]
+					pop?: no
 				]
 				ST_CHECK_PENDING [
 					state: either any [		;-- order of conditional expressions matters!
@@ -745,8 +747,9 @@ parser: context [
 						sym = words/break* [			;-- BREAK
 							match?: yes
 							break?: yes
-							cmd: tail
-							state: ST_POP_BLOCK
+							cmd:	cmd + 1
+							pop?:	yes
+							state:	ST_POP_RULE
 						]
 						sym = words/copy [				;-- COPY
 							cmd: cmd + 1
@@ -801,7 +804,10 @@ parser: context [
 						]
 						sym = words/reject [			;-- REJECT
 							match?: no
-							state: ST_POP_BLOCK
+							break?: yes
+							cmd:	cmd + 1
+							pop?:	yes
+							state:	ST_POP_RULE
 						]
 						sym = words/set [				;-- SET
 							cmd: cmd + 1
