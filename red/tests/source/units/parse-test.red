@@ -505,6 +505,16 @@ Red [
 	--test-- "blk-m68"	--assert parse 		[a]			[['b | [none]] 'a]
 	--test-- "blk-m69"	--assert parse 		[a]			[[['b | [none]]] 'a]
 
+	--test-- "blk-m80"	--assert parse 		[]			[opt none]
+	--test-- "blk-m81"	--assert parse 		[]			[opt 'a]
+	--test-- "blk-m82"	--assert parse 		[a]			[opt 'a]
+	--test-- "blk-m83"	--assert parse 		[a]			[opt 'b 'a]
+	--test-- "blk-m84"	--assert parse 		[a]			[opt ['a]]
+	--test-- "blk-m85"	--assert parse 		[a]			[opt wa]
+	--test-- "blk-m86"	--assert parse 		[a]			[opt skip]
+	--test-- "blk-m87"	--assert parse 		[a b c]		[skip opt 'b skip]
+
+
 ===end-group===
 
 ===start-group=== "string"
@@ -1007,6 +1017,15 @@ Red [
 	--test-- "str-m67"	--assert parse 		"a"			[[#"b" | none] #"a"]
 	--test-- "str-m68"	--assert parse 		"a"			[[#"b" | [none]] #"a"]
 	--test-- "str-m69"	--assert parse 		"a"			[[[#"b" | [none]]] #"a"]
+
+	--test-- "str-m80"	--assert parse 		""			[opt none]
+	--test-- "str-m81"	--assert parse 		""			[opt #"a"]
+	--test-- "str-m82"	--assert parse 		"a"			[opt #"a"]
+	--test-- "str-m83"	--assert parse 		"a"			[opt #"b" #"a"]
+	--test-- "str-m84"	--assert parse 		"a"			[opt [#"a"]]
+	--test-- "str-m85"	--assert parse 		"a"			[opt wa]
+	--test-- "str-m86"	--assert parse 		"a"			[opt skip]
+	--test-- "str-m87"	--assert parse 		"abc"		[skip opt #"b" skip]
 
 ===end-group===
     
