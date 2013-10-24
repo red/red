@@ -22,7 +22,7 @@ parser: context [
 	
 	#define PARSE_SET_INPUT_LENGTH(word) [
 		type: TYPE_OF(input)
-		word: either any [				;TBD: replace with ANY_STRING?
+		word: either any [								;TBD: replace with ANY_STRING?
 			type = TYPE_STRING
 			type = TYPE_FILE
 		][
@@ -720,10 +720,9 @@ parser: context [
 					cnt: find-altern rule cmd
 					
 					state: either cnt >= 0 [
-						cmd: cmd + cnt	;-- point rule head to alternative part
+						cmd: cmd + cnt					;-- point rule head to alternative part
 						ST_NEXT_ACTION
 					][
-						match?: no						;@@ useless line?
 						ST_POP_BLOCK
 					]
 				]
