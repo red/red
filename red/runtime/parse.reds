@@ -113,7 +113,7 @@ parser: context [
 		tail: string/rs-tail str
 		cnt: 0
 		
-		while [p < tail][							;-- jump over whitespaces
+		while [p < tail][								;-- jump over whitespaces
 			c: as-byte switch unit [
 				Latin1 [as-integer p/value]
 				UCS-2  [(as-integer p/2) << 8 + p/1]
@@ -308,7 +308,7 @@ parser: context [
 			end?   [logic!]
 	][
 		PARSE_SET_INPUT_LENGTH(len)
-		if len < min [return no]						;-- input too short
+		if any [zero? len len < min][return no]			;-- input too short
 		
 		either TYPE_OF(token)= TYPE_BITSET [
 			--NOT_IMPLEMENTED--
@@ -384,8 +384,6 @@ parser: context [
 			pop?   [logic!]
 			break? [logic!]
 	][
-		int: as red-integer! block/rs-head job
-		state:  int/value
 		match?: yes
 		end?:   no
 		break?: no
@@ -395,6 +393,9 @@ parser: context [
 		min:	-1
 		max:	-1
 		cnt:	 0
+		
+		int: as red-integer! block/rs-head job
+		state:  int/value
 		
 		series: as red-block! int + 1
 		rules:  as red-block! int + 2
@@ -521,7 +522,7 @@ parser: context [
 							R_NOT [
 								match?: not match?
 							]
-							default [
+							default [					;-- iterative rules (ANY, SOME, ...)
 								t: as triple! s/tail - 3
 								cnt: t/state
 								
@@ -544,14 +545,16 @@ parser: context [
 							]
 						]
 						if pop? [
-							s/tail: s/tail - 3	;-- pop rule stack frame
-							value:  s/tail - 1
+							s/tail: s/tail - 3			;-- pop rule stack frame
 							state:  ST_CHECK_PENDING
 						]
 					]
 					pop?: no
 				]
 				ST_CHECK_PENDING [
+					s: GET_BUFFER(rules)
+					value: s/tail - 1
+					
 					state: either any [		;-- order of conditional expressions matters!
 						zero? block/rs-length? rules
 						TYPE_OF(value) <> TYPE_INTEGER
@@ -641,8 +644,6 @@ parser: context [
 					][
 						block/rs-next input
 					]
-					s: GET_BUFFER(rules)
-					value: s/tail - 1
 					state: ST_CHECK_PENDING
 				]
 				ST_NEXT_ACTION [
@@ -670,8 +671,6 @@ parser: context [
 							match?: actions/compare block/rs-head input value COMP_EQUAL
 							all [match? block/rs-next input]				;-- consume matched input
 						]
-						s: GET_BUFFER(rules)
-						value: s/tail - 1
 						state:	ST_CHECK_PENDING
 					]
 				]
@@ -704,10 +703,10 @@ parser: context [
 									]
 								][
 									match?: loop-token input cmd min max :cnt over?
-
+									if all [not match? zero? min][match?: yes]
+									
 									s: GET_BUFFER(rules)
 									s/tail: s/tail - 3		;-- pop rule stack frame
-									value: s/tail - 1
 									state: ST_CHECK_PENDING
 								]
 								PARSE_SET_INPUT_LENGTH(cnt)
@@ -785,7 +784,7 @@ parser: context [
 						sym = words/opt [				;-- OPT
 							min:   0
 							max:   1
-							type:  1
+							type:  R_NONE
 							state: ST_PUSH_RULE
 						]
 						sym = words/not* [				;-- NOT
