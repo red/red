@@ -839,6 +839,16 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		order-ctx-candidates: func [a b][				;-- order by increasing path size,
+			to logic! not all [							;-- and word! before path!.
+				path? a
+				any [
+					word? b
+					all [path? b greater? length? a length? b]
+				]
+			]
+		]
+		
 		store-ns-symbol: func [name [word!] /local pos][
 			if ns-path [
 				either pos: find/skip sym-ctx-table name 2 [
@@ -849,6 +859,7 @@ system-dialect: make-profilable context [
 						pos/2: reduce [pos/2]
 					]
 					append/only pos/2 copy ns-path
+					sort/compare pos/2 :order-ctx-candidates
 				][
 					append sym-ctx-table name
 					append/only sym-ctx-table copy ns-path
@@ -2256,12 +2267,20 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		resolve-ns: func [name [word!] /path /local ctx][
+		resolve-ns: func [name [word!] /path /local ctx pos][
 			unless ns-stack [return name]				;-- no current ns, pass-thru
 
 			if ctx: find/skip sym-ctx-table name 2 [	;-- fetch context candidates
 				ctx: ctx/2								;-- SELECT/SKIP on hash! unreliable!
 				either block? ctx [						;-- more than one candidate
+					all [								;-- try direct matching first
+						pos: find/only ctx to path! load mold ns-stack	;-- safer to-path conversion
+						return either path [
+							ns-join to path! first pos name
+						][
+							ns-decorate ns-join first pos name
+						]
+					]
 					ctx: tail ctx						;-- start from last defined context
 					until [
 						ctx: back ctx
