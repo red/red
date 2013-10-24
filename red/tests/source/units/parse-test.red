@@ -451,6 +451,8 @@ Red [
 
 ===start-group=== "block-misc"
 
+	wa: ['a]
+	wb: ['b]
 	--test-- "blk-m1"	--assert parse 		[]			[break]
 	--test-- "blk-m2"	--assert not parse 	[a]			[break]
 	--test-- "blk-m3"	--assert parse 		[a]			[[break 'b] 'a]
@@ -458,6 +460,50 @@ Red [
 	--test-- "blk-m5"	--assert parse 		[a a]		[some ['b | break] 2 'a]
 	--test-- "blk-m6"	--assert parse 		[a a]		[some ['b | [break]] 2 'a]
 	--test-- "blk-m7"	--assert not parse 	[a a]		[some ['b | 2 ['c | break]] 2 'a]
+
+	--test-- "blk-m20"	--assert not parse 	[]			[fail]
+	--test-- "blk-m21"	--assert not parse 	[a]			['a fail]
+	--test-- "blk-m22"	--assert not parse 	[a]			[[fail]]
+	--test-- "blk-m23"	--assert not parse 	[a]			[fail | fail]
+	--test-- "blk-m24"	--assert not parse 	[a]			[[fail | fail]]
+	--test-- "blk-m25"	--assert not parse 	[a]			['b | fail]
+
+	--test-- "blk-m30"	--assert not parse 	[]			[not end]
+	--test-- "blk-m31"	--assert parse 		[a]			[not 'b 'a]
+	--test-- "blk-m32"	--assert not parse 	[a]			[not skip]
+	--test-- "blk-m33"	--assert not parse 	[a]			[not skip skip]
+	--test-- "blk-m34"	--assert parse 		[a]			[not ['b] 'a]
+	--test-- "blk-m35"	--assert parse 		[a]			[not wb 'a]
+	--test-- "blk-m36"	--assert not parse 	[a a]		[not ['a 'a] to end]
+	--test-- "blk-m37"	--assert parse 		[a a]		[not [some 'b] to end]
+	--test-- "blk-m38"	--assert parse 		[a a]		[some ['c | not 'b] 2 skip]
+
+	--test-- "blk-m40"	--assert parse 		[wb]		[quote wb]
+	--test-- "blk-m41"	--assert parse 		[123]		[quote 123]
+	--test-- "blk-m42"	--assert parse 		[3 3]		[2 quote 3]
+	--test-- "blk-m43"	--assert parse 		[none]		[quote none]
+	--test-- "blk-m44"	--assert parse 		[some]		[quote some]
+
+	--test-- "blk-m50"	--assert not parse 	[]			[reject]
+	--test-- "blk-m51"	--assert not parse 	[a]			[reject 'a]
+	--test-- "blk-m52"	--assert not parse 	[a]			[reject wa]
+	--test-- "blk-m53"	--assert not parse 	[a]			[[reject] 'a]
+	--test-- "blk-m54"	--assert parse 		[a]			[[reject 'b] | 'a]
+	--test-- "blk-m55"	--assert not parse 	[a]			[['b | reject] 'a]
+	--test-- "blk-m56"	--assert parse 		[a]			[['b | reject] | 'a]
+	--test-- "blk-m57"	--assert parse 		[a a]		[some reject | 2 'a]
+	--test-- "blk-m58"	--assert parse 		[a a]		[some [reject] | 2 'a]
+	
+	--test-- "blk-m60"	--assert parse 		[]			[none]
+	--test-- "blk-m61"	--assert parse 		[a]			[skip none]
+	--test-- "blk-m62"	--assert parse 		[a]			[none skip none]
+	--test-- "blk-m63"	--assert parse 		[a]			['a none]
+	--test-- "blk-m64"	--assert parse 		[a]			[none 'a none]
+	--test-- "blk-m65"	--assert parse 		[a]			[wa none]
+	--test-- "blk-m66"	--assert parse 		[a]			[none wa none]
+	--test-- "blk-m67"	--assert parse 		[a]			[['b | none] 'a]
+	--test-- "blk-m68"	--assert parse 		[a]			[['b | [none]] 'a]
+	--test-- "blk-m69"	--assert parse 		[a]			[[['b | [none]]] 'a]
 
 ===end-group===
 
@@ -911,6 +957,58 @@ Red [
 	--test-- "str-uni16"	--assert parse		"^(010000)abcdé"	["^(010000)abcdé"]
 	
 ===end-group=== 
+
+===start-group=== "string-misc"
+
+	wa: [#"a"]
+	wb: [#"b"]
+	--test-- "str-m1"	--assert parse 		""			[break]
+	--test-- "str-m2"	--assert not parse 	"a"			[break]
+	--test-- "str-m3"	--assert parse 		"a"			[[break #"b"] #"a"]
+	--test-- "str-m4"	--assert parse 		"a"			[[#"b" | break] #"a"]
+	--test-- "str-m5"	--assert parse 		"aa"		[some [#"b" | break] 2 #"a"]
+	--test-- "str-m6"	--assert parse 		"aa"		[some [#"b" | [break]] 2 #"a"]
+	--test-- "str-m7"	--assert not parse 	"aa"		[some [#"b" | 2 [#"c" | break]] 2 #"a"]
+
+	--test-- "str-m20"	--assert not parse 	""			[fail]
+	--test-- "str-m21"	--assert not parse 	"a"			[#"a" fail]
+	--test-- "str-m22"	--assert not parse 	"a"			[[fail]]
+	--test-- "str-m23"	--assert not parse 	"a"			[fail | fail]
+	--test-- "str-m24"	--assert not parse 	"a"			[[fail | fail]]
+	--test-- "str-m25"	--assert not parse 	"a"			[#"b" | fail]
+
+	--test-- "str-m30"	--assert not parse 	""			[not end]
+	--test-- "str-m31"	--assert parse 		"a"			[not #"b" #"a"]
+	--test-- "str-m32"	--assert not parse 	"a"			[not skip]
+	--test-- "str-m33"	--assert not parse 	"a"			[not skip skip]
+	--test-- "str-m34"	--assert parse 		"a"			[not [#"b"] #"a"]
+	--test-- "str-m35"	--assert parse 		"a"			[not wb #"a"]
+	--test-- "str-m36"	--assert not parse 	"aa"		[not [#"a" #"a"] to end]
+	--test-- "str-m37"	--assert parse 		"aa"		[not [some #"b"] to end]
+	--test-- "str-m38"	--assert parse 		"aa"		[some [#"c" | not #"b"] 2 skip]
+
+	--test-- "str-m50"	--assert not parse 	""			[reject]
+	--test-- "str-m51"	--assert not parse 	"a"			[reject #"a"]
+	--test-- "str-m52"	--assert not parse 	"a"			[reject wa]
+	--test-- "str-m53"	--assert not parse 	"a"			[[reject] #"a"]
+	--test-- "str-m54"	--assert parse 		"a"			[[reject #"b"] | #"a"]
+	--test-- "str-m55"	--assert not parse 	"a"			[[#"b" | reject] #"a"]
+	--test-- "str-m56"	--assert parse 		"a"			[[#"b" | reject] | #"a"]
+	--test-- "str-m57"	--assert parse 		"aa"		[some reject | 2 #"a"]
+	--test-- "str-m58"	--assert parse 		"aa"		[some [reject] | 2 #"a"]
+	
+	--test-- "str-m60"	--assert parse 		""			[none]
+	--test-- "str-m61"	--assert parse 		"a"			[skip none]
+	--test-- "str-m62"	--assert parse 		"a"			[none skip none]
+	--test-- "str-m63"	--assert parse 		"a"			[#"a" none]
+	--test-- "str-m64"	--assert parse 		"a"			[none #"a" none]
+	--test-- "str-m65"	--assert parse 		"a"			[wa none]
+	--test-- "str-m66"	--assert parse 		"a"			[none wa none]
+	--test-- "str-m67"	--assert parse 		"a"			[[#"b" | none] #"a"]
+	--test-- "str-m68"	--assert parse 		"a"			[[#"b" | [none]] #"a"]
+	--test-- "str-m69"	--assert parse 		"a"			[[[#"b" | [none]]] #"a"]
+
+===end-group===
     
 ~~~end-file~~~
 
