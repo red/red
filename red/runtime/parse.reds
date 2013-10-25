@@ -380,6 +380,7 @@ parser: context [
 			cnt	   [integer!]
 			upper? [logic!]
 			end?   [logic!]
+			ended? [logic!]
 			match? [logic!]
 			loop?  [logic!]
 			pop?   [logic!]
@@ -387,6 +388,7 @@ parser: context [
 	][
 		match?: yes
 		end?:   no
+		ended?: yes
 		break?: no
 		pop?:	no
 		value:	null
@@ -424,6 +426,7 @@ parser: context [
 						state: ST_END
 					][
 						loop?: no
+						ended?: cmd = tail
 						s: GET_BUFFER(rules)
 						copy-cell s/tail - 1 as red-value! rule
 						assert TYPE_OF(rule) = TYPE_BLOCK
@@ -527,7 +530,9 @@ parser: context [
 								s: GET_BUFFER(series)
 								s/tail: s/tail - 1
 								input: as red-series! s/tail - 1
-								input/head: input/head + 1	;-- skip parsed series
+								unless ended? [match?: no]
+								if match? [input/head: input/head + 1]	;-- skip parsed series
+								
 								PARSE_SET_INPUT_LENGTH(cnt)
 								end?: zero? cnt			;-- refresh end? flag after popping series
 								s: GET_BUFFER(rules)
@@ -814,7 +819,6 @@ parser: context [
 						sym = words/reject [			;-- REJECT
 							match?: no
 							break?: yes
-							cmd:	cmd + 1				;@@ needed?
 							pop?:	yes
 							state:	ST_POP_RULE
 						]
