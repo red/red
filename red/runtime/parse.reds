@@ -50,13 +50,14 @@ parser: context [
 		ST_EXIT
 	]
 	
-	#enum rule-flags! [
+	#enum rule-flags! [									;-- negative values to not collide with t/state counter
 		R_NONE:		 -1
 		R_TO:		 -2
 		R_THRU:		 -3
 		R_COPY:		 -4
 		R_SET:		 -5
 		R_NOT:		 -6
+		R_INTO:		 -7
 	]
 	
 	triple!: alias struct! [
@@ -522,6 +523,15 @@ parser: context [
 							R_NOT [
 								match?: not match?
 							]
+							R_INTO [
+								s: GET_BUFFER(series)
+								s/tail: s/tail - 1
+								input: as red-series! s/tail - 1
+								input/head: input/head + 1	;-- skip parsed series
+								PARSE_SET_INPUT_LENGTH(cnt)
+								end?: zero? cnt			;-- refresh end? flag after popping series
+								s: GET_BUFFER(rules)
+							]
 							default [					;-- iterative rules (ANY, SOME, ...)
 								t: as triple! s/tail - 3
 								cnt: t/state
@@ -770,16 +780,17 @@ parser: context [
 							if TYPE_OF(input) <> TYPE_BLOCK [
 								print-line "*** Parse Error: INTO can only be used on a block! value"
 							]
-							cmd: cmd + 1
+							value: cmd + 1
 							if any [
-								cmd = tail
-								TYPE_OF(cmd) <> TYPE_BLOCK
+								value = tail
+								TYPE_OF(value) <> TYPE_BLOCK
 							][
 								print-line "*** Parse Error: INTO invalid argument"
 							]
 							input: block/rs-append series as red-value! block/rs-head input
-							value: cmd
-							state: ST_PUSH_BLOCK
+							min:  R_NONE
+							type: R_INTO
+							state: ST_PUSH_RULE
 						]
 						sym = words/opt [				;-- OPT
 							min:   0
@@ -803,7 +814,7 @@ parser: context [
 						sym = words/reject [			;-- REJECT
 							match?: no
 							break?: yes
-							cmd:	cmd + 1
+							cmd:	cmd + 1				;@@ needed?
 							pop?:	yes
 							state:	ST_POP_RULE
 						]
@@ -843,21 +854,13 @@ parser: context [
 					if match? [match?: cmd = tail]
 					
 					PARSE_SET_INPUT_LENGTH(cnt)
-					if any [
+					if all [
 						cnt > 0
-						1 < block/rs-length? series
+						1 = block/rs-length? series
 					][
 						match?: no
 					]
-					
-					either 1 = block/rs-length? series [
-						state: ST_EXIT
-					][
-						s: GET_BUFFER(series)
-						input: as red-series! s/tail - 1
-						s/tail: s/tail - 1
-						state: ST_NEXT_ACTION
-					]
+					state: ST_EXIT
 				]
 			]
 			state = ST_EXIT
