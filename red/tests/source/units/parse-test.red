@@ -514,6 +514,12 @@ Red [
 	--test-- "blk-m86"	--assert parse 		[a]			[opt skip]
 	--test-- "blk-m87"	--assert parse 		[a b c]		[skip opt 'b skip]
 
+	--test-- "blk-m90"	--assert parse 		[[]]		[into []]
+	--test-- "blk-m91"	--assert parse 		[[a]]		[into ['a]]
+	--test-- "blk-m92"	--assert parse 		[b [a] c]	['b into ['a] 'c]
+	--test-- "blk-m93"	--assert parse 		["a"]		[into [#"a"]]
+	--test-- "blk-m94"	--assert parse 		[b "a" c]	['b into ["a"] 'c]
+	--test-- "blk-m95"	--assert parse 		[["a"]]		[into [into [#"a"]]]
 
 ===end-group===
 
