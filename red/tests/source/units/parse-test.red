@@ -520,6 +520,9 @@ Red [
 	--test-- "blk-m93"	--assert parse 		["a"]		[into [#"a"]]
 	--test-- "blk-m94"	--assert parse 		[b "a" c]	['b into ["a"] 'c]
 	--test-- "blk-m95"	--assert parse 		[["a"]]		[into [into [#"a"]]]
+	--test-- "blk-m96"	--assert not parse 	[[a]]		[into ['a 'b]]
+	--test-- "blk-m97"	--assert not parse 	[[a]]		[into [some 'b]]
+	--test-- "blk-m98"	--assert parse 		[[a]]		[into ['a 'b] | block!]
 
 ===end-group===
 
