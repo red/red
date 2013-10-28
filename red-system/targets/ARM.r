@@ -1717,7 +1717,7 @@ make-profilable make target-class [
 				if path? left [
 					if any [
 						args/2 = <last>				;-- inlined statement
-						block? args/2				;-- function call
+						block? right				;-- function call
 					][				 				;-- r1 = b
 						emit-swap-regs				;-- swap r0, r1
 						sorted?: yes				;-- r0 = a, r1 = b

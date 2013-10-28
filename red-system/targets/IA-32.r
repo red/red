@@ -1363,7 +1363,7 @@ make-profilable make target-class [
 				if path? left [
 					if any [
 						args/2 = <last>				;-- inlined statement
-						block? args/2				;-- function call
+						block? right				;-- function call
 					][								;-- edx = b
 						emit #{92}					;-- XCHG eax, edx
 						sorted?: yes				;-- eax = a, edx = b
