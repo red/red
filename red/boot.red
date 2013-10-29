@@ -970,3 +970,5 @@ replace: func [
 ]
 
 zero?: func [value [number!]][value = 0]
+
+charset: func [spec [block! integer! char! binary!]][make bitset! spec]
