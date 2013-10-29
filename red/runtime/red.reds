@@ -60,6 +60,7 @@ red: context [
 	#include %datatypes/paren.reds
 	#include %datatypes/issue.reds
 	#include %datatypes/file.reds
+	#include %datatypes/bitset.reds
 	
 	;-- Debugging helpers --
 	
@@ -115,6 +116,7 @@ red: context [
 		paren/init
 		issue/init
 		file/init
+		bitset/init
 		
 		actions/init
 		
@@ -157,6 +159,7 @@ red: context [
 			paren/verbose:		verbosity
 			issue/verbose:		verbosity
 			file/verbose:		verbosity
+			bitset/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

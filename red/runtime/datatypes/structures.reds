@@ -107,6 +107,20 @@ red-file!: alias struct! [
 	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
 ]
 
+red-binary!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	_pad	[integer!]
+]
+
+red-bitset!: alias struct! [
+	header 	[integer!]								;-- cell header
+	_pad1	[integer!]
+	node	[node!]									;-- series node pointer
+	_pad2	[integer!]
+]
+
 red-symbol!: alias struct! [
 	header 	[integer!]								;-- cell header
 	alias	[integer!]								;-- Alias symbol index

@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+true-value:  declare red-logic!							;-- preallocate TRUE value
+false-value: declare red-logic!							;-- preallocate FALSE value
 
 logic: context [
 	verbose: 0
@@ -170,6 +172,12 @@ logic: context [
 	]
 	
 	init: does [
+		true-value/header:  TYPE_LOGIC
+		true-value/value: 	yes
+		
+		false-value/header: TYPE_LOGIC
+		false-value/value: 	no
+	
 		datatype/register [
 			TYPE_LOGIC
 			TYPE_VALUE

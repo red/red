@@ -25,7 +25,7 @@ Red/System [
 	TYPE_SET_WORD
 	TYPE_LIT_WORD
 	TYPE_GET_WORD
-	TYPE_REFINEMENT	
+	TYPE_REFINEMENT
 	TYPE_CHAR
 	TYPE_NATIVE
 	TYPE_ACTION
@@ -39,17 +39,14 @@ Red/System [
 	TYPE_ROUTINE
 	TYPE_ISSUE
 	TYPE_FILE
+	TYPE_BITSET
+	TYPE_OBJECT
+	TYPE_BINARY
 	
 	TYPE_TYPESET
 	TYPE_ERROR
-
-	TYPE_BINARY
-
 	TYPE_CLOSURE
-	
-	TYPE_OBJECT
 	TYPE_PORT
-	TYPE_BITSET
 	TYPE_FLOAT
 	
 	;-- internal use only --
@@ -197,7 +194,7 @@ Red/System [
 ]
 
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)
-#define ACTIONS_NB		60							;-- number of actions
+#define ACTIONS_NB		60							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
 #either debug? = yes [
@@ -218,6 +215,22 @@ Red/System [
 
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 
+#define BS_SET_BIT(array bit)  [
+	pos: array + (bit >> 3)
+	pos/value: pos/value or (as-byte 128 >> (bit and 7))
+]
+
+#define BS_CLEAR_BIT(array bit)  [
+	pos: array + (bit >> 3)
+	pos/value: pos/value and (as-byte 128 >> (bit and 7))
+]
+
+#define BS_GET_BIT(array bit set?)  [
+	pos: array + (bit >> 3)
+	set?: pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
+]
+
+
 #define --NOT_IMPLEMENTED--	[
 	print-line "Error: feature not implemented yet!"
 	halt
@@ -225,14 +238,14 @@ Red/System [
 
 #define RETURN_COMPARE_OTHER [
 	return switch op [
-			COMP_EQUAL
-			COMP_STRICT_EQUAL [false]
-			COMP_NOT_EQUAL 	  [true]
-			default [
-				--NOT_IMPLEMENTED--					;@@ add error handling
-				false
-			]
+		COMP_EQUAL
+		COMP_STRICT_EQUAL [false]
+		COMP_NOT_EQUAL 	  [true]
+		default [
+			--NOT_IMPLEMENTED--							;@@ add error handling
+			false
 		]
+	]
 ]
 
 #if debug? = yes [
