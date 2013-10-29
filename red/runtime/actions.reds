@@ -80,12 +80,14 @@ actions: context [
 		/local
 			arg  [red-value!]
 			int  [red-integer!]
+			char [red-char!]
 			bool [red-logic!]
 	][
 		arg: stack/arguments + 1
 		switch TYPE_OF(arg) [
-			TYPE_INTEGER [int: as red-integer! arg int/value]
-			TYPE_LOGIC	 [bool: as red-logic! arg 2 - as-integer bool/value]
+			TYPE_INTEGER [int:  as red-integer! arg int/value]
+			TYPE_CHAR 	 [char: as red-char! 	arg char/value]
+			TYPE_LOGIC	 [bool: as red-logic! 	arg 2 - as-integer bool/value]
 			default		 [--NOT_IMPLEMENTED-- 0]
 		]
 	]
@@ -661,6 +663,8 @@ actions: context [
 			as red-series! stack/arguments
 			get-index-argument
 			stack/arguments + 2
+		
+		stack/set-last stack/arguments
 	]
 
 
@@ -668,7 +672,6 @@ actions: context [
 		series	[red-series!]
 		index	[integer!]
 		data    [red-value!]
-		return:	[red-value!]
 		/local
 			action-poke
 	][
