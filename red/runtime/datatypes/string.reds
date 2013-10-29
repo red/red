@@ -670,7 +670,6 @@ string: context [
 	make: func [
 		proto	 [red-value!]
 		spec	 [red-value!]
-		type	 [integer!]
 		return:	 [red-string!]
 		/local
 			str	 [red-string!]
