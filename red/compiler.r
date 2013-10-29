@@ -167,6 +167,8 @@ red: context [
 			refinement!
 			issue!
 			lit-word!
+			word! 
+			get-word!
 		] type?/word :expr
 	]
 	
@@ -211,14 +213,17 @@ red: context [
 		throw-error ["Should not happen: not found context for word: " mold name]
 	]
 	
-	emit-push-word: func [name [word!]][
+	emit-push-word: func [name [any-word!] /local type][
+		type: to word! form type? name
+		name: to word! :name
+		
 		either local-word? name [
-			emit 'word/push-local
+			emit append to path! type 'push-local
 			emit last ctx-stack
 			emit get-word-index name
 			insert-lf -3
 		][
-			emit 'word/push
+			emit append to path! type 'push
 			emit decorate-symbol name
 			insert-lf -2
 		]
@@ -832,10 +837,6 @@ red: context [
 					emit to integer! next value
 					insert-lf -2
 				]
-				lit-word? :value [
-					add-symbol value
-					emit-push-word value
-				]
 				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
 					emit to path! reduce [to word! form type? value 'push]
@@ -845,6 +846,10 @@ red: context [
 				none? :value [
 					emit 'none/push
 					insert-lf -1
+				]
+				any-word? :value [
+					add-symbol to word! :value
+					emit-push-word :value
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]
