@@ -14,7 +14,7 @@
 ===start-group=== "basic tests"
 
 	--test-- "basic-bitset-1"
-		bb-1-bs: make bitset! [0 1 2 3[
+		bb-1-bs: make bitset! [0 1 2 3]
 		--assert true = pick bb-1-bs 1
 		--assert true = pick bb-1-bs 2
 		--assert true = pick bb-1-bs 3
@@ -38,7 +38,6 @@
 		--assert true = pick p-1-bs 4
 		--assert true = pick p-1-bs 5
 		--assert false = pick p-1-bs 6
-		
 
 ===end-group===
 
