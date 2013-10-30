@@ -23,7 +23,7 @@
 		--assert false = pick bb-1-bs 256
 		--assert false = pick bb-1-bs 257
 		--assert false = pick bb-1-bs 2147483647
-		--assert false = pick bb-1-bs 2147483648
+		--assert false = pick bb-1-bs -2147483648
 
 ===end-group===
 
