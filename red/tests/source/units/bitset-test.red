@@ -14,30 +14,30 @@
 ===start-group=== "basic tests"
 
 	--test-- "basic-bitset-1"
-		bb-1-bs: make bitset! [0 1 2 3]
-		--assert true = pick bb-1-bs 1
-		--assert true = pick bb-1-bs 2
-		--assert true = pick bb-1-bs 3
-		--assert true = pick bb-1-bs 4
-		--assert false = pick bb-1-bs 5
-		--assert false = pick bb-1-bs 256
-		--assert false = pick bb-1-bs 257
-		--assert false = pick bb-1-bs 2147483647
-		--assert false = pick bb-1-bs -2147483648
+		bs: make bitset! [0 1 2 3]
+		--assert true = pick bs 0
+		--assert true = pick bs 1
+		--assert true = pick bs 2
+		--assert true = pick bs 3
+		--assert false = pick bs 4
+		--assert false = pick bs 256
+		--assert false = pick bs 257
+		--assert false = pick bs 2147483647
+		--assert false = pick bs -2147483648
 
 ===end-group===
 
 ===start-group=== "poke"
 	
-	--test "poke-1"
-		p-1-bs: make bitset! [0 1 2 3]
-		poke p-1-bs 5 true
-		--assert true = pick p-1-bs 1
-		--assert true = pick p-1-bs 2
-		--assert true = pick p-1-bs 3
-		--assert true = pick p-1-bs 4
-		--assert true = pick p-1-bs 5
-		--assert false = pick p-1-bs 6
+	--test-- "poke-1"
+		bs: make bitset! [0 1 2 3]
+		poke bs 4 true
+		--assert true = pick bs 0
+		--assert true = pick bs 1
+		--assert true = pick bs 2
+		--assert true = pick bs 3
+		--assert true = pick bs 4
+		--assert false = pick bs 5
 
 ===end-group===
 
