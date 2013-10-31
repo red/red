@@ -72,13 +72,13 @@ bitset: context [
 		tail: as byte-ptr! s/tail
 
 		while [p < tail][								;@@ could be optimized for speed
-			byte: as-integer p/value		
-			nibble: byte >> 4							;-- high nibble		
+			byte: as-integer p/value
+			nibble: byte >> 4							;-- high nibble
 			c: either nibble < 10 [#"0" + nibble][#"A" + (nibble - 10)]
 			string/append-char GET_BUFFER(buffer) as-integer c
 			
-			nibble: byte and 15							;-- low nibble			
-			c: either nibble < 10 [#"0" + nibble][#"A" + (nibble - 10)]			
+			nibble: byte and 15							;-- low nibble
+			c: either nibble < 10 [#"0" + nibble][#"A" + (nibble - 10)]
 			string/append-char GET_BUFFER(buffer) as-integer c
 			p: p + 1
 			part: part - 1
@@ -160,8 +160,8 @@ bitset: context [
 			]
 			switch op [
 				OP_MAX	 []
-				OP_SET   [BS_SET_BIT(pbits cp)]
-				OP_TEST  [BS_TEST_BIT(pbits cp set?)]
+				OP_SET	 [BS_SET_BIT(pbits cp)]
+				OP_TEST	 [BS_TEST_BIT(pbits cp set?)]
 				OP_CLEAR [BS_CLEAR_BIT(pbits max)]
 			]
 			if cp > max [max: cp]
@@ -239,7 +239,7 @@ bitset: context [
 				tail:  block/rs-tail as red-block! spec
 				test?: op = OP_TEST
 				
-				while [value < tail][			
+				while [value < tail][
 					size: process value bits op yes
 					if all [test? max = 0][return 0]	;-- max > 0 => TRUE, 0 => FALSE
 					
@@ -247,12 +247,12 @@ bitset: context [
 					if all [
 						any [type = TYPE_CHAR type = TYPE_INTEGER]
 						value + 1 < tail 
-					][				
-						w: as red-word! value + 1					
+					][
+						w: as red-word! value + 1
 						if all [
 							TYPE_OF(w) = TYPE_WORD
 							w/symbol = words/dash 
-						][					
+						][
 							value: value + 2
 							type: TYPE_OF(value)
 							either all [
@@ -269,12 +269,12 @@ bitset: context [
 								]
 								switch op [
 									OP_MAX	 []			;-- do nothing
-									OP_SET   [process-range 	 bits min size op]
-									OP_TEST  [max: process-range bits min size op]
+									OP_SET	 [process-range 	 bits min size op]
+									OP_TEST	 [max: process-range bits min size op]
 									OP_CLEAR [process-range		 bits min size op]
 								]
 							][
-								print-line "*** Make Error: invalid upper bound in bitset range"	
+								print-line "*** Make Error: invalid upper bound in bitset range"
 							]
 						]
 					]
