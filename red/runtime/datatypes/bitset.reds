@@ -241,7 +241,7 @@ bitset: context [
 				
 				while [value < tail][
 					size: process value bits op yes
-					if all [test? max = 0][return 0]	;-- max > 0 => TRUE, 0 => FALSE
+					if all [test? zero? size][return 0]	;-- size > 0 => TRUE, 0 => FALSE
 					
 					type: TYPE_OF(value)
 					if all [
