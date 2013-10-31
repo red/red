@@ -352,10 +352,10 @@ bitset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/form"]]
 
-		string/concatenate-literal buffer "make bitset! [#{"
-		part: form-bytes bits buffer OPTION?(arg) part - 16
-		string/concatenate-literal buffer "}]"
-		part - 2
+		string/concatenate-literal buffer "make bitset! #{"
+		part: form-bytes bits buffer OPTION?(arg) part - 15
+		string/append-char GET_BUFFER(buffer) as-integer #"}"
+		part - 1
 	]
 	
 	mold: func [
