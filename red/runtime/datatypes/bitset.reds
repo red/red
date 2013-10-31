@@ -53,6 +53,17 @@ bitset: context [
 		as byte-ptr! s/offset
 	]
 	
+	out-of-bound?: func [
+		bits	[red-bitset!]
+		index	[integer!]								;-- 0-based
+		return: [logic!]
+		/local
+			s [series!]
+	][
+		s: GET_BUFFER(bits)
+		any [index < 0 (s/size << 3) < index]
+	]
+	
 	form-bytes: func [
 		bits	[red-bitset!]
 		buffer	[red-string!]
@@ -107,6 +118,7 @@ bitset: context [
 				]
 			]
 			OP_TEST [
+				if out-of-bound? bits upper [return 0]
 				pbits: rs-head bits
 				while [lower <= upper][
 					BS_TEST_BIT(pbits lower set?)		;-- could be optimized by testing bytes directly
@@ -115,6 +127,7 @@ bitset: context [
 				]
 			]
 			OP_CLEAR [
+				if out-of-bound? bits upper [return 0]
 				pbits: rs-head bits
 				while [lower <= upper][
 					BS_CLEAR_BIT(pbits lower)			;-- could be optimized by clearing bytes directly
@@ -140,6 +153,7 @@ bitset: context [
 			unit  [integer!]
 			max   [integer!]
 			cp	  [integer!]
+			size  [integer!]
 			test? [logic!]
 			set?  [logic!]
 	][
@@ -148,6 +162,7 @@ bitset: context [
 		p:	  (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: as byte-ptr! s/tail
 		max:  0
+		size: s/size << 3
 		
 		unless null? bits [pbits: rs-head bits]
 		test?: op = OP_TEST
@@ -161,8 +176,8 @@ bitset: context [
 			switch op [
 				OP_MAX	 []
 				OP_SET	 [BS_SET_BIT(pbits cp)]
-				OP_TEST	 [BS_TEST_BIT(pbits cp set?)]
-				OP_CLEAR [BS_CLEAR_BIT(pbits max)]
+				OP_TEST	 [if size < cp [return 0] BS_TEST_BIT(pbits cp set?)]
+				OP_CLEAR [if size < cp [return 0] BS_CLEAR_BIT(pbits max)]
 			]
 			if cp > max [max: cp]
 			
@@ -213,11 +228,13 @@ bitset: context [
 							BS_SET_BIT(pbits max)
 						]
 						OP_TEST  [
+							if out-of-bound? bits max [return 0]
 							pbits: rs-head bits
 							BS_TEST_BIT(pbits max test?)
 							max: either test? [1][0]
 						]
 						OP_CLEAR [
+							if out-of-bound? bits max [return 0]
 							pbits: rs-head bits
 							BS_CLEAR_BIT(pbits max)
 						]
