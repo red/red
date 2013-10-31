@@ -1323,9 +1323,10 @@ string: context [
 	;--- Reading actions ---
 
 	pick: func [
-		str	       [red-string!]
-		index  	   [integer!]
-		return:	   [red-value!]
+		str		[red-string!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
 		/local
 			char   [red-char!]
 			s	   [series!]
@@ -1489,10 +1490,11 @@ string: context [
 	]
 
 	poke: func [
-		str		   [red-string!]
-		index	   [integer!]
-		char	   [red-char!]
-		return:	   [red-value!]
+		str		[red-string!]
+		index	[integer!]
+		char	[red-char!]
+		boxed	[red-value!]
+		return:	[red-value!]
 		/local
 			s	   [series!]
 			offset [integer!]

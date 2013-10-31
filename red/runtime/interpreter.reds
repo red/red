@@ -387,7 +387,7 @@ interpreter: context [
 				TYPE_SET_WORD [
 					if routine? [
 						ret-set?: yes
-						value: block/pick (as red-block! value + 1) 1
+						value: block/pick (as red-block! value + 1) 1 null
 						assert TYPE_OF(value) = TYPE_WORD
 						dt: as red-datatype! _context/get as red-word! value
 						assert TYPE_OF(dt) = TYPE_DATATYPE
@@ -480,7 +480,7 @@ interpreter: context [
 				][
 					result: either all [set? slot + 1 = tail][
 						value: actions/find as red-series! result value null no no no null null no no no no
-						actions/poke as red-series! value 2 stack/arguments
+						actions/poke as red-series! value 2 stack/arguments null
 						stack/arguments
 					][
 						actions/select as red-series! result value null no no no null null no no
@@ -496,10 +496,10 @@ interpreter: context [
 			TYPE_INTEGER [
 				int: as red-integer! value
 				result: either all [set? slot + 1 = tail][
-					actions/poke as red-series! result int/value stack/arguments
+					actions/poke as red-series! result int/value stack/arguments value
 					stack/arguments
 				][
-					actions/pick as red-series! result int/value
+					actions/pick as red-series! result int/value value
 				]
 			]
 			TYPE_STRING [

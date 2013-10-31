@@ -13,6 +13,13 @@ Red/System [
 bitset: context [
 	verbose: 0
 	
+	#enum bitset-op! [
+		OP_MAX											;-- calculate highest value
+		OP_SET											;-- set value bits
+		OP_TEST											;-- test if value bits are set
+		OP_CLEAR										;-- clear value bits
+	]
+	
 	rs-head: func [
 		bits	[red-bitset!]
 		return: [byte-ptr!]
@@ -31,6 +38,19 @@ bitset: context [
 	][
 		s: GET_BUFFER(bits)
 		as byte-ptr! s/tail
+	]
+	
+	bound-check: func [
+		bits	[red-bitset!]
+		index	[integer!]								;-- 0-based
+		return: [byte-ptr!]
+		/local
+			s [series!]
+	][
+		s: GET_BUFFER(bits)
+		if (s/size << 3) < index [s: expand-series s (index >> 3) + 1]
+;zeroing buffer!!!
+		as byte-ptr! s/offset
 	]
 	
 	form-bytes: func [
@@ -67,26 +87,48 @@ bitset: context [
 		part
 	]
 	
-	set-range: func [
+	process-range: func [
 		bits 	[red-bitset!]
 		lower	[integer!]
 		upper	[integer!]
+		op		[integer!]
+		return: [integer!]
 		/local
 			pos	  [byte-ptr!]
 			pbits [byte-ptr!]
+			set?  [logic!]
 	][
-		pbits: rs-head bits
-		
-		while [lower <= upper][
-			BS_SET_BIT(pbits lower)						;-- could be optimized by setting bytes directly
-			lower: lower + 1
+		switch op [
+			OP_SET [
+				pbits: bound-check bits upper
+				while [lower <= upper][
+					BS_SET_BIT(pbits lower)				;-- could be optimized by setting bytes directly
+					lower: lower + 1
+				]
+			]
+			OP_TEST [
+				pbits: rs-head bits
+				while [lower <= upper][
+					BS_TEST_BIT(pbits lower set?)		;-- could be optimized by testing bytes directly
+					unless set? [return 0]
+					lower: lower + 1
+				]
+			]
+			OP_CLEAR [
+				pbits: rs-head bits
+				while [lower <= upper][
+					BS_CLEAR_BIT(pbits lower)			;-- could be optimized by clearing bytes directly
+					lower: lower + 1
+				]
+			]
 		]
+		1
 	]
 
 	process-string: func [
 		str		[red-string!]
 		bits 	[red-bitset!]
-		set?	[logic!]
+		op		[integer!]
 		return: [integer!]
 		/local
 			s	  [series!]
@@ -98,6 +140,8 @@ bitset: context [
 			unit  [integer!]
 			max   [integer!]
 			cp	  [integer!]
+			test? [logic!]
+			set?  [logic!]
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
@@ -106,6 +150,7 @@ bitset: context [
 		max:  0
 		
 		unless null? bits [pbits: rs-head bits]
+		test?: op = OP_TEST
 		
 		while [p < tail][
 			switch unit [
@@ -113,20 +158,25 @@ bitset: context [
 				UCS-2  [cp: (as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p cp: p4/1]
 			]
-			either set? [
-				BS_SET_BIT(pbits cp)
-			][
-				if cp > max [max: cp]
+			switch op [
+				OP_MAX	 []
+				OP_SET   [BS_SET_BIT(pbits cp)]
+				OP_TEST  [BS_TEST_BIT(pbits cp set?)]
+				OP_CLEAR [BS_CLEAR_BIT(pbits max)]
 			]
+			if cp > max [max: cp]
+			
+			if all [test? not set?][return 0]
 			p: p + unit
 		]
-		max
+		either all [test? set?][1][max]
 	]
 	
 	process: func [
 		spec	[red-value!]
 		bits 	[red-bitset!]
-		set?	[logic!]
+		op		[integer!]
+		sub?	[logic!]
 		return: [integer!]
 		/local
 			int	  [red-integer!]
@@ -136,31 +186,50 @@ bitset: context [
 			tail  [red-value!]
 			pos	  [byte-ptr!]
 			pbits [byte-ptr!]
-			size  [integer!]
 			max	  [integer!]
+			min	  [integer!]
+			size  [integer!]
+			type  [integer!]
+			s	  [series!]
+			test? [logic!]
 	][
-		max:   0
-		size:  0
+		max: 0
 		
 		switch TYPE_OF(spec) [
+			TYPE_CHAR
 			TYPE_INTEGER [
-				int: as red-integer! spec
-				max: int/value
-				if set? [
-					pbits: rs-head bits
-					BS_SET_BIT(pbits max)
+				type: TYPE_OF(spec)
+				max: either type = TYPE_CHAR [
+					char: as red-char! spec
+					char/value
+				][
+					int: as red-integer! spec
+					int/value
+				]
+				unless op = OP_MAX [
+					switch op [
+						OP_SET   [
+							pbits: bound-check bits max
+							BS_SET_BIT(pbits max)
+						]
+						OP_TEST  [
+							pbits: rs-head bits
+							BS_TEST_BIT(pbits max test?)
+							max: either test? [1][0]
+						]
+						OP_CLEAR [
+							pbits: rs-head bits
+							BS_CLEAR_BIT(pbits max)
+						]
+					]
 				]
 			]
 			TYPE_STRING [
-				max: process-string as red-string! spec bits set?
-			]
-			TYPE_CHAR [
-				char: as red-char! spec
-				max: char/value
-				if set? [
-					pbits: rs-head bits
-					BS_SET_BIT(pbits max)
+				if op = OP_SET [
+					max: process-string as red-string! spec bits OP_MAX
+					pbits: bound-check bits max
 				]
+				max: process-string as red-string! spec bits op
 			]
 			TYPE_BINARY [
 				--NOT_IMPLEMENTED--
@@ -168,12 +237,15 @@ bitset: context [
 			TYPE_BLOCK [
 				value: block/rs-head as red-block! spec
 				tail:  block/rs-tail as red-block! spec
-
+				test?: op = OP_TEST
+				
 				while [value < tail][			
-					max: process value bits set? yes	
+					size: process value bits op yes
+					if all [test? max = 0][return 0]	;-- max > 0 => TRUE, 0 => FALSE
 					
+					type: TYPE_OF(value)
 					if all [
-						TYPE_OF(value) = TYPE_CHAR
+						any [type = TYPE_CHAR type = TYPE_INTEGER]
 						value + 1 < tail 
 					][				
 						w: as red-word! value + 1					
@@ -181,16 +253,25 @@ bitset: context [
 							TYPE_OF(w) = TYPE_WORD
 							w/symbol = words/dash 
 						][					
-							value: value + 2							
+							value: value + 2
+							type: TYPE_OF(value)
 							either all [
 								value < tail
-								TYPE_OF(value) = TYPE_CHAR
+								any [type = TYPE_CHAR type = TYPE_INTEGER]
 							][
-								char: as red-char! value
-								either set? [
-									set-range bits max char/value
+								min: size
+								size: either type = TYPE_CHAR [
+									char: as red-char! value
+									char/value
 								][
-									max: char/value
+									int: as red-integer! value
+									int/value
+								]
+								switch op [
+									OP_MAX	 []			;-- do nothing
+									OP_SET   [process-range 	 bits min size op]
+									OP_TEST  [max: process-range bits min size op]
+									OP_CLEAR [process-range		 bits min size op]
 								]
 							][
 								print-line "*** Make Error: invalid upper bound in bitset range"	
@@ -205,7 +286,17 @@ bitset: context [
 				print-line "*** Make Error: bitset spec argument not supported!"
 			]
 		]
-		if max < 8 [max: 8]
+		
+		if all [not sub? any [op = OP_SET op = OP_MAX]][
+			max: max + 8 and -8	>> 3					;-- round to byte
+			if zero? max [max: 1]
+			
+			if op = OP_SET [
+				s: GET_BUFFER(bits)
+				tail: as red-value! ((as byte-ptr! s/offset) + max)
+				if tail > s/tail [s/tail: tail]			;-- move tail pointer forward if expanded bitset
+			]
+		]
 		max
 	]
 	
@@ -228,20 +319,27 @@ bitset: context [
 			size [integer!]
 			int	 [red-integer!]
 			s	 [series!]
-			
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/make"]]
 		
-		size: process spec null no	
-		size: either zero? (size and 7) [size][size + 8 and -8]	;-- round it to byte size
-		
 		bits: as red-bitset! stack/push*
 		bits/header: TYPE_BITSET						;-- implicit reset of all header flags
-		bits/node: 	 alloc-bytes size >> 3
-		s: GET_BUFFER(bits)
-		s/tail: as cell! ((as byte-ptr! s/tail) + s/size)
-		
-		process spec bits yes	
+
+		either TYPE_OF(spec) = TYPE_INTEGER [
+			int: as red-integer! spec
+			size: int/value
+			if size <= 0 [print-line "*** Make Error: bitset invalid integer argument!"]
+			size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte
+			size: size >> 3
+			bits/node: alloc-bytes size
+			s: GET_BUFFER(bits)
+			s/tail: as cell! ((as byte-ptr! s/offset) + size)
+		][
+			size: process spec null OP_MAX no
+			bits/node: alloc-bytes size
+			process spec bits OP_SET no
+		]
+;zeroing buffer!!!
 		bits
 	]
 	
@@ -275,57 +373,83 @@ bitset: context [
 		form bits buffer arg part
 	]
 	
+	find: func [
+		bits	 [red-bitset!]
+		value	 [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		tail?	 [logic!]
+		match?	 [logic!]
+		return:	 [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/find"]]
+		
+		pick bits 0 value
+	]
+	
+	insert: func [
+		bits	 [red-bitset!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]
+		dup-arg	 [red-value!]
+		append?	 [logic!]
+		return:	 [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/insert"]]
+		
+		process value bits OP_SET no
+		as red-value! bits
+	]
+	
 	pick: func [
 		bits	[red-bitset!]
 		index	[integer!]
+		boxed	[red-value!]
 		return:	[red-value!]
 		/local
-			pos	  [byte-ptr!]
-			pbits [byte-ptr!]
-			set?  [logic!]
-			s	  [series!]
+			set? [integer!]
 	][
-		s: GET_BUFFER(bits)
-		either (s/size << 3) < index [set?: no][
-			pbits: as byte-ptr! s/offset
-			BS_GET_BIT(pbits index set?)
-		]
-		as red-value! either set? [true-value][false-value]
+		#if debug? = yes [if verbose > 0 [print-line "bitset/pick"]]
+		
+		set?: process boxed bits OP_TEST yes
+		as red-value! either positive? set? [true-value][false-value]
 	]
 	
 	poke: func [
 		bits	[red-bitset!]
 		index	[integer!]
-		data    [red-value!]
+		data	[red-value!]
+		boxed	[red-value!]
 		return:	[red-value!]
 		/local
 			bool  [red-logic!]
 			int	  [red-integer!]
-			pos	  [byte-ptr!]
-			pbits [byte-ptr!]
 			type  [integer!]
-			s	  [series!]	
+			op	  [integer!]
 	][
-		s: GET_BUFFER(bits)
+		#if debug? = yes [if verbose > 0 [print-line "bitset/poke"]]
+		
 		type: TYPE_OF(data)
 		bool: as red-logic! data
 		int:  as red-integer! data
-		index: index - 1
 		
-		either any [
+		op: either any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not bool/value]
 			all [type = TYPE_INTEGER zero? int/value]
 		][
-			pbits: as byte-ptr! s/offset
-			BS_CLEAR_BIT(pbits index)
+			OP_CLEAR
 		][
-			if (s/size << 3) < index [
-				s: expand-series s (index >> 3) + 1
-			]
-			pbits: as byte-ptr! s/offset
-			BS_SET_BIT(pbits index)
+			OP_SET
 		]
+		process boxed bits op no
 		as red-value! data
 	]
 	
@@ -368,11 +492,11 @@ bitset: context [
 			null			;change
 			null			;clear
 			null			;copy
-			null			;find
+			:find
 			null			;head
 			null			;head?
 			null			;index?
-			null			;insert
+			:insert
 			null			;length?
 			null			;next
 			:pick

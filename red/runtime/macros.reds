@@ -225,7 +225,7 @@ Red/System [
 	pos/value: pos/value and (as-byte 128 >> (bit and 7))
 ]
 
-#define BS_GET_BIT(array bit set?)  [
+#define BS_TEST_BIT(array bit set?)  [
 	pos: array + (bit >> 3)
 	set?: pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
 ]

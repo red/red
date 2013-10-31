@@ -867,9 +867,10 @@ block: context [
 	;--- Reading actions ---
 	
 	pick: func [
-		blk	       [red-block!]
-		index  	   [integer!]
-		return:	   [red-value!]
+		blk		[red-block!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
 		/local
 			cell   [red-value!]
 			s	   [series!]
@@ -1025,10 +1026,11 @@ block: context [
 	]
 	
 	poke: func [
-		blk		   [red-block!]
-		index	   [integer!]
-		data       [red-value!]
-		return:	   [red-value!]
+		blk		[red-block!]
+		index	[integer!]
+		data	[red-value!]
+		boxed	[red-value!]
+		return:	[red-value!]
 		/local
 			cell   [red-value!]
 			s	   [series!]

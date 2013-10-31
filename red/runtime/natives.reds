@@ -315,7 +315,7 @@ natives: context [
 			while [pos < end][							;-- find first following block
 				if TYPE_OF(pos) = TYPE_BLOCK [
 					stack/reset
-					pos: block/pick as red-series! pos 1
+					pos: block/pick as red-series! pos 1 null
 					interpreter/eval as red-block! pos	;-- do the block
 					exit								;-- early exit with last value on stack
 				]
@@ -585,7 +585,7 @@ natives: context [
 		blk: as red-block! stack/arguments
 		if TYPE_OF(blk) = TYPE_BLOCK [
 			if all [negative? all? 1 = block/rs-length? blk][
-				stack/set-last block/pick as red-series! blk 1
+				stack/set-last block/pick as red-series! blk 1 null
 			]
 		]
 		stack/arguments
@@ -821,9 +821,9 @@ natives: context [
 		i: 1
 		
 		while [i <= size][		
-			v: either block? [block/pick blk i][value]
+			v: either block? [block/pick blk i null][value]
 			_context/set
-				as red-word! block/pick words i
+				as red-word! block/pick words i null
 				v
 			i: i + 1
 		]
@@ -871,7 +871,7 @@ natives: context [
 		assert TYPE_OF(word) = TYPE_WORD
 		
 		result: loop? series
-		if result [_context/set word actions/pick series 1]
+		if result [_context/set word actions/pick series 1 null]
 		series/head: series/head + 1
 		result
 	]

@@ -88,7 +88,7 @@ actions: context [
 			TYPE_INTEGER [int:  as red-integer! arg int/value]
 			TYPE_CHAR 	 [char: as red-char! 	arg char/value]
 			TYPE_LOGIC	 [bool: as red-logic! 	arg 2 - as-integer bool/value]
-			default		 [--NOT_IMPLEMENTED-- 0]
+			default		 [0]
 		]
 	]
 
@@ -636,11 +636,13 @@ actions: context [
 		stack/set-last pick
 			as red-series! stack/arguments
 			get-index-argument
+			stack/arguments + 1
 	]
 	
 	pick: func [
 		series	[red-series!]
 		index	[integer!]
+		boxed	[red-value!]							;-- boxed index value
 		return:	[red-value!]
 		/local
 			action-pick
@@ -650,10 +652,11 @@ actions: context [
 		action-pick: as function! [
 			series	[red-series!]
 			index	[integer!]
+			boxed	[red-value!]							;-- boxed index value
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr as red-value! series ACT_PICK
 		
-		action-pick series index
+		action-pick series index boxed
 	]
 	
 	poke*: func [
@@ -663,6 +666,7 @@ actions: context [
 			as red-series! stack/arguments
 			get-index-argument
 			stack/arguments + 2
+			stack/arguments + 1
 		
 		stack/set-last stack/arguments
 	]
@@ -670,8 +674,9 @@ actions: context [
 
 	poke: func [
 		series	[red-series!]
-		index	[integer!]
-		data    [red-value!]
+		index	[integer!]								;-- unboxed value
+		data	[red-value!]
+		boxed	[red-value!]							;-- boxed index value
 		/local
 			action-poke
 	][
@@ -680,11 +685,12 @@ actions: context [
 		action-poke: as function! [
 			series	[red-series!]
 			index	[integer!]
-			data    [red-value!]
+			data	[red-value!]
+			boxed	[red-value!]
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr as red-value! series ACT_POKE
 		
-		action-poke series index data
+		action-poke series index data boxed
 	]
 	
 	remove*: func [
