@@ -24,7 +24,28 @@
 		--assert false = pick bs 257
 		--assert false = pick bs 2147483647
 		--assert false = pick bs -2147483648
-
+	
+	--test-- "basic-bitset-2"
+		bb2-bs: make bitset! [0100h 0102h]
+		--assert true = pick bb2-bs 0100h
+		--assert false = pick bb2-bs 0101h
+		--assert true = pick bb2-bs 0102h
+		
+	--test-- "basic-bitset-3"
+		bb3-bs: make bitset! [255 257]
+		--assert true = pick bb3-bs 255
+		--assert false = pick bb3-bs 256
+		--assert true = pick bb3-bs 257
+		
+	--test-- "basic-bitset-4"
+		bb4-bs: make bitset! [255 256]
+		--assert true = pick bb4-bs 255
+		--assert true = pick bb4-bs 256
+		
+	--test-- "basic-bitset-5"
+		bb3-bs: make bitset! [00010000h]
+		--assert true = pick bb3-bs 00010000h
+	
 ===end-group===
 
 ===start-group=== "poke"
