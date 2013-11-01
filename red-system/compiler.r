@@ -66,8 +66,8 @@ system-dialect: make-profilable context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: v: none							;-- global parsing rules helpers
 		
-		not-set!:	  [logic! integer! byte!]			;-- reserved for internal use only
 		number!: 	  [byte! integer!]					;-- reserved for internal use only
+		bit-set!: 	  [byte! integer! logic!]			;-- reserved for internal use only
 		any-float!:	  [float! float32! float64!]		;-- reserved for internal use only
 		any-number!:  union number! any-float!			;-- reserved for internal use only
 		pointers!:	  [pointer! struct! c-string!] 		;-- reserved for internal use only
@@ -75,8 +75,8 @@ system-dialect: make-profilable context [
 		poly!:		  union any-number! pointers!		;-- reserved for internal use only
 		any-type!:	  union poly! [logic!]			  	;-- reserved for internal use only
 		type-sets:	  [									;-- reserved for internal use only
-			not-set! number! poly! any-type! any-pointer!
-			any-number!
+			number! poly! any-type! any-pointer!
+			any-number! bit-set!
 		]
 		
 		comparison-op: [= <> < > <= >=]
@@ -87,9 +87,9 @@ system-dialect: make-profilable context [
 			-		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
 			*		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]
 			/		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]
-			and		[2	op		- [a [number!] b [number!] return: [number!]]]
-			or		[2	op		- [a [number!] b [number!] return: [number!]]]
-			xor		[2	op		- [a [number!] b [number!] return: [number!]]]
+			and		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
+			or		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
+			xor		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
 			///		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
@@ -101,7 +101,7 @@ system-dialect: make-profilable context [
 			<		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			>=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
 			<=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
-			not		[1	inline	- [a [not-set!] 		   return: [not-set!]]]
+			not		[1	inline	- [a [bit-set!] 		   return: [bit-set!]]]
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
 			throw	[1	inline	- [n [integer!]]]
