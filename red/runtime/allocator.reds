@@ -25,11 +25,13 @@ Red/System [
 #define flag-series-stk		00400000h		;-- values block allocated on stack
 #define flag-series-nogc	00200000h		;-- protected from GC (system-critical series)
 #define flag-series-fixed	00100000h		;-- series cannot be relocated (system-critical series)
+#define flag-bitset-not		00080000h		;-- complement flag for bitsets
 
 #define flag-arity-mask		C1FFFFFFh		;-- mask for routines arity field
 #define flag-unit-mask		FFFFFFE0h		;-- mask for unit field in series-buffer!
 #define get-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
 #define series-free-mask	7FFFFFFFh		;-- mark a series as used (not collectable by the GC)
+#define flag-not-mask		FFF7FFFFh		;-- mask for complement flag
 
 #define type-mask			FFFFFF00h		;-- mask for clearing type ID in cell header
 #define get-type-mask		000000FFh		;-- mask for reading type ID in cell header
@@ -67,7 +69,8 @@ cell!: alias struct! [
 ;	22:		stack							;-- series buffer is allocated on stack
 ;   21:		permanent						;-- protected from GC (system-critical series)
 ;   20:     fixed							;-- series cannot be relocated (system-critical series)
-;	19-3: 	<reserved>
+;	19:		complement						;-- complement flag for bitsets
+;	18-3: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [

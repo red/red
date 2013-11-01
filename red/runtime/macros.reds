@@ -212,6 +212,7 @@ Red/System [
 #define ON_STACK?(ctx)		(ctx/header and flag-series-stk <> 0)
 #define EQUAL_SYMBOLS?(a b) ((symbol/resolve a) = (symbol/resolve b))
 #define EQUAL_WORDS?(a b) 	((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
+#define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 

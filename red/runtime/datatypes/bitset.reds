@@ -64,11 +64,29 @@ bitset: context [
 		any [index < 0 (s/size << 3) < index]
 	]
 	
+	invert: func [
+		bits [red-bitset!]
+		/local
+			s	 [series!]
+			p	 [byte-ptr!]
+			tail [byte-ptr!]
+	][
+		s: 	  GET_BUFFER(bits)
+		p:	  as byte-ptr! s/offset
+		tail: as byte-ptr! s/tail
+		
+		while [p < tail][
+			p/value: not p/value
+			p: p + 1
+		]
+	]
+	
 	form-bytes: func [
 		bits	[red-bitset!]
 		buffer	[red-string!]
 		part?	[logic!]
 		part	[integer!]
+		invert? [logic!]
 		return:	[integer!]
 		/local
 			s	   [series!]
@@ -84,6 +102,8 @@ bitset: context [
 
 		while [p < tail][								;@@ could be optimized for speed
 			byte: as-integer p/value
+			if invert? [byte: 255 - byte]
+			
 			nibble: byte >> 4							;-- high nibble
 			c: either nibble < 10 [#"0" + nibble][#"A" + (nibble - 10)]
 			string/append-char GET_BUFFER(buffer) as-integer c
@@ -91,6 +111,7 @@ bitset: context [
 			nibble: byte and 15							;-- low nibble
 			c: either nibble < 10 [#"0" + nibble][#"A" + (nibble - 10)]
 			string/append-char GET_BUFFER(buffer) as-integer c
+			
 			p: p + 1
 			part: part - 1
 			if all [part? negative? part][return part]
@@ -108,7 +129,12 @@ bitset: context [
 			pos	  [byte-ptr!]
 			pbits [byte-ptr!]
 			set?  [logic!]
+			s	  [series!]
+			not?  [logic!]
 	][
+		s: GET_BUFFER(bits)
+		not?: FLAG_NOT?(s)
+		
 		switch op [
 			OP_SET [
 				pbits: bound-check bits upper
@@ -118,7 +144,7 @@ bitset: context [
 				]
 			]
 			OP_TEST [
-				if out-of-bound? bits upper [return 0]
+				if out-of-bound? bits upper [return as-integer not?]
 				pbits: rs-head bits
 				while [lower <= upper][
 					BS_TEST_BIT(pbits lower set?)		;-- could be optimized by testing bytes directly
@@ -127,7 +153,7 @@ bitset: context [
 				]
 			]
 			OP_CLEAR [
-				if out-of-bound? bits upper [return 0]
+				if out-of-bound? bits upper [return as-integer not?]
 				pbits: rs-head bits
 				while [lower <= upper][
 					BS_CLEAR_BIT(pbits lower)			;-- could be optimized by clearing bytes directly
@@ -156,6 +182,7 @@ bitset: context [
 			size  [integer!]
 			test? [logic!]
 			set?  [logic!]
+			not?  [logic!]
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
@@ -163,6 +190,7 @@ bitset: context [
 		tail: as byte-ptr! s/tail
 		max:  0
 		size: s/size << 3
+		not?: FLAG_NOT?(s)
 		
 		unless null? bits [pbits: rs-head bits]
 		test?: op = OP_TEST
@@ -176,8 +204,14 @@ bitset: context [
 			switch op [
 				OP_MAX	 []
 				OP_SET	 [BS_SET_BIT(pbits cp)]
-				OP_TEST	 [if size < cp [return 0] BS_TEST_BIT(pbits cp set?)]
-				OP_CLEAR [if size < cp [return 0] BS_CLEAR_BIT(pbits max)]
+				OP_TEST	 [
+					if size < cp [return as-integer not?]
+					BS_TEST_BIT(pbits cp set?)
+				]
+				OP_CLEAR [
+					if size < cp [return as-integer not?]
+					BS_CLEAR_BIT(pbits max)
+				]
 			]
 			if cp > max [max: cp]
 			
@@ -207,6 +241,7 @@ bitset: context [
 			type  [integer!]
 			s	  [series!]
 			test? [logic!]
+			not?  [logic!]
 	][
 		max: 0
 		
@@ -222,19 +257,21 @@ bitset: context [
 					int/value
 				]
 				unless op = OP_MAX [
+					s: GET_BUFFER(bits)
+					not?: FLAG_NOT?(s)
 					switch op [
 						OP_SET   [
 							pbits: bound-check bits max
 							BS_SET_BIT(pbits max)
 						]
 						OP_TEST  [
-							if out-of-bound? bits max [return 0]
+							if out-of-bound? bits max [return as-integer not?]
 							pbits: rs-head bits
 							BS_TEST_BIT(pbits max test?)
-							max: either test? [1][0]
+							max: as-integer test?
 						]
 						OP_CLEAR [
-							if out-of-bound? bits max [return 0]
+							if out-of-bound? bits max [return as-integer not?]
 							pbits: rs-head bits
 							BS_CLEAR_BIT(pbits max)
 						]
@@ -335,7 +372,10 @@ bitset: context [
 			bits [red-bitset!]
 			size [integer!]
 			int	 [red-integer!]
+			blk	 [red-block!]
+			w	 [red-word!]
 			s	 [series!]
+			not? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/make"]]
 		
@@ -346,33 +386,68 @@ bitset: context [
 			int: as red-integer! spec
 			size: int/value
 			if size <= 0 [print-line "*** Make Error: bitset invalid integer argument!"]
-			size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte
-			size: size >> 3
+			size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
+			size: size >> 3								;-- convert to bytes
 			bits/node: alloc-bytes size
+			
 			s: GET_BUFFER(bits)
 			s/tail: as cell! ((as byte-ptr! s/offset) + size)
 		][
-			size: process spec null OP_MAX no
+			not?: no
+			
+			if TYPE_OF(spec) = TYPE_BLOCK [
+				blk: as red-block! spec
+				w: as red-word! block/rs-head blk
+				not?: all [
+					TYPE_OF(w) = TYPE_WORD
+					w/symbol = words/not*
+				]
+				if not? [blk/head: blk/head + 1]		;-- skip NOT
+			]
+			
+			size: process spec null OP_MAX no			;-- 1st pass: determine size
 			bits/node: alloc-bytes size
-			process spec bits OP_SET no
+			process spec bits OP_SET no					;-- 2nd pass: set bits
+			
+			if not? [
+				s: GET_BUFFER(bits)
+				s/flags: s/flags or flag-bitset-not
+				blk/head: blk/head - 1					;-- restore series argument head
+				invert bits
+			]
 		]
 ;zeroing buffer!!!
 		bits
 	]
 	
 	form: func [
-		bits	  [red-bitset!]
-		buffer	  [red-string!]
-		arg		  [red-value!]
-		part	  [integer!]
-		return:	  [integer!]
+		bits	[red-bitset!]
+		buffer	[red-string!]
+		arg		[red-value!]
+		part	[integer!]
+		return: [integer!]
+		/local
+			s	 [series!]
+			not? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/form"]]
 
-		string/concatenate-literal buffer "make bitset! #{"
-		part: form-bytes bits buffer OPTION?(arg) part - 15
+		s: GET_BUFFER(bits)
+		not?: FLAG_NOT?(s)
+		
+		string/concatenate-literal buffer "make bitset! "
+		if not? [string/concatenate-literal buffer "[not "]
+		
+		string/concatenate-literal buffer "#{"
+		part: form-bytes bits buffer OPTION?(arg) part - 13 not?
 		string/append-char GET_BUFFER(buffer) as-integer #"}"
-		part - 1
+		
+		either not? [
+			string/append-char GET_BUFFER(buffer)as-integer #"]"
+			part - 7									;-- account for extra chars
+		][
+			part - 1
+		]
 	]
 	
 	mold: func [
@@ -450,21 +525,25 @@ bitset: context [
 			int	  [red-integer!]
 			type  [integer!]
 			op	  [integer!]
+			s	  [series!]
+			not?  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/poke"]]
 		
 		type: TYPE_OF(data)
 		bool: as red-logic! data
 		int:  as red-integer! data
+		s:	  GET_BUFFER(bits)
+		not?: FLAG_NOT?(s)
 		
 		op: either any [
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not bool/value]
 			all [type = TYPE_INTEGER zero? int/value]
 		][
-			OP_CLEAR
+			either not? [OP_SET][OP_CLEAR]
 		][
-			OP_SET
+			either not? [OP_CLEAR][OP_SET]
 		]
 		process boxed bits op no
 		as red-value! data
