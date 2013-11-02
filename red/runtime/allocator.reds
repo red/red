@@ -131,6 +131,36 @@ init-mem: does [
 
 
 ;-------------------------------------------
+;-- Zero-fill memory region
+;-------------------------------------------
+zero-fill: func [
+	p	  [byte-ptr!]
+	end   [byte-ptr!]
+	/local
+		p4		 [int-ptr!]
+		tail	 [int-ptr!]
+		cnt		 [integer!]
+		aligned? [logic!]
+][
+	cnt: (as-integer p) and 3
+	unless zero? cnt [						;-- preprocess unaligned beginning
+		while [cnt > 0][p/cnt: null-byte cnt: cnt - 1]
+		p: as byte-ptr! (as-integer p) + 4 and -4
+	]
+	
+	aligned?: zero? ((as-integer end) and 3)
+	tail: either aligned? [as int-ptr! end][as int-ptr! (as-integer end) and -4]
+	p4: as int-ptr! p
+	
+	while [p4 < tail][p4/value: 0 p4: p4 + 1] ;-- zero fill target region using 32-bit accesses
+	
+	unless aligned? [						;-- postprocess unaligned ending
+		cnt: (as-integer end) and 3	
+		while [cnt > 0][end/cnt: null-byte cnt: cnt - 1]
+	]
+]
+
+;-------------------------------------------
 ;-- Allocate paged virtual memory region
 ;-------------------------------------------
 allocate-virtual: func [
@@ -550,6 +580,23 @@ alloc-bytes: func [
 ]
 
 ;-------------------------------------------
+;-- Wrapper on alloc-series for zero-filled byte buffer allocation
+;-------------------------------------------
+alloc-bytes-zeroed: func [
+	size	[integer!]						;-- number of 16 bytes cells to preallocate
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	/local
+		node [node!]
+		s	 [series!]
+][
+	if zero? size [size: 16]
+	node: alloc-series size 1 0				;-- optimize by default for tail insertion
+	s: as series! node/value
+	zero-fill as byte-ptr! s/offset (as byte-ptr! s/offset) + s/size
+	node
+]
+
+;-------------------------------------------
 ;-- Set series header flags
 ;-------------------------------------------
 set-flag: func [
@@ -631,6 +678,21 @@ expand-series: func [
 ]
 
 ;-------------------------------------------
+;-- Expand a series to a new size and zero-fill extra space
+;-------------------------------------------
+expand-series-zeroed: func [
+	s		[series-buffer!]				;-- series to expand
+	new-sz	[integer!]						;-- new size in bytes
+	return: [series-buffer!]
+	/local
+		old [integer!]
+][
+	old: s/size
+	s: expand-series s new-sz
+	zero-fill (as byte-ptr! s/offset) + old (as byte-ptr! s/offset) + s/size
+	s
+]
+;-------------------------------------------
 ;-- Shrink a series to a smaller size (not needed for now)
 ;-------------------------------------------
 ;shrink-series: func [
@@ -639,7 +701,6 @@ expand-series: func [
 ;][
 ;
 ;]
-
 
 ;-------------------------------------------
 ;-- Allocate a big series

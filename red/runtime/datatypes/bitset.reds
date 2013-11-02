@@ -48,8 +48,7 @@ bitset: context [
 			s [series!]
 	][
 		s: GET_BUFFER(bits)
-		if (s/size << 3) < index [s: expand-series s (index >> 3) + 1]
-;zeroing buffer!!!
+		if (s/size << 3) < index [s: expand-series-zeroed s (index >> 3) + 1]
 		as byte-ptr! s/offset
 	]
 	
@@ -430,7 +429,7 @@ bitset: context [
 			]
 			
 			size: process spec null OP_MAX no			;-- 1st pass: determine size
-			bits/node: alloc-bytes size
+			bits/node: alloc-bytes-zeroed size
 			process spec bits OP_SET no					;-- 2nd pass: set bits
 			
 			if not? [
@@ -440,7 +439,6 @@ bitset: context [
 				invert bits
 			]
 		]
-;zeroing buffer!!!
 		bits
 	]
 	
