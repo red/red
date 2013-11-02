@@ -461,6 +461,38 @@ string: context [
 		]
 		res
 	]
+	
+	match-bitset?: func [
+		str	    [red-string!]
+		bits    [red-bitset!]
+		case?	[logic!]
+		return: [logic!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			p	 [byte-ptr!]
+			p4	 [int-ptr!]
+			cp	 [integer!]
+			size [integer!]
+			not? [logic!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: 	  rs-head str
+		
+		s:	   GET_BUFFER(bits)
+		not?:  FLAG_NOT?(s)
+		size:  s/size << 3
+		
+		cp: switch unit [
+			Latin1 [as-integer p/value]
+			UCS-2  [(as-integer p/2) << 8 + p/1]
+			UCS-4  [p4: as int-ptr! p p4/value]
+		]
+		either size < cp [not?][						;-- virtual bit
+			bitset/match? bitset/rs-head bits cp case?
+		]
+	]
 
 	match?: func [
 		str	    [red-string!]

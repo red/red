@@ -106,7 +106,7 @@ parser: context [
 			p4	 [int-ptr!]
 			tail [byte-ptr!]
 			cnt	 [integer!]
-			c    [byte!]
+			c	 [integer!]
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
@@ -115,12 +115,17 @@ parser: context [
 		cnt: 0
 		
 		while [p < tail][								;-- jump over whitespaces
-			c: as-byte switch unit [
+			c: switch unit [
 				Latin1 [as-integer p/value]
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
-			if all [c <> #" " c <> #"^-" c <> #"^/" c <> #"^M"][
+			if all [
+				c <> as-integer #" "
+				c <> as-integer #"^-"
+				c <> as-integer #"^/"
+				c <> as-integer #"^M"
+			][
 				str/head: str/head + cnt
 				return no
 			]
@@ -138,8 +143,10 @@ parser: context [
 		return:	[logic!]
 		/local
 			end? [logic!]
+			type [integer!]
 	][
-		end?: either TYPE_OF(value) = TYPE_CHAR [
+		type: TYPE_OF(value)
+		end?: either any [type = TYPE_CHAR type = TYPE_BITSET][
 			string/rs-next str
 		][
 			assert TYPE_OF(value) = TYPE_STRING
@@ -192,22 +199,27 @@ parser: context [
 		rules	[red-block!]							;-- (could be optimized even further)
 		input	[red-series!]
 		token	[red-value!]
+		case?	[logic!]
 		return: [logic!]
 		/local
-			pos	  [positions!]
-			head  [red-value!]
-			tail  [red-value!]
-			value [red-value!]
-			char  [red-char!]
-			s	  [series!]
-			p	  [byte-ptr!]
-			phead [byte-ptr!]
-			ptail [byte-ptr!]
-			p4	  [int-ptr!]
-			cp	  [integer!]
-			size  [integer!]
-			unit  [integer!]
-			type  [integer!]
+			pos	   [positions!]
+			head   [red-value!]
+			tail   [red-value!]
+			value  [red-value!]
+			char   [red-char!]
+			bits   [red-bitset!]
+			s	   [series!]
+			p	   [byte-ptr!]
+			phead  [byte-ptr!]
+			ptail  [byte-ptr!]
+			pbits  [byte-ptr!]
+			p4	   [int-ptr!]
+			cp	   [integer!]
+			size   [integer!]
+			unit   [integer!]
+			type   [integer!]
+			not?   [logic!]
+			match? [logic!]
 	][
 		s: GET_BUFFER(rules)
 		pos: as positions! s/tail - 2
@@ -219,6 +231,35 @@ parser: context [
 			type = TYPE_BINARY
 		][
 			switch TYPE_OF(token) [
+				TYPE_BITSET [
+					s: 	   GET_BUFFER(input)
+					unit:  GET_UNIT(s)
+					phead: (as byte-ptr! s/offset) + (input/head << (unit >> 1))
+					ptail: as byte-ptr! s/tail
+					p: 	   phead
+					
+					bits:  as red-bitset! token
+					s:	   GET_BUFFER(bits)
+					pbits: as byte-ptr! s/offset
+					not?:  FLAG_NOT?(s)
+					size:  s/size << 3
+
+					until [
+						cp: switch unit [
+							Latin1 [as-integer p/value]
+							UCS-2  [(as-integer p/2) << 8 + p/1]
+							UCS-4  [p4: as int-ptr! p p4/value]
+						]
+						match?: either size < cp [not?][			;-- virtual bit
+							bitset/match? pbits cp case?
+						]
+						if match? [
+							return adjust-input-index input pos 1 ((as-integer p - phead) >> (unit >> 1))
+						]
+						p: p + unit
+						p = ptail
+					]
+				]
 				TYPE_STRING
 				TYPE_FILE
 				TYPE_BINARY [
@@ -226,14 +267,16 @@ parser: context [
 					if (string/rs-length? as red-string! input) < size [return no]
 					
 					s: GET_BUFFER(input)
-					unit: (GET_UNIT(s) >> 1)
+					unit:  (GET_UNIT(s) >> 1)
+					phead: as byte-ptr! s/offset
+					ptail: as byte-ptr! s/tail
 					
 					until [
 						if string/equal? as red-string! input as red-string! token COMP_EQUAL yes [
 							return adjust-input-index input pos size 0
 						]
 						input/head: input/head + 1
-						(as byte-ptr! s/offset) + (input/head + size << unit) = as byte-ptr! s/tail
+						phead + (input/head + size << unit) = ptail
 					]
 				]
 				TYPE_CHAR [
@@ -293,13 +336,76 @@ parser: context [
 		no
 	]
 	
-	loop-token: func [
+	loop-bitset: func [									;-- optimized bitset matching loop
+		input	[red-series!]
+		bits	[red-bitset!]
+		min		[integer!]
+		max		[integer!]
+		counter [int-ptr!]
+		over?	[logic!]
+		case?	[logic!]
+		return: [logic!]
+		/local
+			s	  [series!]
+			unit  [integer!]
+			p	  [byte-ptr!]
+			phead [byte-ptr!]
+			ptail [byte-ptr!]
+			pbits [byte-ptr!]
+			p4	  [int-ptr!]
+			cp	  [integer!]
+			cnt	  [integer!]
+			size  [integer!]
+			not?  [logic!]
+			max?  [logic!]
+	][
+		s:	   GET_BUFFER(input)
+		unit:  GET_UNIT(s)
+		phead: (as byte-ptr! s/offset) + (input/head << (unit >> 1))
+		ptail: as byte-ptr! s/tail
+		p:	   phead
+
+		s:	   GET_BUFFER(bits)
+		pbits: as byte-ptr! s/offset
+		not?:  FLAG_NOT?(s)
+		size:  s/size << 3
+		
+		cnt: 	0
+		match?: yes
+		max?:	max <> R_NONE
+		
+		until [
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			match?: either size < cp [not?][			;-- virtual bit
+				bitset/match? pbits cp case?
+			]
+			if match? [p: p + unit]
+			cnt: cnt + 1
+			any [
+				not match?
+				p = ptail
+				all [max? cnt >= max]
+			]
+		]
+		if match? [
+			input/head: input/head + ((as-integer p - phead) >> (unit >> 1))
+		]
+		counter/value: cnt
+		match?
+	]
+	
+	loop-token: func [									;-- fast literal matching loop
 		input	[red-series!]
 		token	[red-value!]
 		min		[integer!]
 		max		[integer!]
 		counter [int-ptr!]
 		over?	[logic!]
+		case?	[logic!]
 		return: [logic!]
 		/local
 			len	   [integer!]
@@ -307,19 +413,22 @@ parser: context [
 			type   [integer!]
 			match? [logic!]
 			end?   [logic!]
+			s	   [series!]
 	][
 		PARSE_SET_INPUT_LENGTH(len)
 		if any [zero? len len < min][return no]			;-- input too short
 		
-		either TYPE_OF(token)= TYPE_BITSET [
-			--NOT_IMPLEMENTED--
-		][												;-- fast literal matching loop
-			cnt: 0
-			either any [								;TBD: replace with ANY_STRING
-				type = TYPE_STRING
-				type = TYPE_FILE
+		cnt: 0
+		match?: yes
+
+		either any [									;TBD: replace with ANY_STRING
+			type = TYPE_STRING
+			type = TYPE_FILE
+		][
+			either TYPE_OF(token)= TYPE_BITSET [
+				loop-bitset input as red-bitset! token min max counter over? case?
 			][
-				until [									;-- ANY-STRING input matching
+				until [										;-- ANY-STRING input matching
 					match?: string/match? as red-string! input token COMP_EQUAL
 					end?: all [match? advance as red-string! input token over?]	;-- consume matched input
 					cnt: cnt + 1
@@ -329,24 +438,25 @@ parser: context [
 						all [max <> R_NONE cnt >= max]
 					]
 				]
-			][
-				until [									;-- ANY-BLOCK input matching
-					match?:	actions/compare block/rs-head input token COMP_EQUAL	;@@ sub-optimal!!
-					end?: all [match? block/rs-next input]	;-- consume matched input
-					cnt: cnt + 1
-					any [
-						not match?
-						end?
-						all [max <> R_NONE cnt >= max]
-					]
-				]
-			]	
-			unless match? [
-				cnt: cnt - 1
-				match?: either max = R_NONE [min <= cnt][all [min <= cnt cnt <= max]]
 			]
-			counter/value: cnt
+		][
+			until [										;-- ANY-BLOCK input matching
+				match?:	actions/compare block/rs-head input token COMP_EQUAL	;@@ sub-optimal!!
+				end?: all [match? block/rs-next input]	;-- consume matched input
+				cnt: cnt + 1
+				any [
+					not match?
+					end?
+					all [max <> R_NONE cnt >= max]
+				]
+			]
 		]
+		
+		unless match? [
+			cnt: cnt - 1
+			match?: either max = R_NONE [min <= cnt][all [min <= cnt cnt <= max]]
+		]
+		counter/value: cnt
 		match?
 	]
 
@@ -385,12 +495,14 @@ parser: context [
 			loop?  [logic!]
 			pop?   [logic!]
 			break? [logic!]
+			rule?  [logic!]
 	][
 		match?: yes
 		end?:   no
 		ended?: yes
 		break?: no
 		pop?:	no
+		rule?:	no
 		value:	null
 		type:	-1
 		min:	-1
@@ -457,6 +569,8 @@ parser: context [
 					int: as red-integer! ALLOC_TAIL(rules)
 					int/header: TYPE_INTEGER
 					int/value: type
+					if cmd < tail [cmd: cmd + 1]		;-- move after the rule prologue
+					value: cmd
 					state: ST_MATCH_RULE
 				]
 				ST_POP_RULE [
@@ -598,9 +712,6 @@ parser: context [
 							match?: TYPE_OF(value) = dt/value
 							state: either match? [ST_NEXT_INPUT][ST_FIND_ALTERN]
 						]
-						TYPE_BITSET [
-							--NOT_IMPLEMENTED--
-						]
 						TYPE_SET_WORD [
 							_context/set as red-word! value as red-value! input
 							state: ST_NEXT_ACTION
@@ -680,7 +791,11 @@ parser: context [
 							type = TYPE_STRING
 							type = TYPE_FILE
 						][
-							match?: string/match? as red-string! input value COMP_EQUAL
+							match?: either TYPE_OF(value) = TYPE_BITSET [
+								string/match-bitset? as red-string! input as red-bitset! value case?
+							][
+								string/match? as red-string! input value COMP_EQUAL
+							]
 							all [match? advance as red-string! input value over?]	;-- consume matched input
 						][
 							match?: actions/compare block/rs-head input value COMP_EQUAL
@@ -690,34 +805,23 @@ parser: context [
 					]
 				]
 				ST_MATCH_RULE [
-					if cmd < tail [cmd: cmd + 1]		;-- move after the rule prologue
-					
-					either all [cmd = tail][
+					either all [value = tail][
 						state: either zero? block/rs-length? rules [ST_END][ST_POP_BLOCK]
 					][
-						switch TYPE_OF(cmd) [
-							TYPE_BLOCK [
-								value: cmd
-								state: ST_PUSH_BLOCK
-							]
-							TYPE_WORD [
-								state: ST_WORD
-							]
-							TYPE_INTEGER [
-								value: cmd
-								state: ST_DO_ACTION
-							]
+						switch TYPE_OF(value) [
+							TYPE_BLOCK	 [state: ST_PUSH_BLOCK]
+							TYPE_WORD	 [state: ST_WORD rule?: yes]
+							TYPE_INTEGER [state: ST_DO_ACTION]
 							default [
 								either min = R_NONE [
-									either any [type = R_TO type = R_THRU][
-										match?: find-token? rules input cmd
-										state: ST_POP_RULE
+									state: either any [type = R_TO type = R_THRU][
+										match?: find-token? rules input value case?
+										ST_POP_RULE
 									][
-										value: cmd
-										state: ST_DO_ACTION
+										ST_DO_ACTION
 									]
 								][
-									match?: loop-token input cmd min max :cnt over?
+									match?: loop-token input value min max :cnt over? case?
 									if all [not match? zero? min][match?: yes]
 									
 									s: GET_BUFFER(rules)
@@ -850,7 +954,8 @@ parser: context [
 						]
 						true [
 							value: _context/get w
-							state: ST_DO_ACTION
+							state: either rule? [ST_MATCH_RULE][ST_DO_ACTION] ;-- enable fast loops for word argument
+							rule?: no
 						]
 					]
 				]

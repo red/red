@@ -53,7 +53,7 @@ bitset: context [
 		as byte-ptr! s/offset
 	]
 	
-	out-of-bound?: func [
+	virtual-bit?: func [
 		bits	[red-bitset!]
 		index	[integer!]								;-- 0-based
 		return: [logic!]
@@ -62,6 +62,30 @@ bitset: context [
 	][
 		s: GET_BUFFER(bits)
 		any [index < 0 (s/size << 3) < index]
+	]
+	
+	match?: func [										;-- called from PARSE
+		pbits	[byte-ptr!]
+		index	[integer!]								;-- 0-based
+		case?	[logic!]
+		return: [logic!]
+		/local
+			match? [logic!]
+	][													;-- no out of bound index checking!
+		BS_TEST_BIT(pbits index match?)
+		
+		if all [not case? not match?][
+			either all [65 <= index index <= 90][		;-- try with lowercasing
+				index: index + 32
+				BS_TEST_BIT(pbits index match?)
+			][
+				if all [97 <= index index <= 122][		;-- try with uppercasing
+					index: index - 32
+					BS_TEST_BIT(pbits index match?)
+				]
+			]
+		]
+		match?
 	]
 	
 	invert: func [
@@ -144,7 +168,7 @@ bitset: context [
 				]
 			]
 			OP_TEST [
-				if out-of-bound? bits upper [return as-integer not?]
+				if virtual-bit? bits upper [return as-integer not?]
 				pbits: rs-head bits
 				while [lower <= upper][
 					BS_TEST_BIT(pbits lower set?)		;-- could be optimized by testing bytes directly
@@ -153,7 +177,7 @@ bitset: context [
 				]
 			]
 			OP_CLEAR [
-				if out-of-bound? bits upper [return as-integer not?]
+				if virtual-bit? bits upper [return as-integer not?]
 				pbits: rs-head bits
 				while [lower <= upper][
 					BS_CLEAR_BIT(pbits lower)			;-- could be optimized by clearing bytes directly
@@ -265,13 +289,13 @@ bitset: context [
 							BS_SET_BIT(pbits max)
 						]
 						OP_TEST  [
-							if out-of-bound? bits max [return as-integer not?]
+							if virtual-bit? bits max [return as-integer not?]
 							pbits: rs-head bits
 							BS_TEST_BIT(pbits max test?)
 							max: as-integer test?
 						]
 						OP_CLEAR [
-							if out-of-bound? bits max [return as-integer not?]
+							if virtual-bit? bits max [return as-integer not?]
 							pbits: rs-head bits
 							BS_CLEAR_BIT(pbits max)
 						]
