@@ -775,6 +775,17 @@ parse: make native! [[
 	#get-definition NAT_PARSE
 ]
 
+union: make native! [[
+		set1 [block! string! bitset! typeset!]
+		set2 [block! string! bitset! typeset!]
+		/case
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! string! bitset! typeset!]
+	]
+	#get-definition NAT_UNION
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

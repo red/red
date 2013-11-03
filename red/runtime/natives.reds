@@ -786,6 +786,38 @@ natives: context [
 			
 		stack/set-last as red-value! logic/push match?
 	]
+	
+	union*: func [
+		cased	 [integer!]
+		skip	 [integer!]
+		/local
+			skip-arg [red-value!]
+			case?	 [logic!]
+	][
+		skip-arg: stack/arguments + skip
+		case?:	  as logic! cased + 1
+		
+		switch TYPE_OF(set1) [
+			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
+			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
+			TYPE_BITSET [
+				stack/set-last as red-value! bitset/union
+					as red-bitset! stack/arguments
+					as red-bitset! stack/arguments + 1
+					no
+					null
+				]
+			default [
+				print-line "*** Error: argument type not supported by UNION"
+			]
+		]
+	]
+	
+	intersect*: does []
+	
+	unique*: does []
+	
+	difference*: does []
 
 	;--- Natives helper functions ---
 	
@@ -984,6 +1016,10 @@ natives: context [
 			:stats*
 			:bind*
 			:parse*
+			:union*
+			:intersect*
+			:unique*
+			:difference*
 		]
 	]
 

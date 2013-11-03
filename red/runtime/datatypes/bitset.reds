@@ -142,6 +142,59 @@ bitset: context [
 		part
 	]
 	
+	union: func [
+		set1	[red-bitset!]
+		set2	[red-bitset!]
+		case?	[logic!]
+		skip	[red-value!]
+		return: [red-bitset!]
+		/local
+			s1	  [series!]
+			s2	  [series!]
+			s	  [series!]
+			node  [node!]
+			p	  [byte-ptr!]
+			p1	  [byte-ptr!]
+			p2	  [byte-ptr!]
+			tail  [byte-ptr!]
+			same? [logic!]
+	][
+		s1: GET_BUFFER(set1)
+		s2: GET_BUFFER(set2)
+		
+		if s1/size > s2/size [s: s1	s1: s2 s2: s]		;-- exchange s1 <=> s2
+		same?: (s1/flags and flag-bitset-not) = (s2/flags and flag-bitset-not)
+		
+		node: alloc-bytes s2/size
+		s: as series! node/value
+		p: as byte-ptr! s/offset
+		s/tail: as red-value! ((as byte-ptr! p) + s/size)
+		unless same? [s/flags: s/flags or flag-bitset-not]
+		
+		p1:	  as byte-ptr! s1/offset
+		tail: as byte-ptr! s1/tail
+		p2:	  as byte-ptr! s2/offset
+		
+		until [
+			p/value: either same? [
+				p1/value or p2/value					;-- OR s1 with part(s2)
+			][
+				p1/value xor p2/value					;-- XOR s1 with part(s2)
+			]
+			p:  p  + 1
+			p1: p1 + 1
+			p2: p2 + 1
+			p1 = tail
+		]
+		tail: as byte-ptr! s2/tail
+		if p2 < tail [copy-memory p p2 as-integer tail - p2] ;-- just copy remaining of s2
+		
+		set1: as red-bitset! stack/push*
+		set1/header: TYPE_BITSET
+		set1/node:	 node
+		set1
+	]
+	
 	process-range: func [
 		bits 	[red-bitset!]
 		lower	[integer!]
