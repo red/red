@@ -710,20 +710,15 @@ copy-series: func [
 	return: [node!]
 	/local
 		node   [node!]
-		empty? [logic!]
 		new	   [series!]
-		size   [integer!]
 ][
-	size: s/size
-	empty?: zero? size
-	if empty? [size: 1]
-	node: alloc-bytes size
+	node: alloc-bytes s/size
 	
 	new: as series! node/value
 	new/flags: s/flags
 	new/tail: as cell! (as byte-ptr! new/offset) + (as-integer s/tail - s/offset)
 	
-	unless empty? [
+	unless zero? s/size [
 		copy-memory 
 			as byte-ptr! new/offset
 			as byte-ptr! s/offset
