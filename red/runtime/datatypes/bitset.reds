@@ -606,6 +606,18 @@ bitset: context [
 		as red-value! bits
 	]
 	
+	length?: func [
+		bits	[red-bitset!]
+		return: [integer!]
+		/local
+			s [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/length?"]]
+
+		s: GET_BUFFER(bits)
+		(as-integer s/tail - s/offset) << 3
+	]
+	
 	pick: func [
 		bits	[red-bitset!]
 		index	[integer!]
@@ -699,7 +711,7 @@ bitset: context [
 			null			;head?
 			null			;index?
 			:insert
-			null			;length?
+			:length?
 			null			;next
 			:pick
 			:poke

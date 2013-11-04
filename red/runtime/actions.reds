@@ -616,23 +616,35 @@ actions: context [
 			only?	[logic!]
 			dup		[red-value!]
 			append? [logic!]
-			return:	[red-value!]						;-- picked value from series
+			return:	[red-value!]						;-- series after insertion position
 		] get-action-ptr as red-value! series ACT_INSERT
 		
 		action-insert series value part only? dup append?
 	]
 	
 	length?*: func [
-		return:	[red-value!]
+		return:	[red-integer!]
 		/local
-			action-length?
+			int [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/length?"]]
 
+		int: as red-integer! stack/arguments
+		int/value:  length? stack/arguments				;-- must be set before slot is modified
+		int/header: TYPE_INTEGER
+		int
+	]
+	
+	length?: func [
+		value	[red-value!]
+		return: [integer!]
+	][
 		action-length?: as function! [
-			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_LENGTH?
-		action-length?
+			value	[red-value!]
+			return:	[integer!]							;-- length of series
+		] get-action-ptr value ACT_LENGTH?
+		
+		action-length? value
 	]
 	
 	next*: func [
@@ -643,7 +655,7 @@ actions: context [
 		#if debug? = yes [if verbose > 0 [print-line "actions/next"]]
 
 		action-next: as function! [
-			return:	[red-value!]						;-- picked value from series
+			return:	[red-value!]						;-- next value from series
 		] get-action-ptr* ACT_NEXT
 		action-next
 	]
@@ -670,7 +682,7 @@ actions: context [
 		action-pick: as function! [
 			series	[red-series!]
 			index	[integer!]
-			boxed	[red-value!]							;-- boxed index value
+			boxed	[red-value!]						;-- boxed index value
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr as red-value! series ACT_PICK
 		

@@ -975,22 +975,12 @@ string: context [
 	]
 
 	length?: func [
-		return: [red-value!]
-		/local
-			str	[red-string!]
-			int [red-integer!]
-			s	[series!]
+		str		[red-string!]
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/length?"]]
 
-		str: as red-string! stack/arguments
-
-		s: GET_BUFFER(str)
-
-		int: as red-integer! str
-		int/header: TYPE_INTEGER
-		int/value:  (as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) - str/head
-		as red-value! int
+		rs-length? str
 	]
 	
 	;--- Navigation actions ---

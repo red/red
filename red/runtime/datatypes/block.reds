@@ -550,22 +550,12 @@ block: context [
 	]
 	
 	length?: func [
-		return: [red-value!]
-		/local
-			blk	[red-block!]
-			int [red-integer!]
-			s	[series!]
+		blk		[red-block!]
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/length?"]]
 		
-		blk: as red-block! stack/arguments
-		
-		s: GET_BUFFER(blk)
-		
-		int: as red-integer! blk
-		int/header: TYPE_INTEGER
-		int/value:  (as-integer s/tail - s/offset - blk/head) >> 4
-		as red-value! int
+		rs-length? blk
 	]
 	
 	;--- Navigation actions ---
