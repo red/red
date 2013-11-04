@@ -543,19 +543,32 @@ bitset: context [
 		return:	[red-value!]
 		/local
 			s	 [series!]
-			new  [series!]
-			node [node!]
 	][
-		s: GET_BUFFER(bits)
-		node: copy-series s
-		new: as series! node/value
-		new/flags: new/flags xor flag-bitset-not
-		invert-bytes new
+		#if debug? = yes [if verbose > 0 [print-line "bitset/complement"]]
 		
+		bits: copy bits null no null
+		s: GET_BUFFER(bits)
+		s/flags: s/flags xor flag-bitset-not
+		invert-bytes s
+		as red-value! bits
+	]
+	
+	copy: func [
+		bits	 [red-bitset!]
+		part-arg [red-value!]
+		deep?	 [logic!]
+		types	 [red-value!]
+		return:	 [red-bitset!]
+		/local
+			s [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/copy"]]
+		
+		s: GET_BUFFER(bits)
 		bits: as red-bitset! stack/push*
 		bits/header: TYPE_BITSET
-		bits/node:	 node
-		as red-value! bits
+		bits/node:	 copy-series s
+		bits
 	]
 	
 	find: func [
@@ -680,7 +693,7 @@ bitset: context [
 			null			;back
 			null			;change
 			null			;clear
-			null			;copy
+			:copy
 			:find
 			null			;head
 			null			;head?
