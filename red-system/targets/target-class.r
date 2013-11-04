@@ -209,6 +209,7 @@ target-class: context [
 				 'reg								;-- value in accumulator
 			][
 				switch type?/word arg [
+					logic!	  [args/:c: to integer! arg 'imm]
 					char! 	  ['imm]
 					integer!  ['imm]
 					decimal!  ['imm]
