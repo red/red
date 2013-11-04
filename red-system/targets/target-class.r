@@ -248,17 +248,17 @@ target-class: context [
 			inline [
 				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
 				do select [
-					not			[emit-not args/1]
-					push		[emit-push args/1]
-					pop			[emit-pop]
-					throw		[
+					not	  [emit-not args/1]
+					push  [emit-push args/1]
+					pop	  [emit-pop]
+					throw [
 						compiler/last-type: [integer!]
 						emit-throw args/1
 					]
 				] name
 				if name = 'not [res: compiler/get-type args/1]
 			]
-			op	[
+			op [
 				either any [
 					compiler/any-float? compiler/resolve-expr-type args/1
 					compiler/any-float? compiler/resolve-expr-type args/2
@@ -268,6 +268,7 @@ target-class: context [
 					emit-integer-operation name args
 				]
 				if sub? [emitter/logic-to-integer name]
+				
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: any [
 						all [not sub? block? args/1 compiler/last-type]
