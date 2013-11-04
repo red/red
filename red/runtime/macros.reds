@@ -227,7 +227,7 @@ Red/System [
 
 #define BS_CLEAR_BIT(array bit)  [
 	pos: array + (bit >> 3)
-	pos/value: pos/value and (as-byte 128 >> (bit and 7))
+	pos/value: pos/value and (as-byte 128 >> (bit and 7) xor 255)
 ]
 
 #define BS_TEST_BIT(array bit set?)  [

@@ -284,7 +284,7 @@ bitset: context [
 				]
 				OP_CLEAR [
 					if size < cp [return as-integer not?]
-					BS_CLEAR_BIT(pbits max)
+					BS_CLEAR_BIT(pbits cp)
 				]
 			]
 			if cp > max [max: cp]
@@ -538,6 +538,15 @@ bitset: context [
 		form bits buffer arg part
 	]
 	
+	negate: func [
+		bits	[red-bitset!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/negate"]]
+
+		as red-value! complement bits
+	]
+	
 	complement: func [
 		bits	[red-bitset!]
 		return:	[red-value!]
@@ -687,6 +696,23 @@ bitset: context [
 		as red-value! data
 	]
 	
+	remove: func [
+		bits	[red-bitset!]
+		part	[red-value!]
+		return:	[red-value!]
+		/local
+			s  [series!]
+			op [integer!]
+	][
+		unless OPTION?(part) [
+			print-line "Remove Error: /part is required for bitset argument"
+		]
+		s: GET_BUFFER(bits)
+		op: either FLAG_NOT?(s) [OP_SET][OP_CLEAR]
+		process part bits op no
+		as red-value! bits
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_BITSET
@@ -707,7 +733,7 @@ bitset: context [
 			null			;add
 			null			;divide
 			null			;multiply
-			null			;negate
+			:negate
 			null			;power
 			null			;remainder
 			null			;round
@@ -735,7 +761,7 @@ bitset: context [
 			null			;next
 			:pick
 			:poke
-			null			;remove
+			:remove
 			null			;reverse
 			null			;select
 			null			;sort
