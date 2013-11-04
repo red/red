@@ -331,17 +331,27 @@ actions: context [
 	
 	negate*: func [
 		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/negate"]]
+
+		negate-action stack/arguments
+	]
+
+	negate-action: func [								;-- negate is a Red/System keyword
+		value	[red-value!]
+		return:	[red-value!]
 		/local
 			action-negate
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/negate"]]
 
 		action-negate: as function! [
+			value	[red-value!]
 			return:	[red-value!]						;-- negated value
-		] get-action-ptr* ACT_NEGATE
-		action-negate
-	]
-	
+		] get-action-ptr value ACT_NEGATE
+		
+		action-negate value
+	]	
 	
 	power*: func [][]
 	remainder*: func [][]
@@ -897,7 +907,7 @@ actions: context [
 			:add*
 			:divide*
 			:multiply*
-			null			;negate
+			:negate*
 			null			;power
 			null			;remainder
 			null			;round
