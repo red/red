@@ -703,6 +703,36 @@ expand-series-zeroed: func [
 ;]
 
 ;-------------------------------------------
+;-- Copy a series buffer
+;-------------------------------------------
+copy-series: func [
+	s 		[series!]
+	return: [node!]
+	/local
+		node   [node!]
+		empty? [logic!]
+		new	   [series!]
+		size   [integer!]
+][
+	size: s/size
+	empty?: zero? size
+	if empty? [size: 1]
+	node: alloc-bytes size
+	
+	new: as series! node/value
+	new/flags: s/flags
+	new/tail: as cell! (as byte-ptr! new/offset) + (as-integer s/tail - s/offset)
+	
+	unless empty? [
+		copy-memory 
+			as byte-ptr! new/offset
+			as byte-ptr! s/offset
+			s/size
+	]
+	node
+]
+
+;-------------------------------------------
 ;-- Allocate a big series
 ;-------------------------------------------
 alloc-big: func [

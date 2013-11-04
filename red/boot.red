@@ -207,7 +207,14 @@ odd?: make action! [[
 ;-- Bitwise actions --
 
 ;and~
-;complement
+
+complement: make action! [[
+		value	[logic! integer! bitset! typeset!]
+		return: [logic! integer! bitset! typeset!]
+	]
+	#get-definition ACT_COMPLEMENT
+]
+
 ;or~
 ;xor~
 

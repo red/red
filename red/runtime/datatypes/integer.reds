@@ -228,6 +228,14 @@ integer: context [
 		res
 	]
 	
+	complement: func [
+		int		[red-integer!]
+		return:	[red-value!]
+	][
+		int/value: not int/value
+		as red-value! int
+	]
+	
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
@@ -287,7 +295,7 @@ integer: context [
 			null			;odd?
 			;-- Bitwise actions --
 			null			;and~
-			null			;complement
+			:complement
 			null			;or~
 			null			;xor~
 			;-- Series actions --

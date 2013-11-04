@@ -87,14 +87,12 @@ bitset: context [
 		match?
 	]
 	
-	invert: func [
-		bits [red-bitset!]
+	invert-bytes: func [
+		s [series!]
 		/local
-			s	 [series!]
 			p	 [byte-ptr!]
 			tail [byte-ptr!]
 	][
-		s: 	  GET_BUFFER(bits)
 		p:	  as byte-ptr! s/offset
 		tail: as byte-ptr! s/tail
 		
@@ -168,7 +166,7 @@ bitset: context [
 		node: alloc-bytes s2/size
 		s: as series! node/value
 		p: as byte-ptr! s/offset
-		s/tail: as red-value! ((as byte-ptr! p) + s/size)
+		s/tail: as red-value! (p + s/size)
 		unless same? [s/flags: s/flags or flag-bitset-not]
 		
 		p1:	  as byte-ptr! s1/offset
@@ -489,7 +487,7 @@ bitset: context [
 				s: GET_BUFFER(bits)
 				s/flags: s/flags or flag-bitset-not
 				blk/head: blk/head - 1					;-- restore series argument head
-				invert bits
+				invert-bytes s
 			]
 		]
 		bits
@@ -538,6 +536,26 @@ bitset: context [
 		#if debug? = yes [if verbose > 0 [print-line "bitset/mold"]]
 
 		form bits buffer arg part
+	]
+	
+	complement: func [
+		bits	[red-bitset!]
+		return:	[red-value!]
+		/local
+			s	 [series!]
+			new  [series!]
+			node [node!]
+	][
+		s: GET_BUFFER(bits)
+		node: copy-series s
+		new: as series! node/value
+		new/flags: new/flags xor flag-bitset-not
+		invert-bytes new
+		
+		bits: as red-bitset! stack/push*
+		bits/header: TYPE_BITSET
+		bits/node:	 node
+		as red-value! bits
 	]
 	
 	find: func [
@@ -653,7 +671,7 @@ bitset: context [
 			null			;odd?
 			;-- Bitwise actions --
 			null			;and~
-			null			;complement
+			:complement
 			null			;or~
 			null			;xor~
 			;-- Series actions --

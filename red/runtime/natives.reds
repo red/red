@@ -791,10 +791,12 @@ natives: context [
 		cased	 [integer!]
 		skip	 [integer!]
 		/local
+			set1	 [red-value!]
 			skip-arg [red-value!]
 			case?	 [logic!]
 	][
-		skip-arg: stack/arguments + skip
+		set1:	  stack/arguments
+		skip-arg: set1 + skip
 		case?:	  as logic! cased + 1
 		
 		switch TYPE_OF(set1) [
@@ -802,8 +804,8 @@ natives: context [
 			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
 			TYPE_BITSET [
 				stack/set-last as red-value! bitset/union
-					as red-bitset! stack/arguments
-					as red-bitset! stack/arguments + 1
+					as red-bitset! set1
+					as red-bitset! set1 + 1
 					no
 					null
 				]

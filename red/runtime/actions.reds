@@ -363,7 +363,25 @@ actions: context [
 	even?*: func [][]
 	odd?*: func [][]
 	and~*: func [][]
-	complement*: func [][]
+	
+	complement*: does [
+		stack/set-last complement stack/arguments
+	]
+	
+	complement: func [
+		value	[red-value!]
+		return:	[red-value!]
+		/local
+			action-complement
+	][
+		action-complement: as function! [
+			value	[red-value!]
+			return:	[red-value!]						;-- complemented value
+		] get-action-ptr value ACT_COMPLEMENT
+		
+		action-complement value
+	]
+	
 	or~*: func [][]
 	xor~*: func [][]
 	
@@ -866,7 +884,7 @@ actions: context [
 			null			;odd?
 			;-- Bitwise actions --
 			null			;and~
-			null			;complement
+			:complement*
 			null			;or~
 			null			;xor~
 			;-- Series actions --

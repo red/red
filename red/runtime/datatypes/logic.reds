@@ -146,7 +146,6 @@ logic: context [
 
 		form boolean buffer arg part
 	]
-
 	
 	compare: func [
 		arg1      [red-logic!]							;-- first operand
@@ -169,6 +168,14 @@ logic: context [
 			]
 		]
 		res
+	]
+	
+	complement: func [
+		bool	[red-logic!]
+		return:	[red-value!]
+	][
+		bool/value: not bool/value
+		as red-value! bool
 	]
 	
 	init: does [
@@ -206,7 +213,7 @@ logic: context [
 			null			;odd?
 			;-- Bitwise actions --
 			null			;and~
-			null			;complement
+			:complement
 			null			;or~
 			null			;xor~
 			;-- Series actions --
