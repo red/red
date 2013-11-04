@@ -434,11 +434,21 @@ actions: context [
 			action-clear
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/clear"]]
-
+		clear stack/arguments
+	]
+	
+	clear: func [
+		value	[red-value!]
+		return:	[red-value!]
+		/local
+			action-clear
+	][
 		action-clear: as function! [
-			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_CLEAR
-		action-clear
+			value	[red-value!]
+			return:	[red-value!]						;-- argument series
+		] get-action-ptr value ACT_CLEAR
+		
+		action-clear value
 	]
 	
 	copy*: func [

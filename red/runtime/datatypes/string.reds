@@ -1498,14 +1498,13 @@ string: context [
 	]
 
 	clear: func [
+		str		[red-string!]
 		return:	[red-value!]
 		/local
-			str	[red-string!]
 			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/clear"]]
 
-		str: as red-string! stack/arguments
 		s: GET_BUFFER(str)
 		s/tail: as cell! (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1))	
 		as red-value! str

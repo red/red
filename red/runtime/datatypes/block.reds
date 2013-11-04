@@ -1002,14 +1002,13 @@ block: context [
 	]
 	
 	clear: func [
+		blk	[red-block!]
 		return:	[red-value!]
 		/local
-			blk	[red-block!]
 			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/clear"]]
 
-		blk: as red-block! stack/arguments
 		s: GET_BUFFER(blk)
 		s/tail: s/offset + blk/head
 		as red-value! blk

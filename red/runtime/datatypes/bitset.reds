@@ -553,6 +553,26 @@ bitset: context [
 		as red-value! bits
 	]
 	
+	clear: func [
+		bits	 [red-bitset!]
+		return:	[red-value!]
+		/local
+			s	 [series!]
+			p	 [byte-ptr!]
+			tail [byte-ptr!]
+			byte [byte!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/clear"]]
+
+		s: 	  GET_BUFFER(bits)
+		p: 	  as byte-ptr! s/offset
+		tail: as byte-ptr! s/tail
+		
+		byte: either FLAG_NOT?(s) [#"^(FF)"][null-byte]
+		while [p < tail][p/value: byte p: p + 1]
+		as red-value! bits
+	]
+	
 	copy: func [
 		bits	 [red-bitset!]
 		part-arg [red-value!]
@@ -704,7 +724,7 @@ bitset: context [
 			null			;at
 			null			;back
 			null			;change
-			null			;clear
+			:clear
 			:copy
 			:find
 			null			;head
