@@ -416,13 +416,10 @@ Red/System [
 ===end-group===
 
 ===start-group=== "logic logical operators"
-
-comment { These tests will not run until Issue #555 is fixed
 	--test-- "logic-and-1"	--assert true and true
 	--test-- "logic-and-2"	--assert not (true and false)
 	--test-- "logic-and-3"	--assert not (false and false)
 	--test-- "logic-and-4"  --assert not (false and true)
-}
 	--test-- "logic-and-5"	
 		la5-l1: true
 		la5-l2: true
@@ -439,12 +436,10 @@ comment { These tests will not run until Issue #555 is fixed
 		la8-l1: false
 		la8-l2: true
 		--assert not (la8-l1 and la8-l2)
-comment { These tests will not run until Issue #555 is fixed
 	--test-- "logic-or-1"	--assert true or true
 	--test-- "logic-or-2"	--assert true or false
 	--test-- "logic-or-3"	--assert not (false or false)
 	--test-- "logic-or-4"	--assert false or true
-}
 	--test-- "logic-or-5"	
 		lo5-l1: true
 		lo5-l2: true
@@ -461,12 +456,10 @@ comment { These tests will not run until Issue #555 is fixed
 		lo8-l1: false
 		lo8-l2: true
 		--assert lo8-l1 or lo8-l2
-comment { These tests will not run until Issue #555 is fixed
 	--test-- "logic-xor-1"	--assert not (true xor true)
 	--test-- "logic-xor-2"	--assert true xor false
 	--test-- "logic-xor-3"	--assert not (false xor false)
 	--test-- "logic-xor-4"  --assert false xor true
-}
 	--test-- "logic-xor-5"	
 		lx5-l1: true
 		lx5-l2: true
