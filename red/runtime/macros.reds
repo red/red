@@ -235,6 +235,22 @@ Red/System [
 	set?: pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
 ]
 
+#define BS_PROCESS_SET_VIRTUAL(bs bit) [
+	either not? [
+		if virtual-bit? bs bit [return 1]
+	][
+		pbits: bound-check bs bit
+	]
+]
+
+#define BS_PROCESS_CLEAR_VIRTUAL(bs bit) [
+	either not? [
+		pbits: bound-check bs bit
+	][
+		if virtual-bit? bs bit [return 0]
+	]
+]
+
 
 #define --NOT_IMPLEMENTED--	[
 	print-line "Error: feature not implemented yet!"

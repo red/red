@@ -131,20 +131,22 @@ init-mem: does [
 
 
 ;-------------------------------------------
-;-- Zero-fill memory region
+;-- Fill a memory region with a given byte
 ;-------------------------------------------
-zero-fill: func [
+fill: func [
 	p	  [byte-ptr!]
 	end   [byte-ptr!]
+	byte  [byte!]
 	/local
 		p4		 [int-ptr!]
 		tail	 [int-ptr!]
 		cnt		 [integer!]
+		byte4	 [integer!]
 		aligned? [logic!]
 ][
 	cnt: (as-integer p) and 3
 	unless zero? cnt [						;-- preprocess unaligned beginning
-		while [cnt > 0][p/cnt: null-byte cnt: cnt - 1]
+		while [cnt > 0][p/cnt: byte cnt: cnt - 1]
 		p: as byte-ptr! (as-integer p) + 4 and -4
 	]
 	
@@ -152,11 +154,17 @@ zero-fill: func [
 	tail: either aligned? [as int-ptr! end][as int-ptr! (as-integer end) and -4]
 	p4: as int-ptr! p
 	
-	while [p4 < tail][p4/value: 0 p4: p4 + 1] ;-- zero fill target region using 32-bit accesses
+	if p4 < tail [
+		byte4: either byte = null-byte [0][
+			byte4: as-integer byte
+			(byte4 << 24) or (byte4 << 16) or (byte4 << 8) or byte4
+		]
+		while [p4 < tail][p4/value: byte4 p4: p4 + 1] ;-- zero fill target region using 32-bit accesses
+	]
 	
 	unless aligned? [						;-- postprocess unaligned ending
 		cnt: (as-integer end) and 3	
-		while [cnt > 0][end/cnt: null-byte cnt: cnt - 1]
+		while [cnt > 0][end/cnt: byte cnt: cnt - 1]
 	]
 ]
 
@@ -580,10 +588,11 @@ alloc-bytes: func [
 ]
 
 ;-------------------------------------------
-;-- Wrapper on alloc-series for zero-filled byte buffer allocation
+;-- Wrapper on alloc-series for byte-filled buffer allocation
 ;-------------------------------------------
-alloc-bytes-zeroed: func [
+alloc-bytes-filled: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
+	byte	[byte!]
 	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 	/local
 		node [node!]
@@ -592,7 +601,7 @@ alloc-bytes-zeroed: func [
 	if zero? size [size: 16]
 	node: alloc-series size 1 0				;-- optimize by default for tail insertion
 	s: as series! node/value
-	zero-fill as byte-ptr! s/offset (as byte-ptr! s/offset) + s/size
+	fill as byte-ptr! s/offset (as byte-ptr! s/offset) + s/size byte
 	node
 ]
 
@@ -663,6 +672,7 @@ expand-series: func [
 	series/node/value: as-integer new		;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset
 	
+	new/flags:	series/flags
 	new/node:   series/node
 	new/tail:   as cell! (as byte-ptr! new/offset) + delta
 	
@@ -680,16 +690,17 @@ expand-series: func [
 ;-------------------------------------------
 ;-- Expand a series to a new size and zero-fill extra space
 ;-------------------------------------------
-expand-series-zeroed: func [
+expand-series-filled: func [
 	s		[series-buffer!]				;-- series to expand
 	new-sz	[integer!]						;-- new size in bytes
+	byte	[byte!]							;-- byte to fill the extended region with
 	return: [series-buffer!]
 	/local
 		old [integer!]
 ][
 	old: s/size
 	s: expand-series s new-sz
-	zero-fill (as byte-ptr! s/offset) + old (as byte-ptr! s/offset) + s/size
+	fill (as byte-ptr! s/offset) + old (as byte-ptr! s/offset) + s/size byte
 	s
 ]
 ;-------------------------------------------

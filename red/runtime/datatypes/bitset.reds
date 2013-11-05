@@ -45,10 +45,19 @@ bitset: context [
 		index	[integer!]								;-- 0-based
 		return: [byte-ptr!]
 		/local
-			s [series!]
+			s	 [series!]
+			p	 [byte-ptr!]
+			not? [logic!]
+			byte [byte!]
 	][
 		s: GET_BUFFER(bits)
-		if (s/size << 3) < index [s: expand-series-zeroed s (index >> 3) + 1]
+		if (s/size << 3) < index [
+			byte: either FLAG_NOT?(s) [#"^(FF)"][null-byte]
+			s: expand-series-filled s (index >> 3) + 1 byte
+		]
+		
+		p: (as byte-ptr! s/offset) + (index >> 3) + 1
+		if p > as byte-ptr! s/tail [s/tail: as cell! p]	;-- move forward tail pointer if required
 		as byte-ptr! s/offset
 	]
 	
@@ -58,9 +67,11 @@ bitset: context [
 		return: [logic!]
 		/local
 			s [series!]
+			p [byte-ptr!]
 	][
 		s: GET_BUFFER(bits)
-		any [index < 0 (s/size << 3) < index]
+		p: (as byte-ptr! s/offset) + (index >> 3) + 1
+		any [index < 0 p > as byte-ptr! s/tail]
 	]
 	
 	match?: func [										;-- called from PARSE
@@ -94,7 +105,7 @@ bitset: context [
 			tail [byte-ptr!]
 	][
 		p:	  as byte-ptr! s/offset
-		tail: as byte-ptr! s/tail
+		tail: p + s/size 
 		
 		while [p < tail][
 			p/value: not p/value
@@ -208,10 +219,11 @@ bitset: context [
 	][
 		s: GET_BUFFER(bits)
 		not?: FLAG_NOT?(s)
+		pbits: rs-head bits
 		
 		switch op [
 			OP_SET [
-				pbits: bound-check bits upper
+				BS_PROCESS_SET_VIRTUAL(bits upper)
 				while [lower <= upper][
 					BS_SET_BIT(pbits lower)				;-- could be optimized by setting bytes directly
 					lower: lower + 1
@@ -219,7 +231,6 @@ bitset: context [
 			]
 			OP_TEST [
 				if virtual-bit? bits upper [return as-integer not?]
-				pbits: rs-head bits
 				while [lower <= upper][
 					BS_TEST_BIT(pbits lower set?)		;-- could be optimized by testing bytes directly
 					unless set? [return 0]
@@ -227,8 +238,7 @@ bitset: context [
 				]
 			]
 			OP_CLEAR [
-				if virtual-bit? bits upper [return as-integer not?]
-				pbits: rs-head bits
+				BS_PROCESS_CLEAR_VIRTUAL(bits upper)
 				while [lower <= upper][
 					BS_CLEAR_BIT(pbits lower)			;-- could be optimized by clearing bytes directly
 					lower: lower + 1
@@ -333,29 +343,41 @@ bitset: context [
 				unless op = OP_MAX [
 					s: GET_BUFFER(bits)
 					not?: FLAG_NOT?(s)
+					pbits: rs-head bits
+					
 					switch op [
-						OP_SET   [
-							pbits: bound-check bits max
+						OP_SET [
+							BS_PROCESS_SET_VIRTUAL(bits max)
 							BS_SET_BIT(pbits max)
 						]
-						OP_TEST  [
+						OP_TEST [
 							if virtual-bit? bits max [return as-integer not?]
-							pbits: rs-head bits
 							BS_TEST_BIT(pbits max test?)
 							max: as-integer test?
 						]
 						OP_CLEAR [
-							if virtual-bit? bits max [return as-integer not?]
-							pbits: rs-head bits
+							BS_PROCESS_CLEAR_VIRTUAL(bits max)
 							BS_CLEAR_BIT(pbits max)
 						]
 					]
 				]
 			]
 			TYPE_STRING [
-				if op = OP_SET [
-					max: process-string as red-string! spec bits OP_MAX
-					pbits: bound-check bits max
+				unless op = OP_MAX [
+					s: GET_BUFFER(bits)
+					not?: FLAG_NOT?(s)
+
+					switch op [
+						OP_SET [
+							max: process-string as red-string! spec bits OP_MAX
+							BS_PROCESS_SET_VIRTUAL(bits max)
+						]
+						OP_CLEAR [
+							max: process-string as red-string! spec bits OP_MAX
+							BS_PROCESS_CLEAR_VIRTUAL(bits max)
+						]
+						default []
+					]
 				]
 				max: process-string as red-string! spec bits op
 			]
@@ -450,6 +472,7 @@ bitset: context [
 			w	 [red-word!]
 			s	 [series!]
 			not? [logic!]
+			byte [byte!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/make"]]
 		
@@ -478,16 +501,16 @@ bitset: context [
 				]
 				if not? [blk/head: blk/head + 1]		;-- skip NOT
 			]
+			byte: either not? [#"^(FF)"][null-byte]
 			
 			size: process spec null OP_MAX no			;-- 1st pass: determine size
-			bits/node: alloc-bytes-zeroed size
+			bits/node: alloc-bytes-filled size byte
 			process spec bits OP_SET no					;-- 2nd pass: set bits
 			
 			if not? [
 				s: GET_BUFFER(bits)
 				s/flags: s/flags or flag-bitset-not
 				blk/head: blk/head - 1					;-- restore series argument head
-				invert-bytes s
 			]
 		]
 		bits
@@ -688,9 +711,9 @@ bitset: context [
 			all [type = TYPE_LOGIC not bool/value]
 			all [type = TYPE_INTEGER zero? int/value]
 		][
-			either not? [OP_SET][OP_CLEAR]
+			OP_CLEAR
 		][
-			either not? [OP_CLEAR][OP_SET]
+			OP_SET
 		]
 		process boxed bits op no
 		as red-value! data
