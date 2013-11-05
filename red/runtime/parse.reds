@@ -807,7 +807,7 @@ parser: context [
 							match?: actions/compare block/rs-head input value COMP_EQUAL
 							all [match? block/rs-next input]				;-- consume matched input
 						]
-						state:	ST_CHECK_PENDING
+						state: ST_CHECK_PENDING
 					]
 				]
 				ST_MATCH_RULE [
@@ -878,6 +878,7 @@ parser: context [
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
 								print-line "*** Parse Error: invalid COPY rule"
 							]
+							min:   R_NONE
 							type:  R_COPY
 							state: ST_PUSH_RULE
 						]
@@ -935,6 +936,15 @@ parser: context [
 							type:  R_THEN
 							state: ST_PUSH_RULE
 						]
+						sym = words/if* [				;-- IF
+							cmd: cmd + 1
+							if any [cmd = tail TYPE_OF(cmd) <> TYPE_PAREN][
+								print-line "*** Parse Error: IF requires a paren argument"
+							]
+							interpreter/eval as red-block! cmd
+							match?: logic/true?
+							state: ST_CHECK_PENDING
+						]
 						sym = words/not* [				;-- NOT
 							min:   R_NONE
 							type:  R_NOT
@@ -959,6 +969,7 @@ parser: context [
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
 								print-line "*** Parse Error: invalid COPY rule"
 							]
+							min:   R_NONE
 							type:  R_SET
 							state: ST_PUSH_RULE
 						]
