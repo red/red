@@ -530,6 +530,11 @@ Red [
 	--test-- "blk-m103"	--assert parse		[b]			[then 'a | 'b]
 	--test-- "blk-m104"	--assert parse		[z a]		['z then 'a | 'b]
 
+	x: none
+	--test-- "blk-m110"	--assert parse		[2 4 6]		[any [set x integer! if (even? x)]]
+	--test-- "blk-m111"	--assert not parse	[1]			[set x integer! if (even? x)]
+	--test-- "blk-m112"	--assert not parse	[1 5]		[some [set x integer! if (even? x)]]
+
 ===end-group===
 
 ===start-group=== "string"
@@ -1047,6 +1052,11 @@ Red [
 	--test-- "str-m92"	--assert not parse	"c"			[then #"a" | #"b"]
 	--test-- "str-m93"	--assert parse		"b"			[then #"a" | #"b"]
 	--test-- "str-m94"	--assert parse		"za"		[#"z" then #"a" | #"b"]
+
+	x: none
+	--test-- "blk-m100"	--assert parse		"246"		[any [copy x skip if (even? load x)]]
+	--test-- "blk-m101"	--assert not parse	"1"			[copy x skip if (even? load x)]
+	--test-- "blk-m102"	--assert not parse	"15"		[some [copy x skip if (even? load x)]]
 
 ===end-group===
     
