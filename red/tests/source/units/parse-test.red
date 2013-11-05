@@ -524,6 +524,12 @@ Red [
 	--test-- "blk-m97"	--assert not parse 	[[a]]		[into [some 'b]]
 	--test-- "blk-m98"	--assert parse 		[[a]]		[into ['a 'b] | block!]
 
+	--test-- "blk-m100"	--assert parse		[]			[then skip]
+	--test-- "blk-m101"	--assert parse		[a]			[then 'a | 'b]
+	--test-- "blk-m102"	--assert not parse	[c]			[then 'a | 'b]
+	--test-- "blk-m103"	--assert parse		[b]			[then 'a | 'b]
+	--test-- "blk-m104"	--assert parse		[z a]		['z then 'a | 'b]
+
 ===end-group===
 
 ===start-group=== "string"
@@ -1035,6 +1041,12 @@ Red [
 	--test-- "str-m85"	--assert parse 		"a"			[opt wa]
 	--test-- "str-m86"	--assert parse 		"a"			[opt skip]
 	--test-- "str-m87"	--assert parse 		"abc"		[skip opt #"b" skip]
+
+	--test-- "str-m90"	--assert parse		""			[then skip]
+	--test-- "str-m91"	--assert parse		"a"			[then #"a" | #"b"]
+	--test-- "str-m92"	--assert not parse	"c"			[then #"a" | #"b"]
+	--test-- "str-m93"	--assert parse		"b"			[then #"a" | #"b"]
+	--test-- "str-m94"	--assert parse		"za"		[#"z" then #"a" | #"b"]
 
 ===end-group===
     
