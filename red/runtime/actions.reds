@@ -370,8 +370,50 @@ actions: context [
 		action-subtract
 	]
 	
-	even?*: func [][]
-	odd?*: func [][]
+	even?*: func [
+		return:	[red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/even?"]]
+		
+		logic/box even? stack/arguments
+	]
+	
+	even?: func [
+		value	[red-value!]
+		return: [logic!]
+		/local
+			action-even?
+	][
+		action-even?: as function! [
+			value	[red-value!]
+			return: [logic!]							;-- TRUE if value is even.
+		] get-action-ptr value ACT_EVEN?
+		
+		action-even? value
+	]
+	
+	odd?*: func [
+		return:	[red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/odd?"]]
+		
+		logic/box odd? stack/arguments
+	]
+	
+	odd?: func [
+		value	[red-value!]
+		return: [logic!]
+		/local
+			action-odd?
+	][
+		action-odd?: as function! [
+			value	[red-value!]
+			return: [logic!]							;-- TRUE if value is odd.
+		] get-action-ptr value ACT_ODD?
+		
+		action-odd? value
+	]
+	
 	and~*: func [][]
 	
 	complement*: does [
@@ -912,8 +954,8 @@ actions: context [
 			null			;remainder
 			null			;round
 			:subtract*
-			null			;even?
-			null			;odd?
+			:even?*
+			:odd?*
 			;-- Bitwise actions --
 			null			;and~
 			:complement*

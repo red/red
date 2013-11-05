@@ -28,13 +28,15 @@ logic: context [
 	]
 	
 	box: func [
-		value	 [logic!]
+		value	[logic!]
+		return: [red-logic!]
 		/local
 			cell [red-logic!]
 	][
 		cell: as red-logic! stack/arguments
 		cell/header: TYPE_LOGIC
 		cell/value: value
+		cell
 	]
 		
 	true?: func [

@@ -266,6 +266,26 @@ integer: context [
 		int 											;-- re-use argument slot for return value
 	]
 	
+	even?: func [
+		int		[red-integer!]
+		return: [logic!]
+		/local
+			value [integer!]
+	][
+		value: int/value
+		value >> 1 << 1 = value
+	]
+	
+	odd?: func [
+		int		[red-integer!]
+		return: [logic!]
+		/local
+			value [integer!]
+	][
+		value: int/value
+		value >> 1 << 1 <> value
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_INTEGER
@@ -291,8 +311,8 @@ integer: context [
 			null			;remainder
 			null			;round
 			:subtract
-			null			;even?
-			null			;odd?
+			:even?
+			:odd?
 			;-- Bitwise actions --
 			null			;and~
 			:complement
