@@ -561,6 +561,91 @@ bitset: context [
 		form bits buffer arg part
 	]
 	
+	compare: func [
+		bs1	   	[red-block!]							;-- first operand
+		bs2   	[red-block!]							;-- second operand
+		op		[integer!]								;-- type of comparison
+		return: [logic!]
+		/local
+			s1	  [series!]
+			s2	  [series!]
+			head  [byte-ptr!]
+			p	  [byte-ptr!]
+			p2	  [byte-ptr!]
+			size  [integer!]
+			not?  [logic!]
+			not2? [logic!]
+			res	  [logic!]
+			b1	  [byte!]
+			b2	  [byte!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/compare"]]
+
+		if TYPE_OF(bs2) <> TYPE_BITSET [RETURN_COMPARE_OTHER]
+		
+		s: 	  GET_BUFFER(bs1)
+		head: as byte-ptr! s/offset
+		p:	  as byte-ptr! s/tail
+		size: s/size
+		not?: FLAG_NOT?(s)
+		s: 	  GET_BUFFER(bs2)
+		p2:   as byte-ptr! s/tail
+		
+		if size <> s/size [
+			switch op [
+				COMP_EQUAL 			[res: false]
+				COMP_NOT_EQUAL 		[res: true]
+				COMP_STRICT_EQUAL	[res: false]
+				COMP_LESSER			[res: size <  s/size]
+				COMP_LESSER_EQUAL	[res: size <= s/size]
+				COMP_GREATER		[res: size >  s/size]
+				COMP_GREATER_EQUAL	[res: size >= s/size]
+			]
+			return res
+		]
+		not2?: FLAG_NOT?(s)
+		if not? <> not2? [
+			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
+			if op = COMP_NOT_EQUAL [return true]
+		]
+		if zero? size [									;-- shortcut exit for empty bitsets
+			return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+		]
+		if all [
+			op <> COMP_EQUAL
+			op <> COMP_NOT_EQUAL
+			op <> COMP_STRICT_EQUAL
+			any [not? not2?]							;-- lesser/greater with complemented and normal bitsets
+		][
+			switch op [
+				COMP_LESSER			[res: not? <  not2?]
+				COMP_LESSER_EQUAL	[res: not? <= not2?]
+				COMP_GREATER		[res: not? >  not2?]
+				COMP_GREATER_EQUAL	[res: not? >= not2?]
+			]
+			return res
+		]
+		
+		until [											;-- bits difference search (starting from highest bits)
+			p: p - 1
+			p2: p2 - 1
+			any [p/value <> p2/value p = head]
+		]
+		b1: p/value
+		b2: p2/value
+		
+		switch op [
+			COMP_EQUAL 			[res: b1 =  b2]
+			COMP_NOT_EQUAL 		[res: b1 <> b2]
+			COMP_STRICT_EQUAL	[res: b1 =  b2]
+			COMP_LESSER			[res: b1 <  b2]
+			COMP_LESSER_EQUAL	[res: b1 <= b2]
+			COMP_GREATER		[res: b1 >  b2]
+			COMP_GREATER_EQUAL	[res: b1 >= b2]
+		]
+		res
+	]
+	
 	negate: func [
 		bits	[red-bitset!]
 		return:	[red-value!]
@@ -750,7 +835,7 @@ bitset: context [
 			:mold
 			null			;get-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
