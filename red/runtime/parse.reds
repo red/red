@@ -861,12 +861,11 @@ parser: context [
 							type:  R_NONE
 							state: ST_PUSH_RULE
 						]
-						sym = words/break* [			;-- BREAK
-							match?: yes
-							break?: yes
-							cmd:	cmd + 1
-							pop?:	yes
-							state:	ST_POP_RULE
+						sym = words/some [				;-- SOME
+							min:   1
+							max:   R_NONE
+							type:  R_NONE
+							state: ST_PUSH_RULE
 						]
 						sym = words/copy [				;-- COPY
 							cmd: cmd + 1
@@ -876,10 +875,26 @@ parser: context [
 							type:  R_COPY
 							state: ST_PUSH_RULE
 						]
-						sym = words/end [				;-- END
-							PARSE_SET_INPUT_LENGTH(cnt)
-							match?: zero? cnt
-							state: ST_POP_RULE
+						sym = words/thru [				;-- THRU
+							type:  R_THRU
+							state: ST_PUSH_RULE
+						]
+						sym = words/to [				;-- TO
+							type:  R_TO
+							state: ST_PUSH_RULE
+						]
+						sym = words/break* [			;-- BREAK
+							match?: yes
+							break?: yes
+							cmd:	cmd + 1
+							pop?:	yes
+							state:	ST_POP_RULE
+						]
+						sym = words/opt [				;-- OPT
+							min:   0
+							max:   1
+							type:  R_NONE
+							state: ST_PUSH_RULE
 						]
 						sym = words/fail [				;-- FAIL
 							match?: no
@@ -901,11 +916,10 @@ parser: context [
 							type: R_INTO
 							state: ST_PUSH_RULE
 						]
-						sym = words/opt [				;-- OPT
-							min:   0
-							max:   1
-							type:  R_NONE
-							state: ST_PUSH_RULE
+						sym = words/end [				;-- END
+							PARSE_SET_INPUT_LENGTH(cnt)
+							match?: zero? cnt
+							state: ST_POP_RULE
 						]
 						sym = words/not* [				;-- NOT
 							min:   R_NONE
@@ -932,20 +946,6 @@ parser: context [
 								print-line "*** Parse Error: invalid COPY rule"
 							]
 							type:  R_SET
-							state: ST_PUSH_RULE
-						]
-						sym = words/some [				;-- SOME
-							min:   1
-							max:   R_NONE
-							type:  R_NONE
-							state: ST_PUSH_RULE
-						]
-						sym = words/thru [				;-- THRU
-							type:  R_THRU
-							state: ST_PUSH_RULE
-						]
-						sym = words/to [				;-- TO
-							type:  R_TO
 							state: ST_PUSH_RULE
 						]
 						sym = words/none [				;-- NONE
