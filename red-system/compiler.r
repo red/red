@@ -2555,7 +2555,7 @@ system-dialect: make-profilable context [
 			][
 				unless zero? block-level [
 					backtrack set-word
-					throw-error "variable has to be initialized at root level"
+					throw-error "variable not declared"
 				]
 				if any [
 					all [casted casted/1 = 'function!]
