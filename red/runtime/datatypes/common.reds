@@ -118,6 +118,7 @@ words: context [
 	_none:			as red-word! 0
 	_pipe:			as red-word! 0
 	_dash:			as red-word! 0
+	_then:			as red-word! 0
 	
 	spec:			-1
 	body:			-1
@@ -149,6 +150,7 @@ words: context [
 	none:			-1
 	pipe:			-1
 	dash:			-1
+	then:			-1
 	
 	build: does [
 		_spec:			word/load "spec"
@@ -187,6 +189,7 @@ words: context [
 		_none:			word/load "none"
 		_pipe:			word/load "|"
 		_dash:			word/load "-"
+		_then:			word/load "then"
 		
 		
 		spec:			_spec/symbol
@@ -219,6 +222,7 @@ words: context [
 		none:			_none/symbol
 		pipe:			_pipe/symbol
 		dash:			_dash/symbol
+		then:			_then/symbol
 	]
 ]
 

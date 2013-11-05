@@ -58,6 +58,7 @@ parser: context [
 		R_SET:		 -5
 		R_NOT:		 -6
 		R_INTO:		 -7
+		R_THEN:		 -8
 	]
 	
 	triple!: alias struct! [
@@ -651,6 +652,11 @@ parser: context [
 								end?: zero? cnt			;-- refresh end? flag after popping series
 								s: GET_BUFFER(rules)
 							]
+							R_THEN [
+								s/tail: s/tail - 3			;-- pop rule stack frame
+								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
+								pop?: no
+							]
 							default [					;-- iterative rules (ANY, SOME, ...)
 								t: as triple! s/tail - 3
 								cnt: t/state
@@ -847,7 +853,7 @@ parser: context [
 				ST_WORD [
 					w: as red-word! cmd
 					sym: symbol/resolve w/symbol
-					case [								;TBD: order the words by decreasing usage frequency
+					case [
 						sym = words/pipe [				;-- |
 							state: ST_POP_BLOCK
 						]
@@ -920,6 +926,14 @@ parser: context [
 							PARSE_SET_INPUT_LENGTH(cnt)
 							match?: zero? cnt
 							state: ST_POP_RULE
+						]
+						sym = words/then [				;-- THEN
+							if cmd + 1 = tail [
+								print-line "*** Parse Error: THEN requires an argument rule"
+							]
+							min:   R_NONE
+							type:  R_THEN
+							state: ST_PUSH_RULE
 						]
 						sym = words/not* [				;-- NOT
 							min:   R_NONE
