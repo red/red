@@ -74,30 +74,6 @@ bitset: context [
 		any [index < 0 p > as byte-ptr! s/tail]
 	]
 	
-	match?: func [										;-- called from PARSE
-		pbits	[byte-ptr!]
-		index	[integer!]								;-- 0-based
-		case?	[logic!]
-		return: [logic!]
-		/local
-			match? [logic!]
-	][													;-- no out of bound index checking!
-		BS_TEST_BIT(pbits index match?)
-		
-		if all [not case? not match?][
-			either all [65 <= index index <= 90][		;-- try with lowercasing
-				index: index + 32
-				BS_TEST_BIT(pbits index match?)
-			][
-				if all [97 <= index index <= 122][		;-- try with uppercasing
-					index: index - 32
-					BS_TEST_BIT(pbits index match?)
-				]
-			]
-		]
-		match?
-	]
-	
 	invert-bytes: func [
 		s [series!]
 		/local

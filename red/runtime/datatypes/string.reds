@@ -465,16 +465,17 @@ string: context [
 	match-bitset?: func [
 		str	    [red-string!]
 		bits    [red-bitset!]
-		case?	[logic!]
 		return: [logic!]
 		/local
-			s	 [series!]
-			unit [integer!]
-			p	 [byte-ptr!]
-			p4	 [int-ptr!]
-			cp	 [integer!]
-			size [integer!]
-			not? [logic!]
+			s	   [series!]
+			unit   [integer!]
+			p	   [byte-ptr!]
+			pos	   [byte-ptr!]
+			p4	   [int-ptr!]
+			cp	   [integer!]
+			size   [integer!]
+			not?   [logic!]
+			match? [logic!]
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
@@ -490,7 +491,9 @@ string: context [
 			UCS-4  [p4: as int-ptr! p p4/value]
 		]
 		either size < cp [not?][						;-- virtual bit
-			bitset/match? bitset/rs-head bits cp case?
+			p: bitset/rs-head bits
+			BS_TEST_BIT(p cp match?)
+			match?
 		]
 	]
 

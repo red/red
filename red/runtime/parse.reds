@@ -160,7 +160,7 @@ parser: context [
 		case?	[logic!]
 		return: [logic!]
 		/local
-			pos	   [positions!]
+			pos*   [positions!]
 			head   [red-value!]
 			tail   [red-value!]
 			value  [red-value!]
@@ -171,6 +171,7 @@ parser: context [
 			phead  [byte-ptr!]
 			ptail  [byte-ptr!]
 			pbits  [byte-ptr!]
+			pos    [byte-ptr!]
 			p4	   [int-ptr!]
 			cp	   [integer!]
 			size   [integer!]
@@ -180,7 +181,7 @@ parser: context [
 			match? [logic!]
 	][
 		s: GET_BUFFER(rules)
-		pos: as positions! s/tail - 2
+		pos*: as positions! s/tail - 2
 		
 		type: TYPE_OF(input)
 		either any [									;TBD: replace with ANY_STRING + TYPE_BINARY
@@ -208,11 +209,13 @@ parser: context [
 							UCS-2  [(as-integer p/2) << 8 + p/1]
 							UCS-4  [p4: as int-ptr! p p4/value]
 						]
-						match?: either size < cp [not?][			;-- virtual bit
-							bitset/match? pbits cp case?
+						either size < cp [
+							match?: not?				;-- virtual bit
+						][
+							BS_TEST_BIT(pbits cp match?)
 						]
 						if match? [
-							return adjust-input-index input pos 1 ((as-integer p - phead) >> (unit >> 1))
+							return adjust-input-index input pos* 1 ((as-integer p - phead) >> (unit >> 1))
 						]
 						p: p + unit
 						p = ptail
@@ -231,7 +234,7 @@ parser: context [
 					
 					until [
 						if string/equal? as red-string! input as red-string! token COMP_EQUAL yes [
-							return adjust-input-index input pos size 0
+							return adjust-input-index input pos* size 0
 						]
 						input/head: input/head + 1
 						phead + (input/head + size << unit) = ptail
@@ -251,7 +254,7 @@ parser: context [
 						Latin1 [
 							while [p < ptail][
 								if p/value = as-byte cp [
-									return adjust-input-index input pos 1 (as-integer p - phead)
+									return adjust-input-index input pos* 1 (as-integer p - phead)
 								]
 								p: p + 1
 							]
@@ -259,7 +262,7 @@ parser: context [
 						UCS-2 [
 							while [p < ptail][
 								if (as-integer p/2) << 8 + p/1 = cp [
-									return adjust-input-index input pos 1 ((as-integer p - phead) >> 1)
+									return adjust-input-index input pos* 1 ((as-integer p - phead) >> 1)
 								]
 								p: p + 2
 							]
@@ -268,7 +271,7 @@ parser: context [
 							p4: as int-ptr! p
 							while [p4 < as int-ptr! ptail][
 								if p4/value = cp [
-									return adjust-input-index input pos 1 ((as-integer p4 - phead) >> 2)
+									return adjust-input-index input pos* 1 ((as-integer p4 - phead) >> 2)
 								]
 								p4: p4 + 1
 							]
@@ -286,7 +289,7 @@ parser: context [
 			
 			while [value < tail][
 				if actions/compare value token COMP_EQUAL [
-					return adjust-input-index input pos 1 ((as-integer value - head) >> 4)
+					return adjust-input-index input pos* 1 ((as-integer value - head) >> 4)
 				]
 				value: value + 1
 			]
@@ -300,7 +303,6 @@ parser: context [
 		min		[integer!]
 		max		[integer!]
 		counter [int-ptr!]
-		case?	[logic!]
 		return: [logic!]
 		/local
 			s	  [series!]
@@ -309,6 +311,7 @@ parser: context [
 			phead [byte-ptr!]
 			ptail [byte-ptr!]
 			pbits [byte-ptr!]
+			pos   [byte-ptr!]
 			p4	  [int-ptr!]
 			cp	  [integer!]
 			cnt	  [integer!]
@@ -337,8 +340,10 @@ parser: context [
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
-			match?: either size < cp [not?][			;-- virtual bit
-				bitset/match? pbits cp case?
+			either size < cp [							;-- virtual bit
+				match?: not?
+			][
+				BS_TEST_BIT(pbits cp match?)
 			]
 			if match? [p: p + unit]
 			cnt: cnt + 1
@@ -382,7 +387,7 @@ parser: context [
 			type = TYPE_FILE
 		][
 			either TYPE_OF(token)= TYPE_BITSET [
-				loop-bitset input as red-bitset! token min max counter case?
+				loop-bitset input as red-bitset! token min max counter
 			][
 				until [										;-- ANY-STRING input matching
 					match?: string/match? as red-string! input token COMP_EQUAL
@@ -752,7 +757,7 @@ parser: context [
 							type = TYPE_FILE
 						][
 							match?: either TYPE_OF(value) = TYPE_BITSET [
-								string/match-bitset? as red-string! input as red-bitset! value case?
+								string/match-bitset? as red-string! input as red-bitset! value
 							][
 								string/match? as red-string! input value COMP_EQUAL
 							]
