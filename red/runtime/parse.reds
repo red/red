@@ -26,7 +26,6 @@ parser: context [
 			type = TYPE_STRING
 			type = TYPE_FILE
 		][
-			if over? [skip-spaces as red-string! input]
 			string/rs-length? as red-string! input
 		][
 			block/rs-length? input
@@ -97,50 +96,9 @@ parser: context [
 		]
 	]
 	
-	skip-spaces: func [
-		str		[red-string!]
-		return:	[logic!]
-		/local
-			s	 [series!]
-			unit [integer!]
-			p	 [byte-ptr!]
-			p4	 [int-ptr!]
-			tail [byte-ptr!]
-			cnt	 [integer!]
-			c	 [integer!]
-	][
-		s:	  GET_BUFFER(str)
-		unit: GET_UNIT(s)
-		p:    string/rs-head str
-		tail: string/rs-tail str
-		cnt: 0
-		
-		while [p < tail][								;-- jump over whitespaces
-			c: switch unit [
-				Latin1 [as-integer p/value]
-				UCS-2  [(as-integer p/2) << 8 + p/1]
-				UCS-4  [p4: as int-ptr! p p4/value]
-			]
-			if all [
-				c <> as-integer #" "
-				c <> as-integer #"^-"
-				c <> as-integer #"^/"
-				c <> as-integer #"^M"
-			][
-				str/head: str/head + cnt
-				return no
-			]
-			cnt: cnt + 1
-			p: p + unit
-		]
-		unless zero? cnt [str/head: str/head + cnt]
-		yes
-	]
-	
 	advance: func [
 		str		[red-string!]
 		value	[red-value!]							;-- char! or string! value
-		over?	[logic!]
 		return:	[logic!]
 		/local
 			end? [logic!]
@@ -153,7 +111,6 @@ parser: context [
 			assert TYPE_OF(value) = TYPE_STRING
 			string/rs-skip str string/rs-length? as red-string! value
 		]
-		if over? [end?: skip-spaces str]
 		end?
 	]
 	
@@ -343,7 +300,6 @@ parser: context [
 		min		[integer!]
 		max		[integer!]
 		counter [int-ptr!]
-		over?	[logic!]
 		case?	[logic!]
 		return: [logic!]
 		/local
@@ -405,7 +361,6 @@ parser: context [
 		min		[integer!]
 		max		[integer!]
 		counter [int-ptr!]
-		over?	[logic!]
 		case?	[logic!]
 		return: [logic!]
 		/local
@@ -427,11 +382,11 @@ parser: context [
 			type = TYPE_FILE
 		][
 			either TYPE_OF(token)= TYPE_BITSET [
-				loop-bitset input as red-bitset! token min max counter over? case?
+				loop-bitset input as red-bitset! token min max counter case?
 			][
 				until [										;-- ANY-STRING input matching
 					match?: string/match? as red-string! input token COMP_EQUAL
-					end?: all [match? advance as red-string! input token over?]	;-- consume matched input
+					end?: all [match? advance as red-string! input token]	;-- consume matched input
 					cnt: cnt + 1
 					any [
 						not match?
@@ -464,7 +419,6 @@ parser: context [
 	do-rule: func [	
 		job		[red-block!]
 		rule	[red-block!]
-		over?	[logic!]
 		case?	[logic!]
 		return: [logic!]
 		/local
@@ -802,7 +756,7 @@ parser: context [
 							][
 								string/match? as red-string! input value COMP_EQUAL
 							]
-							all [match? advance as red-string! input value over?]	;-- consume matched input
+							all [match? advance as red-string! input value]	;-- consume matched input
 						][
 							match?: actions/compare block/rs-head input value COMP_EQUAL
 							all [match? block/rs-next input]				;-- consume matched input
@@ -827,7 +781,7 @@ parser: context [
 										ST_DO_ACTION
 									]
 								][
-									match?: loop-token input value min max :cnt over? case?
+									match?: loop-token input value min max :cnt case?
 									if all [not match? zero? min][match?: yes]
 									
 									s: GET_BUFFER(rules)
@@ -1005,7 +959,6 @@ parser: context [
 	process: func [
 		input [red-series!]
 		rule  [red-block!]
-		over? [logic!]
 		case? [logic!]
 		;strict? [logic!]
 		return: [logic!]
@@ -1020,16 +973,6 @@ parser: context [
 		
 		input: block/rs-append series as red-value! input	;-- input now points to the series stack entry
 		
-		if all [
-			over?
-			any [									;TBD: replace with ANY_STRING
-				TYPE_OF(input) = TYPE_STRING
-				TYPE_OF(input) = TYPE_FILE
-			]
-		][
-			skip-spaces as red-string! input
-		]
-		
-		do-rule job rule over? case?
+		do-rule job rule case?
 	]
 ]
