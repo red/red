@@ -827,11 +827,20 @@ natives: context [
 		series  [red-series!]
 		return: [logic!]	
 		/local
-			s [series!]
+			s	 [series!]
+			type [integer!]
 	][
 		s: GET_BUFFER(series)
 	
-		either TYPE_OF(series) = TYPE_BLOCK [			;@@ replace with any-block?/any-string? check
+		type: TYPE_OF(series)
+		either any [									;@@ replace with any-block?
+			type = TYPE_BLOCK
+			type = TYPE_PAREN
+			type = TYPE_PATH
+			type = TYPE_GET_PATH
+			type = TYPE_SET_PATH
+			type = TYPE_LIT_PATH
+		][
 			s/offset + series/head < s/tail
 		][
 			(as byte-ptr! s/offset)
@@ -876,6 +885,11 @@ natives: context [
 
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_PAREN
+			TYPE_OF(series) = TYPE_PATH
+			TYPE_OF(series) = TYPE_GET_PATH
+			TYPE_OF(series) = TYPE_SET_PATH
+			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
 		]
@@ -899,6 +913,11 @@ natives: context [
 		
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_PAREN
+			TYPE_OF(series) = TYPE_PATH
+			TYPE_OF(series) = TYPE_GET_PATH
+			TYPE_OF(series) = TYPE_SET_PATH
+			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
 		]
@@ -941,6 +960,11 @@ natives: context [
 		
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_PAREN
+			TYPE_OF(series) = TYPE_PATH
+			TYPE_OF(series) = TYPE_GET_PATH
+			TYPE_OF(series) = TYPE_SET_PATH
+			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
 		]
