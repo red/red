@@ -270,14 +270,14 @@ integer: context [
 		int		[red-integer!]
 		return: [logic!]
 	][
-		int/value and 1 = 0
+		not as-logic int/value and 1
 	]
 	
 	odd?: func [
 		int		[red-integer!]
 		return: [logic!]
 	][
-		int/value and 1 = 1
+		as-logic int/value and 1
 	]
 	
 	init: does [
