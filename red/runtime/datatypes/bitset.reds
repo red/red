@@ -471,6 +471,7 @@ bitset: context [
 			blk	 [red-block!]
 			w	 [red-word!]
 			s	 [series!]
+			op	 [integer!]
 			not? [logic!]
 			byte [byte!]
 	][
@@ -502,16 +503,16 @@ bitset: context [
 				if not? [blk/head: blk/head + 1]		;-- skip NOT
 			]
 			byte: either not? [#"^(FF)"][null-byte]
+			op: either not? [OP_CLEAR][OP_SET]
 			
 			size: process spec null OP_MAX no			;-- 1st pass: determine size
 			bits/node: alloc-bytes-filled size byte
-			process spec bits OP_SET no					;-- 2nd pass: set bits
-			
 			if not? [
 				s: GET_BUFFER(bits)
 				s/flags: s/flags or flag-bitset-not
-				blk/head: blk/head - 1					;-- restore series argument head
 			]
+			process spec bits op no						;-- 2nd pass: set bits
+			if not? [blk/head: blk/head - 1]			;-- restore series argument head		
 		]
 		bits
 	]
