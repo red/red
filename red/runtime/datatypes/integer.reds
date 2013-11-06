@@ -269,21 +269,15 @@ integer: context [
 	even?: func [
 		int		[red-integer!]
 		return: [logic!]
-		/local
-			value [integer!]
 	][
-		value: int/value
-		value >> 1 << 1 = value
+		int/value and 1 = 0
 	]
 	
 	odd?: func [
 		int		[red-integer!]
 		return: [logic!]
-		/local
-			value [integer!]
 	][
-		value: int/value
-		value >> 1 << 1 <> value
+		int/value and 1 = 1
 	]
 	
 	init: does [
