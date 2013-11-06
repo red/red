@@ -988,6 +988,52 @@ Red [
 	
 ===end-group=== 
 
+===start-group=== "string-bitsets"
+	
+	bs:	   charset ["hello" #"a" - #"z"]
+	wbs: [bs]
+	wbs2: reduce wbs
+	--test-- "str-bs1" 		--assert parse 			"abc" 		[some bs]
+	--test-- "str-bs2" 		--assert not parse 		"123" 		[some bs]
+	--test-- "str-bs3" 		--assert not parse 		"ABC" 		[some bs]
+	--test-- "str-bs4" 		--assert parse 			"abc" 		[some [bs]]
+	--test-- "str-bs5" 		--assert not parse 		"123" 		[some [bs]]
+	--test-- "str-bs6" 		--assert parse 			"abc" 		[some wbs]
+	--test-- "str-bs7" 		--assert not parse 		"123" 		[some wbs]
+	--test-- "str-bs8" 		--assert parse 			"abc" 		[some wbs2]
+	--test-- "str-bs9" 		--assert not parse 		"123" 		[some wbs2]
+
+	--test-- "str-bs10" 	--assert parse 			"abc" 		[bs bs bs]
+	--test-- "str-bs11" 	--assert not parse 		"123" 		[bs bs bs]
+	--test-- "str-bs12" 	--assert parse 			"abc" 		[[bs] [bs] [bs]]
+	--test-- "str-bs13" 	--assert not parse 		"123" 		[[bs] [bs] [bs]]
+	--test-- "str-bs14" 	--assert parse 			"abc" 		[wbs wbs wbs]
+	--test-- "str-bs15" 	--assert not parse 		"123" 		[wbs wbs wbs]
+	--test-- "str-bs16" 	--assert parse 			"abc" 		[wbs2 wbs2 wbs2]
+	--test-- "str-bs17" 	--assert not parse 		"123" 		[wbs2 wbs2 wbs2]
+
+
+	bs: charset [not "hello123" #"a" - #"z"]
+	wbs: [bs]
+	wbs2: reduce wbs
+	--test-- "str-bs6" 		--assert not parse 		"abc" 		[some bs]
+	--test-- "str-bs7" 		--assert parse 			"ABC" 		[some bs]
+	--test-- "str-bs8" 		--assert not parse 		"123" 		[some bs]
+	--test-- "str-bs9"		--assert parse 			"789" 		[some bs]
+	--test-- "str-bs10" 	--assert not parse 		"abc" 		[bs bs bs]
+	--test-- "str-bs11" 	--assert parse			"ABC" 		[bs bs bs]
+	--test-- "str-bs12" 	--assert not parse 		"123" 		[bs bs bs]
+	--test-- "str-bs13" 	--assert parse 			"789" 		[bs bs bs]
+
+
+	--test-- "str-bs20"
+		digit: charset "0123456789"
+		--assert parse "hello 123" [to digit p: 3 skip]
+		--assert p = "123"
+
+
+===end-group===
+
 ===start-group=== "string-misc"
 
 	wa: [#"a"]
