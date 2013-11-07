@@ -1105,6 +1105,36 @@ Red [
 	--test-- "blk-m102"	--assert not parse	"15"		[some [copy x skip if (even? load x)]]
 
 ===end-group===
+
+
+===start-group=== "string-complex"
+
+	--test-- "str-cplx1"
+		expr:    [term ["+" | "-"] expr | term]
+		term:    [factor ["*" | "/"] term | factor]
+		factor:  [primary "**" factor | primary]
+		primary: [some digit | "(" expr ")"]
+		digit:   charset "0123456789"
+
+		--assert 	 parse "1" expr
+		--assert not parse "1+" expr
+		--assert 	 parse "1+2" expr
+		--assert not parse "1+2*" expr
+		--assert not parse "1+2*(" expr
+		--assert not parse "1+2*(3" expr
+		--assert not parse "1+2*(3-" expr
+		--assert not parse "1+2*(3-2" expr
+		--assert 	 parse "1+2*(3-2)" expr
+		--assert not parse "1+2*(3-2)/" expr
+		--assert 	 parse "1+2*(3-2)/4" expr
+
+		--assert parse "(1)" expr
+		--assert parse "(1*9)" expr
+		--assert not parse "(+)" expr
+		--assert parse "1+2*(3-2)/4" expr
+		--assert parse "4/5+3**2-(5*6+1)" expr
+		--assert not parse "a+b" expr
+		--assert not parse "123a+2" expr
     
 ~~~end-file~~~
 
