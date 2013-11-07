@@ -305,19 +305,20 @@ parser: context [
 		counter [int-ptr!]
 		return: [logic!]
 		/local
-			s	  [series!]
-			unit  [integer!]
-			p	  [byte-ptr!]
-			phead [byte-ptr!]
-			ptail [byte-ptr!]
-			pbits [byte-ptr!]
-			pos   [byte-ptr!]
-			p4	  [int-ptr!]
-			cp	  [integer!]
-			cnt	  [integer!]
-			size  [integer!]
-			not?  [logic!]
-			max?  [logic!]
+			s	   [series!]
+			unit   [integer!]
+			p	   [byte-ptr!]
+			phead  [byte-ptr!]
+			ptail  [byte-ptr!]
+			pbits  [byte-ptr!]
+			pos    [byte-ptr!]
+			p4	   [int-ptr!]
+			cp	   [integer!]
+			cnt	   [integer!]
+			size   [integer!]
+			not?   [logic!]
+			max?   [logic!]
+			match? [logic!]
 	][
 		s:	   GET_BUFFER(input)
 		unit:  GET_UNIT(s)
@@ -345,19 +346,20 @@ parser: context [
 			][
 				BS_TEST_BIT(pbits cp match?)
 			]
-			if match? [p: p + unit]
-			cnt: cnt + 1
+			if match? [
+				p: p + unit
+				cnt: cnt + 1
+			]
 			any [
 				not match?
 				p = ptail
 				all [max? cnt >= max]
 			]
 		]
-		if match? [
-			input/head: input/head + ((as-integer p - phead) >> (unit >> 1))
-		]
+		input/head: input/head + ((as-integer p - phead) >> (unit >> 1))
 		counter/value: cnt
-		match?
+		
+		either not max? [min <= cnt][all [min <= cnt cnt <= max]]
 	]
 	
 	loop-token: func [									;-- fast literal matching loop
@@ -387,7 +389,7 @@ parser: context [
 			type = TYPE_FILE
 		][
 			either TYPE_OF(token)= TYPE_BITSET [
-				loop-bitset input as red-bitset! token min max counter
+				match?: loop-bitset input as red-bitset! token min max counter
 			][
 				until [										;-- ANY-STRING input matching
 					match?: string/match? as red-string! input token COMP_EQUAL
@@ -487,11 +489,13 @@ parser: context [
 					none/rs-push rules
 					PARSE_PUSH_POSITIONS
 					block/rs-append rules as red-value! rule
-					copy-cell value as red-value! rule
-					cmd:  block/rs-head rule
+					if all [value <> null value <> rule][
+						assert TYPE_OF(value) = TYPE_BLOCK
+						copy-cell value as red-value! rule
+					]
+					cmd: (block/rs-head rule) - 1		;-- decrement to compensate for starting increment
 					tail: block/rs-tail rule			;TBD: protect current rule block from changes
-					value: cmd
-					state: either cmd = tail [ST_POP_BLOCK][ST_DO_ACTION]
+					state: ST_NEXT_ACTION
 				]
 				ST_POP_BLOCK [
 					either zero? block/rs-length? rules [
@@ -499,19 +503,24 @@ parser: context [
 					][
 						loop?: no
 						ended?: cmd = tail
+						
 						s: GET_BUFFER(rules)
 						copy-cell s/tail - 1 as red-value! rule
 						assert TYPE_OF(rule) = TYPE_BLOCK
 						p: as positions! s/tail - 2
+						
 						cmd: (block/rs-head rule) + p/rule
 						tail: block/rs-tail rule
 						s/tail: s/tail - 3
+						value: s/tail - 1
 						
-						state: either zero? block/rs-length? rules [
-							either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
+						state: either all [
+							0 < block/rs-length? rules 
+							TYPE_OF(value) = TYPE_INTEGER
 						][
-							value: s/tail - 1
-							either TYPE_OF(value) = TYPE_INTEGER [ST_POP_RULE][ST_NEXT_ACTION]
+							ST_POP_RULE
+						][
+							either match? [ST_NEXT_ACTION][ST_FIND_ALTERN]
 						]
 					]
 				]
@@ -649,7 +658,7 @@ parser: context [
 					s: GET_BUFFER(rules)
 					value: s/tail - 1
 					
-					state: either any [		;-- order of conditional expressions matters!
+					state: either any [					;-- order of conditional expressions matters!
 						zero? block/rs-length? rules
 						TYPE_OF(value) <> TYPE_INTEGER
 					][
@@ -741,7 +750,7 @@ parser: context [
 					if cmd < tail [cmd: cmd + 1]
 					
 					state: either cmd = tail [
-						either zero? block/rs-length? rules [ST_END][ST_POP_BLOCK]
+						ST_POP_BLOCK
 					][
 						value: cmd
 						ST_DO_ACTION
@@ -749,7 +758,7 @@ parser: context [
 				]
 				ST_MATCH [
 					either end? [
-						state: ST_POP_BLOCK
+						match?: no
 					][
 						type: TYPE_OF(input)
 						end?: either any [				;TBD: replace with ANY_STRING?
@@ -766,12 +775,13 @@ parser: context [
 							match?: actions/compare block/rs-head input value COMP_EQUAL
 							all [match? block/rs-next input]				;-- consume matched input
 						]
-						state: ST_CHECK_PENDING
 					]
+					state: ST_CHECK_PENDING
 				]
 				ST_MATCH_RULE [
 					either all [value = tail][
-						state: either zero? block/rs-length? rules [ST_END][ST_POP_BLOCK]
+						match?: no
+						state: ST_CHECK_PENDING
 					][
 						switch TYPE_OF(value) [
 							TYPE_BLOCK	 [state: ST_PUSH_BLOCK]
@@ -788,7 +798,6 @@ parser: context [
 								][
 									match?: loop-token input value min max :cnt case?
 									if all [not match? zero? min][match?: yes]
-									
 									s: GET_BUFFER(rules)
 									s/tail: s/tail - 3		;-- pop rule stack frame
 									state: ST_CHECK_PENDING
@@ -804,6 +813,12 @@ parser: context [
 					
 					state: either cnt >= 0 [
 						cmd: cmd + cnt					;-- point rule head to alternative part
+						
+						s: GET_BUFFER(rules)
+						p: as positions! s/tail - 2
+						input/head: p/input
+						PARSE_SET_INPUT_LENGTH(cnt)
+						end?: zero? cnt					;-- refresh end? flag after backtracking
 						ST_NEXT_ACTION
 					][
 						ST_POP_BLOCK
@@ -814,6 +829,7 @@ parser: context [
 					sym: symbol/resolve w/symbol
 					case [
 						sym = words/pipe [				;-- |
+							cmd: tail
 							state: ST_POP_BLOCK
 						]
 						sym = words/skip [				;-- SKIP
@@ -978,6 +994,6 @@ parser: context [
 		
 		input: block/rs-append series as red-value! input	;-- input now points to the series stack entry
 		
-		do-rule job rule case?
+		do-rule job rule case?						;@@ protect rule from GC!
 	]
 ]
