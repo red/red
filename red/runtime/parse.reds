@@ -559,6 +559,55 @@ parser: context [
 						p: as positions! s/tail - 2
 						int: as red-integer! value
 						switch int/value [
+							R_WHILE
+							R_NONE [					;-- iterative rules (ANY, SOME, WHILE, ...)
+								t: as triple! s/tail - 3
+								cnt: t/state
+								either match? [
+									loop?: either t/max = R_NONE [match?][cnt < t/max]
+								][
+									match?: any [t/min <= (cnt - 1) zero? t/min]
+								]
+								if any [
+									break?
+									not match? 
+									all [int/value <> R_WHILE input/head = p/input]
+								][
+									loop?: no
+									break?: no
+								]
+								either any [end? not loop?][
+									if all [match? cnt < t/min][match?: no]
+								][
+									t/state: cnt + 1
+									cmd: (block/rs-head rule) + p/rule ;-- loop rule
+									state: ST_NEXT_ACTION
+									pop?: no
+								]
+							]
+							R_TO
+							R_THRU [
+								either match? [
+									if int/value = R_TO [
+										input/head: p/input	;-- move input before the last match
+										end?: no
+									]
+								][
+									type: TYPE_OF(input)
+									either any [		;TBD: replace with ANY_STRING?
+										type = TYPE_STRING
+										type = TYPE_FILE
+									][
+										string/rs-next as red-string! input
+									][
+										block/rs-next input
+									]
+									p/input: input/head	;-- refresh saved input head before new iteration
+									cmd: (block/rs-head rule) + p/rule ;-- loop rule
+									state: ST_NEXT_ACTION
+									pop?: no
+								]
+							]
 							R_COPY [
 								if match? [
 									w: as red-word! s/tail - 3
@@ -584,29 +633,6 @@ parser: context [
 										value: block/rs-abs-at input p/input
 									]
 									_context/set w value
-								]
-							]
-							R_TO
-							R_THRU [
-								either match? [
-									if int/value = R_TO [
-										input/head: p/input	;-- move input before the last match
-										end?: no
-									]
-								][
-									type: TYPE_OF(input)
-									either any [		;TBD: replace with ANY_STRING?
-										type = TYPE_STRING
-										type = TYPE_FILE
-									][
-										string/rs-next as red-string! input
-									][
-										block/rs-next input
-									]
-									p/input: input/head	;-- refresh saved input head before new iteration
-									cmd: (block/rs-head rule) + p/rule ;-- loop rule
-									state: ST_NEXT_ACTION
-									pop?: no
 								]
 							]
 							R_REMOVE [
@@ -637,32 +663,6 @@ parser: context [
 								s/tail: s/tail - 3		;-- pop rule stack frame
 								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
 								pop?: no
-							]
-							R_WHILE
-							R_NONE [					;-- iterative rules (ANY, SOME, WHILE, ...)
-								t: as triple! s/tail - 3
-								cnt: t/state
-								either match? [
-									loop?: either t/max = R_NONE [match?][cnt < t/max]
-								][
-									match?: any [t/min <= (cnt - 1) zero? t/min]
-								]
-								if any [
-									break?
-									not match? 
-									all [int/value <> R_WHILE input/head = p/input]
-								][
-									loop?: no
-									break?: no
-								]
-								either any [end? not loop?][
-									if all [match? cnt < t/min][match?: no]
-								][
-									t/state: cnt + 1
-									cmd: (block/rs-head rule) + p/rule ;-- loop rule
-									state: ST_NEXT_ACTION
-									pop?: no
-								]
 							]
 						]
 						if pop? [
