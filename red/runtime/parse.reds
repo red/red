@@ -59,6 +59,8 @@ parser: context [
 		R_INTO:		 -7
 		R_THEN:		 -8
 		R_REMOVE:	 -9
+		R_INSERT:	 -10
+		R_WHILE:	 -11
 	]
 	
 	triple!: alias struct! [
@@ -632,22 +634,27 @@ parser: context [
 								s: GET_BUFFER(rules)
 							]
 							R_THEN [
-								s/tail: s/tail - 3			;-- pop rule stack frame
+								s/tail: s/tail - 3		;-- pop rule stack frame
 								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
 								pop?: no
 							]
-							default [					;-- iterative rules (ANY, SOME, ...)
+							R_WHILE
+							R_NONE [					;-- iterative rules (ANY, SOME, WHILE, ...)
 								t: as triple! s/tail - 3
 								cnt: t/state
-								
 								either match? [
 									loop?: either t/max = R_NONE [match?][cnt < t/max]
 								][
 									match?: any [t/min <= (cnt - 1) zero? t/min]
 								]
-								if break? [loop?:  no break?: no]
-								if input/head = p/input [loop?: no]	;-- exit loop if no input consumed
-								
+								if any [
+									break?
+									not match? 
+									all [int/value <> R_WHILE input/head = p/input]
+								][
+									loop?: no
+									break?: no
+								]
 								either any [end? not loop?][
 									if all [match? cnt < t/min][match?: no]
 								][
@@ -732,7 +739,7 @@ parser: context [
 							]
 							min:   int/value
 							max:   either upper? [cmd: cmd + 1 int2/value][min]
-							type:  1
+							type:  R_NONE
 							state: ST_PUSH_RULE
 							
 						]
@@ -897,6 +904,12 @@ parser: context [
 						sym = words/fail [				;-- FAIL
 							match?: no
 							state: ST_FIND_ALTERN
+						]
+						sym = words/while* [			;-- WHILE
+							min:   0
+							max:   R_NONE
+							type:  R_WHILE
+							state: ST_PUSH_RULE
 						]
 						sym = words/into [				;-- INTO
 							if TYPE_OF(input) <> TYPE_BLOCK [

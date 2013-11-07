@@ -121,6 +121,7 @@ words: context [
 	_then:			as red-word! 0
 	_if:			as red-word! 0
 	_remove:		as red-word! 0
+	_while:			as red-word! 0
 	
 	spec:			-1
 	body:			-1
@@ -155,6 +156,7 @@ words: context [
 	then:			-1
 	if*:			-1
 	remove:			-1
+	while*:			-1
 	
 	
 	build: does [
@@ -197,6 +199,7 @@ words: context [
 		_then:			word/load "then"
 		_if:			word/load "if"
 		_remove:		word/load "remove"
+		_while:			word/load "while"
 		
 		
 		spec:			_spec/symbol
@@ -232,6 +235,7 @@ words: context [
 		then:			_then/symbol
 		if*:			_if/symbol
 		remove:			_remove/symbol
+		while*:			_while/symbol
 	]
 ]
 
