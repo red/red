@@ -58,6 +58,7 @@ parser: context [
 		R_NOT:		 -6
 		R_INTO:		 -7
 		R_THEN:		 -8
+		R_REMOVE:	 -9
 	]
 	
 	triple!: alias struct! [
@@ -558,7 +559,7 @@ parser: context [
 						switch int/value [
 							R_COPY [
 								if match? [
-									w: as red-word!  s/tail - 3
+									w: as red-word! s/tail - 3
 									new: as red-series! value
 									copy-cell as red-value! input as red-value! new
 									new/head: p/input
@@ -604,6 +605,16 @@ parser: context [
 									cmd: (block/rs-head rule) + p/rule ;-- loop rule
 									state: ST_NEXT_ACTION
 									pop?: no
+								]
+							]
+							R_REMOVE [
+								if match? [
+									int: as red-integer! p - 1
+									int/header: TYPE_INTEGER
+									int/value: input/head - p/input
+									input/head: p/input
+									assert positive? int/value
+									actions/remove input as red-value! int
 								]
 							]
 							R_NOT [
@@ -863,6 +874,11 @@ parser: context [
 						]
 						sym = words/to [				;-- TO
 							type:  R_TO
+							state: ST_PUSH_RULE
+						]
+						sym = words/remove [			;-- REMOVE
+							min:   R_NONE
+							type:  R_REMOVE
 							state: ST_PUSH_RULE
 						]
 						sym = words/break* [			;-- BREAK

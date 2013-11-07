@@ -120,6 +120,7 @@ words: context [
 	_dash:			as red-word! 0
 	_then:			as red-word! 0
 	_if:			as red-word! 0
+	_remove:		as red-word! 0
 	
 	spec:			-1
 	body:			-1
@@ -153,6 +154,8 @@ words: context [
 	dash:			-1
 	then:			-1
 	if*:			-1
+	remove:			-1
+	
 	
 	build: does [
 		_spec:			word/load "spec"
@@ -193,6 +196,7 @@ words: context [
 		_dash:			word/load "-"
 		_then:			word/load "then"
 		_if:			word/load "if"
+		_remove:		word/load "remove"
 		
 		
 		spec:			_spec/symbol
@@ -227,6 +231,7 @@ words: context [
 		dash:			_dash/symbol
 		then:			_then/symbol
 		if*:			_if/symbol
+		remove:			_remove/symbol
 	]
 ]
 
