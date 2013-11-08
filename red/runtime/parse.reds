@@ -13,6 +13,9 @@ Red/System [
 parser: context [
 	verbose: 0
 	
+	series: as red-block! 0
+	rules:  as red-block! 0
+	
 	#define PARSE_PUSH_POSITIONS [
 		p: as positions! ALLOC_TAIL(rules)
 		p/header: TYPE_TRIPLE
@@ -425,22 +428,51 @@ parser: context [
 		counter/value: cnt
 		match?
 	]
+	
+	save-stack: func [
+		/local
+			cnt [integer!]
+			p	[positions!]
+	][
+		cnt: block/rs-length? rules
+		unless zero? cnt [
+			p: as positions! ALLOC_TAIL(rules)
+			p/input: series/head
+			p/rule:  rules/head
+			
+			series/head: (block/rs-length? series) + 1
+			rules/head:  cnt + 1
+		]
+	]
+	
+	restore-stack: func [
+		/local
+			s [series!]
+			p [positions!]
+	][
+		if rules/head > 0 [
+			s: GET_BUFFER(rules)
+			s/tail: s/tail - 1
+			p: as positions! s/tail
+			series/head: p/input
+			rules/head: p/rule
+		]
+	]
 
-	do-rule: func [	
-		job		[red-block!]
-		rule	[red-block!]
-		case?	[logic!]
+	process: func [
+		input [red-series!]
+		rule  [red-block!]
+		case? [logic!]
+		;strict? [logic!]
 		return: [logic!]
 		/local
-			input  [red-series!]
 			new	   [red-series!]
-			series [red-block!]
-			rules  [red-block!]
 			int	   [red-integer!]
 			int2   [red-integer!]
 			cmd	   [red-value!]
 			tail   [red-value!]
 			value  [red-value!]
+			slot   [red-value!]
 			char   [red-char!]
 			dt	   [red-datatype!]
 			w	   [red-word!]
@@ -473,14 +505,12 @@ parser: context [
 		min:	-1
 		max:	-1
 		cnt:	 0
+		state:  ST_NEXT_ACTION
 		
-		int: as red-integer! block/rs-head job
-		state:  int/value
+		save-stack
+		slot: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
+		input: block/rs-append series as red-value! input	;-- input now points to the series stack entry
 		
-		series: as red-block! int + 1
-		rules:  as red-block! int + 2
-		input:  as red-series! block/rs-head series
-
 		cmd: (block/rs-head rule) - 1					;-- decrement to compensate for starting increment
 		tail: block/rs-tail rule						;TBD: protect current rule block from changes
 		
@@ -613,8 +643,9 @@ parser: context [
 									w: as red-word! s/tail - 3
 									new: as red-series! value
 									copy-cell as red-value! input as red-value! new
+									copy-cell as red-value! input slot
 									new/head: p/input
-									actions/copy new as red-value! input no null
+									actions/copy new slot no null
 									_context/set w as red-value! new
 								]
 							]
@@ -1012,26 +1043,15 @@ parser: context [
 			]
 			state = ST_EXIT
 		]
+		
+		block/clear series
+		block/clear rules
+		restore-stack
 		match?
 	]
-	
-	process: func [
-		input [red-series!]
-		rule  [red-block!]
-		case? [logic!]
-		;strict? [logic!]
-		return: [logic!]
-		/local
-			job    [red-block!]
-			series [red-block!]
-	][
-		job: block/push* 3
-		integer/load-in job ST_NEXT_ACTION			;-- pos 1: state
-		series: block/make-in job 8					;-- pos 2: input stack block @@TBD: alloc statically
-		block/make-in job 32						;-- pos 3: rule stack block  @@TBD: alloc statically
-		
-		input: block/rs-append series as red-value! input	;-- input now points to the series stack entry
-		
-		do-rule job rule case?						;@@ protect rule from GC!
+
+	init: does [
+		series: block/make-in root 8
+		rules:  block/make-in root 100
 	]
 ]

@@ -132,6 +132,7 @@ red: context [
 		words/build										;-- create symbols used internally
 		refinements/build								;-- create refinements used internally
 		natives/init									;-- native specific init code
+		parser/init
 		
 		stack/init
 		
