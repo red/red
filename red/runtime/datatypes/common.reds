@@ -119,6 +119,8 @@ words: context [
 	if*:			-1
 	remove:			-1
 	while*:			-1
+	insert:			-1
+	only:			-1
 	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -167,6 +169,8 @@ words: context [
 		if*:			symbol/make "if"
 		remove:			symbol/make "remove"
 		while*:			symbol/make "while"
+		insert:			symbol/make "insert"
+		only:			symbol/make "only"
 		
 		
 		_body:			_context/add-global body

@@ -637,8 +637,6 @@ parser: context [
 							]
 							R_REMOVE [
 								if match? [
-									int: as red-integer! p - 1
-									int/header: TYPE_INTEGER
 									int/value: input/head - p/input
 									input/head: p/input
 									assert positive? int/value
@@ -926,6 +924,17 @@ parser: context [
 							min:  R_NONE
 							type: R_INTO
 							state: ST_PUSH_RULE
+						]
+						sym = words/insert [			;-- INSERT
+							w: as red-word! cmd + 1
+							max: as-integer all [
+								(as red-value! w) < tail
+								TYPE_OF(w) = TYPE_WORD
+								words/only = symbol/resolve w/symbol
+							]
+							cmd: cmd + max + 1
+							actions/insert input cmd null max = 1 null no
+							state: ST_NEXT_ACTION
 						]
 						sym = words/end [				;-- END
 							PARSE_SET_INPUT_LENGTH(cnt)
