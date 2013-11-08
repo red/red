@@ -85,44 +85,6 @@ copy-cell: func [
 
 
 words: context [
-	_spec:			as red-word! 0
-	_body:			as red-word! 0
-	_words:			as red-word! 0
-	_logic!:		as red-word! 0
-	_integer!:		as red-word! 0
-	_windows:		as red-word! 0
-	_syllable:		as red-word! 0
-	_macosx:		as red-word! 0
-	_linux:			as red-word! 0
-	_repeat:		as red-word! 0
-	_foreach:		as red-word! 0
-	_map-each:		as red-word! 0
-	_remove-each:	as red-word! 0
-	_exit:			as red-word! 0
-	_return:		as red-word! 0
-	
-	_any:			as red-word! 0
-	_copy:			as red-word! 0
-	_end:			as red-word! 0
-	_fail:			as red-word! 0
-	_into:			as red-word! 0
-	_opt:			as red-word! 0
-	_not:			as red-word! 0
-	_quote:			as red-word! 0
-	_reject:		as red-word! 0
-	_set:			as red-word! 0
-	_skip:			as red-word! 0
-	_some:			as red-word! 0
-	_thru:			as red-word! 0
-	_to:			as red-word! 0
-	_none:			as red-word! 0
-	_pipe:			as red-word! 0
-	_dash:			as red-word! 0
-	_then:			as red-word! 0
-	_if:			as red-word! 0
-	_remove:		as red-word! 0
-	_while:			as red-word! 0
-	
 	spec:			-1
 	body:			-1
 	words:			-1
@@ -158,84 +120,60 @@ words: context [
 	remove:			-1
 	while*:			-1
 	
-	
-	build: does [
-		_spec:			word/load "spec"
-		_body:			word/load "body"
-		_words:			word/load "words"
-		_logic!:		word/load "logic!"
-		_integer!:		word/load "integer!"
-		_exit:			word/load "exit"
-		_return:		word/load "return"
+	_body:			as red-word! 0
+	_windows:		as red-word! 0
+	_syllable:		as red-word! 0
+	_macosx:		as red-word! 0
+	_linux:			as red-word! 0
 
-		_windows:		word/load "Windows"
-		_syllable:		word/load "Syllable"
-		_macosx:		word/load "MacOSX"
-		_linux:			word/load "Linux"
+	build: does [
+		spec:			symbol/make "spec"
+		body:			symbol/make "body"
+		words:			symbol/make "words"
+		logic!:			symbol/make "logic!"
+		integer!:		symbol/make "integer!"
+		exit*:			symbol/make "exit"
+		return*:		symbol/make "return"
+
+		windows:		symbol/make "Windows"
+		syllable:		symbol/make "Syllable"
+		macosx:			symbol/make "MacOSX"
+		linux:			symbol/make "Linux"
 		
-		_repeat:		word/load "repeat"
-		_foreach:		word/load "foreach"
-		_map-each:		word/load "map-each"
-		_remove-each:	word/load "remove-each"
+		repeat:			symbol/make "repeat"
+		foreach:		symbol/make "foreach"
+		map-each:		symbol/make "map-each"
+		remove-each:	symbol/make "remove-each"
 		
-		_any:			word/load "any"
-		_break:			word/load "break"
-		_copy:			word/load "copy"
-		_end:			word/load "end"
-		_fail:			word/load "fail"
-		_into:			word/load "into"
-		_opt:			word/load "opt"
-		_not:			word/load "not"
-		_quote:			word/load "quote"
-		_reject:		word/load "reject"
-		_set:			word/load "set"	
-		_skip:			word/load "skip"
-		_some:			word/load "some"
-		_thru:			word/load "thru"
-		_to:			word/load "to"	
-		_none:			word/load "none"
-		_pipe:			word/load "|"
-		_dash:			word/load "-"
-		_then:			word/load "then"
-		_if:			word/load "if"
-		_remove:		word/load "remove"
-		_while:			word/load "while"
+		any*:			symbol/make "any"
+		break*:			symbol/make "break"
+		copy:			symbol/make "copy"
+		end:			symbol/make "end"
+		fail:			symbol/make "fail"
+		into:			symbol/make "into"
+		opt:			symbol/make "opt"
+		not*:			symbol/make "not"
+		quote:			symbol/make "quote"
+		reject:			symbol/make "reject"
+		set:			symbol/make "set"	
+		skip:			symbol/make "skip"
+		some:			symbol/make "some"
+		thru:			symbol/make "thru"
+		to:				symbol/make "to"	
+		none:			symbol/make "none"
+		pipe:			symbol/make "|"
+		dash:			symbol/make "-"
+		then:			symbol/make "then"
+		if*:			symbol/make "if"
+		remove:			symbol/make "remove"
+		while*:			symbol/make "while"
 		
 		
-		spec:			_spec/symbol
-		body:			_body/symbol
-		words:			_words/symbol
-		logic!:			_logic!/symbol
-		integer!:		_integer!/symbol
-		repeat:			_repeat/symbol
-		foreach:		_foreach/symbol
-		map-each:		_map-each/symbol
-		remove-each:	_remove-each/symbol
-		exit*:			_exit/symbol
-		return*:		_return/symbol
-		
-		any*:			_any/symbol
-		break*:			_break/symbol
-		copy:			_copy/symbol
-		end:			_end/symbol
-		fail:			_fail/symbol
-		into:			_into/symbol
-		opt:			_opt/symbol
-		not*:			_not/symbol
-		quote:			_quote/symbol
-		reject:			_reject/symbol
-		set:			_set/symbol
-		skip:			_skip/symbol
-		some:			_some/symbol
-		thru:			_thru/symbol
-		to:				_to/symbol
-		none:			_none/symbol
-		pipe:			_pipe/symbol
-		dash:			_dash/symbol
-		then:			_then/symbol
-		if*:			_if/symbol
-		remove:			_remove/symbol
-		while*:			_while/symbol
+		_body:			_context/add-global body
+		_windows:		_context/add-global windows
+		_syllable:		_context/add-global syllable
+		_macosx:		_context/add-global macosx
+		_linux:			_context/add-global linux
 	]
 ]
 
