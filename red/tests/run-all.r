@@ -76,7 +76,7 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/system-test.red
   	--run-test-file-quiet %source/units/parse-test.red
   	--run-test-file-quiet %source/units/bitset-test.red
-  	--run-test-file-quiet %source/units/same-test.red
+  	;;--run-test-file-quiet %source/units/same-test.red
   	--run-test-file-quiet %source/units/strict-equal-test.red
 ===end-group===
 
@@ -117,7 +117,7 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/auto-tests/interp-parse-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-bitset-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-equal-auto-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interp-same-test.red
+  	;;--run-test-file-quiet %source/units/auto-tests/interp-same-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-greater-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-inf-equal-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-strict-equal-test.red
