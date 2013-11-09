@@ -47,6 +47,18 @@ add-same-test: func [
   append prefix-src join {--assert same? } [expected " " actual newline]
 ]
 
+add-same-test-with-init: func [
+	init [string!]
+	expected [string!]
+	actual   [string!]
+][
+  add-test
+  append infix-src join init newline
+  append prefix-src join init newline
+  append infix-src join {--assert } [expected " == " actual newline]
+  append prefix-src join {--assert same? } [expected " " actual newline]
+]
+
 add-not-same-test: func [
   expected [string!]
   actual   [string!]
@@ -54,6 +66,18 @@ add-not-same-test: func [
   add-test
   append infix-src join {--assert not } [expected " == " actual newline]
   append prefix-src join {--assert not same? } [expected " " actual newline]
+]
+
+add-not-same-test-with-init: func [
+	init [string!]
+	expected [string!]
+	actual   [string!]
+][
+	add-test
+	append infix-src join init newline
+	append prefix-src join init newline
+	append infix-src join {--assert not } [expected " == " actual newline]
+	append prefix-src join {--assert not same? } [expected " " actual newline]
 ]
 
 add-test: func [] [
@@ -101,52 +125,52 @@ replace prefix-src {***FILE***} :prefix-file
 add-test-text {~~~start-file~~~ "***FIX***-same"}
 
 start-group "same-datatype"
-add-same-test "0" "0"
-add-same-test "1" "1"
-add-same-test "FFFFFFFFh" "-1"
-add-same-test "[]" "[]"
+add-not-same-test "0" "0"
+add-not-same-test "1" "1"
+add-not-same-test "FFFFFFFFh" "-1"
+add-not-same-test "[]" "[]"
 add-same-test "[a]" "[a]"
-add-same-test "[A]" "[a]"
-add-same-test "['a]" "[a]"
-add-same-test "[a:]" "[a]"
-add-same-test "[:a]" "[a]"
-add-same-test "[:a]" "[a:]"
-add-same-test "[abcde]" "[abcde]"
-add-same-test "[a b c d]" "[a b c d]"
-add-same-test "[b c d]" "next [a b c d]"
-add-same-test "[b c d]" "(next [a b c d])"
-add-same-test {"a"} {"a"}
-add-same-test {"a"} {"A"}
-add-same-test {"abcdeè"} {"abcdeè"}
-add-same-test {(next "abcdeè")} {next "abcdeè"}
-add-same-test {(first "abcdeè")} {first "abcdeè"}
-add-same-test {(last "abcdeè")} {last "abcdeè"}
-add-same-test {"abcde^^(2710)é^^(010000)"} {"abcde^^(2710)é^^(010000)"} 
+add-not-same-test "[A]" "[a]"
+add-not-same-test "['a]" "[a]"
+add-not-same-test "[a:]" "[a]"
+add-not-same-test "[:a]" "[a]"
+add-not-same-test "[:a]" "[a:]"
+add-not-same-test "[abcde]" "[abcde]"
+add-not-same-test "[a b c d]" "[a b c d]"
+add-not-same-test "[b c d]" "next [a b c d]"
+add-not-same-test "[b c d]" "(next [a b c d])"
+add-not-same-test {"a"} {"a"}
+add-not-same-test {"a"} {"A"}
+add-not-same-test {"abcdeè"} {"abcdeè"}
+add-not-same-test {(next "abcdeè")} {next "abcdeè"}
+add-not-same-test {(first "abcdeè")} {first "abcdeè"}
+add-not-same-test {(last "abcdeè")} {last "abcdeè"}
+add-not-same-test {"abcde^^(2710)é^^(010000)"} {"abcde^^(2710)é^^(010000)"} 
 ;; need to escape the ^ as file is processed by REBOL
-add-same-test {[d]} {back tail [a b c d]}
-add-same-test {"2345"} {next "12345"}
-add-same-test {#"z"} {#"z"}
+add-not-same-test {[d]} {back tail [a b c d]}
+add-not-same-test {"2345"} {next "12345"}
+add-not-same-test {#"z"} {#"z"}
 add-not-same-test {#"z"} {#"Z"}
 add-not-same-test {#"e"} {#"è"}
-add-same-test {#"^^(010000)"} {#"^^(010000)"}
-add-same-test {true} {true}
-add-same-test {false} {false}
+add-not-same-test {#"^^(010000)"} {#"^^(010000)"}
+add-not-same-test {true} {true}
+add-not-same-test {false} {false}
 add-not-same-test {false} {true}
 add-not-same-test {true} {false}
-add-same-test {none} {none}
-add-same-test {'a} {'a}
-add-same-test {'a} {'A}
-add-same-test {(first [a])} {first [a]}
-add-same-test {'a} {first [A]}
-add-same-test {'a} {first ['a]}
-add-same-test {'a} {first [:a]}
-add-same-test {'a} {first [a:]}
-add-same-test {(first [a:])} {first [a:]}
-add-same-test {(first [:a])} {first [:a]}
-add-same-test {[a b c d e]} {first [[a b c d e]]}
-add-test-with-code {ea-result: 1 == 1} {ea-result = true}
+add-not-same-test {none} {none}
+add-not-same-test {'a} {'a}
+add-not-same-test {'a} {'A}
+add-not-same-test {(first [a])} {first [a]}
+add-not-same-test {'a} {first [A]}
+add-not-same-test {'a} {first ['a]}
+add-not-same-test {'a} {first [:a]}
+add-not-same-test {'a} {first [a:]}
+add-not-same-test {(first [a:])} {first [a:]}
+add-not-same-test {(first [:a])} {first [:a]}
+add-not-same-test {[a b c d e]} {first [[a b c d e]]}
+add-test-with-code {ea-result: 1 == 1} {ea-result = false}
 add-test-with-code {ea-result: 1 == 0} {ea-result = false}
-add-test-with-code {ea-result: same? 1 1} {ea-result = true}
+add-test-with-code {ea-result: same? 1 1} {ea-result = false}
 add-test-with-code {ea-result: same? 1 0} {ea-result = false}
 add-test-text {===end-group===}
 
@@ -157,6 +181,9 @@ add-not-same-test {#"^^(2710)"} {10000}
 add-not-same-test {#"^^(010000)"} {65536}
 add-test-with-code {ea-result: #"1" == 49} {ea-result = false}
 add-test-with-code {ea-result: same? #"^^(010000)" 10000} {ea-result = false}
+add-same-test-with-init {a: b: 1} {a} {b}
+add-same-test-with-init {a: b: "abcde"} {a} {b}
+add-same-test-with-init 
 add-test-text {===end-group===}
 
 add-test-text {~~~end-file~~~}
