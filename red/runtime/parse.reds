@@ -34,6 +34,20 @@ parser: context [
 			block/rs-length? input
 		]
 	]
+	
+	#define PARSE_PICK_INPUT [
+		type: TYPE_OF(input)
+		either any [		;TBD: replace with ANY_STRING
+			type = TYPE_STRING
+			type = TYPE_FILE
+		][
+			char: as red-char! value
+			char/header: TYPE_CHAR
+			char/value: string/rs-abs-at as red-string! input p/input
+		][
+			value: block/rs-abs-at input p/input
+		]
+	]
 
 	#enum states! [
 		ST_PUSH_BLOCK
@@ -535,6 +549,9 @@ parser: context [
 					]
 					cmd: (block/rs-head rule) - 1		;-- decrement to compensate for starting increment
 					tail: block/rs-tail rule			;TBD: protect current rule block from changes
+					
+					PARSE_SET_INPUT_LENGTH(cnt)
+					end?: zero? cnt						;-- refresh end? flag
 					state: ST_NEXT_ACTION
 				]
 				ST_POP_BLOCK [
@@ -667,41 +684,17 @@ parser: context [
 							R_SET [
 								if match? [
 									w: as red-word! p - 1
-									type: TYPE_OF(input)
-									either any [		;TBD: replace with ANY_STRING
-										type = TYPE_STRING
-										type = TYPE_FILE
-									][
-										char: as red-char! value
-										char/header: TYPE_CHAR
-										char/value: string/rs-abs-at as red-string! input p/input
-									][
-										value: block/rs-abs-at input p/input
-									]
+									PARSE_PICK_INPUT
 									_context/set w value
 								]
 							]
 							R_KEEP
 							R_KEEP_PAREN [
 								if match? [
-									;if int/value = R_KEEP_PAREN [stack/pop 1] ;-- move back to PARSE's stack frame
 									blk: as red-block! stack/top - 1
 									assert TYPE_OF(blk) = TYPE_BLOCK
 									value: stack/top
-									
-									if int/value = R_KEEP [
-										type: TYPE_OF(input)
-										either any [		;TBD: replace with ANY_STRING
-											type = TYPE_STRING
-											type = TYPE_FILE
-										][
-											char: as red-char! value
-											char/header: TYPE_CHAR
-											char/value: string/rs-abs-at as red-string! input p/input
-										][
-											value: block/rs-abs-at input p/input
-										]
-									]
+									if int/value = R_KEEP [PARSE_PICK_INPUT]
 									block/rs-append blk value 
 								]
 							]
