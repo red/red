@@ -447,6 +447,9 @@ Red [
 		--assert parse [1 "hello" a 1 2 3 b] [thru "hello" skip copy res to 'b skip]
 		--assert res = [1 2 3]
 
+	--test-- "blk-sk38" --assert not parse	[]			[to 'a]
+	--test-- "blk-sk39" --assert not parse	[]			[to ['a]]
+
 ===end-group===
 
 ===start-group=== "block-misc"
@@ -539,7 +542,7 @@ Red [
 
 ===start-group=== "block-bugs"
 
-	--test-- "issue #562" --assert parse 	[+] 		[any ['+ if (no)]]
+	--test-- "#562" 	--assert not parse 	[+] 		[any ['+ if (no)]]
 
 ===end-group===
 
@@ -952,6 +955,12 @@ Red [
 		res: 0
 		--assert parse str [thru #"p" res: to end]
 		--assert 9 = index? res 
+
+	--test-- "str-sk38" --assert not parse	""			[to "a"]
+	--test-- "str-sk39" --assert not parse	""			[to #"a"]
+	--test-- "str-sk40" --assert not parse	""			[to ["a"]]
+	--test-- "str-sk41" --assert not parse	""			[to [#"a"]]
+
 	
 ===end-group===
 
@@ -1146,7 +1155,7 @@ Red [
 
 ===start-group=== "string-bugs"
 
-	--test-- "issue #562" --assert parse 	"+"			[any [#"+" if (no)]]
+	--test-- "#562" 	--assert not parse 	"+"		[any [#"+" if (no)]]
 
 ===end-group===
     
