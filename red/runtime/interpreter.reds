@@ -65,7 +65,7 @@ Red/System [
 				TYPE_PAREN [
 					either TYPE_OF(value) = TYPE_LIT_WORD [
 						stack/mark-native as red-word! pc	;@@ ~paren
-						eval as red-block! pc
+						eval as red-block! pc yes
 						stack/unwind
 					][
 						stack/push pc
@@ -219,7 +219,7 @@ interpreter: context [
 		in-func?: in-func? + 1
 		saved: fun/ctx/values
 		fun/ctx/values: as node! stack/arguments
-		eval body
+		eval body yes
 		fun/ctx/values: saved
 		in-func?: in-func? - 1
 	]
@@ -489,7 +489,7 @@ interpreter: context [
 			]
 			TYPE_PAREN [
 				stack/mark-native words/_body			;@@ ~paren
-				eval as red-block! value				;-- eval paren content
+				eval as red-block! value yes			;-- eval paren content
 				stack/unwind				
 				result: eval-path-element slot head tail result stack/top - 1 set?
 			]
@@ -662,7 +662,7 @@ interpreter: context [
 		switch TYPE_OF(pc) [
 			TYPE_PAREN [
 				stack/mark-native as red-word! pc		;@@ ~paren
-				eval as red-block! pc
+				eval as red-block! pc yes
 				either sub? [stack/unwind][stack/unwind-last]
 				pc: pc + 1
 			]
@@ -804,7 +804,8 @@ interpreter: context [
 	]
 	
 	eval: func [
-		code	  [red-block!]
+		code   [red-block!]
+		chain? [logic!]									;-- chain it with previous stack frame
 		/local
 			value [red-value!]
 			tail  [red-value!]
@@ -825,7 +826,7 @@ interpreter: context [
 			value: eval-expression value tail no no
 			if value + 1 < tail [stack/reset]
 		]
-		stack/unwind-last
+		either chain? [stack/unwind-last][stack/unwind]
 	]
 	
 ]

@@ -121,6 +121,8 @@ words: context [
 	while*:			-1
 	insert:			-1
 	only:			-1
+	collect:		-1
+	keep:			-1
 	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -157,11 +159,11 @@ words: context [
 		not*:			symbol/make "not"
 		quote:			symbol/make "quote"
 		reject:			symbol/make "reject"
-		set:			symbol/make "set"	
+		set:			symbol/make "set"
 		skip:			symbol/make "skip"
 		some:			symbol/make "some"
 		thru:			symbol/make "thru"
-		to:				symbol/make "to"	
+		to:				symbol/make "to"
 		none:			symbol/make "none"
 		pipe:			symbol/make "|"
 		dash:			symbol/make "-"
@@ -171,7 +173,8 @@ words: context [
 		while*:			symbol/make "while"
 		insert:			symbol/make "insert"
 		only:			symbol/make "only"
-		
+		collect:		symbol/make "collect"
+		keep:			symbol/make "keep"
 		
 		_body:			_context/add-global body
 		_windows:		_context/add-global windows

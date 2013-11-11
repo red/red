@@ -93,7 +93,7 @@ string: context [
 		if (as byte-ptr! s/offset) + offset <= as byte-ptr! s/tail [
 			str/head: str/head + len
 		]
-		(as byte-ptr! s/offset) + offset = as byte-ptr! s/tail
+		(as byte-ptr! s/offset) + offset >= as byte-ptr! s/tail
 	]
 	
 	rs-next: func [

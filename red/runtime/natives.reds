@@ -55,13 +55,13 @@ natives: context [
 		either logic/false? [
 			RETURN_NONE
 		][
-			interpreter/eval as red-block! stack/arguments + 1
+			interpreter/eval as red-block! stack/arguments + 1 yes
 		]
 	]
 	
 	unless*: does [
 		either logic/false? [
-			interpreter/eval as red-block! stack/arguments + 1
+			interpreter/eval as red-block! stack/arguments + 1 yes
 		][
 			RETURN_NONE
 		]
@@ -71,7 +71,7 @@ natives: context [
 		/local offset [integer!]
 	][
 		offset: either logic/true? [1][2]
-		interpreter/eval as red-block! stack/arguments + offset
+		interpreter/eval as red-block! stack/arguments + offset yes
 	]
 	
 	any*: func [
@@ -115,11 +115,11 @@ natives: context [
 		
 		stack/mark-native words/_body
 		while [
-			interpreter/eval cond
+			interpreter/eval cond yes
 			logic/true?
 		][
 			stack/reset
-			interpreter/eval body
+			interpreter/eval body yes
 		]
 		stack/unwind
 		RETURN_UNSET
@@ -134,7 +134,7 @@ natives: context [
 		stack/mark-native words/_body
 		until [
 			stack/reset
-			interpreter/eval body
+			interpreter/eval body yes
 			logic/true?
 		]
 		stack/unwind-last
@@ -153,7 +153,7 @@ natives: context [
 		stack/mark-native words/_body
 		until [
 			stack/reset
-			interpreter/eval body
+			interpreter/eval body yes
 			i: i - 1
 			zero? i
 		]
@@ -181,7 +181,7 @@ natives: context [
 		until [
 			stack/reset
 			_context/set w as red-value! count
-			interpreter/eval body
+			interpreter/eval body yes
 			count/value: count/value + 1
 			i: i - 1
 			zero? i
@@ -208,12 +208,12 @@ natives: context [
 			
 			while [foreach-next-block size][			;-- foreach [..]
 				stack/reset
-				interpreter/eval body
+				interpreter/eval body yes
 			]
 		][
 			while [foreach-next][						;-- foreach <word!>
 				stack/reset
-				interpreter/eval body
+				interpreter/eval body yes
 			]
 		]
 		stack/unwind-last
@@ -237,7 +237,7 @@ natives: context [
 			loop? as red-series! _context/get w
 		][
 			stack/reset
-			interpreter/eval body
+			interpreter/eval body yes
 			series: as red-series! _context/get w
 			series/head: series/head + 1
 		]
@@ -305,7 +305,7 @@ natives: context [
 			either negative? default? [
 				RETURN_NONE
 			][
-				interpreter/eval alt
+				interpreter/eval alt yes
 				exit									;-- early exit with last value on stack
 			]
 		][
@@ -316,7 +316,7 @@ natives: context [
 				if TYPE_OF(pos) = TYPE_BLOCK [
 					stack/reset
 					pos: block/pick as red-series! pos 1 null
-					interpreter/eval as red-block! pos	;-- do the block
+					interpreter/eval as red-block! pos yes	;-- do the block
 					exit								;-- early exit with last value on stack
 				]
 				pos: pos + 1
@@ -340,7 +340,7 @@ natives: context [
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
 					stack/reset
-					interpreter/eval as red-block! value
+					interpreter/eval as red-block! value yes
 				][
 					value: interpreter/eval-next value tail no
 				]
@@ -361,7 +361,7 @@ natives: context [
 		arg: stack/arguments
 		switch TYPE_OF(arg) [
 			TYPE_BLOCK [
-				interpreter/eval as red-block! arg
+				interpreter/eval as red-block! arg yes
 			]
 			TYPE_PATH [
 				interpreter/eval-path arg arg arg + 1 no
@@ -658,7 +658,7 @@ natives: context [
 				TYPE_PAREN [
 					blk: as red-block! value
 					unless zero? block/rs-length? blk [
-						interpreter/eval blk
+						interpreter/eval blk yes
 						result: stack/arguments
 						blk: as red-block! result 
 						
@@ -776,13 +776,11 @@ natives: context [
 		/local
 			match? [logic!]
 	][
-		match?: parser/process
+		stack/set-last parser/process
 			as red-series! stack/arguments
 			as red-block!  stack/arguments + 1
 			as logic! case? + 1
 			;as logic! strict? + 1
-			
-		stack/set-last as red-value! logic/push match?
 	]
 	
 	union*: func [
