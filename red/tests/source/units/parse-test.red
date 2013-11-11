@@ -1146,7 +1146,7 @@ Red [
 
 ===start-group=== "string-bugs"
 
-	--test-- "issue #562" --assert parse 	"+"" 		[any [#"+" if (no)]]
+	--test-- "issue #562" --assert parse 	"+"			[any [#"+" if (no)]]
 
 ===end-group===
     
