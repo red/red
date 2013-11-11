@@ -906,16 +906,16 @@ parser: context [
 					]
 				]
 				ST_FIND_ALTERN [
+					s: GET_BUFFER(rules)				;-- backtrack input
+					p: as positions! s/tail - 2
+					input/head: p/input
+					PARSE_SET_INPUT_LENGTH(cnt)
+					end?: zero? cnt						;-- refresh end? flag after backtracking
+					
 					cnt: find-altern rule cmd
 					
 					state: either cnt >= 0 [
 						cmd: cmd + cnt					;-- point rule head to alternative part
-						
-						s: GET_BUFFER(rules)
-						p: as positions! s/tail - 2
-						input/head: p/input
-						PARSE_SET_INPUT_LENGTH(cnt)
-						end?: zero? cnt					;-- refresh end? flag after backtracking
 						match?: yes						;-- reset match? flag
 						ST_NEXT_ACTION
 					][
