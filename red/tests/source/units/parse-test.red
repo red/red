@@ -537,6 +537,12 @@ Red [
 
 ===end-group===
 
+===start-group=== "block-bugs"
+
+	--test-- "issue #562" --assert parse 	[+] 		[any ['+ if (no)]]
+
+===end-group===
+
 ===start-group=== "string"
 
 	--test-- "str-1" 	--assert parse		""			[]
@@ -1135,6 +1141,14 @@ Red [
 		--assert parse "4/5+3**2-(5*6+1)" expr
 		--assert not parse "a+b" expr
 		--assert not parse "123a+2" expr
+
+===end-group===
+
+===start-group=== "string-bugs"
+
+	--test-- "issue #562" --assert parse 	"+"" 		[any [#"+" if (no)]]
+
+===end-group===
     
 ~~~end-file~~~
 
