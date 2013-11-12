@@ -543,6 +543,13 @@ Red [
 ===start-group=== "block-bugs"
 
 	--test-- "#562" 	--assert not parse 	[+] 		[any ['+ if (no)]]
+	--test-- "#564-1"	--assert not parse  [a] 		[0 skip]
+	--test-- "#564-2"	--assert parse 		[a] 		[0 skip 'a]
+
+	--test-- "#564-3"
+		z: none
+		--assert not parse 	[a] [copy z 0 skip]
+		--assert z = []
 
 ===end-group===
 
@@ -1156,6 +1163,36 @@ Red [
 ===start-group=== "string-bugs"
 
 	--test-- "#562" 	--assert not parse 	"+"		[any [#"+" if (no)]]
+
+	--test-- "#564-1"	--assert not parse  "a" 		[0 skip]
+	--test-- "#564-2"	--assert parse 		"a" 		[0 skip #"a"]
+
+	--test-- "#564-3"
+		z: none
+		--assert not parse "a" [copy z 0 skip]
+		--assert z = ""
+
+	--test-- "#564-4"
+		f: func [
+			s [string!]
+		][
+			r: [
+				copy l  skip (l: load l)
+				copy x  l skip
+				[
+					#","
+					| #"]" if (f x)
+				]
+			]
+			parse s [any r end]
+		]
+		--assert f "420,]]"
+
+	--test-- "#563"
+		r: [#"+" if (res: f563 "-" --assert not res res)]
+		f563: func [t [string!]][parse t [any r]]
+		--assert not f563 "-"
+		--assert not f563 "+"
 
 ===end-group===
     
