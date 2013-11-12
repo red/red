@@ -454,11 +454,12 @@ parser: context [
 		cnt: block/rs-length? rules
 		unless zero? cnt [
 			p: as positions! ALLOC_TAIL(rules)
-			p/input: series/head
-			p/rule:  rules/head
+			p/header: TYPE_TRIPLE
+			p/input:  series/head
+			p/rule:   rules/head
 			
 			series/head: series/head + 1
-			rules/head:  cnt + 1
+			rules/head:  rules/head + cnt + 1			;-- account for the new position! slot
 		]
 	]
 	
@@ -809,11 +810,15 @@ parser: context [
 							][
 								print-line "*** Parse Error: invalid integer rule"
 							]
-							min:   int/value
-							max:   either upper? [cmd: cmd + 1 int2/value][min]
-							type:  R_NONE
-							state: ST_PUSH_RULE
-							
+							state: either all [zero? int/value not upper?][
+								cmd: cmd + 1			;-- skip over sub-rule
+								ST_CHECK_PENDING
+							][
+								min:  int/value
+								max:  either upper? [cmd: cmd + 1 int2/value][min]
+								type: R_NONE
+								ST_PUSH_RULE
+							]
 						]
 						TYPE_PAREN [
 							interpreter/eval as red-block! value no
