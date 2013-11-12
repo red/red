@@ -457,7 +457,7 @@ parser: context [
 			p/input: series/head
 			p/rule:  rules/head
 			
-			series/head: (block/rs-length? series) + 1
+			series/head: series/head + 1
 			rules/head:  cnt + 1
 		]
 	]
@@ -620,6 +620,7 @@ parser: context [
 								either match? [
 									loop?: either t/max = R_NONE [match?][cnt < t/max]
 								][
+									;@@ might need backtracking here
 									match?: any [t/min <= (cnt - 1) zero? t/min]
 								]
 								if any [
