@@ -556,6 +556,12 @@ Red [
 	--test-- "blk-m111"	--assert not parse	[1]			[set x integer! if (even? x)]
 	--test-- "blk-m112"	--assert not parse	[1 5]		[some [set x integer! if (even? x)]]
 
+	--test-- "blk-m120"	--assert parse		[]			[while 'a]
+	--test-- "blk-m121"	--assert parse		[]			[while 'b]
+	--test-- "blk-m122"	--assert parse		[a]			[while 'a]
+	--test-- "blk-m123"	--assert not parse	[a]			[while 'b]
+	--test-- "blk-m124"	--assert parse		[a]			[while 'b skip]
+	--test-- "blk-m125"	--assert parse		[a b a b]	[while ['b | 'a]]
 
 ===end-group===
 
@@ -1185,9 +1191,16 @@ Red [
 	--test-- "str-m95"	--assert parse		"za"		[#"z" then #"a" | #"b"]
 
 	x: none
-	--test-- "blk-m100"	--assert parse		"246"		[any [copy x skip if (even? load x)]]
-	--test-- "blk-m101"	--assert not parse	"1"			[copy x skip if (even? load x)]
-	--test-- "blk-m102"	--assert not parse	"15"		[some [copy x skip if (even? load x)]]
+	--test-- "str-m100"	--assert parse		"246"		[any [copy x skip if (even? load x)]]
+	--test-- "str-m101"	--assert not parse	"1"			[copy x skip if (even? load x)]
+	--test-- "str-m102"	--assert not parse	"15"		[some [copy x skip if (even? load x)]]
+
+	--test-- "str-m120"	--assert parse		""			[while #"a"]
+	--test-- "str-m121"	--assert parse		""			[while #"b"]
+	--test-- "str-m122"	--assert parse		"a"			[while #"a"]
+	--test-- "str-m123"	--assert not parse	"a"			[while #"b"]
+	--test-- "str-m124"	--assert parse		"a"			[while #"b" skip]
+	--test-- "str-m125"	--assert parse		"abab"		[while [#"b" | #"a"]]
 
 ===end-group===
 
