@@ -122,6 +122,16 @@ string: context [
 		s: GET_BUFFER(str)
 		as byte-ptr! s/tail
 	]
+
+	rs-tail?: func [
+		str 	[red-string!]
+		return: [logic!]
+		/local
+			s [series!]
+	][
+		s: GET_BUFFER(str)
+		(as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1)) >= as byte-ptr! s/tail
+	]
 	
 	rs-abs-at: func [
 		str	    [red-string!]
@@ -525,8 +535,9 @@ string: context [
 			]
 			c1 = c2
 		][
-			assert TYPE_OF(value) = TYPE_STRING
-			equal? str as red-string! value op yes
+			either TYPE_OF(value) <> TYPE_STRING [no][	;-- @@ extend it to accept string! derivatives?
+				equal? str as red-string! value op yes
+			]
 		]
 	]
 	

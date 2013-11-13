@@ -57,6 +57,16 @@ block: context [
 		s: GET_BUFFER(blk)
 		s/tail
 	]
+	
+	rs-tail?: func [
+		blk 	[red-block!]
+		return: [logic!]
+		/local
+			s [series!]
+	][
+		s: GET_BUFFER(blk)
+		s/offset + blk/head = s/tail
+	]
 
 	rs-abs-at: func [
 		blk 	[red-block!]

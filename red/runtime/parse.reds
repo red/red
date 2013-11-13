@@ -35,6 +35,18 @@ parser: context [
 		]
 	]
 	
+	#define PARSE_CHECK_INPUT_EMPTY? [
+		type: TYPE_OF(input)
+		end?: either any [								;TBD: replace with ANY_STRING?
+			type = TYPE_STRING
+			type = TYPE_FILE
+		][
+			string/rs-tail? as red-string! input
+		][
+			block/rs-tail? input
+		]
+	]
+	
 	#define PARSE_PICK_INPUT [
 		type: TYPE_OF(input)
 		either any [		;TBD: replace with ANY_STRING
@@ -551,8 +563,7 @@ parser: context [
 					cmd: (block/rs-head rule) - 1		;-- decrement to compensate for starting increment
 					tail: block/rs-tail rule			;TBD: protect current rule block from changes
 					
-					PARSE_SET_INPUT_LENGTH(cnt)
-					end?: zero? cnt						;-- refresh end? flag
+					PARSE_CHECK_INPUT_EMPTY?			;-- refresh end? flag
 					state: ST_NEXT_ACTION
 				]
 				ST_POP_BLOCK [
@@ -728,8 +739,7 @@ parser: context [
 								unless ended? [match?: no]
 								if match? [input/head: input/head + 1]	;-- skip parsed series
 								
-								PARSE_SET_INPUT_LENGTH(cnt)
-								end?: zero? cnt			;-- refresh end? flag after popping series
+								PARSE_CHECK_INPUT_EMPTY? ;-- refresh end? flag after popping series
 								s: GET_BUFFER(rules)
 							]
 							R_THEN [
@@ -898,8 +908,7 @@ parser: context [
 									s/tail: s/tail - 3		;-- pop rule stack frame
 									state: ST_CHECK_PENDING
 								]
-								PARSE_SET_INPUT_LENGTH(cnt)
-								end?: zero? cnt
+								PARSE_CHECK_INPUT_EMPTY?
 							]
 						]
 					]
@@ -908,8 +917,7 @@ parser: context [
 					s: GET_BUFFER(rules)				;-- backtrack input
 					p: as positions! s/tail - 2
 					input/head: p/input
-					PARSE_SET_INPUT_LENGTH(cnt)
-					end?: zero? cnt						;-- refresh end? flag after backtracking
+					PARSE_CHECK_INPUT_EMPTY?			;-- refresh end? flag after backtracking
 					
 					cnt: find-altern rule cmd
 					
@@ -934,6 +942,7 @@ parser: context [
 							state: ST_POP_BLOCK
 						]
 						sym = words/skip [				;-- SKIP
+							PARSE_CHECK_INPUT_EMPTY?
 							match?: not end?
 							state: ST_NEXT_INPUT
 						]
@@ -1046,8 +1055,8 @@ parser: context [
 							state: ST_NEXT_ACTION
 						]
 						sym = words/end [				;-- END
-							PARSE_SET_INPUT_LENGTH(cnt)
-							match?: zero? cnt
+							PARSE_CHECK_INPUT_EMPTY?
+							match?: end?
 							state: ST_POP_RULE
 						]
 						sym = words/then [				;-- THEN
