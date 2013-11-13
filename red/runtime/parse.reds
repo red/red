@@ -688,7 +688,7 @@ parser: context [
 									w: as red-word! s/tail - 3
 									new: as red-series! value
 									copy-cell as red-value! input as red-value! new
-									copy-cell as red-value! input base
+									copy-cell as red-value! input base	;@@ remove once OPTION? fixed
 									new/head: p/input
 									actions/copy new base no null
 									_context/set w as red-value! new
@@ -716,7 +716,8 @@ parser: context [
 									int/value: input/head - p/input
 									input/head: p/input
 									assert positive? int/value
-									actions/remove input as red-value! int
+									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
+									actions/remove input base
 								]
 							]
 							R_NOT [
