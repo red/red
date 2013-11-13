@@ -453,19 +453,38 @@ Red [
 ===end-group===
 
 ===start-group=== "block-modify"
-	--test-- "blk-mod1"	--assert not parse	[]			[remove]
-	--test-- "blk-mod2"	--assert not parse	[]			[remove skip]
+	--test-- "blk-rem1"	--assert not parse	[]			[remove]
+	--test-- "blk-rem2"	--assert not parse	[]			[remove skip]
 
-	--test-- "blk-mod3"	
+	--test-- "blk-rem3"	
 		blk: [a]
 		--assert parse blk [remove skip]
 		--assert blk = []
 
-	--test-- "blk-mod4"	
+	--test-- "blk-rem4"	
 		blk: [a b a]
 		--assert parse blk [some ['a | remove 'b]]
 		--assert blk = [a a]
 
+	--test-- "blk-ins1"	
+		--assert parse blk: [] [insert 1]
+		--assert blk = [1]
+
+	--test-- "blk-ins2"	
+		--assert parse blk: [a a] [skip insert 'b skip]
+		--assert blk = [a b a]
+
+	--test-- "blk-ins3"	
+		--assert parse blk: [] [p: insert 'a :p remove 'a]
+		--assert blk = []
+
+	--test-- "blk-ins4"	
+		--assert parse blk: [] [insert [a b]]
+		--assert blk = [a b]
+
+	--test-- "blk-ins5"	
+		--assert parse blk: [] [insert only [a b]]
+		--assert blk = [[a b]]
 
 ===end-group===
 
@@ -1121,6 +1140,22 @@ Red [
 		digit: charset "0123456789"
 		--assert parse str [any [remove [some digit #" "] | skip]]
 		--assert str = "hello world"
+
+	--test-- "str-ins1"	
+		--assert parse str: "" [insert #"1"]
+		--assert str = "1"
+
+	--test-- "str-ins2"	
+		--assert parse str: "aa" [skip insert #"b" skip]
+		--assert str = "aba"
+
+	--test-- "str-ins3"	
+		--assert parse str: "" [p: insert #"a" :p remove #"a"]
+		--assert str = ""
+
+	--test-- "str-ins4"
+		--assert parse str: "test" [some [skip p: insert #"_"] :p remove skip]
+		--assert str = "t_e_s_t"
 
 ===end-group===
 
