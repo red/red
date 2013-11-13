@@ -1110,6 +1110,12 @@ Red [
 		--assert parse s: " t e s t " [while [remove ws | skip]]
 		--assert s = "test"
 
+	--test-- "str-rem9"
+		str: "hello 123 world"
+		digit: charset "0123456789"
+		--assert parse str [any [remove [some digit #" "] | skip]]
+		--assert str = "hello world"
+
 ===end-group===
 
 ===start-group=== "string-misc"
