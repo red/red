@@ -452,6 +452,23 @@ Red [
 
 ===end-group===
 
+===start-group=== "block-modify"
+	--test-- "blk-mod1"	--assert not parse	[]			[remove]
+	--test-- "blk-mod2"	--assert not parse	[]			[remove skip]
+
+	--test-- "blk-mod3"	
+		blk: [a]
+		--assert parse blk [remove skip]
+		--assert blk = []
+
+	--test-- "blk-mod4"	
+		blk: [a b a]
+		--assert parse blk [some ['a | remove 'b]]
+		--assert blk = [a a]
+
+
+===end-group===
+
 ===start-group=== "block-misc"
 
 	wa: ['a]
@@ -527,16 +544,18 @@ Red [
 	--test-- "blk-m97"	--assert not parse 	[[a]]		[into [some 'b]]
 	--test-- "blk-m98"	--assert parse 		[[a]]		[into ['a 'b] | block!]
 
-	--test-- "blk-m100"	--assert parse		[]			[then skip]
-	--test-- "blk-m101"	--assert parse		[a]			[then 'a | 'b]
-	--test-- "blk-m102"	--assert not parse	[c]			[then 'a | 'b]
-	--test-- "blk-m103"	--assert parse		[b]			[then 'a | 'b]
-	--test-- "blk-m104"	--assert parse		[z a]		['z then 'a | 'b]
+	--test-- "blk-m100"	--assert not parse	[]			[then skip]
+	--test-- "blk-m101"	--assert parse		[]			[then skip | end]
+	--test-- "blk-m102"	--assert parse		[a]			[then 'a | 'b]
+	--test-- "blk-m103"	--assert not parse	[c]			[then 'a | 'b]
+	--test-- "blk-m104"	--assert parse		[b]			[then 'a | 'b]
+	--test-- "blk-m105"	--assert parse		[z a]		['z then 'a | 'b]
 
 	x: none
 	--test-- "blk-m110"	--assert parse		[2 4 6]		[any [set x integer! if (even? x)]]
 	--test-- "blk-m111"	--assert not parse	[1]			[set x integer! if (even? x)]
 	--test-- "blk-m112"	--assert not parse	[1 5]		[some [set x integer! if (even? x)]]
+
 
 ===end-group===
 
@@ -1056,6 +1075,43 @@ Red [
 
 ===end-group===
 
+===start-group=== "string-modify"
+	ws: charset " ^- ^/^M"
+	not-ws: complement ws
+
+	--test-- "str-rem1"		--assert not parse		""			[remove]
+	--test-- "str-rem2"		--assert not parse		""			[remove skip]
+
+	--test-- "str-rem3"	
+		str: "a"
+		--assert parse str [remove skip]
+		--assert str = ""
+
+	--test-- "str-rem4"	
+		str: "aba"
+		--assert parse str [some [#"a" | remove #"b"]]
+		--assert str = "aa"
+
+	--test-- "str-rem5"	
+		str: "hello world"
+		--assert parse str [remove thru ws "world"]
+		--assert str = "world"
+
+	--test-- "str-rem6"	
+		str: "hello world"
+		--assert parse str [remove "hello" skip "world"]
+		--assert str = " world"
+
+	--test-- "str-rem7"
+		--assert not parse s: " t e s t " [any [remove ws | skip]]
+		--assert s = "t e s t "
+
+	--test-- "str-rem8"
+		--assert parse s: " t e s t " [while [remove ws | skip]]
+		--assert s = "test"
+
+===end-group===
+
 ===start-group=== "string-misc"
 
 	wa: [#"a"]
@@ -1115,11 +1171,12 @@ Red [
 	--test-- "str-m86"	--assert parse 		"a"			[opt skip]
 	--test-- "str-m87"	--assert parse 		"abc"		[skip opt #"b" skip]
 
-	--test-- "str-m90"	--assert parse		""			[then skip]
-	--test-- "str-m91"	--assert parse		"a"			[then #"a" | #"b"]
-	--test-- "str-m92"	--assert not parse	"c"			[then #"a" | #"b"]
-	--test-- "str-m93"	--assert parse		"b"			[then #"a" | #"b"]
-	--test-- "str-m94"	--assert parse		"za"		[#"z" then #"a" | #"b"]
+	--test-- "str-m90"	--assert not parse	""			[then skip]
+	--test-- "blk-m91"	--assert parse		""			[then skip | end]
+	--test-- "str-m92"	--assert parse		"a"			[then #"a" | #"b"]
+	--test-- "str-m93"	--assert not parse	"c"			[then #"a" | #"b"]
+	--test-- "str-m94"	--assert parse		"b"			[then #"a" | #"b"]
+	--test-- "str-m95"	--assert parse		"za"		[#"z" then #"a" | #"b"]
 
 	x: none
 	--test-- "blk-m100"	--assert parse		"246"		[any [copy x skip if (even? load x)]]
