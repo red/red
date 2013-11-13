@@ -393,6 +393,32 @@ Red [
 		res: 0
 		--assert parse [b a a a c][skip set res some wa 'c]
 		--assert res = 'a
+
+	--test-- "blk-ext40"
+		res: parse [] [collect []]
+		--assert res = []
+
+	--test-- "blk-ext41"
+		res: parse [1] [collect []]
+		--assert res = []
+
+	--test-- "blk-ext42"
+		res: parse [1] [collect [keep skip]]
+		--assert res = [1]
+
+	--test-- "blk-ext43"
+		res: parse [1 2 3] [collect [some [keep integer!]]]
+		--assert res = [1 2 3]
+
+	--test-- "blk-ext44"
+		res: parse [1 2 3] [collect [some [keep [set v integer! if (even? v)] | skip]]]
+		--assert res = [2]
+
+	--test-- "blk-ext45"
+		res: parse [a 3 4 t "test" 8][collect any [keep integer! | skip]]
+		--assert res = [3 4 8]
+
+
 		
 ===end-group===
 
@@ -949,6 +975,31 @@ Red [
 		res: 0
 		--assert parse "baaac" [skip set res some wa #"c"]
 		--assert res = #"a"
+
+	--test-- "str-ext40"
+		res: parse "" [collect []]
+		--assert res = []
+
+	--test-- "str-ext41"
+		res: parse "1" [collect []]
+		--assert res = []
+
+	--test-- "str-ext42"
+		res: parse "1" [collect [keep skip]]
+		--assert res = [#"1"]
+
+	--test-- "str-ext43"
+		digit: charset "0123456789"
+		res: parse "123" [collect [some [keep digit]]]
+		--assert res = [#"1" #"2" #"3"]
+
+	--test-- "str-ext44"
+		res: parse "123" [collect [some [keep [copy v digit if (even? load v)] | skip]]]
+		--assert res = [#"2"]
+
+	--test-- "str-ext45"
+		res: parse "123" [collect [some [copy d digit keep (load d)]]]
+		--assert res = [1 2 3]
 		
 ===end-group===
 
@@ -1269,12 +1320,42 @@ Red [
 		--assert not parse "a+b" expr
 		--assert not parse "123a+2" expr
 
+	--test-- "str-cplx2"
+		html: {
+			<html>
+				<head><title>Test</title></head>
+				<body><div><u>Hello</u> <b>World</b></div></body>
+			</html>
+		}	
+		ws: charset " ^- ^/^M"
+		res: parse html rule: [
+			collect [any [
+				ws
+				| "</" thru ">" break
+				| "<" copy name to ">" skip keep (load name) opt rule
+				| copy str to "<" keep (str)
+			]]
+		]
+		--assert res = [html [head [title ["Test"]] body [div [u ["Hello"] b ["World"]]]]]
+
+	--test-- "str-cplx3"
+		foo: func [value][value]
+		res: parse [a 3 4 t [t 9] "test" 8][
+			collect any [
+				keep integer! 
+				| p: block! :p into [
+					collect any [keep integer! keep ('+) | skip keep (foo '-)]
+				] 
+				| skip
+			]
+		]
+		--assert res = [3 4 [- 9 +] 8]
+
 ===end-group===
 
 ===start-group=== "string-bugs"
 
-	--test-- "#562" 	--assert not parse 	"+"		[any [#"+" if (no)]]
-
+	--test-- "#562" 	--assert not parse 	"+"			[any [#"+" if (no)]]
 	--test-- "#564-1"	--assert not parse  "a" 		[0 skip]
 	--test-- "#564-2"	--assert parse 		"a" 		[0 skip #"a"]
 
