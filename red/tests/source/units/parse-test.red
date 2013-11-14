@@ -1364,6 +1364,19 @@ Red [
 		]
 		--assert res = [3 4 [- 9 +] 8]
 
+
+	--test-- "str-cplx4"
+		;-- test taken from http://www.rebol.net/wiki/Parse_Project#AND
+		nanb: [#"a" opt nanb #"b"]
+ 		nbnc: [#"b" opt nbnc #"c"]
+		nanbnc: [ahead [nanb #"c"] some #"a" nbnc]
+		--assert parse 		"abc" 		nanbnc
+		--assert parse 		"aabbcc" 	nanbnc
+		--assert parse 		"aaabbbccc" nanbnc
+		--assert not parse 	"abbc" 		nanbnc
+		--assert not parse 	"abcc" 		nanbnc
+		--assert not parse 	"aabbc"		nanbnc
+
 ===end-group===
 
 ===start-group=== "string-bugs"
