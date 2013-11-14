@@ -415,7 +415,7 @@ Red [
 		--assert res = [2]
 
 	--test-- "blk-ext45"
-		res: parse [a 3 4 t "test" 8][collect any [keep integer! | skip]]
+		res: parse [a 3 4 t "test" 8][collect [any [keep integer! | skip]]]
 		--assert res = [3 4 8]
 		
 ===end-group===
@@ -1354,12 +1354,14 @@ Red [
 	--test-- "str-cplx3"
 		foo: func [value][value]
 		res: parse [a 3 4 t [t 9] "test" 8][
-			collect any [
-				keep integer! 
-				| p: block! :p into [
-					collect any [keep integer! keep ('+) | skip keep (foo '-)]
-				] 
-				| skip
+			collect [
+				any [
+					keep integer!
+					| p: block! :p into [
+						collect [any [keep integer! keep ('+) | skip keep (foo '-)]]
+					] 
+					| skip
+				]
 			]
 		]
 		--assert res = [3 4 [- 9 +] 8]
@@ -1370,6 +1372,7 @@ Red [
 		nanb: [#"a" opt nanb #"b"]
  		nbnc: [#"b" opt nbnc #"c"]
 		nanbnc: [ahead [nanb #"c"] some #"a" nbnc]
+
 		--assert parse 		"abc" 		nanbnc
 		--assert parse 		"aabbcc" 	nanbnc
 		--assert parse 		"aaabbbccc" nanbnc
