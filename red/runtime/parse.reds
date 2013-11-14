@@ -93,6 +93,7 @@ parser: context [
 		R_COLLECT:	  -12
 		R_KEEP:		  -13
 		R_KEEP_PAREN: -14
+		R_AHEAD:	  -15
 	]
 	
 	triple!: alias struct! [
@@ -720,6 +721,9 @@ parser: context [
 									actions/remove input base
 								]
 							]
+							R_AHEAD [
+								input/head: p/input
+							]
 							R_NOT [
 								match?: not match?
 							]
@@ -1005,6 +1009,11 @@ parser: context [
 						sym = words/fail [				;-- FAIL
 							match?: no
 							state: ST_FIND_ALTERN
+						]
+						sym = words/ahead [				;-- AHEAD
+							min:   R_NONE
+							type:  R_AHEAD
+							state: ST_PUSH_RULE
 						]
 						sym = words/while* [			;-- WHILE
 							min:   0

@@ -123,6 +123,7 @@ words: context [
 	only:			-1
 	collect:		-1
 	keep:			-1
+	ahead:			-1
 	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -175,6 +176,7 @@ words: context [
 		only:			symbol/make "only"
 		collect:		symbol/make "collect"
 		keep:			symbol/make "keep"
+		ahead:			symbol/make "ahead"
 		
 		_body:			_context/add-global body
 		_windows:		_context/add-global windows
