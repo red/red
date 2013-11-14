@@ -907,6 +907,8 @@ parser: context [
 							TYPE_BLOCK	 [state: ST_PUSH_BLOCK]
 							TYPE_WORD	 [state: ST_WORD rule?: all [type <> R_COLLECT type <> R_KEEP]]
 							TYPE_DATATYPE
+							TYPE_SET_WORD
+							TYPE_GET_WORD
 							TYPE_INTEGER [state: ST_DO_ACTION]
 							default [
 								either min = R_NONE [
