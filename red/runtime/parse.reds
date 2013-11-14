@@ -686,20 +686,18 @@ parser: context [
 							]
 							R_COPY [
 								if match? [
-									w: as red-word! s/tail - 3
 									new: as red-series! value
 									copy-cell as red-value! input as red-value! new
 									copy-cell as red-value! input base	;@@ remove once OPTION? fixed
 									new/head: p/input
 									actions/copy new base no null
-									_context/set w as red-value! new
+									_context/set as red-word! s/tail - 3 as red-value! new
 								]
 							]
 							R_SET [
 								if match? [
-									w: as red-word! p - 1
 									PARSE_PICK_INPUT
-									_context/set w value
+									_context/set as red-word! p - 1 value
 								]
 							]
 							R_KEEP
@@ -729,12 +727,22 @@ parser: context [
 								match?: not match?
 							]
 							R_COLLECT [
-								unless stack/top - 2 = base [
-									blk: as red-block! stack/top - 2
-									assert TYPE_OF(blk) = TYPE_BLOCK
+								either stack/top - 2 = base [	;-- root unnamed block reached
+									collect?: yes
+								][
 									value: stack/top - 1
 									assert TYPE_OF(value) = TYPE_BLOCK
-									block/rs-append blk value
+									
+									blk: as red-block! stack/top - 2
+									collect?: either TYPE_OF(blk) = TYPE_WORD [
+										_context/set as red-word! blk value
+										stack/pop 1
+										no
+									][
+										assert TYPE_OF(blk) = TYPE_BLOCK
+										block/rs-append blk value
+										yes
+									]
 									stack/pop 1
 								]
 							]
@@ -1102,7 +1110,14 @@ parser: context [
 							state: ST_MATCH
 						]
 						sym = words/collect [			;-- COLLECT
-							collect?: yes
+							value: cmd + 1
+							if all [
+								value < tail
+								TYPE_OF(value) = TYPE_WORD 
+							][
+								stack/push value
+								cmd: value
+							]
 							block/push* 8
 							min:   R_NONE
 							type:  R_COLLECT
