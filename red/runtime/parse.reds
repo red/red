@@ -723,6 +723,7 @@ parser: context [
 							]
 							R_AHEAD [
 								input/head: p/input
+								PARSE_CHECK_INPUT_EMPTY? ;-- refresh end? flag after backtracking
 							]
 							R_NOT [
 								match?: not match?
@@ -891,7 +892,7 @@ parser: context [
 				]
 				ST_MATCH_RULE [
 					either all [value = tail][
-						match?: no
+						match?: yes
 						state: ST_CHECK_PENDING
 					][
 						switch TYPE_OF(value) [
