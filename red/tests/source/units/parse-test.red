@@ -630,6 +630,8 @@ Red [
 		--assert not parse 	[a] [copy z 0 skip]
 		--assert z = []
 
+	--test-- "blk-integer-bug" parse 		[1 2]		[1 2 integer!]
+
 ===end-group===
 
 ===start-group=== "string"
