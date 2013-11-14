@@ -417,8 +417,6 @@ Red [
 	--test-- "blk-ext45"
 		res: parse [a 3 4 t "test" 8][collect any [keep integer! | skip]]
 		--assert res = [3 4 8]
-
-
 		
 ===end-group===
 
@@ -479,7 +477,7 @@ Red [
 ===end-group===
 
 ===start-group=== "block-modify"
-	--test-- "blk-rem1"	--assert not parse	[]			[remove]
+	--test-- "blk-rem1"	--assert parse		[]			[remove]
 	--test-- "blk-rem2"	--assert not parse	[]			[remove skip]
 
 	--test-- "blk-rem3"	
@@ -511,6 +509,13 @@ Red [
 	--test-- "blk-ins5"	
 		--assert parse blk: [] [insert only [a b]]
 		--assert blk = [[a b]]
+
+===end-group===
+
+===start-group=== "block-recurse"
+
+	--test-- "blk-rec1"
+		--assert parse [a "test"]['a set s string! (--assert parse s [4 skip])]
 
 ===end-group===
 
@@ -607,6 +612,10 @@ Red [
 	--test-- "blk-m123"	--assert not parse	[a]			[while 'b]
 	--test-- "blk-m124"	--assert parse		[a]			[while 'b skip]
 	--test-- "blk-m125"	--assert parse		[a b a b]	[while ['b | 'a]]
+
+	--test-- "blk-m130"	--assert parse		[]			[ahead]
+	--test-- "blk-m131"	--assert parse		[a]			[ahead 'a 'a]
+	--test-- "blk-m132"	--assert parse		[1]			[ahead [block! | integer!] skip]
 
 ===end-group===
 
@@ -1155,7 +1164,7 @@ Red [
 	ws: charset " ^- ^/^M"
 	not-ws: complement ws
 
-	--test-- "str-rem1"		--assert not parse		""			[remove]
+	--test-- "str-rem1"		--assert parse			""			[remove]
 	--test-- "str-rem2"		--assert not parse		""			[remove skip]
 
 	--test-- "str-rem3"	
@@ -1287,6 +1296,10 @@ Red [
 	--test-- "str-m123"	--assert not parse	"a"			[while #"b"]
 	--test-- "str-m124"	--assert parse		"a"			[while #"b" skip]
 	--test-- "str-m125"	--assert parse		"abab"		[while [#"b" | #"a"]]
+
+	--test-- "str-m130"	--assert parse		""			[ahead]
+	--test-- "str-m131"	--assert parse		"a"			[ahead #"a" #"a"]
+	--test-- "str-m132"	--assert parse		"1"			[ahead [#"a" | #"1"] skip]
 
 ===end-group===
 
