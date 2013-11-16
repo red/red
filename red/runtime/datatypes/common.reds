@@ -130,6 +130,14 @@ words: context [
 	_syllable:		as red-word! 0
 	_macosx:		as red-word! 0
 	_linux:			as red-word! 0
+	
+	_push:			as red-word! 0
+	_pop:			as red-word! 0
+	_fetch:			as red-word! 0
+	_match:			as red-word! 0
+	_iterate:		as red-word! 0
+	_paren:			as red-word! 0
+	_end:			as red-word! 0
 
 	build: does [
 		spec:			symbol/make "spec"
@@ -183,6 +191,14 @@ words: context [
 		_syllable:		_context/add-global syllable
 		_macosx:		_context/add-global macosx
 		_linux:			_context/add-global linux
+		
+		_push:			word/load "push"
+		_pop:			word/load "pop"
+		_fetch:			word/load "fetch"
+		_match:			word/load "match"
+		_iterate:		word/load "iterate"
+		_paren:			word/load "paren"
+		_end:			_context/add-global end
 	]
 ]
 

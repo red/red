@@ -776,6 +776,7 @@ parse: make native! [[
 		rules [block!]
 		/case
 		;/strict
+		/trace
 		return: [logic!]
 	]
 	#get-definition NAT_PARSE
@@ -986,6 +987,45 @@ replace: func [
 	series
 ]
 
-zero?: func [value [number!]][value = 0]
+zero?: func [
+	value [number!]
+][
+	value = 0
+]
 
-charset: func [spec [block! integer! char! binary!]][make bitset! spec]
+charset: func [
+	spec [block! integer! char! binary!]
+][
+	make bitset! spec
+]
+
+p-indent: make string! 30								;@@ to be put in an local context
+
+on-parse-event: func [
+	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
+	match?	[logic!]  "Result of last matching operation"
+	rule	[block!]  "Current rule at current position"
+	input	[series!] "Input series at next position to match"
+	stack	[block!]  "Internal parse rules stack"
+	return: [logic!]  "TRUE: continue parsing, FALSE: stop and exit parsing"
+][
+	switch event [
+		push  [
+			print [p-indent "-->"]
+			append p-indent "  "
+		]
+		pop	  [
+			clear back back tail p-indent
+			print [p-indent "<--"]
+		]
+		fetch [
+			print [
+				p-indent "match:" mold rule newline
+				p-indent "input:" mold/part input 72 - length? p-indent
+			]
+		]
+		match [print [p-indent "==>" either match? ["matched"]["not matched"]]]
+		end   [print ["return:" match?]]
+	]
+	true
+]

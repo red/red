@@ -60,6 +60,16 @@ parser: context [
 			value: block/rs-abs-at input p/input
 		]
 	]
+	
+	#define PARSE_TRACE(event) [
+		#if red-tracing? = yes [
+			if trace? [
+				rule/head: (as-integer cmd - block/rs-head rule) >> 4
+				if negative? rule/head [rule/head: 0]
+				fire-event words/event match? rule input
+			]
+		]
+	]
 
 	#enum states! [
 		ST_PUSH_BLOCK
@@ -459,6 +469,29 @@ parser: context [
 		match?
 	]
 	
+	fire-event: func [
+		event   [red-word!]
+		match? 	[logic!]
+		rule	[red-block!]
+		input   [red-series!]
+		return: [logic!]
+		/local
+			loop? [logic!]
+	][
+		stack/mark-func exec/~on-parse-event			;@@
+		stack/push as red-value! event
+		logic/push match?
+		stack/push as red-value! rule
+		stack/push as red-value! input
+		stack/push as red-value! rules
+		exec/f_on-parse-event
+		stack/unwind
+		
+		loop?: logic/top-true?
+		stack/pop 1
+		loop?
+	]
+	
 	save-stack: func [
 		/local
 			cnt [integer!]
@@ -491,10 +524,11 @@ parser: context [
 	]
 
 	process: func [
-		input [red-series!]
-		rule  [red-block!]
-		case? [logic!]
+		input	[red-series!]
+		rule	[red-block!]
+		case?	[logic!]
 		;strict? [logic!]
+		trace?	[logic!]
 		return: [red-value!]
 		/local
 			new		 [red-series!]
@@ -565,12 +599,14 @@ parser: context [
 					tail: block/rs-tail rule			;TBD: protect current rule block from changes
 					
 					PARSE_CHECK_INPUT_EMPTY?			;-- refresh end? flag
+					PARSE_TRACE(_push)
 					state: ST_NEXT_ACTION
 				]
 				ST_POP_BLOCK [
 					either zero? block/rs-length? rules [
 						state: ST_END
 					][
+						PARSE_TRACE(_pop)
 						loop?: no
 						ended?: cmd = tail
 						
@@ -610,6 +646,7 @@ parser: context [
 					int/value: type
 					if cmd < tail [cmd: cmd + 1]		;-- move after the rule prologue
 					value: cmd
+					PARSE_TRACE(_push)
 					state: ST_MATCH_RULE
 				]
 				ST_POP_RULE [
@@ -649,6 +686,7 @@ parser: context [
 								][
 									t/state: cnt + 1
 									cmd: (block/rs-head rule) + p/rule ;-- loop rule
+									PARSE_TRACE(_iterate)
 									state: ST_NEXT_ACTION
 									pop?: no
 								]
@@ -679,6 +717,7 @@ parser: context [
 									][
 										p/input: input/head	;-- refresh saved input head before new iteration
 										cmd: (block/rs-head rule) + p/rule ;-- loop rule
+										PARSE_TRACE(_iterate)
 										state: ST_NEXT_ACTION
 										pop?: no
 									]
@@ -758,12 +797,14 @@ parser: context [
 							]
 							R_THEN [
 								s/tail: s/tail - 3		;-- pop rule stack frame
+								PARSE_TRACE(_pop)
 								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
 								pop?: no
 							]
 						]
 						if pop? [
 							s/tail: s/tail - 3			;-- pop rule stack frame
+							PARSE_TRACE(_pop)
 							state:  ST_CHECK_PENDING
 						]
 					]
@@ -799,6 +840,7 @@ parser: context [
 							dt: as red-datatype! value
 							value: block/rs-head input
 							match?: TYPE_OF(value) = dt/value
+							PARSE_TRACE(_match)
 							state: either match? [ST_NEXT_INPUT][ST_CHECK_PENDING]
 						]
 						TYPE_SET_WORD [
@@ -847,6 +889,7 @@ parser: context [
 						TYPE_PAREN [
 							interpreter/eval as red-block! value no
 							stack/pop 1
+							PARSE_TRACE(_paren)
 							state: ST_CHECK_PENDING
 						]
 						default [						;-- try to match a literal value
@@ -872,6 +915,7 @@ parser: context [
 					state: either cmd = tail [
 						ST_POP_BLOCK
 					][
+						PARSE_TRACE(_fetch)
 						value: cmd
 						ST_DO_ACTION
 					]
@@ -896,6 +940,7 @@ parser: context [
 							all [match? block/rs-next input]				;-- consume matched input
 						]
 					]
+					PARSE_TRACE(_match)
 					state: ST_CHECK_PENDING
 				]
 				ST_MATCH_RULE [
@@ -914,6 +959,7 @@ parser: context [
 								either min = R_NONE [
 									state: either any [type = R_TO type = R_THRU][
 										match?: find-token? rules input value case?
+										PARSE_TRACE(_match)
 										ST_POP_RULE
 									][
 										ST_DO_ACTION
@@ -921,8 +967,10 @@ parser: context [
 								][
 									match?: loop-token input value min max :cnt case?
 									if all [not match? zero? min][match?: yes]
+									PARSE_TRACE(_match)
 									s: GET_BUFFER(rules)
 									s/tail: s/tail - 3		;-- pop rule stack frame
+									PARSE_TRACE(_pop)
 									state: ST_CHECK_PENDING
 								]
 								PARSE_CHECK_INPUT_EMPTY?
@@ -961,6 +1009,7 @@ parser: context [
 						sym = words/skip [				;-- SKIP
 							PARSE_CHECK_INPUT_EMPTY?
 							match?: not end?
+							PARSE_TRACE(_match)
 							state: ST_NEXT_INPUT
 						]
 						sym = words/any* [				;-- ANY
@@ -1004,6 +1053,7 @@ parser: context [
 							break?: yes
 							cmd:	cmd + 1
 							pop?:	yes
+							PARSE_TRACE(_match)
 							state:	ST_POP_RULE
 						]
 						sym = words/opt [				;-- OPT
@@ -1020,6 +1070,7 @@ parser: context [
 						]
 						sym = words/fail [				;-- FAIL
 							match?: no
+							PARSE_TRACE(_match)
 							state: ST_FIND_ALTERN
 						]
 						sym = words/ahead [				;-- AHEAD
@@ -1062,6 +1113,7 @@ parser: context [
 								state: ST_PUSH_RULE
 							][
 								match?: no
+								PARSE_TRACE(_match)
 								state: ST_CHECK_PENDING
 							]
 						]
@@ -1079,6 +1131,7 @@ parser: context [
 						sym = words/end [				;-- END
 							PARSE_CHECK_INPUT_EMPTY?
 							match?: end?
+							PARSE_TRACE(_match)
 							state: ST_POP_RULE
 						]
 						sym = words/then [				;-- THEN
@@ -1097,6 +1150,7 @@ parser: context [
 							interpreter/eval as red-block! cmd no
 							match?: logic/top-true?
 							stack/pop 1
+							PARSE_TRACE(_match)
 							state: ST_CHECK_PENDING
 						]
 						sym = words/not* [				;-- NOT
@@ -1130,6 +1184,7 @@ parser: context [
 							match?: no
 							break?: yes
 							pop?:	yes
+							PARSE_TRACE(_match)
 							state:	ST_POP_RULE
 						]
 						sym = words/set [				;-- SET
@@ -1143,6 +1198,7 @@ parser: context [
 						]
 						sym = words/none [				;-- NONE
 							match?: yes
+							PARSE_TRACE(_match)
 							state: ST_CHECK_PENDING
 						]
 						true [
@@ -1162,6 +1218,7 @@ parser: context [
 					][
 						match?: no
 					]
+					PARSE_TRACE(_end)
 					state: ST_EXIT
 				]
 			]

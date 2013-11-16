@@ -771,8 +771,9 @@ natives: context [
 	]
 	
 	parse*: func [
-		case? [integer!]
+		case?  [integer!]
 		;strict? [integer!]
+		trace? [integer!]
 		/local
 			match? [logic!]
 	][
@@ -781,6 +782,7 @@ natives: context [
 			as red-block!  stack/arguments + 1
 			as logic! case? + 1
 			;as logic! strict? + 1
+			as logic! trace? + 1
 	]
 	
 	union*: func [
