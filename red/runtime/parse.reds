@@ -66,7 +66,9 @@ parser: context [
 			if trace? [
 				rule/head: (as-integer cmd - block/rs-head rule) >> 4
 				if negative? rule/head [rule/head: 0]
-				fire-event words/event match? rule input
+				unless fire-event words/event match? rule input [
+					return as red-value! logic/push match?
+				]
 			]
 		]
 	]
@@ -487,7 +489,7 @@ parser: context [
 		exec/f_on-parse-event
 		stack/unwind
 		
-		loop?: logic/top-true?
+		loop?: logic/top-true?		
 		stack/pop 1
 		loop?
 	]
