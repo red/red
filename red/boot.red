@@ -994,7 +994,7 @@ zero?: func [
 ]
 
 charset: func [
-	spec [block! integer! char! binary!]
+	spec [block! integer! char! string! binary!]
 ][
 	make bitset! spec
 ]
