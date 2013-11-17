@@ -478,18 +478,23 @@ parser: context [
 		input   [red-series!]
 		return: [logic!]
 		/local
+			fun	  [red-function!]
 			loop? [logic!]
 	][
-		stack/mark-func exec/~on-parse-event			;@@
+		stack/mark-func exec/~on-parse-event
+		
 		stack/push as red-value! event
 		logic/push match?
 		stack/push as red-value! rule
 		stack/push as red-value! input
 		stack/push as red-value! rules
-		exec/f_on-parse-event
-		stack/unwind
 		
-		loop?: logic/top-true?		
+		fun: as red-function! _context/get words/_on-parse-event
+		assert TYPE_OF(fun) = TYPE_FUNCTION
+		_function/call fun
+		
+		stack/unwind
+		loop?: logic/top-true?
 		stack/pop 1
 		loop?
 	]
