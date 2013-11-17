@@ -965,7 +965,7 @@ block: context [
 		slots: part * cnt
 		
 		unless tail? [									;TBD: process head? case separately
-			size: (as-integer (s/tail - (s/offset + blk/head))) + (slots * size? cell!)
+			size: as-integer s/tail + slots - s/offset
 			if size > s/size [s: expand-series s size]
 			head: s/offset + blk/head
 			move-memory									;-- make space
