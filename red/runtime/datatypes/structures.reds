@@ -163,6 +163,13 @@ red-char!: alias struct! [
 	_pad2	[integer!]	
 ]
 
+red-point!: alias struct! [
+	header 	[integer!]								;-- cell header
+	x		[integer!]								;-- stores an integer! or float32! value
+	y		[integer!]								;-- stores an integer! or float32! value
+	z		[integer!]								;-- stores an integer! or float32! value
+]
+
 red-action!: alias struct! [
 	header 	[integer!]								;-- cell header
 	spec	[node!]									;-- action spec block reference

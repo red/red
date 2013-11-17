@@ -40,6 +40,7 @@ Red/System [
 	TYPE_ISSUE
 	TYPE_FILE
 	TYPE_BITSET
+	TYPE_POINT
 	TYPE_OBJECT
 	TYPE_BINARY
 	
@@ -48,9 +49,6 @@ Red/System [
 	TYPE_CLOSURE
 	TYPE_PORT
 	TYPE_FLOAT
-	
-	;-- internal use only --
-	TYPE_TRIPLE
 ]
 
 #enum actions! [

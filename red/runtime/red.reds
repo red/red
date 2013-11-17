@@ -61,6 +61,7 @@ red: context [
 	#include %datatypes/issue.reds
 	#include %datatypes/file.reds
 	#include %datatypes/bitset.reds
+	#include %datatypes/point.reds
 	
 	;-- Debugging helpers --
 	
@@ -117,6 +118,7 @@ red: context [
 		issue/init
 		file/init
 		bitset/init
+		point/init
 		
 		actions/init
 		
