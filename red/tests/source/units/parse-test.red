@@ -417,6 +417,36 @@ Red [
 	--test-- "blk-ext45"
 		res: parse [a 3 4 t "test" 8][collect [any [keep integer! | skip]]]
 		--assert res = [3 4 8]
+
+	--test-- "blk-ext46"
+		a: none
+		--assert parse [] [collect a []]
+		--assert a = []
+
+	--test-- "blk-ext47"
+		a: none
+		--assert parse [1] [collect a [keep skip]]
+		--assert a = [1]
+
+	--test-- "blk-ext48"
+		list: none
+		--assert parse [a 3 4 t "test" 8][collect list [any [keep integer! | skip]]]
+		--assert list = [3 4 8]
+
+	--test-- "blk-ext49"
+		a: []
+		--assert parse [] [collect into a []]
+		--assert a = []
+
+	--test-- "blk-ext50"
+		a: []
+		--assert parse [1] [collect into a [keep skip]]
+		--assert a = [1]
+
+	--test-- "blk-ext51"
+		list: next [1 2 3]
+		--assert parse [a 4 b 5 c] [collect into list [some [keep word! | skip]]]
+		--assert [1 a b c 2 3] = head list
 		
 ===end-group===
 
@@ -1011,6 +1041,27 @@ Red [
 	--test-- "str-ext45"
 		res: parse "123" [collect [some [copy d digit keep (load d)]]]
 		--assert res = [1 2 3]
+
+	--test-- "str-ext46"
+		a: none
+		--assert parse "" [collect a []]
+		--assert a = []
+
+	--test-- "str-ext47"
+		a: none
+		--assert parse "1" [collect a [keep skip]]
+		--assert a = [#"1"]
+
+	--test-- "str-ext49"
+		a: []
+		--assert parse "" [collect into a []]
+		--assert a = []
+
+	--test-- "str-ext50"
+		a: []
+		--assert parse "1" [collect into a [keep skip]]
+		--assert a = [#"1"]
+
 		
 ===end-group===
 
@@ -1144,17 +1195,17 @@ Red [
 	bs: charset [not "hello123" #"a" - #"z"]
 	wbs: [bs]
 	wbs2: reduce wbs
-	--test-- "str-bs6" 		--assert not parse 		"abc" 		[some bs]
-	--test-- "str-bs7" 		--assert parse 			"ABC" 		[some bs]
-	--test-- "str-bs8" 		--assert not parse 		"123" 		[some bs]
-	--test-- "str-bs9"		--assert parse 			"789" 		[some bs]
-	--test-- "str-bs10" 	--assert not parse 		"abc" 		[bs bs bs]
-	--test-- "str-bs11" 	--assert parse			"ABC" 		[bs bs bs]
-	--test-- "str-bs12" 	--assert not parse 		"123" 		[bs bs bs]
-	--test-- "str-bs13" 	--assert parse 			"789" 		[bs bs bs]
+	--test-- "str-bs20" 	--assert not parse 		"abc" 		[some bs]
+	--test-- "str-bs21" 	--assert parse 			"ABC" 		[some bs]
+	--test-- "str-bs22" 	--assert not parse 		"123" 		[some bs]
+	--test-- "str-bs23"		--assert parse 			"789" 		[some bs]
+	--test-- "str-bs24" 	--assert not parse 		"abc" 		[bs bs bs]
+	--test-- "str-bs25" 	--assert parse			"ABC" 		[bs bs bs]
+	--test-- "str-bs26" 	--assert not parse 		"123" 		[bs bs bs]
+	--test-- "str-bs27" 	--assert parse 			"789" 		[bs bs bs]
 
 
-	--test-- "str-bs20"
+	--test-- "str-bs30"
 		digit: charset "0123456789"
 		--assert parse "hello 123" [to digit p: 3 skip]
 		--assert p = "123"
