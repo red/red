@@ -763,7 +763,7 @@ parser: context [
 									if int/value = R_KEEP [PARSE_PICK_INPUT]
 									
 									either into? [
-										block/insert blk value null no null no
+										block/insert blk value null yes null no
 									][
 										block/rs-append blk value
 									]
