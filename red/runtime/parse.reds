@@ -759,9 +759,21 @@ parser: context [
 									into?: TYPE_OF(blk) = TYPE_GET_WORD
 									if into? [blk: as red-block! _context/get as red-word! blk]
 									
-									value: stack/top
-									if int/value = R_KEEP [PARSE_PICK_INPUT]
-									
+									value: stack/top	;-- refer last value from paren expression
+									if int/value = R_KEEP [
+										w: as red-word! s/tail
+										either any [
+											p/input + 1 < input/head
+											all [
+												s/offset + (s/size >> 4) > s/tail
+												TYPE_OF(w) = TYPE_WORD
+											]
+										][
+											value: _context/get w
+										][
+											PARSE_PICK_INPUT
+										]
+									]
 									either into? [
 										block/insert blk value null yes null no
 									][
