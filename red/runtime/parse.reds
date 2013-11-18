@@ -810,6 +810,9 @@ parser: context [
 										stack/pop 1
 										no
 									][
+										if TYPE_OF(blk) = TYPE_GET_WORD [
+											blk: as red-block! _context/get as red-word! blk
+										]
 										assert TYPE_OF(blk) = TYPE_BLOCK
 										block/rs-append blk value
 										yes
