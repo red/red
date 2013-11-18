@@ -568,6 +568,7 @@ parser: context [
 			break?	 [logic!]
 			rule?	 [logic!]
 			collect? [logic!]
+			into?	 [logic!]
 	][
 		match?:	  yes
 		end?:	  no
@@ -750,17 +751,29 @@ parser: context [
 							R_KEEP_PAREN [
 								if match? [
 									blk: as red-block! stack/top - 1
-									assert TYPE_OF(blk) = TYPE_BLOCK
+									assert any [
+										TYPE_OF(blk) = TYPE_WORD
+										TYPE_OF(blk) = TYPE_GET_WORD
+										TYPE_OF(blk) = TYPE_BLOCK
+									]
+									into?: TYPE_OF(blk) = TYPE_GET_WORD
+									if into? [blk: as red-block! _context/get as red-word! blk]
+									
 									value: stack/top
 									if int/value = R_KEEP [PARSE_PICK_INPUT]
-									block/rs-append blk value 
+									
+									either into? [
+										block/insert blk value null no null no
+									][
+										block/rs-append blk value
+									]
 								]
 							]
 							R_REMOVE [
 								if match? [
 									int/value: input/head - p/input
 									input/head: p/input
-									assert positive? int/value
+									assert int/value >= 0
 									copy-cell as red-value! int base	;@@ remove once OPTION? fixed
 									actions/remove input base
 								]
@@ -773,13 +786,13 @@ parser: context [
 								match?: not match?
 							]
 							R_COLLECT [
+								value: stack/top - 1
 								either stack/top - 2 = base [	;-- root unnamed block reached
-									collect?: yes
+									collect?: TYPE_OF(value) = TYPE_BLOCK
 								][
-									value: stack/top - 1
 									assert TYPE_OF(value) = TYPE_BLOCK
-									
 									blk: as red-block! stack/top - 2
+									
 									collect?: either TYPE_OF(blk) = TYPE_WORD [
 										_context/set as red-word! blk value
 										stack/pop 1
@@ -1174,15 +1187,31 @@ parser: context [
 							state: ST_MATCH
 						]
 						sym = words/collect [			;-- COLLECT
+							max: R_NONE
+							into?: no
+							w: as red-word! cmd + 1
+							
+							if all [
+								(as red-value! w) < tail
+								TYPE_OF(w) = TYPE_WORD
+								words/into = symbol/resolve w/symbol
+							][
+								into?: yes
+								cmd: as red-value! w
+							]
 							value: cmd + 1
 							if all [
 								value < tail
 								TYPE_OF(value) = TYPE_WORD 
 							][
-								stack/push value
+								either into? [
+									get-word/push as red-word! value
+								][
+									stack/push value
+								]
 								cmd: value
 							]
-							block/push* 8
+							unless into? [block/push* 8]
 							min:   R_NONE
 							type:  R_COLLECT
 							state: ST_PUSH_RULE
