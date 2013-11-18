@@ -72,6 +72,12 @@ parser: context [
 			]
 		]
 	]
+	
+	#define PARSE_RESTORE_HEAD [
+		blk: as red-block! _context/get as red-word! value
+		t: as triple! s/tail - 3
+		blk/head: t/min
+	]
 
 	#enum states! [
 		ST_PUSH_BLOCK
@@ -801,21 +807,27 @@ parser: context [
 								value: stack/top - 1
 								either stack/top - 2 = base [	;-- root unnamed block reached
 									collect?: TYPE_OF(value) = TYPE_BLOCK
+									if TYPE_OF(value) = TYPE_GET_WORD [
+										PARSE_RESTORE_HEAD
+									]
 								][
 									assert TYPE_OF(value) = TYPE_BLOCK
 									blk: as red-block! stack/top - 2
+									collect?: no
 									
-									collect?: either TYPE_OF(blk) = TYPE_WORD [
-										_context/set as red-word! blk value
-										stack/pop 1
-										no
-									][
-										if TYPE_OF(blk) = TYPE_GET_WORD [
-											blk: as red-block! _context/get as red-word! blk
+									switch TYPE_OF(blk) [
+										TYPE_WORD [
+											_context/set as red-word! blk value
+											stack/pop 1
 										]
-										assert TYPE_OF(blk) = TYPE_BLOCK
-										block/rs-append blk value
-										yes
+										TYPE_GET_WORD [
+											PARSE_RESTORE_HEAD
+										]
+										default [
+											assert TYPE_OF(blk) = TYPE_BLOCK
+											block/rs-append blk value
+											collect?: yes
+										]
 									]
 									stack/pop 1
 								]
@@ -1226,8 +1238,13 @@ parser: context [
 								]
 								cmd: value
 							]
-							unless into? [block/push* 8]
-							min:   R_NONE
+							min: either into? [
+								blk: as red-block! _context/get as red-word! value
+								blk/head				;-- save head position
+							][
+								block/push* 8
+								R_NONE
+							]
 							type:  R_COLLECT
 							state: ST_PUSH_RULE
 						]
