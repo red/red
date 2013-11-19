@@ -48,12 +48,13 @@ parser: context [
 	]
 	
 	#define PARSE_PICK_INPUT [
+		value: base
 		type: TYPE_OF(input)
 		either any [		;TBD: replace with ANY_STRING
 			type = TYPE_STRING
 			type = TYPE_FILE
 		][
-			char: as red-char! value
+			char: as red-char! base
 			char/header: TYPE_CHAR
 			char/value: string/rs-abs-at as red-string! input p/input
 		][
@@ -739,10 +740,11 @@ parser: context [
 							]
 							R_COPY [
 								if match? [
-									new: as red-series! value
+									min: p/input
+									new: as red-series! p
 									copy-cell as red-value! input as red-value! new
 									copy-cell as red-value! input base	;@@ remove once OPTION? fixed
-									new/head: p/input
+									new/head: min
 									actions/copy new base no null
 									_context/set as red-word! s/tail - 3 as red-value! new
 								]
