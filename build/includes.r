@@ -24,6 +24,7 @@ write %build/bin/sources.r set-cache [
 			%interpreter.reds
 			%macros.reds
 			%natives.reds
+			%parse.reds
 			%red.reds
 			%stack.reds
 			%tokenizer.reds
@@ -35,6 +36,7 @@ write %build/bin/sources.r set-cache [
 			%datatypes/ [
 				%action.reds
 				%block.reds
+				%bitset.reds
 				%char.reds
 				%common.reds
 				%context.reds
@@ -53,6 +55,7 @@ write %build/bin/sources.r set-cache [
 				%op.reds
 				%paren.reds
 				%path.reds
+				%point.reds
 				%refinement.reds
 				%routine.reds
 				%set-path.reds
