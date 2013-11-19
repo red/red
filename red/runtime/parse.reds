@@ -73,8 +73,8 @@ parser: context [
 		]
 	]
 	
-	#define PARSE_RESTORE_HEAD [
-		blk: as red-block! _context/get as red-word! value
+	#define PARSE_RESTORE_HEAD(src) [
+		blk: as red-block! _context/get as red-word! src
 		t: as triple! s/tail - 3
 		blk/head: t/min
 	]
@@ -811,7 +811,7 @@ parser: context [
 								either stack/top - 2 = base [	;-- root unnamed block reached
 									collect?: TYPE_OF(value) = TYPE_BLOCK
 									if TYPE_OF(value) = TYPE_GET_WORD [
-										PARSE_RESTORE_HEAD
+										PARSE_RESTORE_HEAD(value)
 									]
 								][
 									assert TYPE_OF(value) = TYPE_BLOCK
@@ -824,7 +824,8 @@ parser: context [
 											stack/pop 1
 										]
 										TYPE_GET_WORD [
-											PARSE_RESTORE_HEAD
+											PARSE_RESTORE_HEAD(blk)
+											block/rs-append blk value
 										]
 										default [
 											assert TYPE_OF(blk) = TYPE_BLOCK
