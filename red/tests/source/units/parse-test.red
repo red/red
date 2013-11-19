@@ -284,7 +284,7 @@ Red [
 		
 	--test-- "blk-ext5" 
 		res: 0
-		--assert parse [a a][copy res 2 'a]				;@@ a instead of 'a will crash!
+		--assert parse [a a][copy res 2 'a]
 		--assert res = [a a]
 
 	--test-- "blk-ext6" 
@@ -346,7 +346,7 @@ Red [
 
 	--test-- "blk-ext17" 
 		res: 0
-		--assert parse [a a][set res 2 'a]				;@@ a instead of 'a will crash!
+		--assert parse [a a][set res 2 'a]
 		--assert res = 'a
 
 	--test-- "blk-ext18" 

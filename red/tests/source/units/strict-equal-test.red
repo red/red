@@ -43,11 +43,11 @@ Red [
 	--test-- "same-datatype-30"		--assert not false == true
 	--test-- "same-datatype-31"		--assert not true == false
 	--test-- "same-datatype-32"		--assert none == none
-	--test-- "same-datatype-33"		--assert not 'a == 'a
+	--test-- "same-datatype-33"		--assert 'a == 'a
 	--test-- "same-datatype-34"		--assert not 'a == 'A
-	--test-- "same-datatype-35"		--assert not (first [a]) == first [a]
+	--test-- "same-datatype-35"		--assert (first [a]) == first [a]
 	--test-- "same-datatype-36"		--assert not 'a == first [A]
-	--test-- "same-datatype-37"		--assert 'a == first ['a]
+	--test-- "same-datatype-37"		--assert 'a == first [a]
 	--test-- "same-datatype-38"		--assert not 'a == first [:a]
 	--test-- "same-datatype-39"		--assert not 'a == first [a:]
 	--test-- "same-datatype-40"		--assert (first [a:]) == first [a:]
