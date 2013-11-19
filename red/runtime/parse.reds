@@ -768,11 +768,14 @@ parser: context [
 									value: stack/top	;-- refer last value from paren expression
 									if int/value = R_KEEP [
 										w: as red-word! s/tail
+										int2: as red-integer! s/tail + 2
 										either any [
 											p/input + 1 < input/head
 											all [
-												s/offset + (s/size >> 4) > s/tail
+												s/offset + (s/size >> 4) > (s/tail + 2)
 												TYPE_OF(w) = TYPE_WORD
+												TYPE_OF(int2) = TYPE_INTEGER
+												int2/value = R_COPY
 											]
 										][
 											value: _context/get w
