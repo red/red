@@ -169,6 +169,7 @@ red: context [
 			lit-word!
 			word! 
 			get-word!
+			set-word!
 		] type?/word :expr
 	]
 	
