@@ -1482,6 +1482,14 @@ Red [
 		res: parse "12" [collect [keep copy value 2 skip]]
 		--assert res = ["12"]
 
+	--test-- "#569"
+		size: 1
+		res: parse "1" [collect [keep copy value size skip]]
+		--assert res = ["1"]
+		size: 2
+		res: parse "12" [collect [keep copy value size skip]]
+		--assert res = ["12"]
+
 ===end-group===
     
 ~~~end-file~~~
