@@ -19,13 +19,16 @@ change-dir %../
 		][
 			"Linux"
 		]
-	
+										;; source should be relative to 
+										;; runnable dir
 	--test-- "compile dll1"
-	--compile-dll %source/units/libtest-dll1.reds dll-target
+	--compile-dll join qt/base-dir 
+				  %red-system/tests/source/units/libtest-dll1.reds dll-target
 	--assert qt/compile-ok?
 	
 	--test-- "compile dll2"
-	--compile-dll %source/units/libtest-dll2.reds dll-target 
+	--compile-dll join qt/base-dir 
+				  %red-system/tests/source/units/libtest-dll2.reds dll-target
 	--assert qt/compile-ok?
 	
 ===end-group===

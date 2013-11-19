@@ -9,31 +9,15 @@ REBOL [
 
 change-dir %../
 
-compiler-crashed?: func [
-  source [string!]
-][
-  write %runnable/byte.reds source 
-  exe: --compile src: %runnable/byte.reds
-  if exists? %runnable/byte.reds [delete %runnable/byte.reds]
-  if all [
-    exe
-    exists? exe
-  ][
-    delete exe
-  ]
-  either none <> find qt/comp-output "** Script Error" [true] [false]
-]
-  
-
 ~~~start-file~~~ "byte-compile"
 
 ===start-group=== "compiler checks"
 
-  --test-- "byte cc 1"
-  --assert not compiler-crashed? {
-    Red/System []
-    b: #"á"
-  }
+	--test-- "byte cc 1"
+  		--assert --compiled? {
+    		Red/System []		
+    	;;	b: #"á"				This should be re-instated for version 2				
+    	}
  
 ===end-group=== 
        

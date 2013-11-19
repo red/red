@@ -30,9 +30,9 @@ qt: make object! [
   base-dir: system/script/path
   base-dir: copy/part base-dir find base-dir "quick-test"
   ;; set the red/system runnable dir
-  runnable-dir: base-dir/quick-test/runnable
+  runnable-dir: dirize base-dir/quick-test/runnable
   ;; set the default base dir for tests
-  tests-dir: base-dir/red-system/tests
+  tests-dir: dirize base-dir/red-system/tests
   
   ;; set the version number
   version: system/script/header/version
@@ -197,7 +197,7 @@ qt: make object! [
     	either lib [
     		cmd: join "" [to-local-file bin-compiler " -o " 
     					  to-local-file runnable-dir/:exe
-    					  " -dlib -t " target
+    					  " -dlib -t " target " "
     					  to-local-file src
     		]
     	][
@@ -284,6 +284,7 @@ qt: make object! [
     /local
     	dll
   ][
+  	  print ["lib-src" lib-src]
     ;; compile the lib into the runnable dir
     if not dll: compile/lib lib-src target [
       compile-error lib-src
