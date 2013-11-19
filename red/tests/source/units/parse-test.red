@@ -662,6 +662,16 @@ Red [
 
 	--test-- "blk-integer-bug" parse 		[1 2]		[1 2 integer!]
 
+	--test-- "#566"
+		b: next [0 9]
+		--assert parse [1 [2]] [collect into b [keep integer! keep block!]]
+		--assert b = [1 [2] 9]
+
+	--test-- "#565"
+		b: []
+		--assert parse [1] [collect into b [collect [keep integer!]]]
+		--assert b = [[1]]
+
 ===end-group===
 
 ===start-group=== "string"
@@ -1467,6 +1477,10 @@ Red [
 		f563: func [t [string!]][parse t [any r]]
 		--assert not f563 "-"
 		--assert not f563 "+"
+
+	--test-- "#567"
+		res: parse "12" [collect [keep copy value 2 skip]]
+		--assert res = ["12"]
 
 ===end-group===
     
