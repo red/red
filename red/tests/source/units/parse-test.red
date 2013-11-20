@@ -420,17 +420,17 @@ Red [
 
 	--test-- "blk-ext46"
 		a: none
-		--assert parse [] [collect a []]
+		--assert parse [] [collect set a []]
 		--assert a = []
 
 	--test-- "blk-ext47"
 		a: none
-		--assert parse [1] [collect a [keep skip]]
+		--assert parse [1] [collect set a [keep skip]]
 		--assert a = [1]
 
 	--test-- "blk-ext48"
 		list: none
-		--assert parse [a 3 4 t "test" 8][collect list [any [keep integer! | skip]]]
+		--assert parse [a 3 4 t "test" 8][collect set list [any [keep integer! | skip]]]
 		--assert list = [3 4 8]
 
 	--test-- "blk-ext49"
@@ -1054,12 +1054,12 @@ Red [
 
 	--test-- "str-ext46"
 		a: none
-		--assert parse "" [collect a []]
+		--assert parse "" [collect set a []]
 		--assert a = []
 
 	--test-- "str-ext47"
 		a: none
-		--assert parse "1" [collect a [keep skip]]
+		--assert parse "1" [collect set a [keep skip]]
 		--assert a = [#"1"]
 
 	--test-- "str-ext49"

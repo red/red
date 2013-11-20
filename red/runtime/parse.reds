@@ -1224,25 +1224,24 @@ parser: context [
 							if all [
 								(as red-value! w) < tail
 								TYPE_OF(w) = TYPE_WORD
-								words/into = symbol/resolve w/symbol
 							][
-								into?: yes
+								sym: symbol/resolve w/symbol
+								into?: sym = words/into
+								
+								if any [into? sym = words/set][
+									w: w + 1
+									if any [
+										w >= tail
+										TYPE_OF(w) <> TYPE_WORD	
+									][
+										print-line "*** Parse Error: COLLECT is missing a word argument"
+									]
+									either into? [get-word/push w][stack/push as red-value! w]
+								]
 								cmd: as red-value! w
 							]
-							value: cmd + 1
-							if all [
-								value < tail
-								TYPE_OF(value) = TYPE_WORD 
-							][
-								either into? [
-									get-word/push as red-word! value
-								][
-									stack/push value
-								]
-								cmd: value
-							]
 							min: either into? [
-								blk: as red-block! _context/get as red-word! value
+								blk: as red-block! _context/get w
 								blk/head				;-- save head position
 							][
 								block/push* 8
