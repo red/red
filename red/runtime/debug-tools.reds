@@ -92,9 +92,27 @@ memory-info: func [
 			w: as red-word! symbol + i
 			sym: syms + w/symbol - 1
 			val: value + i	
-			print-line [i ": " sym/cache "^- : " TYPE_OF(val)]
+			print-line [i ", " w/symbol "/" sym/alias ": " sym/cache "^- : " TYPE_OF(val)]
 			i: i + 1
 			i + 1 = len
+		]
+	]
+	
+	dump-symbols: func [
+		/local tail s i qym
+	][
+		s: GET_BUFFER(symbols)
+		sym: as red-symbol! s/offset
+		tail: as red-symbol! s/tail
+
+		print-line "Symbol Table"
+		print-line "--------------"
+		i: 0
+		until [
+			print-line [i "/" sym/alias ": " sym/cache]
+			sym: sym + 1
+			i: i + 1
+			sym = tail
 		]
 	]
 
