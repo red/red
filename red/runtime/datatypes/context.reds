@@ -25,7 +25,6 @@ _context: context [
 		series: as series! ctx/symbols/value
 		list:   as red-word! series/offset
 		end:    as red-word! series/tail
-		sym:	symbol/resolve sym
 		
 		while [list < end][
 			if list/symbol = sym [
