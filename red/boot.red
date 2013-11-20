@@ -777,7 +777,15 @@ parse: make native! [[
 		/case
 		;/strict
 		/trace
-		return: [logic!]
+			callback [function! [
+				event	[word!]
+				match?	[logic!]
+				rule	[block!]
+				input	[series!]
+				stack	[block!]
+				return: [logic!]
+			]]
+		return: [logic! block!]
 	]
 	#get-definition NAT_PARSE
 ]
@@ -1028,4 +1036,14 @@ on-parse-event: func [
 		end   [print ["return:" match?]]
 	]
 	true
+]
+
+parse-trace: func [
+	"Wrapper for parse/trace using the default event processor"
+	input [series!]
+	rules [block!]
+	/case
+	return: [logic! block!]
+][
+	parse/trace input rules :on-parse-event
 ]

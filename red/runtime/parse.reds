@@ -64,10 +64,10 @@ parser: context [
 	
 	#define PARSE_TRACE(event) [
 		#if red-tracing? = yes [
-			if trace? [
+			if OPTION?(fun) [
 				rule/head: (as-integer cmd - block/rs-head rule) >> 4
 				if negative? rule/head [rule/head: 0]
-				unless fire-event words/event match? rule input [
+				unless fire-event fun words/event match? rule input [
 					return as red-value! logic/push match?
 				]
 			]
@@ -479,25 +479,22 @@ parser: context [
 	]
 	
 	fire-event: func [
+		fun	  	[red-function!]
 		event   [red-word!]
 		match? 	[logic!]
 		rule	[red-block!]
 		input   [red-series!]
 		return: [logic!]
 		/local
-			fun	  [red-function!]
 			loop? [logic!]
 	][
-		stack/mark-func exec/~on-parse-event
+		stack/mark-func words/_body						;@@ find something more adequate
 		
 		stack/push as red-value! event
 		logic/push match?
 		stack/push as red-value! rule
 		stack/push as red-value! input
 		stack/push as red-value! rules
-		
-		fun: as red-function! _context/get words/_on-parse-event
-		assert TYPE_OF(fun) = TYPE_FUNCTION
 		_function/call fun
 		
 		stack/unwind
@@ -542,7 +539,7 @@ parser: context [
 		rule	[red-block!]
 		case?	[logic!]
 		;strict? [logic!]
-		trace?	[logic!]
+		fun		[red-function!]
 		return: [red-value!]
 		/local
 			new		 [red-series!]
