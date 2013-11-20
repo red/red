@@ -45,6 +45,7 @@ Red [
 	--test-- "same-datatype-32"		--assert none == none
 	--test-- "same-datatype-33"		--assert 'a == 'a
 	--test-- "same-datatype-34"		--assert not 'a == 'A
+	--test-- "same-datatype-34a"	--assert not 'test == 'Test
 	--test-- "same-datatype-35"		--assert (first [a]) == first [a]
 	--test-- "same-datatype-36"		--assert not 'a == first [A]
 	--test-- "same-datatype-37"		--assert 'a == first [a]
