@@ -627,7 +627,6 @@ parser: context [
 					either zero? block/rs-length? rules [
 						state: ST_END
 					][
-						PARSE_TRACE(_pop)
 						loop?: no
 						ended?: cmd = tail
 						
@@ -638,6 +637,7 @@ parser: context [
 						
 						cmd: (block/rs-head rule) + p/rule
 						tail: block/rs-tail rule
+						PARSE_TRACE(_pop)
 						s/tail: s/tail - 3
 						value: s/tail - 1
 						
@@ -853,15 +853,15 @@ parser: context [
 								s: GET_BUFFER(rules)
 							]
 							R_THEN [
-								s/tail: s/tail - 3		;-- pop rule stack frame
 								PARSE_TRACE(_pop)
+								s/tail: s/tail - 3		;-- pop rule stack frame
 								state: either match? [cmd: tail ST_NEXT_ACTION][ST_FIND_ALTERN]
 								pop?: no
 							]
 						]
 						if pop? [
-							s/tail: s/tail - 3			;-- pop rule stack frame
 							PARSE_TRACE(_pop)
+							s/tail: s/tail - 3			;-- pop rule stack frame
 							state:  ST_CHECK_PENDING
 						]
 					]
@@ -1026,8 +1026,8 @@ parser: context [
 									if all [not match? zero? min][match?: yes]
 									PARSE_TRACE(_match)
 									s: GET_BUFFER(rules)
-									s/tail: s/tail - 3		;-- pop rule stack frame
 									PARSE_TRACE(_pop)
+									s/tail: s/tail - 3		;-- pop rule stack frame
 									state: ST_CHECK_PENDING
 								]
 								PARSE_CHECK_INPUT_EMPTY?
