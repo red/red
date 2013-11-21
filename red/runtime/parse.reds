@@ -47,6 +47,15 @@ parser: context [
 		]
 	]
 	
+	#define PARSE_COPY_INPUT(slot) [
+		min: p/input
+		new: as red-series! slot
+		copy-cell as red-value! input as red-value! new
+		copy-cell as red-value! input base				;@@ remove once OPTION? fixed
+		new/head: min
+		actions/copy new base no null
+	]
+	
 	#define PARSE_PICK_INPUT [
 		value: base
 		type: TYPE_OF(input)
@@ -737,12 +746,7 @@ parser: context [
 							]
 							R_COPY [
 								if match? [
-									min: p/input
-									new: as red-series! p
-									copy-cell as red-value! input as red-value! new
-									copy-cell as red-value! input base	;@@ remove once OPTION? fixed
-									new/head: min
-									actions/copy new base no null
+									PARSE_COPY_INPUT(p)
 									_context/set as red-word! s/tail - 3 as red-value! new
 								]
 							]
@@ -768,18 +772,21 @@ parser: context [
 									if int/value = R_KEEP [
 										w: as red-word! s/tail
 										int2: as red-integer! s/tail + 2
-										either any [
-											p/input + 1 < input/head
-											all [
+										case [
+											all [						;-- KEEP COPY case
 												s/offset + (s/size >> 4) > (s/tail + 2)
 												TYPE_OF(w) = TYPE_WORD
 												TYPE_OF(int2) = TYPE_INTEGER
 												int2/value = R_COPY
+											][
+												value: _context/get w
 											]
-										][
-											value: _context/get w
-										][
-											PARSE_PICK_INPUT
+											p/input + 1 < input/head [	;-- KEEP with matched size > 1
+												PARSE_COPY_INPUT(value)
+											]
+											true [
+												PARSE_PICK_INPUT		;-- KEEP with matched size = 1
+											]
 										]
 									]
 									either into? [
