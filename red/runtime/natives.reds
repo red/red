@@ -775,12 +775,14 @@ natives: context [
 		;strict? [integer!]
 		trace [integer!]
 		/local
-			match? [logic!]
+			op [integer!]
 	][
+		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
+		
 		stack/set-last parser/process
 			as red-series! stack/arguments
 			as red-block!  stack/arguments + 1
-			as logic! case? + 1
+			op
 			;as logic! strict? + 1
 			as red-function!  stack/arguments + trace
 	]

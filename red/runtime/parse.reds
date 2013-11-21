@@ -221,7 +221,7 @@ parser: context [
 		rules	[red-block!]							;-- (could be optimized even further)
 		input	[red-series!]
 		token	[red-value!]
-		case?	[logic!]
+		comp-op	[integer!]
 		return: [logic!]
 		/local
 			pos*   [positions!]
@@ -297,7 +297,7 @@ parser: context [
 					ptail: as byte-ptr! s/tail
 					
 					until [
-						if string/equal? as red-string! input as red-string! token COMP_EQUAL yes [
+						if string/equal? as red-string! input as red-string! token comp-op yes [
 							return adjust-input-index input pos* size 0
 						]
 						input/head: input/head + 1
@@ -352,7 +352,7 @@ parser: context [
 			value: head
 			
 			while [value < tail][
-				if actions/compare value token COMP_EQUAL [
+				if actions/compare value token comp-op [
 					return adjust-input-index input pos* 1 ((as-integer value - head) >> 4)
 				]
 				value: value + 1
@@ -432,7 +432,7 @@ parser: context [
 		min		[integer!]
 		max		[integer!]
 		counter [int-ptr!]
-		case?	[logic!]
+		comp-op	[integer!]
 		return: [logic!]
 		/local
 			len	   [integer!]
@@ -456,7 +456,7 @@ parser: context [
 				match?: loop-bitset input as red-bitset! token min max counter
 			][
 				until [										;-- ANY-STRING input matching
-					match?: string/match? as red-string! input token COMP_EQUAL
+					match?: string/match? as red-string! input token comp-op
 					end?: all [match? advance as red-string! input token]	;-- consume matched input
 					cnt: cnt + 1
 					any [
@@ -468,7 +468,7 @@ parser: context [
 			]
 		][
 			until [										;-- ANY-BLOCK input matching
-				match?:	actions/compare block/rs-head input token COMP_EQUAL	;@@ sub-optimal!!
+				match?:	actions/compare block/rs-head input token comp-op	;@@ sub-optimal!!
 				end?: all [match? block/rs-next input]	;-- consume matched input
 				cnt: cnt + 1
 				any [
@@ -546,7 +546,7 @@ parser: context [
 	process: func [
 		input	[red-series!]
 		rule	[red-block!]
-		case?	[logic!]
+		comp-op	[integer!]
 		;strict? [logic!]
 		fun		[red-function!]
 		return: [red-value!]
@@ -989,11 +989,11 @@ parser: context [
 							match?: either TYPE_OF(value) = TYPE_BITSET [
 								string/match-bitset? as red-string! input as red-bitset! value
 							][
-								string/match? as red-string! input value COMP_EQUAL
+								string/match? as red-string! input value comp-op
 							]
 							all [match? advance as red-string! input value]	;-- consume matched input
 						][
-							match?: actions/compare block/rs-head input value COMP_EQUAL
+							match?: actions/compare block/rs-head input value comp-op
 							all [match? block/rs-next input]				;-- consume matched input
 						]
 					]
@@ -1015,14 +1015,14 @@ parser: context [
 							default [
 								either min = R_NONE [
 									state: either any [type = R_TO type = R_THRU][
-										match?: find-token? rules input value case?
+										match?: find-token? rules input value comp-op
 										PARSE_TRACE(_match)
 										ST_POP_RULE
 									][
 										ST_DO_ACTION
 									]
 								][
-									match?: loop-token input value min max :cnt case?
+									match?: loop-token input value min max :cnt comp-op
 									if all [not match? zero? min][match?: yes]
 									PARSE_TRACE(_match)
 									s: GET_BUFFER(rules)
