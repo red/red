@@ -1138,15 +1138,19 @@ Red [
 	
 ===end-group===
 
-===start-group=== "string-misc"
+===start-group=== "string-casing"
 
-	--test-- "str-m1"	--assert parse 		""			[break]
-	--test-- "str-m2"	--assert not parse 	"a"			[break]
-	--test-- "str-m3"	--assert parse 		"a"			[[break #"b"] #"a"]
-	--test-- "str-m4"	--assert parse 		"a"			[[#"b" | break] #"a"]
-	--test-- "str-m5"	--assert parse 		"aa"		[some [#"b" | break] 2 #"a"]
-	--test-- "str-m6"	--assert parse 		"aa"		[some [#"b" | [break]] 2 #"a"]
-	--test-- "str-m7"	--assert not parse 	"aa"		[some [#"b" | 2 [#"c" | break]] 2 #"a"]
+	--test-- "str-c1"	--assert parse 			"a"			["A"]
+	--test-- "str-c2"	--assert parse 			"a"			[#"A"]
+	--test-- "str-c3"	--assert not parse/case	"a"			["A"]
+	--test-- "str-c4"	--assert not parse/case "a"			[#"A"]
+	--test-- "str-c5"	--assert parse/case		"a"			["a"]
+	--test-- "str-c6"	--assert parse/case 	"a"			[#"a"]
+	--test-- "str-c7"	--assert parse/case		"A"			["A"]
+	--test-- "str-c8"	--assert parse/case 	"A"			[#"A"]
+	--test-- "str-c9"	--assert parse 		 	"TeSt"		["test"]
+	--test-- "str-c10"	--assert not parse/case	"TeSt"		["test"]
+	--test-- "str-c11"	--assert parse/case		"TeSt"		["TeSt"]
 
 ===end-group===
 
