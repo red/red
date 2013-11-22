@@ -292,6 +292,7 @@ red: context [
 	
 	emit-exit-function: does [
 		emit compose [
+			stack/unwind-last
 			stack/unroll stack/FLAG_FUNCTION
 			(append to set-path! last ctx-stack 'values) as node! pop
 			exit
