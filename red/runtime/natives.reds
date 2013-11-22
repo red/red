@@ -268,10 +268,10 @@ natives: context [
 		func*
 	]
 	
-	has*: does [
-		block/insert-value 
-			as red-block! stack/arguments
-			as red-value! refinements/local
+	has*: func [/local blk [red-block!]][
+		blk: as red-block! stack/arguments
+		block/insert-value blk as red-value! refinements/local
+		blk/head: blk/head - 1
 		func*
 	]
 		
@@ -414,6 +414,7 @@ natives: context [
 		/local
 			arg		[red-value!]
 			str		[red-string!]
+			blk		[red-block!]
 			series	[series!]
 			offset	[byte-ptr!]
 	][
@@ -431,7 +432,11 @@ natives: context [
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
 			
-			if TYPE_OF(arg) = TYPE_BLOCK [reduce* 1]
+			if TYPE_OF(arg) = TYPE_BLOCK [
+				reduce* 1
+				blk: as red-block! arg
+				blk/head: 0									;-- head changed by reduce/into
+			]
 			actions/form* -1
 			str: as red-string! stack/arguments + 1
 			assert any [
@@ -598,27 +603,29 @@ natives: context [
 			tail  [red-value!]
 			blk	  [red-block!]
 			arg	  [red-value!]
+			into? [logic!]
 	][
 		arg: stack/arguments
 		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
 			interpreter/eval-expression arg arg + 1 no no
 			exit
 		]
+		into?: into >= 0
 		
 		value: block/rs-head as red-block! arg
 		tail:  block/rs-tail as red-block! arg
 		
 		stack/mark-native words/_body
 		
-		blk: either negative? into [
-			block/push-only* (as-integer tail - value) >> 4
-		][
+		blk: either into? [
 			as red-block! stack/push arg + into
+		][
+			block/push-only* (as-integer tail - value) >> 4
 		]
 		
 		while [value < tail][
 			value: interpreter/eval-next value tail yes
-			block/append*
+			either into? [actions/insert* -1 -1 -1][block/append*]
 			stack/keep									;-- preserve the reduced block on stack
 		]
 		stack/unwind-last
@@ -636,11 +643,13 @@ natives: context [
 			tail   [red-value!]
 			new	   [red-block!]
 			result [red-value!]
+			into?  [logic!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
-		
-		new: either all [root? OPTION?(into)][
+		into?: all [root? OPTION?(into)]
+
+		new: either into? [
 			into
 		][
 			block/push-only* (as-integer tail - value) >> 4	
@@ -653,7 +662,11 @@ natives: context [
 					][
 						as red-block! value
 					]
-					copy-cell as red-value! blk ALLOC_TAIL(new)
+					either into? [
+						block/insert-value new as red-value! blk
+					][
+						copy-cell as red-value! blk ALLOC_TAIL(new)
+					]
 				]
 				TYPE_PAREN [
 					blk: as red-block! value
@@ -674,15 +687,27 @@ natives: context [
 								only? 
 								TYPE_OF(result) <> TYPE_BLOCK
 							][
-								copy-cell result ALLOC_TAIL(new)
+								either into? [
+									block/insert-value new result
+								][
+									copy-cell result ALLOC_TAIL(new)
+								]
 							][
-								block/rs-append-block new as red-block! result
+								either into? [
+									block/insert-block new as red-block! result
+								][
+									block/rs-append-block new as red-block! result
+								]
 							]
 						]
 					]
 				]
 				default [
-					copy-cell value ALLOC_TAIL(new)
+					either into? [
+						block/insert-value new value
+					][
+						copy-cell value ALLOC_TAIL(new)
+					]
 				]
 			]
 			value: value + 1

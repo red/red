@@ -1538,8 +1538,8 @@ red: context [
 	]
 	
 	comp-reduce: has [list into?][
+		into?: path? pc/-1
 		unless block? pc/1 [
-			into?: path? pc/-1
 			emit-open-frame 'reduce
 			comp-expression							;-- compile not-literal-block argument
 			if into? [comp-expression]				;-- optionally compile /into argument
@@ -1565,8 +1565,13 @@ red: context [
 		]
 		foreach chunk list [
 			emit chunk
-			emit 'block/append*
-			insert-lf -1
+			either into? [
+				emit [actions/insert* -1 -1 -1]
+				insert-lf -4
+			][
+				emit 'block/append*
+				insert-lf -1
+			]
 			emit 'stack/keep						;-- reset stack, but keep block as last value
 			insert-lf -1
 		]

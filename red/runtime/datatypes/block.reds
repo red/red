@@ -205,7 +205,7 @@ block: context [
 			size   [integer!]
 	][
 		s: GET_BUFFER(blk)
-		size: (as-integer (s/tail - (s/offset + blk/head))) + size? cell!
+		size: as-integer s/tail + 1 - s/offset
 		if size > s/size [s: expand-series s size]
 		head: s/offset + blk/head
 		
@@ -216,6 +216,27 @@ block: context [
 			
 		s/tail: s/tail + 1	
 		copy-cell value head
+		blk/head: blk/head + 1
+		blk
+	]
+	
+	insert-block: func [
+		blk		[red-block!]
+		blk2	[red-block!]
+		return: [red-block!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			s	  [series!]
+	][
+		s: GET_BUFFER(blk2)
+		value: s/offset + blk2/head
+		tail:  s/tail
+		
+		while [value < tail][
+			insert-value blk value
+			value: value + 1
+		]
 		blk
 	]
 	
