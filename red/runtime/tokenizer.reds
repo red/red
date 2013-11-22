@@ -204,7 +204,7 @@ tokenizer: context [
 		e: e - 1
 		c: e/1
 		
-		if c <> #"}" [throw-error ERR_MULTI_STRING_DELIMIT]
+		if c <> #"}" [throw-error ERR_MULTI_STRING_DELIMIT return e + 1]
 		saved: e/1										;@@ allocate a new buffer instead
 		e/1: null-byte
 		preprocess string/load-in s (as-integer e - s) + 1 blk
