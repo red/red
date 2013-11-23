@@ -60,7 +60,7 @@ Red/System [
 		]
 
 		;-- Raised when the DLL is unloaded ('free from REBOL)
-		on-unload: func [][
+		on-unload: func [[cdecl]][
 			print-line "on-unload executed"
 		]
 	]
