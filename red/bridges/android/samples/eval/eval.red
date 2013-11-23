@@ -49,7 +49,7 @@ main: function [this [integer!] /extern [input output]][
 	btn: java-new [android.widget.Button this]
 	java-do [btn/setText "Do"]
 	java-do [btn/setId 101]
-	btn-click: java-new [redroid.ClickEvent]
+	btn-click: java-new [org.redlang.eval.ClickEvent]
 	java-do [btn/setOnClickListener btn-click]
 	java-do [lay/addView btn]
 		

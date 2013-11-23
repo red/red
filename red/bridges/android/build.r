@@ -89,8 +89,9 @@ opts: switch/default trim/all res [
 foreach job opts [
 	set [target dst-dir] job
 	do/args %../../../red.r reform [
-		"-t " target " -dlib" prj-src-dir/eval.red
+		"-t " target " -dlib"
 		"-o " join bin-dir/lib/:dst-dir "/libRed"
+		prj-src-dir/eval.red
 	]
 ]
 ;---
