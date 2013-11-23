@@ -311,11 +311,11 @@ natives: context [
 		][
 			s: GET_BUFFER(blk)
 			end: s/tail
+			pos: block/pick as red-series! pos 1 null
 			
 			while [pos < end][							;-- find first following block
 				if TYPE_OF(pos) = TYPE_BLOCK [
 					stack/reset
-					pos: block/pick as red-series! pos 1 null
 					interpreter/eval as red-block! pos yes	;-- do the block
 					exit								;-- early exit with last value on stack
 				]
