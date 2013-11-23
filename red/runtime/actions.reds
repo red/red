@@ -700,6 +700,8 @@ actions: context [
 	length?: func [
 		value	[red-value!]
 		return: [integer!]
+		/local
+			action-length?
 	][
 		action-length?: as function! [
 			value	[red-value!]
