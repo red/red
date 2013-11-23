@@ -81,6 +81,7 @@ Android [
 	type:		'exe
 	dynamic-linker: "/system/bin/linker"
 	red-store-bodies?: no
+	red-tracing?: no
 ]
 ;-------------------------
 Android-x86 [
@@ -90,6 +91,7 @@ Android-x86 [
 	type:		'exe
 	dynamic-linker: "/system/bin/linker"
 	red-store-bodies?: no
+	red-tracing?: no
 ]
 ;-------------------------
 Linux-ARM [
