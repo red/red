@@ -15,7 +15,7 @@ system/options/quiet: true
 ;; init
 file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
 a-file-name: ["%" some file-chars ".red" ] 
-a-test-file: ["--run-test-file-quiet-red " copy file a-file-name]
+a-test-file: ["--run-test-file-quiet " copy file a-file-name]
 
 target: ask {
 Choose ARM target:
@@ -34,7 +34,10 @@ foreach file read arm-dir [delete join arm-dir file]
 ;; get the list of test source files
 test-files: copy []
 all-tests: read %run-all.r
-parse/all all-tests [any [a-test-file (append test-files to file! file) | skip] end]
+parse/all all-tests [
+	thru "Red Units tests"
+	any [a-test-file (append test-files to file! file) | skip]
+]
 
 ;; compile the tests into to runnable/arm-tests
  
@@ -47,14 +50,15 @@ foreach test-file test-files [
 ]
 
 ;; copy the bash script and mark it as executable
-write/binary %runnable/arm-tests/run-all.sh read/binary %run-all.sh
-runner: open %runnable/arm-tests/run-all.sh
-set-modes runner [
-  owner-execute: true
-  group-execute: true
-  world-execute: true
+runner: %runnable/arm-tests/run-all.sh
+write/binary runner read/binary %run-all.sh
+if system/version/4 <> 3 [
+	set-modes runner [
+	  owner-execute: true
+	  group-execute: true
+	  world-execute: true
+	]
 ]
-close runner
 
 ;; tidy up
 system/options/quiet: store-quiet-mode
