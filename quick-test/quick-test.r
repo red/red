@@ -306,8 +306,10 @@ qt: make object! [
   compile-error: func [
     src [file! string!]
   ][
-    print join "" [src " - compiler error"]
-    clear output                           ;; clear the ouptut from previous test
+    print join "^/" [src " - compiler error^/"]
+    print comp-output
+    print newline
+    clear output                           ;; clear the output from previous test
     _signify-failure
   ]
   
