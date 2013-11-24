@@ -447,6 +447,10 @@ Red [
 		list: next [1 2 3]
 		--assert parse [a 4 b 5 c] [collect into list [some [keep word! | skip]]]
 		--assert [1 a b c 2 3] = head list
+
+	--test-- "blk-ext52"
+		res: parse [a b b b] [collect [skip keep some 'b]]
+		--assert res = [[b b b]]
 		
 ===end-group===
 
@@ -1072,6 +1076,14 @@ Red [
 		--assert parse "1" [collect into a [keep skip]]
 		--assert a = [#"1"]
 
+	--test-- "str-ext51"
+		res: parse "aabbb" [collect [keep some "a" keep some #"b"]]
+		--assert res = ["aa" "bbb"]
+
+	--test-- "str-ext52"
+		alpha: charset [#"a" - #"z"]
+		res: parse "abc|def" [collect [any [keep some alpha | skip]]]
+		--assert res = ["abc" "def"]
 		
 ===end-group===
 
@@ -1446,6 +1458,14 @@ Red [
 		--assert not parse 	"abbc" 		nanbnc
 		--assert not parse 	"abcc" 		nanbnc
 		--assert not parse 	"aabbc"		nanbnc
+
+	--test-- "str-cplx5"
+		split: function [series [string!] dlm [string!] /local value][
+		  rule: complement charset dlm
+		  parse series [collect [any [keep copy value some rule | skip]]]
+		]
+		--assert ["Hello" "bright" "world!"]  = split "Hello bright world!" space
+		--assert ["Hell" "bright" "w" "rld!"] = split "Hello bright world!" " o"
 
 ===end-group===
 
