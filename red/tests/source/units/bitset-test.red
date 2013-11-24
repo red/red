@@ -27,6 +27,7 @@
 
 	--test-- "basic-9"
 		bs: make bitset! [0 1 2 3]
+		--assert 8 = length? bs
 		--assert true  = pick bs 0
 		--assert true  = pick bs 1
 		--assert true  = pick bs 2
@@ -39,6 +40,7 @@
 
 	--test-- "basic-10"
 		bs: make bitset! [0 1 2 3]
+		--assert 8 = length? bs
 		--assert true  = bs/0
 		--assert true  = bs/1
 		--assert true  = bs/2
@@ -51,6 +53,7 @@
 
 	--test-- "basic-11"
 		bs: make bitset! [0 1 2 3]
+		--assert 8 = length? bs
 		--assert true  = pick bs #"^(00)"
 		--assert true  = pick bs #"^(01)"
 		--assert true  = pick bs #"^(02)"
@@ -61,28 +64,53 @@
 
 	--test-- "basic-12"
 		bs: make bitset! [0100h 0102h]
+		--assert 264 = length? bs
 		--assert true  = pick bs 0100h
 		--assert false = pick bs 0101h
 		--assert true  = pick bs 0102h
 		
 	--test-- "basic-13"
 		bs: make bitset! [255 257]
+		--assert 264 = length? bs
 		--assert true  = pick bs 255
 		--assert false = pick bs 256
 		--assert true  = pick bs 257
 		
 	--test-- "basic-14"
 		bs: make bitset! [255 256]
+		--assert 264 = length? bs
 		--assert true = pick bs 255
 		--assert true = pick bs 256
 		
 	--test-- "basic-15"
 		bs: make bitset! [00010000h]
+		--assert 65544 = length? bs
 		--assert true = pick bs 00010000h
 	
+	--test-- "basic-16"
+		bs: make bitset! 9
+		--assert 16 = length? bs
+		bs/7: yes
+		--assert bs/7 = true
+		--assert bs/8 = false
+		bs/8: yes
+		--assert bs/8 = true
+		--assert bs/9 = false
+	
+	--test-- "basic-17"
+		bs: make bitset! 8
+		--assert 8 = length? bs
+		bs/7: yes
+		--assert bs/7 = true
+		--assert bs/8 = false
+		bs/8: yes
+		--assert 16 = length? bs
+		--assert bs/8 = true
+		--assert bs/9 = false
+
 ===end-group===
 
-===start-group=== "poke"
+===start-group=== "modify"
 	
 	--test-- "poke-1"
 		bs: make bitset! [0 1 2 3]
@@ -103,7 +131,51 @@
 		--assert true = pick bs 0
 		poke bs 0 none
 		--assert false = pick bs 0
+		bs/0: yes
+		--assert bs/0 = true
+		bs/0: no
+		--assert bs/0 = false
+		bs/0: yes
+		--assert bs/0 = true
+		bs/0: none
+		--assert bs/0 = false
 
+	--test-- "append-1"
+		bs: make bitset! 8
+		--assert 8 = length? bs
+		append bs ["hello" #"x" - #"z"]
+		--assert "make bitset! #{000000000000000000000000048900E0}" = mold bs
+
+	--test-- "clear-1"
+		clear bs
+		--assert "make bitset! #{00000000000000000000000000000000}" = mold bs
+
+	--test-- "clear-2"
+		bs: charset "^(00)^(01)^(02)^(03)^(04)^(05)^(06)^(07)"
+		--assert 8 = length? bs
+		--assert "make bitset! #{FF}" = mold bs
+		clear bs
+		--assert "make bitset! #{00}" = mold bs
+
+	--test-- "remove-1"
+		bs: charset "012345789"
+		--assert 64 = length? bs
+		--assert "make bitset! #{000000000000FDC0}" = mold bs
+		--assert "make bitset! #{0000000000007DC0}" = mold remove/part bs #"0"
+		--assert "make bitset! #{0000000000003DC0}" = mold remove/part bs 49
+		--assert "make bitset! #{0000000000000000}" = mold remove/part bs [#"2" - #"7" "8" #"9"]
+
+===end-group===
+
+===start-group=== "union"
+		
+	--test-- "u-1"
+		c1: charset "0123456789"
+		c2: charset [#"a" - #"z"]
+		u: "make bitset! #{000000000000FFC0000000007FFFFFE0}"
+		--assert u = mold union c1 c2
+		--assert u = mold union c2 c1
+	
 ===end-group===
 
 ~~~end-file~~~
