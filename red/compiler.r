@@ -1566,7 +1566,7 @@ red: context [
 		foreach chunk list [
 			emit chunk
 			either into? [
-				emit [actions/insert* -1 -1 -1]
+				emit [actions/insert* -1 0 -1]
 				insert-lf -4
 			][
 				emit 'block/append*
