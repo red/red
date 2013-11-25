@@ -59,7 +59,7 @@ parser: context [
 	#define PARSE_PICK_INPUT [
 		value: base
 		type: TYPE_OF(input)
-		either any [		;TBD: replace with ANY_STRING
+		either any [									;TBD: replace with ANY_STRING
 			type = TYPE_STRING
 			type = TYPE_FILE
 		][
@@ -81,12 +81,6 @@ parser: context [
 				]
 			]
 		]
-	]
-	
-	#define PARSE_RESTORE_HEAD(src) [
-		blk: as red-block! _context/get as red-word! src
-		t: as triple! s/tail - 3
-		blk/head: t/min
 	]
 
 	#enum states! [
@@ -816,9 +810,6 @@ parser: context [
 								value: stack/top - 1
 								either stack/top - 2 = base [	;-- root unnamed block reached
 									collect?: TYPE_OF(value) = TYPE_BLOCK
-									if TYPE_OF(value) = TYPE_GET_WORD [
-										PARSE_RESTORE_HEAD(value)
-									]
 								][
 									assert TYPE_OF(value) = TYPE_BLOCK
 									blk: as red-block! stack/top - 2
@@ -830,8 +821,8 @@ parser: context [
 											stack/pop 1
 										]
 										TYPE_GET_WORD [
-											PARSE_RESTORE_HEAD(blk)
-											block/rs-append blk value
+											blk: as red-block! _context/get as red-word! blk
+											block/insert-value blk value
 										]
 										default [
 											assert TYPE_OF(blk) = TYPE_BLOCK
@@ -1247,13 +1238,12 @@ parser: context [
 								]
 								cmd: as red-value! w
 							]
-							min: either into? [
+							either into? [
 								blk: as red-block! _context/get w
-								blk/head				;-- save head position
 							][
 								block/push* 8
-								R_NONE
 							]
+							min:   R_NONE
 							type:  R_COLLECT
 							state: ST_PUSH_RULE
 						]

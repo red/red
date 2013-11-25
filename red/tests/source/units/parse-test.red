@@ -441,11 +441,13 @@ Red [
 	--test-- "blk-ext50"
 		a: []
 		--assert parse [1] [collect into a [keep skip]]
-		--assert a = [1]
+		--assert a = []
+		--assert [1] = head a
 
 	--test-- "blk-ext51"
 		list: next [1 2 3]
 		--assert parse [a 4 b 5 c] [collect into list [some [keep word! | skip]]]
+		--assert list = [2 3]
 		--assert [1 a b c 2 3] = head list
 
 	--test-- "blk-ext52"
@@ -669,12 +671,14 @@ Red [
 	--test-- "#566"
 		b: next [0 9]
 		--assert parse [1 [2]] [collect into b [keep integer! keep block!]]
-		--assert b = [1 [2] 9]
+		--assert b = [9]
+		--assert [0 1 [2] 9] = head b
 
 	--test-- "#565"
 		b: []
 		--assert parse [1] [collect into b [collect [keep integer!]]]
-		--assert b = [[1]]
+		--assert b = []
+		--assert [[1]] = head b
 
 ===end-group===
 
@@ -1074,7 +1078,8 @@ Red [
 	--test-- "str-ext50"
 		a: []
 		--assert parse "1" [collect into a [keep skip]]
-		--assert a = [#"1"]
+		--assert a = []
+		--assert [#"1"] = head a
 
 	--test-- "str-ext51"
 		res: parse "aabbb" [collect [keep some "a" keep some #"b"]]
