@@ -6,7 +6,7 @@ REBOL [
 	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic, Andreas Bolka. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 	Usage:   {
-		do/args %red.r "-o path/source.red"
+		do/args %red.r "path/source.red"
 	}
 	Encap: [quiet secure none title "Red" no-window] 
 ]
