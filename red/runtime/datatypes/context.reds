@@ -16,6 +16,7 @@ _context: context [
 	find-word: func [
 		ctx		[red-context!]
 		sym		[integer!]
+		case?	[logic!]
 		return:	[integer!]								;-- value > 0: success, value = -1: failure
 		/local
 			series	[series!]
@@ -26,8 +27,10 @@ _context: context [
 		list:   as red-word! series/offset
 		end:    as red-word! series/tail
 		
+		if case? [sym: symbol/resolve sym]
+		
 		while [list < end][
-			if list/symbol = sym [
+			if sym = list/symbol [
 				return (as-integer list - as red-word! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
 			]
 			list: list + 1
@@ -46,7 +49,7 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
 
-		id: find-word global-ctx symbol
+		id: find-word global-ctx symbol no
 		s: as series! global-ctx/symbols/value
 		
 		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
@@ -76,7 +79,7 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add"]]
 		
-		id: find-word ctx word/symbol
+		id: find-word ctx word/symbol yes
 		if id <> -1 [return id]
 		
 		s: as series! ctx/symbols/value
@@ -105,7 +108,7 @@ _context: context [
 		ctx: word/ctx
 		
 		if word/index = -1 [
-			word/index: find-word ctx word/symbol
+			word/index: find-word ctx word/symbol no
 		]
 		int: as red-integer! either ON_STACK?(ctx) [
 			(as red-value! ctx/values) + word/index
@@ -131,7 +134,7 @@ _context: context [
 		ctx: word/ctx
 		
 		if word/index = -1 [
-			word/index: find-word ctx word/symbol
+			word/index: find-word ctx word/symbol no
 			if word/index = -1 [add ctx word]
 		]
 		either ON_STACK?(ctx) [
@@ -272,7 +275,7 @@ _context: context [
 				TYPE_LIT_WORD
 				TYPE_REFINEMENT [
 					w: as red-word! value
-					idx: _context/find-word ctx w/symbol
+					idx: _context/find-word ctx w/symbol no
 					if idx >= 0 [
 						w/ctx:   ctx
 						w/index: idx

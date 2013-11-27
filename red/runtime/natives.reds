@@ -791,7 +791,7 @@ natives: context [
 		][
 			word: as red-word! value
 			word/ctx: ctx
-			word/index: _context/find-word ctx word/symbol
+			word/index: _context/find-word ctx word/symbol no
 		]
 	]
 	
