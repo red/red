@@ -148,22 +148,16 @@ count-delimiters: function [
 	
 	foreach c buffer [
 		case [
-			escaped? [
-				escaped?: no
-			]
-			in-comment? [
-				switch c [
-					#"^/" [in-comment?: no]
-				]
-			]
+			escaped?	[escaped?: no]
+			in-comment? [if c = #"^/" [in-comment?: no]]
 			'else [
 				switch c [
 					#"^^" [escaped?: yes]
 					#";"  [if zero? list/2 [in-comment?: yes]]
-					#"["  [list/1: list/1 + 1]
-					#"]"  [list/1: list/1 - 1]
-					#"{"  [list/2: list/2 + 1]
-					#"}"  [list/2: list/2 - 1]
+					#"["  [unless in-string? [list/1: list/1 + 1]]
+					#"]"  [unless in-string? [list/1: list/1 - 1]]
+					#"{"  [if zero? list/2 [in-string?: yes] list/2: list/2 + 1]
+					#"}"  [if 1 = list/2   [in-string?: no]  list/2: list/2 - 1]
 				]
 			]
 		]
