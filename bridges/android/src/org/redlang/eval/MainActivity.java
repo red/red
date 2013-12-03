@@ -1,13 +1,13 @@
-package redroid;
+package org.redlang.eval;
 
-import android.os.Bundle;
+import android.os.Bundle; 
 import android.app.Activity;
 
 public class MainActivity extends Activity {
 	static {
-        System.loadLibrary("Red"); 
+        System.loadLibrary("Red");
     }
-	private native void doMain();
+	private native void doMain(); 
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
