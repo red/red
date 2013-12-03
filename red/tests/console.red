@@ -32,6 +32,8 @@ Red [
 				]
 			]
 		]
+		line-buffer-size: 16 * 1024
+		line-buffer: allocate line-buffer-size
 	][
 		#switch OS [
 			MacOSX [
@@ -119,14 +121,12 @@ input: routine [
 ][
 	#either OS = 'Windows [
 		len: 0
-		buffer: allocate 128
 		print as c-string! string/rs-head prompt
-		ret: ReadConsole stdin buffer 127 :len null
+		ret: ReadConsole stdin line-buffer line-buffer-size :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
 		len: len + 1
-		buffer/len: null-byte
-		str: string/load as c-string! buffer len
-		free buffer
+		line-buffer/len: null-byte
+		str: string/load as c-string! line-buffer len
 	][
 		line: read-line as c-string! string/rs-head prompt
 		if line = null [halt]  ; EOF
@@ -148,22 +148,16 @@ count-delimiters: function [
 	
 	foreach c buffer [
 		case [
-			escaped? [
-				escaped?: no
-			]
-			in-comment? [
-				switch c [
-					#"^/" [in-comment?: no]
-				]
-			]
+			escaped?	[escaped?: no]
+			in-comment? [if c = #"^/" [in-comment?: no]]
 			'else [
 				switch c [
 					#"^^" [escaped?: yes]
-					#";"  [in-comment?: yes]
-					#"["  [list/1: list/1 + 1]
-					#"]"  [list/1: list/1 - 1]
-					#"{"  [list/2: list/2 + 1]
-					#"}"  [list/2: list/2 - 1]
+					#";"  [if zero? list/2 [in-comment?: yes]]
+					#"["  [unless in-string? [list/1: list/1 + 1]]
+					#"]"  [unless in-string? [list/1: list/1 - 1]]
+					#"{"  [if zero? list/2 [in-string?: yes] list/2: list/2 + 1]
+					#"}"  [if 1 = list/2   [in-string?: no]  list/2: list/2 - 1]
 				]
 			]
 		]

@@ -25,7 +25,7 @@ Red/System [
 	TYPE_SET_WORD
 	TYPE_LIT_WORD
 	TYPE_GET_WORD
-	TYPE_REFINEMENT	
+	TYPE_REFINEMENT
 	TYPE_CHAR
 	TYPE_NATIVE
 	TYPE_ACTION
@@ -39,17 +39,18 @@ Red/System [
 	TYPE_ROUTINE
 	TYPE_ISSUE
 	TYPE_FILE
+	TYPE_BITSET
+	TYPE_POINT
 	TYPE_OBJECT
+	TYPE_BINARY
 	
 	TYPE_TYPESET
 	TYPE_ERROR
 
-	TYPE_BINARY
-
 	TYPE_CLOSURE
-	
+
 	TYPE_PORT
-	TYPE_BITSET
+
 	TYPE_FLOAT
 ]
 
@@ -62,6 +63,7 @@ Red/System [
 	ACT_TO
 	ACT_FORM
 	ACT_MOLD
+
 	ACT_EVALPATH
 	ACT_SETPATH											;@@ Deprecate it?
 	ACT_COMPARE
@@ -168,6 +170,11 @@ Red/System [
 	NAT_STATS
 	NAT_BIND
 	NAT_IN
+	NAT_PARSE
+	NAT_UNION
+	NAT_INTERSECT
+	NAT_UNIQUE
+	NAT_DIFFERENCE
 ]
 
 #enum math-op! [
@@ -194,7 +201,7 @@ Red/System [
 ]
 
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)
-#define ACTIONS_NB		60							;-- number of actions
+#define ACTIONS_NB		60							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
 #either debug? = yes [
@@ -214,8 +221,40 @@ Red/System [
 #define EQUAL_WORDS?(a b) 	((symbol/resolve a/symbol) = (symbol/resolve b/symbol))
 #define TO_CTX(node)		(as red-context! ((as series! node/value) + 1))
 #define GET_CTX(obj)		(as red-context! ((as series! obj/ctx/value) + 1))
-
+#define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
+
+#define BS_SET_BIT(array bit)  [
+	pos: array + (bit >> 3)
+	pos/value: pos/value or (as-byte 128 >> (bit and 7))
+]
+
+#define BS_CLEAR_BIT(array bit)  [
+	pos: array + (bit >> 3)
+	pos/value: pos/value and (as-byte 128 >> (bit and 7) xor 255)
+]
+
+#define BS_TEST_BIT(array bit set?)  [
+	pos: array + (bit >> 3)
+	set?: pos/value and (as-byte 128 >> (bit and 7)) <> null-byte
+]
+
+#define BS_PROCESS_SET_VIRTUAL(bs bit) [
+	either not? [
+		if virtual-bit? bs bit [return 1]
+	][
+		pbits: bound-check bs bit
+	]
+]
+
+#define BS_PROCESS_CLEAR_VIRTUAL(bs bit) [
+	either not? [
+		pbits: bound-check bs bit
+	][
+		if virtual-bit? bs bit [return 0]
+	]
+]
+
 
 #define --NOT_IMPLEMENTED--	[
 	print-line "Error: feature not implemented yet!"
@@ -224,14 +263,15 @@ Red/System [
 
 #define RETURN_COMPARE_OTHER [
 	return switch op [
-			COMP_EQUAL
-			COMP_STRICT_EQUAL [false]
-			COMP_NOT_EQUAL 	  [true]
-			default [
-				--NOT_IMPLEMENTED--					;@@ add error handling
-				false
-			]
+
+		COMP_EQUAL
+		COMP_STRICT_EQUAL [false]
+		COMP_NOT_EQUAL 	  [true]
+		default [
+			--NOT_IMPLEMENTED--							;@@ add error handling
+			false
 		]
+	]
 ]
 
 #if debug? = yes [

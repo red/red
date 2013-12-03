@@ -16,6 +16,7 @@ _context: context [
 	find-word: func [
 		ctx		[red-context!]
 		sym		[integer!]
+		case?	[logic!]
 		return:	[integer!]								;-- value > 0: success, value = -1: failure
 		/local
 			series	[series!]
@@ -25,10 +26,11 @@ _context: context [
 		series: as series! ctx/symbols/value
 		list:   as red-word! series/offset
 		end:    as red-word! series/tail
-		sym:	symbol/resolve sym
+		
+		if case? [sym: symbol/resolve sym]
 		
 		while [list < end][
-			if list/symbol = sym [
+			if sym = list/symbol [
 				return (as-integer list - as red-word! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
 			]
 			list: list + 1
@@ -49,7 +51,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
 
 		ctx: TO_CTX(global-ctx)
-		id: find-word ctx symbol
+		id: find-word ctx symbol no
 		s: as series! ctx/symbols/value
 		
 		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
@@ -79,7 +81,7 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-with"]]
 
-		id: find-word ctx word/symbol
+		id: find-word ctx word/symbol yes
 		if id <> -1 [return null]
 
 		s: as series! ctx/symbols/value
@@ -104,7 +106,7 @@ _context: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/add"]]
 		
-		id: find-word ctx word/symbol
+		id: find-word ctx word/symbol yes
 		if id <> -1 [return id]
 		
 		s: as series! ctx/symbols/value
@@ -137,7 +139,7 @@ _context: context [
 		ctx: TO_CTX(node)
 		
 		if word/index = -1 [
-			word/index: find-word ctx word/symbol
+			word/index: find-word ctx word/symbol no
 		]
 		int: as red-integer! either ON_STACK?(ctx) [
 			(as red-value! ctx/values) + word/index
@@ -161,7 +163,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/set-in"]]
 		
 		if word/index = -1 [
-			word/index: find-word ctx word/symbol
+			word/index: find-word ctx word/symbol no
 			if word/index = -1 [add ctx word]
 		]
 		either ON_STACK?(ctx) [
@@ -332,7 +334,7 @@ _context: context [
 		/local
 			idx [integer!]
 	][
-		idx: find-word ctx word/symbol
+		idx: find-word ctx word/symbol no
 		if idx >= 0 [
 			word/ctx: ctx/self
 			word/index: idx

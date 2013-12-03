@@ -85,23 +85,7 @@ copy-cell: func [
 
 
 words: context [
-	_spec:			as red-word! 0
-	_body:			as red-word! 0
-	_words:			as red-word! 0
-	_logic!:		as red-word! 0
-	_integer!:		as red-word! 0
-	_windows:		as red-word! 0
-	_syllable:		as red-word! 0
-	_macosx:		as red-word! 0
-	_linux:			as red-word! 0
-	_repeat:		as red-word! 0
-	_foreach:		as red-word! 0
-	_map-each:		as red-word! 0
-	_remove-each:	as red-word! 0
-	_exit:			as red-word! 0
-	_return:		as red-word! 0
-	_self:			as red-word! 0
-	_values:		as red-word! 0
+
 	
 	spec:			-1
 	body:			-1
@@ -117,41 +101,116 @@ words: context [
 	self:			-1
 	values:			-1
 	
-	build: does [
-		_spec:			word/load "spec"
-		_body:			word/load "body"
-		_words:			word/load "words"
-		_logic!:		word/load "logic!"
-		_integer!:		word/load "integer!"
-		_exit:			word/load "exit"
-		_return:		word/load "return"
+	any*:			-1
+	break*:			-1
+	copy:			-1
+	end:			-1
+	fail:			-1
+	into:			-1
+	opt:			-1
+	not*:			-1
+	quote:			-1
+	reject:			-1
+	set:			-1
+	skip:			-1
+	some:			-1
+	thru:			-1
+	to:				-1
+	none:			-1
+	pipe:			-1
+	dash:			-1
+	then:			-1
+	if*:			-1
+	remove:			-1
+	while*:			-1
+	insert:			-1
+	only:			-1
+	collect:		-1
+	keep:			-1
+	ahead:			-1
+	
+	_body:			as red-word! 0
+	_windows:		as red-word! 0
+	_syllable:		as red-word! 0
+	_macosx:		as red-word! 0
+	_linux:			as red-word! 0
+	_self:			as red-word! 0
+	_values:		as red-word! 0
+	
+	_push:			as red-word! 0
+	_pop:			as red-word! 0
+	_fetch:			as red-word! 0
+	_match:			as red-word! 0
+	_iterate:		as red-word! 0
+	_paren:			as red-word! 0
+	_end:			as red-word! 0
+	
+	_on-parse-event: as red-word! 0
 
-		_windows:		word/load "Windows"
-		_syllable:		word/load "Syllable"
-		_macosx:		word/load "MacOSX"
-		_linux:			word/load "Linux"
+	build: does [
+		spec:			symbol/make "spec"
+		body:			symbol/make "body"
+		words:			symbol/make "words"
+		logic!:			symbol/make "logic!"
+		integer!:		symbol/make "integer!"
+		exit*:			symbol/make "exit"
+		return*:		symbol/make "return"
+
+		windows:		symbol/make "Windows"
+		syllable:		symbol/make "Syllable"
+		macosx:			symbol/make "MacOSX"
+		linux:			symbol/make "Linux"
 		
-		_repeat:		word/load "repeat"
-		_foreach:		word/load "foreach"
-		_map-each:		word/load "map-each"
-		_remove-each:	word/load "remove-each"
+		repeat:			symbol/make "repeat"
+		foreach:		symbol/make "foreach"
+		map-each:		symbol/make "map-each"
+		remove-each:	symbol/make "remove-each"
+		
+		any*:			symbol/make "any"
+		break*:			symbol/make "break"
+		copy:			symbol/make "copy"
+		end:			symbol/make "end"
+		fail:			symbol/make "fail"
+		into:			symbol/make "into"
+		opt:			symbol/make "opt"
+		not*:			symbol/make "not"
+		quote:			symbol/make "quote"
+		reject:			symbol/make "reject"
+		set:			symbol/make "set"
+		skip:			symbol/make "skip"
+		some:			symbol/make "some"
+		thru:			symbol/make "thru"
+		to:				symbol/make "to"
+		none:			symbol/make "none"
+		pipe:			symbol/make "|"
+		dash:			symbol/make "-"
+		then:			symbol/make "then"
+		if*:			symbol/make "if"
+		remove:			symbol/make "remove"
+		while*:			symbol/make "while"
+		insert:			symbol/make "insert"
+		only:			symbol/make "only"
+		collect:		symbol/make "collect"
+		keep:			symbol/make "keep"
+		ahead:			symbol/make "ahead"
+		
+		_body:			_context/add-global body
+		_windows:		_context/add-global windows
+		_syllable:		_context/add-global syllable
+		_macosx:		_context/add-global macosx
+		_linux:			_context/add-global linux
 		
 		_self:			word/load "self"
 		_values:		word/load "values"
+		_push:			word/load "push"
+		_pop:			word/load "pop"
+		_fetch:			word/load "fetch"
+		_match:			word/load "match"
+		_iterate:		word/load "iterate"
+		_paren:			word/load "paren"
+		_end:			_context/add-global end
 		
-		spec:			_spec/symbol
-		body:			_body/symbol
-		words:			_words/symbol
-		logic!:			_logic!/symbol
-		integer!:		_integer!/symbol
-		repeat:			_repeat/symbol
-		foreach:		_foreach/symbol
-		map-each:		_map-each/symbol
-		remove-each:	_remove-each/symbol
-		exit*:			_exit/symbol
-		return*:		_return/symbol
-		self:			_self/symbol
-		values:			_values/symbol
+		_on-parse-event: word/load "on-parse-event"
 	]
 ]
 

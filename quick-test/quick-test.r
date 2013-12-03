@@ -30,9 +30,9 @@ qt: make object! [
   base-dir: system/script/path
   base-dir: copy/part base-dir find base-dir "quick-test"
   ;; set the red/system runnable dir
-  runnable-dir: base-dir/quick-test/runnable
+  runnable-dir: dirize base-dir/quick-test/runnable
   ;; set the default base dir for tests
-  tests-dir: base-dir/red-system/tests
+  tests-dir: dirize base-dir/red-system/tests
   
   ;; set the version number
   version: system/script/header/version
@@ -93,7 +93,7 @@ qt: make object! [
                                        ;; false = runnning test script
 				  
 
-  summary-template: ".. - .................................... / "
+  summary-template: ".. - .................................................. / "
   
   data: make object! [
     title: copy ""
@@ -197,7 +197,7 @@ qt: make object! [
     	either lib [
     		cmd: join "" [to-local-file bin-compiler " -o " 
     					  to-local-file runnable-dir/:exe
-    					  " -dlib -t " target
+    					  " -dlib -t " target " "
     					  to-local-file src
     		]
     	][
@@ -284,7 +284,8 @@ qt: make object! [
     /local
     	dll
   ][
-    ;; compile the lib and copy the executable to the runnable dir
+  	  print ["lib-src" lib-src]
+    ;; compile the lib into the runnable dir
     if not dll: compile/lib lib-src target [
       compile-error lib-src
       output: "Lib compilation failed"  
@@ -305,8 +306,10 @@ qt: make object! [
   compile-error: func [
     src [file! string!]
   ][
-    print join "" [src " - compiler error"]
-    clear output                           ;; clear the ouptut from previous test
+    print join "^/" [src " - compiler error^/"]
+    print comp-output
+    print newline
+    clear output                           ;; clear the output from previous test
     _signify-failure
   ]
   
@@ -401,7 +404,6 @@ qt: make object! [
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
-    print ["script" script]
     do script
   ]
   

@@ -14,6 +14,25 @@ Red/System [
 _function: context [
 	verbose: 0
 	
+	call: func [
+		fun	[red-function!]
+		/local
+			s	   [series!]
+			native [red-native!]
+			call
+	][
+		s: as series! fun/more/value
+
+		native: as red-native! s/offset + 2
+		either zero? native/code [
+			interpreter/eval-function fun as red-block! s/offset
+		][
+			call: as function! [] native/code
+			call
+			0
+		]
+	]
+	
 	collect-word: func [
 		value  [red-value!]
 		list   [red-block!]

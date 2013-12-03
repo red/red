@@ -61,6 +61,8 @@ red: context [
 	#include %datatypes/issue.reds
 	#include %datatypes/file.reds
 	#include %datatypes/object.reds
+	#include %datatypes/bitset.reds
+	#include %datatypes/point.reds
 	
 	;-- Debugging helpers --
 	
@@ -70,12 +72,15 @@ red: context [
 	#include %tokenizer.reds
 	#include %actions.reds
 	#include %natives.reds
+	#include %parse.reds
 	#include %stack.reds
 	#include %interpreter.reds
-	#include %simple-io.reds							;-- temporary file IO support
+	#if OS <> 'Android [
+		#include %simple-io.reds						;-- temporary file IO support
+	]
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
-	root:	 	declare red-block!						;-- root block		
+	root:	 	declare red-block!						;-- root block
 	symbols: 	declare red-block! 						;-- symbols table
 	global-ctx: declare node!							;-- global context
 
@@ -116,6 +121,8 @@ red: context [
 		issue/init
 		file/init
 		object/init
+		bitset/init
+		point/init
 		
 		actions/init
 		
@@ -131,6 +138,7 @@ red: context [
 		words/build										;-- create symbols used internally
 		refinements/build								;-- create refinements used internally
 		natives/init									;-- native specific init code
+		parser/init
 		
 		stack/init
 		
@@ -159,9 +167,11 @@ red: context [
 			issue/verbose:		verbosity
 			file/verbose:		verbosity
 			object/verbose:		verbosity
+			bitset/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity
+			;parser/verbose:	verbosity
 
 			stack/verbose:		verbosity
 			unicode/verbose:	verbosity

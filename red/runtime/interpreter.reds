@@ -46,29 +46,37 @@ Red/System [
 		print-line "*** Interpreter Error: missing argument..."
 		halt
 	]
-	either TYPE_OF(value) = TYPE_WORD [
-		if verbose > 0 [log "evaluating argument"]
-		pc: eval-expression pc end no yes
-	][
-		if verbose > 0 [log "fetching argument"]
-		switch TYPE_OF(pc) [
-			TYPE_GET_WORD [
-				copy-cell _context/get as red-word! pc stack/push*
-			]
-			TYPE_PAREN [
-				either TYPE_OF(value) = TYPE_LIT_WORD [
-					stack/mark-native as red-word! pc		;@@ ~paren
-					eval as red-block! pc
-					stack/unwind
-				][
+	switch TYPE_OF(value) [
+		TYPE_WORD [
+			if verbose > 0 [log "evaluating argument"]
+			pc: eval-expression pc end no yes
+		]
+		TYPE_GET_WORD [
+			if verbose > 0 [log "fetching argument as-is"]
+			stack/push pc
+			pc: pc + 1
+		]
+		default [
+			if verbose > 0 [log "fetching argument"]
+			switch TYPE_OF(pc) [
+				TYPE_GET_WORD [
+					copy-cell _context/get as red-word! pc stack/push*
+				]
+				TYPE_PAREN [
+					either TYPE_OF(value) = TYPE_LIT_WORD [
+						stack/mark-native as red-word! pc	;@@ ~paren
+						eval as red-block! pc yes
+						stack/unwind
+					][
+						stack/push pc
+					]
+				]
+				default [
 					stack/push pc
 				]
 			]
-			default [
-				stack/push pc
-			]
+			pc: pc + 1
 		]
-		pc: pc + 1
 	]
 ]
 
@@ -213,7 +221,7 @@ interpreter: context [
 		ctx: GET_CTX(fun)
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
-		eval body
+		eval body yes
 		ctx/values: saved
 		in-func?: in-func? - 1
 	]
@@ -381,7 +389,7 @@ interpreter: context [
 				TYPE_SET_WORD [
 					if routine? [
 						ret-set?: yes
-						value: block/pick (as red-block! value + 1) 1
+						value: block/pick (as red-block! value + 1) 1 null
 						assert TYPE_OF(value) = TYPE_WORD
 						dt: as red-datatype! _context/get as red-word! value
 						assert TYPE_OF(dt) = TYPE_DATATYPE
@@ -486,7 +494,7 @@ interpreter: context [
 				]
 				TYPE_PAREN [
 					stack/mark-native words/_body		;@@ ~paren
-					eval as red-block! value			;-- eval paren content
+					eval as red-block! value yes		;-- eval paren content
 					stack/unwind
 					value: stack/top - 1
 				]
@@ -611,7 +619,7 @@ interpreter: context [
 		switch TYPE_OF(pc) [
 			TYPE_PAREN [
 				stack/mark-native as red-word! pc		;@@ ~paren
-				eval as red-block! pc
+				eval as red-block! pc yes
 				either sub? [stack/unwind][stack/unwind-last]
 				pc: pc + 1
 			]
@@ -753,7 +761,8 @@ interpreter: context [
 	]
 	
 	eval: func [
-		code	  [red-block!]
+		code   [red-block!]
+		chain? [logic!]									;-- chain it with previous stack frame
 		/local
 			value [red-value!]
 			tail  [red-value!]
@@ -774,7 +783,7 @@ interpreter: context [
 			value: eval-expression value tail no no
 			if value + 1 < tail [stack/reset]
 		]
-		stack/unwind-last
+		either chain? [stack/unwind-last][stack/unwind]
 	]
 	
 ]

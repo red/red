@@ -167,6 +167,9 @@ red: context [
 			refinement!
 			issue!
 			lit-word!
+			word! 
+			get-word!
+			set-word!
 		] type?/word :expr
 	]
 	
@@ -211,14 +214,17 @@ red: context [
 		throw-error ["Should not happen: not found context for word: " mold name]
 	]
 	
-	emit-push-word: func [name [word!]][
+	emit-push-word: func [name [any-word!] /local type][
+		type: to word! form type? name
+		name: to word! :name
+		
 		either local-word? name [
-			emit 'word/push-local
+			emit append to path! type 'push-local
 			emit last ctx-stack
 			emit get-word-index name
 			insert-lf -3
 		][
-			emit 'word/push
+			emit append to path! type 'push
 			emit decorate-symbol name
 			insert-lf -2
 		]
@@ -286,6 +292,7 @@ red: context [
 	
 	emit-exit-function: does [
 		emit [
+			stack/unwind-last
 			stack/unroll stack/FLAG_FUNCTION
 			ctx/values: as node! pop
 			exit
@@ -832,10 +839,6 @@ red: context [
 					emit to integer! next value
 					insert-lf -2
 				]
-				lit-word? :value [
-					add-symbol value
-					emit-push-word value
-				]
 				find [refinement! issue!] type?/word :value [
 					add-symbol w: to word! form value
 					emit to path! reduce [to word! form type? value 'push]
@@ -845,6 +848,10 @@ red: context [
 				none? :value [
 					emit 'none/push
 					insert-lf -1
+				]
+				any-word? :value [
+					add-symbol to word! :value
+					emit-push-word :value
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]
@@ -1525,8 +1532,8 @@ red: context [
 	]
 	
 	comp-reduce: has [list into?][
+		into?: path? pc/-1
 		unless block? pc/1 [
-			into?: path? pc/-1
 			emit-open-frame 'reduce
 			comp-expression							;-- compile not-literal-block argument
 			if into? [comp-expression]				;-- optionally compile /into argument
@@ -1552,8 +1559,13 @@ red: context [
 		]
 		foreach chunk list [
 			emit chunk
-			emit 'block/append*
-			insert-lf -1
+			either into? [
+				emit [actions/insert* -1 0 -1]
+				insert-lf -4
+			][
+				emit 'block/append*
+				insert-lf -1
+			]
 			emit 'stack/keep						;-- reset stack, but keep block as last value
 			insert-lf -1
 		]

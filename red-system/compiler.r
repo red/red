@@ -66,8 +66,8 @@ system-dialect: make-profilable context [
 		fail:		[end skip]							;-- fail rule
 		rule: value: v: none							;-- global parsing rules helpers
 		
-		not-set!:	  [logic! integer! byte!]			;-- reserved for internal use only
 		number!: 	  [byte! integer!]					;-- reserved for internal use only
+		bit-set!: 	  [byte! integer! logic!]			;-- reserved for internal use only
 		any-float!:	  [float! float32! float64!]		;-- reserved for internal use only
 		any-number!:  union number! any-float!			;-- reserved for internal use only
 		pointers!:	  [pointer! struct! c-string!] 		;-- reserved for internal use only
@@ -75,8 +75,8 @@ system-dialect: make-profilable context [
 		poly!:		  union any-number! pointers!		;-- reserved for internal use only
 		any-type!:	  union poly! [logic!]			  	;-- reserved for internal use only
 		type-sets:	  [									;-- reserved for internal use only
-			not-set! number! poly! any-type! any-pointer!
-			any-number!
+			number! poly! any-type! any-pointer!
+			any-number! bit-set!
 		]
 		
 		comparison-op: [= <> < > <= >=]
@@ -87,9 +87,9 @@ system-dialect: make-profilable context [
 			-		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
 			*		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]
 			/		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]
-			and		[2	op		- [a [number!] b [number!] return: [number!]]]
-			or		[2	op		- [a [number!] b [number!] return: [number!]]]
-			xor		[2	op		- [a [number!] b [number!] return: [number!]]]
+			and		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
+			or		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
+			xor		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
 			///		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
@@ -97,11 +97,11 @@ system-dialect: make-profilable context [
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned
 			=		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
 			<>		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
-			>		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
-			<		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
-			>=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
-			<=		[2	op		- [a [poly!]   b [poly!]   return: [logic!]]]
-			not		[1	inline	- [a [not-set!] 		   return: [not-set!]]]
+			>		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
+			<		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
+			>=		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
+			<=		[2	op		- [a [any-type!] b [any-type!]  return: [logic!]]]
+			not		[1	inline	- [a [bit-set!] 		   return: [bit-set!]]]
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
 			throw	[1	inline	- [n [integer!]]]
@@ -839,6 +839,16 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		order-ctx-candidates: func [a b][				;-- order by increasing path size,
+			to logic! not all [							;-- and word! before path!.
+				path? a
+				any [
+					word? b
+					all [path? b greater? length? a length? b]
+				]
+			]
+		]
+		
 		store-ns-symbol: func [name [word!] /local pos][
 			if ns-path [
 				either pos: find/skip sym-ctx-table name 2 [
@@ -849,6 +859,7 @@ system-dialect: make-profilable context [
 						pos/2: reduce [pos/2]
 					]
 					append/only pos/2 copy ns-path
+					sort/compare pos/2 :order-ctx-candidates
 				][
 					append sym-ctx-table name
 					append/only sym-ctx-table copy ns-path
@@ -2256,12 +2267,20 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		resolve-ns: func [name [word!] /path /local ctx][
+		resolve-ns: func [name [word!] /path /local ctx pos][
 			unless ns-stack [return name]				;-- no current ns, pass-thru
 
 			if ctx: find/skip sym-ctx-table name 2 [	;-- fetch context candidates
 				ctx: ctx/2								;-- SELECT/SKIP on hash! unreliable!
 				either block? ctx [						;-- more than one candidate
+					all [								;-- try direct matching first
+						pos: find/only ctx to path! load mold ns-stack	;-- safer to-path conversion
+						return either path [
+							ns-join to path! first pos name
+						][
+							ns-decorate ns-join first pos name
+						]
+					]
 					ctx: tail ctx						;-- start from last defined context
 					until [
 						ctx: back ctx
@@ -2536,7 +2555,7 @@ system-dialect: make-profilable context [
 			][
 				unless zero? block-level [
 					backtrack set-word
-					throw-error "variable has to be initialized at root level"
+					throw-error "variable not declared"
 				]
 				if any [
 					all [casted casted/1 = 'function!]
@@ -3096,6 +3115,7 @@ system-dialect: make-profilable context [
 		red-only?:		no				;-- yes => stop compilation at Red/System level and display output
 		red-store-bodies?: yes			;-- no => do not store function! value bodies (body-of will return none)
 		red-strict-check?: yes			;-- no => defers undefined word errors reporting at run-time
+		red-tracing?:	yes				;-- no => do not compile tracing code
 	]
 	
 	compile: func [

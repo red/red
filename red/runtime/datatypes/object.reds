@@ -106,7 +106,12 @@ object: context [
 					TYPE_LIT_PATH
 					TYPE_STRING
 					TYPE_FILE [
-						actions/copy value value null yes null ;-- overwrite the value
+						actions/copy
+							as red-series! value
+							value						;-- overwrite the value
+							null
+							yes
+							null
 					]
 					TYPE_FUNCTION [
 						rebind as red-function! value ctx
@@ -192,7 +197,7 @@ object: context [
 				blk: as red-block! spec
 				_context/collect-set-words ctx blk
 				_context/bind blk ctx yes
-				interpreter/eval blk
+				interpreter/eval blk no
 			]
 			default [
 				print-line "*** Error: invalid spec value for object construction"
@@ -301,7 +306,7 @@ object: context [
 		ctx:  GET_CTX(parent)
 
 		if word/ctx <> parent/ctx [						;-- bind the word to object's context
-			word/index: _context/find-word ctx word/symbol
+			word/index: _context/find-word ctx word/symbol no
 			word/ctx: parent/ctx
 		]
 		either set? [
@@ -374,7 +379,12 @@ object: context [
 					TYPE_LIT_PATH
 					TYPE_STRING
 					TYPE_FILE [
-						actions/copy value value null yes null ;-- overwrite the value
+						actions/copy 
+							as red-series! value
+							value						;-- overwrite the value
+							null
+							yes
+							null
 					]
 					TYPE_FUNCTION [
 						rebind as red-function! value nctx

@@ -25,6 +25,7 @@ REBOL [
 ;;  literal-pool?:	 yes | no					;-- yes => use pools to store literals, no => store them inlined (default: no)
 ;;  red-store-bodies?:	 yes | no				;-- no => do not store function! value bodies (default: yes)
 ;;	red-strict-check?: yes						;-- no => defers undefined word errors reporting at run-time
+;;  red-tracing?:	 yes						;-- no => do not compile tracing code
 ;;-------------------------------------------
 
 ;-------------------------
@@ -80,6 +81,7 @@ Android [
 	type:		'exe
 	dynamic-linker: "/system/bin/linker"
 	red-store-bodies?: no
+	red-tracing?: no
 ]
 ;-------------------------
 Android-x86 [
@@ -89,6 +91,7 @@ Android-x86 [
 	type:		'exe
 	dynamic-linker: "/system/bin/linker"
 	red-store-bodies?: no
+	red-tracing?: no
 ]
 ;-------------------------
 Linux-ARM [

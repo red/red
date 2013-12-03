@@ -47,6 +47,7 @@ object!:		make datatype! #get-definition TYPE_OBJECT
 port!:			make datatype! #get-definition TYPE_PORT
 bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
+point!:			make datatype! #get-definition TYPE_POINT
 
 none:  			make none! 0
 true:  			make logic! 1
@@ -207,7 +208,14 @@ odd?: make action! [[
 ;-- Bitwise actions --
 
 ;and~
-;complement
+
+complement: make action! [[
+		value	[logic! integer! bitset! typeset!]
+		return: [logic! integer! bitset! typeset!]
+	]
+	#get-definition ACT_COMPLEMENT
+]
+
 ;or~
 ;xor~
 
@@ -771,6 +779,35 @@ in: make native! [[
 	#get-definition NAT_IN
 ]
 
+parse: make native! [[
+		input [series!]
+		rules [block!]
+		/case
+		;/strict
+		/trace
+			callback [function! [
+				event	[word!]
+				match?	[logic!]
+				rule	[block!]
+				input	[series!]
+				stack	[block!]
+				return: [logic!]
+			]]
+		return: [logic! block!]
+	]
+	#get-definition NAT_PARSE
+]
+
+union: make native! [[
+		set1 [block! string! bitset! typeset!]
+		set2 [block! string! bitset! typeset!]
+		/case
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! string! bitset! typeset!]
+	]
+	#get-definition NAT_UNION
+]
 
 ;------------------------------------------
 ;-			   Operators				  -
@@ -983,4 +1020,55 @@ replace: func [
 	series
 ]
 
-zero?: func [value [number!]][value = 0]
+zero?: func [
+	value [number!]
+][
+	value = 0
+]
+
+charset: func [
+	spec [block! integer! char! string! binary!]
+][
+	make bitset! spec
+]
+
+p-indent: make string! 30								;@@ to be put in an local context
+
+on-parse-event: func [
+	event	[word!]   "Trace events: push, pop, fetch, match, iterate, paren, end"
+	match?	[logic!]  "Result of last matching operation"
+	rule	[block!]  "Current rule at current position"
+	input	[series!] "Input series at next position to match"
+	stack	[block!]  "Internal parse rules stack"
+	return: [logic!]  "TRUE: continue parsing, FALSE: stop and exit parsing"
+][
+	switch event [
+		push  [
+			print [p-indent "-->"]
+			append p-indent "  "
+		]
+		pop	  [
+			clear back back tail p-indent
+			print [p-indent "<--"]
+		]
+		fetch [
+			print [
+				p-indent "match:" mold/part rule  50 newline
+				p-indent "input:" mold/part input 50 p-indent
+			]
+		]
+		match [print [p-indent "==>" either match? ["matched"]["not matched"]]]
+		end   [print ["return:" match?]]
+	]
+	true
+]
+
+parse-trace: func [
+	"Wrapper for parse/trace using the default event processor"
+	input [series!]
+	rules [block!]
+	/case
+	return: [logic! block!]
+][
+	parse/trace input rules :on-parse-event
+]

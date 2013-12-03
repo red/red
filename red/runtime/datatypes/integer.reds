@@ -229,6 +229,14 @@ integer: context [
 		res
 	]
 	
+	complement: func [
+		int		[red-integer!]
+		return:	[red-value!]
+	][
+		int/value: not int/value
+		as red-value! int
+	]
+	
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
@@ -259,6 +267,20 @@ integer: context [
 		int 											;-- re-use argument slot for return value
 	]
 	
+	even?: func [
+		int		[red-integer!]
+		return: [logic!]
+	][
+		not as-logic int/value and 1
+	]
+	
+	odd?: func [
+		int		[red-integer!]
+		return: [logic!]
+	][
+		as-logic int/value and 1
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_INTEGER
@@ -284,11 +306,11 @@ integer: context [
 			null			;remainder
 			null			;round
 			:subtract
-			null			;even?
-			null			;odd?
+			:even?
+			:odd?
 			;-- Bitwise actions --
 			null			;and~
-			null			;complement
+			:complement
 			null			;or~
 			null			;xor~
 			;-- Series actions --

@@ -25,6 +25,19 @@ block: context [
 		(as-integer (s/tail - s/offset)) >> 4 - blk/head
 	]
 	
+	rs-next: func [
+		blk 	[red-block!]
+		return: [logic!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(blk)
+		if (s/offset + blk/head + 1) <= s/tail [
+			blk/head: blk/head + 1
+		]
+		s/offset + blk/head = s/tail
+	]
+	
 	rs-head: func [
 		blk 	[red-block!]
 		return: [red-value!]
@@ -43,6 +56,28 @@ block: context [
 	][
 		s: GET_BUFFER(blk)
 		s/tail
+	]
+	
+	rs-tail?: func [
+		blk 	[red-block!]
+		return: [logic!]
+		/local
+			s [series!]
+	][
+		s: GET_BUFFER(blk)
+		s/offset + blk/head = s/tail
+	]
+
+	rs-abs-at: func [
+		blk 	[red-block!]
+		pos		[integer!]
+		return: [red-value!]
+		/local
+			s	[series!]
+	][
+		s: GET_BUFFER(blk)
+		assert s/offset + pos < s/tail
+		s/offset + pos
 	]
 	
 	rs-clear: func [
@@ -170,7 +205,7 @@ block: context [
 			size   [integer!]
 	][
 		s: GET_BUFFER(blk)
-		size: (as-integer (s/tail - (s/offset + blk/head))) + size? cell!
+		size: as-integer s/tail + 1 - s/offset
 		if size > s/size [s: expand-series s size]
 		head: s/offset + blk/head
 		
@@ -181,6 +216,27 @@ block: context [
 			
 		s/tail: s/tail + 1	
 		copy-cell value head
+		blk/head: blk/head + 1
+		blk
+	]
+	
+	insert-block: func [
+		blk		[red-block!]
+		blk2	[red-block!]
+		return: [red-block!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			s	  [series!]
+	][
+		s: GET_BUFFER(blk2)
+		value: s/offset + blk2/head
+		tail:  s/tail
+		
+		while [value < tail][
+			insert-value blk value
+			value: value + 1
+		]
 		blk
 	]
 	
@@ -485,16 +541,16 @@ block: context [
 			TYPE_INTEGER [
 				int: as red-integer! element
 				either set? [
-					poke parent int/value stack/arguments
+					poke parent int/value stack/arguments null
 					stack/arguments
 				][
-					pick parent int/value
+					pick parent int/value null
 				]
 			]
 			TYPE_WORD [
 				either set? [
 					element: find parent element null no no no null null no no no no
-					actions/poke as red-series! element 2 stack/arguments
+					actions/poke as red-series! element 2 stack/arguments null
 					stack/arguments
 				][
 					select parent element null no no no null null no no
@@ -562,22 +618,12 @@ block: context [
 	]
 	
 	length?: func [
-		return: [red-value!]
-		/local
-			blk	[red-block!]
-			int [red-integer!]
-			s	[series!]
+		blk		[red-block!]
+		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/length?"]]
 		
-		blk: as red-block! stack/arguments
-		
-		s: GET_BUFFER(blk)
-		
-		int: as red-integer! blk
-		int/header: TYPE_INTEGER
-		int/value:  (as-integer s/tail - s/offset - blk/head) >> 4
-		as red-value! int
+		rs-length? blk
 	]
 	
 	;--- Navigation actions ---
@@ -614,18 +660,11 @@ block: context [
 		return:	[red-value!]
 		/local
 			blk	[red-block!]
-			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/next"]]
 	
-		blk: as red-block! stack/arguments
-		
-		s: GET_BUFFER(blk)
-		
-		if (s/offset + blk/head + 1) <= s/tail [
-			blk/head: blk/head + 1
-		]
-		as red-value! blk
+		rs-next as red-block! stack/arguments
+		stack/arguments
 	]
 		
 	skip: func [
@@ -884,9 +923,10 @@ block: context [
 	;--- Reading actions ---
 	
 	pick: func [
-		blk	       [red-block!]
-		index  	   [integer!]
-		return:	   [red-value!]
+		blk		[red-block!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
 		/local
 			cell   [red-value!]
 			s	   [series!]
@@ -981,7 +1021,7 @@ block: context [
 		slots: part * cnt
 		
 		unless tail? [									;TBD: process head? case separately
-			size: (as-integer (s/tail - (s/offset + blk/head))) + (slots * size? cell!)
+			size: as-integer s/tail + slots - s/offset
 			if size > s/size [s: expand-series s size]
 			head: s/offset + blk/head
 			move-memory									;-- make space
@@ -1028,24 +1068,24 @@ block: context [
 	]
 	
 	clear: func [
+		blk	[red-block!]
 		return:	[red-value!]
 		/local
-			blk	[red-block!]
 			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/clear"]]
 
-		blk: as red-block! stack/arguments
 		s: GET_BUFFER(blk)
 		s/tail: s/offset + blk/head
 		as red-value! blk
 	]
 	
 	poke: func [
-		blk		   [red-block!]
-		index	   [integer!]
-		data       [red-value!]
-		return:	   [red-value!]
+		blk		[red-block!]
+		index	[integer!]
+		data	[red-value!]
+		boxed	[red-value!]
+		return:	[red-value!]
 		/local
 			cell   [red-value!]
 			s	   [series!]
@@ -1162,7 +1202,7 @@ block: context [
 					print "*** Error: invalid /part series argument"	;@@ replace with error!
 					halt
 				]
-				b/head
+				b/head - blk/head
 			]
 			slots: part
 			part: part << 4
@@ -1180,8 +1220,9 @@ block: context [
 			buffer/tail: buffer/offset + slots
 		]
 		
-		new/node: node
-		new/head: 0
+		new/header: TYPE_BLOCK
+		new/node: 	node
+		new/head: 	0
 		
 		if deep? [
 			slot: buffer/offset
@@ -1197,14 +1238,19 @@ block: context [
 					type = TYPE_STRING
 					type = TYPE_FILE
 				][
-					actions/copy slot slot null yes null	;-- overwrite the slot value
+					actions/copy 
+						as red-series! slot
+						slot						;-- overwrite the slot value
+						null
+						yes
+						null
 				]
 				slot: slot + 1
 				slot >= buffer/tail
 			]
 		]
 		
-		as red-series! blk
+		as red-series! new
 	]
 
 	init: does [

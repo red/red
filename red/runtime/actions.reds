@@ -80,13 +80,15 @@ actions: context [
 		/local
 			arg  [red-value!]
 			int  [red-integer!]
+			char [red-char!]
 			bool [red-logic!]
 	][
 		arg: stack/arguments + 1
 		switch TYPE_OF(arg) [
-			TYPE_INTEGER [int: as red-integer! arg int/value]
-			TYPE_LOGIC	 [bool: as red-logic! arg 2 - as-integer bool/value]
-			default		 [--NOT_IMPLEMENTED-- 0]
+			TYPE_INTEGER [int:  as red-integer! arg int/value]
+			TYPE_CHAR 	 [char: as red-char! 	arg char/value]
+			TYPE_LOGIC	 [bool: as red-logic! 	arg 2 - as-integer bool/value]
+			default		 [0]
 		]
 	]
 
@@ -351,17 +353,27 @@ actions: context [
 	
 	negate*: func [
 		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/negate"]]
+
+		negate-action stack/arguments
+	]
+
+	negate-action: func [								;-- negate is a Red/System keyword
+		value	[red-value!]
+		return:	[red-value!]
 		/local
 			action-negate
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/negate"]]
 
 		action-negate: as function! [
+			value	[red-value!]
 			return:	[red-value!]						;-- negated value
-		] get-action-ptr* ACT_NEGATE
-		action-negate
-	]
-	
+		] get-action-ptr value ACT_NEGATE
+		
+		action-negate value
+	]	
 	
 	power*: func [][]
 	remainder*: func [][]
@@ -380,10 +392,70 @@ actions: context [
 		action-subtract
 	]
 	
-	even?*: func [][]
-	odd?*: func [][]
+	even?*: func [
+		return:	[red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/even?"]]
+		
+		logic/box even? stack/arguments
+	]
+	
+	even?: func [
+		value	[red-value!]
+		return: [logic!]
+		/local
+			action-even?
+	][
+		action-even?: as function! [
+			value	[red-value!]
+			return: [logic!]							;-- TRUE if value is even.
+		] get-action-ptr value ACT_EVEN?
+		
+		action-even? value
+	]
+	
+	odd?*: func [
+		return:	[red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/odd?"]]
+		
+		logic/box odd? stack/arguments
+	]
+	
+	odd?: func [
+		value	[red-value!]
+		return: [logic!]
+		/local
+			action-odd?
+	][
+		action-odd?: as function! [
+			value	[red-value!]
+			return: [logic!]							;-- TRUE if value is odd.
+		] get-action-ptr value ACT_ODD?
+		
+		action-odd? value
+	]
+	
 	and~*: func [][]
-	complement*: func [][]
+	
+	complement*: does [
+		stack/set-last complement stack/arguments
+	]
+	
+	complement: func [
+		value	[red-value!]
+		return:	[red-value!]
+		/local
+			action-complement
+	][
+		action-complement: as function! [
+			value	[red-value!]
+			return:	[red-value!]						;-- complemented value
+		] get-action-ptr value ACT_COMPLEMENT
+		
+		action-complement value
+	]
+	
 	or~*: func [][]
 	xor~*: func [][]
 	
@@ -436,11 +508,21 @@ actions: context [
 			action-clear
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/clear"]]
-
+		clear stack/arguments
+	]
+	
+	clear: func [
+		value	[red-value!]
+		return:	[red-value!]
+		/local
+			action-clear
+	][
 		action-clear: as function! [
-			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_CLEAR
-		action-clear
+			value	[red-value!]
+			return:	[red-value!]						;-- argument series
+		] get-action-ptr value ACT_CLEAR
+		
+		action-clear value
 	]
 	
 	copy*: func [
@@ -450,7 +532,7 @@ actions: context [
 		return:	[red-value!]
 	][
 		stack/set-last copy
-			stack/arguments
+			as red-series! stack/arguments
 			stack/push*
 			stack/arguments + part
 			as logic! deep + 1
@@ -458,7 +540,7 @@ actions: context [
 	]
 	
 	copy: func [
-		series  [red-value!]
+		series  [red-series!]
 		new		[red-value!]
 		part	[red-value!]
 		deep?	[logic!]
@@ -472,7 +554,7 @@ actions: context [
 		new/header: series/header
 			
 		action-copy: as function! [
-			series  [red-value!]
+			series  [red-series!]
 			new		[red-value!]
 			part	[red-value!]
 			deep?	[logic!]
@@ -624,23 +706,37 @@ actions: context [
 			only?	[logic!]
 			dup		[red-value!]
 			append? [logic!]
-			return:	[red-value!]						;-- picked value from series
+			return:	[red-value!]						;-- series after insertion position
 		] get-action-ptr as red-value! series ACT_INSERT
 		
 		action-insert series value part only? dup append?
 	]
 	
 	length?*: func [
-		return:	[red-value!]
+		return:	[red-integer!]
 		/local
-			action-length?
+			int [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/length?"]]
 
+		int: as red-integer! stack/arguments
+		int/value:  length? stack/arguments				;-- must be set before slot is modified
+		int/header: TYPE_INTEGER
+		int
+	]
+	
+	length?: func [
+		value	[red-value!]
+		return: [integer!]
+		/local
+			action-length?
+	][
 		action-length?: as function! [
-			return:	[red-value!]						;-- picked value from series
-		] get-action-ptr* ACT_LENGTH?
-		action-length?
+			value	[red-value!]
+			return:	[integer!]							;-- length of series
+		] get-action-ptr value ACT_LENGTH?
+		
+		action-length? value
 	]
 	
 	next*: func [
@@ -651,7 +747,7 @@ actions: context [
 		#if debug? = yes [if verbose > 0 [print-line "actions/next"]]
 
 		action-next: as function! [
-			return:	[red-value!]						;-- picked value from series
+			return:	[red-value!]						;-- next value from series
 		] get-action-ptr* ACT_NEXT
 		action-next
 	]
@@ -662,11 +758,13 @@ actions: context [
 		stack/set-last pick
 			as red-series! stack/arguments
 			get-index-argument
+			stack/arguments + 1
 	]
 	
 	pick: func [
 		series	[red-series!]
 		index	[integer!]
+		boxed	[red-value!]							;-- boxed index value
 		return:	[red-value!]
 		/local
 			action-pick
@@ -676,10 +774,11 @@ actions: context [
 		action-pick: as function! [
 			series	[red-series!]
 			index	[integer!]
+			boxed	[red-value!]						;-- boxed index value
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr as red-value! series ACT_PICK
 		
-		action-pick series index
+		action-pick series index boxed
 	]
 	
 	poke*: func [
@@ -689,14 +788,17 @@ actions: context [
 			as red-series! stack/arguments
 			get-index-argument
 			stack/arguments + 2
+			stack/arguments + 1
+		
+		stack/set-last stack/arguments
 	]
 
 
 	poke: func [
 		series	[red-series!]
-		index	[integer!]
-		data    [red-value!]
-		return:	[red-value!]
+		index	[integer!]								;-- unboxed value
+		data	[red-value!]
+		boxed	[red-value!]							;-- boxed index value
 		/local
 			action-poke
 	][
@@ -705,11 +807,12 @@ actions: context [
 		action-poke: as function! [
 			series	[red-series!]
 			index	[integer!]
-			data    [red-value!]
+			data	[red-value!]
+			boxed	[red-value!]
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr as red-value! series ACT_POKE
 		
-		action-poke series index data
+		action-poke series index data boxed
 	]
 	
 	remove*: func [
@@ -876,16 +979,16 @@ actions: context [
 			:add*
 			:divide*
 			:multiply*
-			null			;negate
+			:negate*
 			null			;power
 			null			;remainder
 			null			;round
 			:subtract*
-			null			;even?
-			null			;odd?
+			:even?*
+			:odd?*
 			;-- Bitwise actions --
 			null			;and~
-			null			;complement
+			:complement*
 			null			;or~
 			null			;xor~
 			;-- Series actions --

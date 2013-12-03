@@ -25,6 +25,7 @@ Red/System [
 #define flag-series-stk		00400000h		;-- values block allocated on stack
 #define flag-series-nogc	00200000h		;-- protected from GC (system-critical series)
 #define flag-series-fixed	00100000h		;-- series cannot be relocated (system-critical series)
+#define flag-bitset-not		00080000h		;-- complement flag for bitsets
 
 #define flag-arity-mask		C1FFFFFFh		;-- mask for readind routines arity field
 #define flag-self-mask		FEFFFFFFh		;-- mask for reading routines arity field
@@ -32,6 +33,7 @@ Red/System [
 #define flag-unit-mask		FFFFFFE0h		;-- mask for unit field in series-buffer!
 #define get-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
 #define series-free-mask	7FFFFFFFh		;-- mark a series as used (not collectable by the GC)
+#define flag-not-mask		FFF7FFFFh		;-- mask for complement flag
 
 #define type-mask			FFFFFF00h		;-- mask for clearing type ID in cell header
 #define get-type-mask		000000FFh		;-- mask for reading type ID in cell header
@@ -70,7 +72,8 @@ cell!: alias struct! [
 ;	22:		stack							;-- series buffer is allocated on stack
 ;   21:		permanent						;-- protected from GC (system-critical series)
 ;   20:     fixed							;-- series cannot be relocated (system-critical series)
-;	19-3: 	<reserved>
+;	19:		complement						;-- complement flag for bitsets
+;	18-3: 	<reserved>
 ;	4-0:	unit							;-- size in bytes of atomic element stored in buffer
 											;-- 0: UTF-8, 1: Latin1/binary, 2: UCS-2, 4: UCS-4, 16: block! cell
 series-buffer!: alias struct! [
@@ -129,6 +132,44 @@ init-mem: does [
 ;; range will need fine-tuning with real Red apps. This growing size, with low starting value
 ;; will allow small apps to not consume much memory while avoiding to penalize big apps.
 
+
+;-------------------------------------------
+;-- Fill a memory region with a given byte
+;-------------------------------------------
+fill: func [
+	p	  [byte-ptr!]
+	end   [byte-ptr!]
+	byte  [byte!]
+	/local
+		p4		 [int-ptr!]
+		tail	 [int-ptr!]
+		cnt		 [integer!]
+		byte4	 [integer!]
+		aligned? [logic!]
+][
+	cnt: (as-integer p) and 3
+	unless zero? cnt [						;-- preprocess unaligned beginning
+		while [cnt > 0][p/cnt: byte cnt: cnt - 1]
+		p: as byte-ptr! (as-integer p) + 4 and -4
+	]
+	
+	aligned?: zero? ((as-integer end) and 3)
+	tail: either aligned? [as int-ptr! end][as int-ptr! (as-integer end) and -4]
+	p4: as int-ptr! p
+	
+	if p4 < tail [
+		byte4: either byte = null-byte [0][
+			byte4: as-integer byte
+			(byte4 << 24) or (byte4 << 16) or (byte4 << 8) or byte4
+		]
+		while [p4 < tail][p4/value: byte4 p4: p4 + 1] ;-- zero fill target region using 32-bit accesses
+	]
+	
+	unless aligned? [						;-- postprocess unaligned ending
+		cnt: (as-integer end) and 3	
+		while [cnt > 0][end/cnt: byte cnt: cnt - 1]
+	]
+]
 
 ;-------------------------------------------
 ;-- Allocate paged virtual memory region
@@ -550,6 +591,24 @@ alloc-bytes: func [
 ]
 
 ;-------------------------------------------
+;-- Wrapper on alloc-series for byte-filled buffer allocation
+;-------------------------------------------
+alloc-bytes-filled: func [
+	size	[integer!]						;-- number of 16 bytes cells to preallocate
+	byte	[byte!]
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
+	/local
+		node [node!]
+		s	 [series!]
+][
+	if zero? size [size: 16]
+	node: alloc-series size 1 0				;-- optimize by default for tail insertion
+	s: as series! node/value
+	fill as byte-ptr! s/offset (as byte-ptr! s/offset) + s/size byte
+	node
+]
+
+;-------------------------------------------
 ;-- Set series header flags
 ;-------------------------------------------
 set-flag: func [
@@ -616,6 +675,7 @@ expand-series: func [
 	series/node/value: as-integer new		;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset
 	
+	new/flags:	series/flags
 	new/node:   series/node
 	new/tail:   as cell! (as byte-ptr! new/offset) + delta
 	
@@ -631,6 +691,22 @@ expand-series: func [
 ]
 
 ;-------------------------------------------
+;-- Expand a series to a new size and zero-fill extra space
+;-------------------------------------------
+expand-series-filled: func [
+	s		[series-buffer!]				;-- series to expand
+	new-sz	[integer!]						;-- new size in bytes
+	byte	[byte!]							;-- byte to fill the extended region with
+	return: [series-buffer!]
+	/local
+		old [integer!]
+][
+	old: s/size
+	s: expand-series s new-sz
+	fill (as byte-ptr! s/offset) + old (as byte-ptr! s/offset) + s/size byte
+	s
+]
+;-------------------------------------------
 ;-- Shrink a series to a smaller size (not needed for now)
 ;-------------------------------------------
 ;shrink-series: func [
@@ -640,6 +716,30 @@ expand-series: func [
 ;
 ;]
 
+;-------------------------------------------
+;-- Copy a series buffer
+;-------------------------------------------
+copy-series: func [
+	s 		[series!]
+	return: [node!]
+	/local
+		node   [node!]
+		new	   [series!]
+][
+	node: alloc-bytes s/size
+	
+	new: as series! node/value
+	new/flags: s/flags
+	new/tail: as cell! (as byte-ptr! new/offset) + (as-integer s/tail - s/offset)
+	
+	unless zero? s/size [
+		copy-memory 
+			as byte-ptr! new/offset
+			as byte-ptr! s/offset
+			s/size
+	]
+	node
+]
 
 ;-------------------------------------------
 ;-- Allocate a big series

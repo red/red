@@ -32,9 +32,13 @@ file-list: [
 	%insert-test.red									%auto-tests/interpreter-insert-test.red
 	%make-test.red									    %auto-tests/interpreter-make-test.red
 	%system-test.red									%auto-tests/interpreter-system-test.red
+	%parse-test.red										%auto-tests/interp-parse-test.red
+	%bitset-test.red									%auto-tests/interp-bitset-test.red
 	%auto-tests/equal-auto-test.red						%auto-tests/interp-equal-auto-test.red
+	%same-test.red										%auto-tests/interp-same-test.red
 	%auto-tests/greater-auto-test.red					%auto-tests/interp-greater-auto-test.red
 	%auto-tests/infix-equal-auto-test.red				%auto-tests/interp-inf-equal-auto-test.red
+	%strict-equal-test.red								%auto-tests/interp-strict-equal-test.red
 	%auto-tests/infix-greater-equal-auto-test.red		%auto-tests/interp-inf-greater-auto-test.red
 	%auto-tests/infix-lesser-auto-test.red				%auto-tests/interp-inf-lesser-auto-test.red
 	%auto-tests/infix-lesser-equal-auto-test.red		%auto-tests/interp-inf-lesser-equal-auto-test.red

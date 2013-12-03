@@ -80,6 +80,8 @@ context [
 		dt-symtab		6			;; address of the symbol table
 		dt-strsz		10			;; total size of the string table (in bytes)
 		dt-syment		11			;; size of one symbol table entry (in bytes)
+		dt-init			12			;; address of the initialization function
+		dt-fini			13			;; address of the termination function
 		dt-rel			17			;; address of the relocation table
 		dt-relsz		18			;; total size of the relocation table
 		dt-relent		19			;; size of one reloc table entry (in bytes)
@@ -265,6 +267,8 @@ context [
 		if zero? data-size [
 			remove-elements structure [".data"]
 		]
+		
+		dynamic-size: calc-dynamic-size job/type job/symbols
 
 		segments: collect-structure-names structure 'segment
 		sections: collect-structure-names structure 'section
@@ -286,7 +290,7 @@ context [
 			".rel.text"		size [elf-relocation	length? imports]
 			".data"			size (data-size)
 			".data.rel.ro"	size [machine-word		length? imports]
-			".dynamic"		size [elf-dynamic		9 + length? libraries]
+			".dynamic"		size [elf-dynamic		dynamic-size + length? libraries]
 			".stab"			size [stab-entry		2 + ((length? natives) / 2)]
 			"shdr"			size [section-header	length? sections]
 
@@ -365,6 +369,9 @@ context [
 
 		set-data ".dynamic" [
 			build-dynamic
+				job/type
+				job/symbols
+				get-address ".text"
 				get-address ".hash"
 				get-address ".dynstr" get-size ".dynstr"
 				get-address ".dynsym"
@@ -585,6 +592,9 @@ context [
 	]
 
 	build-dynamic: func [
+		job-type [word!]
+		symbols [hash!]
+		text-address [integer!]
 		hash-address [integer!]
 		dynstr-address [integer!]
 		dynstr-size [integer!]
@@ -593,7 +603,7 @@ context [
 		reltext-size [integer!]
 		dynstr [binary!]
 		libraries [block!]
-		/local entries
+		/local entries spec
 	] [
 		entries: copy []
 
@@ -601,6 +611,16 @@ context [
 		foreach library libraries [
 			repend entries ['needed strtab-index-of dynstr library]
 		]
+
+		if job-type = 'dll [
+			if spec: select symbols '***-dll-entry-point [
+				repend entries ['init text-address + spec/2 - 1]
+			]
+			if spec: select symbols 'on-unload [
+				repend entries ['fini text-address + spec/2 - 1]
+			]
+		]
+				
 		;; Static _DYNAMIC entries:
 		append entries reduce [
 			'hash	hash-address
@@ -835,6 +855,19 @@ context [
 		append
 			reduce ['type meta/1 'flags meta/2 'align meta/3]
 			any [select commands reduce [name 'meta] []]
+	]
+
+	calc-dynamic-size: func [job-type [word!] symbols [hash!] /local size] [
+		size: 9
+		if job-type = 'dll [
+			if find symbols '***-dll-entry-point [
+				size: size + 1
+			]
+			if find symbols 'on-unload [
+				size: size + 1
+			]
+		]
+		size
 	]
 
 	complete-sizes: func [

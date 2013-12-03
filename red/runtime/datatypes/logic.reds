@@ -10,6 +10,8 @@ Red/System [
 	}
 ]
 
+true-value:  declare red-logic!							;-- preallocate TRUE value
+false-value: declare red-logic!							;-- preallocate FALSE value
 
 logic: context [
 	verbose: 0
@@ -26,13 +28,36 @@ logic: context [
 	]
 	
 	box: func [
-		value	 [logic!]
+		value	[logic!]
+		return: [red-logic!]
 		/local
 			cell [red-logic!]
 	][
 		cell: as red-logic! stack/arguments
 		cell/header: TYPE_LOGIC
 		cell/value: value
+		cell
+	]
+	
+	top-true?: func [
+		return:  [logic!]
+	][
+		not top-false?										;-- true if not none or false
+	]
+
+	top-false?: func [
+		return:  [logic!]
+		/local
+			arg	 [red-logic!]
+			type [integer!]
+	][
+		arg: as red-logic! stack/top - 1
+		type: TYPE_OF(arg)
+
+		any [											;-- true if not none or false
+			type = TYPE_NONE
+			all [type = TYPE_LOGIC not arg/value]
+		]
 	]
 		
 	true?: func [
@@ -57,7 +82,7 @@ logic: context [
 		any [											;-- true if not none or false
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
-		]	
+		]
 	]
 	
 	push: func [
@@ -145,7 +170,6 @@ logic: context [
 
 		form boolean buffer arg part
 	]
-
 	
 	compare: func [
 		arg1      [red-logic!]							;-- first operand
@@ -170,7 +194,21 @@ logic: context [
 		res
 	]
 	
+	complement: func [
+		bool	[red-logic!]
+		return:	[red-value!]
+	][
+		bool/value: not bool/value
+		as red-value! bool
+	]
+	
 	init: does [
+		true-value/header:  TYPE_LOGIC
+		true-value/value: 	yes
+		
+		false-value/header: TYPE_LOGIC
+		false-value/value: 	no
+	
 		datatype/register [
 			TYPE_LOGIC
 			TYPE_VALUE
@@ -199,7 +237,7 @@ logic: context [
 			null			;odd?
 			;-- Bitwise actions --
 			null			;and~
-			null			;complement
+			:complement
 			null			;or~
 			null			;xor~
 			;-- Series actions --

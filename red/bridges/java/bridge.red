@@ -245,7 +245,7 @@ Red [
 	]
 	
 #either OS = 'Android [
-	Java_redroid_MainActivity_doMain:
+	Java_org_redlang_eval_MainActivity_doMain:
 ][
 	Java_bridge_doMain:
 ] func [
@@ -262,7 +262,7 @@ Red [
 	]
 	
 #either OS = 'Android [
-	Java_redroid_ClickEvent_Receive:
+	Java_org_redlang_eval_ClickEvent_Receive:
 ][
 	Java_events_Receive:
 ] func [
@@ -277,8 +277,8 @@ Red [
 	
 	#either OS = 'Android [
 		#export JNICALL [
-			Java_redroid_MainActivity_doMain
-			Java_redroid_ClickEvent_Receive
+			Java_org_redlang_eval_MainActivity_doMain
+			Java_org_redlang_eval_ClickEvent_Receive
 		]
 	][
 		#export JNICALL [

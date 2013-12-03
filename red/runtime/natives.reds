@@ -55,13 +55,13 @@ natives: context [
 		either logic/false? [
 			RETURN_NONE
 		][
-			interpreter/eval as red-block! stack/arguments + 1
+			interpreter/eval as red-block! stack/arguments + 1 yes
 		]
 	]
 	
 	unless*: does [
 		either logic/false? [
-			interpreter/eval as red-block! stack/arguments + 1
+			interpreter/eval as red-block! stack/arguments + 1 yes
 		][
 			RETURN_NONE
 		]
@@ -71,7 +71,7 @@ natives: context [
 		/local offset [integer!]
 	][
 		offset: either logic/true? [1][2]
-		interpreter/eval as red-block! stack/arguments + offset
+		interpreter/eval as red-block! stack/arguments + offset yes
 	]
 	
 	any*: func [
@@ -115,11 +115,11 @@ natives: context [
 		
 		stack/mark-native words/_body
 		while [
-			interpreter/eval cond
+			interpreter/eval cond yes
 			logic/true?
 		][
 			stack/reset
-			interpreter/eval body
+			interpreter/eval body yes
 		]
 		stack/unwind
 		RETURN_UNSET
@@ -134,7 +134,7 @@ natives: context [
 		stack/mark-native words/_body
 		until [
 			stack/reset
-			interpreter/eval body
+			interpreter/eval body yes
 			logic/true?
 		]
 		stack/unwind-last
@@ -153,7 +153,7 @@ natives: context [
 		stack/mark-native words/_body
 		until [
 			stack/reset
-			interpreter/eval body
+			interpreter/eval body yes
 			i: i - 1
 			zero? i
 		]
@@ -181,7 +181,7 @@ natives: context [
 		until [
 			stack/reset
 			_context/set w as red-value! count
-			interpreter/eval body
+			interpreter/eval body yes
 			count/value: count/value + 1
 			i: i - 1
 			zero? i
@@ -208,12 +208,12 @@ natives: context [
 			
 			while [foreach-next-block size][			;-- foreach [..]
 				stack/reset
-				interpreter/eval body
+				interpreter/eval body yes
 			]
 		][
 			while [foreach-next][						;-- foreach <word!>
 				stack/reset
-				interpreter/eval body
+				interpreter/eval body yes
 			]
 		]
 		stack/unwind-last
@@ -237,7 +237,7 @@ natives: context [
 			loop? as red-series! _context/get w
 		][
 			stack/reset
-			interpreter/eval body
+			interpreter/eval body yes
 			series: as red-series! _context/get w
 			series/head: series/head + 1
 		]
@@ -268,10 +268,10 @@ natives: context [
 		func*
 	]
 	
-	has*: does [
-		block/insert-value 
-			as red-block! stack/arguments
-			as red-value! refinements/local
+	has*: func [/local blk [red-block!]][
+		blk: as red-block! stack/arguments
+		block/insert-value blk as red-value! refinements/local
+		blk/head: blk/head - 1
 		func*
 	]
 		
@@ -305,18 +305,18 @@ natives: context [
 			either negative? default? [
 				RETURN_NONE
 			][
-				interpreter/eval alt
+				interpreter/eval alt yes
 				exit									;-- early exit with last value on stack
 			]
 		][
 			s: GET_BUFFER(blk)
 			end: s/tail
+			pos: block/pick as red-series! pos 1 null
 			
 			while [pos < end][							;-- find first following block
 				if TYPE_OF(pos) = TYPE_BLOCK [
 					stack/reset
-					pos: block/pick as red-series! pos 1
-					interpreter/eval as red-block! pos	;-- do the block
+					interpreter/eval as red-block! pos yes	;-- do the block
 					exit								;-- early exit with last value on stack
 				]
 				pos: pos + 1
@@ -340,7 +340,7 @@ natives: context [
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
 					stack/reset
-					interpreter/eval as red-block! value
+					interpreter/eval as red-block! value yes
 				][
 					value: interpreter/eval-next value tail no
 				]
@@ -361,7 +361,7 @@ natives: context [
 		arg: stack/arguments
 		switch TYPE_OF(arg) [
 			TYPE_BLOCK [
-				interpreter/eval as red-block! arg
+				interpreter/eval as red-block! arg yes
 			]
 			TYPE_PATH [
 				interpreter/eval-path arg arg arg + 1 no
@@ -414,6 +414,7 @@ natives: context [
 		/local
 			arg		[red-value!]
 			str		[red-string!]
+			blk		[red-block!]
 			series	[series!]
 			offset	[byte-ptr!]
 	][
@@ -431,7 +432,11 @@ natives: context [
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
 			
-			if TYPE_OF(arg) = TYPE_BLOCK [reduce* 1]
+			if TYPE_OF(arg) = TYPE_BLOCK [
+				reduce* 1
+				blk: as red-block! arg
+				blk/head: 0									;-- head changed by reduce/into
+			]
 			actions/form* -1
 			str: as red-string! stack/arguments + 1
 			assert any [
@@ -585,7 +590,7 @@ natives: context [
 		blk: as red-block! stack/arguments
 		if TYPE_OF(blk) = TYPE_BLOCK [
 			if all [negative? all? 1 = block/rs-length? blk][
-				stack/set-last block/pick as red-series! blk 1
+				stack/set-last block/pick as red-series! blk 1 null
 			]
 		]
 		stack/arguments
@@ -598,27 +603,29 @@ natives: context [
 			tail  [red-value!]
 			blk	  [red-block!]
 			arg	  [red-value!]
+			into? [logic!]
 	][
 		arg: stack/arguments
 		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
 			interpreter/eval-expression arg arg + 1 no no
 			exit
 		]
+		into?: into >= 0
 		
 		value: block/rs-head as red-block! arg
 		tail:  block/rs-tail as red-block! arg
 		
 		stack/mark-native words/_body
 		
-		blk: either negative? into [
-			block/push-only* (as-integer tail - value) >> 4
-		][
+		blk: either into? [
 			as red-block! stack/push arg + into
+		][
+			block/push-only* (as-integer tail - value) >> 4
 		]
 		
 		while [value < tail][
 			value: interpreter/eval-next value tail yes
-			block/append*
+			either into? [actions/insert* -1 0 -1][block/append*]
 			stack/keep									;-- preserve the reduced block on stack
 		]
 		stack/unwind-last
@@ -636,11 +643,13 @@ natives: context [
 			tail   [red-value!]
 			new	   [red-block!]
 			result [red-value!]
+			into?  [logic!]
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
-		
-		new: either all [root? OPTION?(into)][
+		into?: all [root? OPTION?(into)]
+
+		new: either into? [
 			into
 		][
 			block/push-only* (as-integer tail - value) >> 4	
@@ -653,12 +662,16 @@ natives: context [
 					][
 						as red-block! value
 					]
-					copy-cell as red-value! blk ALLOC_TAIL(new)
+					either into? [
+						block/insert-value new as red-value! blk
+					][
+						copy-cell as red-value! blk ALLOC_TAIL(new)
+					]
 				]
 				TYPE_PAREN [
 					blk: as red-block! value
 					unless zero? block/rs-length? blk [
-						interpreter/eval blk
+						interpreter/eval blk yes
 						result: stack/arguments
 						blk: as red-block! result 
 						
@@ -674,15 +687,27 @@ natives: context [
 								only? 
 								TYPE_OF(result) <> TYPE_BLOCK
 							][
-								copy-cell result ALLOC_TAIL(new)
+								either into? [
+									block/insert-value new result
+								][
+									copy-cell result ALLOC_TAIL(new)
+								]
 							][
-								block/rs-append-block new as red-block! result
+								either into? [
+									block/insert-block new as red-block! result
+								][
+									block/rs-append-block new as red-block! result
+								]
 							]
 						]
 					]
 				]
 				default [
-					copy-cell value ALLOC_TAIL(new)
+					either into? [
+						block/insert-value new value
+					][
+						copy-cell value ALLOC_TAIL(new)
+					]
 				]
 			]
 			value: value + 1
@@ -767,7 +792,7 @@ natives: context [
 		][
 			word: as red-word! value
 			word/ctx: ctx
-			word/index: _context/find-word TO_CTX(ctx) word/symbol
+			word/index: _context/find-word TO_CTX(ctx) word/symbol no
 		]
 	]
 	
@@ -802,17 +827,78 @@ natives: context [
 		]
 	]
 
+	parse*: func [
+		case?  [integer!]
+		;strict? [integer!]
+		trace [integer!]
+		/local
+			op [integer!]
+	][
+		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
+		
+		stack/set-last parser/process
+			as red-series! stack/arguments
+			as red-block!  stack/arguments + 1
+			op
+			;as logic! strict? + 1
+			as red-function!  stack/arguments + trace
+	]
+	
+	union*: func [
+		cased	 [integer!]
+		skip	 [integer!]
+		/local
+			set1	 [red-value!]
+			skip-arg [red-value!]
+			case?	 [logic!]
+	][
+		set1:	  stack/arguments
+		skip-arg: set1 + skip
+		case?:	  as logic! cased + 1
+		
+		switch TYPE_OF(set1) [
+			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
+			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
+			TYPE_BITSET [
+				stack/set-last as red-value! bitset/union
+					as red-bitset! set1
+					as red-bitset! set1 + 1
+					no
+					null
+				]
+			default [
+				print-line "*** Error: argument type not supported by UNION"
+			]
+		]
+	]
+	
+	intersect*: does []
+	
+	unique*: does []
+	
+	difference*: does []
+
+
 	;--- Natives helper functions ---
 	
 	loop?: func [
-		series     [red-series!]
-		return:    [logic!]	
+		series  [red-series!]
+		return: [logic!]	
 		/local
-			s	   [series!]
+			s	 [series!]
+			type [integer!]
 	][
 		s: GET_BUFFER(series)
 	
-		either TYPE_OF(series) = TYPE_BLOCK [			;@@ replace with any-block?/any-string? check
+		type: TYPE_OF(series)
+		either any [									;@@ replace with any-block?
+			type = TYPE_BLOCK
+			type = TYPE_PAREN
+			type = TYPE_PATH
+			type = TYPE_GET_PATH
+			type = TYPE_SET_PATH
+			type = TYPE_LIT_PATH
+		][
 			s/offset + series/head < s/tail
 		][
 			(as byte-ptr! s/offset)
@@ -836,9 +922,9 @@ natives: context [
 		i: 1
 		
 		while [i <= size][		
-			v: either block? [block/pick blk i][value]
+			v: either block? [block/pick blk i null][value]
 			_context/set
-				as red-word! block/pick words i
+				as red-word! block/pick words i null
 				v
 			i: i + 1
 		]
@@ -857,6 +943,11 @@ natives: context [
 
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_PAREN
+			TYPE_OF(series) = TYPE_PATH
+			TYPE_OF(series) = TYPE_GET_PATH
+			TYPE_OF(series) = TYPE_SET_PATH
+			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
 		]
@@ -880,13 +971,18 @@ natives: context [
 		
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_PAREN
+			TYPE_OF(series) = TYPE_PATH
+			TYPE_OF(series) = TYPE_GET_PATH
+			TYPE_OF(series) = TYPE_SET_PATH
+			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
 		result: loop? series
-		if result [_context/set word actions/pick series 1]
+		if result [_context/set word actions/pick series 1 null]
 		series/head: series/head + 1
 		result
 	]
@@ -922,6 +1018,11 @@ natives: context [
 		
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
+			TYPE_OF(series) = TYPE_PAREN
+			TYPE_OF(series) = TYPE_PATH
+			TYPE_OF(series) = TYPE_GET_PATH
+			TYPE_OF(series) = TYPE_SET_PATH
+			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
 		]
@@ -999,6 +1100,11 @@ natives: context [
 			:stats*
 			:bind*
 			:in*
+			:parse*
+			:union*
+			:intersect*
+			:unique*
+			:difference*
 		]
 	]
 

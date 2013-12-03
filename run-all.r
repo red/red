@@ -33,16 +33,32 @@ run-all-script: func [
 
 batch-mode: false
 binary?: false
-if system/options/args  [
+if system/script/args  [
 	;; should we run non-interactively?
-	batch-mode: find system/options/args "--batch"
+	batch-mode: find system/script/args "--batch"
 
 	;; should we use the binary compiler?
 	args: parse system/script/args " "
 	if find system/script/args "--binary" [
 		binary?: true
 		bin-compiler: select args "--binary"
-		if bin-compiler = "--batch" [bin-compiler: none]
+		if bin-compiler = "--batch" [
+			bin-compiler: none								;; use default
+		]
+		if bin-compiler [						
+			if not attempt [exists? to file! bin-compiler] [
+				either batch-mode [
+					write %quick-test/quick-test.log "Invalid compiler path"
+					quit/return 1
+				][
+					print "Invalid compiler path supplied"
+					print args
+					print ""
+					halt
+				]
+			]
+		]
+	
 	]
 ]
 
@@ -82,9 +98,10 @@ print ["       in" difference end-time start-time newline]
 system/options/quiet: store-quiet-mode
 change-dir store-current-dir
 either batch-mode [
-  quit/return either qt/test-run/failures > 0 [1] [0]
-] [
-  ask "hit enter to finish"
-  print ""
-  qt/test-run/failures
+	quit/return either qt/test-run/failures > 0 [1] [0]
+][
+	print "The test output was logged to Red/quick-test/quick-test.log"
+	ask "hit enter to finish"
+	print ""
+	qt/test-run/failures
 ]

@@ -26,14 +26,12 @@ symbol: context [
 		c1:   str1/1
 		c2:   str2/1
 
-		while [c1 <> null-byte][
-			aliased?: either c1 = c2 [
-				no
-			][
+		while [all [c1 <> null-byte c2 <> null-byte]][
+			unless c1 = c2 [
 				if all [#"A" <= c1 c1 <= #"Z"][c1: c1 + 32]	;-- lowercase c1
 				if all [#"A" <= c2 c2 <= #"Z"][c2: c2 + 32] ;-- lowercase c2
 				if c1 <> c2 [return 0]					;-- not same case-insensitive character
-				yes
+				aliased?: yes
 			]
 			str1: str1 + 1
 			str2: str2 + 1
@@ -41,6 +39,7 @@ symbol: context [
 			c2: str2/1									;@@ unsafe memory access
 		]
 		case [
+			c1 <> c2 		[ 0]						;-- not matching
 			c2 <> null-byte [ 0]						;-- not matching
 			aliased? 		[-1]						;-- similar (case-insensitive matching)
 			true 			[ 1]						;-- same (case-sensitive matching)

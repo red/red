@@ -69,7 +69,8 @@ Red [
 	
 	--test-- "reduce-8"
 		blk: [a b c]
-		--assert [a b c 7 123] = reduce/into [3 + 4 a] blk
+		--assert [a b c] = reduce/into [3 + 4 a] blk
+		--assert blk = [7 123 a b c]
 	
 	--test-- "reduce-9"
 		a: 123
@@ -77,8 +78,9 @@ Red [
 	
 	--test-- "reduce-10"
 		blk: [a b c]
-		--assert [a b c 7 123] = do [reduce/into [3 + 4 a] blk]
-	
+		--assert [a b c] = do [reduce/into [3 + 4 a] blk]
+		--assert blk = [7 123 a b c]
+
 	--test-- "reduce-11"
 		code: [1 + 3 a 'z append "hell" #"o"]
 		--assert [4 123 z "hello"] = reduce code
@@ -115,6 +117,11 @@ Red [
 		a: [3 + 4]
 		--assert [7] = reduce a
 		--assert [7] = do [reduce a]
+
+	--test-- "reduce-19"
+		b: next [1 2]
+		--assert [2] = reduce/into [yes 3 4 5] b
+		--assert [1 #[true] 3 4 5 2] = head b
 	
 ===end-group===
 
@@ -212,14 +219,21 @@ Red [
 
 	--test-- "compose-20"
 	a: [1 2 3]
-	--assert [1 2 3 r 7] = compose/into [r (1 + 6)] a
+	--assert [1 2 3] = compose/into [r (1 + 6)] a
+	--assert a = [r 7 1 2 3]
 	a: [1 2 3]
-	--assert [1 2 3 r 7] = do [compose/into [r (1 + 6)] a]
+	--assert [1 2 3] = do [compose/into [r (1 + 6)] a]
+	--assert a = [r 7 1 2 3]
 	
 	--test-- "compose-21"
 	a: [(mold 2 + 3)]
 	--assert ["5"] = compose a
 	--assert ["5"] = do [compose a]
+
+	--test-- "compose-22"
+	b: next [1 2]
+	--assert [2] = compose/into [no 7 8 9 (2 * 10) ([5 6])] b
+	--assert [1 no 7 8 9 20 5 6 2] = head b
 	
 ===end-group===
 
