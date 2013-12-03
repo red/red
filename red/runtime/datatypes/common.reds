@@ -85,8 +85,6 @@ copy-cell: func [
 
 
 words: context [
-
-	
 	spec:			-1
 	body:			-1
 	words:			-1
@@ -134,8 +132,6 @@ words: context [
 	_syllable:		as red-word! 0
 	_macosx:		as red-word! 0
 	_linux:			as red-word! 0
-	_self:			as red-word! 0
-	_values:		as red-word! 0
 	
 	_push:			as red-word! 0
 	_pop:			as red-word! 0
@@ -194,14 +190,15 @@ words: context [
 		keep:			symbol/make "keep"
 		ahead:			symbol/make "ahead"
 		
+		self:			symbol/make "self"
+		values:			symbol/make "values"
+		
 		_body:			_context/add-global body
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
 		_macosx:		_context/add-global macosx
 		_linux:			_context/add-global linux
 		
-		_self:			word/load "self"
-		_values:		word/load "values"
 		_push:			word/load "push"
 		_pop:			word/load "pop"
 		_fetch:			word/load "fetch"
