@@ -11,10 +11,10 @@ REBOL [
 	Encap: [quiet secure none title "Red" no-window] 
 ]
 
-unless value? 'encap-fs [do %red-system/utils/encap-fs.r]
+unless value? 'encap-fs [do %system/utils/encap-fs.r]
 
 unless all [value? 'red object? :red][
-	do-cache %red/compiler.r
+	do-cache %compiler.r
 ]
 
 redc: context [
@@ -124,9 +124,9 @@ redc: context [
 	]
 
 	load-targets: func [/local targets] [
-		targets: load-cache %red-system/config.r
-		if exists? %red-system/custom-targets.r [
-			insert targets load %red-system/custom-targets.r
+		targets: load-cache %system/config.r
+		if exists? %system/custom-targets.r [
+			insert targets load %system/custom-targets.r
 		]
 		targets
 	]
@@ -172,7 +172,7 @@ redc: context [
 			not exists? exe 
 			(modified? exe) < modified? sob					;-- check that console is up to date.
 		][
-			write script read-cache %red/tests/console.red
+			write script read-cache %tests/console.red
 
 			opts: make system-dialect/options-class [		;-- minimal set of compilation options
 				link?: yes
@@ -345,7 +345,7 @@ redc: context [
 			"Compiling to native code..."
 		]
 		fail-try "Red/System Compiler" [
-			unless encap? [change-dir %red-system/]
+			unless encap? [change-dir %system/]
 			result: either rs? [
 				system-dialect/compile/options src opts
 			][

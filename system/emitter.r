@@ -7,7 +7,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-do-cache %red-system/targets/target-class.r
+do-cache %system/targets/target-class.r
 
 emitter: make-profilable context [
 	code-buf: make binary! 100'000
@@ -637,7 +637,7 @@ emitter: make-profilable context [
 			clear symbols
 		]
 		clear stack
-		path: pick [%red-system/targets/ %targets/] encap?
+		path: pick [%system/targets/ %targets/] encap?
 		target: do-cache rejoin [path job/target %.r]
 		target/compiler: compiler: system-dialect/compiler
 		target/PIC?: job/PIC?

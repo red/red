@@ -9,7 +9,7 @@ REBOL [
 ]
 
 #include %encap-paths.r
-#include %red-system/utils/encap-fs.r
+#include %system/utils/encap-fs.r
 do #include-string %.cache.efs
 
 do #include-string %red-encap.r

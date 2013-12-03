@@ -17,7 +17,7 @@ REBOL [
 
 context [
 	definitions: make block! 100
-	data: load-cache %red/runtime/macros.reds
+	data: load-cache %runtime/macros.reds
 	
 	extract-defs: func [type [word!] /local list index][
 		list: select data type

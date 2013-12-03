@@ -142,7 +142,7 @@ linker: context [
 		clean-imports job/sections/import
 	
 		file-emitter: either encap? [
-			do-cache rejoin [%red-system/formats/ job/format %.r]
+			do-cache rejoin [%system/formats/ job/format %.r]
 		][
 			do rejoin [%formats/ job/format %.r]
 		]

@@ -13,7 +13,7 @@ Red [
 #system-global [
 	#define node! int-ptr!								;-- required for Red datatypes definitions
 	
-	#include %../../../red-system/bridges/java/JNI.reds
+	#include %../../system/bridges/java/JNI.reds
 	#include %../../runtime/datatypes/structures.reds
 	
 	env: as JNI-env! 0

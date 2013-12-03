@@ -7,24 +7,24 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-do-cache %red-system/utils/profiler.r
+do-cache %system/utils/profiler.r
 profiler/active?: no
 
-do-cache %red-system/utils/r2-forward.r
-do-cache %red-system/utils/int-to-bin.r
-do-cache %red-system/utils/IEEE-754.r
-do-cache %red-system/utils/virtual-struct.r
-do-cache %red-system/utils/secure-clean-path.r
-do-cache %red-system/linker.r
-do-cache %red-system/emitter.r
+do-cache %system/utils/r2-forward.r
+do-cache %system/utils/int-to-bin.r
+do-cache %system/utils/IEEE-754.r
+do-cache %system/utils/virtual-struct.r
+do-cache %system/utils/secure-clean-path.r
+do-cache %system/linker.r
+do-cache %system/emitter.r
 
 system-dialect: make-profilable context [
 	verbose:  	  0										;-- logs verbosity level
 	job: 		  none									;-- reference the current job object	
-	runtime-path: pick [%red-system/runtime/ %runtime/] encap?
+	runtime-path: pick [%system/runtime/ %runtime/] encap?
 	nl: 		  newline
 	
-	loader: do bind load-cache %red-system/loader.r 'self
+	loader: do bind load-cache %system/loader.r 'self
 	
 	compiler: make-profilable context [
 		job:		 	 none							;-- shortcut for job object
@@ -2995,7 +2995,7 @@ system-dialect: make-profilable context [
 		emitter/libc-init?: yes
 		emitter/start-prolog
 		script:	either encap? [
-			set-cache-base %red-system/runtime/
+			set-cache-base %system/runtime/
 			%start.reds
 		][
 			secure-clean-path runtime-path/start.reds
@@ -3013,7 +3013,7 @@ system-dialect: make-profilable context [
 	
 	comp-runtime-prolog: func [red? [logic!] /local script][
 		script: either encap? [
-			set-cache-base %red-system/runtime/
+			set-cache-base %system/runtime/
 			%common.reds
 		][
 			secure-clean-path runtime-path/common.reds
@@ -3025,8 +3025,8 @@ system-dialect: make-profilable context [
 				set-cache-base %./
 				compiler/run/runtime job loader/process red/sys-global %***sys-global.reds
  			]
- 			set-cache-base %red/runtime/
- 			script: pick [%red.reds %../red/runtime/red.reds] encap?
+ 			set-cache-base %runtime/
+ 			script: pick [%red.reds %../runtime/red.reds] encap?
  			compiler/run/runtime job loader/process/own script script
  		]
  		set-cache-base none

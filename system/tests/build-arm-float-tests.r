@@ -6,7 +6,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-;; This script must be run from the Red/red-system/tests dir
+;; This script must be run from the Red/system/tests dir
 
 ;; supress script messages
 store-quiet-mode: system/options/quiet
