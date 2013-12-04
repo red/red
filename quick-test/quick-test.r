@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.11.0
+	Version: 0.12.0
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
@@ -13,7 +13,7 @@ comment {
 	files are stored. They are:
     	this script is stored in Red/quick-test/
     	the Red & Red/System compiler is stored in Red/
-    	the default dir for tests is Red/red-system/tests/
+    	the default dir for tests is Red/system/tests/
     	
     	The default test dirs can be overriden by setting qt/tests-dir before
     	tests are processed
@@ -32,7 +32,7 @@ qt: make object! [
   ;; set the red/system runnable dir
   runnable-dir: dirize base-dir/quick-test/runnable
   ;; set the default base dir for tests
-  tests-dir: dirize base-dir/red-system/tests
+  tests-dir: dirize base-dir/system/tests
   
   ;; set the version number
   version: system/script/header/version

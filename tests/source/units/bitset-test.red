@@ -7,7 +7,7 @@
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
-#include  %../../../../quick-test/quick-test.red
+#include  %../../../quick-test/quick-test.red
 
 ~~~start-file~~~ "bitset"
 
