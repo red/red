@@ -10,8 +10,6 @@ Rebol [
 
 runnable-dir: what-dir
 
-print ["what-dir" what-dir]
-
 change-dir %../                        ;; to tests dir
 
 src: {

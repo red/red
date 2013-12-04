@@ -12,7 +12,7 @@ REBOL [
 make-dir %auto-tests/
 number-of-files: 0
 tests: copy ""
-quick-test-path: to file! clean-path %../../../../quick-test/quick-test.red
+quick-test-path: to file! clean-path %../../../quick-test/quick-test.red
 file-list: [
 	%binding-test.red									%auto-tests/interpreter-binding-test.red
 	%case-test.red										%auto-tests/interpreter-case-test.red

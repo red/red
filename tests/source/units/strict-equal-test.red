@@ -7,7 +7,7 @@ Red [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
-#include  %../../../../quick-test/quick-test.red
+#include  %../../../quick-test/quick-test.red
 ~~~start-file~~~ "same"
 ===start-group=== "same-datatype"
 	--test-- "same-datatype-1"		--assert 0 == 0
