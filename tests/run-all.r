@@ -13,7 +13,7 @@ batch-mode: all [system/options/args find system/options/args "--batch"]
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
 
-do %../../quick-test/quick-test.r
+do %../quick-test/quick-test.r
 qt/tests-dir: system/script/path
 
 ;; set the default script header
