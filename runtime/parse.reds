@@ -1180,7 +1180,7 @@ parser: context [
 							PARSE_CHECK_INPUT_EMPTY?
 							match?: end?
 							PARSE_TRACE(_match)
-							state: ST_POP_RULE
+							state: ST_CHECK_PENDING
 						]
 						sym = words/then [				;-- THEN
 							if cmd + 1 = tail [
