@@ -115,6 +115,21 @@ path: context [
 		block/compare-each as red-block! value1 as red-block! value2 op
 	]
 	
+	copy: func [
+		path    [red-path!]
+		new		[red-path!]
+		arg		[red-value!]
+		deep?	[logic!]
+		types	[red-value!]
+		return:	[red-series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "path/copy"]]
+
+		path: as red-path! block/copy as red-block! path as red-path! new arg deep? types
+		path/header: TYPE_PATH
+		as red-series! path
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_PATH
@@ -153,7 +168,7 @@ path: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			INHERIT_ACTION	;copy
+			:copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?

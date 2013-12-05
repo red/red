@@ -79,6 +79,21 @@ file: context [
 		string/form file buffer arg part - 1
 	]
 	
+	copy: func [
+		file    [red-file!]
+		new		[red-string!]
+		arg		[red-value!]
+		deep?	[logic!]
+		types	[red-value!]
+		return:	[red-series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "file/copy"]]
+				
+		file: as red-file! string/copy as red-string! file new arg deep? types
+		file/header: TYPE_FILE
+		as red-series! file
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_FILE
@@ -117,7 +132,7 @@ file: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			INHERIT_ACTION	;copy
+			:copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
