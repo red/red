@@ -334,8 +334,9 @@ _function: context [
 		indent	[integer!]
 		return: [integer!]
 		/local
-			s	[series!]
-			blk [red-block!]
+			s	  [series!]
+			blk	  [red-block!]
+			value [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "function/mold"]]
 
@@ -348,7 +349,13 @@ _function: context [
 		part: block/mold blk buffer only? all? flat? arg part - 5 indent	;-- spec
 		
 		s: as series! fun/more/value
-		block/mold as red-block! s/offset buffer only? all? flat? arg part indent	;-- body
+		value: s/offset
+		either TYPE_OF(value) = TYPE_NONE [
+			string/concatenate-literal buffer " none"
+			part - 5
+		][
+			block/mold as red-block! s/offset buffer only? all? flat? arg part indent	;-- body
+		]
 	]
 
 	init: does [
