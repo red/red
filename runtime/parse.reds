@@ -21,6 +21,7 @@ parser: context [
 		p/header: TYPE_POINT
 		p/rule:	  (as-integer cmd - block/rs-head rule) >> 4	;-- save cmd position
 		p/input:  input/head									;-- save input position
+		p/sub:	  0												;-- default value for sub-rule type
 	]
 	
 	#define PARSE_SET_INPUT_LENGTH(word) [
@@ -129,7 +130,7 @@ parser: context [
 		header [integer!]
 		rule   [integer!]
 		input  [integer!]
-		pad    [integer!]
+		sub    [integer!]
 	]
 	
 	#if debug? = yes [
@@ -765,14 +766,8 @@ parser: context [
 									value: stack/top	;-- refer last value from paren expression
 									if int/value = R_KEEP [
 										w: as red-word! s/tail
-										int2: as red-integer! s/tail + 2
 										case [
-											all [						;-- KEEP COPY case
-												s/offset + (s/size >> 4) > (s/tail + 2)
-												TYPE_OF(w) = TYPE_WORD
-												TYPE_OF(int2) = TYPE_INTEGER
-												int2/value = R_COPY
-											][
+											p/sub = R_COPY [			;-- KEEP COPY case
 												value: _context/get w
 											]
 											p/input + 1 < input/head [	;-- KEEP with matched size > 1
@@ -853,6 +848,10 @@ parser: context [
 						if pop? [
 							PARSE_TRACE(_pop)
 							s/tail: s/tail - 3			;-- pop rule stack frame
+							if s/tail > s/offset [
+								p: as positions! s/tail - 2
+								p/sub: int/value		;-- save rule type in parent stack frame
+							]
 							state:  ST_CHECK_PENDING
 						]
 					]
