@@ -60,7 +60,7 @@ lexer: context [
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"])}
+	integer-end:	charset {^{"]);}
 	stop: 		    none
 	
 	control-char: reduce [
