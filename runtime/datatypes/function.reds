@@ -297,8 +297,7 @@ _function: context [
 			]
 			field = words/body [
 				s: as series! fun/more/value
-				blk: as red-block! s/offset
-				stack/set-last as red-value! blk
+				stack/set-last s/offset
 			]
 			field = words/words [
 				--NOT_IMPLEMENTED--						;@@ build the words block from spec
