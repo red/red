@@ -1542,6 +1542,7 @@ string: context [
 			s: GET_BUFFER(str)
 			assert (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail
 		]
+		stack/pop 1										;-- pop the FORM slot
 		as red-value! str
 	]
 

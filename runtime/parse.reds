@@ -779,7 +779,14 @@ parser: context [
 										]
 									]
 									either into? [
-										block/insert blk value null yes null no
+										either any [					;@@ replace with ANY_STRING?
+											TYPE_OF(blk) = TYPE_STRING
+											TYPE_OF(blk) = TYPE_FILE
+										][
+											string/insert as red-string! blk value null yes null no
+										][
+											block/insert blk value null yes null no
+										]
 									][
 										block/rs-append blk value
 									]
