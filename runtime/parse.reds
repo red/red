@@ -753,7 +753,10 @@ parser: context [
 							]
 							R_KEEP
 							R_KEEP_PAREN [
-								if match? [
+								if all [
+									match?
+									any [int/value = R_KEEP_PAREN  p/input < input/head]
+								][
 									blk: as red-block! stack/top - 1
 									assert any [
 										TYPE_OF(blk) = TYPE_WORD
