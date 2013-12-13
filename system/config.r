@@ -34,6 +34,7 @@ MSDOS [									; Windows default target
 	format: 	'PE
 	type:		'exe
 	sub-system: 'console
+	packager:	'APK
 ]
 ;-------------------------
 Windows [
@@ -78,10 +79,11 @@ Android [
 	OS:			'Android
 	format:		'ELF
 	target:		'ARM
-	type:		'exe
+	type:		'dll
 	dynamic-linker: "/system/bin/linker"
 	red-store-bodies?: no
 	red-tracing?: no
+	packager:	'APK
 ]
 ;-------------------------
 Android-x86 [
@@ -92,6 +94,16 @@ Android-x86 [
 	dynamic-linker: "/system/bin/linker"
 	red-store-bodies?: no
 	red-tracing?: no
+]
+Android-bin [
+	OS:			'Android
+	format:		'ELF
+	target:		'ARM
+	type:		'exe
+	dynamic-linker: "/system/bin/linker"
+	red-store-bodies?: no
+	red-tracing?: no
+	packager:	'APK
 ]
 ;-------------------------
 Linux-ARM [

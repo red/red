@@ -365,6 +365,13 @@ redc: context [
 			]
 		]
 		unless Windows? [print ""]							;-- extra LF for more readable output
+		
+		if opts/packager [
+			file: join %system/formats/ [opts/packager %.r]
+			unless exists? file [fail ["Packager:" opts/packager "not found!"]]
+			do file
+			packager/process opts src result/4
+		]
 	]
 
 	fail-try "Driver" [main]
