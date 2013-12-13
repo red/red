@@ -65,6 +65,10 @@ Red [
 	append/part/dup str "456" 3 2 
 	--assert str = "12456456"
 
+  --test-- "append-18"
+	str: "12"
+	append/part/dup str ["4" #"5" #"6" 7 a 'b x] 6 2
+	--assert str = "124567ab4567ab"
 ===end-group===
 
 ===start-group=== "append/dup"

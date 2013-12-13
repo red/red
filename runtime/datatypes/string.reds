@@ -545,6 +545,7 @@ string: context [
 		str1	  [red-string!]							;-- string! to extend
 		str2	  [red-string!]							;-- string! to append to str1
 		part	  [integer!]							;-- str2 characters to append, -1 means all
+		offset	  [integer!]							;-- offset from head in codepoints
 		keep?	  [logic!]								;-- do not change str2 encoding
 		insert?	  [logic!]								;-- insert str2 at str1 index instead of appending
 		/local
@@ -589,7 +590,8 @@ string: context [
 							unicode/UCS2-to-UCS4 s2
 						]
 					]
-				]		
+				]
+				unit2: unit1
 			]
 			true [true]									;@@ catch-all case to make compiler happy
 		]
@@ -607,8 +609,8 @@ string: context [
 		]
 		if insert? [
 			move-memory									;-- make space
-				(as byte-ptr! s1/offset) + h1 + size2
-				(as byte-ptr! s1/offset) + h1
+				(as byte-ptr! s1/offset) + h1 + offset + size2
+				(as byte-ptr! s1/offset) + h1 + offset
 				(as-integer s1/tail - s1/offset) - h1
 		]
 		
@@ -624,14 +626,14 @@ string: context [
 					p: p + 1
 				]
 				s1: either insert? [
-					poke-char s1 p cp
+					poke-char s1 p + (offset << (unit1 >> 1)) cp
 				][
 					append-char s1 cp
 				]
 			]
 		][
 			p: either insert? [
-				(as byte-ptr! s1/offset) + h1
+				(as byte-ptr! s1/offset) + (offset << (unit1 >> 1)) + h1
 			][
 				as byte-ptr! s1/tail
 			]
@@ -755,7 +757,7 @@ string: context [
 			int: as red-integer! arg
 			int/value	
 		][-1]
-		concatenate buffer str limit no no
+		concatenate buffer str limit 0 no no
 		part - get-length str
 	]
 	
@@ -1449,16 +1451,18 @@ string: context [
 			form-buf  [red-string!]
 			s		  [series!]
 			s2		  [series!]
+			dup-n	  [integer!]
 			cnt		  [integer!]
 			part	  [integer!]
-			unit	  [integer!]
-			i		  [integer!]
+			len		  [integer!]
+			rest	  [integer!]
 			added	  [integer!]
 			type	  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
 
+		dup-n: 1
 		cnt:  1
 		part: -1
 		
@@ -1479,6 +1483,7 @@ string: context [
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
+			dup-n: cnt
 		]
 		
 		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
@@ -1488,21 +1493,22 @@ string: context [
 			(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) = str/head
 			append?
 		]
-		i: 0
-		added: 0
 		
 		while [not zero? cnt][							;-- /dup support
 			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
 				src: as red-block! value
-				if negative? part [part: block/rs-length? src] 	;-- if not /part, use whole value length
 				s2: GET_BUFFER(src)
 				cell:  s2/offset + src/head
-				limit: cell + part						;-- /part support
+				limit: cell + block/rs-length? src
 			][
 				cell:  value
 				limit: value + 1
 			]
-			while [cell < limit][						;-- multiple values case
+			rest: 0
+			added: 0
+			while [
+				all [cell < limit added <> part]		;-- multiple values case
+			][
 				type: TYPE_OF(cell)
 				
 				either type = TYPE_CHAR [
@@ -1511,8 +1517,7 @@ string: context [
 					either tail? [
 						append-char s char/value
 					][
-						insert-char s str/head + i char/value
-						i: i + 1
+						insert-char s str/head + added char/value
 					]
 					added: added + 1
 				][
@@ -1526,18 +1531,25 @@ string: context [
 						form-buf: string/rs-make-at form-slot 16
 						actions/form cell form-buf null 0
 					]
-					either tail? [
-						concatenate str form-buf part no no
-					][
-						concatenate str form-buf part no yes
+					len: rs-length? form-buf
+					rest: len		 					;-- if not /part, use whole value length
+					if positive? part [					;-- /part support
+						rest: part - added
+						if rest > len [rest: len]
 					]
-					added: added + rs-length? form-buf
+					either tail? [
+						concatenate str form-buf rest 0 no no
+					][
+						concatenate str form-buf rest added no yes
+					]
+					added: added + rest
 				]
 				cell: cell + 1
 			]
 			cnt: cnt - 1
 		]
 		unless append? [
+			added: added * dup-n
 			str/head: str/head + added
 			s: GET_BUFFER(str)
 			assert (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail
