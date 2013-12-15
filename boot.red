@@ -657,6 +657,13 @@ prin: make native! [[
 	#get-definition NAT_PRIN
 ]
 
+input: make native! [[
+		"Gets user input with a prompt string."
+		prompt [string!]
+	]
+	#get-definition NAT_INPUT
+]
+
 equal?: make native! [[
 		"Returns true if two values are equal."
 		value1 [any-type!]

@@ -470,6 +470,29 @@ natives: context [
 		]
 		stack/set-last unset-value
 	]
+
+	input*: func [
+			/local
+			cstr	[c-string!]
+			rstr	[red-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "native/input"]]
+
+		;-- Sole argument is the prompt, delegate to PRIN to print it
+		prin*
+
+		cstr: platform/input-line
+		either null <> cstr [
+			;-- Input-line allocated a c-string, we must free after conversion
+
+			rstr: string/load cstr (length? cstr) + 1
+			free as byte-ptr! cstr
+			stack/set-last as red-value! rstr
+		] [
+			print-line "*** Error: INPUT failed to read from stdin"
+			quit -1
+		]
+	]
 	
 	compare: func [
 		op		   [integer!]
@@ -1083,6 +1106,7 @@ natives: context [
 			:set*
 			:print*
 			:prin*
+			:input*
 			:equal?*
 			:not-equal?*
 			:strict-equal?*

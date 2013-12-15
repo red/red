@@ -177,3 +177,19 @@ prin-float32: func [f [float32!] return: [float32!]][
 	printf ["%.7g" as-float f]							;-- UTF-8 literal string
 	f
 ]
+
+;-------------------------------------------
+;-- Hack for basic input, just so there's *something*...
+;-------------------------------------------
+
+input-line: func [return: [c-string!] /local line] [
+	line: make-c-string 1001
+
+	if as-logic line [
+		if null = gets line [  ; FIXME: no size check!
+			free as byte-ptr! line
+			return null
+		]
+	]
+	line
+]

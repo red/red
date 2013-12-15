@@ -48,6 +48,10 @@ Red/System [
 			char		[byte!]
 		]
 		printf: 	 "printf" [[variadic]]
+		gets:        "gets" [
+			line		[c-string!]
+			return:		[c-string!]
+		]
 	]
 ]
 
