@@ -48,10 +48,13 @@ Red/System [
 			char		[byte!]
 		]
 		printf: 	 "printf" [[variadic]]
-		gets:        "gets" [
-			line		[c-string!]
-			return:		[c-string!]
-		]
+        getline:     "getline" [
+            line		[pointer! [integer!]]
+            n			[pointer! [integer!]]
+            stream		[pointer! [byte!]]
+
+            return:		[integer!]
+        ]
 	]
 ]
 

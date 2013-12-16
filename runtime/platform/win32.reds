@@ -49,6 +49,11 @@ platform: context [
 			;	flags		[integer!]
 			;	return:		[integer!]
 			;]
+			gets:        "gets" [						;-- getline() is POSIX, not in MSVCRT.DLL
+				line		[c-string!]
+				return:		[c-string!]
+			]
+
 		]
 		"kernel32.dll" stdcall [
 			VirtualAlloc: "VirtualAlloc" [

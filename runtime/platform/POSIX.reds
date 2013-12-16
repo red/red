@@ -25,6 +25,12 @@ Red/System [
 			locale		[c-string!]
 			return:		[c-string!]
 		]
+        fdopen:      "fdopen" [
+            fd			[integer!]
+            mode		[c-string!]
+
+            return:		[pointer! [byte!]]
+        ]
 	]
 ]
 
@@ -179,17 +185,32 @@ prin-float32: func [f [float32!] return: [float32!]][
 ]
 
 ;-------------------------------------------
-;-- Hack for basic input, just so there's *something*...
+;-- Basic routine to input a line
 ;-------------------------------------------
 
-input-line: func [return: [c-string!] /local line] [
-	line: make-c-string 1001
+input-line: func [
+	return: [c-string!]
 
-	if as-logic line [
-		if null = gets line [  ; FIXME: no size check!
-			free as byte-ptr! line
-			return null
-		]
-	]
-	line
+	/local
+		stream [pointer! [byte!]]
+		line [integer!]
+		n [integer!]
+		cstr [c-string!]
+		len [integer!]
+] [
+	;-- http://stackoverflow.com/questions/20595992/
+
+	line: 0
+	n: 0
+
+	;-- 0 is STDIN_FILENO on every standard C system, open for "r"eading
+	;-- (Note: emscripten is not a standard C system)
+	stream: fdopen 0 "r"
+
+	;-- REVIEW: We have the length, should we load the red-string! here?
+	len: getline :line :n stream
+
+	;-- Note: We should NOT fclose() stdin, it won't reopen afterward!!
+
+	as c-string! line
 ]
