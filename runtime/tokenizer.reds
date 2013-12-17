@@ -54,6 +54,7 @@ tokenizer: context [
 
 	#enum errors! [
 		ERR_PREMATURE_END
+		ERR_PAREN_END
 		ERR_STRING_DELIMIT
 		ERR_MULTI_STRING_DELIMIT
 		ERR_CHAR_DELIMIT
@@ -66,6 +67,7 @@ tokenizer: context [
 		print "*** Load Error: "
 		print switch id [
 			ERR_PREMATURE_END		 ["unmatched ] closing bracket"]
+			ERR_PAREN_END			 ["unmatched ) closing paren"]
 			ERR_STRING_DELIMIT 		 [{string ending delimiter " not found}]
 			ERR_MULTI_STRING_DELIMIT ["string ending delimiter } not found"]
 			ERR_CHAR_DELIMIT		 [{char ending delimiter " not found}]
@@ -401,6 +403,7 @@ tokenizer: context [
 		return: [c-string!]
 	][
 		src: scan src block/make-in blk 4				;-- arbitrary start size
+		if src/1 <> #"]" [throw-error ERR_PREMATURE_END]
 		src + 1											;-- skip ] character
 	]
 	
@@ -413,6 +416,7 @@ tokenizer: context [
 			slot [red-value!]
 	][
 		src: scan src block/make-in blk 4				;-- arbitrary start size
+		if src/1 <> #")" [throw-error ERR_PREMATURE_END]
 		s: GET_BUFFER(blk)
 		slot: s/tail - 1
 		slot/header: TYPE_PAREN
