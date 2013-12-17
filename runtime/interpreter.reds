@@ -97,7 +97,7 @@ interpreter: context [
 			sym [red-symbol!]
 	][
 		sym: symbol/get word/symbol
-		print-line sym/cache
+		print sym/cache
 	]
 	
 	literal-first-arg?: func [
@@ -318,6 +318,7 @@ interpreter: context [
 			value	  [red-value!]
 			head	  [red-value!]
 			tail	  [red-value!]
+			w		  [red-word!]
 			dt		  [red-datatype!]
 			path-end  [red-value!]
 			s		  [series!]
@@ -387,6 +388,12 @@ interpreter: context [
 					]
 				]
 				TYPE_SET_WORD [
+					w: as red-word! value
+					unless words/return* = symbol/resolve w/symbol [
+						print "*** Error: invalid function definition: "
+						print-symbol w
+						print-line ":"
+					]
 					if routine? [
 						ret-set?: yes
 						value: block/pick (as red-block! value + 1) 1 null
@@ -659,6 +666,7 @@ interpreter: context [
 				if verbose > 0 [
 					print "eval: '"
 					print-symbol as red-word! pc
+					print lf
 				]
 				value: _context/get as red-word! pc
 				
