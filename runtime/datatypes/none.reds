@@ -120,7 +120,13 @@ none: context [
 	
 	clear:	 does []									;-- arguments can be safely omitted
 	find:    does []
-	length?: does []
+	
+	length?: func [
+		value	[red-none!]
+		return: [integer!]
+	][
+		-1
+	]
 	
 	remove:  func [
 		series	[red-series!]

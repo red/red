@@ -715,13 +715,17 @@ actions: context [
 	length?*: func [
 		return:	[red-integer!]
 		/local
-			int [red-integer!]
+			int	  [red-integer!]
+			value [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/length?"]]
 
 		int: as red-integer! stack/arguments
-		int/value:  length? stack/arguments				;-- must be set before slot is modified
-		int/header: TYPE_INTEGER
+		value: length? stack/arguments					;-- must be set before slot is modified
+		unless value = -1 [
+			int/value:  value
+			int/header: TYPE_INTEGER
+		]
 		int
 	]
 	
