@@ -14,7 +14,7 @@ string: context [
 	verbose: 0
 	
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
-	#define MAX_ESC_CHARS		60h	
+	#define MAX_ESC_CHARS		5Fh	
 	
 	escape-chars: declare byte-ptr!
 
@@ -25,7 +25,7 @@ string: context [
 	][
 		i: 1
 		c:  #"@"
-		while [c <= #"_"][
+		while [c < #"_"][
 			escape-chars/i: c
 			i: i + 1
 			c: c + 1
@@ -39,6 +39,7 @@ string: context [
 		escape-chars/10: #"-"							;-- 9  + 1 (adjust for 1-base)
 		escape-chars/11: #"/"							;-- 10 + 1 (adjust for 1-base)
 		escape-chars/35: #"^""							;-- 34 + 1 (adjust for 1-base)
+		escape-chars/95: #"^^"							;-- 94 + 1 (adjust for 1-base)
 	]
 	
 	to-hex: func [
@@ -795,10 +796,6 @@ string: context [
 	][
 		idx: cp + 1
 		case [
-			cp = 5Eh [
-				append-char GET_BUFFER(buffer) as-integer #"^^"
-				append-char GET_BUFFER(buffer) as-integer #"^^"
-			]
 			cp > 7Fh [
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
