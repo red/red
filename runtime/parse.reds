@@ -978,10 +978,20 @@ parser: context [
 					]
 				]
 				ST_MATCH [
+					type: TYPE_OF(input)
 					either end? [
-						match?: no
+						match?: all [
+							any [
+								type = TYPE_STRING
+								type = TYPE_FILE
+							]
+							any [
+								TYPE_OF(value) = TYPE_STRING
+								TYPE_OF(value) = TYPE_FILE
+							]
+							zero? string/rs-length? as red-string! value
+						]
 					][
-						type: TYPE_OF(input)
 						end?: either any [				;TBD: replace with ANY_STRING?
 							type = TYPE_STRING
 							type = TYPE_FILE
