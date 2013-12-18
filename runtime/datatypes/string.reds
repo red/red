@@ -599,8 +599,8 @@ string: context [
 		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (unit2 >> 1)]	;-- make symbol! used as string! pass safely
 		
 		size2: (as-integer s2/tail - s2/offset) - h2
-		size:  (as-integer s1/tail - s1/offset) + size2
-		if s1/size < size [s1: expand-series s1 size + unit1]	;-- account for terminal NUL
+		size:  (as-integer s1/tail - s1/offset) + size2 + unit1		;-- account for terminal NUL
+		if s1/size < size [s1: expand-series s1 size]
 		
 		if part >= 0 [
 			part: part << (unit2 >> 1)
