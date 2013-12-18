@@ -389,7 +389,7 @@ lexer: context [
 			"^/*** line: " line
 			"^/*** at: " mold copy/part pos 40
 		]
-		halt
+		either encap? [quit][halt]
 	]
 
 	add-line-markers: func [blk [block!]][	
