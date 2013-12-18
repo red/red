@@ -906,6 +906,7 @@ last:	func ["Returns the last value in a series."  s [series!]][pick back tail s
 
 
 action?:	 func ["Returns true if the value is this type." value [any-type!]] [action!	= type? :value]
+bitset?:	 func ["Returns true if the value is this type." value [any-type!]] [bitset!	= type? :value]
 block?:		 func ["Returns true if the value is this type." value [any-type!]] [block!		= type? :value]
 char?: 		 func ["Returns true if the value is this type." value [any-type!]] [char!		= type? :value]
 datatype?:	 func ["Returns true if the value is this type." value [any-type!]] [datatype!	= type? :value]
@@ -920,6 +921,7 @@ lit-word?:	 func ["Returns true if the value is this type." value [any-type!]] [
 logic?:		 func ["Returns true if the value is this type." value [any-type!]] [logic!		= type? :value]
 native?:	 func ["Returns true if the value is this type." value [any-type!]] [native!	= type? :value]
 none?:		 func ["Returns true if the value is this type." value [any-type!]] [none!		= type? :value]
+object?:	 func ["Returns true if the value is this type." value [any-type!]] [object!	= type? :value]
 op?:		 func ["Returns true if the value is this type." value [any-type!]] [op!		= type? :value]
 paren?:		 func ["Returns true if the value is this type." value [any-type!]] [paren!		= type? :value]
 path?:		 func ["Returns true if the value is this type." value [any-type!]] [path!		= type? :value]
