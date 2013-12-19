@@ -388,6 +388,7 @@ qt: make object! [
     clear output
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
     call/output/wait cmd output
+    if find output "Error:" [_signify-failure]
     add-to-run-totals
     write/append log-file output
     file/title: test-name
@@ -397,14 +398,14 @@ qt: make object! [
   
   run-script: func [
     src [file!]
-    /local 
+    /local
      filename                     ;; filename of script 
      script                       ;; %runnable/filename
   ][
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
-    do script
+    if error? try [do script] [_signify-error]
   ]
   
   run-script-quiet: func [
