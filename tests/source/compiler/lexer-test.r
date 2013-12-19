@@ -14,6 +14,7 @@ halt: func [][]
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
 
+do %../../../system/utils/encap-fs.r
 do %../../../quick-test/quick-unit-test.r
 do %../../../lexer.r
 
