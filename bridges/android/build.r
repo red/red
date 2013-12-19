@@ -88,7 +88,7 @@ opts: switch/default trim/all res [
 ;-- compile Red app into a shared library --
 foreach job opts [
 	set [target dst-dir] job
-	do/args %../../../red.r reform [
+	do/args %../../red.r reform [
 		"-t " target " -dlib"
 		"-o " join bin-dir/lib/:dst-dir "/libRed"
 		prj-src-dir/eval.red
