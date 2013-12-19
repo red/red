@@ -36,6 +36,8 @@ print rejoin ["REBOL " system/version]
 
 start-time: now/precise
 
+--setup-temp-files
+
 ***start-run-quiet*** "Red Test Suite"
 
 ===start-group=== "Red compiler unit tests"
@@ -133,6 +135,8 @@ start-time: now/precise
 ===end-group===
 
 ***end-run-quiet***
+
+--delete-temp-files
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
