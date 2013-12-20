@@ -38,6 +38,8 @@ start-time: now/precise
 ;; any .reds test with more than one space between --run-test-file-quiet and 
 ;;  the filename will be excluded from the ARM tests
 
+--separate-log-file
+
 ***start-run-quiet*** "Red/System Test Suite"
 
 ===start-group=== "Compiler Tests"
@@ -133,7 +135,7 @@ system/options/quiet: store-quiet-mode
 either batch-mode [
 	quit/return either qt/test-run/failures > 0 [1] [0]
 ][
-	print "The test output was logged to Red/quick-test/quick-test.log"
+	print ["The test output was logged to" qt/log-file]
 	ask "hit enter to finish"
 	print ""
 	qt/test-run/failures

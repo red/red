@@ -674,6 +674,16 @@ qt: make object! [
   	  if exists? test-src-file [delete test-src-file]  
   ]
   
+  separate-log-file: func [
+  	  /local
+  	  	f
+  ][
+  	f: to string! now/time/precise
+  	f: replace/all f ":" ""
+  	f: replace/all f "." ""
+    log-file: join base-dir ["quick-test/quick-test" f ".log"]
+  ]
+  
   utf-16le-to-utf-8: func [
     {Translates a utf-16LE encoded string to an utf-8 encoded one
      the algorithm is copied from lexer.r                         }
@@ -755,4 +765,5 @@ qt: make object! [
   set '***end-run-quiet***          :end-test-run-quiet
   set '--setup-temp-files			:setup-temp-files
   set '--delete-temp-files			:delete-temp-files
+  set '--separate-log-file			:separate-log-file	
 ]
