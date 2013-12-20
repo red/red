@@ -674,7 +674,7 @@ qt: make object! [
   	  if exists? test-src-file [delete test-src-file]  
   ]
   
-  separate-log-file: func [
+  seperate-log-file: func [
   	  /local
   	  	f
   ][
@@ -765,5 +765,5 @@ qt: make object! [
   set '***end-run-quiet***          :end-test-run-quiet
   set '--setup-temp-files			:setup-temp-files
   set '--delete-temp-files			:delete-temp-files
-  set '--separate-log-file			:separate-log-file	
+  set '--seperate-log-file			:seperate-log-file	
 ]
