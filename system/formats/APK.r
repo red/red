@@ -68,11 +68,14 @@ packager: context [
 		]
 	]
 
-	process: func [opts [object!] src [file!] file [file!]][		
-		paths: 			split-path src
-		prj-src-dir: 	paths/1
-		name:	 		copy/part paths/2 find/last paths/2 #"."
-		bin-dir:	 	build-root-dir/:name
+	process: func [
+		opts [object!] src [file!] file [file!]
+		/local paths src-dir name bin-dir dst cmd apk
+	][		
+		paths: 	 split-path src
+		src-dir: paths/1
+		name:	 copy/part paths/2 find/last paths/2 #"."
+		bin-dir: build-root-dir/:name
 		append bin-dir slash
 
 		make-dir/deep bin-dir
@@ -86,6 +89,7 @@ packager: context [
 
 		dst: either opts/target = 'ARM [%armeabi/][%x86/]
 		copy-file file join bin-dir [%lib/ dst %libRed.so]
+		delete file
 		
 		copy-file %bridges/android/dex/classes.dex bin-dir/dex.classes
 		copy-files %bridges/android/res/ join bin-dir %res/
@@ -150,7 +154,7 @@ packager: context [
 			to-local-file tools-dir/zipalign 
 			"-v -f 4"
 			to-local-file rejoin [build-root-dir name %-signed.apk] 
-			to-local-file rejoin [build-root-dir name %.apk]
+			to-local-file apk: rejoin [build-root-dir name %.apk]
 		]
 		log "aligning apk"
 		run cmd
@@ -158,7 +162,7 @@ packager: context [
 		attempt [delete rejoin [build-root-dir name %-signed.apk]]
 		attempt [delete rejoin [build-root-dir name %-unsigned.apk]]
 		
-		
+		copy-file apk join name %.apk
 
 		log "all done!"
 		
