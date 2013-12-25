@@ -19,17 +19,18 @@ unless all [value? 'red object? :red][
 
 redc: context [
 
+	temp-dir: %/tmp/red/
+	
 	Windows?: system/version/4 = 3
 	
-	if encap? [
-		temp-dir: switch/default system/version/4 [
+	either encap? [
+		switch/default system/version/4 [
 			2 [											;-- MacOS X
 				libc: load/library %libc.dylib
 				sys-call: make routine! [cmd [string!]] libc "system"
-				%/tmp/red/
 			]
 			3 [											;-- Windows
-				either lib?: find system/components 'Library [
+				temp-dir: either lib?: find system/components 'Library [
 					sys-path: to-rebol-file get-env "SystemRoot"
 					shell32: load/library sys-path/System32/shell32.dll
 					libc:  	 load/library sys-path/System32/msvcrt.dll
@@ -69,7 +70,11 @@ redc: context [
 			]
 			libc: load/library libc
 			sys-call: make routine! [cmd [string!]] libc "system"
-			%/tmp/red/
+		]
+	][
+		sys-call: func [cmd][call/wait cmd]
+		if Windows? [
+			temp-dir: append to-rebol-file get-env "ALLUSERSPROFILE" %/Red/
 		]
 	]
 	
@@ -366,10 +371,10 @@ redc: context [
 		]
 		unless Windows? [print ""]							;-- extra LF for more readable output
 		
-		if opts/packager [
+		if all [word: in opts 'packager get word][
 			file: join %system/formats/ [opts/packager %.r]
 			unless exists? file [fail ["Packager:" opts/packager "not found!"]]
-			do file
+			do bind load file 'self
 			packager/process opts src result/4
 		]
 	]

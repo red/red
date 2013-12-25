@@ -85,25 +85,39 @@ Android [
 	red-tracing?: no
 	packager:	'APK
 ]
-;-------------------------
 Android-x86 [
 	OS:			'Android
 	format:		'ELF
 	target:		'IA-32
-	type:		'exe
+	type:		'dll
+	dynamic-linker: "/system/bin/linker"
+	red-store-bodies?: no
+	red-tracing?: no
+	packager:	'APK
+]
+Android-build [
+	OS:			'Android
+	format:		'ELF
+	target:		'ARM
+	type:		'dll
 	dynamic-linker: "/system/bin/linker"
 	red-store-bodies?: no
 	red-tracing?: no
 ]
+;-------------------------
 Android-bin [
 	OS:			'Android
 	format:		'ELF
 	target:		'ARM
 	type:		'exe
 	dynamic-linker: "/system/bin/linker"
-	red-store-bodies?: no
-	red-tracing?: no
-	packager:	'APK
+]
+Android-bin-x86 [
+	OS:			'Android
+	format:		'ELF
+	target:		'IA-32
+	type:		'exe
+	dynamic-linker: "/system/bin/linker"
 ]
 ;-------------------------
 Linux-ARM [

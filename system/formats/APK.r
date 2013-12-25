@@ -8,35 +8,45 @@ REBOL [
 ]
 
 packager: context [
-	verbose: yes
+	verbose: no
 	
 	tools-URL:		http://static.red-lang.org/droid-tools/
-	build-root-dir: %builds/
+	build-root-dir: join temp-dir %builds/
 	tools-dir:		build-root-dir/tools
 	keystore:		%androidtest.keystore
 	
-	log: :print
+	log: func [msg][prin "..." print msg]
 	
-	copy-file: func [src [file!] dst [file!]][
-		if slash = last dst [dst: join dst last split-path src]
-		write/binary dst read/binary src
-	]
+	OS: system/version/4
+	Windows?: OS = 3
+	
 	
 	run: func [cmd [string!]][
 		trim/lines cmd
 		either verbose [call/console cmd][call/wait cmd]
 	]
 	
-	OS: system/version/4
+	copy-files: func [src [file!] dst [file!]][	
+		run reform [
+			either Windows? ["xcopy"]["cp -R"]
+			to-local-file src
+			to-local-file dst
+			either Windows? ["/Y /E /I"][""]
+		]
+	]
 	
-	get-tools: has []
-		unless exists? build-root-dir [
-			log "Creating building folders..."
-			make-dir build-root-dir
+	copy-file: func [src [file!] dst [file!]][
+		if slash = last dst [dst: join dst last split-path src]
+		write/binary dst read/binary src
+	]
+	
+	get-tools: has [files sys][
+		unless exists? tools-dir [
+			log "creating building folders"
 			make-dir/deep tools-dir
 			make-dir/deep tools-dir/api
 
-			log "Downloading Android binary tools..."
+			log "downloading Android binary tools"
 			system/schemes/default/timeout: 0:05:00					;-- be nice with slow connections
 
 			files: switch OS [
@@ -58,64 +68,31 @@ packager: context [
 		]
 	]
 
-	process: func [opts [object!] src [file!] file [file!]][
-		?? opts
-		?? src
-		?? file
-		
-		; identify "project" directory
-		; provides default files for minimal apk
-		; append other conventional folders (assets/)
-		
-		; get temp directory
-		; process files there
-		
-		prj-src-dir: %samples/eval/
-		prj-name:	 last split-path prj-src-dir
-		name:		 head remove back tail copy prj-name
-		bin-dir:	 build-root-dir/:prj-name
+	process: func [opts [object!] src [file!] file [file!]][		
+		paths: 			split-path src
+		prj-src-dir: 	paths/1
+		name:	 		copy/part paths/2 find/last paths/2 #"."
+		bin-dir:	 	build-root-dir/:name
+		append bin-dir slash
 
-		make-dir 	  bin-dir
+		make-dir/deep bin-dir
 		make-dir/deep bin-dir/lib/armeabi
 		make-dir/deep bin-dir/lib/x86
 
 		attempt [delete bin-dir/lib/armeabi/libRed.so]
 		attempt [delete bin-dir/lib/x86/libRed.so]
-
-		res: ask {
-		Choose CPU target (ENTER = default):
-		1) ARM (default)
-		2) x86
-		3) both
-		=> }
 		
-		options: [
-			["Android" %armeabi]
-			["Android-x86" %x86]
-		]
+		get-tools
 
-		opts: switch/default trim/all res [
-			"2" [reduce [options/2]]
-			"3" [options]
-		][
-			reduce [options/1]
-		]
+		dst: either opts/target = 'ARM [%armeabi/][%x86/]
+		copy-file file join bin-dir [%lib/ dst %libRed.so]
+		
+		copy-file %bridges/android/dex/classes.dex bin-dir/dex.classes
+		copy-files %bridges/android/res/ join bin-dir %res/
+		
+		copy-file %bridges/android/AndroidManifest.xml.model build-root-dir/AndroidManifest.xml
 
-		;-- compile Red app into a shared library --
-		foreach job opts [
-			set [target dst-dir] job
-			do/args %../../../red.r reform [
-				"-t " target " -dlib"
-				"-o " join bin-dir/lib/:dst-dir "/libRed"
-				prj-src-dir/eval.red
-			]
-		]
-		;---
-
-		copy-file %dex/classes.dex bin-dir
-
-
-		unless exists? keystore [
+		unless exists? build-root-dir/:keystore [
 			cmd: reform [
 				either OS = 3 [to-local-file tools-dir/keytool]["keytool"]
 				{
@@ -127,7 +104,7 @@ packager: context [
 							L=location,
 							S=state,
 							C=US"
-					-keystore } keystore {
+					-keystore } to-local-file build-root-dir/:keystore {
 					-storepass android
 					-keypass android
 					-alias testkey
@@ -135,7 +112,7 @@ packager: context [
 					-v
 				}
 			]
-			log "Creating new keystore..."
+			log "creating new keystore"
 			run cmd
 		]
 
@@ -144,19 +121,19 @@ packager: context [
 				 package
 				 -v
 				 -f
-				 -M } to-local-file prj-src-dir/AndroidManifest.xml {
-				 -S } to-local-file prj-src-dir/res {
+				 -M } to-local-file build-root-dir/AndroidManifest.xml {
+				 -S } to-local-file bin-dir/res {
 				 -I } to-local-file tools-dir/api/android.jar {
 				 -F } to-local-file rejoin [build-root-dir name %-unsigned.apk]
 				 to-local-file bin-dir
 		]
-		log "Generating apk..."
+		log "generating apk"
 		run cmd
 
 		cmd: reform [ {
 			 jarsigner
 				 -verbose
-				 -keystore } keystore {
+				 -keystore } to-local-file build-root-dir/:keystore {
 				 -storepass android
 				 -keypass android
 				 -sigalg MD5withRSA
@@ -166,7 +143,7 @@ packager: context [
 				 testkey
 			}
 		]
-		log "Signing apk..."
+		log "signing apk"
 		run cmd
 
 		cmd: reform [
@@ -175,13 +152,15 @@ packager: context [
 			to-local-file rejoin [build-root-dir name %-signed.apk] 
 			to-local-file rejoin [build-root-dir name %.apk]
 		]
-		log "Aligning apk..."
+		log "aligning apk"
 		run cmd
 
 		attempt [delete rejoin [build-root-dir name %-signed.apk]]
 		attempt [delete rejoin [build-root-dir name %-unsigned.apk]]
+		
+		
 
-		print "...all done!"
+		log "all done!"
 		
 	]
 ]
