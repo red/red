@@ -1297,9 +1297,9 @@ parser: context [
 						true [
 							value: _context/get w
 							state: either rule? [ST_MATCH_RULE][ST_DO_ACTION] ;-- enable fast loops for word argument
-							rule?: no
 						]
 					]
+					rule?: no
 				]
 				ST_END [
 					if match? [match?: cmd = tail]
