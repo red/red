@@ -24,7 +24,7 @@ lexer: context [
 	;====== Parsing rules ======
 	
 	digit: charset "0123465798"
-	hexa:  union digit charset "ABCDEF" 
+	hexa:  union digit charset "abcdefABCDEF"
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
