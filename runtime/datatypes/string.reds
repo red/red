@@ -25,7 +25,7 @@ string: context [
 	][
 		i: 1
 		c:  #"@"
-		while [c < #"_"][
+		while [c <= #"_"][
 			escape-chars/i: c
 			i: i + 1
 			c: c + 1
