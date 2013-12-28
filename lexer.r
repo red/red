@@ -24,7 +24,8 @@ lexer: context [
 	;====== Parsing rules ======
 	
 	digit: charset "0123465798"
-	hexa:  union digit charset "ABCDEF" 
+	hexa:  union digit charset "ABCDEF"
+	hexa-char: union hexa charset "abcdef"
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
@@ -217,7 +218,7 @@ lexer: context [
 	
 	escaped-char: [
 		"^^(" [
-			s: [2 6 hexa] e: (						;-- Unicode values allowed up to 10FFFFh
+			s: [2 6 hexa-char] e: (						;-- Unicode values allowed up to 10FFFFh
 				value: encode-UTF8-char s e
 			)
 			| [
@@ -277,7 +278,7 @@ lexer: context [
 	
 	binary-rule: [
 		"#{" (type: binary!) 
-		s: any [counted-newline | 2 hexa | ws-no-count | comment-rule]
+		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
 		e: #"}"
 	]
 	
@@ -498,7 +499,7 @@ lexer: context [
 
 		parse/all/case s [
 			some [
-				copy byte 2 hexa (insert tail new debase/base byte 16)
+				copy byte 2 hexa-char (insert tail new debase/base byte 16)
 				| ws | comment-rule
 				| #"}" end skip
 			]
