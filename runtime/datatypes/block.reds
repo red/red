@@ -424,6 +424,7 @@ block: context [
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
+		if zero? size [size: 1]
 		make-at as red-block! stack/push* size
 	]
 	
