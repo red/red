@@ -859,7 +859,7 @@ string: context [
 		tail: either zero? limit [						;@@ rework that part
 			as byte-ptr! s/tail
 		][
-			p + (part << (unit >> 1))
+			either negative? part [p][p + (part << (unit >> 1))]
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 		
