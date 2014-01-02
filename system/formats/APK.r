@@ -91,8 +91,11 @@ packager: context [
 		copy-file file join bin-dir [%lib/ dst %libRed.so]
 		delete file
 		
-		copy-file %bridges/android/dex/classes.dex bin-dir/dex.classes
-		copy-files %bridges/android/res/ join bin-dir %res/
+		copy-file  %bridges/android/dex/classes.dex bin-dir/classes.dex
+		copy-files %bridges/android/res/drawable-hdpi bin-dir/res/drawable-hdpi
+		copy-files %bridges/android/res/drawable-mdpi bin-dir/res/drawable-mdpi
+		copy-files %bridges/android/res/drawable-xhdpi bin-dir/res/drawable-xhdpi
+		copy-files %bridges/android/res/drawable-xxhdpi bin-dir/res/drawable-xxhdpi
 		
 		copy-file %bridges/android/AndroidManifest.xml.model build-root-dir/AndroidManifest.xml
 
@@ -126,7 +129,7 @@ packager: context [
 				 -v
 				 -f
 				 -M } to-local-file build-root-dir/AndroidManifest.xml {
-				 -S } to-local-file bin-dir/res {
+				 -S } to-local-file %bridges/android/res {
 				 -I } to-local-file tools-dir/api/android.jar {
 				 -F } to-local-file rejoin [build-root-dir name %-unsigned.apk]
 				 to-local-file bin-dir
