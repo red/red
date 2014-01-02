@@ -275,8 +275,8 @@ redc: context [
 		]
 		
 		;; Process -dlib/--dynamic-lib (if any).
-		if type = 'dll [
-			opts/type: type
+		if any [type = 'dll opts/type = 'dll][
+			if type = 'dll [opts/type: type]
 			if opts/OS <> 'Windows [opts/PIC?: yes]
 		]
 		
