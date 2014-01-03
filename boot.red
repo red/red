@@ -48,6 +48,7 @@ port!:			make datatype! #get-definition TYPE_PORT
 bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
+pair!:			make datatype! #get-definition TYPE_PAIR
 
 none:  			make none! 0
 true:  			make logic! 1
@@ -921,6 +922,7 @@ logic?:		 func ["Returns true if the value is this type." value [any-type!]] [lo
 native?:	 func ["Returns true if the value is this type." value [any-type!]] [native!	= type? :value]
 none?:		 func ["Returns true if the value is this type." value [any-type!]] [none!		= type? :value]
 op?:		 func ["Returns true if the value is this type." value [any-type!]] [op!		= type? :value]
+pair?:		 func ["Returns true if the value is this type." value [any-type!]] [pair!		= type? :value]
 paren?:		 func ["Returns true if the value is this type." value [any-type!]] [paren!		= type? :value]
 path?:		 func ["Returns true if the value is this type." value [any-type!]] [path!		= type? :value]
 refinement?: func ["Returns true if the value is this type." value [any-type!]] [refinement! = type? :value]

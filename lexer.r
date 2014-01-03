@@ -18,6 +18,7 @@ lexer: context [
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
 	value:	none									;-- new value
+	value2:	none									;-- secondary new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
 	
@@ -60,7 +61,7 @@ lexer: context [
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"]);}
+	integer-end:	charset {^{"]);x}
 	stop: 		    none
 	
 	control-char: reduce [
@@ -207,8 +208,17 @@ lexer: context [
 		pos: [										;-- protection rule from typo with sticky words
 			[integer-end | ws-no-count | end] (fail?: none)
 			| skip (fail?: [end skip]) 
-		] :pos 
+		] :pos
+		(value: load-integer copy/part s e)
 		fail?
+		opt [
+			#"x" (
+				type: pair!
+				value2: to pair! reduce [value 0]
+			)
+			s: integer-rule
+			(value2/2: load-integer copy/part s e value: value2)
+		]
 	]
 		
 	block-rule: [#"[" (stack/push block!) any-value #"]" (value: stack/pop block!)]
@@ -320,7 +330,7 @@ lexer: context [
 			comment-rule
 			| multiline-comment-rule
 			| escaped-rule    (stack/push value)
-			| integer-rule	  (stack/push load-integer   copy/part s e)
+			| integer-rule	  (stack/push value)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)

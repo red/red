@@ -63,6 +63,7 @@ red: context [
 	#include %datatypes/object.reds
 	#include %datatypes/bitset.reds
 	#include %datatypes/point.reds
+	#include %datatypes/pair.reds
 	
 	;-- Debugging helpers --
 	
@@ -123,6 +124,7 @@ red: context [
 		object/init
 		bitset/init
 		point/init
+		pair/init
 		
 		actions/init
 		
@@ -168,6 +170,8 @@ red: context [
 			file/verbose:		verbosity
 			object/verbose:		verbosity
 			bitset/verbose:		verbosity
+			point/verbose:		verbosity
+			pair/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity
