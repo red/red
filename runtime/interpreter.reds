@@ -100,6 +100,16 @@ interpreter: context [
 		print-line sym/cache
 	]
 	
+	do-path: does [
+		eval-path stack/top - 1 null null no
+		stack/set-last stack/top - 1
+	]
+	
+	do-set-path: does [
+		eval-path stack/top - 1 null null yes
+		stack/set-last stack/top - 1
+	]
+	
 	literal-first-arg?: func [
 		native 	[red-native!]
 		return: [logic!]
@@ -446,7 +456,13 @@ interpreter: context [
 			saved  [red-value!]
 	][
 		if verbose > 0 [print-line "eval: path"]
-		
+
+		assert any [
+			TYPE_OF(value) = TYPE_PATH
+			TYPE_OF(value) = TYPE_GET_PATH
+			TYPE_OF(value) = TYPE_SET_PATH
+			TYPE_OF(value) = TYPE_LIT_PATH
+		]
 		path:   as red-path! value
 		head:   block/rs-head as red-block! path
 		tail:   block/rs-tail as red-block! path
