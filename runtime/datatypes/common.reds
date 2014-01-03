@@ -203,6 +203,8 @@ words: context [
 	keep:			-1
 	ahead:			-1
 	after:			-1
+	x:				-1
+	y:				-1
 	
 	_true:			-1
 	_false:			-1
@@ -317,6 +319,9 @@ words: context [
 		keep:			symbol/make "keep"
 		ahead:			symbol/make "ahead"
 		after:			symbol/make "after"
+
+		x:				symbol/make "x"
+		y:				symbol/make "y"
 		
 		self:			symbol/make "self"
 		values:			symbol/make "values"

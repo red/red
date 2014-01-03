@@ -74,6 +74,7 @@ red: context [
 	#include %datatypes/error.reds
 	#include %datatypes/vector.reds
 	#include %datatypes/hash.reds
+	#include %datatypes/pair.reds
 	
 	;-- Debugging helpers --
 	
@@ -139,6 +140,7 @@ red: context [
 		error/init
 		vector/init
 		hash/init
+		pair/init
 		
 		actions/init
 		
@@ -194,6 +196,8 @@ red: context [
 			error/verbose:		verbosity
 			vector/verbose:		verbosity
 			hash/verbose:		verbosity
+			point/verbose:		verbosity
+			pair/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

@@ -18,6 +18,7 @@ lexer: context [
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
 	value:	none									;-- new value
+	value2:	none									;-- secondary new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
@@ -78,7 +79,7 @@ lexer: context [
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"[]);}
+	integer-end:	charset {^{"[]);x}
 	stop: 		    none
 
 	control-char: reduce [
@@ -246,6 +247,14 @@ lexer: context [
 		| integer-number-rule
 		  opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
 		  sticky-word-rule
+		opt [
+			#"x" (
+				type: pair!
+				value2: to pair! reduce [value 0]
+			)
+			s: integer-rule
+			(value2/2: load-integer copy/part s e value: value2)
+		]
 	]
 
 	decimal-special: [
