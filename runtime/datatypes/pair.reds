@@ -45,15 +45,17 @@ pair: context [
 
 	load-in: func [
 		blk	  	[red-block!]
-		value 	[integer!]
+		x 		[integer!]
+		y 		[integer!]
 		/local
-			int [red-integer!]
+			pair [red-pair!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/load-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/load-in"]]
 		
-		int: as red-integer! ALLOC_TAIL(blk)
-		int/header: TYPE_INTEGER
-		int/value: value
+		pair: as red-pair! ALLOC_TAIL(blk)
+		pair/header: TYPE_PAIR
+		pair/x: x
+		pair/y: y
 	]
 	
 	push: func [
