@@ -15,30 +15,43 @@ pair: context [
 	
 	do-math: func [
 		type	  [integer!]
-		return:	  [red-integer!]
+		return:	  [red-pair!]
 		/local
-			left  [red-integer!]
-			right [red-integer!]
+			left  [red-pair!]
+			right [red-pair!]
+			int	  [red-integer!]
+			x	  [integer!]
+			y	  [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
-
-		left: as red-integer! stack/arguments
+		left: as red-pair! stack/arguments
 		right: left + 1
 		
-		assert any [									;@@ replace by typeset check when possible
-			TYPE_OF(left) = TYPE_INTEGER
-			TYPE_OF(left) = TYPE_CHAR
-		]
+		assert TYPE_OF(left) = TYPE_PAIR
 		assert any [
+			TYPE_OF(right) = TYPE_PAIR
 			TYPE_OF(right) = TYPE_INTEGER
-			TYPE_OF(right) = TYPE_CHAR
 		]
 		
-		left/value: switch type [
-			OP_ADD [left/value + right/value]
-			OP_SUB [left/value - right/value]
-			OP_MUL [left/value * right/value]
-			OP_DIV [left/value / right/value]
+		switch TYPE_OF(right) [
+			TYPE_PAIR 	 [
+				x: right/x
+				y: right/y
+			]
+			TYPE_INTEGER [
+				int: as red-integer! right
+				x: int/value
+				y: x
+			]
+			default [
+				print-line "*** Math Error: unsupported right operand for pair operation"
+			]
+		]
+		
+		switch type [
+			OP_ADD [left/x: left/x + x  left/y: left/y + y]
+			OP_SUB [left/x: left/x - x  left/y: left/y - y]
+			OP_MUL [left/x: left/x * x  left/y: left/y * y]
+			OP_DIV [left/x: left/x / x  left/y: left/y / y]
 		]
 		left
 	]
@@ -209,22 +222,22 @@ pair: context [
 	]
 	
 	add: func [return: [red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/add"]]
 		as red-value! do-math OP_ADD
 	]
 	
 	divide: func [return: [red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "integer/divide"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/divide"]]
 		as red-value! do-math OP_DIV
 	]
 		
 	multiply: func [return:	[red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "integer/multiply"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/multiply"]]
 		as red-value! do-math OP_MUL
 	]
 	
 	subtract: func [return:	[red-value!]][
-		#if debug? = yes [if verbose > 0 [print-line "integer/subtract"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/subtract"]]
 		as red-value! do-math OP_SUB
 	]
 	
