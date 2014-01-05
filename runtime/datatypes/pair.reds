@@ -163,11 +163,11 @@ pair: context [
 			]
 		]
 		either set? [
-			int: as red-integer! stack/arguments
+			int: as red-integer! stack/push*
 			either value = 1 [parent/x: int/value][parent/y: int/value]
-			stack/arguments
+			as red-value! int
 		][
-			integer/box either value = 1 [parent/x][parent/y]
+			integer/push either value = 1 [parent/x][parent/y]
 		]
 	]
 	

@@ -463,11 +463,11 @@ interpreter: context [
 			TYPE_OF(value) = TYPE_SET_PATH
 			TYPE_OF(value) = TYPE_LIT_PATH
 		]
-		path:   as red-path! value
-		head:   block/rs-head as red-block! path
-		tail:   block/rs-tail as red-block! path
-		item:   head + 1
-		saved:  stack/top
+		path:  as red-path! value
+		head:  block/rs-head as red-block! path
+		tail:  block/rs-tail as red-block! path
+		item:  head + 1
+		saved: stack/top
 		
 		if TYPE_OF(head) <> TYPE_WORD [
 			print-line "*** Error: path value must start with a word!"
