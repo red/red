@@ -100,6 +100,8 @@ integer: context [
 		/local
 			left	[red-integer!]
 			right	[red-integer!]
+			pair  [red-pair!]
+			value [integer!]
 	][
 		left: as red-integer! stack/arguments
 		right: left + 1
@@ -112,6 +114,7 @@ integer: context [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
 			TYPE_OF(right) = TYPE_FLOAT
+			TYPE_OF(right) = TYPE_PAIR
 		]
 
 		either TYPE_OF(right) = TYPE_FLOAT [
