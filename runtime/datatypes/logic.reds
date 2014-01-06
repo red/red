@@ -127,19 +127,29 @@ logic: context [
 		spec	 [red-value!]
 		return:	 [red-logic!]							;-- return cell pointer
 		/local
-			cell [red-logic!]
-			args [red-value!]
-			id	 [red-integer!]
+			bool  [red-logic!]
+			int	  [red-integer!]
+			value [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/make"]]
 
-		assert TYPE_OF(spec) = TYPE_INTEGER
-		id: as red-integer! spec
-	
-		cell: as red-logic! stack/push*
-		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
-		cell/value: id/value <> 0
-		cell
+		value: switch TYPE_OF(spec) [
+			TYPE_NONE  [no]
+			TYPE_LOGIC [
+				bool: as red-logic! spec
+				bool/value
+			]
+			TYPE_INTEGER [
+				int: as red-integer! spec
+				int/value <> 0
+			]
+			default [yes]
+		]
+		
+		bool: as red-logic! stack/push*
+		bool/header: TYPE_LOGIC							;-- implicit reset of all header flags
+		bool/value:  value
+		bool
 	]
 	
 	form: func [
