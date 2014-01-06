@@ -1023,9 +1023,13 @@ replace: func [
 ]
 
 zero?: func [
-	value [number!]
+	value [number! pair!]
 ][
-	value = 0
+	either pair! = type? value [
+		make logic! all [value/1 = 0 value/2 = 0]
+	][
+		value = 0
+	]
 ]
 
 charset: func [
