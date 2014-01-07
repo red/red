@@ -101,27 +101,6 @@ logic: context [
 	
 	;-- Actions -- 
 
-	make*: func [
-		return:	 [red-value!]							;-- return cell pointer
-		/local
-			cell [red-logic!]
-			args [red-value!]
-			id	 [red-integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "logic/make"]]
-
-		args: stack/arguments
-		cell: as red-logic! args
-		id: as red-integer! args + 1
-		
-		assert TYPE_OF(cell) = TYPE_DATATYPE
-		assert TYPE_OF(id)   = TYPE_INTEGER
-		
-		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
-		cell/value: id/value <> 0
-		as red-value! cell
-	]
-	
 	make: func [
 		proto	 [red-value!]	
 		spec	 [red-value!]
