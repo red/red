@@ -185,38 +185,23 @@ pair: context [
 	]
 	
 	compare: func [
-		value1    [red-integer!]						;-- first operand
-		value2    [red-integer!]						;-- second operand
-		op	      [integer!]							;-- type of comparison
-		return:   [logic!]
+		left	[red-pair!]							;-- first operand
+		right	[red-pair!]							;-- second operand
+		op		[integer!]							;-- type of comparison
+		return:	[logic!]
 		/local
-			char  [red-char!]
-			left  [integer!]
-			right [integer!] 
 			res	  [logic!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/compare"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 		
-		left: value1/value
-		
-		switch TYPE_OF(value2) [
-			TYPE_INTEGER [
-				right: value2/value
-			]
-			TYPE_CHAR [
-				char: as red-char! value2				;@@ could be optimized as integer! and char!
-				right: char/value						;@@ structures are overlapping exactly
-			]
-			default [RETURN_COMPARE_OTHER]
-		]
 		switch op [
-			COMP_EQUAL 			[res: left = right]
-			COMP_NOT_EQUAL 		[res: left <> right]
-			COMP_STRICT_EQUAL	[res: all [TYPE_OF(value2) = TYPE_INTEGER left = right]]
-			COMP_LESSER			[res: left <  right]
-			COMP_LESSER_EQUAL	[res: left <= right]
-			COMP_GREATER		[res: left >  right]
-			COMP_GREATER_EQUAL	[res: left >= right]
+			COMP_EQUAL 			[res: all [left/x =  right/x left/y =  right/y]]
+			COMP_NOT_EQUAL 		[res: any [left/x <> right/x left/y <> right/y]]
+			COMP_STRICT_EQUAL	[res: all [left/x =  right/x left/y =  right/y]]
+			COMP_LESSER			[res: all [left/x <  right/x left/y <  right/y]]
+			COMP_LESSER_EQUAL	[res: all [left/x <= right/x left/y <= right/y]]
+			COMP_GREATER		[res: all [left/x >  right/x left/y >  right/y]]
+			COMP_GREATER_EQUAL	[res: all [left/x >= right/x left/y >= right/y]]
 		]
 		res
 	]
