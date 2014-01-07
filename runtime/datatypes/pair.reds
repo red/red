@@ -185,9 +185,9 @@ pair: context [
 	]
 	
 	compare: func [
-		left	[red-pair!]							;-- first operand
-		right	[red-pair!]							;-- second operand
-		op		[integer!]							;-- type of comparison
+		left	[red-pair!]								;-- first operand
+		right	[red-pair!]								;-- second operand
+		op		[integer!]								;-- type of comparison
 		return:	[logic!]
 		/local
 			res	  [logic!]
