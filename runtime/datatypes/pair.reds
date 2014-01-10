@@ -176,7 +176,7 @@ pair: context [
 			]
 		]
 		either set? [
-			int: as red-integer! stack/push*
+			int: as red-integer! stack/arguments
 			either value = 1 [parent/x: int/value][parent/y: int/value]
 			as red-value! int
 		][
@@ -190,7 +190,7 @@ pair: context [
 		op		[integer!]								;-- type of comparison
 		return:	[logic!]
 		/local
-			res	  [logic!]
+			res	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
 		
