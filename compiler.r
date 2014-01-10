@@ -648,6 +648,9 @@ red: context [
 					find [logic! unset! datatype!] type?/word :item [
 						to word! form :item
 					]
+					pair? :item [
+						reduce [item/x item/y]
+					]
 					none? :item [
 						[]								;-- no argument
 					]
