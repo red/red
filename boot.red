@@ -49,6 +49,7 @@ bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
 pair!:			make datatype! #get-definition TYPE_PAIR
+tuple!:			make datatype! #get-definition TYPE_TUPLE
 
 none:  			make none! 0
 true:  			make logic! 1
@@ -929,6 +930,7 @@ refinement?: func ["Returns true if the value is this type." value [any-type!]] 
 set-path?:	 func ["Returns true if the value is this type." value [any-type!]] [set-path!	= type? :value]
 set-word?:	 func ["Returns true if the value is this type." value [any-type!]] [set-word!	= type? :value]
 string?:	 func ["Returns true if the value is this type." value [any-type!]] [string!	= type? :value]
+tuple?:		 func ["Returns true if the value is this type." value [any-type!]] [tuple!		= type? :value]
 unset?:		 func ["Returns true if the value is this type." value [any-type!]] [unset!		= type? :value]
 word?:		 func ["Returns true if the value is this type." value [any-type!]] [word!		= type? :value]
 
