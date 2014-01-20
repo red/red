@@ -126,6 +126,9 @@ words: context [
 	collect:		-1
 	keep:			-1
 	ahead:			-1
+	x:				-1
+	y:				-1
+	z:				-1
 	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -192,6 +195,10 @@ words: context [
 		
 		self:			symbol/make "self"
 		values:			symbol/make "values"
+		
+		x:				symbol/make "x"
+		y:				symbol/make "y"
+		z:				symbol/make "z"
 		
 		_body:			_context/add-global body
 		_windows:		_context/add-global windows

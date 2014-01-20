@@ -62,6 +62,7 @@ tokenizer: context [
 		ERR_INVALID_INTEGER
 		ERR_INVALID_PATH
 		ERR_INVALID_CHAR
+		ERR_INVALID_PAIR
 	]
 
 	throw-error: func [id [integer!]][
@@ -76,6 +77,7 @@ tokenizer: context [
 			ERR_INVALID_INTEGER		 ["invalid integer"]
 			ERR_INVALID_PATH		 ["invalid path"]
 			ERR_INVALID_CHAR		 ["invalid char"]
+			ERR_INVALID_PAIR		 ["invalid pair"]
 		]
 		print-line #"!"
 	]
@@ -270,6 +272,8 @@ tokenizer: context [
 		s		 [c-string!]
 		blk		 [red-block!]
 		neg?	 [logic!]
+		pair?	 [logic!]
+		x		 [integer!]
 		return:  [c-string!]
 		/local
 			e	 [c-string!]
@@ -289,7 +293,27 @@ tokenizer: context [
 			c: e/1
 		]
 		if neg? [i: 0 - i]
-		integer/load-in blk i
+		
+		either c = #"x" [
+			if pair? [throw-error ERR_INVALID_PAIR]
+			e: e + 1
+			c: e/1
+			neg?: c = #"-"
+			if neg? [
+				e: e + 1
+				c: e/1
+			]
+			unless all [#"0" <= c c <= #"9"][
+				throw-error ERR_INVALID_PAIR
+			]
+			e: scan-integer e blk neg? yes i
+		][
+			either pair? [
+				pair/load-in blk x i
+			][
+				integer/load-in blk i
+			]
+		]
 		e
 	]
 	
@@ -302,7 +326,7 @@ tokenizer: context [
 	][
 		c: src/2
 		either all [#"0" <= c c <= #"9"][
-			scan-integer src + 1 blk yes
+			scan-integer src + 1 blk yes no 0
 		][
 			scan-word src blk TYPE_WORD no
 		]
@@ -383,7 +407,7 @@ tokenizer: context [
 				c = #"("  [src: scan-paren src + 1 path]
 				c = #":"  [src: scan-word src + 1 path TYPE_GET_WORD yes]
 				c = #"-"  [src: scan-minus src path]
-				all [#"0" <= c c <= #"9"][src: scan-integer src path no]
+				all [#"0" <= c c <= #"9"][src: scan-integer src path no no 0]
 				all [#" " <  c c <= #"ÿ"][src: scan-word src path TYPE_WORD yes]
 				yes [throw-error ERR_INVALID_PATH]
 			]
@@ -470,7 +494,7 @@ tokenizer: context [
 						src: scan-word src + 1 blk TYPE_ISSUE no
 					]
 				]
-				all [#"0" <= c c <= #"9"][src: scan-integer src blk no]
+				all [#"0" <= c c <= #"9"][src: scan-integer src blk no no 0]
 				all [#" " <  c c <= #"ÿ"][src: scan-word src blk TYPE_WORD no]
 			]
 		]	

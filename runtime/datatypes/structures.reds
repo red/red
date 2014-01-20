@@ -177,6 +177,21 @@ red-point!: alias struct! [
 	z		[integer!]								;-- stores an integer! or float32! value
 ]
 
+red-pair!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding	[integer!]								;-- align value on 64-bit boundary
+	x		[integer!]								;-- 32-bit signed integer or float32!
+	y		[integer!]								;-- 32-bit signed integer or float32!
+]
+
+red-tuple!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding	[integer!]								;-- align value on 64-bit boundary
+	x		[integer!]								;-- 32-bit signed integer or float32!
+	y		[integer!]								;-- 32-bit signed integer or float32!
+	z		[integer!]								;-- 32-bit signed integer or float32!
+]
+
 red-action!: alias struct! [
 	header 	[integer!]								;-- cell header
 	symbols	[node!]									;-- action cleaned-up spec block reference

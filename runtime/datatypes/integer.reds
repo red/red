@@ -85,13 +85,13 @@ integer: context [
 	
 	do-math: func [
 		type	  [integer!]
-		return:	  [red-integer!]
+		return:	  [red-value!]
 		/local
 			left  [red-integer!]
 			right [red-integer!]
+			pair  [red-pair!]
+			value [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
-
 		left: as red-integer! stack/arguments
 		right: left + 1
 		
@@ -102,15 +102,28 @@ integer: context [
 		assert any [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
+			TYPE_OF(right) = TYPE_PAIR
 		]
 		
-		left/value: switch type [
-			OP_ADD [left/value + right/value]
-			OP_SUB [left/value - right/value]
-			OP_MUL [left/value * right/value]
-			OP_DIV [left/value / right/value]
+		either TYPE_OF(right) = TYPE_PAIR [
+			value: left/value
+			copy-cell as red-value! right as red-value! left
+			pair: as red-pair! left
+			switch type [
+				OP_ADD [pair/x: pair/x + value  pair/y: pair/y + value]
+				OP_SUB [pair/x: pair/x - value  pair/y: pair/y - value]
+				OP_MUL [pair/x: pair/x * value  pair/y: pair/y * value]
+				OP_DIV [pair/x: pair/x / value  pair/y: pair/y / value]
+			]
+		][
+			left/value: switch type [
+				OP_ADD [left/value + right/value]
+				OP_SUB [left/value - right/value]
+				OP_MUL [left/value * right/value]
+				OP_DIV [left/value / right/value]
+			]
 		]
-		left
+		as red-value! left
 	]
 
 	load-in: func [

@@ -48,6 +48,8 @@ port!:			make datatype! #get-definition TYPE_PORT
 bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
+pair!:			make datatype! #get-definition TYPE_PAIR
+tuple!:			make datatype! #get-definition TYPE_TUPLE
 
 none:  			make none! 0
 true:  			make logic! 1
@@ -923,12 +925,14 @@ native?:	 func ["Returns true if the value is this type." value [any-type!]] [na
 none?:		 func ["Returns true if the value is this type." value [any-type!]] [none!		= type? :value]
 object?:	 func ["Returns true if the value is this type." value [any-type!]] [object!	= type? :value]
 op?:		 func ["Returns true if the value is this type." value [any-type!]] [op!		= type? :value]
+pair?:		 func ["Returns true if the value is this type." value [any-type!]] [pair!		= type? :value]
 paren?:		 func ["Returns true if the value is this type." value [any-type!]] [paren!		= type? :value]
 path?:		 func ["Returns true if the value is this type." value [any-type!]] [path!		= type? :value]
 refinement?: func ["Returns true if the value is this type." value [any-type!]] [refinement! = type? :value]
 set-path?:	 func ["Returns true if the value is this type." value [any-type!]] [set-path!	= type? :value]
 set-word?:	 func ["Returns true if the value is this type." value [any-type!]] [set-word!	= type? :value]
 string?:	 func ["Returns true if the value is this type." value [any-type!]] [string!	= type? :value]
+tuple?:		 func ["Returns true if the value is this type." value [any-type!]] [tuple!		= type? :value]
 unset?:		 func ["Returns true if the value is this type." value [any-type!]] [unset!		= type? :value]
 word?:		 func ["Returns true if the value is this type." value [any-type!]] [word!		= type? :value]
 
@@ -1023,9 +1027,13 @@ replace: func [
 ]
 
 zero?: func [
-	value [number!]
+	value [number! pair!]
 ][
-	value = 0
+	either pair! = type? value [
+		make logic! all [value/1 = 0 value/2 = 0]
+	][
+		value = 0
+	]
 ]
 
 charset: func [

@@ -170,6 +170,7 @@ red: context [
 			word! 
 			get-word!
 			set-word!
+			pair!
 		] type?/word :expr
 	]
 	
@@ -852,6 +853,11 @@ red: context [
 				any-word? :value [
 					add-symbol to word! :value
 					emit-push-word :value
+				]
+				pair? :value [
+					emit 'pair/push
+					emit reduce [value/1 value/2]
+					insert-lf -3
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]
@@ -1616,68 +1622,37 @@ red: context [
 		]
 	]
 	
-	comp-path: func [/set /local path value emit? get? entry alter saved after][
+	comp-path: func [/set /local path value get? entry alter][
 		path: copy pc/1
-		emit?: yes
 		
-		if find path paren! [
-			emit-open-frame 'body
-			if set [
-				saved: pc
+		value: path/1
+		if all [not set not get? entry: find functions value][
+			if alter: select ssa-names value [
+				entry: find functions alter
+			]
+			either head? path [
 				pc: next pc
-				comp-expression
-				after: pc
-				pc: saved
-			]
-			comp-literal no
-			pc: back pc
-			
-			unless set [emit [stack/mark-native words/_body]]	;@@ not clean...
-			emit compose [
-				interpreter/eval-path stack/top - 1 null null (to word! form to logic! set)
-			]
-			unless set [emit [stack/unwind-last]]
-			
-			emit-close-frame
-			pc: either set [after][next pc]
-			exit
-		]
-		
-		forall path [
-			switch/default type?/word value: path/1 [
-				word! [
-					if all [not set not get? entry: find functions value][
-						if alter: select ssa-names value [
-							entry: find functions alter
-						]
-						either head? path [
-							pc: next pc
-							comp-call path entry/2		;-- call function with refinements
-							exit
-						][
-							;--not-implemented--			;TBD: resolve access path to function
-						]
-						;emit?: no						;-- no further emitted code needed
-					]
-				]
-				get-word! [
-					if head? path [
-						get?: yes
-						change path to word! path/1
-					]
-				]
-				integer! paren! string!	[
-					if head? path [path-head-error]
-				]
+				comp-call path entry/2		;-- call function with refinements
+				exit
 			][
-				throw-error ["cannot use" mold type? value "value in path:" pc/1]
+				;--not-implemented--			;TBD: resolve access path to function
 			]
 		]
-		if emit? [
-			if set [pc: next pc]					;-- skip set-path to be ready to fetch argument
-			emit-path back tail path to logic! set	;-- emit code recursively from tail
-			unless set [pc: next pc]
+					
+		emit-open-frame 'body
+		if set [
+			saved: pc
+			pc: next pc
+			comp-expression
+			after: pc
+			pc: saved
 		]
+		comp-literal no
+		pc: back pc
+		emit pick [interpreter/do-set-path interpreter/do-path] to logic! set
+		insert-lf -1
+		emit-close-frame
+		pc: either set [after][next pc]
 	]
 	
 	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!] /local word][

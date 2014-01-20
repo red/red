@@ -20,6 +20,7 @@ linker: context [
 	] none
 	
 	job-class: context [
+		packager:									;-- 'APK
 		format: 									;-- 'PE | 'ELF | 'Mach-o
 		type: 										;-- 'exe | 'obj | 'lib | 'dll | 'drv
 		target:										;-- CPU identifier
