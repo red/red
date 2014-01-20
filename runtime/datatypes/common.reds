@@ -128,6 +128,7 @@ words: context [
 	ahead:			-1
 	x:				-1
 	y:				-1
+	z:				-1
 	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -197,6 +198,7 @@ words: context [
 		
 		x:				symbol/make "x"
 		y:				symbol/make "y"
+		z:				symbol/make "z"
 		
 		_body:			_context/add-global body
 		_windows:		_context/add-global windows
