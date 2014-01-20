@@ -19,6 +19,7 @@ lexer: context [
 	e:		none									;-- mark end position of new value
 	value:	none									;-- new value
 	value2:	none									;-- secondary new value
+	value3:	none									;-- tertiary new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
 	
@@ -61,7 +62,7 @@ lexer: context [
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"]);x}
+	integer-end:	charset {^{"]);x.}
 	stop: 		    none
 	
 	control-char: reduce [
@@ -216,8 +217,15 @@ lexer: context [
 				type: pair!
 				value2: to pair! reduce [value 0]
 			)
+;Look at this
+;			#"." (
+;				type: tuple!
+;				value2: to tuple! reduce [value 0]
+;				value3: to tuple! reduce [value 0]
+;			)
 			s: integer-rule
 			(value2/2: load-integer copy/part s e value: value2)
+;			(value3/3: load-integer copy/part s e value: value3)
 		]
 	]
 		
@@ -306,7 +314,7 @@ lexer: context [
 				| "set-word!" | "get-word!" | "lit-word!" | "refinement!"
 				| "binary!" | "string!"	| "char!" | "bitset!" | "path!"
 				| "set-path!" | "lit-path!" | "native!"	| "action!"
-				| "issue!" | "paren!" | "function!"
+				| "issue!" | "paren!" | "function!"|"pair!"|"tuple!"
 			] e: (value: get to word! copy/part s e)
 		]  any-ws #"]"
 	]
