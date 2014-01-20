@@ -10,9 +10,6 @@ Red/System [
 	}
 ]
 
-; COPY of pair.reds all 'pair' replaced by 'tuple'
-; type [red-tuple!] is probably not known at this time
-
 tuple: context [
 	verbose: 0
 	
@@ -40,6 +37,7 @@ tuple: context [
 			TYPE_TUPLE 	 [
 				x: right/x
 				y: right/y
+				z: right/z
 			]
 			TYPE_INTEGER [
 				int: as red-integer! right
@@ -52,10 +50,10 @@ tuple: context [
 		]
 		
 		switch type [
-			OP_ADD [left/x: left/x + x  left/y: left/y + y]
-			OP_SUB [left/x: left/x - x  left/y: left/y - y]
-			OP_MUL [left/x: left/x * x  left/y: left/y * y]
-			OP_DIV [left/x: left/x / x  left/y: left/y / y]
+			OP_ADD [left/x: left/x + x  left/y: left/y + y  left/z: left/z + z]
+			OP_SUB [left/x: left/x - x  left/y: left/y - y  left/z: left/z - z]
+			OP_MUL [left/x: left/x * x  left/y: left/y * y  left/z: left/z * z]
+			OP_DIV [left/x: left/x / x  left/y: left/y / y  left/z: left/z / z]
 		]
 		left
 	]
@@ -64,6 +62,7 @@ tuple: context [
 		blk	  	[red-block!]
 		x 		[integer!]
 		y 		[integer!]
+		z 		[integer!]
 		/local
 			tuple [red-tuple!]
 	][
@@ -73,11 +72,13 @@ tuple: context [
 		tuple/header: TYPE_TUPLE
 		tuple/x: x
 		tuple/y: y
+		tuple/z: z
 	]
 	
 	push: func [
 		value	[integer!]
 		value2  [integer!]
+		value3  [integer!]
 		return: [red-tuple!]
 		/local
 			tuple [red-tuple!]
@@ -88,6 +89,7 @@ tuple: context [
 		tuple/header: TYPE_TUPLE
 		tuple/x: value
 		tuple/y: value2
+		tuple/z: value3
 		tuple
 	]
 
@@ -126,11 +128,15 @@ tuple: context [
 		string/concatenate-literal buffer formed
 		part: part - length? formed						;@@ optimize by removing length?
 		
-		string/append-char GET_BUFFER(buffer) as-integer #"x"
+		string/append-char GET_BUFFER(buffer) as-integer #"."
 		
 		formed: integer/form-signed tuple/y
 		string/concatenate-literal buffer formed
-		part - 1 - length? formed						;@@ optimize by removing length?
+		string/append-char GET_BUFFER(buffer) as-integer #"."
+		
+		formed: integer/form-signed tuple/z
+		string/concatenate-literal buffer formed
+		part - 2 - length? formed						;@@ optimize by removing length?
 	]
 	
 	mold: func [
@@ -170,7 +176,7 @@ tuple: context [
 			TYPE_WORD [
 				w: as red-word! element
 				value: symbol/resolve w/symbol
-				if all [value <> words/x value <> words/y][
+				if all [value <> words/x value <> words/y value <> words/z][
 					print-line "*** Path Error: tuple! does not support accessor:"
 				]
 				value: either value = words/x [1][2]
@@ -199,13 +205,13 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/compare"]]
 		
 		switch op [
-			COMP_EQUAL 			[res: all [left/x =  right/x left/y =  right/y]]
-			COMP_NOT_EQUAL 		[res: any [left/x <> right/x left/y <> right/y]]
-			COMP_STRICT_EQUAL	[res: all [left/x =  right/x left/y =  right/y]]
-			COMP_LESSER			[res: all [left/x <  right/x left/y <  right/y]]
-			COMP_LESSER_EQUAL	[res: all [left/x <= right/x left/y <= right/y]]
-			COMP_GREATER		[res: all [left/x >  right/x left/y >  right/y]]
-			COMP_GREATER_EQUAL	[res: all [left/x >= right/x left/y >= right/y]]
+			COMP_EQUAL 			[res: all [left/x =  right/x left/y =  right/y left/z =  right/z]]
+			COMP_NOT_EQUAL 		[res: any [left/x <> right/x left/y <> right/y left/z <> right/z]]
+			COMP_STRICT_EQUAL	[res: all [left/x =  right/x left/y =  right/y left/z =  right/z]]
+			COMP_LESSER			[res: all [left/x <  right/x left/y <  right/y left/z <  right/z]]
+			COMP_LESSER_EQUAL	[res: all [left/x <= right/x left/y <= right/y left/z <= right/z]]
+			COMP_GREATER		[res: all [left/x >  right/x left/y >  right/y left/z >  right/z]]
+			COMP_GREATER_EQUAL	[res: all [left/x >= right/x left/y >= right/y left/z >= right/z]]
 		]
 		res
 	]
