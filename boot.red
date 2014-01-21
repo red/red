@@ -49,6 +49,7 @@ bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
 pair!:			make datatype! #get-definition TYPE_PAIR
+tuple!:			make datatype! #get-definition TYPE_TUPLE
 
 none:  			make none! 0
 true:  			make logic! 1
@@ -1023,6 +1024,7 @@ replace: func [
 ]
 
 zero?: func [
+;	value [number! pair! tuple!]
 	value [number! pair!]
 ][
 ;       switch/default type? value [
