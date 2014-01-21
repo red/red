@@ -87,24 +87,44 @@ integer: context [
 		type	  [integer!]
 		return:	  [red-value!]
 		/local
-			left  [red-integer!]
-			right [red-integer!]
-			pair  [red-pair!]
-			value [integer!]
+			left   [red-integer!]
+;			middle [red-integer!]
+			right  [red-integer!]
+;			tuple  [red-tuple!]
+			pair   [red-pair!]
+			value  [integer!]
 	][
 		left: as red-integer! stack/arguments
-		right: left + 1
+;		middle: either true [left + 1][left]
+		right: middle + 1
 		
 		assert any [									;@@ replace by typeset check when possible
 			TYPE_OF(left) = TYPE_INTEGER
 			TYPE_OF(left) = TYPE_CHAR
 		]
+;		assert any [
+;			TYPE_OF(middle) = TYPE_INTEGER
+;			TYPE_OF(middle) = TYPE_CHAR
+;			TYPE_OF(middle) = TYPE_PAIR
+;		]
 		assert any [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
 			TYPE_OF(right) = TYPE_PAIR
+;			TYPE_OF(right) = TYPE_TUPLE
 		]
 		
+;		either TYPE_OF(right) = TYPE_TUPLE [
+;			value: left/value
+;			copy-cell as red-value! right as red-value! left
+;			tuple: as red-tuple! left
+;			switch type [
+;				OP_ADD [tuple/x: tuple/x + value  tuple/y: tuple/y + value  tuple/z: tuple/z + value]
+;				OP_SUB [tuple/x: tuple/x - value  tuple/y: tuple/y - value  tuple/z: tuple/z - value]
+;				OP_MUL [tuple/x: tuple/x * value  tuple/y: tuple/y * value  tuple/z: tuple/z * value]
+;				OP_DIV [tuple/x: tuple/x / value  tuple/y: tuple/y / value  tuple/z: tuple/z / value]
+;			]
+;               ][
 		either TYPE_OF(right) = TYPE_PAIR [
 			value: left/value
 			copy-cell as red-value! right as red-value! left
@@ -123,6 +143,7 @@ integer: context [
 				OP_DIV [left/value / right/value]
 			]
 		]
+;		]
 		as red-value! left
 	]
 
