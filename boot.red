@@ -1025,6 +1025,16 @@ replace: func [
 zero?: func [
 	value [number! pair!]
 ][
+;       switch/default type? value [
+;       	tuple!	[
+;			make logic! all [value/1 = 0 value/2 = 0 value/3 = 0]
+;		]
+;       	pair!	[
+;			make logic! all [value/1 = 0 value/2 = 0]
+;		]
+;	][
+;		value = 0
+;	]
 	either pair! = type? value [
 		make logic! all [value/1 = 0 value/2 = 0]
 	][
