@@ -17,7 +17,7 @@ Red [
 	#include %../../runtime/datatypes/structures.reds
 	
 	env: as JNI-env! 0
-	jni: as JNI! 0
+	jni: as JNI! 	 0
 	
 	#enum android-events! [
 		event-click: 1
@@ -77,7 +77,6 @@ Red [
 			cls.getName	  [jmethodID!]
 			getParams	  [jmethodID!]
 			getReturnType [jmethodID!]
-			getClass 	  [jmethodID!]
 			name		  [jstring!]
 			str			  [c-string!]
 			size		  [integer!]
@@ -298,12 +297,14 @@ Red [
 ;--			parent-name
 ;--			['init  [id '- [arg-type1 arg-type2 ...] ...]
 ;--			[method1 [id '- [arg-type1 arg-type2 ...] ...]
+;--			[field1 [id type] ...]
 ;--		]
 ;--		...
 ;-- ]
 
 ~class: 	none
 ~method:	none
+~field:		none
 
 ~on-new-constructor: does [
 	append ~class/6 'init
@@ -491,6 +492,123 @@ java-instantiate: routine [
 	as-integer gid
 ]
 
+java-fetch-field: routine [
+	class	[integer!]
+	spec	[string!]
+	list	[block!]
+	/local
+		getType [jmethodID!]
+		getName [jmethodID!]
+		cls		[jclass!]
+		id		[jmethodID!]
+		field	[jfieldID!]
+		str		[jstring!]
+		type	[jobject!]
+		name	[jstring!]
+		s		[c-string!]
+][
+	cls: jni/FindClass env "java/lang/Class"
+	
+	id: get-method env cls "getField" "(Ljava/lang/String;)Ljava/lang/reflect/Field;"
+	str: jni/NewStringUTF env as c-string! string/rs-head spec	;@@ To be freed?
+	field: jni/CallObjectMethod [env class id str]
+	jni/DeleteLocalRef env str
+
+	getName: get-method env cls "getName" "()Ljava/lang/String;"
+	cls: jni/FindClass env "java/lang/reflect/Field"
+	getType: get-method env cls "getType" "()Ljava/lang/Class;"
+	
+	type: jni/CallObjectMethod [env field getType]
+	name: jni/CallObjectMethod [env type getName]
+	s: jni/GetStringUTFChars env name null
+	
+	id: jni/FromReflectedField env field
+	integer/load-in list as-integer id
+	
+	red/word/load-in s list
+	jni/ReleaseStringUTFChars env name s
+	jni/DeleteLocalRef env name
+
+	jni/DeleteLocalRef env field
+	
+]
+
+java-get-field: routine [
+	obj-id	 [integer!]
+	field-id [integer!]
+	ret-type [integer!]
+	/local
+		value	[red-value!]
+		buffer	[jobject!]
+		str		[c-string!]
+		id		[jobject!]
+		gid		[jobject!]
+		obj		[jobject!]
+		field 	[jfieldID!]
+][
+	obj: as jobject! obj-id
+	field: as jfieldID! field-id
+	
+	switch ret-type [
+		type-boolean [value: as red-value! logic/push as-logic jni/GetBooleanField env obj field]
+		type-byte	 [value: as red-value! integer/push as-integer jni/GetByteField env obj field]
+		type-int	 [value: as red-value! integer/push jni/GetIntField env obj field]
+		type-short	 [value: as red-value! integer/push jni/GetShortField env obj field]
+		type-long	 [value: as red-value! integer/push jni/GetLongField env obj field]
+		;type-float	 [jni/CallFloatMethodA 4]
+		;type-double [jni/CallDoubleMethodA 4]
+		type-object	 [
+			id: jni/GetObjectField env obj field
+			gid: jni/NewGlobalRef env id
+			jni/DeleteLocalRef env id
+			value: as red-value! integer/push as-integer gid
+		]
+		type-string	 [
+			buffer: jni/GetObjectField env obj field
+			str: jni/GetStringUTFChars env buffer null
+			value: as red-value! string/load str 1 + length? str 
+			jni/ReleaseStringUTFChars env buffer str
+			jni/DeleteLocalRef env buffer
+		]
+	]
+	SET_RETURN(value)
+]
+
+java-set-field: routine [
+	obj-id	 [integer!]
+	field-id [integer!]
+	ret-type [integer!]
+	value	 [any-type!]
+	/local
+		bool	[red-logic!]
+		int		[red-integer!]
+		;buffer	[jobject!]
+		;str	[c-string!]
+		obj		[jobject!]
+		field 	[jfieldID!]
+][
+	obj: as jobject! obj-id
+	field: as jfieldID! field-id
+	
+	switch ret-type [
+		type-boolean [bool: as red-logic!	value jni/SetBooleanField env obj field as jint! bool/value] ;@@ jint! instead of jboolean!
+		type-byte	 [int:  as red-integer!	value jni/SetByteField env obj field as jbyte! int/value]
+		type-int
+		type-short	 [int:  as red-integer! value jni/SetIntField  env obj field int/value]
+		type-long	 [int:  as red-integer! value jni/SetLongField env obj field int/value 0]	;@@ 64-bit!
+		;type-float	 [jni/CallFloatMethodA 4]
+		;type-double [jni/CallDoubleMethodA 4]
+		type-object	 [int:  as red-integer! value jni/SetObjectField env obj field as jobject! int/value]
+		;type-string	 [
+		;	buffer: jni/GetObjectField env obj field
+		;	str: jni/GetStringUTFChars env buffer null
+		;	value: as red-value! string/load str 1 + length? str 
+		;	jni/ReleaseStringUTFChars env buffer str
+		;	jni/DeleteLocalRef env buffer
+		;]
+	]
+]
+
 java-invoke: routine [
 	obj		 [integer!]
 	method	 [integer!]
@@ -607,6 +725,12 @@ java-process-args: function [args [block!]][
 	args
 ]
 
+java-get-field-id: function [obj [block!] field [word!] return: [block!]][
+	append new: tail obj/8 field
+	java-fetch-field obj/2 form field new
+	new
+]
+
 java-match-method: function [list [block!] spec [block!] fun [word!] return-type [word! none!]][
 	foreach [name entry] list [
 		if name <> fun [return none]
@@ -633,10 +757,10 @@ java-match-method: function [list [block!] spec [block!] fun [word!] return-type
 	none
 ]
 
-
-java-fetch-class: func [name [word!] /with cls [integer!] /local class][
+java-fetch-class: func [name [word! string!] /with cls [integer!] /local class][
 	unless with [
-		cls: java-get-class-id replace/all form name dot slash
+		if word? name [name: replace/all form name dot slash]
+		cls: java-get-class-id name
 		if cls = 0 [
 			print ["Error: not found class" form spec/1]
 			exit
@@ -650,6 +774,7 @@ java-fetch-class: func [name [word!] /with cls [integer!] /local class][
 		none											;-- parent name
 		make block! 8									;-- constructors block
 		make block! 16									;-- methods block
+		make block! 4									;-- fields block
 	]
 	~class: class
 	java-populate cls									;-- fetch methods and fields
@@ -674,6 +799,7 @@ to-java-object: func [obj-id [integer!] /local class cls name][
 		none											;-- parent name
 		make block! 2
 		make block! 40
+		make block! 4
 	]
 	~class: class
 	java-populate-super cls
@@ -717,11 +843,21 @@ java-new: func [spec [block!] /local name class id obj method][
 	obj
 ]
 
-java-do: function [spec [block!]][
-	if java-verbose > 0 [print ["java-do:" mold spec]]
-
+java-op: function [type [word!] spec [block!]][
+	if java-verbose > 0 [
+		print [
+			switch type [do ["java-do:"] get ["java-get:"] set ["java-set:"]]
+			mold spec
+		]
+	]
+	do-op?: type = 'do
+	
 	unless path? call: spec/1 [
-		print ["Error: object/method expected as first argument in " mold spec]
+		print [
+			"Error:"
+			pick ["object/method" "object/field"] do-op?
+			"expected as first argument in " mold spec
+		]
 		exit
 	]
 	obj: get spec/1/1
@@ -732,16 +868,24 @@ java-do: function [spec [block!]][
 		print ["Error:" form :obj "is not a Java object!"]
 		exit
 	]
-	method: spec/1/2
-	return-type: spec/1/3
+	
+	accessor: spec/1/2
+	if do-op? [return-type: spec/1/3]
 	spec: reduce next spec
 	class: obj
 	
 	while [
 		all [
-			not all [
-				pos: find class/7 method
-				entry: java-match-method pos spec method return-type
+			not either do-op? [
+				all [
+					pos: find class/7 accessor
+					entry: java-match-method pos spec accessor return-type
+				]
+			][
+				entry: any [
+					find class/8 accessor
+					java-get-field-id obj accessor
+				]
 			]
 			class/5
 		]
@@ -752,20 +896,34 @@ java-do: function [spec [block!]][
 		]
 	]
 	unless entry [
-		print ["Error: no matching method found for: " form call]
+		print ["Error: no matching" pick ["method" "field"] do-op? "found for: " form call]
 		exit
 	]
 	
 	spec: java-process-args spec
-	result: java-invoke obj/1 entry/1 type: to-type-id entry/2 spec
+	unless do-op? [entry: next entry]
+	type-id: to-type-id entry/2
 	
-	either any [
-		type = 99
-		entry/2 = 'java.lang.CharSequence
+	result: switch type [
+		do  [java-invoke 	obj/1 entry/1 type-id spec]
+		get [java-get-field obj/1 entry/1 type-id]
+		set [java-set-field obj/1 entry/1 type-id spec/1]
+	]
+
+	either type = 'set [
+		spec/1
 	][
-		to-java-object result
-	][
-		result
+		either any [
+			type-id = 99
+			entry/2 = 'java.lang.CharSequence
+		][
+			to-java-object result
+		][
+			result
+		]
 	]
 ]
 
+java-do:  func [spec [block!]][java-op 'do spec]
+java-get: func [spec [block!]][java-op 'get spec]
+java-set: func [spec [block!]][java-op 'set spec]
