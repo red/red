@@ -257,6 +257,41 @@ block: context [
 		arg
 	]
 	
+	select-word: func [
+		blk		[red-block!]
+		word	[red-word!]
+		return: [red-value!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			w	  [red-word!]
+			sym	  [integer!]
+	][
+		value: rs-head blk
+		tail:  rs-tail blk
+		sym:   symbol/resolve word/symbol
+		
+		while [value < tail][
+			if any [									;@@ replace with ANY_WORD?
+				TYPE_OF(value) = TYPE_WORD
+				TYPE_OF(value) = TYPE_SET_WORD
+				TYPE_OF(value) = TYPE_GET_WORD
+				TYPE_OF(value) = TYPE_LIT_WORD
+			][
+				w: as red-word! value
+				if sym = symbol/resolve w/symbol [
+					either value + 1 = tail [
+						return none-value
+					][
+						return value + 1
+					]
+				]
+			]
+			value: value + 1
+		]
+		none-value
+	]
+	
 	make-at: func [
 		blk		[red-block!]
 		size	[integer!]
@@ -553,7 +588,7 @@ block: context [
 					actions/poke as red-series! element 2 stack/arguments null
 					stack/arguments
 				][
-					select parent element null no no no null null no no
+					select-word as red-block! parent as red-word! element
 				]
 			]
 			default [
