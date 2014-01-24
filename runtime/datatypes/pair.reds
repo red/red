@@ -90,19 +90,31 @@ pair: context [
 	;-- Actions --
 	
 	make: func [
-		proto	 [red-value!]	
+		proto	 [red-value!]
 		spec	 [red-value!]
-		return:	 [red-integer!]
+		return:	 [red-pair!]
+		/local
+			int	 [red-integer!]
+			int2 [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/make"]]
 
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
-				as red-integer! spec
+				int: as red-integer! spec
+				push int/value int/value
 			]
 			default [
-				--NOT_IMPLEMENTED--
-				as red-integer! spec					;@@ just for making it compilable
+				int: as red-integer! block/rs-head as red-block! spec
+				int2: int + 1
+				if any [
+					2 <> block/rs-length? as red-block! spec
+					TYPE_OF(int)  <> TYPE_INTEGER
+					TYPE_OF(int2) <> TYPE_INTEGER
+				][
+					print-line "*** MAKE Error: pair expects a block with two integers"
+				]
+				push int/value int2/value
 			]
 		]
 	]
