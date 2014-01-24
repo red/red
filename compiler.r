@@ -447,7 +447,7 @@ red: context [
 				block? value: spec/1
 				not find [integer! logic!] value/1 
 			][
-				value/1: decorate-type value/1
+				value/1: decorate-type either value/1 = 'any-type! ['value!][value/1]
 			]
 		]
 	]
