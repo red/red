@@ -28,7 +28,7 @@ make-profilable make target-class [
 		=				 #{04}		-
 		<>				 #{05}		-
 		signed?			 #{08}		-
-		unsigned?		 #{09}
+		unsigned?		 #{09}		-
 		even?			 #{0A}		-
 		odd?			 #{0B}		-
 		<				 #{0C}		#{02}
