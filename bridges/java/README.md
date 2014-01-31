@@ -11,7 +11,7 @@ On Windows:
 
 1. Compile the hello.red script as a shared library:
 
-        >> do/args %red.r "-dlib -v 0 %red/bridges/java/hello.red -o %../red/bridges/java/hello"   
+        >> do/args %red.r "-dlib -o %bridges/java/hello %bridges/java/hello.red"   
 
 2. Compile and run the bridge.java app from console:
 
@@ -22,7 +22,7 @@ On Unix:
 
 1. Compile the JNIdemo.reds script as a shared library:
 
-        >> do/args %red.r "-dlib -v 0 %red/bridges/java/hello.red -o %../red/bridges/java/libhello"
+        >> do/args %red.r "-dlib -o %bridges/java/libhello %bridges/java/hello.red"
 
 2. Compile and run the bridge.java app from console:
 
