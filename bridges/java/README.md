@@ -20,7 +20,7 @@ On Windows:
 
 On Unix:
 
-1. Compile the JNIdemo.reds script as a shared library:
+1. Compile the hello.red script as a shared library:
 
         >> do/args %red.r "-dlib -o %bridges/java/libhello %bridges/java/hello.red"
 
