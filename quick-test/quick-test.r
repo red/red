@@ -2,7 +2,7 @@ REBOL [
   Title:   "Simple testing framework for Red and Red/System programs"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.r
-	Version: 0.11.0
+	Version: 0.12.0
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
@@ -13,7 +13,7 @@ comment {
 	files are stored. They are:
     	this script is stored in Red/quick-test/
     	the Red & Red/System compiler is stored in Red/
-    	the default dir for tests is Red/red-system/tests/
+    	the default dir for tests is Red/system/tests/
     	
     	The default test dirs can be overriden by setting qt/tests-dir before
     	tests are processed
@@ -30,9 +30,9 @@ qt: make object! [
   base-dir: system/script/path
   base-dir: copy/part base-dir find base-dir "quick-test"
   ;; set the red/system runnable dir
-  runnable-dir: base-dir/quick-test/runnable
+  runnable-dir: dirize base-dir/quick-test/runnable
   ;; set the default base dir for tests
-  tests-dir: base-dir/red-system/tests
+  tests-dir: dirize base-dir/system/tests
   
   ;; set the version number
   version: system/script/header/version
@@ -197,7 +197,7 @@ qt: make object! [
     	either lib [
     		cmd: join "" [to-local-file bin-compiler " -o " 
     					  to-local-file runnable-dir/:exe
-    					  " -dlib -t " target
+    					  " -dlib -t " target " "
     					  to-local-file src
     		]
     	][
@@ -306,8 +306,10 @@ qt: make object! [
   compile-error: func [
     src [file! string!]
   ][
-    print join "" [src " - compiler error"]
-    clear output                           ;; clear the ouptut from previous test
+    print join "^/" [src " - compiler error^/"]
+    print comp-output
+    print newline
+    clear output                           ;; clear the output from previous test
     _signify-failure
   ]
   
@@ -386,6 +388,7 @@ qt: make object! [
     clear output
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
     call/output/wait cmd output
+    if find output "Error:" [_signify-failure]
     add-to-run-totals
     write/append log-file output
     file/title: test-name
@@ -395,14 +398,14 @@ qt: make object! [
   
   run-script: func [
     src [file!]
-    /local 
+    /local
      filename                     ;; filename of script 
      script                       ;; %runnable/filename
   ][
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
-    do script
+    if error? try [do script] [_signify-error]
   ]
   
   run-script-quiet: func [
@@ -653,6 +656,34 @@ qt: make object! [
     ]
   ]
   
+  setup-temp-files: func [
+  	  /local
+  	  	f
+  ][
+  	f: to string! now/time/precise
+  	f: replace/all f ":" ""
+  	f: replace/all f "." ""
+    comp-echo: join runnable-dir ["comp-echo" f ".txt"]
+  	comp-r: join runnable-dir ["comp" f ".r"]
+  	test-src-file: join runnable-dir ["qt-test-comp" f ".red"]
+  ]
+  
+  delete-temp-files: does [
+  	  if exists? comp-echo [delete comp-echo]
+  	  if exists? comp-r [delete comp-r]
+  	  if exists? test-src-file [delete test-src-file]  
+  ]
+  
+  seperate-log-file: func [
+  	  /local
+  	  	f
+  ][
+  	f: to string! now/time/precise
+  	f: replace/all f ":" ""
+  	f: replace/all f "." ""
+    log-file: join base-dir ["quick-test/quick-test" f ".log"]
+  ]
+  
   utf-16le-to-utf-8: func [
     {Translates a utf-16LE encoded string to an utf-8 encoded one
      the algorithm is copied from lexer.r                         }
@@ -732,4 +763,7 @@ qt: make object! [
   set '~~~end-file~~~               :end-file
   set '***end-run***                :end-test-run
   set '***end-run-quiet***          :end-test-run-quiet
+  set '--setup-temp-files			:setup-temp-files
+  set '--delete-temp-files			:delete-temp-files
+  set '--seperate-log-file			:seperate-log-file	
 ]

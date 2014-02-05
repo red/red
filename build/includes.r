@@ -8,78 +8,80 @@ REBOL [
 ]
 
 change-dir %..
-do %red-system/utils/encap-fs.r
+do %system/utils/encap-fs.r
 
 write %build/bin/sources.r set-cache [
 	%version.r
 	%usage.txt
-	%red/ [
-		%boot.red
-		%compiler.r
-		%lexer.r
-		%runtime/ [
-			%actions.reds
-			%allocator.reds
-			%debug-tools.reds
-			%interpreter.reds
-			%macros.reds
-			%natives.reds
-			%red.reds
-			%stack.reds
-			%tokenizer.reds
-			%stack.reds
-			%tokenizer.reds
-			%tools.reds
-			%unicode.reds
-			%simple-io.reds
-			%datatypes/ [
-				%action.reds
-				%block.reds
-				%char.reds
-				%common.reds
-				%context.reds
-				%datatype.reds
-				%file.reds
-				%function.reds
-				%get-path.reds
-				%get-word.reds
-				%integer.reds
-				%issue.reds
-				%lit-path.reds
-				%lit-word.reds
-				%logic.reds
-				%native.reds
-				%none.reds
-				%op.reds
-				%paren.reds
-				%path.reds
-				%refinement.reds
-				%routine.reds
-				%set-path.reds
-				%set-word.reds
-				%string.reds
-				%structures.reds
-				%symbol.reds
-				%unset.reds
-				%word.reds
-			]
-			%platform/ [
-				%android.reds
-				%darwin.reds
-				%linux.reds
-				%POSIX.reds
-				%syllable.reds
-				%win32.reds
-			]
+	%boot.red
+	%compiler.r
+	%lexer.r
+	%runtime/ [
+		%actions.reds
+		%allocator.reds
+		%debug-tools.reds
+		%interpreter.reds
+		%macros.reds
+		%natives.reds
+		%parse.reds
+		%red.reds
+		%stack.reds
+		%tokenizer.reds
+		%stack.reds
+		%tokenizer.reds
+		%tools.reds
+		%unicode.reds
+		%simple-io.reds
+		%datatypes/ [
+			%action.reds
+			%block.reds
+			%bitset.reds
+			%char.reds
+			%common.reds
+			%context.reds
+			%datatype.reds
+			%file.reds
+			%function.reds
+			%get-path.reds
+			%get-word.reds
+			%integer.reds
+			%issue.reds
+			%lit-path.reds
+			%lit-word.reds
+			%logic.reds
+			%native.reds
+			%none.reds
+			%op.reds
+			%object.reds
+			%paren.reds
+			%path.reds
+			%point.reds
+			%refinement.reds
+			%routine.reds
+			%set-path.reds
+			%set-word.reds
+			%string.reds
+			%structures.reds
+			%symbol.reds
+			%unset.reds
+			%word.reds
 		]
-		%utils/ [
-			%extractor.r
-		]
-		%tests/ [
-			%console.red
+		%platform/ [
+			%android.reds
+			%darwin.reds
+			%linux.reds
+			%POSIX.reds
+			%syllable.reds
+			%win32.reds
 		]
 	]
-	%red-system/ [
+	%utils/ [
+		%extractor.r
+	]
+	%tests/ [
+		%console.red
+	]
+	%system/ [
 		%compiler.r
 		%config.r
 		%emitter.r

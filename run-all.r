@@ -83,13 +83,13 @@ start-time: now/precise
 
 ***start-run-quiet*** "Complete Red Test Suite"
 
-run-all-script/auto-tests %../red/tests/
-run-all-script/auto-tests %../red-system/tests/
-do %../red/tests/source/units/make-interpreter-auto-test.r
+run-all-script/auto-tests %../tests/
+run-all-script/auto-tests %../system/tests/
+do %../tests/source/units/make-interpreter-auto-test.r
 qt/script-header: "Red []"
-run-all-script %../red/tests/
+run-all-script %../tests/
 qt/script-header: "Red/System []"
-run-all-script %../red-system/tests/
+run-all-script %../system/tests/
 
 ***end-run-quiet***
 
@@ -100,7 +100,7 @@ change-dir store-current-dir
 either batch-mode [
 	quit/return either qt/test-run/failures > 0 [1] [0]
 ][
-	print "The test output was logged to Red/quick-test/quick-test.log"
+	print ["The test output was logged to" qt/log-file]
 	ask "hit enter to finish"
 	print ""
 	qt/test-run/failures
