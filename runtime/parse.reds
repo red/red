@@ -134,7 +134,7 @@ parser: context [
 	]
 	
 	#if debug? = yes [
-		print-state: func [s [integer!]][
+		print-state: func [s [states!]][
 			print "state: "
 			print-line switch s [
 				ST_PUSH_BLOCK	 ["ST_PUSH_BLOCK"]
@@ -560,7 +560,7 @@ parser: context [
 			w		 [red-word!]
 			t 		 [triple!]
 			p		 [positions!]
-			state	 [integer!]
+			state	 [states!]
 			type	 [integer!]
 			sym		 [integer!]
 			min		 [integer!]
