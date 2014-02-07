@@ -248,7 +248,8 @@ lexer: context [
 	char-rule: [
 		{#"} (type: char!) [
 			s: escaped-char
-			| copy value UTF8-printable (value: as-binary value) 
+			| copy value UTF8-printable (value: as-binary value)
+			| #"^-" (value: s/1)
 		] {"}
 	]
 	
