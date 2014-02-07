@@ -218,7 +218,7 @@ lexer: context [
 	
 	escaped-char: [
 		"^^(" [
-			[												;-- special case first
+			[										;-- special case first
 				"null" 	 (value: #"^(00)")
 				| "back" (value: #"^(08)")
 				| "tab"  (value: #"^(09)")
@@ -227,7 +227,7 @@ lexer: context [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^(7F)")
 			]
-			| s: [2 6 hexa-char] e: (						;-- Unicode values allowed up to 10FFFFh
+			| s: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 				value: encode-UTF8-char s e
 			)
 		] #")"
