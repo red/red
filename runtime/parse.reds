@@ -1156,10 +1156,12 @@ parser: context [
 								print-line "*** Parse Error: INTO can only be used on a block! value"
 							]
 							value: cmd + 1
-							if any [
-								value = tail
-								TYPE_OF(value) <> TYPE_BLOCK
-							][
+							if value = tail [print-line "*** Parse Error: missing INTO argument"]
+							
+							if TYPE_OF(value) = TYPE_WORD [
+								value: _context/get as red-word! value
+							]
+							if TYPE_OF(value) <> TYPE_BLOCK [
 								print-line "*** Parse Error: INTO invalid argument"
 							]
 							value: block/rs-head input
