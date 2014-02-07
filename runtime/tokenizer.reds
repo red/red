@@ -62,6 +62,7 @@ tokenizer: context [
 		ERR_INVALID_INTEGER
 		ERR_INVALID_PATH
 		ERR_INVALID_CHAR
+		ERR_INVALID_DIGIT_WORD
 	]
 
 	throw-error: func [id [integer!]][
@@ -76,6 +77,7 @@ tokenizer: context [
 			ERR_INVALID_INTEGER		 ["invalid integer"]
 			ERR_INVALID_PATH		 ["invalid path"]
 			ERR_INVALID_CHAR		 ["invalid char"]
+			ERR_INVALID_DIGIT_WORD	 ["word cannot start with a digit"]
 		]
 		print-line #"!"
 	]
@@ -321,6 +323,11 @@ tokenizer: context [
 			set?  [logic!]
 			path? [logic!]
 	][
+		c: s/1
+		if all [#"0" <= c c <= #"9"][
+			throw-error ERR_INVALID_DIGIT_WORD
+			return s
+		]
 		e: s + 1
 		c: e/1
 
