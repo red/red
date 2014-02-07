@@ -202,6 +202,7 @@ natives: context [
 		stack/push value								;-- (required by foreach-next)
 		
 		stack/mark-native words/_body
+		stack/set-last unset-value
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			size: block/rs-length? as red-block! value
