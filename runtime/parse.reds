@@ -440,9 +440,10 @@ parser: context [
 		PARSE_SET_INPUT_LENGTH(len)
 		if any [zero? len len < min][return no]			;-- input too short
 		
-		cnt: 0
+		cnt: 	0
 		match?: yes
-
+		type: 	TYPE_OF(input)
+		
 		either any [									;TBD: replace with ANY_STRING
 			type = TYPE_STRING
 			type = TYPE_FILE
@@ -474,7 +475,9 @@ parser: context [
 			]
 		]
 		
-		unless match? [
+		either match? [
+			if all [max <> R_NONE any [min > cnt cnt > max]][match?: no]
+		][
 			cnt: cnt - 1
 			match?: either max = R_NONE [min <= cnt][all [min <= cnt cnt <= max]]
 		]
