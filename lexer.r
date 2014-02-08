@@ -290,8 +290,7 @@ lexer: context [
 	
 	escaped-rule: [
 		"#[" any-ws [
-			"none" 	  (value: none)
-			| "true"  (value: true)
+			  "true"  (value: true)
 			| "false" (value: false)
 			| s: [
 				"none!" | "logic!" | "block!" | "integer!" | "word!" 
@@ -300,6 +299,7 @@ lexer: context [
 				| "set-path!" | "lit-path!" | "native!"	| "action!"
 				| "issue!" | "paren!" | "function!"
 			] e: (value: get to word! copy/part s e)
+			| "none" (value: none)
 		]  any-ws #"]"
 	]
 	
