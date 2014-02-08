@@ -54,8 +54,8 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:  charset {/\^^,'[](){}"#%$@:;}
-	not-word-1st:	union not-word-char digit
+	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:  charset {[](){}"%@:;}
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
