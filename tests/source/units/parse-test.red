@@ -1518,6 +1518,16 @@ Red [
 		size: 2
 		res: parse "12" [collect [keep copy value size skip]]
 		--assert res = ["12"]
+		
+	--test-- "#678"
+		--assert parse "cat" [1 "cat"]
+		--assert not parse "cat" [2 "cat"]
+		--assert not parse "cat" [3 "cat"]
+		--assert not parse "cat" [4 "cat"]
+		--assert parse "catcat" [2 "cat"]
+		--assert parse "catcatcat" [3 "cat"]
+		--assert parse "catcatcatcat" [4 "cat"]
+		
 
 ===end-group===
     
