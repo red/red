@@ -1148,13 +1148,15 @@ block: context [
 			if part <= 0 [return blk]					;-- early exit if negative /part index
 		]
 
-		if head + part < s/tail [
+		either head + part < s/tail [
 			move-memory 
 				as byte-ptr! head
 				as byte-ptr! head + part
 				as-integer s/tail - (head + part)
+			s/tail: s/tail - part
+		][
+			s/tail: head
 		]
-		s/tail: s/tail - part
 		blk
 	]
 	
