@@ -20,12 +20,14 @@ Red/System [
 print [ "Gzip example" lf ]
 print [ "Zlib version : " zlib/version lf ]
 
-file-to-zip: "zlib-mem-example.reds"
-zipped-file: "zlib-mem-example.reds.gz"
-unzipped-file: "unzipped-mem-example.reds"
+file-to-zip: "red.r"
+zipped-file: "red.r.gz"
+unzipped-file: "unzipped-red.r"
 
 print [ "Gzip " file-to-zip " into " zipped-file lf ]
-zlib/gzip file-to-zip zipped-file
+retval: zlib/gzip file-to-zip zipped-file
 
-print [ "Gunzip " zipped-file " into " unzipped-file lf ]
-zlib/gunzip zipped-file unzipped-file
+if retval = Z_OK [
+  print [ "Gunzip " zipped-file " into " unzipped-file lf ]
+  zlib/gunzip zipped-file unzipped-file
+]
