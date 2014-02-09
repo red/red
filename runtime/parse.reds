@@ -522,7 +522,7 @@ parser: context [
 			p/input:  series/head
 			p/rule:   rules/head
 			
-			series/head: series/head + 1
+			series/head: series/head + block/rs-length? series
 			rules/head:  rules/head + cnt + 1			;-- account for the new position! slot
 		]
 	]
