@@ -569,7 +569,7 @@ Red [
 	--test-- "remove-blk-7"
 		a: [1 2 3]
 		--assert [1 2 3] =  remove/part a 0
-
+		
 	--test-- "remove-str-1"
 		a: "123"
 		--assert "23" = remove a
@@ -650,30 +650,40 @@ Red [
 ===start-group=== "at"
 	
 	--test-- "at-1 #issue 501"
-	--assert "c" = at tail "abc" -1
-	--assert "" = at tail "abc" 0
+		--assert "c" = at tail "abc" -1
+		--assert "" = at tail "abc" 0
 	
 	--test-- "at-2"
-	--assert "bcde" = at "abcde" 2
-	--assert "abcde" = at "abcde" 1
-	--assert "abcde" = at "abcde" 0
-	--assert "abcde" = at "abcde" -1
-	--assert "abcde" = at "abcde" -256
-	--assert "e" = at "abcde" 5
-	--assert "" = at "abcde" 6
-	--assert "" = at "abcde" 1028
+		--assert "bcde" = at "abcde" 2
+		--assert "abcde" = at "abcde" 1
+		--assert "abcde" = at "abcde" 0
+		--assert "abcde" = at "abcde" -1
+		--assert "abcde" = at "abcde" -256
+		--assert "e" = at "abcde" 5
+		--assert "" = at "abcde" 6
+		--assert "" = at "abcde" 1028
 	
 	--test-- "at-3"
-	--assert [b c d e] = at [a b c d e] 2
-	--assert [a b c d e] = at [a b c d e] 1
-	--assert [a b c d e] = at [a b c d e] 0
-	--assert [a b c d e] = at [a b c d e] -1
-	--assert [a b c d e] = at [a b c d e] -256
-	--assert [e] = at [a b c d e] 5
-	--assert [] = at [a b c d e] 6
-	--assert [] = at [a b c d e] 1028
+		--assert [b c d e] = at [a b c d e] 2
+		--assert [a b c d e] = at [a b c d e] 1
+		--assert [a b c d e] = at [a b c d e] 0
+		--assert [a b c d e] = at [a b c d e] -1
+		--assert [a b c d e] = at [a b c d e] -256
+		--assert [e] = at [a b c d e] 5
+		--assert [] = at [a b c d e] 6
+		--assert [] = at [a b c d e] 1028
 	
 ===end-group===
+
+===start-group=== "replace"
+	
+	--test-- "replace-block-1-issue-#667"
+		code: [print "Hello"]
+		--assert 'print = first replace code "Hello" "Cheers"
+		--assert "Cheers" = second code
+		
+===end-group===
+
 
 ~~~end-file~~~
 

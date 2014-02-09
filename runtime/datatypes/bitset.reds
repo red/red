@@ -227,7 +227,7 @@ bitset: context [
 	process-string: func [
 		str		[red-string!]
 		bits 	[red-bitset!]
-		op		[integer!]
+		op		[bitset-op!]
 		return: [integer!]
 		/local
 			s	  [series!]
@@ -284,7 +284,7 @@ bitset: context [
 	process: func [
 		spec	[red-value!]
 		bits 	[red-bitset!]
-		op		[integer!]
+		op		[bitset-op!]
 		sub?	[logic!]
 		return: [integer!]
 		/local

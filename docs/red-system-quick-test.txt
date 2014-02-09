@@ -1,20 +1,20 @@
 Red/System Quick Test - A testing framework 
 
-  Author: Peter W A Wood
-  Date: 21/09/2012
-  Version 0.9.0
+	Author: Peter W A Wood
+	Date: 10/01/2014
+	Version 0.10.0
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
 ===Introduction
 Quick-Test is a small testing framework for Red. It is called quick-test as it was put together quickly to support the development of the "boot-strapped" version of Red/System. Hopefully, it also runs tests quite quickly and, perhaps more importantly, is a quick way to write meaningful tests.
 
-As a result, quick-test is very fussy about where files are and it is not particularly fault tolerant. These were traded-off for an earlier implementation.
+As a result, quick-test can be a little fussy about where files are and it is not particularly fault tolerant.
 
 There are actually two aspects to Quick-Test. The first is quick-test.red and quick-test.reds, a handful of Red and Red/System functions respectively which can be included in a Red or Red/System program to write unit tests. These can easily be used on their own to test Red and Red/System code and are not at all fussy about where files reside.
 
 A temporary addition has been made to this part of Quick-Test. It is quick-unit-test.r which is written in REBOL and used for unit testing the bootstrapping Red compiler.
 
-The second aspect is that Quick-Test is a full-test suite for Red and Red/System themselves and includes the files used to test Red and Red/System.
+The second aspect is that Quick-Test is a test suite for Red and Red/System themselves and includes the files used to test Red and Red/System.
 
 There are many improvements that could be made to quick-test. It is expected that quick-test will be replaced at the time when Red and Red/System is re-written so they probably won't get made.
 
@@ -34,42 +34,39 @@ Quick-Test consists of the following:
 (The above are stored in the Red/quick-test/ directory.)
   
   run-all.r - a script(s) which runs a set of Red and/or Red/System tests.
-            - run-all.r in Red/red-system/tests/ runs the Red/System test suite
-            - run-all.r in Red/red/tests/ runs the Red test suite
+            - run-all.r in Red/system/tests/ runs the Red/System test suite
+            - run-all.r in Red/tests/ runs the Red test suite
             - run-all.r in Red/ runs all the tests
   run-test.r - a script which will run an individual test.
              - stored in Red/quick-test/
   
 ===Directory Structure
-Quick-Test uses the following Red directory structure:
+Quick-Test expects the following Red directory structure:
 
-  Red/
-    run-all.r                       ;; runs combined Red & Red/System tests
-    quick-test/                     ;; quick-test components
-      quick-test.r                  
-      quick-test.reds
-      quick-unit-test.r
-      run-test.r                    ;; runs an individual test
-  red/
-    tests/
-      run-all.r                     ;; runs all Red tests
-      source/
-        compiler/                   ;; red compiler unit tests
-        runtime/                    ;; runtime tests
-  red-system/
-    tests/                          ;; the main test directory
-      run-all.r                     ;; runs all Red/System tests
-      source/                       ;; all test sources
-        builtin/                    ;; tests for builtin functions (eg print)
-        compiler/                   ;; tests of the compiler
-        run-time/                   ;; tests of the run time library
-        units/                      ;; base language tests (eg datatype tests)
-      runnable/                     ;; the test executables
-                                    ;; automatically created by Quick-Test
-                                    ;; listed in .gitignore
-                                    ;; this directory can be emptied without impacting
-                                    ;;  quick-test
-
+	Red/
+		run-all.r					;; runs combined Red & Red/System tests
+		quick-test/                 ;; quick-test components
+			quick-test.r                  
+			quick-test.reds
+			quick-unit-test.r
+			run-test.r
+			runnable/               ;; the test executables
+                                    ;;  automatically created by Quick-Test
+                                    ;;  listed in .gitignore
+                                    ;;  this directory can be emptied without ;; ;;  impacting quick-test
+		tests/
+			run-all.r               ;; runs all Red tests
+			source/
+				compiler/           ;; red compiler unit tests
+				runtime/            ;; runtime tests
+		system/
+			tests/                  ;; the main test directory
+				run-all.r           ;; runs all Red/System tests
+				source/             ; all test sources
+					compiler/		;; tests of the compiler
+					run-time/       ;; tests of the run time library
+					units/          ;; base language tests (eg datatype tests)
+      
 ===Running Tests
 The tests are designed to be run from the command line or a REBOL console session. This must be a REBOL/View console session under Windows.
 
@@ -79,23 +76,23 @@ To run all Red & Red/System tests from the console:
   
   rebol -s run-all.r
   
-To run all Red tests from the REBOL console:
+To run all Red & Red/System tests from the REBOL console:
   
   do %run-all.r
 
 To run all Red tests from the console:
   
-  rebol -s red/tests/run-all.r
+  rebol -s tests/run-all.r
   
 To run all Red tests from the REBOL console:
   
-  do %red/tests/run-all.r
+  do %tests/run-all.r
 
 To run all Red/System tests from the console:
-  rebol -s red-system/tests/run-all.r
+  rebol -s system/tests/run-all.r
   
 To run all Red/System tests from the REBOL console:
-  do %red-system/tests/run-all.r
+  do %system/tests/run-all.r
   
 To run an individual test file from the console:
   rebol -s quick-test/run-test.r "<file>"  
@@ -106,10 +103,27 @@ To run an individual test file from the REBOL console:
   where <file> is the path to the file to be tested .
   
 e.g. The command to run the logic-test.reds test file which is in the units directory:
-    do/args %quick-test/run-test.r "red-system/tests/source/units/logic-test.reds"
+    do/args %quick-test/run-test.r "system/tests/source/units/logic-test.reds"
     
 (Note: %run-test.r can run both .r and .reds tests).
 (Note: When using run-test.r from within a REBOL console session, the file paths to both run-test.r and the test file msut be relative to the directory from which the REBOL session was launched (system/options/path).
+
++++Running Tests with the "Binary" Compiler
+By default, quick-tests runs all the tests using the source code of the compiler. However, it is possible to run the tests using the "binary" compiler.
+
+To run the tests using the "binary" compiler from the command line:
+	rebol -qs run-all.r --binary <path-to-compiler>
+	
+To run the tests from the REBOL console:
+
+	do/args %run-all.r "--binary <path-to-compiler>
+	
+You can omit the <path-to-compiler> if it is Red/build/bin/red or Red/build/bin/red.exe
+
++++Running Tests in Batch Mode
+The test can be run in batch mode from within a shell script (or similar). In batch mode, the test output is suppressed and the script returns 0 if all tests succeed and 1 if any test fails.
+
+	rebol -qs run-all.r --batch
 
 ===Writing Tests
 In terms of writing tests, Quick-Test is quite minimal by design. It provides only a simple assert function and a minimal set of test organisation functions.
@@ -233,7 +247,7 @@ An assertion that two floating point numbers are approximately equal. The tolera
     <value> :     a float32! value
     <tolerance> : a float32! value
     
-AssetF~= for float32! values.
+AssertF~= for float32! values.
 
   ===end-group===
   
@@ -476,6 +490,18 @@ Marks the end of a test run.
   ***end-run-quiet***
   
 Marks the end of a quiet-mode test run.
+
+  --setup-temp-files
+
+Creates a set of temporary files exclusively for a test run to allow multiple tests to be run in parallel. These files should be deleted at the end of the run.
+  
+  --delete-temp-files
+  
+Deletes a set of temporary files created with --setup-temp-files.
+  
+  --separate-log-file
+
+Creates a separate log file for a test run. This file will be retained after the run for inspection. It needs to be deleted manually.
   
 +++quick-unit-test.r
 

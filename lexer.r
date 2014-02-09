@@ -54,8 +54,8 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:  charset {/\^^,'[](){}"#%$@:;}
-	not-word-1st:	union not-word-char digit
+	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:  charset {[](){}"%@:;}
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
@@ -218,7 +218,7 @@ lexer: context [
 	
 	escaped-char: [
 		"^^(" [
-			[												;-- special case first
+			[										;-- special case first
 				"null" 	 (value: #"^(00)")
 				| "back" (value: #"^(08)")
 				| "tab"  (value: #"^(09)")
@@ -227,7 +227,7 @@ lexer: context [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^(7F)")
 			]
-			| s: [2 6 hexa-char] e: (						;-- Unicode values allowed up to 10FFFFh
+			| s: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 				value: encode-UTF8-char s e
 			)
 		] #")"
@@ -248,7 +248,8 @@ lexer: context [
 	char-rule: [
 		{#"} (type: char!) [
 			s: escaped-char
-			| copy value UTF8-printable (value: as-binary value) 
+			| copy value UTF8-printable (value: as-binary value)
+			| #"^-" (value: s/1)
 		] {"}
 	]
 	
@@ -289,8 +290,7 @@ lexer: context [
 	
 	escaped-rule: [
 		"#[" any-ws [
-			"none" 	  (value: none)
-			| "true"  (value: true)
+			  "true"  (value: true)
 			| "false" (value: false)
 			| s: [
 				"none!" | "logic!" | "block!" | "integer!" | "word!" 
@@ -299,13 +299,17 @@ lexer: context [
 				| "set-path!" | "lit-path!" | "native!"	| "action!"
 				| "issue!" | "paren!" | "function!"
 			] e: (value: get to word! copy/part s e)
+			| "none" (value: none)
 		]  any-ws #"]"
 	]
 	
 	comment-rule: [#";" [to #"^/" | to end]]
 	
 	multiline-comment-rule: [
-		"comment" any-ws #"{" nested-curly-braces
+		"comment" any-ws [
+			#"{" nested-curly-braces
+			| (throw-error/with "multiline string expected after COMMENT")
+		]
 	]
 	
 	wrong-delimiters: [

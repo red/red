@@ -1720,7 +1720,7 @@ red: context [
 	comp-call: func [
 		call [word! path!]
 		spec [block!]
-		/local item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref args
+		/local item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref args option
 	][
 		either spec/1 = 'intrinsic! [
 			switch any [all [path? call call/1] call] keywords
@@ -1765,7 +1765,9 @@ red: context [
 				either path? call [						;-- call with refinements?
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
-						unless pos: find/skip spec/4 to refinement! ref 3 [
+						option: to refinement! either integer? ref [form ref][ref]
+						
+						unless pos: find/skip spec/4 option 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
 						offset: 2 + index? pos
@@ -1774,7 +1776,7 @@ red: context [
 							list: make block! 1
 							ctx/:offset: list 			;-- compiled refinement arguments storage
 							mark: tail output
-							comp-arguments/ref spec/3 args to refinement! ref
+							comp-arguments/ref spec/3 args option
 							append/only list copy mark
 							clear mark
 						]

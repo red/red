@@ -1484,6 +1484,7 @@ string: context [
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
+			if negative? cnt [return as red-value! str]
 			dup-n: cnt
 		]
 		

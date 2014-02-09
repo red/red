@@ -134,7 +134,7 @@ parser: context [
 	]
 	
 	#if debug? = yes [
-		print-state: func [s [integer!]][
+		print-state: func [s [states!]][
 			print "state: "
 			print-line switch s [
 				ST_PUSH_BLOCK	 ["ST_PUSH_BLOCK"]
@@ -440,9 +440,10 @@ parser: context [
 		PARSE_SET_INPUT_LENGTH(len)
 		if any [zero? len len < min][return no]			;-- input too short
 		
-		cnt: 0
+		cnt: 	0
 		match?: yes
-
+		type: 	TYPE_OF(input)
+		
 		either any [									;TBD: replace with ANY_STRING
 			type = TYPE_STRING
 			type = TYPE_FILE
@@ -474,7 +475,9 @@ parser: context [
 			]
 		]
 		
-		unless match? [
+		either match? [
+			if all [max <> R_NONE any [min > cnt cnt > max]][match?: no]
+		][
 			cnt: cnt - 1
 			match?: either max = R_NONE [min <= cnt][all [min <= cnt cnt <= max]]
 		]
@@ -519,7 +522,7 @@ parser: context [
 			p/input:  series/head
 			p/rule:   rules/head
 			
-			series/head: series/head + 1
+			series/head: series/head + block/rs-length? series
 			rules/head:  rules/head + cnt + 1			;-- account for the new position! slot
 		]
 	]
@@ -560,7 +563,7 @@ parser: context [
 			w		 [red-word!]
 			t 		 [triple!]
 			p		 [positions!]
-			state	 [integer!]
+			state	 [states!]
 			type	 [integer!]
 			sym		 [integer!]
 			min		 [integer!]
@@ -1156,10 +1159,12 @@ parser: context [
 								print-line "*** Parse Error: INTO can only be used on a block! value"
 							]
 							value: cmd + 1
-							if any [
-								value = tail
-								TYPE_OF(value) <> TYPE_BLOCK
-							][
+							if value = tail [print-line "*** Parse Error: missing INTO argument"]
+							
+							if TYPE_OF(value) = TYPE_WORD [
+								value: _context/get as red-word! value
+							]
+							if TYPE_OF(value) <> TYPE_BLOCK [
 								print-line "*** Parse Error: INTO invalid argument"
 							]
 							value: block/rs-head input

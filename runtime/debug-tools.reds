@@ -100,7 +100,7 @@ memory-info: func [
 	]
 	
 	dump-symbols: func [
-		/local tail s i qym
+		/local tail s i sym
 	][
 		s: GET_BUFFER(symbols)
 		sym: as red-symbol! s/offset

@@ -852,6 +852,9 @@ dot:		 #"."
 ;-			   Mezzanines				  -
 ;------------------------------------------
 
+;-- `comment` defined as a function for the interpreter
+do [set 'comment func [value][]]
+
 quit-return: routine [
 	"Stops evaluation and exits the program with a given status."
 	status			[integer!] "Process termination value to return"
