@@ -29,27 +29,18 @@ Running the Red/System curses examples
 
 1. This binding is provided with two examples for curses and panel libraries.
 
+1. Compile with Red
+    `$ red -c system/library/curses/examples/curses-example.reds
+
+    `$ red -c system/library/curses/examples/panel-example.reds
+
 1. From the REBOL console type :
 
-    `change-dir %red-system`
+    `do/args %red.r "%system/library/curses/examples/curses-example.reds"`, the compilation process should finish with a `...output file size` message.
 
-    `do/args %rsc.r "%library/curses/examples/curses-example.reds"`, the compilation process should finish with a `...output file size` message.
+    `do/args %red.r "%system/library/curses/examples/panel-example.reds"`, the compilation process should finish with a `...output file size` message.
 
-    `do/args %rsc.r "%library/curses/examples/panel-example.reds"`, the compilation process should finish with a `...output file size` message.
-
-1. From command line, use the REBOL compilation script :
-
-    `cd red-system/library/builds/curses/examples`
-
-    `rebol -s compile-examples.r`  Linux
-
-    or
-
-    `rebol.exe -s compile-examples.r`  Windows
-
-    This script builds all examples included in this directory.
-
-1. The resulting binaries are in `red-system/builds/`, go try them!
+1. The resulting binaries are in Red main directory, go try them!
 
     Linux users run `curses-example` or `panel-example` from command line.
 

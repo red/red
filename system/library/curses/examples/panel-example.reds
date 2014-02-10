@@ -19,7 +19,6 @@ Red/System [
 ]
 
 
-#include %../../../runtime/libc.reds
 #include %../curses.reds
 #include %../panel.reds
 
