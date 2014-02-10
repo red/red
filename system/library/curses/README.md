@@ -32,7 +32,7 @@ Running the Red/System curses examples
 1. Compile with Red
     `$ red -c system/library/curses/examples/curses-example.reds
 
-    `$ red -c system/library/curses/examples/panel-example.reds (FAIL: attempt to redefine existing function name: allocate)
+    `$ red -c system/library/curses/examples/panel-example.reds
 
 1. From the REBOL console type :
 
