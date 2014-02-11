@@ -2104,6 +2104,8 @@ red: context [
 			]
 			#version [
 				change pc rejoin [load-cache %version.r ", " now]
+				comp-expression
+				true
 			]
 		]
 	]
