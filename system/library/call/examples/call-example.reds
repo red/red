@@ -18,7 +18,8 @@ Red/System [
 with syscalls [
 ;  print [ "Sleep one second" lf ]
 ;  sleep 1
-  print [ "Call ls example" lf ]
+  print [ "--- Call examples ---" lf ]
   pid: call "ls -l"
   pid: call "ps a"
+  print [ "That's all folks..." lf ]
 ]

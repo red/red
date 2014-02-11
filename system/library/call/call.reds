@@ -22,19 +22,19 @@ call: func [                     "Executes a shell command to run another proces
   /local
   pid          [integer!]
   wexp         [wordexp-type!]
+  status       [integer!]
 ][
 
   pid: syscalls/fork
   either pid = 0 [ ; Child process
-    print [ "Child" lf ]
-    print [ "Taille : " size? wordexp-type! lf ]
     wexp: as wordexp-type! allocate size? wordexp-type!
     syscalls/wordexp cmd wexp __WRDE_FLAGS
     syscalls/execvp wexp/we_wordv/item wexp/we_wordv
-    syscalls/wordfree wexp
-;    syscalls/execlp [ "ls" "ls" "-l" "-a" null ]  ; example with execlp
+    print [ "Error while calling execvp" lf ]  ; Should never occur
+    quit 1
   ][               ; Parent process
-    print [ "Parent, need to wait" lf ]
+    status: 0
+    syscalls/wait :status
   ]
   return pid
 ] ; call

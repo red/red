@@ -46,7 +46,7 @@ syscalls: context [
         ; arg3           [c-string!]
         ; ...            null
         return:        [integer!]
-      ]
+      ]  ; Example : execlp [ "ls" "ls" "-l" "-a" null ]
       wordexp: "wordexp" [           "Perform word expansions"
         words          [c-string!]
         pwordexp       [wordexp-type!]
@@ -55,6 +55,10 @@ syscalls: context [
       ]
       wordfree: "wordfree" [         "Free string array"
         pwordexp       [wordexp-type!]
+        return:        [integer!]
+      ]
+      wait: "wait" [                 "Wait for a child process to stop or terminate"
+        status         [int-ptr!]
         return:        [integer!]
       ]
     ] ; cdecl
