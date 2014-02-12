@@ -16,10 +16,14 @@ Red/System [
 #include %../call.reds
 
 with syscalls [
-;  print [ "Sleep one second" lf ]
-;  sleep 1
   print [ "--- Call examples ---" lf ]
-  pid: call "ls -l"
-  pid: call "ps a"
+  call "cat /proc/version"
+  print [ "---------------------" lf ]
+  call "uptime"
+  print [ "---------------------" lf ]
+  call "ps a"
+  print [ "---------------------" lf ]
+  call "ls -l"
+  print [ "---------------------" lf ]
   print [ "That's all folks..." lf ]
 ]

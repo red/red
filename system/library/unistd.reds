@@ -21,7 +21,7 @@ Red/System [
 wordexp-type!: alias struct! [
   we_wordc  [integer!]
   we_wordv  [str-array!]
-  we_offs  [integer!]
+  we_offs   [integer!]
 ]
 
 syscalls: context [
@@ -53,7 +53,7 @@ syscalls: context [
         flags          [integer!]
         return:        [integer!]
       ]
-      wordfree: "wordfree" [         "Free string array"
+      wordfree: "wordfree" [         "Free strings array"
         pwordexp       [wordexp-type!]
         return:        [integer!]
       ]
@@ -65,7 +65,8 @@ syscalls: context [
   ] ; #import
 ]
 
-  #enum wrde-flags [
+; Wordexp enums
+  #enum wrde-flag [
     WRDE_DOOFFS:     1
     WRDE_APPEND:     2
     WRDE_NOCMD:      4
@@ -73,4 +74,11 @@ syscalls: context [
     WRDE_SHOWERR:    16
     WRDE_UNDEF:      32
     __WRDE_FLAGS:    63
+  ]
+  #enum wrde-error [
+    WRDE_NOSPACE:     1
+    WRDE_BADCHAR:     2
+    WRDE_BADVAL:      3
+    WRDE_CMDSUB:      4
+    WRDE_SYNTAX:      5
   ]
