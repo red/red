@@ -1906,7 +1906,6 @@ red: context [
 			][
 				if alter: select ssa-names name [
 					entry: find functions alter
-					name: alter
 				]
 				check-invalid-call name
 				comp-call name entry/2
