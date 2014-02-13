@@ -16,14 +16,32 @@ Red/System [
 #include %../call.reds
 
 with syscalls [
-  print [ "--- Call examples ---" lf ]
-  call "cat /proc/version"
-  print [ "---------------------" lf ]
-  call "uptime"
-  print [ "---------------------" lf ]
-  call "ps a"
-  print [ "---------------------" lf ]
-  call "ls -l"
-  print [ "---------------------" lf ]
+  show-calls: func [
+    ][
+      print [ "--- Call examples ---" lf ]
+      #switch OS [
+        Windows   [
+          call "dir"
+          print [ "---------------------" lf ]
+          call "dir C:\"
+          print [ "---------------------" lf ]
+          call "msconfig"
+          print [ "---------------------" lf ]
+        ]
+        #default  [
+          call "cat /proc/version"
+          print [ "---------------------" lf ]
+          call "uptime"
+          print [ "---------------------" lf ]
+          call "ps a"
+          print [ "---------------------" lf ]
+          call "ls -l"
+          print [ "---------------------" lf ]
+        ]
+      ]
+    ]
+
+  ; show-calls
+  str2array "dir .."
   print [ "That's all folks..." lf ]
 ]

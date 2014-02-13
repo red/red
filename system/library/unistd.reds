@@ -18,54 +18,8 @@ Red/System [
   system/fpu/update
 ]
 
-wordexp-type!: alias struct! [
-  we_wordc  [integer!]
-  we_wordv  [str-array!]
-  we_offs   [integer!]
-]
-
-syscalls: context [
-  #import [ LIBC-file cdecl [
-      fork: "fork" [                 "Create a new process"
-        return:        [integer!]
-      ]
-      sleep: "sleep" [               "Make the process sleep for nb seconds"
-        nb             [integer!]
-        return:        [integer!]
-      ]
-      execvp: "execvp" [
-        cmd            [c-string!]   "Command to run"
-        args-list      [str-array!]
-        return:        [integer!]
-      ]
-      execlp: "execlp" [
-        [variadic]
-        ; cmd            [c-string!]   "Command to run"
-        ; arg1           [c-string!]
-        ; arg2           [c-string!]
-        ; arg3           [c-string!]
-        ; ...            null
-        return:        [integer!]
-      ]  ; Example : execlp [ "ls" "ls" "-l" "-a" null ]
-      wordexp: "wordexp" [           "Perform word expansions"
-        words          [c-string!]
-        pwordexp       [wordexp-type!]
-        flags          [integer!]
-        return:        [integer!]
-      ]
-      wordfree: "wordfree" [         "Free strings array"
-        pwordexp       [wordexp-type!]
-        return:        [integer!]
-      ]
-      wait: "wait" [                 "Wait for a child process to stop or terminate"
-        status         [int-ptr!]
-        return:        [integer!]
-      ]
-    ] ; cdecl
-  ] ; #import
-]
-
-; Wordexp enums
+#if OS <> 'Windows [
+  ; Wordexp enums
   #enum wrde-flag [
     WRDE_DOOFFS:     1
     WRDE_APPEND:     2
@@ -82,3 +36,53 @@ syscalls: context [
     WRDE_CMDSUB:      4
     WRDE_SYNTAX:      5
   ]
+  ; Wordexp types
+  wordexp-type!: alias struct! [
+    we_wordc  [integer!]
+    we_wordv  [str-array!]
+    we_offs   [integer!]
+  ]
+]
+
+#import [ LIBC-file cdecl [
+  #switch OS [
+    Windows   [
+      spawnvp: "_spawnvp" [
+        mode           [integer!]
+        cmd            [c-string!]   "Command to run"
+        args-list      [str-array!]
+        return:        [integer!]
+      ]
+    ]
+    #default  [
+      fork: "fork" [                 "Create a new process"
+        return:        [integer!]
+      ]
+      sleep: "sleep" [               "Make the process sleep for nb seconds"
+        nb             [integer!]
+        return:        [integer!]
+      ]
+      execvp: "execvp" [
+        cmd            [c-string!]   "Command to run"
+        args-list      [str-array!]
+        return:        [integer!]
+      ]
+      wordexp: "wordexp" [           "Perform word expansions"
+        words          [c-string!]
+        pwordexp       [wordexp-type!]
+        flags          [integer!]
+        return:        [integer!]
+      ]
+      wordfree: "wordfree" [         "Free strings array"
+        pwordexp       [wordexp-type!]
+        return:        [integer!]
+      ]
+      wait: "wait" [                 "Wait for a child process to stop or terminate"
+        status         [int-ptr!]
+        return:        [integer!]
+      ]
+    ]
+  ] ; # switch
+] ; cdecl
+] ; #import
+
