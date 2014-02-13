@@ -21,11 +21,15 @@ with syscalls [
       print [ "--- Call examples ---" lf ]
       #switch OS [
         Windows   [
+          call "msconfig 1 2 3 4 5"
+          print [ "---------------------" lf ]
+          call "msconfig 1 2 3 4 5"
+          print [ "---------------------" lf ]
+          call "msconfig 1 2 3 4 5"
+          print [ "---------------------" lf ]
           call "dir"
           print [ "---------------------" lf ]
           call "dir C:\"
-          print [ "---------------------" lf ]
-          call "msconfig"
           print [ "---------------------" lf ]
         ]
         #default  [
@@ -41,7 +45,10 @@ with syscalls [
       ]
     ]
 
-  ; show-calls
-  str2array "dir .."
+ ; show-calls
+  free-str-array str2array "ls"
+  free-str-array str2array "cat /proc/version"
+  free-str-array str2array "dir .. \w"
+  free-str-array str2array "msconfig 1 2 3 4 5 6 7 8"
   print [ "That's all folks..." lf ]
 ]

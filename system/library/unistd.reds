@@ -45,6 +45,11 @@ Red/System [
 ]
 
 #import [ LIBC-file cdecl [
+  re-allocate:  "realloc" [
+    base           [byte-ptr!]
+    size           [integer!]
+    return:        [byte-ptr!]
+  ]
   #switch OS [
     Windows   [
       spawnvp: "_spawnvp" [
