@@ -819,7 +819,6 @@ parser: context [
 								either stack/top - 2 = base [	;-- root unnamed block reached
 									collect?: TYPE_OF(value) = TYPE_BLOCK
 								][
-									assert TYPE_OF(value) = TYPE_BLOCK
 									blk: as red-block! stack/top - 2
 									collect?: no
 									
