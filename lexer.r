@@ -255,7 +255,7 @@ lexer: context [
 	
 	line-string: [
 		{"} s: (type: string! stop: [not-str-char | newline-char])
-		any UTF8-filtered-char
+		any [{^^"} | UTF8-filtered-char]
 		e: {"}
 	]
 	
