@@ -15,12 +15,16 @@ Red/System [
 
 #include %../call.reds
 
-print-cmd: func [ cmd [c-string!] /local err [integer!]][
+print-cmd: func [
+  waitend    [logic!]
+  cmd        [c-string!]
+  /local err [integer!]
+][
   print [ "Command    : " cmd lf ]
   print [ "------------------------------------" lf ]
-  err: syscalls/call cmd false
+  err: syscalls/call cmd waitend
   if err <> 0 [
-    print [ "Error code : " err lf ]
+    print [ "Pid returned : " err lf ]
   ]
   print [ "------------------------------------" lf ]
 ]
@@ -30,21 +34,22 @@ show-calls: func [
   print [ "--- Call examples ---" lf ]
   #switch OS [
     Windows   [
-      print-cmd "notepad"
-      print-cmd "mspaint"
-      print-cmd "explorer"
-      print-cmd "dir"
+      print-cmd false "notepad"
+      print-cmd false "mspaint"
+      print-cmd false "explorer"
+      print-cmd true  "dir"
     ]
     #default  [
-      print-cmd "uptime"
-      print-cmd "ls"
-      print-cmd "cat /proc/version"
-      print-cmd "ps a"
-      print-cmd "ls -l *.r"
-      print-cmd "echo $UNDEFINED_VAR"
-      print-cmd "top"
-      print-cmd "ls &"         ; should fail
-      print-cmd {ls "*.r}      ; should fail
+      print-cmd true  "uptime"
+      print-cmd true  "cat /proc/version"
+      print-cmd true  "ps a"
+      print-cmd true  "ls"
+      print-cmd true  "ls -l *.r"
+      print-cmd true  "echo $UNDEFINED_VAR"  ; Word expansion should fail
+      print-cmd true  "ls &"                 ; Word expansion should fail
+      print-cmd true  {ls "*.r}              ; Word expansion should fail
+;      print-cmd "top"
+;      print-cmd false "firefox"
     ]
   ]
 ]
