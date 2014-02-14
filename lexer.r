@@ -61,7 +61,7 @@ lexer: context [
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"]);}
+	integer-end:	charset {^{"[]);}
 	stop: 		    none
 	
 	control-char: reduce [
@@ -255,7 +255,7 @@ lexer: context [
 	
 	line-string: [
 		{"} s: (type: string! stop: [not-str-char | newline-char])
-		any UTF8-filtered-char
+		any [{^^"} | UTF8-filtered-char]
 		e: {"}
 	]
 	
@@ -285,7 +285,7 @@ lexer: context [
 	
 	file-rule: [
 		#"%" (type: file! stop: [not-file-char | ws-no-count])
-		s: some UTF8-filtered-char e:
+		s: any UTF8-filtered-char e:
 	]
 	
 	escaped-rule: [
@@ -333,7 +333,7 @@ lexer: context [
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
 			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
-			| file-rule		  (stack/push to file!		 copy/part s e)
+			| file-rule		  (stack/push load-file		 copy/part s e)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
@@ -509,6 +509,10 @@ lexer: context [
 			]
 		]
 		new
+	]
+	
+	load-file: func [s [string!]][
+		either empty? s [first [///]][to file! s]
 	]
 	
 	process: func [src [string! binary!] /local blk][

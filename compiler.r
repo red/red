@@ -447,7 +447,7 @@ red: context [
 				block? value: spec/1
 				not find [integer! logic!] value/1 
 			][
-				value/1: decorate-type value/1
+				value/1: decorate-type either value/1 = 'any-type! ['value!][value/1]
 			]
 		]
 	]
@@ -1906,7 +1906,6 @@ red: context [
 			][
 				if alter: select ssa-names name [
 					entry: find functions alter
-					name: alter
 				]
 				check-invalid-call name
 				comp-call name entry/2
@@ -2104,6 +2103,8 @@ red: context [
 			]
 			#version [
 				change pc rejoin [load-cache %version.r ", " now]
+				comp-expression
+				true
 			]
 		]
 	]

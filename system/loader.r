@@ -97,7 +97,7 @@ loader: make-profilable context [
 		if any [
 			not any [word? payload/1 lit-word? payload/1]
 			not in job payload/1
-			all [type <> 'switch not find [= <> < > <= >=] payload/2]
+			all [type <> 'switch not find [= <> < > <= >= contains] payload/2]
 		][
 			throw-error rejoin ["invalid #" type " condition"]
 		]
@@ -107,7 +107,12 @@ loader: make-profilable context [
 				select payload/2 #default
 			]
 		][
-			do bind copy/part payload 3 job
+			payload: either payload/2 = 'contains [
+				compose/deep [all [(payload/1) find (payload/1) (payload/3)]]
+			][
+				copy/part payload 3
+			]
+			do bind payload job
 		]
 	]
 	

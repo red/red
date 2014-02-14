@@ -900,13 +900,15 @@ system-dialect: make-profilable context [
 		]
 		
 		compare-func-specs: func [
-			fun [word!] cb [get-word!] f-type [block!] c-type [block!] /local spec pos idx
+			f-type [block!] c-type [block!] /with fun [word!] cb [get-word!] /local spec pos idx
 		][
-			cb: to word! cb
-			if functions/:cb/3 <> functions/:fun/3 [
-				throw-error [
-					"incompatible calling conventions between"
-					fun "and" cb
+			if with [
+				cb: to word! cb
+				if functions/:cb/3 <> functions/:fun/3 [
+					throw-error [
+						"incompatible calling conventions between"
+						fun "and" cb
+					]
 				]
 			]
 			if pos: find f-type /local [f-type: head clear copy pos] ;-- remove locals
@@ -939,34 +941,27 @@ system-dialect: make-profilable context [
 				all [find keywords name name <> 'context][
 					error: ["attempt to redefine a protected keyword:" name]
 				]
-
 				find functions name [
 					error: ["attempt to redefine existing function name:" name]
 				]
-
 				find definitions name [
 					error:  ["attempt to redefine existing definition:" name]
 				]
-
 				find-aliased name [
 					error:  ["attempt to redefine existing alias definition:" name]
 				]
-
 				base-type? name [
 					error:  ["redeclaration of base type:" name ]
 				]
-
 				any [
 					exists-variable? name
 					get-variable-spec name
-				][										;-- it's a variable			
+				][										;-- it's a variable
 					error:  ["redeclaration of variable:" name]
 				]
-
 				enum-type? name [
 					error:  ["redeclaration of enum identifier:" name ]
 				]
-				
 				enum-id? name [
 					error:  ["redeclaration of enumerator:" name ]
 				]
@@ -1139,7 +1134,7 @@ system-dialect: make-profilable context [
 						find [any-type! any-pointer!] expected/1
 						all [
 							expected/1 = 'function!
-							compare-func-specs name expr type/2 expected/2	 ;-- callback case
+							compare-func-specs/with type/2 expected/2 name expr	 ;-- callback case
 						]
 					]
 				]
@@ -1645,7 +1640,7 @@ system-dialect: make-profilable context [
 			make action-class [action: 'null type: [any-pointer!] data: 0]
 		]
 		
-		comp-as: has [ctype ptr? expr][
+		comp-as: has [ctype ptr? expr type][
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
 			
@@ -1658,6 +1653,16 @@ system-dialect: make-profilable context [
 			pc: skip pc pick [3 2] to logic! ptr?
 			expr: fetch-expression
 
+			if all [
+				block? ctype
+				ctype/1 = 'function!
+				type: get-type expr
+				type/1 = 'function!
+			][
+				unless compare-func-specs ctype/2 copy type/2 [
+					throw-error "invalid functions casting: specifications not matching"
+				]
+			]
 			if all [object? expr expr/action = 'null][
 				pc: back pc
 				throw-error "type casting on null value is not allowed"
@@ -3116,6 +3121,7 @@ system-dialect: make-profilable context [
 		red-store-bodies?: yes			;-- no => do not store function! value bodies (body-of will return none)
 		red-strict-check?: yes			;-- no => defers undefined word errors reporting at run-time
 		red-tracing?:	yes				;-- no => do not compile tracing code
+		legacy:			none			;-- block of optional OS legacy features flags
 	]
 	
 	compile: func [

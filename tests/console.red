@@ -82,8 +82,6 @@ Red [
 	]
 ]
 
-Windows?: system/platform = 'Windows
-
 read-argument: routine [
 	/local
 		args [str-array!]
@@ -124,8 +122,8 @@ input: routine [
 		print as c-string! string/rs-head prompt
 		ret: ReadConsole stdin line-buffer line-buffer-size :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
-		len: len + 1
-		line-buffer/len: null-byte
+		len: len - 1									;-- move at beginning of CRLF sequence
+		line-buffer/len: null-byte						;-- overwrite CR with NUL
 		str: string/load as c-string! line-buffer len
 	][
 		line: read-line as c-string! string/rs-head prompt
@@ -208,12 +206,6 @@ do-console: function [][
 		unless tail? line: input prompt [
 			append buffer line
 			cnt: count-delimiters buffer
-
-			either Windows? [
-				remove skip tail buffer -2			;-- clear extra CR (Windows)
-			][
-				append buffer lf					;-- Unix
-			]
 			
 			switch mode [
 				block  [if cnt/1 <= 0 [do switch-mode]]

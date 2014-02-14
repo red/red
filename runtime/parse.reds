@@ -816,26 +816,28 @@ parser: context [
 							]
 							R_COLLECT [
 								value: stack/top - 1
+
 								either stack/top - 2 = base [	;-- root unnamed block reached
 									collect?: TYPE_OF(value) = TYPE_BLOCK
 								][
-									assert TYPE_OF(value) = TYPE_BLOCK
-									blk: as red-block! stack/top - 2
-									collect?: no
-									
-									switch TYPE_OF(blk) [
-										TYPE_WORD [
-											_context/set as red-word! blk value
-											stack/pop 1
-										]
-										TYPE_GET_WORD [
-											blk: as red-block! _context/get as red-word! blk
-											block/insert-value blk value
-										]
-										default [
-											assert TYPE_OF(blk) = TYPE_BLOCK
-											block/rs-append blk value
-											collect?: yes
+									if TYPE_OF(value) = TYPE_BLOCK [
+										blk: as red-block! stack/top - 2
+										collect?: no
+
+										switch TYPE_OF(blk) [
+											TYPE_WORD [
+												_context/set as red-word! blk value
+												stack/pop 1
+											]
+											TYPE_GET_WORD [
+												blk: as red-block! _context/get as red-word! blk
+												block/insert-value blk value
+											]
+											default [
+												assert TYPE_OF(blk) = TYPE_BLOCK
+												block/rs-append blk value
+												collect?: yes
+											]
 										]
 									]
 									stack/pop 1
