@@ -1554,8 +1554,13 @@ make-profilable make target-class [
 				size: size + pick [12 8] args/1 = #typed 	;-- account for extra arguments
 			]
 		]
-		emit #{83C4}								;-- ADD esp, n		; @@ 8-bit offset only?
-		emit to-bin8 size
+		either size > 127 [
+			emit #{81C4}							;-- ADD esp, size	; 32-bit
+			emit to-bin32 size
+		][
+			emit #{83C4}							;-- ADD esp, size	; 8-bit
+			emit to-bin8 size
+		]
 	]
 	
 	patch-call: func [code-buf rel-ptr dst-ptr][
@@ -1738,8 +1743,14 @@ make-profilable make target-class [
 		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 
 		unless zero? locals-size [
-			emit #{83EC}							;-- SUB esp, locals-size
-			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
+			locals-size: round/to/ceiling locals-size 4
+			either locals-size > 127 [
+				emit #{81EC}						;-- SUB esp, locals-size	; 32-bit
+				emit to-bin32 locals-size
+			][
+				emit #{83EC}						;-- SUB esp, locals-size	; 8-bit
+				emit to-char locals-size
+			]
 		]
 		if any [
 			fspec/5 = 'callback
