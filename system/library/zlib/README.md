@@ -25,9 +25,9 @@ Running the Red/System zlib examples
 1. This binding is provided with two examples for in-memory (compress) and on-disk compression (gzip).
 
 1. Compile with Red
-    `$ red -c system/library/curses/examples/zlib-mem-example.reds
+    `$ red -c system/library/curses/examples/zlib-mem-example.reds`
 
-    `$ red -c system/library/curses/examples/zlib-disk-example.reds
+    `$ red -c system/library/curses/examples/zlib-disk-example.reds`
 
 1. From the REBOL console type :
 
