@@ -114,27 +114,27 @@ absolute: make action! [[
 
 add: make action! [[
 		"Returns the sum of the two values."
-		value1	 [number!]
-		value2	 [number!]
-		return:  [number!]
+		value1	 [number! char!]
+		value2	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values."
-		value1	 [number!] "The dividend (numerator)."
-		value2	 [number!] "The divisor (denominator)."
-		return:  [number!]
+		value1	 [number! char!] "The dividend (numerator)."
+		value2	 [number! char!] "The divisor (denominator)."
+		return:  [number! char!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values."
-		value1	 [number!]
-		value2	 [number!]
-		return:  [number!]
+		value1	 [number! char!]
+		value2	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_MULTIPLY
 ]
@@ -182,25 +182,25 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values."
-		value1	 [number!]
-		value2	 [number!]
-		return:  [number!]
+		value1	 [number! char!]
+		value2	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_SUBTRACT
 ]
 
 even?: make action! [[
 		"Returns true if the number is evenly divisible by 2."
-		number 	 [number!]
-		return:  [number!]
+		number 	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_EVEN?
 ]
 
 odd?: make action! [[
 		"Returns true if the number has a remainder of 1 when divided by 2."
-		number 	 [number!]
-		return:  [number!]
+		number 	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_ODD?
 ]
