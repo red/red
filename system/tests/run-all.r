@@ -38,8 +38,6 @@ start-time: now/precise
 ;; any .reds test with more than one space between --run-test-file-quiet and 
 ;;  the filename will be excluded from the ARM tests
 
---separate-log-file
-
 ***start-run-quiet*** "Red/System Test Suite"
 
 ===start-group=== "Compiler Tests"
