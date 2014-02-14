@@ -939,34 +939,27 @@ system-dialect: make-profilable context [
 				all [find keywords name name <> 'context][
 					error: ["attempt to redefine a protected keyword:" name]
 				]
-
 				find functions name [
 					error: ["attempt to redefine existing function name:" name]
 				]
-
 				find definitions name [
 					error:  ["attempt to redefine existing definition:" name]
 				]
-
 				find-aliased name [
 					error:  ["attempt to redefine existing alias definition:" name]
 				]
-
 				base-type? name [
 					error:  ["redeclaration of base type:" name ]
 				]
-
 				any [
 					exists-variable? name
 					get-variable-spec name
-				][										;-- it's a variable			
+				][										;-- it's a variable
 					error:  ["redeclaration of variable:" name]
 				]
-
 				enum-type? name [
 					error:  ["redeclaration of enum identifier:" name ]
 				]
-				
 				enum-id? name [
 					error:  ["redeclaration of enumerator:" name ]
 				]
