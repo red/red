@@ -28,7 +28,7 @@ Red/System [
 
 syscalls: context [
 
-  free-str-array: func [args [str-array!] /local n][ ; free str-array! created by str2array
+  free-str-array: func [args [str-array!] /local n][ ; free str-array! created by word-expand
     n: 0
     while [ args/item <> null ][
       free as byte-ptr! args/item
@@ -38,13 +38,13 @@ syscalls: context [
     args: args  - n
     free as byte-ptr! args
   ]
-  print-str-array: func [ args [str-array!]][
+  print-str-array: func [ args [str-array!]][        ; used for debug
     while [ args/item <> null ][
-      print [ args/item lf ]
+      print [ "- " args/item lf ]
       args: args + 1
     ]
   ]
-  str2array: func [
+  word-expand: func [
     cmd          [c-string!]
     return:      [str-array!]
     /local
@@ -55,10 +55,7 @@ syscalls: context [
   ][
     s-length: length? cmd
     str: make-c-string length? cmd
-    args-list: as str-array! allocate (100 * size? c-string!)  ; FIX: Should test memory allocation
-;    print [ "Command        : " cmd       lf ]
-;    print [ "Command length : " s-length  lf ]
-;    print [ "args-list      : " args-list  lf ]
+    args-list: as str-array! allocate (100 * size? c-string!)          ; FIX: Should test memory allocation
     s-length: s-length + 1
     c: 1  ; reset command index
     s: 1  ; reset string index
@@ -77,7 +74,7 @@ syscalls: context [
           ]
         ]
         default  [
-          str/s: cmd/c          ; add char to current string index
+          str/s: cmd/c                                                 ; add char to current string index
           s: s + 1
         ]
       ]
@@ -85,57 +82,56 @@ syscalls: context [
       c > s-length
     ]
     args-list/item: null
-    args-list: args-list - n  ; reset string array
+    args-list: args-list - n    ; reset string array
     args-list: as str-array! re-allocate as byte-ptr! args-list ((n + 1) * size? c-string!)  ; FIX: Should test memory allocation
     free as byte-ptr! str
-    print-str-array args-list  ; comment here
+;    print-str-array args-list  ; Debug: Print expanded values
     return args-list
   ]
 
   #switch OS [
     Windows   [      ; Windows, use home made parsing
       call: func [                     "Executes a DOS command to run another process."
-        cmd          [c-string!]       "The shell command"
+        cmd          [c-string!]       "Command line"
+        waitend      [logic!]
         return:      [integer!]
         /local
         status       [integer!]
         args         [str-array!]
-        ret          [integer!]
+        pid          [integer!]
       ][
-        args: str2array cmd
-        print-str-array args
-        ret: 0
-;        ret: spawnvp 0 args/item args
+        args: word-expand cmd
+        pid: 0
+        either waitend [
+          pid: spawnvp P_WAIT   args/item args    ; Windows : wait until end of process
+        ][
+          pid: spawnvp P_NOWAIT args/item args    ; Windows : continues to execute the calling process
+        ]
         free-str-array args
-        return ret
+        return pid
       ] ; call
     ] ; Windows
     #default  [      ; POSIX, use wordexp parsing
       call: func [                     "Executes a shell command to run another process."
         cmd          [c-string!]       "The shell command"
+        waitend      [logic!]
         return:      [integer!]
         /local
         pid          [integer!]
         wexp         [wordexp-type!]
         status       [integer!]
- ;       args         [str-array!]
       ][
         pid: fork
         either pid = 0 [    ; Child process
           wexp: as wordexp-type! allocate size? wordexp-type!   ; Create wordexp struct
           status: wordexp cmd wexp __WRDE_FLAGS                 ; Parse cmd into str-array
           either status = 0 [ ; Parsing ok
-            ;-- start of debug ---
-  ;          args: str2array cmd
-  ;          print-str-array args
-  ;          free as byte-ptr! args
-            ;-- end of debug --
-;            print-str-array wexp/we_wordv
+;            print-str-array wexp/we_wordv                      ; Debug: Print expanded values
             execvp wexp/we_wordv/item wexp/we_wordv             ; Call execvp with str-array parameters
-            print [ "Error while calling execvp" lf ]           ; Should never occur
+            print [ "Error while calling execvp : {" cmd "}" lf ]           ; Should never occur
             quit 1
           ][                 ; Parsing nok
-            print [ "Error parsing command : " cmd lf ]
+            print [ "Error wordexp parsing command : " cmd lf ]
             case [
               status = WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
               status = WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
@@ -147,7 +143,10 @@ syscalls: context [
           ]
         ][                  ; Parent process
           status: 0
-          wait :status      ; Wait child process terminate
+          if waitend [
+            wait :status    ; Wait child process terminate
+            pid: 0          ; Return 0 after a synchronous process
+          ]
         ]
         return pid
       ] ; call

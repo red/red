@@ -18,30 +18,42 @@ Red/System [
   system/fpu/update
 ]
 
-#if OS <> 'Windows [
-  ; Wordexp enums
-  #enum wrde-flag [
-    WRDE_DOOFFS:     1
-    WRDE_APPEND:     2
-    WRDE_NOCMD:      4
-    WRDE_REUSE:      8
-    WRDE_SHOWERR:    16
-    WRDE_UNDEF:      32
-    __WRDE_FLAGS:    63
-  ]
-  #enum wrde-error [
-    WRDE_NOSPACE:     1
-    WRDE_BADCHAR:     2
-    WRDE_BADVAL:      3
-    WRDE_CMDSUB:      4
-    WRDE_SYNTAX:      5
-  ]
-  ; Wordexp types
-  wordexp-type!: alias struct! [
-    we_wordc  [integer!]
-    we_wordv  [str-array!]
-    we_offs   [integer!]
-  ]
+#switch OS [
+  Windows   [
+    ; Spawn enums
+    #enum spawn-mode [
+      P_WAIT:          0
+      P_NOWAIT:        1
+      P_OVERLAY:       2
+      P_NOWAITO:       3
+      P_DETACH:        4
+    ]
+  ] ; Windows
+  #default  [
+    ; Wordexp enums
+    #enum wrde-flag [
+      WRDE_DOOFFS:     1
+      WRDE_APPEND:     2
+      WRDE_NOCMD:      4
+      WRDE_REUSE:      8
+      WRDE_SHOWERR:    16
+      WRDE_UNDEF:      32
+      __WRDE_FLAGS:    63
+    ]
+    #enum wrde-error [
+      WRDE_NOSPACE:     1
+      WRDE_BADCHAR:     2
+      WRDE_BADVAL:      3
+      WRDE_CMDSUB:      4
+      WRDE_SYNTAX:      5
+    ]
+    ; Wordexp types
+    wordexp-type!: alias struct! [
+      we_wordc  [integer!]
+      we_wordv  [str-array!]
+      we_offs   [integer!]
+    ]
+  ] ; #default
 ]
 
 #import [ LIBC-file cdecl [
@@ -86,8 +98,8 @@ Red/System [
         status         [int-ptr!]
         return:        [integer!]
       ]
-    ]
-  ] ; # switch
+    ] ; #default
+  ] ; #switch
 ] ; cdecl
 ] ; #import
 

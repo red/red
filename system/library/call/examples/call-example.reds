@@ -15,40 +15,41 @@ Red/System [
 
 #include %../call.reds
 
-with syscalls [
-  show-calls: func [
-    ][
-      print [ "--- Call examples ---" lf ]
-      #switch OS [
-        Windows   [
-          call "msconfig 1 2 3 4 5"
-          print [ "---------------------" lf ]
-          call "msconfig 1 2 3 4 5"
-          print [ "---------------------" lf ]
-          call "msconfig 1 2 3 4 5"
-          print [ "---------------------" lf ]
-          call "dir"
-          print [ "---------------------" lf ]
-          call "dir C:\"
-          print [ "---------------------" lf ]
-        ]
-        #default  [
-          call "cat /proc/version"
-          print [ "---------------------" lf ]
-          call "uptime"
-          print [ "---------------------" lf ]
-          call "ps a"
-          print [ "---------------------" lf ]
-          call "ls -l"
-          print [ "---------------------" lf ]
-        ]
-      ]
-    ]
-
- ; show-calls
-  free-str-array str2array "ls"
-  free-str-array str2array "cat /proc/version"
-  free-str-array str2array "dir .. \w"
-  free-str-array str2array "msconfig 1 2 3 4 5 6 7 8"
-  print [ "That's all folks..." lf ]
+print-cmd: func [ cmd [c-string!] /local err [integer!]][
+  print [ "Command    : " cmd lf ]
+  print [ "------------------------------------" lf ]
+  err: syscalls/call cmd false
+  if err <> 0 [
+    print [ "Error code : " err lf ]
+  ]
+  print [ "------------------------------------" lf ]
 ]
+
+show-calls: func [
+][
+  print [ "--- Call examples ---" lf ]
+  #switch OS [
+    Windows   [
+      print-cmd "notepad"
+      print-cmd "mspaint"
+      print-cmd "explorer"
+      print-cmd "dir"
+    ]
+    #default  [
+      print-cmd "uptime"
+      print-cmd "ls"
+      print-cmd "cat /proc/version"
+      print-cmd "ps a"
+      print-cmd "ls -l *.r"
+      print-cmd "echo $UNDEFINED_VAR"
+      print-cmd "top"
+      print-cmd "ls &"         ; should fail
+      print-cmd {ls "*.r}      ; should fail
+    ]
+  ]
+]
+
+show-calls
+;syscalls/print-str-array system/env-vars  ; Only Linux
+
+print [ "That's all folks..." lf ]
