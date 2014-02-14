@@ -900,13 +900,15 @@ system-dialect: make-profilable context [
 		]
 		
 		compare-func-specs: func [
-			fun [word!] cb [get-word!] f-type [block!] c-type [block!] /local spec pos idx
+			f-type [block!] c-type [block!] /with fun [word!] cb [get-word!] /local spec pos idx
 		][
-			cb: to word! cb
-			if functions/:cb/3 <> functions/:fun/3 [
-				throw-error [
-					"incompatible calling conventions between"
-					fun "and" cb
+			if with [
+				cb: to word! cb
+				if functions/:cb/3 <> functions/:fun/3 [
+					throw-error [
+						"incompatible calling conventions between"
+						fun "and" cb
+					]
 				]
 			]
 			if pos: find f-type /local [f-type: head clear copy pos] ;-- remove locals
@@ -1132,7 +1134,7 @@ system-dialect: make-profilable context [
 						find [any-type! any-pointer!] expected/1
 						all [
 							expected/1 = 'function!
-							compare-func-specs name expr type/2 expected/2	 ;-- callback case
+							compare-func-specs/with type/2 expected/2 name expr	 ;-- callback case
 						]
 					]
 				]
@@ -1638,7 +1640,7 @@ system-dialect: make-profilable context [
 			make action-class [action: 'null type: [any-pointer!] data: 0]
 		]
 		
-		comp-as: has [ctype ptr? expr][
+		comp-as: has [ctype ptr? expr type][
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
 			
@@ -1651,6 +1653,16 @@ system-dialect: make-profilable context [
 			pc: skip pc pick [3 2] to logic! ptr?
 			expr: fetch-expression
 
+			if all [
+				block? ctype
+				ctype/1 = 'function!
+				type: get-type expr
+				type/1 = 'function!
+			][
+				unless compare-func-specs ctype/2 copy type/2 [
+					throw-error "invalid functions casting: specifications not matching"
+				]
+			]
 			if all [object? expr expr/action = 'null][
 				pc: back pc
 				throw-error "type casting on null value is not allowed"

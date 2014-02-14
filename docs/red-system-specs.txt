@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 09/08/2013
-	Revision: 39
+	Date: 14/02/2013
+	Revision: 40
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -1043,7 +1043,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="allow">as function!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
-<td class="deny">ERROR</td>
+<td class="allow">as function!</td>
 </tr>
 
 </table>
@@ -3292,6 +3292,10 @@ will output:
 
 
 ===Document History
+
+*<b>14/02/2014 - revision 40</b>
+
+*>Function! to function! type casting now allowed.
 
 *<b>09/08/2013 - revision 39</b>
 
