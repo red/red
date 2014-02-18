@@ -132,12 +132,12 @@ syscalls: context [
             quit 1
           ][                 ; Parsing nok
             print [ "Error wordexp parsing command : " cmd lf ]
-            case [
-              status = WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
-              status = WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
-              status = WRDE_BADVAL  [ print [ "Reference to undefined shell variable" lf ] ]
-              status = WRDE_CMDSUB  [ print [ "Command substitution requested" lf ] ]
-              status = WRDE_SYNTAX  [ print [ "Shell syntax error, such as unbalanced parentheses or unterminated string" lf ] ]
+            switch status [
+              WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
+              WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
+              WRDE_BADVAL  [ print [ "Reference to undefined shell variable" lf ] ]
+              WRDE_CMDSUB  [ print [ "Command substitution requested" lf ] ]
+              WRDE_SYNTAX  [ print [ "Shell syntax error, such as unbalanced parentheses or unterminated string" lf ] ]
             ]
             quit status
           ]
