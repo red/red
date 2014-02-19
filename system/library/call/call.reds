@@ -29,6 +29,8 @@ Red/System [
   #default  [ #include %../unistd.reds  ]
 ]
 
+#define READ-BUFFER-SIZE 4096
+
 syscalls: context [
 
   free-str-array: func [args [str-array!] /local n][ ; free str-array! created by word-expand
@@ -97,37 +99,37 @@ syscalls: context [
     newsize      [integer!]
     return:      [byte-ptr!]
   ][
-    print [ "New size : " newsize lf ]
     tmp: re-allocate buffer newsize                 ; Resize output buffer to new size
     either tmp = NULL [                             ; reallocation failed, uses current output buffer
-      print [ "Call error : Memory reallocation failed." lf ]
+      print [ "Red/System resize-buffer : Memory reallocation failed." lf ]
     ][                                              ; reallocation succeeded, uses reallocated buffer
       buffer: tmp
     ]
     return buffer
   ]
 
-  read-from-pipe: func [
+  read-from-pipe: func [      "Read data from pipe fd into buffer"
     fd           [integer!]   "File descriptor"
     buffer       [byte-ptr!]
-    count        [integer!]
+    ptr-count    [int-ptr!]
     return:      [byte-ptr!]
     /local
     cpt          [integer!]
     tmp          [byte-ptr!]
     total        [integer!]
   ][
-    cpt: count
+    cpt: ptr-count/value
     total: 0
-    while [cpt = count] [     ;    >>>>>>>>>>>>>>>>>> Tout foireux par là <<<<<<<<<<<<<<<<<<<<
-      cpt: read fd (buffer + total) cpt
+    while [cpt = ptr-count/value ][
+      cpt: ioread fd (buffer + total) cpt
       total: total + cpt
-      if cpt = count [                              ; buffer must be expanded
-        buffer: resize-buffer buffer (total + count)
+      if cpt = ptr-count/value [                              ; buffer must be expanded
+        buffer: resize-buffer buffer (total + ptr-count/value)
       ]
     ]
     total: total + cpt
     buffer: resize-buffer buffer total              ; Resize output buffer to minimum size
+    ptr-count/value: total
     return buffer
   ]
 
@@ -153,10 +155,8 @@ syscalls: context [
         return pid
       ] ; call
     ] ; Windows
-    #default  [      ; POSIX, use wordexp parsing
-
-
-      exec-process: func[              "Parse cmd, execute command or exit if error"
+    #default  [      ; POSIX
+      expand-exec: func[               "Use wordexp to parse command and run it. Halt if error. Should never return"
         cmd          [c-string!]       "The shell command"
         return:      [integer!]
         /local
@@ -181,11 +181,11 @@ syscalls: context [
           quit status
         ]
         return -1
-      ] ; exec-process
+      ] ; expand-exec
 
       call: func [                     "Executes a shell command to run another process."
         cmd          [c-string!]       "The shell command"
-        waitend      [logic!]          "Wait for end of command flag"
+        waitend      [logic!]          "Wait for end of command"
         return:      [integer!]        "Returns a pid"
         /local
         pid          [integer!]
@@ -194,7 +194,7 @@ syscalls: context [
       ][
         pid: fork
         either pid = 0 [    ; Child process
-          exec-process cmd
+          expand-exec cmd
         ][                  ; Parent process
           status: 0
           if waitend [
@@ -204,52 +204,64 @@ syscalls: context [
         return pid
       ] ; call
 
-      call-output: func [              "Executes a shell command to run another process, returns output."
+      call-io: func [              "Executes a shell command, IO redirections to buffers."
         cmd          [c-string!]       "The shell command"
-        out-buf      [byte-ptr!]       "Pointer to destination data"
-        out-count    [integer!]        "Size of out-buf"
-        return:      [byte-ptr!]       "Returns a buffer"
+        in-buf       [byte-ptr!]       "Pointer to input data, no stdin redirection if null"
+        in-count     [integer!]        "in-buf size"
+        ptr-count    [int-ptr!]        "Pointer to output buffer count (integer!), no stdout redirection if null"
+        return:      [byte-ptr!]       "Returns an output buffer"
         /local
         pid          [integer!]
         wexp         [wordexp-type!]
+        out-buf      [byte-ptr!]
         status       [integer!]
         err          [integer!]
         fdesc        [int-ptr!]
         flags        [integer!]
+        redirected   [logic!]
       ][
-        if out-buf <> null [                                      ; output redirected to out-buf
+        out-buf: null
+        ptr-count/value: 0
+        if ptr-count <> null [
+          out-buf: as byte-ptr! allocate READ-BUFFER-SIZE
+        ]
+        redirected: any [ (out-buf <> null) (out-buf <> null) ]
+        if redirected [
           fdesc: as int-ptr! allocate (2 * size? integer!)        ; Files descriptors for redirection
-          if (pipe fdesc) = -1 [
-            print "Error creating pipe (call)"
-            halt
-          ]
+          if (pipe fdesc) = -1 [ print "Red/System call-io : Error creating pipe"  halt ]
         ]
         pid: fork
-        either pid = 0 [    ; Child process
-          ; faire un dup2 par ici
-          if out-buf <> null [
+        either pid = 0 [                                ; Child process
+          if in-buf <> null [                                   ; redirect stdin to input buffer
+            err: dup2 fdesc/1 stdin
+            if err = -1 [ print "Red/System call-io : Error dup2 stdin"  halt ]
+          ]
+          if out-buf <> null [                                  ; redirect stdout to output buffer
             err: dup2 fdesc/2 stdout
-            if err = -1 [
-              print "Error dup2 (call)"
-              halt
-            ]
+            if err = -1 [ print "Red/System call-io : Error dup2 stdout"  halt ]
+          ]
+          if redirected [
             close fdesc/1
             close fdesc/2
           ]
-          exec-process cmd
-        ][                  ; Parent process
+          expand-exec cmd
+        ][                                              ; Parent process
           status: 0
-          either out-buf = null [
-            wait :status    ; Wait child process terminate
-          ][
-            out-buf: read-from-pipe fdesc/1 out-buf out-count
+          if in-buf <> null [                                   ; write input buffer to child process' stdin
+            iowrite fdesc/2 in-buf in-count
           ]
-        ] ; either status
-        if out-buf <> null [
+          either out-buf = null [
+            wait :status                                        ; Wait child process terminate
+          ][
+            ptr-count/value: READ-BUFFER-SIZE
+            out-buf: read-from-pipe fdesc/1 out-buf ptr-count   ; read output buffer from child process' stdout
+          ]
+        ] ; either pid
+        if redirected [
           free as byte-ptr! fdesc
         ]
         return out-buf
-      ] ; call-output
+      ] ; call-io
     ] ; #default
   ] ; #switch
 ] ; context

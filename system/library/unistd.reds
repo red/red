@@ -120,11 +120,17 @@ Red/System [
       fd             [integer!]    "File descriptor"
       return:        [integer!]
     ]
-    read: "read" [                 "Read nbytes into buf from fd"
+    ioread: "read" [               "Read nbytes into buf from fd"
+      fd             [integer!]    "File descriptor"
+      buf            [byte-ptr!]   "Pointer to allocated memory"
+      nbytes         [integer!]    "Size of allocated memory"
+      return:        [integer!]    "Number of bytes read or error"
+    ]
+    iowrite: "write" [             "Write nbytes into fd from buf"
       fd             [integer!]    "File descriptor"
       buf            [byte-ptr!]   "Pointer to source data"
       nbytes         [integer!]    "Source data count (bytes)"
-      return:        [integer!]    "Number of bytes or error"
+      return:        [integer!]    "Number of bytes written or error"
     ]
     fcntl: "fcntl" [               "Manipulate file descriptor"
       [variadic]

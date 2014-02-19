@@ -15,8 +15,6 @@ Red/System [
 
 #include %../call.reds
 
-#define BUFFER-SIZE 200
-
 print-cmd: func [
   waitend    [logic!]
   cmd        [c-string!]
@@ -28,23 +26,28 @@ print-cmd: func [
   if err <> 0 [
     print [ "Pid returned : " err lf ]
   ]
-  print [ "------------------------------------" lf ]
+  print [ "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" lf ]
 ]
 
 redirected-cmd: func [
   cmd        [c-string!]
+  in-str     [c-string!]
   /local
   str        [c-string!]
+  count      [integer!]
 ][
-  str: make-c-string BUFFER-SIZE
+  str: null
+  count: 0
   print [ "Command    : " cmd lf ]
   print [ "------------------------------------" lf ]
-  str: as c-string! syscalls/call-output cmd  as byte-ptr! str BUFFER-SIZE
-  print [ "------------------------------------" lf ]
-  print [ "Str length : " length? str lf ]
+  either in-str <> null [
+    str: as c-string! syscalls/call-io cmd as byte-ptr! in-str ( 1 + length? in-str) :count
+  ][
+    str: as c-string! syscalls/call-io cmd  null 0 :count
+  ]
   print [ str lf ]
-;  print [ size? str lf ]
-;  print [ length? str lf ]
+  print [ "Output length : " length? str lf ]
+  print [ "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" lf ]
   free as byte-ptr! str
 ]
 
@@ -76,6 +79,7 @@ show-calls: func [
 ;show-calls
 ;syscalls/print-str-array system/env-vars  ; Only Linux
 
-redirected-cmd "ls -l"
+redirected-cmd "ls -l" null
+redirected-cmd "cat" "This is a Red World..."
 
 print [ "That's all folks..." lf ]
