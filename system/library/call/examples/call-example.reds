@@ -29,24 +29,43 @@ print-cmd: func [
   print [ "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" lf ]
 ]
 
-redirected-cmd: func [
-  cmd        [c-string!]
-  in-str     [c-string!]
+read-cmd-str: func [          "Execute cmd, in-str redirected to process' stdin, returns stdout"
+  cmd        [c-string!]      "Command"
+  in-str     [c-string!]      "Stdin value ou null"
+  return:    [c-string!]
   /local
   str        [c-string!]
   count      [integer!]
+  endstr     [integer!]
 ][
   str: null
   count: 0
-  print [ "Command    : " cmd lf ]
-  print [ "------------------------------------" lf ]
   either in-str <> null [
-    str: as c-string! syscalls/call-io cmd as byte-ptr! in-str ( 1 + length? in-str) :count
+    str: as c-string! syscalls/call-io cmd as byte-ptr! in-str length? in-str :count
   ][
     str: as c-string! syscalls/call-io cmd  null 0 :count
   ]
+  endstr: count + 1
+  str/endstr: null-byte            ; Put a c-string end marker
+  return str
+] ; read-cmd-str
+
+show-cmd: func [              "Execute cmd, in-str redirected to process' stdin"
+  cmd        [c-string!]      "Command"
+  in-str     [c-string!]      "Stdin value ou null"
+  /local
+  str        [c-string!]
+  count      [integer!]
+  endstr     [integer!]
+][
+  print [ "Command    : " cmd ]
+  if in-str <> null [ print [ " < ^"" in-str "^"" ] ]
+  print lf
+  print [ "------------------------------------" lf ]
+  str: read-cmd-str cmd in-str
   print [ str lf ]
-  print [ "Output length : " length? str lf ]
+;  print [ "Output count  : " count lf ]
+;  print [ "Output length : " length? str lf ]
   print [ "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" lf ]
   free as byte-ptr! str
 ]
@@ -79,7 +98,9 @@ show-calls: func [
 ;show-calls
 ;syscalls/print-str-array system/env-vars  ; Only Linux
 
-redirected-cmd "ls -l" null
-redirected-cmd "cat" "This is a Red World..."
+show-cmd "ls -l" null
+show-cmd "cat" "This is a Red World..."
+;show-cmd "cat /proc/cpuinfo" null
+;show-cmd "cat" "This is a Red World..."
 
 print [ "That's all folks..." lf ]

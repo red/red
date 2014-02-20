@@ -18,6 +18,34 @@ The windows' call function can launch only GUI apps such as **notepad**, **explo
 
 Console commands like **dir** needs further investigation and help to implement window's stdio redirections.
 
+Implementation
+------------------------
+
+* POSIX, two functions are avaliable :
+
+**call** : execute command line, with only a waitend parameter.
+
+* Syntax :
+
+       call cmd [c-string!] waitend [logic!]
+
+* Example :
+
+       pid: syscall/call "ls -l" true
+
+> If waitend = false, **call** returns a child process number else returns 0.
+
+**call-io** : execute command line with IOs redirection. Waitend is implicit.
+
+* Syntax :
+      call-io cmd [c-string!] in-buf [byte-ptr!] in-count [integer!] out-count [int-ptr!]
+
+* Output redirection example :
+
+      str        [c-string!]
+      str: null
+      syscall/call-io "cat /proc/cpuinfo"
+
 Running the Red/System call example
 ------------------------
 

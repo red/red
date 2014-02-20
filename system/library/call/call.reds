@@ -101,7 +101,8 @@ syscalls: context [
   ][
     tmp: re-allocate buffer newsize                 ; Resize output buffer to new size
     either tmp = NULL [                             ; reallocation failed, uses current output buffer
-      print [ "Red/System resize-buffer : Memory reallocation failed." lf ]
+      print [ "Red/System resize-buffer : Memory allocation failed." lf ]
+      halt
     ][                                              ; reallocation succeeded, uses reallocated buffer
       buffer: tmp
     ]
@@ -123,15 +124,14 @@ syscalls: context [
     while [cpt = ptr-count/value ][
       cpt: ioread fd (buffer + total) cpt
       total: total + cpt
-      if cpt = ptr-count/value [                              ; buffer must be expanded
+      if cpt = ptr-count/value [                    ; buffer must be expanded
         buffer: resize-buffer buffer (total + ptr-count/value)
       ]
     ]
-    total: total + cpt
-    buffer: resize-buffer buffer total              ; Resize output buffer to minimum size
+    buffer: resize-buffer buffer (total + 1)        ; Resize output buffer to minimum size
     ptr-count/value: total
     return buffer
-  ]
+  ] ; read-from-pipe
 
   #switch OS [
     Windows   [      ; Windows, use minimal home made parsing
@@ -147,9 +147,9 @@ syscalls: context [
         args: word-expand cmd
         pid: 0
         either waitend [
-          pid: spawnvp P_WAIT   args/item args    ; Windows : wait until end of process
+          pid: spawnvp P_WAIT   args/item args      ; Windows : wait until end of process
         ][
-          pid: spawnvp P_NOWAIT args/item args    ; Windows : continues to execute the calling process
+          pid: spawnvp P_NOWAIT args/item args      ; Windows : continues to execute the calling process
         ]
         free-str-array args
         return pid
@@ -199,8 +199,9 @@ syscalls: context [
           status: 0
           if waitend [
             wait :status    ; Wait child process terminate
+            pid: 0          ; Process is completed, return 0
           ]
-        ] ; either status
+        ] ; either pid
         return pid
       ] ; call
 
@@ -208,7 +209,7 @@ syscalls: context [
         cmd          [c-string!]       "The shell command"
         in-buf       [byte-ptr!]       "Pointer to input data, no stdin redirection if null"
         in-count     [integer!]        "in-buf size"
-        ptr-count    [int-ptr!]        "Pointer to output buffer count (integer!), no stdout redirection if null"
+        out-count    [int-ptr!]        "Pointer to output buffer count (integer!), no stdout redirection if null"
         return:      [byte-ptr!]       "Returns an output buffer"
         /local
         pid          [integer!]
@@ -221,8 +222,8 @@ syscalls: context [
         redirected   [logic!]
       ][
         out-buf: null
-        ptr-count/value: 0
-        if ptr-count <> null [
+        out-count/value: 0
+        if out-count <> null [
           out-buf: as byte-ptr! allocate READ-BUFFER-SIZE
         ]
         redirected: any [ (out-buf <> null) (out-buf <> null) ]
@@ -253,8 +254,8 @@ syscalls: context [
           either out-buf = null [
             wait :status                                        ; Wait child process terminate
           ][
-            ptr-count/value: READ-BUFFER-SIZE
-            out-buf: read-from-pipe fdesc/1 out-buf ptr-count   ; read output buffer from child process' stdout
+            out-count/value: READ-BUFFER-SIZE
+            out-buf: read-from-pipe fdesc/1 out-buf out-count   ; read output buffer from child process' stdout
           ]
         ] ; either pid
         if redirected [
