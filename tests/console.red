@@ -82,6 +82,8 @@ Red [
 	]
 ]
 
+#include %help.red
+
 read-argument: routine [
 	/local
 		args [str-array!]
