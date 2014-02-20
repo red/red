@@ -42,13 +42,15 @@ syscalls: context [
     ]
     args: args  - n
     free as byte-ptr! args
-  ]
+  ] ; free-str-array
+
   print-str-array: func [ args [str-array!]][        ; used for debug
     while [ args/item <> null ][
       print [ "- " args/item lf ]
       args: args + 1
     ]
-  ]
+  ] ; print-str-array
+
   word-expand: func [
     cmd          [c-string!]
     return:      [str-array!]
@@ -92,7 +94,7 @@ syscalls: context [
     free as byte-ptr! str
 ;    print-str-array args-list  ; Debug: Print expanded values
     return args-list
-  ]
+  ] ; word-expand
 
   resize-buffer: func [
     buffer       [byte-ptr!]
@@ -107,7 +109,7 @@ syscalls: context [
       buffer: tmp
     ]
     return buffer
-  ]
+  ] ; resize-buffer
 
   read-from-pipe: func [      "Read data from pipe fd into buffer"
     fd           [integer!]   "File descriptor"
@@ -156,20 +158,20 @@ syscalls: context [
       ] ; call
     ] ; Windows
     #default  [      ; POSIX
-      expand-exec: func[               "Use wordexp to parse command and run it. Halt if error. Should never return"
+      expand-and-exec: func[               "Use wordexp to parse command and run it. Halt if error. Should never return"
         cmd          [c-string!]       "The shell command"
         return:      [integer!]
         /local
         status       [integer!]
       ][
         wexp: as wordexp-type! allocate size? wordexp-type!      ; Create wordexp struct
-        status: wordexp cmd wexp __WRDE_FLAGS                    ; Parse cmd into str-array
-        either status = 0 [ ; Parsing ok
+        status: wordexp cmd wexp WRDE_SHOWERR                              ; Parse cmd into str-array
+        either status = 0 [                           ; Parsing ok
 ;          print-str-array wexp/we_wordv                         ; Debug: Print expanded values
           execvp wexp/we_wordv/item wexp/we_wordv                ; Call execvp with str-array parameters
           print [ "Error while calling execvp : {" cmd "}" lf ]  ; Should never occur
           quit 1
-        ][                 ; Parsing nok
+        ][                                            ; Parsing nok
           print [ "Error wordexp parsing command : " cmd lf ]
           switch status [
             WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
@@ -181,9 +183,9 @@ syscalls: context [
           quit status
         ]
         return -1
-      ] ; expand-exec
+      ] ; expand-and-exec
 
-      call: func [                     "Executes a shell command to run another process."
+      call: func [                     "Executes a shell command to run another process"
         cmd          [c-string!]       "The shell command"
         waitend      [logic!]          "Wait for end of command"
         return:      [integer!]        "Returns a pid"
@@ -194,7 +196,7 @@ syscalls: context [
       ][
         pid: fork
         either pid = 0 [    ; Child process
-          expand-exec cmd
+          expand-and-exec cmd
         ][                  ; Parent process
           status: 0
           if waitend [
@@ -245,7 +247,7 @@ syscalls: context [
             close fdesc/1
             close fdesc/2
           ]
-          expand-exec cmd
+          expand-and-exec cmd
         ][                                              ; Parent process
           status: 0
           if in-buf <> null [                                   ; write input buffer to child process' stdin

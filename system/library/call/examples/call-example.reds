@@ -22,7 +22,7 @@ print-cmd: func [
 ][
   print [ "Command    : " cmd lf ]
   print [ "------------------------------------" lf ]
-  err: syscalls/call cmd waitend null 0
+  err: syscalls/call cmd waitend
   if err <> 0 [
     print [ "Pid returned : " err lf ]
   ]
@@ -95,11 +95,11 @@ show-calls: func [
   ]
 ]
 
-;show-calls
+show-calls
 ;syscalls/print-str-array system/env-vars  ; Only Linux
 
-show-cmd "ls -l" null
-show-cmd "cat" "This is a Red World..."
+;show-cmd "ls -l" null
+;show-cmd "cat" "This is a Red World..."
 ;show-cmd "cat /proc/cpuinfo" null
 ;show-cmd "cat" "This is a Red World..."
 
