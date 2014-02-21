@@ -371,7 +371,14 @@ interpreter: context [
 				TYPE_GET_WORD
 				TYPE_LIT_WORD [
 					either required? [
-						FETCH_ARGUMENT
+						either all [
+							pc >= end
+							TYPE_OF(value) = TYPE_LIT_WORD
+						][
+							unset/push
+						][
+							FETCH_ARGUMENT
+						]
 						count: count + 1
 					][
 						if function? [none/push]

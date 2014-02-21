@@ -1683,31 +1683,39 @@ red: context [
 	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!] /local word][
 		if ref [spec: find/tail spec name]
 		loop nb [
-			while [not any-word? spec/1][				;-- skip types blocks
+			while [not any-word? spec/1][				;-- skip attributs and docstrings
 				spec: next spec
 			]
 			switch type?/word spec/1 [
 				lit-word! [
-					switch/default type?/word pc/1 [
-						get-word! [
-							add-symbol to word! pc/1
-							comp-expression
-						]
-						lit-word! [
-							add-symbol word: to word! pc/1
-							emit 'lit-word/push
-							emit decorate-symbol word
-							insert-lf -2
-							pc: next pc
-						]
-						word! [
-							add-symbol word: to word! pc/1
-							emit-push-word word				;@@ add specific type checking
-							pc: next pc
-						]
-						paren! [comp-expression]
+					either all [
+						tail? pc
+						all [spec/2 find spec/2 'any-type!]
 					][
-						comp-literal no
+						emit 'unset/push				;-- provide unset as placeholder
+						insert-lf -1
+					][
+						switch/default type?/word pc/1 [
+							get-word! [
+								add-symbol to word! pc/1
+								comp-expression
+							]
+							lit-word! [
+								add-symbol word: to word! pc/1
+								emit 'lit-word/push
+								emit decorate-symbol word
+								insert-lf -2
+								pc: next pc
+							]
+							word! [
+								add-symbol word: to word! pc/1
+								emit-push-word word				;@@ add specific type checking
+								pc: next pc
+							]
+							paren! [comp-expression]
+						][
+							comp-literal no
+						]
 					]
 				]
 				get-word! [comp-literal no]
