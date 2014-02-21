@@ -86,7 +86,7 @@ show-calls: func [
       print-cmd true  "ps a"
       print-cmd true  "ls"
       print-cmd true  "ls -l *.r"
-      print-cmd true  "echo $UNDEFINED_VAR"  ; Word expansion should fail
+      print-cmd true  "echo $UNDEFINED_VAR"  ; Print nothing
       print-cmd true  "ls &"                 ; Word expansion should fail
       print-cmd true  {ls "*.r}              ; Word expansion should fail
 ;      print-cmd "top"
@@ -95,12 +95,12 @@ show-calls: func [
   ]
 ]
 
-show-calls
+;show-calls
 ;syscalls/print-str-array system/env-vars  ; Only Linux
 
-;show-cmd "ls -l" null
-;show-cmd "cat" "This is a Red World..."
+show-cmd "ls -l" null
+show-cmd "cat" "This is a Red World..."
 ;show-cmd "cat /proc/cpuinfo" null
-;show-cmd "cat" "This is a Red World..."
+show-cmd "cat" "This is a Red World..."
 
 print [ "That's all folks..." lf ]

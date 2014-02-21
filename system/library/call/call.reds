@@ -195,13 +195,13 @@ syscalls: context [
         status       [integer!]
       ][
         pid: fork
-        either pid = 0 [    ; Child process
+        either pid = 0 [         ; Child process
           expand-and-exec cmd
-        ][                  ; Parent process
+        ][                       ; Parent process
           status: 0
           if waitend [
-            wait :status    ; Wait child process terminate
-            pid: 0          ; Process is completed, return 0
+            waitpid pid :status 0   ; Wait child process terminate
+            pid: 0                  ; Process is completed, return 0
           ]
         ] ; either pid
         return pid
@@ -224,11 +224,11 @@ syscalls: context [
         redirected   [logic!]
       ][
         out-buf: null
-        out-count/value: 0
         if out-count <> null [
-          out-buf: as byte-ptr! allocate READ-BUFFER-SIZE
+          out-count/value: 0
+          out-buf: allocate READ-BUFFER-SIZE
         ]
-        redirected: any [ (out-buf <> null) (out-buf <> null) ]
+        redirected: any [ (out-buf <> null) (in-buf <> null) ]
         if redirected [
           fdesc: as int-ptr! allocate (2 * size? integer!)        ; Files descriptors for redirection
           if (pipe fdesc) = -1 [ print "Red/System call-io : Error creating pipe"  halt ]

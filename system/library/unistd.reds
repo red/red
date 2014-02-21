@@ -103,8 +103,14 @@ Red/System [
       pwordexp       [wordexp-type!]
       return:        [integer!]
     ]
-    wait: "wait" [                 "Wait for a child process to stop or terminate"
+    wait: "wait" [                 "Wait for any child process to stop or terminate"
       status         [int-ptr!]
+      return:        [integer!]
+    ]
+    waitpid: "waitpid" [            "Wait for specified child process to stop or terminate"
+      pid            [integer!]     "Process ID"
+      status         [int-ptr!]
+      options        [integer!]
       return:        [integer!]
     ]
     pipe: "pipe" [                 "Create a one-way communication channel"
