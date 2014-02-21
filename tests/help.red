@@ -155,5 +155,4 @@ source: function [
 	][
 		["Sorry," func-name "is a" type? :func-name "so no source is available"]
 	]
-	exit												;-- return unset value
 ]
