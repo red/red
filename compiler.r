@@ -2038,13 +2038,19 @@ red: context [
 				]
 				append include-stk script-path
 				
-				script-path: either relative-path? file [
+				script-path: either all [not encap-fs/base relative-path? file][
 					file: clean-path join any [script-path main-path] file
 					first split-path file
 				][
 					none
 				]
-				unless exists? file [
+				all [
+					encap?
+					encap-fs/base
+					slash <> first file
+					file: join encap-fs/base file
+				]
+				unless any [encap? exists? file][
 					throw-error ["include file not found:" pc/2]
 				]
 				either find included-list file [

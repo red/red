@@ -185,6 +185,7 @@ redc: context [
 			opts: make opts select load-targets opts/config-name
 
 			print "Pre-compiling Red console..."
+			set-cache-base %tests/
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result/1
 			
