@@ -174,6 +174,7 @@ redc: context [
 			(modified? exe) < modified? sob					;-- check that console is up to date.
 		][
 			write script read-cache %tests/console.red
+			write temp-dir/help.red read-cache %tests/help.red
 
 			opts: make system-dialect/options-class [		;-- minimal set of compilation options
 				link?: yes
@@ -185,11 +186,11 @@ redc: context [
 			opts: make opts select load-targets opts/config-name
 
 			print "Pre-compiling Red console..."
-			set-cache-base %tests/
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result/1
 			
 			delete script
+			delete temp-dir/help.red
 			
 			if all [Windows? not lib?][
 				print "Please run red.exe again to access the console."
