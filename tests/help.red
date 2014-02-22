@@ -13,7 +13,7 @@ Red [
 help: func [
 	"Get help for functions"
 	'word [any-type!] "Word you are looking for"
-	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block
+	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block w1 w2
 ][
 	tab: tab4: "    "
 	tab8: "        "
@@ -75,27 +75,30 @@ Other debug functions:
 			either all [
 				word? func-name
 				fun: get func-name
-				any [action? :fun function? :fun native? :fun]
+				any [action? :fun function? :fun native? :fun op? :fun]
 			][
-		;		print ["^/" func-name "is of type" type? :fun newline]
-				prin ["^/USAGE:^/" tab func-name]
+				prin ["^/USAGE:^/" tab ]
 
 				parse spec-of :fun [
-					start: any [						;-- 1st pass
-						/local to end
-						| set w word! (prin [" " w])
-						| set w [lit-word! | refinement!] (prin [" " mold w])
-						| skip
+					start: [						;-- 1st pass
+						any [block! | string! ]
+						opt [set w [word! | lit-word!] (either op? :fun [prin [w func-name]][prin [func-name w]])]
+						any [
+							/local to end
+							| set w word! (prin [" " w])
+							| set w [lit-word! | refinement!] (prin [" " mold w])
+							| skip
+						]
 					]
 
 					:start								;-- 2nd pass
 					opt [set attributes block! (prin ["^/^/ATTRIBUTES:^/" tab mold attributes])]
-					opt [set info string! (print ["^/^/DESCRIPTION:^/" tab append form info dot])]
+					opt [set info string! (print ["^/^/DESCRIPTION:^/" tab append form info dot lf tab func-name "is type:" mold type? :fun])]
 
 					(print "^/ARGUMENTS:")
-					any [argument-rule (prin lf)]
+					any [argument-rule]; (prin lf)]
 
-					(print "REFINEMENTS:")
+					(print "^/REFINEMENTS:")
 					any [
 						/local [
 							to ahead set-word! 'return set block block! 
@@ -129,7 +132,7 @@ what: function [
 	"Lists all functions, or words of a given type"
 ][
 	foreach w system/words [
-		if any [function? get w native? get w action? get w][
+		if any [function? get w native? get w action? get w op? get w][
 			prin w
 			spec: spec-of get w
 			
