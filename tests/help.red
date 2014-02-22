@@ -13,7 +13,7 @@ Red [
 help: func [
 	"Get help for functions"
 	'word [any-type!] "Word you are looking for"
-	/local func-name desc spec tab tab4 tab8 type start attributs info fun w ref block
+	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block
 ][
 	tab: tab4: "    "
 	tab8: "        "
@@ -49,7 +49,7 @@ Other debug functions:
 
 						either any [
 							string? desc: spec/1
-							string? desc: spec/2					;-- attributs block case
+							string? desc: spec/2					;-- attributes block case
 						][
 							print ["^-=> " desc]
 						][
@@ -89,7 +89,7 @@ Other debug functions:
 					]
 
 					:start								;-- 2nd pass
-					opt [set attributs block! (prin ["^/^/ATTRIBUTS:^/" tab mold attributs])]
+					opt [set attributes block! (prin ["^/^/ATTRIBUTES:^/" tab mold attributes])]
 					opt [set info string! (print ["^/^/DESCRIPTION:^/" tab append form info dot])]
 
 					(print "^/ARGUMENTS:")
@@ -135,7 +135,7 @@ what: function [
 			
 			either any [
 				string? desc: spec/1
-				string? desc: spec/2					;-- attributs block case
+				string? desc: spec/2					;-- attributes block case
 			][
 				print [tab "=> " desc]
 			][
