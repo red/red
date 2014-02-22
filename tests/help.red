@@ -43,20 +43,26 @@ Other debug functions:
 			type: get :word
 			foreach w system/words [
 				if type = type? get w [
-					either any [function? get w native? get w action? get w][
-						prin [tab w]
-						spec: spec-of get w
+					case [
+						any [function? get w native? get w action? get w][
+							prin [tab w]
+							spec: spec-of get w
 
-						either any [
-							string? desc: spec/1
-							string? desc: spec/2					;-- attributs block case
-						][
-							print ["^-=> " desc]
-						][
-							prin lf
+							either any [
+								string? desc: spec/1
+								string? desc: spec/2					;-- attributs block case
+							][
+								print ["^-=> " desc]
+							][
+								prin lf
+							]
 						]
-					][
-						print [tab :w "^-: " mold get w]
+						datatype? get w [
+							print [tab :w]
+						]
+						'else [
+							print [tab :w "^-: " mold get w]
+						]
 					]
 				]
 			]
