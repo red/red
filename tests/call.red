@@ -39,25 +39,37 @@ call-io: routine [  "Executes a shell command to run another process"
   out
 ;  out-str
 ][
-  print [ "call-io"  lf ]
-;  if none? out-str [ print "_-_-_-_-_-_-_-_-_-_-" ]
-  print [ "In  : " as-c-string string/rs-head in-str  lf ]
-  print [ "Out : " as-c-string string/rs-head out-str lf ]
+;  print [ "call-io"  lf ]
+;  if not null? in-str  [ print [ "In  : " as-c-string string/rs-head in-str   lf ] ]
+;  if not null? out-str [ print [ "Out : " as-c-string string/rs-head out-str  lf ] ]
   count: 0
-;  if in-str <> null [
-;    either out-str <> null [
-      out: syscalls/call-io as-c-string string/rs-head cmd
-                            string/rs-head in-str
-                            (1 + length? as-c-string string/rs-head in-str)
-                            :count
-;    ][
-;      syscalls/call-io as-c-string string/rs-head cmd
-;                       string/rs-head in-str
-;                       (1 + length? as-c-string string/rs-head in-str)
-;                       null
-;    ]
+
+  ; output, no input
+  if all [(null? in-str) (not null? out-str)][
+    print [ "Ici ---------------" lf ]
+    out: syscalls/call-io as-c-string string/rs-head cmd null 0 :count
+  ]
+
+  ; output, input
+  if all [(not null? in-str) (not null? out-str)][
+    out: syscalls/call-io as-c-string string/rs-head cmd
+                          string/rs-head in-str
+                          (1 + length? as-c-string string/rs-head in-str)
+                          :count
+  ]
+
+  ; Bugged
+  ; no output, input
+  if all [(null? in-str) (not null? out-str)][
+    out: syscalls/call-io as-c-string string/rs-head cmd
+                          string/rs-head in-str
+                          (1 + length? as-c-string string/rs-head in-str)
+                          null
+  ]
+
+;  if not null? out-str [
+    SET_RETURN ((string/load as-c-string out count))
 ;  ]
-  SET_RETURN ((string/load as-c-string out count))
 ]
 
 call: func [
@@ -70,8 +82,10 @@ call: func [
     print [ "Command : " cmd ]
     print [ "Input   : " sin ]
     print [ "Output  : " sout ]
-    sout: call-io cmd sin none
-    print [ "Output  : " sout ]
+    if all [ input output ]     [ sout: call-io cmd sin sout  ]
+    if all [ input not output ] [       call-io cmd sin none  ]
+    if all [ not input output ] [ sout: call-io cmd null sout ]
+    if output [ print [ "Output  : " sout ] ]
   ][
     call-basic cmd wait
   ]

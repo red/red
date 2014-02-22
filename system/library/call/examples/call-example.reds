@@ -63,7 +63,7 @@ show-cmd: func [              "Execute cmd, in-str redirected to process' stdin"
   print lf
   print [ "------------------------------------" lf ]
   str: read-cmd-str cmd in-str
-  print [ str lf ]
+  if str <> null [ print [ "Output : " str lf ] ]
 ;  print [ "Output count  : " count lf ]
 ;  print [ "Output length : " length? str lf ]
   print [ "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" lf ]
@@ -100,7 +100,7 @@ show-calls: func [
 
 show-cmd "ls -l" null
 show-cmd "cat" "This is a Red World..."
-;show-cmd "cat /proc/cpuinfo" null
-show-cmd "cat" "This is a Red World..."
+show-cmd "cat /proc/cpuinfo" null
+;show-cmd "cat" "This is a Red World..."
 
 print [ "That's all folks..." lf ]
