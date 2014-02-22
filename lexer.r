@@ -306,7 +306,7 @@ lexer: context [
 	comment-rule: [#";" [to #"^/" | to end]]
 	
 	multiline-comment-rule: [
-		"comment" any-ws [
+		"comment" ws [
 			#"{" nested-curly-braces
 			| (throw-error/with "multiline string expected after COMMENT")
 		]
