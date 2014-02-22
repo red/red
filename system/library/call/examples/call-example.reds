@@ -22,52 +22,60 @@ print-cmd: func [
 ][
   print [ "Command    : " cmd lf ]
   print [ "------------------------------------" lf ]
-  err: syscalls/call cmd waitend
+  err: syscalls/call cmd waitend null null
   if err <> 0 [
     print [ "Pid returned : " err lf ]
   ]
   print [ "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" lf ]
 ]
 
-read-cmd-str: func [          "Execute cmd, in-str redirected to process' stdin, returns stdout"
-  cmd        [c-string!]      "Command"
-  in-str     [c-string!]      "Stdin value ou null"
-  return:    [c-string!]
-  /local
-  str        [c-string!]
-  count      [integer!]
-  endstr     [integer!]
-][
-  str: null
-  count: 0
-  either in-str <> null [
-    str: as c-string! syscalls/call-io cmd as byte-ptr! in-str length? in-str :count
-  ][
-    str: as c-string! syscalls/call-io cmd  null 0 :count
-  ]
-  endstr: count + 1
-  str/endstr: null-byte            ; Put a c-string end marker
-  return str
-] ; read-cmd-str
 
-show-cmd: func [              "Execute cmd, in-str redirected to process' stdin"
+call-in: func [
   cmd        [c-string!]      "Command"
   in-str     [c-string!]      "Stdin value ou null"
   /local
-  str        [c-string!]
-  count      [integer!]
-  endstr     [integer!]
+  ret        [integer!]
+  inp
 ][
-  print [ "Command    : " cmd ]
-  if in-str <> null [ print [ " < ^"" in-str "^"" ] ]
-  print lf
-  print [ "------------------------------------" lf ]
-  str: read-cmd-str cmd in-str
-  if str <> null [ print [ "Output : " str lf ] ]
-;  print [ "Output count  : " count lf ]
-;  print [ "Output length : " length? str lf ]
-  print [ "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" lf ]
-  free as byte-ptr! str
+  inp: declare p-buffer!
+  inp/buffer: as byte-ptr! in-str
+  inp/count:  1 + length? in-str
+  ret: syscalls/call cmd true inp null
+]
+
+call-out: func [
+  cmd        [c-string!]      "Command"
+  /local
+  ret        [integer!]
+  out
+][
+  out: declare p-buffer!
+  out/buffer: null
+  out/count:  0
+  ret: syscalls/call cmd true null out
+  print [ "Out   : " lf as-c-string out/buffer lf ]
+  free out/buffer
+]
+
+call-in-out: func [
+  cmd        [c-string!]      "Command"
+  in-str     [c-string!]      "Stdin data ou null"
+  /local
+  ret        [integer!]
+  inp out
+][
+  inp: declare p-buffer!
+  inp/buffer: as byte-ptr! in-str
+  inp/count:  1 + length? in-str
+  out:  declare p-buffer!
+  out/buffer: null
+  out/count:  0
+;  print [ "--- " inp " " out lf ]
+;  print [ "--- " inp/buffer " " out/buffer lf ]
+  print [ "In   : " as-c-string inp/buffer lf ]
+  ret: syscalls/call cmd true inp out
+  print [ "Out   : " as-c-string out/buffer lf ]
+  free out/buffer
 ]
 
 show-calls: func [
@@ -97,10 +105,28 @@ show-calls: func [
 
 ;show-calls
 ;syscalls/print-str-array system/env-vars  ; Only Linux
+txt: {
+  This is blue world
+  This is green world
+  This is Red world
+  This is yellow world
+}
 
-show-cmd "ls -l" null
-show-cmd "cat" "This is a Red World..."
-show-cmd "cat /proc/cpuinfo" null
+
+print "------------ call-in --------------^/"
+call-in  "cat" "This is a Red world...^/"
+call-in  "grep Red" txt
+
+print "------------ call-out -------------^/"
+call-out "date"
+call-out "uptime"
+;call-out "ls -l"
+
+print "------------ call-in-out ----------^/"
+call-in-out "grep Red" txt
+
+;show-cmd "cat" "This is a Red World..."
+;show-cmd "cat /proc/cpuinfo" null
 ;show-cmd "cat" "This is a Red World..."
 
-print [ "That's all folks..." lf ]
+print [ lf "That's all folks..." lf ]

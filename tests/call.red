@@ -26,50 +26,54 @@ call-basic: routine [  "Executes a shell command to run another process"
   return:  [integer!]
 ][
   print [ "call-basic" lf ]
-  syscalls/call as-c-string string/rs-head cmd waitend
+  syscalls/call as-c-string string/rs-head cmd waitend null null
 ]
 
-call-io: routine [  "Executes a shell command to run another process"
-  cmd      [string!]
-  in-str   [string!]
-  out-str  [string!]
-;    return:  [string!]
+call-in: routine [
+  cmd        [string!]      "Command"
+  in-str     [string!]      "Input data"
   /local
-  count
-  out
-;  out-str
+  ret        [integer!]
+  inp
 ][
-;  print [ "call-io"  lf ]
-;  if not null? in-str  [ print [ "In  : " as-c-string string/rs-head in-str   lf ] ]
-;  if not null? out-str [ print [ "Out : " as-c-string string/rs-head out-str  lf ] ]
-  count: 0
+  inp: declare p-buffer!
+  inp/buffer: string/rs-head in-str
+  inp/count:  1 + length? (as-c-string string/rs-head in-str)
+  ret: syscalls/call (as-c-string string/rs-head cmd) true inp null
+]
 
-  ; output, no input
-  if all [(null? in-str) (not null? out-str)][
-    print [ "Ici ---------------" lf ]
-    out: syscalls/call-io as-c-string string/rs-head cmd null 0 :count
-  ]
+call-out: routine [
+  cmd        [string!]      "Command"
+  /local
+  ret        [integer!]
+  out sout
+][
+  out:  declare p-buffer!
+  out/buffer: as byte-ptr! 0
+  out/count:  0
+  ret: syscalls/call (as-c-string string/rs-head cmd) true null out
+  sout: string/load as-c-string out/buffer (1 + out/count)
+  free out/buffer
+  SET_RETURN(sout)
+]
 
-  ; output, input
-  if all [(not null? in-str) (not null? out-str)][
-    out: syscalls/call-io as-c-string string/rs-head cmd
-                          string/rs-head in-str
-                          (1 + length? as-c-string string/rs-head in-str)
-                          :count
-  ]
-
-  ; Bugged
-  ; no output, input
-  if all [(null? in-str) (not null? out-str)][
-    out: syscalls/call-io as-c-string string/rs-head cmd
-                          string/rs-head in-str
-                          (1 + length? as-c-string string/rs-head in-str)
-                          null
-  ]
-
-;  if not null? out-str [
-    SET_RETURN ((string/load as-c-string out count))
-;  ]
+call-in-out: routine [
+  cmd        [string!]      "Command"
+  in-str     [string!]      "Input data"
+  /local
+  ret        [integer!]
+  inp out sout
+][
+  inp: declare p-buffer!
+  inp/buffer: string/rs-head in-str
+  inp/count:  1 + length? (as-c-string string/rs-head in-str)
+  out:  declare p-buffer!
+  out/buffer: null
+  out/count:  0
+  ret: syscalls/call (as-c-string string/rs-head cmd) true inp out
+  sout: string/load as-c-string out/buffer (1 + out/count)
+  free out/buffer
+  SET_RETURN(sout)
 ]
 
 call: func [
@@ -77,16 +81,31 @@ call: func [
   /wait
   /input   sin  [string!]
   /output  sout [string!]
+  /local
+  waitend       [logic!]
+  pid           [integer!]
+  str           [string!]
+  inp out
 ][
-  either any [ input output ] [
-    print [ "Command : " cmd ]
-    print [ "Input   : " sin ]
-    print [ "Output  : " sout ]
-    if all [ input output ]     [ sout: call-io cmd sin sout  ]
-    if all [ input not output ] [       call-io cmd sin none  ]
-    if all [ not input output ] [ sout: call-io cmd null sout ]
-    if output [ print [ "Output  : " sout ] ]
+  either wait [ waitend: true ][ waitend: false ]
+
+  pid: 0
+  either input [
+    either output [
+      str: call-in-out cmd sin
+      insert sout str
+      sout: head sout
+    ][
+      call-in cmd sin
+    ]
   ][
-    call-basic cmd wait
+    either output [
+      str: call-out cmd
+      insert sout str
+      sout: head sout
+    ][
+      pid: call-basic cmd waitend
+    ]
   ]
+  pid
 ]
