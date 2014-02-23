@@ -2046,13 +2046,13 @@ red: context [
 				]
 				append include-stk script-path
 				
-				script-path: either relative-path? file [
+				script-path: either all [not booting? relative-path? file][
 					file: clean-path join any [script-path main-path] file
 					first split-path file
 				][
 					none
 				]
-				unless exists? file [
+				unless any [booting? exists? file][
 					throw-error ["include file not found:" pc/2]
 				]
 				either find included-list file [

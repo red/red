@@ -1077,3 +1077,6 @@ parse-trace: func [
 ][
 	parse/trace input rules :on-parse-event
 ]
+
+
+#include %lexer.red
