@@ -1075,7 +1075,11 @@ parse-trace: func [
 	/case
 	return: [logic! block!]
 ][
-	parse/trace input rules :on-parse-event
+	either case [
+		parse/case/trace input rules :on-parse-event
+	][
+		parse/trace input rules :on-parse-event
+	]
 ]
 
 
