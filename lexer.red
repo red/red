@@ -174,10 +174,10 @@ transcode: func [
 	]
 
 	char-rule: [
-		{#"} (type: char!) [
-			s: escaped-char
-			| copy value UTF8-printable (value: as-binary value)
-			| #"^-" (value: s/1)
+		{#"} s: [
+			 escaped-char
+			| ahead [non-printable-char | not-str-char] break
+			| skip (value: s/1)
 		] {"}
 	]
 	
@@ -242,7 +242,7 @@ transcode: func [
 			comment-rule
 			;| multiline-comment-rule
 			;| escaped-rule    (stack/push value)
-			| integer-rule	  (append last stack trans-integer s e)
+			| integer-rule		(append last stack trans-integer s e)
 			;| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			;| word-rule		  (stack/push to type value)
 			;| lit-word-rule	  (stack/push to type value)
@@ -251,10 +251,10 @@ transcode: func [
 			;| slash-rule	  (stack/push to word! 	   	 copy/part s e)
 			;| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 			;| file-rule		  (stack/push load-file		 copy/part s e)
-			;| char-rule		  (stack/push decode-UTF8-char value)
+			| char-rule			(append last stack value)
 			| block-rule
 			| paren-rule
-			| string-rule	  (append last stack do trans-string)
+			| string-rule		(append last stack do trans-string)
 			;| binary-rule	  (stack/push load-binary s e)
 		]
 	]
