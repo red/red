@@ -23,7 +23,7 @@ Red [
 	--assert action! = type? get first find system/words 'find
 	
 	--test-- "swt4 issue #455"
-	--assert datatype! = type? get first find system/words 'function!
+	--assert datatype! = type? get first find system/words 'binary!
 		
 ===end-group===
 
