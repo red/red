@@ -71,12 +71,12 @@ transcode: func [
 		not-file-char not-str-char not-mstr-char caret-char
 		non-printable-char integer-end block-rule literal-value
 		any-value escaped-char char-rule line-string nested-curly-braces
-		multiline-string string-rule cnt trans-string new base c
+		multiline-string string-rule cnt trans-string new base c ws
 ][
-	cs:		[- - - - - - - - - - - - -]
+	cs:		[- - - - - - - - - - - - - -]
 	stack:	clear []
 	count?:	yes											;-- if TRUE, lines counter is enabled
-
+	line: 	1
 	
 	append/only stack any [dst make block! 4]
 	
@@ -105,11 +105,13 @@ transcode: func [
 		cs/11: charset {^{"[]);}						;-- integer-end
 		cs/12: charset " ^-^M"							;-- ws-ASCII, ASCII common whitespaces
 		cs/13: charset [#"^(80)" - #"^(8A)"]			;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
+		cs/14: charset [#"^(00)" - #"^(1F)"] 			;-- ASCII control characters
+
 	]
 	set [
 		digit hexa hexa-char not-word-char not-word-1st
 		not-file-char not-str-char not-mstr-char caret-char
-		non-printable-char integer-end ws-ASCII ws-U+2k
+		non-printable-char integer-end ws-ASCII ws-U+2k control-char
 	] cs
 	
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
@@ -206,6 +208,80 @@ transcode: func [
 	
 	string-rule: [line-string | multiline-string]
 	
+	symbol-rule: [
+		some [ahead [not-word-char | ws-no-count | control-char] break | skip] e:
+	]
+
+	begin-symbol-rule: [								;-- 1st char in symbols is restricted
+		[not ahead [not-word-1st | ws-no-count | control-char]]
+		opt symbol-rule
+	]
+
+	path-rule: [
+		ahead slash (									;-- path detection barrier
+			stack/push path!
+			stack/push to type copy/part s e			;-- push 1st path element
+		)
+		some [
+			slash
+			s: [
+				integer-number-rule
+				| begin-symbol-rule			(type: word!)
+				| paren-rule 				(type: paren!)
+				| #":" s: begin-symbol-rule	(type: get-word!)
+				;@@ add more datatypes here
+			] (
+				stack/push either type = paren! [		;-- append path element
+					value
+				][
+					to type copy/part s e
+				]
+				type: path!
+			)
+			opt [#":" (type: set-path!)]
+		]
+		(value: stack/pop type)
+	]
+
+	word-rule: 	[
+		(type: word!) s: begin-symbol-rule [
+			path-rule 									;-- path matched
+			|
+			(value: copy/part s e)						;-- word matched
+			opt [#":" (type: set-word!)]
+		] 
+	]
+
+	get-word-rule: [
+		#":" (type: get-word!) s: begin-symbol-rule [
+			path-rule (
+				value/1: to get-word! value/1			;-- workaround missing get-path! in R2
+			)
+			| (
+				type: get-word!
+				value: copy/part s e					;-- word matched
+			)
+		]
+	]
+
+	lit-word-rule: [
+		#"'" (type: word!) s: begin-symbol-rule [
+			path-rule (type: lit-path!)					;-- path matched
+			| (
+				type: lit-word!
+				value: copy/part s e					;-- word matched
+			)
+		]
+	]
+
+	issue-rule: [#"#" (type: issue!) s: symbol-rule]
+
+	refinement-rule: [slash (type: refinement!) s: symbol-rule]
+
+	slash-rule: [s: [slash opt slash] e:]
+
+	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
+	
 	integer-number-rule: [
 		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
 	]
@@ -244,7 +320,7 @@ transcode: func [
 			;| escaped-rule    (stack/push value)
 			| integer-rule		(append last stack trans-integer s e)
 			;| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
-			;| word-rule		  (stack/push to type value)
+			| word-rule		  	(append last stack probe value)
 			;| lit-word-rule	  (stack/push to type value)
 			;| get-word-rule	  (stack/push to type value)
 			;| refinement-rule (stack/push to refinement! copy/part s e)
