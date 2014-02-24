@@ -158,7 +158,6 @@ what: function [
 source: function [
 	"Print the source of a function"
 	'func-name [any-word!] "The name of the function"
-	/local fun
 ][
 	print either function? get func-name [
 		[append mold func-name #":" mold get func-name]
