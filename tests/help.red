@@ -43,20 +43,26 @@ Other debug functions:
 			type: get :word
 			foreach w system/words [
 				if type = type? get w [
-					either any [function? get w native? get w action? get w][
-						prin [tab w]
-						spec: spec-of get w
+					case [
+						any [function? get w native? get w action? get w op? get w][
+							prin [tab w]
+							spec: spec-of get w
 
-						either any [
-							string? desc: spec/1
-							string? desc: spec/2					;-- attributes block case
-						][
-							print ["^-=> " desc]
-						][
-							prin lf
+							either any [
+								string? desc: spec/1
+								string? desc: spec/2					;-- attributs block case
+							][
+								print ["^-=> " desc]
+							][
+								prin lf
+							]
 						]
-					][
-						print [tab :w "^-: " mold get w]
+						datatype? get w [
+							print [tab :w]
+						]
+						'else [
+							print [tab :w "^-: " mold get w]
+						]
 					]
 				]
 			]
@@ -66,7 +72,7 @@ Other debug functions:
 
 			argument-rule: [
 				set word [word! | lit-word! | get-word!]
-				(prin [tab mold word])
+				(prin [tab mold :word])
 				opt [set type block!  (prin [#" " mold type])]
 				opt [set info string! (prin [" =>" append form info dot])]
 				(prin lf)
@@ -82,11 +88,11 @@ Other debug functions:
 				parse spec-of :fun [
 					start: [						;-- 1st pass
 						any [block! | string! ]
-						opt [set w [word! | lit-word!] (either op? :fun [prin [w func-name]][prin [func-name w]])]
+						opt [set w [word! | lit-word! | get-word!] (either op? :fun [prin [mold w func-name]][prin [func-name mold w]])]
 						any [
 							/local to end
-							| set w word! (prin [" " w])
-							| set w [lit-word! | refinement!] (prin [" " mold w])
+							| set w [word! | lit-word! | get-word!] (prin [" " w])
+							| set w refinement! (prin [" " mold w])
 							| skip
 						]
 					]
@@ -152,6 +158,7 @@ what: function [
 source: function [
 	"Print the source of a function"
 	'func-name [any-word!] "The name of the function"
+	/local fun
 ][
 	print either function? get func-name [
 		[append mold func-name #":" mold get func-name]
