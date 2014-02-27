@@ -39,7 +39,7 @@ Red/System [
       return:     [integer!]       "0 or EOF"
     ]
 
-    file-tail: "feof" [            "End-of-file status."
+    file-tail:  "feof" [           "End-of-file status."
       file        [file!]
       return:     [integer!]
     ]
