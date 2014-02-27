@@ -1,9 +1,9 @@
-Call for Red/System
+Call for Red and Red/System
 ------------------------
 
 This binding is still work in progress.
 
-It implements a **call** function for Red/System (similar to rebol's **[call](http://rebol.com/docs/shell.html)** function).
+It implements a **call** function for Red (similar to rebol's **[call](http://rebol.com/docs/shell.html)** function).
 
 POSIX version uses [wordexp](http://pubs.opengroup.org/onlinepubs/9699919799/functions/wordexp.html) function to perform word expansion.
 
@@ -18,52 +18,81 @@ The windows' call function can launch only GUI apps such as **notepad**, **explo
 
 Console commands like **dir** needs further investigation and help to implement window's stdio redirections.
 
-Implementation
+Files
 ------------------------
 
-* POSIX, two functions are avaliable :
+>*call.reds* : low-level binding for Red/System
 
-**call** : execute command line, with only a waitend parameter.
+>*call.red* : binding for Red
 
-* Syntax :
+>*console-call.red* : Call Red binding added to console
 
-       call cmd [c-string!] waitend [logic!]
-
-* Example :
-
-       pid: syscall/call "ls -l" true
-
-> If waitend = false, **call** returns a child process number else returns 0.
-
-**call-io** : execute command line with IOs redirection. Waitend is implicit.
-
-* Syntax :
-      call-io cmd [c-string!] in-buf [byte-ptr!] in-count [integer!] out-count [int-ptr!]
-
-* Output redirection example :
-
-      str        [c-string!]
-      str: null
-      syscall/call-io "cat /proc/cpuinfo"
-
-Running the Red/System call example
+Running the Red console call example
 ------------------------
 
-1. This binding is provided with an example calling some basic unix or windows commands.
+1. This binding is provided with an example adding **call** feature to the console.
 
-1. Compile with Red
+1. Compile with Red from Red main directory
 
-    `$ red -c system/library/call/examples/call-example.reds`
+    `$ red -c system/library/call/examples/console-call.red`
 
-1. From the REBOL console type :
+1. Or compile it from the REBOL console :
 
-    `do/args %red.r "%system/library/call/examples/call-example.reds"`
+    `do/args %red.r "%system/library/call/examples/console-call.red"`
 
+1. The resulting binary is in Red main directory.
 
-1. The resulting binaries are in Red main directory.
+    Linux users run **console-call** from command line.
 
-    Linux users run `call-example` from command line.
+    Windows users need to open a DOS console and run **console-call.exe** from there.
 
-    Windows users need to open a DOS console and run `call-example.exe` from there.
+Syntax
+------------------------
 
-1. Edit the source code to test it with other commands.
+      USAGE:
+          call cmd /input in /output out /error err /wait
+      DESCRIPTION:
+          Executes a shell command to run another process.
+      ARGUMENTS:
+          cmd -- The shell command or file (Type: string)
+      REFINEMENTS:
+            /input -- Redirects in to stdin
+                in -- (Type: string)
+            /output -- Redirects stdout to out
+                out -- (Type: string)
+            /error -- Redirects stderr to err
+                err -- (Type: string)
+            /wait -- Runs command and waits for exit
+      RETURNS:
+            a process ID or 0
+
+When you use the /input, /output, or /error refinements you automatically set the /wait refinement.
+
+Linux examples
+------------------------
+
+        $ ./console-call
+        -=== Call added to Red console ===-
+        -=== Red Console alpha version ===-
+        (only ASCII input supported)
+
+        red>> call "ls /"
+        == 16139
+        red>> bin   dev  home    lib      lost+found  mnt  proc  run   srv  tmp  var
+        boot  etc  initrd  lib64  media       opt  root  sbin  sys  usr
+
+        red>> call/wait "ls /"
+        bin   dev  home    lib    lost+found  mnt  proc  run   srv  tmp  var
+        boot  etc  initrd  lib64  media       opt  root  sbin  sys  usr
+        == 0
+        red>> out: "" call/output "ls /" out
+        == 0
+        red>> probe out
+        {bin^/boot^/dev^/etc^/home^/initrd^/lib^/lib64^/lost+found^/media^/mnt^/opt^/proc^/root^/run^/sbin^/srv^/sys^/tmp^/usr^/var^/}
+        == {bin^/boot^/dev^/etc^/home^/initrd^/lib^/lib64^/lost+found^/media^/mnt^/opt^/pr
+        red>> inp: "This is a Red world...^/"
+        == "This is a Red world...^/"
+        red>> call/input "cat" inp
+        This is a Red world...
+        == 0
+

@@ -1,16 +1,16 @@
 Red [
-  Title: "Red Curses Binding"
+  Title: "Red call binding"
   Author: "Bruno Anselme"
   EMail: "be.red@free.fr"
-  File: %curses.red
-  Rights: "Copyright (c) 2013 Bruno Anselme"
+  File: %call.red
+  Rights: "Copyright (c) 2014 Bruno Anselme"
   License: {
     Distributed under the Boost Software License, Version 1.0.
     See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
   }
   Needs: {
     Red/System >= 0.4.1
-    %curses.reds
+    %call.reds
   }
 ]
 
@@ -80,6 +80,7 @@ call: func [                 "Executes a shell command to run another process."
   /local
   pid           [integer!]
   str           [string!]
+  do-in do-out do-err
 ][
   pid: 0
   either input  [ str:    in   ][ str:    ""    ]

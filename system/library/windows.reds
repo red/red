@@ -40,6 +40,10 @@ Red/System [
       args-list      [str-array!]
       return:        [integer!]
     ]
+    close: "close" [               "Close the file descriptor"
+      fd             [integer!]    "File descriptor"
+      return:        [integer!]
+    ]
   ] ; cdecl
   ] ; #import
 ] ; OS = 'Windows
