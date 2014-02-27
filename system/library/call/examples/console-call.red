@@ -11,6 +11,6 @@ Red [
 	}
 ]
 
-#include %call.red
+#include %../call.red
 prin "-=== Call added to Red console ===-"
-#include %console.red
+#include %../../../../tests/console.red

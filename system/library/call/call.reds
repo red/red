@@ -18,7 +18,7 @@ Red/System [
     Any proposal to improve this parsing (with native Windows functions) is welcome.
   }
   Reference: {
-    POSIX's wordexp :
+    POSIX wordexp :
       http://pubs.opengroup.org/onlinepubs/9699919799/functions/wordexp.html
   }
 ]
@@ -31,20 +31,30 @@ Red/System [
 
 #define READ-BUFFER-SIZE 4096
 
+; Data buffer struct, pointer and count
 p-buffer!: alias struct! [
   count  [integer!]
   buffer [byte-ptr!]
 ]
 
+; Files descriptors for pipe
 f-desc!: alias struct! [
   reading  [integer!]
   writing  [integer!]
 ]
 
-syscalls: context [
 
+system-call: context [
+  ; Global var to store outputs values before setting call output and error refinements
+  outputs: declare struct! [
+    out    [p-buffer!]
+    err    [p-buffer!]
+  ]
 
-  free-str-array: func [args [str-array!] /local n][ ; free str-array! created by word-expand
+  free-str-array: func [ "Free str-array! created by word-expand"
+    args [str-array!]
+    /local n
+  ][
     n: 0
     while [ args/item <> null ][
       free as byte-ptr! args/item
@@ -55,14 +65,16 @@ syscalls: context [
     free as byte-ptr! args
   ] ; free-str-array
 
-  print-str-array: func [ args [str-array!]][        ; used for debug
+  print-str-array: func [ "Print str-array, used for debug"
+    args [str-array!]
+  ][
     while [ args/item <> null ][
       print [ "- " args/item lf ]
       args: args + 1
     ]
   ] ; print-str-array
 
-  word-expand: func [
+  word-expand: func [     "Simple word expansion for windows, to be improved"
     cmd          [c-string!]
     return:      [str-array!]
     /local
@@ -107,12 +119,11 @@ syscalls: context [
     return args-list
   ] ; word-expand
 
-  resize-buffer: func [
+  resize-buffer: func [   "Reallocate buffer, error check"
     buffer       [byte-ptr!]
     newsize      [integer!]
     return:      [byte-ptr!]
   ][
-    if buffer = null [ print [ "Resize empty buffer" lf ] ]
     tmp: re-allocate buffer newsize                 ; Resize output buffer to new size
     either tmp = null [                             ; reallocation failed, uses current output buffer
       print [ "Red/System resize-buffer : Memory allocation failed." lf ]
@@ -124,26 +135,25 @@ syscalls: context [
   ] ; resize-buffer
 
   read-from-pipe: func [      "Read data from pipe fd into buffer"
-    fd           [integer!]   "File descriptor"
-    buffer       [byte-ptr!]
-    count-ptr    [int-ptr!]
-    return:      [byte-ptr!]
+    fd           [f-desc!]       "File descriptor"
+    data         [p-buffer!]
     /local
     cpt          [integer!]
     total        [integer!]
   ][
-    cpt: count-ptr/value
+    close fd/writing                                                   ; close unused pipe end
+    cpt: READ-BUFFER-SIZE                                              ; initial buffer size and grow step
     total: 0
-    while [cpt = count-ptr/value ][
-      cpt: ioread fd (buffer + total) cpt
+    while [cpt = READ-BUFFER-SIZE ][
+      cpt: ioread fd/reading (data/buffer + total) READ-BUFFER-SIZE    ; read pipe, store into buffer
       total: total + cpt
-      if cpt = count-ptr/value [                    ; buffer must be expanded
-        buffer: resize-buffer buffer (total + count-ptr/value)
+      if cpt = READ-BUFFER-SIZE [                                      ; buffer must be expanded
+        data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
       ]
     ]
-    buffer: resize-buffer buffer (total + 1)        ; Resize output buffer to minimum size
-    count-ptr/value: total
-    return buffer
+    data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
+    data/count: total
+    close fd/reading                                                   ; close other pipe end
   ] ; read-from-pipe
 
   #switch OS [
@@ -200,14 +210,15 @@ syscalls: context [
         cmd          [c-string!]       "The shell command"
         waitend      [logic!]          "Wait for end of command, implicit if out-buf is set"
         in-buf       [p-buffer!]       "Pointer to input data or null"
-        out-buf      [p-buffer!]       "Pointer to output data or null"
+        out-buf      [p-buffer!]       "Pointer to output data buffer or null"
+        err-buf      [p-buffer!]       "Pointer to error data buffer or null"
         return:      [integer!]
         /local
         pid          [integer!]
         status       [integer!]
         err          [integer!]
         cpt          [integer!]
-        fd-in fd-out
+        fd-in fd-out fd-err
       ][
         if in-buf <> null [
           fd-in: declare f-desc!
@@ -223,44 +234,63 @@ syscalls: context [
             print "Red/System call : Output pipe creation failed^/"  halt
           ]
         ]
+        if err-buf <> null [
+          err-buf/count: 0
+          err-buf/buffer: allocate READ-BUFFER-SIZE
+          fd-err: declare f-desc!
+          if (pipe as int-ptr! fd-err) = -1 [    ; Create a pipe for child's error
+            print "Red/System call : Error pipe creation failed^/"  halt
+          ]
+        ]
         pid: fork
         either pid = 0 [                        ;----- Child process -----
-          if in-buf <> null [ ; redirect stdin to the pipe
+          if in-buf <> null [                   ; redirect stdin to the pipe
             close fd-in/writing
             err: dup2 fd-in/reading stdin
             if err = -1 [ print "Red/System call : Error dup2 stdin^/" halt ]
             close fd-in/reading
           ]
-          if out-buf <> null [ ; redirect stdout to the pipe
+          if out-buf <> null [                  ; redirect stdout to the pipe
             close fd-out/reading
             err: dup2 fd-out/writing stdout
             if err = -1 [ print "Red/System call : Error dup2 stdout^/" halt ]
             close fd-out/writing
           ]
+          if err-buf <> null [                  ; redirect stderr to the pipe
+            close fd-err/reading
+            err: dup2 fd-err/writing stderr
+            if err = -1 [ print "Red/System call : Error dup2 stderr^/" halt ]
+            close fd-err/writing
+          ]
           expand-and-exec cmd
         ][                                      ;----- Parent process -----
-          if in-buf <> null [                                                   ; write input buffer to child process' stdin
+          if in-buf <> null [                   ; write input buffer to child process' stdin
             close fd-in/reading
             iowrite fd-in/writing in-buf/buffer in-buf/count
             close fd-in/writing
             waitend: true
           ]
-          if out-buf <> null [
-            close fd-out/writing
-            cpt: READ-BUFFER-SIZE                                               ; initial buffer size and grow step
-            out-buf/buffer: read-from-pipe fd-out/reading out-buf/buffer :cpt   ; read output buffer from child process' stdout
-            out-buf/count: cpt
-            close fd-out/reading
+          if out-buf <> null [                  ; read output from pipe, store in buffer
+            read-from-pipe fd-out out-buf       ; read output buffer from child process' stdout
+            waitend: false                      ; child's process is completed after end of pipe
+            pid: 0                              ; Process is completed, return 0
+          ]
+          if err-buf <> null [                  ; Same with error stream
+            read-from-pipe fd-err err-buf
             waitend: false
+            pid: 0
           ]
           if waitend [
             status: 0
-            waitpid pid :status 0   ; Wait child process terminate
-            pid: 0                  ; Process is completed, return 0
+            waitpid pid :status 0               ; Wait child process terminate
+            pid: 0                              ; Process is completed, return 0
           ]
+          outputs/out: out-buf                  ; Store values in global var
+          outputs/err: err-buf
         ] ; either pid
         return pid
       ] ; call
+
     ] ; #default
   ] ; #switch
 ] ; context
