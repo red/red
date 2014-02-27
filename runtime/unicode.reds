@@ -30,6 +30,69 @@ unicode: context [
 	;	BFh				; U+00BF = inverted question mark
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
 	
+	
+	to-utf8: func [
+		str		[red-string!]
+		return: [c-string!]
+		/local
+			s	 [series!]
+			node [node!]
+			buf	 [byte-ptr!]
+			p	 [byte-ptr!]
+			p4	 [int-ptr!]
+			tail [byte-ptr!]
+			unit [integer!]
+			cp	 [integer!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		node: alloc-bytes unit * (1 + string/rs-length? str)	;@@ TBD: mark this buffer as protected!
+		s: 	  as series! node/value
+		buf:  as byte-ptr! s/offset
+		
+		p:	  string/rs-head str
+		tail: string/rs-tail str
+		
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			case [
+				cp <= 7Fh [
+					buf/1: as-byte cp
+					buf: buf + 1
+				]
+				cp <= 07FFh [
+					buf/1: as-byte cp >> 6 or C0h
+					buf/2: as-byte cp and 3Fh or 80h
+					buf: buf + 2
+				]
+				cp < 0000FFFFh [
+					buf/1: as-byte cp >> 12 or E0h
+					buf/2: as-byte cp >> 6 and 3Fh or 80h
+					buf/3: as-byte cp	   and 3Fh or 80h
+					buf: buf + 3
+				]
+				cp < 0010FFFFh [
+					buf/1: as-byte cp >> 18 or F0h
+					buf/2: as-byte cp >> 12 and 3Fh or 80h
+					buf/3: as-byte cp >> 6  and 3Fh or 80h
+					buf/4: as-byte cp 		and 3Fh or 80h
+					buf: buf + 4
+				]
+				true [
+					print "*** Error: to-utf8 codepoint overflow"
+					halt
+				]
+			]
+			p: p + unit
+		]
+		string/add-terminal-NUL p unit
+		as-c-string s/offset
+	]
+	
 	Latin1-to-UCS2: func [
 		s		 [series!]
 		return:	 [series!]
