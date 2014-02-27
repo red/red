@@ -21,32 +21,32 @@ integer!:		make datatype! #get-definition TYPE_INTEGER
 ;symbol!:		make datatype! #get-definition TYPE_SYMBOL
 ;context!:		make datatype! #get-definition TYPE_CONTEXT
 word!:			make datatype! #get-definition TYPE_WORD
-error!:			make datatype! #get-definition TYPE_ERROR
-typeset!:		make datatype! #get-definition TYPE_TYPESET
+;error!:		make datatype! #get-definition TYPE_ERROR
+;typeset!:		make datatype! #get-definition TYPE_TYPESET
 file!:			make datatype! #get-definition TYPE_FILE
 
 set-word!:		make datatype! #get-definition TYPE_SET_WORD
 get-word!:		make datatype! #get-definition TYPE_GET_WORD
 lit-word!:		make datatype! #get-definition TYPE_LIT_WORD
 refinement!:	make datatype! #get-definition TYPE_REFINEMENT
-binary!:		make datatype! #get-definition TYPE_BINARY
+;binary!:		make datatype! #get-definition TYPE_BINARY
 paren!:			make datatype! #get-definition TYPE_PAREN
 char!:			make datatype! #get-definition TYPE_CHAR
 issue!:			make datatype! #get-definition TYPE_ISSUE
 path!:			make datatype! #get-definition TYPE_PATH
 set-path!:		make datatype! #get-definition TYPE_SET_PATH
 get-path!:		make datatype! #get-definition TYPE_GET_PATH
-lit-path!:		make datatype! #get-definition TYPE_LIT_PATH	
+lit-path!:		make datatype! #get-definition TYPE_LIT_PATH
 native!:		make datatype! #get-definition TYPE_NATIVE
 action!:		make datatype! #get-definition TYPE_ACTION
 op!:			make datatype! #get-definition TYPE_OP
 function!:		make datatype! #get-definition TYPE_FUNCTION
-closure!:		make datatype! #get-definition TYPE_CLOSURE
+;closure!:		make datatype! #get-definition TYPE_CLOSURE
 routine!:		make datatype! #get-definition TYPE_ROUTINE
 object!:		make datatype! #get-definition TYPE_OBJECT
-port!:			make datatype! #get-definition TYPE_PORT
+;port!:			make datatype! #get-definition TYPE_PORT
 bitset!:		make datatype! #get-definition TYPE_BITSET
-float!:			make datatype! #get-definition TYPE_FLOAT
+;float!:		make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
 
 none:  			make none! 0

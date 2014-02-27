@@ -80,6 +80,7 @@ write %build/bin/sources.r set-cache [
 	]
 	%tests/ [
 		%console.red
+		%help.red
 	]
 	%system/ [
 		%compiler.r

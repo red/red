@@ -82,6 +82,8 @@ Red [
 	]
 ]
 
+#include %help.red
+
 read-argument: routine [
 	/local
 		args [str-array!]
@@ -206,6 +208,7 @@ do-console: function [][
 		unless tail? line: input prompt [
 			append buffer line
 			cnt: count-delimiters buffer
+			append buffer lf							;-- needed for multiline modes
 			
 			switch mode [
 				block  [if cnt/1 <= 0 [do switch-mode]]
