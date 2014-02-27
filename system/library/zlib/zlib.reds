@@ -291,7 +291,7 @@ zlib: context [
         ret: z-uncompress out-buf :out-count in-buf in-count
         if ret = Z_BUF_ERROR [                            ; need to expand output buffer
           out-count: 2 * out-count                        ; double buffer size
-          tmp: re-allocate out-buf out-count              ; Resize output buffer to minimum size
+          tmp: re-allocate out-buf out-count              ; Resize output buffer to new size
           either tmp = NULL [                             ; reallocation failed, uses current output buffer
             print [ "Decompress Error : Impossible to reallocate output buffer." lf ]
             ret: Z_MEM_ERROR
