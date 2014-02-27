@@ -55,6 +55,17 @@ trans-integer: routine [
 	integer/box either neg? [0 - n][n]
 ]
 
+trans-word: routine [
+	stack [block!]
+	src   [string!]
+	type  [datatype!]
+	/local
+		value [red-value!]
+][
+	value: as red-value! word/push-in (symbol/make-alt src) stack
+	set-type value type/value
+]
+
 trans-pop: function [stack [block!]][
 	value: last stack
 	remove back tail stack
@@ -244,11 +255,11 @@ transcode: func [
 	]
 
 	word-rule: 	[
-		(type: word!) s: begin-symbol-rule [
+		s: begin-symbol-rule [
 			path-rule 									;-- path matched
-			|
-			(value: copy/part s e)						;-- word matched
-			opt [#":" (type: set-word!)]
+			| (type: word!)
+			  opt [#":" (type: set-word!)]
+			  (trans-word last stack copy/part s e type) ;-- word or set-word matched
 		] 
 	]
 
@@ -320,7 +331,7 @@ transcode: func [
 			;| escaped-rule    (stack/push value)
 			| integer-rule		(append last stack trans-integer s e)
 			;| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
-			| word-rule		  	(append last stack probe value)
+			| word-rule
 			;| lit-word-rule	  (stack/push to type value)
 			;| get-word-rule	  (stack/push to type value)
 			;| refinement-rule (stack/push to refinement! copy/part s e)
