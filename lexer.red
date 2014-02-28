@@ -106,6 +106,7 @@ transcode: func [
 		non-printable-char integer-end block-rule literal-value
 		any-value escaped-char char-rule line-string nested-curly-braces
 		multiline-string string-rule cnt trans-string new base c ws
+		trans-file decode-hex decode-2hex hex
 ][
 	cs:		[- - - - - - - - - - - - - -]				;-- memoized bitsets
 	stack:	clear []
@@ -119,6 +120,31 @@ transcode: func [
 		parse/case copy/part s e [						;@@ add /part option to parse!
 			any [
 				escaped-char (append new value)
+				| set c skip (append new c)
+			]
+		]
+		new
+	]
+	
+	decode-hex: [
+		set c [
+			digit 			(base: #"0")
+			| hexa-upper	(base: #"A")
+			| hexa-lower	(base: #"a")
+			| (print "*** Syntax Error: invalid file hexa")
+		] (value: c - base)
+	]
+	
+	decode-2hex: [
+		decode-hex (hex: value << 8)
+		decode-hex (hex: hex + value)
+	]
+	
+	trans-file: [
+		new: make file! (index? e) - index? s
+		parse/case copy/part s e [						;@@ add /part option to parse!
+			any [
+				#"%" decode-2hex (append new hex)
 				| set c skip (append new c)
 			]
 		]
@@ -242,6 +268,10 @@ transcode: func [
 	
 	string-rule: [line-string | multiline-string]
 	
+	file-rule: [
+		#"%" s: any [ahead [not-file-char | ws-no-count] break | skip] e:
+	]
+	
 	symbol-rule: [
 		some [ahead [not-word-char | ws-no-count | control-char] break | skip] e:
 	]
@@ -348,7 +378,7 @@ transcode: func [
 			| get-word-rule
 			| slash-rule		(trans-word last stack copy/part s e word!)
 			| refinement-rule
-			;| file-rule		  (stack/push load-file		 copy/part s e)
+			| file-rule			(append last stack do trans-file)
 			| char-rule			(append last stack value)
 			| issue-rule
 			| block-rule
