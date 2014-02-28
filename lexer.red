@@ -346,8 +346,8 @@ transcode: func [
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
+			| slash-rule		(trans-word last stack copy/part s e word!)
 			| refinement-rule
-			;| slash-rule	  (stack/push to word! 	   	 copy/part s e)
 			;| file-rule		  (stack/push load-file		 copy/part s e)
 			| char-rule			(append last stack value)
 			| issue-rule
