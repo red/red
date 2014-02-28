@@ -97,6 +97,50 @@ trans-hexa: routine [
 	n
 ]
 
+trans-decimal: routine [
+	start [string!]
+	end	  [string!]
+	/local
+		c	 [integer!]
+		n	 [integer!]
+		m	 [integer!]
+		len  [integer!]
+		p	 [byte-ptr!]
+		neg? [logic!]
+][
+	str:  GET_BUFFER(start)
+	unit: GET_UNIT(str)
+	p:	  string/rs-head start
+	len:  end/head - start/head
+	neg?: no
+	
+	c: string/get-char p unit
+	if any [
+		c = as-integer #"+" 
+		c = as-integer #"-"
+	][
+		neg?: c = as-integer #"-"
+		p: p + unit
+		len: len - 1
+	]
+	n: 0
+	while [
+		c: string/get-char p unit
+		c <> as-integer #"."
+	][
+		m: n * 10
+		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+		n: m
+		
+		m: n + c - #"0"
+		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+		n: m
+
+		p: p + unit		
+	]
+	integer/box either neg? [0 - n][n]
+]
+
 trans-push-path: routine [
 	stack [block!]
 	type  [datatype!]
@@ -390,9 +434,9 @@ transcode: func [
 	decimal-number-rule: [
 		opt [#"-" | #"+"] [
 			  any  digit #"." some digit
-			| some digit #"." any  digit]
+			| some digit #"." any  digit
 		]
-		opt [[#"e | #"E"] some digit]
+		opt [[#"e" | #"E"] some digit]
 		e:
 	]
 	
