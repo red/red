@@ -400,6 +400,40 @@ transcode: func [
 		#")" (trans-pop stack)
 	]
 	
+	escaped-rule: [
+		"#[" pos: any ws [
+			  "true"  			(value: true)
+			| "false" 			(value: false)
+			| [
+				"none!"			(value: none!)
+				| "logic!"		(value: logic!)
+				| "block!"		(value: block!)
+				| "integer!"	(value: integer!)
+				| "word!"		(value: word!)
+				| "set-word!"	(value: set-word!)
+				| "get-word!"	(value: get-word!)
+				| "lit-word!"	(value: lit-word!)
+				| "refinement!"	(value: refinement!)
+				;| "binary!"	(value: binary!)
+				| "string!"		(value: string!)
+				| "char!"		(value: char!)
+				| "bitset!"		(value: bitset!)
+				| "path!"		(value: path!)
+				| "set-path!"	(value: set-path!)
+				| "lit-path!"	(value: lit-path!)
+				| "get-path!"	(value: get-path!)
+				| "native!"		(value: native!)
+				| "action!"		(value: action!)
+				| "op!"			(value: op!)
+				| "issue!"		(value: issue!)
+				| "paren!"		(value: paren!)
+				| "function!"	(value: function!)
+				| "routine!"	(value: routine!)
+			]
+			| "none" 			(value: none)
+		] pos: any ws #"]"
+	]
+	
 	comment-rule: [#";" [to lf | to end]]
 	
 	multiline-comment-rule: [
@@ -421,9 +455,9 @@ transcode: func [
 		pos: (e: none) s: [
 			comment-rule
 			| multiline-comment-rule
-			;| escaped-rule    (stack/push value)
+			| escaped-rule		(append last stack value)
 			| integer-rule		(append last stack trans-integer s e)
-			| hexa-rule			(append last stack probe trans-hexa s e)
+			| hexa-rule			(append last stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
