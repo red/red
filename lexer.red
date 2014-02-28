@@ -279,9 +279,15 @@ transcode: func [
 		]
 	]
 
-	issue-rule: [#"#" (type: issue!) s: symbol-rule]
+	issue-rule: [
+		#"#" (type: issue!) s: symbol-rule
+		(trans-word last stack copy/part s e type)
+	]
 
-	refinement-rule: [slash (type: refinement!) s: symbol-rule]
+	refinement-rule: [
+		slash (type: refinement!) s: symbol-rule
+		(trans-word last stack copy/part s e type)
+	]
 
 	slash-rule: [s: [slash opt slash] e:]
 
@@ -328,11 +334,11 @@ transcode: func [
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
-			;| refinement-rule (stack/push to refinement! copy/part s e)
+			| refinement-rule
 			;| slash-rule	  (stack/push to word! 	   	 copy/part s e)
-			;| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 			;| file-rule		  (stack/push load-file		 copy/part s e)
 			| char-rule			(append last stack value)
+			| issue-rule
 			| block-rule
 			| paren-rule
 			| string-rule		(append last stack do trans-string)
