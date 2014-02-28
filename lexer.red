@@ -55,6 +55,29 @@ trans-integer: routine [
 	integer/box either neg? [0 - n][n]
 ]
 
+trans-push-path: routine [
+	stack [block!]
+	type  [datatype!]
+	/local
+		path [red-path!]
+][
+	path: as red-path! block/make-at as red-block! ALLOC_TAIL(stack) 4
+	path/header: switch type/value [
+		TYPE_GET_WORD [TYPE_GET_PATH]
+		TYPE_LIT_WORD [TYPE_LIT_PATH]
+		default [TYPE_PATH]
+	]
+]
+
+trans-set-path: routine [
+	stack [block!]
+	/local
+		path [red-path!]
+][
+	path: as red-path! block/pick stack 1 null
+	set-type as red-value! path TYPE_SET_PATH
+]
+
 trans-word: routine [
 	stack [block!]
 	src   [string!]
@@ -69,7 +92,7 @@ trans-word: routine [
 trans-pop: function [stack [block!]][
 	value: last stack
 	remove back tail stack
-	append/only last stack value
+	append/only last stack :value
 ]
 
 transcode: func [
@@ -230,44 +253,33 @@ transcode: func [
 
 	path-rule: [
 		ahead slash (									;-- path detection barrier
-			stack/push path!
-			stack/push to type copy/part s e			;-- push 1st path element
+			trans-push-path stack type					;-- create empty path
+			trans-word last stack copy/part s e type	;-- push 1st path element
 		)
 		some [
 			slash
 			s: [
-				integer-number-rule
-				| begin-symbol-rule			(type: word!)
-				| paren-rule 				(type: paren!)
-				| #":" s: begin-symbol-rule	(type: get-word!)
+				integer-number-rule			(append last stack trans-integer s e)
+				| begin-symbol-rule			(trans-word last stack copy/part s e word!)
+				| paren-rule
+				| #":" s: begin-symbol-rule	(trans-word last stack copy/part s e get-word!)
 				;@@ add more datatypes here
-			] (
-				stack/push either type = paren! [		;-- append path element
-					value
-				][
-					to type copy/part s e
-				]
-				type: path!
-			)
-			opt [#":" (type: set-path!)]
-		]
-		(value: stack/pop type)
+			]
+			opt [#":" (trans-set-path back tail stack)]
+		] (trans-pop stack)
 	]
 
 	word-rule: 	[
-		s: begin-symbol-rule [
+		s: begin-symbol-rule (type: word!) [
 			path-rule 									;-- path matched
-			| (type: word!)
-			  opt [#":" (type: set-word!)]
+			| opt [#":" (type: set-word!)]
 			  (trans-word last stack copy/part s e type) ;-- word or set-word matched
 		] 
 	]
 
 	get-word-rule: [
 		#":" (type: get-word!) s: begin-symbol-rule [
-			path-rule (
-				value/1: to get-word! value/1			;-- workaround missing get-path! in R2
-			)
+			path-rule (type: get-path!)
 			| (trans-word last stack copy/part s e type) ;-- get-word matched
 		]
 	]
