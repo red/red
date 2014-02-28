@@ -994,7 +994,7 @@ actions: context [
 		register [
 			;-- General actions --
 			:make*
-			:random
+			:random*		; because random-action
 			:reflect*
 			null			;to
 			:form*
