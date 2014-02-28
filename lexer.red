@@ -387,6 +387,20 @@ transcode: func [
 		ahead [integer-end | ws-no-count | end]
 	]
 	
+	decimal-number-rule: [
+		opt [#"-" | #"+"] [
+			  any  digit #"." some digit
+			| some digit #"." any  digit]
+		]
+		opt [[#"e | #"E"] some digit]
+		e:
+	]
+	
+	decimal-rule: [
+		decimal-number-rule
+		ahead [integer-end | ws-no-count | end]
+	]
+	
 	block-rule: [
 		#"[" (append/only stack make block! 4)
 		any-value 
@@ -456,6 +470,7 @@ transcode: func [
 			| multiline-comment-rule
 			| escaped-rule		(append last stack value)
 			| integer-rule		(append last stack trans-integer s e)
+			| decimal-rule		(append last stack trans-decimal s e)
 			| hexa-rule			(append last stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
