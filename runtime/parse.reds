@@ -450,6 +450,7 @@ parser: context [
 		][
 			either TYPE_OF(token)= TYPE_BITSET [
 				match?: loop-bitset input as red-bitset! token min max counter
+				cnt: counter/value
 			][
 				until [										;-- ANY-STRING input matching
 					match?: string/match? as red-string! input token comp-op
