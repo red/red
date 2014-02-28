@@ -132,12 +132,12 @@ transcode: func [
 			| hexa-upper	(base: #"A")
 			| hexa-lower	(base: #"a")
 			| (print "*** Syntax Error: invalid file hexa")
-		] (value: c - base)
+		]
 	]
 	
 	decode-2hex: [
-		decode-hex (hex: value << 8)
-		decode-hex (hex: hex + value)
+		decode-hex (hex: c - base << 8)
+		decode-hex (hex: hex + c - base)
 	]
 	
 	trans-file: [
