@@ -164,8 +164,8 @@ integer: context [
 		int		[red-integer!]
 		return: [integer!]
  	][
-		int/value: 				; Start with a simple return value to test if it works at all.
-		as red-value! int                              
+		int/value: 1				; Start with a simple return value to test if it works at all.
+		as integer! int                              
 	]
 
 	form: func [
@@ -289,13 +289,7 @@ integer: context [
 		as-logic int/value and 1
 	]
 	
-	random: func [
-		int		[red-integer!]
-		return: [integer!]
-	][
-		1	; Start with a simple return value to test if it works at all.
-	]
-	; end of actions
+	;-- End of Actions --
 
 	init: does [
 		datatype/register [
