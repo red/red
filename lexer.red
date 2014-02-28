@@ -101,14 +101,14 @@ transcode: func [
 	return: [block!]
 	/local
 		cs stack pos s e value line count? wrong-delimiters comment-rule
-		digit hexa hexa-char not-word-char not-word-1st
+		digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 		not-file-char not-str-char not-mstr-char caret-char
 		non-printable-char integer-end block-rule literal-value
 		any-value escaped-char char-rule line-string nested-curly-braces
 		multiline-string string-rule cnt trans-string new base c ws
 		trans-file decode-hex decode-2hex hex
 ][
-	cs:		[- - - - - - - - - - - - - -]				;-- memoized bitsets
+	cs:		[- - - - - - - - - - - - - - - -]			;-- memoized bitsets
 	stack:	clear []
 	count?:	yes											;-- if TRUE, lines counter is enabled
 	line: 	1
@@ -153,23 +153,25 @@ transcode: func [
 	
 	if cs/1 = '- [
 		cs/1:  charset "0123465798"						;-- digit
-		cs/2:  union cs/1 charset "ABCDEF"				;-- hexa
-		cs/3:  union cs/2 charset "abcdef"				;-- hexa-char	
-		cs/4:  charset {/\^^,[](){}"#%$@:;}				;-- not-word-char
-		cs/5:  union union cs/4 cs/1 charset {'}		;-- not-word-1st
-		cs/6:  charset {[](){}"%@:;}					;-- not-file-char
-		cs/7:  #"^""									;-- not-str-char
-		cs/8:  #"}"										;-- not-mstr-char
-		cs/9:  charset [#"^(40)" - #"^(5F)"]			;-- caret-char
-		cs/10: charset [#"^(00)" - #"^(1F)"]			;-- non-printable-char
-		cs/11: charset {^{"[]);}						;-- integer-end
-		cs/12: charset " ^-^M"							;-- ws-ASCII, ASCII common whitespaces
-		cs/13: charset [#"^(80)" - #"^(8A)"]			;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
-		cs/14: charset [#"^(00)" - #"^(1F)"] 			;-- ASCII control characters
+		cs/2:  charset "ABCDEF"							;-- hexa-upper
+		cs/3:  charset "abcdef"							;-- hexa-lower
+		cs/4:  union cs/1 cs/2							;-- hexa
+		cs/5:  union cs/4 cs/3							;-- hexa-char	
+		cs/6:  charset {/\^^,[](){}"#%$@:;}				;-- not-word-char
+		cs/7:  union union cs/6 cs/1 charset {'}		;-- not-word-1st
+		cs/8:  charset {[](){}"%@:;}					;-- not-file-char
+		cs/9:  #"^""									;-- not-str-char
+		cs/10: #"}"										;-- not-mstr-char
+		cs/11: charset [#"^(40)" - #"^(5F)"]			;-- caret-char
+		cs/12: charset [#"^(00)" - #"^(1F)"]			;-- non-printable-char
+		cs/13: charset {^{"[]);}						;-- integer-end
+		cs/14: charset " ^-^M"							;-- ws-ASCII, ASCII common whitespaces
+		cs/15: charset [#"^(80)" - #"^(8A)"]			;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
+		cs/16: charset [#"^(00)" - #"^(1F)"] 			;-- ASCII control characters
 
 	]
 	set [
-		digit hexa hexa-char not-word-char not-word-1st
+		digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 		not-file-char not-str-char not-mstr-char caret-char
 		non-printable-char integer-end ws-ASCII ws-U+2k control-char
 	] cs
