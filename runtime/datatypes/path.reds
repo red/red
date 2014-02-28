@@ -95,12 +95,32 @@ path: context [
 		flat?	  [logic!]
 		arg		  [red-value!]
 		part 	  [integer!]
-		indent	[integer!]
+		indent	  [integer!]
 		return:   [integer!]
+		/local
+			s	  [series!]
+			value [red-value!]
+			i     [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/mold"]]
 	
-		form path buffer arg part
+		s: GET_BUFFER(path)
+		i: path/head
+		value: s/offset + i
+
+		while [value < s/tail][
+			part: actions/mold value buffer only? all? flat? arg part 0
+			if all [OPTION?(arg) part <= 0][return part]
+			i: i + 1
+
+			s: GET_BUFFER(path)
+			value: s/offset + i
+			if value < s/tail [
+				string/append-char GET_BUFFER(buffer) as-integer slash
+				part: part - 1
+			]
+		]
+		part
 	]
 	
 	compare: func [
