@@ -295,9 +295,8 @@ integer: context [
 	][
 		1	; Start with a simple return value to test if it works at all.
 	]
-	
-	;--- einde actions
-	;--- init
+	; end of actions
+
 	init: does [
 		datatype/register [
 			TYPE_INTEGER
