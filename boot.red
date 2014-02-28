@@ -68,6 +68,13 @@ make: make action! [[									;--	this one works!	;-)
 
 
 ;random
+random: make action! [[
+		"Returns a pseudo random number or value."
+		value 	 [number!]
+		return:  [number!]
+	]
+	#get-definition ACT_RANDOM
+]
 
 reflect: make action! [[
 		"Returns internal details about a value via reflection."
