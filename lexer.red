@@ -84,7 +84,7 @@ transcode: func [
 		any-value escaped-char char-rule line-string nested-curly-braces
 		multiline-string string-rule cnt trans-string new base c ws
 ][
-	cs:		[- - - - - - - - - - - - - -]
+	cs:		[- - - - - - - - - - - - - -]				;-- memoized bitsets
 	stack:	clear []
 	count?:	yes											;-- if TRUE, lines counter is enabled
 	line: 	1
@@ -225,7 +225,7 @@ transcode: func [
 
 	begin-symbol-rule: [								;-- 1st char in symbols is restricted
 		[not ahead [not-word-1st | ws-no-count | control-char]]
-		opt symbol-rule
+		symbol-rule
 	]
 
 	path-rule: [
@@ -268,20 +268,14 @@ transcode: func [
 			path-rule (
 				value/1: to get-word! value/1			;-- workaround missing get-path! in R2
 			)
-			| (
-				type: get-word!
-				value: copy/part s e					;-- word matched
-			)
+			| (trans-word last stack copy/part s e type) ;-- get-word matched
 		]
 	]
 
 	lit-word-rule: [
-		#"'" (type: word!) s: begin-symbol-rule [
+		#"'" (type: lit-word!) s: begin-symbol-rule [
 			path-rule (type: lit-path!)					;-- path matched
-			| (
-				type: lit-word!
-				value: copy/part s e					;-- word matched
-			)
+			| (trans-word last stack copy/part s e type) ;-- lit-word matched
 		]
 	]
 
@@ -332,8 +326,8 @@ transcode: func [
 			| integer-rule		(append last stack trans-integer s e)
 			;| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| word-rule
-			;| lit-word-rule	  (stack/push to type value)
-			;| get-word-rule	  (stack/push to type value)
+			| lit-word-rule
+			| get-word-rule
 			;| refinement-rule (stack/push to refinement! copy/part s e)
 			;| slash-rule	  (stack/push to word! 	   	 copy/part s e)
 			;| issue-rule	  (stack/push to issue!	   	 copy/part s e)
