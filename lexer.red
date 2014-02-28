@@ -48,11 +48,53 @@ trans-integer: routine [
 		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
 		n: m
 
-		p: p + unit		
+		p: p + unit
 		len: len - 1
 		zero? len
 	]
 	integer/box either neg? [0 - n][n]
+]
+
+trans-hexa: routine [
+	start	[string!]
+	end		[string!]
+	return: [integer!]
+	/local
+		s	  [series!]
+		unit  [integer!]
+		p	  [byte-ptr!]
+		head  [byte-ptr!]
+		p4	  [int-ptr!]
+		n	  [integer!]
+		power [integer!]
+		cp	  [byte!]
+][
+	s: GET_BUFFER(start)
+	unit: GET_UNIT(s)
+	
+	p: (string/rs-head end) - unit
+	head: string/rs-head start
+	
+	n: 0
+	power: 0
+	while [p >= head][
+		cp: switch unit [
+			Latin1 [p/value]
+			UCS-2  [as-byte ((as-integer p/2) << 8 + p/1)]
+			UCS-4  [p4: as int-ptr! p as-byte p4/value]
+		]
+		if cp <> #"0" [
+			case [
+				all [#"0" <= cp cp <= #"9"][cp: cp - #"0"]
+				all [#"A" <= cp cp <= #"F"][cp: cp - #"A" + 10]
+				all [#"a" <= cp cp <= #"f"][cp: cp - #"a" + 10]
+			]
+			n: n + ((as-integer cp) << power)
+		]
+		power: power + 4
+		p: p - unit
+	]
+	n
 ]
 
 trans-push-path: routine [
@@ -128,16 +170,16 @@ transcode: func [
 	
 	decode-hex: [
 		set c [
-			digit 			(base: #"0")
-			| hexa-upper	(base: #"A")
-			| hexa-lower	(base: #"a")
-			| (print "*** Syntax Error: invalid file hexa")
+			digit 			(value: c - #"0")
+			| hexa-upper	(value: c - #"A" + 10)
+			| hexa-lower	(value: c - #"a" + 10)
+			| (print "*** Syntax Error: invalid file hexa encoding") ;@@ temporary hardcoded
 		]
 	]
 	
 	decode-2hex: [
-		decode-hex (hex: c - base << 8)
-		decode-hex (hex: hex + c - base)
+		decode-hex (hex: value << 4)
+		decode-hex (hex: hex + value)
 	]
 	
 	trans-file: [
@@ -335,7 +377,7 @@ transcode: func [
 
 	slash-rule: [s: [slash opt slash] e:]
 
-	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
+	hexa-rule: [2 8 hexa e: #"h"]
 	
 	integer-number-rule: [
 		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
@@ -360,6 +402,13 @@ transcode: func [
 	
 	comment-rule: [#";" [to lf | to end]]
 	
+	multiline-comment-rule: [
+		"comment" any ws [
+			#"{" nested-curly-braces
+			| (print "*** Syntax Error: multiline string expected after COMMENT") ;@@ temporary
+		]
+	]
+	
 	wrong-delimiters: [
 		pos: [
 			  #"]" (value: #"[") | #")" (value: #"(")
@@ -371,10 +420,10 @@ transcode: func [
 	literal-value: [
 		pos: (e: none) s: [
 			comment-rule
-			;| multiline-comment-rule
+			| multiline-comment-rule
 			;| escaped-rule    (stack/push value)
 			| integer-rule		(append last stack trans-integer s e)
-			;| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
+			| hexa-rule			(append last stack probe trans-hexa s e)
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
@@ -386,7 +435,7 @@ transcode: func [
 			| block-rule
 			| paren-rule
 			| string-rule		(append last stack do trans-string)
-			;| binary-rule	  (stack/push load-binary s e)
+			;| binary-rule	  	(stack/push load-binary s e)
 		]
 	]
 	
