@@ -281,6 +281,15 @@ integer: context [
 		as-logic int/value and 1
 	]
 	
+	random: func [
+		int		[red-integer!]
+		return: [integer!]
+	][
+		1	; Start with a simple return value to test if it works at all.
+	]
+	
+	;--- einde actions
+	;--- init
 	init: does [
 		datatype/register [
 			TYPE_INTEGER
@@ -288,7 +297,7 @@ integer: context [
 			"integer!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form
