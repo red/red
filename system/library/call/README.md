@@ -34,11 +34,11 @@ Running the Red console call example
 
 1. Compile with Red from Red main directory
 
-    `$ red -c system/library/call/examples/console-call.red`
+    `$ red -c tests/console-call.red`
 
 1. Or compile it from the REBOL console :
 
-    `do/args %red.r "%system/library/call/examples/console-call.red"`
+    `do/args %red.r "%tests/console-call.red"`
 
 1. The resulting binary is in Red main directory.
 
@@ -96,3 +96,9 @@ Linux examples
         This is a Red world...
         == 0
 
+Known bug
+------------------------
+
+Outputs redirection can loose data (end of buffer).
+
+Access to C system variable **[errno](http://en.wikipedia.org/wiki/Errno.h)** required.

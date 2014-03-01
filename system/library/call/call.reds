@@ -136,6 +136,28 @@ system-call: context [
       return args-list
     ] ; word-expand
 
+    read-from-pipe: func [      "Read data from pipe fd into buffer"
+      fd           [f-desc!]       "File descriptor"
+      data         [p-buffer!]
+      /local
+      cpt          [integer!]
+      total        [integer!]
+    ][
+      close fd/writing                                                   ; close unused pipe end
+      cpt: READ-BUFFER-SIZE                                              ; initial buffer size and grow step
+      total: 0
+      while [cpt = READ-BUFFER-SIZE ][                   ; FIX: there's a bug here, need to test errno
+        cpt: ioread fd/reading (data/buffer + total) READ-BUFFER-SIZE    ; read pipe, store into buffer
+        total: total + cpt
+        if cpt = READ-BUFFER-SIZE [                                      ; buffer must be expanded
+          data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
+        ]
+      ]
+      data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
+      data/count: total
+      close fd/reading                                                   ; close other pipe end
+    ] ; read-from-pipe
+
     #switch OS [
       Windows   [      ; Windows, use minimal home made parsing
         call: func [                   "Executes a DOS command to run another process."
@@ -162,28 +184,6 @@ system-call: context [
         ] ; call
       ] ; Windows
       #default  [      ; POSIX
-        read-from-pipe: func [      "Read data from pipe fd into buffer"
-          fd           [f-desc!]       "File descriptor"
-          data         [p-buffer!]
-          /local
-          cpt          [integer!]
-          total        [integer!]
-        ][
-          close fd/writing                                                   ; close unused pipe end
-          cpt: READ-BUFFER-SIZE                                              ; initial buffer size and grow step
-          total: 0
-          while [cpt = READ-BUFFER-SIZE ][
-            cpt: ioread fd/reading (data/buffer + total) READ-BUFFER-SIZE    ; read pipe, store into buffer
-            total: total + cpt
-            if cpt = READ-BUFFER-SIZE [                                      ; buffer must be expanded
-              data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
-            ]
-          ]
-          data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
-          data/count: total
-          close fd/reading                                                   ; close other pipe end
-        ] ; read-from-pipe
-
         expand-and-exec: func[         "Use wordexp to parse command and run it. Halt if error. Should never return"
           cmd          [c-string!]       "The shell command"
           return:      [integer!]

@@ -45,6 +45,29 @@ stdcalls: context [
         fd             [integer!]    "File descriptor"
         return:        [integer!]
       ]
+      pipe: "_pipe" [                "Creates a pipe for reading and writing"
+        pipedes        [int-ptr!]    "Pointer to a 2 integers array"
+        psize          [integer!]    "Amount of memory to reserve"
+        textmode       [integer!]    "File mode"
+        return:        [integer!]
+      ]
+      dup2: "_dup2" [                "Reassigns a file descriptor"
+        fd             [integer!]    "File descriptor"
+        fd2            [integer!]    "File descriptor"
+        return:        [integer!]
+      ]
+      ioread: "_read" [              "Reads data from a file"
+        fd             [integer!]    "File descriptor referring to the open file"
+        buf            [byte-ptr!]   "Storage location for data"
+        nbytes         [integer!]    "Maximum number of bytes"
+        return:        [integer!]    "Number of bytes read or error"
+      ]
+      iowrite: "_write" [            "Writes data to a file"
+        fd             [integer!]    "File descriptor of file into which data is written"
+        buf            [byte-ptr!]   "Data to be written"
+        nbytes         [integer!]    "Number of bytes"
+        return:        [integer!]    "Number of bytes written or error"
+      ]
     ] ; cdecl
     ] ; #import
   ] ; OS = 'Windows
