@@ -18,32 +18,34 @@ Red/System [
   system/fpu/update
 ]
 
-#if OS = 'Windows [
-  ; Spawn enums
-  #enum spawn-mode [
-    P_WAIT:          0
-    P_NOWAIT:        1
-    P_OVERLAY:       2
-    P_NOWAITO:       3
-    P_DETACH:        4
-  ]
+stdcalls: context [
+  #if OS = 'Windows [
+    ; Spawn enums
+    #enum spawn-mode [
+      P_WAIT:          0
+      P_NOWAIT:        1
+      P_OVERLAY:       2
+      P_NOWAITO:       3
+      P_DETACH:        4
+    ]
 
-  #import [ LIBC-file cdecl [
-    re-allocate:  "realloc" [
-      base           [byte-ptr!]
-      size           [integer!]
-      return:        [byte-ptr!]
-    ]
-    spawnvp: "_spawnvp" [
-      mode           [integer!]
-      cmd            [c-string!]   "Command to run"
-      args-list      [str-array!]
-      return:        [integer!]
-    ]
-    close: "close" [               "Close the file descriptor"
-      fd             [integer!]    "File descriptor"
-      return:        [integer!]
-    ]
-  ] ; cdecl
-  ] ; #import
-] ; OS = 'Windows
+    #import [ LIBC-file cdecl [
+      re-allocate:  "realloc" [
+        base           [byte-ptr!]
+        size           [integer!]
+        return:        [byte-ptr!]
+      ]
+      spawnvp: "_spawnvp" [
+        mode           [integer!]
+        cmd            [c-string!]   "Command to run"
+        args-list      [str-array!]
+        return:        [integer!]
+      ]
+      close: "close" [               "Close the file descriptor"
+        fd             [integer!]    "File descriptor"
+        return:        [integer!]
+      ]
+    ] ; cdecl
+    ] ; #import
+  ] ; OS = 'Windows
+]

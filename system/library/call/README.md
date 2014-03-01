@@ -59,9 +59,9 @@ Syntax
             /input -- Redirects in to stdin
                 in -- (Type: string)
             /output -- Redirects stdout to out
-                out -- (Type: string)
+                out -- (Type: string block)
             /error -- Redirects stderr to err
-                err -- (Type: string)
+                err -- (Type: string block)
             /wait -- Runs command and waits for exit
       RETURNS:
             a process ID or 0
