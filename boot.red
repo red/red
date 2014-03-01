@@ -742,18 +742,6 @@ type?: make native! [[
 	#get-definition NAT_TYPE?
 ]
 
-load: make native! [[
-		"Returns a value or block of values by reading and evaluating a source."
-		source [file! url! string! binary! block!]
-		/header "TBD: Include Red header as a loaded value"
-		/all    "TBD: Don't evaluate Red header"
-		/type	"TBD:"
-		/into "Put results in out block, instead of creating a new block"
-			out [block!] "Target block for results, when /into is used"
-	]
-	#get-definition NAT_LOAD
-]
-
 stats: make native! [[
 		"Returns interpreter statistics."
 		/show "TBD:"
@@ -1082,5 +1070,24 @@ parse-trace: func [
 	]
 ]
 
-
 #include %lexer.red
+
+load: function [
+	"Returns a value or block of values by reading and evaluating a source."
+	source [file! url! string! binary!]
+	/header "TBD: Include Red header as a loaded value"
+	/all    "TBD: Don't evaluate Red header"
+	/type	"TBD:"
+	/into "Put results in out block, instead of creating a new block"
+		out [block!] "Target block for results, when /into is used"
+][
+	unless out [out: clear []]
+	;switch type?/word [
+	;	file!	[]
+	;	url!	[]
+	;	binary! []
+	;]
+	transcode source out
+	unless :all [if 1 = length? out [out: out/1]]
+	out 
+]

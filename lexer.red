@@ -305,7 +305,6 @@ transcode: func [
 			| e: #"}" if (zero? cnt: cnt - 1) fail
 			| skip
 		]
-		#"}"
 	]
 	
 	multiline-string: [#"{" s: nested-curly-braces]
@@ -475,6 +474,8 @@ transcode: func [
 	
 	any-value: [pos: any [literal-value | ws]]
 	
-	parse/case src [any-value opt wrong-delimiters]
+	unless parse/case src [any-value opt wrong-delimiters][
+		print ["*** Syntax Error: invalid Red value at:" copy/part pos 20]
+	]
 	stack/1
 ]
