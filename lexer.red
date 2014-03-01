@@ -436,7 +436,7 @@ transcode: func [
 			  any  digit #"." some digit
 			| some digit #"." any  digit
 		]
-		opt [[#"e" | #"E"] some digit]
+		opt [[#"e" | #"E"] opt [#"-" | #"+"] some digit]
 		e:
 	]
 	
