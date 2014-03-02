@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Float! datatype runtime functions"
-	Author:  "Nenad Rakocevic"
-	File: 	 %float.reds
+	Author:  "Nenad Rakocevic, Oldes"
+	File: 	 %decimal.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-float: context [
+decimal: context [
 	verbose: 0
 
 	get*: func [										;-- unboxing float value from stack
@@ -28,7 +28,7 @@ float: context [
 		/local
 			fl [red-float!]
 	][
-		fl: as red-integer! stack/arguments
+		fl: as red-float! stack/arguments
 		either TYPE_OF(fl) = TYPE_FLOAT [fl/value][0.0] ;-- accept NONE values
 	]
 	
@@ -225,8 +225,9 @@ float: context [
 		fl		[red-float!]
 		return:	[red-value!]
 	][
-		fl/value: not fl/value
-		as red-value! int
+		--NOT_IMPLEMENTED--
+		;fl/value: not fl/value
+		as red-value! fl
 	]
 	
 	add: func [return: [red-value!]][
@@ -255,7 +256,7 @@ float: context [
 			fl [red-float!]
 	][
 		fl: as red-float! stack/arguments
-		fl/value: 0 - fl/value
+		fl/value: 0.0 - fl/value
 		fl 											;-- re-use argument slot for return value
 	]
 	

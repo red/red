@@ -63,6 +63,7 @@ red: context [
 	#include %datatypes/object.reds
 	#include %datatypes/bitset.reds
 	#include %datatypes/point.reds
+	#include %datatypes/decimal.reds
 	
 	;-- Debugging helpers --
 	
@@ -99,6 +100,7 @@ red: context [
 		block/init
 		string/init
 		integer/init
+		decimal/init
 		symbol/init
 		_context/init
 		word/init
@@ -150,6 +152,7 @@ red: context [
 			block/verbose:		verbosity
 			string/verbose:		verbosity
 			integer/verbose:	verbosity
+			decimal/verbose:    verbosity
 			symbol/verbose:		verbosity
 			_context/verbose:	verbosity
 			word/verbose:		verbosity
