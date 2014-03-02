@@ -83,10 +83,6 @@ Red [
 ]
 
 #include %../system/library/call/call.red
-prin "-=== Call added to Red console ===-"
-if system/platform = 'Windows [
-  prin "^/ -== Limited Windows support, launch only GUI apps ==-"
-]
 #include %help.red
 
 read-argument: routine [

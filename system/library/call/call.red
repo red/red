@@ -100,3 +100,8 @@ call: func [                 "Executes a shell command to run another process."
   ]
   pid
 ]
+
+prin "-=== Call added to Red console ===-"
+if system/platform = 'Windows [
+  prin "^/ -== Limited Windows support, no stdio redirection ==-"
+]

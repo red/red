@@ -16,7 +16,7 @@ Current limits
 
 The windows' call function can launch only GUI apps such as **notepad**, **explorer**.
 
-Console commands like **dir** needs further investigation and help to implement window's stdio redirections.
+Windows : no stdio redirections implemented, see Windows example below.
 
 Files
 ------------------------
@@ -67,6 +67,36 @@ Syntax
             a process ID or 0
 
 When you use the /input, /output, or /error refinements you automatically set the /wait refinement.
+
+Windows example
+------------------------
+
+    C:\Red>console-call.exe
+    -=== Call added to Red console ===-
+    -=== Red Console alpha version ===-
+    (only ASCII input supported)
+
+    red>> call/wait "cmd /c dir /w"
+    Volume in drive C is System
+    Volume Serial Number is 9DBC-C994
+
+    Directory of C:\Red
+
+    [.]                 [..]                red041              [bridges]           boot.red
+    lexer.r             README.md           [runtime]           compiler.r          call-example
+    run-all.r           version.r           console-call.exe    console             test
+    [tests]             [docs]              BSD-3-License.txt   ls.txt              BSL-License.txt
+    [system]            console-call        red-041.exe         [quick-test]        red.r
+    usage.txt           [build]             [utils]
+                  18 File(s)      2 247 911 bytes
+                  10 Dir(s) 200 888 594 432 bytes free
+    == 0
+    red>> call/wait "cmd /c explorer"
+    == 1
+    red>> call/wait "explorer"
+    == 1
+    red>> call/wait "cmd"              ; enter Windows'terminal
+    red>> 
 
 Linux examples
 ------------------------
