@@ -97,6 +97,134 @@ trans-hexa: routine [
 	n
 ]
 
+trans-decimal: routine [
+	start [string!]
+	end	  [string!]
+	/local
+		c	  [integer!]
+		value [integer!]
+		m	  [integer!]
+		len   [integer!]
+		p	  [byte-ptr!]
+		neg?  [logic!]
+		expon [integer!] ;should be decimal!
+		frac  [logic!]
+		scale [integer!] ;should be decimal!
+		;pow10 [deecimal!]
+][
+	str:  GET_BUFFER(start)
+	unit: GET_UNIT(str)
+	p:	  string/rs-head start
+	len:  end/head - start/head
+	neg?: no
+	
+	c: string/get-char p unit
+	if any [
+		c = as-integer #"+" 
+		c = as-integer #"-"
+	][
+		neg?: c = as-integer #"-"
+		p: p + unit
+		len: len - 1
+	]
+	value: 0
+	while [
+		c: string/get-char p unit
+		all [
+			c >= as-integer #"0"
+			c <= as-integer #"9"
+		]
+	][
+		m: value * 10
+		if m < value [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+		value: m
+		
+		m: value + c - #"0"
+		if m < value [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+		value: m
+
+		p: p + unit	
+		len: len - 1
+	]
+	
+	;Handle numbers after decimal point if there are any
+	if c = as-integer #"." [
+		p: p + unit	
+		len: len - 1
+		while [
+			c: string/get-char p unit
+			all [
+				c >= as-integer #"0"
+				c <= as-integer #"9"
+			]
+		][
+			;DO NOTHING SO FAR AS I CANNOT DIVIDE PROPERLY YET
+			;pow10: 10.0
+			;value: value + (c - #"0") / pow10
+			;pow10: pow10 * 10.0
+			p: p + unit	
+			len: len - 1
+		]
+	]
+	
+	frac: no
+	scale: 1 ;should be 1.0!
+	
+	if all [
+		len > 0
+		any [
+			c = as-integer #"e"
+			c = as-integer #"E"
+		]
+	][
+		expon: 0
+		p: p + unit	
+		len: len - 1
+		
+		c: string/get-char p unit
+		if any [
+			c = as-integer #"+" 
+			c = as-integer #"-"
+		][
+			frac: c = as-integer #"-"
+			p: p + unit
+			len: len - 1
+		]
+		until [
+			c: string/get-char p unit
+			
+			m: expon * 10 ;should be 10.0
+			if m < expon [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+			expon: m
+			
+			m: expon + c - #"0"
+			if m < expon [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+			expon: m
+
+			p: p + unit		
+			len: len - 1
+			zero? len
+		]
+		;while [expon >= 50] [
+		;	scale: scale * 1E50
+		;	expon: expon - 50
+		;]
+		while [expon >= 8] [
+			scale: scale * 100000000 ;1E8
+			expon: expon - 8
+		]
+		while [expon > 0] [
+			scale: scale * 10 ;10.0
+			expon: expon - 1
+		]
+		value: either frac [
+			value / scale
+		][	value * scale ]
+	]
+	
+	integer/box either neg? [0 - value][value]
+]
+
 trans-push-path: routine [
 	stack [block!]
 	type  [datatype!]
@@ -389,6 +517,27 @@ transcode: func [
 		ahead [integer-end | ws-no-count | end]
 	]
 	
+	decimal-number-rule: [
+		opt [#"-" | #"+"] [
+			;for numbers like: 1.0 -1.e2 1.0e-2
+			[
+				  any  digit #"." some digit
+				| some digit #"." any  digit
+			]
+			opt [[#"e" | #"E"] opt [#"-" | #"+"] some digit]
+			|
+			;for numbers like: 1e2
+			some digit
+			[#"e" | #"E"] opt [#"-" | #"+"] some digit
+		]
+		e:
+	]
+	
+	decimal-rule: [
+		decimal-number-rule
+		ahead [integer-end | ws-no-count | end]
+	]
+	
 	block-rule: [
 		#"[" (append/only stack make block! 4)
 		any-value
@@ -458,6 +607,7 @@ transcode: func [
 			| multiline-comment-rule
 			| escaped-rule		(append last stack value)
 			| integer-rule		(append last stack trans-integer s e)
+			| decimal-rule		(append last stack trans-decimal s e)
 			| hexa-rule			(append last stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule

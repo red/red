@@ -135,6 +135,12 @@ red-integer!: alias struct! [
 	_pad	[integer!]	
 ]
 
+red-float!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding [integer!]
+	value	[float!]								;-- 64-bit float value
+]
+
 red-context!: alias struct! [
 	header 	[integer!]								;-- cell header
 	symbols	[node!]									;-- array of symbols ID

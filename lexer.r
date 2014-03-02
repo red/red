@@ -211,7 +211,33 @@ lexer: context [
 		] :pos 
 		fail?
 	]
-		
+	
+	decimal-number-rule: [
+		(type: decimal!)
+		opt [#"-" | #"+"] [
+			;for numbers like: 1.0 -1.e2 1.0e-2
+			[
+				  any  digit #"." some digit
+				| some digit #"." any  digit
+			]
+			opt [[#"e" | #"E"] opt [#"-" | #"+"] some digit]
+			|
+			;for numbers like: 1e2
+			some digit
+			[#"e" | #"E"] opt [#"-" | #"+"] some digit
+		]
+		e:
+	]
+	
+	decimal-rule: [
+		decimal-number-rule
+		pos: [										;-- protection rule from typo with sticky words
+			[integer-end | ws-no-count | end] (fail?: none)
+			| skip (fail?: [end skip]) 
+		] :pos 
+		fail?
+	]
+	
 	block-rule: [#"[" (stack/push block!) any-value #"]" (value: stack/pop block!)]
 	
 	paren-rule: [#"(" (stack/push paren!) any-value	#")" (value: stack/pop paren!)]
@@ -326,6 +352,7 @@ lexer: context [
 			| multiline-comment-rule
 			| escaped-rule    (stack/push value)
 			| integer-rule	  (stack/push load-integer   copy/part s e)
+			| decimal-rule	  (stack/push load-decimal   copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
@@ -482,6 +509,11 @@ lexer: context [
 
 	load-integer: func [s [string!]][
 		unless attempt [s: to integer! s][throw-error]
+		s
+	]
+
+	load-decimal: func [s [string!]][
+		unless attempt [s: to decimal! s][throw-error]
 		s
 	]
 
