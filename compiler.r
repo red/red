@@ -249,6 +249,7 @@ red: context [
 		emit to path! reduce [to word! form type? buffer 'load]
 		emit form buffer
 		emit 1 + length? buffer							;-- account for terminal zero
+		emit 'UTF-8
 	]
 	
 	emit-open-frame: func [name [word!] /local type][

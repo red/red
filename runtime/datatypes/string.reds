@@ -690,6 +690,7 @@ string: context [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
 		blk		 [red-block!]
+		encoding [integer!]
 		return:  [red-string!]
 		/local
 			str  [red-string!]
@@ -697,17 +698,30 @@ string: context [
 		str: as red-string! ALLOC_TAIL(blk)
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 0
-		str/node: unicode/load-utf8 src size
-		str/cache: either size < 64 [src][null]			;-- cache only small strings (experimental)
+		switch encoding [
+			UTF-8	 [
+				str/node: unicode/load-utf8 src size
+				str/cache: either size < 64 [src][null]	;-- cache only small strings
+			]
+			UTF-16LE [
+				str/node: unicode/load-utf16 src size
+				str/cache: null
+			]
+			default	 [
+				print "*** Loading Error: input encoding unsupported"
+				halt
+			]
+		]
 		str
 	]
 	
 	load: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
+		encoding [integer!]
 		return:  [red-string!]
 	][
-		load-in src size root
+		load-in src size root encoding
 	]
 	
 	push: func [

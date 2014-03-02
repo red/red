@@ -11,10 +11,11 @@ Red/System [
 ]
 
 #enum encoding! [
-	UTF-8:  0
-	Latin1: 1
-	UCS-2:  2
-	UCS-4:  4
+	UTF-16LE:	-1
+	UTF-8:		 0
+	Latin1:		 1
+	UCS-2:		 2
+	UCS-4:		 4
 ]
 
 unicode: context [
@@ -294,7 +295,7 @@ unicode: context [
 		either null? dst [								;-- test if output buffer is provided
 			node: alloc-series size 1 0
 			s: as series! node/value
-			unit:  Latin1									;-- start with 1 byte/codepoint
+			unit:  Latin1								;-- start with 1 byte/codepoint
 		][
 			node: dst/node
 			s: dst
@@ -425,5 +426,88 @@ unicode: context [
 		return:	   [node!]
 	][
 		load-utf8-buffer src size null null
+	]
+	
+	scan-utf16: func [									;-- detect codepoint max storage size
+		src		[c-string!]
+		size	[integer!]
+		return: [integer!]								;-- 1, 2 or 4 (bytes per codepoint)
+		/local
+			unit [integer!]
+			c	 [byte!]
+	][
+		unit: 1
+		src: src + 1
+		while [size > 0][
+			c: src/1
+			if all [#"^(D8)" <= c c <= #"^(DF)"][return 4]	;-- max
+			if c <> null-byte [unit: 2]
+			src: src + 2
+			size: size - 1
+		]
+		unit
+	]
+	
+	load-utf16: func [ 
+		src		[c-string!]							;-- UTF-16LE input buffer (zero-terminated)
+		size	[integer!]							;-- size of src in codepoints (including terminal NUL)
+		return:	[node!]
+		/local
+			unit [encoding!]
+			node [node!]
+			s	 [series!]
+			p	 [byte-ptr!]
+			p4	 [int-ptr!]
+			cnt  [integer!]
+			c	 [integer!]
+			cp	 [integer!]
+	][
+		unit: scan-utf16 src size
+		node: alloc-series size unit 0
+		s:	  as series! node/value
+		p:	  as byte-ptr! s/offset
+		cnt:  size
+
+		switch unit [
+			Latin1 [
+				while [cnt > 0][
+					p/value: src/1
+					p: p + 1
+					src: src + 2
+					cnt: cnt - 1
+				]
+			]
+			UCS-2 [
+				copy-memory p as byte-ptr! src size * 2
+			]
+			UCS-4 [
+				p4: as int-ptr! p
+				while [cnt > 0][
+					c: as-integer src/2
+					either all [D8h <= c c <= DBh][
+						cp: c << 8 + src/1 and 03FFh << 10	;-- lead surrogate deocoding
+						
+						src: src + 2
+						cnt: cnt - 1
+						c: as-integer src/2
+						if any [
+							cnt < 0
+							not any [DCh <= c c <= DFh]
+						][
+							print "*** Input Error: invalid UTF-16LE codepoint"
+							halt 
+						]
+						p4/value: c << 8 + src/1 and 03FFh or cp  ;-- trail surrogate deocoding
+					][
+						p4/value: c << 8 + src/1
+					]
+					p4: p4 + 1
+					src: src + 2
+					cnt: cnt - 1
+				]
+			]
+		]
+		s/tail: as cell! (as byte-ptr! s/offset) + (size - 1 * unit)
+		node
 	]
 ]

@@ -22,7 +22,7 @@ Red [
 					title			[c-string!]
 					return:			[integer!]
 				]
-				ReadConsole: 	 "ReadConsoleA" [
+				ReadConsole: 	 "ReadConsoleW" [
 					consoleInput	[integer!]
 					buffer			[byte-ptr!]
 					charsToRead		[integer!]
@@ -32,7 +32,7 @@ Red [
 				]
 			]
 		]
-		line-buffer-size: 16 * 1024
+		line-buffer-size: 30 * 1024
 		line-buffer: allocate line-buffer-size
 	][
 		#switch OS [
@@ -117,18 +117,18 @@ init-console: routine [
 input: routine [
 	prompt [string!]
 	/local
-		len ret str buffer line
+		len ret str buffer line pos
 ][
 	#either OS = 'Windows [
 		len: 0
 		print as c-string! string/rs-head prompt
 		ret: ReadConsole stdin line-buffer line-buffer-size :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
-		len: len - 1									;-- move at beginning of CRLF sequence
-		line-buffer/len: null-byte						;-- overwrite CR with NUL
-		str: string/load as c-string! line-buffer len
+		pos: (len * 2) - 3								;-- position at lower 8bits of CR character
+		line-buffer/pos: null-byte						;-- overwrite CR with NUL
+		str: string/load as-c-string line-buffer len - 1 UTF-16LE
 	][
-		line: read-line as c-string! string/rs-head prompt
+		line: read-line as-c-string string/rs-head prompt
 		if line = null [halt]  ; EOF
 
 		 #if OS <> 'MacOSX [add-history line]
@@ -233,12 +233,11 @@ if script: read-argument [
 	]
 	quit
 ]
-
 init-console "Red Console"
 
 print {
 -=== Red Console alpha version ===-
-(only ASCII input supported)
+Type HELP for starting information.
 }
 
 do-console

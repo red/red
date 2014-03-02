@@ -285,7 +285,7 @@ simple-io: context [
 		
 		size: size + 1
 		buffer/size: null-byte
-		str: string/load as-c-string buffer size
+		str: string/load as-c-string buffer size UTF-8
 		free buffer
 		str
 	]
