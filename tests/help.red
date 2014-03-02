@@ -37,6 +37,7 @@ Other debug functions:
     probe - print a value (molded)
     source func - show source code of func
     what - show a list of known functions
+    system/version - display version number and build date
 }
 		]
 		datatype? get :word [						;-- HELP <datatype!>
