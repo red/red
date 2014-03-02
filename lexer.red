@@ -300,11 +300,13 @@ transcode: func [
 		(cnt: 1)
 		any [
 			counted-newline 
-			| "^^{" | "^^}"
-			| #"{" (cnt: cnt + 1)
-			| e: #"}" if (zero? cnt: cnt - 1) fail
+			| "^^{" 
+			| "^^}"
+			| #"{" 	  (cnt: cnt + 1)
+			| e: #"}" if (zero? cnt: cnt - 1) break
 			| skip
 		]
+	
 	]
 	
 	multiline-string: [#"{" s: nested-curly-braces]
@@ -389,7 +391,7 @@ transcode: func [
 	
 	block-rule: [
 		#"[" (append/only stack make block! 4)
-		any-value 
+		any-value
 		#"]" (trans-pop stack)
 	]
 	
