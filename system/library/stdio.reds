@@ -22,63 +22,65 @@ Red/System [
   system/fpu/update
 ]
 
-#define file!     integer!
+stdio: context [
+  #define file!     integer!
 
-#import [ LIBC-file cdecl [
-    open-file: "fopen" [           "Open file."
-      name        [c-string!]
-      mode        [c-string!]
-      return:     [file!]
-    ]
-    flush-file: "fflush" [         "Flush file(s)."
-      file        [file!]          "NULL for all streams"
-      return:     [integer!]       "0 or EOF"
-    ]
-    close-file: "fclose" [         "Close file."
-      file        [file!]
-      return:     [integer!]       "0 or EOF"
+  #import [ LIBC-file cdecl [
+      open-file: "fopen" [           "Open file."
+        name        [c-string!]
+        mode        [c-string!]
+        return:     [file!]
+      ]
+      flush-file: "fflush" [         "Flush file(s)."
+        file        [file!]          "NULL for all streams"
+        return:     [integer!]       "0 or EOF"
+      ]
+      close-file: "fclose" [         "Close file."
+        file        [file!]
+        return:     [integer!]       "0 or EOF"
+      ]
+
+      file-tail:  "feof" [           "End-of-file status."
+        file        [file!]
+        return:     [integer!]
+      ]
+      file-error: "ferror" [         "File status."
+        file        [file!]
+        return:     [integer!]
+      ]
+      clear-status: "clearerr" [     "Clear file status."
+        file        [file!]
+      ]
+
+      write-file: "fwrite" [         "Write binary array to file."
+        array       [byte-ptr!]
+        size        [integer!]
+        entries     [integer!]
+        file        [file!]
+        return:     [integer!]       "Chunks written"
+      ]
+      read-file: "fread" [           "Read binary array from file."
+        array       [byte-ptr!]
+        size        [integer!]
+        entries     [integer!]
+        file        [file!]
+        return:     [integer!]       "Chunks read"
+      ]
     ]
 
-    file-tail: "feof" [            "End-of-file status."
-      file        [file!]
-      return:     [integer!]
-    ]
-    file-error: "ferror" [         "File status."
-      file        [file!]
-      return:     [integer!]
-    ]
-    clear-status: "clearerr" [     "Clear file status."
-      file        [file!]
-    ]
+  ] ; #import
 
-    write-file: "fwrite" [         "Write binary array to file."
-      array       [byte-ptr!]
-      size        [integer!]
-      entries     [integer!]
-      file        [file!]
-      return:     [integer!]       "Chunks written"
-    ]
-    read-file: "fread" [           "Read binary array from file."
-      array       [byte-ptr!]
-      size        [integer!]
-      entries     [integer!]
-      file        [file!]
-      return:     [integer!]       "Chunks read"
-    ]
+  file-tail?: function ["End-of-file status."
+    file          [file!]
+    return:       [logic!]
+  ][
+    as-logic file-tail file
   ]
 
-] ; #import
-
-file-tail?: function ["End-of-file status."
-  file          [file!]
-  return:       [logic!]
-][
-  as-logic file-tail file
-]
-
-file-error?: function ["File status."
-  file          [file!]
-  return:       [logic!]
-][
-  as-logic file-error file
+  file-error?: function ["File status."
+    file          [file!]
+    return:       [logic!]
+  ][
+    as-logic file-error file
+  ]
 ]
