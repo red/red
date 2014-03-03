@@ -74,9 +74,9 @@ call: func [                 "Executes a shell command to run another process."
   /input                     "Redirects in to stdin"
   in            [string!]
   /output                    "Redirects stdout to out"
-  out           [string!]
+  out           [string! block!]
   /error                     "Redirects stderr to err"
-  err           [string!]
+  err           [string! block!]
   /local
   pid           [integer!]
   str           [string!]
