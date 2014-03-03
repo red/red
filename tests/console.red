@@ -32,8 +32,8 @@ Red [
 				]
 			]
 		]
-		line-buffer-size: 30 * 1024
-		line-buffer: allocate line-buffer-size
+		line-buffer-size: 15 * 1024
+		line-buffer: allocate line-buffer-size * 2 + 1
 	][
 		#switch OS [
 			MacOSX [
