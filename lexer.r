@@ -305,13 +305,6 @@ lexer: context [
 	
 	comment-rule: [#";" [to #"^/" | to end]]
 	
-	multiline-comment-rule: [
-		"comment" any-ws [
-			#"{" nested-curly-braces
-			| (throw-error/with "multiline string expected after COMMENT")
-		]
-	]
-	
 	wrong-delimiters: [
 		pos: [
 			  #"]" (value: #"[") | #")" (value: #"(")
@@ -323,7 +316,6 @@ lexer: context [
 	literal-value: [
 		pos: (e: none) s: [
 			comment-rule
-			| multiline-comment-rule
 			| escaped-rule    (stack/push value)
 			| integer-rule	  (stack/push load-integer   copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)

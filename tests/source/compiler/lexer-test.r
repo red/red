@@ -144,6 +144,7 @@ do %../../../lexer.r
 		#issue
 		#{1234}
 		#{45788956AAFFEEFF}
+		comment "test^/^/^-^-"
 		%foo/bar.red "foo^@^/bar"
 		{
 ^-

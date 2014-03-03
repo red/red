@@ -53,6 +53,8 @@ none:  			make none! 0
 true:  			make logic! 1
 false: 			make logic! 0
 
+comment: func [value][]
+
 ;------------------------------------------
 ;-				Actions					  -
 ;------------------------------------------

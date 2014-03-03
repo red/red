@@ -437,13 +437,6 @@ transcode: func [
 	
 	comment-rule: [#";" [to lf | to end]]
 	
-	multiline-comment-rule: [
-		"comment" any ws [
-			#"{" nested-curly-braces
-			| (print "*** Syntax Error: multiline string expected after COMMENT") ;@@ temporary
-		]
-	]
-	
 	wrong-delimiters: [
 		pos: [
 			  #"]" (value: #"[") | #")" (value: #"(")
@@ -455,7 +448,6 @@ transcode: func [
 	literal-value: [
 		pos: (e: none) s: [
 			comment-rule
-			| multiline-comment-rule
 			| escaped-rule		(append last stack value)
 			| integer-rule		(append last stack trans-integer s e)
 			| hexa-rule			(append last stack trans-hexa s e)
