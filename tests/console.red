@@ -133,7 +133,7 @@ input: routine [
 
 		 #if OS <> 'MacOSX [add-history line]
 
-		str: string/load line  1 + length? line
+		str: string/load line  1 + length? line UTF-8
 ;		free as byte-ptr! line
 	]
 	SET_RETURN(str)
