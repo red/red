@@ -153,9 +153,10 @@ count-delimiters: function [
 			'else [
 				switch c [
 					#"^^" [escaped?: yes]
-					#";"  [if zero? list/2 [in-comment?: yes]]
+					#";"  [if all [zero? list/2 not in-string?][in-comment?: yes]]
 					#"["  [unless in-string? [list/1: list/1 + 1]]
 					#"]"  [unless in-string? [list/1: list/1 - 1]]
+					#"^"" [if zero? list/2 [in-string?: not in-string?]]
 					#"{"  [if zero? list/2 [in-string?: yes] list/2: list/2 + 1]
 					#"}"  [if 1 = list/2   [in-string?: no]  list/2: list/2 - 1]
 				]
