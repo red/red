@@ -289,9 +289,10 @@ transcode: func [
 	
 	line-string: [
 		{"} s: any [
-			{^^"} e:
+			{^^"}
 			| ahead [#"^"" | newline-char] break
-			| skip e:
+			| escaped-char
+			| skip
 		]
 		e: {"}
 	]
@@ -304,6 +305,7 @@ transcode: func [
 			| "^^}"
 			| #"{" 	  (cnt: cnt + 1)
 			| e: #"}" if (zero? cnt: cnt - 1) break
+			| escaped-char
 			| skip
 		]
 	
@@ -467,7 +469,7 @@ transcode: func [
 	]
 	
 	any-value: [pos: any [literal-value | ws]]
-	
+
 	unless parse/case src [any-value opt wrong-delimiters][
 		print ["*** Syntax Error: invalid Red value at:" copy/part pos 20]
 	]
