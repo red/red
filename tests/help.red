@@ -31,13 +31,14 @@ To see all words of a specific datatype:
     ? function!
     ? datatype!
 
-Other debug functions:
+Other useful functions:
 
     ?? - display a variable and its value
     probe - print a value (molded)
     source func - show source code of func
     what - show a list of known functions
     system/version - display version number and build date
+    q or quit - leave the Red console
 }
 		]
 		datatype? get :word [						;-- HELP <datatype!>
