@@ -319,6 +319,7 @@ interpreter: context [
 			head	  [red-value!]
 			tail	  [red-value!]
 			w		  [red-word!]
+			blk		  [red-block!]
 			dt		  [red-datatype!]
 			path-end  [red-value!]
 			s		  [series!]
@@ -371,9 +372,13 @@ interpreter: context [
 				TYPE_GET_WORD
 				TYPE_LIT_WORD [
 					either required? [
+						blk: as red-block! value + 1
 						either all [
 							pc >= end
 							TYPE_OF(value) = TYPE_LIT_WORD
+							value + 1 < tail
+							TYPE_OF(blk) = TYPE_BLOCK
+							symbol/is-any-type? as red-word! block/pick blk 1 null	;-- check for [any-type!] spec
 						][
 							unset/push
 						][

@@ -13,6 +13,14 @@ Red/System [
 symbol: context [
 	verbose: 0
 	
+	is-any-type?: func [
+		word	[red-word!]
+		return: [logic!]
+	][
+		assert TYPE_OF(word) = TYPE_WORD
+		(symbol/resolve word/symbol) = symbol/resolve words/any-type!
+	]
+	
 	same?: func [										;-- case-insensitive UTF-8 string comparison
 		str1	     [c-string!]
 		str2	     [c-string!]
