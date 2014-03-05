@@ -53,9 +53,19 @@ redsys-call: routine [       "Set IO buffers if needed, execute call"
 ]
 
 get-out: routine [           "Returns redirected stdout stored in outputs"
-  /local sout
+  /local
+  sout [red-string!]
+  str  [c-string!]
 ][
-  sout: string/load as-c-string system-call/outputs/out/buffer (1 + system-call/outputs/out/count)
+  #either OS = 'Windows [
+;    str: stdcalls/ansi-to-unicode as-c-string system-call/outputs/out/buffer
+;    print [ str lf ]
+;    sout: string/load str (1 + length? str) UTF-8
+;    free as byte-ptr! str
+    sout: string/load as-c-string system-call/outputs/out/buffer (1 + system-call/outputs/out/count) UTF-16LE   ; UTF-16LE
+  ][
+    sout: string/load as-c-string system-call/outputs/out/buffer (1 + system-call/outputs/out/count) UTF-8
+  ]
   free system-call/outputs/out/buffer
   SET_RETURN(sout)
 ]
@@ -63,7 +73,11 @@ get-out: routine [           "Returns redirected stdout stored in outputs"
 get-err: routine [           "Returns redirected stderr stored in outputs"
   /local serr
 ][
-  serr: string/load as-c-string system-call/outputs/err/buffer (1 + system-call/outputs/err/count)
+  #either OS = 'Windows [
+    serr: string/load as-c-string system-call/outputs/err/buffer (1 + system-call/outputs/err/count) UTF-16LE
+  ][
+    serr: string/load as-c-string system-call/outputs/err/buffer (1 + system-call/outputs/err/count) UTF-8
+  ]
   free system-call/outputs/err/buffer
   SET_RETURN(serr)
 ]
@@ -103,5 +117,5 @@ call: func [                 "Executes a shell command to run another process."
 
 prin "-=== Call added to Red console ===-"
 if system/platform = 'Windows [
-  prin "^/ -== Limited Windows support, no stdio redirection ==-"
+  prin "^/ -== Limited Windows support, stdio redirection in progress ==-"
 ]

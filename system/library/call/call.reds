@@ -136,32 +136,42 @@ system-call: context [
       return args-list
     ] ; word-expand
 
-    read-from-pipe: func [      "Read data from pipe fd into buffer"
-      fd           [f-desc!]       "File descriptor"
-      data         [p-buffer!]
-      /local
-      cpt          [integer!]
-      total        [integer!]
-    ][
-      close fd/writing                                                   ; close unused pipe end
-      cpt: READ-BUFFER-SIZE                                              ; initial buffer size and grow step
-      total: 0
-      while [cpt = READ-BUFFER-SIZE ][                   ; FIX: there's a bug here, need to test errno
-        cpt: ioread fd/reading (data/buffer + total) READ-BUFFER-SIZE    ; read pipe, store into buffer
-        if cpt > -1 [
-          total: total + cpt
-          if cpt = READ-BUFFER-SIZE [                                      ; buffer must be expanded
-            data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
-          ]
-        ] comment { [ print [ "No data" lf ] cpt: READ-BUFFER-SIZE ] }
-      ]
-      data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
-      data/count: total
-      close fd/reading                                                   ; close other pipe end
-    ] ; read-from-pipe
-
     #switch OS [
       Windows   [      ; Windows, use minimal home made parsing
+        read-from-pipe: func [      "Read data from pipe fd into buffer"
+          fd           [opaque!]      "File descriptor"
+          data         [p-buffer!]
+          /local
+          len          [integer!]
+          count        [integer!]
+          total        [integer!]
+          success      [logic!]
+        ][
+          len: READ-BUFFER-SIZE                                              ; initial buffer size and grow step
+          count: 0
+          total: 0
+          success: true
+          until [
+            len: 0
+            success: read-file fd (data/buffer + total) (READ-BUFFER-SIZE - count) :len null
+            print [ "Bytes read : " len " - " success "^/" ]
+            if len > 0 [
+              total: total + len
+              count: count + len
+              if count = READ-BUFFER-SIZE [
+                data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
+                count: 0
+              ]
+            ]
+            any [ (not success) (len = 0) ]
+          ]
+          if not success [
+             print [ "Error : " get-last-error lf ]
+          ]
+          data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
+          data/count: total
+          print [ "Total bytes read : " total lf ]
+        ] ; read-from-pipe
         call: func [                   "Executes a DOS command to run another process."
           cmd          [c-string!]       "The shell command"
           waitend      [logic!]          "Wait for end of command, implicit if out-buf is set"
@@ -170,49 +180,94 @@ system-call: context [
           err-buf      [p-buffer!]       "Pointer to error data buffer or null"
           return:      [integer!]
           /local
-          status       [integer!]
-          args         [str-array!]
           pid          [integer!]
-          err          [integer!]
-          fd-out
+          inherit      [logic!]
+          in-read      [opaque!]
+          in-write     [opaque!]
+          out-read     [opaque!]
+          out-write    [opaque!]
+          sa p-inf s-inf
         ][
-
+          s-inf: declare startup-info!
+          p-inf: declare process-info!
+          sa: declare security-attributes!
+          sa/nLength: size? sa
+          sa/lpSecurityDescriptor: 0
+          sa/bInheritHandle: true
+          out-read:  0
+          out-write: 0
+          in-read:   0
+          in-write:  0
+          inherit: false
+          s-inf/cb: size? s-inf
+          s-inf/dwFlags: 0
           if out-buf <> null [
             out-buf/count: 0
             out-buf/buffer: allocate READ-BUFFER-SIZE
-            fd-out: declare f-desc!
-            if (pipe as int-ptr! fd-out READ-BUFFER-SIZE O_TEXT) = -1 [    ; Create a pipe for child's output
-              print "Red/System call : Output pipe creation failed^/"  halt
+            if not create-pipe :out-read :out-write sa 0 [    ; Create a pipe for child's output
+              print "Error Red/System call : Output pipe creation failed^/"  halt
             ]
-            waitend: true
-          ]
-          if out-buf <> null [                  ; redirect stdout to the pipe
-            if 0 <> close fd-out/reading [ print "Error close fd-out/reading^/" ]
-            err: dup2 fd-out/writing stdout
-            if err = -1 [ print "Red/System call : Error dup2 stdout.^/" ]
-            if 0 <> close fd-out/writing [ print "Error close fd-out/writing^/" ]
+            if not set-handle-information out-read HANDLE_FLAG_INHERIT 0 [
+              print "Error Red/System call : SetHandleInformation failed^/"  halt
+            ]
+            waitend: false                      ; child's process is completed after end of pipe
+            inherit: true
+            s-inf/dwFlags: 00000100h            ; STARTF_USESTDHANDLES
           ]
 
-          args: word-expand cmd
-          pid: 0
+          s-inf/hStdError:  out-write
+          s-inf/hStdOutput: out-write
+          s-inf/hStdInput:  in-read
+          if not create-process null cmd 0 0 inherit 0 0 null s-inf p-inf [
+            print "Error Red/System call while calling CreateProcess : {" cmd "}^/"
+            quit 1
+          ]
+
           either waitend [
-            pid: spawnvp P_WAIT   args/item args      ; Windows : wait until end of process
+            wait-for-single-object p-inf/hProcess INFINITE
+            print "After wait^/"
+            pid: 0
           ][
-            pid: spawnvp P_NOWAIT args/item args      ; Windows : continues to execute the calling process
+            pid: p-inf/dwProcessId
           ]
-
-          if out-buf <> null [                  ; Read output from pipe, store in buffer
-            read-from-pipe fd-out out-buf       ; Read output buffer from child process' stdout
-            waitend: false                      ; Child's process is completed after end of pipe
-            pid: 0                              ; Process is completed, return 0
+          if out-buf <> null [
+            close-handle out-write
+            read-from-pipe out-read out-buf
+            close-handle out-read
+            pid: 0
+            print "After read-from-pipe^/"
           ]
+          close-handle p-inf/hProcess
+          close-handle p-inf/hThread
           outputs/out: out-buf                  ; Store values in global var
-
-          free-str-array args
+          outputs/err: err-buf
           return pid
         ] ; call
       ] ; Windows
       #default  [      ; POSIX
+        read-from-pipe: func [      "Read data from pipe fd into buffer"
+          fd           [f-desc!]       "File descriptor"
+          data         [p-buffer!]
+          /local
+          cpt          [integer!]
+          total        [integer!]
+        ][
+          close fd/writing                                                   ; close unused pipe end
+          cpt: READ-BUFFER-SIZE                                              ; initial buffer size and grow step
+          total: 0
+          while [cpt = READ-BUFFER-SIZE ][                   ; FIX: there's a bug here, need to test errno
+            cpt: ioread fd/reading (data/buffer + total) READ-BUFFER-SIZE    ; read pipe, store into buffer
+            if cpt > -1 [
+              total: total + cpt
+              if cpt = READ-BUFFER-SIZE [                                      ; buffer must be expanded
+                data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
+              ]
+            ]
+          ]
+          data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
+          data/count: total
+          close fd/reading                                                   ; close other pipe end
+        ] ; read-from-pipe
         expand-and-exec: func[         "Use wordexp to parse command and run it. Halt if error. Should never return"
           cmd          [c-string!]       "The shell command"
           return:      [integer!]
@@ -225,10 +280,10 @@ system-call: context [
           either status = 0 [                           ; Parsing ok
   ;          print-str-array wexp/we_wordv                         ; Debug: Print expanded values
             execvp wexp/we_wordv/item wexp/we_wordv                ; Call execvp with str-array parameters
-            print [ "Error while calling execvp : {" cmd "}" lf ]  ; Should never occur
+            print [ "Error Red/System call while calling execvp : {" cmd "}" lf ]  ; Should never occur
             quit 1
           ][                                            ; Parsing nok
-            print [ "Error wordexp parsing command : " cmd lf ]
+            print [ "Error Red/System call, wordexp parsing command : " cmd lf ]
             switch status [
               WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
               WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
@@ -252,13 +307,12 @@ system-call: context [
           pid          [integer!]
           status       [integer!]
           err          [integer!]
-          cpt          [integer!]
           fd-in fd-out fd-err
         ][
           if in-buf <> null [
             fd-in: declare f-desc!
             if (pipe as int-ptr! fd-in) = -1 [     ; Create a pipe for child's input
-              print "Red/System call : Input pipe creation failed^/"  halt
+              print "Error Red/System call : Input pipe creation failed^/"  halt
             ]
           ]
           if out-buf <> null [
@@ -266,7 +320,7 @@ system-call: context [
             out-buf/buffer: allocate READ-BUFFER-SIZE
             fd-out: declare f-desc!
             if (pipe as int-ptr! fd-out) = -1 [    ; Create a pipe for child's output
-              print "Red/System call : Output pipe creation failed^/"  halt
+              print "Error Red/System call : Output pipe creation failed^/"  halt
             ]
           ]
           if err-buf <> null [
@@ -274,7 +328,7 @@ system-call: context [
             err-buf/buffer: allocate READ-BUFFER-SIZE
             fd-err: declare f-desc!
             if (pipe as int-ptr! fd-err) = -1 [    ; Create a pipe for child's error
-              print "Red/System call : Error pipe creation failed^/"  halt
+              print "Error Red/System call : Error pipe creation failed^/"  halt
             ]
           ]
           pid: fork
@@ -282,19 +336,19 @@ system-call: context [
             if in-buf <> null [                   ; redirect stdin to the pipe
               close fd-in/writing
               err: dup2 fd-in/reading stdin
-              if err = -1 [ print "Red/System call : Error dup2 stdin^/" halt ]
+              if err = -1 [ print "Error Red/System call : Error dup2 stdin^/" halt ]
               close fd-in/reading
             ]
             if out-buf <> null [                  ; redirect stdout to the pipe
               close fd-out/reading
               err: dup2 fd-out/writing stdout
-              if err = -1 [ print "Red/System call : Error dup2 stdout^/" halt ]
+              if err = -1 [ print "Error Red/System call : Error dup2 stdout^/" halt ]
               close fd-out/writing
             ]
             if err-buf <> null [                  ; redirect stderr to the pipe
               close fd-err/reading
               err: dup2 fd-err/writing stderr
-              if err = -1 [ print "Red/System call : Error dup2 stderr^/" halt ]
+              if err = -1 [ print "Error Red/System call : Error dup2 stderr^/" halt ]
               close fd-err/writing
             ]
             expand-and-exec cmd
