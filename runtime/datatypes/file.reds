@@ -23,7 +23,7 @@ file: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/load"]]
 		
-		cell: string/load-in src size blk
+		cell: string/load-in src size blk UTF-8
 		cell/header: TYPE_FILE							;-- implicit reset of all header flags
 		cell
 	]

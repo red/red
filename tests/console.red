@@ -22,7 +22,7 @@ Red [
 					title			[c-string!]
 					return:			[integer!]
 				]
-				ReadConsole: 	 "ReadConsoleA" [
+				ReadConsole: 	 "ReadConsoleW" [
 					consoleInput	[integer!]
 					buffer			[byte-ptr!]
 					charsToRead		[integer!]
@@ -32,8 +32,8 @@ Red [
 				]
 			]
 		]
-		line-buffer-size: 16 * 1024
-		line-buffer: allocate line-buffer-size
+		line-buffer-size: 15 * 1024
+		line-buffer: allocate line-buffer-size * 2 + 1
 	][
 		#switch OS [
 			MacOSX [
@@ -117,23 +117,23 @@ init-console: routine [
 input: routine [
 	prompt [string!]
 	/local
-		len ret str buffer line
+		len ret str buffer line pos
 ][
 	#either OS = 'Windows [
 		len: 0
 		print as c-string! string/rs-head prompt
 		ret: ReadConsole stdin line-buffer line-buffer-size :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
-		len: len - 1									;-- move at beginning of CRLF sequence
-		line-buffer/len: null-byte						;-- overwrite CR with NUL
-		str: string/load as c-string! line-buffer len
+		pos: (len * 2) - 3								;-- position at lower 8bits of CR character
+		line-buffer/pos: null-byte						;-- overwrite CR with NUL
+		str: string/load as-c-string line-buffer len - 1 UTF-16LE
 	][
-		line: read-line as c-string! string/rs-head prompt
+		line: read-line as-c-string string/rs-head prompt
 		if line = null [halt]  ; EOF
 
 		 #if OS <> 'MacOSX [add-history line]
 
-		str: string/load line  1 + length? line
+		str: string/load line  1 + length? line UTF-8
 ;		free as byte-ptr! line
 	]
 	SET_RETURN(str)
@@ -153,9 +153,10 @@ count-delimiters: function [
 			'else [
 				switch c [
 					#"^^" [escaped?: yes]
-					#";"  [if zero? list/2 [in-comment?: yes]]
+					#";"  [if all [zero? list/2 not in-string?][in-comment?: yes]]
 					#"["  [unless in-string? [list/1: list/1 + 1]]
 					#"]"  [unless in-string? [list/1: list/1 - 1]]
+					#"^"" [if zero? list/2 [in-string?: not in-string?]]
 					#"{"  [if zero? list/2 [in-string?: yes] list/2: list/2 + 1]
 					#"}"  [if 1 = list/2   [in-string?: no]  list/2: list/2 - 1]
 				]
@@ -233,12 +234,11 @@ if script: read-argument [
 	]
 	quit
 ]
-
 init-console "Red Console"
 
 print {
 -=== Red Console alpha version ===-
-(only ASCII input supported)
+Type HELP for starting information.
 }
 
 do-console

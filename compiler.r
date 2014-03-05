@@ -249,6 +249,7 @@ red: context [
 		emit to path! reduce [to word! form type? buffer 'load]
 		emit form buffer
 		emit 1 + length? buffer							;-- account for terminal zero
+		emit 'UTF-8
 	]
 	
 	emit-open-frame: func [name [word!] /local type][
@@ -2046,13 +2047,13 @@ red: context [
 				]
 				append include-stk script-path
 				
-				script-path: either relative-path? file [
+				script-path: either all [not booting? relative-path? file][
 					file: clean-path join any [script-path main-path] file
 					first split-path file
 				][
 					none
 				]
-				unless exists? file [
+				unless any [booting? exists? file][
 					throw-error ["include file not found:" pc/2]
 				]
 				either find included-list file [

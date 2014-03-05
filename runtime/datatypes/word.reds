@@ -23,18 +23,8 @@ word: context [
 		str 	[c-string!]
 		blk		[red-block!]
 		return:	[red-word!]
-		/local 
-			id    [integer!]							;-- symbol ID
-			cell  [red-word!]
 	][
-		id: symbol/make str
-
-		cell: as red-word! ALLOC_TAIL(blk)
-		cell/header: TYPE_WORD							;-- implicit reset of all header flags
-		cell/ctx: 	 global-ctx
-		cell/symbol: id
-		cell/index:  _context/add TO_CTX(global-ctx) cell
-		cell
+		push-in symbol/make str blk
 	]
 	
 	load: func [
@@ -42,6 +32,21 @@ word: context [
 		return:	[red-word!]
 	][
 		_context/add-global symbol/make str
+	]
+	
+	push-in: func [
+		id    	[integer!]								;-- symbol ID
+		blk		[red-block!]
+		return:	[red-word!]
+		/local 
+			cell [red-word!]
+	][
+		cell: as red-word! ALLOC_TAIL(blk)
+		cell/header: TYPE_WORD							;-- implicit reset of all header flags
+		cell/ctx: 	 global-ctx
+		cell/symbol: id
+		cell/index:  _context/add TO_CTX(global-ctx) cell
+		cell
 	]
 	
 	push: func [

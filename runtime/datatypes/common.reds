@@ -90,6 +90,7 @@ words: context [
 	words:			-1
 	logic!:			-1
 	integer!:		-1
+	any-type!:		-1
 	repeat:			-1
 	foreach:		-1
 	map-each:		-1
@@ -149,6 +150,7 @@ words: context [
 		words:			symbol/make "words"
 		logic!:			symbol/make "logic!"
 		integer!:		symbol/make "integer!"
+		any-type!:		symbol/make "any-type!"
 		exit*:			symbol/make "exit"
 		return*:		symbol/make "return"
 

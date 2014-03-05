@@ -14,6 +14,7 @@ write %build/bin/sources.r set-cache [
 	%version.r
 	%usage.txt
 	%boot.red
+	%lexer.red
 	%compiler.r
 	%lexer.r
 	%runtime/ [
@@ -26,9 +27,7 @@ write %build/bin/sources.r set-cache [
 		%parse.reds
 		%red.reds
 		%stack.reds
-		%tokenizer.reds
 		%stack.reds
-		%tokenizer.reds
 		%tools.reds
 		%unicode.reds
 		%simple-io.reds

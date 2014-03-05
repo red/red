@@ -369,10 +369,11 @@ natives: context [
 				stack/set-last arg + 1
 			]
 			TYPE_STRING [
-				str: as red-string! arg
-				s: GET_BUFFER(str)
-				tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
-				do*
+				;#call [transcode str none]
+				;str: as red-string! arg
+				;s: GET_BUFFER(str)
+				;tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
+				;do*
 			]
 			default [
 				interpreter/eval-expression arg arg + 1 no no
@@ -567,34 +568,6 @@ natives: context [
 			name: name-table + TYPE_OF(w)				;-- point to the right datatype name record
 			stack/set-last as red-value! name/word
 		]
-	]
-	
-	load*: func [
-		header? [integer!]
-		all?	[integer!]
-		type?	[integer!]
-		into 	[integer!]
-		return: [red-value!]
-		/local
-			str [red-string!]
-			dst [red-block!]
-	][
-		str: as red-string! stack/arguments
-		dst: null
-		
-		if into >= 0 [
-			dst: as red-block! stack/push stack/arguments + into
-		]	
-		tokenizer/scan as c-string! string/rs-head str dst	;@@ temporary limited to Latin-1
-		unless null? dst [stack/set-last as red-value! dst]
-		
-		blk: as red-block! stack/arguments
-		if TYPE_OF(blk) = TYPE_BLOCK [
-			if all [negative? all? 1 = block/rs-length? blk][
-				stack/set-last block/pick as red-series! blk 1 null
-			]
-		]
-		stack/arguments
 	]
 	
 	reduce*: func [
@@ -1095,7 +1068,6 @@ natives: context [
 			:not*
 			:halt*
 			:type?*
-			:load*
 			:reduce*
 			:compose*
 			:stats*

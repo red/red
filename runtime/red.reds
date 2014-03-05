@@ -69,7 +69,6 @@ red: context [
 	#include %debug-tools.reds
 	
 	;-- Core --
-	#include %tokenizer.reds
 	#include %actions.reds
 	#include %natives.reds
 	#include %parse.reds
