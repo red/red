@@ -107,7 +107,8 @@ mold: make action! [[
 ;-- Scalar actions --
 
 absolute: make action! [[
-		"Returns the non-negative value."
+		"(not yet implemented)"
+		;"Returns the non-negative value."
 		value	 [number!]
 		return:  [number!]
 	]
@@ -150,7 +151,8 @@ negate: make action! [[
 ]
 
 power: make action! [[
-		"Returns a number raised to a given power (exponent)."
+		"(not yet implemented)"
+		;"Returns a number raised to a given power (exponent)."
 		number	 [number!] "Base value."
 		exponent [number!] "The power (index) to raise the base value by."
 		return:	 [number!]
@@ -159,7 +161,8 @@ power: make action! [[
 ]
 
 remainder: make action! [[
-		"Returns what is left over when one value is divided by another."
+		"(not yet implemented)"
+		;"Returns what is left over when one value is divided by another."
 		value1 	 [number!]
 		value2 	 [number!]
 		return:  [number!]
@@ -168,7 +171,8 @@ remainder: make action! [[
 ]
 
 round: make action! [[
-		"TBD: Returns the nearest integer. Halves round up (away from zero) by default."
+		"(not yet implemented)"
+		;"Returns the nearest integer. Halves round up (away from zero) by default."
 		n		[number!]
 		/to		"Return the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
@@ -212,6 +216,7 @@ odd?: make action! [[
 ;and~
 
 complement: make action! [[
+		"Returns the opposite (complementing) value of the input value."
 		value	[logic! integer! bitset! typeset!]
 		return: [logic! integer! bitset! typeset!]
 	]
