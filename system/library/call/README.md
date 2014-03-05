@@ -71,6 +71,10 @@ When you use the /input, /output, or /error refinements you automatically set th
 Windows example
 ------------------------
 
+If you want to launch a GUI application just write : `call "explorer"`
+
+To launch a command like **type** or **dir** you need to call the command line interpreter with the **/c** option : `call/wait "cmd /c dir"`
+
     C:\Red>console-call.exe
     -=== Call added to Red console ===-
     -=== Red Console alpha version ===-
@@ -96,7 +100,7 @@ Windows example
     red>> call/wait "explorer"
     == 1
     red>> call/wait "cmd"              ; enter Windows'terminal
-    red>> 
+    red>>
 
 Linux examples
 ------------------------

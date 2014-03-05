@@ -146,7 +146,6 @@ system-call: context [
       close fd/writing                                                   ; close unused pipe end
       cpt: READ-BUFFER-SIZE                                              ; initial buffer size and grow step
       total: 0
-;      while [any [(cpt = READ-BUFFER-SIZE) (cpt = -1)] ][                   ; FIX: there's a bug here, need to test errno
       while [cpt = READ-BUFFER-SIZE ][                   ; FIX: there's a bug here, need to test errno
         cpt: ioread fd/reading (data/buffer + total) READ-BUFFER-SIZE    ; read pipe, store into buffer
         if cpt > -1 [
@@ -154,7 +153,7 @@ system-call: context [
           if cpt = READ-BUFFER-SIZE [                                      ; buffer must be expanded
             data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
           ]
-        ]
+        ] comment { [ print [ "No data" lf ] cpt: READ-BUFFER-SIZE ] }
       ]
       data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
       data/count: total
@@ -182,16 +181,16 @@ system-call: context [
             out-buf/count: 0
             out-buf/buffer: allocate READ-BUFFER-SIZE
             fd-out: declare f-desc!
-            if (pipe as int-ptr! fd-out READ-BUFFER-SIZE O_BINARY) = -1 [    ; Create a pipe for child's output
+            if (pipe as int-ptr! fd-out READ-BUFFER-SIZE O_TEXT) = -1 [    ; Create a pipe for child's output
               print "Red/System call : Output pipe creation failed^/"  halt
             ]
             waitend: true
           ]
           if out-buf <> null [                  ; redirect stdout to the pipe
-            close fd-out/reading
+            if 0 <> close fd-out/reading [ print "Error close fd-out/reading^/" ]
             err: dup2 fd-out/writing stdout
-            if err = -1 [ print "Red/System call : Error dup2 stdout^/" halt ]
-            close fd-out/writing
+            if err = -1 [ print "Red/System call : Error dup2 stdout.^/" ]
+            if 0 <> close fd-out/writing [ print "Error close fd-out/writing^/" ]
           ]
 
           args: word-expand cmd
@@ -202,9 +201,9 @@ system-call: context [
             pid: spawnvp P_NOWAIT args/item args      ; Windows : continues to execute the calling process
           ]
 
-          if out-buf <> null [                  ; read output from pipe, store in buffer
-            read-from-pipe fd-out out-buf       ; read output buffer from child process' stdout
-            waitend: false                      ; child's process is completed after end of pipe
+          if out-buf <> null [                  ; Read output from pipe, store in buffer
+            read-from-pipe fd-out out-buf       ; Read output buffer from child process' stdout
+            waitend: false                      ; Child's process is completed after end of pipe
             pid: 0                              ; Process is completed, return 0
           ]
           outputs/out: out-buf                  ; Store values in global var

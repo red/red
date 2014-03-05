@@ -57,6 +57,10 @@ stdcalls: context [
         textmode       [integer!]    "File mode"
         return:        [integer!]
       ]
+      dup: "_dup"      [             "Creates a second file descriptor for an open file"
+        fd             [integer!]    "File descriptor"
+        return:        [integer!]    "New file descriptor"
+      ]
       dup2: "_dup2" [                "Reassigns a file descriptor"
         fd             [integer!]    "File descriptor"
         fd2            [integer!]    "File descriptor"
