@@ -137,18 +137,15 @@ trans-pop: function [stack [block!]][
 	append/only last stack :value
 ]
 
-transcode: func [
+transcode: function [
 	src		[string!]
 	dst		[block! none!]
 	return: [block!]
 	/local
-		cs stack pos s e value line count? wrong-delimiters comment-rule
+		new s e c hex pos value cnt type
 		digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 		not-file-char not-str-char not-mstr-char caret-char
-		non-printable-char integer-end block-rule literal-value
-		any-value escaped-char char-rule line-string nested-curly-braces
-		multiline-string string-rule cnt trans-string new base c ws
-		trans-file decode-hex decode-2hex hex
+		non-printable-char integer-end ws-ASCII ws-U+2k control-char
 ][
 	cs:		[- - - - - - - - - - - - - - - -]			;-- memoized bitsets
 	stack:	clear []
