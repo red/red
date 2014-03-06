@@ -139,7 +139,7 @@ The same way you can compile the console from source, just use:
 
         >> do/args %red.r "-v 2 %tests/console.red"
 
-Beware that when you want to test changes you make to the source beware that for efficiency some scripts check if they are already loaded, so you may need to restart your Rebol console now and then to make sure the reload into memory.
+Beware that when you want to test changes you make to the source beware that for efficiency some scripts check if they are already loaded, so you may need to restart your Rebol console now and then to make sure they reload into memory.
     
 Anti-virus false positive
 -------------------------
