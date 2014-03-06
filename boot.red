@@ -1086,9 +1086,9 @@ load: function [
 	/all    "TBD: Don't evaluate Red header"
 	/type	"TBD:"
 	/into "Put results in out block, instead of creating a new block"
-		out [block!] "Target block for results, when /into is used"
+		out [block!] "Target block for results"
 ][
-	unless out [out: clear []]
+	unless out [out: make block! 4]
 	;switch type?/word [
 	;	file!	[]
 	;	url!	[]
