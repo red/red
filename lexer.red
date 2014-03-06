@@ -162,6 +162,7 @@ transcode: func [
 		parse/case copy/part s e [						;@@ add /part option to parse!
 			any [
 				escaped-char (append new value)
+				| #"^^"									;-- trash single caret chars
 				| set c skip (append new c)
 			]
 		]
@@ -261,8 +262,8 @@ transcode: func [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^(7F)")
 			]
-			| s: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
-				value: encode-UTF8-char s e
+			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+				value: encode-UTF8-char pos e
 			)
 		] #")"
 		| #"^^" [
@@ -275,7 +276,7 @@ transcode: func [
 				| #"}"	(value: #"}")
 				| #"^""	(value: #"^"")
 			]
-			| s: caret-char (value: s/1 - 64)
+			| pos: caret-char (value: pos/1 - 64)
 		]
 	]
 
@@ -308,7 +309,6 @@ transcode: func [
 			| escaped-char
 			| skip
 		]
-	
 	]
 	
 	multiline-string: [#"{" s: nested-curly-braces]
