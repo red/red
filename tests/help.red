@@ -41,7 +41,7 @@ Other useful functions:
     q or quit - leave the Red console
 }
 		]
-		datatype? get :word [						;-- HELP <datatype!>
+		all [word? word datatype? get :word] [						;-- HELP <datatype!>
 			type: get :word
 			foreach w system/words [
 				if type = type? get w [
@@ -52,7 +52,7 @@ Other useful functions:
 
 							either any [
 								string? desc: spec/1
-								string? desc: spec/2					;-- attributs block case
+								string? desc: spec/2					;-- attributes block case
 							][
 								print ["^-=> " desc]
 							][
@@ -64,6 +64,25 @@ Other useful functions:
 						]
 						'else [
 							print [tab :w "^-: " mold get w]
+						]
+					]
+				]
+			]
+		]
+		string? word [
+			foreach w system/words [
+				if any [function? get w native? get w action? get w op? get w][
+					spec: spec-of get w
+					if any [find form w word find form spec word] [
+						prin [tab w]
+
+						either any [
+							string? desc: spec/1
+							string? desc: spec/2					;-- attributes block case
+						][
+							print ["^-=> " desc]
+						][
+							prin lf
 						]
 					]
 				]
