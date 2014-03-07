@@ -53,11 +53,12 @@ none:  			make none! 0
 true:  			make logic! 1
 false: 			make logic! 0
 
-comment: func [value][]
 
 ;------------------------------------------
 ;-				Actions					  -
 ;------------------------------------------
+
+;; Warning: do not define any function of any kind before MAKE definition
 
 make: make action! [[									;--	this one works!	;-)
 		"Returns a new value made from a spec for that value's type."
@@ -847,8 +848,7 @@ dot:		 #"."
 ;-			   Mezzanines				  -
 ;------------------------------------------
 
-;-- `comment` defined as a function for the interpreter
-do [set 'comment func [value][]]
+comment: func [value][]
 
 quit-return: routine [
 	"Stops evaluation and exits the program with a given status."
