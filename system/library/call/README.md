@@ -14,14 +14,10 @@ Any proposal to improve this parsing (with native Windows functions) is welcome.
 Current limits
 ------------------------
 
-The windows' call function can launch only GUI apps such as **notepad**, **explorer**.
-
-Windows : no stdio redirections implemented, see Windows example below.
+Windows : output redirection returns wrong char encoding.
 
 Files
 ------------------------
-
->*call.reds* : low-level binding for Red/System
 
 >*call.red* : binding for Red
 
@@ -68,40 +64,6 @@ Syntax
 
 When you use the /input, /output, or /error refinements you automatically set the /wait refinement.
 
-Windows example
-------------------------
-
-If you want to launch a GUI application just write : `call "explorer"`
-
-To launch a command like **type** or **dir** you need to call the command line interpreter with the **/c** option : `call/wait "cmd /c dir"`
-
-    C:\Red>console-call.exe
-    -=== Call added to Red console ===-
-    -=== Red Console alpha version ===-
-    (only ASCII input supported)
-
-    red>> call/wait "cmd /c dir /w"
-    Volume in drive C is System
-    Volume Serial Number is 9DBC-C994
-
-    Directory of C:\Red
-
-    [.]                 [..]                red041              [bridges]           boot.red
-    lexer.r             README.md           [runtime]           compiler.r          call-example
-    run-all.r           version.r           console-call.exe    console             test
-    [tests]             [docs]              BSD-3-License.txt   ls.txt              BSL-License.txt
-    [system]            console-call        red-041.exe         [quick-test]        red.r
-    usage.txt           [build]             [utils]
-                  18 File(s)      2 247 911 bytes
-                  10 Dir(s) 200 888 594 432 bytes free
-    == 0
-    red>> call/wait "cmd /c explorer"
-    == 1
-    red>> call/wait "explorer"
-    == 1
-    red>> call/wait "cmd"              ; enter Windows'terminal
-    red>>
-
 Linux examples
 ------------------------
 
@@ -130,7 +92,76 @@ Linux examples
         This is a Red world...
         == 0
 
-Known bug
+Windows example
+------------------------
+
+If you want to launch a GUI application just write : `call "explorer"`
+
+To launch a command like **type** or **dir** you need to call the command line interpreter with this option :
+
+> **/c** : Execute command line
+
+If you need output redirection add this option :
+
+> **/u** : Ask for unicode chars
+
+Example : `out: "" call/output "cmd /u /c dir" out` to execute **dir** and get the result into *out*
+
+        C:\Red>console-call.exe
+        -=== Call added to Red console ===-
+        -=== Red Console alpha version ===-
+        (only ASCII input supported)
+
+        red>> call/wait "cmd /c dir /w"
+        Volume in drive C is System
+        Volume Serial Number is 9DBC-C994
+
+        Directory of C:\Red
+
+        [.]                 [..]                red041              [bridges]           boot.red
+        lexer.r             README.md           [runtime]           compiler.r          call-example
+        run-all.r           version.r           console-call.exe    console             test
+        [tests]             [docs]              BSD-3-License.txt   ls.txt              BSL-License.txt
+        [system]            console-call        red-041.exe         [quick-test]        red.r
+        usage.txt           [build]             [utils]
+                      18 File(s)      2 247 911 bytes
+                      10 Dir(s) 200 888 594 432 bytes free
+        == 0
+        red>> call/wait "cmd /c explorer"
+        == 1
+        red>> call/wait "explorer"
+        == 1
+
+        red>> ; Output redirection
+        red>> out: ""
+        == ""
+        red>> call/output "cmd /u /c dir /w" out
+        == 0
+        red>> out
+        == { Volume in drive C is System^M^/ Volume Serial Number is 9DBC-C994
+        red>> print out
+        Volume in drive C is System
+        Volume Serial Number is 9DBC-C994
+
+        Directory of C:\Red
+
+        [.]                 [..]                [bridges]           boot.red
+        lexer.r             README.md           [runtime]           compiler.r
+        call-example        run-all.r           version.r           console-call.exe
+        console             test                [tests]             [docs]
+        BSD-3-License.txt   ls.txt              BSL-License.txt     [system]
+        console-call        red.exe             [quick-test]        red.r
+        Red                 usage.txt           lexer.red           [build]
+        [utils]
+                      19 File(s)       2 407 679 bytes
+                      10 Dir(s)  200 327 868 416 bytes free
+
+        red>>
+        red>> call/wait "cmd"              ; enter Windows'terminal
+        red>>
+
+
+Known bugs
 ------------------------
 
 Outputs redirection can loose data (end of buffer).

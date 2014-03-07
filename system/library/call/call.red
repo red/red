@@ -55,13 +55,8 @@ redsys-call: routine [       "Set IO buffers if needed, execute call"
 get-out: routine [           "Returns redirected stdout stored in outputs"
   /local
   sout [red-string!]
-  str  [c-string!]
 ][
   #either OS = 'Windows [
-;    str: stdcalls/ansi-to-unicode as-c-string system-call/outputs/out/buffer
-;    print [ str lf ]
-;    sout: string/load str (1 + length? str) UTF-8
-;    free as byte-ptr! str
     sout: string/load as-c-string system-call/outputs/out/buffer (1 + system-call/outputs/out/count) UTF-16LE   ; UTF-16LE
   ][
     sout: string/load as-c-string system-call/outputs/out/buffer (1 + system-call/outputs/out/count) UTF-8

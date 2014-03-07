@@ -154,7 +154,7 @@ system-call: context [
           until [
             len: 0
             success: read-file fd (data/buffer + total) (READ-BUFFER-SIZE - count) :len null
-            print [ "Bytes read : " len " - " success "^/" ]
+;            print [ "Bytes read : " len " - " success "^/" ]
             if len > 0 [
               total: total + len
               count: count + len
@@ -165,12 +165,10 @@ system-call: context [
             ]
             any [ (not success) (len = 0) ]
           ]
-          if not success [
-             print [ "Error : " get-last-error lf ]
-          ]
+;          if not success [ print [ "Error : " get-last-error lf ] ]
           data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
           data/count: total
-          print [ "Total bytes read : " total lf ]
+;          print [ "Total bytes read : " total lf ]
         ] ; read-from-pipe
         call: func [                   "Executes a DOS command to run another process."
           cmd          [c-string!]       "The shell command"
@@ -198,6 +196,8 @@ system-call: context [
           out-write: 0
           in-read:   0
           in-write:  0
+          err-read:  0
+          err-write: 0
           inherit: false
           s-inf/cb: size? s-inf
           s-inf/dwFlags: 0
@@ -205,7 +205,7 @@ system-call: context [
             out-buf/count: 0
             out-buf/buffer: allocate READ-BUFFER-SIZE
             if not create-pipe :out-read :out-write sa 0 [    ; Create a pipe for child's output
-              print "Error Red/System call : Output pipe creation failed^/"  halt
+              print "Error Red/System call : stdou pipe creation failed^/"  halt
             ]
             if not set-handle-information out-read HANDLE_FLAG_INHERIT 0 [
               print "Error Red/System call : SetHandleInformation failed^/"  halt
@@ -214,8 +214,21 @@ system-call: context [
             inherit: true
             s-inf/dwFlags: 00000100h            ; STARTF_USESTDHANDLES
           ]
+          if err-buf <> null [
+            err-buf/count: 0
+            err-buf/buffer: allocate READ-BUFFER-SIZE
+            if not create-pipe :err-read :err-write sa 0 [    ; Create a pipe for child's error output
+              print "Error Red/System call : stderr pipe creation failed^/"  halt
+            ]
+            if not set-handle-information err-read HANDLE_FLAG_INHERIT 0 [
+              print "Error Red/System call : SetHandleInformation failed^/"  halt
+            ]
+            waitend: false                      ; child's process is completed after end of pipe
+            inherit: true
+            s-inf/dwFlags: 00000100h            ; STARTF_USESTDHANDLES
+          ]
 
-          s-inf/hStdError:  out-write
+          s-inf/hStdError:  err-write
           s-inf/hStdOutput: out-write
           s-inf/hStdInput:  in-read
           if not create-process null cmd 0 0 inherit 0 0 null s-inf p-inf [
@@ -225,7 +238,6 @@ system-call: context [
 
           either waitend [
             wait-for-single-object p-inf/hProcess INFINITE
-            print "After wait^/"
             pid: 0
           ][
             pid: p-inf/dwProcessId
@@ -235,7 +247,12 @@ system-call: context [
             read-from-pipe out-read out-buf
             close-handle out-read
             pid: 0
-            print "After read-from-pipe^/"
+          ]
+          if err-buf <> null [
+            close-handle err-write
+            read-from-pipe err-read err-buf
+            close-handle err-read
+            pid: 0
           ]
           close-handle p-inf/hProcess
           close-handle p-inf/hThread

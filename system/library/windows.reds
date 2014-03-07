@@ -121,14 +121,6 @@ stdcalls: context [
       get-last-error: "GetLastError" [ "Retrieves the calling thread's last-error code value"
         return:                 [integer!]
       ]
-      multi-byte-to-wide-char: "MultiByteToWideChar" [ "Maps a character string to a UTF-16 (wide character) string"
-        CodePage                [integer!]
-        dwFlags                 [integer!]
-        lpMultiByteStr          [c-string!]
-        cbMultiByte             [integer!]
-        lpWideCharStr           [c-string!]
-        cchWideChar             [integer!]
-      ]
     ] ; stdcall
     ] ; #import
 
@@ -177,20 +169,6 @@ stdcalls: context [
       ]
     ] ; cdecl
     ] ; #import
-
-    ; Higher level interface
-    ansi-to-unicode: function [
-      str-in        [c-string!]
-      return:       [c-string!]
-      /local
-      str-out       [c-string!]
-      len           [integer!]
-    ][
-      len: 1 + length? str-in
-      str-out: make-c-string (2 * len)
-      multi-byte-to-wide-char 0 0 str-in len str-out len
-      return str-out
-    ]
 
   ] ; OS = 'Windows
 ] ; context stdcalls
