@@ -37,7 +37,7 @@ Other useful functions:
     probe - print a value (molded)
     source func - show source code of func
     what - show a list of known functions
-    system/version - display version number and build date
+    about - display version number and build date
     q or quit - leave the Red console
 }
 		]
@@ -185,4 +185,10 @@ source: function [
 	][
 		["Sorry," func-name "is a" type? :func-name "so no source is available"]
 	]
+]
+
+about: function [
+	"Print Red version information"
+][
+	print ["Red" system/version]
 ]
