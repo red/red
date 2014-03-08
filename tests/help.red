@@ -31,16 +31,17 @@ To see all words of a specific datatype:
     ? function!
     ? datatype!
 
-Other debug functions:
+Other useful functions:
 
     ?? - display a variable and its value
     probe - print a value (molded)
     source func - show source code of func
     what - show a list of known functions
-    system/version - display version number and build date
+    about - display version number and build date
+    q or quit - leave the Red console
 }
 		]
-		datatype? get :word [						;-- HELP <datatype!>
+		all [word? word datatype? get :word] [						;-- HELP <datatype!>
 			type: get :word
 			foreach w system/words [
 				if type = type? get w [
@@ -51,7 +52,7 @@ Other debug functions:
 
 							either any [
 								string? desc: spec/1
-								string? desc: spec/2					;-- attributs block case
+								string? desc: spec/2					;-- attributes block case
 							][
 								print ["^-=> " desc]
 							][
@@ -63,6 +64,25 @@ Other debug functions:
 						]
 						'else [
 							print [tab :w "^-: " mold get w]
+						]
+					]
+				]
+			]
+		]
+		string? word [
+			foreach w system/words [
+				if any [function? get w native? get w action? get w op? get w][
+					spec: spec-of get w
+					if any [find form w word find form spec word] [
+						prin [tab w]
+
+						either any [
+							string? desc: spec/1
+							string? desc: spec/2					;-- attributes block case
+						][
+							print ["^-=> " desc]
+						][
+							prin lf
 						]
 					]
 				]
@@ -163,6 +183,12 @@ source: function [
 	print either function? get func-name [
 		[append mold func-name #":" mold get func-name]
 	][
-		["Sorry," func-name "is a" type? :func-name "so no source is available"]
+		["Sorry," func-name "is a" mold type? get func-name "so no source is available"]
 	]
+]
+
+about: function [
+	"Print Red version information"
+][
+	print ["Red" system/version]
 ]

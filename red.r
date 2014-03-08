@@ -156,22 +156,17 @@ redc: context [
 		file
 	]
 	
-	run-console: func [/with file [string!] /local opts result script exe .exe sob][
+	run-console: func [/with file [string!] /local opts result script exe][
 		script: temp-dir/red-console.red
 		exe: temp-dir/console
-		.exe: %.exe
-		sob: system/options/boot
 		
-		if Windows? [
-			append exe .exe
-			if .exe <> skip tail sob -4 [append sob .exe]
-		]
+		if Windows? [append exe %.exe]
 		
 		unless exists? temp-dir [make-dir temp-dir]
 		
 		if any [
 			not exists? exe 
-			(modified? exe) < modified? sob					;-- check that console is up to date.
+			(modified? exe) < build-date					;-- check that console is up to date.
 		][
 			write script read-cache %tests/console.red
 			write temp-dir/help.red read-cache %tests/help.red

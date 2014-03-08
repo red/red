@@ -5,7 +5,7 @@ This is a prototype of a higher-level Red to Java bridge using JNI.
 
 A 32-bit JVM is required for this to work. 
 
-In order to compile the example hello.red script, follow these steps:
+In order to compile the example hello.red script, open a Rebol2 console and follow these steps:
 
 On Windows:
 

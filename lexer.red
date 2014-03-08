@@ -137,18 +137,15 @@ trans-pop: function [stack [block!]][
 	append/only last stack :value
 ]
 
-transcode: func [
+transcode: function [
 	src		[string!]
 	dst		[block! none!]
 	return: [block!]
 	/local
-		cs stack pos s e value line count? wrong-delimiters comment-rule
+		new s e c hex pos value cnt type
 		digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 		not-file-char not-str-char not-mstr-char caret-char
-		non-printable-char integer-end block-rule literal-value
-		any-value escaped-char char-rule line-string nested-curly-braces
-		multiline-string string-rule cnt trans-string new base c ws
-		trans-file decode-hex decode-2hex hex
+		non-printable-char integer-end ws-ASCII ws-U+2k control-char
 ][
 	cs:		[- - - - - - - - - - - - - - - -]			;-- memoized bitsets
 	stack:	clear []
@@ -162,6 +159,7 @@ transcode: func [
 		parse/case copy/part s e [						;@@ add /part option to parse!
 			any [
 				escaped-char (append new value)
+				| #"^^"									;-- trash single caret chars
 				| set c skip (append new c)
 			]
 		]
@@ -261,8 +259,8 @@ transcode: func [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^(7F)")
 			]
-			| s: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
-				value: encode-UTF8-char s e
+			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+				value: encode-UTF8-char pos e
 			)
 		] #")"
 		| #"^^" [
@@ -275,7 +273,7 @@ transcode: func [
 				| #"}"	(value: #"}")
 				| #"^""	(value: #"^"")
 			]
-			| s: caret-char (value: s/1 - 64)
+			| pos: caret-char (value: pos/1 - 64)
 		]
 	]
 
@@ -308,7 +306,6 @@ transcode: func [
 			| escaped-char
 			| skip
 		]
-	
 	]
 	
 	multiline-string: [#"{" s: nested-curly-braces]
