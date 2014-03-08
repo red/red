@@ -183,7 +183,7 @@ source: function [
 	print either function? get func-name [
 		[append mold func-name #":" mold get func-name]
 	][
-		["Sorry," func-name "is a" type? get func-name "so no source is available"]
+		["Sorry," func-name "is a" mold type? get func-name "so no source is available"]
 	]
 ]
 
