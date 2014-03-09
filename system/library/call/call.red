@@ -17,13 +17,13 @@ Red [
 #system-global [ #include %call.reds ]
 
 ; Routines definitions
-redsys-call: routine [       "Set IO buffers if needed, execute call"
-	cmd        [string!]         "Command"
-	waitend    [logic!]          "Wait for end of child process"
-	redirin    [logic!]          "Input redirection"
-	in-str     [string!]         "Input data"
-	redirout   [logic!]          "Output redirection"
-	redirerr   [logic!]          "Error redirection"
+redsys-call: routine [ "Set IO buffers if needed, execute call"
+	cmd        [string!] "Command"
+	waitend    [logic!]  "Wait for end of child process"
+	redirin    [logic!]  "Input redirection"
+	in-str     [string!] "Input data"
+	redirout   [logic!]  "Output redirection"
+	redirerr   [logic!]  "Error redirection"
 	return:    [integer!]
 	/local
 	inp out err
@@ -52,12 +52,12 @@ redsys-call: routine [       "Set IO buffers if needed, execute call"
 	system-call/call (as-c-string string/rs-head cmd) waitend inp out err
 ]
 
-get-out: routine [			"Returns redirected stdout"
+get-out: routine [ "Returns redirected stdout"
 	/local
 		sout [red-string!]
 ][
 	#either OS = 'Windows [
-		sout: string/load as-c-string system-call/outputs/out/buffer (1 + (system-call/outputs/out/count / 2)) UTF-16LE   ; UTF-16LE
+		sout: string/load as-c-string system-call/outputs/out/buffer (1 + (system-call/outputs/out/count / 2)) UTF-16LE
 	][
 		sout: string/load as-c-string system-call/outputs/out/buffer (1 + system-call/outputs/out/count) UTF-8
 	]
@@ -65,7 +65,7 @@ get-out: routine [			"Returns redirected stdout"
 	SET_RETURN(sout)
 ]
 
-get-err: routine [			"Returns redirected stderr"
+get-err: routine [ "Returns redirected stderr"
 		/local serr
 ][
 	#either OS = 'Windows [
@@ -77,15 +77,12 @@ get-err: routine [			"Returns redirected stderr"
 	SET_RETURN(serr)
 ]
 
-call: func [                 "Executes a shell command to run another process."
-	cmd           [string!]    "The shell command or file"
-	/wait                      "Runs command and waits for exit"
-	/input                     "Redirects in to stdin"
-	in            [string!]
-	/output                    "Redirects stdout to out"
-	out           [string! block!]
-	/error                     "Redirects stderr to err"
-	err           [string! block!]
+call: func [ "Executes a shell command to run another process."
+	cmd			[string!]			"The shell command or file"
+	/wait							"Runs command and waits for exit"
+	/input	in	[string!]			"Redirects in to stdin"
+	/output out	[string! block!]	"Redirects stdout to out"
+	/error	err	[string! block!]	"Redirects stderr to err"
 	/local
 	pid           [integer!]
 	str           [string!]
