@@ -63,7 +63,7 @@ stdio: context [
 			file        [file!]
 			return:     [integer!] "Chunks read"
 		]
-		]
+	]
 	] ; #import
 
 	file-tail?: function [ "End-of-file status"
