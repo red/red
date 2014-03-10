@@ -916,11 +916,19 @@ string: context [
 						concatenate-literal buffer "^^^^"
 					]
 					default [
-						append-escaped-char buffer cp
+						either all? [
+							append-escaped-char buffer cp
+						][
+							append-char GET_BUFFER(buffer) cp
+						]
 					]
 				]
 			][
-				append-escaped-char buffer cp
+				either all? [
+					append-escaped-char buffer cp
+				][
+					append-char GET_BUFFER(buffer) cp
+				]
 			]
 			p: p + unit
 		]
