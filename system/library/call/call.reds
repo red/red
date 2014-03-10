@@ -34,14 +34,12 @@ Red/System [
 
 #define READ-BUFFER-SIZE 4096
 
-; Data buffer struct, pointer and count
-p-buffer!: alias struct! [
+p-buffer!: alias struct! [								;-- Data buffer struct, pointer and count
 	count  [integer!]
 	buffer [byte-ptr!]
 ]
 
-; Files descriptors for pipe
-f-desc!: alias struct! [
+f-desc!: alias struct! [								;-- Files descriptors for pipe
 	reading  [integer!]
 	writing  [integer!]
 ]
@@ -49,8 +47,7 @@ f-desc!: alias struct! [
 
 system-call: context [
 with stdcalls [
-	; Global var to store outputs values before setting call output and error refinements
-	outputs: declare struct! [
+	outputs: declare struct! [							;--  Global var to store outputs values before setting call output and error refinements
 		out    [p-buffer!]
 		err    [p-buffer!]
 	]
@@ -83,48 +80,47 @@ with stdcalls [
 		newsize      [integer!]
 		return:      [byte-ptr!]
 	][
-	tmp: re-allocate buffer newsize                 ;-- Resize output buffer to new size
-	either tmp = null [                             ;-- reallocation failed, uses current output buffer
+	tmp: re-allocate buffer newsize						;-- Resize output buffer to new size
+	either tmp = null [									;-- reallocation failed, uses current output buffer
 		print [ "Red/System resize-buffer : Memory allocation failed." lf ]
 		halt
-	][ buffer: tmp ]                                ; reallocation succeeded, uses reallocated buffer
+	][ buffer: tmp ]
 		return buffer
 	]
 
 	#switch OS [
-	Windows   [      ; Windows, use minimal home made parsing
+	Windows   [											;-- Windows, use minimal home made parsing
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
 		fd           [opaque!]      "File descriptor"
 		data         [p-buffer!]
 		/local
-		len          [integer!]
-		count        [integer!]
-		total        [integer!]
-		success      [logic!]
+			len          [integer!]
+			count        [integer!]
+			total        [integer!]
+			success      [logic!]
 		][
-		len: READ-BUFFER-SIZE                                              ; initial buffer size and grow step
-		count: 0
-		total: 0
-		success: true
-		until [
-			len: 0
-			success: read-file fd (data/buffer + total) (READ-BUFFER-SIZE - count) :len null
-;            print [ "Bytes read : " len " - " success "^/" ]
-			if len > 0 [
-				total: total + len
-				count: count + len
-				if count = READ-BUFFER-SIZE [
-					data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
-					count: 0
+			len: READ-BUFFER-SIZE 						;-- initial buffer size and grow step
+			count: 0
+			total: 0
+			success: true
+			until [
+				len: 0
+				success: read-file fd (data/buffer + total) (READ-BUFFER-SIZE - count) :len null
+				if len > 0 [
+					total: total + len
+					count: count + len
+					if count = READ-BUFFER-SIZE [
+						data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
+						count: 0
+					]
 				]
+;				any [ (not success) (len = 0) ]
+				get-last-error = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
 			]
-			any [ (not success) (len = 0) ]
-		]
-;          if not success [ print [ "Error : " get-last-error lf ] ]
-		data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
-		data/count: total
-;		data/count/total: null-byte  ; Tests needed ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-		print [ "Total bytes read : " total lf ]
+			data/buffer: resize-buffer data/buffer (total + 1)	;-- Resize output buffer to minimum size
+			data/count: total
+;			print [ "Pipe " fd " Total bytes read : " total lf ]
+;			dump-memory data/buffer 1 (1 + (total / 16))		;-- uncomment this line for debug and compile with '-d' option
 		] ; read-from-pipe
 		call: func [		"Executes a DOS command to run another process."
 			cmd          [c-string!]       "The shell command"
@@ -140,7 +136,9 @@ with stdcalls [
 				in-write     [opaque!]
 				out-read     [opaque!]
 				out-write    [opaque!]
-				sa p-inf s-inf
+				err-read     [opaque!]
+				err-write    [opaque!]
+				sa p-inf s-inf len success error
 		][
 			s-inf: declare startup-info!
 			p-inf: declare process-info!
@@ -160,39 +158,51 @@ with stdcalls [
 			s-inf/hStdInput:  stdin
 			s-inf/hStdOutput: stdout
 			s-inf/hStdError:  stderr
+			if in-buf <> null [
+				if not create-pipe :in-read :in-write sa 0 [ ;-- Create a pipe for child's input
+					print "Error Red/System call : stdin pipe creation failed^/"  halt
+				]
+				if not set-handle-information in-read HANDLE_FLAG_INHERIT 0 [
+					print "Error Red/System call : SetHandleInformation failed^/"  halt
+				]
+				waitend: false							;-- child's process is completed after end of pipe
+				inherit: true
+				s-inf/dwFlags: 00000100h				;-- STARTF_USESTDHANDLES
+				s-inf/hStdInput: in-read
+			]
 			if out-buf <> null [
 				out-buf/count: 0
 				out-buf/buffer: allocate READ-BUFFER-SIZE
-				if not create-pipe :out-read :out-write sa 0 [    ; Create a pipe for child's output
-					print "Error Red/System call : stdou pipe creation failed^/"  halt
+				if not create-pipe :out-read :out-write sa 0 [ ;-- Create a pipe for child's output
+					print "Error Red/System call : stdout pipe creation failed^/"  halt
 				]
 				if not set-handle-information out-read HANDLE_FLAG_INHERIT 0 [
 					print "Error Red/System call : SetHandleInformation failed^/"  halt
 				]
-				waitend: false                             ; child's process is completed after end of pipe
+				waitend: false							;-- child's process is completed after end of pipe
 				inherit: true
-				s-inf/dwFlags: 00000100h                   ; STARTF_USESTDHANDLES
+				s-inf/dwFlags: 00000100h				;-- STARTF_USESTDHANDLES
 				s-inf/hStdOutput: out-write
 			]
 			if err-buf <> null [
 				err-buf/count: 0
 				err-buf/buffer: allocate READ-BUFFER-SIZE
-				if not create-pipe :err-read :err-write sa 0 [    ; Create a pipe for child's error output
+				if not create-pipe :err-read :err-write sa 0 [ ;-- Create a pipe for child's error output
 					print "Error Red/System call : stderr pipe creation failed^/"  halt
 				]
 				if not set-handle-information err-read HANDLE_FLAG_INHERIT 0 [
 					print "Error Red/System call : SetHandleInformation failed^/"  halt
 				]
-				waitend: false                             ; child's process is completed after end of pipe
+				waitend: false							;-- child's process is completed after end of pipe
 				inherit: true
-				s-inf/dwFlags: 00000100h                   ; STARTF_USESTDHANDLES
+				s-inf/dwFlags: 00000100h				;-- STARTF_USESTDHANDLES
 				s-inf/hStdError:  err-write
 			]
 
 	;          s-inf/hStdInput:  in-read
 			if not create-process null cmd 0 0 inherit 0 0 null s-inf p-inf [
-				print "Error Red/System call while calling CreateProcess : {" cmd "}^/"
-				quit 1
+				print [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error "^/" ]
+				return -1
 			]
 
 			either waitend [
@@ -200,6 +210,19 @@ with stdcalls [
 				pid: 0
 			][
 				pid: p-inf/dwProcessId
+			]
+			if in-buf <> null [
+				close-handle in-read
+				success: true
+				len: in-buf/count
+				success: write-file in-write in-buf/buffer in-buf/count :len null
+				if not success [
+;					print [ "Error  : " get-last-error lf ]
+;					print [ "Length : " len lf ]
+					print "Error Red/System call : write into pipe failed^/"
+				]
+				close-handle in-write
+				pid: 0
 			]
 			if out-buf <> null [
 				close-handle out-write
@@ -215,7 +238,7 @@ with stdcalls [
 			]
 			close-handle p-inf/hProcess
 			close-handle p-inf/hThread
-			outputs/out: out-buf                  ; Store values in global var
+			outputs/out: out-buf						;-- Store values in global var
 			outputs/err: err-buf
 			return pid
 		] ; call
@@ -261,11 +284,11 @@ with stdcalls [
 			][                                            ; Parsing nok
 				print [ "Error Red/System call, wordexp parsing command : " cmd lf ]
 				switch status [
-				WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
-				WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
-				WRDE_BADVAL  [ print [ "Reference to undefined shell variable" lf ] ]
-				WRDE_CMDSUB  [ print [ "Command substitution requested" lf ] ]
-				WRDE_SYNTAX  [ print [ "Shell syntax error, such as unbalanced parentheses or unterminated string" lf ] ]
+					WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
+					WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
+					WRDE_BADVAL  [ print [ "Reference to undefined shell variable" lf ] ]
+					WRDE_CMDSUB  [ print [ "Command substitution requested" lf ] ]
+					WRDE_SYNTAX  [ print [ "Shell syntax error, such as unbalanced parentheses or unterminated string" lf ] ]
 				]
 				quit status
 			]

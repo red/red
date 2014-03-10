@@ -105,6 +105,12 @@ If you need output redirection add this option :
 
 > **/u** : Ask for unicode chars
 
+Even if you ask cmd for unicode, some commands will return ansi chars. To force **call** to return ansi chars, use the
+/ascii refinement. **Call** will not wait for wide-chars but for one byte chars.
+Chars greater than #"^(7F)" are translated to #"^(7F)".
+The **dir** command returns wide-char, the **tree** or **ping** command returns ansi, so if you have problem with
+output redirection, try with this refinement or not.
+
 Example : `out: "" call/output "cmd /u /c dir" out` to execute **dir** and get the result into *out*
 
         C:\Red>console-call.exe

@@ -18,12 +18,12 @@ Red [
 
 ; Routines definitions
 redsys-call: routine [ "Set IO buffers if needed, execute call"
-	cmd        [string!] "Command"
-	waitend    [logic!]  "Wait for end of child process"
-	redirin    [logic!]  "Input redirection"
-	in-str     [string!] "Input data"
-	redirout   [logic!]  "Output redirection"
-	redirerr   [logic!]  "Error redirection"
+	cmd        [string!]  "Command"
+	waitend    [logic!]   "Wait for end of child process"
+	redirin    [logic!]   "Input redirection"
+	in-str     [string!]  "Input data"
+	redirout   [logic!]   "Output redirection"
+	redirerr   [logic!]   "Error redirection"
 	return:    [integer!]
 	/local
 	inp out err
@@ -53,16 +53,30 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 ]
 
 get-out: routine [ "Returns redirected stdout"
+	ascii		[logic!]
 	/local
-		sout [red-string!]
+		sout	[red-string!]
+		pos		[integer!]
 ][
-	#either OS = 'Windows [
-		sout: string/load as-c-string system-call/outputs/out/buffer (1 + (system-call/outputs/out/count / 2)) UTF-16LE
-	][
-		sout: string/load as-c-string system-call/outputs/out/buffer (1 + system-call/outputs/out/count) UTF-8
+	with system-call [
+		#either OS = 'Windows [
+			either ascii [
+				pos: 0
+				until [
+					if outputs/out/buffer/pos > #"^(7F)" [ outputs/out/buffer/pos: #"^(7F)" ]
+					pos: pos + 1
+					pos > outputs/out/count
+				]
+				sout: string/load as-c-string outputs/out/buffer (1 + outputs/out/count) UTF-8
+			][
+				sout: string/load as-c-string outputs/out/buffer (1 + (outputs/out/count / 2)) UTF-16LE
+			]
+		][
+			sout: string/load as-c-string outputs/out/buffer (1 + outputs/out/count) UTF-8
+		]
+		free outputs/out/buffer
+		SET_RETURN(sout)
 	]
-	free system-call/outputs/out/buffer
-	SET_RETURN(sout)
 ]
 
 get-err: routine [ "Returns redirected stderr"
@@ -80,12 +94,15 @@ get-err: routine [ "Returns redirected stderr"
 call: func [ "Executes a shell command to run another process."
 	cmd			[string!]			"The shell command or file"
 	/wait							"Runs command and waits for exit"
+	/console						"Runs command with I/O redirected to console (TODO)"
+	/ascii							"Read output as ascii (Windows only)"
 	/input	in	[string!]			"Redirects in to stdin"
 	/output out	[string! block!]	"Redirects stdout to out"
 	/error	err	[string! block!]	"Redirects stderr to err"
+	return:		[integer!]			"0 if success, -1 if error, or a process ID"
 	/local
-	pid           [integer!]
-	str           [string!]
+	pid			[integer!]
+	str 		[string!]
 	do-in do-out do-err
 ][
 	pid: 0
@@ -95,7 +112,7 @@ call: func [ "Executes a shell command to run another process."
 	either error  [ do-err: true ][ do-err: false ]
 	pid: redsys-call cmd wait do-in str do-out do-err
 	if do-out [
-		str: get-out
+		str: get-out ascii
 		insert out str
 		out: head out
 	]
@@ -109,5 +126,5 @@ call: func [ "Executes a shell command to run another process."
 
 prin "-=== Call added to Red console ===-"
 if system/platform = 'Windows [
-	prin "^/ -== Limited Windows support, stdio redirection in progress ==-"
+	prin "^/ -== Limited Windows support ==-"
 ]

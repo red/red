@@ -29,14 +29,16 @@ stdcalls: context [
 		P_DETACH:        4
 	]
 
-	#define O_TEXT              4000h             ;-- file mode is text (translated)
-	#define O_BINARY            8000h             ;-- file mode is binary (untranslated)
-	#define O_WTEXT             00010000h           ;-- file mode is UTF16 (translated)
-	#define O_U16TEXT           00020000h           ;-- file mode is UTF16 no BOM (translated)
-	#define O_U8TEXT            00040000h           ;-- file mode is UTF8  no BOM (translated)
+	#define O_TEXT		4000h							;-- file mode is text (translated)
+	#define O_BINARY	8000h							;-- file mode is binary (untranslated)
+	#define O_WTEXT		00010000h						;-- file mode is UTF16 (translated)
+	#define O_U16TEXT	00020000h						;-- file mode is UTF16 no BOM (translated)
+	#define O_U8TEXT	00040000h						;-- file mode is UTF8  no BOM (translated)
 
 	#define INFINITE            FFFFFFFFh
 	#define HANDLE_FLAG_INHERIT 00000001h
+
+	#define ERROR_BROKEN_PIPE 109
 
 	#define opaque!  integer!
 
@@ -112,14 +114,33 @@ stdcalls: context [
 			lpOverlapped            [opaque!]
 			return:                 [logic!]
 		]
-		set-handle-information: "SetHandleInformation" [ "Sets certain properties of an object handle"
-			hObject                 [opaque!]
-			dwMask                  [integer!]
-			dwFlags                 [integer!]
+		write-file: "WriteFile" [ "Writes data to the specified file or input/output (I/O) device"
+			hFile					[opaque!]
+			lpBuffer				[byte-ptr!]
+			nNumberOfBytesToWrite   [integer!]
+			lpNumberOfBytesWritten  [int-ptr!]
+			lpOverlapped            [opaque!]
 			return:                 [logic!]
+		]
+		set-handle-information: "SetHandleInformation" [ "Sets certain properties of an object handle"
+			hObject					[opaque!]
+			dwMask					[integer!]
+			dwFlags					[integer!]
+			return:					[logic!]
 		]
 		get-last-error: "GetLastError" [ "Retrieves the calling thread's last-error code value"
 			return:                 [integer!]
+		]
+		get-apc: "GetACP" [ "Retrieves the current Windows ANSI code page identifier"
+			return:        [integer!]
+		]
+		multibyte-to-widechar: "MultiByteToWideChar" [ "Maps a character string to a UTF-16 (wide character) string"
+			CodePage                [integer!]
+			dwFlags                 [integer!]
+			lpMultiByteStr          [c-string!]
+			cbMultiByte             [integer!]
+			lpWideCharStr           [c-string!]
+			cchWideChar             [integer!]
 		]
 		] ; stdcall
 	] ; #import
@@ -140,35 +161,7 @@ stdcalls: context [
 			fd             [integer!] "File descriptor"
 			return:        [integer!]
 		]
-		pipe: "_pipe" [ "Creates a pipe for reading and writing"
-			pipedes        [int-ptr!] "Pointer to a 2 integers array"
-			psize          [integer!] "Amount of memory to reserve"
-			textmode       [integer!] "File mode"
-			return:        [integer!]
-		]
-		dup: "_dup"      [ "Creates a second file descriptor for an open file"
-			fd             [integer!] "File descriptor"
-			return:        [integer!] "New file descriptor"
-		]
-		dup2: "_dup2" [ "Reassigns a file descriptor"
-			fd             [integer!] "File descriptor"
-			fd2            [integer!] "File descriptor"
-			return:        [integer!]
-		]
-		ioread: "_read" [ "Reads data from a file"
-			fd             [integer!] "File descriptor referring to the open file"
-			buf            [byte-ptr!] "Storage location for data"
-			nbytes         [integer!] "Maximum number of bytes"
-			return:        [integer!] "Number of bytes read or error"
-		]
-		iowrite: "_write" [ "Writes data to a file"
-			fd             [integer!] "File descriptor of file into which data is written"
-			buf            [byte-ptr!] "Data to be written"
-			nbytes         [integer!] "Number of bytes"
-			return:        [integer!] "Number of bytes written or error"
-		]
 		] ; cdecl
 	] ; #import
-
 ] ; OS = 'Windows
 ] ; context stdcalls
