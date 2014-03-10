@@ -85,7 +85,7 @@ Red [
 #include %../system/library/call/call.red
 prin "-=== Call added to Red console ===-"
 if system/platform = 'Windows [
-  prin "^/ -== Limited Windows support, launch only GUI apps ==-"
+	prin "^/ -== Limited Windows support ==-"
 ]
 #include %help.red
 
