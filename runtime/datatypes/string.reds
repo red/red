@@ -811,12 +811,13 @@ string: context [
 	append-escaped-char: func [
 		buffer	[red-string!]
 		cp	    [integer!]
+		all?	[logic!]
 		/local
 			idx [integer!]
 	][
 		idx: cp + 1
 		case [
-			cp > 7Fh [
+			all [all? cp > 7Fh][
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
 				concatenate-literal buffer to-hex cp
@@ -909,26 +910,12 @@ string: context [
 						if curly <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
 						append-char GET_BUFFER(buffer) cp
 					]
-					#"^"" [
-						append-char GET_BUFFER(buffer) cp
-					]
-					#"^^" [
-						concatenate-literal buffer "^^^^"
-					]
-					default [
-						either all? [
-							append-escaped-char buffer cp
-						][
-							append-char GET_BUFFER(buffer) cp
-						]
-					]
+					#"^""	[append-char GET_BUFFER(buffer) cp]
+					#"^^"	[concatenate-literal buffer "^^^^"]
+					default [append-escaped-char buffer cp all?]
 				]
 			][
-				either all? [
-					append-escaped-char buffer cp
-				][
-					append-char GET_BUFFER(buffer) cp
-				]
+				append-escaped-char buffer cp all?
 			]
 			p: p + unit
 		]
