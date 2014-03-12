@@ -123,12 +123,13 @@ with stdcalls [
 ;			dump-memory data/buffer 1 (1 + (total / 16))		;-- uncomment this line for debug and compile with '-d' option
 		] ; read-from-pipe
 		call: func [		"Executes a DOS command to run another process."
-			cmd          [c-string!]       "The shell command"
-			waitend      [logic!]          "Wait for end of command, implicit if out-buf is set"
-			in-buf       [p-buffer!]       "Pointer to input data or null"
-			out-buf      [p-buffer!]       "Pointer to output data buffer or null"
-			err-buf      [p-buffer!]       "Pointer to error data buffer or null"
-			return:      [integer!]
+			cmd			[c-string!]    "The shell command"
+			waitend		[logic!]       "Wait for end of command, implicit if any buffer is set"
+			console		[logic!]       "Redirect outputs to console"
+			in-buf		[p-buffer!]    "Pointer to input data or null"
+			out-buf		[p-buffer!]    "Pointer to output data buffer or null"
+			err-buf		[p-buffer!]    "Pointer to error data buffer or null"
+			return:		[integer!]
 			/local
 				pid          [integer!]
 				inherit      [logic!]
@@ -160,46 +161,48 @@ with stdcalls [
 			s-inf/hStdError:  stderr
 			if in-buf <> null [
 				if not create-pipe :in-read :in-write sa 0 [ ;-- Create a pipe for child's input
-					print "Error Red/System call : stdin pipe creation failed^/"  halt
+					print "Error Red/System call : stdin pipe creation failed^/"   return -1
 				]
 				if not set-handle-information in-read HANDLE_FLAG_INHERIT 0 [
-					print "Error Red/System call : SetHandleInformation failed^/"  halt
+					print "Error Red/System call : SetHandleInformation failed^/"  return -1
 				]
-				waitend: false							;-- child's process is completed after end of pipe
-				inherit: true
-				s-inf/dwFlags: 00000100h				;-- STARTF_USESTDHANDLES
 				s-inf/hStdInput: in-read
 			]
 			if out-buf <> null [
 				out-buf/count: 0
 				out-buf/buffer: allocate READ-BUFFER-SIZE
 				if not create-pipe :out-read :out-write sa 0 [ ;-- Create a pipe for child's output
-					print "Error Red/System call : stdout pipe creation failed^/"  halt
+					print "Error Red/System call : stdout pipe creation failed^/"  return -1
 				]
 				if not set-handle-information out-read HANDLE_FLAG_INHERIT 0 [
-					print "Error Red/System call : SetHandleInformation failed^/"  halt
+					print "Error Red/System call : SetHandleInformation failed^/"  return -1
 				]
-				waitend: false							;-- child's process is completed after end of pipe
-				inherit: true
-				s-inf/dwFlags: 00000100h				;-- STARTF_USESTDHANDLES
 				s-inf/hStdOutput: out-write
 			]
 			if err-buf <> null [
 				err-buf/count: 0
 				err-buf/buffer: allocate READ-BUFFER-SIZE
 				if not create-pipe :err-read :err-write sa 0 [ ;-- Create a pipe for child's error output
-					print "Error Red/System call : stderr pipe creation failed^/"  halt
+					print "Error Red/System call : stderr pipe creation failed^/"  return -1
 				]
 				if not set-handle-information err-read HANDLE_FLAG_INHERIT 0 [
-					print "Error Red/System call : SetHandleInformation failed^/"  halt
+					print "Error Red/System call : SetHandleInformation failed^/"  return -1
 				]
-				waitend: false							;-- child's process is completed after end of pipe
-				inherit: true
-				s-inf/dwFlags: 00000100h				;-- STARTF_USESTDHANDLES
 				s-inf/hStdError:  err-write
 			]
+			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ] [
+				waitend: false							;-- child's process is completed after end of pipe
+				inherit: true
+				s-inf/dwFlags: STARTF_USESTDHANDLES
+			]
+			if not console [
+				if in-buf  = null [ s-inf/hStdInput:  0 ]
+				if out-buf = null [ s-inf/hStdOutput: 0 ]
+				if err-buf = null [ s-inf/hStdError:  0 ]
+				inherit: true
+				s-inf/dwFlags: STARTF_USESTDHANDLES
+			]
 
-	;          s-inf/hStdInput:  in-read
 			if not create-process null cmd 0 0 inherit 0 0 null s-inf p-inf [
 				print [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error "^/" ]
 				return -1
@@ -296,12 +299,13 @@ with stdcalls [
 		] ; expand-and-exec
 
 		call: func [                   "Executes a shell command, IO redirections to buffers."
-			cmd          [c-string!]       "The shell command"
-			waitend      [logic!]          "Wait for end of command, implicit if out-buf is set"
-			in-buf       [p-buffer!]       "Pointer to input data or null"
-			out-buf      [p-buffer!]       "Pointer to output data buffer or null"
-			err-buf      [p-buffer!]       "Pointer to error data buffer or null"
-			return:      [integer!]
+			cmd			[c-string!]    "The shell command"
+			waitend		[logic!]       "Wait for end of command, implicit if any buffer is set"
+			console		[logic!]       "Redirect outputs to console"
+			in-buf		[p-buffer!]    "Pointer to input data or null"
+			out-buf		[p-buffer!]    "Pointer to output data buffer or null"
+			err-buf		[p-buffer!]    "Pointer to error data buffer or null"
+			return:		[integer!]
 			/local
 				pid          [integer!]
 				status       [integer!]
@@ -311,7 +315,7 @@ with stdcalls [
 			if in-buf <> null [
 				fd-in: declare f-desc!
 				if (pipe as int-ptr! fd-in) = -1 [     ; Create a pipe for child's input
-					print "Error Red/System call : Input pipe creation failed^/"  halt
+					print "Error Red/System call : Input pipe creation failed^/"  return -1
 				]
 			]
 			if out-buf <> null [
@@ -319,7 +323,7 @@ with stdcalls [
 				out-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-out: declare f-desc!
 				if (pipe as int-ptr! fd-out) = -1 [    ; Create a pipe for child's output
-					print "Error Red/System call : Output pipe creation failed^/"  halt
+					print "Error Red/System call : Output pipe creation failed^/"  return -1
 				]
 			]
 			if err-buf <> null [
@@ -327,28 +331,33 @@ with stdcalls [
 				err-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-err: declare f-desc!
 				if (pipe as int-ptr! fd-err) = -1 [    ; Create a pipe for child's error
-					print "Error Red/System call : Error pipe creation failed^/"  halt
+					print "Error Red/System call : Error pipe creation failed^/"  return -1
 				]
 			]
 			pid: fork
 			either pid = 0 [                        ;----- Child process -----
 				if in-buf <> null [                   ; redirect stdin to the pipe
-				close fd-in/writing
-				err: dup2 fd-in/reading stdin
-				if err = -1 [ print "Error Red/System call : Error dup2 stdin^/" halt ]
+					close fd-in/writing
+					err: dup2 fd-in/reading stdin
+					if err = -1 [ print "Error Red/System call : Error dup2 stdin^/" return -1 ]
 					close fd-in/reading
 				]
 				if out-buf <> null [                  ; redirect stdout to the pipe
 					close fd-out/reading
-				err: dup2 fd-out/writing stdout
-				if err = -1 [ print "Error Red/System call : Error dup2 stdout^/" halt ]
+					err: dup2 fd-out/writing stdout
+					if err = -1 [ print "Error Red/System call : Error dup2 stdout^/" return -1 ]
 					close fd-out/writing
 				]
 				if err-buf <> null [                  ; redirect stderr to the pipe
 					close fd-err/reading
-				err: dup2 fd-err/writing stderr
-				if err = -1 [ print "Error Red/System call : Error dup2 stderr^/" halt ]
+					err: dup2 fd-err/writing stderr
+					if err = -1 [ print "Error Red/System call : Error dup2 stderr^/" return -1 ]
 					close fd-err/writing
+				]
+				if not console [
+					if in-buf  = null [ close stdin ]
+					if out-buf = null [ close stdout ]
+					if err-buf = null [ close stderr ]
 				]
 				expand-and-exec cmd
 			][                                      ;----- Parent process -----

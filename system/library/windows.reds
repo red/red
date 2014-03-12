@@ -35,8 +35,9 @@ stdcalls: context [
 	#define O_U16TEXT	00020000h						;-- file mode is UTF16 no BOM (translated)
 	#define O_U8TEXT	00040000h						;-- file mode is UTF8  no BOM (translated)
 
-	#define INFINITE            FFFFFFFFh
-	#define HANDLE_FLAG_INHERIT 00000001h
+	#define INFINITE				FFFFFFFFh
+	#define HANDLE_FLAG_INHERIT		00000001h
+	#define STARTF_USESTDHANDLES	00000100h
 
 	#define ERROR_BROKEN_PIPE 109
 

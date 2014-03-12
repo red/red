@@ -45,22 +45,28 @@ Running the Red console call example
 Syntax
 ------------------------
 
-      USAGE:
-          call cmd /input in /output out /error err /wait
-      DESCRIPTION:
-          Executes a shell command to run another process.
-      ARGUMENTS:
-          cmd -- The shell command or file (Type: string)
-      REFINEMENTS:
-            /input -- Redirects in to stdin
-                in -- (Type: string)
-            /output -- Redirects stdout to out
-                out -- (Type: string block)
-            /error -- Redirects stderr to err
-                err -- (Type: string block)
-            /wait -- Runs command and waits for exit
-      RETURNS:
-            a process ID or 0
+		USAGE:
+			call cmd /wait /console /ascii /input in /output out /error err
+
+		DESCRIPTION:
+			Executes a shell command to run another process..
+			call is type: function!
+
+		ARGUMENTS:
+			cmd [string!] => The shell command or file.
+
+		REFINEMENTS:
+			/wait => Runs command and waits for exit.
+			/console => Runs command with I/O redirected to console (TODO).
+			/ascii => Read output as ascii (Windows only).
+			/input
+				in [string!] => Redirects in to stdin.
+			/output
+				out [string! block!] => Redirects stdout to out.
+			/error
+				err [string! block!] => Redirects stderr to err.
+		RETURNS:
+			a process ID, 0 if finished or -1 if error
 
 When you use the /input, /output, or /error refinements you automatically set the /wait refinement.
 
@@ -70,7 +76,7 @@ Linux examples
         $ ./console-call
         -=== Call added to Red console ===-
         -=== Red Console alpha version ===-
-        (only ASCII input supported)
+        Type HELP for starting information.
 
         red>> call "ls /"
         == 16139
@@ -92,7 +98,7 @@ Linux examples
         This is a Red world...
         == 0
 
-Windows example
+Windows problems
 ------------------------
 
 If you want to launch a GUI application just write : `call "explorer"`
@@ -105,18 +111,29 @@ If you need output redirection add this option :
 
 > **/u** : Ask for unicode chars
 
-Even if you ask cmd for unicode, some commands will return ansi chars. To force **call** to return ansi chars, use the
+Example : `out: "" call/output "cmd /u /c dir" out` to execute **dir** and get the result into *out*
+
+Even if you ask **cmd** for unicode, some commands will return ansi chars. To force **call** to read ansi chars, use the
 /ascii refinement. **Call** will not wait for wide-chars but for one byte chars.
 Chars greater than #"^(7F)" are translated to #"^(7F)".
 The **dir** command returns wide-char, the **tree** or **ping** command returns ansi, so if you have problem with
 output redirection, try with this refinement or not.
 
-Example : `out: "" call/output "cmd /u /c dir" out` to execute **dir** and get the result into *out*
+To get the output from a **dir** command, you can use either `out: "" call/output "cmd /u /c dir" out`
+or `out: "" call/ascii/output "cmd /c dir" out`.
+
+Example : `out: "" call/output/ascii "cmd /c tree /a" out`
+
+
+Windows example
+------------------------
+
+
 
         C:\Red>console-call.exe
         -=== Call added to Red console ===-
         -=== Red Console alpha version ===-
-        (only ASCII input supported)
+        Type HELP for starting information.
 
         red>> call/wait "cmd /c dir /w"
         Volume in drive C is System
@@ -133,10 +150,8 @@ Example : `out: "" call/output "cmd /u /c dir" out` to execute **dir** and get t
                       18 File(s)      2 247 911 bytes
                       10 Dir(s) 200 888 594 432 bytes free
         == 0
-        red>> call/wait "cmd /c explorer"
-        == 1
         red>> call/wait "explorer"
-        == 1
+        == 0
 
         red>> ; Output redirection
         red>> out: ""

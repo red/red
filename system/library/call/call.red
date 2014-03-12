@@ -20,6 +20,7 @@ Red [
 redsys-call: routine [ "Set IO buffers if needed, execute call"
 	cmd        [string!]  "Command"
 	waitend    [logic!]   "Wait for end of child process"
+	console    [logic!]   "Runs command with I/O redirected to console"
 	redirin    [logic!]   "Input redirection"
 	in-str     [string!]  "Input data"
 	redirout   [logic!]   "Output redirection"
@@ -49,7 +50,7 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	][
 		err: null
 	]
-	system-call/call (as-c-string string/rs-head cmd) waitend inp out err
+	system-call/call (as-c-string string/rs-head cmd) waitend console inp out err
 ]
 
 get-out: routine [ "Returns redirected stdout"
@@ -110,7 +111,7 @@ call: func [ "Executes a shell command to run another process."
 	either input  [ do-in:  true ][ do-in:  false ]
 	either output [ do-out: true ][ do-out: false ]
 	either error  [ do-err: true ][ do-err: false ]
-	pid: redsys-call cmd wait do-in str do-out do-err
+	pid: redsys-call cmd wait console do-in str do-out do-err
 	if do-out [
 		str: get-out ascii
 		insert out str
