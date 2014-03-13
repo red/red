@@ -1,9 +1,9 @@
 Red/System [
-	Title:   "Red/System call binding"
-	Author:  "Bruno Anselme"
-	EMail:   "be.red@free.fr"
-	File:    %call.reds
-	Rights:  "Copyright (c) 2014 Bruno Anselme"
+	Title:  "Red/System call binding"
+	Author: "Bruno Anselme"
+	EMail:  "be.red@free.fr"
+	File:   %call.reds
+	Rights: "Copyright (c) 2014 Bruno Anselme"
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
@@ -34,12 +34,12 @@ Red/System [
 
 #define READ-BUFFER-SIZE 4096
 
-p-buffer!: alias struct! [								;-- Data buffer struct, pointer and count
+p-buffer!: alias struct! [                              ;-- Data buffer struct, pointer and count
 	count  [integer!]
 	buffer [byte-ptr!]
 ]
 
-f-desc!: alias struct! [								;-- Files descriptors for pipe
+f-desc!: alias struct! [                                ;-- Files descriptors for pipe
 	reading  [integer!]
 	writing  [integer!]
 ]
@@ -47,7 +47,7 @@ f-desc!: alias struct! [								;-- Files descriptors for pipe
 
 system-call: context [
 with stdcalls [
-	outputs: declare struct! [							;--  Global var to store outputs values before setting call output and error refinements
+	outputs: declare struct! [                          ;--  Global var to store outputs values before setting call output and error refinements
 		out    [p-buffer!]
 		err    [p-buffer!]
 	]
@@ -80,26 +80,26 @@ with stdcalls [
 		newsize      [integer!]
 		return:      [byte-ptr!]
 	][
-	tmp: re-allocate buffer newsize						;-- Resize output buffer to new size
-	either tmp = null [									;-- reallocation failed, uses current output buffer
-		print [ "Red/System resize-buffer : Memory allocation failed." lf ]
-		halt
-	][ buffer: tmp ]
+		tmp: re-allocate buffer newsize                 ;-- Resize output buffer to new size
+		either tmp = null [                             ;-- reallocation failed, uses current output buffer
+			print [ "Red/System resize-buffer : Memory allocation failed." lf ]
+			halt
+		][ buffer: tmp ]
 		return buffer
 	]
 
 	#switch OS [
-	Windows   [											;-- Windows, use minimal home made parsing
+	Windows   [                                         ;-- Windows, use minimal home made parsing
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
-		fd           [opaque!]      "File descriptor"
-		data         [p-buffer!]
-		/local
-			len          [integer!]
-			count        [integer!]
-			total        [integer!]
-			success      [logic!]
+			fd           [opaque!]      "File descriptor"
+			data         [p-buffer!]
+			/local
+				len          [integer!]
+				count        [integer!]
+				total        [integer!]
+				success      [logic!]
 		][
-			len: READ-BUFFER-SIZE 						;-- initial buffer size and grow step
+			len: READ-BUFFER-SIZE                       ;-- initial buffer size and grow step
 			count: 0
 			total: 0
 			success: true
@@ -107,38 +107,37 @@ with stdcalls [
 				len: 0
 				success: read-file fd (data/buffer + total) (READ-BUFFER-SIZE - count) :len null
 				if len > 0 [
-					total: total + len
-					count: count + len
-					if count = READ-BUFFER-SIZE [
-						data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
-						count: 0
-					]
+				    total: total + len
+				    count: count + len
+				    if count = READ-BUFFER-SIZE [
+				        data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
+				        count: 0
+				    ]
 				]
 ;				any [ (not success) (len = 0) ]
-				get-last-error = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
+				get-last-error = ERROR_BROKEN_PIPE      ;-- Pipe done - normal exit
 			]
-			data/buffer: resize-buffer data/buffer (total + 1)	;-- Resize output buffer to minimum size
+			data/buffer: resize-buffer data/buffer (total + 1)    ;-- Resize output buffer to minimum size
 			data/count: total
-;			print [ "Pipe " fd " Total bytes read : " total lf ]
-;			dump-memory data/buffer 1 (1 + (total / 16))		;-- uncomment this line for debug and compile with '-d' option
+;			dump-memory data/buffer 1 (1 + (total / 16))        ;-- uncomment this line for debug and compile with '-d' option
 		] ; read-from-pipe
-		call: func [		"Executes a DOS command to run another process."
-			cmd			[c-string!]    "The shell command"
-			waitend		[logic!]       "Wait for end of command, implicit if any buffer is set"
-			console		[logic!]       "Redirect outputs to console"
-			in-buf		[p-buffer!]    "Pointer to input data or null"
-			out-buf		[p-buffer!]    "Pointer to output data buffer or null"
-			err-buf		[p-buffer!]    "Pointer to error data buffer or null"
-			return:		[integer!]
+		call: func [ "Executes a DOS command to run another process."
+			cmd           [c-string!]    "The shell command"
+			waitend       [logic!]       "Wait for end of command, implicit if any buffer is set"
+			console       [logic!]       "Redirect outputs to console"
+			in-buf        [p-buffer!]    "Pointer to input data or null"
+			out-buf       [p-buffer!]    "Pointer to output data buffer or null"
+			err-buf       [p-buffer!]    "Pointer to error data buffer or null"
+			return:       [integer!]
 			/local
-				pid          [integer!]
-				inherit      [logic!]
-				in-read      [opaque!]
-				in-write     [opaque!]
-				out-read     [opaque!]
-				out-write    [opaque!]
-				err-read     [opaque!]
-				err-write    [opaque!]
+				pid        [integer!]
+				inherit    [logic!]
+				in-read    [opaque!]
+				in-write   [opaque!]
+				out-read   [opaque!]
+				out-write  [opaque!]
+				err-read   [opaque!]
+				err-write  [opaque!]
 				sa p-inf s-inf len success error
 		][
 			s-inf: declare startup-info!
@@ -191,7 +190,7 @@ with stdcalls [
 				s-inf/hStdError:  err-write
 			]
 			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ] [
-				waitend: false							;-- child's process is completed after end of pipe
+				waitend: false                          ;-- child's process is completed after end of pipe
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
@@ -214,7 +213,7 @@ with stdcalls [
 			][
 				pid: p-inf/dwProcessId
 			]
-			if in-buf <> null [
+			if in-buf <> null [       ;-- FIX: to be debugged, doesn't work
 				close-handle in-read
 				success: true
 				len: in-buf/count
@@ -241,12 +240,12 @@ with stdcalls [
 			]
 			close-handle p-inf/hProcess
 			close-handle p-inf/hThread
-			outputs/out: out-buf						;-- Store values in global var
+			outputs/out: out-buf                        ;-- Store values in global var
 			outputs/err: err-buf
 			return pid
 		] ; call
 	] ; Windows
-	#default  [      ; POSIX
+	#default  [                                         ;-- POSIX
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
 			fd           [f-desc!]       "File descriptor"
 			data         [p-buffer!]
@@ -254,10 +253,10 @@ with stdcalls [
 				cpt          [integer!]
 				total        [integer!]
 		][
-			close fd/writing                                                   ; close unused pipe end
-			cpt: READ-BUFFER-SIZE                                              ; initial buffer size and grow step
+			close fd/writing                            ;-- close unused pipe end
+			cpt: READ-BUFFER-SIZE                       ;-- initial buffer size and grow step
 			total: 0
-			while [cpt = READ-BUFFER-SIZE ][                   ; FIX: there's a bug here, need to test errno
+			while [cpt = READ-BUFFER-SIZE ][                   ; FIX: there's something wrong here, need to test errno
 				cpt: ioread fd/reading (data/buffer + total) READ-BUFFER-SIZE    ; read pipe, store into buffer
 				if cpt > -1 [
 					total: total + cpt

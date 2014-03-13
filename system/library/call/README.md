@@ -57,7 +57,7 @@ Syntax
 
 		REFINEMENTS:
 			/wait => Runs command and waits for exit.
-			/console => Runs command with I/O redirected to console (TODO).
+			/console => Runs command with I/O redirected to console.
 			/ascii => Read output as ascii (Windows only).
 			/input
 				in [string!] => Redirects in to stdin.
@@ -73,30 +73,36 @@ When you use the /input, /output, or /error refinements you automatically set th
 Linux examples
 ------------------------
 
-        $ ./console-call
-        -=== Call added to Red console ===-
-        -=== Red Console alpha version ===-
-        Type HELP for starting information.
+		$ ./console-call
+		-=== Call added to Red console ===-
+		-=== Red Console alpha version ===-
+		Type HELP for starting information.
 
-        red>> call "ls /"
-        == 16139
-        red>> bin   dev  home    lib      lost+found  mnt  proc  run   srv  tmp  var
-        boot  etc  initrd  lib64  media       opt  root  sbin  sys  usr
+		red>> call "ls"                                 ;-- process launched in background, returns process id
+		== 31558
+		red>> call/wait "ls"                            ;-- wait for end of process
+		== 0
+		red>> call/wait/console "ls -l *.r"             ;-- output redirected into console
+		-rw-rw-r-- 1 user  user  57836 Mar  5 08:14 compiler.r
+		-rw-rw-r-- 1 user  user  13202 Mar  5 08:14 lexer.r
+		-rw-rw-r-- 1 user  user   9517 Mar 13 08:29 red.r
+		-rw-rw-r-- 1 user  user   2419 Feb 12 11:13 run-all.r
+		-rw-rw-r-- 1 user  user      5 Feb 12 11:13 version.r
+		== 0
+		red>> out: "" call/output "ls *.r" out          ;-- output redirection
+		== 0
+		red>> probe out
+		{compiler.r^/lexer.r^/red.r^/run-all.r^/version.r^/}
+		== {compiler.r^/lexer.r^/red.r^/run-all.r^/version.r^/}
+		red>>
+		red>> inp: "This is a Red world...^/"
+		== "This is a Red world...^/"                   ;-- input redirection
+		red>> call/input "cat" inp
+		== 0
+		red>> err: "" call/error "ls -" err             ;-- error redirection
+		== 0
+		red>>
 
-        red>> call/wait "ls /"
-        bin   dev  home    lib    lost+found  mnt  proc  run   srv  tmp  var
-        boot  etc  initrd  lib64  media       opt  root  sbin  sys  usr
-        == 0
-        red>> out: "" call/output "ls /" out
-        == 0
-        red>> probe out
-        {bin^/boot^/dev^/etc^/home^/initrd^/lib^/lib64^/lost+found^/media^/mnt^/opt^/proc^/root^/run^/sbin^/srv^/sys^/tmp^/usr^/var^/}
-        == {bin^/boot^/dev^/etc^/home^/initrd^/lib^/lib64^/lost+found^/media^/mnt^/opt^/pr
-        red>> inp: "This is a Red world...^/"
-        == "This is a Red world...^/"
-        red>> call/input "cat" inp
-        This is a Red world...
-        == 0
 
 Windows problems
 ------------------------
@@ -125,7 +131,7 @@ or `out: "" call/ascii/output "cmd /c dir" out`.
 Example : `out: "" call/output/ascii "cmd /c tree /a" out`
 
 
-Windows example
+Windows examples
 ------------------------
 
 

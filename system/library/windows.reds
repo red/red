@@ -29,15 +29,15 @@ stdcalls: context [
 		P_DETACH:        4
 	]
 
-	#define O_TEXT		4000h							;-- file mode is text (translated)
-	#define O_BINARY	8000h							;-- file mode is binary (untranslated)
-	#define O_WTEXT		00010000h						;-- file mode is UTF16 (translated)
-	#define O_U16TEXT	00020000h						;-- file mode is UTF16 no BOM (translated)
-	#define O_U8TEXT	00040000h						;-- file mode is UTF8  no BOM (translated)
+	#define O_TEXT      4000h                           ;-- file mode is text (translated)
+	#define O_BINARY    8000h                           ;-- file mode is binary (untranslated)
+	#define O_WTEXT     00010000h                       ;-- file mode is UTF16 (translated)
+	#define O_U16TEXT   00020000h                       ;-- file mode is UTF16 no BOM (translated)
+	#define O_U8TEXT    00040000h                       ;-- file mode is UTF8  no BOM (translated)
 
-	#define INFINITE				FFFFFFFFh
-	#define HANDLE_FLAG_INHERIT		00000001h
-	#define STARTF_USESTDHANDLES	00000100h
+	#define INFINITE                FFFFFFFFh
+	#define HANDLE_FLAG_INHERIT     00000001h
+	#define STARTF_USESTDHANDLES    00000100h
 
 	#define ERROR_BROKEN_PIPE 109
 

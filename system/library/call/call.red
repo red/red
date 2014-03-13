@@ -1,8 +1,8 @@
 Red [
-	Title: "Red call binding"
+	Title:  "Red call binding"
 	Author: "Bruno Anselme"
-	EMail: "be.red@free.fr"
-	File: %call.red
+	EMail:  "be.red@free.fr"
+	File:   %call.red
 	Rights: "Copyright (c) 2014 Bruno Anselme"
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -93,18 +93,18 @@ get-err: routine [ "Returns redirected stderr"
 ]
 
 call: func [ "Executes a shell command to run another process."
-	cmd			[string!]			"The shell command or file"
-	/wait							"Runs command and waits for exit"
-	/console						"Runs command with I/O redirected to console (TODO)"
-	/ascii							"Read output as ascii (Windows only)"
-	/input	in	[string!]			"Redirects in to stdin"
-	/output out	[string! block!]	"Redirects stdout to out"
-	/error	err	[string! block!]	"Redirects stderr to err"
-	return:		[integer!]			"0 if success, -1 if error, or a process ID"
+	cmd            [string!]         "The shell command or file"
+	/wait                            "Runs command and waits for exit"
+	/console                         "Runs command with I/O redirected to console"
+	/ascii                           "Read output as ascii (Windows only)"
+	/input    in   [string!]         "Redirects in to stdin"
+	/output out    [string! block!]  "Redirects stdout to out"
+	/error    err  [string! block!]  "Redirects stderr to err"
+	return:        [integer!]        "0 if success, -1 if error, or a process ID"
 	/local
-	pid			[integer!]
-	str 		[string!]
-	do-in do-out do-err
+		pid        [integer!]
+		str        [string!]
+		do-in do-out do-err
 ][
 	pid: 0
 	either input  [ str:    in   ][ str:    ""    ]
