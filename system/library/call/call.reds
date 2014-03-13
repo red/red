@@ -47,7 +47,7 @@ f-desc!: alias struct! [                                ;-- Files descriptors fo
 
 system-call: context [
 with stdcalls [
-	outputs: declare struct! [                          ;--  Global var to store outputs values before setting call output and error refinements
+	outputs: declare struct! [                          ;--  Global var to store outputs values before setting call /output and /error refinements
 		out    [p-buffer!]
 		err    [p-buffer!]
 	]
@@ -65,16 +65,6 @@ with stdcalls [
 		args: args  - n
 		free as byte-ptr! args
 	]
-
-	print-str-array: func [ "Print str-array, used for debug"
-		args [str-array!]
-	][
-		while [ args/item <> null ][
-			print [ "- " args/item lf ]
-			args: args + 1
-		]
-	]
-
 	resize-buffer: func [   "Reallocate buffer, error check"
 		buffer       [byte-ptr!]
 		newsize      [integer!]
@@ -89,45 +79,37 @@ with stdcalls [
 	]
 
 	#switch OS [
-	Windows   [                                         ;-- Windows, use minimal home made parsing
+	Windows   [                                         ;-- Windows
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
 			fd           [opaque!]      "File descriptor"
 			data         [p-buffer!]
-			/local
-				len          [integer!]
-				count        [integer!]
-				total        [integer!]
-				success      [logic!]
+			/local len size total
 		][
-			len: READ-BUFFER-SIZE                       ;-- initial buffer size and grow step
-			count: 0
+			size: READ-BUFFER-SIZE                      ;-- get initial buffer size
 			total: 0
-			success: true
 			until [
 				len: 0
-				success: read-file fd (data/buffer + total) (READ-BUFFER-SIZE - count) :len null
+				read-file fd (data/buffer + total) (size - total) :len null
 				if len > 0 [
 				    total: total + len
-				    count: count + len
-				    if count = READ-BUFFER-SIZE [
-				        data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
-				        count: 0
+				    if total = size [
+				        size: 2 * size
+				        data/buffer: resize-buffer data/buffer size
 				    ]
 				]
-;				any [ (not success) (len = 0) ]
 				get-last-error = ERROR_BROKEN_PIPE      ;-- Pipe done - normal exit
 			]
 			data/buffer: resize-buffer data/buffer (total + 1)    ;-- Resize output buffer to minimum size
 			data/count: total
-;			dump-memory data/buffer 1 (1 + (total / 16))        ;-- uncomment this line for debug and compile with '-d' option
+;			dump-memory data/buffer 1 (1 + (total / 16));-- uncomment this line for debug and compile with '-d' option
 		] ; read-from-pipe
 		call: func [ "Executes a DOS command to run another process."
-			cmd           [c-string!]    "The shell command"
-			waitend       [logic!]       "Wait for end of command, implicit if any buffer is set"
-			console       [logic!]       "Redirect outputs to console"
-			in-buf        [p-buffer!]    "Pointer to input data or null"
-			out-buf       [p-buffer!]    "Pointer to output data buffer or null"
-			err-buf       [p-buffer!]    "Pointer to error data buffer or null"
+			cmd           [c-string!]  "The shell command"
+			waitend       [logic!]     "Wait for end of command, implicit if any buffer is set"
+			console       [logic!]     "Redirect outputs to console"
+			in-buf        [p-buffer!]  "Input data buffer or null"
+			out-buf       [p-buffer!]  "Output data buffer or null"
+			err-buf       [p-buffer!]  "Error data buffer or null"
 			return:       [integer!]
 			/local
 				pid        [integer!]
@@ -246,71 +228,39 @@ with stdcalls [
 		] ; call
 	] ; Windows
 	#default  [                                         ;-- POSIX
-		read-from-pipe: func [      "Read data from pipe fd into buffer"
-			fd           [f-desc!]       "File descriptor"
-			data         [p-buffer!]
-			/local
-				cpt          [integer!]
-				total        [integer!]
+		read-from-pipe: func [ "Read data from pipe fd into buffer"
+			fd        [f-desc!]   "File descriptor"
+			data      [p-buffer!]
+			/local len size total
 		][
 			close fd/writing                            ;-- close unused pipe end
-			cpt: READ-BUFFER-SIZE                       ;-- initial buffer size and grow step
+			size: READ-BUFFER-SIZE                      ;-- initial buffer size and grow step
 			total: 0
-			while [cpt = READ-BUFFER-SIZE ][                   ; FIX: there's something wrong here, need to test errno
-				cpt: ioread fd/reading (data/buffer + total) READ-BUFFER-SIZE    ; read pipe, store into buffer
-				if cpt > -1 [
-					total: total + cpt
-					if cpt = READ-BUFFER-SIZE [                                      ; buffer must be expanded
-						data/buffer: resize-buffer data/buffer (total + READ-BUFFER-SIZE)
+			until [
+				len: ioread fd/reading (data/buffer + total) (size - total)    ;-- read pipe, store into buffer
+				if len > -1 [                           ;-- FIX: there's something wrong here, need to test errno
+					total: total + len
+					if total = size [                   ;-- buffer must be expanded
+						size: 2 * size
+						data/buffer: resize-buffer data/buffer size
 					]
 				]
+				len = 0
 			]
-			data/buffer: resize-buffer data/buffer (total + 1)                 ; Resize output buffer to minimum size
+			data/buffer: resize-buffer data/buffer (total + 1)  ;-- Resize output buffer to minimum size
 			data/count: total
-			close fd/reading                                                   ; close other pipe end
+			close fd/reading                            ;-- close other pipe end
 		] ; read-from-pipe
-		expand-and-exec: func[         "Use wordexp to parse command and run it. Halt if error. Should never return"
-			cmd          [c-string!]       "The shell command"
-			return:      [integer!]
-			/local
-			status       [integer!]
-			wexp
-		][
-			wexp: as wordexp-type! allocate size? wordexp-type!      ; Create wordexp struct
-			status: wordexp cmd wexp WRDE_SHOWERR                              ; Parse cmd into str-array
-			either status = 0 [                           ; Parsing ok
-	;          print-str-array wexp/we_wordv                         ; Debug: Print expanded values
-				execvp wexp/we_wordv/item wexp/we_wordv                ; Call execvp with str-array parameters
-				print [ "Error Red/System call while calling execvp : {" cmd "}" lf ]  ; Should never occur
-				quit 1
-			][                                            ; Parsing nok
-				print [ "Error Red/System call, wordexp parsing command : " cmd lf ]
-				switch status [
-					WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
-					WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
-					WRDE_BADVAL  [ print [ "Reference to undefined shell variable" lf ] ]
-					WRDE_CMDSUB  [ print [ "Command substitution requested" lf ] ]
-					WRDE_SYNTAX  [ print [ "Shell syntax error, such as unbalanced parentheses or unterminated string" lf ] ]
-				]
-				quit status
-			]
-			return -1
-		] ; expand-and-exec
-
 		call: func [                   "Executes a shell command, IO redirections to buffers."
 			cmd			[c-string!]    "The shell command"
 			waitend		[logic!]       "Wait for end of command, implicit if any buffer is set"
 			console		[logic!]       "Redirect outputs to console"
-			in-buf		[p-buffer!]    "Pointer to input data or null"
-			out-buf		[p-buffer!]    "Pointer to output data buffer or null"
-			err-buf		[p-buffer!]    "Pointer to error data buffer or null"
+			in-buf		[p-buffer!]    "Input data buffer or null"
+			out-buf		[p-buffer!]    "Output data buffer or null "
+			err-buf		[p-buffer!]    "Error data buffer or null"
 			return:		[integer!]
-			/local
-				pid          [integer!]
-				status       [integer!]
-				err          [integer!]
-				fd-in fd-out fd-err
-			][
+			/local pid status err wexp fd-in fd-out fd-err
+		][
 			if in-buf <> null [
 				fd-in: declare f-desc!
 				if (pipe as int-ptr! fd-in) = -1 [     ; Create a pipe for child's input
@@ -334,20 +284,20 @@ with stdcalls [
 				]
 			]
 			pid: fork
-			either pid = 0 [                        ;----- Child process -----
-				if in-buf <> null [                   ; redirect stdin to the pipe
+			either pid = 0 [                            ;-- Child process
+				if in-buf <> null [                     ;-- redirect stdin to the pipe
 					close fd-in/writing
 					err: dup2 fd-in/reading stdin
 					if err = -1 [ print "Error Red/System call : Error dup2 stdin^/" return -1 ]
 					close fd-in/reading
 				]
-				if out-buf <> null [                  ; redirect stdout to the pipe
+				if out-buf <> null [                    ;-- redirect stdout to the pipe
 					close fd-out/reading
 					err: dup2 fd-out/writing stdout
 					if err = -1 [ print "Error Red/System call : Error dup2 stdout^/" return -1 ]
 					close fd-out/writing
 				]
-				if err-buf <> null [                  ; redirect stderr to the pipe
+				if err-buf <> null [                    ;-- redirect stderr to the pipe
 					close fd-err/reading
 					err: dup2 fd-err/writing stderr
 					if err = -1 [ print "Error Red/System call : Error dup2 stderr^/" return -1 ]
@@ -358,35 +308,53 @@ with stdcalls [
 					if out-buf = null [ close stdout ]
 					if err-buf = null [ close stderr ]
 				]
-				expand-and-exec cmd
-			][                                      ;----- Parent process -----
-				if in-buf <> null [                   ; write input buffer to child process' stdin
+				wexp: declare wordexp-type!             ;-- Create wordexp struct
+				status: wordexp cmd wexp WRDE_SHOWERR   ;-- Parse cmd into str-array
+				either status = 0 [                     ;-- Parsing ok
+					execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
+					print [ "Error Red/System call while calling execvp : {" cmd "}" lf ]  ;-- Should never occur
+					quit 1
+				][                                      ;-- Parsing nok
+					print [ "Error Red/System call, wordexp parsing command : " cmd lf ]
+					switch status [
+						WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
+						WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
+						WRDE_BADVAL  [ print [ "Reference to undefined shell variable" lf ] ]
+						WRDE_CMDSUB  [ print [ "Command substitution requested" lf ] ]
+						WRDE_SYNTAX  [ print [ "Shell syntax error, such as unbalanced parentheses or unterminated string" lf ] ]
+					]
+					if in-buf  <> null [ free in-buf/buffer  ] ;-- free allocated buffers before exit
+					if out-buf <> null [ free out-buf/buffer ]
+					if err-buf <> null [ free err-buf/buffer ]
+					return -1
+				]
+			][                                          ;-- Parent process
+				if in-buf <> null [                     ;-- write input buffer to child process' stdin
 					close fd-in/reading
 					iowrite fd-in/writing in-buf/buffer in-buf/count
 					close fd-in/writing
 					waitend: true
 				]
-				if out-buf <> null [                  ; read output from pipe, store in buffer
-					read-from-pipe fd-out out-buf       ; read output buffer from child process' stdout
-					waitend: false                      ; child's process is completed after end of pipe
-					pid: 0                              ; Process is completed, return 0
+				if out-buf <> null [
+					read-from-pipe fd-out out-buf       ;-- read output buffer from child process' stdout
+					waitend: false                      ;-- child's process is completed after end of pipe
+					pid: 0                              ;-- Process is completed, return 0
 				]
-				if err-buf <> null [                  ; Same with error stream
+				if err-buf <> null [                    ;-- Same with error stream
 					read-from-pipe fd-err err-buf
 					waitend: false
 					pid: 0
 				]
 				if waitend [
 					status: 0
-					waitpid pid :status 0               ; Wait child process terminate
-					pid: 0                              ; Process is completed, return 0
+					waitpid pid :status 0               ;-- Wait child process terminate
+					pid: 0                              ;-- Process is completed, return 0
 				]
-				outputs/out: out-buf                  ; Store values in global var
+				outputs/out: out-buf                    ;-- Store values in global var
 				outputs/err: err-buf
 			] ; either pid
 			return pid
 		] ; call
-
 	] ; #default
 	] ; #switch
 ] ; with stdcalls
