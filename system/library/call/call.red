@@ -54,20 +54,14 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 ]
 
 get-out: routine [ "Returns redirected stdout"
-	ascii		[logic!]
+	ascii     [logic!]
 	/local
-		sout	[red-string!]
-		pos		[integer!]
+		sout  [red-string!]
 ][
 	with system-call [
 		#either OS = 'Windows [
 			either ascii [
-				pos: 0
-				until [
-					if outputs/out/buffer/pos > #"^(7F)" [ outputs/out/buffer/pos: #"^(7F)" ]
-					pos: pos + 1
-					pos > outputs/out/count
-				]
+				to-ascii outputs/out
 				sout: string/load as-c-string outputs/out/buffer (1 + outputs/out/count) UTF-8
 			][
 				sout: string/load as-c-string outputs/out/buffer (1 + (outputs/out/count / 2)) UTF-16LE
@@ -81,15 +75,24 @@ get-out: routine [ "Returns redirected stdout"
 ]
 
 get-err: routine [ "Returns redirected stderr"
-		/local serr
+	ascii     [logic!]
+	/local
+		serr  [red-string!]
 ][
-	#either OS = 'Windows [
-		serr: string/load as-c-string system-call/outputs/err/buffer (1 + (system-call/outputs/err/count / 2)) UTF-16LE
-	][
-		serr: string/load as-c-string system-call/outputs/err/buffer (1 + system-call/outputs/err/count) UTF-8
+	with system-call [
+		#either OS = 'Windows [
+			either ascii [
+				to-ascii outputs/err
+				serr: string/load as-c-string outputs/err/buffer (1 + outputs/err/count) UTF-8
+			][
+				serr: string/load as-c-string outputs/err/buffer (1 + (outputs/err/count / 2)) UTF-16LE
+			]
+		][
+			serr: string/load as-c-string outputs/err/buffer (1 + outputs/err/count) UTF-8
+		]
+		free outputs/err/buffer
+		SET_RETURN(serr)
 	]
-	free system-call/outputs/err/buffer
-	SET_RETURN(serr)
 ]
 
 call: func [ "Executes a shell command to run another process."
@@ -107,6 +110,7 @@ call: func [ "Executes a shell command to run another process."
 		do-in do-out do-err
 ][
 	pid: 0
+	probe cmd
 	either input  [ str:    in   ][ str:    ""    ]
 	either input  [ do-in:  true ][ do-in:  false ]
 	either output [ do-out: true ][ do-out: false ]
@@ -118,7 +122,7 @@ call: func [ "Executes a shell command to run another process."
 		out: head out
 	]
 	if do-err [
-		str: get-err
+		str: get-err ascii
 		insert err str
 		err: head err
 	]

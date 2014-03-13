@@ -34,12 +34,12 @@ Red/System [
 
 #define READ-BUFFER-SIZE 4096
 
-p-buffer!: alias struct! [                              ;-- Data buffer struct, pointer and count
+p-buffer!: alias struct! [                              ;-- Data buffer struct, pointer and bytes count
 	count  [integer!]
 	buffer [byte-ptr!]
 ]
 
-f-desc!: alias struct! [                                ;-- Files descriptors for pipe
+f-desc!: alias struct! [                                ;-- Files descriptors for posix pipe
 	reading  [integer!]
 	writing  [integer!]
 ]
@@ -64,6 +64,17 @@ with stdcalls [
 		]
 		args: args  - n
 		free as byte-ptr! args
+	]
+	to-ascii: func [
+		buf    [p-buffer!]
+		/local pos
+	][
+		pos: 0
+		until [
+			if buf/buffer/pos > #"^(7F)" [ buf/buffer/pos: #"^(7F)" ]
+			pos: pos + 1
+			pos > buf/count
+		]
 	]
 	resize-buffer: func [   "Reallocate buffer, error check"
 		buffer       [byte-ptr!]
@@ -114,6 +125,7 @@ with stdcalls [
 			/local
 				pid        [integer!]
 				inherit    [logic!]
+;				cmdstr     [c-string!]
 				in-read    [opaque!]
 				in-write   [opaque!]
 				out-read   [opaque!]
@@ -183,11 +195,15 @@ with stdcalls [
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
+;			cmdstr: make-c-string (20 + length? cmd)
+;			cmdstr: "cmd /u /c "
+;			copy-memory as byte-ptr! (cmdstr + length? cmdstr) as byte-ptr! cmd length? cmd
 
 			if not create-process null cmd 0 0 inherit 0 0 null s-inf p-inf [
 				print [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error "^/" ]
 				return -1
 			]
+;			free as byte-ptr! cmdstr
 
 			either waitend [
 				wait-for-single-object p-inf/hProcess INFINITE

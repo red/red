@@ -109,7 +109,7 @@ Windows problems
 
 If you want to launch a GUI application just write : `call "explorer"`
 
-To launch a command like **type** or **dir** you need to call the command line interpreter with this option :
+To launch a command like **type** or **dir** you need to call the command line interpreter **cmd** with this option :
 
 > **/c** : Execute command line
 
@@ -120,15 +120,17 @@ If you need output redirection add this option :
 Example : `out: "" call/output "cmd /u /c dir" out` to execute **dir** and get the result into *out*
 
 Even if you ask **cmd** for unicode, some commands will return ansi chars. To force **call** to read ansi chars, use the
-/ascii refinement. **Call** will not wait for wide-chars but for one byte chars.
+**/ascii** refinement. **Call** will not wait for wide-chars but for one byte chars.
 Chars greater than #"^(7F)" are translated to #"^(7F)".
-The **dir** command returns wide-char, the **tree** or **ping** command returns ansi, so if you have problem with
-output redirection, try with this refinement or not.
+The **dir** command returns wide-char, the **tree** or **ping** command returns ansi chars, so if you have problems with
+output redirections, try with this refinement.
 
 To get the output from a **dir** command, you can use either `out: "" call/output "cmd /u /c dir" out`
 or `out: "" call/ascii/output "cmd /c dir" out`.
 
 Example : `out: "" call/output/ascii "cmd /c tree /a" out`
+
+The **/ascii** refinement applies on both **/output** and **/error** refinements.
 
 
 Windows examples
