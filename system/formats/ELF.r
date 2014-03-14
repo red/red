@@ -106,7 +106,7 @@ context [
 		ident-class		[char!]		;; file class
 		ident-data		[char!]		;; data encoding
 		ident-version	[char!]		;; file version
-		ident-pad0		[char!]
+		ident-osabi		[char!]
 		ident-pad1		[integer!]
 		ident-pad2		[integer!]
 		type			[short]
@@ -459,6 +459,11 @@ context [
 		eh/shstrndx:		index? find section-names ".shstrtab"
 
 		;; Target-specific header fields.
+
+		eh/ident-osabi: switch/default target-os [
+			FreeBSD      [9]
+			Linux        [3]
+		]	             [0]
 
 		eh/type: select reduce [
 			'exe defs/et-exec
