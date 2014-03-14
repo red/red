@@ -718,7 +718,7 @@ context [
 		job [object!]
 		/local current-tail code-tail data-tail symbol-offset symbol-size
 	] [
-		if job/type <> 'dll [return make block! 0]
+		if  not find job/sections 'export [return make block! 0]
 
 		code-tail: length? job/sections/code/2
 		data-tail: length? job/sections/data/2
