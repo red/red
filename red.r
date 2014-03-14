@@ -81,6 +81,7 @@ redc: context [
 				2 "Darwin"
 				3 "MSDOS"
 				4 "Linux"
+				7 "FreeBSD"
 			] system/version/4
 			"MSDOS"
 		]
