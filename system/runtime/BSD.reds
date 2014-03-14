@@ -221,25 +221,36 @@ bsd-startup-ctx: context [
 
 #switch type [
 	dll [
-		program-vars!: alias struct! [
-			mh				[byte-ptr!]
-			NXArgcPtr		[int-ptr!]
-			NXArgcPtr		[struct! [p [struct! [s [c-string!]]]]]
-			environPtr		[struct! [p [struct! [s [c-string!]]]]]
-			__prognamePtr	[struct! [s [c-string!]]]
-		]
+		#switch OS [
+			MacOSX [
+				program-vars!: alias struct! [
+					mh				[byte-ptr!]
+					NXArgcPtr		[int-ptr!]
+					NXArgcPtr		[struct! [p [struct! [s [c-string!]]]]]
+					environPtr		[struct! [p [struct! [s [c-string!]]]]]
+					__prognamePtr	[struct! [s [c-string!]]]
+				]
 		
-		***-dll-entry-point: func [
-			[cdecl]
-			argc	[integer!]
-			argv	[struct! [s [c-string!]]]
-			envp	[struct! [s [c-string!]]]
-			apple	[struct! [s [c-string!]]]
-			pvars	[program-vars!]
-		][
-			***-main
-			bsd-startup-ctx/init
-			on-load argc argv envp apple pvars
+				***-dll-entry-point: func [
+					[cdecl]
+					argc	[integer!]
+					argv	[struct! [s [c-string!]]]
+					envp	[struct! [s [c-string!]]]
+					apple	[struct! [s [c-string!]]]
+					pvars	[program-vars!]
+				][
+					***-main
+					bsd-startup-ctx/init
+					on-load argc argv envp apple pvars
+				]
+			]
+			#default [
+				***-dll-entry-point: func [[cdecl]] [
+					***-main
+					bsd-startup-ctx/init
+					on-load
+				]
+			]
 		]
 	]
 	exe [
