@@ -101,7 +101,7 @@ call: func [ "Executes a shell command to run another process."
 	/console                         "Runs command with I/O redirected to console"
 	/ascii                           "Read output as ascii (Windows only)"
 	/input    in   [string!]         "Redirects in to stdin"
-	/output out    [string! block!]  "Redirects stdout to out"
+	/output   out  [string! block!]  "Redirects stdout to out"
 	/error    err  [string! block!]  "Redirects stderr to err"
 	return:        [integer!]        "0 if success, -1 if error, or a process ID"
 	/local
@@ -110,7 +110,6 @@ call: func [ "Executes a shell command to run another process."
 		do-in do-out do-err
 ][
 	pid: 0
-	probe cmd
 	either input  [ str:    in   ][ str:    ""    ]
 	either input  [ do-in:  true ][ do-in:  false ]
 	either output [ do-out: true ][ do-out: false ]

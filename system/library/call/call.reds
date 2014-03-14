@@ -125,7 +125,7 @@ with stdcalls [
 			/local
 				pid        [integer!]
 				inherit    [logic!]
-;				cmdstr     [c-string!]
+				cmdstr     [c-string!]
 				in-read    [opaque!]
 				in-write   [opaque!]
 				out-read   [opaque!]
@@ -195,15 +195,15 @@ with stdcalls [
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
-;			cmdstr: make-c-string (20 + length? cmd)
-;			cmdstr: "cmd /u /c "
-;			copy-memory as byte-ptr! (cmdstr + length? cmdstr) as byte-ptr! cmd length? cmd
 
-			if not create-process null cmd 0 0 inherit 0 0 null s-inf p-inf [
+			cmdstr: make-c-string (20 + length? cmd)
+			stdio/copy-string cmdstr "cmd /u /c "		;-- Launch command thru cmd.exe
+			cmdstr: stdio/append-string cmdstr cmd
+			if not create-process null cmdstr 0 0 inherit 0 0 null s-inf p-inf [
 				print [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error "^/" ]
 				return -1
 			]
-;			free as byte-ptr! cmdstr
+			free as byte-ptr! cmdstr
 
 			either waitend [
 				wait-for-single-object p-inf/hProcess INFINITE

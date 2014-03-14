@@ -63,6 +63,16 @@ stdio: context [
 			file        [file!]
 			return:     [integer!] "Chunks read"
 		]
+		append-string: "strcat" [  ; Append string. Thanks Kaj
+			target		[c-string!]
+			source		[c-string!]
+			return:		[c-string!]
+		]
+		copy-string: "strcpy" [  ; Copy string. Thanks Kaj
+			target		[c-string!]
+			source		[c-string!]
+			return:		[c-string!]
+		]
 		]
 	] ; #import
 

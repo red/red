@@ -107,6 +107,9 @@ Linux examples
 Windows problems
 ------------------------
 
+Windows' call implementation adds `cmd /u /c ` before the command you write, **/u** ask for unicode chars,
+**/c** execute command line.
+
 If you want to launch a GUI application just write : `call "explorer"`
 
 To launch a command like **type** or **dir** you need to call the command line interpreter **cmd** with this option :
@@ -117,9 +120,9 @@ If you need output redirection add this option :
 
 > **/u** : Ask for unicode chars
 
-Example : `out: "" call/output "cmd /u /c dir" out` to execute **dir** and get the result into *out*
+Example : `out: "" call/output "dir" out` to execute **dir** and get the result into *out*
 
-Even if you ask **cmd** for unicode, some commands will return ansi chars. To force **call** to read ansi chars, use the
+Some commands will return ansi chars. To force **call** to read ansi chars, use the
 **/ascii** refinement. **Call** will not wait for wide-chars but for one byte chars.
 Chars greater than #"^(7F)" are translated to #"^(7F)".
 The **dir** command returns wide-char, the **tree** or **ping** command returns ansi chars, so if you have problems with
