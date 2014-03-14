@@ -87,6 +87,7 @@ Cross-compilation targets:
     Linux-ARM    : GNU/Linux, ARMv5
     Darwin       : MacOSX Intel, console-only applications
     Syllable     : Syllable OS, x86
+    FreeBSD		 : FreeBSD, x86
     Android      : Android, ARMv5
     Android-x86	 : Android, x86
 
