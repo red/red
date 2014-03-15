@@ -66,12 +66,13 @@ with stdcalls [
 		free as byte-ptr! args
 	]
 	to-ascii: func [
-		buf    [p-buffer!]
+		buf      [p-buffer!]
 		/local pos
 	][
+		if any [ (buf = null) ( buf/count = 0) ] [ exit ]
 		pos: 0
 		until [
-			if buf/buffer/pos > #"^(7F)" [ buf/buffer/pos: #"^(7F)" ]
+			if buf/buffer/pos > #"^(7F)" [ buf/buffer/pos: #" " ]
 			pos: pos + 1
 			pos > buf/count
 		]
@@ -156,7 +157,7 @@ with stdcalls [
 				if not create-pipe :in-read :in-write sa 0 [ ;-- Create a pipe for child's input
 					print "Error Red/System call : stdin pipe creation failed^/"   return -1
 				]
-				if not set-handle-information in-read HANDLE_FLAG_INHERIT 0 [
+				if not set-handle-information in-write HANDLE_FLAG_INHERIT 0 [
 					print "Error Red/System call : SetHandleInformation failed^/"  return -1
 				]
 				s-inf/hStdInput: in-read
@@ -197,10 +198,11 @@ with stdcalls [
 			]
 
 			cmdstr: make-c-string (20 + length? cmd)
-			stdio/copy-string cmdstr "cmd /u /c "		;-- Launch command thru cmd.exe
+			stdio/copy-string cmdstr "cmd /u /c "		;-- Run command thru cmd.exe
 			cmdstr: stdio/append-string cmdstr cmd
 			if not create-process null cmdstr 0 0 inherit 0 0 null s-inf p-inf [
 				print [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error "^/" ]
+				free as byte-ptr! cmdstr
 				return -1
 			]
 			free as byte-ptr! cmdstr
@@ -213,14 +215,14 @@ with stdcalls [
 			]
 			if in-buf <> null [       ;-- FIX: to be debugged, doesn't work
 				close-handle in-read
-				success: true
 				len: in-buf/count
-				success: write-file in-write in-buf/buffer in-buf/count :len null
+				print [ "Count  : " len lf ]
+				success: write-file in-write in-buf/buffer len :len null
 				if not success [
-;					print [ "Error  : " get-last-error lf ]
-;					print [ "Length : " len lf ]
-					print "Error Red/System call : write into pipe failed^/"
+					print [ "Length : " len lf ]
+					print [ "Error Red/System call : write into pipe failed : " get-last-error lf ]
 				]
+				print [ "Length : " len lf ]
 				close-handle in-write
 				pid: 0
 			]

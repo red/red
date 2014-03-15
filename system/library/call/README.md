@@ -104,42 +104,38 @@ Linux examples
 		red>>
 
 
-Windows problems
+Windows issues
 ------------------------
 
-Windows' call implementation adds `cmd /u /c ` before the command you write, **/u** ask for unicode chars,
-**/c** execute command line.
+Windows' call implementation adds `cmd /u /c ` before the command you ask, **/u** ask for unicode chars,
+**/c** execute command line and exit.
 
-If you want to launch a GUI application just write : `call "explorer"`
+With the **/console** refinement, output is printed to the console with no encoding problem.
 
-To launch a command like **type** or **dir** you need to call the command line interpreter **cmd** with this option :
+When grabbing output with **/output** or **/error** refinements there are a few encoding issues :
 
-> **/c** : Execute command line
-
-If you need output redirection add this option :
-
-> **/u** : Ask for unicode chars
-
-Example : `out: "" call/output "dir" out` to execute **dir** and get the result into *out*
+Found on http://social.msdn.microsoft.com :
+*The Command Prompt (cmd.exe /U /k) - when used as the child process - which writes out Unicode, but does not accept Unicode.
+Plus, there is the possibility that the child process can skip back and forth between Unicode and Ansi (cmd.exe /U /k ping google.com).
+In that case ping.exe writes out Ansi.  Then when ping.exe exits and releases control to cmd.exe, the prompt returns in Unicode.*
 
 Some commands will return ansi chars. To force **call** to read ansi chars, use the
 **/ascii** refinement. **Call** will not wait for wide-chars but for one byte chars.
-Chars greater than #"^(7F)" are translated to #"^(7F)".
+Chars greater than #"^(7F)" are translated to space char.
 The **dir** command returns wide-char, the **tree** or **ping** command returns ansi chars, so if you have problems with
 output redirections, try with this refinement.
 
-To get the output from a **dir** command, you can use either `out: "" call/output "cmd /u /c dir" out`
-or `out: "" call/ascii/output "cmd /c dir" out`.
+Unicode example : `out: "" call/output "dir" out` to execute **dir** and get the result into **out**
 
-Example : `out: "" call/output/ascii "cmd /c tree /a" out`
+Ansi example    : `out: "" call/output/ascii "tree /a" out`
 
 The **/ascii** refinement applies on both **/output** and **/error** refinements.
+
+If you want to launch a GUI application just write : `call "explorer"`
 
 
 Windows examples
 ------------------------
-
-
 
         C:\Red>console-call.exe
         -=== Call added to Red console ===-
@@ -167,7 +163,7 @@ Windows examples
         red>> ; Output redirection
         red>> out: ""
         == ""
-        red>> call/output "cmd /u /c dir /w" out
+        red>> call/output "dir /w" out
         == 0
         red>> out
         == { Volume in drive C is System^M^/ Volume Serial Number is 9DBC-C994
@@ -189,7 +185,7 @@ Windows examples
                       10 Dir(s)  200 327 868 416 bytes free
 
         red>>
-        red>> call/wait "cmd"              ; enter Windows'terminal
+        red>> call/wait/console "cmd"              ; enter Windows c
         red>>
 
 
