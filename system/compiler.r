@@ -3194,7 +3194,7 @@ system-dialect: make-profilable context [
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
 				]
-				if all [job/type = 'dll not empty? compiler/exports][
+				if not empty? compiler/exports [
 					append job/sections compose/deep/only [
 						export [- - (compiler/exports)]
 					]

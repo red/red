@@ -27,6 +27,10 @@ Red/System [
 		#define LIBC-file	"libc.so"
 		#define LIBM-file	"libm.so"
 	]
+	FreeBSD [
+		#define LIBC-file	"libc.so.7"
+		#define LIBM-file	"libm.so.5"
+	]
 	#default [											;-- Linux
 		#define LIBC-file	"libc.so.6"
 		#define LIBM-file	"libm.so.6"	
