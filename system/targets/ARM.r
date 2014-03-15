@@ -881,6 +881,22 @@ make-profilable make target-class [
 		if PIC? [emit-i32 #{e0800009}]				;-- ADD r0, sb
 	]
 	
+	emit-access-register: func [reg [word!] set? [logic!] value /local opcode][
+		if verbose >= 3 [print [">>>emitting ACCESS-REGISTER" mold value]]
+		if all [set? not tag? value][emit-load value]
+
+		unless reg = 'r0 [
+			opcode: copy #{e1a00000}
+			reg: to integer! next form reg
+			either set? [
+				opcode/3: to char! shift/left reg 4
+			][
+				opcode/4: to char! reg
+			]
+			emit-i32 opcode							;-- MOV <reg>, r0	; set
+		]											;-- MOV r0, <reg>	; get
+	]
+	
 	emit-fpu-get: func [/type][
 		case [
 			type [

@@ -318,6 +318,18 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-access-register: func [reg [word!] set? [logic!] value /local opcode][
+		if verbose >= 3 [print [">>>emitting ACCESS-REGISTER" mold value]]
+		if all [set? not tag? value][emit-load value]
+		
+		unless reg = 'eax [
+			opcode: #"^(C0)"
+			reg: (index? find [eax ecx edx ebx esp ebp esi edi] reg) - 1
+			unless set? [reg: shift/left reg 3]
+			emit join #{89} opcode or reg			;-- MOV <reg>, eax	; set
+		]											;-- MOV eax, <reg>	; get
+	]
+	
 	emit-fpu-set: func [
 		value
 		/options option [word!]
