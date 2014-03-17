@@ -55,13 +55,15 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 ]
 
 get-out: routine [ "Returns redirected stdout"
-	ascii     [logic!]
 	/local
-		sout  [red-string!]
+		sout   [red-string!]
+		result [integer!]
 ][
 	with system-call [
 		#either OS = 'Windows [
-			either ascii [
+			result: IS_TEXT_UNICODE_UNICODE_MASK
+			stdcalls/is-text-unicode outputs/out/buffer outputs/out/count :result
+			either result = 0 [
 				to-ascii outputs/out
 				sout: string/load as-c-string outputs/out/buffer (1 + outputs/out/count) UTF-8
 			][
@@ -76,13 +78,14 @@ get-out: routine [ "Returns redirected stdout"
 ]
 
 get-err: routine [ "Returns redirected stderr"
-	ascii     [logic!]
 	/local
 		serr  [red-string!]
 ][
 	with system-call [
 		#either OS = 'Windows [
-			either ascii [
+			result: IS_TEXT_UNICODE_UNICODE_MASK
+			stdcalls/is-text-unicode outputs/err/buffer outputs/err/count :result
+			either result = 0 [
 				to-ascii outputs/err
 				serr: string/load as-c-string outputs/err/buffer (1 + outputs/err/count) UTF-8
 			][
@@ -100,7 +103,6 @@ call: func [ "Executes a shell command to run another process."
 	cmd            [string!]         "The shell command or file"
 	/wait                            "Runs command and waits for exit"
 	/console                         "Runs command with I/O redirected to console"
-	/ascii                           "Read output as ascii (Windows only)"
 	/input    in   [string!]         "Redirects in to stdin"
 	/output   out  [string! block!]  "Redirects stdout to out"
 	/error    err  [string! block!]  "Redirects stderr to err"
@@ -117,12 +119,12 @@ call: func [ "Executes a shell command to run another process."
 	either error  [ do-err: true ][ do-err: false ]
 	pid: redsys-call cmd wait console do-in str do-out do-err
 	if do-out [
-		str: get-out ascii
+		str: get-out
 		insert out str
 		out: head out
 	]
 	if do-err [
-		str: get-err ascii
+		str: get-err
 		insert err str
 		err: head err
 	]
@@ -130,6 +132,3 @@ call: func [ "Executes a shell command to run another process."
 ]
 
 prin "-=== Call added to Red console ===-"
-if system/platform = 'Windows [
-	prin "^/ -== Limited Windows support ==-"
-]

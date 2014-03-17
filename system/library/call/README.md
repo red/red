@@ -46,7 +46,7 @@ Syntax
 ------------------------
 
 		USAGE:
-			call cmd /wait /console /ascii /input in /output out /error err
+			call cmd /wait /console /input in /output out /error err
 
 		DESCRIPTION:
 			Executes a shell command to run another process..
@@ -58,7 +58,6 @@ Syntax
 		REFINEMENTS:
 			/wait => Runs command and waits for exit.
 			/console => Runs command with I/O redirected to console.
-			/ascii => Read output as ascii (Windows only).
 			/input
 				in [string!] => Redirects in to stdin.
 			/output
@@ -119,17 +118,14 @@ Found on http://social.msdn.microsoft.com :
 Plus, there is the possibility that the child process can skip back and forth between Unicode and Ansi (cmd.exe /U /k ping google.com).
 In that case ping.exe writes out Ansi.  Then when ping.exe exits and releases control to cmd.exe, the prompt returns in Unicode.*
 
-Some commands will return ansi chars. To force **call** to read ansi chars, use the
-**/ascii** refinement. **Call** will not wait for wide-chars but for one byte chars.
-Chars greater than #"^(7F)" are translated to space char.
-The **dir** command returns wide-char, the **tree** or **ping** command returns ansi chars, so if you have problems with
-output redirections, try with this refinement.
+http://alfps.wordpress.com/2011/11/22/unicode-part-1-windows-console-io-approaches/
+
+Some commands will return ansi chars. **Call** detect this case and chars greater than #"^(7F)" are translated to space char.
+The **dir** command returns wide-char, the **tree** or **ping** command returns ansi chars.
 
 Unicode example : `out: "" call/output "dir" out` to execute **dir** and get the result into **out**
 
-Ansi example    : `out: "" call/output/ascii "tree /a" out`
-
-The **/ascii** refinement applies on both **/output** and **/error** refinements.
+Ansi example    : `out: "" call/output "tree /a" out`
 
 If you want to launch a GUI application just write : `call "explorer"`
 
@@ -142,13 +138,13 @@ Windows examples
         -=== Red Console alpha version ===-
         Type HELP for starting information.
 
-        red>> call/wait "cmd /c dir /w"
+        red>> call/wait "dir /w"
         Volume in drive C is System
         Volume Serial Number is 9DBC-C994
 
         Directory of C:\Red
 
-        [.]                 [..]                red041              [bridges]           boot.red
+        [.]                 [..]                Red                 [bridges]           boot.red
         lexer.r             README.md           [runtime]           compiler.r          call-example
         run-all.r           version.r           console-call.exe    console             test
         [tests]             [docs]              BSD-3-License.txt   ls.txt              BSL-License.txt
@@ -157,7 +153,7 @@ Windows examples
                       18 File(s)      2 247 911 bytes
                       10 Dir(s) 200 888 594 432 bytes free
         == 0
-        red>> call/wait "explorer"
+        red>> call "explorer"
         == 0
 
         red>> ; Output redirection
@@ -185,7 +181,7 @@ Windows examples
                       10 Dir(s)  200 327 868 416 bytes free
 
         red>>
-        red>> call/wait/console "cmd"              ; enter Windows c
+        red>> call/wait/console "cmd"              ; enter Windows console
         red>>
 
 

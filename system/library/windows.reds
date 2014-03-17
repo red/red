@@ -41,6 +41,8 @@ stdcalls: context [
 
 	#define ERROR_BROKEN_PIPE 109
 
+	#define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
+
 	#define opaque!  integer!
 
 	process-info!: alias struct! [
@@ -132,16 +134,13 @@ stdcalls: context [
 		get-last-error: "GetLastError" [ "Retrieves the calling thread's last-error code value"
 			return:                 [integer!]
 		]
-		get-apc: "GetACP" [ "Retrieves the current Windows ANSI code page identifier"
-			return:        [integer!]
-		]
-		multibyte-to-widechar: "MultiByteToWideChar" [ "Maps a character string to a UTF-16 (wide character) string"
-			CodePage                [integer!]
-			dwFlags                 [integer!]
-			lpMultiByteStr          [c-string!]
-			cbMultiByte             [integer!]
-			lpWideCharStr           [c-string!]
-			cchWideChar             [integer!]
+		] ; stdcall
+	] ; #import
+	#import [ "advapi32.dll" stdcall [
+		is-text-unicode: "IsTextUnicode" [ "Determines if a buffer is likely to contain a form of Unicode text"
+			lpv						[byte-ptr!]
+			iSize					[integer!]
+			lpiResult				[int-ptr!]
 		]
 		] ; stdcall
 	] ; #import
@@ -164,5 +163,6 @@ stdcalls: context [
 		]
 		] ; cdecl
 	] ; #import
+
 ] ; OS = 'Windows
 ] ; context stdcalls
