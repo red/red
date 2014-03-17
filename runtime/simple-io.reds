@@ -75,6 +75,35 @@ simple-io: context [
 		]
 		
 		#case [
+			OS = 'FreeBSD [
+				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
+				stat!: alias struct! [
+					st_dev		[integer!]
+					st_ino		[integer!]
+					st_modelink	[integer!]					;-- st_mode & st_link are both 16bit fields
+					st_uid		[integer!]
+					st_gid		[integer!]
+					st_rdev		[integer!]
+					atv_sec		[integer!]					;-- struct timespec inlined
+					atv_msec	[integer!]
+					mtv_sec		[integer!]					;-- struct timespec inlined
+					mtv_msec	[integer!]
+					ctv_sec		[integer!]					;-- struct timespec inlined
+					ctv_msec	[integer!]
+					st_size		[integer!]
+					st_size_h	[integer!]
+					st_blocks_l	[integer!]
+					st_blocks_h	[integer!]
+					st_blksize	[integer!]
+					st_flags	[integer!]
+					st_gen		[integer!]
+					st_lspare	[integer!]
+					btm_sec     [integer!]
+					btm_msec    [integer!]                  ;-- struct timespec inlined
+					pad0		[integer!]
+					pad1		[integer!]
+				]
+			]
 			OS = 'MacOSX [
 				stat!: alias struct! [
 					st_dev		[integer!]
