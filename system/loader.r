@@ -363,6 +363,13 @@ loader: make-profilable context [
 						remove/part s e
 					]
 				) :s
+				| s: #case set cases block! e: (
+					either body: select reduce bind cases job true [
+						change/part s body e
+					][
+						remove/part s e
+					]
+				) :s
 				| s: #pop-path set value integer! e: (
 					either all [encap? own][
 						unless zero? value [pop-encap-path value]
