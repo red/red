@@ -57,12 +57,13 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 get-out: routine [ "Returns redirected stdout"
 	/local
 		sout   [red-string!]
+		str    [c-string!]
 		result [integer!]
 ][
 	with system-call [
 		#either OS = 'Windows [
 			result: IS_TEXT_UNICODE_UNICODE_MASK
-			stdcalls/is-text-unicode outputs/out/buffer outputs/out/count :result
+			is-text-unicode outputs/out/buffer outputs/out/count :result
 			either result = 0 [
 				to-ascii outputs/out
 				sout: string/load as-c-string outputs/out/buffer (1 + outputs/out/count) UTF-8
@@ -84,7 +85,7 @@ get-err: routine [ "Returns redirected stderr"
 	with system-call [
 		#either OS = 'Windows [
 			result: IS_TEXT_UNICODE_UNICODE_MASK
-			stdcalls/is-text-unicode outputs/err/buffer outputs/err/count :result
+			is-text-unicode outputs/err/buffer outputs/err/count :result
 			either result = 0 [
 				to-ascii outputs/err
 				serr: string/load as-c-string outputs/err/buffer (1 + outputs/err/count) UTF-8

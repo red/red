@@ -18,7 +18,6 @@ Red/System [
 	system/fpu/update
 ]
 
-stdcalls: context [
 #if OS = 'Windows [
 	; Spawn enums
 	#enum spawn-mode [
@@ -42,8 +41,6 @@ stdcalls: context [
 	#define ERROR_BROKEN_PIPE 109
 
 	#define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
-
-	#define opaque!  integer!
 
 	process-info!: alias struct! [
 		hProcess        [opaque!]
@@ -151,18 +148,7 @@ stdcalls: context [
 			size           [integer!]
 			return:        [byte-ptr!]
 		]
-		spawnvp: "_spawnvp" [
-			mode           [integer!]
-			cmd            [c-string!] "Command to run"
-			args-list      [str-array!]
-			return:        [integer!]
-		]
-		close: "_close" [ "Close the file descriptor"
-			fd             [integer!] "File descriptor"
-			return:        [integer!]
-		]
 		] ; cdecl
 	] ; #import
 
 ] ; OS = 'Windows
-] ; context stdcalls

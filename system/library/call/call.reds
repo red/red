@@ -10,8 +10,8 @@ Red/System [
 	}
 	Needs: {
 		Red/System >= 0.4.1
-		%stdio.reds
-		%unistd.reds
+		%ansi.reds
+		%linux.reds
 		%windows.reds
 	}
 	Purpose: {
@@ -26,10 +26,10 @@ Red/System [
 	}
 ]
 
-#include %../stdio.reds
+#include %../ansi.reds
 #switch OS [
 	Windows   [ #include %../windows.reds ]
-	#default  [ #include %../unistd.reds  ]
+	#default  [ #include %../linux.reds  ]
 ]
 
 #define READ-BUFFER-SIZE 4096
@@ -46,7 +46,6 @@ f-desc!: alias struct! [                                ;-- Files descriptors fo
 
 
 system-call: context [
-with stdcalls [
 	outputs: declare struct! [                          ;--  Global var to store outputs values before setting call /output and /error refinements
 		out    [p-buffer!]
 		err    [p-buffer!]
@@ -82,8 +81,8 @@ with stdcalls [
 		newsize      [integer!]
 		return:      [byte-ptr!]
 	][
-		tmp: re-allocate buffer newsize                 ;-- Resize output buffer to new size
-		either tmp = null [                             ;-- reallocation failed, uses current output buffer
+		tmp: resize buffer newsize						;-- Resize output buffer to new size
+		either tmp = null [								;-- reallocation failed, uses current output buffer
 			print [ "Red/System resize-buffer : Memory allocation failed." lf ]
 			halt
 		][ buffer: tmp ]
@@ -91,9 +90,9 @@ with stdcalls [
 	]
 
 	#switch OS [
-	Windows   [                                         ;-- Windows
+	Windows   [											;-- Windows
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
-			fd           [opaque!]      "File descriptor"
+			fd           [file!]      "File descriptor"
 			data         [p-buffer!]
 			/local len size total
 		][
@@ -198,8 +197,8 @@ with stdcalls [
 			]
 
 			cmdstr: make-c-string (20 + length? cmd)
-			stdio/copy-string cmdstr "cmd /u /c "		;-- Run command thru cmd.exe
-			cmdstr: stdio/append-string cmdstr cmd
+			copy-string cmdstr "cmd /u /c "		;-- Run command thru cmd.exe
+			cmdstr: append-string cmdstr cmd
 			if not create-process null cmdstr 0 0 inherit 0 0 null s-inf p-inf [
 				print [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error "^/" ]
 				free as byte-ptr! cmdstr
@@ -213,16 +212,13 @@ with stdcalls [
 			][
 				pid: p-inf/dwProcessId
 			]
-			if in-buf <> null [       ;-- FIX: to be debugged, doesn't work
+			if in-buf <> null [
 				close-handle in-read
 				len: in-buf/count
-				print [ "Count  : " len lf ]
 				success: write-file in-write in-buf/buffer len :len null
 				if not success [
-					print [ "Length : " len lf ]
 					print [ "Error Red/System call : write into pipe failed : " get-last-error lf ]
 				]
-				print [ "Length : " len lf ]
 				close-handle in-write
 				pid: 0
 			]
@@ -375,5 +371,4 @@ with stdcalls [
 		] ; call
 	] ; #default
 	] ; #switch
-] ; with stdcalls
 ] ; context
