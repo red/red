@@ -149,10 +149,21 @@ print-line-Latin1: func [
 ;-- Red/System Unicode replacement printing functions
 ;-------------------------------------------
 
-prin: func [s [c-string!] return: [c-string!] /local p][
+prin: func [
+	s		[c-string!]
+	return: [c-string!]
+	/local
+		p  [c-string!]
+		cp [integer!]
+][
 	p: s
-	while [p/1 <> null-byte][
-		putchar p/1
+	while [cp: as-integer p/1 cp <> 0][
+		either cp <= 7Fh [
+			putchar as-byte cp
+		][
+			putchar as-byte cp >> 6 or C0h
+			putchar as-byte cp and 3Fh or 80h
+		]
 		p: p + 1
 	]
 	s

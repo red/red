@@ -2179,8 +2179,13 @@ make-profilable make target-class [
 		emit-push 0									;-- keep stack aligned on 64-bit
 		
 		unless zero? locals-size [
-			emit-i32 join #{e24dd0}					;-- SUB sp, sp, locals-size
-				to char! round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
+			locals-size: round/to/ceiling locals-size 4
+			either locals-size > 255 [
+				emit-load-imm32/reg locals-size 4
+				emit-i32 #{e04dd004}				;-- SUB sp, sp, r4
+			][
+				emit-i32 join #{e24dd0}	to char! locals-size ;-- SUB sp, sp, locals-size
+			]
 		]
 	]
 

@@ -1269,8 +1269,8 @@ parser: context [
 										print-line "*** Parse Error: COLLECT is missing a word argument"
 									]
 									either into? [get-word/push w][stack/push as red-value! w]
+									cmd: as red-value! w
 								]
-								cmd: as red-value! w
 							]
 							either into? [
 								blk: as red-block! _context/get w

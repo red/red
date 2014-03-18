@@ -9,7 +9,7 @@ Red/System [
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
 	Comment: { Uses Public Domain Curses for windows : http://sourceforge.net/projects/pdcurses/files/
-				Version : pdc34dllw.zip
+		Version : pdc34dllw.zip
 	}
 ]
 
