@@ -17,8 +17,13 @@ __stack!: alias struct! [
 	frame	[pointer! [integer!]]
 ]
 
+__cpu!: alias struct! [
+	edx     [integer!]
+]
+
 system: declare struct! [							;-- trimmed down temporary system definition
 	stack		[__stack!]							;-- stack virtual access
+	cpu         [__cpu!]                            ;-- cpu virtual access
 ]
 
 
@@ -27,13 +32,14 @@ system: declare struct! [							;-- trimmed down temporary system definition
 	MacOSX  []										;-- nothing to do @@
 	FreeBSD [
 		#import [ LIBC-file cdecl [
-			***__atexit: "atexit" [fun [function! [[cdecl]]]]
+			***__atexit: "atexit" [fun [pointer! [byte!]]]
 			***__exit: "exit" [code [integer!]]]
 		]
 
-		;; @@ The dynamic linker passes a routine for calling destructors in linked libraries
-		;; in the edx cpu register.
-		; ***__rtld_cleanup: as function! [[cdecl]] system/cpu/edx
+		;; The dynamic linker passes a routine for calling destructors in linked libraries
+		;; in the edx cpu register. We use the pointer! [byte!] type since function pointer
+		;; variables can't be passed to a function.
+		***__rtld_cleanup: as pointer! [byte!] system/cpu/edx
 
 		;; Clear the frame pointer. The SVR4 ELF/i386 ABI suggests this, to
 		;; mark the outermost frame.
@@ -46,8 +52,8 @@ system: declare struct! [							;-- trimmed down temporary system definition
 		;; Align the stack to a 128-bit boundary, to prevent misaligned access penalities.
 		system/stack/top: as pointer! [integer!] (FFFFFFF0h and as integer! ***__argv)
 
-		;; @@ Register the clean up routine.
-		; ***__atexit :***__rtld_cleanup
+		;; Register the clean up routine.
+		***__atexit ***__rtld_cleanup
 
 		;; We need to take care of exiting the program ourselves, there's nowhere to
 		;; return to.
