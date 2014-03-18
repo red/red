@@ -407,6 +407,9 @@ emitter: make-profilable context [
 					]
 					target/emit-get-pc
 				]
+				cpu [
+					target/emit-access-register path/3 set? value
+				]
 				fpu [
 					if 2 = length? path [
 						compiler/backtrack path
