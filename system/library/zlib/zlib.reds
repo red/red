@@ -20,16 +20,6 @@ Red/System [
 #include %../ansi.reds
 
 zlib: context [
-	#import [
-		LIBC-file cdecl [
-			re-allocate:  "realloc" [
-			base       [byte-ptr!]
-			size       [integer!]
-			return:    [byte-ptr!]
-			]
-		]
-	]
-
 	#define opaque!  integer!
 	#define gzfile!  integer!
 	#define Z_NULL  0								;-- for initializing zalloc, zfree, opaque
@@ -173,7 +163,7 @@ zlib: context [
 			print [ "gunzip: gzopen of " file-in " failed." lf ]
 			return Z_ERRNO
 		]
-		file: open-file file-out "wb"
+		file: open file-out "wb"
 		if file = 0 [
 			print [ "gunzip: Error opening " file-out lf ]
 			return Z_ERRNO
@@ -185,7 +175,7 @@ zlib: context [
 		]
 		until [
 			bytes-read: gzread zfile buffer (CHUNK - 1)
-			write-file buffer bytes-read 1 file
+			_write-array buffer bytes-read 1 file
 			0 <> (gzeof zfile)
 		]
 		close-file file
@@ -205,7 +195,7 @@ zlib: context [
 			buffer     [byte-ptr!]
 			bytes-read [integer!]
 	][
-		file: open-file file-in "rb"
+		file: open file-in "rb"
 		if file = 0 [
 			print [ "gzip: Error opening " file-in lf ]
 			return Z_ERRNO
@@ -221,7 +211,7 @@ zlib: context [
 			return Z_ERRNO
 		]
 		until [
-			bytes-read: read-file buffer 1 CHUNK file
+			bytes-read: read-array buffer 1 CHUNK file
 			gzwrite zfile buffer bytes-read
 			file-tail? file
 		]
@@ -247,7 +237,7 @@ zlib: context [
 		]
 		ret: z-compress out-buf out-count in-buf in-count level
 		either ret = Z_OK [
-			tmp: re-allocate out-buf out-count/value	;-- Resize output buffer to minimum size
+			tmp: resize out-buf out-count/value	;-- Resize output buffer to minimum size
 			either tmp = NULL [						;-- reallocation failed, uses current output buffer
 			print [ "Compress Warning : Impossible to reallocate output buffer." lf ]
 			][
@@ -282,7 +272,7 @@ zlib: context [
 			ret: z-uncompress out-buf :out-count in-buf in-count
 			if ret = Z_BUF_ERROR [					;-- need to expand output buffer
 			out-count: 2 * out-count				;-- double buffer size
-			tmp: re-allocate out-buf out-count		;-- Resize output buffer to new size
+			tmp: resize out-buf out-count		;-- Resize output buffer to new size
 			either tmp = NULL [						;-- reallocation failed, uses current output buffer
 				print [ "Decompress Error : Impossible to reallocate output buffer." lf ]
 				ret: Z_MEM_ERROR
@@ -293,7 +283,7 @@ zlib: context [
 			any [ (ret = Z_OK) (ret = Z_MEM_ERROR) (ret = Z_STREAM_ERROR) ]
 		]
 		either ret = Z_OK [
-			tmp: re-allocate out-buf out-count		;-- Resize output buffer to minimum size
+			tmp: resize out-buf out-count		;-- Resize output buffer to minimum size
 			either tmp = NULL [						;-- reallocation failed, uses current output buffer
 			print [ "Decompress Warning : Impossible to reallocate output buffer." lf ]
 			][

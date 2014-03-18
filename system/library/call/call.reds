@@ -17,8 +17,6 @@ Red/System [
 	Purpose: {
 		This binding implements a call function for Red/System (similar to rebol's call function).
 		POSIX version uses "wordexp" function to perform word expansion.
-		Windows version performs home made string parsing (no expansion nor substitution).
-		Any proposal to improve this parsing (with native Windows functions) is welcome.
 	}
 	Reference: {
 		POSIX wordexp :
@@ -44,8 +42,10 @@ f-desc!: alias struct! [                                ;-- Files descriptors fo
 	writing  [integer!]
 ]
 
-
 system-call: context [
+	error-pipe:			"Error Red/System call : pipe creation failed : "
+	error-dup2:			"Error Red/System call : calling dup2 : "
+	error-sethandle:	"Error Red/System call : SetHandleInformation failed : "
 	outputs: declare struct! [                          ;--  Global var to store outputs values before setting call /output and /error refinements
 		out    [p-buffer!]
 		err    [p-buffer!]
@@ -112,7 +112,6 @@ system-call: context [
 			]
 			data/buffer: resize-buffer data/buffer (total + 1)    ;-- Resize output buffer to minimum size
 			data/count: total
-;			dump-memory data/buffer 1 (1 + (total / 16));-- uncomment this line for debug and compile with '-d' option
 		] ; read-from-pipe
 		call: func [ "Executes a DOS command to run another process."
 			cmd           [c-string!]  "The shell command"
@@ -154,10 +153,12 @@ system-call: context [
 			s-inf/hStdError:  stderr
 			if in-buf <> null [
 				if not create-pipe :in-read :in-write sa 0 [ ;-- Create a pipe for child's input
-					print "Error Red/System call : stdin pipe creation failed^/"   return -1
+					print [ error-pipe "stdin^/" ]
+					return -1
 				]
 				if not set-handle-information in-write HANDLE_FLAG_INHERIT 0 [
-					print "Error Red/System call : SetHandleInformation failed^/"  return -1
+					print [ error-sethandle "stdin^/" ]
+					return -1
 				]
 				s-inf/hStdInput: in-read
 			]
@@ -165,10 +166,12 @@ system-call: context [
 				out-buf/count: 0
 				out-buf/buffer: allocate READ-BUFFER-SIZE
 				if not create-pipe :out-read :out-write sa 0 [ ;-- Create a pipe for child's output
-					print "Error Red/System call : stdout pipe creation failed^/"  return -1
+					print [ error-pipe "stdout^/" ]
+					return -1
 				]
 				if not set-handle-information out-read HANDLE_FLAG_INHERIT 0 [
-					print "Error Red/System call : SetHandleInformation failed^/"  return -1
+					print [ error-sethandle "stdout^/" ]
+					return -1
 				]
 				s-inf/hStdOutput: out-write
 			]
@@ -176,10 +179,12 @@ system-call: context [
 				err-buf/count: 0
 				err-buf/buffer: allocate READ-BUFFER-SIZE
 				if not create-pipe :err-read :err-write sa 0 [ ;-- Create a pipe for child's error output
-					print "Error Red/System call : stderr pipe creation failed^/"  return -1
+					print [ error-pipe "stderr^/" ]
+					return -1
 				]
 				if not set-handle-information err-read HANDLE_FLAG_INHERIT 0 [
-					print "Error Red/System call : SetHandleInformation failed^/"  return -1
+					print [ error-sethandle "stderr^/" ]
+					return -1
 				]
 				s-inf/hStdError:  err-write
 			]
@@ -278,7 +283,8 @@ system-call: context [
 			if in-buf <> null [
 				fd-in: declare f-desc!
 				if (pipe as int-ptr! fd-in) = -1 [     ; Create a pipe for child's input
-					print "Error Red/System call : Input pipe creation failed^/"  return -1
+					print [ error-pipe "stdin^/" ]
+					return -1
 				]
 			]
 			if out-buf <> null [
@@ -286,7 +292,8 @@ system-call: context [
 				out-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-out: declare f-desc!
 				if (pipe as int-ptr! fd-out) = -1 [    ; Create a pipe for child's output
-					print "Error Red/System call : Output pipe creation failed^/"  return -1
+					print [ error-pipe "stdout^/" ]
+					return -1
 				]
 			]
 			if err-buf <> null [
@@ -294,27 +301,29 @@ system-call: context [
 				err-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-err: declare f-desc!
 				if (pipe as int-ptr! fd-err) = -1 [    ; Create a pipe for child's error
-					print "Error Red/System call : Error pipe creation failed^/"  return -1
+					print [ error-pipe "stderr^/" ]
+					return -1
 				]
 			]
+
 			pid: fork
 			either pid = 0 [                            ;-- Child process
 				if in-buf <> null [                     ;-- redirect stdin to the pipe
 					close fd-in/writing
 					err: dup2 fd-in/reading stdin
-					if err = -1 [ print "Error Red/System call : Error dup2 stdin^/" return -1 ]
+					if err = -1 [ print [ error-dup2 "stdin^/" ] return -1 ]
 					close fd-in/reading
 				]
 				if out-buf <> null [                    ;-- redirect stdout to the pipe
 					close fd-out/reading
 					err: dup2 fd-out/writing stdout
-					if err = -1 [ print "Error Red/System call : Error dup2 stdout^/" return -1 ]
+					if err = -1 [ print [ error-dup2 "stdout^/" ] return -1 ]
 					close fd-out/writing
 				]
 				if err-buf <> null [                    ;-- redirect stderr to the pipe
 					close fd-err/reading
 					err: dup2 fd-err/writing stderr
-					if err = -1 [ print "Error Red/System call : Error dup2 stderr^/" return -1 ]
+					if err = -1 [ print [ error-dup2 "stderr^/" ] return -1 ]
 					close fd-err/writing
 				]
 				if not console [

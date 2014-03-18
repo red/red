@@ -142,13 +142,4 @@ Red/System [
 		] ; stdcall
 	] ; #import
 
-	#import [ LIBC-file cdecl [
-		re-allocate:  "realloc" [
-			base           [byte-ptr!]
-			size           [integer!]
-			return:        [byte-ptr!]
-		]
-		] ; cdecl
-	] ; #import
-
 ] ; OS = 'Windows

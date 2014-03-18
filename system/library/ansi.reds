@@ -26,13 +26,13 @@ Red/System [
 	system/fpu/update
 ]
 
-#define binary!					[pointer! [byte!]]
-#define size!					integer!
-#define opaque!  				integer!	;--  Difference with Kaj's ansi binding
-#define file!					integer!	;--  Difference with Kaj's ansi binding
+#define binary!		[pointer! [byte!]]
+#define size!		integer!
+#define opaque!  	integer!							;--  Difference with Kaj's ansi binding
+#define file!		integer!							;--  Difference with Kaj's ansi binding
+#define handle!		byte-ptr!							;--  Difference with Kaj's ansi binding
 
 #import [LIBC-file cdecl [
-
 	; Memory management
 
 	make: "calloc" [						"Allocate and return zero-filled memory."
@@ -72,6 +72,20 @@ Red/System [
 	]
 	clear-status: "clearerr" [				"Clear file status."
 		file			[file!]
+	]
+	_write-array: "fwrite" [				"Write binary array to file."
+		array			[handle!]
+		size			[size!]
+		entries			[size!]
+		file			[file!]
+		return:			[size!]				"Chunks written"
+	]
+	read-array: "fread" [					"Read binary array from file."
+		array			[handle!]
+		size			[size!]
+		entries			[size!]
+		file			[file!]
+		return:			[size!]				"Chunks read"
 	]
 
 	; String processing

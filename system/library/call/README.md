@@ -1,20 +1,9 @@
 Call for Red and Red/System
 ------------------------
 
-This binding is still work in progress.
-
-It implements a **call** function for Red (similar to rebol's **[call](http://rebol.com/docs/shell.html)** function).
+This binding implements a **call** function for Red (similar to rebol's **[call](http://rebol.com/docs/shell.html)** function).
 
 POSIX version uses [wordexp](http://pubs.opengroup.org/onlinepubs/9699919799/functions/wordexp.html) function to perform word expansion.
-
-Windows version performs home made string parsing (no expansion or substitution).
-
-Any proposal to improve this parsing (with native Windows functions) is welcome.
-
-Current limits
-------------------------
-
-Windows : output redirection returns wrong char encoding.
 
 Files
 ------------------------
@@ -40,7 +29,7 @@ Running the Red console call example
 
     Linux users run **console-call** from command line.
 
-    Windows users need to open a DOS console and run **console-call.exe** from there.
+    Windows run **console-call.exe**.
 
 Syntax
 ------------------------
@@ -118,17 +107,8 @@ Found on http://social.msdn.microsoft.com :
 Plus, there is the possibility that the child process can skip back and forth between Unicode and Ansi (cmd.exe /U /k ping google.com).
 In that case ping.exe writes out Ansi.  Then when ping.exe exits and releases control to cmd.exe, the prompt returns in Unicode.*
 
-http://alfps.wordpress.com/2011/11/22/unicode-part-1-windows-console-io-approaches/
-
 Some commands will return ansi chars. **Call** detect this case and chars greater than #"^(7F)" are translated to space char.
-The **dir** command returns wide-char, the **tree** or **ping** command returns ansi chars.
-
-Unicode example : `out: "" call/output "dir" out` to execute **dir** and get the result into **out**
-
-Ansi example    : `out: "" call/output "tree /a" out`
-
-If you want to launch a GUI application just write : `call "explorer"`
-
+The **dir** command returns wide-char not translated, the **tree** or **ping** command returns ansi chars translated.
 
 Windows examples
 ------------------------
@@ -138,7 +118,7 @@ Windows examples
         -=== Red Console alpha version ===-
         Type HELP for starting information.
 
-        red>> call/wait "dir /w"
+        red>> call/wait/console "dir /w"
         Volume in drive C is System
         Volume Serial Number is 9DBC-C994
 
@@ -183,11 +163,25 @@ Windows examples
         red>>
         red>> call/wait/console "cmd"              ; enter Windows console
         red>>
+		red>> data: "" call/output "findstr ^"Nenad^" *.r" data
+		== 0
+		red>> print data
+		lexer.r:        Author:  "Nenad Rakocevic"
+		lexer.r:        Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+		compiler.r:     Author:  "Nenad Rakocevic"
+		compiler.r:     Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
+		red.r:  Author:  "Nenad Rakocevic, Andreas Bolka"
+		red.r:  Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic, Andreas Bolka. All rights reserved."
+		red>> call/input/console "findstr red" data		;-- redirect data as input for findstr
+		== 0
+		red>> 14/03/2014  08:38            27 510 boot.red
+		05/03/2014  09:25           659 182 red.exe
+		14/03/2014  08:38             9 517 red.r
+		14/03/2014  08:38            11 438 lexer.red
 
+		red>>
 
 Known bugs
 ------------------------
 
-Outputs redirection can loose data (end of buffer).
-
-Access to C system variable **[errno](http://en.wikipedia.org/wiki/Errno.h)** required.
+Outputs redirection can loose data. Access to C system variable **[errno](http://en.wikipedia.org/wiki/Errno.h)** required.
