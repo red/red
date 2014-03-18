@@ -17,8 +17,13 @@ __stack!: alias struct! [
 	frame	[pointer! [integer!]]
 ]
 
+__cpu!: alias struct! [
+	edx     [integer!]
+]
+
 system: declare struct! [							;-- trimmed down temporary system definition
 	stack		[__stack!]							;-- stack virtual access
+	cpu         [__cpu!]                            ;-- cpu virtual access
 ]
 
 
