@@ -89,6 +89,12 @@ Linux examples
 		== 0
 		red>> err: "" call/error "ls -" err             ;-- error redirection
 		== 0
+		red>> data: "" call/output "ls" data call/input/console "grep -a red" data
+		boot.red
+		lexer.red
+		red.exe
+		red.r
+		== 0
 		red>>
 
 
@@ -161,8 +167,6 @@ Windows examples
                       10 Dir(s)  200 327 868 416 bytes free
 
         red>>
-        red>> call/wait/console "cmd"              ; enter Windows console
-        red>>
 		red>> data: "" call/output "findstr ^"Nenad^" *.r" data
 		== 0
 		red>> print data
@@ -172,14 +176,17 @@ Windows examples
 		compiler.r:     Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 		red.r:  Author:  "Nenad Rakocevic, Andreas Bolka"
 		red.r:  Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic, Andreas Bolka. All rights reserved."
+        red>>
+		red>> data: "" call/output "dir" data
 		red>> call/input/console "findstr red" data		;-- redirect data as input for findstr
-		== 0
 		red>> 14/03/2014  08:38            27 510 boot.red
 		05/03/2014  09:25           659 182 red.exe
 		14/03/2014  08:38             9 517 red.r
 		14/03/2014  08:38            11 438 lexer.red
-
+		== 0
 		red>>
+        red>> call/wait/console "cmd"              ; enter Windows console
+        C:\Red>
 
 Known bugs
 ------------------------
