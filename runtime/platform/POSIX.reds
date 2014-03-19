@@ -131,7 +131,7 @@ print-Latin1: func [
 	str 	[c-string!]									;-- zero-terminated Latin-1 string
 ][
 	assert str <> null
-	prin str
+	prin* str
 ]
 
 ;-------------------------------------------
@@ -141,7 +141,7 @@ print-line-Latin1: func [
 	str [c-string!]										;-- zero-terminated Latin-1 string
 ][
 	assert str <> null
-	prin str
+	prin* str
 	putchar as-byte 10									;-- newline
 ]
 
@@ -149,7 +149,7 @@ print-line-Latin1: func [
 ;-- Red/System Unicode replacement printing functions
 ;-------------------------------------------
 
-prin: func [
+prin*: func [
 	s		[c-string!]
 	return: [c-string!]
 	/local
@@ -169,22 +169,22 @@ prin: func [
 	s
 ]
 
-prin-int: func [i [integer!] return: [integer!]][
+prin-int*: func [i [integer!] return: [integer!]][
 	printf ["%i" i]									;-- UTF-8 literal string
 	i
 ]
 
-prin-hex: func [i [integer!] return: [integer!]][
+prin-hex*: func [i [integer!] return: [integer!]][
 	printf ["%08X" i]									;-- UTF-8 literal string
 	i
 ]
 
-prin-float: func [f [float!] return: [float!]][
+prin-float*: func [f [float!] return: [float!]][
 	printf ["%.14g" f]									;-- UTF-8 literal string
 	f
 ]
 
-prin-float32: func [f [float32!] return: [float32!]][
+prin-float32*: func [f [float32!] return: [float32!]][
 	printf ["%.7g" as-float f]							;-- UTF-8 literal string
 	f
 ]

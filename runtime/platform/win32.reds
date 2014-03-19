@@ -187,7 +187,7 @@ platform: context [
 	;-- Red/System Unicode replacement printing functions
 	;-------------------------------------------
 	
-	prin: func [s [c-string!] return: [c-string!] /local p][
+	prin*: func [s [c-string!] return: [c-string!] /local p][
 		p: s
 		while [p/1 <> null-byte][
 			putwchar as-integer p/1
@@ -196,22 +196,22 @@ platform: context [
 		s
 	]
 
-	prin-int: func [i [integer!] return: [integer!]][
+	prin-int*: func [i [integer!] return: [integer!]][
 		wprintf ["%^(00)i^(00)^(00)" i]								;-- UTF-16 literal string
 		i
 	]
 
-	prin-hex: func [i [integer!] return: [integer!]][
+	prin-hex*: func [i [integer!] return: [integer!]][
 		wprintf ["%^(00)0^(00)8^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
 		i
 	]
 
-	prin-float: func [f [float!] return: [float!]][
+	prin-float*: func [f [float!] return: [float!]][
 		wprintf ["^(00)%^(00).^(00)1^(00)4^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
 		f
 	]
 
-	prin-float32: func [f [float32!] return: [float32!]][
+	prin-float32*: func [f [float32!] return: [float32!]][
 		wprintf ["^(00)%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
 		f
 	]

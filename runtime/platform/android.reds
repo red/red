@@ -66,13 +66,13 @@ print-line-UCS2: func [str [byte-ptr!]][				;-- zero-terminated UCS-2 string
 
 print-Latin1: func [str [c-string!]][					;-- zero-terminated Latin-1 string
 	assert str <> null
-	prin str
+	prin* str
 ]
 
 print-line-Latin1: func [str [c-string!]][				;-- zero-terminated Latin-1 string
 	assert str <> null
-	prin str
-	prin "^/"
+	prin* str
+	prin* "^/"
 ]
 
 ;--- Red/System printing API ---
@@ -101,31 +101,31 @@ prin-buffered: func [s [c-string!]][
 	]
 ]
 
-prin: func [s [c-string!] return: [c-string!]][
+prin*: func [s [c-string!] return: [c-string!]][
 	prin-buffered s
 	s
 ]
 
-prin-int: func [i [integer!] return: [integer!]][
+prin-int*: func [i [integer!] return: [integer!]][
 	snprintf [spf-buf OUTPUT_BUF_SIZE - tail "%i" i]
-	prin spf-buf
+	prin* spf-buf
 	i
 ]
 
-prin-hex: func [i [integer!] return: [integer!]][
+prin-hex*: func [i [integer!] return: [integer!]][
 	snprintf [spf-buf OUTPUT_BUF_SIZE - tail "%08X" i]
-	prin spf-buf
+	prin* spf-buf
 	i
 ]
 
-prin-float: func [f [float!] return: [float!]][
+prin-float*: func [f [float!] return: [float!]][
 	snprintf [spf-buf OUTPUT_BUF_SIZE - tail "%.14g" f]
-	prin spf-buf
+	prin* spf-buf
 	f
 ]
 
-prin-float32: func [f [float32!] return: [float32!]][
+prin-float32*: func [f [float32!] return: [float32!]][
 	snprintf [spf-buf OUTPUT_BUF_SIZE - tail "%.7g" as-float f]
-	prin spf-buf
+	prin* spf-buf
 	f
 ]
