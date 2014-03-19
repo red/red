@@ -33,7 +33,7 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 		inp: declare p-buffer!
 		inp/buffer: string/rs-head in-str
 		inp/count:  1 + length? (as-c-string string/rs-head in-str)
-		system-call/to-ascii inp
+		#if OS = 'Windows [ system-call/to-ascii inp ]
 	][
 		inp: null
 	]

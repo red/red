@@ -160,6 +160,7 @@ system-call: context [
 					print [ error-sethandle "stdin^/" ]
 					return -1
 				]
+				waitend: true
 				s-inf/hStdInput: in-read
 			]
 			if out-buf <> null [
@@ -173,6 +174,7 @@ system-call: context [
 					print [ error-sethandle "stdout^/" ]
 					return -1
 				]
+				waitend: false                          ;-- child's process is completed after end of pipe
 				s-inf/hStdOutput: out-write
 			]
 			if err-buf <> null [
@@ -186,10 +188,10 @@ system-call: context [
 					print [ error-sethandle "stderr^/" ]
 					return -1
 				]
+				waitend: false                          ;-- child's process is completed after end of pipe
 				s-inf/hStdError:  err-write
 			]
 			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ] [
-				waitend: false                          ;-- child's process is completed after end of pipe
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
@@ -211,12 +213,6 @@ system-call: context [
 			]
 			free as byte-ptr! cmdstr
 
-			either waitend [
-				wait-for-single-object p-inf/hProcess INFINITE
-				pid: 0
-			][
-				pid: p-inf/dwProcessId
-			]
 			if in-buf <> null [
 				close-handle in-read
 				len: in-buf/count
@@ -226,6 +222,12 @@ system-call: context [
 				]
 				close-handle in-write
 				pid: 0
+			]
+			either waitend [
+				wait-for-single-object p-inf/hProcess INFINITE
+				pid: 0
+			][
+				pid: p-inf/dwProcessId
 			]
 			if out-buf <> null [
 				close-handle out-write
