@@ -225,7 +225,7 @@ loader: make-profilable context [
 	expand-block: func [
 		src [block!]
 		/own
-		/local blk rule name value args s e opr then-block else-block cases body
+		/local blk rule name value args s e opr then-block else-block cases body p
 			saved stack header mark idx prev enum-value enum-name enum-names line-rule recurse
 	][
 		if verbose > 0 [print "running block preprocessor..."]
@@ -382,7 +382,8 @@ loader: make-profilable context [
 						]
 					]
 				)
-				| path! | set-path!						;-- avoid diving into these series
+				| p: [path! | set-path!] :p into [some [defs | skip]]	;-- process macros in paths
+				
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
 				  [into blk | block! | paren!]			;-- black magic...
 				  s: (

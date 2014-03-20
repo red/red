@@ -53,11 +53,11 @@ Red/System [
 
 #either unicode? = yes [
 
-	#define prin			[red/platform/prin]
-	#define prin-int		[red/platform/prin-int]
-	#define prin-hex		[red/platform/prin-hex]
-	#define prin-float		[red/platform/prin-float]
-	#define prin-float32	[red/platform/prin-float32]
+	#define prin			[red/platform/prin*]
+	#define prin-int		[red/platform/prin-int*]
+	#define prin-hex		[red/platform/prin-hex*]
+	#define prin-float		[red/platform/prin-float*]
+	#define prin-float32	[red/platform/prin-float32*]
 	
 ][
 	prin: func [s [c-string!] return: [c-string!] /local p][
