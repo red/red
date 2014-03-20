@@ -55,7 +55,7 @@ Block of code delimiters: square brackets
  
 Path separator: slash (denotes a hierarchical relation)
 
- s: struct [i [integer!] b [byte!]]
+ s: declare struct! [i [integer!] b [byte!]]
  s/i: 123
  s/b: #"A"
 
