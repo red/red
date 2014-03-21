@@ -46,4 +46,5 @@ Red/System [
 	]
 ]
 
+#include %linux-sigaction.reds
 #include %POSIX.reds
