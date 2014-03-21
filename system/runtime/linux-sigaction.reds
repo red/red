@@ -12,14 +12,16 @@ Red/System [
 
 #either OS = 'Android [						;-- Damn FrankenSystem!
 	sigaction!: alias struct! [
-		handler		[integer!]				;-- Warning: compiled as C union on most UNIX
+;		handler		[integer!]				;-- Warning: compiled as C union on most UNIX
+		sigaction	[integer!]				;-- Warning: compiled as C union on most UNIX
 		mask		[integer!]				;-- bit array
 		flags		[integer!]
 		;... remaining fields skipped
 	]
 ][
 	sigaction!: alias struct! [
-		handler		[integer!]				;-- Warning: compiled as union on most UNIX
+;		handler		[integer!]				;-- Warning: compiled as union on most UNIX
+		sigaction	[integer!]				;-- Warning: compiled as union on most UNIX
 		mask0		[integer!]				;-- glibc/Hurd insane inheritage...
 		mask1		[integer!]
 		mask2		[integer!]
