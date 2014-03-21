@@ -10,9 +10,6 @@ Red/System [
 	}
 ]
 
-#define SA_SIGINFO   00000004h
-#define SA_RESTART   10000000h
-
 #either OS = 'Android [						;-- Damn FrankenSystem!
 	sigaction!: alias struct! [
 		handler		[integer!]				;-- Warning: compiled as C union on most UNIX
@@ -94,10 +91,7 @@ stderr: 2
 ;;		http://www.kernel.org/doc/man-pages/online/pages/man2/sigaction.2.html
 ;; 		http://fxr.watson.org/fxr/source/include/asm-generic/siginfo.h?v=linux-2.6;im=excerpts#L161
 
-#define	SIGILL		 4						;-- Illegal instruction
-#define SIGBUS		 7						;-- Bus access error
-#define	SIGFPE		 8						;-- Floating point error
-#define	SIGSEGV		11						;-- Segmentation violation
+#include %POSIX-signals.reds
 
 posix-startup-ctx: context [
 	#switch target [
@@ -179,45 +173,45 @@ posix-startup-ctx: context [
 		error: switch signal [
 			SIGILL [
 				switch code [
-					1 [17]						;-- illegal opcode
-					2 [23]						;-- illegal operand
-					3 [24]						;-- illegal addressing mode
-					4 [25]						;-- illegal trap
-					5 [15]						;-- privileged opcode
-					6 [31]						;-- privileged register
-					7 [26]						;-- coprocessor error
-					8 [19]						;-- internal stack error
-					default [99]
+					ILL_ILLOPC [17]				;-- illegal opcode
+					ILL_ILLOPN [23]				;-- illegal operand
+					ILL_ILLADR [24]				;-- illegal addressing mode
+					ILL_ILLTRP [25]				;-- illegal trap
+					ILL_PRVOPC [15]				;-- privileged opcode
+					ILL_PRVREG [31]				;-- privileged register
+					ILL_COPROC [26]				;-- coprocessor error
+					ILL_BADSTK [19]				;-- internal stack error
+					default    [99]
 				]
 			]
 			SIGBUS [
 				switch code [
-					1 [2]						;-- invalid address alignment
-					2 [27]						;-- non-existant physical address
-					3 [28]						;-- object specific hardware error
-					4 [29]						;-- hardware memory error consumed (action required)
-					5 [30]						;-- hardware memory error consumed (action optional)
-					default [34]
+					BUS_ADRALN    [2]			;-- invalid address alignment
+					BUS_ADRERR   [27]			;-- non-existant physical address
+					BUS_OBJERR   [28]			;-- object specific hardware error
+					BUS_MCERR_AR [29]			;-- hardware memory error consumed (action required)
+					BUS_MCERR_AO [30]			;-- hardware memory error consumed (action optional)
+					default      [34]
 				]
 			]
 			SIGFPE [
 				switch code [
-					1 [13]						;-- integer divide by zero
-					2 [14]						;-- integer overflow
-					3 [7]						;-- floating point divide by zero
-					4 [10]						;-- floating point overflow
-					5 [12]						;-- floating point underflow
-					6 [8]						;-- floating point inexact result
-					7 [9]						;-- floating point invalid operation
-					8 [5]						;-- subscript out of range
-					default [33]
+					FPE_INTDIV [13]				;-- integer divide by zero
+					FPE_INTOVF [14]				;-- integer overflow
+					FPE_FLTDIV  [7]				;-- floating point divide by zero
+					FPE_FLTOVF [10]				;-- floating point overflow
+					FPE_FLTUND [12]				;-- floating point underflow
+					FPE_FLTRES  [8]				;-- floating point inexact result
+					FPE_FLTINV  [9]				;-- floating point invalid operation
+					FPE_FLTSUB  [5]				;-- subscript out of range
+					default    [33]
 				]
 			]
 			SIGSEGV [
 				switch code [
-					1 [1]						;-- address not mapped to object
-					2 [16]						;-- invalid permissions for mapped object
-					default [32]
+					SEGV_MAPERR  [1]			;-- address not mapped to object
+					SEGV_ACCERR [16]			;-- invalid permissions for mapped object
+					default     [32]
 				]
 			]
 		]
