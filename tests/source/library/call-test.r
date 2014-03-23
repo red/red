@@ -12,13 +12,18 @@ REBOL [
 	--test-- "call-1"
 		if exists? %call-test [delete %call-test]
 		if exists? %call-test.exe [delete %call-test.exe]
-		--compile-this {
-			Red[]
-			#include %../../system/library/call/call.red
-			call/wait join [to-local-file system/options/boot " -qs tests/source/library/call-test.red"
-	    }
+		path-to-rebol: to-local-file system/options/boot
+		path-to-red: to-local-file clean-path %../../red.r
+		path-to-source: to-local-file clean-path %../../tests/source/library/call-test.red
+		src: join {Red[] } compose [
+			{ #include %../../system/library/call/call.red
+			call/wait "} (path-to-rebol)
+			" -qs " (path-to-red) { }
+			(path-to-source) {"}
+		] 
+		--compile-and-run-this src
 	    --assert exists? any [%call-test %call-test.exe]
-	    
+   
 	--test-- "call-2"
 		--compile %tests/source/library/call-test.red
 		output: ""
