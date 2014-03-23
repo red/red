@@ -190,7 +190,7 @@ qt: make object! [
     ;; red/system or red
     red?: false
     parse read src red?-rule
-
+ 
     ;; compose and write compilation script
     either binary? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
@@ -405,7 +405,7 @@ qt: make object! [
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
-    if error? try [do script] [_signify-error]
+    if error? try [do script] [_signify-failure]
   ]
   
   run-script-quiet: func [
