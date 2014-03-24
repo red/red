@@ -131,5 +131,3 @@ call: func [ "Executes a shell command to run another process."
 	]
 	pid
 ]
-
-prin "-=== Call added to Red console ===-"

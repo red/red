@@ -1,6 +1,6 @@
 REBOL [
 	Title:   "Red call tests"
-	Author:  "Peter W A Wood"
+	Author:  ["Peter W A Wood" "Bruno Anselme"]
 	File: 	 %call-test.r
 	Tabs:	 4
 	Rights:  "Copyright (C) 2014 Bruno Anselme & Peter W A Wood. All rights reserved."
@@ -8,27 +8,33 @@ REBOL [
 ]
 
 ~~~start-file~~~ "Red call test"
+	--compile %tests/source/library/call-test.red
+    exe: either qt/windows-os? ["call-test.exe"] ["./call-test"]
 
 	--test-- "call-1"
-		if exists? %call-test [delete %call-test]
-		if exists? %call-test.exe [delete %call-test.exe]
-		path-to-rebol: to-local-file system/options/boot
-		path-to-red: to-local-file clean-path %../../red.r
-		path-to-source: to-local-file clean-path %../../tests/source/library/call-test.red
-		src: join {Red[] } compose [
-			{ #include %../../system/library/call/call.red
-			call/wait "} (path-to-rebol)
-			" -qs " (path-to-red) { }
-			(path-to-source) {"}
-		] 
-		--compile-and-run-this src
-	    --assert exists? any [%call-test %call-test.exe]
-   
-	--test-- "call-2"
-		--compile %tests/source/library/call-test.red
 		output: ""
-	    exe: either qt/windows-os? ["call-test.exe"] ["./call-test"]
-	    call/output exe output
-	    --assert "1^/" = output
-	    
+		cmd: reform [exe "call-1"]
+		call/output cmd output
+	    --assert "0^/" = output
+
+	--test-- "call-2"
+		output: ""
+		cmd: reform [exe "call-2"]
+		call/output cmd output
+		--assert "0^/" <> output
+
+	--test-- "call-3"
+		output: ""
+		cmd: reform [exe "call-3"]
+		call/output cmd output
+		probe output
+		--assert "Hello Red world^/" = output
+
+    --test-- "call-4"
+		output: ""
+		cmd: reform [exe "call-4"]
+		call/output cmd output
+		probe output
+	    --assert "Hello Red world^/" = output
+
 ~~~end-file~~~

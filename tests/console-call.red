@@ -83,6 +83,7 @@ Red [
 ]
 
 #include %../system/library/call/call.red
+prin "-=== Call added to Red console ===-"
 #include %help.red
 
 read-argument: routine [
