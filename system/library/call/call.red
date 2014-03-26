@@ -101,20 +101,27 @@ get-err: routine [ "Returns redirected stderr"
 ]
 
 call: func [ "Executes a shell command to run another process."
-	cmd            [string!]         "The shell command or file"
-	/wait                            "Runs command and waits for exit"
-	/console                         "Runs command with I/O redirected to console"
-	/input    in   [string!]         "Redirects in to stdin"
-	/output   out  [string! block!]  "Redirects stdout to out"
-	/error    err  [string! block!]  "Redirects stderr to err"
-	return:        [integer!]        "0 if success, -1 if error, or a process ID"
+	cmd			[string! block!]	"A shell command, an executable file or a block"
+	/wait							"Runs command and waits for exit"
+	/console						"Runs command with I/O redirected to console"
+;	/shell							"Forces command to be run from shell"
+	/input	in	[string! block!]	"Redirects in to stdin"
+	/output	out	[string! block!]	"Redirects stdout to out"
+	/error	err	[string! block!]	"Redirects stderr to err"
+	return:		[integer!]			"0 if success, -1 if error, or a process ID"
 	/local
-		pid        [integer!]
-		str        [string!]
+		pid		[integer!]
+		str		[string!]
 		do-in do-out do-err
 ][
 	pid: 0
-	either input  [ str:    in   ][ str:    ""    ]
+	if type? cmd = block! [ cmd: form reduce cmd ]
+	either input  [
+		if type? in = block! [ in: form reduce in ]
+		str: in
+	][
+		str: ""
+	]
 	either input  [ do-in:  true ][ do-in:  false ]
 	either output [ do-out: true ][ do-out: false ]
 	either error  [ do-err: true ][ do-err: false ]
