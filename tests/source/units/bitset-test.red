@@ -186,7 +186,7 @@
 	--test-- "comp-4"	--assert "make bitset! [not #{000000000000FFC0}]" = mold charset [not "0123456789"]
 	--test-- "comp-5"	--assert "make bitset! [not #{F0}]" = mold charset [not 0 1 2 3]
 
-	--test-- "comp-5"
+	--test-- "comp-6"
 		bs: make bitset! 1
 		--assert "make bitset! #{00}" = mold bs
 		--assert 8 = length? bs
@@ -194,7 +194,7 @@
 		--assert 8 = length? bs
 		--assert "make bitset! [not #{00}]" = mold bs
 
-	--test-- "comp-6"
+	--test-- "comp-7"
 		bs: charset [not "hello123" #"a" - #"z"]
 		--assert 128 = length? bs
 		--assert "make bitset! [not #{0000000000007000000000007FFFFFE0}]" = mold bs
@@ -202,7 +202,7 @@
 		--assert 128 = length? bs
 		--assert "make bitset! [not #{00000000000000000000000000000000}]" = mold bs
 
-	--test-- "comp-7"
+	--test-- "comp-8"
 		bs: complement charset " "
 		--assert 40 = length? bs
 		--assert bs/31 = true
@@ -210,21 +210,21 @@
 		--assert bs/33 = true
 		--assert bs/200 = true
 
-	--test-- "comp-8"
+	--test-- "comp-9"
 		bs/32: true
 		--assert bs/32 = true
 		--assert "make bitset! [not #{0000000000}]" = mold bs
 
-	--test-- "comp-9"
+	--test-- "comp-10"
 		poke bs #" " none
 		--assert bs/32 = false
 		--assert "make bitset! [not #{0000000080}]" = mold bs
 
-	--test-- "comp-10"
+	--test-- "comp-11"
 		clear bs
 		--assert "make bitset! [not #{0000000000}]" = mold bs
 
-	--test-- "comp-11"
+	--test-- "comp-12"
 		poke bs [32 - 40] none
 		--assert "make bitset! [not #{00000000FF80}]" = mold bs
 		poke bs [32 - 40] true
