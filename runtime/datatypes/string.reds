@@ -319,7 +319,8 @@ string: context [
 			p	 [byte-ptr!]
 			unit [integer!]
 	][
-		switch GET_UNIT(s) [
+		unit: GET_UNIT(s)
+		switch unit [
 			Latin1 [
 				case [
 					cp <= FFh 	[0]
@@ -330,7 +331,6 @@ string: context [
 			UCS-2 [if cp > FFFFh [s: unicode/UCS2-to-UCS4 s]]
 			UCS-4 [0]
 		]
-		unit: GET_UNIT(s)
 		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 			s: expand-series s 0
 		]
@@ -346,6 +346,35 @@ string: context [
 		
 		poke-char s p cp
 		s
+	]
+	
+	remove-char: func [
+		str	 	 [red-string!]
+		offset	 [integer!]
+		return:	 [red-string!]
+		/local
+			s		[series!]
+			unit	[integer!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+	][
+		assert offset >= 0
+		
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		if head >= tail [return str]					;-- early exit if nothing to remove
+
+		if head + unit < tail [
+			move-memory 
+				head
+				head + unit
+				as-integer tail - (head + unit)
+		]
+		s/tail: as red-value! tail - unit
+		str
 	]
 	
 	poke-char: func [
