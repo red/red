@@ -29,7 +29,7 @@ Running the Red console call example
 
     Linux users run **console-call** from command line.
 
-    Windows run **console-call.exe**.
+    Windows users run **console-call.exe**.
 
 Syntax
 ------------------------
@@ -89,7 +89,7 @@ Linux examples
 		== 0
 		red>> err: "" call/error "ls -" err             ;-- error redirection
 		== 0
-		red>> data: "" call/output "ls" data call/input/console "grep -a red" data
+		red>> data: "" call/output "ls" data call/input/console "grep red" data
 		boot.red
 		lexer.red
 		red.exe

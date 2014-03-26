@@ -32,7 +32,7 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	either redirin [
 		inp: declare p-buffer!
 		inp/buffer: string/rs-head in-str
-		inp/count:  1 + length? (as-c-string string/rs-head in-str)
+		inp/count:  length? (as-c-string string/rs-head in-str)
 		#if OS = 'Windows [ system-call/to-ascii inp ]
 	][
 		inp: null
@@ -115,9 +115,9 @@ call: func [ "Executes a shell command to run another process."
 		do-in do-out do-err
 ][
 	pid: 0
-	if type? cmd = block! [ cmd: form reduce cmd ]
+	if type? cmd = block! [ cmd: form cmd ]
 	either input  [
-		if type? in = block! [ in: form reduce in ]
+		if type? in = block! [ in: form in ]
 		str: in
 	][
 		str: ""

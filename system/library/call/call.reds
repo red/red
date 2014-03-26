@@ -249,6 +249,17 @@ system-call: context [
 		] ; call
 	] ; Windows
 	#default  [                                         ;-- POSIX
+		;-- Find shell name
+		shell: declare c-string!
+		until [
+			if null <> find-string system/env-vars/item "SHELL=" [
+				shell: make-c-string (length? system/env-vars/item - 6)
+				copy-string shell (system/env-vars/item + 6)
+				print [ "Shell detected : " shell lf ]
+			]
+			system/env-vars: system/env-vars + 1
+			system/env-vars/item = null
+		]
 		read-from-pipe: func [ "Read data from pipe fd into buffer"
 			fd        [f-desc!]   "File descriptor"
 			data      [p-buffer!]
