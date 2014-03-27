@@ -139,9 +139,14 @@ You can also compile the Red console from source, just use:
 
         >> do/args %red.r "-c %tests/console.red"
 
-If you change any Red sources, you can use these to compile Red programs in the same way. 
-Beware that for efficiency some scripts check if they are already loaded, so you may need to restart your `rebol` console now and then to make sure the changed sources will be reloaded into the `rebol` console memory.
+If you change any Red sources, you can use the changed sources to compile Red programs in the same way. 
+To be sure you use your changed version you may want to restart your `rebol` console or start a new instance of the  `rebol` console.
 
+If you are satisfied with the results of your change and want to issue a pull request on Github make sure the changes pass the tests. Add relevant tests to the testsuite. Please test on as many platforms as you can, using:
+
+        >> do %run-all.r 
+
+Testing the entire suite can take 15 to 30 minutes.
     
 Anti-virus false positive
 -------------------------
