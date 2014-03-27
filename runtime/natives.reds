@@ -852,6 +852,26 @@ natives: context [
 	
 	difference*: does []
 
+	complement?*: func [
+		return:    [red-logic!]
+		/local
+			bits   [red-bitset!]
+			result [red-logic!]
+	][
+		bits: as red-bitset! stack/arguments
+		s: GET_BUFFER(bits)
+		result: as red-logic! bits
+
+		either TYPE_OF(bits) =  TYPE_BITSET [
+			result/value: s/flags and flag-bitset-not = flag-bitset-not
+		][
+			result/value: false
+			print-line "*** Error: argument type must be BITSET!"
+		]
+
+		result/header: TYPE_LOGIC
+		result
+	]
 
 	;--- Natives helper functions ---
 	
