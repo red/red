@@ -117,6 +117,7 @@ system-call: context [
 			cmd           [c-string!]  "The shell command"
 			waitend       [logic!]     "Wait for end of command, implicit if any buffer is set"
 			console       [logic!]     "Redirect outputs to console"
+			shell		[logic!]       "Forces command to be run from shell"
 			in-buf        [p-buffer!]  "Input data buffer or null"
 			out-buf       [p-buffer!]  "Output data buffer or null"
 			err-buf       [p-buffer!]  "Error data buffer or null"
@@ -249,13 +250,13 @@ system-call: context [
 		] ; call
 	] ; Windows
 	#default  [                                         ;-- POSIX
-		;-- Find shell name
-		shell: declare c-string!
+		;-- Shell detection
+		shell-name: declare c-string!
 		until [
 			if null <> find-string system/env-vars/item "SHELL=" [
-				shell: make-c-string (length? system/env-vars/item - 6)
-				copy-string shell (system/env-vars/item + 6)
-				print [ "Shell detected : " shell lf ]
+				shell-name: make-c-string length? system/env-vars/item
+				copy-string shell-name (system/env-vars/item + 6)
+;				print [ "Shell detected : " shell-name lf ]
 			]
 			system/env-vars: system/env-vars + 1
 			system/env-vars/item = null
@@ -287,11 +288,14 @@ system-call: context [
 			cmd			[c-string!]    "The shell command"
 			waitend		[logic!]       "Wait for end of command, implicit if any buffer is set"
 			console		[logic!]       "Redirect outputs to console"
+			shell		[logic!]       "Forces command to be run from shell"
 			in-buf		[p-buffer!]    "Input data buffer or null"
 			out-buf		[p-buffer!]    "Output data buffer or null "
 			err-buf		[p-buffer!]    "Error data buffer or null"
 			return:		[integer!]
 			/local pid status err wexp fd-in fd-out fd-err
+				args	[str-array!]
+				argidx	[str-array!]
 		][
 			if in-buf <> null [
 				fd-in: declare f-desc!
@@ -344,25 +348,38 @@ system-call: context [
 					if out-buf = null [ close stdout ]
 					if err-buf = null [ close stderr ]
 				]
-				wexp: declare wordexp-type!             ;-- Create wordexp struct
-				status: wordexp cmd wexp WRDE_SHOWERR   ;-- Parse cmd into str-array
-				either status = 0 [                     ;-- Parsing ok
-					execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
-					print [ "Error Red/System call while calling execvp : {" cmd "}" lf ]  ;-- Should never occur
-					quit 1
-				][                                      ;-- Parsing nok
-					print [ "Error Red/System call, wordexp parsing command : " cmd lf ]
-					switch status [
-						WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
-						WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
-						WRDE_BADVAL  [ print [ "Reference to undefined shell variable" lf ] ]
-						WRDE_CMDSUB  [ print [ "Command substitution requested" lf ] ]
-						WRDE_SYNTAX  [ print [ "Shell syntax error, such as unbalanced parentheses or unterminated string" lf ] ]
+				either shell [
+					args: as str-array! allocate 4 * size? c-string!
+					argidx: args
+					argidx/item: shell-name		argidx: argidx + 1
+					argidx/item: "-c"			argidx: argidx + 1
+					argidx/item: cmd			argidx: argidx + 1
+					argidx/item: null
+					execvp shell-name args ;-- Process is launched here, execvp with str-array parameters
+					print [ "Error Red/System call while calling execvp : {" shell-name "-c" cmd "}" lf ]  ;-- Should never occur
+					quit -1
+
+				][
+					wexp: declare wordexp-type!             ;-- Create wordexp struct
+					status: wordexp cmd wexp WRDE_SHOWERR   ;-- Parse cmd into str-array
+					either status = 0 [                     ;-- Parsing ok
+						execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
+						print [ "Error Red/System call while calling execvp : {" cmd "}" lf ]  ;-- Should never occur
+						quit 1
+					][                                      ;-- Parsing nok
+						print [ "Error Red/System call, wordexp parsing command : " cmd lf ]
+						switch status [
+							WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
+							WRDE_BADCHAR [ print [ "Use of the unquoted characters- <newline>, '|', '&', ';', '<', '>', '(', ')', '{', '}'" lf ] ]
+							WRDE_BADVAL  [ print [ "Reference to undefined shell variable" lf ] ]
+							WRDE_CMDSUB  [ print [ "Command substitution requested" lf ] ]
+							WRDE_SYNTAX  [ print [ "Shell syntax error, such as unbalanced parentheses or unterminated string" lf ] ]
+						]
+						if in-buf  <> null [ free in-buf/buffer  ] ;-- free allocated buffers before exit
+						if out-buf <> null [ free out-buf/buffer ]
+						if err-buf <> null [ free err-buf/buffer ]
+						return -1
 					]
-					if in-buf  <> null [ free in-buf/buffer  ] ;-- free allocated buffers before exit
-					if out-buf <> null [ free out-buf/buffer ]
-					if err-buf <> null [ free err-buf/buffer ]
-					return -1
 				]
 			][                                          ;-- Parent process
 				if in-buf <> null [                     ;-- write input buffer to child process' stdin
