@@ -87,7 +87,10 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 	--assert {"abc^^(10000)def"} = mold/all "abc^(010000)def"
 	
 	--test-- "mold-string6"
-		--assert {"目录1"} = mold "目录1" 
+		--assert {"目录1"} = mold "目录1"
+		
+	--test-- "mold-string7"
+		--assert {"%e录1"} = mold "%e录1"
  
 ===end-group===
 
