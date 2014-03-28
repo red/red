@@ -805,6 +805,13 @@ union: make native! [[
 	#get-definition NAT_UNION
 ]
 
+complement?: make native! [[
+		"Returns true if the bitset is complemented."
+		bits [bitset!]
+	]
+	#get-definition NAT_COMPLEMENT?
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
