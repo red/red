@@ -35,20 +35,21 @@ Syntax
 ------------------------
 
 		USAGE:
-			call cmd /wait /console /input in /output out /error err
+			call cmd /wait /console /shell /input in /output out /error err
 
 		DESCRIPTION:
 			Executes a shell command to run another process..
 			call is type: function!
 
 		ARGUMENTS:
-			cmd [string!] => The shell command or file.
+			cmd [string! block!] => A shell command, an executable file or a block.
 
 		REFINEMENTS:
 			/wait => Runs command and waits for exit.
 			/console => Runs command with I/O redirected to console.
+			/shell => Forces command to be run from shell.
 			/input
-				in [string!] => Redirects in to stdin.
+				in [string! block!] => Redirects in to stdin.
 			/output
 				out [string! block!] => Redirects stdout to out.
 			/error

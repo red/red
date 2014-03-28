@@ -293,9 +293,7 @@ system-call: context [
 			out-buf		[p-buffer!]    "Output data buffer or null "
 			err-buf		[p-buffer!]    "Error data buffer or null"
 			return:		[integer!]
-			/local pid status err wexp fd-in fd-out fd-err
-				args	[str-array!]
-				argidx	[str-array!]
+			/local pid status err wexp fd-in fd-out fd-err args
 		][
 			if in-buf <> null [
 				fd-in: declare f-desc!
@@ -350,11 +348,11 @@ system-call: context [
 				]
 				either shell [
 					args: as str-array! allocate 4 * size? c-string!
-					argidx: args
-					argidx/item: shell-name		argidx: argidx + 1
-					argidx/item: "-c"			argidx: argidx + 1
-					argidx/item: cmd			argidx: argidx + 1
-					argidx/item: null
+					args/item: shell-name	args: args + 1
+					args/item: "-c"			args: args + 1
+					args/item: cmd			args: args + 1
+					args/item: null
+					args: args - 3						;-- reset args pointer
 					execvp shell-name args ;-- Process is launched here, execvp with str-array parameters
 					print [ "Error Red/System call while calling execvp : {" shell-name "-c" cmd "}" lf ]  ;-- Should never occur
 					quit -1
