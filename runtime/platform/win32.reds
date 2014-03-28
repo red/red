@@ -49,6 +49,11 @@ platform: context [
 			;	flags		[integer!]
 			;	return:		[integer!]
 			;]
+			gets:        "gets" [						;-- getline() is POSIX, not in MSVCRT.DLL
+				line		[c-string!]
+				return:		[c-string!]
+			]
+
 		]
 		"kernel32.dll" stdcall [
 			VirtualAlloc: "VirtualAlloc" [
@@ -214,6 +219,21 @@ platform: context [
 	prin-float32*: func [f [float32!] return: [float32!]][
 		wprintf ["^(00)%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
 		f
+	]
+
+	;-------------------------------------------
+	;-- Hack for basic input, just so there's *something*...
+	;-------------------------------------------
+	input-line: func [return: [c-string!] /local line] [
+		line: make-c-string 1001
+
+		if as-logic line [
+			if null = gets line [  ; FIXME: no size check!
+				free as byte-ptr! line
+				return null
+			]
+		]
+		line
 	]
 	
 	;-------------------------------------------
