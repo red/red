@@ -88,14 +88,6 @@ Red/System [
 			args-list      [str-array!]
 			return:        [integer!]
 		]
-		execlp: "execlp" [
-			[variadic]
-;			cmd            [c-string!] "Command to run"
-;			arg1           [c-string!]
-;			arg2           [c-string!]
-;			...
-			return:        [integer!]
-		]
 		wordexp: "wordexp" [ "Perform word expansions"
 			words          [c-string!]
 			pwordexp       [wordexp-type!]
