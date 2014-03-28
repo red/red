@@ -21,6 +21,7 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	cmd        [string!]  "Command"
 	waitend    [logic!]   "Wait for end of child process"
 	console    [logic!]   "Runs command with I/O redirected to console"
+	shell      [logic!]   "Forces command to be run from shell"
 	redirin    [logic!]   "Input redirection"
 	in-str     [string!]  "Input data"
 	redirout   [logic!]   "Output redirection"
@@ -32,7 +33,7 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	either redirin [
 		inp: declare p-buffer!
 		inp/buffer: string/rs-head in-str
-		inp/count:  1 + length? (as-c-string string/rs-head in-str)
+		inp/count:  length? (as-c-string string/rs-head in-str)
 		#if OS = 'Windows [ system-call/to-ascii inp ]
 	][
 		inp: null
@@ -51,7 +52,7 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	][
 		err: null
 	]
-	system-call/call (as-c-string string/rs-head cmd) waitend console inp out err
+	system-call/call (as-c-string string/rs-head cmd) waitend console shell inp out err
 ]
 
 get-out: routine [ "Returns redirected stdout"
@@ -101,24 +102,31 @@ get-err: routine [ "Returns redirected stderr"
 ]
 
 call: func [ "Executes a shell command to run another process."
-	cmd            [string!]         "The shell command or file"
-	/wait                            "Runs command and waits for exit"
-	/console                         "Runs command with I/O redirected to console"
-	/input    in   [string!]         "Redirects in to stdin"
-	/output   out  [string! block!]  "Redirects stdout to out"
-	/error    err  [string! block!]  "Redirects stderr to err"
-	return:        [integer!]        "0 if success, -1 if error, or a process ID"
+	cmd			[string! block!]	"A shell command, an executable file or a block"
+	/wait							"Runs command and waits for exit"
+	/console						"Runs command with I/O redirected to console"
+	/shell							"Forces command to be run from shell"
+	/input	in	[string! block!]	"Redirects in to stdin"
+	/output	out	[string! block!]	"Redirects stdout to out"
+	/error	err	[string! block!]	"Redirects stderr to err"
+	return:		[integer!]			"0 if success, -1 if error, or a process ID"
 	/local
-		pid        [integer!]
-		str        [string!]
+		pid		[integer!]
+		str		[string!]
 		do-in do-out do-err
 ][
 	pid: 0
-	either input  [ str:    in   ][ str:    ""    ]
+	if type? cmd = block! [ cmd: form cmd ]
+	either input  [
+		if type? in = block! [ in: form in ]
+		str: in
+	][
+		str: ""
+	]
 	either input  [ do-in:  true ][ do-in:  false ]
 	either output [ do-out: true ][ do-out: false ]
 	either error  [ do-err: true ][ do-err: false ]
-	pid: redsys-call cmd wait console do-in str do-out do-err
+	pid: redsys-call cmd wait console shell do-in str do-out do-err
 	if do-out [
 		str: get-out
 		insert out str
@@ -131,5 +139,3 @@ call: func [ "Executes a shell command to run another process."
 	]
 	pid
 ]
-
-prin "-=== Call added to Red console ===-"
