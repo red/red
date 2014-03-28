@@ -8,6 +8,8 @@ Red/System [
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
+	edited-by: "Arnold van Hofwegen"
+	find: "@IR"
 ]
 
 integer: context [
@@ -164,7 +166,14 @@ integer: context [
 		int		[red-integer!]
 		return: [integer!]
  	][
-		int/value: 1				; Start with a simple return value to test if it works at all.
+ 		;; Is seed a function within random action?
+ 		seed: function [ 
+ 			int [red-integer!]
+ 		][
+ 			int/value: 2
+ 			as integer! int
+ 		]
+		int/value: int/value + 1			; Start with a simple return value to test if it works at all.
 		as integer! int                              
 	]
 
