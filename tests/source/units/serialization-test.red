@@ -85,6 +85,10 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 	
 	--test-- "mold-string6"
 	--assert {"abc^^(10000)def"} = mold/all "abc^(010000)def"
+	
+	--test-- "mold-string6"
+		--assert {"目录1"} = mold "目录1" 
+ 
 ===end-group===
 
 ===start-group=== "logic"
@@ -117,6 +121,16 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
  
 ===end-group===
 
+===start-group=== "file"
+
+	--test-- "mold-file1"
+		--assert "%目录1" = mold %目录1
+		
+	--test-- "mold-file2"
+		--assert "%目录1" = mold/all %目录1 
+
+===end-group===
+
 ===start-group=== "mold/only"
 	--test-- "mold/only-1 issue #458"
 	--assert "a [b] c" = mold/only [a [b] c]
@@ -131,6 +145,11 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 	--assert "a" = mold/only [a]
 	--test-- "mold/only-5"
 	--assert "a [b] c [d [e] f] g" = mold/only [a [b] c [d [e] f] g]
+===end-group===
+
+===start-group=== "mold/all"
+	--test-- "mold/all-1"
+		--assert  {"^^(76EE)^^(5F55)1"} = mold/all "目录1"
 ===end-group===
 
 ~~~end-file~~~
