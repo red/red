@@ -32,12 +32,12 @@ Red/System [
 
 #define READ-BUFFER-SIZE 4096
 
-p-buffer!: alias struct! [                              ;-- Data buffer struct, pointer and bytes count
+p-buffer!: alias struct! [								;-- Data buffer struct, pointer and bytes count
 	count  [integer!]
 	buffer [byte-ptr!]
 ]
 
-f-desc!: alias struct! [                                ;-- Files descriptors for posix pipe
+f-desc!: alias struct! [								;-- Files descriptors for posix pipe
 	reading  [integer!]
 	writing  [integer!]
 ]
@@ -46,7 +46,7 @@ system-call: context [
 	error-pipe:			"Error Red/System call : pipe creation failed : "
 	error-dup2:			"Error Red/System call : calling dup2 : "
 	error-sethandle:	"Error Red/System call : SetHandleInformation failed : "
-	outputs: declare struct! [                          ;--  Global var to store outputs values before setting call /output and /error refinements
+	outputs: declare struct! [							;--  Global var to store outputs values before setting call /output and /error refinements
 		out    [p-buffer!]
 		err    [p-buffer!]
 	]
@@ -96,7 +96,7 @@ system-call: context [
 			data         [p-buffer!]
 			/local len size total
 		][
-			size: READ-BUFFER-SIZE                      ;-- get initial buffer size
+			size: READ-BUFFER-SIZE						;-- get initial buffer size
 			total: 0
 			until [
 				len: 0
@@ -108,9 +108,9 @@ system-call: context [
 				        data/buffer: resize-buffer data/buffer size
 				    ]
 				]
-				get-last-error = ERROR_BROKEN_PIPE      ;-- Pipe done - normal exit
+				get-last-error = ERROR_BROKEN_PIPE		;-- Pipe done - normal exit
 			]
-			data/buffer: resize-buffer data/buffer (total + 1)    ;-- Resize output buffer to minimum size
+			data/buffer: resize-buffer data/buffer (total + 1)	;-- Resize output buffer to minimum size
 			data/count: total
 		] ; read-from-pipe
 		call: func [ "Executes a DOS command to run another process."
@@ -153,7 +153,7 @@ system-call: context [
 			s-inf/hStdOutput: stdout
 			s-inf/hStdError:  stderr
 			if in-buf <> null [
-				if not create-pipe :in-read :in-write sa 0 [ ;-- Create a pipe for child's input
+				if not create-pipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
 					print [ error-pipe "stdin^/" ]
 					return -1
 				]
@@ -161,13 +161,12 @@ system-call: context [
 					print [ error-sethandle "stdin^/" ]
 					return -1
 				]
-				waitend: true
 				s-inf/hStdInput: in-read
 			]
 			if out-buf <> null [
 				out-buf/count: 0
 				out-buf/buffer: allocate READ-BUFFER-SIZE
-				if not create-pipe :out-read :out-write sa 0 [ ;-- Create a pipe for child's output
+				if not create-pipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
 					print [ error-pipe "stdout^/" ]
 					return -1
 				]
@@ -175,13 +174,12 @@ system-call: context [
 					print [ error-sethandle "stdout^/" ]
 					return -1
 				]
-				waitend: false                          ;-- child's process is completed after end of pipe
 				s-inf/hStdOutput: out-write
 			]
 			if err-buf <> null [
 				err-buf/count: 0
 				err-buf/buffer: allocate READ-BUFFER-SIZE
-				if not create-pipe :err-read :err-write sa 0 [ ;-- Create a pipe for child's error output
+				if not create-pipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
 					print [ error-pipe "stderr^/" ]
 					return -1
 				]
@@ -189,14 +187,14 @@ system-call: context [
 					print [ error-sethandle "stderr^/" ]
 					return -1
 				]
-				waitend: false                          ;-- child's process is completed after end of pipe
 				s-inf/hStdError:  err-write
 			]
 			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ] [
+				waitend: true
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
-			if not console [
+			if not console [							;-- close IOs if not needed
 				if in-buf  = null [ s-inf/hStdInput:  0 ]
 				if out-buf = null [ s-inf/hStdOutput: 0 ]
 				if err-buf = null [ s-inf/hStdError:  0 ]
@@ -214,6 +212,7 @@ system-call: context [
 			]
 			free as byte-ptr! cmdstr
 
+			pid: 0
 			if in-buf <> null [
 				close-handle in-read
 				len: in-buf/count
@@ -222,29 +221,26 @@ system-call: context [
 					print [ "Error Red/System call : write into pipe failed : " get-last-error lf ]
 				]
 				close-handle in-write
-				pid: 0
-			]
-			either waitend [
-				wait-for-single-object p-inf/hProcess INFINITE
-				pid: 0
-			][
-				pid: p-inf/dwProcessId
 			]
 			if out-buf <> null [
 				close-handle out-write
 				read-from-pipe out-read out-buf
 				close-handle out-read
-				pid: 0
 			]
 			if err-buf <> null [
 				close-handle err-write
 				read-from-pipe err-read err-buf
 				close-handle err-read
-				pid: 0
+			]
+			either waitend [
+				wait-for-single-object p-inf/hProcess INFINITE
+				get-exit-code-process p-inf/hProcess :pid
+			][
+				pid: p-inf/dwProcessId
 			]
 			close-handle p-inf/hProcess
 			close-handle p-inf/hThread
-			outputs/out: out-buf                        ;-- Store values in global var
+			outputs/out: out-buf						;-- Store values in global var
 			outputs/err: err-buf
 			return pid
 		] ; call
@@ -353,18 +349,18 @@ system-call: context [
 					args/item: cmd			args: args + 1
 					args/item: null
 					args: args - 3						;-- reset args pointer
-					execvp shell-name args ;-- Process is launched here, execvp with str-array parameters
+					execvp shell-name args				;-- Process is launched here, execvp with str-array parameters
 					print [ "Error Red/System call while calling execvp : {" shell-name "-c" cmd "}" lf ]  ;-- Should never occur
 					quit -1
 
 				][
-					wexp: declare wordexp-type!             ;-- Create wordexp struct
-					status: wordexp cmd wexp WRDE_SHOWERR   ;-- Parse cmd into str-array
-					either status = 0 [                     ;-- Parsing ok
+					wexp: declare wordexp-type!				;-- Create wordexp struct
+					status: wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
+					either status = 0 [						;-- Parsing ok
 						execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
 						print [ "Error Red/System call while calling execvp : {" cmd "}" lf ]  ;-- Should never occur
 						quit 1
-					][                                      ;-- Parsing nok
+					][										;-- Parsing nok
 						print [ "Error Red/System call, wordexp parsing command : " cmd lf ]
 						switch status [
 							WRDE_NOSPACE [ print [ "Attempt to allocate memory failed" lf ] ]
@@ -373,35 +369,33 @@ system-call: context [
 							WRDE_CMDSUB  [ print [ "Command substitution requested" lf ] ]
 							WRDE_SYNTAX  [ print [ "Shell syntax error, such as unbalanced parentheses or unterminated string" lf ] ]
 						]
-						if in-buf  <> null [ free in-buf/buffer  ] ;-- free allocated buffers before exit
+						if in-buf  <> null [ free in-buf/buffer  ]	;-- free allocated buffers before exit
 						if out-buf <> null [ free out-buf/buffer ]
 						if err-buf <> null [ free err-buf/buffer ]
-						return -1
+						quit -1
 					]
 				]
-			][                                          ;-- Parent process
-				if in-buf <> null [                     ;-- write input buffer to child process' stdin
+			][											;-- Parent process
+				if in-buf <> null [						;-- write input buffer to child process' stdin
 					close fd-in/reading
 					iowrite fd-in/writing in-buf/buffer in-buf/count
 					close fd-in/writing
 					waitend: true
 				]
 				if out-buf <> null [
-					read-from-pipe fd-out out-buf       ;-- read output buffer from child process' stdout
-					waitend: false                      ;-- child's process is completed after end of pipe
-					pid: 0                              ;-- Process is completed, return 0
+					read-from-pipe fd-out out-buf		;-- read output buffer from child process' stdout
+					waitend: true
 				]
-				if err-buf <> null [                    ;-- Same with error stream
+				if err-buf <> null [					;-- read error buffer from child process' stderr
 					read-from-pipe fd-err err-buf
-					waitend: false
-					pid: 0
+					waitend: true
 				]
 				if waitend [
 					status: 0
-					waitpid pid :status 0               ;-- Wait child process terminate
-					pid: 0                              ;-- Process is completed, return 0
+					waitpid pid :status 0				;-- Wait child process terminate
+					pid: status >> 8					;-- Returns process exit code (__WEXITSTATUS(status))
 				]
-				outputs/out: out-buf                    ;-- Store values in global var
+				outputs/out: out-buf					;-- Store values in global var
 				outputs/err: err-buf
 			] ; either pid
 			return pid

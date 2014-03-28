@@ -95,6 +95,11 @@ Red/System [
 			dwMilliseconds          [integer!]
 			return:                 [integer!]
 		]
+		get-exit-code-process: "GetExitCodeProcess" [ "Retrieves the termination status of the specified process"
+			hProcess				[opaque!]
+			lpExitCode				[int-ptr!]
+			return:                 [logic!]
+		]
 		create-pipe: "CreatePipe" [ "Creates an anonymous pipe, and returns handles to the read and write ends of the pipe"
 			hReadPipe               [int-ptr!]
 			hWritePipe              [int-ptr!]

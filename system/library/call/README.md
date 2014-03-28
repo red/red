@@ -168,7 +168,7 @@ Windows examples
                       10 Dir(s)  200 327 868 416 bytes free
 
         red>>
-		red>> data: "" call/output "findstr ^"Nenad^" *.r" data
+		red>> data: "" call/output {findstr "Nenad" *.r} data
 		== 0
 		red>> print data
 		lexer.r:        Author:  "Nenad Rakocevic"
