@@ -188,9 +188,11 @@
 
 	--test-- "comp-6"
 		bs: make bitset! 1
+		--assert false = complement? bs
 		--assert "make bitset! #{00}" = mold bs
 		--assert 8 = length? bs
 		bs: complement bs
+		--assert true = complement? bs
 		--assert 8 = length? bs
 		--assert "make bitset! [not #{00}]" = mold bs
 
