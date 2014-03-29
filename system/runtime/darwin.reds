@@ -30,7 +30,6 @@ Red/System [
 ]
 
 sigaction!: alias struct! [
-;	handler		[integer!]					;-- Warning: compiled as C union on most UNIX
 	sigaction	[integer!]					;-- Warning: compiled as union on most UNIX
 	mask		[integer!]					;-- bit array
 	flags		[integer!]
