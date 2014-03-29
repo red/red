@@ -140,9 +140,17 @@ platform: context [
 	;-------------------------------------------
 	print-UCS2: func [
 		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
+		/local
+			p	[byte-ptr!]
+			cp	[integer!]
 	][
 		assert str <> null
-		wprintf str										;@@ throw an error on failure
+		p: str
+		while [p/1 <> null-byte][
+			cp: (as-integer p/2) << 8 + p/1
+			putwchar cp
+			p: p + 2
+		]
 	]
 
 	;-------------------------------------------
@@ -152,7 +160,7 @@ platform: context [
 		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
 	][
 		assert str <> null
-		wprintf str										;@@ throw an error on failure
+		print-UCS2 str									;@@ throw an error on failure
 		putwchar 10										;-- newline
 	]
 	
