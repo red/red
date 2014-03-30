@@ -909,7 +909,7 @@ REBOL [
   ;--assert-red-printed? {char: ! cp: 33}
   
   --test-- "or120"
-  --assert-red-printed? "or120test5/test2test3test6:"
+  --assert-red-printed? "or120test5/test2'test3test6:"
   
   --test-- "or121"
   --assert-red-printed?  "or121/test2 'test3 test6:"

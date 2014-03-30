@@ -824,7 +824,7 @@ red: context [
 			output: saved
 	]
 	
-	comp-literal: func [root? [logic!] /local value char? name w make-block][
+	comp-literal: func [root? [logic!] /local value char? name w make-block type][
 		value: pc/1
 		either any [
 			char?: unicode-char? value
@@ -840,11 +840,20 @@ red: context [
 					emit to integer! next value
 					insert-lf -2
 				]
-				find [refinement! issue!] type?/word :value [
+				find [refinement! issue! lit-word!] type?/word :value [
 					add-symbol w: to word! form value
-					emit to path! reduce [to word! form type? value 'push]
-					emit to path! reduce ['exec decorate-symbol w]
-					insert-lf -2
+					type: to word! form type? :value
+					
+					either all [not issue? :value local-word? w][
+						emit append to path! type 'push-local
+						emit last ctx-stack
+						emit get-word-index w
+						insert-lf -3
+					][
+						emit to path! reduce [type 'push]
+						emit to path! reduce ['exec decorate-symbol w]
+						insert-lf -2
+					]
 				]
 				none? :value [
 					emit 'none/push

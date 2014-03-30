@@ -667,11 +667,10 @@ interpreter: context [
 			]
 			TYPE_LIT_WORD [
 				either sub? [
-					w: word/push as red-word! pc		;-- nested expression: push value
+					word/push as red-word! pc			;-- nested expression: push value
 				][
-					w: as red-word! stack/set-last pc	;-- root expression: return value
+					stack/set-last pc					;-- root expression: return value
 				]
-				w/header: TYPE_WORD						;-- coerce it to a word!
 				pc: pc + 1
 			]
 			TYPE_WORD [
@@ -712,8 +711,7 @@ interpreter: context [
 						either sub? [stack/push unset-value][stack/set-last unset-value]
 					]
 					TYPE_LIT_WORD [
-						w: word/push as red-word! value	;-- push lit-word! on stack
-						w/header: TYPE_WORD				;-- coerce it to a word!
+						word/push as red-word! value	;-- push lit-word! on stack
 					]
 					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
 					TYPE_NATIVE
