@@ -22,7 +22,7 @@ Red/System [
 
 
 platform: context [
-	
+
 	#enum file-descriptors! [
 		fd-stdout: 1									;@@ hardcoded, safe?
 		fd-stderr: 2									;@@ hardcoded, safe?
@@ -32,9 +32,9 @@ platform: context [
 
 	#import [
 		LIBC-file cdecl [
-			putwchar: "putwchar" [
-				wchar		[integer!]					;-- wchar is 16-bit on Windows
-			]
+			;putwchar: "putwchar" [
+			;	wchar		[integer!]					;-- wchar is 16-bit on Windows
+			;]
 			wprintf: "wprintf" [
 				[variadic]
 				return: 	[integer!]
@@ -63,6 +63,14 @@ platform: context [
 				size		[integer!]
 				return:		[integer!]
 			]
+			WriteConsole: 	 "WriteConsoleW" [
+				consoleOutput	[integer!]
+				buffer			[byte-ptr!]
+				charsToWrite	[integer!]
+				numberOfChars	[int-ptr!]
+				_reserved		[int-ptr!]
+				return:			[integer!]
+			]
 		]
 	]
 
@@ -77,7 +85,7 @@ platform: context [
 	][
 		prot: either exec? [VA_PAGE_RWX][VA_PAGE_RW]
 
-		ptr: VirtualAlloc 
+		ptr: VirtualAlloc
 			null
 			size
 			VA_COMMIT_RESERVE
@@ -99,7 +107,20 @@ platform: context [
 			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer ptr
 		]
 	]
-	
+
+	;-------------------------------------------
+	;-- putwchar use WriteConsoleW internal
+	;-------------------------------------------
+	putwchar: func [
+		wchar	[integer!]								;-- wchar is 16-bit on Windows
+		return:	[integer!]
+		/local
+			n	[integer!]
+	][
+		n: 0
+		WriteConsole stdout (as byte-ptr! :wchar) 1 :n null
+	]
+
 	;-------------------------------------------
 	;-- Print a UCS-4 string to console
 	;-------------------------------------------
@@ -109,8 +130,8 @@ platform: context [
 			cp [integer!]								;-- codepoint
 	][
 		assert str <> null
-		
-		while [cp: str/value not zero? cp][			
+
+		while [cp: str/value not zero? cp][
 			either str/value > FFFFh [
 				cp: cp - 00010000h						;-- encode surrogate pair
 				putwchar cp >> 10 + D800h				;-- emit lead
@@ -121,7 +142,7 @@ platform: context [
 			str: str + 1
 		]
 	]
-		
+
 	;-------------------------------------------
 	;-- Print a UCS-4 string to console
 	;-------------------------------------------
@@ -134,7 +155,7 @@ platform: context [
 		print-UCS4 str									;@@ throw an error on failure
 		putwchar 10										;-- newline
 	]
-	
+
 	;-------------------------------------------
 	;-- Print a UCS-2 string to console
 	;-------------------------------------------
@@ -163,7 +184,7 @@ platform: context [
 		print-UCS2 str									;@@ throw an error on failure
 		putwchar 10										;-- newline
 	]
-	
+
 	;-------------------------------------------
 	;-- Print a Latin-1 string to console
 	;-------------------------------------------
@@ -179,7 +200,7 @@ platform: context [
 			str: str + 1
 		]
 	]
-	
+
 	;-------------------------------------------
 	;-- Print a Latin-1 string with newline to console
 	;-------------------------------------------
@@ -190,11 +211,11 @@ platform: context [
 		print-Latin1 str
 		putwchar 10										;-- newline
 	]
-	
+
 	;-------------------------------------------
 	;-- Red/System Unicode replacement printing functions
 	;-------------------------------------------
-	
+
 	prin*: func [s [c-string!] return: [c-string!] /local p][
 		p: s
 		while [p/1 <> null-byte][
@@ -223,7 +244,7 @@ platform: context [
 		wprintf ["^(00)%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
 		f
 	]
-	
+
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
