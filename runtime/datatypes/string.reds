@@ -15,8 +15,17 @@ string: context [
 	
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
 	#define MAX_ESC_CHARS		5Fh	
+	#define MAX_URL_CHARS 		7Fh
 	
-	escape-chars: declare byte-ptr!
+	escape-chars:		declare byte-ptr!
+	escape-url-chars:	declare byte-ptr!
+
+	#enum escape-type! [
+		ESC_CHAR
+		ESC_URL
+		ESC_FILE
+		ESC_EMAIL
+	]
 
 	fill-table: func [
 		/local
@@ -41,7 +50,38 @@ string: context [
 		escape-chars/35: #"^""							;-- 34 + 1 (adjust for 1-base)
 		escape-chars/95: #"^^"							;-- 94 + 1 (adjust for 1-base)
 	]
-	
+
+	fill-url-table: func [
+		/local
+			c [byte!]
+			i [integer!]
+	][
+		i: 1
+		c: #"^@"
+		while [c <= #" "][
+			escape-url-chars/i: as byte! ESC_FILE
+			i: i + 1
+			c: c + 1
+		]
+
+		while [i < MAX_URL_CHARS][
+			escape-url-chars/i: null-byte
+			i: i + 1
+		]
+
+		escape-url-chars/35:  as byte! ESC_FILE		;-- #"^"" 34 + 1  (adjust for 1-base)
+		escape-url-chars/38:  as byte! ESC_FILE		;-- #"%"  37 + 1  (adjust for 1-base)
+		escape-url-chars/41:  as byte! ESC_FILE		;-- #"("  40 + 1  (adjust for 1-base)
+		escape-url-chars/42:  as byte! ESC_FILE		;-- #")"  41 + 1  (adjust for 1-base)
+		escape-url-chars/60:  as byte! ESC_FILE		;-- #";"  59 + 1  (adjust for 1-base)
+		escape-url-chars/61:  as byte! ESC_FILE		;-- #"<"  60 + 1  (adjust for 1-base)
+		escape-url-chars/63:  as byte! ESC_FILE		;-- #">"  62 + 1  (adjust for 1-base)
+		escape-url-chars/92:  as byte! ESC_FILE		;-- #"["  91 + 1  (adjust for 1-base
+		escape-url-chars/94:  as byte! ESC_FILE		;-- #"]"  93 + 1  (adjust for 1-base)
+		escape-url-chars/124: as byte! ESC_FILE		;-- #"{"  123 + 1 (adjust for 1-base)
+		escape-url-chars/126: as byte! ESC_FILE		;-- #"}"  125 + 1 (adjust for 1-base)
+	]
+
 	to-hex: func [
 		cp		[integer!]								;-- codepoint <= 10FFFFh
 		return: [c-string!]
@@ -811,6 +851,7 @@ string: context [
 	append-escaped-char: func [
 		buffer	[red-string!]
 		cp	    [integer!]
+		type	[integer!]
 		all?	[logic!]
 		/local
 			idx [integer!]
@@ -823,9 +864,13 @@ string: context [
 				concatenate-literal buffer to-hex cp
 				append-char GET_BUFFER(buffer) as-integer #")"
 			]
-			all [cp < MAX_ESC_CHARS escape-chars/idx <> null-byte][
+			all [type = ESC_CHAR cp < MAX_ESC_CHARS escape-chars/idx <> null-byte][
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
+			]
+			all [type = ESC_FILE cp < MAX_URL_CHARS escape-url-chars/idx <> null-byte][
+				append-char GET_BUFFER(buffer) as-integer #"%"
+				concatenate-literal buffer to-hex cp
 			]
 			true [
 				append-char GET_BUFFER(buffer) cp
@@ -877,12 +922,12 @@ string: context [
 			either negative? part [p][p + (part << (unit >> 1))]
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
-		
+
 		curly: 0
 		quote: 0
 		nl:    0
 		sniff-chars p tail unit :curly :quote :nl
-		
+
 		either any [
 			nl >= 3
 			negative? curly
@@ -895,7 +940,7 @@ string: context [
 			open:  #"^""
 			close: #"^""
 		]
-		
+
 		append-char GET_BUFFER(buffer) as-integer open
 		
 		while [p < tail][
@@ -912,14 +957,14 @@ string: context [
 					]
 					#"^""	[append-char GET_BUFFER(buffer) cp]
 					#"^^"	[concatenate-literal buffer "^^^^"]
-					default [append-escaped-char buffer cp all?]
+					default [append-escaped-char buffer cp ESC_CHAR all?]
 				]
 			][
-				append-escaped-char buffer cp all?
+				append-escaped-char buffer cp ESC_CHAR all?
 			]
 			p: p + unit
 		]
-		
+
 		append-char GET_BUFFER(buffer) as-integer close
 		part - ((as-integer tail - head) >> (unit >> 1)) - 2
 	]
@@ -1745,8 +1790,10 @@ string: context [
 	
 	init: does [
 		escape-chars: allocate MAX_ESC_CHARS
+		escape-url-chars: allocate MAX_URL_CHARS
 		fill-table
-	
+		fill-url-table
+
 		datatype/register [
 			TYPE_STRING
 			TYPE_VALUE
