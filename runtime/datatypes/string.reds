@@ -1710,7 +1710,7 @@ string: context [
 			move-memory 
 				head
 				head + part
-				as-integer tail - (head + part)
+				as-integer tail - (head + part) + (1 << (unit >> 1))	;-- account for terminal NUL
 		]
 		s/tail: as red-value! tail - part
 		str
