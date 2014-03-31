@@ -35,17 +35,13 @@ REBOL [
     	}
     	--assert-printed? "***2345***"
   
-    --test-- "issue #427"
+    --test-- "issue #748"
     	--compile-and-run-this {
-    		issue427-f: func [
-    			/local count
-    		][
-    			repeat count 5 [
-    			prin count
-    			]
-    		]
-    		issue427-f
+    		txt: "Hello world"
+    		parse txt [ while any [ remove "l" | skip ] ]
+    		print txt
     	}
-    	--assert-printed? "12345"
+    	--assert-printed? "Heo word"
+    	--assert none = find qt/output "Heo wordd"
   
 ~~~end-file~~~ 
