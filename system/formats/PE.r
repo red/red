@@ -11,7 +11,7 @@ context [
 
 	if all [
 		system/version/4 = 3
-		find system/components 'Library 
+		find system/components 'Library
 	][
 		path: to-rebol-file get-env "SystemRoot"		;-- workaround issues on 64-bit editions
 		Imagehlplib: load/library path/System32/Imagehlp.dll
@@ -23,15 +23,15 @@ context [
 			HeaderSum	[struct! [n [integer!]]]
 			CheckSum	[struct! [n [integer!]]]
 			return:		[integer!]
-		] Imagehlplib "MapFileAndCheckSumA" 
+		] Imagehlplib "MapFileAndCheckSumA"
 	]
-	
+
 	defs: [
 		image [
 			exe-base-address	#{00400000}
 			dll-base-address	#{10000000}
 			drv-base-address	#{00010000}
-			
+
 			MSDOS-header #{
 				4D5A800001000000 04001000FFFF0000
 				4001000000000000 4000000000000000
@@ -56,7 +56,7 @@ context [
 			AM33		#{01D3}			?
 			AMD64		#{8664}			little
 			ARM			#{01C0}			little
-			ARMV7		#{01C4}			?		
+			ARMV7		#{01C4}			?
 			EBC			#{0EBC}			?
 			IA-32		#{014C}			little
 			IA-64		#{0200}			little
@@ -84,11 +84,11 @@ context [
 			reserved				#{0040}
 			bytes-reversed-lo		#{0080}	;-- (DEPRECATED) little endian
 			machine-32bit			#{0100}	;-- machine is based on a 32-bit-word architecture
-			debug-stripped			#{0200}	;-- debugging information is removed 
+			debug-stripped			#{0200}	;-- debugging information is removed
 			removable-run-from-swap	#{0400}	;-- if image on removable media, load it and copy it to the swap file
 			net-run-from-swap		#{0800}	;-- if image on network media, load it and copy it to the swap file
 			system					#{1000}	;-- image file is a system file, not a user program.
-			dll						#{2000}	;-- image file is a dynamic-link library 
+			dll						#{2000}	;-- image file is a dynamic-link library
 			up-system-only			#{4000}	;-- image file should be run only on a uniprocessor machine.
 			bytes-reversed-hi		#{8000}	;-- (DEPRECATED) big endian
 
@@ -174,7 +174,7 @@ context [
 		symbols-ptr			[integer!]		;-- OBJ only
 		symbols-nb			[integer!]		;-- OBJ only
 		opt-headers-size	[short]			;-- zero for OBJ
-		flags				[short]			
+		flags				[short]
 	] none
 
 	optional-header: make-struct [			;-- optional header for image only
@@ -267,7 +267,7 @@ context [
 	ILT: make-struct [
 		rva	[integer!]						;-- 32/64-bit
 	] none
-	
+
 	export-directory: make-struct [
 		flags				[integer!]
 		timestamp			[integer!]
@@ -281,7 +281,7 @@ context [
 		name-ptr-rva		[integer!]
 		ordinals-rva		[integer!]
 	] none
-	
+
 	pointer: make-struct [
 		value [integer!]					;-- 32/64-bit, watch out for endianess!!
 	] none
@@ -305,7 +305,7 @@ context [
 			+ (t/minute * 60)
 			+ to integer! t/second
 	]
-	
+
 	pad4: func [s [binary!] /local rem][
 		unless zero? rem: (length? s) // 4 [
 			insert/dup tail s #{00} 4 - rem
@@ -320,17 +320,17 @@ context [
 			file-align - rem
 		]
 	]
-	
+
 	precalc-entry-point: func [job [object!] /local ptr][
 		ptr: (length? defs/image/MSDOS-header)
 			+ (length? form-struct file-header)
 			+ (opt-header-size)
 			+ (sect-header-size * divide length? job/sections 2)
-			
+
 		ep-mem-page:  round/ceiling ptr / memory-align
 		ep-file-page: round/ceiling ptr / file-align
 	]
-	
+
 	entry-point-address?: func [job [object!]][
 		base-address + section-addr?/memory job 'code
 	]
@@ -345,10 +345,10 @@ context [
 
 	named-sect-addr?: func [job [object!] s-name [word!] /local pages][
 		pages: ep-mem-page
-		
+
 		foreach [name section] job/sections [
 			if name = s-name [return pages * memory-align]
-			pages: pages + round/ceiling (length? section/2) / memory-align	
+			pages: pages + round/ceiling (length? section/2) / memory-align
 		]
 		make error! join section " section not found!"
 	]
@@ -356,10 +356,10 @@ context [
 	section-addr?: func [job [object!] s-name [word!] /file /memory /local pages align][
 		pages: either file [ep-file-page][ep-mem-page]
 		align: either file [file-align][memory-align]
-		
+
 		foreach [name section] job/sections [
 			if name = s-name [return pages * align]
-			pages: pages + round/ceiling (length? section/2) / align	
+			pages: pages + round/ceiling (length? section/2) / align
 		]
 		make error! reform [mold s-name "section not found!"]
 	]
@@ -376,12 +376,12 @@ context [
 	resolve-import-refs: func [job [object!] /local code code-base][
 		code: job/sections/code/2
 		code-base: section-addr?/memory job 'code
-		
+
 		foreach [ptr list] imports-refs [
 			ptr: either job/PIC? [ptr - code-base][base-address + ptr]
-			
+
 			foreach [def reloc] list [
-				pointer/value: ptr 
+				pointer/value: ptr
 				foreach ref reloc [change at code ref form-struct pointer]	;TBD: check endianness + x-compilation
 				ptr: ptr + pointer-size
 			]
@@ -425,7 +425,7 @@ context [
 				ptr: ptr + ILT-size
 			]
 			append buffer #{00000000}					;-- null entry (8 bytes for 64-bit)
-			ptr: ptr + ILT-size		
+			ptr: ptr + ILT-size
 
 			repend imports-refs [ptr list]				;-- save IAT base ptr for relocation
 			IDTs/:idx/IAT-rva: ptr
@@ -440,7 +440,7 @@ context [
 		append out form-struct import-directory			;-- Null directory entry
 		change next spec append out buffer
 	]
-	
+
 	build-export: func [
 		job [object!]
 		/local
@@ -454,7 +454,7 @@ context [
 		EAT-len:	4
 		ptr: 		(section-addr?/memory job 'export)
 						+ length? form-struct export-directory
-		
+
 		sym-nb: 0
 		sort spec/3										;-- sort all symbols lexicographically
 		foreach name spec/3 [							;-- Export Name Table
@@ -462,14 +462,14 @@ context [
 			repend names [name null]
 			sym-nb: sym-nb + 1
 		]
-		
+
 		dll-name-offset: length? names
 		append names rejoin [							;-- store DLL name
 			last split-path job/build-basename
 			select defs/extensions job/type
 			null
 		]
-		
+
 		ed: make-struct export-directory none			;-- Export Directory Table
 		ed/flags:				0						;-- reserved
 		ed/timestamp:			get-timestamp			;-- epoch format
@@ -483,34 +483,34 @@ context [
 		ed/name-ptr-rva:		ptr + (EAT-len * sym-nb)
 		ed/ordinals-rva:		ptr + ((EAT-len + 4) * sym-nb)
 		append out form-struct ed
-		
+
 		code-base: section-addr?/memory job 'code
 		data-base: section-addr?/memory job 'data
-	
+
 		buffer: make binary! 1024
 		names-ptr: ed/ordinals-rva + (2 * sym-nb)
-			
+
 		foreach [name offset] NPT [						;-- Export Address Table
 			entry: select job/symbols name
 			pointer/value: entry/2 + either entry/1 = 'global [data-base][code-base - 1]
 			append out form-struct pointer				;-- Export RVA
-			
+
 			pointer/value: names-ptr + offset
 			append buffer form-struct pointer			;-- Export Name Pointer Table entry
 		]
 		append out buffer								;-- Export Name Pointer Table
-		
+
 		ordinal: 0										;-- Ordinal Table
 		loop sym-nb [
 			append out to-bin16 ordinal
 			ordinal: ordinal + 1
 		]
-		
+
 		append out names
 		change next spec out
 		buffer: names: out: none
 	]
-	
+
 	build-section-reloc: func [
 		job [object!] name [word!] refs [block!]
 		/local _4K block buffer base type offset header open-block close-block
@@ -518,9 +518,9 @@ context [
 		_4K: 4096
 		buffer: make binary! _4K
 		base: section-addr?/memory job name
-		type: to integer! #{3000}						;-- IMAGE_REL_BASED_HIGHLOW		
+		type: to integer! #{3000}						;-- IMAGE_REL_BASED_HIGHLOW
 		block: 0
-		
+
 		open-block: [
 			header: buffer
 			append buffer #{0000000000000000}			;-- reserve 64-bit for the header
@@ -529,7 +529,7 @@ context [
 			change header to-bin32 base
 			change at header 5 to-bin32 length? header	;-- store header + buffer size
 		]
-		
+
 		do open-block
 		foreach offset refs [
 			offset: offset - 1
@@ -542,13 +542,13 @@ context [
 			append buffer to-bin16 (offset - block) or type
 		]
 		do close-block
-		
+
 		buffer
 	]
-	
+
 	build-reloc: func [job [object!] /local out code-refs data-refs][
 		out: make binary! 4096
-			
+
 		code-refs: make block! 1000
 		data-refs: make block! 100
 		foreach [name spec] job/symbols [
@@ -560,10 +560,10 @@ context [
 		]
 		sort code-refs
 		sort data-refs
-			
+
 		unless empty? code-refs [append out build-section-reloc job 'code code-refs]
 		unless empty? data-refs [append out build-section-reloc job 'data data-refs]
-		
+
 		job/sections/reloc/2: out
 	]
 
@@ -578,11 +578,11 @@ context [
 		fh/opt-headers-size: opt-header-size
 		fh/flags:			 to integer! defs/c-flags/executable-image
 									  or defs/c-flags/machine-32bit
-		
+
 		unless find job/sections 'reloc	[
 			fh/flags: fh/flags or to integer! defs/c-flags/relocs-stripped
 		]
-		
+
 		switch job/type [
 			dll [fh/flags: fh/flags or to integer! defs/c-flags/dll]
 			;drv [fh/flags: fh/flags or to integer! defs/c-flags/system]
@@ -593,15 +593,15 @@ context [
 	build-opt-header: func [job [object!] /local oh code-page code-base ep entry flags][
 		code-page: ep-mem-page
 		code-base: code-page * memory-align
-		
+
 		flags: to integer! defs/dll-flags/nx-compat
 		case/all [
 			job/PIC? 		[flags: flags or to integer! defs/dll-flags/dynamic-base]
 			job/type = 'drv [flags: flags or to integer! defs/dll-flags/wdm-driver]
 		]
-		
+
 		if job/type = 'drv [flags: 0]						;@@temporary flags disabling
-		
+
 		ep: switch/default job/type [
 			dll [
 				either entry: select job/symbols '***-dll-entry-point [
@@ -622,7 +622,7 @@ context [
 		oh/minor-link-version:	linker/version/2
 		oh/code-size:			length? job/sections/code/2
 		oh/initdata-size:		length? job/sections/data/2
-		oh/uninitdata-size:		0			
+		oh/uninitdata-size:		0
 		oh/entry-point-addr:	ep						;-- entry point is set to beginning of CODE
 		oh/code-base:			code-base
 		oh/data-base:			(code-page + round/ceiling (length? job/sections/code/2) / memory-align) * memory-align
@@ -657,7 +657,7 @@ context [
 		if find [dll drv] job/type [
 			oh/reloc-addr:		named-sect-addr? job 'reloc
 			oh/reloc-size:		length? job/sections/reloc/2
-		]	
+		]
 		append job/buffer form-struct oh
 	]
 
@@ -672,19 +672,19 @@ context [
 		sh/line-num-ptr:	0
 		sh/relocations-nb:	0							;-- zero for executable images
 		sh/line-num-nb:		0
-		sh/flags:			to integer! select defs/s-type name		
+		sh/flags:			to integer! select defs/s-type name
 
-		change s: form-struct sh append uppercase form name null	
-		change spec s	
+		change s: form-struct sh append uppercase form name null
+		change spec s
 	]
 
 	build: func [job [object!] /local page out pad code-ptr][
 		clear imports-refs
-		
+
 		if find [dll drv] job/type [
 			append job/sections [reloc [- - -]]			;-- inject reloc section
 		]
-		
+
 		base-address: any [
 			job/base-address
 			to integer! switch/default job/type [
@@ -700,16 +700,16 @@ context [
 			code-ptr: entry-point-address? job
 			linker/build-debug-lines job code-ptr pointer
 		]
-		
+
 		build-import job								;-- populate import section buffer
-		
+
 		if job/type = 'dll [build-export job]			;-- populate export section buffer
-		
+
 		if find [dll drv] job/type [build-reloc job]
 
 		out: job/buffer
 		append out defs/image/MSDOS-header
-		build-header job	
+		build-header job
 		build-opt-header job
 
 		foreach [name spec] job/sections [
@@ -727,7 +727,7 @@ context [
 			insert/dup tail job/buffer null pad
 		]
 	]
-	
+
 	on-file-written: func [job [object!] file [file!] /local file-sum chk-sum offset buffer res][
 		if job/type = 'drv [
 			file-sum: make struct! int-ptr! [0]

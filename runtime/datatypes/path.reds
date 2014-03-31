@@ -12,15 +12,15 @@ Red/System [
 
 path: context [
 	verbose: 0
-	
+
 	push*: func [
 		size	[integer!]
-		return: [red-path!]	
+		return: [red-path!]
 		/local
 			p 	[red-path!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/push*"]]
-		
+
 		p: as red-path! ALLOC_TAIL(root)
 		p/header: TYPE_PATH								;-- implicit reset of all header flags
 		p/head:   0
@@ -28,7 +28,7 @@ path: context [
 		push p
 		p
 	]
-	
+
 	push: func [
 		p [red-path!]
 	][
@@ -40,7 +40,7 @@ path: context [
 
 
 	;--- Actions ---
-	
+
 	make: func [
 		proto 	 [red-value!]
 		spec	 [red-value!]
@@ -54,7 +54,7 @@ path: context [
 		path/header: TYPE_PATH
 		path
 	]
-	
+
 	form: func [
 		path	  [red-path!]
 		buffer	  [red-string!]
@@ -67,16 +67,16 @@ path: context [
 			i     [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/form"]]
-		
+
 		s: GET_BUFFER(path)
 		i: path/head
 		value: s/offset + i
-		
+
 		while [value < s/tail][
 			part: actions/form value buffer arg part
 			if all [OPTION?(arg) part <= 0][return part]
 			i: i + 1
-			
+
 			s: GET_BUFFER(path)
 			value: s/offset + i
 			if value < s/tail [
@@ -86,7 +86,7 @@ path: context [
 		]
 		part
 	]
-	
+
 	mold: func [
 		path	  [red-path!]
 		buffer	  [red-string!]
@@ -103,7 +103,7 @@ path: context [
 			i     [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/mold"]]
-	
+
 		s: GET_BUFFER(path)
 		i: path/head
 		value: s/offset + i
@@ -122,7 +122,7 @@ path: context [
 		]
 		part
 	]
-	
+
 	compare: func [
 		value1	   [red-path!]							;-- first operand
 		value2	   [red-path!]							;-- second operand
@@ -134,7 +134,7 @@ path: context [
 		if TYPE_OF(value2) <> TYPE_PATH [RETURN_COMPARE_OTHER]
 		block/compare-each as red-block! value1 as red-block! value2 op
 	]
-	
+
 	copy: func [
 		path    [red-path!]
 		new		[red-path!]
@@ -149,7 +149,7 @@ path: context [
 		path/header: TYPE_PATH
 		as red-series! path
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_PATH

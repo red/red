@@ -5,16 +5,16 @@ REBOL [
 ]
 
 change-dir %../                   ;; revert to tests/ dir (from runnable)
-  
+
 ~~~start-file~~~ "int-literals-err"
 
   --test-- "int-literals-1"
   --compile-this {
-      Red/System [] 
+      Red/System []
       i: FFFFFFFFh
     }
   --assert qt/compile-ok?
   --clean
-  
+
 ~~~end-file~~~
 

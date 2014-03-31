@@ -26,7 +26,7 @@ change-dir %../
 					]
 				]
 			]
-			
+
 			compare: func [
 				[cdecl]
 				left [integer!] right [integer!]
@@ -34,12 +34,12 @@ change-dir %../
 			][
 				left <= right
 			]
-			
+
 			foo :compare
 			compare 4 5
 		}
 		--assert qt/compile-ok?
-		
+
 ~~~end-file~~~
 
 
@@ -56,7 +56,7 @@ change-dir %../
 					]
 				]
 			]
-			
+
 			compare: func [
 				[cdecl]
 				left [integer!]
@@ -64,12 +64,12 @@ change-dir %../
 			][
 				left <= right
 			]
-			
+
 			foo :compare
 		}
 		--assert-msg? "*** Compilation Error: argument type mismatch on calling: foo"
 		--clean
-		
+
 	--test-- "inference error 2"
 		--compile-this {
 			Red/System []
@@ -81,7 +81,7 @@ change-dir %../
 					]
 				]
 			]
-			
+
 			compare: func [
 				[cdecl]
 				left [integer!] right [byte!]
@@ -89,12 +89,12 @@ change-dir %../
 			][
 				left <= right
 			]
-			
+
 			foo :compare
 		}
 		--assert-msg? "*** Compilation Error: argument type mismatch on calling: foo"
 		--clean
-	
+
 ~~~end-file~~~
 
 

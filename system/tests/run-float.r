@@ -24,13 +24,13 @@ make-if-needed?: func [
   digit: charset [#"0" - #"9"]
   number: [some digit]
   rule: [
-    thru ";make-length:" 
+    thru ";make-length:"
     copy stored-length number (stored-length: to integer! stored-length)
     to end
   ]
-  
+
   if not exists? make-file [return]
- 
+
   if any [
     not exists? auto-test-file
     stored-file-length <> length? read make-file
@@ -53,7 +53,7 @@ make-if-needed? %source/units/auto-tests/float-auto-test.reds
                 %source/units/make-float-auto-test.r
 make-if-needed? %source/units/auto-tests/float32-auto-test.reds
                 %source/units/make-float32-auto-test.r
-                
+
 ;; make lib-test files if needed
 flib-test-len: length? read %source/units/float-lib-test-source.reds
 save-len: either exists? %source/units/len-flib-test.dat [
@@ -71,20 +71,20 @@ f32-save-len: either exists? %source/units/len-f32lib-test.dat [
 
 if any [
   not exists? %source/units/auto-tests/float-lib-auto-test.reds
-  flib-test-len <> save-len 
+  flib-test-len <> save-len
 ][
   save %source/units/len-flib-test.dat flib-test-len
   print "Making float-lib-test-auto.reds - shouldn't take long"
-  do %source/units/make-float-lib-auto-test.r                         
+  do %source/units/make-float-lib-auto-test.r
 ]
 
 if any [
   not exists? %source/units/auto-tests/float32-lib-auto-test.reds
-  f32lib-test-len <> f32-save-len 
+  f32lib-test-len <> f32-save-len
 ][
   save %source/units/len-f32lib-test.dat f32lib-test-len
   print "Making float32-lib-test-auto.reds - shouldn't take long"
-  do %source/units/make-float32-lib-auto-test.r                         
+  do %source/units/make-float32-lib-auto-test.r
 ]
 
 ;; run the tests
@@ -101,7 +101,7 @@ start-time: now/precise
 ===end-group===
 
 ===start-group=== "Auto-tests"
-  --run-test-file-quiet  %source/units/auto-tests/float-lib-auto-test.reds   ; not in Arm tests   
+  --run-test-file-quiet  %source/units/auto-tests/float-lib-auto-test.reds   ; not in Arm tests
   --run-test-file-quiet  %source/units/auto-tests/float32-lib-auto-test.reds ; not in Arm tests
   --run-test-file-quiet %source/units/auto-tests/float-auto-test.reds
   --run-test-file-quiet %source/units/auto-tests/float32-auto-test.reds

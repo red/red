@@ -12,27 +12,27 @@ Red/System [
 
 red: context [
 	;-- Runtime sub-system --
-	
+
 	#include %macros.reds
 	#include %tools.reds
-	
+
 	#switch OS [										;-- loading OS-specific bindings
 		Windows  [#include %platform/win32.reds]
 		Syllable [#include %platform/syllable.reds]
 		MacOSX	 [#include %platform/darwin.reds]
 		#default [#include %platform/linux.reds]
 	]
-	
+
 	;#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds
-	
+
 	;-- Datatypes --
-	
+
 	#include %datatypes/structures.reds
 	#include %datatypes/common.reds
 	#include %unicode.reds
-	
+
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
 	#include %datatypes/none.reds
@@ -63,11 +63,11 @@ red: context [
 	#include %datatypes/object.reds
 	#include %datatypes/bitset.reds
 	#include %datatypes/point.reds
-	
+
 	;-- Debugging helpers --
-	
+
 	#include %debug-tools.reds
-	
+
 	;-- Core --
 	#include %actions.reds
 	#include %natives.reds
@@ -84,13 +84,13 @@ red: context [
 	global-ctx: declare node!							;-- global context
 
 	;-- Booting... --
-	
+
 	init: does [
 		platform/init
 		init-mem										;@@ needs a local context
-		
+
 		name-table: as names! allocate 50 * size? names!	 ;-- datatype names table
-		action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table	
+		action-table: as int-ptr! allocate 256 * 50 * size? pointer! ;-- actions jump table
 
 		datatype/init
 		unset/init
@@ -122,14 +122,14 @@ red: context [
 		object/init
 		bitset/init
 		point/init
-		
+
 		actions/init
-		
+
 		;-- initialize memory before anything else
 		alloc-node-frame nodes-per-frame				;-- 5k nodes
 		alloc-series-frame								;-- first frame of 512KB
 
-		root:	 	block/make-in null 2000	
+		root:	 	block/make-in null 2000
 		symbols: 	block/make-in root 1000
 		global-ctx: _context/create 1000 no no
 
@@ -138,9 +138,9 @@ red: context [
 		refinements/build								;-- create refinements used internally
 		natives/init									;-- native specific init code
 		parser/init
-		
+
 		stack/init
-		
+
 		#if debug? = yes [
 			verbosity: 0
 			datatype/verbose:	verbosity

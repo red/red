@@ -43,7 +43,7 @@ Red/System [
 	TYPE_POINT
 	TYPE_OBJECT
 	TYPE_BINARY
-	
+
 	TYPE_TYPESET
 	TYPE_ERROR
 
@@ -67,7 +67,7 @@ Red/System [
 	ACT_EVALPATH
 	ACT_SETPATH											;@@ Deprecate it?
 	ACT_COMPARE
-	
+
 	;-- Scalar actions --
 	ACT_ABSOLUTE
 	ACT_ADD
@@ -80,13 +80,13 @@ Red/System [
 	ACT_SUBTRACT
 	ACT_EVEN?
 	ACT_ODD?
-	
+
 	;-- Bitwise actions --
 	ACT_AND~
 	ACT_COMPLEMENT
 	ACT_OR~
 	ACT_XOR~
-	
+
 	;-- Series actions --
 	ACT_APPEND
 	ACT_AT
@@ -113,7 +113,7 @@ Red/System [
 	ACT_TAIL?
 	ACT_TAKE
 	ACT_TRIM
-	
+
 	;-- I/O actions --
 	ACT_CREATE
 	ACT_CLOSE

@@ -17,7 +17,7 @@ Red/System [
 			]
 		]
 	]
-	
+
 	set-pen-color: func [color [integer!]][
 		SetConsoleTextAttribute stdout color
 	]
@@ -30,14 +30,14 @@ Red/System [
 	set-pen-color: func [color [integer!]][
 		either color = white [
 			print "^[[0m"
-		][ 
+		][
 			print [
 				"^[[" either color >= 7 [1][0] ";3"
 				color and 7	"m"					;-- mask only right 3 bits for color
 			]
 		]
 	]
-	
+
 	black:   0
 	red: 	 1
 	green:	 2
@@ -68,7 +68,7 @@ draw-hline: func [size [integer!] alt [integer!] /local c [integer!]][
 				print "*"
 				2
 			][
-				print "-" 
+				print "-"
 				1
 			]
 		][
@@ -90,7 +90,7 @@ banner: func [width [integer!]][
 	draw-hline width 1
 	draw-vline
 	pad (width - 16) / 2 - 1
-	print "Hello " 
+	print "Hello "
 	print-logo
 	print " World!"
 	pad ((width - 16) / 2) - 1		;-- just showing nested parenthesis support

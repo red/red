@@ -9,39 +9,39 @@ REBOL [
 ]
 
 qut: make object! [
-  
+
   test-print: :print
   test-prin: :prin
   output: copy ""
   set 'print func[v][append output rejoin [v lf]]
   set 'prin func[v][append output reduce v]
-  
+
   ;; text fields
   run-name:     copy ""
   file-name:    copy ""
   group-name:   copy ""
   test-name:    copy ""
-  
+
   ;; counters
   data: make object! [
     tests:    0
     asserts:  0
-    passes:   0 
+    passes:   0
     failures: 0
   ]
   run: make data []
   file: make data []
-  
+
   ;; group switches
   group-name-not-prined: true
   group?: false
-  
+
   init-group: does [
     group-name-not-prined: true
     group?: false
     group-name: ""
   ]
-  
+
   init-data: func [
     data [object!]
   ][
@@ -50,17 +50,17 @@ qut: make object! [
     data/passes: 0
     data/failures: 0
   ]
-  
+
   init-run: does [
     init-data run
     init-group
   ]
-  
+
   init-file: does [
     init-data file
     init-group
   ]
-  
+
   start-run: func[
       title [string!]
   ][
@@ -68,7 +68,7 @@ qut: make object! [
     run-name: title
     test-prin ["***Starting*** " title lf lf]
   ]
-  
+
   start-file: func [
     title [string!]
   ][
@@ -77,14 +77,14 @@ qut: make object! [
     file-name: title
     group?: false
   ]
-  
+
   start-group: func [
     title [string!]
   ][
     group-name: title
     group?: true
   ]
-  
+
   start-test: func [
     title [string!]
   ][
@@ -92,17 +92,17 @@ qut: make object! [
     file/tests: file/tests + 1
     output: copy ""
   ]
-  
+
   assert: func [
     assertion [logic!]
   ][
     file/asserts: file/asserts + 1
-    
+
     either assertion [
        file/passes: file/passes + 1
     ][
       file/failures: file/failures + 1
-      if group? [  
+      if group? [
         if group-name-not-prined [
           test-prin [lf "===group=== " group-name lf]
           group-name-not-prined: false
@@ -111,34 +111,34 @@ qut: make object! [
       test-prin ["--test-- " test-name " FAILED**************" lf]
     ]
   ]
-  
+
   assert-printed?: func [msg] [
     assert found? find qut/output msg
   ]
-  
+
   end-group: func [] [
     init-group
   ]
-  
+
   end-file: func [] [
     test-prin [lf "~~~finished test~~~ " file-name lf]
     print-totals file
     test-prin lf
-    
+
     ;; update run totals
     run/passes: run/passes + file/passes
     run/asserts: run/asserts + file/asserts
     run/failures: run/failures + file/failures
     run/tests: run/tests + file/tests
   ]
-  
+
   end-run: func [][
     test-prin ["***Finished*** " run-name lf]
     print-totals run
     set 'print :test-print
     set 'prin :test-print
   ]
-  
+
   print-totals: func [
     data [object!]
   ][
@@ -150,7 +150,7 @@ qut: make object! [
       test-prin ["****************TEST FAILURES****************" lf]
     ]
   ]
-  
+
   ;; create the test "dialect"
   set '***start-run***        :start-run
   set '~~~start-file~~~       :start-file
@@ -161,5 +161,5 @@ qut: make object! [
   set '===end-group===        :end-group
   set '~~~end-file~~~         :end-file
   set '***end-run***          :end-run
-  
+
 ]

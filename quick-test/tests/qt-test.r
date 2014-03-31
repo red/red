@@ -15,19 +15,19 @@ do %../quick-test.r
 
   --test-- "u16u8-1"
   --assert "^(CE)^(A7)" = qt/utf-16le-to-utf-8 "^(A7)^(03)"
-  
+
   --test-- "u16u8-2"
   --assert "^(CE)^(B1)" = qt/utf-16le-to-utf-8 "^(B1)^(03)"
-  
+
   --test-- "u16u8-3"
   --assert "^(E1)^(BF)^(96)" = qt/utf-16le-to-utf-8 "^(D6)^(1F)"
   print to binary! qt/utf-16le-to-utf-8 "^(D6)^(1F)"
-  
+
   --test-- "u16u8-4"
   --assert "^(CE)^(B5)" = qt/utf-16le-to-utf-8 "^(B5)^(03)"
-  
-  
+
+
 ===end-group===
 
-~~~end-file~~~ 
+~~~end-file~~~
 

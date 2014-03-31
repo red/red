@@ -12,41 +12,41 @@ Red/System [
 
 refinement: context [
 	verbose: 0
-	
+
 	load-in: func [
 		str 	 [c-string!]
 		blk		 [red-block!]
 		return:	 [red-word!]
-		/local 
+		/local
 			cell [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "refinement/load"]]
-		
+
 		cell: word/load-in str blk
 		cell/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
 		cell
 	]
-	
+
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
-		/local 
+		/local
 			cell  [red-word!]
 	][
 		cell: word/load str
 		cell/header: TYPE_REFINEMENT					;-- implicit reset of all header flags
 		cell
 	]
-	
+
 	push: func [
 		w  [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "refinement/push"]]
-		
+
 		w: word/push w
 		set-type as red-value! w TYPE_REFINEMENT
 	]
-	
+
 	push-local: func [
 		node	[node!]
 		index	[integer!]
@@ -58,26 +58,26 @@ refinement: context [
 		ref/header: TYPE_REFINEMENT
 		ref
 	]
-	
+
 	set: func [
 		/local
 			args [cell!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "refinement/set"]]
-		
+
 		args: stack/arguments
 		_context/set as red-word! args args + 1
 		stack/set-last args + 1
 	]
-	
+
 	get: does [
 		#if debug? = yes [if verbose > 0 [print-line "refinement/get"]]
-		
+
 		stack/set-last _context/get as red-word! stack/arguments
 	]
-	
+
 	;-- Actions --
-	
+
 	mold: func [
 		w	    [red-word!]
 		buffer	[red-string!]
@@ -94,7 +94,7 @@ refinement: context [
 		string/append-char GET_BUFFER(buffer) as-integer #"/"
 		word/form w buffer arg part - 1
 	]
-	
+
 	compare: func [
 		arg1	[red-word!]								;-- first operand
 		arg2	[red-word!]								;-- second operand
@@ -109,7 +109,7 @@ refinement: context [
 			word/compare arg1 arg2 op
 		]
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_REFINEMENT

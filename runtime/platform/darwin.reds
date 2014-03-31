@@ -66,10 +66,10 @@ platform: context [
 		assert zero? (size and 0Fh)				;-- size is a multiple of 16
 		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
-		ptr: mmap 
-			null 
+		ptr: mmap
+			null
 			size
-			prot	
+			prot
 			MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS
 			-1									;-- portable value
 			0
@@ -82,7 +82,7 @@ platform: context [
 
 	;-------------------------------------------
 	;-- Free paged virtual memory region from OS
-	;-------------------------------------------	
+	;-------------------------------------------
 	free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
@@ -90,7 +90,7 @@ platform: context [
 			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
 		]
 	]
-	
+
 	init: does [
 		page-size: sysconf SC_PAGE_SIZE
 		setlocale __LC_ALL ""					;@@ check if "utf8" is present in returned string?

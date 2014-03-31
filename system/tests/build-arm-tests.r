@@ -14,7 +14,7 @@ system/options/quiet: true
 
 ;; init
 file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
-a-file-name: ["%" some file-chars ".reds" ] 
+a-file-name: ["%" some file-chars ".reds" ]
 a-test-file: ["--run-test-file-quiet " copy file a-file-name]
 a-dll-file: ["--compile-dll " copy file a-file-name]
 
@@ -30,7 +30,7 @@ compile-test: func [test-file [file!]] [
 		do/args %rsc.r rejoin ["-t " target " " test-file]
 		exe: copy find/last/tail test-file "/"
 		exe: replace exe ".reds" ""
-		write/binary join %tests/runnable/arm-tests/ exe read/binary join %builds/ exe	
+		write/binary join %tests/runnable/arm-tests/ exe read/binary join %builds/ exe
 ]
 
 ;; make the Arm dir if needed
@@ -52,7 +52,7 @@ foreach dll dlls [
 	do/args %rsc.r rejoin ["-dlib -t " target " " dll]
 	lib: copy find/last/tail dll "/"
 	lib: replace lib ".reds" ".so"
-	write/binary join %tests/runnable/arm-tests/ lib read/binary join %builds/ lib	
+	write/binary join %tests/runnable/arm-tests/ lib read/binary join %builds/ lib
 	]
 ]
 change-dir :save-dir

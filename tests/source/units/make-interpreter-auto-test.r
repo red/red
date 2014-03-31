@@ -8,7 +8,7 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
-;;--------------- initialisations 
+;;--------------- initialisations
 make-dir %auto-tests/
 number-of-files: 0
 tests: copy ""
@@ -77,7 +77,7 @@ read-write-test-body: func [
 ][
 	body: read file-in
 	body: find/tail body "../../quick-test/quick-test.red"
-	insert body join "#include %" [quick-test-path "^(0A) do ["]				 
+	insert body join "#include %" [quick-test-path "^(0A) do ["]
 	write/append file-out body
 ]
 

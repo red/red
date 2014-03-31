@@ -13,7 +13,7 @@ REBOL [
 			make struct! none	=>	make-struct none
 			third <struct!>		=>	form-struct <struct!>
 			struct? <struct!>	=>	struct? <struct!>		(no changes)
-			
+
 		Members read/write access:
 			All members are accessed the same way as with native struct!.
 			No changes required.
@@ -26,7 +26,7 @@ REBOL [
 
 virtual-struct!: context [
 	alignment: 4									;-- default struct members alignement in bytes
-	
+
 	base-class: context [
 		__vs-type: struct!
 		__vs-spec: none
@@ -36,11 +36,11 @@ virtual-struct!: context [
 		unless any [
 			empty? buf
 			zero? mod: (length? buf) // n
-		][	
+		][
 			head insert/dup tail buf null n - mod
 		]
 	]
-	
+
 	set 'struct? func [
 		"Returns TRUE if the argument is a virtual struct!."
 		value [any-type!]		"value to test"
@@ -67,7 +67,7 @@ virtual-struct!: context [
 			append specs none
 			make base-class specs
 		]
-		
+
 		if data [
 			specs: skip first obj 3					;-- skip over: self, __vs-type, __vs-spec
 			until [
@@ -75,7 +75,7 @@ virtual-struct!: context [
 				data: next data
 				tail? specs: next specs
 			]
-		]	
+		]
 		obj
 	]
 
@@ -94,11 +94,11 @@ virtual-struct!: context [
 		]
 		out: make binary! 4 * length? members: skip first obj 3		;-- raw guess
 		n: any [n alignment]
-		
+
 		foreach name members [
 			type: second find obj/__vs-spec name
 			value: get in obj name
-			
+
 			append out switch/default type/1 [
 				char 	 [to-bin8   any [value 0]]
 				short	 [pad out 2 to-bin16  any [value 0]]
@@ -109,7 +109,7 @@ virtual-struct!: context [
 			][
 				make error! join "datatype not supported: " mold type/1
 			]
-		]	
+		]
 		out
 	]
 ]

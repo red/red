@@ -24,21 +24,21 @@ Red [
 	--assert none = find [1 2 3 4] 5
 	--test-- "find-6"
 	--assert none = find [1 2 3 4] "1"
-	--test-- "find-7" 
+	--test-- "find-7"
 	--assert "12345" = find "12345" #"1"
 	;--test-- "find-8" 							;; unsupported case, it is unsure if it will be implemented or not
 	;--assert "12345" = find "12345" 1			;; keeping it here commented for further reference.
-	--test-- "find-9" 
+	--test-- "find-9"
 	--assert "12345" = find "12345" "1"
-	--test-- "find-10" 
+	--test-- "find-10"
 	--assert "12345" = find "12345" "12"
-	--test-- "find-11" 
+	--test-- "find-11"
 	--assert "2345" = find "12345" #"2"
-	--test-- "find-12" 
+	--test-- "find-12"
 	--assert "5" = find "12345" #"5"
-	--test-- "find-13" 
-	--assert none = find "12345" #"0" 
-	--test-- "find-14" 
+	--test-- "find-13"
+	--assert none = find "12345" #"0"
+	--test-- "find-14"
 	--assert none = find "12345" #"6"
 	--test-- "find-15"
 	--assert [2 3] = find [1 2 3] [2 3]
@@ -59,7 +59,7 @@ Red [
 	--test-- "find-23"
 	--assert none = find "abcde✐" "ed✐"
 	--test-- "find-24"
-	--assert "^(010000)" = find "abcde^(010000)" "^(010000)"   
+	--assert "^(010000)" = find "abcde^(010000)" "^(010000)"
 ===end-group===
 
 ===start-group=== "find/part"
@@ -119,26 +119,26 @@ Red [
 	--test-- "find/any-5"
 	;assert "e✐" = find/any "abcde✐" "e?"        ;; code point 10000 (decimal)
 	--test-- "find/any-6"
-	;assert "e✐f" = find/any "abcde✐f" "?f" 
+	;assert "e✐f" = find/any "abcde✐f" "?f"
 	--test-- "find/any-7"
-	;assert "e✐" = find/any "abcde✐" "e*" 
+	;assert "e✐" = find/any "abcde✐" "e*"
 	--test-- "find/any-8"
-	;assert "abcde✐f" = find/any "abcde✐f" "*f" 
+	;assert "abcde✐f" = find/any "abcde✐f" "*f"
 	--test-- "find/any-9"
-	;assert "e^(010000)" = find/any "abcde^(010000)" "e?"        
+	;assert "e^(010000)" = find/any "abcde^(010000)" "e?"
 	--test-- "find/any-10"
-	;assert "e^(010000)f" = find/any "abcde^(010000)f" "?f" 
+	;assert "e^(010000)f" = find/any "abcde^(010000)f" "?f"
 	--test-- "find/any-11"
-	;assert "e^(010000)" = find/any "abcde^(010000)" "e*" 
+	;assert "e^(010000)" = find/any "abcde^(010000)" "e*"
 	--test-- "find/any-12"
-	;assert "abcde^(010000)f" = find/any "abcde^(010000)f" "*f" 
+	;assert "abcde^(010000)f" = find/any "abcde^(010000)f" "*f"
 ===end-group===
 
 ===start-group=== "find/with"      ; not yet implemented
 	--test-- "find/with-1"
-	;--assert "12345" = find/with "12345" "^(FFFF)" "^(FFFE)^(FFFF)" 
+	;--assert "12345" = find/with "12345" "^(FFFF)" "^(FFFE)^(FFFF)"
 	--test-- "find/with-2"
-	;--assert "12345" = find/with "12345" "^(FFFE)" "^(FFFE)^(FFFF)" 
+	;--assert "12345" = find/with "12345" "^(FFFE)" "^(FFFE)^(FFFF)"
 	--test-- "find/with-3"
 	;--assert "2345" = find/with "12345" "2^(FFFE)3" "^(FFFE)^(FFFF)"
 	--test-- "find/with-4"
@@ -150,9 +150,9 @@ Red [
 	--test-- "find/with-7"
 	;assert "e✐" = find/with "abcde✐" "e^(FFFF)" "^(FFFE)^(FFFF)"
 	--test-- "find/with-8"
-	;assert "abcde✐f" = find/with "abcde✐f" "^(FFFF)f" "^(FFFE)^(FFFF)" 
+	;assert "abcde✐f" = find/with "abcde✐f" "^(FFFF)f" "^(FFFE)^(FFFF)"
 	--test-- "find/with-9"
-	;assert "e^(010000)" = find/with "abcde^(010000)" "e^(FFFE)" "^(FFFE)^(FFFF)"        
+	;assert "e^(010000)" = find/with "abcde^(010000)" "e^(FFFE)" "^(FFFE)^(FFFF)"
 	--test-- "find/with-10"
 	;assert "e^(010000)f" = find/with "abcde^(010000)f" "^(FFFE)f" "^(FFFE)^(FFFF)"
 	--test-- "find/with-11"
@@ -248,7 +248,7 @@ Red [
   --assert "de" = find/tail "abcde" #"c"
   --test-- "find-tail-18"
   --assert "de" = find/tail "abc^^de" #"^^"
-  
+
 ===end-group===
 
 ===start-group=== "find/last"
@@ -267,9 +267,9 @@ Red [
   --assert "1" = find/last "1111" "1"
   --test-- "find/last-7"
   --assert none = find/last "123" "34"
-  --test-- "find/last-8" 
+  --test-- "find/last-8"
   --assert "✐5678" = find/last "1234✐5678" "✐"
-  --test-- "find/last-9" 
+  --test-- "find/last-9"
   --assert "^(010000)5678" = find/last "1234^(010000)5678" "^(010000)"
 ===end-group===
 
@@ -288,11 +288,11 @@ Red [
   --assert "1" = find/reverse tail "1111" "1"
   --test-- "find/reverse-7"
   --assert none = find/reverse tail "123" "34"
-  --test-- "find/reverse-8" 
+  --test-- "find/reverse-8"
   --assert "✐5678" = find/reverse tail "1234✐5678" "✐"
-  --test-- "find/reverse-9" 
+  --test-- "find/reverse-9"
   --assert "^(010000)5678" = find/reverse tail "1234^(010000)5678" "^(010000)"
-  --test-- "find/reverse-10 issue #505" 
+  --test-- "find/reverse-10 issue #505"
   --assert "ab" = find/reverse tail "ab" #"a"
   --assert "ab" = find/reverse tail "ab" "ab"
   --assert [a b] = find/reverse tail [a b] 'a

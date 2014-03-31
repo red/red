@@ -18,7 +18,7 @@ label.CENTER: 1													;@@ should be fetched
 on-java-event: function [id [integer!]][
 	switch/default id [
 		201 [
-			system: java-new [java.lang.System]	
+			system: java-new [java.lang.System]
 			java-do [system/exit 0]
 		]
 	][
@@ -33,10 +33,10 @@ main: function [][
 		"AWT app built from Red through Java bridge!"
 		label.CENTER
 	]
-	java-do [frame/add label]	
+	java-do [frame/add label]
 	java-do [frame/setSize 300 100]
 	java-do [frame/setVisible yes]
-	
-	events: java-new [events]	
+
+	events: java-new [events]
 	java-do [frame/addWindowListener events]
 ]

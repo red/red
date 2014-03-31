@@ -22,7 +22,7 @@ REBOL [
       print lf
     }
   --assert-printed? "abcd -> 61626364h"
-  
+
 ===end-group===
 
-~~~end-file~~~ 
+~~~end-file~~~

@@ -41,7 +41,7 @@ set-memory: func [						;; fill a memory buffer with the same given byte ;;
 	target
 ]
 
-copy-memory: func [						;; copy a memory buffer to a new region in a safe way ;; 
+copy-memory: func [						;; copy a memory buffer to a new region in a safe way ;;
 	target		[byte-ptr!]				;; target start address ;;
 	source		[byte-ptr!]				;; source start address ;;
 	size		[integer!]				;; number of bytes to copy ;;
@@ -104,7 +104,7 @@ length?: func [							;; return the number of characters from a c-string value ;
 
 	prin-hex: func [i [integer!] return: [integer!] /local s c d ret][
 		;-- modified version of form-hex by Rudolf W. MEIJER (https://gist.github.com/952998)
-		;-- used in signal handlers, so dynamic allocation removed to limit interferences 
+		;-- used in signal handlers, so dynamic allocation removed to limit interferences
 
 		if zero? i [prin "0" return i]
 		s: "00000000"

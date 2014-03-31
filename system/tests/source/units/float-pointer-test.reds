@@ -69,7 +69,7 @@ Red/System [
 		a
 	]
 
-	pB: foo-pointer pA 
+	pB: foo-pointer pA
 	--assert pB/value = 123.45
 
 	pointer-str: declare struct! [
@@ -90,7 +90,7 @@ Red/System [
 	--test-- "pointer-rw-11"
 	pointer-str/A/value: 25836.9147
 	--assert p-struct/n = 25836.9147
-	--assert p-struct/m = p-float		;-- look for memory corruption			
+	--assert p-struct/m = p-float		;-- look for memory corruption
 
 	--test-- "pointer-rw-12"
 	pointer-str/sub/C: pA
@@ -99,64 +99,64 @@ Red/System [
 	--test-- "pointer-rw-13"
 	pointer-str/sub/C/2: 98765.4321
 	--assert p-struct/m = 98765.4321
-	
+
 
 ===start-group=== "Pointers arithmetic"
-	
+
 	--test-- "pointer-calc-1"
 	pa-struct: declare struct! [n [float!] m [float!] p [float!] o [float!]]
 	pA: declare pointer! [float!]
 	pB: declare pointer! [float!]
-	
+
 	pA: as [pointer! [float!]] pa-struct
 	pa-struct/n: 1.23456789
 	pa-struct/m: 9.87654321
 	--assert pA/value = 1.23456789
-	
+
 	--test-- "pointer-calc-2"
 	pA: pA + 1
 	--assert pA/value = 9.87654321
-	
+
 	--test-- "pointer-calc-3"
 	pa-struct/o: 1.23
 	pA: pA + 2
 	--assert pA/value = 1.23
-	
+
 	--test-- "pointer-calc-4"
 	pA: pA - 3
 	--assert pA/value = 1.23456789
-	
+
 	--test-- "pointer-calc-5"
 	pointer-idx: 3
 	pA: pA + pointer-idx
 	--assert pA/value = 1.23
-	
+
 	--test-- "pointer-calc-6"
 	pointer-idx: -3
 	pA: pA + pointer-idx
 	--assert pA/value = 1.23456789
-	
+
 	--test-- "pointer-calc-7"
 	pA: pA - pointer-idx
 	--assert pA/value = 1.23
-	
-	--test-- "pointer-calc-9" 
+
+	--test-- "pointer-calc-9"
 	pA: as [pointer! [float!]] pa-struct
 	--assert pA/1 = 1.23456789
 	--assert pA/2 = 9.87654321
-	
-	--test-- "pointer-calc-10" 
+
+	--test-- "pointer-calc-10"
 	pointer-idx: 1
 	--assert pA/pointer-idx = 1.23456789
-	
-	--test-- "pointer-calc-11" 
+
+	--test-- "pointer-calc-11"
 	pointer-idx: 2
 	--assert pA/pointer-idx = 9.87654321
-	
-	--test-- "pointer-calc-12" 
+
+	--test-- "pointer-calc-12"
 	pointer-idx: 4
 	--assert pA/pointer-idx = 1.23
-	
+
 ===end-group===
 
 ===start-group=== "Local pointers simple read/write tests"
@@ -225,7 +225,7 @@ pointer-local-foo: func [
 	--assert pB/value = 123.45
 
 	--test-- "loc-point-rw-9"
-	pB: foo-pointer pA 
+	pB: foo-pointer pA
 	--assert pB/value = 123.45
 
 	pointer-str: declare struct! [
@@ -246,7 +246,7 @@ pointer-local-foo: func [
 	--test-- "loc-point-rw-11"
 	pointer-str/A/value: 25836.9147
 	--assert p-struct/n = 25836.9147
-	--assert p-struct/m = p-float		;-- look for memory corruption			
+	--assert p-struct/m = p-float		;-- look for memory corruption
 
 	--test-- "loc-point-rw-12"
 	pointer-str/sub/C: pA
@@ -255,7 +255,7 @@ pointer-local-foo: func [
 	--test-- "loc-point-rw-13"
 	pointer-str/sub/C/2: 98765.4321
 	--assert p-struct/m = 98765.4321
-	
+
 	--test-- "loc-point-calc-1"
 	pa-struct: declare struct! [n [float!] m [float!] p [float!] o [float!]]
 
@@ -281,30 +281,30 @@ pointer-local-foo: func [
 	p-idx: 3
 	pA: pA + p-idx
 	--assert pA/value = 1.23
-	
+
 	--test-- "loc-point-calc-6"
 	p-idx: -3
 	pA: pA + p-idx
 	--assert pA/value = 1.23456789
-	
+
 	--test-- "loc-point-calc-7"
 	pA: pA - p-idx
 	--assert pA/value = 1.23
-	
-	--test-- "loc-point-calc-9" 
+
+	--test-- "loc-point-calc-9"
 	pA: as [pointer! [float!]] pa-struct
 	--assert pA/1 = 1.23456789
 	--assert pA/2 = 9.87654321
 
-	--test-- "loc-point-calc-10" 
+	--test-- "loc-point-calc-10"
 	pointer-idx: 1
 	--assert pA/pointer-idx = 1.23456789
 
-	--test-- "loc-point-calc-11" 
+	--test-- "loc-point-calc-11"
 	pointer-idx: 2
 	--assert pA/pointer-idx = 9.87654321
 
-	--test-- "loc-point-calc-12" 
+	--test-- "loc-point-calc-12"
 	pointer-idx: 4
 	--assert pA/pointer-idx = 1.23
 ]

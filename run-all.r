@@ -45,7 +45,7 @@ if system/script/args  [
 		if bin-compiler = "--batch" [
 			bin-compiler: none								;; use default
 		]
-		if bin-compiler [						
+		if bin-compiler [
 			if not attempt [exists? to file! bin-compiler] [
 				either batch-mode [
 					write %quick-test/quick-test.log "Invalid compiler path"
@@ -58,7 +58,7 @@ if system/script/args  [
 				]
 			]
 		]
-	
+
 	]
 ]
 

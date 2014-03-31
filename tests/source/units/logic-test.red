@@ -16,16 +16,16 @@ Red [
 
   --test-- "llv-1"
   --assert true
-  
+
   --test-- "llv-2"
   --assert not false
 ===end-group===
-  
+
 ===start-group=== "logic variable tests"
   --test-- "lv-1"
     a: true
   --assert a
-  
+
   --test-- "lv-2"
     a: false
   --assert not a
@@ -35,12 +35,12 @@ Red [
   --test-- "lce-1"
     a: 3 < 5
   --assert a
-  
+
   --test-- "lce-2"
     a: 1 = 2
   --assert not a
 ===end-group===
-  
+
 ===start-group=== "logic value as last conditional expression in UNTIL tests"
   --test-- "lu-1"
     a: true
@@ -50,7 +50,7 @@ Red [
       a
     ]
   --assert i = 1
-  
+
   --test-- "lu-2"
     i: 0
     c: 3
@@ -68,7 +68,7 @@ Red [
 ===start-group=== "logic value as conditional expression in WHILE tests"
   --test-- "lw-1"
     a: false
-    i: 0 
+    i: 0
     while [a][i: i + 1]
   --assert i = 0
 
@@ -88,26 +88,26 @@ Red [
 ===start-group=== "passing logic! as function's argument tests"
     log-foo: func [a [logic!] return: [logic!]][a]
 
-  --test-- "logic-arg-1"    
+  --test-- "logic-arg-1"
   --assert log-foo true
 
-  --test-- "logic-arg-2" 
+  --test-- "logic-arg-2"
   --assert not log-foo false
 
-  --test-- "logic-arg-3" 
+  --test-- "logic-arg-3"
   --assert log-foo 1 < 2
-  
+
   --test-- "logic-arg-4"
   --assert log-foo 3 <> 4
-  
+
   --test-- "logic-arg-5"
   --assert log-foo (1 + 1 < 3)
-  
+
   --test-- "logic-arg-6"
     a: false
     if false = log-foo (2 + 2 = 5) [a: true]
   --assert a
-  
+
   --test-- "logic-arg-7"
   --assert not log-foo 3 = 4
 
@@ -142,7 +142,7 @@ Red [
       false
     ]
   --assert not result
-  
+
   --test-- "logic-all-5"
     a: all [true]
   --assert a
@@ -166,15 +166,15 @@ Red [
   --test-- "logic-all-10"
     a: all [1 = 2 true]
   --assert not a
-  
+
   --test-- "logic-all-11"
     a: all [1 < 2]
   --assert a
-  
+
   --test-- "logic-all-12"
     a: all [1 = 2]
   --assert not a
-  
+
   --test-- "logic-all-13"
     a: all [1 < 2 3 <> 4]
   --assert a
@@ -182,24 +182,24 @@ Red [
   --test-- "logic-all-14"
     a: all [1 = 2 3 <> 4]
   --assert not a
-  
+
   --test-- "logic-all-15"
   --assert not log-foo all [1 = 2]
-   
+
   --test-- "logic-all-16"
   --assert log-foo all [1 < 2 3 <> 4]
-  
+
   --test-- "logic-all-17"
   --assert not log-foo all [1 = 2 3 <> 4]
 
   --test-- "logic-all-18"
     a: log-foo all [1 < 2]
-  --assert a 
- 
+  --assert a
+
   --test-- "logic-all-19"
     a: log-foo all [1 = 2]
   --assert not a
-  
+
   --test-- "logic-all-20"
     a: log-foo all [1 < 2 3 <> 4]
   --assert a
@@ -207,7 +207,7 @@ Red [
   --test-- "logic-all-21"
       a: all [log-foo true]
   --assert a
-  
+
 ===end-group===
 
 ===start-group=== "any with logic!"
@@ -218,7 +218,7 @@ Red [
       true
     ]
   --assert result
-  
+
   --test-- "logic-any-2"
     result: any [
       false
@@ -232,14 +232,14 @@ Red [
       false
     ]
   --assert result
-  
+
   --test-- "logic-any-4"
     result: any [
       false
       false
     ]
   --assert not result
-  
+
   --test-- "logic-any-5"
     a: any [true]
   --assert a
@@ -255,7 +255,7 @@ Red [
   --test-- "logic-any-8"
     a: any [false 1 < 2]
   --assert a
-   comment { 
+   comment {
   --test-- "logic-any-9"
     a: any [true 1 = 2]
   --assert a
@@ -271,31 +271,31 @@ Red [
   --test-- "logic-any-12"
     a: any [1 = 2]
   --assert not a
-  
+
   --test-- "logic-any-13"
     a: any [1 < 2 3 <> 4]
   --assert a
- 
+
   --test-- "logic-any-14"
     a: any [1 = 2 3 <> 4]
   --assert a
-  
+
   --test-- "logic-any-15"
   --assert not log-foo any [1 = 2]
-  
+
   --test-- "logic-any-16"
   --assert log-foo any [1 < 2 3 <> 4]
-  
+
   --test-- "logic-any-17"
   --assert log-foo any [1 = 2 3 <> 4]
-  
+
   --test-- "logic-any-18"
     a: log-foo any [1 < 2]
-  --assert a 
+  --assert a
 
   --test-- "logic-any-19"
     a: log-foo any [1 = 2]
-  --assert not a 
+  --assert not a
 
   --test-- "logic-any-20"
     a: log-foo any [1 < 2 3 <> 4]
@@ -314,7 +314,7 @@ Red [
       either 1 < 2 [true] [false]
     ]
 
-  --test-- "logic-return-1" 
+  --test-- "logic-return-1"
   --assert lgc-test?
 
   --test-- "logic-return-2"
@@ -333,7 +333,7 @@ Red [
   --test-- "logic-return-4"
     a: lgc-test2?
   --assert not a
-  
+
 	lgc-test3?: func [return: [logic!]][
 		either true [
 			1 = 3
@@ -341,10 +341,10 @@ Red [
 			false
 		]
 	]
-	
+
  --test-- "logic-return-5"
  --assert not lgc-test3?
- 
+
 	lgc-test4?: func [return: [logic!]][
 		either false [
 			1 = 3
@@ -352,10 +352,10 @@ Red [
 			false
 		]
 	]
-	
+
  --test-- "logic-return-6"
  --assert not lgc-test4?
- 
+
 	lgc-test5?: func [return: [logic!]][
 		either 1 < 2 [true] [false]
 	]
@@ -387,7 +387,7 @@ Red [
     a: false
     b: a = false
   --assert b
-  
+
   --test-- "logic-=-6"
     a: true
     b: a = false
@@ -402,19 +402,19 @@ Red [
     a: true
     b: false <> a
   --assert b
-  
+
   --test-- "logic-=-9"
     a: false
   --assert log-foo a = false
-  
+
   --test-- "logic-=-10"
     a: false
   --assert log-foo a = false
-  
+
   --test-- "logic-=-11"
     a: true
   --assert not log-foo a = false
-  
+
 ===end-group===
 
 ===start-group=== "logic value returned by function"

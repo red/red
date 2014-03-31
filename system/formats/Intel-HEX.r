@@ -110,30 +110,30 @@ context [
 			000000000000000000
 		}
 	]
-	
+
 	data-ptr: to-integer #{0100}
 	code-ptr: (length? defs/init-code) - 1
 
 	pointer: make-struct [value [short]] none
-	
+
 	to-bin16: func [v [integer! char!]][
 		skip debase/base to-hex to integer! v 16 2
 	]
-	
+
 	checksum: func [data [binary!] /local sum][
 		sum: 0
 		foreach byte data [sum: sum + byte]
 		to-bin8 256 - sum
 	]
-	
+
 	;resolve-data-refs: func [job [object!] /local cbuf dbuf][
 	;	cbuf: job/sections/code/2
 	;	dbuf: job/sections/data/2
 	;	linker/resolve-symbol-refs job cbuf dbuf code-ptr data-ptr pointer
 	;]
-	
+
 	format-hex: func [buf [binary!] data [binary!] adr [integer!] /local line][
-		forskip data 16 [	
+		forskip data 16 [
 			line: rejoin [
 				to-bin8 either 16 < length? data [16][length? data] ;-- data size
 				to-bin16 adr						;-- data memory address
@@ -150,7 +150,7 @@ context [
 		]
 		adr
 	]
-	
+
 	mix: func [data [binary!] value [binary!]][
 		chunk: copy chunk
 		chunk/1: to char! chunk/1 or (value/2 and 15)
@@ -159,58 +159,58 @@ context [
 		chunk/4: to char! chunk/2 or shift value/1 4
 		chunk
 	]
-	
+
 	patch: func [runtime [binary!] /local offset][
 		;-- jump over bss section clearing routine
 		offset: 1 + to-integer #{00EC}				;-- 01 C0 rmp +2
 		change/part at runtime offset #{04} 1		;-- 04 C0 rmp +8
-		
+
 		;-- inject Red/System entry point
 		offset: 3 + to-integer #{010C}				;-- 0e 94 d9 03   call	0x7B2; <main>
 		change/part at runtime offset #{5705} 2		;-- 0e 94 57 05   call	0xAAE; <main>
-		
+
 		runtime
 	]
-	
-	
+
+
 	init-data-copy: func [code data][				;-- (temporary) use Core data copy routine
 		chunk: copy #{E0E0F0E0}
 		value: length? code
 		if odd? value [value: value + 1] 			;-- align on 16-bit word
 		value: to-bin16 value
-		
+
 		chunk/1: to char! chunk/1 or (value/2 and 15)
 		chunk/2: to char! chunk/2 or shift value/2 4
 		chunk/3: to char! chunk/3 or (value/1 and 15)
 		chunk/4: to char! chunk/4 or shift value/1 4
 
 		replace code #{EEEAFAE0} chunk				;-- start address
-	
+
 		chunk: copy #{A030}
 		value: (length? data) 						;-- 256 bytes of data only for now
 
 		chunk/1: to char! chunk/1 or (value and 15)
 		chunk/2: to char! chunk/2 or shift value 4
-		
-		replace code #{AE31} chunk					;-- end address		
+
+		replace code #{AE31} chunk					;-- end address
 	]
 
 	build: func [job [object!] /local out][
 		;resolve-data-refs job
-		
-		
+
+
 		out: job/buffer
-		
+
 		code: patch copy defs/init-code
 		code: append code job/sections/code/2
 		append code #{FFCF}
 		;append code #{FDCFFFCF}
-		
+
 		insert job/sections/data/2 defs/init-data
 		init-data-copy code job/sections/data/2
 		if odd? length? code [append code #{00}]	;-- align data start on word boundary
 		append code job/sections/data/2
-		
+
 		format-hex out code 0
 		append out ":00000001FF^/"					;-- end record
 	]

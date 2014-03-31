@@ -15,15 +15,15 @@ Red [
 ===start-group=== "+ tests"
 	--test-- "char+1"
 	--assert #"^(01)" = #"^(01)" + #"^(00)"
-	--assert #"^(00)" = #"^(01)" + #"^(10FFFF)" 
+	--assert #"^(00)" = #"^(01)" + #"^(10FFFF)"
 ===end-group===
-  
+
 ===start-group=== "- tests"
 ===end-group===
 
 ===start-group=== "* tests"
 ===end-group===
-  
+
 ===start-group=== "/ tests"
 ===end-group===
 

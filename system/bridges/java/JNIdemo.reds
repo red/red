@@ -53,18 +53,18 @@ Java_JNIdemo_doMain: func [
 		"AWT app built from Red/System through JNI!"
 		1												;-- CENTER: 1
 	]
-	
+
 	id: get-method env class "add" "(Ljava/awt/Component;)Ljava/awt/Component;"
 	jni/CallObjectMethod [env frame id label]
-	
+
 	id: get-method env class "setSize" "(II)V"
 	jni/CallObjectMethod [env frame id 300 100]
-	
+
 	id: get-method env class "setVisible" "(Z)V"
 	jni/CallObjectMethod [env frame id JNI_TRUE]
-	
+
 	event: instantiate [env jni/FindClass env "events" "()V"]
-	
+
 	id: get-method env class "addWindowListener" "(Ljava/awt/event/WindowListener;)V"
 	jni/CallObjectMethod [env frame id event]
 ]

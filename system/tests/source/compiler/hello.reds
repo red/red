@@ -17,7 +17,7 @@ Red/System [
 			]
 		]
 	]
-	
+
 	set-pen-color: func [color [integer!]][
 		SetConsoleTextAttribute stdout color
 	]
@@ -64,7 +64,7 @@ draw-hline: func [size [integer!] alt [integer!] /local c [integer!]][
 				prin "*"
 				2
 			][
-				prin "-" 
+				prin "-"
 				1
 			]
 		][
@@ -86,7 +86,7 @@ banner: func [width [integer!]][
 	draw-hline width 1
 	draw-vline
 	pad (width - 16) / 2 - 1
-	prin "Hello " 
+	prin "Hello "
 	prin-logo
 	prin " World!"
 	pad ((width - 16) / 2) - 1		;-- just showing nested parenthesis support

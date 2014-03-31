@@ -13,11 +13,11 @@ Red/System [
 #switch OS [
 	Windows  [
 	  #define LIBC-file	"msvcrt.dll"
-	  #define LIBM-file "msvcrt.dll"  
+	  #define LIBM-file "msvcrt.dll"
 	]
 	Syllable [
 	  #define LIBC-file	"libc.so.2"
-	  #define LIBM-file "libm.so.2"  
+	  #define LIBM-file "libm.so.2"
 	]
 	MacOSX	 [
 	  #define LIBC-file	"libc.dylib"
@@ -29,6 +29,6 @@ Red/System [
 	]
 	#default [											;-- Linux
 		#define LIBC-file	"libc.so.6"
-		#define LIBM-file	"libm.so.6"	
+		#define LIBM-file	"libm.so.6"
 	]
 ]

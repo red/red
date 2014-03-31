@@ -20,7 +20,7 @@ Red [
 	--assert blk/3 = 'c
 	--assert blk/4 = [d]
 	--assert blk/4/1 = 'd
-	
+
 	--test-- "blk-2"
 	blk/1: 99
 	--assert blk/1 = 99
@@ -63,7 +63,7 @@ Red [
 	blk/(1): 99
 	idx: 2
 	--assert blk/1 = 99
-	blk/(idx + 2)/(1)/(idx - 1): #"z"	
+	blk/(idx + 2)/(1)/(idx - 1): #"z"
 	--assert blk/4/1/1 = #"z"
 
 	--test-- "blk-9"
@@ -79,7 +79,7 @@ Red [
 	--assert str/2 = #"b"
 	--assert str/3 = #"c"
 	--assert str/4 = #"d"
-	
+
 	--test-- "str-2"
 	str/1: #"9"
 	--assert str/1 = #"9"
@@ -108,7 +108,7 @@ Red [
 	str/(1): #"9"
 	--assert str/1 = #"9"
 	idx: 2
-	str/(idx + 2): #"z"	
+	str/(idx + 2): #"z"
 	--assert str/4 = #"z"
 
 	--test-- "str-6"

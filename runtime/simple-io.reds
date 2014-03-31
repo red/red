@@ -13,7 +13,7 @@ Red/System [
 simple-io: context [
 
 	#either OS = 'Windows [
-	
+
 		#define GENERIC_READ 			80000000h
 		#define FILE_SHARE_READ			00000001h
 		#define OPEN_EXISTING			00000003h
@@ -52,7 +52,7 @@ simple-io: context [
 		]
 	][
 		#define O_RDONLY	0
-		
+
 		#import [
 			LIBC-file cdecl [
 				_open:	"open" [
@@ -73,7 +73,7 @@ simple-io: context [
 				]
 			]
 		]
-		
+
 		#either OS = 'MacOSX [
 			stat!: alias struct! [
 				st_dev		[integer!]
@@ -179,7 +179,7 @@ simple-io: context [
 			]
 		]
 	]
-	
+
 	open-file: func [
 		filename [c-string!]
 		return:	 [integer!]
@@ -187,7 +187,7 @@ simple-io: context [
 			file [integer!]
 	][
 		#either OS = 'Windows [
-			file: CreateFile 
+			file: CreateFile
 				filename
 				GENERIC_READ
 				FILE_SHARE_READ
@@ -204,7 +204,7 @@ simple-io: context [
 		]
 		file
 	]
-	
+
 	file-size?: func [
 		file	 [integer!]
 		return:	 [integer!]
@@ -226,7 +226,7 @@ simple-io: context [
 			]
 		]
 	]
-	
+
 	read-file: func [
 		file	[integer!]
 		buffer	[byte-ptr!]
@@ -251,7 +251,7 @@ simple-io: context [
 		]
 		res
 	]
-	
+
 	close-file: func [
 		file	[integer!]
 		return:	[integer!]
@@ -262,7 +262,7 @@ simple-io: context [
 			_close file
 		]
 	]
-	
+
 	read-txt: func [
 		filename [c-string!]
 		return:	 [red-string!]
@@ -278,11 +278,11 @@ simple-io: context [
 			print-line "*** Error: empty file"
 			quit -2
 		]
-		
+
 		buffer: allocate size + 1						;-- account for terminal NUL
 		read-file file buffer size
 		close-file file
-		
+
 		size: size + 1
 		buffer/size: null-byte
 		str: string/load as-c-string buffer size UTF-8

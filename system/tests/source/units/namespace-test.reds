@@ -19,7 +19,7 @@ Red/System [
       s: "my string"
       fn: func [pi [pointer! [integer!]] return: [integer!]] [pi/value: 789 789]
       fn2: func [
-        i [integer!] 
+        i [integer!]
         return: [integer!]
       ][ 2 * i]
       st: declare struct! [
@@ -27,7 +27,7 @@ Red/System [
         b [integer!]
       ]
     ]
-    
+
     i: 987
 	ctx: context [
 		i: 123
@@ -39,7 +39,7 @@ Red/System [
 		--test-- "in-ns1"
 		--assert 124 = foo
 	]
-    
+
 ===start-group=== "basic"
 
   --test-- "ns1"
@@ -98,14 +98,14 @@ Red/System [
     s: "not my string"
     fn: func [pi [pointer! [integer!]]] [pi/value: 987]
     fn2: func[
-        i [integer!] 
+        i [integer!]
         return: [integer!]
       ][ 3 * i]
     st: declare struct! [
         a [integer!]
         b [integer!]
     ]
-  
+
   --test-- "nmh1"
     nmsp1/i: 789
   --assert i = 321
@@ -137,7 +137,7 @@ Red/System [
     nmsp1/st/b: 200
   --assert 1 = st/a
   --assert 2 = st/b
-    
+
 ===end-group===
 
 ===start-group=== "initialisation"
@@ -152,7 +152,7 @@ Red/System [
         c [float!]
         d [integer!]
       ]
-      
+
       k: i * j
       s/1: #"h"
       s/2: #"e"
@@ -161,13 +161,13 @@ Red/System [
       s/5: #"o"
       st/a: 1
       st/b: "hello"
-      st/c: 12345.678 
+      st/c: 12345.678
       st/d: 1
       until [
         i: i * j
         j: j - 1
         j < 1
-      ]  
+      ]
     ]
   --test-- "nmi1"
   --assert nmsp2/i = 12
@@ -193,7 +193,7 @@ Red/System [
   --assert nmsp2/st/c = 12345.678
   --test-- "nmi8"
   --assert nmsp2/st/d = 1
-  
+
 ===end-group===
 
 ===start-group=== "multiple"
@@ -290,7 +290,7 @@ Red/System [
     pinmp3: declare pointer! [integer!]
     pinmp3: nmsp6a/get-addr-i
   --assert 67890 = pinmp3/value
- 
+
 ===end-group===
 
 ===start-group=== "nesting"
@@ -333,14 +333,14 @@ Red/System [
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/j = 0
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/k = 3
   --assert nmsp7/nmsp7-1/nmsp7-2/nmsp7-3/l = 6
-  
+
   --test-- "nmm2"
 	  red: context [
 		c: context [set: func [return: [integer!]][1] ]
 		w: context [d: func [return: [integer!]][c/set] ]
 	  ]
   --assert red/w/d = 1
-  
+
 ===end-group===
 
 ===start-group=== "include"
@@ -349,7 +349,7 @@ Red/System [
       #include %namespace-test-include.reds
     ]
   --assert 54321 = nmsp8/i
-  
+
 ===end-group===
 
 ===start-group=== "libs"
@@ -375,7 +375,7 @@ Red/System [
   --assert 1 = nmsp-lib/abs-int -1
   --test-- "nmlibs2"
   --assert 11 = nmsp-lib/strlen "hello world"
-  
+
 ===end-group===
 
 ===start-group=== "cross-reference"
@@ -387,7 +387,7 @@ Red/System [
 	--assert nmxr2/e = 456
 	nmxr1/fooo
 	--assert nmxr2/e = 123
-	
+
   --test-- "ns-cross-2"
 	--assert nmxr2/f = 789
 
@@ -399,7 +399,7 @@ Red/System [
     with nsw1-nsp [
       --assert b = 123
     ]
-    
+
   --test-- "nsw2"
     nsw2-nsp1: context [b: 123]
     nsw2-nsp2: context [b: 456]
@@ -408,24 +408,24 @@ Red/System [
       --assert nsw2-nsp1/b = 123
       --assert nsw2-nsp2/b = 456
     ]
-    
+
   --test-- "nsw3"
     nsw3-nsp1: context [z: declare pointer! [integer!] fooo: func [][nsw3-nsp2/e: 123]]
     nsw3-nsp2: context [e: 456]
-	
+
     with nsw3-nsp1 [
       c: 123
       z: null
     ]
 	--assert nsw3-nsp1/z = null
-	
+
 	  e: -1
 	  with [nsw3-nsp1 nsw3-nsp2][
 	    fooo
 	    --assert e = 123
 	  ]
 	--assert e = -1
-	
+
 	--test-- "nsw4"
     nsw4-nsp1: context [e: 456]
     nsw4-nsp2: context [fooo: func [][e: 123]]
@@ -433,7 +433,7 @@ Red/System [
       fooo
       --assert e = 456
     ]
-	
+
 ===end-group===
 
 ===start-group=== "System/Words"
@@ -447,7 +447,7 @@ Red/System [
       system/words/nssw1-a: 3
     ]
   --assert nssw1-a = 3
-  
+
   --test-- "nssw2"
     nssw2-i: 1
     nssw2-nmsp: context [
@@ -461,7 +461,7 @@ Red/System [
 ===end-group===
 
 ===start-group=== "context as local variable"
-  
+
   --test-- "nscasv2"
     nsca2-f: function [
       return: [integer!]
@@ -476,7 +476,7 @@ Red/System [
 ===end-group===
 
 ===start-group=== "accessing alias from context"
- 
+
   --test-- "nsaa2 - issue #238"
     nssa2-c: context [
       s!: alias struct! [val [integer!]]
@@ -493,7 +493,7 @@ Red/System [
       ]
     ]
   --assert 200 = nssa2-f nssa2-c/s
-  
+
 
 ===end-group===
 

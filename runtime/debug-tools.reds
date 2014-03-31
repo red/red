@@ -75,30 +75,30 @@ memory-info: func [
 		ctx: TO_CTX(global-ctx)
 		sym-table: ctx/symbols
 		val-table: ctx/values
-		
+
 		s: as series! sym-table/value
 		len: (as-integer s/tail - s/offset) >> 4
 		symbol: s/offset
-		
+
 		s: as series! val-table/value
 		value: s/offset
-		
+
 		s: GET_BUFFER(symbols)
 		syms: as red-symbol! s/offset
-		
+
 		print-line "Global Context"
 		print-line "--------------"
 		i: 0
 		until [
 			w: as red-word! symbol + i
 			sym: syms + w/symbol - 1
-			val: value + i	
+			val: value + i
 			print-line [i ", " w/symbol "/" sym/alias ": " sym/cache "^- : " TYPE_OF(val)]
 			i: i + 1
 			i + 1 = len
 		]
 	]
-	
+
 	dump-symbols: func [
 		/local tail s i sym
 	][
@@ -136,8 +136,8 @@ memory-info: func [
 			"free = " free "/" total " (" 100 - percent "%)" lf
 		]
 	]
-	
-		
+
+
 	;-------------------------------------------
 	;-- List series buffer allocated in a given series frame
 	;-------------------------------------------
@@ -166,7 +166,7 @@ memory-info: func [
 		]
 		assert series = frame/heap
 	]
-	
+
 	;-------------------------------------------
 	;-- Displays total frames count
 	;-------------------------------------------
@@ -183,19 +183,19 @@ memory-info: func [
 		/local count n-frame s-frame b-frame free-nodes base
 	][
 		assert all [1 <= verbose verbose <= 3]
-		
+
 		print [lf "====== Red Memory Stats ======" lf]
 
 	;-- Node frames stats --
 		count: 0
 		n-frame: memory/n-head
-		
+
 		print [lf "-- Node frames --" lf]
 		while [n-frame <> null][
 			if verbose >= 2 [
 				print ["#" count + 1 ": "]
 				free-nodes: (as-integer (n-frame/top - n-frame/bottom) + 1) / 4
-				frame-stats 
+				frame-stats
 					free-nodes
 					n-frame/nodes - free-nodes
 					n-frame/nodes
@@ -204,7 +204,7 @@ memory-info: func [
 			n-frame: n-frame/next
 		]
 		print-frames-count count
-		
+
 	;-- Series frames stats --
 		count: 0
 		s-frame: memory/s-head
@@ -226,7 +226,7 @@ memory-info: func [
 			s-frame: s-frame/next
 		]
 		print-frames-count count
-		
+
 	;-- Big frames stats --
 		count: 0
 		b-frame: memory/b-head
@@ -241,13 +241,13 @@ memory-info: func [
 			b-frame: b-frame/next
 		]
 		print-frames-count count
-		
+
 		print [
 			"Total memory used: " memory/total " bytes" lf
 			"==============================" lf
 		]
 	]
-	
+
 	;-------------------------------------------
 	;-- Dump memory layout of a given series frame
 	;-------------------------------------------
@@ -256,9 +256,9 @@ memory-info: func [
 		/local series alt? size block
 	][
 		series: as series-buffer! (as byte-ptr! frame) + size? series-frame!
-		
+
 		print [lf "=== Series layout for frame: <" frame "h>" lf]
-		
+
 		alt?: no
 		until [
 			block: either zero? (series/flags and series-in-use) [
@@ -267,19 +267,19 @@ memory-info: func [
 				alt?: not alt?
 				either alt? ["x"]["o"]
 			]
-			
+
 			size: series/size / 16
 			until [
 				print block
 				size: size - 1
 				zero? size
 			]
-			
+
 			series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
 			series >= frame/heap
 		]
 		assert series = frame/heap
 		print lf
 	]
-	
+
 ]

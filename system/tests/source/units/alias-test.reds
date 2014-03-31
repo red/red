@@ -16,7 +16,7 @@ Red/System [
     a1-s: declare a1-str!
     a1-s/i: 123
   --assert a1-s/i = 123
-  
+
   --test-- "alias-2"
     a2-str!: alias struct! [i [integer!]]
     a2-s: declare a2-str!
@@ -77,17 +77,17 @@ Red/System [
     a6-struct/s1: declare a6-alias!
     a6-struct/s1/a: #"a"
     a6-struct/s1/b: #"b"
-    a6-struct/s2: declare a6-alias!    
+    a6-struct/s2: declare a6-alias!
     a6-struct/s2/a: #"x"                  ;; this assignment seems to be causing
-    a6-struct/s2/b: #"y"                  ;;  memory to be over-written 
+    a6-struct/s2/b: #"y"                  ;;  memory to be over-written
   --assert a6-struct/s1/a = #"a"
   --assert a6-struct/s1/b = #"b"
   --assert a6-struct/s2/a = #"x"
   --assert a6-struct/s2/b = #"y"
-  
+
   --test-- "alias-7"						;-- regression test from issue #235
 	a!: alias struct! [a [byte!]]
 	--assert system/alias/a! = system/alias/a!
-  
+
 ~~~end-file~~~
 

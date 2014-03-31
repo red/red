@@ -9,22 +9,22 @@ REBOL [
 ]
 
 comment {
-	This script makes some assumptions about the directory structure in which 
+	This script makes some assumptions about the directory structure in which
 	files are stored. They are:
     	this script is stored in Red/quick-test/
     	the Red & Red/System compiler is stored in Red/
     	the default dir for tests is Red/system/tests/
-    	
+
     	The default test dirs can be overriden by setting qt/tests-dir before
     	tests are processed
-    	The default script header for code supplied as string is Red [], this 
+    	The default script header for code supplied as string is Red [], this
     	can be overriden by setting qt/script-header
     	The default location of the compiler binary is Red/build/bin, this can
     	be overriden by setting qt/bin-compiler
 }
 
 qt: make object! [
-  
+
   ;;;;;;;;;;; Setup ;;;;;;;;;;;;;;
   ;; set the base-dir to ....Red/
   base-dir: system/script/path
@@ -33,51 +33,51 @@ qt: make object! [
   runnable-dir: dirize base-dir/quick-test/runnable
   ;; set the default base dir for tests
   tests-dir: dirize base-dir/system/tests
-  
+
   ;; set the version number
   version: system/script/header/version
-  
+
   ;; switch for binary compiler usage
   binary?: false
-  
+
   ;; default binary compiler path
   bin-compiler: base-dir/build/bin/red
-  
+
   ;; default script header to be inserted into code supplied in string form
   script-header: "Red []"
-  
+
   ;; set temporary files names
   ;;  use Red/quick-test/runnable for temp files
   comp-echo: runnable-dir/comp-echo.txt
   comp-r: runnable-dir/comp.r
   test-src-file: runnable-dir/qt-test-comp.red
-  
-  ;; set log file 
+
+  ;; set log file
   log-file: join system/script/path "quick-test.log"
 
   ;; make runnable directory if needed
   make-dir runnable-dir
-  
+
   ;; windows ?
   windows-os?: system/version/4 = 3
-  
+
   ;; use Cheyenne call with REBOL v2.7.8 on Windows (re: 'call bug on Windows 7)
   if all [
     windows-os?
-    system/version/3 = 8              
+    system/version/3 = 8
   ][
-		do %call.r					               
+		do %call.r
 		set 'call :win-call
 	]
-	
+
 	;; script header parse rules - assumes parsing without /all
 	red?: false
 	red-header: ["red" any " " "[" to end (red?: true)]
 	red-system-header: ["red/system" any " " "[" to end (red?: false)]
 	red?-rule: [(red?: false) any [red-system-header | red-header | skip]]
 	script-header-rule: [
-		(no-script-header?: true) 
-		any [ 
+		(no-script-header?: true)
+		any [
 				[["red/system" | "red"] any " " "[" (no-script-header?: false)]
 			|
 				skip
@@ -85,16 +85,16 @@ qt: make object! [
 	]
 
 	;;;;;;;;; End Setup ;;;;;;;;;;;;;;
-  
+
   comp-output: copy ""                 ;; output captured from compile
   output: copy ""                      ;; output captured from pgm exec
   exe: none                            ;; filepath to executable
   source-file?: true                   ;; true = running  test file
                                        ;; false = runnning test script
-				  
+
 
   summary-template: ".. - .................................................. / "
-  
+
   data: make object! [
     title: copy ""
     no-tests: 0
@@ -109,7 +109,7 @@ qt: make object! [
       failures: 0
     ]
   ]
-  
+
   file: make data []
   test-run: make data []
   _add-file-to-run-totals: does [
@@ -120,14 +120,14 @@ qt: make object! [
   ]
   _signify-failure: does [
     ;; called when a compiler or runtime error occurs
-    file/failures: file/failures + 1           
+    file/failures: file/failures + 1
     file/no-tests: file/no-tests + 1
     file/no-asserts: file/no-asserts + 1
-    test-run/failures: test-run/failures + 1           
+    test-run/failures: test-run/failures + 1
     test-run/no-tests: test-run/no-tests + 1
     test-run/no-asserts: test-run/no-asserts + 1
   ]
-  
+
   ;; group data
   group-name: copy ""
   group?: false
@@ -137,32 +137,32 @@ qt: make object! [
     group-name-not-printed: true
     group-name: copy ""
   ]
-  
+
   ;; test data
   test-name: copy ""
   _init-test: does [
     test-name: copy ""
   ]
-  
+
   ;; print diversion function
   _save-print: :print
   print-output: copy ""
   _quiet-print: func [val] [
     append print-output join "" [reduce val "^/"]
   ]
-        
+
   	compile: func [
   		src [file!]
   		/bin
   		/lib
-  	  		target [string!]	
+  	  		target [string!]
   	  	/local
   	  		comp                          	;; compilation script
   	  		cmd                           	;; compilation cmd
   	  		exe								;; executable name
   ][
     clear comp-output
-    
+
     ;; workout executable name
     either find/last/tail src "/" [
       exe: copy find/last/tail src "/"
@@ -178,33 +178,33 @@ qt: make object! [
       	  exe: join exe [".so"]
       ]
       exe
-    ][     
+    ][
       if windows-os? [
         exe: join exe [".exe"]
       ]
     ]
-    
+
     ;; find the path to the src
     if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
-    
+
     ;; red/system or red
     red?: false
     parse read src red?-rule
- 
+
     ;; compose and write compilation script
     either binary? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
     	either lib [
-    		cmd: join "" [to-local-file bin-compiler " -o " 
+    		cmd: join "" [to-local-file bin-compiler " -o "
     					  to-local-file runnable-dir/:exe
     					  " -dlib -t " target " "
     					  to-local-file src
     		]
     	][
-    		cmd: join "" [to-local-file bin-compiler " -o " 
+    		cmd: join "" [to-local-file bin-compiler " -o "
     					  to-local-file runnable-dir/:exe " "
-    					  to-local-file src	
-    		]  		
+    					  to-local-file src
+    		]
     	]
     	comp-output: make string! 1024
     	call/wait/output cmd comp-output
@@ -214,7 +214,7 @@ qt: make object! [
     	  halt: :quit
     	  echo (comp-echo)
     	  do/args (reduce base-dir/red.r) (join " -o " [
-    	  	  	  reduce runnable-dir/:exe " ###lib###***src***" 
+    	  	  	  reduce runnable-dir/:exe " ###lib###***src***"
     	  ])
     	]
     	either lib [
@@ -222,7 +222,7 @@ qt: make object! [
     	][
     		replace comp "###lib###" ""
     	]
-    
+
     	replace comp "***src***"  clean-path src
     	write comp-r comp
 
@@ -231,7 +231,7 @@ qt: make object! [
     	call/wait/output cmd make string! 1024	;; redirect output to anonymous
     											;; buffer
     ]
-    
+
     ;; collect compiler output & tidy up
     if exists? comp-echo [
     	comp-output: read comp-echo
@@ -242,9 +242,9 @@ qt: make object! [
       exe
     ][
       none
-    ]    
+    ]
   ]
-  
+
   compile-and-run: func [src /error /pgm] [
     source-file?: true
     either exe: compile src [
@@ -262,7 +262,7 @@ qt: make object! [
       output: "Compilation failed"
     ]
   ]
-    
+
   compile-and-run-from-string: func [src /error] [
     source-file?: false
     either exe: compile-from-string src [
@@ -272,12 +272,12 @@ qt: make object! [
         run exe
       ]
     ][
-      
+
       compile-error "Supplied source"
       output: "Compilation failed"
     ]
   ]
-  
+
   compile-dll: func [
     lib-src [file!]
     target	[string!]
@@ -288,11 +288,11 @@ qt: make object! [
     ;; compile the lib into the runnable dir
     if not dll: compile/lib lib-src target [
       compile-error lib-src
-      output: "Lib compilation failed"  
+      output: "Lib compilation failed"
     ]
     dll
   ]
-  
+
   compile-from-string: func [src][
     ;-- add a default header if not provided
     parse src script-header-rule
@@ -302,7 +302,7 @@ qt: make object! [
     write test-src-file src
     compile test-src-file                  ;; returns path to executable or none
   ]
-  
+
   compile-error: func [
     src [file! string!]
   ][
@@ -312,11 +312,11 @@ qt: make object! [
     clear output                           ;; clear the output from previous test
     _signify-failure
   ]
-  
+
   compile-ok?: func [] [
     either find comp-output "output file size :" [true] [false]
-  ] 
-  
+  ]
+
   compile-run-print: func [src [file!] /error][
   	  either error [
   	  	  compile-and-run/error src
@@ -325,7 +325,7 @@ qt: make object! [
     ]
     if output <> "Compilation failed" [print output]
   ]
-  
+
   compiled?: func [
     src [string!]
   ][
@@ -333,7 +333,7 @@ qt: make object! [
     clean-compile-from-string
     qt/compile-ok?
   ]
-  
+
   run: func [
     prog [file!]
     ;;/args                         ;; not yet needed
@@ -358,28 +358,28 @@ qt: make object! [
       	  ]
       	  none = find output "Passed"
       ]
-    ][	
+    ][
     print "signify failure"
       _signify-failure
     ]
   ]
-  
+
   run-unit-test: func [
     src [file!]
-    /local               
+    /local
       cmd                             ;; command to run
-      test-name                     
+      test-name
   ][
     source-file?: false
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
     call/wait cmd
   ]
-  
+
   run-unit-test-quiet: func [
     src [file!]
-    /local               
+    /local
       cmd                             ;; command to run
-      test-name                     
+      test-name
   ][
     source-file?: false
     test-name: find/last/tail src "/"
@@ -395,11 +395,11 @@ qt: make object! [
     replace file/title "-test" ""
     _print-summary file
   ]
-  
+
   run-script: func [
     src [file!]
     /local
-     filename                     ;; filename of script 
+     filename                     ;; filename of script
      script                       ;; %runnable/filename
   ][
     if not filename: copy find/last/tail src "/" [filename: copy src]
@@ -407,7 +407,7 @@ qt: make object! [
     write to file! script read join tests-dir [src]
     if error? try [do script] [_signify-failure]
   ]
-  
+
   run-script-quiet: func [
   	src [file!]
   ][
@@ -420,7 +420,7 @@ qt: make object! [
     write/append log-file print-output
     _print-summary file
   ]
-  
+
   run-test-file: func [
   	src [file!]
   ][
@@ -430,7 +430,7 @@ qt: make object! [
     compile-run-print src
     add-to-run-totals
   ]
-  
+
   run-test-file-quiet: func [
   	src [file!]
   	][
@@ -443,11 +443,11 @@ qt: make object! [
     _print-summary file
     output: copy ""
   ]
-  
+
   add-to-run-totals: func [
     /local
       tests
-      
+
       asserts
       passes
       failures
@@ -474,7 +474,7 @@ qt: make object! [
       _add-file-to-run-totals
     ]
   ]
-  
+
   _start: func [
     data [object!]
     leader [string!]
@@ -495,7 +495,7 @@ qt: make object! [
     _start test-run "***Starting***" title
     prin newline
   ]
-  
+
   start-test-run-quiet: func [
     title [string!]
       ][
@@ -503,20 +503,20 @@ qt: make object! [
     prin newline
     write log-file rejoin ["***Starting***" title newline]
   ]
-  
+
   start-file: func [
     title [string!]
   ][
     _start file "~~~started test~~~" title
   ]
-  
+
   start-group: func[
     title [string!]
   ][
    group-name: title
    group?: true
   ]
-  
+
   start-test: func[
     title [string!]
   ][
@@ -524,7 +524,7 @@ qt: make object! [
     test-name: title
     file/no-tests: file/no-tests + 1
   ]
-    
+
   assert: func [
     assertion [logic!]
   ][
@@ -542,24 +542,24 @@ qt: make object! [
       print ["---test---" test-name "FAILED**************"]
     ]
   ]
-  
+
   assert-msg?: func [msg][
     assert found? find qt/comp-output msg
   ]
-  
+
   assert-printed?: func [msg] [
     assert found? find qt/output msg
   ]
-  
+
   clean-compile-from-string: does [
     if exists? test-src-file [delete test-src-file]
     if all [exe exists? exe][delete exe]
 ]
-  
+
   end-group: does [
     _init-group
   ]
-  
+
   _end: func [
     data [object!]
     leader [string!]
@@ -572,17 +572,17 @@ qt: make object! [
     if data/failures > 0 [print "***TEST FAILURES***"]
     print ""
   ]
-  
+
   end-file: func [] [
-    _end file "~~~finished test~~~" 
+    _end file "~~~finished test~~~"
     _add-file-to-run-totals
   ]
-  
+
   end-test-run: func [] [
       print ""
     _end test-run "***Finished***"
   ]
-  
+
   end-test-run-quiet: func [] [
     print: :_quiet-print
     print-output: copy ""
@@ -592,7 +592,7 @@ qt: make object! [
     prin newline
     _print-summary test-run
   ]
-  
+
   _print-summary: func [
     data [object!]
     /local
@@ -615,10 +615,10 @@ qt: make object! [
     ]
     print print-line
   ]
-  
+
   make-if-needed?: func [
     {This function is used by the Red run-all scripts to build the auto files
-     when necessary. It is not } 
+     when necessary. It is not }
     auto-test-file [file!]
     make-file [file!]
     /lib-test
@@ -631,7 +631,7 @@ qt: make object! [
   ][
     auto-test-file: join tests-dir auto-test-file
     make-file: join tests-dir make-file
-    
+
     stored-file-length: does [
       parse/all read auto-test-file rule
       stored-length
@@ -639,13 +639,13 @@ qt: make object! [
     digit: charset [#"0" - #"9"]
     number: [some digit]
     rule: [
-      thru ";make-length:" 
+      thru ";make-length:"
       copy stored-length number (stored-length: to integer! stored-length)
       to end
     ]
-    
+
     if not exists? make-file [return]
-   
+
     if any [
       not exists? auto-test-file
       stored-file-length <> length? read make-file
@@ -655,7 +655,7 @@ qt: make object! [
       do make-file
     ]
   ]
-  
+
   setup-temp-files: func [
   	  /local
   	  	f
@@ -667,13 +667,13 @@ qt: make object! [
   	comp-r: join runnable-dir ["comp" f ".r"]
   	test-src-file: join runnable-dir ["qt-test-comp" f ".red"]
   ]
-  
+
   delete-temp-files: does [
   	  if exists? comp-echo [delete comp-echo]
   	  if exists? comp-r [delete comp-r]
-  	  if exists? test-src-file [delete test-src-file]  
+  	  if exists? test-src-file [delete test-src-file]
   ]
-  
+
   seperate-log-file: func [
   	  /local
   	  	f
@@ -683,7 +683,7 @@ qt: make object! [
   	f: replace/all f "." ""
     log-file: join base-dir ["quick-test/quick-test" f ".log"]
   ]
-  
+
   utf-16le-to-utf-8: func [
     {Translates a utf-16LE encoded string to an utf-8 encoded one
      the algorithm is copied from lexer.r                         }
@@ -700,7 +700,7 @@ qt: make object! [
          append out-str to char! code					            ;-- c <= 7Fh
        ]
        code <= 2047 [							                        ;-- c <= 07FFh
-         append out-str join "" [ 
+         append out-str join "" [
            to char! ((shift code 6) and #"^(1F)" or #"^(C0)")
 					 to char! ((code and #"^(3F)") or #"^(80)")
 				 ]
@@ -722,11 +722,11 @@ qt: make object! [
 			 ]                         ;-- Codepoints above U+10FFFF are ignored"
 		 ]
 	 ]
-   out-str 
+   out-str
   ]
-  
+
   ;; create the test "dialect"
-  
+
   set '***start-run***              :start-test-run
   set '***start-run-quiet***        :start-test-run-quiet
   set '~~~start-file~~~             :start-file
@@ -738,7 +738,7 @@ qt: make object! [
   set '--compile-this               :compile-from-string
   set '--compile-this-red           :compile-from-string
   set '--compile-and-run            :compile-and-run
-  set '--compile-and-run-red        :compile-and-run 
+  set '--compile-and-run-red        :compile-and-run
   set '--compile-and-run-this       :compile-and-run-from-string
   set '--compile-and-run-this-red   :compile-and-run-from-string
   set '--compile-run-print          :compile-run-print
@@ -765,5 +765,5 @@ qt: make object! [
   set '***end-run-quiet***          :end-test-run-quiet
   set '--setup-temp-files			:setup-temp-files
   set '--delete-temp-files			:delete-temp-files
-  set '--seperate-log-file			:seperate-log-file	
+  set '--seperate-log-file			:seperate-log-file
 ]

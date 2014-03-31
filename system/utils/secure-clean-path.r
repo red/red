@@ -33,13 +33,13 @@ secure-clean-path: func [
 	dot: "."
 	slash: "/"
     unless nocopy [target: at copy head target index? target]
-    
+
     root-rule: either all [root not empty? root] [
         either #"/" = pick root length? root [root] [[root slash]]
     ] [
         [slash | none]
     ]
-    
+
     if parse/all target [
         root-rule limit:
         any [

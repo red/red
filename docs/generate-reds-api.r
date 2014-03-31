@@ -29,9 +29,9 @@ xtract: make object! [
   func-blk: copy []
   ret-blk: copy []
   private: false
-  
+
   ;; parse rules
-  
+
   ;; string parse
   whitespace: charset " ^(tab)^/]"
 	file-char: complement whitespace
@@ -42,14 +42,14 @@ xtract: make object! [
 	  )
 	  ]
 	]
-  
+
   ;; block parse
   a-func: [
     (
       docstr: copy ""
       private: false
     )
-    set func-name set-word! 'func opt [set docstr string!] 
+    set func-name set-word! 'func opt [set docstr string!]
     set arguments [block!] (
       parse arguments [
         opt [set docstr string!] (
@@ -64,14 +64,14 @@ xtract: make object! [
         some [
           set arg-name word! set arg-type block! opt [set docstr string!] (
             if not private [
-              add-arg-blk mold arg-name mold arg-type docstr 
+              add-arg-blk mold arg-name mold arg-type docstr
               docstr: copy ""
              ]
            )
         ]
         opt [set-word! set return-type [block!] opt [set docstr string!] (
           if not private [
-            ret-blk: compose [(return-type) (docstr)] 
+            ret-blk: compose [(return-type) (docstr)]
           ]
         )
         ]
@@ -80,24 +80,24 @@ xtract: make object! [
     )
     block!
   ]
-  
+
   a-header: [
     'Red/System set header block! (
       insert/only find/tail file-blk 'header header
     )
   ]
-  
+
   an-import: [
     issue! [block!]
   ]
-  
+
   rules: [
-    any [ a-header | an-import | a-func | skip ] 
-    to end (new-func "" "") 
+    any [ a-header | an-import | a-func | skip ]
+    to end (new-func "" "")
   ]
-  
+
   ;; functions
-  
+
   add-arg-blk: func [
     arg       [string!]
     type      [string!]
@@ -109,7 +109,7 @@ xtract: make object! [
       append/only func-blk blk
     ]
   ]
-  
+
   new-func: func [
     name    [string!]
     docstr  [string!]
@@ -127,7 +127,7 @@ xtract: make object! [
     local?: false
     ret-blk: copy []
   ]
-  
+
   extract-docstrings: func [
     src [file!]
     /local
@@ -146,47 +146,47 @@ xtract: make object! [
       ]
     ][
       if %.reds = suffix? src [
-        
+
         ;; build a file block
         file-blk: compose copy [file (to string! second split-path src)]
         inc-blk: copy []
-        append file-blk 'header 
+        append file-blk 'header
         append file-blk 'functions
         append/only file-blk copy []
-      
+
         ;; populate with the a block for each function
         code: code-string
         replace/all code " % " " ***rem*** "      ;; REBOL treats % operator as
-                                                  ;; an invalid file name   
+                                                  ;; an invalid file name
         parse/all load code rules
-        
+
         ;; parse the source again to find the includes and add
         inc-blk: copy []
         parse/all code-string [some [an-include | skip] end]
-        append file-blk 'includes 
+        append file-blk 'includes
         append/only file-blk inc-blk
-        
+
         append/only docstrings file-blk
         #[unset!]
       ]
     ]
   ]
-  
+
   extract-reds-docstrings: func [
     {Extracts docstrings from a Red/System source file or a directory of them}
-    title [string!] 
+    title [string!]
     src [file!]  "A Red/System source file or a directory"
   ][
     docstrings: compose [title (title)]
     extract-docstrings src
-    docstrings   
+    docstrings
   ]
-  
+
 ]
 
 ;; processing
 
-args: parse system/script/args none 
+args: parse system/script/args none
 either all [
   5 > length? args
   2 < length? args

@@ -39,7 +39,7 @@ change-dir %../
 
 	--test-- "enum-redec-6"
 	  --compile-this {
-	  	  Red/System [] 
+	  	  Red/System []
 		  #define foo 3
 		  #enum test! [foo]
 		}
@@ -48,7 +48,7 @@ change-dir %../
 
 	--test-- "enum-redec-7"
 	  --compile-this {
-	  	  Red/System [] 
+	  	  Red/System []
 		  #enum test! [foo]
 		  #define foo 3
 		  }
@@ -57,7 +57,7 @@ change-dir %../
 
 	--test-- "enum-redec-8"
 	  --compile-this {
-		  Red/System [] 
+		  Red/System []
 		  #enum test! [foo]
 		  p: declare struct! [a [test!]]
 		  p/a: "a"
@@ -67,7 +67,7 @@ change-dir %../
 
 	--test-- "enum-redec-9"
 	  --compile-this {
-		  Red/System [] 
+		  Red/System []
 		  #enum test! [foo]
 		  p: declare pointer! [test!]}
 	--assert-msg? "*** Compilation Error: invalid literal syntax: [test!]"
@@ -75,14 +75,14 @@ change-dir %../
 
 	--test-- "enum-redec-10"
 	  --compile-this {
-		  Red/System [] 
+		  Red/System []
 		  #enum test! [foo: 3]
 		  f: func[foo [c-string!]][print foo]
 		  f "bar"
 		}
 	--assert-msg? "*** Warning: function's argument redeclares enumeration: foo"
 	  --clean
-	  
+
 	--test-- "enum-redec-11"
 	  --compile-this {
 		  Red/System []
@@ -91,10 +91,10 @@ change-dir %../
 		}
 	--assert-msg? "*** Compilation Error: enumeration cannot be used as path root: foo"
 	  --clean
-	  
+
 	--test-- "enum-redec-12"
 	  --compile-this {
-		  Red/System [] 
+		  Red/System []
 		  #enum test! [foo: bla]
 		}
 	--assert-msg? "*** Compilation Error: cannot resolve literal enum value for: foo"

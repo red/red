@@ -12,20 +12,20 @@ Red/System [
 
 op: context [
 	verbose: 0
-	
+
 	push: func [
 		/local
 			cell [red-op!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/push"]]
-		
+
 		cell: as red-op! stack/push*
 		cell/header: TYPE_OP
 		;...TBD
 	]
-	
-	;-- Actions -- 
-	
+
+	;-- Actions --
+
 	make: func [
 		proto		[red-value!]
 		spec		[red-block!]						;-- type casted to red-block! to avoid an additional var
@@ -68,17 +68,17 @@ op: context [
 				fun/spec
 			]
 		]
-		
+
 		op: as red-op! stack/push*
 		op/header: TYPE_OP								;-- implicit reset of all header flags
 		op/spec:   node									; @@ copy spec block
 		;op/symbols: clean-spec spec 					; @@ TBD
-		
+
 		op/code: code
-		
+
 		op
 	]
-	
+
 	form: func [
 		value	[red-native!]
 		buffer	[red-string!]
@@ -91,7 +91,7 @@ op: context [
 		string/concatenate-literal buffer "?op?"
 		part - 4
 	]
-	
+
 	mold: func [
 		op		[red-native!]
 		buffer	[red-string!]
@@ -106,7 +106,7 @@ op: context [
 		#if debug? = yes [if verbose > 0 [print-line "op/mold"]]
 
 		string/concatenate-literal buffer "make op! ["
-		
+
 		part: block/mold								;-- mold spec
 			native/reflect op words/spec
 			buffer
@@ -116,7 +116,7 @@ op: context [
 			arg
 			part - 10
 			indent
-		
+
 		string/concatenate-literal buffer "]"
 		part - 1
 

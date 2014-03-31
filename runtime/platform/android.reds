@@ -30,7 +30,7 @@ Red/System [
 			text	 [c-string!]
 			return:	 [integer!]
 		]
-		
+
 		android_log_print: "__android_log_print" [[variadic]]
 	]
 	LIBC-file cdecl [
@@ -96,7 +96,7 @@ prin-buffered: func [s [c-string!]][
 		s: s + 1
 		any [
 			s/1 = null-byte
-			tail >= OUTPUT_BUF_SIZE 
+			tail >= OUTPUT_BUF_SIZE
 		]
 	]
 ]

@@ -30,5 +30,5 @@ lib-win-int-ptr!: alias struct! [
     lw1-len/int: 15
   --assert get-computer-name lw1-name lw1-len
   --assert lw1-name/1 <> #"*"
-  
+
 ===end-group===

@@ -22,7 +22,7 @@ args: parse system/script/args " "
 src: last args
 if find system/script/args "--binary" [qt/binary?: true]
 all [
-	2 < length? args 
+	2 < length? args
 	src <> temp: select args "--binary"
 	qt/bin-compiler: temp
 ]
@@ -40,7 +40,7 @@ either any [
 	either any [
 		%.reds = suffix? src
 		%.red = suffix? src
-	][                     
+	][
 		--compile-run-print src
 	][
 		either find read qt/tests-dir/:src "quick-unit-test.r" [

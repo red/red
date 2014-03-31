@@ -456,7 +456,7 @@ tail?: make action! [[
 ;rename
 ;update
 ;write
-		
+
 
 ;------------------------------------------
 ;-				Natives					  -
@@ -486,7 +486,7 @@ either: make native! [[
 	]
 	#get-definition NAT_EITHER
 ]
-	
+
 any: make native! [[
 		"Evaluates, returning at the first that is true."
 		conds [block!]
@@ -508,7 +508,7 @@ while: make native! [[
 	]
 	#get-definition NAT_WHILE
 ]
-	
+
 until: make native! [[
 		"Evaluates body until it is true."
 		body [block!]
@@ -637,7 +637,7 @@ get: make native! [[
 		word	[word!]
 		/any "If word has no value, return UNSET rather than causing an error"
 		return: [any-type!]
-	] 
+	]
 	#get-definition NAT_GET
 ]
 
@@ -891,7 +891,7 @@ probe: func [
 	"Returns a value after printing its molded form."
 	value
 ][
-	print mold value 
+	print mold value
 	value
 ]
 
@@ -1007,7 +1007,7 @@ replace: func [
 	/local pos len
 ][
 	len: either any-series? :pattern [length? pattern][1]
-	
+
 	either all [
 		pos: series
 		either any-series? :pattern [
@@ -1103,5 +1103,5 @@ load: function [
 	;]
 	transcode source out
 	unless :all [if 1 = length? out [out: out/1]]
-	out 
+	out
 ]

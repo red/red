@@ -6,7 +6,7 @@ Red/System [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 	Note: {
 		Compile this script from red-system folder with:
-		
+
 		do/args %rsc.r "-dlib %tests/shared-lib.reds"
 	}
 ]

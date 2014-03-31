@@ -27,19 +27,19 @@ Red/System []
 ]
 
 ~~~start-file~~~ "dll"
-  
+
 ===start-group=== "functions"
   --test-- "dllf1"
   --assert 2 = dll1-add-one 1
-  
-  --test-- "dllf2"    
+
+  --test-- "dllf2"
   --assert -2147483647 = dll1-add-one -2147483648
-  
+
   --test-- "dllf3"
   --assert -2147483648 = dll1-add-one 2147483647
- 
+
 ===end-group===
-  
+
 ~~~end-file~~~
 }
 
@@ -62,7 +62,7 @@ either qt/compile-ok? [
     replace src "***post***" ".so"
   ]
   write runnable-dir/src.reds src
-  
+
   ;; compile and run the test
   --compile-run-print runnable-dir/src.reds
 ][

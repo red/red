@@ -20,5 +20,5 @@ Red/System [
 
   --test-- "libosx1"
   --assert 0 < sqlite3_libversion_number
-  
+
 ===end-group===

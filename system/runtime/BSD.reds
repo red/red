@@ -131,7 +131,7 @@ bsd-startup-ctx: context [
 				;... remaining fields skipped
 			]
 			_ucontext!: alias struct! [
-				sigmask0	[integer!]			;-- __sigset defined as an array of 4 uint32 
+				sigmask0	[integer!]			;-- __sigset defined as an array of 4 uint32
 				sigmask1	[integer!]
 				sigmask2	[integer!]
 				sigmask3	[integer!]
@@ -228,7 +228,7 @@ bsd-startup-ctx: context [
 			environPtr		[struct! [p [struct! [s [c-string!]]]]]
 			__prognamePtr	[struct! [s [c-string!]]]
 		]
-		
+
 		***-dll-entry-point: func [
 			[cdecl]
 			argc	[integer!]

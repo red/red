@@ -14,7 +14,7 @@ system/options/quiet: true
 
 ;; init
 file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
-a-file-name: ["%" some file-chars ".red" ] 
+a-file-name: ["%" some file-chars ".red" ]
 a-test-file: ["--run-test-file-quiet " copy file a-file-name]
 
 target: ask {
@@ -40,7 +40,7 @@ parse/all all-tests [
 ]
 
 ;; compile the tests into to runnable/arm-tests
- 
+
 foreach test-file test-files [
   do/args %../../red.r rejoin ["-t " target " " test-file]
   exe: copy find/last/tail test-file "/"
@@ -64,6 +64,6 @@ if system/version/4 <> 3 [
 system/options/quiet: store-quiet-mode
 
 print "ARM tests built"
-  
-  
+
+
 

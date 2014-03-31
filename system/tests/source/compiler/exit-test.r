@@ -12,7 +12,7 @@ change-dir %../
 ~~~start-file~~~ "exit-err"
 
   --test-- "simple test of compile and run"
-    --compile-and-run-this "Red/System [] test: does [exit] test" 
+    --compile-and-run-this "Red/System [] test: does [exit] test"
     --assert qt/output = ""
     --clean
 
@@ -20,7 +20,7 @@ change-dir %../
 	--compile-this "Red/System [] until [exit]"
   --assert-msg? "*** Compilation Error: exit is not allowed outside of a function"
 	--clean
-	
+
   --test-- "exit-err-3"
 	--compile-this "Red/System [] foo: does [until [exit]]"
   --assert-msg? "*** Compilation Error: UNTIL requires a conditional expression as last expression"

@@ -25,14 +25,14 @@ prin-byte: func [
 ]
 
 ;-------------------------------------------
-;-- Low-level polymorphic print function 
+;-- Low-level polymorphic print function
 ;-- (not intended to be called directly)
 ;-------------------------------------------
 _print: func [
 	count	[integer!]						;-- typed values count
 	list	[typed-value!]					;-- pointer on first typed value
 	spaced?	[logic!]						;-- if TRUE, insert a space between items
-	/local 
+	/local
 		fp [typed-float!]
 		s  [c-string!]
 		c  [byte!]
@@ -48,7 +48,7 @@ _print: func [
 			default 	   [prin-hex list/value]
 		]
 		count: count - 1
-		
+
 		if all [spaced? count <> 0][
 			switch list/type [
 				type-c-string! [
@@ -96,7 +96,7 @@ print: func [
 ]
 
 ;-------------------------------------------
-;-- Polymorphic print in console, with a line-feed 
+;-- Polymorphic print in console, with a line-feed
 ;-------------------------------------------
 print-line: func [
 	[typed]	count [integer!] list [typed-value!]

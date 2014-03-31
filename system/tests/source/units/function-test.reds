@@ -18,7 +18,7 @@ Red/System [
       /local
       f1-f1 [integer!]
     ][
-      f1-f1: 3 
+      f1-f1: 3
       --assert f1-f1 = 3
     ]
 
@@ -29,7 +29,7 @@ Red/System [
     ]
   --assert f1-f1 = 5
   f1-f
-  
+
 ===end-group===
 
 ===start-group=== "function return values"
@@ -44,7 +44,7 @@ Red/System [
     ]
 
   --assert false = frv1-func
-  
+
   --test-- "frv2"
   frv2-func: func [
     return: [logic!]
@@ -59,7 +59,7 @@ Red/System [
     ]
 
   --assert false = frv2-func
-  
+
   --test-- "frv3"
   frv3-func: func [
     return: [logic!]
@@ -75,7 +75,7 @@ Red/System [
     ]
 
   --assert false = frv3-func
-  
+
 ===end-group===
 
 ===start-group=== "does"
@@ -86,8 +86,8 @@ Red/System [
     d1-d: does [d1-b: d1-a]
     d1-d
   --assert d1-a = d1-b
-  
-  
+
+
 
 ===end-group===
 

@@ -28,7 +28,7 @@ Red/System [
 #define SYSCALL_MMAP		SYSCALL_MMAP2
 
 platform: context [
-	
+
 	#either OS = 'Android [
 		#either type = 'exe [
 			#include %POSIX.reds
@@ -66,7 +66,7 @@ platform: context [
 			return:		[integer!]
 		]
 	]
-	
+
 	;-------------------------------------------
 	;-- Allocate paged virtual memory region from OS
 	;-------------------------------------------
@@ -79,10 +79,10 @@ platform: context [
 		assert zero? (size and 0Fh)				;-- size is a multiple of 16
 		prot: either exec? [MMAP_PROT_RWX][MMAP_PROT_RW]
 
-		ptr: mmap 
-			null 
+		ptr: mmap
+			null
 			size
-			prot	
+			prot
 			MMAP_MAP_PRIVATE or MMAP_MAP_ANONYMOUS
 			-1									;-- portable value
 			0
@@ -95,7 +95,7 @@ platform: context [
 
 	;-------------------------------------------
 	;-- Free paged virtual memory region from OS
-	;-------------------------------------------	
+	;-------------------------------------------
 	free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
@@ -103,8 +103,8 @@ platform: context [
 			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
 		]
 	]
-	
-	
+
+
 	init: does [
 		page-size: sysconf SC_PAGE_SIZE			;@@ add error checking!
 		#if type = 'exe [

@@ -10,7 +10,7 @@ REBOL [
 
 int-to-bin: context [
 	little-endian?: yes
-	
+
 	set 'to-bin8 func [v [integer! char!]][
 		to binary! to char! 256 + v and 255
 	]

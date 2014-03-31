@@ -13,13 +13,13 @@ Red/System [
     #enum test1! [enumA enumB]
     --assert enumA = 0
     --assert enumB = 1
-    
-  --test-- "Enum-2"  
+
+  --test-- "Enum-2"
     #enum test2! [enumC: 3 enumD]
     --assert enumC = 3
     --assert enumD = 4
 
-    --test-- "Enum-3"  
+    --test-- "Enum-3"
     #enum test3! [
         enumE: 11
         ;empty line test
@@ -45,26 +45,26 @@ Red/System [
         p3/enumA: 3
     --assert enumA = 0
     --assert p3/enumA = 3
-    
+
   --test-- "Enum-7"
         str: "abcd"
     --assert str/3 = #"c"
     --assert str/enumC = #"c"
-    
+
   --test-- "Enum-8"
         fce: func[return: [integer!]][ return enumC ]
     --assert fce = 3
-	
+
   --test-- "Enum-9"
         #enum test9! [enum9: enumC]
     --assert enum9 = 3
-	
+
   --test-- "Enum-10"
         #enum test10! [enum10: enum11: 10 enum12]
     --assert enum10 = 10
 	--assert enum11 = 10
 	--assert enum12 = 11
-	
+
 	--test-- "Enum-11"
 	  #enum test11! [e11-a e11-b]
 	  e11-f: func [
@@ -76,6 +76,6 @@ Red/System [
 	    e11-b
 	  ]
 	--assert 3 = e11-f
-	
+
 ~~~end-file~~~
 

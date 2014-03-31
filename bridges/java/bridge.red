@@ -12,17 +12,17 @@ Red [
 
 #system-global [
 	#define node! int-ptr!								;-- required for Red datatypes definitions
-	
+
 	#include %../../system/bridges/java/JNI.reds
 	#include %../../runtime/datatypes/structures.reds
-	
+
 	env: as JNI-env! 0
 	jni: as JNI! 0
-	
+
 	#enum android-events! [
 		event-click: 1
 	]
-	
+
 	#enum java-types! [
 		type-void:		1
 		type-boolean:	3
@@ -35,10 +35,10 @@ Red [
 		type-string:	98
 		type-object:	99
 	]
-	
+
 	store-type: func [
 		name	[jstring!]
-		/local	
+		/local
 			src	   [c-string!]
 			str	   [c-string!]
 			word   [red-word!]
@@ -47,10 +47,10 @@ Red [
 	][
 		src: jni/GetStringUTFChars env name null
 		str: src
-		
+
 		array?: str/1 = #"["
 		if array? [str: str + 1]
-		
+
 		if str/1 = #"L" [
 			str: str + 1
 			len: length? str
@@ -58,11 +58,11 @@ Red [
 		]
 		word: red/word/load str
 		#call [~on-param-type word array?]
-		
+
 		jni/ReleaseStringUTFChars env name src			;@@ restore last character??
 		jni/DeleteLocalRef env name
 	]
-	
+
 	enum-methods: func [
 		class	[jclass!]
 		init?	[logic!]								;-- TRUE: fetch constructors
@@ -87,7 +87,7 @@ Red [
 			word		  [red-word!]
 	][
 		getReturnType: as jmethodID! 0
-		
+
 		cls: jni/FindClass env "java/lang/Class"
 		either init? [
 			method: jni/FindClass env "java/lang/reflect/Constructor"
@@ -99,14 +99,14 @@ Red [
 		]
 		list: jni/CallObjectMethod [env class id]
 		size: jni/GetArrayLength env list
-		
+
 		getName:   get-method env method "getName" "()Ljava/lang/String;"
 		getParams: get-method env method "getParameterTypes" "()[Ljava/lang/Class;"
-		
+
 		idx: 0
 		while [idx < size][
 			obj: jni/GetObjectArrayElement env list idx
-			
+
 			either init? [
 				#call [~on-new-constructor]
 			][
@@ -118,11 +118,11 @@ Red [
 				jni/ReleaseStringUTFChars env name str
 				jni/DeleteLocalRef env name
 			]
-			
+
 			;--- Get method id ---
 			id: jni/FromReflectedMethod env obj
 			#call [~on-method-id as integer! id]
-			
+
 			unless init? [
 				;--- Get method return type ---
 				method: jni/CallObjectMethod [env obj getReturnType]
@@ -133,13 +133,13 @@ Red [
 				store-type name
 				jni/DeleteLocalRef env cls
 			]
-			
+
 			;--- Get method arguments ---
 			cls-list: jni/CallObjectMethod [env obj getParams]
 			sz: jni/GetArrayLength env cls-list
 			i: 0
 			jni/DeleteLocalRef env obj					;-- release method object
-			
+
 			while [i < sz][
 				obj: jni/GetObjectArrayElement env cls-list i
 				cls: jni/GetObjectClass env obj
@@ -154,7 +154,7 @@ Red [
 			idx: idx + 1
 		]
 	]
-	
+
 	fetch-constructors: func [
 		class	[jclass!]
 		/local
@@ -214,7 +214,7 @@ Red [
 		]
 		jni/DeleteLocalRef env list						;-- release constructors Class array
 	]
-	
+
 	fetch-super-class: func [
 		class	[jclass!]
 		/local
@@ -229,7 +229,7 @@ Red [
 		cls: jni/FindClass env "java/lang/Class"
 		getSuperclass: get-method env cls "getSuperclass" "()Ljava/lang/Class;"
 		class: jni/CallObjectMethod [env class getSuperclass]
-		
+
 		unless null? class [
 			class: jni/NewGlobalRef env class
 			#call [~on-super-id as integer! class]
@@ -243,7 +243,7 @@ Red [
 			jni/ReleaseStringUTFChars env name str
 		]
 	]
-	
+
 #either OS = 'Android [
 	Java_org_redlang_eval_MainActivity_doMain:
 ][
@@ -260,7 +260,7 @@ Red [
 		;jni/DeleteLocalRef env this
 		#call [main as integer! gid]
 	]
-	
+
 #either OS = 'Android [
 	Java_org_redlang_eval_ClickEvent_Receive:
 ][
@@ -269,12 +269,12 @@ Red [
 		jni-env	[JNI-env!]
 		this	[jobject!]
 		face	[integer!]
-	][	
+	][
 		env: jni-env
 		jni: env/jni
 		#call [on-java-event face event-click 0]
 	]
-	
+
 	#either OS = 'Android [
 		#export JNICALL [
 			Java_org_redlang_eval_MainActivity_doMain
@@ -323,7 +323,7 @@ Red [
 
 ~on-param-type: func [type [word!] array? [logic!]][
 	if array? [type: reduce [type]]
-	
+
 	either ~method/2 [									;-- if return type <> none, set argument type
 		append/only ~method/3 type
 	][
@@ -415,7 +415,7 @@ java-instantiate-abstract: routine [
 		saved	[int-ptr!]
 ][
 	#if debug? = yes [print-wide ["java-instantiate-abstract" as byte-ptr! cls lf]]
-	
+
 	init-id: get-method env as jclass! cls "<init>" "()V"
 
 	saved: system/stack/align
@@ -425,7 +425,7 @@ java-instantiate-abstract: routine [
 	push env
 	res: jni/NewObjectA 4
 	system/stack/top: saved
-	
+
 	if res <> null [
 		gid: jni/NewGlobalRef env res
 		jni/DeleteLocalRef env res
@@ -446,20 +446,20 @@ java-instantiate: routine [
 		res		[jobject!]
 		gid		[jobject!]
 		saved	[int-ptr!]
-][	
+][
 	#if debug? = yes [print-wide ["java-instantiate" as byte-ptr! cls as byte-ptr! id lf]]
-	
+
 	value: block/rs-tail spec
 	head:  block/rs-head spec
-	
+
 	saved: system/stack/align
-	
+
 	value: value - 1
 	while [value >= head][
 		switch TYPE_OF(value) [
 			TYPE_STRING [
 				push 0									;-- jvalue slots are 64-bit!
-				push jni/NewStringUTF 
+				push jni/NewStringUTF
 					env
 					as-c-string string/rs-head as red-string! value
 			]
@@ -480,10 +480,10 @@ java-instantiate: routine [
 	push id												;-- <init> id
 	push cls											;-- class id
 	push env
-	
+
 	res: jni/NewObjectA 4
 	system/stack/top: saved
-	
+
 	if res <> null [
 		gid: jni/NewGlobalRef env res
 		jni/DeleteLocalRef env res
@@ -506,7 +506,7 @@ java-invoke: routine [
 		id		[jobject!]
 		gid		[jobject!]
 		saved	[int-ptr!]
-][	
+][
 	value: block/rs-tail spec
 	head:  block/rs-head spec
 
@@ -517,7 +517,7 @@ java-invoke: routine [
 		switch TYPE_OF(value) [
 			TYPE_STRING [
 				push 0									;-- jvalue slots are 64-bit!
-				push jni/NewStringUTF 
+				push jni/NewStringUTF
 					env
 					as-c-string string/rs-head as red-string! value
 			]
@@ -654,7 +654,7 @@ java-fetch-class: func [name [word!] /with cls [integer!] /local class][
 	~class: class
 	java-populate cls									;-- fetch methods and fields
 	~class: ~method: none
-	
+
 	append ~classes name								;-- original class name
 	append/only ~classes class
 	class
@@ -685,7 +685,7 @@ to-java-object: func [obj-id [integer!] /local class cls name][
 
 java-get-class: func [name [word!]][
 	if java-verbose > 0 [print ["java-get-class:" name]]
-	
+
 	any [
 		select/skip ~classes name 2
 		java-fetch-class name
@@ -694,9 +694,9 @@ java-get-class: func [name [word!]][
 
 java-new: func [spec [block!] /local name class id obj method][
 	if java-verbose > 0 [print ["java-new:" mold spec]]
-	
+
 	class: java-get-class name: spec/1
-	
+
 	;-- Find matching constructor
 	spec: reduce next spec
 	either tail? class/6 [
@@ -736,7 +736,7 @@ java-do: function [spec [block!]][
 	return-type: spec/1/3
 	spec: reduce next spec
 	class: obj
-	
+
 	while [
 		all [
 			not all [
@@ -755,10 +755,10 @@ java-do: function [spec [block!]][
 		print ["Error: no matching method found for: " form call]
 		exit
 	]
-	
+
 	spec: java-process-args spec
 	result: java-invoke obj/1 entry/1 type: to-type-id entry/2 spec
-	
+
 	either any [
 		type = 99
 		entry/2 = 'java.lang.CharSequence

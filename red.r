@@ -8,7 +8,7 @@ REBOL [
 	Usage:   {
 		do/args %red.r "path/source.red"
 	}
-	Encap: [quiet secure none title "Red" no-window] 
+	Encap: [quiet secure none title "Red" no-window]
 ]
 
 unless value? 'encap-fs [do %system/utils/encap-fs.r]
@@ -20,7 +20,7 @@ unless all [value? 'red object? :red][
 redc: context [
 
 	Windows?: system/version/4 = 3
-	
+
 	if encap? [
 		temp-dir: switch/default system/version/4 [
 			2 [											;-- MacOS X
@@ -73,7 +73,7 @@ redc: context [
 			%/tmp/red/
 		]
 	]
-	
+
 	;; Select a default target based on the REBOL version.
 	default-target: does [
 		any [
@@ -131,21 +131,21 @@ redc: context [
 		]
 		targets
 	]
-	
+
 	red-system?: func [file [file!] /local ws rs?][
 		ws: charset " ^-^/^M"
 		parse/all/case read file [
 			some [
 				thru "Red"
 				opt ["/System" (rs?: yes)]
-				any ws 
+				any ws
 				#"[" (return to logic! rs?)
 				to end
 			]
 		]
 		no
 	]
-	
+
 	safe-to-local-file: func [file [file!]][
 		if all [
 			find file: to-local-file file #" "
@@ -155,17 +155,17 @@ redc: context [
 		]
 		file
 	]
-	
+
 	run-console: func [/with file [string!] /local opts result script exe][
 		script: temp-dir/red-console.red
 		exe: temp-dir/console
-		
+
 		if Windows? [append exe %.exe]
-		
+
 		unless exists? temp-dir [make-dir temp-dir]
-		
+
 		if any [
-			not exists? exe 
+			not exists? exe
 			(modified? exe) < build-date					;-- check that console is up to date.
 		][
 			write script read-cache %tests/console.red
@@ -183,10 +183,10 @@ redc: context [
 			print "Pre-compiling Red console..."
 			result: red/compile script opts
 			system-dialect/compile/options/loaded script opts result/1
-			
+
 			delete script
 			delete temp-dir/help.red
-			
+
 			if all [Windows? not lib?][
 				print "Please run red.exe again to access the console."
 				quit/return 1
@@ -225,7 +225,7 @@ redc: context [
 			]
 			set filename skip (src: load-filename filename)
 		]
-		
+
 		if mode [
 			switch mode [
 				help	[print read-cache %usage.txt]
@@ -266,13 +266,13 @@ redc: context [
 				fail ["Invalid verbosity:" verbose]
 			]
 		]
-		
+
 		;; Process -dlib/--dynamic-lib (if any).
 		if type = 'dll [
 			opts/type: type
 			if opts/OS <> 'Windows [opts/PIC?: yes]
 		]
-		
+
 		;; Check common syntax mistakes
 		if all [
 			any [type output verbose target?]			;-- -c | -o | -dlib | -t | -v
@@ -283,7 +283,7 @@ redc: context [
 		if all [output output/1 = #"-"][				;-- -o (not followed by option)
 			fail "Missing output file or path"
 		]
-		
+
 		;; Process input sources.
 		unless src [
 			either encap? [
@@ -292,11 +292,11 @@ redc: context [
 				fail "No source files specified."
 			]
 		]
-		
+
 		if all [encap? none? output none? type][
 			run-console/with filename
 		]
-		
+
 		if slash <> first src [							;-- if relative path
 			src: clean-path join base-path src			;-- add working dir path
 		]
@@ -309,7 +309,7 @@ redc: context [
 
 	main: has [src opts build-dir result saved rs? prefix] [
 		set [src opts] parse-options
-		
+
 		rs?: red-system? src
 
 		;; If we use a build directory, ensure it exists.
@@ -319,25 +319,25 @@ redc: context [
 				fail ["Cannot access build dir:" build-dir]
 			]
 		]
-		
+
 		print [
 			newline
 			"-=== Red Compiler" read-cache %version.r "===-" newline newline
 			"Compiling" src "..."
 		]
-		
+
 		unless rs? [
 	;--- 1st pass: Red compiler ---
-			
+
 			fail-try "Red Compiler" [
 				result: red/compile src opts
 			]
 			print ["...compilation time:" tab round result/2/second * 1000 "ms"]
 			if opts/red-only? [exit]
 		]
-		
+
 	;--- 2nd pass: Red/System compiler ---
-		
+
 		print [
 			newline
 			"Compiling to native code..."
@@ -354,7 +354,7 @@ redc: context [
 			unless encap? [change-dir %../]
 		]
 		print ["...compilation time :" round result/1/second * 1000 "ms"]
-		
+
 		if result/2 [
 			print [
 				"...linking time     :" round result/2/second * 1000 "ms^/"

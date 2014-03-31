@@ -32,7 +32,7 @@ qt-group-name-not-printed: true
 qt-group?: false
 
 _qt-init-group: does [
-  
+
   qt-group-name-not-printed: true
   qt-group?: false
   qt-group-name: ""
@@ -89,12 +89,12 @@ qt-init-file: func [] [
   assertion [logic!]
 ][
   qt-file/asserts: qt-file/asserts + 1
-  
+
   either assertion [
      qt-file/passes: qt-file/passes + 1
   ][
     qt-file/failures: qt-file/failures + 1
-    if qt-group? [  
+    if qt-group? [
       if qt-group-name-not-printed [
         print [lf "===group=== " qt-group-name lf]
         qt-group-name-not-printed: false
@@ -127,7 +127,7 @@ qt-init-file: func [] [
     e2: -1.0 * y * e
   ]
   if e1 > e2 [e2: e1]
-  
+
   ;; perform almost equal check
   either x > y [
     diff: x - y
@@ -164,7 +164,7 @@ qt-init-file: func [] [
     e2: as float32! -1.0 * y * e
   ]
   if e1 > e2 [e2: e1]
-  
+
   ;; perform almost equal check
   either x > y [
     diff: x - y
@@ -178,7 +178,7 @@ qt-init-file: func [] [
   ]
 ]
 
- 
+
 ===end-group===: func [] [
   _qt-init-group
 ]
@@ -187,10 +187,10 @@ qt-init-file: func [] [
   print [lf "~~~finished test~~~ " qt-file-name lf]
   qt-print-totals qt-file/tests
                   qt-file/asserts
-                  qt-file/passes 
+                  qt-file/passes
                   qt-file/failures
   print lf
-  
+
   ;; update run totals
   qt-run/passes: qt-run/passes + qt-file/passes
   qt-run/asserts: qt-run/asserts + qt-file/asserts

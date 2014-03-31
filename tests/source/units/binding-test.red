@@ -21,7 +21,7 @@
 		--assert  1 = get x
 		--assert  1 = do [get x]
 
-	--test-- "def-bind-2"	
+	--test-- "def-bind-2"
 		fun-bind-2: func [/local x y][			;-- indirect local word setting test
 			x: 'y
 			y: 1
@@ -31,8 +31,8 @@
 			--assert  1 = do [get x]
 		]
 		fun-bind-2
-	
-	--test-- "def-bind-3"	
+
+	--test-- "def-bind-3"
 		fun-bind-3: func [/local x][			;-- indirect global word setting test
 			x: 'z
 			set x 1
@@ -40,7 +40,7 @@
 			--assert 1 = do [z]
 		]
 		fun-bind-3
-	
+
 ===end-group===
 
 ===start-group=== "Dynamic binding"
@@ -64,7 +64,7 @@
 		--assert 3 = fun-bind-11 z
 		--assert a = 0
 		--assert 2 = do z
-	
+
 	--test-- "dyn-bind-3"
 		a: 0
 		fun-bind-12: func [code /local a][
@@ -80,10 +80,10 @@
 		fun-bind-13: func [word /local a][
 			a: 1
 			get bind word 'a
-		]		
+		]
 		--assert 1 = fun-bind-13 'a
 		--assert a = 0
-		
+
 	--test-- "dyn-bind-5"
 		a: 0
 		fun-bind-14: func [word /local a][
@@ -97,7 +97,7 @@
 
 
 ===start-group=== "Binding bugs"
-	
+
 	--test-- "#581"
 		--assert 1 = do load {S: 1 S}
 

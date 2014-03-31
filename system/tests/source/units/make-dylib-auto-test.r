@@ -31,12 +31,12 @@ dll-target: switch/default fourth system/version [
 	"Linux"
 ]
 
-;; workout dll names 
+;; workout dll names
 suffix: switch/default fourth system/version [
 	2 [".dylib"]
 	3 [".dll"]
 ][
-	".so"	
+	".so"
 ]
 
 ;;; Processing
@@ -48,7 +48,7 @@ write file-out test-script-header
 ;; update the #include statements, write them and the tests
 if dll-target [
 	dll1-name: join %libtest-dll1 suffix
-	dll2-name: join %libtest-dll2 suffix 
+	dll2-name: join %libtest-dll2 suffix
 	either dll-target = "Windows" [
 		replace libs "***test-dll1***" dll1-name
 		replace libs "***test-dll2***" dll2-name
@@ -57,7 +57,7 @@ if dll-target [
 		replace libs "***test-dll2***" qt/runnable-dir/:dll2-name
 	]
 	write/append file-out libs
-	write/append file-out tests	
+	write/append file-out tests
 ]
 
 ;; write the test footer

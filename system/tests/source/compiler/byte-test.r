@@ -15,12 +15,12 @@ change-dir %../
 
 	--test-- "byte cc 1"
   		--assert --compiled? {
-    		Red/System []		
-    	;;	b: #"á"				This should be re-instated for version 2				
+    		Red/System []
+    	;;	b: #"á"				This should be re-instated for version 2
     	}
- 
-===end-group=== 
-       
+
+===end-group===
+
 ~~~end-file~~~
 
 

@@ -52,33 +52,33 @@ Red/System [
 ~~~start-file~~~ "library - float"
 
     f: 0.0
-  
+
   --test-- "flib1"
   --assert 2.0 = addone 1.0
-  
+
   --test-- "flib2"
     f: addone 1.0
   --assert f = 2.0
-  
+
   --test-- "flib3"
     f: subtractone 2.0
   --assert f = 1.0
-  
+
   --test-- "flib4"
   --assert 1.0 = subtractone 2.0
-  
-  --test-- "flib5"    
+
+  --test-- "flib5"
     f: twice 1.0
   --assert f = 2.0
-  
+
   --test-- "flib6"
   --assert 2.0 = twice 1.0
-  
+
   --test-- "flib7"
   --assert 1.0 = halve 2.0
-    
+
   --test-- "flib8"
   --assert 0.5 = halve 1.0
-  
+
 ~~~end-file~~~
 

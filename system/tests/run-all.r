@@ -21,8 +21,8 @@ qt/script-header: "Red/System []"
 
 ;; make auto files if needed
 ;; do not split these statements over two lines
-qt/make-if-needed? %source/units/auto-tests/byte-auto-test.reds %source/units/make-byte-auto-test.r                 
-qt/make-if-needed? %source/units/auto-tests/integer-auto-test.reds %source/units/make-integer-auto-test.r    
+qt/make-if-needed? %source/units/auto-tests/byte-auto-test.reds %source/units/make-byte-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/integer-auto-test.reds %source/units/make-integer-auto-test.r
 qt/make-if-needed? %source/units/auto-tests/maths-auto-test.reds %source/units/make-maths-auto-test.r
 qt/make-if-needed? %source/units/auto-tests/float-auto-test.reds %source/units/make-float-auto-test.r
 qt/make-if-needed? %source/units/auto-tests/float32-auto-test.reds %source/units/make-float32-auto-test.r
@@ -35,7 +35,7 @@ print rejoin ["REBOL       " system/version]
 
 start-time: now/precise
 
-;; any .reds test with more than one space between --run-test-file-quiet and 
+;; any .reds test with more than one space between --run-test-file-quiet and
 ;;  the filename will be excluded from the ARM tests
 
 ***start-run-quiet*** "Red/System Test Suite"
@@ -64,7 +64,7 @@ start-time: now/precise
 ===end-group===
 
 ===start-group=== "Datatype tests"
-  --run-test-file-quiet %source/units/logic-test.reds       
+  --run-test-file-quiet %source/units/logic-test.reds
   --run-test-file-quiet %source/units/byte-test.reds
   --run-test-file-quiet %source/units/c-string-test.reds
   --run-test-file-quiet %source/units/struct-test.reds

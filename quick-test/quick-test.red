@@ -8,13 +8,13 @@ Red [
 ]
 
 ;; counters
-qt-run-tests: 0 
+qt-run-tests: 0
 qt-run-asserts: 0
 qt-run-passes: 0
 qt-run-failures: 0
-qt-file-tests: 0 
-qt-file-asserts: 0 
-qt-file-passes: 0 
+qt-file-tests: 0
+qt-file-asserts: 0
+qt-file-passes: 0
 qt-file-failures: 0
 
 ;; group switches
@@ -28,7 +28,7 @@ _qt-init-group: func [] [
 ]
 
 qt-init-run: func [] [
-  qt-run-tests: 0 
+  qt-run-tests: 0
   qt-run-asserts: 0
   qt-run-passes: 0
   qt-run-failures: 0
@@ -36,9 +36,9 @@ qt-init-run: func [] [
 ]
 
 qt-init-file: func [] [
-  qt-file-tests: 0 
-  qt-file-asserts: 0 
-  qt-file-passes: 0 
+  qt-file-tests: 0
+  qt-file-asserts: 0
+  qt-file-passes: 0
   qt-file-failures: 0
   _qt-init-group
 ]
@@ -48,7 +48,7 @@ qt-init-file: func [] [
 ][
   qt-init-run
   qt-run-name: title
-  prin "***Starting*** " 
+  prin "***Starting*** "
   print title
 ]
 
@@ -81,24 +81,24 @@ qt-init-file: func [] [
 ][
 
   qt-file-asserts: qt-file-asserts + 1
-  
+
   either assertion [
      qt-file-passes: qt-file-passes + 1
   ][
     qt-file-failures: qt-file-failures + 1
-    if qt-group? [  
+    if qt-group? [
       if qt-group-name-not-printed [
         prin "===group=== "
         print qt-group-name
         qt-group-name-not-printed: false
       ]
     ]
-    prin "--test-- " 
+    prin "--test-- "
     prin qt-test-name
     print " FAILED**************"
   ]
 ]
- 
+
 ===end-group===: func [] [
   _qt-init-group
 ]
@@ -109,8 +109,8 @@ qt-print-totals: func [
   passes    [integer!]
   failures  [integer!]
 ][
-  prin  "  Number of Tests Performed:      " 
-  print tests 
+  prin  "  Number of Tests Performed:      "
+  print tests
   prin  "  Number of Assertions Performed: "
   print asserts
   prin  "  Number of Assertions Passed:    "
@@ -124,11 +124,11 @@ qt-print-totals: func [
 
 ~~~end-file~~~: func [] [
   print ""
-  prin "~~~finished test~~~ " 
+  prin "~~~finished test~~~ "
   print qt-file-name
   qt-print-totals qt-file-tests qt-file-asserts qt-file-passes qt-file-failures
   print ""
-  
+
   ;; update run totals
   qt-run-passes: qt-run-passes + qt-file-passes
   qt-run-asserts: qt-run-asserts + qt-file-asserts

@@ -23,7 +23,7 @@ Red/System [
 	--assert stringB/1 = #"t"
 	stringB: stringA + 4
 	--assert stringB/1 = #"^@"
-	
+
 	--test-- "string-math-2"
 	stringC: stringB - 1
 	--assert stringC/1 = #"t"
@@ -33,12 +33,12 @@ Red/System [
 	--assert stringC/1 = #"e"
 	stringC: stringB - 4
 	--assert stringC/1 = #"t"
-	
+
 	--test-- "string-math-3"
 	string-idx: 2
 	stringB: stringA + string-idx
 	--assert stringB/1 = #"s"
-	
+
 	--test-- "string-math-4"
 	string-idx: -3
 	stringB: stringA + 4
@@ -66,7 +66,7 @@ string-local-foo: func [
 	--assert stringB/1 = #"t"
 	stringB: stringA + 4
 	--assert stringB/1 = #"^@"
-	
+
 	--test-- "loc-str-math-2"
 	stringC: stringB - 1
 	--assert stringC/1 = #"t"
@@ -76,12 +76,12 @@ string-local-foo: func [
 	--assert stringC/1 = #"e"
 	stringC: stringB - 4
 	--assert stringC/1 = #"t"
-	
+
 	--test-- "loc-str-math-3"
 	string-idx: 2
 	stringB: stringA + string-idx
 	--assert stringB/1 = #"s"
-	
+
 	--test-- "loc-str-math-4"
 	string-idx: -3
 	stringB: stringA + 4

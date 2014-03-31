@@ -56,5 +56,5 @@ Red/System [
 	]
 	***-get-argc
 ]
-	
+
 #include %POSIX.reds

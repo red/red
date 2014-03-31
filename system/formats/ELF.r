@@ -267,7 +267,7 @@ context [
 		if zero? data-size [
 			remove-elements structure [".data"]
 		]
-		
+
 		dynamic-size: calc-dynamic-size job/type job/symbols
 
 		segments: collect-structure-names structure 'segment
@@ -620,7 +620,7 @@ context [
 				repend entries ['fini text-address + spec/2 - 1]
 			]
 		]
-				
+
 		;; Static _DYNAMIC entries:
 		append entries reduce [
 			'hash	hash-address

@@ -12,7 +12,7 @@
 ~~~start-file~~~ "bitset"
 
 ===start-group=== "basic tests"
-	
+
 	--test-- "basic-1"	--assert "make bitset! #{00}" = mold make bitset! 1
 	--test-- "basic-2"	--assert "make bitset! #{00}" = mold charset ""
 	--test-- "basic-3"	--assert "make bitset! #{00}" = mold charset []
@@ -21,7 +21,7 @@
 	--test-- "basic-6"	--assert "make bitset! #{000000000000FFC0}" = mold charset "0123456789"
 	--test-- "basic-7"	--assert "make bitset! #{F0}" = mold charset [0 1 2 3]
 
-	--test-- "basic-8"	
+	--test-- "basic-8"
 		--assert "make bitset! #{FF800000FFFF8000048900007FFFFFE0}"
 			 = mold charset [#"a" - #"z" 0 - 8 32 - #"0" "HELLO"]
 
@@ -68,25 +68,25 @@
 		--assert true  = pick bs 0100h
 		--assert false = pick bs 0101h
 		--assert true  = pick bs 0102h
-		
+
 	--test-- "basic-13"
 		bs: make bitset! [255 257]
 		--assert 264 = length? bs
 		--assert true  = pick bs 255
 		--assert false = pick bs 256
 		--assert true  = pick bs 257
-		
+
 	--test-- "basic-14"
 		bs: make bitset! [255 256]
 		--assert 264 = length? bs
 		--assert true = pick bs 255
 		--assert true = pick bs 256
-		
+
 	--test-- "basic-15"
 		bs: make bitset! [00010000h]
 		--assert 65544 = length? bs
 		--assert true = pick bs 00010000h
-	
+
 	--test-- "basic-16"
 		bs: make bitset! 9
 		--assert 16 = length? bs
@@ -96,7 +96,7 @@
 		bs/8: yes
 		--assert bs/8 = true
 		--assert bs/9 = false
-	
+
 	--test-- "basic-17"
 		bs: make bitset! 8
 		--assert 8 = length? bs
@@ -111,7 +111,7 @@
 ===end-group===
 
 ===start-group=== "modify"
-	
+
 	--test-- "poke-1"
 		bs: make bitset! [0 1 2 3]
 		poke bs 4 true
@@ -168,18 +168,18 @@
 ===end-group===
 
 ===start-group=== "union"
-		
+
 	--test-- "u-1"
 		c1: charset "0123456789"
 		c2: charset [#"a" - #"z"]
 		u: "make bitset! #{000000000000FFC0000000007FFFFFE0}"
 		--assert u = mold union c1 c2
 		--assert u = mold union c2 c1
-	
+
 ===end-group===
 
 ===start-group=== "complemented"
-	
+
 	--test-- "comp-1"	--assert "make bitset! [not #{}]"   = mold charset [not]
 	--test-- "comp-2"	--assert "make bitset! [not #{80}]" = mold charset [not #"^(00)"]
 	--test-- "comp-3"	--assert "make bitset! [not #{40}]" = mold charset [not #"^(01)"]

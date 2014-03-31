@@ -30,7 +30,7 @@ Red/System [
 			]
 		]
 	]
-	
+
 	prin: func [s [c-string!] return: [c-string!] /local written][
 		written: declare struct! [value [integer!]]
 		WriteFile stdout s length? s written 0
@@ -42,7 +42,7 @@ win32-startup-ctx: context [
 
 	;-- Catching runtime errors --
 	;; source: http://msdn.microsoft.com/en-us/library/aa363082(v=VS.85).aspx
-	
+
 	SEH_EXCEPTION_RECORD: alias struct! [
 		error [
 			struct! [
@@ -55,7 +55,7 @@ win32-startup-ctx: context [
 		]
 		; remaining fields skipped
 	]
-	
+
 	#import [
 		"kernel32.dll" stdcall [
 			GetCommandLine: "GetCommandLineA" [
@@ -92,12 +92,12 @@ win32-startup-ctx: context [
 		error: 99									;-- default unknown error
 		code: record/error/code
 		error: switch code [
-			C0000005h [1]							;-- access violation 
+			C0000005h [1]							;-- access violation
 			80000002h [2]							;-- datatype misalignment
 			80000003h [3]							;-- breakpoint
 			80000004h [4]							;-- single step
 			C000008Ch [5]							;-- array bounds exceeded
-			C000008Dh [6]							;-- float denormal operand	
+			C000008Dh [6]							;-- float denormal operand
 			C000008Eh [7]							;-- float divide by zero
 			C000008Fh [8]							;-- float inexact result
 			C0000090h [9]							;-- float invalid operation
@@ -123,13 +123,13 @@ win32-startup-ctx: context [
 	]
 
 	;-- Runtime functions --
-	
+
 	x87-cword: 0									;-- store previous control word in case it needs
 													;-- to be restored (on callbacks exit e.g.)
 	memory-blocks: declare struct! [
 		argv	[pointer! [integer!]]
 	]
-	
+
 	;-------------------------------------------
 	;-- Initialize environment
 	;-------------------------------------------
@@ -137,18 +137,18 @@ win32-startup-ctx: context [
 		#if target = 'IA-32 [
 			x87-cword: system/fpu/control-word 		;-- save previous x87 control word
 			system/fpu/init							;-- reset x87 state (@@ probably not safe for host program...)
-			system/fpu/control-word: 0322h			;-- default control word: division by zero, 
+			system/fpu/control-word: 0322h			;-- default control word: division by zero,
 													;-- underflow and overflow raise exceptions.
 			system/fpu/update
 		]
 		SetUnhandledExceptionFilter :exception-filter
 		SetErrorMode 1								;-- probably superseded by SetUnhandled...
-		
+
 		;-- Runtime globals --
 		stdin:  GetStdHandle WIN_STD_INPUT_HANDLE
 		stdout: GetStdHandle WIN_STD_OUTPUT_HANDLE
 		stderr: GetStdHandle WIN_STD_ERROR_HANDLE
-		
+
 		#if type = 'exe [
 			#if use-natives? = no [on-start]		;-- allocate is not yet implemented as native function
 		]
@@ -194,19 +194,19 @@ win32-startup-ctx: context [
 
 		memory-blocks/argv: argv
 	]
-	
+
 	on-quit: does [
 		if memory-blocks/argv <> null [
 			free as byte-ptr! memory-blocks/argv	;-- free call is safe here (defined in all cases)
 		]
 	]
-	
+
 	#if type = 'exe [init]							;-- call init codes for executables only
 ]
 
 #if type = 'dll [
 	;-- source: http://msdn.microsoft.com/en-us/library/windows/desktop/ms682596(v=vs.85).aspx
-	
+
 	***-dll-entry-point: func [
 		[callback]
 		hinstDLL   [integer!]						;-- handle to DLL module

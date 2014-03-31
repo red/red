@@ -15,16 +15,16 @@ Red [
 
 	--test-- "swt1 issue #455"
 	--assert  function! = type? get first find system/words 'file?
-	
+
 	--test-- "swt2 issue #455"
 	--assert char! = type? get first find system/words 'cr
-	
+
 	--test-- "swt3 issue #455"
 	--assert action! = type? get first find system/words 'find
-	
+
 	--test-- "swt4 issue #455"
 	--assert datatype! = type? get first find system/words 'function!
-		
+
 ===end-group===
 
 ~~~end-file~~~

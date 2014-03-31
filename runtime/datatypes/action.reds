@@ -12,20 +12,20 @@ Red/System [
 
 action: context [
 	verbose: 0
-	
+
 	push: func [
 		/local
 			cell  [red-action!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/push"]]
-		
+
 		cell: as red-action! stack/push*
 		cell/header: TYPE_ACTION
 		;...TBD
 	]
-	
-	;-- Actions -- 
-	
+
+	;-- Actions --
+
 	make: func [
 		proto	   [red-value!]
 		spec   	   [red-block!]
@@ -36,22 +36,22 @@ action: context [
 			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "action/make"]]
-		
+
 		assert TYPE_OF(spec) = TYPE_BLOCK
 		s: GET_BUFFER(spec)
 		spec: as red-block! s/offset
-		
+
 		action: as red-action! stack/push*
 		action/header:  TYPE_ACTION						;-- implicit reset of all header flags
 		action/spec:    spec/node						; @@ copy spec block if not at head
 		;action/symbols: clean-spec spec 				; @@ TBD
-			
+
 		index: (integer/get s/offset + 1)				;-- action IDs are one-based
 		action/code: actions/table/index
-		
+
 		action
 	]
-	
+
 	form: func [
 		value	[red-action!]
 		buffer	[red-string!]
@@ -66,7 +66,7 @@ action: context [
 		string/concatenate-literal buffer "?action?"
 		part - 8
 	]
-	
+
 	mold: func [
 		action	[red-action!]
 		buffer	[red-string!]
@@ -81,7 +81,7 @@ action: context [
 		#if debug? = yes [if verbose > 0 [print-line "action/mold"]]
 
 		string/concatenate-literal buffer "make action! ["
-		
+
 		part: block/mold								;-- mold spec
 			native/reflect action words/spec
 			buffer
@@ -91,7 +91,7 @@ action: context [
 			arg
 			part - 14
 			indent
-		
+
 		string/concatenate-literal buffer "]"
 		part - 1
 	]

@@ -5,7 +5,7 @@ REBOL [
 ]
 
 change-dir %../                        ;; revert to tests/ directory from runnable/
-  
+
 ~~~start-file~~~ "compiles-ok"
 
 ===start-group=== "reported issues"
@@ -17,7 +17,7 @@ change-dir %../                        ;; revert to tests/ directory from runnab
         REBOL []
       }
     }
-    
+
 ===end-group===
-  
+
 ~~~end-file~~~

@@ -18,7 +18,7 @@ Red/System [
 
 word: context [
 	verbose: 0
-	
+
 	load-in: func [
 		str 	[c-string!]
 		blk		[red-block!]
@@ -26,19 +26,19 @@ word: context [
 	][
 		push-in symbol/make str blk
 	]
-	
+
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
 	][
 		_context/add-global symbol/make str
 	]
-	
+
 	push-in: func [
 		id    	[integer!]								;-- symbol ID
 		blk		[red-block!]
 		return:	[red-word!]
-		/local 
+		/local
 			cell [red-word!]
 	][
 		cell: as red-word! ALLOC_TAIL(blk)
@@ -48,7 +48,7 @@ word: context [
 		cell/index:  _context/add TO_CTX(global-ctx) cell
 		cell
 	]
-	
+
 	push: func [
 		word	 [red-word!]
 		return:  [red-word!]
@@ -56,12 +56,12 @@ word: context [
 			cell [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/push"]]
-		
+
 		cell: as red-word! stack/push*
 		copy-cell as cell! word as cell! cell
 		cell
 	]
-	
+
 	push-local: func [
 		node	[node!]
 		index	[integer!]
@@ -71,12 +71,12 @@ word: context [
 			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/push-local"]]
-		
+
 		ctx: TO_CTX(node)
 		s: as series! ctx/symbols/value
 		push as red-word! s/offset + index
 	]
-	
+
 	get-buffer: func [
 		w		[red-word!]
 		return: [red-symbol!]
@@ -89,13 +89,13 @@ word: context [
 			value [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/set"]]
-		
+
 		value: stack/arguments + 1
 		CHECK_UNSET(value)
 		_context/set as red-word! stack/arguments value
 		stack/set-last value
 	]
-	
+
 	set-local: func [
 		slot	 [red-value!]
 		return:  [red-value!]
@@ -106,7 +106,7 @@ word: context [
 		CHECK_UNSET(value)
 		copy-cell value slot
 	]
-	
+
 	get-any: func [
 		word	 [red-word!]
 		return:  [red-value!]
@@ -115,7 +115,7 @@ word: context [
 
 		copy-cell _context/get word stack/push*
 	]
-	
+
 	get: func [
 		word	 [red-word!]
 		return:  [red-value!]
@@ -123,7 +123,7 @@ word: context [
 			value [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/get"]]
-		
+
 		value: copy-cell _context/get word stack/push*
 		CHECK_UNSET(value)
 		if TYPE_OF(value) = TYPE_LIT_WORD [
@@ -131,9 +131,9 @@ word: context [
 		]
 		value
 	]
-	
+
 	;-- Actions --
-	
+
 	form: func [
 		w		[red-word!]
 		buffer	[red-string!]
@@ -144,16 +144,16 @@ word: context [
 			s	[series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/form"]]
-		
+
 		s: GET_BUFFER(symbols)
-		
-		string/form 
+
+		string/form
 			as red-string! s/offset + w/symbol - 1		;-- symbol! and string! structs are overlapping
 			buffer
 			arg
 			part
 	]
-	
+
 	mold: func [
 		w		[red-word!]
 		buffer	[red-string!]
@@ -169,7 +169,7 @@ word: context [
 
 		form w buffer arg part
 	]
-	
+
 	compare: func [
 		arg1	 [red-word!]							;-- first operand
 		arg2	 [red-word!]							;-- second operand

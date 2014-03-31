@@ -29,49 +29,49 @@ Red [
 	--test-- "blk-13"	--assert parse 		[#"a"]		[[#"b" | #"a"]]
 	--test-- "blk-14"	--assert not parse	[a b]		[['b | 'a]]
 	--test-- "blk-15"	--assert parse 		[a b]		[['a | 'b]['b | 'a]]
-	
+
 	--test-- "blk-16"	--assert parse		[a 123]		['a integer!]
 	--test-- "blk-17"	--assert not parse	[a 123]		['a char!]
 	--test-- "blk-18"	--assert parse		[a 123]		[['a][integer!]]
 	--test-- "blk-19"	--assert not parse	[a 123]		['a [char!]]
-	
+
 	--test-- "blk-20"
-		res: 0	
+		res: 0
 	--assert parse [] [(res: 1)]
 	--assert res = 1
-		
+
 	--test-- "blk-21"
-		res: 0	
+		res: 0
 		--assert parse [a] ['a (res: 1)]
 		--assert res = 1
-		
+
 	--test-- "blk-22"
-		res: 0	
+		res: 0
 		--assert not parse [a] ['b (res: 1)]
 		--assert res = 0
-		
+
 	--test-- "blk-23"
-		res: 0	
+		res: 0
 		--assert parse [] [[(res: 1)]]
 		--assert res = 1
 
 	--test-- "blk-24"
-		res: 0	
+		res: 0
 		--assert parse [a] [['a (res: 1)]]
 		--assert res = 1
 
 	--test-- "blk-25"
-		res: 0	
+		res: 0
 		--assert not parse [a] [['b (res: 1)]]
 		--assert res = 0
-		
+
 	--test-- "blk-26"
-		res: 0	
+		res: 0
 		--assert parse [a 123] ['a (res: 1) [char! (res: 2) | integer! (res: 3)]]
 		--assert res = 3
-		
+
 	--test-- "blk-27"
-		res: 0	
+		res: 0
 		--assert not parse [a 123] ['a (res: 1) [char! (res: 2) | string! (res: 3)]]
 		--assert res = 1
 
@@ -83,7 +83,7 @@ Red [
 	--test-- "blk-33"	--assert parse			[a a]		[2 2 ['a]]
 	--test-- "blk-34"	--assert parse			[a a]		[2 3 ['a]]
 	--test-- "blk-35"	--assert not parse		[a a]		[3 4 ['a]]
-	
+
 	--test-- "blk-36"	--assert not parse		[a a]		[1 'a]
 	--test-- "blk-37"	--assert parse			[a a]		[2 'a]
 	--test-- "blk-38"	--assert not parse		[a a]		[3 'a]
@@ -92,7 +92,7 @@ Red [
 	--test-- "blk-41"	--assert parse			[a a]		[2 2 'a]
 	--test-- "blk-42"	--assert parse			[a a]		[2 3 'a]
 	--test-- "blk-43"	--assert not parse		[a a]		[3 4 'a]
-	
+
 	--test-- "blk-44"	--assert not parse		[a a]		[1 skip]
 	--test-- "blk-45"	--assert parse			[a a]		[2 skip]
 	--test-- "blk-46"	--assert not parse		[a a]		[3 skip]
@@ -101,19 +101,19 @@ Red [
 	--test-- "blk-49"	--assert parse			[a a]		[2 2 skip]
 	--test-- "blk-50"	--assert parse			[a a]		[2 3 skip]
 	--test-- "blk-51"	--assert not parse		[a a]		[3 4 skip]
-   
+
 	--test-- "blk-52"	--assert parse			[a]			[skip]
 	--test-- "blk-53"	--assert parse			[a b]		[skip skip]
 	--test-- "blk-54"	--assert parse			[a b]		[skip [skip]]
 	--test-- "blk-55"	--assert parse			[a b]		[[skip] [skip]]
-   
+
 	--test-- "blk-56"	--assert parse			[a a]		[some ['a]]
 	--test-- "blk-57"	--assert not parse		[a a]		[some ['a] 'b]
-   	
+
 	--test-- "blk-58"	--assert parse			[a a b a b b b a]	[some [skip]]
 	--test-- "blk-59"	--assert parse			[a a b a b b b a]	[some ['a | 'b]]
 	--test-- "blk-60"	--assert not parse 		[a a b a b b b a]	[some ['a | 'c]]
-   
+
 	--test-- "blk-61"	--assert parse 			[a a]		[any ['a]]
 	--test-- "blk-62"	--assert parse			[a a]		[some ['a] any ['b]]
 	--test-- "blk-63"	--assert parse			[a a b b]	[2 'a 2 'b]
@@ -125,46 +125,46 @@ Red [
 		p: none
 		--assert parse [] [p:]
 		--assert tail? p
-	
+
 	--test-- "blk-68"
 		p: none
 		--assert parse [] [[[p:]]]
 		--assert tail? p
 
-		
+
 	--test-- "blk-69"
 		p: none
 		--assert parse [a] [p: 'a]
 		--assert p = [a]
-		
+
 	--test-- "blk-70"
 		p: none
 		--assert parse [a] ['a p:]
 		--assert tail? p
-		
+
 	--test-- "blk-71"
 		p: none
 		--assert parse [a] ['a [p:]]
 		--assert tail? p
-		
+
 	--test-- "blk-72"
 		p: none
 		--assert not parse [a b] ['a p:]
 		--assert p = [b]
-	
+
 	--test-- "blk-72"
 		p: none
 		--assert parse [a b] ['a [p:]['b | 'c]]
 		--assert p = [b]
-		
+
 	--test-- "blk-73"
 		p: none
 		--assert parse [a a a b b] [3 'a p: 2 'b :p [2 'b]]
 		--assert p = [b b]
-		
+
 	--test-- "blk-74"
 	--assert parse [b a a a c][skip some ['a] 'c]
-	
+
 ===end-group===
 
 ===start-group=== "block-end"
@@ -174,16 +174,16 @@ Red [
 	--test-- "blk-end-3" --assert parse 		[a] 	[skip end]
 	--test-- "blk-end-4" --assert not parse 	[a b]	[skip end]
 	--test-- "blk-end-5" --assert parse 		[]		[end]
-	
+
 	--test-- "blk-end-6"
 		be6: 0
 		--assert parse [] [end (be6: 1)]
-		--assert be6 = 1		
+		--assert be6 = 1
 
 ===end-group===
 
 ===start-group=== "block-words"
-	
+
 	wa: ['a]
 	wb: ['b]
 	wca: #"a"
@@ -193,7 +193,7 @@ Red [
 	wh: "hello"
 	wrab: ['a | 'b]
 	wrba: ['b | 'a]
-	
+
 	--test-- "blk-w1" 	--assert parse 		[a]			[wa]
 	--test-- "blk-w2" 	--assert not parse 	[a]			[wb]
 	--test-- "blk-w3" 	--assert parse 		[a b]		[wa wb]
@@ -209,24 +209,24 @@ Red [
 	--test-- "blk-w12"	--assert parse 		[#"a"]		[[wcb | wca]]
 	--test-- "blk-w13"	--assert not parse 	[a b]		[wrba]
 	--test-- "blk-w14"	--assert parse 		[a b]		[wrab wrba]
-	
+
 	--test-- "blk-w15"	--assert parse		[a 123]		[wa integer!]
 	--test-- "blk-w16"	--assert not parse	[a 123]		[wa char!]
 	--test-- "blk-w17"	--assert parse		[a 123]		[wra [integer!]]
 	--test-- "blk-w18"	--assert not parse	[a 123]		[wa  [char!]]
 
 	--test-- "blk-w19"
-		res: 0	
+		res: 0
 		--assert parse [a] [wa (res: 1)]
 		--assert res = 1
-		
+
 	--test-- "blk-w20"
-		res: 0	
+		res: 0
 		--assert not parse [a] [wb (res: 1)]
 		--assert res = 0
-		
+
 	--test-- "blk-w21"
-		res: 0	
+		res: 0
 		wres: [(res: 1)]
 		--assert parse [] [wres]
 		--assert res = 1
@@ -242,13 +242,13 @@ Red [
 		wres: ['b (res: 1)]
 		--assert not parse [a] [wres]
 		--assert res = 0
-		
+
 	--test-- "blk-w24"
 		res: 0
 		wres: [char! (res: 2) | integer! (res: 3)]
 		--assert parse [a 123] [wa (res: 1) wres]
 		--assert res = 3
-		
+
 	--test-- "blk-w25"
 		res: 0
 		wres: [char! (res: 2) | string! (res: 3)]
@@ -260,136 +260,136 @@ Red [
 ===start-group=== "block-extraction"
 
 	wa: ['a]
-	--test-- "blk-ext1" 
+	--test-- "blk-ext1"
 		res: 0
 		--assert parse [a][copy res skip]
 		--assert res = [a]
-	
-	--test-- "blk-ext2" 
+
+	--test-- "blk-ext2"
 		res: 0
 		--assert parse [a][copy res 'a]
 		--assert res = [a]
-	
-	--test-- "blk-ext3" 
+
+	--test-- "blk-ext3"
 		res: 0
 		--assert parse [a][copy res word!]
 		--assert res = [a]
-		
-	--test-- "blk-ext4" 
+
+	--test-- "blk-ext4"
 		res:  0
 		res2: 0
 		--assert parse [a][copy res copy res2 'a]
 		--assert res  = [a]
 		--assert res2 = [a]
-		
-	--test-- "blk-ext5" 
+
+	--test-- "blk-ext5"
 		res: 0
 		--assert parse [a a][copy res 2 'a]
 		--assert res = [a a]
 
-	--test-- "blk-ext6" 
+	--test-- "blk-ext6"
 		res: 0
 		--assert not parse [a a][copy res 3 'a]
 		--assert res = 0
-		
-	--test-- "blk-ext7" 
+
+	--test-- "blk-ext7"
 		res: 0
 		--assert parse [a][copy res ['a]]
 		--assert res = [a]
 
-	--test-- "blk-ext8" 
+	--test-- "blk-ext8"
 		res: 0
 		--assert parse [a][copy res wa]
 		--assert res = [a]
-	
-	--test-- "blk-ext9" 
+
+	--test-- "blk-ext9"
 		res: 0
 		--assert parse [a a][copy res 2 wa]
 		--assert res = [a a]
-	
-	--test-- "blk-ext10" 
+
+	--test-- "blk-ext10"
 		res: 0
 		--assert parse [a a b][skip copy res 'a skip]
 		--assert res = [a]
- 
-	--test-- "blk-ext11" 
+
+	--test-- "blk-ext11"
 		res: 0
 		--assert parse [a a b][skip copy res ['a | 'b] skip]
 		--assert res = [a]
-		
-	--test-- "blk-ext12" 
+
+	--test-- "blk-ext12"
 		res: 0
 		--assert not parse [a][copy res ['c | 'b]]
 		--assert res = 0
-		
-	--test-- "blk-ext13" 
+
+	--test-- "blk-ext13"
 		res: 0
 		--assert parse [a][set res skip]
 		--assert res = 'a
 
-	--test-- "blk-ext14" 
+	--test-- "blk-ext14"
 		res: 0
 		--assert parse [a][set res 'a]
 		--assert res = 'a
 
-	--test-- "blk-ext15" 
+	--test-- "blk-ext15"
 		res: 0
 		--assert parse [a][set res word!]
 		--assert res = 'a
-		
-	--test-- "blk-ext16" 
+
+	--test-- "blk-ext16"
 		res:  0
 		res2: 0
 		--assert parse [a][set res set res2 'a]
 		--assert res  = 'a
 		--assert res2 = 'a
 
-	--test-- "blk-ext17" 
+	--test-- "blk-ext17"
 		res: 0
 		--assert parse [a a][set res 2 'a]
 		--assert res = 'a
 
-	--test-- "blk-ext18" 
+	--test-- "blk-ext18"
 		res: 0
 		--assert not parse [a a][set res 3 'a]
 		--assert res = 0
 
-	--test-- "blk-ext19" 
+	--test-- "blk-ext19"
 		res: 0
 		--assert parse [a][set res ['a]]
 		--assert res = 'a
 
-	--test-- "blk-ext20" 
+	--test-- "blk-ext20"
 		res: 0
 		--assert parse [a][set res wa]
 		--assert res = 'a
 
-	--test-- "blk-ext21" 
+	--test-- "blk-ext21"
 		res: 0
 		--assert parse [a a][set res 2 wa]
 		--assert res = 'a
 
-	--test-- "blk-ext22" 
+	--test-- "blk-ext22"
 		res: 0
 		--assert parse [a a b][skip set res 'a skip]
 		--assert res = 'a
 
-	--test-- "blk-ext23" 
+	--test-- "blk-ext23"
 		res: 0
 		--assert parse [a a b][skip set res ['a | 'b] skip]
 		--assert res = 'a
 
-	--test-- "blk-ext24" 
+	--test-- "blk-ext24"
 		res: 0
 		--assert not parse [a][set res ['c | 'b]]
 		--assert res = 0
-		
-	--test-- "blk-ext25" 
+
+	--test-- "blk-ext25"
 		res: 0
 		--assert parse [b a a a c][skip set res some 'a 'c]
 		--assert res = 'a
 
-	--test-- "blk-ext26" 
+	--test-- "blk-ext26"
 		res: 0
 		--assert parse [b a a a c][skip set res some wa 'c]
 		--assert res = 'a
@@ -453,13 +453,13 @@ Red [
 	--test-- "blk-ext52"
 		res: parse [a b b b] [collect [skip keep some 'b]]
 		--assert res = [[b b b]]
-		
+
 ===end-group===
 
 ===start-group=== "block-skipping"
 
 	wa: ['a]
-	
+
 	--test-- "blk-sk1" 	--assert parse		[]			[to end]
 	--test-- "blk-sk2" 	--assert parse		[]			[thru end]
 	--test-- "blk-sk3" 	--assert parse		[a]			[to end]
@@ -473,7 +473,7 @@ Red [
 	--test-- "blk-sk11"	--assert parse		[a b]		[thru 'b]
 	--test-- "blk-sk12"	--assert parse		[a a a b]	[to 'b skip]
 	--test-- "blk-sk13"	--assert parse		[a a b a]	[skip to 'b 2 skip]
-	
+
 	--test-- "blk-sk14"	--assert not parse	[a]			[to ['a]]
 	--test-- "blk-sk15"	--assert not parse	[a]			[to ['a] end]
 	--test-- "blk-sk16"	--assert parse		[a]			[to ['a] skip]
@@ -484,13 +484,13 @@ Red [
 	--test-- "blk-sk21"	--assert parse		[a b]		[thru ['b]]
 	--test-- "blk-sk22"	--assert parse		[a a a b]	[to ['b] skip]
 	--test-- "blk-sk23"	--assert parse		[a a b a]	[skip to ['b] 2 skip]
-	
+
 	--test-- "blk-sk24"	--assert parse		[z z a b c]	[to ['c | 'b | 'a] 3 skip]
 	--test-- "blk-sk25"	--assert parse		[z z a b c]	[to ['a | 'b | 'c] 3 skip]
 
 	--test-- "blk-sk26"	--assert parse		[z z a b c]	[thru ['c | 'b | 'a] 2 skip]
 	--test-- "blk-sk27"	--assert parse		[z z a b c]	[thru ['a | 'b | 'c] 2 skip]
-	
+
 	--test-- "blk-sk28"	--assert parse		[b b a a c]	[thru 2 'a 'c]
 	--test-- "blk-sk29"	--assert parse		[b b a a c]	[thru 2 'a 'c]
 	--test-- "blk-sk30"	--assert parse		[b b a a c]	[thru [2 'a] 'c]
@@ -499,7 +499,7 @@ Red [
 	--test-- "blk-sk33"	--assert parse		[b b a a c]	[thru [some 'x | 2 'a] 'c]
 	--test-- "blk-sk34"	--assert parse		[b b a a c]	[thru 2 wa 'c]
 	--test-- "blk-sk35"	--assert parse		[b b a a c]	[thru some wa 'c]
-	
+
 	--test-- "blk-sk36"	--assert parse 		[1 "hello"]	[thru "hello"]
 
 	--test-- "blk-sk37"
@@ -516,33 +516,33 @@ Red [
 	--test-- "blk-rem1"	--assert parse		[]			[remove]
 	--test-- "blk-rem2"	--assert not parse	[]			[remove skip]
 
-	--test-- "blk-rem3"	
+	--test-- "blk-rem3"
 		blk: [a]
 		--assert parse blk [remove skip]
 		--assert blk = []
 
-	--test-- "blk-rem4"	
+	--test-- "blk-rem4"
 		blk: [a b a]
 		--assert parse blk [some ['a | remove 'b]]
 		--assert blk = [a a]
 
-	--test-- "blk-ins1"	
+	--test-- "blk-ins1"
 		--assert parse blk: [] [insert 1]
 		--assert blk = [1]
 
-	--test-- "blk-ins2"	
+	--test-- "blk-ins2"
 		--assert parse blk: [a a] [skip insert 'b skip]
 		--assert blk = [a b a]
 
-	--test-- "blk-ins3"	
+	--test-- "blk-ins3"
 		--assert parse blk: [] [p: insert 'a :p remove 'a]
 		--assert blk = []
 
-	--test-- "blk-ins4"	
+	--test-- "blk-ins4"
 		--assert parse blk: [] [insert [a b]]
 		--assert blk = [a b]
 
-	--test-- "blk-ins5"	
+	--test-- "blk-ins5"
 		--assert parse blk: [] [insert only [a b]]
 		--assert blk = [[a b]]
 
@@ -599,7 +599,7 @@ Red [
 	--test-- "blk-m56"	--assert parse 		[a]			[['b | reject] | 'a]
 	--test-- "blk-m57"	--assert parse 		[a a]		[some reject | 2 'a]
 	--test-- "blk-m58"	--assert parse 		[a a]		[some [reject] | 2 'a]
-	
+
 	--test-- "blk-m60"	--assert parse 		[]			[none]
 	--test-- "blk-m61"	--assert parse 		[a]			[skip none]
 	--test-- "blk-m62"	--assert parse 		[a]			[none skip none]
@@ -700,47 +700,47 @@ Red [
 	--test-- "str-13"	--assert parse		"a"			[[#"b" | #"a"]]
 	--test-- "str-14"	--assert not parse	"ab"		[[#"b" | "a"]]
 	--test-- "str-15"	--assert parse		"ab"		[["a" | #"b"][#"b" | "a"]]
-	
+
 	;--test-- "str-16"	--assert parse		"123"		[integer!]
-	
-	
+
+
 	--test-- "str-20"
-		res: 0	
+		res: 0
 		--assert parse "" [(res: 1)]
 		--assert res = 1
-		
+
 	--test-- "str-21"
-		res: 0	
+		res: 0
 		--assert parse "a" [#"a" (res: 1)]
 		--assert res = 1
-		
+
 	--test-- "str-22"
-		res: 0	
+		res: 0
 		--assert not parse "a" [#"b" (res: 1)]
 		--assert res = 0
-		
+
 	--test-- "str-23"
-		res: 0	
+		res: 0
 		--assert parse "" [[(res: 1)]]
 		--assert res = 1
 
 	--test-- "str-24"
-		res: 0	
+		res: 0
 		--assert parse "a" [[#"a" (res: 1)]]
 		--assert res = 1
 
 	--test-- "str-25"
-		res: 0	
+		res: 0
 		--assert not parse "a" [[#"b" (res: 1)]]
 		--assert res = 0
-		
+
 	--test-- "str-26"
-		res: 0	
+		res: 0
 		--assert parse "ab" [#"a" (res: 1) [#"c" (res: 2) | #"b" (res: 3)]]
 		--assert res = 3
-		
+
 	--test-- "str-27"
-		res: 0	
+		res: 0
 		--assert not parse "ab" [#"a" (res: 1) [#"c" (res: 2) | #"d" (res: 3)]]
 		--assert res = 1
 
@@ -752,7 +752,7 @@ Red [
 	--test-- "str-33"	--assert parse			"aa"		[2 2 [#"a"]]
 	--test-- "str-34"	--assert parse			"aa"		[2 3 [#"a"]]
 	--test-- "str-35"	--assert not parse		"aa"		[3 4 [#"a"]]
-   
+
 	--test-- "str-36"	--assert not parse		"aa"		[1 #"a"]
 	--test-- "str-37"	--assert parse			"aa"		[2 #"a"]
 	--test-- "str-38"	--assert not parse		"aa"		[3 #"a"]
@@ -770,19 +770,19 @@ Red [
 	--test-- "str-49"	--assert parse			"aa"		[2 2 skip]
 	--test-- "str-50"	--assert parse			"aa"		[2 3 skip]
 	--test-- "str-51"	--assert not parse		"aa"		[3 4 skip]
-   
+
 	--test-- "str-52"	--assert parse			"a"			[skip]
 	--test-- "str-53"	--assert parse			"ab"		[skip skip]
 	--test-- "str-54"	--assert parse			"ab"		[skip [skip]]
 	--test-- "str-55"	--assert parse			"ab"		[[skip] [skip]]
-   
+
 	--test-- "str-56"	--assert parse			"aa"		[some [#"a"]]
 	--test-- "str-57"	--assert not parse		"aa"		[some [#"a"] #"b"]
-	
+
 	--test-- "str-58"	--assert parse			"aababbba"	[some [skip]]
 	--test-- "str-59"	--assert parse			"aababbba"	[some ["a" | "b"]]
 	--test-- "str-60"	--assert not parse		"aababbba"	[some ["a" | #"c"]]
-   
+
 	--test-- "str-61"	--assert parse			"aa"		[any [#"a"]]
 	--test-- "str-62"	--assert parse			"aa"		[some [#"a"] any [#"b"]]
 	--test-- "str-63"	--assert parse			"aabb"		[2 #"a" 2 "b"]
@@ -794,46 +794,46 @@ Red [
 		p: none
 		--assert parse "" [p:]
 		--assert tail? p
-	
+
 	--test-- "str-68"
 		p: none
 		--assert parse "" [[[p:]]]
 		--assert tail? p
 
-		
+
 	--test-- "str-69"
 		p: none
 		--assert parse "a" [p: #"a"]
 		--assert p = "a"
-		
+
 	--test-- "str-70"
 		p: none
 		--assert parse "a" [#"a" p:]
 		--assert tail? p
-		
+
 	--test-- "str-71"
 		p: none
 		--assert parse "a" [#"a" [p:]]
 		--assert tail? p
-		
+
 	--test-- "str-72"
 		p: none
 		--assert not parse "ab" [#"a" p:]
 		--assert p = "b"
-	
+
 	--test-- "str-73"
 		p: none
 		--assert parse "ab" [#"a" [p:][#"b" | #"c"]]
 		--assert p = "b"
-		
+
 	--test-- "str-74"
 		p: none
 		--assert parse "aaabb" [3 #"a" p: 2 #"b" :p [2 "b"]]
 		--assert p = "bb"
-	
+
 	--test-- "str-75"
 	--assert parse "baaac" [skip some [#"a"] #"c"]
-	
+
 ===end-group===
 
 ===start-group=== "string-end"
@@ -843,7 +843,7 @@ Red [
 	--test-- "str-end-3" --assert parse 		"a" 	[skip end]
 	--test-- "str-end-4" --assert not parse 	"ab"	[skip end]
 	--test-- "str-end-5" --assert parse 		""		[end]
-	
+
 	--test-- "str-end-6"
 		be6: 0
 		--assert parse "" [end (be6: 1)]
@@ -852,7 +852,7 @@ Red [
 ===end-group===
 
 ===start-group=== "string-words"
-	
+
 	wa: [#"a"]
 	wb: [#"b"]
 	wca: #"a"
@@ -862,7 +862,7 @@ Red [
 	wh: "hello"
 	wrab: [#"a" | #"b"]
 	wrba: [#"b" | #"a"]
-	
+
 	--test-- "str-w1" 	--assert parse 		"a"			[wa]
 	--test-- "str-w2" 	--assert not parse 	"a"			[wb]
 	--test-- "str-w3" 	--assert parse 		"ab"		[wa wb]
@@ -877,19 +877,19 @@ Red [
 	--test-- "str-w12"	--assert parse 		"a"			[[wcb | wca]]
 	--test-- "str-w13"	--assert not parse 	"ab"		[wrba]
 	--test-- "str-w14"	--assert parse 		"ab"		[wrab wrba]
-	
+
 	--test-- "str-w19"
-		res: 0	
+		res: 0
 		--assert parse "a" [wa (res: 1)]
 		--assert res = 1
-		
+
 	--test-- "str-w20"
-		res: 0	
+		res: 0
 		--assert not parse "a" [wb (res: 1)]
 		--assert res = 0
-		
+
 	--test-- "str-w21"
-		res: 0	
+		res: 0
 		wres: [(res: 1)]
 		--assert parse "" [wres]
 		--assert res = 1
@@ -911,126 +911,126 @@ Red [
 ===start-group=== "string-extraction"
 
 	wa: [#"a"]
-	--test-- "str-ext1" 
+	--test-- "str-ext1"
 		res: 0
 		--assert parse "a" [copy res skip]
 		--assert res = "a"
-	
-	--test-- "str-ext2" 
+
+	--test-- "str-ext2"
 		res: 0
 		--assert parse "a" [copy res #"a"]
 		--assert res = "a"
-		
-	--test-- "str-ext4" 
+
+	--test-- "str-ext4"
 		res:  0
 		res2: 0
 		--assert parse "a" [copy res copy res2 #"a"]
 		--assert res  = "a"
 		--assert res2 = "a"
-		
-	--test-- "str-ext5" 
+
+	--test-- "str-ext5"
 		res: 0
 		--assert parse "aa" [copy res 2 #"a"]
 		--assert res = "aa"
 
-	--test-- "str-ext6" 
+	--test-- "str-ext6"
 		res: 0
 		--assert not parse "aa" [copy res 3 #"a"]
 		--assert res = 0
-		
-	--test-- "str-ext7" 
+
+	--test-- "str-ext7"
 		res: 0
 		--assert parse "a" [copy res [#"a"]]
 		--assert res = "a"
 
-	--test-- "str-ext8" 
+	--test-- "str-ext8"
 		res: 0
 		--assert parse "a" [copy res wa]
 		--assert res = "a"
-	
-	--test-- "str-ext9" 
+
+	--test-- "str-ext9"
 		res: 0
 		--assert parse "aa" [copy res 2 wa]
 		--assert res = "aa"
-	
-	--test-- "str-ext10" 
+
+	--test-- "str-ext10"
 		res: 0
 		--assert parse "aab" [skip copy res #"a" skip]
 		--assert res = "a"
- 
-	--test-- "str-ext11" 
+
+	--test-- "str-ext11"
 		res: 0
 		--assert parse "aab" [skip copy res [#"a" | #"b"] skip]
 		--assert res = "a"
-		
-	--test-- "str-ext12" 
+
+	--test-- "str-ext12"
 		res: 0
 		--assert not parse "a" [copy res [#"c" | #"b"]]
 		--assert res = 0
-		
-	--test-- "str-ext13" 
+
+	--test-- "str-ext13"
 		res: 0
 		--assert parse "a" [set res skip]
 		--assert res = #"a"
 
-	--test-- "str-ext14" 
+	--test-- "str-ext14"
 		res: 0
 		--assert parse "a" [set res #"a"]
 		--assert res = #"a"
 
-	--test-- "str-ext16" 
+	--test-- "str-ext16"
 		res:  0
 		res2: 0
 		--assert parse "a" [set res set res2 #"a"]
 		--assert res  = #"a"
 		--assert res2 = #"a"
 
-	--test-- "str-ext17" 
+	--test-- "str-ext17"
 		res: 0
 		--assert parse "aa" [set res 2 #"a"]
 		--assert res = #"a"
 
-	--test-- "str-ext18" 
+	--test-- "str-ext18"
 		res: 0
 		--assert not parse "aa" [set res 3 #"a"]
 		--assert res = 0
 
-	--test-- "str-ext19" 
+	--test-- "str-ext19"
 		res: 0
 		--assert parse "a" [set res [#"a"]]
 		--assert res = #"a"
 
-	--test-- "str-ext20" 
+	--test-- "str-ext20"
 		res: 0
 		--assert parse "a" [set res wa]
 		--assert res = #"a"
 
-	--test-- "str-ext21" 
+	--test-- "str-ext21"
 		res: 0
 		--assert parse "aa" [set res 2 wa]
 		--assert res = #"a"
 
-	--test-- "str-ext22" 
+	--test-- "str-ext22"
 		res: 0
 		--assert parse "aab" [skip set res #"a" skip]
 		--assert res = #"a"
 
-	--test-- "str-ext23" 
+	--test-- "str-ext23"
 		res: 0
 		--assert parse "aab" [skip set res [#"a" | #"b"] skip]
 		--assert res = #"a"
 
-	--test-- "str-ext24" 
+	--test-- "str-ext24"
 		res: 0
 		--assert not parse "a" [set res [#"c" | #"b"]]
 		--assert res = 0
-		
-	--test-- "str-ext25" 
+
+	--test-- "str-ext25"
 		res: 0
 		--assert parse "baaac" [skip set res some #"a" #"c"]
 		--assert res = #"a"
 
-	--test-- "str-ext26" 
+	--test-- "str-ext26"
 		res: 0
 		--assert parse "baaac" [skip set res some wa #"c"]
 		--assert res = #"a"
@@ -1089,14 +1089,14 @@ Red [
 		alpha: charset [#"a" - #"z"]
 		res: parse "abc|def" [collect [any [keep some alpha | skip]]]
 		--assert res = ["abc" "def"]
-		
+
 ===end-group===
 
 ===start-group=== "string-skipping"
 
 	str: "Lorem ipsum dolor sit amet."
 	wa: [#"a"]
-	
+
 	--test-- "str-sk1" 	--assert parse		""			[to end]
 	--test-- "str-sk2" 	--assert parse		""			[thru end]
 	--test-- "str-sk3" 	--assert parse		"a"			[to end]
@@ -1110,7 +1110,7 @@ Red [
 	--test-- "str-sk11"	--assert parse		"ab"		[thru #"a" skip]
 	--test-- "str-sk12"	--assert parse		"aaab"		[to #"a" to end]
 	--test-- "str-sk13"	--assert parse		"aaba"		[skip thru #"a" 2 skip]
-	
+
 	--test-- "str-sk14"	--assert not parse	"a"			[to [#"a"]]
 	--test-- "str-sk15"	--assert not parse	"a"			[to [#"a"] end]
 	--test-- "str-sk16"	--assert parse		"a"			[to [#"a"] skip]
@@ -1121,7 +1121,7 @@ Red [
 	--test-- "str-sk21"	--assert parse		"ab"		[thru [#"a"] skip]
 	--test-- "str-sk22"	--assert parse		"aaab"		[to [#"a"] to end]
 	--test-- "str-sk23"	--assert parse		"aaba"		[skip thru [#"a"] 2 skip]
-	
+
 	--test-- "str-sk24"	--assert parse		"zzabc"		[to [#"c" | #"b" | #"a"] 3 skip]
 	--test-- "str-sk25"	--assert parse		"zzabc"		[to [#"a" | #"b" | #"c"] 3 skip]
 
@@ -1134,7 +1134,7 @@ Red [
 	--test-- "str-sk32"	--assert parse		"bbaaac"	[thru some "a" "c"]
 	--test-- "str-sk33"	--assert parse		"bbaaac"	[thru [some #"a"] "c"]
 	--test-- "str-sk34"	--assert parse		"bbaaac"	[thru [some #"x" | "aaa"] "c"]
-	
+
 	--test-- "str-sk35"	--assert parse 		str 		[thru "amet" skip]
 
 	--test-- "str-sk36"
@@ -1145,14 +1145,14 @@ Red [
 	--test-- "str-sk37"
 		res: 0
 		--assert parse str [thru #"p" res: to end]
-		--assert 9 = index? res 
+		--assert 9 = index? res
 
 	--test-- "str-sk38" --assert not parse	""			[to "a"]
 	--test-- "str-sk39" --assert not parse	""			[to #"a"]
 	--test-- "str-sk40" --assert not parse	""			[to ["a"]]
 	--test-- "str-sk41" --assert not parse	""			[to [#"a"]]
 
-	
+
 ===end-group===
 
 ===start-group=== "string-casing"
@@ -1172,13 +1172,13 @@ Red [
 ===end-group===
 
 ===start-group=== "string-unicode"
-	
+
 	--test-- "str-uni1"		--assert parse		"abcdé" 	[#"a" #"b" #"c" #"d" #"é"]
 	--test-- "str-uni2"		--assert parse		"abcdé" 	["abcdé"]
 	--test-- "str-uni3"		--assert not parse	"abcde" 	[#"a" #"b" #"c" #"d" #"é"]
 	--test-- "str-uni4"		--assert parse 		"abcdé" 	[#"a" #"b" #"c" #"d" #"é"]
 
-	--test-- "str-uni5" 
+	--test-- "str-uni5"
 		--assert parse "abcdé✐" [#"a" #"b" #"c" #"d" #"é" #"✐"]
 
 	--test-- "str-uni6"		--assert parse		"abcdé✐"	["abcdé✐"]
@@ -1187,7 +1187,7 @@ Red [
 	--test-- "str-uni9"		--assert not parse	"abcdé✐"	["abcdé"]
 	--test-- "str-uni10"	--assert parse		"✐abcdé"	["✐abcdé"]
 
-	--test-- "str-uni11" 
+	--test-- "str-uni11"
 		--assert parse "abcdé✐^(010000)" [#"a" #"b" #"c" #"d" #"é" #"✐" #"^(010000)"]
 
 	--test-- "str-uni12"	--assert parse		"ab^(010000)cdé✐"	["ab^(010000)cdé✐"]
@@ -1195,11 +1195,11 @@ Red [
 	--test-- "str-uni14"	--assert not parse	"^(010000)abcdé"	["a^(010000)bcdé"]
 	--test-- "str-uni15"	--assert not parse	"abcdé^(010000)"	["abcdé"]
 	--test-- "str-uni16"	--assert parse		"^(010000)abcdé"	["^(010000)abcdé"]
-	
-===end-group=== 
+
+===end-group===
 
 ===start-group=== "string-bitsets"
-	
+
 	bs:	   charset ["hello" #"a" - #"z"]
 	wbs: [bs]
 	wbs2: reduce wbs
@@ -1251,22 +1251,22 @@ Red [
 	--test-- "str-rem1"		--assert parse			""			[remove]
 	--test-- "str-rem2"		--assert not parse		""			[remove skip]
 
-	--test-- "str-rem3"	
+	--test-- "str-rem3"
 		str: "a"
 		--assert parse str [remove skip]
 		--assert str = ""
 
-	--test-- "str-rem4"	
+	--test-- "str-rem4"
 		str: "aba"
 		--assert parse str [some [#"a" | remove #"b"]]
 		--assert str = "aa"
 
-	--test-- "str-rem5"	
+	--test-- "str-rem5"
 		str: "hello world"
 		--assert parse str [remove thru ws "world"]
 		--assert str = "world"
 
-	--test-- "str-rem6"	
+	--test-- "str-rem6"
 		str: "hello world"
 		--assert parse str [remove "hello" skip "world"]
 		--assert str = " world"
@@ -1285,15 +1285,15 @@ Red [
 		--assert parse str [any [remove [some digit #" "] | skip]]
 		--assert str = "hello world"
 
-	--test-- "str-ins1"	
+	--test-- "str-ins1"
 		--assert parse str: "" [insert #"1"]
 		--assert str = "1"
 
-	--test-- "str-ins2"	
+	--test-- "str-ins2"
 		--assert parse str: "aa" [skip insert #"b" skip]
 		--assert str = "aba"
 
-	--test-- "str-ins3"	
+	--test-- "str-ins3"
 		--assert parse str: "" [p: insert #"a" :p remove #"a"]
 		--assert str = ""
 
@@ -1341,7 +1341,7 @@ Red [
 	--test-- "str-m56"	--assert parse 		"a"			[[#"b" | reject] | #"a"]
 	--test-- "str-m57"	--assert parse 		"aa"		[some reject | 2 #"a"]
 	--test-- "str-m58"	--assert parse 		"aa"		[some [reject] | 2 #"a"]
-	
+
 	--test-- "str-m60"	--assert parse 		""			[none]
 	--test-- "str-m61"	--assert parse 		"a"			[skip none]
 	--test-- "str-m62"	--assert parse 		"a"			[none skip none]
@@ -1423,7 +1423,7 @@ Red [
 				<head><title>Test</title></head>
 				<body><div><u>Hello</u> <b>World</b></div></body>
 			</html>
-		}	
+		}
 		ws: charset " ^- ^/^M"
 		res: parse html rule: [
 			collect [any [
@@ -1443,7 +1443,7 @@ Red [
 					keep integer!
 					| p: block! :p into [
 						collect [any [keep integer! keep ('+) | skip keep (foo '-)]]
-					] 
+					]
 					| skip
 				]
 			]
@@ -1518,7 +1518,7 @@ Red [
 		size: 2
 		res: parse "12" [collect [keep copy value size skip]]
 		--assert res = ["12"]
-		
+
 	--test-- "#678"
 		--assert parse "cat" [1 "cat"]
 		--assert not parse "cat" [2 "cat"]
@@ -1527,9 +1527,9 @@ Red [
 		--assert parse "catcat" [2 "cat"]
 		--assert parse "catcatcat" [3 "cat"]
 		--assert parse "catcatcatcat" [4 "cat"]
-		
+
 
 ===end-group===
-    
+
 ~~~end-file~~~
 

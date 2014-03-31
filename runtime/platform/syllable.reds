@@ -24,7 +24,7 @@ Red/System [
 
 
 platform: context [
-	
+
 	#include %POSIX.reds
 
 	#import  [
@@ -76,7 +76,7 @@ platform: context [
 
 	;-------------------------------------------
 	;-- Free paged virtual memory region from OS
-	;-------------------------------------------	
+	;-------------------------------------------
 	free-virtual: func [
 		ptr [int-ptr!]							;-- address of memory region to release
 	][
@@ -84,10 +84,10 @@ platform: context [
 			raise-error RED_ERR_VMEM_RELEASE_FAILED as-integer system/pc
 		]
 	]
-	
+
 	init: does [
 		page-size: sysconf SC_PAGE_SIZE
 		setlocale __LC_CTYPE ""					;@@ check if "utf8" is present in returned string?
 	]
-	
+
 ]

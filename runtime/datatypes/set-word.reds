@@ -12,43 +12,43 @@ Red/System [
 
 set-word: context [
 	verbose: 0
-	
+
 	load-in: func [
 		str 	[c-string!]
 		blk		[red-block!]
 		return:	[red-word!]
-		/local 
+		/local
 			cell  [red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-word/load"]]
-		
+
 		cell: word/load-in str blk
 		cell/header: TYPE_SET_WORD					;-- implicit reset of all header flags
 		cell
 	]
-	
+
 	load: func [
 		str 	[c-string!]
 		return:	[red-word!]
-		/local 
+		/local
 			cell  [red-word!]
 	][
 		cell: word/load str
 		cell/header: TYPE_SET_WORD					;-- implicit reset of all header flags
 		cell
 	]
-	
+
 	push: func [
 		w  		[red-word!]
 		return:	[red-word!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-word/push"]]
-		
+
 		w: word/push w
 		set-type as red-value! w TYPE_SET_WORD
 		w
 	]
-	
+
 	push-local: func [
 		node	[node!]
 		index	[integer!]
@@ -69,20 +69,20 @@ set-word: context [
 			args [cell!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-word/set"]]
-		
+
 		args: stack/arguments
 		_context/set as red-word! args args + 1
 		stack/set-last args + 1
 	]
-	
+
 	get: does [
 		#if debug? = yes [if verbose > 0 [print-line "set-word/get"]]
-		
+
 		stack/set-last _context/get as red-word! stack/arguments
 	]
-	
+
 	;-- Actions --
-	
+
 	mold: func [
 		w		[red-word!]
 		buffer	[red-string!]
@@ -100,7 +100,7 @@ set-word: context [
 		string/append-char GET_BUFFER(buffer) as-integer #":"
 		part - 1
 	]
-	
+
 	compare: func [
 		arg1	[red-word!]								;-- first operand
 		arg2	[red-word!]								;-- second operand
@@ -115,7 +115,7 @@ set-word: context [
 			word/compare arg1 arg2 op
 		]
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_SET_WORD

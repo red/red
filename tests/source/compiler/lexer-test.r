@@ -26,15 +26,15 @@ do %../../../lexer.r
 	--test-- "lexer-1"
 	src: {Red [] 123}
 	--assert [[] 123] = lexer/process src
-	
+
 	--test-- "lexer-2"
 	src: {Red [] aa}
 	--assert [[] aa] = lexer/process src
-	
+
 	--test-- "lexer-3"
 	src: {Red [] 'a}
 	--assert [[] 'a] = lexer/process src
-	
+
 	--test-- "lexer-4"
 	src: {Red [] a:}
 	--assert [[] a:] = lexer/process src
@@ -86,12 +86,12 @@ do %../../../lexer.r
 	--test-- "lexer-16"
 	src: {Red [] foo/bar:}
 	--assert [[] foo/bar:] = lexer/process src
-	
+
 	--test-- "lexer-17"
 	src: {
 		Red [title: "test"]
 
-		+ - 
+		+ -
 		test123
 		4 ttt 5655 /4545
 		/ // -123 +5
@@ -129,9 +129,9 @@ do %../../../lexer.r
 		]
 
 		foo/bar 'foo/bar foo/bar:
-		#[none] #[true ] #[false ] 
+		#[none] #[true ] #[false ]
 	}
-	
+
 	result: [
 		[title: "test"]
 		+ -
@@ -182,7 +182,7 @@ do %../../../lexer.r
 	--assert-printed? "*** Syntax Error: Invalid word! value"
 	--assert-printed? "*** line: 2"
 	--assert-printed? {*** at: "1: 1}
-	  
+
 	--test-- "lexer-22"
 	  src: {
 	    Red/System[]
@@ -192,13 +192,13 @@ do %../../../lexer.r
 	--assert-printed? "*** Syntax Error: Invalid Red program"
 	--assert-printed? "*** line: 1"
 	--assert-printed?  "*** at: {/System[]"
-	
+
 	--test-- "lexer-23"
 	  src: {Red [] #"^^/"}
 	--assert "[[] #'0000000A]" = mold lexer/process src
-	  
+
 ===end-group===
-	
+
 ~~~end-file~~~
 
 ;; tidy up

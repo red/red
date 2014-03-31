@@ -12,20 +12,20 @@ Red/System [
 
 native: context [
 	verbose: 0
-	
+
 	push: func [
 		/local
 			cell  [red-native!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/push"]]
-		
+
 		cell: as red-native! stack/push*
 		cell/header: TYPE_NATIVE
 		;...TBD
 	]
-	
-	;-- Actions -- 
-	
+
+	;-- Actions --
+
 	make: func [
 		proto	   [red-value!]
 		spec	   [red-block!]
@@ -36,7 +36,7 @@ native: context [
 			index  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/make"]]
-		
+
 		assert TYPE_OF(spec) = TYPE_BLOCK
 		s: GET_BUFFER(spec)
 		spec: as red-block! s/offset
@@ -45,12 +45,12 @@ native: context [
 		native/header:  TYPE_NATIVE						;-- implicit reset of all header flags
 		native/spec:    spec/node						; @@ copy spec block if not at head
 		;native/symbols: clean-spec spec 				; @@ TBD
-		
+
 		index: integer/get s/offset + 1
 		native/code: natives/table/index
 		native
 	]
-	
+
 	reflect: func [
 		native	[red-native!]
 		field	[integer!]
@@ -74,7 +74,7 @@ native: context [
 		]
 		blk												;@@ TBD: remove it when all cases implemented
 	]
-	
+
 	form: func [
 		value	[red-native!]
 		buffer	[red-string!]
@@ -87,7 +87,7 @@ native: context [
 		string/concatenate-literal buffer "?native?"
 		part - 8
 	]
-	
+
 	mold: func [
 		native	[red-native!]
 		buffer	[red-string!]
@@ -102,7 +102,7 @@ native: context [
 		#if debug? = yes [if verbose > 0 [print-line "native/mold"]]
 
 		string/concatenate-literal buffer "make native! ["
-		
+
 		part: block/mold
 			reflect native words/spec					;-- mold spec
 			buffer
@@ -112,7 +112,7 @@ native: context [
 			arg
 			part - 14
 			indent
-		
+
 		string/concatenate-literal buffer "]"
 		part - 1
 	]

@@ -22,7 +22,7 @@ integer: context [
 		assert TYPE_OF(int) = TYPE_INTEGER
 		int/value
 	]
-	
+
 	get-any*: func [									;-- special get* variant for SWITCH
 		return: [integer!]
 		/local
@@ -31,7 +31,7 @@ integer: context [
 		int: as red-integer! stack/arguments
 		either TYPE_OF(int) = TYPE_INTEGER [int/value][0] ;-- accept NONE values
 	]
-	
+
 	get: func [											;-- unboxing integer value
 		value	[red-value!]
 		return: [integer!]
@@ -42,7 +42,7 @@ integer: context [
 		int: as red-integer! value
 		int/value
 	]
-	
+
 	box: func [
 		value	[integer!]
 		return: [red-integer!]
@@ -54,16 +54,16 @@ integer: context [
 		int/value: value
 		int
 	]
-	
+
 	form-signed: func [									;@@ replace with sprintf() call?
 		i 		[integer!]
 		return: [c-string!]
-		/local 
+		/local
 			s	[c-string!]
 			c 	[integer!]
 			n 	[logic!]
 	][
-		s: "-0000000000"								;-- 11 bytes wide	
+		s: "-0000000000"								;-- 11 bytes wide
 		if zero? i [									;-- zero special case
 			s/11: #"0"
 			return s + 10
@@ -82,7 +82,7 @@ integer: context [
 		if n [s/c: #"-" c: c - 1]
 		s + c
 	]
-	
+
 	do-math: func [
 		type	  [integer!]
 		return:	  [red-integer!]
@@ -94,7 +94,7 @@ integer: context [
 
 		left: as red-integer! stack/arguments
 		right: left + 1
-		
+
 		assert any [									;@@ replace by typeset check when possible
 			TYPE_OF(left) = TYPE_INTEGER
 			TYPE_OF(left) = TYPE_CHAR
@@ -103,7 +103,7 @@ integer: context [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
 		]
-		
+
 		left/value: switch type [
 			OP_ADD [left/value + right/value]
 			OP_SUB [left/value - right/value]
@@ -120,12 +120,12 @@ integer: context [
 			int [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/load-in"]]
-		
+
 		int: as red-integer! ALLOC_TAIL(blk)
 		int/header: TYPE_INTEGER
 		int/value: value
 	]
-	
+
 	push: func [
 		value	[integer!]
 		return: [red-integer!]
@@ -133,7 +133,7 @@ integer: context [
 			int [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/push"]]
-		
+
 		int: as red-integer! stack/push*
 		int/header: TYPE_INTEGER
 		int/value: value
@@ -141,9 +141,9 @@ integer: context [
 	]
 
 	;-- Actions --
-	
+
 	make: func [
-		proto	 [red-value!]	
+		proto	 [red-value!]
 		spec	 [red-value!]
 		return:	 [red-integer!]
 	][
@@ -159,7 +159,7 @@ integer: context [
 			]
 		]
 	]
-	
+
 	form: func [
 		int		   [red-integer!]
 		buffer	   [red-string!]
@@ -170,12 +170,12 @@ integer: context [
 			formed [c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/form"]]
-		
+
 		formed: form-signed int/value
 		string/concatenate-literal buffer formed
 		part - length? formed							;@@ optimize by removing length?
 	]
-	
+
 	mold: func [
 		int		[red-integer!]
 		buffer	[red-string!]
@@ -184,14 +184,14 @@ integer: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part 	[integer!]
-		indent	[integer!]		
+		indent	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/mold"]]
 
 		form int buffer arg part
 	]
-	
+
 	compare: func [
 		value1    [red-integer!]						;-- first operand
 		value2    [red-integer!]						;-- second operand
@@ -200,13 +200,13 @@ integer: context [
 		/local
 			char  [red-char!]
 			left  [integer!]
-			right [integer!] 
+			right [integer!]
 			res	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/compare"]]
-		
+
 		left: value1/value
-		
+
 		switch TYPE_OF(value2) [
 			TYPE_INTEGER [
 				right: value2/value
@@ -228,7 +228,7 @@ integer: context [
 		]
 		res
 	]
-	
+
 	complement: func [
 		int		[red-integer!]
 		return:	[red-value!]
@@ -236,27 +236,27 @@ integer: context [
 		int/value: not int/value
 		as red-value! int
 	]
-	
+
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
 	]
-	
+
 	divide: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/divide"]]
 		as red-value! do-math OP_DIV
 	]
-		
+
 	multiply: func [return:	[red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/multiply"]]
 		as red-value! do-math OP_MUL
 	]
-	
+
 	subtract: func [return:	[red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/subtract"]]
 		as red-value! do-math OP_SUB
 	]
-	
+
 	negate: func [
 		return: [red-integer!]
 		/local
@@ -266,21 +266,21 @@ integer: context [
 		int/value: 0 - int/value
 		int 											;-- re-use argument slot for return value
 	]
-	
+
 	even?: func [
 		int		[red-integer!]
 		return: [logic!]
 	][
 		not as-logic int/value and 1
 	]
-	
+
 	odd?: func [
 		int		[red-integer!]
 		return: [logic!]
 	][
 		as-logic int/value and 1
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_INTEGER

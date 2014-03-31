@@ -13,7 +13,7 @@ Red/System [
 datatype: context [
 	verbose: 0
 	top-id:  0											;-- last type ID registered
-	
+
 	make-words: func [
 		/local
 			name [names!]
@@ -51,16 +51,16 @@ datatype: context [
 		assert type < 50								;-- hard limit of action table
 		if type > top-id [top-id: type]					;@@ unreliable, needs automatic type IDs
 		list: list + 1
-		
+
 		parent: list/value
 		list: list + 1
-		
+
 		name: name-table + type
 		name/buffer: as c-string! list/value			;-- store datatype string name
 		name/size: (length? name/buffer) - 1			;-- store string size (not counting terminal `!`)
 		list: list + 1
 		count: count - 3								;-- skip the "header" data
-		
+
 		if count <> ACTIONS_NB [
 			print [
 				"*** Datatype Error: invalid actions count for type: " type lf
@@ -69,7 +69,7 @@ datatype: context [
 			]
 			halt
 		]
-		
+
 		index: type << 8 + 1							;-- consume first argument (type ID), one-based index
 		until [
 			action-table/index: either all [
@@ -87,7 +87,7 @@ datatype: context [
 			zero? count
 		]
 	]
-	
+
 	push: func [
 		type	[integer!]
 		/local
@@ -96,10 +96,10 @@ datatype: context [
 		#if debug? = yes [if verbose > 0 [print-line "datatype/push"]]
 
 		dt: as red-datatype! stack/push*
-		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
+		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags
 		dt/value: type
 	]
-	
+
 	;-- Actions --
 
 	make*: func [
@@ -110,17 +110,17 @@ datatype: context [
 			type [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/make"]]
-		
+
 		arg: stack/arguments
 		dt:  as red-datatype! arg
 		assert TYPE_OF(dt) = TYPE_DATATYPE
-		
-		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
+
+		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags
 		type: as red-integer! arg + 1
-		dt/value: type/value		
+		dt/value: type/value
 		as red-value! dt
 	]
-	
+
 	make: func [
 		proto 	[red-value!]
 		spec	[red-value!]
@@ -130,15 +130,15 @@ datatype: context [
 			int [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/make"]]
-		
+
 		assert TYPE_OF(spec) = TYPE_INTEGER
 		int: as red-integer! spec
 		dt: as red-datatype! stack/push*
 		dt/header: TYPE_DATATYPE
-		dt/value: int/value		
+		dt/value: int/value
 		dt
 	]
-	
+
 	form: func [
 		dt		 [red-datatype!]
 		buffer	 [red-string!]
@@ -149,12 +149,12 @@ datatype: context [
 			name [names!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/form"]]
-		
+
 		name: name-table + dt/value
 		string/concatenate-literal-part buffer name/buffer name/size
 		part - name/size
 	]
-	
+
 	mold: func [
 		dt		[red-datatype!]
 		buffer	[red-string!]
@@ -168,11 +168,11 @@ datatype: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/mold"]]
 
-		name: name-table + dt/value	
+		name: name-table + dt/value
 		string/concatenate-literal-part buffer name/buffer name/size + 1
 		part - name/size - 1
 	]
-	
+
 	compare: func [
 		arg1      [red-datatype!]						;-- first operand
 		arg2	  [red-datatype!]						;-- second operand
@@ -186,7 +186,7 @@ datatype: context [
 
 		type: TYPE_OF(arg2)
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
 			COMP_STRICT_EQUAL [res: all [type = TYPE_DATATYPE  arg1/value = arg2/value]]
 			COMP_NOT_EQUAL	  [res: any [type <> TYPE_DATATYPE arg1/value <> arg2/value]]
 			default [
@@ -195,7 +195,7 @@ datatype: context [
 		]
 		res
 	]
-	
+
 	init: does [
 		register [
 			TYPE_DATATYPE

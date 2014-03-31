@@ -12,7 +12,7 @@ Red/System [
 
 object: context [
 	verbose: 0
-	
+
 	do-indent: func [
 		buffer	[red-string!]
 		tabs	[integer!]
@@ -29,7 +29,7 @@ object: context [
 		]
 		part - (4 * tabs)
 	]
-	
+
 	serialize: func [
 		obj		[red-object!]
 		buffer	[red-string!]
@@ -52,20 +52,20 @@ object: context [
 		ctx: 	GET_CTX(obj)
 		syms:   as series! ctx/symbols/value
 		values: as series! ctx/values/value
-		
+
 		sym:	syms/offset
 		s-tail: syms/tail
 		value: 	values/offset
-		
+
 		while [sym < s-tail][
 			if indent? [part: do-indent buffer tabs part]
-			
+
 			part: word/mold as red-word! sym buffer no no flat? arg part tabs
 			string/concatenate-literal buffer ": "
 			part: part - 2
-			
+
 			part: actions/mold value buffer only? all? flat? arg part tabs
-			
+
 			if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
 				string/append-char GET_BUFFER(buffer) as-integer lf
 				part: part - 1
@@ -75,7 +75,7 @@ object: context [
 		]
 		part
 	]
-	
+
 	extend: func [
 		ctx	  [red-context!]
 		spec  [red-context!]
@@ -95,7 +95,7 @@ object: context [
 
 		while [syms < tail][
 			value: _context/add-with ctx as red-word! syms vals
-			
+
 			unless null? value [
 				switch TYPE_OF(value) [					;@@ replace it with ANY_SERIES?()
 					TYPE_BLOCK
@@ -123,7 +123,7 @@ object: context [
 			vals: vals + 1
 		]
 	]
-	
+
 	rebind: func [
 		fun		[red-function!]
 		ctx 	[red-context!]
@@ -135,7 +135,7 @@ object: context [
 	][
 		s: as series! fun/more/value
 		more: s/offset
-		
+
 		if TYPE_OF(more) = TYPE_NONE [
 			print-line "*** Error: COPY stuck on missing function's body block"
 			halt
@@ -143,18 +143,18 @@ object: context [
 		spec: as red-block! stack/push*
 		spec/head: 0
 		spec/node: fun/spec
-		
+
 		blk: block/clone as red-block! more yes
 		_context/bind blk ctx yes						;-- rebind new body to object
 		_function/push spec blk	fun/ctx null			;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
-		
+
 		s: as series! fun/more/value
 		more: s/offset + 2
 		more/header: TYPE_UNSET							;-- invalidate compiled body
 	]
-	
+
 	make-at: func [
 		obj		[red-object!]
 		slots	[integer!]
@@ -164,9 +164,9 @@ object: context [
 		obj/ctx: _context/create slots no yes
 		obj
 	]
-	
+
 	;-- Actions --
-	
+
 	make: func [
 		proto	[red-object!]
 		spec	[red-value!]
@@ -178,16 +178,16 @@ object: context [
 			blk  [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
-		
+
 		obj: as red-object! stack/push*
-		
+
 		either TYPE_OF(proto) = TYPE_OBJECT [
 			copy proto obj null yes null				;-- /deep
 		][
 			make-at obj 4								;-- arbitrary value
 		]
 		ctx: GET_CTX(obj)
-		
+
 		switch TYPE_OF(spec) [
 			TYPE_OBJECT [
 				obj2: as red-object! spec
@@ -206,7 +206,7 @@ object: context [
 		]
 		obj
 	]
-	
+
 	reflect: func [
 		obj		[red-object!]
 		field	[integer!]
@@ -223,9 +223,9 @@ object: context [
 		blk: 		as red-block! stack/push*
 		blk/header: TYPE_BLOCK
 		blk/head: 	0
-		
+
 		ctx: GET_CTX(obj)
-		
+
 		case [
 			field = words/words [
 				blk/node: ctx/symbols
@@ -238,14 +238,14 @@ object: context [
 			field = words/body [
 				blk/node: ctx/symbols
 				blk/node: alloc-cells block/rs-length? blk
-				
+
 				s: as series! ctx/symbols/value
 				syms: s/offset
 				tail: s/tail
-				
+
 				s: as series! ctx/values/value
 				vals: s/offset
-				
+
 				while [syms < tail][
 					value: block/rs-append blk syms
 					value/header: TYPE_SET_WORD
@@ -260,7 +260,7 @@ object: context [
 		]
 		as red-block! stack/set-last as red-value! blk
 	]
-	
+
 	form: func [
 		obj		[red-object!]
 		buffer	[red-string!]
@@ -272,7 +272,7 @@ object: context [
 
 		serialize obj buffer no no no arg part no 0
 	]
-	
+
 	mold: func [
 		obj		[red-object!]
 		buffer	[red-string!]
@@ -285,14 +285,14 @@ object: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
-		
+
 		string/concatenate-literal buffer "make object! [^/"
 		part: serialize obj buffer only? all? flat? arg part - 15 yes indent + 1
 		if indent > 0 [part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]
-	
+
 	eval-path: func [
 		parent	[red-object!]							;-- implicit type casting
 		element	[red-value!]
@@ -310,13 +310,13 @@ object: context [
 			word/ctx: parent/ctx
 		]
 		either set? [
-			_context/set-in word stack/arguments ctx 
+			_context/set-in word stack/arguments ctx
 			stack/arguments
 		][
 			_context/get-in word ctx
 		]
 	]
-	
+
 	copy: func [
 		obj      [red-object!]
 		new	  	 [red-object!]
@@ -335,7 +335,7 @@ object: context [
 			slots [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/copy"]]
-		
+
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
 		if OPTION?(part-arg) [
@@ -347,28 +347,28 @@ object: context [
 		src:	as series! ctx/symbols/value
 		size:   as-integer src/tail - src/offset
 		slots:	size >> 4
-		
+
 		new:  make-at new slots
 		nctx: GET_CTX(new)
-		
+
 		;-- process SYMBOLS
 		dst: as series! nctx/symbols/value
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
 		dst/size: size
 		dst/tail: dst/offset + slots
 		_context/set-context-each dst new/ctx
-		
+
 		;-- process VALUES
 		src: as series! ctx/values/value
 		dst: as series! nctx/values/value
 		copy-memory as byte-ptr! dst/offset as byte-ptr! src/offset size
 		dst/size: size
 		dst/tail: dst/offset + slots
-		
+
 		if deep? [
 			value: dst/offset
 			tail:  dst/tail
-			
+
 			while [value < tail][
 				switch TYPE_OF(value) [					;@@ replace it with ANY_SERIES?()
 					TYPE_BLOCK
@@ -379,7 +379,7 @@ object: context [
 					TYPE_LIT_PATH
 					TYPE_STRING
 					TYPE_FILE [
-						actions/copy 
+						actions/copy
 							as red-series! value
 							value						;-- overwrite the value
 							null
@@ -397,7 +397,7 @@ object: context [
 
 		new
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_OBJECT
@@ -466,7 +466,7 @@ object: context [
 			null			;query
 			null			;read
 			null			;rename
-			null			;update	
+			null			;update
 			null			;write
 		]
 	]

@@ -34,8 +34,8 @@ Red/System [
 
 --test-- "rt-7"
 --assert 32 = round-to 32 16
-  
+
 ===end-group===
-  
+
 ~~~end-file~~~
 

@@ -29,7 +29,7 @@ Red/System [
   --test-- "ft2"
     ft2-result: form-type 10
   --assert 12 = length? ft2-result     ;; "invalid type"
-  
+
   --test-- "ft3"
     ft3-result: form-type 1001
   --assert #"a" = ft3-result/1
@@ -40,6 +40,6 @@ Red/System [
   --assert null-byte = ft3-result/6
 
 ===end-group===
-  
+
 ~~~end-file~~~
 

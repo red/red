@@ -166,14 +166,14 @@ indented:  [some space chars thru newline]
 output:    [
 	some space copy code thru newline
 	any ["==" ["^-" | "  "] copy text thru newline (append code text)]
-] 
+]
 define:    [copy text to " -" 2 skip text-block]
 image: [
 	left? any space copy text some chars (
 		if text/1 = #"%" [remove text] ; remove %file
 		text: as-file text
 		emit image reduce [text pick [left center] left-flag]
-	) 
+	)
 ]
 left?: [some space "left" (left-flag: on) | none (left-flag: off)]
 
@@ -279,7 +279,7 @@ set 'gen-html func [
 		if all [
 			in-table
 			zero? group-count ; do not emit cell if in group
-			not find [table-out table-row] doc/1 
+			not find [table-out table-row] doc/1
 			not find [table-in table-row] prior-cmd
 		][
 			emit-table-cell
@@ -333,7 +333,7 @@ set 'gen-html func [
 set-options: func [options] [
 	if none? options [exit]
 	foreach opt [
-			no-nums 
+			no-nums
 			no-toc
 			no-indent
 			no-template
@@ -545,7 +545,7 @@ emit-table-end: does [
 	emit "</td></tr></table>"
 ]
 
-emit-table-cell: does [ 
+emit-table-cell: does [
 	emit pick [{</b></td><td><b>} {</td><td valign="top" bgcolor="white">}] in-header
 ]
 

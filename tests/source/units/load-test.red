@@ -31,8 +31,8 @@ Red [
 	--test-- "load-16" --assert "{x}"	 = load {{{x}}}
 	--test-- "load-17" --assert {"x"}	 = load {{"x"}}
 	--test-- "load-18" --assert "x"		 = load {{x}}
-	
+
 ===end-group===
-    
+
 ~~~end-file~~~
 

@@ -15,7 +15,7 @@ change-dir %../
 
 	--test-- "not-comp-run-1 #issue 104"
 	--compile-and-run-this {
-	  Red/System [] 
+	  Red/System []
 	  dummy: func [return: [integer!]] [0]
 	  print "starting"
 	  prin-hex as-integer not as-logic dummy
@@ -25,7 +25,7 @@ change-dir %../
 	--assert none <> find qt/output"finished"
 
 ===end-group===
-		
+
 ~~~end-file~~~
 
 

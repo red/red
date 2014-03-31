@@ -5,7 +5,7 @@ REBOL [
 ]
 
 change-dir %../                   ;; revert to tests/ dir (from runnable)
-  
+
 ~~~start-file~~~ "comp-err"
 
   --test-- "sample compilation error test"
@@ -34,7 +34,7 @@ change-dir %../                   ;; revert to tests/ dir (from runnable)
       		]
       	]
       ]
-    }     
+    }
   --assert parse qt/comp-output [
   	  thru "*** Compilation Error: undefined symbol: a"
   	  thru "at line: 6"
@@ -42,6 +42,6 @@ change-dir %../                   ;; revert to tests/ dir (from runnable)
   ]
   --clean
 
-  
+
 ~~~end-file~~~
 

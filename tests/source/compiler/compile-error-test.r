@@ -11,5 +11,5 @@ REBOL [
 	--test-- "ce-1 issue #608"
 		--compile-this-red {s: "open ended string}
 		--assert-msg? "*** Syntax Error: Invalid string! value"
-  
-~~~end-file~~~ 
+
+~~~end-file~~~

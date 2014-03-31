@@ -31,12 +31,12 @@ Red [
   --assert 208 = niff 208
   --assert -1 = niff 1
   --assert -1 = niff 224
-  
+
   --test-- "simple if"
     i: 0
     if true [i: 1]
   --assert i = 1
-  
+
   --test-- "nested if"
     i: 0
     if true [
@@ -45,7 +45,7 @@ Red [
       ]
     ]
   --assert i = 1
-  
+
   --test-- "double nested if"
     i: 0
     if true [
@@ -56,7 +56,7 @@ Red [
       ]
     ]
   --assert i = 1
-  
+
   --test-- "triple nested if"
     i: 0
     if true [
@@ -69,13 +69,13 @@ Red [
       ]
     ]
   --assert i = 1
-    
+
   --test-- "either basic 1"
   --assert 1 = either true [1] [2]
-  
+
   --test-- "either basic 2"
   --assert 2 = either false [1] [2]
-  
+
   --test-- "either basic 3"
   --assert 1 = either 42 [1] [2]
 
@@ -87,6 +87,6 @@ Red [
   --assert none = if false [1]     ;; # Issue 321
 
 ===end-group===
-    
+
 ~~~end-file~~~
 

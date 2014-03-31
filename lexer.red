@@ -26,10 +26,10 @@ trans-integer: routine [
 	p:	  string/rs-head start
 	len:  end/head - start/head
 	neg?: no
-	
+
 	c: string/get-char p unit
 	if any [
-		c = as-integer #"+" 
+		c = as-integer #"+"
 		c = as-integer #"-"
 	][
 		neg?: c = as-integer #"-"
@@ -39,11 +39,11 @@ trans-integer: routine [
 	n: 0
 	until [
 		c: string/get-char p unit
-		
+
 		m: n * 10
 		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
 		n: m
-		
+
 		m: n + c - #"0"
 		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
 		n: m
@@ -71,10 +71,10 @@ trans-hexa: routine [
 ][
 	s: GET_BUFFER(start)
 	unit: GET_UNIT(s)
-	
+
 	p: (string/rs-head end) - unit
 	head: string/rs-head start
-	
+
 	n: 0
 	power: 0
 	while [p >= head][
@@ -151,9 +151,9 @@ transcode: function [
 	stack:	clear []
 	count?:	yes											;-- if TRUE, lines counter is enabled
 	line: 	1
-	
+
 	append/only stack any [dst make block! 4]
-	
+
 	trans-string: [
 		new: make string! (index? e) - index? s
 		parse/case copy/part s e [						;@@ add /part option to parse!
@@ -165,7 +165,7 @@ transcode: function [
 		]
 		new
 	]
-	
+
 	decode-hex: [
 		set c [
 			digit 			(value: c - #"0")
@@ -174,12 +174,12 @@ transcode: function [
 			| (print "*** Syntax Error: invalid file hexa encoding") ;@@ temporary hardcoded
 		]
 	]
-	
+
 	decode-2hex: [
 		decode-hex (hex: value << 4)
 		decode-hex (hex: hex + value)
 	]
-	
+
 	trans-file: [
 		new: make file! (index? e) - index? s
 		parse/case copy/part s e [						;@@ add /part option to parse!
@@ -190,13 +190,13 @@ transcode: function [
 		]
 		new
 	]
-	
+
 	if cs/1 = '- [
 		cs/1:  charset "0123465798"						;-- digit
 		cs/2:  charset "ABCDEF"							;-- hexa-upper
 		cs/3:  charset "abcdef"							;-- hexa-lower
 		cs/4:  union cs/1 cs/2							;-- hexa
-		cs/5:  union cs/4 cs/3							;-- hexa-char	
+		cs/5:  union cs/4 cs/3							;-- hexa-char
 		cs/6:  charset {/\^^,[](){}"#%$@:;}				;-- not-word-char
 		cs/7:  union union cs/6 cs/1 charset {'}		;-- not-word-1st
 		cs/8:  charset {[](){}"%@:;}					;-- not-file-char
@@ -215,12 +215,12 @@ transcode: function [
 		not-file-char not-str-char not-mstr-char caret-char
 		non-printable-char integer-end ws-ASCII ws-U+2k control-char
 	] cs
-	
+
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 	ws: [
 		pos: #"^/" (
 			if count? [
-				line: line + 1 
+				line: line + 1
 				;append/only lines to block! stack/tail?
 			]
 		)
@@ -284,7 +284,7 @@ transcode: function [
 			| skip (value: s/1)
 		] {"}
 	]
-	
+
 	line-string: [
 		{"} s: any [
 			{^^"}
@@ -294,12 +294,12 @@ transcode: function [
 		]
 		e: {"}
 	]
-	
+
 	nested-curly-braces: [
 		(cnt: 1)
 		any [
-			counted-newline 
-			| "^^{" 
+			counted-newline
+			| "^^{"
 			| "^^}"
 			| #"{" 	  (cnt: cnt + 1)
 			| e: #"}" if (zero? cnt: cnt - 1) break
@@ -307,15 +307,15 @@ transcode: function [
 			| skip
 		]
 	]
-	
+
 	multiline-string: [#"{" s: nested-curly-braces]
-	
+
 	string-rule: [line-string | multiline-string]
-	
+
 	file-rule: [
 		#"%" s: any [ahead [not-file-char | ws-no-count] break | skip] e:
 	]
-	
+
 	symbol-rule: [
 		some [ahead [not-word-char | ws-no-count | control-char] break | skip] e:
 	]
@@ -348,7 +348,7 @@ transcode: function [
 			path-rule 									;-- path matched
 			| opt [#":" (type: set-word!)]
 			  (trans-word last stack copy/part s e type) ;-- word or set-word matched
-		] 
+		]
 	]
 
 	get-word-rule: [
@@ -378,28 +378,28 @@ transcode: function [
 	slash-rule: [s: [slash opt slash] e:]
 
 	hexa-rule: [2 8 hexa e: #"h"]
-	
+
 	integer-number-rule: [
 		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
 	]
-	
+
 	integer-rule: [
 		integer-number-rule
 		ahead [integer-end | ws-no-count | end]
 	]
-	
+
 	block-rule: [
 		#"[" (append/only stack make block! 4)
 		any-value
 		#"]" (trans-pop stack)
 	]
-	
+
 	paren-rule: [
 		#"(" (append/only stack make paren! 4)
-		any-value 
+		any-value
 		#")" (trans-pop stack)
 	]
-	
+
 	escaped-rule: [
 		"#[" pos: any ws [
 			  "true"  			(value: true)
@@ -433,9 +433,9 @@ transcode: function [
 			| "none" 			(value: none)
 		] pos: any ws #"]"
 	]
-	
+
 	comment-rule: [#";" [to lf | to end]]
-	
+
 	wrong-delimiters: [
 		pos: [
 			  #"]" (value: #"[") | #")" (value: #"(")
@@ -443,7 +443,7 @@ transcode: function [
 		] :pos
 		(print ["missing matching" value])
 	]
-	
+
 	literal-value: [
 		pos: (e: none) s: [
 			comment-rule
@@ -464,7 +464,7 @@ transcode: function [
 			;| binary-rule	  	(stack/push load-binary s e)
 		]
 	]
-	
+
 	any-value: [pos: any [literal-value | ws]]
 
 	unless parse/case src [any-value opt wrong-delimiters][

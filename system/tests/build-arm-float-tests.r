@@ -14,7 +14,7 @@ system/options/quiet: true
 
 ;; init
 file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
-a-file-name: ["%" some file-chars ".reds" ] 
+a-file-name: ["%" some file-chars ".reds" ]
 a-test-file: ["--run-test-file-quiet " copy file a-file-name]
 
 ;; make the Arm-Float dir if needed
@@ -54,6 +54,6 @@ close runner
 system/options/quiet: store-quiet-mode
 
 print "ARM Float tests built"
-  
-  
+
+
 

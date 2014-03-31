@@ -58,7 +58,7 @@ Red/System [
 	#define prin-hex		[red/platform/prin-hex*]
 	#define prin-float		[red/platform/prin-float*]
 	#define prin-float32	[red/platform/prin-float32*]
-	
+
 ][
 	prin: func [s [c-string!] return: [c-string!] /local p][
 		p: s

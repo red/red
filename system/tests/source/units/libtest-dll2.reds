@@ -48,14 +48,14 @@ odd-or-even: func [
 ][
 	len: length? s
 	either 0 = (len % 2) [answer: "even"][answer: "odd"]
-	answer	
+	answer
 ]
 
 ;callbacki: func [
 ;	i				[integer!]
 ;	f				[function! [i [integer!]]]
 ;][
-;	f i	
+;	f i
 ;]
-	
+
 #export [neg negf negf32 true-false odd-or-even]

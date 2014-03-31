@@ -7,13 +7,13 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
-;; initialisations 
+;; initialisations
 make-dir %auto-tests/
 file-out: %auto-tests/float32-lib-auto-test.reds
 file-in: %float32-lib-test-source.reds
 
-;; get base dir address 
-base-dir: to-local-file system/script/path  
+;; get base dir address
+base-dir: to-local-file system/script/path
 
 ;; work out prefix and extension based on version
 switch/default fourth system/version [

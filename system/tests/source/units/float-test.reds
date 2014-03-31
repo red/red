@@ -42,16 +42,16 @@ Red/System [
 		]
 	]
 	pi: 3.14159265358979
-	
+
 	--test-- "float-ext-1"
 	--assert -1.0 = cos pi
-	
+
 	--test-- "float-ext-2"
 	--assertf~= 0.0 sin pi	1E-10	; not working, because of rounding error.
-	
+
 	--test-- "float-ext-3"
 	--assert -1.0 = cos 3.14159265358979
-	
+
 ===end-group===
 
 ===start-group=== "float function arguments"
@@ -68,13 +68,13 @@ Red/System [
        if ffl <> ffg [return 2]
        1
     ]
-    
+
   --test-- "float-func-args-1"
   --assert 1 = ff 1.0 2.0
-  
+
   --test-- "float-func-args-2"
   --assert 1 = ff 1.222090944E+33 9.99999E-45
-  
+
 ===end-group===
 
 ===start-group=== "float locals"
@@ -86,14 +86,14 @@ Red/System [
 	--assert pi = 3.14159265358979
 	--assert -1.0 = cos pi
 	--assert -1.0 = local-float cos pi
-	
+
 	--test-- "float-loc-2"
 	f: local-float pi
 	--assert pi = local-float f
 
 	--test-- "float-loc-3"
 	local-float2: func [n [float!] return: [float!] /local p][p: n local-float p]
-	
+
 	pi: local-float2 3.14159265358979
 	--assert -1.0 = local-float2 cos pi
 	f: local-float2 pi
@@ -112,7 +112,7 @@ Red/System [
 	--assert -1.0 = local-float4 cos pi
 	f: local-float4 pi
 	--assert pi = local-float4 f
-	
+
 	--test-- "float-loc-6"
 	local-float5: func [n [float!] return: [float!] /local r p][p: n local-float p]
 	--assert -1.0 = local-float5 cos pi
@@ -123,7 +123,7 @@ Red/System [
 
 ===start-group=== "float function return"
 
- 
+
     ff1: func [
       ff1i      [integer!]
       return:   [float!]
@@ -140,7 +140,7 @@ Red/System [
   --assert 1.222090944E+33 = ff1 2
   --test-- "float return 3"
   --assert 9.99999E-45 = ff1 3
-  
+
 ===end-group===
 
 ===start-group=== "float members in struct"
@@ -150,7 +150,7 @@ Red/System [
       a   [float!]
     ]
   --assert 0.0 = sf1/a
-  
+
   --test-- "float-struct-2"
     sf2: declare struct! [
       a   [float!]
@@ -158,19 +158,19 @@ Red/System [
     sf1/a: 1.222090944E+33
   --assert 1.222090944E+33 = sf1/a
 
-   
+
     sf3: declare struct! [
       a   [float!]
       b   [float!]
     ]
-  
+
   --test-- "float-struct-3"
     sf3/a: 1.222090944E+33
     sf3/b: 9.99999E-45
-    
+
   --assert 1.222090944E+33 = sf3/a
   --assert 9.99999E-45 = sf3/b
-    
+
   --test-- "float-struct-4"
     sf4: declare struct! [
       c   [byte!]
@@ -182,18 +182,18 @@ Red/System [
     sf4/b: 9.99999E-45
   --assert 1.222090944E+33 = sf4/a
   --assert 9.99999E-45 = sf4/b
-  
+
   --test-- "float-struct-5"
   sf5: declare struct! [f [float!] i [integer!]]
-  
+
   sf5/i: 1234567890
   sf5/f: 3.14159265358979
   --assert sf5/i = 1234567890
   --assert sf5/f = pi
-  
+
   --test-- "float-struct-6"
   sf6: declare struct! [i [integer!] f [float!]]
-  
+
   sf6/i: 1234567890
   sf6/f: 3.14159265358979
   --assert sf6/i = 1234567890
@@ -208,7 +208,7 @@ Red/System [
   p: declare pointer! [float!]
   p/value: 3.14159265358979
   --assert pi = p/value
- 
+
  ;TBD: add more float pointer tests in %pointer-test.reds.
 
 ===end-group===
@@ -225,13 +225,13 @@ Red/System [
     ][
       2.0
     ]
-  
+
   --test-- "ewrfv0"
   --assertf~= 1.0 (fe1 * 1.0) 0.1E-13
-    
+
   --test-- "ewrfv1"
   --assertf~= 1.0 (1.0 * fe1) 0.1E-13
-  
+
   --test-- "ewrfv2"
   --assertf~= 0.5 (fe1 / fe2) 0.1E-13
 
@@ -249,7 +249,7 @@ Red/System [
       a: as float! list/value
       a
     ]
-    
+
     fatf2: function [
       [typed]
       count [integer!]
@@ -259,31 +259,31 @@ Red/System [
         a [float!]
         b [float!]
     ][
-      a: as float! list/value 
+      a: as float! list/value
       list: list + 1
       b: as float! list/value
       a + b
     ]
-  
+
   --test-- "fatf-1"
   --assert 2.0 = fatf1 2.0
-  
+
   --test-- "fatf-2"
   --assert 2.0 = fatf1 1.0 + fatf1 1.0
-  
+
   --test-- "fatf-3"
   --assert 3.0 = fatf2 [1.0 2.0]
-  
+
 
 ===end-group===
 
 ===start-group=== "calculations"
 
 	fcfoo: func [a [float!] return: [float!]][a]
-	
+
 	fcptr: declare struct! [a [float!]]
-	fcptr/a: 3.0 
-	
+	fcptr/a: 3.0
+
 	fc2: 3.0
 
 	--test-- "fc-1"
@@ -320,7 +320,7 @@ Red/System [
 
 	--test-- "fc-11"
 	--assert (fcfoo 5.0) - fcptr/a = 2.0				;-- reg(block!)/reg(path!)
-	
+
 	--test-- "fc-12"
 	--assert fcptr/a - (fcfoo 5.0) = 2.0				;-- reg(path!)/reg(block!)
 
@@ -360,7 +360,7 @@ Red/System [
 	while [i <= 10][
 		f: f * 0.8
 		;print [f lf]
-		a/i: f 
+		a/i: f
 		i: i + 1
 	]
 	--assert i = 11
@@ -372,14 +372,14 @@ Red/System [
 	a/1: s/value    ; value must be in struct!
 	a/1: s/value    ; must be done twice
 	1.0 + 1.0          ; must be followed by an expression
-	if true [a/1: s/value] 
+	if true [a/1: s/value]
 	--assertf~= a/1 1.0 1E-10
 
 	--test-- "issue #221"
 	x: -1.0
 	y: either x < 0.0 [0.0 - x][x]
 	--assert y = 1.0
-	
+
 	fabs: func [x [float!] return: [float!] ][
 	    either x < 0.0 [0.0 - x][x]
 	]

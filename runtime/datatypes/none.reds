@@ -14,7 +14,7 @@ none-value: declare red-value!							;-- preallocate none! value
 
 none: context [
 	verbose: 0
-	
+
 	rs-push: func [
 		blk		[red-block!]
 		return:	[red-value!]							;-- return cell pointer
@@ -25,7 +25,7 @@ none: context [
 		cell/header: TYPE_NONE							;-- implicit reset of all header flags
 		as red-value! cell
 	]
-	
+
 	push-last: func [
 		return:		[red-value!]						;-- return cell pointer
 		/local
@@ -37,7 +37,7 @@ none: context [
 		cell/header: TYPE_NONE							;-- implicit reset of all header flags
 		as red-value! cell
 	]
-	
+
 	push: func [
 		return:		[red-value!]						;-- return cell pointer
 		/local
@@ -49,8 +49,8 @@ none: context [
 		cell/header: TYPE_NONE							;-- implicit reset of all header flags
 		as red-value! cell
 	]
-		
-	;-- Actions -- 
+
+	;-- Actions --
 
 	make: func [
 		proto	 [red-value!]
@@ -65,7 +65,7 @@ none: context [
 		cell/header: TYPE_NONE							;-- implicit reset of all header flags
 		cell
 	]
-	
+
 	form: func [
 		value	[red-none!]
 		buffer	[red-string!]
@@ -74,11 +74,11 @@ none: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/form"]]
-		
+
 		string/concatenate-literal buffer "none"
 		part - 4
 	]
-	
+
 	mold: func [
 		value	[red-none!]
 		buffer	[red-string!]
@@ -94,7 +94,7 @@ none: context [
 
 		form value buffer arg part
 	]
-	
+
 	compare: func [
 		arg1      [red-none!]							;-- first operand
 		arg2	  [red-none!]							;-- second operand
@@ -108,7 +108,7 @@ none: context [
 
 		type: TYPE_OF(arg2)
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
 			COMP_STRICT_EQUAL [res: type =  TYPE_NONE]
 			COMP_NOT_EQUAL	  [res: type <> TYPE_NONE]
 			default [
@@ -117,17 +117,17 @@ none: context [
 		]
 		res
 	]
-	
+
 	clear:	 does []									;-- arguments can be safely omitted
 	find:    does []
-	
+
 	length?: func [
 		value	[red-none!]
 		return: [integer!]
 	][
 		-1
 	]
-	
+
 	remove:  func [
 		series	[red-series!]
 		part	[red-value!]
@@ -136,13 +136,13 @@ none: context [
 		push-last
 		0
 	]
-	
+
 	select:  does []
 	take:	 does []
 
 	init: does [
 		none-value/header: TYPE_NONE
-		
+
 		datatype/register [
 			TYPE_NONE
 			TYPE_VALUE

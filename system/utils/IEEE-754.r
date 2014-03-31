@@ -63,7 +63,7 @@ IEEE-754: context [
 		sign: either negative? n [n: negate n 1][0]
 
 		either zero? n [exp: frac: 0][
-		
+
 			either zero? 128 - exp: to integer! log-2 n [
 				exp: 127
 			][

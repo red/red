@@ -33,7 +33,7 @@ foreach line data [
 	gap-end: line/2
 	prin tab
 	prin tab
-	
+
 	repeat i 21 [
 		prin either all [
 			gap-start <= i
@@ -49,7 +49,7 @@ foreach line data [
 				gap-end: line/2
 			]
 		]
-		
+
 		cursor: cursor + 1
 		if cursor = 4 [cursor: 1]
 	]

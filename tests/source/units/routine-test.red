@@ -28,11 +28,11 @@ Red [
 			true
 		]
 	--assert rr4-r
-	
+
 ===end-group===
 
 ===start-group=== "routine yo-yo tests"
-	
+
 	--test-- "ry1"
 		ry1-r: routine [
 			i			[integer!]
@@ -41,21 +41,21 @@ Red [
 			i
 		]
 	--assert 1 = ry1-r 1
-	
+
 	--test-- "ry4"
 		ry4-r: routine [
 			l				[logic!]
 			return:			[logic!]
 		][
-			l	
+			l
 		]
-	--assert ry4-r true 
+	--assert ry4-r true
 	--assert not ry4-r false
-	
-===end-group===	
+
+===end-group===
 
 ===start-group=== "routine return local tests"
-	
+
 	--test-- "rrl1"
 		rrl1-r: routine [
 			return:		[integer!]
@@ -66,7 +66,7 @@ Red [
 			i
 		]
 	--assert 1 = rrl1-r
-	
+
 	--test-- "rrl4"
 		rrl4-r: routine [
 			return:			[logic!]
@@ -76,12 +76,12 @@ Red [
 			l: true
 			l
 		]
-	--assert rrl4-r true 
-	
-===end-group===	
+	--assert rrl4-r true
+
+===end-group===
 
 ===start-group=== "routine simple tests"
-	
+
 	--test-- "rs1"
 		rs1-r: routine [
 			i			[integer!]
@@ -90,18 +90,18 @@ Red [
 			i + 1
 		]
 	--assert 2 = rs1-r 1
-	
+
 	--test-- "rs4"
 		rs4-r: routine [
 			l				[logic!]
 			return:			[logic!]
-		][	
-			not l	
+		][
+			not l
 		]
-	--assert rs4-r false 
+	--assert rs4-r false
 	--assert not rs4-r true
-	
-===end-group===	
+
+===end-group===
 
 ===start-group=== "routine reported issues"
 
@@ -120,6 +120,6 @@ Red [
 	--assert 0 = rri1-r
 
 ===end-group===
-	
+
 ~~~end-file~~~
 

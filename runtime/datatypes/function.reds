@@ -13,7 +13,7 @@ Red/System [
 
 _function: context [
 	verbose: 0
-	
+
 	call: func [
 		fun	[red-function!]
 		/local
@@ -32,12 +32,12 @@ _function: context [
 			0
 		]
 	]
-	
+
 	collect-word: func [
 		value  [red-value!]
 		list   [red-block!]
 		ignore [red-block!]
-		/local		
+		/local
 			result [red-value!]
 			word   [red-value!]
 	][
@@ -52,18 +52,18 @@ _function: context [
 		]
 		stack/pop 2										;-- remove word and FIND result from stack
 	]
-	
+
 	collect-many-words: func [
 		blk	   [red-block!]
 		list   [red-block!]
 		ignore [red-block!]
-		/local		
+		/local
 			slot  [red-value!]
 			tail  [red-value!]
 	][
 		slot: block/rs-head blk
 		tail: block/rs-tail blk
-		
+
 		while [slot < tail][
 			assert any [								;-- replace with ANY_WORD?
 				TYPE_OF(slot) = TYPE_WORD
@@ -74,7 +74,7 @@ _function: context [
 			slot: slot + 1
 		]
 	]
-	
+
 	collect-deep: func [
 		list   [red-block!]
 		ignore [red-block!]
@@ -88,7 +88,7 @@ _function: context [
 	][
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
-		
+
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_SET_WORD [
@@ -124,7 +124,7 @@ _function: context [
 			value: value + 1
 		]
 	]
-	
+
 	collect-words: func [
 		spec	[red-block!]
 		body	[red-block!]
@@ -140,23 +140,23 @@ _function: context [
 	][
 		list: block/push* 8
 		block/rs-append list as red-value! refinements/local
-		
+
 		ignore: block/clone spec no
 		block/rs-append ignore as red-value! refinements/local
-		
+
 		value:  as red-value! refinements/extern		;-- process optional /extern
 		extern: as red-block! block/find spec value null no no no null null no no no no
 		extern?: TYPE_OF(extern) <> TYPE_NONE
-		
+
 		if extern? [
 			s: GET_BUFFER(spec)
-			s/tail: s/offset + extern/head				;-- cut /extern and extern words out			
+			s/tail: s/offset + extern/head				;-- cut /extern and extern words out
 		]
 		stack/pop 1										;-- remove FIND result from stack
-		
+
 		value:  block/rs-head ignore
 		tail:	block/rs-tail ignore
-		
+
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_WORD 	  [0]						;-- do nothing
@@ -174,15 +174,15 @@ _function: context [
 			]
 			value: value + 1
 		]
-		
+
 		collect-deep list ignore body
-		
+
 		if 1 < block/rs-length? list [
 			block/rs-append-block spec list
 		]
 		list
 	]
-	
+
 	validate: func [									;-- temporary mimalist spec checking
 		spec [red-block!]
 		/local
@@ -193,7 +193,7 @@ _function: context [
 	][
 		value: block/rs-head spec
 		end:   block/rs-tail spec
-		
+
 		while [value < end][
 			switch TYPE_OF(value) [
 				TYPE_WORD
@@ -229,7 +229,7 @@ _function: context [
 			]
 		]
 	]
-	
+
 	init-locals: func [
 		nb 	   [integer!]
 		/local
@@ -262,24 +262,24 @@ _function: context [
 		fun/spec:	 spec/node
 		fun/ctx:	 either null? ctx [_context/make spec yes no][ctx]
 		fun/more:	 alloc-cells 3
-		
+
 		more: as series! fun/more/value
 		value: either null? body [none-value][as red-value! body]
 		copy-cell value alloc-tail more					;-- store body block or none
 		alloc-tail more									;-- reserved place for "symbols"
-		
+
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE
 		native/code: code
-		
+
 		if all [null? ctx not null? body][
 			_context/bind body GET_CTX(fun) no			;-- do not bind if predefined context (already done)
 		]
 		fun/ctx
 	]
-		
-	;-- Actions -- 
-	
+
+	;-- Actions --
+
 	reflect: func [
 		fun		[red-function!]
 		field	[integer!]
@@ -308,7 +308,7 @@ _function: context [
 		]
 		blk												;@@ TBD: remove it when all cases implemented
 	]
-	
+
 	form: func [
 		value	[red-function!]
 		buffer	[red-string!]
@@ -340,13 +340,13 @@ _function: context [
 		#if debug? = yes [if verbose > 0 [print-line "function/mold"]]
 
 		string/concatenate-literal buffer "func "
-		
+
 		blk: as red-block! stack/push*
 		blk/header: TYPE_BLOCK
 		blk/head: 0
 		blk/node: fun/spec
 		part: block/mold blk buffer only? all? flat? arg part - 5 indent	;-- spec
-		
+
 		s: as series! fun/more/value
 		value: s/offset
 		either TYPE_OF(value) = TYPE_NONE [

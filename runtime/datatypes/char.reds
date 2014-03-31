@@ -12,7 +12,7 @@ Red/System [
 
 char: context [
 	verbose: 0
-	
+
 	load-in: func [
 		value [integer!]
 		blk	  [red-block!]
@@ -36,12 +36,12 @@ char: context [
 		cell/header: TYPE_CHAR
 		cell/value: value
 	]
-	
+
 	;-- Actions --
-	
+
 	make: func [
 		proto 	  [red-value!]
-		spec	  [red-value!]	
+		spec	  [red-value!]
 		return:	  [red-char!]
 		/local
 			char  [red-char!]
@@ -62,7 +62,7 @@ char: context [
 		char/value: value
 		char
 	]
-	
+
 	form: func [
 		c	    [red-char!]
 		buffer  [red-string!]
@@ -75,7 +75,7 @@ char: context [
 		string/append-char GET_BUFFER(buffer) c/value
 		part - 1
 	]
-	
+
 	mold: func [
 		c	    [red-char!]
 		buffer  [red-string!]
@@ -140,7 +140,7 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/add"]]
 		char: as red-char! integer/do-math OP_ADD
 		char/header: TYPE_CHAR
-		as red-value! char 
+		as red-value! char
 	]
 
 	divide: func [
@@ -151,7 +151,7 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/divide"]]
 		char: as red-char! integer/do-math OP_DIV
 		char/header: TYPE_CHAR
-		as red-value! char 
+		as red-value! char
 	]
 
 	multiply: func [
@@ -162,7 +162,7 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/multiply"]]
 		char: as red-char! integer/do-math OP_MUL
 		char/header: TYPE_CHAR
-		as red-value! char 
+		as red-value! char
 	]
 
 	subtract: func [
@@ -173,7 +173,7 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/subtract"]]
 		char: as red-char! integer/do-math OP_SUB
 		char/header: TYPE_CHAR
-		as red-value! char 
+		as red-value! char
 	]
 
 	init: does [

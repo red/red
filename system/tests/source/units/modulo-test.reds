@@ -16,12 +16,12 @@ Red/System [
   --test-- "mod-2" --assert   5 //  3 = 2
   --test-- "mod-3" --assert  15 //  8 = 7
   --test-- "mod-4" --assert   2 //  2 = 0
-  
+
   --test-- "mod-8"  --assert  9 //  4 = 1
   --test-- "mod-9"  --assert  9 // -4 = 1
   --test-- "mod-10" --assert -9 //  4 = 3
   --test-- "mod-11" --assert -9 // -4 = 3
-  
+
   --test-- "mod-12" --assert #"^(09)" // #"^(04)" = #"^(01)"
   --test-- "mod-13" --assert #"^(09)" // #"^(FC)" = #"^(09)"
   --test-- "mod-14" --assert #"^(F7)" // #"^(04)" = #"^(03)"
@@ -35,13 +35,13 @@ Red/System [
   --test-- "rem-2" --assert  9 % -4 =  1
   --test-- "rem-3" --assert -9 %  4 = -1
   --test-- "rem-4" --assert -9 % -4 = -1
-  
+
   --test-- "rem-5"  --assert #"^(09)" % #"^(04)" = #"^(01)"
   --test-- "rem-6"  --assert #"^(09)" % #"^(FC)" = #"^(09)"
   --test-- "rem-7"  --assert #"^(F7)" % #"^(04)" = #"^(03)"
   --test-- "rem-8" --assert #"^(F7)" % #"^(FC)" = #"^(F7)"
-  
-===end-group=== 
+
+===end-group===
 
 ===start-group=== "float remainder"
 
@@ -67,8 +67,8 @@ Red/System [
   --test-- "f32r-8" --assertf32~= (as-float32 8.9)  % (as-float32 4.46) (as-float32  4.44) 1E-6
   --test-- "f32r-9" --assertf32~= (as-float32 8.9)  % (as-float32 4.25) (as-float32  0.4)  1E-6
 
-===end-group=== 
+===end-group===
 
- 
+
 ~~~end-file~~~
 

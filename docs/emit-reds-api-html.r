@@ -5,7 +5,7 @@ REBOL [
 	Version:      0.1.0
 	Rights:       "Copyright (C) 2012 Peter W A Wood. All rights reserved."
 	License:      "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
-	Description:  {This is a plug for generate-reds-api.r which emits HTML }  
+	Description:  {This is a plug for generate-reds-api.r which emits HTML }
 	Argument:     {A block output by xtract/extract-reds-docstrings}
 ]
 
@@ -25,18 +25,18 @@ emit: func [
     ]
     if in header 'purpose [
       append doc rejoin [{<p class="header">Purpose } header/purpose {</p>}]
-    ] 
+    ]
     append doc {<h3>Functions</h3>}
     foreach funct file/functions [
       append doc rejoin [
-        {<h4 class="func" id="} funct/func {">Function: } funct/func 
-        {</h4><h5>Description</h5><p class="description">} funct/3 {</p>} 
+        {<h4 class="func" id="} funct/func {">Function: } funct/func
+        {</h4><h5>Description</h5><p class="description">} funct/3 {</p>}
       ]
       append doc {<h5>Returns</h5>}
       either ret-blk: select funct 'return [
         append doc rejoin [{<p class="return">} first ret-blk " " second ret-blk {</p>}]
       ][
-        append doc {<p>No return value</p>}    
+        append doc {<p>No return value</p>}
       ]
       append doc {<h5>Arguments</h5>}
       funct: skip funct 3
@@ -48,11 +48,11 @@ emit: func [
       ]
     ]
     append doc {<h3>Includes</h3>}
-      
+
       foreach inc file/includes [
         append doc rejoin [{<p class="include">} inc {</p>}]
       ]
-  ] 
+  ]
   append doc rejoin [{<p>Created at } now {</p>}]
   doc
 ]

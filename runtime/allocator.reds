@@ -40,7 +40,7 @@ Red/System [
 #define node!				int-ptr!
 #define default-offset		-1				;-- for offset value in alloc-series calls
 
-#define series!				series-buffer! 
+#define series!				series-buffer!
 
 
 int-array!: alias struct! [ptr [int-ptr!]]
@@ -81,7 +81,7 @@ series-buffer!: alias struct! [
 	node	[int-ptr!]						;-- point back to referring node
 	size	[integer!]						;-- usable buffer size (series-buffer! struct excluded)
 	offset	[cell!]							;-- series buffer offset pointer (insert at head optimization)
-	tail	[cell!]							;-- series buffer tail pointer 
+	tail	[cell!]							;-- series buffer tail pointer
 ]
 
 series-frame!: alias struct! [				;-- series frame header
@@ -152,11 +152,11 @@ fill: func [
 		while [cnt > 0][p/cnt: byte cnt: cnt - 1]
 		p: as byte-ptr! (as-integer p) + 4 and -4
 	]
-	
+
 	aligned?: zero? ((as-integer end) and 3)
 	tail: either aligned? [as int-ptr! end][as int-ptr! (as-integer end) and -4]
 	p4: as int-ptr! p
-	
+
 	if p4 < tail [
 		byte4: either byte = null-byte [0][
 			byte4: as-integer byte
@@ -164,9 +164,9 @@ fill: func [
 		]
 		while [p4 < tail][p4/value: byte4 p4: p4 + 1] ;-- zero fill target region using 32-bit accesses
 	]
-	
+
 	unless aligned? [						;-- postprocess unaligned ending
-		cnt: (as-integer end) and 3	
+		cnt: (as-integer end) and 3
 		while [cnt > 0][end/cnt: byte cnt: cnt - 1]
 	]
 ]
@@ -210,7 +210,7 @@ free-all: func [
 		free-virtual as int-ptr! n-frame
 		n-frame: n-next
 	]
-	
+
 	s-frame: memory/s-head
 	while [s-frame <> null][
 		s-next: s-frame/next
@@ -261,7 +261,7 @@ alloc-node-frame: func [
 
 	frame/bottom: as int-ptr! (as byte-ptr! frame) + size? node-frame!
 	frame/top: frame/bottom + size - 1		;-- point to the top element
-	
+
 	either null? memory/n-head [
 		memory/n-head: frame				;-- first item in the list
 		memory/n-tail: frame
@@ -271,7 +271,7 @@ alloc-node-frame: func [
 		frame/prev: memory/n-tail			;-- link back to previous tail
 		memory/n-tail: frame				;-- now tail is the new item
 	]
-	
+
 	format-node-stack frame					;-- prepare the node frame for use
 	frame
 ]
@@ -300,7 +300,7 @@ free-node-frame: func [
 		null? memory/n-head
 		null? memory/n-tail
 	]
-	
+
 	free-virtual as int-ptr! frame			;-- release the memory to the OS
 ]
 
@@ -314,7 +314,7 @@ alloc-node: func [
 	frame: memory/n-active					;-- take node from active node frame
 	node: as int-ptr! frame/top/value		;-- pop free node address from stack
 	frame/top: frame/top - 1
-	
+
 	if frame/top = frame/bottom [
 		; TBD: trigger a "light" GC pass from here and update memory/n-active
 		frame: alloc-node-frame nodes-per-frame	;-- allocate a new frame
@@ -333,14 +333,14 @@ free-node: func [
 	/local frame offset
 ][
 	assert not null? node
-	
+
 	frame: memory/n-active
 	offset: as-integer node - frame
-	
+
 	unless all [
 		positive? offset					;-- check if node address is part of active frame
 		offset < node-frame-size
-	][										;@@ following code not be needed if freed only by the GC...								
+	][										;@@ following code not be needed if freed only by the GC...
 		frame: memory/n-head				;-- search for right frame from head of the list
 		while [								; @@ could be optimized by searching backward/forward from active frame
 			offset: as-integer node - frame
@@ -353,7 +353,7 @@ free-node: func [
 			assert frame <> null			;-- should found the right one before the list end
 		]
 	]
-	
+
 	frame/top: frame/top + 1				;-- free node by pushing its address on stack
 	frame/top/value: as-integer node
 
@@ -369,10 +369,10 @@ alloc-series-frame: func [
 ][
 	size: memory/s-size
 	if size < memory/s-max [memory/s-size: size * 2]
-	
+
 	size: size + size? series-frame! 		;-- total required size for a series frame
 	frame: as series-frame! allocate-virtual size no ;-- RW only
-	
+
 	either null? memory/s-head [
 		memory/s-head: frame				;-- first item in the list
 		memory/s-tail: frame
@@ -383,7 +383,7 @@ alloc-series-frame: func [
 		frame/prev: memory/s-tail			;-- link back to previous tail
 		memory/s-tail: frame				;-- now tail is the new item
 	]
-	
+
 	frame/next: null
 	frame/heap: as series-buffer! (as byte-ptr! frame) + size? series-frame!
 	frame/tail: (as byte-ptr! frame) + size	;-- point to last byte in frame
@@ -414,7 +414,7 @@ free-series-frame: func [
 		null? memory/s-head
 		null? memory/s-tail
 	]
-	
+
 	free-virtual as int-ptr! frame			;-- release the memory to the OS
 ]
 
@@ -428,14 +428,14 @@ update-series: func [
 	until [
 		;-- update the node pointer to the new series address
 		series/node/value: as-integer series
-	
+
 		;-- update offset and tail pointers
 		series/offset: as cell! (as byte-ptr! series/offset) - offset
 		series/tail:   as cell! (as byte-ptr! series/tail) - offset
-		
+
 		;-- advance to the next series buffer
 		series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
-		
+
 		;-- exit when a freed series is met (<=> end of region)
 		zero? (series/flags and series-in-use)
 	]
@@ -446,9 +446,9 @@ update-series: func [
 ;-------------------------------------------
 #define SM1_INIT		1					;-- enter the state machine
 #define SM1_GAP			2					;-- begin of contiguous region of freed buffers (hole)
-#define SM1_GAP_END		3					;-- end of freed buffers region 
+#define SM1_GAP_END		3					;-- end of freed buffers region
 #define SM1_USED		4					;-- begin of contiguous region of buffers in use
-#define SM1_USED_END	5					;-- end of used buffers region 
+#define SM1_USED_END	5					;-- end of used buffers region
 
 compact-series-frame: func [
 	frame [series-frame!]					;-- series frame to compact
@@ -458,7 +458,7 @@ compact-series-frame: func [
 	series: as series-buffer! (as byte-ptr! frame) + size? series-frame! ;-- point to first series buffer
 	free?: zero? (series/flags and series-in-use)  ;-- true: series is not used
 	heap: frame/heap
-		
+
 	src: null								;-- src will point to start of buffer region to move down
 	dst: null								;-- dst will point to start of free region
 	state: SM1_INIT
@@ -485,14 +485,14 @@ compact-series-frame: func [
 		if state = SM1_USED_END [
 			assert dst < src				 ;-- regions are moved down in memory
 			assert src < as byte-ptr! series ;-- src should point at least at series - series/size
-			copy-memory dst	src as-integer series - src			
+			copy-memory dst	src as-integer series - src
 			update-series as series-buffer! dst as-integer src - dst
 			dst: dst + (as-integer series - src) ;-- points after moved region (ready for next move)
 			state: SM1_GAP
 		]
 		series >= heap						;-- exit state machine
 	]
-	
+
 	unless null? dst [						;-- no compaction occurred, all series were in use
 		frame/heap: as series-buffer! dst	;-- set new heap after last moved region
 	]
@@ -528,9 +528,9 @@ alloc-series-buffer: func [
 		memory/s-active: frame				;@@ to be removed once GC implemented
 		series: frame/heap
 	]
-	
+
 	assert sz < _16MB						;-- max series size allowed in a series frame @@
-	
+
 	frame/heap: as series-buffer! (as byte-ptr! frame/heap) + sz
 
 	series/size: size
@@ -544,7 +544,7 @@ alloc-series-buffer: func [
 	][
 		series/flags: series/flags or flag-ins-tail ;-- optimize for tail insertions only
 	]
-	
+
 	series/offset: as cell! (as byte-ptr! series + 1) + offset
 	series/tail: series/offset
 	series
@@ -574,7 +574,7 @@ alloc-series: func [
 ;-------------------------------------------
 alloc-cells: func [
 	size	[integer!]						;-- number of 16 bytes cells to preallocate
-	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)	
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)
 ][
 	alloc-series size 16 0					;-- optimize by default for tail insertion
 ]
@@ -631,11 +631,11 @@ free-series: func [
 	assert not null? frame
 	assert not null? node
 	assert not null? (as byte-ptr! node/value)
-	
+
 	series: as series-buffer! node/value
 	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
 	series/flags: series/flags and series-free-mask		  ;-- clear 'used bit (enough to free the series)
-	
+
 	if frame/heap = as series-buffer! (		;-- test if series is on top of heap
 		(as byte-ptr! node/value) +  series/size + size? series-buffer!
 	) [
@@ -654,14 +654,14 @@ expand-series: func [
 	/local new units delta
 ][
 	;#if debug? = yes [print-wide ["series expansion triggered for:" series new-sz lf]]
-	
+
 	assert not null? series
 	assert any [
 		zero? new-sz
 		new-sz > series/size				;-- ensure requested size is bigger than current one
 	]
 	units: GET_UNIT(series)
-	
+
 	if zero? new-sz [
 		new-sz: series/size * 2				;-- by default, alloc twice the old size
 		if new-sz >= _2MB [
@@ -671,23 +671,23 @@ expand-series: func [
 	]
 
 	new: alloc-series-buffer new-sz / units units 0
-	
+
 	series/node/value: as-integer new		;-- link node to new series buffer
 	delta: as-integer series/tail - series/offset
-	
+
 	new/flags:	series/flags
 	new/node:   series/node
 	new/tail:   as cell! (as byte-ptr! new/offset) + delta
-	
-	;TBD: honor flag-ins-head and flag-ins-tail when copying!	
+
+	;TBD: honor flag-ins-head and flag-ins-tail when copying!
 	copy-memory 							;-- copy old series in new buffer
 		as byte-ptr! new/offset
 		as byte-ptr! series/offset
 		series/size
-	
+
 	assert not zero? (series/flags and not series-in-use) ;-- ensure that 'used bit is set
-	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)	
-	new	
+	series/flags: series/flags xor series-in-use		  ;-- clear 'used bit (enough to free the series)
+	new
 ]
 
 ;-------------------------------------------
@@ -727,13 +727,13 @@ copy-series: func [
 		new	   [series!]
 ][
 	node: alloc-bytes s/size
-	
+
 	new: as series! node/value
 	new/flags: s/flags
 	new/tail: as cell! (as byte-ptr! new/offset) + (as-integer s/tail - s/offset)
-	
+
 	unless zero? s/size [
-		copy-memory 
+		copy-memory
 			as byte-ptr! new/offset
 			as byte-ptr! s/offset
 			s/size
@@ -751,37 +751,37 @@ alloc-big: func [
 ][
 	assert positive? size
 	assert size >= _2MB						;-- should be bigger than a series frame
-	
+
 	sz: size + size? big-frame! 			;-- total required size for a big frame
 	frame: as big-frame! allocate-virtual sz no ;-- R/W only
 
 	frame/next: null
 	frame/size: size
-	
+
 	either null? memory/b-head [
 		memory/b-head: frame				;-- first item in the list
 	][
 		frm: memory/b-head					;-- search for tail of list (@@ might want to save it?)
 		until [frm: frm/next null? frm/next]
-		assert not null? frm		
-		
+		assert not null? frm
+
 		frm/next: frame						;-- append new item at tail of the list
 	]
-	
+
 	(as byte-ptr! frame) + size? big-frame!	;-- return a pointer to the requested buffer
 ]
 
 ;-------------------------------------------
-;-- Release a big series 
+;-- Release a big series
 ;-------------------------------------------
 free-big: func [
 	buffer	[byte-ptr!]						;-- big buffer to release
 	/local frame frm
 ][
 	assert not null? buffer
-	
+
 	frame: as big-frame! (buffer - size? big-frame!)  ;-- point to frame header
-	
+
 	either frame = memory/b-head [
 		memory/b-head: null
 	][
@@ -792,6 +792,6 @@ free-big: func [
 		]
 		frm/next: frame/next				;-- remove frame from list
 	]
-	
+
 	free-virtual as int-ptr! frame			;-- release the memory to the OS
 ]

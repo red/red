@@ -28,7 +28,7 @@ make-test: func [
   rule: [
     (new-test-string: copy "")
     any [
-      copy char [{#"} thru {"}] (append new-test-string mold-char load char) 
+      copy char [{#"} thru {"}] (append new-test-string mold-char load char)
       |
       copy string [some cs] (append new-test-string string)
       |
@@ -39,17 +39,17 @@ make-test: func [
   append tests join {  --test-- "maths-auto-} [test-number {"^(0A)}]
   if setup [append tests test-setup]
   append tests "  --assert "
-  
+
   ;; convert all char! literals to hex format
   parse/all test-string rule
-  
+
   ;; check if the first value is a byte!
   either byte-first? [
     append tests reform [expected "= (as integer! (" new-test-string "))^(0A)"]
   ][
     append tests reform [expected "= (" new-test-string ")^(0A)"]
   ]
-   
+
 ]
 
 preprocess: func [
@@ -67,19 +67,19 @@ preprocess: func [
     a   [char!]
     op  [word!]
     b   [char!]
-    /local 
+    /local
       res
   ][
     ;; Ensure all typecasts are to integer! not char!
-    a: to integer! a   
-    
+    a: to integer! a
+
     switch op [
       + [res: a + b]
       - [res: a - b]
       * [res: a * b]
       div-sign [res: to integer! (a / b)]
     ]
-    
+
     ;; adjust the return value to emulate 8-bit arithmetic with overflow
     either res >= 0 [
       res: res // 256
@@ -91,7 +91,7 @@ preprocess: func [
      ]
     to char! res
   ]
-  
+
   rules: [
     any [
       [set a char! set op word! set b char! (
@@ -111,18 +111,18 @@ preprocess: func [
   ]
 
   ns: copy s
-  replace/all ns " / " " div-sign "  
+  replace/all ns " / " " div-sign "
   until [
     nothing-changed: true
     sb: to block! load ns
     parse sb rules
     nothing-changed
   ]
-  
+
   ns
 ]
 
-;; initialisations 
+;; initialisations
 tests: copy ""                          ;; string to hold generated tests
 test-number: 0                          ;; number of the generated test
 make-dir %auto-tests/
@@ -140,7 +140,7 @@ tests-and-data: [
     "v - v - v"
     "v - v * v"
     "(v / v) + v"
-  ]  
+  ]
   [
     [1 1 1]
     [2 2 2]
@@ -306,7 +306,7 @@ ident: func [i [integer!] return: [integer!]][i]
 
 ;; start of executable code
 header: copy template
-replace header "$LENGTH$" length? read %make-maths-auto-test.r 
+replace header "$LENGTH$" length? read %make-maths-auto-test.r
 
 write/binary file-out header
 
@@ -319,23 +319,23 @@ foreach [formulae data] tests-and-data [
       foreach test-value test-data [
         replace test-string "v" mold test-value
       ]
-      
+
       byte-first?: either char! = type? first test-data [true] [false]
-      
+
       rebol-test-string: preprocess test-string
-      
+
       ;; parse the expression and perform the calculation as Red/System would
-      ;; only write a test if REBOL produces a valid result 
+      ;; only write a test if REBOL produces a valid result
       if attempt [expected: do load rebol-test-string][
-        
+
           expected: to integer! expected
-              
+
           ;; test with literal values
           make-test test-string
-          
+
           ;; if the data contains byte! values don't create the other tests
           if not find test-string "#" [
-          
+
           ;; test using integer variables
           test-setup: copy ""
           test-string: copy test-formula
@@ -348,8 +348,8 @@ foreach [formulae data] tests-and-data [
             variable-names: next variable-names
           ]
           make-test/setup test-string test-setup
-          
-          ;; test using integer/path 
+
+          ;; test using integer/path
           test-setup: copy ""
           test-string: copy test-formula
           variable-names: copy ["a" "b" "c" "d" "e" "f" "g" "h"]
@@ -361,7 +361,7 @@ foreach [formulae data] tests-and-data [
             variable-names: next variable-names
           ]
           make-test/setup test-string test-setup
-          
+
           ;; test using function call
           test-string: copy test-formula
           foreach test-value test-data [
@@ -373,7 +373,7 @@ foreach [formulae data] tests-and-data [
     ]
   ]
   recycle
-]  
+]
 write/append/binary file-out tests
 tests: copy ""
 
@@ -382,7 +382,7 @@ append tests "^(0A)===end-group===^(0A)^(0A)"
 append tests {~~~end-file~~~^(0A)^(0A)}
 
 write/append/binary file-out tests
-      
+
 print ["Number of assertions generated" test-number]
 
 

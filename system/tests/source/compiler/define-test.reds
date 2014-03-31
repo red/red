@@ -19,8 +19,8 @@ Red/System [
 		i504-arr/1: 1
 		i504-arr/2: 2
 	--assert 2 = i504-arr/I504-MAX-SIZE
-	
+
 ===end-group===
-  
+
 
 ~~~end-file~~~

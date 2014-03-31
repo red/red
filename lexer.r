@@ -9,7 +9,7 @@ REBOL [
 
 lexer: context [
 	verbose: 0
-	
+
 	line: 	none									;-- source code lines counter
 	lines:	[]										;-- offsets of newlines marker in current block
 	count?: yes										;-- if TRUE, lines counter is enabled
@@ -20,40 +20,40 @@ lexer: context [
 	value:	none									;-- new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
-	
+
 	;====== Parsing rules ======
-	
+
 	digit: charset "0123465798"
 	hexa:  union digit charset "ABCDEF"
 	hexa-char: union hexa charset "abcdef"
-	
+
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
 	ws-ASCII:  charset " ^-^M"						;-- ASCII common whitespaces
 	ws-U+2k:   charset [#"^(80)" - #"^(8A)"]		;-- Unicode spaces in the U+2000-U+200A range
 	UTF8-tail: charset [#"^(80)" - #"^(BF)"]
 	UTF8-1:    charset [#"^(00)" - #"^(7F)"]
-	
+
 	UTF8-2: reduce [
 		charset [#"^(C2)" - #"^(DF)"]
 		UTF8-tail
 	]
-	
+
 	UTF8-3: reduce [
 		#{E0} 	 charset [#"^(A0)" - #"^(BF)"] UTF8-tail
 		'| 		 charset [#"^(E1)" - #"^(EC)"] 2 UTF8-tail
 		'| #{ED} charset [#"^(80)" - #"^(9F)"] UTF8-tail
 		'| 		 charset [#"^(EE)" - #"^(EF)"] 2 UTF8-tail
 	]
-	
+
 	UTF8-4: reduce [
 		#{F0} 	 charset [#"^(90)" - #"^(BF)"] 2 UTF8-tail
 		'| 		 charset [#"^(F1)" - #"^(F3)"] 3 UTF8-tail
 		'| #{F4} charset [#"^(80)" - #"^(8F)"] 2 UTF8-tail
 	]
-	
+
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
-	
+
 	not-word-char:  charset {/\^^,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:  charset {[](){}"%@:;}
@@ -63,27 +63,27 @@ lexer: context [
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	integer-end:	charset {^{"[]);}
 	stop: 		    none
-	
+
 	control-char: reduce [
 		charset [#"^(00)" - #"^(1F)"] 				;-- ASCII control characters
 		'| #"^(C2)" charset [#"^(80)" - #"^(9F)"] 	;-- C2 control characters
 	]
-	
+
 	UTF8-filtered-char: [
 		[pos: stop :pos (fail?: [end skip]) | UTF8-char e: (fail?: none)]
 		fail?
 	]
-	
+
 	UTF8-printable: [
 		[non-printable-char | not-str-char (fail?: [end skip]) | UTF8-char (fail?: none)]
 		fail?
 	]
-	
+
 	;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 	ws: [
 		pos: #"^/" (
 			if count? [
-				line: line + 1 
+				line: line + 1
 				append/only lines to block! stack/tail?
 			]
 		)
@@ -107,7 +107,7 @@ lexer: context [
 		]
 		| #{E38080}									;-- U+3000 (Ideographic space)
 	]
-	
+
 	newline-char: [
 		#"^/"
 		| #{C285}									;-- U+0085 (Newline)
@@ -116,24 +116,24 @@ lexer: context [
 			| #{A9}									;-- U+2029 (Paragraph separator)
 		]
 	]
-	
+
 	counted-newline: [pos: #"^/" (line: line + 1)]
-	
+
 	ws-no-count: [(count?: no) ws (count?: yes)]
-	
+
 	any-ws: [pos: any ws]
-	
+
 	symbol-rule: [
 		(stop: [not-word-char | ws-no-count | control-char])
 		some UTF8-filtered-char e:
 	]
-	
+
 	begin-symbol-rule: [							;-- 1st char in symbols is restricted
 		(stop: [not-word-1st | ws-no-count | control-char])
 		UTF8-filtered-char
 		opt symbol-rule
 	]
-	
+
 	path-rule: [
 		pos: slash :pos (							;-- path detection barrier
 			stack/push path!
@@ -159,15 +159,15 @@ lexer: context [
 		]
 		(value: stack/pop type)
 	]
-	
+
 	word-rule: 	[
 		(type: word!) s: begin-symbol-rule [
 			path-rule 								;-- path matched
 			| (value: copy/part s e)				;-- word matched
 			opt [#":" (type: set-word!)]
-		] 
+		]
 	]
-	
+
 	get-word-rule: [
 		#":" (type: get-word!) s: begin-symbol-rule [
 			path-rule (
@@ -179,7 +179,7 @@ lexer: context [
 			)
 		]
 	]
-	
+
 	lit-word-rule: [
 		#"'" (type: word!) s: begin-symbol-rule [
 			path-rule (type: lit-path!)				;-- path matched
@@ -189,33 +189,33 @@ lexer: context [
 			)
 		]
 	]
-	
+
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]
-	
+
 	refinement-rule: [slash (type: refinement!) s: symbol-rule]
-	
+
 	slash-rule: [s: [slash opt slash] e:]
-	
+
 	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
-		
+
 	integer-number-rule: [
 		(type: integer!)
 		opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
 	]
-	
+
 	integer-rule: [
 		integer-number-rule
 		pos: [										;-- protection rule from typo with sticky words
 			[integer-end | ws-no-count | end] (fail?: none)
-			| skip (fail?: [end skip]) 
-		] :pos 
+			| skip (fail?: [end skip])
+		] :pos
 		fail?
 	]
-		
+
 	block-rule: [#"[" (stack/push block!) any-value #"]" (value: stack/pop block!)]
-	
+
 	paren-rule: [#"(" (stack/push paren!) any-value	#")" (value: stack/pop paren!)]
-	
+
 	escaped-char: [
 		"^^(" [
 			[										;-- special case first
@@ -244,7 +244,7 @@ lexer: context [
 			| s: caret-char (value: s/1 - 64)
 		]
 	]
-	
+
 	char-rule: [
 		{#"} (type: char!) [
 			s: escaped-char
@@ -252,18 +252,18 @@ lexer: context [
 			| #"^-" (value: s/1)
 		] {"}
 	]
-	
+
 	line-string: [
 		{"} s: (type: string! stop: [not-str-char | newline-char])
 		any [{^^"} | UTF8-filtered-char]
 		e: {"}
 	]
-	
+
 	nested-curly-braces: [
 		(cnt: 1 fail?: none)
 		any [
 			[
-				counted-newline 
+				counted-newline
 				| "^^{" | "^^}"
 				| #"{" (cnt: cnt + 1)
 				| e: #"}" (if zero? cnt: cnt - 1 [fail?: [end skip]])
@@ -272,28 +272,28 @@ lexer: context [
 		]
 		#"}"
 	]
-	
+
 	multiline-string: [#"{" s: (type: string!) nested-curly-braces]
-	
+
 	string-rule: [line-string | multiline-string]
-	
+
 	binary-rule: [
-		"#{" (type: binary!) 
+		"#{" (type: binary!)
 		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
 		e: #"}"
 	]
-	
+
 	file-rule: [
 		#"%" (type: file! stop: [not-file-char | ws-no-count])
 		s: any UTF8-filtered-char e:
 	]
-	
+
 	escaped-rule: [
 		"#[" any-ws [
 			  "true"  (value: true)
 			| "false" (value: false)
 			| s: [
-				"none!" | "logic!" | "block!" | "integer!" | "word!" 
+				"none!" | "logic!" | "block!" | "integer!" | "word!"
 				| "set-word!" | "get-word!" | "lit-word!" | "refinement!"
 				| "binary!" | "string!"	| "char!" | "bitset!" | "path!"
 				| "set-path!" | "lit-path!" | "native!"	| "action!"
@@ -302,9 +302,9 @@ lexer: context [
 			| "none" (value: none)
 		]  any-ws #"]"
 	]
-	
+
 	comment-rule: [#";" [to #"^/" | to end]]
-	
+
 	wrong-delimiters: [
 		pos: [
 			  #"]" (value: #"[") | #")" (value: #"(")
@@ -333,7 +333,7 @@ lexer: context [
 			| binary-rule	  (stack/push load-binary s e)
 		]
 	]
-	
+
 	any-value: [pos: any [literal-value | ws]]
 
 	header: [
@@ -347,12 +347,12 @@ lexer: context [
 		any-value
 		opt wrong-delimiters
 	]
-	
+
 	;====== Helper functions ======
-	
+
 	stack: context [
 		stk: []
-		
+
 		push: func [value][
 			either any [value = block! value = paren! value = path!][
 				if value = path! [value: block!]
@@ -362,20 +362,20 @@ lexer: context [
 				insert/only tail last stk :value
 			]
 		]
-		
+
 		pop: func [type [datatype!]][
 			if any [type = path! type = set-path!][type: block!]
-			
+
 			if type <> type? last stk [
 				throw-error/with ["invalid" mold type "closing delimiter"]
 			]
 			also last stk remove back tail stk
 		]
-		
+
 		tail?: does [tail last stk]
 		reset: does [clear stk]
 	]
-	
+
 	throw-error: func [/with msg [string! block!]][
 		print rejoin [
 			"*** Syntax Error: " either with [
@@ -389,20 +389,20 @@ lexer: context [
 		either encap? [quit][halt]
 	]
 
-	add-line-markers: func [blk [block!]][	
+	add-line-markers: func [blk [block!]][
 		foreach pos lines [new-line pos yes]
 		clear lines
 	]
-	
+
 	pad-head: func [s [string!]][
 		head insert/dup s #"0" 8 - length? s
 	]
-	
+
 	encode-UTF8-char: func [s [string!] e [string!] /local c code new][
 		c: debase/base pad-head copy/part s e 16
 		while [c/1 = 0][c: next c]					;-- trim heading zeros
 		code: to integer! c
-		
+
 		case [
 			code <= 127  [
 				new: to char! code					;-- c <= 7Fh
@@ -429,13 +429,13 @@ lexer: context [
 		if integer? new [
 			new: debase/base to-hex new 16
 			remove-each byte new [byte = #"^(null)"]
-		]	
+		]
 		new
 	]
-	
+
 	decode-UTF8-char: func [value][
 		if char? value [return encode-char to integer! value]
-		
+
 		value: switch/default length? value [
 			1 [value]
 			2 [
@@ -459,15 +459,15 @@ lexer: context [
 			]
 		][
 			throw-error/with "Unsupported or invalid UTF-8 encoding"
-		]	
-		
+		]
+
 		encode-char to integer! value				;-- special encoding for Unicode char!
 	]
-	
+
 	encode-char: func [value [integer!]][
 		head insert to-hex value #"'"
 	]
-	
+
 	decode-hexa: func [s [string!]][
 		to integer! debase/base s 16
 	]
@@ -489,7 +489,7 @@ lexer: context [
 		]
 		new
 	]
-	
+
 	load-binary: func [s [string!] e [string!] /local new byte][
 		new: make binary! (offset? s e) / 2			;-- allocated size above final size
 
@@ -502,19 +502,19 @@ lexer: context [
 		]
 		new
 	]
-	
+
 	load-file: func [s [string!]][
 		either empty? s [first [///]][to file! s]
 	]
-	
+
 	process: func [src [string! binary!] /local blk][
 		line: 1
 		count?: yes
-		
+
 		blk: stack/push block!						;-- root block
 
 		unless parse/all/case src program [throw-error]
-		
+
 		add-line-markers blk
 		stack/reset
 		blk

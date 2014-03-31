@@ -19,14 +19,14 @@ encap-fs: context [
 			print ["not in cache: " mold file]
 		]
 		if base [file: base/:file]
-		
+
 		either file [
 			select cache file
 		][
 			make error! join "Cannot access : " file
 		]
 	]
-	
+
 	set 'encap? to-logic select system/components 'decap
 
 	either encap? [
@@ -61,7 +61,7 @@ encap-fs: context [
 				][
 					insert tail out read/binary filename
 				]
-				
+
 			]
 			rule: [
 				some [

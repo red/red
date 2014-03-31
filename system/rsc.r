@@ -118,7 +118,7 @@ rsc: context [
 				fail ["Invalid verbosity:" verbose]
 			]
 		]
-		
+
 		;; Process -dlib/--dynamic-lib (if any).
 		if type = 'dll [
 			opts/type: type

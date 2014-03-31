@@ -12,22 +12,22 @@ Red [
 ~~~start-file~~~ "make"
 
 ===start-group=== "make basic"
-	
+
 	--test-- "mb1 - issue #465"
 		mb1-s: make string! 0
 		append mb1-s #"B"
 		append mb1-s #"C"
 		append mb1-s #"D"
 	--assert "BCD" = mb1-s
-	
+
 	--test-- "mb2"
-		mb2-s: make string! 1 
+		mb2-s: make string! 1
 		append mb2-s #"A"
 		append mb2-s #"B"
 		append mb2-s #"C"
 		append mb2-s #"D"
 	--assert "ABCD" = mb2-s
-  
+
 ===end-group===
 
 ~~~end-file~~~

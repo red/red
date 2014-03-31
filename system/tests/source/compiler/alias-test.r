@@ -24,9 +24,9 @@ change-dir %../
 			a3-struct-1/a: 3
 			a3-struct-1/b: 4
 		}
-	 
+
     	--clean
-  
+
     --test-- "alias-2"
     	--assert --compiled? {
     		Red/System []
@@ -37,12 +37,12 @@ change-dir %../
     		a5-struct/b: 2
     		a5-pointer: as [pointer! [integer!]] a5-struct
     		a5-struct: as a5-alias! a5-pointer
-    	} 
+    	}
   		--clean
-    
+
   	--test-- "alias-3"
   		--assert --compiled? {
-    		Red/System []  
+    		Red/System []
     		a5-alias!: alias struct! [a [byte!] b [byte!]]
     		a6-alias!: alias struct! [a [byte!] b [byte!]]
     		a6-struct: declare struct! [
@@ -52,9 +52,9 @@ change-dir %../
     		a6-struct/s1: declare a6-alias!
     	}
   		--clean
-  
-===end-group=== 
-       
+
+===end-group===
+
 ~~~end-file~~~
 
 

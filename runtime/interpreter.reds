@@ -85,12 +85,12 @@ interpreter: context [
 
 	return-type: -1										;-- return type for routine calls
 	in-func?:	 0										;@@ make it thread-safe?
-	
+
 	log: func [msg [c-string!]][
 		print "eval: "
 		print-line msg
 	]
-	
+
 	print-symbol: func [
 		word [red-word!]
 		/local
@@ -99,7 +99,7 @@ interpreter: context [
 		sym: symbol/get word/symbol
 		print sym/cache
 	]
-	
+
 	literal-first-arg?: func [
 		native 	[red-native!]
 		return: [logic!]
@@ -117,7 +117,7 @@ interpreter: context [
 		]
 		value: s/offset
 		tail:  s/tail
-		
+
 		while [value < tail][
 			switch TYPE_OF(value) [
 				TYPE_WORD 		[return no]
@@ -128,7 +128,7 @@ interpreter: context [
 		]
 		no
 	]
-	
+
 	eval-option: func [
 		pc		  [red-value!]
 		end		  [red-value!]
@@ -150,16 +150,16 @@ interpreter: context [
 		pos:  0											;-- stack offset
 		idx:  1											;-- native stack ref-array index
 		args/value: 0
-		
+
 		while [value < tail][
-		
+
 			switch TYPE_OF(value) [
 				TYPE_REFINEMENT [
 					ref: as red-refinement! value
 					either EQUAL_WORDS?(ref word) [
 						slot: as red-logic! stack/arguments + pos
 						slot/value: true
-						
+
 						value: value + 1
 						pos2: pos + 1
 						while [
@@ -177,7 +177,7 @@ interpreter: context [
 							unless type = TYPE_STRING [
 								FETCH_ARGUMENT
 								if function? [
-									copy-cell stack/top - 1 stack/arguments + pos2 
+									copy-cell stack/top - 1 stack/arguments + pos2
 									stack/pop 1
 								]
 								pos2: pos2 + 1
@@ -199,7 +199,7 @@ interpreter: context [
 				]
 				default [0]
 			]
-			
+
 			value: value + 1
 		]
 		print "Error: refinement /"
@@ -208,7 +208,7 @@ interpreter: context [
 		halt
 		null
 	]
-	
+
 	eval-function: func [
 		[catch]
 		fun  [red-function!]
@@ -225,7 +225,7 @@ interpreter: context [
 		ctx/values: saved
 		in-func?: in-func? - 1
 	]
-	
+
 	exec-routine: func [
 		fun	 [red-routine!]
 		/local
@@ -242,7 +242,7 @@ interpreter: context [
 		native: as red-native! s/offset + 2
 		call: as function! [return: [integer!]] native/code
 		count: (routine/get-arity fun) - 1				;-- zero-based stack access
-		
+
 		while [count >= 0][
 			arg: stack/arguments + count
 			switch TYPE_OF(arg) [
@@ -271,7 +271,7 @@ interpreter: context [
 			call
 		]
 	]
-	
+
 	eval-infix: func [
 		value 	  [red-value!]
 		pc		  [red-value!]
@@ -296,14 +296,14 @@ interpreter: context [
 			value: stack/arguments
 			print-line ["eval: op return type: " TYPE_OF(value)]
 		]
-		
+
 		infix?: no
 		next: as red-word! pc
 		CHECK_INFIX
 		if infix? [pc: eval-infix value pc end sub?]
 		pc
 	]
-	
+
 	eval-arguments: func [
 		native 	[red-native!]
 		pc		[red-value!]
@@ -335,36 +335,36 @@ interpreter: context [
 	][
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
-		
+
 		s: as series! either function? [
 			fun: as red-function! native
 			fun/spec/value
 		][
 			native/spec/value
 		]
-		
+
 		head:  s/offset
 		value: head
 		tail:  s/tail
-		
+
 		unless null? path [
 			path-end: block/rs-tail as red-block! path
 			if pos + 1 = path-end [path: null]			;-- no refinement following the function
 		]												;-- so, process it as a non-path call
-		
+
 		count:  	 0									;-- base arity (mandatory arguments only)
 		index: 	 	 1
 		args:		 -1
 		offset:		 -1
 		ref?:		 no
 		required?:	 yes								;-- yes: processing mandatory args, no: optional args
-		
+
 		unless function? [
 			size: as-integer tail - value				;@@ takes more space than really needed
 			ref-array: system/stack/top - size
 			system/stack/top: ref-array					;-- reserve space on native stack for refs array
 		]
-		
+
 		while [value < tail][
 			if verbose > 0 [print-line ["eval: spec entry type: " TYPE_OF(value)]]
 			switch TYPE_OF(value) [
@@ -391,7 +391,7 @@ interpreter: context [
 				]
 				TYPE_REFINEMENT [
 					if required? [required?: no]		;-- no more mandatory arguments
-					
+
 					either function? [
 						logic/push false
 					][
@@ -419,16 +419,16 @@ interpreter: context [
 			]
 			value: value + 1
 		]
-		
+
 		unless ret-set? [return-type: -1]				;-- set the default correctly in case of nested calls
-		
+
 		unless routine? [
 			if path <> null [
 				pos: pos + 1
-				
+
 				while [pos < path-end][
 					pc: eval-option pc end head tail as red-word! pos :offset :args function?
-					
+
 					unless function? [
 						either args > 0 [
 							ref-array/offset: count + args - 1
@@ -438,10 +438,10 @@ interpreter: context [
 						]
 					]
 					pos: pos + 1
-				]	
+				]
 			]
 		]
-		
+
 		unless function? [
 			system/stack/top: ref-array					;-- reset native stack to our custom arguments frame
 			call: as function! [] native/code			;-- direct call for actions/natives
@@ -449,14 +449,14 @@ interpreter: context [
 		]
 		pc
 	]
-	
+
 	eval-path: func [
 		value   [red-value!]
 		pc		[red-value!]							;-- path to evaluate
 		end		[red-value!]
 		set?	[logic!]
 		return: [red-value!]
-		/local 
+		/local
 			path   [red-path!]
 			head   [red-value!]
 			tail   [red-value!]
@@ -465,20 +465,20 @@ interpreter: context [
 			saved  [red-value!]
 	][
 		if verbose > 0 [print-line "eval: path"]
-		
+
 		path:   as red-path! value
 		head:   block/rs-head as red-block! path
 		tail:   block/rs-tail as red-block! path
 		item:   head + 1
 		saved:  stack/top
-		
+
 		if TYPE_OF(head) <> TYPE_WORD [
 			print-line "*** Error: path value must start with a word!"
 			halt
 		]
-		
+
 		parent: _context/get as red-word! head
-		
+
 		switch TYPE_OF(parent) [
 			TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
 			TYPE_NATIVE
@@ -489,12 +489,12 @@ interpreter: context [
 			]
 			default [0]
 		]
-				
+
 		while [item < tail][
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path parent: " TYPE_OF(parent)]]]
-			
+
 			value: either any [
-				TYPE_OF(item) = TYPE_GET_WORD 
+				TYPE_OF(item) = TYPE_GET_WORD
 				all [
 					parent = head
 					TYPE_OF(item) = TYPE_WORD
@@ -520,9 +520,9 @@ interpreter: context [
 				default [0]								;-- pass-thru
 			]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
-			
+
 			parent: actions/eval-path parent value all [set? item + 1 = tail]
-			
+
 			switch TYPE_OF(parent) [
 				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
 				TYPE_NATIVE
@@ -533,15 +533,15 @@ interpreter: context [
 				]
 				default [0]
 			]
-			
+
 			item: item + 1
 		]
-		
+
 		stack/top: saved
 		stack/push parent
 		pc
 	]
-	
+
 	eval-code: func [
 		value	[red-value!]
 		pc		[red-value!]
@@ -554,10 +554,10 @@ interpreter: context [
 			fun	   [red-function!]
 			native [red-native!]
 			s	   [series!]
-			call 
+			call
 	][
 		switch TYPE_OF(value) [
-			TYPE_ACTION 
+			TYPE_ACTION
 			TYPE_NATIVE [
 				if verbose > 0 [log "pushing action/native frame"]
 				stack/mark-native as red-word! pc
@@ -587,7 +587,7 @@ interpreter: context [
 				pc: eval-arguments as red-native! value pc end path slot
 				fun: as red-function! value
 				s: as series! fun/more/value
-				
+
 				native: as red-native! s/offset + 2
 				either zero? native/code [
 					eval-function fun as red-block! s/offset
@@ -606,7 +606,7 @@ interpreter: context [
 		]
 		pc
 	]
-	
+
 	eval-expression: func [
 		pc		  [red-value!]
 		end	  	  [red-value!]
@@ -623,7 +623,7 @@ interpreter: context [
 			infix? [logic!]
 	][
 		if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]
-		
+
 		infix?: no
 		unless prefix? [
 			next: as red-word! pc + 1
@@ -634,7 +634,7 @@ interpreter: context [
 				op: value
 			]
 		]
-		
+
 		switch TYPE_OF(pc) [
 			TYPE_PAREN [
 				stack/mark-native as red-word! pc		;@@ ~paren
@@ -649,7 +649,7 @@ interpreter: context [
 				pc: eval-expression pc end no yes
 				word/set
 				either sub? [stack/unwind][stack/unwind-last]
-				
+
 				if verbose > 0 [
 					value: stack/arguments
 					print-line ["eval: set-word return type: " TYPE_OF(value)]
@@ -681,7 +681,7 @@ interpreter: context [
 					print lf
 				]
 				value: _context/get as red-word! pc
-				
+
 				if positive? in-func? [
 					w: as red-word! pc
 					sym: w/symbol
@@ -705,7 +705,7 @@ interpreter: context [
 					]
 				]
 				pc: pc + 1
-				
+
 				switch TYPE_OF(value) [
 					TYPE_UNSET [
 						print-line "*** Error: word has no value!"
@@ -728,7 +728,7 @@ interpreter: context [
 						][
 							stack/set-last value		;-- root expression: return value
 						]
-						
+
 						if verbose > 0 [
 							value: stack/arguments
 							print-line ["eval: word return type: " TYPE_OF(value)]
@@ -758,7 +758,7 @@ interpreter: context [
 				pc: pc + 1
 			]
 		]
-		
+
 		if infix? [
 			pc: eval-infix op pc end sub?
 			unless prefix? [
@@ -779,7 +779,7 @@ interpreter: context [
 		either sub? [stack/unwind][stack/unwind-last]
 		value
 	]
-	
+
 	eval: func [
 		code   [red-block!]
 		chain? [logic!]									;-- chain it with previous stack frame
@@ -797,7 +797,7 @@ interpreter: context [
 		]
 
 		stack/mark-native words/_body					;-- outer stack frame
-		
+
 		while [value < tail][
 			if verbose > 0 [log "root loop..."]
 			value: eval-expression value tail no no
@@ -805,5 +805,5 @@ interpreter: context [
 		]
 		either chain? [stack/unwind-last][stack/unwind]
 	]
-	
+
 ]

@@ -22,14 +22,14 @@ Red/System [
 #define unless		  [if not]
 #define	raise-error	  ***-on-quit
 #define probe		  print-line
- 
+
 #define as-byte		  [as byte!]
 #define as-logic	  [as logic!]
 #define as-integer	  [as integer!]
 #define as-float	  [as float!]
 #define as-float32	  [as float32!]
 #define as-c-string	  [as c-string!]
- 
+
 #define null-byte	  #"^(00)"
 #define yes			  true
 #define no			  false
@@ -74,13 +74,13 @@ str-array!: alias struct! [
 ]
 
 typed-value!: alias struct! [
-	type	 [integer!]	
+	type	 [integer!]
 	value	 [integer!]
 	_padding [integer!]						;-- extra space for 64-bit values
 ]
 
 typed-float!: alias struct! [
-	type	 [integer!]	
+	type	 [integer!]
 	value	 [float!]
 ]
 
@@ -145,7 +145,7 @@ form-type: func [
 	***-on-quit: func [						;-- global exit handler
 		status  [integer!]
 		address [integer!]
-		/local 
+		/local
 			msg [c-string!]
 	][
 		unless zero? status [
@@ -179,7 +179,7 @@ form-type: func [
 				25	["illegal trap"]
 				26	["coprocessor error"]
 				27	["non-existant physical address"]
-				28	["object specific hardware error"]		
+				28	["object specific hardware error"]
 				29	["hardware memory error consumed AR"]
 				30	["hardware memory error consumed AO"]
 				31	["privileged register"]

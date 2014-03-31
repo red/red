@@ -54,7 +54,7 @@ prin-hex-chars: func [
 	s: "00000000"
 	if zero? i [
 		s: "00000000"
-		prin s + (8 - n) 
+		prin s + (8 - n)
 		return i
 	]
 	c: 8
@@ -80,22 +80,22 @@ dump-memory: func [
 	nb		[integer!]						;-- number of lines to print
 	return: [byte-ptr!]						;-- return the pointer (pass-thru)
 	/local offset ascii i byte int-ptr data-ptr limit
-][	
+][
 	assert any [unit = 1 unit = 4]
-	
+
 	print ["^/Hex dump from: " address "h^/" lf]
 
 	offset: 0
 	ascii: "                "
 	limit: nb * 16
-	
+
 	data-ptr: address
 	until [
 		print [address ": "]
 		i: 0
 		until [
 			i: i + 1
-			
+
 			if unit = 1 [
 				prin-hex-chars as-integer address/value 2
 				address: address + 1
@@ -107,14 +107,14 @@ dump-memory: func [
 				address: address + 4
 				prin either i = 8 ["  "][" "]
 			]
-			
+
 			byte: data-ptr/value
 			ascii/i: either byte < as-byte 32 [
 				either byte = null-byte [#"."][#"^(FE)"]
 			][
 				byte
 			]
-			
+
 			data-ptr: data-ptr + 1
 			i = 16
 		]
@@ -131,7 +131,7 @@ dump-memory: func [
 dump-hex: func [
 	address	[byte-ptr!]						;-- memory address where the dump starts
 	return: [byte-ptr!]						;-- return the pointer (pass-thru)
-][	
+][
 	dump-memory address 1 8
 ]
 
@@ -141,7 +141,7 @@ dump-hex: func [
 dump-hex4: func [
 	address	[int-ptr!]						;-- memory address where the dump starts
 	return: [int-ptr!]						;-- return the pointer (pass-thru)
-][	
+][
 	as int-ptr! dump-memory as byte-ptr! address 4 8
 ]
 

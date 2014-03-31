@@ -14,7 +14,7 @@ point: context [
 	verbose: 0
 
 	;-- Actions --
-	
+
 	make: func [
 		proto	 [red-value!]
 		spec	 [red-value!]
@@ -24,7 +24,7 @@ point: context [
 
 		as red-point! 0
 	]
-	
+
 	form: func [
 		point	[red-point!]
 		buffer	[red-string!]
@@ -35,28 +35,28 @@ point: context [
 			formed [c-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "point/form"]]
-		
+
 		string/concatenate-literal buffer "make point! ["
 		part: part - 13
-		
+
 		formed: integer/form-signed point/x
 		string/concatenate-literal buffer formed
 		string/append-char GET_BUFFER(buffer) as-integer #" "
 		part: part - 1 - length? formed
-		
+
 		formed: integer/form-signed point/y
 		string/concatenate-literal buffer formed
 		string/append-char GET_BUFFER(buffer) as-integer #" "
 		part: part - 1 - length? formed
-		
+
 		formed: integer/form-signed point/z
 		string/concatenate-literal buffer formed
 		part: part - length? formed
-		
+
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]
-	
+
 	mold: func [
 		point	[red-point!]
 		buffer	[red-string!]
@@ -71,7 +71,7 @@ point: context [
 
 		form point buffer arg part
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_POINT

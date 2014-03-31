@@ -9,7 +9,7 @@ REBOL [
 		These utility functions extract types ID and function definitions from Red
 		runtime source code and make it available to the compiler, before the Red runtime
 		is actually compiled.
-		
+
 		This procedure is required during bootstrapping, as the REBOL compiler can't
 		examine loaded Red data in memory at runtime.
 	}
@@ -18,10 +18,10 @@ REBOL [
 context [
 	definitions: make block! 100
 	data: load-cache %runtime/macros.reds
-	
+
 	extract-defs: func [type [word!] /local list index][
 		list: select data type
-		
+
 		index: 0
 		forall list [
 			if set-word? list/1 [
@@ -34,10 +34,10 @@ context [
 			]
 		]
 	]
-	
+
 	extract-defs 'datatypes!
 	extract-defs 'actions!
 	extract-defs 'natives!
-	
+
 	data: none
 ]

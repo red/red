@@ -69,7 +69,7 @@ Red/System [
 		a
 	]
 
-	pB: foo-pointer pA 
+	pB: foo-pointer pA
 	--assert pB/value = 12345
 
 	pointer-str: declare struct! [
@@ -90,7 +90,7 @@ Red/System [
 	--test-- "pointer-rw-11"
 	pointer-str/A/value: 258369147
 	--assert p-struct/n = 258369147
-	--assert p-struct/m = p-int				;-- look for memory corruption			
+	--assert p-struct/m = p-int				;-- look for memory corruption
 
 	--test-- "pointer-rw-12"
 	pointer-str/sub/C: pA
@@ -99,13 +99,13 @@ Red/System [
 	--test-- "pointer-rw-13"
 	pointer-str/sub/C/2: 987654321
 	--assert p-struct/m = 987654321
-	
+
 	--test-- "pointer-rw-14"
 	b-pointer: declare pointer! [byte!]
 	b-str: "hello"
 	b-pointer: as [pointer! [byte!]] b-str
 	--assert b-pointer/value = #"h"
-	
+
 	--test-- "pointer-rw-15"
 	foo-b-pointer: func [
 		a [pointer! [byte!]]
@@ -119,68 +119,68 @@ Red/System [
 	--assert b-pointer2/value = #"h"
 
 ===start-group=== "Pointers arithmetic"
-	
+
 	--test-- "pointer-calc-1"
 	pa-struct: declare struct! [n [integer!] m [integer!] p [integer!] o [integer!]]
 	pA: declare pointer! [integer!]
 	pB: declare pointer! [integer!]
-	
+
 	pA: as [pointer! [integer!]] pa-struct
 	pa-struct/n: 123456789
 	pa-struct/m: 987654321
 	--assert pA/value = 123456789
-	
+
 	--test-- "pointer-calc-2"
 	pA: pA + 1
 	--assert pA/value = 987654321
-	
+
 	--test-- "pointer-calc-3"
 	pa-struct/o: 123
 	pA: pA + 2
 	--assert pA/value = 123
-	
+
 	--test-- "pointer-calc-4"
 	pA: pA - 3
 	--assert pA/value = 123456789
-	
+
 	--test-- "pointer-calc-5"
 	pointer-idx: 3
 	pA: pA + pointer-idx
 	--assert pA/value = 123
-	
+
 	--test-- "pointer-calc-6"
 	pointer-idx: -3
 	pA: pA + pointer-idx
 	--assert pA/value = 123456789
-	
+
 	--test-- "pointer-calc-7"
 	pA: pA - pointer-idx
 	--assert pA/value = 123
-	
+
 	--test-- "pointer-calc-8"
 	b-pointer: b-pointer + 1
 	--assert b-pointer/value = #"e"
 	pointer-idx: 2
 	b-pointer: b-pointer + pointer-idx
 	--assert b-pointer/value = #"l"
-	
-	--test-- "pointer-calc-9" 
+
+	--test-- "pointer-calc-9"
 	pA: as [pointer! [integer!]] pa-struct
 	--assert pA/1 = 123456789
 	--assert pA/2 = 987654321
-	
-	--test-- "pointer-calc-10" 
+
+	--test-- "pointer-calc-10"
 	pointer-idx: 1
 	--assert pA/pointer-idx = 123456789
-	
-	--test-- "pointer-calc-11" 
+
+	--test-- "pointer-calc-11"
 	pointer-idx: 2
 	--assert pA/pointer-idx = 987654321
-	
-	--test-- "pointer-calc-12" 
+
+	--test-- "pointer-calc-12"
 	pointer-idx: 4
 	--assert pA/pointer-idx = 123
-	
+
 ===end-group===
 
 ===start-group=== "Local pointers simple read/write tests"
@@ -251,7 +251,7 @@ pointer-local-foo: func [
 	--assert pB/value = 12345
 
 	--test-- "loc-point-rw-9"
-	pB: foo-pointer pA 
+	pB: foo-pointer pA
 	--assert pB/value = 12345
 
 	pointer-str: declare struct! [
@@ -272,7 +272,7 @@ pointer-local-foo: func [
 	--test-- "loc-point-rw-11"
 	pointer-str/A/value: 258369147
 	--assert p-struct/n = 258369147
-	--assert p-struct/m = p-int				;-- look for memory corruption			
+	--assert p-struct/m = p-int				;-- look for memory corruption
 
 	--test-- "loc-point-rw-12"
 	pointer-str/sub/C: pA
@@ -281,7 +281,7 @@ pointer-local-foo: func [
 	--test-- "loc-point-rw-13"
 	pointer-str/sub/C/2: 987654321
 	--assert p-struct/m = 987654321
-	
+
 	--test-- "loc-point-rw-14"
 	b-pointer: declare pointer! [byte!]
 	b-str: "hello"
@@ -292,7 +292,7 @@ pointer-local-foo: func [
 	b-pointer2: declare pointer! [byte!]
 	b-pointer2: foo-b-pointer b-pointer
 	--assert b-pointer2/value = #"h"
-	
+
 	--test-- "loc-point-calc-1"
 	pa-struct: declare struct! [n [integer!] m [integer!] p [integer!] o [integer!]]
 
@@ -318,37 +318,37 @@ pointer-local-foo: func [
 	p-idx: 3
 	pA: pA + p-idx
 	--assert pA/value = 123
-	
+
 	--test-- "loc-point-calc-6"
 	p-idx: -3
 	pA: pA + p-idx
 	--assert pA/value = 123456789
-	
+
 	--test-- "loc-point-calc-7"
 	pA: pA - p-idx
 	--assert pA/value = 123
-	
+
 	--test-- "loc-point-calc-8"
 	b-pointer: b-pointer + 1
 	--assert b-pointer/value = #"e"
 	pointer-idx: 2
 	b-pointer: b-pointer + pointer-idx
 	--assert b-pointer/value = #"l"
-	
-	--test-- "loc-point-calc-9" 
+
+	--test-- "loc-point-calc-9"
 	pA: as [pointer! [integer!]] pa-struct
 	--assert pA/1 = 123456789
 	--assert pA/2 = 987654321
 
-	--test-- "loc-point-calc-10" 
+	--test-- "loc-point-calc-10"
 	pointer-idx: 1
 	--assert pA/pointer-idx = 123456789
 
-	--test-- "loc-point-calc-11" 
+	--test-- "loc-point-calc-11"
 	pointer-idx: 2
 	--assert pA/pointer-idx = 987654321
 
-	--test-- "loc-point-calc-12" 
+	--test-- "loc-point-calc-12"
 	pointer-idx: 4
 	--assert pA/pointer-idx = 123
 ]

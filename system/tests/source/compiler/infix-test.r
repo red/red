@@ -19,7 +19,7 @@ change-dir %../
 	--test-- "simple infix 1"
 		--compile-this "Red/System [] foo: func [[infix] a [integer!] b [integer!]][a]"
 		--assert qt/compile-ok?
-		
+
 ===end-group===
 
 
@@ -29,12 +29,12 @@ change-dir %../
 		--compile-this "Red/System [] foo: func [[infix] a [integer!]][a]"
 		--assert-msg? "*** Compilation Error: infix function requires 2 arguments, found 1 for foo"
 		--clean
-		
+
 	--test-- "infix error 2"
 		--compile-this "Red/System [] foo: func [[infix] a [integer!] b [integer!] c [integer!]][a]"
 		--assert-msg? "*** Compilation Error: infix function requires 2 arguments, found 3 for foo"
-		--clean	
-		
+		--clean
+
 ===end-group===
 
 ~~~end-file~~~

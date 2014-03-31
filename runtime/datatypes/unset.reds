@@ -14,7 +14,7 @@ unset-value: declare red-value!							;-- preallocate unset! value
 
 unset: context [
 	verbose: 0
-	
+
 	push-last: func [
 		return:	 [red-unset!]
 		/local
@@ -26,7 +26,7 @@ unset: context [
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags
 		cell
 	]
-	
+
 	push: func [
 		return:	 [red-unset!]
 		/local
@@ -39,7 +39,7 @@ unset: context [
 		cell
 	]
 
-	;-- Actions -- 
+	;-- Actions --
 
 	make: func [
 		proto	 [red-value!]
@@ -49,7 +49,7 @@ unset: context [
 			cell [red-unset!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/make"]]
-		
+
 		cell: as red-unset! stack/push*
 		cell/header: TYPE_UNSET							;-- implicit reset of all header flags
 		cell
@@ -63,11 +63,11 @@ unset: context [
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/form"]]
-		
+
 		string/concatenate-literal buffer "unset"
 		part - 5
 	]
-	
+
 	mold: func [
 		value	[red-unset!]
 		buffer	[red-string!]
@@ -80,10 +80,10 @@ unset: context [
 		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/mold"]]
-		
+
 		form value buffer arg part
 	]
-	
+
 	compare: func [
 		arg1      [red-unset!]							;-- first operand
 		arg2	  [red-unset!]							;-- second operand
@@ -97,7 +97,7 @@ unset: context [
 
 		type: TYPE_OF(arg2)
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
 			COMP_STRICT_EQUAL [res: type =  TYPE_UNSET]
 			COMP_NOT_EQUAL	  [res: type <> TYPE_UNSET]
 			default [

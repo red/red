@@ -6,7 +6,7 @@ Red [
 	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
-   
+
 #include  %../../../quick-test/quick-test.red
 
 ~~~start-file~~~ "same"
@@ -116,7 +116,7 @@ Red [
 		a: "abcde"
 		b: copy a
 		--assert not same? a b
-	
+
 ===end-group===
 ===start-group=== "implcit-cast"
 	--test-- "same-implcit-cast-1"

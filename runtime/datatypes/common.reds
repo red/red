@@ -37,17 +37,17 @@ alloc-at-tail: func [
 alloc-tail: func [
 	s		 [series!]
 	return:  [cell!]
-	/local 
+	/local
 		cell [red-value!]
 ][
 	if (as byte-ptr! s/tail + 1) > ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
-	
+
 	cell: s/tail
 	;-- ensure that cell is within series upper boundary
 	assert (as byte-ptr! cell) < ((as byte-ptr! s + 1) + s/size)
-	
+
 	s/tail: cell + 1									;-- move tail to next cell
 	cell
 ]
@@ -56,17 +56,17 @@ alloc-tail-unit: func [
 	s		 [series!]
 	unit 	 [integer!]
 	return:  [byte-ptr!]
-	/local 
+	/local
 		p	 [byte-ptr!]
 ][
 	if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
-	
+
 	p: as byte-ptr! s/tail
 	;-- ensure that cell is within series upper boundary
 	assert p < ((as byte-ptr! s + 1) + s/size)
-	
+
 	s/tail: as cell! p + unit							;-- move tail to next unit slot
 	p
 ]
@@ -99,7 +99,7 @@ words: context [
 	return*:		-1
 	self:			-1
 	values:			-1
-	
+
 	any*:			-1
 	break*:			-1
 	copy:			-1
@@ -127,13 +127,13 @@ words: context [
 	collect:		-1
 	keep:			-1
 	ahead:			-1
-	
+
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
 	_macosx:		as red-word! 0
 	_linux:			as red-word! 0
-	
+
 	_push:			as red-word! 0
 	_pop:			as red-word! 0
 	_fetch:			as red-word! 0
@@ -141,7 +141,7 @@ words: context [
 	_iterate:		as red-word! 0
 	_paren:			as red-word! 0
 	_end:			as red-word! 0
-	
+
 	_on-parse-event: as red-word! 0
 
 	build: does [
@@ -158,12 +158,12 @@ words: context [
 		syllable:		symbol/make "Syllable"
 		macosx:			symbol/make "MacOSX"
 		linux:			symbol/make "Linux"
-		
+
 		repeat:			symbol/make "repeat"
 		foreach:		symbol/make "foreach"
 		map-each:		symbol/make "map-each"
 		remove-each:	symbol/make "remove-each"
-		
+
 		any*:			symbol/make "any"
 		break*:			symbol/make "break"
 		copy:			symbol/make "copy"
@@ -191,16 +191,16 @@ words: context [
 		collect:		symbol/make "collect"
 		keep:			symbol/make "keep"
 		ahead:			symbol/make "ahead"
-		
+
 		self:			symbol/make "self"
 		values:			symbol/make "values"
-		
+
 		_body:			_context/add-global body
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
 		_macosx:		_context/add-global macosx
 		_linux:			_context/add-global linux
-		
+
 		_push:			word/load "push"
 		_pop:			word/load "pop"
 		_fetch:			word/load "fetch"
@@ -208,7 +208,7 @@ words: context [
 		_iterate:		word/load "iterate"
 		_paren:			word/load "paren"
 		_end:			_context/add-global end
-		
+
 		_on-parse-event: word/load "on-parse-event"
 	]
 ]
@@ -216,7 +216,7 @@ words: context [
 refinements: context [
 	local: 		as red-refinement! 0
 	extern: 	as red-refinement! 0
-	
+
 	build: does [
 		local:	refinement/load "local"
 		extern:	refinement/load "extern"

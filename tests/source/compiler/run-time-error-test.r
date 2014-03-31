@@ -11,5 +11,5 @@ REBOL [
   --test-- "rte-1"
     --compile-and-run-this-red/error {i: 1 j: 0 k: i / j}
   --assert-red-printed? "*** Runtime Error 13: integer divide by zero"
-  
-~~~end-file~~~ 
+
+~~~end-file~~~

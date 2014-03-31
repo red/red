@@ -42,7 +42,7 @@ JVM!: alias struct! [
     reserved0					[int-ptr!]
     reserved1					[int-ptr!]
     reserved2					[int-ptr!]
-    
+
     DestroyJavaVM 				[function! [[JNICALL] vm [JVM-ptr!] return: [jint!]]]
 	AttachCurrentThread			[function! [[JNICALL] vm [JVM-ptr!] penv [struct! [p [int-ptr!]]] args [byte-ptr!] return: [jint!]]]
 	DetachCurrentThread 		[function! [[JNICALL] vm [JVM-ptr!] return: [jint!]]]
@@ -55,7 +55,7 @@ JNI!: alias struct! [
     reserved1					[int-ptr!]
     reserved2					[int-ptr!]
     reserved3					[int-ptr!]
-	
+
 	GetVersion					[func-ptr!]
 	DefineClass					[func-ptr!]
 	FindClass					[function! [[JNICALL] env [JNI-ptr!] name [c-string!] return: [jclass!]]]
@@ -65,61 +65,61 @@ JNI!: alias struct! [
 	GetSuperclass				[func-ptr!]
 	IsAssignableFrom			[func-ptr!]
 	ToReflectedField			[func-ptr!]
-	
+
 	Throw						[func-ptr!]
 	ThrowNew					[func-ptr!]
 	ExceptionOccurred			[func-ptr!]
 	ExceptionDescribe			[func-ptr!]
 	ExceptionClear				[function! [[JNICALL] env [JNI-ptr!]]]
 	FatalError					[func-ptr!]
-	
+
 	PushLocalFrame				[func-ptr!]
 	PopLocalFrame				[func-ptr!]
-	
+
 	NewGlobalRef				[function! [[JNICALL] env [JNI-ptr!] obj [jobject!] return: [jobject!]]]
 	DeleteGlobalRef				[function! [[JNICALL] env [JNI-ptr!] ref [jobject!]]]
 	DeleteLocalRef				[function! [[JNICALL] env [JNI-ptr!] obj [jobject!]]]
 	IsSameObject				[func-ptr!]
 	NewLocalRef					[func-ptr!]
 	EnsureLocalCapacity			[func-ptr!]
-	
+
 	AllocObject					[func-ptr!]
 	NewObject					[function! [[JNICALL variadic] return: [jobject!]]]
 	NewObjectV					[func-ptr!]
 	NewObjectA					[function! [[JNICALL custom] return: [jobject!]]]
-	
+
 	GetObjectClass				[function! [[JNICALL] env [JNI-ptr!] obj [jobject!] return: [jclass!]]]
 	IsInstanceOf				[func-ptr!]
 	GetMethodID					[function! [[JNICALL] env [JNI-ptr!] class [jclass!] name [c-string!] sig [c-string!] return: [jmethodID!]]]
-	
+
 	CallObjectMethod			[function! [[JNICALL variadic] return: [jobject!]]]
 	CallObjectMethodV			[func-ptr!]
 	CallObjectMethodA			[function! [[JNICALL custom] return: [jobject!]]]
-	
+
 	CallBooleanMethod			[func-ptr!]
 	CallBooleanMethodV			[func-ptr!]
 	CallBooleanMethodA			[function! [[JNICALL custom] return: [jboolean!]]]
-	
+
 	CallByteMethod				[func-ptr!]
 	CallByteMethodV				[func-ptr!]
 	CallByteMethodA				[function! [[JNICALL custom] return: [jobject!]]]
-	
+
 	CallCharMethod				[func-ptr!]
 	CallCharMethodV				[func-ptr!]
 	CallCharMethodA				[function! [[JNICALL custom] return: [jint!]]]
-	
+
 	CallShortMethod				[func-ptr!]
 	CallShortMethodV			[func-ptr!]
 	CallShortMethodA			[function! [[JNICALL custom] return: [jint!]]]
-	
+
 	CallIntMethod				[func-ptr!]
 	CallIntMethodV				[func-ptr!]
 	CallIntMethodA				[function! [[JNICALL custom] return: [jint!]]]
-	
+
 	CallLongMethod				[func-ptr!]
 	CallLongMethodV				[func-ptr!]
 	CallLongMethodA				[function! [[JNICALL custom] return: [jint!]]]
-	
+
 	CallFloatMethod				[func-ptr!]
 	CallFloatMethodV			[func-ptr!]
 	CallFloatMethodA			[function! [[JNICALL custom] return: [jobject!]]]
@@ -131,47 +131,47 @@ JNI!: alias struct! [
 	CallVoidMethod				[function! [[JNICALL variadic]]]
 	CallVoidMethodV				[func-ptr!]
 	CallVoidMethodA				[function! [[JNICALL custom]]]
-	
+
 	CallNonvirtualObjectMethod	[func-ptr!]
 	CallNonvirtualObjectMethodV	[func-ptr!]
 	CallNonvirtualObjectMethodA	[function! [[JNICALL custom] return: [jobject!]]]
-	
+
 	CallNonvirtualBooleanMethod	 [func-ptr!]
 	CallNonvirtualBooleanMethodV [func-ptr!]
 	CallNonvirtualBooleanMethodA [func-ptr!]
-	
+
 	CallNonvirtualByteMethod	[func-ptr!]
 	CallNonvirtualByteMethodV	[func-ptr!]
 	CallNonvirtualByteMethodA	[func-ptr!]
-	
+
 	CallNonvirtualCharMethod	[func-ptr!]
 	CallNonvirtualCharMethodV	[func-ptr!]
 	CallNonvirtualCharMethodA	[func-ptr!]
-	
+
 	CallNonvirtualShortMethod	[func-ptr!]
 	CallNonvirtualShortMethodV	[func-ptr!]
 	CallNonvirtualShortMethodA	[func-ptr!]
-	
+
 	CallNonvirtualIntMethod		[func-ptr!]
 	CallNonvirtualIntMethodV	[func-ptr!]
 	CallNonvirtualIntMethodA	[func-ptr!]
-	
+
 	CallNonvirtualLongMethod	[func-ptr!]
 	CallNonvirtualLongMethodV	[func-ptr!]
 	CallNonvirtualLongMethodA	[func-ptr!]
-	
+
 	CallNonvirtualFloatMethod	[func-ptr!]
 	CallNonvirtualFloatMethodV	[func-ptr!]
 	CallNonvirtualFloatMethodA	[func-ptr!]
-	
+
 	CallNonvirtualDoubleMethod	[func-ptr!]
 	CallNonvirtualDoubleMethodV	[func-ptr!]
 	CallNonvirtualDoubleMethodA	[func-ptr!]
-	
+
 	CallNonvirtualVoidMethod	[func-ptr!]
 	CallNonvirtualVoidMethodV	[func-ptr!]
 	CallNonvirtualVoidMethodA	[func-ptr!]
-	
+
 	GetFieldID					[func-ptr!]
 	GetObjectField				[func-ptr!]
 	GetBooleanField				[func-ptr!]
@@ -182,7 +182,7 @@ JNI!: alias struct! [
 	GetLongField				[func-ptr!]
 	GetFloatField				[func-ptr!]
 	GetDoubleField				[func-ptr!]
-	
+
 	SetObjectField				[func-ptr!]
 	SetBooleanField				[func-ptr!]
 	SetByteField				[func-ptr!]
@@ -192,49 +192,49 @@ JNI!: alias struct! [
 	SetLongField				[func-ptr!]
 	SetFloatField				[func-ptr!]
 	SetDoubleField				[func-ptr!]
-	
+
 	GetStaticMethodID			[function! [[JNICALL] env [JNI-ptr!] class [jclass!] name [c-string!] sig [c-string!] return: [jmethodID!]]]
-	
+
 	CallStaticObjectMethod		[function! [[JNICALL variadic] return: [jobject!]]]
 	CallStaticObjectMethodV		[func-ptr!]
 	CallStaticObjectMethodA		[func-ptr!]
-	
+
 	CallStaticBooleanMethod		[func-ptr!]
 	CallStaticBooleanMethodV	[func-ptr!]
 	CallStaticBooleanMethodA	[func-ptr!]
-	
+
 	CallStaticByteMethod		[func-ptr!]
 	CallStaticByteMethodV		[func-ptr!]
 	CallStaticByteMethodA		[func-ptr!]
-	
+
 	CallStaticCharMethod		[func-ptr!]
 	CallStaticCharMethodV		[func-ptr!]
 	CallStaticCharMethodA		[func-ptr!]
-	
+
 	CallStaticShortMethod		[func-ptr!]
 	CallStaticShortMethodV		[func-ptr!]
 	CallStaticShortMethodA		[func-ptr!]
-	
+
 	CallStaticIntMethod			[func-ptr!]
 	CallStaticIntMethodV		[func-ptr!]
 	CallStaticIntMethodA		[func-ptr!]
-	
+
 	CallStaticLongMethod		[func-ptr!]
 	CallStaticLongMethodV		[func-ptr!]
 	CallStaticLongMethodA		[func-ptr!]
-	
+
 	CallStaticFloatMethod		[func-ptr!]
 	CallStaticFloatMethodV		[func-ptr!]
 	CallStaticFloatMethodA		[func-ptr!]
-	
+
 	CallStaticDoubleMethod		[func-ptr!]
 	CallStaticDoubleMethodV		[func-ptr!]
 	CallStaticDoubleMethodA		[func-ptr!]
-	
+
 	CallStaticVoidMethod		[func-ptr!]
 	CallStaticVoidMethodV		[func-ptr!]
 	CallStaticVoidMethodA		[func-ptr!]
-	
+
 	GetStaticFieldID			[func-ptr!]
 	GetStaticObjectField		[func-ptr!]
 	GetStaticBooleanField		[func-ptr!]
@@ -245,7 +245,7 @@ JNI!: alias struct! [
 	GetStaticLongField			[func-ptr!]
 	GetStaticFloatField			[func-ptr!]
 	GetStaticDoubleField		[func-ptr!]
-	
+
 	SetStaticObjectField		[func-ptr!]
 	SetStaticBooleanField		[func-ptr!]
 	SetStaticByteField			[func-ptr!]
@@ -255,22 +255,22 @@ JNI!: alias struct! [
 	SetStaticLongField			[func-ptr!]
 	SetStaticFloatField			[func-ptr!]
 	SetStaticDoubleField		[func-ptr!]
-	
+
 	NewString					[func-ptr!]
 	GetStringLength				[func-ptr!]
 	GetStringChars				[func-ptr!]
 	ReleaseStringChars			[func-ptr!]
-	
+
 	NewStringUTF				[function! [[JNICALL] env [JNI-ptr!] bytes [c-string!] return: [jobject!]]]
 	GetStringUTFLength			[func-ptr!]
 	GetStringUTFChars			[function! [[JNICALL] env [JNI-ptr!] str [jstring!] isCopy [struct! [c [jboolean!]]] return: [c-string!]]]
 	ReleaseStringUTFChars		[function! [[JNICALL] env [JNI-ptr!] str [jstring!] buf [c-string!]]]
-	
+
 	GetArrayLength				[function! [[JNICALL] env [JNI-ptr!] array [jobject!] return: [jint!]]]
 	NewObjectArray				[function! [[JNICALL] env [JNI-ptr!] size [jint!] type [jclass!] init [jobject!] return: [jarray!]]]
 	GetObjectArrayElement		[function! [[JNICALL] env [JNI-ptr!] array [jobject!] idx [jint!] return: [jobject!]]]
 	SetObjectArrayElement		[function! [[JNICALL] env [JNI-ptr!] array [jobject!] idx [jint!] obj [jobject!] return: [jobject!]]]
-	
+
 	NewBooleanArray				[func-ptr!]
 	NewByteArray				[func-ptr!]
 	NewCharArray				[func-ptr!]
@@ -279,7 +279,7 @@ JNI!: alias struct! [
 	NewLongArray				[func-ptr!]
 	NewFloatArray				[func-ptr!]
 	NewDoubleArray				[func-ptr!]
-	
+
 	GetBooleanArrayElements		[func-ptr!]
 	GetByteArrayElements		[func-ptr!]
 	GetCharArrayElements		[func-ptr!]
@@ -288,7 +288,7 @@ JNI!: alias struct! [
 	GetLongArrayElements		[func-ptr!]
 	GetFloatArrayElements		[func-ptr!]
 	GetDoubleArrayElements		[func-ptr!]
-	
+
 	ReleaseBooleanArrayElements	[func-ptr!]
 	ReleaseByteArrayElements	[func-ptr!]
 	ReleaseCharArrayElements	[func-ptr!]
@@ -297,7 +297,7 @@ JNI!: alias struct! [
 	ReleaseLongArrayElements	[func-ptr!]
 	ReleaseFloatArrayElements	[func-ptr!]
 	ReleaseDoubleArrayElements	[func-ptr!]
-	
+
 	GetBooleanArrayRegion		[func-ptr!]
 	GetByteArrayRegion			[func-ptr!]
 	GetCharArrayRegion			[func-ptr!]
@@ -306,7 +306,7 @@ JNI!: alias struct! [
 	GetLongArrayRegion			[func-ptr!]
 	GetFloatArrayRegion			[func-ptr!]
 	GetDoubleArrayRegion		[func-ptr!]
-	
+
 	SetBooleanArrayRegion		[func-ptr!]
 	SetByteArrayRegion			[func-ptr!]
 	SetCharArrayRegion			[func-ptr!]
@@ -315,7 +315,7 @@ JNI!: alias struct! [
 	SetLongArrayRegion			[func-ptr!]
 	SetFloatArrayRegion			[func-ptr!]
 	SetDoubleArrayRegion		[func-ptr!]
-	
+
 	RegisterNatives				[func-ptr!]
 	UnregisterNatives			[func-ptr!]
 	MonitorEnter				[func-ptr!]
@@ -384,13 +384,13 @@ instantiate: func [
 	list: list + 1
 	id: get-method env class "<init>" as c-string! list/value
 	list: list - 2
-	
+
 	while [count > 0][
 		either count = 3 [
 			push id										;-- replace sig by the constructor id
 		][
-			item: list + count - 1	
-			either item/type = type-c-string! [		
+			item: list + count - 1
+			either item/type = type-c-string! [
 				push env/jni/NewStringUTF env as c-string! item/value
 			][
 				push item/value

@@ -54,7 +54,7 @@ Red [
 	--test-- "same-datatype-40"		--assert (first [a:]) == first [a:]
 	--test-- "same-datatype-41"		--assert (first [:a]) == first [:a]
 	--test-- "same-datatype-42"		--assert [a b c d e] == first [[a b c d e]]
-	--test-- "same-datatype-43"		
+	--test-- "same-datatype-43"
 		ea-result: 1 == 1
 		--assert ea-result = true
 	--test-- "same-datatype-44"

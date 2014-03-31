@@ -32,17 +32,17 @@ with red [
 ]
 
 --test-- "lui1"
-  lius1:  lui-func "a" 
+  lius1:  lui-func "a"
 --assert lius1/1 = #"a"
 
 --test-- "lui2"
-lius2:  lui-func "^(01)a^(7F)" 
+lius2:  lui-func "^(01)a^(7F)"
 --assert lius2/1 = #"^(01)"
 --assert lius2/2 = #"a"
 --assert lius2/3 = #"^(7F)"
 
 --test-- "lui3"
-lius3:  lui-func "^(01)a^(7F)^(C2)^(80)^(C3)^(BF)" 
+lius3:  lui-func "^(01)a^(7F)^(C2)^(80)^(C3)^(BF)"
 --assert lius3/1 = #"^(01)"
 --assert lius3/2 = #"a"
 --assert lius3/3 = #"^(7F)"
@@ -53,7 +53,7 @@ lius3:  lui-func "^(01)a^(7F)^(C2)^(80)^(C3)^(BF)"
 
 ===start-group=== "load-utf8 UCS-2 only"
 --test-- "luu21"
-luu21:  lui-func "^(C4)^(80)^(C4)^(BF)^(C5)^(80)^(C5)^(BF)" 
+luu21:  lui-func "^(C4)^(80)^(C4)^(BF)^(C5)^(80)^(C5)^(BF)"
 --assert luu21/1 = #"^(00)"
 --assert luu21/2 = #"^(01)"
 --assert luu21/3 = #"^(3F)"
@@ -64,7 +64,7 @@ luu21:  lui-func "^(C4)^(80)^(C4)^(BF)^(C5)^(80)^(C5)^(BF)"
 --assert luu21/8 = #"^(01)"
 
 --test-- "luu22"
-luu22:  lui-func "^(EF)^(BF)^(BF)^(DF)^(BF)^(E0)^(A0)^(80)" 
+luu22:  lui-func "^(EF)^(BF)^(BF)^(DF)^(BF)^(E0)^(A0)^(80)"
 --assert luu22/1 = #"^(FF)"
 --assert luu22/2 = #"^(FF)"
 --assert luu22/3 = #"^(FF)"
@@ -148,6 +148,6 @@ luiu241: lui-func "a^(EF)^(BF)^(BF)^(F4)^(80)^(80)^(80)"
 --assert luiu241/12 = #"^(00)"
 ===end-group===
 
-  
+
 ~~~end-file~~~
 

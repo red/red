@@ -15,7 +15,7 @@ false-value: declare red-logic!							;-- preallocate FALSE value
 
 logic: context [
 	verbose: 0
-	
+
 	get: func [											;-- unboxing integer value
 		value	 [red-value!]
 		return:  [logic!]
@@ -26,7 +26,7 @@ logic: context [
 		cell: as red-logic! value
 		cell/value
 	]
-	
+
 	box: func [
 		value	[logic!]
 		return: [red-logic!]
@@ -38,7 +38,7 @@ logic: context [
 		cell/value: value
 		cell
 	]
-	
+
 	top-true?: func [
 		return:  [logic!]
 	][
@@ -59,15 +59,15 @@ logic: context [
 			all [type = TYPE_LOGIC not arg/value]
 		]
 	]
-		
+
 	true?: func [
 		return:  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/true?"]]
-		
+
 		not false?										;-- true if not none or false
 	]
-	
+
 	false?: func [
 		return:  [logic!]
 		/local
@@ -75,16 +75,16 @@ logic: context [
 			type [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/false?"]]
-		
+
 		arg: as red-logic! stack/arguments
 		type: TYPE_OF(arg)
-		
+
 		any [											;-- true if not none or false
 			type = TYPE_NONE
 			all [type = TYPE_LOGIC not arg/value]
 		]
 	]
-	
+
 	push: func [
 		value 	 [logic!]
 		return:	 [red-logic!]
@@ -98,8 +98,8 @@ logic: context [
 		cell/value: value
 		cell
 	]
-	
-	;-- Actions -- 
+
+	;-- Actions --
 
 	make*: func [
 		return:	 [red-value!]							;-- return cell pointer
@@ -113,17 +113,17 @@ logic: context [
 		args: stack/arguments
 		cell: as red-logic! args
 		id: as red-integer! args + 1
-		
+
 		assert TYPE_OF(cell) = TYPE_DATATYPE
 		assert TYPE_OF(id)   = TYPE_INTEGER
-		
+
 		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
 		cell/value: id/value <> 0
 		as red-value! cell
 	]
-	
+
 	make: func [
-		proto	 [red-value!]	
+		proto	 [red-value!]
 		spec	 [red-value!]
 		return:	 [red-logic!]							;-- return cell pointer
 		/local
@@ -135,13 +135,13 @@ logic: context [
 
 		assert TYPE_OF(spec) = TYPE_INTEGER
 		id: as red-integer! spec
-	
+
 		cell: as red-logic! stack/push*
 		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
 		cell/value: id/value <> 0
 		cell
 	]
-	
+
 	form: func [
 		boolean	[red-logic!]
 		buffer	[red-string!]
@@ -154,7 +154,7 @@ logic: context [
 		string/concatenate-literal buffer either boolean/value ["true"]["false"]
 		part - either boolean/value [4][5]
 	]
-	
+
 	mold: func [
 		boolean	[red-logic!]
 		buffer	[red-string!]
@@ -170,7 +170,7 @@ logic: context [
 
 		form boolean buffer arg part
 	]
-	
+
 	compare: func [
 		arg1      [red-logic!]							;-- first operand
 		arg2	  [red-logic!]							;-- second operand
@@ -184,7 +184,7 @@ logic: context [
 
 		type: TYPE_OF(arg2)
 		switch op [
-			COMP_EQUAL 
+			COMP_EQUAL
 			COMP_STRICT_EQUAL [res: all [type = TYPE_LOGIC  arg1/value = arg2/value]]
 			COMP_NOT_EQUAL	  [res: any [type <> TYPE_LOGIC arg1/value <> arg2/value]]
 			default [
@@ -193,7 +193,7 @@ logic: context [
 		]
 		res
 	]
-	
+
 	complement: func [
 		bool	[red-logic!]
 		return:	[red-value!]
@@ -201,14 +201,14 @@ logic: context [
 		bool/value: not bool/value
 		as red-value! bool
 	]
-	
+
 	init: does [
 		true-value/header:  TYPE_LOGIC
 		true-value/value: 	yes
-		
+
 		false-value/header: TYPE_LOGIC
 		false-value/value: 	no
-	
+
 		datatype/register [
 			TYPE_LOGIC
 			TYPE_VALUE

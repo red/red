@@ -37,14 +37,14 @@ not-nfoo: func [a [logic!] return: [logic!]][not a]
   --test-- "not-11"
     n-logic-a: true
   --assert false = not not-foo n-logic-a
-  
+
   --test-- "not-12"
     n-logic-a: true
   --assert false = not-foo not n-logic-a
 
   --test-- "not-13"
     n-logic-a: false
-  --assert not not-foo n-logic-a 
+  --assert not not-foo n-logic-a
 
   --test-- "not-14"
     n-logic-a: false
@@ -55,7 +55,7 @@ not-nfoo: func [a [logic!] return: [logic!]][not a]
 
   --test-- "not-17" --assert false = not-nfoo true
   --test-- "not-18" --assert not-nfoo false
-  
+
   --test-- "not-19" --assert -1 = (not 4 and 3)
   --test-- "not-20" --assert -5 = not 4
   --test-- "not-21" --assert 3 = (-5 and 3)
@@ -87,7 +87,7 @@ not-nfoo: func [a [logic!] return: [logic!]][not a]
   --assert A5A5A5A5h = not 5A5A5A5Ah
   --test-- "ib-not-9"
   --assert 5A5A5A5Ah = not A5A5A5A5h
-  
+
 ===end-group===
 
 ===start-group=== "byte bitwise not"

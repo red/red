@@ -10,7 +10,7 @@ Red/System [
 #include %../../../../quick-test/quick-test.reds
 
 ~~~start-file~~~ "return"
-  
+
   --test-- "return-1"
     ret-test: func [return: [integer!]][return 1]
   --assert ret-test = 1
@@ -153,7 +153,7 @@ Red/System [
     ]
   --assert ret-test10 = 42
   --assert i = 1
-  
+
   --test-- "return-13"
 	ret-test13: func [
 		i [integer!]
@@ -161,7 +161,7 @@ Red/System [
 		return: [integer!]
 		/local s
 	][
-		if 0 = i [return i]	
+		if 0 = i [return i]
 		i
 	]
 	--assert 0 = ret-test13 0 2

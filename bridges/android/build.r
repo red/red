@@ -33,17 +33,17 @@ unless exists? build-root-dir [
 	make-dir build-root-dir
 	make-dir/deep tools-dir
 	make-dir/deep tools-dir/api
-	
+
 	log "Downloading Android binary tools..."
 	system/schemes/default/timeout: 0:05:00					;-- be nice with slow connections
-	
+
 	files: switch OS [
 		3 [[%jli.dll %aapt.exe %keytool.exe %zipalign.exe]]	;-- Windows
 		4 [[%aapt %zipalign]]								;-- Linux
 		2 [[%aapt %zipalign]]								;-- OSX
 	]
 	sys: select [3 %win/ 4 %linux/ 2 %osx/] OS
-	
+
 	foreach file files [
 		prin rejoin [tab file "..."]
 		write/binary tools-dir/:file read/binary tools-URL/:sys/:file
@@ -145,7 +145,7 @@ cmd: reform [ {
 		 -keypass android
 		 -sigalg MD5withRSA
 		 -digestalg SHA1
-		 -signedjar } to-local-file rejoin [build-root-dir name %-signed.apk] 
+		 -signedjar } to-local-file rejoin [build-root-dir name %-signed.apk]
 		 to-local-file rejoin [build-root-dir name %-unsigned.apk] {
 	     testkey
 	}
@@ -154,9 +154,9 @@ log "Signing apk..."
 run cmd
 
 cmd: reform [
-	to-local-file tools-dir/zipalign 
+	to-local-file tools-dir/zipalign
 	"-v -f 4"
-	to-local-file rejoin [build-root-dir name %-signed.apk] 
+	to-local-file rejoin [build-root-dir name %-signed.apk]
 	to-local-file rejoin [build-root-dir name %.apk]
 ]
 log "Aligning apk..."

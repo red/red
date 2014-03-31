@@ -12,15 +12,15 @@ Red/System [
 
 get-path: context [
 	verbose: 0
-	
+
 	push*: func [
 		size	[integer!]
-		return: [red-get-path!]	
+		return: [red-get-path!]
 		/local
 			p 	[red-get-path!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/push*"]]
-		
+
 		p: as red-get-path! ALLOC_TAIL(root)
 		p/header: TYPE_GET_PATH							;-- implicit reset of all header flags
 		p/head:   0
@@ -28,7 +28,7 @@ get-path: context [
 		push p
 		p
 	]
-	
+
 	push: func [
 		p [red-get-path!]
 	][
@@ -40,7 +40,7 @@ get-path: context [
 
 
 	;--- Actions ---
-	
+
 	make: func [
 		proto 	 [red-value!]
 		spec	 [red-value!]
@@ -54,7 +54,7 @@ get-path: context [
 		path/header: TYPE_GET_PATH
 		path
 	]
-	
+
 	form: func [
 		p		[red-get-path!]
 		buffer	[red-string!]
@@ -63,11 +63,11 @@ get-path: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/form"]]
-		
+
 		string/append-char GET_BUFFER(buffer) as-integer #":"
 		path/form p buffer arg part - 1
 	]
-	
+
 	mold: func [
 		p		[red-get-path!]
 		buffer	[red-string!]
@@ -83,7 +83,7 @@ get-path: context [
 
 		form p buffer arg part
 	]
-	
+
 	compare: func [
 		value1	   [red-block!]							;-- first operand
 		value2	   [red-block!]							;-- second operand
@@ -95,7 +95,7 @@ get-path: context [
 		if TYPE_OF(value2) <> TYPE_GET_PATH [RETURN_COMPARE_OTHER]
 		block/compare-each value1 value2 op
 	]
-	
+
 	copy: func [
 		path    [red-path!]
 		new		[red-get-path!]
@@ -105,12 +105,12 @@ get-path: context [
 		return:	[red-series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/copy"]]
-		
+
 		path: as red-path! block/copy as red-block! path as red-get-path! new arg deep? types
 		path/header: TYPE_GET_PATH
 		as red-series! path
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_GET_PATH

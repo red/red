@@ -12,7 +12,7 @@ Red/System [
 
 file: context [
 	verbose: 0
-	
+
 	load-in: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
@@ -22,7 +22,7 @@ file: context [
 			cell [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/load"]]
-		
+
 		cell: string/load-in src size blk UTF-8
 		cell/header: TYPE_FILE							;-- implicit reset of all header flags
 		cell
@@ -40,7 +40,7 @@ file: context [
 		file [red-file!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/push"]]
-		
+
 		copy-cell as red-value! file stack/push*
 	]
 
@@ -125,7 +125,7 @@ file: context [
 		return:	[red-series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/copy"]]
-				
+
 		file: as red-file! string/copy as red-string! file new arg deep? types
 		file/header: TYPE_FILE
 		as red-series! file

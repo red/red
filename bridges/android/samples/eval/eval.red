@@ -18,7 +18,7 @@ on-java-event: function [face [integer!] type [integer!] event [integer!]][
 	switch/default type [
 		1 [
 			seq: java-do [input/getText]
-			if code: java-do [seq/toString][		
+			if code: java-do [seq/toString][
 				set/any 'result do code
 				unless unset? :result [
 					result: form reduce ["==" mold result lf]
@@ -45,18 +45,18 @@ main: function [this [integer!] /extern [input output]][
 	java-do [input/setText "1 + 3"]
 	java-do [input/setId 100]
 	java-do [lay/addView input]
-	
+
 	btn: java-new [android.widget.Button this]
 	java-do [btn/setText "Do"]
 	java-do [btn/setId 101]
 	btn-click: java-new [org.redlang.eval.ClickEvent]
 	java-do [btn/setOnClickListener btn-click]
 	java-do [lay/addView btn]
-		
+
 	output: java-new [android.widget.TextView this]
 	java-do [output/setHeight 600]
-	java-do [output/setGravity BOTTOM] 
+	java-do [output/setGravity BOTTOM]
 	java-do [lay/addView output]
-	
+
 	java-do [this/setContentView lay]
 ]

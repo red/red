@@ -17,7 +17,7 @@ help: func [
 ][
 	tab: tab4: "    "
 	tab8: "        "
-	
+
 	case [
 		unset? :word [								;-- HELP with no arguments
 			print {Use HELP or ? to see built-in info:
@@ -128,7 +128,7 @@ Other useful functions:
 					(print "^/REFINEMENTS:")
 					any [
 						/local [
-							to ahead set-word! 'return set block block! 
+							to ahead set-word! 'return set block block!
 							(print ["^/RETURN:^/" mold block])
 							| to end
 						]
@@ -143,7 +143,7 @@ Other useful functions:
 				]
 			][
 				print [
-					func-name "is of type" 
+					func-name "is of type"
 					mold type? either word? :func-name [:fun][:func-name]
 					"^/No more help available."
 				]
@@ -162,7 +162,7 @@ what: function [
 		if any [function? get w native? get w action? get w op? get w][
 			prin w
 			spec: spec-of get w
-			
+
 			either any [
 				string? desc: spec/1
 				string? desc: spec/2					;-- attributes block case

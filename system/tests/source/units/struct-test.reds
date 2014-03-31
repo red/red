@@ -17,7 +17,7 @@ Red/System [
 	struct1: declare struct! [b [integer!]]
 	struct1/b: 12345
 	--assert struct1/b = 12345
-	
+
 	--test-- "s-rw-2"
 	struct2: declare struct! [b [byte!] c [c-string!] d [integer!]]
 	struct2/c: "a"
@@ -26,38 +26,38 @@ Red/System [
 	--assert struct2/b   = #"R"
 	--assert struct2/c/1 = #"a"
 	--assert struct2/d   = 9876
-	
+
 	--test-- "s-rw-3"
 	--assert struct2/c/1 = #"a"
-	
+
 	--test-- "s-rw-4"
 	--assert struct2/d   = 9876
-	
+
 	--test-- "s-rw-5"
 	struct2/c/1: #"x"
 	--assert struct2/c/1 = #"x"
-	
+
 	--test-- "s-rw-6"
 	struct2-b: struct2/b
 	struct2-c: struct2/c
 	struct2-d: struct2/d
 	--assert struct2-b   = #"R"
-	
+
 	--test-- "s-rw-7"
 	--assert struct2-c/1 = #"x"
-	
+
 	--test-- "s-rw-8"
 	--assert struct2-d   = 9876
-	
+
 	--test-- "s-rw-9"
 	struct2-c/1: #"y"
 	--assert struct2-c/1 = #"y"
-	
+
 	--test-- "s-rw-10"
 	struct2-foo-int:  func [a [integer!] return: [integer!]][a]
 	struct2-foo-byte: func [a [byte!] return: [byte!]][a]
 	--assert 9876 = struct2-foo-int struct2/d
-	
+
 	--test-- "s-rw-11"
 	--assert #"R" = struct2-foo-byte struct2/b
 
@@ -88,16 +88,16 @@ Red/System [
 	struct3/g: 123456798
 	struct3/sub/e: 987
 	struct3/sub/f: "hello"
-	
+
 	--assert struct3/b = 123
 	--assert struct3/g = 123456798
-	
+
 	--test-- "s-nested-2"
 	--assert struct3/d = #"A"
-	
+
 	--test-- "s-nested-3"
 	--assert struct3/c/1 = #"t"
-	
+
 	--test-- "s-nested-4"
 	--assert all [
 		struct3/c/1 = #"t"
@@ -105,14 +105,14 @@ Red/System [
 		struct3/c/3 = #"s"
 		struct3/c/4 = #"t"
 	]
-	
+
 	--test-- "s-nested-5"
 	--assert struct3/sub/e = 987
-	
+
 	--test-- "s-nested-6"
 	struct3-e: struct3/sub/e
 	--assert struct3-e = 987
-	
+
 	--test-- "s-nested-7"
 	--assert all [
 		struct3/sub/f/1 = #"h"
@@ -121,11 +121,11 @@ Red/System [
 		struct3/sub/f/4 = #"l"
 		struct3/sub/f/5 = #"o"
 	]
-	
+
 	--test-- "s-nested-8"
 	struct3-f: struct3/sub/f
 	--assert struct3-f/1 = #"h"
-	
+
 	--test-- "s-nested-9"
 	struct3-byte: struct3/sub/f/2
 	--assert struct3-byte = #"e"
@@ -159,39 +159,39 @@ struct-local-foo: func [
 	--assert struct2/b   = #"R"
 	--assert struct2/c/1 = #"a"
 	--assert struct2/d   = 9876
-	
+
 	--test-- "ls-rw-3"
 	--assert struct2/c/1 = #"a"
-	
+
 	--test-- "ls-rw-4"
 	--assert struct2/d   = 9876
-	
+
 	--test-- "ls-rw-5"
 	struct2/c/1: #"x"
 	--assert struct2/c/1 = #"x"
-	
+
 	--test-- "ls-rw-6"
 	struct2-b: struct2/b
 	struct2-c: struct2/c
 	struct2-d: struct2/d
 	--assert struct2-b   = #"R"
-	
+
 	--test-- "ls-rw-7"
 	--assert struct2-c/1 = #"x"
-	
+
 	--test-- "ls-rw-8"
 	--assert struct2-d   = 9876
-	
+
 	--test-- "ls-rw-9"
 	struct2-c/1: #"y"
 	--assert struct2-c/1 = #"y"
-		
+
 	--test-- "ls-rw-10"
 	--assert 9876 = struct2-foo-int struct2/d
 
 	--test-- "ls-rw-11"
 	--assert #"R" = struct2-foo-byte struct2/b
-	
+
 	--test-- "ls-nested-1"
 	struct3: declare struct! [
 		d [byte!]
@@ -215,7 +215,7 @@ struct-local-foo: func [
 	struct3/g: 123456798
 	struct3/sub/e: 987
 	struct3/sub/f: "hello"
-	
+
 	--assert struct3/b = 123
 	--assert struct3/g = 123456798
 
@@ -279,14 +279,14 @@ struct-local-foo
 	struct4/a/value: 123
 	struct4/b/value: 456
 	struct4/c/value: 789
-	
+
 	--assert struct4/a/value = 123
 	--assert struct4/b/value = 456
 	--assert struct4/c/value = 789
-	
+
 	struct5: struct4/a
 	--assert struct5/value = 123
-	
+
 	--test-- "struct-math-2"
 	struct5: struct5 + 1
 	--assert struct5/value = 456
@@ -296,12 +296,12 @@ struct-local-foo
 	--assert struct5/value = 789
 	struct5: struct5 - 2
 	--assert struct5/value = 123
-	
+
 	--test-- "struct-math-4"
 	struct-idx: 2
 	struct5: struct5 + struct-idx
 	--assert struct5/value = 789
-	
+
 	--test-- "struct-math-5"
 	struct-idx: -2
 	struct5: struct5 + struct-idx
@@ -311,8 +311,8 @@ struct-local-foo
 	struct-idx: -2
 	struct5: struct5 - struct-idx
 	--assert struct5/value = 789
-	
-	
+
+
 	--test-- "struct-math-7"
 	struct6: declare struct! [
 		a [struct! [value [byte!]]]
@@ -360,7 +360,7 @@ struct-local-foo
 	struct-idx: -2
 	struct7: struct7 - struct-idx
 	--assert struct7/value = #"c"
-	
+
 	--test-- "struct-math-13"
 	struct8: declare struct! [
 		a [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
@@ -376,11 +376,11 @@ struct-local-foo
 	struct8/a/v1: 123
 	struct8/b/v1: 456
 	struct8/c/v1: 789
-	
+
 	struct8/a/v2: #"a"
 	struct8/b/v2: #"b"
 	struct8/c/v2: #"c"
-	
+
 	struct8/a/v3: "A"
 	struct8/b/v3: "B"
 	struct8/c/v3: "C"
@@ -388,11 +388,11 @@ struct-local-foo
 	--assert struct8/a/v1 = 123
 	--assert struct8/b/v1 = 456
 	--assert struct8/c/v1 = 789
-	
+
 	--assert struct8/a/v2 = #"a"
 	--assert struct8/b/v2 = #"b"
 	--assert struct8/c/v2 = #"c"
-	
+
 	--assert struct8/a/v3/1 = #"A"
 	--assert struct8/b/v3/1 = #"B"
 	--assert struct8/c/v3/1 = #"C"
@@ -450,14 +450,14 @@ struct-local-foo2: func [
 	struct4/a/value: 123
 	struct4/b/value: 456
 	struct4/c/value: 789
-	
+
 	--assert struct4/a/value = 123
 	--assert struct4/b/value = 456
 	--assert struct4/c/value = 789
-	
+
 	struct5: struct4/a
 	--assert struct5/value = 123
-	
+
 	--test-- "loc-struct-math-2"
 	struct5: struct5 + 1
 	--assert struct5/value = 456
@@ -467,12 +467,12 @@ struct-local-foo2: func [
 	--assert struct5/value = 789
 	struct5: struct5 - 2
 	--assert struct5/value = 123
-	
+
 	--test-- "loc-struct-math-4"
 	struct-idx: 2
 	struct5: struct5 + struct-idx
 	--assert struct5/value = 789
-	
+
 	--test-- "loc-struct-math-5"
 	struct-idx: -2
 	struct5: struct5 + struct-idx
@@ -482,8 +482,8 @@ struct-local-foo2: func [
 	struct-idx: -2
 	struct5: struct5 - struct-idx
 	--assert struct5/value = 789
-	
-	
+
+
 	--test-- "loc-struct-math-7"
 	struct6: declare struct! [
 		a [struct! [value [byte!]]]
@@ -531,7 +531,7 @@ struct-local-foo2: func [
 	struct-idx: -2
 	struct7: struct7 - struct-idx
 	--assert struct7/value = #"c"
-	
+
 	--test-- "loc-struct-math-13"
 	struct8: declare struct! [
 		a [struct! [v1 [integer!] v2 [byte!] v3 [c-string!]]]
@@ -547,11 +547,11 @@ struct-local-foo2: func [
 	struct8/a/v1: 123
 	struct8/b/v1: 456
 	struct8/c/v1: 789
-	
+
 	struct8/a/v2: #"a"
 	struct8/b/v2: #"b"
 	struct8/c/v2: #"c"
-	
+
 	struct8/a/v3: "A"
 	struct8/b/v3: "B"
 	struct8/c/v3: "C"
@@ -559,11 +559,11 @@ struct-local-foo2: func [
 	--assert struct8/a/v1 = 123
 	--assert struct8/b/v1 = 456
 	--assert struct8/c/v1 = 789
-	
+
 	--assert struct8/a/v2 = #"a"
 	--assert struct8/b/v2 = #"b"
 	--assert struct8/c/v2 = #"c"
-	
+
 	--assert struct8/a/v3/1 = #"A"
 	--assert struct8/b/v3/1 = #"B"
 	--assert struct8/c/v3/1 = #"C"

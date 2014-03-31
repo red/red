@@ -15,7 +15,7 @@ change-dir %../
 
 	--test-- "pointer error 1"
 	--compile-this {
-	    Red/System [] 
+	    Red/System []
 	    f: func [
 	      [typed]
 	      count           [integer!]
@@ -28,10 +28,10 @@ change-dir %../
 	  }
 	--assert-msg? "*** Compilation Error: undefined symbol: i"
 	  --clean
-	
+
 	--test-- "pointer error 2"
 	--compile-this {
-	    Red/System [] 
+	    Red/System []
 	    pi: declare pointer! [integer!]
 	    pi: :i
 	  }

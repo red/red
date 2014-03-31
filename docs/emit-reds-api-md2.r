@@ -5,7 +5,7 @@ REBOL [
 	Version:      0.1.0
 	Rights:       "Copyright (C) 2012 Peter W A Wood. All rights reserved."
 	License:      "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
-	Description:  {This is a plug for generate-reds-api.r which emits Makedoc 2}  
+	Description:  {This is a plug for generate-reds-api.r which emits Makedoc 2}
 	Argument:     {A block output by xtract/extract-reds-docstrings}
 ]
 
@@ -21,7 +21,7 @@ emit: func [
   append doc docstrings/title
   new-para
   docstrings: skip docstrings 2
-  
+
   foreach file docstrings [
     append doc join {===} [file/file]
     new-line
@@ -41,7 +41,7 @@ emit: func [
       append doc rejoin [{+++Function: } funct/func]
       new-line
       if funct/3 <> "" [                   ;; add any description
-       des: replace/all funct/3 "^/" "" 
+       des: replace/all funct/3 "^/" ""
        append doc des
       ]
       new-para
@@ -50,7 +50,7 @@ emit: func [
       either ret-blk: select funct 'return [
         append doc rejoin [" " first ret-blk " " second ret-blk]
       ][
-        append doc {No return value}    
+        append doc {No return value}
       ]
       new-para
       append doc {...Arguments}
@@ -64,16 +64,16 @@ emit: func [
         new-para
       ]
     ]
-    
+
     if 0 < length? file/includes [
       append doc {---Includes}
       new-line
       foreach inc file/includes [
-        append doc join "  " inc 
+        append doc join "  " inc
         new-line
       ]
     ]
-  ] 
+  ]
   append doc reduce ["Created at  " now]
   new-para
   append doc "###"
@@ -84,14 +84,14 @@ emit: func [
     do/args %makedoc2.r 'load-only
     doc: scan-doc read file: system/options/script
     set [title out] gen-html/options doc [(options)]
-    
+
     file: last split-path file
     replace file ".txt" ".html"
     file2: copy file
     insert find file2 "." "-light"
     replace out "$DARK$"  file
     replace out "$LIGHT$" file2
-    
+
     write file out
     replace out "dark.css" "light.css"
     write file2 out

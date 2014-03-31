@@ -23,10 +23,10 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 
 	--test-- "mold-1"
 	--assert "[]" = mold []
-	
+
 	--test-- "mold-2"
 	--assert "" = mold/only []
-	
+
 	--test-- "mold-3"
 	--assert "[1 2 3]" = mold [1 2 3]
 
@@ -35,67 +35,67 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 
 	--test-- "mold-5"
 	--assert molded = mold blk
-	
+
 	--test-- "mold-6"
 		repeat i 132 [
 			--assert (copy/part molded i) = mold/part blk i
 		]
-	
+
 	--test-- "mold-7"
-	--assert "[a [b] c]" = mold [a [b] c]	
-	
+	--assert "[a [b] c]" = mold [a [b] c]
+
 ===end-group===
 
 ===start-group=== "Basic FORM tests"
 
 	--test-- "form-1"
 	--assert "" = form []
-	
+
 	--test-- "form-2"
 	--assert "1 2 3" = form [1 2 3]
 
 	--test-- "form-3"
 	--assert formed	= form blk
-	
+
 	--test-- "form-4"
 	repeat i 132 [
 		--assert (copy/part formed i) = form/part blk i
 	]
-	
+
 	--test-- "form-5"
 	--assert "a a" = form [[""] [a] [] [a] [[[]]]]
-	
+
 ===end-group===
 
 ===start-group=== "mold strings"
 	--test-- "mold-string-1"
 	--assert {"abcde"} = mold {abcde}
-	
+
 	--test-- "mold-string-2"
 	--assert {"^^(3A7)^^(3B1)^^(1FD6)^^(3C1)^^(3B5), ^^(3BA)^^(3CC)^^(3C3)^^(3BC)^^(3B5)"} = mold/all "Χαῖρε, κόσμε"
-	
+
 	--test-- "mold-string3 #issue 498"
 	--assert {{""}} = mold mold {}
-	
+
 	--test-- "mold-string4"
 	--assert {"abcde"} = mold "abcde"
-	
+
 	--test-- "mold-string5"
 	--assert {"abc^^(2710)def"} = mold/all "abc✐def"
-	
+
 	--test-- "mold-string6"
 	--assert {"abc^^(10000)def"} = mold/all "abc^(010000)def"
-	
+
 	--test-- "mold-string6"
 		--assert {"目录1"} = mold "目录1"
-		
+
 	--test-- "mold-string7"
 		--assert {"%e录1"} = mold "%e录1"
- 
+
 ===end-group===
 
 ===start-group=== "logic"
-	
+
 	--test-- "mold-logic1"
 	--assert "true" = mold true
 	--assert "false" = mold false
@@ -110,7 +110,7 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 	--assert "[b c d e]" = mold next [a b c d e]
 	--assert "[c d e]" = mold at [a b c d e ] 3
 	--assert "[]" = mold tail [a b c d e]
-	
+
 ===end-group===
 
 ===start-group=== "integer"
@@ -121,14 +121,14 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 	--assert "2147483647" = mold 7FFFFFFFh
 	--assert "-2147483648" = mold 80000000h
 	--assert "0" = mold 00h
- 
+
 ===end-group===
 
 ===start-group=== "file"
 
 	--test-- "mold-file1"
 		--assert "%目录1" = mold %目录1
-		
+
 	--test-- "mold-file2"
 		--assert "%^^(76EE)^^(5F55)1" = mold/all %目录1
 

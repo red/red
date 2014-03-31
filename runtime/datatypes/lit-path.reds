@@ -12,15 +12,15 @@ Red/System [
 
 lit-path: context [
 	verbose: 0
-	
+
 	push*: func [
 		size	[integer!]
-		return: [red-lit-path!]	
+		return: [red-lit-path!]
 		/local
 			p 	[red-lit-path!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "lit-path/push*"]]
-		
+
 		p: as red-lit-path! ALLOC_TAIL(root)
 		p/header: TYPE_LIT_PATH							;-- implicit reset of all header flags
 		p/head:   0
@@ -28,7 +28,7 @@ lit-path: context [
 		push p
 		p
 	]
-	
+
 	push: func [
 		p [red-lit-path!]
 	][
@@ -40,7 +40,7 @@ lit-path: context [
 
 
 	;--- Actions ---
-	
+
 	make: func [
 		proto 	 [red-value!]
 		spec	 [red-value!]
@@ -54,7 +54,7 @@ lit-path: context [
 		path/header: TYPE_LIT_PATH
 		path
 	]
-	
+
 	form: func [
 		p		[red-lit-path!]
 		buffer	[red-string!]
@@ -63,11 +63,11 @@ lit-path: context [
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "lit-path/form"]]
-		
+
 		string/append-char GET_BUFFER(buffer) as-integer #"'"
 		path/form p buffer arg part - 1
 	]
-	
+
 	mold: func [
 		p		[red-lit-path!]
 		buffer	[red-string!]
@@ -83,7 +83,7 @@ lit-path: context [
 
 		form p buffer arg part
 	]
-	
+
 	compare: func [
 		value1	   [red-block!]							;-- first operand
 		value2	   [red-block!]							;-- second operand
@@ -95,7 +95,7 @@ lit-path: context [
 		if TYPE_OF(value2) <> TYPE_LIT_PATH [RETURN_COMPARE_OTHER]
 		block/compare-each value1 value2 op
 	]
-	
+
 	copy: func [
 		path    [red-path!]
 		new		[red-lit-path!]

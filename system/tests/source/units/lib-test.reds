@@ -45,7 +45,7 @@ lt-int!: alias struct! [
       size    [integer!]
       compare [function! [
         first   [lt-int!]
-        second  [lt-int!] 
+        second  [lt-int!]
         return: [integer!]
       ]]
     ]
@@ -57,18 +57,18 @@ lt-int!: alias struct! [
 ]
 
 ~~~start-file~~~ "library"
-  
+
 ===start-group=== "calls"
   --test-- "lib1"
   --assert 2 = abs-int 2
-  
-  --test-- "lib2"    
+
+  --test-- "lib2"
   --assert 2.0 = abs-float -2.0
-  
+
   --test-- "lib3"
     s: "hello, world"
   --assert 12 = strlen s
-  
+
   --test-- "lib4"
     new: "123456789012"
     old: "HW"
@@ -103,17 +103,17 @@ lt-int!: alias struct! [
   --assert 2 = lib-array/b
   --assert 3 = lib-array/c
   --assert 4 = lib-array/d
-    
+
 ===end-group===
 
 #switch OS [
 	Windows  [
-	  #include %lib-win32-test.reds   
+	  #include %lib-win32-test.reds
 	]
 	MacOSX	 [
 	  #include %lib-osx-test.reds
 	]
 ]
-  
+
 ~~~end-file~~~
 

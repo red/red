@@ -7,47 +7,47 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 	Usage: {
 		1) Include it in your existing application:
-		
+
 				do %<path-to>/profiler.r
 				profiler/set-active yes					;-- switches function patching on/off
-		
+
 		2) The profiler needs an object as input to patch all object's functions
 		   for profiling using the 'make-profilable function:
-		   
+
 		   		my-app: make-profilable context [...]
-		   		
+
 		3) Run your application as usual.
-		
+
 		4) Print profiling report (from console or included in your app code):
-		
+
 				profiler/report
-		   
+
 		   You get a table with all profiled functions, calls count and elasped time.
 		   By default, only the top 20 functions are reported, to print them all:
-		   
+
 		   		profiler/report/all
-		   		
+
 		   To sort results by count instead of elapsed time:
-		   
+
 		   		profiler/report/count
 		   		profiler/report/all/count
-		 
+
 		 5) The profiler needs a fresh start for each run (stats clearing
 		    has not been implemented yet, any taker?)
-		    
-		   
+
+
 		 Hope it will help you improve your apps!
 	}
 	Example: {
 		REBOL []
-		
+
 		do %profiler.r
 		profiler/set-active yes		;-- just change it to NO for normal execution
-		
+
 		a: make-profilable context [
 			foo: func [a /ref][wait (random 10) / 100 bar a + 1]
 			bar: func [b][wait (random 10) / 100 b * 1 + 1 - 1]
-			
+
 			run: has [c][
 				c: 0
 				foreach i [1 2 3 4 5 6 7 8 9 0][
@@ -57,10 +57,10 @@ REBOL [
 				print c
 			]
 		]
-		
+
 		a/run
 		profiler/report
-		
+
 		halt
 	}
 ]
@@ -78,14 +78,14 @@ profiler: make exportable [
 
 	;-- property use to enable/disable the profiler without changing anything else
 	active?: yes
-	
+
 	;-- temporary stack for nested objects used by 'make-profilable
 	obj-stack: make block! 1
-	
+
 	;-- in order to avoid collision with function's arguments and refinements, only
-	;-- non-typable words are used as local variables in the proxy function. The 
+	;-- non-typable words are used as local variables in the proxy function. The
 	;-- following definitions are just handy shortcuts
-	
+
 	_stat: to word! "<s>"								;-- superman's logo ;)
 	_arg:  to word! "<a>"
 	_cmd:  to word! "<c>"
@@ -93,7 +93,7 @@ profiler: make exportable [
 	_path: to word! "<p>"
 	_time: to word! "<t>"
 	_ret:  to word! "<r>"
-	
+
 	set_stat: to set-word! _stat
 	set_arg:  to set-word! _arg
 	set_cmd:  to set-word! _cmd
@@ -110,8 +110,8 @@ profiler: make exportable [
 		]
 		;-- remove all local variables
 		clear find spec /local
-		
-		;-- duplicate all refinements in spec, by adding a word! version 
+
+		;-- duplicate all refinements in spec, by adding a word! version
 		;-- just after the refinement! value (refinements have no binding)
 		forall spec [
 			if refinement? spec/1 [
@@ -128,22 +128,22 @@ profiler: make exportable [
 		clear find spec /local
 		append spec /local
 		repend spec [_stat _arg _cmd _fun _path _time _ret]
-				
+
 		;-- build and return the new proxy function
 		make function! spec compose/deep [
-		
+
 			;-- store stats in literal local block (call depth, calls count, time)
 			(set_stat) [(copy [0 0 0:0])]
-			
+
 			;-- increment calls count
-			(to set-path! reduce [_stat 2]) (to path! reduce [_stat 2]) + 1		
-			
+			(to set-path! reduce [_stat 2]) (to path! reduce [_stat 2]) + 1
+
 			;-- init command block used to rebuild the called function (args + refinements)
 			(set_cmd) head clear next ([copy [_]])		;-- place-holder for the function name (word! or path!)
-			
+
 			;-- get a reference on proxified function, to be able to call it
 			(set_fun) first [(:fun)]
-			
+
 			;-- get a cleaned up copy of origin function (no local variables)
 			(set_arg) copy [(clean copy spec)]
 
@@ -152,20 +152,20 @@ profiler: make exportable [
 				append (_cmd) to-get-word (_arg1)
 				(set_arg) next (_arg)
 			]
-			
+
 			;-- collect the optional function arguments and refinements (if any)
 			unless tail? (_arg) [
 				until [
 					either refinement? (_arg1) [
 						;-- skip refinement! value and use the duplicate word! value (avoids binding issues)
 						(set_arg) next (_arg)
-						
+
 						;-- test if refinement has been invoked by the caller
 						either system/words/get (_arg1) [
-						
+
 							;-- if first refinement, prepare a path for command block
 							unless (get_path) [(set_path) to path! (to lit-word! _fun)]
-							
+
 							;-- collect refinement in command block
 							append (get_path) (_arg1)
 							(set_arg) next (_arg)
@@ -185,20 +185,20 @@ profiler: make exportable [
 					tail? (_arg)
 				]
 			]
-			
+
 			;-- set first value of command block to either a path (with refinements)
 			;-- or a word (no refinements)
 			(to set-path! reduce [_cmd 1]) system/words/any [(get_path) (to lit-word! _fun)]
 
 			;-- increase depth counter before the function call
 			(to set-path! reduce [_stat 1]) (to path! reduce [_stat 1]) + 1
-			
+
 			;-- mark start time
 			(to set-word! _time) now/time/precise
-			
+
 			;-- invoke the original function, passing all required arguments and refinements
 			system/words/set/any (to lit-word! _ret) do (_cmd)
-			
+
 			;-- if recursive call (depth > 1), don't add the time
 			if (to path! reduce [_stat 1]) = 1 [
 				(to set-path! reduce [_stat 3])
@@ -206,19 +206,19 @@ profiler: make exportable [
 			]
 			;-- function call done so decrease depth counter
 			(to set-path! reduce [_stat 1]) (to path! reduce [_stat 1])  - 1
-			
+
 			;-- return invoked function last value
 			system/words/get/any (to lit-word! _ret)
 		]
 	]
-		
+
 	set-active: func [
 		"Enable or disable the patching of functions"
 		mode [logic!]
 	][
 		active?: mode
 	]
-	
+
 	make-profilable: func [
 		"Make all functions in a given object usable for profiling"
 		obj [object!]
@@ -227,11 +227,11 @@ profiler: make exportable [
 			value new
 	][
 		unless active? [return obj]
-		
+
 		foreach word next first obj [
 			if function? value: get in obj word [
 				unless find store :value [
-					set in obj word new: proxify :value	;-- install profiler proxy function			
+					set in obj word new: proxify :value	;-- install profiler proxy function
 					repend store [:value word obj second :new]
 				]
 			]
@@ -247,21 +247,21 @@ profiler: make exportable [
 		]
 		obj												;-- just a pass-thru
 	]
-	
+
 	align: func [str [string!] cols [integer!]][
 		head insert/dup tail str #" " cols - length? str
 	]
-	
+
 	truncate: func [value [number!]][
 		if integer? value [return value]
 		value: mold value
 		head clear skip find value #"." 3
 	]
-	
+
 	print-table: func [data [block!] root [function! none!] /local ET line][
 		ET: any [all [:root third second second :root ] data/3]
 		ET: ET/second
-		
+
 		print [
 			newline
 			align "Function" 	 30
@@ -281,7 +281,7 @@ profiler: make exportable [
 		]
 		print [line newline]
 	]
-	
+
 	report: func [
 		"Print a full pretty-printed report in console"
 		/only "Report only for selected object"
@@ -292,7 +292,7 @@ profiler: make exportable [
 		/count "Sort report table by calls count"
 	][
 		unless active? [exit]
-		
+
 		data: make block! 100
 		foreach [old name obj body] store [
 			if any [not only obj = object][
@@ -301,10 +301,10 @@ profiler: make exportable [
 		]
 		data: sort/skip/compare/reverse data 3 pick [2 3] to logic! count
 		unless all [data: copy/part data 3 * 20]		;-- top 20 only by default
-		
+
 		print-table data :root
 	]
-	
+
 	export [make-profilable]
 ]
 

@@ -12,7 +12,7 @@ Red/System [
 
 symbol: context [
 	verbose: 0
-	
+
 	is-any-type?: func [
 		word	[red-word!]
 		return: [logic!]
@@ -20,7 +20,7 @@ symbol: context [
 		assert TYPE_OF(word) = TYPE_WORD
 		(symbol/resolve word/symbol) = symbol/resolve words/any-type!
 	]
-	
+
 	same?: func [										;-- case-insensitive UTF-8 string comparison
 		str1	     [c-string!]
 		str2	     [c-string!]
@@ -29,7 +29,7 @@ symbol: context [
 			aliased? [logic!]
 			c1	     [byte!]
 			c2	     [byte!]
-	][		
+	][
 		aliased?: no
 		c1:   str1/1
 		c2:   str2/1
@@ -53,7 +53,7 @@ symbol: context [
 			true 			[ 1]						;-- same (case-sensitive matching)
 		]
 	]
-	
+
 	search: func [										;@@ use a faster lookup method later
 		str 	  [c-string!]							;-- UTF-8 string
 		return:	  [integer!]
@@ -68,7 +68,7 @@ symbol: context [
 		entry: as red-symbol! s/offset
 		end:   as red-symbol! s/tail
 		i: 1
-		
+
 		while [entry < end][
 			id: same? entry/cache str
 			if id <> 0 [
@@ -79,7 +79,7 @@ symbol: context [
 		]
 		0												;-- no matching symbol
 	]
-	
+
 	duplicate: func [
 		src		 [c-string!]
 		return:  [c-string!]
@@ -93,11 +93,11 @@ symbol: context [
 		node: alloc-bytes len							;@@ TBD: mark this buffer as protected!
 		s: as series! node/value
 		dst: as c-string! s/offset
-		
+
 		copy-memory as byte-ptr! dst as byte-ptr! src len
 		dst
 	]
-	
+
 	make-alt: func [
 		str 	[red-string!]
 		return:	[integer!]
@@ -119,27 +119,27 @@ symbol: context [
 		sym/cache:  s
 		block/rs-length? symbols
 	]
-	
+
 	make: func [
 		s 		[c-string!]								;-- input c-string!
 		return:	[integer!]
-		/local 
+		/local
 			sym	[red-symbol!]
 			id	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
-		
+
 		id: search s
 		if positive? id [return id]
-		
-		sym: as red-symbol! ALLOC_TAIL(symbols)	
+
+		sym: as red-symbol! ALLOC_TAIL(symbols)
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
 		sym/node:   unicode/load-utf8 s 1 + system/words/length? s
 		sym/cache:  duplicate s
 		block/rs-length? symbols
 	]
-	
+
 	get: func [
 		id		[integer!]
 		return:	[red-symbol!]
@@ -149,7 +149,7 @@ symbol: context [
 		s: GET_BUFFER(symbols)
 		as red-symbol! s/offset + id - 1
 	]
-	
+
 	resolve: func [
 		id		[integer!]
 		return:	[integer!]
@@ -161,15 +161,15 @@ symbol: context [
 		sym: as red-symbol! s/offset + id - 1
 		either positive? sym/alias [sym/alias][id]
 	]
-	
+
 	push: func [
 
 	][
 
 	]
-	
-	;-- Actions -- 
-	
+
+	;-- Actions --
+
 	init: does [
 		datatype/register [
 			TYPE_SYMBOL

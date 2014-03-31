@@ -132,7 +132,7 @@ red-integer!: alias struct! [
 	header 	[integer!]								;-- cell header
 	padding	[integer!]								;-- align value on 64-bit boundary
 	value	[integer!]								;-- 32-bit signed integer value
-	_pad	[integer!]	
+	_pad	[integer!]
 ]
 
 red-context!: alias struct! [
@@ -167,7 +167,7 @@ red-char!: alias struct! [
 	header 	[integer!]								;-- cell header
 	_pad1	[integer!]
 	value	[integer!]								;-- UCS-4 codepoint
-	_pad2	[integer!]	
+	_pad2	[integer!]
 ]
 
 red-point!: alias struct! [
@@ -211,7 +211,7 @@ red-function!: alias struct! [
 red-routine!: alias struct! [
 	header 	[integer!]								;-- cell header
 	symbols	[node!]									;-- routine cleaned-up spec block reference
-	spec	[node!]									;-- routine spec block buffer reference	
+	spec	[node!]									;-- routine spec block buffer reference
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	routine's body block
 	;	symbols	 [red-block!]						;-- 	routine cleaned-up spec block reference

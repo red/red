@@ -12,15 +12,15 @@ Red/System [
 
 paren: context [
 	verbose: 0
-	
+
 	push*: func [
 		size	  [integer!]
-		return:   [red-paren!]	
+		return:   [red-paren!]
 		/local
 			paren [red-paren!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "paren/push*"]]
-		
+
 		paren: as red-block! ALLOC_TAIL(root)
 		paren/header: TYPE_PAREN					;-- implicit reset of all header flags
 		paren/head:   0
@@ -28,18 +28,18 @@ paren: context [
 		push paren
 		paren
 	]
-	
+
 	push: func [
 		paren [red-paren!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "paren/push"]]
 
-		paren/header: TYPE_PAREN					;-- implicit reset of all header flags 
+		paren/header: TYPE_PAREN					;-- implicit reset of all header flags
 		copy-cell as red-value! paren stack/push*
 	]
 
 	;--- Actions ---
-	
+
 	make: func [
 		proto 	  [red-value!]
 		spec	  [red-value!]
@@ -53,7 +53,7 @@ paren: context [
 		paren/header: TYPE_PAREN						;-- implicit reset of all header flags
 		paren
 	]
-	
+
 	mold: func [
 		paren	  [red-paren!]
 		buffer	  [red-string!]
@@ -66,14 +66,14 @@ paren: context [
 		return:   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "paren/mold"]]
-		
+
 		string/append-char GET_BUFFER(buffer) as-integer #"("
 		part: part - 1
 		part: block/mold-each paren buffer only? all? flat? arg part indent
 		string/append-char GET_BUFFER(buffer) as-integer #")"
 		part - 1
 	]
-	
+
 	compare: func [
 		value1	   [red-paren!]							;-- first operand
 		value2	   [red-paren!]							;-- second operand
@@ -85,7 +85,7 @@ paren: context [
 		if TYPE_OF(value2) <> TYPE_PAREN [RETURN_COMPARE_OTHER]
 		block/compare-each as red-block! value1 as red-block! value2 op
 	]
-	
+
 	copy: func [
 		paren   [red-paren!]
 		new		[red-paren!]

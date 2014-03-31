@@ -43,12 +43,12 @@ Red/System [
     ]
   --assert 0 = scan-utf-8 "a"
   --assert 0 = scan-utf-8 "a very straightforward string"
-  
+
   --test-- "simple if"
     i: 0
     if true [i: 1]
   --assert i = 1
-  
+
   --test-- "nested if"
     i: 0
     if true [
@@ -57,7 +57,7 @@ Red/System [
       ]
     ]
   --assert i = 1
-  
+
   --test-- "double nested if"
     i: 0
     if true [
@@ -68,7 +68,7 @@ Red/System [
       ]
     ]
   --assert i = 1
-  
+
   --test-- "triple nested if"
     i: 0
     if true [
@@ -81,7 +81,7 @@ Red/System [
       ]
     ]
   --assert i = 1
-  
+
   --test-- "byte nested if"
     ct-byte: #"^(C0)"
     i: 0
@@ -95,35 +95,35 @@ Red/System [
       ]
     ]
   --assert i = 1
-  
+
   --test-- "byte nested if inside function"
     ct-byte-nested: func [
       b [byte!]
       return: [integer!]
     ][
-      if b > #"^(7F)" [                                 
+      if b > #"^(7F)" [
         if #"^(C0)" = b [return 1]
         if #"^(C1)" = b [return 2]
         if #"^(F4)" < b [return 3]
         if b < #"^(E0)" [
-          if b < #"^(D0)" [return 4]   
+          if b < #"^(D0)" [return 4]
           if b > #"^(CF)" [return 5]
         ]
       ]
       0
     ]
   --assert 0 = ct-byte-nested #"^(00)"
-  --assert 1 = ct-byte-nested #"^(C0)"  
-  --assert 2 = ct-byte-nested #"^(C1)"  
-  --assert 3 = ct-byte-nested #"^(F9)"  
-  --assert 4 = ct-byte-nested #"^(C5)"  
-  --assert 5 = ct-byte-nested #"^(D1)" 
-  
+  --assert 1 = ct-byte-nested #"^(C0)"
+  --assert 2 = ct-byte-nested #"^(C1)"
+  --assert 3 = ct-byte-nested #"^(F9)"
+  --assert 4 = ct-byte-nested #"^(C5)"
+  --assert 5 = ct-byte-nested #"^(D1)"
+
   --test-- "either-true"
   --assert 1 = either true [1] [0]
-  
+
   --test-- "either-false"
   --assert 1 = either false [0] [1]
-    
+
 ~~~end-file~~~
 

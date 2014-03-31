@@ -57,7 +57,7 @@ context [
 		lpOverlapped 		 [integer!]
 		return:				 [integer!]
 	] kernel32 "ReadFile"
-	
+
 	PeekNamedPipe: make routine! [
 		hNamedPipe			[integer!]
 		lpBuffer			[integer!]
@@ -67,7 +67,7 @@ context [
 		lpBytesLeftThisMessage [integer!]
 		return: 			[integer!]
 	] kernel32 "PeekNamedPipe"
-	
+
 	WriteFile: make routine! [
 		hFile 					[integer!]
 		lpBuffer				[string!]
@@ -76,18 +76,18 @@ context [
 		lpOverlapped			[integer!]
 		return:					[integer!]
 	] kernel32 "WriteFile"
-	
+
 	SetHandleInformation: make routine! [
 		hObject 	[integer!]
 		dwMask		[integer!]
 		dwFlags		[integer!]
 		return: 	[integer!]
 	] kernel32 "SetHandleInformation"
-	
+
 	GetEnvironmentStrings: make routine! [
 		return: [integer!]
 	] kernel32 "GetEnvironmentStringsA"
-	
+
 	unless all [value? 'set-env native? :set-env][
 		set 'set-env make routine! [
 			name	[string!]
@@ -98,7 +98,7 @@ context [
 
 	CreateProcess: make routine! compose/deep [
 		lpApplicationName	 [integer!]
-		lpCommandLine		 [string!]	
+		lpCommandLine		 [string!]
 		lpProcessAttributes	 [struct! [a [integer!] b [integer!] c [integer!]]]
 		lpThreadAttributes	 [struct! [a [integer!] b [integer!] c [integer!]]]
 		bInheritHandles		 [char!]
@@ -117,19 +117,19 @@ context [
 
 	GetExitCodeProcess: make routine! [
 		hProcess	[integer!]
-		lpExitCode	[struct! [int [integer!]]] 
+		lpExitCode	[struct! [int [integer!]]]
 		return:		[integer!]
 	] kernel32 "GetExitCodeProcess"
-	
+
 	Sleep: make routine! [
 	  dwMilliseconds [long]
 	] kernel32 "Sleep"
-	
+
 	FORMAT_MESSAGE_FROM_SYSTEM:	   to-integer #{00001000}
 	FORMAT_MESSAGE_IGNORE_INSERTS: to-integer #{00000200}
 
 	fmt-msg-flags: FORMAT_MESSAGE_FROM_SYSTEM or FORMAT_MESSAGE_IGNORE_INSERTS
-	
+
 	GetLastError: make routine! [
 		return: [integer!]
 	] kernel32 "GetLastError"
@@ -153,24 +153,24 @@ context [
 	null: to-char 0
 	lpDWORD: make struct! [int [integer!]] none
 	make-lpDWORD: does [make struct! lpDWORD [0]]
-	
+
 	sa: make struct! SECURITY_ATTRIBUTES [0 0 1]
 	sa/nLength: length? third sa
-	
+
 	start-info: make struct! STARTUPINFO none
 	start-info/cb: length? third start-info
 	start-info/dwFlags: STARTF_USESTDHANDLES
-	
+
 	make-null-string!: func [len [integer!]][
 		head insert/dup make string! len null len
 	]
-	
+
 	get-error-msg: has [out][
 		out: make-null-string! 256
 		FormatMessage fmt-msg-flags 0 last-error: GetLastError 0 out 256 0
 		trim/tail out
 	]
-	
+
 	try*: func [body [block!] /local out err][
 		if error? set/any 'err try body [
 			out: get-error-msg
@@ -180,7 +180,7 @@ context [
 		]
 		none
 	]
-	
+
 	cmd: context [
 		output: error: none
 		show?: input?: no
@@ -206,14 +206,14 @@ context [
 	launch-call: func [cmd-line [string!] /local ret env][
 		cmd-line: join cmd-line null
 		change/dup cmd/pipe-buffer null cmd/pipe-size
-		
+
 		ret: catch [
 			;-- Create STDOUT pipe and ensure the read handle is not inherited
 			if zero? CreatePipe cmd/out-hRead cmd/out-hWrite sa 0 [throw 1]
 			if zero? SetHandleInformation cmd/out-hRead/int 1 0 [throw 3]
 			cmd/si/hStdOutput: cmd/out-hWrite/int
-			
-			;-- Create STDERR pipe and ensure the read handle is not inherited			
+
+			;-- Create STDERR pipe and ensure the read handle is not inherited
 			if zero? CreatePipe cmd/err-hRead cmd/err-hWrite sa 0 [throw 1]
 			if zero? SetHandleInformation cmd/err-hRead/int 1 0 [throw 3]
 			cmd/si/hStdError:  cmd/err-hWrite/int
@@ -224,12 +224,12 @@ context [
 				if zero? SetHandleInformation cmd/in-hWrite/int 1 0 [throw 3]
 				cmd/si/hStdInput: cmd/in-hRead/int
 			]
-			
-			unless cmd/show? [cmd/si/dwFlags: cmd/si/dwFlags or STARTF_USESHOWWINDOW]			
+
+			unless cmd/show? [cmd/si/dwFlags: cmd/si/dwFlags or STARTF_USESHOWWINDOW]
 			env: GetEnvironmentStrings
-			
+
 			if zero? CreateProcess 0 cmd-line sa sa to char! 1 0 env 0 cmd/si cmd/pi [throw 2]
-			
+
 			ret: none
 		]
 		if integer? ret [
@@ -240,26 +240,26 @@ context [
 			] ret " failed!"
 		]
 	]
-	
+
 	read-pipe: func [buffer pipe /local remain][
 		if zero? PeekNamedPipe pipe/int 0 0 0 cmd/bytes-avail 0 [throw 1]
 
-		unless zero? remain: cmd/bytes-avail/int [ 
+		unless zero? remain: cmd/bytes-avail/int [
 			until [
 				if zero? ReadFile pipe/int cmd/pipe-buffer cmd/pipe-size cmd/bytes-read 0 [throw 2]
 
 				insert/part tail buffer cmd/pipe-buffer cmd/bytes-read/int
 
 				change/dup cmd/pipe-buffer null cmd/pipe-size
-				remain: remain - cmd/bytes-read/int 
-				zero? remain 
+				remain: remain - cmd/bytes-read/int
+				zero? remain
 			]
 		]
 	]
-	
+
 	write-pipe: func [buffer pipe][
 		until [
-			if zero? WriteFile pipe/int buffer length? buffer cmd/bytes-written 0 [throw 4]		
+			if zero? WriteFile pipe/int buffer length? buffer cmd/bytes-written 0 [throw 4]
 			tail? buffer: skip buffer cmd/bytes-written/int
 		]
 		;-- Close the pipe handles so the child process stops reading
@@ -267,14 +267,14 @@ context [
 		CloseHandle cmd/in-hWrite/int
 	]
 
-    get-process-info: has [ret][	
+    get-process-info: has [ret][
 		;unless zero? cmd/pi/hProcess [
 			ret: catch [
 				if zero? GetExitCodeProcess cmd/pi/hProcess cmd/exit-code [throw 3]
- 				
+
 				if cmd/output [read-pipe cmd/output cmd/out-hRead]
 				if cmd/error  [read-pipe cmd/error  cmd/err-hRead]
-				
+
 				if cmd/exit-code/int <> STILL_ACTIVE [
 					CloseHandle cmd/pi/hProcess
 					CloseHandle cmd/pi/hThread
@@ -316,10 +316,10 @@ context [
 		cmd/show?: to-logic show
 		cmd/output: out
 		cmd/error: err
-		
+
 		if msg: try* [launch-call command][return msg]
 		if input [write-pipe in cmd/in-hWrite]
-		
+
 		until [
 			Sleep 10
 			if msg: try* [res: get-process-info][return msg]
