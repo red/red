@@ -74,38 +74,58 @@ simple-io: context [
 			]
 		]
 		
-		#either OS = 'MacOSX [
-			stat!: alias struct! [
-				st_dev		[integer!]
-				st_ino		[integer!]
-				st_modelink	[integer!]					;-- st_mode & st_link are both 16bit fields
-				st_uid		[integer!]
-				st_gid		[integer!]
-				st_rdev		[integer!]
-				atv_sec		[integer!]					;-- struct timespec inlined
-				atv_msec	[integer!]
-				mtv_sec		[integer!]					;-- struct timespec inlined
-				mtv_msec	[integer!]
-				ctv_sec		[integer!]					;-- struct timespec inlined
-				ctv_msec	[integer!]
-				st_size		[integer!]
-				st_blocks	[integer!]
-				st_blksize	[integer!]
-				st_flags	[integer!]
-				st_gen		[integer!]
-			]
-			#import [
-				LIBC-file cdecl [
-					;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
-					_stat:	"fstat" [
-						file		[integer!]
-						restrict	[stat!]
-						return:		[integer!]
-					]
+		#case [
+			OS = 'FreeBSD [
+				;-- http://fxr.watson.org/fxr/source/sys/stat.h?v=FREEBSD10
+				stat!: alias struct! [
+					st_dev		[integer!]
+					st_ino		[integer!]
+					st_modelink	[integer!]					;-- st_mode & st_link are both 16bit fields
+					st_uid		[integer!]
+					st_gid		[integer!]
+					st_rdev		[integer!]
+					atv_sec		[integer!]					;-- struct timespec inlined
+					atv_msec	[integer!]
+					mtv_sec		[integer!]					;-- struct timespec inlined
+					mtv_msec	[integer!]
+					ctv_sec		[integer!]					;-- struct timespec inlined
+					ctv_msec	[integer!]
+					st_size		[integer!]
+					st_size_h	[integer!]
+					st_blocks_l	[integer!]
+					st_blocks_h	[integer!]
+					st_blksize	[integer!]
+					st_flags	[integer!]
+					st_gen		[integer!]
+					st_lspare	[integer!]
+					btm_sec     [integer!]
+					btm_msec    [integer!]                  ;-- struct timespec inlined
+					pad0		[integer!]
+					pad1		[integer!]
 				]
 			]
-		][
-			#either OS = 'Syllable [
+			OS = 'MacOSX [
+				stat!: alias struct! [
+					st_dev		[integer!]
+					st_ino		[integer!]
+					st_modelink	[integer!]					;-- st_mode & st_link are both 16bit fields
+					st_uid		[integer!]
+					st_gid		[integer!]
+					st_rdev		[integer!]
+					atv_sec		[integer!]					;-- struct timespec inlined
+					atv_msec	[integer!]
+					mtv_sec		[integer!]					;-- struct timespec inlined
+					mtv_msec	[integer!]
+					ctv_sec		[integer!]					;-- struct timespec inlined
+					ctv_msec	[integer!]
+					st_size		[integer!]
+					st_blocks	[integer!]
+					st_blksize	[integer!]
+					st_flags	[integer!]
+					st_gen		[integer!]
+				]
+			]
+			OS = 'Syllable [
 				;-- http://glibc.sourcearchive.com/documentation/2.7-18lenny7/glibc-2_87_2bits_2stat_8h_source.html
 				stat!: alias struct! [
 					st_mode		[integer!]
@@ -119,64 +139,82 @@ simple-io: context [
 					st_size		[integer!]
 					;...incomplete...
 				]
-			][
-				#either legacy contains 'stat32 [
-					stat!: alias struct! [
-						st_dev		[integer!]
-						st_ino		[integer!]
-						st_mode		[integer!]
-						st_nlink	[integer!]
-						st_uid		[integer!]
-						st_gid		[integer!]
-						st_rdev		[integer!]
-						st_size		[integer!]
-						st_blksize	[integer!]
-						st_blocks	[integer!]
-						st_atime	[integer!]
-						st_mtime	[integer!]
-						st_ctime	[integer!]
-					]
-				][
-					;-- http://lxr.free-electrons.com/source/arch/x86/include/uapi/asm/stat.h
-					stat!: alias struct! [				;-- stat64 struct
-						st_dev_l	  [integer!]
-						st_dev_h	  [integer!]
-						pad0		  [integer!]
-						__st_ino	  [integer!]
-						st_mode		  [integer!]
-						st_nlink	  [integer!]
-						st_uid		  [integer!]
-						st_gid		  [integer!]
-						st_rdev_l	  [integer!]
-						st_rdev_h	  [integer!]
-						pad1		  [integer!]
-						st_size		  [integer!]
-						st_size_h	  [integer!]
-						st_blksize	  [integer!]
-						st_blocks	  [integer!]
-						st_atime	  [integer!]
-						st_atime_nsec [integer!]
-						st_mtime	  [integer!]
-						st_mtime_nsec [integer!]
-						st_ctime	  [integer!]
-						st_ctime_nsec [integer!]
-						st_ino_h	  [integer!]
-						st_ino_l	  [integer!]
-						;...optional padding skipped
+			]
+			all [legacy find legacy 'stat32] [
+				stat!: alias struct! [
+					st_dev		[integer!]
+					st_ino		[integer!]
+					st_mode		[integer!]
+					st_nlink	[integer!]
+					st_uid		[integer!]
+					st_gid		[integer!]
+					st_rdev		[integer!]
+					st_size		[integer!]
+					st_blksize	[integer!]
+					st_blocks	[integer!]
+					st_atime	[integer!]
+					st_mtime	[integer!]
+					st_ctime	[integer!]
+				]
+			]
+			true [ ; else
+				;-- http://lxr.free-electrons.com/source/arch/x86/include/uapi/asm/stat.h
+				stat!: alias struct! [				;-- stat64 struct
+					st_dev_l	  [integer!]
+					st_dev_h	  [integer!]
+					pad0		  [integer!]
+					__st_ino	  [integer!]
+					st_mode		  [integer!]
+					st_nlink	  [integer!]
+					st_uid		  [integer!]
+					st_gid		  [integer!]
+					st_rdev_l	  [integer!]
+					st_rdev_h	  [integer!]
+					pad1		  [integer!]
+					st_size		  [integer!]
+					st_size_h	  [integer!]
+					st_blksize	  [integer!]
+					st_blocks	  [integer!]
+					st_atime	  [integer!]
+					st_atime_nsec [integer!]
+					st_mtime	  [integer!]
+					st_mtime_nsec [integer!]
+					st_ctime	  [integer!]
+					st_ctime_nsec [integer!]
+					st_ino_h	  [integer!]
+					st_ino_l	  [integer!]
+					;...optional padding skipped
+				]
+			]
+		]
+
+		#case [
+			any [OS = 'MacOSX OS = 'FreeBSD] [
+				#import [
+					LIBC-file cdecl [
+						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
+						_stat:	"fstat" [
+							file		[integer!]
+							restrict	[stat!]
+							return:		[integer!]
+						]
 					]
 				]
 			]
-			#import [
-				LIBC-file cdecl [
-					;-- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
-					_stat:	"__fxstat" [
-						version		[integer!]
-						file		[integer!]
-						restrict	[stat!]
-						return:		[integer!]
+			true [
+				#import [
+					LIBC-file cdecl [
+						;-- http://refspecs.linuxbase.org/LSB_3.0.0/LSB-Core-generic/LSB-Core-generic/baselib-xstat-1.html
+						_stat:	"__fxstat" [
+							version		[integer!]
+							file		[integer!]
+							restrict	[stat!]
+							return:		[integer!]
+						]
 					]
 				]
 			]
+
 		]
 	]
 	
@@ -210,16 +248,16 @@ simple-io: context [
 		return:	 [integer!]
 		/local s
 	][
-		#switch OS [
-			Windows [
+		#case [
+			OS = 'Windows [
 				GetFileSize file null
 			]
-			MacOSX [
+			any [OS = 'MacOSX OS = 'FreeBSD] [
 				s: declare stat!
 				_stat file s
 				s/st_size
 			]
-			#default [
+			true [ ; else
 				s: declare stat!
 				_stat 3 file s
 				s/st_size

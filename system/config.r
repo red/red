@@ -119,6 +119,15 @@ Syllable [
 	base-address: -2147483648			; 80000000h
 ]
 ;-------------------------
+FreeBSD [
+	OS:			'FreeBSD
+	format: 	'ELF
+	type:		'exe
+	dynamic-linker: "/usr/libexec/ld-elf.so.1"
+	syscall: 'BSD
+	target: 'IA-32
+]
+;-------------------------
 Darwin [
 	OS:			'MacOSX
 	format: 	'Mach-O
