@@ -667,10 +667,11 @@ interpreter: context [
 			]
 			TYPE_LIT_WORD [
 				either sub? [
-					word/push as red-word! pc			;-- nested expression: push value
+					w: word/push as red-word! pc		;-- nested expression: push value
 				][
-					stack/set-last pc					;-- root expression: return value
+					w: as red-word! stack/set-last pc	;-- root expression: return value
 				]
+				w/header: TYPE_WORD						;-- coerce it to a word!
 				pc: pc + 1
 			]
 			TYPE_WORD [

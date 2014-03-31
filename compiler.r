@@ -824,7 +824,7 @@ red: context [
 			output: saved
 	]
 	
-	comp-literal: func [root? [logic!] /local value char? name w make-block type][
+	comp-literal: func [root? [logic!] /inactive /local value char? name w make-block type][
 		value: pc/1
 		either any [
 			char?: unicode-char? value
@@ -843,6 +843,7 @@ red: context [
 				find [refinement! issue! lit-word!] type?/word :value [
 					add-symbol w: to word! form value
 					type: to word! form type? :value
+					if all [lit-word? :value not inactive][type: 'word]
 					
 					either all [not issue? :value local-word? w][
 						emit append to path! type 'push-local
@@ -1728,7 +1729,7 @@ red: context [
 						]
 					]
 				]
-				get-word! [comp-literal no]
+				get-word! [comp-literal/inactive no]
 				word!     [comp-expression]
 			]
 			spec: next spec
