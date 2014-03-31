@@ -73,7 +73,7 @@ Red [
 	--assert unset! = type? get/any 'value
 	--test-- "type?wv-11"
 		value: 'a
-	--assert lit-word! = type? value
+	--assert word! = type? value
 	--test-- "type?wv-12"
 		value: first ['a]
 	--assert lit-word! = type? value
@@ -115,7 +115,7 @@ Red [
 	--assert unset! = type? :value
 	--test-- "type?gwv-12"
 		value: 'a
-	--assert lit-word! = type? :value
+	--assert word! = type? :value
 	--test-- "type?gwv-13"
 		value: first ['a]
 	--assert lit-word! = type? :value
