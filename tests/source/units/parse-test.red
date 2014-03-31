@@ -1528,6 +1528,11 @@ Red [
 		--assert parse "catcatcat" [3 "cat"]
 		--assert parse "catcatcatcat" [4 "cat"]
 		
+	--test-- "#748"
+		txt: "Hello world"
+		parse txt [ while any [ remove "l" | skip ] ]
+		--assert txt = "Heo word"
+		--assert 8 = length? txt
 
 ===end-group===
     
