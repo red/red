@@ -66,32 +66,31 @@ REBOL [
 	    	not exists? %call-test.exe
 	    ]
 
-	--test-- "call-3"						;; test of call/output 
+		;;set up for remaining tests
 		qt/tests-dir: clean-path %../../tests/
 		--compile %source/library/call-test.red
+		--compile %source/library/called-test.red
+		exe: either qt/windows-os? ["call-test.exe"] ["./call-test"]	    
+	    
+	--test-- "call-3"						;; test of call/output 
 		output: copy ""
-	    exe: either qt/windows-os? ["call-test.exe"] ["./call-test"]
 	    exe: join exe " option-1"
 	    call/output exe output
 	    --assert "Hello World" = output
 	       
 	--test-- "call-4"						;; test of call/error
-		error: copy ""
 		output: copy ""
-	    exe: either qt/windows-os? ["not-call-test.exe"] ["./not-call-test"]
-	    exe: join exe
-	    call/output/error exe output error
-	    --assert "" <> error
-	    --assert "" = output
+	    exe: join exe " option-2"
+	    call/output exe output
+	    probe output
+	    --assert "" <> output
 	
 	    if posix? [
 	--test-- "call-5"						;; test of call/shell 
-	    		qt/tests-dir: clean-path %../../tests/
-	    		--compile %source/library/call-test.red
 	    		output: copy ""
-	    		exe: either qt/windows-os? ["call-test.exe"] ["./call-test"]
 	    		exe: join exe " option-1"
-	    		call/output/shell exe output
+	    		call/output exe output
+	    		probe output
 	    		--assert "Hello World" = output  
 	    ]
 	    
