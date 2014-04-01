@@ -83,6 +83,10 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/strict-equal-test.red
 ===end-group===
 
+===start-group=== "Red Library tests"
+	--run-script-quiet %source/library/call-test.r
+===end-group===
+
 ===start-group=== "Auto-tests"
   	--run-test-file-quiet %source/units/auto-tests/integer-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/infix-equal-auto-test.red
