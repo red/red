@@ -51,7 +51,6 @@ Red/System [
 
 	; Values for the third argument to fcntl
 	#enum open-fnctl! [
-		O_ACCMODE:       0003h
 		O_RDONLY:          00h
 		O_WRONLY:          01h
 		O_RDWR:            02h

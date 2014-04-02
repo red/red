@@ -140,7 +140,7 @@ system-call: context [
 			sa/nLength: size? sa
 			sa/lpSecurityDescriptor: 0
 			sa/bInheritHandle: true
-			out-read:  0
+			out-read:  0								;-- Pipes
 			out-write: 0
 			in-read:   0
 			in-write:  0
@@ -255,7 +255,6 @@ system-call: context [
 			if null <> find-string system/env-vars/item "SHELL=" [
 				shell-name: make-c-string length? system/env-vars/item
 				copy-string shell-name (system/env-vars/item + 6)
-;				print [ "Shell detected : " shell-name lf ]
 			]
 			system/env-vars: system/env-vars + 1
 			system/env-vars/item = null
@@ -301,7 +300,7 @@ system-call: context [
 					return -1
 				]
 			]
-			either out-buf <> null [
+			if out-buf <> null [						;- Create buffer for output
 				out-buf/count: 0
 				out-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-out: declare f-desc!
@@ -309,16 +308,8 @@ system-call: context [
 					print [ error-pipe "stdout^/" ]
 					return -1
 				]
-			][
-				if not console [						;-- output must be redirected to "/dev/null" or process returns an error code
-					fd-out: declare f-desc!
-					if (pipe as int-ptr! fd-out) = -1 [	;-- Create a pipe for child's output
-						print [ error-pipe "stdout^/" ]
-						return -1
-					]
-				]
 			]
-			if err-buf <> null [
+			if err-buf <> null [						;- Create buffer for error
 				err-buf/count: 0
 				err-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-err: declare f-desc!
@@ -342,22 +333,27 @@ system-call: context [
 					if err = -1 [ print [ error-dup2 "stdout^/" ] quit -1 ]
 					io-close fd-out/writing
 				][
-					if not console [					;-- redirect to /dev/null. If stdout is closed, forked process returns an error code.
+					if not console [					;-- redirect stdout to /dev/null.
 						dev-null: io-open "/dev/null" O_WRONLY
 						err: dup2 dev-null stdout
 						if err = -1 [ print [ error-dup2 "stdout to null^/" ] quit -1 ]
+						io-close dev-null
 					]
 				]
-				if err-buf <> null [                    ;-- redirect stderr to the pipe
+				either err-buf <> null [				;-- redirect stderr to the pipe
 					io-close fd-err/reading
 					err: dup2 fd-err/writing stderr
 					if err = -1 [ print [ error-dup2 "stderr^/" ] quit -1 ]
 					io-close fd-err/writing
+				][
+					if not console [					;-- redirect stderr to /dev/null.
+						dev-null: io-open "/dev/null" O_WRONLY
+						err: dup2 dev-null stderr
+						if err = -1 [ print [ error-dup2 "stderr to null^/" ] quit -1 ]
+						io-close dev-null
+					]
 				]
-				if not console [
-					if in-buf  = null [ io-close stdin ]
-					if err-buf = null [ io-close stderr ]
-				]
+				if all [(in-buf = null) (not console)] [ io-close stdin ]	;-- no redirection, stdin closed
 				either shell [
 					args: as str-array! allocate 4 * size? c-string!
 					args/item: shell-name	args: args + 1
