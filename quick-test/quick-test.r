@@ -347,7 +347,7 @@ qt: make object! [
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
     call/output/wait exec output
-    if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
+    ;if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
     if all [
       source-file?
       not pgm

@@ -20,6 +20,14 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
+#define CP_ACP              0							;-- default to ANSI code page
+#define CP_OEMCP			1							;-- default to OEM  code page
+#define CP_MACCP			2							;-- default to MAC  code page
+#define CP_THREAD_ACP		3							;-- current thread's ANSI code page
+#define CP_SYMBOL			42							;-- SYMBOL translations
+
+#define CP_UTF7				65000						;-- UTF-7 translation
+#define CP_UTF8				65001						;-- UTF-8 translation
 
 platform: context [
 
@@ -44,6 +52,10 @@ platform: context [
 				mode		[integer!]
 				return:		[integer!]
 			]
+			_get_osfhandle: "_get_osfhandle" [
+				fd			[integer!]
+				return:		[integer!]
+			]
 			;_open_osfhandle: "_open_osfhandle" [
 			;	handle		[integer!]
 			;	flags		[integer!]
@@ -63,14 +75,21 @@ platform: context [
 				size		[integer!]
 				return:		[integer!]
 			]
-			WriteConsole: 	 "WriteConsoleW" [
-				consoleOutput	[integer!]
-				buffer			[byte-ptr!]
-				charsToWrite	[integer!]
-				numberOfChars	[int-ptr!]
-				_reserved		[int-ptr!]
+			WideCharToMultiByte: "WideCharToMultiByte" [
+				codepage		[integer!]
+				flag			[integer!]
+				wideCharStr		[byte-ptr!]
+				numberOfChars	[integer!]
+				multiByteStr	[byte-ptr!]
+				numberOfBytes	[integer!]
+				defaultChar		[byte-ptr!]
+				userDefaultChar [int-ptr!]
 				return:			[integer!]
 			]
+			;SetConsoleOutputCP: "SetConsoleOutputCP" [
+			;	codepage		[integer!]
+			;	return:			[integer!]
+			;]
 		]
 	]
 
@@ -109,16 +128,20 @@ platform: context [
 	]
 
 	;-------------------------------------------
-	;-- putwchar use WriteConsoleW internal
+	;-- putwchar use WriteFile internal
 	;-------------------------------------------
 	putwchar: func [
 		wchar	[integer!]								;-- wchar is 16-bit on Windows
 		return:	[integer!]
 		/local
 			n	[integer!]
+			buf	[integer!]
 	][
 		n: 0
-		WriteConsole stdout (as byte-ptr! :wchar) 1 :n null
+		buf: 0
+		n: WideCharToMultiByte CP_ACP 0 (as byte-ptr! :wchar) 1 (as byte-ptr! :buf) 4 null null
+		win32-startup-ctx/WriteFile _get_osfhandle(fd-stdout) (as c-string! :buf) n :n 0
+		n
 	]
 
 	;-------------------------------------------
@@ -252,6 +275,7 @@ platform: context [
 		#if unicode? = yes [
 			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
 			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure
+			;SetConsoleOutputCP CP_UTF8					;@@ throw an error on failure
 		]
 	]
 ]
