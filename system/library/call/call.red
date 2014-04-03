@@ -129,11 +129,13 @@ call: func [ "Executes a shell command to run another process."
 	pid: redsys-call cmd wait console shell do-in str do-out do-err
 	if do-out [
 		str: get-out
+		parse str [ while [ ahead crlf remove cr | skip ] ]
 		insert out str
 		out: head out
 	]
 	if do-err [
 		str: get-err
+		parse str [ while [ ahead crlf remove cr | skip ] ]
 		insert err str
 		err: head err
 	]

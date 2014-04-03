@@ -1,7 +1,7 @@
 Red [
-	Title:   "Red call test program"
+	Title:   "Program called by Red call tests"
 	Author:  "Bruno Anselme & Peter W A Wood"
-	File: 	 %call-test.red
+	File: 	 %called-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2014 Bruno Anselme & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
@@ -24,22 +24,10 @@ read-argument: routine [
 ]
 
 test-name: read-argument
-call-string: either "Windows" = system/platform ["called-test"] ["./called-test"]
-append call-string " "
-append call-string test-name
-	
+
 if test-name = "option-1" [
-	output: ""
-	call/output call-string output
-	prin output
+	prin "Hello World"
 	quit
 ]
 
-if test-name = "option-2" [
-	error: ""
-	head insert call-string "not-"
-	call/error call-string error
-	prin error
-	quit
-]
 
