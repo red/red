@@ -8,6 +8,8 @@ Red/System [
 		Distributed under the Boost Software License, Version 1.0.
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
+	edited-by: "Arnold van Hofwegen"
+	find: "@IR"
 ]
 
 integer: context [
@@ -160,6 +162,21 @@ integer: context [
 		]
 	]
 	
+	random: func [
+		int		[red-integer!]
+		return: [integer!]
+ 	][
+ 		;; Is seed a function within random action?
+ 		seed: function [ 
+ 			int [red-integer!]
+ 		][
+ 			int/value: 2
+ 			as integer! int
+ 		]
+		int/value: int/value + 1			; Start with a simple return value to test if it works at all.
+		as integer! int                              
+	]
+
 	form: func [
 		int		   [red-integer!]
 		buffer	   [red-string!]
@@ -281,6 +298,8 @@ integer: context [
 		as-logic int/value and 1
 	]
 	
+	;-- End of Actions --
+
 	init: does [
 		datatype/register [
 			TYPE_INTEGER
@@ -288,7 +307,7 @@ integer: context [
 			"integer!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form
