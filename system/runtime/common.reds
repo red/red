@@ -68,6 +68,7 @@ cr:  	 #"^M"
 tab: 	 #"^-"
 space:	 #" "
 slash:	 #"/"
+esc:	 #"^["
 
 str-array!: alias struct! [
 	item [c-string!]

@@ -160,6 +160,14 @@ integer: context [
 		]
 	]
 	
+	random: func [
+		int		[red-integer!]
+		return: [integer!]
+ 	][
+		int/value: 				; Start with a simple return value to test if it works at all.
+		as red-value! int                              
+	]
+
 	form: func [
 		int		   [red-integer!]
 		buffer	   [red-string!]

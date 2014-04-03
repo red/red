@@ -128,7 +128,31 @@ actions: context [
 		action-make proto spec
 	]
 
-	random*: func [][]
+	random*: func [
+	; example was negate*: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/random"]]
+
+		random-action stack/arguments
+	]
+
+	random-action: func [								;-- random is a Red/System keyword
+		value	[red-value!]
+		return:	[red-value!]
+		/local
+			action-random
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/random"]]
+
+		action-random: as function! [
+			value	[red-value!]
+			return:	[red-value!]						;-- randomized value
+		] get-action-ptr value ACT_RANDOM
+		
+		action-random value
+	]	
+	
 	
 	reflect*: func [
 		return: [red-block!]
@@ -970,7 +994,7 @@ actions: context [
 		register [
 			;-- General actions --
 			:make*
-			null			;random
+			:random*		; because random-action
 			:reflect*
 			null			;to
 			:form*
