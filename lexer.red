@@ -97,6 +97,18 @@ trans-hexa: routine [
 	n
 ]
 
+trans-char: routine [
+	start	[string!]
+	end		[string!]
+	/local
+		n	  [integer!]
+		value [red-value!]
+][
+	n: trans-hexa start end
+	value: as red-value! integer/box n
+	set-type value TYPE_CHAR
+]
+
 trans-push-path: routine [
 	stack [block!]
 	type  [datatype!]
@@ -260,7 +272,7 @@ transcode: function [
 				| "del"	 (value: #"^(7F)")
 			]
 			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
-				value: encode-UTF8-char pos e
+				value: trans-char pos e
 			)
 		] #")"
 		| #"^^" [

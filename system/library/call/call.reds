@@ -47,8 +47,8 @@ system-call: context [
 	error-dup2:			"Error Red/System call : calling dup2 : "
 	error-sethandle:	"Error Red/System call : SetHandleInformation failed : "
 	outputs: declare struct! [							;--  Global var to store outputs values before setting call /output and /error refinements
-		out    [p-buffer!]
-		err    [p-buffer!]
+		out			[p-buffer!]
+		err			[p-buffer!]
 	]
 
 	free-str-array: func [ "Free str-array! created by word-expand"
@@ -140,7 +140,7 @@ system-call: context [
 			sa/nLength: size? sa
 			sa/lpSecurityDescriptor: 0
 			sa/bInheritHandle: true
-			out-read:  0
+			out-read:  0								;-- Pipes
 			out-write: 0
 			in-read:   0
 			in-write:  0
@@ -163,7 +163,7 @@ system-call: context [
 				]
 				s-inf/hStdInput: in-read
 			]
-			if out-buf <> null [
+			either out-buf <> null [
 				out-buf/count: 0
 				out-buf/buffer: allocate READ-BUFFER-SIZE
 				if not create-pipe :out-read :out-write sa 0 [	;-- Create a pipe for child's output
@@ -175,6 +175,10 @@ system-call: context [
 					return -1
 				]
 				s-inf/hStdOutput: out-write
+			][
+				if not console [						;-- output must be redirected to "nul" or process returns an error code
+					s-inf/hStdOutput: create-file "nul" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_ALWAYS 0 null
+				]
 			]
 			if err-buf <> null [
 				err-buf/count: 0
@@ -194,9 +198,8 @@ system-call: context [
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
-			if not console [							;-- close IOs if not needed
+			if not console [							;-- close inherited IOs if not needed
 				if in-buf  = null [ s-inf/hStdInput:  0 ]
-				if out-buf = null [ s-inf/hStdOutput: 0 ]
 				if err-buf = null [ s-inf/hStdError:  0 ]
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
@@ -252,7 +255,6 @@ system-call: context [
 			if null <> find-string system/env-vars/item "SHELL=" [
 				shell-name: make-c-string length? system/env-vars/item
 				copy-string shell-name (system/env-vars/item + 6)
-;				print [ "Shell detected : " shell-name lf ]
 			]
 			system/env-vars: system/env-vars + 1
 			system/env-vars/item = null
@@ -262,11 +264,11 @@ system-call: context [
 			data      [p-buffer!]
 			/local len size total
 		][
-			close fd/writing                            ;-- close unused pipe end
+			io-close fd/writing                            ;-- close unused pipe end
 			size: READ-BUFFER-SIZE                      ;-- initial buffer size and grow step
 			total: 0
 			until [
-				len: ioread fd/reading (data/buffer + total) (size - total)    ;-- read pipe, store into buffer
+				len: io-read fd/reading (data/buffer + total) (size - total)    ;-- read pipe, store into buffer
 				if len > -1 [                           ;-- FIX: there's something wrong here, need to test errno
 					total: total + len
 					if total = size [                   ;-- buffer must be expanded
@@ -278,7 +280,7 @@ system-call: context [
 			]
 			data/buffer: resize-buffer data/buffer (total + 1)  ;-- Resize output buffer to minimum size
 			data/count: total
-			close fd/reading                            ;-- close other pipe end
+			io-close fd/reading                            ;-- close other pipe end
 		] ; read-from-pipe
 		call: func [                   "Executes a shell command, IO redirections to buffers."
 			cmd			[c-string!]    "The shell command"
@@ -289,29 +291,29 @@ system-call: context [
 			out-buf		[p-buffer!]    "Output data buffer or null "
 			err-buf		[p-buffer!]    "Error data buffer or null"
 			return:		[integer!]
-			/local pid status err wexp fd-in fd-out fd-err args
+			/local pid status err wexp fd-in fd-out fd-err args dev-null
 		][
 			if in-buf <> null [
 				fd-in: declare f-desc!
-				if (pipe as int-ptr! fd-in) = -1 [     ; Create a pipe for child's input
+				if (pipe as int-ptr! fd-in) = -1 [		;-- Create a pipe for child's input
 					print [ error-pipe "stdin^/" ]
 					return -1
 				]
 			]
-			if out-buf <> null [
+			if out-buf <> null [						;- Create buffer for output
 				out-buf/count: 0
 				out-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-out: declare f-desc!
-				if (pipe as int-ptr! fd-out) = -1 [    ; Create a pipe for child's output
+				if (pipe as int-ptr! fd-out) = -1 [		;-- Create a pipe for child's output
 					print [ error-pipe "stdout^/" ]
 					return -1
 				]
 			]
-			if err-buf <> null [
+			if err-buf <> null [						;- Create buffer for error
 				err-buf/count: 0
 				err-buf/buffer: allocate READ-BUFFER-SIZE
 				fd-err: declare f-desc!
-				if (pipe as int-ptr! fd-err) = -1 [    ; Create a pipe for child's error
+				if (pipe as int-ptr! fd-err) = -1 [		;-- Create a pipe for child's error
 					print [ error-pipe "stderr^/" ]
 					return -1
 				]
@@ -320,28 +322,38 @@ system-call: context [
 			pid: fork
 			either pid = 0 [                            ;-- Child process
 				if in-buf <> null [                     ;-- redirect stdin to the pipe
-					close fd-in/writing
+					io-close fd-in/writing
 					err: dup2 fd-in/reading stdin
-					if err = -1 [ print [ error-dup2 "stdin^/" ] return -1 ]
-					close fd-in/reading
+					if err = -1 [ print [ error-dup2 "stdin^/" ] quit -1 ]
+					io-close fd-in/reading
 				]
-				if out-buf <> null [                    ;-- redirect stdout to the pipe
-					close fd-out/reading
+				either out-buf <> null [				;-- redirect stdout to the pipe
+					io-close fd-out/reading
 					err: dup2 fd-out/writing stdout
-					if err = -1 [ print [ error-dup2 "stdout^/" ] return -1 ]
-					close fd-out/writing
+					if err = -1 [ print [ error-dup2 "stdout^/" ] quit -1 ]
+					io-close fd-out/writing
+				][
+					if not console [					;-- redirect stdout to /dev/null.
+						dev-null: io-open "/dev/null" O_WRONLY
+						err: dup2 dev-null stdout
+						if err = -1 [ print [ error-dup2 "stdout to null^/" ] quit -1 ]
+						io-close dev-null
+					]
 				]
-				if err-buf <> null [                    ;-- redirect stderr to the pipe
-					close fd-err/reading
+				either err-buf <> null [				;-- redirect stderr to the pipe
+					io-close fd-err/reading
 					err: dup2 fd-err/writing stderr
-					if err = -1 [ print [ error-dup2 "stderr^/" ] return -1 ]
-					close fd-err/writing
+					if err = -1 [ print [ error-dup2 "stderr^/" ] quit -1 ]
+					io-close fd-err/writing
+				][
+					if not console [					;-- redirect stderr to /dev/null.
+						dev-null: io-open "/dev/null" O_WRONLY
+						err: dup2 dev-null stderr
+						if err = -1 [ print [ error-dup2 "stderr to null^/" ] quit -1 ]
+						io-close dev-null
+					]
 				]
-				if not console [
-					if in-buf  = null [ close stdin ]
-					if out-buf = null [ close stdout ]
-					if err-buf = null [ close stderr ]
-				]
+				if all [(in-buf = null) (not console)] [ io-close stdin ]	;-- no redirection, stdin closed
 				either shell [
 					args: as str-array! allocate 4 * size? c-string!
 					args/item: shell-name	args: args + 1
@@ -359,7 +371,7 @@ system-call: context [
 					either status = 0 [						;-- Parsing ok
 						execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
 						print [ "Error Red/System call while calling execvp : {" cmd "}" lf ]  ;-- Should never occur
-						quit 1
+						quit -1
 					][										;-- Parsing nok
 						print [ "Error Red/System call, wordexp parsing command : " cmd lf ]
 						switch status [
@@ -377,9 +389,9 @@ system-call: context [
 				]
 			][											;-- Parent process
 				if in-buf <> null [						;-- write input buffer to child process' stdin
-					close fd-in/reading
-					iowrite fd-in/writing in-buf/buffer in-buf/count
-					close fd-in/writing
+					io-close fd-in/reading
+					io-write fd-in/writing in-buf/buffer in-buf/count
+					io-close fd-in/writing
 					waitend: true
 				]
 				if out-buf <> null [
@@ -393,7 +405,11 @@ system-call: context [
 				if waitend [
 					status: 0
 					waitpid pid :status 0				;-- Wait child process terminate
-					pid: status >> 8					;-- Returns process exit code (__WEXITSTATUS(status))
+					either (status and 00FFh) <> 0 [	;-- a signal occured. Low  byte contains stop code
+						pid: -1
+					][
+						pid: status >> 8				;-- High byte contains exit code
+					]
 				]
 				outputs/out: out-buf					;-- Store values in global var
 				outputs/err: err-buf

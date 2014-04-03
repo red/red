@@ -34,6 +34,13 @@ REBOL [
     		print "***"
     	}
     	--assert-printed? "***2345***"
+    
+    --test-- "Red print 5"
+    	--compile-and-run-this {
+    		Red[] 
+    		print "abcde✐"
+    	}
+    	--assert-printed? "abcde✐"
   
     --test-- "issue #748"
     	--compile-and-run-this {

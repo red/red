@@ -51,7 +51,6 @@ Red/System [
 
 	; Values for the third argument to fcntl
 	#enum open-fnctl! [
-		O_ACCMODE:       0003h
 		O_RDONLY:          00h
 		O_WRONLY:          01h
 		O_RDWR:            02h
@@ -117,17 +116,22 @@ Red/System [
 			fd2            [integer!]  "File descriptor"
 			return:        [integer!]
 		]
-		close: "close" [ "Close the file descriptor"
+		io-open: "open" [ "Open FILE and return a new file descriptor for it, or -1 on error"
+			filename		[c-string!]
+			flags			[integer!]
+			return:			[integer!]
+		]
+		io-close: "close" [ "Close the file descriptor"
 			fd             [integer!]  "File descriptor"
 			return:        [integer!]
 		]
-		ioread: "read" [ "Read nbytes into buf from fd"
+		io-read: "read" [ "Read nbytes into buf from fd"
 			fd             [integer!]  "File descriptor"
 			buf            [byte-ptr!] "Pointer to allocated memory"
 			nbytes         [integer!]  "Size of allocated memory"
 			return:        [integer!]  "Number of bytes read or error"
 		]
-		iowrite: "write" [ "Write nbytes into fd from buf"
+		io-write: "write" [ "Write nbytes into fd from buf"
 			fd             [integer!]  "File descriptor"
 			buf            [byte-ptr!] "Pointer to source data"
 			nbytes         [integer!]  "Source data count (bytes)"
