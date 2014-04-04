@@ -13,9 +13,11 @@ Red/System [
 simple-io: context [
 
 	#either OS = 'Windows [
-	
+
+		#define GENERIC_WRITE			40000000h
 		#define GENERIC_READ 			80000000h
 		#define FILE_SHARE_READ			00000001h
+		#define FILE_SHARE_WRITE		00000002h
 		#define OPEN_EXISTING			00000003h
 		#define FILE_ATTRIBUTE_NORMAL	00000080h
 
