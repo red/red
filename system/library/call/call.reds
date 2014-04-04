@@ -30,6 +30,8 @@ Red/System [
 	#default  [ #include %../linux.reds  ]
 ]
 
+;-- All error messages should be printed to stderr when avalaible
+
 #define READ-BUFFER-SIZE 4096
 
 p-buffer!: alias struct! [								;-- Data buffer struct, pointer and bytes count
@@ -370,7 +372,7 @@ system-call: context [
 					status: wordexp cmd wexp WRDE_SHOWERR	;-- Parse cmd into str-array
 					either status = 0 [						;-- Parsing ok
 						execvp wexp/we_wordv/item wexp/we_wordv ;-- Process is launched here, execvp with str-array parameters
-						print [ "Error Red/System call while calling execvp : {" cmd "}" lf ]  ;-- Should never occur
+						print [ "Error Red/System call while calling execvp : {" cmd "}" lf ]  ;-- Occurs if command doesn't exist. Should be printed to stderr
 						quit -1
 					][										;-- Parsing nok
 						print [ "Error Red/System call, wordexp parsing command : " cmd lf ]
