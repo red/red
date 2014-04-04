@@ -47,6 +47,10 @@ platform: context [
 				[variadic]
 				return: 	[integer!]
 			]
+			fflush: "fflush" [
+				fd			[integer!]
+				return:		[integer!]
+			]
 			_setmode: "_setmode" [
 				handle		[integer!]
 				mode		[integer!]
@@ -281,21 +285,25 @@ platform: context [
 
 	prin-int*: func [i [integer!] return: [integer!]][
 		wprintf ["%^(00)i^(00)^(00)" i]								;-- UTF-16 literal string
+		fflush null													;-- flush all streams
 		i
 	]
 
 	prin-hex*: func [i [integer!] return: [integer!]][
 		wprintf ["%^(00)0^(00)8^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
+		fflush null
 		i
 	]
 
 	prin-float*: func [f [float!] return: [float!]][
 		wprintf ["^(00)%^(00).^(00)1^(00)4^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
+		fflush null
 		f
 	]
 
 	prin-float32*: func [f [float32!] return: [float32!]][
 		wprintf ["^(00)%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
+		fflush null
 		f
 	]
 
