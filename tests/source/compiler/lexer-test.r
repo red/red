@@ -183,15 +183,15 @@ do %../../../lexer.r
 	--assert-printed? "*** line: 2"
 	--assert-printed? {*** at: "1: 1}
 	  
-	--test-- "lexer-22"
-	  src: {
-	    Red/System[]
-	    a: 1
-	  }
-	  lexer/process src
-	--assert-printed? "*** Syntax Error: Invalid Red program"
-	--assert-printed? "*** line: 1"
-	--assert-printed?  "*** at: {/System[]"
+	;--test-- "lexer-22"
+	;  src: {
+	;    Red/System[]
+	;    a: 1
+	;  }
+	;  lexer/process src
+	;--assert-printed? "*** Syntax Error: Invalid Red program"
+	;--assert-printed? "*** line: 1"
+	;--assert-printed?  "*** at: {/System[]"
 	
 	--test-- "lexer-23"
 	  src: {Red [] #"^^/"}
