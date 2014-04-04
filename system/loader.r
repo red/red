@@ -206,9 +206,6 @@ loader: make-profilable context [
 				| ws s: ">>>" e: ws (
 					e: change/part s "-**" e		;-- convert >>> to -**
 				) :e
-				| ws s: #"%" e: ws (
-					e: change/part s "///" e		;-- convert % to ///
-				) :e
 				| [hex-delim | ws]
 				s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
 				e: [hex-delim | ws-all | #";" to lf | end] (
