@@ -464,7 +464,7 @@ transcode: function [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule		(append last stack value)
-			| integer-rule		(append last stack trans-integer s e)
+			| integer-rule		if (value: trans-integer s e ) (append last stack value)
 			| hexa-rule			(append last stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
