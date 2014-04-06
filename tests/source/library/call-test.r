@@ -82,7 +82,6 @@ REBOL [
 		output: copy ""
 	    exe: join exe " option-2"
 	    call/output exe output
-	    probe output
 	    --assert "" <> output
 	
 	    if posix? [
@@ -90,7 +89,6 @@ REBOL [
 	    		output: copy ""
 	    		exe: join exe " option-1"
 	    		call/output exe output
-	    		probe output
 	    		--assert "Hello World" = output  
 	    ]
 	    
