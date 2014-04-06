@@ -520,7 +520,7 @@ lexer: context [
 	]
 
 	load-integer: func [s [string!]][
-		unless attempt [s: to integer! s][throw-error]
+		unless integer! = type? s: to integer! s [throw-error]
 		s
 	]
 
