@@ -60,6 +60,111 @@ do [								;-- temp until object! support in compiler
 		
 ===end-group===
 
+===start-group=== "nested objects"
+
+	--test-- "no1"
+		no1-o: make object! [o: make object! [i: 1] ]
+		--assert no1-o/o/i = 1
+		
+	--test-- "no2"
+		no2-o1: make object! [
+			o2: make object! [
+				i: 1
+			]
+		]
+		--assert no2-o1/o2/i = 1
+		
+	--test-- "no3"
+		no3-o1: make object! [
+			o2: make object! [
+			o3: make object! [
+			o4: make object! [
+				i: 1
+			]]]
+		]
+		--assert no3-o1/o2/o3/o4/i = 1
+
+	--test-- "no4"
+		no4-o1: make object! [
+			o2: make object! [
+			o3: make object! [
+			o4: make object! [
+			o5: make object! [
+			o6: make object! [
+			o7: make object! [
+				i: 1
+			]]]]]]
+		]
+		--assert no4-o1/o2/o3/o4/o5/o6/o7/i = 1
+	
+	--test-- "no5"
+		no5-o1: make object! [
+			o2: make object! [
+			o3: make object! [
+			o4: make object! [
+			o5: make object! [
+			o6: make object! [
+			o7: make object! [
+			o8: make object! [
+			o9: make object! [
+			o10: make object! [
+			o11: make object! [
+			o12: make object! [
+			o13: make object! [
+			o14: make object! [
+			o15: make object! [
+				i: 1
+			]]]]]]]]]]]]]]
+		]
+		--assert no5-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/o14/o15/i = 1
+		
+	--test-- "no6"
+		no6-o1: make object! [
+			o2: make object! [
+			o3: make object! [
+			o4: make object! [
+			o5: make object! [
+			o6: make object! [
+			o7: make object! [
+			o8: make object! [
+			o9: make object! [
+			o10: make object! [
+			o11: make object! [
+			o12: make object! [
+			o13: make object! [
+			o14: make object! [
+			o15: make object! [
+			o16: make object! [
+				i: 1
+			]]]]]]]]]]]]]]]
+		]
+		--assert no6-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/o14/o15/o16/i = 1
+		
+	--test-- "no7"
+		no7-o1: make object! [
+			o2: make object! [
+			o3: make object! [
+			o4: make object! [
+			o5: make object! [
+			o6: make object! [
+			o7: make object! [
+			o8: make object! [
+			o9: make object! [
+			o10: make object! [
+			o11: make object! [
+			o12: make object! [
+			o13: make object! [
+			o14: make object! [
+			o15: make object! [
+			o16: make object! [
+			o17: make object! [	
+				i: 1
+			]]]]]]]]]]]]]]]]
+		]
+		--assert no7-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/o14/o15/o16/o17/i = 1
+		
+===end-group===
+
 ~~~end-file~~~
 
 ]								;-- temp until object! support in compiler
