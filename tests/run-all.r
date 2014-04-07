@@ -85,7 +85,7 @@ start-time: now/precise
 ===end-group===
 
 ===start-group=== "Red Library tests"
-	--run-script-quiet %source/library/call-test.r
+	
 ===end-group===
 
 ===start-group=== "Auto-tests"
