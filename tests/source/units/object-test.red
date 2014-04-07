@@ -165,6 +165,27 @@ do [								;-- temp until object! support in compiler
 		
 ===end-group===
 
+===start-group=== "object prototype tests"
+
+	--test-- "op1"
+		op1-o1: make object! [i: 1]
+		op1-o2: make op1-o1 []
+		--assert op1-o2/i = 1
+		
+	--test-- "op2"
+		op1-o1: make object! [i: 1]
+		op1-o2: make op1-o1 [i: 2]
+		--assert op1-o2/i = 2
+		--assert op1-o1/i = 1
+
+	--test-- "op3"
+		op1-o1: make object! [i: 1]
+		op1-o2: make op1-o1 [i: 2 j: 3]
+		--assert op1-o2/i = 2
+		--assert op1-o2/j = 3
+		
+===end-group===
+
 ~~~end-file~~~
 
 ]								;-- temp until object! support in compiler
