@@ -1,11 +1,13 @@
 Red [
 	Title:   "Red call test program"
 	Author:  "Bruno Anselme & Peter W A Wood"
-	File: 	 %red-called-test.red
+	File: 	 %red-call-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2014 Bruno Anselme & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
+
+#include %../../../system/library/call/call.red
 
 read-argument: routine [
 	/local
@@ -22,9 +24,25 @@ read-argument: routine [
 ]
 
 test-name: read-argument
+call-string: either 'Windows = system/platform ["red-called-test.exe"] ["./red-called-test"]
+append call-string " "
+append call-string test-name
 
 if test-name = "out-1" [
-	prin "Hello World"
+	output: ""
+	call/output call-string output
+	prin output
+	quit
+]
+
+if test-name = "err-1" [
+	output: ""
+	error: ""
+	head insert call-string "not-"
+	probe call-string
+	call/output/error call-string output error
+	probe output
+	probe error
 	quit
 ]
 
@@ -57,7 +75,6 @@ if test-name = "out-1" [								;-- Output redirection
 	out: ""
 	call/output "echo Hello Red world" out
 	prin out
-
 	quit
 ]
 
@@ -78,4 +95,4 @@ if test-name = "err-1" [								;-- Error redirection
 	quit
 ]
 }
-print "Error called : unknown test name"
+print "Error call : unknown test name"

@@ -23,9 +23,21 @@ REBOL [
 		]
 
 	qt/tests-dir: clean-path %../../tests/
-	--compile %source/library/red-called-test.red		;-- red-called-test.red is compiled only once
-	exe: either qt/windows-os? ["red-called-test.exe"] ["./red-called-test"]
+	--compile %source/library/red-call-test.red
+	--compile %source/library/red-called-test.red
+	exe: either qt/windows-os? ["red-call-test.exe"] ["./red-call-test"]
 
+	--test-- "out-1"						;; test of call/output
+		output: copy ""
+	    call/output join exe " out-1" output
+	    --assert "Hello World" = output
+
+	--test-- "err-1"						;; test of call/error
+		output: copy ""
+	    call/output join exe " err-1" output
+	    --assert "" <> output
+
+comment {
 	--test-- "pid-1"									;-- Don't wait for end, pid <> 0
 		output: copy ""
 	    call/output join exe " pid-1" output
@@ -60,6 +72,6 @@ REBOL [
 		output: copy ""
 	    call/output join exe " err-1" output
 	    --assert "" <> output
-
+}
 
 ~~~end-file~~~
