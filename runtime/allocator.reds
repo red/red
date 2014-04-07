@@ -601,8 +601,7 @@ alloc-bytes-filled: func [
 		node [node!]
 		s	 [series!]
 ][
-	if zero? size [size: 16]
-	node: alloc-series size 1 0				;-- optimize by default for tail insertion
+	node: alloc-bytes size
 	s: as series! node/value
 	fill as byte-ptr! s/offset (as byte-ptr! s/offset) + s/size byte
 	node

@@ -20,10 +20,25 @@ lexer: context [
 	value:	none									;-- new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
+	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	
 	;====== Parsing rules ======
-	
-	digit: charset "0123465798"
+
+	four:  charset "01234"
+	half:  charset "012345"
+    non-zero: charset "123456789"
+    digit: union non-zero charset "0"
+    dot: #"."
+    comma: #","
+
+	byte: [
+		"25" half
+		| "2" four digit
+		| "1" digit digit
+		| non-zero digit
+		| digit
+	]
+
 	hexa:  union digit charset "ABCDEF"
 	hexa-char: union hexa charset "abcdef"
 	
@@ -197,6 +212,24 @@ lexer: context [
 	slash-rule: [s: [slash opt slash] e:]
 	
 	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
+
+	sticky-word-rule: [
+		pos: [										;-- protection rule from typo with sticky words
+			[integer-end | ws-no-count | end] (fail?: none)
+			| skip (fail?: [end skip])
+		] :pos
+		fail?
+	]
+
+	tuple-value-rule: [
+		(type: tuple!)
+		byte dot byte 1 8 [dot byte | dot] e:
+	]
+
+	tuple-rule: [
+		tuple-value-rule
+		sticky-word-rule
+	]
 		
 	integer-number-rule: [
 		(type: integer!)
@@ -205,11 +238,20 @@ lexer: context [
 	
 	integer-rule: [
 		integer-number-rule
-		pos: [										;-- protection rule from typo with sticky words
-			[integer-end | ws-no-count | end] (fail?: none)
-			| skip (fail?: [end skip]) 
-		] :pos 
-		fail?
+		sticky-word-rule
+	]
+
+	decimal-number-rule: [
+		(type: decimal!)
+		opt [#"-" | #"+"] digit any [digit | #"'" digit]		;-- first part
+		opt [[dot | comma] any digit]							;-- second part
+		opt [opt [#"e" | #"E"] opt [#"-" | #"+"] some digit]	;-- third part
+		e:
+	]
+
+	decimal-rule: [
+		decimal-number-rule
+		sticky-word-rule
 	]
 		
 	block-rule: [#"[" (stack/push block!) any-value #"]" (value: stack/pop block!)]
@@ -227,8 +269,10 @@ lexer: context [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^(7F)")
 			]
-			| s: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
-				value: encode-UTF8-char s e
+			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+					either rs? [
+						value: to-char to-integer debase/base copy/part pos e 16
+					][value: encode-UTF8-char pos e]
 			)
 		] #")"
 		| #"^^" [
@@ -241,7 +285,7 @@ lexer: context [
 				| #"}"	(value: #"}")
 				| #"^""	(value: #"^"")
 			]
-			| s: caret-char (value: s/1 - 64)
+			| pos: caret-char (value: pos/1 - 64)
 		]
 	]
 	
@@ -255,7 +299,7 @@ lexer: context [
 	
 	line-string: [
 		{"} s: (type: string! stop: [not-str-char | newline-char])
-		any [{^^"} | UTF8-filtered-char]
+		any [{^^"} | escaped-char | UTF8-filtered-char]
 		e: {"}
 	]
 	
@@ -318,6 +362,8 @@ lexer: context [
 			comment-rule
 			| escaped-rule    (stack/push value)
 			| integer-rule	  (stack/push load-integer   copy/part s e)
+			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
+			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
@@ -337,7 +383,8 @@ lexer: context [
 	any-value: [pos: any [literal-value | ws]]
 
 	header: [
-		pos: thru "Red" any-ws block-rule (stack/push value)
+		pos: thru "Red" opt ["/System" (rs?: yes stack/push 'Red/System)]
+		any-ws block-rule (stack/push value)
 		| (throw-error/with "Invalid Red program") end skip
 	]
 
@@ -473,7 +520,12 @@ lexer: context [
 	]
 
 	load-integer: func [s [string!]][
-		unless attempt [s: to integer! s][throw-error]
+		unless integer! = type? s: to integer! s [throw-error]
+		s
+	]
+
+	load-decimal: func [s [string!]][
+		unless attempt [s: to decimal! s][throw-error]
 		s
 	]
 

@@ -20,6 +20,13 @@ Red/System [
 #define _O_U16TEXT      	00020000h 					;-- file mode is UTF16 no BOM (translated)
 #define _O_U8TEXT       	00040000h 					;-- file mode is UTF8  no BOM (translated)
 
+#define GENERIC_WRITE		40000000h
+#define GENERIC_READ 		80000000h
+#define FILE_SHARE_READ		00000001h
+#define FILE_SHARE_WRITE	00000002h
+#define OPEN_EXISTING		00000003h
+
+#define WEOF				FFFFh
 
 platform: context [
 
@@ -29,6 +36,7 @@ platform: context [
 	]
 
 	page-size: 4096
+	confd: -2
 
 	#import [
 		LIBC-file cdecl [
@@ -39,9 +47,17 @@ platform: context [
 				[variadic]
 				return: 	[integer!]
 			]
+			fflush: "fflush" [
+				fd			[integer!]
+				return:		[integer!]
+			]
 			_setmode: "_setmode" [
 				handle		[integer!]
 				mode		[integer!]
+				return:		[integer!]
+			]
+			_get_osfhandle: "_get_osfhandle" [
+				fd			[integer!]
 				return:		[integer!]
 			]
 			;_open_osfhandle: "_open_osfhandle" [
@@ -69,6 +85,19 @@ platform: context [
 				charsToWrite	[integer!]
 				numberOfChars	[int-ptr!]
 				_reserved		[int-ptr!]
+				return:			[integer!]
+			]
+			WriteFile: "WriteFile" [
+				handle			[integer!]
+				buffer			[c-string!]
+				len				[integer!]
+				written			[int-ptr!]
+				overlapped		[integer!]
+				return:			[integer!]
+			]
+			GetConsoleMode:	"GetConsoleMode" [
+				handle			[integer!]
+				mode			[int-ptr!]
 				return:			[integer!]
 			]
 		]
@@ -109,16 +138,45 @@ platform: context [
 	]
 
 	;-------------------------------------------
-	;-- putwchar use WriteConsoleW internal
+	;-- Initialize console ouput handle
+	;-------------------------------------------
+	init-console-out: func [][
+		confd: simple-io/CreateFile
+					"CONOUT$"
+					GENERIC_WRITE
+					FILE_SHARE_READ or FILE_SHARE_WRITE
+					null
+					OPEN_EXISTING
+					0
+					null
+	]
+
+	;-------------------------------------------
+	;-- putwchar use windows api internal
 	;-------------------------------------------
 	putwchar: func [
 		wchar	[integer!]								;-- wchar is 16-bit on Windows
 		return:	[integer!]
 		/local
 			n	[integer!]
+			cr	[integer!]
+			con	[integer!]
 	][
 		n: 0
-		WriteConsole stdout (as byte-ptr! :wchar) 1 :n null
+		cr: as integer! #"^M"
+
+		con: GetConsoleMode _get_osfhandle fd-stdout :n		;-- test if output is a console
+		either con > 0 [									;-- output to console
+			if confd = -2 [init-console-out]
+			if confd = -1 [return WEOF]
+			WriteConsole confd (as byte-ptr! :wchar) 1 :n null
+		][													;-- output to redirection file
+			if wchar = as integer! #"^/" [					;-- convert lf to crlf
+				WriteFile _get_osfhandle fd-stdout (as c-string! :cr) 2 :n 0
+			]
+			WriteFile _get_osfhandle fd-stdout (as c-string! :wchar) 2 :n 0
+		]
+		wchar
 	]
 
 	;-------------------------------------------
@@ -227,21 +285,25 @@ platform: context [
 
 	prin-int*: func [i [integer!] return: [integer!]][
 		wprintf ["%^(00)i^(00)^(00)" i]								;-- UTF-16 literal string
+		fflush null													;-- flush all streams
 		i
 	]
 
 	prin-hex*: func [i [integer!] return: [integer!]][
 		wprintf ["%^(00)0^(00)8^(00)X^(00)^(00)" i]					;-- UTF-16 literal string
+		fflush null
 		i
 	]
 
 	prin-float*: func [f [float!] return: [float!]][
 		wprintf ["^(00)%^(00).^(00)1^(00)4^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
+		fflush null
 		f
 	]
 
 	prin-float32*: func [f [float32!] return: [float32!]][
 		wprintf ["^(00)%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
+		fflush null
 		f
 	]
 
