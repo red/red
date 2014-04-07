@@ -53,6 +53,14 @@ Red/System [
 		mode			[c-string!]
 		return:			[file!]
 	]
+	write-form: "fprintf" [					"Print arguments to file."
+		[variadic]
+		; file			[file!]
+		; format		[c-string!]
+		;	value		[variant!]
+		;	...
+		return:			[integer!]			"Length printed or < 0"
+	]
 	flush-file: "fflush" [					"Flush file(s)."
 		file			[file!]				"NULL for all streams"
 		return:			[integer!]			"0 or EOF"
