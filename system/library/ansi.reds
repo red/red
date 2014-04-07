@@ -53,13 +53,13 @@ Red/System [
 		mode			[c-string!]
 		return:			[file!]
 	]
-	write-form: "fprintf" [					"Print arguments to file."
+	format-any: "sprintf" [					"Format arguments as string."
 		[variadic]
-		; file			[file!]
+		; string		[c-string!]			"WARNING: must be big enough!"
 		; format		[c-string!]
 		;	value		[variant!]
 		;	...
-		return:			[integer!]			"Length printed or < 0"
+		return:			[integer!]			"Result length or < 0"
 	]
 	flush-file: "fflush" [					"Flush file(s)."
 		file			[file!]				"NULL for all streams"
@@ -130,3 +130,4 @@ file-error?: function ["File status."
 ][
 	as-logic file-error file
 ]
+
