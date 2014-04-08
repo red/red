@@ -1210,7 +1210,7 @@ string: context [
 
 		if any [							;-- early exit if string is empty or at tail
 			s/offset = s/tail
-			buffer >= end
+			buffer > end
 			]
 		[
 			result/header: TYPE_NONE
