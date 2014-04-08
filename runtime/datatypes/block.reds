@@ -747,7 +747,7 @@ block: context [
 		s: GET_BUFFER(blk)
 		if any [							;-- early exit if blk is empty or at tail
 			s/offset = s/tail
-			s/offset + blk/head >= s/tail
+			s/offset + blk/head > s/tail
 			]
 		[
 			result/header: TYPE_NONE
