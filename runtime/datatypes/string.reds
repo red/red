@@ -1204,11 +1204,19 @@ string: context [
 		result: stack/push as red-value! str
 		
 		s: GET_BUFFER(str)
-		if s/offset = s/tail [							;-- early exit if string is empty
+		unit: GET_UNIT(s)
+		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		end: as byte-ptr! s/tail
+
+		if any [							;-- early exit if string is empty or at tail
+			s/offset = s/tail
+			buffer >= end
+			]
+		[
 			result/header: TYPE_NONE
 			return result
 		]
-		unit: GET_UNIT(s)
+
 		step: 1
 		part?: no
 
