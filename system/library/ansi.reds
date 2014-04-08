@@ -100,6 +100,11 @@ Red/System [
 		source		[c-string!]
 		return:		[c-string!]
 	]
+	find-string: "strstr" [					"Search for sub-string."
+		string			[c-string!]
+		substring		[c-string!]
+		return:			[c-string!]
+	]
 ]
 ]
 

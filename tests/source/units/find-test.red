@@ -13,167 +13,173 @@ Red [
 
 ===start-group=== "find"
 	--test-- "find-1"
-	--assert [1 2 3 4] = find [1 2 3 4] 1
+		--assert [1 2 3 4] = find [1 2 3 4] 1
 	--test-- "find-2"
-	--assert [2 3 4] = find [1 2 3 4] 2
+		--assert [2 3 4] = find [1 2 3 4] 2
 	--test-- "find-3"
-	--assert [4] = find [1 2 3 4] 4
+		--assert [4] = find [1 2 3 4] 4
 	--test-- "find-4"
-	--assert none = find [1 2 3 4] 0
+		--assert none = find [1 2 3 4] 0
 	--test-- "find-5"
-	--assert none = find [1 2 3 4] 5
+		--assert none = find [1 2 3 4] 5
 	--test-- "find-6"
-	--assert none = find [1 2 3 4] "1"
+		--assert none = find [1 2 3 4] "1"
 	--test-- "find-7" 
-	--assert "12345" = find "12345" #"1"
+		--assert "12345" = find "12345" #"1"
 	;--test-- "find-8" 							;; unsupported case, it is unsure if it will be implemented or not
 	;--assert "12345" = find "12345" 1			;; keeping it here commented for further reference.
 	--test-- "find-9" 
-	--assert "12345" = find "12345" "1"
+		--assert "12345" = find "12345" "1"
 	--test-- "find-10" 
-	--assert "12345" = find "12345" "12"
+		--assert "12345" = find "12345" "12"
 	--test-- "find-11" 
-	--assert "2345" = find "12345" #"2"
+		--assert "2345" = find "12345" #"2"
 	--test-- "find-12" 
-	--assert "5" = find "12345" #"5"
+		--assert "5" = find "12345" #"5"
 	--test-- "find-13" 
-	--assert none = find "12345" #"0" 
+		--assert none = find "12345" #"0" 
 	--test-- "find-14" 
-	--assert none = find "12345" #"6"
+		--assert none = find "12345" #"6"
 	--test-- "find-15"
-	--assert [2 3] = find [1 2 3] [2 3]
+		--assert [2 3] = find [1 2 3] [2 3]
 	--test-- "find-16"
-	--assert none = find [1 2 3] [3 2]
+		--assert none = find [1 2 3] [3 2]
 	--test-- "find-17"
-	--assert [2 3] = find [1 2 2 3] [2 3]
+		--assert [2 3] = find [1 2 2 3] [2 3]
 	--test-- "find-18"
-	--assert none = find [1 2] [2 3]
+		--assert none = find [1 2] [2 3]
 	--test-- "find-19"
-	--assert "é" = find "abcdeé" "é"
+		--assert "é" = find "abcdeé" "é"
 	--test-- "find-20"
-	--assert "eé" = find "abcdeé" "eé"
+		--assert "eé" = find "abcdeé" "eé"
 	--test-- "find-21"
-	--assert none = find "abcdeé" "ée"
+		--assert none = find "abcdeé" "ée"
 	--test-- "find-22"
-	--assert "✐" = find "abcde✐" "✐"            ;; code point 10000 (decimal)
+		--assert "✐" = find "abcde✐" "✐"            ;; code point 10000 (decimal)
 	--test-- "find-23"
-	--assert none = find "abcde✐" "ed✐"
+		--assert none = find "abcde✐" "ed✐"
 	--test-- "find-24"
-	--assert "^(010000)" = find "abcde^(010000)" "^(010000)"   
+		--assert "^(010000)" = find "abcde^(010000)" "^(010000)" 
+	--test-- "find-25"
+		--assert none = find tail "123345" 1
+	--test-- "find-26 -issue #765"
+		;;--assert none = find tail [a b c d e] 'a
+		;; the above assert crashes the interpreter		
+		
 ===end-group===
 
 ===start-group=== "find/part"
 	--test-- "find/part-1"
-	--assert none = find/part "1234" "1" 0
+		--assert none = find/part "1234" "1" 0
 	--test-- "find/part-2"
-	--assert "1234" = find/part "1234" "1" 1
+		--assert "1234" = find/part "1234" "1" 1
 	--test-- "find/part-3"
-	--assert "234" = find/part "1234" "2" 2
+		--assert "234" = find/part "1234" "2" 2
 	--test-- "find/part-4"
-	--assert "234" = find/part "1234" "2" 4
+		--assert "234" = find/part "1234" "2" 4
 	--test-- "find/part-5"
-	--assert "234" = find/part "1234" "2" 5
+		--assert "234" = find/part "1234" "2" 5
 	--test-- "find/part-6"
-	--assert none = find/part "1234" "3" 2
+		--assert none = find/part "1234" "3" 2
 	--test-- "find/part-7"
-	--assert none = find/part [1 2 3 4] 1 0
+		--assert none = find/part [1 2 3 4] 1 0
 	--test-- "find/part-8"
-	--assert [1 2 3 4] = find/part [1 2 3 4] 1 1
+		--assert [1 2 3 4] = find/part [1 2 3 4] 1 1
 	--test-- "find/part-9"
-	--assert [2 3 4] = find/part [1 2 3 4] 2 2
+		--assert [2 3 4] = find/part [1 2 3 4] 2 2
 	--test-- "find/part-10"
-	--assert [2 3 4] = find/part [1 2 3 4] [2 3] 4
+		--assert [2 3 4] = find/part [1 2 3 4] [2 3] 4
 	--test-- "find/part-11"
-	--assert none = find/part [1 2 3 4] [2 3] 2
+		--assert none = find/part [1 2 3 4] [2 3] 2
 	--test-- "find/part-12"
-	--assert none = find/part [1 2 3 4] 3 2
+		--assert none = find/part [1 2 3 4] 3 2
 	--test-- "find/part-13"
-	--assert none = find/part "Χαῖρε, κόσμε!" "Χαῖ" 2
+		--assert none = find/part "Χαῖρε, κόσμε!" "Χαῖ" 2
 ===end-group===
 
 ===start-group=== "find/only"
 	--test-- "find/only-1"
-	--assert [[2 3] 4] = find/only [1 [2 3] 4] [2 3]
+		--assert [[2 3] 4] = find/only [1 [2 3] 4] [2 3]
 	--test-- "find/only-2"
-	--assert none = find/only [1 2 3 4] [2 3]
+		--assert none = find/only [1 2 3 4] [2 3]
 ===end-group===
 
 ===start-group=== "find/case"
 	--test-- "find/case-1"
-	--assert "abcde" = find/case "Aabcde" "a"
+		--assert "abcde" = find/case "Aabcde" "a"
 	--test-- "find/case-2"
-	--assert "Abcde" = find/case "aAbcde" "A"
+		--assert "Abcde" = find/case "aAbcde" "A"
 	--test-- "find/case-3"
-	--assert none = find/case "è" "E"
+		--assert none = find/case "è" "E"
 ===end-group===
 
 ===start-group=== "find/any"      ; not yet implemented
 	--test-- "find/any-1"
-	;--assert "12345" = find/any "12345" "*"
+		;--assert "12345" = find/any "12345" "*"
 	--test-- "find/any-2"
-	;--assert "12345" = find/any "12345" "?"
+		;--assert "12345" = find/any "12345" "?"
 	--test-- "find/any-3"
-	;--assert "2345" = find/any "12345" "2?4"
+		;--assert "2345" = find/any "12345" "2?4"
 	--test-- "find/any-4"
-	;assert "2345" = find/any "12345" "2*"
+		;assert "2345" = find/any "12345" "2*"
 	--test-- "find/any-5"
-	;assert "e✐" = find/any "abcde✐" "e?"        ;; code point 10000 (decimal)
+		;assert "e✐" = find/any "abcde✐" "e?"        ;; code point 10000 (decimal)
 	--test-- "find/any-6"
-	;assert "e✐f" = find/any "abcde✐f" "?f" 
+		;assert "e✐f" = find/any "abcde✐f" "?f" 
 	--test-- "find/any-7"
-	;assert "e✐" = find/any "abcde✐" "e*" 
+		;assert "e✐" = find/any "abcde✐" "e*" 
 	--test-- "find/any-8"
-	;assert "abcde✐f" = find/any "abcde✐f" "*f" 
+		;assert "abcde✐f" = find/any "abcde✐f" "*f" 
 	--test-- "find/any-9"
-	;assert "e^(010000)" = find/any "abcde^(010000)" "e?"        
+		;assert "e^(010000)" = find/any "abcde^(010000)" "e?"        
 	--test-- "find/any-10"
-	;assert "e^(010000)f" = find/any "abcde^(010000)f" "?f" 
+		;assert "e^(010000)f" = find/any "abcde^(010000)f" "?f" 
 	--test-- "find/any-11"
-	;assert "e^(010000)" = find/any "abcde^(010000)" "e*" 
+		;assert "e^(010000)" = find/any "abcde^(010000)" "e*" 
 	--test-- "find/any-12"
-	;assert "abcde^(010000)f" = find/any "abcde^(010000)f" "*f" 
+		;assert "abcde^(010000)f" = find/any "abcde^(010000)f" "*f" 
 ===end-group===
 
 ===start-group=== "find/with"      ; not yet implemented
 	--test-- "find/with-1"
-	;--assert "12345" = find/with "12345" "^(FFFF)" "^(FFFE)^(FFFF)" 
+		;--assert "12345" = find/with "12345" "^(FFFF)" "^(FFFE)^(FFFF)" 
 	--test-- "find/with-2"
-	;--assert "12345" = find/with "12345" "^(FFFE)" "^(FFFE)^(FFFF)" 
+		;--assert "12345" = find/with "12345" "^(FFFE)" "^(FFFE)^(FFFF)" 
 	--test-- "find/with-3"
-	;--assert "2345" = find/with "12345" "2^(FFFE)3" "^(FFFE)^(FFFF)"
+		;--assert "2345" = find/with "12345" "2^(FFFE)3" "^(FFFE)^(FFFF)"
 	--test-- "find/with-4"
-	;assert "2345" = find/with "12345" "2^(FFFF)" "^(FFFE)^(FFFF)"
+		;assert "2345" = find/with "12345" "2^(FFFF)" "^(FFFE)^(FFFF)"
 	--test-- "find/with-5"
-	;assert "e✐" = find/with "abcde✐" "e^(FFFE)" "^(FFFE)^(FFFF)"
+		;assert "e✐" = find/with "abcde✐" "e^(FFFE)" "^(FFFE)^(FFFF)"
 	--test-- "find/with-6"
-	;assert "e✐f" = find/with "abcde✐f" "^(FFFE)f" "^(FFFE)^(FFFF)"
+		;assert "e✐f" = find/with "abcde✐f" "^(FFFE)f" "^(FFFE)^(FFFF)"
 	--test-- "find/with-7"
-	;assert "e✐" = find/with "abcde✐" "e^(FFFF)" "^(FFFE)^(FFFF)"
+		;assert "e✐" = find/with "abcde✐" "e^(FFFF)" "^(FFFE)^(FFFF)"
 	--test-- "find/with-8"
-	;assert "abcde✐f" = find/with "abcde✐f" "^(FFFF)f" "^(FFFE)^(FFFF)" 
+		;assert "abcde✐f" = find/with "abcde✐f" "^(FFFF)f" "^(FFFE)^(FFFF)" 
 	--test-- "find/with-9"
-	;assert "e^(010000)" = find/with "abcde^(010000)" "e^(FFFE)" "^(FFFE)^(FFFF)"        
+		;assert "e^(010000)" = find/with "abcde^(010000)" "e^(FFFE)" "^(FFFE)^(FFFF)"        
 	--test-- "find/with-10"
-	;assert "e^(010000)f" = find/with "abcde^(010000)f" "^(FFFE)f" "^(FFFE)^(FFFF)"
+		;assert "e^(010000)f" = find/with "abcde^(010000)f" "^(FFFE)f" "^(FFFE)^(FFFF)"
 	--test-- "find/with-11"
-	;assert "e^(010000)" = find/with "abcde^(010000)" "e^(FFFF)" "^(FFFE)^(FFFF)"
+		;assert "e^(010000)" = find/with "abcde^(010000)" "e^(FFFF)" "^(FFFE)^(FFFF)"
 	--test-- "find/with-12"
-	;assert "abcde^(010000)f" = find/with "abcde^(010000)f" "^(FFFF)f" "^(FFFE)^(FFFF)"
+		;assert "abcde^(010000)f" = find/with "abcde^(010000)f" "^(FFFF)f" "^(FFFE)^(FFFF)"
 ===end-group===
 
 ===start-group=== "find/skip"
-  --test-- "find/skip-1"
-  --assert [6 7 8 9 0] = find/skip [1 2 3 4 5 1 6 6 6 6 1 2 3 4 5 6 7 8 9 0] 6 5
-  --test-- "find/skip-2"
-  --assert none = find/skip [1 2 3 4 5 1 6 6 6 6 1 2 3 4 5 1 2 3 4 5] 6 5
-  --test-- "find/skip-3"
-  --assert [6 7 8 9 0] = find/skip [1 2 3 4 5 6 6 6 6 6 1 2 3 4 5 6 7 8 9 0] [6 7] 5
-  --test-- "find/skip-4"
-  --assert none = find/skip [1 2 3 4 5 1 6 6 6 6 1 2 3 4 5 1 2 3 4 5] [6 7] 5
-  --test-- "find/skip-5"
-  --assert "67890" = find/skip "12345166661234567890" "6" 5
-  --test-- "find/skip-6"
-  --assert none = find/skip "12345166661234557890" "6" 5
+	--test-- "find/skip-1"
+		--assert [6 7 8 9 0] = find/skip [1 2 3 4 5 1 6 6 6 6 1 2 3 4 5 6 7 8 9 0] 6 5
+	--test-- "find/skip-2"
+		--assert none = find/skip [1 2 3 4 5 1 6 6 6 6 1 2 3 4 5 1 2 3 4 5] 6 5
+	--test-- "find/skip-3"
+		--assert [6 7 8 9 0] = find/skip [1 2 3 4 5 6 6 6 6 6 1 2 3 4 5 6 7 8 9 0] [6 7] 5
+	--test-- "find/skip-4"
+		--assert none = find/skip [1 2 3 4 5 1 6 6 6 6 1 2 3 4 5 1 2 3 4 5] [6 7] 5
+	--test-- "find/skip-5"
+		--assert "67890" = find/skip "12345166661234567890" "6" 5
+	--test-- "find/skip-6"
+		--assert none = find/skip "12345166661234557890" "6" 5
 ===end-group===
 
 ===start-group=== "find/match"
@@ -301,11 +307,11 @@ Red [
 
 ===start-group=== "find/last/tail"
 	--test-- "find/last/tail-1 issue #459"
-	--assert [7 8] = find/last/tail [1 2 3 4 5 6 3 7 8] 3
+		--assert [7 8] = find/last/tail [1 2 3 4 5 6 3 7 8] 3
 	--test-- "find/last/tail-2 issue #459"
-	--assert "78" = find/last/tail "123456378" #"3"
+		--assert "78" = find/last/tail "123456378" #"3"
 	--test-- "find/last/tail-3"
-	--assert "78" = find/last/tail "123456378" "3"
+		--assert "78" = find/last/tail "123456378" "3"
 ===end-group===
 
 

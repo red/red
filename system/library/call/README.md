@@ -29,26 +29,27 @@ Running the Red console call example
 
     Linux users run **console-call** from command line.
 
-    Windows run **console-call.exe**.
+    Windows users run **console-call.exe**.
 
 Syntax
 ------------------------
 
 		USAGE:
-			call cmd /wait /console /input in /output out /error err
+			call cmd /wait /console /shell /input in /output out /error err
 
 		DESCRIPTION:
 			Executes a shell command to run another process..
 			call is type: function!
 
 		ARGUMENTS:
-			cmd [string!] => The shell command or file.
+			cmd [string! block!] => A shell command, an executable file or a block.
 
 		REFINEMENTS:
 			/wait => Runs command and waits for exit.
 			/console => Runs command with I/O redirected to console.
+			/shell => Forces command to be run from shell.
 			/input
-				in [string!] => Redirects in to stdin.
+				in [string! block!] => Redirects in to stdin.
 			/output
 				out [string! block!] => Redirects stdout to out.
 			/error
@@ -89,7 +90,7 @@ Linux examples
 		== 0
 		red>> err: "" call/error "ls -" err             ;-- error redirection
 		== 0
-		red>> data: "" call/output "ls" data call/input/console "grep -a red" data
+		red>> data: "" call/output "ls" data call/input/console "grep red" data
 		boot.red
 		lexer.red
 		red.exe
@@ -167,7 +168,7 @@ Windows examples
                       10 Dir(s)  200 327 868 416 bytes free
 
         red>>
-		red>> data: "" call/output "findstr ^"Nenad^" *.r" data
+		red>> data: "" call/output {findstr "Nenad" *.r} data
 		== 0
 		red>> print data
 		lexer.r:        Author:  "Nenad Rakocevic"

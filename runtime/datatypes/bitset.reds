@@ -462,7 +462,7 @@ bitset: context [
 			if size <= 0 [print-line "*** Make Error: bitset invalid integer argument!"]
 			size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
 			size: size >> 3								;-- convert to bytes
-			bits/node: alloc-bytes size
+			bits/node: alloc-bytes-filled size null-byte
 			
 			s: GET_BUFFER(bits)
 			s/tail: as cell! ((as byte-ptr! s/offset) + size)

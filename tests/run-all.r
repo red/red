@@ -81,6 +81,11 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/bitset-test.red
   	;;--run-test-file-quiet  %source/units/same-test.red   ;; space added so not include in run-all.r
   	--run-test-file-quiet %source/units/strict-equal-test.red
+  	--run-test-file-quiet %source/units/object-test.red
+===end-group===
+
+===start-group=== "Red Library tests"
+	
 ===end-group===
 
 ===start-group=== "Auto-tests"

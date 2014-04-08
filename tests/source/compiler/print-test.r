@@ -34,18 +34,21 @@ REBOL [
     		print "***"
     	}
     	--assert-printed? "***2345***"
-  
-    --test-- "issue #427"
+    
+    --test-- "Red print 5"
     	--compile-and-run-this {
-    		issue427-f: func [
-    			/local count
-    		][
-    			repeat count 5 [
-    			prin count
-    			]
-    		]
-    		issue427-f
+    		Red[] 
+    		print "abcde✐"
     	}
-    	--assert-printed? "12345"
+    	--assert-printed? "abcde✐"
+  
+    --test-- "issue #748"
+    	--compile-and-run-this {
+    		txt: "Hello world"
+    		parse txt [ while any [ remove "l" | skip ] ]
+    		print txt
+    	}
+    	--assert-printed? "Heo word"
+    	--assert none = find qt/output "Heo wordd"
   
 ~~~end-file~~~ 

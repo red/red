@@ -97,6 +97,18 @@ trans-hexa: routine [
 	n
 ]
 
+trans-char: routine [
+	start	[string!]
+	end		[string!]
+	/local
+		n	  [integer!]
+		value [red-value!]
+][
+	n: trans-hexa start end
+	value: as red-value! integer/box n
+	set-type value TYPE_CHAR
+]
+
 trans-push-path: routine [
 	stack [block!]
 	type  [datatype!]
@@ -142,7 +154,7 @@ transcode: function [
 	dst		[block! none!]
 	return: [block!]
 	/local
-		new s e c hex pos value cnt type
+		new s e c hex pos value cnt type process
 		digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 		not-file-char not-str-char not-mstr-char caret-char
 		non-printable-char integer-end ws-ASCII ws-U+2k control-char
@@ -155,7 +167,7 @@ transcode: function [
 	append/only stack any [dst make block! 4]
 	
 	trans-string: [
-		new: make string! (index? e) - index? s
+		new: make type (index? e) - index? s
 		parse/case copy/part s e [						;@@ add /part option to parse!
 			any [
 				escaped-char (append new value)
@@ -260,7 +272,7 @@ transcode: function [
 				| "del"	 (value: #"^(7F)")
 			]
 			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
-				value: encode-UTF8-char pos e
+				value: trans-char pos e
 			)
 		] #")"
 		| #"^^" [
@@ -310,10 +322,14 @@ transcode: function [
 	
 	multiline-string: [#"{" s: nested-curly-braces]
 	
-	string-rule: [line-string | multiline-string]
+	string-rule: [(type: string!) line-string | multiline-string]
 	
 	file-rule: [
-		#"%" s: any [ahead [not-file-char | ws-no-count] break | skip] e:
+		#"%" [
+			line-string (process: trans-string type: file!)
+			| s: any [ahead [not-file-char | ws-no-count] break | skip] e:
+			  (process: trans-file)
+		]
 	]
 	
 	symbol-rule: [
@@ -448,14 +464,14 @@ transcode: function [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule		(append last stack value)
-			| integer-rule		(append last stack trans-integer s e)
+			| integer-rule		if (value: trans-integer s e ) (append last stack value)
 			| hexa-rule			(append last stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
 			| slash-rule		(trans-word last stack copy/part s e word!)
 			| refinement-rule
-			| file-rule			(append last stack do trans-file)
+			| file-rule			(append last stack do process)
 			| char-rule			(append last stack value)
 			| issue-rule
 			| block-rule

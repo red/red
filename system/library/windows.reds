@@ -42,6 +42,19 @@ Red/System [
 
 	#define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
 
+	#define GENERIC_WRITE	30
+	#define GENERIC_READ	31
+
+	#define FILE_SHARE_READ		1
+	#define FILE_SHARE_WRITE	2
+	#define FILE_SHARE_DELETE	4
+
+	#define CREATE_NEW 1
+	#define CREATE_ALWAYS 2
+	#define OPEN_EXISTING 3
+	#define OPEN_ALWAYS 4
+	#define TRUNCATE_EXISTING 5
+
 	process-info!: alias struct! [
 		hProcess        [opaque!]
 		hThread         [opaque!]
@@ -95,12 +108,27 @@ Red/System [
 			dwMilliseconds          [integer!]
 			return:                 [integer!]
 		]
+		get-exit-code-process: "GetExitCodeProcess" [ "Retrieves the termination status of the specified process"
+			hProcess				[opaque!]
+			lpExitCode				[int-ptr!]
+			return:                 [logic!]
+		]
 		create-pipe: "CreatePipe" [ "Creates an anonymous pipe, and returns handles to the read and write ends of the pipe"
 			hReadPipe               [int-ptr!]
 			hWritePipe              [int-ptr!]
 			lpPipeAttributes        [security-attributes!]
 			nSize                   [integer!]
 			return:                 [logic!]
+		]
+		create-file: "CreateFileA" [ "Creates or opens a file or I/O device"
+			lpFileName				[c-string!]
+			dwDesiredAccess			[integer!]
+			dwShareMode				[integer!]
+			lpSecurityAttributes	[security-attributes!]
+			dwCreationDisposition	[integer!]
+			dwFlagsAndAttributes	[integer!]
+			hTemplateFile			[opaque!]
+			return:					[opaque!]
 		]
 		close-handle: "CloseHandle" [ "Closes an open object handle"
 			hObject                 [opaque!]

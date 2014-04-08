@@ -57,11 +57,42 @@ __stack!: alias struct! [
 			update		 [integer!]			;-- action simulated using a read-only member
 			init		 [integer!]			;-- action simulated using a read-only member
 		]
+		
+		__cpu-struct!: alias struct! [
+			eax			[integer!]
+			ebx			[integer!]
+			ecx			[integer!]
+			edx			[integer!]
+			esp			[integer!]
+			ebp			[integer!]
+			esi			[integer!]
+			edi			[integer!]
+		]
 	]
 	ARM [
 		__fpu-struct!: alias struct! [
 			type		 [integer!]			;-- only type for now...
 		]
+		
+		__cpu-struct!: alias struct! [
+			r0			[integer!]
+			r1			[integer!]
+			r2			[integer!]
+			r3			[integer!]
+			r4			[integer!]
+			r5			[integer!]
+			r6			[integer!]
+			r7			[integer!]
+			r8			[integer!]
+			r9			[integer!]
+			r10			[integer!]
+			r11			[integer!]
+			r12			[integer!]
+			r13			[integer!]
+			r14			[integer!]
+			r15			[integer!]
+		]
+
 	]
 ]
 
@@ -71,7 +102,7 @@ system: declare struct! [					;-- store runtime accessible system values
 	env-vars 	[str-array!]				;-- environment variables array pointer (always null for Windows)
 	stack		[__stack!]					;-- stack virtual access
 	pc			[byte-ptr!]					;-- CPU program counter value
-	;cpu		[__cpu-struct!]				;-- reserved for later use
+	cpu			[__cpu-struct!]				;-- CPU registers
 	fpu			[__fpu-struct!]				;-- FPU settings
 	alias		[integer!]					;-- aliases ID virtual access
 	words		[integer!]					;-- global context accessor (dummy type)

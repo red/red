@@ -126,9 +126,6 @@ word: context [
 		
 		value: copy-cell _context/get word stack/push*
 		CHECK_UNSET(value)
-		if TYPE_OF(value) = TYPE_LIT_WORD [
-			value/header: TYPE_WORD						;-- cast lit-word! to word!
-		]
 		value
 	]
 	

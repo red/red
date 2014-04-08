@@ -106,7 +106,7 @@ context [
 		ident-class		[char!]		;; file class
 		ident-data		[char!]		;; data encoding
 		ident-version	[char!]		;; file version
-		ident-pad0		[char!]
+		ident-osabi		[char!]
 		ident-pad1		[integer!]
 		ident-pad2		[integer!]
 		type			[short]
@@ -460,6 +460,11 @@ context [
 
 		;; Target-specific header fields.
 
+		eh/ident-osabi: switch/default target-os [
+			FreeBSD      [9]
+			Linux        [3]
+		]	             [0]
+
 		eh/type: select reduce [
 			'exe defs/et-exec
 			'dll defs/et-dyn
@@ -713,7 +718,7 @@ context [
 		job [object!]
 		/local current-tail code-tail data-tail symbol-offset symbol-size
 	] [
-		if job/type <> 'dll [return make block! 0]
+		if  not find job/sections 'export [return make block! 0]
 
 		code-tail: length? job/sections/code/2
 		data-tail: length? job/sections/data/2

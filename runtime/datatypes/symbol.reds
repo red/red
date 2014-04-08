@@ -58,26 +58,29 @@ symbol: context [
 		str 	  [c-string!]							;-- UTF-8 string
 		return:	  [integer!]
 		/local
-			s	  [series!]
-			entry [red-symbol!]
-			end   [red-symbol!]
-			id	  [integer!]
-			i	  [integer!]
+			s		[series!]
+			entry	[red-symbol!]
+			end		[red-symbol!]
+			id		[integer!]
+			i		[integer!]
+			aliased [integer!]
 	][
 		s: GET_BUFFER(symbols)
 		entry: as red-symbol! s/offset
 		end:   as red-symbol! s/tail
 		i: 1
+		aliased: 0
 		
 		while [entry < end][
 			id: same? entry/cache str
-			if id <> 0 [
-				return either positive? id [i][0 - i]	;-- matching symbol found
+			if positive? id [return i]					;-- matching symbol found, exit
+			if all [zero? aliased negative? id][
+				aliased: 0 - i							;-- alias symbol found, continue searching
 			]
 			i: i + 1
 			entry: entry + 1
 		]
-		0												;-- no matching symbol
+		aliased											;-- alias id or no matching symbol
 	]
 	
 	duplicate: func [

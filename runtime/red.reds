@@ -20,6 +20,7 @@ red: context [
 		Windows  [#include %platform/win32.reds]
 		Syllable [#include %platform/syllable.reds]
 		MacOSX	 [#include %platform/darwin.reds]
+		FreeBSD  [#include %platform/freebsd.reds]
 		#default [#include %platform/linux.reds]
 	]
 	

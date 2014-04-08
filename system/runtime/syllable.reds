@@ -57,4 +57,5 @@ Red/System [
 	***-get-argc
 ]
 	
+#include %linux-sigaction.reds
 #include %POSIX.reds

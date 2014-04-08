@@ -7,6 +7,8 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+do-cache %lexer.r
+
 loader: make-profilable context [
 	verbose: 	  0
 	include-list: make hash! 20
@@ -204,9 +206,6 @@ loader: make-profilable context [
 				| ws s: ">>>" e: ws (
 					e: change/part s "-**" e		;-- convert >>> to -**
 				) :e
-				| ws s: #"%" e: ws (
-					e: change/part s "///" e		;-- convert % to ///
-				) :e
 				| [hex-delim | ws]
 				s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
 				e: [hex-delim | ws-all | #";" to lf | end] (
@@ -363,6 +362,13 @@ loader: make-profilable context [
 						remove/part s e
 					]
 				) :s
+				| s: #case set cases block! e: (
+					either body: select reduce bind cases job true [
+						change/part s body e
+					][
+						remove/part s e
+					]
+				) :s
 				| s: #pop-path set value integer! e: (
 					either all [encap? own][
 						unless zero? value [pop-encap-path value]
@@ -448,7 +454,7 @@ loader: make-profilable context [
 		
 		unless block? src [
 			expand-string src						;-- process string-level compiler directives
-			if error? set/any 'err try [src: load/all src][	;-- convert source to blocks
+			if error? set/any 'err try [src: lexer/process as-binary src][	;-- convert source to blocks
 				throw-error ["syntax error during LOAD phase:" mold disarm err]
 			]
 		]
