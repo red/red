@@ -71,7 +71,7 @@ lexer: context [
 	
 	not-word-char:  charset {/\^^,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
-	not-file-char:  charset {[](){}"%@:;}
+	not-file-char:  charset {[](){}"@:;}
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
@@ -554,9 +554,21 @@ lexer: context [
 		]
 		new
 	]
-	
-	load-file: func [s [string!]][
-		either empty? s [first [///]][to file! s]
+
+	load-file: func [s [string!] /local new hex][
+		new: make file! length? s
+
+		either empty? s [
+			first [///]
+		][
+			parse/all/case s [
+				any [
+					#"%" copy hex 2 hexa-char (append new to-char decode-hexa hex)
+					| copy c skip (append new c)
+				]
+			]
+			new
+		]
 	]
 	
 	process: func [src [string! binary!] /local blk][

@@ -179,12 +179,10 @@ transcode: function [
 	]
 	
 	decode-hex: [
-		set c [
-			digit 			(value: c - #"0")
-			| hexa-upper	(value: c - #"A" + 10)
-			| hexa-lower	(value: c - #"a" + 10)
-			| (print "*** Syntax Error: invalid file hexa encoding") ;@@ temporary hardcoded
-		]
+		[set c digit (value: c - #"0")]
+		|[set c hexa-upper (value: c - #"A" + 10)]
+		|[set c hexa-lower (value: c - #"a" + 10)]
+		| (print "*** Syntax Error: invalid file hexa encoding") ;@@ temporary hardcoded
 	]
 	
 	decode-2hex: [

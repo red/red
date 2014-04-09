@@ -162,7 +162,7 @@ power: make action! [[
 ]
 
 remainder: make action! [[
-		;"Returns what is left over when one value is divided by another."
+		"Returns what is left over when one value is divided by another."
 		value1 	 [number! char!]
 		value2 	 [number! char!]
 		return:  [number! char!]
