@@ -1207,12 +1207,12 @@ string: context [
 		unit: GET_UNIT(s)
 		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		end: as byte-ptr! s/tail
+		assert buffer <= end
 
 		if any [							;-- early exit if string is empty or at tail
 			s/offset = s/tail
-			buffer >= end
-			]
-		[
+			all [not reverse? buffer = end]
+		][
 			result/header: TYPE_NONE
 			return result
 		]
