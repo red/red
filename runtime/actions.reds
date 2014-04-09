@@ -376,7 +376,20 @@ actions: context [
 	]	
 	
 	power*: func [][]
-	remainder*: func [][]
+
+	remainder*: func [
+		return:	  [red-value!]
+		/local
+			action-remainder
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/remainder"]]
+
+		action-remainder: as function! [
+			return:	  [red-value!]
+		] get-action-ptr* ACT_REMAINDER
+		action-remainder
+	]
+
 	round*: func [][]
 	
 	subtract*: func [
@@ -985,7 +998,7 @@ actions: context [
 			:multiply*
 			:negate*
 			null			;power
-			null			;remainder
+			:remainder*
 			null			;round
 			:subtract*
 			:even?*

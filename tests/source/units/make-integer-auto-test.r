@@ -37,7 +37,7 @@ test-binary-ops: [
   -
   *
   /
-  ;//
+  //
   ;or
   ;xor
   ;and
@@ -45,7 +45,7 @@ test-binary-ops: [
 
 test-no-zeroes: [         ;; zero not allowed as operand2
   / 
-  ;//
+  //
 ]
 
 test-prefix-ops: [
@@ -53,12 +53,12 @@ test-prefix-ops: [
   subtract
   multiply
   divide
-  ;remainder
+  remainder
 ]
 
 test-prefix-no-zeroes-ops: [
 	divide
-	;remainder	
+	remainder
 ]
 
 

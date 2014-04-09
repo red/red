@@ -188,19 +188,24 @@ transcode: function [
 	]
 	
 	decode-2hex: [
-		decode-hex (hex: value << 4)
+		decode-hex (hex: value * 16)
 		decode-hex (hex: hex + value)
 	]
 	
 	trans-file: [
-		new: make file! (index? e) - index? s
-		parse/case copy/part s e [						;@@ add /part option to parse!
-			any [
-				#"%" decode-2hex (append new hex)
-				| set c skip (append new c)
+		either zero? (index? e) - index? s [				;-- remainder op!
+			trans-word last stack "///" word!
+			none
+		][
+			new: make file! (index? e) - index? s
+			parse/case copy/part s e [						;@@ add /part option to parse!
+				any [
+					#"%" decode-2hex (append new hex)
+					| set c skip (append new c)
+				]
 			]
+			new
 		]
-		new
 	]
 	
 	if cs/1 = '- [
@@ -211,7 +216,7 @@ transcode: function [
 		cs/5:  union cs/4 cs/3							;-- hexa-char	
 		cs/6:  charset {/\^^,[](){}"#%$@:;}				;-- not-word-char
 		cs/7:  union union cs/6 cs/1 charset {'}		;-- not-word-1st
-		cs/8:  charset {[](){}"%@:;}					;-- not-file-char
+		cs/8:  charset {[](){}"@:;}						;-- not-file-char
 		cs/9:  #"^""									;-- not-str-char
 		cs/10: #"}"										;-- not-mstr-char
 		cs/11: charset [#"^(40)" - #"^(5F)"]			;-- caret-char
@@ -471,7 +476,7 @@ transcode: function [
 			| get-word-rule
 			| slash-rule		(trans-word last stack copy/part s e word!)
 			| refinement-rule
-			| file-rule			(append last stack do process)
+			| file-rule			(if value: do process [append last stack value])
 			| char-rule			(append last stack value)
 			| issue-rule
 			| block-rule
