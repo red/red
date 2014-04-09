@@ -48,6 +48,20 @@ test-no-zeroes: [         ;; zero not allowed as operand2
   ;//
 ]
 
+test-prefix-ops: [
+  add
+  subtract
+  multiply
+  divide
+  ;remainder
+]
+
+test-prefix-no-zeroes-ops: [
+	divide
+	;remainder	
+]
+
+
 test-comparison-ops: [
   =
   <>
@@ -179,6 +193,45 @@ append tests "  ]^(0a)"
 append tests "integer-auto-test-func^(0a)"
 write/append file-out tests
 tests: copy ""
+
+;; prefix binary operator tests - in global context
+foreach op test-prefix-ops [
+  foreach operand1 test-values [
+    foreach operand2 test-values [
+      ;; only write a test if REBOL produces a result
+      if attempt [expected: do reduce [op operand1 operand2]][
+        
+        ;; don't write tests for certain ops with zero second operand
+        if not all [
+          operand2 = 0
+          find test-prefix-no-zeroes-ops op 
+        ][
+          expected: to-integer expected
+          
+          ;; test with literal values
+          test-number: test-number + 1
+          append tests join {  --test-- "integer-auto-} [test-number {"^(0A)}]
+          append tests "  --assert "
+          append tests reform [expected " = (" op operand1 operand2 ")^(0A)"]
+          
+          ;; test with variables
+          test-number: test-number + 1
+          append tests join {  --test-- "integer-auto-} [test-number {"^(0A)}]
+          append tests join "      i: " [operand1 "^(0A)"]
+          append tests join "      j: " [operand2 "^(0A)"]
+          append tests rejoin ["      k: " op " i j^(0A)"]
+          append tests "  --assert "
+          append tests reform [expected " = k ^(0A)"]
+          
+          ;; write tests to file
+          write/append file-out tests
+          tests: copy ""
+        ]
+      ]
+      recycle
+    ]
+  ]
+]
 
 
 ;; comparison tests
