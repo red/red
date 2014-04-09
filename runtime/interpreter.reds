@@ -553,14 +553,18 @@ interpreter: context [
 		/local
 			fun	   [red-function!]
 			native [red-native!]
+			name   [red-word!]
 			s	   [series!]
 			call 
 	][
+		name: as red-word! pc - 1
+		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
+		
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
 			TYPE_NATIVE [
 				if verbose > 0 [log "pushing action/native frame"]
-				stack/mark-native as red-word! pc
+				stack/mark-native name
 				pc: eval-arguments as red-native! value pc end path slot 	;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
 
@@ -571,7 +575,7 @@ interpreter: context [
 			]
 			TYPE_ROUTINE [
 				if verbose > 0 [log "pushing routine frame"]
-				stack/mark-native as red-word! pc
+				stack/mark-native name
 				pc: eval-arguments as red-native! value pc end path slot
 				exec-routine as red-routine! value
 				either sub? [stack/unwind][stack/unwind-last]
@@ -583,7 +587,7 @@ interpreter: context [
 			]
 			TYPE_FUNCTION [
 				if verbose > 0 [log "pushing function frame"]
-				stack/mark-func as red-word! pc	;@@
+				stack/mark-func name
 				pc: eval-arguments as red-native! value pc end path slot
 				fun: as red-function! value
 				s: as series! fun/more/value
