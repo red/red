@@ -30,6 +30,13 @@ test-values: [
         65536
 ]
 
+prefix-test-values: [
+	0                   			
+	-2147483648                   	; min
+	2147483647                   	; max
+	1	
+]
+
 
 ;; create blocks of operators to be applied
 test-binary-ops: [
@@ -196,8 +203,8 @@ tests: copy ""
 
 ;; prefix binary operator tests - in global context
 foreach op test-prefix-ops [
-  foreach operand1 test-values [
-    foreach operand2 test-values [
+  foreach operand1 prefix-test-values [
+    foreach operand2 prefix-test-values [
       ;; only write a test if REBOL produces a result
       if attempt [expected: do reduce [op operand1 operand2]][
         
@@ -255,7 +262,6 @@ foreach op test-comparison-ops [
     ]
   ]
 ]
-
 
 ;; write file epilog
 append tests "^(0A)===end-group===^(0A)^(0A)"
