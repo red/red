@@ -722,7 +722,9 @@ actions: context [
 
 		int: as red-integer! stack/arguments
 		value: length? stack/arguments					;-- must be set before slot is modified
-		unless value = -1 [
+		either value = -1 [
+			none/push-last
+		][
 			int/value:  value
 			int/header: TYPE_INTEGER
 		]
