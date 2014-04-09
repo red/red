@@ -26,8 +26,8 @@ Red [
 		--assert none = find [1 2 3 4] "1"
 	--test-- "find-7" 
 		--assert "12345" = find "12345" #"1"
-	;--test-- "find-8" 							;; unsupported case, it is unsure if it will be implemented or not
-	;--assert "12345" = find "12345" 1			;; keeping it here commented for further reference.
+	--test-- "find-8" 							
+		--assert none = find "12345" 1
 	--test-- "find-9" 
 		--assert "12345" = find "12345" "1"
 	--test-- "find-10" 
