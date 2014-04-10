@@ -175,6 +175,7 @@ Red/System [
 	NAT_UNIQUE
 	NAT_DIFFERENCE
 	NAT_COMPLEMENT?
+	NAT_DEHEX
 ]
 
 #enum math-op! [

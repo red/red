@@ -745,11 +745,10 @@ block: context [
 		result: stack/push as red-value! blk
 		
 		s: GET_BUFFER(blk)
-		assert s/offset + blk/head <= s/tail
 
 		if any [							;-- early exit if blk is empty or at tail
 			s/offset = s/tail
-			all [not reverse? s/offset + blk/head = s/tail]
+			all [not reverse? s/offset + blk/head >= s/tail]
 		][
 			result/header: TYPE_NONE
 			return result
