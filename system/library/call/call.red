@@ -101,6 +101,19 @@ get-err: routine [ "Returns redirected stderr"
 	]
 ]
 
+print-to-stderr: routine [ "Call to low level print to stderr"
+	mesg	[string!]
+][
+	system-call/print-error [ as-c-string string/rs-head mesg ]
+]
+
+print-error: func [
+	mesg			[string! block!]	"A shell command, an executable file or a block"
+][
+	if type? mesg = block! [ mesg: form mesg ]
+	print-to-stderr mesg
+]
+
 call: func [ "Executes a shell command to run another process."
 	cmd			[string! block!]	"A shell command, an executable file or a block"
 	/wait							"Runs command and waits for exit"
