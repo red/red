@@ -155,5 +155,16 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 		--assert  {"^^(76EE)^^(5F55)1"} = mold/all "目录1"
 ===end-group===
 
+===start-group=== "dehex"
+	--test-- "dehex-1"
+		--assert  "a b" = dehex "a%20b"
+	--test-- "dehex-2"
+		--assert  "a%2目b" = dehex "a%2目b"
+	--test-- "dehex-3"
+		--assert  "a^@b" = dehex "a%00b"
+	--test-- "dehex-4"
+		--assert  "a%~b" = dehex "a%~b"
+===end-group===
+
 ~~~end-file~~~
 
