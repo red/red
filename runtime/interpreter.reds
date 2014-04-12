@@ -551,11 +551,7 @@ interpreter: context [
 		slot 	[red-value!]
 		return: [red-value!]
 		/local
-			fun	   [red-function!]
-			native [red-native!]
 			name   [red-word!]
-			s	   [series!]
-			call 
 	][
 		name: as red-word! pc - 1
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
@@ -589,17 +585,7 @@ interpreter: context [
 				if verbose > 0 [log "pushing function frame"]
 				stack/mark-func name
 				pc: eval-arguments as red-native! value pc end path slot
-				fun: as red-function! value
-				s: as series! fun/more/value
-				
-				native: as red-native! s/offset + 2
-				either zero? native/code [
-					eval-function fun as red-block! s/offset
-				][
-					call: as function! [] native/code
-					call
-					0
-				]
+				_function/call as red-function! value
 				either sub? [stack/unwind][stack/unwind-last]
 
 				if verbose > 0 [
