@@ -96,6 +96,7 @@ system-call: context [
 			len		[integer!]
 	][
 		str: make-c-string 1000
+		set-memory as byte-ptr! str null-byte 1000
 		until [
 			switch list/type [
 				type-c-string! [ format-any [ (str + length? str) "%s" list/value ] ]
@@ -110,7 +111,7 @@ system-call: context [
 		append-string str "^/"
 		len: length? str
 		#switch OS [									;-- Write to stderr, no error check
-			Windows  [ write-file stderr as byte-ptr! str len :len null ]
+			Windows  [ write-file get-std-handle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
 			#default [ io-write stderr as byte-ptr! str len ]
 		]
 		free as byte-ptr! str
@@ -176,9 +177,9 @@ system-call: context [
 			inherit: false
 			s-inf/cb: size? s-inf
 			s-inf/dwFlags: 0
-			s-inf/hStdInput:  stdin
-			s-inf/hStdOutput: stdout
-			s-inf/hStdError:  stderr
+			s-inf/hStdInput:  get-std-handle STD_INPUT_HANDLE
+			s-inf/hStdOutput: get-std-handle STD_OUTPUT_HANDLE
+			s-inf/hStdError:  get-std-handle STD_ERROR_HANDLE
 			if in-buf <> null [
 				if not create-pipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
 					print-error [ error-pipe "stdin" ]
@@ -207,7 +208,7 @@ system-call: context [
 					s-inf/hStdOutput: create-file "nul" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_ALWAYS 0 null
 				]
 			]
-			if err-buf <> null [
+			either err-buf <> null [
 				err-buf/count: 0
 				err-buf/buffer: allocate READ-BUFFER-SIZE
 				if not create-pipe :err-read :err-write sa 0 [	;-- Create a pipe for child's error
@@ -218,16 +219,19 @@ system-call: context [
 					print-error [ error-sethandle "stderr" ]
 					return -1
 				]
-				s-inf/hStdError:  err-write
+				s-inf/hStdError: err-write
+			][
+				if not console [
+					s-inf/hStdError: create-file "nul" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_ALWAYS 0 null
+				]
 			]
 			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ] [
 				waitend: true
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
-			if not console [							;-- close inherited IOs if not needed
+			if not console [
 				if in-buf  = null [ s-inf/hStdInput:  0 ]
-				if err-buf = null [ s-inf/hStdError:  0 ]
 				inherit: true
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]

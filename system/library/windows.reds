@@ -49,11 +49,15 @@ Red/System [
 	#define FILE_SHARE_WRITE	2
 	#define FILE_SHARE_DELETE	4
 
-	#define CREATE_NEW 1
-	#define CREATE_ALWAYS 2
-	#define OPEN_EXISTING 3
-	#define OPEN_ALWAYS 4
-	#define TRUNCATE_EXISTING 5
+	#define CREATE_NEW			1
+	#define CREATE_ALWAYS		2
+	#define OPEN_EXISTING		3
+	#define OPEN_ALWAYS			4
+	#define TRUNCATE_EXISTING	5
+
+	#define STD_INPUT_HANDLE	-10
+	#define STD_OUTPUT_HANDLE	-11
+	#define STD_ERROR_HANDLE	-12
 
 	process-info!: alias struct! [
 		hProcess        [opaque!]
@@ -133,6 +137,10 @@ Red/System [
 		close-handle: "CloseHandle" [ "Closes an open object handle"
 			hObject                 [opaque!]
 			return:                 [logic!]
+		]
+		get-std-handle: "GetStdHandle" [
+			nStdHandle				[integer!]
+			return:					[opaque!]
 		]
 		read-file: "ReadFile" [ "Reads data from the specified file or input/output device"
 			hFile                   [opaque!]
