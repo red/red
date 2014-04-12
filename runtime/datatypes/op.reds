@@ -51,6 +51,7 @@ op: context [
 			TYPE_OF(spec) = TYPE_NATIVE
 			TYPE_OF(spec) = TYPE_OP
 			TYPE_OF(spec) = TYPE_FUNCTION
+			TYPE_OF(spec) = TYPE_ROUTINE
 		]
 		node: switch type [
 			TYPE_BLOCK [
