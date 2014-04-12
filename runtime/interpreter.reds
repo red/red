@@ -281,6 +281,7 @@ interpreter: context [
 		/local
 			next   [red-word!]
 			left   [red-value!]
+			fun	   [red-value!]
 			infix? [logic!]
 			op	   [red-op!]
 			s	   [series!]
@@ -294,7 +295,12 @@ interpreter: context [
 		either op/header and body-flag <> 0 [
 			node: as node! op/code
 			s: as series! node/value
-			eval-function as red-function! s/offset + 3 as red-block! s/offset
+			fun: s/offset + 3
+			either TYPE_OF(fun) = TYPE_ROUTINE [
+				exec-routine as red-routine! fun
+			][
+				eval-function as red-function! fun as red-block! s/offset
+			]
 		][
 			call-op: as function! [] op/code
 			call-op
