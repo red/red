@@ -310,7 +310,18 @@ actions: context [
 		action-compare value1 value2 op
 	]
 	
-	absolute*: func [][]
+	absolute*: func [
+		return:	[red-value!]
+		/local
+			action-absolute
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/absolute"]]
+
+		action-absolute: as function! [
+			return:	[red-value!]						;-- absoluted value
+		] get-action-ptr* ACT_ABSOLUTE
+		action-absolute
+	]
 	
 	add*: func [
 		return:	[red-value!]
@@ -992,7 +1003,7 @@ actions: context [
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute*
 			:add*
 			:divide*
 			:multiply*

@@ -176,7 +176,9 @@ lexer: context [
 	]
 	
 	word-rule: 	[
-		(type: word!) s: begin-symbol-rule [
+		(type: word!)
+		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
+		| s: begin-symbol-rule [
 			path-rule 								;-- path matched
 			| (value: copy/part s e)				;-- word matched
 			opt [#":" (type: set-word!)]
@@ -555,20 +557,8 @@ lexer: context [
 		new
 	]
 
-	load-file: func [s [string!] /local new hex][
-		new: make file! length? s
-
-		either empty? s [
-			first [///]
-		][
-			parse/all/case s [
-				any [
-					#"%" copy hex 2 hexa-char (append new to-char decode-hexa hex)
-					| copy c skip (append new c)
-				]
-			]
-			new
-		]
+	load-file: func [s [string!]][
+		to file! dehex s
 	]
 	
 	process: func [src [string! binary!] /local blk][

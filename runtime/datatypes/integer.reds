@@ -243,6 +243,17 @@ integer: context [
 		as red-value! do-math OP_REM
 	]
 
+	absolute: func [
+		return: [red-integer!]
+		/local
+			int [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
+		int: as red-integer! stack/arguments
+		if negative? int/value [int/value: 0 - int/value]
+		int 											;-- re-use argument slot for return value
+	]
+
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
@@ -303,7 +314,7 @@ integer: context [
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute
 			:add
 			:divide
 			:multiply

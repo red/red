@@ -81,7 +81,7 @@ system-dialect: make-profilable context [
 		
 		comparison-op: [= <> < > <= >=]
 		
-		functions: to-hash [
+		functions: to-hash compose [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
 			+		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
 			-		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
@@ -91,7 +91,7 @@ system-dialect: make-profilable context [
 			or		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			xor		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
-			///		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
+			(to-word "%")		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
 			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned

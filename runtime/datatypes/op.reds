@@ -65,6 +65,9 @@ op: context [
 			]
 			TYPE_FUNCTION [
 				fun: as red-function! spec
+				s: as series! fun/more/value
+				native: as red-native! s/offset + 2
+				code: native/code
 				fun/spec
 			]
 		]

@@ -191,19 +191,14 @@ transcode: function [
 	]
 	
 	trans-file: [
-		either zero? (index? e) - index? s [				;-- remainder op!
-			trans-word last stack "///" word!
-			none
-		][
-			new: make file! (index? e) - index? s
-			parse/case copy/part s e [						;@@ add /part option to parse!
-				any [
-					#"%" decode-2hex (append new hex)
-					| set c skip (append new c)
-				]
+		new: make file! (index? e) - index? s
+		parse/case copy/part s e [						;@@ add /part option to parse!
+			any [
+				#"%" decode-2hex (append new hex)
+				| set c skip (append new c)
 			]
-			new
 		]
+		new
 	]
 	
 	if cs/1 = '- [
@@ -363,11 +358,12 @@ transcode: function [
 	]
 
 	word-rule: 	[
-		s: begin-symbol-rule (type: word!) [
-			path-rule 									;-- path matched
-			| opt [#":" (type: set-word!)]
-			  (trans-word last stack copy/part s e type) ;-- word or set-word matched
-		] 
+		#"%" ws-no-count (trans-word last stack "%" word!)	 ;-- special case for remainder op!
+		| s: begin-symbol-rule (type: word!) [
+				path-rule 									 ;-- path matched
+				| opt [#":" (type: set-word!)]
+				  (trans-word last stack copy/part s e type) ;-- word or set-word matched
+		  ]
 	]
 
 	get-word-rule: [
@@ -379,7 +375,7 @@ transcode: function [
 
 	lit-word-rule: [
 		#"'" (type: lit-word!) s: begin-symbol-rule [
-			path-rule (type: lit-path!)					;-- path matched
+			path-rule (type: lit-path!)					 ;-- path matched
 			| (trans-word last stack copy/part s e type) ;-- lit-word matched
 		]
 	]
@@ -474,7 +470,7 @@ transcode: function [
 			| get-word-rule
 			| slash-rule		(trans-word last stack copy/part s e word!)
 			| refinement-rule
-			| file-rule			(if value: do process [append last stack value])
+			| file-rule			(append last stack value: do process)
 			| char-rule			(append last stack value)
 			| issue-rule
 			| block-rule
