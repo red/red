@@ -283,14 +283,23 @@ interpreter: context [
 			left   [red-value!]
 			infix? [logic!]
 			op	   [red-op!]
+			s	   [series!]
 			call-op
 	][
 		stack/keep
 		pc: pc + 1										;-- skip operator
 		pc: eval-expression pc end yes yes				;-- eval right operand
 		op: as red-op! value
-		call-op: as function! [] op/code
-		call-op
+
+		either op/header and body-flag <> 0 [
+			node: as node! op/code
+			s: as series! node/value
+			eval-function as red-function! s/offset + 3 as red-block! s/offset
+		][
+			call-op: as function! [] op/code
+			call-op
+			0											;-- @@ to make compiler happy!
+		]
 
 		if verbose > 0 [
 			value: stack/arguments

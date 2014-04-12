@@ -39,9 +39,11 @@ op: context [
 			node	[node!]
 			s		[series!]
 			code	[integer!]
+			flag	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "op/make"]]
 
+		flag: 0
 		type: TYPE_OF(spec)
 		assert any [
 			TYPE_OF(spec) = TYPE_BLOCK
@@ -63,14 +65,20 @@ op: context [
 				code: native/code
 				native/spec
 			]
-			TYPE_FUNCTION [
+			TYPE_FUNCTION
+			TYPE_ROUTINE [
 				fun: as red-function! spec
+				s: as series! fun/more/value
+				;@@ check if slot #4 is already set!
+				copy-cell as red-value! fun alloc-tail s ;-- append a copy of the function value
+				flag: body-flag
+				code: as-integer fun/more					;-- point to a block node
 				fun/spec
 			]
 		]
 		
 		op: as red-op! stack/push*
-		op/header: TYPE_OP								;-- implicit reset of all header flags
+		op/header: TYPE_OP or flag						;-- implicit reset of all header flags
 		op/spec:   node									; @@ copy spec block
 		;op/symbols: clean-spec spec 					; @@ TBD
 		
