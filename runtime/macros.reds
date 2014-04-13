@@ -182,6 +182,7 @@ Red/System [
 	OP_SUB
 	OP_MUL
 	OP_DIV
+	OP_REM
 ]
 
 #enum comparison-op! [

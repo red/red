@@ -162,13 +162,25 @@ power: make action! [[
 ]
 
 remainder: make action! [[
-		"(not yet implemented)"
-		;"Returns what is left over when one value is divided by another."
-		value1 	 [number!]
-		value2 	 [number!]
-		return:  [number!]
+		"Returns what is left over when one value is divided by another."
+		value1 	 [number! char!]
+		value2 	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_REMAINDER
+]
+
+modulo: func [
+	"Compute a nonnegative remainder of A divided by B."
+	a		[number!]
+	b		[number!]
+	return: [number!]
+	/local r
+][
+	b: absolute b
+    all [0 > r: a % b r: r + b]
+    a: absolute a
+    either all [a + r = (a + b) 0 < r + r - b] [r - b] [r]
 ]
 
 round: make action! [[
@@ -818,18 +830,20 @@ complement?: make native! [[
 
 ;-- #load temporary directive is used to workaround REBOL LOAD limitations on some words
 
-#load set-word! "+"  make op! :add
-#load set-word! "-"  make op! :subtract
-#load set-word! "*"  make op! :multiply
-#load set-word! "/"  make op! :divide
-#load set-word! "="  make op! :equal?
-#load set-word! "<>" make op! :not-equal?
-#load set-word! "==" make op! :strict-equal?
-#load set-word! "=?" make op! :same?
-#load set-word! "<"  make op! :lesser?
-#load set-word! ">"  make op! :greater?
-#load set-word! "<=" make op! :lesser-or-equal?
-#load set-word! ">=" make op! :greater-or-equal?
+#load set-word! "+"		make op! :add
+#load set-word! "-"		make op! :subtract
+#load set-word! "*"		make op! :multiply
+#load set-word! "/"		make op! :divide
+#load set-word! "//"	make op! :modulo
+#load set-word! "%"		make op! :remainder
+#load set-word! "="		make op! :equal?
+#load set-word! "<>"	make op! :not-equal?
+#load set-word! "=="	make op! :strict-equal?
+#load set-word! "=?"	make op! :same?
+#load set-word! "<" 	make op! :lesser?
+#load set-word! ">" 	make op! :greater?
+#load set-word! "<="	make op! :lesser-or-equal?
+#load set-word! ">="	make op! :greater-or-equal?
 
 
 ;------------------------------------------

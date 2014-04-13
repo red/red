@@ -109,6 +109,7 @@ integer: context [
 			OP_SUB [left/value - right/value]
 			OP_MUL [left/value * right/value]
 			OP_DIV [left/value / right/value]
+			OP_REM [left/value % right/value]
 		]
 		left
 	]
@@ -236,7 +237,23 @@ integer: context [
 		int/value: not int/value
 		as red-value! int
 	]
-	
+
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/remainder"]]
+		as red-value! do-math OP_REM
+	]
+
+	absolute: func [
+		return: [red-integer!]
+		/local
+			int [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
+		int: as red-integer! stack/arguments
+		if negative? int/value [int/value: 0 - int/value]
+		int 											;-- re-use argument slot for return value
+	]
+
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
@@ -297,13 +314,13 @@ integer: context [
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute
 			:add
 			:divide
 			:multiply
 			:negate
 			null			;power
-			null			;remainder
+			:remainder
 			null			;round
 			:subtract
 			:even?
