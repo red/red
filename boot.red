@@ -824,6 +824,12 @@ complement?: make native! [[
 	#get-definition NAT_COMPLEMENT?
 ]
 
+dehex: make native! [[
+		"Converts URL-style hex encoded (%xx) strings."
+		value [string! file!]							;@@ replace with any-string!
+	]
+	#get-definition NAT_DEHEX
+]
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
