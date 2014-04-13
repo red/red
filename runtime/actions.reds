@@ -310,7 +310,18 @@ actions: context [
 		action-compare value1 value2 op
 	]
 	
-	absolute*: func [][]
+	absolute*: func [
+		return:	[red-value!]
+		/local
+			action-absolute
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/absolute"]]
+
+		action-absolute: as function! [
+			return:	[red-value!]						;-- absoluted value
+		] get-action-ptr* ACT_ABSOLUTE
+		action-absolute
+	]
 	
 	add*: func [
 		return:	[red-value!]
@@ -376,7 +387,20 @@ actions: context [
 	]	
 	
 	power*: func [][]
-	remainder*: func [][]
+
+	remainder*: func [
+		return:	  [red-value!]
+		/local
+			action-remainder
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/remainder"]]
+
+		action-remainder: as function! [
+			return:	  [red-value!]
+		] get-action-ptr* ACT_REMAINDER
+		action-remainder
+	]
+
 	round*: func [][]
 	
 	subtract*: func [
@@ -722,7 +746,9 @@ actions: context [
 
 		int: as red-integer! stack/arguments
 		value: length? stack/arguments					;-- must be set before slot is modified
-		unless value = -1 [
+		either value = -1 [
+			none/push-last
+		][
 			int/value:  value
 			int/header: TYPE_INTEGER
 		]
@@ -979,13 +1005,13 @@ actions: context [
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute*
 			:add*
 			:divide*
 			:multiply*
 			:negate*
 			null			;power
-			null			;remainder
+			:remainder*
 			null			;round
 			:subtract*
 			:even?*

@@ -179,16 +179,14 @@ transcode: function [
 	]
 	
 	decode-hex: [
-		set c [
-			digit 			(value: c - #"0")
-			| hexa-upper	(value: c - #"A" + 10)
-			| hexa-lower	(value: c - #"a" + 10)
-			| (print "*** Syntax Error: invalid file hexa encoding") ;@@ temporary hardcoded
-		]
+		[set c digit (value: c - #"0")]
+		|[set c hexa-upper (value: c - #"A" + 10)]
+		|[set c hexa-lower (value: c - #"a" + 10)]
+		| (print "*** Syntax Error: invalid file hexa encoding") ;@@ temporary hardcoded
 	]
 	
 	decode-2hex: [
-		decode-hex (hex: value << 4)
+		decode-hex (hex: value * 16)
 		decode-hex (hex: hex + value)
 	]
 	
@@ -211,7 +209,7 @@ transcode: function [
 		cs/5:  union cs/4 cs/3							;-- hexa-char	
 		cs/6:  charset {/\^^,[](){}"#%$@:;}				;-- not-word-char
 		cs/7:  union union cs/6 cs/1 charset {'}		;-- not-word-1st
-		cs/8:  charset {[](){}"%@:;}					;-- not-file-char
+		cs/8:  charset {[](){}"@:;}						;-- not-file-char
 		cs/9:  #"^""									;-- not-str-char
 		cs/10: #"}"										;-- not-mstr-char
 		cs/11: charset [#"^(40)" - #"^(5F)"]			;-- caret-char
@@ -360,11 +358,12 @@ transcode: function [
 	]
 
 	word-rule: 	[
-		s: begin-symbol-rule (type: word!) [
-			path-rule 									;-- path matched
-			| opt [#":" (type: set-word!)]
-			  (trans-word last stack copy/part s e type) ;-- word or set-word matched
-		] 
+		#"%" ws-no-count (trans-word last stack "%" word!)	 ;-- special case for remainder op!
+		| s: begin-symbol-rule (type: word!) [
+				path-rule 									 ;-- path matched
+				| opt [#":" (type: set-word!)]
+				  (trans-word last stack copy/part s e type) ;-- word or set-word matched
+		  ]
 	]
 
 	get-word-rule: [
@@ -376,7 +375,7 @@ transcode: function [
 
 	lit-word-rule: [
 		#"'" (type: lit-word!) s: begin-symbol-rule [
-			path-rule (type: lit-path!)					;-- path matched
+			path-rule (type: lit-path!)					 ;-- path matched
 			| (trans-word last stack copy/part s e type) ;-- lit-word matched
 		]
 	]
@@ -471,7 +470,7 @@ transcode: function [
 			| get-word-rule
 			| slash-rule		(trans-word last stack copy/part s e word!)
 			| refinement-rule
-			| file-rule			(append last stack do process)
+			| file-rule			(append last stack value: do process)
 			| char-rule			(append last stack value)
 			| issue-rule
 			| block-rule

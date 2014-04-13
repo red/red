@@ -155,7 +155,19 @@ stack: context [										;-- call stack
 		ctop: ctop + 2									;-- ctop points past the current call frame
 		copy-cell last as red-value! ctop/2
 	]
-
+	
+	unroll-last: func [
+		flags	 [integer!]
+		/local
+			last [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/unroll-last"]]
+		
+		unroll flags
+		unwind-last										;-- required to reset top value
+		ctop: ctop + 2
+	]
+	
 	set-last: func [
 		last	[red-value!]
 		return: [red-value!]

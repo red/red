@@ -745,7 +745,11 @@ block: context [
 		result: stack/push as red-value! blk
 		
 		s: GET_BUFFER(blk)
-		if s/offset = s/tail [							;-- early exit if blk is empty
+
+		if any [							;-- early exit if blk is empty or at tail
+			s/offset = s/tail
+			all [not reverse? s/offset + blk/head >= s/tail]
+		][
 			result/header: TYPE_NONE
 			return result
 		]

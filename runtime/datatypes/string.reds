@@ -21,10 +21,9 @@ string: context [
 	escape-url-chars:	declare byte-ptr!
 
 	#enum escape-type! [
-		ESC_CHAR
+		ESC_CHAR: 7Eh
 		ESC_URL
-		ESC_FILE
-		ESC_EMAIL
+		ESC_NONE: FFh
 	]
 
 	fill-table: func [
@@ -33,7 +32,7 @@ string: context [
 			i [integer!]
 	][
 		i: 1
-		c:  #"@"
+		c: #"@"
 		while [c <= #"_"][
 			escape-chars/i: c
 			i: i + 1
@@ -55,31 +54,55 @@ string: context [
 		/local
 			c [byte!]
 			i [integer!]
+			n [integer!]
+			s [c-string!]
 	][
 		i: 1
 		c: #"^@"
 		while [c <= #" "][
-			escape-url-chars/i: as byte! ESC_FILE
+			escape-url-chars/i: as byte! ESC_URL
 			i: i + 1
 			c: c + 1
 		]
 
-		while [i < MAX_URL_CHARS][
-			escape-url-chars/i: null-byte
+		while [i <= MAX_URL_CHARS][
+			escape-url-chars/i: as byte! ESC_NONE
 			i: i + 1
 		]
 
-		escape-url-chars/35:  as byte! ESC_FILE		;-- #"^"" 34 + 1  (adjust for 1-base)
-		escape-url-chars/38:  as byte! ESC_FILE		;-- #"%"  37 + 1  (adjust for 1-base)
-		escape-url-chars/41:  as byte! ESC_FILE		;-- #"("  40 + 1  (adjust for 1-base)
-		escape-url-chars/42:  as byte! ESC_FILE		;-- #")"  41 + 1  (adjust for 1-base)
-		escape-url-chars/60:  as byte! ESC_FILE		;-- #";"  59 + 1  (adjust for 1-base)
-		escape-url-chars/61:  as byte! ESC_FILE		;-- #"<"  60 + 1  (adjust for 1-base)
-		escape-url-chars/63:  as byte! ESC_FILE		;-- #">"  62 + 1  (adjust for 1-base)
-		escape-url-chars/92:  as byte! ESC_FILE		;-- #"["  91 + 1  (adjust for 1-base
-		escape-url-chars/94:  as byte! ESC_FILE		;-- #"]"  93 + 1  (adjust for 1-base)
-		escape-url-chars/124: as byte! ESC_FILE		;-- #"{"  123 + 1 (adjust for 1-base)
-		escape-url-chars/126: as byte! ESC_FILE		;-- #"}"  125 + 1 (adjust for 1-base)
+		i: (as-integer #"0") + 1					;-- adjust for 1-base
+		c: #"0"
+		while [c <= #"9"][
+			escape-url-chars/i: c - #"0"
+			i: i + 1
+			c: c + 1
+		]
+
+		i: (as-integer #"a") + 1
+		c: #"a"
+		while [c <= #"f"][
+			escape-url-chars/i: c - #"a" + 10
+			i: i + 1
+			c: c + 1
+		]
+
+		i: (as-integer #"A") + 1
+		c: #"a"
+		while [c <= #"F"][
+			escape-url-chars/i: c - #"A" + 10
+			i: i + 1
+			c: c + 1
+		]
+
+		s: "^"%();<>[]{}E"
+		i: 1
+		until [
+			c: s/i + 1
+			n: as-integer c
+			escape-url-chars/n: as byte! ESC_URL
+			i: i + 1
+			s/i = #"E"
+		]
 	]
 
 	to-hex: func [
@@ -111,7 +134,38 @@ string: context [
 		]
 		s + c
 	]
-	
+
+	decode-2hex: func [
+		p		[byte-ptr!]
+		unit	[integer!]
+		cp		[int-ptr!]
+		return: [logic!]
+		/local
+			v1	[integer!]
+			v2	[integer!]
+	][
+		v1: (get-char p unit) + 1						;-- adjust for 1-base
+		if v1 > MAX_URL_CHARS [return false]
+
+		v2: (get-char p + unit unit) + 1				;-- adjust for 1-base
+		if v2 > MAX_ESC_CHARS [return false]
+
+		v1: as-integer escape-url-chars/v1
+		if any [
+			v1 = ESC_NONE
+			v1 = ESC_URL
+		][return false]
+
+		v2: as-integer escape-url-chars/v2
+		if any [
+			v2 = ESC_NONE
+			v2 = ESC_URL
+		][return false]
+
+		cp/value: v1 << 4 + v2
+		true
+	]
+
 	rs-length?: func [
 		str	    [red-string!]
 		return: [integer!]
@@ -868,7 +922,11 @@ string: context [
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
 			]
-			all [type = ESC_FILE cp < MAX_URL_CHARS escape-url-chars/idx <> null-byte][
+			all [
+				type = ESC_URL
+				cp < MAX_URL_CHARS
+				escape-url-chars/idx = (as byte! ESC_URL)
+			][
 				append-char GET_BUFFER(buffer) as-integer #"%"
 				concatenate-literal buffer to-hex cp
 			]
@@ -1204,11 +1262,18 @@ string: context [
 		result: stack/push as red-value! str
 		
 		s: GET_BUFFER(str)
-		if s/offset = s/tail [							;-- early exit if string is empty
+		unit: GET_UNIT(s)
+		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		end: as byte-ptr! s/tail
+
+		if any [							;-- early exit if string is empty or at tail
+			s/offset = s/tail
+			all [not reverse? buffer >= end]
+		][
 			result/header: TYPE_NONE
 			return result
 		]
-		unit: GET_UNIT(s)
+
 		step: 1
 		part?: no
 

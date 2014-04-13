@@ -1958,7 +1958,7 @@ red: context [
 		]
 	]
 	
-	check-infix-operators: has [name op pos end ops][
+	check-infix-operators: has [name op pos end ops entry][
 		if infix? pc [return false]						;-- infix op already processed,
 														;-- or used in prefix mode.
 		if infix? next pc [
@@ -1981,7 +1981,14 @@ red: context [
 			
 			forall ops [
 				comp-expression/no-infix				;-- fetch right operand
-				emit make-func-prefix ops/1
+				either all [
+					entry: find functions ops/1
+					entry/2/1 = 'function!
+				][
+					emit decorate-func ops/1
+				][
+					emit make-func-prefix ops/1
+				]
 				insert-lf -1
 				emit-close-frame
 				unless tail? next ops [pc: next pc]		;-- jump over op word unless last operand
@@ -2116,7 +2123,7 @@ red: context [
 				true
 			]
 			#load [										;-- temporary directive
-				change/part/only pc to do pc/2 pc/3 3 2
+				change/part/only pc to do pc/2 pc/3 3
 				comp-expression							;-- continue expression fetching
 				true
 			]

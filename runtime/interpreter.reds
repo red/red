@@ -551,16 +551,16 @@ interpreter: context [
 		slot 	[red-value!]
 		return: [red-value!]
 		/local
-			fun	   [red-function!]
-			native [red-native!]
-			s	   [series!]
-			call 
+			name   [red-word!]
 	][
+		name: as red-word! pc - 1
+		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
+		
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
 			TYPE_NATIVE [
 				if verbose > 0 [log "pushing action/native frame"]
-				stack/mark-native as red-word! pc
+				stack/mark-native name
 				pc: eval-arguments as red-native! value pc end path slot 	;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
 
@@ -571,7 +571,7 @@ interpreter: context [
 			]
 			TYPE_ROUTINE [
 				if verbose > 0 [log "pushing routine frame"]
-				stack/mark-native as red-word! pc
+				stack/mark-native name
 				pc: eval-arguments as red-native! value pc end path slot
 				exec-routine as red-routine! value
 				either sub? [stack/unwind][stack/unwind-last]
@@ -583,19 +583,9 @@ interpreter: context [
 			]
 			TYPE_FUNCTION [
 				if verbose > 0 [log "pushing function frame"]
-				stack/mark-func as red-word! pc	;@@
+				stack/mark-func name
 				pc: eval-arguments as red-native! value pc end path slot
-				fun: as red-function! value
-				s: as series! fun/more/value
-				
-				native: as red-native! s/offset + 2
-				either zero? native/code [
-					eval-function fun as red-block! s/offset
-				][
-					call: as function! [] native/code
-					call
-					0
-				]
+				_function/call as red-function! value
 				either sub? [stack/unwind][stack/unwind-last]
 
 				if verbose > 0 [
@@ -688,7 +678,7 @@ interpreter: context [
 					case [
 						sym = words/exit* [
 							copy-cell unset-value stack/arguments
-							stack/unroll stack/FLAG_FUNCTION
+							stack/unroll-last stack/FLAG_FUNCTION
 							throw THROWN_EXIT
 						]
 						sym = words/return* [
@@ -698,7 +688,7 @@ interpreter: context [
 							][
 								pc: eval-expression pc end no yes
 							]
-							stack/unroll stack/FLAG_FUNCTION
+							stack/unroll-last stack/FLAG_FUNCTION
 							throw THROWN_RETURN
 						]
 						true [0]

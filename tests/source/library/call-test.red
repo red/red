@@ -37,8 +37,7 @@ if test-name = "option-1" [
 
 if test-name = "option-2" [
 	error: ""
-	head insert call-string "not-"
-	call/error call-string error
+	call/error "no-such-pgm" error
 	prin error
 	quit
 ]

@@ -856,6 +856,7 @@ natives: context [
 		return:    [red-logic!]
 		/local
 			bits   [red-bitset!]
+			s	   [series!]
 			result [red-logic!]
 	][
 		bits: as red-bitset! stack/arguments
@@ -871,6 +872,50 @@ natives: context [
 
 		result/header: TYPE_LOGIC
 		result
+	]
+
+	dehex*: func [
+		return:		[red-string!]
+		/local
+			str		[red-string!]
+			buffer	[red-string!]
+			s		[series!]
+			p		[byte-ptr!]
+			p4		[int-ptr!]
+			tail	[byte-ptr!]
+			unit	[integer!]
+			cp		[integer!]
+			len		[integer!]
+	][
+		str: as red-string! stack/arguments
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		len: actions/length? as red-value! str
+		stack/keep										;-- keep last value
+		buffer: string/rs-make-at stack/push* len * unit
+
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			if all [
+				cp = as-integer #"%"
+				p + (unit << 1) < tail					;-- must be %xx
+			][
+				if string/decode-2hex (p + unit) unit :cp [
+					p: p + (unit << 1)
+				]
+			]
+			string/append-char GET_BUFFER(buffer) cp unit
+			p: p + unit
+		]
+		stack/set-last as red-value! buffer
+		buffer
 	]
 
 	;--- Natives helper functions ---
@@ -1099,6 +1144,7 @@ natives: context [
 			:unique*
 			:difference*
 			:complement?*
+			:dehex*
 		]
 	]
 
