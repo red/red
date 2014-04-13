@@ -160,6 +160,7 @@ system-call: context [
 				out-write  [opaque!]
 				err-read   [opaque!]
 				err-write  [opaque!]
+				dev-null   [opaque!]
 				sa p-inf s-inf len success error str
 		][
 			s-inf: declare startup-info!
@@ -180,6 +181,7 @@ system-call: context [
 			s-inf/hStdInput:  get-std-handle STD_INPUT_HANDLE
 			s-inf/hStdOutput: get-std-handle STD_OUTPUT_HANDLE
 			s-inf/hStdError:  get-std-handle STD_ERROR_HANDLE
+			dev-null: create-file "nul:" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_EXISTING 0 null		;-- Pipe to nul
 			if in-buf <> null [
 				if not create-pipe :in-read :in-write sa 0 [	;-- Create a pipe for child's input
 					print-error [ error-pipe "stdin" ]
@@ -205,7 +207,7 @@ system-call: context [
 				s-inf/hStdOutput: out-write
 			][
 				if not console [						;-- output must be redirected to "nul" or process returns an error code
-					s-inf/hStdOutput: create-file "nul" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_ALWAYS 0 null
+					s-inf/hStdOutput: dev-null
 				]
 			]
 			either err-buf <> null [
@@ -222,7 +224,7 @@ system-call: context [
 				s-inf/hStdError: err-write
 			][
 				if not console [
-					s-inf/hStdError: create-file "nul" GENERIC_WRITE FILE_SHARE_WRITE sa OPEN_ALWAYS 0 null
+					s-inf/hStdError: dev-null
 				]
 			]
 			if any [ (in-buf <> null) (out-buf <> null) (err-buf <> null) ] [
@@ -236,6 +238,7 @@ system-call: context [
 				s-inf/dwFlags: STARTF_USESTDHANDLES
 			]
 
+			sa/bInheritHandle: inherit
 			cmdstr: make-c-string (20 + length? cmd)
 			copy-string cmdstr "cmd /u /c "		;-- Run command thru cmd.exe
 			cmdstr: append-string cmdstr cmd
@@ -274,6 +277,7 @@ system-call: context [
 			]
 			close-handle p-inf/hProcess
 			close-handle p-inf/hThread
+			close-handle dev-null
 			outputs/out: out-buf						;-- Store values in global var
 			outputs/err: err-buf
 			return pid
