@@ -137,6 +137,7 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/auto-tests/interp-lesser-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-lesser-equal-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-not-equal-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-integer-auto-test.red
 ===end-group===
 
 ***end-run-quiet***
