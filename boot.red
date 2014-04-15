@@ -1027,9 +1027,10 @@ context: func [spec [block!]][make object! spec]
 
 system: function [
 	"Returns information about the interpreter."
-	/version	"Return the system version"
-	/words		"Return a block of global words available"
-	/platform	"Return a word identifying the operating system"
+	/version	  "Return the system version"
+	/words		  "Return a block of global words available"
+	/platform	  "Return a word identifying the operating system"
+	/interpreted? "Return TRUE if called from the interpreter"
 ][
 	case [
 		version [#version]
@@ -1044,6 +1045,7 @@ system: function [
 				]
 			]
 		]
+		interpreted? [#system [logic/box stack/eval?]]
 		'else [
 			print "Please specify a system refinement value (/version, /words, or /platform)."
 		]

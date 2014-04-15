@@ -800,7 +800,7 @@ interpreter: context [
 			exit
 		]
 
-		stack/mark-native words/_body					;-- outer stack frame
+		stack/mark-eval words/_body					;-- outer stack frame
 		
 		while [value < tail][
 			if verbose > 0 [log "root loop..."]
