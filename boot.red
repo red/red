@@ -830,6 +830,37 @@ dehex: make native! [[
 	]
 	#get-definition NAT_DEHEX
 ]
+
+negative?: make native! [[
+		"Returns TRUE if the number is negative."
+		number [number!]
+	]
+	#get-definition NAT_NEGATIVE?
+]
+
+positive?: make native! [[
+		"Returns TRUE if the number is positive."
+		number [number!]
+	]
+	#get-definition NAT_POSITIVE?
+]
+
+max: make native! [[
+		"Returns the greater of the two values."
+		value1 [number! series!]
+		value2 [number! series!]
+	]
+	#get-definition NAT_MAX
+]
+
+min: make native! [[
+		"Returns the lesser of the two values."
+		value1 [number! series!]
+		value2 [number! series!]
+	]
+	#get-definition NAT_MIN
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
