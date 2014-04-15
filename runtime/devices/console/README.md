@@ -30,3 +30,5 @@ The first prototype implements the INPUT native for Unix platforms using only vt
 * isolate the cross-platform parts
 
 Later, once the port/device model will be available, the code needs to be refactored as a _device_.
+
+Note: we could use ncurses for achieving these goals faster, but the poor integration of ncurses with the display scroll buffer has been critized by many Rebol2 user (including myself), so we are aiming at a better solution. That said, a ncurses version will be added too at some point in order to provide a more sophisticated console (having some realtime information at the top of the display for example).
