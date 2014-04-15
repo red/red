@@ -1,4 +1,18 @@
-Red []
+Red [
+	Title:	"INPUT prototype for Unix platforms"
+	Author: "Nenad Rakocevic"
+	File: 	%input.red
+	Tabs: 	4
+	Rights: "Copyright (C) 2014 Nenad Rakocevic. All rights reserved."
+	License: {
+		Distributed under the Boost Software License, Version 1.0.
+		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+	}
+	Notes: {
+		Freely inspired by linenoise fork from msteveb:
+		https://github.com/msteveb/linenoise/blob/master/linenoise.c
+	}
+]
 
 #system [
 
