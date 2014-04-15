@@ -298,13 +298,16 @@ Red [
 		***: make op! :infix
 		--assert 7 *** 3 = 73
 
-	--test-- "infix-2"
-		infix3: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
-		*+*: make op! :infix3
-		--assert 5 *+* 6 = 106
+		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
 
-	--test-- "infix-3"
-		--assert 5 *+* 6 *** 7 = 1067
+	unless system/interpreted? [			;-- routine creation not supported by interpreter
+		--test-- "infix-2"
+				*+*: make op! :infix2
+			--assert 5 *+* 6 = 106
+
+		--test-- "infix-3"
+			--assert 5 *+* 6 *** 7 = 1067
+	]
 
 ===end-group===
 
