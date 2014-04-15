@@ -28,12 +28,13 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	redirerr   [logic!]   "Error redirection"
 	return:    [integer!]
 	/local
-	inp out err
+	inp out err s
 ][
 	either redirin [
 		inp: declare p-buffer!
 		inp/buffer: string/rs-head in-str
-		inp/count:  length? (as-c-string string/rs-head in-str)
+		s: GET_BUFFER(in-str)
+		inp/count:  GET_UNIT(s) * string/rs-length? in-str
 		#if OS = 'Windows [ system-call/to-ascii inp ]
 	][
 		inp: null
@@ -110,7 +111,7 @@ print-to-stderr: routine [ "Call to low level print to stderr"
 print-error: func [
 	mesg			[string! block!]	"A shell command, an executable file or a block"
 ][
-	if type? mesg = block! [ mesg: form mesg ]
+	if block? mesg [ mesg: form mesg ]
 	print-to-stderr mesg
 ]
 
@@ -129,9 +130,9 @@ call: func [ "Executes a shell command to run another process."
 		do-in do-out do-err
 ][
 	pid: 0
-	if type? cmd = block! [ cmd: form cmd ]
+	if block? cmd [ cmd: form cmd ]
 	either input  [
-		if type? in = block! [ in: form in ]
+		if block? in [ in: form in ]
 		str: in
 	][
 		str: ""
@@ -140,14 +141,12 @@ call: func [ "Executes a shell command to run another process."
 	if output [
 		str: get-out
 		parse str [ while [ ahead crlf remove cr | skip ] ]
-		insert out str
-		out: head out
+		out: head insert out str
 	]
 	if error [
 		str: get-err
 		parse str [ while [ ahead crlf remove cr | skip ] ]
-		insert err str
-		err: head err
+		err: head insert err str
 	]
 	pid
 ]
