@@ -190,7 +190,7 @@ char: context [
 	init: does [
 		datatype/register [
 			TYPE_CHAR
-			TYPE_VALUE
+			TYPE_INTEGER
 			"char!"
 			;-- General actions --
 			:make
@@ -212,8 +212,8 @@ char: context [
 			:remainder
 			null			;round
 			:subtract
-			null			;even?
-			null			;odd?
+			INHERIT_ACTION
+			INHERIT_ACTION
 			;-- Bitwise actions --
 			null			;and~
 			null			;complement

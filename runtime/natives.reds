@@ -918,8 +918,70 @@ natives: context [
 		buffer
 	]
 
+	negative?*: func [
+		return:	[red-logic!]
+		/local
+			num [red-integer!]
+			res [red-logic!]
+	][
+		num: as red-integer! stack/arguments
+		res: as red-logic! num
+
+		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
+			res/value: negative? num/value
+		][
+			res/value: false
+			print-line "*** Error: argument type must be number!"
+		]
+		res/header: TYPE_LOGIC
+		res
+	]
+
+	positive?*: func [
+		return: [red-logic!]
+		/local
+			num [red-integer!]
+			res [red-logic!]
+	][
+		num: as red-integer! stack/arguments
+		res: as red-logic! num
+
+		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
+			res/value: positive? num/value
+		][
+			res/value: false
+			print-line "*** Error: argument type must be number!"
+		]
+		res/header: TYPE_LOGIC
+		res
+	]
+
+	max*: func [
+		/local
+			args	[red-value!]
+			result	[logic!]
+	][
+		args: stack/arguments
+		result: actions/compare args args + 1 COMP_LESSER
+		if result [
+			stack/set-last args + 1
+		]
+	]
+
+	min*: func [
+		/local
+			args	[red-value!]
+			result	[logic!]
+	][
+		args: stack/arguments
+		result: actions/compare args args + 1 COMP_LESSER
+		unless result [
+			stack/set-last args + 1
+		]
+	]
+
 	;--- Natives helper functions ---
-	
+
 	loop?: func [
 		series  [red-series!]
 		return: [logic!]	
@@ -1145,6 +1207,10 @@ natives: context [
 			:difference*
 			:complement?*
 			:dehex*
+			:negative?*
+			:positive?*
+			:max*
+			:min*
 		]
 	]
 
