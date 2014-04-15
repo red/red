@@ -19,6 +19,7 @@ string: context [
 	
 	escape-chars:		declare byte-ptr!
 	escape-url-chars:	declare byte-ptr!
+	utf8-buffer: 		declare byte-ptr!
 
 	#enum escape-type! [
 		ESC_CHAR: 7Eh
@@ -87,7 +88,7 @@ string: context [
 		]
 
 		i: (as-integer #"A") + 1
-		c: #"a"
+		c: #"A"
 		while [c <= #"F"][
 			escape-url-chars/i: c - #"A" + 10
 			i: i + 1
@@ -135,35 +136,77 @@ string: context [
 		s + c
 	]
 
-	decode-2hex: func [
-		p		[byte-ptr!]
-		unit	[integer!]
-		cp		[int-ptr!]
-		return: [logic!]
+	get-utf8-size: func [
+		byte-1st	[integer!]
+		return:		[integer!]
+	][
+		;@@ In function unicode/decode-utf8-char
+		;@@ support up to four bytes in a UTF-8 sequence
+		;if byte-1st and FCh = FCh [return 6]
+		;if byte-1st and F8h = F8h [return 5]
+		if byte-1st and F0h = F0h [return 4]
+		if byte-1st and E0h = E0h [return 3]
+		if byte-1st and C0h = C0h [return 2]
+		0
+	]
+
+	decode-utf8-hex: func [
+		p			[byte-ptr!]
+		unit		[integer!]
+		cp			[int-ptr!]
+		trailing?	[logic!]
+		return: 	[byte-ptr!]
 		/local
-			v1	[integer!]
-			v2	[integer!]
+			i		[integer!]
+			v1		[integer!]
+			v2		[integer!]
+			size	[integer!]
+			src		[byte-ptr!]
+			buffer	[byte-ptr!]
 	][
 		v1: (get-char p unit) + 1						;-- adjust for 1-base
-		if v1 > MAX_URL_CHARS [return false]
+		if v1 > MAX_URL_CHARS [return p]
 
 		v2: (get-char p + unit unit) + 1				;-- adjust for 1-base
-		if v2 > MAX_ESC_CHARS [return false]
+		if v2 > MAX_URL_CHARS [return p]
 
 		v1: as-integer escape-url-chars/v1
 		if any [
 			v1 = ESC_NONE
 			v1 = ESC_URL
-		][return false]
+		][return p]
 
 		v2: as-integer escape-url-chars/v2
 		if any [
 			v2 = ESC_NONE
 			v2 = ESC_URL
-		][return false]
+		][return p]
 
-		cp/value: v1 << 4 + v2
-		true
+		v1: v1 << 4 + v2
+		src: p + (unit << 1)
+
+		if trailing? [cp/value: v1 return src]
+
+		either v1 <= 7Fh [
+			cp/value: v1
+			p: src
+		][
+			i: 1
+			buffer: utf8-buffer
+			size: get-utf8-size v1
+			v2: size
+			while [buffer/i: as byte! v1 v2 > 1][
+				if (as-integer #"%") <> get-char src unit [return p]
+				src: decode-utf8-hex src + unit unit :v1 true
+				i: i + 1
+				v2: v2 - 1
+			]
+			if positive? size [
+				v1: unicode/decode-utf8-char as c-string! buffer :size
+			]
+			if positive? size [cp/value: v1 p: src]
+		]
+		p
 	]
 
 	rs-length?: func [
@@ -1855,7 +1898,8 @@ string: context [
 	
 	init: does [
 		escape-chars: allocate MAX_ESC_CHARS
-		escape-url-chars: allocate MAX_URL_CHARS
+		escape-url-chars: allocate MAX_URL_CHARS + 4	;-- extra buffer for converting utf8 string
+		utf8-buffer: escape-url-chars + MAX_URL_CHARS
 		fill-table
 		fill-url-table
 

@@ -893,7 +893,7 @@ natives: context [
 		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: as byte-ptr! s/tail
 
-		len: actions/length? as red-value! str
+		len: string/rs-length? str
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push* len * unit
 
@@ -903,16 +903,15 @@ natives: context [
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
+
+			p: p + unit
 			if all [
 				cp = as-integer #"%"
 				p + (unit << 1) < tail					;-- must be %xx
 			][
-				if string/decode-2hex (p + unit) unit :cp [
-					p: p + (unit << 1)
-				]
+				p: string/decode-utf8-hex p unit :cp false
 			]
 			string/append-char GET_BUFFER(buffer) cp unit
-			p: p + unit
 		]
 		stack/set-last as red-value! buffer
 		buffer

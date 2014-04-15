@@ -177,27 +177,10 @@ transcode: function [
 		]
 		new
 	]
-	
-	decode-hex: [
-		[set c digit (value: c - #"0")]
-		|[set c hexa-upper (value: c - #"A" + 10)]
-		|[set c hexa-lower (value: c - #"a" + 10)]
-		| (print "*** Syntax Error: invalid file hexa encoding") ;@@ temporary hardcoded
-	]
-	
-	decode-2hex: [
-		decode-hex (hex: value * 16)
-		decode-hex (hex: hex + value)
-	]
-	
+
 	trans-file: [
 		new: make file! (index? e) - index? s
-		parse/case copy/part s e [						;@@ add /part option to parse!
-			any [
-				#"%" decode-2hex (append new hex)
-				| set c skip (append new c)
-			]
-		]
+		append new dehex copy/part s e
 		new
 	]
 	
