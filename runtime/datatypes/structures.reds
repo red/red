@@ -206,6 +206,7 @@ red-function!: alias struct! [
 	;	body	 [red-block!]						;-- 	function's body block
 	;	symbols	 [red-block!]						;-- 	native cleaned-up spec block reference
 	;	native   [node!]							;-- 	JIT-compiled body (binary!)
+	;   fun		 [red-function!]					;--		(optional) copy of parent function! value (used by op!)
 ]
 
 red-routine!: alias struct! [

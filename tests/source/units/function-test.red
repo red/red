@@ -291,5 +291,22 @@ Red [
 
 ===end-group===
 
+===start-group=== "Infix operators creation"
+
+	--test-- "infix-1"
+		infix: function [a b][a * 10 + b]
+		***: make op! :infix
+		--assert 7 *** 3 = 73
+
+	--test-- "infix-2"
+		infix3: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
+		*+*: make op! :infix3
+		--assert 5 *+* 6 = 106
+
+	--test-- "infix-3"
+		--assert 5 *+* 6 *** 7 = 1067
+
+===end-group===
+
 ~~~end-file~~~
 
