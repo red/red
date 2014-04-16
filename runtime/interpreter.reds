@@ -104,10 +104,10 @@ interpreter: context [
 		native 	[red-native!]
 		return: [logic!]
 		/local
-			fun	  	  [red-function!]
-			value	  [red-value!]
-			tail	  [red-value!]
-			s		  [series!]
+			fun	  [red-function!]
+			value [red-value!]
+			tail  [red-value!]
+			s	  [series!]
 	][
 		s: as series! either TYPE_OF(native) = TYPE_FUNCTION [
 			fun: as red-function! native
@@ -127,6 +127,36 @@ interpreter: context [
 			value: value + 1
 		]
 		no
+	]
+	
+	set-locals: func [
+		fun [red-function!]
+		/local
+			tail  [red-value!]
+			value [red-value!]
+			s	  [series!]
+			set?  [logic!]
+	][
+		s: as series! fun/spec/value
+		value: s/offset
+		tail:  s/tail
+		set?:  no
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					if set? [none/push]
+				]
+				TYPE_REFINEMENT [
+					unless set? [set?: yes]
+					logic/push false
+				]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
 	]
 	
 	eval-option: func [
@@ -281,7 +311,7 @@ interpreter: context [
 		/local
 			next   [red-word!]
 			left   [red-value!]
-			fun	   [red-value!]
+			fun	   [red-function!]
 			infix? [logic!]
 			op	   [red-op!]
 			s	   [series!]
@@ -295,11 +325,12 @@ interpreter: context [
 		either op/header and body-flag <> 0 [
 			node: as node! op/code
 			s: as series! node/value
-			fun: s/offset + 3
+			fun: as red-function! s/offset + 3
 			either TYPE_OF(fun) = TYPE_ROUTINE [
 				exec-routine as red-routine! fun
 			][
-				eval-function as red-function! fun as red-block! s/offset
+				set-locals fun
+				eval-function fun as red-block! s/offset
 			]
 		][
 			call-op: as function! [] op/code
