@@ -596,10 +596,11 @@ system-dialect: make-profilable context [
 					]
 				]
 				paren!	 [
-					reduce either all [value/1 = 'struct! word? value/2][
-						[value/2]
+					reduce switch/default value/1 [
+						struct! [pick [[value/2][value/1 value/2]] word? value/2]
+						pointer! [[value/1 value/2]]
 					][
-						[value/1 value/2]
+						['pointer! get-type value/1]
 					]
 				]
 				get-word! [
@@ -2744,6 +2745,7 @@ system-dialect: make-profilable context [
 				integer!	[do pass]
 				string!		[do pass]
 				decimal!	[do pass]
+				block!		[also to paren! pc/1 pc: next pc]
 			][
 				throw-error [
 					pick [

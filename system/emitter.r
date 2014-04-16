@@ -205,6 +205,8 @@ emitter: make-profilable context [
 	]
 
 	store-global: func [value type [word!] spec [block! word! none!] /local size ptr][
+		if all [paren? value not word? value/1][type: 'array!]
+		
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
@@ -283,6 +285,12 @@ emitter: make-profilable context [
 					store-global value type none
 				]
 			]
+			array! [
+				type: first compiler/get-type value/1
+				store-global length? value 'integer! none	;-- store array size first
+				ptr: tail data-buf							;-- ensure array pointer skips size info
+				foreach item value [store-global item type none]
+			]
 		][
 			compiler/throw-error ["store-global unexpected type:" type]
 		]
@@ -322,7 +330,7 @@ emitter: make-profilable context [
 			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
-				ptr: store-global value 'pointer! none	;-- allocate separate variable slot
+				ptr: store-global 0 'pointer! none		;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
 				refs: reduce [ptr + 1]					;-- reference value from variable slot
 				saved: name
