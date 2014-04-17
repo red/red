@@ -600,7 +600,7 @@ system-dialect: make-profilable context [
 						struct! [pick [[value/2][value/1 value/2]] word? value/2]
 						pointer! [[value/1 value/2]]
 					][
-						['pointer! get-type value/1]
+						['pointer! get-type value/1 'array! length? value]
 					]
 				]
 				get-word! [
