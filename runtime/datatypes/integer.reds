@@ -83,19 +83,6 @@ integer: context [
 		s + c
 	]
 
-	float-to-integer: func [
-		f 		[float32!] ;-- float 32-bit value to convert
-		return: [integer!] ;-- truncated integer value returned
-		/local dw exp value
-	][
-		dw: as-integer f
-		if zero? dw [return 0]
-		exp: ((dw >>> 23) and FFh) - 127
-		if any [negative? exp exp > 23][return 0]
-		value: (1 << exp) + ((dw and 007FFFFFh) >> (23 - exp))
-		either negative? dw [negate value][value]
-	]
-
 	do-math: func [
 		type	  [integer!]
 		return:	  [red-integer!]

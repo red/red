@@ -152,8 +152,7 @@ negate: make action! [[
 ]
 
 power: make action! [[
-		"(not yet implemented)"
-		;"Returns a number raised to a given power (exponent)."
+		"Returns a number raised to a given power (exponent)."
 		number	 [number!] "Base value."
 		exponent [number!] "The power (index) to raise the base value by."
 		return:	 [number!]

@@ -36,7 +36,7 @@ file-list: [
 	%bitset-test.red									%auto-tests/interp-bitset-test.red
 	%auto-tests/equal-auto-test.red						%auto-tests/interp-equal-auto-test.red
 	%same-test.red										%auto-tests/interp-same-test.red
-	%integer-test.red									%auto-tests/interp-integer-auto-test.red
+	%integer-test.red									%auto-tests/interp-integer-test.red
 	%auto-tests/greater-auto-test.red					%auto-tests/interp-greater-auto-test.red
 	%auto-tests/infix-equal-auto-test.red				%auto-tests/interp-inf-equal-auto-test.red
 	%strict-equal-test.red								%auto-tests/interp-strict-equal-test.red
