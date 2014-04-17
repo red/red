@@ -60,8 +60,8 @@ Red/System [
 	#define STD_ERROR_HANDLE	-12
 
 	process-info!: alias struct! [
-		hProcess        [opaque!]
-		hThread         [opaque!]
+		hProcess        [integer!]
+		hThread         [integer!]
 		dwProcessId     [integer!]
 		dwThreadId      [integer!]
 	]
@@ -83,9 +83,9 @@ Red/System [
 		cbReserved2-a     [byte!]
 		cbReserved2-b     [byte!]
 		lpReserved2       [byte-ptr!]
-		hStdInput         [opaque!]
-		hStdOutput        [opaque!]
-		hStdError         [opaque!]
+		hStdInput         [integer!]
+		hStdOutput        [integer!]
+		hStdError         [integer!]
 	]
 	security-attributes!: alias struct! [
 		nLength              [integer!]
@@ -108,12 +108,12 @@ Red/System [
 			return:                 [logic!]
 		]
 		wait-for-single-object: "WaitForSingleObject" [ "Waits until the specified object is in the signaled state or the time-out interval elapses"
-			hHandle                 [opaque!]
+			hHandle                 [integer!]
 			dwMilliseconds          [integer!]
 			return:                 [integer!]
 		]
 		get-exit-code-process: "GetExitCodeProcess" [ "Retrieves the termination status of the specified process"
-			hProcess				[opaque!]
+			hProcess				[integer!]
 			lpExitCode				[int-ptr!]
 			return:                 [logic!]
 		]
@@ -132,26 +132,26 @@ Red/System [
 			dwCreationDisposition	[integer!]
 			dwFlagsAndAttributes	[integer!]
 			hTemplateFile			[opaque!]
-			return:					[opaque!]
+			return:					[integer!]
 		]
 		close-handle: "CloseHandle" [ "Closes an open object handle"
-			hObject                 [opaque!]
+			hObject                 [integer!]
 			return:                 [logic!]
 		]
 		get-std-handle: "GetStdHandle" [
 			nStdHandle				[integer!]
-			return:					[opaque!]
+			return:					[integer!]
 		]
-		read-file: "ReadFile" [ "Reads data from the specified file or input/output device"
-			hFile                   [opaque!]
+		read-io: "ReadFile" [ "Reads data from the specified file or input/output device"
+			hFile                   [integer!]
 			lpBuffer                [byte-ptr!]
 			nNumberOfBytesToRead    [integer!]
 			lpNumberOfBytesRead     [int-ptr!]
 			lpOverlapped            [opaque!]
 			return:                 [logic!]
 		]
-		write-file: "WriteFile" [ "Writes data to the specified file or input/output (I/O) device"
-			hFile					[opaque!]
+		write-io: "WriteFile" [ "Writes data to the specified file or input/output (I/O) device"
+			hFile					[integer!]
 			lpBuffer				[byte-ptr!]
 			nNumberOfBytesToWrite   [integer!]
 			lpNumberOfBytesWritten  [int-ptr!]
@@ -159,7 +159,7 @@ Red/System [
 			return:                 [logic!]
 		]
 		set-handle-information: "SetHandleInformation" [ "Sets certain properties of an object handle"
-			hObject					[opaque!]
+			hObject					[integer!]
 			dwMask					[integer!]
 			dwFlags					[integer!]
 			return:					[logic!]

@@ -25,6 +25,7 @@ Red/System [
 ]
 
 #include %../ansi.reds
+;#include %../../../../Kaj/C-library/ANSI.reds		;-- Tests with Kaj's ansi binding
 #switch OS [
 	Windows   [ #include %../windows.reds ]
 	#default  [ #include %../linux.reds  ]
@@ -111,7 +112,7 @@ system-call: context [
 		append-string str "^/"
 		len: length? str
 		#switch OS [									;-- Write to stderr, no error check
-			Windows  [ write-file get-std-handle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
+			Windows  [ write-io get-std-handle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
 			#default [ io-write stderr as byte-ptr! str len ]
 		]
 		free as byte-ptr! str
@@ -120,7 +121,7 @@ system-call: context [
 	#switch OS [
 	Windows   [											;-- Windows
 		read-from-pipe: func [      "Read data from pipe fd into buffer"
-			fd           [file!]      "File descriptor"
+			fd           [integer!]      "File descriptor"
 			data         [p-buffer!]
 			/local len size total
 		][
@@ -128,7 +129,7 @@ system-call: context [
 			total: 0
 			until [
 				len: 0
-				read-file fd (data/buffer + total) (size - total) :len null
+				read-io fd (data/buffer + total) (size - total) :len null
 				if len > 0 [
 				    total: total + len
 				    if total = size [
@@ -154,20 +155,20 @@ system-call: context [
 				pid        [integer!]
 				inherit    [logic!]
 				cmdstr     [c-string!]
-				in-read    [opaque!]
-				in-write   [opaque!]
-				out-read   [opaque!]
-				out-write  [opaque!]
-				err-read   [opaque!]
-				err-write  [opaque!]
-				dev-null   [opaque!]
+				in-read    [integer!]
+				in-write   [integer!]
+				out-read   [integer!]
+				out-write  [integer!]
+				err-read   [integer!]
+				err-write  [integer!]
+				dev-null   [integer!]
 				sa p-inf s-inf len success error str
 		][
 			s-inf: declare startup-info!
 			p-inf: declare process-info!
 			sa: declare security-attributes!
 			sa/nLength: size? sa
-			sa/lpSecurityDescriptor: 0
+			sa/lpSecurityDescriptor: null
 			sa/bInheritHandle: true
 			out-read:  0								;-- Pipes
 			out-write: 0
@@ -240,9 +241,9 @@ system-call: context [
 
 			sa/bInheritHandle: inherit
 			cmdstr: make-c-string (20 + length? cmd)
-			copy-string cmdstr "cmd /u /c "		;-- Run command thru cmd.exe
+			copy-string "cmd /u /c " cmdstr		;-- Run command thru cmd.exe
 			cmdstr: append-string cmdstr cmd
-			if not create-process null cmdstr 0 0 inherit 0 0 null s-inf p-inf [
+			if not create-process null cmdstr null null inherit 0 null null s-inf p-inf [
 				print-error [ "Error Red/System call : CreateProcess : ^"" cmd "^" Error : " get-last-error ]
 				free as byte-ptr! cmdstr
 				return -1
@@ -253,7 +254,7 @@ system-call: context [
 			if in-buf <> null [
 				close-handle in-read
 				len: in-buf/count
-				success: write-file in-write in-buf/buffer len :len null
+				success: write-io in-write in-buf/buffer len :len null
 				if not success [
 					print-error [ "Error Red/System call : write into pipe failed : " get-last-error ]
 				]
@@ -289,7 +290,7 @@ system-call: context [
 		until [
 			if null <> find-string system/env-vars/item "SHELL=" [
 				shell-name: make-c-string length? system/env-vars/item
-				copy-string shell-name (system/env-vars/item + 6)
+				copy-string (system/env-vars/item + 6) shell-name
 			]
 			system/env-vars: system/env-vars + 1
 			system/env-vars/item = null
