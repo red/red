@@ -142,7 +142,7 @@ Red/System [
 			nStdHandle				[integer!]
 			return:					[integer!]
 		]
-		read-io: "ReadFile" [ "Reads data from the specified file or input/output device"
+		io-read: "ReadFile" [ "Reads data from the specified file or input/output device"
 			hFile                   [integer!]
 			lpBuffer                [byte-ptr!]
 			nNumberOfBytesToRead    [integer!]
@@ -150,7 +150,7 @@ Red/System [
 			lpOverlapped            [opaque!]
 			return:                 [logic!]
 		]
-		write-io: "WriteFile" [ "Writes data to the specified file or input/output (I/O) device"
+		io-write: "WriteFile" [ "Writes data to the specified file or input/output (I/O) device"
 			hFile					[integer!]
 			lpBuffer				[byte-ptr!]
 			nNumberOfBytesToWrite   [integer!]

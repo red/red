@@ -112,7 +112,7 @@ system-call: context [
 		append-string str "^/"
 		len: length? str
 		#switch OS [									;-- Write to stderr, no error check
-			Windows  [ write-io get-std-handle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
+			Windows  [ io-write get-std-handle STD_ERROR_HANDLE as byte-ptr! str len :len null ]
 			#default [ io-write stderr as byte-ptr! str len ]
 		]
 		free as byte-ptr! str
@@ -129,7 +129,7 @@ system-call: context [
 			total: 0
 			until [
 				len: 0
-				read-io fd (data/buffer + total) (size - total) :len null
+				io-read fd (data/buffer + total) (size - total) :len null
 				if len > 0 [
 				    total: total + len
 				    if total = size [
@@ -254,7 +254,7 @@ system-call: context [
 			if in-buf <> null [
 				close-handle in-read
 				len: in-buf/count
-				success: write-io in-write in-buf/buffer len :len null
+				success: io-write in-write in-buf/buffer len :len null
 				if not success [
 					print-error [ "Error Red/System call : write into pipe failed : " get-last-error ]
 				]
