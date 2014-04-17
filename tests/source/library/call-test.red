@@ -24,10 +24,10 @@ read-argument: routine [
 ]
 
 test-name: read-argument
-call-string: either 'Windows = system/platform ["called-test"] ["./called-test"]
+call-string: either 'Windows = system/platform ["called-test.exe"] ["./called-test"]
 append call-string " "
 append call-string test-name
-	
+
 if test-name = "option-1" [
 	output: ""
 	call/output call-string output
