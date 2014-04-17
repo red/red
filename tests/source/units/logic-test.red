@@ -427,4 +427,11 @@ Red [
 
 ===end-group===
 
+===start-group=== "complemented"
+
+	--test-- "comp-1" --assert true  = complement false
+	--test-- "comp-2" --assert false = complement true
+
+===end-group===
+
 ~~~end-file~~~

@@ -136,20 +136,6 @@ string: context [
 		s + c
 	]
 
-	get-utf8-size: func [
-		byte-1st	[integer!]
-		return:		[integer!]
-	][
-		;@@ In function unicode/decode-utf8-char
-		;@@ support up to four bytes in a UTF-8 sequence
-		;if byte-1st and FCh = FCh [return 6]
-		;if byte-1st and F8h = F8h [return 5]
-		if byte-1st and F0h = F0h [return 4]
-		if byte-1st and E0h = E0h [return 3]
-		if byte-1st and C0h = C0h [return 2]
-		0
-	]
-
 	decode-utf8-hex: func [
 		p			[byte-ptr!]
 		unit		[integer!]
@@ -165,20 +151,18 @@ string: context [
 			buffer	[byte-ptr!]
 	][
 		v1: (get-char p unit) + 1						;-- adjust for 1-base
-		if v1 > MAX_URL_CHARS [return p]
-
 		v2: (get-char p + unit unit) + 1				;-- adjust for 1-base
-		if v2 > MAX_URL_CHARS [return p]
-
-		v1: as-integer escape-url-chars/v1
 		if any [
-			v1 = ESC_NONE
-			v1 = ESC_URL
+			v1 > MAX_URL_CHARS
+			v2 > MAX_URL_CHARS
 		][return p]
 
+		v1: as-integer escape-url-chars/v1
 		v2: as-integer escape-url-chars/v2
 		if any [
+			v1 = ESC_NONE
 			v2 = ESC_NONE
+			v1 = ESC_URL
 			v2 = ESC_URL
 		][return p]
 
@@ -193,7 +177,7 @@ string: context [
 		][
 			i: 1
 			buffer: utf8-buffer
-			size: get-utf8-size v1
+			size: unicode/utf8-char-size? v1
 			v2: size
 			while [buffer/i: as byte! v1 v2 > 1][
 				if (as-integer #"%") <> get-char src unit [return p]
@@ -567,12 +551,16 @@ string: context [
 		][
 			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
 
-			if size1 <> size2 [							;-- shortcut exit for different sizes
+			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
 				if op = COMP_NOT_EQUAL [return true]
-			]
-			if zero? size1 [							;-- shortcut exit for empty strings
-				return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+			][
+				if zero? size1 [							;-- shortcut exit for empty strings
+					return any [
+						op = COMP_EQUAL 		op = COMP_STRICT_EQUAL
+						op = COMP_LESSER_EQUAL  op = COMP_GREATER_EQUAL
+					]
+				]
 			]
 		]
 		end: as byte-ptr! s2/tail						;-- only one "end" is needed

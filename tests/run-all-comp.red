@@ -16,6 +16,7 @@ Red []
   	#include %source/units/load-test.red
   	#include %source/units/switch-test.red
   	#include %source/units/case-test.red
+	#include %source/units/char-test.red
   	#include %source/units/routine-test.red
   	#include %source/units/append-test.red
   	#include %source/units/insert-test.red
