@@ -17,93 +17,47 @@ string: context [
 	#define MAX_ESC_CHARS		5Fh	
 	#define MAX_URL_CHARS 		7Fh
 	
-	escape-chars:		declare byte-ptr!
-	escape-url-chars:	declare byte-ptr!
-
 	#enum escape-type! [
-		ESC_CHAR: 7Eh
-		ESC_URL
+		ESC_CHAR: FDh
+		ESC_URL:  FEh
 		ESC_NONE: FFh
 	]
-
-	fill-table: func [
-		/local
-			c [byte!]
-			i [integer!]
-	][
-		i: 1
-		c: #"@"
-		while [c <= #"_"][
-			escape-chars/i: c
-			i: i + 1
-			c: c + 1
-		]
 		
-		while [i < MAX_ESC_CHARS][
-			escape-chars/i: null-byte
-			i: i + 1
-		]
-		
-		escape-chars/10: #"-"							;-- 9  + 1 (adjust for 1-base)
-		escape-chars/11: #"/"							;-- 10 + 1 (adjust for 1-base)
-		escape-chars/35: #"^""							;-- 34 + 1 (adjust for 1-base)
-		escape-chars/95: #"^^"							;-- 94 + 1 (adjust for 1-base)
+	escape-chars: [
+		#"^(40)" #"^(41)" #"^(42)" #"^(43)" #"^(44)" #"^(45)" #"^(46)" #"^(47)" ;-- 07h
+		#"-" 	 #"/" 	  #"^(4A)" #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
+		#"^(50)" #"^(51)" #"^(52)" #"^(53)" #"^(54)" #"^(55)" #"^(56)" #"^(57)" ;-- 17h
+		#"^(58)" #"^(59)" #"^(5A)" #"^(5B)" #"^(5C)" #"^(5D)" #"^(5E)" #"^(5F)" ;-- 1Fh
+		#"^(00)" #"^(00)" #"^""    #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 27h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 2Fh
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 37h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 3Fh
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 47h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 4Fh
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 57h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^^"	   #"^(00)" ;-- 5Fh
 	]
 
-	fill-url-table: func [
-		/local
-			c [byte!]
-			i [integer!]
-			n [integer!]
-			s [c-string!]
-	][
-		i: 1
-		c: #"^@"
-		while [c <= #" "][
-			escape-url-chars/i: as byte! ESC_URL
-			i: i + 1
-			c: c + 1
-		]
-
-		while [i <= MAX_URL_CHARS][
-			escape-url-chars/i: as byte! ESC_NONE
-			i: i + 1
-		]
-
-		i: (as-integer #"0") + 1					;-- adjust for 1-base
-		c: #"0"
-		while [c <= #"9"][
-			escape-url-chars/i: c - #"0"
-			i: i + 1
-			c: c + 1
-		]
-
-		i: (as-integer #"a") + 1
-		c: #"a"
-		while [c <= #"f"][
-			escape-url-chars/i: c - #"a" + 10
-			i: i + 1
-			c: c + 1
-		]
-
-		i: (as-integer #"A") + 1
-		c: #"a"
-		while [c <= #"F"][
-			escape-url-chars/i: c - #"A" + 10
-			i: i + 1
-			c: c + 1
-		]
-
-		s: "^"%();<>[]{}E"
-		i: 1
-		until [
-			c: s/i + 1
-			n: as-integer c
-			escape-url-chars/n: as byte! ESC_URL
-			i: i + 1
-			s/i = #"E"
-		]
+	escape-url-chars: [							;-- ESC_NONE: #"^(FF)" ESC_URL: #"^(FE)"
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 07h
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 0Fh
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 17h
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 1Fh
+		#"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 27h
+		#"^(FE)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 2Fh
+		#"^(00)" #"^(01)" #"^(02)" #"^(03)" #"^(04)" #"^(05)" #"^(06)" #"^(07)" ;-- 37h
+		#"^(08)" #"^(09)" #"^(FF)" #"^(FE)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" ;-- 3Fh
+		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 47h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 4Fh
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 57h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 5Fh
+		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 67h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 6Fh
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 77h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 7Fh
 	]
+
+	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
 
 	to-hex: func [
 		cp		[integer!]								;-- codepoint <= 10FFFFh
@@ -135,35 +89,61 @@ string: context [
 		s + c
 	]
 
-	decode-2hex: func [
-		p		[byte-ptr!]
-		unit	[integer!]
-		cp		[int-ptr!]
-		return: [logic!]
+	decode-utf8-hex: func [
+		p			[byte-ptr!]
+		unit		[integer!]
+		cp			[int-ptr!]
+		trailing?	[logic!]
+		return: 	[byte-ptr!]
 		/local
-			v1	[integer!]
-			v2	[integer!]
+			i		[integer!]
+			v1		[integer!]
+			v2		[integer!]
+			size	[integer!]
+			src		[byte-ptr!]
+			buffer	[byte-ptr!]
 	][
 		v1: (get-char p unit) + 1						;-- adjust for 1-base
-		if v1 > MAX_URL_CHARS [return false]
-
 		v2: (get-char p + unit unit) + 1				;-- adjust for 1-base
-		if v2 > MAX_ESC_CHARS [return false]
+		if any [
+			v1 > MAX_URL_CHARS
+			v2 > MAX_URL_CHARS
+		][return p]
 
 		v1: as-integer escape-url-chars/v1
-		if any [
-			v1 = ESC_NONE
-			v1 = ESC_URL
-		][return false]
-
 		v2: as-integer escape-url-chars/v2
 		if any [
+			v1 = ESC_NONE
 			v2 = ESC_NONE
+			v1 = ESC_URL
 			v2 = ESC_URL
-		][return false]
+		][return p]
 
-		cp/value: v1 << 4 + v2
-		true
+		v1: v1 << 4 + v2
+		src: p + (unit << 1)
+
+		if trailing? [cp/value: v1 return src]
+
+		either v1 <= 7Fh [
+			cp/value: v1
+			p: src
+		][
+			i: 1
+			buffer: utf8-buffer
+			size: unicode/utf8-char-size? v1
+			v2: size
+			while [buffer/i: as byte! v1 v2 > 1][
+				if (as-integer #"%") <> get-char src unit [return p]
+				src: decode-utf8-hex src + unit unit :v1 true
+				i: i + 1
+				v2: v2 - 1
+			]
+			if positive? size [
+				v1: unicode/decode-utf8-char as c-string! buffer :size
+			]
+			if positive? size [cp/value: v1 p: src]
+		]
+		p
 	]
 
 	rs-length?: func [
@@ -524,12 +504,16 @@ string: context [
 		][
 			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
 
-			if size1 <> size2 [							;-- shortcut exit for different sizes
+			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
 				if op = COMP_NOT_EQUAL [return true]
-			]
-			if zero? size1 [							;-- shortcut exit for empty strings
-				return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+			][
+				if zero? size1 [							;-- shortcut exit for empty strings
+					return any [
+						op = COMP_EQUAL 		op = COMP_STRICT_EQUAL
+						op = COMP_LESSER_EQUAL  op = COMP_GREATER_EQUAL
+					]
+				]
 			]
 		]
 		end: as byte-ptr! s2/tail						;-- only one "end" is needed
@@ -1854,11 +1838,6 @@ string: context [
 	]
 	
 	init: does [
-		escape-chars: allocate MAX_ESC_CHARS
-		escape-url-chars: allocate MAX_URL_CHARS
-		fill-table
-		fill-url-table
-
 		datatype/register [
 			TYPE_STRING
 			TYPE_VALUE

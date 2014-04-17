@@ -82,7 +82,8 @@ get-out: routine [ "Returns redirected stdout"
 
 get-err: routine [ "Returns redirected stderr"
 	/local
-		serr  [red-string!]
+		serr	[red-string!]
+		result	[integer!]
 ][
 	with system-call [
 		#either OS = 'Windows [

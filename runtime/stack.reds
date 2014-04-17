@@ -53,6 +53,7 @@ stack: context [										;-- call stack
 		FLAG_CATCH:		08000000h						;-- CATCH native
 		FLAG_THROW_ATR:	04000000h						;-- Throw function attribut
 		FLAG_CATCH_ATR:	02000000h						;--	Catch function attribut
+		FLAG_EVAL:		01000000h						;-- Interpreter root frame
 	]
 	
 	init: does [
@@ -106,6 +107,7 @@ stack: context [										;-- call stack
 	mark-func:	 MARK_STACK(FLAG_FUNCTION)
 	mark-try:	 MARK_STACK(FLAG_TRY)
 	mark-catch:	 MARK_STACK(FLAG_CATCH)
+	mark-eval:	 MARK_STACK(FLAG_EVAL)
 		
 	unwind: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
@@ -166,6 +168,20 @@ stack: context [										;-- call stack
 		unroll flags
 		unwind-last										;-- required to reset top value
 		ctop: ctop + 2
+	]
+	
+	eval?: func [
+		return: [logic!]
+		/local
+			cframe [int-ptr!]
+	][
+		cframe: ctop
+		until [
+			cframe: cframe - 2
+			if FLAG_EVAL and cframe/1 = FLAG_EVAL [return yes]
+			cframe <= cbottom
+		]
+		no
 	]
 	
 	set-last: func [

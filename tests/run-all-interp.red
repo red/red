@@ -32,4 +32,5 @@ Red []
   	#include %source/units/auto-tests/interp-lesser-auto-test.red
   	#include %source/units/auto-tests/interp-lesser-equal-auto-test.red
   	#include %source/units/auto-tests/interp-not-equal-auto-test.red
+  	#include %source/units/auto-tests/interp-integer-test.red
   	***end-run***

@@ -893,7 +893,7 @@ natives: context [
 		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: as byte-ptr! s/tail
 
-		len: actions/length? as red-value! str
+		len: string/rs-length? str
 		stack/keep										;-- keep last value
 		buffer: string/rs-make-at stack/push* len * unit
 
@@ -903,23 +903,84 @@ natives: context [
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
+
+			p: p + unit
 			if all [
 				cp = as-integer #"%"
 				p + (unit << 1) < tail					;-- must be %xx
 			][
-				if string/decode-2hex (p + unit) unit :cp [
-					p: p + (unit << 1)
-				]
+				p: string/decode-utf8-hex p unit :cp false
 			]
 			string/append-char GET_BUFFER(buffer) cp unit
-			p: p + unit
 		]
 		stack/set-last as red-value! buffer
 		buffer
 	]
 
+	negative?*: func [
+		return:	[red-logic!]
+		/local
+			num [red-integer!]
+			res [red-logic!]
+	][
+		num: as red-integer! stack/arguments
+		res: as red-logic! num
+
+		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
+			res/value: negative? num/value
+		][
+			res/value: false
+			print-line "*** Error: argument type must be number!"
+		]
+		res/header: TYPE_LOGIC
+		res
+	]
+
+	positive?*: func [
+		return: [red-logic!]
+		/local
+			num [red-integer!]
+			res [red-logic!]
+	][
+		num: as red-integer! stack/arguments
+		res: as red-logic! num
+
+		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
+			res/value: positive? num/value
+		][
+			res/value: false
+			print-line "*** Error: argument type must be number!"
+		]
+		res/header: TYPE_LOGIC
+		res
+	]
+
+	max*: func [
+		/local
+			args	[red-value!]
+			result	[logic!]
+	][
+		args: stack/arguments
+		result: actions/compare args args + 1 COMP_LESSER
+		if result [
+			stack/set-last args + 1
+		]
+	]
+
+	min*: func [
+		/local
+			args	[red-value!]
+			result	[logic!]
+	][
+		args: stack/arguments
+		result: actions/compare args args + 1 COMP_LESSER
+		unless result [
+			stack/set-last args + 1
+		]
+	]
+
 	;--- Natives helper functions ---
-	
+
 	loop?: func [
 		series  [red-series!]
 		return: [logic!]	
@@ -1145,6 +1206,10 @@ natives: context [
 			:difference*
 			:complement?*
 			:dehex*
+			:negative?*
+			:positive?*
+			:max*
+			:min*
 		]
 	]
 

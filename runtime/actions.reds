@@ -384,9 +384,20 @@ actions: context [
 		] get-action-ptr value ACT_NEGATE
 		
 		action-negate value
-	]	
-	
-	power*: func [][]
+	]
+
+	power*: func [
+		return:	[red-value!]
+		/local
+			action-power
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/power"]]
+
+		action-power: as function! [
+			return:	[red-value!]						;-- addition resulting value
+		] get-action-ptr* ACT_POWER
+		action-power
+	]
 
 	remainder*: func [
 		return:	  [red-value!]
@@ -479,7 +490,7 @@ actions: context [
 		
 		action-complement value
 	]
-	
+
 	or~*: func [][]
 	xor~*: func [][]
 	
@@ -1010,7 +1021,7 @@ actions: context [
 			:divide*
 			:multiply*
 			:negate*
-			null			;power
+			:power*
 			:remainder*
 			null			;round
 			:subtract*

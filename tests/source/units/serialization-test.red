@@ -167,6 +167,12 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 		--assert  "a^@b" = dehex "a%00b"
 	--test-- "dehex-4"
 		--assert  "a%~b" = dehex "a%~b"
+	--test-- "dehex-5"
+		--assert  "aβc" = dehex "a%ce%b2c"
+	--test-- "dehex-6"
+		--assert  "a乱码b" = dehex "a%e4%b9%b1%e7%a0%81b"
+	--test-- "dehex-7"
+		--assert  "a%ceb2b" = dehex "a%ceb2b"
 ===end-group===
 
 ~~~end-file~~~

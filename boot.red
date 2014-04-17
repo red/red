@@ -152,8 +152,7 @@ negate: make action! [[
 ]
 
 power: make action! [[
-		"(not yet implemented)"
-		;"Returns a number raised to a given power (exponent)."
+		"Returns a number raised to a given power (exponent)."
 		number	 [number!] "Base value."
 		exponent [number!] "The power (index) to raise the base value by."
 		return:	 [number!]
@@ -830,6 +829,37 @@ dehex: make native! [[
 	]
 	#get-definition NAT_DEHEX
 ]
+
+negative?: make native! [[
+		"Returns TRUE if the number is negative."
+		number [number!]
+	]
+	#get-definition NAT_NEGATIVE?
+]
+
+positive?: make native! [[
+		"Returns TRUE if the number is positive."
+		number [number!]
+	]
+	#get-definition NAT_POSITIVE?
+]
+
+max: make native! [[
+		"Returns the greater of the two values."
+		value1 [number! series!]
+		value2 [number! series!]
+	]
+	#get-definition NAT_MAX
+]
+
+min: make native! [[
+		"Returns the lesser of the two values."
+		value1 [number! series!]
+		value2 [number! series!]
+	]
+	#get-definition NAT_MIN
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
@@ -996,9 +1026,10 @@ context: func [spec [block!]][make object! spec]
 
 system: function [
 	"Returns information about the interpreter."
-	/version	"Return the system version"
-	/words		"Return a block of global words available"
-	/platform	"Return a word identifying the operating system"
+	/version	  "Return the system version"
+	/words		  "Return a block of global words available"
+	/platform	  "Return a word identifying the operating system"
+	/interpreted? "Return TRUE if called from the interpreter"
 ][
 	case [
 		version [#version]
@@ -1013,6 +1044,7 @@ system: function [
 				]
 			]
 		]
+		interpreted? [#system [logic/box stack/eval?]]
 		'else [
 			print "Please specify a system refinement value (/version, /words, or /platform)."
 		]

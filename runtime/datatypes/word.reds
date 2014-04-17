@@ -166,6 +166,20 @@ word: context [
 
 		form w buffer arg part
 	]
+
+	any-word?: func [									;@@ discard it when ANY_WORD? available
+		type	[integer!]
+		return: [logic!]
+	][
+		any [
+			type = TYPE_WORD
+			type = TYPE_GET_WORD
+			type = TYPE_SET_WORD
+			type = TYPE_LIT_WORD
+			type = TYPE_REFINEMENT
+			type = TYPE_ISSUE
+		]
+	]
 	
 	compare: func [
 		arg1	 [red-word!]							;-- first operand
@@ -182,14 +196,7 @@ word: context [
 		switch op [
 			COMP_EQUAL [
 				res: all [
-					any [								;@@ replace by ANY_WORD? when available
-						type = TYPE_WORD
-						type = TYPE_GET_WORD
-						type = TYPE_SET_WORD
-						type = TYPE_LIT_WORD
-						type = TYPE_REFINEMENT
-						type = TYPE_ISSUE
-					]
+					any-word? type						;@@ replace by ANY_WORD? when available
 					EQUAL_WORDS?(arg1 arg2)
 				]
 			]
