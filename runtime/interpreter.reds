@@ -734,7 +734,11 @@ interpreter: context [
 							][
 								pc: eval-expression pc end no yes
 							]
-							stack/unroll-last stack/FLAG_FUNCTION
+							either sub? [
+								stack/unroll-last stack/FLAG_FUNCTION
+							][
+								stack/unroll stack/FLAG_FUNCTION
+							]
 							throw THROWN_RETURN
 						]
 						true [0]
