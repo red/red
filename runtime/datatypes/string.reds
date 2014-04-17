@@ -17,94 +17,47 @@ string: context [
 	#define MAX_ESC_CHARS		5Fh	
 	#define MAX_URL_CHARS 		7Fh
 	
-	escape-chars:		declare byte-ptr!
-	escape-url-chars:	declare byte-ptr!
-	utf8-buffer: 		declare byte-ptr!
-
 	#enum escape-type! [
-		ESC_CHAR: 7Eh
-		ESC_URL
+		ESC_CHAR: FDh
+		ESC_URL:  FEh
 		ESC_NONE: FFh
 	]
-
-	fill-table: func [
-		/local
-			c [byte!]
-			i [integer!]
-	][
-		i: 1
-		c: #"@"
-		while [c <= #"_"][
-			escape-chars/i: c
-			i: i + 1
-			c: c + 1
-		]
 		
-		while [i < MAX_ESC_CHARS][
-			escape-chars/i: null-byte
-			i: i + 1
-		]
-		
-		escape-chars/10: #"-"							;-- 9  + 1 (adjust for 1-base)
-		escape-chars/11: #"/"							;-- 10 + 1 (adjust for 1-base)
-		escape-chars/35: #"^""							;-- 34 + 1 (adjust for 1-base)
-		escape-chars/95: #"^^"							;-- 94 + 1 (adjust for 1-base)
+	escape-chars: [
+		#"^(40)" #"^(41)" #"^(42)" #"^(43)" #"^(44)" #"^(45)" #"^(46)" #"^(47)" ;-- 07h
+		#"-" 	 #"/" 	  #"^(4A)" #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
+		#"^(50)" #"^(51)" #"^(52)" #"^(53)" #"^(54)" #"^(55)" #"^(56)" #"^(57)" ;-- 17h
+		#"^(58)" #"^(59)" #"^(5A)" #"^(5B)" #"^(5C)" #"^(5D)" #"^(5E)" #"^(5F)" ;-- 1Fh
+		#"^(00)" #"^(00)" #"^""    #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 27h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 2Fh
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 37h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 3Fh
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 47h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 4Fh
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 57h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^^"	   #"^(00)" ;-- 5Fh
 	]
 
-	fill-url-table: func [
-		/local
-			c [byte!]
-			i [integer!]
-			n [integer!]
-			s [c-string!]
-	][
-		i: 1
-		c: #"^@"
-		while [c <= #" "][
-			escape-url-chars/i: as byte! ESC_URL
-			i: i + 1
-			c: c + 1
-		]
-
-		while [i <= MAX_URL_CHARS][
-			escape-url-chars/i: as byte! ESC_NONE
-			i: i + 1
-		]
-
-		i: (as-integer #"0") + 1					;-- adjust for 1-base
-		c: #"0"
-		while [c <= #"9"][
-			escape-url-chars/i: c - #"0"
-			i: i + 1
-			c: c + 1
-		]
-
-		i: (as-integer #"a") + 1
-		c: #"a"
-		while [c <= #"f"][
-			escape-url-chars/i: c - #"a" + 10
-			i: i + 1
-			c: c + 1
-		]
-
-		i: (as-integer #"A") + 1
-		c: #"A"
-		while [c <= #"F"][
-			escape-url-chars/i: c - #"A" + 10
-			i: i + 1
-			c: c + 1
-		]
-
-		s: "^"%();<>[]{}E"
-		i: 1
-		until [
-			c: s/i + 1
-			n: as-integer c
-			escape-url-chars/n: as byte! ESC_URL
-			i: i + 1
-			s/i = #"E"
-		]
+	escape-url-chars: [							;-- ESC_NONE: #"^(FF)" ESC_URL: #"^(FE)"
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 07h
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 0Fh
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 17h
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 1Fh
+		#"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 27h
+		#"^(FE)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 2Fh
+		#"^(00)" #"^(01)" #"^(02)" #"^(03)" #"^(04)" #"^(05)" #"^(06)" #"^(07)" ;-- 37h
+		#"^(08)" #"^(09)" #"^(FF)" #"^(FE)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" ;-- 3Fh
+		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 47h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 4Fh
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 57h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 5Fh
+		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 67h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 6Fh
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 77h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 7Fh
 	]
+
+	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
 
 	to-hex: func [
 		cp		[integer!]								;-- codepoint <= 10FFFFh
@@ -1885,12 +1838,6 @@ string: context [
 	]
 	
 	init: does [
-		escape-chars: allocate MAX_ESC_CHARS
-		escape-url-chars: allocate MAX_URL_CHARS + 4	;-- extra buffer for converting utf8 string
-		utf8-buffer: escape-url-chars + MAX_URL_CHARS
-		fill-table
-		fill-url-table
-
 		datatype/register [
 			TYPE_STRING
 			TYPE_VALUE
