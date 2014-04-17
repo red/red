@@ -572,7 +572,7 @@ system-dialect: make-profilable context [
 		
 		get-type: func [value /local type][
 			switch/default type?/word value [
-				none!	 [none-type]				;-- no type case (func with no return value)
+				none!	 [none-type]					;-- no type case (func with no return value)
 				tag!	 [either value = <last> [last-type][ [logic!] ]]
 				logic!	 [[logic!]]
 				word! 	 [resolve-type value]
@@ -587,20 +587,20 @@ system-dialect: make-profilable context [
 					
 					either 'op = second get-function-spec value/1 [
 						either base-type? type: get-return-type value/1 [
-							type				;-- unique returned type, stop here
+							type						;-- unique returned type, stop here
 						][
-							get-type value/2	;-- recursively search for left operand base type
+							get-type value/2			;-- recursively search for left operand base type
 						]
 					][
 						get-return-type value/1
 					]
 				]
 				paren!	 [
-					reduce switch/default value/1 [
-						struct! [pick [[value/2][value/1 value/2]] word? value/2]
-						pointer! [[value/1 value/2]]
+					switch/default value/1 [
+						struct!  [reduce pick [[value/2][value/1 value/2]] word? value/2]
+						pointer! [reduce [value/1 value/2]]
 					][
-						['pointer! get-type value/1 'array! length? value]
+						next next reduce ['array! length? value	'pointer! get-type value/1]	;-- hide array size
 					]
 				]
 				get-word! [
@@ -619,7 +619,7 @@ system-dialect: make-profilable context [
 		
 		enum-type?: func [name [word!] /local type][
 			all [
-				type: find/skip enumerations name 3			;-- SELECT/SKIP on hash! unreliable!
+				type: find/skip enumerations name 3		;-- SELECT/SKIP on hash! unreliable!
 				reduce [next type]
 			]
 		]
@@ -887,7 +887,8 @@ system-dialect: make-profilable context [
 		
 		add-symbol: func [name [word!] value type][
 			unless type [type: get-type value]
-			append globals reduce [name type: compose [(type)]]
+			unless 'array! = first head type [type: copy type]
+			append globals reduce [name type]
 			type
 		]
 		

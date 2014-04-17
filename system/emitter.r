@@ -540,9 +540,9 @@ emitter: make-profilable context [
 		either word? type [
 			datatypes/:type
 		][
-			any [
-				select type 'array!
-
+			either 'array! = first head type [
+				second head type
+			][
 				switch/default type/1 [
 					c-string! [reduce ['+ 1 reduce ['length? value]]]
 					struct!   [member-offset? type/2 none]
