@@ -46,7 +46,7 @@ Red [
 		]
 		#import [
 			ReadLine-library cdecl [
-				read-line: "readline" [  ; Read a line from the console.
+				cons-read-line: "readline" [  ; Read a line from the console.
 					prompt			[c-string!]
 					return:			[c-string!]
 				]
@@ -130,7 +130,7 @@ input: routine [
 		line-buffer/pos: null-byte						;-- overwrite CR with NUL
 		str: string/load as-c-string line-buffer len - 1 UTF-16LE
 	][
-		line: read-line as-c-string string/rs-head prompt
+		line: cons-read-line as-c-string string/rs-head prompt
 		if line = null [halt]  ; EOF
 
 		 #if OS <> 'MacOSX [add-history line]
