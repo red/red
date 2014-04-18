@@ -150,8 +150,10 @@ trans-pop: function [stack [block!]][
 ]
 
 transcode: function [
-	src		[string!]
-	dst		[block! none!]
+	src	[string!]
+	dst	[block! none!]
+	/part	
+		length [integer! string!]
 	return: [block!]
 	/local
 		new s e c hex pos value cnt type process
@@ -465,7 +467,13 @@ transcode: function [
 	
 	any-value: [pos: any [literal-value | ws]]
 
-	unless parse/case src [any-value opt wrong-delimiters][
+	red-rules: [any-value opt wrong-delimiters]
+	
+	unless either part [
+		parse/case/part src red-rules length
+	][
+		parse/case src red-rules
+	][
 		print ["*** Syntax Error: invalid Red value at:" copy/part pos 20]
 	]
 	stack/1

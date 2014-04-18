@@ -1152,6 +1152,8 @@ load: function [
 	/header "TBD: Include Red header as a loaded value"
 	/all    "TBD: Don't evaluate Red header"
 	/type	"TBD:"
+	/part
+		length [integer! string!]
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
 ][
@@ -1161,7 +1163,7 @@ load: function [
 	;	url!	[]
 	;	binary! []
 	;]
-	transcode source out
+	either part [transcode/part source out length][transcode source out]
 	unless :all [if 1 = length? out [out: out/1]]
 	out 
 ]
