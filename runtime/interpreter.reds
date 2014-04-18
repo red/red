@@ -724,7 +724,7 @@ interpreter: context [
 					case [
 						sym = words/exit* [
 							copy-cell unset-value stack/arguments
-							stack/unroll-last stack/FLAG_FUNCTION
+							stack/unroll stack/FLAG_FUNCTION
 							throw THROWN_EXIT
 						]
 						sym = words/return* [
@@ -734,11 +734,7 @@ interpreter: context [
 							][
 								pc: eval-expression pc end no yes
 							]
-							either sub? [
-								stack/unroll-last stack/FLAG_FUNCTION
-							][
-								stack/unroll stack/FLAG_FUNCTION
-							]
+							stack/unroll stack/FLAG_FUNCTION
 							throw THROWN_RETURN
 						]
 						true [0]
