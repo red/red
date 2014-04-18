@@ -370,8 +370,7 @@ string: context [
 			p	 [byte-ptr!]
 			unit [integer!]
 	][
-		unit: GET_UNIT(s)
-		switch unit [
+		switch GET_UNIT(s) [
 			Latin1 [
 				case [
 					cp <= FFh 	[0]
@@ -382,6 +381,8 @@ string: context [
 			UCS-2 [if cp > FFFFh [s: unicode/UCS2-to-UCS4 s]]
 			UCS-4 [0]
 		]
+
+		unit: GET_UNIT(s)								;-- NOTE: unit may have changed.
 		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 			s: expand-series s 0
 		]
