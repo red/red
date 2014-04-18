@@ -802,20 +802,46 @@ natives: context [
 	]
 
 	parse*: func [
-		case?  [integer!]
+		case? [integer!]
 		;strict? [integer!]
+		part  [integer!]
 		trace [integer!]
 		/local
-			op [integer!]
+			op	  [integer!]
+			input [red-series!]
+			limit [red-series!]
+			int	  [red-integer!]
 	][
 		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
 		
+		input: as red-series! stack/arguments
+		limit: as red-series! stack/arguments + part
+		part: 0
+		
+		if OPTION?(limit) [
+			part: either TYPE_OF(limit) = TYPE_INTEGER [
+				int: as red-integer! limit
+				int/value + input/head
+			][
+				unless all [
+					TYPE_OF(limit) = TYPE_OF(input)
+					limit/node = input/node
+				][
+					print-line "*** Parse Error: invalid /part argument"
+					exit
+				]
+				limit/head - input/head
+			]
+			if part <= 0 [part: 0]					;-- disable negative values
+		]
+		
 		stack/set-last parser/process
-			as red-series! stack/arguments
+			input
 			as red-block!  stack/arguments + 1
 			op
 			;as logic! strict? + 1
-			as red-function!  stack/arguments + trace
+			part
+			as red-function! stack/arguments + trace
 	]
 	
 	union*: func [

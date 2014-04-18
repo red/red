@@ -791,6 +791,8 @@ parse: make native! [[
 		rules [block!]
 		/case
 		;/strict
+		/part
+			length [number! series!]
 		/trace
 			callback [function! [
 				event	[word!]
@@ -1127,12 +1129,18 @@ parse-trace: func [
 	input [series!]
 	rules [block!]
 	/case
+	/part
+		limit [integer!]
 	return: [logic! block!]
 ][
 	either case [
 		parse/case/trace input rules :on-parse-event
 	][
-		parse/trace input rules :on-parse-event
+		either part [
+			parse/part/trace input rules limit :on-parse-event
+		][
+			parse/trace input rules :on-parse-event
+		]
 	]
 ]
 
