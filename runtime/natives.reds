@@ -830,7 +830,7 @@ natives: context [
 					print-line "*** Parse Error: invalid /part argument"
 					exit
 				]
-				limit/head - input/head
+				limit/head
 			]
 			if part <= 0 [part: 0]					;-- disable negative values
 		]
