@@ -246,6 +246,7 @@ parser: context [
 	][
 		s: GET_BUFFER(rules)
 		pos*: as positions! s/tail - 2
+		s: GET_BUFFER(input)
 		
 		type: TYPE_OF(input)
 		either any [									;TBD: replace with ANY_STRING + TYPE_BINARY
@@ -253,7 +254,6 @@ parser: context [
 			type = TYPE_FILE
 			type = TYPE_BINARY
 		][
-			s: 	   GET_BUFFER(input)
 			unit:  GET_UNIT(s)
 			phead: (as byte-ptr! s/offset) + (input/head << (unit >> 1))
 			ptail: as byte-ptr! s/tail
@@ -344,8 +344,12 @@ parser: context [
 				]
 			]
 		][
-			head:  block/rs-head input
-			tail:  block/rs-tail input
+			head:  s/offset + input/head
+			tail:  s/tail
+			if positive? part [
+				value: s/offset + part
+				if value < tail [tail: value]
+			]
 			value: head
 			
 			while [value < tail][
@@ -464,8 +468,10 @@ parser: context [
 			][
 				until [										;-- ANY-STRING input matching
 					match?: string/match? as red-string! input token comp-op
-					end?: all [match? advance as red-string! input token]	;-- consume matched input
-					if positive? part [end?: input/head >= part or end?]
+					end?: any [
+						all [match? advance as red-string! input token]	;-- consume matched input
+						all [positive? part input/head >= part]
+					]
 					cnt: cnt + 1
 					any [
 						not match?
@@ -477,7 +483,10 @@ parser: context [
 		][
 			until [										;-- ANY-BLOCK input matching
 				match?:	actions/compare block/rs-head input token comp-op	;@@ sub-optimal!!
-				end?: all [match? block/rs-next input]	;-- consume matched input
+				end?: any [
+					all [match? block/rs-next input]	;-- consume matched input
+					all [positive? part input/head >= part]
+				]
 				cnt: cnt + 1
 				any [
 					not match?
