@@ -139,7 +139,7 @@ Red [
 		ret5: does [return either false [12][34]]
 		--assert 34 = ret5
 		
-	--test-- "fun-ret-6"
+	--test-- "fun-ret-6"								;-- issue #770
 		ret6: func [i [integer!]][
 			until [
 				if true [
@@ -155,6 +155,59 @@ Red [
 		]
 		--assert 0 = ret6 0
 		--assert 2 = ret6 1
+
+	--test-- "fun-ret-7"
+		f: function [][
+			blk: [1 2 3 4 5]
+			foreach i blk [
+				case [
+					i > 1 [return i]
+				]
+			]
+		]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-8"
+		f: function [][
+		    case [
+		        2 > 1 [return true]
+		    ]
+		]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-9"
+		f: function [][if true [return true]]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-10"
+		g: function [][if true [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-10"
+		f: function [][true]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-11"
+		f: function [][if true [return true]]
+		g: function [][if (f) [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-12"
+		f: function [][if true [return true] ]
+		g: function [][if not not f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-13"
+		f: function [][if true [return 'X]]
+		g: function [][if f [return 1]]
+		--assert g = 1
+
+	--test-- "fun-ret-14"								;-- issue #778
+	 	--assert 1 = do load "f: func [][return 1] t: f"
 		
 
 ===end-group===
