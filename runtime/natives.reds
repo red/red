@@ -811,6 +811,7 @@ natives: context [
 			input [red-series!]
 			limit [red-series!]
 			int	  [red-integer!]
+			rule  [red-block!]
 	][
 		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
 		
@@ -832,12 +833,23 @@ natives: context [
 				]
 				limit/head
 			]
-			if part <= 0 [part: 0]					;-- disable negative values
+			if part <= 0 [
+				rule: as red-block! stack/arguments + 1
+				logic/box zero? either any [
+					TYPE_OF(input) = TYPE_STRING		;@@ replace with ANY_STRING?
+					TYPE_OF(input) = TYPE_FILE
+				][
+					string/rs-length? as red-string! input
+				][
+					block/rs-length? as red-block! input
+				]
+				exit
+			]
 		]
 		
 		stack/set-last parser/process
 			input
-			as red-block!  stack/arguments + 1
+			as red-block! stack/arguments + 1
 			op
 			;as logic! strict? + 1
 			part

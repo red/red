@@ -1157,6 +1157,17 @@ load: function [
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
 ][
+	if part [
+		case [
+			zero? length [return make block! 1]
+			string? length [
+				if (index? length) = index? source [
+					return make block! 1
+				]
+			]
+		]
+	]
+	
 	unless out [out: make block! 4]
 	;switch type?/word [
 	;	file!	[]
