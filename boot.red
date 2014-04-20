@@ -862,6 +862,17 @@ min: make native! [[
 	#get-definition NAT_MIN
 ]
 
+shift: make native! [[
+		"Perform a bit shift operation. Right shift (decreasing) by default."
+		data	[integer! binary!]
+		bits	[integer!]
+		/left	 "Shift bits to the left (increasing)"
+		/logical "Use logical shift (unsigned, fill with zero)"
+		return: [integer! binary!]
+	]
+	#get-definition NAT_SHIFT
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

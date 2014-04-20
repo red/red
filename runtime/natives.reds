@@ -1017,6 +1017,28 @@ natives: context [
 		]
 	]
 
+	shift*: func [
+		left	 [integer!]
+		logical  [integer!]
+		/local
+			data [red-integer!]
+			bits [red-integer!]
+	][
+		data: as red-integer! stack/arguments
+		bits: data + 1
+		case [
+			left >= 0 [
+				data/value: data/value << bits/value
+			]
+			logical >= 0 [
+				data/value: data/value >>> bits/value
+			]
+			true [
+				data/value: data/value >> bits/value
+			]
+		]
+	]
+
 	;--- Natives helper functions ---
 
 	loop?: func [
@@ -1248,6 +1270,7 @@ natives: context [
 			:positive?*
 			:max*
 			:min*
+			:shift*
 		]
 	]
 
