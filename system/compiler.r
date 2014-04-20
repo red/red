@@ -2704,8 +2704,13 @@ system-dialect: make-profilable context [
 		]
 		
 		check-infix-operators: has [pos][
-			if infix? pc [exit]							;-- infix op already processed,
-														;-- or used in prefix mode.
+			if infix? pc [
+				either infix? back tail expr-call-stack [
+					exit								;-- infix op already processed
+				][
+					throw-error "invalid use of infix operator"
+				]
+			]
 			if infix? next pc [
 				either find [set-word! set-path! struct!] type?/word pc/1 [
 					throw-error "can't use infix operator here"
