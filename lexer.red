@@ -146,7 +146,22 @@ trans-word: routine [
 trans-pop: function [stack [block!]][
 	value: last stack
 	remove back tail stack
-	append/only last stack :value
+	
+	either any [1 < length? stack head? stack/1][
+		append/only last stack :value
+	][
+		pos: back tail stack							;-- root storage and offset-ed series (/into option)
+		pos/1: insert/only last stack :value
+	]
+]
+
+trans-store: function [stack [block!] value][
+	either any [1 < length? stack head? stack/1][
+		append last stack value
+	][
+		pos: back tail stack							;-- root storage and offset-ed series (/into option)
+		pos/1: insert last stack value
+	]
 ]
 
 transcode: function [
@@ -332,7 +347,7 @@ transcode: function [
 		some [
 			slash
 			s: [
-				integer-number-rule			(append last stack trans-integer s e)
+				integer-number-rule			(trans-store stack trans-integer s e)
 				| begin-symbol-rule			(trans-word last stack copy/part s e word!)
 				| paren-rule
 				| #":" s: begin-symbol-rule	(trans-word last stack copy/part s e get-word!)
@@ -447,20 +462,20 @@ transcode: function [
 	literal-value: [
 		pos: (e: none) s: [
 			comment-rule
-			| escaped-rule		(append last stack value)
-			| integer-rule		if (value: trans-integer s e ) (append last stack value)
-			| hexa-rule			(append last stack trans-hexa s e)
+			| escaped-rule		(trans-store stack value)
+			| integer-rule		if (value: trans-integer s e ) (trans-store stack value)
+			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
 			| slash-rule		(trans-word last stack copy/part s e word!)
 			| refinement-rule
-			| file-rule			(append last stack value: do process)
-			| char-rule			(append last stack value)
+			| file-rule			(trans-store stack value: do process)
+			| char-rule			(trans-store stack value)
 			| issue-rule
 			| block-rule
 			| paren-rule
-			| string-rule		(append last stack do trans-string)
+			| string-rule		(trans-store stack do trans-string)
 			;| binary-rule	  	(stack/push load-binary s e)
 		]
 	]
