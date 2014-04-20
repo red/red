@@ -54,4 +54,11 @@ Red [
 	--test-- "comp-3" --assert 0  = complement FFFFFFFFh
 ===end-group===
 
+===start-group=== "shift"
+	--test-- "shift-1" --assert 1  = shift 2 1
+	--test-- "shift-2" --assert 16 = shift/left 2 3
+	--test-- "shift-3" --assert FFFFFFFEh = shift FFFFFFFCh 1
+	--test-- "shift-4" --assert 7FFFFFFEh = shift/logical FFFFFFFCh 1
+===end-group===
+
 ~~~end-file~~~

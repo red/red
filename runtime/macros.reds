@@ -180,6 +180,7 @@ Red/System [
 	NAT_POSITIVE?
 	NAT_MAX
 	NAT_MIN
+	NAT_SHIFT
 ]
 
 #enum math-op! [
