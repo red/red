@@ -775,7 +775,7 @@ red: context [
 		]
 	]
 		
-	emit-routine: func [name [word!] spec [block!] /local type cnt offset][
+	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter][
 		declare-variable/init 'r_arg to paren! [as red-value! 0]
 		emit [r_arg: stack/arguments]
 		insert-lf -2
@@ -787,7 +787,8 @@ red: context [
 		][
 			offset: 1
 			append/only output append to path! form get type/1 'box
-		]		
+		]
+		if alter: select ssa-names name [name: alter]
 		emit name
 		cnt: 0
 
