@@ -175,6 +175,13 @@ Red/System [
 	NAT_UNIQUE
 	NAT_DIFFERENCE
 	NAT_COMPLEMENT?
+	NAT_DEHEX
+	NAT_NEGATIVE?
+	NAT_POSITIVE?
+	NAT_MAX
+	NAT_MIN
+	NAT_SHIFT
+	NAT_TO_HEX
 ]
 
 #enum math-op! [
@@ -182,6 +189,7 @@ Red/System [
 	OP_SUB
 	OP_MUL
 	OP_DIV
+	OP_REM
 ]
 
 #enum comparison-op! [

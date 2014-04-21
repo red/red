@@ -165,6 +165,17 @@ char: context [
 		as red-value! char 
 	]
 
+	remainder: func [
+		return:  [red-value!]
+		/local
+			char [red-char!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/remainder"]]
+		char: as red-char! integer/do-math OP_REM
+		char/header: TYPE_CHAR
+		as red-value! char
+	]
+
 	subtract: func [
 		return:  [red-value!]
 		/local
@@ -179,7 +190,7 @@ char: context [
 	init: does [
 		datatype/register [
 			TYPE_CHAR
-			TYPE_VALUE
+			TYPE_INTEGER
 			"char!"
 			;-- General actions --
 			:make
@@ -198,11 +209,11 @@ char: context [
 			:multiply
 			null			;negate
 			null			;power
-			null			;remainder
+			:remainder
 			null			;round
 			:subtract
-			null			;even?
-			null			;odd?
+			INHERIT_ACTION
+			INHERIT_ACTION
 			;-- Bitwise actions --
 			null			;and~
 			null			;complement

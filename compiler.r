@@ -775,7 +775,7 @@ red: context [
 		]
 	]
 		
-	emit-routine: func [name [word!] spec [block!] /local type cnt offset][
+	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter][
 		declare-variable/init 'r_arg to paren! [as red-value! 0]
 		emit [r_arg: stack/arguments]
 		insert-lf -2
@@ -787,7 +787,8 @@ red: context [
 		][
 			offset: 1
 			append/only output append to path! form get type/1 'box
-		]		
+		]
+		if alter: select ssa-names name [name: alter]
 		emit name
 		cnt: 0
 
@@ -1958,7 +1959,7 @@ red: context [
 		]
 	]
 	
-	check-infix-operators: has [name op pos end ops][
+	check-infix-operators: has [name op pos end ops spec][
 		if infix? pc [return false]						;-- infix op already processed,
 														;-- or used in prefix mode.
 		if infix? next pc [
@@ -1981,8 +1982,16 @@ red: context [
 			
 			forall ops [
 				comp-expression/no-infix				;-- fetch right operand
-				emit make-func-prefix ops/1
-				insert-lf -1
+				name: ops/1
+				spec: functions/:name
+				switch/default spec/1 [
+					function! [emit decorate-func name insert-lf -1]
+					routine!  [emit-routine name spec/3]
+				][
+					emit make-func-prefix name
+					insert-lf -1
+				]
+				
 				emit-close-frame
 				unless tail? next ops [pc: next pc]		;-- jump over op word unless last operand
 			]
@@ -2116,7 +2125,7 @@ red: context [
 				true
 			]
 			#load [										;-- temporary directive
-				change/part/only pc to do pc/2 pc/3 3 2
+				change/part/only pc to do pc/2 pc/3 3
 				comp-expression							;-- continue expression fetching
 				true
 			]

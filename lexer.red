@@ -146,12 +146,29 @@ trans-word: routine [
 trans-pop: function [stack [block!]][
 	value: last stack
 	remove back tail stack
-	append/only last stack :value
+	
+	either any [1 < length? stack head? stack/1][
+		append/only last stack :value
+	][
+		pos: back tail stack							;-- root storage and offset-ed series (/into option)
+		pos/1: insert/only last stack :value
+	]
+]
+
+trans-store: function [stack [block!] value][
+	either any [1 < length? stack head? stack/1][
+		append last stack value
+	][
+		pos: back tail stack							;-- root storage and offset-ed series (/into option)
+		pos/1: insert last stack value
+	]
 ]
 
 transcode: function [
-	src		[string!]
-	dst		[block! none!]
+	src	[string!]
+	dst	[block! none!]
+	/part	
+		length [integer! string!]
 	return: [block!]
 	/local
 		new s e c hex pos value cnt type process
@@ -177,29 +194,10 @@ transcode: function [
 		]
 		new
 	]
-	
-	decode-hex: [
-		set c [
-			digit 			(value: c - #"0")
-			| hexa-upper	(value: c - #"A" + 10)
-			| hexa-lower	(value: c - #"a" + 10)
-			| (print "*** Syntax Error: invalid file hexa encoding") ;@@ temporary hardcoded
-		]
-	]
-	
-	decode-2hex: [
-		decode-hex (hex: value << 4)
-		decode-hex (hex: hex + value)
-	]
-	
+
 	trans-file: [
 		new: make file! (index? e) - index? s
-		parse/case copy/part s e [						;@@ add /part option to parse!
-			any [
-				#"%" decode-2hex (append new hex)
-				| set c skip (append new c)
-			]
-		]
+		append new dehex copy/part s e
 		new
 	]
 	
@@ -211,7 +209,7 @@ transcode: function [
 		cs/5:  union cs/4 cs/3							;-- hexa-char	
 		cs/6:  charset {/\^^,[](){}"#%$@:;}				;-- not-word-char
 		cs/7:  union union cs/6 cs/1 charset {'}		;-- not-word-1st
-		cs/8:  charset {[](){}"%@:;}					;-- not-file-char
+		cs/8:  charset {[](){}"@:;}						;-- not-file-char
 		cs/9:  #"^""									;-- not-str-char
 		cs/10: #"}"										;-- not-mstr-char
 		cs/11: charset [#"^(40)" - #"^(5F)"]			;-- caret-char
@@ -349,7 +347,7 @@ transcode: function [
 		some [
 			slash
 			s: [
-				integer-number-rule			(append last stack trans-integer s e)
+				integer-number-rule			(trans-store stack trans-integer s e)
 				| begin-symbol-rule			(trans-word last stack copy/part s e word!)
 				| paren-rule
 				| #":" s: begin-symbol-rule	(trans-word last stack copy/part s e get-word!)
@@ -360,11 +358,12 @@ transcode: function [
 	]
 
 	word-rule: 	[
-		s: begin-symbol-rule (type: word!) [
-			path-rule 									;-- path matched
-			| opt [#":" (type: set-word!)]
-			  (trans-word last stack copy/part s e type) ;-- word or set-word matched
-		] 
+		#"%" ws-no-count (trans-word last stack "%" word!)	 ;-- special case for remainder op!
+		| s: begin-symbol-rule (type: word!) [
+				path-rule 									 ;-- path matched
+				| opt [#":" (type: set-word!)]
+				  (trans-word last stack copy/part s e type) ;-- word or set-word matched
+		  ]
 	]
 
 	get-word-rule: [
@@ -376,7 +375,7 @@ transcode: function [
 
 	lit-word-rule: [
 		#"'" (type: lit-word!) s: begin-symbol-rule [
-			path-rule (type: lit-path!)					;-- path matched
+			path-rule (type: lit-path!)					 ;-- path matched
 			| (trans-word last stack copy/part s e type) ;-- lit-word matched
 		]
 	]
@@ -463,27 +462,33 @@ transcode: function [
 	literal-value: [
 		pos: (e: none) s: [
 			comment-rule
-			| escaped-rule		(append last stack value)
-			| integer-rule		if (value: trans-integer s e ) (append last stack value)
-			| hexa-rule			(append last stack trans-hexa s e)
+			| escaped-rule		(trans-store stack value)
+			| integer-rule		if (value: trans-integer s e ) (trans-store stack value)
+			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
 			| slash-rule		(trans-word last stack copy/part s e word!)
 			| refinement-rule
-			| file-rule			(append last stack do process)
-			| char-rule			(append last stack value)
+			| file-rule			(trans-store stack value: do process)
+			| char-rule			(trans-store stack value)
 			| issue-rule
 			| block-rule
 			| paren-rule
-			| string-rule		(append last stack do trans-string)
+			| string-rule		(trans-store stack do trans-string)
 			;| binary-rule	  	(stack/push load-binary s e)
 		]
 	]
 	
 	any-value: [pos: any [literal-value | ws]]
 
-	unless parse/case src [any-value opt wrong-delimiters][
+	red-rules: [any-value opt wrong-delimiters]
+	
+	unless either part [
+		parse/case/part src red-rules length
+	][
+		parse/case src red-rules
+	][
 		print ["*** Syntax Error: invalid Red value at:" copy/part pos 20]
 	]
 	stack/1

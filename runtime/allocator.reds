@@ -28,10 +28,12 @@ Red/System [
 #define flag-bitset-not		00080000h		;-- complement flag for bitsets
 
 #define flag-arity-mask		C1FFFFFFh		;-- mask for readind routines arity field
-#define flag-self-mask		FEFFFFFFh		;-- mask for reading routines arity field
-#define set-self-mask		01000000h		;-- mask for setting routines arity field
-#define flag-unit-mask		FFFFFFE0h		;-- mask for unit field in series-buffer!
-#define get-unit-mask		0000001Fh		;-- mask for unit field in series-buffer!
+#define flag-self-mask		FEFFFFFFh		;-- mask for setting self? flag
+#define set-self-mask		01000000h		;-- mask for reading self? flag
+#define body-mask			FF7FFFFFh		;-- mask for op! body node
+#define body-flag			00800000h		;-- flag for op! body node
+#define flag-unit-mask		FFFFFFE0h		;-- mask for reading unit field in series-buffer!
+#define get-unit-mask		0000001Fh		;-- mask for setting unit field in series-buffer!
 #define series-free-mask	7FFFFFFFh		;-- mark a series as used (not collectable by the GC)
 #define flag-not-mask		FFF7FFFFh		;-- mask for complement flag
 
@@ -50,7 +52,8 @@ int-array!: alias struct! [ptr [int-ptr!]]
 ;   30:		new-line						;-- new-line (LF) marker (before the slot)
 ;	29-25:	arity							;-- arity for routine! functions.
 ;	24:		self?							;-- self-aware context flag
-;   23-8:	<reserved>
+;	23:		node-body						;-- op! body points to a block node (instead of native code)
+;   22-8:	<reserved>
 ;   7-0:	datatype ID						;-- datatype number
 
 cell!: alias struct! [

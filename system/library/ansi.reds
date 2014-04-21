@@ -26,11 +26,28 @@ Red/System [
 	system/fpu/update
 ]
 
-#define binary!		[pointer! [byte!]]
-#define size!		integer!
-#define opaque!  	integer!							;--  Difference with Kaj's ansi binding
-#define file!		integer!							;--  Difference with Kaj's ansi binding
-#define handle!		byte-ptr!							;--  Difference with Kaj's ansi binding
+;-- snippet from Kaj's ANSI binding
+
+#define variant!				integer!
+#define opaque!					[struct! [dummy [variant!]]]
+handle!:						alias opaque!
+#define as-handle				[as handle! ]
+#define binary!					[pointer! [byte!]]
+#define as-binary				[as binary! ]
+
+handle-reference!:				alias struct! [value [handle!]]
+binary-reference!:				alias struct! [value [binary!]]
+string-reference!:				alias struct! [value [c-string!]]
+
+#define none?					[null = ]
+
+#define free-any				[free as-binary ]
+
+#define size!					integer!
+file!:							alias opaque!
+
+argument-list!:					alias struct! [item [integer!]]
+
 
 #import [LIBC-file cdecl [
 	; Memory management
@@ -52,6 +69,14 @@ Red/System [
 		name			[c-string!]
 		mode			[c-string!]
 		return:			[file!]
+	]
+	format-any: "sprintf" [					"Format arguments as string."
+		[variadic]
+		; string		[c-string!]			"WARNING: must be big enough!"
+		; format		[c-string!]
+		;	value		[variant!]
+		;	...
+		return:			[integer!]			"Result length or < 0"
 	]
 	flush-file: "fflush" [					"Flush file(s)."
 		file			[file!]				"NULL for all streams"
@@ -95,10 +120,10 @@ Red/System [
 		source		[c-string!]
 		return:		[c-string!]
 	]
-	copy-string: "strcpy" [
-		target		[c-string!]
-		source		[c-string!]
-		return:		[c-string!]
+	_copy-string: "strcpy" [				"Copy string including tail marker, return target."
+		target			[c-string!]
+		source			[c-string!]
+		return:			[c-string!]
 	]
 	find-string: "strstr" [					"Search for sub-string."
 		string			[c-string!]
@@ -122,3 +147,11 @@ file-error?: function ["File status."
 ][
 	as-logic file-error file
 ]
+copy-string: function ["Copy string including tail marker, return target."
+	source			[c-string!]
+	target			[c-string!]
+	return:			[c-string!]
+][
+	_copy-string target source
+]
+

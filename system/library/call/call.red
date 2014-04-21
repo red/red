@@ -28,12 +28,13 @@ redsys-call: routine [ "Set IO buffers if needed, execute call"
 	redirerr   [logic!]   "Error redirection"
 	return:    [integer!]
 	/local
-	inp out err
+	inp out err s
 ][
 	either redirin [
 		inp: declare p-buffer!
 		inp/buffer: string/rs-head in-str
-		inp/count:  length? (as-c-string string/rs-head in-str)
+		s: GET_BUFFER(in-str)
+		inp/count:  GET_UNIT(s) * string/rs-length? in-str
 		#if OS = 'Windows [ system-call/to-ascii inp ]
 	][
 		inp: null
@@ -81,7 +82,8 @@ get-out: routine [ "Returns redirected stdout"
 
 get-err: routine [ "Returns redirected stderr"
 	/local
-		serr  [red-string!]
+		serr	[red-string!]
+		result	[integer!]
 ][
 	with system-call [
 		#either OS = 'Windows [
@@ -101,6 +103,19 @@ get-err: routine [ "Returns redirected stderr"
 	]
 ]
 
+print-to-stderr: routine [ "Call to low level print to stderr"
+	mesg	[string!]
+][
+	system-call/print-error [ as-c-string string/rs-head mesg ]
+]
+
+print-error: func [
+	mesg			[string! block!]	"A shell command, an executable file or a block"
+][
+	if block? mesg [ mesg: form mesg ]
+	print-to-stderr mesg
+]
+
 call: func [ "Executes a shell command to run another process."
 	cmd			[string! block!]	"A shell command, an executable file or a block"
 	/wait							"Runs command and waits for exit"
@@ -116,28 +131,23 @@ call: func [ "Executes a shell command to run another process."
 		do-in do-out do-err
 ][
 	pid: 0
-	if type? cmd = block! [ cmd: form cmd ]
+	if block? cmd [ cmd: form cmd ]
 	either input  [
-		if type? in = block! [ in: form in ]
+		if block? in [ in: form in ]
 		str: in
 	][
 		str: ""
 	]
-	either input  [ do-in:  true ][ do-in:  false ]
-	either output [ do-out: true ][ do-out: false ]
-	either error  [ do-err: true ][ do-err: false ]
-	pid: redsys-call cmd wait console shell do-in str do-out do-err
-	if do-out [
+	pid: redsys-call cmd wait console shell input str output error
+	if output [
 		str: get-out
 		parse str [ while [ ahead crlf remove cr | skip ] ]
-		insert out str
-		out: head out
+		out: head insert out str
 	]
-	if do-err [
+	if error [
 		str: get-err
 		parse str [ while [ ahead crlf remove cr | skip ] ]
-		insert err str
-		err: head err
+		err: head insert err str
 	]
 	pid
 ]

@@ -8,8 +8,12 @@ REBOL [
 
 ~~~start-file~~~ "Red run time errors"
 
-  --test-- "rte-1"
-    --compile-and-run-this-red/error {i: 1 j: 0 k: i / j}
-  --assert-red-printed? "*** Runtime Error 13: integer divide by zero"
+	--test-- "rte-1"
+		--compile-and-run-this/error {Red[] i: 1 j: 0 k: i / j}
+    	--assert-red-printed? "*** Runtime Error 13: integer divide by zero"
+    	
+    --test-- "rte-2"
+    	--compile-and-run-this/error {Red[] absolute -2147483648}
+    	--assert-red-printed? "*** Runtime Error 99: integer overflow"
   
 ~~~end-file~~~ 

@@ -802,20 +802,58 @@ natives: context [
 	]
 
 	parse*: func [
-		case?  [integer!]
+		case? [integer!]
 		;strict? [integer!]
+		part  [integer!]
 		trace [integer!]
 		/local
-			op [integer!]
+			op	  [integer!]
+			input [red-series!]
+			limit [red-series!]
+			int	  [red-integer!]
+			rule  [red-block!]
 	][
 		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
 		
+		input: as red-series! stack/arguments
+		limit: as red-series! stack/arguments + part
+		part: 0
+		
+		if OPTION?(limit) [
+			part: either TYPE_OF(limit) = TYPE_INTEGER [
+				int: as red-integer! limit
+				int/value + input/head
+			][
+				unless all [
+					TYPE_OF(limit) = TYPE_OF(input)
+					limit/node = input/node
+				][
+					print-line "*** Parse Error: invalid /part argument"
+					exit
+				]
+				limit/head
+			]
+			if part <= 0 [
+				rule: as red-block! stack/arguments + 1
+				logic/box zero? either any [
+					TYPE_OF(input) = TYPE_STRING		;@@ replace with ANY_STRING?
+					TYPE_OF(input) = TYPE_FILE
+				][
+					string/rs-length? as red-string! input
+				][
+					block/rs-length? as red-block! input
+				]
+				exit
+			]
+		]
+		
 		stack/set-last parser/process
-			as red-series! stack/arguments
-			as red-block!  stack/arguments + 1
+			input
+			as red-block! stack/arguments + 1
 			op
 			;as logic! strict? + 1
-			as red-function!  stack/arguments + trace
+			part
+			as red-function! stack/arguments + trace
 	]
 	
 	union*: func [
@@ -856,6 +894,7 @@ natives: context [
 		return:    [red-logic!]
 		/local
 			bits   [red-bitset!]
+			s	   [series!]
 			result [red-logic!]
 	][
 		bits: as red-bitset! stack/arguments
@@ -873,8 +912,155 @@ natives: context [
 		result
 	]
 
+	dehex*: func [
+		return:		[red-string!]
+		/local
+			str		[red-string!]
+			buffer	[red-string!]
+			s		[series!]
+			p		[byte-ptr!]
+			p4		[int-ptr!]
+			tail	[byte-ptr!]
+			unit	[integer!]
+			cp		[integer!]
+			len		[integer!]
+	][
+		str: as red-string! stack/arguments
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		len: string/rs-length? str
+		stack/keep										;-- keep last value
+		buffer: string/rs-make-at stack/push* len * unit
+
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+
+			p: p + unit
+			if all [
+				cp = as-integer #"%"
+				p + (unit << 1) < tail					;-- must be %xx
+			][
+				p: string/decode-utf8-hex p unit :cp false
+			]
+			string/append-char GET_BUFFER(buffer) cp unit
+		]
+		stack/set-last as red-value! buffer
+		buffer
+	]
+
+	negative?*: func [
+		return:	[red-logic!]
+		/local
+			num [red-integer!]
+			res [red-logic!]
+	][
+		num: as red-integer! stack/arguments
+		res: as red-logic! num
+
+		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
+			res/value: negative? num/value
+		][
+			res/value: false
+			print-line "*** Error: argument type must be number!"
+		]
+		res/header: TYPE_LOGIC
+		res
+	]
+
+	positive?*: func [
+		return: [red-logic!]
+		/local
+			num [red-integer!]
+			res [red-logic!]
+	][
+		num: as red-integer! stack/arguments
+		res: as red-logic! num
+
+		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
+			res/value: positive? num/value
+		][
+			res/value: false
+			print-line "*** Error: argument type must be number!"
+		]
+		res/header: TYPE_LOGIC
+		res
+	]
+
+	max*: func [
+		/local
+			args	[red-value!]
+			result	[logic!]
+	][
+		args: stack/arguments
+		result: actions/compare args args + 1 COMP_LESSER
+		if result [
+			stack/set-last args + 1
+		]
+	]
+
+	min*: func [
+		/local
+			args	[red-value!]
+			result	[logic!]
+	][
+		args: stack/arguments
+		result: actions/compare args args + 1 COMP_LESSER
+		unless result [
+			stack/set-last args + 1
+		]
+	]
+
+	shift*: func [
+		left	 [integer!]
+		logical  [integer!]
+		/local
+			data [red-integer!]
+			bits [red-integer!]
+	][
+		data: as red-integer! stack/arguments
+		bits: data + 1
+		case [
+			left >= 0 [
+				data/value: data/value << bits/value
+			]
+			logical >= 0 [
+				data/value: data/value >>> bits/value
+			]
+			true [
+				data/value: data/value >> bits/value
+			]
+		]
+	]
+
+	to-hex*: func [
+		size	  [integer!]
+		/local
+			arg	  [red-integer!]
+			limit [red-integer!]
+			buf   [red-word!]
+			p	  [c-string!]
+			part  [integer!]
+	][
+		arg: as red-integer! stack/arguments
+		limit: arg + size
+
+		p: string/to-hex arg/value no
+		part: either OPTION?(limit) [8 - limit/value][0]
+		if negative? part [part: 0]
+		buf: issue/load p + part
+
+		stack/set-last as red-value! buf
+	]
+
 	;--- Natives helper functions ---
-	
+
 	loop?: func [
 		series  [red-series!]
 		return: [logic!]	
@@ -1099,6 +1285,13 @@ natives: context [
 			:unique*
 			:difference*
 			:complement?*
+			:dehex*
+			:negative?*
+			:positive?*
+			:max*
+			:min*
+			:shift*
+			:to-hex*
 		]
 	]
 

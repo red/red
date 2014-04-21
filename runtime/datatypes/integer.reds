@@ -82,7 +82,7 @@ integer: context [
 		if n [s/c: #"-" c: c - 1]
 		s + c
 	]
-	
+
 	do-math: func [
 		type	  [integer!]
 		return:	  [red-integer!]
@@ -109,6 +109,7 @@ integer: context [
 			OP_SUB [left/value - right/value]
 			OP_MUL [left/value * right/value]
 			OP_DIV [left/value / right/value]
+			OP_REM [left/value % right/value]
 		]
 		left
 	]
@@ -236,7 +237,23 @@ integer: context [
 		int/value: not int/value
 		as red-value! int
 	]
-	
+
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/remainder"]]
+		as red-value! do-math OP_REM
+	]
+
+	absolute: func [
+		return: [red-integer!]
+		/local
+			int [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
+		int: as red-integer! stack/arguments
+		if negative? int/value [int/value: 0 - int/value]
+		int 											;-- re-use argument slot for return value
+	]
+
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
@@ -265,6 +282,38 @@ integer: context [
 		int: as red-integer! stack/arguments
 		int/value: 0 - int/value
 		int 											;-- re-use argument slot for return value
+	]
+
+	int-power: func [
+		base	[integer!]
+		exp		[integer!]
+		return: [integer!]
+		/local
+			res  [integer!]
+			neg? [logic!]
+	][
+		res: 1
+		neg?: false
+
+		if exp < 0 [neg?: true exp: 0 - exp]
+		while [exp <> 0][
+			if as logic! exp and 1 [res: res * base]
+			exp: exp >> 1
+			base: base * base
+		]
+		either neg? [1 / res][res]
+	]
+
+	power: func [
+		return:	 [red-integer!]
+		/local
+			base [red-integer!]
+			exp  [red-integer!]
+	][
+		base: as red-integer! stack/arguments
+		exp: base + 1
+		base/value: int-power base/value exp/value
+		base
 	]
 	
 	even?: func [
@@ -297,13 +346,13 @@ integer: context [
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute
 			:add
 			:divide
 			:multiply
 			:negate
-			null			;power
-			null			;remainder
+			:power
+			:remainder
 			null			;round
 			:subtract
 			:even?

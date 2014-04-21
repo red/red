@@ -71,7 +71,7 @@ lexer: context [
 	
 	not-word-char:  charset {/\^^,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
-	not-file-char:  charset {[](){}"%@:;}
+	not-file-char:  charset {[](){}"@:;}
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
@@ -176,7 +176,9 @@ lexer: context [
 	]
 	
 	word-rule: 	[
-		(type: word!) s: begin-symbol-rule [
+		(type: word!)
+		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
+		| s: begin-symbol-rule [
 			path-rule 								;-- path matched
 			| (value: copy/part s e)				;-- word matched
 			opt [#":" (type: set-word!)]
@@ -520,7 +522,7 @@ lexer: context [
 	]
 
 	load-integer: func [s [string!]][
-		unless integer! = type? s: to integer! s [throw-error]
+		unless integer? s: to integer! s [throw-error]
 		s
 	]
 
@@ -554,9 +556,9 @@ lexer: context [
 		]
 		new
 	]
-	
+
 	load-file: func [s [string!]][
-		either empty? s [first [///]][to file! s]
+		to file! dehex s
 	]
 	
 	process: func [src [string! binary!] /local blk][

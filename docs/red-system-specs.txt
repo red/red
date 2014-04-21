@@ -1869,7 +1869,7 @@ The following math operations apply on integer or float values. When the operati
 
  value1 % value2
  
-Note: a remainder will be negative if the divider is negative. Same as in C or // operator in REBOL. See float types section for specific behaviour of this operator on float values.
+Note: a remainder will be negative if the divisor is negative. Same as in C or // operator in REBOL. See float types section for specific behaviour of this operator on float values.
  
 <b>Modulo</b>: //
 
