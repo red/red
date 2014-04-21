@@ -60,33 +60,47 @@ string: context [
 	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
 
 	to-hex: func [
-		cp		[integer!]								;-- codepoint <= 10FFFFh
-		return: [c-string!]
+		value	 [integer!]
+		char?	 [logic!]
+		return:  [c-string!]
 		/local
-			s [c-string!]
-			h [c-string!]
-			c [integer!]
-			i [integer!]
+			s	 [c-string!]
+			h	 [c-string!]
+			c	 [integer!]
+			i	 [integer!]
+			sign [integer!]
+			cp	 [integer!]
 	][
-		assert cp <= 0010FFFFh
 		
-		s: "000000"
+		s: "00000000"
 		h: "0123456789ABCDEF"
-		
-		if zero? cp [
-			s/5: #"0"
-			s/6: #"0"
-			return s + 5
-		]
-		
-		c: 6
-		while [cp <> 0][
+
+		c: 8
+		sign: either negative? value [-1][0]
+		cp: value
+		while [cp <> sign][
 			i: cp and 15 + 1								;-- cp // 16 + 1
 			s/c: h/i
 			cp: cp >> 4
 			c: c - 1
 		]
-		s + c
+
+		either char? [
+			assert cp <= 0010FFFFh							;-- codepoint <= 10FFFFh
+			if zero? value [
+				s/7: #"0"
+				s/8: #"0"
+				return s + 6
+			]
+			s + c
+		][
+			i: 1
+			while [i <= c][									;-- fill leading with #"0" or #"F"
+				s/i: either negative? sign [#"F"][#"0"]
+				i: i + 1
+			]
+			s
+		]
 	]
 
 	decode-utf8-hex: func [
@@ -899,7 +913,7 @@ string: context [
 			all [all? cp > 7Fh][
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
-				concatenate-literal buffer to-hex cp
+				concatenate-literal buffer to-hex cp yes
 				append-char GET_BUFFER(buffer) as-integer #")"
 			]
 			all [type = ESC_CHAR cp < MAX_ESC_CHARS escape-chars/idx <> null-byte][
@@ -912,7 +926,7 @@ string: context [
 				escape-url-chars/idx = (as byte! ESC_URL)
 			][
 				append-char GET_BUFFER(buffer) as-integer #"%"
-				concatenate-literal buffer to-hex cp
+				concatenate-literal buffer to-hex cp yes
 			]
 			true [
 				append-char GET_BUFFER(buffer) cp

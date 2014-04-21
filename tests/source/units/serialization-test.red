@@ -175,5 +175,14 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 		--assert  "a%ceb2b" = dehex "a%ceb2b"
 ===end-group===
 
+===start-group=== "to-hex"
+	--test-- "to-hex-1"
+		--assert  #00000000 = to-hex 0
+	--test-- "to-hex-2"
+		--assert  #FFFFFFFE = to-hex -2
+	--test-- "to-hex-3"
+		--assert  #0F = to-hex/size 15 2
+===end-group===
+
 ~~~end-file~~~
 

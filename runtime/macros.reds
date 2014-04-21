@@ -181,6 +181,7 @@ Red/System [
 	NAT_MAX
 	NAT_MIN
 	NAT_SHIFT
+	NAT_TO_HEX
 ]
 
 #enum math-op! [
