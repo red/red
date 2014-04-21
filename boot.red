@@ -873,6 +873,16 @@ shift: make native! [[
 	#get-definition NAT_SHIFT
 ]
 
+to-hex: make native! [[
+		"Converts numeric value to a hex issue! datatype (with leading # and 0's)."
+		value	[integer! tuple!]
+		/size "Specify number of hex digits in result"
+			length [integer!]
+		return: [issue!]
+	]
+	#get-definition NAT_TO_HEX
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

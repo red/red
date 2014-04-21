@@ -1039,6 +1039,26 @@ natives: context [
 		]
 	]
 
+	to-hex*: func [
+		size	  [integer!]
+		/local
+			arg	  [red-integer!]
+			limit [red-integer!]
+			buf   [red-word!]
+			p	  [c-string!]
+			part  [integer!]
+	][
+		arg: as red-integer! stack/arguments
+		limit: arg + size
+
+		p: string/to-hex arg/value no
+		part: either OPTION?(limit) [8 - limit/value][0]
+		if negative? part [part: 0]
+		buf: issue/load p + part
+
+		stack/set-last as red-value! buf
+	]
+
 	;--- Natives helper functions ---
 
 	loop?: func [
@@ -1271,6 +1291,7 @@ natives: context [
 			:max*
 			:min*
 			:shift*
+			:to-hex*
 		]
 	]
 
