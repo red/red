@@ -873,6 +873,10 @@ shift: make native! [[
 	#get-definition NAT_SHIFT
 ]
 
+shift-right:   routine [][natives/shift* -1 -1]
+shift-left:	   routine [][natives/shift* 1 -1]
+shift-logical: routine [][natives/shift* -1 1]
+
 to-hex: make native! [[
 		"Converts numeric value to a hex issue! datatype (with leading # and 0's)."
 		value	[integer! tuple!]
@@ -903,6 +907,9 @@ to-hex: make native! [[
 #load set-word! ">" 	make op! :greater?
 #load set-word! "<="	make op! :lesser-or-equal?
 #load set-word! ">="	make op! :greater-or-equal?
+#load set-word! "<<"	make op! :shift-left
+#load set-word! ">>"	make op! :shift-right
+#load set-word! ">>>"	make op! :shift-logical
 
 
 ;------------------------------------------
