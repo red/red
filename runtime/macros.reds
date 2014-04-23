@@ -190,6 +190,7 @@ Red/System [
 	OP_MUL
 	OP_DIV
 	OP_REM
+	;-- bitwise op!
 	OP_OR
 	OP_AND
 	OP_XOR

@@ -90,8 +90,6 @@ integer: context [
 			left  [red-integer!]
 			right [red-integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
-
 		left: as red-integer! stack/arguments
 		right: left + 1
 		
