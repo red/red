@@ -190,6 +190,9 @@ Red/System [
 	OP_MUL
 	OP_DIV
 	OP_REM
+	OP_OR
+	OP_AND
+	OP_XOR
 ]
 
 #enum comparison-op! [

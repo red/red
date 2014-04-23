@@ -108,8 +108,7 @@ mold: make action! [[
 ;-- Scalar actions --
 
 absolute: make action! [[
-		"(not yet implemented)"
-		;"Returns the non-negative value."
+		"Returns the non-negative value."
 		value	 [number!]
 		return:  [number!]
 	]
@@ -225,7 +224,14 @@ odd?: make action! [[
 
 ;-- Bitwise actions --
 
-;and~
+and~: make action! [[
+		"Returns the first value ANDed with the second."
+		value1	[logic! integer! char! bitset! typeset!]
+		value2	[logic! integer! char! bitset! typeset!]
+		return:	[logic! integer! char! bitset! typeset!]
+	]
+	#get-definition ACT_AND~
+]
 
 complement: make action! [[
 		"Returns the opposite (complementing) value of the input value."
@@ -235,8 +241,23 @@ complement: make action! [[
 	#get-definition ACT_COMPLEMENT
 ]
 
-;or~
-;xor~
+or~: make action! [[
+		"Returns the first value ORed with the second."
+		value1	[logic! integer! char! bitset! typeset!]
+		value2	[logic! integer! char! bitset! typeset!]
+		return:	[logic! integer! char! bitset! typeset!]
+	]
+	#get-definition ACT_OR~
+]
+
+xor~: make action! [[
+		"Returns the first value exclusive ORed with the second."
+		value1	[logic! integer! char! bitset! typeset!]
+		value2	[logic! integer! char! bitset! typeset!]
+		return:	[logic! integer! char! bitset! typeset!]
+	]
+	#get-definition ACT_XOR~
+]
 
 ;-- Series actions --
 
@@ -910,6 +931,9 @@ to-hex: make native! [[
 #load set-word! "<<"	make op! :shift-left
 #load set-word! ">>"	make op! :shift-right
 #load set-word! ">>>"	make op! :shift-logical
+and:					make op! :and~
+or:						make op! :or~
+xor:					make op! :xor~
 
 
 ;------------------------------------------

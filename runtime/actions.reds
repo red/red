@@ -471,7 +471,18 @@ actions: context [
 		action-odd? value
 	]
 	
-	and~*: func [][]
+	and~*: func [
+		return:	[red-value!]
+		/local
+			action-and~
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/and~"]]
+
+		action-and~: as function! [
+			return:	[red-value!]						;-- division resulting value
+		] get-action-ptr* ACT_AND~
+		action-and~
+	]
 	
 	complement*: does [
 		stack/set-last complement stack/arguments
@@ -491,9 +502,32 @@ actions: context [
 		action-complement value
 	]
 
-	or~*: func [][]
-	xor~*: func [][]
-	
+	or~*: func [
+		return:	[red-value!]
+		/local
+			action-or~
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/or~"]]
+
+		action-or~: as function! [
+			return:	[red-value!]						;-- division resulting value
+		] get-action-ptr* ACT_OR~
+		action-or~
+	]
+
+	xor~*: func [
+		return:	[red-value!]
+		/local
+			action-xor~
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/xor~"]]
+
+		action-xor~: as function! [
+			return:	[red-value!]						;-- division resulting value
+		] get-action-ptr* ACT_XOR~
+		action-xor~
+	]
+
 	append*: func [
 		part  [integer!]
 		only  [integer!]
@@ -1028,10 +1062,10 @@ actions: context [
 			:even?*
 			:odd?*
 			;-- Bitwise actions --
-			null			;and~
+			:and~*
 			:complement*
-			null			;or~
-			null			;xor~
+			:or~*
+			:xor~*
 			;-- Series actions --
 			:append*
 			:at*
