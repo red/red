@@ -175,6 +175,27 @@
 		u: "make bitset! #{000000000000FFC0000000007FFFFFE0}"
 		--assert u = mold union c1 c2
 		--assert u = mold union c2 c1
+
+	--test-- "u-2"
+		nd: charset [not #"0" - #"9"]
+		zero: charset #"0"
+		nd-zero: union nd zero
+		--assert not find nd #"0"
+		--assert not find nd #"1"
+		--assert find nd #"B"
+		--assert find nd #"}"
+
+	--test-- "u-3"
+		--assert find zero #"0"
+		--assert not find zero #"1"
+		--assert not find zero #"B"
+		--assert not find zero #"}"
+
+	--test-- "u-4"
+		--assert find nd-zero #"0"
+		--assert not find nd-zero #"1"
+		--assert find nd-zero #"B"
+		--assert find nd-zero #"}"
 	
 ===end-group===
 
