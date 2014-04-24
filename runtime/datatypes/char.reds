@@ -184,7 +184,40 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/subtract"]]
 		char: as red-char! integer/do-math OP_SUB
 		char/header: TYPE_CHAR
-		as red-value! char 
+		as red-value! char
+	]
+
+	and~: func [
+		return:  [red-value!]
+		/local
+			char [red-char!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/and~"]]
+		char: as red-char! integer/do-math OP_AND
+		char/header: TYPE_CHAR
+		as red-value! char
+	]
+
+	or~: func [
+		return:  [red-value!]
+		/local
+			char [red-char!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/or~"]]
+		char: as red-char! integer/do-math OP_OR
+		char/header: TYPE_CHAR
+		as red-value! char
+	]
+
+	xor~: func [
+		return:  [red-value!]
+		/local
+			char [red-char!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "char/xor~"]]
+		char: as red-char! integer/do-math OP_XOR
+		char/header: TYPE_CHAR
+		as red-value! char
 	]
 
 	init: does [
@@ -215,10 +248,10 @@ char: context [
 			INHERIT_ACTION
 			INHERIT_ACTION
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			null			;complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at
