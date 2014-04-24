@@ -61,4 +61,11 @@ Red [
 	--test-- "shift-4" --assert 7FFFFFFEh = shift/logical FFFFFFFCh 1
 ===end-group===
 
+===start-group=== "shift op!"
+	--test-- "shift-op-1" --assert 2 >> 1 = 1
+	--test-- "shift-op-2" --assert 2 << 3 = 16
+	--test-- "shift-op-3" --assert FFFFFFFCh >> 1 = FFFFFFFEh
+	--test-- "shift-op-4" --assert FFFFFFFCh >>> 1 = 7FFFFFFEh
+===end-group===
+
 ~~~end-file~~~

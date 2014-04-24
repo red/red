@@ -90,8 +90,6 @@ integer: context [
 			left  [red-integer!]
 			right [red-integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
-
 		left: as red-integer! stack/arguments
 		right: left + 1
 		
@@ -110,6 +108,9 @@ integer: context [
 			OP_MUL [left/value * right/value]
 			OP_DIV [left/value / right/value]
 			OP_REM [left/value % right/value]
+			OP_AND [left/value and right/value]
+			OP_OR  [left/value or right/value]
+			OP_XOR [left/value xor right/value]
 		]
 		left
 	]
@@ -273,7 +274,22 @@ integer: context [
 		#if debug? = yes [if verbose > 0 [print-line "integer/subtract"]]
 		as red-value! do-math OP_SUB
 	]
-	
+
+	and~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/and~"]]
+		as red-value! do-math OP_AND
+	]
+
+	or~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/or~"]]
+		as red-value! do-math OP_OR
+	]
+
+	xor~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/xor~"]]
+		as red-value! do-math OP_XOR
+	]
+
 	negate: func [
 		return: [red-integer!]
 		/local
@@ -358,10 +374,10 @@ integer: context [
 			:even?
 			:odd?
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			:complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at

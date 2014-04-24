@@ -871,13 +871,7 @@ natives: context [
 		switch TYPE_OF(set1) [
 			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
 			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
-			TYPE_BITSET [
-				stack/set-last as red-value! bitset/union
-					as red-bitset! set1
-					as red-bitset! set1 + 1
-					no
-					null
-				]
+			TYPE_BITSET [stack/set-last as red-value! bitset/union no null]
 			default [
 				print-line "*** Error: argument type not supported by UNION"
 			]
