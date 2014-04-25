@@ -122,7 +122,12 @@ Red [
 		b: next [1 2]
 		--assert [2] = reduce/into [yes 3 4 5] b
 		--assert [1 #[true] 3 4 5 2] = head b
-	
+
+	--test-- "reduce-20"
+		b: 2
+		--assert [2] = head reduce/into b []
+		--assert ["a"] = head reduce/into "a" []
+
 ===end-group===
 
 ===start-group=== "compose"
@@ -234,7 +239,12 @@ Red [
 	b: next [1 2]
 	--assert [2] = compose/into [no 7 8 9 (2 * 10) ([5 6])] b
 	--assert [1 no 7 8 9 20 5 6 2] = head b
-	
+
+	--test-- "compose-23"
+		b: 2
+		--assert [2] = head compose/into b []
+		--assert ["a"] = head compose/into "a" []
+
 ===end-group===
 
 ===start-group=== "unset value passing"
