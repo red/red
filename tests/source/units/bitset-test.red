@@ -199,6 +199,52 @@
 	
 ===end-group===
 
+===start-group=== "and"
+
+	--test-- "and-1"
+		c1: charset "b"
+		c2: charset "1"
+		u: "make bitset! #{00000000000000}"
+		--assert u = mold c1 and c2
+		--assert u = mold c2 and c1
+
+	--test-- "and-2"
+		c1: charset "b"
+		c2: charset "1"
+		c3: complement c1
+		u: "make bitset! [not #{FFFFFFFFFFFFBF}]"
+		--assert u = mold c3 and c2
+		--assert u = mold c2 and c3
+		u: "make bitset! [not #{FFFFFFFFFFFFFFFFFFFFFFFFFF}]"
+		--assert u = mold c1 and c3
+		c4: complement c2
+		--assert "make bitset! #{FFFFFFFFFFFFBF}" = mold c3 and c4
+
+===end-group===
+
+===start-group=== "xor"
+
+	--test-- "xor-1"
+		c1: charset "b"
+		c2: charset "1"
+		u: "make bitset! #{00000000000040000000000020}"
+		--assert u = mold c1 xor c2
+		--assert u = mold c2 xor c1
+
+	--test-- "xor-2"
+		c1: charset "b"
+		c2: charset "1"
+		c3: complement c1
+		u: "make bitset! [not #{00000000000040000000000020}]"
+		--assert u = mold c3 xor c2
+		--assert u = mold c2 xor c3
+		u: "make bitset! [not #{00000000000000000000000000}]"
+		--assert u = mold c1 xor c3
+		c4: complement c2
+		--assert "make bitset! #{00000000000040FFFFFFFFFFDF}" = mold c3 xor c4
+
+===end-group===
+
 ===start-group=== "complemented"
 	
 	--test-- "comp-1"	--assert "make bitset! [not #{}]"   = mold charset [not]

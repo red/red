@@ -434,4 +434,25 @@ Red [
 
 ===end-group===
 
+===start-group=== "and"
+	--test-- "and1" --assert true  and true  =  true
+	--test-- "and2" --assert true  and false =  false
+	--test-- "and3" --assert false and true  =  false
+	--test-- "and4" --assert false and false =  false
+===end-group===
+
+===start-group=== "or"
+	--test-- "or1" --assert  true  or false  =  true
+	--test-- "or2" --assert  false or true   =  true
+	--test-- "or3" --assert  false or false  =  false
+	--test-- "or4" --assert  true  or true   =  true
+===end-group===
+
+===start-group=== "xor"
+	--test-- "xor1" --assert true  xor false =  true
+	--test-- "xor2" --assert false xor true  =  true
+	--test-- "xor3" --assert true  xor true  =  false
+	--test-- "xor4" --assert false xor false =  false
+===end-group===
+
 ~~~end-file~~~
