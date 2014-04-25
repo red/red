@@ -49,4 +49,22 @@ Red [
 	--test-- "min1" --assert #"a" = min #"a" #"大"
 ===end-group===
 
+===start-group=== "and"
+	--test-- "and1" --assert #"^(01)" and #"^(10)" = #"^(00)"
+	--test-- "and2" --assert #"^(11)" and #"^(10)" = #"^(10)"
+	--test-- "and3" --assert #"^(01)" and #"^(1F)" = #"^(01)"
+===end-group===
+
+===start-group=== "or"
+	--test-- "or1" --assert #"^(01)" or #"^(10)"  = #"^(11)"
+	--test-- "or2" --assert #"^(11)" or #"^(10)"  = #"^(11)"
+	--test-- "or3" --assert #"^(01)" or #"^(1F)"  = #"^(1F)"
+===end-group===
+
+===start-group=== "xor"
+	--test-- "xor1" --assert #"^(01)" xor #"^(10)" = #"^(11)"
+	--test-- "xor2" --assert #"^(11)" xor #"^(10)" = #"^(01)"
+	--test-- "xor3" --assert #"^(01)" xor #"^(1F)" = #"^(1E)"
+===end-group===
+
 ~~~end-file~~~

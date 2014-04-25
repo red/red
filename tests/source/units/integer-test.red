@@ -68,4 +68,22 @@ Red [
 	--test-- "shift-op-4" --assert FFFFFFFCh >>> 1 = 7FFFFFFEh
 ===end-group===
 
+===start-group=== "and"
+	--test-- "and1" --assert 01h and 10h = 00h
+	--test-- "and2" --assert 11h and 10h = 10h
+	--test-- "and3" --assert 01h and 1Fh = 01h
+===end-group===
+
+===start-group=== "or"
+	--test-- "or1" --assert  01h or 10h  = 11h
+	--test-- "or2" --assert  11h or 10h  = 11h
+	--test-- "or3" --assert  01h or 1Fh  = 1Fh
+===end-group===
+
+===start-group=== "xor"
+	--test-- "xor1" --assert 01h xor 10h = 11h
+	--test-- "xor2" --assert 11h xor 10h = 01h
+	--test-- "xor3" --assert 01h xor 1Fh = 1Eh
+===end-group===
+
 ~~~end-file~~~
