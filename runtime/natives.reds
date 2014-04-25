@@ -575,32 +575,36 @@ natives: context [
 		/local
 			value [red-value!]
 			tail  [red-value!]
-			blk	  [red-block!]
 			arg	  [red-value!]
 			into? [logic!]
+			blk?  [logic!]
 	][
 		arg: stack/arguments
-		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
-			interpreter/eval-expression arg arg + 1 no no
-			exit
-		]
+		blk?: TYPE_OF(arg) = TYPE_BLOCK
 		into?: into >= 0
-		
-		value: block/rs-head as red-block! arg
-		tail:  block/rs-tail as red-block! arg
-		
+
+		if blk? [
+			value: block/rs-head as red-block! arg
+			tail:  block/rs-tail as red-block! arg
+		]
+
 		stack/mark-native words/_body
-		
-		blk: either into? [
+
+		either into? [
 			as red-block! stack/push arg + into
 		][
-			block/push-only* (as-integer tail - value) >> 4
+			if blk? [block/push-only* (as-integer tail - value) >> 4]
 		]
-		
-		while [value < tail][
-			value: interpreter/eval-next value tail yes
-			either into? [actions/insert* -1 0 -1][block/append*]
-			stack/keep									;-- preserve the reduced block on stack
+
+		either blk? [
+			while [value < tail][
+				value: interpreter/eval-next value tail yes
+				either into? [actions/insert* -1 0 -1][block/append*]
+				stack/keep									;-- preserve the reduced block on stack
+			]
+		][
+			interpreter/eval-expression arg arg + 1 no yes	;-- for non block! values
+			if into? [actions/insert* -1 0 -1]
 		]
 		stack/unwind-last
 	]
@@ -693,19 +697,26 @@ natives: context [
 		deep [integer!]
 		only [integer!]
 		into [integer!]
+		/local
+			into? [logic!]
 	][
 		arg: stack/arguments
-		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
-			interpreter/eval-expression arg arg + 1 no no
-			exit
+		either TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values			either into >= 0 [
+			into?: into >= 0
+			stack/mark-native words/_body
+			if into? [as red-block! stack/push arg + into]
+			interpreter/eval-expression arg arg + 1 no yes
+			if into? [actions/insert* -1 0 -1]
+			stack/unwind-last
+		][
+			stack/set-last
+				as red-value! compose-block
+					as red-block! arg
+					as logic! deep + 1
+					as logic! only + 1
+					as red-block! stack/arguments + into
+					yes
 		]
-		stack/set-last 
-			as red-value! compose-block
-				as red-block! arg
-				as logic! deep + 1 
-				as logic! only + 1
-				as red-block! stack/arguments + into
-				yes
 	]
 	
 	stats*: func [
