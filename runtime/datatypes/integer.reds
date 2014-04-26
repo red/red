@@ -84,7 +84,7 @@ integer: context [
 	]
 
 	do-math: func [
-		type	  [integer!]
+		type	  [math-op!]
 		return:	  [red-integer!]
 		/local
 			left  [red-integer!]
@@ -247,11 +247,18 @@ integer: context [
 	absolute: func [
 		return: [red-integer!]
 		/local
-			int [red-integer!]
+			int	  [red-integer!]
+			value [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
+		
 		int: as red-integer! stack/arguments
-		if negative? int/value [int/value: 0 - int/value]
+		value: int/value
+		
+		if value = -2147483648 [
+			print-line "*** Math Error: integer overflow on ABSOLUTE"
+		]
+		if negative? value [int/value: 0 - value]
 		int 											;-- re-use argument slot for return value
 	]
 
@@ -280,7 +287,7 @@ integer: context [
 		as red-value! do-math OP_AND
 	]
 
-	or~: func [return:	[red-value!]][
+	or~: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/or~"]]
 		as red-value! do-math OP_OR
 	]
