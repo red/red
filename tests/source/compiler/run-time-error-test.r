@@ -14,6 +14,6 @@ REBOL [
     	
     --test-- "rte-2"
     	--compile-and-run-this/error {Red[] absolute -2147483648}
-    	--assert-red-printed? "*** Runtime Error 99: integer overflow"
+    	--assert-red-printed? "*** Math Error: integer overflow on ABSOLUTE"
   
 ~~~end-file~~~ 
