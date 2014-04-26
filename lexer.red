@@ -38,13 +38,18 @@ trans-integer: routine [
 	]
 	n: 0
 	until [
-		c: string/get-char p unit
+		c: (string/get-char p unit) - #"0"
 		
 		m: n * 10
 		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
 		n: m
 		
-		m: n + c - #"0"
+		if all [n = 2147483640 c = 8][
+			integer/box 80000000h						;-- special exit trap for -2147483648
+			exit
+		]
+		
+		m: n + c
 		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
 		n: m
 
