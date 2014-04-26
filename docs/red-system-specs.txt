@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 14/02/2013
-	Revision: 40
+	Date: 26/04/2014
+	Revision: 41
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -142,7 +142,7 @@ Just use the variable name without any decoration to get its value or to pass it
 will output:
  hello
  
----Variable's type
+---Typing
 
 Variables do have a type. Variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Function local variables require to be declared, but the type specification part can be skipped if the variable is properly initialized. For example:
 
@@ -774,6 +774,36 @@ Integer variable can also be used as index:
  p/c: 1234								;-- writes 1234 (4 bytes) at 40000004h
  
 <u>Note</u>: Pointer's <b>/value</b> notation is strictly equivalent to <b>/1</b>. The <b>/value</b> notation can be considered as syntactic sugar.
+
++++Literal arrays
+
+A pointer can also point to a one-dimensional array of values literally specified.
+
+<b>Syntax</b>
+
+ [<items>]
+
+ <items>: is a non-empty list of integer!, byte!, float! or float32! values.
+ 
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit word just preceding the beginning of the array.
+
+Examples:
+
+ list: [123 456 789]
+ probe list/0							;-- outputs 3
+ probe list/2							;-- outputs 456
+
+ s: [#"h" #"e" #"l" #"l" #"o"]
+ sz: as int-ptr! s
+ probe sz/0								;-- outputs 5
+ probe s/5								;-- outputs o
+ 
+<u>Note</u>: In this last example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL value at tail of the sequence.
+
+\note Write access to arrays
+Currently literal arrays allow write access, but there is no bound checking as it is planned to be a feature of a future array! first-class datatype.
+
+/note
 
 +++Null value
 
@@ -3293,9 +3323,15 @@ will output:
 
 ===Document History
 
+*<b>26/04/2014 - revision 41</b>
+
+*>Added literal arrays section.
+
+
 *<b>14/02/2014 - revision 40</b>
 
 *>Function! to function! type casting now allowed.
+
 
 *<b>09/08/2013 - revision 39</b>
 
