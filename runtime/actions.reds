@@ -290,10 +290,22 @@ actions: context [
 	
 	set-path*: func [][]
 	
+	compare*: func [
+		op		[comparison-op!]
+		return: [red-logic!]
+		/local
+			result [red-logic!]
+	][
+		result: as red-logic! stack/arguments
+		result/value: compare stack/arguments stack/arguments + 1 op
+		result/header: TYPE_LOGIC
+		result
+	]	
+	
 	compare: func [
 		value1  [red-value!]
 		value2  [red-value!]
-		op	    [integer!]
+		op	    [comparison-op!]
 		return: [logic!]
 		/local
 			action-compare

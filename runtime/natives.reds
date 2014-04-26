@@ -473,67 +473,53 @@ natives: context [
 		stack/set-last unset-value
 	]
 	
-	compare: func [
-		op		   [integer!]
-		return:    [red-logic!]
-		/local
-			args   [red-value!]
-			result [red-logic!]
-	][
-		args: stack/arguments
-		result: as red-logic! args
-		result/value: actions/compare args args + 1 op
-		result/header: TYPE_LOGIC
-		result
-	]
-	
 	equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/equal?"]]
-		compare COMP_EQUAL
+		actions/compare* COMP_EQUAL
 	]
 	
 	not-equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/not-equal?"]]
-		compare COMP_NOT_EQUAL
+		actions/compare* COMP_NOT_EQUAL
 	]
 	
 	strict-equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/strict-equal?"]]
-		compare COMP_STRICT_EQUAL
+		actions/compare* COMP_STRICT_EQUAL
 	]
 	
 	lesser?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/lesser?"]]
-		compare COMP_LESSER
+		actions/compare* COMP_LESSER
 	]
 	
 	greater?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/greater?"]]
-		compare COMP_GREATER
+		actions/compare* COMP_GREATER
 	]
 	
 	lesser-or-equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/lesser-or-equal?"]]
-		compare COMP_LESSER_EQUAL
+		actions/compare* COMP_LESSER_EQUAL
 	]	
 	
 	greater-or-equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/greater-or-equal?"]]
-		compare COMP_GREATER_EQUAL
+		actions/compare* COMP_GREATER_EQUAL
 	]
 	
 	same?*: does []
