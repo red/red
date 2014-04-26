@@ -13,6 +13,21 @@ Red/System [
 char: context [
 	verbose: 0
 	
+	do-math: func [
+		op		[math-op!]
+		return: [red-value!]
+		/local
+			char [red-char!]
+	][
+		char: as red-char! integer/do-math op
+		char/header: TYPE_CHAR
+		
+		if char/value > 0010FFFFh [
+			print-line "*** Math Error: char overflow"
+		]
+		as red-value! char
+	]
+	
 	load-in: func [
 		value [integer!]
 		blk	  [red-block!]
@@ -132,92 +147,44 @@ char: context [
 		res
 	]
 
-	add: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/add"]]
-		char: as red-char! integer/do-math OP_ADD
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_ADD 
 	]
 
-	divide: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	divide: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/divide"]]
-		char: as red-char! integer/do-math OP_DIV
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_DIV
 	]
 
-	multiply: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	multiply: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/multiply"]]
-		char: as red-char! integer/do-math OP_MUL
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_MUL
 	]
 
-	remainder: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	remainder: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/remainder"]]
-		char: as red-char! integer/do-math OP_REM
-		char/header: TYPE_CHAR
-		as red-value! char
+		do-math OP_REM
 	]
 
-	subtract: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	subtract: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/subtract"]]
-		char: as red-char! integer/do-math OP_SUB
-		char/header: TYPE_CHAR
-		as red-value! char
+		do-math OP_SUB
 	]
 
-	and~: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	and~: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/and~"]]
-		char: as red-char! integer/do-math OP_AND
-		char/header: TYPE_CHAR
-		as red-value! char
+		do-math OP_AND
 	]
 
-	or~: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	or~: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/or~"]]
-		char: as red-char! integer/do-math OP_OR
-		char/header: TYPE_CHAR
-		as red-value! char
+		do-math OP_OR
 	]
 
-	xor~: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	xor~: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/xor~"]]
-		char: as red-char! integer/do-math OP_XOR
-		char/header: TYPE_CHAR
-		as red-value! char
+		do-math OP_XOR
 	]
 
 	init: does [
