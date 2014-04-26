@@ -15,7 +15,7 @@ Red [
 ===start-group=== "+ tests"
 	--test-- "char+1"
 	--assert #"^(01)" + #"^(00)" 	 = #"^(01)"
-	--assert #"^(01)" + #"^(10FFFF)" = #"^(00)"
+	;--assert #"^(01)" + #"^(10FFFF)" = #"^(00)"		;-- now generates an error
 ===end-group===
   
 ===start-group=== "- tests"
