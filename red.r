@@ -110,6 +110,10 @@ redc: context [
 			]
 		]
 	]
+	
+	format-time: func [time [time!]][
+		round (time/second * 1000) + (time/minute * 60000)
+	]
 
 	load-filename: func [filename /local result] [
 		unless any [
@@ -333,7 +337,7 @@ redc: context [
 			fail-try "Red Compiler" [
 				result: red/compile src opts
 			]
-			print ["...compilation time:" tab round result/2/second * 1000 "ms"]
+			print ["...compilation time :" format-time result/2 "ms"]
 			if opts/red-only? [exit]
 		]
 		
@@ -354,11 +358,11 @@ redc: context [
 			]
 			unless encap? [change-dir %../]
 		]
-		print ["...compilation time :" round result/1/second * 1000 "ms"]
+		print ["...compilation time :" format-time result/1 "ms"]
 		
 		if result/2 [
 			print [
-				"...linking time     :" round result/2/second * 1000 "ms^/"
+				"...linking time     :" format-time result/2 "ms^/"
 				"...output file size :" result/3 "bytes^/"
 				"...output file      :" to-local-file result/4
 			]
