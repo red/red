@@ -146,4 +146,3 @@ License
 Both Red and Red/System are published under [BSD](http://www.opensource.org/licenses/bsd-3-clause) license, runtime is under [BSL](http://www.boost.org/users/license.html) license. BSL is a bit more permissive license than BSD, more suitable for the runtime parts.
 
 
-[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/d12ce7af05938bfe0470b5811cfbb99c "githalytics.com")](http://githalytics.com/dockimbel/Red)
