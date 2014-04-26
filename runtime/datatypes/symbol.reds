@@ -185,7 +185,7 @@ symbol: context [
 			null			;to
 			null			;form
 			null			;mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			null			;compare
 			;-- Scalar actions --
