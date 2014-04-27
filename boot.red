@@ -420,7 +420,15 @@ remove: make action! [[
 	#get-definition ACT_REMOVE
 ]
 
-;reverse
+reverse: make action! [[
+		"Reverses the order of elements; returns at same position."
+		series	 [series! gob! tuple! pair!]
+		/part "Limits to a given length or position"
+			length [number! series!]
+		return:  [series! gob! tuple! pair!]
+	]
+	#get-definition ACT_REVERSE
+]
 
 select: make action! [[
 		"Find a value in a series and return the next value, or NONE."

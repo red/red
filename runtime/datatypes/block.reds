@@ -1190,6 +1190,56 @@ block: context [
 		]
 		blk
 	]
+
+	reverse: func [
+		blk	 	 [red-block!]
+		part-arg [red-value!]
+		return:	 [red-block!]
+		/local
+			s		[series!]
+			part	[integer!]
+			size	[integer!]
+			head	[red-value!]
+			end		[red-value!]
+			tmp		[red-value!]
+			int		[red-integer!]
+			b		[red-block!]
+	][
+		s: GET_BUFFER(blk)
+		head: s/offset + blk/head
+		if head = s/tail [return blk]		;-- early exit if nothing to reverse
+		size: rs-length? blk
+
+		part: size
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				b: as red-block! part-arg
+				assert all [
+					TYPE_OF(b) = TYPE_BLOCK
+					b/node = blk/node
+				]
+				b/head - blk/head
+			]
+			if part <= 0 [return blk]		;-- early exit if negative /part index
+		]
+		if part > size [part: size] 		;-- truncate if off-range part value
+
+		end: head + part - 1
+		tmp: stack/push*
+		while [head < end][
+			copy-cell head tmp
+			copy-cell end head
+			copy-cell tmp end
+			head: head + 1
+			end: end - 1
+		]
+		stack/pop 1
+		blk
+	]
 	
 	;--- Misc actions ---
 	
@@ -1338,7 +1388,7 @@ block: context [
 			:pick
 			:poke
 			:remove
-			null			;reverse
+			:reverse
 			:select
 			null			;sort
 			:skip

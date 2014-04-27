@@ -180,7 +180,7 @@ file: context [
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
 			INHERIT_ACTION	;remove
-			null			;reverse
+			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
 			null			;sort
 			INHERIT_ACTION	;skip
