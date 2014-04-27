@@ -866,6 +866,11 @@ parser: context [
 									]
 									stack/pop 1
 								]
+								if TYPE_OF(value) = TYPE_GET_WORD [	;-- COLLECT INTO exiting
+									t: as triple! s/tail - 3
+									blk: as red-block! _context/get as red-word! value
+									blk/head: t/max		;-- restore saved block cursor
+								]
 							]
 							R_INTO [
 								s: GET_BUFFER(series)
@@ -1299,6 +1304,7 @@ parser: context [
 							]
 							either into? [
 								blk: as red-block! _context/get w
+								max: blk/head			;-- save block cursor
 							][
 								block/push* 8
 							]
