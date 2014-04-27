@@ -161,7 +161,7 @@ redc: context [
 		file
 	]
 	
-	run-console: func [/with file [string!] /local opts result script exe][
+	run-console: func [/with file [string!] /local opts result script exe console][
 		script: temp-dir/red-console.red
 		exe: temp-dir/console
 		
@@ -173,9 +173,10 @@ redc: context [
 			not exists? exe 
 			(modified? exe) < build-date					;-- check that console is up to date.
 		][
-			write script read-cache %console/console.red
-			write temp-dir/help.red read-cache %console/help.red
-			write temp-dir/input.red read-cache %console/input.red
+			console: %runtime/console/
+			write script read-cache console/console.red
+			write temp-dir/help.red read-cache console/help.red
+			write temp-dir/input.red read-cache console/input.red
 
 			opts: make system-dialect/options-class [		;-- minimal set of compilation options
 				link?: yes

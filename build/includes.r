@@ -73,14 +73,14 @@ write %build/bin/sources.r set-cache [
 			%syllable.reds
 			%win32.reds
 		]
+		%console/ [
+			%console.red
+			%help.red
+			%input.red
+		]
 	]
 	%utils/ [
 		%extractor.r
-	]
-	%console/ [
-		%console.red
-		%help.red
-		%input.red
 	]
 	%system/ [
 		%compiler.r
