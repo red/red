@@ -90,15 +90,17 @@ write %build/bin/sources.r set-cache [
 		%loader.r
 		%runtime/ [
 			%android.reds
-			%BSD.reds
 			%common.reds
 			%darwin.reds
 			%debug.reds
+			%freebsd.reds
 			%libc.reds
 			%lib-names.reds
 			%lib-natives.reds
 			%linux.reds
+			%linux-sigaction.reds
 			%POSIX.reds
+			%POSIX-signals.reds
 			%start.reds
 			%syllable.reds
 			%system.reds
