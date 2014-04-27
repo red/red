@@ -173,8 +173,9 @@ redc: context [
 			not exists? exe 
 			(modified? exe) < build-date					;-- check that console is up to date.
 		][
-			write script read-cache %tests/console.red
-			write temp-dir/help.red read-cache %tests/help.red
+			write script read-cache %console/console.red
+			write temp-dir/help.red read-cache %console/help.red
+			write temp-dir/input.red read-cache %console/input.red
 
 			opts: make system-dialect/options-class [		;-- minimal set of compilation options
 				link?: yes
@@ -191,6 +192,7 @@ redc: context [
 			
 			delete script
 			delete temp-dir/help.red
+			delete temp-dir/input.red
 			
 			if all [Windows? not lib?][
 				print "Please run red.exe again to access the console."

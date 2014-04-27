@@ -77,9 +77,10 @@ write %build/bin/sources.r set-cache [
 	%utils/ [
 		%extractor.r
 	]
-	%tests/ [
+	%console/ [
 		%console.red
 		%help.red
+		%input.red
 	]
 	%system/ [
 		%compiler.r
