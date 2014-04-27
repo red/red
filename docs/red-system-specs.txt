@@ -1049,7 +1049,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="warn">WARNING</td>
-<td class="allow">as float!</td>
+<td class="allow">to float!</td>
 <td class="deny">ERROR</td>
 </tr>
 
@@ -1060,7 +1060,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
-<td class="allow">as float32!</td>
+<td class="allow">to float32!</td>
 <td class="warn">WARNING</td>
 <td class="deny">ERROR</td>
 </tr>
@@ -1082,6 +1082,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
 
+<b>as</b> : indicates that data is left untouched, only the type label is changed.<br>
+<b>to</b> : indicates that a possible data modification can occur.<br>
 
 ===Expressions
 
@@ -3327,6 +3329,8 @@ will output:
 *<b>26/04/2014 - revision 41</b>
 
 *>Added literal arrays section.
+
+*>Type matrix adjustments on AS/TO meaning
 
 
 *<b>14/02/2014 - revision 40</b>
