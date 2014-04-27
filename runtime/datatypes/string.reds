@@ -1854,7 +1854,7 @@ string: context [
 		if all [positive? part head + part < tail] [tail: head + part]
 		tail: tail - unit								;-- point to last value
 		temp: as byte-ptr! :part
-		while [head < tail][
+		while [head < tail][							;-- TODO: optimise it according to unit
 			copy-memory temp head unit
 			copy-memory head tail unit
 			copy-memory tail temp unit
