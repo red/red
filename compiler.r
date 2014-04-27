@@ -961,12 +961,26 @@ red: context [
 	]
 	
 	comp-any: does [
-		comp-boolean-expressions 'any ['if 'logic/false? body]
+		either block? pc/1 [
+			comp-boolean-expressions 'any ['if 'logic/false? body]
+		][
+			emit-open-frame 'any
+			comp-expression
+			emit-native 'any
+			emit-close-frame
+		]
 	]
 	
 	comp-all: does [
-		comp-boolean-expressions 'all [
-			'either 'logic/false? set-last-none body
+		either block? pc/1 [
+			comp-boolean-expressions 'all [
+				'either 'logic/false? set-last-none body
+			]
+		][
+			emit-open-frame 'all
+			comp-expression
+			emit-native 'all
+			emit-close-frame
 		]
 	]
 		
