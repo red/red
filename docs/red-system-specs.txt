@@ -971,7 +971,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>byte!</th>
 <td class="warn">WARNING</td>
-<td class="allow">to byte! &sup1;</td>
+<td class="allow">as byte! &sup1;</td>
 <td class="allow">true<span class="arrow">&raquo;</span>#"^(01)"<br>false<span class="arrow">&raquo;</span>#"^(00)"</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -982,12 +982,12 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 </tr><tr>
 
 <th>integer!</th>
-<td class="allow">to integer!</td>
+<td class="allow">as integer!</td>
 <td class="warn">WARNING</td>
 <td class="allow">true<span class="arrow">&raquo;</span>1<br>false<span class="arrow">&raquo;</span>0</td>
-<td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
+<td class="allow">as integer!</td>
+<td class="allow">as integer!</td>
+<td class="allow">as integer!</td>
 <td class="deny">ERROR</td>
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
@@ -1007,11 +1007,11 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>c-string!</th>
 <td class="deny">ERROR</td>
-<td class="allow">to c-string!</td>
+<td class="allow">as c-string!</td>
 <td class="deny">ERROR</td>
 <td class="warn">WARNING</td>
-<td class="allow">to c-string!</td>
-<td class="allow">to c-string!</td>
+<td class="allow">as c-string!</td>
+<td class="allow">as c-string!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1019,11 +1019,11 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>pointer!</th>
 <td class="deny">ERROR</td>
-<td class="allow">to pointer!</td>
+<td class="allow">as pointer!</td>
 <td class="deny">ERROR</td>
-<td class="allow">to pointer!</td>
+<td class="allow">as pointer!</td>
 <td class="warn">WARNING</td>
-<td class="allow">to pointer!</td>
+<td class="allow">as pointer!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1031,10 +1031,10 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>struct!</th>
 <td class="deny">ERROR</td>
-<td class="allow">to struct!</td>
+<td class="allow">as struct!</td>
 <td class="deny">ERROR</td>
-<td class="allow">to struct!</td>
-<td class="allow">to struct!</td>
+<td class="allow">as struct!</td>
+<td class="allow">as struct!</td>
 <td class="warn">WARNING</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1049,7 +1049,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="warn">WARNING</td>
-<td class="allow">to float!</td>
+<td class="allow">as float!</td>
 <td class="deny">ERROR</td>
 </tr>
 
@@ -1060,7 +1060,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
-<td class="allow">to float32!</td>
+<td class="allow">as float32!</td>
 <td class="warn">WARNING</td>
 <td class="deny">ERROR</td>
 </tr>
