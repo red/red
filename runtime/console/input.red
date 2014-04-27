@@ -29,15 +29,14 @@ Red [
 	][
 		#switch OS [
 			MacOSX [
-				#define ReadLine-library "libreadline.dylib"
+				#define Edit-library "libedit.dylib"
 			]
 			#default [
-				#define ReadLine-library "libreadline.so.6"
-				#define History-library  "libhistory.so.6"
+				#define Edit-library "libedit.so.2"
 			]
 		]
 		#import [
-			ReadLine-library cdecl [
+			Edit-library cdecl [
 				read-line: "readline" [  ; Read a line from the console.
 					prompt			[c-string!]
 					return:			[c-string!]
@@ -52,12 +51,8 @@ Red [
 					key				[integer!]
 					return:			[integer!]
 				]
-			]
-			#if OS <> 'MacOSX [
-				History-library cdecl [
-					add-history: "add_history" [  ; Add line to the history.
-						line		[c-string!]
-					]
+				add-history: "add_history" [  ; Add line to the history.
+					line			[c-string!]
 				]
 			]
 		]
@@ -73,11 +68,13 @@ Red [
 	]
 ]
 
-input: routine [
+ask: routine [
+	prompt [string!]
 	/local
 		len ret str buffer line pos
 ][
 	#either OS = 'Windows [
+		print as c-string! string/rs-head prompt
 		len: 0
 		ret: ReadConsole stdin line-buffer line-buffer-size :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
@@ -85,10 +82,10 @@ input: routine [
 		line-buffer/pos: null-byte						;-- overwrite CR with NUL
 		str: string/load as-c-string line-buffer len - 1 UTF-16LE
 	][
-		line: read-line null
+		line: read-line as-c-string string/rs-head prompt
 		if line = null [halt]  ; EOF
 
-		 #if OS <> 'MacOSX [add-history line]
+		add-history line
 
 		str: string/load line  1 + length? line UTF-8
 ;		free as byte-ptr! line
@@ -96,7 +93,6 @@ input: routine [
 	SET_RETURN(str)
 ]
 
-ask: func [prompt [string!]][
-	prin prompt
-	input
+input: func [][
+	ask ""
 ]
