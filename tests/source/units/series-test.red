@@ -703,5 +703,45 @@ Red [
 
 ===end-group===
 
+===start-group=== "reverse"
+
+	--test-- "reverse-str-1"			;-- 4 bytes code point
+		--assert "dc𠃌21ba" = reverse "ab12𠃌cd"	;--  = #"^(E818)"
+                                                    	;-- 𠃌 = #"^(200CC)"
+	--test-- "reverse-str-2"			;-- 2 bytes code point
+		--assert "dc21ba" = reverse "ab12cd"
+
+	--test-- "reverse-str-3"			;-- 1 bytes code point
+		--assert "dc21ba" = reverse "ab12cd"
+
+	--test-- "reverse-str-4"
+		--assert "1ba2𠃌cd" = reverse/part "ab12𠃌cd" 4
+
+	--test-- "reverse-str-5"
+		s: "abcdef"
+		p: next next next s
+		--assert "cbadef" = reverse/part s p
+
+	--test-- "reverse-file-1"			;-- inherit from string!
+		--assert %321cba = reverse/part %abc123
+
+	--test-- "reverse-blk-1"
+		--assert [a b c d] = reverse [d c b a]
+
+	--test-- "reverse-blk-2"
+		--assert [c b [a] d] = reverse/part [[a] b c d] 3
+
+	--test-- "reverse-blk-3"
+		blk: [1 [2] a b c ]
+		p: next next next blk
+		--assert [a [2] 1 b c] = reverse/part blk p
+
+	--test-- "reverse-path-1"			;-- inherit from block!
+		p1: first [ab/cd/ef]
+		p2: first [ef/cd/ab]
+		--assert p2 = reverse p1
+
+===end-group===
+
 ~~~end-file~~~
 

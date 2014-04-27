@@ -927,8 +927,32 @@ actions: context [
 		
 		action-remove series part
 	]
-	
-	reverse*: func [][]
+
+	reverse*: func [
+		part [integer!]
+	][
+		reverse
+			as red-series! stack/arguments
+			stack/arguments + part
+	]
+
+	reverse: func [
+		series  [red-series!]
+		part	[red-value!]
+		return:	[red-value!]
+		/local
+			action-reverse
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/reverse"]]
+
+		action-reverse: as function! [
+			series	[red-series!]
+			part	[red-value!]
+			return:	[red-value!]
+		] get-action-ptr as red-value! series ACT_REVERSE
+
+		action-reverse series part
+	]
 	
 	select*: func [
 		part	 [integer!]
@@ -1095,7 +1119,7 @@ actions: context [
 			:pick*
 			:poke*
 			:remove*
-			null			;reverse
+			:reverse*
 			:select*
 			null			;sort
 			:skip*
