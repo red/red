@@ -1486,12 +1486,12 @@ make-profilable make target-class [
 				#{e1a00310}							;-- LSL r0, r0, r3
 			]
 			>>  [
-				#{e1a00020}							;-- LSR r0, r0, #b
-				#{e1a00330}							;-- LSR r0, r0, r3
-			]
-			-** [
 				#{e1a00040}							;-- ASR r0, r0, #b
 				#{e1a00350}							;-- ASR r0, r0, r3
+			]
+			-** [
+				#{e1a00020}							;-- LSR r0, r0, #b
+				#{e1a00330}							;-- LSR r0, r0, r3
 			]
 		] name
 	
