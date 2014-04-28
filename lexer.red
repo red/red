@@ -137,15 +137,21 @@ trans-set-path: routine [
 	set-type as red-value! path TYPE_SET_PATH
 ]
 
-trans-word: routine [
+trans-make-word: routine [
+	src   [string!]
+	type  [datatype!]
+][
+	set-type
+		as red-value! word/box (symbol/make-alt src) ;-- word/box puts it in stack/arguments
+		type/value
+]
+
+trans-word: func [
 	stack [block!]
 	src   [string!]
 	type  [datatype!]
-	/local
-		value [red-value!]
 ][
-	value: as red-value! word/push-in (symbol/make-alt src) stack
-	set-type value type/value
+	trans-store stack trans-make-word src type
 ]
 
 trans-pop: function [stack [block!]][
@@ -347,15 +353,15 @@ transcode: function [
 	path-rule: [
 		ahead slash (									;-- path detection barrier
 			trans-push-path stack type					;-- create empty path
-			trans-word last stack copy/part s e type	;-- push 1st path element
+			trans-word stack copy/part s e type			;-- push 1st path element
 		)
 		some [
 			slash
 			s: [
 				integer-number-rule			(trans-store stack trans-integer s e)
-				| begin-symbol-rule			(trans-word last stack copy/part s e word!)
+				| begin-symbol-rule			(trans-word stack copy/part s e word!)
 				| paren-rule
-				| #":" s: begin-symbol-rule	(trans-word last stack copy/part s e get-word!)
+				| #":" s: begin-symbol-rule	(trans-word stack copy/part s e get-word!)
 				;@@ add more datatypes here
 			]
 			opt [#":" (trans-set-path back tail stack)]
@@ -363,36 +369,36 @@ transcode: function [
 	]
 
 	word-rule: 	[
-		#"%" ws-no-count (trans-word last stack "%" word!)	 ;-- special case for remainder op!
+		#"%" ws-no-count (trans-word stack "%" word!)	;-- special case for remainder op!
 		| s: begin-symbol-rule (type: word!) [
-				path-rule 									 ;-- path matched
+				path-rule								;-- path matched
 				| opt [#":" (type: set-word!)]
-				  (trans-word last stack copy/part s e type) ;-- word or set-word matched
+				  (trans-word stack copy/part s e type)	;-- word or set-word matched
 		  ]
 	]
 
 	get-word-rule: [
 		#":" (type: get-word!) s: begin-symbol-rule [
 			path-rule (type: get-path!)
-			| (trans-word last stack copy/part s e type) ;-- get-word matched
+			| (trans-word stack copy/part s e type)		;-- get-word matched
 		]
 	]
 
 	lit-word-rule: [
 		#"'" (type: lit-word!) s: begin-symbol-rule [
-			path-rule (type: lit-path!)					 ;-- path matched
-			| (trans-word last stack copy/part s e type) ;-- lit-word matched
+			path-rule (type: lit-path!)					;-- path matched
+			| (trans-word stack copy/part s e type)		;-- lit-word matched
 		]
 	]
 
 	issue-rule: [
-		#"#" (type: issue!) s: symbol-rule
-		(trans-word last stack copy/part s e type)
+		#"#" (type: issue!) s: symbol-rule 
+		(trans-word stack copy/part s e type)
 	]
 
 	refinement-rule: [
 		slash (type: refinement!) s: symbol-rule
-		(trans-word last stack copy/part s e type)
+		(trans-word stack copy/part s e type)
 	]
 
 	slash-rule: [s: [slash opt slash] e:]
@@ -473,7 +479,7 @@ transcode: function [
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
-			| slash-rule		(trans-word last stack copy/part s e word!)
+			| slash-rule		(trans-word stack copy/part s e word!)
 			| refinement-rule
 			| file-rule			(trans-store stack value: do process)
 			| char-rule			(trans-store stack value)

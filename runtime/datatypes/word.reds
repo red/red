@@ -34,19 +34,34 @@ word: context [
 		_context/add-global symbol/make str
 	]
 	
-	push-in: func [
-		id    	[integer!]								;-- symbol ID
-		blk		[red-block!]
+	make-at: func [
+		id		[integer!]								;-- symbol ID
+		pos		[red-value!]
 		return:	[red-word!]
 		/local 
 			cell [red-word!]
 	][
-		cell: as red-word! ALLOC_TAIL(blk)
+		cell: as red-word! pos
 		cell/header: TYPE_WORD							;-- implicit reset of all header flags
 		cell/ctx: 	 global-ctx
 		cell/symbol: id
 		cell/index:  _context/add TO_CTX(global-ctx) cell
 		cell
+	]
+	
+	box: func [
+		id		[integer!]								;-- symbol ID
+		return:	[red-word!]
+	][
+		make-at id stack/arguments
+	]
+	
+	push-in: func [
+		id		[integer!]								;-- symbol ID
+		blk		[red-block!]
+		return:	[red-word!]
+	][
+		make-at id ALLOC_TAIL(blk)
 	]
 	
 	push: func [
