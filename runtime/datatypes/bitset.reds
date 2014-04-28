@@ -75,7 +75,11 @@ bitset: context [
 	][
 		s: GET_BUFFER(bits)
 		p: (as byte-ptr! s/offset) + (index >> 3) + 1
-		any [index < 0 p > as byte-ptr! s/tail]
+		any [
+			index < 0
+			p > as byte-ptr! s/tail
+			p < as byte-ptr! s/offset					;-- overflow case
+		]
 	]
 	
 	invert-bytes: func [
