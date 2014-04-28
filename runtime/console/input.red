@@ -29,14 +29,15 @@ Red [
 	][
 		#switch OS [
 			MacOSX [
-				#define Edit-library "libedit.dylib"
+				#define ReadLine-library "libreadline.dylib"
 			]
 			#default [
-				#define Edit-library "libedit.so.2"
+				#define ReadLine-library "libreadline.so.6"
+				#define History-library  "libhistory.so.6"
 			]
 		]
 		#import [
-			Edit-library cdecl [
+			ReadLine-library cdecl [
 				read-line: "readline" [  ; Read a line from the console.
 					prompt			[c-string!]
 					return:			[c-string!]
@@ -51,8 +52,12 @@ Red [
 					key				[integer!]
 					return:			[integer!]
 				]
-				add-history: "add_history" [  ; Add line to the history.
-					line			[c-string!]
+			]
+			#if OS <> 'MacOSX [
+				History-library cdecl [
+					add-history: "add_history" [  ; Add line to the history.
+						line		[c-string!]
+					]
 				]
 			]
 		]
@@ -85,7 +90,7 @@ ask: routine [
 		line: read-line as-c-string string/rs-head prompt
 		if line = null [halt]  ; EOF
 
-		add-history line
+		 #if OS <> 'MacOSX [add-history line]
 
 		str: string/load line  1 + length? line UTF-8
 ;		free as byte-ptr! line
