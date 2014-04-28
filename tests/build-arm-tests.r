@@ -42,7 +42,7 @@ parse/all all-tests [
 ;; compile the tests into to runnable/arm-tests
  
 foreach test-file test-files [
-  do/args %../../red.r rejoin ["-t " target " " test-file]
+  do/args %../red.r rejoin ["-t " target " " test-file]
   exe: copy find/last/tail test-file "/"
   exe: replace exe ".red" ""
   write/binary join %runnable/arm-tests/ exe read/binary exe
