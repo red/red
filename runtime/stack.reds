@@ -44,6 +44,16 @@ stack: context [										;-- call stack
 		]
 	]
 	
+	#define STACK_SET_FRAME [
+		either ctop = cbottom [
+			arguments: bottom
+			top: bottom
+		][
+			top: arguments + 1							;-- keep last value on stack
+			arguments: as red-value! ctop/2
+		]
+	]
+	
 	;-- header flags
 	#enum flags! [
 		FLAG_FUNCTION:	80000000h						;-- function! call
@@ -53,6 +63,7 @@ stack: context [										;-- call stack
 		FLAG_CATCH:		08000000h						;-- CATCH native
 		FLAG_THROW_ATR:	04000000h						;-- Throw function attribut
 		FLAG_CATCH_ATR:	02000000h						;--	Catch function attribut
+		FLAG_EVAL:		01000000h						;-- Interpreter root frame
 	]
 	
 	init: does [
@@ -106,20 +117,14 @@ stack: context [										;-- call stack
 	mark-func:	 MARK_STACK(FLAG_FUNCTION)
 	mark-try:	 MARK_STACK(FLAG_TRY)
 	mark-catch:	 MARK_STACK(FLAG_CATCH)
+	mark-eval:	 MARK_STACK(FLAG_EVAL)
 		
 	unwind: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
 
 		assert cbottom < ctop
 		ctop: ctop - 2
-		
-		either ctop = cbottom [
-			arguments: bottom
-			top: bottom
-		][
-			top: arguments + 1							;-- keep last value on stack
-			arguments: as red-value! ctop/2
-		]
+		STACK_SET_FRAME
 		
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
@@ -152,10 +157,26 @@ stack: context [										;-- call stack
 				ctop <= cbottom
 			]
 		]
+		
+		STACK_SET_FRAME
 		ctop: ctop + 2									;-- ctop points past the current call frame
 		copy-cell last as red-value! ctop/2
 	]
-
+	
+	eval?: func [
+		return: [logic!]
+		/local
+			cframe [int-ptr!]
+	][
+		cframe: ctop
+		until [
+			cframe: cframe - 2
+			if FLAG_EVAL and cframe/1 = FLAG_EVAL [return yes]
+			cframe <= cbottom
+		]
+		no
+	]
+	
 	set-last: func [
 		last	[red-value!]
 		return: [red-value!]

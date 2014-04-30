@@ -33,7 +33,9 @@ target-class: context [
 	emit-throw:	on-init: emit-alt-last: none
 	
 	comparison-op: [= <> < > <= >=]
-	math-op:	   [+ - * / // ///]
+	math-op:	   compose [+ - * / // (to-word "%")]
+	mod-rem-op:    compose [// (to-word "%")]
+	mod-rem-func:  compose [// mod (to-word "%") rem]
 	bitwise-op:	   [and or xor]
 	bitshift-op:   [>> << -**]
 	

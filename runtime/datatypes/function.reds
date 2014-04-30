@@ -369,7 +369,7 @@ _function: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			null			;compare
 			;-- Scalar actions --

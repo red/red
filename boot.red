@@ -108,8 +108,7 @@ mold: make action! [[
 ;-- Scalar actions --
 
 absolute: make action! [[
-		"(not yet implemented)"
-		;"Returns the non-negative value."
+		"Returns the non-negative value."
 		value	 [number!]
 		return:  [number!]
 	]
@@ -152,8 +151,7 @@ negate: make action! [[
 ]
 
 power: make action! [[
-		"(not yet implemented)"
-		;"Returns a number raised to a given power (exponent)."
+		"Returns a number raised to a given power (exponent)."
 		number	 [number!] "Base value."
 		exponent [number!] "The power (index) to raise the base value by."
 		return:	 [number!]
@@ -162,13 +160,25 @@ power: make action! [[
 ]
 
 remainder: make action! [[
-		"(not yet implemented)"
-		;"Returns what is left over when one value is divided by another."
-		value1 	 [number!]
-		value2 	 [number!]
-		return:  [number!]
+		"Returns what is left over when one value is divided by another."
+		value1 	 [number! char!]
+		value2 	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_REMAINDER
+]
+
+modulo: func [
+	"Compute a nonnegative remainder of A divided by B."
+	a		[number!]
+	b		[number!]
+	return: [number!]
+	/local r
+][
+	b: absolute b
+    all [0 > r: a % b r: r + b]
+    a: absolute a
+    either all [a + r = (a + b) 0 < r + r - b] [r - b] [r]
 ]
 
 round: make action! [[
@@ -214,7 +224,14 @@ odd?: make action! [[
 
 ;-- Bitwise actions --
 
-;and~
+and~: make action! [[
+		"Returns the first value ANDed with the second."
+		value1	[logic! integer! char! bitset! typeset!]
+		value2	[logic! integer! char! bitset! typeset!]
+		return:	[logic! integer! char! bitset! typeset!]
+	]
+	#get-definition ACT_AND~
+]
 
 complement: make action! [[
 		"Returns the opposite (complementing) value of the input value."
@@ -224,8 +241,23 @@ complement: make action! [[
 	#get-definition ACT_COMPLEMENT
 ]
 
-;or~
-;xor~
+or~: make action! [[
+		"Returns the first value ORed with the second."
+		value1	[logic! integer! char! bitset! typeset!]
+		value2	[logic! integer! char! bitset! typeset!]
+		return:	[logic! integer! char! bitset! typeset!]
+	]
+	#get-definition ACT_OR~
+]
+
+xor~: make action! [[
+		"Returns the first value exclusive ORed with the second."
+		value1	[logic! integer! char! bitset! typeset!]
+		value2	[logic! integer! char! bitset! typeset!]
+		return:	[logic! integer! char! bitset! typeset!]
+	]
+	#get-definition ACT_XOR~
+]
 
 ;-- Series actions --
 
@@ -388,7 +420,15 @@ remove: make action! [[
 	#get-definition ACT_REMOVE
 ]
 
-;reverse
+reverse: make action! [[
+		"Reverses the order of elements; returns at same position."
+		series	 [series! gob! tuple! pair!]
+		/part "Limits to a given length or position"
+			length [number! series!]
+		return:  [series! gob! tuple! pair!]
+	]
+	#get-definition ACT_REVERSE
+]
 
 select: make action! [[
 		"Find a value in a series and return the next value, or NONE."
@@ -780,6 +820,8 @@ parse: make native! [[
 		rules [block!]
 		/case
 		;/strict
+		/part
+			length [number! series!]
 		/trace
 			callback [function! [
 				event	[word!]
@@ -812,24 +854,94 @@ complement?: make native! [[
 	#get-definition NAT_COMPLEMENT?
 ]
 
+dehex: make native! [[
+		"Converts URL-style hex encoded (%xx) strings."
+		value [string! file!]							;@@ replace with any-string!
+	]
+	#get-definition NAT_DEHEX
+]
+
+negative?: make native! [[
+		"Returns TRUE if the number is negative."
+		number [number!]
+	]
+	#get-definition NAT_NEGATIVE?
+]
+
+positive?: make native! [[
+		"Returns TRUE if the number is positive."
+		number [number!]
+	]
+	#get-definition NAT_POSITIVE?
+]
+
+max: make native! [[
+		"Returns the greater of the two values."
+		value1 [number! series!]
+		value2 [number! series!]
+	]
+	#get-definition NAT_MAX
+]
+
+min: make native! [[
+		"Returns the lesser of the two values."
+		value1 [number! series!]
+		value2 [number! series!]
+	]
+	#get-definition NAT_MIN
+]
+
+shift: make native! [[
+		"Perform a bit shift operation. Right shift (decreasing) by default."
+		data	[integer! binary!]
+		bits	[integer!]
+		/left	 "Shift bits to the left (increasing)"
+		/logical "Use logical shift (unsigned, fill with zero)"
+		return: [integer! binary!]
+	]
+	#get-definition NAT_SHIFT
+]
+
+shift-right:   routine [][natives/shift* -1 -1]
+shift-left:	   routine [][natives/shift* 1 -1]
+shift-logical: routine [][natives/shift* -1 1]
+
+to-hex: make native! [[
+		"Converts numeric value to a hex issue! datatype (with leading # and 0's)."
+		value	[integer! tuple!]
+		/size "Specify number of hex digits in result"
+			length [integer!]
+		return: [issue!]
+	]
+	#get-definition NAT_TO_HEX
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
 
 ;-- #load temporary directive is used to workaround REBOL LOAD limitations on some words
 
-#load set-word! "+"  make op! :add
-#load set-word! "-"  make op! :subtract
-#load set-word! "*"  make op! :multiply
-#load set-word! "/"  make op! :divide
-#load set-word! "="  make op! :equal?
-#load set-word! "<>" make op! :not-equal?
-#load set-word! "==" make op! :strict-equal?
-#load set-word! "=?" make op! :same?
-#load set-word! "<"  make op! :lesser?
-#load set-word! ">"  make op! :greater?
-#load set-word! "<=" make op! :lesser-or-equal?
-#load set-word! ">=" make op! :greater-or-equal?
+#load set-word! "+"		make op! :add
+#load set-word! "-"		make op! :subtract
+#load set-word! "*"		make op! :multiply
+#load set-word! "/"		make op! :divide
+#load set-word! "//"	make op! :modulo
+#load set-word! "%"		make op! :remainder
+#load set-word! "="		make op! :equal?
+#load set-word! "<>"	make op! :not-equal?
+#load set-word! "=="	make op! :strict-equal?
+#load set-word! "=?"	make op! :same?
+#load set-word! "<" 	make op! :lesser?
+#load set-word! ">" 	make op! :greater?
+#load set-word! "<="	make op! :lesser-or-equal?
+#load set-word! ">="	make op! :greater-or-equal?
+#load set-word! "<<"	make op! :shift-left
+#load set-word! ">>"	make op! :shift-right
+#load set-word! ">>>"	make op! :shift-logical
+and:					make op! :and~
+or:						make op! :or~
+xor:					make op! :xor~
 
 
 ;------------------------------------------
@@ -976,9 +1088,10 @@ context: func [spec [block!]][make object! spec]
 
 system: function [
 	"Returns information about the interpreter."
-	/version	"Return the system version"
-	/words		"Return a block of global words available"
-	/platform	"Return a word identifying the operating system"
+	/version	  "Return the system version"
+	/words		  "Return a block of global words available"
+	/platform	  "Return a word identifying the operating system"
+	/interpreted? "Return TRUE if called from the interpreter"
 ][
 	case [
 		version [#version]
@@ -993,6 +1106,7 @@ system: function [
 				]
 			]
 		]
+		interpreted? [#system [logic/box stack/eval?]]
 		'else [
 			print "Please specify a system refinement value (/version, /words, or /platform)."
 		]
@@ -1075,12 +1189,18 @@ parse-trace: func [
 	input [series!]
 	rules [block!]
 	/case
+	/part
+		limit [integer!]
 	return: [logic! block!]
 ][
 	either case [
 		parse/case/trace input rules :on-parse-event
 	][
-		parse/trace input rules :on-parse-event
+		either part [
+			parse/part/trace input rules limit :on-parse-event
+		][
+			parse/trace input rules :on-parse-event
+		]
 	]
 ]
 
@@ -1092,16 +1212,29 @@ load: function [
 	/header "TBD: Include Red header as a loaded value"
 	/all    "TBD: Don't evaluate Red header"
 	/type	"TBD:"
+	/part
+		length [integer! string!]
 	/into "Put results in out block, instead of creating a new block"
 		out [block!] "Target block for results"
 ][
+	if part [
+		case [
+			zero? length [return make block! 1]
+			string? length [
+				if (index? length) = index? source [
+					return make block! 1
+				]
+			]
+		]
+	]
+	
 	unless out [out: make block! 4]
 	;switch type?/word [
 	;	file!	[]
 	;	url!	[]
 	;	binary! []
 	;]
-	transcode source out
+	either part [transcode/part source out length][transcode source out]
 	unless :all [if 1 = length? out [out: out/1]]
 	out 
 ]

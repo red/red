@@ -82,16 +82,14 @@ integer: context [
 		if n [s/c: #"-" c: c - 1]
 		s + c
 	]
-	
+
 	do-math: func [
-		type	  [integer!]
+		type	  [math-op!]
 		return:	  [red-integer!]
 		/local
 			left  [red-integer!]
 			right [red-integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
-
 		left: as red-integer! stack/arguments
 		right: left + 1
 		
@@ -109,6 +107,10 @@ integer: context [
 			OP_SUB [left/value - right/value]
 			OP_MUL [left/value * right/value]
 			OP_DIV [left/value / right/value]
+			OP_REM [left/value % right/value]
+			OP_AND [left/value and right/value]
+			OP_OR  [left/value or right/value]
+			OP_XOR [left/value xor right/value]
 		]
 		left
 	]
@@ -236,7 +238,30 @@ integer: context [
 		int/value: not int/value
 		as red-value! int
 	]
-	
+
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/remainder"]]
+		as red-value! do-math OP_REM
+	]
+
+	absolute: func [
+		return: [red-integer!]
+		/local
+			int	  [red-integer!]
+			value [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
+		
+		int: as red-integer! stack/arguments
+		value: int/value
+		
+		if value = -2147483648 [
+			print-line "*** Math Error: integer overflow on ABSOLUTE"
+		]
+		if negative? value [int/value: 0 - value]
+		int 											;-- re-use argument slot for return value
+	]
+
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "integer/add"]]
 		as red-value! do-math OP_ADD
@@ -256,7 +281,22 @@ integer: context [
 		#if debug? = yes [if verbose > 0 [print-line "integer/subtract"]]
 		as red-value! do-math OP_SUB
 	]
-	
+
+	and~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/and~"]]
+		as red-value! do-math OP_AND
+	]
+
+	or~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/or~"]]
+		as red-value! do-math OP_OR
+	]
+
+	xor~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "integer/xor~"]]
+		as red-value! do-math OP_XOR
+	]
+
 	negate: func [
 		return: [red-integer!]
 		/local
@@ -265,6 +305,38 @@ integer: context [
 		int: as red-integer! stack/arguments
 		int/value: 0 - int/value
 		int 											;-- re-use argument slot for return value
+	]
+
+	int-power: func [
+		base	[integer!]
+		exp		[integer!]
+		return: [integer!]
+		/local
+			res  [integer!]
+			neg? [logic!]
+	][
+		res: 1
+		neg?: false
+
+		if exp < 0 [neg?: true exp: 0 - exp]
+		while [exp <> 0][
+			if as logic! exp and 1 [res: res * base]
+			exp: exp >> 1
+			base: base * base
+		]
+		either neg? [1 / res][res]
+	]
+
+	power: func [
+		return:	 [red-integer!]
+		/local
+			base [red-integer!]
+			exp  [red-integer!]
+	][
+		base: as red-integer! stack/arguments
+		exp: base + 1
+		base/value: int-power base/value exp/value
+		base
 	]
 	
 	even?: func [
@@ -293,26 +365,26 @@ integer: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute
 			:add
 			:divide
 			:multiply
 			:negate
-			null			;power
-			null			;remainder
+			:power
+			:remainder
 			null			;round
 			:subtract
 			:even?
 			:odd?
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			:complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at

@@ -34,19 +34,34 @@ word: context [
 		_context/add-global symbol/make str
 	]
 	
-	push-in: func [
-		id    	[integer!]								;-- symbol ID
-		blk		[red-block!]
+	make-at: func [
+		id		[integer!]								;-- symbol ID
+		pos		[red-value!]
 		return:	[red-word!]
 		/local 
 			cell [red-word!]
 	][
-		cell: as red-word! ALLOC_TAIL(blk)
+		cell: as red-word! pos
 		cell/header: TYPE_WORD							;-- implicit reset of all header flags
 		cell/ctx: 	 global-ctx
 		cell/symbol: id
 		cell/index:  _context/add TO_CTX(global-ctx) cell
 		cell
+	]
+	
+	box: func [
+		id		[integer!]								;-- symbol ID
+		return:	[red-word!]
+	][
+		make-at id stack/arguments
+	]
+	
+	push-in: func [
+		id		[integer!]								;-- symbol ID
+		blk		[red-block!]
+		return:	[red-word!]
+	][
+		make-at id ALLOC_TAIL(blk)
 	]
 	
 	push: func [
@@ -166,6 +181,20 @@ word: context [
 
 		form w buffer arg part
 	]
+
+	any-word?: func [									;@@ discard it when ANY_WORD? available
+		type	[integer!]
+		return: [logic!]
+	][
+		any [
+			type = TYPE_WORD
+			type = TYPE_GET_WORD
+			type = TYPE_SET_WORD
+			type = TYPE_LIT_WORD
+			type = TYPE_REFINEMENT
+			type = TYPE_ISSUE
+		]
+	]
 	
 	compare: func [
 		arg1	 [red-word!]							;-- first operand
@@ -182,14 +211,7 @@ word: context [
 		switch op [
 			COMP_EQUAL [
 				res: all [
-					any [								;@@ replace by ANY_WORD? when available
-						type = TYPE_WORD
-						type = TYPE_GET_WORD
-						type = TYPE_SET_WORD
-						type = TYPE_LIT_WORD
-						type = TYPE_REFINEMENT
-						type = TYPE_ISSUE
-					]
+					any-word? type						;@@ replace by ANY_WORD? when available
 					EQUAL_WORDS?(arg1 arg2)
 				]
 			]
@@ -221,7 +243,7 @@ word: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --

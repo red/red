@@ -110,6 +110,10 @@ redc: context [
 			]
 		]
 	]
+	
+	format-time: func [time [time!]][
+		round (time/second * 1000) + (time/minute * 60000)
+	]
 
 	load-filename: func [filename /local result] [
 		unless any [
@@ -157,7 +161,7 @@ redc: context [
 		file
 	]
 	
-	run-console: func [/with file [string!] /local opts result script exe][
+	run-console: func [/with file [string!] /local opts result script exe console][
 		script: temp-dir/red-console.red
 		exe: temp-dir/console
 		
@@ -169,8 +173,10 @@ redc: context [
 			not exists? exe 
 			(modified? exe) < build-date					;-- check that console is up to date.
 		][
-			write script read-cache %tests/console.red
-			write temp-dir/help.red read-cache %tests/help.red
+			console: %runtime/console/
+			write script read-cache console/console.red
+			write temp-dir/help.red read-cache console/help.red
+			write temp-dir/input.red read-cache console/input.red
 
 			opts: make system-dialect/options-class [		;-- minimal set of compilation options
 				link?: yes
@@ -187,6 +193,7 @@ redc: context [
 			
 			delete script
 			delete temp-dir/help.red
+			delete temp-dir/input.red
 			
 			if all [Windows? not lib?][
 				print "Please run red.exe again to access the console."
@@ -333,7 +340,7 @@ redc: context [
 			fail-try "Red Compiler" [
 				result: red/compile src opts
 			]
-			print ["...compilation time:" tab round result/2/second * 1000 "ms"]
+			print ["...compilation time :" format-time result/2 "ms"]
 			if opts/red-only? [exit]
 		]
 		
@@ -354,11 +361,11 @@ redc: context [
 			]
 			unless encap? [change-dir %../]
 		]
-		print ["...compilation time :" round result/1/second * 1000 "ms"]
+		print ["...compilation time :" format-time result/1 "ms"]
 		
 		if result/2 [
 			print [
-				"...linking time     :" round result/2/second * 1000 "ms^/"
+				"...linking time     :" format-time result/2 "ms^/"
 				"...output file size :" result/3 "bytes^/"
 				"...output file      :" to-local-file result/4
 			]

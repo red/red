@@ -2,11 +2,12 @@ REBOL [
   Title:   "Builds a set of Red/System Tests to run on an ARM host"
 	File: 	 %build-arm-tests.r
 	Author:  "Peter W A Wood"
-	Version: 0.1.0
+	Version: 0.2.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-;; This script must be run from the Red/system/tests dir
+;; Change dir to Red/system dir to keep compiler happy
+change-dir %../
 
 ;; supress script messages
 store-quiet-mode: system/options/quiet
@@ -27,20 +28,22 @@ target: pick ["Linux-ARM" "Android"] to-integer target
 
 ;; helper function
 compile-test: func [test-file [file!]] [
-		do/args %rsc.r rejoin ["-t " target " " test-file]
+		do/args %../red.r rejoin ["-t " target " " test-file]
 		exe: copy find/last/tail test-file "/"
-		exe: replace exe ".reds" ""
-		write/binary join %tests/runnable/arm-tests/ exe read/binary join %builds/ exe	
+		exe: to file! replace exe ".reds" ""
+		write/binary join %../quick-test/runnable/arm-tests/ exe read/binary exe
+		delete exe
 ]
 
 ;; make the Arm dir if needed
-arm-dir: %runnable/arm-tests/
+arm-dir: %../quick-test/runnable/arm-tests/
 make-dir/deep arm-dir
 
 ;; empty the Arm dir
 foreach file read arm-dir [delete join arm-dir file]
 
 ;; compile any dlls
+comment {
 dlls: copy []
 src: read %source/units/make-dylib-auto-test.r
 parse/all src [any [a-dll-file (append dlls to file! file) | skip] end]
@@ -55,27 +58,24 @@ foreach dll dlls [
 	write/binary join %tests/runnable/arm-tests/ lib read/binary join %builds/ lib	
 	]
 ]
-change-dir :save-dir
+
+}
 
 ;; get the list of test source files
 test-files: copy []
-all-tests: read %run-all.r
+all-tests: read %tests/run-all.r
 parse/all all-tests [any [a-test-file (append test-files to file! file) | skip] end]
 
 ;; compile the tests and move the executables to runnable/arm-tests
-save-dir: what-dir
-change-dir %../
 foreach test-file test-files [
 	if none = find test-file "dylib" [      		;; ignore any dylibs tests
 		insert next test-file "tests/"
 		compile-test test-file
 	]
 ]
-change-dir :save-dir
 
 ;; generate and compile the dylib tests
-save-dir: what-dir
-change-dir %../
+comment {
 
 dylib-source: %tests/runnable/arm-tests/dylib-auto-test.reds
 test-script-header: read %tests/source/units/dylib-test-script-header.txt
@@ -93,12 +93,11 @@ compile-test dylib-source
 if exists? dylib-source [
 	delete dylib-source
 ]
-
-change-dir :save-dir
+}
 
 ;; copy the bash script and mark it as executable
-write/binary %runnable/arm-tests/run-all.sh read/binary %run-all.sh
-runner: open %runnable/arm-tests/run-all.sh
+write/binary %../quick-test/runnable/arm-tests/run-all.sh read/binary %tests/run-all.sh
+runner: open %../quick-test/runnable/arm-tests/run-all.sh
 set-modes runner [
   owner-execute: true
   group-execute: true

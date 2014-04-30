@@ -104,10 +104,10 @@ interpreter: context [
 		native 	[red-native!]
 		return: [logic!]
 		/local
-			fun	  	  [red-function!]
-			value	  [red-value!]
-			tail	  [red-value!]
-			s		  [series!]
+			fun	  [red-function!]
+			value [red-value!]
+			tail  [red-value!]
+			s	  [series!]
 	][
 		s: as series! either TYPE_OF(native) = TYPE_FUNCTION [
 			fun: as red-function! native
@@ -127,6 +127,36 @@ interpreter: context [
 			value: value + 1
 		]
 		no
+	]
+	
+	set-locals: func [
+		fun [red-function!]
+		/local
+			tail  [red-value!]
+			value [red-value!]
+			s	  [series!]
+			set?  [logic!]
+	][
+		s: as series! fun/spec/value
+		value: s/offset
+		tail:  s/tail
+		set?:  no
+		
+		while [value < tail][
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					if set? [none/push]
+				]
+				TYPE_REFINEMENT [
+					unless set? [set?: yes]
+					logic/push false
+				]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
 	]
 	
 	eval-option: func [
@@ -281,16 +311,32 @@ interpreter: context [
 		/local
 			next   [red-word!]
 			left   [red-value!]
+			fun	   [red-function!]
 			infix? [logic!]
 			op	   [red-op!]
+			s	   [series!]
 			call-op
 	][
 		stack/keep
 		pc: pc + 1										;-- skip operator
 		pc: eval-expression pc end yes yes				;-- eval right operand
 		op: as red-op! value
-		call-op: as function! [] op/code
-		call-op
+
+		either op/header and body-flag <> 0 [
+			node: as node! op/code
+			s: as series! node/value
+			fun: as red-function! s/offset + 3
+			either TYPE_OF(fun) = TYPE_ROUTINE [
+				exec-routine as red-routine! fun
+			][
+				set-locals fun
+				eval-function fun as red-block! s/offset
+			]
+		][
+			call-op: as function! [] op/code
+			call-op
+			0											;-- @@ to make compiler happy!
+		]
 
 		if verbose > 0 [
 			value: stack/arguments
@@ -551,16 +597,16 @@ interpreter: context [
 		slot 	[red-value!]
 		return: [red-value!]
 		/local
-			fun	   [red-function!]
-			native [red-native!]
-			s	   [series!]
-			call 
+			name   [red-word!]
 	][
+		name: as red-word! pc - 1
+		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
+		
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
 			TYPE_NATIVE [
 				if verbose > 0 [log "pushing action/native frame"]
-				stack/mark-native as red-word! pc
+				stack/mark-native name
 				pc: eval-arguments as red-native! value pc end path slot 	;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
 
@@ -571,7 +617,7 @@ interpreter: context [
 			]
 			TYPE_ROUTINE [
 				if verbose > 0 [log "pushing routine frame"]
-				stack/mark-native as red-word! pc
+				stack/mark-native name
 				pc: eval-arguments as red-native! value pc end path slot
 				exec-routine as red-routine! value
 				either sub? [stack/unwind][stack/unwind-last]
@@ -583,19 +629,9 @@ interpreter: context [
 			]
 			TYPE_FUNCTION [
 				if verbose > 0 [log "pushing function frame"]
-				stack/mark-func as red-word! pc	;@@
+				stack/mark-func name
 				pc: eval-arguments as red-native! value pc end path slot
-				fun: as red-function! value
-				s: as series! fun/more/value
-				
-				native: as red-native! s/offset + 2
-				either zero? native/code [
-					eval-function fun as red-block! s/offset
-				][
-					call: as function! [] native/code
-					call
-					0
-				]
+				_function/call as red-function! value
 				either sub? [stack/unwind][stack/unwind-last]
 
 				if verbose > 0 [
@@ -795,7 +831,7 @@ interpreter: context [
 			exit
 		]
 
-		stack/mark-native words/_body					;-- outer stack frame
+		stack/mark-eval words/_body					;-- outer stack frame
 		
 		while [value < tail][
 			if verbose > 0 [log "root loop..."]

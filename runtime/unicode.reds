@@ -30,7 +30,20 @@ unicode: context [
 	;	3Fh				; U+003F = question mark
 	;	BFh				; U+00BF = inverted question mark
 	;	DC00h + b1		; U+DCxx where xx = b1 (never a Unicode codepoint)
-	
+
+	utf8-char-size?: func [
+		byte-1st	[integer!]
+		return:		[integer!]
+	][
+		;@@ In function unicode/decode-utf8-char
+		;@@ just support up to four bytes in a UTF-8 sequence
+		;if byte-1st and FCh = FCh [return 6]
+		;if byte-1st and F8h = F8h [return 5]
+		if byte-1st and F0h = F0h [return 4]
+		if byte-1st and E0h = E0h [return 3]
+		if byte-1st and C0h = C0h [return 2]
+		0
+	]
 	
 	to-utf8: func [
 		str		[red-string!]

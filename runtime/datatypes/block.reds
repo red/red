@@ -370,6 +370,8 @@ block: context [
 			s2	   [series!]
 			size1  [integer!]
 			size2  [integer!]
+			type1  [integer!]
+			type2  [integer!]
 			end	   [red-value!]
 			value1 [red-value!]
 			value2 [red-value!]
@@ -380,21 +382,46 @@ block: context [
 		size1: (as-integer s1/tail - s1/offset) >> 4 - blk1/head
 		size2: (as-integer s2/tail - s2/offset) >> 4 - blk2/head
 
-		if size1 <> size2 [								;-- shortcut exit for different sizes
+		either size1 <> size2 [								;-- shortcut exit for different sizes
 			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
 			if op = COMP_NOT_EQUAL [return true]
+		][
+			if zero? size1 [								;-- shortcut exit for empty blocks
+				return any [
+					op = COMP_EQUAL 		op = COMP_STRICT_EQUAL
+					op = COMP_LESSER_EQUAL  op = COMP_GREATER_EQUAL
+				]
+			]
 		]
-		if zero? size1 [								;-- shortcut exit for empty blocks
-			return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
-		]
-		
+
+		if op = COMP_LESSER [op: COMP_LESSER_EQUAL]
+		if op = COMP_GREATER [op: COMP_GREATER_EQUAL]
+
 		value1: s1/offset + blk1/head
 		value2: s2/offset + blk2/head
-		end: s1/tail									;-- only one "end" is needed
+		end: s1/tail										;-- only one "end" is needed
+
 		until [
-			res: actions/compare value1 value2 op
-			value1: value1 + 1
-			value2: value2 + 1
+			type1: TYPE_OF(value1)
+			type2: TYPE_OF(value2)
+			either any [
+				type1 = type2
+				all [word/any-word? type1 word/any-word? type2]
+				all [type1 = TYPE_INTEGER type2 = TYPE_INTEGER]	 ;@@ replace by ANY_NUMBER?
+			][
+				res: actions/compare value1 value2 op
+				value1: value1 + 1
+				value2: value2 + 1
+			][
+				switch op [
+					COMP_EQUAL
+					COMP_STRICT_EQUAL	[res: false]
+					COMP_NOT_EQUAL 		[res: true]
+					COMP_LESSER_EQUAL	[res: type1 <= type2]
+					COMP_GREATER_EQUAL	[res: type1 >= type2]
+				]
+				return res
+			]
 			any [
 				not res
 				value1 >= end
@@ -745,7 +772,11 @@ block: context [
 		result: stack/push as red-value! blk
 		
 		s: GET_BUFFER(blk)
-		if s/offset = s/tail [							;-- early exit if blk is empty
+
+		if any [							;-- early exit if blk is empty or at tail
+			s/offset = s/tail
+			all [not reverse? s/offset + blk/head >= s/tail]
+		][
 			result/header: TYPE_NONE
 			return result
 		]
@@ -1159,6 +1190,56 @@ block: context [
 		]
 		blk
 	]
+
+	reverse: func [
+		blk	 	 [red-block!]
+		part-arg [red-value!]
+		return:	 [red-block!]
+		/local
+			s		[series!]
+			part	[integer!]
+			size	[integer!]
+			head	[red-value!]
+			end		[red-value!]
+			tmp		[red-value!]
+			int		[red-integer!]
+			b		[red-block!]
+	][
+		s: GET_BUFFER(blk)
+		head: s/offset + blk/head
+		if head = s/tail [return blk]		;-- early exit if nothing to reverse
+		size: rs-length? blk
+
+		part: size
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				b: as red-block! part-arg
+				assert all [
+					TYPE_OF(b) = TYPE_BLOCK
+					b/node = blk/node
+				]
+				b/head - blk/head
+			]
+			if part <= 0 [return blk]		;-- early exit if negative /part index
+		]
+		if part > size [part: size] 		;-- truncate if off-range part value
+
+		end: head + part - 1
+		tmp: stack/push*
+		while [head < end][
+			copy-cell head tmp
+			copy-cell end head
+			copy-cell tmp end
+			head: head + 1
+			end: end - 1
+		]
+		stack/pop 1
+		blk
+	]
 	
 	;--- Misc actions ---
 	
@@ -1307,7 +1388,7 @@ block: context [
 			:pick
 			:poke
 			:remove
-			null			;reverse
+			:reverse
 			:select
 			null			;sort
 			:skip

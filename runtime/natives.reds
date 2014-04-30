@@ -473,67 +473,53 @@ natives: context [
 		stack/set-last unset-value
 	]
 	
-	compare: func [
-		op		   [integer!]
-		return:    [red-logic!]
-		/local
-			args   [red-value!]
-			result [red-logic!]
-	][
-		args: stack/arguments
-		result: as red-logic! args
-		result/value: actions/compare args args + 1 op
-		result/header: TYPE_LOGIC
-		result
-	]
-	
 	equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/equal?"]]
-		compare COMP_EQUAL
+		actions/compare* COMP_EQUAL
 	]
 	
 	not-equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/not-equal?"]]
-		compare COMP_NOT_EQUAL
+		actions/compare* COMP_NOT_EQUAL
 	]
 	
 	strict-equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/strict-equal?"]]
-		compare COMP_STRICT_EQUAL
+		actions/compare* COMP_STRICT_EQUAL
 	]
 	
 	lesser?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/lesser?"]]
-		compare COMP_LESSER
+		actions/compare* COMP_LESSER
 	]
 	
 	greater?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/greater?"]]
-		compare COMP_GREATER
+		actions/compare* COMP_GREATER
 	]
 	
 	lesser-or-equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/lesser-or-equal?"]]
-		compare COMP_LESSER_EQUAL
+		actions/compare* COMP_LESSER_EQUAL
 	]	
 	
 	greater-or-equal?*: func [
 		return:    [red-logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/greater-or-equal?"]]
-		compare COMP_GREATER_EQUAL
+		actions/compare* COMP_GREATER_EQUAL
 	]
 	
 	same?*: does []
@@ -575,32 +561,36 @@ natives: context [
 		/local
 			value [red-value!]
 			tail  [red-value!]
-			blk	  [red-block!]
 			arg	  [red-value!]
 			into? [logic!]
+			blk?  [logic!]
 	][
 		arg: stack/arguments
-		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
-			interpreter/eval-expression arg arg + 1 no no
-			exit
-		]
+		blk?: TYPE_OF(arg) = TYPE_BLOCK
 		into?: into >= 0
-		
-		value: block/rs-head as red-block! arg
-		tail:  block/rs-tail as red-block! arg
-		
+
+		if blk? [
+			value: block/rs-head as red-block! arg
+			tail:  block/rs-tail as red-block! arg
+		]
+
 		stack/mark-native words/_body
-		
-		blk: either into? [
+
+		either into? [
 			as red-block! stack/push arg + into
 		][
-			block/push-only* (as-integer tail - value) >> 4
+			if blk? [block/push-only* (as-integer tail - value) >> 4]
 		]
-		
-		while [value < tail][
-			value: interpreter/eval-next value tail yes
-			either into? [actions/insert* -1 0 -1][block/append*]
-			stack/keep									;-- preserve the reduced block on stack
+
+		either blk? [
+			while [value < tail][
+				value: interpreter/eval-next value tail yes
+				either into? [actions/insert* -1 0 -1][block/append*]
+				stack/keep									;-- preserve the reduced block on stack
+			]
+		][
+			interpreter/eval-expression arg arg + 1 no yes	;-- for non block! values
+			if into? [actions/insert* -1 0 -1]
 		]
 		stack/unwind-last
 	]
@@ -693,19 +683,26 @@ natives: context [
 		deep [integer!]
 		only [integer!]
 		into [integer!]
+		/local
+			into? [logic!]
 	][
 		arg: stack/arguments
-		if TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
-			interpreter/eval-expression arg arg + 1 no no
-			exit
+		either TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values			either into >= 0 [
+			into?: into >= 0
+			stack/mark-native words/_body
+			if into? [as red-block! stack/push arg + into]
+			interpreter/eval-expression arg arg + 1 no yes
+			if into? [actions/insert* -1 0 -1]
+			stack/unwind-last
+		][
+			stack/set-last
+				as red-value! compose-block
+					as red-block! arg
+					as logic! deep + 1
+					as logic! only + 1
+					as red-block! stack/arguments + into
+					yes
 		]
-		stack/set-last 
-			as red-value! compose-block
-				as red-block! arg
-				as logic! deep + 1 
-				as logic! only + 1
-				as red-block! stack/arguments + into
-				yes
 	]
 	
 	stats*: func [
@@ -802,20 +799,58 @@ natives: context [
 	]
 
 	parse*: func [
-		case?  [integer!]
+		case? [integer!]
 		;strict? [integer!]
+		part  [integer!]
 		trace [integer!]
 		/local
-			op [integer!]
+			op	  [integer!]
+			input [red-series!]
+			limit [red-series!]
+			int	  [red-integer!]
+			rule  [red-block!]
 	][
 		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
 		
+		input: as red-series! stack/arguments
+		limit: as red-series! stack/arguments + part
+		part: 0
+		
+		if OPTION?(limit) [
+			part: either TYPE_OF(limit) = TYPE_INTEGER [
+				int: as red-integer! limit
+				int/value + input/head
+			][
+				unless all [
+					TYPE_OF(limit) = TYPE_OF(input)
+					limit/node = input/node
+				][
+					print-line "*** Parse Error: invalid /part argument"
+					exit
+				]
+				limit/head
+			]
+			if part <= 0 [
+				rule: as red-block! stack/arguments + 1
+				logic/box zero? either any [
+					TYPE_OF(input) = TYPE_STRING		;@@ replace with ANY_STRING?
+					TYPE_OF(input) = TYPE_FILE
+				][
+					string/rs-length? as red-string! input
+				][
+					block/rs-length? as red-block! input
+				]
+				exit
+			]
+		]
+		
 		stack/set-last parser/process
-			as red-series! stack/arguments
-			as red-block!  stack/arguments + 1
+			input
+			as red-block! stack/arguments + 1
 			op
 			;as logic! strict? + 1
-			as red-function!  stack/arguments + trace
+			part
+			as red-function! stack/arguments + trace
 	]
 	
 	union*: func [
@@ -833,13 +868,7 @@ natives: context [
 		switch TYPE_OF(set1) [
 			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
 			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
-			TYPE_BITSET [
-				stack/set-last as red-value! bitset/union
-					as red-bitset! set1
-					as red-bitset! set1 + 1
-					no
-					null
-				]
+			TYPE_BITSET [stack/set-last as red-value! bitset/union no null]
 			default [
 				print-line "*** Error: argument type not supported by UNION"
 			]
@@ -856,6 +885,7 @@ natives: context [
 		return:    [red-logic!]
 		/local
 			bits   [red-bitset!]
+			s	   [series!]
 			result [red-logic!]
 	][
 		bits: as red-bitset! stack/arguments
@@ -873,8 +903,155 @@ natives: context [
 		result
 	]
 
+	dehex*: func [
+		return:		[red-string!]
+		/local
+			str		[red-string!]
+			buffer	[red-string!]
+			s		[series!]
+			p		[byte-ptr!]
+			p4		[int-ptr!]
+			tail	[byte-ptr!]
+			unit	[integer!]
+			cp		[integer!]
+			len		[integer!]
+	][
+		str: as red-string! stack/arguments
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		len: string/rs-length? str
+		stack/keep										;-- keep last value
+		buffer: string/rs-make-at stack/push* len * unit
+
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+
+			p: p + unit
+			if all [
+				cp = as-integer #"%"
+				p + (unit << 1) < tail					;-- must be %xx
+			][
+				p: string/decode-utf8-hex p unit :cp false
+			]
+			string/append-char GET_BUFFER(buffer) cp unit
+		]
+		stack/set-last as red-value! buffer
+		buffer
+	]
+
+	negative?*: func [
+		return:	[red-logic!]
+		/local
+			num [red-integer!]
+			res [red-logic!]
+	][
+		num: as red-integer! stack/arguments
+		res: as red-logic! num
+
+		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
+			res/value: negative? num/value
+		][
+			res/value: false
+			print-line "*** Error: argument type must be number!"
+		]
+		res/header: TYPE_LOGIC
+		res
+	]
+
+	positive?*: func [
+		return: [red-logic!]
+		/local
+			num [red-integer!]
+			res [red-logic!]
+	][
+		num: as red-integer! stack/arguments
+		res: as red-logic! num
+
+		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
+			res/value: positive? num/value
+		][
+			res/value: false
+			print-line "*** Error: argument type must be number!"
+		]
+		res/header: TYPE_LOGIC
+		res
+	]
+
+	max*: func [
+		/local
+			args	[red-value!]
+			result	[logic!]
+	][
+		args: stack/arguments
+		result: actions/compare args args + 1 COMP_LESSER
+		if result [
+			stack/set-last args + 1
+		]
+	]
+
+	min*: func [
+		/local
+			args	[red-value!]
+			result	[logic!]
+	][
+		args: stack/arguments
+		result: actions/compare args args + 1 COMP_LESSER
+		unless result [
+			stack/set-last args + 1
+		]
+	]
+
+	shift*: func [
+		left	 [integer!]
+		logical  [integer!]
+		/local
+			data [red-integer!]
+			bits [red-integer!]
+	][
+		data: as red-integer! stack/arguments
+		bits: data + 1
+		case [
+			left >= 0 [
+				data/value: data/value << bits/value
+			]
+			logical >= 0 [
+				data/value: data/value >>> bits/value
+			]
+			true [
+				data/value: data/value >> bits/value
+			]
+		]
+	]
+
+	to-hex*: func [
+		size	  [integer!]
+		/local
+			arg	  [red-integer!]
+			limit [red-integer!]
+			buf   [red-word!]
+			p	  [c-string!]
+			part  [integer!]
+	][
+		arg: as red-integer! stack/arguments
+		limit: arg + size
+
+		p: string/to-hex arg/value no
+		part: either OPTION?(limit) [8 - limit/value][0]
+		if negative? part [part: 0]
+		buf: issue/load p + part
+
+		stack/set-last as red-value! buf
+	]
+
 	;--- Natives helper functions ---
-	
+
 	loop?: func [
 		series  [red-series!]
 		return: [logic!]	
@@ -1099,6 +1276,13 @@ natives: context [
 			:unique*
 			:difference*
 			:complement?*
+			:dehex*
+			:negative?*
+			:positive?*
+			:max*
+			:min*
+			:shift*
+			:to-hex*
 		]
 	]
 

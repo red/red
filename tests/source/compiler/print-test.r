@@ -10,38 +10,33 @@ REBOL [
 ~~~start-file~~~ "Red print"
 
  	--test-- "Red print 1"
- 		--compile-and-run-this {Red[] print 1} 
- 		--assert-printed? 1
-  
- 	--test-- "Red print 2"
-  		--compile-and-run-this {Red[] print [1 2 3]}
-  		--assert-printed? 1 2 3
-  
-  	--test-- "Red print 3"
-    	--compile-and-run-this {
-    		Red[] 
-    		s: "12345"
+ 		--compile-and-run-this {
+ 			Red[] 
+ 			print ["*test1* " 1]
+ 			print ["*test2* " 1 2 3]
+ 			prin "*test3* "
+ 			s: "12345"
     		forall s [prin s]
-    	}
-    	--assert-printed? "123452345345455"
-  
-    --test-- "Red print 4"
-    	--compile-and-run-this {
-    		Red[] 
+    		print ""
+    		prin "*test4* "
     		s: "12345"
     		prin "***"
     		prin next s
     		print "***"
-    	}
-    	--assert-printed? "***2345***"
-  
-    --test-- "issue #748"
-    	--compile-and-run-this {
+    		print "*test5* abcde✐"
+    		;; issue #748
+    		prin "*test6* "
     		txt: "Hello world"
     		parse txt [ while any [ remove "l" | skip ] ]
     		print txt
-    	}
-    	--assert-printed? "Heo word"
-    	--assert none = find qt/output "Heo wordd"
+ 		}
+ 		
+ 		--assert-printed? "*test1* 1"
+ 		--assert-printed? "*test2* 1 2 3"
+    	--assert-printed? "*test3* 123452345345455"
+    	--assert-printed? "*test4* ***2345***"
+    	--assert-printed? "*test5* abcde✐"
+    	--assert-printed? "*test6* Heo word"
+    	--assert none = find qt/output "*test6* Heo wordd"
   
 ~~~end-file~~~ 

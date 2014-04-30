@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 14/02/2013
-	Revision: 40
+	Date: 26/04/2014
+	Revision: 41
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -142,7 +142,7 @@ Just use the variable name without any decoration to get its value or to pass it
 will output:
  hello
  
----Variable's type
+---Typing
 
 Variables do have a type. Variables do not need to be declared before being used, but they require to be <u>initialized</u> anyway. Function local variables require to be declared, but the type specification part can be skipped if the variable is properly initialized. For example:
 
@@ -775,6 +775,37 @@ Integer variable can also be used as index:
  
 <u>Note</u>: Pointer's <b>/value</b> notation is strictly equivalent to <b>/1</b>. The <b>/value</b> notation can be considered as syntactic sugar.
 
++++Literal arrays
+
+A pointer can also point to a one-dimensional array of values literally specified.
+
+<b>Syntax</b>
+
+ <variable>: [<items>]
+
+ <variable> : a pointer of same type as the array items.
+ <items>    : is a non-empty list of integer!, byte!, float! or float32! values.
+ 
+The array is statically allocated and can be accessed using pointer path notation or pointer arithmetic. The size of the array (in number of elements) is stored in a 32-bit word just preceding the beginning of the array.
+
+Examples:
+
+ list: [123 456 789]
+ probe list/0							;-- outputs 3
+ probe list/2							;-- outputs 456
+
+ s: [#"h" #"e" #"l" #"l" #"o"]
+ sz: as int-ptr! s
+ probe sz/0								;-- outputs 5
+ probe s/5								;-- outputs o
+ 
+<u>Note</u>: In this last example, this literal array is not equivalent to its c-string! counterpart "hello", as the literal array does not add a NUL value at tail of the sequence.
+
+\note Write access to arrays
+Currently literal arrays allow write access, but there is no bound checking as it is planned to be a feature of a future array! first-class datatype.
+
+/note
+
 +++Null value
 
 A special <b>null</b> value is available to use for pointer! and other pointer-like (pass-by-reference) types (struct!, c-string!) and pseudo-type function!. <b>Null</b> does not have a specific type, but can be used to replace any other pointer-like value. So, <b>null</b> cannot be used as initializing value for a global variable or a local variable that does not have an explicit type specification.
@@ -940,7 +971,7 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>byte!</th>
 <td class="warn">WARNING</td>
-<td class="allow">to byte! &sup1;</td>
+<td class="allow">as byte! &sup1;</td>
 <td class="allow">true<span class="arrow">&raquo;</span>#"^(01)"<br>false<span class="arrow">&raquo;</span>#"^(00)"</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -951,12 +982,12 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 </tr><tr>
 
 <th>integer!</th>
-<td class="allow">to integer!</td>
+<td class="allow">as integer!</td>
 <td class="warn">WARNING</td>
 <td class="allow">true<span class="arrow">&raquo;</span>1<br>false<span class="arrow">&raquo;</span>0</td>
-<td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
-<td class="allow">to integer!</td>
+<td class="allow">as integer!</td>
+<td class="allow">as integer!</td>
+<td class="allow">as integer!</td>
 <td class="deny">ERROR</td>
 <td class="allow">as integer!</td>
 <td class="allow">as integer!</td>
@@ -976,11 +1007,11 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>c-string!</th>
 <td class="deny">ERROR</td>
-<td class="allow">to c-string!</td>
+<td class="allow">as c-string!</td>
 <td class="deny">ERROR</td>
 <td class="warn">WARNING</td>
-<td class="allow">to c-string!</td>
-<td class="allow">to c-string!</td>
+<td class="allow">as c-string!</td>
+<td class="allow">as c-string!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -988,11 +1019,11 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>pointer!</th>
 <td class="deny">ERROR</td>
-<td class="allow">to pointer!</td>
+<td class="allow">as pointer!</td>
 <td class="deny">ERROR</td>
-<td class="allow">to pointer!</td>
+<td class="allow">as pointer!</td>
 <td class="warn">WARNING</td>
-<td class="allow">to pointer!</td>
+<td class="allow">as pointer!</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1000,10 +1031,10 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 <th>struct!</th>
 <td class="deny">ERROR</td>
-<td class="allow">to struct!</td>
+<td class="allow">as struct!</td>
 <td class="deny">ERROR</td>
-<td class="allow">to struct!</td>
-<td class="allow">to struct!</td>
+<td class="allow">as struct!</td>
+<td class="allow">as struct!</td>
 <td class="warn">WARNING</td>
 <td class="deny">ERROR</td>
 <td class="deny">ERROR</td>
@@ -1051,6 +1082,8 @@ Keep in mind that pointer!, c-string!, struct! and function! are passed by refer
 
 &sup1; Casting allowed, but integer values higher than 255 will be truncated, so beware!<br>
 
+<b>as</b> : indicates that data is left untouched, only the type label is changed.<br>
+<b>to</b> : indicates that a possible data modification can occur.<br>
 
 ===Expressions
 
@@ -1869,7 +1902,7 @@ The following math operations apply on integer or float values. When the operati
 
  value1 % value2
  
-Note: a remainder will be negative if the divider is negative. Same as in C or // operator in REBOL. See float types section for specific behaviour of this operator on float values.
+Note: a remainder will be negative if the divisor is negative. Same as in C or // operator in REBOL. See float types section for specific behaviour of this operator on float values.
  
 <b>Modulo</b>: //
 
@@ -3293,9 +3326,17 @@ will output:
 
 ===Document History
 
+*<b>26/04/2014 - revision 41</b>
+
+*>Added literal arrays section.
+
+*>Type matrix adjustments on AS/TO meaning
+
+
 *<b>14/02/2014 - revision 40</b>
 
 *>Function! to function! type casting now allowed.
+
 
 *<b>09/08/2013 - revision 39</b>
 

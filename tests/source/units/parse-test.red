@@ -441,13 +441,13 @@ Red [
 	--test-- "blk-ext50"
 		a: []
 		--assert parse [1] [collect into a [keep skip]]
-		--assert a = []
+		--assert a = [1]
 		--assert [1] = head a
 
 	--test-- "blk-ext51"
 		list: next [1 2 3]
 		--assert parse [a 4 b 5 c] [collect into list [some [keep word! | skip]]]
-		--assert list = [2 3]
+		--assert list = [a b c 2 3]
 		--assert [1 a b c 2 3] = head list
 
 	--test-- "blk-ext52"
@@ -655,6 +655,103 @@ Red [
 
 ===end-group===
 
+===start-group=== "block-part"
+	input: [h 5 #"l" "l" o]
+	input2: [a a a b b]
+
+	--test-- "blk-part-1"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 2
+		--assert none? v
+
+	--test-- "blk-part-2"
+		v: none
+		--assert parse/part input [copy v 3 skip] 3
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-3"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 4
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-4"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] 4
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-5"
+		v: none
+		--assert parse/part next input [copy v 3 skip] 3
+		--assert v = [5 #"l" "l"]
+
+	--test-- "blk-part-6"
+		v: none
+		--assert not parse/part input [copy v to 'o skip] 3
+		--assert none? v
+
+	--test-- "blk-part-7"
+		v: none
+		--assert parse/part input [copy v to 'o skip] 5
+		--assert v = [h 5 #"l" "l"]
+
+	--test-- "blk-part-8"
+		v: none
+		--assert not parse/part input2 [copy v 3 'a] 2
+		--assert none? v
+
+	--test-- "blk-part-9"
+		v: none
+		--assert parse/part input2 [copy v 3 'a] 3
+		--assert v = [a a a]
+
+
+	--test-- "blk-part-10"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 2
+		--assert none? v
+
+	--test-- "blk-part-21"
+		v: none
+		--assert parse/part input [copy v 3 skip] skip input 3
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-22"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 4
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-23"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] skip input 4
+		--assert v = [h 5 #"l"]
+
+	--test-- "blk-part-24"
+		v: none
+		--assert parse/part next input [copy v 3 skip] skip input 4
+		--assert v = [5 #"l" "l"]
+
+	--test-- "blk-part-25"
+		v: none
+		--assert not parse/part input [copy v to 'o skip] skip input 3
+		--assert none? v
+
+	--test-- "blk-part-26"
+		v: none
+		--assert parse/part input [copy v to 'o skip] skip input 5
+		--assert v = [h 5 #"l" "l"]
+
+	--test-- "blk-part-27"
+		v: none
+		--assert not parse/part input2 [copy v 3 'a] skip input2 2
+		--assert none? v
+
+	--test-- "blk-part-28"
+		v: none
+		--assert parse/part input2 [copy v 3 'a] skip input2 3
+		--assert v = [a a a]
+
+===end-group===
+
 ===start-group=== "block-bugs"
 
 	--test-- "#562" 	--assert not parse 	[+] 		[any ['+ if (no)]]
@@ -671,13 +768,13 @@ Red [
 	--test-- "#566"
 		b: next [0 9]
 		--assert parse [1 [2]] [collect into b [keep integer! keep block!]]
-		--assert b = [9]
+		--assert b = [1 [2] 9]
 		--assert [0 1 [2] 9] = head b
 
 	--test-- "#565"
 		b: []
 		--assert parse [1] [collect into b [collect [keep integer!]]]
-		--assert b = []
+		--assert b = [[1]]
 		--assert [[1]] = head b
 
 ===end-group===
@@ -1078,7 +1175,7 @@ Red [
 	--test-- "str-ext50"
 		a: []
 		--assert parse "1" [collect into a [keep skip]]
-		--assert a = []
+		--assert a = [#"1"]
 		--assert [#"1"] = head a
 
 	--test-- "str-ext51"
@@ -1387,6 +1484,123 @@ Red [
 
 ===end-group===
 
+===start-group=== "string-part"
+	input: "hello"
+	input2: "aaabb"
+	letters: charset [#"a" - #"o"]
+
+	--test-- "str-part-1"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 2
+		--assert none? v
+
+	--test-- "str-part-2"
+		v: none
+		--assert parse/part input [copy v 3 skip] 3
+		--assert v = "hel"
+
+	--test-- "str-part-3"
+		v: none
+		--assert not parse/part input [copy v 3 skip] 4
+		--assert v = "hel"
+
+	--test-- "str-part-4"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] 4
+		--assert v = "hel"
+
+	--test-- "str-part-5"
+		v: none
+		--assert parse/part next input [copy v 3 skip] 3
+		--assert v = "ell"
+
+	--test-- "str-part-6"
+		v: none
+		--assert not parse/part input [copy v to #"o" skip] 3
+		--assert none? v
+
+	--test-- "str-part-7"
+		v: none
+		--assert parse/part input [copy v to #"o" skip] 5
+		--assert v = "hell"
+
+	--test-- "str-part-8"
+		v: none
+		--assert not parse/part input [copy v 3 letters] 2
+		--assert none? v
+
+	--test-- "str-part-9"
+		v: none
+		--assert parse/part input [copy v 3 letters] 3
+		--assert v = "hel"
+
+	--test-- "str-part-10"
+		v: none
+		--assert not parse/part input2 [copy v 3 #"a"] 2
+		--assert none? v
+
+	--test-- "str-part-11"
+		v: none
+		--assert parse/part input2 [copy v 3 #"a"] 3
+		--assert v = "aaa"
+
+
+	--test-- "str-part-20"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 2
+		--assert none? v
+
+	--test-- "str-part-21"
+		v: none
+		--assert parse/part input [copy v 3 skip] skip input 3
+		--assert v = "hel"
+
+	--test-- "str-part-22"
+		v: none
+		--assert not parse/part input [copy v 3 skip] skip input 4
+		--assert v = "hel"
+
+	--test-- "str-part-23"
+		v: none
+		--assert parse/part input [copy v 3 skip skip] skip input 4
+		--assert v = "hel"
+
+	--test-- "str-part-24"
+		v: none
+		--assert parse/part next input [copy v 3 skip] skip input 4
+		--assert v = "ell"
+
+	--test-- "str-part-25"
+		v: none
+		--assert not parse/part input [copy v to #"o" skip] skip input 3
+		--assert none? v
+
+	--test-- "str-part-26"
+		v: none
+		--assert parse/part input [copy v to #"o" skip] skip input 5
+		--assert v = "hell"
+
+	--test-- "str-part-27"
+		v: none
+		--assert not parse/part input [copy v 3 letters] skip input 2
+		--assert none? v
+
+	--test-- "str-part-28"
+		v: none
+		--assert parse/part input [copy v 3 letters] skip input 3
+		--assert v = "hel"
+
+	--test-- "str-part-29"
+		v: none
+		--assert not parse/part input2 [copy v 3 #"a"] skip input2 2
+		--assert none? v
+
+	--test-- "str-part-30"
+		v: none
+		--assert parse/part input2 [copy v 3 #"a"] skip input2 3
+		--assert v = "aaa"
+
+===end-group===
 
 ===start-group=== "string-complex"
 

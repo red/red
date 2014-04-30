@@ -109,7 +109,7 @@ file: context [
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
-			string/append-escaped-char buffer cp string/ESC_FILE all?
+			string/append-escaped-char buffer cp string/ESC_URL all?
 			p: p + unit
 		]
 
@@ -180,7 +180,7 @@ file: context [
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
 			INHERIT_ACTION	;remove
-			null			;reverse
+			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
 			null			;sort
 			INHERIT_ACTION	;skip

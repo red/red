@@ -18,6 +18,10 @@ bitset: context [
 		OP_SET											;-- set value bits
 		OP_TEST											;-- test if value bits are set
 		OP_CLEAR										;-- clear value bits
+		OP_UNION
+		OP_AND
+		OP_OR
+		OP_XOR
 	]
 	
 	rs-head: func [
@@ -71,7 +75,11 @@ bitset: context [
 	][
 		s: GET_BUFFER(bits)
 		p: (as byte-ptr! s/offset) + (index >> 3) + 1
-		any [index < 0 p > as byte-ptr! s/tail]
+		any [
+			index < 0
+			p > as byte-ptr! s/tail
+			p < as byte-ptr! s/offset					;-- overflow case
+		]
 	]
 	
 	invert-bytes: func [
@@ -127,13 +135,12 @@ bitset: context [
 		part
 	]
 	
-	union: func [
-		set1	[red-bitset!]
-		set2	[red-bitset!]
-		case?	[logic!]
-		skip	[red-value!]
+	do-bitwise: func [
+		type	[integer!]
 		return: [red-bitset!]
 		/local
+			set1  [red-bitset!]
+			set2  [red-bitset!]
 			s1	  [series!]
 			s2	  [series!]
 			s	  [series!]
@@ -144,16 +151,17 @@ bitset: context [
 			tail  [byte-ptr!]
 			same? [logic!]
 	][
+		set1: as red-bitset! stack/arguments
+		set2: set1 + 1
 		s1: GET_BUFFER(set1)
 		s2: GET_BUFFER(set2)
 		
-		if s1/size > s2/size [s: s1	s1: s2 s2: s]		;-- exchange s1 <=> s2
+		if (length? set1) > (length? set2) [s: s1 s1: s2 s2: s]		;-- exchange s1 <=> s2
 		same?: (s1/flags and flag-bitset-not) = (s2/flags and flag-bitset-not)
-		
+
 		node: alloc-bytes s2/size
 		s: as series! node/value
 		p: as byte-ptr! s/offset
-		s/tail: as red-value! (p + s/size)
 		unless same? [s/flags: s/flags or flag-bitset-not]
 		
 		p1:	  as byte-ptr! s1/offset
@@ -161,10 +169,11 @@ bitset: context [
 		p2:	  as byte-ptr! s2/offset
 		
 		until [
-			p/value: either same? [
-				p1/value or p2/value					;-- OR s1 with part(s2)
-			][
-				p1/value xor p2/value					;-- XOR s1 with part(s2)
+			p/value: switch type [
+				OP_UNION
+				OP_OR	[p1/value or p2/value]			;-- OR s1 with part(s2)
+				OP_AND	[p1/value and p2/value]
+				OP_XOR	[p1/value xor p2/value]
 			]
 			p:  p  + 1
 			p1: p1 + 1
@@ -172,12 +181,55 @@ bitset: context [
 			p1 = tail
 		]
 		tail: as byte-ptr! s2/tail
-		if p2 < tail [copy-memory p p2 as-integer tail - p2] ;-- just copy remaining of s2
-		
+
+		if p2 < tail [
+			switch type [
+				OP_UNION
+				OP_OR	[
+					copy-memory p p2 as-integer tail - p2	;-- just copy remaining of s2
+					p: p + as-integer tail - p2
+				]
+				OP_AND  []									;-- do nothing
+				OP_XOR	[
+					until [
+						p/value: null-byte xor p2/value
+						p:  p  + 1
+						p2: p2 + 1
+						p2 = tail
+					]
+				]
+			]
+		]
+		s/tail: as red-value! p
+
 		set1: as red-bitset! stack/push*
 		set1/header: TYPE_BITSET
 		set1/node:	 node
+		stack/set-last as red-value! set1
 		set1
+	]
+
+	union: func [
+		case?	[logic!]
+		skip	[red-value!]
+		return: [red-bitset!]
+	][
+		do-bitwise OP_UNION
+	]
+
+	and~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/and~"]]
+		as red-value! do-bitwise OP_AND
+	]
+
+	or~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/or~"]]
+		as red-value! do-bitwise OP_OR
+	]
+
+	xor~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "bitset/xor~"]]
+		as red-value! do-bitwise OP_XOR
 	]
 	
 	process-range: func [
@@ -462,7 +514,7 @@ bitset: context [
 			if size <= 0 [print-line "*** Make Error: bitset invalid integer argument!"]
 			size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
 			size: size >> 3								;-- convert to bytes
-			bits/node: alloc-bytes size
+			bits/node: alloc-bytes-filled size null-byte
 			
 			s: GET_BUFFER(bits)
 			s/tail: as cell! ((as byte-ptr! s/offset) + size)
@@ -852,10 +904,10 @@ bitset: context [
 			null			;even?
 			null			;odd?
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			:complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at
