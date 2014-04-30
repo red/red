@@ -29,6 +29,9 @@ REBOL [
     		txt: "Hello world"
     		parse txt [ while any [ remove "l" | skip ] ]
     		print txt
+    		;; issue #796
+    		prin "*test7* "
+    		print "开会"
  		}
  		
  		--assert-printed? "*test1* 1"
@@ -37,6 +40,7 @@ REBOL [
     	--assert-printed? "*test4* ***2345***"
     	--assert-printed? "*test5* abcde✐"
     	--assert-printed? "*test6* Heo word"
+    	--assert-printed? "*test7* 开会"
     	--assert none = find qt/output "*test6* Heo wordd"
   
 ~~~end-file~~~ 

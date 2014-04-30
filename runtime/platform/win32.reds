@@ -225,8 +225,10 @@ platform: context [
 	][
 		assert str <> null
 		p: str
-		while [p/1 <> null-byte][
+		while [
 			cp: (as-integer p/2) << 8 + p/1
+			cp <> 0
+		][
 			putwchar cp
 			p: p + 2
 		]
