@@ -20,6 +20,7 @@ red: context [
 		Windows  [#include %platform/win32.reds]
 		Syllable [#include %platform/syllable.reds]
 		MacOSX	 [#include %platform/darwin.reds]
+		FreeBSD  [#include %platform/freebsd.reds]
 		#default [#include %platform/linux.reds]
 	]
 	
@@ -70,7 +71,6 @@ red: context [
 	#include %debug-tools.reds
 	
 	;-- Core --
-	#include %tokenizer.reds
 	#include %actions.reds
 	#include %natives.reds
 	#include %parse.reds

@@ -270,6 +270,8 @@ Red [
 	--test-- "iri3 - issue #460"
 	--assert "abc" = head insert "" #abc
 	
+	--test-- "iri4 - issue #599"
+	--assert "<56a<56aI" = head insert/part/dup "I" ["<" #"5" #"6" a x] 4 2
 
 ===end-group===
 

@@ -13,6 +13,21 @@ Red/System [
 char: context [
 	verbose: 0
 	
+	do-math: func [
+		op		[math-op!]
+		return: [red-value!]
+		/local
+			char [red-char!]
+	][
+		char: as red-char! integer/do-math op
+		char/header: TYPE_CHAR
+		
+		if char/value > 0010FFFFh [
+			print-line "*** Math Error: char overflow"
+		]
+		as red-value! char
+	]
+	
 	load-in: func [
 		value [integer!]
 		blk	  [red-block!]
@@ -90,7 +105,7 @@ char: context [
 		#if debug? = yes [if verbose > 0 [print-line "char/mold"]]
 
 		string/concatenate-literal buffer {#"}
-		string/append-escaped-char buffer c/value
+		string/append-escaped-char buffer c/value string/ESC_CHAR all?
 		string/append-char GET_BUFFER(buffer) as-integer #"^""
 		part - 4
 	]
@@ -132,54 +147,50 @@ char: context [
 		res
 	]
 
-	add: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/add"]]
-		char: as red-char! integer/do-math OP_ADD
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_ADD 
 	]
 
-	divide: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	divide: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/divide"]]
-		char: as red-char! integer/do-math OP_DIV
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_DIV
 	]
 
-	multiply: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	multiply: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/multiply"]]
-		char: as red-char! integer/do-math OP_MUL
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_MUL
 	]
 
-	subtract: func [
-		return:  [red-value!]
-		/local
-			char [red-char!]
-	][
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "char/remainder"]]
+		do-math OP_REM
+	]
+
+	subtract: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "char/subtract"]]
-		char: as red-char! integer/do-math OP_SUB
-		char/header: TYPE_CHAR
-		as red-value! char 
+		do-math OP_SUB
+	]
+
+	and~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "char/and~"]]
+		do-math OP_AND
+	]
+
+	or~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "char/or~"]]
+		do-math OP_OR
+	]
+
+	xor~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "char/xor~"]]
+		do-math OP_XOR
 	]
 
 	init: does [
 		datatype/register [
 			TYPE_CHAR
-			TYPE_VALUE
+			TYPE_INTEGER
 			"char!"
 			;-- General actions --
 			:make
@@ -188,7 +199,7 @@ char: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
@@ -198,16 +209,16 @@ char: context [
 			:multiply
 			null			;negate
 			null			;power
-			null			;remainder
+			:remainder
 			null			;round
 			:subtract
-			null			;even?
-			null			;odd?
+			INHERIT_ACTION
+			INHERIT_ACTION
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			null			;complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at

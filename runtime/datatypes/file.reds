@@ -23,11 +23,11 @@ file: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/load"]]
 		
-		cell: string/load-in src size blk
+		cell: string/load-in src size blk UTF-8
 		cell/header: TYPE_FILE							;-- implicit reset of all header flags
 		cell
 	]
-	
+
 	load: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
@@ -36,7 +36,6 @@ file: context [
 		load-in src size root
 	]
 
-	
 	push: func [
 		file [red-file!]
 	][
@@ -44,9 +43,9 @@ file: context [
 		
 		copy-cell as red-value! file stack/push*
 	]
-	
+
 	;-- Actions --
-	
+
 	make: func [
 		proto	 [red-value!]
 		spec	 [red-value!]
@@ -61,7 +60,7 @@ file: context [
 		set-type as red-value! file TYPE_FILE
 		file
 	]
-	
+
 	mold: func [
 		file    [red-file!]
 		buffer	[red-string!]
@@ -72,13 +71,51 @@ file: context [
 		part 	[integer!]
 		indent	[integer!]
 		return: [integer!]
+		/local
+			int	   [red-integer!]
+			limit  [integer!]
+			s	   [series!]
+			unit   [integer!]
+			cp	   [integer!]
+			p	   [byte-ptr!]
+			p4	   [int-ptr!]
+			head   [byte-ptr!]
+			tail   [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "file/mold"]]
 
+		limit: either OPTION?(arg) [
+			int: as red-integer! arg
+			int/value
+		][0]
+
+		s: GET_BUFFER(file)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (file/head << (unit >> 1))
+		head: p
+
+		tail: either zero? limit [						;@@ rework that part
+			as byte-ptr! s/tail
+		][
+			either negative? part [p][p + (part << (unit >> 1))]
+		]
+		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
+
 		string/append-char GET_BUFFER(buffer) as-integer #"%"
-		string/form file buffer arg part - 1
+
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			string/append-escaped-char buffer cp string/ESC_URL all?
+			p: p + unit
+		]
+
+		return part - ((as-integer tail - head) >> (unit >> 1)) - 1
 	]
-	
+
 	copy: func [
 		file    [red-file!]
 		new		[red-string!]
@@ -93,7 +130,7 @@ file: context [
 		file/header: TYPE_FILE
 		as red-series! file
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_FILE
@@ -143,7 +180,7 @@ file: context [
 			INHERIT_ACTION	;pick
 			INHERIT_ACTION	;poke
 			INHERIT_ACTION	;remove
-			null			;reverse
+			INHERIT_ACTION	;reverse
 			INHERIT_ACTION	;select
 			null			;sort
 			INHERIT_ACTION	;skip

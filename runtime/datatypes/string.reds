@@ -14,63 +14,152 @@ string: context [
 	verbose: 0
 	
 	#define BRACES_THRESHOLD	50						;-- max string length for using " delimiter
-	#define MAX_ESC_CHARS		60h	
+	#define MAX_ESC_CHARS		5Fh	
+	#define MAX_URL_CHARS 		7Fh
 	
-	escape-chars: declare byte-ptr!
-
-	fill-table: func [
-		/local
-			c [byte!]
-			i [integer!]
-	][
-		i: 1
-		c:  #"@"
-		while [c <= #"_"][
-			escape-chars/i: c
-			i: i + 1
-			c: c + 1
-		]
-		
-		while [i < MAX_ESC_CHARS][
-			escape-chars/i: null-byte
-			i: i + 1
-		]
-		
-		escape-chars/10: #"-"							;-- 9  + 1 (adjust for 1-base)
-		escape-chars/11: #"/"							;-- 10 + 1 (adjust for 1-base)
-		escape-chars/35: #"^""							;-- 34 + 1 (adjust for 1-base)
+	#enum escape-type! [
+		ESC_CHAR: FDh
+		ESC_URL:  FEh
+		ESC_NONE: FFh
 	]
-	
+		
+	escape-chars: [
+		#"^(40)" #"^(41)" #"^(42)" #"^(43)" #"^(44)" #"^(45)" #"^(46)" #"^(47)" ;-- 07h
+		#"-" 	 #"/" 	  #"^(4A)" #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
+		#"^(50)" #"^(51)" #"^(52)" #"^(53)" #"^(54)" #"^(55)" #"^(56)" #"^(57)" ;-- 17h
+		#"^(58)" #"^(59)" #"^(5A)" #"^(5B)" #"^(5C)" #"^(5D)" #"^(5E)" #"^(5F)" ;-- 1Fh
+		#"^(00)" #"^(00)" #"^""    #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 27h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 2Fh
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 37h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 3Fh
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 47h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 4Fh
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 57h
+		#"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^^"	   #"^(00)" ;-- 5Fh
+	]
+
+	escape-url-chars: [							;-- ESC_NONE: #"^(FF)" ESC_URL: #"^(FE)"
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 07h
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 0Fh
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 17h
+		#"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" #"^(FE)" ;-- 1Fh
+		#"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 27h
+		#"^(FE)" #"^(FE)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 2Fh
+		#"^(00)" #"^(01)" #"^(02)" #"^(03)" #"^(04)" #"^(05)" #"^(06)" #"^(07)" ;-- 37h
+		#"^(08)" #"^(09)" #"^(FF)" #"^(FE)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" ;-- 3Fh
+		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 47h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 4Fh
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 57h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 5Fh
+		#"^(FF)" #"^(0A)" #"^(0B)" #"^(0C)" #"^(0D)" #"^(0E)" #"^(0F)" #"^(FF)" ;-- 67h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 6Fh
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" #"^(FF)" ;-- 77h
+		#"^(FF)" #"^(FF)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FE)" #"^(FF)" #"^(FF)" ;-- 7Fh
+	]
+
+	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
+
 	to-hex: func [
-		cp		[integer!]								;-- codepoint <= 10FFFFh
-		return: [c-string!]
+		value	 [integer!]
+		char?	 [logic!]
+		return:  [c-string!]
 		/local
-			s [c-string!]
-			h [c-string!]
-			c [integer!]
-			i [integer!]
+			s	 [c-string!]
+			h	 [c-string!]
+			c	 [integer!]
+			i	 [integer!]
+			sign [integer!]
+			cp	 [integer!]
 	][
-		assert cp <= 0010FFFFh
 		
-		s: "000000"
+		s: "00000000"
 		h: "0123456789ABCDEF"
-		
-		if zero? cp [
-			s/5: #"0"
-			s/6: #"0"
-			return s + 5
-		]
-		
-		c: 6
-		while [cp <> 0][
+
+		c: 8
+		sign: either negative? value [-1][0]
+		cp: value
+		while [cp <> sign][
 			i: cp and 15 + 1								;-- cp // 16 + 1
 			s/c: h/i
 			cp: cp >> 4
 			c: c - 1
 		]
-		s + c
+
+		either char? [
+			assert cp <= 0010FFFFh							;-- codepoint <= 10FFFFh
+			if zero? value [
+				s/7: #"0"
+				s/8: #"0"
+				return s + 6
+			]
+			s + c
+		][
+			i: 1
+			while [i <= c][									;-- fill leading with #"0" or #"F"
+				s/i: either negative? sign [#"F"][#"0"]
+				i: i + 1
+			]
+			s
+		]
 	]
-	
+
+	decode-utf8-hex: func [
+		p			[byte-ptr!]
+		unit		[integer!]
+		cp			[int-ptr!]
+		trailing?	[logic!]
+		return: 	[byte-ptr!]
+		/local
+			i		[integer!]
+			v1		[integer!]
+			v2		[integer!]
+			size	[integer!]
+			src		[byte-ptr!]
+			buffer	[byte-ptr!]
+	][
+		v1: (get-char p unit) + 1						;-- adjust for 1-base
+		v2: (get-char p + unit unit) + 1				;-- adjust for 1-base
+		if any [
+			v1 > MAX_URL_CHARS
+			v2 > MAX_URL_CHARS
+		][return p]
+
+		v1: as-integer escape-url-chars/v1
+		v2: as-integer escape-url-chars/v2
+		if any [
+			v1 = ESC_NONE
+			v2 = ESC_NONE
+			v1 = ESC_URL
+			v2 = ESC_URL
+		][return p]
+
+		v1: v1 << 4 + v2
+		src: p + (unit << 1)
+
+		if trailing? [cp/value: v1 return src]
+
+		either v1 <= 7Fh [
+			cp/value: v1
+			p: src
+		][
+			i: 1
+			buffer: utf8-buffer
+			size: unicode/utf8-char-size? v1
+			v2: size
+			while [buffer/i: as byte! v1 v2 > 1][
+				if (as-integer #"%") <> get-char src unit [return p]
+				src: decode-utf8-hex src + unit unit :v1 true
+				i: i + 1
+				v2: v2 - 1
+			]
+			if positive? size [
+				v1: unicode/decode-utf8-char as c-string! buffer :size
+			]
+			if positive? size [cp/value: v1 p: src]
+		]
+		p
+	]
+
 	rs-length?: func [
 		str	    [red-string!]
 		return: [integer!]
@@ -329,6 +418,7 @@ string: context [
 			UCS-2 [if cp > FFFFh [s: unicode/UCS2-to-UCS4 s]]
 			UCS-4 [0]
 		]
+
 		unit: GET_UNIT(s)
 		if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 			s: expand-series s 0
@@ -345,6 +435,35 @@ string: context [
 		
 		poke-char s p cp
 		s
+	]
+	
+	remove-char: func [
+		str	 	 [red-string!]
+		offset	 [integer!]
+		return:	 [red-string!]
+		/local
+			s		[series!]
+			unit	[integer!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+	][
+		assert offset >= 0
+		
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		if head >= tail [return str]					;-- early exit if nothing to remove
+
+		if head + unit < tail [
+			move-memory 
+				head
+				head + unit
+				as-integer tail - (head + unit)
+		]
+		s/tail: as red-value! tail - unit
+		str
 	]
 	
 	poke-char: func [
@@ -420,17 +539,25 @@ string: context [
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
+		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1)- str2/head
 
-		unless match? [
+		either match? [
+			if zero? size2 [
+				return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+			]
+		][
 			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
-			size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1)- str2/head
 
-			if size1 <> size2 [							;-- shortcut exit for different sizes
+			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
 				if op = COMP_NOT_EQUAL [return true]
-			]
-			if zero? size1 [							;-- shortcut exit for empty strings
-				return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+			][
+				if zero? size1 [							;-- shortcut exit for empty strings
+					return any [
+						op = COMP_EQUAL 		op = COMP_STRICT_EQUAL
+						op = COMP_LESSER_EQUAL  op = COMP_GREATER_EQUAL
+					]
+				]
 			]
 		]
 		end: as byte-ptr! s2/tail						;-- only one "end" is needed
@@ -545,6 +672,7 @@ string: context [
 		str1	  [red-string!]							;-- string! to extend
 		str2	  [red-string!]							;-- string! to append to str1
 		part	  [integer!]							;-- str2 characters to append, -1 means all
+		offset	  [integer!]							;-- offset from head in codepoints
 		keep?	  [logic!]								;-- do not change str2 encoding
 		insert?	  [logic!]								;-- insert str2 at str1 index instead of appending
 		/local
@@ -589,7 +717,8 @@ string: context [
 							unicode/UCS2-to-UCS4 s2
 						]
 					]
-				]		
+				]
+				unit2: unit1
 			]
 			true [true]									;@@ catch-all case to make compiler happy
 		]
@@ -598,8 +727,8 @@ string: context [
 		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (unit2 >> 1)]	;-- make symbol! used as string! pass safely
 		
 		size2: (as-integer s2/tail - s2/offset) - h2
-		size:  (as-integer s1/tail - s1/offset) + size2
-		if s1/size < size [s1: expand-series s1 size + unit1]	;-- account for terminal NUL
+		size:  (as-integer s1/tail - s1/offset) + size2 + unit1		;-- account for terminal NUL
+		if s1/size < size [s1: expand-series s1 size]
 		
 		if part >= 0 [
 			part: part << (unit2 >> 1)
@@ -607,8 +736,8 @@ string: context [
 		]
 		if insert? [
 			move-memory									;-- make space
-				(as byte-ptr! s1/offset) + h1 + size2
-				(as byte-ptr! s1/offset) + h1
+				(as byte-ptr! s1/offset) + h1 + offset + size2
+				(as byte-ptr! s1/offset) + h1 + offset
 				(as-integer s1/tail - s1/offset) - h1
 		]
 		
@@ -624,14 +753,14 @@ string: context [
 					p: p + 1
 				]
 				s1: either insert? [
-					poke-char s1 p cp
+					poke-char s1 p + (offset << (unit1 >> 1)) cp
 				][
 					append-char s1 cp
 				]
 			]
 		][
 			p: either insert? [
-				(as byte-ptr! s1/offset) + h1
+				(as byte-ptr! s1/offset) + (offset << (unit1 >> 1)) + h1
 			][
 				as byte-ptr! s1/tail
 			]
@@ -683,6 +812,7 @@ string: context [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
 		blk		 [red-block!]
+		encoding [integer!]
 		return:  [red-string!]
 		/local
 			str  [red-string!]
@@ -690,17 +820,30 @@ string: context [
 		str: as red-string! ALLOC_TAIL(blk)
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 0
-		str/node: unicode/load-utf8 src size
-		str/cache: either size < 64 [src][null]			;-- cache only small strings (experimental)
+		switch encoding [
+			UTF-8	 [
+				str/node: unicode/load-utf8 src size
+				str/cache: either size < 64 [src][null]	;-- cache only small strings
+			]
+			UTF-16LE [
+				str/node: unicode/load-utf16 src size
+				str/cache: null
+			]
+			default	 [
+				print "*** Loading Error: input encoding unsupported"
+				halt
+			]
+		]
 		str
 	]
 	
 	load: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
+		encoding [integer!]
 		return:  [red-string!]
 	][
-		load-in src size root
+		load-in src size root encoding
 	]
 	
 	push: func [
@@ -755,7 +898,7 @@ string: context [
 			int: as red-integer! arg
 			int/value	
 		][-1]
-		concatenate buffer str limit no no
+		concatenate buffer str limit 0 no no
 		part - get-length str
 	]
 	
@@ -790,24 +933,30 @@ string: context [
 	append-escaped-char: func [
 		buffer	[red-string!]
 		cp	    [integer!]
+		type	[integer!]
+		all?	[logic!]
 		/local
 			idx [integer!]
 	][
 		idx: cp + 1
 		case [
-			cp = 5Eh [
-				append-char GET_BUFFER(buffer) as-integer #"^^"
-				append-char GET_BUFFER(buffer) as-integer #"^^"
-			]
-			cp > 7Fh [
+			all [all? cp > 7Fh][
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer #"("
-				concatenate-literal buffer to-hex cp
+				concatenate-literal buffer to-hex cp yes
 				append-char GET_BUFFER(buffer) as-integer #")"
 			]
-			all [cp < MAX_ESC_CHARS escape-chars/idx <> null-byte][
+			all [type = ESC_CHAR cp < MAX_ESC_CHARS escape-chars/idx <> null-byte][
 				append-char GET_BUFFER(buffer) as-integer #"^^"
 				append-char GET_BUFFER(buffer) as-integer escape-chars/idx
+			]
+			all [
+				type = ESC_URL
+				cp < MAX_URL_CHARS
+				escape-url-chars/idx = (as byte! ESC_URL)
+			][
+				append-char GET_BUFFER(buffer) as-integer #"%"
+				concatenate-literal buffer to-hex cp yes
 			]
 			true [
 				append-char GET_BUFFER(buffer) cp
@@ -856,15 +1005,15 @@ string: context [
 		tail: either zero? limit [						;@@ rework that part
 			as byte-ptr! s/tail
 		][
-			p + (part << (unit >> 1))
+			either negative? part [p][p + (part << (unit >> 1))]
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
-		
+
 		curly: 0
 		quote: 0
 		nl:    0
 		sniff-chars p tail unit :curly :quote :nl
-		
+
 		either any [
 			nl >= 3
 			negative? curly
@@ -877,7 +1026,7 @@ string: context [
 			open:  #"^""
 			close: #"^""
 		]
-		
+
 		append-char GET_BUFFER(buffer) as-integer open
 		
 		while [p < tail][
@@ -892,22 +1041,16 @@ string: context [
 						if curly <> 0 [append-char GET_BUFFER(buffer) as-integer #"^^"]
 						append-char GET_BUFFER(buffer) cp
 					]
-					#"^"" [
-						append-char GET_BUFFER(buffer) cp
-					]
-					#"^^" [
-						concatenate-literal buffer "^^^^"
-					]
-					default [
-						append-escaped-char buffer cp
-					]
+					#"^""	[append-char GET_BUFFER(buffer) cp]
+					#"^^"	[concatenate-literal buffer "^^^^"]
+					default [append-escaped-char buffer cp ESC_CHAR all?]
 				]
 			][
-				append-escaped-char buffer cp
+				append-escaped-char buffer cp ESC_CHAR all?
 			]
 			p: p + unit
 		]
-		
+
 		append-char GET_BUFFER(buffer) as-integer close
 		part - ((as-integer tail - head) >> (unit >> 1)) - 2
 	]
@@ -1147,11 +1290,18 @@ string: context [
 		result: stack/push as red-value! str
 		
 		s: GET_BUFFER(str)
-		if s/offset = s/tail [							;-- early exit if string is empty
+		unit: GET_UNIT(s)
+		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		end: as byte-ptr! s/tail
+
+		if any [							;-- early exit if string is empty or at tail
+			s/offset = s/tail
+			all [not reverse? buffer >= end]
+		][
 			result/header: TYPE_NONE
 			return result
 		]
-		unit: GET_UNIT(s)
+
 		step: 1
 		part?: no
 
@@ -1449,16 +1599,18 @@ string: context [
 			form-buf  [red-string!]
 			s		  [series!]
 			s2		  [series!]
+			dup-n	  [integer!]
 			cnt		  [integer!]
 			part	  [integer!]
-			unit	  [integer!]
-			i		  [integer!]
+			len		  [integer!]
+			rest	  [integer!]
 			added	  [integer!]
 			type	  [integer!]
 			tail?	  [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/insert"]]
 
+		dup-n: 1
 		cnt:  1
 		part: -1
 		
@@ -1479,6 +1631,8 @@ string: context [
 		if OPTION?(dup-arg) [
 			int: as red-integer! dup-arg
 			cnt: int/value
+			if negative? cnt [return as red-value! str]
+			dup-n: cnt
 		]
 		
 		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
@@ -1488,21 +1642,22 @@ string: context [
 			(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) = str/head
 			append?
 		]
-		i: 0
-		added: 0
 		
 		while [not zero? cnt][							;-- /dup support
 			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
 				src: as red-block! value
-				if negative? part [part: block/rs-length? src] 	;-- if not /part, use whole value length
 				s2: GET_BUFFER(src)
 				cell:  s2/offset + src/head
-				limit: cell + part						;-- /part support
+				limit: cell + block/rs-length? src
 			][
 				cell:  value
 				limit: value + 1
 			]
-			while [cell < limit][						;-- multiple values case
+			rest: 0
+			added: 0
+			while [
+				all [cell < limit added <> part]		;-- multiple values case
+			][
 				type: TYPE_OF(cell)
 				
 				either type = TYPE_CHAR [
@@ -1511,8 +1666,7 @@ string: context [
 					either tail? [
 						append-char s char/value
 					][
-						insert-char s str/head + i char/value
-						i: i + 1
+						insert-char s str/head + added char/value
 					]
 					added: added + 1
 				][
@@ -1526,18 +1680,25 @@ string: context [
 						form-buf: string/rs-make-at form-slot 16
 						actions/form cell form-buf null 0
 					]
-					either tail? [
-						concatenate str form-buf part no no
-					][
-						concatenate str form-buf part no yes
+					len: rs-length? form-buf
+					rest: len		 					;-- if not /part, use whole value length
+					if positive? part [					;-- /part support
+						rest: part - added
+						if rest > len [rest: len]
 					]
-					added: added + rs-length? form-buf
+					either tail? [
+						concatenate str form-buf rest 0 no no
+					][
+						concatenate str form-buf rest added no yes
+					]
+					added: added + rest
 				]
 				cell: cell + 1
 			]
 			cnt: cnt - 1
 		]
 		unless append? [
+			added: added * dup-n
 			str/head: str/head + added
 			s: GET_BUFFER(str)
 			assert (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail
@@ -1642,12 +1803,67 @@ string: context [
 			move-memory 
 				head
 				head + part
-				as-integer tail - (head + part)
+				as-integer tail - (head + part) + unit ;-- size including trailing NUL
 		]
 		s/tail: as red-value! tail - part
 		str
 	]
-	
+
+	reverse: func [
+		str	 	 [red-string!]
+		part-arg [red-value!]
+		return:	 [red-string!]
+		/local
+			s		[series!]
+			part	[integer!]
+			unit	[integer!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+			temp	[byte-ptr!]
+			int		[red-integer!]
+			str2	[red-string!]
+	][
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		if head = tail [return str]						;-- early exit if nothing to reverse
+
+		part: 0
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				str2: as red-string! part-arg
+				unless all [
+					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
+					str2/node = str/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				str2/head - str/head
+			]
+			if part <= 0 [return str]					;-- early exit if negative /part index
+			part: part << (unit >> 1)
+		]
+
+		if all [positive? part head + part < tail] [tail: head + part]
+		tail: tail - unit								;-- point to last value
+		temp: as byte-ptr! :part
+		while [head < tail][							;-- TODO: optimise it according to unit
+			copy-memory temp head unit
+			copy-memory head tail unit
+			copy-memory tail temp unit
+			head: head + unit
+			tail: tail - unit
+		]
+		str
+	]
+
 	;--- Misc actions ---
 
 	copy: func [
@@ -1721,9 +1937,6 @@ string: context [
 	]
 	
 	init: does [
-		escape-chars: allocate MAX_ESC_CHARS
-		fill-table
-	
 		datatype/register [
 			TYPE_STRING
 			TYPE_VALUE
@@ -1772,7 +1985,7 @@ string: context [
 			:pick
 			:poke
 			:remove
-			null			;reverse
+			:reverse
 			:select
 			null			;sort
 			:skip

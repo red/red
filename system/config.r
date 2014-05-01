@@ -26,6 +26,8 @@ REBOL [
 ;;  red-store-bodies?:	 yes | no				;-- no => do not store function! value bodies (default: yes)
 ;;	red-strict-check?: yes						;-- no => defers undefined word errors reporting at run-time
 ;;  red-tracing?:	 yes						;-- no => do not compile tracing code
+;;  legacy:			block! of words				;-- flags for OS legacy features support
+;;		- stat32								;-- use the older stat struct for 32-bit file access.
 ;;-------------------------------------------
 
 ;-------------------------
@@ -65,6 +67,13 @@ Linux [									; Linux default target
 	format: 	'ELF
 	type:		'exe
 	dynamic-linker: "/lib/ld-linux.so.2"
+]
+Linux-Old [
+	OS:			'Linux
+	format: 	'ELF
+	type:		'exe
+	dynamic-linker: "/lib/ld-linux.so.2"
+	legacy:		[stat32]
 ]
 ;-------------------------
 ;LinSO [								; not supported yet
@@ -134,6 +143,15 @@ Syllable [
 	format: 	'ELF
 	type:		'exe
 	base-address: -2147483648			; 80000000h
+]
+;-------------------------
+FreeBSD [
+	OS:			'FreeBSD
+	format: 	'ELF
+	type:		'exe
+	dynamic-linker: "/usr/libexec/ld-elf.so.1"
+	syscall: 'BSD
+	target: 'IA-32
 ]
 ;-------------------------
 Darwin [

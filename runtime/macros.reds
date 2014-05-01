@@ -166,7 +166,6 @@ Red/System [
 	NAT_NOT
 	NAT_HALT
 	NAT_TYPE?
-	NAT_LOAD
 	NAT_REDUCE
 	NAT_COMPOSE
 	NAT_STATS
@@ -177,6 +176,14 @@ Red/System [
 	NAT_INTERSECT
 	NAT_UNIQUE
 	NAT_DIFFERENCE
+	NAT_COMPLEMENT?
+	NAT_DEHEX
+	NAT_NEGATIVE?
+	NAT_POSITIVE?
+	NAT_MAX
+	NAT_MIN
+	NAT_SHIFT
+	NAT_TO_HEX
 ]
 
 #enum math-op! [
@@ -184,6 +191,11 @@ Red/System [
 	OP_SUB
 	OP_MUL
 	OP_DIV
+	OP_REM
+	;-- bitwise op!
+	OP_OR
+	OP_AND
+	OP_XOR
 ]
 
 #enum comparison-op! [

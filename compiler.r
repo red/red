@@ -250,6 +250,7 @@ red: context [
 		emit to path! reduce [to word! form type? buffer 'load]
 		emit form buffer
 		emit 1 + length? buffer							;-- account for terminal zero
+		emit 'UTF-8
 	]
 	
 	emit-open-frame: func [name [word!] /local type][
@@ -778,7 +779,7 @@ red: context [
 		]
 	]
 		
-	emit-routine: func [name [word!] spec [block!] /local type cnt offset][
+	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter][
 		declare-variable/init 'r_arg to paren! [as red-value! 0]
 		emit [r_arg: stack/arguments]
 		insert-lf -2
@@ -790,7 +791,8 @@ red: context [
 		][
 			offset: 1
 			append/only output append to path! form get type/1 'box
-		]		
+		]
+		if alter: select ssa-names name [name: alter]
 		emit name
 		cnt: 0
 
@@ -827,7 +829,7 @@ red: context [
 			output: saved
 	]
 	
-	comp-literal: func [root? [logic!] /local value char? name w make-block][
+	comp-literal: func [root? [logic!] /inactive /local value char? name w make-block type][
 		value: pc/1
 		either any [
 			char?: unicode-char? value
@@ -843,11 +845,21 @@ red: context [
 					emit to integer! next value
 					insert-lf -2
 				]
-				find [refinement! issue!] type?/word :value [
+				find [refinement! issue! lit-word!] type?/word :value [
 					add-symbol w: to word! form value
-					emit to path! reduce [to word! form type? value 'push]
-					emit to path! reduce ['exec decorate-symbol w]
-					insert-lf -2
+					type: to word! form type? :value
+					if all [lit-word? :value not inactive][type: 'word]
+					
+					either all [not issue? :value local-word? w][
+						emit append to path! type 'push-local
+						emit last ctx-stack
+						emit get-word-index w
+						insert-lf -3
+					][
+						emit to path! reduce [type 'push]
+						emit to path! reduce ['exec decorate-symbol w]
+						insert-lf -2
+					]
 				]
 				none? :value [
 					emit 'none/push
@@ -958,12 +970,26 @@ red: context [
 	]
 	
 	comp-any: does [
-		comp-boolean-expressions 'any ['if 'logic/false? body]
+		either block? pc/1 [
+			comp-boolean-expressions 'any ['if 'logic/false? body]
+		][
+			emit-open-frame 'any
+			comp-expression
+			emit-native 'any
+			emit-close-frame
+		]
 	]
 	
 	comp-all: does [
-		comp-boolean-expressions 'all [
-			'either 'logic/false? set-last-none body
+		either block? pc/1 [
+			comp-boolean-expressions 'all [
+				'either 'logic/false? set-last-none body
+			]
+		][
+			emit-open-frame 'all
+			comp-expression
+			emit-native 'all
+			emit-close-frame
 		]
 	]
 		
@@ -1661,34 +1687,42 @@ red: context [
 	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!] /local word][
 		if ref [spec: find/tail spec name]
 		loop nb [
-			while [not any-word? spec/1][				;-- skip types blocks
+			while [not any-word? spec/1][				;-- skip attributs and docstrings
 				spec: next spec
 			]
 			switch type?/word spec/1 [
 				lit-word! [
-					switch/default type?/word pc/1 [
-						get-word! [
-							add-symbol to word! pc/1
-							comp-expression
-						]
-						lit-word! [
-							add-symbol word: to word! pc/1
-							emit 'lit-word/push
-							emit decorate-symbol word
-							insert-lf -2
-							pc: next pc
-						]
-						word! [
-							add-symbol word: to word! pc/1
-							emit-push-word word				;@@ add specific type checking
-							pc: next pc
-						]
-						paren! [comp-expression]
+					either all [
+						tail? pc
+						all [spec/2 find spec/2 'any-type!]
 					][
-						comp-literal no
+						emit 'unset/push				;-- provide unset as placeholder
+						insert-lf -1
+					][
+						switch/default type?/word pc/1 [
+							get-word! [
+								add-symbol to word! pc/1
+								comp-expression
+							]
+							lit-word! [
+								add-symbol word: to word! pc/1
+								emit 'lit-word/push
+								emit decorate-symbol word
+								insert-lf -2
+								pc: next pc
+							]
+							word! [
+								add-symbol word: to word! pc/1
+								emit-push-word word				;@@ add specific type checking
+								pc: next pc
+							]
+							paren! [comp-expression]
+						][
+							comp-literal no
+						]
 					]
 				]
-				get-word! [comp-literal no]
+				get-word! [comp-literal/inactive no]
 				word!     [comp-expression]
 			]
 			spec: next spec
@@ -1698,7 +1732,7 @@ red: context [
 	comp-call: func [
 		call [word! path!]
 		spec [block!]
-		/local item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref args
+		/local item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref args option
 	][
 		either spec/1 = 'intrinsic! [
 			switch any [all [path? call call/1] call] keywords
@@ -1743,7 +1777,9 @@ red: context [
 				either path? call [						;-- call with refinements?
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
-						unless pos: find/skip spec/4 to refinement! ref 3 [
+						option: to refinement! either integer? ref [form ref][ref]
+						
+						unless pos: find/skip spec/4 option 3 [
 							throw-error [call/1 "has no refinement called" ref]
 						]
 						offset: 2 + index? pos
@@ -1752,7 +1788,7 @@ red: context [
 							list: make block! 1
 							ctx/:offset: list 			;-- compiled refinement arguments storage
 							mark: tail output
-							comp-arguments/ref spec/3 args to refinement! ref
+							comp-arguments/ref spec/3 args option
 							append/only list copy mark
 							clear mark
 						]
@@ -1915,7 +1951,7 @@ red: context [
 		]
 	]
 	
-	check-infix-operators: has [name op pos end ops][
+	check-infix-operators: has [name op pos end ops spec][
 		if infix? pc [return false]						;-- infix op already processed,
 														;-- or used in prefix mode.
 		if infix? next pc [
@@ -1938,8 +1974,16 @@ red: context [
 			
 			forall ops [
 				comp-expression/no-infix				;-- fetch right operand
-				emit make-func-prefix ops/1
-				insert-lf -1
+				name: ops/1
+				spec: functions/:name
+				switch/default spec/1 [
+					function! [emit decorate-func name insert-lf -1]
+					routine!  [emit-routine name spec/3]
+				][
+					emit make-func-prefix name
+					insert-lf -1
+				]
+				
 				emit-close-frame
 				unless tail? next ops [pc: next pc]		;-- jump over op word unless last operand
 			]
@@ -2014,13 +2058,13 @@ red: context [
 				]
 				append include-stk script-path
 				
-				script-path: either relative-path? file [
+				script-path: either all [not booting? relative-path? file][
 					file: clean-path join any [script-path main-path] file
 					first split-path file
 				][
 					none
 				]
-				unless exists? file [
+				unless any [booting? exists? file][
 					throw-error ["include file not found:" pc/2]
 				]
 				either find included-list file [
@@ -2073,12 +2117,14 @@ red: context [
 				true
 			]
 			#load [										;-- temporary directive
-				change/part/only pc to do pc/2 pc/3 3 2
+				change/part/only pc to do pc/2 pc/3 3
 				comp-expression							;-- continue expression fetching
 				true
 			]
 			#version [
 				change pc rejoin [load-cache %version.r ", " now]
+				comp-expression
+				true
 			]
 		]
 	]

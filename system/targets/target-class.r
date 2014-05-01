@@ -33,7 +33,9 @@ target-class: context [
 	emit-throw:	on-init: emit-alt-last: none
 	
 	comparison-op: [= <> < > <= >=]
-	math-op:	   [+ - * / // ///]
+	math-op:	   compose [+ - * / // (to-word "%")]
+	mod-rem-op:    compose [// (to-word "%")]
+	mod-rem-func:  compose [// mod (to-word "%") rem]
 	bitwise-op:	   [and or xor]
 	bitshift-op:   [>> << -**]
 	
@@ -66,13 +68,14 @@ target-class: context [
 	]
 	
 	stack-encode: func [offset [integer!]][
-		if any [								;-- local variable case
+		either any [								;-- local variable case
 			offset < -128
 			offset > 127
 		][
-			compiler/throw-error "#code generation error: overflow in emit-variable"
+			to-bin32 offset
+		][
+			skip debase/base to-hex offset 16 3
 		]
-		skip debase/base to-hex offset 16 3		; @@ just to-char ??
 	]
 
 	emit: func [bin [binary! char! block!]][
@@ -95,13 +98,18 @@ target-class: context [
 		gcode [binary! block! none!]				;-- global opcodes
 		pcode [binary! block! none!]				;-- PIC opcodes
 		lcode [binary! block!] 						;-- local opcodes
-		/local offset
+		/local offset byte code
 	][
 		if object? name [name: compiler/unbox name]
 		
 		case [
 			offset: select emitter/stack name [
 				offset: stack-encode offset 			;-- local variable case
+				if 4 = length? offset [
+					lcode: copy/deep lcode
+					code: either block? lcode [first back find lcode 'offset][lcode]
+					change byte: back tail code byte xor #{C0}	;-- switch to 32-bit displacement mode
+				]
 				either block? lcode [
 					emit reduce bind lcode 'offset
 				][

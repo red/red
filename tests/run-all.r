@@ -36,6 +36,8 @@ print rejoin ["REBOL " system/version]
 
 start-time: now/precise
 
+--setup-temp-files
+
 ***start-run-quiet*** "Red Test Suite"
 
 ===start-group=== "Red compiler unit tests"
@@ -51,6 +53,7 @@ start-time: now/precise
   	--run-script-quiet %source/compiler/print-test.r
   	--run-script-quiet %source/compiler/regression-tests.r
   	--run-script-quiet %source/compiler/run-time-error-test.r
+  	--run-script-quiet %source/compiler/compile-error-test.r
 ===end-group===
 
 ===start-group=== "Red Units tests"
@@ -78,6 +81,13 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/bitset-test.red
   	;;--run-test-file-quiet  %source/units/same-test.red   ;; space added so not include in run-all.r
   	--run-test-file-quiet %source/units/strict-equal-test.red
+  	--run-test-file-quiet %source/units/object-test.red
+  	--run-test-file-quiet %source/units/integer-test.red
+  	--run-test-file-quiet %source/units/char-test.red
+===end-group===
+
+===start-group=== "Red Library tests"
+	
 ===end-group===
 
 ===start-group=== "Auto-tests"
@@ -116,6 +126,8 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/auto-tests/interpreter-system-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-parse-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-bitset-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-integer-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-char-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-equal-auto-test.red
   	;;--run-test-file-quiet  %source/units/auto-tests/interp-same-test.red ;; space added so not include in run-all.r 
   	--run-test-file-quiet %source/units/auto-tests/interp-greater-auto-test.red
@@ -129,9 +141,12 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/auto-tests/interp-lesser-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-lesser-equal-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-not-equal-auto-test.red
+  	
 ===end-group===
 
 ***end-run-quiet***
+
+--delete-temp-files
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
@@ -139,7 +154,7 @@ system/options/quiet: store-quiet-mode
 either batch-mode [
 	quit/return either qt/test-run/failures > 0 [1] [0]
 ][
-	print "The test output was logged to Red/quick-test/quick-test.log"
+	print ["The test output was logged to" qt/log-file]
 	ask "hit enter to finish"
 	print ""
 	qt/test-run/failures

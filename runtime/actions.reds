@@ -290,10 +290,22 @@ actions: context [
 	
 	set-path*: func [][]
 	
+	compare*: func [
+		op		[comparison-op!]
+		return: [red-logic!]
+		/local
+			result [red-logic!]
+	][
+		result: as red-logic! stack/arguments
+		result/value: compare stack/arguments stack/arguments + 1 op
+		result/header: TYPE_LOGIC
+		result
+	]	
+	
 	compare: func [
 		value1  [red-value!]
 		value2  [red-value!]
-		op	    [integer!]
+		op	    [comparison-op!]
 		return: [logic!]
 		/local
 			action-compare
@@ -310,7 +322,18 @@ actions: context [
 		action-compare value1 value2 op
 	]
 	
-	absolute*: func [][]
+	absolute*: func [
+		return:	[red-value!]
+		/local
+			action-absolute
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/absolute"]]
+
+		action-absolute: as function! [
+			return:	[red-value!]						;-- absoluted value
+		] get-action-ptr* ACT_ABSOLUTE
+		action-absolute
+	]
 	
 	add*: func [
 		return:	[red-value!]
@@ -373,10 +396,34 @@ actions: context [
 		] get-action-ptr value ACT_NEGATE
 		
 		action-negate value
-	]	
-	
-	power*: func [][]
-	remainder*: func [][]
+	]
+
+	power*: func [
+		return:	[red-value!]
+		/local
+			action-power
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/power"]]
+
+		action-power: as function! [
+			return:	[red-value!]						;-- addition resulting value
+		] get-action-ptr* ACT_POWER
+		action-power
+	]
+
+	remainder*: func [
+		return:	  [red-value!]
+		/local
+			action-remainder
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/remainder"]]
+
+		action-remainder: as function! [
+			return:	  [red-value!]
+		] get-action-ptr* ACT_REMAINDER
+		action-remainder
+	]
+
 	round*: func [][]
 	
 	subtract*: func [
@@ -436,7 +483,18 @@ actions: context [
 		action-odd? value
 	]
 	
-	and~*: func [][]
+	and~*: func [
+		return:	[red-value!]
+		/local
+			action-and~
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/and~"]]
+
+		action-and~: as function! [
+			return:	[red-value!]						;-- division resulting value
+		] get-action-ptr* ACT_AND~
+		action-and~
+	]
 	
 	complement*: does [
 		stack/set-last complement stack/arguments
@@ -455,10 +513,33 @@ actions: context [
 		
 		action-complement value
 	]
-	
-	or~*: func [][]
-	xor~*: func [][]
-	
+
+	or~*: func [
+		return:	[red-value!]
+		/local
+			action-or~
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/or~"]]
+
+		action-or~: as function! [
+			return:	[red-value!]						;-- division resulting value
+		] get-action-ptr* ACT_OR~
+		action-or~
+	]
+
+	xor~*: func [
+		return:	[red-value!]
+		/local
+			action-xor~
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/xor~"]]
+
+		action-xor~: as function! [
+			return:	[red-value!]						;-- division resulting value
+		] get-action-ptr* ACT_XOR~
+		action-xor~
+	]
+
 	append*: func [
 		part  [integer!]
 		only  [integer!]
@@ -715,13 +796,19 @@ actions: context [
 	length?*: func [
 		return:	[red-integer!]
 		/local
-			int [red-integer!]
+			int	  [red-integer!]
+			value [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/length?"]]
 
 		int: as red-integer! stack/arguments
-		int/value:  length? stack/arguments				;-- must be set before slot is modified
-		int/header: TYPE_INTEGER
+		value: length? stack/arguments					;-- must be set before slot is modified
+		either value = -1 [
+			none/push-last
+		][
+			int/value:  value
+			int/header: TYPE_INTEGER
+		]
 		int
 	]
 	
@@ -840,8 +927,32 @@ actions: context [
 		
 		action-remove series part
 	]
-	
-	reverse*: func [][]
+
+	reverse*: func [
+		part [integer!]
+	][
+		reverse
+			as red-series! stack/arguments
+			stack/arguments + part
+	]
+
+	reverse: func [
+		series  [red-series!]
+		part	[red-value!]
+		return:	[red-value!]
+		/local
+			action-reverse
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/reverse"]]
+
+		action-reverse: as function! [
+			series	[red-series!]
+			part	[red-value!]
+			return:	[red-value!]
+		] get-action-ptr as red-value! series ACT_REVERSE
+
+		action-reverse series part
+	]
 	
 	select*: func [
 		part	 [integer!]
@@ -975,22 +1086,22 @@ actions: context [
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute*
 			:add*
 			:divide*
 			:multiply*
 			:negate*
-			null			;power
-			null			;remainder
+			:power*
+			:remainder*
 			null			;round
 			:subtract*
 			:even?*
 			:odd?*
 			;-- Bitwise actions --
-			null			;and~
+			:and~*
 			:complement*
-			null			;or~
-			null			;xor~
+			:or~*
+			:xor~*
 			;-- Series actions --
 			:append*
 			:at*
@@ -1008,7 +1119,7 @@ actions: context [
 			:pick*
 			:poke*
 			:remove*
-			null			;reverse
+			:reverse*
 			:select*
 			null			;sort
 			:skip*

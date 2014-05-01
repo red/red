@@ -7,6 +7,8 @@ REBOL [
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
+do-cache %lexer.r
+
 loader: make-profilable context [
 	verbose: 	  0
 	include-list: make hash! 20
@@ -57,8 +59,12 @@ loader: make-profilable context [
 	]
 
 	included?: func [file [file!]][
-		if all [encap? encap-fs/base] [file: join encap-fs/base file]
-		
+		all [
+			encap?
+			encap-fs/base
+			slash <> first file
+			file: join encap-fs/base file
+		]
 		attempt [file: get-modes file 'full-path]
 		either find include-list file [true][
 			append include-list file
@@ -97,7 +103,7 @@ loader: make-profilable context [
 		if any [
 			not any [word? payload/1 lit-word? payload/1]
 			not in job payload/1
-			all [type <> 'switch not find [= <> < > <= >=] payload/2]
+			all [type <> 'switch not find [= <> < > <= >= contains] payload/2]
 		][
 			throw-error rejoin ["invalid #" type " condition"]
 		]
@@ -107,7 +113,12 @@ loader: make-profilable context [
 				select payload/2 #default
 			]
 		][
-			do bind copy/part payload 3 job
+			payload: either payload/2 = 'contains [
+				compose/deep [all [(payload/1) find (payload/1) (payload/3)]]
+			][
+				copy/part payload 3
+			]
+			do bind payload job
 		]
 	]
 	
@@ -195,9 +206,6 @@ loader: make-profilable context [
 				| ws s: ">>>" e: ws (
 					e: change/part s "-**" e		;-- convert >>> to -**
 				) :e
-				| ws s: #"%" e: ws (
-					e: change/part s "///" e		;-- convert % to ///
-				) :e
 				| [hex-delim | ws]
 				s: copy value some [hex-chars (c: c + 1)] #"h"	;-- literal hexadecimal support	
 				e: [hex-delim | ws-all | #";" to lf | end] (
@@ -216,7 +224,7 @@ loader: make-profilable context [
 	expand-block: func [
 		src [block!]
 		/own
-		/local blk rule name value args s e opr then-block else-block cases body
+		/local blk rule name value args s e opr then-block else-block cases body p
 			saved stack header mark idx prev enum-value enum-name enum-names line-rule recurse
 	][
 		if verbose > 0 [print "running block preprocessor..."]
@@ -354,6 +362,13 @@ loader: make-profilable context [
 						remove/part s e
 					]
 				) :s
+				| s: #case set cases block! e: (
+					either body: select reduce bind cases job true [
+						change/part s body e
+					][
+						remove/part s e
+					]
+				) :s
 				| s: #pop-path set value integer! e: (
 					either all [encap? own][
 						unless zero? value [pop-encap-path value]
@@ -373,7 +388,8 @@ loader: make-profilable context [
 						]
 					]
 				)
-				| path! | set-path!						;-- avoid diving into these series
+				| p: [path! | set-path!] :p into [some [defs | skip]]	;-- process macros in paths
+				
 				| s: (if any [block? s/1 paren? s/1][append/only stack copy [1]])
 				  [into blk | block! | paren!]			;-- black magic...
 				  s: (
@@ -438,7 +454,7 @@ loader: make-profilable context [
 		
 		unless block? src [
 			expand-string src						;-- process string-level compiler directives
-			if error? set/any 'err try [src: load/all src][	;-- convert source to blocks
+			if error? set/any 'err try [src: lexer/process as-binary src][	;-- convert source to blocks
 				throw-error ["syntax error during LOAD phase:" mold disarm err]
 			]
 		]

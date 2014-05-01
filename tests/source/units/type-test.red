@@ -76,7 +76,7 @@ Red [
 	--assert word! = type? value
 	--test-- "type?wv-12"
 		value: first ['a]
-	--assert word! = type? value
+	--assert lit-word! = type? value
 ===end-group===
 
 ===start-group=== "get word value"

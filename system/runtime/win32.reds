@@ -76,7 +76,7 @@ win32-startup-ctx: context [
 				handle		[integer!]
 				buffer		[c-string!]
 				len			[integer!]
-				written		[struct! [value [integer!]]]
+				written		[int-ptr!]
 				overlapped	[integer!]
 				return:		[integer!]
 			]

@@ -21,32 +21,32 @@ integer!:		make datatype! #get-definition TYPE_INTEGER
 ;symbol!:		make datatype! #get-definition TYPE_SYMBOL
 ;context!:		make datatype! #get-definition TYPE_CONTEXT
 word!:			make datatype! #get-definition TYPE_WORD
-error!:			make datatype! #get-definition TYPE_ERROR
-typeset!:		make datatype! #get-definition TYPE_TYPESET
+;error!:		make datatype! #get-definition TYPE_ERROR
+;typeset!:		make datatype! #get-definition TYPE_TYPESET
 file!:			make datatype! #get-definition TYPE_FILE
 
 set-word!:		make datatype! #get-definition TYPE_SET_WORD
 get-word!:		make datatype! #get-definition TYPE_GET_WORD
 lit-word!:		make datatype! #get-definition TYPE_LIT_WORD
 refinement!:	make datatype! #get-definition TYPE_REFINEMENT
-binary!:		make datatype! #get-definition TYPE_BINARY
+;binary!:		make datatype! #get-definition TYPE_BINARY
 paren!:			make datatype! #get-definition TYPE_PAREN
 char!:			make datatype! #get-definition TYPE_CHAR
 issue!:			make datatype! #get-definition TYPE_ISSUE
 path!:			make datatype! #get-definition TYPE_PATH
 set-path!:		make datatype! #get-definition TYPE_SET_PATH
 get-path!:		make datatype! #get-definition TYPE_GET_PATH
-lit-path!:		make datatype! #get-definition TYPE_LIT_PATH	
+lit-path!:		make datatype! #get-definition TYPE_LIT_PATH
 native!:		make datatype! #get-definition TYPE_NATIVE
 action!:		make datatype! #get-definition TYPE_ACTION
 op!:			make datatype! #get-definition TYPE_OP
 function!:		make datatype! #get-definition TYPE_FUNCTION
-closure!:		make datatype! #get-definition TYPE_CLOSURE
+;closure!:		make datatype! #get-definition TYPE_CLOSURE
 routine!:		make datatype! #get-definition TYPE_ROUTINE
 object!:		make datatype! #get-definition TYPE_OBJECT
-port!:			make datatype! #get-definition TYPE_PORT
+;port!:			make datatype! #get-definition TYPE_PORT
 bitset!:		make datatype! #get-definition TYPE_BITSET
-float!:			make datatype! #get-definition TYPE_FLOAT
+;float!:		make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
 pair!:			make datatype! #get-definition TYPE_PAIR
 
@@ -54,9 +54,12 @@ none:  			make none! 0
 true:  			make logic! 1
 false: 			make logic! 0
 
+
 ;------------------------------------------
 ;-				Actions					  -
 ;------------------------------------------
+
+;; Warning: do not define any function of any kind before MAKE definition
 
 make: make action! [[									;--	this one works!	;-)
 		"Returns a new value made from a spec for that value's type."
@@ -115,27 +118,27 @@ absolute: make action! [[
 
 add: make action! [[
 		"Returns the sum of the two values."
-		value1	 [number!]
-		value2	 [number!]
-		return:  [number!]
+		value1	 [number! char!]
+		value2	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values."
-		value1	 [number!] "The dividend (numerator)."
-		value2	 [number!] "The divisor (denominator)."
-		return:  [number!]
+		value1	 [number! char!] "The dividend (numerator)."
+		value2	 [number! char!] "The divisor (denominator)."
+		return:  [number! char!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values."
-		value1	 [number!]
-		value2	 [number!]
-		return:  [number!]
+		value1	 [number! char!]
+		value2	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_MULTIPLY
 ]
@@ -159,15 +162,29 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another."
-		value1 	 [number!]
-		value2 	 [number!]
-		return:  [number!]
+		value1 	 [number! char!]
+		value2 	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_REMAINDER
 ]
 
+modulo: func [
+	"Compute a nonnegative remainder of A divided by B."
+	a		[number!]
+	b		[number!]
+	return: [number!]
+	/local r
+][
+	b: absolute b
+    all [0 > r: a % b r: r + b]
+    a: absolute a
+    either all [a + r = (a + b) 0 < r + r - b] [r - b] [r]
+]
+
 round: make action! [[
-		"TBD: Returns the nearest integer. Halves round up (away from zero) by default."
+		"(not yet implemented)"
+		;"Returns the nearest integer. Halves round up (away from zero) by default."
 		n		[number!]
 		/to		"Return the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
@@ -183,42 +200,65 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values."
-		value1	 [number!]
-		value2	 [number!]
-		return:  [number!]
+		value1	 [number! char!]
+		value2	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_SUBTRACT
 ]
 
 even?: make action! [[
 		"Returns true if the number is evenly divisible by 2."
-		number 	 [number!]
-		return:  [number!]
+		number 	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_EVEN?
 ]
 
 odd?: make action! [[
 		"Returns true if the number has a remainder of 1 when divided by 2."
-		number 	 [number!]
-		return:  [number!]
+		number 	 [number! char!]
+		return:  [number! char!]
 	]
 	#get-definition ACT_ODD?
 ]
 
 ;-- Bitwise actions --
 
-;and~
+and~: make action! [[
+		"Returns the first value ANDed with the second."
+		value1	[logic! integer! char! bitset! typeset!]
+		value2	[logic! integer! char! bitset! typeset!]
+		return:	[logic! integer! char! bitset! typeset!]
+	]
+	#get-definition ACT_AND~
+]
 
 complement: make action! [[
+		"Returns the opposite (complementing) value of the input value."
 		value	[logic! integer! bitset! typeset!]
 		return: [logic! integer! bitset! typeset!]
 	]
 	#get-definition ACT_COMPLEMENT
 ]
 
-;or~
-;xor~
+or~: make action! [[
+		"Returns the first value ORed with the second."
+		value1	[logic! integer! char! bitset! typeset!]
+		value2	[logic! integer! char! bitset! typeset!]
+		return:	[logic! integer! char! bitset! typeset!]
+	]
+	#get-definition ACT_OR~
+]
+
+xor~: make action! [[
+		"Returns the first value exclusive ORed with the second."
+		value1	[logic! integer! char! bitset! typeset!]
+		value2	[logic! integer! char! bitset! typeset!]
+		return:	[logic! integer! char! bitset! typeset!]
+	]
+	#get-definition ACT_XOR~
+]
 
 ;-- Series actions --
 
@@ -381,7 +421,15 @@ remove: make action! [[
 	#get-definition ACT_REMOVE
 ]
 
-;reverse
+reverse: make action! [[
+		"Reverses the order of elements; returns at same position."
+		series	 [series! gob! tuple! pair!]
+		/part "Limits to a given length or position"
+			length [number! series!]
+		return:  [series! gob! tuple! pair!]
+	]
+	#get-definition ACT_REVERSE
+]
 
 select: make action! [[
 		"Find a value in a series and return the next value, or NONE."
@@ -743,18 +791,6 @@ type?: make native! [[
 	#get-definition NAT_TYPE?
 ]
 
-load: make native! [[
-		"Returns a value or block of values by reading and evaluating a source."
-		source [file! url! string! binary! block!]
-		/header "TBD: Include Red header as a loaded value"
-		/all    "TBD: Don't evaluate Red header"
-		/type	"TBD:"
-		/into "Put results in out block, instead of creating a new block"
-			out [block!] "Target block for results, when /into is used"
-	]
-	#get-definition NAT_LOAD
-]
-
 stats: make native! [[
 		"Returns interpreter statistics."
 		/show "TBD:"
@@ -785,6 +821,8 @@ parse: make native! [[
 		rules [block!]
 		/case
 		;/strict
+		/part
+			length [number! series!]
 		/trace
 			callback [function! [
 				event	[word!]
@@ -810,24 +848,101 @@ union: make native! [[
 	#get-definition NAT_UNION
 ]
 
+complement?: make native! [[
+		"Returns true if the bitset is complemented."
+		bits [bitset!]
+	]
+	#get-definition NAT_COMPLEMENT?
+]
+
+dehex: make native! [[
+		"Converts URL-style hex encoded (%xx) strings."
+		value [string! file!]							;@@ replace with any-string!
+	]
+	#get-definition NAT_DEHEX
+]
+
+negative?: make native! [[
+		"Returns TRUE if the number is negative."
+		number [number!]
+	]
+	#get-definition NAT_NEGATIVE?
+]
+
+positive?: make native! [[
+		"Returns TRUE if the number is positive."
+		number [number!]
+	]
+	#get-definition NAT_POSITIVE?
+]
+
+max: make native! [[
+		"Returns the greater of the two values."
+		value1 [number! series!]
+		value2 [number! series!]
+	]
+	#get-definition NAT_MAX
+]
+
+min: make native! [[
+		"Returns the lesser of the two values."
+		value1 [number! series!]
+		value2 [number! series!]
+	]
+	#get-definition NAT_MIN
+]
+
+shift: make native! [[
+		"Perform a bit shift operation. Right shift (decreasing) by default."
+		data	[integer! binary!]
+		bits	[integer!]
+		/left	 "Shift bits to the left (increasing)"
+		/logical "Use logical shift (unsigned, fill with zero)"
+		return: [integer! binary!]
+	]
+	#get-definition NAT_SHIFT
+]
+
+shift-right:   routine [][natives/shift* -1 -1]
+shift-left:	   routine [][natives/shift* 1 -1]
+shift-logical: routine [][natives/shift* -1 1]
+
+to-hex: make native! [[
+		"Converts numeric value to a hex issue! datatype (with leading # and 0's)."
+		value	[integer! tuple!]
+		/size "Specify number of hex digits in result"
+			length [integer!]
+		return: [issue!]
+	]
+	#get-definition NAT_TO_HEX
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
 
 ;-- #load temporary directive is used to workaround REBOL LOAD limitations on some words
 
-#load set-word! "+"  make op! :add
-#load set-word! "-"  make op! :subtract
-#load set-word! "*"  make op! :multiply
-#load set-word! "/"  make op! :divide
-#load set-word! "="  make op! :equal?
-#load set-word! "<>" make op! :not-equal?
-#load set-word! "==" make op! :strict-equal?
-#load set-word! "=?" make op! :same?
-#load set-word! "<"  make op! :lesser?
-#load set-word! ">"  make op! :greater?
-#load set-word! "<=" make op! :lesser-or-equal?
-#load set-word! ">=" make op! :greater-or-equal?
+#load set-word! "+"		make op! :add
+#load set-word! "-"		make op! :subtract
+#load set-word! "*"		make op! :multiply
+#load set-word! "/"		make op! :divide
+#load set-word! "//"	make op! :modulo
+#load set-word! "%"		make op! :remainder
+#load set-word! "="		make op! :equal?
+#load set-word! "<>"	make op! :not-equal?
+#load set-word! "=="	make op! :strict-equal?
+#load set-word! "=?"	make op! :same?
+#load set-word! "<" 	make op! :lesser?
+#load set-word! ">" 	make op! :greater?
+#load set-word! "<="	make op! :lesser-or-equal?
+#load set-word! ">="	make op! :greater-or-equal?
+#load set-word! "<<"	make op! :shift-left
+#load set-word! ">>"	make op! :shift-right
+#load set-word! ">>>"	make op! :shift-logical
+and:					make op! :and~
+or:						make op! :or~
+xor:					make op! :xor~
 
 
 ;------------------------------------------
@@ -852,6 +967,8 @@ dot:		 #"."
 ;------------------------------------------
 ;-			   Mezzanines				  -
 ;------------------------------------------
+
+comment: func [value][]
 
 quit-return: routine [
 	"Stops evaluation and exits the program with a given status."
@@ -907,6 +1024,7 @@ last:	func ["Returns the last value in a series."  s [series!]][pick back tail s
 
 
 action?:	 func ["Returns true if the value is this type." value [any-type!]] [action!	= type? :value]
+bitset?:	 func ["Returns true if the value is this type." value [any-type!]] [bitset!	= type? :value]
 block?:		 func ["Returns true if the value is this type." value [any-type!]] [block!		= type? :value]
 char?: 		 func ["Returns true if the value is this type." value [any-type!]] [char!		= type? :value]
 datatype?:	 func ["Returns true if the value is this type." value [any-type!]] [datatype!	= type? :value]
@@ -921,6 +1039,7 @@ lit-word?:	 func ["Returns true if the value is this type." value [any-type!]] [
 logic?:		 func ["Returns true if the value is this type." value [any-type!]] [logic!		= type? :value]
 native?:	 func ["Returns true if the value is this type." value [any-type!]] [native!	= type? :value]
 none?:		 func ["Returns true if the value is this type." value [any-type!]] [none!		= type? :value]
+object?:	 func ["Returns true if the value is this type." value [any-type!]] [object!	= type? :value]
 op?:		 func ["Returns true if the value is this type." value [any-type!]] [op!		= type? :value]
 pair?:		 func ["Returns true if the value is this type." value [any-type!]] [pair!		= type? :value]
 paren?:		 func ["Returns true if the value is this type." value [any-type!]] [paren!		= type? :value]
@@ -971,9 +1090,10 @@ context: func [spec [block!]][make object! spec]
 
 system: function [
 	"Returns information about the interpreter."
-	/version	"Return the system version"
-	/words		"Return a block of global words available"
-	/platform	"Return a word identifying the operating system"
+	/version	  "Return the system version"
+	/words		  "Return a block of global words available"
+	/platform	  "Return a word identifying the operating system"
+	/interpreted? "Return TRUE if called from the interpreter"
 ][
 	case [
 		version [#version]
@@ -988,6 +1108,7 @@ system: function [
 				]
 			]
 		]
+		interpreted? [#system [logic/box stack/eval?]]
 		'else [
 			print "Please specify a system refinement value (/version, /words, or /platform)."
 		]
@@ -1074,7 +1195,52 @@ parse-trace: func [
 	input [series!]
 	rules [block!]
 	/case
+	/part
+		limit [integer!]
 	return: [logic! block!]
 ][
-	parse/trace input rules :on-parse-event
+	either case [
+		parse/case/trace input rules :on-parse-event
+	][
+		either part [
+			parse/part/trace input rules limit :on-parse-event
+		][
+			parse/trace input rules :on-parse-event
+		]
+	]
+]
+
+#include %lexer.red
+
+load: function [
+	"Returns a value or block of values by reading and evaluating a source."
+	source [file! url! string! binary!]
+	/header "TBD: Include Red header as a loaded value"
+	/all    "TBD: Don't evaluate Red header"
+	/type	"TBD:"
+	/part
+		length [integer! string!]
+	/into "Put results in out block, instead of creating a new block"
+		out [block!] "Target block for results"
+][
+	if part [
+		case [
+			zero? length [return make block! 1]
+			string? length [
+				if (index? length) = index? source [
+					return make block! 1
+				]
+			]
+		]
+	]
+	
+	unless out [out: make block! 4]
+	;switch type?/word [
+	;	file!	[]
+	;	url!	[]
+	;	binary! []
+	;]
+	either part [transcode/part source out length][transcode source out]
+	unless :all [if 1 = length? out [out: out/1]]
+	out 
 ]

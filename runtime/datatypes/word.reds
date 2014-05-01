@@ -23,18 +23,8 @@ word: context [
 		str 	[c-string!]
 		blk		[red-block!]
 		return:	[red-word!]
-		/local 
-			id    [integer!]							;-- symbol ID
-			cell  [red-word!]
 	][
-		id: symbol/make str
-
-		cell: as red-word! ALLOC_TAIL(blk)
-		cell/header: TYPE_WORD							;-- implicit reset of all header flags
-		cell/ctx: 	 global-ctx
-		cell/symbol: id
-		cell/index:  _context/add TO_CTX(global-ctx) cell
-		cell
+		push-in symbol/make str blk
 	]
 	
 	load: func [
@@ -42,6 +32,36 @@ word: context [
 		return:	[red-word!]
 	][
 		_context/add-global symbol/make str
+	]
+	
+	make-at: func [
+		id		[integer!]								;-- symbol ID
+		pos		[red-value!]
+		return:	[red-word!]
+		/local 
+			cell [red-word!]
+	][
+		cell: as red-word! pos
+		cell/header: TYPE_WORD							;-- implicit reset of all header flags
+		cell/ctx: 	 global-ctx
+		cell/symbol: id
+		cell/index:  _context/add TO_CTX(global-ctx) cell
+		cell
+	]
+	
+	box: func [
+		id		[integer!]								;-- symbol ID
+		return:	[red-word!]
+	][
+		make-at id stack/arguments
+	]
+	
+	push-in: func [
+		id		[integer!]								;-- symbol ID
+		blk		[red-block!]
+		return:	[red-word!]
+	][
+		make-at id ALLOC_TAIL(blk)
 	]
 	
 	push: func [
@@ -121,9 +141,6 @@ word: context [
 		
 		value: copy-cell _context/get word stack/push*
 		CHECK_UNSET(value)
-		if TYPE_OF(value) = TYPE_LIT_WORD [
-			value/header: TYPE_WORD						;-- cast lit-word! to word!
-		]
 		value
 	]
 	
@@ -164,6 +181,20 @@ word: context [
 
 		form w buffer arg part
 	]
+
+	any-word?: func [									;@@ discard it when ANY_WORD? available
+		type	[integer!]
+		return: [logic!]
+	][
+		any [
+			type = TYPE_WORD
+			type = TYPE_GET_WORD
+			type = TYPE_SET_WORD
+			type = TYPE_LIT_WORD
+			type = TYPE_REFINEMENT
+			type = TYPE_ISSUE
+		]
+	]
 	
 	compare: func [
 		arg1	 [red-word!]							;-- first operand
@@ -180,14 +211,7 @@ word: context [
 		switch op [
 			COMP_EQUAL [
 				res: all [
-					any [								;@@ replace by ANY_WORD? when available
-						type = TYPE_WORD
-						type = TYPE_GET_WORD
-						type = TYPE_SET_WORD
-						type = TYPE_LIT_WORD
-						type = TYPE_REFINEMENT
-						type = TYPE_ISSUE
-					]
+					any-word? type						;@@ replace by ANY_WORD? when available
 					EQUAL_WORDS?(arg1 arg2)
 				]
 			]
@@ -219,7 +243,7 @@ word: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --

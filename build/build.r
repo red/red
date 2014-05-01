@@ -14,6 +14,7 @@ encapper: 		%enpro
 bin:			%bin/
 cache-file:		%bin/sources.r
 red: 			%red
+ts-file:		%timestamp.r
 
 either Windows? [
 	append red %.exe
@@ -43,6 +44,9 @@ unless exists? %bin/ [
 log "Combining all source files together..."
 do %includes.r
 
+;-- Generating the temporary timestamp file
+write ts-file mold now
+
 ;-- Encapping the Rebol interpreter with Red sources
 log "Encapping..."
 call/wait reform [encapper "precap.r -o" bin/:red]
@@ -57,6 +61,7 @@ if Windows? [
 ]
 
 ;-- Remove temporary files
+attempt [delete ts-file]
 attempt [delete cache-file]
 
 log join "File output: build/bin/" form red

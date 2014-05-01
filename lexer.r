@@ -21,11 +21,27 @@ lexer: context [
 	value2:	none									;-- secondary new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
+	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	
 	;====== Parsing rules ======
-	
-	digit: charset "0123465798"
-	hexa:  union digit charset "ABCDEF" 
+
+	four:  charset "01234"
+	half:  charset "012345"
+	non-zero: charset "123456789"
+	digit: union non-zero charset "0"
+	dot: #"."
+	comma: #","
+
+	byte: [
+		"25" half
+		| "2" four digit
+		| "1" digit digit
+		| non-zero digit
+		| digit
+	]
+
+	hexa:  union digit charset "ABCDEF"
+	hexa-char: union hexa charset "abcdef"
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
@@ -54,14 +70,14 @@ lexer: context [
 	
 	UTF8-char: [pos: UTF8-1 | UTF8-2 | UTF8-3 | UTF8-4]
 	
-	not-word-char:  charset {/\^^,'[](){}"#%$@:;}
-	not-word-1st:	union not-word-char digit
-	not-file-char:  charset {[](){}"%@:;}
+	not-word-char:  charset {/\^^,[](){}"#%$@:;}
+	not-word-1st:	union union not-word-char digit charset {'}
+	not-file-char:  charset {[](){}"@:;}
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"]);x}
+	integer-end:	charset {^{"[]);x}
 	stop: 		    none
 	
 	control-char: reduce [
@@ -161,7 +177,9 @@ lexer: context [
 	]
 	
 	word-rule: 	[
-		(type: word!) s: begin-symbol-rule [
+		(type: word!)
+		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
+		| s: begin-symbol-rule [
 			path-rule 								;-- path matched
 			| (value: copy/part s e)				;-- word matched
 			opt [#":" (type: set-word!)]
@@ -197,6 +215,24 @@ lexer: context [
 	slash-rule: [s: [slash opt slash] e:]
 	
 	hexa-rule: [2 8 hexa e: #"h" (type: integer!)]
+
+	sticky-word-rule: [
+		pos: [										;-- protection rule from typo with sticky words
+			[integer-end | ws-no-count | end] (fail?: none)
+			| skip (fail?: [end skip])
+		] :pos
+		fail?
+	]
+
+	tuple-value-rule: [
+		(type: tuple!)
+		byte dot byte 1 8 [dot byte | dot] e:
+	]
+
+	tuple-rule: [
+		tuple-value-rule
+		sticky-word-rule
+	]
 		
 	integer-number-rule: [
 		(type: integer!)
@@ -205,12 +241,7 @@ lexer: context [
 	
 	integer-rule: [
 		integer-number-rule
-		pos: [										;-- protection rule from typo with sticky words
-			[integer-end | ws-no-count | end] (fail?: none)
-			| skip (fail?: [end skip]) 
-		] :pos
-		(value: load-integer copy/part s e)
-		fail?
+		sticky-word-rule
 		opt [
 			#"x" (
 				type: pair!
@@ -220,6 +251,19 @@ lexer: context [
 			(value2/2: load-integer copy/part s e value: value2)
 		]
 	]
+
+	decimal-number-rule: [
+		(type: decimal!)
+		opt [#"-" | #"+"] digit any [digit | #"'" digit]		;-- first part
+		opt [[dot | comma] any digit]							;-- second part
+		opt [opt [#"e" | #"E"] opt [#"-" | #"+"] some digit]	;-- third part
+		e:
+	]
+
+	decimal-rule: [
+		decimal-number-rule
+		sticky-word-rule
+	]
 		
 	block-rule: [#"[" (stack/push block!) any-value #"]" (value: stack/pop block!)]
 	
@@ -227,10 +271,7 @@ lexer: context [
 	
 	escaped-char: [
 		"^^(" [
-			s: [2 6 hexa] e: (						;-- Unicode values allowed up to 10FFFFh
-				value: encode-UTF8-char s e
-			)
-			| [
+			[										;-- special case first
 				"null" 	 (value: #"^(00)")
 				| "back" (value: #"^(08)")
 				| "tab"  (value: #"^(09)")
@@ -238,7 +279,12 @@ lexer: context [
 				| "page" (value: #"^(0C)")
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^(7F)")
-			] 
+			]
+			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+					either rs? [
+						value: to-char to-integer debase/base copy/part pos e 16
+					][value: encode-UTF8-char pos e]
+			)
 		] #")"
 		| #"^^" [
 			[
@@ -250,20 +296,21 @@ lexer: context [
 				| #"}"	(value: #"}")
 				| #"^""	(value: #"^"")
 			]
-			| s: caret-char (value: s/1 - 64)
+			| pos: caret-char (value: pos/1 - 64)
 		]
 	]
 	
 	char-rule: [
 		{#"} (type: char!) [
 			s: escaped-char
-			| copy value UTF8-printable (value: as-binary value) 
+			| copy value UTF8-printable (value: as-binary value)
+			| #"^-" (value: s/1)
 		] {"}
 	]
 	
 	line-string: [
 		{"} s: (type: string! stop: [not-str-char | newline-char])
-		any UTF8-filtered-char
+		any [{^^"} | escaped-char | UTF8-filtered-char]
 		e: {"}
 	]
 	
@@ -287,19 +334,18 @@ lexer: context [
 	
 	binary-rule: [
 		"#{" (type: binary!) 
-		s: any [counted-newline | 2 hexa | ws-no-count | comment-rule]
+		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
 		e: #"}"
 	]
 	
 	file-rule: [
 		#"%" (type: file! stop: [not-file-char | ws-no-count])
-		s: some UTF8-filtered-char e:
+		s: any UTF8-filtered-char e:
 	]
 	
 	escaped-rule: [
 		"#[" any-ws [
-			"none" 	  (value: none)
-			| "true"  (value: true)
+			  "true"  (value: true)
 			| "false" (value: false)
 			| s: [
 				"none!" | "logic!" | "block!" | "integer!" | "word!" 
@@ -308,14 +354,11 @@ lexer: context [
 				| "set-path!" | "lit-path!" | "native!"	| "action!"
 				| "issue!" | "paren!" | "function!"
 			] e: (value: get to word! copy/part s e)
+			| "none" (value: none)
 		]  any-ws #"]"
 	]
 	
 	comment-rule: [#";" [to #"^/" | to end]]
-	
-	multiline-comment-rule: [
-		"comment" any-ws #"{" nested-curly-braces
-	]
 	
 	wrong-delimiters: [
 		pos: [
@@ -328,9 +371,10 @@ lexer: context [
 	literal-value: [
 		pos: (e: none) s: [
 			comment-rule
-			| multiline-comment-rule
 			| escaped-rule    (stack/push value)
 			| integer-rule	  (stack/push value)
+			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
+			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
@@ -338,7 +382,7 @@ lexer: context [
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
 			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
-			| file-rule		  (stack/push to file!		 copy/part s e)
+			| file-rule		  (stack/push load-file		 copy/part s e)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
@@ -350,7 +394,8 @@ lexer: context [
 	any-value: [pos: any [literal-value | ws]]
 
 	header: [
-		pos: thru "Red" any-ws block-rule (stack/push value)
+		pos: thru "Red" opt ["/System" (rs?: yes stack/push 'Red/System)]
+		any-ws block-rule (stack/push value)
 		| (throw-error/with "Invalid Red program") end skip
 	]
 
@@ -399,7 +444,7 @@ lexer: context [
 			"^/*** line: " line
 			"^/*** at: " mold copy/part pos 40
 		]
-		halt
+		either encap? [quit][halt]
 	]
 
 	add-line-markers: func [blk [block!]][	
@@ -486,7 +531,12 @@ lexer: context [
 	]
 
 	load-integer: func [s [string!]][
-		unless attempt [s: to integer! s][throw-error]
+		unless integer? s: to integer! s [throw-error]
+		s
+	]
+
+	load-decimal: func [s [string!]][
+		unless attempt [s: to decimal! s][throw-error]
 		s
 	]
 
@@ -508,12 +558,16 @@ lexer: context [
 
 		parse/all/case s [
 			some [
-				copy byte 2 hexa (insert tail new debase/base byte 16)
+				copy byte 2 hexa-char (insert tail new debase/base byte 16)
 				| ws | comment-rule
 				| #"}" end skip
 			]
 		]
 		new
+	]
+
+	load-file: func [s [string!]][
+		to file! dehex s
 	]
 	
 	process: func [src [string! binary!] /local blk][

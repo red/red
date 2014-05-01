@@ -14,6 +14,7 @@ halt: func [][]
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
 
+do %../../../system/utils/encap-fs.r
 do %../../../quick-test/quick-unit-test.r
 do %../../../lexer.r
 
@@ -143,6 +144,7 @@ do %../../../lexer.r
 		#issue
 		#{1234}
 		#{45788956AAFFEEFF}
+		comment "test^/^/^-^-"
 		%foo/bar.red "foo^@^/bar"
 		{
 ^-
@@ -181,15 +183,15 @@ do %../../../lexer.r
 	--assert-printed? "*** line: 2"
 	--assert-printed? {*** at: "1: 1}
 	  
-	--test-- "lexer-22"
-	  src: {
-	    Red/System[]
-	    a: 1
-	  }
-	  lexer/process src
-	--assert-printed? "*** Syntax Error: Invalid Red program"
-	--assert-printed? "*** line: 1"
-	--assert-printed?  "*** at: {/System[]"
+	;--test-- "lexer-22"
+	;  src: {
+	;    Red/System[]
+	;    a: 1
+	;  }
+	;  lexer/process src
+	;--assert-printed? "*** Syntax Error: Invalid Red program"
+	;--assert-printed? "*** line: 1"
+	;--assert-printed?  "*** at: {/System[]"
 	
 	--test-- "lexer-23"
 	  src: {Red [] #"^^/"}

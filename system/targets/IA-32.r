@@ -28,7 +28,7 @@ make-profilable make target-class [
 		=				 #{04}		-
 		<>				 #{05}		-
 		signed?			 #{08}		-
-		unsigned?		 #{09}
+		unsigned?		 #{09}		-
 		even?			 #{0A}		-
 		odd?			 #{0B}		-
 		<				 #{0C}		#{02}
@@ -316,6 +316,18 @@ make-profilable make target-class [
 			emit #{C1E8}							;-- SHR eax, <bit>
 			emit to-bin8 bit
 		]
+	]
+	
+	emit-access-register: func [reg [word!] set? [logic!] value /local opcode][
+		if verbose >= 3 [print [">>>emitting ACCESS-REGISTER" mold value]]
+		if all [set? not tag? value][emit-load value]
+		
+		unless reg = 'eax [
+			opcode: #"^(C0)"
+			reg: (index? find [eax ecx edx ebx esp ebp esi edi] reg) - 1
+			unless set? [reg: shift/left reg 3]
+			emit join #{89} opcode or reg			;-- MOV <reg>, eax	; set
+		]											;-- MOV eax, <reg>	; get
 	]
 	
 	emit-fpu-set: func [
@@ -1148,8 +1160,8 @@ make-profilable make target-class [
 		/local mod? scale c type arg2 op-poly
 	][
 		;-- eax = a, edx = b
-		if find [// ///] name [						;-- work around unaccepted '// and '///
-			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
+		if find mod-rem-op name [					;-- work around unaccepted '// and '%
+			mod?: select mod-rem-func name			;-- convert operators to words (easier to handle)
 			name: first [/]							;-- work around unaccepted '/ 
 		]
 		arg2: compiler/unbox args/2
@@ -1428,8 +1440,8 @@ make-profilable make target-class [
 			compiler/throw-error "unsupported operation with float numbers"
 		]
 		
-		if find [// ///] name [						;-- work around unaccepted '// and '///
-			mod?: select [// mod /// rem] name		;-- convert operators to words (easier to handle)
+		if find mod-rem-op name [					;-- work around unaccepted '// and '%
+			mod?: select mod-rem-func name			;-- convert operators to words (easier to handle)
 			name: first [/]							;-- work around unaccepted '/ 
 		]
 		set-width args/1
@@ -1554,8 +1566,13 @@ make-profilable make target-class [
 				size: size + pick [12 8] args/1 = #typed 	;-- account for extra arguments
 			]
 		]
-		emit #{83C4}								;-- ADD esp, n		; @@ 8-bit offset only?
-		emit to-bin8 size
+		either size > 127 [
+			emit #{81C4}							;-- ADD esp, size	; 32-bit
+			emit to-bin32 size
+		][
+			emit #{83C4}							;-- ADD esp, size	; 8-bit
+			emit to-bin8 size
+		]
 	]
 	
 	patch-call: func [code-buf rel-ptr dst-ptr][
@@ -1738,8 +1755,14 @@ make-profilable make target-class [
 		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 
 		unless zero? locals-size [
-			emit #{83EC}							;-- SUB esp, locals-size
-			emit to-char round/to/ceiling locals-size 4		;-- limits total local variables size to 255 bytes
+			locals-size: round/to/ceiling locals-size 4
+			either locals-size > 127 [
+				emit #{81EC}						;-- SUB esp, locals-size	; 32-bit
+				emit to-bin32 locals-size
+			][
+				emit #{83EC}						;-- SUB esp, locals-size	; 8-bit
+				emit to-char locals-size
+			]
 		]
 		if any [
 			fspec/5 = 'callback

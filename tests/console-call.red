@@ -22,7 +22,7 @@ Red [
 					title			[c-string!]
 					return:			[integer!]
 				]
-				ReadConsole: 	 "ReadConsoleA" [
+				ReadConsole: 	 "ReadConsoleW" [
 					consoleInput	[integer!]
 					buffer			[byte-ptr!]
 					charsToRead		[integer!]
@@ -32,8 +32,8 @@ Red [
 				]
 			]
 		]
-		line-buffer-size: 16 * 1024
-		line-buffer: allocate line-buffer-size
+		line-buffer-size: 15 * 1024
+		line-buffer: allocate line-buffer-size * 2 + 1
 	][
 		#switch OS [
 			MacOSX [
@@ -46,7 +46,7 @@ Red [
 		]
 		#import [
 			ReadLine-library cdecl [
-				read-line: "readline" [  ; Read a line from the console.
+				cons-read-line: "readline" [  ; Read a line from the console.
 					prompt			[c-string!]
 					return:			[c-string!]
 				]
@@ -78,11 +78,13 @@ Red [
 		][
 			rl-insert count key
 		]
-		
+
 	]
 ]
 
-Windows?: system/platform = 'Windows
+#include %../system/library/call/call.red
+prin "-=== Call added to Red console ===-"
+#include %help.red
 
 read-argument: routine [
 	/local
@@ -106,7 +108,7 @@ init-console: routine [
 	#either OS = 'Windows [
 		;ret: AttachConsole -1
 		;if zero? ret [print-line "ReadConsole failed!" halt]
-		
+
 		ret: SetConsoleTitle as c-string! string/rs-head str
 		if zero? ret [print-line "SetConsoleTitle failed!" halt]
 	][
@@ -117,23 +119,23 @@ init-console: routine [
 input: routine [
 	prompt [string!]
 	/local
-		len ret str buffer line
+		len ret str buffer line pos
 ][
 	#either OS = 'Windows [
 		len: 0
 		print as c-string! string/rs-head prompt
 		ret: ReadConsole stdin line-buffer line-buffer-size :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
-		len: len + 1
-		line-buffer/len: null-byte
-		str: string/load as c-string! line-buffer len
+		pos: (len * 2) - 3								;-- position at lower 8bits of CR character
+		line-buffer/pos: null-byte						;-- overwrite CR with NUL
+		str: string/load as-c-string line-buffer len - 1 UTF-16LE
 	][
-		line: read-line as c-string! string/rs-head prompt
+		line: cons-read-line as-c-string string/rs-head prompt
 		if line = null [halt]  ; EOF
 
 		 #if OS <> 'MacOSX [add-history line]
 
-		str: string/load line  1 + length? line
+		str: string/load line  1 + length? line UTF-8
 ;		free as byte-ptr! line
 	]
 	SET_RETURN(str)
@@ -145,7 +147,7 @@ count-delimiters: function [
 ][
 	list: copy [0 0]
 	c: none
-	
+
 	foreach c buffer [
 		case [
 			escaped?	[escaped?: no]
@@ -153,9 +155,10 @@ count-delimiters: function [
 			'else [
 				switch c [
 					#"^^" [escaped?: yes]
-					#";"  [if zero? list/2 [in-comment?: yes]]
+					#";"  [if all [zero? list/2 not in-string?][in-comment?: yes]]
 					#"["  [unless in-string? [list/1: list/1 + 1]]
 					#"]"  [unless in-string? [list/1: list/1 - 1]]
+					#"^"" [if zero? list/2 [in-string?: not in-string?]]
 					#"{"  [if zero? list/2 [in-string?: yes] list/2: list/2 + 1]
 					#"}"  [if 1 = list/2   [in-string?: no]  list/2: list/2 - 1]
 				]
@@ -169,7 +172,7 @@ do-console: function [][
 	buffer: make string! 10000
 	prompt: red-prompt: "red>> "
 	mode:  'mono
-	
+
 	switch-mode: [
 		mode: case [
 			cnt/1 > 0 ['block]
@@ -186,13 +189,13 @@ do-console: function [][
 			mono   [red-prompt]
 		]
 	]
-	
+
 	eval: [
 		code: load/all buffer
-		
+
 		unless tail? code [
 			set/any 'result do code
-			
+
 			unless unset? :result [
 				if 67 = length? result: mold/part :result 67 [	;-- optimized for width = 72
 					clear back tail result
@@ -208,13 +211,8 @@ do-console: function [][
 		unless tail? line: input prompt [
 			append buffer line
 			cnt: count-delimiters buffer
+			append buffer lf							;-- needed for multiline modes
 
-			either Windows? [
-				remove skip tail buffer -2			;-- clear extra CR (Windows)
-			][
-				append buffer lf					;-- Unix
-			]
-			
 			switch mode [
 				block  [if cnt/1 <= 0 [do switch-mode]]
 				string [if cnt/2 <= 0 [do switch-mode]]
@@ -230,7 +228,7 @@ if script: read-argument [
 	script: load script
 	either any [
 		script/1 <> 'Red
-		not block? script/2 
+		not block? script/2
 	][
 		print "*** Error: not a Red program!"
 	][
@@ -238,12 +236,11 @@ if script: read-argument [
 	]
 	quit
 ]
-
 init-console "Red Console"
 
 print {
 -=== Red Console alpha version ===-
-(only ASCII input supported)
+Type HELP for starting information.
 }
 
 do-console

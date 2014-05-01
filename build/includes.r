@@ -14,6 +14,7 @@ write %build/bin/sources.r set-cache [
 	%version.r
 	%usage.txt
 	%boot.red
+	%lexer.red
 	%compiler.r
 	%lexer.r
 	%runtime/ [
@@ -26,9 +27,7 @@ write %build/bin/sources.r set-cache [
 		%parse.reds
 		%red.reds
 		%stack.reds
-		%tokenizer.reds
 		%stack.reds
-		%tokenizer.reds
 		%tools.reds
 		%unicode.reds
 		%simple-io.reds
@@ -74,12 +73,14 @@ write %build/bin/sources.r set-cache [
 			%syllable.reds
 			%win32.reds
 		]
+		%console/ [
+			%console.red
+			%help.red
+			%input.red
+		]
 	]
 	%utils/ [
 		%extractor.r
-	]
-	%tests/ [
-		%console.red
 	]
 	%system/ [
 		%compiler.r
@@ -89,15 +90,17 @@ write %build/bin/sources.r set-cache [
 		%loader.r
 		%runtime/ [
 			%android.reds
-			%BSD.reds
 			%common.reds
 			%darwin.reds
 			%debug.reds
+			%freebsd.reds
 			%libc.reds
 			%lib-names.reds
 			%lib-natives.reds
 			%linux.reds
+			%linux-sigaction.reds
 			%POSIX.reds
+			%POSIX-signals.reds
 			%start.reds
 			%syllable.reds
 			%system.reds

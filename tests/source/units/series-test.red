@@ -569,7 +569,7 @@ Red [
 	--test-- "remove-blk-7"
 		a: [1 2 3]
 		--assert [1 2 3] =  remove/part a 0
-
+		
 	--test-- "remove-str-1"
 		a: "123"
 		--assert "23" = remove a
@@ -650,29 +650,97 @@ Red [
 ===start-group=== "at"
 	
 	--test-- "at-1 #issue 501"
-	--assert "c" = at tail "abc" -1
-	--assert "" = at tail "abc" 0
+		--assert "c" = at tail "abc" -1
+		--assert "" = at tail "abc" 0
 	
 	--test-- "at-2"
-	--assert "bcde" = at "abcde" 2
-	--assert "abcde" = at "abcde" 1
-	--assert "abcde" = at "abcde" 0
-	--assert "abcde" = at "abcde" -1
-	--assert "abcde" = at "abcde" -256
-	--assert "e" = at "abcde" 5
-	--assert "" = at "abcde" 6
-	--assert "" = at "abcde" 1028
+		--assert "bcde" = at "abcde" 2
+		--assert "abcde" = at "abcde" 1
+		--assert "abcde" = at "abcde" 0
+		--assert "abcde" = at "abcde" -1
+		--assert "abcde" = at "abcde" -256
+		--assert "e" = at "abcde" 5
+		--assert "" = at "abcde" 6
+		--assert "" = at "abcde" 1028
 	
 	--test-- "at-3"
-	--assert [b c d e] = at [a b c d e] 2
-	--assert [a b c d e] = at [a b c d e] 1
-	--assert [a b c d e] = at [a b c d e] 0
-	--assert [a b c d e] = at [a b c d e] -1
-	--assert [a b c d e] = at [a b c d e] -256
-	--assert [e] = at [a b c d e] 5
-	--assert [] = at [a b c d e] 6
-	--assert [] = at [a b c d e] 1028
+		--assert [b c d e] = at [a b c d e] 2
+		--assert [a b c d e] = at [a b c d e] 1
+		--assert [a b c d e] = at [a b c d e] 0
+		--assert [a b c d e] = at [a b c d e] -1
+		--assert [a b c d e] = at [a b c d e] -256
+		--assert [e] = at [a b c d e] 5
+		--assert [] = at [a b c d e] 6
+		--assert [] = at [a b c d e] 1028
 	
+===end-group===
+
+===start-group=== "replace"
+	
+	--test-- "replace-block-1-issue-#667"
+		code: [print "Hello"]
+		--assert 'print = first replace code "Hello" "Cheers"
+		--assert "Cheers" = second code
+		
+===end-group===
+
+===start-group=== "max/min"			;-- have some overlap with lesser tests
+
+	--test-- "max1"
+		--assert "abe"  = max "abc" "abe"
+		--assert "abcd" = max "abc" "abcd"
+
+	--test-- "min1"
+		--assert ""		= min "" 	"abcdef"
+		--assert "abc"	= min "abc" "abcd"
+
+	--test-- "max2"					;@@ need to add tests for word!, path!
+		blk1: [1 #"a" "ab" %ab/cd [] [2] (1 2)]
+		blk2: [1 #"a" "ab" %ab/cd [] [2] (1 3)]
+		--assert blk2 = max blk1 blk2
+		blk1: next blk1
+		--assert blk1 = max blk1 blk2
+
+===end-group===
+
+===start-group=== "reverse"
+
+	--test-- "reverse-str-1"			;-- 4 bytes code point
+		--assert "dc𠃌21ba" = reverse "ab12𠃌cd"	;--  = #"^(E818)"
+                                                    	;-- 𠃌 = #"^(200CC)"
+	--test-- "reverse-str-2"			;-- 2 bytes code point
+		--assert "dc21ba" = reverse "ab12cd"
+
+	--test-- "reverse-str-3"			;-- 1 bytes code point
+		--assert "dc21ba" = reverse "ab12cd"
+
+	--test-- "reverse-str-4"
+		--assert "1ba2𠃌cd" = reverse/part "ab12𠃌cd" 4
+
+	--test-- "reverse-str-5"
+		s: "abcdef"
+		p: next next next s
+		--assert "cbadef" = reverse/part s p
+
+	--test-- "reverse-file-1"			;-- inherit from string!
+		--assert %321cba = reverse/part %abc123
+
+	--test-- "reverse-blk-1"
+		--assert [a b c d] = reverse [d c b a]
+
+	--test-- "reverse-blk-2"
+		--assert [c b [a] d] = reverse/part [[a] b c d] 3
+
+	--test-- "reverse-blk-3"
+		blk: [1 [2] a b c ]
+		p: next next next blk
+		--assert [a [2] 1 b c] = reverse/part blk p
+
+	--test-- "reverse-path-1"			;-- inherit from block!
+		p1: first [ab/cd/ef]
+		p2: first [ef/cd/ab]
+		--assert p2 = reverse p1
+
 ===end-group===
 
 ~~~end-file~~~

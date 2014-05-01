@@ -190,7 +190,7 @@ qt: make object! [
     ;; red/system or red
     red?: false
     parse read src red?-rule
-
+ 
     ;; compose and write compilation script
     either binary? [
     	if #"/" <> first src [src: tests-dir/:src]     ;; relative path supplied
@@ -388,6 +388,7 @@ qt: make object! [
     clear output
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
     call/output/wait cmd output
+    if find output "Error:" [_signify-failure]
     add-to-run-totals
     write/append log-file output
     file/title: test-name
@@ -397,14 +398,14 @@ qt: make object! [
   
   run-script: func [
     src [file!]
-    /local 
+    /local
      filename                     ;; filename of script 
      script                       ;; %runnable/filename
   ][
     if not filename: copy find/last/tail src "/" [filename: copy src]
     script: runnable-dir/:filename
     write to file! script read join tests-dir [src]
-    do script
+    if error? try [do script] [_signify-failure]
   ]
   
   run-script-quiet: func [
@@ -655,6 +656,34 @@ qt: make object! [
     ]
   ]
   
+  setup-temp-files: func [
+  	  /local
+  	  	f
+  ][
+  	f: to string! now/time/precise
+  	f: replace/all f ":" ""
+  	f: replace/all f "." ""
+    comp-echo: join runnable-dir ["comp-echo" f ".txt"]
+  	comp-r: join runnable-dir ["comp" f ".r"]
+  	test-src-file: join runnable-dir ["qt-test-comp" f ".red"]
+  ]
+  
+  delete-temp-files: does [
+  	  if exists? comp-echo [delete comp-echo]
+  	  if exists? comp-r [delete comp-r]
+  	  if exists? test-src-file [delete test-src-file]  
+  ]
+  
+  seperate-log-file: func [
+  	  /local
+  	  	f
+  ][
+  	f: to string! now/time/precise
+  	f: replace/all f ":" ""
+  	f: replace/all f "." ""
+    log-file: join base-dir ["quick-test/quick-test" f ".log"]
+  ]
+  
   utf-16le-to-utf-8: func [
     {Translates a utf-16LE encoded string to an utf-8 encoded one
      the algorithm is copied from lexer.r                         }
@@ -734,4 +763,7 @@ qt: make object! [
   set '~~~end-file~~~               :end-file
   set '***end-run***                :end-test-run
   set '***end-run-quiet***          :end-test-run-quiet
+  set '--setup-temp-files			:setup-temp-files
+  set '--delete-temp-files			:delete-temp-files
+  set '--seperate-log-file			:seperate-log-file	
 ]

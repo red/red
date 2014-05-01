@@ -128,7 +128,7 @@ set-word: context [
 			null			;to
 			INHERIT_ACTION	;form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --

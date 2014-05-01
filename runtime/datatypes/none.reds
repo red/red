@@ -118,21 +118,63 @@ none: context [
 		res
 	]
 	
-	clear:	 does []									;-- arguments can be safely omitted
-	find:    does []
-	length?: does []
-	
-	remove:  func [
-		series	[red-series!]
-		part	[red-value!]
-		return:	[integer!]
-	][
+	clear: func [
+		none	[red-none!]
+		return:	[red-value!]
+ 	][
 		push-last
-		0
 	]
 	
-	select:  does []
-	take:	 does []
+	find: func [
+		none		[red-none!]
+		value		[red-value!]
+		part		[red-value!]
+		only?		[logic!]
+		case?		[logic!]
+		any?		[logic!]
+		with-arg	[red-string!]
+		skip		[red-integer!]
+		last?		[logic!]
+		reverse?	[logic!]
+		tail?		[logic!]
+		match?		[logic!]
+		return:		[red-value!]
+	][
+		push-last
+	]
+	
+	length?: func [
+		none	[red-none!]
+		return: [integer!]
+	][
+		-1
+	]
+	
+	remove: func [
+		none	[red-none!]
+		part	[red-value!]
+		return:	[red-value!]
+	][
+		push-last
+	]
+	
+	select: func [
+		blk		 [red-block!]
+		value	 [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		return:	 [red-value!]
+	][
+		push-last
+	]
+	
+	take: does []
 
 	init: does [
 		none-value/header: TYPE_NONE
@@ -148,7 +190,7 @@ none: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --

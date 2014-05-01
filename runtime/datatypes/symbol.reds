@@ -13,6 +13,14 @@ Red/System [
 symbol: context [
 	verbose: 0
 	
+	is-any-type?: func [
+		word	[red-word!]
+		return: [logic!]
+	][
+		assert TYPE_OF(word) = TYPE_WORD
+		(symbol/resolve word/symbol) = symbol/resolve words/any-type!
+	]
+	
 	same?: func [										;-- case-insensitive UTF-8 string comparison
 		str1	     [c-string!]
 		str2	     [c-string!]
@@ -50,26 +58,29 @@ symbol: context [
 		str 	  [c-string!]							;-- UTF-8 string
 		return:	  [integer!]
 		/local
-			s	  [series!]
-			entry [red-symbol!]
-			end   [red-symbol!]
-			id	  [integer!]
-			i	  [integer!]
+			s		[series!]
+			entry	[red-symbol!]
+			end		[red-symbol!]
+			id		[integer!]
+			i		[integer!]
+			aliased [integer!]
 	][
 		s: GET_BUFFER(symbols)
 		entry: as red-symbol! s/offset
 		end:   as red-symbol! s/tail
 		i: 1
+		aliased: 0
 		
 		while [entry < end][
 			id: same? entry/cache str
-			if id <> 0 [
-				return either positive? id [i][0 - i]	;-- matching symbol found
+			if positive? id [return i]					;-- matching symbol found, exit
+			if all [zero? aliased negative? id][
+				aliased: 0 - i							;-- alias symbol found, continue searching
 			]
 			i: i + 1
 			entry: entry + 1
 		]
-		0												;-- no matching symbol
+		aliased											;-- alias id or no matching symbol
 	]
 	
 	duplicate: func [
@@ -88,6 +99,28 @@ symbol: context [
 		
 		copy-memory as byte-ptr! dst as byte-ptr! src len
 		dst
+	]
+	
+	make-alt: func [
+		str 	[red-string!]
+		return:	[integer!]
+		/local
+			sym	[red-symbol!]
+			s 	[c-string!]
+			id	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
+
+		s: unicode/to-utf8 str
+		id: search s
+		if positive? id [return id]
+
+		sym: as red-symbol! ALLOC_TAIL(symbols)
+		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
+		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
+		sym/node:   str/node
+		sym/cache:  s
+		block/rs-length? symbols
 	]
 	
 	make: func [
@@ -152,7 +185,7 @@ symbol: context [
 			null			;to
 			null			;form
 			null			;mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			null			;compare
 			;-- Scalar actions --

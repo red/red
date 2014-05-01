@@ -40,7 +40,7 @@ alloc-tail: func [
 	/local 
 		cell [red-value!]
 ][
-	if (as byte-ptr! s/tail + 1) > ((as byte-ptr! s + 1) + s/size) [
+	if (as byte-ptr! s/tail + 1) >= ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
 	
@@ -59,7 +59,7 @@ alloc-tail-unit: func [
 	/local 
 		p	 [byte-ptr!]
 ][
-	if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
+	if ((as byte-ptr! s/tail) + unit) >= ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
 	
@@ -90,6 +90,7 @@ words: context [
 	words:			-1
 	logic!:			-1
 	integer!:		-1
+	any-type!:		-1
 	repeat:			-1
 	foreach:		-1
 	map-each:		-1
@@ -141,6 +142,7 @@ words: context [
 	_match:			as red-word! 0
 	_iterate:		as red-word! 0
 	_paren:			as red-word! 0
+	_anon:			as red-word! 0
 	_end:			as red-word! 0
 	
 	_on-parse-event: as red-word! 0
@@ -151,6 +153,7 @@ words: context [
 		words:			symbol/make "words"
 		logic!:			symbol/make "logic!"
 		integer!:		symbol/make "integer!"
+		any-type!:		symbol/make "any-type!"
 		exit*:			symbol/make "exit"
 		return*:		symbol/make "return"
 
@@ -210,6 +213,7 @@ words: context [
 		_match:			word/load "match"
 		_iterate:		word/load "iterate"
 		_paren:			word/load "paren"
+		_anon:			word/load "<anon>"				;-- internal usage
 		_end:			_context/add-global end
 		
 		_on-parse-event: word/load "on-parse-event"

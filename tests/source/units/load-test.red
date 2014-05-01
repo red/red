@@ -33,6 +33,17 @@ Red [
 	--test-- "load-18" --assert "x"		 = load {{x}}
 	
 ===end-group===
+
+===start-group=== "LOAD /part tests"
+	src: "123abc789"
+
+	--test-- "load-p1" --assert 123  = load/part src 3
+	--test-- "load-p2" --assert 12   = load/part src 2
+	--test-- "load-p3" --assert 1    = load/part src 1
+	--test-- "load-p4" --assert []   = load/part src 0
+	--test-- "load-p4" --assert 'abc = load/part skip src 3 3
+
+===end-group===
     
 ~~~end-file~~~
 

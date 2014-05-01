@@ -190,7 +190,46 @@ logic: context [
 		bool/value: not bool/value
 		as red-value! bool
 	]
-	
+
+	do-bitwise: func [
+		type	  [integer!]
+		return:	  [red-logic!]
+		/local
+			left  [red-logic!]
+			right [red-logic!]
+	][
+		left: as red-logic! stack/arguments
+		right: left + 1
+		if any [
+			TYPE_OF(left) <> TYPE_LOGIC
+			TYPE_OF(right) <> TYPE_LOGIC
+		][
+			;@@ throw error
+			print-line "*** Script error: incompatible argument for bitwise of logic!"
+		]
+		left/value: switch type [
+			OP_AND [left/value and right/value]
+			OP_OR  [left/value or right/value]
+			OP_XOR [left/value xor right/value]
+		]
+		left
+	]
+
+	and~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "logic/and~"]]
+		as red-value! do-bitwise OP_AND
+	]
+
+	or~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "logic/or~"]]
+		as red-value! do-bitwise OP_OR
+	]
+
+	xor~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "logic/xor~"]]
+		as red-value! do-bitwise OP_XOR
+	]
+
 	init: does [
 		true-value/header:  TYPE_LOGIC
 		true-value/value: 	yes
@@ -209,7 +248,7 @@ logic: context [
 			null			;to
 			:form
 			:mold
-			null			;get-path
+			null			;eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
@@ -225,10 +264,10 @@ logic: context [
 			null			;even?
 			null			;odd?
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			:complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at

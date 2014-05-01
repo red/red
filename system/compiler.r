@@ -81,7 +81,7 @@ system-dialect: make-profilable context [
 		
 		comparison-op: [= <> < > <= >=]
 		
-		functions: to-hash [
+		functions: to-hash compose [
 		;--Name--Arity--Type----Cc--Specs--		   Cc = Calling convention
 			+		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
 			-		[2	op		- [a [poly!]   b [poly!]   return: [poly!]]]
@@ -91,7 +91,7 @@ system-dialect: make-profilable context [
 			or		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			xor		[2	op		- [a [bit-set!] b [bit-set!] return: [bit-set!]]]
 			//		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- modulo
-			///		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
+			(to-word "%")		[2	op		- [a [any-number!] b [any-number!] return: [any-number!]]]		;-- remainder (real syntax: %)
 			>>		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift left signed
 			<<		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right signed
 			-**		[2	op		- [a [number!] b [number!] return: [number!]]]		;-- shift right unsigned
@@ -572,7 +572,7 @@ system-dialect: make-profilable context [
 		
 		get-type: func [value /local type][
 			switch/default type?/word value [
-				none!	 [none-type]				;-- no type case (func with no return value)
+				none!	 [none-type]					;-- no type case (func with no return value)
 				tag!	 [either value = <last> [last-type][ [logic!] ]]
 				logic!	 [[logic!]]
 				word! 	 [resolve-type value]
@@ -587,19 +587,20 @@ system-dialect: make-profilable context [
 					
 					either 'op = second get-function-spec value/1 [
 						either base-type? type: get-return-type value/1 [
-							type				;-- unique returned type, stop here
+							type						;-- unique returned type, stop here
 						][
-							get-type value/2	;-- recursively search for left operand base type
+							get-type value/2			;-- recursively search for left operand base type
 						]
 					][
 						get-return-type value/1
 					]
 				]
 				paren!	 [
-					reduce either all [value/1 = 'struct! word? value/2][
-						[value/2]
+					switch/default value/1 [
+						struct!  [reduce pick [[value/2][value/1 value/2]] word? value/2]
+						pointer! [reduce [value/1 value/2]]
 					][
-						[value/1 value/2]
+						next next reduce ['array! length? value	'pointer! get-type value/1]	;-- hide array size
 					]
 				]
 				get-word! [
@@ -618,7 +619,7 @@ system-dialect: make-profilable context [
 		
 		enum-type?: func [name [word!] /local type][
 			all [
-				type: find/skip enumerations name 3			;-- SELECT/SKIP on hash! unreliable!
+				type: find/skip enumerations name 3		;-- SELECT/SKIP on hash! unreliable!
 				reduce [next type]
 			]
 		]
@@ -886,7 +887,8 @@ system-dialect: make-profilable context [
 		
 		add-symbol: func [name [word!] value type][
 			unless type [type: get-type value]
-			append globals reduce [name type: compose [(type)]]
+			unless 'array! = first head type [type: copy type]
+			append globals reduce [name type]
 			type
 		]
 		
@@ -900,13 +902,15 @@ system-dialect: make-profilable context [
 		]
 		
 		compare-func-specs: func [
-			fun [word!] cb [get-word!] f-type [block!] c-type [block!] /local spec pos idx
+			f-type [block!] c-type [block!] /with fun [word!] cb [get-word!] /local spec pos idx
 		][
-			cb: to word! cb
-			if functions/:cb/3 <> functions/:fun/3 [
-				throw-error [
-					"incompatible calling conventions between"
-					fun "and" cb
+			if with [
+				cb: to word! cb
+				if functions/:cb/3 <> functions/:fun/3 [
+					throw-error [
+						"incompatible calling conventions between"
+						fun "and" cb
+					]
 				]
 			]
 			if pos: find f-type /local [f-type: head clear copy pos] ;-- remove locals
@@ -939,34 +943,27 @@ system-dialect: make-profilable context [
 				all [find keywords name name <> 'context][
 					error: ["attempt to redefine a protected keyword:" name]
 				]
-
 				find functions name [
 					error: ["attempt to redefine existing function name:" name]
 				]
-
 				find definitions name [
 					error:  ["attempt to redefine existing definition:" name]
 				]
-
 				find-aliased name [
 					error:  ["attempt to redefine existing alias definition:" name]
 				]
-
 				base-type? name [
 					error:  ["redeclaration of base type:" name ]
 				]
-
 				any [
 					exists-variable? name
 					get-variable-spec name
-				][										;-- it's a variable			
+				][										;-- it's a variable
 					error:  ["redeclaration of variable:" name]
 				]
-
 				enum-type? name [
 					error:  ["redeclaration of enum identifier:" name ]
 				]
-				
 				enum-id? name [
 					error:  ["redeclaration of enumerator:" name ]
 				]
@@ -1139,7 +1136,7 @@ system-dialect: make-profilable context [
 						find [any-type! any-pointer!] expected/1
 						all [
 							expected/1 = 'function!
-							compare-func-specs name expr type/2 expected/2	 ;-- callback case
+							compare-func-specs/with type/2 expected/2 name expr	 ;-- callback case
 						]
 					]
 				]
@@ -1645,7 +1642,7 @@ system-dialect: make-profilable context [
 			make action-class [action: 'null type: [any-pointer!] data: 0]
 		]
 		
-		comp-as: has [ctype ptr? expr][
+		comp-as: has [ctype ptr? expr type][
 			ctype: pc/2
 			if ptr?: find [pointer! struct! function!] ctype [ctype: reduce [pc/2 pc/3]]
 			
@@ -1658,6 +1655,16 @@ system-dialect: make-profilable context [
 			pc: skip pc pick [3 2] to logic! ptr?
 			expr: fetch-expression
 
+			if all [
+				block? ctype
+				ctype/1 = 'function!
+				type: get-type expr
+				type/1 = 'function!
+			][
+				unless compare-func-specs ctype/2 copy type/2 [
+					throw-error "invalid functions casting: specifications not matching"
+				]
+			]
 			if all [object? expr expr/action = 'null][
 				pc: back pc
 				throw-error "type casting on null value is not allowed"
@@ -2697,8 +2704,13 @@ system-dialect: make-profilable context [
 		]
 		
 		check-infix-operators: has [pos][
-			if infix? pc [exit]							;-- infix op already processed,
-														;-- or used in prefix mode.
+			if infix? pc [
+				either infix? back tail expr-call-stack [
+					exit								;-- infix op already processed
+				][
+					throw-error "invalid use of infix operator"
+				]
+			]
 			if infix? next pc [
 				either find [set-word! set-path! struct!] type?/word pc/1 [
 					throw-error "can't use infix operator here"
@@ -2739,6 +2751,7 @@ system-dialect: make-profilable context [
 				integer!	[do pass]
 				string!		[do pass]
 				decimal!	[do pass]
+				block!		[also to paren! pc/1 pc: next pc]
 			][
 				throw-error [
 					pick [
@@ -3116,6 +3129,7 @@ system-dialect: make-profilable context [
 		red-store-bodies?: yes			;-- no => do not store function! value bodies (body-of will return none)
 		red-strict-check?: yes			;-- no => defers undefined word errors reporting at run-time
 		red-tracing?:	yes				;-- no => do not compile tracing code
+		legacy:			none			;-- block of optional OS legacy features flags
 	]
 	
 	compile: func [
@@ -3188,7 +3202,7 @@ system-dialect: make-profilable context [
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
 				]
-				if all [job/type = 'dll not empty? compiler/exports][
+				if not empty? compiler/exports [
 					append job/sections compose/deep/only [
 						export [- - (compiler/exports)]
 					]
