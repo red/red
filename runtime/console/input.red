@@ -73,7 +73,7 @@ Red [
 	]
 ]
 
-wprint: func [str [string!]][print str]
+wprint: func [str [string!]][prin str]
 
 ask: routine [
 	prompt [string!]
