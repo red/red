@@ -36,7 +36,6 @@ MSDOS [									; Windows default target
 	format: 	'PE
 	type:		'exe
 	sub-system: 'console
-	packager:	'APK
 ]
 ;-------------------------
 Windows [
