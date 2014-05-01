@@ -73,13 +73,15 @@ Red [
 	]
 ]
 
+wprint: func [str [string!]][print str]
+
 ask: routine [
 	prompt [string!]
 	/local
 		len ret str buffer line pos
 ][
 	#either OS = 'Windows [
-		print as c-string! string/rs-head prompt
+		#call [wprint prompt]
 		len: 0
 		ret: ReadConsole stdin line-buffer line-buffer-size :len null
 		if zero? ret [print-line "ReadConsole failed!" halt]
@@ -87,7 +89,7 @@ ask: routine [
 		line-buffer/pos: null-byte						;-- overwrite CR with NUL
 		str: string/load as-c-string line-buffer len - 1 UTF-16LE
 	][
-		line: read-line as-c-string string/rs-head prompt
+		line: read-line unicode/to-utf8 prompt
 		if line = null [halt]  ; EOF
 
 		 #if OS <> 'MacOSX [add-history line]
