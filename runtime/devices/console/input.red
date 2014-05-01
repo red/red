@@ -17,6 +17,8 @@ Red [
 #system [
 
 	terminal: context [
+
+	#either OS <> 'Windows [
 		#define OS_POLLIN 		1
 
 		#define TERM_VTIME		5
@@ -114,37 +116,11 @@ Red [
 			]
 		]
 
-		#enum special-key! [
-			KEY_UNSET:		 -1
-			KEY_NONE:		  0
-			KEY_UP:			-20
-			KEY_DOWN:		-21
-			KEY_RIGHT:		-22
-			KEY_LEFT:		-23
-			KEY_END:		-24
-			KEY_HOME:		-25
-			KEY_INSERT:		-26
-			KEY_DELETE:		-27
-			KEY_PAGE_UP:	-28
-			KEY_PAGE_DOWN:	-29
-			KEY_ENTER:		-30
-			KEY_BACKSPACE:	-31
-		]
-
-		#define KEY-CTRL-A	#"^A"
-		#define	KEY-CTRL-E	#"^E"
-
 		saved-term: declare termios!
 		utf-char:	declare c-string!
 		poller: 	declare pollfd!
-		input-line: declare red-string!
-		saved-line:	declare red-string!
-		prompt:		declare	red-string!
-		history:	declare red-block!
-		columns:	-1
 		lines-y:	 0
 		caret-y:	 0
-
 
 		fd-read-char: func [
 			timeout [integer!]
@@ -422,17 +398,6 @@ Red [
 				emit-string-int "^(0D)^[[" x #"C"		 ;-- set cursor position
 			]
 		]
-		
-		on-resize: does [
-			get-window-size
-			refresh
-		]
-		
-		fetch-history: does [
-			string/rs-reset input-line
-			string/concatenate input-line as red-string! block/rs-head history -1 0 yes no
-			input-line/head: string/get-length input-line yes
-		]
 
 		init: func [
 			line 	 [red-string!]
@@ -479,6 +444,350 @@ Red [
 			poller/events: OS_POLLIN
 		]
 
+		restore: does [
+			emit-string "^[[?7h"						;-- enable auto-wrap
+			tcsetattr stdin TERM_TCSADRAIN saved-term			
+		]
+		
+	][;-- ================================================================= --
+
+		#define VK_BACK 				 	08h
+		#define VK_TAB 					 	09h
+		#define VK_CLEAR 				 	0Ch
+		#define VK_RETURN 				 	0Dh
+		#define VK_SHIFT 				 	10h
+		#define VK_CONTROL 				 	11h
+		#define VK_PRIOR 				 	21h
+		#define VK_NEXT 				 	22h
+		#define VK_END 					 	23h
+		#define VK_HOME 				 	24h
+		#define VK_LEFT 				 	25h
+		#define VK_UP 					 	26h
+		#define VK_RIGHT 				 	27h
+		#define VK_DOWN 				 	28h
+		#define VK_SELECT 				 	29h
+		#define VK_INSERT 				 	2Dh
+		#define VK_DELETE 				 	2Eh
+		#define KEY_EVENT 				 	01h
+		#define MOUSE_EVENT 			 	02h
+		#define WINDOW_BUFFER_SIZE_EVENT 	04h
+		#define MENU_EVENT 				 	08h
+		#define FOCUS_EVENT 			 	10h
+		#define ENHANCED_KEY 			 	0100h
+		#define FOREGROUND_BLUE 		 	01h
+		#define FOREGROUND_GREEN 		 	02h
+		#define FOREGROUND_RED 			 	04h
+		#define ENABLE_LINE_INPUT 			02h
+		#define ENABLE_ECHO_INPUT 			04h
+
+		mouse-event!: alias struct! [
+			Position  [integer!]			;-- high 16-bit: Y	low 16-bit: X
+			BtnState  [integer!]
+			KeyState  [integer!]
+			Flags	  [integer!]
+		]
+
+		key-event!: alias struct! [		   ;typedef struct _KEY_EVENT_RECORD {
+			KeyDown   			[integer!] ;  WINBOOL bKeyDown;  	offset: 0
+			RepeatCnt-KeyCode	[integer!] ;  WORD wRepeatCount;            4
+			ScanCode-Char		[integer!] ;  WORD wVirtualKeyCode;    		6
+			KeyState  			[integer!] ;  WORD wVirtualScanCode;  		8
+		]                          		   ;  union {
+                                           ;    WCHAR UnicodeChar;
+                                           ;    CHAR AsciiChar;
+                                           ;  } uChar;						10
+                                           ;  DWORD dwControlKeyState;		12
+                                           ;} KEY_EVENT_RECORD,*PKEY_EVENT_RECORD;
+		input-record!: alias struct! [
+			EventType [integer!]
+			Event	  [integer!]
+			pad2	  [integer!]
+			pad3	  [integer!]
+			pad4	  [integer!]
+		]
+
+		screenbuf-info!: alias struct! [	;-- size? screenbuf-info! = 22
+			Size	  [integer!]        	;typedef struct _CONSOLE_SCREEN_BUFFER_INFO {
+			Position  [integer!]        	;  COORD dwSize;		offset: 0
+			pad1	  [integer!]        	;  COORD dwCursorPosition;		4
+			pad2	  [integer!]        	;  WORD wAttributes;			8
+			pad3	  [integer!]        	;  SMALL_RECT srWindow;			10
+			pad4 	  [byte!]           	;  COORD dwMaximumWindowSize;	18
+			pad5 	  [byte!]           	;} CONSOLE_SCREEN_BUFFER_INFO,*PCONSOLE_SCREEN_BUFFER_INFO;
+		]									;-- sizeof(CONSOLE_SCREEN_BUFFER_INFO) = 22
+
+		#import [
+			"kernel32.dll" stdcall [
+				ReadConsoleInput: "ReadConsoleInputW" [
+					handle			[integer!]
+					arrayOfRecs		[integer!]
+					length			[integer!]
+					numberOfRecs	[int-ptr!]
+					return:			[integer!]
+				]
+				SetConsoleMode: "SetConsoleMode" [
+					handle			[integer!]
+					mode			[integer!]
+					return:			[integer!]
+				]
+				GetConsoleMode:	"GetConsoleMode" [
+					handle			[integer!]
+					mode			[int-ptr!]
+					return:			[integer!]
+				]
+				WriteConsole: 	 "WriteConsoleW" [
+					consoleOutput	[integer!]
+					buffer			[byte-ptr!]
+					charsToWrite	[integer!]
+					numberOfChars	[int-ptr!]
+					_reserved		[int-ptr!]
+					return:			[integer!]
+				]
+				FillConsoleOutputAttribute: "FillConsoleOutputAttribute" [
+					handle			[integer!]
+					attributs		[integer!]
+					length			[integer!]
+					coord			[integer!]
+					numberOfAttrs	[int-ptr!]
+				]
+				FillConsoleOutputCharacter: "FillConsoleOutputCharacterW" [
+					handle			[integer!]
+					attributs		[integer!]
+					length			[integer!]
+					coord			[integer!]
+					numberOfChars	[int-ptr!]
+				]
+				SetConsoleCursorPosition: "SetConsoleCursorPosition" [
+					handle 			[integer!]
+					coord 			[integer!]
+				]
+				GetConsoleScreenBufferInfo: "GetConsoleScreenBufferInfo" [
+					handle 			[integer!]
+					info 			[integer!]
+					return: 		[integer!]
+				]
+			]
+		]
+
+		input-rec: declare input-record!
+		base-y:	 	 0
+		saved-con:	 0
+
+		#define STRUCT_MEMBER(base offset) ((as-integer base) + offset)
+		#define FIRST_WORD(int) (int and FFFFh)
+		#define SECOND_WORD(int) (int >>> 16)
+
+		fd-read: func [
+			return: 	[integer!]
+			/local
+				key 	[key-event!]
+				n	 	[integer!]
+				keycode [integer!]
+		][
+			n: 0
+			while [true] [
+				if zero? ReadConsoleInput stdin as-integer input-rec 1 :n [return -1]
+				key: as key-event! STRUCT_MEMBER(input-rec (size? integer!))
+
+				if all [
+					input-rec/EventType and FFFFh = KEY_EVENT
+					key/KeyDown <> 0
+				][
+					keycode: SECOND_WORD(key/RepeatCnt-KeyCode)  ;-- 1st RepeatCnt 2 KeyCode
+					switch keycode [
+						VK_LEFT		[return KEY_LEFT]
+						VK_RIGHT	[return KEY_RIGHT]
+						VK_UP		[return KEY_UP]
+						VK_DOWN		[return KEY_DOWN]
+						VK_INSERT	[return KEY_INSERT]
+						VK_DELETE	[return KEY_DELETE]
+						VK_HOME		[return KEY_HOME]
+						VK_END		[return KEY_END]
+						VK_PRIOR	[return KEY_PAGE_UP]
+						VK_NEXT		[return KEY_PAGE_DOWN]
+						VK_BACK 	[return KEY_BACKSPACE]
+						VK_RETURN 	[return KEY_ENTER]
+						VK_CONTROL  []
+						default 	[
+							return SECOND_WORD(key/ScanCode-Char) ;-- return Char
+						]
+					]
+				]
+			]
+			-1
+		]
+
+		get-window-size: func [
+			return: 	[integer!]
+			/local
+				info 	[screenbuf-info!]
+				x-y 	[integer!]
+		][
+			info: declare screenbuf-info!
+			if zero? GetConsoleScreenBufferInfo stdout as-integer info [return -1]
+			x-y: info/Size
+			columns: FIRST_WORD(x-y)
+			if columns <= 0 [columns: 80 return -1]
+			x-y: info/Position
+			base-y: SECOND_WORD(x-y)
+			0
+		]
+
+		init: func [
+			line 		[red-string!]
+			hist-blk	[red-block!]
+			/local
+				mode	[integer!]
+		][
+			copy-cell as red-value! line as red-value! input-line
+			copy-cell as red-value! hist-blk as red-value! history
+
+			GetConsoleMode stdin :saved-con
+			mode: not (ENABLE_LINE_INPUT and ENABLE_ECHO_INPUT)		;-- turn off some features
+			SetConsoleMode stdin saved-con and mode
+		]
+
+		emit-red-string: func [
+			str	 		  [red-string!]
+			size 		  [integer!]
+           	head-as-tail? [logic!]
+			return:		  [integer!]
+            /local
+            	x		  [integer!]
+                y         [integer!]
+                n         [integer!]
+                bytes     [integer!]
+                cp		  [integer!]
+				unit	  [integer!]
+				series	  [series!]
+				offset	  [byte-ptr!]
+				tail	  [byte-ptr!]
+		][
+            y:      base-y
+            x:		0
+            n:      0
+            bytes:  0
+            cnt:	0
+			series: GET_BUFFER(str)
+			unit: 	GET_UNIT(series)
+			offset: (as byte-ptr! series/offset) + (str/head << (unit >> 1))
+			tail:	as byte-ptr! series/tail
+			if head-as-tail? [
+				tail: offset
+				offset: as byte-ptr! series/offset
+			]
+			until [
+				while [
+					all [offset < tail cnt < size]
+				][
+					cp: string/get-char offset unit
+					cnt: either cp > FFh [
+						either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]
+					][
+						cnt + 1
+					]
+					WriteConsole stdout (as byte-ptr! :cp) 1 :n null
+					offset: offset + unit
+				]
+				bytes: bytes + cnt
+				cnt: 0
+				if offset < tail [
+					size: columns
+					y: y + 1
+					SetConsoleCursorPosition stdout y << 16 or x
+					x: 0
+					FillConsoleOutputAttribute					;-- set characters foreground color
+			    		stdout
+			    		FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_GREEN
+				    	columns
+				    	y << 16
+				    	:n
+				]
+				offset >= tail
+			]
+            bytes
+		]
+
+		refresh: func [
+			/local
+				line   [red-string!]
+				offset [integer!]
+                n      [integer!]
+				x	   [integer!]
+				y	   [integer!]
+				x-y	   [integer!]
+				bytes  [integer!]
+				psize  [integer!]
+				info   [screenbuf-info!]
+		][
+            n:    0
+			line: input-line
+
+            SetConsoleCursorPosition stdout base-y << 16
+            bytes: emit-red-string prompt columns no
+
+			psize: bytes // columns
+            offset: psize + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
+
+			psize: offset // columns
+            bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
+
+			info: declare screenbuf-info!                       ;-- TODO: we can use bytes to calculate x-y
+			GetConsoleScreenBufferInfo stdout as-integer info
+			x-y: info/Position
+    		FillConsoleOutputCharacter						    ;-- erase to EOL
+    			stdout
+    			20h                                             ;-- #" " = 20h
+    			columns - FIRST_WORD(x-y)                       ;-- columns - x
+    			x-y
+    			:n
+
+			y: offset / columns
+			x: offset // columns
+			SetConsoleCursorPosition stdout base-y + y << 16 or x
+		]
+
+		restore: does [SetConsoleMode stdin saved-con]
+
+	] ;-- =================End Of OS Dependent Functions==================== --
+
+		#enum special-key! [
+			KEY_UNSET:		 -1
+			KEY_NONE:		  0
+			KEY_UP:			-20
+			KEY_DOWN:		-21
+			KEY_RIGHT:		-22
+			KEY_LEFT:		-23
+			KEY_END:		-24
+			KEY_HOME:		-25
+			KEY_INSERT:		-26
+			KEY_DELETE:		-27
+			KEY_PAGE_UP:	-28
+			KEY_PAGE_DOWN:	-29
+			KEY_ENTER:		-30
+			KEY_BACKSPACE:	-31
+		]
+
+		#define KEY-CTRL-A	#"^A"
+		#define	KEY-CTRL-E	#"^E"
+
+		input-line: declare red-string!
+		saved-line:	declare red-string!
+		prompt:		declare	red-string!
+		history:	declare red-block!
+		columns:	-1
+
+		on-resize: does [
+			get-window-size
+			refresh
+		]
+
+		fetch-history: does [
+			string/rs-reset input-line
+			string/concatenate input-line as red-string! block/rs-head history -1 0 yes no
+			input-line/head: string/get-length input-line yes
+		]
+
 		edit: func [
 			prompt-str [red-string!]
 			/local
@@ -491,12 +800,11 @@ Red [
 			history/head: block/rs-length? history		;@@ set history list to tail (temporary)
 				
 			get-window-size
-			emit-red-string prompt columns
 			refresh
 
 			while [true][
 				c: fd-read
-				if c = 27 [c: check-special]
+				#if OS <> 'Windows [if c = 27 [c: check-special]]
 
 				switch c [
 					KEY_ENTER [
@@ -550,7 +858,8 @@ Red [
 						line/head: string/get-length line yes
 						refresh
 					]
-					KEY_UNSET []						;-- do nothing
+					KEY_UNSET
+					KEY_NONE []						;-- do nothing
 					
 					default [
 						either zero? string/rs-length? line [
@@ -564,11 +873,6 @@ Red [
 				]
 			]
 			line/head: 0
-		]
-
-		restore: does [
-			emit-string "^[[?7h"						;-- enable auto-wrap
-			tcsetattr stdin TERM_TCSADRAIN saved-term			
 		]
 	]
 ]
