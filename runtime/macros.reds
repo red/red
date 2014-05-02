@@ -42,6 +42,7 @@ Red/System [
 	TYPE_BITSET
 	TYPE_POINT
 	TYPE_OBJECT
+	TYPE_FLOAT
 	TYPE_BINARY
 	
 	TYPE_TYPESET
@@ -51,7 +52,7 @@ Red/System [
 
 	TYPE_PORT
 
-	TYPE_FLOAT
+	
 ]
 
 #enum actions! [
