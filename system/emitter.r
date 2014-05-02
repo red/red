@@ -211,7 +211,7 @@ emitter: make-profilable context [
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if all [value = <last> not find [float! float!64] type][
+		if all [value = <last> not find [float! float64!] type][
 			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
