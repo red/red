@@ -18,6 +18,7 @@ red: context [
 	runtime-path:  %runtime/
 	include-stk:   make block! 3
 	included-list: make block! 20
+	needed:		   make block! 4
 	symbols:	   make hash! 1000
 	globals:	   make hash! 1000						;-- words defined in global context
 	aliases: 	   make hash! 100
@@ -86,6 +87,10 @@ red: context [
 	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
 	
 	iterators: [loop until while repeat foreach forall forever]
+	
+	standard-modules: [
+		View		%modules/view/VID.red
+	]
 
 	func-constructors: [
 		'func | 'function | 'does | 'has | 'routine | 'make 'function!
@@ -3412,7 +3417,7 @@ red: context [
 				][
 					saved: script-name
 					insert skip pc 2 #pop-path
-					change/part pc load-source file 2
+					change/part pc next load-source file 2	;@@ Header skipped, should be processed
 					script-name: saved
 					append included-list file
 					unless empty? expr-stack [comp-expression]
@@ -3676,7 +3681,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		pc: load-source/hidden %boot.red				;-- compile Red's boot script
+		pc: next load-source/hidden %boot.red			;-- compile Red's boot script
 		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
 		comp-block
@@ -3843,12 +3848,34 @@ red: context [
 			unless hidden [script-name: 'memory]
 			src: file
 		]
-		next src										;-- skip header block
+		src
+	]
+	
+	process-needs: func [header [block!] src [block!] /local list file mods][
+		case [
+			list: select header first [Needs:][
+				unless block? list [list: reduce [list]]
+				mods: make block! 2
+				
+				foreach mod list [
+					unless file: select standard-modules mod [
+						throw-error ["module not found:" mod]
+					]
+					unless find needed mod [
+						file: split-path join system/options/home file
+						script-path: file/1
+						repend mods [#include file/2]
+					]
+				]
+				insert src mods
+			]	
+		]
 	]
 	
 	clean-up: does [
 		clear include-stk
 		clear included-list
+		clear needed
 		clear symbols
 		clear aliases
 		clear globals
@@ -3892,6 +3919,8 @@ red: context [
 		time: dt [
 			src: load-source file
 			job/red-pass?: yes
+			process-needs src/1 next src
+			src: next src
 			either no-global? [comp-as-lib src][comp-as-exe src]
 		]
 		reduce [output time redbin/buffer]
