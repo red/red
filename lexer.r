@@ -242,6 +242,7 @@ lexer: context [
 	integer-rule: [
 		integer-number-rule
 		sticky-word-rule
+		(value: load-integer copy/part s e)
 		opt [
 			#"x" (
 				type: pair!
@@ -372,7 +373,7 @@ lexer: context [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule    (stack/push value)
-			| integer-rule	  (stack/push load-integer   copy/part s e)
+			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)

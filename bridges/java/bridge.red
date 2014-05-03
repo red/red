@@ -566,7 +566,7 @@ java-get-field: routine [
 		type-string	 [
 			buffer: jni/GetObjectField env obj field
 			str: jni/GetStringUTFChars env buffer null
-			value: as red-value! string/load str 1 + length? str 
+			value: as red-value! string/load str 1 + length? str UTF-8
 			jni/ReleaseStringUTFChars env buffer str
 			jni/DeleteLocalRef env buffer
 		]
@@ -602,7 +602,7 @@ java-set-field: routine [
 		;type-string	 [
 		;	buffer: jni/GetObjectField env obj field
 		;	str: jni/GetStringUTFChars env buffer null
-		;	value: as red-value! string/load str 1 + length? str 
+		;	value: as red-value! string/load str 1 + length? str UTF-8 
 		;	jni/ReleaseStringUTFChars env buffer str
 		;	jni/DeleteLocalRef env buffer
 		;]
