@@ -72,6 +72,7 @@ lexer: context [
 	not-word-char:  charset {/\^^,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:  charset {[](){}"@:;}
+	not-url-char:	charset {[](){}";}
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
@@ -333,6 +334,13 @@ lexer: context [
 		#"%" (type: file! stop: [not-file-char | ws-no-count])
 		s: any UTF8-filtered-char e:
 	]
+
+	url-rule: [
+		(type: url! stop: [not-file-char | ws-no-count])
+		s: some UTF8-filtered-char #":"
+		(stop: [not-url-char | ws-no-count])
+		some UTF8-filtered-char e:
+	]
 	
 	escaped-rule: [
 		"#[" any-ws [
@@ -367,6 +375,7 @@ lexer: context [
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
+			| url-rule		  (stack/push to url! dehex	 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
