@@ -207,7 +207,7 @@ transcode: function [
 	]
 
 	trans-file: [
-		new: make file! (index? e) - index? s
+		new: make type (index? e) - index? s
 		append new dehex copy/part s e
 		new
 	]
@@ -337,10 +337,16 @@ transcode: function [
 		#"%" [
 			line-string (process: trans-string type: file!)
 			| s: any [ahead [not-file-char | ws-no-count] break | skip] e:
-			  (process: trans-file)
+			  (process: trans-file type: file!)
 		]
 	]
-	
+
+	url-rule: [
+		s: some [ahead [not-file-char | ws-no-count] break | skip] #":"
+		some [#"@" | #":" | ahead [not-url-char | ws-no-count] break | skip] e:
+		(process: trans-file type: url!)
+	]
+
 	symbol-rule: [
 		some [ahead [not-word-char | ws-no-count | control-char] break | skip] e:
 	]
@@ -476,6 +482,7 @@ transcode: function [
 			| escaped-rule		(trans-store stack value)
 			| integer-rule		if (value: trans-integer s e ) (trans-store stack value)
 			| hexa-rule			(trans-store stack trans-hexa s e)
+			| url-rule			(trans-store stack value: do process)
 			| word-rule
 			| lit-word-rule
 			| get-word-rule

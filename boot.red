@@ -24,6 +24,7 @@ word!:			make datatype! #get-definition TYPE_WORD
 ;error!:		make datatype! #get-definition TYPE_ERROR
 ;typeset!:		make datatype! #get-definition TYPE_TYPESET
 file!:			make datatype! #get-definition TYPE_FILE
+url!:			make datatype! #get-definition TYPE_URL
 
 set-word!:		make datatype! #get-definition TYPE_SET_WORD
 get-word!:		make datatype! #get-definition TYPE_GET_WORD
@@ -1028,6 +1029,7 @@ block?:		 func ["Returns true if the value is this type." value [any-type!]] [bl
 char?: 		 func ["Returns true if the value is this type." value [any-type!]] [char!		= type? :value]
 datatype?:	 func ["Returns true if the value is this type." value [any-type!]] [datatype!	= type? :value]
 file?:		 func ["Returns true if the value is this type." value [any-type!]] [file!		= type? :value]
+url?:		 func ["Returns true if the value is this type." value [any-type!]] [url!		= type? :value]
 function?:	 func ["Returns true if the value is this type." value [any-type!]] [function!	= type? :value]
 get-path?:	 func ["Returns true if the value is this type." value [any-type!]] [get-path!	= type? :value]
 get-word?:	 func ["Returns true if the value is this type." value [any-type!]] [get-word!	= type? :value]

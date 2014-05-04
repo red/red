@@ -61,6 +61,7 @@ red: context [
 	#include %datatypes/paren.reds
 	#include %datatypes/issue.reds
 	#include %datatypes/file.reds
+	#include %datatypes/url.reds
 	#include %datatypes/object.reds
 	#include %datatypes/bitset.reds
 	#include %datatypes/point.reds
@@ -120,6 +121,7 @@ red: context [
 		paren/init
 		issue/init
 		file/init
+		url/init
 		object/init
 		bitset/init
 		point/init
@@ -166,6 +168,7 @@ red: context [
 			paren/verbose:		verbosity
 			issue/verbose:		verbosity
 			file/verbose:		verbosity
+			url/verbose:		verbosity
 			object/verbose:		verbosity
 			bitset/verbose:		verbosity
 

@@ -245,7 +245,7 @@ red: context [
 		insert-lf -2
 	]
 	
-	emit-load-string: func [buffer [string! file!]][
+	emit-load-string: func [buffer [string! file! url!]][
 		emit to path! reduce [to word! form type? buffer 'load]
 		emit form buffer
 		emit 1 + length? buffer							;-- account for terminal zero
