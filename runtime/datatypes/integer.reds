@@ -110,27 +110,26 @@ integer: context [
 			copy-cell as red-value! right as red-value! left
 			pair: as red-pair! left
 			switch type [
-				OP_ADD [pair/x: pair/x + value  pair/y: pair/y + value]
-				OP_SUB [pair/x: pair/x - value  pair/y: pair/y - value]
-				OP_MUL [pair/x: pair/x * value  pair/y: pair/y * value]
-				OP_DIV [pair/x: pair/x / value  pair/y: pair/y / value]
-				OP_REM [pair/x: pair/x % value  pair/y: pair/y % value]
+				OP_ADD [pair/x: pair/x +   value  pair/y: pair/y +   value]
+				OP_SUB [pair/x: pair/x -   value  pair/y: pair/y -   value]
+				OP_MUL [pair/x: pair/x *   value  pair/y: pair/y *   value]
+				OP_DIV [pair/x: pair/x /   value  pair/y: pair/y /   value]
+				OP_REM [pair/x: pair/x %   value  pair/y: pair/y %   value]
 				OP_AND [pair/x: pair/x and value  pair/y: pair/y and value]
 				OP_OR  [pair/x: pair/x or  value  pair/y: pair/y or  value]
 				OP_XOR [pair/x: pair/x xor value  pair/y: pair/y xor value]
 			]
 		][
 			left/value: switch type [
-				OP_ADD [left/value + right/value]
-				OP_SUB [left/value - right/value]
-				OP_MUL [left/value * right/value]
-				OP_DIV [left/value / right/value]
-				OP_REM [left/value % right/value]
+				OP_ADD [left/value +   right/value]
+				OP_SUB [left/value -   right/value]
+				OP_MUL [left/value *   right/value]
+				OP_DIV [left/value /   right/value]
+				OP_REM [left/value %   right/value]
 				OP_AND [left/value and right/value]
-				OP_OR  [left/value or right/value]
+				OP_OR  [left/value or  right/value]
 				OP_XOR [left/value xor right/value]
 			]
-
 		]
 		as red-value! left
 	]
