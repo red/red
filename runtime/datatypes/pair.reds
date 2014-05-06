@@ -52,6 +52,10 @@ pair: context [
 			OP_SUB [left/x: left/x - x  left/y: left/y - y]
 			OP_MUL [left/x: left/x * x  left/y: left/y * y]
 			OP_DIV [left/x: left/x / x  left/y: left/y / y]
+			OP_REM [left/x: left/x % x  left/y: left/y % y]
+			OP_AND [left/x: left/x and x  left/y: left/y and y]
+			OP_OR  [left/x: left/x or  x  left/y: left/y or  y]
+			OP_XOR [left/x: left/x xor x  left/y: left/y xor y]
 		]
 		left
 	]
@@ -218,6 +222,11 @@ pair: context [
 		res
 	]
 	
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "pair/remainder"]]
+		as red-value! do-math OP_REM
+	]
+	
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "pair/add"]]
 		as red-value! do-math OP_ADD
@@ -236,6 +245,21 @@ pair: context [
 	subtract: func [return:	[red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "pair/subtract"]]
 		as red-value! do-math OP_SUB
+	]
+	
+	and~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "pair/and~"]]
+		as red-value! do-math OP_AND
+	]
+
+	or~: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "pair/or~"]]
+		as red-value! do-math OP_OR
+	]
+
+	xor~: func [return:	[red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "pair/xor~"]]
+		as red-value! do-math OP_XOR
 	]
 	
 	negate: func [
@@ -270,16 +294,16 @@ pair: context [
 			:multiply
 			:negate
 			null			;power
-			null			;remainder
+			:remainder
 			null			;round
 			:subtract
 			null			;even?
 			null			;odd?
 			;-- Bitwise actions --
-			null			;and~
+			:and~
 			null			;complement
-			null			;or~
-			null			;xor~
+			:or~
+			:xor~
 			;-- Series actions --
 			null			;append
 			null			;at
