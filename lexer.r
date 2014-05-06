@@ -27,6 +27,7 @@ lexer: context [
 	four:  charset "01234"
 	half:  charset "012345"
     non-zero: charset "123456789"
+    letter: charset [#"A" - #"Z" #"a" - #"z"]
     digit: union non-zero charset "0"
     dot: #"."
     comma: #","
@@ -79,6 +80,8 @@ lexer: context [
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	integer-end:	charset {^{"[]);}
 	stop: 		    none
+
+	url-scheme-char: union union letter digit charset "+-."
 	
 	control-char: reduce [
 		charset [#"^(00)" - #"^(1F)"] 				;-- ASCII control characters
@@ -335,13 +338,14 @@ lexer: context [
 		s: any UTF8-filtered-char e:
 	]
 
+	url-scheme-name: [letter any url-scheme-char]
+
 	url-rule: [
-		(type: url! stop: [not-file-char | ws-no-count])
-		s: some UTF8-filtered-char #":"
-		(stop: [not-url-char | ws-no-count])
+		s: url-scheme-name #":"
+		(type: url! stop: [not-url-char | ws-no-count])
 		some UTF8-filtered-char e:
 	]
-	
+
 	escaped-rule: [
 		"#[" any-ws [
 			  "true"  (value: true)
