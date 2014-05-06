@@ -343,7 +343,7 @@ transcode: function [
 
 	url-rule: [
 		s: some [ahead [not-file-char | ws-no-count] break | skip] #":"
-		some [#"@" | #":" | ahead [not-url-char | ws-no-count] break | skip] e:
+		some [#"@" | #":" | ahead [not-file-char | ws-no-count] break | skip] e:
 		(process: trans-file type: url!)
 	]
 
