@@ -128,6 +128,18 @@ float: context [
 		]
 	]
 
+	float-to-int: func [
+		number 	[float!]
+		return:	[integer!]
+		/local p f
+	][
+		;Based on this method: http://stackoverflow.com/a/429812/494472
+		p: declare struct! [int1 [integer!] int2 [integer!]]
+		f: as pointer! [float!] p
+		f/value: number + 6755399441055744.0
+		p/int1
+	]
+
 	form: func [
 		fl		   [red-float!]
 		buffer	   [red-string!]
@@ -143,7 +155,8 @@ float: context [
 		either fl/value = 0.0 [
 			formed: "0.0"
 		][
-			formed: "!FLOAT!" ;form-signed fl/value
+			;Output rounded to the nearest whole number before we will get propper decimal form
+			formed: integer/form-signed float-to-int fl/value
 		]
 		
 		string/concatenate-literal buffer formed
@@ -275,14 +288,14 @@ float: context [
 			null			;compare
 			;-- Scalar actions --
 			null			;absolute
-			null			;add
-			null			;divide
-			null			;multiply
-			null			;negate
+			:add
+			:divide
+			:multiply
+			:negate
 			null			;power
 			null			;remainder
 			null			;round
-			null			;subtract
+			:subtract
 			null			;even?
 			null			;odd?
 			;-- Bitwise actions --
