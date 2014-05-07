@@ -12,6 +12,17 @@ Red/System [
 
 integer: context [
 	verbose: 0
+	
+	abs: func [
+		value	[integer!] 
+		return: [integer!]
+	][
+		if value = -2147483648 [
+			print-line "*** Math Error: integer overflow on ABSOLUTE"
+		]
+		if negative? value [value: 0 - value]
+		value
+	]
 
 	get*: func [										;-- unboxing integer value from stack
 		return: [integer!]
@@ -266,19 +277,13 @@ integer: context [
 	absolute: func [
 		return: [red-integer!]
 		/local
-			int	  [red-integer!]
-			value [integer!]
+			int	[red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
 		
 		int: as red-integer! stack/arguments
-		value: int/value
-		
-		if value = -2147483648 [
-			print-line "*** Math Error: integer overflow on ABSOLUTE"
-		]
-		if negative? value [int/value: 0 - value]
-		int 											;-- re-use argument slot for return value
+		int/value: abs int/value
+		int
 	]
 
 	add: func [return: [red-value!]][

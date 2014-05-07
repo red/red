@@ -227,6 +227,19 @@ pair: context [
 		as red-value! do-math OP_REM
 	]
 	
+	absolute: func [
+		return: [red-pair!]
+		/local
+			pair [red-pair!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/absolute"]]
+
+		pair: as red-pair! stack/arguments
+		pair/x: integer/abs pair/x
+		pair/y: integer/abs pair/y
+		pair
+	]
+	
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "pair/add"]]
 		as red-value! do-math OP_ADD
@@ -288,7 +301,7 @@ pair: context [
 			null			;set-path
 			:compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute
 			:add
 			:divide
 			:multiply
