@@ -743,5 +743,96 @@ Red [
 
 ===end-group===
 
+===start-group=== "take"
+
+	--test-- "take-blk-1"
+		a: [1 2 3]
+		--assert 1 = take a
+		--assert [2 3] = a
+
+	--test-- "take-blk-2"
+		a: [1 2 3]
+		--assert 3 = take/last a
+		--assert [1 2] = a
+
+	--test-- "take-blk-3"
+		a: [1 2 3]
+		--assert 2 = take next a
+		--assert [1 3] = a
+
+	--test-- "take-blk-4"
+		--assert none = take []
+
+	--test-- "take-blk-5"
+		a: [1 2 3]
+		--assert [1 2] = take/part a 2
+		--assert [3] = a
+
+	--test-- "take-blk-6"
+		a: [1 2 3]
+		--assert 1 = take/part a next a
+		--assert [2 3] = a
+
+	--test-- "take-blk-7"
+		a: [1 2 3]
+		--assert [2 3] = take/part/last a next a
+		--assert [1] = a
+
+	--test-- "take-blk-8"
+		a: [1 2 3]
+		--assert [] = take/part a 0
+		--assert [1 2 3] = a
+
+	--test-- "take-blk-9"
+		b: "abc"
+		a: reduce [b 2 3]
+		--assert b = c: take/deep a
+		--assert b <> remove c
+
+	--test-- "take-str-1"
+		a: "123"
+		--assert #"1" = take a
+		--assert "23" = a
+
+	--test-- "take-str-2"
+		a: "123"
+		--assert #"3" = take/last a
+		--assert "12" = a
+
+	--test-- "take-str-3"
+		a: "123"
+		--assert #"2" = take next a
+		--assert "13" = a
+
+	--test-- "take-str-4"
+		--assert none = take ""
+
+	--test-- "take-str-5"
+		a: "123"
+		--assert "12" = take/part a 2
+		--assert "3" = a
+
+	--test-- "take-str-6"
+		a: "123"
+		--assert "23" = take/part/last a 2
+		--assert "1" = a
+
+	--test-- "take-str-7"
+		a: "123"
+		--assert "" = take/part a a
+		--assert "123" = a
+
+	--test-- "take-str-8"
+		a: "123"
+		--assert #"1"= take/part a next a
+		--assert "23" = a
+
+	--test-- "take-str-9"
+		a: "123"
+		--assert "23" = take/part/last a next a
+		--assert "1"  = a
+
+===end-group===
+
 ~~~end-file~~~
 

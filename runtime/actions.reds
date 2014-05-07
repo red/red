@@ -1055,8 +1055,41 @@ actions: context [
 		action-tail?
 	]
 
-	
-	take*: func [][]
+	take*: func [
+		part	[integer!]
+		deep	[integer!]
+		last	[integer!]
+		return:	[red-value!]
+	][
+		stack/set-last take
+			as red-series! stack/arguments
+			stack/arguments + part
+			as logic! deep + 1
+			as logic! last + 1
+	]
+
+	take: func [
+		series  [red-series!]
+		part	[red-value!]
+		deep?	[logic!]
+		last?	[logic!]
+		return:	[red-value!]
+		/local
+			action-take
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/take"]]
+
+		action-take: as function! [
+			series  [red-series!]
+			part	[red-value!]
+			deep?	[logic!]
+			last?	[logic!]
+			return: [red-value!]
+		] get-action-ptr as red-value! series ACT_TAKE
+
+		action-take series part deep? last?
+	]
+
 	trim*: func [][]
 	create*: func [][]
 	close*: func [][]
@@ -1126,7 +1159,7 @@ actions: context [
 			null			;swap
 			:tail*
 			:tail?*
-			null			;take
+			:take*
 			null			;trim
 			;-- I/O actions --
 			null			;create
