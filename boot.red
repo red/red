@@ -481,7 +481,16 @@ tail?: make action! [[
 	#get-definition ACT_TAIL?
 ]
 
-;take
+take: make action! [[
+		"Removes and returns one or more elements."
+		series	 [series!]
+		/part	 "Specifies a length or end position"
+			length [number! series! pair!]
+		/deep	 "Copy nested values"
+		/last	 "Take it from the tail end"
+	]
+	#get-definition ACT_TAKE
+]
 ;trim
 
 ;-- I/O actions --

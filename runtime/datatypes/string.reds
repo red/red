@@ -1864,6 +1864,98 @@ string: context [
 		str
 	]
 
+	take: func [
+		str	    	[red-string!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		last?		[logic!]
+		return:		[red-value!]
+		/local
+			int		[red-integer!]
+			str2	[red-string!]
+			char	[red-char!]
+			offset	[byte-ptr!]
+			tail	[byte-ptr!]
+			s		[series!]
+			buffer	[series!]
+			node	[node!]
+			unit	[integer!]
+			part	[integer!]
+			bytes	[integer!]
+			size	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/take"]]
+
+		size: rs-length? str
+		if size <= 0 [									;-- early exit if nothing to take
+			set-type as cell! str TYPE_NONE
+			return as red-value! str
+		]
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		part: unit
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				str2: as red-string! part-arg
+				unless all [
+					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
+					str2/node = str/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				either str2/head < str/head [0][
+					either last? [size - (str2/head - str/head)][str2/head - str/head]
+				]
+			]
+		]
+
+		bytes:	part << (unit >> 1)
+		node: 	alloc-bytes bytes + unit
+		buffer: as series! node/value
+		buffer/flags: s/flags							;@@ filter flags?
+
+		str2: as red-string! stack/push*
+		str2/header: TYPE_STRING
+		str2/node: 	node
+		str2/head: 	0
+
+		either positive? part [
+			tail: as byte-ptr! s/tail
+			offset: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			if last? [
+				offset: tail - bytes
+				s/tail: as cell! offset
+			]
+			copy-memory
+				as byte-ptr! buffer/offset
+				offset
+				bytes
+			buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
+
+			unless last? [
+				move-memory
+					offset
+					offset + bytes
+					as-integer tail - offset - bytes
+				s/tail: as cell! tail - bytes
+			]
+			add-terminal-NUL as byte-ptr! buffer/tail unit
+			add-terminal-NUL as byte-ptr! s/tail unit
+		][return as red-value! str2]
+
+		if part = 1 [									;-- return char!
+			char: as red-char! str2
+			char/header: TYPE_CHAR
+			char/value:  get-char as byte-ptr! buffer/offset unit
+		]
+		as red-value! str2
+	]
+
 	;--- Misc actions ---
 
 	copy: func [
@@ -1992,7 +2084,7 @@ string: context [
 			null			;swap
 			:tail
 			:tail?
-			null			;take
+			:take
 			null			;trim
 			;-- I/O actions --
 			null			;create

@@ -185,7 +185,7 @@ url: context [
 			null			;swap
 			INHERIT_ACTION	;tail
 			INHERIT_ACTION	;tail?
-			null			;take
+			INHERIT_ACTION	;take
 			null			;trim
 			;-- I/O actions --
 			null			;create

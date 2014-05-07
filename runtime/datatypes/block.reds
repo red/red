@@ -22,6 +22,7 @@ block: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(blk)
+		assert (as-integer (s/tail - s/offset)) >> 4 - blk/head >= 0
 		(as-integer (s/tail - s/offset)) >> 4 - blk/head
 	]
 	
@@ -1275,7 +1276,112 @@ block: context [
 		stack/pop 1
 		blk
 	]
-	
+
+	take: func [
+		blk	    	[red-block!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		last?		[logic!]
+		return:		[red-value!]
+		/local
+			int		[red-integer!]
+			b		[red-block!]
+			new		[red-block!]
+			offset	[red-value!]
+			slot	[red-value!]
+			buffer	[series!]
+			node	[node!]
+			part	[integer!]
+			slots	[integer!]
+			type	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/take"]]
+
+		s: GET_BUFFER(blk)
+		slots: rs-length? blk
+		if slots <= 0 [								;-- return NONE if blk is empty
+			set-type as cell! blk TYPE_NONE
+			return as red-value! blk
+		]
+
+		offset: s/offset + blk/head
+		part:   1
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				b: as red-block! part-arg
+				assert all [
+					TYPE_OF(b) = TYPE_BLOCK
+					b/node = blk/node
+				]
+				either b/head < blk/head [0][
+					either last? [slots - (b/head - blk/head)][b/head - blk/head]
+				]
+			]
+		]
+
+		new:		as red-block! stack/push*
+		new/header: TYPE_BLOCK
+		new/node: 	alloc-cells part + 1
+		new/head: 	0
+		buffer: 	as series! new/node/value
+
+		either positive? part [
+			if last? [
+				offset: s/tail - part
+				s/tail: offset
+			]
+			copy-memory
+				as byte-ptr! buffer/offset
+				as byte-ptr! offset
+				part << 4
+			buffer/tail: buffer/offset + part
+
+			unless last? [
+				move-memory
+					as byte-ptr! offset
+					as byte-ptr! offset + part
+					as-integer s/tail - (offset + part)
+				s/tail: s/tail - part
+			]
+		][return as red-value! new]
+
+		if deep? [
+			slot: buffer/offset
+			until [
+				type: TYPE_OF(slot)
+				if any [								;@@ replace with ANY_SERIES?
+					type = TYPE_BLOCK
+					type = TYPE_PAREN
+					type = TYPE_PATH
+					type = TYPE_GET_PATH
+					type = TYPE_SET_PATH
+					type = TYPE_LIT_PATH
+					type = TYPE_STRING
+					type = TYPE_FILE
+					type = TYPE_URL
+				][
+					actions/copy
+						as red-series! slot
+						slot						;-- overwrite the slot value
+						null
+						yes
+						null
+				]
+				slot: slot + 1
+				slot >= buffer/tail
+			]
+		]
+
+		if part = 1	[								;-- flatten block
+			copy-cell as cell! buffer/offset as cell! new
+		]
+		as red-value! new
+	]
+
 	;--- Misc actions ---
 	
 	copy: func [
@@ -1358,6 +1464,7 @@ block: context [
 					type = TYPE_LIT_PATH
 					type = TYPE_STRING
 					type = TYPE_FILE
+					type = TYPE_URL
 				][
 					actions/copy 
 						as red-series! slot
@@ -1430,7 +1537,7 @@ block: context [
 			null			;swap
 			:tail
 			:tail?
-			null			;take
+			:take
 			null			;trim
 			;-- I/O actions --
 			null			;create
