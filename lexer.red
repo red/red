@@ -225,7 +225,7 @@ transcode: function [
 		cs/10: #"}"										;-- not-mstr-char
 		cs/11: charset [#"^(40)" - #"^(5F)"]			;-- caret-char
 		cs/12: charset [#"^(00)" - #"^(1F)"]			;-- non-printable-char
-		cs/13: charset {^{"[]);}						;-- integer-end
+		cs/13: charset {^{"[]);x.}						;-- integer-end
 		cs/14: charset " ^-^M"							;-- ws-ASCII, ASCII common whitespaces
 		cs/15: charset [#"^(80)" - #"^(8A)"]			;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 		cs/16: charset [#"^(00)" - #"^(1F)"] 			;-- ASCII control characters
@@ -412,6 +412,18 @@ transcode: function [
 	integer-rule: [
 		integer-number-rule
 		ahead [integer-end | ws-no-count | end]
+		(value: trans-integer s e)
+	]
+	
+	number-rule: [
+		integer-rule
+		opt [
+			#"x" if (value) (value2: make pair! reduce [value 0])
+			s: integer-rule (
+				value2/2: trans-integer s e
+				value: value2
+			)
+		]
 	]
 	
 	block-rule: [
@@ -474,7 +486,7 @@ transcode: function [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule		(trans-store stack value)
-			| integer-rule		if (value: trans-integer s e ) (trans-store stack value)
+			| number-rule		if (value) (trans-store stack value)
 			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
