@@ -12,6 +12,17 @@ Red/System [
 
 integer: context [
 	verbose: 0
+	
+	abs: func [
+		value	[integer!] 
+		return: [integer!]
+	][
+		if value = -2147483648 [
+			print-line "*** Math Error: integer overflow on ABSOLUTE"
+		]
+		if negative? value [value: 0 - value]
+		value
+	]
 
 	abs: func [
 		value	[integer!]
@@ -343,8 +354,7 @@ integer: context [
 	absolute: func [
 		return: [red-integer!]
 		/local
-			int	  [red-integer!]
-			value [integer!]
+			int	[red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
 		
