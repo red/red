@@ -342,9 +342,9 @@ transcode: function [
 	]
 
 	url-rule: [
-		s: begin-symbol-rule #":" not [integer-end | ws-no-count | end]
+		#":" not [integer-end | ws-no-count | end]
 		any [#"@" | #":" | ahead [not-file-char | ws-no-count] break | skip] e:
-		(process: trans-file type: url!)
+		(type: url! trans-store stack do trans-file)
 	]
 
 	symbol-rule: [
@@ -377,7 +377,8 @@ transcode: function [
 	word-rule: 	[
 		#"%" ws-no-count (trans-word stack "%" word!)	;-- special case for remainder op!
 		| s: begin-symbol-rule (type: word!) [
-				path-rule								;-- path matched
+				url-rule
+				| path-rule								;-- path matched
 				| opt [#":" (type: set-word!)]
 				  (trans-word stack copy/part s e type)	;-- word or set-word matched
 		  ]
@@ -482,7 +483,6 @@ transcode: function [
 			| escaped-rule		(trans-store stack value)
 			| integer-rule		if (value: trans-integer s e ) (trans-store stack value)
 			| hexa-rule			(trans-store stack trans-hexa s e)
-			| url-rule			(trans-store stack value: do process)
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
