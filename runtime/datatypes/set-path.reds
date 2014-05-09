@@ -165,7 +165,7 @@ set-path: context [
 			INHERIT_ACTION	;select
 			null			;sort
 			INHERIT_ACTION	;skip
-			null			;swap
+			INHERIT_ACTION	;swap
 			INHERIT_ACTION	;tail
 			INHERIT_ACTION	;tail?
 			INHERIT_ACTION	;take

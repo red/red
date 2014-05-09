@@ -1027,7 +1027,31 @@ actions: context [
 		action-skip
 	]
 	
-	swap*: func [][]
+	swap*: func [
+		return: [red-series!]
+	][
+		swap
+			as red-series! stack/arguments
+			as red-series! stack/arguments + 1
+	]
+
+	swap: func [
+		series1 [red-series!]
+		series2	[red-series!]
+		return:	[red-series!]
+		/local
+			action-swap
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/swap"]]
+
+		action-swap: as function! [
+			series1	[red-series!]
+			series2	[red-series!]
+			return:	[red-series!]
+		] get-action-ptr as red-value! series1 ACT_SWAP
+
+		action-swap series1 series2
+	]
 	
 	tail*: func [
 		return:	[red-value!]
@@ -1156,7 +1180,7 @@ actions: context [
 			:select*
 			null			;sort
 			:skip*
-			null			;swap
+			:swap*
 			:tail*
 			:tail?*
 			:take*

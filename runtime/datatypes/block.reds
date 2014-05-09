@@ -1382,6 +1382,45 @@ block: context [
 		as red-value! new
 	]
 
+	swap: func [
+		blk1	   [red-block!]
+		blk2	   [red-block!]
+		return:	   [red-block!]
+		/local
+			s		[series!]
+			i		[integer!]
+			tmp		[integer!]
+			h1		[int-ptr!]
+			h2		[int-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/swap"]]
+
+		if TYPE_OF(blk2) <> TYPE_BLOCK [
+			print-line "*** Error: invalid value for series2 argument!"
+			halt
+			null
+		]
+		s: GET_BUFFER(blk1)
+		h1: as int-ptr! s/offset + blk1/head
+		if s/tail = as red-value! h1 [return blk1]		;-- early exit if nothing to swap
+
+		s: GET_BUFFER(blk2)
+		h2: as int-ptr! s/offset + blk2/head
+		if s/tail = as red-value! h2 [return blk1]		;-- early exit if nothing to swap
+
+		i: 0
+		until [
+			tmp: h1/value
+			h1/value: h2/value
+			h2/value: tmp
+			h1: h1 + 1
+			h2: h2 + 1
+			i:	i + 1
+			i = 4
+		]
+		blk1
+	]
+
 	;--- Misc actions ---
 	
 	copy: func [
@@ -1534,7 +1573,7 @@ block: context [
 			:select
 			null			;sort
 			:skip
-			null			;swap
+			:swap
 			:tail
 			:tail?
 			:take

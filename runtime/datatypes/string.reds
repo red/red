@@ -481,15 +481,15 @@ string: context [
 						p/1: as-byte cp
 					]
 					cp <= FFFFh [
-						p: (as byte-ptr! s - 1) - p		;-- calc index value
+						p: p - (as byte-ptr! s/offset)		;-- calc index value
 						s: unicode/Latin1-to-UCS2 s
-						p: (as byte-ptr! s + 1) + ((as-integer p) << 1) ;-- calc the new position
+						p: (as byte-ptr! s/offset) + ((as-integer p) << 1) ;-- calc the new position
 						s: poke-char s p cp
 					]
 					true [
-						p: (as byte-ptr! s - 1) - p		;-- calc index value
+						p: p - (as byte-ptr! s/offset)		;-- calc index value
 						s: unicode/Latin1-to-UCS4 s
-						p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- calc the new position
+						p: (as byte-ptr! s/offset) + ((as-integer p) << 2) ;-- calc the new position
 						s: poke-char s p cp
 					]
 				]
@@ -499,9 +499,9 @@ string: context [
 					p/1: as-byte (cp and FFh)
 					p/2: as-byte (cp >> 8)
 				][
-					p: (as byte-ptr! s - 1) - p			;-- calc index value
+					p: p - (as byte-ptr! s/offset)			;-- calc index value
 					s: unicode/UCS2-to-UCS4 s
-					p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- calc the new position
+					p: (as byte-ptr! s/offset) + ((as-integer p) << 1) ;-- calc the new position
 					s: poke-char s p cp
 				]
 			]
@@ -1956,6 +1956,36 @@ string: context [
 		as red-value! str2
 	]
 
+	swap: func [
+		str1	 [red-string!]
+		str2	 [red-string!]
+		return:	 [red-string!]
+		/local
+			s1		[series!]
+			s2		[series!]
+			cp1		[integer!]
+			cp2		[integer!]
+			unit	[integer!]
+			head1	[byte-ptr!]
+			head2	[byte-ptr!]
+	][
+		s1:    GET_BUFFER(str1)
+		unit1: GET_UNIT(s1)
+		head1: (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
+		if head1 = as byte-ptr! s1/tail [return str1]				;-- early exit if nothing to swap
+
+		s2:    GET_BUFFER(str2)
+		unit2: GET_UNIT(s2)
+		head2: (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
+		if head2 = as byte-ptr! s2/tail [return str1]				;-- early exit if nothing to swap
+
+		char1: get-char head1 unit1
+		char2: get-char head2 unit2
+		poke-char s1 head1 char2
+		poke-char s2 head2 char1
+		str1
+	]
+
 	;--- Misc actions ---
 
 	copy: func [
@@ -2081,7 +2111,7 @@ string: context [
 			:select
 			null			;sort
 			:skip
-			null			;swap
+			:swap
 			:tail
 			:tail?
 			:take
