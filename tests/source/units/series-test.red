@@ -834,5 +834,46 @@ Red [
 
 ===end-group===
 
+===start-group=== "swap"
+
+	--test-- "swap-str-1"			;-- 4 bytes code point
+		a: "1234"
+		b: "𠃌"						;-- 𠃌 = #"^(200CC)"
+		--assert "𠃌234" = swap a b
+		--assert "𠃌234" = a
+		--assert "1"	 = b
+
+	--test-- "swap-str-2"			;-- 2 bytes code point
+		a: "1234"
+		b: "ab"					;--  = #"^(E818)"
+		--assert "234" = swap a next b
+		--assert "234" = a
+		--assert "a1b"	 = b
+
+	--test-- "swap-str-3"			;-- 1 bytes code point
+		--assert "a234" = swap "1234" "abc"
+
+	--test-- "swap-str-4"
+		--assert "123" = swap "123" ""
+
+	--test-- "swap-blk-1"
+		a: [1 2]
+		b: [a b]
+		--assert [a 2] = swap a b
+		--assert [a 2] = a
+		--assert [1 b] = b
+
+	--test-- "swap-blk-2"
+		a: [1 2]
+		b: [a b]
+		--assert [a]   = swap next a b
+		--assert [1 a] = a
+		--assert [2 b] = b
+
+	--test-- "swap-blk-3"
+		--assert [1 a] = swap [1 a] []
+
+===end-group===
+
 ~~~end-file~~~
 

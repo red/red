@@ -463,7 +463,14 @@ skip: make action! [[
 	#get-definition ACT_SKIP
 ]
 
-;swap
+swap: make action! [[
+		"Swaps elements between two series or the same series."
+		series1  [series!]
+		series2  [series!]
+		return:  [series!]
+	]
+	#get-definition ACT_SWAP
+]
 
 tail: make action! [[
 		"Returns a series at the index after its last value."
