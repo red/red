@@ -638,7 +638,7 @@ red: context [
 						add-symbol word: to word! form item
 						decorate-symbol word
 					]
-					find [string! file!] type?/word :item [
+					find [string! file! url!] type?/word :item [
 						emit [tmp:]
 						insert-lf -1
 						emit-load-string item

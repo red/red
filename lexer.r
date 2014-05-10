@@ -27,7 +27,6 @@ lexer: context [
 	four:  charset "01234"
 	half:  charset "012345"
     non-zero: charset "123456789"
-    letter: charset [#"A" - #"Z" #"a" - #"z"]
     digit: union non-zero charset "0"
     dot: #"."
     comma: #","
@@ -81,8 +80,6 @@ lexer: context [
 	integer-end:	charset {^{"[]);}
 	stop: 		    none
 
-	url-scheme-char: union union letter digit charset "+-."
-	
 	control-char: reduce [
 		charset [#"^(00)" - #"^(1F)"] 				;-- ASCII control characters
 		'| #"^(C2)" charset [#"^(80)" - #"^(9F)"] 	;-- C2 control characters
@@ -183,9 +180,10 @@ lexer: context [
 		(type: word!)
 		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
 		| s: begin-symbol-rule [
-			path-rule 								;-- path matched
+			url-rule
+			| path-rule 							;-- path matched
 			| (value: copy/part s e)				;-- word matched
-			opt [#":" (type: set-word!)]
+			  opt [#":" (type: set-word!)]
 		] 
 	]
 	
@@ -338,12 +336,9 @@ lexer: context [
 		s: any UTF8-filtered-char e:
 	]
 
-	url-scheme-name: [letter any url-scheme-char]
-
 	url-rule: [
-		s: url-scheme-name #":"
-		(type: url! stop: [not-url-char | ws-no-count])
-		some UTF8-filtered-char e:
+		#":" (type: url! stop: [not-url-char | ws-no-count])
+		some UTF8-filtered-char e: (value: dehex copy/part s e)
 	]
 
 	escaped-rule: [
@@ -379,7 +374,6 @@ lexer: context [
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
-			| url-rule		  (stack/push to url! dehex	 copy/part s e)
 			| word-rule		  (stack/push to type value)
 			| lit-word-rule	  (stack/push to type value)
 			| get-word-rule	  (stack/push to type value)
