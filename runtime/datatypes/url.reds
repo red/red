@@ -136,7 +136,7 @@ url: context [
 			"url!"
 			;-- General actions --
 			:make
-			null			;random
+			INHERIT_ACTION	;random
 			null			;reflect
 			null			;to
 			INHERIT_ACTION	;form

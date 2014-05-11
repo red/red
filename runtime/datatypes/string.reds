@@ -881,6 +881,55 @@ string: context [
 		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
 		str
 	]
+
+	random: func [
+		str		[red-string!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-value!]
+		/local
+			char [red-char!]
+			s	 [series!]
+			size [integer!]
+			unit [integer!]
+			temp [integer!]
+			idx	 [byte-ptr!]
+			head [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/random"]]
+
+		either seed? [
+			str/header: TYPE_UNSET				;-- TODO: calc string to seed.
+		][
+			temp: 0
+			s: GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			size: (as-integer s/tail - s/offset) >> (unit >> 1) - str/head
+
+			if only? [
+				either positive? size [
+					idx: head + (_random/rand % size << (unit >> 1))
+					char: as red-char! str
+					char/header: TYPE_CHAR
+					char/value: get-char idx unit
+				][
+					str/header: TYPE_NONE
+				]
+			]
+
+			while [size > 0][
+				idx: head + (_random/rand % size << (unit >> 1))
+				copy-memory as byte-ptr! :temp head unit
+				copy-memory head idx unit
+				copy-memory idx as byte-ptr! :temp unit
+				head: head + unit
+				size: size - 1
+			]
+		]
+		as red-value! str
+	]
 	
 	form: func [
 		str		  [red-string!]
@@ -2065,7 +2114,7 @@ string: context [
 			"string!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form

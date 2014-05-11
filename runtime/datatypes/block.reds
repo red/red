@@ -490,6 +490,51 @@ block: context [
 		if zero? size [size: 1]
 		make-at as red-block! stack/push* size
 	]
+
+	random: func [
+		blk		[red-block!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-value!]
+		/local
+			s	 [series!]
+			size [integer!]
+			temp [red-value!]
+			idx	 [red-value!]
+			head [red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/random"]]
+
+		either seed? [
+			blk/header: TYPE_UNSET						;-- TODO: calc block as seed
+		][
+			s: GET_BUFFER(blk)
+			head: s/offset + blk/head
+			size: rs-length? blk
+
+			if only? [
+				either positive? size [
+					idx: head + (_random/rand % size)
+					copy-cell idx as cell! blk
+				][
+					blk/header: TYPE_NONE
+				]
+			]
+
+			temp: stack/push*
+			while [size > 0][
+				idx: head + (_random/rand % size)
+				copy-cell head temp
+				copy-cell idx head
+				copy-cell temp idx
+				head: head + 1
+				size: size - 1
+			]
+			stack/pop 1
+		]
+		as red-value! blk
+	]
 	
 	form: func [
 		blk		  [red-block!]
@@ -1527,7 +1572,7 @@ block: context [
 			"block!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form

@@ -108,7 +108,7 @@ paren: context [
 			"paren!"
 			;-- General actions --
 			:make
-			null			;random
+			INHERIT_ACTION	;random
 			null			;reflect
 			null			;to
 			INHERIT_ACTION	;form
