@@ -118,7 +118,7 @@ lit-path: context [
 			"lit-path!"
 			;-- General actions --
 			:make
-			null			;random
+			INHERIT_ACTION	;random
 			null			;reflect
 			null			;to
 			:form

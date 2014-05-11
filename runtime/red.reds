@@ -74,6 +74,7 @@ red: context [
 	#include %actions.reds
 	#include %natives.reds
 	#include %parse.reds
+	#include %random.reds
 	#include %stack.reds
 	#include %interpreter.reds
 	#if OS <> 'Android [
@@ -141,6 +142,7 @@ red: context [
 		refinements/build								;-- create refinements used internally
 		natives/init									;-- native specific init code
 		parser/init
+		_random/init
 		
 		stack/init
 		

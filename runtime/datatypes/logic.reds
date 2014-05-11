@@ -130,7 +130,27 @@ logic: context [
 		bool/value:  value
 		bool
 	]
-	
+
+	random: func [
+		logic	[red-logic!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-logic!]
+		/local
+			res	 [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/random"]]
+
+		either seed? [
+			_random/srand as-integer logic/value
+			logic/header: TYPE_UNSET
+		][
+			logic/value: _random/rand % 2 <> 0
+		]
+		logic
+	]
+
 	form: func [
 		boolean	[red-logic!]
 		buffer	[red-string!]
@@ -243,7 +263,7 @@ logic: context [
 			"logic!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form

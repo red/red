@@ -128,8 +128,41 @@ actions: context [
 		action-make proto spec
 	]
 
-	random*: func [][]
-	
+	random*: func [
+		seed	[integer!]
+		secure	[integer!]
+		only	[integer!]
+		return:	[red-value!]
+	][
+		random
+			as red-value! stack/arguments
+			as logic! seed + 1
+			as logic! secure + 1
+			as logic! only + 1
+	]
+
+	random: func [
+		value   [red-value!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?	[logic!]
+		return: [red-value!]
+		/local
+			action-random
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/random"]]
+
+		action-random: as function! [
+			value	[red-value!]
+			seed?	[logic!]
+			secure? [logic!]
+			only?	[logic!]
+			return: [red-value!]
+		] get-action-ptr value ACT_RANDOM
+
+		action-random value seed? secure? only?
+	]
+
 	reflect*: func [
 		return: [red-block!]
 	][
@@ -1134,7 +1167,7 @@ actions: context [
 		register [
 			;-- General actions --
 			:make*
-			null			;random
+			:random*
 			:reflect*
 			null			;to
 			:form*
