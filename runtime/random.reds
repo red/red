@@ -13,15 +13,15 @@ Red/System [
 		Freely inspired by c-standard-library:
 		http://code.google.com/p/c-standard-library/source/browse/src/internal/_rand.c
 	}
-	Improvement: {
+	Possible improvement: {
 		SIMD-oriented Fast Mersenne Twister (SFMT)
 		http://www.math.sci.hiroshima-u.ac.jp/~%20m-mat/MT/SFMT/index.html
 	}
 ]
 
 _random: context [
-	#define	STATE_SIZE			624
-	#define	STATE_HALF_SIZE 	397
+	#define	MT_RANDOM_STATE_SIZE		624
+	#define	MT_RANDOM_STATE_HALF_SIZE 	397
 
 	idx: 0
 	table: declare int-ptr!
@@ -37,7 +37,7 @@ _random: context [
 			n: n + 1
 			table/n: table/c >> 30 xor table/c * 1812433253 + c
 			c: c + 1
-			n = STATE_SIZE
+			n = MT_RANDOM_STATE_SIZE
 		]
 	]
 
@@ -51,11 +51,11 @@ _random: context [
 		c: 1
 		n: 2
 
-		if idx = STATE_SIZE [			;-- Refill rand	state table	if exhausted
+		if idx = MT_RANDOM_STATE_SIZE [							;-- Refill rand	state table	if exhausted
 			idx: 0
 			until [
 				state: table/c and 80000000h or (table/n and 7FFFFFFFh)
-				n: c - 1 + STATE_HALF_SIZE % STATE_SIZE	+ 1		;--	need to	plus one due to	1-base array
+				n: c - 1 + MT_RANDOM_STATE_HALF_SIZE % MT_RANDOM_STATE_SIZE	+ 1		;--	need to	plus one due to	1-base array
 
 				either state and 00000001h <> 0 [				;--	state is odd
 					table/c: state >> 1 xor table/n xor 9908B0DFh
@@ -64,11 +64,11 @@ _random: context [
 				]
 				c: c + 1
 				n: c + 1
-				c = STATE_SIZE
+				c = MT_RANDOM_STATE_SIZE
 			]
 
-			c: STATE_HALF_SIZE
-			n: STATE_SIZE
+			c: MT_RANDOM_STATE_HALF_SIZE
+			n: MT_RANDOM_STATE_SIZE
 			state: table/n and 80000000h or (table/1 and 7FFFFFFFh)
 			either state and 00000001h <> 0 [
 				table/n: state >> 1 xor table/c xor 9908B0DFh
@@ -89,7 +89,7 @@ _random: context [
 	]
 	
 	init: does [
-		table: as int-ptr! allocate STATE_SIZE * size? integer!
+		table: as int-ptr! allocate MT_RANDOM_STATE_SIZE * size? integer!
 		srand 314159
 	]
 ]

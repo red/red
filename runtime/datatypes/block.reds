@@ -1398,17 +1398,7 @@ block: context [
 			slot: buffer/offset
 			until [
 				type: TYPE_OF(slot)
-				if any [								;@@ replace with ANY_SERIES?
-					type = TYPE_BLOCK
-					type = TYPE_PAREN
-					type = TYPE_PATH
-					type = TYPE_GET_PATH
-					type = TYPE_SET_PATH
-					type = TYPE_LIT_PATH
-					type = TYPE_STRING
-					type = TYPE_FILE
-					type = TYPE_URL
-				][
+				if ANY_SERIES?(type) [
 					actions/copy
 						as red-series! slot
 						slot						;-- overwrite the slot value
@@ -1539,17 +1529,7 @@ block: context [
 			slot: buffer/offset
 			until [
 				type: TYPE_OF(slot)
-				if any [								;@@ replace with ANY_SERIES?
-					type = TYPE_BLOCK
-					type = TYPE_PAREN
-					type = TYPE_PATH
-					type = TYPE_GET_PATH
-					type = TYPE_SET_PATH
-					type = TYPE_LIT_PATH
-					type = TYPE_STRING
-					type = TYPE_FILE
-					type = TYPE_URL
-				][
+				if ANY_SERIES?(type) [
 					actions/copy 
 						as red-series! slot
 						slot						;-- overwrite the slot value

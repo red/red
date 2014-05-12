@@ -163,25 +163,24 @@ integer: context [
 	]
 
 	random: func [
-		value	[red-value!]
+		int		[red-integer!]
 		seed?	[logic!]
 		secure? [logic!]
 		only?   [logic!]
 		return: [red-value!]
 		/local
-			seed [integer!]
-			int	 [red-integer!]
+			n	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/random"]]
 
-		int: as red-integer! value
 		either seed? [
 			_random/srand int/value
-			value/header: TYPE_UNSET
+			int/header: TYPE_UNSET
 		][
-			int/value: _random/rand % int/value + 1
+			n: _random/rand % int/value + 1
+			int/value: either negative? int/value [0 - n][n]
 		]
-		value
+		as red-value! int
 	]
 
 	form: func [
