@@ -522,8 +522,59 @@ natives: context [
 		actions/compare* COMP_GREATER_EQUAL
 	]
 	
-	same?*: does []
-	
+	same?*: func [
+		return:	   [red-logic!]
+		/local
+			result [red-logic!]
+			arg1   [red-value!]
+			arg2   [red-value!]
+			type   [integer!]
+			res    [logic!]
+	][
+		arg1: stack/arguments
+		arg2: arg1 + 1
+		type: TYPE_OF(arg1)
+
+		res: false
+		if type = TYPE_OF(arg2) [
+			case [
+				any [
+					type = TYPE_DATATYPE
+					type = TYPE_OBJECT
+					type = TYPE_LOGIC
+				][
+					res: arg1/data1 = arg2/data1
+				]
+				any [
+					type = TYPE_CHAR
+					type = TYPE_INTEGER
+					type = TYPE_BITSET
+				][
+					res: arg1/data2 = arg2/data2
+				]
+				any [
+					type = TYPE_BINARY
+					ANY_SERIES?(type)
+				][
+					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
+				]
+				type = TYPE_NONE	[type = TYPE_OF(arg2)]
+				true [
+					res: all [
+						arg1/data1 = arg2/data1
+						arg1/data2 = arg2/data2
+						arg1/data3 = arg2/data3
+					]
+				]
+			]
+		]
+
+		result: as red-logic! arg1
+		result/value: res
+		result/header: TYPE_LOGIC
+		result
+	]
+
 	not*: func [
 		/local bool [red-logic!]
 	][
@@ -868,7 +919,7 @@ natives: context [
 		switch TYPE_OF(set1) [
 			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
 			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
-			TYPE_BITSET [stack/set-last as red-value! bitset/union no null]
+			TYPE_BITSET [bitset/union no null]
 			default [
 				print-line "*** Error: argument type not supported by UNION"
 			]

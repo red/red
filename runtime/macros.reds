@@ -237,6 +237,20 @@ Red/System [
 #define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 
+#define ANY_SERIES?(value)	[
+	any [
+		type = TYPE_BLOCK
+		type = TYPE_PAREN
+		type = TYPE_PATH
+		type = TYPE_LIT_PATH
+		type = TYPE_SET_PATH
+		type = TYPE_GET_PATH
+		type = TYPE_STRING
+		type = TYPE_FILE
+		type = TYPE_URL
+	]
+]
+
 #define BS_SET_BIT(array bit)  [
 	pos: array + (bit >> 3)
 	pos/value: pos/value or (as-byte 128 >> (bit and 7))

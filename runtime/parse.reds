@@ -1202,16 +1202,7 @@ parser: context [
 							]
 							value: block/rs-head input
 							type: TYPE_OF(value)
-							either any [				;@@ replace by ANY_SERIES?()
-								type = TYPE_BLOCK
-								type = TYPE_PAREN
-								type = TYPE_PATH
-								type = TYPE_LIT_PATH
-								type = TYPE_SET_PATH
-								type = TYPE_GET_PATH
-								type = TYPE_STRING
-								type = TYPE_FILE
-							][
+							either ANY_SERIES?(type) [
 								input: as red-series! block/rs-append series as red-value! block/rs-head input
 								min:  R_NONE
 								type: R_INTO
