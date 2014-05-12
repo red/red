@@ -119,7 +119,6 @@ Red [
 		saved-term: declare termios!
 		utf-char:	declare c-string!
 		poller: 	declare pollfd!
-		lines-y:	 0
 		caret-y:	 0
 
 		fd-read-char: func [
@@ -627,6 +626,7 @@ Red [
 			if zero? GetConsoleScreenBufferInfo stdout as-integer info [return -1]
 			x-y: info/Size
 			columns: FIRST_WORD(x-y)
+			rows: SECOND_WORD(x-y)
 			if columns <= 0 [columns: 80 return -1]
 			x-y: info/Position
 			base-y: SECOND_WORD(x-y)
@@ -647,6 +647,23 @@ Red [
 			SetConsoleMode stdin saved-con and mode
 		]
 
+		widechar?: func [
+			str			[red-string!]
+			return:		[logic!]
+            /local
+	            cp		[integer!]
+				unit	[integer!]
+				s		[series!]
+				offset	[byte-ptr!]
+		][
+			s: GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			offset: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			cp: 0
+			if offset < as byte-ptr! s/tail [cp: string/get-char offset unit]
+			cp > FFh
+		]
+
 		emit-red-string: func [
 			str	 		  [red-string!]
 			size 		  [integer!]
@@ -654,7 +671,6 @@ Red [
 			return:		  [integer!]
             /local
             	x		  [integer!]
-                y         [integer!]
                 n         [integer!]
                 bytes     [integer!]
                 cp		  [integer!]
@@ -663,7 +679,6 @@ Red [
 				offset	  [byte-ptr!]
 				tail	  [byte-ptr!]
 		][
-            y:      base-y
             x:		0
             n:      0
             bytes:  0
@@ -682,7 +697,7 @@ Red [
 				][
 					cp: string/get-char offset unit
 					cnt: either cp > FFh [
-						either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]
+						either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]	;-- reach edge, handle wide char
 					][
 						cnt + 1
 					]
@@ -692,16 +707,16 @@ Red [
 				bytes: bytes + cnt
 				cnt: 0
 				if offset < tail [
-					size: columns
-					y: y + 1
-					SetConsoleCursorPosition stdout y << 16 or x
-					x: 0
-					FillConsoleOutputAttribute					;-- set characters foreground color
+					size: columns - x
+					lines-y: lines-y + 1
+					FillConsoleOutputAttribute							;-- set characters foreground color
 			    		stdout
 			    		FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_GREEN
 				    	columns
-				    	y << 16
+						lines-y << 16
 				    	:n
+					SetConsoleCursorPosition stdout lines-y << 16 or x
+					x: 0
 				]
 				offset >= tail
 			]
@@ -724,26 +739,36 @@ Red [
 			line: input-line
 
             SetConsoleCursorPosition stdout base-y << 16
-            bytes: emit-red-string prompt columns no
 
-			psize: bytes // columns
-            offset: psize + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
-
-			psize: offset // columns
-            bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
-
-			info: declare screenbuf-info!                       ;-- TODO: we can use bytes to calculate x-y
+			info: declare screenbuf-info!
 			GetConsoleScreenBufferInfo stdout as-integer info
 			x-y: info/Position
-    		FillConsoleOutputCharacter						    ;-- erase to EOL
+			FillConsoleOutputCharacter						    ;-- clear screen
     			stdout
     			20h                                             ;-- #" " = 20h
-    			columns - FIRST_WORD(x-y)                       ;-- columns - x
+				rows - SECOND_WORD(x-y) * columns
     			x-y
     			:n
 
+			lines-y: base-y
+			bytes: emit-red-string prompt columns no
+
+			psize: bytes // columns
+			offset: bytes + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
+
+			psize: offset // columns
+			bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
+
 			y: offset / columns
 			x: offset // columns
+			if all [
+				widechar? line
+				columns - x = 1
+			][
+				y: y + 1
+				x: 0
+			]
+
 			SetConsoleCursorPosition stdout base-y + y << 16 or x
 		]
 
@@ -775,7 +800,9 @@ Red [
 		saved-line:	declare red-string!
 		prompt:		declare	red-string!
 		history:	declare red-block!
+		lines-y:	 0
 		columns:	-1
+		rows:		-1
 
 		on-resize: does [
 			get-window-size

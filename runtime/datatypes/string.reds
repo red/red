@@ -471,7 +471,7 @@ string: context [
 			move-memory 
 				head
 				head + unit
-				as-integer tail - (head + (unit * 2))	;-- account for trailing NUL
+				as-integer tail - head + unit			;-- account for trailing NUL
 		]
 		s/tail: as red-value! tail - unit
 		str
