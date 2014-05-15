@@ -40,7 +40,7 @@ repeat i 512 [
 				img/(as-pair i - 1 j - 1): 255.255.255
 			]			
 		][  
-			if 2 = (1 + red-random 2) [
+			if 2 = red-random 2 [
 				img/(as-pair i - 1 j - 1): 255.255.255
 			]
 		]
