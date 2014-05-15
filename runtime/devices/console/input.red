@@ -293,7 +293,7 @@ Red [
 					all [offset < tail cnt < size]
 				][
 					cp: string/get-char offset unit
-					cnt: either cp > FFh [
+					cnt: either all [cp >= 4E00h cp <= 9FFFh] [			;@@ only for CJK, may not correct
 						either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]	;-- reach screen edge, handle wide char
 					][
 						cnt + 1
