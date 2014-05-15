@@ -10,7 +10,9 @@ REBOL [
 	}
 	Notes: {
 		The random generator file needs to be compiled to a library file using
-		do/args %red.r "-dlib %runtime/random.reds"
+			do/args %red.r "-dlib %tests/source/runtime/randomlib.reds"
+		The library will be placed in the root directory from where the test can be run
+			do %tests/source/units/random-test.r
 	}
 	file:
 ]
@@ -20,7 +22,7 @@ switch/default system/version/4 [
 		randomlib: load/library %randomlib.dylib 
 		]
 	3	[											;-- Windows
-		randomlib: load/library %randomlib.dll
+		randomlib: load/library %../../../randomlib.dll
 		]
 ][
 	randomlib: load/library %randomlib
@@ -38,7 +40,7 @@ repeat i 512 [
 				img/(as-pair i - 1 j - 1): 255.255.255
 			]			
 		][  
-			if 2 = red-random 2 [
+			if 2 = (1 + red-random 2) [
 				img/(as-pair i - 1 j - 1): 255.255.255
 			]
 		]
