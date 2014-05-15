@@ -20,28 +20,78 @@ Red [
 
 	#either OS <> 'Windows [
 		#define OS_POLLIN 		1
-
-		#define TERM_VTIME		6
-		#define TERM_VMIN		7
-
-		#define TERM_BRKINT		2
-		#define TERM_INPCK		20
-		#define TERM_ISTRIP		40
-		#define TERM_ICRNL		400
-		#define TERM_IXON		2000
-		#define TERM_OPOST		1
-		#define TERM_CS8		60
-		#define TERM_ISIG		1
-		#define TERM_ICANON		2
-		#define TERM_ECHO		10
-		#define TERM_IEXTEN		100000
-
 		#define TERM_TCSADRAIN	1
 
-		#either OS = 'MacOSX [
-			#define TIOCGWINSZ	40087468h
-		][
-			#define TIOCGWINSZ	5413h
+		#case [
+			any [OS = 'MacOSX OS = 'FreeBSD] [
+				#define TIOCGWINSZ		40087468h
+				#define TERM_VTIME		18
+				#define TERM_VMIN		17
+
+				#define TERM_BRKINT		02h
+				#define TERM_INPCK		10h
+				#define TERM_ISTRIP		20h
+				#define TERM_ICRNL		0100h
+				#define TERM_IXON		0200h
+				#define TERM_OPOST		01h
+				#define TERM_CS8		0300h
+				#define TERM_ISIG		80h
+				#define TERM_ICANON		0100h
+				#define TERM_ECHO		08h	
+				#define TERM_IEXTEN		4000h
+
+				termios!: alias struct! [
+					c_iflag			[integer!]
+					c_oflag			[integer!]
+					c_cflag			[integer!]
+					c_lflag			[integer!]
+					c_cc1			[integer!]					;-- c_cc[20]
+					c_cc2			[integer!]
+					c_cc3			[integer!]
+					c_cc4			[integer!]
+					c_cc5			[integer!]
+					c_ispeed		[integer!]
+					c_ospeed		[integer!]
+				]
+			]
+			true [
+				#define TIOCGWINSZ		5413h
+				#define TERM_VTIME		6
+				#define TERM_VMIN		7
+
+				#define TERM_BRKINT		2
+				#define TERM_INPCK		20
+				#define TERM_ISTRIP		40
+				#define TERM_ICRNL		400
+				#define TERM_IXON		2000
+				#define TERM_OPOST		1
+				#define TERM_CS8		60
+				#define TERM_ISIG		1
+				#define TERM_ICANON		2
+				#define TERM_ECHO		10
+				#define TERM_IEXTEN		100000
+
+				termios!: alias struct! [						;-- sizeof(termios) = 60
+					c_iflag			[integer!]
+					c_oflag			[integer!]
+					c_cflag			[integer!]
+					c_lflag			[integer!]
+					c_line			[byte!]
+					c_cc1			[byte!]						;-- c_cc[32]
+					c_cc2			[byte!]
+					c_cc3			[byte!]
+					c_cc4			[integer!]
+					c_cc5			[integer!]
+					c_cc6			[integer!]
+					c_cc7			[integer!]
+					c_cc8			[integer!]
+					c_cc9			[integer!]
+					c_cc10			[integer!]
+					pad				[integer!]					;-- for proper alignment
+					c_ispeed		[integer!]
+					c_ospeed		[integer!]
+				]
+			]
 		]
 
 		pollfd!: alias struct! [
@@ -52,27 +102,6 @@ Red [
 		winsize!: alias struct! [
 			rowcol			[integer!]
 			xypixel			[integer!]
-		]
-
-		termios!: alias struct! [
-			c_iflag			[integer!]
-			c_oflag			[integer!]
-			c_cflag			[integer!]
-			c_lflag			[integer!]
-			c_line			[byte!]
-			c_cc1			[byte!]							;-- c_cc[32]
-			c_cc2			[byte!]
-			c_cc3			[byte!]
-			c_cc4			[integer!]
-			c_cc5			[integer!]
-			c_cc6			[integer!]
-			c_cc7			[integer!]
-			c_cc8			[integer!]
-			c_cc9			[integer!]
-			c_cc10			[integer!]
-			pad				[integer!]						;-- for proper alignment
-			c_ispeed		[integer!]
-			c_ospeed		[integer!]
 		]
 
 		#import [
@@ -447,7 +476,12 @@ Red [
 			term/c_lflag: term/c_lflag and not (
 				TERM_ECHO or TERM_ICANON or TERM_IEXTEN or TERM_ISIG
 			)
-			cc: (as byte-ptr! term) + (4 * size? integer!) + 2
+			#case [
+				any [OS = 'MacOSX OS = 'FreeBSD] [
+					cc: (as byte-ptr! term) + (4 * size? integer!)
+				]
+				true [cc: (as byte-ptr! term) + (4 * size? integer!) + 1]
+			]
 			cc/TERM_VMIN:  as-byte 1
 			cc/TERM_VTIME: as-byte 0
 
