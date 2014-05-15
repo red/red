@@ -19,7 +19,7 @@ REBOL [
 
 switch/default system/version/4 [
 	2	[											;-- MacOS X
-		randomlib: load/library %randomlib.dylib 
+		randomlib: load/library %../../../randomlib.dylib 
 		]
 	3	[											;-- Windows
 		randomlib: load/library %../../../randomlib.dll
