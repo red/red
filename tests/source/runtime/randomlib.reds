@@ -10,15 +10,15 @@ Red/System [
 	}
 	Comment: {
 		Compile this program using
-		do/args %red.r "-dlib %tests/source/runtime/randomlib.reds"
-		Then run the REBOL testprogram %random-tester.r
+			do/args %red.r "-dlib %tests/source/runtime/randomlib.reds"
+		Then run the REBOL testprogram %random-test.r
 	}
 ]
 
 #include %../../../runtime/random.reds
 
 generate-red-random: func [n [integer!] return: [integer!]][
-	1 + _random/rand // n 
+	_random/rand // n + 1		;-- // n will be processed first, then 1 is added.
 ] 
 
 #export [generate-red-random]
