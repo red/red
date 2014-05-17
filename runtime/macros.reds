@@ -237,7 +237,7 @@ Red/System [
 #define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 
-#define ANY_SERIES?(value)	[
+#define ANY_SERIES?(type)	[
 	any [
 		type = TYPE_BLOCK
 		type = TYPE_PAREN
