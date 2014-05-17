@@ -31,6 +31,7 @@ _random: context [
 		/local c n
 	][
 		table/1: seed
+		idx: 0
 		c: 1
 		n: 1
 		until [
