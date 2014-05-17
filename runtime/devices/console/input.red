@@ -20,29 +20,78 @@ Red [
 
 	#either OS <> 'Windows [
 		#define OS_POLLIN 		1
-
-		#define TERM_VTIME		5
-		#define TERM_VMIN		6
-
-		#define TERM_BRKINT		00000002h
-		#define TERM_INPCK		00000020h
-		#define TERM_ISTRIP		00000040h
-		#define TERM_ICRNL		00000400h
-		#define TERM_IXON		00002000h
-		#define TERM_OPOST		00000001h
-		#define TERM_CS8		00000060h
-		#define TERM_ISIG		00000001h
-		#define TERM_ICANON		00000002h
-		#define TERM_ECHO		00000010h
-		#define TERM_IEXTEN		01000000h
-		#define TERM_VOODOO		00000008h					;-- undocumented value...
-
 		#define TERM_TCSADRAIN	1
 
-		#either OS = 'MacOSX [
-			#define TIOCGWINSZ	40087468h
-		][
-			#define TIOCGWINSZ	5413h
+		#case [
+			any [OS = 'MacOSX OS = 'FreeBSD] [
+				#define TIOCGWINSZ		40087468h
+				#define TERM_VTIME		18
+				#define TERM_VMIN		17
+
+				#define TERM_BRKINT		02h
+				#define TERM_INPCK		10h
+				#define TERM_ISTRIP		20h
+				#define TERM_ICRNL		0100h
+				#define TERM_IXON		0200h
+				#define TERM_OPOST		01h
+				#define TERM_CS8		0300h
+				#define TERM_ISIG		80h
+				#define TERM_ICANON		0100h
+				#define TERM_ECHO		08h	
+				#define TERM_IEXTEN		4000h
+
+				termios!: alias struct! [
+					c_iflag			[integer!]
+					c_oflag			[integer!]
+					c_cflag			[integer!]
+					c_lflag			[integer!]
+					c_cc1			[integer!]					;-- c_cc[20]
+					c_cc2			[integer!]
+					c_cc3			[integer!]
+					c_cc4			[integer!]
+					c_cc5			[integer!]
+					c_ispeed		[integer!]
+					c_ospeed		[integer!]
+				]
+			]
+			true [
+				#define TIOCGWINSZ		5413h
+				#define TERM_VTIME		6
+				#define TERM_VMIN		7
+
+				#define TERM_BRKINT		2
+				#define TERM_INPCK		20
+				#define TERM_ISTRIP		40
+				#define TERM_ICRNL		400
+				#define TERM_IXON		2000
+				#define TERM_OPOST		1
+				#define TERM_CS8		60
+				#define TERM_ISIG		1
+				#define TERM_ICANON		2
+				#define TERM_ECHO		10
+				#define TERM_IEXTEN		100000
+
+				termios!: alias struct! [						;-- sizeof(termios) = 60
+					c_iflag			[integer!]
+					c_oflag			[integer!]
+					c_cflag			[integer!]
+					c_lflag			[integer!]
+					c_line			[byte!]
+					c_cc1			[byte!]						;-- c_cc[32]
+					c_cc2			[byte!]
+					c_cc3			[byte!]
+					c_cc4			[integer!]
+					c_cc5			[integer!]
+					c_cc6			[integer!]
+					c_cc7			[integer!]
+					c_cc8			[integer!]
+					c_cc9			[integer!]
+					c_cc10			[integer!]
+					pad				[integer!]					;-- for proper alignment
+					c_ispeed		[integer!]
+					c_ospeed		[integer!]
+				]
+			]
 		]
 
 		pollfd!: alias struct! [
@@ -53,27 +102,6 @@ Red [
 		winsize!: alias struct! [
 			rowcol			[integer!]
 			xypixel			[integer!]
-		]
-
-		termios!: alias struct! [
-			c_iflag			[integer!]
-			c_oflag			[integer!]
-			c_cflag			[integer!]
-			c_lflag			[integer!]
-			c_line			[byte!]
-			c_cc1			[byte!]							;-- c_cc[32]
-			c_cc2			[byte!]
-			c_cc3			[byte!]
-			c_cc4			[integer!]
-			c_cc5			[integer!]
-			c_cc6			[integer!]
-			c_cc7			[integer!]
-			c_cc8			[integer!]
-			c_cc9			[integer!]
-			c_cc10			[integer!]
-			pad				[integer!]						;-- for proper alignment
-			c_ispeed		[integer!]
-			c_ospeed		[integer!]
 		]
 
 		#import [
@@ -119,8 +147,7 @@ Red [
 		saved-term: declare termios!
 		utf-char:	declare c-string!
 		poller: 	declare pollfd!
-		lines-y:	 0
-		caret-y:	 0
+		lines-y:	0
 
 		fd-read-char: func [
 			timeout [integer!]
@@ -168,7 +195,7 @@ Red [
 			]
 			c: unicode/decode-utf8-char utf-char :len
 			switch c [
-				#"^(0A)" [KEY_ENTER]
+				#"^(0D)" [KEY_ENTER]
 				#"^(7F)" [KEY_BACKSPACE]
 				default  [c]
 			]
@@ -236,52 +263,76 @@ Red [
 		]
 
 		emit-red-string: func [
-			str	 [red-string!]
-			size [integer!]
+			str			[red-string!]
+			size		[integer!]
+			head-as-tail? [logic!]
+			return: 	[integer!]
 			/local
 				series	[series!]
 				offset	[byte-ptr!]
 				tail	[byte-ptr!]
-				max		[byte-ptr!]
 				unit	[integer!]
 				cp		[integer!]
+				bytes	[integer!]
+				cnt		[integer!]
+				x		[integer!]
 		][
+			x:		0
+			cnt:	0
+			bytes:	0
 			series: GET_BUFFER(str)
 			unit: 	GET_UNIT(series)
 			offset: (as byte-ptr! series/offset) + (str/head << (unit >> 1))
 			tail:   as byte-ptr! series/tail
-			max:	offset + (size << (unit >> 1))
-			
-			if max < tail [tail: max]
-
-			while [offset < tail][
-				cp: string/get-char offset unit
-
-				case [
-					cp <= 7Fh [
-						emit as-byte cp
-					]
-					cp <= 07FFh [
-						emit as-byte cp >> 6 or C0h
-						emit as-byte cp and 3Fh or 80h
-					]
-					cp <= FFFFh [
-						emit as-byte cp >> 12 or E0h
-						emit as-byte cp >> 6 and 3Fh or 80h
-						emit as-byte cp and 3Fh or 80h
-					]
-					cp <= 001FFFFFh [
-						emit as-byte cp >> 18 or F0h
-						emit as-byte cp >> 12 and 3Fh or 80h
-						emit as-byte cp >>  6 and 3Fh or 80h
-						emit as-byte cp and 3Fh or 80h
-					]
-					true [
-						print-line "Error in emit-red-string: codepoint > 1FFFFFh"
-					]
-				]
-				offset: offset + unit
+			if head-as-tail? [
+				tail: offset
+				offset: as byte-ptr! series/offset
 			]
+			until [
+				while [
+					all [offset < tail cnt < size]
+				][
+					cp: string/get-char offset unit
+					cnt: either all [cp >= 4E00h cp <= 9FFFh] [			;@@ only for CJK, may not correct
+						either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]	;-- reach screen edge, handle wide char
+					][
+						cnt + 1
+					]
+					case [
+						cp <= 7Fh [
+							emit as-byte cp
+						]
+						cp <= 07FFh [
+							emit as-byte cp >> 6 or C0h
+							emit as-byte cp and 3Fh or 80h
+						]
+						cp <= FFFFh [
+							emit as-byte cp >> 12 or E0h
+							emit as-byte cp >> 6 and 3Fh or 80h
+							emit as-byte cp and 3Fh or 80h
+						]
+						cp <= 001FFFFFh [
+							emit as-byte cp >> 18 or F0h
+							emit as-byte cp >> 12 and 3Fh or 80h
+							emit as-byte cp >>  6 and 3Fh or 80h
+							emit as-byte cp and 3Fh or 80h
+						]
+						true [
+							print-line "Error in emit-red-string: codepoint > 1FFFFFh"
+						]
+					]
+					offset: offset + unit
+				]
+				bytes: bytes + cnt
+				if cnt = size [
+					emit-string "^(0A)^[[0G"				;-- emit new line and set cursor to start.
+				]
+				size: columns - x
+				x: 0
+				cnt: 0
+				offset >= tail
+			]
+			bytes
 		]
 
 		query-cursor: func [
@@ -356,46 +407,38 @@ Red [
 				saved  [integer!]
 				psize  [integer!]
 		][
-			line: 	input-line
-			psize: 	string/rs-length? prompt
-			offset: psize + line/head
-			x: 		offset // columns
-			y: 		(offset + string/rs-length? line) / columns
-				
-			if y > lines-y [emit-string "^[D"]			;-- scroll one line up 
-			if y < lines-y [emit-string "^[7^[[H^[M^[8"] ;-- scroll one line down preserving cursor
-			lines-y: y
+			line: input-line
+			if positive? lines-y [emit-string-int "^[[" lines-y #"A"]	;-- move to origin row
+			emit-string "^(0D)^[[J"					;-- erase down to the bottom of the screen
+
+			bytes: emit-red-string prompt columns no
+
+			psize: bytes // columns
+			offset: bytes + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
+
+			psize: offset // columns
+			bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
+
+			lines-y: bytes / columns		;-- the lines of all outputs occupy
+			y: bytes / columns  - (offset / columns)
+			x: offset // columns
 			
-			emit-string "^[7"							;-- save cursor position/attributs
-			if caret-y > 0 [emit-string-int "^[[" caret-y #"A"]		;-- move cursor up <n> lines
-			saved: line/head
-			y: 0
-			until [
-				emit #"^(0D)"							;-- set cursor left
-				either zero? y [
-					emit-red-string prompt columns
-					line/head: 0
-					emit-red-string line columns - psize ;-- output from head to EOL
-				][
-					emit-string "^[E"					;-- move to next line
-					line/head: (y - 1) * columns + (columns - psize)
-					emit-red-string line columns		;-- output from head to EOL
-				]
-				y: y + 1
-				y = (lines-y + 1)
+			if all [						;-- special case: when moving cursor to the first char of a line
+				widechar? line				;-- the first char of the line is a widechar
+				columns - x = 1				;-- but in pre line only 1 space left
+			][
+				y: y - 1
+				x: 0
 			]
-			line/head: saved
-			emit-string "^[[0K^[8"						;-- erase to EOL, restore cursor position/attributs
 
-			y: offset / columns
-			if y > caret-y [emit-string "^[[1B"]		;-- move cursor down one line
-			if y < caret-y [emit-string "^[[1A"]		;-- move cursor up one line
-			caret-y: y
-
-			either zero? x [
+			if positive? y [				;-- set cursor position: y
+			    emit-string-int "^[[" y #"A"
+			    lines-y: lines-y - y
+			]
+			either zero? x [		 		;-- set cursor position: x
 				emit #"^(0D)"
 			][
-				emit-string-int "^(0D)^[[" x #"C"		 ;-- set cursor position
+				emit-string-int "^(0D)^[[" x #"C"
 			]
 		]
 
@@ -431,21 +474,24 @@ Red [
 			term/c_oflag: term/c_oflag and not TERM_OPOST
 			term/c_cflag: term/c_cflag or TERM_CS8
 			term/c_lflag: term/c_lflag and not (
-				TERM_VOODOO or TERM_ECHO or TERM_ICANON or TERM_IEXTEN or TERM_ISIG
+				TERM_ECHO or TERM_ICANON or TERM_IEXTEN or TERM_ISIG
 			)
-			cc: (as byte-ptr! term) + (4 * size? integer!) + 2
+			#case [
+				any [OS = 'MacOSX OS = 'FreeBSD] [
+					cc: (as byte-ptr! term) + (4 * size? integer!)
+				]
+				true [cc: (as byte-ptr! term) + (4 * size? integer!) + 1]
+			]
 			cc/TERM_VMIN:  as-byte 1
 			cc/TERM_VTIME: as-byte 0
 
 			tcsetattr stdin TERM_TCSADRAIN term
-			emit-string "^[[?7l"						;-- disable auto-wrap
 			
 			poller/fd: stdin
 			poller/events: OS_POLLIN
 		]
 
 		restore: does [
-			emit-string "^[[?7h"						;-- enable auto-wrap
 			tcsetattr stdin TERM_TCSADRAIN saved-term			
 		]
 		
@@ -627,6 +673,7 @@ Red [
 			if zero? GetConsoleScreenBufferInfo stdout as-integer info [return -1]
 			x-y: info/Size
 			columns: FIRST_WORD(x-y)
+			rows: SECOND_WORD(x-y)
 			if columns <= 0 [columns: 80 return -1]
 			x-y: info/Position
 			base-y: SECOND_WORD(x-y)
@@ -650,24 +697,23 @@ Red [
 		emit-red-string: func [
 			str	 		  [red-string!]
 			size 		  [integer!]
-           	head-as-tail? [logic!]
+			head-as-tail? [logic!]
 			return:		  [integer!]
-            /local
-            	x		  [integer!]
-                y         [integer!]
-                n         [integer!]
-                bytes     [integer!]
-                cp		  [integer!]
+			/local
+				x		  [integer!]
+				cnt		  [integer!]
+				n		  [integer!]
+				bytes	  [integer!]
+				cp		  [integer!]
 				unit	  [integer!]
 				series	  [series!]
 				offset	  [byte-ptr!]
 				tail	  [byte-ptr!]
 		][
-            y:      base-y
-            x:		0
-            n:      0
-            bytes:  0
-            cnt:	0
+			x:		0
+			n:		0
+			bytes:	0
+			cnt:	0
 			series: GET_BUFFER(str)
 			unit: 	GET_UNIT(series)
 			offset: (as byte-ptr! series/offset) + (str/head << (unit >> 1))
@@ -682,7 +728,7 @@ Red [
 				][
 					cp: string/get-char offset unit
 					cnt: either cp > FFh [
-						either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]
+						either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]	;-- reach screen edge, handle wide char
 					][
 						cnt + 1
 					]
@@ -690,60 +736,60 @@ Red [
 					offset: offset + unit
 				]
 				bytes: bytes + cnt
+				size: columns - x
 				cnt: 0
-				if offset < tail [
-					size: columns
-					y: y + 1
-					SetConsoleCursorPosition stdout y << 16 or x
-					x: 0
-					FillConsoleOutputAttribute					;-- set characters foreground color
-			    		stdout
-			    		FOREGROUND_RED or FOREGROUND_BLUE or FOREGROUND_GREEN
-				    	columns
-				    	y << 16
-				    	:n
-				]
+				x: 0
+
 				offset >= tail
 			]
-            bytes
+			bytes
 		]
 
 		refresh: func [
 			/local
-				line   [red-string!]
-				offset [integer!]
-                n      [integer!]
-				x	   [integer!]
-				y	   [integer!]
-				x-y	   [integer!]
-				bytes  [integer!]
-				psize  [integer!]
-				info   [screenbuf-info!]
+				line	[red-string!]
+				offset	[integer!]
+				n		[integer!]
+				x		[integer!]
+				y		[integer!]
+				x-y		[integer!]
+				bytes	[integer!]
+				psize	[integer!]
+				info	[screenbuf-info!]
 		][
-            n:    0
+			n:	  0
 			line: input-line
 
-            SetConsoleCursorPosition stdout base-y << 16
-            bytes: emit-red-string prompt columns no
+			SetConsoleCursorPosition stdout base-y << 16
 
-			psize: bytes // columns
-            offset: psize + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
-
-			psize: offset // columns
-            bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
-
-			info: declare screenbuf-info!                       ;-- TODO: we can use bytes to calculate x-y
+			info: declare screenbuf-info!
 			GetConsoleScreenBufferInfo stdout as-integer info
 			x-y: info/Position
-    		FillConsoleOutputCharacter						    ;-- erase to EOL
-    			stdout
-    			20h                                             ;-- #" " = 20h
-    			columns - FIRST_WORD(x-y)                       ;-- columns - x
-    			x-y
-    			:n
+			FillConsoleOutputCharacter							;-- clear screen
+				stdout
+				20h												;-- #" " = 20h
+				rows - SECOND_WORD(x-y) * columns
+				x-y
+				:n
+
+			bytes: emit-red-string prompt columns no
+
+			psize: bytes // columns
+			offset: bytes + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
+
+			psize: offset // columns
+			bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
 
 			y: offset / columns
 			x: offset // columns
+			if all [
+				widechar? line
+				columns - x = 1
+			][
+				y: y + 1
+				x: 0
+			]
+
 			SetConsoleCursorPosition stdout base-y + y << 16 or x
 		]
 
@@ -776,6 +822,24 @@ Red [
 		prompt:		declare	red-string!
 		history:	declare red-block!
 		columns:	-1
+		rows:		-1
+
+		widechar?: func [
+			str			[red-string!]
+			return:		[logic!]
+			/local
+				cp		[integer!]
+				unit	[integer!]
+				s		[series!]
+				offset	[byte-ptr!]
+		][
+			s: GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			offset: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			cp: 0
+			if offset < as byte-ptr! s/tail [cp: string/get-char offset unit]
+			cp > FFh
+		]
 
 		on-resize: does [
 			get-window-size
