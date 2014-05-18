@@ -59,24 +59,42 @@ float: context [
 		type	  [integer!]
 		return:	  [red-float!]
 		/local
-			args  [red-value!]
 			left  [red-float!]
 			right [red-float!]
+			int   [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
 
-		args: stack/arguments
-		left:  as red-float! args
-		right: as red-float! args + 1
+		left:  as red-float! stack/arguments
+		right: as red-float! left + 1
 
-		assert TYPE_OF(left) = TYPE_FLOAT
-		assert TYPE_OF(right) = TYPE_FLOAT
+		assert any [									;@@ replace by typeset check when possible
+			TYPE_OF(left) = TYPE_INTEGER
+			TYPE_OF(left) = TYPE_FLOAT
+		]
+		assert any [
+			TYPE_OF(right) = TYPE_INTEGER
+			TYPE_OF(right) = TYPE_CHAR
+			TYPE_OF(right) = TYPE_FLOAT
+		]
+
+		if TYPE_OF(left) <> TYPE_FLOAT [
+			int: as red-integer! left
+			left/header: TYPE_FLOAT
+			left/value: integer/_int-to-float int/value
+		]
+		if TYPE_OF(right) <> TYPE_FLOAT [
+			int: as red-integer! right
+			right/value: integer/_int-to-float int/value
+		]
 
 		left/value: switch type [
 			OP_ADD [left/value + right/value]
 			OP_SUB [left/value - right/value]
 			OP_MUL [left/value * right/value]
 			OP_DIV [left/value / right/value]
+			OP_REM [left/value % right/value]
+			default [print-line "*** Math Error: float don't support BITWISE OP!" left/value]
 		]
 		left
 	]
@@ -128,18 +146,6 @@ float: context [
 		]
 	]
 
-	float-to-int: func [
-		number 	[float!]
-		return:	[integer!]
-		/local p f
-	][
-		;Based on this method: http://stackoverflow.com/a/429812/494472
-		p: declare struct! [int1 [integer!] int2 [integer!]]
-		f: as pointer! [float!] p
-		f/value: number + 6755399441055744.0
-		p/int1
-	]
-
 	form: func [
 		fl		   [red-float!]
 		buffer	   [red-string!]
@@ -151,13 +157,8 @@ float: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/form"]]
 
-		
-		either fl/value = 0.0 [
-			formed: "0.0"
-		][
-			;Output rounded to the nearest whole number before we will get propper decimal form
-			formed: integer/form-signed float-to-int fl/value
-		]
+		formed: "000000000000000000000000000000"						;-- 30 bytes wide, big enough.
+		sprintf [formed "%.14g" fl/value]
 		
 		string/concatenate-literal buffer formed
 		part - length? formed							;@@ optimize by removing length?
@@ -221,6 +222,21 @@ float: context [
 		as red-value! fl
 	]
 
+	absolute: func [
+		return: [red-float!]
+		/local
+			f	  [red-float!]
+			value [float!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "float/absolute"]]
+
+		f: as red-float! stack/arguments
+		value: f/value
+
+		if value < 0.0 [f/value: 0.0 - value]
+		f 											;-- re-use argument slot for return value
+	]
+
 	add: func [return: [red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "float/add"]]
 		as red-value! do-math OP_ADD
@@ -239,6 +255,11 @@ float: context [
 	subtract: func [return:	[red-value!]][
 		#if debug? = yes [if verbose > 0 [print-line "float/subtract"]]
 		as red-value! do-math OP_SUB
+	]
+
+	remainder: func [return: [red-value!]][
+		#if debug? = yes [if verbose > 0 [print-line "float/remainder"]]
+		as red-value! do-math OP_REM
 	]
 
 	negate: func [
@@ -287,13 +308,13 @@ float: context [
 			null			;set-path
 			null			;compare
 			;-- Scalar actions --
-			null			;absolute
+			:absolute
 			:add
 			:divide
 			:multiply
 			:negate
 			null			;power
-			null			;remainder
+			:remainder
 			null			;round
 			:subtract
 			null			;even?

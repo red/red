@@ -655,7 +655,11 @@ red: context [
 						item
 					]
 				]
-				emit to path! reduce [to word! form type? :item action]
+				either decimal? :item [
+					emit to path! reduce ['float action]
+				][
+					emit to path! reduce [to word! form type? :item action]
+				]
 				emit value
 				insert-lf -1 - either block? value [length? value][1]
 				

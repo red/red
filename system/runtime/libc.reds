@@ -48,8 +48,19 @@ Red/System [
 			char		[byte!]
 		]
 		printf: 	 "printf" [[variadic]]
+		sprintf:	 "sprintf" [[variadic]]
+		ceil:		 "ceil" [
+			d			[float!]
+			return:		[float!]
+		]
+		floor:		 "floor" [
+			d			[float!]
+			return:		[float!]
+		]
 	]
 ]
+
+#define trunc(x) [either x < 0.0 [ceil x][floor x]]
 
 #either unicode? = yes [
 

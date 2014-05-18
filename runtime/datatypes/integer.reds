@@ -84,15 +84,15 @@ integer: context [
 	]
 
 	do-math: func [
-		type	  [math-op!]
-		return:	  [red-integer!]
+		type		[math-op!]
+		return:		[red-value!]
 		/local
-			left  [red-integer!]
-			right [red-integer!]
+			left	[red-integer!]
+			right	[red-integer!]
 	][
 		left: as red-integer! stack/arguments
 		right: left + 1
-		
+
 		assert any [									;@@ replace by typeset check when possible
 			TYPE_OF(left) = TYPE_INTEGER
 			TYPE_OF(left) = TYPE_CHAR
@@ -100,19 +100,24 @@ integer: context [
 		assert any [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
+			TYPE_OF(right) = TYPE_FLOAT
 		]
-		
-		left/value: switch type [
-			OP_ADD [left/value + right/value]
-			OP_SUB [left/value - right/value]
-			OP_MUL [left/value * right/value]
-			OP_DIV [left/value / right/value]
-			OP_REM [left/value % right/value]
-			OP_AND [left/value and right/value]
-			OP_OR  [left/value or right/value]
-			OP_XOR [left/value xor right/value]
+
+		either TYPE_OF(right) = TYPE_FLOAT [
+			float/do-math type
+		][
+			left/value: switch type [
+				OP_ADD [left/value + right/value]
+				OP_SUB [left/value - right/value]
+				OP_MUL [left/value * right/value]
+				OP_DIV [left/value / right/value]
+				OP_REM [left/value % right/value]
+				OP_AND [left/value and right/value]
+				OP_OR  [left/value or right/value]
+				OP_XOR [left/value xor right/value]
+			]
 		]
-		left
+		as red-value! left
 	]
 
 	load-in: func [
@@ -142,6 +147,41 @@ integer: context [
 		int
 	]
 
+	_digit-to-float: func [				;@@ temporary function
+		int		[integer!]
+		return: [float!]
+	][
+		switch int [
+			0 [0.0]
+			1 [1.0]
+			2 [2.0]
+			3 [3.0]
+			4 [4.0]
+			5 [5.0]
+			6 [6.0]
+			7 [7.0]
+			8 [8.0]
+			9 [9.0]
+		]
+	]
+
+	_int-to-float: func [				;@@ inefficient conversion
+		i		[integer!]
+		return: [float!]
+		/local
+			d	[float!]
+			n 	[logic!]
+	][
+		n: negative? i
+		if n [i: negate i]
+		d: 0.0
+		while [i <> 0][
+			d: d * 10.0
+			d: d + _digit-to-float i % 10
+			i: i / 10
+		]
+		d
+	]
 	;-- Actions --
 	
 	make: func [
