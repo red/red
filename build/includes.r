@@ -65,6 +65,7 @@ write %build/bin/sources.r set-cache [
 			%symbol.reds
 			%unset.reds
 			%word.reds
+			%float.reds
 		]
 		%platform/ [
 			%android.reds

@@ -841,6 +841,11 @@ red: context [
 					emit to integer! next value
 					insert-lf -2
 				]
+				decimal? :value [
+					emit 'float/push
+					emit load mold :value
+					insert-lf -2
+				]
 				find [refinement! issue! lit-word!] type?/word :value [
 					add-symbol w: to word! form value
 					type: to word! form type? :value
