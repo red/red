@@ -218,8 +218,13 @@ string: context [
 			e: (either expon < 0 [0 - expon][expon])
 			d: either e <= size? fract10 [
 				either expon > 0 [d * fract10/e][d / fract10/e]
-			][												;-- expon > 308, trigger off a runtime error
-				either expon < 0 [0.0][1.0E308 * 10.0]		;@@ no subnormal number support, support it?
+			][												;-- expon > 308
+				either expon < 0 [
+					c: e - 308
+					d / fract10/c / 1.0E308
+				][
+					1.0E308 + 1.0E308						;-- INF
+				]
 			]
 		]
 		either neg? [0.0 - d][d]
