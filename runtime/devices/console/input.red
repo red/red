@@ -696,6 +696,11 @@ Red [
 			SetConsoleMode stdin saved-con and mode
 		]
 
+		emit: func [cp [integer!] /local n][
+			n: 0
+			WriteConsole stdout (as byte-ptr! :cp) 1 :n null
+		]
+
 		emit-red-string: func [
 			str	 		  [red-string!]
 			size 		  [integer!]
