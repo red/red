@@ -245,6 +245,7 @@ string: context [
 			s	[series!]
 	][
 		s: GET_BUFFER(str)
+		s/flags: s/flags and flag-unit-mask or Latin1
 		s/tail: s/offset
 		str/head: 0
 	]
