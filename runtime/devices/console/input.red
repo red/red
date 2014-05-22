@@ -262,6 +262,11 @@ Red [
 			emit end
 		]
 
+		emit-buf: func [c [byte!]][
+			pbuffer/1: c
+			pbuffer: pbuffer + 1
+		]
+
 		emit-red-string: func [
 			str			[red-string!]
 			size		[integer!]
@@ -303,22 +308,22 @@ Red [
 					]
 					case [
 						cp <= 7Fh [
-							emit as-byte cp
+							emit-buf as-byte cp
 						]
 						cp <= 07FFh [
-							emit as-byte cp >> 6 or C0h
-							emit as-byte cp and 3Fh or 80h
+							emit-buf as-byte cp >> 6 or C0h
+							emit-buf as-byte cp and 3Fh or 80h
 						]
 						cp <= FFFFh [
-							emit as-byte cp >> 12 or E0h
-							emit as-byte cp >> 6 and 3Fh or 80h
-							emit as-byte cp and 3Fh or 80h
+							emit-buf as-byte cp >> 12 or E0h
+							emit-buf as-byte cp >> 6 and 3Fh or 80h
+							emit-buf as-byte cp and 3Fh or 80h
 						]
 						cp <= 001FFFFFh [
-							emit as-byte cp >> 18 or F0h
-							emit as-byte cp >> 12 and 3Fh or 80h
-							emit as-byte cp >>  6 and 3Fh or 80h
-							emit as-byte cp and 3Fh or 80h
+							emit-buf as-byte cp >> 18 or F0h
+							emit-buf as-byte cp >> 12 and 3Fh or 80h
+							emit-buf as-byte cp >>  6 and 3Fh or 80h
+							emit-buf as-byte cp and 3Fh or 80h
 						]
 						true [
 							print-line "Error in emit-red-string: codepoint > 1FFFFFh"
@@ -327,8 +332,9 @@ Red [
 					offset: offset + unit
 				]
 				bytes: bytes + cnt
-				if cnt = size [
-					emit-string "^(0A)^[[0G"				;-- emit new line and set cursor to start.
+				if cnt = size [				;-- emit new-line and set cursor to start.
+					emit-buf #"^(0A)"
+					emit-buf #"^(0D)"
 				]
 				size: columns - x
 				x: 0
@@ -401,29 +407,21 @@ Red [
 			]
 		]
 
-		refresh: func [
-			/local
-				line   [red-string!]
-				offset [integer!]
-				x	   [integer!]
-				y	   [integer!]
-				saved  [integer!]
-				psize  [integer!]
-		][
-			line: input-line
+		erase-to-bottom: does [
 			if positive? lines-y [emit-string-int "^[[" lines-y #"A"]	;-- move to origin row
-			emit-string "^(0D)^[[J"					;-- erase down to the bottom of the screen
+			emit-string "^(0D)^[[J"					;-- erase down to the bottom of the screen		
+		]
 
-			bytes: emit-red-string prompt columns no
-
-			psize: bytes // columns
-			offset: bytes + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
-
-			psize: offset // columns
-			bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
-
-			lines-y: bytes / columns		;-- the lines of all outputs occupy
-			y: bytes / columns  - (offset / columns)
+		set-cursor-pos: func [
+			line	[red-string!]
+			offset	[integer!]
+			size	[integer!]
+			/local
+				x	[integer!]
+				y	[integer!]
+		][
+			lines-y: size / columns			;-- the lines of all outputs occupy
+			y: size / columns  - (offset / columns)
 			x: offset // columns
 			
 			if all [						;-- special case: when moving cursor to the first char of a line
@@ -443,6 +441,10 @@ Red [
 			][
 				emit-string-int "^(0D)^[[" x #"C"
 			]
+		]
+
+		output-to-screen: does [
+			write stdout buffer (as-integer pbuffer - buffer)
 		]
 
 		init: func [
@@ -492,10 +494,13 @@ Red [
 			
 			poller/fd: stdin
 			poller/events: OS_POLLIN
+
+			buffer: allocate buf-size
 		]
 
 		restore: does [
-			tcsetattr stdin TERM_TCSADRAIN saved-term			
+			tcsetattr stdin TERM_TCSADRAIN saved-term
+			free buffer
 		]
 		
 	][;-- ================================================================= --
@@ -682,23 +687,11 @@ Red [
 			0
 		]
 
-		init: func [
-			line 		[red-string!]
-			hist-blk	[red-block!]
-			/local
-				mode	[integer!]
-		][
-			copy-cell as red-value! line as red-value! input-line
-			copy-cell as red-value! hist-blk as red-value! history
-
-			GetConsoleMode stdin :saved-con
-			mode: not (ENABLE_LINE_INPUT and ENABLE_ECHO_INPUT)		;-- turn off some features
-			SetConsoleMode stdin saved-con and mode
-		]
-
-		emit: func [cp [integer!] /local n][
-			n: 0
-			WriteConsole stdout (as byte-ptr! :cp) 1 :n null
+		emit-buf: func [cp [integer!] /local b][
+			b: as byte-ptr! :cp
+			pbuffer/1: b/1
+			pbuffer/2: b/2
+			pbuffer: pbuffer + 2
 		]
 
 		emit-red-string: func [
@@ -739,7 +732,7 @@ Red [
 					][
 						cnt + 1
 					]
-					WriteConsole stdout (as byte-ptr! :cp) 1 :n null
+					emit-buf cp
 					offset: offset + unit
 				]
 				bytes: bytes + cnt
@@ -752,41 +745,34 @@ Red [
 			bytes
 		]
 
-		refresh: func [
+		erase-to-bottom: func [
 			/local
-				line	[red-string!]
-				offset	[integer!]
-				n		[integer!]
-				x		[integer!]
-				y		[integer!]
-				x-y		[integer!]
-				bytes	[integer!]
-				psize	[integer!]
-				info	[screenbuf-info!]
+				n	 [integer!]
+				info [screenbuf-info!]
+				x-y  [integer!]
 		][
-			n:	  0
-			line: input-line
+			n: 0
+			info: declare screenbuf-info!
 
 			SetConsoleCursorPosition stdout base-y << 16
-
-			info: declare screenbuf-info!
 			GetConsoleScreenBufferInfo stdout as-integer info
 			x-y: info/Position
 			FillConsoleOutputCharacter							;-- clear screen
 				stdout
 				20h												;-- #" " = 20h
-				rows - SECOND_WORD(x-y) * columns
+				rows - SECOND_WORD(x-y) * columns				;-- (rows - y) * columns
 				x-y
 				:n
+		]
 
-			bytes: emit-red-string prompt columns no
-
-			psize: bytes // columns
-			offset: bytes + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
-
-			psize: offset // columns
-			bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
-
+		set-cursor-pos: func [
+			line	[red-string!]
+			offset	[integer!]
+			size	[integer!]
+			/local
+				x	[integer!]
+				y	[integer!]
+		][
 			y: offset / columns
 			x: offset // columns
 			if all [
@@ -796,11 +782,30 @@ Red [
 				y: y + 1
 				x: 0
 			]
-
 			SetConsoleCursorPosition stdout base-y + y << 16 or x
 		]
 
-		restore: does [SetConsoleMode stdin saved-con]
+		output-to-screen: func [/local n][
+			n: 0
+			WriteConsole stdout buffer (as-integer pbuffer - buffer) / 2 :n null
+		]
+
+		init: func [
+			line 		[red-string!]
+			hist-blk	[red-block!]
+			/local
+				mode	[integer!]
+		][
+			copy-cell as red-value! line as red-value! input-line
+			copy-cell as red-value! hist-blk as red-value! history
+
+			GetConsoleMode stdin :saved-con
+			mode: not (ENABLE_LINE_INPUT and ENABLE_ECHO_INPUT)		;-- turn off some features
+			SetConsoleMode stdin saved-con and mode
+			buffer: allocate buf-size
+		]
+
+		restore: does [SetConsoleMode stdin saved-con free buffer]
 
 	] ;-- =================End Of OS Dependent Functions==================== --
 
@@ -824,10 +829,13 @@ Red [
 		#define KEY-CTRL-A	#"^A"
 		#define	KEY-CTRL-E	#"^E"
 
+		buffer:		declare byte-ptr!
+		pbuffer:	declare byte-ptr!
 		input-line: declare red-string!
 		saved-line:	declare red-string!
 		prompt:		declare	red-string!
 		history:	declare red-block!
+		buf-size:	512
 		columns:	-1
 		rows:		-1
 
@@ -949,9 +957,9 @@ Red [
 			max: size? table
 			if any [cp < table/1 cp > table/max][return no]
 
-			a: 0
+			a: -1
 			until [
-				a: a + 1
+				a: a + 2
 				b: a + 1
 				if all [cp > table/a cp < table/b][return yes]
 				b = max
@@ -1017,6 +1025,50 @@ Red [
 			string/rs-reset input-line
 			string/concatenate input-line as red-string! block/rs-head history -1 0 yes no
 			input-line/head: string/get-length input-line yes
+		]
+
+		init-buffer: func [
+			str			[red-string!]
+			/local
+				unit	[integer!]
+				s		[series!]
+				size	[integer!]
+		][
+			s: GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			if unit < 2 [unit: 2]			;-- always treat string as widechar string
+			size: (string/rs-length? str) << (unit >> 1)
+			if size > buf-size [
+				buf-size: size
+				buffer: allocate size
+			]
+			pbuffer: buffer
+		]
+
+		refresh: func [
+			/local
+				line   [red-string!]
+				offset [integer!]
+				bytes  [integer!]
+				x	   [integer!]
+				y	   [integer!]
+				saved  [integer!]
+				psize  [integer!]
+		][
+			line: input-line
+			erase-to-bottom					;-- erase down to the bottom of the screen
+
+			init-buffer line
+			bytes: emit-red-string prompt columns no
+
+			psize: bytes // columns
+			offset: bytes + (emit-red-string line columns - psize yes)	;-- output until reach cursor posistion
+
+			psize: offset // columns
+			bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
+
+			output-to-screen
+			set-cursor-pos line offset bytes
 		]
 
 		edit: func [
@@ -1089,6 +1141,14 @@ Red [
 						line/head: string/get-length line yes
 						refresh
 					]
+					KEY_DELETE [
+						unless string/rs-tail? line [
+							string/remove-char line line/head
+							refresh
+						]
+					]
+					KEY_PAGE_UP
+					KEY_PAGE_DOWN
 					KEY_UNSET
 					KEY_NONE []						;-- do nothing
 					
