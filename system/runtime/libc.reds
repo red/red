@@ -49,12 +49,20 @@ Red/System [
 		]
 		printf: 	 "printf" [[variadic]]
 		sprintf:	 "sprintf" [[variadic]]
+	]
+
+	LIBM-file cdecl [
 		ceil:		 "ceil" [
 			d			[float!]
 			return:		[float!]
 		]
 		floor:		 "floor" [
 			d			[float!]
+			return:		[float!]
+		]
+		float-power: "pow" [
+			base		[float!]
+			exponent	[float!]
 			return:		[float!]
 		]
 	]

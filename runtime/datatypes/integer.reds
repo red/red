@@ -170,17 +170,20 @@ integer: context [
 		return: [float!]
 		/local
 			d	[float!]
+			b	[float!]
 			n 	[logic!]
 	][
+		d: 0.0
+		b: 1.0
 		n: negative? i
 		if n [i: negate i]
-		d: 0.0
-		while [i <> 0][
-			d: d * 10.0
-			d: d + _digit-to-float i % 10
+		until [
+			d: d + (b * _digit-to-float i % 10)
+			b: b * 10.0
 			i: i / 10
+			zero? i
 		]
-		d
+		either n [0.0 - d][d]
 	]
 	;-- Actions --
 	
@@ -389,15 +392,26 @@ integer: context [
 	]
 
 	power: func [
-		return:	 [red-integer!]
+		return:	 [red-value!]
 		/local
 			base [red-integer!]
 			exp  [red-integer!]
+			f	 [red-float!]
 	][
 		base: as red-integer! stack/arguments
 		exp: base + 1
-		base/value: int-power base/value exp/value
-		base
+		either any [
+			TYPE_OF(exp) = TYPE_FLOAT
+			negative? exp/value
+		][
+			f: as red-float! base
+			f/value: _int-to-float base/value
+			f/header: TYPE_FLOAT
+			float/power
+		][
+			base/value: int-power base/value exp/value
+		]
+		as red-value! base
 	]
 	
 	even?: func [

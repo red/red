@@ -272,6 +272,23 @@ float: context [
 		fl 											;-- re-use argument slot for return value
 	]
 
+	power: func [
+		return:	 [red-float!]
+		/local
+			base [red-float!]
+			exp  [red-float!]
+			int	 [red-integer!]
+	][
+		base: as red-float! stack/arguments
+		exp: base + 1
+		if TYPE_OF(exp) = TYPE_INTEGER [
+			int: as red-integer! exp
+			exp/value: integer/_int-to-float int/value
+		]
+		base/value: float-power base/value exp/value
+		base
+	]
+
 	even?: func [
 		int		[red-float!]
 		return: [logic!]
@@ -313,7 +330,7 @@ float: context [
 			:divide
 			:multiply
 			:negate
-			null			;power
+			:power
 			:remainder
 			null			;round
 			:subtract
