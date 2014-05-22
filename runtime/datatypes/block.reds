@@ -575,7 +575,6 @@ block: context [
 				c: string/get-char (as byte-ptr! buf/tail) - unit unit
 				
 				unless any [
-					c = as-integer #" "
 					c = as-integer #"^/"
 					c = as-integer #"^M"
 					c = as-integer #"^-"
