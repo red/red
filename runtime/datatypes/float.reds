@@ -55,6 +55,20 @@ float: context [
 		fl
 	]
 
+	to-integer: func [
+		number 	[float!]
+		return:	[integer!]
+		/local
+			f	[float!]
+			d	[int-ptr!]
+	][
+		;-- Based on this method: http://stackoverflow.com/a/429812/494472
+		;-- A bit more explanation: http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
+		f: number + 6755399441055744.0
+		d: as int-ptr! :f
+		d/value
+	]
+
 	do-math: func [
 		type	  [integer!]
 		return:	  [red-float!]
@@ -81,11 +95,11 @@ float: context [
 		if TYPE_OF(left) <> TYPE_FLOAT [
 			int: as red-integer! left
 			left/header: TYPE_FLOAT
-			left/value: integer/_int-to-float int/value
+			left/value: integer/to-float int/value
 		]
 		if TYPE_OF(right) <> TYPE_FLOAT [
 			int: as red-integer! right
-			right/value: integer/_int-to-float int/value
+			right/value: integer/to-float int/value
 		]
 
 		left/value: switch type [
@@ -144,6 +158,29 @@ float: context [
 				as red-float! spec					;@@ just for making it compilable
 			]
 		]
+	]
+
+	random: func [
+		f		[red-float!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-float!]
+		/local
+			t	[float!]
+			s	[float!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "float/random"]]
+
+		either seed? [
+			_random/srand to-integer f/value
+			f/header: TYPE_UNSET
+		][
+			s: (integer/to-float _random/rand) / 2147483647.0
+			if s < 0.0 [s: 0.0 - s]
+			f/value: s * f/value
+		]
+		f
 	]
 
 	form: func [
@@ -283,7 +320,7 @@ float: context [
 		exp: base + 1
 		if TYPE_OF(exp) = TYPE_INTEGER [
 			int: as red-integer! exp
-			exp/value: integer/_int-to-float int/value
+			exp/value: integer/to-float int/value
 		]
 		base/value: float-power base/value exp/value
 		base
@@ -315,15 +352,15 @@ float: context [
 			TYPE_VALUE
 			"float!"
 			;-- General actions --
-			null			;make
-			null			;random
+			:make
+			:random
 			null			;reflect
 			null			;to
 			:form
 			:mold
 			null			;eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			:absolute
 			:add

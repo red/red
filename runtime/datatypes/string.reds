@@ -181,7 +181,7 @@ string: context [
 			len: len - 1
 			if c <> -9 [
 				d: d * 10.0
-				d: d + (integer/_digit-to-float c)			;@@ remove this conversion
+				d: d + (integer/to-float c)					;@@ remove this conversion
 			]
 		]
 
@@ -197,7 +197,7 @@ string: context [
 					all [c >= 0 c < 10 len > 0]
 				][
 					d: d * 10.0
-					d: d + (integer/_digit-to-float c)		;@@ remove this conversion
+					d: d + (integer/to-float c)				;@@ remove this conversion
 					p: p + unit
 					len: len - 1
 				]

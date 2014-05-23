@@ -147,44 +147,21 @@ integer: context [
 		int
 	]
 
-	_digit-to-float: func [				;@@ temporary function
-		int		[integer!]
-		return: [float!]
-	][
-		switch int [
-			0 [0.0]
-			1 [1.0]
-			2 [2.0]
-			3 [3.0]
-			4 [4.0]
-			5 [5.0]
-			6 [6.0]
-			7 [7.0]
-			8 [8.0]
-			9 [9.0]
-		]
-	]
-
-	_int-to-float: func [				;@@ inefficient conversion
+	to-float: func [
 		i		[integer!]
 		return: [float!]
 		/local
-			d	[float!]
-			b	[float!]
-			n 	[logic!]
+			f	[float!]
+			d	[int-ptr!]
 	][
-		d: 0.0
-		b: 1.0
-		n: negative? i
-		if n [i: negate i]
-		until [
-			d: d + (b * _digit-to-float i % 10)
-			b: b * 10.0
-			i: i / 10
-			zero? i
-		]
-		either n [0.0 - d][d]
+		;-- Based on this method: http://stackoverflow.com/a/429812/494472
+		;-- A bit more explanation: http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
+		f: 6755399441055744.0
+		d: as int-ptr! :f
+		d/value: i or d/value
+		either i < 0 [f - 6755403736023040.0][f - 6755399441055744.0]
 	]
+
 	;-- Actions --
 	
 	make: func [
@@ -405,7 +382,7 @@ integer: context [
 			negative? exp/value
 		][
 			f: as red-float! base
-			f/value: _int-to-float base/value
+			f/value: to-float base/value
 			f/header: TYPE_FLOAT
 			float/power
 		][
