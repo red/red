@@ -1040,6 +1040,7 @@ Red [
 			size: (string/rs-length? str) << (unit >> 1)
 			if size > buf-size [
 				buf-size: size
+				free buffer
 				buffer: allocate size
 			]
 			pbuffer: buffer
