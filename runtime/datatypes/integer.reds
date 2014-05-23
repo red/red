@@ -258,6 +258,9 @@ integer: context [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
 			]
+			TYPE_FLOAT [
+				return not float/compare as red-float! value2 as red-float! value1 op
+			]
 			default [RETURN_COMPARE_OTHER]
 		]
 		switch op [

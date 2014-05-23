@@ -223,7 +223,7 @@ float: context [
 		op	      [integer!]						;-- type of comparison
 		return:   [logic!]
 		/local
-			char  [red-char!]
+			int   [red-integer!]
 			left  [float!]
 			right [float!] 
 			res	  [logic!]
@@ -233,8 +233,10 @@ float: context [
 		left: value1/value
 
 		switch TYPE_OF(value2) [
-			TYPE_FLOAT [
-				right: value2/value
+			TYPE_CHAR
+			TYPE_INTEGER [
+				int: as red-integer! value2
+				right: integer/to-float int/value
 			]
 			default [RETURN_COMPARE_OTHER]
 		]

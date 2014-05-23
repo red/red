@@ -1004,16 +1004,23 @@ natives: context [
 		return:	[red-logic!]
 		/local
 			num [red-integer!]
+			f	[red-float!]
 			res [red-logic!]
 	][
-		num: as red-integer! stack/arguments
-		res: as red-logic! num
-
-		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
-			res/value: negative? num/value
-		][
-			res/value: false
-			print-line "*** Error: argument type must be number!"
+		res: as red-logic! stack/arguments
+		switch TYPE_OF(res) [						;@@ Add time! money! pair!
+			TYPE_INTEGER [
+				num: as red-integer! res
+				res/value: negative? num/value
+			]
+			TYPE_FLOAT	 [
+				f: as red-float! res
+				res/value: f/value < 0.0
+			]
+			default [
+				res/value: false
+				print-line "*** Error: argument type must be number!"
+			]
 		]
 		res/header: TYPE_LOGIC
 		res
@@ -1023,16 +1030,23 @@ natives: context [
 		return: [red-logic!]
 		/local
 			num [red-integer!]
+			f	[red-float!]
 			res [red-logic!]
 	][
-		num: as red-integer! stack/arguments
-		res: as red-logic! num
-
-		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
-			res/value: positive? num/value
-		][
-			res/value: false
-			print-line "*** Error: argument type must be number!"
+		res: as red-logic! stack/arguments
+		switch TYPE_OF(res) [						;@@ Add time! money! pair!
+			TYPE_INTEGER [
+				num: as red-integer! res
+				res/value: positive? num/value
+			]
+			TYPE_FLOAT	 [
+				f: as red-float! res
+				res/value: f/value > 0.0
+			]
+			default [
+				res/value: false
+				print-line "*** Error: argument type must be number!"
+			]
 		]
 		res/header: TYPE_LOGIC
 		res
