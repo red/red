@@ -27,6 +27,7 @@ qt/make-if-needed? %source/units/auto-tests/infix-equal-auto-test.red %source/un
 qt/make-if-needed? %source/units/auto-tests/infix-not-equal-auto-test.red %source/units/make-not-equal-auto-test.r
 qt/make-if-needed? %source/units/auto-tests/lesser-auto-test.red %source/units/make-lesser-auto-test.r
 qt/make-if-needed? %source/units/auto-tests/greater-auto-test.red %source/units/make-greater-auto-test.r
+qt/make-if-needed? %source/units/auto-tests/float-auto-test.red %source/units/make-float-auto-test.r
 do %source/units/make-interpreter-auto-test.r  ;; checks and builds tests 
                                                ;; if necessary
 
@@ -84,6 +85,7 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/object-test.red
   	--run-test-file-quiet %source/units/integer-test.red
   	--run-test-file-quiet %source/units/char-test.red
+  	--run-test-file-quiet %source/units/float-test.red
 ===end-group===
 
 ===start-group=== "Red Library tests"
@@ -127,6 +129,7 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/auto-tests/interp-parse-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-bitset-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-integer-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-float-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-char-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-equal-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-same-test.red
@@ -138,6 +141,7 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/auto-tests/interp-inf-lesser-equal-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-inf-not-equal-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-integer-auto-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-float-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-lesser-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-lesser-equal-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-not-equal-auto-test.red

@@ -65,6 +65,18 @@ Red/System [
 			exponent	[float!]
 			return:		[float!]
 		]
+		sin:		 "sin" [
+			radians		[float!]
+			return:		[float!]
+		]
+		cos:		 "cos" [
+			radians		[float!]
+			return:		[float!]
+		]
+		fabs:		"fabs" [
+			value		[float!]
+			return:		[float!]
+		]
 	]
 ]
 

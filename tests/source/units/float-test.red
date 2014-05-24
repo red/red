@@ -27,36 +27,22 @@ Red [
 		--assert f1 = 1.0
 ===end-group===
 
-comment {
-	If you have time, you could convert this to a routine
-===start-group=== "float argument to external function"
-
-	#import [
-	LIBM-file cdecl [
-	sin: "sin" [
-	x 		[float!]
-	return: [float!]
-	]
-	cos: "cos" [
-	x 		[float!]
-	return: [float!]
-	]
-	]
-	]
-}
+===start-group=== "trigonometric function"
 	pi: 3.14159265358979
-comment {
-	--test-- "float-ext-1"
-	--assert -1.0 = cos pi
 
-	--test-- "float-ext-2"
-	--assertf~= 0.0 sin pi	1E-10	; not working, because of rounding error.
+	--test-- "float-cosine-1"
+		--assert -1.0 = cosine/radians pi
 
-	--test-- "float-ext-3"
-	--assert -1.0 = cos 3.14159265358979
+	--test-- "float-cosine-2"
+		--assert -1 = cosine 180
+
+	--test-- "float-sine-1"
+		--assertf~= 0.0 sine/radians pi	1E-10
+
+	--test-- "float-sine-2"
+		--assert 1 = sine 90
 
 ===end-group===
-}
 
 ===start-group=== "float function arguments"
 	ff: func [

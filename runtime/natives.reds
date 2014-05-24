@@ -1118,7 +1118,72 @@ natives: context [
 		stack/set-last as red-value! buf
 	]
 
+	sine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		f: degree-to-radians radians SINE
+		f/value: sin f/value
+		f
+	]
+
+	cosine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		f: degree-to-radians radians COSINE
+		f/value: cos f/value
+		f
+	]
+
 	;--- Natives helper functions ---
+
+	PI: 3.14159265358979323846
+
+	#enum trigonometric-type! [
+		TANGENT
+		COSINE
+		SINE
+	]
+
+	degree-to-radians: func [
+		radians [integer!]
+		type	[integer!]
+		return: [red-float!]
+		/local
+			f	[red-float!]
+			n	[red-integer!]
+			val [float!]
+	][
+		f: as red-float! stack/arguments
+		either TYPE_OF(f) <> TYPE_FLOAT [
+			n: as red-integer! f
+			val: integer/to-float n/value
+			f/header: TYPE_FLOAT
+		][
+			val: f/value
+		]
+
+		if radians < 0 [
+			val: val % 360.0
+			if any [val > 180.0 val < -180.0] [
+				val: val + either val < 0.0 [360.0][-360.0]
+			]
+			if any [val > 90.0 val < -90.0] [
+				if type = TANGENT [
+					val: val + either val < 0.0 [180.0][-180.0]
+				]
+				if type = SINE [
+					val: (either val < 0.0 [-180.0][180.0]) - val
+				]
+			]
+			val: val * PI / 180.0			;-- to radians
+		]
+		f/value: val
+		f
+	]
 
 	loop?: func [
 		series  [red-series!]
@@ -1351,6 +1416,8 @@ natives: context [
 			:min*
 			:shift*
 			:to-hex*
+			:sine*
+			:cosine*
 		]
 	]
 

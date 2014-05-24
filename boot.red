@@ -941,6 +941,23 @@ to-hex: make native! [[
 	#get-definition NAT_TO_HEX
 ]
 
+sine: make native! [[
+		"Returns the trigonometric sine."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_SINE
+]
+
+cosine: make native! [[
+		"Returns the trigonometric cosine."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_COSINE
+]
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
