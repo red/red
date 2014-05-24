@@ -242,6 +242,7 @@ integer: context [
 		return:   [logic!]
 		/local
 			char  [red-char!]
+			f	  [red-float!]
 			left  [integer!]
 			right [integer!] 
 			res	  [logic!]
@@ -259,7 +260,12 @@ integer: context [
 				right: char/value						;@@ structures are overlapping exactly
 			]
 			TYPE_FLOAT [
-				return not float/compare as red-float! value2 as red-float! value1 op
+				f: as red-float! value1
+				left: value1/value
+				f/value: to-float left
+				res: float/compare f as red-float! value2 op
+				value1/value: left
+				return res
 			]
 			default [RETURN_COMPARE_OTHER]
 		]

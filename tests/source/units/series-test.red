@@ -695,8 +695,8 @@ Red [
 		--assert "abc"	= min "abc" "abcd"
 
 	--test-- "max2"					;@@ need to add tests for word!, path!
-		blk1: [1 #"a" "ab" %ab/cd [] [2] (1 2)]
-		blk2: [1 #"a" "ab" %ab/cd [] [2] (1 3)]
+		blk1: [1 1.0 #"a" "ab" %ab/cd [] [2] (1 2)]
+		blk2: [1 1.0 #"a" "ab" %ab/cd [] [2] (1 3)]
 		--assert blk2 = max blk1 blk2
 		blk1: next blk1
 		--assert blk1 = max blk1 blk2

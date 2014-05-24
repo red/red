@@ -26,8 +26,9 @@ Red []
   	#include %source/units/bitset-test.red
   	#include %source/units/strict-equal-test.red
   	#include %source/units/object-test.red
-  	#inlcude %source/units/integer-test.red
-  	#inlcude %source/units/same-test.red
+  	#include %source/units/integer-test.red
+  	#include %source/units/float-test.red
+  	#include %source/units/same-test.red
   	#include %source/units/auto-tests/integer-auto-test.red
   	#include %source/units/auto-tests/infix-equal-auto-test.red
   	#include %source/units/auto-tests/equal-auto-test.red

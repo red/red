@@ -27,11 +27,10 @@ Red [
 	--test-- "pow1" --assert 3 	 = power  3 1
 	--test-- "pow2" --assert 9 	 = power -3 2
 	--test-- "pow3" --assert -27 = power -3 3
-	--test-- "pow4" --assert 0 	 = power -3 -1
+	--test-- "pow4" --assertf~= -0.3333333333333333 (power -3 -1) 1E-10
 	--test-- "pow5" --assert -1  = power -1 3
 	--test-- "pow6" --assert 1	 = power -1 -4
-	;--test-- "pow7" --assert 1 = power 0 -1		;@@ should return INF
-	;--test-- "pow8" --assert 1 = power 0 -1		;@@ should return -INF
+	;--test-- "pow7" --assert 0.0 = power 0 -1		;@@ return INF or 0.0
 ===end-group===
 
 ===start-group=== "max/min"
