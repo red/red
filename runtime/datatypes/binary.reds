@@ -34,6 +34,63 @@ binary: context [
 		(as-integer s/tail - s/offset) - offset
 	]
 
+	get-position: func [
+		base	   [integer!]
+		return:	   [integer!]
+		/local
+			bin	   [red-binary!]
+			index  [red-integer!]
+			s	   [series!]
+			offset [integer!]
+			max	   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/get-position"]]
+
+		bin: as red-binary! stack/arguments
+		index: as red-integer! bin + 1
+
+		assert TYPE_OF(bin) = TYPE_BINARY
+		assert TYPE_OF(index) = TYPE_INTEGER
+
+		s: GET_BUFFER(bin)
+
+		if all [base = 1 index/value <= 0][base: base - 1]
+		offset: bin/head + index/value - base			;-- index is one-based
+		if negative? offset [offset: 0]
+		max: (as-integer s/tail - s/offset)
+		if offset > max [offset: max]
+
+		offset
+	]
+
+
+	rs-skip: func [
+		bin 	[red-binary!]
+		len		[integer!]
+		return: [logic!]
+		/local
+			s	   [series!]
+			offset [integer!]
+	][
+		assert len >= 0
+		s: GET_BUFFER(bin)
+		offset: bin/head + len
+
+		probe offset
+
+		if (as byte-ptr! s/offset) + offset <= as byte-ptr! s/tail [
+			bin/head: bin/head + len
+		]
+		(as byte-ptr! s/offset) + offset >= as byte-ptr! s/tail
+	]
+	
+	rs-next: func [
+		bin 	[red-binary!]
+		return: [logic!]
+	][
+		rs-skip bin 1
+	]
+
 	;-- Actions --
 
 	make: func [
@@ -81,15 +138,16 @@ binary: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/form"]]
 		bin: GET_BUFFER(value)
-		bytes: (as-integer bin/tail - bin/offset)
+		head: (as byte-ptr! bin/offset) + value/head
+		tail: as byte-ptr! bin/tail
+		bytes: as-integer tail - head
 		len: (2 * bytes) + 4 
 		formed: as c-string! allocate len
 		pout: as byte-ptr! formed
 		pout/1: #"#"
 		pout/2: #"{"
 		pout: pout + 2
-		head: as byte-ptr! bin/offset
-		tail: as byte-ptr! bin/tail
+		
 
 		h: "0123456789ABCDEF"
 
@@ -226,6 +284,76 @@ binary: context [
 		get-length bin
 	]
 
+	;--- Navigation actions ---
+
+	at: func [
+		return:	[red-value!]
+		/local
+			bin	[red-binary!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/at"]]
+
+		bin: as red-binary! stack/arguments
+		bin/head: get-position 1
+		as red-value! bin
+	]
+
+	back: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/back"]]
+
+		block/back										;-- identical behaviour as block!
+	]
+
+	next: func [
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/next"]]
+
+		rs-next as red-binary! stack/arguments
+		stack/arguments
+	]
+
+	skip: func [
+		return:	[red-value!]
+		/local
+			bin	[red-binary!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/skip"]]
+
+		bin: as red-binary! stack/arguments
+		bin/head: get-position 0
+		as red-value! bin
+	]
+
+	head: func [
+		return:	[red-value!]
+		/local
+			bin	[red-binary!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/head"]]
+
+		bin: as red-binary! stack/arguments
+		bin/head: 0
+		as red-value! bin
+	]
+
+	tail: func [
+		return:	[red-value!]
+		/local
+			bin	[red-binary!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/tail"]]
+
+		bin: as red-binary! stack/arguments
+		s: GET_BUFFER(bin)
+
+		bin/head: as-integer s/tail - s/offset
+		as red-value! bin
+	]
+
 
 	init: does [
 		datatype/register [
@@ -261,27 +389,27 @@ binary: context [
 			null			;xor~
 			;-- Series actions --
 			null			;append
-			null			;at
-			null			;back
+			:at
+			:back
 			null			;change
 			null			;clear
 			null			;copy
 			null			;find
-			null			;head
+			:head
 			:head?
 			:index?
 			null			;insert
 			:length?
-			null			;next
+			:next
 			null			;pick
 			null			;poke
 			null			;remove
 			null			;reverse
 			null			;select
 			null			;sort
-			null			;skip
+			:skip
 			null			;swap
-			null			;tail
+			:tail
 			:tail?
 			null			;take
 			null			;trim
