@@ -72,68 +72,39 @@ binary: context [
 			formed [c-string!]
 			len    [integer!]
 			bytes  [integer!]
-			p      [byte-ptr!]
+			pout   [byte-ptr!]
 			head   [byte-ptr!]
 			tail   [byte-ptr!]
 			byte   [integer!]
-			byte-int [integer!]
+			h	   [c-string!]
+			i	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/form"]]
 		bin: GET_BUFFER(value)
 		bytes: (as-integer bin/tail - bin/offset)
 		len: (2 * bytes) + 4 
 		formed: as c-string! allocate len
-		p: as byte-ptr! formed
-		p/1: #"#"
-		p/2: #"{"
-		p: p + 2
+		pout: as byte-ptr! formed
+		pout/1: #"#"
+		pout/2: #"{"
+		pout: pout + 2
 		head: as byte-ptr! bin/offset
 		tail: as byte-ptr! bin/tail
+
+		h: "0123456789ABCDEF"
+
 		while [head < tail][
-			byte-int: as-integer head/1
-			byte: F0h and byte-int
-			switch byte [
-				0  [p/1: #"0"]
-				16 [p/1: #"1"]
-				32 [p/1: #"2"]
-				48 [p/1: #"3"]
-				64 [p/1: #"4"]
-				80 [p/1: #"5"]
-				96 [p/1: #"6"]
-				112 [p/1: #"7"]
-				128 [p/1: #"8"]
-				144 [p/1: #"9"]
-				160 [p/1: #"A"]
-				176 [p/1: #"B"]
-				192 [p/1: #"C"]
-				208 [p/1: #"D"]
-				224 [p/1: #"E"]
-				240 [p/1: #"F"]
-			]
-			byte: 0Fh and byte-int
-			switch byte [
-				0  [p/2: #"0"]
-				1 [p/2: #"1"]
-				2 [p/2: #"2"]
-				3 [p/2: #"3"]
-				4 [p/2: #"4"]
-				5 [p/2: #"5"]
-				6 [p/2: #"6"]
-				7 [p/2: #"7"]
-				8 [p/2: #"8"]
-				9 [p/2: #"9"]
-				10 [p/2: #"A"]
-				11 [p/2: #"B"]
-				12 [p/2: #"C"]
-				13 [p/2: #"D"]
-				14 [p/2: #"E"]
-				15 [p/2: #"F"]
-			]
+			byte: as-integer head/1
+			i: byte and 15 + 1								;-- byte // 16 + 1
+			pout/1: h/i
+			i: byte >> 4 and 15 + 1
+			pout/2: h/i
+
 			head: head + 1
-			p: p + 2
+			pout: pout + 2
 		]
-		p/1: #"}"
-		p/2: null-byte
+		pout/1: #"}"
+		pout/2: null-byte
 		string/concatenate-literal buffer formed
 		part - len
 	]
