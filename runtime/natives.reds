@@ -1101,6 +1101,100 @@ natives: context [
 		stack/set-last as red-value! buf
 	]
 
+	debase*: func [
+		return:		[red-binary!]
+		/local
+			str		[red-string!]
+			bin		[red-binary!]
+			s		[series!]
+			b       [series!]
+			pbin	[byte-ptr!]
+			p		[byte-ptr!]
+			p4		[int-ptr!]
+			s-tail	[byte-ptr!]
+			unit	[integer!]
+			cp		[integer!]
+			len     [integer!]
+			byte    [integer!]
+			hi-bits [logic!]
+	][
+		str: as red-string! stack/arguments
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		s-tail: as byte-ptr! s/tail
+		len: (string/rs-length? str) / 2
+		bin: binary/make as red-value! integer/box len
+		b: GET_BUFFER(bin)
+		pbin: as byte-ptr! b/tail
+
+		hi-bits: true
+		while [p < s-tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			if NOT_WHITESPACE(cp) [
+				either hi-bits [
+					switch cp [
+						#"0" [byte: 0]
+						#"1" [byte: 16]
+						#"2" [byte: 32]
+						#"3" [byte: 48]
+						#"4" [byte: 64]
+						#"5" [byte: 80]
+						#"6" [byte: 96]
+						#"7" [byte: 112]
+						#"8" [byte: 128]
+						#"9" [byte: 144]
+						#"a" #"A" [byte: 160]
+						#"b" #"B" [byte: 176]
+						#"c" #"C" [byte: 192]
+						#"d" #"D" [byte: 208]
+						#"e" #"E" [byte: 224]
+						#"f" #"F" [byte: 240]
+						default [
+							none/push-last
+							return null
+						]
+					]
+					hi-bits: false
+				][
+					switch cp [
+						#"0" []
+						#"1" [byte: byte + 1]
+						#"2" [byte: byte + 2]
+						#"3" [byte: byte + 3]
+						#"4" [byte: byte + 4]
+						#"5" [byte: byte + 5]
+						#"6" [byte: byte + 6]
+						#"7" [byte: byte + 7]
+						#"8" [byte: byte + 8]
+						#"9" [byte: byte + 9]
+						#"a" #"A" [byte: byte + 10]
+						#"b" #"B" [byte: byte + 11]
+						#"c" #"C" [byte: byte + 12]
+						#"d" #"D" [byte: byte + 13]
+						#"e" #"E" [byte: byte + 14]
+						#"f" #"F" [byte: byte + 15]
+						default [
+							none/push-last
+							return null
+						]
+					]
+					pbin/1: as byte! byte
+					pbin: pbin + 1
+					hi-bits: true
+				]
+			]
+			p: p + unit
+		]
+		b/tail: as cell! pbin
+		stack/set-last as red-value! bin
+		bin
+	]
+
 	;--- Natives helper functions ---
 
 	loop?: func [
@@ -1334,6 +1428,7 @@ natives: context [
 			:min*
 			:shift*
 			:to-hex*
+			:debase*
 		]
 	]
 

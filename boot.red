@@ -30,7 +30,7 @@ set-word!:		make datatype! #get-definition TYPE_SET_WORD
 get-word!:		make datatype! #get-definition TYPE_GET_WORD
 lit-word!:		make datatype! #get-definition TYPE_LIT_WORD
 refinement!:	make datatype! #get-definition TYPE_REFINEMENT
-;binary!:		make datatype! #get-definition TYPE_BINARY
+binary!:		make datatype! #get-definition TYPE_BINARY
 paren!:			make datatype! #get-definition TYPE_PAREN
 char!:			make datatype! #get-definition TYPE_CHAR
 issue!:			make datatype! #get-definition TYPE_ISSUE
@@ -939,6 +939,13 @@ to-hex: make native! [[
 		return: [issue!]
 	]
 	#get-definition NAT_TO_HEX
+]
+
+debase: make native! [[
+		"Converts a string to binary"
+		value [string! file!]							;@@ replace with any-string!
+	]
+	#get-definition NAT_DEBASE
 ]
 
 ;------------------------------------------
