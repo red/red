@@ -1155,7 +1155,7 @@ natives: context [
 						#"e" #"E" [byte: 224]
 						#"f" #"F" [byte: 240]
 						default [
-							none/push-last
+							stack/set-last none-value
 							return null
 						]
 					]
@@ -1179,7 +1179,7 @@ natives: context [
 						#"e" #"E" [byte: byte + 14]
 						#"f" #"F" [byte: byte + 15]
 						default [
-							none/push-last
+							stack/set-last none-value
 							return null
 						]
 					]
@@ -1193,6 +1193,69 @@ natives: context [
 		b/tail: as cell! pbin
 		stack/set-last as red-value! bin
 		bin
+	]
+
+	enbase*: func [
+		return:		[red-string!]
+		/local
+			type    [integer!]
+			value   [red-value!]
+			str		[red-string!]
+			out     [red-string!]
+			bin		[red-binary!]
+			buffer	[series!]
+			pout    [byte-ptr!]
+			tail    [byte-ptr!]
+			head    [byte-ptr!]
+			sout    [series!]
+			h       [c-string!]
+			i       [integer!]
+;			b       [series!]
+;			pbin	[byte-ptr!]
+;			p		[byte-ptr!]
+;			p4		[int-ptr!]
+;			s-tail	[byte-ptr!]
+;			unit	[integer!]
+;			cp		[integer!]
+			len     [integer!]
+			byte    [integer!]
+;			hi-bits [logic!]
+	][
+		type: TYPE_OF(stack/arguments)
+		
+		h: "0123456789ABCDEF"
+
+		switch type [
+			TYPE_BINARY [
+				bin: as red-binary! stack/arguments
+				buffer: GET_BUFFER(bin)
+				tail: as byte-ptr! buffer/tail
+				head: (as byte-ptr! buffer/offset) + bin/head
+				len: (as integer! buffer/tail - buffer/offset) - bin/head
+
+				out: string/rs-make-at (stack/arguments) (len * 2)
+				sout: GET_BUFFER(out)
+
+				pout: as byte-ptr! sout/offset
+				while [head < tail][
+					byte: as-integer head/1
+					i: byte and 15 + 1
+					pout/2: h/i
+					i: byte >> 4 and 15 + 1
+					pout/1: h/i
+
+					pout: pout + 2
+					head: head + 1
+				]
+				pout/1: null-byte
+			]
+			default [
+				--NOT_IMPLEMENTED--
+			]
+		]
+		sout/tail: as cell! pout
+		stack/set-last as red-value! out
+		out
 	]
 
 	;--- Natives helper functions ---
@@ -1429,6 +1492,7 @@ natives: context [
 			:shift*
 			:to-hex*
 			:debase*
+			:enbase*
 		]
 	]
 

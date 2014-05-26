@@ -948,6 +948,13 @@ debase: make native! [[
 	#get-definition NAT_DEBASE
 ]
 
+enbase: make native! [[
+		"Converts a string to binary"
+		value [string! file!]							;@@ replace with any-string!
+	]
+	#get-definition NAT_ENBASE
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

@@ -184,6 +184,7 @@ Red/System [
 	NAT_SHIFT
 	NAT_TO_HEX
 	NAT_DEBASE
+	NAT_ENBASE
 ]
 
 #enum math-op! [

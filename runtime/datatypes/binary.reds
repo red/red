@@ -154,9 +154,9 @@ binary: context [
 		while [head < tail][
 			byte: as-integer head/1
 			i: byte and 15 + 1								;-- byte // 16 + 1
-			pout/1: h/i
-			i: byte >> 4 and 15 + 1
 			pout/2: h/i
+			i: byte >> 4 and 15 + 1
+			pout/1: h/i
 
 			head: head + 1
 			pout: pout + 2
