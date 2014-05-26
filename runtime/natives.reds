@@ -1210,16 +1210,8 @@ natives: context [
 			sout    [series!]
 			h       [c-string!]
 			i       [integer!]
-;			b       [series!]
-;			pbin	[byte-ptr!]
-;			p		[byte-ptr!]
-;			p4		[int-ptr!]
-;			s-tail	[byte-ptr!]
-;			unit	[integer!]
-;			cp		[integer!]
 			len     [integer!]
 			byte    [integer!]
-;			hi-bits [logic!]
 	][
 		type: TYPE_OF(stack/arguments)
 		
