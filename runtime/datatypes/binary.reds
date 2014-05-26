@@ -116,6 +116,55 @@ binary: context [
 		binary
 	]
 
+	random: func [
+		bin		[red-binary!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-value!]
+		/local
+			int [red-integer!]
+			s	 [series!]
+			size [integer!]
+			unit [integer!]
+			temp [integer!]
+			idx	 [byte-ptr!]
+			head [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/random"]]
+
+		either seed? [
+			bin/header: TYPE_UNSET				;-- TODO: calc string to seed.
+		][
+			temp: 0
+			s: GET_BUFFER(bin)
+			unit: GET_UNIT(s)
+			head: (as byte-ptr! s/offset) + bin/head
+			size: (as-integer s/tail - s/offset) - bin/head
+
+			if only? [
+				either positive? size [
+					idx: head + (_random/rand % size)
+					int: as red-integer! bin
+					int/header: TYPE_INTEGER
+					int/value: as-integer idx/value
+				][
+					bin/header: TYPE_NONE
+				]
+			]
+
+			while [size > 0][
+				idx: head + (_random/rand % size)
+				copy-memory as byte-ptr! :temp head 1
+				copy-memory head idx 1
+				copy-memory idx as byte-ptr! :temp 1
+				head: head + 1
+				size: size - 1
+			]
+		]
+		as red-value! bin
+	]
+
 	form: func [
 		value      [red-binary!]
 		buffer	   [red-string!]
@@ -360,7 +409,7 @@ binary: context [
 			"binary!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form
