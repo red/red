@@ -63,6 +63,81 @@ binary: context [
 		offset
 	]
 
+	equal?: func [
+		bin1	  [red-binary!]							;-- first operand
+		bin2	  [red-binary!]							;-- second operand
+		op		  [integer!]							;-- type of comparison
+		match?	  [logic!]								;-- match bin2 within bin1 (sizes matter less)
+		return:	  [logic!]
+		/local
+			s1	  [series!]
+			s2	  [series!]
+			size1 [integer!]
+			size2 [integer!]
+			end	  [byte-ptr!]
+			p1	  [byte-ptr!]
+			p2	  [byte-ptr!]
+			p4	  [int-ptr!]
+			c1	  [integer!]
+			c2	  [integer!]
+			lax?  [logic!]
+			res	  [logic!]
+	][
+		;@@ can I cast binary value into string and use string's comparison instead of this code?
+
+		s1: GET_BUFFER(bin1)
+		s2: GET_BUFFER(bin2)
+		size2: (as-integer s2/tail - s2/offset) - bin2/head
+
+		either match? [
+			if zero? size2 [
+				return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+			]
+		][
+			size1: (as-integer s1/tail - s1/offset) - bin1/head
+
+			either size1 <> size2 [							;-- shortcut exit for different sizes
+				if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
+				if op = COMP_NOT_EQUAL [return true]
+			][
+				if zero? size1 [							;-- shortcut exit for empty strings
+					return any [
+						op = COMP_EQUAL 		op = COMP_STRICT_EQUAL
+						op = COMP_LESSER_EQUAL  op = COMP_GREATER_EQUAL
+					]
+				]
+			]
+		]
+		end: as byte-ptr! s2/tail						;-- only one "end" is needed
+		p1:  (as byte-ptr! s1/offset) + (bin1/head)
+		p2:  (as byte-ptr! s2/offset) + (bin2/head)
+		lax?: op <> COMP_STRICT_EQUAL
+		
+		until [	
+			c1: as-integer p1/1
+			c2: as-integer p2/1
+			if lax? [
+				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
+				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+			]
+			p1: p1 + 1
+			p2: p2 + 1
+			any [
+				c1 <> c2
+				p2 >= end
+			]
+		]
+		switch op [
+			COMP_EQUAL			[res: c1 = c2]
+			COMP_NOT_EQUAL		[res: c1 <> c2]
+			COMP_STRICT_EQUAL	[res: c1 = c2]
+			COMP_LESSER			[res: c1 <  c2]
+			COMP_LESSER_EQUAL	[res: c1 <= c2]
+			COMP_GREATER		[res: c1 >  c2]
+			COMP_GREATER_EQUAL	[res: c1 >= c2]
+		]
+		res
+	]
 
 	rs-skip: func [
 		bin 	[red-binary!]
@@ -163,6 +238,30 @@ binary: context [
 			]
 		]
 		as red-value! bin
+	]
+
+	compare: func [
+		bin1	  [red-binary!]							;-- first operand
+		bin2	  [red-binary!]							;-- second operand
+		op		  [integer!]							;-- type of comparison
+		return:	  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/compare"]]
+
+		;@@ can I cast binary value into string and use string's comparison instead of this code?
+
+		if any [
+			all [
+				op = COMP_STRICT_EQUAL
+				TYPE_OF(bin2) <> TYPE_BINARY
+			]
+			all [
+				op <> COMP_STRICT_EQUAL
+				TYPE_OF(bin2) <> TYPE_BINARY
+			]
+		][RETURN_COMPARE_OTHER]
+		
+		equal? bin1 bin2 op no							;-- match?: no
 	]
 
 	form: func [
@@ -416,7 +515,7 @@ binary: context [
 			:mold
 			null			;eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
