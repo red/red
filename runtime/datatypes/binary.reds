@@ -288,6 +288,8 @@ binary: context [
 		tail: as byte-ptr! bin/tail
 		bytes: as-integer tail - head
 		len: (2 * bytes) + 4 
+
+		;@@ shouldn't be there used the buffer directly instead of this `formed` local allocation?
 		formed: as c-string! allocate len
 		pout: as byte-ptr! formed
 		pout/1: #"#"
@@ -310,6 +312,7 @@ binary: context [
 		pout/1: #"}"
 		pout/2: null-byte
 		string/concatenate-literal buffer formed
+		free as byte-ptr! formed
 		part - len
 	]
 
