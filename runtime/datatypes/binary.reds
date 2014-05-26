@@ -76,8 +76,6 @@ binary: context [
 		s: GET_BUFFER(bin)
 		offset: bin/head + len
 
-		probe offset
-
 		if (as byte-ptr! s/offset) + offset <= as byte-ptr! s/tail [
 			bin/head: bin/head + len
 		]
