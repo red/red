@@ -869,6 +869,104 @@ binary: context [
 		as red-value! bin
 	]
 
+	clear: func [
+		bin		[red-binary!]
+		return:	[red-value!]
+		/local
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/clear"]]
+
+		s: GET_BUFFER(bin)
+		s/tail: as cell! (as byte-ptr! s/offset) + bin/head	
+		as red-value! bin
+	]
+
+	poke: func [
+		bin		[red-binary!]
+		index	[integer!]
+		byte	[red-value!]
+		boxed	[red-value!]
+		return:	[red-value!]
+		/local
+			s	   [series!]
+			offset [integer!]
+			pos	   [byte-ptr!]
+			int    [integer!]
+			char   [red-char!]
+			int2     [red-integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/poke"]]
+
+		s: GET_BUFFER(bin)
+		
+		offset: bin/head + index - 1					;-- index is one-based
+		if negative? index [offset: offset + 1]
+		
+		pos: (as byte-ptr! s/offset) + offset
+		
+		either any [
+			zero? index
+			pos >= as byte-ptr! s/tail
+			pos <  as byte-ptr! s/offset
+		][
+			--NOT_IMPLEMENTED--
+			;TBD: waiting for error!
+		][
+			switch TYPE_OF(byte) [
+				TYPE_CHAR    [char: as red-char! byte int: char/value]
+				TYPE_INTEGER [int2: as red-integer! byte  int: int2/value]
+				default [
+					print-line "Error: POKE expected integer! or char! value"	;@@ replace by error! when ready
+					halt
+				]
+			]
+			if any [int < 0 int > FFh][
+				print ["** Script error: value out of range: " int lf] ;@@ Replace with error!
+				halt
+			]
+			pos/1: as-byte int
+			stack/set-last as red-value! byte
+		]
+		as red-value! byte
+	]
+
+	;--- Reading actions ---
+
+	pick: func [
+		bin		[red-binary!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
+		/local
+			byte   [red-integer!]
+			s	   [series!]
+			offset [integer!]
+			p1	   [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/pick"]]
+
+		s: GET_BUFFER(bin)
+		
+		offset: bin/head + index - 1					;-- index is one-based
+		if negative? index [offset: offset + 1]
+
+		p1: (as byte-ptr! s/offset) + offset
+		
+		either any [
+			zero? index
+			p1 >= as byte-ptr! s/tail
+			p1 <  as byte-ptr! s/offset
+		][
+			none-value
+		][
+			byte: as red-integer! stack/push*
+			byte/header: TYPE_INTEGER		
+			byte/value:  as-integer p1/1
+			as red-value! byte
+		]
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_BINARY
@@ -915,8 +1013,8 @@ binary: context [
 			:insert
 			:length?
 			:next
-			null			;pick
-			null			;poke
+			:pick
+			:poke
 			null			;remove
 			null			;reverse
 			null			;select
