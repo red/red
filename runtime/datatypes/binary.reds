@@ -883,18 +883,17 @@ binary: context [
 	]
 
 	poke: func [
-		bin		[red-binary!]
-		index	[integer!]
-		byte	[red-value!]
-		boxed	[red-value!]
-		return:	[red-value!]
+		bin     [red-binary!]
+		index   [integer!]
+		data    [red-value!]
+		boxed   [red-value!]
+		return: [red-value!]
 		/local
-			s	   [series!]
+			s      [series!]
 			offset [integer!]
-			pos	   [byte-ptr!]
-			int    [integer!]
-			char   [red-char!]
-			int2     [red-integer!]
+			pos    [byte-ptr!]
+			int    [red-integer!]
+			value  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/poke"]]
 
@@ -913,36 +912,40 @@ binary: context [
 			--NOT_IMPLEMENTED--
 			;TBD: waiting for error!
 		][
-			switch TYPE_OF(byte) [
-				TYPE_CHAR    [char: as red-char! byte int: char/value]
-				TYPE_INTEGER [int2: as red-integer! byte  int: int2/value]
+			switch TYPE_OF(data) [
+				TYPE_INTEGER
+				TYPE_CHAR [
+					int: as red-integer! data
+					value: int/value
+					if any [value < 0 value > FFh][
+						;@@ the error should print the original data, not integer value
+						print ["** Script error: value out of range: " value lf] ;@@ Replace with error!
+						halt
+					]
+					pos/1: as-byte value
+					stack/set-last data
+				]
 				default [
 					print-line "Error: POKE expected integer! or char! value"	;@@ replace by error! when ready
 					halt
 				]
-			]
-			if any [int < 0 int > FFh][
-				print ["** Script error: value out of range: " int lf] ;@@ Replace with error!
-				halt
-			]
-			pos/1: as-byte int
-			stack/set-last as red-value! byte
+			]	
 		]
-		as red-value! byte
+		as red-value! data
 	]
 
 	;--- Reading actions ---
 
 	pick: func [
-		bin		[red-binary!]
+		bin     [red-binary!]
 		index	[integer!]
 		boxed	[red-value!]
 		return:	[red-value!]
 		/local
 			byte   [red-integer!]
-			s	   [series!]
+			s      [series!]
 			offset [integer!]
-			p1	   [byte-ptr!]
+			p1     [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/pick"]]
 
