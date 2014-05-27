@@ -34,14 +34,37 @@ Red [
 		--assert -1.0 = cosine/radians pi
 
 	--test-- "float-cosine-2"
-		--assert -1 = cosine 180
+		--assert 0.0 = cosine 90
 
 	--test-- "float-sine-1"
-		--assertf~= 0.0 sine/radians pi	1E-10
+		--assertf~= 0.0 sine/radians pi 1E-13
 
 	--test-- "float-sine-2"
 		--assert 1 = sine 90
 
+	--test-- "float-tangent-1"
+		--assert 0.0 = tangent/radians 0
+
+	--test-- "float-tangent-2"
+		--assertf~= -1 tangent 135 1E-13
+
+	--test-- "float-arcsine-1"
+		--assertf~= -1.5707963267949 arcsine/radians -1 1E-13
+
+	--test-- "float-arcsine-2"
+		--assert 90 = arcsine 1
+
+	--test-- "float-arccosine-1"
+		--assertf~= 1.5707963267949 arccosine/radians 0 1E-13
+
+	--test-- "float-arccosine-2"
+		--assert 90 = arccosine 0
+
+	--test-- "float-arctangent-1"
+		--assertf~= -0.785398163397448 arctangent/radians -1 1E-13
+
+	--test-- "float-arctangent-2"
+		--assert 45 = arctangent 1
 ===end-group===
 
 ===start-group=== "float function arguments"

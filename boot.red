@@ -958,6 +958,43 @@ cosine: make native! [[
 	]
 	#get-definition NAT_COSINE
 ]
+
+tangent: make native! [[
+		"Returns the trigonometric tangent."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_TANGENT
+]
+
+arcsine: make native! [[
+		"Returns the trigonometric arcsine (in degrees by default)."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_ARCSINE
+]
+
+arccosine: make native! [[
+		"Returns the trigonometric arccosine (in degrees by default)."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_ARCCOSINE
+]
+
+arctangent: make native! [[
+		"Returns the trigonometric arctangent (in degrees by default)."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_ARCTANGENT
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

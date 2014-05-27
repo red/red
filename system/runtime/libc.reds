@@ -73,8 +73,20 @@ Red/System [
 			radians		[float!]
 			return:		[float!]
 		]
-		fabs:		"fabs" [
-			value		[float!]
+		tan:		 "tan" [
+			radians		[float!]
+			return:		[float!]
+		]
+		asin:		 "asin" [
+			radians		[float!]
+			return:		[float!]
+		]
+		acos:		 "acos" [
+			radians		[float!]
+			return:		[float!]
+		]
+		atan:		 "atan" [
+			radians		[float!]
 			return:		[float!]
 		]
 	]

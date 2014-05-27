@@ -10,8 +10,21 @@ Red/System [
 	}
 ]
 
+#define DBL_EPSILON	2.2204460492503131E-16
+
 float: context [
 	verbose: 4
+
+	abs: func [
+		value	[float!]
+		return: [float!]
+		/local
+			n	[int-ptr!]
+	][
+		n: (as int-ptr! :value) + 1
+		n/value: n/value and 7FFFFFFFh
+		value
+	]
 
 	get*: func [										;-- unboxing float value from stack
 		return: [float!]
@@ -271,9 +284,7 @@ float: context [
 		#if debug? = yes [if verbose > 0 [print-line "float/absolute"]]
 
 		f: as red-float! stack/arguments
-		value: f/value
-
-		if value < 0.0 [f/value: 0.0 - value]
+		f/value: abs f/value
 		f 											;-- re-use argument slot for return value
 	]
 
