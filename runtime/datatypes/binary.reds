@@ -164,6 +164,149 @@ binary: context [
 		rs-skip bin 1
 	]
 
+	append-char: func [
+		s		[series!]
+		cp		[integer!]								;-- codepoint
+		return: [series!]
+		/local
+			p	[byte-ptr!]
+			p4	[int-ptr!]
+	][
+		case [
+			cp <= 7Fh [
+				s/tail: as cell! (as byte-ptr! s/tail) + 1	;-- safe to increment here
+				p: alloc-tail-unit s 1	
+				p/0: as-byte cp
+			]
+			cp <= 07FFh [
+				s/tail: as cell! (as byte-ptr! s/tail) + 2	;-- safe to increment here
+				p: alloc-tail-unit s 2
+				p/-1: as-byte cp >> 6 or C0h
+				p/0:  as-byte cp and 3Fh or 80h
+			]
+			cp < 0000FFFFh [
+				s/tail: as cell! (as byte-ptr! s/tail) + 3	;-- safe to increment here
+				p: alloc-tail-unit s 3
+				p/-2: as-byte cp >> 12 or E0h
+				p/-1: as-byte cp >> 6 and 3Fh or 80h
+				p/0:  as-byte cp      and 3Fh or 80h
+			]
+			cp < 0010FFFFh [
+				s/tail: as cell! (as byte-ptr! s/tail) + 4	;-- safe to increment here
+				p: alloc-tail-unit s 4
+				p/-3: as-byte cp >> 18 or F0h
+				p/-2: as-byte cp >> 12 and 3Fh or 80h
+				p/-1: as-byte cp >> 6  and 3Fh or 80h
+				p/0:  as-byte cp       and 3Fh or 80h
+			]
+		]
+		s: GET_BUFFER(s)							;-- refresh s pointer if relocated by alloc-tail-unit
+		s/tail: as cell! p
+		s
+	]
+
+	insert-char: func [
+		s		[series!]
+		offset	[integer!]								;-- offset from head in bytes
+		cp		[integer!]								;-- codepoint
+		return: [series!]
+		/local
+			p	 [byte-ptr!]
+			unit [integer!]
+	][
+		case [
+			cp <= 7Fh      [unit: 1]
+			cp <= 07FFh    [unit: 2]
+			cp < 0000FFFFh [unit: 3]
+			true           [unit: 4]
+		]
+		if (as byte-ptr! s/tail + unit) > ((as byte-ptr! s + 1) + s/size) [
+			s: expand-series s 0
+		]
+		p: (as byte-ptr! s/offset) + offset
+		
+		move-memory										;-- make space
+			p + unit
+			p
+			as-integer (as byte-ptr! s/tail) - p
+
+		s/tail: as cell! (as byte-ptr! s/tail) + unit
+		
+		poke-char s p cp
+		s
+	]
+
+
+	poke-char: func [
+		s		[series!]
+		p		[byte-ptr!]								;-- target passed as pointer to favor the general code path
+		cp		[integer!]								;-- codepoint
+		return: [series!]
+		/local
+			p4	[int-ptr!]
+	][
+		case [
+			cp <= 7Fh [
+				p/1: as-byte cp
+			]
+			cp <= 07FFh [
+				p/1: as-byte cp >> 6 or C0h
+				p/2: as-byte cp and 3Fh or 80h
+			]
+			cp < 0000FFFFh [
+				p/1: as-byte cp >> 12 or E0h
+				p/2: as-byte cp >> 6 and 3Fh or 80h
+				p/3: as-byte cp      and 3Fh or 80h
+			]
+			cp < 0010FFFFh [
+				p/1: as-byte cp >> 18 or F0h
+				p/2: as-byte cp >> 12 and 3Fh or 80h
+				p/3: as-byte cp >> 6  and 3Fh or 80h
+				p/4: as-byte cp       and 3Fh or 80h
+			]
+		]
+		s
+	]
+
+	append-byte: func [
+		s		[series!]
+		byte    [byte!]								;-- codepoint
+		return: [series!]
+		/local
+			p	[byte-ptr!]
+			p4	[int-ptr!]
+	][
+		s/tail: as cell! (as byte-ptr! s/tail) + 1	;-- safe to increment here					
+		p: alloc-tail-unit s 1					
+		p/0: byte
+		s: GET_BUFFER(s)							;-- refresh s pointer if relocated by alloc-tail-unit
+		s/tail: as cell! p
+		s
+	]
+
+	insert-byte: func [
+		s		[series!]
+		offset	[integer!]							;-- offset from head in bytes
+		byte	[byte!]								;-- codepoint
+		return: [series!]
+		/local
+			p	 [byte-ptr!]
+			unit [integer!]
+	][
+		if (as byte-ptr! s/tail) > ((as byte-ptr! s + 1) + s/size) [
+			s: expand-series s 0
+		]
+		p: (as byte-ptr! s/offset) + offset
+		move-memory										;-- make space
+			p + 1
+			p
+			as-integer (as byte-ptr! s/tail) - p
+
+		p/1: byte
+		s/tail: as cell! (as byte-ptr! s/tail) + 1
+		s
+	]
+
 	;-- Actions --
 
 	make: func [
@@ -295,7 +438,6 @@ binary: context [
 		pout/1: #"#"
 		pout/2: #"{"
 		pout: pout + 2
-		
 
 		h: "0123456789ABCDEF"
 
@@ -503,6 +645,159 @@ binary: context [
 		as red-value! bin
 	]
 
+	;--- Modifying actions ---
+		
+	insert: func [
+		bin		 [red-binary!]
+		value	 [red-value!]
+		part-arg [red-value!]
+		only?	 [logic!]
+		dup-arg	 [red-value!]
+		append?	 [logic!]
+		return:	 [red-value!]
+		/local
+			src		  [red-block!]
+			cell	  [red-value!]
+			limit	  [red-value!]
+			int		  [red-integer!]
+			char	  [red-char!]
+			byte      [byte!]
+			sp		  [red-binary!]
+			form-slot [red-value!]
+			form-buf  [red-binary!]
+			s		  [series!]
+			s2		  [series!]
+			dup-n	  [integer!]
+			cnt		  [integer!]
+			part	  [integer!]
+			len		  [integer!]
+			rest	  [integer!]
+			added	  [integer!]
+			type	  [integer!]
+			tail?	  [logic!]
+			cp 		  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/insert"]]
+
+		dup-n: 1
+		cnt:  1
+		part: -1
+		
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				sp: as red-binary! part-arg
+				assert all [
+					TYPE_OF(sp) = TYPE_STRING			;@@ replace by ANY_STRING?
+					TYPE_OF(sp) = TYPE_FILE
+					sp/node = bin/node
+				]
+				sp/head + 1								;-- /head is 0-based
+			]
+		]
+		if OPTION?(dup-arg) [
+			int: as red-integer! dup-arg
+			cnt: int/value
+			if negative? cnt [return as red-value! bin]
+			dup-n: cnt
+		]
+		
+		form-slot: stack/push*							;-- reserve space for FORMing incompatible values
+		
+		s: GET_BUFFER(bin)
+		tail?: any [
+			(as-integer s/tail - s/offset) = bin/head
+			append?
+		]
+		
+		while [not zero? cnt][							;-- /dup support
+			either TYPE_OF(value) = TYPE_BLOCK [		;@@ replace it with: typeset/any-block?
+				src: as red-block! value
+				s2: GET_BUFFER(src)
+				cell:  s2/offset + src/head
+				limit: cell + block/rs-length? src
+			][
+				cell:  value
+				limit: value + 1
+			]
+			rest: 0
+			added: 0
+			while [
+				all [cell < limit added <> part]		;-- multiple values case
+			][
+				type: TYPE_OF(cell)
+				case [
+					type = TYPE_INTEGER [
+						char: as red-char! cell
+						either char/value <= FFh [
+							s: GET_BUFFER(bin)
+							either tail? [
+								append-byte s as-byte char/value
+							][
+								insert-byte s bin/head + added as-byte char/value
+							]
+							added: added + 1
+						][
+							print ["** Script error: value out of range: " char/value lf] ;@@ Replace with error!
+						]
+					]
+					type = TYPE_CHAR [
+						char: as red-char! cell
+						cp: char/value
+						s: GET_BUFFER(bin)
+						either tail? [
+							append-char s cp
+						][
+							insert-char s bin/head + added cp
+						]
+						case [
+							cp <= 7Fh      [added: added + 1]
+							cp <= 07FFh    [added: added + 2]
+							cp < 0000FFFFh [added: added + 3]
+							true           [added: added + 4]
+						]
+					]
+					true [
+						--NOT_IMPLEMENTED--
+	;					either any [
+	;						type = TYPE_STRING				;@@ replace with ANY_STRING?
+	;						type = TYPE_FILE 
+	;					][
+	;						form-buf: as red-binary! cell
+	;					][
+	;						;TBD: free previous form-buf node and series buffer
+	;						form-buf: string/rs-make-at form-slot 16
+	;						actions/form cell form-buf null 0
+	;					]
+	;					len: rs-length? form-buf
+	;					rest: len		 					;-- if not /part, use whole value length
+	;					if positive? part [					;-- /part support
+	;						rest: part - added
+	;						if rest > len [rest: len]
+	;					]
+	;					either tail? [
+	;						concatenate bin form-buf rest 0 no no
+	;					][
+	;						concatenate bin form-buf rest added no yes
+	;					]
+	;					added: added + rest
+					]
+				]
+				cell: cell + 1
+			]
+			cnt: cnt - 1
+		]
+		unless append? [
+			added: added * dup-n
+			bin/head: bin/head + added
+			s: GET_BUFFER(bin)
+			assert (as byte-ptr! s/offset) + (bin/head << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail
+		]
+		stack/pop 1										;-- pop the FORM slot
+		as red-value! bin
+	]
 
 	init: does [
 		datatype/register [
@@ -547,7 +842,7 @@ binary: context [
 			:head
 			:head?
 			:index?
-			null			;insert
+			:insert
 			:length?
 			:next
 			null			;pick
