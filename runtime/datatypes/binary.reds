@@ -548,6 +548,41 @@ binary: context [
 		form binary buffer arg part
 	]
 
+	eval-path: func [
+		parent	[red-binary!]							;-- implicit type casting
+		element	[red-value!]
+		set?	[logic!]
+		return:	[red-value!]
+		/local
+			int [red-integer!]
+	][
+		switch TYPE_OF(element) [
+			TYPE_INTEGER [
+				int: as red-integer! element
+				either set? [
+					poke parent int/value stack/arguments null
+					stack/arguments
+				][
+					pick parent int/value null
+				]
+			]
+;			TYPE_WORD [
+;				either set? [
+;					element: find parent element null no no no null null no no no no
+;					actions/poke as red-series! element 2 stack/arguments null
+;					stack/arguments
+;				][
+;					select parent element null no no no null null no no
+;				]
+;			]
+			default [
+				print-line "*** Error: invalid value in path!"
+				halt
+				null
+			]
+		]
+	]
+
 ;	rs-make-at: func [
 ;		slot	[cell!]
 ;		size 	[integer!]								;-- number of cells to pre-allocate
@@ -1257,7 +1292,7 @@ binary: context [
 			null			;to
 			:form
 			:mold
-			null			;eval-path
+			:eval-path
 			null			;set-path
 			:compare
 			;-- Scalar actions --
