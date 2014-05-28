@@ -27,11 +27,10 @@ Red [
 	--test-- "pow1" --assert 3 	 = power  3 1
 	--test-- "pow2" --assert 9 	 = power -3 2
 	--test-- "pow3" --assert -27 = power -3 3
-	--test-- "pow4" --assert 0 	 = power -3 -1
+	--test-- "pow4" --assertf~= -0.3333333333333333 (power -3 -1) 1E-10
 	--test-- "pow5" --assert -1  = power -1 3
 	--test-- "pow6" --assert 1	 = power -1 -4
-	;--test-- "pow7" --assert 1 = power 0 -1		;@@ should return INF
-	;--test-- "pow8" --assert 1 = power 0 -1		;@@ should return -INF
+	;--test-- "pow7" --assert 0.0 = power 0 -1		;@@ return INF or 0.0
 ===end-group===
 
 ===start-group=== "max/min"
@@ -84,6 +83,29 @@ Red [
 	--test-- "xor1" --assert 01h xor 10h = 11h
 	--test-- "xor2" --assert 11h xor 10h = 01h
 	--test-- "xor3" --assert 01h xor 1Fh = 1Eh
+===end-group===
+
+===start-group=== "round"
+	--test-- "round1" --assert  123904 = round/to  123'456 1024
+	--test-- "round2" --assert -123904 = round/to -123'456 1024
+
+	--test-- "round3" --assert  21 = round/down/to  23 3
+	--test-- "round4" --assert -21 = round/down/to -23 3
+
+	--test-- "round5" --assert  24 = round/even/to  23 3
+	--test-- "round6" --assert -24 = round/even/to -23 3
+
+	--test-- "round7" --assert  24 = round/half-down/to  23 3
+	--test-- "round8" --assert -24 = round/half-down/to -23 3
+
+	--test-- "round9" --assert  21 = round/floor/to  23 3
+	--test-- "round10" --assert -24 = round/floor/to -23 3
+
+	--test-- "round11" --assert  24 = round/ceiling/to  23 3
+	--test-- "round12" --assert -21 = round/ceiling/to -23 3
+
+	--test-- "round13" --assert  24 = round/half-ceiling/to  23 3
+	--test-- "round14" --assert -24 = round/half-ceiling/to -23 3
 ===end-group===
 
 ~~~end-file~~~

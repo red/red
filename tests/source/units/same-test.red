@@ -21,6 +21,13 @@ Red [
 	--test-- "same-integer-4"
 		--assert not same? 1 -1
 
+	--test-- "same-float-1"
+		--assert same? 0.0 0.0
+	--test-- "same-float-2"
+		--assert same? first [1.0] first [1.0]
+	--test-- "same-float-3"
+		--assert not same? 1.0 -1.0
+
 	--test-- "same-char-1"
 		--assert same? #"a" #"a"
 	--test-- "same-char-2"

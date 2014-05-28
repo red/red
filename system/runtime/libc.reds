@@ -48,6 +48,57 @@ Red/System [
 			char		[byte!]
 		]
 		printf: 	 "printf" [[variadic]]
+		sprintf:	 "sprintf" [[variadic]]
+	]
+
+	LIBM-file cdecl [
+		ceil:		 "ceil" [
+			d			[float!]
+			return:		[float!]
+		]
+		floor:		 "floor" [
+			d			[float!]
+			return:		[float!]
+		]
+		float-power: "pow" [
+			base		[float!]
+			exponent	[float!]
+			return:		[float!]
+		]
+		sin:		 "sin" [
+			radians		[float!]
+			return:		[float!]
+		]
+		cos:		 "cos" [
+			radians		[float!]
+			return:		[float!]
+		]
+		tan:		 "tan" [
+			radians		[float!]
+			return:		[float!]
+		]
+		asin:		 "asin" [
+			radians		[float!]
+			return:		[float!]
+		]
+		acos:		 "acos" [
+			radians		[float!]
+			return:		[float!]
+		]
+		atan:		 "atan" [
+			radians		[float!]
+			return:		[float!]
+		]
+		ldexp:		"ldexp" [
+			value		[float!]
+			exponent	[integer!]
+			return:		[float!]
+		]
+		frexp:		"frexp" [
+			x			[float!]
+			exponent	[int-ptr!]
+			return:		[float!]
+		]
 	]
 ]
 

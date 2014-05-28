@@ -558,6 +558,9 @@ natives: context [
 				][
 					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
 				]
+				type = TYPE_FLOAT	[
+					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
+				]
 				type = TYPE_NONE	[type = TYPE_OF(arg2)]
 				true [
 					res: all [
@@ -1001,16 +1004,23 @@ natives: context [
 		return:	[red-logic!]
 		/local
 			num [red-integer!]
+			f	[red-float!]
 			res [red-logic!]
 	][
-		num: as red-integer! stack/arguments
-		res: as red-logic! num
-
-		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
-			res/value: negative? num/value
-		][
-			res/value: false
-			print-line "*** Error: argument type must be number!"
+		res: as red-logic! stack/arguments
+		switch TYPE_OF(res) [						;@@ Add time! money! pair!
+			TYPE_INTEGER [
+				num: as red-integer! res
+				res/value: negative? num/value
+			]
+			TYPE_FLOAT	 [
+				f: as red-float! res
+				res/value: f/value < 0.0
+			]
+			default [
+				res/value: false
+				print-line "*** Error: argument type must be number!"
+			]
 		]
 		res/header: TYPE_LOGIC
 		res
@@ -1020,16 +1030,23 @@ natives: context [
 		return: [red-logic!]
 		/local
 			num [red-integer!]
+			f	[red-float!]
 			res [red-logic!]
 	][
-		num: as red-integer! stack/arguments
-		res: as red-logic! num
-
-		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
-			res/value: positive? num/value
-		][
-			res/value: false
-			print-line "*** Error: argument type must be number!"
+		res: as red-logic! stack/arguments
+		switch TYPE_OF(res) [						;@@ Add time! money! pair!
+			TYPE_INTEGER [
+				num: as red-integer! res
+				res/value: positive? num/value
+			]
+			TYPE_FLOAT	 [
+				f: as red-float! res
+				res/value: f/value > 0.0
+			]
+			default [
+				res/value: false
+				print-line "*** Error: argument type must be number!"
+			]
 		]
 		res/header: TYPE_LOGIC
 		res
@@ -1101,7 +1118,146 @@ natives: context [
 		stack/set-last as red-value! buf
 	]
 
+	sine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		f: degree-to-radians radians SINE
+		f/value: sin f/value
+		if DBL_EPSILON > float/abs f/value [f/value: 0.0]
+		f
+	]
+
+	cosine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		f: degree-to-radians radians COSINE
+		f/value: cos f/value
+		if DBL_EPSILON > float/abs f/value [f/value: 0.0]
+		f
+	]
+
+	tangent*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		f: degree-to-radians radians TANGENT
+		either (float/abs f/value) = (PI / 2.0) [
+			print-line "*** Math Error: math or number overflow on TANGENT"
+			f/header: TYPE_UNSET
+		][
+			f/value: tan f/value
+		]
+		f
+	]
+
+	arcsine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		arc-trans radians SINE
+	]
+
+	arccosine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		arc-trans radians COSINE
+	]
+
+	arctangent*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		arc-trans radians TANGENT
+	]
+
 	;--- Natives helper functions ---
+
+	PI: 3.14159265358979323846264338
+
+	#enum trigonometric-type! [
+		TANGENT
+		COSINE
+		SINE
+	]
+
+	degree-to-radians: func [
+		radians [integer!]
+		type	[integer!]
+		return: [red-float!]
+		/local
+			f	[red-float!]
+			n	[red-integer!]
+			val [float!]
+	][
+		f: as red-float! stack/arguments
+		either TYPE_OF(f) <> TYPE_FLOAT [
+			n: as red-integer! f
+			val: integer/to-float n/value
+			f/header: TYPE_FLOAT
+		][
+			val: f/value
+		]
+
+		if radians < 0 [
+			val: val % 360.0
+			if any [val > 180.0 val < -180.0] [
+				val: val + either val < 0.0 [360.0][-360.0]
+			]
+			if any [val > 90.0 val < -90.0] [
+				if type = TANGENT [
+					val: val + either val < 0.0 [180.0][-180.0]
+				]
+				if type = SINE [
+					val: (either val < 0.0 [-180.0][180.0]) - val
+				]
+			]
+			val: val * PI / 180.0			;-- to radians
+		]
+		f/value: val
+		f
+	]
+
+	arc-trans: func [
+		radians [integer!]
+		type	[integer!]
+		return: [red-float!]
+		/local
+			f	[red-float!]
+			n	[red-integer!]
+			d	[float!]
+	][
+		f: as red-float! stack/arguments
+		either TYPE_OF(f) <> TYPE_FLOAT [
+			n: as red-integer! f
+			d: integer/to-float n/value
+			f/header: TYPE_FLOAT
+		][
+			d: f/value
+		]
+
+		either all [type <> TANGENT any [d < -1.0 d > 1.0]] [
+			print-line "*** Math Error: math or number overflow"
+			f/header: TYPE_UNSET
+		][
+			f/value: switch type [
+				SINE	[asin d]
+				COSINE	[acos d]
+				TANGENT [atan d]
+			]
+		]
+
+		if radians < 0 [f/value: f/value * 180.0 / PI]			;-- to degrees
+		f
+	]
 
 	loop?: func [
 		series  [red-series!]
@@ -1334,6 +1490,12 @@ natives: context [
 			:min*
 			:shift*
 			:to-hex*
+			:sine*
+			:cosine*
+			:tangent*
+			:arcsine*
+			:arccosine*
+			:arctangent*
 		]
 	]
 

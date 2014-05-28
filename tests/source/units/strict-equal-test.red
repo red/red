@@ -8,7 +8,7 @@ Red [
 ]
 
 #include  %../../../quick-test/quick-test.red
-~~~start-file~~~ "same"
+~~~start-file~~~ "strict-equal"
 ===start-group=== "same-datatype"
 	--test-- "same-datatype-1"		--assert 0 == 0
 	--test-- "same-datatype-2"		--assert 1 == 1

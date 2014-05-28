@@ -47,7 +47,7 @@ routine!:		make datatype! #get-definition TYPE_ROUTINE
 object!:		make datatype! #get-definition TYPE_OBJECT
 ;port!:			make datatype! #get-definition TYPE_PORT
 bitset!:		make datatype! #get-definition TYPE_BITSET
-;float!:		make datatype! #get-definition TYPE_FLOAT
+float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
 
 none:  			make none! 0
@@ -939,6 +939,60 @@ to-hex: make native! [[
 		return: [issue!]
 	]
 	#get-definition NAT_TO_HEX
+]
+
+sine: make native! [[
+		"Returns the trigonometric sine."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_SINE
+]
+
+cosine: make native! [[
+		"Returns the trigonometric cosine."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_COSINE
+]
+
+tangent: make native! [[
+		"Returns the trigonometric tangent."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_TANGENT
+]
+
+arcsine: make native! [[
+		"Returns the trigonometric arcsine (in degrees by default)."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_ARCSINE
+]
+
+arccosine: make native! [[
+		"Returns the trigonometric arccosine (in degrees by default)."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_ARCCOSINE
+]
+
+arctangent: make native! [[
+		"Returns the trigonometric arctangent (in degrees by default)."
+		value	[number!]
+		/radians "Value is specified in radians"
+		return: [float!]
+	]
+	#get-definition NAT_ARCTANGENT
 ]
 
 ;------------------------------------------

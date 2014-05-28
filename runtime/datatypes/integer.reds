@@ -13,6 +13,17 @@ Red/System [
 integer: context [
 	verbose: 0
 
+	abs: func [
+		value	[integer!]
+		return: [integer!]
+	][
+		if value = -2147483648 [
+			print-line "*** Math Error: integer overflow on ABSOLUTE"
+		]
+		if negative? value [value: 0 - value]
+		value
+	]
+
 	get*: func [										;-- unboxing integer value from stack
 		return: [integer!]
 		/local
@@ -84,15 +95,15 @@ integer: context [
 	]
 
 	do-math: func [
-		type	  [math-op!]
-		return:	  [red-integer!]
+		type		[math-op!]
+		return:		[red-value!]
 		/local
-			left  [red-integer!]
-			right [red-integer!]
+			left	[red-integer!]
+			right	[red-integer!]
 	][
 		left: as red-integer! stack/arguments
 		right: left + 1
-		
+
 		assert any [									;@@ replace by typeset check when possible
 			TYPE_OF(left) = TYPE_INTEGER
 			TYPE_OF(left) = TYPE_CHAR
@@ -100,19 +111,24 @@ integer: context [
 		assert any [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
+			TYPE_OF(right) = TYPE_FLOAT
 		]
-		
-		left/value: switch type [
-			OP_ADD [left/value + right/value]
-			OP_SUB [left/value - right/value]
-			OP_MUL [left/value * right/value]
-			OP_DIV [left/value / right/value]
-			OP_REM [left/value % right/value]
-			OP_AND [left/value and right/value]
-			OP_OR  [left/value or right/value]
-			OP_XOR [left/value xor right/value]
+
+		either TYPE_OF(right) = TYPE_FLOAT [
+			float/do-math type
+		][
+			left/value: switch type [
+				OP_ADD [left/value + right/value]
+				OP_SUB [left/value - right/value]
+				OP_MUL [left/value * right/value]
+				OP_DIV [left/value / right/value]
+				OP_REM [left/value % right/value]
+				OP_AND [left/value and right/value]
+				OP_OR  [left/value or right/value]
+				OP_XOR [left/value xor right/value]
+			]
 		]
-		left
+		as red-value! left
 	]
 
 	load-in: func [
@@ -140,6 +156,21 @@ integer: context [
 		int/header: TYPE_INTEGER
 		int/value: value
 		int
+	]
+
+	to-float: func [
+		i		[integer!]
+		return: [float!]
+		/local
+			f	[float!]
+			d	[int-ptr!]
+	][
+		;-- Based on this method: http://stackoverflow.com/a/429812/494472
+		;-- A bit more explanation: http://lolengine.net/blog/2011/3/20/understanding-fast-float-integer-conversions
+		f: 6755399441055744.0
+		d: as int-ptr! :f
+		d/value: i or d/value
+		either i < 0 [f - 6755403736023040.0][f - 6755399441055744.0]
 	]
 
 	;-- Actions --
@@ -222,6 +253,7 @@ integer: context [
 		return:   [logic!]
 		/local
 			char  [red-char!]
+			f	  [red-float!]
 			left  [integer!]
 			right [integer!] 
 			res	  [logic!]
@@ -237,6 +269,14 @@ integer: context [
 			TYPE_CHAR [
 				char: as red-char! value2				;@@ could be optimized as integer! and char!
 				right: char/value						;@@ structures are overlapping exactly
+			]
+			TYPE_FLOAT [
+				f: as red-float! value1
+				left: value1/value
+				f/value: to-float left
+				res: float/compare f as red-float! value2 op
+				value1/value: left
+				return res
 			]
 			default [RETURN_COMPARE_OTHER]
 		]
@@ -274,13 +314,8 @@ integer: context [
 		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
 		
 		int: as red-integer! stack/arguments
-		value: int/value
-		
-		if value = -2147483648 [
-			print-line "*** Math Error: integer overflow on ABSOLUTE"
-		]
-		if negative? value [int/value: 0 - value]
-		int 											;-- re-use argument slot for return value
+		int/value: abs int/value
+		int
 	]
 
 	add: func [return: [red-value!]][
@@ -349,15 +384,26 @@ integer: context [
 	]
 
 	power: func [
-		return:	 [red-integer!]
+		return:	 [red-value!]
 		/local
 			base [red-integer!]
 			exp  [red-integer!]
+			f	 [red-float!]
 	][
 		base: as red-integer! stack/arguments
 		exp: base + 1
-		base/value: int-power base/value exp/value
-		base
+		either any [
+			TYPE_OF(exp) = TYPE_FLOAT
+			negative? exp/value
+		][
+			f: as red-float! base
+			f/value: to-float base/value
+			f/header: TYPE_FLOAT
+			float/power
+		][
+			base/value: int-power base/value exp/value
+		]
+		as red-value! base
 	]
 	
 	even?: func [
@@ -373,7 +419,96 @@ integer: context [
 	][
 		as-logic int/value and 1
 	]
-	
+
+	#define INT_TRUNC [int/value: either num > 0 [n - r][r - n]]
+
+	#define INT_FLOOR [
+		either m < 0 [
+			print-line "*** Math Error: integer overflow on ROUND"
+			int/header: TYPE_UNSET
+		][
+			int/value: either num > 0 [n - r][0 - m]
+		]
+	]
+
+	#define INT_CEIL [
+		either m < 0 [
+			print-line "*** Math Error: integer overflow on ROUND"
+			int/header: TYPE_UNSET
+		][
+			int/value: either num < 0 [r - n][m]
+		]
+	]
+
+	#define INT_AWAY [
+		either m < 0 [
+			print-line "*** Math Error: integer overflow on ROUND"
+			int/header: TYPE_UNSET
+		][
+			int/value: either num > 0 [m][0 - m]
+		]
+	]
+
+	round: func [
+		value		[red-value!]
+		scale		[red-integer!]
+		_even?		[logic!]
+		down?		[logic!]
+		half-down?	[logic!]
+		floor?		[logic!]
+		ceil?		[logic!]
+		half-ceil?	[logic!]
+		return:		[red-value!]
+		/local
+			int		[red-integer!]
+			f		[red-float!]
+			num		[integer!]
+			sc		[integer!]
+			s		[integer!]
+			n		[integer!]
+			m		[integer!]
+			r		[integer!]
+	][
+		int: as red-integer! value
+		num: int/value
+		if num = 80000000h [return value]
+		sc: 1
+		if OPTION?(scale) [
+			if TYPE_OF(scale) = TYPE_FLOAT [
+				f: as red-float! value
+				f/value: to-float num
+				f/header: TYPE_FLOAT
+				return float/round value as red-float! scale _even? down? half-down? floor? ceil? half-ceil?
+			]
+			sc: abs scale/value
+		]
+
+		if zero? sc [
+			print-line "*** Math Error: integer overflow on ROUND"
+			value/header: TYPE_UNSET
+			return value
+		]
+
+		n: abs num
+		r: n % sc
+		if zero? r [return value]
+
+		s: sc - r
+		m: n + s
+		case [
+			down?		[INT_TRUNC]
+			floor?		[INT_FLOOR]
+			ceil?		[INT_CEIL ]
+			r < s		[INT_TRUNC]
+			r > s		[INT_AWAY ]
+			_even?		[either zero? (n / sc and 1) [INT_TRUNC][INT_AWAY]]
+			half-down?	[INT_TRUNC]
+			half-ceil?	[INT_CEIL ]
+			true		[INT_AWAY ]
+		]
+		value
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_INTEGER
@@ -397,7 +532,7 @@ integer: context [
 			:negate
 			:power
 			:remainder
-			null			;round
+			:round
 			:subtract
 			:even?
 			:odd?

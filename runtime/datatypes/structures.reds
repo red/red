@@ -225,3 +225,16 @@ red-routine!: alias struct! [
 	;	symbols	 [red-block!]						;-- 	routine cleaned-up spec block reference
 	;	native   [node!]							;-- 	compiled body (binary!)
 ]
+
+red-float!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding [integer!]
+	value	[float!]								;-- 64-bit float value
+]
+
+red-float32!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding [integer!]
+	value	[float32!]								;-- 32-bit float value
+	_pad	[integer!]
+]

@@ -37,6 +37,7 @@ file-list: [
 	%auto-tests/equal-auto-test.red						%auto-tests/interp-equal-auto-test.red
 	%same-test.red										%auto-tests/interp-same-test.red
 	%integer-test.red									%auto-tests/interp-integer-test.red
+	%float-test.red										%auto-tests/interp-float-test.red
 	%char-test.red										%auto-tests/interp-char-test.red
 	%auto-tests/greater-auto-test.red					%auto-tests/interp-greater-auto-test.red
 	%auto-tests/infix-equal-auto-test.red				%auto-tests/interp-inf-equal-auto-test.red
@@ -46,6 +47,7 @@ file-list: [
 	%auto-tests/infix-lesser-equal-auto-test.red		%auto-tests/interp-inf-lesser-equal-auto-test.red
 	%auto-tests/infix-not-equal-auto-test.red			%auto-tests/interp-inf-not-equal-auto-test.red
 	%auto-tests/integer-auto-test.red					%auto-tests/interp-integer-auto-test.red
+	%auto-tests/float-auto-test.red						%auto-tests/interp-float-auto-test.red
 	%auto-tests/lesser-auto-test.red					%auto-tests/interp-lesser-auto-test.red
 	%auto-tests/lesser-equal-auto-test.red				%auto-tests/interp-lesser-equal-auto-test.red
 	%auto-tests/not-equal-auto-test.red					%auto-tests/interp-not-equal-auto-test.red

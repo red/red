@@ -41,6 +41,7 @@ write %build/bin/sources.r set-cache [
 			%context.reds
 			%datatype.reds
 			%file.reds
+			%float.reds
 			%function.reds
 			%get-path.reds
 			%get-word.reds

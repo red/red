@@ -39,25 +39,32 @@ trans-integer: routine [
 	n: 0
 	until [
 		c: (string/get-char p unit) - #"0"
-		
-		m: n * 10
-		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
-		n: m
-		
-		if all [n = 2147483640 c = 8][
-			integer/box 80000000h						;-- special exit trap for -2147483648
-			exit
-		]
-		
-		m: n + c
-		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
-		n: m
+		if c >= 0 [											;-- skip #"'"
+			m: n * 10
+			if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+			n: m
 
+			if all [n = 2147483640 c = 8][
+				integer/box 80000000h						;-- special exit trap for -2147483648
+				exit
+			]
+
+			m: n + c
+			if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+			n: m
+		]
 		p: p + unit
 		len: len - 1
 		zero? len
 	]
 	integer/box either neg? [0 - n][n]
+]
+
+trans-decimal: routine [
+	start [string!]
+	end	  [string!]
+][
+	float/box string/to-float start end/head - start/head
 ]
 
 trans-hexa: routine [
@@ -420,6 +427,18 @@ transcode: function [
 		integer-number-rule
 		ahead [integer-end | ws-no-count | end]
 	]
+
+	decimal-number-rule: [
+		[integer-number-rule | #"." | #","]						;-- first part
+		opt [[#"." | #","] any digit]							;-- second part
+		opt [opt [#"e" | #"E"] opt [#"-" | #"+"] some digit]	;-- third part
+		e:
+ 	]
+ 	
+ 	decimal-rule: [
+ 		decimal-number-rule
+ 		ahead [integer-end | ws-no-count | end]
+ 	]
 	
 	block-rule: [
 		#"[" (append/only stack make block! 4)
@@ -482,6 +501,7 @@ transcode: function [
 			comment-rule
 			| escaped-rule		(trans-store stack value)
 			| integer-rule		if (value: trans-integer s e ) (trans-store stack value)
+			| decimal-rule		if (value: trans-decimal s e ) (trans-store stack value)
 			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
