@@ -34,6 +34,15 @@ binary: context [
 		(as-integer s/tail - s/offset) - offset
 	]
 
+	get-byte: func [
+		p	    [byte-ptr!]
+		return: [integer!]
+		/local
+			p4	[int-ptr!]
+	][
+		as-integer p/value
+	]
+
 	get-position: func [
 		base	   [integer!]
 		return:	   [integer!]
@@ -934,6 +943,219 @@ binary: context [
 		as red-value! data
 	]
 
+	remove: func [
+		bin	 	 [red-binary!]
+		part-arg [red-value!]
+		return:	 [red-binary!]
+		/local
+			s		[series!]
+			part	[integer!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+			int		[red-integer!]
+			bin2	[red-binary!]
+	][
+		s:    GET_BUFFER(bin)
+		head: (as byte-ptr! s/offset) + bin/head
+		tail: as byte-ptr! s/tail
+		
+		if head = tail [return bin]						;-- early exit if nothing to remove
+
+		part: 1
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				bin2: as red-binary! part-arg
+				unless all [
+					TYPE_OF(bin2) = TYPE_OF(bin)		;-- handles ANY-STRING!
+					bin2/node = bin/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				bin2/head - bin/head
+			]
+			if part <= 0 [return bin]					;-- early exit if negative /part index
+		]
+
+		if head + part < tail [
+			move-memory 
+				head
+				head + part
+				as-integer tail - (head + part)
+		]
+		s/tail: as red-value! tail - part
+		bin
+	]
+
+	reverse: func [
+		bin	 	 [red-binary!]
+		part-arg [red-value!]
+		return:	 [red-binary!]
+		/local
+			s		[series!]
+			part	[integer!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+			temp	[byte-ptr!]
+			int		[red-integer!]
+			bin2	[red-binary!]
+	][
+		s:    GET_BUFFER(bin)
+		head: (as byte-ptr! s/offset) + bin/head
+		tail: as byte-ptr! s/tail
+
+		if head = tail [return bin]						;-- early exit if nothing to reverse
+
+		part: 0
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				bin2: as red-binary! part-arg
+				unless all [
+					TYPE_OF(bin2) = TYPE_OF(bin)		;-- handles ANY-STRING!
+					bin2/node = bin/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				bin2/head - bin/head
+			]
+			if part <= 0 [return bin]					;-- early exit if negative /part index
+		]
+
+		if all [positive? part head + part < tail] [tail: head + part]
+		tail: tail - 1								;-- point to last value
+		temp: as byte-ptr! :part
+		while [head < tail][
+			copy-memory temp head 1
+			copy-memory head tail 1
+			copy-memory tail temp 1
+			head: head + 1
+			tail: tail - 1
+		]
+		bin
+	]
+
+	take: func [
+		bin	    	[red-binary!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		last?		[logic!]
+		return:		[red-value!]
+		/local
+			int		[red-integer!]
+			bin2	[red-binary!]
+			char	[red-char!]
+			offset	[byte-ptr!]
+			tail	[byte-ptr!]
+			s		[series!]
+			buffer	[series!]
+			node	[node!]
+			part	[integer!]
+			bytes	[integer!]
+			size	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/take"]]
+
+		size: get-length bin
+		if size <= 0 [									;-- early exit if nothing to take
+			set-type as cell! bin TYPE_NONE
+			return as red-value! bin
+		]
+		s:    GET_BUFFER(bin)
+		part: 1
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				bin2: as red-binary! part-arg
+				unless all [
+					TYPE_OF(bin2) = TYPE_OF(bin)		;-- handles ANY-STRING!
+					bin2/node = bin/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				either bin2/head < bin/head [0][
+					either last? [size - (bin2/head - bin/head)][bin2/head - bin/head]
+				]
+			]
+		]
+
+		bytes:	part
+		node: 	alloc-bytes bytes
+		buffer: as series! node/value
+		buffer/flags: s/flags							;@@ filter flags?
+
+		bin2: as red-binary! stack/push*
+		bin2/header: TYPE_BINARY
+		bin2/node: 	node
+		bin2/head: 	0
+
+		either positive? part [
+			tail: as byte-ptr! s/tail
+			offset: (as byte-ptr! s/offset) + bin/head
+			if last? [
+				offset: tail - bytes
+				s/tail: as cell! offset
+			]
+			copy-memory
+				as byte-ptr! buffer/offset
+				offset
+				bytes
+			buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
+
+			unless last? [
+				move-memory
+					offset
+					offset + bytes
+					as-integer tail - offset - bytes
+				s/tail: as cell! tail - bytes
+			]
+		][return as red-value! bin2]
+
+		if part = 1 [									;-- return integer!
+			int: as red-integer! bin2
+			int/header: TYPE_INTEGER
+			int/value:  get-byte as byte-ptr! buffer/offset
+		]
+		as red-value! bin2
+	]
+
+	swap: func [
+		bin1	 [red-string!]
+		bin2	 [red-string!]
+		return:	 [red-string!]
+		/local
+			s1		[series!]
+			s2		[series!]
+			byte	[byte!]
+			head1	[byte-ptr!]
+			head2	[byte-ptr!]
+	][
+		s1:    GET_BUFFER(bin1)
+		head1: (as byte-ptr! s1/offset) + bin1/head
+		if head1 = as byte-ptr! s1/tail [return bin1]				;-- early exit if nothing to swap
+
+		s2:    GET_BUFFER(bin2)
+		head2: (as byte-ptr! s2/offset) + bin2/head
+		if head2 = as byte-ptr! s2/tail [return bin1]				;-- early exit if nothing to swap
+
+		byte:    head1/1
+		head1/1: head2/1
+		head2/1: byte
+		bin1
+	]
+
 	;--- Reading actions ---
 
 	pick: func [
@@ -1018,15 +1240,15 @@ binary: context [
 			:next
 			:pick
 			:poke
-			null			;remove
-			null			;reverse
+			:remove
+			:reverse
 			null			;select
 			null			;sort
 			:skip
-			null			;swap
+			:swap
 			:tail
 			:tail?
-			null			;take
+			:take
 			null			;trim
 			;-- I/O actions --
 			null			;create
