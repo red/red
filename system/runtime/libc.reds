@@ -89,10 +89,18 @@ Red/System [
 			radians		[float!]
 			return:		[float!]
 		]
+		ldexp:		"ldexp" [
+			value		[float!]
+			exponent	[integer!]
+			return:		[float!]
+		]
+		frexp:		"frexp" [
+			x			[float!]
+			exponent	[int-ptr!]
+			return:		[float!]
+		]
 	]
 ]
-
-#define trunc(x) [either x < 0.0 [ceil x][floor x]]
 
 #either unicode? = yes [
 

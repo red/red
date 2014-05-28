@@ -247,7 +247,7 @@ lexer: context [
 
 	decimal-number-rule: [
 		(type: decimal!)
-		opt [#"-" | #"+"] digit any [digit | #"'" digit]		;-- first part
+		[integer-number-rule | dot | comma]						;-- first part
 		opt [[dot | comma] any digit]							;-- second part
 		opt [opt [#"e" | #"E"] opt [#"-" | #"+"] some digit]	;-- third part
 		e:

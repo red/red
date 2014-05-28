@@ -39,20 +39,20 @@ trans-integer: routine [
 	n: 0
 	until [
 		c: (string/get-char p unit) - #"0"
-		
-		m: n * 10
-		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
-		n: m
-		
-		if all [n = 2147483640 c = 8][
-			integer/box 80000000h						;-- special exit trap for -2147483648
-			exit
-		]
-		
-		m: n + c
-		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
-		n: m
+		if c >= 0 [											;-- skip #"'"
+			m: n * 10
+			if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+			n: m
 
+			if all [n = 2147483640 c = 8][
+				integer/box 80000000h						;-- special exit trap for -2147483648
+				exit
+			]
+
+			m: n + c
+			if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+			n: m
+		]
 		p: p + unit
 		len: len - 1
 		zero? len
@@ -429,7 +429,7 @@ transcode: function [
 	]
 
 	decimal-number-rule: [
-		[opt [#"-" | #"+"] digit any [digit | #"'" digit] | ahead #"."]		;-- first part
+		[integer-number-rule | #"." | #","]						;-- first part
 		opt [[#"." | #","] any digit]							;-- second part
 		opt [opt [#"e" | #"E"] opt [#"-" | #"+"] some digit]	;-- third part
 		e:

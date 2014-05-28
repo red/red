@@ -13,6 +13,17 @@ Red/System [
 integer: context [
 	verbose: 0
 
+	abs: func [
+		value	[integer!]
+		return: [integer!]
+	][
+		if value = -2147483648 [
+			print-line "*** Math Error: integer overflow on ABSOLUTE"
+		]
+		if negative? value [value: 0 - value]
+		value
+	]
+
 	get*: func [										;-- unboxing integer value from stack
 		return: [integer!]
 		/local
@@ -303,13 +314,8 @@ integer: context [
 		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
 		
 		int: as red-integer! stack/arguments
-		value: int/value
-		
-		if value = -2147483648 [
-			print-line "*** Math Error: integer overflow on ABSOLUTE"
-		]
-		if negative? value [int/value: 0 - value]
-		int 											;-- re-use argument slot for return value
+		int/value: abs int/value
+		int
 	]
 
 	add: func [return: [red-value!]][
@@ -413,7 +419,96 @@ integer: context [
 	][
 		as-logic int/value and 1
 	]
-	
+
+	#define INT_TRUNC [int/value: either num > 0 [n - r][r - n]]
+
+	#define INT_FLOOR [
+		either m < 0 [
+			print-line "*** Math Error: integer overflow on ROUND"
+			int/header: TYPE_UNSET
+		][
+			int/value: either num > 0 [n - r][0 - m]
+		]
+	]
+
+	#define INT_CEIL [
+		either m < 0 [
+			print-line "*** Math Error: integer overflow on ROUND"
+			int/header: TYPE_UNSET
+		][
+			int/value: either num < 0 [r - n][m]
+		]
+	]
+
+	#define INT_AWAY [
+		either m < 0 [
+			print-line "*** Math Error: integer overflow on ROUND"
+			int/header: TYPE_UNSET
+		][
+			int/value: either num > 0 [m][0 - m]
+		]
+	]
+
+	round: func [
+		value		[red-value!]
+		scale		[red-integer!]
+		_even?		[logic!]
+		down?		[logic!]
+		half-down?	[logic!]
+		floor?		[logic!]
+		ceil?		[logic!]
+		half-ceil?	[logic!]
+		return:		[red-value!]
+		/local
+			int		[red-integer!]
+			f		[red-float!]
+			num		[integer!]
+			sc		[integer!]
+			s		[integer!]
+			n		[integer!]
+			m		[integer!]
+			r		[integer!]
+	][
+		int: as red-integer! value
+		num: int/value
+		if num = 80000000h [return value]
+		sc: 1
+		if OPTION?(scale) [
+			if TYPE_OF(scale) = TYPE_FLOAT [
+				f: as red-float! value
+				f/value: to-float num
+				f/header: TYPE_FLOAT
+				return float/round value as red-float! scale _even? down? half-down? floor? ceil? half-ceil?
+			]
+			sc: abs scale/value
+		]
+
+		if zero? sc [
+			print-line "*** Math Error: integer overflow on ROUND"
+			value/header: TYPE_UNSET
+			return value
+		]
+
+		n: abs num
+		r: n % sc
+		if zero? r [return value]
+
+		s: sc - r
+		m: n + s
+		case [
+			down?		[INT_TRUNC]
+			floor?		[INT_FLOOR]
+			ceil?		[INT_CEIL ]
+			r < s		[INT_TRUNC]
+			r > s		[INT_AWAY ]
+			_even?		[either zero? (n / sc and 1) [INT_TRUNC][INT_AWAY]]
+			half-down?	[INT_TRUNC]
+			half-ceil?	[INT_CEIL ]
+			true		[INT_AWAY ]
+		]
+		value
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_INTEGER
@@ -437,7 +532,7 @@ integer: context [
 			:negate
 			:power
 			:remainder
-			null			;round
+			:round
 			:subtract
 			:even?
 			:odd?

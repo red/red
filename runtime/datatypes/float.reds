@@ -15,6 +15,8 @@ Red/System [
 float: context [
 	verbose: 4
 
+	DOUBLE_MAX: 1.0E308 + 1.0E308						;-- tricky way to present INF
+
 	abs: func [
 		value	[float!]
 		return: [float!]
@@ -360,6 +362,89 @@ float: context [
 		false
 	]
 
+	#define FLOAT_TRUNC(x) ((either (x) < 0.0 [-1.0][1.0]) * (floor float/abs x))
+	#define FLOAT_AWAY(x) ((either (x) < 0.0 [-1.0][1.0]) * (ceil float/abs x))
+
+	round: func [
+		value		[red-value!]
+		scale		[red-float!]
+		_even?		[logic!]
+		down?		[logic!]
+		half-down?	[logic!]
+		floor?		[logic!]
+		ceil?		[logic!]
+		half-ceil?	[logic!]
+		return:		[red-value!]
+		/local
+			int		[red-integer!]
+			f		[red-float!]
+			dec		[float!]
+			sc		[float!]
+			r		[float!]
+			d		[float!]
+			e		[integer!]
+			v		[logic!]
+	][
+		e: 0
+		f: as red-float! value
+		dec: f/value
+		sc: 1.0
+		if OPTION?(scale) [
+			if TYPE_OF(scale) = TYPE_INTEGER [
+				int: as red-integer! value
+				int/value: to-integer dec
+				int/header: TYPE_INTEGER
+				return integer/round value as red-integer! scale _even? down? half-down? floor? ceil? half-ceil?
+			]
+			sc: abs scale/value
+		]
+
+		if sc = 0.0 [
+			print-line "*** Math Error: float overflow on ROUND"
+			value/header: TYPE_UNSET
+			return value
+		]
+
+		if sc < ldexp abs dec -53 [return value]		;-- is scale negligible?
+
+		v: sc >= 1.0
+		dec: either v [dec / sc][
+			r: frexp sc :e
+			either e <= -1022 [
+				sc: r
+				dec: ldexp dec e
+			][e: 0]
+			sc: 1.0 / sc
+			dec * sc
+		]
+
+		d: abs dec
+		r: 0.5 + floor d
+		dec: case [
+			down?		[FLOAT_TRUNC(dec)]
+			floor?		[floor dec		 ]
+			ceil?		[ceil dec		 ]
+			r < d		[FLOAT_AWAY(dec) ]
+			r > d		[FLOAT_TRUNC(dec)]
+			_even?		[either d % 2.0 < 1.0 [FLOAT_TRUNC(dec)][FLOAT_AWAY(dec)]]
+			half-down?	[FLOAT_TRUNC(dec)]
+			half-ceil?	[ceil dec		 ]
+			true		[FLOAT_AWAY(dec) ]
+		]
+
+		f/value: either v [
+			dec: dec * sc
+			if DOUBLE_MAX = abs dec [
+				print-line "*** Math Error: float overflow on ROUND"
+				value/header: TYPE_UNSET
+			]
+			dec
+		][
+			ldexp dec / sc e
+		]
+		value
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_FLOAT
@@ -383,7 +468,7 @@ float: context [
 			:negate
 			:power
 			:remainder
-			null			;round
+			:round
 			:subtract
 			null			;even?
 			null			;odd?

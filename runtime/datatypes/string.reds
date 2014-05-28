@@ -188,7 +188,7 @@ string: context [
 		expon: 0
 		if len > 0 [
 			c: string/get-char p unit
-			if c = as-integer #"." [						;-- handle decimal point
+			if any [c = as-integer #"." c = as-integer #","] [
 				p: p + unit
 				len: len - 1
 				curr: p
@@ -221,9 +221,9 @@ string: context [
 			][												;-- expon > 308
 				either expon < 0 [
 					c: e - 308
-					d / fract10/c / 1.0E308
+					d / fract10/c / 1.0E308					;--@@ check -INF ?
 				][
-					1.0E308 + 1.0E308						;-- INF
+					float/DOUBLE_MAX						;-- INF
 				]
 			]
 		]
