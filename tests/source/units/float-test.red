@@ -327,6 +327,33 @@ Red [
 	--test-- "pos3" --assert false = positive? -1.0
 ===end-group===
 
+===start-group=== "round"
+	--test-- "round1"  --assert 1.375 = round/to 1.333 .125
+	--test-- "round2"  --assert 1.33  = round/to 1.333 .01
+
+	--test-- "round3"  --assert  1 = round/down  1.999
+	--test-- "round4"  --assert -1 = round/down -1.999
+
+	--test-- "round5"  --assert  2 = round/even  1.5
+	--test-- "round6"  --assert -2 = round/even -1.5
+
+	--test-- "round7"  --assert  1 = round/half-down  1.5
+	--test-- "round8"  --assert -1 = round/half-down -1.5
+
+	--test-- "round9"  --assert  1 = round/floor  1.999
+	--test-- "round10" --assert -2 = round/floor -1.0000001
+
+	--test-- "round11" --assert  2 = round/ceiling  1.0000001
+	--test-- "round12" --assert -1 = round/ceiling -1.999
+
+	--test-- "round13" --assert  2 = round/half-ceiling  1.5
+	--test-- "round14" --assert -1 = round/half-ceiling -1.5
+
+	--test-- "round15" --assert  1 = round  1.4999
+	--test-- "round16" --assert  2 = round  1.5
+	--test-- "round17" --assert -2 = round -1.5
+===end-group===
+
 ===start-group=== "various regression tests from bugtracker"
 
 	;--test-- "issue #227 for Red/System"

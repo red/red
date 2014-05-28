@@ -85,4 +85,27 @@ Red [
 	--test-- "xor3" --assert 01h xor 1Fh = 1Eh
 ===end-group===
 
+===start-group=== "round"
+	--test-- "round1" --assert  123904 = round/to  123'456 1024
+	--test-- "round2" --assert -123904 = round/to -123'456 1024
+
+	--test-- "round3" --assert  21 = round/down/to  23 3
+	--test-- "round4" --assert -21 = round/down/to -23 3
+
+	--test-- "round5" --assert  24 = round/even/to  23 3
+	--test-- "round6" --assert -24 = round/even/to -23 3
+
+	--test-- "round7" --assert  24 = round/half-down/to  23 3
+	--test-- "round8" --assert -24 = round/half-down/to -23 3
+
+	--test-- "round9" --assert  21 = round/floor/to  23 3
+	--test-- "round10" --assert -24 = round/floor/to -23 3
+
+	--test-- "round11" --assert  24 = round/ceiling/to  23 3
+	--test-- "round12" --assert -21 = round/ceiling/to -23 3
+
+	--test-- "round13" --assert  24 = round/half-ceiling/to  23 3
+	--test-- "round14" --assert -24 = round/half-ceiling/to -23 3
+===end-group===
+
 ~~~end-file~~~
