@@ -1317,7 +1317,7 @@ binary: context [
 			:at
 			:back
 			null			;change
-			null			;clear
+			:clear
 			:copy
 			null			;find
 			:head
