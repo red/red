@@ -548,21 +548,6 @@ binary: context [
 		form binary buffer arg part
 	]
 
-	copy: func [
-		binary    [red-binary!]
-		new		[red-string!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "binary/copy"]]
-				
-		binary: as red-binary! string/copy as red-string! binary new arg deep? types
-		binary/header: TYPE_BINARY
-		as red-series! binary
-	]
-
 ;	rs-make-at: func [
 ;		slot	[cell!]
 ;		size 	[integer!]								;-- number of cells to pre-allocate
@@ -1192,6 +1177,74 @@ binary: context [
 		]
 	]
 
+	;--- Misc actions ---
+
+	copy: func [
+		bin	    	[red-binary!]
+		new			[red-binary!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		types		[red-value!]
+		return:		[red-series!]
+		/local
+			int		[red-integer!]
+			bin2	[red-binary!]
+			offset	[integer!]
+			s		[series!]
+			buffer	[series!]
+			node	[node!]
+			part	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/copy"]]
+
+		s: GET_BUFFER(bin)
+
+		offset: bin/head
+		part: (as-integer s/tail - s/offset) - offset
+
+		if OPTION?(types) [--NOT_IMPLEMENTED--]
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				case [
+					int/value > part    [part]
+					positive? int/value [int/value]
+					true				[0]
+				]
+			][
+				bin2: as red-binary! part-arg
+				unless all [
+					TYPE_OF(bin2) = TYPE_OF(bin)		;-- handles ANY-STRING!
+					bin2/node = bin/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				bin2/head - bin/head
+			]
+		]
+		
+		node: 	alloc-bytes part
+		buffer: as series! node/value
+		buffer/flags: s/flags							;@@ filter flags?
+		
+		unless zero? part [
+			copy-memory 
+				as byte-ptr! buffer/offset
+				(as byte-ptr! s/offset) + offset
+				part
+
+			buffer/tail: as cell! (as byte-ptr! buffer/offset) + part
+		]
+		
+		new/header: TYPE_BINARY
+		new/node: 	node
+		new/head: 	0
+		
+		as red-series! new
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_BINARY
@@ -1230,7 +1283,7 @@ binary: context [
 			:back
 			null			;change
 			null			;clear
-			null			;copy
+			:copy
 			null			;find
 			:head
 			:head?
