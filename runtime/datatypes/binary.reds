@@ -489,37 +489,43 @@ binary: context [
 			byte   [integer!]
 			h	   [c-string!]
 			i	   [integer!]
+			n      [integer!] ;counter for chars on line
+			s      [series!]  ;output buffer
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/form"]]
 		bin: GET_BUFFER(value)
 		head: (as byte-ptr! bin/offset) + value/head
 		tail: as byte-ptr! bin/tail
 		bytes: as-integer tail - head
-		len: (2 * bytes) + 4 
+		len: (2 * bytes) + 4
 
-		;@@ shouldn't be there used the buffer directly instead of this `formed` local allocation?
-		formed: as c-string! allocate len
-		pout: as byte-ptr! formed
-		pout/1: #"#"
-		pout/2: #"{"
-		pout: pout + 2
+		s: GET_BUFFER(buffer)
 
-		h: "0123456789ABCDEF"
-
-		while [head < tail][
-			byte: as-integer head/1
-			i: byte and 15 + 1								;-- byte // 16 + 1
-			pout/2: h/i
-			i: byte >> 4 and 15 + 1
-			pout/1: h/i
-
-			head: head + 1
-			pout: pout + 2
+		s: string/append-char s as-integer #"#"
+		s: string/append-char s as-integer #"{"
+		;using line break after each 32. byte
+		if bytes > 32 [
+			s: string/append-char s as-integer #"^/"
+			len: len + 1
 		]
-		pout/1: #"}"
-		pout/2: null-byte
-		string/concatenate-literal buffer formed
-		free as byte-ptr! formed
+		h: "0123456789ABCDEF"
+		n: 0
+		while [head < tail][
+			n: either n = 32 [
+				s: string/append-char s as-integer #"^/"
+				len: len + 1
+				1
+			][	n + 1 ]
+
+			byte: as-integer head/1
+			i: byte >> 4 and 15 + 1
+			s: string/append-char s as-integer h/i
+			i: byte and 15 + 1								;-- byte // 16 + 1
+			s: string/append-char s as-integer h/i
+			head: head + 1
+		]
+		s: string/append-char s as-integer  #"}"
+		s: string/append-char s 0                           ;= null-byte
 		part - len
 	]
 
