@@ -501,31 +501,31 @@ binary: context [
 
 		s: GET_BUFFER(buffer)
 
-		s: string/append-char s as-integer #"#"
-		s: string/append-char s as-integer #"{"
+		s: append-byte s #"#"
+		s: append-byte s #"{"
 		;using line break after each 32. byte
 		if bytes > 32 [
-			s: string/append-char s as-integer #"^/"
+			s: append-byte s #"^/"
 			len: len + 1
 		]
 		h: "0123456789ABCDEF"
 		n: 0
 		while [head < tail][
 			n: either n = 32 [
-				s: string/append-char s as-integer #"^/"
+				s: append-byte s #"^/"
 				len: len + 1
 				1
 			][	n + 1 ]
 
 			byte: as-integer head/1
 			i: byte >> 4 and 15 + 1
-			s: string/append-char s as-integer h/i
+			s: append-byte s h/i
 			i: byte and 15 + 1								;-- byte // 16 + 1
-			s: string/append-char s as-integer h/i
+			s: append-byte s h/i
 			head: head + 1
 		]
-		s: string/append-char s as-integer  #"}"
-		s: string/append-char s 0                           ;= null-byte
+		s: append-byte s #"}"
+		s: append-byte s null-byte
 		part - len
 	]
 
