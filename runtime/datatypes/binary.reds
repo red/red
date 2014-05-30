@@ -1115,6 +1115,7 @@ binary: context [
 					either last? [size - (bin2/head - bin/head)][bin2/head - bin/head]
 				]
 			]
+			if part > size [part: size]
 		]
 
 		bytes:	part
