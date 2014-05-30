@@ -789,6 +789,11 @@ Red [
 		--assert b = c: take/deep a
 		--assert b <> remove c
 
+	--test-- "take-blk-5"
+		a: [1 2 3]
+		--assert [1 2 3] = take/part a 22
+		--assert [] = a
+
 	--test-- "take-str-1"
 		a: "123"
 		--assert #"1" = take a
@@ -832,6 +837,10 @@ Red [
 		--assert "23" = take/part/last a next a
 		--assert "1"  = a
 
+	--test-- "take-str-10"
+		a: "123"
+		--assert "123" = take/part a 22
+		--assert "" = a
 ===end-group===
 
 ===start-group=== "swap"
