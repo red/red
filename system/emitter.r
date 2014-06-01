@@ -259,7 +259,7 @@ emitter: make-profilable context [
 				append ptr IEEE-754/to-binary32/rev value	;-- stored in little-endian
 			]
 			c-string! [
-				either string? value [
+				either any [string? value binary? value] [
 					repend ptr [value null]
 				][
 					pad-data-buf target/ptr-size		;-- pointer alignment can be <> of integer

@@ -1445,6 +1445,7 @@ make-profilable make target-class [
 				emit-load value
 				do push-last						;-- PUSH &value
 			]
+			binary!
 			string! [
 				emit-load-literal [c-string!] value
 				do push-last						;-- PUSH value

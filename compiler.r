@@ -251,6 +251,12 @@ red: context [
 		emit 1 + length? buffer							;-- account for terminal zero
 		emit 'UTF-8
 	]
+
+	emit-load-binary: func [buffer [binary!]][
+		emit to path! reduce [to word! form type? buffer 'load]
+		emit buffer
+		emit length? buffer
+	]
 	
 	emit-open-frame: func [name [word!] /local type][
 		emit case [
@@ -340,7 +346,7 @@ red: context [
 	
 	decorate-series-var: func [name [word!] /local new list][
 		new: to word! join name get-counter
-		list: select lit-vars select [blk block str string ctx context] name
+		list: select lit-vars select [blk block str string ctx context bin string] name
 		if all [list not find list new][append list new]
 		new
 	]
@@ -645,6 +651,13 @@ red: context [
 						new-line back tail output off
 						'tmp
 					]
+					binary? :item [
+						emit [tmpbin:]
+						insert-lf -1
+						emit-load-binary item
+						new-line back tail output off
+						'tmpbin
+					]
 					find [logic! unset! datatype!] type?/word :item [
 						to word! form :item
 					]
@@ -919,7 +932,16 @@ red: context [
 					emit name
 					insert-lf -2
 				]
-				binary!	[]
+				binary!	[
+					redirect-to-literals [
+						emit to set-word! name: decorate-series-var 'bin
+						insert-lf -1
+						emit-load-binary value
+					]	
+					emit to path! reduce [to word! form type? value 'push]
+					emit name
+					insert-lf -2
+				]
 			][
 				throw-error ["comp-literal: unsupported type" mold value]
 			]

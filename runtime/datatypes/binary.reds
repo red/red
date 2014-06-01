@@ -10,14 +10,48 @@ Red/System [
 	}
 ]
 
+#enum binary-base! [
+	BASE-2:  2
+	BASE-16: 16
+	BASE-64: 64
+]
+
 binary: context [
 	verbose: 0
+
+	load-in: func [
+		src		 [c-string!]							;-- UTF-8 source string buffer
+		size	 [integer!]
+		blk		 [red-block!]
+		return:  [red-binary!]
+		/local
+			bin  [red-binary!]
+			s 	   [series!]
+			p    [byte-ptr!]
+	][
+		bin: as red-binary! ALLOC_TAIL(blk)
+		bin/header: TYPE_BINARY							;-- implicit reset of all header flags
+		bin/head: 0
+		bin/node: alloc-series size 1 0
+		s: as series! bin/node/value
+		p: as byte-ptr! s/offset
+		copy-memory	p as byte-ptr! src size
+		s/tail: as cell! ((as byte-ptr! s/offset) + size)
+		bin
+	]
+
+	load: func [
+		src		 [c-string!]							;-- UTF-8 source string buffer
+		size	 [integer!]
+		return:  [red-binary!]
+	][
+		load-in src size root
+	]
 
 	push: func [
 		binary [red-binary!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/push"]]
-		
 		copy-cell as red-value! binary stack/push*
 	]
 
