@@ -317,6 +317,9 @@ Red [
   --assert #{C3A9} = append #{} "é"
   --test-- "series-append-23"
   --assert #{01020102} = append/part/dup #{} #{010203} 2 2
+  --test-- "series-append-24"
+  --assert "a#{6263}" = append "a" #{6263}
+  --assert #{6162} = append #{} "ab"
 
 ===end-group===
 

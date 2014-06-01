@@ -497,7 +497,7 @@ binary: context [
 		head: (as byte-ptr! bin/offset) + value/head
 		tail: as byte-ptr! bin/tail
 		bytes: as-integer tail - head
-		len: (2 * bytes) + 4
+		len: (2 * bytes) + 3
 
 		s: GET_BUFFER(buffer)
 
@@ -525,7 +525,6 @@ binary: context [
 			head: head + 1
 		]
 		s: append-byte s #"}"
-		s: append-byte s null-byte
 		part - len
 	]
 
