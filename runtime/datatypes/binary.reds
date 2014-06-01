@@ -736,6 +736,243 @@ binary: context [
 		as red-value! bin
 	]
 
+	find: func [
+		bin         [red-binary!]
+		value       [red-value!]
+		part        [red-value!]
+		only?       [logic!]
+		case?       [logic!]
+		any?        [logic!]                            ;@@ not implemented
+		with-arg    [red-string!]                       ;@@ not implemented
+		skip        [red-integer!]
+		last?       [logic!]
+		reverse?    [logic!]
+		tail?       [logic!]
+		match?      [logic!]
+		return:     [red-value!]
+		/local
+			s       [series!]
+			s2      [series!]
+			buffer  [byte-ptr!]
+			pattern [byte-ptr!]
+			end     [byte-ptr!]
+			end2    [byte-ptr!]
+			result  [red-value!]
+			int     [red-integer!]
+			char    [red-char!]
+			bin2    [red-binary!]
+			head2   [integer!]
+			p1      [byte-ptr!]
+			p2      [byte-ptr!]
+			p4      [int-ptr!]
+			c1      [integer!]
+			c2      [integer!]
+			step    [integer!]
+			limit   [byte-ptr!]
+			part?   [logic!]
+			op      [integer!]
+			found?  [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "binary/find"]]
+
+		result: stack/push as red-value! bin
+		
+		s: GET_BUFFER(bin)
+		buffer: (as byte-ptr! s/offset) + bin/head
+		end: as byte-ptr! s/tail
+
+		if any [                            ;-- early exit if string is empty or at tail
+			s/offset = s/tail
+			all [not reverse? buffer >= end]
+		][
+			result/header: TYPE_NONE
+			return result
+		]
+
+		step: 1
+		part?: no
+
+		;-- Options processing --
+		
+		if any [any? OPTION?(with-arg)][--NOT_IMPLEMENTED--]
+		
+		if OPTION?(skip) [
+			assert TYPE_OF(skip) = TYPE_INTEGER
+			step: skip/value
+		]
+		if OPTION?(part) [
+			limit: either TYPE_OF(part) = TYPE_INTEGER [
+				int: as red-integer! part
+				if int/value <= 0 [                     ;-- early exit if part <= 0
+					result/header: TYPE_NONE
+					return result
+				]
+				(as byte-ptr! s/offset) + int/value - 1 ;-- int argument is 1-based
+			][
+				bin2: as red-binary! part
+				unless all [
+					TYPE_OF(bin2) = TYPE_OF(bin)
+					bin2/node = bin/node
+				][
+					print "*** Error: invalid /part series argument"    ;@@ replace with error!
+					halt
+				]
+				(as byte-ptr! s/offset) + bin2/head
+			]
+			part?: yes
+		]
+		case [
+			last? [
+				step: 0 - step
+				buffer: either part? [limit][as byte-ptr! s/tail]
+				end: as byte-ptr! s/offset
+			]
+			reverse? [
+				step: 0 - step
+				buffer: either part? [limit][(as byte-ptr! s/offset) + bin/head - 1]
+				end: as byte-ptr! s/offset
+				if buffer < end [                           ;-- early exit if bin/head = 0
+					result/header: TYPE_NONE
+					return result
+				]
+			]
+			true [
+				buffer: (as byte-ptr! s/offset) + bin/head
+				end: either part? [limit + 1][as byte-ptr! s/tail] ;-- + unit => compensate for the '>= test
+			]
+		]
+		case?: not case?                                ;-- inverted case? meaning
+		reverse?: any [reverse? last?]                  ;-- reduce both flags to one
+		pattern: null
+		
+		;-- Value argument processing --
+		
+		switch TYPE_OF(value) [
+			TYPE_BINARY [
+				bin2: as red-binary! value
+				head2: bin2/head
+				s2: GET_BUFFER(bin2)
+				pattern: (as byte-ptr! s2/offset) + head2
+				end2:    (as byte-ptr! s2/tail)
+			]
+			TYPE_INTEGER
+			TYPE_CHAR [
+				char: as red-char! value
+				c2: char/value
+				if c2 > FFh [
+					print ["** Script error: value out of range: " c2 lf] ;@@ Replace with error!
+				]
+				if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+			]
+			default [
+				result/header: TYPE_NONE
+				return result
+			]
+		]
+		
+		;-- Search loop --
+		until [
+			either pattern = null [
+				c1: as-integer buffer/1
+				if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
+				found?: c1 = c2
+				
+				if any [
+					match?                              ;-- /match option returns tail of match (no loop)
+					all [found? tail? not reverse?]     ;-- /tail option too, but only when found pattern
+				][
+					buffer: buffer + step
+				]
+			][
+				p1: buffer
+				p2: pattern
+				until [                                 ;-- series comparison
+					c1: as-integer p1/1
+					c2: as-integer p2/1
+					
+					if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
+					if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+					found?: c1 = c2
+					
+					p1: p1 + 1
+					p2: p2 + 1
+					any [
+						not found?                      ;-- no match
+						p2 >= end2                      ;-- searched binary tail reached
+						all [reverse? p1 <= end]        ;-- search buffer exhausted at head
+						all [not reverse? p1 >= end]    ;-- search buffer exhausted at tail
+					]
+				]
+				if all [
+					found?
+					p2 < end2                           ;-- search binary tail not reached
+					any [                               ;-- search buffer exhausted
+						all [reverse? p1 <= end]
+						all [not reverse? p1 >= end]
+					]
+				][found?: no]                           ;-- partial match case, make it fail
+
+				if all [found? any [match? tail?]][buffer: p1]
+			]
+			buffer: buffer + step
+			any [
+				match?                                  ;-- /match option limits to one comparison
+				all [not match? found?]                 ;-- match found
+				all [reverse? buffer < end]             ;-- head of block series reached
+				all [not reverse? buffer >= end]        ;-- tail of block series reached
+			]
+		]
+		buffer: buffer - step                           ;-- compensate for extra step
+		if all [tail? reverse? null? pattern][          ;-- additional step for tailed reversed search
+			buffer: buffer - step
+		]
+		
+		either found? [
+			bin: as red-binary! result
+			bin/head: (as-integer buffer - s/offset)    ;-- just change the head position on stack
+		][
+			result/header: TYPE_NONE                    ;-- change the stack 1st argument to none.
+		]
+		result
+	]
+
+	select: func [
+		bin		 [red-binary!]
+		value	 [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		return:	 [red-value!]
+		/local
+			s	   [series!]
+			p	   [byte-ptr!]
+			int    [red-integer!]
+			result [red-value!]
+	][
+		result: find bin value part only? case? any? with-arg skip last? reverse? true no
+		
+		if TYPE_OF(result) <> TYPE_NONE [
+			bin: as red-binary! result
+			s: GET_BUFFER(bin)
+			
+			p: (as byte-ptr! s/offset) + bin/head
+			
+			either p < as byte-ptr! s/tail [
+				int: as red-integer! result
+				int/header: TYPE_INTEGER
+				int/value:  as-integer p/1
+			][
+				result/header: TYPE_NONE
+			]
+		]
+		result
+	]
+
 	;--- Modifying actions ---
 		
 	insert: func [
@@ -1326,7 +1563,7 @@ binary: context [
 			null			;change
 			:clear
 			:copy
-			null			;find
+			:find
 			:head
 			:head?
 			:index?
@@ -1337,7 +1574,7 @@ binary: context [
 			:poke
 			:remove
 			:reverse
-			null			;select
+			:select
 			null			;sort
 			:skip
 			:swap
