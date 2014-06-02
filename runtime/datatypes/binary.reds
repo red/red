@@ -1420,7 +1420,7 @@ binary: context [
 			]
 		][return as red-value! bin2]
 
-		if part = 1 [									;-- return integer!
+		if all [part = 1 not OPTION?(part-arg)] [			;-- return integer! (if /part was not used)
 			int: as red-integer! bin2
 			int/header: TYPE_INTEGER
 			int/value:  get-byte as byte-ptr! buffer/offset
