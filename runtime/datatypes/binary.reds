@@ -350,26 +350,69 @@ binary: context [
 		s
 	]
 
-	concatenate: func [									;-- append bin2 to bin1
+	concatenate-bin: func [								;-- append bin2 to bin1
+		bin1      [red-binary!]							;-- binary! to extend
+		bin2	  [red-binary!]							;-- binary! or string! to append to bin1
+		part	  [integer!]							;-- bin2 characters to append, -1 means all
+		offset	  [integer!]							;-- offset from head in bytes
+		insert?	  [logic!]								;-- insert bin2 at bin1 index instead of appending
+		/local
+			s1	  [series!]
+			s2	  [series!]
+			size  [integer!]
+			size2 [integer!]
+			p	  [byte-ptr!]
+			h1	  [integer!]
+			h2	  [integer!]
+	][
+		s1: GET_BUFFER(bin1)
+		s2: GET_BUFFER(bin2)
+		h1: bin1/head
+		h2: bin2/head
+		
+		size2: (as-integer s2/tail - s2/offset) - h2
+		size:  (as-integer s1/tail - s1/offset) + size2
+		if s1/size < size [s1: expand-series s1 size]
+
+		if part >= 0 [
+			if part < size2 [size2: part]				;-- optionally limit bin2 characters to copy
+		]
+
+		if insert? [
+			move-memory									;-- make space
+				(as byte-ptr! s1/offset) + h1 + offset + size2
+				(as byte-ptr! s1/offset) + h1 + offset
+				(as-integer s1/tail - s1/offset) - h1
+		]
+		p: either insert? [
+			(as byte-ptr! s1/offset) + offset + h1
+		][
+			as byte-ptr! s1/tail
+		]
+		copy-memory	p (as byte-ptr! s2/offset) + h2 size2
+		
+		p: p + size2
+		if insert? [p: (as byte-ptr! s1/tail) + size2] 
+		
+		s1/tail: as cell! p
+	]
+
+	concatenate-str: func [								;-- append bin2 to bin1
 		bin1      [red-binary!]							;-- binary! to extend
 		bin2	  [red-string!]							;-- binary! or string! to append to bin1
 		part	  [integer!]							;-- bin2 characters to append, -1 means all
 		offset	  [integer!]							;-- offset from head in bytes
 		insert?	  [logic!]								;-- insert bin2 at bin1 index instead of appending
 		/local
-			type  [integer!]
-			instr [red-string!]
-			inbin [red-binary!]
 			s1	  [series!]
 			s2	  [series!]
 			unit2 [integer!]
 			size  [integer!]
 			size2 [integer!]
 			p	  [byte-ptr!]
-			limit [byte-ptr!]
-			cp	  [integer!]
 			h1	  [integer!]
 			h2	  [integer!]
+			buf   [c-string!]
 	][
 		s1: GET_BUFFER(bin1)
 		s2: GET_BUFFER(bin2)
@@ -377,33 +420,31 @@ binary: context [
 		h1: either TYPE_OF(bin1) = TYPE_SYMBOL [0][bin1/head]	;-- make symbol! used as string! pass safely
 		h2: either TYPE_OF(bin2) = TYPE_SYMBOL [0][bin2/head]	;-- make symbol! used as string! pass safely
 		
-		size2: (as-integer s2/tail - s2/offset) - h2
+		size2: unicode/get-utf8-length bin2 part
+
 		size:  (as-integer s1/tail - s1/offset) + size2
 		if s1/size < size [s1: expand-series s1 size]
 		
-		if part >= 0 [
-			part: part << (unit2 >> 1)
-			if part < size2 [size2: part]				;-- optionally limit bin2 characters to copy
-		]
 		if insert? [
 			move-memory									;-- make space
 				(as byte-ptr! s1/offset) + h1 + offset + size2
 				(as byte-ptr! s1/offset) + h1 + offset
 				(as-integer s1/tail - s1/offset) - h1
 		]
-		
-		;@@ maybe to convert string to UTF8	if unit2 > 1
 		p: either insert? [
 			(as byte-ptr! s1/offset) + offset + h1
 		][
 			as byte-ptr! s1/tail
 		]
-		copy-memory	p (as byte-ptr! s2/offset) + h2 size2
-		p: p + size2
+		;@@ it would be nice to encode to utf-8 directly instead of intermediate buffer
+		buf: unicode/to-utf8 bin2 part
+		copy-memory	p (as byte-ptr! buf) size2
+		free as byte-ptr! buf
 
+		p: p + size2
 		if insert? [p: (as byte-ptr! s1/tail) + size2] 
 		
-		s1/tail: as cell! p							;-- reset tail just before NUL
+		s1/tail: as cell! p
 	]
 
 	;-- Actions --
@@ -1129,9 +1170,9 @@ binary: context [
 							if rest > len [rest: len]
 						]
 						either tail? [
-							concatenate bin as red-string! bin2 rest 0 no
+							concatenate-bin bin bin2 rest 0 no
 						][
-							concatenate bin as red-string! bin2 rest added yes
+							concatenate-bin bin bin2 rest added yes
 						]
 						added: added + rest
 					]
@@ -1153,9 +1194,9 @@ binary: context [
 							if rest > len [rest: len]
 						]
 						either tail? [
-							concatenate bin form-buf rest 0 no
+							concatenate-str bin form-buf rest 0 no
 						][
-							concatenate bin form-buf rest added yes
+							concatenate-str bin form-buf rest added yes
 						]
 						added: added + rest
 					]

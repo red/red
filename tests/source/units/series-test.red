@@ -320,6 +320,11 @@ Red [
   --test-- "series-append-24"
   --assert "a#{6263}" = append "a" #{6263}
   --assert #{6162} = append #{} "ab"
+  --test-- "series-append-25"
+  --assert #{6162} = append/part #{} #{616263} 2
+  --assert #{6162} = append/part #{} "abc" 2
+  --assert #{C3A962} = append/part #{} "ébc" 2
+  --assert #{C3A96263} = append #{} "ébc"
 
 ===end-group===
 

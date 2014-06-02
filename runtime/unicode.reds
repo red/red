@@ -44,9 +44,55 @@ unicode: context [
 		if byte-1st and C0h = C0h [return 2]
 		0
 	]
+
+	get-utf8-length: func [
+		str		[red-string!]
+		part	[integer!]							;--limit the number of chars, -1 means all
+		return: [integer!]
+		/local
+			s     [series!]
+			unit  [integer!]
+			p     [byte-ptr!]
+			p4	  [int-ptr!]
+			tail  [byte-ptr!]
+			cp    [integer!]
+			size  [integer!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p:	  string/rs-head str
+		tail: string/rs-tail str
+		size: as-integer (tail - p)
+		if part >= 0 [
+			if part < size [
+				tail: p + (part << (unit >> 1))
+				size: part
+			]
+		]
+		while [p < tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			case [
+				cp <= 7Fh      []
+				cp <= 07FFh    [ size: size + 1 ]
+				cp < 0000FFFFh [ size: size + 2 ]
+				cp < 0010FFFFh [ size: size + 3 ]
+				true [
+					print "*** Error: to-utf8 codepoint overflow"
+					halt
+				]
+			]
+			p: p + unit
+		]
+		size
+	]
 	
 	to-utf8: func [
 		str		[red-string!]
+		part	[integer!]							;--limit the number of chars, -1 means all
 		return: [c-string!]
 		/local
 			s	 [series!]
@@ -60,13 +106,18 @@ unicode: context [
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		node: alloc-bytes unit * (1 + string/rs-length? str)	;@@ TBD: mark this buffer as protected!
+		node: alloc-bytes (1 + get-utf8-length str -1)	;@@ TBD: mark this buffer as protected!
 		s: 	  as series! node/value
 		buf:  as byte-ptr! s/offset
 		
 		p:	  string/rs-head str
 		tail: string/rs-tail str
 		
+		if part >= 0 [
+			part: part << (unit >> 1)
+			if part < as-integer (tail - p) [tail: p + part]
+		]
+
 		while [p < tail][
 			cp: switch unit [
 				Latin1 [as-integer p/value]
