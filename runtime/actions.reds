@@ -206,7 +206,6 @@ actions: context [
 			tail      [byte-ptr!]
 			s         [series!]
 			len       [integer!]
-
 	][
 		trg-type: TYPE_OF(type)
 		src-type: TYPE_OF(spec)
@@ -221,8 +220,11 @@ actions: context [
 			TYPE_STRING [
 				switch src-type [
 					TYPE_BINARY [
-						bin: binary/make-at result 16
-						binary/concatenate-str bin as red-string! spec -1 0 no
+						bin: as red-binary! spec
+						len: binary/get-length bin
+						str: string/rs-make-at result len
+						s: GET_BUFFER(bin)
+						unicode/load-utf8-buffer as c-string! s/offset len + 1 GET_BUFFER(str) null
 					]
 					default [
 						str: string/rs-make-at result 16
@@ -237,7 +239,6 @@ actions: context [
 						len: unicode/get-utf8-length str -1 ;-- -1: no part
 						bin: binary/make-at result len
 						binary/concatenate-str bin str -1 1 no
-
 					]
 					TYPE_INTEGER [
 						bin: binary/make-at result 8
