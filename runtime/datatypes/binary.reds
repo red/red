@@ -474,6 +474,22 @@ binary: context [
 		binary
 	]
 
+	make-at: func [
+		slot	[cell!]
+		size 	[integer!]								;-- number of bytes to pre-allocate
+		return:	[red-binary!]
+		/local 
+			p	[node!]
+			bin	[red-binary!]
+	][
+		p: alloc-series size 1 0
+		set-type slot TYPE_BINARY						;@@ decide to use or not 'set-type...
+		bin: as red-binary! slot
+		bin/head: 0
+		bin/node: p
+		bin
+	]
+
 	random: func [
 		bin		[red-binary!]
 		seed?	[logic!]

@@ -185,7 +185,92 @@ actions: context [
 		action-reflect value field/symbol
 	]
 	
-	to*: func [][]
+	to*: func [
+	][
+		to stack/arguments stack/arguments + 1
+	]
+
+	to: func [
+		type       [red-value!]
+		spec       [red-value!]
+		/local
+			result    [cell!]
+			red-type  [red-datatype!]
+			trg-type  [integer!]
+			src-type  [integer!]
+			bin       [red-binary!]
+			str       [red-string!]
+			int       [red-integer!]
+			p         [byte-ptr!]
+			p2        [byte-ptr!]
+			tail      [byte-ptr!]
+			s         [series!]
+			len       [integer!]
+
+	][
+		trg-type: TYPE_OF(type)
+		src-type: TYPE_OF(spec)
+		if trg-type = TYPE_DATATYPE [
+			red-type: as red-datatype! type
+			trg-type: red-type/value
+		]
+
+		result: as cell! type
+
+		switch trg-type [
+			TYPE_STRING [
+				switch src-type [
+					TYPE_BINARY [
+						bin: binary/make-at result 16
+						binary/concatenate-str bin as red-string! spec -1 0 no
+					]
+					default [
+						str: string/rs-make-at result 16
+						actions/form spec str null 0
+					]
+				]
+			]
+			TYPE_BINARY [
+				switch src-type [
+					TYPE_STRING [
+						str: as red-string! spec
+						len: unicode/get-utf8-length str -1 ;-- -1: no part
+						bin: binary/make-at result len
+						binary/concatenate-str bin str -1 1 no
+
+					]
+					TYPE_INTEGER [
+						bin: binary/make-at result 8
+						p: (as byte-ptr! spec)
+						tail: p + 8
+						p: p + 16
+						s: GET_BUFFER(bin)
+						p2: as byte-ptr! s/tail
+						while [p > tail][
+							p2/1: p/0
+							p2: p2 + 1
+							p: p - 1
+						]
+						s/tail: as cell! p2
+					]
+					TYPE_CHAR [
+						bin: binary/make-at result 1
+						int: as red-integer! spec
+						binary/append-char GET_BUFFER(bin) int/value
+					]
+					default [
+						result/header: TYPE_NONE
+					]
+				]
+			]
+			default [
+				result/header: TYPE_NONE
+			]
+		]
+
+		stack/pop 1 ;removes the spec, result is on stack
+		
+	]
 
 	form*: func [
 		part	   [integer!]
@@ -1169,7 +1254,7 @@ actions: context [
 			:make*
 			:random*
 			:reflect*
-			null			;to
+			:to*
 			:form*
 			:mold*
 			:eval-path
