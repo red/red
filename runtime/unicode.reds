@@ -62,7 +62,7 @@ unicode: context [
 		unit: GET_UNIT(s)
 		p:	  string/rs-head str
 		tail: string/rs-tail str
-		size: as-integer (tail - p)
+		size: (as-integer (tail - p)) >> (unit >> 1)
 		if part >= 0 [
 			if part < size [
 				tail: p + (part << (unit >> 1))
@@ -76,7 +76,7 @@ unicode: context [
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
 			case [
-				cp <= 7Fh      []
+				cp <= 7Fh      [ ] ;the size value is precomputed for ansi chars
 				cp <= 07FFh    [ size: size + 1 ]
 				cp < 0000FFFFh [ size: size + 2 ]
 				cp < 0010FFFFh [ size: size + 3 ]
