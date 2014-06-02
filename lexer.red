@@ -339,9 +339,15 @@ transcode: function [
 	string-rule: [(type: string!) line-string | multiline-string]
 	
 	binary-rule: [
-		"#{" (type: binary!)
-		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
-		e: #"}"
+		"#{" (type: binary!) [
+			s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
+			e: #"}"
+			|
+			(
+				print "** Syntax Error: Invalid binary!" ;@@ replace with error!
+				halt
+			)
+		]
 	]
 
 	file-rule: [
