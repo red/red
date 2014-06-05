@@ -66,6 +66,7 @@ write %build/bin/sources.r set-cache [
 			%unset.reds
 			%url.reds
 			%word.reds
+			%float.reds
 		]
 		%platform/ [
 			%android.reds
