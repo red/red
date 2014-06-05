@@ -232,6 +232,92 @@ float: context [
 		form fl buffer arg part
 	]
 
+	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
+
+	NaN?: func [
+		value	[float!]
+		return: [logic!]
+		/local
+			n	[int-ptr!]
+			m	[int-ptr!]
+	][
+		m: as int-ptr! :value
+		n: m + 1
+		either n/value and 7FF00000h = 7FF00000h [		;-- the exponent bits are all ones
+			either any [								;-- the fraction bits are not entirely zeros
+				m/value <> 0
+				n/value and 000FFFFFh <> 0
+			] [true][false]
+		][false]
+	]
+
+	;@@ using 64bit integer will simplify it significantly.
+	;-- returns false if either number is (or both are) NAN.
+	;-- treats really large numbers as almost equal to infinity.
+	;-- thinks +0.0 and -0.0 are 0 DLP's apart.
+	;-- Max ULP: 4 (enough for ordinary use)
+	;-- Ref: https://github.com/svn2github/googletest/blob/master/include/gtest/internal/gtest-internal.h
+	;--      https://github.com/rebol/rebol/blob/master/src/core/t-decimal.c
+	almost-equal: func [
+		left	[float!]
+		right	[float!]
+		return: [logic!]
+		/local
+			a	 [uint64!]
+			b	 [uint64!]
+			lo1  [byte-ptr!]
+			lo2  [byte-ptr!]
+			hi1  [byte-ptr!]
+			hi2  [byte-ptr!]
+			diff [byte-ptr!]
+	][
+		if any [NaN? left NaN? right] [return false]
+
+		a: as uint64! :left
+		b: as uint64! :right
+		lo1: a/int1
+		lo2: b/int1
+		hi1: a/int2
+		hi2: b/int2
+
+		either (as-integer hi1) < 0 [
+			hi1: as byte-ptr! (not as-integer hi1)
+			lo1: as byte-ptr! (not as-integer lo1)
+			either (as-integer lo1) = -1 [hi1: hi1 + 1 lo1: null][lo1: lo1 + 1]
+		][
+			hi1: as byte-ptr! (as-integer hi1) or 80000000h
+		]
+
+		either (as-integer hi2) < 0 [
+			hi2: as byte-ptr! (not as-integer hi2)
+			lo2: as byte-ptr! (not as-integer lo2)
+			either (as-integer lo2) = -1 [hi2: hi2 + 1 lo2: null][lo2: lo2 + 1]
+		][
+			hi2: as byte-ptr! (as-integer hi2) or 80000000h
+		]
+
+		diff: either hi1 > hi2 [hi1 - hi2][hi2 - hi1]
+		if diff > (as byte-ptr! 1) [return false]
+
+		case [
+			hi1 = hi2 [
+				diff: either lo1 < lo2 [lo2 - lo1][lo1 - lo2]
+			]
+			hi1 > hi2 [
+				either lo1 >= lo2 [return false][
+					diff: (as byte-ptr! -1) - lo2 + lo1 + 1
+				]
+			]
+			hi2 > hi1 [
+				either lo2 >= lo1 [return false][
+					diff: (as byte-ptr! -1) - lo1 + lo2 + 1
+				]
+			]
+		]
+
+		diff <= (as byte-ptr! 4)
+	]
+
 	compare: func [
 		value1    [red-float!]						;-- first operand
 		value2    [red-float!]						;-- second operand
@@ -257,7 +343,7 @@ float: context [
 			default [RETURN_COMPARE_OTHER]
 		]
 		switch op [
-			COMP_EQUAL 			[res: left = right]
+			COMP_EQUAL 			[res: almost-equal left right]
 			COMP_NOT_EQUAL 		[res: left <> right]
 			COMP_STRICT_EQUAL	[res: all [TYPE_OF(value2) = TYPE_FLOAT left = right]]
 			COMP_LESSER			[res: left <  right]
