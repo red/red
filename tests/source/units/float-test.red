@@ -46,7 +46,7 @@ Red [
 		--assert 0.0 = tangent/radians 0
 
 	--test-- "float-tangent-2"
-		--assertf~= -1 tangent 135 1E-13
+		--assert -1 = tangent 135
 
 	--test-- "float-arcsine-1"
 		--assertf~= -1.5707963267949 arcsine/radians -1 1E-13
@@ -225,13 +225,13 @@ Red [
 	]
 
 	--test-- "ewrfv0"
-		--assertf~= 1.0 (fe1 * 1.0) 0.1E-13
+		--assert 1.0 = (fe1 * 1.0)
 
 	--test-- "ewrfv1"
-		--assertf~= 1.0 (1.0 * fe1) 0.1E-13
+		--assert 1.0 = (1.0 * fe1)
 
 	--test-- "ewrfv2"
-		--assertf~= 0.5 (fe1 / fe2) 0.1E-13
+		--assert 0.5 = (fe1 / fe2)
 
 ===end-group===
 
@@ -247,7 +247,7 @@ Red [
 	--test-- "fc-1"
 		fc1: 2.0
 		fc1: fc1 / (fc1 - 1.0)
-		--assertf~= 2.0 fc1 0.1E-13
+		--assert 2.0 = fc1
 
 	--test-- "fc-2"
 		--assert 5.0 - 3.0 = 2.0							;-- imm/imm
@@ -271,7 +271,7 @@ Red [
 		;--assert fc2 - fcptr/a = 0.0						;-- ref/reg(path!)
 
 	--test-- "fc-9"
-		--assertf~= (fcfoo 5.0) - 3.0 2.0 1E-10				;-- reg(block!)/imm
+		--assert (fcfoo 5.0) - 3.0 = 2.0					;-- reg(block!)/imm
 
 	--test-- "fc-10"
 		--assert (fcfoo 5.0) - (fcfoo 3.0) = 2.0			;-- reg(block!)/reg(block!)
@@ -295,8 +295,8 @@ Red [
 ===start-group=== "power"
 	--test-- "pow1" --assert 2.25 = power 1.5 2
 	--test-- "pow2" --assert 9 	 = power -3.0 2.0
-	--test-- "pow3" --assertf~= -0.3333333333333333 (power -3.0 -1) 1E-10
-	--test-- "pow4" --assertf~= 11.211578456539659  (power 3 2.2) 1E-10
+	--test-- "pow3" --assertf~= -0.3333333333333333 (power -3.0 -1) 1E-13
+	--test-- "pow4" --assertf~= 11.211578456539659 (power 3 2.2) 1E-13
 	;--test-- "pow5" --assert 0.0 = power 0.0 -1		;@@ return INF or 0.0 ?
 	;--test-- "pow6" --assert 0.0 = power -0.0 -1		;@@ return -INF or 0.0 ?
 ===end-group===
@@ -374,4 +374,21 @@ Red [
 
 ===end-group===
 
+===start-group=== "almost equal"
+	--test-- "almost-equal1"  --assert 1.000000000000001 = 1.000000000000002
+	;--test-- "almost-equal2"  --assert not 1.000000000000001 = 1.000000000000003		;@@ works correctly only on interpreter
+
+	--test-- "almost-equal3"  --assert -1.999999999999999 = -1.999999999999999
+	--test-- "almost-equal4"  --assert 1.732050807568876 = 1.732050807568877
+
+	NaN1: 0.0 / 0.0
+	NaN2: 0.0 / 0.0
+	--test-- "almost-equal5"  --assert not 123 = NaN1
+	--test-- "almost-equal6"  --assert not NaN1 = NaN1
+
+	INF: 1E308 + 1E308
+	;--test-- "almost-equal7"  --assert 1.7976931348623157e308 = INF	;@@ works on interpreter, but cause compiler error.(Maybe Rebol2's problem)
+	--test-- "almost-equal8"  --assert 4.94065645841247E-324 = 0
+
+	--test-- "almost-equal9"  --assert  0.4E-323 = -0.4E-323
 ~~~end-file~~~
