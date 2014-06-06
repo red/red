@@ -196,6 +196,34 @@ do %../../../lexer.r
 	--test-- "lexer-23"
 	  src: {Red [] #"^^/"}
 	--assert "[[] #'0000000A]" = mold lexer/process src
+
+	--test-- "lexer-30"
+	src: {Red [] 123.0}
+	--assert "123.0" = mold second lexer/process src
+
+	--test-- "lexer-31"
+	src: {Red [] 1.123}
+	--assert "1.123" = mold second lexer/process src
+
+	--test-- "lexer-32"
+	src: {Red [] .123}
+	--assert "0.123" = mold second lexer/process src
+
+	--test-- "lexer-33"
+	src: {Red [] 1E2}
+	--assert "100.0" = mold second lexer/process src
+
+	--test-- "lexer-34"
+	src: {Red [] 1.2E3}
+	--assert "1200.0" = mold second lexer/process src
+
+	--test-- "lexer-35"
+	src: {Red [] .1E2}
+	--assert "10.0" = mold second lexer/process src
+
+	--test-- "lexer-36"
+	src: {Red [] .123E2}
+	--assert "12.3" = mold second lexer/process src
 	  
 ===end-group===
 	
