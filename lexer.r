@@ -251,7 +251,8 @@ lexer: context [
 	]
 	
 	decimal-number-rule: [
-		[dot | comma] some digit opt decimal-exp-rule e: (type: decimal!)
+		[dot | comma] digit any [digit | #"'" digit]
+		opt decimal-exp-rule e: (type: decimal!)
 	]
 
 	decimal-rule: [
