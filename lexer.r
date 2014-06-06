@@ -242,15 +242,16 @@ lexer: context [
 	
 	integer-rule: [
 		integer-number-rule
+		opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
 		sticky-word-rule
 	]
 
+	decimal-exp-rule: [
+		[[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
+	]
+	
 	decimal-number-rule: [
-		(type: decimal!)
-		[integer-number-rule | dot | comma]						;-- first part
-		opt [[dot | comma] any digit]							;-- second part
-		opt [opt [#"e" | #"E"] opt [#"-" | #"+"] some digit]	;-- third part
-		e:
+		[dot | comma] some digit opt decimal-exp-rule e: (type: decimal!)
 	]
 
 	decimal-rule: [
@@ -370,7 +371,7 @@ lexer: context [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule    (stack/push value)
-			| integer-rule	  (stack/push load-integer   copy/part s e)
+			| integer-rule	  (stack/push load-number    copy/part s e)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
@@ -528,8 +529,10 @@ lexer: context [
 		to integer! debase/base s 16
 	]
 
-	load-integer: func [s [string!]][
-		unless integer? s: to integer! s [throw-error]
+	load-number: func [s [string!]][
+		either type = decimal! [s: load-decimal s][
+			unless integer? s: to integer! s [throw-error]
+		]
 		s
 	]
 
