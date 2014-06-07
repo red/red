@@ -198,6 +198,29 @@ float: context [
 		f
 	]
 
+	to: func [
+		type	[red-datatype!]
+		spec	[red-float!]
+		return: [red-value!]
+		/local
+			int [red-integer!]
+			f	[float!]
+	][
+		f: spec/value
+		switch type/value [
+			TYPE_INTEGER [
+				int: as red-integer! type
+				int/header: TYPE_INTEGER
+				int/value: to-integer either f < 0.0 [f + 0.499999999999999][f - 0.499999999999999]
+			]
+			default [
+				print-line "** Script error: Invalid argument for TO float!"
+				type/header: TYPE_UNSET
+			]
+		]
+		as red-value! type
+	]
+
 	form: func [
 		fl		   [red-float!]
 		buffer	   [red-string!]
@@ -540,7 +563,7 @@ float: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path

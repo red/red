@@ -184,8 +184,30 @@ actions: context [
 			
 		action-reflect value field/symbol
 	]
-	
-	to*: func [][]
+
+	to*: func [
+		return: [red-value!]
+	][
+		to as red-datatype! stack/arguments stack/arguments + 1
+	]
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-value!]
+		return: [red-value!]
+		/local
+			action-to
+	][
+		if TYPE_OF(spec) = type/value [return stack/set-last spec]
+
+		action-to: as function! [
+			type	[red-datatype!]
+			spec	[red-value!]
+			return: [red-value!]
+		] get-action-ptr-from TYPE_OF(spec) ACT_TO
+
+		action-to type spec
+	]
 
 	form*: func [
 		part	   [integer!]
@@ -1220,7 +1242,7 @@ actions: context [
 			:make*
 			:random*
 			:reflect*
-			null			;to
+			:to*
 			:form*
 			:mold*
 			:eval-path

@@ -89,7 +89,13 @@ reflect: make action! [[
 	#get-definition ACT_REFLECT
 ]
 
-;to
+to: make action! [[
+		"Converts to a specified datatype."
+		type	[any-type!] "The datatype or example value"
+		spec	[any-type!] "The attributes of the new value"
+	]
+	#get-definition ACT_TO
+]
 
 form: make action! [[
 		"Returns a user-friendly string representation of a value."
