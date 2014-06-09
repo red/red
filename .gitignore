@@ -1,0 +1,4 @@
+quick-test/quick-test.log
+quick-test/runnable/*
+tests/source/units/auto-tests/*
+*.exe
