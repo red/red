@@ -563,6 +563,64 @@ binary: context [
 		equal? bin1 bin2 op no							;-- match?: no
 	]
 
+	to: func [
+		type	[red-datatype!]
+		spec	[red-binary!]
+		return: [red-value!]
+		/local
+			;f	 [red-float!]
+			i    [red-integer!]
+			str  [red-string!]
+			bin  [red-binary!]
+			len  [integer!]
+			s    [series!]
+			p    [byte-ptr!]
+	][
+		switch type/value [
+			;TYPE_FLOAT [
+			;	f: as red-float! type
+			;	f/header: TYPE_FLOAT
+			;	f/value: to-float spec/value
+			;]
+			TYPE_STRING [
+				len: binary/get-length spec
+				str: string/rs-make-at as cell! type len
+				s: GET_BUFFER(spec)
+				unicode/load-utf8-buffer as c-string! s/offset len + 1 GET_BUFFER(str) null
+			]
+			TYPE_INTEGER [
+				s: GET_BUFFER(spec)
+				i: as red-integer! type
+				i/header: TYPE_INTEGER
+				i/value: binary/get-byte (as byte-ptr! s/offset) + spec/head
+			]
+			TYPE_CHAR [
+				s: GET_BUFFER(spec)
+				p: (as byte-ptr! s/offset) + spec/head
+				either p = as byte-ptr! s/tail [
+					print-line "** Script error: cannot MAKE/TO char! from: #{}"  ;@@ replace by error!
+					type/header: TYPE_UNSET
+				][
+					len: 4
+					i: as red-integer! type
+					i/header: TYPE_CHAR
+					i/value: unicode/decode-utf8-char as c-string! p :len
+				]
+			]
+			TYPE_BINARY [
+				len: binary/get-length spec
+				bin: binary/make-at as cell! type len
+				binary/concatenate-bin bin spec -1 1 no
+			]
+
+			default [
+				print-line "** Script error: Invalid argument for TO integer!"
+				type/header: TYPE_UNSET
+			]
+		]
+		as red-value! type
+	]
+
 	form: func [
 		value      [red-binary!]
 		buffer	   [red-string!]
@@ -1623,7 +1681,7 @@ binary: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path

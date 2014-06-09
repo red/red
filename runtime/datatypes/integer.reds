@@ -183,6 +183,53 @@ integer: context [
 		as red-value! int
 	]
 
+	to: func [
+		type	[red-datatype!]
+		spec	[red-integer!]
+		return: [red-value!]
+		/local
+			;f	 [red-float!]
+			i    [red-integer!]
+			b    [red-binary!]
+			s    [series!]
+			p    [byte-ptr!]
+			p2   [byte-ptr!]
+			tail [byte-ptr!]
+
+	][
+		switch type/value [
+			;TYPE_FLOAT [
+			;	f: as red-float! type
+			;	f/header: TYPE_FLOAT
+			;	f/value: to-float spec/value
+			;]
+			TYPE_CHAR [
+				i: as red-integer! type
+				i/header: TYPE_CHAR
+				i/value: spec/value
+			]
+			TYPE_BINARY [
+				b: binary/make-at as cell! type 8
+				p: (as byte-ptr! spec)
+				tail: p + 8
+				p: p + 16
+				s: GET_BUFFER(b)
+				p2: as byte-ptr! s/tail
+				while [p > tail][                  ;@@ I wish to have `loop` in Red/System
+					p2/1: p/0
+					p2: p2 + 1
+					p: p - 1
+				]
+				s/tail: as cell! p2
+			]
+			default [
+				print-line "** Script error: Invalid argument for TO integer!"
+				type/header: TYPE_UNSET
+			]
+		]
+		as red-value! type
+	]
+
 	form: func [
 		int		   [red-integer!]
 		buffer	   [red-string!]
@@ -383,7 +430,7 @@ integer: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path

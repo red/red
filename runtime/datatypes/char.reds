@@ -78,6 +78,32 @@ char: context [
 		char
 	]
 	
+	to: func [
+		type	[red-datatype!]
+		spec	[red-integer!]
+		return: [red-value!]
+		/local
+			str  [red-string!]
+			bin  [red-binary!]
+	][
+		switch type/value [
+			TYPE_STRING [                                      ;@@ optimize this
+				str: string/rs-make-at as cell! type 16
+				actions/form as red-value! spec str null 0
+			]
+			TYPE_BINARY [
+				bin: binary/make-at as cell! type 1
+				binary/append-char GET_BUFFER(bin) spec/value
+			]
+
+			default [
+				print-line "** Script error: Invalid argument for TO char!"
+				type/header: TYPE_UNSET
+			]
+		]
+		as red-value! type
+	]
+
 	form: func [
 		c	    [red-char!]
 		buffer  [red-string!]
@@ -196,7 +222,7 @@ char: context [
 			:make
 			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path

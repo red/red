@@ -931,6 +931,53 @@ string: context [
 		as red-value! str
 	]
 	
+	to: func [
+		type	[red-datatype!]
+		spec	[red-string!]
+		return: [red-value!]
+		/local
+			i    [red-integer!]
+			str  [red-string!]
+			bin  [red-binary!]
+			len  [integer!]
+			s    [series!]
+			p    [byte-ptr!]
+			unit [integer!]
+	][
+		switch type/value [
+			TYPE_STRING [
+				s: GET_BUFFER(spec)
+				unit: GET_UNIT(s)
+				--NOT_IMPLEMENTED--
+				;str: string/rs-make-at type 16
+			]
+			TYPE_CHAR [
+				s: GET_BUFFER(spec)
+				unit: GET_UNIT(s)
+				p: (as byte-ptr! s/offset) + (spec/head << (unit >> 1))
+				either p = as byte-ptr! s/tail [
+					print-line {** Script error: cannot MAKE/TO char! from: ""}  ;@@ replace by error!
+					type/header: TYPE_UNSET
+				][
+					i: as red-integer! type
+					i/header: TYPE_CHAR
+					i/value: string/get-char p unit
+				]
+			]
+			TYPE_BINARY [
+				len: unicode/get-utf8-length spec -1 ;-- -1: no part
+				bin: binary/make-at as cell! type len
+				binary/concatenate-str bin spec -1 1 no
+			]
+
+			default [
+				print-line "** Script error: Invalid argument for TO!"
+				type/header: TYPE_UNSET
+			]
+		]
+		as red-value! type
+	]
+
 	form: func [
 		str		  [red-string!]
 		buffer	  [red-string!]
@@ -2116,7 +2163,7 @@ string: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path

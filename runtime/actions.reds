@@ -186,158 +186,40 @@ actions: context [
 	]
 	
 	to*: func [
+		return: [red-value!]
 	][
 		to stack/arguments stack/arguments + 1
 	]
 
 	to: func [
-		type       [red-value!]
-		spec       [red-value!]
+		type	[red-value!]
+		spec	[red-value!]
+		return: [red-value!]
 		/local
-			result    [cell!]
-			red-type  [red-datatype!]
+			action-to
+			d         [red-datatype!]
 			trg-type  [integer!]
 			src-type  [integer!]
-			bin       [red-binary!]
-			bin2      [red-binary!]
-			str       [red-string!]
-			str2      [red-string!]
-			int       [red-integer!]
-			p         [byte-ptr!]
-			p2        [byte-ptr!]
-			tail      [byte-ptr!]
-			s         [series!]
-			len       [integer!]
-			unit      [integer!]
 	][
 		trg-type: TYPE_OF(type)
 		src-type: TYPE_OF(spec)
-		if trg-type = TYPE_DATATYPE [
-			red-type: as red-datatype! type
-			trg-type: red-type/value
+		if trg-type <> TYPE_DATATYPE [
+			d: as red-datatype! type
+			d/header: TYPE_DATATYPE
+			d/value: trg-type
 		]
+		if all [
+			src-type = trg-type
+			not ANY_SERIES?(trg-type)
+		][ return stack/set-last spec ]
 
-		result: as cell! type
+		action-to: as function! [
+			type	[red-datatype!]
+			spec	[red-value!]
+			return: [red-value!]
+		] get-action-ptr-from TYPE_OF(spec) ACT_TO
 
-		switch trg-type [
-			TYPE_STRING [
-				switch src-type [
-					TYPE_BINARY [
-						bin: as red-binary! spec
-						len: binary/get-length bin
-						str: string/rs-make-at result len
-						s: GET_BUFFER(bin)
-						unicode/load-utf8-buffer as c-string! s/offset len + 1 GET_BUFFER(str) null
-					]
-					default [
-						str: string/rs-make-at result 16
-						actions/form spec str null 0
-					]
-				]
-			]
-			TYPE_BINARY [
-				switch src-type [
-					TYPE_STRING [
-						str: as red-string! spec
-						len: unicode/get-utf8-length str -1 ;-- -1: no part
-						bin: binary/make-at result len
-						binary/concatenate-str bin str -1 1 no
-					]
-					TYPE_INTEGER [
-						bin: binary/make-at result 8
-						p: (as byte-ptr! spec)
-						tail: p + 8
-						p: p + 16
-						s: GET_BUFFER(bin)
-						p2: as byte-ptr! s/tail
-						while [p > tail][                  ;@@ I wish to have `loop` in Red/System
-							p2/1: p/0
-							p2: p2 + 1
-							p: p - 1
-						]
-						s/tail: as cell! p2
-					]
-					TYPE_CHAR [
-						bin: binary/make-at result 1
-						int: as red-integer! spec
-						binary/append-char GET_BUFFER(bin) int/value
-					]
-					TYPE_BINARY [
-						bin2: as red-binary! spec
-						len: binary/get-length bin2
-						bin: binary/make-at result len
-						binary/concatenate-bin bin bin2 -1 1 no
-					]
-					default [
-						result/header: TYPE_NONE
-					]
-				]
-			]
-			TYPE_INTEGER [
-				switch src-type [
-					TYPE_CHAR
-					TYPE_INTEGER [
-						int: as red-integer! spec
-						result/header: TYPE_INTEGER
-						result/data2: int/value
-					]
-					TYPE_BINARY [
-						bin: as red-binary! spec
-						s: GET_BUFFER(bin)
-						result/header: TYPE_INTEGER
-						result/data2: binary/get-byte (as byte-ptr! s/offset) + bin/head
-					]
-					default [
-						result/header: TYPE_NONE
-					]
-				]
-			]
-			TYPE_CHAR [
-				switch src-type [
-					TYPE_CHAR
-					TYPE_INTEGER [
-						int: as red-integer! spec
-						result/header: TYPE_CHAR
-						result/data2: int/value
-					]
-					TYPE_STRING [
-						str: as red-string! spec
-						s: GET_BUFFER(str)
-						unit: GET_UNIT(s)
-						p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-						either p = as byte-ptr! s/tail [
-							print-line {** Script error: cannot MAKE/TO char! from: ""}  ;@@ replace by error!
-							result/header: TYPE_NONE
-						][
-							result/header: TYPE_CHAR
-							result/data2: string/get-char p unit
-						]
-					]
-					TYPE_BINARY [
-						bin: as red-binary! spec
-						s: GET_BUFFER(bin)
-						p: (as byte-ptr! s/offset) + bin/head
-						either p = as byte-ptr! s/tail [
-							print-line "** Script error: cannot MAKE/TO char! from: #{}"  ;@@ replace by error!
-							result/header: TYPE_NONE
-						][
-							len: 4
-							result/header: TYPE_CHAR
-							result/data2: unicode/decode-utf8-char as c-string! p :len
-						]
-					]
-					default [
-						result/header: TYPE_NONE
-					]
-				]
-			]
-			default [
-				result/header: TYPE_NONE
-			]
-		]
-
-		stack/pop 1 ;removes the spec, result is on stack
-		
+		action-to as red-datatype! type spec
 	]
 
 	form*: func [
