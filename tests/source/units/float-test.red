@@ -65,6 +65,14 @@ Red [
 
 	--test-- "float-arctangent-2"
 		--assert 45 = arctangent 1
+
+	--test-- "float-arctangent2-1"
+		--assertf~=  3.1415926535898  arctangent2 0 -1
+		--assertf~=  3.1415926535898  arctangent2 0.0 -1.0
+		--assertf~= -1.5707963267949  arctangent2 -1 0
+		--assertf~= -0.78539816339745 arctangent2 -1 1
+		--assertf~= -0.78539816339745 arctangent2 -1.5 1.5
+
 ===end-group===
 
 ===start-group=== "float function arguments"

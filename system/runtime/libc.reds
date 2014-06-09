@@ -89,6 +89,11 @@ Red/System [
 			radians		[float!]
 			return:		[float!]
 		]
+		atan2:		 "atan2" [
+			y		    [float!]
+			x		    [float!]
+			return:		[float!]
+		]
 		ldexp:		"ldexp" [
 			value		[float!]
 			exponent	[integer!]
