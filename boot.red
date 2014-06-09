@@ -996,7 +996,7 @@ arctangent: make native! [[
 ]
 arctangent2: make native! [[
 		"Returns the angle of the point y/x in radians, when measured counterclockwise from a circle's x axis (where 0x0 represents the center of the circle). The return value is between -pi and +pi."
-		y	    [number!]
+		y       [number!]
 		x       [number!]
 		return: [float!]
 	]
