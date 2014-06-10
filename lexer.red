@@ -280,7 +280,7 @@ transcode: function [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^(7F)")
 			]
-			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+			| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 				value: trans-char pos e
 			)
 		] #")"
