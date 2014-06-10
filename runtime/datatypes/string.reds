@@ -140,13 +140,13 @@ string: context [
 			e		[integer!]
 			expon	[integer!]
 			unit	[integer!]
+			str     [series!]
 	][
 		str:  GET_BUFFER(start)
 		unit: GET_UNIT(str)
 		p:	  string/rs-head start
 		neg?: no
 		d:	  0.0
-
 		c: string/get-char p unit
 		if any [
 			c = as-integer #"+"
@@ -201,7 +201,7 @@ string: context [
 					p: p + unit
 					len: len - 1
 				]
-				expon: as-integer curr - p
+				expon: (as-integer curr - p) >> (unit >> 1)
 			]
 
 			if len > 0 [									;-- handle scientific notation
@@ -213,7 +213,6 @@ string: context [
 				]
 			]
 		]
-
 		if expon <> 0 [
 			e: (either expon < 0 [0 - expon][expon])
 			d: either e <= size? fract10 [
