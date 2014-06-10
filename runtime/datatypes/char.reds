@@ -83,10 +83,16 @@ char: context [
 		spec	[red-integer!]
 		return: [red-value!]
 		/local
+			int  [red-integer!]
 			str  [red-string!]
 			bin  [red-binary!]
 	][
 		switch type/value [
+			TYPE_INTEGER [
+				int: as red-integer! type
+				int/header: TYPE_INTEGER
+				int/value: spec/value
+			]
 			TYPE_STRING [                                      ;@@ optimize this
 				str: string/rs-make-at as cell! type 16
 				actions/form as red-value! spec str null 0
