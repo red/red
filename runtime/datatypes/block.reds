@@ -566,10 +566,7 @@ block: context [
 			i: i + 1
 			value: s/offset + i
 			
-			if all [
-				part <> prev
-				value < s/tail
-			][
+			if value < s/tail [
 				buf:  GET_BUFFER(buffer)
 				unit: GET_UNIT(buf)
 				c: string/get-char (as byte-ptr! buf/tail) - unit unit
@@ -590,11 +587,6 @@ block: context [
 		if s/offset < s/tail [
 			unit: GET_UNIT(s)
 			i: string/get-char (as byte-ptr! s/tail) - unit unit
-			
-			if i = as-integer space [
-				s/tail: as red-value! ((as byte-ptr! s/tail) - unit)  ;-- trim tail space
-				part: part + 1
-			]
 		]
 		part
 	]
