@@ -359,7 +359,7 @@ transcode: function [
 	path-rule: [
 		ahead slash (									;-- path detection barrier
 			trans-push-path stack type					;-- create empty path
-			trans-word stack copy/part s e type			;-- push 1st path element
+			trans-word stack copy/part s e word!		;-- push 1st path element
 		)
 		some [
 			slash
