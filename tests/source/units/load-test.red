@@ -44,6 +44,18 @@ Red [
 	--test-- "load-p4" --assert 'abc = load/part skip src 3 3
 
 ===end-group===
-    
+ 
+===start-group=== "LOAD floats test"
+
+	--test-- "load-30" --assert "123.0"	 = mold load "123.0"
+	--test-- "load-31" --assert "1.123"  = mold load "1.123"
+	--test-- "load-32" --assert "0.123"  = mold load ".123"
+	--test-- "load-33" --assert "100.0"  = mold load "1E2"
+	--test-- "load-34" --assert "1200.0" = mold load "1.2E3"
+	--test-- "load-35" --assert "10.0"   = mold load ".1E2"
+	--test-- "load-36" --assert "12.3"   = mold load ".123E2"
+
+===end-group===
+
 ~~~end-file~~~
 

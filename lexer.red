@@ -10,9 +10,10 @@ Red [
 	}
 ]
 
-trans-integer: routine [
-	start [string!]
-	end	  [string!]
+trans-number: routine [
+	start  [string!]
+	end	   [string!]
+	float? [logic!]
 	/local
 		c	 [integer!]
 		n	 [integer!]
@@ -21,6 +22,10 @@ trans-integer: routine [
 		p	 [byte-ptr!]
 		neg? [logic!]
 ][
+	if float? [
+		trans-float start end							;-- decimal! escape path
+		exit
+	]
 	str:  GET_BUFFER(start)
 	unit: GET_UNIT(str)
 	p:	  string/rs-head start
@@ -60,7 +65,7 @@ trans-integer: routine [
 	integer/box either neg? [0 - n][n]
 ]
 
-trans-decimal: routine [
+trans-float: routine [
 	start [string!]
 	end	  [string!]
 ][
@@ -371,7 +376,7 @@ transcode: function [
 		some [
 			slash
 			s: [
-				integer-number-rule			(trans-store stack trans-integer s e)
+				integer-number-rule			(trans-store stack trans-number s e no)
 				| begin-symbol-rule			(trans-word stack copy/part s e word!)
 				| paren-rule
 				| #":" s: begin-symbol-rule	(trans-word stack copy/part s e get-word!)
@@ -425,18 +430,18 @@ transcode: function [
 	
 	integer-rule: [
 		integer-number-rule
+		opt [float-number-rule | float-exp-rule e: (type: float!)]
 		ahead [integer-end | ws-no-count | end]
 	]
-
-	decimal-number-rule: [
-		[integer-number-rule | #"." | #","]						;-- first part
-		opt [[#"." | #","] any digit]							;-- second part
-		opt [opt [#"e" | #"E"] opt [#"-" | #"+"] some digit]	;-- third part
-		e:
+	
+	float-exp-rule: [[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
+	
+	float-number-rule: [
+		[dot | comma] some digit opt float-exp-rule e: (type: float!)
  	]
  	
- 	decimal-rule: [
- 		decimal-number-rule
+ 	float-rule: [
+ 		float-number-rule
  		ahead [integer-end | ws-no-count | end]
  	]
 	
@@ -500,8 +505,8 @@ transcode: function [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule		(trans-store stack value)
-			| integer-rule		if (value: trans-integer s e ) (trans-store stack value)
-			| decimal-rule		if (value: trans-decimal s e ) (trans-store stack value)
+			| integer-rule		if (value: trans-number s e type = float!) (trans-store stack value)
+			| float-rule		if (value: trans-float s e ) (trans-store stack value)
 			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
