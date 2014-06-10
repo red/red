@@ -48,7 +48,6 @@ Red/System [
 			char		[byte!]
 		]
 		printf: 	 "printf" [[variadic]]
-		sprintf:	 "sprintf" [[variadic]]
 	]
 
 	LIBM-file cdecl [
