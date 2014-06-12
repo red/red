@@ -146,8 +146,10 @@ _function: context [
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
 		extern: as red-block! block/find spec value null no no no null null no no no no
-		extern?: TYPE_OF(extern) <> TYPE_NONE
-		
+		extern?: all [
+			TYPE_OF(extern) <> TYPE_NONE				;-- first check if something is found
+			TYPE_OF(extern) = TYPE_REFINEMENT			;-- ensure it is not another word type
+		]
 		if extern? [
 			s: GET_BUFFER(spec)
 			s/tail: s/offset + extern/head				;-- cut /extern and extern words out			
