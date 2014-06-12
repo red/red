@@ -1243,14 +1243,19 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos ignore words rule word][
+	collect-words: func [spec [block!] body [block!] /local pos end ignore words rule word][
 		if pos: find spec /extern [
-			ignore: pos/2
+			either end: find next pos refinement! [
+				ignore: copy/part next pos end
+				remove/part spec pos end
+			][
+				ignore: copy next pos
+				clear pos
+			]
 			unless empty? intersect ignore spec [
 				pc: skip pc -2
 				throw-error ["duplicate word definition in function:" pc/1]
 			]
-			clear pos
 		]
 		foreach item spec [								;-- add all arguments to ignore list
 			if find [word! lit-word! get-word!] type?/word item [

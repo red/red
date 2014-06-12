@@ -404,11 +404,13 @@ transcode: function [
 	]
 
 	refinement-rule: [
-		slash (type: refinement!) s: symbol-rule
+		slash [
+			some slash (type: word!) e:					;--  ///... case
+			| ahead [not-word-char | ws-no-count | control-char] (type: word!) e: ;-- / case
+			| symbol-rule (type: refinement! s: next s)
+		]
 		(trans-word stack copy/part s e type)
 	]
-
-	slash-rule: [s: [slash opt slash] e:]
 
 	hexa-rule: [2 8 hexa e: #"h"]
 	
@@ -486,7 +488,6 @@ transcode: function [
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
-			| slash-rule		(trans-word stack copy/part s e word!)
 			| refinement-rule
 			| file-rule			(trans-store stack value: do process)
 			| char-rule			(trans-store stack value)
