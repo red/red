@@ -59,175 +59,59 @@ string: context [
 
 	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
 
-	fract10: [
-		1.0E+001 1.0E+002 1.0E+003 1.0E+004 1.0E+005 1.0E+006 1.0E+007 1.0E+008 1.0E+009 1.0E+010
-		1.0E+011 1.0E+012 1.0E+013 1.0E+014 1.0E+015 1.0E+016 1.0E+017 1.0E+018 1.0E+019 1.0E+020
-		1.0E+021 1.0E+022 1.0E+023 1.0E+024 1.0E+025 1.0E+026 1.0E+027 1.0E+028 1.0E+029 1.0E+030
-		1.0E+031 1.0E+032 1.0E+033 1.0E+034 1.0E+035 1.0E+036 1.0E+037 1.0E+038 1.0E+039 1.0E+040
-		1.0E+041 1.0E+042 1.0E+043 1.0E+044 1.0E+045 1.0E+046 1.0E+047 1.0E+048 1.0E+049 1.0E+050
-		1.0E+051 1.0E+052 1.0E+053 1.0E+054 1.0E+055 1.0E+056 1.0E+057 1.0E+058 1.0E+059 1.0E+060
-		1.0E+061 1.0E+062 1.0E+063 1.0E+064 1.0E+065 1.0E+066 1.0E+067 1.0E+068 1.0E+069 1.0E+070
-		1.0E+071 1.0E+072 1.0E+073 1.0E+074 1.0E+075 1.0E+076 1.0E+077 1.0E+078 1.0E+079 1.0E+080
-		1.0E+081 1.0E+082 1.0E+083 1.0E+084 1.0E+085 1.0E+086 1.0E+087 1.0E+088 1.0E+089 1.0E+090
-		1.0E+091 1.0E+092 1.0E+093 1.0E+094 1.0E+095 1.0E+096 1.0E+097 1.0E+098 1.0E+099 1.0E+100
-		1.0E+101 1.0E+102 1.0E+103 1.0E+104 1.0E+105 1.0E+106 1.0E+107 1.0E+108 1.0E+109 1.0E+110
-		1.0E+111 1.0E+112 1.0E+113 1.0E+114 1.0E+115 1.0E+116 1.0E+117 1.0E+118 1.0E+119 1.0E+120
-		1.0E+121 1.0E+122 1.0E+123 1.0E+124 1.0E+125 1.0E+126 1.0E+127 1.0E+128 1.0E+129 1.0E+130
-		1.0E+131 1.0E+132 1.0E+133 1.0E+134 1.0E+135 1.0E+136 1.0E+137 1.0E+138 1.0E+139 1.0E+140
-		1.0E+141 1.0E+142 1.0E+143 1.0E+144 1.0E+145 1.0E+146 1.0E+147 1.0E+148 1.0E+149 1.0E+150
-		1.0E+151 1.0E+152 1.0E+153 1.0E+154 1.0E+155 1.0E+156 1.0E+157 1.0E+158 1.0E+159 1.0E+160
-		1.0E+161 1.0E+162 1.0E+163 1.0E+164 1.0E+165 1.0E+166 1.0E+167 1.0E+168 1.0E+169 1.0E+170
-		1.0E+171 1.0E+172 1.0E+173 1.0E+174 1.0E+175 1.0E+176 1.0E+177 1.0E+178 1.0E+179 1.0E+180
-		1.0E+181 1.0E+182 1.0E+183 1.0E+184 1.0E+185 1.0E+186 1.0E+187 1.0E+188 1.0E+189 1.0E+190
-		1.0E+191 1.0E+192 1.0E+193 1.0E+194 1.0E+195 1.0E+196 1.0E+197 1.0E+198 1.0E+199 1.0E+200
-		1.0E+201 1.0E+202 1.0E+203 1.0E+204 1.0E+205 1.0E+206 1.0E+207 1.0E+208 1.0E+209 1.0E+210
-		1.0E+211 1.0E+212 1.0E+213 1.0E+214 1.0E+215 1.0E+216 1.0E+217 1.0E+218 1.0E+219 1.0E+220
-		1.0E+221 1.0E+222 1.0E+223 1.0E+224 1.0E+225 1.0E+226 1.0E+227 1.0E+228 1.0E+229 1.0E+230
-		1.0E+231 1.0E+232 1.0E+233 1.0E+234 1.0E+235 1.0E+236 1.0E+237 1.0E+238 1.0E+239 1.0E+240
-		1.0E+241 1.0E+242 1.0E+243 1.0E+244 1.0E+245 1.0E+246 1.0E+247 1.0E+248 1.0E+249 1.0E+250
-		1.0E+251 1.0E+252 1.0E+253 1.0E+254 1.0E+255 1.0E+256 1.0E+257 1.0E+258 1.0E+259 1.0E+260
-		1.0E+261 1.0E+262 1.0E+263 1.0E+264 1.0E+265 1.0E+266 1.0E+267 1.0E+268 1.0E+269 1.0E+270
-		1.0E+271 1.0E+272 1.0E+273 1.0E+274 1.0E+275 1.0E+276 1.0E+277 1.0E+278 1.0E+279 1.0E+280
-		1.0E+281 1.0E+282 1.0E+283 1.0E+284 1.0E+285 1.0E+286 1.0E+287 1.0E+288 1.0E+289 1.0E+290
-		1.0E+291 1.0E+292 1.0E+293 1.0E+294 1.0E+295 1.0E+296 1.0E+297 1.0E+298 1.0E+299 1.0E+300
-		1.0E+301 1.0E+302 1.0E+303 1.0E+304 1.0E+305 1.0E+306 1.0E+307 1.0E+308
-	]
-
-	_parse-exponent: func [
-		p		[byte-ptr!]
-		len		[integer!]
-		unit	[integer!]
-		return: [integer!]
-		/local
-			c	 [integer!]
-			n	 [integer!]
-			neg? [logic!]
-	][
-		neg?: no
-
-		c: string/get-char p unit
-		if any [
-			c = as-integer #"+"
-			c = as-integer #"-"
-		][
-			neg?: c = as-integer #"-"
-			p: p + unit
-			len: len - 1
-		]
-		n: 0
-		until [
-			c: (string/get-char p unit) - #"0"
-			n: n * 10
-			n: n + c
-			p: p + unit
-			len: len - 1
-			zero? len
-		]
-		either neg? [0 - n][n]
-	]
-
 	to-float: func [
 		start		[red-string!]
 		len			[integer!]
 		return:		[float!]
 		/local
-			c		[integer!]
-			d		[float!]
-			m		[float!]
-			p		[byte-ptr!]
-			curr	[byte-ptr!]
-			neg?	[logic!]
-			e		[integer!]
-			expon	[integer!]
+			str		[series!]
+			cp		[integer!]
 			unit	[integer!]
+			s0		[byte-ptr!]
+			p4	 	[int-ptr!]
+			p		[byte-ptr!]
+			tail	[byte-ptr!]
+			cur		[byte-ptr!]
+			f		[float!]
 	][
 		str:  GET_BUFFER(start)
 		unit: GET_UNIT(str)
-		p:	  string/rs-head start
-		neg?: no
-		d:	  0.0
+		p:	  (as byte-ptr! str/offset) + (start/head << (unit >> 1))
+		tail: p + (len << (unit >> 1))
+		cur:  as byte-ptr! "0000000000000000000000000000000"
+		if len > 31 [cur: allocate len + 1]
+		s0:   cur
 
-		c: string/get-char p unit
-		if any [
-			c = as-integer #"+"
-			c = as-integer #"-"
-		][
-			neg?: c = as-integer #"-"
-			p: p + unit
-			len: len - 1
-		]
-
-		while [												;-- skip leading zero
-			c: string/get-char p unit
-			all [
-				any [c = as-integer #"'" c = as-integer #"0"]
-				len > 0
+		while [p < tail][								;-- convert to ascii string
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
 			]
-		][
-			p: p + unit
-			len: len - 1
-		]
-
-		if zero? len [return either neg? [-0.0][0.0]]
-
-		while [
-			c: (string/get-char p unit) - #"0"
-			any [
-				c = -9										;-- c: #"'"(39) - #"0"(48)
-				all [c >= 0 c < 10 len > 0]
-			]
-		][
-			p: p + unit
-			len: len - 1
-			if c <> -9 [
-				d: d * 10.0
-				d: d + (integer/to-float c)					;@@ remove this conversion
-			]
-		]
-
-		expon: 0
-		if len > 0 [
-			c: string/get-char p unit
-			if any [c = as-integer #"." c = as-integer #","] [
-				p: p + unit
-				len: len - 1
-				curr: p
-				while [
-					c: (string/get-char p unit) - #"0"
-					all [c >= 0 c < 10 len > 0]
+			case [
+				all [cp >= 30h cp <= 39h] [				;-- digits
+					cur/1: as-byte cp
+				]
+				any [									;-- #"-" #"+" #".", #"E", #"e"
+					cp = 2Dh cp = 2Bh cp = 2Eh cp = 45h cp = 65h
+					cp = 2Ch							;-- #","
 				][
-					d: d * 10.0
-					d: d + (integer/to-float c)				;@@ remove this conversion
-					p: p + unit
-					len: len - 1
+					cur/1: as-byte cp
 				]
-				expon: as-integer curr - p
-			]
-
-			if len > 0 [									;-- handle scientific notation
-				c: string/get-char p unit
-				if any [c = as-integer #"e" c = as-integer #"E"] [
-					p: p + unit
-					len: len - 1
-					expon: expon + (_parse-exponent p len unit)
+				cp = 27h [cur: cur - 1]					;-- skip #"'"
+				true [
+					cur/1: #"^@"
+					print-line ["** Syntax error: invalid decimal -- " as c-string! s0]
+					return 0.0							;@@ cause an error
 				]
 			]
+			cur: cur + 1
+			p: p + unit
 		]
-
-		if expon <> 0 [
-			e: (either expon < 0 [0 - expon][expon])
-			d: either e <= size? fract10 [
-				either expon > 0 [d * fract10/e][d / fract10/e]
-			][												;-- expon > 308
-				either expon < 0 [
-					c: e - 308
-					d / fract10/c / 1.0E308					;--@@ check -INF ?
-				][
-					float/DOUBLE_MAX						;-- INF
-				]
-			]
-		]
-		either neg? [0.0 - d][d]
+		cur/1: #"^@"
+		f: red-dtoa/string-to-float s0 cur
+		if len > 31 [free s0]
+		f
 	]
 
 	to-hex: func [
