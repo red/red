@@ -10,12 +10,16 @@ Red/System [
 	}
 ]
 
-#define DBL_EPSILON	2.2204460492503131E-16
+#define FLOAT_TRUNC(x) ((either (x) < 0.0 [-1.0][1.0]) * (floor float/abs x))
+#define FLOAT_AWAY(x) ((either (x) < 0.0 [-1.0][1.0]) * (ceil float/abs x))
+#define DBL_EPSILON		2.2204460492503131E-16
 
 float: context [
 	verbose: 4
 
 	DOUBLE_MAX: 1.0E308 + 1.0E308						;-- tricky way to present INF
+
+	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
 
 	abs: func [
 		value	[float!]
@@ -82,6 +86,72 @@ float: context [
 		f: number + 6755399441055744.0
 		d: as int-ptr! :f
 		d/value
+	]
+
+	form-float: func [
+		f 		[float!]
+		return: [c-string!]
+		/local
+			s	[byte-ptr!]
+			end [byte-ptr!]
+			ss	[c-string!]
+			sig [integer!]
+			e 	[integer!]
+			len [integer!]
+	][
+		e: 0
+		len: 0
+		sig: 0
+		s: as byte-ptr! red-dtoa/float-to-ascii f :e :sig :len
+
+		if e > 9997 [return as c-string! s]				;-- NaN, INFs, +/-0.0
+
+		case [
+			 any [e > 17 e < -5][						;-- e-format
+				move-memory s + 2 s + 1 len
+				s/2: #"."
+				end: s + len
+			]
+			e > 0 [
+				either e <= len [
+					move-memory s + e + 1 s + e len - e
+					e: e + 1
+					s/e: #"."
+					end: s + len
+				][
+					set-memory s + len #"0" e - len
+					e: e + 1
+					s/e: #"."
+					end: s + e
+				]
+				e: 0
+			]
+			true [
+				e: 0 - e + 2
+				move-memory s + e s len + 1
+				set-memory s #"0" e
+				s/2: #"."
+				end: s + len + e
+				e: 0
+			]
+		]
+
+		if end/1 = #"." [
+			end: end + 1
+			end/1: #"0"
+		]
+		if e <> 0 [
+			end: end + 1
+			end/1: #"e"
+			ss: integer/form-signed e - 1
+			len: length? ss
+			copy-memory end + 1 as byte-ptr! ss len
+			end: end + len
+		]
+
+		end/2: #"^@"
+		if sig <> 0 [s: s - 1]
+		as c-string! s
 	]
 
 	do-math: func [
@@ -198,6 +268,29 @@ float: context [
 		f
 	]
 
+	to: func [
+		type	[red-datatype!]
+		spec	[red-float!]
+		return: [red-value!]
+		/local
+			int [red-integer!]
+			f	[float!]
+	][
+		f: spec/value
+		switch type/value [
+			TYPE_INTEGER [
+				int: as red-integer! type
+				int/header: TYPE_INTEGER
+				int/value: to-integer either f < 0.0 [f + 0.499999999999999][f - 0.499999999999999]
+			]
+			default [
+				print-line "** Script error: Invalid argument for TO float!"
+				type/header: TYPE_UNSET
+			]
+		]
+		as red-value! type
+	]
+
 	form: func [
 		fl		   [red-float!]
 		buffer	   [red-string!]
@@ -209,9 +302,7 @@ float: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/form"]]
 
-		formed: "000000000000000000000000000000"						;-- 30 bytes wide, big enough.
-		sprintf [formed "%.14g" fl/value]
-		
+		formed: form-float fl/value
 		string/concatenate-literal buffer formed
 		part - length? formed							;@@ optimize by removing length?
 	]
@@ -231,8 +322,6 @@ float: context [
 
 		form fl buffer arg part
 	]
-
-	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
 
 	NaN?: func [
 		value	[float!]
@@ -448,9 +537,6 @@ float: context [
 		false
 	]
 
-	#define FLOAT_TRUNC(x) ((either (x) < 0.0 [-1.0][1.0]) * (floor float/abs x))
-	#define FLOAT_AWAY(x) ((either (x) < 0.0 [-1.0][1.0]) * (ceil float/abs x))
-
 	round: func [
 		value		[red-value!]
 		scale		[red-float!]
@@ -540,7 +626,7 @@ float: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			null			;eval-path

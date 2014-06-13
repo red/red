@@ -26,6 +26,7 @@ write %build/bin/sources.r set-cache [
 		%natives.reds
 		%parse.reds
 		%random.reds
+		%dtoa.reds
 		%red.reds
 		%stack.reds
 		%stack.reds
