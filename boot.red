@@ -506,7 +506,20 @@ take: make action! [[
 	]
 	#get-definition ACT_TAKE
 ]
-;trim
+
+trim: make action! [[
+		"Removes space from a string or NONE from a block or object."
+		series	[series! object! error! module!]
+		/head	"Removes only from the head"
+		/tail	"Removes only from the tail"
+		/auto	"Auto indents lines relative to first line"
+		/lines	"Removes all line breaks and extra spaces"
+		/all	"Removes all whitespace"
+		/with	"Same as /all, but removes characters in 'str'"
+			str [char! string! binary! integer!]
+	]
+	#get-definition ACT_TRIM
+]
 
 ;-- I/O actions --
 

@@ -875,5 +875,41 @@ Red [
 
 ===end-group===
 
+===start-group=== "trim"
+
+	str: " ^(A0) ^-a b  ^- c  ^(2000) "
+	mstr: {   a ^-1^/    ab2^-  ^/  ac3  ^/  ^/^/}
+
+	--test-- "trim-str-1"
+		--assert "a b  ^- c" = trim copy str
+
+	--test-- "trim-str-2"
+		--assert "a ^-1^/ab2^/ac3^/" = trim copy mstr
+
+	--test-- "trim-str-3"
+		--assert "a ^-1^/    ab2^-  ^/  ac3  ^/  ^/^/" = trim/head copy mstr
+
+	--test-- "trim-str-4"
+		--assert "   a ^-1^/    ab2^-  ^/  ac3" = trim/tail copy mstr
+
+	--test-- "trim-str-5"
+		--assert "a ^-1^/    ab2^-  ^/  ac3" = trim/head/tail copy mstr
+
+	--test-- "trim-str-6"
+		--assert "a 1 ab2 ac3" = trim/lines copy mstr
+
+	--test-- "trim-str-7"
+		--assert "a1ab2ac3" = trim/all copy mstr
+
+	--test-- "trim-str-8"
+		--assert "    ^-1^/    2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr "ab"
+
+	--test-- "trim-str-9"
+		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
+
+	--test-- "trim-str-10"
+		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
+===end-group===
+
 ~~~end-file~~~
 

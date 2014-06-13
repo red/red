@@ -1147,7 +1147,53 @@ actions: context [
 		action-take series part deep? last?
 	]
 
-	trim*: func [][]
+	trim*: func [
+		head	[integer!]
+		tail	[integer!]
+		auto	[integer!]
+		lines	[integer!]
+		_all	[integer!]
+		with-arg [integer!]
+		return:	[red-series!]
+	][
+		trim
+			as red-series! stack/arguments
+			as logic! head  + 1
+			as logic! tail  + 1
+			as logic! auto  + 1
+			as logic! lines + 1
+			as logic! _all  + 1
+			stack/arguments + with-arg
+	]
+
+	trim: func [
+		series  [red-series!]
+		head?	[logic!]
+		tail?	[logic!]
+		auto?	[logic!]
+		lines?	[logic!]
+		all?	[logic!]
+		with-arg [red-value!]
+		return:	[red-series!]
+		/local
+			action-trim
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/trim"]]
+
+		action-trim: as function! [
+			series  [red-series!]
+			head?	[logic!]
+			tail?	[logic!]
+			auto?	[logic!]
+			lines?	[logic!]
+			all?	[logic!]
+			with-arg [red-value!]
+			return:	[red-series!]
+		] get-action-ptr as red-value! series ACT_TRIM
+
+		action-trim series head? tail? auto? lines? all? with-arg
+	]
+
 	create*: func [][]
 	close*: func [][]
 	delete*: func [][]
@@ -1217,7 +1263,7 @@ actions: context [
 			:tail*
 			:tail?*
 			:take*
-			null			;trim
+			:trim*
 			;-- I/O actions --
 			null			;create
 			null			;close
