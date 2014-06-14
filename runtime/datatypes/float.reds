@@ -17,9 +17,12 @@ Red/System [
 float: context [
 	verbose: 4
 
-	DOUBLE_MAX: 1.0E308 + 1.0E308						;-- tricky way to present INF
-
 	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
+
+	DOUBLE_MAX: 0.0										;-- rebol can't load INF
+	double-int-union: as uint64! :DOUBLE_MAX			;-- set to largest number
+	double-int-union/int2: as byte-ptr! 7FEFFFFFh
+	double-int-union/int1: as byte-ptr! FFFFFFFFh
 
 	abs: func [
 		value	[float!]
@@ -120,9 +123,9 @@ float: context [
 					end: s + len
 				][
 					set-memory s + len #"0" e - len
+					end: s + e
 					e: e + 1
 					s/e: #"."
-					end: s + e
 				]
 				e: 0
 			]
