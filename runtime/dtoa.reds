@@ -9,13 +9,16 @@ Red/System [
 		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
 	}
 	Notes: {
-		This file partially port dtoa.c by David M. Gay, downloaded from
-		http://www.netlib.org/fp/dtoa.c to the Red/System.
+		This file partially port dtoa.c(by David M. Gay, downloaded from
+		http://www.netlib.org/fp/dtoa.c) to the Red runtime.
 
 		Please remember to check http://www.netlib.org/fp regularly (
 		and especially before any Red release) for bugfixes and updates.
 
-		!! Now only support mode 0 for `dtoa` function !!
+		FYI: a more readable version from Python, in %Python/dtoa.c
+		http://hg.python.org/cpython
+
+		!! For `dtoa`, only support mode 0 now !!
 	}
 ]
 
@@ -45,15 +48,21 @@ Red/System [
 #define FRAC_MASK		000FFFFFh
 #define FRAC_MASK1		000FFFFFh
 #define TEN_PMAX		22
-#define BLETCH			10h
 #define BNDRY_MASK		000FFFFFh
 #define BNDRY_MASK1 	000FFFFFh
 #define SIGN_BIT		80000000h
 #define LOG2P			1
 #define TINY0			0
 #define TINY1			1
-#define QUICK_MAX		14
 #define INT_MAX			14
+
+#define FLT_RADIX		2.0						;@@ value for machines except the IBM 360 and derivatives
+#define DBL_MAX_10_EXP	308						;@@ value for IEEE_Arith
+#define DBL_MAX_EXP		1024					;@@ value for IEEE_Arith
+#define N_BIGTENS		5
+
+#define BIG_0			[(FRAC_MASK1 or (DBL_MAX_EXP + BIAS - 1 * EXP_MSK1))]
+#define BIG_1			FFFFFFFFh
 
 red-dtoa: context [
 	P05:  [5 25 125]
@@ -62,6 +71,9 @@ red-dtoa: context [
 		1e10 1e11 1e12 1e13 1e14 1e15 1e16 1e17 1e18 1e19
 		1e20 1e21 1e22
 	]
+	BIGTENS:  [1e16 1e32 1e64 1e128 1e256]
+	TINYTENS: [1e-16 1e-32 1e-64 1e-128 0.0]
+	TINYTENS/5: 9007199254740992.0 * 9007199254740992e-256
 
 	int64!: alias struct! [int1 [integer!] int2 [integer!]]
 
@@ -72,6 +84,13 @@ red-dtoa: context [
 		sign	[integer!]
 		wds		[integer!]
 		x		[integer!]
+	]
+
+	cmp-info!: alias struct! [
+		e0		[integer!]
+		nd		[integer!]
+		nd0		[integer!]
+		scale	[integer!]
 	]
 
 	Balloc: func [
@@ -100,7 +119,7 @@ red-dtoa: context [
 	]
 
 	#define Bcopy(x y) [
-		copy-memory (as byte-ptr! x + 12) (as byte-ptr! y + 12) (y/wds * 4 + 8)
+		copy-memory (as byte-ptr! x) + 12 (as byte-ptr! y) + 12 (y/wds * 4 + 8)
 	]
 
 	Bmultiply: func [							;-- multiply two Bigints. Ignores the signs of a and b.
@@ -455,6 +474,7 @@ red-dtoa: context [
 		sx: BIG_INT_X(s)
 		bx: BIG_INT_X(b)
 		q: bx/n / (sx/n + 1)					;-- ensure q <= true quotient
+		q: either q < 0 [0 - q][q]
 		n: n - 1
 		sxe: sx + n
 		bxe: bx + n
@@ -519,6 +539,35 @@ red-dtoa: context [
 		q
 	]
 
+	Bratio: func [						;-- Compute the ratio of two Bigints, as a double
+		a		[big-int!]
+		b		[big-int!]
+		return: [float!]
+		/local
+			fa	[float!]
+			fb	[float!]
+			da	[int64!]
+			db	[int64!]
+			k	[integer!]
+			ka	[integer!]
+			kb	[integer!]
+	][
+		ka: 0
+		kb: 0
+		fa: big-to-float a :ka
+		fb: big-to-float b :kb
+		da: as int64! :fa
+		db: as int64! :fb
+		k: 32 * (a/wds - b/wds) + ka - kb
+		either k > 0 [
+			da/int2: da/int2 + (k * EXP_MSK1)
+		][
+			k: 0 - k
+			db/int2: db/int2 + (k * EXP_MSK1)
+		]
+		fa / fb
+	]
+
 	hi0bits: func [						;-- count leading 0 bits in the 32-bit integer x
 		x		[integer!]
 		return: [integer!]
@@ -578,6 +627,41 @@ red-dtoa: context [
 		b
 	]
 
+	big-to-float: func [
+		a		[big-int!]
+		e		[int-ptr!]
+		return: [float!]
+		/local
+			xa xa0 w y z k d f
+	][
+		d:   declare int64!
+		f:   as pointer! [float!] d
+		xa0: BIG_INT_X(a)
+		xa:  xa0 + a/wds - 1
+		y:   xa/value
+
+		k: hi0bits y
+		e/value: 32 - k
+		if k < EBITS [
+			d/int2: EXP_1 or (y >>> (EBITS - k))
+			w: either xa > xa0 [xa: xa - 1 xa/value][0]
+			d/int1: y << (32 - EBITS + k) or (w >>> (EBITS - k))
+			return f/value
+		]
+
+		z: either xa > xa0 [xa: xa - 1 xa/value][0]
+		k: k - EBITS
+		either k <> 0 [
+			d/int2: EXP_1 or (y << k) or (z >>> (32 - k))
+			y: either xa > xa0 [xa: xa - 1 xa/value][0]
+			d/int1: z << k or (y >>> (32 - k))
+		][
+			d/int2: EXP_1 or y
+			d/int1: z
+		]
+		return f/value
+	]
+
 	float-to-big: func [
 		f		[float!]
 		e		[int-ptr!]
@@ -586,12 +670,11 @@ red-dtoa: context [
 		/local
 			d b de k x y z i w0
 	][
-		b: Balloc 1
-		x: BIG_INT_X(b)
-
-		d: as int64! :f
+		b:  Balloc 1
+		x:  BIG_INT_X(b)
+		d:  as int64! :f
 		w0: WORD_0(d)
-		z: w0 and FRAC_MASK
+		z:  w0 and FRAC_MASK
 		w0: w0 and 7FFFFFFFh			;-- clear sign bit, which we ignore
 		d/int2: w0						;@@ little endian or big endian ?
 
@@ -693,18 +776,18 @@ red-dtoa: context [
 			spec_case L denorm x d d2 sign?
 			b b1 delta ds s s0 w0 w1 ww0
 	][
-		s0: "-000000000000000000000000000000"		;-- 32 bits including ending null char
-		s: s0 + 1
-		s0: s
-		mlo: null
-		mhi: null
-		SS: null
-		k: 0
+		s0:    "-000000000000000000000000000000"		;-- 32 bits including ending null char
+		s:     s0 + 1
+		s0:    s
+		mlo:   null
+		mhi:   null
+		SS:    null
+		k:     0
 		fsave: 0.0
-		kf: 0.0
-		d: as int64! :f
-		w0: WORD_0(d)
-		w1: WORD_1(d)
+		kf:    0.0
+		d:     as int64! :f
+		w0:    WORD_0(d)
+		w1:    WORD_1(d)
 
 		either zero? (w0 and SIGN_BIT) [
 			sign?: no
@@ -794,7 +877,7 @@ red-dtoa: context [
 			until [
 				L: float/to-integer floor (f / ds)
 				f: f - (ds * uint-to-float L)
-				s/1: #"0" + L
+				s/1: #"0" + as byte! L
 				s: s + 1
 				f: f * 10.0
 				f = 0.0
@@ -934,23 +1017,766 @@ red-dtoa: context [
 				mhi: Bmult-add mhi 10 0
 			]
 		]
-
-		b: Blshift b 1
-		j: Bcmp b SS
-		either any [
-			j > 0
-			all [zero? j (as-integer dig) and 1 <> 0]
-		][
-			DTOA_ROUND_OFF
-		][
-			until [
-				s: s - 1
-				s/1 <> #"0"
-			]
-			s: s + 1
-		]
-		DTOA_RETERN
+		s0
 	]
 
-	;strtod: func [][]
+	string-to-big: func [
+		s		[byte-ptr!]
+		nd0		[integer!]
+		nd		[integer!]
+		y9		[integer!]
+		return: [big-int!]
+		/local
+			b i k x y
+	][
+		x: nd + 8 / 9
+		k: 0
+		y: 1
+		while [x > y][y: y << 1 k: k + 1]
+
+		b: Balloc k
+		b/x: y9
+		b/wds: 1
+
+		if nd <= 9 [return b]
+
+		s: s + 9
+		i: 9
+		while [i < nd0][
+			b: Bmult-add b 10 as-integer s/1 - #"0"
+			s: s + 1
+			i: i + 1
+		]
+
+		s: s + 1
+		while [i < nd][
+			b: Bmult-add b 10 as-integer s/1 - #"0"
+			s: s + 1
+			i: i + 1
+		]
+		b
+	]
+
+	scaled-float-to-big: func [
+		f		[float!]
+		scale	[integer!]
+		e		[int-ptr!]
+		return: [big-int!]
+		/local
+			d	[int64!]
+			b	[big-int!]
+			x	[int-ptr!]
+			x0	[integer!]
+			x1	[integer!]
+			exp [integer!]
+	][
+		d:     as int64! :f
+		b:     Balloc 1
+		x:     BIG_INT_X(b)
+		b/wds: 2
+		x0:    WORD_1(d)
+		x1:    WORD_0(d) and FRAC_MASK
+		exp:   ETINY - 1 + ((WORD_0(d) and EXP_MASK) >>> EXP_SHIFT)
+
+		either exp < ETINY [exp: ETINY][x1: x1 or EXP_MSK1]
+
+		if all [
+			scale <> 0
+			any [x0 <> 0 x1 <> 0]
+		][
+			exp: exp - scale
+			if exp < ETINY [
+				scale: ETINY - exp
+				exp: ETINY
+				if scale >= 32 [
+					x0: x1
+					x1: 0
+					scale: scale - 32
+				]
+				if scale <> 0 [
+					x0: x0 >>> scale or (x1 << (32 - scale))
+					x1: x1 >>> scale
+				]
+			]
+		]
+
+		if zero? x1 [b/wds: 1]
+		x/1: x0
+		x/2: x1
+		e/value: exp
+		b
+	]
+
+	ulp: func [
+		f		[float!]
+		return: [float!]
+		/local
+			d	[int64!]
+			L	[integer!]
+	][
+		d: as int64! :f
+		L: d/int2 and EXP_MASK - (52 * EXP_MSK1)
+		d/int2: L
+		d/int1: 0
+		f
+	]
+
+	sulp: func [							;-- sulp(x) is a version of ulp(x) that takes bc.scale into account
+		f		[float!]
+		bc		[cmp-info!]
+		return: [float!]
+		/local
+			b	[int64!]
+			u	[int64!]
+	][
+		b: as int64! :f
+		u: b
+		either all [
+			bc/scale <> 0
+			2 * 53 + 1 > (b/int2 and EXP_MASK >>> EXP_SHIFT)
+		][
+			u/int2: 53 + 2 * EXP_MSK1
+			u/int1: 0
+			f
+		][
+			ulp f
+		]
+	]
+
+	#define BIGCOMP_BREAK [
+		Bfree b
+		Bfree d
+		if any [
+			dd > 0
+			all [zero? dd odd <> 0]
+		][
+			f/value: f/value + sulp f/value bc
+		]
+		return 0
+	]
+
+	bigcomp: func [
+		rv		[int64!]
+		s0		[byte-ptr!]
+		bc		[cmp-info!]
+		return: [integer!]
+		/local
+			f d b b2 d2 dd i j nd nd0 odd p2 p5
+	][
+		f:   as pointer! [float!] rv
+		nd:  bc/nd
+		nd0: bc/nd0
+		p5:  nd + bc/e0
+		p2:  0
+		b:   scaled-float-to-big f/value bc/scale :p2
+		odd: b/x and 1
+		b:   Blshift b 1
+		b/x: b/x or 1
+		p2:  p2 - 1
+		p2:  p2 - p5
+		d:   int-to-big 1
+
+		case [
+			p5 > 0 [d: Bpow5mult d p5]
+			p5 < 0 [b: Bpow5mult b 0 - p5]
+			true []
+		]
+
+		either p2 > 0 [
+			b2: p2
+			d2: 0
+		][
+			b2: 0
+			d2: 0 - p2
+		]
+
+		i: Bdshift d d2
+		b2: b2 + i
+		if b2 > 0 [b: Blshift b b2]
+		d2: d2 + i
+		if d2 > 0 [d: Blshift d d2]
+
+		either 0 <= Bcmp b d [dd: -1][
+			i: 0
+			while [true][
+				b: Bmult-add b 10 0
+				j: 1 + either i < nd0 [i][i + 1]
+				dd: (as-integer s0/j - #"0") - Bquorem b d
+				i: i + 1
+				if dd <> 0 [BIGCOMP_BREAK]
+				if all [zero? b/x b/wds = 1][
+					dd: as-integer i < nd
+					BIGCOMP_BREAK
+				]
+				unless i < nd [
+					dd: -1
+					BIGCOMP_BREAK
+				]
+			]
+		]
+		BIGCOMP_BREAK
+	]
+
+	parse-exponent: func [
+		s		[byte-ptr!]
+		end		[byte-ptr!]
+		return: [integer!]
+		/local
+			c	 [byte!]
+			n	 [integer!]
+			neg? [logic!]
+	][
+		neg?: no
+
+		c: s/1
+		if any [
+			c = #"+"
+			c = #"-"
+		][
+			neg?: c = #"-"
+			s: s + 1
+		]
+
+		n: 0
+		until [
+			c: s/1 - #"0"
+			n: n * 10
+			n: n + c
+			s: s + 1
+			s = end
+		]
+		either neg? [0 - n][n]
+	]
+
+	#define STRTOD_RETURN [return either neg? [0.0 - rv][rv]]
+
+	#define STRTOD_OVERFLOW [
+		d/int2: EXP_MASK
+		d/int1: 0
+		STRTOD_RETURN
+	]
+
+	#define STRTOD_UNDERFLOW [return either neg? [-0.0][0.0]]
+
+	#define STRTOD_BREAK [
+		Bfree bb
+		Bfree bd
+		Bfree bs
+		Bfree bd0
+		Bfree delta
+		if bc/nd > nd [
+			bigcomp d s0 bc
+		]
+		if bc/scale <> 0 [
+			d0/int2: EXP_1 - (2 * 53 * EXP_MSK1)
+			d0/int1: 0
+			rv: rv * rv0
+		]
+		STRTOD_RETURN
+	]
+
+	#define STRTOD_DROP_DOWN [
+		if bc/scale <> 0 [
+			L: d/int2 and EXP_MASK
+			if L <= (2 * 53 + 1 * EXP_MSK1) [
+				if L > (53 + 2 * EXP_MSK1) [STRTOD_BREAK]
+				if bc/nd > nd [STRTOD_BREAK]
+				STRTOD_UNDERFLOW
+			]
+		]
+		L: d/int2 and EXP_MASK - EXP_MSK1
+		d/int2: L or BNDRY_MASK1
+		d/int1: FFFFFFFFh
+		STRTOD_BREAK
+	]
+
+	string-to-float: func [
+		start	[byte-ptr!]
+		end		[byte-ptr!]
+		return: [float!]
+		/local
+			rv	[float!]
+			rv0 [float!]
+			aadj2 [float!]
+			bb	[big-int!]
+			bb1	[big-int!]
+			bd	[big-int!]
+			bd0	[big-int!]
+			bs	[big-int!]
+			delta [big-int!]
+			bb2 bb5 bbe bd2 bd5 bs2 c dsign e e1
+			i j k nd nd0 odd neg? s s0 s1
+			aadj aadj1 adj y z next?
+			L bc d d0 d2 w0 w1 ndigits fraclen
+	][
+		bb:    null
+		bb1:   null
+		bd:    null
+		bd0:   null
+		bs:    null
+		delta: null
+		next?: yes
+		neg?:  no
+		rv:    0.0
+		rv0:   0.0
+		aadj2: 0.0
+		d:     as int64! :rv
+		d0:    as int64! :rv0
+		d2:    as int64! :aadj2
+		s:     start
+		c:     s/1
+
+		if any [
+			c = #"+"
+			c = #"-"
+		][
+			neg?: c = #"-"
+			s: s + 1
+		]
+
+		while [												;-- skip leading zero
+			c: s/1
+			all [
+				c = #"0"
+				s < end
+			]
+		][s: s + 1]
+
+		if s = end [return 0.0]
+
+		s0: s
+		s1: s
+		while [
+			c: s/1
+			all [c >= #"0" c <= #"9"]
+		][s: s + 1]
+		ndigits: as-integer s - s1
+		fraclen: 0
+
+		if any [c = #"." c = #","] [
+			s: s + 1
+			if zero? ndigits [
+				s1: s
+				while [c: s/1 c = #"0"][s: s + 1]
+				fraclen: fraclen + (s - s1)
+				s0: s
+			]
+
+			s1: s
+			while [
+				c: s/1
+				all [c >= #"0" c <= #"9"]
+			][s: s + 1]
+			ndigits: ndigits + (s - s1)
+			fraclen: fraclen + (s - s1)
+		]
+		nd:  ndigits
+		nd0: ndigits - fraclen
+
+		e: 0
+		if any [c = #"e" c = #"E"][
+			s: s + 1
+			e: parse-exponent s end
+		]
+
+		e: e - (nd - nd0)
+		if nd0 <= 0 [nd0: nd]
+
+		if zero? nd [return either neg? [d/int2: 80000000h rv][0.0]]
+
+		i: nd
+		until [
+			i: i - 1
+			j: 1 + either i < nd0 [i][i + 1]				;-- adjust for 1-based
+			if s0/j <> #"0" [i: i + 1 j: 0]
+			zero? j
+		]
+		e: e + (nd - i)
+		nd: i
+		if nd0 > nd [nd0: nd]
+
+		y: 0
+		z: 0
+		i: 0
+		bc: declare cmp-info!
+		e1: e
+		bc/e0: e1
+		until [
+			j: 1 + either i < nd0 [i][i + 1]				;-- adjust for 1-based
+			case [
+				i < 9  [y: 10 * y + (s0/j - #"0")]
+				i < 16 [z: 10 * z + (s0/j - #"0")]
+				true   [j: 0]
+			]
+			i: i + 1
+			any [i = nd zero? j]
+		]
+
+		k: either nd < 16 [nd][16]
+		rv: integer/to-float y
+		if k > 9 [
+			j: k - 8
+			rv: TENS/j * rv + integer/to-float z
+		]
+
+		if nd < 16 [
+			if zero? e [STRTOD_RETURN]
+			case [
+				e > 0 [
+					if e <= TEN_PMAX [
+						e: e + 1
+						rv: rv * TENS/e
+						STRTOD_RETURN
+					]
+					i: 15 - nd
+					if e <= (TEN_PMAX + i) [
+						e: e - i + 1
+						i: i + 1
+						rv: rv * TENS/i
+						rv: rv * TENS/e
+						STRTOD_RETURN
+					]
+				]
+				e >= (0 - TEN_PMAX) [
+					e: 0 - e + 1
+					rv: rv / TENS/e
+					STRTOD_RETURN
+				]
+				true []
+			]
+		]
+
+		e1: e1 + (nd - k)
+		bc/scale: 0
+
+		case [
+			e1 > 0 [
+				i: e1 and 15
+				if i <> 0 [
+					i: i + 1
+					rv: rv * TENS/i
+				]
+
+				e1: e1 and (not 15)
+				if e1 <> 0 [
+					if e1 > DBL_MAX_10_EXP [STRTOD_OVERFLOW]
+					e1: e1 >> 4
+					j: 1
+					while [e1 > 1][
+						if e1 and 1 <> 0 [rv: rv * BIGTENS/j]
+						j: j + 1
+						e1: e1 >> 1
+					]
+					d/int2: d/int2 - (53 * EXP_MSK1)
+					rv: rv * BIGTENS/j
+					z: d/int2 and EXP_MASK
+					if z > (DBL_MAX_EXP + BIAS - 53 * EXP_MSK1) [STRTOD_OVERFLOW]
+					either z > (DBL_MAX_EXP + BIAS - 54 * EXP_MSK1) [
+						d/int2: BIG_0
+						d/int1: BIG_1
+					][
+						d/int2: d/int2 + (53 * EXP_MSK1)
+					]
+				]
+			]
+			e1 < 0 [
+				e1: 0 - e1
+				i: e1 and 15
+				if i <> 0 [
+					i: i + 1
+					rv: rv / TENS/i
+				]
+
+				e1: e1 >> 4
+				if e1 <> 0 [
+					if e1 >= (1 << N_BIGTENS) [STRTOD_UNDERFLOW]
+					if e1 and 10h <> 0 [bc/scale: 2 * 53]
+					j: 1
+					while [e1 > 0][
+						if e1 and 1 <> 0 [rv: rv * TINYTENS/j]
+						j: j + 1
+						e1: e1 >> 1
+					]
+
+					j: 2 * 53 + 1 - (d/int2 and EXP_MASK >>> EXP_SHIFT)
+					if all [
+						bc/scale <> 0
+						j > 0
+					][
+						either j >= 32 [
+							d/int1: 0
+							either j >= 53 [
+								d/int2: 53 + 2 * EXP_MSK1
+							][
+								d/int2: d/int2 and (FFFFFFFFh << (j - 32))
+							]
+						][
+							d/int1: d/int1 and (FFFFFFFFh << j)
+						]
+					]
+					if rv = 0.0 [STRTOD_UNDERFLOW]
+				]
+			]
+			true []
+		]
+
+		;-- Now the hard part -- adjusting rv to the correct value.
+		bc/nd: nd
+		bc/nd0: nd0
+
+		if nd > 40 [
+			i: 18
+			until [
+				i: i - 1
+				j: 1 + either i < nd0 [i][i + 1]
+				if s0/j <> #"0" [i: i + 1 j: 0]
+				zero? j
+			]
+			e: e + (nd - i)
+			nd: i
+			if nd0 > nd [nd0: nd]
+			if nd < 9 [
+				y: 0
+				i: 1
+				while [i <= nd0][
+					y: 10 * y + (s0/i - #"0")
+					i: i + 1
+				]
+				while [i <= nd][
+					i: i + 1
+					y: 10 * y + (s0/i - #"0")
+				]
+			]
+
+		]
+
+		bd0: string-to-big s0 nd0 nd y
+		bbe: 0
+		while [true][
+			bd: Balloc bd0/k
+			Bcopy(bd bd0)
+			bb: scaled-float-to-big rv bc/scale :bbe
+			odd: bb/x and 1
+			bs: int-to-big 1
+
+			either e >= 0 [
+				bb2: 0
+				bb5: bb2
+				bd2: e
+				bd5: bd2
+			][
+				bb2: 0 - e
+				bb5: bb2
+				bd2: 0
+				bd5: bd2
+			]
+
+			either bbe >= 0 [
+				bb2: bb2 + bbe
+			][
+				bd2: bd2 - bbe
+			]
+			bs2: bb2
+			bb2: bb2 + 1
+			bd2: bd2 + 1
+
+			i: either bb2 < bd2 [bb2][bd2]
+			if i > bs2 [i: bs2]
+			if i > 0 [
+				bb2: bb2 - i
+				bd2: bd2 - i
+				bs2: bs2 - i
+			]
+
+			if bb5 > 0 [
+				bs: Bpow5mult bs bb5
+				bb1: Bmultiply bs bb
+				Bfree bb
+				bb: bb1
+			]
+			if bb2 > 0 [bb: Blshift bb bb2]
+			if bd5 > 0 [bd: Bpow5mult bd bd5]
+			if bd2 > 0 [bd: Blshift bd bd2]
+			if bs2 > 0 [bs: Blshift bs bs2]
+
+			delta: Bdiff bb bd
+			dsign: delta/sign
+			delta/sign: 0
+
+			i: Bcmp delta bs
+			if all [bc/nd > nd i <= 0][
+				if dsign <> 0 [STRTOD_BREAK]
+
+				if all [
+					zero? d/int1
+					zero? (d/int2 and BNDRY_MASK)
+				][
+					j: d/int2 and EXP_MASK >>> EXP_SHIFT
+					if j - bc/scale >= 2 [
+						rv: rv - (0.5 * sulp rv bc)
+						STRTOD_BREAK
+					]
+				]
+
+				bc/nd: nd
+				i: -1
+			]
+
+			w0: WORD_0(d)
+			w1: WORD_1(d)
+			if i < 0 [
+				if any [
+					dsign <> 0
+					w1 <> 0
+					w0 and BNDRY_MASK <> 0
+					w0 and EXP_MASK <= (2 * 53 + 1 * EXP_MSK1)
+				][STRTOD_BREAK]
+
+				if all [
+					zero? delta/x
+					delta/wds <= 1
+				][STRTOD_BREAK]
+
+				delta: Blshift delta LOG2P
+				if 0 < Bcmp delta bs [STRTOD_DROP_DOWN]
+				STRTOD_BREAK
+			]
+
+			if zero? i [
+				case [
+					dsign <> 0 [
+						y: w0 and EXP_MASK
+						j: either all [
+							bc/scale <> 0
+							y <= (2 * 53 * EXP_MSK1)
+						][
+							FFFFFFFFh and (FFFFFFFFh << (107 - (y >>> EXP_SHIFT)))
+						][
+							FFFFFFFFh
+						]
+						if all [
+							w0 and BNDRY_MASK1 = BNDRY_MASK1
+							w1 = j
+						][
+							d/int2: w0 and EXP_MASK + EXP_MSK1
+							d/int1: 0
+							STRTOD_BREAK
+						]
+					]
+					not all [zero? (w0 and BNDRY_MASK) zero? w1][
+						STRTOD_DROP_DOWN
+					]
+					true []
+				]
+
+				if zero? odd [STRTOD_BREAK]
+				either dsign <> 0 [rv: rv + sulp rv bc][
+					rv: rv - sulp rv bc
+					if rv = 0.0 [
+						if bc/nd > nd [STRTOD_BREAK]
+						STRTOD_UNDERFLOW
+					]
+				]
+				STRTOD_BREAK
+			]
+
+			aadj: Bratio delta bs
+			either aadj <= 2.0 [
+				case [
+					dsign <> 0 [
+						aadj: 1.0
+						aadj1: 1.0
+					]
+					any [w1 <> 0 w0 and BNDRY_MASK <> 0][
+						if all [w1 = TINY1 zero? w0][
+							if bc/nd > nd [STRTOD_BREAK]
+							STRTOD_UNDERFLOW
+						]
+						aadj: 1.0
+						aadj1: -1.0
+					]
+					true [
+						aadj: either aadj < (2.0 / FLT_RADIX) [
+							1.0 / FLT_RADIX
+						][
+							aadj * 0.5
+						]
+						aadj1: 0.0 - aadj
+					]
+				]
+			][
+				aadj: aadj * 0.5
+				aadj1: either dsign <> 0 [aadj][0.0 - aadj]
+			]
+
+			y: w0 and EXP_MASK
+			either y = (DBL_MAX_EXP + BIAS - 1 * EXP_MSK1) [
+				rv0: rv
+				d/int2: w0 - (53 * EXP_MSK1)
+				adj: aadj1 * ulp rv
+				rv: rv + adj
+				w0: WORD_0(d)
+				either w0 and EXP_MASK >= (DBL_MAX_EXP + BIAS - 53 * EXP_MSK1) [
+					if all [w0 = BIG_0 w1 = BIG_1][
+						Bfree bb
+						Bfree bd
+						Bfree bs
+						Bfree bd0
+						Bfree delta
+						STRTOD_OVERFLOW
+					]
+					d/int2: BIG_0
+					d/int1: BIG_1
+					next?: no
+				][d/int2: w0 + (53 * EXP_MSK1)]
+			][
+				if all [
+					bc/scale <> 0
+					y <= (2 * 53 * EXP_MSK1)
+				][
+					if aadj <= 2147483647.0 [
+						z: float/to-integer floor aadj
+						if z <= 0 [z: 1]
+						aadj: uint-to-float z
+						aadj1: either dsign <> 0 [aadj][0.0 - aadj]
+					]
+					aadj2: aadj1
+					d2/int2: d2/int2 + (107 * EXP_MSK1 - y)
+					aadj1: aadj2
+				]
+				adj: aadj1 * ulp rv
+				rv: rv + adj
+			]
+
+			if next? [
+				z: d/int2 and EXP_MASK
+				if bc/nd = nd [
+					if zero? bc/scale [
+						if y = z [
+							aadj: aadj - floor aadj			;@@ Optimize it
+							case [
+								any [
+									dsign <> 0
+									d/int1 <> 0
+									d/int2 and BNDRY_MASK <> 0
+								][
+									if any [aadj < 0.4999999 aadj > 0.5000001][
+										STRTOD_BREAK
+									]
+								]
+								aadj < (0.4999999 / FLT_RADIX) [STRTOD_BREAK]
+								true []
+							]
+						]
+					]
+				]
+			]
+			Bfree bb
+			Bfree bd
+			Bfree bs
+			Bfree delta
+			next?: yes
+		]
+		rv
+	]
 ]

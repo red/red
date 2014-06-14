@@ -29,18 +29,6 @@ Red/System [
 
 ===start-group=== "float argument to external function"
 
-	#import [
-		LIBM-file cdecl [
-			sin: "sin" [
-				x 		[float!]
-				return: [float!]
-			]
-			cos: "cos" [
-				x 		[float!]
-				return: [float!]
-			]
-		]
-	]
 	pi32: 3.1415927
 	
 	--test-- "float32-ext-1"
