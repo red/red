@@ -93,6 +93,7 @@ trans-float: routine [
 		p: p + unit
 		p = tail
 	]
+	cur/1: as-byte 10
 	float/box red-dtoa/string-to-float s0 cur
 ]
 
