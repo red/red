@@ -68,8 +68,32 @@ trans-number: routine [
 trans-float: routine [
 	start [string!]
 	end	  [string!]
+	/local
+		str  [series!]
+		cp	 [integer!]
+		unit [integer!]
+		p	 [byte-ptr!]
+		tail [byte-ptr!]
+		cur	 [byte-ptr!]
+		s0	 [byte-ptr!]
 ][
-	float/box string/to-float start end/head - start/head
+	str:  GET_BUFFER(start)
+	unit: GET_UNIT(str)
+	p:	  string/rs-head start
+	tail: p + ((end/head - start/head) << (unit >> 1))
+	cur:  p
+	s0:   cur
+
+	until [											;-- convert to ascii string
+		cp: string/get-char p unit
+		if cp <> as-integer #"'" [					;-- skip #"'"
+			cur/1: as-byte cp
+			cur: cur + 1
+		]
+		p: p + unit
+		p = tail
+	]
+	float/box red-dtoa/string-to-float s0 cur
 ]
 
 trans-hexa: routine [

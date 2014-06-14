@@ -15,6 +15,9 @@ Red/System [
 		Please remember to check http://www.netlib.org/fp regularly (
 		and especially before any Red release) for bugfixes and updates.
 
+		FYI: a more readable version from Python, in %Python/dtoa.c
+		http://hg.python.org/cpython
+
 		!! For `dtoa`, only support mode 0 now !!
 	}
 ]
@@ -53,6 +56,7 @@ Red/System [
 #define TINY1			1
 #define INT_MAX			14
 
+#define FLT_RADIX		2.0						;@@ value for machines except the IBM 360 and derivatives
 #define DBL_MAX_10_EXP	308						;@@ value for IEEE_Arith
 #define DBL_MAX_EXP		1024					;@@ value for IEEE_Arith
 #define N_BIGTENS		5
@@ -101,7 +105,6 @@ red-dtoa: context [
 		len: x - 1 * 4 + 8 + (size? big-int!) - 1 / 8
 
 		big: as big-int! allocate len * 8		;@@ check if big = null
-		set-memory as byte-ptr! big #"^@" len * 8
 		big/k: k
 		big/maxwds: x
 		big/sign: 0
@@ -631,11 +634,11 @@ red-dtoa: context [
 		/local
 			xa xa0 w y z k d f
 	][
-		d: declare int64!
-		f: as pointer! [float!] d
+		d:   declare int64!
+		f:   as pointer! [float!] d
 		xa0: BIG_INT_X(a)
-		xa: xa0 + a/wds - 1
-		y: xa/value
+		xa:  xa0 + a/wds - 1
+		y:   xa/value
 
 		k: hi0bits y
 		e/value: 32 - k
@@ -667,12 +670,11 @@ red-dtoa: context [
 		/local
 			d b de k x y z i w0
 	][
-		b: Balloc 1
-		x: BIG_INT_X(b)
-
-		d: as int64! :f
+		b:  Balloc 1
+		x:  BIG_INT_X(b)
+		d:  as int64! :f
 		w0: WORD_0(d)
-		z: w0 and FRAC_MASK
+		z:  w0 and FRAC_MASK
 		w0: w0 and 7FFFFFFFh			;-- clear sign bit, which we ignore
 		d/int2: w0						;@@ little endian or big endian ?
 
@@ -774,18 +776,18 @@ red-dtoa: context [
 			spec_case L denorm x d d2 sign?
 			b b1 delta ds s s0 w0 w1 ww0
 	][
-		s0: "-000000000000000000000000000000"		;-- 32 bits including ending null char
-		s: s0 + 1
-		s0: s
-		mlo: null
-		mhi: null
-		SS: null
-		k: 0
+		s0:    "-000000000000000000000000000000"		;-- 32 bits including ending null char
+		s:     s0 + 1
+		s0:    s
+		mlo:   null
+		mhi:   null
+		SS:    null
+		k:     0
 		fsave: 0.0
-		kf: 0.0
-		d: as int64! :f
-		w0: WORD_0(d)
-		w1: WORD_1(d)
+		kf:    0.0
+		d:     as int64! :f
+		w0:    WORD_0(d)
+		w1:    WORD_1(d)
 
 		either zero? (w0 and SIGN_BIT) [
 			sign?: no
@@ -1031,6 +1033,7 @@ red-dtoa: context [
 		k: 0
 		y: 1
 		while [x > y][y: y << 1 k: k + 1]
+
 		b: Balloc k
 		b/x: y9
 		b/wds: 1
@@ -1044,6 +1047,7 @@ red-dtoa: context [
 			s: s + 1
 			i: i + 1
 		]
+
 		s: s + 1
 		while [i < nd][
 			b: Bmult-add b 10 as-integer s/1 - #"0"
@@ -1066,15 +1070,16 @@ red-dtoa: context [
 			x1	[integer!]
 			exp [integer!]
 	][
-		d: as int64! :f
-		b: Balloc 1
-
-		x: BIG_INT_X(b)
+		d:     as int64! :f
+		b:     Balloc 1
+		x:     BIG_INT_X(b)
 		b/wds: 2
-		x0: WORD_1(d)
-		x1: WORD_0(d) and FRAC_MASK
-		exp: ETINY - 1 + ((WORD_0(d) and EXP_MASK) >>> EXP_SHIFT)
+		x0:    WORD_1(d)
+		x1:    WORD_0(d) and FRAC_MASK
+		exp:   ETINY - 1 + ((WORD_0(d) and EXP_MASK) >>> EXP_SHIFT)
+
 		either exp < ETINY [exp: ETINY][x1: x1 or EXP_MSK1]
+
 		if all [
 			scale <> 0
 			any [x0 <> 0 x1 <> 0]
@@ -1158,18 +1163,18 @@ red-dtoa: context [
 		/local
 			f d b b2 d2 dd i j nd nd0 odd p2 p5
 	][
-		f: as pointer! [float!] rv
-		nd: bc/nd
+		f:   as pointer! [float!] rv
+		nd:  bc/nd
 		nd0: bc/nd0
-		p5: nd + bc/e0
-		p2: 0
-		b: scaled-float-to-big f/value bc/scale :p2
+		p5:  nd + bc/e0
+		p2:  0
+		b:   scaled-float-to-big f/value bc/scale :p2
 		odd: b/x and 1
-		b: Blshift b 1
+		b:   Blshift b 1
 		b/x: b/x or 1
-		p2: p2 - 1
-		p2: p2 - p5
-		d: int-to-big 1
+		p2:  p2 - 1
+		p2:  p2 - p5
+		d:   int-to-big 1
 
 		case [
 			p5 > 0 [d: Bpow5mult d p5]
@@ -1300,7 +1305,7 @@ red-dtoa: context [
 			bs	[big-int!]
 			delta [big-int!]
 			bb2 bb5 bbe bd2 bd5 bs2 c dsign e e1
-			i j k lz nd nd0 odd neg? s s0 s1
+			i j k nd nd0 odd neg? s s0 s1
 			aadj aadj1 adj y z next?
 			L bc d d0 d2 w0 w1 ndigits fraclen
 	][
@@ -1365,7 +1370,7 @@ red-dtoa: context [
 			ndigits: ndigits + (s - s1)
 			fraclen: fraclen + (s - s1)
 		]
-		nd: ndigits
+		nd:  ndigits
 		nd0: ndigits - fraclen
 
 		e: 0
@@ -1406,6 +1411,7 @@ red-dtoa: context [
 			i: i + 1
 			any [i = nd zero? j]
 		]
+
 		k: either nd < 16 [nd][16]
 		rv: integer/to-float y
 		if k > 9 [
@@ -1450,6 +1456,7 @@ red-dtoa: context [
 					i: i + 1
 					rv: rv * TENS/i
 				]
+
 				e1: e1 and (not 15)
 				if e1 <> 0 [
 					if e1 > DBL_MAX_10_EXP [STRTOD_OVERFLOW]
@@ -1479,6 +1486,7 @@ red-dtoa: context [
 					i: i + 1
 					rv: rv / TENS/i
 				]
+
 				e1: e1 >> 4
 				if e1 <> 0 [
 					if e1 >= (1 << N_BIGTENS) [STRTOD_UNDERFLOW]
@@ -1688,7 +1696,11 @@ red-dtoa: context [
 						aadj1: -1.0
 					]
 					true [
-						either aadj < 0.2 [aadj: 0.1][aadj: aadj * 0.5]
+						aadj: either aadj < (2.0 / FLT_RADIX) [
+							1.0 / FLT_RADIX
+						][
+							aadj * 0.5
+						]
 						aadj1: 0.0 - aadj
 					]
 				]
@@ -1741,7 +1753,7 @@ red-dtoa: context [
 				if bc/nd = nd [
 					if zero? bc/scale [
 						if y = z [
-							aadj: aadj - floor aadj
+							aadj: aadj - floor aadj			;@@ Optimize it
 							case [
 								any [
 									dsign <> 0
@@ -1752,7 +1764,7 @@ red-dtoa: context [
 										STRTOD_BREAK
 									]
 								]
-								aadj < 0.04999999 [STRTOD_BREAK]
+								aadj < (0.4999999 / FLT_RADIX) [STRTOD_BREAK]
 								true []
 							]
 						]
@@ -1765,6 +1777,6 @@ red-dtoa: context [
 			Bfree delta
 			next?: yes
 		]
-		STRTOD_BREAK
+		rv
 	]
 ]

@@ -274,6 +274,7 @@ float: context [
 		return: [red-value!]
 		/local
 			int [red-integer!]
+			buf [red-string!]
 			f	[float!]
 	][
 		f: spec/value
@@ -282,6 +283,10 @@ float: context [
 				int: as red-integer! type
 				int/header: TYPE_INTEGER
 				int/value: to-integer either f < 0.0 [f + 0.499999999999999][f - 0.499999999999999]
+			]
+			TYPE_STRING [
+				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
+				string/concatenate-literal buf form-float f
 			]
 			default [
 				print-line "** Script error: Invalid argument for TO float!"
