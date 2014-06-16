@@ -35,7 +35,7 @@ types-src: [
 append types-src make bitset! #{00}
 
 types-trg: []
-not-implemented: [tuple! tag! time! date! email!]
+not-implemented: [tuple! tag! time! date! email! pair! url!]
 
 foreach src types-src [
 	type: type?/word src
@@ -45,7 +45,7 @@ foreach src types-src [
 ]
 
 mold2: func[data /local result][
-	result: mold data
+	result: mold/flat data
 	if any [block? data paren? data] [
 		replace/all result "^/   " ""
 		replace/all result "^/" ""
@@ -72,9 +72,33 @@ foreach trg types-trg [
 				find not-implemented trg
 				find not-implemented type?/word src
 			][";"][""]
-			append tests rejoin [
-				com {	--test-- "to-} trg "-" type? src {"^/}
-				com {		--assert } mold2 result { = to } trg " " mold src lf
+			switch/default trg [
+				url! [
+					append tests rejoin [
+						com {	--test-- "to-} trg "-" type? src {"^/}
+						com {		--assert url? to } trg " " mold src lf
+						com {		--assert } mold2 form result { = form to } trg " " mold src lf  
+					]
+				]
+				path! [
+					append tests rejoin [
+						com {	--test-- "to-} trg "-" type? src {"^/}
+						com {		--assert path? to } trg " " mold src lf
+						com {		--assert } mold2 form result { = form to } trg " " mold src lf  
+					]
+				]
+				refinement! [
+					append tests rejoin [
+						com {	--test-- "to-} trg "-" type? src {"^/}
+						com {		--assert refinement? to } trg " " mold src lf
+						com {		--assert } mold2 form result { = form to } trg " " mold src lf  
+					]
+				]
+			][
+				append tests rejoin [
+					com {	--test-- "to-} trg "-" type? src {"^/}
+					com {		--assert } mold2 result { = to } trg " " mold src lf
+				]
 			]
 
 		]

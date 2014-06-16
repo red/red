@@ -11,6 +11,9 @@ Red [
 
 ~~~start-file~~~ "to"
 
+
+;=============== copy this into the unit test file =================
+
 ===start-group=== "to-char!"
         --test-- "to-char!-char!"
                 --assert #"a" = to char! #"a"
@@ -19,7 +22,7 @@ Red [
         --test-- "to-char!-integer!"
                 --assert #"{" = to char! 123
         --test-- "to-char!-integer!"
-                --assert #"─Ç" = to char! 256
+                --assert #"Ā" = to char! 256
         --test-- "to-char!-decimal!"
                 --assert #"^A" = to char! 1.5
         --test-- "to-char!-binary!"
@@ -40,16 +43,16 @@ Red [
                 --assert "-1" = to string! -1
         --test-- "to-string!-decimal!"
                 --assert "-1.5" = to string! -1.5
-        --test-- "to-string!-pair!"
-                --assert "1x2" = to string! 1x2
+;       --test-- "to-string!-pair!"
+;               --assert "1x2" = to string! 1x2
         --test-- "to-string!-word!"
                 --assert "word" = to string! word
         --test-- "to-string!-refinement!"
                 --assert "/refinement" = to string! /refinement
         --test-- "to-string!-path!"
                 --assert "path/foo" = to string! path/foo
-        --test-- "to-string!-url!"
-                --assert "http://red-lang.org" = to string! http://red-lang.org
+;       --test-- "to-string!-url!"
+;               --assert "http://red-lang.org" = to string! http://red-lang.org
         --test-- "to-string!-file!"
                 --assert "/file/" = to string! %/file/
         --test-- "to-string!-issue!"
@@ -130,20 +133,20 @@ Red [
 ;               --assert 36000.0 = to decimal! 10:00
 ===end-group===
 ===start-group=== "to-pair!"
-        --test-- "to-pair!-integer!"
-                --assert 123x123 = to pair! 123
-        --test-- "to-pair!-integer!"
-                --assert 256x256 = to pair! 256
-        --test-- "to-pair!-decimal!"
-                --assert 1.5x1.5 = to pair! 1.5
-        --test-- "to-pair!-integer!"
-                --assert -1x-1 = to pair! -1
-        --test-- "to-pair!-decimal!"
-                --assert -1.5x-1.5 = to pair! -1.5
-        --test-- "to-pair!-pair!"
-                --assert 1x2 = to pair! 1x2
-        --test-- "to-pair!-block!"
-                --assert 1x2 = to pair! [1 2]
+;       --test-- "to-pair!-integer!"
+;               --assert 123x123 = to pair! 123
+;       --test-- "to-pair!-integer!"
+;               --assert 256x256 = to pair! 256
+;       --test-- "to-pair!-decimal!"
+;               --assert 1.5x1.5 = to pair! 1.5
+;       --test-- "to-pair!-integer!"
+;               --assert -1x-1 = to pair! -1
+;       --test-- "to-pair!-decimal!"
+;               --assert -1.5x-1.5 = to pair! -1.5
+;       --test-- "to-pair!-pair!"
+;               --assert 1x2 = to pair! 1x2
+;       --test-- "to-pair!-block!"
+;               --assert 1x2 = to pair! [1 2]
 ===end-group===
 ===start-group=== "to-word!"
         --test-- "to-word!-char!"
@@ -159,131 +162,192 @@ Red [
 ===end-group===
 ===start-group=== "to-refinement!"
         --test-- "to-refinement!-char!"
-                --assert /a = to refinement! #"a"
+                --assert refinement? to refinement! #"a"
+                --assert "/a" = form to refinement! #"a"
         --test-- "to-refinement!-string!"
-                --assert /foo = to refinement! "foo"
+                --assert refinement? to refinement! "foo"
+                --assert "/foo" = form to refinement! "foo"
         --test-- "to-refinement!-word!"
-                --assert /word = to refinement! word
+                --assert refinement? to refinement! word
+                --assert "/word" = form to refinement! word
         --test-- "to-refinement!-refinement!"
-                --assert /refinement = to refinement! /refinement
+                --assert refinement? to refinement! /refinement
+                --assert "/refinement" = form to refinement! /refinement
         --test-- "to-refinement!-issue!"
-                --assert /FF00 = to refinement! #FF00
+                --assert refinement? to refinement! #FF00
+                --assert "/FF00" = form to refinement! #FF00
 ===end-group===
 ===start-group=== "to-path!"
         --test-- "to-path!-char!"
-                --assert #"a" = to path! #"a"
+                --assert path? to path! #"a"
+                --assert {#"a"} = form to path! #"a"
         --test-- "to-path!-string!"
-                --assert foo = to path! "foo"
+                --assert path? to path! "foo"
+                --assert "foo" = form to path! "foo"
         --test-- "to-path!-integer!"
-                --assert 123 = to path! 123
+                --assert path? to path! 123
+                --assert "123" = form to path! 123
         --test-- "to-path!-integer!"
-                --assert 256 = to path! 256
+                --assert path? to path! 256
+                --assert "256" = form to path! 256
         --test-- "to-path!-decimal!"
-                --assert 1.5 = to path! 1.5
+                --assert path? to path! 1.5
+                --assert "1.5" = form to path! 1.5
         --test-- "to-path!-integer!"
-                --assert -1 = to path! -1
+                --assert path? to path! -1
+                --assert "-1" = form to path! -1
         --test-- "to-path!-decimal!"
-                --assert -1.5 = to path! -1.5
-        --test-- "to-path!-pair!"
-                --assert 1x2 = to path! 1x2
+                --assert path? to path! -1.5
+                --assert "-1.5" = form to path! -1.5
+;       --test-- "to-path!-pair!"
+;               --assert path? to path! 1x2
+;               --assert "1x2" = form to path! 1x2
         --test-- "to-path!-word!"
-                --assert word = to path! word
+                --assert path? to path! word
+                --assert "word" = form to path! word
         --test-- "to-path!-refinement!"
-                --assert /refinement = to path! /refinement
+                --assert path? to path! /refinement
+                --assert "/refinement" = form to path! /refinement
         --test-- "to-path!-path!"
-                --assert path/foo = to path! path/foo
-        --test-- "to-path!-url!"
-                --assert http://red-lang.org = to path! http://red-lang.org
+                --assert path? to path! path/foo
+                --assert "path/foo" = form to path! path/foo
+;       --test-- "to-path!-url!"
+;               --assert path? to path! http://red-lang.org
+;               --assert "http://red-lang.org" = form to path! http://red-lang.org
         --test-- "to-path!-file!"
-                --assert %/file/ = to path! %/file/
+                --assert path? to path! %/file/
+                --assert "%/file/" = form to path! %/file/
         --test-- "to-path!-issue!"
-                --assert #FF00 = to path! #FF00
+                --assert path? to path! #FF00
+                --assert "#FF00" = form to path! #FF00
         --test-- "to-path!-binary!"
-                --assert #[path! []] = to path! #{}
+                --assert path? to path! #{}
+                --assert "#[path! []]" = form to path! #{}
         --test-- "to-path!-binary!"
-                --assert abc = to path! #{616263}
+                --assert path? to path! #{616263}
+                --assert "abc" = form to path! #{616263}
         --test-- "to-path!-block!"
-                --assert #[path! []] = to path! []
+                --assert path? to path! []
+                --assert "#[path! []]" = form to path! []
         --test-- "to-path!-block!"
-                --assert 1/2 = to path! [1 2]
+                --assert path? to path! [1 2]
+                --assert "1/2" = form to path! [1 2]
         --test-- "to-path!-block!"
-                --assert 1/2/3 = to path! [1 2 3]
+                --assert path? to path! [1 2 3]
+                --assert "1/2/3" = form to path! [1 2 3]
         --test-- "to-path!-block!"
-                --assert "a"/"b" = to path! ["a" "b"]
+                --assert path? to path! ["a" "b"]
+                --assert {"a"/"b"} = form to path! ["a" "b"]
 ;       --test-- "to-path!-tuple!"
-;               --assert 1.1.1 = to path! 1.1.1
+;               --assert path? to path! 1.1.1
+;               --assert "1.1.1" = form to path! 1.1.1
         --test-- "to-path!-paren!"
-                --assert #[path! []] = to path! ()
+                --assert path? to path! ()
+                --assert "#[path! []]" = form to path! ()
         --test-- "to-path!-paren!"
-                --assert 1/2 = to path! (1 2)
+                --assert path? to path! (1 2)
+                --assert "1/2" = form to path! (1 2)
 ;       --test-- "to-path!-tag!"
-;               --assert <a> = to path! <a>
+;               --assert path? to path! <a>
+;               --assert "<a>" = form to path! <a>
 ;       --test-- "to-path!-time!"
-;               --assert 10:00 = to path! 10:00
+;               --assert path? to path! 10:00
+;               --assert "10:00" = form to path! 10:00
 ;       --test-- "to-path!-date!"
-;               --assert 16-Jun-2014/14:34:59+2:00 = to path! 16-Jun-2014/14:34:59+2:00
+;               --assert path? to path! 16-Jun-2014/14:34:59+2:00
+;               --assert "16-Jun-2014/14:34:59+2:00" = form to path! 16-Jun-2014/14:34:59+2:00
 ;       --test-- "to-path!-email!"
-;               --assert foo@boo = to path! foo@boo
+;               --assert path? to path! foo@boo
+;               --assert "foo@boo" = form to path! foo@boo
         --test-- "to-path!-bitset!"
-                --assert make bitset! #{00} = to path! make bitset! #{00}
+                --assert path? to path! make bitset! #{00}
+                --assert "make bitset! #{00}" = form to path! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-url!"
-        --test-- "to-url!-char!"
-                --assert a = to url! #"a"
-        --test-- "to-url!-string!"
-                --assert foo = to url! "foo"
-        --test-- "to-url!-integer!"
-                --assert 123 = to url! 123
-        --test-- "to-url!-integer!"
-                --assert 256 = to url! 256
-        --test-- "to-url!-decimal!"
-                --assert 1.5 = to url! 1.5
-        --test-- "to-url!-integer!"
-                --assert -1 = to url! -1
-        --test-- "to-url!-decimal!"
-                --assert -1.5 = to url! -1.5
-        --test-- "to-url!-pair!"
-                --assert 1x2 = to url! 1x2
-        --test-- "to-url!-word!"
-                --assert word = to url! word
-        --test-- "to-url!-refinement!"
-                --assert /refinement = to url! /refinement
-        --test-- "to-url!-path!"
-                --assert path/foo = to url! path/foo
-        --test-- "to-url!-url!"
-                --assert http://red-lang.org = to url! http://red-lang.org
-        --test-- "to-url!-file!"
-                --assert /file/ = to url! %/file/
-        --test-- "to-url!-issue!"
-                --assert #FF00 = to url! #FF00
-        --test-- "to-url!-binary!"
-                --assert  = to url! #{}
-        --test-- "to-url!-binary!"
-                --assert abc = to url! #{616263}
-        --test-- "to-url!-block!"
-                --assert  = to url! []
-        --test-- "to-url!-block!"
-                --assert 12 = to url! [1 2]
-        --test-- "to-url!-block!"
-                --assert 123 = to url! [1 2 3]
-        --test-- "to-url!-block!"
-                --assert ab = to url! ["a" "b"]
+;       --test-- "to-url!-char!"
+;               --assert url? to url! #"a"
+;               --assert "a" = form to url! #"a"
+;       --test-- "to-url!-string!"
+;               --assert url? to url! "foo"
+;               --assert "foo" = form to url! "foo"
+;       --test-- "to-url!-integer!"
+;               --assert url? to url! 123
+;               --assert "123" = form to url! 123
+;       --test-- "to-url!-integer!"
+;               --assert url? to url! 256
+;               --assert "256" = form to url! 256
+;       --test-- "to-url!-decimal!"
+;               --assert url? to url! 1.5
+;               --assert "1.5" = form to url! 1.5
+;       --test-- "to-url!-integer!"
+;               --assert url? to url! -1
+;               --assert "-1" = form to url! -1
+;       --test-- "to-url!-decimal!"
+;               --assert url? to url! -1.5
+;               --assert "-1.5" = form to url! -1.5
+;       --test-- "to-url!-pair!"
+;               --assert url? to url! 1x2
+;               --assert "1x2" = form to url! 1x2
+;       --test-- "to-url!-word!"
+;               --assert url? to url! word
+;               --assert "word" = form to url! word
+;       --test-- "to-url!-refinement!"
+;               --assert url? to url! /refinement
+;               --assert "/refinement" = form to url! /refinement
+;       --test-- "to-url!-path!"
+;               --assert url? to url! path/foo
+;               --assert "path/foo" = form to url! path/foo
+;       --test-- "to-url!-url!"
+;               --assert url? to url! http://red-lang.org
+;               --assert "http://red-lang.org" = form to url! http://red-lang.org
+;       --test-- "to-url!-file!"
+;               --assert url? to url! %/file/
+;               --assert "/file/" = form to url! %/file/
+;       --test-- "to-url!-issue!"
+;               --assert url? to url! #FF00
+;               --assert "#FF00" = form to url! #FF00
+;       --test-- "to-url!-binary!"
+;               --assert url? to url! #{}
+;               --assert "" = form to url! #{}
+;       --test-- "to-url!-binary!"
+;               --assert url? to url! #{616263}
+;               --assert "abc" = form to url! #{616263}
+;       --test-- "to-url!-block!"
+;               --assert url? to url! []
+;               --assert "" = form to url! []
+;       --test-- "to-url!-block!"
+;               --assert url? to url! [1 2]
+;               --assert "12" = form to url! [1 2]
+;       --test-- "to-url!-block!"
+;               --assert url? to url! [1 2 3]
+;               --assert "123" = form to url! [1 2 3]
+;       --test-- "to-url!-block!"
+;               --assert url? to url! ["a" "b"]
+;               --assert "ab" = form to url! ["a" "b"]
 ;       --test-- "to-url!-tuple!"
-;               --assert 1.1.1 = to url! 1.1.1
-        --test-- "to-url!-paren!"
-                --assert  = to url! ()
-        --test-- "to-url!-paren!"
-                --assert 12 = to url! (1 2)
+;               --assert url? to url! 1.1.1
+;               --assert "1.1.1" = form to url! 1.1.1
+;       --test-- "to-url!-paren!"
+;               --assert url? to url! ()
+;               --assert "" = form to url! ()
+;       --test-- "to-url!-paren!"
+;               --assert url? to url! (1 2)
+;               --assert "12" = form to url! (1 2)
 ;       --test-- "to-url!-tag!"
-;               --assert a = to url! <a>
+;               --assert url? to url! <a>
+;               --assert "a" = form to url! <a>
 ;       --test-- "to-url!-time!"
-;               --assert 10:00 = to url! 10:00
+;               --assert url? to url! 10:00
+;               --assert "10:00" = form to url! 10:00
 ;       --test-- "to-url!-date!"
-;               --assert 16-Jun-2014/14:34:59+2:00 = to url! 16-Jun-2014/14:34:59+2:00
+;               --assert url? to url! 16-Jun-2014/14:34:59+2:00
+;               --assert "16-Jun-2014/14:34:59+2:00" = form to url! 16-Jun-2014/14:34:59+2:00
 ;       --test-- "to-url!-email!"
-;               --assert foo@boo = to url! foo@boo
-        --test-- "to-url!-bitset!"
-                --assert make%20bitset!%20#%7B00%7D = to url! make bitset! #{00}
+;               --assert url? to url! foo@boo
+;               --assert "foo@boo" = form to url! foo@boo
+;       --test-- "to-url!-bitset!"
+;               --assert url? to url! make bitset! #{00}
+;               --assert "make bitset! #{00}" = form to url! make bitset! #{00}
 ===end-group===
 ===start-group=== "to-file!"
         --test-- "to-file!-char!"
@@ -300,16 +364,16 @@ Red [
                 --assert %-1 = to file! -1
         --test-- "to-file!-decimal!"
                 --assert %-1.5 = to file! -1.5
-        --test-- "to-file!-pair!"
-                --assert %1x2 = to file! 1x2
+;       --test-- "to-file!-pair!"
+;               --assert %1x2 = to file! 1x2
         --test-- "to-file!-word!"
                 --assert %word = to file! word
         --test-- "to-file!-refinement!"
                 --assert %/refinement = to file! /refinement
         --test-- "to-file!-path!"
                 --assert %path/foo = to file! path/foo
-        --test-- "to-file!-url!"
-                --assert %http://red-lang.org = to file! http://red-lang.org
+;       --test-- "to-file!-url!"
+;               --assert %http://red-lang.org = to file! http://red-lang.org
         --test-- "to-file!-file!"
                 --assert %/file/ = to file! %/file/
         --test-- "to-file!-issue!"
@@ -370,8 +434,8 @@ Red [
                 --assert #{FFFFFFFFFFFFFFFF} = to binary! -1
         --test-- "to-binary!-decimal!"
                 --assert #{BFF8000000000000} = to binary! -1.5
-        --test-- "to-binary!-url!"
-                --assert #{687474703A2F2F7265642D6C616E672E6F7267} = to binary! http://red-lang.org
+;       --test-- "to-binary!-url!"
+;               --assert #{687474703A2F2F7265642D6C616E672E6F7267} = to binary! http://red-lang.org
         --test-- "to-binary!-file!"
                 --assert #{2F66696C652F} = to binary! %/file/
         --test-- "to-binary!-binary!"
@@ -397,33 +461,33 @@ Red [
 ===end-group===
 ===start-group=== "to-block!"
         --test-- "to-block!-char!"
-                --assert [ #"a"] = to block! #"a"
+                --assert [#"a"] = to block! #"a"
         --test-- "to-block!-string!"
                 --assert [foo] = to block! "foo"
         --test-- "to-block!-integer!"
-                --assert [ 123] = to block! 123
+                --assert [123] = to block! 123
         --test-- "to-block!-integer!"
-                --assert [ 256] = to block! 256
+                --assert [256] = to block! 256
         --test-- "to-block!-decimal!"
-                --assert [ 1.5] = to block! 1.5
+                --assert [1.5] = to block! 1.5
         --test-- "to-block!-integer!"
-                --assert [ -1] = to block! -1
+                --assert [-1] = to block! -1
         --test-- "to-block!-decimal!"
-                --assert [ -1.5] = to block! -1.5
-        --test-- "to-block!-pair!"
-                --assert [ 1x2] = to block! 1x2
+                --assert [-1.5] = to block! -1.5
+;       --test-- "to-block!-pair!"
+;               --assert [1x2] = to block! 1x2
         --test-- "to-block!-word!"
-                --assert [ word] = to block! word
+                --assert [word] = to block! word
         --test-- "to-block!-refinement!"
-                --assert [ /refinement] = to block! /refinement
+                --assert [/refinement] = to block! /refinement
         --test-- "to-block!-path!"
                 --assert [path foo] = to block! path/foo
-        --test-- "to-block!-url!"
-                --assert [ http://red-lang.org] = to block! http://red-lang.org
+;       --test-- "to-block!-url!"
+;               --assert [http://red-lang.org] = to block! http://red-lang.org
         --test-- "to-block!-file!"
-                --assert [ %/file/] = to block! %/file/
+                --assert [%/file/] = to block! %/file/
         --test-- "to-block!-issue!"
-                --assert [ #FF00] = to block! #FF00
+                --assert [#FF00] = to block! #FF00
         --test-- "to-block!-binary!"
                 --assert [] = to block! #{}
         --test-- "to-block!-binary!"
@@ -437,19 +501,19 @@ Red [
         --test-- "to-block!-block!"
                 --assert ["a" "b"] = to block! ["a" "b"]
 ;       --test-- "to-block!-tuple!"
-;               --assert [ 1.1.1] = to block! 1.1.1
+;               --assert [1.1.1] = to block! 1.1.1
         --test-- "to-block!-paren!"
                 --assert [] = to block! ()
         --test-- "to-block!-paren!"
                 --assert [1 2] = to block! (1 2)
 ;       --test-- "to-block!-tag!"
-;               --assert [ <a>] = to block! <a>
+;               --assert [<a>] = to block! <a>
 ;       --test-- "to-block!-time!"
-;               --assert [ 10:00] = to block! 10:00
+;               --assert [10:00] = to block! 10:00
 ;       --test-- "to-block!-date!"
-;               --assert [ 16-Jun-2014/14:34:59+2:00] = to block! 16-Jun-2014/14:34:59+2:00
+;               --assert [16-Jun-2014/14:34:59+2:00] = to block! 16-Jun-2014/14:34:59+2:00
 ;       --test-- "to-block!-email!"
-;               --assert [ foo@boo] = to block! foo@boo
+;               --assert [foo@boo] = to block! foo@boo
         --test-- "to-block!-bitset!"
                 --assert [make bitset! #{00}] = to block! make bitset! #{00}
 ===end-group===
@@ -475,33 +539,33 @@ Red [
 ===end-group===
 ===start-group=== "to-paren!"
         --test-- "to-paren!-char!"
-                --assert ( #"a") = to paren! #"a"
+                --assert (#"a") = to paren! #"a"
         --test-- "to-paren!-string!"
                 --assert (foo) = to paren! "foo"
         --test-- "to-paren!-integer!"
-                --assert ( 123) = to paren! 123
+                --assert (123) = to paren! 123
         --test-- "to-paren!-integer!"
-                --assert ( 256) = to paren! 256
+                --assert (256) = to paren! 256
         --test-- "to-paren!-decimal!"
-                --assert ( 1.5) = to paren! 1.5
+                --assert (1.5) = to paren! 1.5
         --test-- "to-paren!-integer!"
-                --assert ( -1) = to paren! -1
+                --assert (-1) = to paren! -1
         --test-- "to-paren!-decimal!"
-                --assert ( -1.5) = to paren! -1.5
-        --test-- "to-paren!-pair!"
-                --assert ( 1x2) = to paren! 1x2
+                --assert (-1.5) = to paren! -1.5
+;       --test-- "to-paren!-pair!"
+;               --assert (1x2) = to paren! 1x2
         --test-- "to-paren!-word!"
-                --assert ( word) = to paren! word
+                --assert (word) = to paren! word
         --test-- "to-paren!-refinement!"
-                --assert ( /refinement) = to paren! /refinement
+                --assert (/refinement) = to paren! /refinement
         --test-- "to-paren!-path!"
                 --assert (path foo) = to paren! path/foo
-        --test-- "to-paren!-url!"
-                --assert ( http://red-lang.org) = to paren! http://red-lang.org
+;       --test-- "to-paren!-url!"
+;               --assert (http://red-lang.org) = to paren! http://red-lang.org
         --test-- "to-paren!-file!"
-                --assert ( %/file/) = to paren! %/file/
+                --assert (%/file/) = to paren! %/file/
         --test-- "to-paren!-issue!"
-                --assert ( #FF00) = to paren! #FF00
+                --assert (#FF00) = to paren! #FF00
         --test-- "to-paren!-binary!"
                 --assert () = to paren! #{}
         --test-- "to-paren!-binary!"
@@ -515,19 +579,19 @@ Red [
         --test-- "to-paren!-block!"
                 --assert ("a" "b") = to paren! ["a" "b"]
 ;       --test-- "to-paren!-tuple!"
-;               --assert ( 1.1.1) = to paren! 1.1.1
+;               --assert (1.1.1) = to paren! 1.1.1
         --test-- "to-paren!-paren!"
                 --assert () = to paren! ()
         --test-- "to-paren!-paren!"
                 --assert (1 2) = to paren! (1 2)
 ;       --test-- "to-paren!-tag!"
-;               --assert ( <a>) = to paren! <a>
+;               --assert (<a>) = to paren! <a>
 ;       --test-- "to-paren!-time!"
-;               --assert ( 10:00) = to paren! 10:00
+;               --assert (10:00) = to paren! 10:00
 ;       --test-- "to-paren!-date!"
-;               --assert ( 16-Jun-2014/14:34:59+2:00) = to paren! 16-Jun-2014/14:34:59+2:00
+;               --assert (16-Jun-2014/14:34:59+2:00) = to paren! 16-Jun-2014/14:34:59+2:00
 ;       --test-- "to-paren!-email!"
-;               --assert ( foo@boo) = to paren! foo@boo
+;               --assert (foo@boo) = to paren! foo@boo
         --test-- "to-paren!-bitset!"
                 --assert (make bitset! #{00}) = to paren! make bitset! #{00}
 ===end-group===
@@ -682,8 +746,8 @@ Red [
                 --assert make bitset! #{00000000000000000000000000000000} = to bitset! 123
         --test-- "to-bitset!-integer!"
                 --assert make bitset! #{0000000000000000000000000000000000000000000000000000000000000000} = to bitset! 256
-        --test-- "to-bitset!-url!"
-                --assert make bitset! #{0000000000070020000000004D8BA8} = to bitset! http://red-lang.org
+;       --test-- "to-bitset!-url!"
+;               --assert make bitset! #{0000000000070020000000004D8BA8} = to bitset! http://red-lang.org
         --test-- "to-bitset!-file!"
                 --assert make bitset! #{0000000000010000000000000648} = to bitset! %/file/
         --test-- "to-bitset!-binary!"
