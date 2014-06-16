@@ -65,6 +65,7 @@ red: context [
 	#include %datatypes/object.reds
 	#include %datatypes/bitset.reds
 	#include %datatypes/point.reds
+	#include %datatypes/binary.reds
 	
 	;-- Debugging helpers --
 	
@@ -126,6 +127,7 @@ red: context [
 		object/init
 		bitset/init
 		point/init
+		binary/init
 		
 		actions/init
 		

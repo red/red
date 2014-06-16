@@ -1384,7 +1384,7 @@ make-profilable make target-class [
 	]
 
 	emit-push: func [
-		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
+		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal! binary!]
 		/with cast [object!]
 		/cdecl
 		/local push-last push-last64 spec type
@@ -1445,6 +1445,7 @@ make-profilable make target-class [
 				emit-load value
 				do push-last						;-- PUSH &value
 			]
+			binary!
 			string! [
 				emit-load-literal [c-string!] value
 				do push-last						;-- PUSH value
