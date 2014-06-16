@@ -211,6 +211,11 @@ transcode: function [
 		append new dehex copy/part s e
 		new
 	]
+
+	trans-binary: [
+		new: debase copy/part s e
+		new
+	]
 	
 	if cs/1 = '- [
 		cs/1:  charset "0123465798"						;-- digit
@@ -333,6 +338,18 @@ transcode: function [
 	
 	string-rule: [(type: string!) line-string | multiline-string]
 	
+	binary-rule: [
+		"#{" (type: binary!) [
+			s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
+			e: #"}"
+			|
+			(
+				print "** Syntax Error: Invalid binary!" ;@@ replace with error!
+				halt
+			)
+		]
+	]
+
 	file-rule: [
 		#"%" [
 			line-string (process: trans-string type: file!)
@@ -484,6 +501,7 @@ transcode: function [
 			comment-rule
 			| escaped-rule		(trans-store stack value)
 			| integer-rule		if (value: trans-integer s e ) (trans-store stack value)
+			| binary-rule	  	(trans-store stack do trans-binary)
 			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
@@ -495,7 +513,7 @@ transcode: function [
 			| block-rule
 			| paren-rule
 			| string-rule		(trans-store stack do trans-string)
-			;| binary-rule	  	(stack/push load-binary s e)
+			
 		]
 	]
 	

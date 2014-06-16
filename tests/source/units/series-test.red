@@ -40,8 +40,10 @@ Red [
 	--assert 53 = fifth sf5-ser
 	
 	--test-- "series-fstff-6"
-	;;  stf6-ser: #{000102}
-	;;--assert 0 = first stf6-ser
+	  stf6-ser: #{000102}
+	--assert 0 = first stf6-ser
+	--assert 1 = second stf6-ser
+	--assert 2 = last stf6-ser
 	
 	--test-- "series-fstff-7"
 	--assert 'a = first [a b c d]
@@ -88,6 +90,8 @@ Red [
   --assert #"^(00)" = first next "a^(00)"
   --test-- "series-next-12"
   --assert #"^(00)" = first next "a^(00)b" 
+  --test-- "series-next-13"
+  --assert 1 = first next #{000102} 
 ===end-group===
 
 ===start-group=== "back"
@@ -113,6 +117,8 @@ Red [
   --assert 53 = first back next next next next next "12345"
   --test-- "series-back-11"
   --assert 49 = first back "12345"
+  --test-- "series-back-12"
+  --assert 1 = first back next next #{00010203}
 ===end-group===
 
 ===start-group=== "tail"
@@ -120,6 +126,8 @@ Red [
   --assert 5 = first back tail [1 2 3 4 5]
   --test-- "seried-tail-2" 
   --assert none = pick tail [1 2 3 4 5] 1
+  --test-- "series-tail-3"
+  --assert #{02} = back tail #{0102}
 ===end-group===
 
 ===start-group=== "pick"
@@ -182,6 +190,12 @@ Red [
   --test-- "series-pick-18"
     sp18-i: -1
   --assert none = pick "12345" sp18-i
+
+  --test-- "series-pick-19"
+  --assert  2 = pick #{0102} 2
+
+  --test-- "series-pick-20"
+  --assert  1 = pick tail #{0102} -2
   
   
 ===end-group===
@@ -219,6 +233,21 @@ Red [
 
 	--test-- "series-select-10"
 		--assert none? select s #"!"
+
+  --test-- "series-select-11"
+  --assert none = select #{0102} 2
+
+  --test-- "series-select-12"
+  --assert 2 = select #{0102} 1
+
+  --test-- "series-select-13"
+  --assert 2 = select #{0102} #{01}
+
+  --test-- "series-select-14"
+  --assert 3 = select #{010203} #{0102}
+
+  --test-- "series-select-15"
+  --assert 4 = select/skip #{01030304} #{03} 2
   
 ===end-group===
 
@@ -276,7 +305,27 @@ Red [
 	append/part/dup str "456" 3 2 
 	--assert str = "12456456"
 
-	
+  --test-- "series-append-18"
+  --assert 4 = last append #{010203} #{04}
+  --test-- "series-append-19"
+  --assert #{01020304} = append #{01} [#{02} #{0304}]
+  --test-- "series-append-20"
+  --assert #{0161} = append #{01} "a"
+  --test-- "series-append-21"
+  --assert #{C3A9} = append #{} #"é"
+  --test-- "series-append-22"
+  --assert #{C3A9} = append #{} "é"
+  --test-- "series-append-23"
+  --assert #{01020102} = append/part/dup #{} #{010203} 2 2
+  --test-- "series-append-24"
+  --assert "a#{6263}" = append "a" #{6263}
+  --assert #{6162} = append #{} "ab"
+  --test-- "series-append-25"
+  --assert #{6162} = append/part #{} #{616263} 2
+  --assert #{6162} = append/part #{} "abc" 2
+  --assert #{C3A962} = append/part #{} "ébc" 2
+  --assert #{C3A96263} = append #{} "ébc"
+
 ===end-group===
 
 ===start-group=== "series-equal"
@@ -299,6 +348,12 @@ Red [
   --test-- "series-equal-5"
     se5-b: ["abcde"]
   --assert se5-b = ["abcde"]
+
+  --test-- "series-equal-6"
+  --assert #{} = #{}
+
+  --test-- "series-equal-7"
+  --assert #{01} = next #{0001}
   
 ===end-group===
 
@@ -534,6 +589,17 @@ Red [
 
 	--test-- "series-find-75"
 		--assert 8 = index? find/case s "Red"
+
+	--test-- "series-find-76"
+		--assert 2 = index? find #{010203} #{02}
+	--test-- "series-find-77"
+		--assert 2 = index? find #{61626342} #"b"
+	--test-- "series-find-78"
+		--assert 4 = index? find/case #{61626342} #"B"
+	--test-- "series-find-79"
+		--assert 3 = index? find/tail #{61626342} #"b"
+	--test-- "series-find-80"
+		--assert 4 = index? find/reverse tail #{42626342} #{42}
 		
 ===end-group===
 
@@ -601,6 +667,16 @@ Red [
 		a: "123"
 		--assert "123" = remove/part a 0
 
+	--test-- "remove-bin-1"
+		b: #{00010203}
+		--assert #{010203} = remove b
+	--test-- "remove-bin-2"
+		--assert #{0203} = remove next #{00010203}
+	--test-- "remove-bin-3"
+		--assert #{000203} = head remove next #{00010203}
+	--test-- "remove-bin-4"
+		--assert #{0003} = head remove/part next #{00010203} 2
+
 ===end-group===
 
 ===start-group=== "clear"
@@ -644,7 +720,12 @@ Red [
 		c9-b: "^(2710)123"
 		c9-b:  next c9-b
 		--assert "^(2710)" = head clear c9-b
-	
+
+	--test-- "clear-10"
+		--assert empty? clear #{0102}
+	--test-- "clear-11"
+		--assert #{01} = head clear next #{010203}
+
 ===end-group===
 
 ===start-group=== "at"
@@ -672,6 +753,13 @@ Red [
 		--assert [e] = at [a b c d e] 5
 		--assert [] = at [a b c d e] 6
 		--assert [] = at [a b c d e] 1028
+
+	--test-- "at-4"
+		--assert #{0203} = at #{010203} 2
+		--assert #{} = at #{010203} 4
+		--assert #{} = at #{010203} 1028
+		--assert #{010203} = at #{010203} -3
+		--assert #{03} = at tail #{010203} -1
 	
 ===end-group===
 
@@ -681,7 +769,16 @@ Red [
 		code: [print "Hello"]
 		--assert 'print = first replace code "Hello" "Cheers"
 		--assert "Cheers" = second code
-		
+	--test-- "replace-str"
+		--assert "Xbab" = replace "abab" #"a" #"X"
+		--assert "XbXb" = replace/all "abab" #"a" #"X"
+		--assert "Xab" = replace "abab" "ab" "X"
+	--test-- "replace-bin"
+		--assert #{FF0201} = replace #{010201} #{01} #{FF}
+		--assert #{FF02FF} = replace/all #{010201} #{01} #{FF}
+		--assert #{FF03}   = replace #{010203} #{0102} #{FF}
+		--assert #{FFFFFF03} = replace #{010203} #{0102} #{FFFFFF}
+
 ===end-group===
 
 ===start-group=== "max/min"			;-- have some overlap with lesser tests
@@ -700,6 +797,14 @@ Red [
 		--assert blk2 = max blk1 blk2
 		blk1: next blk1
 		--assert blk1 = max blk1 blk2
+
+	--test-- "max-bin"
+		--assert #{0203} = max #{0102} #{0203}
+		--assert #{01020304} = max #{01020304} #{010203}
+
+	--test-- "min-bin"
+		--assert #{0102} = min #{0102} #{0203}
+		--assert #{010203} = min #{01020304} #{010203}
 
 ===end-group===
 
@@ -740,6 +845,11 @@ Red [
 		p1: first [ab/cd/ef]
 		p2: first [ef/cd/ab]
 		--assert p2 = reverse p1
+
+	--test-- "reverse-bin"
+		--assert #{0201} = reverse #{0102}
+		--assert #{020103} = reverse/part #{010203} 2
+		--assert #{010302} = head reverse next #{010203}
 
 ===end-group===
 
@@ -832,6 +942,49 @@ Red [
 		--assert "23" = take/part/last a next a
 		--assert "1"  = a
 
+	--test-- "take-bin-1"
+		b: #{0102}
+		--assert 1 = take b
+		--assert #{02} = b
+
+	--test-- "take-bin-2"
+		b: #{010203}
+		--assert 3 = take/last b
+		--assert #{0102} = b
+
+	--test-- "take-bin-3"
+		b: #{010203}
+		--assert 2 = take next b
+		--assert #{0103} = b
+
+	--test-- "take-bin-4"
+		--assert none = take #{}
+
+	--test-- "take-bin-5"
+		b: #{010203}
+		--assert #{0102} = take/part b 2
+		--assert #{03} = b
+
+	--test-- "take-bin-6"
+		b: #{010203}
+		--assert #{0203} = take/part/last b 2
+		--assert #{01} = b
+
+	--test-- "take-bin-7"
+		b: #{010203}
+		--assert #{} = take/part b b
+		--assert #{010203} = b
+
+	--test-- "take-bin-8"
+		b: #{010203}
+		--assert #{01} = take/part b next b
+		--assert #{0203} = b
+
+	--test-- "take-bin-9"
+		b: #{010203}
+		--assert #{0203} = take/part/last b next b
+		--assert #{01} = b
+
 ===end-group===
 
 ===start-group=== "swap"
@@ -872,6 +1025,15 @@ Red [
 
 	--test-- "swap-blk-3"
 		--assert [1 a] = swap [1 a] []
+
+	--test-- "swap-bin"
+		a: #{0102}
+		b: #{0304}					;-- 𠃌 = #"^(200CC)"
+		--assert #{0302} = swap a b
+		--assert #{0302} = a
+		--assert #{0104} = b
+		--assert #{0104} = swap b #{}
+
 
 ===end-group===
 

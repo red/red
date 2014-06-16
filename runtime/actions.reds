@@ -185,7 +185,42 @@ actions: context [
 		action-reflect value field/symbol
 	]
 	
-	to*: func [][]
+	to*: func [
+		return: [red-value!]
+	][
+		to stack/arguments stack/arguments + 1
+	]
+
+	to: func [
+		type	[red-value!]
+		spec	[red-value!]
+		return: [red-value!]
+		/local
+			action-to
+			d         [red-datatype!]
+			trg-type  [integer!]
+			src-type  [integer!]
+	][
+		trg-type: TYPE_OF(type)
+		src-type: TYPE_OF(spec)
+		if trg-type <> TYPE_DATATYPE [
+			d: as red-datatype! type
+			d/header: TYPE_DATATYPE
+			d/value: trg-type
+		]
+		if all [
+			src-type = trg-type
+			not ANY_SERIES?(trg-type)
+		][ return stack/set-last spec ]
+
+		action-to: as function! [
+			type	[red-datatype!]
+			spec	[red-value!]
+			return: [red-value!]
+		] get-action-ptr-from TYPE_OF(spec) ACT_TO
+
+		action-to as red-datatype! type spec
+	]
 
 	form*: func [
 		part	   [integer!]
@@ -1215,7 +1250,7 @@ actions: context [
 			:make*
 			:random*
 			:reflect*
-			null			;to
+			:to*
 			:form*
 			:mold*
 			:eval-path
