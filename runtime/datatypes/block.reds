@@ -1357,6 +1357,7 @@ block: context [
 					either last? [slots - (b/head - blk/head)][b/head - blk/head]
 				]
 			]
+			if part > slots [part: slots]
 		]
 
 		new:		as red-block! stack/push*
