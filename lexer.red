@@ -369,6 +369,8 @@ transcode: function [
 				| paren-rule
 				| #":" s: begin-symbol-rule	(trans-word stack copy/part s e get-word!)
 				;@@ add more datatypes here
+				| (type: none print ["*** Syntax Error: invalid path value at:" back s])
+				  reject
 			]
 			opt [#":" (trans-set-path back tail stack)]
 		] (trans-pop stack)
@@ -380,7 +382,7 @@ transcode: function [
 				url-rule
 				| path-rule								;-- path matched
 				| opt [#":" (type: set-word!)]
-				  (trans-word stack copy/part s e type)	;-- word or set-word matched
+				  (if type [trans-word stack copy/part s e type])	;-- word or set-word matched
 		  ]
 	]
 
