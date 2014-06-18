@@ -394,7 +394,7 @@ Red [
 		]
 		--assert "12345" = s4-f true "00000"
 		
-	--test-- "scope5 issue #826"
+	--test-- "scope5 issue #825"
 		s5-text: "abcde"
 		s5-f: func[/extern s5-text] [
 			either extern [
@@ -405,14 +405,14 @@ Red [
 		]
 		--assert "12345" s5-f/extern "12345"
 		
-	--test-- "scope6 issue #826"
+	--test-- "scope6 issue #825"
 		s6-text: "abcde"
 		s6-f: func [local s6-text] [
 			s6-text
 		]
 		--assert "12345" = s6-f "filler" "12345"
 		
-	--test-- "scope7 issue #826"
+	--test-- "scope7 issue #825"
 		s7-text: "abcde"
 		s7-f: function [local s7-text] [
 			s7-text
