@@ -789,6 +789,11 @@ Red [
 		--assert b = c: take/deep a
 		--assert b <> remove c
 
+	--test-- "take-blk-5"
+		a: [1 2 3]
+		--assert [1 2 3] = take/part a 22
+		--assert [] = a
+
 	--test-- "take-str-1"
 		a: "123"
 		--assert #"1" = take a
@@ -832,6 +837,10 @@ Red [
 		--assert "23" = take/part/last a next a
 		--assert "1"  = a
 
+	--test-- "take-str-10"
+		a: "123"
+		--assert "123" = take/part a 22
+		--assert "" = a
 ===end-group===
 
 ===start-group=== "swap"
@@ -873,6 +882,42 @@ Red [
 	--test-- "swap-blk-3"
 		--assert [1 a] = swap [1 a] []
 
+===end-group===
+
+===start-group=== "trim"
+
+	str: " ^(A0) ^-a b  ^- c  ^(2000) "
+	mstr: {   a ^-1^/    ab2^-  ^/  ac3  ^/  ^/^/}
+
+	--test-- "trim-str-1"
+		--assert "a b  ^- c" = trim copy str
+
+	--test-- "trim-str-2"
+		--assert "a ^-1^/ab2^/ac3^/" = trim copy mstr
+
+	--test-- "trim-str-3"
+		--assert "a ^-1^/    ab2^-  ^/  ac3  ^/  ^/^/" = trim/head copy mstr
+
+	--test-- "trim-str-4"
+		--assert "   a ^-1^/    ab2^-  ^/  ac3" = trim/tail copy mstr
+
+	--test-- "trim-str-5"
+		--assert "a ^-1^/    ab2^-  ^/  ac3" = trim/head/tail copy mstr
+
+	--test-- "trim-str-6"
+		--assert "a 1 ab2 ac3" = trim/lines copy mstr
+
+	--test-- "trim-str-7"
+		--assert "a1ab2ac3" = trim/all copy mstr
+
+	--test-- "trim-str-8"
+		--assert "    ^-1^/    2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr "ab"
+
+	--test-- "trim-str-9"
+		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr #"a"
+
+	--test-- "trim-str-10"
+		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
 ===end-group===
 
 ~~~end-file~~~
