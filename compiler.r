@@ -2030,7 +2030,7 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
-	process-call-directive: func [body [block!] global? /local name spec cmd][
+	process-call-directive: func [body [block!] global? /local name spec cmd types type arg][
 		name: to word! clean-lf-flag body/1
 		if any [
 			not spec: select functions name
@@ -2049,12 +2049,25 @@ red: context [
 		types: spec/3
 		body: next body
 		
-		loop spec/2 [
+		loop spec/2 [									;-- process arguments
 			types: find/tail types word!
 			unless block? types/1 [
 				throw-error ["type undefined for" types/1 "in function" name]
 			]
-			cmd: to path! reduce [to word! form get types/1/1 'push]
+			either 1 = length? types/1 [
+				type: types/1/1
+			][
+				arg: body/1
+				if word? arg [arg: get arg]
+				type: none
+				foreach value types/1 [
+					if value = type?/word arg [type: value break]
+				]
+				unless type [
+					throw-error ["cannot determine #call argument type:" arg]
+				]
+			]
+			cmd: to path! reduce [to word! form get type 'push]
 			if global? [insert cmd 'red]
 			emit cmd
 			insert-lf -1
@@ -2066,19 +2079,40 @@ red: context [
 					emit copy/part body 3
 					body: skip body 3
 				]
+				body/1 = 'none [
+					body: next body
+				]
 				'else [
 					emit body/1
 					body: next body
 				]
 			]
 		]
-		name: decorate-func name
+		
+		types: next types								;-- process refinements
+		while [not tail? types][
+			switch type?/word types/1 [
+				refinement! [
+					if types/1 = /local [break]
+					emit [red/logic/push false]
+					insert-lf -2
+				]
+				word! [
+					emit 'red/none/push
+					insert-lf -1
+				]
+				set-word! [break]
+			]
+			types: next types
+		]
+		
+		name: decorate-func name						;-- function call
 		if global? [name: decorate-exec-ctx name]
 		emit name
 		insert-lf -1
 		
 		either global? [
-			emit 'red/stack/unwind
+			emit 'red/stack/unwind-last
 			insert-lf -1
 			emit 'red/stack/reset
 		][
@@ -2502,6 +2536,7 @@ red: context [
 		
 		time: dt [
 			src: load-source file
+			job/red-pass?: yes
 			either no-global? [comp-as-lib src][comp-as-exe src]
 		]
 		reduce [output time]
