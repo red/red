@@ -580,6 +580,7 @@ system-dialect: make-profilable context [
 				integer! [[integer!]]
 				decimal! [[float!]]
 				string!	 [[c-string!]]
+				binary!	 [[c-string!]]
 				path!	 [resolve-path-type value]
 				object!  [value/type]
 				block!	 [
@@ -2750,6 +2751,7 @@ system-dialect: make-profilable context [
 				char!		[do pass]
 				integer!	[do pass]
 				string!		[do pass]
+				binary!		[do pass]
 				decimal!	[do pass]
 				block!		[also to paren! pc/1 pc: next pc]
 			][

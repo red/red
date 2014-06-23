@@ -89,7 +89,7 @@ ask: routine [
 		line-buffer/pos: null-byte						;-- overwrite CR with NUL
 		str: string/load as-c-string line-buffer len - 1 UTF-16LE
 	][
-		line: read-line unicode/to-utf8 prompt
+		line: read-line unicode/to-utf8 prompt -1       ;-- -1: all chars
 		if line = null [halt]  ; EOF
 
 		 #if OS <> 'MacOSX [add-history line]

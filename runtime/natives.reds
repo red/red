@@ -1178,6 +1178,155 @@ natives: context [
 	][
 		arc-trans radians TANGENT
 	]
+	
+	debase*: func [
+		return:		[red-binary!]
+		/local
+			str		[red-string!]
+			bin		[red-binary!]
+			s		[series!]
+			b       [series!]
+			pbin	[byte-ptr!]
+			p		[byte-ptr!]
+			p4		[int-ptr!]
+			s-tail	[byte-ptr!]
+			unit	[integer!]
+			cp		[integer!]
+			len     [integer!]
+			byte    [integer!]
+			hi-bits [logic!]
+	][
+		str: as red-string! stack/arguments
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		s-tail: as byte-ptr! s/tail
+		len: (string/rs-length? str) / 2
+		bin: binary/make as red-value! integer/box len
+		b: GET_BUFFER(bin)
+		pbin: as byte-ptr! b/tail
+
+		hi-bits: true
+		while [p < s-tail][
+			cp: switch unit [
+				Latin1 [as-integer p/value]
+				UCS-2  [(as-integer p/2) << 8 + p/1]
+				UCS-4  [p4: as int-ptr! p p4/value]
+			]
+			if NOT_WHITESPACE(cp) [
+				either hi-bits [
+					switch cp [
+						#"0" [byte: 0]
+						#"1" [byte: 16]
+						#"2" [byte: 32]
+						#"3" [byte: 48]
+						#"4" [byte: 64]
+						#"5" [byte: 80]
+						#"6" [byte: 96]
+						#"7" [byte: 112]
+						#"8" [byte: 128]
+						#"9" [byte: 144]
+						#"a" #"A" [byte: 160]
+						#"b" #"B" [byte: 176]
+						#"c" #"C" [byte: 192]
+						#"d" #"D" [byte: 208]
+						#"e" #"E" [byte: 224]
+						#"f" #"F" [byte: 240]
+						default [
+							stack/set-last none-value
+							return null
+						]
+					]
+					hi-bits: false
+				][
+					switch cp [
+						#"0" []
+						#"1" [byte: byte + 1]
+						#"2" [byte: byte + 2]
+						#"3" [byte: byte + 3]
+						#"4" [byte: byte + 4]
+						#"5" [byte: byte + 5]
+						#"6" [byte: byte + 6]
+						#"7" [byte: byte + 7]
+						#"8" [byte: byte + 8]
+						#"9" [byte: byte + 9]
+						#"a" #"A" [byte: byte + 10]
+						#"b" #"B" [byte: byte + 11]
+						#"c" #"C" [byte: byte + 12]
+						#"d" #"D" [byte: byte + 13]
+						#"e" #"E" [byte: byte + 14]
+						#"f" #"F" [byte: byte + 15]
+						default [
+							stack/set-last none-value
+							return null
+						]
+					]
+					pbin/1: as byte! byte
+					pbin: pbin + 1
+					hi-bits: true
+				]
+			]
+			p: p + unit
+		]
+		b/tail: as cell! pbin
+		stack/set-last as red-value! bin
+		bin
+	]
+
+	enbase*: func [
+		return:		[red-string!]
+		/local
+			type    [integer!]
+			value   [red-value!]
+			str		[red-string!]
+			out     [red-string!]
+			bin		[red-binary!]
+			buffer	[series!]
+			pout    [byte-ptr!]
+			tail    [byte-ptr!]
+			head    [byte-ptr!]
+			sout    [series!]
+			h       [c-string!]
+			i       [integer!]
+			len     [integer!]
+			byte    [integer!]
+	][
+		type: TYPE_OF(stack/arguments)
+		
+		h: "0123456789ABCDEF"
+
+		switch type [
+			TYPE_BINARY [
+				bin: as red-binary! stack/arguments
+				buffer: GET_BUFFER(bin)
+				tail: as byte-ptr! buffer/tail
+				head: (as byte-ptr! buffer/offset) + bin/head
+				len: (as integer! buffer/tail - buffer/offset) - bin/head
+
+				out: string/rs-make-at (stack/arguments) (len * 2)
+				sout: GET_BUFFER(out)
+
+				pout: as byte-ptr! sout/offset
+				while [head < tail][
+					byte: as-integer head/1
+					i: byte and 15 + 1
+					pout/2: h/i
+					i: byte >> 4 and 15 + 1
+					pout/1: h/i
+
+					pout: pout + 2
+					head: head + 1
+				]
+				pout/1: null-byte
+			]
+			default [
+				--NOT_IMPLEMENTED--
+			]
+		]
+		sout/tail: as cell! pout
+		stack/set-last as red-value! out
+		out
+	]
 
 	;--- Natives helper functions ---
 
@@ -1496,6 +1645,8 @@ natives: context [
 			:arcsine*
 			:arccosine*
 			:arctangent*
+			:debase*
+			:enbase*
 		]
 	]
 

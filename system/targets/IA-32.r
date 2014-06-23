@@ -933,7 +933,7 @@ make-profilable make target-class [
 	]
 	
 	emit-push: func [
-		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal!]
+		value [char! logic! integer! word! block! string! tag! path! get-word! object! decimal! binary!]
 		/with cast [object!]
 		/cdecl										;-- external call
 		/local spec type offset
@@ -1018,6 +1018,7 @@ make-profilable make target-class [
 					]
 				]
 			]
+			binary!
 			string! [
 				spec: emitter/store-value none value [c-string!]
 				either PIC? [
