@@ -146,6 +146,7 @@ _function: context [
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
 		extern: as red-block! block/find spec value null no no no null null no no no no
+		extern?: no
 
 		if TYPE_OF(extern) = TYPE_BLOCK [
 			value: block/pick extern 1 null
