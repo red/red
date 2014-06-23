@@ -368,13 +368,13 @@ Red [
 
 	--test-- "scope1 issue #825"
 		s1-text: "abcde"
-		s1-f: function [/external s1-text] [
+		s1-f: function [/extern s1-text] [
 			s1-text
 		]
 		--assert s1-f = "abcde"
 		
 	--test-- "scope2 issue #825"
-		s2-f: function [/external s2-text] [
+		s2-f: function [/extern s2-text] [
 			s2-text
 		]
 		s2-text: "abcde"
