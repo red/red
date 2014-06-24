@@ -220,12 +220,17 @@ integer: context [
 		return: [red-value!]
 		/local
 			f	[red-float!]
+			buf [red-string!]
 	][
 		switch type/value [
 			TYPE_FLOAT [
 				f: as red-float! type
 				f/header: TYPE_FLOAT
 				f/value: to-float spec/value
+			]
+			TYPE_STRING [
+				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
+				string/concatenate-literal buf form-signed spec/value
 			]
 			default [
 				print-line "** Script error: Invalid argument for TO integer!"

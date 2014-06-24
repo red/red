@@ -48,6 +48,12 @@ Red/System [
 			char		[byte!]
 		]
 		printf: 	 "printf" [[variadic]]
+		sprintf:	 "sprintf" [[variadic]]
+		strtod:		 "strtod" [
+			str			[byte-ptr!]
+			endptr		[byte-ptr!]
+			return:		[float!]
+		]
 	]
 
 	LIBM-file cdecl [
