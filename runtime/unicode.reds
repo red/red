@@ -60,7 +60,8 @@ unicode: context [
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		node: alloc-bytes unit * (1 + string/rs-length? str)	;@@ TBD: mark this buffer as protected!
+
+		node: alloc-bytes unit << 1 * (1 + string/rs-length? str)	;@@ TBD: mark this buffer as protected!
 		s: 	  as series! node/value
 		buf:  as byte-ptr! s/offset
 		
@@ -103,7 +104,8 @@ unicode: context [
 			]
 			p: p + unit
 		]
-		string/add-terminal-NUL p unit
+		buf/1: null-byte
+
 		as-c-string s/offset
 	]
 	
