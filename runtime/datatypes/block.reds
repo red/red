@@ -390,7 +390,7 @@ block: context [
 		]
 		s: GET_BUFFER(buffer)
 		if i <> blk/head [								;-- test if not empty block
-			s/tail: as cell! (as byte-ptr! s/tail) - 1	;-- remove extra white space
+			s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s) ;-- remove extra white space
 			part: part + 1
 		]
 		part
