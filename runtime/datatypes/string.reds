@@ -2013,9 +2013,10 @@ string: context [
 		/local
 			s1		[series!]
 			s2		[series!]
-			cp1		[integer!]
-			cp2		[integer!]
-			unit	[integer!]
+			char1	[integer!]
+			char2	[integer!]
+			unit1	[integer!]
+			unit2	[integer!]
 			head1	[byte-ptr!]
 			head2	[byte-ptr!]
 	][
