@@ -17,9 +17,13 @@ Red/System [
 float: context [
 	verbose: 4
 
-	DOUBLE_MAX: 1.0E308 + 1.0E308						;-- tricky way to present INF
-
 	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
+	int64!:  alias struct! [int1 [integer!] int2 [integer!]]
+
+	DOUBLE_MAX: 0.0										;-- rebol can't load INF
+	double-int-union: as uint64! :DOUBLE_MAX			;-- set to largest number
+	double-int-union/int2: as byte-ptr! 7FEFFFFFh
+	double-int-union/int1: as byte-ptr! FFFFFFFFh
 
 	abs: func [
 		value	[float!]
@@ -92,66 +96,50 @@ float: context [
 		f 		[float!]
 		return: [c-string!]
 		/local
-			s	[byte-ptr!]
-			end [byte-ptr!]
-			ss	[c-string!]
-			sig [integer!]
-			e 	[integer!]
-			len [integer!]
+			s	[c-string!]
+			s0	[c-string!]
+			p	[c-string!]
+			dot? [logic!]
+			d	[int64!]
+			w0	[integer!]
 	][
-		e: 0
-		len: 0
-		sig: 0
-		s: as byte-ptr! red-dtoa/float-to-ascii f :e :sig :len
+		d: as int64! :f
+		w0: d/int2												;@@ Use little endian. Watch out big endian !
 
-		if e > 9997 [return as c-string! s]				;-- NaN, INFs, +/-0.0
-
-		case [
-			 any [e > 17 e < -5][						;-- e-format
-				move-memory s + 2 s + 1 len
-				s/2: #"."
-				end: s + len
+		if w0 and 7FF00000h = 7FF00000h [
+			if all [
+				zero? d/int1									;@@ Use little endian. Watch out big endian !
+				zero? (w0 and 000FFFFFh)
+			][
+				return either 0 = (w0 and 80000000h) ["1.#INF"]["-1.#INF"]
 			]
-			e > 0 [
-				either e <= len [
-					move-memory s + e + 1 s + e len - e
-					e: e + 1
-					s/e: #"."
-					end: s + len
-				][
-					set-memory s + len #"0" e - len
-					e: e + 1
-					s/e: #"."
-					end: s + e
-				]
-				e: 0
-			]
-			true [
-				e: 0 - e + 2
-				move-memory s + e s len + 1
-				set-memory s #"0" e
-				s/2: #"."
-				end: s + len + e
-				e: 0
-			]
+			return "1.#NaN"
 		]
 
-		if end/1 = #"." [
-			end: end + 1
-			end/1: #"0"
-		]
-		if e <> 0 [
-			end: end + 1
-			end/1: #"e"
-			ss: integer/form-signed e - 1
-			len: length? ss
-			copy-memory end + 1 as byte-ptr! ss len
-			end: end + len
+		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
+		sprintf [s "%.14g" f]
+
+		dot?: no
+		p:  null
+		s0: s
+		until [
+			if s/1 = #"." [dot?: yes]
+			if s/1 = #"e" [p: s]
+			s: s + 1
+			s/1 = #"^@"
 		]
 
-		end/2: #"^@"
-		if sig <> 0 [s: s - 1]
-		as c-string! s
+		unless dot? [
+			either p = null [
+				p: s
+			][
+				move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
+			]
+			p/1: #"."
+			p/2: #"0"
+			s/3: #"^@"
+		]
+		s0
 	]
 
 	do-math: func [
@@ -274,6 +262,7 @@ float: context [
 		return: [red-value!]
 		/local
 			int [red-integer!]
+			buf [red-string!]
 			f	[float!]
 	][
 		f: spec/value
@@ -282,6 +271,10 @@ float: context [
 				int: as red-integer! type
 				int/header: TYPE_INTEGER
 				int/value: to-integer either f < 0.0 [f + 0.499999999999999][f - 0.499999999999999]
+			]
+			TYPE_STRING [
+				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
+				string/concatenate-literal buf form-float f
 			]
 			default [
 				print-line "** Script error: Invalid argument for TO float!"
