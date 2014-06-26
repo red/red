@@ -244,6 +244,39 @@ Red/System [
 #define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
 
+#define WHITE_CHAR?(char)	[
+	any [
+		all [0 < char char < 33]			;-- All white chars: NL, CR, BS, etc...
+		char = 133							;-- #"^(85)"
+		char = 160							;-- #"^(A0)"
+		char = 5760							;-- #"^(1680)"
+		char = 6158							;-- #"^(180E)"
+		all [8192 <= char char <= 8202]		;-- #"^(2000)" - #"^(200A)"
+		char = 8232							;-- #"^(2028)"
+		char = 8233							;-- #"^(2029)"
+		char = 8239							;-- #"^(202F)"
+		char = 8287							;-- #"^(205F)"
+		char = 12288						;-- #"^(3000)"
+	]
+]
+
+#define SPACE_CHAR?(char)	[
+	any [
+		char = 32							;-- #" "
+		char = 9							;-- #"^-"
+		char = 133							;-- #"^(85)"
+		char = 160							;-- #"^(A0)"
+		char = 5760							;-- #"^(1680)"
+		char = 6158							;-- #"^(180E)"
+		all [8192 <= char char <= 8202]		;-- #"^(2000)" - #"^(200A)"
+		char = 8232							;-- #"^(2028)"
+		char = 8233							;-- #"^(2029)"
+		char = 8239							;-- #"^(202F)"
+		char = 8287							;-- #"^(205F)"
+		char = 12288						;-- #"^(3000)"
+	]
+]
+
 #define ANY_SERIES?(type)	[
 	any [
 		type = TYPE_BLOCK

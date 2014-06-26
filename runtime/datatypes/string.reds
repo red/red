@@ -25,7 +25,7 @@ string: context [
 		
 	escape-chars: [
 		#"^(40)" #"^(41)" #"^(42)" #"^(43)" #"^(44)" #"^(45)" #"^(46)" #"^(47)" ;-- 07h
-		#"-" 	 #"/" 	  #"^(4A)" #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
+		#"^(48)" #"-"     #"/"     #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
 		#"^(50)" #"^(51)" #"^(52)" #"^(53)" #"^(54)" #"^(55)" #"^(56)" #"^(57)" ;-- 17h
 		#"^(58)" #"^(59)" #"^(5A)" #"^(5B)" #"^(5C)" #"^(5D)" #"^(5E)" #"^(5F)" ;-- 1Fh
 		#"^(00)" #"^(00)" #"^""    #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 27h
@@ -58,6 +58,27 @@ string: context [
 	]
 
 	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
+
+	to-float: func [
+		s		[byte-ptr!]
+		return: [float!]
+		/local
+			s0	[byte-ptr!]
+	][
+		s0: s
+		if any [s/1 = #"-" s/1 = #"+"] [s: s + 1]
+		if s/3 = #"#" [										;-- 1.#NaN, -1.#INF" or "1.#INF
+			if any [s/4 = #"I" s/4 = #"i"] [
+				return either s0/1 = #"-" [
+					0.0 - float/+INF
+				][float/+INF]
+			]
+			if any [s/4 = #"N" s/4 = #"n"] [
+				return float/QNaN
+			]
+		]
+		strtod s0 null
+	]
 
 	to-hex: func [
 		value	 [integer!]
@@ -930,7 +951,18 @@ string: context [
 		]
 		as red-value! str
 	]
-	
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-string!]
+		return: [red-value!]
+		/local
+			res [red-block!]
+	][
+		#call [transcode spec none]
+		stack/set-last block/rs-head as red-block! type
+	]
+
 	form: func [
 		str		  [red-string!]
 		buffer	  [red-string!]
@@ -1942,7 +1974,7 @@ string: context [
 		]
 		s:    GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		part: unit
+		part: 1
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -1961,6 +1993,7 @@ string: context [
 					either last? [size - (str2/head - str/head)][str2/head - str/head]
 				]
 			]
+			if part > size [part: size]
 		]
 
 		bytes:	part << (unit >> 1)
@@ -2012,9 +2045,10 @@ string: context [
 		/local
 			s1		[series!]
 			s2		[series!]
-			cp1		[integer!]
-			cp2		[integer!]
-			unit	[integer!]
+			char1	[integer!]
+			char2	[integer!]
+			unit1	[integer!]
+			unit2	[integer!]
 			head1	[byte-ptr!]
 			head2	[byte-ptr!]
 	][
@@ -2033,6 +2067,228 @@ string: context [
 		poke-char s1 head1 char2
 		poke-char s2 head2 char1
 		str1
+	]
+
+	trim-with: func [
+		str			[red-string!]
+		with-arg	[red-value!]
+		/local
+			s		[series!]
+			unit	[integer!]
+			cur		[byte-ptr!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+			int		[red-integer!]
+			n		[integer!]
+			wlen	[integer!]
+			size	[integer!]
+			char	[integer!]
+			find?	[logic!]
+			str2	[red-string!]
+			with-chars	[int-ptr!]
+	][
+		with-chars: [9 10 13 32]						;-- default chars for /ALL [TAB LF CR SPACE]
+		wlen: 4
+		if OPTION?(with-arg) [
+			switch TYPE_OF(with-arg) [
+				TYPE_CHAR
+				TYPE_INTEGER [
+					int: as red-integer! with-arg
+					with-chars/1: int/value
+					wlen: 1
+				]
+				TYPE_STRING [
+					str2: as red-string! with-arg
+					s:    GET_BUFFER(str2)
+					unit: GET_UNIT(s)
+					head: (as byte-ptr! s/offset) + (str2/head << (unit >> 1))
+					tail: as byte-ptr! s/tail
+
+					size: (as integer! tail - head) >> (unit >> 1)
+					if zero? size [exit]				;-- early exit
+
+					if size > wlen [
+						with-chars: as int-ptr! allocate size * 4
+					]
+					n: 1
+					while [head < tail][
+						with-chars/n: get-char head unit
+						n: n + 1
+						head: head + unit
+					]
+					wlen: n - 1
+				]
+			]
+		]
+
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+		cur: head
+		while [head < tail][
+			n: 0
+			char: get-char head unit
+			find?: false
+			until [
+				n: n + 1
+				find?: char = with-chars/n
+				any [find? n = wlen]
+			]
+			unless find? [
+				poke-char s cur char
+				cur: cur + unit
+			]
+			head: head + unit
+		]
+		add-terminal-NUL cur unit
+
+		s/tail: as red-value! cur
+		if wlen > 4 [free as byte-ptr! with-chars]
+	]
+
+	trim-lines: func [
+		str			[red-string!]
+		/local
+			s		[series!]
+			unit	[integer!]
+			cur		[byte-ptr!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+			pad		[integer!]
+			char	[integer!]
+	][
+		pad: 0
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+		cur: head
+		while [head < tail][
+			char: get-char head unit
+			either WHITE_CHAR?(char) [
+				if pad = 1 [
+					poke-char s cur as-integer #" "
+					cur: cur + unit
+					pad: 2
+				]
+			][
+				poke-char s cur char
+				cur: cur + unit
+				pad: 1
+			]
+			head: head + unit
+		]
+		if pad = 2 [cur: cur - unit]
+		add-terminal-NUL cur unit
+
+		s/tail: as red-value! cur
+	]
+
+	trim-head-tail: func [
+		str				[red-string!]
+		head?			[logic!]
+		tail?			[logic!]
+		/local
+			s			[series!]
+			unit		[integer!]
+			cur			[byte-ptr!]
+			left		[byte-ptr!]
+			head		[byte-ptr!]
+			tail		[byte-ptr!]
+			char		[integer!]
+			append-lf?	[logic!]
+			outside? 	[logic!]
+			skip?		[logic!]
+	][
+		append-lf?: no
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+		cur: head
+
+		if any [head? not tail?] [
+			while [
+				char: get-char head unit
+				all [head < tail WHITE_CHAR?(char)]
+			][
+				head: head + unit
+			]
+		]
+
+		if any [tail? not head?] [
+			while [
+				char: get-char tail - unit unit
+				all [head < tail WHITE_CHAR?(char)]
+			][
+				if char = 10 [append-lf?: yes]
+				tail: tail - unit
+			]
+		]
+
+		either all [not head? not tail?] [
+			outside?: no
+			left: null
+
+			while [head < tail] [
+				skip?: no
+				char: get-char head unit
+
+				case [
+					SPACE_CHAR?(char) [
+						either outside? [skip?: yes][
+							if left = null [left: cur]
+						]
+					]
+					char = 10 [
+						outside?: yes
+						if left <> null [cur: left left: null]
+					]
+					true [
+						outside?: no
+						left: null
+					]
+				]
+
+				unless skip? [
+					poke-char s cur char
+					cur: cur + unit
+				]
+				head: head + unit
+			]
+		][
+			move-memory cur head (as-integer tail - head)
+			cur: cur + (as-integer tail - head)
+		]
+
+		if all [append-lf? not tail?] [
+			poke-char s cur 10
+			cur: cur + 1
+		]
+		add-terminal-NUL cur unit
+		s/tail: as red-value! cur
+	]
+
+	trim: func [
+		str			[red-string!]
+		head?		[logic!]
+		tail?		[logic!]
+		auto?		[logic!]
+		lines?		[logic!]
+		all?		[logic!]
+		with-arg	[red-value!]
+		return:		[red-series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/trim"]]
+
+		case [
+			any [all? OPTION?(with-arg)] [trim-with str with-arg]
+			auto? [--NOT_IMPLEMENTED--]
+			lines? [trim-lines str]
+			true  [trim-head-tail str head? tail?]
+		]
+		as red-series! str
 	]
 
 	;--- Misc actions ---
@@ -2116,7 +2372,7 @@ string: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path
@@ -2164,7 +2420,7 @@ string: context [
 			:tail
 			:tail?
 			:take
-			null			;trim
+			:trim
 			;-- I/O actions --
 			null			;create
 			null			;close

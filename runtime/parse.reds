@@ -868,8 +868,10 @@ parser: context [
 								]
 								if TYPE_OF(value) = TYPE_GET_WORD [	;-- COLLECT INTO exiting
 									t: as triple! s/tail - 3
-									blk: as red-block! _context/get as red-word! value
-									blk/head: t/max		;-- restore saved block cursor
+									unless t/max = -1 [
+										blk: as red-block! _context/get as red-word! value
+										blk/head: t/max	;-- restore saved block cursor
+									]
 								]
 							]
 							R_INTO [
@@ -1279,7 +1281,7 @@ parser: context [
 								TYPE_OF(w) = TYPE_WORD
 							][
 								sym: symbol/resolve w/symbol
-								into?: sym = words/into
+								into?: any [sym = words/into sym = words/after]
 								
 								if any [into? sym = words/set][
 									w: w + 1
@@ -1295,7 +1297,7 @@ parser: context [
 							]
 							either into? [
 								blk: as red-block! _context/get w
-								max: blk/head			;-- save block cursor
+								max: either sym = words/after [-1][blk/head] ;-- save block cursor
 							][
 								block/push* 8
 							]

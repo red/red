@@ -1474,6 +1474,19 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		process-call: func [code [block!] /local mark][
+			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
+				pc: skip pc 2							;-- just ignore #call directive
+				return none
+			]
+			mark: tail red/output
+			red/process-call-directive code/2 yes
+			remove/part pc 2
+			insert pc mark
+			clear mark
+			none										;-- do not return an expression to compile
+		]
+		
 		comp-chunked: func [body [block!]][
 			emitter/chunks/start
 			do body
@@ -1485,6 +1498,7 @@ system-dialect: make-profilable context [
 				#import  [process-import  pc/2  pc: skip pc 2]
 				#export  [process-export  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
+				#call	 [process-call	  pc]
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose [set-verbose-level pc/2 pc: skip pc 2]
 				#script	 [								;-- internal compiler directive
@@ -2752,13 +2766,9 @@ system-dialect: make-profilable context [
 				string!		[do pass]
 				decimal!	[do pass]
 				block!		[also to paren! pc/1 pc: next pc]
+				issue!		[comp-directive]
 			][
-				throw-error [
-					pick [
-						"compiler directives are not allowed in code blocks"
-						"datatype not allowed"
-					] issue? pc/1
-				]
+				throw-error "datatype not allowed"
 			]
 			expr: reduce-logic-tests expr
 
@@ -3125,6 +3135,7 @@ system-dialect: make-profilable context [
 		stack-align-16?: no				;-- yes => align stack to 16 bytes
 		literal-pool?:	no				;-- yes => use pools to store literals, no => store them inlined (default: no)
 		unicode?:		no				;-- yes => use Red Unicode API for printing on screen
+		red-pass?:		no				;-- yes => Red compiler was invoked
 		red-only?:		no				;-- yes => stop compilation at Red/System level and display output
 		red-store-bodies?: yes			;-- no => do not store function! value bodies (body-of will return none)
 		red-strict-check?: yes			;-- no => defers undefined word errors reporting at run-time

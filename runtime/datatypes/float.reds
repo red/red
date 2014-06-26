@@ -20,10 +20,19 @@ float: context [
 	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
 	int64!:  alias struct! [int1 [integer!] int2 [integer!]]
 
-	DOUBLE_MAX: 0.0										;-- rebol can't load INF
-	double-int-union: as uint64! :DOUBLE_MAX			;-- set to largest number
-	double-int-union/int2: as byte-ptr! 7FEFFFFFh
-	double-int-union/int1: as byte-ptr! FFFFFFFFh
+	DOUBLE_MAX: 0.0
+	+INF: 0.0											;-- rebol can't load INF, NaN
+	QNaN: 0.0
+
+	double-int-union: as int64! :DOUBLE_MAX				;-- set to largest number
+	double-int-union/int2: 7FEFFFFFh
+	double-int-union/int1: FFFFFFFFh
+
+	double-int-union: as int64! :+INF
+	double-int-union/int2: 7FF00000h
+
+	double-int-union: as int64! :QNaN					;-- smallest quiet NaN
+	double-int-union/int2: 7FF80000h
 
 	abs: func [
 		value	[float!]

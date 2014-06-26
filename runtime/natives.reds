@@ -369,11 +369,10 @@ natives: context [
 				stack/set-last arg + 1
 			]
 			TYPE_STRING [
-				;#call [transcode str none]
-				;str: as red-string! arg
-				;s: GET_BUFFER(str)
-				;tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
-				;do*
+				str: as red-string! arg
+				#call [transcode str none]
+				interpreter/eval as red-block! arg yes
+
 			]
 			default [
 				interpreter/eval-expression arg arg + 1 no no

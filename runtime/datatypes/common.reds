@@ -127,6 +127,7 @@ words: context [
 	collect:		-1
 	keep:			-1
 	ahead:			-1
+	after:			-1
 	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -192,6 +193,7 @@ words: context [
 		collect:		symbol/make "collect"
 		keep:			symbol/make "keep"
 		ahead:			symbol/make "ahead"
+		after:			symbol/make "after"
 		
 		self:			symbol/make "self"
 		values:			symbol/make "values"

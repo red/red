@@ -453,6 +453,18 @@ Red [
 	--test-- "blk-ext52"
 		res: parse [a b b b] [collect [skip keep some 'b]]
 		--assert res = [[b b b]]
+
+	--test-- "blk-ext53"
+		a: []
+		--assert parse [1] [collect after a [keep skip]]
+		--assert a = []
+		--assert [1] = head a
+
+	--test-- "blk-ext54"
+		list: next [1 2 3]
+		--assert parse [a 4 b 5 c] [collect after list [some [keep word! | skip]]]
+		--assert list = [2 3]
+		--assert [1 a b c 2 3] = head list
 		
 ===end-group===
 
