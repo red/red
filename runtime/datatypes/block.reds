@@ -390,7 +390,7 @@ block: context [
 		]
 		s: GET_BUFFER(buffer)
 		if i <> blk/head [								;-- test if not empty block
-			s/tail: as cell! (as byte-ptr! s/tail) - 1	;-- remove extra white space
+			s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s) ;-- remove extra white space
 			part: part + 1
 		]
 		part
@@ -566,10 +566,7 @@ block: context [
 			i: i + 1
 			value: s/offset + i
 			
-			if all [
-				part <> prev
-				value < s/tail
-			][
+			if value < s/tail [
 				buf:  GET_BUFFER(buffer)
 				unit: GET_UNIT(buf)
 				c: string/get-char (as byte-ptr! buf/tail) - unit unit
@@ -590,11 +587,6 @@ block: context [
 		if s/offset < s/tail [
 			unit: GET_UNIT(s)
 			i: string/get-char (as byte-ptr! s/tail) - unit unit
-			
-			if i = as-integer space [
-				s/tail: as red-value! ((as byte-ptr! s/tail) - unit)  ;-- trim tail space
-				part: part + 1
-			]
 		]
 		part
 	]
@@ -1365,6 +1357,7 @@ block: context [
 					either last? [slots - (b/head - blk/head)][b/head - blk/head]
 				]
 			]
+			if part > slots [part: slots]
 		]
 
 		new:		as red-block! stack/push*

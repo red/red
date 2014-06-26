@@ -12,8 +12,8 @@ REBOL [
  	--test-- "Red print 1"
  		--compile-and-run-this {
  			Red[] 
- 			print ["*test1* " 1]
- 			print ["*test2* " 1 2 3]
+ 			print ["*test1*" 1]
+ 			print ["*test2*" 1 2 3]
  			prin "*test3* "
  			s: "12345"
     		forall s [prin s]

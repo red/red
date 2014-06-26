@@ -267,7 +267,7 @@ transcode: function [
 		cs/12: charset [#"^(00)" - #"^(1F)"]			;-- non-printable-char
 		cs/13: charset {^{"[]);}						;-- integer-end
 		cs/14: charset " ^-^M"							;-- ws-ASCII, ASCII common whitespaces
-		cs/15: charset [#"^(80)" - #"^(8A)"]			;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
+		cs/15: charset [#"^(2000)" - #"^(200A)"]			;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 		cs/16: charset [#"^(00)" - #"^(1F)"] 			;-- ASCII control characters
 
 	]
@@ -320,7 +320,7 @@ transcode: function [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^(7F)")
 			]
-			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+			| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 				value: trans-char pos e
 			)
 		] #")"
@@ -399,7 +399,7 @@ transcode: function [
 	path-rule: [
 		ahead slash (									;-- path detection barrier
 			trans-push-path stack type					;-- create empty path
-			trans-word stack copy/part s e type			;-- push 1st path element
+			trans-word stack copy/part s e word!		;-- push 1st path element
 		)
 		some [
 			slash
@@ -409,6 +409,8 @@ transcode: function [
 				| paren-rule
 				| #":" s: begin-symbol-rule	(trans-word stack copy/part s e get-word!)
 				;@@ add more datatypes here
+				| (type: none print ["*** Syntax Error: invalid path value at:" back s])
+				  reject
 			]
 			opt [#":" (trans-set-path back tail stack)]
 		] (trans-pop stack)
@@ -420,7 +422,7 @@ transcode: function [
 				url-rule
 				| path-rule								;-- path matched
 				| opt [#":" (type: set-word!)]
-				  (trans-word stack copy/part s e type)	;-- word or set-word matched
+				  (if type [trans-word stack copy/part s e type])	;-- word or set-word matched
 		  ]
 	]
 
@@ -444,11 +446,13 @@ transcode: function [
 	]
 
 	refinement-rule: [
-		slash (type: refinement!) s: symbol-rule
+		slash [
+			some slash (type: word!) e:					;--  ///... case
+			| ahead [not-word-char | ws-no-count | control-char] (type: word!) e: ;-- / case
+			| symbol-rule (type: refinement! s: next s)
+		]
 		(trans-word stack copy/part s e type)
 	]
-
-	slash-rule: [s: [slash opt slash] e:]
 
 	hexa-rule: [2 8 hexa e: #"h"]
 	
@@ -539,7 +543,6 @@ transcode: function [
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
-			| slash-rule		(trans-word stack copy/part s e word!)
 			| refinement-rule
 			| file-rule			(trans-store stack value: do process)
 			| char-rule			(trans-store stack value)
