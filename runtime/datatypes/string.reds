@@ -59,6 +59,27 @@ string: context [
 
 	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
 
+	to-float: func [
+		s		[byte-ptr!]
+		return: [float!]
+		/local
+			s0	[byte-ptr!]
+	][
+		s0: s
+		if any [s/1 = #"-" s/1 = #"+"] [s: s + 1]
+		if s/3 = #"#" [										;-- 1.#NaN, -1.#INF" or "1.#INF
+			if any [s/4 = #"I" s/4 = #"i"] [
+				return either s0/1 = #"-" [
+					0.0 - float/+INF
+				][float/+INF]
+			]
+			if any [s/4 = #"N" s/4 = #"n"] [
+				return float/QNaN
+			]
+		]
+		strtod s0 null
+	]
+
 	to-hex: func [
 		value	 [integer!]
 		char?	 [logic!]

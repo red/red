@@ -96,7 +96,7 @@ trans-float: routine [
 	]
 
 	cur/1: #"^@"
-	float/box strtod s0 null
+	float/box string/to-float s0
 	cur/1: as-byte 10
 ]
 
@@ -465,11 +465,15 @@ transcode: function [
 	float-exp-rule: [[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
 	
 	float-number-rule: [
-		[dot | comma] some digit opt float-exp-rule e: (type: float!)
+		[dot | comma] [
+			[some digit opt float-exp-rule]
+			| #"#" [[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
+					| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]]
+		] e: (type: float!)
  	]
  	
  	float-rule: [
- 		float-number-rule
+		opt [#"-" | #"+"] float-number-rule
  		ahead [integer-end | ws-no-count | end]
  	]
 	
