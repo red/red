@@ -54,6 +54,10 @@ Red [
 	--test-- "load-34" --assert "1200.0" = mold load "1.2E3"
 	--test-- "load-35" --assert "10.0"   = mold load ".1E2"
 	--test-- "load-36" --assert "12.3"   = mold load ".123E2"
+	--test-- "load-36" --assert "-0.3"   = mold load "-.3"
+	--test-- "load-36" --assert "1.#NaN"  = mold load "1.#nan"
+	--test-- "load-36" --assert "1.#INF"  = mold load "1.#INF"
+	--test-- "load-36" --assert "-1.#INF" = mold load "-1.#Inf"
 
 ===end-group===
 
