@@ -76,6 +76,7 @@ trans-float: routine [
 		tail [byte-ptr!]
 		cur	 [byte-ptr!]
 		s0	 [byte-ptr!]
+		byte [byte!]
 ][
 	str:  GET_BUFFER(start)
 	unit: GET_UNIT(str)
@@ -94,10 +95,10 @@ trans-float: routine [
 		p: p + unit
 		p = tail
 	]
-	cp: as integer! cur/1      ;store last char
-	cur/1: #"^@"               ;replace the char with null so to-float can use it as end of input
+	byte:  cur/1      ;store last byte
+	cur/1: #"^@"      ;replace the byte with null so to-float can use it as end of input
 	float/box string/to-float s0
-	cur/1: as byte! cp         ;revert the char back
+	cur/1: byte       ;revert the byte back
 ]
 
 trans-hexa: routine [
