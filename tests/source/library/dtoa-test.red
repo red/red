@@ -57,6 +57,12 @@ dtoa-to-string: routine [
 	stack/set-last as red-value! buf
 ]
 
+;-- These numbers are used to test floating point binary-to-decimal conversion.
+;-- They are based on the TCL test suite (tests/expr.test), which is based on
+;-- test data from:
+;-- Brigitte Verdonk, Annie Cuyt, Dennis Verschaeren, A precision and range
+;-- independent tool for testing floating-point arithmetic II: Conversions,
+;-- ACM Transactions on Mathematical Software 27:2 (March 2001), pp. 119-140.
 float-cases: [
 	["0E0"	"0.0"]
 	["-0E0"	"-0.0"]
@@ -1073,7 +1079,7 @@ float-cases: [
 	["+10182419849537963E-24"	"1.0182419849537962e-8"]
 	["-93501703572661982E-26"	"-9.350170357266197e-10"]
 	["2183167012312112312312.23538020374420446192e-370"	"0.0"]
-	["0.99999999999999999999999999999999999999999e+23"	"1.0e22"]
+	["0.99999999999999999999999999999999999999999e+23"	"1.0e23"]
 ]
 
 print "Tests start..."
