@@ -76,6 +76,7 @@ trans-float: routine [
 		tail [byte-ptr!]
 		cur	 [byte-ptr!]
 		s0	 [byte-ptr!]
+		byte [byte!]
 ][
 	str:  GET_BUFFER(start)
 	unit: GET_UNIT(str)
@@ -94,10 +95,10 @@ trans-float: routine [
 		p: p + unit
 		p = tail
 	]
-
-	cur/1: #"^@"
+	byte:  cur/1      ;store last byte
+	cur/1: #"^@"      ;replace the byte with null so to-float can use it as end of input
 	float/box string/to-float s0
-	cur/1: as-byte 10
+	cur/1: byte       ;revert the byte back
 ]
 
 trans-hexa: routine [
@@ -538,7 +539,7 @@ transcode: function [
 			comment-rule
 			| escaped-rule		(trans-store stack value)
 			| integer-rule		if (value: trans-number s e type = float!) (trans-store stack value)
-			| float-rule		if (value: trans-float s e ) (trans-store stack value)
+			| float-rule		if (value: trans-float s e) (trans-store stack value)
 			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
