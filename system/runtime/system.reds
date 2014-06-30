@@ -23,7 +23,7 @@ Red/System [
 
 ;-- FPU values for system/fpu/option/precision
 #define FPU_X87_PRECISION_SINGLE	 0		;-- 32-bit float, 24-bit mantissa
-#define FPU_X87_PRECISION_DOUBLE	 1		;-- 64-bit float, 53-bit mantissa
+#define FPU_X87_PRECISION_DOUBLE	 2		;-- 64-bit float, 53-bit mantissa
 #define FPU_X87_PRECISION_DOUBLE_EXT 3		;-- 80-bit float, 64-bit mantissa
 
 __stack!: alias struct! [
