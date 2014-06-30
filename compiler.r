@@ -600,7 +600,10 @@ red: context [
 		forall blk [
 			item: blk/1
 			either any-block? :item [
-				type: either all [path? item get-word? item/1]['get-path][type? :item]
+				type: either all [path? item get-word? item/1][
+					item/1: to word! item/1 ;this is workaround of missing get-path! in R2
+					'get-path
+				][type? :item]
 				
 				emit-open-frame 'append
 				emit to lit-path! reduce [to word! form type 'push*]
@@ -2542,4 +2545,3 @@ red: context [
 		reduce [output time]
 	]
 ]
-
