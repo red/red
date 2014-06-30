@@ -111,7 +111,7 @@ system: declare struct! [					;-- store runtime accessible system values
 
 #if type = 'exe [
 	#if target = 'IA-32 [
-		system/fpu/control-word: 0322h		;-- default control word: division by zero, 
+		system/fpu/control-word: 0222h		;-- default control word: division by zero, 
 											;-- underflow and overflow raise exceptions.
 		system/fpu/update
 	]
