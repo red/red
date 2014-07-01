@@ -131,6 +131,15 @@ form-type: func [
 	#default [#include %linux.reds]
 ]
 
+
+#if type = 'exe [
+	#if target = 'IA-32 [
+		system/fpu/control-word: 0222h		;-- default control word: division by zero, invalid op,
+											;-- underflow and overflow raise exceptions.
+		system/fpu/update
+	]
+]
+
 #if type <> 'drv [
 
 	#include %utils.reds					;-- load additional utility functions
