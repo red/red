@@ -225,6 +225,22 @@ float: context [
 		fl/header: TYPE_FLOAT
 		fl/value: value
 	]
+	
+	push64: func [
+		high	[integer!]
+		low		[integer!]
+		return: [red-float!]
+		/local
+			cell [cell!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "float/push64"]]
+
+		cell: stack/push*
+		cell/header: TYPE_FLOAT
+		cell/data2: low
+		cell/data3: high
+		as red-float! cell
+	]
 
 	push: func [
 		value	[float!]

@@ -181,6 +181,10 @@ red: context [
 		all [issue? value value/1 = #"'"]
 	]
 	
+	float-special?: func [value][
+		all [issue? value value/1 = #"."]
+	]
+	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
 	]
@@ -829,10 +833,19 @@ red: context [
 			output: saved
 	]
 	
-	comp-literal: func [root? [logic!] /inactive /local value char? name w make-block type][
+	emit-fp-special: func [value [issue!]][
+		switch next value [
+			#INF  [emit to integer! #{7FF00000} emit 0]
+			#INF- [emit to integer! #{FFF00000} emit 0]
+			#NaN  [emit to integer! #{7FF00000} emit 1]
+		]
+	]
+	
+	comp-literal: func [root? [logic!] /inactive /local value char? special? name w make-block type][
 		value: pc/1
 		either any [
 			char?: unicode-char? value
+			special?: float-special? value
 			scalar? :value
 		][
 			if root? [
@@ -844,6 +857,11 @@ red: context [
 					emit 'char/push
 					emit to integer! next value
 					insert-lf -2
+				]
+				special? [
+					emit 'float/push64
+					emit-fp-special value
+					insert-lf -3
 				]
 				decimal? :value [
 					emit 'float/push
