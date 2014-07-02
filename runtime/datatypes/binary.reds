@@ -450,12 +450,14 @@ binary: context [
 	;-- Actions --
 
 	make: func [
+		proto	 [red-datatype!]
 		spec	 [red-value!]
 		return:	 [red-binary!]
 		/local
 			binary [red-binary!]
 			size   [integer!]
 			int	   [red-integer!]
+			type   [red-datatype!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "binary/make"]]
 		
@@ -465,7 +467,9 @@ binary: context [
 				int: as red-integer! spec
 				size: int/value
 			]
-			default [--NOT_IMPLEMENTED--]
+			default [
+				return as red-binary! actions/to as red-value! proto spec
+			]
 		]
 		binary: as red-binary! stack/push*
 		binary/header: TYPE_BINARY							;-- implicit reset of all header flags

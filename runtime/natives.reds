@@ -1182,6 +1182,7 @@ natives: context [
 	debase*: func [
 		return:		[red-binary!]
 		/local
+			proto   [red-datatype!]
 			str		[red-string!]
 			bin		[red-binary!]
 			s		[series!]
@@ -1202,7 +1203,9 @@ natives: context [
 		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		s-tail: as byte-ptr! s/tail
 		len: (string/rs-length? str) / 2
-		bin: binary/make as red-value! integer/box len
+		proto: declare red-datatype!
+		proto/value: TYPE_BINARY
+		bin: binary/make proto as red-value! integer/box len
 		b: GET_BUFFER(bin)
 		pbin: as byte-ptr! b/tail
 
