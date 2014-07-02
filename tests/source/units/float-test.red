@@ -410,17 +410,17 @@ Red [
 
 ~~~end-file~~~
 
-===start-group=== "comparasion"
+===start-group=== "comparison"
 
-	--test-- "comparasion-1"  --assert 1.#NaN = 1.#NaN			 = false
-	--test-- "comparasion-2"  --assert (same? 1.#NaN 1.#NaN)     = true
-	--test-- "comparasion-3"  --assert 1.#NaN <> 1.#NaN          = true
-	--test-- "comparasion-4"  --assert 1.#NaN < 1.#NaN           = false
-	--test-- "comparasion-5"  --assert 1.#NaN > 1.#NaN           = false
-	--test-- "comparasion-6"  --assert [1 1.#NaN] = [1 1.#NaN]   = false
-	--test-- "comparasion-7"  --assert 1.#INF < 1.#NaN           = false
-	--test-- "comparasion-8"  --assert 1.#INF > 1.#NaN           = false
-	--test-- "comparasion-9"  --assert -0.0 = 0.0                = true
-	--test-- "comparasion-10" --assert (same? -0.0 0.0)          = false
+	--test-- "comparison-1"  --assert 1.#NaN = 1.#NaN			= false
+	--test-- "comparison-2"  --assert (same? 1.#NaN 1.#NaN)     = true
+	--test-- "comparison-3"  --assert 1.#NaN <> 1.#NaN          = true
+	--test-- "comparison-4"  --assert 1.#NaN < 1.#NaN           = false
+	--test-- "comparison-5"  --assert 1.#NaN > 1.#NaN           = false
+	--test-- "comparison-6"  --assert [1 1.#NaN] = [1 1.#NaN]   = false
+	--test-- "comparison-7"  --assert 1.#INF < 1.#NaN           = false
+	--test-- "comparison-8"  --assert 1.#INF > 1.#NaN           = false
+	--test-- "comparison-9"  --assert -0.0 = 0.0                = true
+	--test-- "comparison-10" --assert (same? -0.0 0.0)          = false
 
 ~~~end-file~~~
