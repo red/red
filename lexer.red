@@ -68,8 +68,37 @@ trans-number: routine [
 trans-float: routine [
 	start [string!]
 	end	  [string!]
+	/local
+		str  [series!]
+		cp	 [integer!]
+		unit [integer!]
+		p	 [byte-ptr!]
+		tail [byte-ptr!]
+		cur	 [byte-ptr!]
+		s0	 [byte-ptr!]
+		byte [byte!]
 ][
-	float/box string/to-float start end/head - start/head
+	str:  GET_BUFFER(start)
+	unit: GET_UNIT(str)
+	p:	  string/rs-head start
+	tail: p + ((end/head - start/head) << (unit >> 1))
+	cur:  p
+	s0:   cur
+
+	until [											;-- convert to ascii string
+		cp: string/get-char p unit
+		if cp <> as-integer #"'" [					;-- skip #"'"
+			if cp = as-integer #"," [cp: as-integer #"."]
+			cur/1: as-byte cp
+			cur: cur + 1
+		]
+		p: p + unit
+		p = tail
+	]
+	byte:  cur/1      ;store last byte
+	cur/1: #"^@"      ;replace the byte with null so to-float can use it as end of input
+	float/box string/to-float s0
+	cur/1: byte       ;revert the byte back
 ]
 
 trans-hexa: routine [
@@ -454,11 +483,15 @@ transcode: function [
 	float-exp-rule: [[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
 	
 	float-number-rule: [
-		[dot | comma] some digit opt float-exp-rule e: (type: float!)
+		[dot | comma] [
+			[some digit opt float-exp-rule]
+			| #"#" [[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
+					| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]]
+		] e: (type: float!)
  	]
  	
  	float-rule: [
- 		float-number-rule
+		opt [#"-" | #"+"] float-number-rule
  		ahead [integer-end | ws-no-count | end]
  	]
 	
@@ -523,7 +556,7 @@ transcode: function [
 			comment-rule
 			| escaped-rule		(trans-store stack value)
 			| integer-rule		if (value: trans-number s e type = float!) (trans-store stack value)
-			| float-rule		if (value: trans-float s e ) (trans-store stack value)
+			| float-rule		if (value: trans-float s e) (trans-store stack value)
 			| binary-rule	  	(trans-store stack do trans-binary)
 			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule

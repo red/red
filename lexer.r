@@ -21,6 +21,7 @@ lexer: context [
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
+	neg?:	no										;-- if TRUE, denotes a negative number value
 	
 	;====== Parsing rules ======
 
@@ -241,11 +242,19 @@ lexer: context [
 	]
 	
 	integer-rule: [
-		integer-number-rule
-		opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
-		sticky-word-rule
+		decimal-special									;-- escape path for NaN, INFs
+		| integer-number-rule
+		  opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
+		  sticky-word-rule
 	]
 
+	decimal-special: [
+		(neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
+			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
+		] e: (type: issue!)
+	]
+	
 	decimal-exp-rule: [
 		[[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
 	]
@@ -531,7 +540,13 @@ lexer: context [
 	]
 
 	load-number: func [s [string!]][
-		either type = decimal! [s: load-decimal s][
+		switch/default type [
+			#[datatype! decimal!][s: load-decimal s]
+			#[datatype! issue!  ][
+				s: to issue! join "." s
+				if neg? [append s #"-"]
+			]
+		][
 			unless integer? s: to integer! s [throw-error]
 		]
 		s

@@ -23,7 +23,7 @@ Red/System [
 
 ;-- FPU values for system/fpu/option/precision
 #define FPU_X87_PRECISION_SINGLE	 0		;-- 32-bit float, 24-bit mantissa
-#define FPU_X87_PRECISION_DOUBLE	 1		;-- 64-bit float, 53-bit mantissa
+#define FPU_X87_PRECISION_DOUBLE	 2		;-- 64-bit float, 53-bit mantissa
 #define FPU_X87_PRECISION_DOUBLE_EXT 3		;-- 80-bit float, 64-bit mantissa
 
 __stack!: alias struct! [
@@ -107,12 +107,4 @@ system: declare struct! [					;-- store runtime accessible system values
 	alias		[integer!]					;-- aliases ID virtual access
 	words		[integer!]					;-- global context accessor (dummy type)
 	thrown		[integer!]					;-- last THROWn value
-]
-
-#if type = 'exe [
-	#if target = 'IA-32 [
-		system/fpu/control-word: 0322h		;-- default control word: division by zero, 
-											;-- underflow and overflow raise exceptions.
-		system/fpu/update
-	]
 ]

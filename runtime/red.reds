@@ -77,7 +77,6 @@ red: context [
 	#include %natives.reds
 	#include %parse.reds
 	#include %random.reds
-	#include %dtoa.reds
 	#include %stack.reds
 	#include %interpreter.reds
 	#if OS <> 'Android [

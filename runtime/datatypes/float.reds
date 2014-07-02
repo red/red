@@ -17,9 +17,22 @@ Red/System [
 float: context [
 	verbose: 4
 
-	DOUBLE_MAX: 1.0E308 + 1.0E308						;-- tricky way to present INF
-
 	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
+	int64!:  alias struct! [int1 [integer!] int2 [integer!]]
+
+	DOUBLE_MAX: 0.0
+	+INF: 0.0											;-- rebol can't load INF, NaN
+	QNaN: 0.0
+
+	double-int-union: as int64! :DOUBLE_MAX				;-- set to largest number
+	double-int-union/int2: 7FEFFFFFh
+	double-int-union/int1: FFFFFFFFh
+
+	double-int-union: as int64! :+INF
+	double-int-union/int2: 7FF00000h
+
+	double-int-union: as int64! :QNaN					;-- smallest quiet NaN
+	double-int-union/int2: 7FF80000h
 
 	abs: func [
 		value	[float!]
@@ -92,66 +105,68 @@ float: context [
 		f 		[float!]
 		return: [c-string!]
 		/local
-			s	[byte-ptr!]
-			end [byte-ptr!]
-			ss	[c-string!]
-			sig [integer!]
-			e 	[integer!]
-			len [integer!]
+			s	[c-string!]
+			s0	[c-string!]
+			p0	[c-string!]
+			p	[c-string!]
+			p1	[c-string!]
+			dot? [logic!]
+			d	[int64!]
+			w0	[integer!]
 	][
-		e: 0
-		len: 0
-		sig: 0
-		s: as byte-ptr! red-dtoa/float-to-ascii f :e :sig :len
+		d: as int64! :f
+		w0: d/int2												;@@ Use little endian. Watch out big endian !
 
-		if e > 9997 [return as c-string! s]				;-- NaN, INFs, +/-0.0
-
-		case [
-			 any [e > 17 e < -5][						;-- e-format
-				move-memory s + 2 s + 1 len
-				s/2: #"."
-				end: s + len
+		if w0 and 7FF00000h = 7FF00000h [
+			if all [
+				zero? d/int1									;@@ Use little endian. Watch out big endian !
+				zero? (w0 and 000FFFFFh)
+			][
+				return either 0 = (w0 and 80000000h) ["1.#INF"]["-1.#INF"]
 			]
-			e > 0 [
-				either e <= len [
-					move-memory s + e + 1 s + e len - e
-					e: e + 1
-					s/e: #"."
-					end: s + len
-				][
-					set-memory s + len #"0" e - len
-					e: e + 1
-					s/e: #"."
-					end: s + e
+			return "1.#NaN"
+		]
+
+		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
+		sprintf [s "%.14g" f]
+
+		dot?: no
+		p:  null
+		p1: null
+		s0: s
+		until [
+			if s/1 = #"." [dot?: yes]
+			if s/1 = #"e" [
+				p: s
+				until [
+					s: s + 1
+					s/1 > #"0"
 				]
-				e: 0
+				p1: s
 			]
-			true [
-				e: 0 - e + 2
-				move-memory s + e s len + 1
-				set-memory s #"0" e
-				s/2: #"."
-				end: s + len + e
-				e: 0
-			]
+			s: s + 1
+			s/1 = #"^@"
 		]
 
-		if end/1 = #"." [
-			end: end + 1
-			end/1: #"0"
+		if p1 <> null [											;-- remove #"+" and leading zero
+			p0: p
+			either p/2 = #"-" [p: p + 2][p: p + 1]
+			move-memory as byte-ptr! p as byte-ptr! p1 as-integer s - p1
+			s: p + as-integer s - p1
+			s/1: #"^@"
+			p: p0
 		]
-		if e <> 0 [
-			end: end + 1
-			end/1: #"e"
-			ss: integer/form-signed e - 1
-			len: length? ss
-			copy-memory end + 1 as byte-ptr! ss len
-			end: end + len
+		unless dot? [											;-- added tailing ".0"
+			either p = null [
+				p: s
+			][
+				move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
+			]
+			p/1: #"."
+			p/2: #"0"
+			s/3: #"^@"
 		]
-
-		end/2: #"^@"
-		if sig <> 0 [s: s - 1]
-		as c-string! s
+		s0
 	]
 
 	do-math: func [
@@ -209,6 +224,22 @@ float: context [
 		fl: as red-float! ALLOC_TAIL(blk)
 		fl/header: TYPE_FLOAT
 		fl/value: value
+	]
+	
+	push64: func [
+		high	[integer!]
+		low		[integer!]
+		return: [red-float!]
+		/local
+			cell [cell!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "float/push64"]]
+
+		cell: stack/push*
+		cell/header: TYPE_FLOAT
+		cell/data2: low
+		cell/data3: high
+		as red-float! cell
 	]
 
 	push: func [
@@ -274,6 +305,7 @@ float: context [
 		return: [red-value!]
 		/local
 			int [red-integer!]
+			buf [red-string!]
 			f	[float!]
 	][
 		f: spec/value
@@ -282,6 +314,10 @@ float: context [
 				int: as red-integer! type
 				int/header: TYPE_INTEGER
 				int/value: to-integer either f < 0.0 [f + 0.499999999999999][f - 0.499999999999999]
+			]
+			TYPE_STRING [
+				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
+				string/concatenate-literal buf form-float f
 			]
 			default [
 				print-line "** Script error: Invalid argument for TO float!"

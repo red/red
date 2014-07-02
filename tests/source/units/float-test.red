@@ -392,3 +392,35 @@ Red [
 
 	--test-- "almost-equal9"  --assert  0.4E-323 = -0.4E-323
 ~~~end-file~~~
+
+===start-group=== "special arithmetic"
+
+	--test-- "special-arithmetic-1"  --assert "0.0"     = to string! 1.0 / 1.#INF
+	--test-- "special-arithmetic-2"  --assert "1.#INF"  = to string! 1.0 / 0.0
+	--test-- "special-arithmetic-3"  --assert "-1.#INF" = to string! -1.0 / 0.0
+	--test-- "special-arithmetic-4"  --assert "1.#NaN"  = to string! 0.0 / 0.0
+	--test-- "special-arithmetic-5"  --assert "1.#INF"  = to string! 9999999.9 + 1.#INF
+	--test-- "special-arithmetic-6"  --assert "-1.#INF" = to string! 9999999.9 - 1.#INF
+	--test-- "special-arithmetic-7"  --assert "1.#INF"  = to string! 1.#INF + 1.#INF
+	--test-- "special-arithmetic-8"  --assert "1.#INF"  = to string! 1.#INF * 1.#INF
+	--test-- "special-arithmetic-9"  --assert "1.#NaN"  = to string! 1.#INF - 1.#INF
+	--test-- "special-arithmetic-10" --assert "1.#NaN"  = to string! 1.#INF / 1.#INF
+	--test-- "special-arithmetic-11" --assert "1.#NaN"  = to string! 0.0 * 1.#INF
+	--test-- "special-arithmetic-12" --assert "1.#INF"  = to string! 1e308 + 1e308
+
+~~~end-file~~~
+
+===start-group=== "comparison"
+
+	--test-- "comparison-1"  --assert 1.#NaN = 1.#NaN			= false
+	--test-- "comparison-2"  --assert (same? 1.#NaN 1.#NaN)     = true
+	--test-- "comparison-3"  --assert 1.#NaN <> 1.#NaN          = true
+	--test-- "comparison-4"  --assert 1.#NaN < 1.#NaN           = false
+	--test-- "comparison-5"  --assert 1.#NaN > 1.#NaN           = false
+	--test-- "comparison-6"  --assert [1 1.#NaN] = [1 1.#NaN]   = false
+	--test-- "comparison-7"  --assert 1.#INF < 1.#NaN           = false
+	--test-- "comparison-8"  --assert 1.#INF > 1.#NaN           = false
+	--test-- "comparison-9"  --assert -0.0 = 0.0                = true
+	--test-- "comparison-10" --assert (same? -0.0 0.0)          = false
+
+~~~end-file~~~
