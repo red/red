@@ -659,13 +659,19 @@ red: context [
 						item
 					]
 				]
-				either decimal? :item [
-					emit to path! reduce ['float action]
+				either float-special? :item [
+					emit 'float/push64
+					emit-fp-special item
+					insert-lf -3
 				][
-					emit to path! reduce [to word! form type? :item action]
+					either decimal? :item [
+						emit to path! reduce ['float action]
+					][
+						emit to path! reduce [to word! form type? :item action]
+					]
+					emit value
+					insert-lf -1 - either block? value [length? value][1]
 				]
-				emit value
-				insert-lf -1 - either block? value [length? value][1]
 				
 				emit 'block/append*
 				insert-lf -1
@@ -2189,7 +2195,10 @@ red: context [
 		]
 		switch/default type?/word pc/1 [
 			issue!		[
-				either unicode-char? pc/1 [
+				either any [
+					unicode-char?  pc/1
+					float-special? pc/1
+				][
 					comp-literal to logic! root			;-- special encoding for Unicode char!
 				][
 					unless comp-directive [
