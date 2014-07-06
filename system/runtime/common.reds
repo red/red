@@ -134,8 +134,8 @@ form-type: func [
 
 #if type = 'exe [
 	#if target = 'IA-32 [
-		system/fpu/control-word: 0223h		;-- default control word: division by zero, invalid op,
-											;-- underflow and overflow raise exceptions.
+		system/fpu/control-word: 0272h		;-- default control word: division by zero, invalid op,
+											;-- and overflow raise exceptions.
 		system/fpu/update
 	]
 ]

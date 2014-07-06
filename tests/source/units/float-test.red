@@ -381,46 +381,17 @@ Red [
 	--test-- "almost-equal3"  --assert -1.999999999999999 = -1.999999999999999
 	--test-- "almost-equal4"  --assert 1.732050807568876 = 1.732050807568877
 
-	NaN1: 0.0 / 0.0
-	NaN2: 0.0 / 0.0
-	--test-- "almost-equal5"  --assert not 123 = NaN1
-	--test-- "almost-equal6"  --assert not NaN1 = NaN1
-
-	INF: 1E308 + 1E308
-	;--test-- "almost-equal7"  --assert 1.7976931348623157e308 = INF	;@@ works on interpreter, but cause compiler error.(Maybe Rebol2's problem)
-	--test-- "almost-equal8"  --assert 4.94065645841247E-324 = 0
-
-	--test-- "almost-equal9"  --assert  0.4E-323 = -0.4E-323
+	--test-- "almost-equal5"  --assert  0.4E-323 = -0.4E-323
 ~~~end-file~~~
 
-===start-group=== "special arithmetic"
+;===start-group=== "special value arithmetic (NaNs and INF)"
 
-	--test-- "special-arithmetic-1"  --assert "0.0"     = to string! 1.0 / 1.#INF
-	--test-- "special-arithmetic-2"  --assert "1.#INF"  = to string! 1.0 / 0.0
-	--test-- "special-arithmetic-3"  --assert "-1.#INF" = to string! -1.0 / 0.0
-	--test-- "special-arithmetic-4"  --assert "1.#NaN"  = to string! 0.0 / 0.0
-	--test-- "special-arithmetic-5"  --assert "1.#INF"  = to string! 9999999.9 + 1.#INF
-	--test-- "special-arithmetic-6"  --assert "-1.#INF" = to string! 9999999.9 - 1.#INF
-	--test-- "special-arithmetic-7"  --assert "1.#INF"  = to string! 1.#INF + 1.#INF
-	--test-- "special-arithmetic-8"  --assert "1.#INF"  = to string! 1.#INF * 1.#INF
-	--test-- "special-arithmetic-9"  --assert "1.#NaN"  = to string! 1.#INF - 1.#INF
-	--test-- "special-arithmetic-10" --assert "1.#NaN"  = to string! 1.#INF / 1.#INF
-	--test-- "special-arithmetic-11" --assert "1.#NaN"  = to string! 0.0 * 1.#INF
-	--test-- "special-arithmetic-12" --assert "1.#INF"  = to string! 1e308 + 1e308
+	;@@ throw errors for default
 
-~~~end-file~~~
+;~~~end-file~~~
 
-===start-group=== "comparison"
+;===start-group=== "special value comparison (NaNs and INF)"
 
-	--test-- "comparison-1"  --assert 1.#NaN = 1.#NaN			= false
-	--test-- "comparison-2"  --assert (same? 1.#NaN 1.#NaN)     = true
-	--test-- "comparison-3"  --assert 1.#NaN <> 1.#NaN          = true
-	--test-- "comparison-4"  --assert 1.#NaN < 1.#NaN           = false
-	--test-- "comparison-5"  --assert 1.#NaN > 1.#NaN           = false
-	--test-- "comparison-6"  --assert [1 1.#NaN] = [1 1.#NaN]   = false
-	--test-- "comparison-7"  --assert 1.#INF < 1.#NaN           = false
-	--test-- "comparison-8"  --assert 1.#INF > 1.#NaN           = false
-	--test-- "comparison-9"  --assert -0.0 = 0.0                = true
-	--test-- "comparison-10" --assert (same? -0.0 0.0)          = false
+	;@@ throw errors for default
 
-~~~end-file~~~
+;~~~end-file~~~
