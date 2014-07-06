@@ -843,7 +843,7 @@ red: context [
 		switch next value [
 			#INF  [emit to integer! #{7FF00000} emit 0]
 			#INF- [emit to integer! #{FFF00000} emit 0]
-			#NaN  [emit to integer! #{7FF00000} emit 1]
+			#NaN  [emit to integer! #{7FF80000} emit 0]			;-- smallest quiet NaN
 		]
 	]
 	
