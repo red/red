@@ -1227,10 +1227,10 @@ parser: context [
 							if TYPE_OF(value) = TYPE_PAREN [
 								interpreter/eval as red-block! value no
 								value: stack/top - 1
-								stack/pop 1
 								PARSE_TRACE(_paren)
 							]
 							actions/insert input value null max = 1 null no
+							if TYPE_OF(value) = TYPE_PAREN [stack/pop 1]
 							state: ST_NEXT_ACTION
 						]
 						sym = words/end [				;-- END
