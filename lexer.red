@@ -458,19 +458,24 @@ transcode: function [
 	]
 	
 	integer-rule: [
-		integer-number-rule
-		opt [float-number-rule | float-exp-rule e: (type: float!)]
-		ahead [integer-end | ws-no-count | end]
+		float-special								;-- escape path for NaN, INFs
+		| integer-number-rule
+		  opt [float-number-rule | float-exp-rule e: (type: float!)]
+		  ahead [integer-end | ws-no-count | end]
 	]
-	
-	float-exp-rule: [[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
-	
-	float-number-rule: [
-		[dot | comma] [
-			[some digit opt float-exp-rule]
-			| #"#" [[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
-					| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]]
+
+	float-special: [
+		s: opt [#"-"] "1.#" [
+			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
+			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
 		] e: (type: float!)
+	]
+
+	float-exp-rule: [[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
+
+	float-number-rule: [
+		[dot | comma] digit any [digit | #"'" digit]
+		opt float-exp-rule e: (type: float!)
  	]
  	
  	float-rule: [
