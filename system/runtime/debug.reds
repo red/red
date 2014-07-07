@@ -146,7 +146,7 @@ dump-hex4: func [
 ]
 
 ;-------------------------------------------
-;-- Show FPU all internal options and exception masks
+;-- Show all FPU internal options and exception masks
 ;-------------------------------------------
 show-fpu-info: func [/local value][
 	#switch target [
@@ -183,13 +183,6 @@ show-fpu-info: func [/local value][
 				]
 				lf
 			]
-			print-line "- raise exceptions for:"
-			print-wide ["    - precision  :" either system/fpu/mask/precision   ["no"]["yes"] lf]
-			print-wide ["    - underflow  :" either system/fpu/mask/underflow   ["no"]["yes"] lf]
-			print-wide ["    - overflow   :" either system/fpu/mask/overflow    ["no"]["yes"] lf]
-			print-wide ["    - zero-divide:" either system/fpu/mask/zero-divide ["no"]["yes"] lf]
-			print-wide ["    - denormal   :" either system/fpu/mask/denormal    ["no"]["yes"] lf]
-			print-wide ["    - invalid-op :" either system/fpu/mask/invalid-op  ["no"]["yes"] lf]
 		]
 		ARM [
 			value: switch system/fpu/type [
@@ -197,6 +190,28 @@ show-fpu-info: func [/local value][
 				default 	 ["unknown"]
 			]
 			print-wide ["FPU type:" value lf]
+			print-wide [
+				"- control word:" as byte-ptr! system/fpu/control-word
+				lf
+			]
+			value: switch system/fpu/option/rounding [
+				FPU_VFP_ROUNDING_NEAREST ["nearest"]
+				FPU_VFP_ROUNDING_UP		 ["toward +INF"]
+				FPU_VFP_ROUNDING_DOWN	 ["toward -INF"]
+				FPU_VFP_ROUNDING_ZERO	 ["toward zero"]
+			]
+			print-wide ["- rounding    :" value	lf]
+			print-wide ["- NaN default :" system/fpu/option/NaN-mode lf]
+			print-wide ["- flush2zero  :" system/fpu/option/flush-to-zero lf]
+
 		]
 	]
+	
+	print-line "- raise exceptions for:"
+	value: either system/fpu/mask/precision   ["no"]["yes"] print-wide ["    - precision  :" value lf]
+	value: either system/fpu/mask/underflow   ["no"]["yes"] print-wide ["    - underflow  :" value lf]
+	value: either system/fpu/mask/overflow    ["no"]["yes"] print-wide ["    - overflow   :" value lf]
+	value: either system/fpu/mask/zero-divide ["no"]["yes"] print-wide ["    - zero-divide:" value lf]
+	value: either system/fpu/mask/denormal    ["no"]["yes"] print-wide ["    - denormal   :" value lf]
+	value: either system/fpu/mask/invalid-op  ["no"]["yes"] print-wide ["    - invalid-op :" value lf]
 ]

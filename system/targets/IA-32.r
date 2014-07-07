@@ -312,7 +312,7 @@ make-profilable make target-class [
 			]
 			;cword []								;-- control word is already in eax
 		]
-		unless any [type cword][
+		unless any [type cword][					;-- align result on right side
 			emit #{C1E8}							;-- SHR eax, <bit>
 			emit to-bin8 bit
 		]

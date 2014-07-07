@@ -21,6 +21,11 @@ Red/System [
 #define FPU_X87_ROUNDING_UP			 2		;-- (toward +INF) rounded result is the closest to but no less than the infinitely precise result
 #define FPU_X87_ROUNDING_ZERO		 3		;-- (truncate) rounded result is the closest to but no greater in absolute value than the infinitely precise result
 
+#define FPU_VFP_ROUNDING_NEAREST	 0		;-- (even) rounded result is the closest to the infinitely precise result
+#define FPU_VFP_ROUNDING_UP			 1		;-- (toward +INF) rounded result is the closest to but no less than the infinitely precise result
+#define FPU_VFP_ROUNDING_DOWN		 2		;-- (toward -INF) rounded result is the closest to but no greater than the infinitely precise result
+#define FPU_VFP_ROUNDING_ZERO		 3		;-- (truncate) rounded result is the closest to but no greater in absolute value than the infinitely precise result
+
 ;-- FPU values for system/fpu/option/precision
 #define FPU_X87_PRECISION_SINGLE	 0		;-- 32-bit float, 24-bit mantissa
 #define FPU_X87_PRECISION_DOUBLE	 2		;-- 64-bit float, 53-bit mantissa
@@ -32,17 +37,17 @@ __stack!: alias struct! [
 	align	[int-ptr!]
 ]
 
+FPU-exceptions-mask!: alias struct! [		;-- standard exception mask (true => mask exception)
+	precision	[logic!]
+	underflow	[logic!]
+	overflow	[logic!]
+	zero-divide [logic!]
+	denormal	[logic!]
+	invalid-op  [logic!]
+]
+
 #switch target [
 	IA-32 [
-		x87-mask!: alias struct! [			;-- x87 exception mask (true => disable exception)
-			precision	[logic!]
-			underflow	[logic!]
-			overflow	[logic!]
-			zero-divide [logic!]
-			denormal	[logic!]
-			invalid-op  [logic!]
-		]
-	
 		x87-option!: alias struct! [
 			rounding	[integer!]
 			precision	[integer!]
@@ -51,7 +56,7 @@ __stack!: alias struct! [
 		__fpu-struct!: alias struct! [
 			type		 [integer!]
 			option		 [x87-option!]
-			mask		 [x87-mask!]
+			mask		 [FPU-exceptions-mask!]
 			control-word [integer!]			;-- direct access to whole control word
 			epsilon		 [integer!]			;-- Ulp threshold for almost-equal op (not used yet)
 			update		 [integer!]			;-- action simulated using a read-only member
@@ -69,9 +74,21 @@ __stack!: alias struct! [
 			edi			[integer!]
 		]
 	]
-	ARM [
+	ARM [	
+		VFP-option!: alias struct! [
+			rounding		[integer!]
+			flush-to-zero	[logic!]
+			NaN-mode		[logic!]
+		]
+		
 		__fpu-struct!: alias struct! [
-			type		 [integer!]			;-- only type for now...
+			type		 [integer!]
+			option		 [VFP-option!]
+			mask		 [FPU-exceptions-mask!]
+			control-word [integer!]			;-- direct access to whole control word
+			epsilon		 [integer!]			;-- Ulp threshold for almost-equal op (not used yet)
+			update		 [integer!]			;-- action simulated using a read-only member
+			init		 [integer!]			;-- action simulated using a read-only member
 		]
 		
 		__cpu-struct!: alias struct! [

@@ -897,16 +897,92 @@ make-profilable make target-class [
 		]											;-- MOV r0, <reg>	; get
 	]
 	
-	emit-fpu-get: func [/type][
+	emit-fpu-get: func [
+		/type
+		/options option [word!]
+		/masks mask [word!]
+		/cword
+		/local value bit 
+	][
+		unless type [
+			emit-i32 #{eef10a10}					;-- FMRX r0, FPSCR
+		]
 		case [
 			type [
 				; hardcoded value for now (FPU_VFP)
 				emit-load-imm32 3					;-- MOV r0, <FPU_TYPE_VFP>
 			]
+			options [
+				set [value bit] switch/default option [
+					rounding  		[[#{00C00000} 22]]
+					flush-to-zero	[[#{01000000} 24]]
+					NaN-mode		[[#{02000000} 25]]
+				][
+					compiler/throw-error ["invalid FPU option name:" option]
+				]
+				emit-op-imm32 #{e2000000} to integer! value  ;-- AND r0, r0, #mask
+			]
+			masks [
+				bit: switch/default mask [
+					precision	[12]
+					underflow	[11]
+					overflow	[10]
+					zero-divide [9]
+					denormal	[15]
+					invalid-op  [8]
+				][
+					compiler/throw-error ["invalid FPU mask name:" mask]
+				]
+				emit-op-imm32 #{e2000000} shift/left 1 bit  ;-- AND r0, r0, #mask
+			]
+			;cword []									;-- control word is already in eax
+		]
+		unless any [type cword][						;-- align result on right side
+			emit-i32 #{e1a00020} or to-shift-imm bit	;-- LSR r0, r0, #bit
+			if masks [emit-i32 #{e2200001}]				;-- EOR r0, #1		; invert 0<=>1
 		]
 	]
 
-	emit-fpu-set: emit-fpu-update: emit-fpu-init: none	;-- not used for now
+	emit-fpu-set: func [
+		value
+		/options option [word!]
+		/masks mask [word!]
+		/cword
+		/local bit
+	][
+		value: to integer! value
+		unless cword [emit-i32 #{eef10a10}]			;-- FMRX r0, FPSCR
+		
+		case [
+			options [
+				set [mask bit] switch/default option [
+					rounding  		[[#{00C00000} 22]]
+					flush-to-zero	[[#{01000000} 24]]
+					NaN-mode		[[#{02000000} 25]]
+				][
+					compiler/throw-error ["invalid FPU option name:" option]
+				]
+				emit-op-imm32 #{e2000000} complement to integer! mask  ;-- AND r0, r0, #mask
+				emit-op-imm32 #{e3800000} shift/left to integer! value bit	;-- OR r0, r0, LSL #value, #bit
+			]
+			masks [
+				bit: switch/default mask [
+					precision	[12]
+					underflow	[11]
+					overflow	[10]
+					zero-divide [9]
+					denormal	[15]
+					invalid-op  [8]
+				][
+					compiler/throw-error ["invalid FPU mask name:" mask]
+				]
+				emit-op-imm32 #{e3800000} shift/left 1 bit  ;-- OR r0, r0, #mask
+			]
+		]
+		emit-i32 #{eee10a10}						;-- FMXR FPSCR, r0
+	]
+	
+	emit-fpu-update: emit-fpu-init: none			;-- not used for now
 	
 	emit-get-pc: does [
 		emit-i32 #{e1a0000f}						;-- MOV r0, pc
