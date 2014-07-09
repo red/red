@@ -190,6 +190,7 @@ Red/System [
 	NAT_ARCSINE
 	NAT_ARCCOSINE
 	NAT_ARCTANGENT
+	NAT_NAN?
 ]
 
 #enum math-op! [

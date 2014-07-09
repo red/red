@@ -1001,6 +1001,14 @@ arctangent: make native! [[
 	#get-definition NAT_ARCTANGENT
 ]
 
+NaN?: make native! [[
+		"Returns TRUE if the number is Not-a-Number."
+		value	[number!]
+		return: [logic!]
+	]
+	#get-definition NAT_NAN?
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

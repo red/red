@@ -382,16 +382,46 @@ Red [
 	--test-- "almost-equal4"  --assert 1.732050807568876 = 1.732050807568877
 
 	--test-- "almost-equal5"  --assert  0.4E-323 = -0.4E-323
+	;--test-- "almost-equal6"  --assert 1.7976931348623157e308 = 1.#INF					;@@ works only on interpreter, compiler will throw `overflow` error.
+	--test-- "almost-equal7"  --assert 4.94065645841247E-324 = 0
+===end-group===
+
+===start-group=== "special value arithmetic (NaNs and INF)"
+
+	--test-- "special-arithmetic-1"  --assert "0.0"     = to string! 1.0 / 1.#INF
+	--test-- "special-arithmetic-5"  --assert "1.#INF"  = to string! 9999999.9 + 1.#INF
+	--test-- "special-arithmetic-6"  --assert "-1.#INF" = to string! 9999999.9 - 1.#INF
+	--test-- "special-arithmetic-7"  --assert "1.#INF"  = to string! 1.#INF + 1.#INF
+	--test-- "special-arithmetic-8"  --assert "1.#INF"  = to string! 1.#INF * 1.#INF
+
+	;@@ tests below throw errors in default
+	;--test-- "special-arithmetic-2"  --assert "1.#INF"  = to string! 1.0 / 0.0
+	;--test-- "special-arithmetic-3"  --assert "-1.#INF" = to string! -1.0 / 0.0
+	;--test-- "special-arithmetic-4"  --assert "1.#NaN"  = to string! 0.0 / 0.0
+	;--test-- "special-arithmetic-9"  --assert "1.#NaN"  = to string! 1.#INF - 1.#INF
+	;--test-- "special-arithmetic-10" --assert "1.#NaN"  = to string! 1.#INF / 1.#INF
+	;--test-- "special-arithmetic-11" --assert "1.#NaN"  = to string! 0.0 * 1.#INF
+	;--test-- "special-arithmetic-12" --assert "1.#INF"  = to string! 1e308 + 1e308
+===end-group===
+
+===start-group=== "special value equality (NaNs and INF)"
+
+	--test-- "special-equality-1"  --assert NaN? 1.#NaN
+	--test-- "special-equality-2"  --assert not NaN? 1.23
+	--test-- "special-equality-3"  --assert 1.#INF = 1.#INF
+	--test-- "special-equality-4"  --assert not 1.#INF = 1.23
+	--test-- "special-equality-5"  --assert 1.#INF > 1e308
+	--test-- "special-equality-6"  --assert -1.#INF < -1e308
+	--test-- "special-equality-7"  --assert -1.#INF = -1.#INF
+	--test-- "special-equality-8"  --assert -1.#INF < 1.#INF
+	--test-- "special-equality-9"  --assert -0.0 = 0.0
+
+	;@@ tests below throw errors in default
+	;--test-- "special-equality-10"  --assert 1.#NaN = 1.#NaN			= false
+	;--test-- "special-equality-11"  --assert 1.#NaN <> 1.#NaN			= true
+	;--test-- "special-equality-12"  --assert [1 1.#NaN] = [1 1.#NaN]	= false
+	;--test-- "special-equality-13"  --assert 1.#INF = 1.#NaN			= false
+	;--test-- "special-equality-14"  --assert 1.23 = 1.#NaN				= false
+===end-group===
+
 ~~~end-file~~~
-
-;===start-group=== "special value arithmetic (NaNs and INF)"
-
-	;@@ throw errors for default
-
-;~~~end-file~~~
-
-;===start-group=== "special value comparison (NaNs and INF)"
-
-	;@@ throw errors for default
-
-;~~~end-file~~~
