@@ -21,7 +21,7 @@ foreach [type vector]  matrix [
 		]
 		append json join {"} [datatype {": "} entry {",}	]
 	]
-	tail back remove json
+	remove tail back json
 	append json "},"
 ]
 
