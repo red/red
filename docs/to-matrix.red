@@ -13,7 +13,7 @@ Red [
 	}	
 ]
 
-to-matrix: [
+[
 	
 	integer! [
 		accessor! 	[throw-error 'script]
@@ -24,7 +24,7 @@ to-matrix: [
 		bitset! 	[throw-error 'script]
 		binary! 	{R2 - convert to ASCII encoded string}
 		block! 		{R2 - create block containing the integer}
-		char! ``````{R2 - make char! when integer! in range 0 - 255
+		char!		{R2 - make char! when integer! in range 0 - 255
 						- Other integers - throw-error 'math
 					char!is an unsigned byte in Rebol2 but a Unicode codepoint
 					with a value range of 00h to 10FFFFFFh in Red}
@@ -74,7 +74,7 @@ to-matrix: [
 		unset! 		[throw-error 'script]
 		url! 		{R2 - converts integer to string and then make url!}
 		utype! 		{to be provided by user}
-		vector! 	{mkae a vector! with a single integer value}
+		vector! 	{make a vector! with a single integer value}
 		word! 		[throw-error 'script]
 	]
 ]
