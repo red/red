@@ -1413,8 +1413,8 @@ make-profilable make target-class [
 				do push-last
 			]
 			integer! [
-				emit-load-imm32 value
-				do push-last
+				emit-load-imm32/reg value 3
+				emit-i32 #{e92d0008}				;-- PUSH {r3}
 			]
 			decimal! [
 				either all [cast cast/type/1 = 'float32! not cdecl][
