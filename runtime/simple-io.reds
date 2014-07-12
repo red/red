@@ -191,7 +191,7 @@ simple-io: context [
 		]
 
 		#case [
-			any [OS = 'MacOSX OS = 'FreeBSD] [
+			any [OS = 'MacOSX OS = 'FreeBSD OS = 'Android] [
 				#import [
 					LIBC-file cdecl [
 						;-- https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/10.6/man2/stat.2.html?useVersion=10.6
@@ -254,7 +254,7 @@ simple-io: context [
 			OS = 'Windows [
 				GetFileSize file null
 			]
-			any [OS = 'MacOSX OS = 'FreeBSD] [
+			any [OS = 'MacOSX OS = 'FreeBSD OS = 'Android] [
 				s: declare stat!
 				_stat file s
 				s/st_size

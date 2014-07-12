@@ -20,11 +20,11 @@ Red [
 
 	#either OS <> 'Windows [
 		#define OS_POLLIN 		1
-		#define TERM_TCSADRAIN	1
 
 		#case [
 			any [OS = 'MacOSX OS = 'FreeBSD] [
 				#define TIOCGWINSZ		40087468h
+				#define TERM_TCSADRAIN	1
 				#define TERM_VTIME		18
 				#define TERM_VMIN		17
 
@@ -71,25 +71,44 @@ Red [
 				#define TERM_ECHO		10
 				#define TERM_IEXTEN		100000
 
-				termios!: alias struct! [						;-- sizeof(termios) = 60
-					c_iflag			[integer!]
-					c_oflag			[integer!]
-					c_cflag			[integer!]
-					c_lflag			[integer!]
-					c_line			[byte!]
-					c_cc1			[byte!]						;-- c_cc[32]
-					c_cc2			[byte!]
-					c_cc3			[byte!]
-					c_cc4			[integer!]
-					c_cc5			[integer!]
-					c_cc6			[integer!]
-					c_cc7			[integer!]
-					c_cc8			[integer!]
-					c_cc9			[integer!]
-					c_cc10			[integer!]
-					pad				[integer!]					;-- for proper alignment
-					c_ispeed		[integer!]
-					c_ospeed		[integer!]
+				#either OS = 'Android [
+					#define TERM_TCSADRAIN	5403h
+
+					termios!: alias struct! [
+						c_iflag			[integer!]
+						c_oflag			[integer!]
+						c_cflag			[integer!]
+						c_lflag			[integer!]
+						;c_line			[byte!]
+						c_cc1			[integer!]					;-- c_cc[19]
+						c_cc2			[integer!]
+						c_cc3			[integer!]
+						c_cc4			[integer!]
+						c_cc5			[integer!]
+					]
+				][
+					#define TERM_TCSADRAIN	1
+
+					termios!: alias struct! [						;-- sizeof(termios) = 60
+						c_iflag			[integer!]
+						c_oflag			[integer!]
+						c_cflag			[integer!]
+						c_lflag			[integer!]
+						c_line			[byte!]
+						c_cc1			[byte!]						;-- c_cc[32]
+						c_cc2			[byte!]
+						c_cc3			[byte!]
+						c_cc4			[integer!]
+						c_cc5			[integer!]
+						c_cc6			[integer!]
+						c_cc7			[integer!]
+						c_cc8			[integer!]
+						c_cc9			[integer!]
+						c_cc10			[integer!]
+						pad				[integer!]					;-- for proper alignment
+						c_ispeed		[integer!]
+						c_ospeed		[integer!]
+					]
 				]
 			]
 		]
@@ -104,7 +123,24 @@ Red [
 			xypixel			[integer!]
 		]
 
-		#import [
+		#either OS = 'Android [
+			tcgetattr: func [
+				fd		[integer!]
+				termios [termios!]
+				return: [integer!]
+			][
+				ioctl fd 5401h as winsize! termios
+			]
+			tcsetattr: func [
+				fd			[integer!]
+				opt_actions [integer!]
+				termios 	[termios!]
+				return: 	[integer!]
+			][
+				ioctl fd opt_actions as winsize! termios
+			]
+		][
+			#import [
 			LIBC-file cdecl [
 				tcgetattr: "tcgetattr" [
 					fd		[integer!]
@@ -117,6 +153,11 @@ Red [
 					termios 	[termios!]
 					return: 	[integer!]
 				]
+			]]
+		]
+
+		#import [
+			LIBC-file cdecl [
 				read: "read" [
 					fd		[integer!]
 					buf		[byte-ptr!]
@@ -221,6 +262,7 @@ Red [
 					#"D" [return KEY_LEFT]
 					#"F" [return KEY_END]
 					#"H" [return KEY_HOME]
+					default []
 				]
 			]
 			if all [c = #"[" #"1" <= c2 c2 <= #"8"][
@@ -233,6 +275,7 @@ Red [
 						#"6" [return KEY_PAGE_DOWN]
 						#"7" [return KEY_HOME]
 						#"8" [return KEY_END]
+						default []
 					]
 				]
 				while [all [(as-integer c) <> -1 c <> #"~"]][
@@ -384,10 +427,8 @@ Red [
 		][
 			ws: declare winsize!
 
-			if zero? ioctl stdout TIOCGWINSZ ws [
-				columns: ws/rowcol >> 16
-				exit
-			]
+			ioctl stdout TIOCGWINSZ ws
+			columns: ws/rowcol >> 16
 
 			if zero? columns [
 				columns: 80
@@ -501,6 +542,7 @@ Red [
 		restore: does [
 			tcsetattr stdin TERM_TCSADRAIN saved-term
 			free buffer
+			free as byte-ptr! utf-char
 		]
 		
 	][;-- ================================================================= --
@@ -1169,28 +1211,33 @@ Red [
 	]
 ]
 
-init-console: routine [line [string!] hist [block!]][
+set-buffer-history: routine [line [string!] hist [block!]][
 	terminal/init line hist
 ]
 
-input: routine [prompt [string!]][
+_input: routine [prompt [string!]][
 	terminal/edit prompt
 	terminal/restore
 ]
 
-
-input-line: make string! 10'000
-
-history: [
-	"hello world"
-	{print mold [append "hello" [40 + 2] "world"]}
-	"mold 2 + 3"
-	"1 + 2"
+ask: function [
+	question [string!]
+	return: [string!]
+][
+	buffer: make string! 100
+	hist: [
+		"1 + 2"
+		"1.2 + 1.3"
+		{add-3: function [a b c][a + b + c]}
+		"add-3 1 2 3"
+		"add-3 1.1 2.2 3.3"
+		{checksum/method "1234" 'MD5}
+		{checksum/method "1234" 'SHA1}
+	]
+	set-buffer-history buffer hist
+	_input question
+	print ""
+	buffer
 ]
 
-init-console input-line history
-
-input "red> "
-print lf
-
-print ["input:" mold head input-line]
+input: does [ask ""]

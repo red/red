@@ -27,7 +27,7 @@ Red [
 	]
 ]
 
-#include %input.red
+#include %../devices/console/input.red
 #include %help.red
 
 read-argument: routine [
@@ -49,14 +49,12 @@ init-console: routine [
 	/local
 		ret
 ][
-	#either OS = 'Windows [
+	#if OS = 'Windows [
 		;ret: AttachConsole -1
 		;if zero? ret [print-line "ReadConsole failed!" halt]
 		
 		ret: SetConsoleTitle as c-string! string/rs-head str
 		if zero? ret [print-line "SetConsoleTitle failed!" halt]
-	][
-		rl-bind-key as-integer tab as-integer :rl-insert-wrapper
 	]
 ]
 
