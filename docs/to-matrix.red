@@ -14,7 +14,66 @@ Red [
 ]
 
 [
-	
+	action! [
+		accessor! 	"to be decided"
+		action!		"Rebol 2 throws a script error - is this wanted?"
+		actor! 		"to be decided"
+		bigint! 	[throw-error 'script]
+		bignum! 	[throw-error 'script]
+		bitset! 	[throw-error 'script]
+		binary! 	{R2 - returns ?action? in binary form}
+		block! 		{R2 - creates a block containing the word action}
+		char!		[throw-error 'script]
+		closure!	"to be decided"
+		context!	[throw-error 'script]
+		datatype! 	[throw-error 'script]
+		date! 		[throw-error 'script]
+		decimal! 	[throw-error 'script]
+		email! 		{R2 - returns the string ?action?}
+		error!		[throw-error 'script]		
+		file! 		{R2 - returns %?action?}
+		float!		[throw-error 'script]	
+		float32! 	[throw-error 'script]
+		function!	{R2 throws error - is this what is wanted?}
+		get-path! 	{R2 returns the word action}
+		get-word! 	[throw-error 'script]
+		image! 		[throw-error 'script]
+		integer! 	[throw-error 'script]
+		ipv6! 		[throw-error 'script]
+		issue!		{R2 - returns #?action?}
+		lit-path! 	{R2 - returns 'action}
+		lit-word! 	[throw-error 'script]
+		map! 		[throw-error 'script]
+		module! 	"to be decided"
+		logic! 		{R2 returns true}
+		native! 	{R2 returns true}
+		none!		{R2 returns none}
+		object! 	[throw-error 'script]
+		op! 		{R2 throws error}
+		pair! 		[throw-error 'script]
+		paren! 		{R2 - returns (action)}
+		path! 		{R2 - returns word action}
+		percent! 	[throw-error 'script]
+		point! 		[throw-error 'script]
+		port! 		[throw-error 'script]
+		refinement! [throw-error 'script]
+		routine! 	"to be decided"
+		set! 		[throw-error 'script]
+		set-path! 	{R2 returns action: }
+		set-word! 	[throw-error 'script]
+		string! 	{R2 returns the string ?action?}
+		symbol!	 	[throw-error 'script]
+		tag! 		{R2 returns <?action?>}
+		time! 		[throw-error 'script]
+		tuple! 		[throw-error 'script]
+		typeset! 	{R2 returns [action]}
+		unset! 		[throw-error 'script]
+		url! 		{R2 returns url? - ?action?}
+		utype! 		{to be provided by user}
+		vector! 	[throw-error 'script]
+		word! 		[throw-error 'script]
+	]
+
 	integer! [
 		accessor! 	[throw-error 'script]
 		action!		[throw-error 'script]
