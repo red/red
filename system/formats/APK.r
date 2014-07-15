@@ -20,17 +20,24 @@ packager: context [
 	OS: system/version/4
 	Windows?: OS = 3
 	
+	to-OS-file: func [file [file!]][
+		either Windows? [
+			rejoin [{"} to-local-file file {"}]
+		][
+			to-local-file file
+		]
+	]
 	
 	run: func [cmd [string!]][
 		trim/lines cmd
-		either verbose [call/console cmd][call/wait cmd]
+		either verbose [?? cmd call/console cmd][call/wait cmd]
 	]
 	
 	copy-files: func [src [file!] dst [file!]][	
 		run reform [
 			either Windows? ["xcopy"]["cp -R"]
-			to-local-file src
-			to-local-file dst
+			to-OS-file src
+			to-OS-file dst
 			either Windows? ["/Y /E /I"][""]
 		]
 	]
@@ -101,7 +108,7 @@ packager: context [
 
 		unless exists? build-root-dir/:keystore [
 			cmd: reform [
-				either OS = 3 [to-local-file tools-dir/keytool]["keytool"]
+				either OS = 3 [to-OS-file tools-dir/keytool]["keytool"]
 				{
 					-genkeypair
 					-validity 10000
@@ -111,7 +118,7 @@ packager: context [
 							L=location,
 							S=state,
 							C=US"
-					-keystore } to-local-file build-root-dir/:keystore {
+					-keystore } to-OS-file build-root-dir/:keystore {
 					-storepass android
 					-keypass android
 					-alias testkey
@@ -124,15 +131,15 @@ packager: context [
 		]
 
 		cmd: reform [
-			to-local-file tools-dir/aapt {
+			to-OS-file tools-dir/aapt {
 				 package
 				 -v
 				 -f
-				 -M } to-local-file build-root-dir/AndroidManifest.xml {
-				 -S } to-local-file %bridges/android/res {
-				 -I } to-local-file tools-dir/api/android.jar {
-				 -F } to-local-file rejoin [build-root-dir name %-unsigned.apk]
-				 to-local-file bin-dir
+				 -M } to-OS-file build-root-dir/AndroidManifest.xml {
+				 -S } to-OS-file %bridges/android/res {
+				 -I } to-OS-file tools-dir/api/android.jar {
+				 -F } to-OS-file rejoin [build-root-dir name %-unsigned.apk]
+				 to-OS-file bin-dir
 		]
 		log "generating apk"
 		run cmd
@@ -140,13 +147,13 @@ packager: context [
 		cmd: reform [ {
 			 jarsigner
 				 -verbose
-				 -keystore } to-local-file build-root-dir/:keystore {
+				 -keystore } to-OS-file build-root-dir/:keystore {
 				 -storepass android
 				 -keypass android
 				 -sigalg MD5withRSA
 				 -digestalg SHA1
-				 -signedjar } to-local-file rejoin [build-root-dir name %-signed.apk] 
-				 to-local-file rejoin [build-root-dir name %-unsigned.apk] {
+				 -signedjar } to-OS-file rejoin [build-root-dir name %-signed.apk] 
+				 to-OS-file rejoin [build-root-dir name %-unsigned.apk] {
 				 testkey
 			}
 		]
@@ -154,10 +161,10 @@ packager: context [
 		run cmd
 
 		cmd: reform [
-			to-local-file tools-dir/zipalign 
+			to-OS-file tools-dir/zipalign 
 			"-v -f 4"
-			to-local-file rejoin [build-root-dir name %-signed.apk] 
-			to-local-file apk: rejoin [build-root-dir name %.apk]
+			to-OS-file rejoin [build-root-dir name %-signed.apk] 
+			to-OS-file apk: rejoin [build-root-dir name %.apk]
 		]
 		log "aligning apk"
 		run cmd
