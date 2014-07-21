@@ -96,7 +96,7 @@ if exists? dylib-source [
 }
 
 ;; copy the bash script and mark it as executable
-write/binary %../quick-test/runnable/arm-tests/run-all.sh read/binary %tests/run-all.sh
+write/binary %../quick-test/runnable/arm-tests/run-all.sh trim/with read/binary %tests/run-all.sh "^M"
 runner: open %../quick-test/runnable/arm-tests/run-all.sh
 set-modes runner [
   owner-execute: true
