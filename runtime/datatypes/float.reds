@@ -396,6 +396,7 @@ float: context [
 			hi2  [byte-ptr!]
 			diff [byte-ptr!]
 	][
+		if left = right [return true]					;-- for NaN, also raise error in default mode
 		if any [NaN? left NaN? right] [return false]
 
 		a: as uint64! :left
@@ -469,7 +470,7 @@ float: context [
 		]
 		switch op [
 			COMP_EQUAL 			[res: almost-equal left right]
-			COMP_NOT_EQUAL 		[res: left <> right]
+			COMP_NOT_EQUAL 		[res: not almost-equal left right]
 			COMP_STRICT_EQUAL	[res: all [TYPE_OF(value2) = TYPE_FLOAT left = right]]
 			COMP_LESSER			[res: left <  right]
 			COMP_LESSER_EQUAL	[res: left <= right]

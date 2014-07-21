@@ -1179,6 +1179,19 @@ natives: context [
 		arc-trans radians TANGENT
 	]
 
+	NaN?*: func [
+		return:  [red-logic!]
+		/local
+			f	 [red-float!]
+			ret  [red-logic!]
+	][
+		f: as red-float! stack/arguments
+		ret: as red-logic! f
+		ret/value: float/NaN? f/value
+		ret/header: TYPE_LOGIC
+		ret
+	]
+
 	;--- Natives helper functions ---
 
 	PI: 3.14159265358979323846264338
@@ -1496,6 +1509,7 @@ natives: context [
 			:arcsine*
 			:arccosine*
 			:arctangent*
+			:NaN?*
 		]
 	]
 
