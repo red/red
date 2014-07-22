@@ -558,7 +558,7 @@ make-profilable make target-class [
 		forall args [
 			if args/1 <> #_ [						;-- bypass place-holder marker
 				total: total + argument-size? args/1 to logic! cdecl
-				if total >= 16 [return args]
+				if total > 16 [return args]
 			]
 		]
 		none
