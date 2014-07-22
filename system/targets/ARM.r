@@ -2045,7 +2045,10 @@ make-profilable make target-class [
 														  ;-- ANY: workaround special variables from start.reds
 					set [bits offset] either 8 = size [
 						either reg <= 2 [
-							if odd? reg [reg: reg + 1]	;-- start 64-bit value on even register
+							if odd? reg [
+								emit-load-imm32/reg 0 1
+								reg: reg + 1		;-- start 64-bit value on even register
+							]
 							[3 2]					;-- use 2 regs
 						][
 							[0 2]					;-- no space in regs to store a 64-bit value
@@ -2171,16 +2174,16 @@ make-profilable make target-class [
 		emit-i32 #{e1a0000c}						;-- MOV r0, ip
 	]
 	
-	emit-stack-align-prolog: func [args [block!] /local size][
+	emit-stack-align-prolog: func [args [block!] /local size tag][
 		;-- EABI stack 8 bytes alignment: http://infocenter.arm.com/help/topic/com.arm.doc.ihi0046b/IHI0046B_ABI_Advisory_1.pdf
 		; @@ to be optimized: infer stack alignment if possible, to avoid this overhead.
 		
 		emit-i32 #{e1a0c00d}                        ;-- MOV ip, sp
 		emit-i32 #{e3cdd007}						;-- BIC sp, sp, #7		; align sp to 8 bytes
 		size: 0
-		if issue? args/1 [
+		if issue? tag: args/1 [
 			args: args/2
-			size: size + 4
+			unless tag = #variadic [size: size + 4]
 		]
 		if args: arguments-on-stack?/cdecl args [	;-- skip arguments passed in r0-r3
 			size: size + call-arguments-size?/cdecl args
