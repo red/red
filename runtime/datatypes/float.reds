@@ -10,8 +10,6 @@ Red/System [
 	}
 ]
 
-#define FLOAT_TRUNC(x) ((either (x) < 0.0 [-1.0][1.0]) * (floor float/abs x))
-#define FLOAT_AWAY(x) ((either (x) < 0.0 [-1.0][1.0]) * (ceil float/abs x))
 #define DBL_EPSILON		2.2204460492503131E-16
 
 float: context [
@@ -573,6 +571,9 @@ float: context [
 		--NOT_IMPLEMENTED--
 		false
 	]
+
+	#define FLOAT_TRUNC(x) [d: floor float/abs x either x < 0.0 [0.0 - d][d]]
+	#define FLOAT_AWAY(x)  [d: ceil float/abs x  either x < 0.0 [0.0 - d][d]]
 
 	round: func [
 		value		[red-value!]
