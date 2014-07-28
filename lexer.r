@@ -249,9 +249,10 @@ lexer: context [
 	]
 
 	decimal-special: [
-		(neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
-			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
-			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
+		s: "-0.0" e: (type: issue!) |
+			(neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+				[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
+				| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
 		] e: (type: issue!)
 	]
 	
@@ -543,6 +544,7 @@ lexer: context [
 		switch/default type [
 			#[datatype! decimal!][s: load-decimal s]
 			#[datatype! issue!  ][
+				if s = "-0.0" [s: "0-"]					;-- reencoded for consistency
 				s: to issue! join "." s
 				if neg? [append s #"-"]
 			]

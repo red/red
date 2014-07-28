@@ -844,6 +844,7 @@ red: context [
 			#INF  [emit to integer! #{7FF00000} emit 0]
 			#INF- [emit to integer! #{FFF00000} emit 0]
 			#NaN  [emit to integer! #{7FF80000} emit 0]			;-- smallest quiet NaN
+			#0-	  [emit to integer! #{80000000} emit 0]
 		]
 	]
 	
