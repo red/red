@@ -133,10 +133,19 @@ form-type: func [
 
 
 #if type = 'exe [
-	#if target = 'IA-32 [
-		system/fpu/control-word: 0272h		;-- default control word: division by zero, invalid op,
-											;-- and overflow raise exceptions.
-		system/fpu/update
+	#switch target [
+		IA-32 [
+			system/fpu/control-word: 0272h		;-- default control word: division by zero, invalid op,
+												;-- and overflow raise exceptions.
+			system/fpu/update
+		]
+		ARM [
+			system/fpu/option/rounding:  FPU_VFP_ROUNDING_NEAREST
+			system/fpu/mask/overflow:	 yes
+			system/fpu/mask/zero-divide: yes
+			system/fpu/mask/invalid-op:  yes
+			system/fpu/update
+		]
 	]
 ]
 
