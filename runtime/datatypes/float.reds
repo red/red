@@ -306,6 +306,8 @@ float: context [
 			buf [red-string!]
 			f	[float!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "to/random"]]
+
 		f: spec/value
 		switch type/value [
 			TYPE_INTEGER [
