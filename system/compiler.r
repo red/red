@@ -1914,14 +1914,19 @@ system-dialect: make-profilable context [
 			types: make block! 8
 			
 			until [										;-- collect and pre-compile all cases
+				append expr-call-stack #test			;-- marker for disabling expression post-processing
 				fetch-into cases [						;-- compile case test
 					append/only list comp-block-chunked/only/test 'case
 					cases: pc							;-- set cursor after the expression
 				]
+				clear find expr-call-stack #test
+				
+				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
 					append/only list body: comp-block-chunked
 					append/only types resolve-expr-type/quiet body/1
 				]
+				clear find expr-call-stack #body
 				tail? cases: next cases
 			]
 			
@@ -2664,7 +2669,15 @@ system-dialect: make-profilable context [
 			
 			;-- postprocessing result
 			if all [
-				any [keep? variable]					;-- if result needs to be stored
+				any [
+					keep?
+					variable							;-- result needs to be stored
+					all [
+						'case = pick tail expr-call-stack -3
+						#test <> pick tail expr-call-stack -2
+						4 <= length? expr-call-stack
+					]
+				]
 				block? expr								;-- and if expr is a function call		
 				last-type/1 = 'logic!					;-- which return type is logic!
 			][
