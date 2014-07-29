@@ -951,7 +951,45 @@ string: context [
 		]
 		as red-value! str
 	]
-	
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-string!]
+		return: [red-value!]
+		/local
+			t	[integer!]
+			f	[red-float!]
+			int [red-integer!]
+			blk [red-block!]
+			ret [red-value!]
+	][
+		t: type/value
+		blk: as red-block! type
+		#call [transcode spec none]
+
+		either zero? block/rs-length? blk [
+			ret: as red-value! blk
+			ret/header: TYPE_UNSET
+		][
+			ret: block/rs-head blk
+		]
+
+		either t = TYPE_FLOAT [
+			if TYPE_OF(ret) = TYPE_INTEGER [
+				int: as red-integer! ret
+				f: as red-float! ret
+				f/header: TYPE_FLOAT
+				f/value: integer/to-float int/value
+			]
+		][
+			if TYPE_OF(ret) <> t [
+				print-line "** Script error: Invalid argument for TO action!"
+				ret/header: TYPE_UNSET
+			]
+		]
+		stack/set-last ret
+	]
+
 	form: func [
 		str		  [red-string!]
 		buffer	  [red-string!]
@@ -2137,7 +2175,7 @@ string: context [
 			:make
 			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path
