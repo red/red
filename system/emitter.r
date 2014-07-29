@@ -331,7 +331,7 @@ emitter: make-profilable context [
 			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
-				ptr: store-global 0 'pointer! none		;-- allocate separate variable slot
+				ptr: store-global value 'pointer! none		;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
 				refs: reduce [ptr + 1]					;-- reference value from variable slot
 				saved: name

@@ -532,6 +532,18 @@ lexer: context [
 		encode-char to integer! value				;-- special encoding for Unicode char!
 	]
 	
+	decode-UTF8-string: func [str [string!] /local new s e][
+		new: make string! length? str
+		parse str [
+			some [
+				s: UTF8-char e: (
+					append new debase/base skip decode-UTF8-char as-binary copy/part s e 7 16
+				)
+			]
+		]
+		head change/part str new tail str
+	]
+	
 	encode-char: func [value [integer!]][
 		head insert to-hex value #"'"
 	]

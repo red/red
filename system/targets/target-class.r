@@ -279,7 +279,7 @@ target-class: context [
 				
 				unless find comparison-op name [		;-- comparison always return a logic!
 					res: any [
-						all [not sub? block? args/1 compiler/last-type]
+						all [block? args/1 compiler/last-type]
 						compiler/get-type args/1	;-- other ops return type of the first argument	
 					]
 				]

@@ -1489,8 +1489,8 @@ make-profilable make target-class [
 				do push-last
 			]
 			integer! [
-				emit-load-imm32 value
-				do push-last
+				emit-load-imm32/reg value 3
+				emit-i32 #{e92d0008}				;-- PUSH {r3}
 			]
 			decimal! [
 				either all [cast cast/type/1 = 'float32! not cdecl][
@@ -1527,9 +1527,11 @@ make-profilable make target-class [
 			]
 			path! [
 				emitter/access-path value none
-				if cast [
+				compiler/last-type: either cast [
 					emit-casting cast no
-					compiler/last-type: cast/type
+					cast/type
+				][
+					compiler/resolve-path-type value
 				]
 				emit-push <last>
 			]

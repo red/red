@@ -146,7 +146,7 @@ q: :quit
 if script: read-argument [
 	script: load script
 	either any [
-		script/1 <> 'Red
+		not script/1 == 'Red
 		not block? script/2 
 	][
 		print "*** Error: not a Red program!"
