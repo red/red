@@ -222,6 +222,8 @@ integer: context [
 			f	[red-float!]
 			buf [red-string!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
+			
 		switch type/value [
 			TYPE_FLOAT [
 				f: as red-float! type
