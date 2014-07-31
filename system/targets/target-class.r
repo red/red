@@ -233,25 +233,26 @@ target-class: context [
 		reduce [a b]
 	]
 	
-	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type][
+	emit-call: func [name [word!] args [block!] sub? [logic!] /local spec fspec res type attribs][
 		if verbose >= 3 [print [">>>calling:" mold name mold args]]
 
 		fspec: select compiler/functions name
 		spec: any [select emitter/symbols name next fspec]
 		type: either fspec/2 = 'routine [fspec/2][first spec]
+		attribs: compiler/get-attributes fspec/4
 
 		switch type [
 			syscall [
-				emit-call-syscall args fspec
+				emit-call-syscall args fspec attribs
 			]
 			import [
-				emit-call-import args fspec spec
+				emit-call-import args fspec spec attribs
 			]
 			native [
-				emit-call-native args fspec spec
+				emit-call-native args fspec spec attribs
 			]
 			routine [
-				emit-call-native/routine args fspec spec name
+				emit-call-native/routine args fspec spec attribs name
 			]
 			inline [
 				if block? args/1 [args/1: <last>]	;-- works only for unary functions	
