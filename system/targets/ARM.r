@@ -2094,6 +2094,18 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-hf-return: func [spec [block!] /local type][
+		if all [
+			compiler/job/ABI = 'hard-float
+			find [float! float32!] type: select spec first [return:]
+		][
+			width: select emitter/datatypes type/1
+			emit-float
+				#{ec510b10}							;-- FMRRD r0, r1, d0
+				#{ee100a10}							;-- FMRS r0, s0
+		]
+	]
+
 	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!] /local extra][	; @@ check if it needs stack alignment too
 		extra: emit-APCS-header args fspec/3 attribs
 		emit-i32 #{e3a070}							;-- MOV r7, <syscall>
@@ -2102,6 +2114,7 @@ make-profilable make target-class [
 		unless zero? extra [
 			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments
 		]
+		emit-hf-return fspec/4
 	]
 	
 	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /local extra type][
@@ -2113,23 +2126,15 @@ make-profilable make target-class [
 		unless zero? extra [						;-- _next:
 			emit-op-imm32 #{e28dd000} extra			;-- ADD sp, sp, extra	; skip extra stack arguments
 		]
-		if all [
-			compiler/job/ABI = 'hard-float
-			find [float! float32!] type: select fspec/4 first [return:]
-		][
-			width: select emitter/datatypes type/1
-			emit-float
-				#{ec510b10}							;-- FMRRD r0, r1, d0
-				#{ee100a10}							;-- FMRS r0, s0
-		]
+		emit-hf-return fspec/4
 	]
 	
 	emit-call-native: func [
 		args [block!] fspec [block!] spec [block!] attribs [block! none!] /routine name [word!]
-		/local extra
+		/local extra cb?
 	][
 		either routine [							;-- test for function! pointer case
-			if any [
+			if cb?: any [
 				fspec/5 = 'callback
 				all [attribs any [find attribs 'cdecl find attribs 'stdcall]]
 			][
@@ -2152,6 +2157,7 @@ make-profilable make target-class [
 			if all [extra positive? extra][
 				emit-op-imm32 #{e28dd000} extra		;-- ADD sp, sp, extra	; skip extra stack arguments
 			]
+			if cb? [emit-hf-return fspec/4]
 		][
 			if issue? args/1 [							;-- variadic call
 				emit-push call-arguments-size? args/2	;-- push arguments total size in bytes 
