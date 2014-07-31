@@ -69,6 +69,8 @@ tab: 	 #"^-"
 space:	 #" "
 slash:	 #"/"
 
+pi: 3.141592653589793
+
 str-array!: alias struct! [
 	item [c-string!]
 ]
