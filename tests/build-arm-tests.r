@@ -21,8 +21,9 @@ target: ask {
 Choose ARM target:
 1) Linux
 2) Android
+3) Linux armhf
 => }
-target: pick ["Linux-ARM" "Android"] to-integer target
+target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
 
 ;; make the Arm dir if needed
 arm-dir: %runnable/arm-tests/
