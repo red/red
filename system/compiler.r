@@ -30,6 +30,7 @@ system-dialect: make-profilable context [
 		config-name:		none						;-- Preconfigured compilation target ID
 		OS:					none						;-- Operating System
 		OS-version:			none						;-- OS version
+		ABI:				none						;-- optional ABI flags (word! or block!)
 		link?:				no							;-- yes = invoke the linker and finalize the job
 		debug?:				no							;-- reserved for future use
 		build-prefix:		%builds/					;-- prefix to use for output file name (none: no prefix)
