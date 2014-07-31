@@ -26,6 +26,40 @@ system-dialect: make-profilable context [
 	
 	loader: do bind load-cache %system/loader.r 'self
 	
+	options-class: context [
+		config-name:		none						;-- Preconfigured compilation target ID
+		OS:					none						;-- Operating System
+		OS-version:			none						;-- OS version
+		link?:				no							;-- yes = invoke the linker and finalize the job
+		debug?:				no							;-- reserved for future use
+		build-prefix:		%builds/					;-- prefix to use for output file name (none: no prefix)
+		build-basename:		none						;-- base name to use for output file name (none: derive from input name)
+		build-suffix:		none						;-- suffix to use for output file name (none: derive from output type)
+		format:				none						;-- file format
+		type:				'exe						;-- file type ('exe | 'dll | 'lib | 'obj | 'drv)
+		target:				'IA-32						;-- CPU target
+		cpu-version:		6.0							;-- CPU version (default: Pentium Pro)
+		verbosity:			0							;-- logs verbosity level
+		sub-system:			'console					;-- 'GUI | 'console
+		runtime?:			yes							;-- include Red/System runtime
+		use-natives?:		no							;-- force use of native functions instead of C bindings
+		debug?:				no							;-- emit debug information into binary
+		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
+		PIC?:				no							;-- generate Position Independent Code
+		base-address:		none						;-- base image memory address
+		dynamic-linker: 	none						;-- ELF dynamic linker ("interpreter")
+		syscall:			'Linux						;-- syscalls convention: 'Linux | 'BSD
+		stack-align-16?:	no							;-- yes => align stack to 16 bytes
+		literal-pool?:		no							;-- yes => use pools to store literals, no => store them inlined (default: no)
+		unicode?:			no							;-- yes => use Red Unicode API for printing on screen
+		red-pass?:			no							;-- yes => Red compiler was invoked
+		red-only?:			no							;-- yes => stop compilation at Red/System level and display output
+		red-store-bodies?:	yes							;-- no => do not store function! value bodies (body-of will return none)
+		red-strict-check?:	yes							;-- no => defers undefined word errors reporting at run-time
+		red-tracing?:		yes							;-- no => do not compile tracing code
+		legacy:				none						;-- block of optional OS legacy features flags
+	]
+	
 	compiler: make-profilable context [
 		job:		 	 none							;-- shortcut for job object
 		pc:			 	 none							;-- source code input cursor
@@ -3120,40 +3154,6 @@ system-dialect: make-profilable context [
 		t0: now/time/precise
 		do code
 		now/time/precise - t0
-	]
-	
-	options-class: context [
-		config-name:	none			;-- Preconfigured compilation target ID
-		OS:				none			;-- Operating System
-		OS-version:		none			;-- OS version
-		link?:			no				;-- yes = invoke the linker and finalize the job
-		debug?:			no				;-- reserved for future use
-		build-prefix:	%builds/		;-- prefix to use for output file name (none: no prefix)
-		build-basename:	none			;-- base name to use for output file name (none: derive from input name)
-		build-suffix:	none			;-- suffix to use for output file name (none: derive from output type)
-		format:			none			;-- file format
-		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj | 'drv)
-		target:			'IA-32			;-- CPU target
-		cpu-version:	6.0				;-- CPU version (default: Pentium Pro)
-		verbosity:		0				;-- logs verbosity level
-		sub-system:		'console		;-- 'GUI | 'console
-		runtime?:		yes				;-- include Red/System runtime
-		use-natives?:	no				;-- force use of native functions instead of C bindings
-		debug?:			no				;-- emit debug information into binary
-		need-main?:		no				;-- yes => emit a function prolog/epilog around global code
-		PIC?:			no				;-- generate Position Independent Code
-		base-address:	none			;-- base image memory address
-		dynamic-linker: none			;-- ELF dynamic linker ("interpreter")
-		syscall:		'Linux			;-- syscalls convention: 'Linux | 'BSD
-		stack-align-16?: no				;-- yes => align stack to 16 bytes
-		literal-pool?:	no				;-- yes => use pools to store literals, no => store them inlined (default: no)
-		unicode?:		no				;-- yes => use Red Unicode API for printing on screen
-		red-pass?:		no				;-- yes => Red compiler was invoked
-		red-only?:		no				;-- yes => stop compilation at Red/System level and display output
-		red-store-bodies?: yes			;-- no => do not store function! value bodies (body-of will return none)
-		red-strict-check?: yes			;-- no => defers undefined word errors reporting at run-time
-		red-tracing?:	yes				;-- no => do not compile tracing code
-		legacy:			none			;-- block of optional OS legacy features flags
 	]
 	
 	compile: func [
