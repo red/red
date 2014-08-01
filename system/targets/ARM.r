@@ -580,7 +580,7 @@ make-profilable make target-class [
 	instruction-buffer: make binary! 4
 	
 	f-inc: func [op [binary!] idx [integer!]][
-		op or debase/base to-hex shift/left idx 12 16
+		either zero? idx [op][op or debase/base to-hex shift/left idx 12 16]
 	]
 	
 	;-- Overloaded emit to print reversed binary series for easier reading
@@ -1014,6 +1014,26 @@ make-profilable make target-class [
 	emit-pop: does [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit-i32 #{e8bd0001}						;-- POP {r0}
+	]
+	
+	emit-pop-float: func [idx [integer!] /with type [block!]][
+		if with [width: select emitter/datatypes type/1]
+		emit-float
+			f-inc #{ed9d0b00} idx	;-- FLDD d<idx>, [sp]		; double precision float
+			f-inc #{ed9d0a00} idx	;-- FLDS s<idx>, [sp]		; single precision float
+			
+		emit-i32 join #{e28dd0}		;-- ADD sp, sp, width		; adjust stack pointer
+			to char! width
+	]
+	
+	emit-push-float: func [idx [integer!] type [block!]][
+		width: select emitter/datatypes type/1
+		emit-float
+			f-inc #{ed8d0b00} idx	;-- FSTD [sp], d<idx>		; double precision float
+			f-inc #{ed8d0a00} idx	;-- FSTS [sp], s<idx>		; single precision float
+
+		emit-i32 join #{e24dd0}		;-- SUB sp, sp, width		; adjust stack pointer
+			to char! width
 	]
 	
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
@@ -1865,17 +1885,9 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-float-operation: func [name [word!] args [block!] /local a b left right spec size saved pop-a][
+	emit-float-operation: func [name [word!] args [block!] /local a b left right spec size saved][
 		if verbose >= 3 [print [">>>inlining float op:" mold name mold args]]
 		
-		pop-a: [
-			emit-float
-				#{ed9d0b00}				;-- FLDD d0, [sp]		; double precision float
-				#{ed9d0a00}				;-- FLDS s0, [sp]		; single precision float
-			emit-i32 join #{e28dd0}		;-- ADD sp, sp, width
-				to char! width
-		]
-
 		set [a b] get-arguments-class args
 
 		;-- First operand processing
@@ -1912,7 +1924,7 @@ make-profilable make target-class [
 			reg [
 				if block? left [
 					either b = 'reg [
-						do pop-a
+						emit-pop-float 0
 					][
 					 	emit-float 
 					 		#{ec410b10}				;-- FMDRR d0, r1, r0
@@ -1967,7 +1979,7 @@ make-profilable make target-class [
 						#{ee010a10}					;-- FMSR s2, r0
 				]
 				if block? right [
-					if path? left [do pop-a]
+					if path? left [emit-pop-float 0]
 					emit-float 
 						#{ec410b11}					;-- FMDRR d1, r1, r0
 						#{ee010a10}					;-- FMSR s2, r0
@@ -2045,16 +2057,10 @@ make-profilable make target-class [
 					
 					either all [
 						compiler/job/ABI = 'hard-float
-						find [float! float32!] type/1
+						find [float! float64! float32!] type/1
 						any [none? attribs not find attribs 'variadic]	;-- 'typed is not using hf ABI
 					][
-						width: select emitter/datatypes type/1					
-						emit-float
-							f-inc #{ed9d0b00} freg	;-- FLDD d<freg>, [sp]		; double precision float
-							f-inc #{ed9d0a00} freg	;-- FLDS s<freg>, [sp]		; single precision float
-						emit-i32 join #{e28dd0}		;-- ADD sp, sp, width
-							to char! width
-							
+						emit-pop-float/with freg type
 					 	freg: freg + 1
 					][
 						size: either all [
@@ -2097,7 +2103,7 @@ make-profilable make target-class [
 	emit-hf-return: func [spec [block!] /local type][
 		if all [
 			compiler/job/ABI = 'hard-float
-			find [float! float32!] type: select spec first [return:]
+			find [float! float64! float32!] type: select spec first [return:]
 		][
 			width: select emitter/datatypes type/1
 			emit-float
@@ -2251,7 +2257,10 @@ make-profilable make target-class [
 		emit-i32 #{e1a0f00e}						;--			MOV pc, lr
 	]
 
-	emit-prolog: func [name locals [block!] locals-size [integer!] /local args-size attribs][
+	emit-prolog: func [
+		name locals [block!] locals-size [integer!]
+		/local args-nb attribs args reg freg
+	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
 		fspec: select compiler/functions name
@@ -2284,16 +2293,37 @@ make-profilable make target-class [
 			;;	alignment: == size (so char==1, short==2, int/long==4, ptr==4)
 			;;	structs aligned at max aligned, padded to multiple of alignment
 			
-			args-size: fspec/1
+			args-nb: fspec/1
 			
-			if all [4 < args-size name <> '***_start][
+			if all [4 < args-nb name <> '***_start][
 				compiler/throw-error "[ARM emitter] more than 4 arguments in callbacks, not yet supported"
 			]
 			emit-i32 #{e92d4ff0}					;-- STMFD sp!, {r4-r11, lr}
 			emit-i32 #{ed2d8b10}					;-- FSTMD sp!, {d8-d15}
-			repeat i args-size [
-				emit-i32 #{e92d00}					;-- PUSH {r<n>}
-				emit-i32 to char! shift/left 1 args-size - i
+
+			args: fspec/4
+			either all [compiler/job/ABI = 'hard-float not empty? args][
+				if attribs [args: skip args 2]		;-- skip over doc-string and attribs
+				reg: freg: 0
+				
+				foreach arg args [
+					if block? arg [
+						either find [float! float64! float32!] arg/1 [
+							emit-push-float freg arg/1
+							freg: freg + 1
+						][
+							emit-i32 #{e92d00}		;-- PUSH {r<n>}
+							emit-i32 to char! shift/left 1 reg
+							reg: reg + 1
+						]
+					]
+					if find [return: /local] arg [break]
+				]
+			][
+				repeat i args-nb [
+					emit-i32 #{e92d00}				;-- PUSH {r<n>}
+					emit-i32 to char! shift/left 1 args-nb - i
+				]
 			]
 			if PIC? [
 				emit-i32 #{e1a0900f}				;-- MOV sb, pc
@@ -2352,6 +2382,7 @@ make-profilable make target-class [
 				any [find attribs 'cdecl find attribs 'stdcall]
 			]
 		][
+			emit-hf-return fspec/4
 			emit-i32 #{ecbd8b10}					;-- FLDMIAD sp!, {d8-d15}
 			emit-i32 #{e8bd4ff0}					;-- LDMFD sp!, {r4-r11, lr}
 			emit-i32 #{e12fff1e}					;-- BX lr
