@@ -28,8 +28,6 @@ Red/System [
 ===end-group===
 
 ===start-group=== "float argument to external function"
-
-	pi: 3.14159265358979
 	
 	--test-- "float-ext-1"
 	--assert -1.0 = cos pi

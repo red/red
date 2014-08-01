@@ -1193,8 +1193,6 @@ natives: context [
 
 	;--- Natives helper functions ---
 
-	PI: 3.14159265358979323846264338
-
 	#enum trigonometric-type! [
 		TANGENT
 		COSINE
