@@ -120,7 +120,7 @@ RPi [
 	ABI:		'hard-float
 	type:		'exe
 	base-address: 32768					; 8000h
-	dynamic-linker: "/lib/ld-linux.so.3"
+	dynamic-linker: "/lib/ld-linux-armhf.so.3"
 ]
 ;-------------------------
 Syllable [

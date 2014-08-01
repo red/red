@@ -28,7 +28,6 @@ Red [
 ===end-group===
 
 ===start-group=== "trigonometric function"
-	pi: 3.14159265358979
 
 	--test-- "float-cosine-1"
 		--assert -1.0 = cosine/radians pi
