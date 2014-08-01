@@ -298,7 +298,7 @@ platform: context [
 	]
 
 	prin-float*: func [f [float!] return: [float!]][
-		wprintf ["%^(00).^(00)1^(00)4^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
+		wprintf ["%^(00).^(00)1^(00)6^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
 		fflush null
 		f
 	]

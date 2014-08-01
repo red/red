@@ -136,7 +136,7 @@ Red/System [
 	]
 
 	prin-float: func [f [float!] return: [float!]][
-		printf ["%.14g" f]
+		printf ["%.16g" f]
 		f
 	]
 

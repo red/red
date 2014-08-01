@@ -126,7 +126,7 @@ float: context [
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		sprintf [s "%.14g" f]
+		sprintf [s "%.16g" f]
 
 		dot?: no
 		p:  null

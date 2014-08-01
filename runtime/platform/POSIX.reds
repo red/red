@@ -180,7 +180,7 @@ prin-hex*: func [i [integer!] return: [integer!]][
 ]
 
 prin-float*: func [f [float!] return: [float!]][
-	printf ["%.14g" f]									;-- UTF-8 literal string
+	printf ["%.16g" f]									;-- UTF-8 literal string
 	f
 ]
 
