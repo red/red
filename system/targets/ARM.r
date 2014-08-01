@@ -553,6 +553,22 @@ make-profilable make target-class [
 		pools/mark-ins-point
 	]
 	
+	count-floats: func [spec [block!] /local cnt][
+		cnt: 0
+		parse spec [any [into ['float! | 'float64! | 'float32!] (cnt: cnt + 1) | skip]]		
+		cnt
+	]
+	
+	extract-arguments: func [spec [block!] /local cnt][
+		spec: copy spec
+		clear find spec first [return:]
+		clear find spec /local
+		if string? spec/1 [remove spec]
+		if block?  spec/1 [remove spec]
+		remove-each value spec [not block? value]
+		head reverse spec
+	]
+	
 	arguments-on-stack?: func [args [block!] /cdecl /local total][
 		total: 0
 		forall args [
@@ -2259,7 +2275,7 @@ make-profilable make target-class [
 
 	emit-prolog: func [
 		name locals [block!] locals-size [integer!]
-		/local args-nb attribs args reg freg
+		/local args-nb attribs args reg freg fargs-nb
 	][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
 		
@@ -2303,26 +2319,24 @@ make-profilable make target-class [
 
 			args: fspec/4
 			either all [compiler/job/ABI = 'hard-float not empty? args][
-				if attribs [args: skip args 2]		;-- skip over doc-string and attribs
-				reg: freg: 0
+				reg: freg: 1
+				args: extract-arguments args		;-- cleanup and reverse arguments order
+				fargs-nb: count-floats args
 				
-				foreach arg args [
-					if block? arg [
-						either find [float! float64! float32!] arg/1 [
-							emit-push-float freg arg/1
-							freg: freg + 1
-						][
-							emit-i32 #{e92d00}		;-- PUSH {r<n>}
-							emit-i32 to char! shift/left 1 reg
-							reg: reg + 1
-						]
+				foreach arg args [					;-- process in reverse order
+					either find [float! float64! float32!] arg/1 [
+						emit-push-float fargs-nb - freg arg/1 ;-- push in reverse order
+						freg: freg + 1
+					][
+						emit-i32 #{e92d00}		;-- PUSH {r<n>}
+						emit-i32 to char! shift/left 1 args-nb - reg ;-- push in reverse order
+						reg: reg + 1
 					]
-					if find [return: /local] arg [break]
 				]
 			][
 				repeat i args-nb [
 					emit-i32 #{e92d00}				;-- PUSH {r<n>}
-					emit-i32 to char! shift/left 1 args-nb - i
+					emit-i32 to char! shift/left 1 args-nb - i	;-- push in reverse order
 				]
 			]
 			if PIC? [
