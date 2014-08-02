@@ -16,6 +16,7 @@ change-dir %../
 		dll-target: switch/default fourth system/version [
 			2 ["Darwin"]
 			3 ["Windows"]
+			7 ["FreeBSD"]
 		][
 			"Linux"
 		]
