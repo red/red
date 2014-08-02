@@ -1201,6 +1201,7 @@ op?:		 func ["Returns true if the value is this type." value [any-type!]] [op!		
 paren?:		 func ["Returns true if the value is this type." value [any-type!]] [paren!		= type? :value]
 path?:		 func ["Returns true if the value is this type." value [any-type!]] [path!		= type? :value]
 refinement?: func ["Returns true if the value is this type." value [any-type!]] [refinement! = type? :value]
+routine?:	 func ["Returns true if the value is this type." value [any-type!]] [routine!	= type? :value]
 set-path?:	 func ["Returns true if the value is this type." value [any-type!]] [set-path!	= type? :value]
 set-word?:	 func ["Returns true if the value is this type." value [any-type!]] [set-word!	= type? :value]
 string?:	 func ["Returns true if the value is this type." value [any-type!]] [string!	= type? :value]
