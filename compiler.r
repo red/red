@@ -678,12 +678,14 @@ red: context [
 					insert-lf -3
 				][
 					either decimal? :item [
-						emit to path! reduce ['float action]
+						emit 'float/push64
+						emit-float item
+						insert-lf -3
 					][
 						emit to path! reduce [to word! form type? :item action]
+						emit value
+						insert-lf -1 - either block? value [length? value][1]
 					]
-					emit value
-					insert-lf -1 - either block? value [length? value][1]
 				]
 				
 				emit 'block/append*
@@ -851,7 +853,13 @@ red: context [
 			do body
 			output: saved
 	]
-	
+
+	emit-float: func [value [decimal!] /local bin][
+		bin: IEEE-754/to-binary64 value
+		emit to integer! copy/part bin 4
+		emit to integer! skip bin 4
+	]
+
 	emit-fp-special: func [value [issue!]][
 		switch next value [
 			#INF  [emit to integer! #{7FF00000} emit 0]
@@ -884,9 +892,9 @@ red: context [
 					insert-lf -3
 				]
 				decimal? :value [
-					emit 'float/push
-					emit load mold :value
-					insert-lf -2
+					emit 'float/push64
+					emit-float value
+					insert-lf -3
 				]
 				find [refinement! issue! lit-word!] type?/word :value [
 					add-symbol w: to word! form value

@@ -126,7 +126,7 @@ float: context [
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		sprintf [s "%.14g" f]
+		sprintf [s "%.16g" f]
 
 		dot?: no
 		p:  null
@@ -313,7 +313,7 @@ float: context [
 			TYPE_INTEGER [
 				int: as red-integer! type
 				int/header: TYPE_INTEGER
-				int/value: to-integer either f < 0.0 [f + 0.499999999999999][f - 0.499999999999999]
+				int/value: to-integer either f < 0.0 [f + 0.4999999999999999][f - 0.4999999999999999]
 			]
 			TYPE_STRING [
 				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
