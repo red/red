@@ -32,11 +32,11 @@ change-dir %../
   --test-- "nmcp1"
   --compile-this {
     Red/System [] 
-    pi: declare pointer! [integer!]
+    p-i: declare pointer! [integer!]
     nmcp1-ctx: context [
       i: 12345
     ]
-    pi: :mmcp1-ctx/i                  ;-- getting a pointer to a varibale using
+    p-i: :mmcp1-ctx/i                  ;-- getting a pointer to a varibale using
                                       ;--  path notation is not supported
                                       ;-- use a local function to get such
                                       ;--  a pointer                              
