@@ -1073,10 +1073,50 @@ comma:		 #","
 pi: 3.141592653589793
 
 ;------------------------------------------
-;-			   Mezzanines				  -
+;-			   Routines					  -
 ;------------------------------------------
 
-comment: func [value][]
+cos: routine [
+	"Returns the trigonometric cosine."
+	value [float!] "Angle in radians"
+][
+	natives/cosine* 1
+]
+
+sin: routine [
+	"Returns the trigonometric sine."
+		value [float!] "Angle in radians"
+][
+	natives/sine* 1
+]
+
+tan: routine [
+	"Returns the trigonometric tangent."
+	value [float!] "Angle in radians"
+][
+	natives/tangent* 1
+]
+
+arccos: routine [
+	"Returns the trigonometric arccosine."
+	value [float!] "Angle in radians"
+][
+	natives/arccosine* 1
+]
+
+arcsin: routine [
+	"Returns the trigonometric arcsine."
+	value [float!] "Angle in radians"
+][
+	natives/arcsine* 1
+]
+
+arctan: routine [
+	"Returns the trigonometric arctangent."
+	value [float!] "Angle in radians"
+][
+	natives/arctangent* 1
+]
 
 quit-return: routine [
 	"Stops evaluation and exits the program with a given status."
@@ -1084,6 +1124,14 @@ quit-return: routine [
 ][
 	quit status
 ]
+
+;------------------------------------------
+;-			   Mezzanines				  -
+;------------------------------------------
+
+comment: func [value][]
+
+
 quit: func [
 	"Stops evaluation and exits the program."
 	/return status	[integer!] "Return an exit status"
