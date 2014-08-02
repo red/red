@@ -175,6 +175,7 @@ red: context [
 			url/verbose:		verbosity
 			object/verbose:		verbosity
 			bitset/verbose:		verbosity
+			float/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

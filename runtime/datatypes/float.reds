@@ -13,7 +13,7 @@ Red/System [
 #define DBL_EPSILON		2.2204460492503131E-16
 
 float: context [
-	verbose: 4
+	verbose: 0
 
 	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
 	int64!:  alias struct! [int1 [integer!] int2 [integer!]]
@@ -126,7 +126,7 @@ float: context [
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		sprintf [s "%.16g" f]
+		sprintf [s "%.14g" f]
 
 		dot?: no
 		p:  null
