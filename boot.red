@@ -62,16 +62,16 @@ false: 			make logic! 0
 ;; Warning: do not define any function of any kind before MAKE definition
 
 make: make action! [[									;--	this one works!	;-)
-		"Returns a new value made from a spec for that value's type."
-		type	 [any-type!] "The datatype or a prototype value."
-		spec	 [any-type!] "The specification	of the new value."
-		return:  [any-type!] "Returns the specified datatype."
+		"Returns a new value made from a spec for that value's type"
+		type	 [any-type!] "The datatype or a prototype value"
+		spec	 [any-type!] "The specification	of the new value"
+		return:  [any-type!] "Returns the specified datatype"
 	]
 	#get-definition ACT_MAKE
 ]
 
 random: make action! [[
-		"Returns a random value of the same datatype; or shuffles series."
+		"Returns a random value of the same datatype; or shuffles series"
 		value   [any-type!] "Maximum value of result (modified when series)"
 		/seed   "Restart or randomize"
 		/secure "TBD: Returns a cryptographically secure random number"
@@ -82,7 +82,7 @@ random: make action! [[
 ]
 
 reflect: make action! [[
-		"Returns internal details about a value via reflection."
+		"Returns internal details about a value via reflection"
 		value	[any-type!]
 		field 	[word!] "spec, body, words, etc. Each datatype defines its own reflectors"
 	]
@@ -90,7 +90,7 @@ reflect: make action! [[
 ]
 
 to: make action! [[
-		"Converts to a specified datatype."
+		"Converts to a specified datatype"
 		type	[any-type!] "The datatype or example value"
 		spec	[any-type!] "The attributes of the new value"
 	]
@@ -98,7 +98,7 @@ to: make action! [[
 ]
 
 form: make action! [[
-		"Returns a user-friendly string representation of a value."
+		"Returns a user-friendly string representation of a value"
 		value	  [any-type!]
 		/part "Limit the length of the result"
 			limit [integer!]
@@ -108,7 +108,7 @@ form: make action! [[
 ]
 
 mold: make action! [[
-		"Returns a source format string representation of a value."
+		"Returns a source format string representation of a value"
 		value	  [any-type!]
 		/only "Exclude outer brackets if value is a block"
 		/all  "TBD: Return value in loadable format"
@@ -123,7 +123,7 @@ mold: make action! [[
 ;-- Scalar actions --
 
 absolute: make action! [[
-		"Returns the non-negative value."
+		"Returns the non-negative value"
 		value	 [number!]
 		return:  [number!]
 	]
@@ -131,7 +131,7 @@ absolute: make action! [[
 ]
 
 add: make action! [[
-		"Returns the sum of the two values."
+		"Returns the sum of the two values"
 		value1	 [number! char!]
 		value2	 [number! char!]
 		return:  [number! char!]
@@ -140,16 +140,16 @@ add: make action! [[
 ]
 
 divide: make action! [[
-		"Returns the quotient of two values."
-		value1	 [number! char!] "The dividend (numerator)."
-		value2	 [number! char!] "The divisor (denominator)."
+		"Returns the quotient of two values"
+		value1	 [number! char!] "The dividend (numerator)"
+		value2	 [number! char!] "The divisor (denominator)"
 		return:  [number! char!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
-		"Returns the product of two values."
+		"Returns the product of two values"
 		value1	 [number! char!]
 		value2	 [number! char!]
 		return:  [number! char!]
@@ -158,7 +158,7 @@ multiply: make action! [[
 ]
 
 negate: make action! [[
-		"Returns the opposite (additive inverse) value."
+		"Returns the opposite (additive inverse) value"
 		number 	 [number!]
 		return:  [number!]
 	]
@@ -166,16 +166,16 @@ negate: make action! [[
 ]
 
 power: make action! [[
-		"Returns a number raised to a given power (exponent)."
-		number	 [number!] "Base value."
-		exponent [number!] "The power (index) to raise the base value by."
+		"Returns a number raised to a given power (exponent)"
+		number	 [number!] "Base value"
+		exponent [number!] "The power (index) to raise the base value by"
 		return:	 [number!]
 	]
 	#get-definition ACT_POWER
 ]
 
 remainder: make action! [[
-		"Returns what is left over when one value is divided by another."
+		"Returns what is left over when one value is divided by another"
 		value1 	 [number! char!]
 		value2 	 [number! char!]
 		return:  [number! char!]
@@ -184,7 +184,7 @@ remainder: make action! [[
 ]
 
 modulo: func [
-	"Compute a nonnegative remainder of A divided by B."
+	"Compute a nonnegative remainder of A divided by B"
 	a		[number!]
 	b		[number!]
 	return: [number!]
@@ -198,7 +198,7 @@ modulo: func [
 
 round: make action! [[
 		"(not yet implemented)"
-		;"Returns the nearest integer. Halves round up (away from zero) by default."
+		;"Returns the nearest integer. Halves round up (away from zero) by default"
 		n		[number!]
 		/to		"Return the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
@@ -213,7 +213,7 @@ round: make action! [[
 ]
 
 subtract: make action! [[
-		"Returns the difference between two values."
+		"Returns the difference between two values"
 		value1	 [number! char!]
 		value2	 [number! char!]
 		return:  [number! char!]
@@ -222,7 +222,7 @@ subtract: make action! [[
 ]
 
 even?: make action! [[
-		"Returns true if the number is evenly divisible by 2."
+		"Returns true if the number is evenly divisible by 2"
 		number 	 [number! char!]
 		return:  [number! char!]
 	]
@@ -230,7 +230,7 @@ even?: make action! [[
 ]
 
 odd?: make action! [[
-		"Returns true if the number has a remainder of 1 when divided by 2."
+		"Returns true if the number has a remainder of 1 when divided by 2"
 		number 	 [number! char!]
 		return:  [number! char!]
 	]
@@ -240,7 +240,7 @@ odd?: make action! [[
 ;-- Bitwise actions --
 
 and~: make action! [[
-		"Returns the first value ANDed with the second."
+		"Returns the first value ANDed with the second"
 		value1	[logic! integer! char! bitset! typeset!]
 		value2	[logic! integer! char! bitset! typeset!]
 		return:	[logic! integer! char! bitset! typeset!]
@@ -249,7 +249,7 @@ and~: make action! [[
 ]
 
 complement: make action! [[
-		"Returns the opposite (complementing) value of the input value."
+		"Returns the opposite (complementing) value of the input value"
 		value	[logic! integer! bitset! typeset!]
 		return: [logic! integer! bitset! typeset!]
 	]
@@ -257,7 +257,7 @@ complement: make action! [[
 ]
 
 or~: make action! [[
-		"Returns the first value ORed with the second."
+		"Returns the first value ORed with the second"
 		value1	[logic! integer! char! bitset! typeset!]
 		value2	[logic! integer! char! bitset! typeset!]
 		return:	[logic! integer! char! bitset! typeset!]
@@ -266,7 +266,7 @@ or~: make action! [[
 ]
 
 xor~: make action! [[
-		"Returns the first value exclusive ORed with the second."
+		"Returns the first value exclusive ORed with the second"
 		value1	[logic! integer! char! bitset! typeset!]
 		value2	[logic! integer! char! bitset! typeset!]
 		return:	[logic! integer! char! bitset! typeset!]
@@ -277,7 +277,7 @@ xor~: make action! [[
 ;-- Series actions --
 
 append: make action! [[
-		"Inserts value(s) at series tail; returns series head."
+		"Inserts value(s) at series tail; returns series head"
 		series	   [series!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
@@ -291,7 +291,7 @@ append: make action! [[
 ]
 
 at: make action! [[
-		"Returns a series at a given index."
+		"Returns a series at a given index"
 		series	 [series!]
 		index 	 [integer!]
 		return:  [series!]
@@ -300,7 +300,7 @@ at: make action! [[
 ]
 
 back: make action! [[
-		"Returns a series at the previous index."
+		"Returns a series at the previous index"
 		series	 [series!]
 		return:  [series!]
 	]
@@ -310,7 +310,7 @@ back: make action! [[
 ;change
 
 clear: make action! [[
-		"Removes series values from current index to tail; returns new tail."
+		"Removes series values from current index to tail; returns new tail"
 		series	 [series!]
 		return:  [series!]
 	]
@@ -318,7 +318,7 @@ clear: make action! [[
 ]
 
 copy: make action! [[
-		"Returns a copy of a non-scalar value."
+		"Returns a copy of a non-scalar value"
 		value	 [series!]
 		/part	 "Limit the length of the result"
 			length [number! series!]
@@ -331,7 +331,7 @@ copy: make action! [[
 ]
 
 find: make action! [[
-		"Returns the series where a value is found, or NONE."
+		"Returns the series where a value is found, or NONE"
 		series	 [series! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
@@ -352,7 +352,7 @@ find: make action! [[
 ]
 
 head: make action! [[
-		"Returns a series at its first index."
+		"Returns a series at its first index"
 		series	 [series!]
 		return:  [series!]
 	]
@@ -360,7 +360,7 @@ head: make action! [[
 ]
 
 head?: make action! [[
-		"Returns true if a series is at its first index."
+		"Returns true if a series is at its first index"
 		series	 [series!]
 		return:  [logic!]
 	]
@@ -368,7 +368,7 @@ head?: make action! [[
 ]
 
 index?: make action! [[
-		"Returns the current series index, relative to the head."
+		"Returns the current series index, relative to the head"
 		series	 [series!]
 		return:  [integer!]
 	]
@@ -376,7 +376,7 @@ index?: make action! [[
 ]
 
 insert: make action! [[
-		"Inserts value(s) at series index; returns series head."
+		"Inserts value(s) at series index; returns series head"
 		series	   [series!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
@@ -390,7 +390,7 @@ insert: make action! [[
 ]
 
 length?: make action! [[
-		"Returns the number of values in the series, from the current index to the tail."
+		"Returns the number of values in the series, from the current index to the tail"
 		series	 [series!]
 		return:  [integer!]
 	]
@@ -399,7 +399,7 @@ length?: make action! [[
 
 
 next: make action! [[
-		"Returns a series at the next index."
+		"Returns a series at the next index"
 		series	 [series!]
 		return:  [series!]
 	]
@@ -407,7 +407,7 @@ next: make action! [[
 ]
 
 pick: make action! [[
-		"Returns the series value at a given index."
+		"Returns the series value at a given index"
 		series	 [series!]
 		index 	 [integer! logic!]
 		return:  [any-type!]
@@ -416,7 +416,7 @@ pick: make action! [[
 ]
 
 poke: make action! [[
-		"Replaces the series value at a given index, and returns the new value."
+		"Replaces the series value at a given index, and returns the new value"
 		series	 [series!]
 		index 	 [integer! logic!]
 		value 	 [any-type!]
@@ -426,7 +426,7 @@ poke: make action! [[
 ]
 
 remove: make action! [[
-		"Returns the series at the same index after removing a value."
+		"Returns the series at the same index after removing a value"
 		series	 [series! none!]
 		/part "Removes a number of values, or values up to the given series index"
 			length [number! series!]
@@ -436,7 +436,7 @@ remove: make action! [[
 ]
 
 reverse: make action! [[
-		"Reverses the order of elements; returns at same position."
+		"Reverses the order of elements; returns at same position"
 		series	 [series! gob! tuple! pair!]
 		/part "Limits to a given length or position"
 			length [number! series!]
@@ -446,7 +446,7 @@ reverse: make action! [[
 ]
 
 select: make action! [[
-		"Find a value in a series and return the next value, or NONE."
+		"Find a value in a series and return the next value, or NONE"
 		series	 [series! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
@@ -469,7 +469,7 @@ select: make action! [[
 ;sort
 
 skip: make action! [[
-		"Returns the series relative to the current index."
+		"Returns the series relative to the current index"
 		series	 [series!]
 		offset 	 [integer!]
 		return:  [series!]
@@ -478,7 +478,7 @@ skip: make action! [[
 ]
 
 swap: make action! [[
-		"Swaps elements between two series or the same series."
+		"Swaps elements between two series or the same series"
 		series1  [series!]
 		series2  [series!]
 		return:  [series!]
@@ -487,7 +487,7 @@ swap: make action! [[
 ]
 
 tail: make action! [[
-		"Returns a series at the index after its last value."
+		"Returns a series at the index after its last value"
 		series	 [series!]
 		return:  [series!]
 	]
@@ -495,7 +495,7 @@ tail: make action! [[
 ]
 
 tail?: make action! [[
-		"Returns true if a series is past its last value."
+		"Returns true if a series is past its last value"
 		series	 [series!]
 		return:  [logic!]
 	]
@@ -503,7 +503,7 @@ tail?: make action! [[
 ]
 
 take: make action! [[
-		"Removes and returns one or more elements."
+		"Removes and returns one or more elements"
 		series	 [series!]
 		/part	 "Specifies a length or end position"
 			length [number! series! pair!]
@@ -514,7 +514,7 @@ take: make action! [[
 ]
 
 trim: make action! [[
-		"Removes space from a string or NONE from a block or object."
+		"Removes space from a string or NONE from a block or object"
 		series	[series! object! error! module!]
 		/head	"Removes only from the head"
 		/tail	"Removes only from the tail"
@@ -547,7 +547,7 @@ trim: make action! [[
 ;------------------------------------------
 
 if: make native! [[
-		"If condition is true, evaluate block; else return NONE."
+		"If condition is true, evaluate block; else return NONE"
 		cond  	 [any-type!]
 		then-blk [block!]
 	]
@@ -555,7 +555,7 @@ if: make native! [[
 ]
 
 unless: make native! [[
-		"If condition is not true, evaluate block; else return NONE."
+		"If condition is not true, evaluate block; else return NONE"
 		cond  	 [any-type!]
 		then-blk [block!]
 	]
@@ -563,7 +563,7 @@ unless: make native! [[
 ]
 
 either: make native! [[
-		"If condition is true, eval true-block; else eval false-blk."
+		"If condition is true, eval true-block; else eval false-blk"
 		cond  	  [any-type!]
 		true-blk  [block!]
 		false-blk [block!]
@@ -572,21 +572,21 @@ either: make native! [[
 ]
 	
 any: make native! [[
-		"Evaluates, returning at the first that is true."
+		"Evaluates, returning at the first that is true"
 		conds [block!]
 	]
 	#get-definition NAT_ANY
 ]
 
 all: make native! [[
-		"Evaluates, returning at the first that is not true."
+		"Evaluates, returning at the first that is not true"
 		conds [block!]
 	]
 	#get-definition NAT_ALL
 ]
 
 while: make native! [[
-		"Evaluates body until condition is true."
+		"Evaluates body until condition is true"
 		cond [block!]
 		body [block!]
 	]
@@ -594,14 +594,14 @@ while: make native! [[
 ]
 	
 until: make native! [[
-		"Evaluates body until it is true."
+		"Evaluates body until it is true"
 		body [block!]
 	]
 	#get-definition NAT_UNTIL
 ]
 
 loop: make native! [[
-		"Evaluates body a number of times."
+		"Evaluates body a number of times"
 		count [integer!]
 		body  [block!]
 	]
@@ -609,7 +609,7 @@ loop: make native! [[
 ]
 
 repeat: make native! [[
-		"Evaluates body a number of times, tracking iteration count."
+		"Evaluates body a number of times, tracking iteration count"
 		'word [word!]    "Iteration counter; not local to loop"
 		value [integer!] "Number of times to evaluate body"
 		body  [block!]
@@ -618,7 +618,7 @@ repeat: make native! [[
 ]
 
 foreach: make native! [[
-		"Evaluates body for each value in a series."
+		"Evaluates body for each value in a series"
 		'word  [word! block!]   "Word, or words, to set on each iteration"
 		series [series!]
 		body   [block!]
@@ -627,7 +627,7 @@ foreach: make native! [[
 ]
 
 forall: make native! [[
-		"Evaluates body for all values in a series."
+		"Evaluates body for all values in a series"
 		'word [word!]   "Word referring to series to iterate over"
 		body  [block!]
 	]
@@ -640,7 +640,7 @@ forall: make native! [[
 ;]
 
 func: make native! [[
-		"Defines a function with a given spec and body."
+		"Defines a function with a given spec and body"
 		spec [block!]
 		body [block!]
 	]
@@ -648,7 +648,7 @@ func: make native! [[
 ]
 
 function: make native! [[
-		"Defines a function, making all words found in body local."
+		"Defines a function, making all words found in body local"
 		spec [block!]
 		body [block!]
 		/extern	"Exclude words that follow this refinement"
@@ -657,14 +657,14 @@ function: make native! [[
 ]
 
 does: make native! [[
-		"Defines a function with no arguments or local variables."
+		"Defines a function with no arguments or local variables"
 		body [block!]
 	]
 	#get-definition NAT_DOES
 ]
 
 has: make native! [[
-		"Defines a function with local variables, but no arguments."
+		"Defines a function with local variables, but no arguments"
 		vars [block!]
 		body [block!]
 	]
@@ -672,7 +672,7 @@ has: make native! [[
 ]
 
 switch: make native! [[
-		"Evaluates the first block following the value found in cases."
+		"Evaluates the first block following the value found in cases"
 		value [any-type!] "The value to match"
 		cases [block!]
 		/default "Specify a default block, if value is not found in cases"
@@ -682,7 +682,7 @@ switch: make native! [[
 ]
 
 case: make native! [[
-		"Evaluates the block following the first true condition."
+		"Evaluates the block following the first true condition"
 		cases [block!] "Block of condition-block pairs"
 		/all "Test all conditions, evaluating the block following each true condition"
 	]
@@ -690,14 +690,14 @@ case: make native! [[
 ]
 
 do: make native! [[
-		"Evaluates a value, returning the last evaluation result."
+		"Evaluates a value, returning the last evaluation result"
 		value [any-type!]
 	]
 	#get-definition NAT_DO
 ]
 
 reduce: make native! [[
-		"Returns a copy of a block, evaluating all expressions."
+		"Returns a copy of a block, evaluating all expressions"
 		value [any-type!]
 		/into "Put results in out block, instead of creating a new block"
 			out [any-block!] "Target block for results, when /into is used"
@@ -706,7 +706,7 @@ reduce: make native! [[
 ]
 
 compose: make native! [[
-		"Returns a copy of a block, evaluating only parens."
+		"Returns a copy of a block, evaluating only parens"
 		value [block!]
 		/deep "Compose nested blocks"
 		/only "Compose nested blocks as blocks containing their values"
@@ -717,7 +717,7 @@ compose: make native! [[
 ]
 
 get: make native! [[
-		"Returns the value a word refers to."
+		"Returns the value a word refers to"
 		word	[word!]
 		/any "If word has no value, return UNSET rather than causing an error"
 		return: [any-type!]
@@ -726,7 +726,7 @@ get: make native! [[
 ]
 
 set: make native! [[
-		"Sets the value(s) one or more words refer to."
+		"Sets the value(s) one or more words refer to"
 		word	[any-word! block!] "Word or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
 		/any "Allow UNSET as a value rather than causing an error"
@@ -736,21 +736,21 @@ set: make native! [[
 ]
 
 print: make native! [[
-		"Outputs a value followed by a newline."
+		"Outputs a value followed by a newline"
 		value	[any-type!]
 	]
 	#get-definition NAT_PRINT
 ]
 
 prin: make native! [[
-		"Outputs a value."
+		"Outputs a value"
 		value	[any-type!]
 	]
 	#get-definition NAT_PRIN
 ]
 
 equal?: make native! [[
-		"Returns true if two values are equal."
+		"Returns true if two values are equal"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -758,7 +758,7 @@ equal?: make native! [[
 ]
 
 not-equal?: make native! [[
-		"Returns true if two values are not equal."
+		"Returns true if two values are not equal"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -766,7 +766,7 @@ not-equal?: make native! [[
 ]
 
 strict-equal?: make native! [[
-		"Returns true if two values are equal, and also the same datatype."
+		"Returns true if two values are equal, and also the same datatype"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -774,7 +774,7 @@ strict-equal?: make native! [[
 ]
 
 lesser?: make native! [[
-		"Returns true if the first value is less than the second."
+		"Returns true if the first value is less than the second"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -782,7 +782,7 @@ lesser?: make native! [[
 ]
 
 greater?: make native! [[
-		"Returns true if the first value is greater than the second."
+		"Returns true if the first value is greater than the second"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -790,7 +790,7 @@ greater?: make native! [[
 ]
 
 lesser-or-equal?: make native! [[
-		"Returns true if the first value is less than or equal to the second."
+		"Returns true if the first value is less than or equal to the second"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -798,7 +798,7 @@ lesser-or-equal?: make native! [[
 ]
 
 greater-or-equal?: make native! [[
-		"Returns true if the first value is greater than or equal to the second."
+		"Returns true if the first value is greater than or equal to the second"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -806,7 +806,7 @@ greater-or-equal?: make native! [[
 ]
 
 same?: make native! [[
-		"Returns true if two values have the same identity."
+		"Returns true if two values have the same identity"
 		value1 [any-type!]
 		value2 [any-type!]
 	]
@@ -814,20 +814,20 @@ same?: make native! [[
 ]
 
 not: make native! [[
-		"Returns the negation (logical complement) of a value."
+		"Returns the negation (logical complement) of a value"
 		value [any-type!]
 	]
 	#get-definition NAT_NOT
 ]
 
 halt: make native! [[
-		"Stops evaluation."
+		"Stops evaluation"
 	]
 	#get-definition NAT_HALT
 ]
 
 type?: make native! [[
-		"Returns the datatype of a value."
+		"Returns the datatype of a value"
 		value [any-type!]
 		/word "Return a word value, rather than a datatype value"
 	]
@@ -835,7 +835,7 @@ type?: make native! [[
 ]
 
 stats: make native! [[
-		"Returns interpreter statistics."
+		"Returns interpreter statistics"
 		/show "TBD:"
 		/info "Output formatted results"
 		return: [integer! block!]
@@ -892,35 +892,35 @@ union: make native! [[
 ]
 
 complement?: make native! [[
-		"Returns true if the bitset is complemented."
+		"Returns true if the bitset is complemented"
 		bits [bitset!]
 	]
 	#get-definition NAT_COMPLEMENT?
 ]
 
 dehex: make native! [[
-		"Converts URL-style hex encoded (%xx) strings."
+		"Converts URL-style hex encoded (%xx) strings"
 		value [string! file!]							;@@ replace with any-string!
 	]
 	#get-definition NAT_DEHEX
 ]
 
 negative?: make native! [[
-		"Returns TRUE if the number is negative."
+		"Returns TRUE if the number is negative"
 		number [number!]
 	]
 	#get-definition NAT_NEGATIVE?
 ]
 
 positive?: make native! [[
-		"Returns TRUE if the number is positive."
+		"Returns TRUE if the number is positive"
 		number [number!]
 	]
 	#get-definition NAT_POSITIVE?
 ]
 
 max: make native! [[
-		"Returns the greater of the two values."
+		"Returns the greater of the two values"
 		value1 [number! series!]
 		value2 [number! series!]
 	]
@@ -928,7 +928,7 @@ max: make native! [[
 ]
 
 min: make native! [[
-		"Returns the lesser of the two values."
+		"Returns the lesser of the two values"
 		value1 [number! series!]
 		value2 [number! series!]
 	]
@@ -936,7 +936,7 @@ min: make native! [[
 ]
 
 shift: make native! [[
-		"Perform a bit shift operation. Right shift (decreasing) by default."
+		"Perform a bit shift operation. Right shift (decreasing) by default"
 		data	[integer! binary!]
 		bits	[integer!]
 		/left	 "Shift bits to the left (increasing)"
@@ -951,7 +951,7 @@ shift-left:	   routine [][natives/shift* 1 -1]
 shift-logical: routine [][natives/shift* -1 1]
 
 to-hex: make native! [[
-		"Converts numeric value to a hex issue! datatype (with leading # and 0's)."
+		"Converts numeric value to a hex issue! datatype (with leading # and 0's)"
 		value	[integer! tuple!]
 		/size "Specify number of hex digits in result"
 			length [integer!]
@@ -961,61 +961,61 @@ to-hex: make native! [[
 ]
 
 sine: make native! [[
-		"Returns the trigonometric sine."
-		value	[number!]
-		/radians "Value is specified in radians"
+		"Returns the trigonometric sine"
+		angle	[number!]
+		/radians "Angle is specified in radians"
 		return: [float!]
 	]
 	#get-definition NAT_SINE
 ]
 
 cosine: make native! [[
-		"Returns the trigonometric cosine."
-		value	[number!]
-		/radians "Value is specified in radians"
+		"Returns the trigonometric cosine"
+		angle	[number!]
+		/radians "Angle is specified in radians"
 		return: [float!]
 	]
 	#get-definition NAT_COSINE
 ]
 
 tangent: make native! [[
-		"Returns the trigonometric tangent."
-		value	[number!]
-		/radians "Value is specified in radians"
+		"Returns the trigonometric tangent"
+		angle	[number!]
+		/radians "Angle is specified in radians"
 		return: [float!]
 	]
 	#get-definition NAT_TANGENT
 ]
 
 arcsine: make native! [[
-		"Returns the trigonometric arcsine (in degrees by default)."
-		value	[number!]
-		/radians "Value is specified in radians"
+		"Returns the trigonometric arcsine (in degrees by default)"
+		angle	[number!]
+		/radians "Angle is specified in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCSINE
 ]
 
 arccosine: make native! [[
-		"Returns the trigonometric arccosine (in degrees by default)."
-		value	[number!]
-		/radians "Value is specified in radians"
+		"Returns the trigonometric arccosine (in degrees by default)"
+		angle	[number!]
+		/radians "Angle is specified in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCCOSINE
 ]
 
 arctangent: make native! [[
-		"Returns the trigonometric arctangent (in degrees by default)."
-		value	[number!]
-		/radians "Value is specified in radians"
+		"Returns the trigonometric arctangent (in degrees by default)"
+		angle	[number!]
+		/radians "Angle is specified in radians"
 		return: [float!]
 	]
 	#get-definition NAT_ARCTANGENT
 ]
 
 NaN?: make native! [[
-		"Returns TRUE if the number is Not-a-Number."
+		"Returns TRUE if the number is Not-a-Number"
 		value	[number!]
 		return: [logic!]
 	]
@@ -1077,49 +1077,49 @@ pi: 3.141592653589793
 ;------------------------------------------
 
 cos: routine [
-	"Returns the trigonometric cosine."
-	value [float!] "Angle in radians"
+	"Returns the trigonometric cosine"
+	angle [float!] "Angle in radians"
 ][
 	natives/cosine* 1
 ]
 
 sin: routine [
-	"Returns the trigonometric sine."
-		value [float!] "Angle in radians"
+	"Returns the trigonometric sine"
+	angle [float!] "Angle in radians"
 ][
 	natives/sine* 1
 ]
 
 tan: routine [
-	"Returns the trigonometric tangent."
-	value [float!] "Angle in radians"
+	"Returns the trigonometric tangent"
+	angle [float!] "Angle in radians"
 ][
 	natives/tangent* 1
 ]
 
 arccos: routine [
-	"Returns the trigonometric arccosine."
-	value [float!] "Angle in radians"
+	"Returns the trigonometric arccosine"
+	angle [float!] "Angle in radians"
 ][
 	natives/arccosine* 1
 ]
 
 arcsin: routine [
-	"Returns the trigonometric arcsine."
-	value [float!] "Angle in radians"
+	"Returns the trigonometric arcsine"
+	angle [float!] "Angle in radians"
 ][
 	natives/arcsine* 1
 ]
 
 arctan: routine [
-	"Returns the trigonometric arctangent."
-	value [float!] "Angle in radians"
+	"Returns the trigonometric arctangent"
+	angle [float!] "Angle in radians"
 ][
 	natives/arctangent* 1
 ]
 
 quit-return: routine [
-	"Stops evaluation and exits the program with a given status."
+	"Stops evaluation and exits the program with a given status"
 	status			[integer!] "Process termination value to return"
 ][
 	quit status
@@ -1133,14 +1133,14 @@ comment: func [value][]
 
 
 quit: func [
-	"Stops evaluation and exits the program."
+	"Stops evaluation and exits the program"
 	/return status	[integer!] "Return an exit status"
 ][
 	quit-return any [status 0]
 ]
 
 empty?: func [
-	"Returns true if a series is at its tail."
+	"Returns true if a series is at its tail"
 	series	[series!]
 	return:	[logic!]
 ][
@@ -1148,7 +1148,7 @@ empty?: func [
 ]
 
 ??: func [
-	"Prints a word and the value it refers to (molded)."
+	"Prints a word and the value it refers to (molded)"
 	'value [word!]
 ][
 	prin mold :value
@@ -1157,7 +1157,7 @@ empty?: func [
 ]
 
 probe: func [
-	"Returns a value after printing its molded form."
+	"Returns a value after printing its molded form"
 	value
 ][
 	print mold value 
@@ -1170,43 +1170,43 @@ quote: func [
 	:value
 ]
 
-first:	func ["Returns the first value in a series."  s [series!]] [pick s 1]	;@@ temporary definitions, should be natives ?
-second:	func ["Returns the second value in a series." s [series!]] [pick s 2]
-third:	func ["Returns the third value in a series."  s [series!]] [pick s 3]
-fourth:	func ["Returns the fourth value in a series." s [series!]] [pick s 4]
-fifth:	func ["Returns the fifth value in a series."  s [series!]] [pick s 5]
+first:	func ["Returns the first value in a series"  s [series!]] [pick s 1]	;@@ temporary definitions, should be natives ?
+second:	func ["Returns the second value in a series" s [series!]] [pick s 2]
+third:	func ["Returns the third value in a series"  s [series!]] [pick s 3]
+fourth:	func ["Returns the fourth value in a series" s [series!]] [pick s 4]
+fifth:	func ["Returns the fifth value in a series"  s [series!]] [pick s 5]
 
-last:	func ["Returns the last value in a series."  s [series!]][pick back tail s 1]
+last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 1]
 
 
-action?:	 func ["Returns true if the value is this type." value [any-type!]] [action!	= type? :value]
-bitset?:	 func ["Returns true if the value is this type." value [any-type!]] [bitset!	= type? :value]
-block?:		 func ["Returns true if the value is this type." value [any-type!]] [block!		= type? :value]
-char?: 		 func ["Returns true if the value is this type." value [any-type!]] [char!		= type? :value]
-datatype?:	 func ["Returns true if the value is this type." value [any-type!]] [datatype!	= type? :value]
-file?:		 func ["Returns true if the value is this type." value [any-type!]] [file!		= type? :value]
-url?:		 func ["Returns true if the value is this type." value [any-type!]] [url!		= type? :value]
-function?:	 func ["Returns true if the value is this type." value [any-type!]] [function!	= type? :value]
-get-path?:	 func ["Returns true if the value is this type." value [any-type!]] [get-path!	= type? :value]
-get-word?:	 func ["Returns true if the value is this type." value [any-type!]] [get-word!	= type? :value]
-integer?:    func ["Returns true if the value is this type." value [any-type!]] [integer!	= type? :value]
-issue?:    	 func ["Returns true if the value is this type." value [any-type!]] [issue!		= type? :value]
-lit-path?:	 func ["Returns true if the value is this type." value [any-type!]] [lit-path!	= type? :value]
-lit-word?:	 func ["Returns true if the value is this type." value [any-type!]] [lit-word!	= type? :value]
-logic?:		 func ["Returns true if the value is this type." value [any-type!]] [logic!		= type? :value]
-native?:	 func ["Returns true if the value is this type." value [any-type!]] [native!	= type? :value]
-none?:		 func ["Returns true if the value is this type." value [any-type!]] [none!		= type? :value]
-object?:	 func ["Returns true if the value is this type." value [any-type!]] [object!	= type? :value]
-op?:		 func ["Returns true if the value is this type." value [any-type!]] [op!		= type? :value]
-paren?:		 func ["Returns true if the value is this type." value [any-type!]] [paren!		= type? :value]
-path?:		 func ["Returns true if the value is this type." value [any-type!]] [path!		= type? :value]
-refinement?: func ["Returns true if the value is this type." value [any-type!]] [refinement! = type? :value]
-routine?:	 func ["Returns true if the value is this type." value [any-type!]] [routine!	= type? :value]
-set-path?:	 func ["Returns true if the value is this type." value [any-type!]] [set-path!	= type? :value]
-set-word?:	 func ["Returns true if the value is this type." value [any-type!]] [set-word!	= type? :value]
-string?:	 func ["Returns true if the value is this type." value [any-type!]] [string!	= type? :value]
-unset?:		 func ["Returns true if the value is this type." value [any-type!]] [unset!		= type? :value]
-word?:		 func ["Returns true if the value is this type." value [any-type!]] [word!		= type? :value]
+action?:	 func ["Returns true if the value is this type" value [any-type!]] [action!		= type? :value]
+bitset?:	 func ["Returns true if the value is this type" value [any-type!]] [bitset!		= type? :value]
+block?:		 func ["Returns true if the value is this type" value [any-type!]] [block!		= type? :value]
+char?: 		 func ["Returns true if the value is this type" value [any-type!]] [char!		= type? :value]
+datatype?:	 func ["Returns true if the value is this type" value [any-type!]] [datatype!	= type? :value]
+file?:		 func ["Returns true if the value is this type" value [any-type!]] [file!		= type? :value]
+url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
+function?:	 func ["Returns true if the value is this type" value [any-type!]] [function!	= type? :value]
+get-path?:	 func ["Returns true if the value is this type" value [any-type!]] [get-path!	= type? :value]
+get-word?:	 func ["Returns true if the value is this type" value [any-type!]] [get-word!	= type? :value]
+integer?:    func ["Returns true if the value is this type" value [any-type!]] [integer!	= type? :value]
+issue?:    	 func ["Returns true if the value is this type" value [any-type!]] [issue!		= type? :value]
+lit-path?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-path!	= type? :value]
+lit-word?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-word!	= type? :value]
+logic?:		 func ["Returns true if the value is this type" value [any-type!]] [logic!		= type? :value]
+native?:	 func ["Returns true if the value is this type" value [any-type!]] [native!		= type? :value]
+none?:		 func ["Returns true if the value is this type" value [any-type!]] [none!		= type? :value]
+object?:	 func ["Returns true if the value is this type" value [any-type!]] [object!		= type? :value]
+op?:		 func ["Returns true if the value is this type" value [any-type!]] [op!			= type? :value]
+paren?:		 func ["Returns true if the value is this type" value [any-type!]] [paren!		= type? :value]
+path?:		 func ["Returns true if the value is this type" value [any-type!]] [path!		= type? :value]
+refinement?: func ["Returns true if the value is this type" value [any-type!]] [refinement! = type? :value]
+routine?:	 func ["Returns true if the value is this type" value [any-type!]] [routine!	= type? :value]
+set-path?:	 func ["Returns true if the value is this type" value [any-type!]] [set-path!	= type? :value]
+set-word?:	 func ["Returns true if the value is this type" value [any-type!]] [set-word!	= type? :value]
+string?:	 func ["Returns true if the value is this type" value [any-type!]] [string!		= type? :value]
+unset?:		 func ["Returns true if the value is this type" value [any-type!]] [unset!		= type? :value]
+word?:		 func ["Returns true if the value is this type" value [any-type!]] [word!		= type? :value]
 
 any-series?: func [value][
 	find [												;@@ To be replaced with a typeset check
@@ -1216,28 +1216,28 @@ any-series?: func [value][
 ]
 
 spec-of: func [
-	"Returns the spec of a value that supports reflection."
+	"Returns the spec of a value that supports reflection"
 	value
 ][
 	reflect :value 'spec
 ]
 
 body-of: func [
-	"Returns the body of a value that supports reflection."
+	"Returns the body of a value that supports reflection"
 	value
 ][
 	reflect :value 'body
 ]
 
 words-of: func [
-	"Returns the list of words of a value that supports reflection."
+	"Returns the list of words of a value that supports reflection"
 	value
 ][
 	reflect :value 'words
 ]
 
 values-of: func [
-	"Returns the list of values of a value that supports reflection."
+	"Returns the list of values of a value that supports reflection"
 	value
 ][
 	reflect :value 'values
@@ -1246,7 +1246,7 @@ values-of: func [
 context: func [spec [block!]][make object! spec]
 
 system: function [
-	"Returns information about the interpreter."
+	"Returns information about the interpreter"
 	/version	  "Return the system version"
 	/words		  "Return a block of global words available"
 	/platform	  "Return a word identifying the operating system"
@@ -1267,7 +1267,7 @@ system: function [
 		]
 		interpreted? [#system [logic/box stack/eval?]]
 		'else [
-			print "Please specify a system refinement value (/version, /words, or /platform)."
+			print "Please specify a system refinement value (/version, /words, or /platform)"
 		]
 	]
 ]
@@ -1366,7 +1366,7 @@ parse-trace: func [
 #include %lexer.red
 
 load: function [
-	"Returns a value or block of values by reading and evaluating a source."
+	"Returns a value or block of values by reading and evaluating a source"
 	source [file! url! string! binary!]
 	/header "TBD: Include Red header as a loaded value"
 	/all    "TBD: Don't evaluate Red header"
