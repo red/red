@@ -35,6 +35,9 @@ Red [
 	--test-- "float-cosine-2"
 		--assert 0.0 = cosine 90
 
+	--test-- "float-cosine-3"
+		--assert 0.0 = cosine/radians pi / 2
+
 	--test-- "float-sine-1"
 		--assertf~= 0.0 sine/radians pi 1E-13
 
@@ -375,13 +378,13 @@ Red [
 
 ===start-group=== "almost equal"
 	--test-- "almost-equal1"  --assert 1.000000000000001 = 1.000000000000002
-	;--test-- "almost-equal2"  --assert not 1.000000000000001 = 1.000000000000003		;@@ works correctly only on interpreter
+	--test-- "almost-equal2"  --assert not 1.000000000000001 = 1.000000000000003
 
 	--test-- "almost-equal3"  --assert -1.999999999999999 = -1.999999999999999
 	--test-- "almost-equal4"  --assert 1.732050807568876 = 1.732050807568877
 
 	--test-- "almost-equal5"  --assert  0.4E-323 = -0.4E-323
-	;--test-- "almost-equal6"  --assert 1.7976931348623157e308 = 1.#INF					;@@ works only on interpreter, compiler will throw `overflow` error.
+	--test-- "almost-equal6"  --assert 1.7976931348623157e308 = 1.#INF
 	--test-- "almost-equal7"  --assert 4.94065645841247E-324 = 0
 ===end-group===
 

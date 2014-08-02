@@ -313,7 +313,7 @@ float: context [
 			TYPE_INTEGER [
 				int: as red-integer! type
 				int/header: TYPE_INTEGER
-				int/value: to-integer either f < 0.0 [f + 0.499999999999999][f - 0.499999999999999]
+				int/value: to-integer either f < 0.0 [f + 0.4999999999999999][f - 0.4999999999999999]
 			]
 			TYPE_STRING [
 				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
