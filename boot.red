@@ -1022,6 +1022,46 @@ NaN?: make native! [[
 	#get-definition NAT_NAN?
 ]
 
+log-2: make native! [[
+		"Return the base-2 logarithm"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_LOG_2
+]
+
+log-10: make native! [[
+		"Returns the base-10 logarithm"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_LOG_10
+]
+
+log-e: make native! [[
+		"Returns the natural (base-E) logarithm of the given value"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_LOG_E
+]
+
+exp: make native! [[
+		"Raises E (the base of natural logarithm) to the power specified"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_EXP
+]
+
+square-root: make native! [[
+		"Returns the square root of a number"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_SQUARE_ROOT
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
