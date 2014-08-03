@@ -114,6 +114,9 @@ float: context [
 			dot? [logic!]
 			d	[int64!]
 			w0	[integer!]
+			c1	[byte!]
+			c2	[byte!]
+			pretty? [logic!]
 	][
 		d: as int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
@@ -152,21 +155,42 @@ float: context [
 				s/1 = #"^@"
 			]
 
-			if all [											;-- prettify output if needed
-				pretty-print?
-				p <> null										;-- has "E" notation
-				(as-integer p - s0) > 16						;-- the number of digits = 16
-			][
-				p0: either s0/1 = #"-" [s0 + 1][s0]
-				if any [										;-- correct '01' or '99' pattern
-					all [p0/17 = #"1" p0/16 = #"0"]
-					all [p0/17 = #"9" p0/16 = #"9"]
+			if pretty-print? [									;-- prettify output if needed
+				pretty?: no
+				either p = null [								;-- No "E" notation
+					w0: as-integer s - s0
+					if w0 > 16 [
+						p0: either s0/1 = #"-" [s0 + 1][s0]
+						if any [
+							p0/1 = #"1"
+							all [p0/1 = #"0" w0 > 17]
+						][
+							p0: s - 2
+							c2: p0/2
+							c1: p0/1
+							pretty?: yes
+						]
+					]
 				][
-					p0: "00000000000000000000000"				;-- 24 bytes
-					sprintf [p0 "%.14g" f]
-					if 10 > length? p0 [s: p0 s0: s]			;-- length? "-x.xE-xxx" = 9
+					if (as-integer p - s0) > 16 [				;-- the number of digits = 16
+						p0: either s0/1 = #"-" [s0 + 1][s0]
+						c2: p0/17
+						c1: p0/16
+						pretty?: yes
+					]
+				]
+
+				if pretty? [
+					if any [									;-- correct '01' or '99' pattern
+						all [c2 = #"1" c1 = #"0"]
+						all [c2 = #"9" c1 = #"9"]
+					][
+						sprintf [s0 "%.14g" f]
+						s: s0
+					]
 				]
 			]
+
 			s0 <> s
 		]
 
