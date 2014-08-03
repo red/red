@@ -126,24 +126,48 @@ float: context [
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
+		s/17: #"0"
+		s/18: #"0"
 		sprintf [s "%.16g" f]
 
-		dot?: no
 		p:  null
 		p1: null
 		s0: s
 		until [
-			if s/1 = #"." [dot?: yes]
-			if s/1 = #"e" [
-				p: s
-				until [
-					s: s + 1
-					s/1 > #"0"
+			dot?: no
+			until [
+				if s/1 = #"." [dot?: yes]
+				if s/1 = #"e" [
+					p: s
+					until [
+						s: s + 1
+						s/1 > #"0"
+					]
+					p1: s
 				]
-				p1: s
+				s: s + 1
+				s/1 = #"^@"
 			]
-			s: s + 1
-			s/1 = #"^@"
+
+			if all [											;-- correct number if needed
+				p <> null										;-- has "E" notation
+				(as-integer p - s0) > 16						;-- the number of digits = 16
+			][
+				s: either s0/1 = #"-" [s0 + 1][s0]
+				if any [										;-- correct '01' or '99' pattern
+					all [s/17 = #"1" s/16 = #"0"]
+					all [s/17 = #"9" s/16 = #"9"]
+				][
+					s: "00000000000000000000000"				;-- 24 bytes
+					sprintf [s "%.14g" f]
+					either 10 > length? s [						;-- length? "-x.xE-xxx" = 9
+						s0: s
+					][
+						return s0
+					]
+				]
+			]
+			s0 <> s
 		]
 
 		if p1 <> null [											;-- remove #"+" and leading zero
