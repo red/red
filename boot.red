@@ -1045,6 +1045,7 @@ NaN?: make native! [[
 #load set-word! "<<"	make op! :shift-left
 #load set-word! ">>"	make op! :shift-right
 #load set-word! ">>>"	make op! :shift-logical
+#load set-word! "**"	make op! :power
 and:					make op! :and~
 or:						make op! :or~
 xor:					make op! :xor~
