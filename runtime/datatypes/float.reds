@@ -15,6 +15,9 @@ Red/System [
 float: context [
 	verbose: 0
 
+	pretty-print?: true
+	full-support?: false
+
 	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
 	int64!:  alias struct! [int1 [integer!] int2 [integer!]]
 
@@ -149,7 +152,8 @@ float: context [
 				s/1 = #"^@"
 			]
 
-			if all [											;-- correct number if needed
+			if all [											;-- prettify output if needed
+				pretty-print?
 				p <> null										;-- has "E" notation
 				(as-integer p - s0) > 16						;-- the number of digits = 16
 			][
@@ -158,9 +162,9 @@ float: context [
 					all [p0/17 = #"1" p0/16 = #"0"]
 					all [p0/17 = #"9" p0/16 = #"9"]
 				][
-					s: "00000000000000000000000"				;-- 24 bytes
-					sprintf [s "%.14g" f]
-					if 10 > length? s [s0: s]					;-- length? "-x.xE-xxx" = 9
+					p0: "00000000000000000000000"				;-- 24 bytes
+					sprintf [p0 "%.14g" f]
+					if 10 > length? p0 [s: p0 s0: s]			;-- length? "-x.xE-xxx" = 9
 				]
 			]
 			s0 <> s
