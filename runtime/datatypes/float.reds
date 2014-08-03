@@ -153,18 +153,14 @@ float: context [
 				p <> null										;-- has "E" notation
 				(as-integer p - s0) > 16						;-- the number of digits = 16
 			][
-				s: either s0/1 = #"-" [s0 + 1][s0]
+				p0: either s0/1 = #"-" [s0 + 1][s0]
 				if any [										;-- correct '01' or '99' pattern
-					all [s/17 = #"1" s/16 = #"0"]
-					all [s/17 = #"9" s/16 = #"9"]
+					all [p0/17 = #"1" p0/16 = #"0"]
+					all [p0/17 = #"9" p0/16 = #"9"]
 				][
 					s: "00000000000000000000000"				;-- 24 bytes
 					sprintf [s "%.14g" f]
-					either 10 > length? s [						;-- length? "-x.xE-xxx" = 9
-						s0: s
-					][
-						return s0
-					]
+					if 10 > length? s [s0: s]					;-- length? "-x.xE-xxx" = 9
 				]
 			]
 			s0 <> s
