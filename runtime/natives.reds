@@ -1191,6 +1191,46 @@ natives: context [
 		ret
 	]
 
+	log-2*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: (log f/value) / 0.6931471805599453
+	]
+
+	log-10*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: log10 f/value
+	]
+
+	log-e*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: log f/value
+	]
+
+	exp*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: pow 2.718281828459045235360287471 f/value
+	]
+
+	square-root*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: sqrt f/value
+	]
+
 	;--- Natives helper functions ---
 
 	#enum trigonometric-type! [
@@ -1199,23 +1239,31 @@ natives: context [
 		SINE
 	]
 
+	argument-as-float: func [
+		return: [red-float!]
+		/local
+			f	[red-float!]
+			n	[red-integer!]
+	][
+		f: as red-float! stack/arguments
+		if TYPE_OF(f) <> TYPE_FLOAT [
+			f/header: TYPE_FLOAT
+			n: as red-integer! f
+			f/value: integer/to-float n/value
+		]
+		f
+	]
+
 	degree-to-radians: func [
 		radians [integer!]
 		type	[integer!]
 		return: [red-float!]
 		/local
 			f	[red-float!]
-			n	[red-integer!]
 			val [float!]
 	][
-		f: as red-float! stack/arguments
-		either TYPE_OF(f) <> TYPE_FLOAT [
-			n: as red-integer! f
-			val: integer/to-float n/value
-			f/header: TYPE_FLOAT
-		][
-			val: f/value
-		]
+		f: argument-as-float
+		val: f/value
 
 		if radians < 0 [
 			val: val % 360.0
@@ -1242,17 +1290,10 @@ natives: context [
 		return: [red-float!]
 		/local
 			f	[red-float!]
-			n	[red-integer!]
 			d	[float!]
 	][
-		f: as red-float! stack/arguments
-		either TYPE_OF(f) <> TYPE_FLOAT [
-			n: as red-integer! f
-			d: integer/to-float n/value
-			f/header: TYPE_FLOAT
-		][
-			d: f/value
-		]
+		f: argument-as-float
+		d: f/value
 
 		either all [type <> TANGENT any [d < -1.0 d > 1.0]] [
 			print-line "*** Math Error: math or number overflow"
@@ -1507,6 +1548,11 @@ natives: context [
 			:arccosine*
 			:arctangent*
 			:NaN?*
+			:log-2*
+			:log-10*
+			:log-e*
+			:exp*
+			:square-root*
 		]
 	]
 

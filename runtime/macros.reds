@@ -191,6 +191,11 @@ Red/System [
 	NAT_ARCCOSINE
 	NAT_ARCTANGENT
 	NAT_NAN?
+	NAT_LOG_2
+	NAT_LOG_10
+	NAT_LOG_E
+	NAT_EXP
+	NAT_SQUARE_ROOT
 ]
 
 #enum math-op! [

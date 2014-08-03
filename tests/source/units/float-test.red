@@ -426,4 +426,14 @@ Red [
 	;--test-- "special-equality-14"  --assert 1.23 = 1.#NaN				= false
 ===end-group===
 
+===start-group=== "other math functions"
+
+	--test-- "log-2-1"			--assert 5.0 = log-2 32
+	--test-- "log-10-1"			--assert 2.0 = log-10 100
+	--test-- "log-e-1"			--assert 4.812184355372417 = log-e 123
+	--test-- "exp-1"			--assert 2.6195173187490456e53 = exp 123
+	--test-- "square-root-1"	--assert 2.0 = square-root 4
+
+===end-group===
+
 ~~~end-file~~~

@@ -574,7 +574,7 @@ float: context [
 			int: as red-integer! exp
 			exp/value: integer/to-float int/value
 		]
-		base/value: float-power base/value exp/value
+		base/value: pow base/value exp/value
 		base
 	]
 
