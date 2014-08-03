@@ -15,6 +15,9 @@ Red/System [
 float: context [
 	verbose: 0
 
+	pretty-print?: true
+	full-support?: false
+
 	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
 	int64!:  alias struct! [int1 [integer!] int2 [integer!]]
 
@@ -126,24 +129,45 @@ float: context [
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
+		s/17: #"0"
+		s/18: #"0"
 		sprintf [s "%.16g" f]
 
-		dot?: no
 		p:  null
 		p1: null
 		s0: s
 		until [
-			if s/1 = #"." [dot?: yes]
-			if s/1 = #"e" [
-				p: s
-				until [
-					s: s + 1
-					s/1 > #"0"
+			dot?: no
+			until [
+				if s/1 = #"." [dot?: yes]
+				if s/1 = #"e" [
+					p: s
+					until [
+						s: s + 1
+						s/1 > #"0"
+					]
+					p1: s
 				]
-				p1: s
+				s: s + 1
+				s/1 = #"^@"
 			]
-			s: s + 1
-			s/1 = #"^@"
+
+			if all [											;-- prettify output if needed
+				pretty-print?
+				p <> null										;-- has "E" notation
+				(as-integer p - s0) > 16						;-- the number of digits = 16
+			][
+				p0: either s0/1 = #"-" [s0 + 1][s0]
+				if any [										;-- correct '01' or '99' pattern
+					all [p0/17 = #"1" p0/16 = #"0"]
+					all [p0/17 = #"9" p0/16 = #"9"]
+				][
+					p0: "00000000000000000000000"				;-- 24 bytes
+					sprintf [p0 "%.14g" f]
+					if 10 > length? p0 [s: p0 s0: s]			;-- length? "-x.xE-xxx" = 9
+				]
+			]
+			s0 <> s
 		]
 
 		if p1 <> null [											;-- remove #"+" and leading zero
