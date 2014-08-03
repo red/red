@@ -1190,7 +1190,7 @@ block?:		 func ["Returns true if the value is this type" value [any-type!]] [blo
 char?: 		 func ["Returns true if the value is this type" value [any-type!]] [char!		= type? :value]
 datatype?:	 func ["Returns true if the value is this type" value [any-type!]] [datatype!	= type? :value]
 file?:		 func ["Returns true if the value is this type" value [any-type!]] [file!		= type? :value]
-url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
+float?:		 func ["Returns true if the value is this type" value [any-type!]] [float!		= type? :value]
 function?:	 func ["Returns true if the value is this type" value [any-type!]] [function!	= type? :value]
 get-path?:	 func ["Returns true if the value is this type" value [any-type!]] [get-path!	= type? :value]
 get-word?:	 func ["Returns true if the value is this type" value [any-type!]] [get-word!	= type? :value]
@@ -1211,6 +1211,7 @@ set-path?:	 func ["Returns true if the value is this type" value [any-type!]] [s
 set-word?:	 func ["Returns true if the value is this type" value [any-type!]] [set-word!	= type? :value]
 string?:	 func ["Returns true if the value is this type" value [any-type!]] [string!		= type? :value]
 unset?:		 func ["Returns true if the value is this type" value [any-type!]] [unset!		= type? :value]
+url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
 word?:		 func ["Returns true if the value is this type" value [any-type!]] [word!		= type? :value]
 
 any-series?: func [value][
