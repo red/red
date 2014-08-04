@@ -1013,6 +1013,14 @@ arctangent: make native! [[
 	]
 	#get-definition NAT_ARCTANGENT
 ]
+arctangent2: make native! [[
+		"Returns the angle of the point y/x in radians, when measured counterclockwise from a circle's x axis (where 0x0 represents the center of the circle). The return value is between -pi and +pi."
+		y       [number!]
+		x       [number!]
+		return: [float!]
+	]
+	#get-definition NAT_ARCTANGENT2
+]
 
 NaN?: make native! [[
 		"Returns TRUE if the number is Not-a-Number"
@@ -1098,7 +1106,6 @@ Red: true												;-- ultimate Truth ;-) (pre-defines Red word)
 
 yes: on: true
 no: off: false
-;empty?: :tail?
 
 tab:		 #"^-"
 cr: 		 #"^M"
@@ -1460,3 +1467,11 @@ load: function [
 	unless :all [if 1 = length? out [out: out/1]]
 	out 
 ]
+
+
+;------------------------------------------
+;-				Aliases					  -
+;------------------------------------------
+
+;empty?: :tail?
+atan2: :arctangent2
