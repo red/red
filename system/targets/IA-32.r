@@ -312,7 +312,7 @@ make-profilable make target-class [
 			]
 			;cword []								;-- control word is already in eax
 		]
-		unless any [type cword][
+		unless any [type cword][					;-- align result on right side
 			emit #{C1E8}							;-- SHR eax, <bit>
 			emit to-bin8 bit
 		]
@@ -1606,7 +1606,7 @@ make-profilable make target-class [
 		]
 	]
 		
-	emit-call-syscall: func [args [block!] fspec [block!]][
+	emit-call-syscall: func [args [block!] fspec [block!] attribs [block! none!]][
 		switch compiler/job/syscall [
 			BSD [									; http://www.freebsd.org/doc/en/books/developers-handbook/book.html#X86-SYSTEM-CALLS
 				emit #{83EC04}						;-- SUB esp, 4		; extra entry (BSD convention)			
@@ -1651,7 +1651,7 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-call-import: func [args [block!] fspec [block!] spec [block!]][
+	emit-call-import: func [args [block!] fspec [block!] spec [block!] attribs [block! none!]][
 		either compiler/job/OS = 'MacOSX [
 			either PIC? [
 				emit #{8D83}						;-- LEA eax, [ebx+disp]	; PIC
@@ -1668,7 +1668,7 @@ make-profilable make target-class [
 		]
 	]
 
-	emit-call-native: func [args [block!] fspec [block!] spec [block!] /routine name [word!] /local total][
+	emit-call-native: func [args [block!] fspec [block!] spec [block!] attribs [block! none!] /routine name [word!] /local total][
 		either routine [
 			either 'local = last fspec [
 				name: pick tail fspec -2

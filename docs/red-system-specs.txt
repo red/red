@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 26/04/2014
-	Revision: 41
+	Date: 29/07/2014
+	Revision: 42
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -2455,10 +2455,260 @@ Retrieve the CPU program counter value.
 	
  system/pc
 
-\note IA-32 target
-This access path will return the value of the EIP register.
+\note Platform-specific results
+IA-32 target returns the value of the EIP register.
+
+ARM target returns the value of the PC (r15) register.
 
 /note
+
+---cpu
+
+Set or retrieve any of the CPU's registers value.
+
+<b>Syntax</b>
+
+Reading a register:
+
+ system/cpu/<register>
+
+ return: a value of type integer!.
+
+Setting a register:
+
+	system/cpu/<register>: <value>
+
+where:
+ <register>: valid name of a CPU register (platform-dependent)
+ <value>   : an integer! value
+
+\note Register names
+Currently supported names are: 
+
+*<b>IA-32</b>: eax, ecx, edx, ebx, esp, ebp, esi, edi
+
+*<b>ARM</b>: r0 to r15
+
+Support for accessing more registers (like status registers) will be added in the future.
+
+/note
+
+
+---fpu/type
+
+Returns a unique ID for the currently used FPU.
+
+<b>Syntax</b>
+
+ system/fpu/type
+ 
+Possible returned values are currently:
+
+*FPU_TYPE_X87: for x87 FPU.
+
+*FPU_TYPE_SSE: for SSE unit on Intel.
+
+*FPU_TYPE_VFP: for ARM VFP unit.
+
+
+---fpu/option
+
++++fpu/option/rounding
+
+Set or retrieve the FPU rounding mode. The possible standard modes are:
+
+*Nearest: (even) rounded result is the closest to the infinitely precise result
+
+*Down: (toward -INF) rounded result is the closest to but no greater than the infinitely precise result
+
+*Up: (toward +INF) rounded result is the closest to but no less than the infinitely precise result
+
+*Zero: (truncate) rounded result is the closest to but no greater in absolute value than the infinitely precise result
+
+
+<b>Syntax</b>
+
+Reading a register:
+
+	system/fpu/option/rounding
+
+will return one of the following values:
+
+<b>Intel</b>:
+
+*FPU_X87_ROUNDING_NEAREST
+
+*FPU_X87_ROUNDING_DOWN	
+
+*FPU_X87_ROUNDING_UP		
+
+*FPU_X87_ROUNDING_ZERO	
+
+<b>ARM</b>:
+
+*FPU_VFP_ROUNDING_NEAREST
+
+*FPU_VFP_ROUNDING_DOWN
+
+*FPU_VFP_ROUNDING_UP			
+
+*FPU_VFP_ROUNDING_ZERO
+
+Setting a register:
+	system/fpu/option/rounding: <value>
+
+where:
+	<value>: is one of the valid values listed above.
+
+
++++fpu/option/precision
+
+<i><b>(Intel only)</b></i>
+
+Set or retrieve the FPU precision size. 
+
+<b>Syntax</b>
+
+Reading a register:
+
+	system/fpu/option/precision
+
+will return one of the following values:
+
+*FPU_X87_PRECISION_SINGLE		&nbsp;&nbsp;&nbsp;&nbsp;<i>(32-bit float, 24-bit mantissa)</i>
+
+*FPU_X87_PRECISION_DOUBLE		&nbsp;&nbsp;&nbsp;&nbsp;<i>(64-bit float, 53-bit mantissa)</i>
+
+*FPU_X87_PRECISION_DOUBLE_EXT 	&nbsp;&nbsp;&nbsp;&nbsp;<i>(80-bit float, 64-bit mantissa)</i>
+
+Setting a register:
+	system/fpu/option/precision: <value>
+
+where:
+	<value>: is one of the valid values listed above.
+
+
++++fpu/option/flush-to-zero
+
+<i><b>(ARM only)</b></i>
+
+Enable or disable the Flush-to-zero mode. See ARM <a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0274h/Babffifj.html">documentation</a> for more info.
+
+Testing if flush mode is enabled:
+
+	system/fpu/option/flush-to-zero
+
+	return: true (if mode is enable) | false 
+
+Enabling or disabling the flush mode:
+	system/fpu/option/flush-to-zero: true | false
+
++++fpu/option/NaN-mode
+
+<i><b>(ARM only)</b></i>
+
+Enable or disable the default NaN mode. See ARM <a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0274h/Babffifj.html">documentation</a> for more info.
+
+Testing if default mode is enabled:
+
+	system/fpu/option/NaN-mode
+
+	return: true (if mode is enable) | false 
+
+Enabling or disabling the default mode:
+	system/fpu/option/NaN-mode: true | false
+
+
+---fpu/mask
+
+Set the FPU exception masks. The following exceptions are available:
+
+*precision
+
+*underflow
+
+*overflow
+
+*zero-divide
+
+*denormal
+
+*invalid-op
+
+<b>Syntax</b>
+
+Reading an exception mask state:
+
+ system/fpu/mask/<exception>
+
+ return: true (exception is masked) | false
+
+Masking or unmasking an exception:
+
+ system/fpu/mask/<exception>: <value>
+
+where:
+ <exception> : is one of the above exception name
+ <value>     : an integer! value
+
+
+---fpu/control-word
+
+Set or retrieve the full FPU control register.
+
+<b>Syntax</b>
+
+Reading the control value:
+
+ system/fpu/control-word
+
+ return: a value of type integer!.
+
+Setting a register:
+
+	system/fpu/control-word: <value>
+
+where:
+ <value> : an integer! value
+
+\note Warning for ARM backend
+Setting the control-word on ARM can have side-effects, as the same register is used for status flags.
+
+/note
+
+---fpu/epsilon
+
+<i>Not implemented yet.</i>
+
+---fpu/update
+
+Effectively update the FPU with the last options set.
+
+<b>Syntax</b>
+
+ system/fpu/update
+ 
+All the changes to the FPU are pending until this command is sent.
+
+\note ARM backend
+On ARM backend, the changes are immediate and this command does nothing, but it is still useful for writing platform-independent code. This will be changed in the future to allow staging options and this command will be then enabled.
+
+/note
+ 
+
+---fpu/init
+
+Initialize the FPU.
+
+<b>Syntax</b>
+
+ system/fpu/init
+
+\note Intel-only
+Only needed for Intel platforms, does nothing on ARM (for now).
+
+/note
+ 
 
 ---alias
 
@@ -3137,18 +3387,6 @@ The specifications for these callbacks are system-specific:
 
  on-load:   func [][...]
  on-unload: func [][...]
- 
-\note ELF unfinished shared library support
-On OS that require ELF format, like Linux, the callbacks will not be automatically called, so until this part gets implemented, you need to use a special version for <b>on-load</b>:
-
- on-load: func [][
- 	#if format = 'ELF [***-dll-entry-point]
- 	...
- ]
- 
-<b>On-unload</b> will not be called.
-
-/note
 
 ---Driver program (experimental)
 
@@ -3325,6 +3563,13 @@ will output:
 
 
 ===Document History
+
+*<b>29/07/2014 - revision 42</b>
+
+*>Removed the note about ELF backend not calling on-load/on-unload.
+
+*>Added system/cpu et system/fpu sections.
+
 
 *<b>26/04/2014 - revision 41</b>
 

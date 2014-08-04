@@ -15,6 +15,7 @@ REBOL [
 ;;	type:			'exe | 'dll | 'drv			;-- file type
 ;;	target:			'IA-32 | 'ARM				;-- CPU or VM target
 ;;  cpu-version:	<decimal!>					;-- CPU version (default for IA-32: 6.0, Pentium Pro, for ARM: 5.0)
+;;  ABI:			none | word! | block!		;-- optional ABI flags
 ;;	sub-system:		'GUI | 'console				;-- type of user interface
 ;;	PIC?:			 yes | no					;-- generate Position Independent Code
 ;;	base-address:	<integer!>					;-- base image memory address
@@ -110,6 +111,16 @@ Linux-ARM [
 	type:		'exe
 	base-address: 32768					; 8000h
 	dynamic-linker: "/lib/ld-linux.so.3"
+]
+;-------------------------
+RPi [
+	OS:			'Linux
+	format:		'ELF
+	target:		'ARM
+	ABI:		'hard-float
+	type:		'exe
+	base-address: 32768					; 8000h
+	dynamic-linker: "/lib/ld-linux-armhf.so.3"
 ]
 ;-------------------------
 Syllable [

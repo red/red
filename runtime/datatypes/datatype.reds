@@ -101,25 +101,6 @@ datatype: context [
 	]
 	
 	;-- Actions --
-
-	make*: func [
-		return:	 [red-value!]							;-- return datatype cell pointer
-		/local
-			arg  [red-value!]
-			dt   [red-datatype!]
-			type [red-integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "datatype/make"]]
-		
-		arg: stack/arguments
-		dt:  as red-datatype! arg
-		assert TYPE_OF(dt) = TYPE_DATATYPE
-		
-		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
-		type: as red-integer! arg + 1
-		dt/value: type/value		
-		as red-value! dt
-	]
 	
 	make: func [
 		proto 	[red-value!]

@@ -225,8 +225,10 @@ platform: context [
 	][
 		assert str <> null
 		p: str
-		while [p/1 <> null-byte][
+		while [
 			cp: (as-integer p/2) << 8 + p/1
+			cp <> 0
+		][
 			putwchar cp
 			p: p + 2
 		]
@@ -296,13 +298,13 @@ platform: context [
 	]
 
 	prin-float*: func [f [float!] return: [float!]][
-		wprintf ["^(00)%^(00).^(00)1^(00)4^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
+		wprintf ["%^(00).^(00)1^(00)6^(00)g^(00)^(00)" f]		;-- UTF-16 literal string
 		fflush null
 		f
 	]
 
 	prin-float32*: func [f [float32!] return: [float32!]][
-		wprintf ["^(00)%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
+		wprintf ["%^(00).^(00)7^(00)g^(00)^(00)" as-float f]	;-- UTF-16 literal string
 		fflush null
 		f
 	]

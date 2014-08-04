@@ -48,6 +48,74 @@ Red/System [
 			char		[byte!]
 		]
 		printf: 	 "printf" [[variadic]]
+		sprintf:	 "sprintf" [[variadic]]
+		strtod:		 "strtod" [
+			str			[byte-ptr!]
+			endptr		[byte-ptr!]
+			return:		[float!]
+		]
+	]
+
+	LIBM-file cdecl [
+		ceil:		 "ceil" [
+			d			[float!]
+			return:		[float!]
+		]
+		floor:		 "floor" [
+			d			[float!]
+			return:		[float!]
+		]
+		pow: 		 "pow" [
+			base		[float!]
+			exponent	[float!]
+			return:		[float!]
+		]
+		sin:		 "sin" [
+			radians		[float!]
+			return:		[float!]
+		]
+		cos:		 "cos" [
+			radians		[float!]
+			return:		[float!]
+		]
+		tan:		 "tan" [
+			radians		[float!]
+			return:		[float!]
+		]
+		asin:		 "asin" [
+			radians		[float!]
+			return:		[float!]
+		]
+		acos:		 "acos" [
+			radians		[float!]
+			return:		[float!]
+		]
+		atan:		 "atan" [
+			radians		[float!]
+			return:		[float!]
+		]
+		ldexp:		"ldexp" [
+			value		[float!]
+			exponent	[integer!]
+			return:		[float!]
+		]
+		frexp:		"frexp" [
+			x			[float!]
+			exponent	[int-ptr!]
+			return:		[float!]
+		]
+		log10:		"log10" [
+			value		[float!]
+			return:		[float!]
+		]
+		log:		"log" [
+			value		[float!]
+			return:		[float!]
+		]
+		sqrt:		"sqrt" [
+			value		[float!]
+			return:		[float!]
+		]
 	]
 ]
 
@@ -80,7 +148,7 @@ Red/System [
 	]
 
 	prin-float: func [f [float!] return: [float!]][
-		printf ["%.14g" f]
+		printf ["%.16g" f]
 		f
 	]
 

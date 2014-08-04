@@ -369,11 +369,10 @@ natives: context [
 				stack/set-last arg + 1
 			]
 			TYPE_STRING [
-				;#call [transcode str none]
-				;str: as red-string! arg
-				;s: GET_BUFFER(str)
-				;tokenizer/scan as c-string! s/offset null	;@@ temporary limited to Latin-1
-				;do*
+				str: as red-string! arg
+				#call [transcode str none]
+				interpreter/eval as red-block! arg yes
+
 			]
 			default [
 				interpreter/eval-expression arg arg + 1 no no
@@ -522,8 +521,62 @@ natives: context [
 		actions/compare* COMP_GREATER_EQUAL
 	]
 	
-	same?*: does []
-	
+	same?*: func [
+		return:	   [red-logic!]
+		/local
+			result [red-logic!]
+			arg1   [red-value!]
+			arg2   [red-value!]
+			type   [integer!]
+			res    [logic!]
+	][
+		arg1: stack/arguments
+		arg2: arg1 + 1
+		type: TYPE_OF(arg1)
+
+		res: false
+		if type = TYPE_OF(arg2) [
+			case [
+				any [
+					type = TYPE_DATATYPE
+					type = TYPE_OBJECT
+					type = TYPE_LOGIC
+				][
+					res: arg1/data1 = arg2/data1
+				]
+				any [
+					type = TYPE_CHAR
+					type = TYPE_INTEGER
+					type = TYPE_BITSET
+				][
+					res: arg1/data2 = arg2/data2
+				]
+				any [
+					type = TYPE_BINARY
+					ANY_SERIES?(type)
+				][
+					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
+				]
+				type = TYPE_FLOAT	[
+					res: all [arg1/data2 = arg2/data2 arg1/data3 = arg2/data3]
+				]
+				type = TYPE_NONE	[type = TYPE_OF(arg2)]
+				true [
+					res: all [
+						arg1/data1 = arg2/data1
+						arg1/data2 = arg2/data2
+						arg1/data3 = arg2/data3
+					]
+				]
+			]
+		]
+
+		result: as red-logic! arg1
+		result/value: res
+		result/header: TYPE_LOGIC
+		result
+	]
+
 	not*: func [
 		/local bool [red-logic!]
 	][
@@ -868,7 +921,7 @@ natives: context [
 		switch TYPE_OF(set1) [
 			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
 			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
-			TYPE_BITSET [stack/set-last as red-value! bitset/union no null]
+			TYPE_BITSET [bitset/union no null]
 			default [
 				print-line "*** Error: argument type not supported by UNION"
 			]
@@ -950,16 +1003,23 @@ natives: context [
 		return:	[red-logic!]
 		/local
 			num [red-integer!]
+			f	[red-float!]
 			res [red-logic!]
 	][
-		num: as red-integer! stack/arguments
-		res: as red-logic! num
-
-		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
-			res/value: negative? num/value
-		][
-			res/value: false
-			print-line "*** Error: argument type must be number!"
+		res: as red-logic! stack/arguments
+		switch TYPE_OF(res) [						;@@ Add time! money! pair!
+			TYPE_INTEGER [
+				num: as red-integer! res
+				res/value: negative? num/value
+			]
+			TYPE_FLOAT	 [
+				f: as red-float! res
+				res/value: f/value < 0.0
+			]
+			default [
+				res/value: false
+				print-line "*** Error: argument type must be number!"
+			]
 		]
 		res/header: TYPE_LOGIC
 		res
@@ -969,16 +1029,23 @@ natives: context [
 		return: [red-logic!]
 		/local
 			num [red-integer!]
+			f	[red-float!]
 			res [red-logic!]
 	][
-		num: as red-integer! stack/arguments
-		res: as red-logic! num
-
-		either TYPE_OF(num) =  TYPE_INTEGER [			;@@ Add time! money! pair!
-			res/value: positive? num/value
-		][
-			res/value: false
-			print-line "*** Error: argument type must be number!"
+		res: as red-logic! stack/arguments
+		switch TYPE_OF(res) [						;@@ Add time! money! pair!
+			TYPE_INTEGER [
+				num: as red-integer! res
+				res/value: positive? num/value
+			]
+			TYPE_FLOAT	 [
+				f: as red-float! res
+				res/value: f/value > 0.0
+			]
+			default [
+				res/value: false
+				print-line "*** Error: argument type must be number!"
+			]
 		]
 		res/header: TYPE_LOGIC
 		res
@@ -1050,7 +1117,198 @@ natives: context [
 		stack/set-last as red-value! buf
 	]
 
+	sine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		f: degree-to-radians radians SINE
+		f/value: sin f/value
+		if DBL_EPSILON > float/abs f/value [f/value: 0.0]
+		f
+	]
+
+	cosine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		f: degree-to-radians radians COSINE
+		f/value: cos f/value
+		if DBL_EPSILON > float/abs f/value [f/value: 0.0]
+		f
+	]
+
+	tangent*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		f: degree-to-radians radians TANGENT
+		either (float/abs f/value) = (PI / 2.0) [
+			print-line "*** Math Error: math or number overflow on TANGENT"
+			f/header: TYPE_UNSET
+		][
+			f/value: tan f/value
+		]
+		f
+	]
+
+	arcsine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		arc-trans radians SINE
+	]
+
+	arccosine*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		arc-trans radians COSINE
+	]
+
+	arctangent*: func [
+		radians [integer!]
+		/local
+			f	[red-float!]
+	][
+		arc-trans radians TANGENT
+	]
+
+	NaN?*: func [
+		return:  [red-logic!]
+		/local
+			f	 [red-float!]
+			ret  [red-logic!]
+	][
+		f: as red-float! stack/arguments
+		ret: as red-logic! f
+		ret/value: float/NaN? f/value
+		ret/header: TYPE_LOGIC
+		ret
+	]
+
+	log-2*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: (log f/value) / 0.6931471805599453
+	]
+
+	log-10*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: log10 f/value
+	]
+
+	log-e*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: log f/value
+	]
+
+	exp*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: pow 2.718281828459045235360287471 f/value
+	]
+
+	square-root*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: sqrt f/value
+	]
+
 	;--- Natives helper functions ---
+
+	#enum trigonometric-type! [
+		TANGENT
+		COSINE
+		SINE
+	]
+
+	argument-as-float: func [
+		return: [red-float!]
+		/local
+			f	[red-float!]
+			n	[red-integer!]
+	][
+		f: as red-float! stack/arguments
+		if TYPE_OF(f) <> TYPE_FLOAT [
+			f/header: TYPE_FLOAT
+			n: as red-integer! f
+			f/value: integer/to-float n/value
+		]
+		f
+	]
+
+	degree-to-radians: func [
+		radians [integer!]
+		type	[integer!]
+		return: [red-float!]
+		/local
+			f	[red-float!]
+			val [float!]
+	][
+		f: argument-as-float
+		val: f/value
+
+		if radians < 0 [
+			val: val % 360.0
+			if any [val > 180.0 val < -180.0] [
+				val: val + either val < 0.0 [360.0][-360.0]
+			]
+			if any [val > 90.0 val < -90.0] [
+				if type = TANGENT [
+					val: val + either val < 0.0 [180.0][-180.0]
+				]
+				if type = SINE [
+					val: (either val < 0.0 [-180.0][180.0]) - val
+				]
+			]
+			val: val * PI / 180.0			;-- to radians
+		]
+		f/value: val
+		f
+	]
+
+	arc-trans: func [
+		radians [integer!]
+		type	[integer!]
+		return: [red-float!]
+		/local
+			f	[red-float!]
+			d	[float!]
+	][
+		f: argument-as-float
+		d: f/value
+
+		either all [type <> TANGENT any [d < -1.0 d > 1.0]] [
+			print-line "*** Math Error: math or number overflow"
+			f/header: TYPE_UNSET
+		][
+			f/value: switch type [
+				SINE	[asin d]
+				COSINE	[acos d]
+				TANGENT [atan d]
+			]
+		]
+
+		if radians < 0 [f/value: f/value * 180.0 / PI]			;-- to degrees
+		f
+	]
 
 	loop?: func [
 		series  [red-series!]
@@ -1283,6 +1541,18 @@ natives: context [
 			:min*
 			:shift*
 			:to-hex*
+			:sine*
+			:cosine*
+			:tangent*
+			:arcsine*
+			:arccosine*
+			:arctangent*
+			:NaN?*
+			:log-2*
+			:log-10*
+			:log-e*
+			:exp*
+			:square-root*
 		]
 	]
 

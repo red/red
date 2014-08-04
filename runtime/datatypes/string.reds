@@ -25,7 +25,7 @@ string: context [
 		
 	escape-chars: [
 		#"^(40)" #"^(41)" #"^(42)" #"^(43)" #"^(44)" #"^(45)" #"^(46)" #"^(47)" ;-- 07h
-		#"-" 	 #"/" 	  #"^(4A)" #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
+		#"^(48)" #"-"     #"/"     #"^(4B)" #"^(4C)" #"^(4D)" #"^(4E)" #"^(4F)" ;-- 0Fh
 		#"^(50)" #"^(51)" #"^(52)" #"^(53)" #"^(54)" #"^(55)" #"^(56)" #"^(57)" ;-- 17h
 		#"^(58)" #"^(59)" #"^(5A)" #"^(5B)" #"^(5C)" #"^(5D)" #"^(5E)" #"^(5F)" ;-- 1Fh
 		#"^(00)" #"^(00)" #"^""    #"^(00)" #"^(00)" #"^(00)" #"^(00)" #"^(00)" ;-- 27h
@@ -58,6 +58,27 @@ string: context [
 	]
 
 	utf8-buffer: [#"^(00)" #"^(00)" #"^(00)" #"^(00)"]
+
+	to-float: func [
+		s		[byte-ptr!]
+		return: [float!]
+		/local
+			s0	[byte-ptr!]
+	][
+		s0: s
+		if any [s/1 = #"-" s/1 = #"+"] [s: s + 1]
+		if s/3 = #"#" [										;-- 1.#NaN, -1.#INF" or "1.#INF
+			if any [s/4 = #"I" s/4 = #"i"] [
+				return either s0/1 = #"-" [
+					0.0 - float/+INF
+				][float/+INF]
+			]
+			if any [s/4 = #"N" s/4 = #"n"] [
+				return float/QNaN
+			]
+		]
+		strtod s0 null
+	]
 
 	to-hex: func [
 		value	 [integer!]
@@ -493,15 +514,15 @@ string: context [
 						p/1: as-byte cp
 					]
 					cp <= FFFFh [
-						p: (as byte-ptr! s - 1) - p		;-- calc index value
+						p: p - (as byte-ptr! s/offset)		;-- calc index value
 						s: unicode/Latin1-to-UCS2 s
-						p: (as byte-ptr! s + 1) + ((as-integer p) << 1) ;-- calc the new position
+						p: (as byte-ptr! s/offset) + ((as-integer p) << 1) ;-- calc the new position
 						s: poke-char s p cp
 					]
 					true [
-						p: (as byte-ptr! s - 1) - p		;-- calc index value
+						p: p - (as byte-ptr! s/offset)		;-- calc index value
 						s: unicode/Latin1-to-UCS4 s
-						p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- calc the new position
+						p: (as byte-ptr! s/offset) + ((as-integer p) << 2) ;-- calc the new position
 						s: poke-char s p cp
 					]
 				]
@@ -511,9 +532,9 @@ string: context [
 					p/1: as-byte (cp and FFh)
 					p/2: as-byte (cp >> 8)
 				][
-					p: (as byte-ptr! s - 1) - p			;-- calc index value
+					p: p - (as byte-ptr! s/offset)			;-- calc index value
 					s: unicode/UCS2-to-UCS4 s
-					p: (as byte-ptr! s + 1) + ((as-integer p) << 2) ;-- calc the new position
+					p: (as byte-ptr! s/offset) + ((as-integer p) << 1) ;-- calc the new position
 					s: poke-char s p cp
 				]
 			]
@@ -893,7 +914,94 @@ string: context [
 		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
 		str
 	]
-	
+
+	random: func [
+		str		[red-string!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-value!]
+		/local
+			char [red-char!]
+			s	 [series!]
+			size [integer!]
+			unit [integer!]
+			temp [integer!]
+			idx	 [byte-ptr!]
+			head [byte-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/random"]]
+
+		either seed? [
+			str/header: TYPE_UNSET				;-- TODO: calc string to seed.
+		][
+			temp: 0
+			s: GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			size: (as-integer s/tail - s/offset) >> (unit >> 1) - str/head
+
+			if only? [
+				either positive? size [
+					idx: head + (_random/rand % size << (unit >> 1))
+					char: as red-char! str
+					char/header: TYPE_CHAR
+					char/value: get-char idx unit
+				][
+					str/header: TYPE_NONE
+				]
+			]
+
+			while [size > 0][
+				idx: head + (_random/rand % size << (unit >> 1))
+				copy-memory as byte-ptr! :temp head unit
+				copy-memory head idx unit
+				copy-memory idx as byte-ptr! :temp unit
+				head: head + unit
+				size: size - 1
+			]
+		]
+		as red-value! str
+	]
+
+	to: func [
+		type	[red-datatype!]
+		spec	[red-string!]
+		return: [red-value!]
+		/local
+			t	[integer!]
+			f	[red-float!]
+			int [red-integer!]
+			blk [red-block!]
+			ret [red-value!]
+	][
+		t: type/value
+		blk: as red-block! type
+		#call [transcode spec none]
+
+		either zero? block/rs-length? blk [
+			ret: as red-value! blk
+			ret/header: TYPE_UNSET
+		][
+			ret: block/rs-head blk
+		]
+
+		either t = TYPE_FLOAT [
+			if TYPE_OF(ret) = TYPE_INTEGER [
+				int: as red-integer! ret
+				f: as red-float! ret
+				f/header: TYPE_FLOAT
+				f/value: integer/to-float int/value
+			]
+		][
+			if TYPE_OF(ret) <> t [
+				print-line "** Script error: Invalid argument for TO action!"
+				ret/header: TYPE_UNSET
+			]
+		]
+		stack/set-last ret
+	]
+
 	form: func [
 		str		  [red-string!]
 		buffer	  [red-string!]
@@ -1876,6 +1984,352 @@ string: context [
 		str
 	]
 
+	take: func [
+		str	    	[red-string!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		last?		[logic!]
+		return:		[red-value!]
+		/local
+			int		[red-integer!]
+			str2	[red-string!]
+			char	[red-char!]
+			offset	[byte-ptr!]
+			tail	[byte-ptr!]
+			s		[series!]
+			buffer	[series!]
+			node	[node!]
+			unit	[integer!]
+			part	[integer!]
+			bytes	[integer!]
+			size	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/take"]]
+
+		size: rs-length? str
+		if size <= 0 [									;-- early exit if nothing to take
+			set-type as cell! str TYPE_NONE
+			return as red-value! str
+		]
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		part: 1
+
+		if OPTION?(part-arg) [
+			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
+				int: as red-integer! part-arg
+				int/value
+			][
+				str2: as red-string! part-arg
+				unless all [
+					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
+					str2/node = str/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				either str2/head < str/head [0][
+					either last? [size - (str2/head - str/head)][str2/head - str/head]
+				]
+			]
+			if part > size [part: size]
+		]
+
+		bytes:	part << (unit >> 1)
+		node: 	alloc-bytes bytes + unit
+		buffer: as series! node/value
+		buffer/flags: s/flags							;@@ filter flags?
+
+		str2: as red-string! stack/push*
+		str2/header: TYPE_STRING
+		str2/node: 	node
+		str2/head: 	0
+
+		either positive? part [
+			tail: as byte-ptr! s/tail
+			offset: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			if last? [
+				offset: tail - bytes
+				s/tail: as cell! offset
+			]
+			copy-memory
+				as byte-ptr! buffer/offset
+				offset
+				bytes
+			buffer/tail: as cell! (as byte-ptr! buffer/offset) + bytes
+
+			unless last? [
+				move-memory
+					offset
+					offset + bytes
+					as-integer tail - offset - bytes
+				s/tail: as cell! tail - bytes
+			]
+			add-terminal-NUL as byte-ptr! buffer/tail unit
+			add-terminal-NUL as byte-ptr! s/tail unit
+		][return as red-value! str2]
+
+		if part = 1 [									;-- return char!
+			char: as red-char! str2
+			char/header: TYPE_CHAR
+			char/value:  get-char as byte-ptr! buffer/offset unit
+		]
+		as red-value! str2
+	]
+
+	swap: func [
+		str1	 [red-string!]
+		str2	 [red-string!]
+		return:	 [red-string!]
+		/local
+			s1		[series!]
+			s2		[series!]
+			char1	[integer!]
+			char2	[integer!]
+			unit1	[integer!]
+			unit2	[integer!]
+			head1	[byte-ptr!]
+			head2	[byte-ptr!]
+	][
+		s1:    GET_BUFFER(str1)
+		unit1: GET_UNIT(s1)
+		head1: (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
+		if head1 = as byte-ptr! s1/tail [return str1]				;-- early exit if nothing to swap
+
+		s2:    GET_BUFFER(str2)
+		unit2: GET_UNIT(s2)
+		head2: (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
+		if head2 = as byte-ptr! s2/tail [return str1]				;-- early exit if nothing to swap
+
+		char1: get-char head1 unit1
+		char2: get-char head2 unit2
+		poke-char s1 head1 char2
+		poke-char s2 head2 char1
+		str1
+	]
+
+	trim-with: func [
+		str			[red-string!]
+		with-arg	[red-value!]
+		/local
+			s		[series!]
+			unit	[integer!]
+			cur		[byte-ptr!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+			int		[red-integer!]
+			n		[integer!]
+			wlen	[integer!]
+			size	[integer!]
+			char	[integer!]
+			find?	[logic!]
+			str2	[red-string!]
+			with-chars	[int-ptr!]
+	][
+		with-chars: [9 10 13 32]						;-- default chars for /ALL [TAB LF CR SPACE]
+		wlen: 4
+		if OPTION?(with-arg) [
+			switch TYPE_OF(with-arg) [
+				TYPE_CHAR
+				TYPE_INTEGER [
+					int: as red-integer! with-arg
+					with-chars/1: int/value
+					wlen: 1
+				]
+				TYPE_STRING [
+					str2: as red-string! with-arg
+					s:    GET_BUFFER(str2)
+					unit: GET_UNIT(s)
+					head: (as byte-ptr! s/offset) + (str2/head << (unit >> 1))
+					tail: as byte-ptr! s/tail
+
+					size: (as integer! tail - head) >> (unit >> 1)
+					if zero? size [exit]				;-- early exit
+
+					if size > wlen [
+						with-chars: as int-ptr! allocate size * 4
+					]
+					n: 1
+					while [head < tail][
+						with-chars/n: get-char head unit
+						n: n + 1
+						head: head + unit
+					]
+					wlen: n - 1
+				]
+			]
+		]
+
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+		cur: head
+		while [head < tail][
+			n: 0
+			char: get-char head unit
+			find?: false
+			until [
+				n: n + 1
+				find?: char = with-chars/n
+				any [find? n = wlen]
+			]
+			unless find? [
+				poke-char s cur char
+				cur: cur + unit
+			]
+			head: head + unit
+		]
+		add-terminal-NUL cur unit
+
+		s/tail: as red-value! cur
+		if wlen > 4 [free as byte-ptr! with-chars]
+	]
+
+	trim-lines: func [
+		str			[red-string!]
+		/local
+			s		[series!]
+			unit	[integer!]
+			cur		[byte-ptr!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+			pad		[integer!]
+			char	[integer!]
+	][
+		pad: 0
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+		cur: head
+		while [head < tail][
+			char: get-char head unit
+			either WHITE_CHAR?(char) [
+				if pad = 1 [
+					poke-char s cur as-integer #" "
+					cur: cur + unit
+					pad: 2
+				]
+			][
+				poke-char s cur char
+				cur: cur + unit
+				pad: 1
+			]
+			head: head + unit
+		]
+		if pad = 2 [cur: cur - unit]
+		add-terminal-NUL cur unit
+
+		s/tail: as red-value! cur
+	]
+
+	trim-head-tail: func [
+		str				[red-string!]
+		head?			[logic!]
+		tail?			[logic!]
+		/local
+			s			[series!]
+			unit		[integer!]
+			cur			[byte-ptr!]
+			left		[byte-ptr!]
+			head		[byte-ptr!]
+			tail		[byte-ptr!]
+			char		[integer!]
+			append-lf?	[logic!]
+			outside? 	[logic!]
+			skip?		[logic!]
+	][
+		append-lf?: no
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+		cur: head
+
+		if any [head? not tail?] [
+			while [
+				char: get-char head unit
+				all [head < tail WHITE_CHAR?(char)]
+			][
+				head: head + unit
+			]
+		]
+
+		if any [tail? not head?] [
+			while [
+				char: get-char tail - unit unit
+				all [head < tail WHITE_CHAR?(char)]
+			][
+				if char = 10 [append-lf?: yes]
+				tail: tail - unit
+			]
+		]
+
+		either all [not head? not tail?] [
+			outside?: no
+			left: null
+
+			while [head < tail] [
+				skip?: no
+				char: get-char head unit
+
+				case [
+					SPACE_CHAR?(char) [
+						either outside? [skip?: yes][
+							if left = null [left: cur]
+						]
+					]
+					char = 10 [
+						outside?: yes
+						if left <> null [cur: left left: null]
+					]
+					true [
+						outside?: no
+						left: null
+					]
+				]
+
+				unless skip? [
+					poke-char s cur char
+					cur: cur + unit
+				]
+				head: head + unit
+			]
+		][
+			move-memory cur head (as-integer tail - head)
+			cur: cur + (as-integer tail - head)
+		]
+
+		if all [append-lf? not tail?] [
+			poke-char s cur 10
+			cur: cur + 1
+		]
+		add-terminal-NUL cur unit
+		s/tail: as red-value! cur
+	]
+
+	trim: func [
+		str			[red-string!]
+		head?		[logic!]
+		tail?		[logic!]
+		auto?		[logic!]
+		lines?		[logic!]
+		all?		[logic!]
+		with-arg	[red-value!]
+		return:		[red-series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "string/trim"]]
+
+		case [
+			any [all? OPTION?(with-arg)] [trim-with str with-arg]
+			auto? [--NOT_IMPLEMENTED--]
+			lines? [trim-lines str]
+			true  [trim-head-tail str head? tail?]
+		]
+		as red-series! str
+	]
+
 	;--- Misc actions ---
 
 	copy: func [
@@ -1947,7 +2401,7 @@ string: context [
 		
 		as red-series! new
 	]
-	
+
 	init: does [
 		datatype/register [
 			TYPE_STRING
@@ -1955,9 +2409,9 @@ string: context [
 			"string!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
-			null			;to
+			:to
 			:form
 			:mold
 			:eval-path
@@ -2001,11 +2455,11 @@ string: context [
 			:select
 			null			;sort
 			:skip
-			null			;swap
+			:swap
 			:tail
 			:tail?
-			null			;take
-			null			;trim
+			:take
+			:trim
 			;-- I/O actions --
 			null			;create
 			null			;close

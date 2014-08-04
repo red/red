@@ -10,9 +10,10 @@ Red [
 	}
 ]
 
-trans-integer: routine [
-	start [string!]
-	end	  [string!]
+trans-number: routine [
+	start  [string!]
+	end	   [string!]
+	float? [logic!]
 	/local
 		c	 [integer!]
 		n	 [integer!]
@@ -21,6 +22,10 @@ trans-integer: routine [
 		p	 [byte-ptr!]
 		neg? [logic!]
 ][
+	if float? [
+		trans-float start end							;-- decimal! escape path
+		exit
+	]
 	str:  GET_BUFFER(start)
 	unit: GET_UNIT(str)
 	p:	  string/rs-head start
@@ -39,25 +44,61 @@ trans-integer: routine [
 	n: 0
 	until [
 		c: (string/get-char p unit) - #"0"
-		
-		m: n * 10
-		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
-		n: m
-		
-		if all [n = 2147483640 c = 8][
-			integer/box 80000000h						;-- special exit trap for -2147483648
-			exit
-		]
-		
-		m: n + c
-		if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
-		n: m
+		if c >= 0 [											;-- skip #"'"
+			m: n * 10
+			if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+			n: m
 
+			if all [n = 2147483640 c = 8][
+				integer/box 80000000h						;-- special exit trap for -2147483648
+				exit
+			]
+
+			m: n + c
+			if m < n [SET_RETURN(none-value) exit]			;-- return NONE on overflow
+			n: m
+		]
 		p: p + unit
 		len: len - 1
 		zero? len
 	]
 	integer/box either neg? [0 - n][n]
+]
+
+trans-float: routine [
+	start [string!]
+	end	  [string!]
+	/local
+		str  [series!]
+		cp	 [integer!]
+		unit [integer!]
+		p	 [byte-ptr!]
+		tail [byte-ptr!]
+		cur	 [byte-ptr!]
+		s0	 [byte-ptr!]
+		byte [byte!]
+][
+	str:  GET_BUFFER(start)
+	unit: GET_UNIT(str)
+	p:	  string/rs-head start
+	tail: p + ((end/head - start/head) << (unit >> 1))
+	cur:  p
+	s0:   cur
+
+	until [											;-- convert to ascii string
+		cp: string/get-char p unit
+		if cp <> as-integer #"'" [					;-- skip #"'"
+			if cp = as-integer #"," [cp: as-integer #"."]
+			cur/1: as-byte cp
+			cur: cur + 1
+		]
+		p: p + unit
+		p = tail
+	]
+	byte:  cur/1      ;store last byte
+	cur/1: #"^@"      ;replace the byte with null so to-float can use it as end of input
+	float/box string/to-float s0
+	cur/1: byte       ;revert the byte back
 ]
 
 trans-hexa: routine [
@@ -207,7 +248,7 @@ transcode: function [
 	]
 
 	trans-file: [
-		new: make file! (index? e) - index? s
+		new: make type (index? e) - index? s
 		append new dehex copy/part s e
 		new
 	]
@@ -227,7 +268,7 @@ transcode: function [
 		cs/12: charset [#"^(00)" - #"^(1F)"]			;-- non-printable-char
 		cs/13: charset {^{"[]);}						;-- integer-end
 		cs/14: charset " ^-^M"							;-- ws-ASCII, ASCII common whitespaces
-		cs/15: charset [#"^(80)" - #"^(8A)"]			;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
+		cs/15: charset [#"^(2000)" - #"^(200A)"]			;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 		cs/16: charset [#"^(00)" - #"^(1F)"] 			;-- ASCII control characters
 
 	]
@@ -280,7 +321,7 @@ transcode: function [
 				| "esc"  (value: #"^(1B)")
 				| "del"	 (value: #"^(7F)")
 			]
-			| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+			| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 				value: trans-char pos e
 			)
 		] #")"
@@ -337,10 +378,16 @@ transcode: function [
 		#"%" [
 			line-string (process: trans-string type: file!)
 			| s: any [ahead [not-file-char | ws-no-count] break | skip] e:
-			  (process: trans-file)
+			  (process: trans-file type: file!)
 		]
 	]
-	
+
+	url-rule: [
+		#":" not [integer-end | ws-no-count | end]
+		any [#"@" | #":" | ahead [not-file-char | ws-no-count] break | skip] e:
+		(type: url! trans-store stack do trans-file)
+	]
+
 	symbol-rule: [
 		some [ahead [not-word-char | ws-no-count | control-char] break | skip] e:
 	]
@@ -353,16 +400,18 @@ transcode: function [
 	path-rule: [
 		ahead slash (									;-- path detection barrier
 			trans-push-path stack type					;-- create empty path
-			trans-word stack copy/part s e type			;-- push 1st path element
+			trans-word stack copy/part s e word!		;-- push 1st path element
 		)
 		some [
 			slash
 			s: [
-				integer-number-rule			(trans-store stack trans-integer s e)
+				integer-number-rule			(trans-store stack trans-number s e no)
 				| begin-symbol-rule			(trans-word stack copy/part s e word!)
 				| paren-rule
 				| #":" s: begin-symbol-rule	(trans-word stack copy/part s e get-word!)
 				;@@ add more datatypes here
+				| (type: none print ["*** Syntax Error: invalid path value at:" back s])
+				  reject
 			]
 			opt [#":" (trans-set-path back tail stack)]
 		] (trans-pop stack)
@@ -371,9 +420,10 @@ transcode: function [
 	word-rule: 	[
 		#"%" ws-no-count (trans-word stack "%" word!)	;-- special case for remainder op!
 		| s: begin-symbol-rule (type: word!) [
-				path-rule								;-- path matched
+				url-rule
+				| path-rule								;-- path matched
 				| opt [#":" (type: set-word!)]
-				  (trans-word stack copy/part s e type)	;-- word or set-word matched
+				  (if type [trans-word stack copy/part s e type])	;-- word or set-word matched
 		  ]
 	]
 
@@ -397,11 +447,13 @@ transcode: function [
 	]
 
 	refinement-rule: [
-		slash (type: refinement!) s: symbol-rule
+		slash [
+			some slash (type: word!) e:					;--  ///... case
+			| ahead [not-word-char | ws-no-count | control-char] (type: word!) e: ;-- / case
+			| symbol-rule (type: refinement! s: next s)
+		]
 		(trans-word stack copy/part s e type)
 	]
-
-	slash-rule: [s: [slash opt slash] e:]
 
 	hexa-rule: [2 8 hexa e: #"h"]
 	
@@ -410,9 +462,30 @@ transcode: function [
 	]
 	
 	integer-rule: [
-		integer-number-rule
-		ahead [integer-end | ws-no-count | end]
+		float-special								;-- escape path for NaN, INFs
+		| integer-number-rule
+		  opt [float-number-rule | float-exp-rule e: (type: float!)]
+		  ahead [integer-end | ws-no-count | end]
 	]
+
+	float-special: [
+		s: opt [#"-"] "1.#" [
+			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
+			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
+		] e: (type: float!)
+	]
+
+	float-exp-rule: [[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
+
+	float-number-rule: [
+		[dot | comma] digit any [digit | #"'" digit]
+		opt float-exp-rule e: (type: float!)
+ 	]
+ 	
+ 	float-rule: [
+		opt [#"-" | #"+"] float-number-rule
+ 		ahead [integer-end | ws-no-count | end]
+ 	]
 	
 	block-rule: [
 		#"[" (append/only stack make block! 4)
@@ -474,12 +547,12 @@ transcode: function [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule		(trans-store stack value)
-			| integer-rule		if (value: trans-integer s e ) (trans-store stack value)
+			| integer-rule		if (value: trans-number s e type = float!) (trans-store stack value)
+			| float-rule		if (value: trans-float s e) (trans-store stack value)
 			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule
 			| lit-word-rule
 			| get-word-rule
-			| slash-rule		(trans-word stack copy/part s e word!)
 			| refinement-rule
 			| file-rule			(trans-store stack value: do process)
 			| char-rule			(trans-store stack value)

@@ -2,7 +2,7 @@ Red [
 	Title:   "Red simple testing framework"
 	Author:  "Peter W A Wood"
 	File: 	 %quick-test.red
-	Version: "0.1.0"
+	Version: "0.2.0"
 	Rights:  "Copyright (C) 2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
@@ -96,6 +96,43 @@ qt-init-file: func [] [
     prin "--test-- " 
     prin qt-test-name
     print " FAILED**************"
+  ]
+]
+
+--assertf~=: func[
+  x           [float!]
+  y           [float!]
+  e           [float!]
+  /local
+    diff      [float!]
+    e1        [float!]
+    e2        [float!]
+][
+  ;; calculate tolerance to use
+  ;;    as e * max (1, x, y)
+  either x > 0.0 [
+    e1: x * e
+  ][
+    e1: -1.0 * x * e
+  ]
+  if e > e1 [e1: e]
+  either y > 0.0 [
+    e2: y * e
+  ][
+    e2: -1.0 * y * e
+  ]
+  if e1 > e2 [e2: e1]
+
+  ;; perform almost equal check
+  either x > y [
+    diff: x - y
+  ][
+    diff: y - x
+  ]
+  either diff > e2 [
+    --assert false
+  ][
+    --assert true
   ]
 ]
  

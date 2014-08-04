@@ -138,7 +138,7 @@ file: context [
 			"file!"
 			;-- General actions --
 			:make
-			null			;random
+			INHERIT_ACTION	;random
 			null			;reflect
 			null			;to
 			INHERIT_ACTION	;form
@@ -184,10 +184,10 @@ file: context [
 			INHERIT_ACTION	;select
 			null			;sort
 			INHERIT_ACTION	;skip
-			null			;swap
+			INHERIT_ACTION	;swap
 			INHERIT_ACTION	;tail
 			INHERIT_ACTION	;tail?
-			null			;take
+			INHERIT_ACTION	;take
 			null			;trim
 			;-- I/O actions --
 			null			;create

@@ -84,6 +84,7 @@ object: context [
 			tail  [red-value!]
 			vals  [red-value!]
 			value [red-value!]
+			type  [integer!]
 			s	  [series!]
 	][
 		s: as series! spec/symbols/value
@@ -97,15 +98,9 @@ object: context [
 			value: _context/add-with ctx as red-word! syms vals
 			
 			unless null? value [
-				switch TYPE_OF(value) [					;@@ replace it with ANY_SERIES?()
-					TYPE_BLOCK
-					TYPE_PAREN
-					TYPE_PATH
-					TYPE_SET_PATH
-					TYPE_GET_PATH
-					TYPE_LIT_PATH
-					TYPE_STRING
-					TYPE_FILE [
+				type: TYPE_OF(value)
+				case [
+					ANY_SERIES?(type) [
 						actions/copy
 							as red-series! value
 							value						;-- overwrite the value
@@ -113,10 +108,10 @@ object: context [
 							yes
 							null
 					]
-					TYPE_FUNCTION [
+					type = TYPE_FUNCTION [
 						rebind as red-function! value ctx
 					]
-					default [0]
+					true [0]
 				]
 			]
 			syms: syms + 1
@@ -333,6 +328,7 @@ object: context [
 			dst	  [series!]
 			size  [integer!]
 			slots [integer!]
+			type  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/copy"]]
 		
@@ -370,15 +366,9 @@ object: context [
 			tail:  dst/tail
 			
 			while [value < tail][
-				switch TYPE_OF(value) [					;@@ replace it with ANY_SERIES?()
-					TYPE_BLOCK
-					TYPE_PAREN
-					TYPE_PATH
-					TYPE_SET_PATH
-					TYPE_GET_PATH
-					TYPE_LIT_PATH
-					TYPE_STRING
-					TYPE_FILE [
+				type: TYPE_OF(value)
+				case [
+					ANY_SERIES?(type) [
 						actions/copy 
 							as red-series! value
 							value						;-- overwrite the value
@@ -386,10 +376,10 @@ object: context [
 							yes
 							null
 					]
-					TYPE_FUNCTION [
+					type = TYPE_FUNCTION [
 						rebind as red-function! value nctx
 					]
-					default [0]
+					true [0]
 				]
 				value: value + 1
 			]

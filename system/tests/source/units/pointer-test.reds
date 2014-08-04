@@ -118,6 +118,8 @@ Red/System [
 	b-pointer2: foo-b-pointer b-pointer
 	--assert b-pointer2/value = #"h"
 
+===end-group===
+
 ===start-group=== "Pointers arithmetic"
 	
 	--test-- "pointer-calc-1"

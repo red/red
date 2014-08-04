@@ -46,7 +46,7 @@ Other useful functions:
 			foreach w system/words [
 				if type = type? get w [
 					case [
-						any [function? get w native? get w action? get w op? get w][
+						any [function? get w native? get w action? get w op? get w routine? get w][
 							prin [tab w]
 							spec: spec-of get w
 
@@ -71,7 +71,7 @@ Other useful functions:
 		]
 		string? word [
 			foreach w system/words [
-				if any [function? get w native? get w action? get w op? get w][
+				if any [function? get w native? get w action? get w op? get w routine? get w][
 					spec: spec-of get w
 					if any [find form w word find form spec word] [
 						prin [tab w]
@@ -102,7 +102,7 @@ Other useful functions:
 			either all [
 				word? func-name
 				fun: get func-name
-				any [action? :fun function? :fun native? :fun op? :fun]
+				any [action? :fun function? :fun native? :fun op? :fun routine? :fun]
 			][
 				prin ["^/USAGE:^/" tab ]
 
@@ -159,7 +159,7 @@ what: function [
 	"Lists all functions, or words of a given type"
 ][
 	foreach w system/words [
-		if any [function? get w native? get w action? get w op? get w][
+		if any [function? get w native? get w action? get w op? get w routine? get w][
 			prin w
 			spec: spec-of get w
 			

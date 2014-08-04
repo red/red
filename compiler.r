@@ -145,6 +145,16 @@ red: context [
 		]
 	]
 	
+	preprocess-strings: func [code [block!] /local rule s][  ;-- re-encode strings for Red/System
+		parse code rule: [
+			any [
+				s: string! (lexer/decode-UTF8-string s/1)
+				into rule
+				| skip
+			]
+		]
+	]
+	
 	convert-to-block: func [mark [block!]][
 		change/part/only mark copy/deep mark tail mark	;-- put code between [...]
 		clear next mark									;-- remove code at "upper" level
@@ -179,6 +189,10 @@ red: context [
 	
 	unicode-char?: func [value][
 		all [issue? value value/1 = #"'"]
+	]
+	
+	float-special?: func [value][
+		all [issue? value value/1 = #"."]
 	]
 	
 	insert-lf: func [pos][
@@ -245,7 +259,7 @@ red: context [
 		insert-lf -2
 	]
 	
-	emit-load-string: func [buffer [string! file!]][
+	emit-load-string: func [buffer [string! file! url!]][
 		emit to path! reduce [to word! form type? buffer 'load]
 		emit form buffer
 		emit 1 + length? buffer							;-- account for terminal zero
@@ -590,7 +604,10 @@ red: context [
 		forall blk [
 			item: blk/1
 			either any-block? :item [
-				type: either all [path? item get-word? item/1]['get-path][type? :item]
+				type: either all [path? item get-word? item/1][
+					item/1: to word! item/1 ;this is workaround of missing get-path! in R2
+					'get-path
+				][type? :item]
 				
 				emit-open-frame 'append
 				emit to lit-path! reduce [to word! form type 'push*]
@@ -638,7 +655,7 @@ red: context [
 						add-symbol word: to word! form item
 						decorate-symbol word
 					]
-					find [string! file!] type?/word :item [
+					find [string! file! url!] type?/word :item [
 						emit [tmp:]
 						insert-lf -1
 						emit-load-string item
@@ -655,9 +672,21 @@ red: context [
 						item
 					]
 				]
-				emit to path! reduce [to word! form type? :item action]
-				emit value
-				insert-lf -1 - either block? value [length? value][1]
+				either float-special? :item [
+					emit 'float/push64
+					emit-fp-special item
+					insert-lf -3
+				][
+					either decimal? :item [
+						emit 'float/push64
+						emit-float item
+						insert-lf -3
+					][
+						emit to path! reduce [to word! form type? :item action]
+						emit value
+						insert-lf -1 - either block? value [length? value][1]
+					]
+				]
 				
 				emit 'block/append*
 				insert-lf -1
@@ -824,11 +853,27 @@ red: context [
 			do body
 			output: saved
 	]
+
+	emit-float: func [value [decimal!] /local bin][
+		bin: IEEE-754/to-binary64 value
+		emit to integer! copy/part bin 4
+		emit to integer! skip bin 4
+	]
+
+	emit-fp-special: func [value [issue!]][
+		switch next value [
+			#INF  [emit to integer! #{7FF00000} emit 0]
+			#INF- [emit to integer! #{FFF00000} emit 0]
+			#NaN  [emit to integer! #{7FF80000} emit 0]			;-- smallest quiet NaN
+			#0-	  [emit to integer! #{80000000} emit 0]
+		]
+	]
 	
-	comp-literal: func [root? [logic!] /inactive /local value char? name w make-block type][
+	comp-literal: func [root? [logic!] /inactive /local value char? special? name w make-block type][
 		value: pc/1
 		either any [
 			char?: unicode-char? value
+			special?: float-special? value
 			scalar? :value
 		][
 			if root? [
@@ -840,6 +885,16 @@ red: context [
 					emit 'char/push
 					emit to integer! next value
 					insert-lf -2
+				]
+				special? [
+					emit 'float/push64
+					emit-fp-special value
+					insert-lf -3
+				]
+				decimal? :value [
+					emit 'float/push64
+					emit-float value
+					insert-lf -3
 				]
 				find [refinement! issue! lit-word!] type?/word :value [
 					add-symbol w: to word! form value
@@ -1243,14 +1298,19 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos ignore words rule word][
+	collect-words: func [spec [block!] body [block!] /local pos end ignore words rule word][
 		if pos: find spec /extern [
-			ignore: pos/2
+			either end: find next pos refinement! [
+				ignore: copy/part next pos end
+				remove/part spec pos end
+			][
+				ignore: copy next pos
+				clear pos
+			]
 			unless empty? intersect ignore spec [
 				pc: skip pc -2
 				throw-error ["duplicate word definition in function:" pc/1]
 			]
-			clear pos
 		]
 		foreach item spec [								;-- add all arguments to ignore list
 			if find [word! lit-word! get-word!] type?/word item [
@@ -1365,6 +1425,7 @@ red: context [
 		pc: next pc
 		set [spec body] pc
 
+		preprocess-strings body							;-- encode strings for Red/System
 		check-spec spec
 		add-function/type name spec 'routine!
 		
@@ -1909,7 +1970,7 @@ red: context [
 		local?: local-word? name
 		
 		emit-word: [
-			either lit-word? pc/-1 [				;@@
+			either lit-word? pc/-1 [					;@@
 				emit-push-word name
 			][
 				either literal [
@@ -2014,7 +2075,7 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
-	process-call-directive: func [body [block!] global? /local name spec cmd][
+	process-call-directive: func [body [block!] global? /local name spec cmd types type arg][
 		name: to word! clean-lf-flag body/1
 		if any [
 			not spec: select functions name
@@ -2033,12 +2094,25 @@ red: context [
 		types: spec/3
 		body: next body
 		
-		loop spec/2 [
+		loop spec/2 [									;-- process arguments
 			types: find/tail types word!
 			unless block? types/1 [
 				throw-error ["type undefined for" types/1 "in function" name]
 			]
-			cmd: to path! reduce [to word! form get types/1/1 'push]
+			either 1 = length? types/1 [
+				type: types/1/1
+			][
+				arg: body/1
+				if word? arg [arg: get arg]
+				type: none
+				foreach value types/1 [
+					if value = type?/word arg [type: value break]
+				]
+				unless type [
+					throw-error ["cannot determine #call argument type:" arg]
+				]
+			]
+			cmd: to path! reduce [to word! form get type 'push]
 			if global? [insert cmd 'red]
 			emit cmd
 			insert-lf -1
@@ -2050,19 +2124,40 @@ red: context [
 					emit copy/part body 3
 					body: skip body 3
 				]
+				body/1 = 'none [
+					body: next body
+				]
 				'else [
 					emit body/1
 					body: next body
 				]
 			]
 		]
-		name: decorate-func name
+		
+		types: next types								;-- process refinements
+		while [not tail? types][
+			switch type?/word types/1 [
+				refinement! [
+					if types/1 = /local [break]
+					emit [red/logic/push false]
+					insert-lf -2
+				]
+				word! [
+					emit 'red/none/push
+					insert-lf -1
+				]
+				set-word! [break]
+			]
+			types: next types
+		]
+		
+		name: decorate-func name						;-- function call
 		if global? [name: decorate-exec-ctx name]
 		emit name
 		insert-lf -1
 		
 		either global? [
-			emit 'red/stack/unwind
+			emit 'red/stack/unwind-last
 			insert-lf -1
 			emit 'red/stack/reset
 		][
@@ -2111,6 +2206,7 @@ red: context [
 				]
 				process-include-paths pc/2
 				process-calls pc/2
+				preprocess-strings pc/2					;-- encode strings for Red/System
 				mark: tail output
 				emit pc/2
 				new-line mark on
@@ -2122,6 +2218,7 @@ red: context [
 					throw-error "#system-global requires a block argument"
 				]
 				process-include-paths pc/2
+				preprocess-strings pc/2					;-- encode strings for Red/System
 				unless sys-global/1 = 'Red/System [
 					append sys-global copy/deep [Red/System []]
 				]
@@ -2162,7 +2259,10 @@ red: context [
 		]
 		switch/default type?/word pc/1 [
 			issue!		[
-				either unicode-char? pc/1 [
+				either any [
+					unicode-char?  pc/1
+					float-special? pc/1
+				][
 					comp-literal to logic! root			;-- special encoding for Unicode char!
 				][
 					unless comp-directive [
@@ -2484,9 +2584,9 @@ red: context [
 		
 		time: dt [
 			src: load-source file
+			job/red-pass?: yes
 			either no-global? [comp-as-lib src][comp-as-exe src]
 		]
 		reduce [output time]
 	]
 ]
-

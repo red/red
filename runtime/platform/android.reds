@@ -119,7 +119,7 @@ prin-hex*: func [i [integer!] return: [integer!]][
 ]
 
 prin-float*: func [f [float!] return: [float!]][
-	snprintf [spf-buf OUTPUT_BUF_SIZE - tail "%.14g" f]
+	snprintf [spf-buf OUTPUT_BUF_SIZE - tail "%.16g" f]
 	prin* spf-buf
 	f
 ]
