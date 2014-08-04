@@ -197,8 +197,7 @@ modulo: func [
 ]
 
 round: make action! [[
-		"(not yet implemented)"
-		;"Returns the nearest integer. Halves round up (away from zero) by default"
+		"Returns the nearest integer. Halves round up (away from zero) by default"
 		n		[number!]
 		/to		"Return the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
