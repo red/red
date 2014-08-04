@@ -1178,6 +1178,32 @@ natives: context [
 		arc-trans radians TANGENT
 	]
 
+	arctangent2*: func [
+		/local
+			f	[red-float!]
+			n	[red-integer!]
+			x	[float!]
+			y	[float!]
+	][
+		f: as red-float! stack/arguments 
+		either TYPE_OF(f) <> TYPE_FLOAT [
+			n: as red-integer! f
+			y: integer/to-float n/value
+		][
+			y: f/value
+		]
+		f: as red-float! stack/arguments + 1
+		either TYPE_OF(f) <> TYPE_FLOAT [
+			n: as red-integer! f
+			x: integer/to-float n/value
+			f/header: TYPE_FLOAT
+		][
+			x: f/value
+		]
+		f/value: atan2 y x
+		stack/set-last as red-value! f
+	]
+
 	NaN?*: func [
 		return:  [red-logic!]
 		/local
@@ -1190,6 +1216,8 @@ natives: context [
 		ret/header: TYPE_LOGIC
 		ret
 	]
+
+	;--- Natives helper functions ---
 
 	log-2*: func [
 		/local
@@ -1547,6 +1575,7 @@ natives: context [
 			:arcsine*
 			:arccosine*
 			:arctangent*
+			:arctangent2*
 			:NaN?*
 			:log-2*
 			:log-10*
