@@ -32,8 +32,8 @@ change-dir %../
 	--test-- "pointer error 2"
 	--compile-this {
 	    Red/System [] 
-	    pi: declare pointer! [integer!]
-	    pi: :i
+	    p-i: declare pointer! [integer!]
+	    p-i: :i
 	  }
 	--assert-msg? "*** Compilation Error: undefined symbol: i"
 	  --clean

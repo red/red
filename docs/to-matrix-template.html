@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Red Programming Language - To Datatype! Matrix</title>
+  <style>
+    td {
+      max-width: 25em;
+      min-width: 10em;
+      vertical-align: top;
+    }
+  </style>
+</head>
+<body>
+  <h1>Red Programming Language - To Datatype! Matrix</h1>
+  <table id="matrix">
+  </table>
+  <script>
+    var matrix = {***JSON***};
+  </script>
+  <script>
+    "use strict";
+    var row;
+    var table = document.getElementById("matrix");
+    var type;
+    var toType;
+    var vector;
+    
+    var newCell = function addCell(tag, content) {
+      var cellContent;
+      var entry;
+      entry = document.createElement(tag);
+      cellContent = document.createTextNode(content);
+      entry.appendChild(cellContent);
+      return entry;
+    };
+    row = document.createElement("tr");
+    row.appendChild(newCell("td", " "));
+    for(type in matrix["integer!"]) {
+      row.appendChild(newCell("th", type));
+    }
+    table.appendChild(row);
+    for (vector in matrix) {
+      row = document.createElement("tr");
+      row.appendChild(newCell("td", vector));
+      for (type in matrix[vector]) {
+        row.appendChild(newCell("td", matrix[vector][type]));
+      }
+      table.appendChild(row);
+    }
+  </script>
+</body>

@@ -69,6 +69,8 @@ tab: 	 #"^-"
 space:	 #" "
 slash:	 #"/"
 
+pi: 3.141592653589793
+
 str-array!: alias struct! [
 	item [c-string!]
 ]
@@ -129,6 +131,24 @@ form-type: func [
 	Android	 [#include %android.reds]
 	FreeBSD	 [#include %freebsd.reds]
 	#default [#include %linux.reds]
+]
+
+
+#if type = 'exe [
+	#switch target [
+		IA-32 [
+			system/fpu/control-word: 0272h		;-- default control word: division by zero, invalid op,
+												;-- and overflow raise exceptions.
+			system/fpu/update
+		]
+		ARM [
+			system/fpu/option/rounding:  FPU_VFP_ROUNDING_NEAREST
+			system/fpu/mask/overflow:	 yes
+			system/fpu/mask/zero-divide: yes
+			system/fpu/mask/invalid-op:  yes
+			system/fpu/update
+		]
+	]
 ]
 
 #if type <> 'drv [

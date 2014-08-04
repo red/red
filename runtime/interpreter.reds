@@ -761,6 +761,7 @@ interpreter: context [
 				switch TYPE_OF(value) [
 					TYPE_UNSET [
 						print-line "*** Error: word has no value!"
+						print-symbol as red-word! pc
 						either sub? [stack/push unset-value][stack/set-last unset-value]
 					]
 					TYPE_LIT_WORD [

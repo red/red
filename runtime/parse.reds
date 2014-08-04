@@ -868,8 +868,10 @@ parser: context [
 								]
 								if TYPE_OF(value) = TYPE_GET_WORD [	;-- COLLECT INTO exiting
 									t: as triple! s/tail - 3
-									blk: as red-block! _context/get as red-word! value
-									blk/head: t/max		;-- restore saved block cursor
+									unless t/max = -1 [
+										blk: as red-block! _context/get as red-word! value
+										blk/head: t/max	;-- restore saved block cursor
+									]
 								]
 							]
 							R_INTO [
@@ -1202,16 +1204,7 @@ parser: context [
 							]
 							value: block/rs-head input
 							type: TYPE_OF(value)
-							either any [				;@@ replace by ANY_SERIES?()
-								type = TYPE_BLOCK
-								type = TYPE_PAREN
-								type = TYPE_PATH
-								type = TYPE_LIT_PATH
-								type = TYPE_SET_PATH
-								type = TYPE_GET_PATH
-								type = TYPE_STRING
-								type = TYPE_FILE
-							][
+							either ANY_SERIES?(type) [
 								input: as red-series! block/rs-append series as red-value! block/rs-head input
 								min:  R_NONE
 								type: R_INTO
@@ -1234,10 +1227,10 @@ parser: context [
 							if TYPE_OF(value) = TYPE_PAREN [
 								interpreter/eval as red-block! value no
 								value: stack/top - 1
-								stack/pop 1
 								PARSE_TRACE(_paren)
 							]
 							actions/insert input value null max = 1 null no
+							if TYPE_OF(value) = TYPE_PAREN [stack/pop 1]
 							state: ST_NEXT_ACTION
 						]
 						sym = words/end [				;-- END
@@ -1288,7 +1281,7 @@ parser: context [
 								TYPE_OF(w) = TYPE_WORD
 							][
 								sym: symbol/resolve w/symbol
-								into?: sym = words/into
+								into?: any [sym = words/into sym = words/after]
 								
 								if any [into? sym = words/set][
 									w: w + 1
@@ -1304,7 +1297,7 @@ parser: context [
 							]
 							either into? [
 								blk: as red-block! _context/get w
-								max: blk/head			;-- save block cursor
+								max: either sym = words/after [-1][blk/head] ;-- save block cursor
 							][
 								block/push* 8
 							]

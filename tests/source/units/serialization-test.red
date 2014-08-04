@@ -17,7 +17,7 @@ blk: [
 ]
 
 molded: {[1 none true false #"c" "red" Red a/b 'a/b :a/b a/b: (1 + 2) [a] [[[]]] [[[a]]] [c [d [b] e] f] :w 'w w: /w :word 'word word: /word]}
-formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w w w word word word word}
+formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a  a c d b e f w w w w word word word word}
 
 ===start-group=== "Basic MOLD tests"
 
@@ -63,7 +63,7 @@ formed: {1 none true false c red Red a/b 'a/b :a/b a/b: 1 + 2 a a c d b e f w w 
 	]
 	
 	--test-- "form-5"
-	--assert "a a" = form [[""] [a] [] [a] [[[]]]]
+	--assert " a  a " = form [[""] [a] [] [a] [[[]]]]
 	
 ===end-group===
 

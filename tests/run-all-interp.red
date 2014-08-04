@@ -29,9 +29,12 @@ Red []
   	#include %source/units/auto-tests/interp-inf-lesser-equal-auto-test.red
   	#include %source/units/auto-tests/interp-inf-not-equal-auto-test.red
   	#include %source/units/auto-tests/interp-integer-auto-test.red
+  	#include %source/units/auto-tests/interp-float-auto-test.red
   	#include %source/units/auto-tests/interp-lesser-auto-test.red
   	#include %source/units/auto-tests/interp-lesser-equal-auto-test.red
   	#include %source/units/auto-tests/interp-not-equal-auto-test.red
   	#include %source/units/auto-tests/interp-integer-test.red
+  	#include %source/units/auto-tests/interp-float-test.red
   	#include %source/units/auto-tests/interp-char-test.red
+  	#include %source/units/auto-tests/interp-same-test.red
   	***end-run***

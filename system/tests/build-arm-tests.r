@@ -23,8 +23,9 @@ target: ask {
 Choose ARM target:
 1) Linux
 2) Android
+3) Linux armhf
 => }
-target: pick ["Linux-ARM" "Android"] to-integer target
+target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
 
 ;; helper function
 compile-test: func [test-file [file!]] [
@@ -96,7 +97,7 @@ if exists? dylib-source [
 }
 
 ;; copy the bash script and mark it as executable
-write/binary %../quick-test/runnable/arm-tests/run-all.sh read/binary %tests/run-all.sh
+write/binary %../quick-test/runnable/arm-tests/run-all.sh trim/with read/binary %tests/run-all.sh "^M"
 runner: open %../quick-test/runnable/arm-tests/run-all.sh
 set-modes runner [
   owner-execute: true

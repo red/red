@@ -26,6 +26,41 @@ system-dialect: make-profilable context [
 	
 	loader: do bind load-cache %system/loader.r 'self
 	
+	options-class: context [
+		config-name:		none						;-- Preconfigured compilation target ID
+		OS:					none						;-- Operating System
+		OS-version:			none						;-- OS version
+		ABI:				none						;-- optional ABI flags (word! or block!)
+		link?:				no							;-- yes = invoke the linker and finalize the job
+		debug?:				no							;-- reserved for future use
+		build-prefix:		%builds/					;-- prefix to use for output file name (none: no prefix)
+		build-basename:		none						;-- base name to use for output file name (none: derive from input name)
+		build-suffix:		none						;-- suffix to use for output file name (none: derive from output type)
+		format:				none						;-- file format
+		type:				'exe						;-- file type ('exe | 'dll | 'lib | 'obj | 'drv)
+		target:				'IA-32						;-- CPU target
+		cpu-version:		6.0							;-- CPU version (default: Pentium Pro)
+		verbosity:			0							;-- logs verbosity level
+		sub-system:			'console					;-- 'GUI | 'console
+		runtime?:			yes							;-- include Red/System runtime
+		use-natives?:		no							;-- force use of native functions instead of C bindings
+		debug?:				no							;-- emit debug information into binary
+		need-main?:			no							;-- yes => emit a function prolog/epilog around global code
+		PIC?:				no							;-- generate Position Independent Code
+		base-address:		none						;-- base image memory address
+		dynamic-linker: 	none						;-- ELF dynamic linker ("interpreter")
+		syscall:			'Linux						;-- syscalls convention: 'Linux | 'BSD
+		stack-align-16?:	no							;-- yes => align stack to 16 bytes
+		literal-pool?:		no							;-- yes => use pools to store literals, no => store them inlined (default: no)
+		unicode?:			no							;-- yes => use Red Unicode API for printing on screen
+		red-pass?:			no							;-- yes => Red compiler was invoked
+		red-only?:			no							;-- yes => stop compilation at Red/System level and display output
+		red-store-bodies?:	yes							;-- no => do not store function! value bodies (body-of will return none)
+		red-strict-check?:	yes							;-- no => defers undefined word errors reporting at run-time
+		red-tracing?:		yes							;-- no => do not compile tracing code
+		legacy:				none						;-- block of optional OS legacy features flags
+	]
+	
 	compiler: make-profilable context [
 		job:		 	 none							;-- shortcut for job object
 		pc:			 	 none							;-- source code input cursor
@@ -1474,6 +1509,19 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		process-call: func [code [block!] /local mark][
+			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
+				pc: skip pc 2							;-- just ignore #call directive
+				return none
+			]
+			mark: tail red/output
+			red/process-call-directive code/2 yes
+			remove/part pc 2
+			insert pc mark
+			clear mark
+			none										;-- do not return an expression to compile
+		]
+		
 		comp-chunked: func [body [block!]][
 			emitter/chunks/start
 			do body
@@ -1485,6 +1533,7 @@ system-dialect: make-profilable context [
 				#import  [process-import  pc/2  pc: skip pc 2]
 				#export  [process-export  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
+				#call	 [process-call	  pc]
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose [set-verbose-level pc/2 pc: skip pc 2]
 				#script	 [								;-- internal compiler directive
@@ -1900,14 +1949,19 @@ system-dialect: make-profilable context [
 			types: make block! 8
 			
 			until [										;-- collect and pre-compile all cases
+				append expr-call-stack #test			;-- marker for disabling expression post-processing
 				fetch-into cases [						;-- compile case test
 					append/only list comp-block-chunked/only/test 'case
 					cases: pc							;-- set cursor after the expression
 				]
+				clear find expr-call-stack #test
+				
+				append expr-call-stack #body			;-- marker for enabling expression post-processing
 				fetch-into cases [						;-- compile case body
 					append/only list body: comp-block-chunked
 					append/only types resolve-expr-type/quiet body/1
 				]
+				clear find expr-call-stack #body
 				tail? cases: next cases
 			]
 			
@@ -2650,7 +2704,15 @@ system-dialect: make-profilable context [
 			
 			;-- postprocessing result
 			if all [
-				any [keep? variable]					;-- if result needs to be stored
+				any [
+					keep?
+					variable							;-- result needs to be stored
+					all [
+						'case = pick tail expr-call-stack -3
+						#test <> pick tail expr-call-stack -2
+						4 <= length? expr-call-stack
+					]
+				]
 				block? expr								;-- and if expr is a function call		
 				last-type/1 = 'logic!					;-- which return type is logic!
 			][
@@ -2752,13 +2814,9 @@ system-dialect: make-profilable context [
 				string!		[do pass]
 				decimal!	[do pass]
 				block!		[also to paren! pc/1 pc: next pc]
+				issue!		[comp-directive]
 			][
-				throw-error [
-					pick [
-						"compiler directives are not allowed in code blocks"
-						"datatype not allowed"
-					] issue? pc/1
-				]
+				throw-error "datatype not allowed"
 			]
 			expr: reduce-logic-tests expr
 
@@ -3036,11 +3094,11 @@ system-dialect: make-profilable context [
  		if red? [
  			unless empty? red/sys-global [
 				set-cache-base %./
-				compiler/run/runtime job loader/process red/sys-global %***sys-global.reds
+				compiler/run job loader/process red/sys-global %***sys-global.reds
  			]
  			set-cache-base %runtime/
  			script: pick [%red.reds %../runtime/red.reds] encap?
- 			compiler/run/runtime job loader/process/own script script
+ 			compiler/run job loader/process/own script script
  		]
  		set-cache-base none
 	]
@@ -3097,39 +3155,6 @@ system-dialect: make-profilable context [
 		t0: now/time/precise
 		do code
 		now/time/precise - t0
-	]
-	
-	options-class: context [
-		config-name:	none			;-- Preconfigured compilation target ID
-		OS:				none			;-- Operating System
-		OS-version:		none			;-- OS version
-		link?:			no				;-- yes = invoke the linker and finalize the job
-		debug?:			no				;-- reserved for future use
-		build-prefix:	%builds/		;-- prefix to use for output file name (none: no prefix)
-		build-basename:	none			;-- base name to use for output file name (none: derive from input name)
-		build-suffix:	none			;-- suffix to use for output file name (none: derive from output type)
-		format:			none			;-- file format
-		type:			'exe			;-- file type ('exe | 'dll | 'lib | 'obj | 'drv)
-		target:			'IA-32			;-- CPU target
-		cpu-version:	6.0				;-- CPU version (default: Pentium Pro)
-		verbosity:		0				;-- logs verbosity level
-		sub-system:		'console		;-- 'GUI | 'console
-		runtime?:		yes				;-- include Red/System runtime
-		use-natives?:	no				;-- force use of native functions instead of C bindings
-		debug?:			no				;-- emit debug information into binary
-		need-main?:		no				;-- yes => emit a function prolog/epilog around global code
-		PIC?:			no				;-- generate Position Independent Code
-		base-address:	none			;-- base image memory address
-		dynamic-linker: none			;-- ELF dynamic linker ("interpreter")
-		syscall:		'Linux			;-- syscalls convention: 'Linux | 'BSD
-		stack-align-16?: no				;-- yes => align stack to 16 bytes
-		literal-pool?:	no				;-- yes => use pools to store literals, no => store them inlined (default: no)
-		unicode?:		no				;-- yes => use Red Unicode API for printing on screen
-		red-only?:		no				;-- yes => stop compilation at Red/System level and display output
-		red-store-bodies?: yes			;-- no => do not store function! value bodies (body-of will return none)
-		red-strict-check?: yes			;-- no => defers undefined word errors reporting at run-time
-		red-tracing?:	yes				;-- no => do not compile tracing code
-		legacy:			none			;-- block of optional OS legacy features flags
 	]
 	
 	compile: func [

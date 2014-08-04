@@ -29,22 +29,10 @@ Red/System [
 
 ===start-group=== "float argument to external function"
 
-	#import [
-		LIBM-file cdecl [
-			sin: "sin" [
-				x 		[float!]
-				return: [float!]
-			]
-			cos: "cos" [
-				x 		[float!]
-				return: [float!]
-			]
-		]
-	]
-	pi32: 3.1415927
+	pi64: 3.1415927
 	
 	--test-- "float32-ext-1"
-	--assert (as float32! -1.0) = as-float32 cos pi32
+	--assert (as float32! -1.0) = as-float32 cos pi64
 	
 	;--test-- "float32-ext-2"
 	;--assert  (as float32! 0.0) = (as float32! sin pi32)		; not working, because of rounding error.
@@ -83,46 +71,46 @@ Red/System [
 
 	--test-- "float32-loc-1"
 	pi64: 3.14159265358979
-	pi: local-float as float32! 3.1415927
-	--assert pi =  as float32! 3.1415927
+	pi32: local-float as float32! 3.1415927
+	--assert pi32 =  as float32! 3.1415927
 	--assert (as float32! -1.0) = as-float32 cos pi64
 	--assert (as float32! -1.0) = local-float as-float32 cos pi64
 	
 	--test-- "float32-loc-2"
-	f: local-float pi
-	--assert pi = local-float f
+	f: local-float pi32
+	--assert pi32 = local-float f
 
 	--test-- "float32-loc-3"
 	local-float2: func [n [float32!] return: [float32!] /local p][p: n local-float p]
 	
-	pi: local-float2 as float32! 3.1415927
-	--assert (as float32! 3.1415927) = local-float2 pi
+	pi32: local-float2 as float32! 3.1415927
+	--assert (as float32! 3.1415927) = local-float2 pi32
 	--assert (as float32! -1.0) = local-float2 as-float32 cos pi64
-	f: local-float2 pi
-	--assert pi = local-float2 f
+	f: local-float2 pi32
+	--assert pi32 = local-float2 f
 
 	--test-- "float32-loc-4"
 	local-float3: func [n [float32!] return: [float32!] /local p [float32!]][p: n local-float p]
 
-	pi: local-float3 as float32! 3.1415927
-	--assert (as float32! 3.1415927) = local-float3 pi
+	pi32: local-float3 as float32! 3.1415927
+	--assert (as float32! 3.1415927) = local-float3 pi32
 	--assert (as float32! -1.0) = local-float3 as-float32 cos pi64
-	f: local-float3 pi
-	--assert pi = local-float3 f
+	f: local-float3 pi32
+	--assert pi32 = local-float3 f
 
 	--test-- "float32-loc-5"
 	local-float4: func [n [float32!] return: [float32!] /local r p][p: n p]
-	--assert (as float32! 3.1415927) = local-float4 pi
+	--assert (as float32! 3.1415927) = local-float4 pi32
 	--assert (as float32! -1.0) = local-float4 as-float32 cos pi64
-	f: local-float4 pi
-	--assert pi = local-float4 f
+	f: local-float4 pi32
+	--assert pi32 = local-float4 f
 	
 	--test-- "float32-loc-6"
 	local-float5: func [n [float32!] return: [float32!] /local r p][p: n local-float p]
-	--assert (as float32! 3.1415927) = local-float5 pi
+	--assert (as float32! 3.1415927) = local-float5 pi32
 	--assert (as float32! -1.0) = local-float5 as-float32 cos pi64
-	f: local-float5 pi
-	--assert pi = local-float5 f
+	f: local-float5 pi32
+	--assert pi32 = local-float5 f
 
 ===end-group===
 
@@ -193,10 +181,10 @@ Red/System [
 ===start-group=== "float32 pointers"
 
   --test-- "float32-point-1"
-  pi: as float32! 3.1415927
+  pi32: as float32! 3.1415927
   p: declare pointer! [float32!]
   p/value: as float32! 3.1415927
-  --assert pi = p/value
+  --assert pi32 = p/value
  
  ;TBD: add more float pointer tests in %pointer-test.reds.
 

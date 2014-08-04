@@ -22,6 +22,7 @@ lexer: context [
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
+	neg?:	no										;-- if TRUE, denotes a negative number value
 	
 	;====== Parsing rules ======
 
@@ -73,13 +74,14 @@ lexer: context [
 	not-word-char:  charset {/\^^,[](){}"#%$@:;}
 	not-word-1st:	union union not-word-char digit charset {'}
 	not-file-char:  charset {[](){}"@:;}
+	not-url-char:	charset {[](){}";}
 	not-str-char:   #"^""
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	integer-end:	charset {^{"[]);x}
 	stop: 		    none
-	
+
 	control-char: reduce [
 		charset [#"^(00)" - #"^(1F)"] 				;-- ASCII control characters
 		'| #"^(C2)" charset [#"^(80)" - #"^(9F)"] 	;-- C2 control characters
@@ -180,9 +182,10 @@ lexer: context [
 		(type: word!)
 		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
 		| s: begin-symbol-rule [
-			path-rule 								;-- path matched
+			url-rule
+			| path-rule 							;-- path matched
 			| (value: copy/part s e)				;-- word matched
-			opt [#":" (type: set-word!)]
+			  opt [#":" (type: set-word!)]
 		] 
 	]
 	
@@ -240,25 +243,33 @@ lexer: context [
 	]
 	
 	integer-rule: [
-		integer-number-rule
-		sticky-word-rule
-		(value: load-integer copy/part s e)
-		opt [
-			#"x" (
-				type: pair!
-				value2: to pair! reduce [value 0]
-			)
-			s: integer-rule
-			(value2/2: load-integer copy/part s e value: value2)
-		]
+		decimal-special	(value: load-number copy/part s e)	;-- escape path for NaN, INFs
+		| integer-number-rule
+		  opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
+		  sticky-word-rule
+		  (value: load-number copy/part s e)
+		  opt [
+			  #"x" (value2: to pair! reduce [value 0])
+			  s: integer-rule
+			  (value2/2: load-number copy/part s e value: value2)
+		  ]
 	]
 
+	decimal-special: [
+		s: "-0.0" e: (type: issue!) |
+			(neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+				[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
+				| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
+		] e: (type: issue!)
+	]
+	
+	decimal-exp-rule: [
+		[[#"e" | #"E"] opt [#"-" | #"+"] 1 3 digit]
+	]
+	
 	decimal-number-rule: [
-		(type: decimal!)
-		opt [#"-" | #"+"] digit any [digit | #"'" digit]		;-- first part
-		opt [[dot | comma] any digit]							;-- second part
-		opt [opt [#"e" | #"E"] opt [#"-" | #"+"] some digit]	;-- third part
-		e:
+		[dot | comma] digit any [digit | #"'" digit]
+		opt decimal-exp-rule e: (type: decimal!)
 	]
 
 	decimal-rule: [
@@ -343,7 +354,12 @@ lexer: context [
 		#"%" (type: file! stop: [not-file-char | ws-no-count])
 		s: any UTF8-filtered-char e:
 	]
-	
+
+	url-rule: [
+		#":" (type: url! stop: [not-url-char | ws-no-count])
+		some UTF8-filtered-char e: (value: dehex copy/part s e)
+	]
+
 	escaped-rule: [
 		"#[" any-ws [
 			  "true"  (value: true)
@@ -523,6 +539,18 @@ lexer: context [
 		encode-char to integer! value				;-- special encoding for Unicode char!
 	]
 	
+	decode-UTF8-string: func [str [string!] /local new s e][
+		new: make string! length? str
+		parse str [
+			some [
+				s: UTF8-char e: (
+					append new debase/base skip decode-UTF8-char as-binary copy/part s e 7 16
+				)
+			]
+		]
+		head change/part str new tail str
+	]
+	
 	encode-char: func [value [integer!]][
 		head insert to-hex value #"'"
 	]
@@ -531,8 +559,17 @@ lexer: context [
 		to integer! debase/base s 16
 	]
 
-	load-integer: func [s [string!]][
-		unless integer? s: to integer! s [throw-error]
+	load-number: func [s [string!]][
+		switch/default type [
+			#[datatype! decimal!][s: load-decimal s]
+			#[datatype! issue!  ][
+				if s = "-0.0" [s: "0-"]					;-- reencoded for consistency
+				s: to issue! join "." s
+				if neg? [append s #"-"]
+			]
+		][
+			unless integer? s: to integer! s [throw-error]
+		]
 		s
 	]
 

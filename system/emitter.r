@@ -211,7 +211,7 @@ emitter: make-profilable context [
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
 		]
-		if all [value = <last> not find [float! float!64] type][
+		if all [value = <last> not find [float! float64!] type][
 			type: 'integer!								; @@ not accurate for float32!
 			value: 0
 		]
@@ -288,6 +288,7 @@ emitter: make-profilable context [
 			array! [
 				type: first compiler/get-type value/1
 				store-global length? value 'integer! none	;-- store array size first
+				if any [type = 'float! type = 'float64!] [pad-data-buf 8]
 				ptr: tail data-buf							;-- ensure array pointer skips size info
 				foreach item value [store-global item type none]
 			]
@@ -330,7 +331,7 @@ emitter: make-profilable context [
 			compiler/any-pointer? type					;-- complex types only
 		][
 			if new-global? [
-				ptr: store-global 0 'pointer! none		;-- allocate separate variable slot
+				ptr: store-global value 'pointer! none		;-- allocate separate variable slot
 				n-spec: add-symbol name ptr				;-- add variable to globals table
 				refs: reduce [ptr + 1]					;-- reference value from variable slot
 				saved: name

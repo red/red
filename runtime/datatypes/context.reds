@@ -110,17 +110,19 @@ _context: context [
 		if id <> -1 [return id]
 		
 		s: as series! ctx/symbols/value
+		id: (as-integer s/tail - s/offset) >> 4
+
 		sym: alloc-tail s
 		copy-cell as cell! word sym
 		sym/header: TYPE_WORD							;-- force word! type
-		s: as series! ctx/symbols/value					;-- refreshing pointer after alloc-tail
+		word: as red-word! sym
+		word/index: id
 		
 		unless ON_STACK?(ctx) [
 			value: alloc-tail as series! ctx/values/value
 			value/header: TYPE_UNSET
 		]
-		
-		(as-integer s/tail - s/offset) >> 4 - 1
+		id
 	]
 	
 	set-integer: func [
@@ -315,6 +317,7 @@ _context: context [
 	get-words: func [
 		/local
 			blk	[red-block!]
+			ctx [red-context!]
 	][
 		ctx: TO_CTX(global-ctx)
 		blk: as red-block! stack/push*

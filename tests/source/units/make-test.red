@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red make test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
-	File: 	 %append-test.red
+	File: 	 %make-test.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"

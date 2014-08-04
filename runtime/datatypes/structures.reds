@@ -107,6 +107,13 @@ red-file!: alias struct! [
 	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
 ]
 
+red-url!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- string's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	cache	[c-string!]								;-- UTF-8 cached version of the string (experimental)
+]
+
 red-binary!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- string's head index (zero-based)
@@ -224,4 +231,17 @@ red-routine!: alias struct! [
 	;	body	 [red-block!]						;-- 	routine's body block
 	;	symbols	 [red-block!]						;-- 	routine cleaned-up spec block reference
 	;	native   [node!]							;-- 	compiled body (binary!)
+]
+
+red-float!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding [integer!]
+	value	[float!]								;-- 64-bit float value
+]
+
+red-float32!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding [integer!]
+	value	[float32!]								;-- 32-bit float value
+	_pad	[integer!]
 ]
