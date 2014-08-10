@@ -298,6 +298,11 @@ red: context [
 		insert-lf -1
 	]
 	
+	emit-stack-reset: does [
+		emit 'stack/reset
+		insert-lf -1
+	]
+	
 	emit-action: func [name [word!] /with options [block!]][
 		emit join actions-prefix to word! join name #"*"
 		insert-lf either with [
@@ -900,10 +905,8 @@ red: context [
 			special?: float-special? value
 			scalar? :value
 		][
-			if root? [
-				emit 'stack/reset						;-- reset top to arguments base
-				insert-lf -1
-			]
+			if root? [emit-stack-reset]						;-- reset top to arguments base
+			
 			case [
 				char? [
 					emit 'char/push
@@ -1041,8 +1044,7 @@ red: context [
 		emit 'word/set
 		insert-lf -1
 		emit-close-frame
-		emit 'stack/reset
-		insert-lf -1
+		emit-stack-reset
 		emit-src-comment/with none rejoin [mold pc/-1 " context " mold spec]
 		
 		funcs: tail functions
@@ -1203,9 +1205,7 @@ red: context [
 		]
 		
 		depth: depth + 1
-
-		emit 'stack/reset
-		insert-lf -1
+		emit-stack-reset
 		
 		pc: next pc
 		comp-expression									;-- compile 2nd argument
@@ -1227,8 +1227,7 @@ red: context [
 		insert-lf -2
 		insert-lf -5
 		insert-lf -7
-		emit 'stack/reset
-		insert-lf -1
+		emit-stack-reset
 		
 		emit-open-frame 'repeat
 		emit compose/deep [
@@ -2360,10 +2359,7 @@ red: context [
 		][
 			comp-literal to logic! root
 		]
-		if all [root not tail? pc][
-			emit 'stack/reset							;-- clear stack from last root expression result
-			insert-lf -1
-		]
+		if all [root not tail? pc][emit-stack-reset]	;-- clear stack from last root expression result
 	]
 	
 	comp-next-block: func [/with blk /local saved][
