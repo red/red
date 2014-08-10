@@ -207,8 +207,10 @@ red: context [
 		either block? value [append output value][append/only output value]
 	]
 		
-	emit-src-comment: func [pos [block! paren!] /local cmt][
-		cmt: trim/lines mold/only/flat clean-lf-deep copy/deep/part pos offset? pos pc
+	emit-src-comment: func [pos [block! paren! none!] /with cmt [string!]][
+		unless cmt [
+			cmt: trim/lines mold/only/flat clean-lf-deep copy/deep/part pos offset? pos pc
+		]
 		if 50 < length? cmt [cmt: append copy/part cmt 50 "..."]
 		emit reduce [
 			'------------| (cmt)
@@ -1005,8 +1007,10 @@ red: context [
 		name
 	]
 	
-	comp-context: func [/locals words funcs ctx spec][
+	comp-context: func [/locals words funcs ctx spec name][
+		name: to word! pc/-1
 		words: make block! 8
+		
 		parse pc/2 [
 			any [
 				pos: set-word! (
@@ -1026,11 +1030,23 @@ red: context [
 			]
 			insert-lf -4
 		]
-		append obj-ctx to word! pc/-1
+		append obj-ctx name
 		append obj-ctx ctx
 		
+		emit-open-frame 'set							;-- object value creation
+		emit-push-word name
+		emit 'object/push
+		emit ctx
+		insert-lf -2
+		emit 'word/set
+		insert-lf -1
+		emit-close-frame
+		emit 'stack/reset
+		insert-lf -1
+		emit-src-comment/with none rejoin [mold pc/-1 " context " mold spec]
+		
 		funcs: tail functions
-		append obj-stack to word! pc/-1					;@@ add support for anonymous contexts
+		append obj-stack name							;@@ add support for anonymous contexts
 		pc: next pc
 		comp-next-block
 		remove back tail obj-stack

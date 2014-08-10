@@ -150,6 +150,18 @@ object: context [
 		more/header: TYPE_UNSET							;-- invalidate compiled body
 	]
 	
+	push: func [
+		ctx		[node!]
+		return: [red-object!]
+		/local
+			obj	[red-object!]
+	][
+		obj: as red-object! stack/push*
+		obj/header: TYPE_OBJECT
+		obj/ctx: ctx
+		obj
+	]
+	
 	make-at: func [
 		obj		[red-object!]
 		slots	[integer!]
