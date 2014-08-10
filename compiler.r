@@ -23,6 +23,9 @@ red: context [
 	aliases: 	   make hash! 100
 	contexts:	   make hash! 100						;-- storage for statically compiled contexts
 	ctx-stack:	   make block! 8						;-- contexts access path
+	objects:	   make block! 100
+	obj-stack:	   to path! 'objects
+	obj-ctx:	   make hash! 100						;-- objects name<=>ctx-name table
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
 	sys-global:    make block! 1
@@ -65,6 +68,7 @@ red: context [
 		if unless either any all while until loop repeat
 		foreach forall break func function does has
 		exit return switch case routine set get reduce
+		context
 	]
 	
 	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
@@ -228,7 +232,7 @@ red: context [
 		throw-error ["Should not happen: not found context for word: " mold name]
 	]
 	
-	emit-push-word: func [name [any-word!] /local type][
+	emit-push-word: func [name [any-word!] /local type ctx][
 		type: to word! form type? name
 		name: to word! :name
 		
@@ -238,9 +242,16 @@ red: context [
 			emit get-word-index name
 			insert-lf -3
 		][
-			emit append to path! type 'push
-			emit decorate-symbol name
-			insert-lf -2
+			either 1 < length? obj-stack [
+				emit append to path! type 'push-local
+				emit ctx: select obj-ctx last obj-stack
+				emit get-word-index/with name ctx
+				insert-lf -3
+			][
+				emit append to path! type 'push
+				emit decorate-symbol name
+				insert-lf -2
+			]
 		]
 	]
 	
@@ -334,6 +345,13 @@ red: context [
 		append to path! 'exec word
 	]
 	
+	prefix-func: func [word [word!]][
+		if 1 < length? obj-stack [
+			word: to word! rejoin [replace/all mold next obj-stack slash "~" #"~" word]		
+		]
+		word
+	]
+	
 	decorate-type: func [type [word!]][
 		to word! join "red-" mold/flat type
 	]
@@ -399,10 +417,14 @@ red: context [
 		]
 	]
 	
-	push-context: func [ctx [block!] /local name][
+	add-context: func [ctx [block!] /local name][
 		append contexts name: decorate-series-var 'ctx
 		append/only contexts ctx
-		append ctx-stack name
+		name
+	]
+	
+	push-context: func [ctx [block!] /local name][
+		append ctx-stack name: add-context ctx
 		name
 	]
 	
@@ -982,7 +1004,40 @@ red: context [
 		pc: next pc
 		name
 	]
+	
+	comp-context: func [/locals words funcs ctx spec][
+		words: make block! 8
+		parse pc/2 [
+			any [
+				pos: set-word! (
+					unless find words pos/1 [
+						append words to word! pos/1
+						append words none
+					]
+				) | skip
+			]
+		]
 		
+		spec: extract words 2
+		redirect-to-literals [							;-- store spec and body blocks
+			ctx: add-context spec
+			emit compose [
+				(to set-word! ctx) _context/make (emit-block spec) no yes	;-- build context with value on stack
+			]
+			insert-lf -4
+		]
+		append obj-ctx to word! pc/-1
+		append obj-ctx ctx
+		
+		funcs: tail functions
+		append obj-stack to word! pc/-1					;@@ add support for anonymous contexts
+		pc: next pc
+		comp-next-block
+		remove back tail obj-stack
+
+		none
+	]
+	
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
 		list: back tail comp-chunked-block
 		
@@ -1358,9 +1413,10 @@ red: context [
 	
 	comp-func: func [
 		/collect /does /has
-		/local name word spec body symbols locals-nb spec-blk body-blk ctx src-name
+		/local name word spec body symbols locals-nb spec-blk body-blk ctx src-name original
 	][
-		name: check-func-name src-name: to word! pc/-1
+		src-name: prefix-func original: to word! pc/-1
+		name: check-func-name src-name
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
 		
@@ -1387,7 +1443,7 @@ red: context [
 		]
 		
 		emit-open-frame 'set							;-- function value creation
-		emit-push-word src-name
+		emit-push-word original
 		emit reduce [
 			'_function/push spec-blk body-blk ctx
 			'as 'integer! to get-word! decorate-func/strict name
@@ -1924,7 +1980,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-set-word: func [/native /local name value][
+	comp-set-word: func [/native /local name value ctx][
 		name: pc/1
 		pc: next pc
 		add-symbol name: to word! clean-lf-flag name
@@ -1942,6 +1998,7 @@ red: context [
 			pc/1 = 'has		 [comp-has]
 			pc/1 = 'does	 [comp-does]
 			pc/1 = 'routine	 [comp-routine]
+			pc/1 = 'context	 [comp-context]
 			local-word? name [comp-local-set name]
 			'else [
 				check-redefined name
@@ -1956,8 +2013,15 @@ red: context [
 				either native [
 					emit-native/with 'set [-1]			;@@ refinement not handled yet
 				][
-					emit 'word/set
-					insert-lf -1
+					either 1 < length? obj-stack [
+						emit 'word/set-in
+						emit ctx: select obj-ctx last obj-stack
+						emit get-word-index/with name ctx
+						insert-lf -3
+					][
+						emit 'word/set
+						insert-lf -1
+					]
 				]
 				emit-close-frame
 			]

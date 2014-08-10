@@ -110,6 +110,23 @@ word: context [
 		_context/set as red-word! stack/arguments value
 		stack/set-last value
 	]
+
+	set-in: func [
+		node  [node!]
+		index [integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/set-in"]]
+
+		value: stack/arguments + 1
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
+		copy-cell value values/offset + index
+		stack/set-last value
+	]
 	
 	set-local: func [
 		slot	 [red-value!]
@@ -117,6 +134,8 @@ word: context [
 		/local
 			value [red-value!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "word/set-local"]]
+		
 		value: stack/arguments
 		CHECK_UNSET(value)
 		copy-cell value slot
