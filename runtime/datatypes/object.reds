@@ -416,7 +416,6 @@ object: context [
 		return:	 [red-value!]
 		/local
 			word [red-word!]
-			bool [red-logic!]
 			ctx	 [node!]
 			id	 [integer!]
 	][
@@ -431,11 +430,7 @@ object: context [
 		word: as red-word! value
 		ctx: obj/ctx
 		id: _context/find-word TO_CTX(ctx) word/symbol yes
-		
-		bool: as red-logic! stack/push*
-		bool/header: TYPE_LOGIC
-		bool/value: id <> -1
-		as red-value! bool
+		as red-value! either id = -1 [none-value][true-value]
 	]
 	
 	init: does [
