@@ -433,6 +433,43 @@ object: context [
 		as red-value! either id = -1 [none-value][true-value]
 	]
 	
+	select: func [
+		obj		 [red-object!]
+		value	 [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		return:	 [red-value!]
+		/local
+			word   [red-word!]
+			ctx	   [red-context!]
+			values [series!]
+			node   [node!]
+			id	   [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "object/select"]]
+		
+		assert any [									;@@ replace with ANY_WORD?
+			TYPE_OF(value) = TYPE_WORD
+			TYPE_OF(value) = TYPE_LIT_WORD
+			TYPE_OF(value) = TYPE_GET_WORD
+			TYPE_OF(value) = TYPE_SET_WORD
+		]
+		word: as red-word! value
+		node: obj/ctx
+		ctx: TO_CTX(node)
+		id: _context/find-word ctx word/symbol yes
+		if id = -1 [return as red-value! none-value]
+		
+		values: as series! ctx/values/value
+		values/offset + id
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_OBJECT
@@ -483,7 +520,7 @@ object: context [
 			null			;poke
 			null			;remove
 			null			;reverse
-			null			;select
+			:select
 			null			;sort
 			null			;skip
 			null			;swap
