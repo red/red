@@ -13,6 +13,13 @@ Red/System [
 object: context [
 	verbose: 0
 	
+	class-id: 1'000'000									;-- base ID for dynamically created objects
+	
+	get-new-id: func [return: [integer!]][				;@@ protect from concurrent accesses
+		class-id: class-id + 1
+		class-id
+	]
+	
 	do-indent: func [
 		buffer	[red-string!]
 		tabs	[integer!]
@@ -77,13 +84,15 @@ object: context [
 	]
 	
 	extend: func [
-		ctx	  [red-context!]
-		spec  [red-context!]
+		ctx		[red-context!]
+		spec	[red-context!]
+		return: [logic!]
 		/local
 			syms  [red-value!]
 			tail  [red-value!]
 			vals  [red-value!]
 			value [red-value!]
+			base  [red-value!]
 			type  [integer!]
 			s	  [series!]
 	][
@@ -93,6 +102,9 @@ object: context [
 
 		s: as series! spec/values/value
 		vals: s/offset
+		
+		s: as series! ctx/symbols/value
+		base: s/tail - s/offset
 
 		while [syms < tail][
 			value: _context/add-with ctx as red-word! syms vals
@@ -117,6 +129,8 @@ object: context [
 			syms: syms + 1
 			vals: vals + 1
 		]
+		s: as series! ctx/symbols/value					;-- refreshing pointer
+		s/tail - s/offset > base						;-- TRUE: new words added
 	]
 	
 	rebind: func [
@@ -152,13 +166,15 @@ object: context [
 	
 	push: func [
 		ctx		[node!]
+		class	[integer!]
 		return: [red-object!]
 		/local
 			obj	[red-object!]
 	][
 		obj: as red-object! stack/push*
 		obj/header: TYPE_OBJECT
-		obj/ctx: ctx
+		obj/ctx:	ctx
+		obj/class:	class
 		obj
 	]
 	
@@ -168,7 +184,8 @@ object: context [
 		return: [red-object!]
 	][
 		obj/header: TYPE_OBJECT
-		obj/ctx: _context/create slots no yes
+		obj/ctx:	_context/create slots no yes
+		obj/class:	0
 		obj
 	]
 	
@@ -198,13 +215,14 @@ object: context [
 		switch TYPE_OF(spec) [
 			TYPE_OBJECT [
 				obj2: as red-object! spec
-				extend ctx GET_CTX(obj2)
+				obj/class: either extend ctx GET_CTX(obj2) [get-new-id][proto/class]
 			]
 			TYPE_BLOCK [
 				blk: as red-block! spec
 				_context/collect-set-words ctx blk
 				_context/bind blk ctx yes
 				interpreter/eval blk no
+				obj/class: get-new-id
 			]
 			default [
 				print-line "*** Error: invalid spec value for object construction"
@@ -356,7 +374,8 @@ object: context [
 		size:   as-integer src/tail - src/offset
 		slots:	size >> 4
 		
-		new:  make-at new slots
+		new: make-at new slots
+		new/class: obj/class
 		nctx: GET_CTX(new)
 		
 		;-- process SYMBOLS

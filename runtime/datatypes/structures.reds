@@ -152,7 +152,7 @@ red-context!: alias struct! [
 red-object!: alias struct! [
 	header 	[integer!]								;-- cell header
 	ctx		[node!]									;-- context reference
-	_pad1	[integer!]
+	class	[integer!]								;-- class ID
 	_pad2	[integer!]
 ]
 

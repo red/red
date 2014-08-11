@@ -1040,6 +1040,7 @@ red: context [
 		emit-push-word name
 		emit 'object/push
 		emit ctx
+		emit get-counter
 		insert-lf -2
 		emit 'word/set
 		insert-lf -1

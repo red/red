@@ -410,17 +410,23 @@ _context: context [
 	]
 	
 	collect-set-words: func [
-		ctx	 [red-context!]
-		spec [red-block!]
+		ctx	 	[red-context!]
+		spec 	[red-block!]
+		return: [logic!]
 		/local
 			cell [red-value!]
 			tail [red-value!]
+			base [red-value!]
 			word [red-word!]
 			s	 [series!]
+			
 	][
 		s: GET_BUFFER(spec)
 		cell: s/offset
 		tail: s/tail
+		
+		s: as series! ctx/symbols/value
+		base: s/tail - s/offset
 
 		while [cell < tail][
 			if TYPE_OF(cell) = TYPE_SET_WORD [
@@ -428,6 +434,7 @@ _context: context [
 			]
 			cell: cell + 1
 		]
+		s/tail - s/offset > base						;-- TRUE: new words added
 	]
 	
 	;-- Actions -- 
