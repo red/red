@@ -400,6 +400,44 @@ object: context [
 		new
 	]
 	
+	find: func [
+		obj		 [red-object!]
+		value	 [red-value!]
+		part	 [red-value!]
+		only?	 [logic!]
+		case?	 [logic!]
+		any?	 [logic!]
+		with-arg [red-string!]
+		skip	 [red-integer!]
+		last?	 [logic!]
+		reverse? [logic!]
+		tail?	 [logic!]
+		match?	 [logic!]
+		return:	 [red-value!]
+		/local
+			word [red-word!]
+			bool [red-logic!]
+			ctx	 [node!]
+			id	 [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "object/find"]]
+		
+		assert any [									;@@ replace with ANY_WORD?
+			TYPE_OF(value) = TYPE_WORD
+			TYPE_OF(value) = TYPE_LIT_WORD
+			TYPE_OF(value) = TYPE_GET_WORD
+			TYPE_OF(value) = TYPE_SET_WORD
+		]
+		word: as red-word! value
+		ctx: obj/ctx
+		id: _context/find-word TO_CTX(ctx) word/symbol yes
+		
+		bool: as red-logic! stack/push*
+		bool/header: TYPE_LOGIC
+		bool/value: id <> -1
+		as red-value! bool
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_OBJECT
@@ -439,7 +477,7 @@ object: context [
 			null			;change
 			null			;clear
 			:copy
-			null			;find
+			:find
 			null			;head
 			null			;head?
 			null			;index?
