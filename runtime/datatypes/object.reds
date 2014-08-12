@@ -20,6 +20,20 @@ object: context [
 		class-id
 	]
 	
+	unchanged?: func [
+		word	[red-word!]
+		id		[integer!]
+		return: [logic!]
+		/local
+			obj [red-object!]
+	][
+		obj: as red-object! _context/get word
+		all [
+			TYPE_OF(obj) = TYPE_OBJECT
+			obj/class = id
+		]
+	]
+	
 	do-indent: func [
 		buffer	[red-string!]
 		tabs	[integer!]

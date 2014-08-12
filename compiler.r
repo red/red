@@ -1010,7 +1010,7 @@ red: context [
 		name
 	]
 	
-	comp-context: func [/locals words funcs ctx spec name][
+	comp-context: func [/locals words funcs ctx spec name id][
 		name: to word! pc/-1
 		words: make block! 8
 		
@@ -1018,14 +1018,16 @@ red: context [
 			any [
 				pos: set-word! (
 					unless find words pos/1 [
-						append words to word! pos/1
+						append words pos/1
 						append words none
 					]
 				) | skip
 			]
 		]
 		
-		spec: extract words 2
+		spec: make block! (length? words) / 2
+		forskip words 2 [append spec to word! words/1]
+
 		redirect-to-literals [							;-- store spec and body blocks
 			ctx: add-context spec
 			emit compose [
@@ -1035,12 +1037,16 @@ red: context [
 		]
 		append obj-ctx name
 		append obj-ctx ctx
+		append obj-ctx id: get-counter
+		
+		append objects name
+		append objects make object! words
 		
 		emit-open-frame 'set							;-- object value creation
 		emit-push-word name
 		emit 'object/push
 		emit ctx
-		emit get-counter
+		emit id
 		insert-lf -2
 		emit 'word/set
 		insert-lf -1
@@ -1775,11 +1781,11 @@ red: context [
 		]
 	]
 	
-	comp-path: func [/set /local path value emit? get? entry alter saved after][
+	comp-path: func [/set /local path value emit? get? entry alter saved after dynamic? obj mark][
 		path: copy pc/1
 		emit?: yes
 		
-		if find path paren! [
+		if dynamic?: find path paren! [
 			emit-open-frame 'body
 			if set [
 				saved: pc
@@ -1832,11 +1838,26 @@ red: context [
 				throw-error ["cannot use" mold type? value "value in path:" pc/1]
 			]
 		]
+
+		if all [
+			not any [dynamic? find path integer!]
+			find objects path/1
+		][
+			obj: find obj-ctx path/1
+			emit compose/deep [
+				either object/unchanged? (decorate-symbol path/1) (obj/3) [
+					word/get-local (obj/2) (get-word-index/with path/2 obj/2)
+				]
+			]
+			mark: tail output
+		]
+		
 		if emit? [
 			if set [pc: next pc]					;-- skip set-path to be ready to fetch argument
 			emit-path back tail path to logic! set	;-- emit code recursively from tail
 			unless set [pc: next pc]
 		]
+		if mark [change/only/part mark copy mark tail output]
 	]
 	
 	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!] /local word][

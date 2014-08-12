@@ -92,6 +92,21 @@ word: context [
 		push as red-word! s/offset + index
 	]
 	
+	get-local: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-value!]
+		/local
+			ctx	[red-context!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/get-local"]]
+
+		ctx: TO_CTX(node)
+		s: as series! ctx/values/value
+		stack/push s/offset + index
+	]
+	
 	get-buffer: func [
 		w		[red-word!]
 		return: [red-symbol!]
