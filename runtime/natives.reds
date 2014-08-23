@@ -426,6 +426,7 @@ natives: context [
 		either any [
 			TYPE_OF(arg) = TYPE_STRING 						;@@ replace by ANY_STRING?
 			TYPE_OF(arg) = TYPE_FILE
+			TYPE_OF(arg) = TYPE_URL
 		][
 			str: as red-string! arg
 		][
@@ -888,6 +889,7 @@ natives: context [
 				logic/box zero? either any [
 					TYPE_OF(input) = TYPE_STRING		;@@ replace with ANY_STRING?
 					TYPE_OF(input) = TYPE_FILE
+					TYPE_OF(input) = TYPE_URL
 				][
 					string/rs-length? as red-string! input
 				][
@@ -1407,6 +1409,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
@@ -1435,6 +1438,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
@@ -1482,6 +1486,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 
