@@ -136,7 +136,7 @@ word: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/set-in"]]
 
-		value: stack/arguments + 1
+		value: stack/arguments
 		ctx: TO_CTX(node)
 		values: as series! ctx/values/value
 		copy-cell value values/offset + index

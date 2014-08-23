@@ -23,9 +23,9 @@ red: context [
 	aliases: 	   make hash! 100
 	contexts:	   make hash! 100						;-- storage for statically compiled contexts
 	ctx-stack:	   make block! 8						;-- contexts access path
-	objects:	   make block! 100
-	obj-stack:	   to path! 'objects
-	obj-ctx:	   make hash! 100						;-- objects name<=>ctx-name table
+	objects:	   make block! 100						;-- [name object! ctx...]
+	obj-stack:	   to path! 'objects					;-- current object access path
+	rebol-gctx:	   bind? 'rebol
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
 	sys-global:    make block! 1
@@ -72,6 +72,10 @@ red: context [
 	]
 	
 	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
+	
+	func-constructors: [
+		'func | 'function | 'does | 'has | 'routine | 'make 'function!
+	]
 
 	functions: make hash! [
 	;---name--type--arity----------spec----------------------------refs--
@@ -234,7 +238,7 @@ red: context [
 		throw-error ["Should not happen: not found context for word: " mold name]
 	]
 	
-	emit-push-word: func [name [any-word!] /local type ctx][
+	emit-push-word: func [name [any-word!] original [any-word!] /local type ctx obj][
 		type: to word! form type? name
 		name: to word! :name
 		
@@ -244,9 +248,18 @@ red: context [
 			emit get-word-index name
 			insert-lf -3
 		][
-			either 1 < length? obj-stack [
+			either ctx: any [
+				all [
+					1 < length? obj-stack
+					third find objects last obj-stack
+				]
+				all [
+					rebol-gctx <> obj: bind? original
+					select objects obj
+				]
+			][
 				emit append to path! type 'push-local
-				emit ctx: select obj-ctx last obj-stack
+				emit ctx
 				emit get-word-index/with name ctx
 				insert-lf -3
 			][
@@ -333,6 +346,22 @@ red: context [
 		insert-lf -5
 	]
 	
+	emit-deep-check: func [path [series!] /local list check][
+		check: ['object/unchanged? decorate-symbol path/1 fourth find objects path/1]
+
+		either 2 = length? path [
+			reduce check
+		][
+			list: make block! 3 * length? path
+			while [not tail? next path][
+				repend list check
+				path: next path
+			]
+			new-line/all/skip list yes 3
+			reduce ['all list]
+		]
+	]
+	
 	get-counter: does [s-counter: s-counter + 1]
 	
 	clean-lf-deep: func [blk [block! paren!] /local pos][
@@ -352,9 +381,11 @@ red: context [
 		append to path! 'exec word
 	]
 	
-	prefix-func: func [word [word!]][
+	prefix-func: func [word [word!] /with path][
 		if 1 < length? obj-stack [
-			word: to word! rejoin [replace/all mold next obj-stack slash "~" #"~" word]		
+			word: to word! rejoin [
+				replace/all mold next any [path obj-stack] slash "~" #"~" word
+			]
 		]
 		word
 	]
@@ -439,6 +470,15 @@ red: context [
 		clear back tail ctx-stack
 	]
 	
+	bind-contexts: func [body [block!] /local obj][
+		if 1 < length? obj-stack [
+			foreach word next obj-stack [
+				obj: either word = obj-stack/2 [select objects word][get in obj word]
+				bind body obj
+			]
+		]
+	]
+	
 	find-contexts: func [name [word!]][
 		ctx: tail ctx-stack
 		while [not head? ctx][
@@ -446,6 +486,10 @@ red: context [
 			if find select contexts ctx/1 name [return ctx/1]
 		]
 		none
+	]
+	
+	object-access?: func [path [series!]][
+		attempt [do head insert copy/part to path! path (length? path) - 1 'objects]
 	]
 	
 	push-locals: func [symbols [block!]][
@@ -592,6 +636,19 @@ red: context [
 			]
 		]
 		reduce [list arity]
+	]
+	
+	get-prefix-func: func [name [word!] /local path word][
+		if 1 < length? obj-stack [
+			path: copy obj-stack
+			while [1 < length? path][
+				if all [word: in do path name function! = get word][
+					return prefix-func/with name path
+				]
+				remove back tail path
+			]
+		]
+		name
 	]
 	
 	add-function: func [name [word!] spec [block!] /type kind [word!] /local refs arity][
@@ -742,7 +799,7 @@ red: context [
 						emit-open-frame 'poke
 						emit-open-frame 'find
 						emit-path back path set?
-						emit-push-word value
+						emit-push-word value value
 						emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
 						emit-close-frame
 						emit [integer/push 2] 
@@ -754,7 +811,7 @@ red: context [
 					'else [
 						emit-open-frame 'select
 						emit-path back path set?
-						emit-push-word value
+						emit-push-word value value
 						insert-lf -2
 						emit-action/with 'select [-1 -1 -1 -1 -1 -1 -1 -1]
 						emit-close-frame
@@ -945,7 +1002,7 @@ red: context [
 				]
 				any-word? :value [
 					add-symbol to word! :value
-					emit-push-word :value
+					emit-push-word :value :value
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]
@@ -1010,16 +1067,16 @@ red: context [
 		name
 	]
 	
-	comp-context: func [/locals words funcs ctx spec name id][
-		name: to word! pc/-1
+	comp-context: func [/locals words funcs ctx spec name id func? obj original][
+		name: to word! original: pc/-1
 		words: make block! 8
 		
 		parse pc/2 [
 			any [
-				pos: set-word! (
+				pos: set-word! (func?: no) [func-constructors (func?: yes) | skip] (
 					unless find words pos/1 [
 						append words pos/1
-						append words none
+						append words either func? [function!][none]
 					]
 				) | skip
 			]
@@ -1035,19 +1092,20 @@ red: context [
 			]
 			insert-lf -4
 		]
-		append obj-ctx name
-		append obj-ctx ctx
-		append obj-ctx id: get-counter
-		
-		append objects name
-		append objects make object! words
+
+		repend objects [
+			name obj: make object! words ctx id: get-counter
+		]
+		unless empty? next obj-stack [
+			do reduce [to set-path! join obj-stack name obj]
+		]
 		
 		emit-open-frame 'set							;-- object value creation
-		emit-push-word name
+		emit-push-word name original
 		emit 'object/push
 		emit ctx
 		emit id
-		insert-lf -2
+		insert-lf -3
 		emit 'word/set
 		insert-lf -1
 		emit-close-frame
@@ -1288,7 +1346,7 @@ red: context [
 			emit compose [block/push (name)]			;-- block argument
 		][
 			cond: compose [natives/foreach-next]
-			emit-push-word word							;-- word argument
+			emit-push-word word	word					;-- word argument
 		]
 		insert-lf -2
 		
@@ -1304,7 +1362,7 @@ red: context [
 		;TBD: check if word argument refers to any-series!
 		word: decorate-symbol pc/1
 		emit-get-word pc/1								;-- save series (for resetting on end)
-		emit-push-word pc/1								;-- word argument
+		emit-push-word pc/1	pc/1						;-- word argument
 		pc: next pc
 		
 		emit-open-frame 'forall
@@ -1437,7 +1495,7 @@ red: context [
 		/collect /does /has
 		/local name word spec body symbols locals-nb spec-blk body-blk ctx src-name original
 	][
-		src-name: prefix-func original: to word! pc/-1
+		src-name: prefix-func to word! original: pc/-1
 		name: check-func-name src-name
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
@@ -1449,6 +1507,7 @@ red: context [
 			does	[body: spec spec: make block! 1 pc: back pc]
 			has		[spec: head insert copy spec /local]
 		]
+		bind-contexts body
 		set [symbols locals-nb] check-spec spec
 		add-function name spec
 		
@@ -1465,7 +1524,7 @@ red: context [
 		]
 		
 		emit-open-frame 'set							;-- function value creation
-		emit-push-word original
+		emit-push-word to word! original original
 		emit reduce [
 			'_function/push spec-blk body-blk ctx
 			'as 'integer! to get-word! decorate-func/strict name
@@ -1495,8 +1554,8 @@ red: context [
 		comp-func/has
 	]
 	
-	comp-routine: has [name word spec spec* body spec-blk body-blk][
-		name: check-func-name to word! pc/-1
+	comp-routine: has [name word spec spec* body spec-blk body-blk original][
+		name: check-func-name to word! original: pc/-1
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
 		
@@ -1529,7 +1588,7 @@ red: context [
 		]
 		
 		emit-open-frame 'set							;-- routine value creation
-		emit-push-word name
+		emit-push-word name original
 		emit compose [
 			routine/push (spec-blk) (body-blk) as integer! (to get-word! name)
 		]
@@ -1781,7 +1840,10 @@ red: context [
 		]
 	]
 	
-	comp-path: func [/set /local path value emit? get? entry alter saved after dynamic? obj mark][
+	comp-path: func [
+		/set
+		/local path value emit? get? entry alter saved after dynamic? ctx mark nested
+	][
 		path: copy pc/1
 		emit?: yes
 		
@@ -1841,12 +1903,13 @@ red: context [
 
 		if all [
 			not any [dynamic? find path integer!]
-			find objects path/1
+			object-access? path
 		][
-			obj: find obj-ctx path/1
+			nested: either 2 < length? path [copy/part skip tail path -2 2][path]
+			ctx: third find objects nested/1
 			emit compose/deep [
-				either object/unchanged? (decorate-symbol path/1) (obj/3) [
-					word/get-local (obj/2) (get-word-index/with path/2 obj/2)
+				either (emit-deep-check nested) [
+					word/get-local (ctx) (get-word-index/with last nested ctx)
 				]
 			]
 			mark: tail output
@@ -1889,7 +1952,7 @@ red: context [
 							]
 							word! [
 								add-symbol word: to word! pc/1
-								emit-push-word word				;@@ add specific type checking
+								emit-push-word word	word	;@@ add specific type checking
 								pc: next pc
 							]
 							paren! [comp-expression]
@@ -2017,8 +2080,8 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-set-word: func [/native /local name value ctx][
-		name: pc/1
+	comp-set-word: func [/native /local name value ctx original obj bound? deep?][
+		name: original: pc/1
 		pc: next pc
 		add-symbol name: to word! clean-lf-flag name
 		add-global name
@@ -2039,20 +2102,29 @@ red: context [
 			local-word? name [comp-local-set name]
 			'else [
 				check-redefined name
+				bound?: rebol-gctx <> obj: bind? original
+				deep?: 1 < length? obj-stack
+				
 				emit-open-frame 'set
 				either native [							;-- 1st argument
 					pc: back pc
 					comp-expression						;-- fetch a value
 				][
-					emit-push-word name					;-- push set-word
+					unless any [bound? deep?][
+						emit-push-word name	original	;-- push set-word
+					]
 				]
 				comp-expression							;-- fetch a value (2nd argument)
+				
 				either native [
 					emit-native/with 'set [-1]			;@@ refinement not handled yet
 				][
-					either 1 < length? obj-stack [
+					either ctx: any [
+						all [deep? third find objects last obj-stack]
+						all [bound? select objects obj]
+					][
 						emit 'word/set-in
-						emit ctx: select obj-ctx last obj-stack
+						emit ctx
 						emit get-word-index/with name ctx
 						insert-lf -3
 					][
@@ -2072,7 +2144,7 @@ red: context [
 		
 		emit-word: [
 			either lit-word? pc/-1 [					;@@
-				emit-push-word name
+				emit-push-word name pc/1
 			][
 				either literal [
 					emit-get-word/literal name
@@ -2098,7 +2170,11 @@ red: context [
 			all [
 				not literal
 				not local?
-				entry: find functions name
+				all [
+					alter: get-prefix-func name
+					entry: find functions alter
+					name: alter
+				]
 			][
 				if alter: select ssa-names name [
 					entry: find functions alter
