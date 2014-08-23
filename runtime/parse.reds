@@ -29,6 +29,7 @@ parser: context [
 		word: either any [								;TBD: replace with ANY_STRING?
 			type = TYPE_STRING
 			type = TYPE_FILE
+			type = TYPE_URL
 		][
 			string/rs-length? as red-string! input
 		][
@@ -41,6 +42,7 @@ parser: context [
 		end?: either any [								;TBD: replace with ANY_STRING?
 			type = TYPE_STRING
 			type = TYPE_FILE
+			type = TYPE_URL
 		][
 			any [
 				string/rs-tail? as red-string! input
@@ -67,6 +69,7 @@ parser: context [
 		either any [									;TBD: replace with ANY_STRING
 			type = TYPE_STRING
 			type = TYPE_FILE
+			type = TYPE_URL
 		][
 			char: as red-char! base
 			char/header: TYPE_CHAR
@@ -252,6 +255,7 @@ parser: context [
 		either any [									;TBD: replace with ANY_STRING + TYPE_BINARY
 			type = TYPE_STRING
 			type = TYPE_FILE
+			type = TYPE_URL
 			type = TYPE_BINARY
 		][
 			unit:  GET_UNIT(s)
@@ -292,6 +296,7 @@ parser: context [
 				]
 				TYPE_STRING
 				TYPE_FILE
+				TYPE_URL
 				TYPE_BINARY [
 					size: string/rs-length? as red-string! token
 					if (string/rs-length? as red-string! input) < size [return no]
@@ -461,6 +466,7 @@ parser: context [
 		either any [									;TBD: replace with ANY_STRING
 			type = TYPE_STRING
 			type = TYPE_FILE
+			type = TYPE_URL
 		][
 			either TYPE_OF(token)= TYPE_BITSET [
 				match?: loop-bitset input as red-bitset! token min max counter part
@@ -744,6 +750,7 @@ parser: context [
 									end?: either any [	;TBD: replace with ANY_STRING?
 										type = TYPE_STRING
 										type = TYPE_FILE
+										type = TYPE_URL
 									][
 										string/rs-next as red-string! input
 									][
@@ -812,6 +819,7 @@ parser: context [
 										either any [					;@@ replace with ANY_STRING?
 											TYPE_OF(blk) = TYPE_STRING
 											TYPE_OF(blk) = TYPE_FILE
+											TYPE_OF(blk) = TYPE_URL
 										][
 											string/insert as red-string! blk value null yes null no
 										][
@@ -995,6 +1003,7 @@ parser: context [
 					end?: either any [					;TBD: replace with ANY_STRING
 						type = TYPE_STRING
 						type = TYPE_FILE
+						type = TYPE_URL
 					][
 						string/rs-next as red-string! input
 					][
@@ -1021,10 +1030,12 @@ parser: context [
 							any [
 								type = TYPE_STRING
 								type = TYPE_FILE
+								type = TYPE_URL
 							]
 							any [
 								TYPE_OF(value) = TYPE_STRING
 								TYPE_OF(value) = TYPE_FILE
+								TYPE_OF(value) = TYPE_URL
 							]
 							zero? string/rs-length? as red-string! value
 						]
@@ -1032,6 +1043,7 @@ parser: context [
 						end?: either any [				;TBD: replace with ANY_STRING?
 							type = TYPE_STRING
 							type = TYPE_FILE
+							type = TYPE_URL
 						][
 							match?: either TYPE_OF(value) = TYPE_BITSET [
 								string/match-bitset? as red-string! input as red-bitset! value
