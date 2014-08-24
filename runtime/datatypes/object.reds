@@ -34,6 +34,25 @@ object: context [
 		]
 	]
 	
+	unchanged2?: func [
+		node	[node!]
+		index	[integer!]
+		id		[integer!]
+		return: [logic!]
+		/local
+			obj	   [red-object!]
+			ctx	   [red-context!]
+			values [series!]
+	][
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
+		obj: as red-object! values/offset + index
+		all [
+			TYPE_OF(obj) = TYPE_OBJECT
+			obj/class = id
+		]
+	]
+	
 	do-indent: func [
 		buffer	[red-string!]
 		tabs	[integer!]

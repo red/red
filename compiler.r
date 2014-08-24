@@ -346,18 +346,33 @@ red: context [
 		insert-lf -5
 	]
 	
-	emit-deep-check: func [path [series!] /local list check][
-		check: ['object/unchanged? decorate-symbol path/1 fourth find objects path/1]
+	emit-deep-check: func [path [series!] /local list check check2 obj top? parent-ctx][
+		check:  [
+			'object/unchanged?
+				decorate-symbol path/1
+				fourth obj: find objects path/1
+		]
+		check2: [
+			'object/unchanged2?
+				parent-ctx
+				get-word-index/with path/1 parent-ctx
+				fourth obj: find objects path/1
+		]
 
 		either 2 = length? path [
 			reduce check
 		][
 			list: make block! 3 * length? path
+			top?: yes
 			while [not tail? next path][
-				repend list check
+				repend list get pick [check check2] top?
+				if top? [top?: false]
+				parent-ctx: obj/3
 				path: next path
 			]
-			new-line/all/skip list yes 3
+			new-line list on
+			new-line at list 4 on
+			new-line/all/skip skip list 3 on 4
 			reduce ['all list]
 		]
 	]
@@ -1842,7 +1857,7 @@ red: context [
 	
 	comp-path: func [
 		/set
-		/local path value emit? get? entry alter saved after dynamic? ctx mark nested
+		/local path value emit? get? entry alter saved after dynamic? ctx mark
 	][
 		path: copy pc/1
 		emit?: yes
@@ -1905,11 +1920,10 @@ red: context [
 			not any [dynamic? find path integer!]
 			object-access? path
 		][
-			nested: either 2 < length? path [copy/part skip tail path -2 2][path]
-			ctx: third find objects nested/1
+			ctx: third find objects pick tail path -2
 			emit compose/deep [
-				either (emit-deep-check nested) [
-					word/get-local (ctx) (get-word-index/with last nested ctx)
+				either (emit-deep-check path) [
+					word/get-local (ctx) (get-word-index/with last path ctx)
 				]
 			]
 			mark: tail output
