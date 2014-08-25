@@ -104,6 +104,7 @@ object: context [
 			string/concatenate-literal buffer ": "
 			part: part - 2
 			
+			if TYPE_OF(value) = TYPE_VALUE [value/header: TYPE_NONE] ;-- force uninitialized slot to NONE
 			part: actions/mold value buffer only? all? flat? arg part tabs
 			
 			if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed

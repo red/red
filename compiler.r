@@ -485,15 +485,6 @@ red: context [
 		clear back tail ctx-stack
 	]
 	
-	bind-contexts: func [body [block!] /local obj][
-		if 1 < length? obj-stack [
-			foreach word next obj-stack [
-				obj: either word = obj-stack/2 [select objects word][get in obj word]
-				bind body obj
-			]
-		]
-	]
-	
 	find-contexts: func [name [word!]][
 		ctx: tail ctx-stack
 		while [not head? ctx][
@@ -1087,11 +1078,11 @@ red: context [
 		name
 	]
 	
-	comp-context: func [/locals words funcs ctx spec name id func? obj original][
+	comp-context: func [/locals words funcs ctx spec name id func? obj original body][
 		name: to word! original: pc/-1
 		words: make block! 8
 		
-		parse pc/2 [
+		parse body: pc/2 [
 			any [
 				pos: set-word! (func?: no) [func-constructors (func?: yes) | skip] (
 					unless find words pos/1 [
@@ -1119,6 +1110,7 @@ red: context [
 		unless empty? next obj-stack [
 			do reduce [to set-path! join obj-stack name obj]
 		]
+		bind body obj
 		
 		emit-open-frame 'set							;-- object value creation
 		emit-push-word name original
@@ -1132,7 +1124,7 @@ red: context [
 		emit-stack-reset
 		emit-src-comment/with none rejoin [mold pc/-1 " context " mold spec]
 		
-		funcs: tail functions
+		funcs: tail functions							;@@ to be removed
 		append obj-stack name							;@@ add support for anonymous contexts
 		pc: next pc
 		comp-next-block
@@ -1527,7 +1519,6 @@ red: context [
 			does	[body: spec spec: make block! 1 pc: back pc]
 			has		[spec: head insert copy spec /local]
 		]
-		bind-contexts body
 		set [symbols locals-nb] check-spec spec
 		add-function name spec
 		
@@ -1630,6 +1621,17 @@ red: context [
 	comp-return: does [
 		comp-expression
 		emit-exit-function
+	]
+	
+	comp-self: func [original [any-word!] /local obj][
+		either rebol-gctx = obj: bind? original [
+			pc: back pc									;-- backtrack and process word again
+			comp-word/thru
+		][
+			obj: find objects obj
+			emit reduce ['object/push obj/2 obj/3]
+			insert-lf -3
+		]
 	]
 	
 	comp-switch: has [mark name arg body list cnt pos default? value][
@@ -2164,8 +2166,8 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /local name local? alter emit-word][
-		name: to word! pc/1
+	comp-word: func [/literal /final /thru /local name local? alter emit-word original][
+		name: to word! original: pc/1
 		pc: next pc										;@@ move it deeper
 		local?: local-word? name
 		
@@ -2182,8 +2184,9 @@ red: context [
 		]
 		
 		case [
-			name = 'exit	[comp-exit]
-			name = 'return	[comp-return]
+			all [not thru name = 'exit]	 [comp-exit]
+			all [not thru name = 'return][comp-return]
+			all [not thru name = 'self]  [comp-self original]
 			all [
 				not final
 				not local?
