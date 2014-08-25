@@ -801,8 +801,20 @@ red: context [
 		name
 	]
 	
-	emit-path: func [path [path! set-path!] set? [logic!] /local value mark][
+	emit-path: func [path [path! set-path!] set? [logic!] alt? [logic!] /local value mark assign][
 		value: path/1
+		
+		assign: [
+			either alt? [								;-- object path (fallback case)
+				emit [stack/push stack/arguments - 1]	;-- get arguments just below the stack record
+				insert-lf -4
+			][
+				comp-expression							;-- fetch assigned value (normal case)
+			]
+			emit-action 'poke
+			emit-close-frame
+		]
+		
 		switch type?/word value [
 			word! [
 				add-symbol value: to word! clean-lf-flag value
@@ -813,19 +825,17 @@ red: context [
 					all [set? tail? next path][
 						emit-open-frame 'poke
 						emit-open-frame 'find
-						emit-path back path set?
+						emit-path back path set? alt?
 						emit-push-word value value
 						emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
 						emit-close-frame
 						emit [integer/push 2] 
 						insert-lf -2
-						comp-expression					;-- fetch assigned value
-						emit-action 'poke
-						emit-close-frame
+						do assign
 					]
 					'else [
 						emit-open-frame 'select
-						emit-path back path set?
+						emit-path back path set? alt?
 						emit-push-word value value
 						insert-lf -2
 						emit-action/with 'select [-1 -1 -1 -1 -1 -1 -1 -1]
@@ -836,7 +846,7 @@ red: context [
 			get-word! [
 				either all [set? tail? next path][
 					emit-open-frame 'poke
-					emit-path back path set?
+					emit-path back path set? alt?
 					emit-get-word to word! value
 					
 					emit copy/deep [unless stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
@@ -846,7 +856,7 @@ red: context [
 					emit [stack/pop 1]					;-- overwrite the get-word on stack top
 					insert-lf -2
 					emit-open-frame 'find
-					emit-path back path set?
+					emit-path back path set? alt?
 					emit-get-word to word! value
 					emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
 					emit-action 'index?
@@ -857,14 +867,11 @@ red: context [
 					emit-action 'add
 					emit-close-frame
 					convert-to-block mark
-					
-					comp-expression						;-- fetch assigned value
-					emit-action 'poke
-					emit-close-frame
+					do assign
 				][
 					add-symbol 'pick-select
 					emit-open-frame 'pick-select
-					emit-path back path set?
+					emit-path back path set? alt?
 					emit-get-word to word! value
 					
 					emit copy/deep [either stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
@@ -884,15 +891,13 @@ red: context [
 			integer! [
 				either all [set? tail? next path][
 					emit-open-frame 'poke
-					emit-path back path set?
+					emit-path back path set? alt?
 					emit compose [integer/push (value)]
 					insert-lf -2
-					comp-expression						;-- fetch assigned value
-					emit-action 'poke
-					emit-close-frame
+					do assign
 				][
 					emit-open-frame 'pick
-					emit-path back path set?
+					emit-path back path set? alt?
 					emit compose [integer/push (value)]
 					insert-lf -2
 					emit-action 'pick
@@ -1857,7 +1862,7 @@ red: context [
 	
 	comp-path: func [
 		/set
-		/local path value emit? get? entry alter saved after dynamic? ctx mark
+		/local path value emit? get? entry alter saved after dynamic? ctx mark obj?
 	][
 		path: copy pc/1
 		emit?: yes
@@ -1897,7 +1902,7 @@ red: context [
 							comp-call path entry/2		;-- call function with refinements
 							exit
 						][
-							;--not-implemented--			;TBD: resolve access path to function
+							;--not-implemented--		;TBD: resolve access path to function
 						]
 						;emit?: no						;-- no further emitted code needed
 					]
@@ -1915,25 +1920,33 @@ red: context [
 				throw-error ["cannot use" mold type? value "value in path:" pc/1]
 			]
 		]
-
-		if all [
+		
+		obj?: all [
 			not any [dynamic? find path integer!]
 			object-access? path
-		][
+		]
+		
+		if set [
+			pc: next pc
+			if obj? [comp-expression]					;-- fetch assigned value earlier
+		]
+
+		if obj? [
 			ctx: third find objects pick tail path -2
-			emit compose/deep [
-				either (emit-deep-check path) [
-					word/get-local (ctx) (get-word-index/with last path ctx)
-				]
+			emit compose [
+				either (emit-deep-check path)
 			]
+			emit compose/deep pick [
+				[[word/set-in    (ctx) (get-word-index/with last path ctx)]]
+				[[word/get-local (ctx) (get-word-index/with last path ctx)]]
+			] to logic! set
+			
 			mark: tail output
 		]
 		
-		if emit? [
-			if set [pc: next pc]					;-- skip set-path to be ready to fetch argument
-			emit-path back tail path to logic! set	;-- emit code recursively from tail
-			unless set [pc: next pc]
-		]
+		emit-path back tail path to logic! set to logic! mark	;-- emit code recursively from tail
+
+		unless set [pc: next pc]
 		if mark [change/only/part mark copy mark tail output]
 	]
 	
