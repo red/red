@@ -9,7 +9,7 @@ Red [
 ]
 
 #include  %../../../quick-test/quick-test.red
-do [								;-- temp until object! support in compiler
+
 ~~~start-file~~~ "object"
 
 ===start-group=== "simple object tests"
@@ -188,4 +188,3 @@ do [								;-- temp until object! support in compiler
 
 ~~~end-file~~~
 
-]								;-- temp until object! support in compiler

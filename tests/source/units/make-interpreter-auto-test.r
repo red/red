@@ -39,6 +39,7 @@ file-list: [
 	%integer-test.red									%auto-tests/interp-integer-test.red
 	%float-test.red										%auto-tests/interp-float-test.red
 	%char-test.red										%auto-tests/interp-char-test.red
+	%object-test.red									%auto-tests/interp-object-test.red
 	%auto-tests/greater-auto-test.red					%auto-tests/interp-greater-auto-test.red
 	%auto-tests/infix-equal-auto-test.red				%auto-tests/interp-inf-equal-auto-test.red
 	%strict-equal-test.red								%auto-tests/interp-strict-equal-test.red
