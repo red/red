@@ -238,6 +238,31 @@ red: context [
 		throw-error ["Should not happen: not found context for word: " mold name]
 	]
 	
+	emit-push-from: func [
+		name [any-word!] original [any-word!] type [word!] actions [block!]
+		/local ctx obj
+	][
+		either ctx: any [
+			all [
+				1 < length? obj-stack
+				third find objects last obj-stack
+			]
+			all [
+				rebol-gctx <> obj: bind? original
+				select objects obj
+			]
+		][
+			emit append to path! type actions/1
+			emit ctx
+			emit get-word-index/with name ctx
+			insert-lf -3
+		][
+			emit append to path! type actions/2
+			emit decorate-symbol name
+			insert-lf -2
+		]
+	]
+	
 	emit-push-word: func [name [any-word!] original [any-word!] /local type ctx obj][
 		type: to word! form type? name
 		name: to word! :name
@@ -248,29 +273,11 @@ red: context [
 			emit get-word-index name
 			insert-lf -3
 		][
-			either ctx: any [
-				all [
-					1 < length? obj-stack
-					third find objects last obj-stack
-				]
-				all [
-					rebol-gctx <> obj: bind? original
-					select objects obj
-				]
-			][
-				emit append to path! type 'push-local
-				emit ctx
-				emit get-word-index/with name ctx
-				insert-lf -3
-			][
-				emit append to path! type 'push
-				emit decorate-symbol name
-				insert-lf -2
-			]
+			emit-push-from name original type [push-local push]
 		]
 	]
 	
-	emit-get-word: func [name [word!] /any? /literal /local new][
+	emit-get-word: func [name [word!] original [any-word!] /any? /literal /local new][
 		either local-word? name [
 			emit 'stack/push							;-- local word
 		][
@@ -278,7 +285,10 @@ red: context [
 			emit case [									;-- global word
 				literal ['get-word/get]
 				any?	['word/get-any]
-				'else	['word/get]
+				'else	[
+					emit-push-from name name 'word [get-local get]
+					exit
+				]
 			]
 		]
 		emit decorate-symbol name
@@ -398,11 +408,14 @@ red: context [
 	
 	prefix-func: func [word [word!] /with path][
 		if 1 < length? obj-stack [
-			word: to word! rejoin [
-				replace/all mold next any [path obj-stack] slash "~" #"~" word
-			]
+			word: decorate-obj-member word next any [path obj-stack]
 		]
 		word
+	]
+	
+	decorate-obj-member: func [word [word!] path /local value][
+		parse value: mold path [some [p: #"/" (p/1: #"~") | skip]]
+		to word! rejoin [value #"~" word]
 	]
 	
 	decorate-type: func [type [word!]][
@@ -496,6 +509,40 @@ red: context [
 	
 	object-access?: func [path [series!]][
 		attempt [do head insert copy/part to path! path (length? path) - 1 'objects]
+	]
+	
+	obj-func-call?: func [path [path!] /local search base fpath symbol found? fun][
+		search: [
+			fpath: head insert copy path base
+			until [
+				remove back tail fpath
+				any [
+					tail? next fpath
+					found?: attempt [do fpath]
+				]
+			]
+		]
+		
+		base: 'objects
+		do search
+		if all [not found? 1 < length? obj-stack][
+			base: obj-stack
+			do search
+			unless found? [return none]					;-- not an object access path
+		]
+		fun: append copy fpath pick path length? fpath
+		unless function! = attempt [do fun][return none] ;-- not a function call
+		
+		remove fpath									;-- remove 'objects prefix
+		;@@ scan for refinements
+		symbol: decorate-obj-member path/2 fpath
+		
+		either find functions symbol [
+			if 1 = length? fpath [fpath: fpath/1]
+			reduce [fpath symbol]
+		][
+			none
+		]
 	]
 	
 	push-locals: func [symbols [block!]][
@@ -792,7 +839,10 @@ red: context [
 		name
 	]
 	
-	emit-path: func [path [path! set-path!] set? [logic!] alt? [logic!] /local value mark assign][
+	emit-path: func [
+		path [path! set-path!] set? [logic!] alt? [logic!]
+		/local value mark assign original
+	][
 		value: path/1
 		
 		assign: [
@@ -806,12 +856,12 @@ red: context [
 			emit-close-frame
 		]
 		
-		switch type?/word value [
+		switch type?/word original: value [
 			word! [
 				add-symbol value: to word! clean-lf-flag value
 				case [
 					head? path [
-						emit-get-word value
+						emit-get-word value original
 					]
 					all [set? tail? next path][
 						emit-open-frame 'poke
@@ -838,7 +888,7 @@ red: context [
 				either all [set? tail? next path][
 					emit-open-frame 'poke
 					emit-path back path set? alt?
-					emit-get-word to word! value
+					emit-get-word to word! value original
 					
 					emit copy/deep [unless stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
 					insert-lf -4
@@ -848,7 +898,7 @@ red: context [
 					insert-lf -2
 					emit-open-frame 'find
 					emit-path back path set? alt?
-					emit-get-word to word! value
+					emit-get-word to word! value original
 					emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
 					emit-action 'index?
 					emit [stack/pop 2]
@@ -863,7 +913,7 @@ red: context [
 					add-symbol 'pick-select
 					emit-open-frame 'pick-select
 					emit-path back path set? alt?
-					emit-get-word to word! value
+					emit-get-word to word! value original
 					
 					emit copy/deep [either stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
 					insert-lf -4
@@ -1370,11 +1420,12 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-forall: has [word][
+	comp-forall: has [word name][
 		;TBD: check if word argument refers to any-series!
-		word: decorate-symbol pc/1
-		emit-get-word pc/1								;-- save series (for resetting on end)
-		emit-push-word pc/1	pc/1						;-- word argument
+		name: pc/1
+		word: decorate-symbol name
+		emit-get-word name name							;-- save series (for resetting on end)
+		emit-push-word name name						;-- word argument
 		pc: next pc
 		
 		emit-open-frame 'forall
@@ -1845,13 +1896,13 @@ red: context [
 		]
 	]
 	
-	comp-get: has [symbol][
-		either lit-word? pc/1 [
-			add-symbol symbol: to word! pc/1
+	comp-get: has [symbol original][
+		either lit-word? original: pc/1 [
+			add-symbol symbol: to word! original
 			either path? pc/-1 [						;@@ add check for validaty of refinements		
-				emit-get-word/any? symbol
+				emit-get-word/any? symbol original
 			][
-				emit-get-word symbol
+				emit-get-word symbol original
 			]
 			pc: next pc
 		][
@@ -1863,15 +1914,16 @@ red: context [
 	]
 	
 	comp-path: func [
-		/set
-		/local path value emit? get? entry alter saved after dynamic? ctx mark obj?
+		/set?
+		/local path value emit? get? entry alter saved after dynamic? ctx mark obj? fpath symbol
 	][
-		path: copy pc/1
+		path:  copy pc/1
 		emit?: yes
+		set?:  to logic! set?
 		
 		if dynamic?: find path paren! [
 			emit-open-frame 'body
-			if set [
+			if set? [
 				saved: pc
 				pc: next pc
 				comp-expression
@@ -1881,21 +1933,21 @@ red: context [
 			comp-literal no
 			pc: back pc
 			
-			unless set [emit [stack/mark-native words/_body]]	;@@ not clean...
+			unless set? [emit [stack/mark-native words/_body]]	;@@ not clean...
 			emit compose [
-				interpreter/eval-path stack/top - 1 null null (to word! form to logic! set)
+				interpreter/eval-path stack/top - 1 null null (to word! form set?)
 			]
-			unless set [emit [stack/unwind-last]]
+			unless set? [emit [stack/unwind-last]]
 			
 			emit-close-frame
-			pc: either set [after][next pc]
+			pc: either set? [after][next pc]
 			exit
 		]
 		
 		forall path [
 			switch/default type?/word value: path/1 [
 				word! [
-					if all [not set not get? entry: find functions value][
+					if all [not set? not get? entry: find functions value][
 						if alter: select ssa-names value [
 							entry: find functions alter
 						]
@@ -1922,13 +1974,22 @@ red: context [
 				throw-error ["cannot use" mold type? value "value in path:" pc/1]
 			]
 		]
+
+		if all [
+			not any [set? dynamic? find path integer!]
+			set [fpath symbol] obj-func-call? path
+		][
+			pc: next pc
+			comp-call/with fpath functions/:symbol symbol
+			exit
+		]
 		
 		obj?: all [
 			not any [dynamic? find path integer!]
 			object-access? path
 		]
 		
-		if set [
+		if set? [
 			pc: next pc
 			if obj? [comp-expression]					;-- fetch assigned value earlier
 		]
@@ -1941,14 +2002,14 @@ red: context [
 			emit compose/deep pick [
 				[[word/set-in    (ctx) (get-word-index/with last path ctx)]]
 				[[word/get-local (ctx) (get-word-index/with last path ctx)]]
-			] to logic! set
+			] set?
 			
 			mark: tail output
 		]
 		
-		emit-path back tail path to logic! set to logic! mark	;-- emit code recursively from tail
+		emit-path back tail path set? to logic! mark	;-- emit code recursively from tail
 
-		unless set [pc: next pc]
+		unless set? [pc: next pc]
 		if mark [change/only/part mark copy mark tail output]
 	]
 	
@@ -2000,6 +2061,7 @@ red: context [
 	comp-call: func [
 		call [word! path!]
 		spec [block!]
+		/with symbol
 		/local item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref args option
 	][
 		either spec/1 = 'intrinsic! [
@@ -2087,8 +2149,8 @@ red: context [
 				native! 	[emit-native/with name refs]
 				action! 	[emit-action/with name refs]
 				op!			[]
-				function! 	[emit decorate-func name insert-lf -1]
-				routine!	[emit-routine name spec/3]
+				function! 	[emit decorate-func any [symbol name] insert-lf -1]
+				routine!	[emit-routine any [symbol name] spec/3]
 			]
 			emit-close-frame
 		]
@@ -2166,19 +2228,19 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /thru /local name local? alter emit-word original][
+	comp-word: func [/literal /final /thru /local name local? alter emit-word original new][
 		name: to word! original: pc/1
 		pc: next pc										;@@ move it deeper
 		local?: local-word? name
 		
 		emit-word: [
-			either lit-word? pc/-1 [					;@@
-				emit-push-word name pc/1
+			either lit-word? original [					;@@
+				emit-push-word name original
 			][
 				either literal [
-					emit-get-word/literal name
+					emit-get-word/literal name original
 				][
-					emit-get-word name
+					emit-get-word name original
 				]
 			]
 		]
@@ -2482,7 +2544,7 @@ red: context [
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
 			paren!		[comp-next-block]
-			set-path!	[comp-path/set]
+			set-path!	[comp-path/set?]
 			path! 		[comp-path]
 		][
 			comp-literal to logic! root
