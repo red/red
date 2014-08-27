@@ -117,6 +117,49 @@ object: context [
 		part
 	]
 	
+	duplicate: func [
+		src [node!]										;-- src context
+		dst	[node!]										;-- dst context (extension of src)
+		/local
+			from   [red-context!]
+			to	   [red-context!]
+			value  [red-value!]
+			tail   [red-value!]
+			target [red-value!]
+			s	   [series!]
+			type   [integer!]
+	][
+		from: TO_CTX(src)
+		to:	  TO_CTX(dst)
+		
+		s: as series! from/values/value
+		value: s/offset
+		tail:  s/tail
+		
+		s: as series! to/values/value
+		target: s/offset
+		
+		while [value < tail][
+			type: TYPE_OF(value)
+			case [
+				ANY_SERIES?(type) [					;-- copy series value in extended object
+					actions/copy
+						as red-series! value
+						target
+						null
+						yes
+						null
+				]
+				;type = TYPE_FUNCTION [
+				;	rebind as red-function! value ctx
+				;]
+				true [copy-cell value target]		;-- just propagate the old value by default
+			]
+			value: value + 1
+			target: target + 1
+		]
+	]
+	
 	extend: func [
 		ctx		[red-context!]
 		spec	[red-context!]
@@ -180,7 +223,7 @@ object: context [
 		more: s/offset
 		
 		if TYPE_OF(more) = TYPE_NONE [
-			print-line "*** Error: COPY stuck on missing function's body block"
+			print-line "*** Error: rebinding stuck on missing function's body block"
 			halt
 		]
 		spec: as red-block! stack/push*
@@ -210,6 +253,21 @@ object: context [
 		obj/ctx:	ctx
 		obj/class:	class
 		obj
+	]
+	
+	init-push: func [
+		node	[node!]
+		class	[integer!]
+		return: [red-object!]
+		/local
+			ctx [red-context!]
+	][
+		ctx: TO_CTX(node)
+		s: as series! ctx/values/value
+		if s/offset = s/tail [
+			s/tail: s/offset + (s/size >> 4)			;-- (late) set of 'values right tail pointer
+		]
+		push node class
 	]
 	
 	make-at: func [

@@ -240,21 +240,24 @@ red: context [
 	
 	emit-push-from: func [
 		name [any-word!] original [any-word!] type [word!] actions [block!]
-		/local ctx obj
+		/local ctx obj idx
 	][
-		either ctx: any [
-			all [
-				1 < length? obj-stack
-				third find objects last obj-stack
+		either all [
+			ctx: any [
+				all [
+					1 < length? obj-stack
+					third find objects last obj-stack
+				]
+				all [
+					rebol-gctx <> obj: bind? original
+					select objects obj
+				]
 			]
-			all [
-				rebol-gctx <> obj: bind? original
-				select objects obj
-			]
+			attempt [idx: get-word-index/with name ctx]
 		][
 			emit append to path! type actions/1
 			emit ctx
-			emit get-word-index/with name ctx
+			emit idx
 			insert-lf -3
 		][
 			emit append to path! type actions/2
@@ -509,6 +512,22 @@ red: context [
 	
 	object-access?: func [path [series!]][
 		attempt [do head insert copy/part to path! path (length? path) - 1 'objects]
+	]
+	
+	is-object?: func [expr][
+		if any [
+			not find [word! get-word! path!] type?/word expr
+			all [any-word? expr local-word? expr]
+		][
+			return no
+		]
+		any [
+			find objects expr
+			all [
+				1 < length? obj-stack
+				attempt [do join obj-stack expr]
+			]
+		]
 	]
 	
 	obj-func-call?: func [path [path!] /local search base fpath symbol found? fun][
@@ -1132,14 +1151,21 @@ red: context [
 		name
 	]
 	
-	comp-context: func [/locals words funcs ctx spec name id func? obj original body][
-		name: to word! original: pc/-1
-		words: make block! 8
+	comp-context: func [
+		/with word
+		/extend proto [word!]
+		/locals words funcs ctx spec name id func? obj original body pos entry
+	][
+		if proto [proto: select objects proto]
+		name: to word! original: any [word pc/-1]
+		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
 		
 		parse body: pc/2 [
 			any [
 				pos: set-word! (func?: no) [func-constructors (func?: yes) | skip] (
-					unless find words pos/1 [
+					either entry: find words pos/1 [
+						if func? [entry/2: function!]
+					][
 						append words pos/1
 						append words either func? [function!][none]
 					]
@@ -1168,10 +1194,12 @@ red: context [
 		
 		emit-open-frame 'set							;-- object value creation
 		emit-push-word name original
-		emit 'object/push
-		emit ctx
-		emit id
+		emit reduce ['object/init-push ctx id]
 		insert-lf -3
+		if proto [
+			emit reduce ['object/duplicate objects/:proto ctx]
+			insert-lf -3
+		]
 		emit 'word/set
 		insert-lf -1
 		emit-close-frame
@@ -2175,7 +2203,7 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-set-word: func [/native /local name value ctx original obj bound? deep?][
+	comp-set-word: func [/native /local name value ctx original obj bound? deep? inherit?][
 		name: original: pc/1
 		pc: next pc
 		add-symbol name: to word! clean-lf-flag name
@@ -2193,42 +2221,61 @@ red: context [
 			has		 [comp-has]
 			does	 [comp-does]
 			routine	 [comp-routine]
-			context
-			object	 [comp-context]
+			object
+			context	 [comp-context]
 		][
-			either local-word? name [comp-local-set name][
-				check-redefined name
-				bound?: rebol-gctx <> obj: bind? original
-				deep?: 1 < length? obj-stack
-				
-				emit-open-frame 'set
-				either native [							;-- 1st argument
-					pc: back pc
-					comp-expression						;-- fetch a value
+			case [
+				local-word? name [
+					comp-local-set name
+				]
+				all [
+					pc/1 = 'make
+					any [
+						pc/2 = 'object!
+						inherit?: is-object? pc/2
+					]
 				][
-					unless any [bound? deep?][
-						emit-push-word name	original	;-- push set-word
+					pc: next pc
+					either inherit? [
+						comp-context/with/extend original pc/1
+					][
+						comp-context/with original
 					]
 				]
-				comp-expression							;-- fetch a value (2nd argument)
-				
-				either native [
-					emit-native/with 'set [-1]			;@@ refinement not handled yet
-				][
-					either ctx: any [
-						all [deep? third find objects last obj-stack]
-						all [bound? select objects obj]
+				'else [
+					check-redefined name
+					bound?: rebol-gctx <> obj: bind? original
+					deep?: 1 < length? obj-stack
+
+					emit-open-frame 'set
+					either native [							;-- 1st argument
+						pc: back pc
+						comp-expression						;-- fetch a value
 					][
-						emit 'word/set-in
-						emit ctx
-						emit get-word-index/with name ctx
-						insert-lf -3
-					][
-						emit 'word/set
-						insert-lf -1
+						unless any [bound? deep?][
+							emit-push-word name	original	;-- push set-word
+						]
 					]
+					comp-expression							;-- fetch a value (2nd argument)
+
+					either native [
+						emit-native/with 'set [-1]			;@@ refinement not handled yet
+					][
+						either ctx: any [
+							all [deep? third find objects last obj-stack]
+							all [bound? select objects obj]
+						][
+							emit 'word/set-in
+							emit ctx
+							emit get-word-index/with name ctx
+							insert-lf -3
+						][
+							emit 'word/set
+							insert-lf -1
+						]
+					]
+					emit-close-frame
 				]
-				emit-close-frame
 			]
 		]
 	]
