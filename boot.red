@@ -1474,3 +1474,4 @@ load: function [
 
 ;empty?: :tail?
 atan2: :arctangent2
+object: :context

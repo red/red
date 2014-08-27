@@ -2187,15 +2187,16 @@ red: context [
 		if all [not booting? find intrinsics name][		
 			throw-error ["attempt to redefine a keyword:" name]
 		]
-		case [
-			pc/1 = 'func	 [comp-func]
-			pc/1 = 'function [comp-function]
-			pc/1 = 'has		 [comp-has]
-			pc/1 = 'does	 [comp-does]
-			pc/1 = 'routine	 [comp-routine]
-			pc/1 = 'context	 [comp-context]
-			local-word? name [comp-local-set name]
-			'else [
+		switch/default pc/1 [
+			func	 [comp-func]
+			function [comp-function]
+			has		 [comp-has]
+			does	 [comp-does]
+			routine	 [comp-routine]
+			context
+			object	 [comp-context]
+		][
+			either local-word? name [comp-local-set name][
 				check-redefined name
 				bound?: rebol-gctx <> obj: bind? original
 				deep?: 1 < length? obj-stack
