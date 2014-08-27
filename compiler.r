@@ -2873,6 +2873,8 @@ red: context [
 		clear sys-global
 		clear contexts
 		clear ctx-stack
+		clear objects
+		clear next obj-stack							;-- keep 'objects prefix
 		clear output
 		clear sym-table
 		clear literals
