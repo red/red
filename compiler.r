@@ -524,22 +524,26 @@ red: context [
 		]
 		
 		base: 'objects
-		do search
+		do search										;-- check if path is an absolute object path
+		
 		if all [not found? 1 < length? obj-stack][
 			base: obj-stack
-			do search
+			do search									;-- check if path is a relative object path
 			unless found? [return none]					;-- not an object access path
 		]
-		fun: append copy fpath pick path length? fpath
+		
+		fun: append copy fpath pick path length? fpath	 ;-- check if path is an absolute object path
 		unless function! = attempt [do fun][return none] ;-- not a function call
 		
 		remove fpath									;-- remove 'objects prefix
-		;@@ scan for refinements
 		symbol: decorate-obj-member path/2 fpath
 		
 		either find functions symbol [
-			if 1 = length? fpath [fpath: fpath/1]
-			reduce [fpath symbol]
+			fpath: next find path last fpath			;-- point to function name
+			reduce [
+				either 1 = length? fpath [fpath/1][copy fpath]
+				symbol
+			]
 		][
 			none
 		]
