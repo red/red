@@ -173,16 +173,16 @@ Red [
 		--assert op1-o2/i = 1
 		
 	--test-- "op2"
-		op1-o1: make object! [i: 1]
-		op1-o2: make op1-o1 [i: 2]
-		--assert op1-o2/i = 2
-		--assert op1-o1/i = 1
+		op2-o1: make object! [i: 1]
+		op2-o2: make op2-o1 [i: 2]
+		--assert op2-o2/i = 2
+		--assert op2-o1/i = 1
 
 	--test-- "op3"
-		op1-o1: make object! [i: 1]
-		op1-o2: make op1-o1 [i: 2 j: 3]
-		--assert op1-o2/i = 2
-		--assert op1-o2/j = 3
+		op3-o1: make object! [i: 1]
+		op3-o2: make op3-o1 [i: 2 j: 3]
+		--assert op3-o2/i = 2
+		--assert op3-o2/j = 3
 		
 ===end-group===
 
