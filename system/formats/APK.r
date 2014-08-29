@@ -9,7 +9,9 @@ REBOL [
 
 packager: context [
 	verbose: no
-	
+
+	do %utils/aapt/aapt.r
+
 	tools-URL:		http://static.red-lang.org/droid-tools/
 	build-root-dir: join temp-dir %builds/
 	tools-dir:		build-root-dir/tools
@@ -57,9 +59,9 @@ packager: context [
 			system/schemes/default/timeout: 0:05:00					;-- be nice with slow connections
 
 			files: switch OS [
-				3 [[%jli.dll %aapt.exe %keytool.exe %zipalign.exe]]	;-- Windows
-				4 [[%aapt %zipalign]]								;-- Linux
-				2 [[%aapt %zipalign]]								;-- OSX
+				3 [[%jli.dll %keytool.exe %zipalign.exe]]	;-- Windows
+				4 [[%zipalign]]								;-- Linux
+				2 [[%zipalign]]								;-- OSX
 			]
 			sys: select [3 %win/ 4 %linux/ 2 %osx/] OS
 
@@ -69,9 +71,6 @@ packager: context [
 				if OS <> 3 [run reform ["chmod +x" tools-dir/:file]]
 				print "done"
 			]
-			prin "^-android.jar(18MB)..."
-			write/binary tools-dir/api/android.jar read/binary tools-URL/api/android.jar
-			print "done"
 		]
 	]
 
@@ -86,24 +85,23 @@ packager: context [
 		append bin-dir slash
 
 		make-dir/deep bin-dir
-		make-dir/deep bin-dir/lib/armeabi
-		make-dir/deep bin-dir/lib/x86
 
 		attempt [delete bin-dir/lib/armeabi/libRed.so]
 		attempt [delete bin-dir/lib/x86/libRed.so]
-		
+
 		get-tools
 
-		dst: either opts/target = 'ARM [%armeabi/][%x86/]
+		dst: either opts/target = 'ARM [
+			make-dir/deep bin-dir/lib/armeabi
+			%armeabi/
+		][
+			make-dir/deep bin-dir/lib/x86
+			%x86/
+		]
 		copy-file file join bin-dir [%lib/ dst %libRed.so]
 		delete file
-		
+
 		copy-file  %bridges/android/dex/classes.dex bin-dir/classes.dex
-		copy-files %bridges/android/res/drawable-hdpi bin-dir/res/drawable-hdpi
-		copy-files %bridges/android/res/drawable-mdpi bin-dir/res/drawable-mdpi
-		copy-files %bridges/android/res/drawable-xhdpi bin-dir/res/drawable-xhdpi
-		copy-files %bridges/android/res/drawable-xxhdpi bin-dir/res/drawable-xxhdpi
-		
 		copy-file %bridges/android/AndroidManifest.xml.model build-root-dir/AndroidManifest.xml
 
 		unless exists? build-root-dir/:keystore [
@@ -130,19 +128,11 @@ packager: context [
 			run cmd
 		]
 
-		cmd: reform [
-			to-OS-file tools-dir/aapt {
-				 package
-				 -v
-				 -f
-				 -M } to-OS-file build-root-dir/AndroidManifest.xml {
-				 -S } to-OS-file %bridges/android/res {
-				 -I } to-OS-file tools-dir/api/android.jar {
-				 -F } to-OS-file rejoin [build-root-dir name %-unsigned.apk]
-				 to-OS-file bin-dir
-		]
 		log "generating apk"
-		run cmd
+		aapt/package build-root-dir/AndroidManifest.xml
+					 %bridges/android/res/
+					 bin-dir
+					 rejoin [build-root-dir name %-unsigned.apk]
 
 		cmd: reform [ {
 			 jarsigner
