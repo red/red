@@ -23,6 +23,8 @@ aapt: context [
 	res-auto-package-ns: "http://schemas.android.com/apk/res-auto"
 
 	digit: charset [#"0" - #"9"]
+	lower-alpha: charset [#"a" - #"z"]
+	upper-alpha: charset [#"A" - #"Z"]
 
 	value-type: [						;-- type of the data value in 'res-value/data'
 		null			#{00}			;-- no data
@@ -120,7 +122,7 @@ aapt: context [
 	]
 
 	config-flags: [
-		mmc						1
+		mcc						1
 		mnc						2
 		locale					4
 		touchscreen				8
@@ -249,8 +251,10 @@ aapt: context [
 		size				[integer!]
 		mcc					[short]
 		mnc					[short]
-		language			[short]
-		country				[short]
+		language1			[char]
+		language2			[char]
+		country1			[char]
+		country2			[char]
 		orientation			[char]
 		touchscreen			[char]
 		density				[short]
@@ -333,18 +337,32 @@ aapt: context [
 		int
 	]
 
-	utf8-to-utf16: func [str [string!] /local buf][
-		;TODO add completed support for converting utf-8 to utf-16
-		buf: make binary! 2 * length? str
-		foreach char str [
-			either char < 128 [
-				append buf char
-				append buf null
+	utf8-to-utf16: func [s [string!] /length /local m cp result cnt][
+		result: make string! (length? s) * 2
+		cnt: 0
+		while [not tail? s][
+			cp: first s
+			cnt: cnt + 1
+			either cp < 128 [
+				unless length [repend result [cp #"^@"]]
 			][
-				print ["Only support ASCII string." str]
+				m: 8 - length? find	enbase/base	to binary! cp 2 #"0"
+				cp: cp xor pick [0 192 224 240 248 252] m
+				loop m - 1 [cp: 64 * cp + (63 and first s: next s)]		;--	code point
+				either cp < 65536 [
+					unless length [append result to-bin16 cp]
+				][
+					;--	multiple UTF16 characters with surrogates
+					either length [cnt: cnt + 1][
+						cp: cp - 65536
+						append result to-bin16 55296 + shift/logical cp 10
+						append result to-bin16 cp and 1023 + 56320
+					]
+				]
 			]
+			s: next s
 		]
-		buf
+		either length [cnt][result]
 	]
 
 	clean-block: func [blk [block!] /local new][
@@ -439,18 +457,33 @@ aapt: context [
 	compile-string-pool: func [
 		strings [block!]
 		/utf-16
-		/local header offsets buf
+		/local header offsets buf u8len u16len
 	][
 		;TODO handle styled strings
-		;TODO handle string length > 32767
 		offsets: make binary! 32
 		buf: make binary! 512
 		foreach str strings [
 			append offsets to-bin32 length? buf
-			append buf to-bin16 length? str
-			if utf-16 [str: utf8-to-utf16 str]
-			append buf to-binary str
-			append buf either utf-16 [#{0000}][#{00}]	;-- null char
+			either utf-16 [									;-- UTF-16: maximum length: 0x7FFFFFF (2147483647 bytes)
+				str: utf8-to-utf16 str
+				if 32767 < u16len: (length? str) / 2 [
+					append buf to-bin16 (32767 and shift u16len 16) or 32768
+				]
+				append buf to-bin16 u16len
+			][												;-- UTF-8: maximum length: 0x7FFF (32767 bytes)
+				u8len: length? str
+				u16len: utf8-to-utf16/length str
+				if 127 < u16len [
+					append buf to-bin8 (127 and shift u16len 8) or 128
+				]
+				append buf to-bin8 u16len
+				if 127 < u8len [
+					append buf to-bin8 (127 and shift u8len 8) or 128
+				]
+				append buf to-bin8 u8len
+			]
+			append buf str
+			append buf either utf-16 [#{0000}][#{00}]		;-- null char
 		]
 		buf: pad4 buf
 
@@ -480,25 +513,97 @@ aapt: context [
 		name
 	]
 
-	get-density: func [part [string!] config [object!] /local name value][
+	get-mcc: func [part [string!] config [object!] /local value][
+		if parse part [
+			"any" (value: 0)
+			| "mcc" s: some digit e: end (value: to-integer copy/part s e)
+		]
+		config/mcc: value
+	]
+
+	get-mnc: func [part [string!] config [object!] /local value][
+		if part = "any" [config/mnc: 0 return true]
+		if parse part ["mnc" s: some digit e: end] [
+			value: to-integer copy/part s e
+		]
+		config/mnc: either zero? value [-1][value]
+	]
+
+	get-language: func [part [string!] config [object!]][
+		parse/case part [
+			"any" | "default"
+			| 2 lower-alpha end
+			(config/language1: part/1 config/language2: part/2)
+		]
+	]
+
+	get-country: func [part [string!] config [object!]][
+		parse/case part [
+			#"r" 2 upper-alpha end
+			(config/country1: part/2 config/country2: part/3)
+		]
+	]
+
+	get-layout-direction: func [part [string!] config [object!] /local name value][
 		name: [
 			"any" 		0
-			"nodpi"		65535
-			"ldpi"		120
-			"mdpi"		160
-			"tvdpi"		213
-			"hdpi"		240
-			"xhdpi"		320
-			"xxhdpi"	480
-			"xxxhdpi"	640
+			"ldltr"		64
+			"ldrtl"		128
 		]
 
-		unless value: select name part [
-			if parse part [s: some digit e: "dpi"] [
-				value: to-integer copy/part s e
-			]
+		if value: select name part [
+			config/screen-layout: config/screen-layout and 63 or value
 		]
-		config/density: value
+	]
+
+	get-smallest-width-dp:  func [part [string!] config [object!] /local value][
+		if parse part [
+			"any" (value: 0)
+			| "sw" s: some digit e: "dp" end (value: to-integer copy/part s e)
+		]
+		config/smallest-width-dp: value
+	]
+
+	get-screen-width-dp: func [part [string!] config [object!] /local name value][
+		if parse part [
+			"any" (value: 0)
+			| "w" s: some digit e: "dp" end (value: to-integer copy/part s e)
+		]
+		config/screen-width-dp: value
+	]
+
+	get-screen-height-dp: func [part [string!] config [object!] /local name value][
+		if parse part [
+			"any" (value: 0)
+			| "h" s: some digit e: "dp" end (value: to-integer copy/part s e)
+		]
+		config/screen-height-dp: value
+	]
+
+	get-screen-layout-size: func [part [string!] config [object!] /local name value][
+		name: [
+			"any"		0
+			"small"		1
+			"normal"	2
+			"large"		3
+			"xlarge"	4
+		]
+
+		if value: select name part [
+			config/screen-layout: config/screen-layout and 240 or value
+		]
+	]
+
+	get-screen-layout-aspect: func [part [string!] config [object!] /local name value][
+		name: [
+			"any" 		0
+			"long"		32
+			"notlong"	16
+		]
+
+		if value: select name part [
+			config/screen-layout: config/screen-layout and 207 or value
+		]
 	]
 
 	get-orientation: func [part [string!] config [object!] /local name value][
@@ -513,11 +618,138 @@ aapt: context [
 		config/orientation: value
 	]
 
-	ge-smallest-width-dp:  func [part [string!] config [object!] /local value][
-		if parse part ["sw" s: some digit e: "dp"] [
-			value: to-integer copy/part s e
+	get-UI-mode-type: func [part [string!] config [object!] /local name value][
+		name: [
+			"any" 			0
+			"desk"			2
+			"car"			3
+			"television"	4
+			"appliance"		5
+			"watch"			6
 		]
-		config/smallest-width-dp: value
+
+		if value: select name part [
+			config/ui-mode: config/ui-mode and 240 or value
+		]
+	]
+
+	get-UI-mode-night: func [part [string!] config [object!] /local name value][
+		name: [
+			"any" 		0
+			"night"		32
+			"notnight"	16
+		]
+
+		if value: select name part [
+			config/ui-mode: config/ui-mode and 207 or value
+		]
+	]
+
+	get-density: func [part [string!] config [object!] /local name value][
+		name: [
+			"any" 		0
+			"nodpi"		65535
+			"ldpi"		120
+			"mdpi"		160
+			"tvdpi"		213
+			"hdpi"		240
+			"xhdpi"		320
+			"xxhdpi"	480
+			"xxxhdpi"	640
+		]
+
+		unless value: select name part [
+			if parse part [s: some digit e: "dpi" end] [
+				value: to-integer copy/part s e
+			]
+		]
+		config/density: value
+	]
+
+	get-touch-screen: func [part [string!] config [object!] /local name value][
+		name: [
+			"any" 		0
+			"notouch"	1
+			"stylus"	2
+			"finger"	3
+		]
+
+		if value: select name part [
+			config/touchscreen: value
+		]
+	]
+
+	get-keys-hidden: func [part [string!] config [object!] /local name value][
+		name: [
+			"any" 			0
+			"keysexposed"	1
+			"keyshidden"	2
+			"keyssoft"		3
+		]
+
+		if value: select name part [
+			config/input-flags: config/input-flags and 252 or value
+		]
+	]
+
+	get-keyboard: func [part [string!] config [object!] /local name value][
+		name: [
+			"any" 		0
+			"nokeys"	1
+			"qwerty"	2
+			"12key"		3
+		]
+
+		if value: select name part [
+			config/keyboard: value
+		]
+	]
+
+	get-nav-hidden: func [part [string!] config [object!] /local name value][
+		name: [
+			"any" 			0
+			"navexposed"	4
+			"navhidden"		8
+		]
+
+		if value: select name part [
+			config/input-flags: config/input-flags and 243 or value
+		]
+	]
+
+	get-navigation: func [part [string!] config [object!] /local name value][
+		name: [
+			"any" 		0
+			"nonav"		1
+			"dpad"		2
+			"trackball" 3
+			"whell"		4
+		]
+
+		if value: select name part [
+			config/navigation: value
+		]
+	]
+
+	get-screen-size: func [part [string!] config [object!] /local value][
+		either part = "any" [
+			config/screen-width: 0
+			config/screen-height: 0
+		][
+			value: attempt [load part]
+			if pair? value [
+				config/screen-width: value/1
+				config/screen-height: value/2
+			]
+		]
+	]
+
+	get-version: func [part [string!] config [object!] /local name value][
+		if parse part [
+			"any" (value: 0)
+			| "v" s: some digit e: end (value: to-integer copy/part s e)
+		]
+		config/screen-width-dp: value
 	]
 
 	parse-config: func [
@@ -526,22 +758,91 @@ aapt: context [
 	][
 		flag: 0
 		parts: parse config-str "-"
-
-		if ge-smallest-width-dp parts/1 config [
+		if get-mcc parts/1 config [
+			flag: flag or config-flags/mcc
+			if tail? parts: next parts [return flag]
+		]
+		if get-mnc parts/1 config [
+			flag: flag or config-flags/mnc
+			if tail? parts: next parts [return flag]
+		]
+		if get-language parts/1 config [
+			flag: flag or config-flags/locale
+			if tail? parts: next parts [return flag]
+		]
+		if get-country parts/1 config [
+			flag: flag or config-flags/locale
+			if tail? parts: next parts [return flag]
+		]
+		if get-layout-direction parts/1 config [
+			flag: flag or config-flags/layout-direction
+			if tail? parts: next parts [return flag]
+		]
+		if get-smallest-width-dp parts/1 config [
 			flag: flag or config-flags/smallest-screen-width
 			if tail? parts: next parts [return flag]
 		]
-
+		if get-screen-width-dp parts/1 config [
+			flag: flag or config-flags/screen-size
+			if tail? parts: next parts [return flag]
+		]
+		if get-screen-height-dp parts/1 config [
+			flag: flag or config-flags/screen-size
+			if tail? parts: next parts [return flag]
+		]
+		if get-screen-layout-size parts/1 config [
+			flag: flag or config-flags/screen-layout
+			if tail? parts: next parts [return flag]
+		]
+		if get-screen-layout-aspect parts/1 config [
+			flag: flag or config-flags/screen-layout
+			if tail? parts: next parts [return flag]
+		]
 		if get-orientation parts/1 config [
 			flag: flag or config-flags/orientation
 			if tail? parts: next parts [return flag]
 		]
-
+		if get-UI-mode-type parts/1 config [
+			flag: flag or config-flags/ui-mode
+			if tail? parts: next parts [return flag]
+		]
+		if get-UI-mode-night parts/1 config [
+			flag: flag or config-flags/ui-mode
+			if tail? parts: next parts [return flag]
+		]
 		if get-density parts/1 config [
 			flag: flag or config-flags/density
 			if tail? parts: next parts [return flag]
 		]
-		flag
+		if get-touch-screen parts/1 config [
+			flag: flag or config-flags/touchscreen
+			if tail? parts: next parts [return flag]
+		]
+		if get-keys-hidden parts/1 config [
+			flag: flag or config-flags/keyboard-hidden
+			if tail? parts: next parts [return flag]
+		]
+		if get-keyboard parts/1 config [
+			flag: flag or config-flags/keyboard
+			if tail? parts: next parts [return flag]
+		]
+		if get-nav-hidden parts/1 config [
+			flag: flag or config-flags/keyboard-hidden
+			if tail? parts: next parts [return flag]
+		]
+		if get-navigation parts/1 config [
+			flag: flag or config-flags/navigation
+			if tail? parts: next parts [return flag]
+		]
+		if get-screen-size parts/1 config [
+			flag: flag or config-flags/screen-size
+			if tail? parts: next parts [return flag]
+		]
+		if get-version parts/1 config [
+			flag: flag or config-flags/version
+			if tail? parts: next parts [return flag]
+		]
+		false
 	]
 
 	make-config-map: func [
