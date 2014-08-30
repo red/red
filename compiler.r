@@ -243,15 +243,9 @@ red: context [
 		/local ctx obj idx
 	][
 		either all [
-			ctx: any [
-				all [
-					1 < length? obj-stack
-					third find objects last obj-stack
-				]
-				all [
-					rebol-gctx <> obj: bind? original
-					select objects obj
-				]
+			ctx: all [
+				rebol-gctx <> obj: bind? original
+				select objects obj
 			]
 			attempt [idx: get-word-index/with name ctx]
 		][
@@ -363,28 +357,29 @@ red: context [
 		check:  [
 			'object/unchanged?
 				decorate-symbol path/1
-				fourth obj: find objects path/1
+				third obj: find objects do obj-stk
 		]
 		check2: [
 			'object/unchanged2?
 				parent-ctx
 				get-word-index/with path/1 parent-ctx
-				fourth obj: find objects path/1
+				third obj: find objects do obj-stk
 		]
-
+		obj-stk: copy obj-stack
+		
 		either 2 = length? path [
+			append obj-stk path/1
 			reduce check
 		][
 			list: make block! 3 * length? path
-			top?: yes
 			while [not tail? next path][
-				repend list get pick [check check2] top?
-				if top? [top?: false]
-				parent-ctx: obj/3
+				append obj-stk path/1
+				repend list get pick [check check2] head? path
+				parent-ctx: obj/2
 				path: next path
 			]
 			new-line list on
-			new-line at list 4 on
+			new-line skip list 3 on
 			new-line/all/skip skip list 3 on 4
 			reduce ['all list]
 		]
@@ -519,15 +514,9 @@ red: context [
 			not find [word! get-word! path!] type?/word expr
 			all [any-word? expr local-word? expr]
 		][
-			return no
+			return none
 		]
-		any [
-			find objects expr
-			all [
-				1 < length? obj-stack
-				attempt [do join obj-stack expr]
-			]
-		]
+		attempt [do join obj-stack expr]
 	]
 	
 	obj-func-call?: func [path [path!] /local search base fpath symbol found? fun][
@@ -1153,10 +1142,9 @@ red: context [
 	
 	comp-context: func [
 		/with word
-		/extend proto [word!]
-		/locals words funcs ctx spec name id func? obj original body pos entry
+		/extend proto [object!]
+		/locals words funcs ctx spec name id func? obj original body pos entry symbol
 	][
-		if proto [proto: select objects proto]
 		name: to word! original: any [word pc/-1]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
 		
@@ -1183,11 +1171,11 @@ red: context [
 			]
 			insert-lf -4
 		]
-
+		
 		repend objects [
 			name obj: make object! words ctx id: get-counter
 		]
-		unless empty? next obj-stack [
+		unless tail? next obj-stack [
 			do reduce [to set-path! join obj-stack name obj]
 		]
 		bind body obj
@@ -1947,7 +1935,9 @@ red: context [
 	
 	comp-path: func [
 		/set?
-		/local path value emit? get? entry alter saved after dynamic? ctx mark obj? fpath symbol
+		/local 
+			path value emit? get? entry alter saved after dynamic? ctx mark obj?
+			fpath symbol obj
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -2018,7 +2008,7 @@ red: context [
 		
 		obj?: all [
 			not any [dynamic? find path integer!]
-			object-access? path
+			obj: object-access? path
 		]
 		
 		if set? [
@@ -2027,7 +2017,7 @@ red: context [
 		]
 
 		if obj? [
-			ctx: third find objects pick tail path -2
+			ctx: select objects obj
 			emit compose [
 				either (emit-deep-check path)
 			]
@@ -2232,12 +2222,12 @@ red: context [
 					pc/1 = 'make
 					any [
 						pc/2 = 'object!
-						inherit?: is-object? pc/2
+						obj: is-object? pc/2
 					]
 				][
 					pc: next pc
-					either inherit? [
-						comp-context/with/extend original pc/1
+					either obj [
+						comp-context/with/extend original obj
 					][
 						comp-context/with original
 					]
@@ -2261,10 +2251,7 @@ red: context [
 					either native [
 						emit-native/with 'set [-1]			;@@ refinement not handled yet
 					][
-						either ctx: any [
-							all [deep? third find objects last obj-stack]
-							all [bound? select objects obj]
-						][
+						either all [bound? ctx: select objects obj][
 							emit 'word/set-in
 							emit ctx
 							emit get-word-index/with name ctx
