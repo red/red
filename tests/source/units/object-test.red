@@ -209,6 +209,13 @@ Red [
 			set 'oip3-i 2
 		]
 		--assert 2 = oip3-i
+		
+	--test-- "oip4"
+		oip4-o: make object! [
+			i: 0
+			set 'oip4-i 3
+		]
+		--assert 3 = oip4-i
 
 
 ===end-group===
