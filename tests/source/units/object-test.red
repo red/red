@@ -186,5 +186,32 @@ Red [
 		
 ===end-group===
 
+===start-group=== "object initialisation processing"
+
+	--test-- "oip1"
+		oip1-i: 1
+		oip1-o: make object! [
+			i: oip1-i
+		]
+		--assert 1 = oip1-o/i
+		
+	--test-- "oip2"
+		oip2-i: 1
+		oip2-o: make object! [
+			i: either oip2-i = 1 [2] [3]
+		]
+		--assert 2 = oip2-o/i
+	
+	--test-- "oip3"
+		oip3-i: 1
+		oip3-o: make object! [
+			i: 0
+			set 'oip3-i 2
+		]
+		--assert 2 = oip3-i
+
+
+===end-group===
+
 ~~~end-file~~~
 
