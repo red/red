@@ -347,11 +347,29 @@ ctx-zip: context [
         ]
     ]
 
+	zip-align: func [
+		entry [block!]
+		file-size  [integer!]
+		/local name-length data-offset pad
+	][
+		if zero? entry/11 [							; method = 'store
+			name-length: copy/part skip entry 26 2
+			name-length: to-integer reverse name-length
+			data-offset: file-size + 30 + name-length
+			unless zero? mod data-offset 4 [		; padding in extra field
+				pad: 4 - mod data-offset 4
+				change skip entry 28 to-ishort pad
+				insert/dup skip entry 30 + name-length #"^@" pad
+			]
+		]
+	]
+
 	set 'package-all-entries func [
 {Builds a zip archive from a block of zip-entrys.
      Returns number of entries in archive.}
         where [file! url! binary! string!] "Where to build it"
         source [block!] "zip entrys to include in archive"
+        /align?
     /local
         nb-entries central-directory files-size out
 	][
@@ -367,6 +385,7 @@ ctx-zip: context [
 
         foreach entry source [
             nb-entries: nb-entries + 1
+            if align? [zip-align entry/1 files-size]
             ; write file offset in archive
             change skip entry/2 42 to-ilong files-size
             ; directory entry

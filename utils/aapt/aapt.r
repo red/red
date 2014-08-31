@@ -517,16 +517,18 @@ aapt: context [
 		if parse part [
 			"any" (value: 0)
 			| "mcc" s: some digit e: end (value: to-integer copy/part s e)
+		][
+			config/mcc: value
 		]
-		config/mcc: value
 	]
 
 	get-mnc: func [part [string!] config [object!] /local value][
 		if part = "any" [config/mnc: 0 return true]
 		if parse part ["mnc" s: some digit e: end] [
 			value: to-integer copy/part s e
+		][
+			config/mnc: either zero? value [-1][value]
 		]
-		config/mnc: either zero? value [-1][value]
 	]
 
 	get-language: func [part [string!] config [object!]][
@@ -560,24 +562,27 @@ aapt: context [
 		if parse part [
 			"any" (value: 0)
 			| "sw" s: some digit e: "dp" end (value: to-integer copy/part s e)
+		][
+			config/smallest-width-dp: value
 		]
-		config/smallest-width-dp: value
 	]
 
 	get-screen-width-dp: func [part [string!] config [object!] /local name value][
 		if parse part [
 			"any" (value: 0)
 			| "w" s: some digit e: "dp" end (value: to-integer copy/part s e)
+		][
+			config/screen-width-dp: value
 		]
-		config/screen-width-dp: value
 	]
 
 	get-screen-height-dp: func [part [string!] config [object!] /local name value][
 		if parse part [
 			"any" (value: 0)
 			| "h" s: some digit e: "dp" end (value: to-integer copy/part s e)
+		][
+			config/screen-height-dp: value
 		]
-		config/screen-height-dp: value
 	]
 
 	get-screen-layout-size: func [part [string!] config [object!] /local name value][
@@ -748,8 +753,9 @@ aapt: context [
 		if parse part [
 			"any" (value: 0)
 			| "v" s: some digit e: end (value: to-integer copy/part s e)
+		][
+			config/screen-width-dp: value
 		]
-		config/screen-width-dp: value
 	]
 
 	parse-config: func [
