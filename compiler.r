@@ -25,6 +25,7 @@ red: context [
 	ctx-stack:	   make block! 8						;-- contexts access path
 	objects:	   make block! 100						;-- [name object! ctx...]
 	obj-stack:	   to path! 'objects					;-- current object access path
+	container-obj?: no									;-- nearest wrapping object for deferred functions compilation
 	rebol-gctx:	   bind? 'rebol
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
@@ -221,6 +222,10 @@ red: context [
 		]
 	]
 	
+	parent-object?: does [
+		all [not empty? locals-stack container-obj?]
+	]
+	
 	get-word-index: func [name [word!] /with c [word!] /local ctx pos list][
 		if with [
 			ctx: select contexts c
@@ -250,7 +255,7 @@ red: context [
 			attempt [idx: get-word-index/with name ctx]
 		][
 			emit append to path! type actions/1
-			emit ctx
+			emit either parent-object? ['octx][ctx]		;-- optional parametrized context reference (octx)
 			emit idx
 			insert-lf -3
 		][
@@ -519,7 +524,12 @@ red: context [
 		attempt [do join obj-stack expr]
 	]
 	
-	obj-func-call?: func [path [path!] /local search base fpath symbol found? fun][
+	obj-func-call?: func [name [any-word!] /local obj origin word][
+		if rebol-gctx = obj: bind? name [return no]
+		select objects obj
+	]
+	
+	obj-func-path?: func [path [path!] /local search base fpath symbol found? fun origin name obj][
 		search: [
 			fpath: head insert copy path base
 			until [
@@ -544,13 +554,17 @@ red: context [
 		unless function! = attempt [do fun][return none] ;-- not a function call
 		
 		remove fpath									;-- remove 'objects prefix
-		symbol: decorate-obj-member path/2 fpath
 		
+		origin: fourth obj: find objects found?
+		name: pick (either origin [find objects origin][obj]) -1
+		symbol: decorate-obj-member path/2 join next obj-stack name	;@@ path call bound to external object!
+
 		either find functions symbol [
 			fpath: next find path last fpath			;-- point to function name
 			reduce [
 				either 1 = length? fpath [fpath/1][copy fpath]
 				symbol
+				obj/2 									;-- object instance ctx name
 			]
 		][
 			none
@@ -1172,11 +1186,15 @@ red: context [
 			insert-lf -4
 		]
 		
-		repend objects [
-			name obj: make object! words ctx id: get-counter
+		repend objects [								;-- register shadow object	
+			name
+			obj: make object! words						;-- build shadow object
+			ctx
+			id: get-counter
+			proto
 		]
 		unless tail? next obj-stack [
-			do reduce [to set-path! join obj-stack name obj]
+			do reduce [to set-path! join obj-stack name obj] ;-- set object in shadow tree
 		]
 		bind body obj
 		
@@ -1464,12 +1482,13 @@ red: context [
 	
 	comp-func-body: func [
 		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
-		/local init locals
+		/local init locals blk
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [symbols/1: decorate-symbol symbols/1]
 		locals: append copy [/local ctx] symbols
-		emit reduce [to set-word! decorate-func/strict name 'func locals]
+		blk: either container-obj? [head insert copy locals [octx [node!]]][locals]
+		emit reduce [to set-word! decorate-func/strict name 'func blk]
 		insert-lf -3
 
 		comp-sub-block/with 'func-body body				;-- compile function's body
@@ -1618,7 +1637,9 @@ red: context [
 		emit-close-frame
 		
 		repend bodies [									;-- save context for deferred function compilation
-			name spec body symbols locals-nb copy locals-stack copy ssa-names copy ctx-stack
+			name spec body symbols locals-nb 
+			copy locals-stack copy ssa-names copy ctx-stack
+			1 < length? obj-stack
 		]
 		pop-context
 		pc: skip pc 2
@@ -1999,10 +2020,10 @@ red: context [
 
 		if all [
 			not any [set? dynamic? find path integer!]
-			set [fpath symbol] obj-func-call? path
+			set [fpath symbol ctx] obj-func-path? path
 		][
 			pc: next pc
-			comp-call/with fpath functions/:symbol symbol
+			comp-call/with fpath functions/:symbol symbol ctx
 			exit
 		]
 		
@@ -2083,7 +2104,7 @@ red: context [
 	comp-call: func [
 		call [word! path!]
 		spec [block!]
-		/with symbol
+		/with symbol ctx-name [word!]
 		/local item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref args option
 	][
 		either spec/1 = 'intrinsic! [
@@ -2171,8 +2192,12 @@ red: context [
 				native! 	[emit-native/with name refs]
 				action! 	[emit-action/with name refs]
 				op!			[]
-				function! 	[emit decorate-func any [symbol name] insert-lf -1]
 				routine!	[emit-routine any [symbol name] spec/3]
+				function! 	[
+					emit decorate-func any [symbol name]
+					insert-lf either with [emit ctx-name -2][-1]
+				]
+				
 			]
 			emit-close-frame
 		]
@@ -2253,7 +2278,7 @@ red: context [
 					][
 						either all [bound? ctx: select objects obj][
 							emit 'word/set-in
-							emit ctx
+							emit either parent-object? ['octx][ctx]	;-- optional parametrized context reference (octx)
 							emit get-word-index/with name ctx
 							insert-lf -3
 						][
@@ -2267,7 +2292,7 @@ red: context [
 		]
 	]
 
-	comp-word: func [/literal /final /thru /local name local? alter emit-word original new][
+	comp-word: func [/literal /final /thru /local name local? alter emit-word original new ctx][
 		name: to word! original: pc/1
 		pc: next pc										;@@ move it deeper
 		local?: local-word? name
@@ -2311,7 +2336,12 @@ red: context [
 					entry: find functions alter
 				]
 				check-invalid-call name
-				comp-call name entry/2
+				
+				either ctx: obj-func-call? original [
+					comp-call/with name entry/2 name ctx
+				][
+					comp-call name entry/2
+				]
 			]
 			any [
 				find globals name
@@ -2656,7 +2686,7 @@ red: context [
 	]
 	
 	comp-bodies: does [
-		foreach [name spec body symbols locals-nb stack ssa ctx] bodies [
+		foreach [name spec body symbols locals-nb stack ssa ctx obj?] bodies [
 			either none? symbols [						;-- routine in no-global? mode
 				emit reduce [to set-word! name 'func]
 				insert-lf -2
@@ -2666,6 +2696,7 @@ red: context [
 				locals-stack: stack
 				ssa-names: ssa
 				ctx-stack: ctx
+				container-obj?: obj?
 				comp-func-body name spec body symbols locals-nb
 			]
 		]
@@ -2876,6 +2907,7 @@ red: context [
 		clear lit-vars/context
 		s-counter: 0
 		depth:	   0
+		container-obj?: no
 	]
 
 	compile: func [
