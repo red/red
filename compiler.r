@@ -1157,26 +1157,50 @@ red: context [
 	comp-context: func [
 		/with word
 		/extend proto [object!]
-		/locals words funcs ctx spec name id func? obj original body pos entry symbol
+		/locals 
+			words ctx spec name id func? obj original body pos entry
+			symbol body? ctx2
 	][
 		name: to word! original: any [word pc/-1]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
 		
-		parse body: pc/2 [
-			any [
-				pos: set-word! (func?: no) [func-constructors (func?: yes) | skip] (
-					either entry: find words pos/1 [
-						if func? [entry/2: function!]
-					][
-						append words pos/1
-						append words either func? [function!][none]
-					]
-				) | skip
+		either body?: block? pc/2 [
+			parse body: pc/2 [							;-- collect words from body block
+				any [
+					pos: set-word! (func?: no) [func-constructors (func?: yes) | skip] (
+						either entry: find words pos/1 [
+							if func? [entry/2: function!]
+						][
+							append words pos/1
+							append words either func? [function!][none]
+						]
+					) | skip
+				]
+			]
+
+			spec: make block! (length? words) / 2
+			forskip words 2 [append spec to word! words/1]
+		][
+			obj:    find objects proto
+			spec:   next first obj/1
+			words:  third obj/1
+			
+			unless find [context object!] pc/1 [
+				unless new: is-object? pc/2 [
+					comp-call 'make select functions 'make ;-- fallback to runtime creation
+					exit
+				]
+				
+				ctx2: select objects new				;-- compilable multiple inheritance case
+				spec: union spec next first new
+				forskip words 2 [
+					if word: in new words/1 [words/2: get in new words/1]
+				]
+				foreach [name value] third new [
+					unless find words name [repend words [name value]]
+				]
 			]
 		]
-		
-		spec: make block! (length? words) / 2
-		forskip words 2 [append spec to word! words/1]
 
 		redirect-to-literals [							;-- store spec and body blocks
 			ctx: add-context spec
@@ -1196,14 +1220,18 @@ red: context [
 		unless tail? next obj-stack [
 			do reduce [to set-path! join obj-stack name obj] ;-- set object in shadow tree
 		]
-		bind body obj
+		if body? [bind body obj]
 		
-		emit-open-frame 'set							;-- object value creation
+		emit-open-frame 'set							;-- runtime object value creation
 		emit-push-word name original
 		emit reduce ['object/init-push ctx id]
 		insert-lf -3
 		if proto [
 			emit reduce ['object/duplicate objects/:proto ctx]
+			insert-lf -3
+		]
+		unless body? [
+			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
 		emit 'word/set
@@ -1212,12 +1240,14 @@ red: context [
 		emit-stack-reset
 		emit-src-comment/with none rejoin [mold pc/-1 " context " mold spec]
 		
-		funcs: tail functions							;@@ to be removed
-		append obj-stack name							;@@ add support for anonymous contexts
-		pc: next pc
-		comp-next-block
-		remove back tail obj-stack
-
+		either body? [
+			append obj-stack name							;@@ add support for anonymous contexts
+			pc: next pc
+			comp-next-block
+			remove back tail obj-stack
+		][
+			pc: skip pc 2
+		]
 		none
 	]
 	

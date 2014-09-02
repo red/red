@@ -117,9 +117,57 @@ object: context [
 		part
 	]
 	
+	transfer: func [
+		src    [node!]									;-- src context
+		dst	   [node!]									;-- dst context (extension of src)
+		/local
+			from   [red-context!]
+			to	   [red-context!]
+			word   [red-word!]
+			symbol [red-value!]
+			value  [red-value!]
+			tail   [red-value!]
+			target [red-value!]
+			s	   [series!]
+			idx	   [integer!]
+			type   [integer!]
+	][
+		from: TO_CTX(src)
+		to:	  TO_CTX(dst)
+
+		s: as series! from/symbols/value
+		symbol: s/offset
+		tail: s/tail
+		
+		s: as series! from/values/value
+		value: s/offset
+
+		s: as series! to/values/value
+		target: s/offset
+
+		while [symbol < tail][
+			word: as red-word! symbol
+			idx: _context/find-word to word/symbol no
+			
+			type: TYPE_OF(value)
+			either ANY_SERIES?(type) [					s;-- copy series value in extended object
+				actions/copy
+					as red-series! value
+					target + idx
+					null
+					yes
+					null
+			][
+				copy-cell value target + idx			;-- just propagate the old value by default
+			]
+			symbol: symbol + 1
+			value: value + 1
+		]
+	]
+	
 	duplicate: func [
-		src [node!]										;-- src context
-		dst	[node!]										;-- dst context (extension of src)
+		src    [node!]									;-- src context
+		dst	   [node!]									;-- dst context (extension of src)
 		/local
 			from   [red-context!]
 			to	   [red-context!]
@@ -141,19 +189,15 @@ object: context [
 		
 		while [value < tail][
 			type: TYPE_OF(value)
-			case [
-				ANY_SERIES?(type) [					;-- copy series value in extended object
-					actions/copy
-						as red-series! value
-						target
-						null
-						yes
-						null
-				]
-				;type = TYPE_FUNCTION [
-				;	rebind as red-function! value ctx
-				;]
-				true [copy-cell value target]		;-- just propagate the old value by default
+			either ANY_SERIES?(type) [					;-- copy series value in extended object
+				actions/copy
+					as red-series! value
+					target
+					null
+					yes
+					null
+			][
+				copy-cell value target					;-- just propagate the old value by default
 			]
 			value: value + 1
 			target: target + 1
