@@ -537,7 +537,7 @@ red: context [
 				remove back tail fpath
 				any [
 					tail? next fpath
-					found?: attempt [do fpath]
+					object? found?: attempt [do fpath]
 				]
 			]
 		]
@@ -550,19 +550,18 @@ red: context [
 			do search									;-- check if path is a relative object path
 			unless found? [return none]					;-- not an object access path
 		]
-
-		fun: append copy fpath either base = 'objects [
+		
+		fun: append copy fpath either base = 'objects [ ;-- extract function access path without refinements
 			pick path length? fpath
 		][
-			last path
+			pick path 1 + (length? fpath) - (length? obj-stack)
 		]
-		
 		unless function! = attempt [do fun][return none] ;-- not a function call
 		
 		remove fpath									;-- remove 'objects prefix
 		
 		origin: fourth obj: find objects found?
-		name: pick (either origin [find objects origin][obj]) -1
+		name: either origin [select objects origin][obj/2]
 		symbol: decorate-obj-member first find/tail fun fpath name
 		
 		either find functions symbol [
