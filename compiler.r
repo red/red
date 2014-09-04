@@ -411,7 +411,8 @@ red: context [
 	
 	prefix-func: func [word [word!] /with path][
 		if 1 < length? obj-stack [
-			word: decorate-obj-member word next any [path obj-stack]
+			path: any [obj-func-call? word next any [path obj-stack]]
+			word: decorate-obj-member word path
 		]
 		word
 	]
@@ -549,16 +550,21 @@ red: context [
 			do search									;-- check if path is a relative object path
 			unless found? [return none]					;-- not an object access path
 		]
+
+		fun: append copy fpath either base = 'objects [
+			pick path length? fpath
+		][
+			last path
+		]
 		
-		fun: append copy fpath pick path length? fpath	 ;-- check if path is an absolute object path
 		unless function! = attempt [do fun][return none] ;-- not a function call
 		
 		remove fpath									;-- remove 'objects prefix
 		
 		origin: fourth obj: find objects found?
 		name: pick (either origin [find objects origin][obj]) -1
-		symbol: decorate-obj-member path/2 join next obj-stack name	;@@ path call bound to external object!
-
+		symbol: decorate-obj-member first find/tail fun fpath name
+		
 		either find functions symbol [
 			fpath: next find path last fpath			;-- point to function name
 			reduce [
@@ -1159,7 +1165,7 @@ red: context [
 		/extend proto [object!]
 		/locals 
 			words ctx spec name id func? obj original body pos entry
-			symbol body? ctx2
+			symbol body? ctx2 new
 	][
 		name: to word! original: any [word pc/-1]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
@@ -1181,7 +1187,7 @@ red: context [
 			spec: make block! (length? words) / 2
 			forskip words 2 [append spec to word! words/1]
 		][
-			obj:    find objects proto
+			obj:    find objects proto					;-- simple inheritance case
 			spec:   next first obj/1
 			words:  third obj/1
 			
@@ -1191,8 +1197,9 @@ red: context [
 					exit
 				]
 				
-				ctx2: select objects new				;-- compilable multiple inheritance case
+				ctx2: select objects new				;-- multiple inheritance case
 				spec: union spec next first new
+				
 				forskip words 2 [
 					if word: in new words/1 [words/2: get in new words/1]
 				]
@@ -1210,13 +1217,16 @@ red: context [
 			insert-lf -4
 		]
 		
+		symbol: get pick [name ctx] rebol-gctx = bind? original ;-- name for global words, else use context name
+		
 		repend objects [								;-- register shadow object	
-			name
-			obj: make object! words						;-- build shadow object
-			ctx
-			id: get-counter
-			proto
+			symbol										;-- object access word
+			obj: make object! words						;-- shadow object
+			ctx											;-- object's context name
+			id: get-counter								;-- unique object ID
+			proto										;-- optional prototype object
 		]
+		
 		unless tail? next obj-stack [
 			do reduce [to set-path! join obj-stack name obj] ;-- set object in shadow tree
 		]
@@ -1241,13 +1251,14 @@ red: context [
 		emit-src-comment/with none rejoin [mold pc/-1 " context " mold spec]
 		
 		either body? [
-			append obj-stack name							;@@ add support for anonymous contexts
+			append obj-stack name						;@@ add support for anonymous contexts
 			pc: next pc
 			comp-next-block
 			remove back tail obj-stack
 		][
 			pc: skip pc 2
 		]
+		
 		none
 	]
 	
