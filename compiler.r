@@ -25,8 +25,9 @@ red: context [
 	ctx-stack:	   make block! 8						;-- contexts access path
 	objects:	   make block! 100						;-- [name object! ctx...]
 	obj-stack:	   to path! 'objects					;-- current object access path
-	container-obj?: no									;-- nearest wrapping object for deferred functions compilation
+	container-obj?: no									;-- YES: functions are objects methods
 	rebol-gctx:	   bind? 'rebol
+	expr-stack:	   make block! 8
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
 	sys-global:    make block! 1
@@ -487,6 +488,14 @@ red: context [
 		]
 	]
 	
+	push-iterator: func [name [word!]][
+		append expr-stack name
+	]
+	
+	pop-iterator: does [
+		remove back tail expr-stack
+	]
+	
 	add-context: func [ctx [block!] /local name][
 		append contexts name: decorate-series-var 'ctx
 		append/only contexts ctx
@@ -533,11 +542,11 @@ red: context [
 	obj-func-path?: func [path [path!] /local search base fpath symbol found? fun origin name obj][
 		search: [
 			fpath: head insert copy path base
-			until [
+			until [										;-- evaluate nested paths from longer to shorter
 				remove back tail fpath
 				any [
 					tail? next fpath
-					object? found?: attempt [do fpath]
+					object? found?: attempt [do fpath]	;-- path evaluates to an object: found!
 				]
 			]
 		]
@@ -561,7 +570,7 @@ red: context [
 		remove fpath									;-- remove 'objects prefix
 		
 		origin: fourth obj: find objects found?
-		name: either origin [select objects origin][obj/2]
+		name:	either origin [select objects origin][obj/2]
 		symbol: decorate-obj-member first find/tail fun fpath name
 		
 		either find functions symbol [
@@ -1164,7 +1173,7 @@ red: context [
 		/extend proto [object!]
 		/locals 
 			words ctx spec name id func? obj original body pos entry
-			symbol body? ctx2 new
+			symbol body? ctx2 new blk
 	][
 		name: to word! original: any [word pc/-1]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
@@ -1211,7 +1220,7 @@ red: context [
 		redirect-to-literals [							;-- store spec and body blocks
 			ctx: add-context spec
 			emit compose [
-				(to set-word! ctx) _context/make (emit-block spec) no yes	;-- build context with value on stack
+				(to set-word! ctx) _context/make (blk: emit-block spec) no yes	;-- build context
 			]
 			insert-lf -4
 		]
@@ -1233,6 +1242,12 @@ red: context [
 		
 		emit-open-frame 'set							;-- runtime object value creation
 		emit-push-word name original
+		unless all [empty? locals-stack empty? expr-stack][	;-- in a function or iteration block
+			emit compose [
+				(to set-word! ctx) _context/make (blk) no yes	;-- rebuild context
+			]
+			insert-lf -4
+		]
 		emit reduce ['object/init-push ctx id]
 		insert-lf -3
 		if proto [
@@ -1367,7 +1382,9 @@ red: context [
 		]
 		new-line skip tail output -3 off
 		
+		push-iterator 'loop
 		comp-sub-block 'loop-body						;-- compile body
+		pop-iterator
 		
 		repend last output [
 			set-name name '- 1
@@ -1384,7 +1401,9 @@ red: context [
 		emit [
 			until
 		]
+		push-iterator 'until
 		comp-sub-block 'until-body						;-- compile body
+		pop-iterator
 		append/only last output 'logic/true?
 		new-line back tail last output on
 	]
@@ -1393,10 +1412,12 @@ red: context [
 		emit [
 			while
 		]
+		push-iterator 'while
 		comp-sub-block 'while-condition					;-- compile condition
 		append/only last output 'logic/true?
 		new-line back tail last output on
 		comp-sub-block 'while-body						;-- compile body
+		pop-iterator
 	]
 	
 	comp-repeat: has [name word cnt set-cnt lim set-lim action][
@@ -1449,7 +1470,9 @@ red: context [
 		new-line skip tail last output -3 on
 		new-line skip tail last output -6 on
 		
+		push-iterator 'repeat
 		comp-sub-block 'repeat-body
+		pop-iterator
 		insert last output reduce [action name cnt]
 		new-line last output on
 		emit-close-frame
@@ -1494,7 +1517,9 @@ red: context [
 		emit compose/deep [
 			while [(cond)]
 		]
+		push-iterator 'foreach
 		comp-sub-block 'foreach-body					;-- compile body
+		pop-iterator
 		emit-close-frame
 	]
 	
@@ -1510,7 +1535,10 @@ red: context [
 		emit copy/deep [								;-- copy/deep required for R/S lines injection
 			while [natives/forall-loop]
 		]
+		push-iterator 'forall
 		comp-sub-block 'forall-body						;-- compile body
+		pop-iterator
+		
 		append last output [							;-- inject at tail of body block
 			natives/forall-next							;-- move series to next position
 		]
