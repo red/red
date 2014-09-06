@@ -97,6 +97,9 @@ object: context [
 		s-tail: syms/tail
 		value: 	values/offset
 		
+		if sym = s-tail [return part]					;-- exit if empty
+		string/append-char GET_BUFFER(buffer) as-integer lf
+		
 		while [sym < s-tail][
 			if indent? [part: do-indent buffer tabs part]
 			
@@ -447,7 +450,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
 		
-		string/concatenate-literal buffer "make object! [^/"
+		string/concatenate-literal buffer "make object! ["
 		part: serialize obj buffer only? all? flat? arg part - 15 yes indent + 1
 		if indent > 0 [part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
