@@ -1225,7 +1225,10 @@ red: context [
 			insert-lf -4
 		]
 		
-		symbol: get pick [name ctx] rebol-gctx = bind? original ;-- name for global words, else use context name
+		symbol: get pick [name ctx] to logic! any [		;-- name for global words, else use context name
+			rebol-gctx = bind? original 
+			local-word? name
+		]
 		if pos: find objects name [pos/1: none]			;-- unbind word with previous object
 		
 		repend objects [								;-- register shadow object	
