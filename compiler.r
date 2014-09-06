@@ -1226,6 +1226,7 @@ red: context [
 		]
 		
 		symbol: get pick [name ctx] rebol-gctx = bind? original ;-- name for global words, else use context name
+		if pos: find objects name [pos/1: none]			;-- unbind word with previous object
 		
 		repend objects [								;-- register shadow object	
 			symbol										;-- object access word
