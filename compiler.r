@@ -1793,7 +1793,7 @@ red: context [
 			comp-word/thru
 		][
 			obj: find objects obj
-			emit reduce ['object/push obj/2 obj/3]
+			emit reduce ['object/push 'octx obj/3]
 			insert-lf -3
 		]
 	]

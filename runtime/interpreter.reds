@@ -503,12 +503,13 @@ interpreter: context [
 		set?	[logic!]
 		return: [red-value!]
 		/local 
-			path   [red-path!]
-			head   [red-value!]
-			tail   [red-value!]
-			item   [red-value!]
-			parent [red-value!]
-			saved  [red-value!]
+			path	[red-path!]
+			head	[red-value!]
+			tail	[red-value!]
+			item	[red-value!]
+			parent	[red-value!]
+			gparent	[red-value!]
+			saved	[red-value!]
 	][
 		if verbose > 0 [print-line "eval: path"]
 		
@@ -530,7 +531,7 @@ interpreter: context [
 			TYPE_NATIVE
 			TYPE_ROUTINE
 			TYPE_FUNCTION [
-				pc: eval-code parent pc end yes path item - 1
+				pc: eval-code parent pc end yes path item - 1 parent
 				return pc
 			]
 			default [0]
@@ -563,10 +564,11 @@ interpreter: context [
 					stack/unwind
 					value: stack/top - 1
 				]
-				default [0]								;-- pass-thru
+				default [0]								;-- compilation pass-thru
 			]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
+			gparent: parent								;-- save grand-parent reference
 			parent: actions/eval-path parent value all [set? item + 1 = tail]
 			
 			switch TYPE_OF(parent) [
@@ -574,7 +576,7 @@ interpreter: context [
 				TYPE_NATIVE
 				TYPE_ROUTINE
 				TYPE_FUNCTION [
-					pc: eval-code parent pc end yes path item
+					pc: eval-code parent pc end yes path item gparent
 					return pc
 				]
 				default [0]
@@ -595,9 +597,12 @@ interpreter: context [
 		sub?	[logic!]
 		path	[red-path!]
 		slot 	[red-value!]
+		parent	[red-value!]
 		return: [red-value!]
 		/local
-			name   [red-word!]
+			name [red-word!]
+			obj  [red-object!]
+			ctx	 [node!]
 	][
 		name: as red-word! pc - 1
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
@@ -629,9 +634,11 @@ interpreter: context [
 			]
 			TYPE_FUNCTION [
 				if verbose > 0 [log "pushing function frame"]
+				obj: as red-object! parent
+				ctx: either TYPE_OF(parent) = TYPE_OBJECT [obj/ctx][name/ctx]
 				stack/mark-func name
 				pc: eval-arguments as red-native! value pc end path slot
-				_function/call as red-function! value
+				_function/call as red-function! value ctx
 				either sub? [stack/unwind][stack/unwind-last]
 
 				if verbose > 0 [
@@ -754,7 +761,7 @@ interpreter: context [
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code value pc end sub? null null
+						pc: eval-code value pc end sub? null null value
 					]
 					default [
 						if verbose > 0 [log "getting word value"]

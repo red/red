@@ -523,7 +523,7 @@ parser: context [
 		stack/push as red-value! rule
 		stack/push as red-value! input
 		stack/push as red-value! rules
-		_function/call fun
+		_function/call fun global-ctx					;FIXME: hardcoded origin context
 		
 		stack/unwind
 		loop?: logic/top-true?

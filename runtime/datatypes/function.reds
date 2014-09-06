@@ -16,10 +16,11 @@ _function: context [
 	
 	call: func [
 		fun	[red-function!]
+		ctx [node!]
 		/local
 			s	   [series!]
 			native [red-native!]
-			call
+			call ocall
 	][
 		s: as series! fun/more/value
 
@@ -27,9 +28,15 @@ _function: context [
 		either zero? native/code [
 			interpreter/eval-function fun as red-block! s/offset
 		][
-			call: as function! [] native/code
-			call
-			0
+			either ctx = global-ctx [
+				call: as function! [] native/code
+				call
+				0										;FIXME: required to pass compilation
+			][
+				ocall: as function! [octx [node!]] native/code
+				ocall ctx
+				0
+			]
 		]
 	]
 	
