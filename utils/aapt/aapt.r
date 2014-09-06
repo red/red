@@ -25,6 +25,19 @@ aapt: context [
 	digit: charset [#"0" - #"9"]
 	lower-alpha: charset [#"a" - #"z"]
 	upper-alpha: charset [#"A" - #"Z"]
+	units: ["px" | "dip" | "dp" | "sp" | "pt" | "in" | "mm" | "%p" | "%"]
+
+	sdk: [
+		cupcake					3
+		donut					4
+		eclair					5
+		eclair_0_1				6
+		mr1						7
+		froyo					8
+		honeycomb_mr2			13
+		ice_cream_sandwich		14
+		ice_cream_sandwich_mr1	15
+	]
 
 	value-type: [						;-- type of the data value in 'res-value/data'
 		null			#{00}			;-- no data
@@ -48,7 +61,7 @@ aapt: context [
 	]
 
 	attribute-flags: [
-		type-code		16777216		;-- this entry holds the attribute's type code
+		type			16777216		;-- this entry holds the attribute's type code
 		min				16777217		;-- this is the minimum value it can hold
 		max				16777218		;-- this is the maximum value it can hold
 		L10N			16777219		;-- localization of this resource is can be encouraged
@@ -61,22 +74,22 @@ aapt: context [
 	]
 
 	attribute-type: [
-		any				65535			;-- no type has been defined for this attribute
-		reference		1
-		string			2
-		integer			4
-		boolean			8
-		color			16
-		float			32
-		dimension		64
-		fraction		128
-		enum			65536			;-- the enumeration values are supplied as additional entries in the map
-		flags			131072			;-- the flag bit values are supplied as additional entries in the map
+		"any"			65535			;-- no type has been defined for this attribute
+		"reference"		1
+		"string"		2
+		"integer"		4
+		"boolean"		8
+		"color"			16
+		"float"			32
+		"dimension"		64
+		"fraction"		128
+		"enum"			65536			;-- the enumeration values are supplied as additional entries in the map
+		"flags"			131072			;-- the flag bit values are supplied as additional entries in the map
 	]
 
 	L10N-flags: [
-		required		0
-		suggested		1
+		"required"		0
+		"suggested"		1
 	]
 
 	resource-type: [
@@ -101,19 +114,6 @@ aapt: context [
 		package			#{0200}
 		type-info		#{0201}
 		type-spec		#{0202}
-	]
-
-	complex-unit-flags: [
-		shift			0
-		mask			15
-		pixel			0
-		DIP				1
-		SP				2
-		point			3
-		inche			4
-		millimeter		5
-		fraction		0
-		fraction-parent 1
 	]
 
 	string-pool-flags: [					;-- flags of the 'string-pool-header/flags'
@@ -150,7 +150,7 @@ aapt: context [
 		res0			[char]				;-- always set to 0
 		datatype		[char]
 		data			[integer!]
-	] [8]
+	] [8 0 16 0]
 
 	string-pool-header: make-struct [
 		type			[short]				;-- a chunk-header
@@ -273,7 +273,7 @@ aapt: context [
 		screen-height-dp	[short]
 		locale-script		[integer!]
 		locale-variant		[decimal!]
-	] [48]
+	] [48 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
 
 	res-table-type-spec: make-struct [
 		type				[short]				;-- a chunk-header
@@ -307,15 +307,12 @@ aapt: context [
 		;entry			[res-table-entry]
 		parent			[integer!]
 		count			[integer!]
-	] none
+	] [0 0]
 
 	res-table-map: make-struct [
-		name-idx		[integer!]
-		size			[short]				;-- a res-value
-		res0			[char]
-		datatype		[char]
-		data			[integer!]
-	] [-1 8]
+		name-id			[integer!]
+		;value			[res-value]
+	] [-1]
 
 	pad4: func [s [string! binary!] /local rem][
 		unless zero? rem: (length? s) // 4 [
@@ -324,14 +321,18 @@ aapt: context [
 		s
 	]
 
+	get-hex: func [c [char!]][
+		case [
+			all [c >= #"0" c <= #"9"] [c - #"0"]
+			all [c >= #"a" c <= #"f"] [c - #"a" + 10]
+			all [c >= #"A" c <= #"F"] [c - #"A" + 10]
+		]
+	]
+
 	hex-to-integer: func [str [string!] /local int value][
 		int: 0
 		foreach c skip str 2 [
-			value: case [
-				all [c >= #"0" c <= #"9"] [c - #"0"]
-				all [c >= #"a" c <= #"f"] [c - #"a" + 10]
-				all [c >= #"A" c <= #"F"] [c - #"A" + 10]
-			]
+			value: get-hex c
 			int: int * 16 + value
 		]
 		int
@@ -365,11 +366,14 @@ aapt: context [
 		either length [cnt][result]
 	]
 
-	clean-block: func [blk [block!] /local new][
+	clean-block: func [blk [block! none!] /local new][
+		if none? blk [return make block! 1]
 		new: make block! length? blk
 		foreach value blk [
-			unless empty? trim value [
-				append new value
+			either block? value [
+				append/only new clean-block value
+			][
+				if any [none? value not empty? trim value] [append new value]
 			]
 		]
 		new
@@ -378,8 +382,9 @@ aapt: context [
 	get-res-id: func [
 		type [string!] key [string!] all-res [block!]
 		/local
-			parts info local-info types id
+			parts info local-info types id type-id key-id
 	][
+		if key = "null" [return 0]
 		info: select android-res type
 		local-info: select all-res/3/4 type
 		parts: parse key ":"
@@ -397,51 +402,177 @@ aapt: context [
 		][
 			parts: parse key "/"
 			if parts/2 [type: parts/1 key: parts/2]
-			local-info: select all-res/3/4 type
 			types: all-res/3/2
+			if type = "+id" [
+				type: "id"
+				res: compose/deep [
+					"id"
+					["name" (key)]
+					"false"
+				]
+				collect-resource res 'default all-res
+			]
+
+			local-info: select all-res/3/4 type
 			type-id: index? find types type
 			key-id: (index? find local-info/1 key) - 1
 			id: key-id
-					or (shift/left type-id 16)
-					or (shift/left 127 24)
+				or (shift/left type-id 16)
+				or (shift/left 127 24)
 		]
 		id
 	]
 
-	string-to-value: func [
-		str				[string!]
-		attr-type		[string!]
-		value-strings	[block!]
-		local-res		[block!]
-		/local value v
-	][
-		value: make-struct res-value none
+	get-color-value: func [str [string!] value [object!] /local len color][
+		len: length? str
+		color: 0
 		case [
-			integer? v: attempt [load str] [
-				value/datatype: to-integer value-type/int-dec
-				value/data: v
+			len = 4 [
+				value/datatype: to-integer value-type/color-RGB4
+				color: color or to-integer #{FF000000}
+				color: color or shift/left get-hex str/2 20
+				color: color or shift/left get-hex str/2 16
+				color: color or shift/left get-hex str/3 12
+				color: color or shift/left get-hex str/3 8
+				color: color or shift/left get-hex str/4 4
+				color: color or get-hex str/4
 			]
-			any [
-				attr-type = "string"
-				all [find attr-type "string" #"@" <> first str]
-			][
-				value/datatype: to-integer value-type/string
-				value/data: (index? find value-strings str) - 1
+			len = 5 [
+				value/datatype: to-integer value-type/color-ARGB4
+				color: color or shift/left get-hex str/2 28
+				color: color or shift/left get-hex str/2 24
+				color: color or shift/left get-hex str/3 20
+				color: color or shift/left get-hex str/3 16
+				color: color or shift/left get-hex str/4 12
+				color: color or shift/left get-hex str/4 8
+				color: color or shift/left get-hex str/5 4
+				color: color or get-hex str/5
 			]
-			attr-type = "boolean" [
-				value/datatype: to-integer value-type/int-bool
-				value/data: either str = "true" [-1][0]
+			len = 7 [
+				value/datatype: to-integer value-type/color-RGB8
+				color: color or to-integer #{FF000000}
+				color: color or shift/left get-hex str/2 20
+				color: color or shift/left get-hex str/3 16
+				color: color or shift/left get-hex str/4 12
+				color: color or shift/left get-hex str/5 8
+				color: color or shift/left get-hex str/6 4
+				color: color or get-hex str/7
 			]
-			attr-type = "dimen" [
-				value/datatype: to-integer value-type/dimension
-				value/data: 16
+			len = 9 [
+				value/datatype: to-integer value-type/color-ARGB8
+				color: color or shift/left get-hex str/2 28
+				color: color or shift/left get-hex str/3 24
+				color: color or shift/left get-hex str/4 20
+				color: color or shift/left get-hex str/5 16
+				color: color or shift/left get-hex str/6 12
+				color: color or shift/left get-hex str/7 8
+				color: color or shift/left get-hex str/8 4
+				color: color or get-hex str/9
+			]
+			'else [print ["Color Format error:" str] halt]
+		]
+		value/data: color
+	]
+
+	get-unit-value: func [
+		str [string!] value [object!]
+		/local unit-names f unit s e data bits neg? radix sft m
+	][
+		unit-names: [
+			"px"	5	0	1.0
+			"dip"	5	1	1.0
+			"dp"	5	1	1.0
+			"sp"	5	2	1.0
+			"pt"	5	3	1.0
+			"in"	5	4	1.0
+			"mm"	5	5	1.0
+			"%" 	6	0	0.01
+			"%p"	6	1	0.01
+		]
+		parse str [
+			s: opt [#"-" | #"+"] some digit e: (f: to decimal! copy/part s e)
+			units s: (unit: copy/part e s)
+		]
+		unit: find/tail unit-names unit
+		value/datatype: unit/1
+		data: unit/2
+
+		f: f * unit/3
+		if neg?: negative? f [f: abs f]
+		bits: attempt [to-integer f * 8388608 + 0.5]			;@@ should use int64!
+		either bits [
+			case [
+				zero? bits and 8388607 [radix: 0 sft: 23]
+				zero? bits and -8388608 [radix: 3 sft: 0]
+				zero? bits and -2147483648 [radix: 2 sft: 8]
+				'else [radix: 1 sft: 16]
+			]
+			m: (shift/logical bits sft) and 16777215
+			if neg? [m: (negate m) and 16777215]
+			value/data: data or (shift/left radix 4) or (shift/left m 8)
+		][
+			print ["Error: Integer Overflow" str]
+		]
+	]
+
+	parse-value: func [
+		str				[string! integer! block! none!]
+		type			[string!]
+		value-strings	[block!]
+		all-res			[block!]
+		/local res v
+	][
+		res: make-struct res-value none
+		if integer? str [
+			res/datatype: to-integer value-type/string
+			res/data: str
+			return res
+		]
+		v: attempt [load str]
+		case [
+			type = "id" [
+				res/datatype: to-integer value-type/int-bool
+				res/data: 0
+			]
+			type = "boolean" [
+				res/datatype: to-integer value-type/int-bool
+				res/data: either str = "true" [-1][0]
+			]
+			#"#" = first str [
+				get-color-value str res
 			]
 			#"@" = first str [
-				value/datatype: to-integer value-type/reference
-				value/data: get-res-id "attr" next str local-res
+				res/datatype: to-integer value-type/reference
+				res/data: get-res-id "attr" next str all-res
 			]
+			#"?" = first str [
+				res/datatype: to-integer value-type/attribute
+				res/data: get-res-id "attr" next str all-res
+			]
+			parse str ["0x" some digit end] [
+				res/datatype: to-integer value-type/int-hex
+				res/data: hex-to-integer str
+			]
+			all [type <> "string" integer? v] [
+				res/datatype: to-integer either type = "flag" [
+					value-type/int-hex
+				][value-type/int-dec]
+				res/data: v
+			]
+			all [type <> "string" decimal? v] [
+				res/datatype: to-integer value-type/float
+				res/data: v
+			]
+			parse str [opt [#"-" | #"+"] some digit units] [
+				get-unit-value str res
+			]
+			find type "string" [
+				res/datatype: to-integer value-type/string
+				res/data: (index? find value-strings str) - 1
+			]
+			'else [print ["AAPT: Can't resolve value" type str]]
 		]
-		value
+		res
 	]
 
 	add-to-string-pool: func [pool [block!] str [string!] /local value idx][
@@ -526,7 +657,6 @@ aapt: context [
 		if part = "any" [config/mnc: 0 return true]
 		if parse part ["mnc" s: some digit e: end] [
 			value: to-integer copy/part s e
-		][
 			config/mnc: either zero? value [-1][value]
 		]
 	]
@@ -619,8 +749,9 @@ aapt: context [
 			"square"	3
 		]
 
-		value: select name part
-		config/orientation: value
+		if value: select name part [
+			config/orientation: value
+		]
 	]
 
 	get-UI-mode-type: func [part [string!] config [object!] /local name value][
@@ -663,12 +794,13 @@ aapt: context [
 			"xxxhdpi"	640
 		]
 
-		unless value: select name part [
+		either value: select name part [
+			config/density: value
+		][
 			if parse part [s: some digit e: "dpi" end] [
-				value: to-integer copy/part s e
+				config/density: to-integer copy/part s e
 			]
 		]
-		config/density: value
 	]
 
 	get-touch-screen: func [part [string!] config [object!] /local name value][
@@ -754,7 +886,7 @@ aapt: context [
 			"any" (value: 0)
 			| "v" s: some digit e: end (value: to-integer copy/part s e)
 		][
-			config/screen-width-dp: value
+			config/sdk-version: value
 		]
 	]
 
@@ -848,7 +980,33 @@ aapt: context [
 			flag: flag or config-flags/version
 			if tail? parts: next parts [return flag]
 		]
-		false
+		print ["Ignore some configs:" parts]
+		flag
+	]
+
+	fix-up-version: func [config [object!] flag [integer!] /local min-sdk][
+		min-sdk: 0
+		case [
+			any [
+				config/smallest-width-dp <> 0
+				config/screen-width-dp <> 0
+				config/screen-height-dp <> 0
+			][
+				min-sdk: sdk/honeycomb_mr2
+			]
+			config/ui-mode <> 0 [min-sdk: sdk/froyo]
+			any [
+				config/screen-layout <> 0
+				config/density <> 0
+			][
+				min-sdk: sdk/donut
+			]
+		]
+		if min-sdk > config/sdk-version [
+			config/sdk-version: min-sdk
+			flag: flag or config-flags/version
+		]
+		flag
 	]
 
 	make-config-map: func [
@@ -860,6 +1018,7 @@ aapt: context [
 		either config-part: find/tail to-string res-dir #"-" [
 			remove back tail config-part
 			config-flag: parse-config config-part config
+			config-flag: fix-up-version config config-flag
 		][
 			config-part: 'default
 		]
@@ -876,58 +1035,84 @@ aapt: context [
 		node [block!] config [string! word!] all-res [block!]
 		/local
 			tag attr body name value res-info type-info key values
-			type-strings key-strings value-strings
+			type-strings key-strings value-strings type res info
 	][
-		tag: node/1
+		tag: type: node/1
 		attr: node/2
-		body: clean-block node/3
+		body: either string? node/3 [node/3][clean-block node/3]
+
+		if tag = "item" [
+			if tag: select attr "type" [type: tag]
+		]
 
 		value-strings: all-res/1
 		type-strings: all-res/3/2
 		key-strings: all-res/3/3
 		res-info: all-res/3/4
 
-		unless find type-strings tag [append type-strings tag]
+		unless find type-strings type [append type-strings type]
 		name: attempt [select attr "name"]
-		switch tag [
-			"attr"  []
-			"style" [
-				value: body
-				if (length? attr) > 2 [					;-- extra attributes, e.g "parent"
-					config: join attr config
-				]
-			]
+		switch/default type [
 			"drawable"
+			"layout"
+			"anim"
+			"animator"
+			"interpolator"
+			"transition"
+			"xml"
+			"raw"
+			"menu"
+			"mipmap"
+			"color"
+			"bool"
+			"integer"
+			"fraction"
+			"dimen" [
+				value: either file? body/1 [
+					add-to-string-pool value-strings to-string body/1
+				][body/1]
+			]
 			"string" [
 				value: add-to-string-pool value-strings body/1
 			]
-			"string-array"		[]
-			"dimen" [
-				value: body/1
-			]
-			"color"				[]
-			"bool"				[]
-			"fraction"			[]
-			"plurals"			[]
-			"array"				[]
-			"integer"			[]
-			"integer-array"		[]
-			"declare-styleable" []
 			"public"			[]
 			"public-padding"	[]
 			"add-resource"		[]
+		][
+			if any [type = "id" type = "attr"][
+				config: 'default
+			]
+			if type = "attr" [
+				foreach info body [
+					set [tag attrs b] info
+					either any [tag = "enum" tag = "flag"][
+						res: reduce ["id" attrs b]
+						collect-resource res 'default all-res
+					][
+						print ["AAPT: Can't resolve attribute" name tag]
+					]
+				]
+			]
+			value: body
+			if (length? attr) > 2 [					;-- extra attributes, e.g "parent"
+				config: join attr config
+			]
 		]
 
 		if name [
-			unless type-info: select res-info tag [
+			unless type-info: select res-info type [
 				type-info: make block! 256
 				append/only type-info make block! 128
-				repend res-info [tag type-info]
+				repend res-info [type type-info]
 			]
 
 			add-to-string-pool type-info/1 name
 			either key: find key-strings name [
 				values: select type-info (index? key) - 1
+				unless values [
+					values: make block! 4
+					repend type-info [(index? key) - 1 values]
+				]
 			][
 				values: make block! 4
 				repend type-info [length? key-strings values]
@@ -935,6 +1120,7 @@ aapt: context [
 			]
 			repend values [value config]
 		]
+		name
 	]
 
 	collect-value-resources: func [
@@ -964,6 +1150,7 @@ aapt: context [
 	][
 		dir: second split-path res-dir
 		type: first parse to-string dir "-"
+		if #"/" = last type [type: copy/part type back tail type]
 		files: read res-dir
 		foreach file files [
 			either idx: find/last file #"." [
@@ -971,7 +1158,7 @@ aapt: context [
 			][
 				name: to-string file
 			]
-			file-path: to-string join %res/ [dir file]
+			file-path: join %res/ [dir file]
 			res: compose/deep [
 				(type)
 				["name" (name)]
@@ -1028,37 +1215,109 @@ aapt: context [
 		info-chunk
 	]
 
-	compile-entry-value: func [
-		type [string!]
-		value [string! block! integer!]
-		attr [none! block!]
-		all-res [block!]
+	parse-flags: func [flags [string!] flags-map [block!] /local parts flag][
+		flag: 0
+		parts: parse flags "|"
+		foreach part parts [
+			flag: flag or select flags-map part
+		]
+		flag
+	]
+
+	compile-attribute: func [
+		key [string!] value [block!] attr [block!] all-res [block!]
 		/local
-			res info parent res-map-entry res-map-blk parent-id
+			format attr-map res-map k v res-map-blk special
+			values-blk info res
 	][
 		res-map-blk: make block! 4
-		res: make-struct res-value none
-		info: switch type [
-			"string"
-			"drawable" [
-				res/datatype: to-integer value-type/string
-				res/data: value
+		values-blk: make block! 4
+		attr-map: last all-res
+		if attr [
+			format: select attr "format"
+			if special: select attr "min" [
+				res-map: make-struct res-table-map none
+				res-map/name-id: attribute-flags/min
+				res: parse-value special "integer" all-res/1 all-res
+				append res-map-blk join form-struct res-map form-struct res
 			]
-			"style" [
-				res-map-entry: make-struct res-table-map-entry none
-				if attr [
-					if parent: select attr "parent" [
-						parent-id: get-res-id type parent all-res
-						res-map-entry/parent: parent-id
-						res-map-entry/count: 0
+			if special: select attr "max" [
+				res-map: make-struct res-table-map none
+				res-map/name-id: attribute-flags/max
+				res: parse-value special "integer" all-res/1 all-res
+				append res-map-blk join form-struct res-map form-struct res
+			]
+			if special: select attr "localization" [
+				res-map: make-struct res-table-map none
+				res-map/name-id: attribute-flags/L10N
+				res: make-struct res-value none
+				res/data: parse-flags special L10N-flags
+				append res-map-blk join form-struct res-map form-struct res
+			]
+		]
+
+		foreach info value [
+			set [tag attrs body] info
+			unless format [format: tag]
+			k: select attrs "name"
+			v: select attrs "value"
+			repend values-blk [k v]
+			res-map: make-struct res-table-map none
+			res-map/name-id: get-res-id "id" k all-res
+			res: parse-value v "integer" all-res/1 all-res
+			append res-map-blk join form-struct res-map form-struct res
+		]
+
+		unless format [format: "any"]
+		repend attr-map [key reduce [format values-blk]]
+		res-map: make-struct res-table-map none
+		res-map/name-id: attribute-flags/type
+		res: make-struct res-value none
+		res/data: parse-flags format attribute-type
+		insert res-map-blk join form-struct res-map form-struct res
+		res-map-blk
+	]
+
+	compile-entry-value: func [
+		type	[string!]
+		key		[string!]
+		value	[string! block! integer!]
+		attr	[none! block!]
+		all-res	[block!]
+		/local
+			res parent res-map-entry res-map-blk parent-id info k res-map
+	][
+
+		res: make-struct res-value none
+		either block? value [
+			res-map-entry: make-struct res-table-map-entry none
+			switch type [
+				"style" [
+					res-map-blk: make block! 4
+					if attr [
+						if parent: select attr "parent" [
+							parent-id: get-res-id type parent all-res
+							res-map-entry/parent: parent-id
+						]
+						foreach info value [
+							set [tag attrs body] info
+							k: select attrs "name"
+							res-map: make-struct res-table-map none
+							res-map/name-id: get-res-id "attr" k all-res
+							res: parse-value body/1 "integer" all-res/1 all-res
+							append res-map-blk join form-struct res-map form-struct res
+						]
+						res-map-entry/count: length? res-map-blk
 					]
 				]
+				"attr" [
+					res-map-blk: compile-attribute key value attr all-res
+					res-map-entry: make-struct res-table-map-entry none
+					res-map-entry/count: length? res-map-blk
+				]
 			]
-			"dimen" [
-				res/datatype: to-integer value-type/dimension
-				res/data: 16									;@@ fake data
-			]
-			default [print ["Unknown resource type:" type]]
+		][
+			res: parse-value value type all-res/1 all-res
 		]
 
 		either res-map-entry [
@@ -1071,8 +1330,8 @@ aapt: context [
 	compile-res-info: func [
 		all-res [block!]
 		/local
-			type-spec type-info info-blk cnt config-flag spec
-			info-chunk res-info entry-chunk flag attrs
+			type-spec type-info info-blk cnt config-flag spec k type-id
+			info-chunk res-info entry-chunk flag attrs key-strings
 	][
 		;; layout of the 'res-info
 		;; [
@@ -1094,6 +1353,7 @@ aapt: context [
 		;;	"style"  []
 		;;	"dimens" []
 		;; ]
+		key-strings: all-res/3/3
 		res-info: all-res/3/4
 		type-id: 0
 		info-chunk: make binary! 2048
@@ -1125,7 +1385,8 @@ aapt: context [
 						entry/size: 16						;@@ hard code! size of res-table-map-entry
 					]
 					entry/key-string-idx: key
-					entry-chunk: compile-entry-value type value attrs all-res
+					k: pick key-strings key + 1
+					entry-chunk: compile-entry-value type k value attrs all-res
 					append info-blk join form-struct entry entry-chunk
 				]
 				append type-spec config-flag
@@ -1187,8 +1448,8 @@ aapt: context [
 	]
 
 	get-res-value: func [
-		key [block!] value [string!] strings [block!] local-res [block!]
-		/local res attrs info key-id
+		key [block!] value [string!] strings [block!] all-res [block!]
+		/local res attrs info key-id v
 	][
 		res: make-struct res-value none
 		attrs: select android-res "attr"
@@ -1196,7 +1457,8 @@ aapt: context [
 			either key/1 = "android" [
 				info: select attrs key/2
 				key-id: hex-to-integer info/1
-				res: string-to-value value info/2 strings local-res
+				if info/3 [value: select info/3 value]
+				res: parse-value value info/2 strings all-res
 			][
 				;TODO process other resource namespaces
 			]
@@ -1255,7 +1517,7 @@ aapt: context [
 		line		[integer!]
 		strings		[block!]
 		ns			[block!]
-		local-res	[block!]
+		all-res	[block!]
 		/local
 			element attr-ext attr-node buf res name v
 			attrs-chunk attr-buf end-ext ns-chunk
@@ -1290,7 +1552,7 @@ aapt: context [
 						if v: find strings value [
 							attr-node/raw-value-idx: (index? v) - 1
 						]
-						res: get-res-value key value strings local-res
+						res: get-res-value key value strings all-res
 						attr-node/datatype: res/2/datatype
 						attr-node/data: res/2/data
 						repend attrs-chunk [res/1 form-struct attr-node]
@@ -1309,7 +1571,7 @@ aapt: context [
 				foreach item body [
 					line: line + 1
 					if block? item [
-						append buf flatten-xml item line strings ns local-res
+						append buf flatten-xml item line strings ns all-res
 					]
 				]
 			]
@@ -1325,8 +1587,12 @@ aapt: context [
 	]
 
 	collect-strings: func [
-		xml [block!] string-id [block!] string-no-id [block!] ids [binary!]
-		/local key-blk ns name attrs info
+		xml [block!]
+		string-id [block!]
+		string-no-id [block!]
+		ids [binary!]
+		all-res [block!]
+		/local key-blk ns name id info attrs
 	][
 		attrs: select android-res "attr"
 		foreach [tag attr body] xml [
@@ -1341,25 +1607,20 @@ aapt: context [
 						either 2 = length? key-blk [
 							ns: key-blk/1
 							name: key-blk/2
-							if ns = "android" [
-								either info: select attrs name [
-									if all [
-										#"@" <> first value
-										not find info/2 "integer"		;@@
-										find info/2 "string"
-									][
-										append string-no-id value
-									]
-									unless find string-id name [
-										append string-id name
-										append ids to-bin32 hex-to-integer info/1
-									]
-								][
-									print ["Can't find attribute:" name]
+							if id: get-res-id "attr" key all-res [
+								unless find string-id name [
+									append string-id name
+									append ids to-bin32 id
 								]
 							]
+							info: select attrs name
+							unless any [
+								#"@" = first value
+								#"?" = first value
+							][
+								append string-no-id value
+							]
 						][
-							;TODO find key in local-res
 							repend string-no-id [key value]
 						]
 					]
@@ -1368,7 +1629,7 @@ aapt: context [
 			if body [
 				foreach item body [
 					if block? item [
-						collect-strings item string-id string-no-id ids
+						collect-strings item string-id string-no-id ids all-res
 					]
 				]
 			]
@@ -1376,7 +1637,7 @@ aapt: context [
 	]
 
 	compile-xml-file: func [
-		file [file!] local-res [block!]
+		file [file!] all-res [block!]
 		/utf-16
 		/local
 			xml string-id string-no-id all-strings ns header
@@ -1389,7 +1650,7 @@ aapt: context [
 
 		xml: parse-xml read file
 
-		collect-strings xml/3/1 string-id string-no-id ids
+		collect-strings xml/3/1 string-id string-no-id ids all-res
 
 		ids-header: make-struct chunk-header none
 		ids-header/type: to-integer xml-type/resource-map
@@ -1403,7 +1664,7 @@ aapt: context [
 			compile-string-pool all-strings
 		]
 
-		xml-bin: flatten-xml xml/3/1 1 all-strings ns local-res
+		xml-bin: flatten-xml xml/3/1 1 all-strings ns all-res
 		header: make-struct xmltree-header none
 		header/type: to-integer resource-type/xml
 		header/size: header/header-size
@@ -1443,6 +1704,7 @@ aapt: context [
 				[]									;-- key-strings
 				[]									;-- res-info
 			]
+			[]										;-- attributes map
 		]
 
 		dirs: read res-dir

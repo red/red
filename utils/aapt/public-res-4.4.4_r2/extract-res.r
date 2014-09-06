@@ -44,17 +44,18 @@ load-dir: func [dirname /local result][
 	dirize result
 ]
 
-parse-attr-values: func [blk [block!] /local attr name value values][
+parse-attr-values: func [blk [block!] /local attr name value values type][
 	values: copy []
 	foreach node blk [
 		if block? node [
+			unless type [type: node/1]
 			attr: node/2
 			name: select attr "name"
 			value: select attr "value"
 			repend values [name value]
 		]
 	]
-	values
+	reduce [type values]
 ]
 
 parse-attrs: func [blk [block!] /local name format values attrs][
@@ -68,8 +69,7 @@ parse-attrs: func [blk [block!] /local name format values attrs][
 				]
 			]
 			if body [
-				format: 'bag
-				values: parse-attr-values body
+				set [format values] parse-attr-values body
 			]
 			if format [repend attrs [name reduce [format values]]]
 		]
