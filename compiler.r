@@ -1178,28 +1178,44 @@ red: context [
 		name: to word! original: any [word pc/-1]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
 		
-		either body?: block? pc/2 [
-			parse body: pc/2 [							;-- collect words from body block
-				any [
-					pos: set-word! (func?: no) [func-constructors (func?: yes) | skip] (
-						either entry: find words pos/1 [
-							if func? [entry/2: function!]
-						][
-							append words pos/1
-							append words either func? [function!][none]
-						]
-					) | skip
+		case [
+			body?: block? pc/2 [
+				parse body: pc/2 [						;-- collect words from body block
+					any [
+						pos: set-word! (func?: no) [func-constructors (func?: yes) | skip] (
+							either entry: find words pos/1 [
+								if func? [entry/2: function!]
+							][
+								append words pos/1
+								append words either func? [function!][none]
+							]
+						) | skip
+					]
 				]
-			]
 
-			spec: make block! (length? words) / 2
-			forskip words 2 [append spec to word! words/1]
-		][
-			obj:    find objects proto					;-- simple inheritance case
-			spec:   next first obj/1
-			words:  third obj/1
+				spec: make block! (length? words) / 2
+				forskip words 2 [append spec to word! words/1]
+			]
+			find [context object object!] pc/1 [
+				blk: redirect-to-literals [emit-block copy/part pc 2]
+				
+				emit-open-frame 'set					;-- defer it to runtime evaluation
+				emit-push-word name original
+				emit [object/make as red-object! none-value as red-value!]
+				emit blk
+				insert-lf -7
+				emit 'word/set
+				insert-lf -1
+				emit-close-frame
+				
+				pc: skip pc 2
+				return none
+			]
+			'else [
+				obj:   find objects proto				;-- simple inheritance case
+				spec:  next first obj/1
+				words: third obj/1
 			
-			unless find [context object!] pc/1 [
 				unless new: is-object? pc/2 [
 					comp-call 'make select functions 'make ;-- fallback to runtime creation
 					exit
