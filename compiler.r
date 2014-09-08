@@ -569,7 +569,9 @@ red: context [
 		
 		remove fpath									;-- remove 'objects prefix
 		
-		origin: fourth obj: find objects found?
+		if origin: fourth obj: find objects found? [
+			unless in origin last fun [origin: none]	;-- check if function was definied in origin object
+		]
 		name:	either origin [select objects origin][obj/2]
 		symbol: decorate-obj-member first find/tail fun fpath name
 		
@@ -2308,8 +2310,10 @@ red: context [
 	comp-set-word: func [/native /local name value ctx original obj bound? deep? inherit?][
 		name: original: pc/1
 		pc: next pc
-		add-symbol name: to word! clean-lf-flag name
-		add-global name
+		unless local-word? name: to word! clean-lf-flag name [
+			add-symbol name
+			add-global name
+		]
 		
 		if infix? pc [
 			throw-error "invalid use of set-word as operand"
