@@ -1199,9 +1199,11 @@ red: context [
 				blk: redirect-to-literals [emit-block copy/part pc 2]
 				emit-open-frame 'set					;-- defer it to runtime evaluation
 				emit-push-word name original
-				emit [object/make as red-object! none-value as red-value!]
-				emit blk
-				insert-lf -7
+				emit-open-frame 'do
+				emit reduce ['block/push blk]
+				insert-lf -2
+				emit-native 'do
+				emit-close-frame
 				emit 'word/set
 				insert-lf -1
 				emit-close-frame
