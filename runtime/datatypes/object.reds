@@ -88,6 +88,7 @@ object: context [
 			sym		[red-value!]
 			s-tail	[red-value!]
 			value	[red-value!]
+			blank	[byte!]
 	][
 		ctx: 	GET_CTX(obj)
 		syms:   as series! ctx/symbols/value
@@ -98,7 +99,15 @@ object: context [
 		value: 	values/offset
 		
 		if sym = s-tail [return part]					;-- exit if empty
-		string/append-char GET_BUFFER(buffer) as-integer lf
+
+		either flat? [
+			indent?: no
+			blank: space
+		][
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part -1
+			blank: lf
+		]
 		
 		while [sym < s-tail][
 			if indent? [part: do-indent buffer tabs part]
@@ -111,7 +120,7 @@ object: context [
 			part: actions/mold value buffer only? all? flat? arg part tabs
 			
 			if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
-				string/append-char GET_BUFFER(buffer) as-integer lf
+				string/append-char GET_BUFFER(buffer) as-integer blank
 				part: part - 1
 			]
 			sym: sym + 1
