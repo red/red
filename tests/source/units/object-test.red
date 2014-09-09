@@ -103,6 +103,24 @@ Red [
 
 ===end-group===
 
+
+===start-group=== "Comparison tests"
+
+	--test-- "comp-1"  --assert 	(context [])	 = (context [])
+	--test-- "comp-2"  --assert not (context [a: 1]) = (context [])
+	--test-- "comp-3"  --assert 	(context [a: 1]) = (context [a: 1])
+	--test-- "comp-4"  --assert not (context [a: 1]) = (context [a: 2])
+	--test-- "comp-5"  --assert 	(context [a: 1]) < (context [a: 2])
+	--test-- "comp-6"  --assert not (context [a: 1]) >= (context [a: 2])
+	--test-- "comp-7"  --assert 	(context [a: 2]) < (context [a: 1 b: none])
+
+	--test-- "comp-8"
+		obj:  context [a: 123]
+		obj2: context [a: 123]
+		--assert obj = obj2
+		--assert not same? obj obj2
+		--assert same? obj obj
+
 ===start-group=== "SELF test"
 
 
