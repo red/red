@@ -1192,20 +1192,25 @@ red: context [
 		/extend proto [object!]
 		/locals 
 			words ctx spec name id func? obj original body pos entry
-			symbol body? ctx2 new blk
+			symbol body? ctx2 new blk list
 	][
 		name: to word! original: any [word pc/-1]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
+		list: clear any [list []]
 		
 		either body?: block? pc/2 [
 			parse body: pc/2 [							;-- collect words from body block
 				any [
-					pos: set-word! (func?: no) [func-constructors (func?: yes) | skip] (
-						either entry: find words pos/1 [
-							if func? [entry/2: function!]
-						][
-							append words pos/1
-							append words either func? [function!][none]
+					(clear list)
+					any [pos: set-word! (append list pos/1)]
+					(func?: no) [func-constructors (func?: yes) | skip] (
+						foreach word list [
+							either entry: find words word [
+								if func? [entry/2: function!]
+							][
+								append words word
+								append words either func? [function!][none]
+							]
 						]
 					) | skip
 				]
