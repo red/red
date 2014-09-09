@@ -65,7 +65,7 @@ Red/System [
 			d			[float!]
 			return:		[float!]
 		]
-		float-power: "pow" [
+		pow: 		 "pow" [
 			base		[float!]
 			exponent	[float!]
 			return:		[float!]
@@ -94,6 +94,11 @@ Red/System [
 			radians		[float!]
 			return:		[float!]
 		]
+		atan2:       "atan2" [
+			y           [float!]
+			x           [float!]
+			return:		[float!]
+		]
 		ldexp:		"ldexp" [
 			value		[float!]
 			exponent	[integer!]
@@ -102,6 +107,18 @@ Red/System [
 		frexp:		"frexp" [
 			x			[float!]
 			exponent	[int-ptr!]
+			return:		[float!]
+		]
+		log10:		"log10" [
+			value		[float!]
+			return:		[float!]
+		]
+		log:		"log" [
+			value		[float!]
+			return:		[float!]
+		]
+		sqrt:		"sqrt" [
+			value		[float!]
 			return:		[float!]
 		]
 	]

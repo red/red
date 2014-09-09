@@ -67,6 +67,14 @@ Red [
 
 	--test-- "float-arctangent-2"
 		--assert 45 = arctangent 1
+
+	--test-- "float-arctangent2"
+		--assertf~=  3.1415926535898  arctangent2 0 -1 1E-13
+		--assertf~=  3.1415926535898  arctangent2 0.0 -1.0 1E-13
+		--assertf~= -1.5707963267949  arctangent2 -1 0 1E-13
+		--assertf~= -0.78539816339745 arctangent2 -1 1 1E-13
+		--assertf~= -0.78539816339745 arctangent2 -1.5 1.5 1E-13
+
 ===end-group===
 
 ===start-group=== "float function arguments"
@@ -424,6 +432,16 @@ Red [
 	;--test-- "special-equality-12"  --assert [1 1.#NaN] = [1 1.#NaN]	= false
 	;--test-- "special-equality-13"  --assert 1.#INF = 1.#NaN			= false
 	;--test-- "special-equality-14"  --assert 1.23 = 1.#NaN				= false
+===end-group===
+
+===start-group=== "other math functions"
+
+	--test-- "log-2-1"			--assert 5.0 = log-2 32
+	--test-- "log-10-1"			--assert 2.0 = log-10 100
+	--test-- "log-e-1"			--assert 4.812184355372417 = log-e 123
+	--test-- "exp-1"			--assert 2.6195173187490456e53 = exp 123
+	--test-- "square-root-1"	--assert 2.0 = square-root 4
+
 ===end-group===
 
 ~~~end-file~~~

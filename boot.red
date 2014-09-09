@@ -197,8 +197,7 @@ modulo: func [
 ]
 
 round: make action! [[
-		"(not yet implemented)"
-		;"Returns the nearest integer. Halves round up (away from zero) by default"
+		"Returns the nearest integer. Halves round up (away from zero) by default"
 		n		[number!]
 		/to		"Return the nearest multiple of the scale parameter"
 		scale	[number!] "Must be a non-zero value"
@@ -1013,6 +1012,14 @@ arctangent: make native! [[
 	]
 	#get-definition NAT_ARCTANGENT
 ]
+arctangent2: make native! [[
+		"Returns the angle of the point y/x in radians, when measured counterclockwise from a circle's x axis (where 0x0 represents the center of the circle). The return value is between -pi and +pi."
+		y       [number!]
+		x       [number!]
+		return: [float!]
+	]
+	#get-definition NAT_ARCTANGENT2
+]
 
 NaN?: make native! [[
 		"Returns TRUE if the number is Not-a-Number"
@@ -1020,6 +1027,46 @@ NaN?: make native! [[
 		return: [logic!]
 	]
 	#get-definition NAT_NAN?
+]
+
+log-2: make native! [[
+		"Return the base-2 logarithm"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_LOG_2
+]
+
+log-10: make native! [[
+		"Returns the base-10 logarithm"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_LOG_10
+]
+
+log-e: make native! [[
+		"Returns the natural (base-E) logarithm of the given value"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_LOG_E
+]
+
+exp: make native! [[
+		"Raises E (the base of natural logarithm) to the power specified"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_EXP
+]
+
+square-root: make native! [[
+		"Returns the square root of a number"
+		value	[number!]
+		return: [float!]
+	]
+	#get-definition NAT_SQUARE_ROOT
 ]
 
 ;------------------------------------------
@@ -1045,6 +1092,7 @@ NaN?: make native! [[
 #load set-word! "<<"	make op! :shift-left
 #load set-word! ">>"	make op! :shift-right
 #load set-word! ">>>"	make op! :shift-logical
+#load set-word! "**"	make op! :power
 and:					make op! :and~
 or:						make op! :or~
 xor:					make op! :xor~
@@ -1057,7 +1105,6 @@ Red: true												;-- ultimate Truth ;-) (pre-defines Red word)
 
 yes: on: true
 no: off: false
-;empty?: :tail?
 
 tab:		 #"^-"
 cr: 		 #"^M"
@@ -1075,6 +1122,10 @@ pi: 3.141592653589793
 ;------------------------------------------
 ;-			   Routines					  -
 ;------------------------------------------
+
+set-float-pretty: routine [mode [logic!]][float/pretty-print?: mode]
+set-float-full:	  routine [mode [logic!]][float/full-support?: mode]
+
 
 cos: routine [
 	"Returns the trigonometric cosine"
@@ -1185,7 +1236,7 @@ block?:		 func ["Returns true if the value is this type" value [any-type!]] [blo
 char?: 		 func ["Returns true if the value is this type" value [any-type!]] [char!		= type? :value]
 datatype?:	 func ["Returns true if the value is this type" value [any-type!]] [datatype!	= type? :value]
 file?:		 func ["Returns true if the value is this type" value [any-type!]] [file!		= type? :value]
-url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
+float?:		 func ["Returns true if the value is this type" value [any-type!]] [float!		= type? :value]
 function?:	 func ["Returns true if the value is this type" value [any-type!]] [function!	= type? :value]
 get-path?:	 func ["Returns true if the value is this type" value [any-type!]] [get-path!	= type? :value]
 get-word?:	 func ["Returns true if the value is this type" value [any-type!]] [get-word!	= type? :value]
@@ -1206,6 +1257,7 @@ set-path?:	 func ["Returns true if the value is this type" value [any-type!]] [s
 set-word?:	 func ["Returns true if the value is this type" value [any-type!]] [set-word!	= type? :value]
 string?:	 func ["Returns true if the value is this type" value [any-type!]] [string!		= type? :value]
 unset?:		 func ["Returns true if the value is this type" value [any-type!]] [unset!		= type? :value]
+url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
 word?:		 func ["Returns true if the value is this type" value [any-type!]] [word!		= type? :value]
 
 any-series?: func [value][
@@ -1245,12 +1297,24 @@ values-of: func [
 
 context: func [spec [block!]][make object! spec]
 
+word-to-logic: func [value [word! logic!]][
+	either logic? value [value][
+		any [
+			all [find [true yes on]  value true]
+			all [find [false no off] value false]
+		]
+	]
+]
+
 system: function [
 	"Returns information about the interpreter"
-	/version	  "Return the system version"
-	/words		  "Return a block of global words available"
-	/platform	  "Return a word identifying the operating system"
-	/interpreted? "Return TRUE if called from the interpreter"
+	/version	   "Return the system version"
+	/words		   "Return a block of global words available"
+	/platform	   "Return a word identifying the operating system"
+	/interpreted?  "Return TRUE if called from the interpreter"
+	/float-options "Change the way float numbers are processed"
+		spec [block!] "Float flags (pretty?, full?) set to TRUE or FALSE"
+	/local value
 ][
 	case [
 		version [#version]
@@ -1266,6 +1330,11 @@ system: function [
 			]
 		]
 		interpreted? [#system [logic/box stack/eval?]]
+		float-options [
+			if value: select spec 'pretty? [set-float-pretty word-to-logic value]
+			if value: select spec 'full?   [set-float-full	 word-to-logic value]
+			make unset! none
+		]
 		'else [
 			print "Please specify a system refinement value (/version, /words, or /platform)"
 		]
@@ -1397,3 +1466,11 @@ load: function [
 	unless :all [if 1 = length? out [out: out/1]]
 	out 
 ]
+
+
+;------------------------------------------
+;-				Aliases					  -
+;------------------------------------------
+
+;empty?: :tail?
+atan2: :arctangent2

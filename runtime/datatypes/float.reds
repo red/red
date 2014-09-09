@@ -15,6 +15,9 @@ Red/System [
 float: context [
 	verbose: 0
 
+	pretty-print?: true
+	full-support?: false
+
 	uint64!: alias struct! [int1 [byte-ptr!] int2 [byte-ptr!]]
 	int64!:  alias struct! [int1 [integer!] int2 [integer!]]
 
@@ -111,6 +114,7 @@ float: context [
 			dot? [logic!]
 			d	[int64!]
 			w0	[integer!]
+			pretty? [logic!]
 	][
 		d: as int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
@@ -126,24 +130,62 @@ float: context [
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
+		s/17: #"0"
+		s/18: #"0"
 		sprintf [s "%.16g" f]
 
-		dot?: no
 		p:  null
 		p1: null
 		s0: s
 		until [
-			if s/1 = #"." [dot?: yes]
-			if s/1 = #"e" [
-				p: s
-				until [
-					s: s + 1
-					s/1 > #"0"
+			dot?: no
+			until [
+				if s/1 = #"." [dot?: yes]
+				if s/1 = #"e" [
+					p: s
+					until [
+						s: s + 1
+						s/1 > #"0"
+					]
+					p1: s
 				]
-				p1: s
+				s: s + 1
+				s/1 = #"^@"
 			]
-			s: s + 1
-			s/1 = #"^@"
+
+			if pretty-print? [									;-- prettify output if needed
+				pretty?: no
+				either p = null [								;-- No "E" notation
+					w0: as-integer s - s0
+					if w0 > 16 [
+						p0: either s0/1 = #"-" [s0 + 1][s0]
+						if any [
+							p0/1 <> #"0"
+							all [p0/1 = #"0" w0 > 17]
+						][
+							p0: s - 2
+							pretty?: yes
+						]
+					]
+				][
+					if (as-integer p - s0) > 16 [				;-- the number of digits = 16
+						p0: p - 2
+						pretty?: yes
+					]
+				]
+
+				if pretty? [
+					if any [									;-- correct '01' or '99' pattern
+						all [p0/2 = #"1" p0/1 = #"0"]
+						all [p0/2 = #"9" p0/1 = #"9"]
+					][
+						sprintf [s0 "%.14g" f]
+						s: s0
+					]
+				]
+			]
+
+			s0 <> s
 		]
 
 		if p1 <> null [											;-- remove #"+" and leading zero
@@ -550,7 +592,7 @@ float: context [
 			int: as red-integer! exp
 			exp/value: integer/to-float int/value
 		]
-		base/value: float-power base/value exp/value
+		base/value: pow base/value exp/value
 		base
 	]
 

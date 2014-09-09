@@ -426,6 +426,7 @@ natives: context [
 		either any [
 			TYPE_OF(arg) = TYPE_STRING 						;@@ replace by ANY_STRING?
 			TYPE_OF(arg) = TYPE_FILE
+			TYPE_OF(arg) = TYPE_URL
 		][
 			str: as red-string! arg
 		][
@@ -888,6 +889,7 @@ natives: context [
 				logic/box zero? either any [
 					TYPE_OF(input) = TYPE_STRING		;@@ replace with ANY_STRING?
 					TYPE_OF(input) = TYPE_FILE
+					TYPE_OF(input) = TYPE_URL
 				][
 					string/rs-length? as red-string! input
 				][
@@ -1178,6 +1180,32 @@ natives: context [
 		arc-trans radians TANGENT
 	]
 
+	arctangent2*: func [
+		/local
+			f	[red-float!]
+			n	[red-integer!]
+			x	[float!]
+			y	[float!]
+	][
+		f: as red-float! stack/arguments 
+		either TYPE_OF(f) <> TYPE_FLOAT [
+			n: as red-integer! f
+			y: integer/to-float n/value
+		][
+			y: f/value
+		]
+		f: as red-float! stack/arguments + 1
+		either TYPE_OF(f) <> TYPE_FLOAT [
+			n: as red-integer! f
+			x: integer/to-float n/value
+			f/header: TYPE_FLOAT
+		][
+			x: f/value
+		]
+		f/value: atan2 y x
+		stack/set-last as red-value! f
+	]
+
 	NaN?*: func [
 		return:  [red-logic!]
 		/local
@@ -1193,10 +1221,67 @@ natives: context [
 
 	;--- Natives helper functions ---
 
+	log-2*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: (log f/value) / 0.6931471805599453
+	]
+
+	log-10*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: log10 f/value
+	]
+
+	log-e*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: log f/value
+	]
+
+	exp*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: pow 2.718281828459045235360287471 f/value
+	]
+
+	square-root*: func [
+		/local
+			f	[red-float!]
+	][
+		f: argument-as-float
+		f/value: sqrt f/value
+	]
+
+	;--- Natives helper functions ---
+
 	#enum trigonometric-type! [
 		TANGENT
 		COSINE
 		SINE
+	]
+
+	argument-as-float: func [
+		return: [red-float!]
+		/local
+			f	[red-float!]
+			n	[red-integer!]
+	][
+		f: as red-float! stack/arguments
+		if TYPE_OF(f) <> TYPE_FLOAT [
+			f/header: TYPE_FLOAT
+			n: as red-integer! f
+			f/value: integer/to-float n/value
+		]
+		f
 	]
 
 	degree-to-radians: func [
@@ -1205,17 +1290,10 @@ natives: context [
 		return: [red-float!]
 		/local
 			f	[red-float!]
-			n	[red-integer!]
 			val [float!]
 	][
-		f: as red-float! stack/arguments
-		either TYPE_OF(f) <> TYPE_FLOAT [
-			n: as red-integer! f
-			val: integer/to-float n/value
-			f/header: TYPE_FLOAT
-		][
-			val: f/value
-		]
+		f: argument-as-float
+		val: f/value
 
 		if radians < 0 [
 			val: val % 360.0
@@ -1242,17 +1320,10 @@ natives: context [
 		return: [red-float!]
 		/local
 			f	[red-float!]
-			n	[red-integer!]
 			d	[float!]
 	][
-		f: as red-float! stack/arguments
-		either TYPE_OF(f) <> TYPE_FLOAT [
-			n: as red-integer! f
-			d: integer/to-float n/value
-			f/header: TYPE_FLOAT
-		][
-			d: f/value
-		]
+		f: argument-as-float
+		d: f/value
 
 		either all [type <> TANGENT any [d < -1.0 d > 1.0]] [
 			print-line "*** Math Error: math or number overflow"
@@ -1338,6 +1409,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
@@ -1366,6 +1438,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
@@ -1413,6 +1486,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 
@@ -1506,7 +1580,13 @@ natives: context [
 			:arcsine*
 			:arccosine*
 			:arctangent*
+			:arctangent2*
 			:NaN?*
+			:log-2*
+			:log-10*
+			:log-e*
+			:exp*
+			:square-root*
 		]
 	]
 

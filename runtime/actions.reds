@@ -160,6 +160,7 @@ actions: context [
 			return: [red-value!]
 		] get-action-ptr value ACT_RANDOM
 
+		copy* -1 -1 -1
 		action-random value seed? secure? only?
 	]
 
