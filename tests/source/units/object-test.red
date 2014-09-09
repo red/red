@@ -372,7 +372,7 @@ Red [
 		--assert same? new/a base5/a
 
 	--test-- "inherit-8"
-		;--assert new/foo = 1070
+		--assert new/foo = 1070
 
 ===end-group===
 
