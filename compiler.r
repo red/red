@@ -26,6 +26,7 @@ red: context [
 	objects:	   make block! 100						;-- [name object! ctx...]
 	obj-stack:	   to path! 'objects					;-- current object access path
 	container-obj?: no									;-- YES: functions are objects methods
+	func-objs:	   none									;-- points to 'objects first in-function object
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
 	lexer: 		   do bind load-cache %lexer.r 'self
@@ -520,8 +521,13 @@ red: context [
 		none
 	]
 	
+	get-obj-base: func [name [any-word!] /list][
+		name: either local-word? name ['func-objs]['objects]
+		either list [get name][name]
+	]
+	
 	object-access?: func [path [series!]][
-		attempt [do head insert copy/part to path! path (length? path) - 1 'objects]
+		attempt [do head insert copy/part to path! path (length? path) - 1 get-obj-base path/1]
 	]
 	
 	is-object?: func [expr][
@@ -551,7 +557,7 @@ red: context [
 			]
 		]
 		
-		base: 'objects
+		base: get-obj-base path/1
 		do search										;-- check if path is an absolute object path
 		
 		if all [not found? 1 < length? obj-stack][
@@ -560,10 +566,10 @@ red: context [
 			unless found? [return none]					;-- not an object access path
 		]
 		
-		fun: append copy fpath either base = 'objects [ ;-- extract function access path without refinements
-			pick path length? fpath
-		][
+		fun: append copy fpath either base = obj-stack [ ;-- extract function access path without refinements
 			pick path 1 + (length? fpath) - (length? obj-stack)
+		][
+			pick path length? fpath
 		]
 		unless function! = attempt [do fun][return none] ;-- not a function call
 		
@@ -1268,7 +1274,7 @@ red: context [
 			rebol-gctx = bind? original 
 			local-word? name
 		]
-		if pos: find objects name [pos/1: none]			;-- unbind word with previous object
+		if pos: find get-obj-base/list name name [pos/1: none] ;-- unbind word with previous object
 		
 		repend objects [								;-- register shadow object	
 			symbol										;-- object access word
@@ -1316,7 +1322,6 @@ red: context [
 		][
 			pc: skip pc 2
 		]
-		
 		none
 	]
 	
@@ -2811,6 +2816,7 @@ red: context [
 	]
 	
 	comp-bodies: does [
+		func-objs: tail objects
 		foreach [name spec body symbols locals-nb stack ssa ctx obj?] bodies [
 			either none? symbols [						;-- routine in no-global? mode
 				emit reduce [to set-word! name 'func]
@@ -2827,6 +2833,7 @@ red: context [
 		]
 		clear locals-stack
 		clear ssa-names
+		func-objs: none
 	]
 	
 	comp-init: does [
