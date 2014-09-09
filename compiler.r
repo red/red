@@ -1170,6 +1170,23 @@ red: context [
 		name
 	]
 	
+	inherit-functions: func [new [object!] extend [object!] /local symbol name][ ;-- multiple inheritance case
+		foreach word next first extend [
+			if function! = get in extend word [
+				symbol: decorate-obj-member word select objects extend
+				
+				repend functions [
+					name: decorate-obj-member word select objects new
+					select functions symbol
+				]
+				
+				append bodies name
+				append bodies bind/copy copy/part next find bodies symbol 8 new
+				add-symbol name
+			]
+		]
+	]
+	
 	comp-context: func [
 		/with word
 		/extend proto [object!]
@@ -1276,6 +1293,7 @@ red: context [
 			insert-lf -3
 		]
 		unless body? [
+			inherit-functions obj new
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
@@ -1689,7 +1707,12 @@ red: context [
 		src-name: prefix-func to word! original: pc/-1
 		name: check-func-name src-name
 		add-symbol word: to word! clean-lf-flag name
-		add-global word
+		unless any [
+			local-word? name
+			1 < length? obj-stack
+		][
+			add-global word
+		]
 		
 		pc: next pc
 		set [spec body] pc
