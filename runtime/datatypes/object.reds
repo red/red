@@ -490,6 +490,115 @@ object: context [
 		]
 	]
 	
+	compare: func [
+		obj1	[red-object!]							;-- first operand
+		obj2	[red-object!]							;-- second operand
+		op		[integer!]								;-- type of comparison
+		return:	[logic!]
+		/local
+			ctx1   [red-context!]
+			ctx2   [red-context!]
+			sym1   [red-word!]
+			sym2   [red-word!]
+			tail   [red-word!]
+			value1 [red-value!]
+			value2 [red-value!]
+			s	   [series!]
+			diff   [integer!]
+			s1	   [integer!]
+			s2	   [integer!]
+			type1  [integer!]
+			type2  [integer!]
+			res	   [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "object/compare"]]
+
+		if TYPE_OF(obj2) <> TYPE_OBJECT [RETURN_COMPARE_OTHER]
+		
+		ctx1: GET_CTX(obj1)
+		s: as series! ctx1/symbols/value
+		sym1: as red-word! s/offset
+		tail: as red-word! s/tail
+		
+		ctx2: GET_CTX(obj2)
+		s: as series! ctx2/symbols/value
+		
+		diff: (as-integer s/tail - s/offset) - (as-integer tail - sym1)
+		if diff <> 0 [
+			switch op [
+				COMP_EQUAL
+				COMP_STRICT_EQUAL  [res: false]
+				COMP_NOT_EQUAL 	   [res: true]
+				COMP_LESSER
+				COMP_LESSER_EQUAL  [res: diff > 0]
+				COMP_GREATER
+				COMP_GREATER_EQUAL [res: diff < 0]
+			]
+			return res
+		]	
+		if zero? (as-integer tail - sym1) [			;-- empty objects case
+			switch op [
+				COMP_EQUAL
+				COMP_STRICT_EQUAL
+				COMP_LESSER_EQUAL
+				COMP_GREATER_EQUAL [res: true]
+				COMP_NOT_EQUAL 	   [res: false]
+				default 		   [res: false]
+			]
+			return res
+		]
+		
+		sym2: as red-word! s/offset
+		s: as series! ctx1/values/value
+		value1: s/offset
+		s: as series! ctx2/values/value
+		value2: s/offset
+		
+		until [
+			s1: symbol/resolve sym1/symbol
+			s2: symbol/resolve sym2/symbol
+			if s1 <> s2 [
+				switch op [
+					COMP_EQUAL
+					COMP_STRICT_EQUAL  [res: false]
+					COMP_NOT_EQUAL 	   [res: true]
+					COMP_LESSER
+					COMP_LESSER_EQUAL  [res: s1 < s2]
+					COMP_GREATER
+					COMP_GREATER_EQUAL [res: s1 > s2]
+				]
+				return res
+			]
+			type1: TYPE_OF(value1)
+			type2: TYPE_OF(value2)
+			either any [
+				type1 = type2
+				all [word/any-word? type1 word/any-word? type2]
+				all [type1 = TYPE_INTEGER type2 = TYPE_INTEGER]	 ;@@ replace by ANY_NUMBER?
+			][
+				res: actions/compare value1 value2 op
+				sym1: sym1 + 1
+				sym2: sym2 + 2
+				value1: value1 + 1
+				value2: value2 + 1
+			][
+				switch op [
+					COMP_EQUAL
+					COMP_STRICT_EQUAL	[res: false]
+					COMP_NOT_EQUAL 		[res: true]
+					COMP_LESSER_EQUAL	[res: type1 <= type2]
+					COMP_GREATER_EQUAL	[res: type1 >= type2]
+				]
+				return res
+			]
+			any [
+				not res
+				sym1 >= tail
+			]
+		]
+		res
+	]
+	
 	copy: func [
 		obj      [red-object!]
 		new	  	 [red-object!]
@@ -651,7 +760,7 @@ object: context [
 			:mold
 			:eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
