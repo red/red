@@ -162,7 +162,7 @@ object: context [
 			idx: _context/find-word to word/symbol no
 			
 			type: TYPE_OF(value)
-			either ANY_SERIES?(type) [					s;-- copy series value in extended object
+			either ANY_SERIES?(type) [					;-- copy series value in extended object
 				actions/copy
 					as red-series! value
 					target + idx
