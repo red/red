@@ -553,6 +553,7 @@ natives: context [
 				]
 				any [
 					type = TYPE_BINARY
+					type = TYPE_OBJECT
 					ANY_SERIES?(type)
 				][
 					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]

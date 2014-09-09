@@ -351,7 +351,7 @@ Red [
 		--assert base5/a/double = 20
 
 	--test-- "inherit-7"
-		;--assert new/a = base5/a 			;@@ COMPARE action not implemented yet
+		--assert same? new/a base5/a
 
 	--test-- "inherit-8"
 		;--assert new/foo = 1070
