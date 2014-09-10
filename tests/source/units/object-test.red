@@ -374,6 +374,25 @@ Red [
 	--test-- "inherit-8"
 		--assert new/foo = 1070
 
+	--test-- "inherit-9"
+		base9: context [
+			v: 123456
+			show: does [v]
+		]
+		i: 100
+		list: []
+		loop 3 [
+			new9: make base9 [v: i]
+			--assert new9/v = i
+			--assert new9/show = i
+			append list new9
+			i: i + 1
+		]
+		--assert base9/v = 123456
+		--assert list/1/v = 100
+		--assert list/2/v = 101
+		--assert list/3/v = 102
+
 ===end-group===
 
 ~~~end-file~~~
