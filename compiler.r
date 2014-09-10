@@ -1713,9 +1713,12 @@ red: context [
 	
 	comp-func: func [
 		/collect /does /has
-		/local name word spec body symbols locals-nb spec-blk body-blk ctx src-name original
+		/local name word spec body symbols locals-nb spec-blk body-blk ctx src-name original global?
 	][
-		src-name: prefix-func to word! original: pc/-1
+		src-name: to word! original: pc/-1
+		unless global?: all [lit-word? pc/-1 pc/-2 = 'set][
+			src-name: prefix-func src-name
+		]
 		name: check-func-name src-name
 		add-symbol word: to word! clean-lf-flag name
 		unless any [
@@ -1762,7 +1765,7 @@ red: context [
 		repend bodies [									;-- save context for deferred function compilation
 			name spec body symbols locals-nb 
 			copy locals-stack copy ssa-names copy ctx-stack
-			1 < length? obj-stack
+			all [not global? 1 < length? obj-stack]
 		]
 		pop-context
 		pc: skip pc 2
