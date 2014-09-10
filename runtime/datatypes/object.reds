@@ -469,12 +469,14 @@ object: context [
 	eval-path: func [
 		parent	[red-object!]							;-- implicit type casting
 		element	[red-value!]
-		set?	[logic!]
+		value	[red-value!]
 		return:	[red-value!]
 		/local
 			word [red-word!]
 			ctx  [red-context!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "object/eval-path"]]
+		
 		word: as red-word! element
 		ctx:  GET_CTX(parent)
 
@@ -482,9 +484,9 @@ object: context [
 			word/index: _context/find-word ctx word/symbol no
 			word/ctx: parent/ctx
 		]
-		either set? [
-			_context/set-in word stack/arguments ctx 
-			stack/arguments
+		either value <> null [
+			_context/set-in word value ctx 
+			value
 		][
 			_context/get-in word ctx
 		]

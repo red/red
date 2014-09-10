@@ -307,6 +307,7 @@ red: context [
 	]
 	
 	emit-open-frame: func [name [word!] /local type][
+		unless find symbols name [add-symbol name]
 		emit case [
 			'function! = all [
 				type: find functions name
@@ -887,6 +888,12 @@ red: context [
 		name
 	]
 	
+	emit-eval-path: func [/set][
+		emit 'actions/eval-path*
+		emit either set ['true]['false]
+		insert-lf -2
+	]
+	
 	emit-path: func [
 		path [path! set-path!] set? [logic!] alt? [logic!]
 		/local value mark assign original
@@ -900,7 +907,7 @@ red: context [
 			][
 				comp-expression							;-- fetch assigned value (normal case)
 			]
-			emit-action 'poke
+			emit-eval-path/set
 			emit-close-frame
 		]
 		
@@ -912,14 +919,9 @@ red: context [
 						emit-get-word value original
 					]
 					all [set? tail? next path][
-						emit-open-frame 'poke
-						emit-open-frame 'find
+						emit-open-frame 'eval-set-path
 						emit-path back path set? alt?
 						emit-push-word value value
-						emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
-						emit-close-frame
-						emit [integer/push 2] 
-						insert-lf -2
 						do assign
 					]
 					'else [
@@ -958,7 +960,6 @@ red: context [
 					convert-to-block mark
 					do assign
 				][
-					add-symbol 'pick-select
 					emit-open-frame 'pick-select
 					emit-path back path set? alt?
 					emit-get-word to word! value original
@@ -979,7 +980,7 @@ red: context [
 			]
 			integer! [
 				either all [set? tail? next path][
-					emit-open-frame 'poke
+					emit-open-frame 'eval-set-path
 					emit-path back path set? alt?
 					emit compose [integer/push (value)]
 					insert-lf -2

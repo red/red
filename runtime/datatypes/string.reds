@@ -1166,17 +1166,19 @@ string: context [
 	eval-path: func [
 		parent	[red-string!]							;-- implicit type casting
 		element	[red-value!]
-		set?	[logic!]
+		value	[red-value!]
 		return:	[red-value!]
 		/local
-			int [red-integer!]
+			int  [red-integer!]
+			set? [logic!]
 	][
+		set?: value <> null
 		switch TYPE_OF(element) [
 			TYPE_INTEGER [
 				int: as red-integer! element
 				either set? [
-					poke parent int/value as red-char! stack/arguments null	;TBD: add char! checking!
-					stack/arguments
+					poke parent int/value as red-char! value null	;TBD: add char! checking!
+					value
 				][
 					pick parent int/value null
 				]
@@ -1184,8 +1186,8 @@ string: context [
 			TYPE_WORD [
 				either set? [
 					element: find parent element null no no no null null no no no no
-					actions/poke as red-series! element 2 stack/arguments null
-					stack/arguments
+					actions/poke as red-series! element 2 value null
+					value
 				][
 					select parent element null no no no null null no no
 				]

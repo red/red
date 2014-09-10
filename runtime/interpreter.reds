@@ -510,6 +510,7 @@ interpreter: context [
 			parent	[red-value!]
 			gparent	[red-value!]
 			saved	[red-value!]
+			arg		[red-value!]
 	][
 		if verbose > 0 [print-line "eval: path"]
 		
@@ -569,7 +570,8 @@ interpreter: context [
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
 			gparent: parent								;-- save grand-parent reference
-			parent: actions/eval-path parent value all [set? item + 1 = tail]
+			arg: either all [set? item + 1 = tail][stack/arguments][null]
+			parent: actions/eval-path parent value arg
 			
 			switch TYPE_OF(parent) [
 				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
