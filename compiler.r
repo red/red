@@ -682,6 +682,22 @@ red: context [
 		name
 	]
 	
+	check-new-func-name: func [path [path!] symbol [word!] ctx [word!] /local name][
+		if any [
+			set-word? name: pc/-1
+			all [lit-word? name 'set = pc/-2]
+		][
+			name: to word! name
+			repend functions [name append select functions symbol ctx]
+			
+			either pos: find ssa-names name [			;-- add the real function name as alias
+				pos/2: symbol
+			][
+				repend ssa-names [name symbol]
+			]
+		]
+	]
+	
 	check-spec: func [spec [block!] /local symbols value pos stop locals return?][
 		symbols: make block! length? spec
 		locals:  0
@@ -2164,9 +2180,13 @@ red: context [
 			not any [set? dynamic? find path integer!]
 			set [fpath symbol ctx] obj-func-path? path
 		][
-			pc: next pc
-			comp-call/with fpath functions/:symbol symbol ctx
-			exit
+			either get? [
+				check-new-func-name path symbol ctx
+			][
+				pc: next pc
+				comp-call/with fpath functions/:symbol symbol ctx
+				exit
+			]
 		]
 		
 		obj?: all [
@@ -2487,7 +2507,10 @@ red: context [
 				]
 				check-invalid-call name
 				
-				either ctx: obj-func-call? original [
+				either ctx: any [
+					obj-func-call? original
+					pick entry/2 5
+				][
 					comp-call/with name entry/2 name ctx
 				][
 					comp-call name entry/2
