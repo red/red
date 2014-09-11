@@ -228,6 +228,17 @@ red: context [
 		all [not empty? locals-stack container-obj?]
 	]
 	
+	find-binding: func [original [any-word!] /local ctx idx][
+		all [
+			ctx: all [
+				rebol-gctx <> obj: bind? original
+				select objects obj
+			]
+			attempt [idx: get-word-index/with to word! original ctx]
+			reduce [ctx idx]
+		]
+	]
+	
 	get-word-index: func [name [word!] /with c [word!] /local ctx pos list][
 		if with [
 			ctx: select contexts c
@@ -778,7 +789,7 @@ red: context [
 	
 	emit-block: func [
 		blk [block!] /sub level [integer!] /bind ctx [word!]
-		/local name item value word action type
+		/local name item value word action type binding
 	][
 		unless sub [
 			emit-open-frame 'append
@@ -835,7 +846,12 @@ red: context [
 							action: 'push-local
 							reduce [ctx get-word-index/with to word! :item ctx]
 						][
-							value
+							either binding: find-binding :item [
+								action: 'push-local
+								binding
+							][
+								value
+							]
 						]
 						
 					]
