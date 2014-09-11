@@ -167,7 +167,7 @@ aapt: context [
 		name-idx		[integer!]			;-- 0xFFFFFFFF, indicates the end of an array of spans
 		first-char		[integer!]
 		last-char		[integer!]
-	] none
+	] [-1]
 
 	;-------------------------------------------------------
 	;-- Binary XML Tree Structs
@@ -373,7 +373,10 @@ aapt: context [
 			either block? value [
 				append/only new clean-block value
 			][
-				if any [none? value not empty? trim value] [append new value]
+				if any [
+					none? value
+					not empty? trim copy value
+				][append new value]
 			]
 		]
 		new
@@ -386,7 +389,7 @@ aapt: context [
 	][
 		if key = "null" [return 0]
 		info: select android-res type
-		local-info: select all-res/3/4 type
+		local-info: select all-res/4/4 type
 		parts: parse key ":"
 		either parts/2 [
 			either parts/1 = "android" [
@@ -402,7 +405,7 @@ aapt: context [
 		][
 			parts: parse key "/"
 			if parts/2 [type: parts/1 key: parts/2]
-			types: all-res/3/2
+			types: all-res/4/2
 			if type = "+id" [
 				type: "id"
 				res: compose/deep [
@@ -413,7 +416,7 @@ aapt: context [
 				collect-resource res 'default all-res
 			]
 
-			local-info: select all-res/3/4 type
+			local-info: select all-res/4/4 type
 			type-id: index? find types type
 			key-id: (index? find local-info/1 key) - 1
 			id: key-id
@@ -469,7 +472,7 @@ aapt: context [
 				color: color or shift/left get-hex str/8 4
 				color: color or get-hex str/9
 			]
-			'else [print ["Color Format error:" str] halt]
+			'else [print ["AAPT: Color Format error" str] halt]
 		]
 		value/data: color
 	]
@@ -511,23 +514,18 @@ aapt: context [
 			if neg? [m: (negate m) and 16777215]
 			value/data: data or (shift/left radix 4) or (shift/left m 8)
 		][
-			print ["Error: Integer Overflow" str]
+			print ["AAPT: Integer Overflow" str]
 		]
 	]
 
 	parse-value: func [
-		str				[string! integer! block! none!]
+		str				[string! block! none!]
 		type			[string!]
 		value-strings	[block!]
 		all-res			[block!]
-		/local res v
+		/local res v idx
 	][
 		res: make-struct res-value none
-		if integer? str [
-			res/datatype: to-integer value-type/string
-			res/data: str
-			return res
-		]
 		v: attempt [load str]
 		case [
 			type = "id" [
@@ -566,11 +564,14 @@ aapt: context [
 			parse str [opt [#"-" | #"+"] some digit units] [
 				get-unit-value str res
 			]
-			find type "string" [
+			'else [
 				res/datatype: to-integer value-type/string
-				res/data: (index? find value-strings str) - 1
+				either idx: find value-strings str [
+					res/data: (index? idx) - 1
+				][
+					print ["AAPT: Can't resolve value" type str]
+				]
 			]
-			'else [print ["AAPT: Can't resolve value" type str]]
 		]
 		res
 	]
@@ -585,12 +586,44 @@ aapt: context [
 		]
 	]
 
+	compile-style-string: func [strings [block!]
+		/local new styles str span style start
+	][
+		styles: make block! 4
+		unless block? strings/1 [return styles]
+
+		start: strings
+		new: make block! length? strings
+		until [
+			str: copy ""
+			style: make binary! 64
+			foreach s strings/1 [
+				append str either string? s [s][
+					span: make-struct string-pool-span none
+					span/name-idx: add-to-string-pool start s/1
+					span/first-char: length? str
+					span/last-char: span/first-char + (length? s/3/1) - 1
+					append style form-struct span
+					s/3/1
+				]
+			]
+			append style #{FFFFFFFF}
+			append styles style
+			append new str
+			strings: next strings
+			string? strings/1
+		]
+		append new strings
+		append clear start new
+		styles
+	]
+
 	compile-string-pool: func [
 		strings [block!]
 		/utf-16
-		/local header offsets buf u8len u16len
+		/local styles header offsets buf base u8len u16len
 	][
-		;TODO handle styled strings
+		styles: compile-style-string strings
 		offsets: make binary! 32
 		buf: make binary! 512
 		foreach str strings [
@@ -618,13 +651,24 @@ aapt: context [
 		]
 		buf: pad4 buf
 
+		base: length? buf
+		foreach style styles [
+			append offsets to-bin32 (length? buf) - base
+			append buf style
+		]
+
 		header:               make-struct string-pool-header none
 		header/type:          to-integer resource-type/string-pool
 		header/header-size:   length? form-struct header
 		header/string-count:  length? strings
-		header/style-count:   0
-		header/strings-start: header/header-size + (4 * length? strings)
-		header/styles-start:  0
+		header/style-count:   length? styles
+		header/strings-start: header/header-size
+							+ (4 * length? strings)
+							+ (4 * length? styles)
+		header/styles-start: either empty? styles [0][
+								append buf #{FFFFFFFFFFFFFFFF}
+								header/strings-start + base
+							]
 		unless utf-16 [header/flags: string-pool-flags/UTF-8]
 		header/size: header/header-size
 					+ (length? offsets)
@@ -638,7 +682,7 @@ aapt: context [
 		either xml/1 = "manifest" [
 			name: select xml/2 "package"
 		][
-			print ["Not a manifest file:" manifest]
+			print ["AAPT: Not a manifest file:" manifest]
 			halt
 		]
 		name
@@ -980,7 +1024,7 @@ aapt: context [
 			flag: flag or config-flags/version
 			if tail? parts: next parts [return flag]
 		]
-		print ["Ignore some configs:" parts]
+		print ["AAPT: Ignore some configs" parts]
 		flag
 	]
 
@@ -1023,7 +1067,7 @@ aapt: context [
 			config-part: 'default
 		]
 
-		config-map: all-res/2
+		config-map: all-res/3
 		unless find config-map config-part [
 			config: form-struct config
 			repend config-map [config-part reduce [config-flag config]]
@@ -1046,9 +1090,9 @@ aapt: context [
 		]
 
 		value-strings: all-res/1
-		type-strings: all-res/3/2
-		key-strings: all-res/3/3
-		res-info: all-res/3/4
+		type-strings: all-res/4/2
+		key-strings: all-res/4/3
+		res-info: all-res/4/4
 
 		unless find type-strings type [append type-strings type]
 		name: attempt [select attr "name"]
@@ -1073,7 +1117,12 @@ aapt: context [
 				][body/1]
 			]
 			"string" [
-				value: add-to-string-pool value-strings body/1
+				either 1 < length? body [
+					insert/only all-res/2 body
+					value: negate length? all-res/2
+				][
+					value: add-to-string-pool value-strings body/1
+				]
 			]
 			"public"			[]
 			"public-padding"	[]
@@ -1138,7 +1187,7 @@ aapt: context [
 					]
 				]
 			][
-				print ["Warning: not a resource." xml/1]
+				print ["AAPT: not a resource" xml/1]
 			]
 		]
 		all-res
@@ -1317,7 +1366,12 @@ aapt: context [
 				]
 			]
 		][
-			res: parse-value value type all-res/1 all-res
+			either integer? value [
+				res/datatype: to-integer value-type/string
+				res/data: value + length? all-res/2
+			][
+				res: parse-value value type all-res/1 all-res
+			]
 		]
 
 		either res-map-entry [
@@ -1353,8 +1407,8 @@ aapt: context [
 		;;	"style"  []
 		;;	"dimens" []
 		;; ]
-		key-strings: all-res/3/3
-		res-info: all-res/3/4
+		key-strings: all-res/4/3
+		res-info: all-res/4/4
 		type-id: 0
 		info-chunk: make binary! 2048
 		foreach [type info] res-info [
@@ -1371,7 +1425,7 @@ aapt: context [
 						attrs: config
 						config: last config
 					]
-					flag: first select all-res/2 config
+					flag: first select all-res/3 config
 					config-flag: config-flag or flag
 
 					unless info-blk: select type-info config [
@@ -1395,7 +1449,7 @@ aapt: context [
 				]
 			]
 			append info-chunk compile-type-spec type-id type-spec
-			append info-chunk compile-type-info type-id type-info all-res/2
+			append info-chunk compile-type-info type-id type-info all-res/3
 		]
 		info-chunk
 	]
@@ -1407,7 +1461,7 @@ aapt: context [
 			header res-chunk
 	][
 		;; res-package: [package-name type-strings key-strings res-info]
-		res-package: all-res/3
+		res-package: all-res/4
 
 		package-name: utf8-to-utf16 res-package/1
 		insert/dup tail package-name null 256 - length? package-name
@@ -1434,6 +1488,7 @@ aapt: context [
 		all-res [block!]
 		/local value-strings package-chunk header
 	][
+		insert all-res/1 all-res/2
 		value-strings: compile-string-pool all-res/1
 		package-chunk: compile-res-package all-res
 
@@ -1586,6 +1641,17 @@ aapt: context [
 		buf
 	]
 
+	accept-string?: func [value [string!] type [string!]][
+		all [
+			#"@" <> first value
+			#"?" <> first value
+			find type "string"
+			not all [find type "integer" integer? load value]
+			not all [find type "float" number? load value]
+			not all [find type "boolean" any [value = "true" value = "false"]]
+		]
+	]
+
 	collect-strings: func [
 		xml [block!]
 		string-id [block!]
@@ -1614,10 +1680,7 @@ aapt: context [
 								]
 							]
 							info: select attrs name
-							unless any [
-								#"@" = first value
-								#"?" = first value
-							][
+							if accept-string? value info/2 [
 								append string-no-id value
 							]
 						][
@@ -1697,6 +1760,7 @@ aapt: context [
 
 		all-res: compose/deep [
 			[]										;-- value-strings
+			[]										;-- style-strings
 			[]										;-- config map
 			[										;-- res-package
 				(package-name)
