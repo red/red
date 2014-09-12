@@ -395,5 +395,16 @@ Red [
 
 ===end-group===
 
+===start-group=== "dynamic invocation"
+
+	d: context [
+		value: 998
+	    f: does [value]
+	]
+	h: :d/f
+	--assert h = 998
+	d/value: 123
+	--assert 123 = do [h]
+
 ~~~end-file~~~
 
