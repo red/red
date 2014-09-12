@@ -607,6 +607,9 @@ interpreter: context [
 		/local
 			name [red-word!]
 			obj  [red-object!]
+			fun	 [red-function!]
+			int	 [red-integer!]
+			s	 [series!]
 			ctx	 [node!]
 	][
 		name: as red-word! pc - 1
@@ -640,7 +643,16 @@ interpreter: context [
 			TYPE_FUNCTION [
 				if verbose > 0 [log "pushing function frame"]
 				obj: as red-object! parent
-				ctx: either TYPE_OF(parent) = TYPE_OBJECT [obj/ctx][name/ctx]
+				ctx: either TYPE_OF(parent) = TYPE_OBJECT [obj/ctx][
+					fun: as red-function! value
+					s: as series! fun/more/value
+					int: as red-integer! s/offset + 4
+					either TYPE_OF(int) = TYPE_INTEGER [
+						ctx: as node! int/value
+					][
+						name/ctx						;-- get a context from calling name
+					]
+				]
 				stack/mark-func name
 				pc: eval-arguments as red-native! value pc end path slot
 				_function/call as red-function! value ctx

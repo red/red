@@ -253,6 +253,7 @@ natives: context [
 			as red-block! stack/arguments + 1
 			null
 			0
+			null
 		stack/set-last stack/top - 1
 	]
 	

@@ -1787,9 +1787,10 @@ red: context [
 		emit reduce [
 			'_function/push spec-blk body-blk ctx
 			'as 'integer! to get-word! decorate-func/strict name
+			either 1 < length? obj-stack [select objects do obj-stack]['null]
 		]
-		insert-lf -7
-		new-line skip tail output -3 no
+		insert-lf -8
+		new-line skip tail output -4 no
 		emit 'word/set
 		insert-lf -1
 		emit-close-frame

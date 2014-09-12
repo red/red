@@ -288,7 +288,7 @@ object: context [
 		
 		blk: block/clone as red-block! more yes
 		_context/bind blk ctx yes						;-- rebind new body to object
-		_function/push spec blk	fun/ctx null			;-- recreate function
+		_function/push spec blk	fun/ctx null null		;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
 		

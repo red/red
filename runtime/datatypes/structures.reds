@@ -214,6 +214,7 @@ red-function!: alias struct! [
 	;	symbols	 [red-block!]						;-- 	native cleaned-up spec block reference
 	;	native   [node!]							;-- 	JIT-compiled body (binary!)
 	;   fun		 [red-function!]					;--		(optional) copy of parent function! value (used by op!)
+	;	obj		 [red-context!]						;--		context! pointer for methods
 ]
 
 red-routine!: alias struct! [

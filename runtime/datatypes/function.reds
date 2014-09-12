@@ -260,11 +260,13 @@ _function: context [
 		body	 [red-block!]
 		ctx		 [node!]								;-- if not null, context is predefined by compiler
 		code	 [integer!]
+		obj-ctx	 [node!]
 		return:	 [node!]								;-- return function's local context reference
 		/local
 			fun    [red-function!]
 			native [red-native!]
 			value  [red-value!]
+			int	   [red-integer!]
 			more   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
@@ -273,7 +275,7 @@ _function: context [
 		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
 		fun/spec:	 spec/node
 		fun/ctx:	 either null? ctx [_context/make spec yes no][ctx]
-		fun/more:	 alloc-cells 3
+		fun/more:	 alloc-cells 5
 		
 		more: as series! fun/more/value
 		value: either null? body [none-value][as red-value! body]
@@ -283,6 +285,17 @@ _function: context [
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE
 		native/code: code
+		
+		value: alloc-tail more							;-- function! value self-reference (for op!)
+		value/header: TYPE_UNSET
+		
+		int: as red-integer! alloc-tail more
+		either null? obj-ctx [
+			int/header: TYPE_UNSET
+		][
+			int/header: TYPE_INTEGER
+			int/value: as-integer obj-ctx int			;-- store the pointer as 32-bit integer
+		]
 		
 		if all [null? ctx not null? body][
 			_context/bind body GET_CTX(fun) no			;-- do not bind if predefined context (already done)
