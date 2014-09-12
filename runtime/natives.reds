@@ -365,7 +365,7 @@ natives: context [
 				interpreter/eval as red-block! arg yes
 			]
 			TYPE_PATH [
-				interpreter/eval-path arg arg arg + 1 no
+				interpreter/eval-path arg arg arg + 1 no no
 				stack/set-last arg + 1
 			]
 			TYPE_STRING [

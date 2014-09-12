@@ -501,6 +501,7 @@ interpreter: context [
 		pc		[red-value!]							;-- path to evaluate
 		end		[red-value!]
 		set?	[logic!]
+		get?	[logic!]
 		return: [red-value!]
 		/local 
 			path	[red-path!]
@@ -526,16 +527,17 @@ interpreter: context [
 		]
 		
 		parent: _context/get as red-word! head
-		
-		switch TYPE_OF(parent) [
-			TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
-			TYPE_NATIVE
-			TYPE_ROUTINE
-			TYPE_FUNCTION [
-				pc: eval-code parent pc end yes path item - 1 parent
-				return pc
+		unless get? [
+			switch TYPE_OF(parent) [
+				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+				TYPE_NATIVE
+				TYPE_ROUTINE
+				TYPE_FUNCTION [
+					pc: eval-code parent pc end yes path item - 1 parent
+					return pc
+				]
+				default [0]
 			]
-			default [0]
 		]
 				
 		while [item < tail][
@@ -573,17 +575,18 @@ interpreter: context [
 			arg: either all [set? item + 1 = tail][stack/arguments][null]
 			parent: actions/eval-path parent value arg
 			
-			switch TYPE_OF(parent) [
-				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
-				TYPE_NATIVE
-				TYPE_ROUTINE
-				TYPE_FUNCTION [
-					pc: eval-code parent pc end yes path item gparent
-					return pc
+			unless get? [
+				switch TYPE_OF(parent) [
+					TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+					TYPE_NATIVE
+					TYPE_ROUTINE
+					TYPE_FUNCTION [
+						pc: eval-code parent pc end yes path item gparent
+						return pc
+					]
+					default [0]
 				]
-				default [0]
 			]
-			
 			item: item + 1
 		]
 		
@@ -704,7 +707,7 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
-				pc: eval-path value pc end yes
+				pc: eval-path value pc end yes no
 			]
 			TYPE_GET_WORD [
 				copy-cell _context/get as red-word! pc stack/push*
@@ -783,7 +786,12 @@ interpreter: context [
 			TYPE_PATH [
 				value: pc
 				pc: pc + 1
-				pc: eval-path value pc end no
+				pc: eval-path value pc end no no
+			]
+			TYPE_GET_PATH [
+				value: pc
+				pc: pc + 1
+				pc: eval-path value pc end no yes
 			]
 			TYPE_LIT_PATH [
 				value: stack/push pc
