@@ -297,8 +297,9 @@ Red [
 			get-a: does [a]
 		]
 		new: make proto [a: 99]
-		--assert new/a
+		--assert new/a = 99
 		--assert new/get-a = 99
+		--assert proto/a = 123
 		--assert proto/get-a = 123
 
 	--test-- "inherit-2"
