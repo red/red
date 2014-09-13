@@ -65,12 +65,15 @@ aapt: context [
 		min				16777217		;-- this is the minimum value it can hold
 		max				16777218		;-- this is the maximum value it can hold
 		L10N			16777219		;-- localization of this resource is can be encouraged
-		other			16777220		;-- for plural support, see android.content.res.PluralRules#attrForQuantity(int)
-		zero			16777221
-		one				16777222
-		two				16777223
-		few				16777224
-		many			16777225
+	]
+
+	plurals-flags: [
+		"other"			16777220		;-- for plural support, see android.content.res.PluralRules#attrForQuantity(int)
+		"zero"			16777221
+		"one"			16777222
+		"two"			16777223
+		"few"			16777224
+		"many"			16777225
 	]
 
 	attribute-type: [
@@ -338,6 +341,28 @@ aapt: context [
 		int
 	]
 
+	udata: [0 192 224 240 248 252]
+
+	unicode-to-utf8: func [cp [integer!] /local result][
+		result: make string! 4
+		either cp < 128 [
+			insert tail result to-char cp
+		][
+			either cp < 256 [
+				cp: to-char cp
+				insert insert tail result cp / 64 or 192 cp and 63 or 128
+			][
+				result: tail result
+				until [
+					insert result to char! cp and 63 or 128
+					128 > cp: cp and -64 / 64
+				]
+				insert result to char! cp or pick udata 1 + length? result
+			]
+		]
+		head result
+	]
+
 	utf8-to-utf16: func [s [string!] /length /local m cp result cnt][
 		result: make string! (length? s) * 2
 		cnt: 0
@@ -348,7 +373,7 @@ aapt: context [
 				unless length [repend result [cp #"^@"]]
 			][
 				m: 8 - length? find	enbase/base	to binary! cp 2 #"0"
-				cp: cp xor pick [0 192 224 240 248 252] m
+				cp: cp xor pick udata m
 				loop m - 1 [cp: 64 * cp + (63 and first s: next s)]		;--	code point
 				either cp < 65536 [
 					unless length [append result to-bin16 cp]
@@ -519,7 +544,7 @@ aapt: context [
 	]
 
 	parse-value: func [
-		str				[string! block! none!]
+		str				[string! integer! block! none!]
 		type			[string!]
 		value-strings	[block!]
 		all-res			[block!]
@@ -528,6 +553,10 @@ aapt: context [
 		res: make-struct res-value none
 		v: attempt [load str]
 		case [
+			integer? str [
+				res/datatype: to-integer value-type/string
+				res/data: str + length? all-res/2
+			]
 			type = "id" [
 				res/datatype: to-integer value-type/int-bool
 				res/data: 0
@@ -541,11 +570,11 @@ aapt: context [
 			]
 			#"@" = first str [
 				res/datatype: to-integer value-type/reference
-				res/data: get-res-id "attr" next str all-res
+				res/data: get-res-id type next str all-res
 			]
 			#"?" = first str [
 				res/datatype: to-integer value-type/attribute
-				res/data: get-res-id "attr" next str all-res
+				res/data: get-res-id type next str all-res
 			]
 			parse str ["0x" some digit end] [
 				res/datatype: to-integer value-type/int-hex
@@ -586,8 +615,47 @@ aapt: context [
 		]
 	]
 
+	normalize-string: func [s [string!] /local quoted? new unicode][
+		trim/head/tail s
+		if all [
+			#"^"" = first s
+			#"^"" = last  s
+		][
+			quoted?: yes
+			remove s
+			remove back tail s
+		]
+
+		new: make string! length? s
+		until [
+			either s/1 = #"\" [
+				if none? s/2 [return new]
+				append new switch/default s/2 [
+					#"t" [#"^-"]
+					#"n" [#"^/"]
+					#"u" [
+						unicode: copy/part s 6
+						s: skip s 5
+						unicode-to-utf8 hex-to-integer unicode
+					]
+				][s/1]
+				s: next s
+			][
+				append new either s/1 = #"^/" [
+					either quoted? [s/1][
+						while [s/2 <= #" "][s: next s]
+						#" "
+					]
+				][s/1]
+			]
+			s: next s
+			tail? s
+		]
+		new
+	]
+
 	compile-style-string: func [strings [block!]
-		/local new styles str span style start
+		/local new styles str span style start style?
 	][
 		styles: make block! 4
 		unless block? strings/1 [return styles]
@@ -595,21 +663,27 @@ aapt: context [
 		start: strings
 		new: make block! length? strings
 		until [
+			style?: false
 			str: copy ""
 			style: make binary! 64
 			foreach s strings/1 [
 				append str either string? s [s][
-					span: make-struct string-pool-span none
-					span/name-idx: add-to-string-pool start s/1
-					span/first-char: length? str
-					span/last-char: span/first-char + (length? s/3/1) - 1
-					append style form-struct span
+					if any [s/1 = "b" s/1 = "i" s/1 = "u"][
+						style?: true
+						span: make-struct string-pool-span none
+						span/name-idx: add-to-string-pool start s/1
+						span/first-char: length? str
+						span/last-char: span/first-char + (length? s/3/1) - 1
+						append style form-struct span
+					]
 					s/3/1
 				]
 			]
-			append style #{FFFFFFFF}
-			append styles style
-			append new str
+			if style? [
+				append style #{FFFFFFFF}
+				append styles style
+			]
+			append new normalize-string str
 			strings: next strings
 			string? strings/1
 		]
@@ -1075,6 +1149,17 @@ aapt: context [
 		config-part
 	]
 
+	collect-string: func [body [block!] all-res [block!]][
+		either 1 < length? body [
+			insert/only all-res/2 body
+			negate length? all-res/2
+		][
+			either #"@" = first body/1 [body/1][
+				add-to-string-pool all-res/1 normalize-string body/1
+			]
+		]
+	]
+
 	collect-resource: func [
 		node [block!] config [string! word!] all-res [block!]
 		/local
@@ -1094,9 +1179,16 @@ aapt: context [
 		key-strings: all-res/4/3
 		res-info: all-res/4/4
 
+		if type = "integer-array" [type: "array"]
+		if type = "string-array" [
+			type: "array"
+			foreach info body [
+				poke info 3 reduce [collect-string info/3 all-res]
+			]
+		]
 		unless find type-strings type [append type-strings type]
 		name: attempt [select attr "name"]
-		switch/default type [
+		value: switch/default type [
 			"drawable"
 			"layout"
 			"anim"
@@ -1112,43 +1204,47 @@ aapt: context [
 			"integer"
 			"fraction"
 			"dimen" [
-				value: either file? body/1 [
+				either file? body/1 [
 					add-to-string-pool value-strings to-string body/1
 				][body/1]
 			]
-			"string" [
-				either 1 < length? body [
-					insert/only all-res/2 body
-					value: negate length? all-res/2
-				][
-					value: add-to-string-pool value-strings body/1
+			"id"
+			"attr"
+			"array"
+			"style"
+			"plurals"
+			"string-array"
+			"integer-array" [
+				if any [type = "id" type = "attr"][
+					config: 'default
 				]
-			]
-			"public"			[]
-			"public-padding"	[]
-			"add-resource"		[]
-		][
-			if any [type = "id" type = "attr"][
-				config: 'default
-			]
-			if type = "attr" [
-				foreach info body [
-					set [tag attrs b] info
-					either any [tag = "enum" tag = "flag"][
-						res: reduce ["id" attrs b]
-						collect-resource res 'default all-res
-					][
-						print ["AAPT: Can't resolve attribute" name tag]
+				if type = "attr" [
+					foreach info body [
+						set [tag attrs b] info
+						either any [tag = "enum" tag = "flag"][
+							res: reduce ["id" attrs b]
+							collect-resource res 'default all-res
+						][
+							print ["AAPT: Can't resolve attribute" name tag]
+						]
 					]
 				]
+				if type = "plurals" [
+					foreach info body [
+						poke info 3 reduce [collect-string info/3 all-res]
+					]
+				]
+				if (length? attr) > 2 [					;-- extra attributes, e.g "parent"
+					config: join attr config
+				]
+				body
 			]
-			value: body
-			if (length? attr) > 2 [					;-- extra attributes, e.g "parent"
-				config: join attr config
-			]
+			"string" [collect-string body all-res]
+		][
+			print ["AAPT: not support resource type" type] none
 		]
 
-		if name [
+		if all [name value] [
 			unless type-info: select res-info type [
 				type-info: make block! 256
 				append/only type-info make block! 128
@@ -1276,7 +1372,7 @@ aapt: context [
 	compile-attribute: func [
 		key [string!] value [block!] attr [block!] all-res [block!]
 		/local
-			format attr-map res-map k v res-map-blk special
+			format attr-map name-id k v res-map-blk special
 			values-blk info res
 	][
 		res-map-blk: make block! 4
@@ -1285,23 +1381,17 @@ aapt: context [
 		if attr [
 			format: select attr "format"
 			if special: select attr "min" [
-				res-map: make-struct res-table-map none
-				res-map/name-id: attribute-flags/min
 				res: parse-value special "integer" all-res/1 all-res
-				append res-map-blk join form-struct res-map form-struct res
+				append res-map-blk join to-bin32 attribute-flags/min form-struct res
 			]
 			if special: select attr "max" [
-				res-map: make-struct res-table-map none
-				res-map/name-id: attribute-flags/max
 				res: parse-value special "integer" all-res/1 all-res
-				append res-map-blk join form-struct res-map form-struct res
+				append res-map-blk join to-bin32 attribute-flags/max form-struct res
 			]
 			if special: select attr "localization" [
-				res-map: make-struct res-table-map none
-				res-map/name-id: attribute-flags/L10N
 				res: make-struct res-value none
 				res/data: parse-flags special L10N-flags
-				append res-map-blk join form-struct res-map form-struct res
+				append res-map-blk join to-bin32 attribute-flags/L10N form-struct res
 			]
 		]
 
@@ -1311,19 +1401,17 @@ aapt: context [
 			k: select attrs "name"
 			v: select attrs "value"
 			repend values-blk [k v]
-			res-map: make-struct res-table-map none
-			res-map/name-id: get-res-id "id" k all-res
+			name-id: get-res-id "id" k all-res
 			res: parse-value v "integer" all-res/1 all-res
-			append res-map-blk join form-struct res-map form-struct res
+			append res-map-blk join to-bin32 name-id form-struct res
 		]
 
 		unless format [format: "any"]
 		repend attr-map [key reduce [format values-blk]]
-		res-map: make-struct res-table-map none
-		res-map/name-id: attribute-flags/type
+		name-id: attribute-flags/type
 		res: make-struct res-value none
 		res/data: parse-flags format attribute-type
-		insert res-map-blk join form-struct res-map form-struct res
+		insert res-map-blk join to-bin32 name-id form-struct res
 		res-map-blk
 	]
 
@@ -1334,9 +1422,8 @@ aapt: context [
 		attr	[none! block!]
 		all-res	[block!]
 		/local
-			res parent res-map-entry res-map-blk parent-id info k res-map
+			res parent res-map-entry res-map-blk parent-id info k name-id nb
 	][
-
 		res: make-struct res-value none
 		either block? value [
 			res-map-entry: make-struct res-table-map-entry none
@@ -1351,10 +1438,9 @@ aapt: context [
 						foreach info value [
 							set [tag attrs body] info
 							k: select attrs "name"
-							res-map: make-struct res-table-map none
-							res-map/name-id: get-res-id "attr" k all-res
+							name-id: to-bin32 get-res-id "attr" k all-res
 							res: parse-value body/1 "integer" all-res/1 all-res
-							append res-map-blk join form-struct res-map form-struct res
+							append res-map-blk join name-id form-struct res
 						]
 						res-map-entry/count: length? res-map-blk
 					]
@@ -1364,14 +1450,35 @@ aapt: context [
 					res-map-entry: make-struct res-table-map-entry none
 					res-map-entry/count: length? res-map-blk
 				]
+				"array" [
+					res-map-blk: make block! 4
+					if attr [
+						nb: 0
+						foreach info value [
+							name-id: to-bin32 33554432 or nb
+							res: parse-value info/3/1 "any" all-res/1 all-res
+							append res-map-blk join name-id form-struct res
+							nb: nb + 1
+						]
+						res-map-entry/count: length? res-map-blk
+					]
+				]
+				"plurals" [
+					res-map-blk: make block! 4
+					if attr [
+						foreach info value [
+							set [tag attrs body] info
+							k: select attrs "quantity"
+							name-id:  to-bin32 select plurals-flags k
+							res: parse-value body/1 "string" all-res/1 all-res
+							append res-map-blk join name-id form-struct res
+						]
+						res-map-entry/count: length? res-map-blk
+					]
+				]
 			]
 		][
-			either integer? value [
-				res/datatype: to-integer value-type/string
-				res/data: value + length? all-res/2
-			][
-				res: parse-value value type all-res/1 all-res
-			]
+			res: parse-value value type all-res/1 all-res
 		]
 
 		either res-map-entry [
@@ -1572,7 +1679,7 @@ aapt: context [
 		line		[integer!]
 		strings		[block!]
 		ns			[block!]
-		all-res	[block!]
+		all-res		[block!]
 		/local
 			element attr-ext attr-node buf res name v
 			attrs-chunk attr-buf end-ext ns-chunk
@@ -1652,7 +1759,7 @@ aapt: context [
 		]
 	]
 
-	collect-strings: func [
+	collect-xml-strings: func [
 		xml [block!]
 		string-id [block!]
 		string-no-id [block!]
@@ -1692,7 +1799,7 @@ aapt: context [
 			if body [
 				foreach item body [
 					if block? item [
-						collect-strings item string-id string-no-id ids all-res
+						collect-xml-strings item string-id string-no-id ids all-res
 					]
 				]
 			]
@@ -1713,7 +1820,7 @@ aapt: context [
 
 		xml: parse-xml read file
 
-		collect-strings xml/3/1 string-id string-no-id ids all-res
+		collect-xml-strings xml/3/1 string-id string-no-id ids all-res
 
 		ids-header: make-struct chunk-header none
 		ids-header/type: to-integer xml-type/resource-map
