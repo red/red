@@ -2434,18 +2434,18 @@ red: context [
 					deep?: 1 < length? obj-stack
 
 					emit-open-frame 'set
-					either native [							;-- 1st argument
+					either native [						;-- 1st argument
 						pc: back pc
-						comp-expression						;-- fetch a value
+						comp-expression					;-- fetch a value
 					][
 						unless any [bound? deep?][
-							emit-push-word name	original	;-- push set-word
+							emit-push-word name	original ;-- push set-word
 						]
 					]
-					comp-expression							;-- fetch a value (2nd argument)
+					comp-expression						;-- fetch a value (2nd argument)
 
 					either native [
-						emit-native/with 'set [-1]			;@@ refinement not handled yet
+						emit-native/with 'set [-1]		;@@ refinement not handled yet
 					][
 						either all [bound? ctx: select objects obj][
 							emit 'word/set-in
