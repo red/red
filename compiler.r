@@ -25,7 +25,7 @@ red: context [
 	ctx-stack:	   make block! 8						;-- contexts access path
 	objects:	   make block! 100						;-- [name object! ctx...]
 	obj-stack:	   to path! 'objects					;-- current object access path
-	container-obj?: no									;-- YES: functions are objects methods
+	container-obj?: none								;-- closest wrapping object
 	func-objs:	   none									;-- points to 'objects first in-function object
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
@@ -224,8 +224,8 @@ red: context [
 		]
 	]
 	
-	parent-object?: does [
-		all [not empty? locals-stack container-obj?]
+	parent-object?: func [obj [object!]][
+		all [not empty? locals-stack (next first obj) = container-obj?]
 	]
 	
 	find-binding: func [original [any-word!] /local ctx idx][
@@ -268,7 +268,7 @@ red: context [
 			attempt [idx: get-word-index/with name ctx]
 		][
 			emit append to path! type actions/1
-			emit either parent-object? ['octx][ctx]		;-- optional parametrized context reference (octx)
+			emit either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
 			emit idx
 			insert-lf -3
 		][
@@ -1798,7 +1798,7 @@ red: context [
 		repend bodies [									;-- save context for deferred function compilation
 			name spec body symbols locals-nb 
 			copy locals-stack copy ssa-names copy ctx-stack
-			all [not global? 1 < length? obj-stack]
+			all [not global? 1 < length? obj-stack next first do obj-stack] ;-- save optional wrapping object
 		]
 		pop-context
 		pc: skip pc 2
@@ -2449,7 +2449,7 @@ red: context [
 					][
 						either all [bound? ctx: select objects obj][
 							emit 'word/set-in
-							emit either parent-object? ['octx][ctx]	;-- optional parametrized context reference (octx)
+							emit either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
 							emit get-word-index/with name ctx
 							insert-lf -3
 						][
@@ -3083,7 +3083,7 @@ red: context [
 		clear lit-vars/context
 		s-counter: 0
 		depth:	   0
-		container-obj?: no
+		container-obj?: none
 	]
 
 	compile: func [
