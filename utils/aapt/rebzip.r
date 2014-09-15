@@ -248,9 +248,13 @@ ctx-zip: context [
         date [date!] "Modification date of file"
         data [any-string!] "Data to compress"
     /store
+    /digest
     /local
         crc method compressed-data uncompressed-size compressed-size
+        sha1 entry
     ][
+		if digest [sha1: checksum/method data 'SHA1]
+
         ; info on data before compression
         crc: head reverse crc-32 data
         uncompressed-size: to-ilong length? data
@@ -275,7 +279,7 @@ ctx-zip: context [
         ; info on data after compression
         compressed-size: to-ilong length? data
 
-        reduce [
+        entry: reduce [
             ; local file entry
             join #{} [
                 local-file-sig
@@ -325,6 +329,7 @@ ctx-zip: context [
                         ; comment
             ]
         ]
+        either digest [reduce [entry name sha1]][entry]
     ]
 
     any-file?: func [
@@ -348,16 +353,18 @@ ctx-zip: context [
     ]
 
 	zip-align: func [
-		entry [block!]
+		entry [binary!]
 		file-size  [integer!]
+		/alignment k [integer!]
 		/local name-length data-offset pad
 	][
-		if zero? entry/11 [							; method = 'store
+		unless alignment [k: 4]
+		if zero? entry/9 [							; method = 'store
 			name-length: copy/part skip entry 26 2
 			name-length: to-integer reverse name-length
 			data-offset: file-size + 30 + name-length
-			unless zero? mod data-offset 4 [		; padding in extra field
-				pad: 4 - mod data-offset 4
+			unless zero? mod data-offset k [		; padding in extra field
+				pad: k - mod data-offset k
 				change skip entry 28 to-ishort pad
 				insert/dup skip entry 30 + name-length #"^@" pad
 			]
@@ -369,7 +376,7 @@ ctx-zip: context [
      Returns number of entries in archive.}
         where [file! url! binary! string!] "Where to build it"
         source [block!] "zip entrys to include in archive"
-        /align?
+        /align
     /local
         nb-entries central-directory files-size out
 	][
@@ -385,7 +392,7 @@ ctx-zip: context [
 
         foreach entry source [
             nb-entries: nb-entries + 1
-            if align? [zip-align entry/1 files-size]
+            if align [zip-align entry/1 files-size]
             ; write file offset in archive
             change skip entry/2 42 to-ilong files-size
             ; directory entry
@@ -418,9 +425,10 @@ ctx-zip: context [
         /deep "Includes files in subdirectories"
         /verbose "Lists files while compressing"
         /to-entry
+        /digest
     /local
         name data entry nb-entries files no-modes
-        central-directory files-size out date
+        central-directory files-size out date entry-digest
     ][
         out: func [value] either any-file? where [
             [insert where value]
@@ -463,15 +471,23 @@ ctx-zip: context [
                 name: to-path-file name
                 if verbose [print name]
                 ; get compressed file + directory entry
-                entry: zip-entry name date data
-                ; write file offset in archive
-                change skip entry/2 42 to-ilong files-size
-                ; directory entry
-                insert tail central-directory entry/2
-                ; compressed file + header
-                ;out either to-entry [entry][entry/1]
-				either to-entry [append/only where entry][out entry/1]
-                files-size: files-size + length? entry/1
+                entry: either digest [
+	                entry-digest: zip-entry/digest name date data
+	                entry-digest/1
+                ][
+	                zip-entry name date data
+                ]
+				either to-entry [
+					append/only where either digest [entry-digest][entry]
+				][
+	                ; write file offset in archive
+	                change skip entry/2 42 to-ilong files-size
+	                ; directory entry
+	                insert tail central-directory entry/2
+	                ; compressed file + header
+					out entry/1
+                	files-size: files-size + length? entry/1
+            	]
             ]
             ; next arg
             source: next source

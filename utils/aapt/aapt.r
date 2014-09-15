@@ -1625,6 +1625,7 @@ aapt: context [
 				;TODO process other resource namespaces
 			]
 		][
+			key-id: 2147483647
 			res/datatype: to-integer value-type/string
 			res/data: (index? find strings value) - 1
 		]
@@ -1844,23 +1845,33 @@ aapt: context [
 		repend form-struct header [strings-chunk ids xml-bin]
 	]
 
-	zip-raw-files: func [raw-dir [file!] /local date data saved files entries][
+	zip-raw-files: func [
+		raw-dir [file!] 
+		digest?	[logic! none!]
+		/local date data saved files entries
+	][
 		saved: what-dir
 		files: read raw-dir
 		change-dir raw-dir
 		entries: make block! 32
 		foreach file files [
-			zip/deep/to-entry entries file
+			either digest? [
+				zip/deep/to-entry/digest entries file
+			][
+				zip/deep/to-entry entries file
+			]
 		]
 		change-dir saved
 		entries
 	]
 
 	package: func [
-		manifest [file!] res-dir [file!] raw-dir [file!] output [file!]
+		manifest [file!] res-dir [file!] raw-dir [file!]
+		/to-file output
+		/to-entry
 		/local
-			dirs zip-entries all-res xml-bin res-bin
-			package-name config files
+			dirs zip-entries all-res xml-bin res-bin entry
+			package-name config files data filename
 	][
 		package-name: get-package-name manifest
 		zip-entries: make block! 32
@@ -1897,18 +1908,34 @@ aapt: context [
 					][
 						read/binary join res-dir [dir file]
 					]
-					append/only zip-entries zip-entry join %res/ [dir file] now xml-bin
+					entry: either to-entry [
+						zip-entry/digest join %res/ [dir file] now xml-bin
+					][
+						zip-entry join %res/ [dir file] now xml-bin
+					]
+					append/only zip-entries entry
 				]
 			]
 		]
 
 		xml-bin: compile-xml-file/utf-16 manifest all-res
-		append/only zip-entries zip-entry %AndroidManifest.xml now xml-bin
+		entry: either to-entry [
+			zip-entry/digest %AndroidManifest.xml now xml-bin
+		][
+			zip-entry %AndroidManifest.xml now xml-bin
+		]
+		append/only zip-entries entry
 
 		res-bin: compile-resources all-res
-		append/only zip-entries zip-entry/store %resources.arsc now res-bin
+		entry: either to-entry [
+			zip-entry/digest/store %resources.arsc now res-bin
+		][
+			zip-entry/store %resources.arsc now res-bin
+		]
+		append/only zip-entries entry
 
-		append zip-entries zip-raw-files raw-dir
-		package-all-entries output zip-entries
+		append zip-entries zip-raw-files raw-dir to-entry
+
+		either to-entry [zip-entries][package-all-entries output zip-entries]
 	]
 ]
