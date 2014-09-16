@@ -71,7 +71,7 @@ red: context [
 		if unless either any all while until loop repeat
 		foreach forall break func function does has
 		exit return switch case routine set get reduce
-		context
+		context object
 	]
 	
 	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
@@ -680,6 +680,29 @@ red: context [
 			name: new
 		]
 		name
+	]
+	
+	check-cloned-function: func [new [word!] /local name alter entry pos][
+		if all [
+			get-word? pc/1
+			name: to word! pc/1	
+			all [
+				alter: get-prefix-func name
+				entry: find functions alter
+				name: alter
+			]
+		][
+			if alter: select ssa-names name [
+				entry: find functions alter
+			]
+			repend functions [new entry/2]
+			
+			either pos: find ssa-names new [			;-- add the real function name as alias
+				pos/2: name
+			][
+				repend ssa-names [new name]
+			]
+		]
 	]
 	
 	check-new-func-name: func [path [path!] symbol [word!] ctx [word!] /local name][
@@ -1357,6 +1380,8 @@ red: context [
 		]
 		none
 	]
+	
+	comp-object: :comp-context
 	
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
 		list: back tail comp-chunked-block
@@ -2430,6 +2455,7 @@ red: context [
 				]
 				'else [
 					check-redefined name
+					check-cloned-function name
 					bound?: rebol-gctx <> obj: bind? original
 					deep?: 1 < length? obj-stack
 
