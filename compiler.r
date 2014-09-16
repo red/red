@@ -697,7 +697,7 @@ red: context [
 			]
 			repend functions [new entry/2]
 			
-			either pos: find ssa-names new [			;-- add the real function name as alias
+			either pos: find/skip ssa-names new 2 [		;-- add the real function name as alias
 				pos/2: name
 			][
 				repend ssa-names [new name]
@@ -713,7 +713,7 @@ red: context [
 			name: to word! name
 			repend functions [name append select functions symbol ctx]
 			
-			either pos: find ssa-names name [			;-- add the real function name as alias
+			either pos: find/skip ssa-names name 2 [	;-- add the real function name as alias
 				pos/2: symbol
 			][
 				repend ssa-names [name symbol]
@@ -1068,7 +1068,7 @@ red: context [
 			offset: 1
 			append/only output append to path! form get type/1 'box
 		]
-		if alter: select ssa-names name [name: alter]
+		if alter: select/skip ssa-names name 2 [name: alter]
 		emit name
 		cnt: 0
 
@@ -2175,7 +2175,7 @@ red: context [
 			switch/default type?/word value: path/1 [
 				word! [
 					if all [not set? not get? entry: find functions value][
-						if alter: select ssa-names value [
+						if alter: select/skip ssa-names value 2 [
 							entry: find functions alter
 						]
 						either head? path [
@@ -2529,7 +2529,7 @@ red: context [
 					name: alter
 				]
 			][
-				if alter: select ssa-names name [
+				if alter: select/skip ssa-names name 2 [
 					entry: find functions alter
 				]
 				check-invalid-call name
