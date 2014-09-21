@@ -304,7 +304,7 @@ The modulo (//) and remainder (%) operators give the same results when used on f
 
 ---Float32!
 
-The float32! datatype represents an IEEE-754 single precision floating point number. Float! memory size is 32-bit.
+The float32! datatype represents an IEEE-754 single precision floating point number. Float32! memory size is 32-bit.
 
 \note Float32! purpose
 The reason for having a single precision floating point type is for making the interfacing with popular libraries straightforward. For pure Red/System programs, <b>float!</b> should be the default choice.
