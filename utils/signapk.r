@@ -88,7 +88,7 @@ signapk: context [
 		q-mont-flags: none
 	]
 
-	cert: #{
+	test-cert: #{
 		3082056306092A864886F70D010702A082055430820550020101310B30090605
 		2B0E03021A0500300B06092A864886F70D010701A0820389308203853082026D
 		A003020102020413224882300D06092A864886F70D01010B05003073310B3009
@@ -127,16 +127,240 @@ signapk: context [
 		01050004820100
 	}
 
-	DER-encode: func [data [binary!]][
-		join #{3021300906052B0E03021A05000414} data
+	sign-info!: context [
+		keystore-path:       none
+		keystore-password:   none
+		key-password:        none
+		key:                 none
+		keysize:             2048
+		alias:               none
+		validity:            none
+		name:                none
+		locality:            none
+		state:               none
+		country:             none
+		organisation:        none
+		organisational-unit: none
+		issuer:              none
+		serial-number:       none
+	]
+
+	PKCS7-spec: [											;-- http://tools.ietf.org/html/rfc2315
+		#{30} [												;-- signedData
+			#{06} #{2A864886F70D010702}						;-- ID: signedData PKCS #7
+			#{A0} [
+				#{30} [
+					#{02} #{01}								;-- version
+					#{31} #{300906052B0E03021A0500}			;-- digestAlgorithm: sha1 OIW
+					#{30} #{06092A864886F70D010701}			;-- contentInfo: data PKCS #7
+					#{A0} X509								;-- certificates, optional.
+					#{31} signer-info
+				]
+			]
+		]
+	]
+
+	signer-info-spec: [
+		#{30} [
+			#{02} #{01}										;-- version
+			#{30} [											;;- ver.1 use issuerAndSerialNumber as SignerIdentifier
+				#{30} issuer								;;- ver.3 use subjectKeyIdentifier as SignerIdentifier
+				#{02} serial-number
+			]
+			#{30} #{06052B0E03021A0500}					;-- digestAlgorithm: sha1 OIW
+			#{30} #{06092A864886F70D0101010500}				;-- rsaEncryption
+			#{04} signature									;-- octet string: signature value
+		]
+	]
+
+	X509-spec: [												;-- http://tools.ietf.org/html/rfc5280#section-4
+		#{30} [
+			#{30} tbs-certificate							;-- TBS certificates
+			#{30} #{06092A864886F70D0101050500}				;-- signature algorithm: sha1withRSA
+			#{03} signature-value							;-- signature value
+		]
+	]
+
+	tbs-certificate-spec: [
+		#{A0} #{020102}
+		#{02} serial-number
+		#{30} #{06092A864886F70D0101050500}					;-- sha1withRSA: 010105 sha256withRSA: 01010B
+		#{30} issuer
+		#{30} validity
+		#{30} subject
+		#{30} public-key-info
+		#{A3} subject-key-identifier
+	]
+
+	public-key-info-spec:[
+		#{30} #{06092A864886F70D0101010500}					;-- rsaEncryption
+		#{03} [#{0030} [#{02} modulus #{02} public-exponent]]
+	]
+
+	int-to-hex: func [int [integer!] /local out b][
+		out: debase/base to-hex int 16
+		until [
+			either zero? to integer! out/1 [remove out][break]
+			empty? out
+		]
+		out
+	]
+
+	encode-len: func [data [series!] /local len xlen xtra][
+		either 127 < len: length? data [
+			xlen: int-to-hex len
+			xtra: int-to-hex 128 + length? xlen
+			head insert tail xtra xlen
+		][to char! length? data]
+	]
+
+	DER-encode: func [spec [block!] data [block!] /local out tag value][
+		out: make binary! 128
+		foreach [tag value] spec [
+			value: either block? value [
+				DER-encode value data
+			][
+				if word? value [value: select data value]
+				value
+			]
+			unless empty? value [repend out [tag encode-len value value]]
+		]
+		out
+	]
+
+	add-leading-zero: func [d [integer!] /local s rem][
+		s: to-string d
+		unless zero? rem: (length? s) // 2 [
+			insert s #"0"
+		]
+		s
+	]
+
+	encode-date: func [date [date!] /local str year tag][
+		year: date/year
+		str: to-string either year > 2049 [
+			tag: #{18}									;-- GeneralizedTime
+			year
+		][
+			tag: #{17}									;-- UTCTime
+			mod year 100
+		]
+		repend str [
+			add-leading-zero date/month
+			add-leading-zero date/day
+			add-leading-zero date/time/hour
+			add-leading-zero date/time/minute
+			add-leading-zero to-integer date/time/second
+			#"Z"
+		]
+		DER-encode reduce [tag str] []
+	]
+
+	encode-validity: func [year [integer!] /local current expire][
+		current: expire: now
+		expire/year: expire/year + year
+		join encode-date current encode-date expire
+	]
+
+	encode-issuer: func [sign-info [object!] /local info value data][
+		data: make binary! 128
+		info: [
+			country				#{0603550406}
+			state				#{0603550408}
+			locality			#{0603550407}
+			organisation		#{060355040A}
+			organisational-unit	#{060355040B}
+			name				#{0603550403}
+		]
+		foreach [item id] info [
+			value: select sign-info item
+			if value [											;TBD handle non-ASCII String
+				value: DER-encode reduce [#{13} value] []		;-- Tag: PrintableString
+				value: DER-encode reduce [#{30} join id value] []
+				value: DER-encode reduce [#{31} value] []
+				append data value
+			]
+		]
+		data
+	]
+
+	encode-public-key: func [key [object!] /local data][
+		data: reduce [
+			'modulus join #{00} key/n
+			'public-exponent key/e
+		]
+		DER-encode public-key-info-spec data
+	]
+
+	encode-tbs-cert: func [sign-info [object!] /local data][
+		data: reduce [
+			'serial-number		sign-info/serial-number
+			'issuer				sign-info/issuer
+			'validity			encode-validity sign-info/validity
+			'subject			sign-info/issuer
+			'public-key-info	encode-public-key sign-info/key
+			'subject-key-identifier #{}
+		]
+		DER-encode tbs-certificate-spec data
+	]
+
+	encode-X509: func [
+		sign-info [object!]
+		/local data tbs-cert tbs-cert-der digest digest-der sig-value
+	][
+		tbs-cert: encode-tbs-cert sign-info
+		tbs-cert-der: DER-encode reduce [#{30} tbs-cert] []
+		digest: checksum/method tbs-cert-der 'sha1
+		digest-der: join #{3021300906052B0E03021A05000414} digest
+		sig-value: rsa-encrypt/private sign-info/key digest-der
+		insert sig-value #{00}
+		data: reduce [
+			'tbs-certificate tbs-cert
+			'signature-value sig-value
+		]
+		DER-encode X509-spec data
+	]
+
+	encode-signer-info: func [sign-info [object!] /local data sig len][
+		len: select [512 64 1024 128 2048 256] sign-info/keysize
+		sig: make binary! len
+		insert/dup sig null len
+		data: reduce [
+			'issuer			sign-info/issuer
+			'serial-number	sign-info/serial-number
+			'signature		sig
+		]
+		DER-encode signer-info-spec data
+	]
+
+	encode-PKCS7: func [sign-info [object!] /local data sig-len][
+		sig-len: select [512 64 1024 128 2048 256] sign-info/keysize
+		data: reduce [
+			'X509			encode-X509 sign-info
+			'signer-info	encode-signer-info sign-info
+		]
+		data: DER-encode PKCS7-spec data
+		clear skip tail data negate sig-len
+		data
+	]
+
+	generate-keystore: func [sign-info [object!] /local key keystore][
+		key: rsa-make-key
+		rsa-generate-key key 2048 65537
+		sign-info/key: key
+		sign-info/issuer: encode-issuer sign-info
+		sign-info/serial-number: int-to-hex random 2147483647
+		keystore: reduce [key encode-PKCS7 sign-info]
+		write/binary sign-info/keystore-path mold keystore		;TBD encrypt keystore file
+		keystore
 	]
 
 	sign: func [
-		key 	[object! none!]
-		entries [block!]
-		/local 
-			mf sf m-entries m-entry digest sig-data 
-			z-entry filename sha1
+		keystore [block! none!]
+		entries  [block!]
+		/local
+			mf sf m-entries m-entry digest sig-data
+			z-entry filename sha1 key cert
 	][
 		mf: make binary! 4096
 		sf: make binary! 4096
@@ -173,9 +397,13 @@ signapk: context [
 		]
 
 		digest: checksum/method sf 'sha1				;-- CERT.RSA
-		sig-data: DER-encode digest
-		if none? key [key: test-key]
-		append cert rsa-encrypt/private key sig-data
+		sig-data: join #{3021300906052B0E03021A05000414} digest		;-- DER encode
+		either none? keystore [
+			key: test-key cert: test-cert
+		][
+			set [key cert] keystore
+		]
+		cert: join cert rsa-encrypt/private key sig-data
 		reduce [mf sf cert]
 	]
 ]

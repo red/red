@@ -79,7 +79,7 @@ packager: context [
 		opts [object!] src [file!] file [file!]
 		/local 
 			paths src-dir name bin-dir dst cmd apk entries sign-files
-			zip-entries rsa-key key-alias
+			zip-entries key-alias key-store
 	][		
 		paths: 	 split-path src
 		src-dir: paths/1
@@ -174,14 +174,14 @@ packager: context [
 						 bin-dir
 
 			log "signing apk"
-			sign-files: signapk/sign rsa-key entries
+			sign-files: signapk/sign key-store entries
 
 			log "aligning apk"
 			zip-entries: make block! 32
 			foreach entry entries [
 				append/only zip-entries entry/1
 			]
-			if none? rsa-key [key-alias: "testkey"]				;-- use test key
+			if none? key-store [key-alias: "testkey"]				;-- use test key
 			key-alias: uppercase key-alias
 			append/only zip-entries zip-entry %META-INF/MANIFEST.MF now sign-files/1
 			append/only zip-entries zip-entry join %META-INF/ [key-alias ".SF"] now sign-files/2
