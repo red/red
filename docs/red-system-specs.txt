@@ -416,7 +416,7 @@ Syntax
 
 Example
 
- s: "hello"								;-- let's suppose s points to address 4000000h
+ s: "hello"								;-- let's suppose s points to address 40000000h
 
  s: s + 1								;-- now s points to address 40000001h
  print s                				;-- "ello" would be printed
@@ -562,7 +562,7 @@ Syntax
 
 Examples
 
- p: declare struct! [					;-- let suppose p = 4000000h
+ p: declare struct! [					;-- let suppose p = 40000000h
 	a [integer!]
 	b [pointer! [integer!]]
  ]										;-- struct memory size would be 8 bytes
@@ -729,13 +729,13 @@ It is possible to apply some simple math operations on pointers like additions a
 
  p: declare pointer! [integer!]			;-- pointed value memory size is 4 bytes
 
- p: as [pointer! [integer!]] 4000000h
+ p: as [pointer! [integer!]] 40000000h
  p: p + 1								;-- p points now to 40000004h
  p: p + 1								;-- p points now to 40000008h
  
  q: declare pointer! [byte!]			;-- pointed value memory size is 1 byte
  
- q: as [pointer! [byte!]] 4000000h
+ q: as [pointer! [byte!]] 40000000h
  q: q + 1								;-- p points now to 40000001h
  q: q + 1								;-- p points now to 40000002h
  
@@ -761,7 +761,7 @@ Examples:
 
  p: declare pointer! [integer!]
 
- p: as [pointer! [integer!]] 4000000h
+ p: as [pointer! [integer!]] 40000000h
  a: p/1									;-- reads an integer! from 40000000h
  p/2: a									;-- writes the integer! to 40000004h
  
@@ -769,7 +769,7 @@ Integer variable can also be used as index:
 
  p: declare pointer! [integer!]
 
- p: as [pointer! [integer!]] 4000000h
+ p: as [pointer! [integer!]] 40000000h
  c: 2
  p/c: 1234								;-- writes 1234 (4 bytes) at 40000004h
  
