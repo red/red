@@ -187,15 +187,11 @@ interpreter: context [
 							type: TYPE_OF(value)
 							all [
 								value < tail
-								any [
-									type = TYPE_WORD
-									type = TYPE_GET_WORD
-									type = TYPE_LIT_WORD
-									type = TYPE_STRING	;@@ Missing TYPE_BLOCK?!
-								]
+								type <> TYPE_REFINEMENT
+								type <> TYPE_SET_WORD
 							]
 						][
-							unless type = TYPE_STRING [
+							if all [type <> TYPE_STRING type <> TYPE_BLOCK][
 								FETCH_ARGUMENT
 								if function? [
 									copy-cell stack/top - 1 stack/arguments + pos2 

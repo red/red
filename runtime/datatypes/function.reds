@@ -95,9 +95,11 @@ _function: context [
 									type <> TYPE_SET_WORD
 								]
 							][
-								copy-cell base + count stack/arguments + pos
-								pos: pos + 1
-								count: count + 1
+								if all [type <> TYPE_STRING type <> TYPE_BLOCK][
+									copy-cell base + count stack/arguments + pos
+									pos: pos + 1
+									count: count + 1
+								]
 								value: value + 1
 							]
 						][
