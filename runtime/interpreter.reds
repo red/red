@@ -91,15 +91,6 @@ interpreter: context [
 		print-line msg
 	]
 	
-	print-symbol: func [
-		word [red-word!]
-		/local
-			sym [red-symbol!]
-	][
-		sym: symbol/get word/symbol
-		print sym/cache
-	]
-	
 	literal-first-arg?: func [
 		native 	[red-native!]
 		return: [logic!]
@@ -200,7 +191,7 @@ interpreter: context [
 									type = TYPE_WORD
 									type = TYPE_GET_WORD
 									type = TYPE_LIT_WORD
-									type = TYPE_STRING
+									type = TYPE_STRING	;@@ Missing TYPE_BLOCK?!
 								]
 							]
 						][

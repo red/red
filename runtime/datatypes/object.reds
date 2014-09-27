@@ -478,6 +478,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/eval-path"]]
 		
 		word: as red-word! element
+		assert TYPE_OF(word) = TYPE_WORD
 		ctx:  GET_CTX(parent)
 
 		if word/ctx <> parent/ctx [						;-- bind the word to object's context

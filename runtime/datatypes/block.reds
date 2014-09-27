@@ -241,6 +241,14 @@ block: context [
 		blk
 	]
 	
+	insert-thru: does [
+		unless stack/acc-mode? [
+			insert-value
+				as red-block! stack/arguments - 1
+				stack/arguments
+		]
+	]
+	
 	append*: func [
 		return: [red-block!]
 		/local
@@ -256,6 +264,22 @@ block: context [
 			ALLOC_TAIL(arg)
 			
 		arg
+	]
+	
+	append-thru: func [
+		/local
+			arg	[red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/append-thru"]]
+
+		unless stack/acc-mode? [
+			arg: as red-block! stack/arguments - 1
+			;assert TYPE_OF(arg) = TYPE_BLOCK			;@@ disabled until we have ANY_BLOCK check
+
+			copy-cell
+				as cell! arg + 1
+				ALLOC_TAIL(arg)
+		]
 	]
 	
 	select-word: func [

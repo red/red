@@ -14,6 +14,196 @@ Red/System [
 _function: context [
 	verbose: 0
 	
+	lay-frame: func [
+		/local
+			path	  [red-path!]
+			fun		  [red-function!]
+			value	  [red-value!]
+			head	  [red-value!]
+			tail	  [red-value!]
+			base	  [red-value!]
+			ref		  [red-refinement!]
+			end		  [red-word!]
+			word	  [red-word!]
+			bool	  [red-logic!]
+			s		  [series!]
+			required? [logic!]
+			type	  [integer!]
+			count	  [integer!]
+			pos		  [integer!]
+			
+	][
+		base: stack/arguments
+		fun:  as red-function! base - 5
+ 		path: as red-path! base - 4
+ 		
+		stack/mark-func words/_anon
+		
+		s: as series! fun/spec/value
+		
+		head:  s/offset
+		value: head
+		tail:  s/tail
+
+		count: 0										;-- base arity (mandatory arguments only)
+		required?: yes									;-- yes: processing mandatory args, no: optional args
+
+		while [value < tail][							;-- first pass on spec
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					either required? [
+						stack/push base + count
+						count: count + 1
+					][
+						none/push						;-- reserve optional argument or local slot
+					]
+				]
+				TYPE_REFINEMENT [
+					if required? [required?: no]		;-- no more mandatory arguments
+					logic/push false
+				]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
+		
+		s: GET_BUFFER(path)
+		word: as red-word! s/offset + path/head + 1
+		end:  as red-word! s/tail
+		pos: 0
+		
+		while [word < end][								;-- second pass on path + spec
+			value: head
+			
+			while [value < tail][
+				switch TYPE_OF(value) [
+					TYPE_REFINEMENT [
+						ref: as red-refinement! value
+						either EQUAL_WORDS?(ref word) [
+							bool: as red-logic! stack/arguments + pos
+							bool/value: true
+
+							value: value + 1
+							pos: pos + 1
+							while [
+								type: TYPE_OF(value)
+								all [
+									value < tail
+									type <> TYPE_REFINEMENT
+									type <> TYPE_SET_WORD
+								]
+							][
+								copy-cell base + count stack/arguments + pos
+								pos: pos + 1
+								count: count + 1
+								value: value + 1
+							]
+						][
+							pos: pos + 1
+						]
+					]
+					TYPE_WORD
+					TYPE_GET_WORD
+					TYPE_LIT_WORD [pos: pos + 1]
+					default [0]
+				]
+				value: value + 1
+			]
+			word: word + 1
+		]
+	]
+	
+	refinement-arity?: func [
+		spec	[red-value!]
+		tail	[red-value!]
+		ref		[red-word!]
+		return: [integer!]
+		/local
+			word   [red-word!]
+			count  [integer!]
+			found? [logic!]
+	][
+		found?: no
+		count:  0
+		
+		while [spec < tail][
+			switch TYPE_OF(spec) [
+				TYPE_REFINEMENT [
+					if found? [return count]
+					word: as red-word! spec
+					if EQUAL_WORDS?(ref word) [found?: yes]
+				]
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [if found? [count: count + 1]]
+				TYPE_SET_WORD [if found? [return count]]
+				default [0]
+			]
+			spec: spec + 1
+		]
+		either found? [count][-1]
+	]
+	
+	calc-arity: func [
+		path    [red-path!]
+		fun		[red-function!]
+		index	[integer!]								;-- 0-base index position of function in path
+		return: [integer!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			s	  [series!]
+			count [integer!]
+			cnt	  [integer!]
+			len	  [integer!]
+			stop? [logic!]
+	][
+		s: as series! fun/spec/value
+		
+		value:  s/offset
+		tail:   s/tail
+		stop?:  no
+		count:  0
+		locals: 0
+		
+		while [all [not stop? value < tail]][
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [count: count + 1]
+				TYPE_REFINEMENT [
+					stop?: yes
+					locals: (as-integer tail - (value + 1)) >> 4
+				]
+				TYPE_SET_WORD [stop?: yes]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
+		
+		len: block/rs-length? as red-block! path
+		index: index + 1
+		
+		if index < len [
+			until [
+				value: block/rs-abs-at as red-block! path index
+				cnt: refinement-arity? s/offset tail as red-word! value
+				if cnt = -1 [
+					print "*** Error: refinement /"
+					print-symbol as red-word! value
+					print-line " not found!"
+				]
+				count: count + cnt
+				index: index + 1
+				index = len
+			]
+			locals: -1									;-- used to signal refinement presence
+		]
+		locals << 16 or count							;-- combine both values as 16-bit words
+	]
+	
 	call: func [
 		fun	[red-function!]
 		ctx [node!]

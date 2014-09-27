@@ -329,7 +329,7 @@ actions: context [
 			value [red-value!]
 	][
 		value: either set? [stack/arguments + 2][null]
-		eval-path 
+		stack/set-last eval-path 
 			stack/arguments
 			stack/arguments + 1
 			value

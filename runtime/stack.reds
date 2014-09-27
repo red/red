@@ -25,6 +25,8 @@ stack: context [										;-- call stack
 	cbottom: 		declare int-ptr!
 	ctop:	 		declare int-ptr!
 	
+	acc-mode?: no										;-- YES: accumulate expressions on stack
+	
 	#define MARK_STACK(type) [
 		func [
 			fun [red-word!]
@@ -64,6 +66,7 @@ stack: context [										;-- call stack
 		FLAG_THROW_ATR:	04000000h						;-- Throw function attribut
 		FLAG_CATCH_ATR:	02000000h						;--	Catch function attribut
 		FLAG_EVAL:		01000000h						;-- Interpreter root frame
+		FLAG_DYN_CALL:	11000000h						;-- Dynamic call (alternative stack mode)
 	]
 	
 	init: does [
@@ -90,6 +93,10 @@ stack: context [										;-- call stack
 		cbottom: 	as int-ptr! calls-series/offset
 		ctop:	 	as int-ptr! calls-series/tail
 	]
+	
+	check-call: does [
+		if acc-mode? [check-dyn-call]
+	]
 
 	reset: func [
 		return:  [cell!]
@@ -98,7 +105,7 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
 		
-		top: arguments									;-- overwrite last value
+		either acc-mode? [check-dyn-call][top: arguments]
 		arguments
 	]
 	
@@ -110,6 +117,7 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/keep"]]
 		
 		top: arguments + 1								;-- keep last value in arguments slot
+		if acc-mode? [check-dyn-call]
 		arguments
 	]
 	
@@ -118,6 +126,17 @@ stack: context [										;-- call stack
 	mark-try:	 MARK_STACK(FLAG_TRY)
 	mark-catch:	 MARK_STACK(FLAG_CATCH)
 	mark-eval:	 MARK_STACK(FLAG_EVAL)
+	mark-dyn:	 MARK_STACK(FLAG_DYN_CALL)
+	
+	unwind-no-cb: does [
+		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-no-cb"]]
+
+		assert cbottom < ctop
+		ctop: ctop - 2
+		STACK_SET_FRAME
+
+		#if debug? = yes [if verbose > 1 [dump]]
+	]
 		
 	unwind: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
@@ -125,6 +144,7 @@ stack: context [										;-- call stack
 		assert cbottom < ctop
 		ctop: ctop - 2
 		STACK_SET_FRAME
+		if acc-mode? [check-dyn-call]
 		
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
@@ -223,13 +243,123 @@ stack: context [										;-- call stack
 	top-type?: func [
 		return:  [integer!]
 		/local
-			cell [red-value!]
+			value [red-value!]
 	][
-		cell: top - 1
-		TYPE_OF(cell)
+		value: top - 1
+		TYPE_OF(value)
+	]
+	
+	func?: func [
+		return: [logic!]
+		/local
+			value [red-value!]
+			type  [integer!]
+	][
+		value: top - 1
+		type: TYPE_OF(value)
+		any [											;@@ replace with ANY_FUNCTION?
+			type = TYPE_FUNCTION
+			type = TYPE_ROUTINE
+		]
+	]
+	
+	push-call: func [
+		path [red-path!]
+		idx  [integer!]
+		code [integer!]
+		/local
+			fun		 [red-function!]
+			p		 [red-path!]
+			counters [integer!]
+	][
+		fun: as red-function! arguments + 1
+		top: arguments + 2
+		
+		assert any [
+			TYPE_OF(fun) = TYPE_FUNCTION
+			TYPE_OF(fun) = TYPE_ROUTINE
+		]
+		counters: _function/calc-arity path fun idx
+		p: as red-path! copy-cell as red-value! path stack/push*
+		p/head: idx										;-- store path with function's index
+		integer/push code								;-- store wrapping function pointer
+		integer/push counters and FFFFh					;-- store caller's arity
+		integer/push counters >> 16						;-- store caller's locals count
+		
+		mark-dyn as red-word! block/rs-abs-at as red-block! path idx  ;-- open new frame
+		acc-mode?: yes
+		
+		either zero? (counters and FFFFh) [
+			check-dyn-call								;-- short path to call with no arguments
+		][
+			arguments/header: TYPE_VALUE				;-- use TYPE_VALUE to signal "no argument"
+		]
+	]
+	
+	check-dyn-call: func [
+		/local
+			int		   [red-integer!]
+			fun		   [red-function!]
+			obj		   [red-object!]
+			base	   [red-value!]
+			ctx		   [node!]
+			more	   [series!]
+			p		   [int-ptr!]
+			dyn?	   [logic!]
+			new-frame? [logic!]
+			code
+	][
+		p: ctop - 2
+		assert p >= cbottom
+		
+		if all [
+			FLAG_DYN_CALL and p/1 = FLAG_DYN_CALL
+			TYPE_OF(arguments) <> TYPE_VALUE
+		][
+			int: as red-integer! arguments - 2
+			unless zero? int/value [int/value: int/value - 1]
+			
+			if zero? int/value [
+				ctx: null
+				base: arguments
+				fun: as red-function! base - 5
+				more: as series! fun/more/value
+				int: as red-integer! more/offset + 4
+				obj: as red-object! base - 6
+				case [
+					TYPE_OF(obj) = TYPE_OBJECT  [ctx: obj/ctx]
+					TYPE_OF(int) = TYPE_INTEGER [ctx: as node! int/value]
+				]
+				
+				int: as red-integer! base - 1
+				new-frame?: int/value = -1
+				case [
+					int/value > 0 [_function/init-locals int/value]
+					new-frame?	  [_function/lay-frame]
+					true		  [0]					;-- 0 locals case, do nothing
+				]
+				
+				int: as red-integer! base - 3
+				code: as function! [] int/value
+				acc-mode?: no							;-- temporary disable accumulative mode
+				_function/call fun ctx					;-- run the detected function
+				code									;-- run wrapper code (stored as function)
+				if new-frame? [unwind-last]				;-- close new frame created for handling refinements
+				unwind-last								;-- close frame opened in 'push-call
+				acc-mode?: yes
+				
+				p: ctop - 2								;-- decide to keep or not the accumulative mode on
+				either p < cbottom [
+					acc-mode?: no						;-- bottom of stack reached, switch back to normal
+				][
+					dyn?: FLAG_DYN_CALL and p/1 = FLAG_DYN_CALL
+					either dyn? [check-dyn-call][acc-mode?: no] ;-- if another dyn call pending, keep the mode on
+				]
+			]
+		]
 	]
 
-	#if debug? = yes [	
+	#if debug? = yes [
 		dump: does [									;-- debug purpose only
 			print-line "^/---- Argument stack ----"
 			dump-memory
