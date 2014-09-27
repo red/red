@@ -232,6 +232,16 @@ Red [
 		]
 		--assert no5-o1/o2/o3/o4/o5/o6/o7/o8/o9/o10/o11/o12/o13/o14/o15/i = 1
 		
+	--test-- "no6 issue #928"
+		no6-o: make object! [
+			a: 1
+			o: make object! [
+				b: 2
+				f: does [a]
+				]
+			]
+		--assert 1 = no6-o/o/f
+		
 ===end-group===
 
 ===start-group=== "object prototype tests"
