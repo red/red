@@ -226,6 +226,7 @@ object: context [
 			vals  [red-value!]
 			value [red-value!]
 			base  [red-value!]
+			word  [red-word!]
 			type  [integer!]
 			s	  [series!]
 	][
@@ -238,26 +239,31 @@ object: context [
 		
 		s: as series! ctx/symbols/value
 		base: s/tail - s/offset
+		
+		s: as series! ctx/values/value
 
 		while [syms < tail][
 			value: _context/add-with ctx as red-word! syms vals
 			
-			unless null? value [
-				type: TYPE_OF(value)
-				case [
-					ANY_SERIES?(type) [
-						actions/copy
-							as red-series! value
-							value						;-- overwrite the value
-							null
-							yes
-							null
-					]
-					type = TYPE_FUNCTION [
-						rebind as red-function! value ctx
-					]
-					true [0]
+			if null? value [
+				word: as red-word! syms
+				value: s/offset + _context/find-word ctx word/symbol no
+				copy-cell vals value
+			]
+			type: TYPE_OF(value)
+			case [
+				ANY_SERIES?(type) [
+					actions/copy
+						as red-series! value
+						value						;-- overwrite the value
+						null
+						yes
+						null
 				]
+				type = TYPE_FUNCTION [
+					rebind as red-function! value ctx
+				]
+				true [0]
 			]
 			syms: syms + 1
 			vals: vals + 1
