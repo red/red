@@ -344,6 +344,101 @@ signapk: context [
 		data
 	]
 
+	pbkdf2: func [
+		password	[string! binary!]
+		salt		[string! binary!]
+		iterations	[integer!]
+		key-len		[integer!]
+		/local blk-cnt value sum output i j
+	][
+		blk-cnt: round/ceiling (key-len / 20)
+		output: make binary! 512
+		repeat i blk-cnt [
+			value: join salt debase/base to-hex i 16
+			value: sum: checksum/key value password
+			repeat j (iterations - 1) [
+				sum: (sum xor (value: checksum/key value password))
+			]
+			append output sum
+		]
+		copy/part output key-len
+	]
+
+	crypt-data: func [
+		data		[string! binary!]
+		password	[string! binary!]
+		salt		[string! binary!]
+		/decrypt
+		/local crypt-direction crypt-key crypt-port
+	][
+		crypt-direction: either decrypt ['decrypt]['encrypt]
+		crypt-key: pbkdf2 password salt 2048 256
+		crypt-port: make port! [
+			scheme: 'crypt
+			algorithm: 'rijndael
+			direction: crypt-direction
+			strength: 256
+			key: crypt-key
+			padding: true
+		]
+		open crypt-port
+		insert crypt-port data
+		update crypt-port
+		copy crypt-port
+	]
+
+	decrypt-keystore: func [
+		keystore-file		[file!]
+		keystore-password	[string! binary!]
+		key-password		[string! binary!]
+		alias-name			[string! binary!]
+		/local data encrypt-ks ks-blk salt alg rsa-key cert
+	][
+		;; keystore structure
+		;; keystore: #{salt-2-len salt-2 algorithm-type encrypt-ks}
+		;; encrypt-ks: [salt-1 algorithm-type rsa-key cert]
+
+		data: read/binary keystore-file
+		salt: copy/part next data data/1
+		encrypt-ks: skip data (1 + 1 + data/1)			;-- salt-len: 1 byte alg-type: 1 byte
+		ks-blk: crypt-data/decrypt encrypt-ks keystore-password salt
+		ks-blk: attempt [load to-string ks-blk]
+		unless all [
+			block? ks-blk
+			4 = length? ks-blk
+		][return none]
+
+		set [salt alg rsa-key cert] ks-blk
+		rsa-key: crypt-data/decrypt rsa-key join key-password alias-name salt
+		rsa-key: attempt [load to-string rsa-key]
+		unless object? rsa-key [return none]
+
+		reduce [rsa-key cert]
+	]
+
+	encrypt-keystore: func [
+		keystore  [block!]
+		sign-info [object!]
+		/local key-pass rsa-key ks-blk encrypt-ks salt-1 salt-2 salt-len
+	][
+		;; keystore structure
+		;; keystore: #{salt-2-len salt-2 algorithm-type encrypt-ks}
+		;; encrypt-ks: [salt-1 algorithm-type rsa-key cert]
+
+		;; encrypt rsa key
+		salt-1: checksum/secure mold now/precise
+		key-pass: join sign-info/key-password sign-info/alias
+		rsa-key: crypt-data mold/all/flat keystore/1 key-pass salt-1
+
+		;; encrypt whole keystore
+		salt-2: checksum/secure mold now/precise
+		ks-blk: reduce [salt-1 #{01} rsa-key keystore/2]		;-- #{01} algorithm type: AES-256
+		encrypt-ks: crypt-data mold ks-blk sign-info/keystore-password salt-2
+
+		salt-len: int-to-hex length? salt-2
+		rejoin [salt-len salt-2 #{01} encrypt-ks]				;-- #{01} algorithm type: AES-256
+	]
+
 	generate-keystore: func [sign-info [object!] /local key keystore][
 		key: rsa-make-key
 		rsa-generate-key key 2048 65537
@@ -351,7 +446,9 @@ signapk: context [
 		sign-info/issuer: encode-issuer sign-info
 		sign-info/serial-number: int-to-hex random 2147483647
 		keystore: reduce [key encode-PKCS7 sign-info]
-		write/binary sign-info/keystore-path mold keystore		;TBD encrypt keystore file
+		write/binary
+			sign-info/keystore-path
+			encrypt-keystore keystore sign-info
 		keystore
 	]
 
