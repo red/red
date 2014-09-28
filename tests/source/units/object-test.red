@@ -460,14 +460,25 @@ Red [
 	--test-- "dyn-8"
 		o2: context [zz: none]				;-- test renaming a statically compiled object
 
-		f: does [
-		    make object! [
-		        a: 1
-		        g: does [a]
-		    ]
+		f: func [/alt][
+			either alt [
+				make object! [
+					a: 10
+					g: 123
+				]
+			][
+				make object! [
+					a: 1
+					g: does [a]
+				]
+			]
 		]
 		o2: f
 		--assert 1 = o2/g
+
+	--test-- "dyn-9"
+		o2: f/alt
+		--assert 123 = o2/g
 
 
 ~~~end-file~~~
