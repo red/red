@@ -673,7 +673,10 @@ red: context [
 	
 	check-redefined: func [name [word!] /local pos][
 		if pos: find functions name [
-			remove/part pos 2							;-- remove function definition
+			remove/part pos 2							;-- remove previous function definition
+		]
+		if pos: find objects name [
+			remove/part pos 5							;-- remove previous object definition
 		]
 	]
 	
