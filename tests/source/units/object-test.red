@@ -408,14 +408,67 @@ Red [
 
 ===start-group=== "dynamic invocation"
 
-	d: context [
-		value: 998
-	    f: does [value]
-	]
-	h: :d/f
-	--assert h = 998
-	d/value: 123
-	--assert 123 = do [h]
+	--test-- "dyn-1"
+		d: context [
+			value: 998
+		    f: does [value]
+		]
+		h: :d/f
+		--assert h = 998
+		d/value: 123
+		--assert 123 = do [h]
+
+
+	--test-- "dyn-2"
+		f: func [/local z][
+		    z: object [
+		        a: 1
+		        g: func [/with b /local c][c: 10 either with [a + b + 10][a * 2]]
+		        j: func [i][i + 1]
+		    ]
+	    	z
+		]
+		o: make f [a: 3]
+		--assert 46 = o/j 45
+		--assert 101 = o/j 100
+
+	--test-- "dyn-3"
+		--assert 52 = o/j o/j 50
+
+	--test-- "dyn-4"
+		--assert 33 = o/g/with 20
+		--assert 59 = o/g/with o/j 45
+
+	--test-- "dyn-5"
+		--assert 12 = o/j z: 5 + 6
+		--assert  z = 11
+
+	--test-- "dyn-6"
+		--assert [17] = reduce [o/j o/j z: 5 + 10]
+		--assert z = 15
+
+	--test-- "dyn-7"
+		repeat c 1 [
+			if yes [
+				--assert 52 = o/j o/j 50
+				--assert 59 = o/g/with o/j 45
+				--assert [22] = reduce [o/j o/j z: 5 + 15]
+				--assert z = 20
+			]
+		]
+
+	--test-- "dyn-8"
+		o2: context [zz: none]				;-- test renaming a statically compiled object
+
+		f: does [
+		    make object! [
+		        a: 1
+		        g: does [a]
+		    ]
+		]
+		o2: f
+		--assert 1 = o2/g
+
 
 ~~~end-file~~~
 
