@@ -205,9 +205,10 @@ _context: context [
 			word/index = -1
 			word/symbol = words/self
 		][
-			obj: as red-object! stack/push*
+			obj: as red-object! stack/push*				;-- volatile allocation
 			obj/header: TYPE_OBJECT
 			obj/ctx: ctx/self
+			stack/pop 1									;-- release stack slot
 			return as red-value! obj					;-- special resolution for SELF
 		]
 		if any [										;-- ensure word is properly bound to a context
