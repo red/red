@@ -422,7 +422,7 @@ float: context [
 	;-- returns false if either number is (or both are) NAN.
 	;-- treats really large numbers as almost equal to infinity.
 	;-- thinks +0.0 and -0.0 are 0 DLP's apart.
-	;-- Max ULP: 4 (enough for ordinary use)
+	;-- Max ULP: 10 (enough for ordinary use)
 	;-- Ref: https://github.com/svn2github/googletest/blob/master/include/gtest/internal/gtest-internal.h
 	;--      https://github.com/rebol/rebol/blob/master/src/core/t-decimal.c
 	almost-equal: func [
@@ -483,7 +483,7 @@ float: context [
 			]
 		]
 
-		diff <= (as byte-ptr! 4)
+		diff <= (as byte-ptr! 10)
 	]
 
 	compare: func [
