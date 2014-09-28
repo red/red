@@ -801,7 +801,7 @@ red: context [
 		reduce [list arity]
 	]
 	
-	get-prefix-func: func [name [word!] /local path word][
+	get-prefix-func: func [name [word!] /local path word ctx][
 		if 1 < length? obj-stack [
 			path: copy obj-stack
 			while [1 < length? path][
@@ -810,6 +810,12 @@ red: context [
 				]
 				remove back tail path
 			]
+		]
+		if all [										;-- check for method case during function compilation stage
+			container-obj?
+			ctx: obj-func-call? name
+		][
+			return decorate-obj-member name ctx
 		]
 		name
 	]
@@ -2606,7 +2612,7 @@ red: context [
 				not literal
 				not local?
 				all [
-					alter: get-prefix-func name
+					alter: get-prefix-func original
 					entry: find functions alter
 					name: alter
 				]
