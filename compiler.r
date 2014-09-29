@@ -546,6 +546,26 @@ red: context [
 		either list [get name][name]
 	]
 	
+	find-proto: func [obj [block!] fun [word!] /local proto o multi?][
+		if proto: obj/4 [
+			all [
+				multi?: 2 = length? proto					;-- multiple inheritance case
+				in proto/1 fun
+				in proto/2 fun
+				return obj/1								;-- method redefined in spec
+			]
+			if in proto/1 fun [
+				return either multi? [obj/1][proto/1]		;-- check <spec> prototype
+			]
+			if o: find-proto find objects proto/1 fun [return o] ;-- recurse into previous prototypes
+			
+			unless proto/2 [return none]
+			if in proto/2 fun [return proto/2]				;-- check <base> prototype
+			if o: find-proto find objects proto/2 fun [return o] ;-- recurse into previous prototypes
+		]
+		none
+	]
+	
 	object-access?: func [path [series!]][
 		attempt [do head insert copy/part to path! path (length? path) - 1 get-obj-base path/1]
 	]
@@ -594,13 +614,12 @@ red: context [
 		unless function! = attempt [do fun][return none] ;-- not a function call
 		
 		remove fpath									;-- remove 'objects prefix
-		
-		if origin: fourth obj: find objects found? [
-			unless in origin last fun [origin: none]	;-- check if function was definied in origin object
-		]
+
+		obj: 	find objects found?
+		origin: find-proto obj last fun
 		name:	either origin [select objects origin][obj/2]
 		symbol: decorate-obj-member first find/tail fun fpath name
-		
+
 		either find functions symbol [
 			fpath: next find path last fpath			;-- point to function name
 			reduce [
@@ -1337,9 +1356,11 @@ red: context [
 			words ctx spec name id func? obj original body pos entry
 			symbol body? ctx2 new blk list
 	][
-		name: to word! original: any [word pc/-1]
+		name:  to word! original: any [word pc/-1]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
-		list: clear any [list []]
+		list:  clear any [list []]
+		
+		if proto [proto: reduce [proto]]
 		
 		either body?: block? pc/2 [
 			parse body: pc/2 [							;-- collect words from body block
@@ -1377,7 +1398,7 @@ red: context [
 				pc: skip pc 2
 				return none
 			]
-			obj:    find objects proto					;-- simple inheritance case
+			obj:    find objects proto/1				;-- simple inheritance case
 			spec:   next first obj/1
 			words:  third obj/1
 			
@@ -1389,6 +1410,7 @@ red: context [
 				
 				ctx2: select objects new				;-- multiple inheritance case
 				spec: union spec next first new
+				insert proto new
 				
 				forskip words 2 [
 					if word: in new words/1 [words/2: get in new words/1]
@@ -1437,7 +1459,7 @@ red: context [
 		emit reduce ['object/init-push ctx id]
 		insert-lf -3
 		if proto [
-			emit reduce ['object/duplicate objects/:proto ctx]
+			emit reduce ['object/duplicate select objects last proto ctx]
 			insert-lf -3
 		]
 		unless body? [
