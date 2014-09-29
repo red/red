@@ -549,18 +549,16 @@ red: context [
 	find-proto: func [obj [block!] fun [word!] /local proto o multi?][
 		if proto: obj/4 [
 			all [
-				multi?: 2 = length? proto					;-- multiple inheritance case
+				multi?: 2 = length? proto				;-- multiple inheritance case
 				in proto/1 fun
 				in proto/2 fun
-				return obj/1								;-- method redefined in spec
+				return obj/1							;-- method redefined in spec
 			]
-			if in proto/1 fun [
-				return either multi? [obj/1][proto/1]		;-- check <spec> prototype
-			]
+			if in proto/1 fun [return obj/1]			;-- check <spec> prototype
 			if o: find-proto find objects proto/1 fun [return o] ;-- recurse into previous prototypes
 			
-			unless proto/2 [return none]
-			if in proto/2 fun [return proto/2]				;-- check <base> prototype
+			unless proto/2 [return none]				;-- finish if simple inheritance case
+			if in proto/2 fun [return proto/2]			;-- check <base> prototype
 			if o: find-proto find objects proto/2 fun [return o] ;-- recurse into previous prototypes
 		]
 		none
@@ -1459,6 +1457,7 @@ red: context [
 		emit reduce ['object/init-push ctx id]
 		insert-lf -3
 		if proto [
+			if body? [inherit-functions obj last proto]
 			emit reduce ['object/duplicate select objects last proto ctx]
 			insert-lf -3
 		]
