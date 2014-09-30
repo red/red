@@ -159,6 +159,36 @@ simple-io: context [
 					st_ctime	[integer!]
 				]
 			]
+			OS = 'Android [ ; else
+				;https://android.googlesource.com/platform/bionic.git/+/master/libc/include/sys/stat.h
+				stat!: alias struct! [				;-- stat64 struct
+					st_dev_h	  [integer!]
+					st_dev_l	  [integer!]
+					pad0		  [integer!]
+					__st_ino	  [integer!]
+					st_mode		  [integer!]
+					st_nlink	  [integer!]
+					st_uid		  [integer!]
+					st_gid		  [integer!]
+					st_rdev_h	  [integer!]
+					st_rdev_l	  [integer!]
+					pad1		  [integer!]
+					st_size_h	  [integer!]
+					st_size	  [integer!]
+					st_blksize	  [integer!]
+					st_blocks_h	  [integer!]
+					st_blocks	  [integer!]
+					st_atime	  [integer!]
+					st_atime_nsec [integer!]
+					st_mtime	  [integer!]
+					st_mtime_nsec [integer!]
+					st_ctime	  [integer!]
+					st_ctime_nsec [integer!]
+					st_ino_h	  [integer!]
+					st_ino_l	  [integer!]
+					;...optional padding skipped
+				]
+			]
 			true [ ; else
 				;-- http://lxr.free-electrons.com/source/arch/x86/include/uapi/asm/stat.h
 				stat!: alias struct! [				;-- stat64 struct
@@ -314,6 +344,7 @@ simple-io: context [
 	][
 		file: open-file filename
 		size: file-size? file
+		print-line size
 		if size <= 0 [
 			print-line "*** Error: empty file"
 			quit -2
