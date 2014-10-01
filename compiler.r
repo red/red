@@ -2563,10 +2563,11 @@ red: context [
 					]
 				]
 				'else [
-					check-redefined name
-					check-cloned-function name
 					bound?: rebol-gctx <> obj: bind? original
 					deep?: 1 < length? obj-stack
+					
+					unless bound? [check-redefined name]
+					check-cloned-function name
 
 					emit-open-frame 'set
 					either native [						;-- 1st argument
