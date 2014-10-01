@@ -565,7 +565,11 @@ red: context [
 	]
 	
 	object-access?: func [path [series!]][
-		attempt [do head insert copy/part to path! path (length? path) - 1 get-obj-base path/1]
+		either path/1 = 'self [
+			probe bind? path/1
+		][
+			attempt [do head insert copy/part to path! path (length? path) - 1 get-obj-base path/1]
+		]
 	]
 	
 	is-object?: func [expr][
@@ -584,34 +588,40 @@ red: context [
 	]
 	
 	obj-func-path?: func [path [path!] /local search base fpath symbol found? fun origin name obj][
-		search: [
-			fpath: head insert copy path base
-			until [										;-- evaluate nested paths from longer to shorter
-				remove back tail fpath
-				any [
-					tail? next fpath
-					object? found?: attempt [do fpath]	;-- path evaluates to an object: found!
+		either path/1 = 'self [
+			found?: bind? path/1
+			path/1: pick find objects found? -1
+			fun: head insert copy path 'objects 
+			fpath: head clear next copy path
+		][
+			search: [
+				fpath: head insert copy path base
+				until [									;-- evaluate nested paths from longer to shorter
+					remove back tail fpath
+					any [
+						tail? next fpath
+						object? found?: attempt [do fpath]	;-- path evaluates to an object: found!
+					]
 				]
 			]
+
+			base: get-obj-base path/1
+			do search									;-- check if path is an absolute object path
+
+			if all [not found? 1 < length? obj-stack][
+				base: obj-stack
+				do search								;-- check if path is a relative object path
+				unless found? [return none]				;-- not an object access path
+			]
+
+			fun: append copy fpath either base = obj-stack [ ;-- extract function access path without refinements
+				pick path 1 + (length? fpath) - (length? obj-stack)
+			][
+				pick path length? fpath
+			]
+			unless function! = attempt [do fun][return none] ;-- not a function call
+			remove fpath								;-- remove 'objects prefix
 		]
-		
-		base: get-obj-base path/1
-		do search										;-- check if path is an absolute object path
-		
-		if all [not found? 1 < length? obj-stack][
-			base: obj-stack
-			do search									;-- check if path is a relative object path
-			unless found? [return none]					;-- not an object access path
-		]
-		
-		fun: append copy fpath either base = obj-stack [ ;-- extract function access path without refinements
-			pick path 1 + (length? fpath) - (length? obj-stack)
-		][
-			pick path length? fpath
-		]
-		unless function! = attempt [do fun][return none] ;-- not a function call
-		
-		remove fpath									;-- remove 'objects prefix
 
 		obj: 	find objects found?
 		origin: find-proto obj last fun
@@ -2245,7 +2255,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj
+			fpath symbol obj self? true-blk
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -2304,6 +2314,7 @@ red: context [
 				throw-error ["cannot use" mold type? value "value in path:" pc/1]
 			]
 		]
+		self?: path/1 = 'self
 
 		if all [
 			not any [set? dynamic? find path integer!]
@@ -2330,18 +2341,26 @@ red: context [
 
 		if obj? [
 			ctx: select objects obj
-			emit compose [
-				either (emit-deep-check path)
-			]
-			emit compose/deep pick [
+			
+			true-blk: compose/deep pick [
 				[[word/set-in    (ctx) (get-word-index/with last path ctx)]]
 				[[word/get-local (ctx) (get-word-index/with last path ctx)]]
 			] set?
+			
+			either self? [
+				emit first true-blk
+			][
+				emit compose [
+					either (emit-deep-check path) (true-blk)
+				]
+			]
 		]
 		mark: tail output
 		
 		either any [obj? set? get? dynamic? find path integer! find path get-word!][
-			emit-path back tail path set? to logic! obj? ;-- emit code recursively from tail
+			unless self? [
+				emit-path back tail path set? to logic! obj? ;-- emit code recursively from tail
+			]
 		][
 			emit-checked-path path
 		]
