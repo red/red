@@ -566,7 +566,7 @@ red: context [
 	
 	object-access?: func [path [series!]][
 		either path/1 = 'self [
-			probe bind? path/1
+			bind? path/1
 		][
 			attempt [do head insert copy/part to path! path (length? path) - 1 get-obj-base path/1]
 		]
