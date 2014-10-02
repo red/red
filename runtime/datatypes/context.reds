@@ -267,7 +267,7 @@ _context: context [
 			cell/header: TYPE_CONTEXT or flag-series-stk
 			cell/values: null							;-- will be set to stack frame dynamically
 		][
-			cell/values: alloc-cells slots
+			cell/values: alloc-cleared-cells slots
 		]
 		node
 	]
