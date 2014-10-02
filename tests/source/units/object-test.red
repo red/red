@@ -133,16 +133,18 @@ Red [
 	--test-- "self-2"
 		obj: context [
 			a: 123
-			--assert "make object! [a: 123 b: none]" = mold/flat self
+			--assert "make object! [a: 123 b: unset]" = mold/flat self
 			b: 456
 		]
 
 	--test-- "self-3"
+		result: {make object! [b: 123 c: "hello" show: func [][--assert object? self] foo: unset]}
+		
 		obj: object [
 			b: 123
 			c: "hello"
 			show: does [--assert object? self]
-			--assert {make object! [b: 123 c: "hello" show: func [][--assert object? self] foo: none]} = mold/flat self
+			--assert result = mold/flat self
 			foo: does [--assert object? self c: none]
 			foo
 		]
