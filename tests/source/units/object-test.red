@@ -121,8 +121,44 @@ Red [
 		--assert not same? obj obj2
 		--assert same? obj obj
 
+===end-group===
+
 ===start-group=== "SELF test"
 
+	--test-- "self-1"
+		obj: context [
+			--assert "make object! []" = mold/flat self
+		]
+
+	--test-- "self-2"
+		obj: context [
+			a: 123
+			--assert "make object! [a: 123 b: none]" = mold/flat self
+			b: 456
+		]
+
+	--test-- "self-3"
+		obj: object [
+			b: 123
+			c: "hello"
+			show: does [--assert object? self]
+			--assert {make object! [b: 123 c: "hello" show: func [][--assert object? self] foo: none]} = mold/flat self
+			foo: does [--assert object? self c: none]
+			foo
+		]
+		obj/show
+		--assert none? obj/c
+
+	--test-- "self-4"
+		p1: object [
+		    a: 1
+		    b: 2
+		    e: does [self/b]
+		    f: does [self/b: 789 self/e]
+		    --assert self/e = 2
+		]
+		--assert p1/e = 2
+		--assert p1/f = 789
 
 ===end-group===
 
