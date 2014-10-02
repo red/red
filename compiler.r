@@ -346,6 +346,11 @@ red: context [
 		insert-lf -1
 	]
 	
+	emit-dyn-check: does [
+		emit 'stack/check-call
+		insert-lf -1
+	]
+	
 	emit-action: func [name [word!] /with options [block!]][
 		emit join actions-prefix to word! join name #"*"
 		insert-lf either with [
@@ -2950,13 +2955,16 @@ red: context [
 		if root [
 			either tail? pc	[
 				unless find/only [stack/reset stack/unwind] last output [
-					emit 'stack/check-call
-					insert-lf -1
+					emit-dyn-check
 				]
 			][
 				emit-stack-reset						;-- clear stack from last root expression result
 			]
-			unless empty? paths-stack [emit-path-func]
+			unless empty? paths-stack [
+				emit-path-func
+				if tail? pc [emit-dyn-check]
+			]
+
 		]
 	]
 	
