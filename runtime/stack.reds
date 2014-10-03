@@ -128,12 +128,15 @@ stack: context [										;-- call stack
 	mark-eval:	 MARK_STACK(FLAG_EVAL)
 	mark-dyn:	 MARK_STACK(FLAG_DYN_CALL)
 	
-	unwind-no-cb: does [
+	unwind-no-cb: func [
+		offset [integer!]
+	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-no-cb"]]
 
 		assert cbottom < ctop
 		ctop: ctop - 2
 		STACK_SET_FRAME
+		top: arguments + offset
 
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
@@ -272,8 +275,7 @@ stack: context [										;-- call stack
 			p		 [red-path!]
 			counters [integer!]
 	][
-		fun: as red-function! arguments + 1
-		top: arguments + 2
+		fun: as red-function! top - 1
 		
 		assert any [
 			TYPE_OF(fun) = TYPE_FUNCTION
@@ -282,6 +284,7 @@ stack: context [										;-- call stack
 		counters: _function/calc-arity path fun idx
 		p: as red-path! copy-cell as red-value! path stack/push*
 		p/head: idx										;-- store path with function's index
+		
 		integer/push code								;-- store wrapping function pointer
 		integer/push counters and FFFFh					;-- store caller's arity
 		integer/push counters >> 16						;-- store caller's locals count

@@ -1126,7 +1126,7 @@ red: context [
 
 			either tail? next path [
 				emit compose/deep [[
-					copy-cell stack/arguments + 1 stack/arguments
+					copy-cell stack/arguments + (idx) stack/arguments
 					stack/keep
 					(fun)
 				]]
@@ -1141,9 +1141,8 @@ red: context [
 				insert-lf -2
 				emit-eval-path no
 				emit 'stack/unwind-no-cb				;-- avoid triggering dynamic callbacks
-				insert-lf -1
-				emit [stack/top: stack/arguments + 2]
-				insert-lf -4
+				emit 2 + idx							;-- adjust top to arguments + idx
+				insert-lf -2
 				change/only/part mark mark: copy mark tail output
 				output: mark
 			]
