@@ -29,7 +29,7 @@ red: context [
 	func-objs:	   none									;-- points to 'objects first in-function object
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
-	expr-start-pos: none								;-- mark beginning of a new expression generated code
+	expr-start-pos: make block! 4						;-- mark beginning of a new expression generated code
 	
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
@@ -124,6 +124,27 @@ red: context [
 			]
 		]
 		quit-on-error
+	]
+	
+	dispatch-ctx-keywords: func [original [any-word! none!]][
+		switch/default pc/1 [
+			func	 [comp-func]
+			function [comp-function]
+			has		 [comp-has]
+			does	 [comp-does]
+			routine	 [comp-routine]
+			object
+			context	 [
+				either obj: is-object? pc/2 [
+					comp-context/with/extend original obj
+				][
+					comp-context/with original
+				]
+			]
+		][
+			return no
+		]
+		yes
 	]
 	
 	relative-path?: func [file [file!]][
@@ -1151,8 +1172,10 @@ red: context [
 	]
 
 	emit-path-func: has [body f-name][
-		body: copy expr-start-pos
-		clear expr-start-pos
+		body: copy last expr-start-pos
+		clear last expr-start-pos
+		remove back tail expr-start-pos
+		
 		if all [1 = length? body body/1 = 'stack/reset][clear body]
 		
 		redirect-to declarations [
@@ -1167,7 +1190,7 @@ red: context [
 	emit-opt-call: func [mark [block!]][
 		append/only paths-stack copy mark
 		clear mark
-		if (index? mark) <> index? expr-start-pos [
+		if (index? mark) <> index? last expr-start-pos [
 			emit [stack/push stack/arguments  - 1]
 			insert-lf -4
 		]
@@ -1366,9 +1389,13 @@ red: context [
 		/extend proto [object!]
 		/locals 
 			words ctx spec name id func? obj original body pos entry
-			symbol body? ctx2 new blk list
+			symbol body? ctx2 new blk list path
 	][
-		name:  to word! original: any [word pc/-1]
+		either set-path? original: pc/-1 [
+			path: original
+		][
+			name: to word! original: any [word original]
+		]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
 		list:  clear any [list []]
 		
@@ -1397,16 +1424,20 @@ red: context [
 		][
 			unless extend [
 				blk: redirect-to literals [emit-block copy/part pc 2]
-				emit-open-frame 'set					;-- defer it to runtime evaluation
-				emit-push-word name original
-				emit-open-frame 'do
+				unless path [
+					emit-open-frame 'set
+					emit-push-word name original
+				]
+				emit-open-frame 'do						;-- defer it to runtime evaluation
 				emit reduce ['block/push blk]
 				insert-lf -2
 				emit-native 'do
 				emit-close-frame
-				emit 'word/set
-				insert-lf -1
-				emit-close-frame
+				unless path [
+					emit 'word/set
+					insert-lf -1
+					emit-close-frame
+				]
 				pc: skip pc 2
 				return none
 			]
@@ -1441,11 +1472,14 @@ red: context [
 			insert-lf -4
 		]
 		
-		symbol: get pick [name ctx] to logic! any [		;-- name for global words, else use context name
-			rebol-gctx = bind? original 
-			local-word? name
+		symbol: either path [ctx][
+			if pos: find get-obj-base/list name name [pos/1: none] ;-- unbind word with previous object
+			
+			get pick [name ctx] to logic! any [		;-- name for global words, else use context name
+				rebol-gctx = bind? original 
+				local-word? name
+			]
 		]
-		if pos: find get-obj-base/list name name [pos/1: none] ;-- unbind word with previous object
 		
 		repend objects [								;-- register shadow object	
 			symbol										;-- object access word
@@ -1455,21 +1489,29 @@ red: context [
 			proto										;-- optional prototype object
 		]
 		
-		unless tail? next obj-stack [
-			do reduce [to set-path! join obj-stack name obj] ;-- set object in shadow tree
+		either path [
+			do reduce [to set-path! join obj-stack to path! path obj] ;-- set object in shadow tree
+		][
+			unless tail? next obj-stack [				;-- set object in shadow tree (if sub-object)
+				do reduce [to set-path! join obj-stack name obj]
+			]
 		]
 		if body? [bind body obj]
 		
-		emit-open-frame 'set							;-- runtime object value creation
-		emit-push-word name original
+		unless path [
+			emit-open-frame 'set						;-- runtime object value creation
+			emit-push-word name original
+		]
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
 				(to set-word! ctx) _context/make (blk) no yes	;-- rebuild context
 			]
 			insert-lf -4
 		]
-		emit reduce ['object/init-push ctx id]
-		insert-lf -3
+		unless path [
+			emit reduce ['object/init-push ctx id]
+			insert-lf -3
+		]
 		if proto [
 			if body? [inherit-functions obj last proto]
 			emit reduce ['object/duplicate select objects last proto ctx]
@@ -1480,19 +1522,25 @@ red: context [
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
-		emit 'word/set
-		insert-lf -1
-		emit-close-frame
-		emit-stack-reset
+		unless path [
+			emit 'word/set
+			insert-lf -1
+			emit-close-frame
+			emit-stack-reset
+		]
 		emit-src-comment/with none rejoin [mold pc/-1 " context " mold spec]
 		
 		either body? [
-			append obj-stack name						;@@ add support for anonymous contexts
+			append obj-stack any [path name]
 			pc: next pc
 			comp-next-block
-			remove back tail obj-stack
+			clear skip tail obj-stack either path [negate length? path][-1]
 		][
 			pc: skip pc 2
+		]
+		if path [
+			emit reduce ['object/init-push ctx id]		;-- deferred pushing on stack for pending set-paths
+			insert-lf -3
 		]
 		none
 	]
@@ -1922,7 +1970,6 @@ red: context [
 			body-blk: either job/red-store-bodies? [emit-block/bind body ctx]['null]
 			pop-locals
 		]
-		
 		emit-open-frame 'set							;-- function value creation
 		emit-push-word to word! original original
 		emit reduce [
@@ -2259,7 +2306,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj self? true-blk
+			fpath symbol obj self? true-blk ctx?
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -2295,14 +2342,11 @@ red: context [
 						if alter: select/skip ssa-names value 2 [
 							entry: find functions alter
 						]
-						either head? path [
+						if head? path [
 							pc: next pc
 							comp-call path entry/2		;-- call function with refinements
 							exit
-						][
-							;--not-implemented--		;TBD: resolve access path to function
 						]
-						;emit?: no						;-- no further emitted code needed
 					]
 				]
 				get-word! [
@@ -2340,7 +2384,13 @@ red: context [
 		
 		if set? [
 			pc: next pc
-			if obj? [comp-expression]					;-- fetch assigned value earlier
+			either obj? [									;-- fetch assigned value earlier
+				unless ctx?: dispatch-ctx-keywords none [	;-- detect function/object declaration
+					comp-expression
+				]
+			][
+				ctx?: dispatch-ctx-keywords none
+			]
 		]
 
 		if obj? [
@@ -2363,7 +2413,8 @@ red: context [
 		
 		either any [obj? set? get? dynamic? find path integer! find path get-word!][
 			unless self? [
-				emit-path back tail path set? to logic! obj? ;-- emit code recursively from tail
+				ctx?: to logic! any [obj? ctx?]
+				emit-path back tail path set? ctx?		;-- emit code recursively from tail
 			]
 		][
 			emit-checked-path path
@@ -2552,21 +2603,7 @@ red: context [
 		if all [not booting? find intrinsics name][		
 			throw-error ["attempt to redefine a keyword:" name]
 		]
-		switch/default pc/1 [
-			func	 [comp-func]
-			function [comp-function]
-			has		 [comp-has]
-			does	 [comp-does]
-			routine	 [comp-routine]
-			object
-			context	 [
-				either obj: is-object? pc/2 [
-					comp-context/with/extend original obj
-				][
-					comp-context/with original
-				]
-			]
-		][
+		unless dispatch-ctx-keywords original [
 			case [
 				local-word? name [
 					comp-local-set name
@@ -2928,7 +2965,7 @@ red: context [
 			pc: back pc
 			throw-error "missing argument"
 		]
-		if root [expr-start-pos: tail output]
+		if root [append/only expr-start-pos tail output]
 		
 		switch/default type?/word pc/1 [
 			issue!		[
@@ -3241,6 +3278,7 @@ red: context [
 		clear ctx-stack
 		clear objects
 		clear next obj-stack							;-- keep 'objects prefix
+		clear expr-start-pos
 		clear output
 		clear sym-table
 		clear literals
