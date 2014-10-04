@@ -616,6 +616,7 @@ red: context [
 	obj-func-path?: func [path [path!] /local search base fpath symbol found? fun origin name obj][
 		either path/1 = 'self [
 			found?: bind? path/1
+			path: copy path
 			path/1: pick find objects found? -1
 			fun: head insert copy path 'objects 
 			fpath: head clear next copy path
@@ -1942,12 +1943,14 @@ red: context [
 		case [
 			set-path? original [
 				path: original
-				name: to word! either obj: object-access? path [
+				either obj: object-access? path [
 					do reduce [join to set-path! 'objects path 'function!] ;-- update shadow object info
-					rejoin [select objects obj #"~" last path] 
+					obj: find objects obj
+					name: to word! rejoin [any [obj/-1 obj/2] #"~" last path] 
+					add-symbol name
 				][
 					anon?: yes
-					"<anon>"
+					name: to word! "<anon>"
 				]
 			]
 			set-word? original [
