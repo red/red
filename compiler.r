@@ -1934,19 +1934,40 @@ red: context [
 	
 	comp-func: func [
 		/collect /does /has
-		/local name word spec body symbols locals-nb spec-blk body-blk ctx src-name original global?
+		/local
+			name word spec body symbols locals-nb spec-blk body-blk ctx
+			src-name original global? path anon? obj
 	][
-		src-name: to word! original: pc/-1
-		unless global?: all [lit-word? pc/-1 pc/-2 = 'set][
-			src-name: prefix-func src-name
-		]
-		name: check-func-name src-name
-		add-symbol word: to word! clean-lf-flag name
-		unless any [
-			local-word? name
-			1 < length? obj-stack
-		][
-			add-global word
+		original: pc/-1
+		case [
+			set-path? original [
+				path: original
+				name: to word! either obj: object-access? path [
+					do reduce [join to set-path! 'objects path 'function!] ;-- update shadow object info
+					rejoin [select objects obj #"~" last path] 
+				][
+					anon?: yes
+					"<anon>"
+				]
+			]
+			set-word? original [
+				src-name: to word! original
+				unless global?: all [lit-word? original pc/-2 = 'set][
+					src-name: prefix-func src-name
+				]
+				name: check-func-name src-name
+				add-symbol word: to word! clean-lf-flag name
+				unless any [
+					local-word? name
+					1 < length? obj-stack
+				][
+					add-global word
+				]
+			]
+			'else [
+				anon?: yes
+				name: to word! "<anon>"					;-- unassigned function case
+			]
 		]
 		
 		pc: next pc
@@ -1970,8 +1991,10 @@ red: context [
 			body-blk: either job/red-store-bodies? [emit-block/bind body ctx]['null]
 			pop-locals
 		]
-		emit-open-frame 'set							;-- function value creation
-		emit-push-word to word! original original
+		unless any [path anon?][
+			emit-open-frame 'set						;-- function value creation
+			emit-push-word to word! original original
+		]
 		emit reduce [
 			'_function/push spec-blk body-blk ctx
 			'as 'integer! to get-word! decorate-func/strict name
@@ -1979,9 +2002,11 @@ red: context [
 		]
 		insert-lf -8
 		new-line skip tail output -4 no
-		emit 'word/set
-		insert-lf -1
-		emit-close-frame
+		unless any [path anon?][
+			emit 'word/set
+			insert-lf -1
+			emit-close-frame
+		]
 		
 		repend bodies [									;-- save context for deferred function compilation
 			name spec body symbols locals-nb 
