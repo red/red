@@ -444,6 +444,29 @@ Red [
 
 ===end-group===
 
+===start-group=== "external deep setting"
+
+	--test-- "ext-1"
+		p1: object [
+		    a: 1
+		    b: 2
+		]
+
+		p1/a: context [
+			t: 99
+			z: 128
+			q: object [zz: 345 show: does [zz]]
+		]
+		--assert object? p1/a
+		--assert p1/a/z = 128
+		--assert p1/a/q/show = 345
+
+	--test-- "ext-2"
+		p1/a/t: does [123]
+		--assert p1/a/t = 123
+
+===end-group===
+
 ===start-group=== "dynamic invocation"
 
 	--test-- "dyn-1"
@@ -518,6 +541,7 @@ Red [
 		o2: f/alt
 		--assert 123 = o2/g
 
+===end-group===
 
 ~~~end-file~~~
 
