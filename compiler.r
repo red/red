@@ -461,6 +461,11 @@ red: context [
 		word
 	]
 	
+	generate-anon-name: has [name][
+		add-symbol name: to word! rejoin ["<anon" get-counter #">"]
+		name
+	]
+	
 	decorate-obj-member: func [word [word!] path /local value][
 		parse value: mold path [some [p: #"/" (p/1: #"~") | skip]]
 		to word! rejoin [value #"~" word]
@@ -1950,7 +1955,7 @@ red: context [
 					add-symbol name
 				][
 					anon?: yes
-					name: to word! "<anon>"
+					name: generate-anon-name			;-- undetermined function assignment case
 				]
 			]
 			set-word? original [
@@ -1969,7 +1974,7 @@ red: context [
 			]
 			'else [
 				anon?: yes
-				name: to word! "<anon>"					;-- unassigned function case
+				name: generate-anon-name				;-- unassigned function case
 			]
 		]
 		
