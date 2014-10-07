@@ -807,12 +807,13 @@ natives: context [
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			either negative? copy [
-				_context/bind as red-block! value TO_CTX(ctx) no
+				_context/bind as red-block! value TO_CTX(ctx) null no
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes
 						TO_CTX(ctx)
+						null
 						no
 			]
 		][

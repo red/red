@@ -149,7 +149,7 @@ _function: context [
 	]
 	
 	calc-arity: func [
-		path    [red-path!]
+		path	[red-path!]								;-- if null, just count all optional slots
 		fun		[red-function!]
 		index	[integer!]								;-- 0-base index position of function in path
 		return: [integer!]
@@ -177,13 +177,14 @@ _function: context [
 				TYPE_LIT_WORD [count: count + 1]
 				TYPE_REFINEMENT [
 					stop?: yes
-					locals: (as-integer tail - (value + 1)) >> 4
+					locals: (as-integer tail - (value + 1)) >> 4 ;-- include all remaining slots
 				]
 				TYPE_SET_WORD [stop?: yes]
 				default [0]								;-- ignore other values
 			]
 			value: value + 1
 		]
+		if null? path [return locals + 1]				;-- + 1 for including the 1st refinement too
 		
 		len: block/rs-length? as red-block! path
 		index: index + 1
@@ -490,7 +491,7 @@ _function: context [
 		]
 		
 		if all [null? ctx not null? body][
-			_context/bind body GET_CTX(fun) no			;-- do not bind if predefined context (already done)
+			_context/bind body GET_CTX(fun) null no		;-- do not bind if predefined context (already done)
 		]
 		fun/ctx
 	]

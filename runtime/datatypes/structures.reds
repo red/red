@@ -153,7 +153,9 @@ red-object!: alias struct! [
 	header 	[integer!]								;-- cell header
 	ctx		[node!]									;-- context reference
 	class	[integer!]								;-- class ID
-	_pad2	[integer!]
+	on-set	[node!]									;-- on-set callback info
+	;		index  [red-integer!]					;-- index of callback entry in context (-1 if none)
+	;		locals [red-integer!]					;-- callback local words count
 ]
 
 red-word!: alias struct! [
