@@ -1140,8 +1140,7 @@ red: context [
 		
 		emit [stack/top: stack/arguments]				;-- inlined stack reset (protected from callbacks)
 		insert-lf -2
-		emit 'word/get
-		emit decorate-symbol path/1
+		emit-get-word path/1 path/1
 		insert-lf -2
 		saved: output
 		
