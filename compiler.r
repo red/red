@@ -2119,8 +2119,13 @@ red: context [
 			comp-word/thru
 		][
 			obj: find objects obj
-			emit reduce ['object/push obj/2 obj/3 obj/5/1 obj/5/2]
-			insert-lf -3
+			either obj/5 [
+				emit reduce ['object/push obj/2 obj/3 obj/5/1 obj/5/2] ;-- on-set present case
+				insert-lf -5
+			][
+				emit reduce ['object/init-push obj/2 obj/3]
+				insert-lf -3
+			]
 		]
 	]
 	
