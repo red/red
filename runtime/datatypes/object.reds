@@ -20,6 +20,128 @@ object: context [
 		class-id
 	]
 	
+	save-self-object: func [
+		obj		[red-object!]
+		return: [node!]
+		/local
+			int	 [red-integer!]
+			node [node!]
+			s	 [series!]
+	][
+		node: alloc-cells 1								;-- hidden object value storage used by SELF
+		s: as series! node/value
+		copy-cell as red-value! obj s/offset
+		node
+	]
+	
+	make-callback-node: func [
+		ctx		[red-context!]
+		index   [integer!]
+		locals  [integer!]
+		return: [node!]
+		/local
+			node [node!]
+			int  [red-integer!]
+			s	 [series!]
+	][
+		node: alloc-cells 2
+		s: as series! node/value
+		int: as red-integer! s/offset
+		int/header: TYPE_INTEGER
+		int/value: index
+
+		int: as red-integer! s/offset + 1
+		int/header: TYPE_INTEGER
+		s: as series! ctx/values/value
+		int/value: locals
+		node
+	]
+	
+	on-set-defined?: func [
+		ctx		[red-context!]
+		return: [node!]
+		/local
+			word   [red-word!]
+			tail   [red-word!]
+			fun	   [red-function!]
+			s	   [series!]
+			on-set [integer!]
+			index  [integer!]
+	][
+		s:		as series! ctx/symbols/value
+		word:	as red-word! s/offset
+		tail:	as red-word! s/tail
+		on-set:	words/_on-word-set*/symbol
+		index:	-1
+		
+		while [all [index < 0 word < tail]][
+			if on-set = symbol/resolve word/symbol [
+				index: (as-integer tail - word) >> 4 + 1  ;-- index is 1-based
+			]
+			word: word + 1
+		]
+		if index = -1 [return null]						;-- callback is not found
+		
+		s: as series! ctx/values/value
+		fun: as red-function! s/offset + index
+		
+		make-callback-node
+			ctx
+			index
+			_function/calc-arity null fun 0				;-- passing a null path triggers short code branch
+	]
+	
+	fire-on-set*: func [								;-- compiled code entry point
+		parent [red-word!]
+		field  [red-word!]
+	][
+		fire-on-set
+			as red-object! _context/get parent
+			field
+			stack/top - 1
+			stack/top - 2
+	]
+	
+	fire-on-set: func [
+		obj	 [red-object!]
+		word [red-word!]
+		old	 [red-value!]
+		new	 [red-value!]
+		/local
+			fun	  [red-function!]
+			int	  [red-integer!]
+			index [integer!]
+			count [integer!]
+			s	  [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "object/fire-on-set"]]
+		
+		assert TYPE_OF(obj) = TYPE_OBJECT
+		assert obj/on-set <> null
+		s: as series! obj/on-set/value
+		
+		int: as red-integer! s/offset
+		assert TYPE_OF(int) = TYPE_INTEGER
+		index: int/value
+		
+		int: as red-integer! s/offset + 1
+		assert TYPE_OF(int) = TYPE_INTEGER
+		count: int/value
+		
+		ctx: GET_CTX(obj) 
+		s: as series! ctx/values/value
+		fun: as red-function! s/offset + index
+		assert TYPE_OF(fun) = TYPE_FUNCTION
+		
+		stack/mark-func words/_on-word-set*
+		stack/push as red-value! word
+		stack/push old
+		stack/push new
+		if positive? count [_function/init-locals count]
+		_function/call fun obj/ctx
+		stack/unwind
+	]
+	
 	unchanged?: func [
 		word	[red-word!]
 		id		[integer!]
@@ -105,7 +227,7 @@ object: context [
 			blank: space
 		][
 			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part -1
+			part: part - 1
 			blank: lf
 		]
 		
@@ -293,7 +415,7 @@ object: context [
 		spec/node: fun/spec
 		
 		blk: block/clone as red-block! more yes
-		_context/bind blk ctx yes						;-- rebind new body to object
+		_context/bind blk ctx null yes					;-- rebind new body to object
 		_function/push spec blk	fun/ctx null null		;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
 		stack/pop 2										;-- remove extra stack slots (block/clone and _function/push)
@@ -303,9 +425,48 @@ object: context [
 		more/header: TYPE_UNSET							;-- invalidate compiled body
 	]
 	
+	init-push: func [
+		node	[node!]
+		class	[integer!]
+		return: [red-object!]
+		/local
+			ctx [red-context!]
+			obj	[red-object!]
+	][
+		ctx: TO_CTX(node)
+		s: as series! ctx/values/value
+		if s/offset = s/tail [
+			s/tail: s/offset + (s/size >> 4)			;-- (late) setting of 'values right tail pointer
+		]
+		
+		obj: as red-object! stack/push*
+		obj/header: TYPE_OBJECT
+		obj/ctx:	node
+		obj/class:	class
+		obj/on-set: null								;-- deferred setting, once object's body is evaluated
+		obj
+	]
+	
+	init-on-set: func [
+		ctx	   [node!]
+		index  [integer!]
+		locals [integer!]
+		/local
+			obj  [red-object!]
+			word [red-word!]
+	][
+		word: as red-word! stack/top - 1
+		assert TYPE_OF(word) = TYPE_WORD
+		obj: as red-object! _context/get word
+		assert TYPE_OF(obj) = TYPE_OBJECT
+		obj/on-set: make-callback-node TO_CTX(ctx) index locals
+	]
+	
 	push: func [
 		ctx		[node!]
 		class	[integer!]
+		index	[integer!]
+		locals	[integer!]
 		return: [red-object!]
 		/local
 			obj	[red-object!]
@@ -314,22 +475,8 @@ object: context [
 		obj/header: TYPE_OBJECT
 		obj/ctx:	ctx
 		obj/class:	class
+		obj/on-set: make-callback-node TO_CTX(ctx) index locals
 		obj
-	]
-	
-	init-push: func [
-		node	[node!]
-		class	[integer!]
-		return: [red-object!]
-		/local
-			ctx [red-context!]
-	][
-		ctx: TO_CTX(node)
-		s: as series! ctx/values/value
-		if s/offset = s/tail [
-			s/tail: s/offset + (s/size >> 4)			;-- (late) set of 'values right tail pointer
-		]
-		push node class
 	]
 	
 	make-at: func [
@@ -340,6 +487,7 @@ object: context [
 		obj/header: TYPE_OBJECT
 		obj/ctx:	_context/create slots no yes
 		obj/class:	0
+		obj/on-set: null
 		obj
 	]
 	
@@ -352,8 +500,8 @@ object: context [
 		/local
 			obj	 [red-object!]
 			obj2 [red-object!]
-			ctx  [red-context!]
-			blk  [red-block!]
+			ctx	 [red-context!]
+			blk	 [red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/make"]]
 		
@@ -374,9 +522,10 @@ object: context [
 			TYPE_BLOCK [
 				blk: as red-block! spec
 				_context/collect-set-words ctx blk
-				_context/bind blk ctx yes
+				_context/bind blk ctx save-self-object obj yes
 				interpreter/eval blk no
 				obj/class: get-new-id
+				obj/on-set: on-set-defined? ctx
 			]
 			default [
 				print-line "*** Error: invalid spec value for object construction"
@@ -478,8 +627,10 @@ object: context [
 		value	[red-value!]
 		return:	[red-value!]
 		/local
-			word [red-word!]
-			ctx  [red-context!]
+			word	[red-word!]
+			ctx		[red-context!]
+			old		[red-value!]
+			on-set? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/eval-path"]]
 		
@@ -492,7 +643,10 @@ object: context [
 			word/ctx: parent/ctx
 		]
 		either value <> null [
-			_context/set-in word value ctx 
+			on-set?: parent/on-set <> null
+			if on-set? [old: stack/push _context/get-in word ctx]
+			_context/set-in word value ctx
+			if on-set? [fire-on-set parent as red-word! element old value]
 			value
 		][
 			_context/get-in word ctx

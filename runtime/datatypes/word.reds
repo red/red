@@ -92,6 +92,21 @@ word: context [
 		push as red-word! s/offset + index
 	]
 	
+	get-in: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-value!]
+		/local
+			ctx	[red-context!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/get-in"]]
+
+		ctx: TO_CTX(node)
+		s: as series! ctx/values/value
+		s/offset + index
+	]
+	
 	get-local: func [
 		node	[node!]
 		index	[integer!]

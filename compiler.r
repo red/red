@@ -735,7 +735,7 @@ red: context [
 			remove/part pos 2							;-- remove previous function definition
 		]
 		if pos: find objects name [
-			remove/part pos 5							;-- remove previous object definition
+			remove/part pos 6							;-- remove previous object definition
 		]
 	]
 	
@@ -1395,7 +1395,7 @@ red: context [
 		/extend proto [object!]
 		/locals 
 			words ctx spec name id func? obj original body pos entry
-			symbol body? ctx2 new blk list path
+			symbol body? ctx2 new blk list path on-set-info
 	][
 		either set-path? original: pc/-1 [
 			path: original
@@ -1493,7 +1493,9 @@ red: context [
 			ctx											;-- object's context name
 			id: get-counter								;-- unique object ID
 			proto										;-- optional prototype object
+			none										;-- [index locals] for on-word-set
 		]
+		on-set-info: back tail objects
 		
 		either path [
 			do reduce [to set-path! join obj-stack to path! path obj] ;-- set object in shadow tree
@@ -1544,9 +1546,25 @@ red: context [
 		][
 			pc: skip pc 2
 		]
-		if path [
-			emit reduce ['object/init-push ctx id]		;-- deferred pushing on stack for pending set-paths
-			insert-lf -3
+		pos: none
+		
+		if any [path pos: find spec 'on-word-set*][
+			either path [
+				emit reduce ['object/init-push ctx id]	;-- deferred pushing on stack for pending set-paths
+				insert-lf -3
+			][
+				emit-push-word name original
+			]
+			if pos [
+				pos: (index? pos) - 1					;-- 0-based contexts arrays
+				entry: find functions decorate-obj-member 'on-word-set* ctx
+				unless zero? locals: second check-spec entry/2/3 [
+					locals: locals + 1					;-- account for /local
+				]
+				change/only on-set-info reduce [pos locals]	;-- cache values
+				emit reduce ['object/init-on-set ctx pos locals]
+				insert-lf -4
+			]
 		]
 		none
 	]
@@ -2101,7 +2119,7 @@ red: context [
 			comp-word/thru
 		][
 			obj: find objects obj
-			emit reduce ['object/push obj/2 obj/3]
+			emit reduce ['object/push obj/2 obj/3 obj/5/1 obj/5/2]
 			insert-lf -3
 		]
 	]
@@ -2345,7 +2363,7 @@ red: context [
 		emit?: yes
 		set?:  to logic! set?
 		
-		if dynamic?: find path paren! [
+		if dynamic?: find path paren! [					;-- fallback to interpreter if parens found
 			emit-open-frame 'body
 			if set? [
 				saved: pc
@@ -2368,7 +2386,7 @@ red: context [
 			exit
 		]
 		
-		forall path [
+		forall path [									;-- preprocessing path
 			switch/default type?/word value: path/1 [
 				word! [
 					if all [not set? not get? entry: find functions value][
@@ -2427,7 +2445,7 @@ red: context [
 		]
 
 		if obj? [
-			ctx: select objects obj
+			ctx: second obj: find objects obj
 			
 			true-blk: compose/deep pick [
 				[[word/set-in    (ctx) (get-word-index/with last path ctx)]]
@@ -2440,6 +2458,17 @@ red: context [
 				emit compose [
 					either (emit-deep-check path) (true-blk)
 				]
+			]
+			if all [set? obj/5][						;-- detect on-set callback 
+				insert last output reduce [				;-- save old value
+					'word/get-local ctx get-word-index/with last path ctx
+				]
+				repend last output [
+					'object/fire-on-set*
+						decorate-symbol first back back tail path
+						decorate-symbol last path
+				]
+				foreach pos [-9 -6 -3][new-line skip tail last output pos yes]
 			]
 		]
 		mark: tail output

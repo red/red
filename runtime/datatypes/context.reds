@@ -196,7 +196,7 @@ _context: context [
 		/local
 			values [series!]
 			sym	   [red-symbol!]
-			obj	   [red-object!]
+			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-with"]]
 
@@ -205,11 +205,8 @@ _context: context [
 			word/index = -1
 			word/symbol = words/self
 		][
-			obj: as red-object! stack/push*				;-- volatile allocation
-			obj/header: TYPE_OBJECT
-			obj/ctx: ctx/self
-			stack/pop 1									;-- release stack slot
-			return as red-value! obj					;-- special resolution for SELF
+			s: as series! word/ctx/value
+			return s/offset								;-- return original object value
 		]
 		if any [										;-- ensure word is properly bound to a context
 			null? ctx
@@ -349,6 +346,7 @@ _context: context [
 	bind: func [
 		body	[red-block!]
 		ctx		[red-context!]
+		obj		[node!]									;-- required by SELF
 		self?	[logic!]
 		return: [red-block!]
 		/local
@@ -373,7 +371,7 @@ _context: context [
 						TYPE_OF(value) = TYPE_WORD
 						w/symbol = words/self
 					][			
-						w/ctx: ctx/self					;-- make SELF refer to this context (half-bound)
+						w/ctx: obj						;-- make SELF refer to the original object
 						w/index: -1						;-- make it fail if resolved out of context
 					][
 						bind-word ctx w
@@ -385,7 +383,7 @@ _context: context [
 				TYPE_LIT_PATH
 				TYPE_SET_PATH
 				TYPE_GET_PATH	[
-					bind as red-block! value ctx self?
+					bind as red-block! value ctx obj self?
 				]
 				default [0]
 			]
@@ -419,8 +417,7 @@ _context: context [
 			tail [red-value!]
 			base [red-value!]
 			word [red-word!]
-			s	 [series!]
-			
+			s	 [series!]	
 	][
 		s: GET_BUFFER(spec)
 		cell: s/offset
