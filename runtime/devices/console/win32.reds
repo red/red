@@ -14,8 +14,6 @@ Red/System [
 	}
 ]
 
-#include %wcwidth.reds
-
 #define VK_BACK 				 	08h
 #define VK_TAB 					 	09h
 #define VK_CLEAR 				 	0Ch
@@ -158,23 +156,23 @@ fd-read: func [
 			key/KeyDown <> 0
 		][
 			keycode: SECOND_WORD(key/RepeatCnt-KeyCode)  ;-- 1st RepeatCnt 2 KeyCode
-			switch keycode [
-				VK_LEFT		[return KEY_LEFT]
-				VK_RIGHT	[return KEY_RIGHT]
-				VK_UP		[return KEY_UP]
-				VK_DOWN		[return KEY_DOWN]
-				VK_INSERT	[return KEY_INSERT]
-				VK_DELETE	[return KEY_DELETE]
-				VK_HOME		[return KEY_HOME]
-				VK_END		[return KEY_END]
-				VK_PRIOR	[return KEY_PAGE_UP]
-				VK_NEXT		[return KEY_PAGE_DOWN]
-				VK_BACK 	[return KEY_BACKSPACE]
-				VK_RETURN 	[return KEY_ENTER]
-				VK_CONTROL  []
-				default 	[
-					return SECOND_WORD(key/ScanCode-Char) ;-- return Char
+			case [
+				key/KeyState and ENHANCED_KEY > 0 [
+					switch keycode [
+						VK_LEFT		[return KEY_LEFT]
+						VK_RIGHT	[return KEY_RIGHT]
+						VK_UP		[return KEY_UP]
+						VK_DOWN		[return KEY_DOWN]
+						VK_INSERT	[return KEY_INSERT]
+						VK_DELETE	[return KEY_DELETE]
+						VK_HOME		[return KEY_HOME]
+						VK_END		[return KEY_END]
+						VK_PRIOR	[return KEY_PAGE_UP]
+						VK_NEXT		[return KEY_PAGE_DOWN]
+					]
 				]
+				keycode = VK_CONTROL []
+				true [return SECOND_WORD(key/ScanCode-Char)] ;-- return Char
 			]
 		]
 	]
@@ -198,7 +196,7 @@ get-window-size: func [
 	0
 ]
 
-emit-buf: func [cp [integer!] /local b][
+emit-red-char: func [cp [integer!] /local b][
 	b: as byte-ptr! :cp
 	pbuffer/1: b/1
 	pbuffer/2: b/2
@@ -208,7 +206,7 @@ emit-buf: func [cp [integer!] /local b][
 emit-red-string: func [
 	str	 		  [red-string!]
 	size 		  [integer!]
-	head-as-tail? [logic!]
+	head-as-tail? [logic!]										;-- yes: treat head as tail
 	return:		  [integer!]
 	/local
 		x		  [integer!]
@@ -243,7 +241,7 @@ emit-red-string: func [
 			][
 				cnt + 1
 			]
-			emit-buf cp
+			emit-red-char cp
 			offset: offset + unit
 		]
 		bytes: bytes + cnt
@@ -256,6 +254,10 @@ emit-red-string: func [
 	bytes
 ]
 
+reset-cursor-pos: does [
+	SetConsoleCursorPosition stdout base-y << 16
+]
+
 erase-to-bottom: func [
 	/local
 		n	 [integer!]
@@ -264,8 +266,6 @@ erase-to-bottom: func [
 ][
 	n: 0
 	info: declare screenbuf-info!
-
-	SetConsoleCursorPosition stdout base-y << 16
 	GetConsoleScreenBufferInfo stdout as-integer info
 	x-y: info/Position
 	FillConsoleOutputCharacter							;-- clear screen
@@ -311,7 +311,7 @@ init: func [
 	copy-cell as red-value! hist-blk as red-value! history
 
 	GetConsoleMode stdin :saved-con
-	mode: not (ENABLE_LINE_INPUT and ENABLE_ECHO_INPUT)		;-- turn off some features
+	mode: not (ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT)		;-- turn off the line input and echo input modes
 	SetConsoleMode stdin saved-con and mode
 	buffer: allocate buf-size
 ]

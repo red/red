@@ -16,6 +16,8 @@ Red [
 
 #system [
 	terminal: context [
+		#include %wcwidth.reds
+
 		#either OS = 'Windows [
 			#include %win32.reds
 		][
@@ -35,12 +37,25 @@ Red [
 			KEY_DELETE:		-27
 			KEY_PAGE_UP:	-28
 			KEY_PAGE_DOWN:	-29
-			KEY_ENTER:		-30
-			KEY_BACKSPACE:	-31
 		]
 
-		#define KEY-CTRL-A	#"^A"
-		#define	KEY-CTRL-E	#"^E"
+		#define KEY_CTRL_A		1
+		#define KEY_CTRL_B		2
+		#define KEY_CTRL_C		3
+		#define KEY_CTRL_D		4
+		#define KEY_CTRL_E		5
+		#define KEY_CTRL_F		6
+		#define KEY_CTRL_H		8
+		#define KEY_TAB			9
+		#define KEY_CTRL_K		11
+		#define KEY_CTRL_L		12
+		#define KEY_ENTER		13
+		#define KEY_CTRL_N		14
+		#define KEY_CTRL_P		16
+		#define KEY_CTRL_T		20
+		#define KEY_CTRL_U		21
+		#define KEY_CTRL_W		23
+		#define KEY_BACKSPACE	127
 
 		buffer:		declare byte-ptr!
 		pbuffer:	declare byte-ptr!
@@ -51,6 +66,7 @@ Red [
 		buf-size:	512
 		columns:	-1
 		rows:		-1
+		output?:	yes
 
 		widechar?: func [
 			str			[red-string!]
@@ -104,13 +120,17 @@ Red [
 				line   [red-string!]
 				offset [integer!]
 				bytes  [integer!]
-				x	   [integer!]
-				y	   [integer!]
-				saved  [integer!]
 				psize  [integer!]
 		][
 			line: input-line
-			erase-to-bottom					;-- erase down to the bottom of the screen
+			either output? [					;-- erase down to the bottom of the screen
+				reset-cursor-pos
+				erase-to-bottom
+			][
+				#either OS <> 'Windows [
+					if positive? lines-y [emit-string-int "^[[" lines-y #"A"]	;-- move to origin row
+				][0]
+			]
 
 			init-buffer line
 			bytes: emit-red-string prompt columns no
@@ -121,7 +141,16 @@ Red [
 			psize: offset // columns
 			bytes: offset + (emit-red-string line columns - psize no)	;-- continue until reach tail
 
-			output-to-screen
+			either output? [
+				output-to-screen
+			][
+				#if OS <> 'Windows [
+					psize: bytes / columns
+					if positive? psize [
+						emit-string-int "^[[" psize  #"B"
+					]
+				][0]
+			]
 			set-cursor-pos line offset bytes
 		]
 
@@ -142,30 +171,38 @@ Red [
 			while [true][
 				c: fd-read
 				#if OS <> 'Windows [if c = 27 [c: check-special]]
-
+				output?: yes
 				switch c [
 					KEY_ENTER [
 						exit
 					]
+					KEY_CTRL_H
 					KEY_BACKSPACE [
 						unless zero? line/head [
 							line/head: line/head - 1
 							string/remove-char line line/head
+							if string/rs-tail? line [output?: no]
 							refresh
+							if not output? [erase-to-bottom]
 						]
 					]
+					KEY_CTRL_B
 					KEY_LEFT [
 						unless zero? line/head [
 							line/head: line/head - 1
+							output?: no
 							refresh
 						]
 					]
+					KEY_CTRL_F
 					KEY_RIGHT [
 						if 0 < string/rs-length? line [
 							line/head: line/head + 1
+							output?: no
 							refresh
 						]
 					]
+					KEY_CTRL_P
 					KEY_UP [
 						unless zero? history/head [
 							history/head: history/head - 1
@@ -174,6 +211,7 @@ Red [
 							refresh
 						]
 					]
+					KEY_CTRL_N
 					KEY_DOWN [
 						unless block/rs-tail? history [
 							history/head: history/head + 1
@@ -185,13 +223,13 @@ Red [
 							refresh
 						]
 					]
-					KEY_HOME 
-					KEY-CTRL-A [
+					KEY_CTRL_A
+					KEY_HOME [
 						line/head: 0
 						refresh
 					]
-					KEY_END
-					KEY-CTRL-E [
+					KEY_CTRL_E
+					KEY_END [
 						line/head: string/get-length line yes
 						refresh
 					]
@@ -201,19 +239,23 @@ Red [
 							refresh
 						]
 					]
-					KEY_PAGE_UP
-					KEY_PAGE_DOWN
-					KEY_UNSET
-					KEY_NONE []						;-- do nothing
-					
 					default [
-						either zero? string/rs-length? line [
-							string/append-char GET_BUFFER(line) c
-						][
-							string/insert-char GET_BUFFER(line) line/head c
+						if any [c = KEY_TAB c > 31] [
+							either string/rs-tail? line [
+								string/append-char GET_BUFFER(line) c
+								#if OS = 'Windows [					;-- optimize for Windows
+									pbuffer: buffer
+									emit-red-char c
+									output-to-screen
+									pbuffer: buffer
+									output?: no
+								]
+							][
+								string/insert-char GET_BUFFER(line) line/head c
+							]
+							line/head: line/head + 1
+							refresh
 						]
-						line/head: line/head + 1
-						refresh
 					]
 				]
 			]
@@ -240,10 +282,6 @@ ask: function [
 		"1 + 2"
 		"1.2 + 1.3"
 		{add-3: function [a b c][a + b + c]}
-		"add-3 1 2 3"
-		"add-3 1.1 2.2 3.3"
-		{checksum/method "1234" 'MD5}
-		{checksum/method "1234" 'SHA1}
 	]
 	set-buffer-history buffer hist
 	_input question

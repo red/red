@@ -133,7 +133,7 @@ in-table?: func [
 	if any [cp < table/1 cp > table/max][return no]
 
 	a: -1
-	until [												;TBD use binary search
+	until [
 		a: a + 2
 		b: a + 1
 		if all [cp > table/a cp < table/b][return yes]

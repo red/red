@@ -177,10 +177,6 @@ winsize!: alias struct! [
 			ws		[winsize!]
 			return: [integer!]
 		]
-		wcwidth?: "wcwidth" [
-			cp		[integer!]
-			return: [integer!]
-		]
 	]
 ]
 
@@ -234,11 +230,7 @@ fd-read: func [
 		i: i + 1
 	]
 	c: unicode/decode-utf8-char utf-char :len
-	switch c [
-		#"^(0D)" [KEY_ENTER]
-		#"^(7F)" [KEY_BACKSPACE]
-		default  [c]
-	]
+	c
 ]
 
 check-special: func [
@@ -304,9 +296,36 @@ emit-string-int: func [
 	emit end
 ]
 
-emit-buf: func [c [byte!]][
-	pbuffer/1: c
-	pbuffer: pbuffer + 1
+emit-red-char: func [
+	cp			[integer!]
+][
+	case [
+		cp <= 7Fh [
+			pbuffer/1: as-byte cp
+			pbuffer: pbuffer + 1
+		]
+		cp <= 07FFh [
+			pbuffer/1: as-byte cp >> 6 or C0h
+			pbuffer/2: as-byte cp and 3Fh or 80h
+			pbuffer: pbuffer + 2
+		]
+		cp <= FFFFh [
+			pbuffer/1: as-byte cp >> 12 or E0h
+			pbuffer/2: as-byte cp >> 6 and 3Fh or 80h
+			pbuffer/3: as-byte cp and 3Fh or 80h
+			pbuffer: pbuffer + 3
+		]
+		cp <= 001FFFFFh [
+			pbuffer/1: as-byte cp >> 18 or F0h
+			pbuffer/2: as-byte cp >> 12 and 3Fh or 80h
+			pbuffer/3: as-byte cp >>  6 and 3Fh or 80h
+			pbuffer/4: as-byte cp and 3Fh or 80h
+			pbuffer: pbuffer + 4
+		]
+		true [
+			print-line "Error in emit-red-string: codepoint > 1FFFFFh"
+		]
+	]
 ]
 
 emit-red-string: func [
@@ -348,35 +367,14 @@ emit-red-string: func [
 				2  [either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]]	;-- reach screen edge, handle wide char
 				default [0]
 			]
-			case [
-				cp <= 7Fh [
-					emit-buf as-byte cp
-				]
-				cp <= 07FFh [
-					emit-buf as-byte cp >> 6 or C0h
-					emit-buf as-byte cp and 3Fh or 80h
-				]
-				cp <= FFFFh [
-					emit-buf as-byte cp >> 12 or E0h
-					emit-buf as-byte cp >> 6 and 3Fh or 80h
-					emit-buf as-byte cp and 3Fh or 80h
-				]
-				cp <= 001FFFFFh [
-					emit-buf as-byte cp >> 18 or F0h
-					emit-buf as-byte cp >> 12 and 3Fh or 80h
-					emit-buf as-byte cp >>  6 and 3Fh or 80h
-					emit-buf as-byte cp and 3Fh or 80h
-				]
-				true [
-					print-line "Error in emit-red-string: codepoint > 1FFFFFh"
-				]
-			]
+			emit-red-char cp
 			offset: offset + unit
 		]
 		bytes: bytes + cnt
 		if cnt = size [				;-- emit new-line and set cursor to start.
-			emit-buf #"^(0A)"
-			emit-buf #"^(0D)"
+			pbuffer/1: #"^(0A)"
+			pbuffer/2: #"^(0D)"
+			pbuffer: pbuffer + 2
 		]
 		size: columns - x
 		x: 0
@@ -387,12 +385,13 @@ emit-red-string: func [
 ]
 
 query-cursor: func [
+	col		[int-ptr!]
 	return: [logic!]								;-- FALSE: failed to retrieve it
 	/local
 		c [byte!]
 		n [integer!]
 ][
-	emit-string "^[[6n"								;-- ask for cursor location		
+	emit-string "^[[6n"								;-- ask for cursor location
 	if all [
 		  esc = fd-read-char 100
 		 #"[" = fd-read-char 100
@@ -403,14 +402,13 @@ query-cursor: func [
 			case [
 				c = #";" [n: 0]
 				all [c = #"R" n <> 0 n < 1000][
-					columns: n
+					col/value: n
 					return true
 				]
 				all [#"0" <= c c <= #"9"][
 					n: n * 10 + (c - #"0")
 				]
 				true [
-					columns: n
 					return true
 				]
 			]
@@ -420,7 +418,7 @@ query-cursor: func [
 ]
 
 get-window-size: func [
-	/local 
+	/local
 		ws	 [winsize!]
 		here [integer!]
 ][
@@ -432,11 +430,10 @@ get-window-size: func [
 	if zero? columns [
 		columns: 80
 
-		if query-cursor [
-			here: columns
+		if query-cursor :here [
 			emit-string "^[[999C"
 
-			either query-cursor [
+			either query-cursor :columns [
 				if columns > here [				;-- reset cursor position
 					emit-string-int "^[[" columns - here #"D"
 				]
@@ -447,9 +444,13 @@ get-window-size: func [
 	]
 ]
 
-erase-to-bottom: does [
+reset-cursor-pos: does [
 	if positive? lines-y [emit-string-int "^[[" lines-y #"A"]	;-- move to origin row
-	emit-string "^(0D)^[[J"					;-- erase down to the bottom of the screen		
+	emit cr
+]
+
+erase-to-bottom: does [
+	emit-string "^[[J"				;-- erase down to the bottom of the screen
 ]
 
 set-cursor-pos: func [
@@ -463,7 +464,7 @@ set-cursor-pos: func [
 	lines-y: size / columns			;-- the lines of all outputs occupy
 	y: size / columns  - (offset / columns)
 	x: offset // columns
-	
+
 	if all [						;-- special case: when moving cursor to the first char of a line
 		widechar? line				;-- the first char of the line is a widechar
 		columns - x = 1				;-- but in pre line only 1 space left
@@ -496,10 +497,10 @@ init: func [
 		so	 [sigaction!]
 ][
 	utf-char: as-c-string allocate 10
-	
+
 	copy-cell as red-value! line as red-value! input-line
 	copy-cell as red-value! hist-blk as red-value! history
-	
+
 	so: declare sigaction!						;-- install resizing signal trap
 	so/sigaction: as-integer :on-resize
 	so/flags: 	SA_SIGINFO ;or SA_RESTART
@@ -531,7 +532,7 @@ init: func [
 	cc/TERM_VTIME: as-byte 0
 
 	tcsetattr stdin TERM_TCSADRAIN term
-	
+
 	poller/fd: stdin
 	poller/events: OS_POLLIN
 
