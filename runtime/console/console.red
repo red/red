@@ -101,8 +101,8 @@ do-console: function [][
 			]
 		]
 		prompt: switch mode [
-			block  ["[^-"]
-			string ["{^-"]
+			block  ["[    "]
+			string ["{    "]
 			mono   [red-prompt]
 		]
 	]

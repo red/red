@@ -14,6 +14,36 @@ Red [
 	}
 ]
 
+default-input-completer: func [
+	str [string!]
+	/local word result sys-word ws?
+][
+	ws?: no
+	str: head str
+	result: make block! 4
+	either word: find/last/tail str #" " [ws?: yes][word: str]
+	unless empty? word [
+		foreach w system/words [
+			if get w [
+				sys-word: mold w
+				if find/match sys-word word [
+					append result sys-word
+				]
+			]
+		]
+	]
+	if 1 = length? result [
+		either word = result/1 [
+			clear result
+		][
+			if ws? [
+				poke result 1 append copy/part str word result/1
+			]
+		]
+	]
+	result
+]
+
 #system [
 	terminal: context [
 		#include %wcwidth.reds
@@ -63,10 +93,12 @@ Red [
 		saved-line:	declare red-string!
 		prompt:		declare	red-string!
 		history:	declare red-block!
-		buf-size:	512
+		buf-size:	128
 		columns:	-1
 		rows:		-1
 		output?:	yes
+
+		string/rs-make-at as cell! saved-line 1
 
 		widechar?: func [
 			str			[red-string!]
@@ -90,6 +122,48 @@ Red [
 			refresh
 		]
 
+		complete-line: func [
+			str			[red-string!]
+			return:		[integer!]
+			/local
+				line	[red-string!]
+				result	[red-block!]
+				num		[integer!]
+		][
+			#call [default-input-completer str]					;@@ need to call twice, a bug?
+			#call [default-input-completer str]
+			result: as red-block! stack/arguments
+			num: block/rs-length? result
+			unless zero? num [
+				line: input-line
+				if num > 1 [
+					str/head: 0
+					string/copy str saved-line stack/arguments yes stack/arguments
+				]
+
+				string/rs-reset line
+				until [
+					string/concatenate line as red-string! block/rs-head result -1 0 yes no
+					string/append-char GET_BUFFER(line) 32
+					block/rs-next result
+					block/rs-tail? result
+				]
+
+				line/head: string/get-length line yes
+				refresh
+			]
+			num
+		]
+
+		add-history: func [
+			str			[red-string!]
+			/local
+				saved	[integer!]
+		][
+			str/head: 0
+			block/rs-append history as red-value! str		;TBD Don't add duplicated lines.
+		]
+
 		fetch-history: does [
 			string/rs-reset input-line
 			string/concatenate input-line as red-string! block/rs-head history -1 0 yes no
@@ -98,6 +172,7 @@ Red [
 
 		init-buffer: func [
 			str			[red-string!]
+			prompt		[red-string!]
 			/local
 				unit	[integer!]
 				s		[series!]
@@ -106,7 +181,8 @@ Red [
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
 			if unit < 2 [unit: 2]			;-- always treat string as widechar string
-			size: (string/rs-length? str) << (unit >> 1)
+			size: (string/get-length str yes) << (unit >> 1)
+			size: size + (string/get-length prompt yes) << (unit >> 1)
 			if size > buf-size [
 				buf-size: size
 				free buffer
@@ -132,7 +208,7 @@ Red [
 				][0]
 			]
 
-			init-buffer line
+			init-buffer line prompt
 			bytes: emit-red-string prompt columns no
 
 			psize: bytes // columns
@@ -159,21 +235,34 @@ Red [
 			/local
 				line   [red-string!]
 				c	   [integer!]
-				offset [integer!]
 		][
-			line: input-line			
+			line: input-line
 			copy-cell as red-value! prompt-str as red-value! prompt
 			history/head: block/rs-length? history		;@@ set history list to tail (temporary)
 				
 			get-window-size
+			unless zero? string/rs-length? saved-line [
+				string/concatenate line saved-line -1 0 yes no
+				line/head: string/get-length line yes
+			]
 			refresh
 
 			while [true][
-				c: fd-read
-				#if OS <> 'Windows [if c = 27 [c: check-special]]
 				output?: yes
+				c: fd-read
+				if c = KEY_TAB [
+					if (complete-line line) > 1 [
+						string/rs-reset line
+						exit
+					]
+				]
+
+				#if OS <> 'Windows [if c = 27 [c: check-special]]
+
 				switch c [
 					KEY_ENTER [
+						add-history line
+						string/rs-reset saved-line
 						exit
 					]
 					KEY_CTRL_H
@@ -183,7 +272,7 @@ Red [
 							string/remove-char line line/head
 							if string/rs-tail? line [output?: no]
 							refresh
-							if not output? [erase-to-bottom]
+							unless output? [erase-to-bottom]
 						]
 					]
 					KEY_CTRL_B
@@ -239,8 +328,9 @@ Red [
 							refresh
 						]
 					]
+					KEY_CTRL_D [halt]
 					default [
-						if any [c = KEY_TAB c > 31] [
+						if c > 31 [
 							either string/rs-tail? line [
 								string/append-char GET_BUFFER(line) c
 								#if OS = 'Windows [					;-- optimize for Windows
@@ -273,17 +363,14 @@ _input: routine [prompt [string!]][
 	terminal/restore
 ]
 
+default-input-history: []
+
 ask: function [
 	question [string!]
 	return: [string!]
 ][
 	buffer: make string! 100
-	hist: [
-		"1 + 2"
-		"1.2 + 1.3"
-		{add-3: function [a b c][a + b + c]}
-	]
-	set-buffer-history buffer hist
+	set-buffer-history buffer head default-input-history
 	_input question
 	print ""
 	buffer

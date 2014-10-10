@@ -169,6 +169,7 @@ fd-read: func [
 						VK_END		[return KEY_END]
 						VK_PRIOR	[return KEY_PAGE_UP]
 						VK_NEXT		[return KEY_PAGE_DOWN]
+						default		[return KEY_NONE]
 					]
 				]
 				keycode = VK_CONTROL []

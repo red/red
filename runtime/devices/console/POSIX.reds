@@ -429,7 +429,7 @@ get-window-size: func [
 
 	if zero? columns [
 		columns: 80
-
+		here: 0
 		if query-cursor :here [
 			emit-string "^[[999C"
 

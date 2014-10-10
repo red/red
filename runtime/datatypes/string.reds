@@ -975,6 +975,8 @@ string: context [
 			blk [red-block!]
 			ret [red-value!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "string/to"]]
+
 		t: type/value
 		blk: as red-block! type
 		#call [transcode spec none]
