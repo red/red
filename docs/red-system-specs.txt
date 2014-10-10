@@ -3223,7 +3223,7 @@ Once the Red function returns, the normal execution of Red/System code continues
 
  Red []
 
- inc: func [n][n + 1]
+ inc: func [n [integer!]][n + 1]
 
  #system [
  	#call [inc 123]
