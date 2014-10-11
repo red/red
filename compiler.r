@@ -27,6 +27,7 @@ red: context [
 	obj-stack:	   to path! 'objects					;-- current object access path
 	container-obj?: none								;-- closest wrapping object
 	func-objs:	   none									;-- points to 'objects first in-function object
+	paths-stack:   make block! 4						;-- stack of generated code for handling dual codepaths for paths
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
 	expr-start-pos: make block! 4						;-- mark beginning of a new expression generated code
@@ -249,6 +250,12 @@ red: context [
 		]
 	]
 	
+	find-ssa: func [name [word!]][find/skip ssa-names name 2]
+	
+	select-ssa: func [name [word!] /local pos][
+		all [pos: find/skip ssa-names name 2 pos/2]
+	]
+	
 	parent-object?: func [obj [object!]][
 		all [not empty? locals-stack (next first obj) = container-obj?]
 	]
@@ -307,7 +314,7 @@ red: context [
 		type: to word! form type? name
 		name: to word! :name
 		
-		either local-word? name [
+		either all [local-word? name rebol-gctx = bind? original][
 			emit append to path! type 'push-local
 			emit last ctx-stack
 			emit get-word-index name
@@ -321,7 +328,7 @@ red: context [
 		either local-word? name [
 			emit 'stack/push							;-- local word
 		][
-			if new: select ssa-names name [name: new]	;@@ add a check for function! type
+			if new: select-ssa name [name: new]			;@@ add a check for function! type
 			emit case [									;-- global word
 				literal ['get-word/get]
 				any?	['word/get-any]
@@ -405,7 +412,12 @@ red: context [
 	emit-deep-check: func [path [series!] /local list check check2 obj top? parent-ctx][
 		check:  [
 			'object/unchanged?
-				decorate-symbol path/1
+				prefix-exec path/1
+				;either empty? locals-stack [
+				;	decorate-symbol path/1
+				;][
+				;	decorate-exec-ctx decorate-symbol path/1 ;-- 'exec prefix to access the word! and not the local value
+				;]
 				third obj: find objects do obj-stk
 		]
 		check2: [
@@ -449,16 +461,20 @@ red: context [
 		mold/flat to word! name
 	]
 	
-	prefix-global: func [word [word!]][					;@@ to be removed?
-		append to path! 'exec word
-	]
-	
 	prefix-func: func [word [word!] /with path][
 		if 1 < length? obj-stack [
 			path: any [obj-func-call? word next any [path obj-stack]]
 			word: decorate-obj-member word path
 		]
 		word
+	]
+	
+	prefix-exec: func [word [word!]][
+		either empty? locals-stack [
+			decorate-symbol word
+		][
+			decorate-exec-ctx decorate-symbol word ;-- 'exec prefix to access the word! and not the local value
+		]
 	]
 	
 	generate-anon-name: has [name][
@@ -485,7 +501,7 @@ red: context [
 	]
 	
 	decorate-func: func [name [word!] /strict /local new][
-		if all [not strict new: select ssa-names name][name: new]
+		if all [not strict new: select-ssa name][name: new]
 		to word! join "f_" clean-lf-flag name
 	]
 	
@@ -720,6 +736,25 @@ red: context [
 		]
 	]
 	
+	rewrite-locals: func [code [block!] /local rule pos word ctx][
+		parse code rule: [
+			some [
+				'stack/push pos: skip (
+					if #"~" = first word: form pos/1 [
+						if ctx: find-contexts word: to word! next word [
+							change/part back pos reduce [
+								'word/get-local ctx get-word-index word
+							] 2
+							new-line back pos yes
+						]
+					]
+				)
+				| into rule
+				| skip
+			]
+		]
+	]
+	
 	check-invalid-call: func [name [word!]][
 		if all [
 			find [exit return] name
@@ -735,14 +770,15 @@ red: context [
 			remove/part pos 2							;-- remove previous function definition
 		]
 		if pos: find objects name [
-			remove/part pos 6							;-- remove previous object definition
+			;remove/part pos 6							;-- erase older object homonym
+			pos/1: none
 		]
 	]
 	
 	check-func-name: func [name [word!] /local new pos][
 		if find functions name [
 			new: to word! append mold/flat name get-counter
-			either pos: find ssa-names name [
+			either pos: find-ssa name [
 				pos/2: new
 			][
 				repend ssa-names [name new]
@@ -762,12 +798,12 @@ red: context [
 				name: alter
 			]
 		][
-			if alter: select ssa-names name [
+			if alter: select-ssa name [
 				entry: find functions alter
 			]
 			repend functions [new entry/2]
 			
-			either pos: find/skip ssa-names new 2 [		;-- add the real function name as alias
+			either pos: find-ssa new [					;-- add the real function name as alias
 				pos/2: name
 			][
 				repend ssa-names [new name]
@@ -783,7 +819,7 @@ red: context [
 			name: to word! name
 			repend functions [name append select functions symbol ctx]
 			
-			either pos: find/skip ssa-names name 2 [	;-- add the real function name as alias
+			either pos: find-ssa name [					;-- add the real function name as alias
 				pos/2: symbol
 			][
 				repend ssa-names [name symbol]
@@ -1060,7 +1096,6 @@ red: context [
 						emit-open-frame 'select
 						emit-path back path set? alt?
 						emit-push-word value value
-						insert-lf -2
 						emit-action/with 'select [-1 -1 -1 -1 -1 -1 -1 -1]
 						emit-close-frame
 					]
@@ -1132,11 +1167,10 @@ red: context [
 		]
 	]
 	
-	paths-stack: make block! 4
-	
-	emit-checked-path: func [path [path!] /local pname fun idx mark saved][
+	emit-checked-path: func [path [path!] /local pname fun idx mark saved cnt][
 		redirect-to literals [pname: emit-block path]
-		fun: decorate-func to word! join "~path" s-counter + 1
+		append paths-stack cnt: get-counter				;-- store the counter for 'emit-path-func
+		fun: decorate-func to word! join "~path" cnt
 		
 		emit [stack/top: stack/arguments]				;-- inlined stack reset (protected from callbacks)
 		insert-lf -2
@@ -1163,7 +1197,7 @@ red: context [
 				emit [stack/push stack/arguments - 1]
 				insert-lf -4
 				emit append to path! to word! form type? path/2 'push
-				emit decorate-symbol path/2
+				emit prefix-exec path/2
 				insert-lf -2
 				emit-eval-path no
 				emit 'stack/unwind-no-cb				;-- avoid triggering dynamic callbacks
@@ -1182,22 +1216,27 @@ red: context [
 		remove back tail expr-start-pos
 		
 		if all [1 = length? body body/1 = 'stack/reset][clear body]
-		
+		rewrite-locals body
+		if find body 'pos [
+			insert body [
+				pos: stack/arguments
+			]
+		]
 		redirect-to declarations [
-			f-name: to word! join "f_~path" get-counter
-			emit reduce [to set-word! f-name 'does body]
-			insert-lf -3
+			f-name: to word! join "f_~path" pick tail paths-stack -2
+			emit reduce [to set-word! f-name 'func [/local pos] body]
+			insert-lf -4
 		]
 		emit last paths-stack
-		remove back tail paths-stack
+		clear back back tail paths-stack				;-- remove last [id body]
 	]
 	
 	emit-opt-call: func [mark [block!]][
 		append/only paths-stack copy mark
 		clear mark
 		if (index? mark) <> index? last expr-start-pos [
-			emit [stack/push stack/arguments  - 1]
-			insert-lf -4
+			emit [stack/push pos]
+			insert-lf -2
 		]
 	]
 	
@@ -1214,7 +1253,7 @@ red: context [
 			offset: 1
 			append/only output append to path! form get type/1 'box
 		]
-		if alter: select/skip ssa-names name 2 [name: alter]
+		if alter: select-ssa name [name: alter]
 		emit name
 		cnt: 0
 
@@ -1428,7 +1467,14 @@ red: context [
 			forskip words 2 [append spec to word! words/1]
 		][
 			unless extend [
-				blk: redirect-to literals [emit-block copy/part pc 2]
+				blk: redirect-to literals [
+					blk: copy/part pc 2
+					either empty? ctx-stack [
+						emit-block blk
+					][
+						emit-block/bind blk last ctx-stack
+					]
+				]
 				unless path [
 					emit-open-frame 'set
 					emit-push-word name original
@@ -1474,7 +1520,7 @@ red: context [
 			emit compose [
 				(to set-word! ctx) _context/make (blk: emit-block spec) no yes	;-- build context
 			]
-			insert-lf -4
+			insert-lf -5
 		]
 		
 		symbol: either path [ctx][
@@ -1513,7 +1559,7 @@ red: context [
 			emit compose [
 				(to set-word! ctx) _context/make (blk) no yes	;-- rebuild context
 			]
-			insert-lf -4
+			insert-lf -5
 		]
 		unless path [
 			emit reduce ['object/init-push ctx id]
@@ -1881,7 +1927,7 @@ red: context [
 			]
 		]
 		name: decorate-symbol name
-		if find symbols name [name: prefix-global name]	;@@
+		if find symbols name [name: decorate-exec-ctx name]
 		
 		append init compose [							;-- body stack frame
 			stack/mark-native (name)	;@@ make a unique name for function's body frame
@@ -1897,7 +1943,7 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos end ignore words rule word][
+	collect-words: func [spec [block!] body [block!] /local pos end ignore words word][
 		if pos: find spec /extern [
 			either end: find next pos refinement! [
 				ignore: copy/part next pos end
@@ -1927,7 +1973,7 @@ red: context [
 				append words word
 			]
 		]
-		parse body rule: [
+		parse body [
 			any [
 				pos: set-word! (
 					word: to word! pos/1
@@ -1944,8 +1990,6 @@ red: context [
 						] make-local
 					]
 				)
-				| path! | set-path! | lit-path!			;-- avoid 'into visiting them
-				| into rule
 				| skip
 			]
 		]
@@ -2032,7 +2076,6 @@ red: context [
 			insert-lf -1
 			emit-close-frame
 		]
-		
 		repend bodies [									;-- save context for deferred function compilation
 			name spec body symbols locals-nb 
 			copy locals-stack copy ssa-names copy ctx-stack
@@ -2394,7 +2437,7 @@ red: context [
 			switch/default type?/word value: path/1 [
 				word! [
 					if all [not set? not get? entry: find functions value][
-						if alter: select/skip ssa-names value 2 [
+						if alter: select-ssa value [
 							entry: find functions alter
 						]
 						if head? path [
@@ -2553,8 +2596,15 @@ red: context [
 			
 			name: either path? call [call/1][call]
 			name: to word! clean-lf-flag name
-			emit-open-frame name
-			
+			either all [with not empty? locals-stack][	;-- only if in a function's body
+				emit reduce [							;-- special case for path-generated wrapper functions
+					'stack/mark-func 
+					decorate-exec-ctx decorate-symbol name
+				]
+				insert-lf -2
+			][
+				emit-open-frame name
+			]
 			comp-arguments spec/3 spec/2				;-- fetch arguments
 			
 			either compact? [
@@ -2669,9 +2719,13 @@ red: context [
 		if all [not booting? find intrinsics name][		
 			throw-error ["attempt to redefine a keyword:" name]
 		]
+		bound?: rebol-gctx <> bind? original
+		deep?: 1 < length? obj-stack
+		
 		unless dispatch-ctx-keywords original [
 			case [
-				local-word? name [
+				all [not bound? local-word? name][
+					if pos: find objects name [pos/1: none]	;-- if object, disable previous binding
 					comp-local-set name
 				]
 				all [
@@ -2689,8 +2743,7 @@ red: context [
 					]
 				]
 				'else [
-					bound?: rebol-gctx <> obj: bind? original
-					deep?: 1 < length? obj-stack
+					obj: bind? original
 					
 					unless bound? [check-redefined name]
 					check-cloned-function name
@@ -2765,9 +2818,7 @@ red: context [
 					name: alter
 				]
 			][
-				if alter: select/skip ssa-names name 2 [
-					entry: find functions alter
-				]
+				if alter: select-ssa name [entry: find functions alter]
 				check-invalid-call name
 				
 				either ctx: any [
@@ -3066,7 +3117,6 @@ red: context [
 				emit-path-func
 				if tail? pc [emit-dyn-check]
 			]
-
 		]
 	]
 	
@@ -3345,6 +3395,7 @@ red: context [
 		clear objects
 		clear next obj-stack							;-- keep 'objects prefix
 		clear expr-start-pos
+		clear paths-stack
 		clear output
 		clear sym-table
 		clear literals

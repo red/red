@@ -170,6 +170,8 @@ _function: context [
 		count:  0
 		locals: 0
 		
+		if value = tail [return 0]
+		
 		while [all [not stop? value < tail]][
 			switch TYPE_OF(value) [
 				TYPE_WORD
@@ -203,6 +205,7 @@ _function: context [
 				index = len
 			]
 			locals: -1									;-- used to signal refinement presence
+			0
 		]
 		locals << 16 or count							;-- combine both values as 16-bit words
 	]

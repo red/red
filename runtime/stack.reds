@@ -293,6 +293,7 @@ stack: context [										;-- call stack
 		acc-mode?: yes
 		
 		either zero? (counters and FFFFh) [
+			arguments/header: TYPE_UNSET
 			check-dyn-call								;-- short path to call with no arguments
 		][
 			arguments/header: TYPE_VALUE				;-- use TYPE_VALUE to signal "no argument"

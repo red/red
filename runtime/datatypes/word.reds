@@ -112,14 +112,21 @@ word: context [
 		index	[integer!]
 		return: [red-value!]
 		/local
-			ctx	[red-context!]
-			s	[series!]
+			ctx	  [red-context!]
+			value [red-value!]
+			s	  [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/get-local"]]
 
 		ctx: TO_CTX(node)
-		s: as series! ctx/values/value
-		stack/push s/offset + index
+		
+		value: either ON_STACK?(ctx) [
+			(as red-value! ctx/values) + index
+		][
+			s: as series! ctx/values/value
+			s/offset + index
+		]
+		stack/push value
 	]
 	
 	get-buffer: func [
