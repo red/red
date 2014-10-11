@@ -444,14 +444,23 @@ Red [
 		
 	--test-- "inherit-10"
 		base10: make object! [
-			emb: make object! [
+			oo: make object! [
 				a: 1
 			]
 		]
 		new10: make base10 []
-		base10/emb/a: 9
-		--assert 9 = new10/emb/a
-			
+		base10/oo/a: 9
+		--assert 9 = new10/oo/a
+		
+	--test-- "inherit-11"
+		base11: make object! [
+			a: 1
+			oo: make object! [
+				f: func [][a]
+			]
+		]
+		new11: make base11 [a: 2]
+		--assert 1 = new11/oo/f
 
 ===end-group===
 
@@ -571,7 +580,7 @@ Red [
 		co2: copy co1
 		co1/a: 2
 		--assert 2 = co1/f
-		--assert 1 = co2/f
+		--assert 2 = co2/f
 		
 	--test-- "copy-3"
 		co1: make object! [
@@ -664,6 +673,40 @@ Red [
 		replace co1/s "old" "new"
 		--assert "Shiny new string" = co1/f
 		--assert "Silly old string" = co2/f
+	
+	--test-- "copy-10"
+		co1: make object! [
+			a: 1
+			f: func[][a]
+		]
+		co2: copy/deep co1
+		co1/a: 2
+		--assert 2 = co1/f
+		--assert 1 = co2/f
+		
+	--test-- "copy-11"
+		co1: make object! [
+			a: 1
+			oo: make object! [
+				f: func[][a]
+			]
+		]
+		co2: copy/deep co1
+		co1/a: 2
+		--assert 2 = co1/oo/f
+		--assert 2 = co2/oo/f
+		
+	--test-- "copy-12"
+		co1: make object! [
+			a: 1
+			oo: make object! [
+				f: func[][a]
+			]
+		]
+		co2: copy/deep co1
+		co1/a: 2
+		--assert 2 = co1/oo/f
+		--assert 2 = co2/oo/f
 		
 ===end-group===
 
@@ -813,10 +856,7 @@ Red [
 		--assert 'b = in ino1/o/o/o 'b
 		--assert 'f = in ino1/o/o/o 'f
 		--assert 's = in ino1/o/o/o 's
-
-		
-		
-		
+	
 ===end-group===
 
 
