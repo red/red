@@ -1069,6 +1069,14 @@ square-root: make native! [[
 	#get-definition NAT_SQUARE_ROOT
 ]
 
+value?: make native! [[
+		"Returns TRUE if the word has a value"
+		value	[word!]
+		return: [logic!]
+	]
+	#get-definition NAT_VALUE?
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
