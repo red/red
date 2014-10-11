@@ -42,6 +42,7 @@ Red/System [
 #define FOREGROUND_RED 			 	04h
 #define ENABLE_LINE_INPUT 			02h
 #define ENABLE_ECHO_INPUT 			04h
+#define ENABLE_QUICK_EDIT_MODE		40h
 
 mouse-event!: alias struct! [
 	Position  [integer!]			;-- high 16-bit: Y	low 16-bit: X
@@ -261,8 +262,9 @@ init: func [
 	copy-cell as red-value! hist-blk as red-value! history
 
 	GetConsoleMode stdin :saved-con
-	mode: not (ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT)		;-- turn off the line input and echo input modes
-	SetConsoleMode stdin saved-con and mode
+	mode: saved-con and (not (ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT))		;-- turn off the line input and echo input modes
+	mode: mode or ENABLE_QUICK_EDIT_MODE				;-- use the mouse to select and edit text
+	SetConsoleMode stdin mode
 	buffer: allocate buf-size
 ]
 

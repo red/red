@@ -24,7 +24,7 @@ default-input-completer: func [
 	either word: find/last/tail str #" " [ws?: yes][word: str]
 	unless empty? word [
 		foreach w system/words [
-			if get w [
+			unless unset? get/any w [
 				sys-word: mold w
 				if find/match sys-word word [
 					append result sys-word
