@@ -197,6 +197,7 @@ Red/System [
 	NAT_LOG_E
 	NAT_EXP
 	NAT_SQUARE_ROOT
+	NAT_VALUE?
 ]
 
 #enum math-op! [

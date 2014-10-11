@@ -1219,8 +1219,6 @@ natives: context [
 		ret
 	]
 
-	;--- Natives helper functions ---
-
 	log-2*: func [
 		/local
 			f	[red-float!]
@@ -1259,6 +1257,18 @@ natives: context [
 	][
 		f: argument-as-float
 		f/value: sqrt f/value
+	]
+
+	value?*: func [
+		/local
+			value  [red-value!]
+			result [red-logic!]
+	][
+		value: _context/get as red-word! stack/arguments
+		result: as red-logic! stack/arguments
+		result/value: TYPE_OF(value) <> TYPE_UNSET
+		result/header: TYPE_LOGIC
+		result
 	]
 
 	;--- Natives helper functions ---
@@ -1587,6 +1597,7 @@ natives: context [
 			:log-e*
 			:exp*
 			:square-root*
+			:value?*
 		]
 	]
 
