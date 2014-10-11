@@ -183,7 +183,7 @@ winsize!: alias struct! [
 saved-term: declare termios!
 utf-char:	declare c-string!
 poller: 	declare pollfd!
-lines-y:	0
+relative-y:	0
 
 fd-read-char: func [
 	timeout [integer!]
@@ -328,62 +328,6 @@ emit-red-char: func [
 	]
 ]
 
-emit-red-string: func [
-	str			[red-string!]
-	size		[integer!]
-	head-as-tail? [logic!]
-	return: 	[integer!]
-	/local
-		series	[series!]
-		offset	[byte-ptr!]
-		tail	[byte-ptr!]
-		unit	[integer!]
-		cp		[integer!]
-		bytes	[integer!]
-		cnt		[integer!]
-		x		[integer!]
-		w		[integer!]
-][
-	x:		0
-	w:		0
-	cnt:	0
-	bytes:	0
-	series: GET_BUFFER(str)
-	unit: 	GET_UNIT(series)
-	offset: (as byte-ptr! series/offset) + (str/head << (unit >> 1))
-	tail:   as byte-ptr! series/tail
-	if head-as-tail? [
-		tail: offset
-		offset: as byte-ptr! series/offset
-	]
-	until [
-		while [
-			all [offset < tail cnt < size]
-		][
-			cp: string/get-char offset unit
-			w: wcwidth? cp
-			cnt: switch w [
-				1  [cnt + 1]
-				2  [either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]]	;-- reach screen edge, handle wide char
-				default [0]
-			]
-			emit-red-char cp
-			offset: offset + unit
-		]
-		bytes: bytes + cnt
-		if cnt = size [				;-- emit new-line and set cursor to start.
-			pbuffer/1: #"^(0A)"
-			pbuffer/2: #"^(0D)"
-			pbuffer: pbuffer + 2
-		]
-		size: columns - x
-		x: 0
-		cnt: 0
-		offset >= tail
-	]
-	bytes
-]
-
 query-cursor: func [
 	col		[int-ptr!]
 	return: [logic!]								;-- FALSE: failed to retrieve it
@@ -445,12 +389,12 @@ get-window-size: func [
 ]
 
 reset-cursor-pos: does [
-	if positive? lines-y [emit-string-int "^[[" lines-y #"A"]	;-- move to origin row
+	if positive? relative-y [emit-string-int "^[[" relative-y #"A"]	;-- move to origin row
 	emit cr
 ]
 
 erase-to-bottom: does [
-	emit-string "^[[J"				;-- erase down to the bottom of the screen
+	emit-string "^[[0J"				;-- erase down to the bottom of the screen
 ]
 
 set-cursor-pos: func [
@@ -461,8 +405,8 @@ set-cursor-pos: func [
 		x	[integer!]
 		y	[integer!]
 ][
-	lines-y: size / columns			;-- the lines of all outputs occupy
-	y: size / columns  - (offset / columns)
+	relative-y: size / columns		;-- the lines of all outputs occupy
+	y: size / columns - (offset / columns)
 	x: offset // columns
 
 	if all [						;-- special case: when moving cursor to the first char of a line
@@ -473,9 +417,11 @@ set-cursor-pos: func [
 		x: 0
 	]
 
+	if zero? (size % columns) [emit #"^(0A)"]
+
 	if positive? y [				;-- set cursor position: y
 	    emit-string-int "^[[" y #"A"
-	    lines-y: lines-y - y
+	    relative-y: relative-y - y
 	]
 	either zero? x [		 		;-- set cursor position: x
 		emit #"^(0D)"
@@ -496,6 +442,7 @@ init: func [
 		cc	 [byte-ptr!]
 		so	 [sigaction!]
 ][
+	relative-y: 0
 	utf-char: as-c-string allocate 10
 
 	copy-cell as red-value! line as red-value! input-line

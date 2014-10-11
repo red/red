@@ -65,7 +65,8 @@ combining-table: [
 	000E0100h 000E01EFh
 ]
 
-ambiguous-table: [
+#if OS = 'None [
+ambiguous-table: [						;-- CJK legacy encodings, no need for now
 	00A1h 00A1h 00A4h 00A4h 00A7h 00A8h
 	00AAh 00AAh 00AEh 00AEh 00B0h 00B4h
 	00B6h 00BAh 00BCh 00BFh 00C6h 00C6h
@@ -118,7 +119,7 @@ ambiguous-table: [
 	2667h 266Ah 266Ch 266Dh 266Fh 266Fh
 	273Dh 273Dh 2776h 277Fh E000h F8FFh
 	FFFDh FFFDh 000F0000h 000FFFFDh 00100000h 0010FFFDh
-]
+]]
 
 in-table?: func [
 	cp		[integer!]

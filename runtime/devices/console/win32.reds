@@ -204,57 +204,6 @@ emit-red-char: func [cp [integer!] /local b][
 	pbuffer: pbuffer + 2
 ]
 
-emit-red-string: func [
-	str	 		  [red-string!]
-	size 		  [integer!]
-	head-as-tail? [logic!]										;-- yes: treat head as tail
-	return:		  [integer!]
-	/local
-		x		  [integer!]
-		cnt		  [integer!]
-		n		  [integer!]
-		bytes	  [integer!]
-		cp		  [integer!]
-		unit	  [integer!]
-		series	  [series!]
-		offset	  [byte-ptr!]
-		tail	  [byte-ptr!]
-][
-	x:		0
-	n:		0
-	bytes:	0
-	cnt:	0
-	series: GET_BUFFER(str)
-	unit: 	GET_UNIT(series)
-	offset: (as byte-ptr! series/offset) + (str/head << (unit >> 1))
-	tail:	as byte-ptr! series/tail
-	if head-as-tail? [
-		tail: offset
-		offset: as byte-ptr! series/offset
-	]
-	until [
-		while [
-			all [offset < tail cnt < size]
-		][
-			cp: string/get-char offset unit
-			cnt: either cp > FFh [
-				either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]	;-- reach screen edge, handle wide char
-			][
-				cnt + 1
-			]
-			emit-red-char cp
-			offset: offset + unit
-		]
-		bytes: bytes + cnt
-		size: columns - x
-		cnt: 0
-		x: 0
-
-		offset >= tail
-	]
-	bytes
-]
-
 reset-cursor-pos: does [
 	SetConsoleCursorPosition stdout base-y << 16
 ]

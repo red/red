@@ -161,7 +161,9 @@ default-input-completer: func [
 				saved	[integer!]
 		][
 			str/head: 0
-			block/rs-append history as red-value! str		;TBD Don't add duplicated lines.
+			unless zero? string/rs-length? str [
+				block/rs-append history as red-value! str		;TBD Don't add duplicated lines.
+			]
 		]
 
 		fetch-history: does [
@@ -191,6 +193,57 @@ default-input-completer: func [
 			pbuffer: buffer
 		]
 
+		emit-red-string: func [
+			str			[red-string!]
+			size		[integer!]
+			head-as-tail? [logic!]
+			return: 	[integer!]
+			/local
+				series	[series!]
+				offset	[byte-ptr!]
+				tail	[byte-ptr!]
+				unit	[integer!]
+				cp		[integer!]
+				bytes	[integer!]
+				cnt		[integer!]
+				x		[integer!]
+				w		[integer!]
+		][
+			x:		0
+			w:		0
+			cnt:	0
+			bytes:	0
+			series: GET_BUFFER(str)
+			unit: 	GET_UNIT(series)
+			offset: (as byte-ptr! series/offset) + (str/head << (unit >> 1))
+			tail:   as byte-ptr! series/tail
+			if head-as-tail? [
+				tail: offset
+				offset: as byte-ptr! series/offset
+			]
+			until [
+				while [
+					all [offset < tail cnt < size]
+				][
+					cp: string/get-char offset unit
+					w: wcwidth? cp
+					cnt: switch w [
+						1  [cnt + 1]
+						2  [either size - cnt = 1 [x: 2 cnt + 3][cnt + 2]]	;-- reach screen edge, handle wide char
+						default [0]
+					]
+					emit-red-char cp
+					offset: offset + unit
+				]
+				bytes: bytes + cnt
+				size: columns - x
+				x: 0
+				cnt: 0
+				offset >= tail
+			]
+			bytes
+		]
+
 		refresh: func [
 			/local
 				line   [red-string!]
@@ -199,15 +252,13 @@ default-input-completer: func [
 				psize  [integer!]
 		][
 			line: input-line
+
 			either output? [					;-- erase down to the bottom of the screen
 				reset-cursor-pos
 				erase-to-bottom
 			][
-				#either OS <> 'Windows [
-					if positive? lines-y [emit-string-int "^[[" lines-y #"A"]	;-- move to origin row
-				][0]
+				#if OS <> 'Windows [reset-cursor-pos][0]
 			]
-
 			init-buffer line prompt
 			bytes: emit-red-string prompt columns no
 
@@ -361,6 +412,7 @@ set-buffer-history: routine [line [string!] hist [block!]][
 _input: routine [prompt [string!]][
 	terminal/edit prompt
 	terminal/restore
+	print-line ""
 ]
 
 default-input-history: []
@@ -372,7 +424,6 @@ ask: function [
 	buffer: make string! 100
 	set-buffer-history buffer head default-input-history
 	_input question
-	print ""
 	buffer
 ]
 
