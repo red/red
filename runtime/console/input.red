@@ -30,6 +30,7 @@ Red [
 		#switch OS [
 			MacOSX [
 				#define ReadLine-library "libreadline.dylib"
+				#define History-library  "libedit.dylib"
 			]
 			#default [
 				#define ReadLine-library "libreadline.so.6"
@@ -53,11 +54,10 @@ Red [
 					return:			[integer!]
 				]
 			]
-			#if OS <> 'MacOSX [
-				History-library cdecl [
-					add-history: "add_history" [  ; Add line to the history.
-						line		[c-string!]
-					]
+
+			History-library cdecl [
+				add-history: "add_history" [  ; Add line to the history.
+					line			[c-string!]
 				]
 			]
 		]
@@ -92,10 +92,10 @@ ask: routine [
 		line: read-line unicode/to-utf8 prompt
 		if line = null [halt]  ; EOF
 
-		 #if OS <> 'MacOSX [add-history line]
+		add-history line
 
-		str: string/load line  1 + length? line UTF-8
-;		free as byte-ptr! line
+		str: string/load symbol/duplicate line  1 + length? line UTF-8
+		free as byte-ptr! line
 	]
 	SET_RETURN(str)
 ]
