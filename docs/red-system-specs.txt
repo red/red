@@ -1212,7 +1212,7 @@ Doc-strings are just optional documentation that can be processed by any externa
 \note Func vs Function
 
 Currently, <b>function</b> is a synonym for <b>func</b> in Red/System. In future, however, the behaviour of <b>function</b> in Red/System may be changed to match the behaviour of <b>function</b> in Red (i.e. all set-words are assumed locals).
-Until this change has been decided, it may be wise to use the <b>func</b> keyword instead of <b>function</b> in Red/System code, particularly in cases where it's use would be affected by such a change.
+Until this change has been decided, it may be wise to use the <b>func</b> keyword instead of <b>function</b> in Red/System code, particularly in cases where its use would be affected by such a change.
 
 /note
 
@@ -1535,7 +1535,7 @@ Example:
  get-file "bigfile.avi" :progress		;-- blocking job would call 'progress
                                         ;-- periodically
 
-A function pointer can be assigned to a variable for later use or dereferencing. Such variable cannot be passed as argument to other functions, nor returned by a function. Function pointer pseudo-type is not a first class datatype.
+A function pointer can be assigned to a variable for later use or dereferencing. Such a variable cannot be passed as an argument to other functions, nor returned by a function. Function pointer pseudo-type is not a first class datatype.
 
 <u>Note</u>: Function address is returned as a function pointer pseudo-type, so it cannot be used as-is in expressions, but it can be safely casted to an integer! if required.
 
