@@ -413,11 +413,6 @@ red: context [
 		check:  [
 			'object/unchanged?
 				prefix-exec path/1
-				;either empty? locals-stack [
-				;	decorate-symbol path/1
-				;][
-				;	decorate-exec-ctx decorate-symbol path/1 ;-- 'exec prefix to access the word! and not the local value
-				;]
 				third obj: find objects do obj-stk
 		]
 		check2: [
@@ -773,7 +768,6 @@ red: context [
 			remove/part pos 2							;-- remove previous function definition
 		]
 		if pos: find objects name [
-			;remove/part pos 6							;-- erase older object homonym
 			pos/1: none
 		]
 	]
