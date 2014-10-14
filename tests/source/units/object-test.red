@@ -441,6 +441,26 @@ Red [
 		--assert list/1/v = 100
 		--assert list/2/v = 101
 		--assert list/3/v = 102
+		
+	--test-- "inherit-10"
+		base10: make object! [
+			oo: make object! [
+				a: 1
+			]
+		]
+		new10: make base10 []
+		base10/oo/a: 9
+		--assert 9 = new10/oo/a
+		
+	--test-- "inherit-11"
+		base11: make object! [
+			a: 1
+			oo: make object! [
+				f: func [][a]
+			]
+		]
+		new11: make base11 [a: 2]
+		--assert 1 = new11/oo/f
 
 ===end-group===
 
@@ -542,6 +562,304 @@ Red [
 		--assert 123 = o2/g
 
 ===end-group===
+
+===start-group=== "copy"
+	
+	--test-- "copy-1"
+		co1: make object! [a: 1]
+		co2: copy co1
+		co1/a: 2
+		--assert 2 = co1/a
+		--assert 1 = co2/a
+	
+	--test-- "copy-2"
+		co1: make object! [
+			a: 1
+			f: func[][a]
+		]
+		co2: copy co1
+		co1/a: 2
+		--assert 2 = co1/f
+		--assert 2 = co2/f
+		
+	--test-- "copy-3"
+		co1: make object! [
+			a: 1
+			b: 2
+			blk: [1 2 3 4]
+		]
+		co2: copy co1
+		co1/blk/1: 5
+		--assert 5 = co1/blk/1 
+		--assert 5 = co2/blk/1
+		
+	--test-- "copy-4"
+		co1: make object! [
+			a: 1
+			b: 2
+			blk: [1 2 3 4]
+		]
+		co2: copy/deep co1
+		co1/blk/1: 5
+		--assert 5 = co1/blk/1 
+		--assert 1 = co2/blk/1
+		
+	--test-- "copy-5"
+		co1: make object! [
+			a: 1
+			s: "Silly old string"
+			f: func [][
+				[s a]
+			]
+		]
+		co2: copy co1
+		co1/a: 5
+		co1/s/2: #"h"
+		co1/s/3: #"i"
+		co1/s/4: #"n"
+		--assert "Shiny old string" = co1/s
+		--assert "Shiny old string" = co2/s
+		
+	--test-- "copy-6"
+		co1: make object! [
+			a: 1
+			s: "Silly old string"
+		]
+		co2: copy co1
+		co1/a: 5
+		co1/s/2: #"h"
+		co1/s/3: #"i"
+		co1/s/4: #"n"
+		replace co1/s "old" "new"
+		--assert "Shiny new string" = co1/s
+		--assert "Shiny new string" = co2/s
+		
+	--test-- "copy-7"
+		co5: make object! [
+			a: 1
+			s: ["Silly old string"]
+		]
+		co6: copy/deep co5
+		co5/a: 5
+		co5/s/2: #"h"
+		co5/s/3: #"i"
+		co5/s/4: #"n"
+		replace co5/s "old" "new"
+		--assert "Shiny new string" = co5/s
+		--assert "Silly old string" = co6/s
+		
+	--test-- "copy-8"
+		co1: make object! [
+			s: "Silly old string"
+			f: func[][s]
+		]
+		co2: copy co1
+		co1/s/2: #"h"
+		co1/s/3: #"i"
+		co1/s/4: #"n"
+		replace co1/s "old" "new"
+		--assert "Shiny new string" = co1/f
+		--assert "Shiny new string" = co2/f
+		
+	--test-- "copy-9"
+		co1: make object! [
+			s: "Silly old string"
+			f: func[][s]
+		]
+		co2: copy/deep co1
+		co1/s/2: #"h"
+		co1/s/3: #"i"
+		co1/s/4: #"n"
+		replace co1/s "old" "new"
+		--assert "Shiny new string" = co1/f
+		--assert "Silly old string" = co2/f
+	
+	--test-- "copy-10"
+		co1: make object! [
+			a: 1
+			f: func[][a]
+		]
+		co2: copy/deep co1
+		co1/a: 2
+		--assert 2 = co1/f
+		--assert 1 = co2/f
+		
+	--test-- "copy-11"
+		co1: make object! [
+			a: 1
+			oo: make object! [
+				f: func[][a]
+			]
+		]
+		co2: copy/deep co1
+		co1/a: 2
+		--assert 2 = co1/oo/f
+		--assert 2 = co2/oo/f
+		
+	--test-- "copy-12"
+		co1: make object! [
+			a: 1
+			oo: make object! [
+				f: func[][a]
+			]
+		]
+		co2: copy/deep co1
+		co1/a: 2
+		--assert 2 = co1/oo/f
+		--assert 2 = co2/oo/f
+		
+===end-group===
+
+===start-group=== "in"
+
+	--test-- "in1"
+		ino1: make object! [
+			i: 1
+			c: #"a"
+			f: 1.0
+			b: [1 2 3 4]
+			s: "abcdef"
+			o: make object! [
+			]
+		]
+		--assert 'i = in ino1 'i
+		--assert 'c = in ino1 'c
+		--assert 'b = in ino1 'b
+		--assert 'f = in ino1 'f
+		--assert 's = in ino1 's
+		--assert 'o = in ino1 'o
+		
+
+	--test-- "in2"
+		ino1: make object! [
+			i: 1
+			c: #"a"
+			f: 1.0
+			b: [1 2 3 4]
+			s: "abcdef"
+			o: make object! [
+				c: #"b"
+				i: 2
+				f: 2.0
+				b: [5 6 7 8]
+				s: "ghijkl"
+				o: make object! [
+				]
+			]
+		]
+		--assert 'i = in ino1 'i
+		--assert 'c = in ino1 'c
+		--assert 'b = in ino1 'b
+		--assert 'f = in ino1 'f
+		--assert 's = in ino1 's
+		--assert 'o = in ino1 'o
+		--assert 'i = in ino1/o 'i
+		--assert 'c = in ino1/o 'c
+		--assert 'b = in ino1/o 'b
+		--assert 'f = in ino1/o 'f
+		--assert 's = in ino1/o 's
+		--assert 'o = in ino1/o 'o
+
+
+	--test-- "in3"
+		ino1: make object! [
+			i: 1
+			c: #"a"
+			f: 1.0
+			b: [1 2 3 4]
+			s: "abcdef"
+			o: make object! [
+				c: #"b"
+				i: 2
+				f: 2.0
+				b: [5 6 7 8]
+				s: "ghijkl"
+				o: make object! [
+					c: #"c"
+					i: 3
+					f: 3.0
+					b: [9 10 11 12]
+					s; "mnopqr"
+					o: make object! [
+					]
+				]
+			]
+		]
+		--assert 'i = in ino1 'i
+		--assert 'c = in ino1 'c
+		--assert 'b = in ino1 'b
+		--assert 'f = in ino1 'f
+		--assert 's = in ino1 's
+		--assert 'o = in ino1 'o
+		--assert 'i = in ino1/o 'i
+		--assert 'c = in ino1/o 'c
+		--assert 'b = in ino1/o 'b
+		--assert 'f = in ino1/o 'f
+		--assert 's = in ino1/o 's
+		--assert 'o = in ino1/o 'o
+		--assert 'i = in ino1/o/o 'i
+		--assert 'c = in ino1/o/o 'c
+		--assert 'b = in ino1/o/o 'b
+		--assert 'f = in ino1/o/o 'f
+		--assert 's = in ino1/o/o 's
+		--assert 'o = in ino1/o/o 'o
+
+		--test-- "in4"
+		ino1: make object! [
+			i: 1
+			c: #"a"
+			f: 1.0
+			b: [1 2 3 4]
+			s: "abcdef"
+			o: make object! [
+				c: #"b"
+				i: 2
+				f: 2.0
+				b: [5 6 7 8]
+				s: "ghijkl"
+				o: make object! [
+					c: #"c"
+					i: 3
+					f: 3.0
+					b: [9 10 11 12]
+					s; "mnopqr"
+					o: make object! [
+						c: #"d"
+						f: 4.0
+						i: 4
+						b: [13 14 15 16]
+						s: "stuvwx"
+					]
+				]
+			]
+		]
+		--assert 'i = in ino1 'i
+		--assert 'c = in ino1 'c
+		--assert 'b = in ino1 'b
+		--assert 'f = in ino1 'f
+		--assert 's = in ino1 's
+		--assert 'o = in ino1 'o
+		--assert 'i = in ino1/o 'i
+		--assert 'c = in ino1/o 'c
+		--assert 'b = in ino1/o 'b
+		--assert 'f = in ino1/o 'f
+		--assert 's = in ino1/o 's
+		--assert 'o = in ino1/o 'o
+		--assert 'i = in ino1/o/o 'i
+		--assert 'c = in ino1/o/o 'c
+		--assert 'b = in ino1/o/o 'b
+		--assert 'f = in ino1/o/o 'f
+		--assert 's = in ino1/o/o 's
+		--assert 'o = in ino1/o/o 'o
+		--assert 'i = in ino1/o/o/o 'i
+		--assert 'c = in ino1/o/o/o 'c
+		--assert 'b = in ino1/o/o/o 'b
+		--assert 'f = in ino1/o/o/o 'f
+		--assert 's = in ino1/o/o/o 's
+	
+===end-group===
+
+
 
 ~~~end-file~~~
 
