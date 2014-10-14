@@ -3392,7 +3392,7 @@ red: context [
 		clear contexts
 		clear ctx-stack
 		clear objects
-		clear next obj-stack							;-- keep 'objects prefix
+		obj-stack: to path! 'objects					;-- reset it to original value
 		clear expr-start-pos
 		clear paths-stack
 		clear output
