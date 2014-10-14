@@ -2829,23 +2829,25 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		comp-block: func [/final /only /local fetch expr][
-			fetch: [either final [fetch-expression/final][fetch-expression]]
+		comp-block: func [/final /only /local expr save-pc][
 			block-level: block-level + 1
-			pc: fetch-into pc/1 [
-				either only [
-					expr: do fetch
-					unless tail? pc [
-						throw-error "more than one expression found in parentheses"
-					]
-				][
-					while [not tail? pc][
-						;if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
-						expr: do fetch
-						unless tail? pc [pop-calls]
-					]
+			save-pc: pc
+			pc: pc/1
+
+			either only [
+				expr: either final [fetch-expression/final][fetch-expression]
+				unless tail? pc [
+					throw-error "more than one expression found in parentheses"
+				]
+			][
+				while [not tail? pc][
+					;if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
+					expr: either final [fetch-expression/final][fetch-expression]
+					unless tail? pc [pop-calls]
 				]
 			]
+			pc: next save-pc
+			
 			block-level: block-level - 1
 			expr
 		]
