@@ -360,7 +360,7 @@ red: context [
 			name = 'catch ['stack/mark-catch]
 			'else		  ['stack/mark-native]
 		]
-		emit decorate-symbol name
+		emit prefix-exec name
 		insert-lf -2
 	]
 	
@@ -588,9 +588,12 @@ red: context [
 		not empty? intersect expr-stack iterators
 	]
 	
-	get-obj-base: func [name [any-word!] /list][
-		name: either local-word? name ['func-objs]['objects]
-		either list [get name][name]
+	get-obj-base: func [name [any-word!]][
+		either local-word? name [func-objs][objects]
+	]
+	
+	get-obj-base-word: func [name [any-word!]][
+		either local-word? name ['func-objs]['objects]
 	]
 	
 	find-proto: func [obj [block!] fun [word!] /local proto o multi?][
@@ -615,7 +618,7 @@ red: context [
 		either path/1 = 'self [
 			bind? path/1
 		][
-			attempt [do head insert copy/part to path! path (length? path) - 1 get-obj-base path/1]
+			attempt [do head insert copy/part to path! path (length? path) - 1 get-obj-base-word path/1]
 		]
 	]
 	
@@ -653,7 +656,7 @@ red: context [
 				]
 			]
 
-			base: get-obj-base path/1
+			base: get-obj-base-word path/1
 			do search									;-- check if path is an absolute object path
 
 			if all [not found? 1 < length? obj-stack][
@@ -1524,7 +1527,7 @@ red: context [
 		]
 		
 		symbol: either path [ctx][
-			if pos: find get-obj-base/list name name [pos/1: none] ;-- unbind word with previous object
+			if pos: find get-obj-base name name [pos/1: none] ;-- unbind word with previous object
 			
 			get pick [name ctx] to logic! any [		;-- name for global words, else use context name
 				rebol-gctx = bind? original 
@@ -2010,7 +2013,7 @@ red: context [
 			set-path? original [
 				path: original
 				either obj: object-access? path [
-					do reduce [join to set-path! 'objects path 'function!] ;-- update shadow object info
+					do reduce [join to set-path! get-obj-base-word path/1 path 'function!] ;-- update shadow object info
 					obj: find objects obj
 					name: to word! rejoin [any [obj/-1 obj/2] #"~" last path] 
 					add-symbol name
@@ -2502,6 +2505,7 @@ red: context [
 			either self? [
 				emit first true-blk
 			][
+			insert-lf -1
 				emit compose [
 					either (emit-deep-check path) (true-blk)
 				]
@@ -2725,7 +2729,7 @@ red: context [
 		unless dispatch-ctx-keywords original [
 			case [
 				all [not bound? local-word? name][
-					if pos: find objects name [pos/1: none]	;-- if object, disable previous binding
+					if pos: find get-obj-base name name [pos/1: none]	;-- if object, disable previous binding
 					comp-local-set name
 				]
 				all [
@@ -3186,6 +3190,7 @@ red: context [
 	
 	comp-bodies: does [
 		func-objs: tail objects
+		obj-stack: to path! 'func-objs
 		foreach [name spec body symbols locals-nb stack ssa ctx obj?] bodies [
 			either none? symbols [						;-- routine in no-global? mode
 				emit reduce [to set-word! name 'func]
