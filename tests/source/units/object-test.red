@@ -779,7 +779,7 @@ Red [
 					i: 3
 					f: 3.0
 					b: [9 10 11 12]
-					s; "mnopqr"
+					s: "mnopqr"
 					o: make object! [
 					]
 				]
@@ -822,7 +822,7 @@ Red [
 					i: 3
 					f: 3.0
 					b: [9 10 11 12]
-					s; "mnopqr"
+					s: "mnopqr"
 					o: make object! [
 						c: #"d"
 						f: 4.0
