@@ -1219,6 +1219,10 @@ red: context [
 				pos: stack/arguments
 			]
 		]
+		if all [not empty? body 'stack/unwind = last body][
+			change/only back tail body 'stack/unwind-last
+		]
+		
 		redirect-to declarations [
 			f-name: to word! join "f_~path" pick tail paths-stack -2
 			emit reduce [to set-word! f-name 'func [/local pos] body]
@@ -1673,7 +1677,7 @@ red: context [
 		
 	comp-if: does [
 		emit-open-frame 'if
-		comp-expression
+		comp-expression/close-path
 		emit compose/deep [
 			either logic/false? [(set-last-none)]
 		]
@@ -1683,7 +1687,7 @@ red: context [
 	
 	comp-unless: does [
 		emit-open-frame 'unless
-		comp-expression
+		comp-expression/close-path
 		emit [
 			either logic/false?
 		]
@@ -1694,7 +1698,7 @@ red: context [
 
 	comp-either: does [
 		emit-open-frame 'either
-		comp-expression		
+		comp-expression/close-path
 		emit [
 			either logic/true?
 		]
@@ -1708,7 +1712,7 @@ red: context [
 		
 		set [name set-name] declare-variable join "i" depth
 		
-		comp-expression									;@@ optimize case for literal counter
+		comp-expression/close-path						;@@ optimize case for literal counter
 		
 		emit compose [(set-name) integer/get*]
 		insert-lf -2
@@ -1773,7 +1777,7 @@ red: context [
 		emit-stack-reset
 		
 		pc: next pc
-		comp-expression									;-- compile 2nd argument
+		comp-expression/close-path						;-- compile 2nd argument
 		
 		set [cnt set-cnt] declare-variable join "r" depth		;-- integer counter
 		set [lim set-lim] declare-variable join "rlim" depth	;-- counter limit
@@ -1838,7 +1842,7 @@ red: context [
 		]
 		pc: next pc
 		
-		comp-expression									;-- compile series argument
+		comp-expression/close-path						;-- compile series argument
 		;TBD: check if result is any-series!
 		emit 'stack/keep
 		insert-lf -1
@@ -3073,7 +3077,10 @@ red: context [
 		]
 	]
 	
-	comp-expression: func [/no-infix /root][
+	comp-expression: func [/no-infix /root /close-path][
+		if close-path [									;-- update last expr-start-pos entry
+			change/only back tail expr-start-pos tail output
+		]
 		unless no-infix [
 			if check-infix-operators [exit]
 		]
@@ -3113,10 +3120,10 @@ red: context [
 			][
 				emit-stack-reset						;-- clear stack from last root expression result
 			]
-			unless empty? paths-stack [
-				emit-path-func
-				if tail? pc [emit-dyn-check]
-			]
+		]
+		if all [any [close-path root] not empty? paths-stack][
+			emit-path-func
+			if tail? pc [emit-dyn-check]
 		]
 	]
 	
