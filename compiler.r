@@ -465,7 +465,7 @@ red: context [
 	]
 	
 	prefix-exec: func [word [word!]][
-		either empty? locals-stack [
+		either any [empty? locals-stack not find-contexts word][
 			decorate-symbol word
 		][
 			decorate-exec-ctx decorate-symbol word ;-- 'exec prefix to access the word! and not the local value
