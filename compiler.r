@@ -1164,12 +1164,19 @@ red: context [
 		]
 	]
 	
-	emit-checked-path: func [path [path!] /local pname fun idx mark saved cnt][
+	emit-checked-path: func [path [path!] /local pname fun idx mark saved cnt frame?][
 		redirect-to literals [pname: emit-block path]
 		append paths-stack cnt: get-counter				;-- store the counter for 'emit-path-func
 		fun: decorate-func to word! join "~path" cnt
 		
-		emit [stack/top: stack/arguments]				;-- inlined stack reset (protected from callbacks)
+		either frame?: all [
+			not empty? expr-stack
+			'switch = last expr-stack
+		][
+			emit-open-frame 'dyn-path					;-- wrap it in a stack frame in this case
+		][
+			emit [stack/top: stack/arguments]			;-- inlined stack reset (protected from callbacks)
+		]
 		insert-lf -2
 		emit-get-word path/1 path/1
 		insert-lf -2
@@ -1204,6 +1211,7 @@ red: context [
 				output: mark
 			]
 		]
+		if frame? [emit-close-frame]
 		output: saved
 	]
 
@@ -2183,9 +2191,10 @@ red: context [
 				][throw-error ["SWITCH has no refinement called" ref]]
 			]
 		]
+		push-call 'switch
 		emit-open-frame 'switch
 		mark: tail output								;-- pre-compile the SWITCH argument
-		comp-expression
+		comp-expression/close-path
 		arg: copy mark
 		clear mark
 		
@@ -2239,6 +2248,7 @@ red: context [
 		]
 		append/only output list
 		emit-close-frame
+		pop-call
 	]
 	
 	comp-case: has [all? path saved list mark body chunk][
