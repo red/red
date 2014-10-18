@@ -1799,7 +1799,60 @@ Red [
 
 ===end-group===
 
+===start-group=== "objects within functions"
 
+	--test-- "owf1 #946"
+		owf1-o: make object! [
+			a: 1
+			f: func [][
+				o: make object! [
+					a: 2
+				]
+				o/a
+			]
+		]
+		--assert 2 = owf1-o/f
+		
+	--test-- "owf2 #956"
+		owf2-o: make object! [
+			a: 1
+			f: func [][
+				o: make object! [
+					a: 2
+				]
+				either o/a [o/a] [99]
+			]
+		]
+		--assert 2 = owf2-o/f
+		
+	--test-- "owf3 - #957"
+		owf3-f: func [
+			o [object!]
+		][
+			switch o/a [
+				0 [0]
+				1 [1]
+				2 [2]
+			]		
+		
+		]
+		owf3-o: make object! [
+			a: 1
+		]
+		--assert 1 = owf3-f owf3-o
+		
+	--test-- "owf4 - #947"
+		owf4-f: func [
+			o [object!]
+		][
+			either o/a [o/a] [99]		
+		]
+		owf4-o: make object! [
+			a: 1
+		]
+		--assert 1 = owf4-f owf4-o
+		
+===end-group===
 
 ~~~end-file~~~
 
