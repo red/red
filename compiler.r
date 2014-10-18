@@ -2896,11 +2896,11 @@ red: context [
 				pos = pc								;-- until we reach the beginning of expression
 			]
 			
-			comp-expression/no-infix/close-path			;-- fetch first left operand
+			comp-expression/no-infix					;-- fetch first left operand
 			pc: next pc
 			
 			forall ops [
-				comp-expression/no-infix/close-path		;-- fetch right operand
+				comp-expression/no-infix				;-- fetch right operand
 				name: ops/1
 				spec: functions/:name
 				switch/default spec/1 [
@@ -3097,7 +3097,13 @@ red: context [
 			change/only back tail expr-start-pos tail output
 		]
 		unless no-infix [
-			if check-infix-operators [exit]
+			if check-infix-operators [
+				if all [any [close-path root] not empty? paths-stack][
+					emit-path-func
+					if tail? pc [emit-dyn-check]
+				]	
+				exit
+			]
 		]
 
 		if tail? pc [
