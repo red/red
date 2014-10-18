@@ -1804,7 +1804,7 @@ Red [
 	--test-- "owf1 #946"
 		owf1-o: make object! [
 			a: 1
-			f: func [][
+			f: func [/local o][
 				o: make object! [
 					a: 2
 				]
@@ -1816,7 +1816,7 @@ Red [
 	--test-- "owf2 #956"
 		owf2-o: make object! [
 			a: 1
-			f: func [][
+			f: func [/local o][
 				o: make object! [
 					a: 2
 				]
@@ -1851,6 +1851,30 @@ Red [
 			a: 1
 		]
 		--assert 1 = owf4-f owf4-o
+		
+	--test-- "owf5"
+		owf5-o: make object! [
+			a: 1
+			f: func [][
+				o: make object! [        	;; in global context
+					a: 2
+				]
+				o/a
+			]
+		]
+		--assert 2 = owf5-o/f
+		
+	--test-- "owf6"
+		owf6-o: make object! [
+			a: 1
+			f: func [][
+				o: make object! [			;; in global context
+					a: 2
+				]
+				either o/a [o/a] [99]
+			]
+		]
+		--assert 2 = owf6-o/f
 		
 ===end-group===
 
