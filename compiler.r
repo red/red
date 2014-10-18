@@ -3202,8 +3202,8 @@ red: context [
 	]
 	
 	comp-bodies: does [
-		func-objs: tail objects
 		obj-stack: to path! 'func-objs
+		
 		foreach [name spec body symbols locals-nb stack ssa ctx obj?] bodies [
 			either none? symbols [						;-- routine in no-global? mode
 				emit reduce [to set-word! name 'func]
@@ -3215,6 +3215,8 @@ red: context [
 				ssa-names: ssa
 				ctx-stack: ctx
 				container-obj?: obj?
+				func-objs: tail objects
+				
 				comp-func-body name spec body symbols locals-nb
 			]
 		]
