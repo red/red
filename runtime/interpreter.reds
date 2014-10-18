@@ -489,6 +489,7 @@ interpreter: context [
 		end		[red-value!]
 		set?	[logic!]
 		get?	[logic!]
+		sub?	[logic!]
 		return: [red-value!]
 		/local 
 			path	[red-path!]
@@ -578,7 +579,7 @@ interpreter: context [
 		]
 		
 		stack/top: saved
-		stack/push parent
+		either sub? [stack/push parent][stack/set-last parent]
 		pc
 	]
 	
@@ -706,7 +707,7 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
-				pc: eval-path value pc end yes no
+				pc: eval-path value pc end yes no sub?
 			]
 			TYPE_GET_WORD [
 				copy-cell _context/get as red-word! pc stack/push*
@@ -785,12 +786,12 @@ interpreter: context [
 			TYPE_PATH [
 				value: pc
 				pc: pc + 1
-				pc: eval-path value pc end no no
+				pc: eval-path value pc end no no sub?
 			]
 			TYPE_GET_PATH [
 				value: pc
 				pc: pc + 1
-				pc: eval-path value pc end no yes
+				pc: eval-path value pc end no yes sub?
 			]
 			TYPE_LIT_PATH [
 				value: stack/push pc

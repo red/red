@@ -2419,6 +2419,7 @@ red: context [
 	]
 	
 	comp-path: func [
+		root? [logic!]
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj?
@@ -2442,7 +2443,7 @@ red: context [
 			
 			unless set? [emit [stack/mark-native words/_body]]	;@@ not clean...
 			emit compose [
-				interpreter/eval-path stack/top - 1 null null (to word! form set?) no
+				interpreter/eval-path stack/top - 1 null null (to word! form set?) no (root?)
 			]
 			unless set? [emit [stack/unwind-last]]
 			
@@ -3117,8 +3118,8 @@ red: context [
 			word!		[comp-word]
 			get-word!	[comp-word/literal]
 			paren!		[comp-next-block]
-			set-path!	[comp-path/set?]
-			path! 		[comp-path]
+			set-path!	[comp-path/set? to logic! root]
+			path! 		[comp-path to logic! root]
 		][
 			comp-literal
 		]
