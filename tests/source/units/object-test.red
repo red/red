@@ -561,6 +561,76 @@ Red [
 		o2: f/alt
 		--assert 123 = o2/g
 
+	--test-- "dyn-10"
+
+		o: context [a: [123 789]]
+		--assert if o/a [true]
+		--assert if block? o/a [true]
+		--assert if 123 = first o/a [true]
+
+	--test-- "dyn-11"
+		--assert either o/a [true][false]
+		--assert either block? o/a [true][false]
+		--assert either 789 = second o/a [true][false]
+
+	--test-- "dyn-12"
+		--assert block? all [o/a]
+		--assert not 	all [false o/a]
+		--assert not 	all [o/a false]
+		--assert 456 = 	all [o/a 456]
+
+	--test-- "dyn-13"
+		--assert block? any [o/a 0]
+		--assert block? any [false o/a]
+		--assert block? any [o/a false]
+		--assert block? any [o/a 456]
+		--assert 654 =  any [654 o/a]
+
+	--test-- "dyn-14"
+		foreach p o/a [--assert any [p = 123 p = 789]]
+
+	--test-- "dyn-15"
+		loop length? o/a [--assert any [p = 123 p = 789]]
+
+	--test-- "dyn-16"
+		repeat c length? o/a [--assert any [c = 1 c = 2]]
+
+	--test-- "dyn-17"
+		repeat c 125 - first o/a [--assert any [c = 1 c = 2]]
+
+	--test-- "dyn-18"
+		switch/default first o/a [
+			123 [
+				--assert true
+				switch/default second o/a [
+					789 [--assert true]
+				][--assert false]
+			]
+			789 [--assert false]
+		][--assert false]
+
+	--test-- "dyn-19"
+		 --assert 0 < first o/a
+
+	--test-- "dyn-20"
+		case [
+			first o/a  	[--assert true]
+			'else 		[--assert false]
+		]
+
+	--test-- "dyn-21"
+		case [
+			0 < first o/a [--assert true]
+			'else	  	  [--assert false]
+		]
+
+	--test-- "dyn-22"
+		case [
+			0 = first o/a 	  [--assert false]
+			789 = second o/a  [--assert true]
+		]
+
+
 ===end-group===
 
 ===start-group=== "copy"
@@ -580,7 +650,7 @@ Red [
 		co2: copy co1
 		co1/a: 2
 		--assert 2 = co1/f
-		--assert 2 = co2/f
+		--assert 1 = co2/f
 		
 	--test-- "copy-3"
 		co1: make object! [
@@ -637,14 +707,14 @@ Red [
 	--test-- "copy-7"
 		co5: make object! [
 			a: 1
-			s: ["Silly old string"]
+			s: "Silly old string"
 		]
 		co6: copy/deep co5
 		co5/a: 5
 		co5/s/2: #"h"
 		co5/s/3: #"i"
 		co5/s/4: #"n"
-		replace co5/s "old" "new"
+		replace at co5/s 7 "old" "new"
 		--assert "Shiny new string" = co5/s
 		--assert "Silly old string" = co6/s
 		
@@ -1364,6 +1434,364 @@ Red [
 		--test-- "loc-dyn-9"
 			o2: f-make-obj-2/alt
 			--assert 123 = o2/g
+
+		--test-- "loc-dyn-10"
+
+			o: context [a: [123 789]]
+			--assert if o/a [true]
+			--assert if block? o/a [true]
+			--assert if 123 = first o/a [true]
+
+		--test-- "loc-dyn-11"
+			--assert either o/a [true][false]
+			--assert either block? o/a [true][false]
+			--assert either 789 = second o/a [true][false]
+
+		--test-- "loc-dyn-12"
+			--assert block? all [o/a]
+			--assert not 	all [false o/a]
+			--assert not 	all [o/a false]
+			--assert 456 = 	all [o/a 456]
+
+		--test-- "loc-dyn-13"
+			--assert block? any [o/a 0]
+			--assert block? any [false o/a]
+			--assert block? any [o/a false]
+			--assert block? any [o/a 456]
+			--assert 654 =  any [654 o/a]
+
+		--test-- "loc-dyn-14"
+			foreach p o/a [--assert any [p = 123 p = 789]]
+
+		--test-- "loc-dyn-15"
+			loop length? o/a [--assert any [p = 123 p = 789]]
+
+		--test-- "loc-dyn-16"
+			repeat c length? o/a [--assert any [c = 1 c = 2]]
+
+		--test-- "loc-dyn-17"
+			repeat c 125 - first o/a [--assert any [c = 1 c = 2]]
+
+		--test-- "loc-dyn-18"
+			switch/default first o/a [
+				123 [
+					--assert true
+					switch/default second o/a [
+						789 [--assert true]
+					][--assert false]
+				]
+				789 [--assert false]
+			][--assert false]
+
+		--test-- "loc-dyn-19"
+			 --assert 0 < first o/a
+
+		--test-- "loc-dyn-20"
+			case [
+				first o/a  	[--assert true]
+				'else 		[--assert false]
+			]
+
+		--test-- "loc-dyn-21"
+			case [
+				0 < first o/a [--assert true]
+				'else	  	  [--assert false]
+			]
+
+		--test-- "loc-dyn-22"
+			case [
+				0 = first o/a 	  [--assert false]
+				789 = second o/a  [--assert true]
+			]
+
+
+		--test-- "loc-copy-1"
+			co1: make object! [a: 1]
+			co2: copy co1
+			co1/a: 2
+			--assert 2 = co1/a
+			--assert 1 = co2/a
+		
+		--test-- "loc-copy-2"
+			co1: make object! [
+				a: 1
+				f: func[][a]
+			]
+			co2: copy co1
+			co1/a: 2
+			--assert 2 = co1/f
+			--assert 1 = co2/f
+			
+		--test-- "loc-copy-3"
+			co1: make object! [
+				a: 1
+				b: 2
+				blk: [1 2 3 4]
+			]
+			co2: copy co1
+			co1/blk/1: 5
+			--assert 5 = co1/blk/1 
+			--assert 5 = co2/blk/1
+			
+		--test-- "loc-copy-4"
+			co1: make object! [
+				a: 1
+				b: 2
+				blk: [1 2 3 4]
+			]
+			co2: copy/deep co1
+			co1/blk/1: 5
+			--assert 5 = co1/blk/1 
+			--assert 1 = co2/blk/1
+			
+		--test-- "loc-copy-5"
+			co1: make object! [
+				a: 1
+				s: "Silly old string"
+				f: func [][
+					[s a]
+				]
+			]
+			co2: copy co1
+			co1/a: 5
+			co1/s/2: #"h"
+			co1/s/3: #"i"
+			co1/s/4: #"n"
+			--assert "Shiny old string" = co1/s
+			--assert "Shiny old string" = co2/s
+			
+		--test-- "loc-copy-6"
+			co1: make object! [
+				a: 1
+				s: "Silly old string"
+			]
+			co2: copy co1
+			co1/a: 5
+			co1/s/2: #"h"
+			co1/s/3: #"i"
+			co1/s/4: #"n"
+			replace co1/s "old" "new"
+			--assert "Shiny new string" = co1/s
+			--assert "Shiny new string" = co2/s
+			
+		--test-- "loc-copy-7"
+			co5: make object! [
+				a: 1
+				s: "Silly old string"
+			]
+			co6: copy/deep co5
+			co5/a: 5
+			co5/s/2: #"h"
+			co5/s/3: #"i"
+			co5/s/4: #"n"
+			replace at co5/s 7 "old" "new"
+			--assert "Shiny new string" = co5/s
+			--assert "Silly old string" = co6/s
+			
+		--test-- "loc-copy-8"
+			co1: make object! [
+				s: "Silly old string"
+				f: func[][s]
+			]
+			co2: copy co1
+			co1/s/2: #"h"
+			co1/s/3: #"i"
+			co1/s/4: #"n"
+			replace co1/s "old" "new"
+			--assert "Shiny new string" = co1/f
+			--assert "Shiny new string" = co2/f
+			
+		--test-- "loc-copy-9"
+			co1: make object! [
+				s: "Silly old string"
+				f: func[][s]
+			]
+			co2: copy/deep co1
+			co1/s/2: #"h"
+			co1/s/3: #"i"
+			co1/s/4: #"n"
+			replace co1/s "old" "new"
+			--assert "Shiny new string" = co1/f
+			--assert "Silly old string" = co2/f
+		
+		--test-- "loc-copy-10"
+			co1: make object! [
+				a: 1
+				f: func[][a]
+			]
+			co2: copy/deep co1
+			co1/a: 2
+			--assert 2 = co1/f
+			--assert 1 = co2/f
+			
+		--test-- "loc-copy-11"
+			co1: make object! [
+				a: 1
+				oo: make object! [
+					f: func[][a]
+				]
+			]
+			co2: copy/deep co1
+			co1/a: 2
+			--assert 2 = co1/oo/f
+			--assert 2 = co2/oo/f
+			
+		--test-- "loc-copy-12"
+			co1: make object! [
+				a: 1
+				oo: make object! [
+					f: func[][a]
+				]
+			]
+			co2: copy/deep co1
+			co1/a: 2
+			--assert 2 = co1/oo/f
+			--assert 2 = co2/oo/f
+
+		--test-- "loc-in1"
+			ino1: make object! [
+				i: 1
+				c: #"a"
+				f: 1.0
+				b: [1 2 3 4]
+				s: "abcdef"
+				o: make object! [
+				]
+			]
+			--assert 'i = in ino1 'i
+			--assert 'c = in ino1 'c
+			--assert 'b = in ino1 'b
+			--assert 'f = in ino1 'f
+			--assert 's = in ino1 's
+			--assert 'o = in ino1 'o
+			
+
+		--test-- "loc-in2"
+			ino1: make object! [
+				i: 1
+				c: #"a"
+				f: 1.0
+				b: [1 2 3 4]
+				s: "abcdef"
+				o: make object! [
+					c: #"b"
+					i: 2
+					f: 2.0
+					b: [5 6 7 8]
+					s: "ghijkl"
+					o: make object! [
+					]
+				]
+			]
+			--assert 'i = in ino1 'i
+			--assert 'c = in ino1 'c
+			--assert 'b = in ino1 'b
+			--assert 'f = in ino1 'f
+			--assert 's = in ino1 's
+			--assert 'o = in ino1 'o
+			--assert 'i = in ino1/o 'i
+			--assert 'c = in ino1/o 'c
+			--assert 'b = in ino1/o 'b
+			--assert 'f = in ino1/o 'f
+			--assert 's = in ino1/o 's
+			--assert 'o = in ino1/o 'o
+
+
+		--test-- "loc-in3"
+			ino1: make object! [
+				i: 1
+				c: #"a"
+				f: 1.0
+				b: [1 2 3 4]
+				s: "abcdef"
+				o: make object! [
+					c: #"b"
+					i: 2
+					f: 2.0
+					b: [5 6 7 8]
+					s: "ghijkl"
+					o: make object! [
+						c: #"c"
+						i: 3
+						f: 3.0
+						b: [9 10 11 12]
+						s: "mnopqr"
+						o: make object! [
+						]
+					]
+				]
+			]
+			--assert 'i = in ino1 'i
+			--assert 'c = in ino1 'c
+			--assert 'b = in ino1 'b
+			--assert 'f = in ino1 'f
+			--assert 's = in ino1 's
+			--assert 'o = in ino1 'o
+			--assert 'i = in ino1/o 'i
+			--assert 'c = in ino1/o 'c
+			--assert 'b = in ino1/o 'b
+			--assert 'f = in ino1/o 'f
+			--assert 's = in ino1/o 's
+			--assert 'o = in ino1/o 'o
+			--assert 'i = in ino1/o/o 'i
+			--assert 'c = in ino1/o/o 'c
+			--assert 'b = in ino1/o/o 'b
+			--assert 'f = in ino1/o/o 'f
+			--assert 's = in ino1/o/o 's
+			--assert 'o = in ino1/o/o 'o
+
+			--test-- "loc-in4"
+			ino1: make object! [
+				i: 1
+				c: #"a"
+				f: 1.0
+				b: [1 2 3 4]
+				s: "abcdef"
+				o: make object! [
+					c: #"b"
+					i: 2
+					f: 2.0
+					b: [5 6 7 8]
+					s: "ghijkl"
+					o: make object! [
+						c: #"c"
+						i: 3
+						f: 3.0
+						b: [9 10 11 12]
+						s: "mnopqr"
+						o: make object! [
+							c: #"d"
+							f: 4.0
+							i: 4
+							b: [13 14 15 16]
+							s: "stuvwx"
+						]
+					]
+				]
+			]
+			--assert 'i = in ino1 'i
+			--assert 'c = in ino1 'c
+			--assert 'b = in ino1 'b
+			--assert 'f = in ino1 'f
+			--assert 's = in ino1 's
+			--assert 'o = in ino1 'o
+			--assert 'i = in ino1/o 'i
+			--assert 'c = in ino1/o 'c
+			--assert 'b = in ino1/o 'b
+			--assert 'f = in ino1/o 'f
+			--assert 's = in ino1/o 's
+			--assert 'o = in ino1/o 'o
+			--assert 'i = in ino1/o/o 'i
+			--assert 'c = in ino1/o/o 'c
+			--assert 'b = in ino1/o/o 'b
+			--assert 'f = in ino1/o/o 'f
+			--assert 's = in ino1/o/o 's
+			--assert 'o = in ino1/o/o 'o
+			--assert 'i = in ino1/o/o/o 'i
+			--assert 'c = in ino1/o/o/o 'c
+			--assert 'b = in ino1/o/o/o 'b
+			--assert 'f = in ino1/o/o/o 'f
+			--assert 's = in ino1/o/o/o 's
 
 	]
 
