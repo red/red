@@ -1171,7 +1171,7 @@ red: context [
 		
 		either frame?: all [
 			not empty? expr-stack
-			'switch = last expr-stack
+			find [switch case] last expr-stack
 		][
 			emit-open-frame 'dyn-path					;-- wrap it in a stack frame in this case
 		][
@@ -1243,7 +1243,10 @@ red: context [
 	emit-opt-call: func [mark [block!]][
 		append/only paths-stack copy mark
 		clear mark
-		if (index? mark) <> index? last expr-start-pos [
+		if all [
+			not empty? expr-start-pos
+			(index? mark) <> index? last expr-start-pos
+		][
 			emit [stack/push pos]
 			insert-lf -2
 		]
@@ -2264,10 +2267,11 @@ red: context [
 		saved: pc
 		pc: pc/1
 		list: make block! length? pc
+		push-call 'case
 		
 		while [not tail? pc][							;-- precompile all conditions and cases
 			mark: tail output
-			comp-expression								;-- process condition
+			comp-expression/close-path					;-- process condition
 			append/only list copy mark
 			clear mark
 			case [
@@ -2280,7 +2284,7 @@ red: context [
 				]
 				'else [
 					chunk: tail output
-					comp-expression/no-infix/root
+					comp-expression/no-infix/root/close-path
 					all [								;-- fixes #512
 						not empty? chunk
 						chunk/1 <> 'stack/reset
@@ -2325,6 +2329,7 @@ red: context [
 			emit body
 			emit-close-frame
 		]
+		pop-call
 	]
 	
 	comp-reduce: has [list into?][
@@ -2891,11 +2896,11 @@ red: context [
 				pos = pc								;-- until we reach the beginning of expression
 			]
 			
-			comp-expression/no-infix					;-- fetch first left operand
+			comp-expression/no-infix/close-path			;-- fetch first left operand
 			pc: next pc
 			
 			forall ops [
-				comp-expression/no-infix				;-- fetch right operand
+				comp-expression/no-infix/close-path		;-- fetch right operand
 				name: ops/1
 				spec: functions/:name
 				switch/default spec/1 [
@@ -3088,7 +3093,7 @@ red: context [
 	]
 	
 	comp-expression: func [/no-infix /root /close-path][
-		if close-path [									;-- update last expr-start-pos entry
+		if all [close-path not empty? expr-start-pos][	;-- update last expr-start-pos entry
 			change/only back tail expr-start-pos tail output
 		]
 		unless no-infix [
