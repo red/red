@@ -767,7 +767,7 @@ red: context [
 		if pos: find functions name [
 			remove/part pos 2							;-- remove previous function definition
 		]
-		if pos: find objects name [
+		if pos: find get-obj-base name name [
 			pos/1: none
 		]
 	]
@@ -2380,7 +2380,7 @@ red: context [
 			name: to word! pc/1
 			either local-word? name [
 				pc: next pc
-				comp-local-set/any? name
+				comp-local-set name
 			][
 				comp-set-word/native
 			]
@@ -2709,18 +2709,12 @@ red: context [
 		]
 	]
 	
-	comp-local-set: func [name [word!] /any? /local offset][
+	comp-local-set: func [name [word!]][
 		emit-open-frame 'set
 		comp-expression
-		offset: either any? [
-			emit [copy-cell stack/arguments]
-			-3
-		][
-			emit 'word/set-local
-			-2
-		]
+		emit [copy-cell stack/arguments]
 		emit decorate-symbol name
-		insert-lf offset
+		insert-lf -3
 		emit-close-frame
 	]
 	
@@ -2738,15 +2732,9 @@ red: context [
 		if all [not booting? find intrinsics name][		
 			throw-error ["attempt to redefine a keyword:" name]
 		]
-		bound?: rebol-gctx <> bind? original
-		deep?: 1 < length? obj-stack
 		
 		unless dispatch-ctx-keywords original [
 			case [
-				all [not bound? local-word? name][
-					if pos: find get-obj-base name name [pos/1: none]	;-- if object, disable previous binding
-					comp-local-set name
-				]
 				all [
 					pc/1 = 'make
 					any [
@@ -2762,7 +2750,8 @@ red: context [
 					]
 				]
 				'else [
-					obj: bind? original
+					bound?: rebol-gctx <> obj: bind? original
+					deep?: 1 < length? obj-stack
 					
 					unless bound? [check-redefined name]
 					check-cloned-function name
