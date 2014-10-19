@@ -13,6 +13,13 @@ Red/System [
 stack: context [										;-- call stack
 	verbose: 0
 	
+	dyn-info!: alias struct! [
+		header [integer!]
+		code   [integer!]
+		count  [integer!]
+		locals [integer!]
+	]
+	
 	arg-stk:		declare red-block!					;-- argument stack (should never be relocated)
 	call-stk:		declare red-block!					;-- call stack (should never be relocated)
 	args-series:	declare series!
@@ -274,6 +281,7 @@ stack: context [										;-- call stack
 		/local
 			fun		 [red-function!]
 			p		 [red-path!]
+			info	 [dyn-info!]
 			counters [integer!]
 	][
 		fun: as red-function! top - 1
@@ -283,13 +291,16 @@ stack: context [										;-- call stack
 			TYPE_OF(fun) = TYPE_ROUTINE
 		]
 		counters: _function/calc-arity path fun idx
-		p: as red-path! copy-cell as red-value! path stack/push*
+		p: as red-path! copy-cell as red-value! path push*
 		p/head: idx										;-- store path with function's index
 		
 		integer/push as-integer octx					;-- store optional wrapping object pointer
-		integer/push code								;-- store wrapping function pointer
-		integer/push counters and FFFFh					;-- store caller's arity
-		integer/push counters >> 16						;-- store caller's locals count
+		
+		info: as dyn-info! push*
+		info/header: TYPE_POINT
+		info/code:   code								;-- store wrapping function pointer
+		info/count:  counters and FFFFh					;-- store caller's arity
+		info/locals: counters >> 16						;-- store caller's locals count
 		
 		mark-dyn as red-word! block/rs-abs-at as red-block! path idx  ;-- open new frame
 		acc-mode?: yes
@@ -308,6 +319,7 @@ stack: context [										;-- call stack
 			fun		   [red-function!]
 			obj		   [red-object!]
 			base	   [red-value!]
+			info	   [dyn-info!]
 			ctx		   [node!]
 			octx	   [node!]
 			more	   [series!]
@@ -323,32 +335,30 @@ stack: context [										;-- call stack
 			FLAG_DYN_CALL and p/1 = FLAG_DYN_CALL
 			TYPE_OF(arguments) <> TYPE_VALUE
 		][
-			int: as red-integer! arguments - 2
-			unless zero? int/value [int/value: int/value - 1]
+			info: as dyn-info! arguments - 1
+			unless zero? info/count [info/count: info/count - 1]
 			
-			if zero? int/value [
+			if zero? info/count [
 				ctx: null
 				base: arguments
-				fun: as red-function! base - 6
+				fun: as red-function! base - 4
 				more: as series! fun/more/value
 				int: as red-integer! more/offset + 4
-				obj: as red-object! base - 7
+				obj: as red-object! base - 5
 				case [
 					TYPE_OF(obj) = TYPE_OBJECT  [ctx: obj/ctx]
 					TYPE_OF(int) = TYPE_INTEGER [ctx: as node! int/value]
 				]
 				
-				int: as red-integer! base - 1
-				new-frame?: int/value = -1
+				new-frame?: info/locals = -1
 				case [
-					int/value > 0 [_function/init-locals int/value]
-					new-frame?	  [_function/lay-frame]
-					true		  [0]					;-- 0 locals case, do nothing
+					info/locals > 0 [_function/init-locals info/locals]
+					new-frame?		[_function/lay-frame]
+					true			[0]					;-- 0 locals case, do nothing
 				]
 				
-				int: as red-integer! base - 3
-				code: as function! [octx [node!]] int/value
-				int: as red-integer! base - 4
+				code: as function! [octx [node!]] info/code
+				int: as red-integer! base - 2
 				octx: as node! int/value
 				
 				acc-mode?: no							;-- temporary disable accumulative mode
