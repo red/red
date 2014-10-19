@@ -422,7 +422,8 @@ red: context [
 				third obj: find objects do obj-stk
 		]
 		obj-stk: copy obj-stack
-		
+		obj-stk/1: either find-contexts path/1 ['func-objs]['objects]
+
 		either 2 = length? path [
 			append obj-stk path/1
 			reduce check
