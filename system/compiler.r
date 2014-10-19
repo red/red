@@ -58,6 +58,7 @@ system-dialect: make-profilable context [
 		red-store-bodies?:	yes							;-- no => do not store function! value bodies (body-of will return none)
 		red-strict-check?:	yes							;-- no => defers undefined word errors reporting at run-time
 		red-tracing?:		yes							;-- no => do not compile tracing code
+		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
 	]
 	

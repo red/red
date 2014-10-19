@@ -3257,6 +3257,7 @@ red: context [
 		comp-init
 		
 		pc: load-source/hidden %boot.red				;-- compile Red's boot script
+		unless job/red-help? [clear-docstrings pc]
 		booting?: yes
 		comp-block
 		make-keywords									;-- register intrinsics functions
@@ -3398,6 +3399,19 @@ red: context [
 		change/only find last out <script> script		;-- inject compilation result in template
 		output: out
 		if verbose > 2 [?? output]
+	]
+	
+	clear-docstrings: func [script [block!] /local clean rule pos][
+		clean: [any [pos: string! (remove pos) | skip]]
+		
+		parse script rule: [
+			some [
+				['action! | 'native!] into [into clean]
+				| ['func | 'function | 'routine] into clean
+				| into rule
+				| skip
+			]
+		]
 	]
 	
 	load-source: func [file [file! block!] /hidden /local src][
