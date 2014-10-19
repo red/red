@@ -34,8 +34,8 @@ _function: context [
 			
 	][
 		base: stack/arguments
-		fun:  as red-function! base - 5
- 		path: as red-path! base - 4
+		fun:  as red-function! base - 6
+ 		path: as red-path! base - 5
  		
 		stack/mark-func words/_anon
 		

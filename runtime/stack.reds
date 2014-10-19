@@ -270,6 +270,7 @@ stack: context [										;-- call stack
 		path [red-path!]
 		idx  [integer!]
 		code [integer!]
+		octx [node!]
 		/local
 			fun		 [red-function!]
 			p		 [red-path!]
@@ -285,6 +286,7 @@ stack: context [										;-- call stack
 		p: as red-path! copy-cell as red-value! path stack/push*
 		p/head: idx										;-- store path with function's index
 		
+		integer/push as-integer octx					;-- store optional wrapping object pointer
 		integer/push code								;-- store wrapping function pointer
 		integer/push counters and FFFFh					;-- store caller's arity
 		integer/push counters >> 16						;-- store caller's locals count
@@ -307,6 +309,7 @@ stack: context [										;-- call stack
 			obj		   [red-object!]
 			base	   [red-value!]
 			ctx		   [node!]
+			octx	   [node!]
 			more	   [series!]
 			p		   [int-ptr!]
 			dyn?	   [logic!]
@@ -326,10 +329,10 @@ stack: context [										;-- call stack
 			if zero? int/value [
 				ctx: null
 				base: arguments
-				fun: as red-function! base - 5
+				fun: as red-function! base - 6
 				more: as series! fun/more/value
 				int: as red-integer! more/offset + 4
-				obj: as red-object! base - 6
+				obj: as red-object! base - 7
 				case [
 					TYPE_OF(obj) = TYPE_OBJECT  [ctx: obj/ctx]
 					TYPE_OF(int) = TYPE_INTEGER [ctx: as node! int/value]
@@ -344,10 +347,13 @@ stack: context [										;-- call stack
 				]
 				
 				int: as red-integer! base - 3
-				code: as function! [] int/value
+				code: as function! [octx [node!]] int/value
+				int: as red-integer! base - 4
+				octx: as node! int/value
+				
 				acc-mode?: no							;-- temporary disable accumulative mode
 				_function/call fun ctx					;-- run the detected function
-				code									;-- run wrapper code (stored as function)
+				code octx								;-- run wrapper code (stored as function)
 				if new-frame? [unwind-last]				;-- close new frame created for handling refinements
 				unwind-last								;-- close frame opened in 'push-call
 				acc-mode?: yes

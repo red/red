@@ -1165,10 +1165,15 @@ red: context [
 		]
 	]
 	
-	emit-checked-path: func [path [path!] /local pname fun idx mark saved cnt frame?][
+	emit-checked-path: func [path [path!] /local pname fun idx mark saved cnt frame? octx][
 		redirect-to literals [pname: emit-block path]
 		append paths-stack cnt: get-counter				;-- store the counter for 'emit-path-func
 		fun: decorate-func to word! join "~path" cnt
+		
+		octx: pick [octx null] to logic! all [
+			not empty? locals-stack
+			container-obj?
+		]
 		
 		either frame?: all [
 			not empty? expr-stack
@@ -1187,15 +1192,15 @@ red: context [
 			emit [either stack/func?]
 			insert-lf -2
 			idx: (index? path) - 1
-			emit compose/deep [[stack/push-call (pname) (idx) as-integer (to get-word! fun)]]
+			emit compose/deep [[stack/push-call (pname) (idx) as-integer (to get-word! fun) (octx)]]
 
 			either tail? next path [
 				emit compose/deep [[
 					copy-cell stack/arguments + (idx) stack/arguments
 					stack/keep
-					(fun)
+					(fun) (octx)
 				]]
-				new-line back tail last output yes
+				new-line back back tail last output yes
 			][
 				mark: tail output
 				emit-open-frame 'eval-path
@@ -1230,11 +1235,12 @@ red: context [
 		]
 		if all [not empty? body 'stack/unwind = last body][
 			change/only back tail body 'stack/unwind-last
+			new-line back tail body yes
 		]
 		
 		redirect-to declarations [
 			f-name: to word! join "f_~path" pick tail paths-stack -2
-			emit reduce [to set-word! f-name 'func [/local pos] body]
+			emit reduce [to set-word! f-name 'func [octx [node!] /local pos] body]
 			insert-lf -4
 		]
 		emit last paths-stack
