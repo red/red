@@ -649,6 +649,17 @@ Red [
 			789 = second o/a  [--assert true]
 		]
 
+	--test-- "dyn-23"
+		c: context [
+			x: 1
+			f: func [o [object!]][x: o/a]
+		]
+
+		c/f object [a: 123]
+		--assert c/x = 123
+
+		c/f object [a: does [99]]
+		--assert c/x = 99
 
 ===end-group===
 
@@ -1523,6 +1534,18 @@ Red [
 				789 = second o/a  [--assert true]
 			]
 
+		--test-- "loc-dyn-23"
+			c: context [
+				x: 1
+				f: func [o [object!]][x: o/a]
+			]
+
+			c/f object [a: 123]
+			--assert c/x = 123
+
+			c/f object [a: does [99]]
+			--assert c/x = 99
+
 
 		--test-- "loc-copy-1"
 			co1: make object! [a: 1]
@@ -1894,7 +1917,7 @@ Red [
 			]
 		]
 		--assert 2 = owf6-o/f
-comment {									############################		
+
 	--test-- "owf7 - #959"
 		owf7-o: make object! [
 			owf7-x: none
@@ -1904,23 +1927,17 @@ comment {									############################
 				owf7-x: o/a
 			]
 		]
-		owf7-oo: make object! [
-			a: 1
-		]
+		owf7-oo: make object! [a: 1]
 		--assert 1 = owf7-o/f owf7-oo
-														
+		
 	--test-- "owf8 - #960"
 		owf8-o: make object! [
-			owf8-oo: make object! [
-				a:1
-			]
+			owf8-oo: make object! [a: 1]
 		]
-		owf8-f: func [] [
-			owf8-o/owf8-oo
-		]
+		owf8-f:  does [owf8-o/owf8-oo]
 		owf8-f2: func [o [object!]] [o/a]	;-- can be replaced once 'in is written
 		--assert 1 = owf8-f2 owf8-f
-											######################################}	
+
 ===end-group===
 
 ~~~end-file~~~
