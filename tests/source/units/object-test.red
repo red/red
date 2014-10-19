@@ -280,6 +280,25 @@ Red [
 			]
 		--assert 1 = no6-o/o/f
 		
+	--test-- "no7"
+		no7-a: 1
+		no7-o: make object! [
+			no7-a: 2
+			f: func[][no7-a]
+		]
+		--assert 2 = no7-o/f
+		
+	--test-- "no8"
+		no8-a: 1
+		no8-o: make object! [
+			no8-a: 2
+			oo: make object! [
+				no8-a: 3
+				f: func[][no8-a]
+			]
+		]
+		--assert 3 = no8-o/oo/f
+		
 ===end-group===
 
 ===start-group=== "object prototype tests"
@@ -1875,6 +1894,34 @@ Red [
 			]
 		]
 		--assert 2 = owf6-o/f
+		
+	--test-- "owf7 - #959"
+		owf7-o: make object! [
+			owf7-x: none
+			f: func [
+				o [object!]
+			][
+				owf7-x: o/a
+			]
+		]
+		owf7-oo: make object! [
+			a: 1
+		]
+		--assert 1 = owf7-o/f owf7-oo
+		
+comment {	internal compiler error	###########################################
+	--test-- "owf8 - #960"
+		owf8-o: make object! [
+			owf8-oo: make object! [
+				a:1
+			]
+		]
+		owf8-f: func [] [
+			owf8-o/owf8-oo
+		]
+		owf8-f2: func [o [object!]] [o/a]    ;; can be replaced once 'in is written
+		--assert 1 = owf8-f2 owf8-f
+######################################}
 		
 ===end-group===
 
