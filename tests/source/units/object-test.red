@@ -1875,7 +1875,7 @@ Red [
 		owf5-o: make object! [
 			a: 1
 			f: func [][
-				o: make object! [        	;; in global context
+				o: make object! [        	;-- in global context
 					a: 2
 				]
 				o/a
@@ -1887,14 +1887,14 @@ Red [
 		owf6-o: make object! [
 			a: 1
 			f: func [][
-				o: make object! [			;; in global context
+				o: make object! [			;-- in global context
 					a: 2
 				]
 				either o/a [o/a] [99]
 			]
 		]
 		--assert 2 = owf6-o/f
-		
+comment {									############################		
 	--test-- "owf7 - #959"
 		owf7-o: make object! [
 			owf7-x: none
@@ -1908,8 +1908,7 @@ Red [
 			a: 1
 		]
 		--assert 1 = owf7-o/f owf7-oo
-		
-comment {	internal compiler error	###########################################
+														
 	--test-- "owf8 - #960"
 		owf8-o: make object! [
 			owf8-oo: make object! [
@@ -1919,10 +1918,9 @@ comment {	internal compiler error	###########################################
 		owf8-f: func [] [
 			owf8-o/owf8-oo
 		]
-		owf8-f2: func [o [object!]] [o/a]    ;; can be replaced once 'in is written
+		owf8-f2: func [o [object!]] [o/a]	;-- can be replaced once 'in is written
 		--assert 1 = owf8-f2 owf8-f
-######################################}
-		
+											######################################}	
 ===end-group===
 
 ~~~end-file~~~
