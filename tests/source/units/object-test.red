@@ -1937,7 +1937,7 @@ Red [
 		owf8-f:  does [owf8-o/owf8-oo]
 		owf8-f2: func [o [object!]] [o/a]	;-- can be replaced once 'in is written
 		--assert 1 = owf8-f2 owf8-f
-		
+comment {									#######################################
 	--test-- "owf9 - #962"
 		owf9-f: func [
 			o [object!]
@@ -1956,6 +1956,24 @@ Red [
 		]
 		owf9-o: make object! [a: 1]
 		--assert 1 = owf9-f owf9-o
+											######################################## }		
+	--test-- "owf10 - #962"
+		owf10-f: func [
+			o [object!]
+		][
+			v: none							;-- in global context	
+			case [
+				all [
+					o/a = o/a
+					o/a = o/a
+				][
+					o/a
+				]
+			]
+		]
+		owf10-o: make object! [a: 1]
+		--assert 1 = owf10-f owf10-o
+
 
 ===end-group===
 
