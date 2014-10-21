@@ -904,7 +904,7 @@ Red [
 		--assert 's = in ino1/o/o 's
 		--assert 'o = in ino1/o/o 'o
 
-		--test-- "in4"
+	--test-- "in4"
 		ino1: make object! [
 			i: 1
 			c: #"a"
@@ -956,6 +956,10 @@ Red [
 		--assert 'b = in ino1/o/o/o 'b
 		--assert 'f = in ino1/o/o/o 'f
 		--assert 's = in ino1/o/o/o 's
+		
+	--test-- "in5"
+		in5-f: func[] [make object! [a: 1]]
+		--assert 1 = get in in5-f 'a	
 	
 ===end-group===
 
@@ -1782,7 +1786,7 @@ Red [
 			--assert 's = in ino1/o/o 's
 			--assert 'o = in ino1/o/o 'o
 
-			--test-- "loc-in4"
+		--test-- "loc-in4"
 			ino1: make object! [
 				i: 1
 				c: #"a"
@@ -1834,6 +1838,10 @@ Red [
 			--assert 'b = in ino1/o/o/o 'b
 			--assert 'f = in ino1/o/o/o 'f
 			--assert 's = in ino1/o/o/o 's
+		
+		--test-- "loc-in5"
+			in5-f: func[] [make object! [a: 1]]
+			--assert 1 = get in in5-f 'a	
 
 	]
 
@@ -1935,8 +1943,8 @@ Red [
 			owf8-oo: make object! [a: 1]
 		]
 		owf8-f:  does [owf8-o/owf8-oo]
-		owf8-f2: func [o [object!]] [o/a]	;-- can be replaced once 'in is written
-		--assert 1 = owf8-f2 owf8-f
+		;owf8-f2: func [o [object!]] [o/a]	;-- can be replaced once 'in is written
+		--assert 1 = get in owf8-f 'a
 comment {									#######################################
 	--test-- "owf9 - #962"
 		owf9-f: func [
