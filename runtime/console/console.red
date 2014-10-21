@@ -65,7 +65,7 @@ count-delimiters: function [
 	return: [block!]
 ][
 	list: copy [0 0]
-	c: none
+	c: escaped?: in-comment?: in-string?: none
 	
 	foreach c buffer [
 		case [
@@ -91,6 +91,7 @@ do-console: function [][
 	buffer: make string! 10000
 	prompt: red-prompt: "red>> "
 	mode:  'mono
+	code: result: line: none
 	
 	switch-mode: [
 		mode: case [
