@@ -1263,7 +1263,7 @@ word?:		 func ["Returns true if the value is this type" value [any-type!]] [word
 any-series?: func [value][
 	find [												;@@ To be replaced with a typeset check
 		block! paren! path! lit-path! set-path!
-		get-path! string! file!
+		get-path! string! file! url!
 	] type?/word :value
 ]
 
