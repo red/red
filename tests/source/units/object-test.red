@@ -1838,10 +1838,11 @@ Red [
 			--assert 'b = in ino1/o/o/o 'b
 			--assert 'f = in ino1/o/o/o 'f
 			--assert 's = in ino1/o/o/o 's
-		
+comment { ######################################################################		
 		--test-- "loc-in5"
 			in5-f: func[] [make object! [a: 1]]
 			--assert 1 = get in in5-f 'a	
+		######################################################################## }
 
 	]
 
@@ -1981,7 +1982,44 @@ comment {									#######################################
 		]
 		owf10-o: make object! [a: 1]
 		--assert 1 = owf10-f owf10-o
-											######################################## }		
+											######################################## }
+											
+	--test-- "owf11 - #962"
+		owf11-f: func [
+			o [object!]
+			/local
+				v	
+		][
+			v: none
+			case [
+				all [
+					equal? o/a o/a
+					equal? o/a o/a
+				][
+					o/a
+				]
+			]
+		]
+		owf11-o: make object! [a: 1]
+		--assert 1 = owf11-f owf11-o
+	
+	--test-- "owf12 - #962"
+		owf12-f: func [
+			o [object!]
+		][
+			v: none							;-- in global context	
+			case [
+				all [
+					equal? o/a o/a
+					equal? o/a o/a
+				][
+					o/a
+				]
+			]
+		]
+		owf12-o: make object! [a: 1]
+		--assert 1 = owf12-f owf12-o
+		
 
 ===end-group===
 
