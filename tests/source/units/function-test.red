@@ -438,7 +438,7 @@ comment {                                       ################################
         
     --test-- "funfun3"
         ff3-i: 1
-        ff3-f: function[][
+        ff3-f: function [][
             ff3-i: 2
             o: make object! [
                 ff3-i: 3
@@ -449,14 +449,14 @@ comment {                                       ################################
         
     --test-- "funfun4"
         ff4-i: 1
-        ff4-f: function[][
+        ff4-f: function [][
             ff4-i: 2
             o: make object! [
                 ff4-i: 3
             ]
             ff4-i
         ]
-        --assert 2 = ff3-f
+        --assert 2 = ff4-f
     
                                                
 ===end-group===
