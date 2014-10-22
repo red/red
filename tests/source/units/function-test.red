@@ -421,5 +421,45 @@ Red [
 		
 ===end-group===
 
+===start-group=== "functionfunction"
+comment {                                       ####################################
+    --test-- "funfun1"
+        ff1-i: 1
+        ff1-f: function [][ff1-i: 2 f: func[][ff1-i] f]
+        --assert 2 = ff1-f
+                                                #################################### }
+                                                
+    --test-- "funfun2"
+        ff2-i: 1
+        ff2-f: function [][ff2-i: 2 ff2-i]
+        ff2-r: ff2-f
+        --assert 1 = ff2-i
+        --assert 2 = ff2-r
+        
+    --test-- "funfun3"
+        ff3-i: 1
+        ff3-f: function[][
+            ff3-i: 2
+            o: make object! [
+                ff3-i: 3
+            ]
+            o/ff3-i
+        ]
+        --assert 3 = ff3-f
+        
+    --test-- "funfun4"
+        ff4-i: 1
+        ff4-f: function[][
+            ff4-i: 2
+            o: make object! [
+                ff4-i: 3
+            ]
+            ff4-i
+        ]
+        --assert 2 = ff3-f
+    
+                                               
+===end-group===
+
 ~~~end-file~~~
 
