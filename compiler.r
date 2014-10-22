@@ -548,7 +548,7 @@ red: context [
 		]
 	]
 	
-	push-call: func [name [word!]][
+	push-call: func [name [word! tag!]][
 		append expr-stack name
 	]
 	
@@ -1165,10 +1165,35 @@ red: context [
 		]
 	]
 	
-	emit-checked-path: func [path [path!] /local pname fun idx mark saved cnt frame? octx][
+	emit-path-func: func [cnt [integer!] /local body f-name][
+		body: copy last expr-start-pos
+		clear last expr-start-pos
+		remove back tail expr-start-pos
+
+		if all [1 = length? body body/1 = 'stack/reset][clear body]
+		rewrite-locals body
+		if find body 'pos [
+			insert body [
+				pos: stack/arguments
+			]
+		]
+		if all [not empty? body 'stack/unwind = last body][
+			change/only back tail body 'stack/unwind-last
+			new-line back tail body yes
+		]
+
+		redirect-to declarations [
+			f-name: decorate-func to word! join "~path" cnt
+			emit reduce [to set-word! f-name 'func [octx [node!] /local pos] body]
+			insert-lf -4
+		]
+		f-name
+	]
+	
+	emit-dynamic-path: has [path pname fun idx mark saved cnt frame? octx][
+		path: last paths-stack
 		redirect-to literals [pname: emit-block path]
-		append paths-stack cnt: get-counter				;-- store the counter for 'emit-path-func
-		fun: decorate-func to word! join "~path" cnt
+		fun: emit-path-func cnt: get-counter
 		
 		octx: pick [octx null] to logic! all [
 			not empty? locals-stack
@@ -1177,13 +1202,13 @@ red: context [
 		
 		either frame?: all [
 			not empty? expr-stack
-			find [switch case] last expr-stack
+			find [switch case <infix>] last expr-stack
 		][
 			emit-open-frame 'dyn-path					;-- wrap it in a stack frame in this case
 		][
 			emit [stack/top: stack/arguments]			;-- inlined stack reset (protected from callbacks)
+			insert-lf -2
 		]
-		insert-lf -2
 		emit-get-word path/1 path/1
 		insert-lf -2
 		saved: output
@@ -1218,38 +1243,13 @@ red: context [
 			]
 		]
 		if frame? [emit-close-frame]
+		clear back tail paths-stack
 		output: saved
 	]
-
-	emit-path-func: has [body f-name][
-		body: copy last expr-start-pos
-		clear last expr-start-pos
-		remove back tail expr-start-pos
-		
-		if all [1 = length? body body/1 = 'stack/reset][clear body]
-		rewrite-locals body
-		if find body 'pos [
-			insert body [
-				pos: stack/arguments
-			]
-		]
-		if all [not empty? body 'stack/unwind = last body][
-			change/only back tail body 'stack/unwind-last
-			new-line back tail body yes
-		]
-		
-		redirect-to declarations [
-			f-name: to word! join "f_~path" pick tail paths-stack -2
-			emit reduce [to set-word! f-name 'func [octx [node!] /local pos] body]
-			insert-lf -4
-		]
-		emit last paths-stack
-		clear back back tail paths-stack				;-- remove last [id body]
-	]
 	
-	emit-opt-call: func [mark [block!]][
-		append/only paths-stack copy mark
-		clear mark
+	emit-path-substitute: func [path [path!] mark [block!]][
+		append/only paths-stack path
+		
 		if all [
 			not empty? expr-start-pos
 			(index? mark) <> index? last expr-start-pos
@@ -2291,7 +2291,7 @@ red: context [
 				]
 				'else [
 					chunk: tail output
-					comp-expression/no-infix/root/close-path
+					comp-expression/no-infix/root
 					all [								;-- fixes #512
 						not empty? chunk
 						chunk/1 <> 'stack/reset
@@ -2547,19 +2547,16 @@ red: context [
 		]
 		mark: tail output
 		
-		either any [obj? set? get? dynamic? find path integer! find path get-word!][
+		either any [obj? set? get? dynamic? not parse path [some word!]][
 			unless self? [
 				ctx?: to logic! any [obj? ctx?]
 				emit-path back tail path set? ctx?		;-- emit code recursively from tail
 			]
 		][
-			emit-checked-path path
+			emit-path-substitute path mark
 		]
 		
-		case [											;-- post-processing
-			obj? [change/only/part mark copy mark tail output]
-			all [not get? not set? parse path [some word!]][emit-opt-call mark]
-		]
+		if obj? [change/only/part mark copy mark tail output]
 		unless set? [pc: next pc]
 	]
 	
@@ -2750,6 +2747,7 @@ red: context [
 						obj: is-object? pc/2
 					]
 				][
+					check-redefined name
 					pc: next pc
 					either obj [
 						comp-context/with/extend original obj
@@ -2879,6 +2877,8 @@ red: context [
 		if infix? pc [return false]						;-- infix op already processed,
 														;-- or used in prefix mode.
 		if infix? next pc [
+			append/only expr-start-pos tail output		;-- fixes #962
+			
 			pos: pc
 			end: search-expr-end pos					;-- recursive search of expression end
 			
@@ -2892,12 +2892,15 @@ red: context [
 				pos: skip pos -2						;-- process next previous op
 				pos = pc								;-- until we reach the beginning of expression
 			]
-			
-			comp-expression/no-infix					;-- fetch first left operand
+			push-call <infix>
+			comp-expression/no-infix/close-path					;-- fetch first left operand
+			pop-call
 			pc: next pc
 			
 			forall ops [
-				comp-expression/no-infix				;-- fetch right operand
+				push-call <infix>
+				comp-expression/no-infix					;-- fetch right operand
+				pop-call
 				name: ops/1
 				spec: functions/:name
 				switch/default spec/1 [
@@ -2910,6 +2913,10 @@ red: context [
 				
 				emit-close-frame
 				unless tail? next ops [pc: next pc]		;-- jump over op word unless last operand
+			]
+			if not empty? paths-stack [					;-- fixes #962
+				emit-dynamic-path
+				if tail? pc [emit-dyn-check]
 			]
 			return true									;-- infix expression processed
 		]
@@ -3094,13 +3101,7 @@ red: context [
 			change/only back tail expr-start-pos tail output
 		]
 		unless no-infix [
-			if check-infix-operators [
-				if all [any [close-path root] not empty? paths-stack][
-					emit-path-func
-					if tail? pc [emit-dyn-check]
-				]	
-				exit
-			]
+			if check-infix-operators [exit]
 		]
 
 		if tail? pc [
@@ -3140,7 +3141,7 @@ red: context [
 			]
 		]
 		if all [any [close-path root] not empty? paths-stack][
-			emit-path-func
+			emit-dynamic-path
 			if tail? pc [emit-dyn-check]
 		]
 	]
@@ -3191,7 +3192,7 @@ red: context [
 	comp-block: func [
 		/with body [block!]
 		/no-root
-		/local expr
+		/local expr size
 	][
 		if tail? pc [
 			emit 'unset/push
@@ -3200,9 +3201,9 @@ red: context [
 		]
 		while [not tail? pc][
 			expr: pc
-			either no-root [comp-expression][comp-expression/root]
+			either no-root [comp-expression][comp-expression/root/close-path] ;-- /close-path fixes #962
 			
-			if all [verbose > 2 positive? offset? pc expr][probe copy/part expr pc]
+			if all [verbose > 3 positive? size: offset? expr pc][probe copy/part expr size]
 			if verbose > 0 [emit-src-comment expr]
 			
 			if with [do body]
