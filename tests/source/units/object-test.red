@@ -2020,7 +2020,21 @@ comment {									#######################################
 		owf12-o: make object! [a: 1]
 		--assert 1 = owf12-f owf12-o
 		
-
+	--test-- "owf13"
+		owf13-f: func [
+			o [object!]
+			/local v
+		][
+			v: none
+			either o/a = o/b [
+ 			    1234
+			][
+			    0
+			]
+		]
+		owf13-o: make object! [a: 1 b: 1]
+	    --assert 1234 = owf13-f owf13-o
+		
 ===end-group===
 
 ~~~end-file~~~
