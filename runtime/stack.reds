@@ -363,7 +363,7 @@ stack: context [										;-- call stack
 				
 				acc-mode?: no							;-- temporary disable accumulative mode
 				_function/call fun ctx					;-- run the detected function
-				code octx								;-- run wrapper code (stored as function)
+				unless zero? info/code [code octx]		;-- run wrapper code (stored as function)
 				if new-frame? [unwind-last]				;-- close new frame created for handling refinements
 				unwind-last								;-- close frame opened in 'push-call
 				acc-mode?: yes

@@ -1181,20 +1181,28 @@ red: context [
 			change/only back tail body 'stack/unwind-last
 			new-line back tail body yes
 		]
-
-		redirect-to declarations [
-			f-name: decorate-func to word! join "~path" cnt
-			emit reduce [to set-word! f-name 'func [octx [node!] /local pos] body]
-			insert-lf -4
+		either empty? body [
+			none
+		][
+			redirect-to declarations [
+				f-name: decorate-func to word! join "~path" cnt
+				emit reduce [to set-word! f-name 'func [octx [node!] /local pos] body]
+				insert-lf -4
+			]
+			f-name
 		]
-		f-name
 	]
 	
-	emit-dynamic-path: has [path pname fun idx mark saved cnt frame? octx][
+	emit-dynamic-path: has [path pname fun idx mark saved cnt frame? octx fun-ptr][
 		path: last paths-stack
 		redirect-to literals [pname: emit-block path]
 		fun: emit-path-func cnt: get-counter
 		
+		fun-ptr: either fun [
+			reduce ['as-integer to get-word! fun]
+		][
+			[0]
+		]
 		octx: pick [octx null] to logic! all [
 			not empty? locals-stack
 			container-obj?
@@ -1217,15 +1225,17 @@ red: context [
 			emit [either stack/func?]
 			insert-lf -2
 			idx: (index? path) - 1
-			emit compose/deep [[stack/push-call (pname) (idx) as-integer (to get-word! fun) (octx)]]
+			emit compose/deep [[stack/push-call (pname) (idx) (fun-ptr) (octx)]]
 
 			either tail? next path [
 				emit compose/deep [[
 					copy-cell stack/arguments + (idx) stack/arguments
 					stack/keep
-					(fun) (octx)
 				]]
-				new-line back back tail last output yes
+				if fun [
+					repend last output [fun octx]
+					new-line back back tail last output yes
+				]
 			][
 				mark: tail output
 				emit-open-frame 'eval-path
