@@ -1946,7 +1946,7 @@ comment { ######################################################################
 		owf8-f:  does [owf8-o/owf8-oo]
 		;owf8-f2: func [o [object!]] [o/a]	;-- can be replaced once 'in is written
 		--assert 1 = get in owf8-f 'a
-comment {									#######################################
+
 	--test-- "owf9 - #962"
 		owf9-f: func [
 			o [object!]
@@ -1982,7 +1982,6 @@ comment {									#######################################
 		]
 		owf10-o: make object! [a: 1]
 		--assert 1 = owf10-f owf10-o
-											######################################## }
 											
 	--test-- "owf11 - #962"
 		owf11-f: func [
