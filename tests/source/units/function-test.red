@@ -460,26 +460,61 @@ comment {                                       ################################
             
     --test-- "funfun5 #964"
         ff5-f: function [] [
-            ff5-x: 1
             either true [
                 ff5-x
              ][
                 ff5-x: 0
             ]
         ]
-        --assert 1 = ff5-f
+        --assert none = ff5-f
                              
     --test-- "funfun6 #964"
         ff6-f: function [] [
-            ff6-x: 1
             either false [
                 ff6-x
              ][
                 ff6-x: 0
             ]
         ]
-        --assert 0 = ff6-f    
-                                                   
+        --assert 0 = ff6-f
+        
+    --test-- "funfun7"
+        ff7-f: function [] [
+            a: 1
+            b: make object! [c: 2]
+            c
+        ]   
+        --assert none = ff7-f 
+        
+     --test-- "funfun8"
+        ff8-i: 1
+        ff8-f: function [] [
+            a: 1
+            b: make object! [ff8-i: 2]
+            ff8-i
+        ]   
+        --assert none = ff8-f 
+        
+     --test-- "funfun9"
+        ff9-f: function [] [
+            a: 1
+            b: function [] [c: 2]
+            b
+            c
+        ]   
+        --assert none = ff9-f 
+        
+     --test-- "funfun10"
+        ff10-i: 1
+        ff10-f: function [] [
+            a: 1
+            b: function [] [ff10-i: 2]
+            b
+            ff10-i
+        ]   
+        --assert none = ff10-f 
+        
+                                                 
 ===end-group===
 
 ~~~end-file~~~
