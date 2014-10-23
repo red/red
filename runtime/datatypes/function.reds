@@ -490,7 +490,7 @@ _function: context [
 			int/header: TYPE_UNSET
 		][
 			int/header: TYPE_INTEGER
-			int/value: as-integer obj-ctx int			;-- store the pointer as 32-bit integer
+			int/value: as-integer obj-ctx				;-- store the pointer as 32-bit integer
 		]
 		
 		if all [null? ctx not null? body][
