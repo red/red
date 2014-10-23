@@ -457,8 +457,29 @@ comment {                                       ################################
             ff4-i
         ]
         --assert 2 = ff4-f
-    
-                                               
+            
+    --test-- "funfun5 #964"
+        ff5-f: function [] [
+            ff5-x: 1
+            either true [
+                ff5-x
+             ][
+                ff5-x: 0
+            ]
+        ]
+        --assert 1 = ff5-f
+                             
+    --test-- "funfun6 #964"
+        ff6-f: function [] [
+            ff6-x: 1
+            either false [
+                ff6-x
+             ][
+                ff6-x: 0
+            ]
+        ]
+        --assert 0 = ff6-f    
+                                                   
 ===end-group===
 
 ~~~end-file~~~
