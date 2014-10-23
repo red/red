@@ -23,7 +23,8 @@ red: context [
 	aliases: 	   make hash! 100
 	contexts:	   make hash! 100						;-- storage for statically compiled contexts
 	ctx-stack:	   make block! 8						;-- contexts access path
-	objects:	   make block! 100						;-- [name object! ctx...]
+	shadow-funcs:  make block! 1000						;-- shadow functions contexts [symbol object! ctx...]
+	objects:	   make block! 600						;-- shadow objects contexts [name object! ctx...]
 	obj-stack:	   to path! 'objects					;-- current object access path
 	container-obj?: none								;-- closest wrapping object
 	func-objs:	   none									;-- points to 'objects first in-function object
@@ -220,6 +221,14 @@ red: context [
 		] type?/word :expr
 	]
 	
+	local-bound?: func [original [any-word!] /local obj][
+		all [
+			not empty? locals-stack
+			rebol-gctx <> obj: bind? original
+			find shadow-funcs obj
+		]
+	]
+	
 	local-word?: func [name [word!]][
 		all [not empty? locals-stack find last locals-stack name]
 	]
@@ -260,14 +269,25 @@ red: context [
 		all [not empty? locals-stack (next first obj) = container-obj?]
 	]
 	
-	find-binding: func [original [any-word!] /local ctx idx][
+	find-binding: func [original [any-word!] /local ctx idx obj][
 		all [
 			ctx: all [
 				rebol-gctx <> obj: bind? original
-				select objects obj
+				any [select objects obj select shadow-funcs obj]
 			]
 			attempt [idx: get-word-index/with to word! original ctx]
 			reduce [ctx idx]
+		]
+	]
+	
+	bind-function: func [body [block!] shadow [object!] /local self* rule pos][
+		bind body shadow
+		if 1 < length? obj-stack [
+			self*: in do obj-stack 'self				;-- rebing SELF to the wrapping object
+			
+			parse body rule: [
+				any [pos: 'self (pos/1: self*) | into rule | skip]
+			]
 		]
 	]
 	
@@ -305,7 +325,7 @@ red: context [
 			insert-lf -3
 		][
 			emit append to path! type actions/2
-			emit decorate-symbol name
+			emit prefix-exec name
 			insert-lf -2
 		]
 	]
@@ -314,18 +334,24 @@ red: context [
 		type: to word! form type? name
 		name: to word! :name
 		
-		either all [local-word? name rebol-gctx = bind? original][
+		either all [
+			rebol-gctx <> obj: bind? original
+			ctx: select shadow-funcs obj
+		][
 			emit append to path! type 'push-local
-			emit last ctx-stack
-			emit get-word-index name
+			emit ctx
+			emit get-word-index name					;@@ replace that 
 			insert-lf -3
 		][
 			emit-push-from name original type [push-local push]
 		]
 	]
 	
-	emit-get-word: func [name [word!] original [any-word!] /any? /literal /local new][
-		either local-word? name [
+	emit-get-word: func [name [word!] original [any-word!] /any? /literal /local new obj][
+		either all [
+			rebol-gctx <> obj: bind? original
+			find shadow-funcs obj
+		][
 			emit 'stack/push							;-- local word
 		][
 			if new: select-ssa name [name: new]			;@@ add a check for function! type
@@ -580,6 +606,13 @@ red: context [
 		none
 	]
 	
+	to-context-spec: func [spec [block!]][
+		spec: copy spec
+		forall spec [spec/1: to set-word! spec/1]
+		append spec none
+		make object! spec
+	]
+	
 	iterator-pending?: does [
 		not empty? intersect expr-stack iterators
 	]
@@ -628,8 +661,8 @@ red: context [
 		attempt [do join obj-stack expr]
 	]
 	
-	obj-func-call?: func [name [any-word!] /local obj origin word][
-		if rebol-gctx = obj: bind? name [return no]
+	obj-func-call?: func [name [any-word!] /local obj][
+		if any [rebol-gctx = obj: bind? name find shadow-funcs obj][return no]
 		select objects obj
 	]
 	
@@ -1557,9 +1590,9 @@ red: context [
 		symbol: either path [ctx][
 			if pos: find get-obj-base name name [pos/1: none] ;-- unbind word with previous object
 			
-			get pick [name ctx] to logic! any [		;-- name for global words, else use context name
-				rebol-gctx = bind? original 
-				local-word? name
+			get pick [name ctx] to logic! any [			;-- ctx for object's word, else name
+				rebol-gctx = obj: bind? original
+				find shadow-funcs obj
 			]
 		]
 		
@@ -1974,7 +2007,7 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos end ignore words word][
+	collect-words: func [spec [block!] body [block!] /local pos end ignore words word rule][
 		if pos: find spec /extern [
 			either end: find next pos refinement! [
 				ignore: copy/part next pos end
@@ -2004,7 +2037,7 @@ red: context [
 				append words word
 			]
 		]
-		parse body [
+		parse body rule: [
 			any [
 				pos: set-word! (
 					word: to word! pos/1
@@ -2021,6 +2054,8 @@ red: context [
 						] make-local
 					]
 				)
+				| path! | lit-path! | set-path!
+				| into rule
 				| skip
 			]
 		]
@@ -2034,7 +2069,7 @@ red: context [
 		/collect /does /has
 		/local
 			name word spec body symbols locals-nb spec-blk body-blk ctx
-			src-name original global? path anon? obj
+			src-name original global? path anon? obj shadow
 	][
 		original: pc/-1
 		case [
@@ -2091,6 +2126,13 @@ red: context [
 			body-blk: either job/red-store-bodies? [emit-block/bind body ctx]['null]
 			pop-locals
 		]
+		repend shadow-funcs [							;-- register a new shadow context
+			decorate-func/strict name
+			shadow: to-context-spec symbols
+			ctx
+		]
+		bind-function body shadow
+
 		unless any [path anon?][
 			emit-open-frame 'set						;-- function value creation
 			emit-push-word to word! original original
@@ -2766,7 +2808,10 @@ red: context [
 					]
 				]
 				'else [
-					bound?: rebol-gctx <> obj: bind? original
+					bound?: all [
+						rebol-gctx <> obj: bind? original
+						not find shadow-funcs obj
+					]
 					deep?: 1 < length? obj-stack
 					
 					unless bound? [check-redefined name]
@@ -2805,7 +2850,7 @@ red: context [
 	comp-word: func [/literal /final /thru /local name local? alter emit-word original new ctx][
 		name: to word! original: pc/1
 		pc: next pc										;@@ move it deeper
-		local?: local-word? name
+		local?: local-bound? original
 		
 		emit-word: [
 			either lit-word? original [					;@@
