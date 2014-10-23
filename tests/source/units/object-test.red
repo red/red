@@ -991,7 +991,7 @@ Red [
 
 	so3-f: func [][0]
 
-	local-obj-fun: function [][
+	local-obj-fun: function [/extern so3-f][
 
 		--test-- "loc-basic-1"
 			obj1: context []
