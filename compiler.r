@@ -2580,7 +2580,6 @@ red: context [
 			either self? [
 				emit first true-blk
 			][
-			insert-lf -1
 				emit compose [
 					either (emit-deep-check path) (true-blk)
 				]
