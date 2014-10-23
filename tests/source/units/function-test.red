@@ -457,7 +457,17 @@ comment {                                       ################################
             ff4-i
         ]
         --assert 2 = ff4-f
-    
+ comment {                                      ###################################       
+    --test-- "funfun5 #964"
+        ff5-f: function [] [
+            either true [
+                x
+             ][
+                x: 0
+            ]
+        ]
+        --assert none = ff5-f
+                                                ################################### }
                                                
 ===end-group===
 
