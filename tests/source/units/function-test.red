@@ -507,14 +507,66 @@ comment {                                       ################################
      --test-- "funfun10"
         ff10-i: 1
         ff10-f: function [] [
-            a: 1
+            a: 
             b: function [] [ff10-i: 2]
             b
             ff10-i
         ]   
         --assert none = ff10-f 
         
-                                                 
+    --test-- "funfun11"
+        ff11-i: 1
+        ff11-f: function [] [
+            ff: func [/local ff11-i][ff11-i: 2]
+            ff11-i
+        ]
+        --assert none = ff11-f
+        --assert 1 = ff11-i
+        
+    --test-- "funfun12"
+        ff12-i: 1
+        ff12-f: function [] [
+            ff: make object! [ff12-i: 2]
+            ff12-i
+        ]
+        --assert none = ff12-f
+        --assert 1 = ff12-i
+ comment {                                          ####################################       
+    --test-- "funfun13"
+        ff13-i: 1
+        ff13-f: function [/extern ff13-i] [
+            ff: func [/local ff13-i][ff13-i: 2]
+            ff13-i: 3
+        ]
+        --assert 3 = ff13-f
+        --assert 3 = ff13-i
+                                                    ####################################}      
+    --test-- "funfun14"
+        ff14-i: 1
+        ff14-f: function [/extern ff14-i] [
+            ff: make object! [ff14-i: 2]
+            ff14-i: 3
+        ]
+        --assert 3 = ff14-f
+        --assert 3 = ff14-i
+ comment {                                          ####################################       
+    --test-- "funfun15"
+        ff15-i: 1
+        ff15-f: func [
+            /local ff15-i
+        ][
+            ff15-i: 2
+            ff: function [
+                /extern ff15-i
+            ][
+                ff15-i
+            ]
+            ff
+        ]
+        --assert 2 = ff15-f
+        --assert 1 = ff15-i     
+                                                    ####################################}      
+                                        
 ===end-group===
 
 ~~~end-file~~~
