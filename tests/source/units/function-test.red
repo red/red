@@ -344,8 +344,8 @@ Red [
 
 ===end-group===
 
-===start-group=== "Infix operators creation"
 
+===start-group=== "Infix operators creation"
 	--test-- "infix-1"
 		infix: function [a b][a * 10 + b]
 		***: make op! :infix
@@ -418,7 +418,7 @@ Red [
 			s7-text
 		]
 		--assert "12345" = s7-f "filler" "12345"
-		
+
 ===end-group===
 
 ===start-group=== "functionfunction"
@@ -495,7 +495,8 @@ comment {                                       ################################
         ]   
         --assert none = ff8-f 
         
-     --test-- "funfun9"
+if system/interpreted? [                          ;-- not yet supported by compiler 
+    --test-- "funfun9"
         ff9-f: function [] [
             a: 1
             b: function [] [c: 2]
@@ -503,7 +504,9 @@ comment {                                       ################################
             c
         ]   
         --assert none = ff9-f 
-        
+]
+
+if system/interpreted? [                          ;-- not yet supported by compiler         
      --test-- "funfun10"
         ff10-i: 1
         ff10-f: function [] [
@@ -513,7 +516,9 @@ comment {                                       ################################
             ff10-i
         ]   
         --assert none = ff10-f 
-        
+]
+
+if system/interpreted? [                          ;-- not yet supported by compiler         
     --test-- "funfun11"
         ff11-i: 1
         ff11-f: function [] [
@@ -522,7 +527,8 @@ comment {                                       ################################
         ]
         --assert none = ff11-f
         --assert 1 = ff11-i
-        
+]        
+ 
     --test-- "funfun12"
         ff12-i: 1
         ff12-f: function [] [
@@ -565,8 +571,45 @@ comment {                                       ################################
         ]
         --assert 2 = ff15-f
         --assert 1 = ff15-i     
-                                                    ####################################}      
+                                                    ####################################}
+                                                    
+if system/interpreted? [                          ;-- not yet supported by compiler         
+    --test-- "funfun16"
+        ff16-f: function [] [
+            f2: func [i] [i: 1]
+            f2 i
+            i
+        ]
+        --assert none = ff16-f
+]       
+
+if system/interpreted? [                          ;-- not yet supported by compiler         
+    --test-- "funfun17"
+        ff17-i: 10
+        ff17-f: function [] [
+            f2: func [ff17-i] [ff17-i: 1]
+            f2 ff17-i
+            ff17-i
+        ]
+        --assert none = ff17-f
+]
                                         
+===end-group===
+
+===start-group=== "functions with objects"
+comment {                                          #################################### 
+    --test-- "fwo1 - #965"
+        fwo1-f: func [
+            o object!
+        ][
+          append o/a o/b  
+        ]
+        fwo1-o: make object! [ 
+            a: "hello"
+            b: " world"
+        ]
+        --assert "hello world" = fwo1-f
+                                                    ####################################} 
 ===end-group===
 
 ~~~end-file~~~
