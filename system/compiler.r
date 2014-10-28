@@ -2681,7 +2681,11 @@ system-dialect: make-profilable context [
 			either block? expr [
 				type: comp-call expr/1 next expr 		;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
-				if all [variable boxed][				;-- process casting if result assigned to variable
+				if all [
+					variable boxed						;-- process casting if result assigned to variable
+					last-type/1 = 'logic!
+					boxed/type  = 'integer!				;-- fixes #967
+				][
 					emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
 					last-type: boxed/type
 				]
