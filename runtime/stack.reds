@@ -143,7 +143,7 @@ stack: context [										;-- call stack
 		assert cbottom < ctop
 		ctop: ctop - 2
 		STACK_SET_FRAME
-		top: arguments + offset
+		if offset <> 0 [top: arguments + offset]
 
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
@@ -273,6 +273,27 @@ stack: context [										;-- call stack
 		]
 	]
 	
+	defer-call: func [
+		name   [red-word!]
+		code   [integer!]
+		count  [integer!]
+		octx [node!]
+		/local
+			info [dyn-info!]
+	][
+		integer/push as-integer octx					;-- store optional wrapping object pointer
+		
+		info: as dyn-info! push*
+		info/header: TYPE_POINT
+		info/code:   code								;-- store wrapping function pointer
+		info/count:  count								;-- store caller's arity
+		info/locals: -2									;-- store caller's locals count
+		
+		mark-dyn name									;-- open new frame
+		acc-mode?: yes
+		arguments/header: TYPE_VALUE					;-- use TYPE_VALUE to signal "no argument"
+	]
+	
 	push-call: func [
 		path [red-path!]
 		idx  [integer!]
@@ -339,22 +360,27 @@ stack: context [										;-- call stack
 			unless zero? info/count [info/count: info/count - 1]
 			
 			if zero? info/count [
-				ctx: null
 				base: arguments
-				fun: as red-function! base - 4
-				more: as series! fun/more/value
-				int: as red-integer! more/offset + 4
-				obj: as red-object! base - 5
-				case [
-					TYPE_OF(obj) = TYPE_OBJECT  [ctx: obj/ctx]
-					TYPE_OF(int) = TYPE_INTEGER [ctx: as node! int/value]
-				]
-				
-				new-frame?: info/locals = -1
-				case [
-					info/locals > 0 [_function/init-locals info/locals]
-					new-frame?		[_function/lay-frame]
-					true			[0]					;-- 0 locals case, do nothing
+				either info/locals = -2 [
+					fun: null
+					new-frame?: no
+				][
+					ctx: null
+					fun: as red-function! base - 4
+					more: as series! fun/more/value
+					int: as red-integer! more/offset + 4
+					obj: as red-object! base - 5
+					case [
+						TYPE_OF(obj) = TYPE_OBJECT  [ctx: obj/ctx]
+						TYPE_OF(int) = TYPE_INTEGER [ctx: as node! int/value]
+					]
+
+					new-frame?: info/locals = -1
+					case [
+						info/locals > 0 [_function/init-locals info/locals]
+						new-frame?		[_function/lay-frame]
+						true			[0]					;-- 0 locals case, do nothing
+					]
 				]
 				
 				code: as function! [octx [node!]] info/code
@@ -362,7 +388,7 @@ stack: context [										;-- call stack
 				octx: as node! int/value
 				
 				acc-mode?: no							;-- temporary disable accumulative mode
-				_function/call fun ctx					;-- run the detected function
+				unless null? fun [_function/call fun ctx] ;-- run the detected function
 				unless zero? info/code [code octx]		;-- run wrapper code (stored as function)
 				if new-frame? [unwind-last]				;-- close new frame created for handling refinements
 				unwind-last								;-- close frame opened in 'push-call
