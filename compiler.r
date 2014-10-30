@@ -2950,7 +2950,10 @@ red: context [
 		]
 	]
 	
-	check-infix-operators: func [root? [logic!] /local name op pos end ops spec substitute cnt paths][
+	check-infix-operators: func [
+		root? [logic!]
+		/local name op pos end ops spec substitute cnt paths single?
+	][
 		if infix? pc [return false]						;-- infix op already processed,
 														;-- or used in prefix mode.
 		if infix? next pc [
@@ -2983,8 +2986,10 @@ red: context [
 
 			forall ops [
 				paths: length? paths-stack
+				single?: path? pc/1
 				comp-expression/no-infix					;-- fetch right operand
-				do substitute
+				if single? [do substitute]
+				
 				name: ops/1
 				spec: functions/:name
 				switch/default spec/1 [
