@@ -135,15 +135,17 @@ stack: context [										;-- call stack
 	mark-eval:	 MARK_STACK(FLAG_EVAL)
 	mark-dyn:	 MARK_STACK(FLAG_DYN_CALL)
 	
-	unwind-no-cb: func [
-		offset [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-no-cb"]]
+	unwind-part: does [
+		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-part"]]
 
 		assert cbottom < ctop
 		ctop: ctop - 2
-		STACK_SET_FRAME
-		if offset <> 0 [top: arguments + offset]
+		either ctop = cbottom [
+			arguments: bottom
+		][
+			arguments: as red-value! ctop/2
+		]
+		top: top - 1
 
 		#if debug? = yes [if verbose > 1 [dump]]
 	]
@@ -281,6 +283,7 @@ stack: context [										;-- call stack
 		/local
 			info [dyn-info!]
 	][
+		;mark-native words/_anon
 		integer/push as-integer octx					;-- store optional wrapping object pointer
 		
 		info: as dyn-info! push*
@@ -305,6 +308,7 @@ stack: context [										;-- call stack
 			info	 [dyn-info!]
 			counters [integer!]
 	][
+		;mark-native words/_anon
 		fun: as red-function! top - 1
 		
 		assert any [
@@ -350,7 +354,7 @@ stack: context [										;-- call stack
 			code
 	][
 		p: ctop - 2
-		assert p >= cbottom
+		if p < cbottom [exit]
 		
 		if all [
 			FLAG_DYN_CALL and p/1 = FLAG_DYN_CALL
@@ -392,6 +396,10 @@ stack: context [										;-- call stack
 				unless zero? info/code [code octx]		;-- run wrapper code (stored as function)
 				if new-frame? [unwind-last]				;-- close new frame created for handling refinements
 				unwind-last								;-- close frame opened in 'push-call
+				
+				;base: arguments
+				;unwind
+				;push base
 				acc-mode?: yes
 				
 				p: ctop - 2								;-- decide to keep or not the accumulative mode on

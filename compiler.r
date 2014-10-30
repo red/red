@@ -1259,20 +1259,15 @@ red: context [
 			not empty? locals-stack
 			container-obj?
 		]
-?? paths-stack
 		path: first paths-stack
 		redirect-to literals [pname: emit-block path]
 		emit-path-func body octx cnt: get-counter
 		
-		either frame?: all [
+		if frame?: all [
 			not empty? expr-stack
-			;find [reduce] last expr-stack
 			find [<infix> switch case] last expr-stack
 		][
 			emit-open-frame 'dyn-path					;-- wrap it in a stack frame in this case
-		][
-		;	emit [stack/top: stack/arguments]			;-- inlined stack reset (protected from callbacks)
-		;	insert-lf -2
 		]
 		emit-get-word path/1 path/1
 		insert-lf -2
@@ -1286,15 +1281,18 @@ red: context [
 
 			either tail? next path [
 				emit compose/deep [[
-					;copy-cell stack/top stack/top - 1
-;					print-line "exit-path"
-;					stack/dump
-					copy-cell stack/arguments + (idx) stack/arguments
-					stack/keep
-					;0
+					stack/top: stack/top - 1
+					copy-cell stack/top stack/top - 1
+					stack/check-call
 				]]
 			][
 				mark: tail output
+				unless head? path [
+					emit compose/deep [
+						stack/top: stack/top - 1
+						copy-cell stack/top stack/top - 1
+					]
+				]
 				emit-open-frame 'eval-path
 				emit [stack/push stack/arguments - 1]
 				insert-lf -4
@@ -1302,28 +1300,15 @@ red: context [
 				emit prefix-exec path/2
 				insert-lf -2
 				emit-eval-path no
-				emit 'stack/unwind-no-cb				;-- avoid triggering dynamic callbacks
-				;emit 0
-				emit 2 + idx							;-- adjust top to arguments + idx
-				insert-lf -2
-				
+				emit 'stack/unwind-part
+				insert-lf -1
 				change/only/part mark mark: copy mark tail output
 				output: mark
 			]
 		]
 		remove paths-stack
 		output: saved
-		if frame? [
-		emit-close-frame
-		;emit [stack/unwind-no-cb 0]
-		;insert-lf -2
-		]
-	]
-	
-	emit-path-substitute: func [path [path!] mark [block!]][
-		append/only paths-stack path
-		;emit [stack/push pos]
-		;insert-lf -2
+		if frame? [emit-close-frame]
 	]
 	
 	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter][
@@ -2628,9 +2613,7 @@ red: context [
 				emit-path back tail path set? ctx?		;-- emit code recursively from tail
 			]
 		][
-?? path
-?? mark
-			emit-path-substitute path mark
+			append/only paths-stack path				;-- defer path generation
 		]
 		
 		if obj? [change/only/part mark copy mark tail output]
@@ -2999,17 +2982,14 @@ red: context [
 				pos = pc								;-- until we reach the beginning of expression
 			]
 			paths: length? paths-stack
-			;push-call <infix>
 			comp-expression/no-infix					;-- fetch first left operand
-			;pop-call
 			do substitute
 			pc: next pc
 
 			forall ops [
-				;push-call <infix>
+				paths: length? paths-stack
 				comp-expression/no-infix					;-- fetch right operand
-				;pop-call
-				do substitute				
+				do substitute
 				name: ops/1
 				spec: functions/:name
 				switch/default spec/1 [
@@ -3219,7 +3199,6 @@ red: context [
 		unless no-infix [
 			if check-infix-operators root [
 				if all [any [root close-path] not empty? paths-stack][
-?? out 
 					emit-dynamic-path out
 					push-call <infix>
 					loop length? paths-stack [
@@ -3269,7 +3248,6 @@ red: context [
 		]
 		if any [root close-path][
 			unless empty? paths-stack [
-?? out
 				emit-dynamic-path out
 				if tail? pc [emit-dyn-check]
 			]
