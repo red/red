@@ -651,12 +651,7 @@ red: context [
 	]
 	
 	is-object?: func [expr][
-		if any [
-			not find [word! get-word! path!] type?/word expr
-			all [any-word? expr local-word? expr]
-		][
-			return none
-		]
+		unless find [word! get-word! path!] type?/word expr [return none]
 		attempt [do join obj-stack expr]
 	]
 	
