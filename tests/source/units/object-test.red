@@ -661,6 +661,12 @@ Red [
 		c/f object [a: does [99]]
 		--assert c/x = 99
 
+	--test-- "dyn-24"						;; issue #965
+		o: [a "hello" b " world"]
+		--assert "hello" = o/a
+		--assert "hello world" = append o/a o/b
+		--assert "hello world123" = append o/a 123 o/b
+
 ===end-group===
 
 ===start-group=== "copy"
