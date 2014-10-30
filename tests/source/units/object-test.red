@@ -667,6 +667,14 @@ Red [
 		--assert "hello world" = append o/a o/b
 		--assert "hello world123" = append o/a 123 o/b
 
+	--test-- "dyn-25"
+		o: context [
+			a: func [v][v * 2]
+			b: 123
+		]
+		--assert 143 = add o/a 10 o/b
+		--assert 256 = add o/a o/b 10
+
 ===end-group===
 
 ===start-group=== "copy"
@@ -1556,6 +1564,19 @@ Red [
 			c/f object [a: does [99]]
 			--assert c/x = 99
 
+		--test-- "loc-dyn-24"					;; issue #965
+			o: [a "hello" b " world"]
+			--assert "hello" = o/a
+			--assert "hello world" = append o/a o/b
+			--assert "hello world123" = append o/a 123 o/b
+
+		--test-- "loc-dyn-25"
+			o: context [
+				a: func [v][v * 2]
+				b: 123
+			]
+			--assert 143 = add o/a 10 o/b
+			--assert 256 = add o/a o/b 10
 
 		--test-- "loc-copy-1"
 			co1: make object! [a: 1]
