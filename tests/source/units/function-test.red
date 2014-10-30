@@ -612,5 +612,45 @@ comment {                                          #############################
                                                     ####################################} 
 ===end-group===
 
+===start-group=== "function with lit-arg"
+    fwla-f: func ['x][:x]
+        
+    --test-- "fwla1"
+        --assert 10 = fwla-f 10
+    
+    --test-- "fwla2"
+        --assert 50 = fwla-f (20 + 30)
+        
+    --test-- "fwla3"
+        fwla3-i: 40
+        --assert 40 = fwla-f :fwla3-i 
+        
+    --test-- "fwag4"
+        fwla4-o: make object! [i: 50]
+        --assert 50 = fwla-f :fwla4-o/i
+
+
+
+===end-group===
+
+===start-group=== "function with get-arg"
+        fwga-f: func [:x][:x]
+        
+    --test-- "fwga1"
+        --assert 10 = fwga-f 10
+    
+    --test-- "fwga2"
+        --assert (first [(20 + 30)]) = fwga-f (20 + 30)
+        
+    --test-- "fwga3"
+        fwga3-i: 40
+        --assert (first [:fwga3-i]) = fwga-f :fwga3-i 
+        
+    --test-- "fwag4"
+        fwga4-o: make object! [i: 50]
+        --assert (first [:fwga4-o/i]) = fwga-f :fwga4-o/i
+
+===end-group===
+
 ~~~end-file~~~
 
