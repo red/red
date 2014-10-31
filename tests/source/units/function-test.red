@@ -625,11 +625,9 @@ comment {                                          #############################
         fwla3-i: 40
         --assert 40 = fwla-f :fwla3-i 
         
-    --test-- "fwag4"
+    --test-- "fwla4"
         fwla4-o: make object! [i: 50]
         --assert 50 = fwla-f :fwla4-o/i
-
-
 
 ===end-group===
 
@@ -646,9 +644,15 @@ comment {                                          #############################
         fwga3-i: 40
         --assert (first [:fwga3-i]) = fwga-f :fwga3-i 
         
-    --test-- "fwag4"
+    --test-- "fwga4"
         fwga4-o: make object! [i: 50]
         --assert (first [:fwga4-o/i]) = fwga-f :fwga4-o/i
+        
+    --test-- "fwga5"
+        fwga5-i: 10
+        fwga5-f: func[:x][set x 1 + get x]
+        --assert 11 = fwga5-f fwga5-i
+        --assert 11 = fwga5-i
 
 ===end-group===
 
