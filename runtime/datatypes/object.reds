@@ -812,10 +812,10 @@ object: context [
 		dst/size: size
 		dst/tail: dst/offset + slots
 		
-		if deep? [
-			value: dst/offset
-			tail:  dst/tail
-			
+		value: dst/offset
+		tail:  dst/tail
+		
+		either deep? [
 			while [value < tail][
 				type: TYPE_OF(value)
 				case [
@@ -834,8 +834,14 @@ object: context [
 				]
 				value: value + 1
 			]
+		][
+			while [value < tail][
+				if TYPE_OF(value) = TYPE_FUNCTION [
+					rebind as red-function! value nctx
+				]
+				value: value + 1
+			]
 		]
-
 		new
 	]
 	
