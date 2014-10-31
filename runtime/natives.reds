@@ -397,12 +397,19 @@ natives: context [
 		w: as red-word! stack/arguments
 		value: stack/arguments + 1
 		
-		either TYPE_OF(w) = TYPE_BLOCK [
-			blk: as red-block! w
-			set-many blk value block/rs-length? blk
-			stack/set-last value
-		][
-			stack/set-last _context/set w value
+		switch TYPE_OF(w) [
+			TYPE_OBJECT [
+				set-obj-many as red-object! w value
+				stack/set-last value
+			]
+			TYPE_BLOCK [
+				blk: as red-block! w
+				set-many blk value block/rs-length? blk
+				stack/set-last value
+			]
+			default [
+				stack/set-last _context/set w value
+			]
 		]
 	]
 
@@ -1364,6 +1371,38 @@ natives: context [
 			(as byte-ptr! s/offset)
 				+ (series/head << (GET_UNIT(s) >> 1))
 				< (as byte-ptr! s/tail)
+		]
+	]
+	
+	set-obj-many: func [
+		obj	  [red-object!]
+		value [red-value!]
+		/local
+			ctx		[red-context!]
+			blk		[red-block!]
+			values	[red-value!]
+			tail	[red-value!]
+			s		[series!]
+			i		[integer!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/values/value
+		values: s/offset
+		tail: s/tail
+		
+		either TYPE_OF(value) = TYPE_BLOCK [
+			blk: as red-block! value
+			i: 1
+			while [values < tail][
+				copy-cell (block/pick blk i null) values
+				values: values + 1
+				i: i + 1
+			]
+		][
+			while [values < tail][
+				copy-cell value values
+				values: values + 1
+			]
 		]
 	]
 	
