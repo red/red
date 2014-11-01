@@ -3192,13 +3192,14 @@ red: context [
 		]
 	]
 	
-	comp-expression: func [/no-infix /root /close-path /local out][
+	comp-expression: func [/no-infix /root /close-path /local out paths][
 		root: to logic! root 
 		if any [root close-path][out: tail output]
+		paths: length? paths-stack
 		
 		unless no-infix [
 			if check-infix-operators root [
-				if all [any [root close-path] not empty? paths-stack][
+				if all [any [root close-path] paths < length? paths-stack][
 					emit-dynamic-path out
 					push-call <infix>
 					loop length? paths-stack [
@@ -3247,7 +3248,7 @@ red: context [
 			]
 		]
 		if any [root close-path][
-			unless empty? paths-stack [
+			if paths < length? paths-stack [
 				emit-dynamic-path out
 				if tail? pc [emit-dyn-check]
 			]
