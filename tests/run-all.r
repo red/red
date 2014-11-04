@@ -20,16 +20,8 @@ qt/tests-dir: system/script/path
 qt/script-header: "Red []"
 
 ;; make auto files if needed
-;; do not split these statements over two lines
-make-dir %source/units/auto-tests
-qt/make-if-needed? %source/units/auto-tests/integer-auto-test.red %source/units/make-integer-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/infix-equal-auto-test.red %source/units/make-equal-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/infix-not-equal-auto-test.red %source/units/make-not-equal-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/lesser-auto-test.red %source/units/make-lesser-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/greater-auto-test.red %source/units/make-greater-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/float-auto-test.red %source/units/make-float-auto-test.r
-do %source/units/make-interpreter-auto-test.r  ;; checks and builds tests 
-                                               ;; if necessary
+do %source/units/make-red-auto-tests.r
+do %source/units/make-interpreter-auto-tests.r 
 
 ;; run the tests
 print rejoin ["Quick-Test v" qt/version]
@@ -109,23 +101,23 @@ start-time: now/precise
 ===end-group===
 
 ===start-group=== "Interpreter Auto-tests"
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-binding-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-case-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-conditional-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-evaluation-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-find-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-function-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-load-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-logic-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-loop-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-select-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-serialization-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-series-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-type-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-switch-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-append-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-insert-test.red
-  	--run-test-file-quiet %source/units/auto-tests/interpreter-system-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-binding-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-case-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-conditional-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-evaluation-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-find-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-function-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-load-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-logic-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-loop-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-select-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-serialization-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-series-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-type-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-switch-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-append-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-insert-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-system-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-parse-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-bitset-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-integer-test.red

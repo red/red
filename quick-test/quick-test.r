@@ -425,8 +425,9 @@ qt: make object! [
   	src [file!]
   ][
     file/reset
-    file/title: find/last/tail to string! src "/"
+    unless file/title: find/last/tail to string! src "/" [file/title: src]
     replace file/title "-test.reds" ""
+    replace file/title "-test.red" ""
     compile-run-print src
     add-to-run-totals
   ]
@@ -618,7 +619,7 @@ qt: make object! [
   
   make-if-needed?: func [
     {This function is used by the Red run-all scripts to build the auto files
-     when necessary. It is not } 
+     when necessary.} 
     auto-test-file [file!]
     make-file [file!]
     /lib-test
