@@ -130,7 +130,6 @@ default-input-completer: func [
 				result	[red-block!]
 				num		[integer!]
 		][
-			#call [default-input-completer str]					;@@ need to call twice, a bug?
 			#call [default-input-completer str]
 			result: as red-block! stack/arguments
 			num: block/rs-length? result
@@ -272,8 +271,11 @@ default-input-completer: func [
 				output-to-screen
 			][
 				#if OS <> 'Windows [
-					psize: bytes / columns
-					if positive? psize [
+					if all [
+						bytes > columns
+						positive? (bytes // columns)
+					][
+						psize: bytes / columns
 						emit-string-int "^[[" psize  #"B"
 					]
 				][0]
@@ -421,7 +423,7 @@ ask: function [
 	question [string!]
 	return: [string!]
 ][
-	buffer: make string! 100
+	buffer: make string! 1
 	set-buffer-history buffer head default-input-history
 	_input question
 	buffer
