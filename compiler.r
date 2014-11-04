@@ -74,8 +74,10 @@ red: context [
 		if unless either any all while until loop repeat
 		foreach forall break func function does has
 		exit return switch case routine set get reduce
-		context object
+		context object construct
 	]
+	
+	logic-words:  [true false yes no on off]
 	
 	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
 	
@@ -129,13 +131,14 @@ red: context [
 	
 	dispatch-ctx-keywords: func [original [any-word! none!]][
 		switch/default pc/1 [
-			func	 [comp-func]
-			function [comp-function]
-			has		 [comp-has]
-			does	 [comp-does]
-			routine	 [comp-routine]
+			func	  [comp-func]
+			function  [comp-function]
+			has		  [comp-has]
+			does	  [comp-does]
+			routine	  [comp-routine]
+			construct [comp-construct]
 			object
-			context	 [
+			context	  [
 				either obj: is-object? pc/2 [
 					comp-context/with/extend original obj
 				][
@@ -1373,8 +1376,8 @@ red: context [
 		]
 	]
 	
-	comp-literal: func [/inactive /local value char? special? name w make-block type][
-		value: pc/1
+	comp-literal: func [/inactive /with val /local value char? special? name w make-block type][
+		value: either with [val][pc/1]					;-- val can be NONE
 		either any [
 			char?: unicode-char? value
 			special?: float-special? value
@@ -1408,7 +1411,7 @@ red: context [
 						insert-lf -3
 					][
 						emit to path! reduce [type 'push]
-						emit to path! reduce ['exec decorate-symbol w]
+						emit to path! reduce ['exec decorate-symbol w]	;@@ replace by prefix-exec
 						insert-lf -2
 					]
 				]
@@ -1475,7 +1478,7 @@ red: context [
 				throw-error ["comp-literal: unsupported type" mold value]
 			]
 		]
-		pc: next pc
+		unless with [pc: next pc]
 		name
 	]
 	
@@ -1499,9 +1502,10 @@ red: context [
 	comp-context: func [
 		/with word
 		/extend proto [object!]
-		/locals 
+		/passive only? [logic!]
+		/locals
 			words ctx spec name id func? obj original body pos entry
-			symbol body? ctx2 new blk list path on-set-info
+			symbol body? ctx2 new blk list path on-set-info values w
 	][
 		either set-path? original: pc/-1 [
 			path: original
@@ -1510,15 +1514,34 @@ red: context [
 		]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
 		list:  clear any [list []]
+		values: make block! 8
 		
 		if proto [proto: reduce [proto]]
 		
 		either body?: block? pc/2 [
 			parse body: pc/2 [							;-- collect words from body block
-				any [
+				some [
 					(clear list)
-					any [pos: set-word! (append list pos/1)]
-					(func?: no) [func-constructors (func?: yes) | skip] (
+					pos: set-word! (
+						append list pos/1			;-- store new word
+						value: pos
+						until [
+							value: next value
+							any [tail? value not set-word? value/1]
+						]
+						value: value/1
+						if all [not only? word? value][
+							if find logic-words value [value: get value]
+						]
+						w: to word! pos/1
+						either entry: find/skip values w 2 [ ;-- store first following value (CONSTRUCT)
+							entry/2: value
+						][
+							repend values [w value]
+						]
+						func?: no
+					)
+					[func-constructors (func?: yes) | none] (
 						foreach word list [
 							either entry: find words word [
 								if func? [entry/2: function!]
@@ -1638,7 +1661,7 @@ red: context [
 			emit reduce ['object/duplicate select objects last proto ctx]
 			insert-lf -3
 		]
-		unless body? [
+		if all [not body? not passive][
 			inherit-functions obj new
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
@@ -1651,13 +1674,28 @@ red: context [
 		]
 		emit-src-comment/with none rejoin [mold pc/-1 " context " mold spec]
 		
-		either body? [
-			append obj-stack any [path name]
-			pc: next pc
-			comp-next-block
-			clear skip tail obj-stack either path [negate length? path][-1]
-		][
-			pc: skip pc 2
+		case [
+			passive [									;-- CONSTRUCT support
+				bind values obj
+				foreach [name value] values [
+					emit-open-frame 'set
+					emit-push-word name name
+					comp-literal/with value
+					
+					emit-native/with 'set [-1]
+					emit-close-frame
+				]
+				pc: skip pc 2
+			]
+			body? [
+				append obj-stack any [path name]
+				pc: next pc
+				comp-next-block
+				clear skip tail obj-stack either path [negate length? path][-1]
+			]
+			'else [
+				pc: skip pc 2
+			]
 		]
 		pos: none
 		
@@ -1683,6 +1721,10 @@ red: context [
 	]
 	
 	comp-object: :comp-context
+	
+	comp-construct: does [
+		comp-context/passive no
+	]
 	
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
 		list: back tail comp-chunked-block
