@@ -129,6 +129,13 @@ words: context [
 	ahead:			-1
 	after:			-1
 	
+	_true:			-1
+	_false:			-1
+	_yes:			-1
+	_no:			-1
+	_on:			-1
+	_off:			-1
+	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
@@ -198,6 +205,13 @@ words: context [
 		
 		self:			symbol/make "self"
 		values:			symbol/make "values"
+		
+		_true:			symbol/make "true"
+		_false:			symbol/make "false"
+		_yes:			symbol/make "yes"
+		_no:			symbol/make "no"
+		_on:			symbol/make "on"
+		_off:			symbol/make "off"
 		
 		_body:			_context/add-global body
 		_windows:		_context/add-global windows

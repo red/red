@@ -491,6 +491,92 @@ object: context [
 		obj
 	]
 	
+	collect-couples: func [
+		ctx	 	[red-context!]
+		spec 	[red-block!]
+		only?	[logic!]
+		proto	[red-context!]
+		return: [logic!]
+		/local
+			cell   [red-value!]
+			tail   [red-value!]
+			value  [red-value!]
+			values [red-value!]
+			base   [red-value!]
+			word   [red-word!]
+			s	   [series!]
+			id	   [integer!]
+			sym	   [integer!]
+	][
+		s: GET_BUFFER(spec)
+		cell: s/offset
+		tail: s/tail
+
+		s: as series! ctx/symbols/value
+		base: s/tail - s/offset
+		
+		s: as series! ctx/values/value
+		values: s/offset
+		
+		while [cell < tail][
+			if TYPE_OF(cell) = TYPE_SET_WORD [
+				id: _context/add ctx as red-word! cell
+
+				value: cell + 1							;-- fetch next value to assign
+				while [all [
+					TYPE_OF(value) = TYPE_SET_WORD
+					value < tail
+				]][
+					value: value + 1
+				]
+				if value = tail [value: as red-value! none-value]
+				
+				if all [not only? TYPE_OF(value) = TYPE_WORD][ ;-- reduce the value if allowed
+					word: as red-word! value
+					sym: symbol/resolve word/symbol
+					if any [
+						sym = words/_true
+						sym = words/_yes
+						sym = words/_on
+					][
+						value: as red-value! true-value
+					]
+					if any [
+						sym = words/_false
+						sym = words/_no
+						sym = words/_off
+					][
+						value: as red-value! false-value
+					]
+					if sym = words/none [value: as red-value! none-value]
+				]
+				
+				copy-cell value values + id
+			]
+			cell: cell + 1
+		]
+		s/tail - s/offset > base						;-- TRUE: new words added
+	]
+	
+	construct: func [
+		spec	[red-block!]
+		proto	[red-object!]
+		only?	[logic!]
+		return:	[red-object!]
+		/local
+			obj	 [red-object!]
+			ctx	 [red-context!]
+	][
+		obj: as red-object! stack/push*
+		make-at obj 4								;-- arbitrary value
+		ctx: null
+		unless null? proto [ctx: GET_CTX(proto)]
+		collect-couples GET_CTX(obj) spec only? ctx
+		obj/class: get-new-id
+		obj/on-set: null
+		obj
+	]
+	
 	;-- Actions --
 	
 	make: func [

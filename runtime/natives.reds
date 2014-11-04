@@ -1268,6 +1268,20 @@ natives: context [
 		f: argument-as-float
 		f/value: sqrt f/value
 	]
+	
+	construct*: func [
+		_with [integer!]
+		only  [integer!]
+		/local
+			proto [red-object!]
+	][
+		proto: either _with >= 0 [as red-object! stack/arguments + 1][null]
+		
+		stack/set-last as red-value! object/construct
+			as red-block! stack/arguments
+			proto
+			only >= 0
+	]
 
 	;--- Natives helper functions ---
 
@@ -1624,6 +1638,7 @@ natives: context [
 			:log-e*
 			:exp*
 			:square-root*
+			:construct*
 		]
 	]
 

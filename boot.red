@@ -1069,6 +1069,15 @@ square-root: make native! [[
 	#get-definition NAT_SQUARE_ROOT
 ]
 
+construct: make native! [[
+		block [block!]
+		/with
+			object [object!]
+		/only
+	]
+	#get-definition NAT_CONSTRUCT
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
