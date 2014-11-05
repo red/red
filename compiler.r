@@ -3381,7 +3381,8 @@ red: context [
 				ctx-stack: ctx
 				container-obj?: obj?
 				func-objs: tail objects
-				
+				depth: depth + 1
+
 				comp-func-body name spec body symbols locals-nb
 			]
 		]
