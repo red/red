@@ -1722,10 +1722,21 @@ red: context [
 	
 	comp-object: :comp-context
 	
-	comp-construct: does [
-		comp-context/passive to logic! all [
+	comp-construct: has [only? with? obj][
+		only?: with?: no
+		
+		if all [
 			path? pc/1
-			find pc/1 'only
+			not parse pc/1 [skip 2 ['only (only?: yes) | 'with (with?: yes)]] ;@@ handle duplicates
+		][
+			throw-error "Invalid CONSTRUCT refinement"
+		]
+		
+		either with? [
+			unless obj: is-object? pc/3 [--not-implemented--]
+			comp-context/passive/extend only? obj
+		][
+			comp-context/passive only?
 		]
 	]
 	
