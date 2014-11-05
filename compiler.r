@@ -129,8 +129,8 @@ red: context [
 		quit-on-error
 	]
 	
-	dispatch-ctx-keywords: func [original [any-word! none!]][
-		switch/default pc/1 [
+	dispatch-ctx-keywords: func [original [any-word! none!] /with alt-value][
+		switch/default any [alt-value pc/1][
 			func	  [comp-func]
 			function  [comp-function]
 			has		  [comp-has]
@@ -1723,7 +1723,10 @@ red: context [
 	comp-object: :comp-context
 	
 	comp-construct: does [
-		comp-context/passive no
+		comp-context/passive to logic! all [
+			path? pc/1
+			find pc/1 'only
+		]
 	]
 	
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
@@ -2556,6 +2559,8 @@ red: context [
 			pc: either set? [after][next pc]
 			exit
 		]
+		
+		if dispatch-ctx-keywords/with pc/1/1 path/1 [exit]
 		
 		forall path [									;-- preprocessing path
 			switch/default type?/word value: path/1 [
