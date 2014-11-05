@@ -495,7 +495,6 @@ object: context [
 		ctx	 	[red-context!]
 		spec 	[red-block!]
 		only?	[logic!]
-		proto	[red-context!]
 		return: [logic!]
 		/local
 			cell   [red-value!]
@@ -569,9 +568,9 @@ object: context [
 	][
 		obj: as red-object! stack/push*
 		make-at obj 4								;-- arbitrary value
-		ctx: null
-		unless null? proto [ctx: GET_CTX(proto)]
-		collect-couples GET_CTX(obj) spec only? ctx
+		ctx: GET_CTX(obj)
+		unless null? proto [extend ctx GET_CTX(proto)]
+		collect-couples ctx spec only?
 		obj/class: get-new-id
 		obj/on-set: null
 		obj
