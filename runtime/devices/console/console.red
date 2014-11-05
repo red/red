@@ -27,7 +27,7 @@ Red [
 	]
 ]
 
-#include %../devices/console/input.red
+#include %input.red
 #include %help.red
 
 read-argument: routine [
