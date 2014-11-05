@@ -54,6 +54,7 @@ red: context [
 	return-def:    to-set-word 'return					;-- return: keyword
 	s-counter:	   0									;-- series suffix counter
 	depth:		   0									;-- expression nesting level counter
+	max-depth:	   0
 	booting?:	   none									;-- YES: compiling boot script
 	no-global?:	   no									;-- YES: put global code in a function
 	nl: 		   newline
@@ -1819,7 +1820,8 @@ red: context [
 	
 	comp-loop: has [name set-name mark][
 		depth: depth + 1
-		
+		if depth > max-depth [max-depth: depth]
+
 		set [name set-name] declare-variable join "i" depth
 		
 		comp-expression/close-path						;@@ optimize case for literal counter
@@ -1884,6 +1886,8 @@ red: context [
 		]
 		
 		depth: depth + 1
+		if depth > max-depth [max-depth: depth]
+
 		emit-stack-reset
 		
 		pc: next pc
@@ -3381,7 +3385,8 @@ red: context [
 				ctx-stack: ctx
 				container-obj?: obj?
 				func-objs: tail objects
-				
+				depth: max-depth
+
 				comp-func-body name spec body symbols locals-nb
 			]
 		]
@@ -3608,6 +3613,7 @@ red: context [
 		clear lit-vars/context
 		s-counter: 0
 		depth:	   0
+		max-depth: 0
 		container-obj?: none
 	]
 
