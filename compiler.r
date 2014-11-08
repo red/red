@@ -2145,10 +2145,10 @@ red: context [
 					name: generate-anon-name			;-- undetermined function assignment case
 				]
 			]
-			set-word? original [
+			find [set-word! lit-word!] type?/word :original [
 				src-name: to word! original
 				unless global?: all [lit-word? original pc/-2 = 'set][
-					src-name: prefix-func src-name
+					src-name: get-prefix-func src-name
 				]
 				name: check-func-name src-name
 				add-symbol word: to word! clean-lf-flag name
