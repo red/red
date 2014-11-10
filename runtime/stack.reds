@@ -135,6 +135,22 @@ stack: context [										;-- call stack
 	mark-eval:	 MARK_STACK(FLAG_EVAL)
 	mark-dyn:	 MARK_STACK(FLAG_DYN_CALL)
 	
+	revert: does [
+		#if debug? = yes [if verbose > 0 [print-line "stack/revert"]]
+
+		assert cbottom < ctop
+		ctop: ctop - 2
+		either ctop = cbottom [
+			arguments: bottom
+			top: bottom
+		][
+			top: arguments
+			arguments: as red-value! ctop/2
+		]
+		
+		#if debug? = yes [if verbose > 1 [dump]]
+	]
+	
 	unwind-part: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-part"]]
 

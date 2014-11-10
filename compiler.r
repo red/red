@@ -131,6 +131,8 @@ red: context [
 	]
 	
 	dispatch-ctx-keywords: func [original [any-word! none!] /with alt-value][
+		if path? alt-value [alt-value: alt-value/1]
+		
 		switch/default any [alt-value pc/1][
 			func	  [comp-func]
 			function  [comp-function]
@@ -146,10 +148,7 @@ red: context [
 					comp-context/with original
 				]
 			]
-		][
-			return no
-		]
-		yes
+		][no]
 	]
 	
 	relative-path?: func [file [file!]][
@@ -1505,8 +1504,8 @@ red: context [
 		/extend proto [object!]
 		/passive only? [logic!]
 		/locals
-			words ctx spec name id func? obj original body pos entry
-			symbol body? ctx2 new blk list path on-set-info values w
+			words ctx spec name id func? obj original body pos entry symbol
+			body? ctx2 new blk list path on-set-info values w defer mark
 	][
 		either set-path? original: pc/-1 [
 			path: original
@@ -1567,22 +1566,17 @@ red: context [
 						emit-block/bind blk last ctx-stack
 					]
 				]
-				unless path [
-					emit-open-frame 'set
-					emit-push-word name original
-				]
+				pos: tail output
 				emit-open-frame 'do						;-- defer it to runtime evaluation
 				emit reduce ['block/push blk]
 				insert-lf -2
 				emit-native 'do
 				emit-close-frame
-				unless path [
-					emit 'word/set
-					insert-lf -1
-					emit-close-frame
-				]
+
 				pc: skip pc 2
-				return none
+				defer: copy pos
+				clear pos
+				return defer
 			]
 			obj:    find objects proto/1				;-- simple inheritance case
 			spec:   next first obj/1
@@ -1643,20 +1637,14 @@ red: context [
 		]
 		if body? [bind body obj]
 		
-		unless path [
-			emit-open-frame 'set						;-- runtime object value creation
-			emit-push-word name original
-		]
+
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
 				(to set-word! ctx) _context/make (blk) no yes	;-- rebuild context
 			]
 			insert-lf -5
 		]
-		unless path [
-			emit reduce ['object/init-push ctx id]
-			insert-lf -3
-		]
+
 		if proto [
 			if body? [inherit-functions obj last proto]
 			emit reduce ['object/duplicate select objects last proto ctx]
@@ -1667,14 +1655,10 @@ red: context [
 			emit reduce ['object/transfer ctx2 ctx]
 			insert-lf -3
 		]
-		unless path [
-			emit 'word/set
-			insert-lf -1
-			emit-close-frame
-			emit-stack-reset
-		]
+
 		emit-src-comment/with none rejoin [mold pc/-1 " context " mold spec]
-		
+
+		emit-open-frame 'body
 		case [
 			passive [									;-- CONSTRUCT support
 				bind values obj
@@ -1688,7 +1672,7 @@ red: context [
 				]
 				pc: skip pc 2
 			]
-			body? [
+			all [body? not empty? pc/2][
 				append obj-stack any [path name]
 				pc: next pc
 				comp-next-block
@@ -1700,13 +1684,10 @@ red: context [
 		]
 		pos: none
 		
+		defer: reduce ['object/init-push ctx id]		;-- deferred emission
+		new-line defer yes
+		
 		if any [path pos: find spec 'on-word-set*][
-			either path [
-				emit reduce ['object/init-push ctx id]	;-- deferred pushing on stack for pending set-paths
-				insert-lf -3
-			][
-				emit-push-word name original
-			]
 			if pos [
 				pos: (index? pos) - 1					;-- 0-based contexts arrays
 				entry: find functions decorate-obj-member 'on-word-set* ctx
@@ -1714,11 +1695,20 @@ red: context [
 					locals: locals + 1					;-- account for /local
 				]
 				change/only on-set-info reduce [pos locals]	;-- cache values
-				emit reduce ['object/init-on-set ctx pos locals]
-				insert-lf -4
+				repend defer ['object/init-on-set ctx pos locals]
+				new-line skip defer 3 yes
 			]
 		]
-		none
+		emit 'stack/revert
+		insert-lf -1
+
+		if any [
+			empty? expr-stack
+			'set <> last expr-stack
+		][
+			emit defer									;-- anonymous object case
+		]
+		defer
 	]
 	
 	comp-object: :comp-context
@@ -1732,13 +1722,14 @@ red: context [
 		][
 			throw-error "Invalid CONSTRUCT refinement"
 		]
-		
 		either with? [
 			unless obj: is-object? pc/3 [--not-implemented--]
-			comp-context/passive/extend only? obj
+			also 
+				comp-context/passive/extend only? obj
+				pc: next pc
 		][
 			comp-context/passive only?
-		]
+		]												;-- return object deferred block
 	]
 	
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
@@ -2133,7 +2124,7 @@ red: context [
 		/collect /does /has
 		/local
 			name word spec body symbols locals-nb spec-blk body-blk ctx
-			src-name original global? path anon? obj shadow
+			src-name original global? path obj shadow defer
 	][
 		original: pc/-1
 		case [
@@ -2145,7 +2136,6 @@ red: context [
 					name: to word! rejoin [any [obj/-1 obj/2] #"~" last path] 
 					add-symbol name
 				][
-					anon?: yes
 					name: generate-anon-name			;-- undetermined function assignment case
 				]
 			]
@@ -2163,10 +2153,7 @@ red: context [
 					add-global word
 				]
 			]
-			'else [
-				anon?: yes
-				name: generate-anon-name				;-- unassigned function case
-			]
+			'else [name: generate-anon-name]			;-- unassigned function case
 		]
 		
 		pc: next pc
@@ -2197,22 +2184,13 @@ red: context [
 		]
 		bind-function body shadow
 
-		unless any [path anon?][
-			emit-open-frame 'set						;-- function value creation
-			emit-push-word to word! original original
-		]
-		emit reduce [
+		defer: reduce [
 			'_function/push spec-blk body-blk ctx
 			'as 'integer! to get-word! decorate-func/strict name
 			either 1 < length? obj-stack [select objects do obj-stack]['null]
 		]
-		insert-lf -8
-		new-line skip tail output -4 no
-		unless any [path anon?][
-			emit 'word/set
-			insert-lf -1
-			emit-close-frame
-		]
+		new-line defer yes
+		new-line skip tail defer -4 no
 		repend bodies [									;-- save context for deferred function compilation
 			name spec body symbols locals-nb 
 			copy locals-stack copy ssa-names copy ctx-stack
@@ -2220,6 +2198,13 @@ red: context [
 		]
 		pop-context
 		pc: skip pc 2
+		if any [
+			empty? expr-stack
+			'set <> last expr-stack
+		][
+			emit defer
+		]
+		defer
 	]
 	
 	comp-function: does [
@@ -2267,16 +2252,10 @@ red: context [
 			append/only output body
 		]
 		
-		emit-open-frame 'set							;-- routine value creation
-		emit-push-word name original
-		emit compose [
+		pc: skip pc 2
+		compose [
 			routine/push (spec-blk) (body-blk) as integer! (to get-word! name)
 		]
-		emit 'word/set
-		insert-lf -1
-		emit-close-frame
-
-		pc: skip pc 2
 	]
 	
 	comp-exit: does [
@@ -2501,7 +2480,7 @@ red: context [
 	comp-set: has [name][
 		either lit-word? pc/1 [
 			name: to word! pc/1
-			either local-word? name [
+			either local-bound? pc/1 [
 				pc: next pc
 				comp-local-set name
 			][
@@ -2575,7 +2554,7 @@ red: context [
 			exit
 		]
 		
-		if dispatch-ctx-keywords/with pc/1/1 path/1 [exit]
+		if all [not set? dispatch-ctx-keywords/with pc/1/1 path/1][exit]
 		
 		forall path [									;-- preprocessing path
 			switch/default type?/word value: path/1 [
@@ -2858,7 +2837,12 @@ red: context [
 		emit-close-frame
 	]
 	
-	comp-set-word: func [/native /local name value ctx original obj bound? deep? inherit?][
+	comp-set-word: func [
+		/native
+		/local 
+			name value ctx original obj bound? deep? inherit? proto
+			defer mark start take-frame
+	][
 		name: original: pc/1
 		pc: next pc
 		unless local-word? name: to word! clean-lf-flag name [
@@ -2869,71 +2853,81 @@ red: context [
 		if infix? pc [
 			throw-error "invalid use of set-word as operand"
 		]
-		if all [not booting? find intrinsics name][		
+		if all [not booting? find intrinsics name][
 			throw-error ["attempt to redefine a keyword:" name]
 		]
 		
-		unless dispatch-ctx-keywords original [
-			case [
-				all [
-					pc/1 = 'make
-					any [
-						pc/2 = 'object!
-						obj: is-object? pc/2
-					]
-				][
-					check-redefined name
-					pc: next pc
-					either obj [
-						comp-context/with/extend original obj
-					][
-						comp-context/with original
-					]
-				]
-				'else [
-					bound?: all [
-						rebol-gctx <> obj: bind? original
-						not find shadow-funcs obj
-					]
-					deep?: 1 < length? obj-stack
-					
-					unless bound? [check-redefined name]
-					check-cloned-function name
-
-					emit-open-frame 'set
-					either native [						;-- 1st argument
-						pc: back pc
-						comp-expression					;-- fetch a value
-					][
-						unless any [bound? deep?][
-							emit-push-word name	original ;-- push set-word
-						]
-					]
-					;comp-expression						;-- fetch a value (2nd argument)
-					comp-substitute-expression
-
-					either native [
-						emit-native/with 'set [-1]		;@@ refinement not handled yet
-					][
-						either all [bound? ctx: select objects obj][
-							emit 'word/set-in
-							emit either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
-							emit get-word-index/with name ctx
-							insert-lf -3
-						][
-							emit 'word/set
-							insert-lf -1
-						]
-					]
-					emit-close-frame
-				]
+		bound?: all [
+			rebol-gctx <> obj: bind? original
+			not find shadow-funcs obj
+		]
+		deep?: 1 < length? obj-stack
+		mark: tail output
+		take-frame: [start: copy mark clear mark]
+		
+		emit-open-frame 'set
+		
+		either native [									;-- 1st argument
+			pc: back pc
+			comp-expression								;-- fetch a value
+		][
+			unless any [bound? deep?][
+				emit-push-word name	original 			;-- push set-word
 			]
 		]
+		
+		push-call 'set
+		case [
+			all [
+				pc/1 = 'make
+				any [pc/2 = 'object! proto: is-object? pc/2]
+			][
+				do take-frame
+				check-redefined name
+				pc: next pc
+				defer: either proto [
+					comp-context/with/extend original proto
+				][
+					comp-context/with original
+				]
+			]
+			all [
+				any [word? pc/1 path? pc/1]
+				do take-frame
+				defer: dispatch-ctx-keywords/with original pc/1
+			][]											;-- processing done in dispatch function
+			'else [
+				if start [emit start]
+				unless bound? [check-redefined name]
+				check-cloned-function name
+				comp-substitute-expression				;-- fetch a value (2nd argument)
+			]
+		]
+		pop-call
+		
+		if block? defer [								;-- object or function case
+			emit start
+			emit defer
+		]
+
+		either native [
+			emit-native/with 'set [-1]					;@@ refinement not handled yet
+		][
+			either all [bound? ctx: select objects obj][
+				emit 'word/set-in
+				emit either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
+				emit get-word-index/with name ctx
+				insert-lf -3
+			][
+				emit 'word/set
+				insert-lf -1
+			]
+		]
+		emit-close-frame
 	]
 
 	comp-word: func [/literal /final /thru /local name local? alter emit-word original new ctx][
 		name: to word! original: pc/1
-		pc: next pc										;@@ move it deeper
 		local?: local-bound? original
 		
 		emit-word: [
@@ -2947,6 +2941,9 @@ red: context [
 				]
 			]
 		]
+		
+		if dispatch-ctx-keywords original [exit]
+		pc: next pc										;@@ move it deeper
 		
 		case [
 			all [not thru name = 'exit]	 [comp-exit]
@@ -3538,7 +3535,7 @@ red: context [
 		set [user main] comp-source code
 		
 		;-- assemble all parts together in right order
-		script: make block! 10'000
+		script: make block! 100'000
 		
 		append script [
 			------------| "Symbols"

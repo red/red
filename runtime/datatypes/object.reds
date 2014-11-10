@@ -452,12 +452,9 @@ object: context [
 		index  [integer!]
 		locals [integer!]
 		/local
-			obj  [red-object!]
-			word [red-word!]
+			obj [red-object!]
 	][
-		word: as red-word! stack/top - 1
-		assert TYPE_OF(word) = TYPE_WORD
-		obj: as red-object! _context/get word
+		obj: as red-object! stack/top - 1
 		assert TYPE_OF(obj) = TYPE_OBJECT
 		obj/on-set: make-callback-node TO_CTX(ctx) index locals
 	]
