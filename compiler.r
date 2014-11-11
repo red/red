@@ -1576,6 +1576,12 @@ red: context [
 				pc: skip pc 2
 				defer: copy pos
 				clear pos
+				if any [
+					empty? expr-stack
+					'set <> last expr-stack
+				][
+					emit defer									;-- anonymous object case
+				]
 				return defer
 			]
 			obj:    find objects proto/1				;-- simple inheritance case
