@@ -1078,6 +1078,14 @@ construct: make native! [[
 	#get-definition NAT_CONSTRUCT
 ]
 
+value?: make native! [[
+		"Returns TRUE if the word has a value"
+		value	[word!]
+		return: [logic!]
+	]
+	#get-definition NAT_VALUE?
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------

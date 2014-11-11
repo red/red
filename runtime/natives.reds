@@ -1229,8 +1229,6 @@ natives: context [
 		ret
 	]
 
-	;--- Natives helper functions ---
-
 	log-2*: func [
 		/local
 			f	[red-float!]
@@ -1283,6 +1281,18 @@ natives: context [
 			as red-block! stack/arguments
 			proto
 			only >= 0
+	]
+
+	value?*: func [
+		/local
+			value  [red-value!]
+			result [red-logic!]
+	][
+		value: _context/get as red-word! stack/arguments
+		result: as red-logic! stack/arguments
+		result/value: TYPE_OF(value) <> TYPE_UNSET
+		result/header: TYPE_LOGIC
+		result
 	]
 
 	;--- Natives helper functions ---
@@ -1644,6 +1654,7 @@ natives: context [
 			:exp*
 			:square-root*
 			:construct*
+			:value?*
 		]
 	]
 

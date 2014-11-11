@@ -184,7 +184,7 @@ qt-init-file: func [] [
 ]
 
 ~~~end-file~~~: func [] [
-  print [lf "~~~finished test~~~ " qt-file-name lf]
+  print ["~~~finished test~~~ " qt-file-name lf]
   qt-print-totals qt-file/tests
                   qt-file/asserts
                   qt-file/passes 
