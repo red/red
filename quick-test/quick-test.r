@@ -284,7 +284,6 @@ qt: make object! [
     /local
     	dll
   ][
-  	  print ["lib-src" lib-src]
     ;; compile the lib into the runnable dir
     if not dll: compile/lib lib-src target [
       compile-error lib-src
@@ -502,7 +501,7 @@ qt: make object! [
       ][
     _start test-run "" title
     prin newline
-    write log-file rejoin ["***Starting***" title newline]
+    write log-file rejoin ["***Starting*** " title newline]
   ]
   
   start-file: func [
