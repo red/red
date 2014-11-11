@@ -631,7 +631,12 @@ interpreter: context [
 			TYPE_FUNCTION [
 				if verbose > 0 [log "pushing function frame"]
 				obj: as red-object! parent
-				ctx: either TYPE_OF(parent) = TYPE_OBJECT [obj/ctx][
+				ctx: either all [
+					parent <> null
+					TYPE_OF(parent) = TYPE_OBJECT
+				][
+					obj/ctx
+				][
 					fun: as red-function! value
 					s: as series! fun/more/value
 					int: as red-integer! s/offset + 4
@@ -800,6 +805,14 @@ interpreter: context [
 			]
 			TYPE_OP [
 				--NOT_IMPLEMENTED--						;-- op used in prefix mode
+			]
+			TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_NATIVE
+			TYPE_ROUTINE
+			TYPE_FUNCTION [
+				value: pc + 1
+				if value >= end [value: end]
+				pc: eval-code pc value end sub? null null null
 			]
 			default [
 				either sub? [
