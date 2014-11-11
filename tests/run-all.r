@@ -82,9 +82,9 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/bitset-test.red
   	--run-test-file-quiet %source/units/same-test.red
   	--run-test-file-quiet %source/units/strict-equal-test.red
-  	--run-test-file-quiet %source/units/object-test.red
   	--run-test-file-quiet %source/units/integer-test.red
   	--run-test-file-quiet %source/units/char-test.red
+  	--run-test-file-quiet %source/units/object-test.red
   	--run-test-file-quiet %source/units/float-test.red
 ===end-group===
 
@@ -131,6 +131,7 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/auto-tests/interp-integer-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-float-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-char-test.red
+  	--run-test-file-quiet %source/units/auto-tests/interp-object-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-equal-auto-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-same-test.red
   	--run-test-file-quiet %source/units/auto-tests/interp-greater-auto-test.red

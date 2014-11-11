@@ -58,6 +58,7 @@ system-dialect: make-profilable context [
 		red-store-bodies?:	yes							;-- no => do not store function! value bodies (body-of will return none)
 		red-strict-check?:	yes							;-- no => defers undefined word errors reporting at run-time
 		red-tracing?:		yes							;-- no => do not compile tracing code
+		red-help?:			no							;-- yes => keep doc-strings from boot.red
 		legacy:				none						;-- block of optional OS legacy features flags
 	]
 	
@@ -2680,7 +2681,11 @@ system-dialect: make-profilable context [
 			either block? expr [
 				type: comp-call expr/1 next expr 		;-- function call case (recursive)
 				if type [last-type: type]				;-- set last-type if not already set
-				if all [variable boxed][				;-- process casting if result assigned to variable
+				if all [
+					variable boxed						;-- process casting if result assigned to variable
+					last-type/1 = 'logic!
+					boxed/type  = 'integer!				;-- fixes #967
+				][
 					emitter/target/emit-casting boxed no	;-- insert runtime type casting if required
 					last-type: boxed/type
 				]
@@ -2829,23 +2834,25 @@ system-dialect: make-profilable context [
 			expr
 		]
 		
-		comp-block: func [/final /only /local fetch expr][
-			fetch: [either final [fetch-expression/final][fetch-expression]]
+		comp-block: func [/final /only /local expr save-pc][
 			block-level: block-level + 1
-			pc: fetch-into pc/1 [
-				either only [
-					expr: do fetch
-					unless tail? pc [
-						throw-error "more than one expression found in parentheses"
-					]
-				][
-					while [not tail? pc][
-						;if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
-						expr: do fetch
-						unless tail? pc [pop-calls]
-					]
+			save-pc: pc
+			pc: pc/1
+
+			either only [
+				expr: either final [fetch-expression/final][fetch-expression]
+				unless tail? pc [
+					throw-error "more than one expression found in parentheses"
+				]
+			][
+				while [not tail? pc][
+					;if all [paren? pc/1 not infix? at pc 2][raise-paren-error]
+					expr: either final [fetch-expression/final][fetch-expression]
+					unless tail? pc [pop-calls]
 				]
 			]
+			pc: next save-pc
+			
 			block-level: block-level - 1
 			expr
 		]

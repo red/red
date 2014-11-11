@@ -171,19 +171,20 @@ redc: context [
 		
 		if any [
 			not exists? exe 
-			(modified? exe) < build-date					;-- check that console is up to date.
+			(modified? exe) < build-date				;-- check that console is up to date.
 		][
 			console: %runtime/console/
 			write script read-cache console/console.red
 			write temp-dir/help.red read-cache console/help.red
 			write temp-dir/input.red read-cache console/input.red
 
-			opts: make system-dialect/options-class [		;-- minimal set of compilation options
+			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
 				unicode?: yes
 				config-name: to word! default-target
 				build-basename: %console
 				build-prefix: temp-dir
+				red-help?: yes							;-- include doc-strings
 			]
 			opts: make opts select load-targets opts/config-name
 

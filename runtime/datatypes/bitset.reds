@@ -678,7 +678,7 @@ bitset: context [
 	eval-path: func [
 		parent	[red-bitset!]							;-- implicit type casting
 		element	[red-value!]
-		set?	[logic!]
+		value	[red-value!]
 		return:	[red-value!]
 		/local
 			int [red-integer!]
@@ -686,9 +686,9 @@ bitset: context [
 		switch TYPE_OF(element) [
 			TYPE_INTEGER [
 				int: as red-integer! element
-				either set? [
-					poke parent int/value stack/arguments element
-					stack/arguments
+				either value <> null [
+					poke parent int/value value element
+					value
 				][
 					pick parent int/value element
 				]

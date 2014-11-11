@@ -91,15 +91,6 @@ interpreter: context [
 		print-line msg
 	]
 	
-	print-symbol: func [
-		word [red-word!]
-		/local
-			sym [red-symbol!]
-	][
-		sym: symbol/get word/symbol
-		print sym/cache
-	]
-	
 	literal-first-arg?: func [
 		native 	[red-native!]
 		return: [logic!]
@@ -196,15 +187,11 @@ interpreter: context [
 							type: TYPE_OF(value)
 							all [
 								value < tail
-								any [
-									type = TYPE_WORD
-									type = TYPE_GET_WORD
-									type = TYPE_LIT_WORD
-									type = TYPE_STRING
-								]
+								type <> TYPE_REFINEMENT
+								type <> TYPE_SET_WORD
 							]
 						][
-							unless type = TYPE_STRING [
+							if all [type <> TYPE_STRING type <> TYPE_BLOCK][
 								FETCH_ARGUMENT
 								if function? [
 									copy-cell stack/top - 1 stack/arguments + pos2 
@@ -501,14 +488,18 @@ interpreter: context [
 		pc		[red-value!]							;-- path to evaluate
 		end		[red-value!]
 		set?	[logic!]
+		get?	[logic!]
+		sub?	[logic!]
 		return: [red-value!]
 		/local 
-			path   [red-path!]
-			head   [red-value!]
-			tail   [red-value!]
-			item   [red-value!]
-			parent [red-value!]
-			saved  [red-value!]
+			path	[red-path!]
+			head	[red-value!]
+			tail	[red-value!]
+			item	[red-value!]
+			parent	[red-value!]
+			gparent	[red-value!]
+			saved	[red-value!]
+			arg		[red-value!]
 	][
 		if verbose > 0 [print-line "eval: path"]
 		
@@ -524,16 +515,17 @@ interpreter: context [
 		]
 		
 		parent: _context/get as red-word! head
-		
-		switch TYPE_OF(parent) [
-			TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
-			TYPE_NATIVE
-			TYPE_ROUTINE
-			TYPE_FUNCTION [
-				pc: eval-code parent pc end yes path item - 1
-				return pc
+		unless get? [
+			switch TYPE_OF(parent) [
+				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+				TYPE_NATIVE
+				TYPE_ROUTINE
+				TYPE_FUNCTION [
+					pc: eval-code parent pc end yes path item - 1 parent
+					return pc
+				]
+				default [0]
 			]
-			default [0]
 		]
 				
 		while [item < tail][
@@ -563,28 +555,31 @@ interpreter: context [
 					stack/unwind
 					value: stack/top - 1
 				]
-				default [0]								;-- pass-thru
+				default [0]								;-- compilation pass-thru
 			]
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
-			parent: actions/eval-path parent value all [set? item + 1 = tail]
+			gparent: parent								;-- save grand-parent reference
+			arg: either all [set? item + 1 = tail][stack/arguments][null]
+			parent: actions/eval-path parent value arg
 			
-			switch TYPE_OF(parent) [
-				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
-				TYPE_NATIVE
-				TYPE_ROUTINE
-				TYPE_FUNCTION [
-					pc: eval-code parent pc end yes path item
-					return pc
+			unless get? [
+				switch TYPE_OF(parent) [
+					TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+					TYPE_NATIVE
+					TYPE_ROUTINE
+					TYPE_FUNCTION [
+						pc: eval-code parent pc end yes path item gparent
+						return pc
+					]
+					default [0]
 				]
-				default [0]
 			]
-			
 			item: item + 1
 		]
 		
 		stack/top: saved
-		stack/push parent
+		either sub? [stack/push parent][stack/set-last parent]
 		pc
 	]
 	
@@ -595,9 +590,15 @@ interpreter: context [
 		sub?	[logic!]
 		path	[red-path!]
 		slot 	[red-value!]
+		parent	[red-value!]
 		return: [red-value!]
 		/local
-			name   [red-word!]
+			name [red-word!]
+			obj  [red-object!]
+			fun	 [red-function!]
+			int	 [red-integer!]
+			s	 [series!]
+			ctx	 [node!]
 	][
 		name: as red-word! pc - 1
 		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
@@ -629,9 +630,25 @@ interpreter: context [
 			]
 			TYPE_FUNCTION [
 				if verbose > 0 [log "pushing function frame"]
+				obj: as red-object! parent
+				ctx: either all [
+					parent <> null
+					TYPE_OF(parent) = TYPE_OBJECT
+				][
+					obj/ctx
+				][
+					fun: as red-function! value
+					s: as series! fun/more/value
+					int: as red-integer! s/offset + 4
+					either TYPE_OF(int) = TYPE_INTEGER [
+						ctx: as node! int/value
+					][
+						name/ctx						;-- get a context from calling name
+					]
+				]
 				stack/mark-func name
 				pc: eval-arguments as red-native! value pc end path slot
-				_function/call as red-function! value
+				_function/call as red-function! value ctx
 				either sub? [stack/unwind][stack/unwind-last]
 
 				if verbose > 0 [
@@ -695,7 +712,7 @@ interpreter: context [
 				value: pc
 				pc: pc + 1
 				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
-				pc: eval-path value pc end yes
+				pc: eval-path value pc end yes no sub?
 			]
 			TYPE_GET_WORD [
 				copy-cell _context/get as red-word! pc stack/push*
@@ -754,7 +771,7 @@ interpreter: context [
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [
-						pc: eval-code value pc end sub? null null
+						pc: eval-code value pc end sub? null null value
 					]
 					default [
 						if verbose > 0 [log "getting word value"]
@@ -774,7 +791,12 @@ interpreter: context [
 			TYPE_PATH [
 				value: pc
 				pc: pc + 1
-				pc: eval-path value pc end no
+				pc: eval-path value pc end no no sub?
+			]
+			TYPE_GET_PATH [
+				value: pc
+				pc: pc + 1
+				pc: eval-path value pc end no yes sub?
 			]
 			TYPE_LIT_PATH [
 				value: stack/push pc
@@ -783,6 +805,14 @@ interpreter: context [
 			]
 			TYPE_OP [
 				--NOT_IMPLEMENTED--						;-- op used in prefix mode
+			]
+			TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_NATIVE
+			TYPE_ROUTINE
+			TYPE_FUNCTION [
+				value: pc + 1
+				if value >= end [value: end]
+				pc: eval-code pc value end sub? null null null
 			]
 			default [
 				either sub? [

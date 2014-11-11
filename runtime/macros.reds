@@ -197,6 +197,7 @@ Red/System [
 	NAT_LOG_E
 	NAT_EXP
 	NAT_SQUARE_ROOT
+	NAT_CONSTRUCT
 ]
 
 #enum math-op! [
@@ -349,6 +350,6 @@ Red/System [
 ]
 
 #if debug? = yes [
-	#define dump4			[dump-hex4 as int-ptr!]
-	#define dump1			[dump-hex  as byte-ptr!]
+	#define dump4	[dump-hex4 as int-ptr!]
+	#define dump1	[dump-hex  as byte-ptr!]
 ]

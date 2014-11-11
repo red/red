@@ -65,7 +65,6 @@ count-delimiters: function [
 	return: [block!]
 ][
 	list: copy [0 0]
-	c: none
 	
 	foreach c buffer [
 		case [

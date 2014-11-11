@@ -726,7 +726,7 @@ get: make native! [[
 
 set: make native! [[
 		"Sets the value(s) one or more words refer to"
-		word	[any-word! block!] "Word or block of words to set"
+		word	[any-word! block! object!] "Word, object or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
 		/any "Allow UNSET as a value rather than causing an error"
 		return: [any-type!]
@@ -1069,6 +1069,15 @@ square-root: make native! [[
 	#get-definition NAT_SQUARE_ROOT
 ]
 
+construct: make native! [[
+		block [block!]
+		/with
+			object [object!]
+		/only
+	]
+	#get-definition NAT_CONSTRUCT
+]
+
 ;------------------------------------------
 ;-			   Operators				  -
 ;------------------------------------------
@@ -1263,7 +1272,7 @@ word?:		 func ["Returns true if the value is this type" value [any-type!]] [word
 any-series?: func [value][
 	find [												;@@ To be replaced with a typeset check
 		block! paren! path! lit-path! set-path!
-		get-path! string! file!
+		get-path! string! file! url!
 	] type?/word :value
 ]
 
@@ -1474,3 +1483,4 @@ load: function [
 
 ;empty?: :tail?
 atan2: :arctangent2
+object: :context

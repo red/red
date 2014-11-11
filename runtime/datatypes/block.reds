@@ -241,6 +241,14 @@ block: context [
 		blk
 	]
 	
+	insert-thru: does [
+		unless stack/acc-mode? [
+			insert-value
+				as red-block! stack/arguments - 1
+				stack/arguments
+		]
+	]
+	
 	append*: func [
 		return: [red-block!]
 		/local
@@ -256,6 +264,22 @@ block: context [
 			ALLOC_TAIL(arg)
 			
 		arg
+	]
+	
+	append-thru: func [
+		/local
+			arg	[red-block!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/append-thru"]]
+
+		unless stack/acc-mode? [
+			arg: as red-block! stack/arguments - 1
+			;assert TYPE_OF(arg) = TYPE_BLOCK			;@@ disabled until we have ANY_BLOCK check
+
+			copy-cell
+				as cell! arg + 1
+				ALLOC_TAIL(arg)
+		]
 	]
 	
 	select-word: func [
@@ -632,17 +656,19 @@ block: context [
 	eval-path: func [
 		parent	[red-block!]							;-- implicit type casting
 		element	[red-value!]
-		set?	[logic!]
+		value	[red-value!]
 		return:	[red-value!]
 		/local
-			int [red-integer!]
+			int  [red-integer!]
+			set? [logic!]
 	][
+		set?: value <> null
 		switch TYPE_OF(element) [
 			TYPE_INTEGER [
 				int: as red-integer! element
 				either set? [
-					poke parent int/value stack/arguments null
-					stack/arguments
+					poke parent int/value value null
+					value
 				][
 					pick parent int/value null
 				]
@@ -650,8 +676,8 @@ block: context [
 			TYPE_WORD [
 				either set? [
 					element: find parent element null no no no null null no no no no
-					actions/poke as red-series! element 2 stack/arguments null
-					stack/arguments
+					actions/poke as red-series! element 2 value null
+					value
 				][
 					select-word as red-block! parent as red-word! element
 				]

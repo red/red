@@ -253,6 +253,7 @@ natives: context [
 			as red-block! stack/arguments + 1
 			null
 			0
+			null
 		stack/set-last stack/top - 1
 	]
 	
@@ -365,7 +366,7 @@ natives: context [
 				interpreter/eval as red-block! arg yes
 			]
 			TYPE_PATH [
-				interpreter/eval-path arg arg arg + 1 no
+				interpreter/eval-path arg arg arg + 1 no no no
 				stack/set-last arg + 1
 			]
 			TYPE_STRING [
@@ -396,12 +397,19 @@ natives: context [
 		w: as red-word! stack/arguments
 		value: stack/arguments + 1
 		
-		either TYPE_OF(w) = TYPE_BLOCK [
-			blk: as red-block! w
-			set-many blk value block/rs-length? blk
-			stack/set-last value
-		][
-			stack/set-last _context/set w value
+		switch TYPE_OF(w) [
+			TYPE_OBJECT [
+				set-obj-many as red-object! w value
+				stack/set-last value
+			]
+			TYPE_BLOCK [
+				blk: as red-block! w
+				set-many blk value block/rs-length? blk
+				stack/set-last value
+			]
+			default [
+				stack/set-last _context/set w value
+			]
 		]
 	]
 
@@ -554,6 +562,7 @@ natives: context [
 				]
 				any [
 					type = TYPE_BINARY
+					type = TYPE_OBJECT
 					ANY_SERIES?(type)
 				][
 					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
@@ -806,12 +815,13 @@ natives: context [
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			either negative? copy [
-				_context/bind as red-block! value TO_CTX(ctx) no
+				_context/bind as red-block! value TO_CTX(ctx) null no
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes
 						TO_CTX(ctx)
+						null
 						no
 			]
 		][
@@ -1260,6 +1270,20 @@ natives: context [
 		f: argument-as-float
 		f/value: sqrt f/value
 	]
+	
+	construct*: func [
+		_with [integer!]
+		only  [integer!]
+		/local
+			proto [red-object!]
+	][
+		proto: either _with >= 0 [as red-object! stack/arguments + 1][null]
+		
+		stack/set-last as red-value! object/construct
+			as red-block! stack/arguments
+			proto
+			only >= 0
+	]
 
 	;--- Natives helper functions ---
 
@@ -1363,6 +1387,38 @@ natives: context [
 			(as byte-ptr! s/offset)
 				+ (series/head << (GET_UNIT(s) >> 1))
 				< (as byte-ptr! s/tail)
+		]
+	]
+	
+	set-obj-many: func [
+		obj	  [red-object!]
+		value [red-value!]
+		/local
+			ctx		[red-context!]
+			blk		[red-block!]
+			values	[red-value!]
+			tail	[red-value!]
+			s		[series!]
+			i		[integer!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/values/value
+		values: s/offset
+		tail: s/tail
+		
+		either TYPE_OF(value) = TYPE_BLOCK [
+			blk: as red-block! value
+			i: 1
+			while [values < tail][
+				copy-cell (block/pick blk i null) values
+				values: values + 1
+				i: i + 1
+			]
+		][
+			while [values < tail][
+				copy-cell value values
+				values: values + 1
+			]
 		]
 	]
 	
@@ -1587,6 +1643,7 @@ natives: context [
 			:log-e*
 			:exp*
 			:square-root*
+			:construct*
 		]
 	]
 
