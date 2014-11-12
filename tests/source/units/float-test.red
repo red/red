@@ -386,7 +386,7 @@ Red [
 
 ===start-group=== "almost equal"
 	--test-- "almost-equal1"  --assert 1.000000000000001 = 1.000000000000002
-	--test-- "almost-equal2"  --assert not 1.000000000000001 = 1.000000000000003
+	--test-- "almost-equal2"  --assert not 1.000000000000001 <> 1.000000000000003
 
 	--test-- "almost-equal3"  --assert -1.999999999999999 = -1.999999999999999
 	--test-- "almost-equal4"  --assert 1.732050807568876 = 1.732050807568877

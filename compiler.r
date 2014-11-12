@@ -1455,10 +1455,16 @@ red: context [
 				]
 				path! set-path!	[
 					name: do make-block
-					either lit-path? pc/1 [
-						emit 'path/push
-					][
-						emit to path! reduce [to word! form type? pc/1 'push]
+					case [
+						all [inactive get-word? pc/1/1] [
+							emit 'get-path/push
+						]
+						lit-path? pc/1 [
+							emit 'path/push
+						]
+						true [
+							emit to path! reduce [to word! form type? pc/1 'push]
+						]
 					]
 					emit name
 					insert-lf -2
