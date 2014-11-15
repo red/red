@@ -1,5 +1,5 @@
 REBOL [
-  Title:   "Builds a set of Red Tests to run on an ARM host"
+    Title:   "Builds a set of Red Tests to run on an ARM host"
 	File: 	 %build-arm-tests.r
 	Author:  "Peter W A Wood"
 	Version: 0.1.0
@@ -26,7 +26,7 @@ Choose ARM target:
 target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
 
 ;; make the Arm dir if needed
-arm-dir: %runnable/arm-tests/
+arm-dir: clean-path %../quick-test/runnable/arm-tests/red/
 make-dir/deep arm-dir
 
 ;; empty the Arm dir
@@ -40,18 +40,18 @@ parse/all all-tests [
 	any [a-test-file (append test-files to file! file) | skip]
 ]
 
-;; compile the tests into to runnable/arm-tests
+;; compile the tests into to runnable/arm-tests/red
  
 foreach test-file test-files [
-  do/args %../red.r rejoin ["-t " target " " test-file]
-  exe: copy find/last/tail test-file "/"
-  exe: replace exe ".red" ""
-  write/binary join %runnable/arm-tests/ exe read/binary exe
-  delete exe
+    exe: copy find/last/tail test-file "/"
+    exe: replace exe ".red" ""
+    exe: join arm-dir exe
+    do/args %../red.r rejoin ["-t " target " -o " exe " " test-file]
+    
 ]
 
 ;; copy the bash script and mark it as executable
-runner: %runnable/arm-tests/run-all.sh
+runner: %runnable/arm-tests/red/run-all.sh
 write/binary runner read/binary %run-all.sh
 if system/version/4 <> 3 [
 	set-modes runner [
