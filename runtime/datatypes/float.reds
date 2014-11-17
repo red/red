@@ -447,6 +447,8 @@ float: context [
 		if left = right [return true]					;-- for NaN, also raise error in default mode
 		if any [NaN? left NaN? right] [return false]
 
+		if DBL_EPSILON > abs left - right [return true] ;-- check if the numbers are really close, use an absolute epsilon
+
 		a: as uint64! :left
 		b: as uint64! :right
 		lo1: a/int1
