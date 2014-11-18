@@ -2456,6 +2456,7 @@ red: context [
 			if into? [comp-expression]				;-- optionally compile /into argument
 			emit-native/with 'reduce reduce [pick [1 -1] into?]
 			emit-close-frame
+			pop-call
 			exit
 		]
 		
