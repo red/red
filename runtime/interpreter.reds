@@ -71,6 +71,9 @@ Red/System [
 						stack/push pc
 					]
 				]
+				TYPE_GET_PATH [
+					eval-path pc pc + 1 end no yes yes
+				]
 				default [
 					stack/push pc
 				]
