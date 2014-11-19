@@ -13,10 +13,11 @@ compile-test-dylibs: func [
 
 	;; use win-call if running Rebol 2.7.8 under Windows
 	if all [
+		not value? 'win-call
     	system/version/4 = 3
     	system/version/3 = 8              
 	][
-		do %../../../../quick-test/call.r					               
+		do %../../quick-test/call.r					               
 		set 'call :win-call
 	]	
 

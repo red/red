@@ -12,7 +12,6 @@ create-dylib-auto-test: func [
 	dir-out [file!]
 	exe-dir-out [file!]  
 ][
-
 	;;; Initialisations
 	file-out: dir-out/dylib-auto-test.reds
 	

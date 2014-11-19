@@ -19,6 +19,9 @@ if all [
 		set 'call :win-call
 ]
 
+do %source/units/create-dylib-auto-test.r
+do %source/units/compile-test-dylibs.r
+
 ;; process arguments (if any)
 target: none
 if system/script/args  [
@@ -37,7 +40,6 @@ file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
 a-file-name: ["%" some file-chars ".reds" ] 
 a-test-file: ["--run-test-file-quiet " copy file a-file-name]
 a-dll-file: ["--compile-dll " copy file a-file-name]
-do %source/units/create-dylib-auto-test.r
 
 unless target [
     target: ask {
@@ -94,18 +96,16 @@ foreach dll dlls [
 test-files: copy []
 all-tests: read %run-all.r
 parse/all all-tests [any [a-test-file (append test-files to file! file) | skip] end]
-
 ;; compile the tests and move the executables to runnable/arm-tests
 foreach test-file test-files [
 	if none = find test-file "dylib" [      		;; ignore any dylibs tests
-		compile-test test-file
+		compile-test replace clean-path test-file "%" ""
 	]
 ]
 
-;; generate and compile the dylib tests
-do %../../quick-test/quick-test.r					;; load qt before call
+;; generate the dylib tests
 change-dir %source/units
-create-dylib-auto-test target arm-dir/dylib-auto-test.reds
+create-dylib-auto-test target arm-dir arm-dir
 change-dir %../../
 src: read arm-dir/dylib-auto-test.reds
 replace src "../../../../../" "../../../../"
@@ -113,15 +113,20 @@ write arm-dir/dylib-auto-test.reds src
 compile-test arm-dir/dylib-auto-test.reds
 if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
+;; complie the test libs
+compile-test-dylibs target arm-dir
+
 ;; copy the bash script and mark it as executable
 write/binary arm-dir/run-all.sh trim/with read/binary %run-all.sh "^M"
-runner: open arm-dir/run-all.sh
-set-modes runner [
-  owner-execute: true
-  group-execute: true
-  world-execute: true
+unless system/version/4 = 3 [
+	runner: open arm-dir/run-all.sh
+	set-modes runner [
+		owner-execute: true
+		group-execute: true
+  		world-execute: true
+	]
+	close runner
 ]
-close runner
 
 ;; tidy up
 system/options/quiet: store-quiet-mode
