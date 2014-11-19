@@ -85,6 +85,12 @@ Red [
 	--test-- "xor3" --assert 01h xor 1Fh = 1Eh
 ===end-group===
 
+===start-group=== "random"
+	--test-- "random1" --assert 1 = random 1
+	--test-- "random2" --assert 2 = random/only next [1 2]
+	--test-- "random3" --assert not negative? random 1
+===end-group===
+
 ===start-group=== "round"
 	--test-- "round1" --assert  123904 = round/to  123'456 1024
 	--test-- "round2" --assert -123904 = round/to -123'456 1024

@@ -430,29 +430,21 @@ natives: context [
 		#if debug? = yes [if verbose > 0 [print-line "native/prin"]]
 		
 		arg: stack/arguments
-		
-		either any [
-			TYPE_OF(arg) = TYPE_STRING 						;@@ replace by ANY_STRING?
-			TYPE_OF(arg) = TYPE_FILE
-			TYPE_OF(arg) = TYPE_URL
-		][
-			str: as red-string! arg
-		][
+
+		if TYPE_OF(arg) = TYPE_BLOCK [
 			block/rs-clear buffer-blk
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
-			
-			if TYPE_OF(arg) = TYPE_BLOCK [
-				reduce* 1
-				blk: as red-block! arg
-				blk/head: 0									;-- head changed by reduce/into
-			]
-			actions/form* -1
-			str: as red-string! stack/arguments + 1
-			assert any [
-				TYPE_OF(str) = TYPE_STRING
-				TYPE_OF(str) = TYPE_SYMBOL					;-- symbol! and string! structs are overlapping
-			]
+			reduce* 1
+			blk: as red-block! arg
+			blk/head: 0										;-- head changed by reduce/into
+		]
+
+		actions/form* -1
+		str: as red-string! stack/arguments
+		assert any [
+			TYPE_OF(str) = TYPE_STRING
+			TYPE_OF(str) = TYPE_SYMBOL						;-- symbol! and string! structs are overlapping
 		]
 		series: GET_BUFFER(str)
 		offset: (as byte-ptr! series/offset) + (str/head << (GET_UNIT(series) >> 1))

@@ -2,7 +2,7 @@ Red [
 	Title:   "Red/System char! datatype test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %char-test.red
-	Version: "0.1.0"
+	Version: "0.2.0"
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
@@ -13,21 +13,35 @@ Red [
 ~~~start-file~~~ "char"
 
 ===start-group=== "+ tests"
-	--test-- "char+1"
-	--assert #"^(01)" + #"^(00)" 	 = #"^(01)"
-	;--assert #"^(01)" + #"^(10FFFF)" = #"^(00)"		;-- now generates an error
+	--test-- "char+1" --assert #"^(01)" + #"^(00)" = #"^(01)"
+	--test-- "char+2" --assert #"^(FF)" + #"^(01)" = #"^(0100)"
+	--test-- "char+3" --assert #"^(01)" + #"^(10FFFF)" = #"^(00)" 
 ===end-group===
   
 ===start-group=== "- tests"
+	--test-- "char-1" --assert #"^(01)" - #"^(00)" = #"^(01)"
+	--test-- "char-2" --assert #"^(0100)" - #"^(01)" = #"^(FF)"
+	--test-- "char-3" --assert #"^(00)" - #"^(01)" = #"^(10FFFF)"
 ===end-group===
 
 ===start-group=== "* tests"
+    --test-- "char*1" --assert #"^(01)" * #"^(00)" = #"^(00)"
+    --test-- "char*2" --assert #"^(01)" * #"^(01)" = #"^(01)"
+    --test-- "char*3" --assert #"^(01)" * #"^(02)" = #"^(02)"
+    --test-- "char*4" --assert #"^(010FFF)" * #"^(10)" = #"^(10FFF0)"
+    --test-- "char*5" --assert #"^(010FFF)" * #"^(11)" = #"^(010FF0)"
 ===end-group===
   
 ===start-group=== "/ tests"
+    --test-- "char/1" --assert #"^(01)" / #"^(01)" = #"^(01)"
+    --test-- "char/2" --assert #"^(01)" / #"^(02)" = #"^(00)"
+    --test-- "char/3" --assert #"^(10FFFF)" / #"^(10)" = #"^(010FFF)"
+    
 ===end-group===
 
 ===start-group=== "mod tests"
+    --test-- "char%1" --assert #"^(010FFF)" % #"^(10)" = #"^(0F)"
+    --test-- "char%2" --assert #"^(01)" % #"^(02)" = #"^(01)"
 ===end-group===
 
 ===start-group=== "even?"

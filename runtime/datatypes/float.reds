@@ -103,18 +103,19 @@ float: context [
 	]
 
 	form-float: func [
-		f 		[float!]
-		return: [c-string!]
+		f			[float!]
+		return:		[c-string!]
 		/local
-			s	[c-string!]
-			s0	[c-string!]
-			p0	[c-string!]
-			p	[c-string!]
-			p1	[c-string!]
-			dot? [logic!]
-			d	[int64!]
-			w0	[integer!]
+			s		[c-string!]
+			s0		[c-string!]
+			p0		[c-string!]
+			p		[c-string!]
+			p1		[c-string!]
+			dot?	[logic!]
+			d		[int64!]
+			w0		[integer!]
 			pretty? [logic!]
+			temp	[float!]
 	][
 		d: as int64! :f
 		w0: d/int2												;@@ Use little endian. Watch out big endian !
@@ -127,6 +128,11 @@ float: context [
 				return either 0 = (w0 and 80000000h) ["1.#INF"]["-1.#INF"]
 			]
 			return "1.#NaN"
+		]
+
+		if pretty-print? [
+			temp: abs f
+			if temp < DBL_EPSILON [return "0.0"]
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
@@ -440,6 +446,8 @@ float: context [
 	][
 		if left = right [return true]					;-- for NaN, also raise error in default mode
 		if any [NaN? left NaN? right] [return false]
+
+		if DBL_EPSILON > abs left - right [return true] ;-- check if the numbers are really close, use an absolute epsilon
 
 		a: as uint64! :left
 		b: as uint64! :right

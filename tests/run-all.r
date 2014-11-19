@@ -50,6 +50,7 @@ start-time: now/precise
 ===end-group===
 
 ===start-group=== "Red Units tests"
+    --run-test-file-quiet %source/units/object-test.red
   	--run-test-file-quiet %source/units/logic-test.red
   	--run-test-file-quiet %source/units/conditional-test.red
   	--run-test-file-quiet %source/units/series-test.red
@@ -76,7 +77,6 @@ start-time: now/precise
   	--run-test-file-quiet %source/units/strict-equal-test.red
   	--run-test-file-quiet %source/units/integer-test.red
   	--run-test-file-quiet %source/units/char-test.red
-  	--run-test-file-quiet %source/units/object-test.red
   	--run-test-file-quiet %source/units/float-test.red
 ===end-group===
 

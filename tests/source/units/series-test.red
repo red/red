@@ -600,6 +600,11 @@ Red [
 	--test-- "remove-str-7"
 		a: "123"
 		--assert "123" = remove/part a 0
+	
+	--test-- "remove-str-8"
+		a: "str123"
+		--assert "" = remove back tail a
+		--assert "str12" = head a
 
 ===end-group===
 

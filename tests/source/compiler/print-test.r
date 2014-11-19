@@ -32,6 +32,11 @@ REBOL [
     		;; issue #796
     		prin "*test7* "
     		print "开会"
+    		
+    		str: "str123"
+    		remove back tail str
+    		prin "*test8* "
+    		print head str
  		}
  		
  		--assert-printed? "*test1* 1"
@@ -41,6 +46,7 @@ REBOL [
     	--assert-printed? "*test5* abcde✐"
     	--assert-printed? "*test6* Heo word"
     	--assert-printed? "*test7* 开会"
+    	--assert-printed? "*test*8 str12"
     	--assert none = find qt/output "*test6* Heo wordd"
   
 ~~~end-file~~~ 
