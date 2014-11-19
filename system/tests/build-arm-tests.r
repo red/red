@@ -10,26 +10,59 @@ REBOL [
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
 
+;; use win-call if running Rebol 2.7.8 under Windows
+if all [
+    system/version/4 = 3
+    system/version/3 = 8              
+][
+		do %../../quick-test/call.r					               
+		set 'call :win-call
+]
+
+;; process arguments (if any)
+target: none
+if system/script/args  [
+    target: second parse system/script/args " "
+	if not any [
+	    target = "Linux"
+	    target = "Android"
+	    target = "RPi"
+	][
+	    target: none
+	]
+]
+
 ;; init
 file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
 a-file-name: ["%" some file-chars ".reds" ] 
 a-test-file: ["--run-test-file-quiet " copy file a-file-name]
 a-dll-file: ["--compile-dll " copy file a-file-name]
+do %source/units/create-dylib-auto-test.r
 
-target: ask {
-Choose ARM target:
-1) Linux
-2) Android
-3) Linux armhf
-=> }
-target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
+unless target [
+    target: ask {
+        Choose ARM target:
+        1) Linux
+        2) Android
+        3) Linux armhf
+        => }
+    target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
+]
 
 ;; helper function
+output: copy ""
 compile-test: func [test-file [file!]] [
 	exe: copy find/last/tail test-file "/"
 	exe: to file! replace exe ".reds" ""
-	exe: arm-dir/exe
-	do/args %../../red.r rejoin ["-t " target " -o " exe " " test-file]
+	exe: arm-dir/:exe
+	cmd: join "" [  to-local-file system/options/boot " -sc "
+                    to-local-file clean-path %../../red.r
+                    " -t " target " -o " exe " "
+    				to-local-file test-file	
+    			]
+    clear output
+    call/output cmd output
+    print output
 ]
 
 ;; make the Arm dir if needed
@@ -47,41 +80,38 @@ foreach dll dlls [
 	lib: copy find/last/tail dll "/"
 	lib: replace lib ".reds" ".so"
 	lib: arm-dir/lib
-	do/args %red.r rejoin ["-dlib -t " target " -o " lib " " dll]
+	cmd: join "" [  to-local-file system/options/boot " -sc "
+                    to-local-file clean-path %../../red.r
+                    " -dlib -t " target " -o " lib " "
+    				to-local-file dll
+    			]
+    clear output
+    call/output cmd output
+    print output
 ]
 
 ;; get the list of test source files
 test-files: copy []
-all-tests: read %tests/run-all.r
+all-tests: read %run-all.r
 parse/all all-tests [any [a-test-file (append test-files to file! file) | skip] end]
 
 ;; compile the tests and move the executables to runnable/arm-tests
 foreach test-file test-files [
 	if none = find test-file "dylib" [      		;; ignore any dylibs tests
-		insert next test-file "tests/"
 		compile-test test-file
 	]
 ]
 
 ;; generate and compile the dylib tests
-
-dylib-source: %tests/runnable/arm-tests/dylib-auto-test.reds
-test-script-header: read %tests/source/units/dylib-test-script-header.txt
-replace test-script-header "%../../../../../quick-test/quick-test.reds"
-						   "%../../../../quick-test/quick-test.reds"
-libs: read %tests/source/units/dylib-libs.txt
-replace libs "***test-dll1***" clean-path %runnable/arm-tests/libtest-dll1.dylib
-replace libs "***test-dll2***" clean-path %runnable/arm-tests/libtest-dll2.dylib
-tests: read %tests/source/units/dylib-tests.txt
-test-script-footer: read %tests/source/units/dylib-test-script-footer.txt
-write dylib-source join test-script-header [
-	libs tests test-script-footer
-]
-compile-test dylib-source
-if exists? dylib-source [
-	delete dylib-source
-]
-
+do %../../quick-test/quick-test.r					;; load qt before call
+change-dir %source/units
+create-dylib-auto-test target arm-dir/dylib-auto-test.reds
+change-dir %../../
+src: read arm-dir/dylib-auto-test.reds
+replace src "../../../../../" "../../../../"
+write arm-dir/dylib-auto-test.reds src
+compile-test arm-dir/dylib-auto-test.reds
+if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
 ;; copy the bash script and mark it as executable
 write/binary arm-dir/run-all.sh trim/with read/binary %run-all.sh "^M"
@@ -96,4 +126,4 @@ close runner
 ;; tidy up
 system/options/quiet: store-quiet-mode
 
-print "ARM tests built"
+print ["Red/System ARM tests built in" arm-dir]

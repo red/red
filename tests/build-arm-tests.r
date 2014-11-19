@@ -12,18 +12,42 @@ REBOL [
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
 
+;; use win-call if running Rebol 2.7.8 under Windows
+if all [
+    system/version/4 = 3
+    system/version/3 = 8              
+][
+		do %../quick-test/call.r					               
+		set 'call :win-call
+]
+
+;; process arguments (if any)
+target: none
+if system/script/args  [
+    target: second parse system/script/args " "
+	if not any [
+	    target = "Linux"
+	    target = "Android"
+	    target = "RPi"
+	][
+	    target: none
+	]
+]
+
 ;; init
 file-chars: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" "-" "/"]
 a-file-name: ["%" some file-chars ".red" ] 
 a-test-file: ["--run-test-file-quiet " copy file a-file-name]
 
-target: ask {
-Choose ARM target:
-1) Linux
-2) Android
-3) Linux armhf
-=> }
-target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
+unless target [
+    target: ask {
+        Choose ARM target:
+        1) Linux
+        2) Android
+        3) Linux armhf
+        => }
+    target: pick ["Linux-ARM" "Android" "RPi"] to-integer target
+]
 
 ;; make the Arm dir if needed
 arm-dir: clean-path %../quick-test/runnable/arm-tests/red/
@@ -41,18 +65,24 @@ parse/all all-tests [
 ]
 
 ;; compile the tests into to runnable/arm-tests/red
- 
+output: copy ""
 foreach test-file test-files [
     exe: copy find/last/tail test-file "/"
     exe: replace exe ".red" ""
-    exe: join arm-dir exe
-    do/args %../red.r rejoin ["-t " target " -o " exe " " test-file]
-    
+    exe: to-local-file join arm-dir exe
+    cmd: join "" [  to-local-file system/options/boot " -sc "
+                    to-local-file clean-path %../red.r
+                    " -t " target " -o " exe " "
+    				to-local-file test-file	
+    			]
+    clear output
+    call/output cmd output
+    print output
 ]
 
 ;; copy the bash script and mark it as executable
-runner: %runnable/arm-tests/red/run-all.sh
-write/binary runner read/binary %run-all.sh
+runner: arm-dir/run-all.sh
+write/binary runner trim/with read/binary %run-all.sh "^M"
 if system/version/4 <> 3 [
 	set-modes runner [
 	  owner-execute: true
@@ -64,7 +94,4 @@ if system/version/4 <> 3 [
 ;; tidy up
 system/options/quiet: store-quiet-mode
 
-print "ARM tests built"
-  
-  
-
+print ["Red/System ARM tests built in" arm-dir]  

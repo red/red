@@ -9,12 +9,13 @@ REBOL [
 
 create-dylib-auto-test: func [
 	target [string!]
-	file-out [file!]
+	dir-out [file!]
+	exe-dir-out [file!]  
 ][
 
 	;;; Initialisations
-
-	unless value? 'qt [do %../../../../quick-test/quick-test.r]
+	file-out: dir-out/dylib-auto-test.reds
+	
 
 	;; test script header including the lib definitions
 	test-script-header: read %dylib-test-script-header.txt
@@ -43,15 +44,15 @@ create-dylib-auto-test: func [
 	write file-out test-script-header
 	
 	;; update the #include statements, write them and the tests
-	if dll-target [
+	if target [
 		dll1-name: join %libtest-dll1 suffix
 		dll2-name: join %libtest-dll2 suffix 
-		either dll-target = "Windows" [
+		either target = "Windows" [
 			replace libs "***test-dll1***" dll1-name
 			replace libs "***test-dll2***" dll2-name
 		][
-			replace libs "***test-dll1***" qt/runnable-dir/:dll1-name
-			replace libs "***test-dll2***" qt/runnable-dir/:dll2-name
+			replace libs "***test-dll1***" to-local-file clean-path exe-dir-out/:dll1-name
+			replace libs "***test-dll2***" to-local-file clean-path exe-dir-out/:dll2-name
 		]
 		write/append file-out libs
 		write/append file-out tests	

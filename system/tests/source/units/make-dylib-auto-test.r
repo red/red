@@ -8,9 +8,12 @@ REBOL [
 ]
 
 do %create-dylib-auto-test.r
-make-dir %auto-tests/
+do %compile-test-dylibs.r
+dir-out: %auto-tests
+make-dir dir-out
+exe-dir-out: clean-path %../../../../quick-test/runnable/
+make-dir exe-dir-out
 
-file-out: %auto-tests/dylib-auto-test.reds
 dll-target: switch/default fourth system/version [
 	2 ["Darwin"]
 	3 ["Windows"]
@@ -19,4 +22,5 @@ dll-target: switch/default fourth system/version [
 	"Linux"
 ]
 
-create-dylib-auto-test dll-target file-out
+compile-test-dylibs dll-target dir-out
+create-dylib-auto-test dll-target dir-out exe-dir-out
