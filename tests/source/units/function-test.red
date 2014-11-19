@@ -629,6 +629,14 @@ comment {                                          #############################
         fwla4-o: make object! [i: 50]
         --assert 50 = fwla-f :fwla4-o/i
 
+    --test-- "fwla5"
+        --assert (first ['fwla4-o/i]) = fwla-f 'fwla4-o/i
+
+    --test-- "fwla6"
+        --assert (first [fwla4-o/i:]) = fwla-f fwla4-o/i:
+
+    --test-- "fwla7"
+        --assert (first [fwla4-o/i]) = fwla-f fwla4-o/i
 ===end-group===
 
 ===start-group=== "function with get-arg"
@@ -654,6 +662,14 @@ comment {                                          #############################
         --assert 11 = fwga5-f fwga5-i
         --assert 11 = fwga5-i
 
+    --test-- "fwga6"
+        --assert (first [fwga4-o/i]) = fwga-f fwga4-o/i
+
+    --test-- "fwga7"
+        --assert (first ['fwga4-o/i]) = fwga-f 'fwga4-o/i
+
+    --test-- "fwga8"
+        --assert (first [fwga4-o/i:]) = fwga-f fwga4-o/i:
 ===end-group===
 
 ~~~end-file~~~

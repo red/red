@@ -1456,8 +1456,12 @@ red: context [
 				path! set-path!	[
 					name: do make-block
 					case [
-						all [inactive get-word? pc/1/1] [
-							emit 'get-path/push
+						inactive [
+							either get-word? pc/1/1 [
+								emit 'get-path/push
+							][
+								emit to path! reduce [to word! form type? pc/1 'push]
+							]
 						]
 						lit-path? pc/1 [
 							emit 'path/push
@@ -2669,7 +2673,7 @@ red: context [
 		unless set? [pc: next pc]
 	]
 	
-	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!] /local word paths][
+	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!] /local word paths type][
 		if ref [spec: find/tail spec name]
 		paths: length? paths-stack
 		
@@ -2686,7 +2690,10 @@ red: context [
 						emit 'unset/push				;-- provide unset as placeholder
 						insert-lf -1
 					][
-						switch/default type?/word pc/1 [
+						type: either all [path? pc/1 get-word? pc/1/1][
+							'get-path!
+						][type?/word pc/1]
+						switch/default type [
 							get-word! [
 								add-symbol to word! pc/1
 								comp-expression
@@ -2703,7 +2710,8 @@ red: context [
 								emit-push-word word	word	;@@ add specific type checking
 								pc: next pc
 							]
-							paren! [comp-expression]
+							lit-path! [comp-literal/inactive]
+							paren! get-path! [comp-expression]
 						][
 							comp-literal
 						]
