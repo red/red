@@ -360,6 +360,7 @@ stack: context [										;-- call stack
 			fun		   [red-function!]
 			obj		   [red-object!]
 			base	   [red-value!]
+			last	   [red-value!]
 			info	   [dyn-info!]
 			ctx		   [node!]
 			octx	   [node!]
@@ -411,7 +412,17 @@ stack: context [										;-- call stack
 				unless null? fun [_function/call fun ctx] ;-- run the detected function
 				unless zero? info/code [code octx]		;-- run wrapper code (stored as function)
 				if new-frame? [unwind-last]				;-- close new frame created for handling refinements
-				unwind-last								;-- close frame opened in 'push-call
+				
+				last: arguments
+				unwind									;-- close frame opened in 'push-call
+				either all [
+					null? fun							;-- for defered calls only
+					arguments + 3 < top					;-- check if not first argument of parent call?
+				][
+					top: top - 2						;-- adjust stack to right position for next argument
+				][
+					copy-cell last arguments			;-- unwind-last
+				]
 				
 				;base: arguments
 				;unwind
