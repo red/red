@@ -46,7 +46,7 @@ REBOL [
     	--assert-printed? "*test5* abcde✐"
     	--assert-printed? "*test6* Heo word"
     	--assert-printed? "*test7* 开会"
-    	--assert-printed? "*test*8 str12"
+    	--assert-printed? "*test8* str12"
     	--assert none = find qt/output "*test6* Heo wordd"
   
 ~~~end-file~~~ 
