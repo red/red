@@ -2259,7 +2259,7 @@ red: context [
 		convert-types spec
 		either no-global? [
 			repend bodies [								;-- saved for deferred inclusion
-				name spec body none none none none none
+				name spec body none none none none none none
 			]
 		][
 			emit reduce [to set-word! name 'func]
