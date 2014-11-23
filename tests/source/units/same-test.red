@@ -83,7 +83,7 @@ Red [
 	--test-- "same-function-1"		--assert same? :probe :probe
 	--test-- "same-function-2"		--assert not same? :probe :quote
 	--test-- "same-routine-1"		--assert same? :quit-return :quit-return
-	--test-- "same-object-1"		--assert same? make object! [a: 1] make object! [a: 1]
+	--test-- "same-object-1"		--assert not same? make object! [a: 1] make object! [a: 1]
 	
 	--test-- "same-object-2"
 		so2-o1: make object! [a: 1]
