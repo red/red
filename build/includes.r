@@ -76,10 +76,15 @@ write %build/bin/sources.r set-cache [
 			%syllable.reds
 			%win32.reds
 		]
-		%console/ [
-			%console.red
-			%help.red
-			%input.red
+		%devices/ [
+			%console/ [
+				%console.red
+				%help.red
+				%input.red
+				%wcwidth.reds
+				%POSIX.reds
+				%win32.reds
+			]
 		]
 	]
 	%utils/ [
