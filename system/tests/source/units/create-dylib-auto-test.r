@@ -46,7 +46,10 @@ create-dylib-auto-test: func [
 	if target [
 		dll1-name: join %libtest-dll1 suffix
 		dll2-name: join %libtest-dll2 suffix 
-		either target = "Windows" [
+		either any [
+		    target = "Windows"
+		    exe-dir-out = %./ 
+		][
 			replace libs "***test-dll1***" dll1-name
 			replace libs "***test-dll2***" dll2-name
 		][

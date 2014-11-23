@@ -105,13 +105,13 @@ foreach test-file test-files [
 
 ;; generate the dylib tests
 change-dir %source/units
-create-dylib-auto-test target arm-dir arm-dir
+create-dylib-auto-test target arm-dir %./
 change-dir %../../
 src: read arm-dir/dylib-auto-test.reds
 replace src "../../../../../" "../../../../"
 write arm-dir/dylib-auto-test.reds src
 compile-test arm-dir/dylib-auto-test.reds
-if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
+;if exists? arm-dir/dylib-auto-test.reds [delete arm-dir/dylib-auto-test.reds]
 
 ;; complie the test libs
 compile-test-dylibs target arm-dir
