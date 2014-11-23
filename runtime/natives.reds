@@ -547,7 +547,6 @@ natives: context [
 			case [
 				any [
 					type = TYPE_DATATYPE
-					type = TYPE_OBJECT
 					type = TYPE_LOGIC
 				][
 					res: arg1/data1 = arg2/data1
