@@ -1474,6 +1474,37 @@ block: context [
 		blk1
 	]
 
+	trim: func [
+		blk			[red-block!]
+		head?		[logic!]
+		tail?		[logic!]
+		auto?		[logic!]
+		lines?		[logic!]
+		all?		[logic!]
+		with-arg	[red-value!]
+		return:		[red-series!]
+		/local
+			s		[series!]
+			value	[red-value!]
+			cur		[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/trim"]]
+
+		s: GET_BUFFER(blk)
+		value: s/offset + blk/head
+		cur: value
+
+		while [value < s/tail][
+			if TYPE_OF(value) <> TYPE_NONE [
+				unless value = cur [copy-cell value cur]
+				cur: cur + 1
+			]
+			value: value + 1
+		]
+		s/tail: cur
+		as red-series! blk
+	]
+
 	;--- Misc actions ---
 	
 	copy: func [
@@ -1620,7 +1651,7 @@ block: context [
 			:tail
 			:tail?
 			:take
-			null			;trim
+			:trim
 			;-- I/O actions --
 			null			;create
 			null			;close

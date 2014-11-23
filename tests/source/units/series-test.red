@@ -923,6 +923,10 @@ Red [
 
 	--test-- "trim-str-10"
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
+
+	--test-- "trim-block-1"
+		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
+
 ===end-group===
 
 ~~~end-file~~~
