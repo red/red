@@ -3261,15 +3261,20 @@ red: context [
 		]
 	]
 	
-	comp-substitute-expression: has [paths][
+	comp-substitute-expression: has [paths mark][
 		paths: length? paths-stack
+		mark: tail output
 		
 		comp-expression
 		
-		if paths < length? paths-stack [
+		if all [
+			paths < length? paths-stack
+			not find mark [stack/push pos]
+		][
 			emit [stack/push pos + 0]
 			insert-lf -4
 		]
+		mark: none
 	]
 	
 	comp-expression: func [/no-infix /root /close-path /local out paths][
