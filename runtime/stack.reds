@@ -394,6 +394,7 @@ stack: context [										;-- call stack
 					case [
 						TYPE_OF(obj) = TYPE_OBJECT  [ctx: obj/ctx]
 						TYPE_OF(int) = TYPE_INTEGER [ctx: as node! int/value]
+						true						[ctx: null]
 					]
 
 					new-frame?: info/locals = -1
