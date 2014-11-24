@@ -1586,12 +1586,6 @@ red: context [
 				pc: skip pc 2
 				defer: copy pos
 				clear pos
-				if any [
-					empty? expr-stack
-					'set <> last expr-stack
-				][
-					emit defer									;-- anonymous object case
-				]
 				return defer
 			]
 			obj:    find objects proto/1				;-- simple inheritance case
@@ -1717,13 +1711,7 @@ red: context [
 		]
 		emit 'stack/revert
 		insert-lf -1
-
-		if any [
-			empty? expr-stack
-			'set <> last expr-stack
-		][
-			emit defer									;-- anonymous object case
-		]
+		
 		defer
 	]
 	
@@ -2214,12 +2202,6 @@ red: context [
 		]
 		pop-context
 		pc: skip pc 2
-		if any [
-			empty? expr-stack
-			'set <> last expr-stack
-		][
-			emit defer
-		]
 		defer
 	]
 	
@@ -2542,7 +2524,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj self? true-blk ctx?
+			fpath symbol obj self? true-blk defer
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -2571,7 +2553,10 @@ red: context [
 			exit
 		]
 		
-		if all [not set? dispatch-ctx-keywords/with pc/1/1 path/1][exit]
+		if all [not set? defer: dispatch-ctx-keywords/with pc/1/1 path/1][
+			if block? defer [emit defer]
+			exit
+		]
 		
 		forall path [									;-- preprocessing path
 			switch/default type?/word value: path/1 [
@@ -2623,12 +2608,13 @@ red: context [
 		if set? [
 			pc: next pc
 			either obj? [									;-- fetch assigned value earlier
-				unless ctx?: dispatch-ctx-keywords none [	;-- detect function/object declaration
+				unless defer: dispatch-ctx-keywords none [	;-- detect function/object declaration
 					comp-expression
 				]
 			][
-				ctx?: dispatch-ctx-keywords none
+				defer: dispatch-ctx-keywords none
 			]
+			if block? defer [emit defer]
 		]
 
 		if obj? [
@@ -2662,8 +2648,8 @@ red: context [
 		
 		either any [obj? set? get? dynamic? not parse path [some word!]][
 			unless self? [
-				ctx?: to logic! any [obj? ctx?]
-				emit-path back tail path set? ctx?		;-- emit code recursively from tail
+				obj?: to logic! obj?
+				emit-path back tail path set? obj?		;-- emit code recursively from tail
 			]
 		][
 			append/only paths-stack path				;-- defer path generation
@@ -2947,7 +2933,7 @@ red: context [
 		emit-close-frame
 	]
 
-	comp-word: func [/literal /final /thru /local name local? alter emit-word original new ctx][
+	comp-word: func [/literal /final /thru /local name local? alter emit-word original new ctx defer][
 		name: to word! original: pc/1
 		local?: local-bound? original
 		
@@ -2963,7 +2949,10 @@ red: context [
 			]
 		]
 		
-		if dispatch-ctx-keywords original [exit]
+		if defer: dispatch-ctx-keywords original [
+			if block? defer [emit defer]
+			exit
+		]
 		pc: next pc										;@@ move it deeper
 		
 		case [
