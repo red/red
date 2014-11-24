@@ -419,6 +419,7 @@ stack: context [										;-- call stack
 					null? fun							;-- for defered calls only
 					arguments + 3 < top					;-- check if not first argument of parent call?
 				][
+					copy-cell last arguments + 1
 					top: top - 2						;-- adjust stack to right position for next argument
 				][
 					copy-cell last arguments			;-- unwind-last

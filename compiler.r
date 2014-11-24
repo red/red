@@ -1259,9 +1259,9 @@ red: context [
 		]
 		path: first paths-stack
 		redirect-to literals [pname: emit-block path]
-		emit-path-func body octx cnt: get-counter
 		
 		if frame?: all [
+			not emit-path-func body octx cnt: get-counter
 			not empty? expr-stack
 			find [<infix> switch case] last expr-stack
 		][

@@ -675,6 +675,16 @@ Red [
 		--assert 143 = add o/a 10 o/b
 		--assert 256 = add o/a o/b 10
 
+	--test-- "dyn-26"						;; issue #990
+		f-obj-switch: func [
+		    o [object!]
+		][
+		    switch type?/word o/x [
+		        integer! [-1]
+		    ]
+		]
+		--assert -1 = f-obj-switch object [x: 0]
+
 ===end-group===
 
 ===start-group=== "copy"
