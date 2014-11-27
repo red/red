@@ -14,20 +14,77 @@ Red [
 	}
 ]
 
+complete-from-path: func [
+	str [string!]
+	/local s result word w1 ptr words first? sys-word
+][
+	result: make block! 4
+	first?: yes
+	s: ptr: str
+	while [ptr: find str #"/"][
+		word: to word! copy/part str ptr
+		either first? [
+			word: find system/words word
+			w1: get word/1
+			first?: no
+		][
+			w1: get in w1 word
+		]
+		str: either object? w1 [next ptr][""]
+	]
+	if any [function? w1 action? w1 native? w1 routine? w1] [
+		word: find/last/tail s #"/"
+		words: make block! 4
+		foreach w spec-of w1 [
+			if refinement? w [append words w]
+		]
+	]
+	if object? w1 [
+		word: str
+		words: words-of w1
+	]
+	if words [
+		foreach w words [
+			sys-word: form w
+			if any [empty? word find/match sys-word word] [
+				append result sys-word
+			]
+		]
+	]
+
+	if 1 = length? result [
+		poke result 1 append copy/part s word result/1
+	]
+	result
+]
+
 default-input-completer: func [
 	str [string!]
-	/local word result sys-word ws?
+	/local word ptr result sys-word delim?
 ][
-	ws?: no
-	str: head str
 	result: make block! 4
-	either word: find/last/tail str #" " [ws?: yes][word: str]
+	delimiters: [#" " #"[" #"("]
+	delim?: no
+	ptr: str: head str
+	foreach d delimiters [
+		word: find/last/tail str d
+		if all [word (index? ptr) < (index? word)] [ptr: word]
+	]
+	either head? ptr [word: str][word: ptr delim?: yes]
 	unless empty? word [
-		foreach w system/words [
-			unless unset? get/any w [
-				sys-word: mold w
-				if find/match sys-word word [
-					append result sys-word
+		either all [
+			#"/" <> word/1
+			ptr: find word #"/"
+			#" " <> pick ptr -1
+		][
+			result: complete-from-path word
+		][
+			foreach w system/words [
+				if value? w [
+					sys-word: mold w
+					if find/match sys-word word [
+						append result sys-word
+					]
 				]
 			]
 		]
@@ -36,7 +93,7 @@ default-input-completer: func [
 		either word = result/1 [
 			clear result
 		][
-			if ws? [
+			if delim? [
 				poke result 1 append copy/part str word result/1
 			]
 		]
@@ -143,7 +200,7 @@ default-input-completer: func [
 				string/rs-reset line
 				until [
 					string/concatenate line as red-string! block/rs-head result -1 0 yes no
-					string/append-char GET_BUFFER(line) 32
+					unless num = 1 [string/append-char GET_BUFFER(line) 32]
 					block/rs-next result
 					block/rs-tail? result
 				]
