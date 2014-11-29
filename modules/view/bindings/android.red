@@ -28,6 +28,7 @@ BOTTOM:		80
 
 activity-obj: none
 lay: none
+orientation: 'portrait
 
 main: func [this [integer!]][
 	activity-obj: to-java-object this
@@ -51,8 +52,8 @@ show: func [face [block!] /with parent [block!] /local obj f params][
 			button [
 				obj: java-new [android.widget.Button activity-obj]
 				;java-do [obj/setId 101]
-				;btn-click: java-new [android.view.View.OnClickListener]
-				;java-do [btn/setOnClickListener btn-click]
+				btn-click: java-do [activity-obj/create "android.view.View$OnClickListener"]
+				java-do [obj/setOnClickListener btn-click]
 			]
 			text [
 				obj: java-new [android.widget.TextView activity-obj]

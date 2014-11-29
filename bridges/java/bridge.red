@@ -261,7 +261,7 @@ Red [
 	]
 	
 #either OS = 'Android [
-	Java_org_redlang_eval_ClickEvent_Receive:
+	Java_org_redlang_eval_EventInvoker_receiveEvent:
 ][
 	Java_events_Receive:
 ] func [
@@ -277,7 +277,7 @@ Red [
 	#either OS = 'Android [
 		#export JNICALL [
 			Java_org_redlang_eval_MainActivity_doMain
-			Java_org_redlang_eval_ClickEvent_Receive
+			Java_org_redlang_eval_EventInvoker_receiveEvent
 		]
 	][
 		#export JNICALL [
@@ -802,6 +802,7 @@ to-java-object: func [obj-id [integer!] /local class cls name][
 		make block! 4
 	]
 	~class: class
+	java-populate cls
 	java-populate-super cls
 
 	append ~classes name
