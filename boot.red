@@ -1140,10 +1140,6 @@ pi: 3.141592653589793
 ;-			   Routines					  -
 ;------------------------------------------
 
-set-float-pretty: routine [mode [logic!]][float/pretty-print?: mode]
-set-float-full:	  routine [mode [logic!]][float/full-support?: mode]
-
-
 cos: routine [
 	"Returns the trigonometric cosine"
 	angle [float!] "Angle in radians"
@@ -1314,49 +1310,7 @@ values-of: func [
 
 context: func [spec [block!]][make object! spec]
 
-word-to-logic: func [value [word! logic!]][
-	either logic? value [value][
-		any [
-			all [find [true yes on]  value true]
-			all [find [false no off] value false]
-		]
-	]
-]
-
-system: function [
-	"Returns information about the interpreter"
-	/version	   "Return the system version"
-	/words		   "Return a block of global words available"
-	/platform	   "Return a word identifying the operating system"
-	/interpreted?  "Return TRUE if called from the interpreter"
-	/float-options "Change the way float numbers are processed"
-		spec [block!] "Float flags (pretty?, full?) set to TRUE or FALSE"
-	/local value
-][
-	case [
-		version [#version]
-		words	[#system [_context/get-words]]
-		platform [
-			#system [
-				#switch OS [
-					Windows  [SET_RETURN(words/_windows)]
-					Syllable [SET_RETURN(words/_syllable)]
-					MacOSX	 [SET_RETURN(words/_macosx)]
-					#default [SET_RETURN(words/_linux)]
-				]
-			]
-		]
-		interpreted? [#system [logic/box stack/eval?]]
-		float-options [
-			if value: select spec 'pretty? [set-float-pretty word-to-logic value]
-			if value: select spec 'full?   [set-float-full	 word-to-logic value]
-			make unset! none
-		]
-		'else [
-			print "Please specify a system refinement value (/version, /words, or /platform)"
-		]
-	]
-]
+#include %system.red
 
 replace: func [
 	series [series!]
