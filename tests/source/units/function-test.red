@@ -353,7 +353,7 @@ Red [
 
 		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
 
-	unless system/interpreted? [			;-- routine creation not supported by interpreter
+	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
 		--test-- "infix-2"
 				*+*: make op! :infix2
 			--assert 5 *+* 6 = 106
@@ -495,7 +495,7 @@ comment {                                       ################################
         ]   
         --assert none = ff8-f 
         
-if system/interpreted? [                          ;-- not yet supported by compiler 
+if system/state/interpreted? [                          ;-- not yet supported by compiler 
     --test-- "funfun9"
         ff9-f: function [] [
             a: 1
@@ -506,7 +506,7 @@ if system/interpreted? [                          ;-- not yet supported by compi
         --assert none = ff9-f 
 ]
 
-if system/interpreted? [                          ;-- not yet supported by compiler         
+if system/state/interpreted? [                          ;-- not yet supported by compiler         
      --test-- "funfun10"
         ff10-i: 1
         ff10-f: function [] [
@@ -518,7 +518,7 @@ if system/interpreted? [                          ;-- not yet supported by compi
         --assert none = ff10-f 
 ]
 
-if system/interpreted? [                          ;-- not yet supported by compiler         
+if system/state/interpreted? [                          ;-- not yet supported by compiler         
     --test-- "funfun11"
         ff11-i: 1
         ff11-f: function [] [
@@ -573,7 +573,7 @@ if system/interpreted? [                          ;-- not yet supported by compi
         --assert 1 = ff15-i     
                                                     ####################################}
                                                     
-if system/interpreted? [                          ;-- not yet supported by compiler         
+if system/state/interpreted? [                      ;-- not yet supported by compiler         
     --test-- "funfun16"
         ff16-f: function [] [
             f2: func [i] [i: 1]
@@ -583,7 +583,7 @@ if system/interpreted? [                          ;-- not yet supported by compi
         --assert none = ff16-f
 ]       
 
-if system/interpreted? [                          ;-- not yet supported by compiler         
+if system/state/interpreted? [                      ;-- not yet supported by compiler         
     --test-- "funfun17"
         ff17-i: 10
         ff17-f: function [] [

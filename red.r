@@ -173,7 +173,7 @@ redc: context [
 			not exists? exe 
 			(modified? exe) < build-date				;-- check that console is up to date.
 		][
-			console: %runtime/console/
+			console: %environment/console/
 			write script read-cache console/console.red
 			write temp-dir/help.red read-cache console/help.red
 			write temp-dir/input.red read-cache console/input.red
