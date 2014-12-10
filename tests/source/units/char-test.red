@@ -15,13 +15,11 @@ Red [
 ===start-group=== "+ tests"
 	--test-- "char+1" --assert #"^(01)" + #"^(00)" = #"^(01)"
 	--test-- "char+2" --assert #"^(FF)" + #"^(01)" = #"^(0100)"
-	--test-- "char+3" --assert #"^(01)" + #"^(10FFFF)" = #"^(00)" 
 ===end-group===
   
 ===start-group=== "- tests"
 	--test-- "char-1" --assert #"^(01)" - #"^(00)" = #"^(01)"
 	--test-- "char-2" --assert #"^(0100)" - #"^(01)" = #"^(FF)"
-	--test-- "char-3" --assert #"^(00)" - #"^(01)" = #"^(10FFFF)"
 ===end-group===
 
 ===start-group=== "* tests"
@@ -29,7 +27,6 @@ Red [
     --test-- "char*2" --assert #"^(01)" * #"^(01)" = #"^(01)"
     --test-- "char*3" --assert #"^(01)" * #"^(02)" = #"^(02)"
     --test-- "char*4" --assert #"^(010FFF)" * #"^(10)" = #"^(10FFF0)"
-    --test-- "char*5" --assert #"^(010FFF)" * #"^(11)" = #"^(010FF0)"
 ===end-group===
   
 ===start-group=== "/ tests"
