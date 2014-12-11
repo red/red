@@ -245,7 +245,11 @@ load: function [
 	;	url!	[]
 	;	binary! []
 	;]
-	either part [transcode/part source out length][transcode source out]
+	either part [
+		system/lexer/transcode/part source out length
+	][
+		system/lexer/transcode source out
+	]
 	unless :all [if 1 = length? out [out: out/1]]
 	out 
 ]

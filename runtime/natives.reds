@@ -371,9 +371,8 @@ natives: context [
 			]
 			TYPE_STRING [
 				str: as red-string! arg
-				#call [transcode str none]
+				#call [system/lexer/transcode str none]
 				interpreter/eval as red-block! arg yes
-
 			]
 			default [
 				interpreter/eval-expression arg arg + 1 no no

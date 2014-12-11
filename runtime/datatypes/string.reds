@@ -966,7 +966,7 @@ string: context [
 	][
 		t: type/value
 		blk: as red-block! type
-		#call [transcode spec none]
+		#call [system/lexer/transcode spec none]
 
 		either zero? block/rs-length? blk [
 			ret: as red-value! blk

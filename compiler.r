@@ -2246,7 +2246,7 @@ red: context [
 		
 		process-calls body								;-- process #call directives
 		if ctx: find-binding original [
-			process-routine-calls body ctx/1 spec first back find objects ctx/1
+			process-routine-calls body ctx/1 spec select objects ctx/1
 		]
 		clear find spec*: copy spec /local
 		spec-blk: redirect-to literals [emit-block spec*]

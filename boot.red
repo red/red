@@ -16,6 +16,6 @@ Red [
 #include %environment/routines.red
 #include %environment/operators.red
 #include %environment/scalars.red
-#include %environment/lexer.red
 #include %environment/system.red
+#include %environment/lexer.red
 #include %environment/functions.red
