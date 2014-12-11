@@ -185,11 +185,26 @@ red: context [
 		]
 	]
 	
+	process-routine-calls: func [code [block!] ctx [word!] ignore [block!] obj [object!] /local rule name][
+		parse code rule: [
+			some [
+				name: word! (
+					if all [in obj name/1 not find ignore name/1][
+						name/1: decorate-obj-member name/1 ctx
+					]
+				)
+				| path! | set-path! | lit-path!
+				| into rule
+				| skip
+			]
+		]
+	]
+	
 	preprocess-strings: func [code [block!] /local rule s][  ;-- re-encode strings for Red/System
 		parse code rule: [
 			any [
 				s: string! (lexer/decode-UTF8-string s/1)
-				into rule
+				| into rule
 				| skip
 			]
 		]
@@ -2217,8 +2232,8 @@ red: context [
 		comp-func/has
 	]
 	
-	comp-routine: has [name word spec spec* body spec-blk body-blk original][
-		name: check-func-name to word! original: pc/-1
+	comp-routine: has [name word spec spec* body spec-blk body-blk original ctx][
+		name: get-prefix-func check-func-name to word! original: pc/-1
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
 		
@@ -2230,7 +2245,9 @@ red: context [
 		add-function/type name spec 'routine!
 		
 		process-calls body								;-- process #call directives
-		
+		if ctx: find-binding original [
+			process-routine-calls body ctx/1 spec first back find objects ctx/1
+		]
 		clear find spec*: copy spec /local
 		spec-blk: redirect-to literals [emit-block spec*]
 		body-blk: either job/red-store-bodies? [
@@ -3077,8 +3094,17 @@ red: context [
 		false											;-- not an infix expression
 	]
 	
-	process-call-directive: func [body [block!] global? /local name spec cmd types type arg][
-		name: to word! clean-lf-flag body/1
+	process-call-directive: func [
+		body [block!] global?
+		/local name spec cmd types type arg trash ctx
+	][
+		name: body/1
+		switch/default type?/word name [
+			word! [name: to word! clean-lf-flag name]
+			path! [set [trash name ctx] obj-func-path? body/1]
+		][
+			throw-error ["invalid function name in #call:" mold body]
+		]	
 		if any [
 			not spec: select functions name
 			not spec/1 = 'function!
@@ -3156,7 +3182,7 @@ red: context [
 		name: decorate-func name						;-- function call
 		if global? [name: decorate-exec-ctx name]
 		emit name
-		insert-lf -1
+		insert-lf either ctx [emit decorate-exec-ctx ctx -2][-1]
 		
 		either global? [
 			emit 'red/stack/unwind-last
