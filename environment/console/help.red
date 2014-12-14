@@ -10,10 +10,23 @@ Red [
 	}
 ]
 
+pad: func [
+	"Align a string to a given size prepending whitespaces"
+	str [string!]		"String to pad"
+	n	[integer!]		"Size (in characters) to align to"
+	/left				"Align the string to the left side"
+	return: [string!]	"Modified input string at head"
+][
+	head insert/dup
+		any [all [left str] tail str]
+		#" "
+		(n - length? str)
+]
+
 help: func [
 	"Get help for functions"
 	'word [any-type!] "Word you are looking for"
-	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block w1 w2
+	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block w1 w2 value
 ][
 	tab: tab4: "    "
 	tab8: "        "
@@ -142,10 +155,46 @@ Other useful functions:
 					]
 				]
 			][
-				print [
-					func-name "is of type" 
-					mold type? either word? :func-name [:fun][:func-name]
-					"^/No more help available."
+				either all [
+					any [word? word path? word]
+					object? get word
+				][
+					prin #"`"
+					prin form word
+					print "` refers to an object of value:"
+					
+					foreach w words-of get word [
+						value: get/any in get word w
+						
+						desc: case [
+							object? :value  [words-of value]
+							find [op! action! native! function! routine!] type?/word :value [
+								spec: spec-of :value
+								if string? spec/1 [spec: spec/1]
+								spec
+							]
+							'else [:value]
+						]
+						
+						desc: either string? desc [copy/part desc 47][mold/part/flat desc 47]
+						
+						if 47 = length? desc [			;-- optimized for width = 78
+							clear skip tail desc -3
+							append desc "..."
+						]
+						print [
+							tab
+							pad form/part w 16 16
+							pad mold type? get/any w 9
+							desc
+						]
+					]
+				][
+					print [
+						func-name "is of type" 
+						mold type? either word? :func-name [:fun][:func-name]
+						"^/No more help available."
+					]
 				]
 			]
 		]
