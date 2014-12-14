@@ -3269,7 +3269,12 @@ red: context [
 				true
 			]
 			#version [
-				change pc rejoin [load-cache %version.r ", " now]
+				change pc form load-cache %version.r
+				comp-expression
+				true
+			]
+			#build-date [
+				change pc mold now
 				comp-expression
 				true
 			]
