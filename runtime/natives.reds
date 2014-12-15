@@ -382,8 +382,24 @@ natives: context [
 	
 	get*: func [
 		any? [integer!]
+		/local
+			value [red-value!]
+			type  [integer!]
 	][
-		stack/set-last _context/get as red-word! stack/arguments
+		value: stack/arguments
+		type: TYPE_OF(value)
+		
+		switch type [
+			TYPE_PATH
+			TYPE_GET_PATH
+			TYPE_SET_PATH
+			TYPE_LIT_PATH [
+				interpreter/eval-path value null null no yes no
+			]
+			default [
+				stack/set-last _context/get as red-word! stack/arguments
+			]
+		]
 	]
 	
 	set*: func [
