@@ -254,6 +254,19 @@ load: function [
 	out 
 ]
 
+pad: func [
+	"Align a string to a given size prepending whitespaces"
+	str [string!]		"String to pad"
+	n	[integer!]		"Size (in characters) to align to"
+	/left				"Align the string to the left side"
+	return: [string!]	"Modified input string at head"
+][
+	head insert/dup
+		any [all [left str] tail str]
+		#" "
+		(n - length? str)
+]
+
 
 ;------------------------------------------
 ;-				Aliases					  -
