@@ -71,7 +71,7 @@ object: context [
 		s:		as series! ctx/symbols/value
 		word:	as red-word! s/offset
 		tail:	as red-word! s/tail
-		on-set:	words/_on-word-set*/symbol
+		on-set:	words/_on-change*/symbol
 		index:	-1
 		
 		while [all [index < 0 word < tail]][
@@ -133,7 +133,7 @@ object: context [
 		fun: as red-function! s/offset + index
 		assert TYPE_OF(fun) = TYPE_FUNCTION
 		
-		stack/mark-func words/_on-word-set*
+		stack/mark-func words/_on-change*
 		stack/push as red-value! word
 		stack/push old
 		stack/push new

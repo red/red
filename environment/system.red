@@ -85,7 +85,7 @@ system: context [
 			pretty?: false
 			full?: 	 false
 			
-			on-word-set*: func [word old new /local c][
+			on-change*: func [word old new][
 				switch word [
 					pretty? [
 						either new [

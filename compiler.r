@@ -1712,10 +1712,10 @@ red: context [
 		defer: reduce ['object/init-push ctx id]		;-- deferred emission
 		new-line defer yes
 		
-		if any [path pos: find spec 'on-word-set*][
+		if any [path pos: find spec 'on-change*][
 			if pos [
 				pos: (index? pos) - 1					;-- 0-based contexts arrays
-				entry: find functions decorate-obj-member 'on-word-set* ctx
+				entry: find functions decorate-obj-member 'on-change* ctx
 				unless zero? locals: second check-spec entry/2/3 [
 					locals: locals + 1					;-- account for /local
 				]

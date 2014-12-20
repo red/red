@@ -152,7 +152,7 @@ words: context [
 	_end:			as red-word! 0
 	
 	_on-parse-event: as red-word! 0
-	_on-word-set*:	 as red-word! 0
+	_on-change*:	 as red-word! 0
 
 	build: does [
 		spec:			symbol/make "spec"
@@ -229,7 +229,7 @@ words: context [
 		_end:			_context/add-global end
 		
 		_on-parse-event: word/load "on-parse-event"
-		_on-word-set*:	 word/load "on-word-set*"
+		_on-change*:	 word/load "on-word-set*"
 	]
 ]
 
