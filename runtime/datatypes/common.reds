@@ -229,7 +229,7 @@ words: context [
 		_end:			_context/add-global end
 		
 		_on-parse-event: word/load "on-parse-event"
-		_on-change*:	 word/load "on-word-set*"
+		_on-change*:	 word/load "on-change*"
 	]
 ]
 
