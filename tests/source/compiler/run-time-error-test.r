@@ -39,8 +39,5 @@ REBOL [
     --test-- "rte-8"
     	--compile-and-run-this/error {Red[] do [#"^^(010FFF)" * #"^^(11)" ]}
     	--assert-red-printed? "*** Math Error: char overflow"
-    
-    
-    
   
 ~~~end-file~~~ 
