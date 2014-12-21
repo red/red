@@ -396,6 +396,9 @@ natives: context [
 			TYPE_LIT_PATH [
 				interpreter/eval-path value null null no yes no
 			]
+			TYPE_OBJECT [
+				object/reflect as red-object! value words/values
+			]
 			default [
 				stack/set-last _context/get as red-word! stack/arguments
 			]
