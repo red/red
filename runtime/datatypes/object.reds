@@ -61,22 +61,24 @@ object: context [
 		ctx		[red-context!]
 		return: [node!]
 		/local
-			word   [red-word!]
+			head   [red-word!]
 			tail   [red-word!]
+			word   [red-word!]
 			fun	   [red-function!]
 			s	   [series!]
 			on-set [integer!]
 			index  [integer!]
 	][
 		s:		as series! ctx/symbols/value
-		word:	as red-word! s/offset
+		head:	as red-word! s/offset
 		tail:	as red-word! s/tail
+		word:	head
 		on-set:	words/_on-change*/symbol
 		index:	-1
 		
 		while [all [index < 0 word < tail]][
 			if on-set = symbol/resolve word/symbol [
-				index: (as-integer tail - word) >> 4 + 1  ;-- index is 1-based
+				index: (as-integer word - head) >> 4
 			]
 			word: word + 1
 		]

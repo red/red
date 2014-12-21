@@ -1649,7 +1649,7 @@ red: context [
 			ctx											;-- object's context name
 			id: get-counter								;-- unique object ID
 			proto										;-- optional prototype object
-			none										;-- [index locals] for on-word-set
+			none										;-- [index locals] for on-change*
 		]
 		on-set-info: back tail objects
 		
