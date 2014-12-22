@@ -211,6 +211,12 @@ stack: context [										;-- call stack
 		copy-cell last as red-value! ctop/2
 	]
 	
+	adjust: does [
+		top: top - 1
+		copy-cell top top - 1
+		check-call
+	]
+	
 	eval?: func [
 		return: [logic!]
 		/local

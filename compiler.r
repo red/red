@@ -1293,15 +1293,11 @@ red: context [
 			emit compose/deep [[stack/push-call (pname) (idx) 0 (octx)]]
 
 			either tail? next path [
-				emit compose/deep [[
-					stack/top: stack/top - 1
-					copy-cell stack/top stack/top - 1
-					stack/check-call
-				]]
+				emit [[stack/adjust]]
 			][
 				mark: tail output
 				unless head? path [
-					emit compose/deep [
+					emit [
 						stack/top: stack/top - 1
 						copy-cell stack/top stack/top - 1
 					]
