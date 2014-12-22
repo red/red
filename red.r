@@ -164,11 +164,15 @@ redc: context [
 	run-console: func [/with file [string!] /local opts result script bin exe console][
 		script: temp-dir/red-console.red
 		exe:	temp-dir/console
-		bin:	join system/options/home system/options/boot
 		
+		bin: either slash = first system/options/boot [
+			system/options/boot
+		][
+			join system/options/home system/options/boot
+		]
 		if Windows? [
 			append exe %.exe
-			append bin %.exe
+			if %.exe <> suffix? bin [append bin %.exe]
 		]
 		
 		unless exists? temp-dir [make-dir temp-dir]
