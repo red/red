@@ -90,8 +90,8 @@ context [
 	WINUSB_PIPE_INFORMATION: make struct! pipe-info-struct: [		;-- 12 Bytes
 		pipeType	[integer!]
 		pipeID		[char!]
-		maxPackSize [integer!]
-	;	interval	[char!]
+		maxPackSize [short]
+		interval	[integer!]
 	] none
 
 	WinUsb_Initialize: make routine! [
@@ -245,20 +245,8 @@ context [
 		to-integer #{6BDDD073}
 	]
 
-	usb-info!: make object! [
-		device-set: 0
-		device:		0					;-- device handle
-		interface:	0					;-- interface handle
-		read-id:	null				;-- read pipe id
-		write-id:	null				;-- write pipe id
-		local-id:	1
-		remote-id:	0
-		zero-mask:  0
-	]
-
 	set-timeout: func [usb seconds /local time][
-		time: make-lpDWORD
-		time/int: seconds * 1000
+		time: make-int-ptr seconds * 1000
 		WinUsb_SetPipePolicy usb/interface usb/read-id PIPE_TRANSFER_TIMEOUT 4 time
 		WinUsb_SetPipePolicy usb/interface usb/write-id PIPE_TRANSFER_TIMEOUT 4 time
 	]
@@ -275,13 +263,13 @@ context [
 			print "**ADB**: Error: Can not get device information set" return
 		]
 		interface-data: make struct! SP_DEVICE_INTERFACE_DATA none
-		interface-data/cbSize: length? third SP_DEVICE_INTERFACE_DATA
+		interface-data/cbSize: length? form-struct SP_DEVICE_INTERFACE_DATA
 		if zero? SetupDiEnumDeviceInterfaces dev-info 0 ANDROID_USB_CLASS_ID 0 interface-data [
 			print get-error-msg
 			print "**ADB**: Error: No android devices"
 			SetupDiDestroyDeviceInfoList dev-info return
 		]
-		required-size: make-lpDWORD
+		required-size: make-int-ptr 0
 		buffer: make-null-string 500					;-- big enough
 		buffer/1: to-char 5								;-- sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA)
 		SetupDiGetDeviceInterfaceDetail dev-info interface-data buffer 500 required-size 0
@@ -298,7 +286,7 @@ context [
 		]
 
 		;;-- get interface handle
-		interface-handle: make-lpDWORD
+		interface-handle: make-int-ptr 0
 		if zero? WinUsb_Initialize dev-handle interface-handle [
 			print get-error-msg
 			print "**ADB**: Error: Can not initialize interface"
@@ -323,7 +311,7 @@ context [
 			if pipe-info/pipeType = UsbdPipeTypeBulk [
 				either zero? (pipe-info/pipeID and USB_ENDPOINT_DIRECTION_MASK) [
 					pipe-write: pipe-info/pipeID
-					max-packet-size: to-integer reverse copy/part skip third pipe-info 6 2
+					max-packet-size: pipe-info/maxPackSize
 				][
 					pipe-read: pipe-info/pipeID
 				]
@@ -349,7 +337,7 @@ context [
 		unless zero? usb/device-set [SetupDiDestroyDeviceInfoList usb/device-set]
 	]
 
-	usb-pipe: func [
+	pipe: func [
 		usb		[object!]
 		data	[string! binary!]
 		/write /read
@@ -360,7 +348,7 @@ context [
 		ovlap: make struct! OVERLAPPED_STRUCT none
 		ovlap/hEvent: CreateEvent 0 1 0 0
 		data-len: length? data
-		transferred: make-lpDWORD
+		transferred: make-int-ptr 0
 
 		either write [
 			WinUsb_WritePipe interface usb/write-id data data-len transferred ovlap
@@ -369,7 +357,7 @@ context [
 				not empty? data
 				zero? (usb/zero-mask and data-len)
 			][
-				usb-pipe/write usb ""
+				pipe/write usb ""
 			]
 		][
 			WinUsb_ReadPipe interface usb/read-id data data-len transferred ovlap
@@ -383,79 +371,5 @@ context [
 			]
 		]
 		unless zero? ovlap/hEvent [CloseHandle ovlap/hEvent]
-	]
-
-	receive-message: func [
-		usb			[object!]
-		cmd			[string!]
-		/local buffer recv-cmd data
-	][
-		until [
-			buffer: make-null-string PACKET_SIZE
-			usb-pipe/read usb buffer
-			buffer: trim buffer
-			if empty? buffer [return buffer]
-			recv-cmd: copy/part buffer 4
-			any [cmd = "ALL" cmd = recv-cmd]
-		]
-		switch cmd [
-			"ALL"  [buffer]
-			"OKAY" [
-				usb/remote-id: to-integer reverse to-binary copy/part skip buffer 4 4
-			]
-			"CNXN" [
-				buffer: receive-message usb "ALL"
-			]
-			"WRTE" [
-				data: receive-message usb "ALL"
-				if "FAIL" = copy/part data 4 [
-					close-device usb
-					print ["**ADB**: Error:" data]
-					halt
-				]
-				send-message usb A_OKAY ""
-			]
-			"CLSE" [
-				send-message usb A_CLSE ""
-			]
-		]
-		buffer
-	]
-
-	send-message: func [
-		usb			[object!]
-		cmd			[integer!]
-		data		[string! binary!]
-		/local len sum msg magic
-	][
-		if binary? data [data: to-string data]
-		magic: cmd xor -1
-		len: length? data
-		sum: 0
-		foreach c data [sum: sum + (to-integer c)]
-		case [
-			cmd = A_CNXN [
-				msg: [cmd A_VERSION MAX_PAYLOAD len sum magic]
-			]
-			cmd = A_OPEN [
-				msg: [cmd usb/local-id 0 len sum magic]
-			]
-			cmd = A_CLSE [
-				msg: [cmd 0 usb/remote-id len sum magic]
-			]
-			any [cmd = A_WRTE cmd = A_OKAY] [
-				msg: [cmd usb/local-id usb/remote-id len sum magic]
-			]
-		]
-		usb-pipe/write usb third make struct! message reduce msg
-		unless empty? data [usb-pipe/write usb data]
-		if cmd = A_WRTE [
-			if empty? receive-message device "OKAY" [
-				print "**ADB**: Error: Send message failed"
-				print ["message: " data]
-				close-device usb
-				halt
-			]
-		]
 	]
 ]
