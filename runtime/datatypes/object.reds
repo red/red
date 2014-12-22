@@ -241,6 +241,10 @@ object: context [
 			part: part - 2
 			
 			if TYPE_OF(value) = TYPE_VALUE [value/header: TYPE_UNSET] ;-- force uninitialized slot to UNSET
+			if TYPE_OF(value) = TYPE_WORD [
+				string/append-char GET_BUFFER(buffer) as-integer #"'" ;-- create a literal word
+				part: part - 1
+			]
 			part: actions/mold value buffer only? all? flat? arg part tabs
 			
 			if any [indent? sym + 1 < s-tail][			;-- no final LF when FORMed
