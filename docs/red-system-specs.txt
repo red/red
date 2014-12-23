@@ -128,7 +128,7 @@ Variables can hold any value of the available datatypes. This can be the real va
  bar: "hello"
 
 \note Multiple assignments
-Multiple assignments, like a: b: 123, are not currently supported in Red/System. Such feature will be added in the future at some point, probably on the rewrite of Red/System in Red.
+Multiple assignments, like a: b: 123, are not currently supported in Red/System. Such a feature will be added in the future at some point, probably on the rewrite of Red/System in Red.
 
 /note
 
@@ -280,7 +280,7 @@ Examples:
  -1E3
  +1.23456E-265
  
-A maximum of 16 digits are accepted for literal float! values, if more are specified, they will be dropped.
+A maximum of 16 digits are accepted for literal float! values. If more are specified, they will be dropped.
  
 <i>For more information on double precision floating point numbers, see <a href="http://en.wikipedia.org/wiki/Double-precision_floating-point_format">Wikipedia</a></i>.
 
@@ -304,7 +304,7 @@ The modulo (//) and remainder (%) operators give the same results when used on f
 
 ---Float32!
 
-The float32! datatype represents an IEEE-754 single precision floating point number. Float! memory size is 32-bit.
+The float32! datatype represents an IEEE-754 single precision floating point number. Float32! memory size is 32-bit.
 
 \note Float32! purpose
 The reason for having a single precision floating point type is for making the interfacing with popular libraries straightforward. For pure Red/System programs, <b>float!</b> should be the default choice.
@@ -313,7 +313,7 @@ The reason for having a single precision floating point type is for making the i
 
 +++Syntax
 
-There is no literal form for float32! datatype values. To load a float32! constant, the method consist in providing a float! literal and prefix it with a type casting to float32!.
+There is no literal form for float32! datatype values. To load a float32! constant, the method consists of providing a float! literal and prefixing it with a type casting to float32!.
 
 Example:
 
@@ -387,7 +387,7 @@ Literal c-strings are defined using double quotes delimiters or a pair of matchi
  }
 
 \note C-string null byte ending
-You don't have to add a null byte to literal c-strings, it is added automatically during compilation.
+You don't have to add a null byte to literal c-strings. It is added automatically during compilation.
 
 /note
 
@@ -416,7 +416,7 @@ Syntax
 
 Example
 
- s: "hello"								;-- let's suppose s points to address 4000000h
+ s: "hello"								;-- let's suppose s points to address 40000000h
 
  s: s + 1								;-- now s points to address 40000001h
  print s                				;-- "ello" would be printed
@@ -446,9 +446,9 @@ Examples:
  
 \note Important notes
 
-*In contrary to the C language, indexes in Red/System are <b>one-based</b>.
+*In contrast to the C language, indexes in Red/System are <b>one-based</b>.
 
-*The behaviour of path with an index out of bounds is not yet defined. (It is better to avoid it)
+*The behaviour of path with an index out of bounds is not yet defined. It is better to avoid it.
 
 /note
 
@@ -550,7 +550,7 @@ From last example, that would give:
  
 +++Struct arithmetic
 
-It is possible to apply some simple math operations on struct variables like additions and subtractions. Struct address would be increased or decreased by the size of the pointed struct value multiplied by the integer argument.
+It is possible to apply some simple math operations on struct variables, like additions and subtractions. Struct address would be increased or decreased by the size of the pointed struct value multiplied by the integer argument.
 
 Syntax
 
@@ -562,7 +562,7 @@ Syntax
 
 Examples
 
- p: declare struct! [					;-- let suppose p = 4000000h
+ p: declare struct! [					;-- let suppose p = 40000000h
 	a [integer!]
 	b [pointer! [integer!]]
  ]										;-- struct memory size would be 8 bytes
@@ -622,7 +622,7 @@ Struct usage example:
 
 ---Pointer!
 
-Pointer datatype purpose is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, the only pointed datatypes allowed are integer!, float!, float32! and byte! (logic! pointer is not needed). 
+The purpose of the pointer datatype is to hold the memory address of another value. A pointer value is defined by the pointed value address and datatype. As c-string! and struct! are already implicit pointers, the only pointed datatypes allowed are integer!, float!, float32! and byte! (logic! pointer is not needed). 
 
 Byte! pointers are equivalent to c-string! references, the difference lies only in the interpretation of the pointed values. Byte! pointer is meant to point to a stream of byte without a specified bound, while c-string! references an array of bytes terminated by a null byte.
 
@@ -703,7 +703,7 @@ Example of inferred pointer variable type:
 
 +++Dereferencing
 
-Dereferencing a pointer is the operation allowing to access the pointed value. In Red/System, it is achieved by adding a <b>/value</b> refinement to the pointer variable (called more generally "path notation"):
+Dereferencing a pointer is the operation allowing access to the pointed value. In Red/System, it is achieved by adding a <b>/value</b> refinement to the pointer variable (called more generally "path notation"):
 
  <pointer>/value						;-- read access
  <pointer>/value: <value>				;-- write access
@@ -725,17 +725,17 @@ Usage example
 
 +++Pointer arithmetic
 
-It is possible to apply some simple math operations on pointers like additions and subtractions (as in C). A pointer address will be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
+It is possible to apply some simple math operations on pointers, like additions and subtractions (as in C). A pointer address will be increased or decreased by the memory size of the pointed value multiplied by the amount to respectively add or subtract.
 
  p: declare pointer! [integer!]			;-- pointed value memory size is 4 bytes
 
- p: as [pointer! [integer!]] 4000000h
+ p: as [pointer! [integer!]] 40000000h
  p: p + 1								;-- p points now to 40000004h
  p: p + 1								;-- p points now to 40000008h
  
  q: declare pointer! [byte!]			;-- pointed value memory size is 1 byte
  
- q: as [pointer! [byte!]] 4000000h
+ q: as [pointer! [byte!]] 40000000h
  q: q + 1								;-- p points now to 40000001h
  q: q + 1								;-- p points now to 40000002h
  
@@ -761,7 +761,7 @@ Examples:
 
  p: declare pointer! [integer!]
 
- p: as [pointer! [integer!]] 4000000h
+ p: as [pointer! [integer!]] 40000000h
  a: p/1									;-- reads an integer! from 40000000h
  p/2: a									;-- writes the integer! to 40000004h
  
@@ -769,7 +769,7 @@ Integer variable can also be used as index:
 
  p: declare pointer! [integer!]
 
- p: as [pointer! [integer!]] 4000000h
+ p: as [pointer! [integer!]] 40000000h
  c: 2
  p/c: 1234								;-- writes 1234 (4 bytes) at 40000004h
  
@@ -1209,6 +1209,13 @@ The specification block is a Red/System dialect (DSL), so the words inside such 
  
 Doc-strings are just optional documentation that can be processed by any external tool, they have no runtime effect.
 
+\note Func vs Function
+
+Currently, <b>function</b> is a synonym for <b>func</b> in Red/System. In future, however, the behaviour of <b>function</b> in Red/System may be changed to match the behaviour of <b>function</b> in Red (i.e. all set-words are assumed locals).
+Until this change has been decided, it may be wise to use the <b>func</b> keyword instead of <b>function</b> in Red/System code, particularly in cases where its use would be affected by such a change.
+
+/note
+
 <b>Examples</b>
 
  hello: func [][print "hello"]			;-- no arguments, no locals, no return value
@@ -1234,7 +1241,7 @@ Doc-strings are just optional documentation that can be processed by any externa
  
 \note Arguments passing
 
-In current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference.
+In the current implementation, pointer!, integer!, byte!, float!, float32! and logic! arguments are passed by value, while c-string! and struct! arguments are passed by reference.
 
 /note
 
@@ -1513,7 +1520,7 @@ It is also possible to pipe several function calls together:
  
 ---Function pointer
 
-It is possible to obtain a function address to pass it, for example, as argument to external calls with callbacks.
+It is possible to obtain a function address to pass it, for example, as an argument to external calls with callbacks.
 
 <b>Syntax</b>
 
@@ -1528,7 +1535,7 @@ Example:
  get-file "bigfile.avi" :progress		;-- blocking job would call 'progress
                                         ;-- periodically
 
-A function pointer can be assigned to a variable for later use or dereferencing. Such variable cannot be passed as argument to other functions, nor returned by a function. Function pointer pseudo-type is not a first class datatype.
+A function pointer can be assigned to a variable for later use or dereferencing. Such a variable cannot be passed as an argument to other functions, nor returned by a function. Function pointer pseudo-type is not a first class datatype.
 
 <u>Note</u>: Function address is returned as a function pointer pseudo-type, so it cannot be used as-is in expressions, but it can be safely casted to an integer! if required.
 
@@ -1577,7 +1584,7 @@ Alternatively, you can dereference a function! pointer stored as a struct member
 
 ---Premature exiting
 
-Exiting at function's end is not always desirable. Sometimes, conditional premature exiting from the function is required. This can be done using EXIT or RETURN special keywords.
+Exiting at a function's end is not always desirable. Sometimes, conditional premature exiting from the function is required. This can be done using EXIT or RETURN special keywords.
 
 +++Exit
 
@@ -1713,7 +1720,7 @@ Example:
 
 ---Functions Contexts
 
-Each defined function has its own local context. Variables declared in function's definition block are locally scoped and can't be accessed outside of the function's body. On the other hand, global variable can be referenced and modified from functions. If a local variable has the same name as a global one, the local one will take precedence in function's body. The value of the homonym global variable won't be affected by local redefinitions in functions contexts.
+Each defined function has its own local context. Variables declared in a function's definition block are locally scoped and can't be accessed outside of the function's body. On the other hand, global variable can be referenced and modified from functions. If a local variable has the same name as a global one, the local one will take precedence in function's body. The value of the homonym global variable won't be affected by local redefinitions in functions contexts.
 
 Example:
 
@@ -2004,13 +2011,13 @@ where
 
 *= and <> can also be used to compare logic! values.
 
-*For c-string!, pointer! and struct! comparisons are done on references, not on the value pointed at.
+*For c-string!, pointer! and struct!, comparisons are done on references, not on the value pointed at.
 
 ===Control flow functions
 
 ---if
 
-Execute a block of code if a given condition is true. IF does not return any value, so cannot be used in an expression.
+Execute a block of code if a given condition is true. IF does not return any value, so it cannot be used in an expression.
 
 <b>Syntax</b>
 
@@ -2064,7 +2071,7 @@ An alternative way to write it (allowed because all code paths return a value of
 
 ---until
 
-Loop over a block of code until the condition at end of block, is met. UNTIL does not return any value, so cannot be used in an expression.
+Loop over a block of code until the condition at the end of the block, is met. UNTIL does not return any value, so it cannot be used in an expression.
 
 <b>Syntax</b>
 
@@ -2073,10 +2080,10 @@ Loop over a block of code until the condition at end of block, is met. UNTIL doe
  	<condition>
  ]
 
- <code>		 : code to execute while the condition is met
+ <code>		 : code to execute while the condition is not met
  <condition> : a conditional expression
 
-<u>Note</u>: The loop will always be executed at least once, even if the condition is not met from the beginning.
+<u>Note</u>: The loop will always be executed at least once, even if the condition is met from the beginning.
 
 <b>Example</b>
 
@@ -2092,7 +2099,7 @@ will output:
 
 ---while
 
-While a given condition is met, execute a block of code. WHILE does not return any value, so cannot be used in an expression.
+While a given condition is met, execute a block of code. WHILE does not return any value, so it cannot be used in an expression.
 
 <b>Syntax</b>
 
@@ -3223,7 +3230,7 @@ Once the Red function returns, the normal execution of Red/System code continues
 
  Red []
 
- inc: func [n][n + 1]
+ inc: func [n [integer!]][n + 1]
 
  #system [
  	#call [inc 123]
@@ -3244,7 +3251,7 @@ The <b>#call</b> directive needs to be processed by the Red compiler, so it cann
 
 ---#export
 
-When generating shared library, the Red/System toolchain needs to know which identifiers will be exposed to third-party users of the library. This is achieved using the <b>#export</b> compiler directive.
+When generating a shared library, the Red/System toolchain needs to know which identifiers will be exposed to third-party users of the library. This is achieved using the <b>#export</b> compiler directive.
 
 <b>Syntax</b>
 
@@ -3354,7 +3361,7 @@ can be processed without issues.
 
 You can use global code in your shared library program, but this is not recommended, as it might be unsupported in the future. All your code should be in functions.
 
-<u>Note</u>: All shared library programs needs to export at least one symbol using the <b>#export</b> directive or a compilation error will occur.
+<u>Note</u>: All shared library programs need to export at least one symbol using the <b>#export</b> directive or a compilation error will occur.
 
 A shared library might implement one or several of the callbacks below:
 
@@ -3514,6 +3521,8 @@ will output:
 *<strike>Infer functions return value datatype</strike>
 
 *Accept an integer parameter for [catch] attribute to set manually the catching level (to avoid manual exception re-throwing).
+
+*Distinguish the behaviour of <b>function</b> from <b>func</b> to assume all set-words are locals (as in Red).
  
 ---New datatypes
 
@@ -3563,6 +3572,14 @@ will output:
 
 
 ===Document History
+
+*<b>13/10/2014 - revision 43</b>
+
+*>Added notes about the possible future distinction between <b>function</b> and <b>func</b>. 
+
+*>Fixed 2 misleading statements about whether or not the condition is met in <b>until</b>.
+
+*>Minor grammar cleanups.
 
 *<b>29/07/2014 - revision 42</b>
 

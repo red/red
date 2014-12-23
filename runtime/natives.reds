@@ -253,6 +253,7 @@ natives: context [
 			as red-block! stack/arguments + 1
 			null
 			0
+			null
 		stack/set-last stack/top - 1
 	]
 	
@@ -365,14 +366,13 @@ natives: context [
 				interpreter/eval as red-block! arg yes
 			]
 			TYPE_PATH [
-				interpreter/eval-path arg arg arg + 1 no
+				interpreter/eval-path arg arg arg + 1 no no no
 				stack/set-last arg + 1
 			]
 			TYPE_STRING [
 				str: as red-string! arg
-				#call [transcode str none]
+				#call [system/lexer/transcode str none]
 				interpreter/eval as red-block! arg yes
-
 			]
 			default [
 				interpreter/eval-expression arg arg + 1 no no
@@ -382,8 +382,27 @@ natives: context [
 	
 	get*: func [
 		any? [integer!]
+		/local
+			value [red-value!]
+			type  [integer!]
 	][
-		stack/set-last _context/get as red-word! stack/arguments
+		value: stack/arguments
+		type: TYPE_OF(value)
+		
+		switch type [
+			TYPE_PATH
+			TYPE_GET_PATH
+			TYPE_SET_PATH
+			TYPE_LIT_PATH [
+				interpreter/eval-path value null null no yes no
+			]
+			TYPE_OBJECT [
+				object/reflect as red-object! value words/values
+			]
+			default [
+				stack/set-last _context/get as red-word! stack/arguments
+			]
+		]
 	]
 	
 	set*: func [
@@ -396,12 +415,19 @@ natives: context [
 		w: as red-word! stack/arguments
 		value: stack/arguments + 1
 		
-		either TYPE_OF(w) = TYPE_BLOCK [
-			blk: as red-block! w
-			set-many blk value block/rs-length? blk
-			stack/set-last value
-		][
-			stack/set-last _context/set w value
+		switch TYPE_OF(w) [
+			TYPE_OBJECT [
+				set-obj-many as red-object! w value
+				stack/set-last value
+			]
+			TYPE_BLOCK [
+				blk: as red-block! w
+				set-many blk value block/rs-length? blk
+				stack/set-last value
+			]
+			default [
+				stack/set-last _context/set w value
+			]
 		]
 	]
 
@@ -422,28 +448,21 @@ natives: context [
 		#if debug? = yes [if verbose > 0 [print-line "native/prin"]]
 		
 		arg: stack/arguments
-		
-		either any [
-			TYPE_OF(arg) = TYPE_STRING 						;@@ replace by ANY_STRING?
-			TYPE_OF(arg) = TYPE_FILE
-		][
-			str: as red-string! arg
-		][
+
+		if TYPE_OF(arg) = TYPE_BLOCK [
 			block/rs-clear buffer-blk
 			stack/push as red-value! buffer-blk
 			assert stack/top - 2 = stack/arguments			;-- check for correct stack layout
-			
-			if TYPE_OF(arg) = TYPE_BLOCK [
-				reduce* 1
-				blk: as red-block! arg
-				blk/head: 0									;-- head changed by reduce/into
-			]
-			actions/form* -1
-			str: as red-string! stack/arguments + 1
-			assert any [
-				TYPE_OF(str) = TYPE_STRING
-				TYPE_OF(str) = TYPE_SYMBOL					;-- symbol! and string! structs are overlapping
-			]
+			reduce* 1
+			blk: as red-block! arg
+			blk/head: 0										;-- head changed by reduce/into
+		]
+
+		actions/form* -1
+		str: as red-string! stack/arguments
+		assert any [
+			TYPE_OF(str) = TYPE_STRING
+			TYPE_OF(str) = TYPE_SYMBOL						;-- symbol! and string! structs are overlapping
 		]
 		series: GET_BUFFER(str)
 		offset: (as byte-ptr! series/offset) + (str/head << (GET_UNIT(series) >> 1))
@@ -539,7 +558,6 @@ natives: context [
 			case [
 				any [
 					type = TYPE_DATATYPE
-					type = TYPE_OBJECT
 					type = TYPE_LOGIC
 				][
 					res: arg1/data1 = arg2/data1
@@ -553,6 +571,7 @@ natives: context [
 				]
 				any [
 					type = TYPE_BINARY
+					type = TYPE_OBJECT
 					ANY_SERIES?(type)
 				][
 					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
@@ -805,12 +824,13 @@ natives: context [
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			either negative? copy [
-				_context/bind as red-block! value TO_CTX(ctx) no
+				_context/bind as red-block! value TO_CTX(ctx) null no
 			][
 				stack/set-last 
 					as red-value! _context/bind
 						block/clone as red-block! value yes
 						TO_CTX(ctx)
+						null
 						no
 			]
 		][
@@ -888,6 +908,7 @@ natives: context [
 				logic/box zero? either any [
 					TYPE_OF(input) = TYPE_STRING		;@@ replace with ANY_STRING?
 					TYPE_OF(input) = TYPE_FILE
+					TYPE_OF(input) = TYPE_URL
 				][
 					string/rs-length? as red-string! input
 				][
@@ -1178,6 +1199,32 @@ natives: context [
 		arc-trans radians TANGENT
 	]
 
+	arctangent2*: func [
+		/local
+			f	[red-float!]
+			n	[red-integer!]
+			x	[float!]
+			y	[float!]
+	][
+		f: as red-float! stack/arguments 
+		either TYPE_OF(f) <> TYPE_FLOAT [
+			n: as red-integer! f
+			y: integer/to-float n/value
+		][
+			y: f/value
+		]
+		f: as red-float! stack/arguments + 1
+		either TYPE_OF(f) <> TYPE_FLOAT [
+			n: as red-integer! f
+			x: integer/to-float n/value
+			f/header: TYPE_FLOAT
+		][
+			x: f/value
+		]
+		f/value: atan2 y x
+		stack/set-last as red-value! f
+	]
+
 	NaN?*: func [
 		return:  [red-logic!]
 		/local
@@ -1229,6 +1276,32 @@ natives: context [
 	][
 		f: argument-as-float
 		f/value: sqrt f/value
+	]
+	
+	construct*: func [
+		_with [integer!]
+		only  [integer!]
+		/local
+			proto [red-object!]
+	][
+		proto: either _with >= 0 [as red-object! stack/arguments + 1][null]
+		
+		stack/set-last as red-value! object/construct
+			as red-block! stack/arguments
+			proto
+			only >= 0
+	]
+
+	value?*: func [
+		/local
+			value  [red-value!]
+			result [red-logic!]
+	][
+		value: _context/get as red-word! stack/arguments
+		result: as red-logic! stack/arguments
+		result/value: TYPE_OF(value) <> TYPE_UNSET
+		result/header: TYPE_LOGIC
+		result
 	]
 
 	;--- Natives helper functions ---
@@ -1336,6 +1409,38 @@ natives: context [
 		]
 	]
 	
+	set-obj-many: func [
+		obj	  [red-object!]
+		value [red-value!]
+		/local
+			ctx		[red-context!]
+			blk		[red-block!]
+			values	[red-value!]
+			tail	[red-value!]
+			s		[series!]
+			i		[integer!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/values/value
+		values: s/offset
+		tail: s/tail
+		
+		either TYPE_OF(value) = TYPE_BLOCK [
+			blk: as red-block! value
+			i: 1
+			while [values < tail][
+				copy-cell (block/pick blk i null) values
+				values: values + 1
+				i: i + 1
+			]
+		][
+			while [values < tail][
+				copy-cell value values
+				values: values + 1
+			]
+		]
+	]
+	
 	set-many: func [
 		words [red-block!]
 		value [red-value!]
@@ -1379,6 +1484,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
@@ -1407,6 +1513,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		
@@ -1454,6 +1561,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_LIT_PATH
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
+			TYPE_OF(series) = TYPE_URL
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 
@@ -1547,12 +1655,15 @@ natives: context [
 			:arcsine*
 			:arccosine*
 			:arctangent*
+			:arctangent2*
 			:NaN?*
 			:log-2*
 			:log-10*
 			:log-e*
 			:exp*
 			:square-root*
+			:construct*
+			:value?*
 		]
 	]
 

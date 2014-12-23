@@ -160,9 +160,7 @@ qt-print-totals: func [
 ]
 
 ~~~end-file~~~: func [] [
-  print ""
-  prin "~~~finished test~~~ " 
-  print qt-file-name
+  print ["~~~finished test~~~ " qt-file-name]
   qt-print-totals qt-file-tests qt-file-asserts qt-file-passes qt-file-failures
   print ""
   

@@ -92,16 +92,10 @@ emitter: make-profilable context [
 
 		join: func [a [block!] b [block!] /local bytes][
 			bytes: length? a/1
-			remove-each ptr b/2 [						;-- attempt at fixing R2 memory corruptions
-				any [none? ptr not block? ptr not integer? ptr/1]
-			]
-			foreach ptr b/2 [
-				if all [ptr integer? ptr/1][			;-- workaround past-end blocks
-					ptr/1: ptr/1 + bytes				;-- adjust relocs
-				]
-			]
+
+			foreach ptr b/2 [ptr/1: ptr/1 + bytes]		;-- adjust relocs
 			append a/1 b/1
-			append a/2 b/2		
+			append a/2 b/2
 			a
 		]
 	]
@@ -116,12 +110,8 @@ emitter: make-profilable context [
 	][
 		case [
 			over [
-				size: target/emit-branch chunk/1 cond offset			
-				foreach ptr chunk/2 [
-					if all [ptr integer? ptr/1][		;-- workaround past-end blocks
-						ptr/1: ptr/1 + size				;-- adjust relocs
-					]
-				]
+				size: target/emit-branch chunk/1 cond offset
+				foreach ptr chunk/2 [ptr/1: ptr/1 + size]	;-- adjust relocs
 				size
 			]
 			back [
@@ -137,11 +127,11 @@ emitter: make-profilable context [
 
 	merge: func [chunk [block!]][
 		either empty? chunks/queue [
-			append code-buf chunk/1			
+			append code-buf chunk/1
 		][
 			clear at code-buf chunk/3
 			append code-buf chunk/1						;-- replace obsolete buffer
-			append second last chunks/queue chunk/2		
+			append second last chunks/queue chunk/2
 		]
 	]
 	

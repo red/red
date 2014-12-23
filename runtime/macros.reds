@@ -190,12 +190,15 @@ Red/System [
 	NAT_ARCSINE
 	NAT_ARCCOSINE
 	NAT_ARCTANGENT
+	NAT_ARCTANGENT2
 	NAT_NAN?
 	NAT_LOG_2
 	NAT_LOG_10
 	NAT_LOG_E
 	NAT_EXP
 	NAT_SQUARE_ROOT
+	NAT_CONSTRUCT
+	NAT_VALUE?
 ]
 
 #enum math-op! [
@@ -348,6 +351,6 @@ Red/System [
 ]
 
 #if debug? = yes [
-	#define dump4			[dump-hex4 as int-ptr!]
-	#define dump1			[dump-hex  as byte-ptr!]
+	#define dump4	[dump-hex4 as int-ptr!]
+	#define dump1	[dump-hex  as byte-ptr!]
 ]

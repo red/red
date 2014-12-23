@@ -161,17 +161,25 @@ redc: context [
 		file
 	]
 	
-	run-console: func [/with file [string!] /local opts result script exe console][
+	run-console: func [/with file [string!] /local opts result script bin exe console][
 		script: temp-dir/red-console.red
-		exe: temp-dir/console
+		exe:	temp-dir/console
 		
-		if Windows? [append exe %.exe]
+		bin: either slash = first system/options/boot [
+			system/options/boot
+		][
+			join system/options/home system/options/boot
+		]
+		if Windows? [
+			append exe %.exe
+			if %.exe <> suffix? bin [append bin %.exe]
+		]
 		
 		unless exists? temp-dir [make-dir temp-dir]
 		
 		if any [
 			not exists? exe 
-			(modified? exe) < build-date					;-- check that console is up to date.
+			(modified? exe) < modified? bin				;-- check that console is up to date.
 		][
 			console: %runtime/devices/console/
 			write script read-cache console/console.red
@@ -181,12 +189,13 @@ redc: context [
 			write temp-dir/win32.reds read-cache console/win32.reds
 			write temp-dir/POSIX.reds read-cache console/POSIX.reds
 
-			opts: make system-dialect/options-class [		;-- minimal set of compilation options
+			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
 				unicode?: yes
 				config-name: to word! default-target
 				build-basename: %console
 				build-prefix: temp-dir
+				red-help?: yes							;-- include doc-strings
 			]
 			opts: make opts select load-targets opts/config-name
 
