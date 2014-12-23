@@ -168,7 +168,7 @@ redc: context [
 		bin: either slash = first system/options/boot [
 			system/options/boot
 		][
-			join system/options/home system/options/boot
+			join system/options/path system/options/boot
 		]
 		if Windows? [
 			append exe %.exe
