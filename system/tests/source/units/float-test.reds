@@ -232,7 +232,7 @@ Red/System [
       /local
         a [float!]
     ][
-      a: as float! list/value
+      a: list/value
       a
     ]
     
@@ -245,9 +245,9 @@ Red/System [
         a [float!]
         b [float!]
     ][
-      a: as float! list/value 
+      a: list/value 
       list: list + 1
-      b: as float! list/value
+      b: list/value
       a + b
     ]
   

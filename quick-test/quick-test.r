@@ -284,7 +284,6 @@ qt: make object! [
     /local
     	dll
   ][
-  	  print ["lib-src" lib-src]
     ;; compile the lib into the runnable dir
     if not dll: compile/lib lib-src target [
       compile-error lib-src
@@ -425,8 +424,9 @@ qt: make object! [
   	src [file!]
   ][
     file/reset
-    file/title: find/last/tail to string! src "/"
+    unless file/title: find/last/tail to string! src "/" [file/title: src]
     replace file/title "-test.reds" ""
+    replace file/title "-test.red" ""
     compile-run-print src
     add-to-run-totals
   ]
@@ -501,7 +501,7 @@ qt: make object! [
       ][
     _start test-run "" title
     prin newline
-    write log-file rejoin ["***Starting***" title newline]
+    write log-file rejoin ["***Starting*** " title newline]
   ]
   
   start-file: func [
@@ -618,7 +618,7 @@ qt: make object! [
   
   make-if-needed?: func [
     {This function is used by the Red run-all scripts to build the auto files
-     when necessary. It is not } 
+     when necessary.} 
     auto-test-file [file!]
     make-file [file!]
     /lib-test

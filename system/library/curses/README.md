@@ -10,9 +10,9 @@ Requirements
 
 *   **Linux**
 
-    *libncursesw 5.9* : avaliable with your favorite distro.
+    *libncursesw 5.9* : available with your favorite distro.
 
-    *libpanelw 5.9* : avaliable with your favorite distro.
+    *libpanelw 5.9* : available with your favorite distro.
 
 *   **Windows**
 

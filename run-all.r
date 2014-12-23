@@ -1,34 +1,24 @@
 REBOL [
-  Title:   "Builds and Runs All Red and Red/System Tests"
+	Title:   "Builds and Runs All Red and Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
 	Version: 0.2.1
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
-
-;; function to find and run-tests and to build auto tests if needed
+;; function to find and run-tests
 run-all-script: func [
 	dir [file!]
-	/auto-tests
 ][
-  qt/tests-dir: system/script/path/:dir
-  foreach line read/lines dir/run-all.r [
-  	  either auto-tests [
-  	  	  if any [
-  	  	  	  find line "qt/make-if-needed?"
-  	  	  ][
-  	  	  	  do line
-  	  	  ]
-  	  ][
-  	  	  if any [
-  	  	  	  find line "===start-group"
-  	  	  	  find line "--run-"
-  	  	  ][
-  	  	  	  do line
-  	  	  ]
-  	  ]
-  ]
+	qt/tests-dir: system/script/path/:dir
+  	foreach line read/lines dir/run-all.r [
+  		if any [
+			find line "===start-group"
+  	  		find line "--run-"
+  		][
+  			do line
+  		]
+  	]
 ]
 
 batch-mode: false
@@ -67,9 +57,7 @@ store-quiet-mode: system/options/quiet
 system/options/quiet: true
 store-current-dir: what-dir
 
-change-dir %quick-test/
-
-do %quick-test.r
+do %quick-test/quick-test.r
 if binary? [
 	qt/binary?: binary?
 	if bin-compiler [qt/bin-compiler: bin-compiler]
@@ -82,14 +70,16 @@ print rejoin ["REBOL " system/version]
 start-time: now/precise
 
 ***start-run-quiet*** "Complete Red Test Suite"
-
-run-all-script/auto-tests %../tests/
-run-all-script/auto-tests %../system/tests/
-do %../tests/source/units/make-interpreter-auto-test.r
+qt/tests-dir: clean-path %system/tests/
+do %system/tests/source/units/make-red-system-auto-tests.r
+qt/tests-dir: clean-path %tests/
+do %tests/source/units/make-red-auto-tests.r
+do %tests/source/units/make-interpreter-auto-tests.r
 qt/script-header: "Red []"
-run-all-script %../tests/
+run-all-script %tests/
 qt/script-header: "Red/System []"
-run-all-script %../system/tests/
+qt/tests-dir: clean-path %system/tests/
+run-all-script %system/tests/
 
 ***end-run-quiet***
 

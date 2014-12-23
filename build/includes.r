@@ -14,9 +14,19 @@ write %build/bin/sources.r set-cache [
 	%version.r
 	%usage.txt
 	%boot.red
-	%lexer.red
 	%compiler.r
 	%lexer.r
+	%environment/ [
+		%actions.red
+		%datatypes.red
+		%functions.red
+		%lexer.red
+		%natives.red
+		%operators.red
+		%routines.red
+		%scalars.red
+		%system.red
+	]
 	%runtime/ [
 		%actions.reds
 		%allocator.reds

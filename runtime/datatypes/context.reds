@@ -196,7 +196,7 @@ _context: context [
 		/local
 			values [series!]
 			sym	   [red-symbol!]
-			obj	   [red-object!]
+			s	   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-with"]]
 
@@ -205,10 +205,8 @@ _context: context [
 			word/index = -1
 			word/symbol = words/self
 		][
-			obj: as red-object! stack/push*
-			obj/header: TYPE_OBJECT
-			obj/ctx: ctx/self
-			return as red-value! obj					;-- special resolution for SELF
+			s: as series! word/ctx/value
+			return s/offset								;-- return original object value
 		]
 		if any [										;-- ensure word is properly bound to a context
 			null? ctx
@@ -266,7 +264,7 @@ _context: context [
 			cell/header: TYPE_CONTEXT or flag-series-stk
 			cell/values: null							;-- will be set to stack frame dynamically
 		][
-			cell/values: alloc-cells slots
+			cell/values: alloc-cleared-cells slots
 		]
 		node
 	]
@@ -348,6 +346,7 @@ _context: context [
 	bind: func [
 		body	[red-block!]
 		ctx		[red-context!]
+		obj		[node!]									;-- required by SELF
 		self?	[logic!]
 		return: [red-block!]
 		/local
@@ -372,7 +371,7 @@ _context: context [
 						TYPE_OF(value) = TYPE_WORD
 						w/symbol = words/self
 					][			
-						w/ctx: ctx/self					;-- make SELF refer to this context (half-bound)
+						w/ctx: obj						;-- make SELF refer to the original object
 						w/index: -1						;-- make it fail if resolved out of context
 					][
 						bind-word ctx w
@@ -384,7 +383,7 @@ _context: context [
 				TYPE_LIT_PATH
 				TYPE_SET_PATH
 				TYPE_GET_PATH	[
-					bind as red-block! value ctx self?
+					bind as red-block! value ctx obj self?
 				]
 				default [0]
 			]
@@ -410,17 +409,22 @@ _context: context [
 	]
 	
 	collect-set-words: func [
-		ctx	 [red-context!]
-		spec [red-block!]
+		ctx	 	[red-context!]
+		spec 	[red-block!]
+		return: [logic!]
 		/local
 			cell [red-value!]
 			tail [red-value!]
+			base [red-value!]
 			word [red-word!]
-			s	 [series!]
+			s	 [series!]	
 	][
 		s: GET_BUFFER(spec)
 		cell: s/offset
 		tail: s/tail
+		
+		s: as series! ctx/symbols/value
+		base: s/tail - s/offset
 
 		while [cell < tail][
 			if TYPE_OF(cell) = TYPE_SET_WORD [
@@ -428,6 +432,7 @@ _context: context [
 			]
 			cell: cell + 1
 		]
+		s/tail - s/offset > base						;-- TRUE: new words added
 	]
 	
 	;-- Actions -- 

@@ -164,7 +164,7 @@ zlib: context [
 			return Z_ERRNO
 		]
 		file: open file-out "wb"
-		if file = 0 [
+		if file-error? file [
 			print [ "gunzip: Error opening " file-out lf ]
 			return Z_ERRNO
 		]
@@ -175,7 +175,7 @@ zlib: context [
 		]
 		until [
 			bytes-read: gzread zfile buffer (CHUNK - 1)
-			_write-array buffer bytes-read 1 file
+			_write-array (as handle! buffer) bytes-read 1 file
 			0 <> (gzeof zfile)
 		]
 		close-file file
@@ -196,7 +196,7 @@ zlib: context [
 			bytes-read [integer!]
 	][
 		file: open file-in "rb"
-		if file = 0 [
+		if file-error? file [
 			print [ "gzip: Error opening " file-in lf ]
 			return Z_ERRNO
 		]
@@ -211,7 +211,7 @@ zlib: context [
 			return Z_ERRNO
 		]
 		until [
-			bytes-read: read-array buffer 1 CHUNK file
+			bytes-read: read-array (as handle! buffer) 1 CHUNK file
 			gzwrite zfile buffer bytes-read
 			file-tail? file
 		]

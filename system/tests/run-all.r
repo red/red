@@ -20,13 +20,7 @@ qt/tests-dir: system/script/path
 qt/script-header: "Red/System []"
 
 ;; make auto files if needed
-;; do not split these statements over two lines
-qt/make-if-needed? %source/units/auto-tests/byte-auto-test.reds %source/units/make-byte-auto-test.r                 
-qt/make-if-needed? %source/units/auto-tests/integer-auto-test.reds %source/units/make-integer-auto-test.r    
-qt/make-if-needed? %source/units/auto-tests/maths-auto-test.reds %source/units/make-maths-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/float-auto-test.reds %source/units/make-float-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/float32-auto-test.reds %source/units/make-float32-auto-test.r
-qt/make-if-needed? %source/units/auto-tests/dylib-auto-test.reds %source/units/make-dylib-auto-test.r
+do %source/units/make-red-system-auto-tests.r
 
 ;; run the tests
 print rejoin ["Run-All    v" system/script/header/version]
