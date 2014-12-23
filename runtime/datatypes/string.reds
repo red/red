@@ -303,6 +303,7 @@ string: context [
 		assert any [
 			TYPE_OF(str) = TYPE_STRING					;@@ ANY_STRING?
 			TYPE_OF(str) = TYPE_FILE
+			TYPE_OF(str) = TYPE_URL
 		]
 		assert TYPE_OF(index) = TYPE_INTEGER
 
@@ -979,7 +980,7 @@ string: context [
 
 		t: type/value
 		blk: as red-block! type
-		#call [transcode spec none]
+		#call [system/lexer/transcode spec none]
 
 		either zero? block/rs-length? blk [
 			ret: as red-value! blk
@@ -1180,17 +1181,19 @@ string: context [
 	eval-path: func [
 		parent	[red-string!]							;-- implicit type casting
 		element	[red-value!]
-		set?	[logic!]
+		value	[red-value!]
 		return:	[red-value!]
 		/local
-			int [red-integer!]
+			int  [red-integer!]
+			set? [logic!]
 	][
+		set?: value <> null
 		switch TYPE_OF(element) [
 			TYPE_INTEGER [
 				int: as red-integer! element
 				either set? [
-					poke parent int/value as red-char! stack/arguments null	;TBD: add char! checking!
-					stack/arguments
+					poke parent int/value as red-char! value null	;TBD: add char! checking!
+					value
 				][
 					pick parent int/value null
 				]
@@ -1198,8 +1201,8 @@ string: context [
 			TYPE_WORD [
 				either set? [
 					element: find parent element null no no no null null no no no no
-					actions/poke as red-series! element 2 stack/arguments null
-					stack/arguments
+					actions/poke as red-series! element 2 value null
+					value
 				][
 					select parent element null no no no null null no no
 				]
@@ -1229,6 +1232,7 @@ string: context [
 				op <> COMP_STRICT_EQUAL
 				TYPE_OF(str2) <> TYPE_STRING
 				TYPE_OF(str2) <> TYPE_FILE
+				TYPE_OF(str2) <> TYPE_URL
 			]
 		][RETURN_COMPARE_OTHER]
 		
@@ -1491,6 +1495,7 @@ string: context [
 			]
 			TYPE_STRING
 			TYPE_FILE
+			TYPE_URL
 			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
 					str2: as red-string! word/get-buffer as red-word! value
@@ -1632,7 +1637,7 @@ string: context [
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [
-				TYPE_STRING TYPE_FILE TYPE_WORD [
+				TYPE_STRING TYPE_FILE TYPE_URL TYPE_WORD [
 					either TYPE_OF(value) = TYPE_WORD [
 						str2: as red-string! word/get-buffer as red-word! value
 						head2: 0							;-- str2/head = -1 (casted from symbol!)
@@ -1745,6 +1750,7 @@ string: context [
 				assert all [
 					TYPE_OF(sp) = TYPE_STRING			;@@ replace by ANY_STRING?
 					TYPE_OF(sp) = TYPE_FILE
+					TYPE_OF(sp) = TYPE_URL
 					sp/node = str/node
 				]
 				sp/head + 1								;-- /head is 0-based
@@ -1795,6 +1801,7 @@ string: context [
 					either any [
 						type = TYPE_STRING				;@@ replace with ANY_STRING?
 						type = TYPE_FILE 
+						type = TYPE_URL
 					][
 						form-buf: as red-string! cell
 					][

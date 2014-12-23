@@ -10,12 +10,20 @@ Red [
 	}
 ]
 
-#include %environment/datatypes.red
-#include %environment/actions.red
-#include %environment/natives.red
-#include %environment/routines.red
-#include %environment/operators.red
-#include %environment/scalars.red
-#include %environment/system.red
-#include %environment/lexer.red
-#include %environment/functions.red
+Red: true												;-- ultimate Truth ;-) (pre-defines Red word)
+
+yes: on: true
+no: off: false
+
+tab:		 #"^-"
+cr: 		 #"^M"
+newline: lf: #"^/"
+escape:      #"^["
+slash: 		 #"/"
+sp: space: 	 #" "
+null: 		 #"^@"
+crlf:		 "^M^/"
+dot:		 #"."
+comma:		 #","
+
+pi: 3.141592653589793

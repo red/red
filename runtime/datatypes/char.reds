@@ -22,7 +22,10 @@ char: context [
 		char: as red-char! integer/do-math op
 		char/header: TYPE_CHAR
 		
-		if char/value > 0010FFFFh [
+		if any [
+			char/value > 0010FFFFh
+			negative? char/value
+		][
 			print-line "*** Math Error: char overflow"
 		]
 		as red-value! char

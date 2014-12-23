@@ -1,8 +1,8 @@
 REBOL [
   Title:   "Generates Red interpreter tests"
 	Author:  "Peter W A Wood"
-	File: 	 %make-interpreter-auto-test.r
-	Version: 0.1.0
+	File: 	 %make-interpreter-auto-tests.r
+	Version: 0.2.0
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
@@ -14,24 +14,24 @@ number-of-files: 0
 tests: copy ""
 quick-test-path: to file! clean-path %../../../quick-test/quick-test.red
 file-list: [
-	%binding-test.red									%auto-tests/interpreter-binding-test.red
-	%case-test.red										%auto-tests/interpreter-case-test.red
-	%conditional-test.red								%auto-tests/interpreter-conditional-test.red
-	%evaluation-test.red								%auto-tests/interpreter-evaluation-test.red
-	%find-test.red										%auto-tests/interpreter-find-test.red
-	%function-test.red								    %auto-tests/interpreter-function-test.red
-	%load-test.red										%auto-tests/interpreter-load-test.red
-	%logic-test.red										%auto-tests/interpreter-logic-test.red
-	%loop-test.red										%auto-tests/interpreter-loop-test.red
-	%select-test.red									%auto-tests/interpreter-select-test.red
-	%serialization-test.red								%auto-tests/interpreter-serialization-test.red
-	%series-test.red									%auto-tests/interpreter-series-test.red
-	%type-test.red										%auto-tests/interpreter-type-test.red
-	%switch-test.red									%auto-tests/interpreter-switch-test.red
-	%append-test.red									%auto-tests/interpreter-append-test.red
-	%insert-test.red									%auto-tests/interpreter-insert-test.red
-	%make-test.red									    %auto-tests/interpreter-make-test.red
-	%system-test.red									%auto-tests/interpreter-system-test.red
+	%binding-test.red									%auto-tests/interp-binding-test.red
+	%case-test.red										%auto-tests/interp-case-test.red
+	%conditional-test.red								%auto-tests/interp-conditional-test.red
+	%evaluation-test.red								%auto-tests/interp-evaluation-test.red
+	%find-test.red										%auto-tests/interp-find-test.red
+	%function-test.red								    %auto-tests/interp-function-test.red
+	%load-test.red										%auto-tests/interp-load-test.red
+	%logic-test.red										%auto-tests/interp-logic-test.red
+	%loop-test.red										%auto-tests/interp-loop-test.red
+	%select-test.red									%auto-tests/interp-select-test.red
+	%serialization-test.red								%auto-tests/interp-serialization-test.red
+	%series-test.red									%auto-tests/interp-series-test.red
+	%type-test.red										%auto-tests/interp-type-test.red
+	%switch-test.red									%auto-tests/interp-switch-test.red
+	%append-test.red									%auto-tests/interp-append-test.red
+	%insert-test.red									%auto-tests/interp-insert-test.red
+	%make-test.red									    %auto-tests/interp-make-test.red
+	%system-test.red									%auto-tests/interp-system-test.red
 	%parse-test.red										%auto-tests/interp-parse-test.red
 	%bitset-test.red									%auto-tests/interp-bitset-test.red
 	%auto-tests/equal-auto-test.red						%auto-tests/interp-equal-auto-test.red
@@ -39,6 +39,7 @@ file-list: [
 	%integer-test.red									%auto-tests/interp-integer-test.red
 	%float-test.red										%auto-tests/interp-float-test.red
 	%char-test.red										%auto-tests/interp-char-test.red
+	%object-test.red									%auto-tests/interp-object-test.red
 	%auto-tests/greater-auto-test.red					%auto-tests/interp-greater-auto-test.red
 	%auto-tests/infix-equal-auto-test.red				%auto-tests/interp-inf-equal-auto-test.red
 	%strict-equal-test.red								%auto-tests/interp-strict-equal-test.red
@@ -81,7 +82,8 @@ read-write-test-body: func [
 ][
 	body: read file-in
 	body: find/tail body "../../quick-test/quick-test.red"
-	insert body join "#include %" [quick-test-path "^(0A) do ["]				 
+	insert body join "#include %" [quick-test-path "^(0A) do ["]
+	replace body {~~~start-file~~~ "} {~~~start-file~~~ "interp-}				 
 	write/append file-out body
 ]
 

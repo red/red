@@ -92,6 +92,43 @@ word: context [
 		push as red-word! s/offset + index
 	]
 	
+	get-in: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-value!]
+		/local
+			ctx	[red-context!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/get-in"]]
+
+		ctx: TO_CTX(node)
+		s: as series! ctx/values/value
+		s/offset + index
+	]
+	
+	get-local: func [
+		node	[node!]
+		index	[integer!]
+		return: [red-value!]
+		/local
+			ctx	  [red-context!]
+			value [red-value!]
+			s	  [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/get-local"]]
+
+		ctx: TO_CTX(node)
+		
+		value: either ON_STACK?(ctx) [
+			(as red-value! ctx/values) + index
+		][
+			s: as series! ctx/values/value
+			s/offset + index
+		]
+		stack/push value
+	]
+	
 	get-buffer: func [
 		w		[red-word!]
 		return: [red-symbol!]
@@ -110,6 +147,23 @@ word: context [
 		_context/set as red-word! stack/arguments value
 		stack/set-last value
 	]
+
+	set-in: func [
+		node  [node!]
+		index [integer!]
+		/local
+			ctx	   [red-context!]
+			value  [red-value!]
+			values [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/set-in"]]
+
+		value: stack/arguments
+		ctx: TO_CTX(node)
+		values: as series! ctx/values/value
+		copy-cell value values/offset + index
+		stack/set-last value
+	]
 	
 	set-local: func [
 		slot	 [red-value!]
@@ -117,6 +171,8 @@ word: context [
 		/local
 			value [red-value!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "word/set-local"]]
+		
 		value: stack/arguments
 		CHECK_UNSET(value)
 		copy-cell value slot
