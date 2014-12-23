@@ -24,9 +24,10 @@ complete-from-path: func [
 	while [ptr: find str #"/"][
 		word: to word! copy/part str ptr
 		either first? [
-			word: find system/words word
-			w1: get word/1
-			first?: no
+			if value? word [
+				w1: get word
+				first?: no
+			]
 		][
 			w1: get in w1 word
 		]
