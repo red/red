@@ -14,12 +14,209 @@ Red/System [
 _function: context [
 	verbose: 0
 	
+	lay-frame: func [
+		/local
+			path	  [red-path!]
+			fun		  [red-function!]
+			value	  [red-value!]
+			head	  [red-value!]
+			tail	  [red-value!]
+			base	  [red-value!]
+			ref		  [red-refinement!]
+			end		  [red-word!]
+			word	  [red-word!]
+			bool	  [red-logic!]
+			s		  [series!]
+			required? [logic!]
+			type	  [integer!]
+			count	  [integer!]
+			pos		  [integer!]
+			
+	][
+		base: stack/arguments
+		fun:  as red-function! base - 4
+ 		path: as red-path! base - 3
+ 		
+		stack/mark-func words/_anon
+		
+		s: as series! fun/spec/value
+		
+		head:  s/offset
+		value: head
+		tail:  s/tail
+
+		count: 0										;-- base arity (mandatory arguments only)
+		required?: yes									;-- yes: processing mandatory args, no: optional args
+
+		while [value < tail][							;-- first pass on spec
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					either required? [
+						stack/push base + count
+						count: count + 1
+					][
+						none/push						;-- reserve optional argument or local slot
+					]
+				]
+				TYPE_REFINEMENT [
+					if required? [required?: no]		;-- no more mandatory arguments
+					logic/push false
+				]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
+		
+		s: GET_BUFFER(path)
+		word: as red-word! s/offset + path/head + 1
+		end:  as red-word! s/tail
+		pos: 0
+		
+		while [word < end][								;-- second pass on path + spec
+			value: head
+			
+			while [value < tail][
+				switch TYPE_OF(value) [
+					TYPE_REFINEMENT [
+						ref: as red-refinement! value
+						either EQUAL_WORDS?(ref word) [
+							bool: as red-logic! stack/arguments + pos
+							bool/value: true
+
+							value: value + 1
+							pos: pos + 1
+							while [
+								type: TYPE_OF(value)
+								all [
+									value < tail
+									type <> TYPE_REFINEMENT
+									type <> TYPE_SET_WORD
+								]
+							][
+								if all [type <> TYPE_STRING type <> TYPE_BLOCK][
+									copy-cell base + count stack/arguments + pos
+									pos: pos + 1
+									count: count + 1
+								]
+								value: value + 1
+							]
+						][
+							pos: pos + 1
+						]
+					]
+					TYPE_WORD
+					TYPE_GET_WORD
+					TYPE_LIT_WORD [pos: pos + 1]
+					default [0]
+				]
+				value: value + 1
+			]
+			word: word + 1
+		]
+	]
+	
+	refinement-arity?: func [
+		spec	[red-value!]
+		tail	[red-value!]
+		ref		[red-word!]
+		return: [integer!]
+		/local
+			word   [red-word!]
+			count  [integer!]
+			found? [logic!]
+	][
+		found?: no
+		count:  0
+		
+		while [spec < tail][
+			switch TYPE_OF(spec) [
+				TYPE_REFINEMENT [
+					if found? [return count]
+					word: as red-word! spec
+					if EQUAL_WORDS?(ref word) [found?: yes]
+				]
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [if found? [count: count + 1]]
+				TYPE_SET_WORD [if found? [return count]]
+				default [0]
+			]
+			spec: spec + 1
+		]
+		either found? [count][-1]
+	]
+	
+	calc-arity: func [
+		path	[red-path!]								;-- if null, just count all optional slots
+		fun		[red-function!]
+		index	[integer!]								;-- 0-base index position of function in path
+		return: [integer!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			s	  [series!]
+			count [integer!]
+			cnt	  [integer!]
+			len	  [integer!]
+			stop? [logic!]
+	][
+		s: as series! fun/spec/value
+		
+		value:  s/offset
+		tail:   s/tail
+		stop?:  no
+		count:  0
+		locals: 0
+		
+		if value = tail [return 0]
+		
+		while [all [not stop? value < tail]][
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [count: count + 1]
+				TYPE_REFINEMENT [
+					stop?: yes
+					locals: (as-integer tail - (value + 1)) >> 4 ;-- include all remaining slots
+				]
+				TYPE_SET_WORD [stop?: yes]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
+		if null? path [return locals + 1]				;-- + 1 for including the 1st refinement too
+		
+		len: block/rs-length? as red-block! path
+		index: index + 1
+		
+		if index < len [
+			until [
+				value: block/rs-abs-at as red-block! path index
+				cnt: refinement-arity? s/offset tail as red-word! value
+				if cnt = -1 [
+					print "*** Error: refinement /"
+					print-symbol as red-word! value
+					print-line " not found!"
+				]
+				count: count + cnt
+				index: index + 1
+				index = len
+			]
+			locals: -1									;-- used to signal refinement presence
+			0
+		]
+		locals << 16 or count							;-- combine both values as 16-bit words
+	]
+	
 	call: func [
 		fun	[red-function!]
+		ctx [node!]
 		/local
 			s	   [series!]
 			native [red-native!]
-			call
+			call ocall
 	][
 		s: as series! fun/more/value
 
@@ -27,9 +224,15 @@ _function: context [
 		either zero? native/code [
 			interpreter/eval-function fun as red-block! s/offset
 		][
-			call: as function! [] native/code
-			call
-			0
+			either ctx = global-ctx [
+				call: as function! [] native/code
+				call
+				0										;FIXME: required to pass compilation
+			][
+				ocall: as function! [octx [node!]] native/code
+				ocall ctx
+				0
+			]
 		]
 	]
 	
@@ -253,11 +456,13 @@ _function: context [
 		body	 [red-block!]
 		ctx		 [node!]								;-- if not null, context is predefined by compiler
 		code	 [integer!]
+		obj-ctx	 [node!]
 		return:	 [node!]								;-- return function's local context reference
 		/local
 			fun    [red-function!]
 			native [red-native!]
 			value  [red-value!]
+			int	   [red-integer!]
 			more   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_function/push"]]
@@ -266,7 +471,7 @@ _function: context [
 		fun/header:  TYPE_FUNCTION						;-- implicit reset of all header flags
 		fun/spec:	 spec/node
 		fun/ctx:	 either null? ctx [_context/make spec yes no][ctx]
-		fun/more:	 alloc-cells 3
+		fun/more:	 alloc-cells 5
 		
 		more: as series! fun/more/value
 		value: either null? body [none-value][as red-value! body]
@@ -277,8 +482,19 @@ _function: context [
 		native/header: TYPE_NATIVE
 		native/code: code
 		
+		value: alloc-tail more							;-- function! value self-reference (for op!)
+		value/header: TYPE_UNSET
+		
+		int: as red-integer! alloc-tail more
+		either null? obj-ctx [
+			int/header: TYPE_UNSET
+		][
+			int/header: TYPE_INTEGER
+			int/value: as-integer obj-ctx				;-- store the pointer as 32-bit integer
+		]
+		
 		if all [null? ctx not null? body][
-			_context/bind body GET_CTX(fun) no			;-- do not bind if predefined context (already done)
+			_context/bind body GET_CTX(fun) null no		;-- do not bind if predefined context (already done)
 		]
 		fun/ctx
 	]

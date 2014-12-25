@@ -71,9 +71,9 @@ op: context [
 				fun: as red-function! spec
 				s: as series! fun/more/value
 				;@@ check if slot #4 is already set!
-				copy-cell as red-value! fun alloc-tail s ;-- append a copy of the function value
+				copy-cell as red-value! fun s/offset + 3 ;-- save a copy of the function value
 				flag: body-flag
-				code: as-integer fun/more					;-- point to a block node
+				code: as-integer fun/more				;-- point to a block node
 				fun/spec
 			]
 		]

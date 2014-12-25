@@ -175,6 +175,21 @@ fill: func [
 ]
 
 ;-------------------------------------------
+;-- Clear a memory region which size is a multiple of cell size
+;-------------------------------------------
+zerofill: func [
+	p		[int-ptr!]
+	end		[int-ptr!]
+][
+	assert p < end
+	until [
+		p/value: 0
+		p: p + 1
+		p = end
+	]
+]
+
+;-------------------------------------------
 ;-- Allocate paged virtual memory region
 ;-------------------------------------------
 allocate-virtual: func [
@@ -583,6 +598,24 @@ alloc-cells: func [
 ]
 
 ;-------------------------------------------
+;-- Wrapper on alloc-cells for easy cells allocation with cleared buffer
+;-------------------------------------------
+alloc-cleared-cells: func [
+	size	[integer!]						;-- number of 16 bytes cells to preallocate
+	return: [int-ptr!]						;-- return a new node pointer (pointing to the newly allocated series buffer)	
+	/local
+		node [node!]
+		s	 [series!]
+][
+	node: alloc-series size 16 0
+	s: as series! node/value
+	zerofill
+		as int-ptr! s/offset
+		as int-ptr! ((as byte-ptr! s/offset) + s/size)
+	node
+]
+
+;-------------------------------------------
 ;-- Wrapper on alloc-series for byte buffer allocation
 ;-------------------------------------------
 alloc-bytes: func [
@@ -606,7 +639,10 @@ alloc-bytes-filled: func [
 ][
 	node: alloc-bytes size
 	s: as series! node/value
-	fill as byte-ptr! s/offset (as byte-ptr! s/offset) + s/size byte
+	fill 
+		as byte-ptr! s/offset
+		(as byte-ptr! s/offset) + s/size
+		byte
 	node
 ]
 

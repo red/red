@@ -129,6 +129,13 @@ words: context [
 	ahead:			-1
 	after:			-1
 	
+	_true:			-1
+	_false:			-1
+	_yes:			-1
+	_no:			-1
+	_on:			-1
+	_off:			-1
+	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
@@ -145,6 +152,7 @@ words: context [
 	_end:			as red-word! 0
 	
 	_on-parse-event: as red-word! 0
+	_on-change*:	 as red-word! 0
 
 	build: does [
 		spec:			symbol/make "spec"
@@ -198,6 +206,13 @@ words: context [
 		self:			symbol/make "self"
 		values:			symbol/make "values"
 		
+		_true:			symbol/make "true"
+		_false:			symbol/make "false"
+		_yes:			symbol/make "yes"
+		_no:			symbol/make "no"
+		_on:			symbol/make "on"
+		_off:			symbol/make "off"
+		
 		_body:			_context/add-global body
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
@@ -214,6 +229,7 @@ words: context [
 		_end:			_context/add-global end
 		
 		_on-parse-event: word/load "on-parse-event"
+		_on-change*:	 word/load "on-change*"
 	]
 ]
 

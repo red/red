@@ -600,6 +600,11 @@ Red [
 	--test-- "remove-str-7"
 		a: "123"
 		--assert "123" = remove/part a 0
+	
+	--test-- "remove-str-8"
+		a: "str123"
+		--assert "" = remove back tail a
+		--assert "str12" = head a
 
 ===end-group===
 
@@ -918,6 +923,10 @@ Red [
 
 	--test-- "trim-str-10"
 		--assert "    ^-1^/    b2^-  ^/  c3  ^/  ^/^/" = trim/with copy mstr 97
+
+	--test-- "trim-block-1"
+		--assert [1 2] = trim [#[none] 1 #[none] 2 #[none]]
+
 ===end-group===
 
 ~~~end-file~~~

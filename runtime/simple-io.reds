@@ -207,6 +207,7 @@ simple-io: context [
 					st_size_h	  [integer!]
 					st_blksize	  [integer!]
 					st_blocks	  [integer!]
+					st_blocks_h   [integer!]
 					st_atime	  [integer!]
 					st_atime_nsec [integer!]
 					st_mtime	  [integer!]

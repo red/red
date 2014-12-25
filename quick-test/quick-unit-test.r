@@ -121,7 +121,7 @@ qut: make object! [
   ]
   
   end-file: func [] [
-    test-prin [lf "~~~finished test~~~ " file-name lf]
+    test-prin ["~~~finished test~~~ " file-name lf]
     print-totals file
     test-prin lf
     

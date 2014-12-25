@@ -15,5 +15,29 @@ REBOL [
     --test-- "rte-2"
     	--compile-and-run-this/error {Red[] absolute -2147483648}
     	--assert-red-printed? "*** Math Error: integer overflow on ABSOLUTE"
+    	
+     --test-- "rte-3"
+    	--compile-and-run-this/error {Red[] #"^^(01)" + #"^^(10FFFF)"}
+    	--assert-red-printed? "*** Math Error: char overflow"
+    	
+    --test-- "rte-4"
+    	--compile-and-run-this/error {Red[] do [#"^^(01)" + #"^^(10FFFF)"]}
+    	--assert-red-printed? "*** Math Error: char overflow"
+    	
+    --test-- "rte-5"
+    	--compile-and-run-this/error {Red[] #"^^(00)" - #"^^(01)"}
+    	--assert-red-printed? "*** Math Error: char overflow"
+    	
+    --test-- "rte-6"
+    	--compile-and-run-this/error {Red[] do [#"^^(00)" - #"^^(01)"]}
+    	--assert-red-printed? "*** Math Error: char overflow"
+    	
+    --test-- "rte-7"
+    	--compile-and-run-this/error {Red[] #"^^(010FFF)" * #"^^(11)"}
+    	--assert-red-printed? "*** Math Error: char overflow"
+    	
+    --test-- "rte-8"
+    	--compile-and-run-this/error {Red[] do [#"^^(010FFF)" * #"^^(11)" ]}
+    	--assert-red-printed? "*** Math Error: char overflow"
   
 ~~~end-file~~~ 

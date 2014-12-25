@@ -10,6 +10,15 @@ Red/System [
 	}
 ]
 
+print-symbol: func [
+	word [red-word!]
+	/local
+		sym [red-symbol!]
+][
+	sym: symbol/get word/symbol
+	print sym/cache
+]
+
 ;-------------------------------------------
 ;-- Memory stats
 ;-------------------------------------------

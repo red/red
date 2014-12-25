@@ -2325,7 +2325,7 @@ make-profilable make target-class [
 				
 				foreach arg args [					;-- process in reverse order
 					either find [float! float64! float32!] arg/1 [
-						emit-push-float fargs-nb - freg arg/1 ;-- push in reverse order
+						emit-push-float fargs-nb - freg arg 		 ;-- push in reverse order
 						freg: freg + 1
 					][
 						emit-i32 #{e92d00}		;-- PUSH {r<n>}

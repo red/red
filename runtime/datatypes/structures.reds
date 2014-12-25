@@ -152,8 +152,10 @@ red-context!: alias struct! [
 red-object!: alias struct! [
 	header 	[integer!]								;-- cell header
 	ctx		[node!]									;-- context reference
-	_pad1	[integer!]
-	_pad2	[integer!]
+	class	[integer!]								;-- class ID
+	on-set	[node!]									;-- on-set callback info
+	;		index  [red-integer!]					;-- index of callback entry in context (-1 if none)
+	;		locals [red-integer!]					;-- callback local words count
 ]
 
 red-word!: alias struct! [
@@ -214,6 +216,7 @@ red-function!: alias struct! [
 	;	symbols	 [red-block!]						;-- 	native cleaned-up spec block reference
 	;	native   [node!]							;-- 	JIT-compiled body (binary!)
 	;   fun		 [red-function!]					;--		(optional) copy of parent function! value (used by op!)
+	;	obj		 [red-context!]						;--		context! pointer for methods
 ]
 
 red-routine!: alias struct! [
