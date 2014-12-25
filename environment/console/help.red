@@ -13,13 +13,13 @@ Red [
 help: func [
 	"Get help for functions"
 	'word [any-type!] "Word you are looking for"
-	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block w1 w2
+	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block w1 w2 value
 ][
 	tab: tab4: "    "
 	tab8: "        "
 	
 	case [
-		unset? :word [								;-- HELP with no arguments
+		unset? :word [									;-- HELP with no arguments
 			print {Use HELP or ? to see built-in info:
 
     help insert
@@ -40,8 +40,9 @@ Other useful functions:
     about - display version number and build date
     q or quit - leave the Red console
 }
+			exit
 		]
-		all [word? word datatype? get :word] [						;-- HELP <datatype!>
+		all [word? word datatype? get :word] [			;-- HELP <datatype!>
 			type: get :word
 			foreach w system/words [
 				if type = type? get w [
@@ -52,7 +53,7 @@ Other useful functions:
 
 							either any [
 								string? desc: spec/1
-								string? desc: spec/2					;-- attributes block case
+								string? desc: spec/2	;-- attributes block case
 							][
 								print ["^-=> " desc]
 							][
@@ -68,6 +69,7 @@ Other useful functions:
 					]
 				]
 			]
+			exit
 		]
 		string? word [
 			foreach w system/words [
@@ -78,7 +80,7 @@ Other useful functions:
 
 						either any [
 							string? desc: spec/1
-							string? desc: spec/2					;-- attributes block case
+							string? desc: spec/2		;-- attributes block case
 						][
 							print ["^-=> " desc]
 						][
@@ -87,66 +89,103 @@ Other useful functions:
 					]
 				]
 			]
+			exit
+		]
+	]
+	
+	func-name: :word
+
+	argument-rule: [
+		set word [word! | lit-word! | get-word!]
+		(prin [tab mold :word])
+		opt [set type block!  (prin [#" " mold type])]
+		opt [set info string! (prin [" =>" append form info dot])]
+		(prin lf)
+	]
+
+	case [
+		all [
+			any [word? func-name path? func-name]
+			fun: get func-name
+			any [action? :fun function? :fun native? :fun op? :fun routine? :fun]
+		][
+			prin ["^/USAGE:^/" tab ]
+
+			parse spec-of :fun [
+				start: [									;-- 1st pass
+					any [block! | string! ]
+					opt [set w [word! | lit-word! | get-word!] (either op? :fun [prin [mold w func-name]][prin [func-name mold w]])]
+					any [
+						/local to end
+						| set w [word! | lit-word! | get-word!] (prin [" " w])
+						| set w refinement! (prin [" " mold w])
+						| skip
+					]
+				]
+
+				:start										;-- 2nd pass
+				opt [set attributes block! (prin ["^/^/ATTRIBUTES:^/" tab mold attributes])]
+				opt [set info string! (print ["^/^/DESCRIPTION:^/" tab append form info dot lf tab func-name "is of type:" mold type? :fun])]
+
+				(print "^/ARGUMENTS:")
+				any [argument-rule]; (prin lf)]
+
+				(print "^/REFINEMENTS:")
+				any [
+					/local [
+						to ahead set-word! 'return set block block! 
+						(print ["^/RETURN:^/" mold block])
+						| to end
+					]
+					| [
+						set ref refinement! (prin [tab mold ref])
+						opt [set info string! (prin [" =>" append form info dot])]
+						(tab: tab8 prin lf)
+						any [argument-rule]
+						(tab: tab4)
+					]
+				]
+			]
+		]
+		all [any [word? word path? word] object? get word][
+			prin #"`"
+			prin form word
+			print "` is an object! of value:"
+
+			foreach w words-of get word [
+				value: get/any in get word w
+
+				desc: case [
+					object? :value  [words-of value]
+					find [op! action! native! function! routine!] type?/word :value [
+						spec: spec-of :value
+						if string? spec/1 [spec: spec/1]
+						spec
+					]
+					'else [:value]
+				]
+
+				desc: either string? desc [copy/part desc 47][mold/part/flat desc 47]
+
+				if 47 = length? desc [					;-- optimized for width = 78
+					clear skip tail desc -3
+					append desc "..."
+				]
+				print [
+					tab
+					pad form/part w 16 16
+					pad mold type? get/any w 9
+					desc
+				]
+			]
 		]
 		'else [
-			func-name: :word
-
-			argument-rule: [
-				set word [word! | lit-word! | get-word!]
-				(prin [tab mold :word])
-				opt [set type block!  (prin [#" " mold type])]
-				opt [set info string! (prin [" =>" append form info dot])]
-				(prin lf)
-			]
-
-			either all [
-				word? func-name
-				fun: get func-name
-				any [action? :fun function? :fun native? :fun op? :fun routine? :fun]
-			][
-				prin ["^/USAGE:^/" tab ]
-
-				parse spec-of :fun [
-					start: [						;-- 1st pass
-						any [block! | string! ]
-						opt [set w [word! | lit-word! | get-word!] (either op? :fun [prin [mold w func-name]][prin [func-name mold w]])]
-						any [
-							/local to end
-							| set w [word! | lit-word! | get-word!] (prin [" " w])
-							| set w refinement! (prin [" " mold w])
-							| skip
-						]
-					]
-
-					:start								;-- 2nd pass
-					opt [set attributes block! (prin ["^/^/ATTRIBUTES:^/" tab mold attributes])]
-					opt [set info string! (print ["^/^/DESCRIPTION:^/" tab append form info dot lf tab func-name "is type:" mold type? :fun])]
-
-					(print "^/ARGUMENTS:")
-					any [argument-rule]; (prin lf)]
-
-					(print "^/REFINEMENTS:")
-					any [
-						/local [
-							to ahead set-word! 'return set block block! 
-							(print ["^/RETURN:^/" mold block])
-							| to end
-						]
-						| [
-							set ref refinement! (prin [tab mold ref])
-							opt [set info string! (prin [" =>" append form info dot])]
-							(tab: tab8 prin lf)
-							any [argument-rule]
-							(tab: tab4)
-						]
-					]
-				]
-			][
-				print [
-					func-name "is of type" 
-					mold type? either word? :func-name [:fun][:func-name]
-					"^/No more help available."
-				]
+			value: get :word
+			print [
+				word "is a" 
+				mold type? :value
+				"of value:"
+				mold either path? :value [get :value][:value]
 			]
 		]
 	]
