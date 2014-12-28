@@ -24,6 +24,8 @@ context [
 	O_WRONLY:	1
 	O_RDWR: 	2
 	O_CLOEXEC:	524288
+
+    USB_DIR_IN: to-integer #{80}
 	
 	USB_DT_DEVICE_SIZE:				18
 	USB_DT_CONFIG_SIZE:				9
@@ -143,21 +145,21 @@ context [
 		if negative? usb/device [return none]	;-- read-only, we need write permission
 	
 		data: read/binary pathname
-		if USB_DT_DEVICE_SIZE + USB_DT_CONFIG_SIZE > length? data [return none]
+		if USB_DT_DEVICE_SIZE + USB_DT_CONFIG_SIZE > length? data [unix-close usb/device return none]
 
 		device: to-struct device-descriptor! data
 		data: skip data USB_DT_DEVICE_SIZE
 		if any [
 			device/length <> USB_DT_DEVICE_SIZE 
 			device/type <> USB_DT_DEVICE
-		][return none]
+		][unix-close usb/device return none]
 
 		config: to-struct config-descriptor! data
 		data: skip data USB_DT_CONFIG_SIZE
 		if any [
 			config/length <> USB_DT_CONFIG_SIZE
 			config/type <> USB_DT_CONFIG
-		][return none]
+		][unix-close usb/device return none]
 		
 		while [not empty? data][
 			length: data/1
@@ -178,7 +180,7 @@ context [
 						ep1/type <> USB_DT_ENDPOINT
 						ep2/length <> USB_DT_ENDPOINT_SIZE
 						ep2/type <> USB_DT_ENDPOINT
-					][return none]
+					][unix-close usb/device return none]
 
 					if all [
 						ep1/attributes = USB_ENDPOINT_XFER_BULK
@@ -194,6 +196,7 @@ context [
 							usb/read-id: ep1/address
 							usb/write-id: ep2/address			
 						]
+						usb/read-id: usb/read-id or USB_DIR_IN
 						int-ptr: make-int-ptr interface/interface-number
 						unless zero? ioctl usb/device USBDEVFS_CLAIMINTERFACE int-ptr [
 							unix-close usb/device
@@ -206,6 +209,7 @@ context [
 				data: skip data length
 			]
 		]
+		none
 	]
 
 	init-device: func [
@@ -218,11 +222,12 @@ context [
 			devices: load dev-dir
 			foreach dev devices [
 				if device: recognize-device join dev-dir dev [
-					break
+					return device
 				]
 			]
 		]
-		device
+		print "**ADB**: Cannot find devices or no permission."
+		none
 	]
 
 	close-device: func [
@@ -238,7 +243,7 @@ context [
 		/local data-len bulk transferred
 	][
 		data-len: length? data
-		bulk: make struct! devfs-bulktransfer! reduce [usb/write-id data-len 1000 data]
+		bulk: make struct! devfs-bulktransfer! reduce [to-integer usb/write-id data-len 1000 data]
 		either write [
 			transferred: ioctl usb/device USBDEVFS_BULK bulk
 			if all [
@@ -249,7 +254,7 @@ context [
 				pipe/write usb ""
 			]
 		][
-			bulk/endpoint: usb/read-id
+			bulk/endpoint: to-integer usb/read-id
 			transferred: ioctl usb/device USBDEVFS_BULK bulk
 		]
 		if write [
