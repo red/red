@@ -14,6 +14,8 @@ Red [
 
 at-offset: pad-offset: none
 
+button-list: make block! 4
+
 cursor: 	  [0 0 0x0]									;-- max-x|y, current-x|y, next-face-coordinates
 direction: 	  'across
 origin:	  	  10x10
@@ -53,6 +55,10 @@ make-face: func [
 		face/offset: any [opts/offset 0x0]
 		face/size:   any [opts/size 100x80]
 		face/text:	 opts/text
+		
+		if find opts 'action [
+			face/actions: opts/action
+		]
 	]
 	face/state: copy [#[none] #[false]]
 	
@@ -81,6 +87,8 @@ make-face: func [
 		append/only list face
 	]
 	
+	if type = 'button [append/only button-list opts/action]
+	
 	at-offset: pad-offset: none							;-- reset global flags
 	face
 ]
@@ -89,7 +97,7 @@ root-face: make-face none 'screen none
 
 view: func [
 	spec [block!]
-	/local pos arg arg2 options-rule opts value value2 current type
+	/local pos arg arg2 options-rule opts value value2 current type action
 ][
 	opts: []
 	current: root-face
@@ -107,6 +115,10 @@ view: func [
 			| set value string! (
 				append opts [text:]
 				append opts value
+			)
+			| set action block! (
+				append opts [action:]
+				append/only opts action
 			)
 		]
 	]
