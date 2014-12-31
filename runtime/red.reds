@@ -78,9 +78,7 @@ red: context [
 	#include %random.reds
 	#include %stack.reds
 	#include %interpreter.reds
-	#if OS <> 'Android [
-		#include %simple-io.reds						;-- temporary file IO support
-	]
+	#include %simple-io.reds						;-- temporary file IO support
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	declare red-block!						;-- root block

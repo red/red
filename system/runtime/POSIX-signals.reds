@@ -20,6 +20,7 @@ Red/System [
 #define SIGILL       4                      ;-- Illegal instruction
 #define SIGFPE       8                      ;-- Floating point error
 #define SIGSEGV     11                      ;-- Segmentation violation
+#define SIGWINCH	28						;-- Console window resizing
 
 #define SA_SIGINFO   [#switch OS [MacOSX [0040h] FreeBSD [0040h] #default [00000004h]]]
 #define SA_RESTART   [#switch OS [MacOSX [0002h] FreeBSD [0002h] #default [10000000h]]]

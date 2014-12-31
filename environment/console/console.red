@@ -49,14 +49,12 @@ init-console: routine [
 	/local
 		ret
 ][
-	#either OS = 'Windows [
+	#if OS = 'Windows [
 		;ret: AttachConsole -1
 		;if zero? ret [print-line "ReadConsole failed!" halt]
 		
 		ret: SetConsoleTitle as c-string! string/rs-head str
 		if zero? ret [print-line "SetConsoleTitle failed!" halt]
-	][
-		rl-bind-key as-integer tab as-integer :rl-insert-wrapper
 	]
 ]
 
@@ -65,6 +63,7 @@ count-delimiters: function [
 	return: [block!]
 ][
 	list: copy [0 0]
+	c: none
 	
 	foreach c buffer [
 		case [
@@ -102,8 +101,8 @@ do-console: function [][
 			]
 		]
 		prompt: switch mode [
-			block  ["[^-"]
-			string ["{^-"]
+			block  ["[    "]
+			string ["{    "]
 			mono   [red-prompt]
 		]
 	]
