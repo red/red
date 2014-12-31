@@ -161,7 +161,7 @@ redc: context [
 		file
 	]
 	
-	run-console: func [/with file [string!] /local opts result script exe console][
+	run-console: func [/with file [string!] /local opts result script exe console files][
 		script: temp-dir/red-console.red
 		exe: temp-dir/console
 		
@@ -175,11 +175,10 @@ redc: context [
 		][
 			console: %environment/console/
 			write script read-cache console/console.red
-			write temp-dir/help.red read-cache console/help.red
-			write temp-dir/input.red read-cache console/input.red
-			write temp-dir/wcwidth.reds read-cache console/wcwidth.reds
-			write temp-dir/win32.reds read-cache console/win32.reds
-			write temp-dir/POSIX.reds read-cache console/POSIX.reds
+			
+			files: [%help.red %input.red %wcwidth.reds %win32.reds %POSIX.reds]
+			
+			foreach file files [write temp-dir/:file read-cache console/:file]
 
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
@@ -196,11 +195,7 @@ redc: context [
 			system-dialect/compile/options/loaded script opts result/1
 			
 			delete script
-			delete temp-dir/help.red
-			delete temp-dir/input.red
-			delete temp-dir/wcwidth.reds
-			delete temp-dir/win32.reds
-			delete temp-dir/POSIX.reds
+			foreach file files [delete temp-dir/:file]
 
 			if all [Windows? not lib?][
 				print "Please run red.exe again to access the console."
