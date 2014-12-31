@@ -16,6 +16,8 @@ on-java-event: function [face [integer!] type [integer!] event [integer!]][
 	switch/default type [
 		1 [
 			print "event 1"
+			do button-list/1
+			
 		]
 	][
 		print ["java event:" event]
@@ -39,6 +41,13 @@ main: func [this [integer!]][
 
 ; state: [handle 	dirty?]
 ;         integer!	logic! 
+
+alert: func [msg /local obj][
+	obj: java-new ["android/app/AlertDialog$Builder" activity-obj]
+	java-do [obj/create]
+	java-do [obj/setTitle msg]
+	java-do [obj/show]
+]
 
 show: func [face [block!] /with parent [block!] /local obj f params][
 	either face/state/1 [
