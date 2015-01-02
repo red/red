@@ -882,7 +882,8 @@ object: context [
 		size:   as-integer src/tail - src/offset
 		slots:	size >> 4
 		
-		new: make-at new slots
+		copy-cell as cell! obj as cell! new
+		new/ctx: _context/create slots no yes
 		new/class: obj/class
 		nctx: GET_CTX(new)
 		
