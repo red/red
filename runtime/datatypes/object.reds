@@ -634,6 +634,7 @@ object: context [
 			vals  [red-value!]
 			tail  [red-value!]
 			value [red-value!]
+			word  [red-word!]
 			s	  [series!]
 	][
 		blk: 		as red-block! stack/push*
@@ -646,6 +647,14 @@ object: context [
 			field = words/words [
 				blk/node: ctx/symbols
 				blk: block/clone blk no
+				
+				word: as red-word! block/rs-head blk
+				tail: block/rs-tail blk
+				
+				while [word < as red-word! tail][
+					word/ctx: obj/ctx
+					word: word + 1
+				]
 			]
 			field = words/values [
 				blk/node: ctx/values
