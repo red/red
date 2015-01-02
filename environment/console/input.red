@@ -104,14 +104,7 @@ default-input-completer: func [
 
 #system [
 	terminal: context [
-		#include %wcwidth.reds
-
-		#either OS = 'Windows [
-			#include %win32.reds
-		][
-			#include %POSIX.reds
-		]
-
+	
 		#enum special-key! [
 			KEY_UNSET:		 -1
 			KEY_NONE:		  0
@@ -144,6 +137,14 @@ default-input-completer: func [
 		#define KEY_CTRL_U		21
 		#define KEY_CTRL_W		23
 		#define KEY_BACKSPACE	127
+		
+		#include %wcwidth.reds
+		
+		#either OS = 'Windows [
+			#include %win32.reds
+		][
+			#include %POSIX.reds
+		]
 
 		buffer:		declare byte-ptr!
 		pbuffer:	declare byte-ptr!
@@ -361,6 +362,7 @@ default-input-completer: func [
 			while [true][
 				output?: yes
 				c: fd-read
+				
 				if c = KEY_TAB [
 					if (complete-line line) > 1 [
 						string/rs-reset line
