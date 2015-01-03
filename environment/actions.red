@@ -415,8 +415,22 @@ select: make action! [[
 	#get-definition ACT_SELECT
 ]
 
-
-;sort
+sort: make action! [[
+		"Sorts a series (modified); default sort order is ascending"
+		series	 [series!]
+		/case "Perform a case-sensitive sort"
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		/compare "Comparator offset, block or function"
+			comparator [integer! block! any-function!]
+		/part "Sort only part of a series"
+			length [number! series!]
+		/all "Compare all fields"
+		/reverse "Reverse sort order"
+		return:  [series!]
+	]
+	#get-definition ACT_SORT
+]
 
 skip: make action! [[
 		"Returns the series relative to the current index"

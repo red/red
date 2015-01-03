@@ -1039,6 +1039,209 @@ block: context [
 		]
 		result
 	]
+
+	compare-value: func [								;-- Compare function return integer!
+		value1   [red-value!]
+		value2   [red-value!]
+		op		 [integer!]
+		flags	 [integer!]
+		return:  [integer!]
+		/local
+			action-compare offset res
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/compare-value"]]
+
+		offset: flags >>> 1
+		value1: value1 + offset
+		value2: value2 + offset
+		action-compare: as function! [
+			value1  [red-value!]						;-- first operand
+			value2  [red-value!]						;-- second operand
+			op	    [integer!]							;-- type of comparison
+			return: [integer!]
+		] actions/get-action-ptr value1 ACT_COMPARE
+
+		flags: flags and sort-reverse-mask
+		either zero? flags [
+			res: action-compare value1 value2 op
+			if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
+		][												;-- reverse block
+			res: action-compare value2 value1 op
+			if res = -2 [res: TYPE_OF(value2) - TYPE_OF(value1)]
+		]
+		res
+	]
+
+	compare-call: func [								;-- Wrap red function!
+		value1   [red-value!]
+		value2   [red-value!]
+		fun		 [integer!]
+		flags	 [integer!]
+		return:  [integer!]
+		/local
+			res  [red-value!]
+			bool [red-logic!]
+			int  [red-integer!]
+			d    [red-float!]
+			all? [logic!]
+			num  [integer!]
+			blk1 [red-block!]
+			blk2 [red-block!]
+			s1   [series!]
+			s2   [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
+
+		stack/mark-func words/_body						;@@ find something more adequate
+
+		all?: flags and sort-all-mask = sort-all-mask
+		if all? [
+			num: flags >>> 2
+			blk1: make-at as red-block! ALLOC_TAIL(root) num
+			blk2: make-at as red-block! ALLOC_TAIL(root) num
+			s1: GET_BUFFER(blk1)
+			s2: GET_BUFFER(blk2)
+			copy-memory as byte-ptr! s1/offset as byte-ptr! value1 num << 4
+			copy-memory as byte-ptr! s2/offset as byte-ptr! value2 num << 4
+			s1/tail: s1/tail + num
+			s2/tail: s2/tail + num
+			value1: as red-value! blk1
+			value2: as red-value! blk2
+		]
+
+		flags: flags and sort-reverse-mask
+		either zero? flags [
+			stack/push value2
+			stack/push value1
+		][
+			stack/push value1
+			stack/push value2
+		]
+		_function/call as red-function! fun global-ctx	;FIXME: hardcoded origin context
+		stack/unwind
+		stack/pop 1
+
+		res: stack/top
+		switch TYPE_OF(res) [
+			TYPE_LOGIC [
+				bool: as red-logic! res
+				either bool/value [1][-1]
+			]
+			TYPE_INTEGER [
+				int: as red-integer! res
+				int/value
+			]
+			TYPE_FLOAT [
+				d: as red-float! res
+				case [
+					d/value > 0.0 [1]
+					d/value < 0.0 [0]
+					true [-1]
+				]
+			]
+			TYPE_NONE [-1]
+			default [1]
+		]
+	]
+
+	sort: func [
+		blk			[red-block!]
+		case?		[logic!]
+		skip		[red-integer!]
+		comparator	[red-function!]
+		part		[red-value!]
+		all?		[logic!]
+		reverse?	[logic!]
+		return:		[red-block!]
+		/local
+			s		[series!]
+			head	[red-value!]
+			cmp		[integer!]
+			len		[integer!]
+			step	[integer!]
+			int		[red-integer!]
+			blk2	[red-block!]
+			fun		[red-function!]
+			op		[integer!]
+			flags	[integer!]
+			offset	[integer!]
+	][
+		step: 1
+		flags: 0
+		s: GET_BUFFER(blk)
+		head: s/offset + blk/head
+		if head = s/tail [return blk]					;-- early exit if nothing to reverse
+		len: rs-length? blk
+
+		if OPTION?(part) [
+			len: either TYPE_OF(part) = TYPE_INTEGER [
+				int: as red-integer! part
+				if int/value <= 0 [return blk]			;-- early exit if part <= 0
+				int/value
+			][
+				blk2: as red-block! part
+				unless all [
+					TYPE_OF(blk2) = TYPE_OF(blk)		;-- handles ANY-STRING!
+					blk2/node = blk/node
+					blk2/head > blk/head
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				blk2/head - blk/head
+			]
+		]
+
+		if OPTION?(skip) [
+			assert TYPE_OF(skip) = TYPE_INTEGER
+			step: skip/value
+			if any [
+				step <= 0
+				len % step <> 0
+				step > len
+			][
+				print "*** Error: invalid /skip series argument"	;@@ replace with error!
+				halt
+			]
+			if step > 1 [len: len / step]
+		]
+
+		if reverse? [flags: flags or sort-reverse-mask]
+		op: either case? [COMP_CASE_SORT][COMP_SORT]
+		cmp: as-integer :compare-value
+
+		if OPTION?(comparator) [
+			switch TYPE_OF(comparator) [
+				TYPE_FUNCTION [
+					if all [all? OPTION?(skip)] [
+						flags: flags or sort-all-mask
+						flags: step << 2 or flags
+					]
+					cmp: as-integer :compare-call
+					op: as-integer comparator
+				]
+				TYPE_INTEGER [
+					int: as red-integer! comparator
+					offset: int/value
+					if any [offset < 1 offset > step][
+						print "*** Error: invalid /compare argument"	;@@ replace with error!
+						halt
+					]
+					flags: offset - 1 << 1 or flags
+				]
+				TYPE_BLOCK [
+					blk2: as red-block! part
+					;TBD handles block! value
+				]
+				default [
+					print "*** Error: invalid /compare argument"	;@@ replace with error!
+					halt
+				]
+			]
+		]
+		_qsort/sort as byte-ptr! head len step * (size? red-value!) op flags cmp
+		blk
+	]
 	
 	;--- Reading actions ---
 	
@@ -1634,7 +1837,7 @@ block: context [
 			:remove
 			:reverse
 			:select
-			null			;sort
+			:sort
 			:skip
 			:swap
 			:tail

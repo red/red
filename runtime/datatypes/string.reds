@@ -1224,7 +1224,66 @@ string: context [
 		equal? str1 str2 op no							;-- match?: no
 	]
 
-	
+	compare-Latin1: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		return: [integer!]
+		/local
+			c1	[integer!]
+			c2	[integer!]
+	][
+		c1: as-integer p1/1
+		c2: as-integer p2/1
+		if op = COMP_EQUAL [
+			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
+			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+		]
+		either zero? flags [c1 - c2][c2 - c1]
+	]
+
+	compare-UCS2: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		return: [integer!]
+		/local
+			c1	[integer!]
+			c2	[integer!]
+	][
+		c1: (as-integer p1/2) << 8 + p1/1
+		c2: (as-integer p2/2) << 8 + p2/1
+		if op = COMP_EQUAL [
+			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
+			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+		]
+		either zero? flags [c1 - c2][c2 - c1]
+	]
+
+	compare-UCS4: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		return: [integer!]
+		/local
+			c1	[integer!]
+			c2	[integer!]
+			p4  [int-ptr!]
+	][
+		p4: as int-ptr! p1
+		c1: p4/1
+		p4: as int-ptr! p2
+		c2: p4/1
+		if op = COMP_EQUAL [
+			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
+			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+		]
+		either zero? flags [c1 - c2][c2 - c1]
+	]
+
 	;--- Property reading actions ---
 
 	head?: func [
@@ -1651,7 +1710,78 @@ string: context [
 		]
 		result
 	]
-	
+
+	sort: func [
+		str			[red-string!]
+		case?		[logic!]
+		skip		[red-integer!]
+		compare		[red-function!]
+		part		[red-value!]
+		all?		[logic!]
+		reverse?	[logic!]
+		return:		[red-string!]
+		/local
+			s		[series!]
+			end		[byte-ptr!]
+			buffer	[byte-ptr!]
+			unit	[integer!]
+			cmp		[integer!]
+			len		[integer!]
+			step	[integer!]
+			int		[red-integer!]
+			str2	[red-string!]
+			op		[integer!]
+			flags	[integer!]
+	][
+		step: 1
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		end: as byte-ptr! s/tail
+		len: as-integer end - buffer
+
+		if OPTION?(part) [
+			len: either TYPE_OF(part) = TYPE_INTEGER [
+				int: as red-integer! part
+				if int/value <= 0 [return str]			;-- early exit if part <= 0
+				int/value << (unit >> 1)
+			][
+				str2: as red-string! part
+				unless all [
+					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
+					str2/node = str/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				str2/head << (unit >> 1) - buffer
+			]
+		]
+
+		if OPTION?(skip) [
+			assert TYPE_OF(skip) = TYPE_INTEGER
+			step: skip/value
+			if any [
+				step <= 0
+				len % step <> 0
+				step > len
+			][
+				print "*** Error: invalid /skip series argument"	;@@ replace with error!
+				halt
+			]
+			if step > 1 [len: len / step]
+		]
+		cmp: switch unit [
+			Latin1 [as-integer :compare-Latin1]
+			UCS-2  [as-integer :compare-UCS2]
+			UCS-4  [as-integer :compare-UCS4]
+		]
+		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		flags: either reverse? [SORT_REVERSE][SORT_NORMAL]
+		_qsort/sort buffer len unit * step op flags cmp
+		str
+	]
+
 	;--- Reading actions ---
 
 	pick: func [
@@ -2447,7 +2577,7 @@ string: context [
 			:remove
 			:reverse
 			:select
-			null			;sort
+			:sort
 			:skip
 			:swap
 			:tail
