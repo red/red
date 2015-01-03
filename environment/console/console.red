@@ -49,13 +49,11 @@ init-console: routine [
 	/local
 		ret
 ][
-	#if OS = 'Windows [
-		;ret: AttachConsole -1
-		;if zero? ret [print-line "ReadConsole failed!" halt]
-		
-		ret: SetConsoleTitle as c-string! string/rs-head str
-		if zero? ret [print-line "SetConsoleTitle failed!" halt]
-	]
+	;ret: AttachConsole -1
+	;if zero? ret [print-line "ReadConsole failed!" halt]
+
+	ret: SetConsoleTitle as c-string! string/rs-head str
+	if zero? ret [print-line "SetConsoleTitle failed!" halt]
 ]
 
 count-delimiters: function [
@@ -153,7 +151,8 @@ if script: read-argument [
 	]
 	quit
 ]
-init-console "Red Console"
+
+if system/platform = 'windows [init-console "Red Console"]
 
 print {
 -=== Red Console alpha version ===-
