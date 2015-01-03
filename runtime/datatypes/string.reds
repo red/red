@@ -1727,24 +1727,26 @@ string: context [
 			unit	[integer!]
 			cmp		[integer!]
 			len		[integer!]
+			len2	[integer!]
 			step	[integer!]
 			int		[red-integer!]
 			str2	[red-string!]
 			op		[integer!]
 			flags	[integer!]
+			mult	[integer!]
 	][
 		step: 1
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		buffer: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		mult: unit >> 1
+		buffer: (as byte-ptr! s/offset) + (str/head << mult)
 		end: as byte-ptr! s/tail
-		len: as-integer end - buffer
+		len: (as-integer end - buffer) >> mult
 
 		if OPTION?(part) [
-			len: either TYPE_OF(part) = TYPE_INTEGER [
+			len2: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
-				if int/value <= 0 [return str]			;-- early exit if part <= 0
-				int/value << (unit >> 1)
+				int/value
 			][
 				str2: as red-string! part
 				unless all [
@@ -1754,7 +1756,19 @@ string: context [
 					print "*** Error: invalid /part series argument"	;@@ replace with error!
 					halt
 				]
-				str2/head << (unit >> 1) - buffer
+				str2/head - str/head
+			]
+			if len2 < len [
+				len: len2
+				if negative? len2 [
+					str2: str
+					str: declare red-string!
+					copy-cell as cell! str2 (as cell! str)
+					len2: negate len2
+					str/head: str/head - len2
+					len: either negative? str/head [str/head: 0 0][len2]
+					buffer: buffer - (len << mult)
+				]
 			]
 		]
 
@@ -1961,6 +1975,7 @@ string: context [
 
 		s: GET_BUFFER(str)
 		s/tail: as cell! (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1))	
+		add-terminal-NUL as byte-ptr! s/tail GET_UNIT(s)
 		as red-value! str
 	]
 
@@ -2050,6 +2065,7 @@ string: context [
 				as-integer tail - (head + part) + unit ;-- size including trailing NUL
 		]
 		s/tail: as red-value! tail - part
+		add-terminal-NUL as byte-ptr! s/tail GET_UNIT(s)
 		str
 	]
 

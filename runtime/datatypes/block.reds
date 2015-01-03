@@ -1158,6 +1158,7 @@ block: context [
 			head	[red-value!]
 			cmp		[integer!]
 			len		[integer!]
+			len2	[integer!]
 			step	[integer!]
 			int		[red-integer!]
 			blk2	[red-block!]
@@ -1174,7 +1175,7 @@ block: context [
 		len: rs-length? blk
 
 		if OPTION?(part) [
-			len: either TYPE_OF(part) = TYPE_INTEGER [
+			len2: either TYPE_OF(part) = TYPE_INTEGER [
 				int: as red-integer! part
 				if int/value <= 0 [return blk]			;-- early exit if part <= 0
 				int/value
@@ -1183,12 +1184,23 @@ block: context [
 				unless all [
 					TYPE_OF(blk2) = TYPE_OF(blk)		;-- handles ANY-STRING!
 					blk2/node = blk/node
-					blk2/head > blk/head
 				][
 					print "*** Error: invalid /part series argument"	;@@ replace with error!
 					halt
 				]
 				blk2/head - blk/head
+			]
+			if len2 < len [
+				len: len2
+				if negative? len2 [
+					blk2: blk
+					blk: declare red-block!
+					copy-cell as cell! blk2 (as cell! blk)
+					len2: negate len2
+					blk/head: blk/head - len2
+					len: either negative? blk/head [blk/head: 0 0][len2]
+					head: head - len
+				]
 			]
 		]
 

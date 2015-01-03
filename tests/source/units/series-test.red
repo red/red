@@ -929,5 +929,45 @@ Red [
 
 ===end-group===
 
+===start-group=== "sort"
+
+	--test-- "sort-str-1"			;-- 4 bytes code point
+		a: "g4C28c𠃌9A15Hf3iEG076eBIdbFaDh"
+		--assert "0123456789AaBbCcdDEefFGghHIi𠃌" = sort a
+
+	--test-- "sort-str-2"			;-- 2 bytes code point
+		a: "g4C28c大9A15Hf3iEG076eBIdbFaDh"
+		--assert "0123456789AaBbCcdDEefFGghHIi大" = sort a
+
+	--test-- "sort-str-3"			;-- 1 bytes code point
+		a: "g4C28c9A15Hf3iEG076eBIdbFaDh"
+		--assert "0123456789AaBbCcdDEefFGghHIi" = sort a
+		--assert "0123456789ABCDEFGHIabcdefghi" = sort/case a
+		--assert "ihgfedcbaIHGFEDCBA9876543210" = sort/case/reverse a
+
+	--test-- "sort-str-4"
+		a: "4gh2ab1cd3ef"
+		--assert "1cd2ab3ef4gh" = sort/skip a 3
+		--assert "12abcd3ef4gh" = sort/part a 6
+		--assert "34efgh" = sort/part skip a 6 tail a
+
+	--test-- "sort-blk-1"
+		a: [bc 799 ab2 42 bb1 321.3 "Mo" "Curly" "Larry" -24 0 321.8] 
+		--assert ["Curly" "Larry" "Mo" -24 0 42 321.3 321.8 799 ab2 bb1 bc] = sort a
+		--assert [bc bb1 ab2 799 321.8 321.3 42 0 -24 "Mo" "Larry" "Curly"] = sort/reverse a
+
+	--test-- "sort-blk-2"
+		a: ["Larry" 45 "Curly" 50 "Mo" 42]
+		--assert ["Curly" 50 "Larry" 45 "Mo" 42] = sort/skip a 2
+		--assert ["Curly" "Larry" 45 50 "Mo" 42] = sort/part a 4
+		--assert ["Mo" 42 45 50] = sort/part skip a 2 tail a
+
+	--test-- "sort-blk-3"
+		a: ["Larry" 45 "Curly" 50 "Mo" 42]
+		--assert ["Mo" 42 "Larry" 45 "Curly" 50] = sort/skip/compare a 2 2
+		--assert ["Mo" 42 "Larry" 45 "Curly" 50] = sort/skip/compare a 2 func [a b][a > b]
+		--assert ["Curly" 50 "Larry" 45 "Mo" 42] = sort/skip/compare/all a 2 func [a b][a/2 > b/2]
+===end-group===
+
 ~~~end-file~~~
 
