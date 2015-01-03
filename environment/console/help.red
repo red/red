@@ -199,14 +199,14 @@ what: function [
 ][
 	foreach w system/words [
 		if any [function? get w native? get w action? get w op? get w routine? get w][
-			prin w
+			prin pad form w 15
 			spec: spec-of get w
 			
 			either any [
 				string? desc: spec/1
 				string? desc: spec/2					;-- attributes block case
 			][
-				print [tab "=> " desc]
+				print [#":" desc]
 			][
 				prin lf
 			]
@@ -229,5 +229,5 @@ source: function [
 about: function [
 	"Print Red version information"
 ][
-	print ["Red" system/version]
+	print ["Red" system/version #"-" system/build]
 ]
