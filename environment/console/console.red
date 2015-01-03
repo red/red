@@ -54,11 +54,13 @@ system/console: context [
 		/local
 			ret
 	][
-		;ret: AttachConsole -1
-		;if zero? ret [print-line "ReadConsole failed!" halt]
+		#if OS = 'Windows [
+			;ret: AttachConsole -1
+			;if zero? ret [print-line "ReadConsole failed!" halt]
 
-		ret: SetConsoleTitle as c-string! string/rs-head str
-		if zero? ret [print-line "SetConsoleTitle failed!" halt]
+			ret: SetConsoleTitle as c-string! string/rs-head str
+			if zero? ret [print-line "SetConsoleTitle failed!" halt]
+		]
 	]
 
 	count-delimiters: function [
@@ -155,7 +157,7 @@ system/console: context [
 			quit
 		]
 
-		if system/platform = 'windows [init-console "Red Console"]
+		if system/platform = 'Windows [init-console "Red Console"]
 
 		print [
 			"--== Red" system/version "==--" lf
