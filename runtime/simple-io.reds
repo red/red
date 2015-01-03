@@ -204,10 +204,8 @@ simple-io: context [
 					st_rdev_h	  [integer!]
 					pad1		  [integer!]
 					st_size		  [integer!]
-					st_size_h	  [integer!]
 					st_blksize	  [integer!]
 					st_blocks	  [integer!]
-					st_blocks_h   [integer!]
 					st_atime	  [integer!]
 					st_atime_nsec [integer!]
 					st_mtime	  [integer!]
@@ -345,7 +343,7 @@ simple-io: context [
 	][
 		file: open-file filename
 		size: file-size? file
-		print-line size
+
 		if size <= 0 [
 			print-line "*** Error: empty file"
 			quit -2
