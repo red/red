@@ -128,4 +128,5 @@ system: context [
 	]
 	
 	lexer: none
+	console: none
 ]

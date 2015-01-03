@@ -471,21 +471,19 @@ set-buffer-history: routine [line [string!] hist [block!]][
 	terminal/init line hist
 ]
 
-_input: routine [prompt [string!]][
+read-input: routine [prompt [string!]][
 	terminal/edit prompt
 	terminal/restore
 	print-line ""
 ]
 
-default-input-history: []
-
 ask: function [
 	question [string!]
-	return: [string!]
+	return:  [string!]
 ][
 	buffer: make string! 1
-	set-buffer-history buffer head default-input-history
-	_input question
+	set-buffer-history buffer head system/console/history
+	read-input question
 	buffer
 ]
 
