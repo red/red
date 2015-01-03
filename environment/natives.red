@@ -81,6 +81,13 @@ repeat: make native! [[
 	#get-definition NAT_REPEAT
 ]
 
+forever: make native! [[
+		"Evaluates body repeatedly forever"
+		body   [block!]
+	]
+	#get-definition NAT_FOREVER
+]
+
 foreach: make native! [[
 		"Evaluates body for each value in a series"
 		'word  [word! block!]   "Word, or words, to set on each iteration"

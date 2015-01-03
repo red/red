@@ -189,6 +189,17 @@ natives: context [
 		stack/unwind-last
 	]
 	
+	forever*: func [
+		/local
+			body [red-block!]
+	][
+		body: as red-block! stack/arguments
+		forever [
+			interpreter/eval body no
+			stack/pop 1
+		]
+	]
+	
 	foreach*: func [
 		/local
 			value [red-value!]
@@ -1607,6 +1618,7 @@ natives: context [
 			:until*
 			:loop*
 			:repeat*
+			:forever*
 			:foreach*
 			:forall*
 			:func*

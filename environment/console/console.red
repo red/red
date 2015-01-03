@@ -128,7 +128,7 @@ system/console: context [
 			clear buffer
 		]
 
-		while [true][
+		forever [
 			unless tail? line: ask any [cue prompt][
 				append buffer line
 				cnt: count-delimiters buffer

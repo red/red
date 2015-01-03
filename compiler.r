@@ -73,7 +73,7 @@ red: context [
 	
 	intrinsics:   [
 		if unless either any all while until loop repeat
-		foreach forall break func function does has
+		forever foreach forall break func function does has
 		exit return switch case routine set get reduce
 		context object construct
 	]
@@ -82,7 +82,7 @@ red: context [
 	
 	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
 	
-	iterators: [loop until while repeat foreach forall]
+	iterators: [loop until while repeat foreach forall forever]
 
 	func-constructors: [
 		'func | 'function | 'does | 'has | 'routine | 'make 'function!
@@ -1951,6 +1951,11 @@ red: context [
 		new-line last output on
 		emit-close-frame
 		depth: depth - 1
+	]
+	
+	comp-forever: does [
+		pc: back pc
+		change/part pc [while [true]] 1
 	]
 		
 	comp-foreach: has [word blk name cond ctx][
