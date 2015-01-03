@@ -98,7 +98,6 @@ system/console: context [
 				cnt/1 > 0 ['block]
 				cnt/2 > 0 ['string]
 				'else 	  [
-					;cue: prompt
 					do eval
 					'mono
 				]
