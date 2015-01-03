@@ -89,7 +89,7 @@ set-path: context [
 		value1	   [red-block!]							;-- first operand
 		value2	   [red-block!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
-		return:	   [logic!]
+		return:	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-path/compare"]]
 

@@ -424,7 +424,7 @@ block: context [
 		blk1	   [red-block!]							;-- first operand
 		blk2	   [red-block!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
-		return:	   [logic!]
+		return:	   [integer!]
 		/local
 			s1	   [series!]
 			s2	   [series!]
@@ -435,31 +435,24 @@ block: context [
 			end	   [red-value!]
 			value1 [red-value!]
 			value2 [red-value!]
-			res	   [logic!]
+			res	   [integer!]
 	][
 		s1: GET_BUFFER(blk1)
 		s2: GET_BUFFER(blk2)
 		size1: (as-integer s1/tail - s1/offset) >> 4 - blk1/head
 		size2: (as-integer s2/tail - s2/offset) >> 4 - blk2/head
 
-		either size1 <> size2 [								;-- shortcut exit for different sizes
-			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
-			if op = COMP_NOT_EQUAL [return true]
-		][
-			if zero? size1 [								;-- shortcut exit for empty blocks
-				return any [
-					op = COMP_EQUAL 		op = COMP_STRICT_EQUAL
-					op = COMP_LESSER_EQUAL  op = COMP_GREATER_EQUAL
-				]
-			]
+		if size1 <> size2 [										;-- shortcut exit for different sizes
+			if any [
+				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+			][return 1]
 		]
 
-		if op = COMP_LESSER [op: COMP_LESSER_EQUAL]
-		if op = COMP_GREATER [op: COMP_GREATER_EQUAL]
+		if zero? size1 [return 0]								;-- shortcut exit for empty blocks
 
 		value1: s1/offset + blk1/head
 		value2: s2/offset + blk2/head
-		end: s1/tail										;-- only one "end" is needed
+		end: s1/tail											;-- only one "end" is needed
 
 		until [
 			type1: TYPE_OF(value1)
@@ -467,23 +460,19 @@ block: context [
 			either any [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
-				all [type1 = TYPE_INTEGER type2 = TYPE_INTEGER]	 ;@@ replace by ANY_NUMBER?
+				all [											;@@ replace by ANY_NUMBER?
+					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT]
+					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
+				]
 			][
-				res: actions/compare value1 value2 op
+				res: actions/compare-value value1 value2 op
 				value1: value1 + 1
 				value2: value2 + 1
 			][
-				switch op [
-					COMP_EQUAL
-					COMP_STRICT_EQUAL	[res: false]
-					COMP_NOT_EQUAL 		[res: true]
-					COMP_LESSER_EQUAL	[res: type1 <= type2]
-					COMP_GREATER_EQUAL	[res: type1 >= type2]
-				]
-				return res
+				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			any [
-				not res
+				res <> 0
 				value1 >= end
 			]
 		]
@@ -645,7 +634,7 @@ block: context [
 		blk1	   [red-block!]							;-- first operand
 		blk2	   [red-block!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
-		return:	   [logic!]
+		return:	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare"]]
 		

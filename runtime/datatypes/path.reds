@@ -127,7 +127,7 @@ path: context [
 		value1	   [red-path!]							;-- first operand
 		value2	   [red-path!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
-		return:	   [logic!]
+		return:	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/compare"]]
 

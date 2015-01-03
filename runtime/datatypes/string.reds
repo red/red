@@ -552,7 +552,7 @@ string: context [
 		str2	  [red-string!]							;-- second operand
 		op		  [integer!]							;-- type of comparison
 		match?	  [logic!]								;-- match str2 within str1 (sizes matter less)
-		return:	  [logic!]
+		return:	  [integer!]
 		/local
 			s1	  [series!]
 			s2	  [series!]
@@ -567,7 +567,6 @@ string: context [
 			c1	  [integer!]
 			c2	  [integer!]
 			lax?  [logic!]
-			res	  [logic!]
 	][
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
@@ -577,27 +576,24 @@ string: context [
 
 		either match? [
 			if zero? size2 [
-				return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
 			]
+			end: as byte-ptr! s2/tail						;-- only one "end" is needed
 		][
 			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
 
 			either size1 <> size2 [							;-- shortcut exit for different sizes
-				if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
-				if op = COMP_NOT_EQUAL [return true]
+				if any [
+					op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+				][return 1]
 			][
-				if zero? size1 [							;-- shortcut exit for empty strings
-					return any [
-						op = COMP_EQUAL 		op = COMP_STRICT_EQUAL
-						op = COMP_LESSER_EQUAL  op = COMP_GREATER_EQUAL
-					]
-				]
+				if zero? size1 [return 0]					;-- shortcut exit for empty strings
 			]
+			end: (as byte-ptr! s2/tail) + unit2				;-- only one "end" is needed
 		]
-		end: as byte-ptr! s2/tail						;-- only one "end" is needed
 		p1:  (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
 		p2:  (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
-		lax?: op <> COMP_STRICT_EQUAL
+		lax?: all [op <> COMP_STRICT_EQUAL op <> COMP_CASE_SORT]
 		
 		until [	
 			switch unit1 [
@@ -621,16 +617,7 @@ string: context [
 				p2 >= end
 			]
 		]
-		switch op [
-			COMP_EQUAL			[res: c1 = c2]
-			COMP_NOT_EQUAL		[res: c1 <> c2]
-			COMP_STRICT_EQUAL	[res: c1 = c2]
-			COMP_LESSER			[res: c1 <  c2]
-			COMP_LESSER_EQUAL	[res: c1 <= c2]
-			COMP_GREATER		[res: c1 >  c2]
-			COMP_GREATER_EQUAL	[res: c1 >= c2]
-		]
-		res
+		SIGN_COMPARE_RESULT(c1 c2)
 	]
 	
 	match-bitset?: func [
@@ -697,7 +684,7 @@ string: context [
 			c1 = c2
 		][
 			either TYPE_OF(value) <> TYPE_STRING [no][	;-- @@ extend it to accept string! derivatives?
-				equal? str as red-string! value op yes
+				zero? equal? str as red-string! value op yes
 			]
 		]
 	]
@@ -1219,7 +1206,7 @@ string: context [
 		str1	  [red-string!]							;-- first operand
 		str2	  [red-string!]							;-- second operand
 		op		  [integer!]							;-- type of comparison
-		return:	  [logic!]
+		return:	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare"]]
 
@@ -1231,8 +1218,6 @@ string: context [
 			all [
 				op <> COMP_STRICT_EQUAL
 				TYPE_OF(str2) <> TYPE_STRING
-				TYPE_OF(str2) <> TYPE_FILE
-				TYPE_OF(str2) <> TYPE_URL
 			]
 		][RETURN_COMPARE_OTHER]
 		

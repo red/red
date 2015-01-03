@@ -221,6 +221,8 @@ Red/System [
 	COMP_LESSER_EQUAL
 	COMP_GREATER
 	COMP_GREATER_EQUAL
+	COMP_SORT
+	COMP_CASE_SORT
 ]
 
 #enum exceptions! [
@@ -338,16 +340,11 @@ Red/System [
 ]
 
 #define RETURN_COMPARE_OTHER [
-	return switch op [
+	return -2
+]
 
-		COMP_EQUAL
-		COMP_STRICT_EQUAL [false]
-		COMP_NOT_EQUAL 	  [true]
-		default [
-			--NOT_IMPLEMENTED--							;@@ add error handling
-			false
-		]
-	]
+#define SIGN_COMPARE_RESULT(a b) [
+	either a < b [-1][either a > b [1][0]]
 ]
 
 #if debug? = yes [

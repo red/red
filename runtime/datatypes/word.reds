@@ -256,32 +256,32 @@ word: context [
 		arg1	 [red-word!]							;-- first operand
 		arg2	 [red-word!]							;-- second operand
 		op		 [integer!]								;-- type of comparison
-		return:	 [logic!]
+		return:	 [integer!]
 		/local
 			type [integer!]
-			res	 [logic!]
+			res	 [integer!]
+			str1 [red-string!]
+			str2 [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "word/compare"]]
-
 		type: TYPE_OF(arg2)
+		unless any-word? type [RETURN_COMPARE_OTHER]	;@@ replace by ANY_WORD? when available
 		switch op [
-			COMP_EQUAL [
-				res: all [
-					any-word? type						;@@ replace by ANY_WORD? when available
-					EQUAL_WORDS?(arg1 arg2)
-				]
+			COMP_EQUAL
+			COMP_NOT_EQUAL [
+				res: as-integer not EQUAL_WORDS?(arg1 arg2)
 			]
 			COMP_STRICT_EQUAL [
-				res: all [
-					type = TYPE_WORD
-					arg1/symbol = arg2/symbol
+				res: as-integer any [
+					type <> TYPE_WORD
+					arg1/symbol <> arg2/symbol
 				]
 			]
-			COMP_NOT_EQUAL [
-				res: not compare arg1 arg2 COMP_EQUAL
-			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on any-word! value"]
+				s: GET_BUFFER(symbols)
+				str1: as red-string! s/offset + arg1/symbol - 1
+				str2: as red-string! s/offset + arg2/symbol - 1
+				res: string/equal? str1 str2 op no
 			]
 		]
 		res

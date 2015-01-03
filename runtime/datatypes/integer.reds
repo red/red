@@ -278,15 +278,20 @@ integer: context [
 		value1    [red-integer!]						;-- first operand
 		value2    [red-integer!]						;-- second operand
 		op	      [integer!]							;-- type of comparison
-		return:   [logic!]
+		return:   [integer!]
 		/local
 			char  [red-char!]
 			f	  [red-float!]
 			left  [integer!]
 			right [integer!] 
-			res	  [logic!]
+			res	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/compare"]]
+
+		if all [
+			op = COMP_STRICT_EQUAL
+			TYPE_OF(value2) <> TYPE_INTEGER
+		][return 1]
 		
 		left: value1/value
 		
@@ -308,16 +313,7 @@ integer: context [
 			]
 			default [RETURN_COMPARE_OTHER]
 		]
-		switch op [
-			COMP_EQUAL 			[res: left = right]
-			COMP_NOT_EQUAL 		[res: left <> right]
-			COMP_STRICT_EQUAL	[res: all [TYPE_OF(value2) = TYPE_INTEGER left = right]]
-			COMP_LESSER			[res: left <  right]
-			COMP_LESSER_EQUAL	[res: left <= right]
-			COMP_GREATER		[res: left >  right]
-			COMP_GREATER_EQUAL	[res: left >= right]
-		]
-		res
+		SIGN_COMPARE_RESULT(left right)
 	]
 	
 	complement: func [

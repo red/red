@@ -498,14 +498,19 @@ float: context [
 		value1    [red-float!]						;-- first operand
 		value2    [red-float!]						;-- second operand
 		op	      [integer!]						;-- type of comparison
-		return:   [logic!]
+		return:   [integer!]
 		/local
 			int   [red-integer!]
 			left  [float!]
 			right [float!] 
-			res	  [logic!]
+			res	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/compare"]]
+
+		if all [
+			op = COMP_STRICT_EQUAL
+			TYPE_OF(value2) <> TYPE_FLOAT
+		][return 1]
 
 		left: value1/value
 
@@ -519,13 +524,11 @@ float: context [
 			default [RETURN_COMPARE_OTHER]
 		]
 		switch op [
-			COMP_EQUAL 			[res: almost-equal left right]
-			COMP_NOT_EQUAL 		[res: not almost-equal left right]
-			COMP_STRICT_EQUAL	[res: all [TYPE_OF(value2) = TYPE_FLOAT left = right]]
-			COMP_LESSER			[res: left <  right]
-			COMP_LESSER_EQUAL	[res: left <= right]
-			COMP_GREATER		[res: left >  right]
-			COMP_GREATER_EQUAL	[res: left >= right]
+			COMP_EQUAL
+			COMP_NOT_EQUAL 	[res: as-integer not almost-equal left right]
+			default [
+				res: SIGN_COMPARE_RESULT(left right)
+			]
 		]
 		res
 	]
