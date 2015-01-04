@@ -83,6 +83,7 @@ write %build/bin/sources.r set-cache [
 			%string.reds
 			%structures.reds
 			%symbol.reds
+			%typeset.reds
 			%unset.reds
 			%url.reds
 			%word.reds

@@ -241,3 +241,10 @@ red-float32!: alias struct! [
 	value	[float32!]								;-- 32-bit float value
 	_pad	[integer!]
 ]
+
+red-typeset!: alias struct! [
+	header  [integer!]								;-- cell header
+	array1  [integer!]
+	array2  [integer!]
+	array3  [integer!]
+]
