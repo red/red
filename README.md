@@ -35,9 +35,9 @@ The Red toolchain comes as a single **half-megabyte** executable file that you c
         
 7. Want to cross-compile to another supported platform?
 
-        $ red -t Windows hello.red
-        $ red -t Darwin hello.red
-        $ red -t Linux-ARM hello.red
+        $ red -c -t Windows hello.red
+        $ red -c -t Darwin hello.red
+        $ red -c -t Linux-ARM hello.red
 
 **The command-line options are:**
 
