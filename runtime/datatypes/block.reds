@@ -1047,13 +1047,16 @@ block: context [
 		flags	 [integer!]
 		return:  [integer!]
 		/local
-			action-compare offset res
+			action-compare offset res temp
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare-value"]]
 
 		offset: flags >>> 1
 		value1: value1 + offset
 		value2: value2 + offset
+		if flags and sort-reverse-mask = sort-reverse-mask [
+			temp: value1 value1: value2 value2: temp
+		]
 		action-compare: as function! [
 			value1  [red-value!]						;-- first operand
 			value2  [red-value!]						;-- second operand
@@ -1061,14 +1064,8 @@ block: context [
 			return: [integer!]
 		] actions/get-action-ptr value1 ACT_COMPARE
 
-		flags: flags and sort-reverse-mask
-		either zero? flags [
-			res: action-compare value1 value2 op
-			if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
-		][												;-- reverse block
-			res: action-compare value2 value1 op
-			if res = -2 [res: TYPE_OF(value2) - TYPE_OF(value1)]
-		]
+		res: action-compare value1 value2 op
+		if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
 		res
 	]
 
@@ -1129,14 +1126,14 @@ block: context [
 			]
 			TYPE_INTEGER [
 				int: as red-integer! res
-				int/value
+				negate int/value
 			]
 			TYPE_FLOAT [
 				d: as red-float! res
 				case [
-					d/value > 0.0 [1]
-					d/value < 0.0 [0]
-					true [-1]
+					d/value > 0.0 [-1]
+					d/value < 0.0 [1]
+					true [0]
 				]
 			]
 			TYPE_NONE [-1]
