@@ -129,15 +129,24 @@ system/console: context [
 		]
 
 		forever [
-			unless tail? line: ask any [cue prompt][
-				append buffer line
-				cnt: count-delimiters buffer
-				append buffer lf							;-- needed for multiline modes
+			line: ask any [cue prompt]
+			
+			unless tail? line [
+				either all [not empty? line escape = last line][
+					cue: none
+					clear buffer
+					mode: 'mono							;-- force exit from multiline mode
+					print "(escape)"
+				][
+					append buffer line
+					cnt: count-delimiters buffer
+					append buffer lf					;-- needed for multiline modes
 
-				switch mode [
-					block  [if cnt/1 <= 0 [do switch-mode]]
-					string [if cnt/2 <= 0 [do switch-mode]]
-					mono   [do either any [cnt/1 > 0 cnt/2 > 0][switch-mode][eval]]
+					switch mode [
+						block  [if cnt/1 <= 0 [do switch-mode]]
+						string [if cnt/2 <= 0 [do switch-mode]]
+						mono   [do either any [cnt/1 > 0 cnt/2 > 0][switch-mode][eval]]
+					]
 				]
 			]
 		]

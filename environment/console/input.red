@@ -118,6 +118,7 @@ default-input-completer: func [
 			KEY_DELETE:		-27
 			KEY_PAGE_UP:	-28
 			KEY_PAGE_DOWN:	-29
+			KEY_ESC:		-30
 		]
 
 		#define KEY_CTRL_A		1
@@ -136,6 +137,7 @@ default-input-completer: func [
 		#define KEY_CTRL_T		20
 		#define KEY_CTRL_U		21
 		#define KEY_CTRL_W		23
+		#define KEY_ESCAPE		27
 		#define KEY_BACKSPACE	127
 		
 		#include %wcwidth.reds
@@ -442,6 +444,10 @@ default-input-completer: func [
 						]
 					]
 					KEY_CTRL_D [halt]
+					KEY_ESCAPE [
+						string/append-char GET_BUFFER(line) c
+						exit
+					]
 					default [
 						if c > 31 [
 							either string/rs-tail? line [
