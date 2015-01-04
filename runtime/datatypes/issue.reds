@@ -70,7 +70,7 @@ issue: context [
 		arg1	[red-word!]								;-- first operand
 		arg2	[red-word!]								;-- second operand
 		op		[integer!]								;-- type of comparison
-		return:	[logic!]
+		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "issue/compare"]]
 

@@ -552,7 +552,7 @@ string: context [
 		str2	  [red-string!]							;-- second operand
 		op		  [integer!]							;-- type of comparison
 		match?	  [logic!]								;-- match str2 within str1 (sizes matter less)
-		return:	  [logic!]
+		return:	  [integer!]
 		/local
 			s1	  [series!]
 			s2	  [series!]
@@ -567,7 +567,6 @@ string: context [
 			c1	  [integer!]
 			c2	  [integer!]
 			lax?  [logic!]
-			res	  [logic!]
 	][
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
@@ -577,27 +576,24 @@ string: context [
 
 		either match? [
 			if zero? size2 [
-				return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
 			]
+			end: as byte-ptr! s2/tail						;-- only one "end" is needed
 		][
 			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
 
 			either size1 <> size2 [							;-- shortcut exit for different sizes
-				if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
-				if op = COMP_NOT_EQUAL [return true]
+				if any [
+					op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+				][return 1]
 			][
-				if zero? size1 [							;-- shortcut exit for empty strings
-					return any [
-						op = COMP_EQUAL 		op = COMP_STRICT_EQUAL
-						op = COMP_LESSER_EQUAL  op = COMP_GREATER_EQUAL
-					]
-				]
+				if zero? size1 [return 0]					;-- shortcut exit for empty strings
 			]
+			end: (as byte-ptr! s2/tail) + unit2				;-- only one "end" is needed
 		]
-		end: as byte-ptr! s2/tail						;-- only one "end" is needed
 		p1:  (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
 		p2:  (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
-		lax?: op <> COMP_STRICT_EQUAL
+		lax?: all [op <> COMP_STRICT_EQUAL op <> COMP_CASE_SORT]
 		
 		until [	
 			switch unit1 [
@@ -621,16 +617,7 @@ string: context [
 				p2 >= end
 			]
 		]
-		switch op [
-			COMP_EQUAL			[res: c1 = c2]
-			COMP_NOT_EQUAL		[res: c1 <> c2]
-			COMP_STRICT_EQUAL	[res: c1 = c2]
-			COMP_LESSER			[res: c1 <  c2]
-			COMP_LESSER_EQUAL	[res: c1 <= c2]
-			COMP_GREATER		[res: c1 >  c2]
-			COMP_GREATER_EQUAL	[res: c1 >= c2]
-		]
-		res
+		SIGN_COMPARE_RESULT(c1 c2)
 	]
 	
 	match-bitset?: func [
@@ -697,7 +684,7 @@ string: context [
 			c1 = c2
 		][
 			either TYPE_OF(value) <> TYPE_STRING [no][	;-- @@ extend it to accept string! derivatives?
-				equal? str as red-string! value op yes
+				zero? equal? str as red-string! value op yes
 			]
 		]
 	]
@@ -1219,7 +1206,7 @@ string: context [
 		str1	  [red-string!]							;-- first operand
 		str2	  [red-string!]							;-- second operand
 		op		  [integer!]							;-- type of comparison
-		return:	  [logic!]
+		return:	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare"]]
 
@@ -1231,15 +1218,72 @@ string: context [
 			all [
 				op <> COMP_STRICT_EQUAL
 				TYPE_OF(str2) <> TYPE_STRING
-				TYPE_OF(str2) <> TYPE_FILE
-				TYPE_OF(str2) <> TYPE_URL
 			]
 		][RETURN_COMPARE_OTHER]
 		
 		equal? str1 str2 op no							;-- match?: no
 	]
 
-	
+	compare-Latin1: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		return: [integer!]
+		/local
+			c1	[integer!]
+			c2	[integer!]
+	][
+		c1: as-integer p1/1
+		c2: as-integer p2/1
+		if op = COMP_EQUAL [
+			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
+			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+		]
+		either zero? flags [c1 - c2][c2 - c1]
+	]
+
+	compare-UCS2: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		return: [integer!]
+		/local
+			c1	[integer!]
+			c2	[integer!]
+	][
+		c1: (as-integer p1/2) << 8 + p1/1
+		c2: (as-integer p2/2) << 8 + p2/1
+		if op = COMP_EQUAL [
+			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
+			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+		]
+		either zero? flags [c1 - c2][c2 - c1]
+	]
+
+	compare-UCS4: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		return: [integer!]
+		/local
+			c1	[integer!]
+			c2	[integer!]
+			p4  [int-ptr!]
+	][
+		p4: as int-ptr! p1
+		c1: p4/1
+		p4: as int-ptr! p2
+		c2: p4/1
+		if op = COMP_EQUAL [
+			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
+			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+		]
+		either zero? flags [c1 - c2][c2 - c1]
+	]
+
 	;--- Property reading actions ---
 
 	head?: func [
@@ -1666,7 +1710,92 @@ string: context [
 		]
 		result
 	]
-	
+
+	sort: func [
+		str			[red-string!]
+		case?		[logic!]
+		skip		[red-integer!]
+		compare		[red-function!]
+		part		[red-value!]
+		all?		[logic!]
+		reverse?	[logic!]
+		return:		[red-string!]
+		/local
+			s		[series!]
+			end		[byte-ptr!]
+			buffer	[byte-ptr!]
+			unit	[integer!]
+			cmp		[integer!]
+			len		[integer!]
+			len2	[integer!]
+			step	[integer!]
+			int		[red-integer!]
+			str2	[red-string!]
+			op		[integer!]
+			flags	[integer!]
+			mult	[integer!]
+	][
+		step: 1
+		s: GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		mult: unit >> 1
+		buffer: (as byte-ptr! s/offset) + (str/head << mult)
+		end: as byte-ptr! s/tail
+		len: (as-integer end - buffer) >> mult
+
+		if OPTION?(part) [
+			len2: either TYPE_OF(part) = TYPE_INTEGER [
+				int: as red-integer! part
+				int/value
+			][
+				str2: as red-string! part
+				unless all [
+					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
+					str2/node = str/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				str2/head - str/head
+			]
+			if len2 < len [
+				len: len2
+				if negative? len2 [
+					str2: str
+					str: declare red-string!
+					copy-cell as cell! str2 (as cell! str)
+					len2: negate len2
+					str/head: str/head - len2
+					len: either negative? str/head [str/head: 0 0][len2]
+					buffer: buffer - (len << mult)
+				]
+			]
+		]
+
+		if OPTION?(skip) [
+			assert TYPE_OF(skip) = TYPE_INTEGER
+			step: skip/value
+			if any [
+				step <= 0
+				len % step <> 0
+				step > len
+			][
+				print "*** Error: invalid /skip series argument"	;@@ replace with error!
+				halt
+			]
+			if step > 1 [len: len / step]
+		]
+		cmp: switch unit [
+			Latin1 [as-integer :compare-Latin1]
+			UCS-2  [as-integer :compare-UCS2]
+			UCS-4  [as-integer :compare-UCS4]
+		]
+		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		flags: either reverse? [SORT_REVERSE][SORT_NORMAL]
+		_qsort/sort buffer len unit * step op flags cmp
+		str
+	]
+
 	;--- Reading actions ---
 
 	pick: func [
@@ -1846,6 +1975,7 @@ string: context [
 
 		s: GET_BUFFER(str)
 		s/tail: as cell! (as byte-ptr! s/offset) + (str/head << (GET_UNIT(s) >> 1))	
+		add-terminal-NUL as byte-ptr! s/tail GET_UNIT(s)
 		as red-value! str
 	]
 
@@ -1935,6 +2065,7 @@ string: context [
 				as-integer tail - (head + part) + unit ;-- size including trailing NUL
 		]
 		s/tail: as red-value! tail - part
+		add-terminal-NUL as byte-ptr! s/tail GET_UNIT(s)
 		str
 	]
 
@@ -2462,7 +2593,7 @@ string: context [
 			:remove
 			:reverse
 			:select
-			null			;sort
+			:sort
 			:skip
 			:swap
 			:tail

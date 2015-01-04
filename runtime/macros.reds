@@ -17,8 +17,13 @@ Red/System [
 	TYPE_NONE
 	TYPE_LOGIC
 	TYPE_BLOCK
+	TYPE_PAREN
 	TYPE_STRING
+	TYPE_FILE
+	TYPE_URL
+	TYPE_CHAR
 	TYPE_INTEGER
+	TYPE_FLOAT
 	TYPE_SYMBOL
 	TYPE_CONTEXT
 	TYPE_WORD
@@ -26,7 +31,7 @@ Red/System [
 	TYPE_LIT_WORD
 	TYPE_GET_WORD
 	TYPE_REFINEMENT
-	TYPE_CHAR
+	TYPE_ISSUE
 	TYPE_NATIVE
 	TYPE_ACTION
 	TYPE_OP
@@ -35,15 +40,10 @@ Red/System [
 	TYPE_LIT_PATH
 	TYPE_SET_PATH
 	TYPE_GET_PATH
-	TYPE_PAREN
 	TYPE_ROUTINE
-	TYPE_ISSUE
-	TYPE_FILE
-	TYPE_URL
 	TYPE_BITSET
 	TYPE_POINT
 	TYPE_OBJECT
-	TYPE_FLOAT
 	TYPE_BINARY
 	
 	TYPE_TYPESET
@@ -222,6 +222,8 @@ Red/System [
 	COMP_LESSER_EQUAL
 	COMP_GREATER
 	COMP_GREATER_EQUAL
+	COMP_SORT
+	COMP_CASE_SORT
 ]
 
 #enum exceptions! [
@@ -339,16 +341,11 @@ Red/System [
 ]
 
 #define RETURN_COMPARE_OTHER [
-	return switch op [
+	return -2
+]
 
-		COMP_EQUAL
-		COMP_STRICT_EQUAL [false]
-		COMP_NOT_EQUAL 	  [true]
-		default [
-			--NOT_IMPLEMENTED--							;@@ add error handling
-			false
-		]
-	]
+#define SIGN_COMPARE_RESULT(a b) [
+	either a < b [-1][either a > b [1][0]]
 ]
 
 #if debug? = yes [

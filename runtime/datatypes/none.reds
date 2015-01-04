@@ -99,20 +99,24 @@ none: context [
 		arg1      [red-none!]							;-- first operand
 		arg2	  [red-none!]							;-- second operand
 		op	      [integer!]							;-- type of comparison
-		return:   [logic!]
+		return:   [integer!]
 		/local
 			type  [integer!]
-			res	  [logic!]
+			res	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "none/compare"]]
 
 		type: TYPE_OF(arg2)
+		if type <> TYPE_NONE [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL 
-			COMP_STRICT_EQUAL [res: type =  TYPE_NONE]
-			COMP_NOT_EQUAL	  [res: type <> TYPE_NONE]
+			COMP_STRICT_EQUAL
+			COMP_NOT_EQUAL [res: as-integer type <> TYPE_NONE]
+			COMP_SORT
+			COMP_CASE_SORT [res: 0]
 			default [
 				print-line ["Error: cannot use: " op " comparison on none! value"]
+				res: -2
 			]
 		]
 		res

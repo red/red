@@ -754,7 +754,7 @@ object: context [
 		obj1	[red-object!]							;-- first operand
 		obj2	[red-object!]							;-- second operand
 		op		[integer!]								;-- type of comparison
-		return:	[logic!]
+		return:	[integer!]
 		/local
 			ctx1   [red-context!]
 			ctx2   [red-context!]
@@ -769,7 +769,7 @@ object: context [
 			s2	   [integer!]
 			type1  [integer!]
 			type2  [integer!]
-			res	   [logic!]
+			res	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/compare"]]
 
@@ -782,30 +782,13 @@ object: context [
 		
 		ctx2: GET_CTX(obj2)
 		s: as series! ctx2/symbols/value
-		
+
 		diff: (as-integer s/tail - s/offset) - (as-integer tail - sym1)
 		if diff <> 0 [
-			switch op [
-				COMP_EQUAL
-				COMP_STRICT_EQUAL  [res: false]
-				COMP_NOT_EQUAL 	   [res: true]
-				COMP_LESSER
-				COMP_LESSER_EQUAL  [res: diff > 0]
-				COMP_GREATER
-				COMP_GREATER_EQUAL [res: diff < 0]
-			]
-			return res
+			return either positive? diff [-1][1]
 		]	
 		if zero? (as-integer tail - sym1) [			;-- empty objects case
-			switch op [
-				COMP_EQUAL
-				COMP_STRICT_EQUAL
-				COMP_LESSER_EQUAL
-				COMP_GREATER_EQUAL [res: true]
-				COMP_NOT_EQUAL 	   [res: false]
-				default 		   [res: false]
-			]
-			return res
+			return 0
 		]
 		
 		sym2: as red-word! s/offset
@@ -818,41 +801,28 @@ object: context [
 			s1: symbol/resolve sym1/symbol
 			s2: symbol/resolve sym2/symbol
 			if s1 <> s2 [
-				switch op [
-					COMP_EQUAL
-					COMP_STRICT_EQUAL  [res: false]
-					COMP_NOT_EQUAL 	   [res: true]
-					COMP_LESSER
-					COMP_LESSER_EQUAL  [res: s1 < s2]
-					COMP_GREATER
-					COMP_GREATER_EQUAL [res: s1 > s2]
-				]
-				return res
+				return SIGN_COMPARE_RESULT(s1 s2)
 			]
 			type1: TYPE_OF(value1)
 			type2: TYPE_OF(value2)
 			either any [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
-				all [type1 = TYPE_INTEGER type2 = TYPE_INTEGER]	 ;@@ replace by ANY_NUMBER?
+				all [											;@@ replace by ANY_NUMBER?
+					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT]
+					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
+				]
 			][
-				res: actions/compare value1 value2 op
+				res: actions/compare-value value1 value2 op
 				sym1: sym1 + 1
 				sym2: sym2 + 2
 				value1: value1 + 1
 				value2: value2 + 1
 			][
-				switch op [
-					COMP_EQUAL
-					COMP_STRICT_EQUAL	[res: false]
-					COMP_NOT_EQUAL 		[res: true]
-					COMP_LESSER_EQUAL	[res: type1 <= type2]
-					COMP_GREATER_EQUAL	[res: type1 >= type2]
-				]
-				return res
+				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			any [
-				not res
+				res <> 0
 				sym1 >= tail
 			]
 		]

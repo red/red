@@ -424,7 +424,7 @@ block: context [
 		blk1	   [red-block!]							;-- first operand
 		blk2	   [red-block!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
-		return:	   [logic!]
+		return:	   [integer!]
 		/local
 			s1	   [series!]
 			s2	   [series!]
@@ -435,31 +435,24 @@ block: context [
 			end	   [red-value!]
 			value1 [red-value!]
 			value2 [red-value!]
-			res	   [logic!]
+			res	   [integer!]
 	][
 		s1: GET_BUFFER(blk1)
 		s2: GET_BUFFER(blk2)
 		size1: (as-integer s1/tail - s1/offset) >> 4 - blk1/head
 		size2: (as-integer s2/tail - s2/offset) >> 4 - blk2/head
 
-		either size1 <> size2 [								;-- shortcut exit for different sizes
-			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
-			if op = COMP_NOT_EQUAL [return true]
-		][
-			if zero? size1 [								;-- shortcut exit for empty blocks
-				return any [
-					op = COMP_EQUAL 		op = COMP_STRICT_EQUAL
-					op = COMP_LESSER_EQUAL  op = COMP_GREATER_EQUAL
-				]
-			]
+		if size1 <> size2 [										;-- shortcut exit for different sizes
+			if any [
+				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+			][return 1]
 		]
 
-		if op = COMP_LESSER [op: COMP_LESSER_EQUAL]
-		if op = COMP_GREATER [op: COMP_GREATER_EQUAL]
+		if zero? size1 [return 0]								;-- shortcut exit for empty blocks
 
 		value1: s1/offset + blk1/head
 		value2: s2/offset + blk2/head
-		end: s1/tail										;-- only one "end" is needed
+		end: s1/tail											;-- only one "end" is needed
 
 		until [
 			type1: TYPE_OF(value1)
@@ -467,23 +460,19 @@ block: context [
 			either any [
 				type1 = type2
 				all [word/any-word? type1 word/any-word? type2]
-				all [type1 = TYPE_INTEGER type2 = TYPE_INTEGER]	 ;@@ replace by ANY_NUMBER?
+				all [											;@@ replace by ANY_NUMBER?
+					any [type1 = TYPE_INTEGER type1 = TYPE_FLOAT]
+					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
+				]
 			][
-				res: actions/compare value1 value2 op
+				res: actions/compare-value value1 value2 op
 				value1: value1 + 1
 				value2: value2 + 1
 			][
-				switch op [
-					COMP_EQUAL
-					COMP_STRICT_EQUAL	[res: false]
-					COMP_NOT_EQUAL 		[res: true]
-					COMP_LESSER_EQUAL	[res: type1 <= type2]
-					COMP_GREATER_EQUAL	[res: type1 >= type2]
-				]
-				return res
+				return SIGN_COMPARE_RESULT(type1 type2)
 			]
 			any [
-				not res
+				res <> 0
 				value1 >= end
 			]
 		]
@@ -645,7 +634,7 @@ block: context [
 		blk1	   [red-block!]							;-- first operand
 		blk2	   [red-block!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
-		return:	   [logic!]
+		return:	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/compare"]]
 		
@@ -1049,6 +1038,218 @@ block: context [
 			]
 		]
 		result
+	]
+
+	compare-value: func [								;-- Compare function return integer!
+		value1   [red-value!]
+		value2   [red-value!]
+		op		 [integer!]
+		flags	 [integer!]
+		return:  [integer!]
+		/local
+			action-compare offset res temp
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/compare-value"]]
+
+		offset: flags >>> 1
+		value1: value1 + offset
+		value2: value2 + offset
+		if flags and sort-reverse-mask = sort-reverse-mask [
+			temp: value1 value1: value2 value2: temp
+		]
+		action-compare: as function! [
+			value1  [red-value!]						;-- first operand
+			value2  [red-value!]						;-- second operand
+			op	    [integer!]							;-- type of comparison
+			return: [integer!]
+		] actions/get-action-ptr value1 ACT_COMPARE
+
+		res: action-compare value1 value2 op
+		if res = -2 [res: TYPE_OF(value1) - TYPE_OF(value2)]
+		res
+	]
+
+	compare-call: func [								;-- Wrap red function!
+		value1   [red-value!]
+		value2   [red-value!]
+		fun		 [integer!]
+		flags	 [integer!]
+		return:  [integer!]
+		/local
+			res  [red-value!]
+			bool [red-logic!]
+			int  [red-integer!]
+			d    [red-float!]
+			all? [logic!]
+			num  [integer!]
+			blk1 [red-block!]
+			blk2 [red-block!]
+			s1   [series!]
+			s2   [series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "block/compare-call"]]
+
+		stack/mark-func words/_body						;@@ find something more adequate
+
+		all?: flags and sort-all-mask = sort-all-mask
+		if all? [
+			num: flags >>> 2
+			blk1: make-at as red-block! ALLOC_TAIL(root) num
+			blk2: make-at as red-block! ALLOC_TAIL(root) num
+			s1: GET_BUFFER(blk1)
+			s2: GET_BUFFER(blk2)
+			copy-memory as byte-ptr! s1/offset as byte-ptr! value1 num << 4
+			copy-memory as byte-ptr! s2/offset as byte-ptr! value2 num << 4
+			s1/tail: s1/tail + num
+			s2/tail: s2/tail + num
+			value1: as red-value! blk1
+			value2: as red-value! blk2
+		]
+
+		flags: flags and sort-reverse-mask
+		either zero? flags [
+			stack/push value2
+			stack/push value1
+		][
+			stack/push value1
+			stack/push value2
+		]
+		_function/call as red-function! fun global-ctx	;FIXME: hardcoded origin context
+		stack/unwind
+		stack/pop 1
+
+		res: stack/top
+		switch TYPE_OF(res) [
+			TYPE_LOGIC [
+				bool: as red-logic! res
+				either bool/value [1][-1]
+			]
+			TYPE_INTEGER [
+				int: as red-integer! res
+				negate int/value
+			]
+			TYPE_FLOAT [
+				d: as red-float! res
+				case [
+					d/value > 0.0 [-1]
+					d/value < 0.0 [1]
+					true [0]
+				]
+			]
+			TYPE_NONE [-1]
+			default [1]
+		]
+	]
+
+	sort: func [
+		blk			[red-block!]
+		case?		[logic!]
+		skip		[red-integer!]
+		comparator	[red-function!]
+		part		[red-value!]
+		all?		[logic!]
+		reverse?	[logic!]
+		return:		[red-block!]
+		/local
+			s		[series!]
+			head	[red-value!]
+			cmp		[integer!]
+			len		[integer!]
+			len2	[integer!]
+			step	[integer!]
+			int		[red-integer!]
+			blk2	[red-block!]
+			fun		[red-function!]
+			op		[integer!]
+			flags	[integer!]
+			offset	[integer!]
+	][
+		step: 1
+		flags: 0
+		s: GET_BUFFER(blk)
+		head: s/offset + blk/head
+		if head = s/tail [return blk]					;-- early exit if nothing to reverse
+		len: rs-length? blk
+
+		if OPTION?(part) [
+			len2: either TYPE_OF(part) = TYPE_INTEGER [
+				int: as red-integer! part
+				if int/value <= 0 [return blk]			;-- early exit if part <= 0
+				int/value
+			][
+				blk2: as red-block! part
+				unless all [
+					TYPE_OF(blk2) = TYPE_OF(blk)		;-- handles ANY-STRING!
+					blk2/node = blk/node
+				][
+					print "*** Error: invalid /part series argument"	;@@ replace with error!
+					halt
+				]
+				blk2/head - blk/head
+			]
+			if len2 < len [
+				len: len2
+				if negative? len2 [
+					blk2: blk
+					blk: declare red-block!
+					copy-cell as cell! blk2 (as cell! blk)
+					len2: negate len2
+					blk/head: blk/head - len2
+					len: either negative? blk/head [blk/head: 0 0][len2]
+					head: head - len
+				]
+			]
+		]
+
+		if OPTION?(skip) [
+			assert TYPE_OF(skip) = TYPE_INTEGER
+			step: skip/value
+			if any [
+				step <= 0
+				len % step <> 0
+				step > len
+			][
+				print "*** Error: invalid /skip series argument"	;@@ replace with error!
+				halt
+			]
+			if step > 1 [len: len / step]
+		]
+
+		if reverse? [flags: flags or sort-reverse-mask]
+		op: either case? [COMP_CASE_SORT][COMP_SORT]
+		cmp: as-integer :compare-value
+
+		if OPTION?(comparator) [
+			switch TYPE_OF(comparator) [
+				TYPE_FUNCTION [
+					if all [all? OPTION?(skip)] [
+						flags: flags or sort-all-mask
+						flags: step << 2 or flags
+					]
+					cmp: as-integer :compare-call
+					op: as-integer comparator
+				]
+				TYPE_INTEGER [
+					int: as red-integer! comparator
+					offset: int/value
+					if any [offset < 1 offset > step][
+						print "*** Error: invalid /compare argument"	;@@ replace with error!
+						halt
+					]
+					flags: offset - 1 << 1 or flags
+				]
+				TYPE_BLOCK [
+					blk2: as red-block! part
+					;TBD handles block! value
+				]
+				default [
+					print "*** Error: invalid /compare argument"	;@@ replace with error!
+					halt
+				]
+			]
+		]
+		_qsort/sort as byte-ptr! head len step * (size? red-value!) op flags cmp
+		blk
 	]
 	
 	;--- Reading actions ---
@@ -1645,7 +1846,7 @@ block: context [
 			:remove
 			:reverse
 			:select
-			null			;sort
+			:sort
 			:skip
 			:swap
 			:tail

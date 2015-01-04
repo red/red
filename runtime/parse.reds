@@ -305,7 +305,7 @@ parser: context [
 					unit:  unit >> 1
 					
 					until [
-						if string/equal? as red-string! input as red-string! token comp-op yes [
+						if zero? string/equal? as red-string! input as red-string! token comp-op yes [
 							return adjust-input-index input pos* size 0
 						]
 						input/head: input/head + 1

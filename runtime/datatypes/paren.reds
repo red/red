@@ -78,7 +78,7 @@ paren: context [
 		value1	   [red-paren!]							;-- first operand
 		value2	   [red-paren!]							;-- second operand
 		op		   [integer!]							;-- type of comparison
-		return:	   [logic!]
+		return:	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "paren/compare"]]
 

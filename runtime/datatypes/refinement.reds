@@ -101,12 +101,15 @@ refinement: context [
 		arg1	[red-word!]								;-- first operand
 		arg2	[red-word!]								;-- second operand
 		op		[integer!]								;-- type of comparison
-		return:	[logic!]
+		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "refinement/compare"]]
 
 		either op = COMP_STRICT_EQUAL [
-			all [TYPE_OF(arg2) = TYPE_REFINEMENT arg1/symbol = arg2/symbol]
+			as-integer any [
+				TYPE_OF(arg2) <> TYPE_REFINEMENT
+				arg1/symbol <> arg2/symbol
+			]
 		][
 			word/compare arg1 arg2 op
 		]

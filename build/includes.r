@@ -45,6 +45,7 @@ write %build/bin/sources.r set-cache [
 		%parse.reds
 		%random.reds
 		%red.reds
+		%sort.reds
 		%stack.reds
 		%stack.reds
 		%tools.reds

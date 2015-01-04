@@ -375,18 +375,70 @@ actions: context [
 		op	    [comparison-op!]
 		return: [logic!]
 		/local
-			action-compare
+			action-compare value res
 	][
 		#if debug? = yes [if verbose > 0 [print-line "actions/compare"]]
-		
+
 		action-compare: as function! [
 			value1  [red-value!]						;-- first operand
 			value2  [red-value!]						;-- second operand
 			op	    [integer!]							;-- type of comparison
-			return: [logic!]
+			return: [integer!]
 		] get-action-ptr value1 ACT_COMPARE
 		
-		action-compare value1 value2 op
+		value: action-compare value1 value2 op
+		if value = -2 [
+			switch op [
+				COMP_EQUAL
+				COMP_STRICT_EQUAL [value]
+				COMP_NOT_EQUAL 	  [value: 0]
+				default [
+					--NOT_IMPLEMENTED--					;@@ add error handling
+					value
+				]
+			]
+		]
+		switch op [
+			COMP_EQUAL
+			COMP_STRICT_EQUAL 	[res: value = 0]
+			COMP_NOT_EQUAL 		[res: value <> 0]
+			COMP_LESSER			[res: value < 0]
+			COMP_LESSER_EQUAL	[res: value <= 0]
+			COMP_GREATER		[res: value > 0]
+			COMP_GREATER_EQUAL	[res: value >= 0]
+		]
+		res
+	]
+
+	compare-value: func [								;-- Compare function return integer!
+		value1  [red-value!]
+		value2  [red-value!]
+		op		[comparison-op!]
+		return: [integer!]
+		/local
+			action-compare res
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/compare-value"]]
+
+		action-compare: as function! [
+			value1  [red-value!]						;-- first operand
+			value2  [red-value!]						;-- second operand
+			op	    [integer!]							;-- type of comparison
+			return: [integer!]
+		] get-action-ptr value1 ACT_COMPARE
+
+		switch TYPE_OF(value1) [
+			TYPE_LOGIC	 [res: value1/data1 - value2/data1]
+			TYPE_NATIVE
+			TYPE_ACTION
+			TYPE_FUNCTION
+			TYPE_OP
+			TYPE_ROUTINE [res: SIGN_COMPARE_RESULT(value1/data3 value2/data3)]
+			TYPE_NONE
+			TYPE_UNSET	 [res: 0]
+			default		 [res: action-compare value1 value2 op]
+		]
+		res
 	]
 	
 	absolute*: func [
@@ -1130,8 +1182,53 @@ actions: context [
 		action-select series value part only? case? any? with-arg skip last? reverse?
 	]
 	
-	sort*: func [][]
-	
+	sort*: func [
+		case-arg [integer!]
+		skip-arg [integer!]
+		compare  [integer!]
+		part	 [integer!]
+		all-arg  [integer!]
+		reverse	 [integer!]
+	][
+		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
+		stack/set-last sort
+			as red-series!   stack/arguments
+			as logic!		 case-arg + 1
+			as red-integer!  stack/arguments + skip-arg
+			as red-function! stack/arguments + compare
+			stack/arguments + part
+			as logic! all-arg + 1
+			as logic! reverse + 1
+	]
+
+	sort: func [
+		series   [red-series!]
+		case?    [logic!]
+		skip	 [red-integer!]
+		compare	 [red-function!]
+		part	 [red-value!]
+		all?	 [logic!]
+		reverse? [logic!]
+		return:  [red-value!]
+		/local
+			action-sort
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/sort"]]
+
+		action-sort: as function! [
+			series   [red-series!]
+			case?    [logic!]
+			skip	 [red-integer!]
+			compare	 [red-function!]
+			part	 [red-value!]
+			all?	 [logic!]
+			reverse? [logic!]
+			return:  [red-value!]
+		] get-action-ptr as red-value! series ACT_SORT
+
+		action-sort series case? skip compare part all? reverse?
+	]
+
 	skip*: func [
 		return:	[red-value!]
 		/local
@@ -1342,7 +1439,7 @@ actions: context [
 			:remove*
 			:reverse*
 			:select*
-			null			;sort
+			:sort*
 			:skip*
 			:swap*
 			:tail*

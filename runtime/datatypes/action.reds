@@ -96,6 +96,35 @@ action: context [
 		part - 1
 	]
 
+	compare: func [
+		arg1	[red-action!]							;-- first operand
+		arg2	[red-action!]							;-- second operand
+		op		[integer!]								;-- type of comparison
+		return:	[integer!]
+		/local
+			type  [integer!]
+			res	  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "action/compare"]]
+
+		type: TYPE_OF(arg2)
+		if type <> TYPE_ACTION [RETURN_COMPARE_OTHER]
+		switch op [
+			COMP_EQUAL
+			COMP_STRICT_EQUAL
+			COMP_NOT_EQUAL
+			COMP_SORT
+			COMP_CASE_SORT [
+				res: SIGN_COMPARE_RESULT(arg1/code arg2/code)
+			]
+			default [
+				print-line ["Error: cannot use: " op " comparison on action! value"]
+				res: -2
+			]
+		]
+		res
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_ACTION
@@ -110,7 +139,7 @@ action: context [
 			:mold
 			null			;eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add

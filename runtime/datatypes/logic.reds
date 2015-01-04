@@ -184,20 +184,24 @@ logic: context [
 		arg1      [red-logic!]							;-- first operand
 		arg2	  [red-logic!]							;-- second operand
 		op	      [integer!]							;-- type of comparison
-		return:   [logic!]
+		return:   [integer!]
 		/local
 			type  [integer!]
-			res	  [logic!]
+			res	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "logic/compare"]]
 
 		type: TYPE_OF(arg2)
+		if type <> TYPE_LOGIC [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL 
-			COMP_STRICT_EQUAL [res: all [type = TYPE_LOGIC  arg1/value = arg2/value]]
-			COMP_NOT_EQUAL	  [res: any [type <> TYPE_LOGIC arg1/value <> arg2/value]]
+			COMP_STRICT_EQUAL
+			COMP_NOT_EQUAL
+			COMP_SORT
+			COMP_CASE_SORT [res: (as-integer arg1/value) - (as-integer arg2/value)]
 			default [
 				print-line ["Error: cannot use: " op " comparison on logic! value"]
+				res: -2
 			]
 		]
 		res

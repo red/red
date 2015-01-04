@@ -33,6 +33,7 @@ red: context [
 	#include %datatypes/structures.reds
 	#include %datatypes/common.reds
 	#include %unicode.reds
+	#include %sort.reds
 	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds

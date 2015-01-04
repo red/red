@@ -594,7 +594,7 @@ bitset: context [
 		bs1	   	[red-block!]							;-- first operand
 		bs2   	[red-block!]							;-- second operand
 		op		[integer!]								;-- type of comparison
-		return: [logic!]
+		return: [integer!]
 		/local
 			s1	  [series!]
 			s2	  [series!]
@@ -604,7 +604,6 @@ bitset: context [
 			size  [integer!]
 			not?  [logic!]
 			not2? [logic!]
-			res	  [logic!]
 			b1	  [byte!]
 			b2	  [byte!]
 	][
@@ -621,40 +620,17 @@ bitset: context [
 		p2:   as byte-ptr! s/tail
 		
 		if size <> s/size [
-			switch op [
-				COMP_EQUAL 			[res: false]
-				COMP_NOT_EQUAL 		[res: true]
-				COMP_STRICT_EQUAL	[res: false]
-				COMP_LESSER			[res: size <  s/size]
-				COMP_LESSER_EQUAL	[res: size <= s/size]
-				COMP_GREATER		[res: size >  s/size]
-				COMP_GREATER_EQUAL	[res: size >= s/size]
-			]
-			return res
-		]
-		not2?: FLAG_NOT?(s)
-		if not? <> not2? [
-			if any [op = COMP_EQUAL op = COMP_STRICT_EQUAL][return false]
-			if op = COMP_NOT_EQUAL [return true]
+			return SIGN_COMPARE_RESULT(size s/size)
 		]
 		if zero? size [									;-- shortcut exit for empty bitsets
-			return any [op = COMP_EQUAL op = COMP_STRICT_EQUAL]
+			return 0
 		]
-		if all [
-			op <> COMP_EQUAL
-			op <> COMP_NOT_EQUAL
-			op <> COMP_STRICT_EQUAL
-			any [not? not2?]							;-- lesser/greater with complemented and normal bitsets
-		][
-			switch op [
-				COMP_LESSER			[res: not? <  not2?]
-				COMP_LESSER_EQUAL	[res: not? <= not2?]
-				COMP_GREATER		[res: not? >  not2?]
-				COMP_GREATER_EQUAL	[res: not? >= not2?]
-			]
-			return res
+
+		not2?: FLAG_NOT?(s)
+		if not? <> not2? [
+			return SIGN_COMPARE_RESULT((as-integer not?) (as-integer not2?))
 		]
-		
+
 		until [											;-- bits difference search (starting from highest bits)
 			p: p - 1
 			p2: p2 - 1
@@ -662,17 +638,7 @@ bitset: context [
 		]
 		b1: p/value
 		b2: p2/value
-		
-		switch op [
-			COMP_EQUAL 			[res: b1 =  b2]
-			COMP_NOT_EQUAL 		[res: b1 <> b2]
-			COMP_STRICT_EQUAL	[res: b1 =  b2]
-			COMP_LESSER			[res: b1 <  b2]
-			COMP_LESSER_EQUAL	[res: b1 <= b2]
-			COMP_GREATER		[res: b1 >  b2]
-			COMP_GREATER_EQUAL	[res: b1 >= b2]
-		]
-		res
+		SIGN_COMPARE_RESULT(b1 b2)
 	]
 	
 	eval-path: func [

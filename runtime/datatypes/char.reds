@@ -117,16 +117,18 @@ char: context [
 		value1    	[red-char!]							;-- first operand
 		value2    	[red-char!]							;-- second operand
 		op	      	[integer!]							;-- type of comparison
-		return:   	[logic!]
+		return:		[integer!]
 		/local
 			integer [red-integer!]
 			left  	[integer!]
 			right 	[integer!]
-			res	  	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "char/compare"]]
 
-		left: value1/value
+		if all [
+			op = COMP_STRICT_EQUAL
+			TYPE_OF(value2) <> TYPE_CHAR
+		][return 1]
 
 		switch TYPE_OF(value2) [
 			TYPE_INTEGER [
@@ -138,16 +140,8 @@ char: context [
 			]
 			default [RETURN_COMPARE_OTHER]
 		]
-		switch op [
-			COMP_EQUAL 			[res: left = right]
-			COMP_NOT_EQUAL 		[res: left <> right]
-			COMP_STRICT_EQUAL	[res: all [TYPE_OF(value2) = TYPE_CHAR left = right]]
-			COMP_LESSER			[res: left <  right]
-			COMP_LESSER_EQUAL	[res: left <= right]
-			COMP_GREATER		[res: left >  right]
-			COMP_GREATER_EQUAL	[res: left >= right]
-		]
-		res
+		left: value1/value
+		SIGN_COMPARE_RESULT(left right)
 	]
 
 	add: func [return: [red-value!]][

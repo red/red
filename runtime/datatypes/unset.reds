@@ -88,20 +88,24 @@ unset: context [
 		arg1      [red-unset!]							;-- first operand
 		arg2	  [red-unset!]							;-- second operand
 		op	      [integer!]							;-- type of comparison
-		return:   [logic!]
+		return:   [integer!]
 		/local
 			type  [integer!]
-			res	  [logic!]
+			res	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unset/compare"]]
 
 		type: TYPE_OF(arg2)
+		if type <> TYPE_UNSET [RETURN_COMPARE_OTHER]
 		switch op [
 			COMP_EQUAL 
-			COMP_STRICT_EQUAL [res: type =  TYPE_UNSET]
-			COMP_NOT_EQUAL	  [res: type <> TYPE_UNSET]
+			COMP_STRICT_EQUAL
+			COMP_NOT_EQUAL [res: as-integer type <> TYPE_UNSET]
+			COMP_SORT
+			COMP_CASE_SORT [res: 0]
 			default [
 				print-line ["Error: cannot use: " op " comparison on unset! value"]
+				res: -2
 			]
 		]
 		res

@@ -131,6 +131,35 @@ op: context [
 
 	]
 
+	compare: func [
+		arg1	[red-op!]							;-- first operand
+		arg2	[red-op!]							;-- second operand
+		op		[integer!]							;-- type of comparison
+		return:	[integer!]
+		/local
+			type  [integer!]
+			res	  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "op/compare"]]
+
+		type: TYPE_OF(arg2)
+		if type <> TYPE_OP [RETURN_COMPARE_OTHER]
+		switch op [
+			COMP_EQUAL
+			COMP_STRICT_EQUAL
+			COMP_NOT_EQUAL
+			COMP_SORT
+			COMP_CASE_SORT [
+				res: SIGN_COMPARE_RESULT(arg1/code arg2/code)
+			]
+			default [
+				print-line ["Error: cannot use: " op " comparison on op! value"]
+				res: -2
+			]
+		]
+		res
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_OP
@@ -145,7 +174,7 @@ op: context [
 			:mold
 			null			;eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
