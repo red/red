@@ -64,6 +64,7 @@ bitset?:	 func ["Returns true if the value is this type" value [any-type!]] [bit
 block?:		 func ["Returns true if the value is this type" value [any-type!]] [block!		= type? :value]
 char?: 		 func ["Returns true if the value is this type" value [any-type!]] [char!		= type? :value]
 datatype?:	 func ["Returns true if the value is this type" value [any-type!]] [datatype!	= type? :value]
+error?:		 func ["Returns true if the value is this type" value [any-type!]] [error!		= type? :value]
 file?:		 func ["Returns true if the value is this type" value [any-type!]] [file!		= type? :value]
 float?:		 func ["Returns true if the value is this type" value [any-type!]] [float!		= type? :value]
 function?:	 func ["Returns true if the value is this type" value [any-type!]] [function!	= type? :value]

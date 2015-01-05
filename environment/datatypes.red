@@ -21,7 +21,7 @@ integer!:		make datatype! #get-definition TYPE_INTEGER
 ;symbol!:		make datatype! #get-definition TYPE_SYMBOL
 ;context!:		make datatype! #get-definition TYPE_CONTEXT
 word!:			make datatype! #get-definition TYPE_WORD
-;error!:		make datatype! #get-definition TYPE_ERROR
+error!:			make datatype! #get-definition TYPE_ERROR
 typeset!:		make datatype! #get-definition TYPE_TYPESET
 file!:			make datatype! #get-definition TYPE_FILE
 url!:			make datatype! #get-definition TYPE_URL
