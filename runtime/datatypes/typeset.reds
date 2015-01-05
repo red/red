@@ -100,6 +100,7 @@ typeset: context [
 		/local
 			type [red-datatype!]
 			id   [integer!]
+			array [byte-ptr!]
 	][
 		type: as red-datatype! value
 		if TYPE_OF(type) = TYPE_WORD [
@@ -110,11 +111,8 @@ typeset: context [
 		]
 		id: type/value
 		assert id < 96
-		case [
-			id < 32 [sets/array1: sets/array1 or (1 << id)]
-			id < 64 [sets/array2: sets/array2 or (1 << (id - 32))]
-			true	[sets/array3: sets/array3 or (1 << (id - 64))]
-		]		
+		array: (as byte-ptr! sets) + 4
+		BS_SET_BIT(array id)
 	]
 
 	;-- Actions --
@@ -162,44 +160,37 @@ typeset: context [
 		part	[integer!]
 		return: [integer!]
 		/local
-			array	[int-ptr!]
-			end		[int-ptr!]
+			array	[byte-ptr!]
 			value	[integer!]
 			id		[integer!]
 			base	[integer!]
 			cnt		[integer!]
 			s		[series!]
 			part?	[logic!]
+			set?	[logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "typeset/form"]]
 
 		part?: OPTION?(arg)
-		array: (as int-ptr! sets) + 1
-		end: array + 3
-		base: 0
+		array: (as byte-ptr! sets) + 4
+		id: 1
 		cnt: 0
 		string/concatenate-literal buffer "make typeset! ["
 		part: part - 15
 		until [
-			id: 0
-			value: array/value
-			until [
-				if value and (1 << id) <> 0 [
-					if all [part? negative? part][return part]
-					name: name-table + base + id
-					string/concatenate-literal-part buffer name/buffer name/size + 1
-					string/append-char GET_BUFFER(buffer) as-integer space
-					part: part - name/size - 2
-					cnt: cnt + 1
-				]
-				id: id + 1
-				id = 32
+			BS_TEST_BIT(array id set?)
+			if set? [
+				if all [part? negative? part][return part]
+				name: name-table + id
+				string/concatenate-literal-part buffer name/buffer name/size + 1
+				string/append-char GET_BUFFER(buffer) as-integer space
+				part: part - name/size - 2
+				cnt: cnt + 1
 			]
-			base: base + 32
-			array: array + 1
-			array = end
+			id: id + 1
+			id > datatype/top-id
 		]
-		s: GET_BUFFER(buffer)	
+		s: GET_BUFFER(buffer)
 		either zero? cnt [
 			string/append-char s as-integer #"]"
 		][
@@ -252,15 +243,6 @@ typeset: context [
 		res
 	]
 
-	negate: func [
-		sets	[red-typeset!]
-		return:	[red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "typeset/negate"]]
-
-		as red-value! complement sets
-	]
-	
 	complement: func [
 		sets	[red-typeset!]
 		return:	[red-value!]
@@ -305,7 +287,8 @@ typeset: context [
 		/local
 			id	 [integer!]
 			type [red-datatype!]
-			res  [integer!]
+			set? [logic!]
+			array [byte-ptr!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "typeset/find"]]
 
@@ -313,14 +296,12 @@ typeset: context [
 			print-line "Find Error: invalid argument"
 			return as red-value! false-value
 		]
+		array: (as byte-ptr! sets) + 4
 		type: as red-datatype! value
 		id: type/value
-		res: case [
-			id < 32 [sets/array1 and (1 << id)]
-			id < 64 [sets/array2 and (1 << (id - 32))]
-			true	[sets/array3 and (1 << (id - 64))]
-		]
-		as red-value! either zero? res [false-value][true-value]
+		assert id < 96
+		BS_TEST_BIT(array id set?)
+		as red-value! either set? [true-value][false-value]
 	]
 
 	insert: func [
@@ -342,29 +323,23 @@ typeset: context [
 		sets	[red-typeset!]
 		return: [integer!]
 		/local
-			v	[integer!]
-			c	[integer!]
-			arr [int-ptr!]
-			end [int-ptr!]
-			len [integer!]
+			arr [byte-ptr!]
+			cnt [integer!]
+			id  [integer!]
+			set? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "typeset/length?"]]
 
-		len: 0
-		arr: as int-ptr! sets
-		end: arr + 3
+		id:  1
+		cnt: 0
+		arr: (as byte-ptr! sets) + 4
 		until [
-			arr: arr + 1
-			v: arr/value
-			c: 0
-			while [v <> 0][
-				c: c + 1
-				v: v and (v - 1)
-			]
-			len: len + c
-			arr = end
+			BS_TEST_BIT(arr id set?)
+			if set? [cnt: cnt + 1]
+			id: id + 1
+			id > datatype/top-id
 		]
-		len
+		cnt
 	]
 
 	init: does [
@@ -387,7 +362,7 @@ typeset: context [
 			null			;add
 			null			;divide
 			null			;multiply
-			:negate
+			null			;negate
 			null			;power
 			null			;remainder
 			null			;round
