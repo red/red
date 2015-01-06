@@ -1189,6 +1189,7 @@ actions: context [
 		part	 [integer!]
 		all-arg  [integer!]
 		reverse	 [integer!]
+		stable	 [integer!]
 	][
 		; assert ANY-SERIES?(TYPE_OF(stack/arguments))
 		stack/set-last sort
@@ -1199,6 +1200,7 @@ actions: context [
 			stack/arguments + part
 			as logic! all-arg + 1
 			as logic! reverse + 1
+			as logic! stable + 1
 	]
 
 	sort: func [
@@ -1209,6 +1211,7 @@ actions: context [
 		part	 [red-value!]
 		all?	 [logic!]
 		reverse? [logic!]
+		stable?  [logic!]
 		return:  [red-value!]
 		/local
 			action-sort
@@ -1223,10 +1226,11 @@ actions: context [
 			part	 [red-value!]
 			all?	 [logic!]
 			reverse? [logic!]
+			stable?  [logic!]
 			return:  [red-value!]
 		] get-action-ptr as red-value! series ACT_SORT
 
-		action-sort series case? skip compare part all? reverse?
+		action-sort series case? skip compare part all? reverse? stable?
 	]
 
 	skip*: func [

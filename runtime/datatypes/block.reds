@@ -1149,6 +1149,7 @@ block: context [
 		part		[red-value!]
 		all?		[logic!]
 		reverse?	[logic!]
+		stable?		[logic!]
 		return:		[red-block!]
 		/local
 			s		[series!]
@@ -1190,9 +1191,6 @@ block: context [
 			if len2 < len [
 				len: len2
 				if negative? len2 [
-					blk2: blk
-					blk: declare red-block!
-					copy-cell as cell! blk2 (as cell! blk)
 					len2: negate len2
 					blk/head: blk/head - len2
 					len: either negative? blk/head [blk/head: 0 0][len2]
@@ -1248,7 +1246,11 @@ block: context [
 				]
 			]
 		]
-		_qsort/sort as byte-ptr! head len step * (size? red-value!) op flags cmp
+		either stable? [
+			_sort/mergesort as byte-ptr! head len step * (size? red-value!) op flags cmp
+		][
+			_sort/qsort as byte-ptr! head len step * (size? red-value!) op flags cmp
+		]
 		blk
 	]
 	

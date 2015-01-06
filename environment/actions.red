@@ -427,6 +427,7 @@ sort: make action! [[
 			length [number! series!]
 		/all "Compare all fields"
 		/reverse "Reverse sort order"
+		/stable "Stable sorting"
 		return:  [series!]
 	]
 	#get-definition ACT_SORT
