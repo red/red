@@ -1719,6 +1719,7 @@ string: context [
 		part		[red-value!]
 		all?		[logic!]
 		reverse?	[logic!]
+		stable?		[logic!]
 		return:		[red-string!]
 		/local
 			s		[series!]
@@ -1761,9 +1762,6 @@ string: context [
 			if len2 < len [
 				len: len2
 				if negative? len2 [
-					str2: str
-					str: declare red-string!
-					copy-cell as cell! str2 (as cell! str)
 					len2: negate len2
 					str/head: str/head - len2
 					len: either negative? str/head [str/head: 0 0][len2]
@@ -1792,7 +1790,7 @@ string: context [
 		]
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		flags: either reverse? [SORT_REVERSE][SORT_NORMAL]
-		_qsort/sort buffer len unit * step op flags cmp
+		_sort/qsort buffer len unit * step op flags cmp
 		str
 	]
 

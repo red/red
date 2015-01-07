@@ -815,7 +815,7 @@ object: context [
 			][
 				res: actions/compare-value value1 value2 op
 				sym1: sym1 + 1
-				sym2: sym2 + 2
+				sym2: sym2 + 1
 				value1: value1 + 1
 				value2: value2 + 1
 			][

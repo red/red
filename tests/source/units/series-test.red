@@ -967,6 +967,19 @@ Red [
 		--assert ["Mo" 42 "Larry" 45 "Curly" 50] = sort/skip/compare a 2 2
 		--assert ["Mo" 42 "Larry" 45 "Curly" 50] = sort/skip/compare a 2 func [a b][a > b]
 		--assert ["Curly" 50 "Larry" 45 "Mo" 42] = sort/skip/compare/all a 2 func [a b][a/2 > b/2]
+
+	--test-- "sort-blk-4"
+		o1: context [a: 2 i: "a"]
+		o2: context [a: 1 i: "b"]
+		o3: context [a: 1 i: "c"]
+		o4: context [a: 1 i: "d"]
+		o5: context [a: 1 i: "e"]
+		o6: context [a: 1 i: "f"]
+		o7: context [a: 3 i: "g"]
+		o8: context [a: 3 i: "h"]
+		a: reduce [o1 o2 o3 o8 o4 o5 o6 o7]
+		res: reduce [o2 o3 o4 o5 o6 o1 o8 o7]
+		--assert res = sort/compare/stable a func [a b][a/a - b/a]
 ===end-group===
 
 ~~~end-file~~~
