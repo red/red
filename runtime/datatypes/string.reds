@@ -572,29 +572,32 @@ string: context [
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
-		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1)- str2/head
+		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1) - str2/head
+		end: as byte-ptr! s2/tail							;-- only one "end" is needed
 
 		either match? [
 			if zero? size2 [
 				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
 			]
-			end: as byte-ptr! s2/tail						;-- only one "end" is needed
 		][
-			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1)- str1/head
+			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1) - str1/head
 
 			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [
 					op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
 				][return 1]
+
+				if size2 > size1 [
+					end: end - (size2 - size1 << (unit2 >> 1))
+				]
 			][
 				if zero? size1 [return 0]					;-- shortcut exit for empty strings
 			]
-			end: (as byte-ptr! s2/tail) + unit2				;-- only one "end" is needed
 		]
 		p1:  (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
 		p2:  (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
 		lax?: all [op <> COMP_STRICT_EQUAL op <> COMP_CASE_SORT]
-		
+
 		until [	
 			switch unit1 [
 				Latin1 [c1: as-integer p1/1]
@@ -617,6 +620,7 @@ string: context [
 				p2 >= end
 			]
 		]
+		if all [not match? c1 = c2][c1: size1 c2: size2]
 		SIGN_COMPARE_RESULT(c1 c2)
 	]
 	
@@ -2063,7 +2067,6 @@ string: context [
 				as-integer tail - (head + part) + unit ;-- size including trailing NUL
 		]
 		s/tail: as red-value! tail - part
-		add-terminal-NUL as byte-ptr! s/tail GET_UNIT(s)
 		str
 	]
 
