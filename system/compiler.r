@@ -1844,7 +1844,14 @@ system-dialect: make-profilable context [
 		comp-catch: has [offset][
 			pc: next pc
 			fetch-expression/keep/final
-			unless block? pc/1 [throw-error "CATCH keyword requires a body block as 2nd argument"]
+			if any [not last-type last-type <> [integer!]][
+				backtrack 'catch
+				throw-error "CATCH expects a threshold value of type integer!"
+			]
+			unless block? pc/1 [
+				backtrack 'catch
+				throw-error "CATCH requires a body block as 2nd argument"
+			]
 			
 			catch-level: catch-level + 1
 			set [unused chunk] comp-block-chunked		;-- compile TRUE block
