@@ -387,16 +387,14 @@ actions: context [
 		] get-action-ptr value1 ACT_COMPARE
 		
 		value: action-compare value1 value2 op
-		if value = -2 [
-			switch op [
-				COMP_EQUAL
-				COMP_STRICT_EQUAL [value]
-				COMP_NOT_EQUAL 	  [value: 0]
-				default [
-					--NOT_IMPLEMENTED--					;@@ add error handling
-					value
-				]
-			]
+		if all [
+			value = -2
+			op <> COMP_EQUAL
+			op <> COMP_STRICT_EQUAL
+			op <> COMP_NOT_EQUAL
+		][
+			--NOT_IMPLEMENTED--					;@@ add error handling
+			value
 		]
 		switch op [
 			COMP_EQUAL
