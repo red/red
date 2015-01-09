@@ -261,6 +261,7 @@ target-class: context [
 					push  [emit-push args/1]
 					pop	  [emit-pop]
 					throw [
+						compiler/check-throw
 						compiler/last-type: [integer!]
 						emit-throw args/1
 					]

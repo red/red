@@ -1742,6 +1742,27 @@ make-profilable make target-class [
 		emit #{FFE7}								;--			JMP edi		; resume in caller
 													;-- _end:
 	]
+	
+	emit-open-catch: func [body-size [integer!]][
+		emit #{FF75FC}						 		;--	PUSH [ebp-4]		; save old catch value
+		emit #{8945FC}								;-- MOV [ebp-4], eax	; rewrite the catch value
+		emit #{E800000000}							;-- CALL next			; push eip on stack
+		emit #{58}									;-- POP eax
+		emit #{05}							 		;--	ADD eax, <offset>
+		emit to-bin32 body-size + 10				;-- account for catch-frame opcodes after `CALL next`
+		emit #{50}							 		;--	PUSH eax
+		emit-open-frame
+		21											;-- return size of (catch-frame + extra) opcodes
+	]
+	
+	emit-close-catch: does [
+		emit #{8F45FC}								;-- POP [ebp-4]
+	]
+	
+	emit-open-frame: does [
+		emit #{55}									;-- PUSH ebp
+		emit #{89E5}								;-- MOV ebp, esp
+	]
 
 	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs offset][
 		if verbose >= 3 [print [">>>building:" uppercase mold to-word name "prolog"]]
@@ -1749,8 +1770,7 @@ make-profilable make target-class [
 		fspec: select compiler/functions name
 		attribs: compiler/get-attributes fspec/4
 			
-		emit #{55}									;-- PUSH ebp
-		emit #{89E5}								;-- MOV ebp, esp
+		emit-open-frame
 
 		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 
