@@ -179,6 +179,7 @@ red: context [
 					change/part back pos mark 2
 					clear mark
 				)
+				| #get pos: (process-get-directive pos/1 pos)
 				| into rule
 				| skip
 			]
@@ -3093,6 +3094,19 @@ red: context [
 			return true									;-- infix expression processed
 		]
 		false											;-- not an infix expression
+	]
+	
+	process-get-directive: func [
+		path code [block!] /local obj ctx blk
+	][
+		unless path? path [
+			throw-error ["invalid #get argument:" spec]
+		]
+		obj: object-access? path
+		ctx: second obj: find objects obj
+		remove/part code 2
+		blk: [red/word/get-in (decorate-exec-ctx ctx) (get-word-index/with last path ctx)]
+		insert code probe compose blk
 	]
 	
 	process-call-directive: func [
