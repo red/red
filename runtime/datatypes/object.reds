@@ -20,6 +20,42 @@ object: context [
 		class-id
 	]
 	
+	get-words: func [
+		obj		[red-object!]
+		return: [red-value!]
+		/local
+			ctx [red-context!]
+			s   [series!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/symbols/value
+		s/offset
+	]
+	
+	get-values: func [
+		obj		[red-object!]
+		return: [red-value!]
+		/local
+			ctx [red-context!]
+			s   [series!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/values/value
+		s/offset
+	]
+	
+	get-size: func [
+		obj		[red-object!]
+		return: [integer!]
+		/local
+			ctx [red-context!]
+			s   [series!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/symbols/value
+		(as-integer s/tail - s/offset) >> 4
+	]
+	
 	save-self-object: func [
 		obj		[red-object!]
 		return: [node!]

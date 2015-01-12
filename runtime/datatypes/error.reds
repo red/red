@@ -13,19 +13,36 @@ Red/System [
 error: context [
 	verbose: 0
 	
-	push: func [
-		return:	 [red-value!]							;-- return cell pointer
-		/local
-			cell [red-object!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "error/push"]]
-
-		cell: as red-object! stack/push*
-		cell/header: TYPE_ERROR							;-- implicit reset of all header flags
-		;TBD
-		as red-value! cell
+	#enum field! [
+		field-code
+		field-type
+		field-id
+		field-arg1
+		field-arg2
+		field-arg3
+		field-near
+		field-where
 	]
+	
+	create: func [
+		code 	[integer!]
+		arg1 	[red-value!]
+		arg2 	[red-value!]
+		arg3 	[red-value!]
+		return: [red-object!]
+		/local
+			err  [red-object!]
+			base [red-value!]	
+	][
+		err:  make null as red-value! integer/push code
+		base: object/get-values err
 		
+		unless null? arg1 [copy-cell arg1 base + field-arg1]
+		unless null? arg2 [copy-cell arg2 base + field-arg2]
+		unless null? arg3 [copy-cell arg3 base + field-arg3]
+		err
+	]
+	
 	;-- Actions -- 
 
 	make: func [
@@ -33,14 +50,65 @@ error: context [
 		spec	 [red-value!]
 		return:	 [red-object!]
 		/local
-			cell [red-object!]
+			new		[red-object!]
+			obj		[red-object!]
+			series	[red-series!]
+			errors	[red-object!]
+			base	[red-value!]
+			int		[red-integer!]
+			sym		[red-word!]
+			w		[red-word!]
+			cat		[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/make"]]
 
-		cell: as red-object! stack/push*
-		cell/header: TYPE_ERROR							;-- implicit reset of all header flags
-		;TBD
-		cell
+		new: as red-object! stack/push*
+		
+		object/copy
+			as red-object! #get system/standard/error
+			as red-object! new
+			null
+			no
+			null
+		
+		series: as red-series! spec
+		new/header: TYPE_ERROR							;-- implicit reset of all header flags
+		new/class:  0
+		new/on-set: null
+		
+		base:	object/get-values new
+		errors: as red-object! #get system/catalog/errors
+		sym:	as red-word! object/get-words errors
+
+		switch TYPE_OF(spec) [
+			TYPE_INTEGER [
+				copy-cell spec base						;-- set 'code field
+				int: as red-integer! spec
+
+				cat: int/value / 100
+				w: sym + cat
+				
+				if (sym + object/get-size errors) <= as red-value! w [
+					print-line "*** Error: invalid spec value for MAKE"
+					return new
+				]
+				word/make-at w/symbol base + field-type	;-- set 'type field
+				
+				errors: (as red-object! object/get-values errors) + cat
+				sym: as red-word! object/get-words errors
+				
+				w: sym + (int/value // 100)
+				if (sym + object/get-size errors) <= as red-value! w [
+					print-line "*** Error: invalid spec value for MAKE"
+					return new
+				]
+				word/make-at w/symbol base + field-id	;-- set 'id field
+			]
+			default [
+				--NOT_IMPLEMENTED--
+			]
+		]
+		new
 	]
 	
 	form: func [

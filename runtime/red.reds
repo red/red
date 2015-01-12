@@ -130,7 +130,7 @@ red: context [
 		point/init
 		float/init
 		typeset/init
-		;error/init
+		error/init
 		
 		actions/init
 		
