@@ -25,22 +25,55 @@ error: context [
 	]
 	
 	create: func [
-		code 	[integer!]
+		cat		[red-word!]
+		id		[red-word!]
 		arg1 	[red-value!]
 		arg2 	[red-value!]
 		arg3 	[red-value!]
 		return: [red-object!]
 		/local
 			err  [red-object!]
-			base [red-value!]	
+			base [red-value!]
+			blk	 [red-block!]
 	][
-		err:  make null as red-value! integer/push code
+		blk: block/push* 2
+		block/rs-append blk as red-value! cat
+		block/rs-append blk as red-value! id
+	
+		err:  make null as red-value! blk
 		base: object/get-values err
 		
 		unless null? arg1 [copy-cell arg1 base + field-arg1]
 		unless null? arg2 [copy-cell arg2 base + field-arg2]
 		unless null? arg3 [copy-cell arg3 base + field-arg3]
 		err
+	]
+	
+	reduce: func [
+		blk		[red-block!]
+		obj		[red-object!]
+		return: [red-block!]
+		/local
+			value [red-value!]
+			tail  [red-value!]
+			type  [integer!]
+	][
+		value: block/rs-head blk
+		tail:  block/rs-tail blk
+		
+		while [value < tail][
+			type: TYPE_OF(value)
+			if any [
+				type = TYPE_WORD
+				type = TYPE_GET_WORD
+			][
+				copy-cell 
+					object/rs-select obj value
+					value
+			]
+			value: value + 1
+		]
+		blk
 	]
 	
 	;-- Actions -- 
@@ -55,6 +88,8 @@ error: context [
 			series	[red-series!]
 			errors	[red-object!]
 			base	[red-value!]
+			value	[red-value!]
+			blk		[red-block!]
 			int		[red-integer!]
 			sym		[red-word!]
 			w		[red-word!]
@@ -104,6 +139,52 @@ error: context [
 				]
 				word/make-at w/symbol base + field-id	;-- set 'id field
 			]
+			TYPE_BLOCK [
+				blk: as red-block! spec
+				value: block/rs-head blk
+				
+				switch TYPE_OF(value) [
+					TYPE_WORD [
+						cat: object/rs-find errors value
+						
+						if cat = -1 [
+							print-line "*** Error: invalid 'type field in spec block for MAKE"
+							return new
+						]
+						copy-cell value base + field-type
+						
+						errors: (as red-object! object/get-values errors) + cat
+						value: value + 1
+						if value < block/rs-tail blk [
+							cat: object/rs-find errors value
+							if cat = -1 [
+								print-line "*** Error: invalid 'id field in spec block for MAKE"
+								return new
+							]
+							copy-cell value base + field-id
+						]
+					]
+					TYPE_SET_WORD [
+						value: block/select-word blk words/_type
+						if TYPE_OF(value) = TYPE_NONE [
+							print-line "*** Error: 'type not found in spec block for MAKE"
+							return new
+						]
+						copy-cell value base + field-type
+
+						value: block/select-word blk words/_id
+						if TYPE_OF(value) = TYPE_NONE [
+							print-line "*** Error: 'id not found in spec block for MAKE"
+							return new
+						]
+						copy-cell value base + field-id
+					]
+					default [
+						print-line "*** Error: unsupported spec block for MAKE"
+						return new
+					]
+				]
+			]
 			default [
 				--NOT_IMPLEMENTED--
 			]
@@ -112,15 +193,45 @@ error: context [
 	]
 	
 	form: func [
-		value	[red-object!]
+		obj		[red-object!]
 		buffer	[red-string!]
 		arg		[red-value!]
 		part	[integer!]
 		return: [integer!]
+		/local
+			base	[red-value!]
+			errors	[red-object!]
+			value	[red-value!]
+			str		[red-string!]
+			blk		[red-block!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "error/form"]]
 		
-		;TBD
+		base: object/get-values obj
+		string/concatenate-literal buffer "*** "
+		part: part - 4
+		
+		errors: as red-object! #get system/catalog/errors
+		errors: as red-object! object/rs-select errors base + field-type
+		
+		str: as red-string! object/rs-select errors as red-value! words/_type
+		assert TYPE_OF(str) = TYPE_STRING
+		string/concatenate buffer str -1 0 yes no
+		part: part - string/rs-length? str
+		string/concatenate-literal buffer ": "
+		part: part - 2
+		
+		value: object/rs-select errors base + field-id
+		
+		either TYPE_OF(value) = TYPE_STRING [
+			str: as red-string! value
+			string/concatenate buffer str -1 0 yes no
+			part: part - string/rs-length? str
+		][
+			blk: block/clone as red-block! value no
+			blk: reduce blk obj
+			part: block/form blk buffer arg part
+		]
 		part
 	]
 	
