@@ -83,6 +83,32 @@ copy-cell: func [
 	dst
 ]
 
+fire: func [
+	[variadic]
+	count	[integer!]
+	list	[int-ptr!]
+	/local
+		arg1 [red-value!]
+		arg2 [red-value!]
+		arg3 [red-value!]
+][
+	assert count <= 5
+	arg1: null
+	arg2: null
+	arg3: null
+	
+	count: count - 2
+	unless zero? count [
+		arg1: as red-value! list/3
+		count: count - 1
+		unless zero? count [
+			arg2: as red-value! list/4
+			count: count - 1
+			unless zero? count [arg3: as red-value! list/5]
+		]
+	]
+	stack/throw-error error/create as red-word! list/1 as red-word! list/2 arg1 arg2 arg3
+]
 
 words: context [
 	spec:			-1
@@ -153,6 +179,21 @@ words: context [
 	
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
+	
+	_type:			as red-word! 0
+	_id:			as red-word! 0
+	
+	
+	errors: context [
+		throw:		as red-word! 0
+		note:		as red-word! 0
+		syntax:		as red-word! 0
+		script:		as red-word! 0
+		math:		as red-word! 0
+		access:		as red-word! 0
+		user:		as red-word! 0
+		internal:	as red-word! 0
+	]
 
 	build: does [
 		spec:			symbol/make "spec"
@@ -230,6 +271,18 @@ words: context [
 		
 		_on-parse-event: word/load "on-parse-event"
 		_on-change*:	 word/load "on-change*"
+		
+		_type:			word/load "type"
+		_id:			word/load "id"
+		
+		errors/throw:	 word/load "throw"
+		errors/note:	 word/load "note"
+		errors/syntax:	 word/load "syntax"
+		errors/script:	 word/load "script"
+		errors/math:	 word/load "math"
+		errors/access:	 word/load "access"
+		errors/user:	 word/load "user"
+		errors/internal: word/load "internal"
 	]
 ]
 

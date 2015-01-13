@@ -135,6 +135,15 @@ stack: context [										;-- call stack
 	mark-eval:	 MARK_STACK(FLAG_EVAL)
 	mark-dyn:	 MARK_STACK(FLAG_DYN_CALL)
 	
+	get-call: func [
+		return: [red-word!]
+		/local
+			p [int-ptr!]
+	][
+		p: ctop - 2
+		word/push* p/1 >> 8 and FFFFh
+	]
+	
 	revert: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/revert"]]
 
@@ -201,8 +210,8 @@ stack: context [										;-- call stack
 		until [
 			ctop: ctop - 2
 			any [
-				flags and ctop/1 = flags
 				ctop <= cbottom
+				flags and ctop/1 = flags
 			]
 		]
 		
@@ -215,6 +224,30 @@ stack: context [										;-- call stack
 		top: top - 1
 		copy-cell top top - 1
 		check-call
+	]
+	
+	throw-error: func [
+		error [red-object!]
+		/local
+			ptr [int-ptr!]
+	][
+		copy-cell as red-value! error arguments
+		unroll FLAG_TRY
+
+		ptr: ctop - 2
+		assert ptr >= cbottom
+		
+		either all [
+			ptr = cbottom 
+			FLAG_TRY and ptr/1 <> FLAG_TRY
+		][
+			;copy-cell as red-value! error arguments
+			natives/print*
+			; throw (allow catching for interpreter)
+			throw 123456
+		][
+			print-line "*** error caught *** (TBD)"
+		]
 	]
 	
 	eval?: func [

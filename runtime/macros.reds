@@ -251,6 +251,7 @@ Red/System [
 #define GET_CTX(obj)		(as red-context! ((as series! obj/ctx/value) + 1))
 #define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
+#define TO_ERROR(cat id)	[#in system/catalog/errors cat #in system/catalog/errors/cat id]
 
 #define WHITE_CHAR?(char)	[
 	any [
