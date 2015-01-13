@@ -64,6 +64,13 @@ word: context [
 		make-at id ALLOC_TAIL(blk)
 	]
 	
+	push*: func [
+		id		[integer!]								;-- symbol ID
+		return:	[red-word!]
+	][
+		make-at id stack/push*
+	]
+	
 	push: func [
 		word	 [red-word!]
 		return:  [red-word!]
