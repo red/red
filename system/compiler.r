@@ -1529,6 +1529,15 @@ system-dialect: make-profilable context [
 			fetch-expression
 		]
 		
+		process-in: func [code [block!] /local value][
+			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
+				pc: skip pc 2							;-- just ignore #in directive
+				return none
+			]
+			red/process-in-directive code/2 code/3 pc
+			fetch-expression
+		]
+		
 		process-call: func [code [block!] /local mark][
 			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
 				pc: skip pc 2							;-- just ignore #call directive
@@ -1555,6 +1564,7 @@ system-dialect: make-profilable context [
 				#syscall [process-syscall pc/2	pc: skip pc 2]
 				#call	 [process-call	  pc]
 				#get	 [process-get	  pc]
+				#in		 [process-in	  pc]
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose [set-verbose-level pc/2 pc: skip pc 2]
 				#script	 [								;-- internal compiler directive

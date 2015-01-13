@@ -3106,7 +3106,21 @@ red: context [
 		ctx: second obj: find objects obj
 		remove/part code 2
 		blk: [red/word/get-in (decorate-exec-ctx ctx) (get-word-index/with last path ctx)]
-		insert code probe compose blk
+		insert code compose blk
+	]
+	
+	process-in-directive: func [
+		path word code [block!] /local obj ctx blk
+	][
+		if any [not path? path not any-word? :word][
+			throw-error ["invalid #in argument:" mold path mold :word]
+		]
+		append path word
+		obj: object-access? path
+		ctx: second obj: find objects obj
+		remove/part code 3
+		blk: [red/object/get-word (decorate-exec-ctx ctx) (get-word-index/with word ctx)]
+		insert code compose blk
 	]
 	
 	process-call-directive: func [
