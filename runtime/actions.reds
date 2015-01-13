@@ -47,11 +47,12 @@ actions: context [
 		index: action-table/index						;-- lookup action function pointer
 
 		if zero? index [
-			print-line [
-				"^/*** Script error: action " action
-				" not defined for type: " type
+			fire [
+				TO_ERROR(script expect-arg)
+				stack/get-call
+				datatype/push type
+				none-value								;@@ placeholder for now
 			]
-			halt
 		]
 		index
 	]
