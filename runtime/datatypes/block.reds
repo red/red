@@ -169,7 +169,7 @@ block: context [
 		empty?: zero? size
 		if empty? [size: 1]
 		
-		new: as red-block! stack/push*
+		new: as red-block! stack/push*					;-- slot allocated on stack!
 		new/header: TYPE_BLOCK
 		new/head:   0
 		new/node:	alloc-cells size
