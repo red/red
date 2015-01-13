@@ -36,7 +36,7 @@ system: context [
 		errors: context [
 			throw: object [
 				code: 0
-				type: "throw error"
+				type: "Throw error"
 				break: "no loop to break"
 				return: "return or exit not in function"
 				throw: ["no catch for throw:" :arg1]
@@ -49,7 +49,7 @@ system: context [
 			]
 			syntax: object [
 				code: 200
-				type: "syntax error"
+				type: "Syntax error"
 				invalid: ["invalid" :arg1 "--" :arg2]
 				missing: ["missing" :arg2 "at" :arg1]
 				no-header: ["script is missing a Red header:" :arg1]
@@ -60,14 +60,15 @@ system: context [
 			]
 			script: object [
 				code: 300
-				type: "script error"
+				type: "Script error"
 				no-value: [:arg1 "has no value"]
 				need-value: [:arg1 "needs a value"]
 				not-defined: [:arg1 "word is not bound to a context"]
 				not-in-context: [:arg1 "is not in the specified context"]
 				no-arg: [:arg1 "is missing its" :arg2 "argument"]
-				expect-arg: [:arg1 "does not allow" :arg3 "for its" :arg2 "argument"]
+				expect-arg: [:arg1 "does not allow" :arg2 "for its" :arg3 "argument"]
 				expect-val: ["expected" :arg1 "not" :arg2]
+				
 				expect-type: [:arg1 :arg2 "field must be of type" :arg3]
 				cannot-use: ["cannot use" :arg1 "on" :arg2 "value"]
 				invalid-arg: ["invalid argument:" :arg1]
@@ -116,14 +117,14 @@ system: context [
 			]
 			math: object [
 				code: 400
-				type: "math error"
+				type: "Math error"
 				zero-divide: "attempt to divide by zero"
 				overflow: "math or number overflow"
 				positive: "positive number required"
 			]
 			access: object [
 				code: 500
-				type: "access error"
+				type: "Access error"
 				;cannot-open: ["cannot open:" :arg1 "reason:" :arg2]
 				;not-open: ["port is not open:" :arg1]
 				;already-open: ["port is already open:" :arg1]
@@ -161,12 +162,12 @@ system: context [
 			]
 			user: object [
 				code: 800
-				type: "user error"
+				type: "User error"
 				message: [:arg1]
 			]
 			internal: object [
 				code: 900
-				type: "internal error"
+				type: "Internal error"
 				bad-path: ["bad path:" arg1]
 				not-here: [arg1 "not supported on your system"]
 				no-memory: "not enough memory"
