@@ -1315,7 +1315,7 @@ natives: context [
 		result
 	]
 	
-	try*: func [[catch]
+	try*: func [
 		/local
 			arg	[red-value!]
 	][
