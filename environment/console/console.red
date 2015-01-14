@@ -115,14 +115,19 @@ system/console: context [
 			code: load/all buffer
 
 			unless tail? code [
-				set/any 'result do code
+				set/any 'result try code
 
-				unless unset? :result [
-					if 67 = length? result: mold/part :result 67 [	;-- optimized for width = 72
-						clear back tail result
-						append result "..."
+				case [
+					error? :result [
+						print result
 					]
-					print ["==" result]
+					not unset? :result [
+						if 67 = length? result: mold/part :result 67 [	;-- optimized for width = 72
+							clear back tail result
+							append result "..."
+						]
+						print ["==" result]
+					]
 				]
 			]
 			clear buffer
