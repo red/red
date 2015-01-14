@@ -182,6 +182,7 @@ words: context [
 	
 	_type:			as red-word! 0
 	_id:			as red-word! 0
+	_try:			as red-word! 0
 	
 	
 	errors: context [
@@ -274,6 +275,7 @@ words: context [
 		
 		_type:			word/load "type"
 		_id:			word/load "id"
+		_try:			word/load "try"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

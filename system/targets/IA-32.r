@@ -1751,17 +1751,12 @@ make-profilable make target-class [
 		emit #{05}							 		;--	ADD eax, <offset>
 		emit to-bin32 body-size + 10				;-- account for catch-frame opcodes after `CALL next`
 		emit #{50}							 		;--	PUSH eax
-		emit-open-frame
-		21											;-- return size of (catch-frame + extra) opcodes
+		emit #{55}									;-- PUSH ebp
+		19											;-- return size of (catch-frame + extra) opcodes
 	]
 	
 	emit-close-catch: does [
 		emit #{8F45FC}								;-- POP [ebp-4]
-	]
-	
-	emit-open-frame: does [
-		emit #{55}									;-- PUSH ebp
-		emit #{89E5}								;-- MOV ebp, esp
 	]
 
 	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs offset][
@@ -1770,7 +1765,8 @@ make-profilable make target-class [
 		fspec: select compiler/functions name
 		attribs: compiler/get-attributes fspec/4
 			
-		emit-open-frame
+		emit #{55}									;-- PUSH ebp
+		emit #{89E5}								;-- MOV ebp, esp
 
 		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
 

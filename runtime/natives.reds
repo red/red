@@ -1314,6 +1314,19 @@ natives: context [
 		result/header: TYPE_LOGIC
 		result
 	]
+	
+	try*: func [[catch]
+		/local
+			arg	[red-value!]
+	][
+		arg: stack/arguments
+
+		catch RED_ERROR [
+			stack/mark-try words/_try
+			interpreter/eval as red-block! arg yes
+			stack/unwind-last
+		]
+	]
 
 	;--- Natives helper functions ---
 
@@ -1676,6 +1689,7 @@ natives: context [
 			:square-root*
 			:construct*
 			:value?*
+			:try*
 		]
 	]
 

@@ -196,6 +196,7 @@ Red/System [
 	NAT_SQUARE_ROOT
 	NAT_CONSTRUCT
 	NAT_VALUE?
+	NAT_TRY
 ]
 
 #enum math-op! [
@@ -237,6 +238,8 @@ Red/System [
 ][
 	#define ------------| 	comment
 ]
+
+#define RED_ERROR			BADDCAFEh
 
 #define TYPE_OF(value)		(value/header and get-type-mask)
 #define GET_BUFFER(series)  (as series! series/node/value)

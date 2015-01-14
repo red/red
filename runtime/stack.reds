@@ -236,18 +236,15 @@ stack: context [										;-- call stack
 
 		ptr: ctop - 2
 		assert ptr >= cbottom
+		copy-cell as red-value! error arguments
 		
-		either all [
+		if all [
 			ptr = cbottom 
 			FLAG_TRY and ptr/1 <> FLAG_TRY
 		][
-			;copy-cell as red-value! error arguments
 			natives/print*
-			; throw (allow catching for interpreter)
-			throw 123456
-		][
-			print-line "*** error caught *** (TBD)"
 		]
+		throw RED_ERROR
 	]
 	
 	eval?: func [
