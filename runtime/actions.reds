@@ -51,7 +51,7 @@ actions: context [
 				TO_ERROR(script expect-arg)
 				stack/get-call
 				datatype/push type
-				none-value								;@@ placeholder for now
+				error/get-call-argument
 			]
 		]
 		index

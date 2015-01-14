@@ -24,6 +24,33 @@ error: context [
 		field-where
 	]
 	
+	get-call-argument: func [
+		return: [red-word!]
+		/local
+			fun   [red-function!]
+			value [red-value!]
+			end	  [red-value!]
+			s	  [series!]
+	][
+		fun:   as red-function! _context/get stack/get-call
+		s:	   as series! fun/spec/value
+		value: s/offset
+		end:   s/tail
+
+		while [value < end][
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					return as red-word! value
+				]
+				default [0]
+			]
+			value: value + 1
+		]
+		words/_anon										;-- return anonymous name
+	]
+	
 	create: func [
 		cat		[red-word!]
 		id		[red-word!]
