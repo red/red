@@ -665,9 +665,7 @@ float: context [
 		]
 
 		if sc = 0.0 [
-			print-line "*** Math Error: float overflow on ROUND"
-			value/header: TYPE_UNSET
-			return value
+			fire [TO_ERROR(math overflow)]
 		]
 
 		if sc < ldexp abs dec -53 [return value]		;-- is scale negligible?
@@ -700,8 +698,7 @@ float: context [
 		f/value: either v [
 			dec: dec * sc
 			if DOUBLE_MAX = abs dec [
-				print-line "*** Math Error: float overflow on ROUND"
-				value/header: TYPE_UNSET
+				fire [TO_ERROR(math overflow)]
 			]
 			dec
 		][

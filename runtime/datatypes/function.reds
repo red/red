@@ -196,9 +196,11 @@ _function: context [
 				value: block/rs-abs-at as red-block! path index
 				cnt: refinement-arity? s/offset tail as red-word! value
 				if cnt = -1 [
-					print "*** Error: refinement /"
-					print-symbol as red-word! value
-					print-line " not found!"
+					fire [
+						TO_ERROR(script no-refine)
+						stack/get-call
+						value
+					]
 				]
 				count: count + cnt
 				index: index + 1
@@ -375,8 +377,10 @@ _function: context [
 				]
 				default [
 					if extern? [
-						print-line ["*** Error: invalid /extern values"]
-						halt
+						fire [
+							TO_ERROR(script bad-func-extern)
+							value
+						]
 					]
 				]
 			]
@@ -419,8 +423,10 @@ _function: context [
 						next < end
 						TYPE_OF(next) = TYPE_BLOCK
 					][
-						print-line "*** Error: return: not followed by type in function spec"
-						halt
+						fire [
+							TO_ERROR(script bad-func-def)
+							value
+						]
 					]
 					value: next
 				]
@@ -431,8 +437,10 @@ _function: context [
 					value: value + 1
 				]
 				default [
-					print-line "*** Error: invalid value in function spec"
-					halt
+					fire [
+						TO_ERROR(script bad-func-def)
+						value
+					]
 				]
 			]
 		]
@@ -600,7 +608,6 @@ _function: context [
 				res: SIGN_COMPARE_RESULT((as-integer arg1/more) (as-integer arg2/more))
 			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on function! value"]
 				res: -2
 			]
 		]

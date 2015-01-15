@@ -236,7 +236,6 @@ typeset: context [
 				res: SIGN_COMPARE_RESULT((length? set1) (length? set2))
 			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on typeset! value"]
 				res: -2
 			]
 		]

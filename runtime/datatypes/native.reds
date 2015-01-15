@@ -139,7 +139,6 @@ native: context [
 				res: SIGN_COMPARE_RESULT(arg1/code arg2/code)
 			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on native! value"]
 				res: -2
 			]
 		]

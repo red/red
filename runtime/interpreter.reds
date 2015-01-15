@@ -43,8 +43,11 @@ Red/System [
 
 #define FETCH_ARGUMENT [
 	if pc >= end [
-		print-line "*** Interpreter Error: missing argument..."
-		halt
+		fire [
+			TO_ERROR(script no-arg)
+			fname
+			value
+		]
 	]
 	switch TYPE_OF(value) [
 		TYPE_WORD [
@@ -158,6 +161,7 @@ interpreter: context [
 		end		  [red-value!]
 		value	  [red-value!]
 		tail	  [red-value!]
+		fname	  [red-word!]
 		word	  [red-word!]
 		offset	  [int-ptr!]
 		args	  [int-ptr!]
@@ -222,10 +226,11 @@ interpreter: context [
 			
 			value: value + 1
 		]
-		print "Error: refinement /"
-		print-symbol word
-		print-line " not found!"
-		halt
+		fire [
+			TO_ERROR(script no-refine)
+			fname
+			word
+		]
 		null
 	]
 	
@@ -355,6 +360,7 @@ interpreter: context [
 			head	  [red-value!]
 			tail	  [red-value!]
 			w		  [red-word!]
+			fname	  [red-word!]
 			blk		  [red-block!]
 			dt		  [red-datatype!]
 			path-end  [red-value!]
@@ -394,7 +400,8 @@ interpreter: context [
 		offset:		 -1
 		ref?:		 no
 		required?:	 yes								;-- yes: processing mandatory args, no: optional args
-		
+		fname: as red-word! pc - 1
+	
 		unless function? [
 			size: as-integer tail - value				;@@ takes more space than really needed
 			ref-array: system/stack/top - size
@@ -438,9 +445,10 @@ interpreter: context [
 				TYPE_SET_WORD [
 					w: as red-word! value
 					unless words/return* = symbol/resolve w/symbol [
-						print "*** Error: invalid function definition: "
-						print-symbol w
-						print-line ":"
+						fire [
+							TO_ERROR(script bad-func-def)
+							w
+						]
 					]
 					if routine? [
 						ret-set?: yes
@@ -463,7 +471,7 @@ interpreter: context [
 				pos: pos + 1
 				
 				while [pos < path-end][
-					pc: eval-option pc end head tail as red-word! pos :offset :args function?
+					pc: eval-option pc end head tail fname as red-word! pos :offset :args function?
 					
 					unless function? [
 						either args > 0 [
@@ -527,6 +535,12 @@ interpreter: context [
 					pc: eval-code parent pc end yes path item - 1 parent
 					return pc
 				]
+				TYPE_UNSET [
+					fire [
+						TO_ERROR(script no-value)
+						head
+					]
+				]
 				default [0]
 			]
 		]
@@ -548,9 +562,10 @@ interpreter: context [
 			]
 			switch TYPE_OF(value) [
 				TYPE_UNSET [
-					print-line "*** Error: word in path has no value!"
-					stack/push parent
-					return pc
+					fire [
+						TO_ERROR(script no-value)
+						item
+					]
 				]
 				TYPE_PAREN [
 					stack/mark-native words/_body		;@@ ~paren
@@ -764,8 +779,10 @@ interpreter: context [
 				
 				switch TYPE_OF(value) [
 					TYPE_UNSET [
-						print-line "*** Error: word has no value!"
-						either sub? [stack/push unset-value][stack/set-last unset-value]
+						fire [
+							TO_ERROR(script no-value)
+							pc - 1
+						]
 					]
 					TYPE_LIT_WORD [
 						word/push as red-word! value	;-- push lit-word! on stack

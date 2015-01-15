@@ -118,7 +118,6 @@ action: context [
 				res: SIGN_COMPARE_RESULT(arg1/code arg2/code)
 			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on action! value"]
 				res: -2
 			]
 		]

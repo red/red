@@ -394,7 +394,11 @@ actions: context [
 				COMP_STRICT_EQUAL [value]
 				COMP_NOT_EQUAL 	  [value: 0]
 				default [
-					--NOT_IMPLEMENTED--					;@@ add error handling
+					fire [
+						TO_ERROR(script invalid-compare)
+						datatype/push TYPE_OF(value1)
+						datatype/push TYPE_OF(value2)
+					]
 					value
 				]
 			]
