@@ -10,9 +10,12 @@ Red/System [
 	}
 ]
 
-#define CHECK_UNSET(value) [
+#define CHECK_UNSET(value word) [
 	if TYPE_OF(value) = TYPE_UNSET [
-		print-line "*** Error: word has no value!"
+		fire [
+			TO_ERROR(script no-value)
+			word
+		]
 	]
 ]
 
@@ -150,7 +153,7 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/set"]]
 		
 		value: stack/arguments + 1
-		CHECK_UNSET(value)
+		CHECK_UNSET(value stack/arguments)
 		_context/set as red-word! stack/arguments value
 		stack/set-last value
 	]
@@ -181,7 +184,7 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/set-local"]]
 		
 		value: stack/arguments
-		CHECK_UNSET(value)
+		CHECK_UNSET(value slot)
 		copy-cell value slot
 	]
 	
@@ -203,7 +206,7 @@ word: context [
 		#if debug? = yes [if verbose > 0 [print-line "word/get"]]
 		
 		value: copy-cell _context/get word stack/push*
-		CHECK_UNSET(value)
+		CHECK_UNSET(value word)
 		value
 	]
 	

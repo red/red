@@ -26,7 +26,7 @@ char: context [
 			char/value > 0010FFFFh
 			negative? char/value
 		][
-			print-line "*** Math Error: char overflow"
+			fire [TO_ERROR(math overflow)]
 		]
 		as red-value! char
 	]

@@ -1195,8 +1195,10 @@ string: context [
 				]
 			]
 			default [
-				print-line "*** Error: invalid value in path!"
-				halt
+				fire [
+					TO_ERROR(script invalid-type)
+					datatype/push TYPE_OF(element)
+				]
 				null
 			]
 		]
@@ -1497,8 +1499,7 @@ string: context [
 					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
 					str2/node = str/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
 				(as byte-ptr! s/offset) + (str2/head << (unit >> 1))
 			]
@@ -1753,8 +1754,7 @@ string: context [
 					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
 					str2/node = str/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
 				str2/head - str/head
 			]
@@ -1780,8 +1780,7 @@ string: context [
 				len % step <> 0
 				step > len
 			][
-				print "*** Error: invalid /skip series argument"	;@@ replace with error!
-				halt
+				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)
 			]
 			if step > 1 [len: len / step]
 		]
@@ -2049,8 +2048,7 @@ string: context [
 					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
 					str2/node = str/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
 				str2/head - str/head
 			]
@@ -2102,8 +2100,7 @@ string: context [
 					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
 					str2/node = str/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
 				str2/head - str/head
 			]
@@ -2165,8 +2162,7 @@ string: context [
 					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
 					str2/node = str/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
 				either str2/head < str/head [0][
 					either last? [size - (str2/head - str/head)][str2/head - str/head]
@@ -2513,8 +2509,7 @@ string: context [
 					TYPE_OF(str2) = TYPE_OF(str)		;-- handles ANY-STRING!
 					str2/node = str/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
 				str2/head - str/head
 			]

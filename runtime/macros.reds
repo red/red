@@ -334,10 +334,16 @@ Red/System [
 	]
 ]
 
+#define ERR_INVALID_REFINEMENT_ARG(refine arg) [
+	fire [
+		TO_ERROR(script invalid-refine-arg)
+		refine
+		arg
+	]
+]
 
 #define --NOT_IMPLEMENTED--	[
-	print-line "Error: feature not implemented yet!"
-	halt
+	fire [TO_ERROR(internal not-done)]
 ]
 
 #define RETURN_COMPARE_OTHER [
