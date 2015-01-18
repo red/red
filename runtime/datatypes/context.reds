@@ -212,16 +212,10 @@ _context: context [
 			null? ctx
 			word/index = -1
 		][
-			fire [
-				TO_ERROR(script no-value)
-				word
-			]
+			fire [TO_ERROR(script no-value) word]
 		]
 		if null? ctx/values [
-			fire [
-				TO_ERROR(script not-in-context)
-				word
-			]
+			fire [TO_ERROR(script not-in-context) word]
 		]
 		either ON_STACK?(ctx) [
 			(as red-value! ctx/values) + word/index

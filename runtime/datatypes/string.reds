@@ -985,8 +985,7 @@ string: context [
 			]
 		][
 			if TYPE_OF(ret) <> t [
-				print-line "** Script error: Invalid argument for TO action!"
-				ret/header: TYPE_UNSET
+				fire [TO_ERROR(script bad-make-arg) type spec]
 			]
 		]
 		stack/set-last ret
@@ -2003,12 +2002,13 @@ string: context [
 			pos >= as byte-ptr! s/tail
 			pos <  as byte-ptr! s/offset
 		][
-			--NOT_IMPLEMENTED--
-			;TBD: waiting for error!
+			fire [
+				TO_ERROR(script out-of-range)
+				integer/push index
+			]
 		][
 			if TYPE_OF(char) <> TYPE_CHAR [
-				print-line "Error: POKE expected char! value"	;@@ replace by error! when ready
-				halt
+				fire [TO_ERROR(script invalid-arg) char]
 			]
 			poke-char s pos char/value
 			stack/set-last as red-value! char

@@ -254,7 +254,6 @@ float: context [
 			OP_MUL [left/value * right/value]
 			OP_DIV [left/value / right/value]
 			OP_REM [left/value % right/value]
-			default [print-line "*** Math Error: float don't support BITWISE OP!" left/value]
 		]
 		left
 	]
@@ -368,8 +367,7 @@ float: context [
 				string/concatenate-literal buf form-float f
 			]
 			default [
-				print-line "** Script error: Invalid argument for TO float!"
-				type/header: TYPE_UNSET
+				--NOT_IMPLEMENTED--
 			]
 		]
 		as red-value! type

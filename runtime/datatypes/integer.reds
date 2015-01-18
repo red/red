@@ -235,8 +235,7 @@ integer: context [
 				string/concatenate-literal buf form-signed spec/value
 			]
 			default [
-				print-line "** Script error: Invalid argument for TO integer!"
-				type/header: TYPE_UNSET
+				fire [TO_ERROR(script bad-make-arg) type spec]
 			]
 		]
 		as red-value! type

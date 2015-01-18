@@ -452,9 +452,7 @@ bitset: context [
 									OP_CLEAR [process-range		 bits min size op]
 								]
 							][
-								fire [
-									TO_ERROR(script past-end)
-								]
+								fire [TO_ERROR(script past-end)]
 							]
 						]
 					]
