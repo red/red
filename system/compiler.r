@@ -1861,7 +1861,7 @@ system-dialect: make-profilable context [
 			ret
 		]
 		
-		comp-catch: has [offset][
+		comp-catch: has [offset locals-size][
 			pc: next pc
 			fetch-expression/keep/final
 			if any [not last-type last-type <> [integer!]][
@@ -1880,7 +1880,14 @@ system-dialect: make-profilable context [
 			offset: emitter/target/emit-open-catch length? chunk/1
 			foreach ptr chunk/2 [ptr/1: ptr/1 + offset]	;-- account for (catch-frame + push) opcodes
 			emitter/merge chunk
-			emitter/target/emit-close-catch
+			
+			locals-size: either locals [
+				abs last emitter/stack
+			][
+				emitter/target/locals-offset
+			]
+			emitter/target/emit-close-catch locals-size
+			
 			last-type: none-type
 			none
 		]

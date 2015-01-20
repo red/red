@@ -574,7 +574,7 @@ emitter: make-profilable context [
 		args-sz: arguments-size?/push locals
 		
 		locals-sz: 0
-		if pos: find locals /local [		
+		if pos: find locals /local [
 			while [not tail? pos: next pos][
 				var: pos/1
 				either block? pos/2 [
@@ -582,8 +582,11 @@ emitter: make-profilable context [
 					pos: next pos
 				][
 					sz: target/stack-slot-max			;-- type to be inferred
-				]				
-				repend stack [var (locals-sz: locals-sz - sz) - 4]	;-- store stack offsets
+				]
+				repend stack [
+					var
+					(locals-sz: locals-sz - sz) - target/locals-offset	;-- store stack offsets
+				]
 			]
 			locals-sz: abs locals-sz
 		]
