@@ -25,8 +25,10 @@ error: context [
 	]
 	
 	get-call-argument: func [
+		idx		[integer!]
 		return: [red-word!]
 		/local
+			cnt   [integer!]
 			fun   [red-function!]
 			value [red-value!]
 			end	  [red-value!]
@@ -37,12 +39,14 @@ error: context [
 		value: s/offset
 		end:   s/tail
 
+		cnt: 1
 		while [value < end][
 			switch TYPE_OF(value) [
 				TYPE_WORD
 				TYPE_GET_WORD
 				TYPE_LIT_WORD [
-					return as red-word! value
+					if cnt = idx [return as red-word! value]
+					cnt: cnt + 1
 				]
 				default [0]
 			]
@@ -150,9 +154,11 @@ error: context [
 				cat: int/value / 100
 				w: sym + cat
 				
-				if (sym + object/get-size errors) <= as red-value! w [
-					print-line "*** Error: invalid spec value for MAKE"
-					return new
+				if any [
+					int/value <= 0
+					(sym + object/get-size errors) <= as red-value! w
+				][
+					fire [TO_ERROR(script out-of-range) spec]
 				]
 				word/make-at w/symbol base + field-type	;-- set 'type field
 				
@@ -161,8 +167,7 @@ error: context [
 				
 				w: sym + (int/value // 100)
 				if (sym + object/get-size errors) <= as red-value! w [
-					print-line "*** Error: invalid spec value for MAKE"
-					return new
+					fire [TO_ERROR(script out-of-range) spec]
 				]
 				word/make-at w/symbol base + field-id	;-- set 'id field
 			]
@@ -175,8 +180,7 @@ error: context [
 						cat: object/rs-find errors value
 						
 						if cat = -1 [
-							print-line "*** Error: invalid 'type field in spec block for MAKE"
-							return new
+							fire [TO_ERROR(script invalid-spec-field) words/_type]
 						]
 						copy-cell value base + field-type
 						
@@ -185,8 +189,7 @@ error: context [
 						if value < block/rs-tail blk [
 							cat: object/rs-find errors value
 							if cat = -1 [
-								print-line "*** Error: invalid 'id field in spec block for MAKE"
-								return new
+								fire [TO_ERROR(script invalid-spec-field) words/_id]
 							]
 							copy-cell value base + field-id
 						]
@@ -194,21 +197,18 @@ error: context [
 					TYPE_SET_WORD [
 						value: block/select-word blk words/_type
 						if TYPE_OF(value) = TYPE_NONE [
-							print-line "*** Error: 'type not found in spec block for MAKE"
-							return new
+							fire [TO_ERROR(script missing-spec-field) words/_type]
 						]
 						copy-cell value base + field-type
 
 						value: block/select-word blk words/_id
 						if TYPE_OF(value) = TYPE_NONE [
-							print-line "*** Error: 'id not found in spec block for MAKE"
-							return new
+							fire [TO_ERROR(script missing-spec-field) words/_id]
 						]
 						copy-cell value base + field-id
 					]
 					default [
-						print-line "*** Error: unsupported spec block for MAKE"
-						return new
+						fire [TO_ERROR(internal invalid-error)]
 					]
 				]
 			]

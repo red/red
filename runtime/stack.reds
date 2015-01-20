@@ -42,7 +42,7 @@ stack: context [										;-- call stack
 
 			if ctop = c-end [
 				print-line ["^/*** Error: call stack overflow!^/"]
-				halt
+				throw RED_ERROR
 			]
 			ctop/1: type or (fun/symbol << 8)
 			ctop/2: as-integer arguments
@@ -279,7 +279,7 @@ stack: context [										;-- call stack
 		top: top + 1
 		if top >= a-end [
 			print-line ["^/*** Error: arguments stack overflow!^/"]
-			halt
+			throw RED_ERROR
 		]
 		cell
 	]

@@ -953,14 +953,7 @@ natives: context [
 			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
 			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
 			TYPE_BITSET [bitset/union no null]
-			default [
-				fire [
-					TO_ERROR(script expect-arg)
-					stack/get-call
-					datatype/push TYPE_OF(set1)
-					error/get-call-argument
-				]
-			]
+			default [ERR_EXPECT_ARGUMENT((TYPE_OF(set1)) 1)]
 		]
 	]
 	
@@ -984,12 +977,7 @@ natives: context [
 		either TYPE_OF(bits) =  TYPE_BITSET [
 			result/value: s/flags and flag-bitset-not = flag-bitset-not
 		][
-			fire [
-				TO_ERROR(script expect-arg)
-				stack/get-call
-				datatype/push TYPE_OF(bits)
-				error/get-call-argument
-			]
+			ERR_EXPECT_ARGUMENT((TYPE_OF(bits)) 1)
 		]
 
 		result/header: TYPE_LOGIC
@@ -1056,14 +1044,7 @@ natives: context [
 				f: as red-float! res
 				res/value: f/value < 0.0
 			]
-			default [
-				fire [
-					TO_ERROR(script expect-arg)
-					stack/get-call
-					datatype/push TYPE_OF(res)
-					error/get-call-argument
-				]
-			]
+			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]
 		res/header: TYPE_LOGIC
 		res
@@ -1086,14 +1067,7 @@ natives: context [
 				f: as red-float! res
 				res/value: f/value > 0.0
 			]
-			default [
-				fire [
-					TO_ERROR(script expect-arg)
-					stack/get-call
-					datatype/push TYPE_OF(res)
-					error/get-call-argument
-				]
-			]
+			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]
 		res/header: TYPE_LOGIC
 		res

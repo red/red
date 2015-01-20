@@ -501,8 +501,7 @@ object: context [
 		more: s/offset
 		
 		if TYPE_OF(more) = TYPE_NONE [
-			print-line "*** Error: rebinding stuck on missing function's body block"
-			halt
+			fire [TO_ERROR(script bad-func-def) fun]
 		]
 		spec: as red-block! stack/push*
 		spec/head: 0

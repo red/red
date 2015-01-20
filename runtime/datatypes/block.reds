@@ -1649,15 +1649,8 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/swap"]]
 
-		if TYPE_OF(blk2) <> TYPE_BLOCK [
-			fire [
-				TO_ERROR(script expect-arg)
-				stack/get-call
-				datatype/push TYPE_OF(blk2)
-				error/get-call-argument
-			]
-			null
-		]
+		if TYPE_OF(blk2) <> TYPE_BLOCK [ERR_EXPECT_ARGUMENT((TYPE_OF(blk2)) 2)]
+
 		s: GET_BUFFER(blk1)
 		h1: as int-ptr! s/offset + blk1/head
 		if s/tail = as red-value! h1 [return blk1]		;-- early exit if nothing to swap

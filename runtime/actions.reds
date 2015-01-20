@@ -46,14 +46,7 @@ actions: context [
 		index: type << 8 + action
 		index: action-table/index						;-- lookup action function pointer
 
-		if zero? index [
-			fire [
-				TO_ERROR(script expect-arg)
-				stack/get-call
-				datatype/push type
-				error/get-call-argument
-			]
-		]
+		if zero? index [ERR_EXPECT_ARGUMENT(type 1)]
 		index
 	]
 	

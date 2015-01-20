@@ -342,6 +342,15 @@ Red/System [
 	]
 ]
 
+#define ERR_EXPECT_ARGUMENT(type arg-idx) [
+	fire [
+		TO_ERROR(script expect-arg)
+		stack/get-call
+		datatype/push type
+		error/get-call-argument arg-idx
+	]
+]
+
 #define --NOT_IMPLEMENTED--	[
 	fire [TO_ERROR(internal not-done)]
 ]

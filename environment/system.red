@@ -104,16 +104,19 @@ system: context [
 				;self-protected: "cannot set/unset self - it is protected"
 				bad-bad: [:arg1 "error:" :arg2]
 				bad-make-arg: ["cannot MAKE/TO" :arg1 "from:" :arg2]
+				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
+				missing-spec-field: [:arg1 "not found in spec block"]
 				;bad-decode: "missing or unsupported encoding marker"
 				;already-used: ["alias word is already in use:" :arg1]
 				;wrong-denom: [:arg1 "not same denomination as" :arg2]
 				;bad-press: ["invalid compressed data - problem:" :arg1]
 				;dialect: ["incorrect" :arg1 "dialect usage at:" :arg2]
-				;parse-rule: ["PARSE - invalid rule or usage of rule:" :arg1]
-				;parse-end: ["PARSE - unexpected end of rule after:" :arg1]
+				parse-rule: ["PARSE - invalid rule or usage of rule:" :arg1]
+				parse-end: ["PARSE - unexpected end of rule after:" :arg1]
 				;parse-variable: ["PARSE - expected a variable, not:" :arg1]
 				;parse-command: ["PARSE - command cannot be used as variable:" :arg1]
-				;parse-series: ["PARSE - input must be a series:" :arg1]
+				parse-invalid-ref: ["PARSE - get-word refers to a different series!" :arg1]
+				parse-series: ["PARSE - input must be a series:" :arg1]
 			]
 			math: object [
 				code: 400
@@ -177,7 +180,7 @@ system: context [
 				;bad-sys-func: ["invalid or missing system function:" :arg1]
 				feature-na: "feature not available"
 				not-done: "reserved for future use (or not yet implemented)"
-				;invalid-error: "error object or fields were not valid"
+				invalid-error: "error object or fields were not valid"
 			]
 		]
 
