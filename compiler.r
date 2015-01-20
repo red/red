@@ -75,7 +75,7 @@ red: context [
 		if unless either any all while until loop repeat
 		forever foreach forall break func function does has
 		exit return switch case routine set get reduce
-		context object construct
+		context object construct try
 	]
 	
 	logic-words:  [true false yes no on off]
@@ -1746,6 +1746,25 @@ red: context [
 		][
 			comp-context/passive only?
 		]												;-- return object deferred block
+	]
+	
+	comp-try: does [
+		unless block? pc/1 [
+			pc: back pc
+			comp-word									;-- fallback to interpreter
+			exit
+		]
+		emit [catch RED_ERROR]
+		insert-lf -2
+		body: comp-sub-block 'try
+		if body/1 = 'stack/reset [remove body]
+		mark: tail output
+		emit-open-frame 'try
+		insert body mark
+		clear mark
+		append body [
+			stack/unwind
+		]
 	]
 	
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][

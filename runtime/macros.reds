@@ -239,7 +239,7 @@ Red/System [
 	#define ------------| 	comment
 ]
 
-#define RED_ERROR			BADDCAFEh
+#define RED_ERROR			195939070				;-- #0BADCAFE (keep it positive)
 
 #define TYPE_OF(value)		(value/header and get-type-mask)
 #define GET_BUFFER(series)  (as series! series/node/value)

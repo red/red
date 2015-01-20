@@ -228,20 +228,18 @@ stack: context [										;-- call stack
 	
 	throw-error: func [
 		error [red-object!]
-		/local
-			ptr [int-ptr!]
 	][
 		copy-cell as red-value! error arguments
 		unroll FLAG_TRY
 
-		ptr: ctop - 2
-		assert ptr >= cbottom
-		copy-cell as red-value! error arguments
+		ctop: ctop - 2
+		assert ctop >= cbottom
 		
 		if all [
-			ptr = cbottom 
-			FLAG_TRY and ptr/1 <> FLAG_TRY
+			ctop = cbottom 
+			FLAG_TRY and ctop/1 <> FLAG_TRY
 		][
+			copy-cell as red-value! error arguments
 			natives/print*
 		]
 		throw RED_ERROR
