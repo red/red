@@ -200,7 +200,6 @@ logic: context [
 			COMP_SORT
 			COMP_CASE_SORT [res: (as-integer arg1/value) - (as-integer arg2/value)]
 			default [
-				print-line ["Error: cannot use: " op " comparison on logic! value"]
 				res: -2
 			]
 		]

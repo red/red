@@ -115,7 +115,6 @@ none: context [
 			COMP_SORT
 			COMP_CASE_SORT [res: 0]
 			default [
-				print-line ["Error: cannot use: " op " comparison on none! value"]
 				res: -2
 			]
 		]

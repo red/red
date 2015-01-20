@@ -141,7 +141,6 @@ routine: context [
 				res: SIGN_COMPARE_RESULT((as-integer arg1/more) (as-integer arg2/more))
 			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on routine! value"]
 				res: -2
 			]
 		]

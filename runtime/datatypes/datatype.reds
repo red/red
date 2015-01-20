@@ -169,7 +169,6 @@ datatype: context [
 				res: as-integer any [TYPE_OF(arg2) <> TYPE_DATATYPE arg1/value <> arg2/value]
 			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on datatype! value"]
 				res: -2
 			]
 		]

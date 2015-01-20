@@ -672,8 +672,10 @@ block: context [
 				]
 			]
 			default [
-				print-line "*** Error: invalid value in path!"
-				halt
+				fire [
+					TO_ERROR(script invalid-type)
+					datatype/push TYPE_OF(element)
+				]
 				null
 			]
 		]
@@ -888,8 +890,7 @@ block: context [
 					TYPE_OF(b) = TYPE_OF(blk)			;-- handles ANY-BLOCK!
 					b/node = blk/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
 				s/offset + b/head
 			]
@@ -1182,8 +1183,7 @@ block: context [
 					TYPE_OF(blk2) = TYPE_OF(blk)		;-- handles ANY-STRING!
 					blk2/node = blk/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
 				blk2/head - blk/head
 			]
@@ -1209,8 +1209,7 @@ block: context [
 				len % step <> 0
 				step > len
 			][
-				print "*** Error: invalid /skip series argument"	;@@ replace with error!
-				halt
+				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)
 			]
 			if step > 1 [len: len / step]
 		]
@@ -1233,8 +1232,10 @@ block: context [
 					int: as red-integer! comparator
 					offset: int/value
 					if any [offset < 1 offset > step][
-						print "*** Error: invalid /compare argument"	;@@ replace with error!
-						halt
+						fire [
+							TO_ERROR(script out-of-range)
+							comparator
+						]
 					]
 					flags: offset - 1 << 1 or flags
 				]
@@ -1243,8 +1244,7 @@ block: context [
 					;TBD handles block! value
 				]
 				default [
-					print "*** Error: invalid /compare argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG((refinement/load "compare") comparator)
 				]
 			]
 		]
@@ -1650,8 +1650,12 @@ block: context [
 		#if debug? = yes [if verbose > 0 [print-line "block/swap"]]
 
 		if TYPE_OF(blk2) <> TYPE_BLOCK [
-			print-line "*** Error: invalid value for series2 argument!"
-			halt
+			fire [
+				TO_ERROR(script expect-arg)
+				stack/get-call
+				datatype/push TYPE_OF(blk2)
+				error/get-call-argument
+			]
 			null
 		]
 		s: GET_BUFFER(blk1)
@@ -1750,8 +1754,7 @@ block: context [
 					TYPE_OF(b) = TYPE_OF(blk)			;-- handles ANY-BLOCK!
 					b/node = blk/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
 				b/head - blk/head
 			]

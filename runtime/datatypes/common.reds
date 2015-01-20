@@ -291,9 +291,15 @@ words: context [
 refinements: context [
 	local: 		as red-refinement! 0
 	extern: 	as red-refinement! 0
-	
+
+	_part:		as red-refinement! 0
+	_skip:		as red-refinement! 0
+
 	build: does [
 		local:	refinement/load "local"
 		extern:	refinement/load "extern"
+
+		_part:	refinement/load "part"
+		_skip:	refinement/load "skip"
 	]
 ]

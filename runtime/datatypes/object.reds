@@ -704,8 +704,10 @@ object: context [
 				obj/on-set: on-set-defined? ctx
 			]
 			default [
-				print-line "*** Error: invalid spec value for object construction"
-				halt
+				fire [
+					TO_ERROR(syntax malconstruct)
+					spec
+				]
 			]
 		]
 		obj
@@ -940,8 +942,7 @@ object: context [
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
 		if OPTION?(part-arg) [
-			print-line "***Error: copy/part is not supported on objects"
-			halt
+			ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 		]
 
 		ctx:	GET_CTX(obj)

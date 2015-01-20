@@ -909,8 +909,7 @@ natives: context [
 					TYPE_OF(limit) = TYPE_OF(input)
 					limit/node = input/node
 				][
-					print-line "*** Parse Error: invalid /part argument"
-					exit
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part limit)
 				]
 				limit/head
 			]
@@ -955,7 +954,12 @@ natives: context [
 			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
 			TYPE_BITSET [bitset/union no null]
 			default [
-				print-line "*** Error: argument type not supported by UNION"
+				fire [
+					TO_ERROR(script expect-arg)
+					stack/get-call
+					datatype/push TYPE_OF(set1)
+					error/get-call-argument
+				]
 			]
 		]
 	]
@@ -980,8 +984,12 @@ natives: context [
 		either TYPE_OF(bits) =  TYPE_BITSET [
 			result/value: s/flags and flag-bitset-not = flag-bitset-not
 		][
-			result/value: false
-			print-line "*** Error: argument type must be BITSET!"
+			fire [
+				TO_ERROR(script expect-arg)
+				stack/get-call
+				datatype/push TYPE_OF(bits)
+				error/get-call-argument
+			]
 		]
 
 		result/header: TYPE_LOGIC
@@ -1049,8 +1057,12 @@ natives: context [
 				res/value: f/value < 0.0
 			]
 			default [
-				res/value: false
-				print-line "*** Error: argument type must be number!"
+				fire [
+					TO_ERROR(script expect-arg)
+					stack/get-call
+					datatype/push TYPE_OF(res)
+					error/get-call-argument
+				]
 			]
 		]
 		res/header: TYPE_LOGIC
@@ -1075,8 +1087,12 @@ natives: context [
 				res/value: f/value > 0.0
 			]
 			default [
-				res/value: false
-				print-line "*** Error: argument type must be number!"
+				fire [
+					TO_ERROR(script expect-arg)
+					stack/get-call
+					datatype/push TYPE_OF(res)
+					error/get-call-argument
+				]
 			]
 		]
 		res/header: TYPE_LOGIC
@@ -1178,8 +1194,7 @@ natives: context [
 	][
 		f: degree-to-radians radians TANGENT
 		either (float/abs f/value) = (PI / 2.0) [
-			print-line "*** Math Error: math or number overflow on TANGENT"
-			f/header: TYPE_UNSET
+			fire [TO_ERROR(math overflow)]
 		][
 			f/value: tan f/value
 		]
@@ -1393,8 +1408,7 @@ natives: context [
 		d: f/value
 
 		either all [type <> TANGENT any [d < -1.0 d > 1.0]] [
-			print-line "*** Math Error: math or number overflow"
-			f/header: TYPE_UNSET
+			fire [TO_ERROR(math overflow)]
 		][
 			f/value: switch type [
 				SINE	[asin d]

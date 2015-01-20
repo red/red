@@ -68,7 +68,6 @@ system: context [
 				no-arg: [:arg1 "is missing its" :arg2 "argument"]
 				expect-arg: [:arg1 "does not allow" :arg2 "for its" :arg3 "argument"]
 				expect-val: ["expected" :arg1 "not" :arg2]
-				
 				expect-type: [:arg1 :arg2 "field must be of type" :arg3]
 				cannot-use: ["cannot use" :arg1 "on" :arg2 "value"]
 				invalid-arg: ["invalid argument:" :arg1]
@@ -80,6 +79,7 @@ system: context [
 				not-related: ["incompatible argument for" :arg1 "of" :arg2]
 				bad-func-def: ["invalid function definition:" :arg1]
 				bad-func-arg: ["function argument" :arg1 "is not valid"]
+				bad-func-extern: ["invalid /extern value" :arg1]
 				no-refine: [:arg1 "has no refinement called" :arg2]
 				bad-refines: "incompatible or invalid refinements"
 				bad-refine: ["incompatible refinement:" :arg1]
@@ -94,7 +94,7 @@ system: context [
 				invalid-chars: "contains invalid characters"
 				invalid-compare: ["cannot compare" :arg1 "with" :arg2]
 				wrong-type: ["datatype assertion failed for:" :arg1]
-				invalid-part: ["invalid /part count:" :arg1]
+				invalid-refine-arg: ["invalid" :arg1 "argument:" :arg2]
 				type-limit: [:arg1 "overflow/underflow"]
 				size-limit: ["maximum limit reached:" :arg1]
 				no-return: "block did not return a value"
