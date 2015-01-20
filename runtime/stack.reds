@@ -227,9 +227,11 @@ stack: context [										;-- call stack
 	]
 	
 	throw-error: func [
-		error [red-object!]
+		err [red-object!]
 	][
-		copy-cell as red-value! error arguments
+		error/set-where err as red-value! get-call
+
+		copy-cell as red-value! err arguments
 		unroll FLAG_TRY
 
 		ctop: ctop - 2
@@ -239,7 +241,7 @@ stack: context [										;-- call stack
 			ctop = cbottom 
 			FLAG_TRY and ctop/1 <> FLAG_TRY
 		][
-			copy-cell as red-value! error arguments
+			copy-cell as red-value! err arguments
 			natives/print*
 		]
 		throw RED_ERROR

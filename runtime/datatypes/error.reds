@@ -24,6 +24,15 @@ error: context [
 		field-where
 	]
 	
+	
+	set-where: func [
+		error [red-object!]
+		value [red-value!]
+	][
+		base: object/get-values error
+		copy-cell value base + field-where
+	]
+	
 	get-call-argument: func [
 		idx		[integer!]
 		return: [red-word!]
@@ -259,6 +268,18 @@ error: context [
 			blk: reduce blk obj
 			part: block/form blk buffer arg part
 		]
+		
+		string/concatenate-literal buffer "^/*** Where: "
+		part: part - 12
+		value: base + field-where
+		
+		either TYPE_OF(value) = TYPE_WORD [
+			part: word/form as red-word! value buffer arg part
+		][
+			string/concatenate-literal buffer "???"
+			part: part - 3
+		]
+		
 		part
 	]
 	
