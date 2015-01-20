@@ -121,11 +121,18 @@ integer: context [
 				OP_ADD [left/value + right/value]
 				OP_SUB [left/value - right/value]
 				OP_MUL [left/value * right/value]
-				OP_DIV [left/value / right/value]
 				OP_REM [left/value % right/value]
 				OP_AND [left/value and right/value]
 				OP_OR  [left/value or right/value]
 				OP_XOR [left/value xor right/value]
+				OP_DIV [
+					either zero? right/value [
+						fire [TO_ERROR(math zero-divide)]
+						0								;-- pass the compiler's type-checking
+					][
+						left/value / right/value
+					]
+				]
 			]
 		]
 		as red-value! left
