@@ -235,7 +235,13 @@ form-type: func [
 		quit status
 	]
 	
-	***-uncaught-exception: does [***-on-quit 95 as-integer system/pc]
+	***-uncaught-exception: does [
+		either system/thrown = 0BADCAFEh [	;-- RED_ERROR exception value
+			***-on-quit 0 0					;-- Red error, normal exit
+		][
+			***-on-quit 95 as-integer system/pc ;-- Red/System uncaught exception, report it
+		]
+	]
 ]
 
 #if type = 'exe [
