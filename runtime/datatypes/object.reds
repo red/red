@@ -228,8 +228,6 @@ object: context [
 			indent?: no
 			blank: space
 		][
-			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
 			blank: lf
 		]
 		
@@ -712,6 +710,10 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
 		
 		string/concatenate-literal buffer "make object! ["
+		unless flat? [
+			string/append-char GET_BUFFER(buffer) as-integer lf
+			part: part - 1
+		]
 		part: serialize obj buffer only? all? flat? arg part - 14 yes indent + 1
 		if indent > 0 [part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
