@@ -204,6 +204,7 @@ object: context [
 		part	[integer!]
 		indent?	[logic!]
 		tabs	[integer!]
+		mold?	[logic!]
 		return: [integer!]
 		/local
 			ctx		[red-context!]
@@ -228,6 +229,10 @@ object: context [
 			indent?: no
 			blank: space
 		][
+			if mold? [
+				string/append-char GET_BUFFER(buffer) as-integer lf
+				part: part - 1
+			]
 			blank: lf
 		]
 		
@@ -693,7 +698,7 @@ object: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/form"]]
 
-		serialize obj buffer no no no arg part no 0
+		serialize obj buffer no no no arg part no 0 no
 	]
 	
 	mold: func [
@@ -710,11 +715,7 @@ object: context [
 		#if debug? = yes [if verbose > 0 [print-line "object/mold"]]
 		
 		string/concatenate-literal buffer "make object! ["
-		unless flat? [
-			string/append-char GET_BUFFER(buffer) as-integer lf
-			part: part - 1
-		]
-		part: serialize obj buffer only? all? flat? arg part - 14 yes indent + 1
+		part: serialize obj buffer only? all? flat? arg part - 14 yes indent + 1 yes
 		if indent > 0 [part: do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
