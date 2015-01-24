@@ -351,9 +351,9 @@ Red [
 		***: make op! :infix
 		--assert 7 *** 3 = 73
 
+	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
 		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
 
-	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
 		--test-- "infix-2"
 				*+*: make op! :infix2
 			--assert 5 *+* 6 = 106
