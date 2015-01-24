@@ -2282,10 +2282,12 @@ red: context [
 				name spec body none none none none none none
 			]
 		][
-			emit reduce [to set-word! name 'func]
-			insert-lf -2
-			append/only output spec
-			append/only output body
+			redirect-to literals [
+				emit reduce [to set-word! name 'func]
+				insert-lf -2
+				append/only output spec
+				append/only output body
+			]
 		]
 		
 		pc: skip pc 2
