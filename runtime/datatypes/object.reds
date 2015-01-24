@@ -20,6 +20,94 @@ object: context [
 		class-id
 	]
 	
+	rs-find: func [
+		obj		 [red-object!]
+		value	 [red-value!]
+		return:	 [integer!]								;-- -1 if not found, else index
+		/local
+			word [red-word!]
+			ctx	 [node!]
+	][
+		assert any [									;@@ replace with ANY_WORD?
+			TYPE_OF(value) = TYPE_WORD
+			TYPE_OF(value) = TYPE_LIT_WORD
+			TYPE_OF(value) = TYPE_GET_WORD
+			TYPE_OF(value) = TYPE_SET_WORD
+		]
+		word: as red-word! value
+		ctx: obj/ctx
+		 _context/find-word TO_CTX(ctx) word/symbol no
+	]
+	
+	rs-select: func [
+		obj		 [red-object!]
+		value	 [red-value!]
+		return:	 [red-value!]
+		/local
+			word   [red-word!]
+			ctx	   [red-context!]
+			values [series!]
+			id	   [integer!]
+	][
+		assert any [									;@@ replace with ANY_WORD?
+			TYPE_OF(value) = TYPE_WORD
+			TYPE_OF(value) = TYPE_LIT_WORD
+			TYPE_OF(value) = TYPE_GET_WORD
+			TYPE_OF(value) = TYPE_SET_WORD
+		]
+		word: as red-word! value
+		ctx: GET_CTX(obj)
+		id: _context/find-word ctx word/symbol no	
+		if id = -1 [return as red-value! none-value]
+		
+		values: as series! ctx/values/value
+		values/offset + id
+	]
+	
+	get-word: func [
+		obj		[node!]
+		index	[integer!]
+		return: [red-value!]
+		/local
+			ctx [red-context!]
+			s   [series!]
+	][
+		ctx: TO_CTX(obj)
+		s: as series! ctx/symbols/value
+		s/offset + index
+	]
+	
+	get-words: func [
+		obj		[red-object!]
+		return: [red-value!]
+	][
+		get-word obj/ctx 0
+	]
+	
+	get-values: func [
+		obj		[red-object!]
+		return: [red-value!]
+		/local
+			ctx [red-context!]
+			s   [series!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/values/value
+		s/offset
+	]
+	
+	get-size: func [
+		obj		[red-object!]
+		return: [integer!]
+		/local
+			ctx [red-context!]
+			s   [series!]
+	][
+		ctx: GET_CTX(obj)
+		s: as series! ctx/symbols/value
+		(as-integer s/tail - s/offset) >> 4
+	]
+	
 	save-self-object: func [
 		obj		[red-object!]
 		return: [node!]
@@ -416,8 +504,7 @@ object: context [
 		more: s/offset
 		
 		if TYPE_OF(more) = TYPE_NONE [
-			print-line "*** Error: rebinding stuck on missing function's body block"
-			halt
+			fire [TO_ERROR(script bad-func-def) fun]
 		]
 		spec: as red-block! stack/push*
 		spec/head: 0
@@ -619,8 +706,10 @@ object: context [
 				obj/on-set: on-set-defined? ctx
 			]
 			default [
-				print-line "*** Error: invalid spec value for object construction"
-				halt
+				fire [
+					TO_ERROR(syntax malconstruct)
+					spec
+				]
 			]
 		]
 		obj
@@ -855,8 +944,7 @@ object: context [
 		if OPTION?(types) [--NOT_IMPLEMENTED--]
 
 		if OPTION?(part-arg) [
-			print-line "***Error: copy/part is not supported on objects"
-			halt
+			ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 		]
 
 		ctx:	GET_CTX(obj)
@@ -931,21 +1019,11 @@ object: context [
 		match?	 [logic!]
 		return:	 [red-value!]
 		/local
-			word [red-word!]
-			ctx	 [node!]
 			id	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/find"]]
 		
-		assert any [									;@@ replace with ANY_WORD?
-			TYPE_OF(value) = TYPE_WORD
-			TYPE_OF(value) = TYPE_LIT_WORD
-			TYPE_OF(value) = TYPE_GET_WORD
-			TYPE_OF(value) = TYPE_SET_WORD
-		]
-		word: as red-word! value
-		ctx: obj/ctx
-		id: _context/find-word TO_CTX(ctx) word/symbol yes
+		id: rs-find obj value
 		as red-value! either id = -1 [none-value][true-value]
 	]
 	
@@ -961,29 +1039,10 @@ object: context [
 		last?	 [logic!]
 		reverse? [logic!]
 		return:	 [red-value!]
-		/local
-			word   [red-word!]
-			ctx	   [red-context!]
-			values [series!]
-			node   [node!]
-			id	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "object/select"]]
 		
-		assert any [									;@@ replace with ANY_WORD?
-			TYPE_OF(value) = TYPE_WORD
-			TYPE_OF(value) = TYPE_LIT_WORD
-			TYPE_OF(value) = TYPE_GET_WORD
-			TYPE_OF(value) = TYPE_SET_WORD
-		]
-		word: as red-word! value
-		node: obj/ctx
-		ctx: TO_CTX(node)
-		id: _context/find-word ctx word/symbol yes
-		if id = -1 [return as red-value! none-value]
-		
-		values: as series! ctx/values/value
-		values/offset + id
+		rs-select obj value
 	]
 	
 	init: does [

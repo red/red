@@ -254,7 +254,6 @@ float: context [
 			OP_MUL [left/value * right/value]
 			OP_DIV [left/value / right/value]
 			OP_REM [left/value % right/value]
-			default [print-line "*** Math Error: float don't support BITWISE OP!" left/value]
 		]
 		left
 	]
@@ -368,8 +367,7 @@ float: context [
 				string/concatenate-literal buf form-float f
 			]
 			default [
-				print-line "** Script error: Invalid argument for TO float!"
-				type/header: TYPE_UNSET
+				--NOT_IMPLEMENTED--
 			]
 		]
 		as red-value! type
@@ -665,9 +663,7 @@ float: context [
 		]
 
 		if sc = 0.0 [
-			print-line "*** Math Error: float overflow on ROUND"
-			value/header: TYPE_UNSET
-			return value
+			fire [TO_ERROR(math overflow)]
 		]
 
 		if sc < ldexp abs dec -53 [return value]		;-- is scale negligible?
@@ -700,8 +696,7 @@ float: context [
 		f/value: either v [
 			dec: dec * sc
 			if DOUBLE_MAX = abs dec [
-				print-line "*** Math Error: float overflow on ROUND"
-				value/header: TYPE_UNSET
+				fire [TO_ERROR(math overflow)]
 			]
 			dec
 		][

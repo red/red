@@ -209,6 +209,7 @@ form-type: func [
 				33	["FPU error"]			;-- generic SIGFPE message
 				34	["Bus error"]			;-- generic SIGBUS message
 
+				95	["no CATCH for THROW"]
 				96	["virtual memory release failed"]
 				97	["out of memory"]
 				98	["assertion failed"]
@@ -233,6 +234,14 @@ form-type: func [
 		]
 		quit status
 	]
+	
+	***-uncaught-exception: does [
+		either system/thrown = 0BADCAFEh [	;-- RED_ERROR exception value
+			***-on-quit 0 0					;-- Red error, normal exit
+		][
+			***-on-quit 95 as-integer system/pc ;-- Red/System uncaught exception, report it
+		]
+	]
 ]
 
 #if type = 'exe [
@@ -240,4 +249,4 @@ form-type: func [
 	system/stack/frame: system/stack/top	;-- @@ reposition frame pointer just after the catch flag
 ]
 push CATCH_ALL								;-- exceptions root barrier
-push 0										;-- keep stack aligned on 64-bit
+push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)

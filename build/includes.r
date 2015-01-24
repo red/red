@@ -59,6 +59,7 @@ write %build/bin/sources.r set-cache [
 			%common.reds
 			%context.reds
 			%datatype.reds
+			%error.reds
 			%file.reds
 			%float.reds
 			%function.reds

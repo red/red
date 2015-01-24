@@ -142,6 +142,19 @@ red-integer!: alias struct! [
 	_pad	[integer!]	
 ]
 
+red-float!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding [integer!]
+	value	[float!]								;-- 64-bit float value
+]
+
+red-float32!: alias struct! [
+	header 	[integer!]								;-- cell header
+	padding [integer!]
+	value	[float32!]								;-- 32-bit float value
+	_pad	[integer!]
+]
+
 red-context!: alias struct! [
 	header 	[integer!]								;-- cell header
 	symbols	[node!]									;-- array of symbols ID
@@ -154,8 +167,6 @@ red-object!: alias struct! [
 	ctx		[node!]									;-- context reference
 	class	[integer!]								;-- class ID
 	on-set	[node!]									;-- on-set callback info
-	;		index  [red-integer!]					;-- index of callback entry in context (-1 if none)
-	;		locals [red-integer!]					;-- callback local words count
 ]
 
 red-word!: alias struct! [
@@ -227,19 +238,6 @@ red-routine!: alias struct! [
 	;	body	 [red-block!]						;-- 	routine's body block
 	;	symbols	 [red-block!]						;-- 	routine cleaned-up spec block reference
 	;	native   [node!]							;-- 	compiled body (binary!)
-]
-
-red-float!: alias struct! [
-	header 	[integer!]								;-- cell header
-	padding [integer!]
-	value	[float!]								;-- 64-bit float value
-]
-
-red-float32!: alias struct! [
-	header 	[integer!]								;-- cell header
-	padding [integer!]
-	value	[float32!]								;-- 32-bit float value
-	_pad	[integer!]
 ]
 
 red-typeset!: alias struct! [

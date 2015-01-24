@@ -345,7 +345,7 @@ parser: context [
 					]
 				]
 				default [
-					print-line "*** Parse Error: invalid literal value to match on string"
+					fire [TO_ERROR(script parse-rule) token]
 				]
 			]
 		][
@@ -929,8 +929,7 @@ parser: context [
 					switch type [						;-- allows to enter the state with cmd or :cmd (if word!)
 						TYPE_WORD 	[
 							if all [value <> cmd TYPE_OF(cmd) = TYPE_WORD][
-								print-line "*** Parse Error: invalid word in rule"
-								halt
+								fire [TO_ERROR(script parse-rule) value]
 							]
 							state: ST_WORD
 						]
@@ -957,7 +956,7 @@ parser: context [
 								input/head: new/head
 								state: ST_NEXT_ACTION
 							][
-								print-line "*** Parse Error: get-word refers to a different series!"
+								fire [TO_ERROR(script parse-invalid-ref) value]
 							]
 						]
 						TYPE_INTEGER [
@@ -975,7 +974,7 @@ parser: context [
 								all [upper?	int2 + 1 = tail]
 								all [upper? int/value > int2/value]
 							][
-								print-line "*** Parse Error: invalid integer rule"
+								fire [TO_ERROR(script parse-rule) value]
 							]
 							state: either all [zero? int/value not upper?][
 								cmd: cmd + 1			;-- skip over sub-rule
@@ -1144,7 +1143,7 @@ parser: context [
 						sym = words/copy [				;-- COPY
 							cmd: cmd + 1
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
-								print-line "*** Parse Error: invalid COPY rule"
+								fire [TO_ERROR(script parse-end) words/copy]
 							]
 							min:   R_NONE
 							type:  R_COPY
@@ -1203,16 +1202,16 @@ parser: context [
 						]
 						sym = words/into [				;-- INTO
 							if TYPE_OF(input) <> TYPE_BLOCK [
-								print-line "*** Parse Error: INTO can only be used on a block! value"
+								fire [TO_ERROR(script parse-series) input]
 							]
 							value: cmd + 1
-							if value = tail [print-line "*** Parse Error: missing INTO argument"]
+							if value = tail [fire [TO_ERROR(script parse-end) words/into]]
 							
 							if TYPE_OF(value) = TYPE_WORD [
 								value: _context/get as red-word! value
 							]
 							if TYPE_OF(value) <> TYPE_BLOCK [
-								print-line "*** Parse Error: INTO invalid argument"
+								fire [TO_ERROR(script parse-end) words/into]
 							]
 							value: block/rs-head input
 							type: TYPE_OF(value)
@@ -1253,7 +1252,7 @@ parser: context [
 						]
 						sym = words/then [				;-- THEN
 							if cmd + 1 = tail [
-								print-line "*** Parse Error: THEN requires an argument rule"
+								fire [TO_ERROR(script parse-end) words/then]
 							]
 							min:   R_NONE
 							type:  R_THEN
@@ -1262,7 +1261,7 @@ parser: context [
 						sym = words/if* [				;-- IF
 							cmd: cmd + 1
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_PAREN][
-								print-line "*** Parse Error: IF requires a paren argument"
+								fire [TO_ERROR(script parse-end) words/if*]
 							]
 							interpreter/eval as red-block! cmd no
 							match?: logic/top-true?
@@ -1278,7 +1277,7 @@ parser: context [
 						sym = words/quote [				;-- QUOTE
 							cmd: cmd + 1
 							if cmd = tail [
-								print-line "*** Parse Error: missing QUOTE argument"
+								fire [TO_ERROR(script parse-end) words/quote]
 							]
 							value: cmd
 							state: ST_MATCH
@@ -1301,7 +1300,7 @@ parser: context [
 										w >= tail
 										TYPE_OF(w) <> TYPE_WORD	
 									][
-										print-line "*** Parse Error: COLLECT is missing a word argument"
+										fire [TO_ERROR(script parse-end) words/collect]
 									]
 									either into? [get-word/push w][stack/push as red-value! w]
 									cmd: as red-value! w
@@ -1327,7 +1326,7 @@ parser: context [
 						sym = words/set [				;-- SET
 							cmd: cmd + 1
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
-								print-line "*** Parse Error: invalid COPY rule"
+								fire [TO_ERROR(script parse-end) words/set]
 							]
 							min:   R_NONE
 							type:  R_SET

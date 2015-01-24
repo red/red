@@ -17,6 +17,7 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (ebp + ret-addr)
 	branch-offset-size:	4							;-- size of JMP offset
+	locals-offset:		8							;-- offset from frame pointer to local variables (catch ID + addr)
 	
 	fpu-cword: none									;-- x87 control word reference in emitter/symbols
 	fpu-flags: to integer! #{037A}					;-- default control word, division by zero
@@ -1730,17 +1731,48 @@ make-profilable make target-class [
 	emit-throw: func [value [integer! word!]][
 		emit-load value
 		
+		emit #{EB01}								;--			JMP _1st
 		emit #{C9}									;-- _loop:	LEAVE
-		emit #{5F}									;-- 		POP edi		; read return address
-		emit #{3945FC}								;--			CMP [ebp-4], eax ; compare with catch flag
-		emit #{72F9}								;-- 		JB _loop
+		emit #{3945FC}								;--	_1st:	CMP [ebp-4], eax ; compare with catch flag
+		emit #{72FA}								;-- 		JB _loop
 		emit #{89C2}								;--			MOV edx, eax
 		emitter/access-path to set-path! 'system/thrown <last>
 		
+		emit #{8B7DF8}								;--			MOV edi, [ebp-8]
+		emit #{83FF00}								;--			CMP edi, 0
+		emit #{7402}								;--			JZ _next
+		emit #{FFE7}								;--			JMP edi		; resume in caller
+		emit #{5F}									;-- _next:	POP edi		; read return address
 		emit #{83FF00}								;--			CMP edi, 0
 		emit #{7402}								;--			JZ _end
 		emit #{FFE7}								;--			JMP edi		; resume in caller
 													;-- _end:
+	]
+	
+	emit-open-catch: func [body-size [integer!]][
+		emit #{FF75FC}						 		;--	PUSH [ebp-4]		; save old catch value
+		emit #{FF75F8}						 		;--	PUSH [ebp-8]		; save old catch address
+		emit #{8945FC}								;-- MOV  [ebp-4], eax	; rewrite the catch ID
+		emit #{E800000000}							;-- CALL next			; push eip on stack
+		emit #{58}									;-- POP eax
+		emit #{05}							 		;--	ADD eax, <offset>
+		emit to-bin32 body-size + 9					;-- account for catch-frame opcodes after `CALL next`
+		emit #{8945F8}							 	;--	MOV [ebp-8], eax
+		23											;-- return size of (catch-frame + extra) opcodes
+	]
+	
+	emit-close-catch: func [offset [integer!]][
+		offset: offset + 8							;-- account for the 2 catch slots on stack
+		either offset > 127 [
+			emit #{89EC}							;-- MOV esp, ebp
+			emit #{81EC}							;-- SUB esp, locals-size	; 32-bit
+			emit to-bin32 offset
+		][
+			emit #{8D65}							;-- LEA esp, [ebp-locals]
+			emit to-char 256 - offset
+		]
+		emit #{8F45F8}								;-- POP [ebp-8]
+		emit #{8F45FC}								;-- POP [ebp-4]
 	]
 
 	emit-prolog: func [name [word!] locals [block!] locals-size [integer!] /local fspec attribs offset][
@@ -1752,7 +1784,10 @@ make-profilable make target-class [
 		emit #{55}									;-- PUSH ebp
 		emit #{89E5}								;-- MOV ebp, esp
 
-		emit-push pick [-2 0] to logic! all [attribs find attribs 'catch]	;-- push catch flag
+		emit-push pick [-2 0] to logic! all [		;-- push catch ID
+			attribs find attribs 'catch
+		]
+		emit-push 0									;-- reserve slot for catch resume address
 
 		unless zero? locals-size [
 			locals-size: round/to/ceiling locals-size 4

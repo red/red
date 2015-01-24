@@ -46,13 +46,7 @@ actions: context [
 		index: type << 8 + action
 		index: action-table/index						;-- lookup action function pointer
 
-		if zero? index [
-			print-line [
-				"^/*** Script error: action " action
-				" not defined for type: " type
-			]
-			halt
-		]
+		if zero? index [ERR_EXPECT_ARGUMENT(type 1)]
 		index
 	]
 	
@@ -393,7 +387,7 @@ actions: context [
 			op <> COMP_STRICT_EQUAL
 			op <> COMP_NOT_EQUAL
 		][
-			--NOT_IMPLEMENTED--					;@@ add error handling
+			--NOT_IMPLEMENTED--
 			value
 		]
 		switch op [

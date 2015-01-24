@@ -452,7 +452,7 @@ bitset: context [
 									OP_CLEAR [process-range		 bits min size op]
 								]
 							][
-								print-line "*** Make Error: invalid upper bound in bitset range"
+								fire [TO_ERROR(script past-end)]
 							]
 						]
 					]
@@ -461,7 +461,10 @@ bitset: context [
 				]
 			]
 			default [
-				print-line "*** Make Error: bitset spec argument not supported!"
+				fire [
+					TO_ERROR(script invalid-arg)
+					spec
+				]
 			]
 		]
 		
@@ -511,7 +514,12 @@ bitset: context [
 		either TYPE_OF(spec) = TYPE_INTEGER [
 			int: as red-integer! spec
 			size: int/value
-			if size <= 0 [print-line "*** Make Error: bitset invalid integer argument!"]
+			if size <= 0 [
+				fire [
+					TO_ERROR(script out-of-range)
+					int
+				]
+			]
 			size: either zero? (size and 7) [size][size + 8 and -8]	;-- round to byte multiple
 			size: size >> 3								;-- convert to bytes
 			bits/node: alloc-bytes-filled size null-byte
@@ -660,8 +668,10 @@ bitset: context [
 				]
 			]
 			default [
-				print-line "*** Error: invalid value in path!"
-				halt
+				fire [
+					TO_ERROR(script invalid-type)
+					datatype/push TYPE_OF(element)
+				]
 				null
 			]
 		]

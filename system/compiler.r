@@ -75,6 +75,7 @@ system-dialect: make-profilable context [
 		locals-init: 	 []								;-- currently compiler function locals variable init list
 		func-name:	 	 none							;-- currently compiled function name
 		block-level: 	 0								;-- nesting level of input source block
+		catch-level:	 0								;-- nesting level of CATCH body block
 		verbose:  	 	 0								;-- logs verbosity level
 	
 		imports: 	   	 make block! 10					;-- list of imported functions
@@ -193,6 +194,7 @@ system-dialect: make-profilable context [
 			all			 [comp-expression-list/_all]
 			exit		 [comp-exit]
 			return		 [comp-exit/value]
+			catch		 [comp-catch]
 			declare		 [comp-declare]
 			null		 [comp-null]
 			context		 [comp-context]
@@ -208,7 +210,8 @@ system-dialect: make-profilable context [
 		]
 		
 		calling-keywords: [								;-- keywords accepted in expr-call-stack
-			?? as assert size? if either case switch until while any all return
+			?? as assert size? if either case switch until while any all
+			return catch
 		]
 		
 		foreach [word action] keywords [append keywords-list word]
@@ -748,6 +751,13 @@ system-dialect: make-profilable context [
 				]
 			]
 			type
+		]
+		
+		check-throw: does [
+			unless any [locals positive? catch-level][
+				backtrack 'throw
+				throw-error "THROW used without a wrapping CATCH"
+			]
 		]
 		
 		push-call: func [action [word! set-word! set-path!]][
@@ -1510,6 +1520,24 @@ system-dialect: make-profilable context [
 			]
 		]
 		
+		process-get: func [code [block!] /local value][
+			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
+				pc: skip pc 2							;-- just ignore #get directive
+				return none
+			]
+			red/process-get-directive code/2 pc
+			fetch-expression
+		]
+		
+		process-in: func [code [block!] /local value][
+			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
+				pc: skip pc 2							;-- just ignore #in directive
+				return none
+			]
+			red/process-in-directive code/2 code/3 pc
+			fetch-expression
+		]
+		
 		process-call: func [code [block!] /local mark][
 			unless job/red-pass? [						;-- when Red runtime is included in a R/S app
 				pc: skip pc 2							;-- just ignore #call directive
@@ -1535,6 +1563,8 @@ system-dialect: make-profilable context [
 				#export  [process-export  pc/2  pc: skip pc 2]
 				#syscall [process-syscall pc/2	pc: skip pc 2]
 				#call	 [process-call	  pc]
+				#get	 [process-get	  pc]
+				#in		 [process-in	  pc]
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose [set-verbose-level pc/2 pc: skip pc 2]
 				#script	 [								;-- internal compiler directive
@@ -1825,14 +1855,41 @@ system-dialect: make-profilable context [
 				type: check-expected-type/ret func-name expr ret
 				ret: either type [last-type: type <last>][none]
 			][
-				if ret [
-					throw-error [
-						"EXIT keyword is not compatible with declaring a return value"
-					]
-				]
+				if ret [throw-error "EXIT keyword is not compatible with declaring a return value"]
 			]
 			emitter/target/emit-exit
 			ret
+		]
+		
+		comp-catch: has [offset locals-size][
+			pc: next pc
+			fetch-expression/keep/final
+			if any [not last-type last-type <> [integer!]][
+				backtrack 'catch
+				throw-error "CATCH expects a threshold value of type integer!"
+			]
+			unless block? pc/1 [
+				backtrack 'catch
+				throw-error "CATCH requires a body block as 2nd argument"
+			]
+			
+			catch-level: catch-level + 1
+			set [unused chunk] comp-block-chunked		;-- compile TRUE block
+			catch-level: catch-level - 1
+			
+			offset: emitter/target/emit-open-catch length? chunk/1
+			foreach ptr chunk/2 [ptr/1: ptr/1 + offset]	;-- account for (catch-frame + push) opcodes
+			emitter/merge chunk
+			
+			locals-size: either locals [
+				abs last emitter/stack
+			][
+				emitter/target/locals-offset
+			]
+			emitter/target/emit-close-catch locals-size
+			
+			last-type: none-type
+			none
 		]
 
 		comp-block-chunked: func [/only /test name [word!] /local expr][
@@ -2655,6 +2712,7 @@ system-dialect: make-profilable context [
 			
 			;-- dead expressions elimination
 			if all [
+				not keep?
 				not any [tail? pc variable]				;-- not last expression nor assignment value
 				1 >= length? expr-call-stack			;-- one (for math op) or no parent call
 				'switch <> pick tail expr-call-stack -1

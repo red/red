@@ -18,7 +18,7 @@ integer: context [
 		return: [integer!]
 	][
 		if value = -2147483648 [
-			print-line "*** Math Error: integer overflow on ABSOLUTE"
+			fire [TO_ERROR(math overflow)]
 		]
 		if negative? value [value: 0 - value]
 		value
@@ -121,11 +121,18 @@ integer: context [
 				OP_ADD [left/value + right/value]
 				OP_SUB [left/value - right/value]
 				OP_MUL [left/value * right/value]
-				OP_DIV [left/value / right/value]
 				OP_REM [left/value % right/value]
 				OP_AND [left/value and right/value]
 				OP_OR  [left/value or right/value]
 				OP_XOR [left/value xor right/value]
+				OP_DIV [
+					either zero? right/value [
+						fire [TO_ERROR(math zero-divide)]
+						0								;-- pass the compiler's type-checking
+					][
+						left/value / right/value
+					]
+				]
 			]
 		]
 		as red-value! left
@@ -235,8 +242,7 @@ integer: context [
 				string/concatenate-literal buf form-signed spec/value
 			]
 			default [
-				print-line "** Script error: Invalid argument for TO integer!"
-				type/header: TYPE_UNSET
+				fire [TO_ERROR(script bad-make-arg) type spec]
 			]
 		]
 		as red-value! type
@@ -448,8 +454,7 @@ integer: context [
 
 	#define INT_FLOOR [
 		either m < 0 [
-			print-line "*** Math Error: integer overflow on ROUND"
-			int/header: TYPE_UNSET
+			fire [TO_ERROR(math overflow)]
 		][
 			int/value: either num > 0 [n - r][0 - m]
 		]
@@ -457,8 +462,7 @@ integer: context [
 
 	#define INT_CEIL [
 		either m < 0 [
-			print-line "*** Math Error: integer overflow on ROUND"
-			int/header: TYPE_UNSET
+			fire [TO_ERROR(math overflow)]
 		][
 			int/value: either num < 0 [r - n][m]
 		]
@@ -466,8 +470,7 @@ integer: context [
 
 	#define INT_AWAY [
 		either m < 0 [
-			print-line "*** Math Error: integer overflow on ROUND"
-			int/header: TYPE_UNSET
+			fire [TO_ERROR(math overflow)]
 		][
 			int/value: either num > 0 [m][0 - m]
 		]
@@ -508,9 +511,7 @@ integer: context [
 		]
 
 		if zero? sc [
-			print-line "*** Math Error: integer overflow on ROUND"
-			value/header: TYPE_UNSET
-			return value
+			fire [TO_ERROR(math overflow)]
 		]
 
 		n: abs num

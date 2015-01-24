@@ -212,14 +212,10 @@ _context: context [
 			null? ctx
 			word/index = -1
 		][
-			sym: symbol/get word/symbol
-			print-line ["*** Error: word '" sym/cache " has no value"]
-			halt
+			fire [TO_ERROR(script no-value) word]
 		]
 		if null? ctx/values [
-			sym: symbol/get word/symbol
-			print-line ["*** Error: undefined context for word '" sym/cache]
-			halt
+			fire [TO_ERROR(script not-in-context) word]
 		]
 		either ON_STACK?(ctx) [
 			(as red-value! ctx/values) + word/index

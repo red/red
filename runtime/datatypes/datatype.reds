@@ -90,6 +90,7 @@ datatype: context [
 	
 	push: func [
 		type	[integer!]
+		return: [red-datatype!]
 		/local
 			dt  [red-datatype!]
 	][
@@ -98,6 +99,7 @@ datatype: context [
 		dt: as red-datatype! stack/push*
 		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
 		dt/value: type
+		dt
 	]
 	
 	;-- Actions --
@@ -107,17 +109,13 @@ datatype: context [
 		spec	[red-value!]
 		return:	[red-datatype!]							;-- return datatype cell pointer
 		/local
-			dt   [red-datatype!]
 			int [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "datatype/make"]]
 		
 		assert TYPE_OF(spec) = TYPE_INTEGER
 		int: as red-integer! spec
-		dt: as red-datatype! stack/push*
-		dt/header: TYPE_DATATYPE
-		dt/value: int/value		
-		dt
+		push int/value
 	]
 	
 	form: func [
@@ -171,7 +169,6 @@ datatype: context [
 				res: as-integer any [TYPE_OF(arg2) <> TYPE_DATATYPE arg1/value <> arg2/value]
 			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on datatype! value"]
 				res: -2
 			]
 		]

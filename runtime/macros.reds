@@ -45,11 +45,11 @@ Red/System [
 	TYPE_POINT
 	TYPE_OBJECT
 	TYPE_TYPESET
-
-	TYPE_BINARY	
 	TYPE_ERROR
+	TYPE_BINARY
+	
 	TYPE_CLOSURE
-	TYPE_PORT	
+	TYPE_PORT
 ]
 
 #enum actions! [
@@ -196,6 +196,7 @@ Red/System [
 	NAT_SQUARE_ROOT
 	NAT_CONSTRUCT
 	NAT_VALUE?
+	NAT_TRY
 ]
 
 #enum math-op! [
@@ -238,6 +239,8 @@ Red/System [
 	#define ------------| 	comment
 ]
 
+#define RED_ERROR			195939070				;-- #0BADCAFE (keep it positive)
+
 #define TYPE_OF(value)		(value/header and get-type-mask)
 #define GET_BUFFER(series)  (as series! series/node/value)
 #define GET_UNIT(series)	(series/flags and get-unit-mask)
@@ -251,6 +254,7 @@ Red/System [
 #define GET_CTX(obj)		(as red-context! ((as series! obj/ctx/value) + 1))
 #define FLAG_NOT?(s)		(s/flags and flag-bitset-not <> 0)
 #define SET_RETURN(value)	[stack/set-last as red-value! value]
+#define TO_ERROR(cat id)	[#in system/catalog/errors cat #in system/catalog/errors/cat id]
 
 #define WHITE_CHAR?(char)	[
 	any [
@@ -330,10 +334,25 @@ Red/System [
 	]
 ]
 
+#define ERR_INVALID_REFINEMENT_ARG(refine arg) [
+	fire [
+		TO_ERROR(script invalid-refine-arg)
+		refine
+		arg
+	]
+]
+
+#define ERR_EXPECT_ARGUMENT(type arg-idx) [
+	fire [
+		TO_ERROR(script expect-arg)
+		stack/get-call
+		datatype/push type
+		error/get-call-argument arg-idx
+	]
+]
 
 #define --NOT_IMPLEMENTED--	[
-	print-line "Error: feature not implemented yet!"
-	halt
+	fire [TO_ERROR(internal not-done)]
 ]
 
 #define RETURN_COMPARE_OTHER [

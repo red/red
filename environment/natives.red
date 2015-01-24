@@ -553,3 +553,10 @@ value?: make native! [[
 	]
 	#get-definition NAT_VALUE?
 ]
+
+try: make native! [[
+		"Tries to DO a block and returns its value or an error"
+		block	[block!]
+	]
+	#get-definition NAT_TRY
+]

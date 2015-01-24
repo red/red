@@ -200,7 +200,6 @@ logic: context [
 			COMP_SORT
 			COMP_CASE_SORT [res: (as-integer arg1/value) - (as-integer arg2/value)]
 			default [
-				print-line ["Error: cannot use: " op " comparison on logic! value"]
 				res: -2
 			]
 		]
@@ -224,12 +223,8 @@ logic: context [
 	][
 		left: as red-logic! stack/arguments
 		right: left + 1
-		if any [
-			TYPE_OF(left) <> TYPE_LOGIC
-			TYPE_OF(right) <> TYPE_LOGIC
-		][
-			;@@ throw error
-			print-line "*** Script error: incompatible argument for bitwise of logic!"
+		if TYPE_OF(right) <> TYPE_LOGIC [
+			ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 2)
 		]
 		left/value: switch type [
 			OP_AND [left/value and right/value]

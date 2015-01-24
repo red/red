@@ -32,7 +32,8 @@ stack: context [										;-- call stack
 	cbottom: 		declare int-ptr!
 	ctop:	 		declare int-ptr!
 	
-	acc-mode?: no										;-- YES: accumulate expressions on stack
+	acc-mode?: 		no									;-- YES: accumulate expressions on stack
+	body-symbol:	0									;-- symbol ID
 	
 	#define MARK_STACK(type) [
 		func [
@@ -42,7 +43,7 @@ stack: context [										;-- call stack
 
 			if ctop = c-end [
 				print-line ["^/*** Error: call stack overflow!^/"]
-				halt
+				throw RED_ERROR
 			]
 			ctop/1: type or (fun/symbol << 8)
 			ctop/2: as-integer arguments
@@ -99,6 +100,8 @@ stack: context [										;-- call stack
 		top:	 	args-series/tail
 		cbottom: 	as int-ptr! calls-series/offset
 		ctop:	 	as int-ptr! calls-series/tail
+		
+		body-symbol: words/_body/symbol
 	]
 	
 	check-call: does [
@@ -134,6 +137,15 @@ stack: context [										;-- call stack
 	mark-catch:	 MARK_STACK(FLAG_CATCH)
 	mark-eval:	 MARK_STACK(FLAG_EVAL)
 	mark-dyn:	 MARK_STACK(FLAG_DYN_CALL)
+	
+	get-call: func [
+		return: [red-word!]
+		/local
+			p [int-ptr!]
+	][
+		p: ctop - 2
+		word/push* p/1 >> 8 and FFFFh
+	]
 	
 	revert: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/revert"]]
@@ -188,6 +200,19 @@ stack: context [										;-- call stack
 		unwind
 		copy-cell last arguments
 	]
+	
+	unroll-frames: func [flags [integer!]][
+		assert cbottom < ctop
+		until [
+			ctop: ctop - 2
+			any [
+				ctop <= cbottom
+				flags and ctop/1 = flags
+			]
+		]
+		STACK_SET_FRAME
+		ctop: ctop + 2									;-- ctop points past the current call frame
+	]
 
 	unroll: func [
 		flags	 [integer!]
@@ -197,17 +222,7 @@ stack: context [										;-- call stack
 		#if debug? = yes [if verbose > 0 [print-line "stack/unroll"]]
 
 		last: arguments
-		assert cbottom < ctop
-		until [
-			ctop: ctop - 2
-			any [
-				flags and ctop/1 = flags
-				ctop <= cbottom
-			]
-		]
-		
-		STACK_SET_FRAME
-		ctop: ctop + 2									;-- ctop points past the current call frame
+		unroll-frames flags
 		copy-cell last as red-value! ctop/2
 	]
 	
@@ -215,6 +230,72 @@ stack: context [										;-- call stack
 		top: top - 1
 		copy-cell top top - 1
 		check-call
+	]
+	
+	trace: func [
+		int		[red-integer!]
+		buffer	[red-string!]
+		part	[integer!]
+		return: [integer!]
+		/local
+			top	  [int-ptr!]
+			base  [int-ptr!]
+			sym	  [integer!]
+	][
+		top: as int-ptr! int/value
+		value: ALLOC_TAIL(root)
+		int: as red-integer! value
+		int/header: TYPE_INTEGER
+		base: cbottom
+		
+		until [
+			sym: base/1 >> 8 and FFFFh
+			
+			if sym <> body-symbol [
+				if base > cbottom [
+					string/concatenate-literal buffer " "
+					part: part - 4
+				]
+				part: word/form 
+					word/make-at sym value
+					buffer
+					null
+					part
+			]
+			base: base + 2
+			base >= top									;-- defensive test
+		]
+		part
+	]
+	
+	throw-error: func [
+		err [red-object!]
+		/local
+			extra [red-value!]
+			saved [red-value!]
+	][
+		error/set-where err as red-value! get-call
+		error/set-stack err ctop
+		
+		extra: top
+		unroll-frames FLAG_TRY
+
+		ctop: ctop - 2
+		assert ctop >= cbottom
+		top: extra
+
+		if all [
+			ctop = cbottom 
+			FLAG_TRY and ctop/1 <> FLAG_TRY
+		][
+			saved: arguments
+			arguments: extra							;-- use the top stack frame @@ overflows!
+			set-last as red-value! err
+			natives/print*
+			arguments: saved
+		]
+		stack/push as red-value! err
+		throw RED_ERROR
 	]
 	
 	eval?: func [
@@ -251,7 +332,7 @@ stack: context [										;-- call stack
 		top: top + 1
 		if top >= a-end [
 			print-line ["^/*** Error: arguments stack overflow!^/"]
-			halt
+			throw RED_ERROR
 		]
 		cell
 	]

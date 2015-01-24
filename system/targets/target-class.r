@@ -10,7 +10,7 @@ REBOL [
 target-class: context [
 	target: little-endian?: struct-align: ptr-size: void-ptr: none ; TBD: document once stabilized
 	default-align: stack-width: stack-slot-max:				  	   ; TBD: document once stabilized
-	branch-offset-size: none		   							   ; TBD: document once stabilized
+	branch-offset-size: locals-offset: none						   ; TBD: document once stabilized
 	
 	on-global-prolog: 		 none					;-- called at start of global code section
 	on-global-epilog: 		 none					;-- called at end of global code section
@@ -94,7 +94,7 @@ target-class: context [
 	]
 
 	emit-variable: func [
-		name [word! object!] 
+		name  [word! object!] 
 		gcode [binary! block! none!]				;-- global opcodes
 		pcode [binary! block! none!]				;-- PIC opcodes
 		lcode [binary! block!] 						;-- local opcodes
@@ -261,6 +261,7 @@ target-class: context [
 					push  [emit-push args/1]
 					pop	  [emit-pop]
 					throw [
+						compiler/check-throw
 						compiler/last-type: [integer!]
 						emit-throw args/1
 					]

@@ -169,7 +169,7 @@ block: context [
 		empty?: zero? size
 		if empty? [size: 1]
 		
-		new: as red-block! stack/push*
+		new: as red-block! stack/push*					;-- slot allocated on stack!
 		new/header: TYPE_BLOCK
 		new/head:   0
 		new/node:	alloc-cells size
@@ -672,8 +672,10 @@ block: context [
 				]
 			]
 			default [
-				print-line "*** Error: invalid value in path!"
-				halt
+				fire [
+					TO_ERROR(script invalid-type)
+					datatype/push TYPE_OF(element)
+				]
 				null
 			]
 		]
@@ -888,8 +890,7 @@ block: context [
 					TYPE_OF(b) = TYPE_OF(blk)			;-- handles ANY-BLOCK!
 					b/node = blk/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
 				s/offset + b/head
 			]
@@ -1183,8 +1184,7 @@ block: context [
 					TYPE_OF(blk2) = TYPE_OF(blk)		;-- handles ANY-STRING!
 					blk2/node = blk/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
 				]
 				blk2/head - blk/head
 			]
@@ -1207,8 +1207,7 @@ block: context [
 				len % step <> 0
 				step > len
 			][
-				print "*** Error: invalid /skip series argument"	;@@ replace with error!
-				halt
+				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip)
 			]
 			if step > 1 [len: len / step]
 		]
@@ -1231,8 +1230,10 @@ block: context [
 					int: as red-integer! comparator
 					offset: int/value
 					if any [offset < 1 offset > step][
-						print "*** Error: invalid /compare argument"	;@@ replace with error!
-						halt
+						fire [
+							TO_ERROR(script out-of-range)
+							comparator
+						]
 					]
 					flags: offset - 1 << 1 or flags
 				]
@@ -1241,8 +1242,7 @@ block: context [
 					;TBD handles block! value
 				]
 				default [
-					print "*** Error: invalid /compare argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG((refinement/load "compare") comparator)
 				]
 			]
 		]
@@ -1651,11 +1651,8 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/swap"]]
 
-		if TYPE_OF(blk2) <> TYPE_BLOCK [
-			print-line "*** Error: invalid value for series2 argument!"
-			halt
-			null
-		]
+		if TYPE_OF(blk2) <> TYPE_BLOCK [ERR_EXPECT_ARGUMENT((TYPE_OF(blk2)) 2)]
+
 		s: GET_BUFFER(blk1)
 		h1: as int-ptr! s/offset + blk1/head
 		if s/tail = as red-value! h1 [return blk1]		;-- early exit if nothing to swap
@@ -1752,8 +1749,7 @@ block: context [
 					TYPE_OF(b) = TYPE_OF(blk)			;-- handles ANY-BLOCK!
 					b/node = blk/node
 				][
-					print "*** Error: invalid /part series argument"	;@@ replace with error!
-					halt
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
 				]
 				b/head - blk/head
 			]

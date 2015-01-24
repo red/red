@@ -909,8 +909,7 @@ natives: context [
 					TYPE_OF(limit) = TYPE_OF(input)
 					limit/node = input/node
 				][
-					print-line "*** Parse Error: invalid /part argument"
-					exit
+					ERR_INVALID_REFINEMENT_ARG(refinements/_part limit)
 				]
 				limit/head
 			]
@@ -954,9 +953,7 @@ natives: context [
 			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
 			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
 			TYPE_BITSET [bitset/union no null]
-			default [
-				print-line "*** Error: argument type not supported by UNION"
-			]
+			default [ERR_EXPECT_ARGUMENT((TYPE_OF(set1)) 1)]
 		]
 	]
 	
@@ -980,8 +977,7 @@ natives: context [
 		either TYPE_OF(bits) =  TYPE_BITSET [
 			result/value: s/flags and flag-bitset-not = flag-bitset-not
 		][
-			result/value: false
-			print-line "*** Error: argument type must be BITSET!"
+			ERR_EXPECT_ARGUMENT((TYPE_OF(bits)) 1)
 		]
 
 		result/header: TYPE_LOGIC
@@ -1048,10 +1044,7 @@ natives: context [
 				f: as red-float! res
 				res/value: f/value < 0.0
 			]
-			default [
-				res/value: false
-				print-line "*** Error: argument type must be number!"
-			]
+			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]
 		res/header: TYPE_LOGIC
 		res
@@ -1074,10 +1067,7 @@ natives: context [
 				f: as red-float! res
 				res/value: f/value > 0.0
 			]
-			default [
-				res/value: false
-				print-line "*** Error: argument type must be number!"
-			]
+			default [ERR_EXPECT_ARGUMENT((TYPE_OF(res)) 1)]
 		]
 		res/header: TYPE_LOGIC
 		res
@@ -1178,8 +1168,7 @@ natives: context [
 	][
 		f: degree-to-radians radians TANGENT
 		either (float/abs f/value) = (PI / 2.0) [
-			print-line "*** Math Error: math or number overflow on TANGENT"
-			f/header: TYPE_UNSET
+			fire [TO_ERROR(math overflow)]
 		][
 			f/value: tan f/value
 		]
@@ -1314,6 +1303,23 @@ natives: context [
 		result/header: TYPE_LOGIC
 		result
 	]
+	
+	try*: func [
+		/local
+			arg	[red-value!]
+	][
+		arg: stack/arguments
+		catch RED_ERROR [
+			stack/mark-try words/_try
+			interpreter/eval as red-block! arg yes
+			stack/unwind-last
+		]
+		either stack/top-type? = TYPE_ERROR [
+			stack/set-last stack/top - 1
+		][
+			stack/set-last arg + 1
+		]
+	]
 
 	;--- Natives helper functions ---
 
@@ -1380,8 +1386,7 @@ natives: context [
 		d: f/value
 
 		either all [type <> TANGENT any [d < -1.0 d > 1.0]] [
-			print-line "*** Math Error: math or number overflow"
-			f/header: TYPE_UNSET
+			fire [TO_ERROR(math overflow)]
 		][
 			f/value: switch type [
 				SINE	[asin d]
@@ -1676,6 +1681,7 @@ natives: context [
 			:square-root*
 			:construct*
 			:value?*
+			:try*
 		]
 	]
 

@@ -75,7 +75,7 @@ red: context [
 		if unless either any all while until loop repeat
 		forever foreach forall break func function does has
 		exit return switch case routine set get reduce
-		context object construct
+		context object construct try
 	]
 	
 	logic-words:  [true false yes no on off]
@@ -179,6 +179,7 @@ red: context [
 					change/part back pos mark 2
 					clear mark
 				)
+				| #get pos: (process-get-directive pos/1 pos)
 				| into rule
 				| skip
 			]
@@ -1747,6 +1748,25 @@ red: context [
 		]												;-- return object deferred block
 	]
 	
+	comp-try: does [
+		unless block? pc/1 [
+			pc: back pc
+			comp-word									;-- fallback to interpreter
+			exit
+		]
+		emit [catch RED_ERROR]
+		insert-lf -2
+		body: comp-sub-block 'try
+		if body/1 = 'stack/reset [remove body]
+		mark: tail output
+		emit-open-frame 'try
+		insert body mark
+		clear mark
+		append body [
+			stack/unwind
+		]
+	]
+	
 	comp-boolean-expressions: func [type [word!] test [block!] /local list body][
 		list: back tail comp-chunked-block
 		
@@ -2069,7 +2089,7 @@ red: context [
 		if find symbols name [name: decorate-exec-ctx name]
 		
 		append init compose [							;-- body stack frame
-			stack/mark-native (name)	;@@ make a unique name for function's body frame
+			stack/mark-native words/_body
 		]
 		
 		;-- Function's epilog --
@@ -3062,7 +3082,7 @@ red: context [
 				op: pos/-1			
 				name: any [select op-actions op op]
 				insert ops name							;-- remember ops in left-to-right order
-				emit-open-frame name
+				emit-open-frame op
 				pos: skip pos -2						;-- process next previous op
 				pos = pc								;-- until we reach the beginning of expression
 			]
@@ -3093,6 +3113,33 @@ red: context [
 			return true									;-- infix expression processed
 		]
 		false											;-- not an infix expression
+	]
+	
+	process-get-directive: func [
+		path code [block!] /local obj ctx blk
+	][
+		unless path? path [
+			throw-error ["invalid #get argument:" spec]
+		]
+		obj: object-access? path
+		ctx: second obj: find objects obj
+		remove/part code 2
+		blk: [red/word/get-in (decorate-exec-ctx ctx) (get-word-index/with last path ctx)]
+		insert code compose blk
+	]
+	
+	process-in-directive: func [
+		path word code [block!] /local obj ctx blk
+	][
+		if any [not path? path not any-word? :word][
+			throw-error ["invalid #in argument:" mold path mold :word]
+		]
+		append path word
+		obj: object-access? path
+		ctx: second obj: find objects obj
+		remove/part code 3
+		blk: [red/object/get-word (decorate-exec-ctx ctx) (get-word-index/with word ctx)]
+		insert code compose blk
 	]
 	
 	process-call-directive: func [

@@ -107,7 +107,7 @@ typeset: context [
 			type: as red-datatype! word/get as red-word! type
 		]
 		if TYPE_OF(type) <> TYPE_DATATYPE [
-			print-line "** Error: invalid argument" ;TBD throw an error
+			fire [TO_ERROR(script invalid-arg) value]
 		]
 		id: type/value
 		assert id < 96
@@ -148,7 +148,7 @@ typeset: context [
 				type: s/offset + i
 			]
 		][
-			print-line "** Error: invalid argument" ;TBD throw an error
+			fire [TO_ERROR(script bad-make-arg) proto spec]
 		]
 		sets
 	]
@@ -236,7 +236,6 @@ typeset: context [
 				res: SIGN_COMPARE_RESULT((length? set1) (length? set2))
 			]
 			default [
-				print-line ["Error: cannot use: " op " comparison on typeset! value"]
 				res: -2
 			]
 		]
