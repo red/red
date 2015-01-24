@@ -22,15 +22,30 @@ error: context [
 		field-arg3
 		field-near
 		field-where
+		field-stack
 	]
-	
 	
 	set-where: func [
 		error [red-object!]
 		value [red-value!]
+		/local
+			base [red-value!]
 	][
 		base: object/get-values error
 		copy-cell value base + field-where
+	]
+	
+	set-stack: func [
+		error [red-object!]
+		ptr	  [int-ptr!]
+		/local
+			base [red-value!]
+			int	 [red-integer!]
+	][
+		base: object/get-values error
+		int: as red-integer! base + field-stack
+		int/header: TYPE_INTEGER
+		int/value:  as-integer ptr
 	]
 	
 	get-call-argument: func [
@@ -280,6 +295,14 @@ error: context [
 			part: part - 3
 		]
 		
+		value: #get system/console
+		if TYPE_OF(value) = TYPE_NONE [
+			value: base + field-stack
+			if TYPE_OF(value) = TYPE_INTEGER [
+				string/concatenate-literal buffer "^/*** Stack: "
+				part: stack/trace as red-integer! value buffer part - 12
+			]
+		]
 		part
 	]
 	

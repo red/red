@@ -1314,7 +1314,11 @@ natives: context [
 			interpreter/eval as red-block! arg yes
 			stack/unwind-last
 		]
-		stack/set-last arg + 1	
+		either stack/top-type? = TYPE_ERROR [
+			stack/set-last stack/top - 1
+		][
+			stack/set-last arg + 1
+		]
 	]
 
 	;--- Natives helper functions ---

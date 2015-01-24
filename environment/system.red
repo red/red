@@ -265,7 +265,7 @@ system: context [
 			title: name: type: version: date: file: author: needs: none
 		]
 		error: context [
-			code: type: id: arg1: arg2: arg3: near: where: none
+			code: type: id: arg1: arg2: arg3: near: where: stack: none
 		]
 	]
 	

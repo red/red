@@ -2089,7 +2089,7 @@ red: context [
 		if find symbols name [name: decorate-exec-ctx name]
 		
 		append init compose [							;-- body stack frame
-			stack/mark-native (name)	;@@ make a unique name for function's body frame
+			stack/mark-native words/_body
 		]
 		
 		;-- Function's epilog --
@@ -3082,7 +3082,7 @@ red: context [
 				op: pos/-1			
 				name: any [select op-actions op op]
 				insert ops name							;-- remember ops in left-to-right order
-				emit-open-frame name
+				emit-open-frame op
 				pos: skip pos -2						;-- process next previous op
 				pos = pc								;-- until we reach the beginning of expression
 			]
