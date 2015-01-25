@@ -33,6 +33,16 @@ linker: context [
 		buffer: none								;-- output buffer
 	]
 	
+	throw-error: func [err [word! string! block!]][
+		print [
+			"*** Linker Error:"
+			either word? err [
+				join uppercase/part mold err 1 " error"
+			][reform err]
+		]
+		system-dialect/compiler/quit-on-error
+	]
+	
 	resolve-symbol-refs: func [
 		job 	 [object!] 
 		cbuf 	 [binary!]							;-- code buffer
@@ -150,7 +160,10 @@ linker: context [
 
 		file: make-filename job
 		if verbose >= 1 [print ["output file:" file]]
-		write/binary/direct file job/buffer
+		
+		if error? try [write/binary/direct file job/buffer][
+			throw-error ["locked or unreachable file:" file]
+		]
 		
 		if fun: in file-emitter 'on-file-written [
 			do reduce [get fun job file]
