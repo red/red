@@ -443,7 +443,12 @@ default-input-completer: func [
 							refresh
 						]
 					]
-					KEY_CTRL_D [halt]
+					KEY_CTRL_C
+					KEY_CTRL_D [
+						string/clear line
+						string/append-char GET_BUFFER(line) as-integer #"q"
+						exit
+					]
 					KEY_ESCAPE [
 						string/append-char GET_BUFFER(line) c
 						exit

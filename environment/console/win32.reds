@@ -40,6 +40,7 @@ Red/System [
 #define FOREGROUND_BLUE 		 	01h
 #define FOREGROUND_GREEN 		 	02h
 #define FOREGROUND_RED 			 	04h
+#define ENABLE_PROCESSED_INPUT		01h
 #define ENABLE_LINE_INPUT 			02h
 #define ENABLE_ECHO_INPUT 			04h
 #define ENABLE_QUICK_EDIT_MODE		40h
@@ -263,7 +264,7 @@ init: func [
 	copy-cell as red-value! hist-blk as red-value! history
 
 	GetConsoleMode stdin :saved-con
-	mode: saved-con and (not (ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT))		;-- turn off the line input and echo input modes
+	mode: saved-con and (not ENABLE_PROCESSED_INPUT)	;-- turn off PROCESSED_INPUT, so we can handle control-c
 	mode: mode or ENABLE_QUICK_EDIT_MODE				;-- use the mouse to select and edit text
 	SetConsoleMode stdin mode
 	buffer: allocate buf-size
