@@ -37,7 +37,7 @@ with [ curses panel ] [
 	][
 		nb-rows: getmaxy screen
 		memcur: curs-set 0
-		car: #"^(0)"
+		car: #"^(00)"
 		either (key and FFFFFF00h) = 0 [
 			car: as byte! (key and 0000007Fh )
 			mvprintw [ (nb-rows - 2)  3
@@ -147,7 +147,7 @@ with [ curses panel ] [
 		i > nbpanel
 	]
 	key: 0
-	car: #"^(0)"
+	car: #"^(00)"
 	i: nbpanel
 	update-panels
 	doupdate
