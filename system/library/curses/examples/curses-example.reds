@@ -368,13 +368,13 @@ with curses [
 		/local row col key car cc
 	][
 		key: 0
-		car: #"^(0)"
+		car: #"^(00)"
 		refresh
 		wrefresh win-menu
 		until [
 			key: getch
 			car: trace-key key
-			if car <> #"^(0)" [
+			if car <> #"^(00)" [
 				del-win-demo
 				refresh
 				switch car [
