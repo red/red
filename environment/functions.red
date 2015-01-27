@@ -91,12 +91,13 @@ unset?:		 func ["Returns true if the value is this type" value [any-type!]] [uns
 url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
 word?:		 func ["Returns true if the value is this type" value [any-type!]] [word!		= type? :value]
 
-any-series?: func [value][
-	find [												;@@ To be replaced with a typeset check
-		block! paren! path! lit-path! set-path!
-		get-path! string! file! url!
-	] type?/word :value
-]
+any-block?:		func ["Returns true if the value is any type of block"	  value [any-type!]][find any-block! 	type? :value]
+any-function?:	func ["Returns true if the value is any type of function" value [any-type!]][find any-function! type? :value]
+any-object?:	func ["Returns true if the value is any type of object"	  value [any-type!]][find any-object!	type? :value]
+any-path?:		func ["Returns true if the value is any type of path"	  value [any-type!]][find any-path!		type? :value]
+any-string?:	func ["Returns true if the value is any type of string"	  value [any-type!]][find any-string!	type? :value]
+any-word?:		func ["Returns true if the value is any type of word"	  value [any-type!]][find any-word!		type? :value]
+series?:		func ["Returns true if the value is any type of series"	  value [any-type!]][find series!		type? :value]
 
 spec-of: func [
 	"Returns the spec of a value that supports reflection"
@@ -135,11 +136,11 @@ replace: func [
 	/all
 	/local pos len
 ][
-	len: either any-series? :pattern [length? pattern][1]
+	len: either series? :pattern [length? pattern][1]
 	
 	either all [
 		pos: series
-		either any-series? :pattern [
+		either series? :pattern [
 			while [pos: find pos pattern][
 				remove/part pos len
 				pos: insert pos value
