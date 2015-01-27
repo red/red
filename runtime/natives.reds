@@ -952,8 +952,9 @@ natives: context [
 		switch TYPE_OF(set1) [
 			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
 			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
-			TYPE_BITSET [bitset/union no null]
-			default [ERR_EXPECT_ARGUMENT((TYPE_OF(set1)) 1)]
+			TYPE_BITSET	 [bitset/union no null]
+			TYPE_TYPESET [typeset/union no null]
+			default 	 [ERR_EXPECT_ARGUMENT((TYPE_OF(set1)) 1)]
 		]
 	]
 	
