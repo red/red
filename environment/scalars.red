@@ -29,14 +29,14 @@ comma:		 #","
 pi: 3.141592653589793
 
 internal!:		make typeset! [unset!]
-number!:		make typeset! [integer! decimal!]
+number!:		make typeset! [integer! float!]
 scalar!:		union number! make typeset! [char!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word! refinement! issue!]
 any-path!:		make typeset! [path! set-path! get-path! lit-path!]
 any-block!:		union any-path! make typeset! [block! paren!]
 any-function!:	make typeset! [native! action! op! function! routine!]
 any-object!:	make typeset! [object! error!]
-any-string!:	make typeset! [string! url!]
+any-string!:	make typeset! [string! file! url!]
 series!:        union any-block! any-string!
 immediate!:		union scalar! union any-word! make typeset! [none! logic! datatype! typeset!]
 any-type!:		union series! union immediate! internal!
