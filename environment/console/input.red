@@ -349,6 +349,7 @@ default-input-completer: func [
 			/local
 				line   [red-string!]
 				c	   [integer!]
+				n	   [integer!]
 		][
 			line: input-line
 			copy-cell as red-value! prompt-str as red-value! prompt
@@ -364,9 +365,11 @@ default-input-completer: func [
 			while [true][
 				output?: yes
 				c: fd-read
+				n: 0
 				
 				if c = KEY_TAB [
-					if (complete-line line) > 1 [
+					n: complete-line line
+					if n > 1 [
 						string/rs-reset line
 						exit
 					]
@@ -445,7 +448,7 @@ default-input-completer: func [
 					]
 					KEY_CTRL_C
 					KEY_CTRL_D [
-						string/clear line
+						string/rs-reset line
 						string/append-char GET_BUFFER(line) as-integer #"q"
 						exit
 					]
@@ -454,7 +457,8 @@ default-input-completer: func [
 						exit
 					]
 					default [
-						if c > 31 [
+						if zero? n [
+							if c < 32 [c: 32]						
 							either string/rs-tail? line [
 								string/append-char GET_BUFFER(line) c
 								#if OS = 'Windows [					;-- optimize for Windows
