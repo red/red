@@ -392,11 +392,11 @@ actions: context [
 		]
 		switch op [
 			COMP_EQUAL
-			COMP_STRICT_EQUAL 	[res: value = 0]
+			COMP_STRICT_EQUAL 	[res: value =  0]
 			COMP_NOT_EQUAL 		[res: value <> 0]
-			COMP_LESSER			[res: value < 0]
+			COMP_LESSER			[res: value <  0]
 			COMP_LESSER_EQUAL	[res: value <= 0]
-			COMP_GREATER		[res: value > 0]
+			COMP_GREATER		[res: value >  0]
 			COMP_GREATER_EQUAL	[res: value >= 0]
 		]
 		res
