@@ -728,7 +728,7 @@ Red [
 		--assert "cbadef" = reverse/part s p
 
 	--test-- "reverse-file-1"			;-- inherit from string!
-		--assert %321cba = reverse/part %abc123
+		--assert %321cba = reverse/part %abc123 6
 
 	--test-- "reverse-blk-1"
 		--assert [a b c d] = reverse [d c b a]
