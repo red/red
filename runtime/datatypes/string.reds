@@ -1208,21 +1208,25 @@ string: context [
 	]
 	
 	compare: func [
-		str1	  [red-string!]							;-- first operand
-		str2	  [red-string!]							;-- second operand
-		op		  [integer!]							;-- type of comparison
-		return:	  [integer!]
+		str1	[red-string!]							;-- first operand  (any-string!)
+		str2	[red-string!]							;-- second operand (any-string!)
+		op		[integer!]								;-- type of comparison
+		return:	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/compare"]]
-
-		if any [
-			all [
-				op = COMP_STRICT_EQUAL
-				TYPE_OF(str2) <> TYPE_STRING
-			]
-			all [
-				op <> COMP_STRICT_EQUAL
-				TYPE_OF(str2) <> TYPE_STRING
+		
+		if all [
+			TYPE_OF(str2) <> TYPE_OF(str1)
+			any [
+				all [
+					op <> COMP_EQUAL
+					op <> COMP_NOT_EQUAL
+				]
+				all [
+					TYPE_OF(str2) <> TYPE_STRING		;@@ use ANY_STRING?
+					TYPE_OF(str2) <> TYPE_FILE
+					TYPE_OF(str2) <> TYPE_URL
+				]
 			]
 		][RETURN_COMPARE_OTHER]
 		

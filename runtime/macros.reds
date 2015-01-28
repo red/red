@@ -359,6 +359,23 @@ Red/System [
 	return -2
 ]
 
+#define CHECK_COMPARE_OTHER(type) [
+	if all [
+		TYPE_OF(str2) <> type
+		any [
+			all [
+				op <> COMP_EQUAL
+				op <> COMP_NOT_EQUAL
+			]
+			all [
+				TYPE_OF(str2) <> TYPE_STRING		;@@ use ANY_STRING?
+				TYPE_OF(str2) <> TYPE_FILE
+				TYPE_OF(str2) <> TYPE_URL
+			]
+		]
+	][RETURN_COMPARE_OTHER]
+]
+
 #define SIGN_COMPARE_RESULT(a b) [
 	either a < b [-1][either a > b [1][0]]
 ]

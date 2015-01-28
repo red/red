@@ -114,21 +114,6 @@ url: context [
 		return part - ((as-integer tail - head) >> (unit >> 1)) - 1
 	]
 
-	compare: func [
-		arg1	[red-string!]							;-- first operand
-		arg2	[red-string!]							;-- second operand
-		op		[integer!]								;-- type of comparison
-		return:	[integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "url/compare"]]
-
-		either op = COMP_STRICT_EQUAL [
-			as-integer TYPE_OF(arg2) = TYPE_URL
-		][
-			string/equal? arg1 arg2 op no
-		]
-	]
-
 	copy: func [
 		url    [red-url!]
 		new		[red-string!]
@@ -158,7 +143,7 @@ url: context [
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			:compare
+			INHERIT_ACTION	;compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
