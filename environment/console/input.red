@@ -373,6 +373,9 @@ default-input-completer: func [
 						string/rs-reset line
 						exit
 					]
+					if zero? n [
+						c: 32							;-- convert TAB to SPACE
+					]
 				]
 
 				#if OS <> 'Windows [if c = 27 [c: check-special]]
@@ -457,8 +460,7 @@ default-input-completer: func [
 						exit
 					]
 					default [
-						if zero? n [
-							if c < 32 [c: 32]						
+						if c > 31 [
 							either string/rs-tail? line [
 								string/append-char GET_BUFFER(line) c
 								#if OS = 'Windows [					;-- optimize for Windows
