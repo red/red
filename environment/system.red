@@ -75,6 +75,7 @@ system: context [
 				invalid-op: ["invalid operator:" :arg1]
 				no-op-arg: [:arg1 "operator is missing an argument"]
 				invalid-data: ["data not in correct format:" :arg1]
+				invalid-part: ["invalid /part count:" :arg1]
 				not-same-type: "values must be of the same type"
 				not-related: ["incompatible argument for" :arg1 "of" :arg2]
 				bad-func-def: ["invalid function definition:" :arg1]
