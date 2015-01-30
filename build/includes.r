@@ -87,6 +87,7 @@ write %build/bin/sources.r set-cache [
 			%typeset.reds
 			%unset.reds
 			%url.reds
+			%vector.reds
 			%word.reds
 		]
 		%platform/ [

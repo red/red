@@ -69,6 +69,7 @@ red: context [
 	#include %datatypes/float.reds
 	#include %datatypes/typeset.reds
 	#include %datatypes/error.reds
+	#include %datatypes/vector.reds
 	
 	;-- Debugging helpers --
 	
@@ -131,6 +132,7 @@ red: context [
 		float/init
 		typeset/init
 		error/init
+		vector/init
 		
 		actions/init
 		
@@ -181,6 +183,7 @@ red: context [
 			float/verbose:		verbosity
 			typeset/verbose:	verbosity
 			error/verbose:		verbosity
+			vector/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

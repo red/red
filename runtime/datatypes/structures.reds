@@ -199,21 +199,21 @@ red-point!: alias struct! [
 
 red-action!: alias struct! [
 	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- action cleaned-up spec block reference
+	args	[node!]									;-- list of typed arguments (including optional ones)
 	spec	[node!]									;-- action spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
 
 red-native!: alias struct! [
 	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- native cleaned-up spec block reference
+	args	[node!]									;-- list of typed arguments (including optional ones)
 	spec	[node!]									;-- native spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
 
 red-op!: alias struct! [
 	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- op cleaned-up spec block reference
+	args	[node!]									;-- list of typed arguments (including optional ones)
 	spec	[node!]									;-- op spec block reference
 	code	[integer!]								;-- native code function pointer
 ]
@@ -224,7 +224,7 @@ red-function!: alias struct! [
 	spec	[node!]									;-- native spec block buffer reference
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	function's body block
-	;	symbols	 [red-block!]						;-- 	native cleaned-up spec block reference
+	;	args	 [red-block!]						;-- 	list of typed arguments (including optional ones)
 	;	native   [node!]							;-- 	JIT-compiled body (binary!)
 	;   fun		 [red-function!]					;--		(optional) copy of parent function! value (used by op!)
 	;	obj		 [red-context!]						;--		context! pointer for methods
@@ -236,7 +236,7 @@ red-routine!: alias struct! [
 	spec	[node!]									;-- routine spec block buffer reference	
 	more	[node!]									;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	routine's body block
-	;	symbols	 [red-block!]						;-- 	routine cleaned-up spec block reference
+	;	args	 [red-block!]						;-- 	list of typed arguments (including optional ones)
 	;	native   [node!]							;-- 	compiled body (binary!)
 ]
 
@@ -245,4 +245,11 @@ red-typeset!: alias struct! [
 	array1  [integer!]
 	array2  [integer!]
 	array3  [integer!]
+]
+
+red-vector!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- vector's head index (zero-based)
+	node	[node!]									;-- vector's buffer
+	type	[integer!]								;-- vector elements datatype
 ]

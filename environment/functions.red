@@ -89,6 +89,7 @@ string?:	 func ["Returns true if the value is this type" value [any-type!]] [str
 typeset?:	 func ["Returns true if the value is this type" value [any-type!]] [typeset!	= type? :value]
 unset?:		 func ["Returns true if the value is this type" value [any-type!]] [unset!		= type? :value]
 url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
+vector?:	 func ["Returns true if the value is this type" value [any-type!]] [vector!		= type? :value]
 word?:		 func ["Returns true if the value is this type" value [any-type!]] [word!		= type? :value]
 
 any-block?:		func ["Returns true if the value is any type of block"	  value [any-type!]][find any-block! 	type? :value]

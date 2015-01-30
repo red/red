@@ -37,6 +37,6 @@ any-block!:		union any-path! make typeset! [block! paren!]
 any-function!:	make typeset! [native! action! op! function! routine!]
 any-object!:	make typeset! [object! error!]
 any-string!:	make typeset! [string! file! url!]
-series!:        union any-block! any-string!
+series!:        union make typeset! [vector!] union any-block! any-string!
 immediate!:		union scalar! union any-word! make typeset! [none! logic! datatype! typeset!]
 any-type!:		union series! union immediate! internal!
