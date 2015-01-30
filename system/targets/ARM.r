@@ -17,7 +17,9 @@ make-profilable make target-class [
 	stack-slot-max:		8							;-- size of biggest datatype on stack (float64!)
 	args-offset:		8							;-- stack frame offset to arguments (fp + lr)
 	branch-offset-size:	4							;-- size of branch instruction
+	locals-offset:		4							;-- offset from frame pointer to local variables (catch ID + addr)
 	insn-size:			4
+
 	
 	need-divide?: 		none						;-- if TRUE, include division routine in code
 	div-sym:			'_div_
