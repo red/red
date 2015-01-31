@@ -14,6 +14,12 @@ notifications:
 # to C disables Travis CI's Ruby-specific defaults.
 language: c
 
+# We run the Red and Red/System test suites separately, to don't run against
+# Travis CI's current 50 minute execution time limitation.
+env:
+    - TEST_SUITE=tests
+    - TEST_SUITE=system/tests
+
 before_install:
     - sudo apt-get update
 
@@ -27,4 +33,4 @@ install:
     - sudo mv /tmp/releases/rebol-core/rebol /usr/local/bin/rebol2
 
 script:
-    - rebol2 -qws run-all.r --batch
+    - rebol2 -qws ${TEST_SUITE}/run-all.r --batch
