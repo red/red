@@ -11,42 +11,42 @@ Red/System [
 ]
 
 #enum datatypes! [
-	TYPE_VALUE
-	TYPE_DATATYPE
-	TYPE_UNSET
-	TYPE_NONE
-	TYPE_LOGIC
-	TYPE_BLOCK
-	TYPE_PAREN
-	TYPE_STRING
-	TYPE_FILE
-	TYPE_URL
-	TYPE_CHAR
-	TYPE_INTEGER
-	TYPE_FLOAT
-	TYPE_SYMBOL
-	TYPE_CONTEXT
-	TYPE_WORD
-	TYPE_SET_WORD
-	TYPE_LIT_WORD
-	TYPE_GET_WORD
-	TYPE_REFINEMENT
-	TYPE_ISSUE
-	TYPE_NATIVE
-	TYPE_ACTION
-	TYPE_OP
-	TYPE_FUNCTION
-	TYPE_PATH
-	TYPE_LIT_PATH
-	TYPE_SET_PATH
-	TYPE_GET_PATH
-	TYPE_ROUTINE
-	TYPE_BITSET
-	TYPE_POINT
-	TYPE_OBJECT
-	TYPE_TYPESET
-	TYPE_ERROR
-	TYPE_VECTOR
+	TYPE_VALUE											;-- 00		00
+	TYPE_DATATYPE										;-- 01		01
+	TYPE_UNSET											;-- 02		02
+	TYPE_NONE											;-- 03		03
+	TYPE_LOGIC											;-- 04		04
+	TYPE_BLOCK											;-- 05		05
+	TYPE_PAREN											;-- 06		06
+	TYPE_STRING											;-- 07		07
+	TYPE_FILE											;-- 08		08
+	TYPE_URL											;-- 09		09
+	TYPE_CHAR											;-- 0A		10
+	TYPE_INTEGER										;-- 0B		11
+	TYPE_FLOAT											;-- 0C		12
+	TYPE_SYMBOL											;-- 0D		13
+	TYPE_CONTEXT										;-- 0E		14
+	TYPE_WORD											;-- 0F		15
+	TYPE_SET_WORD										;-- 10		16
+	TYPE_LIT_WORD										;-- 11		17
+	TYPE_GET_WORD										;-- 12		18
+	TYPE_REFINEMENT										;-- 13		19
+	TYPE_ISSUE											;-- 14		20
+	TYPE_NATIVE											;-- 15		21
+	TYPE_ACTION											;-- 16		22
+	TYPE_OP												;-- 17		23
+	TYPE_FUNCTION										;-- 18		24
+	TYPE_PATH											;-- 19		25
+	TYPE_LIT_PATH										;-- 1A		26
+	TYPE_SET_PATH										;-- 1B		27
+	TYPE_GET_PATH										;-- 1C		28
+	TYPE_ROUTINE										;-- 1D		29
+	TYPE_BITSET											;-- 1E		30
+	TYPE_POINT											;-- 1F		31
+	TYPE_OBJECT											;-- 20		32
+	TYPE_TYPESET										;-- 21		33
+	TYPE_ERROR											;-- 22		34
+	TYPE_VECTOR											;-- 23		35
 	
 	TYPE_BINARY
 	TYPE_CLOSURE
