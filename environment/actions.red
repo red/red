@@ -387,10 +387,10 @@ remove: make action! [[
 
 reverse: make action! [[
 		"Reverses the order of elements; returns at same position"
-		series	 [series! gob! tuple! pair!]
+		series	 [series!]
 		/part "Limits to a given length or position"
 			length [number! series!]
-		return:  [series! gob! tuple! pair!]
+		return:  [series!]
 	]
 	#get-definition ACT_REVERSE
 ]
@@ -471,7 +471,7 @@ take: make action! [[
 		"Removes and returns one or more elements"
 		series	 [series!]
 		/part	 "Specifies a length or end position"
-			length [number! series! pair!]
+			length [number! series!]
 		/deep	 "Copy nested values"
 		/last	 "Take it from the tail end"
 	]
@@ -487,7 +487,7 @@ trim: make action! [[
 		/lines	"Removes all line breaks and extra spaces"
 		/all	"Removes all whitespace"
 		/with	"Same as /all, but removes characters in 'str'"
-			str [char! string! binary! integer!]
+			str [char! string! integer!]
 	]
 	#get-definition ACT_TRIM
 ]

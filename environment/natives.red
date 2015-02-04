@@ -408,18 +408,18 @@ min: make native! [[
 
 shift: make native! [[
 		"Perform a bit shift operation. Right shift (decreasing) by default"
-		data	[integer! binary!]
+		data	[integer!]
 		bits	[integer!]
 		/left	 "Shift bits to the left (increasing)"
 		/logical "Use logical shift (unsigned, fill with zero)"
-		return: [integer! binary!]
+		return: [integer!]
 	]
 	#get-definition NAT_SHIFT
 ]
 
 to-hex: make native! [[
 		"Converts numeric value to a hex issue! datatype (with leading # and 0's)"
-		value	[integer! tuple!]
+		value	[integer!]
 		/size "Specify number of hex digits in result"
 			length [integer!]
 		return: [issue!]

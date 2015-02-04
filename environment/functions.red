@@ -165,7 +165,7 @@ zero?: func [
 ]
 
 charset: func [
-	spec [block! integer! char! string! binary!]
+	spec [block! integer! char! string!]
 ][
 	make bitset! spec
 ]
@@ -223,7 +223,7 @@ parse-trace: func [
 
 load: function [
 	"Returns a value or block of values by reading and evaluating a source"
-	source [file! url! string! binary!]
+	source [file! url! string!]
 	/header "TBD: Include Red header as a loaded value"
 	/all    "TBD: Don't evaluate Red header"
 	/type	"TBD:"
