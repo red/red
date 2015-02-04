@@ -238,6 +238,185 @@ _function: context [
 		]
 	]
 	
+	preprocess-func-options: func [
+		args	  [red-block!]
+		path	  [red-path!]
+		pos		  [red-value!]
+		list	  [node!]
+		fname	  [red-word!]
+		value	  [red-value!]
+		tail	  [red-value!]
+		/local
+			base	  [red-value!]
+			head	  [red-value!]
+			end		  [red-value!]
+			word	  [red-word!]
+			ref		  [red-refinement!]
+			bool	  [red-logic!]
+	][
+		base: block/rs-head args
+		end:  block/rs-tail args
+
+		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
+			base: base + 2
+		]
+		if base = end [fire [TO_ERROR(script bad-refines) fname as red-word! pos]]
+
+		while [value < tail][
+			if TYPE_OF(value) <> TYPE_WORD [
+				fire [TO_ERROR(script bad-refines) fname as red-word! value]
+			]
+			word: as red-word! value
+			head: base
+			while [head < end][
+				ref: as red-refinement! head
+				if EQUAL_WORDS?(ref word) [
+					bool: as red-logic! head + 1
+					assert TYPE_OF(bool) = TYPE_LOGIC
+					bool/value: true
+					head: end						;-- force loop exit
+				]
+				head: head + 2 
+			]
+			value: value + 1
+		]
+	]
+
+	preprocess-options: func [
+		fun 	  [red-native!]
+		path	  [red-path!]
+		pos		  [red-value!]
+		list	  [node!]
+		fname	  [red-word!]
+		function? [logic!]
+		return:   [node!]
+		/local
+			args	  [red-block!]
+			value	  [red-value!]
+			tail	  [red-value!]
+			saved	  [red-value!]
+	][
+		saved: stack/top
+
+		args: as red-block! stack/push*
+		args/header: TYPE_BLOCK
+		args/head:	 0
+		args/node:	 list
+		args: 		 block/clone args no				;-- copy it before modifying it
+
+		value: block/rs-head as red-block! path
+		tail:  block/rs-tail as red-block! path
+
+		either function? [
+			preprocess-func-options args path pos list fname value tail
+		][
+			native/preprocess-options args fun path pos list fname value tail
+		]
+		stack/top: saved
+		args/node
+	]
+
+	preprocess-spec: func [
+		native 	[red-native!]
+		return: [node!]
+		/local
+			fun		  [red-function!]
+			vec		  [red-vector!]
+			list	  [red-block!]
+			value	  [red-value!]
+			tail	  [red-value!]
+			saved	  [red-value!]
+			w		  [red-word!]
+			dt		  [red-datatype!]
+			blk		  [red-block!]
+			s		  [series!]
+			routine?  [logic!]
+			function? [logic!]
+			ret-set?  [logic!]
+			required? [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "cache: pre-processing function spec"]]
+
+		saved:	   stack/top
+		routine?:  TYPE_OF(native) = TYPE_ROUTINE
+		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
+
+		s: as series! either function? [
+			fun:  as red-function! native
+			fun/spec/value
+		][
+			native/spec/value
+		]
+		unless function? [
+			vec: vector/make-at stack/push* 12 TYPE_INTEGER 4
+		]
+
+		list:		block/push-only* 8
+		value:		s/offset
+		tail:		s/tail
+		required?:	yes
+
+		while [value < tail][
+			#if debug? = yes [if verbose > 0 [print-line ["cache: spec entry type: " TYPE_OF(value)]]]
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					if any [function? required?][		;@@ routine! should not be accepted here...
+						block/rs-append list value
+						either all [
+							value + 1 < tail
+							TYPE_OF(value) = TYPE_BLOCK
+						][
+							typeset/make-in list as red-block! value
+						][
+							typeset/make-default list
+						]
+					]
+				]
+				TYPE_REFINEMENT [
+					required?: no
+					either function? [
+						block/rs-append list value
+						block/rs-append list as red-value! false-value
+					][
+						vector/rs-append-int vec -1
+					]
+				]
+				TYPE_SET_WORD [
+					w: as red-word! value
+					if words/return* <> symbol/resolve w/symbol [
+						fire [TO_ERROR(script bad-func-def)	w]
+					]
+					blk: as red-block! value + 1
+					assert TYPE_OF(blk) = TYPE_BLOCK
+					either routine? [
+						ret-set?: yes
+						value: block/pick blk 1 null
+						assert TYPE_OF(value) = TYPE_WORD
+						dt: as red-datatype! _context/get as red-word! value
+						assert TYPE_OF(dt) = TYPE_DATATYPE
+						interpreter/return-type: dt/value	;@@ get rid of this
+					][
+						block/rs-append list value
+						typeset/make-in list blk
+					]
+				]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
+
+		unless ret-set? [interpreter/return-type: -1]	;@@ set the default correctly in case of nested calls
+
+		unless function? [
+			block/rs-append list as red-value! none-value ;-- place-holder for argument name
+			block/rs-append list as red-value! vec
+		]
+		stack/top: saved
+		list/node
+	]
+	
 	collect-word: func [
 		value  [red-value!]
 		list   [red-block!]

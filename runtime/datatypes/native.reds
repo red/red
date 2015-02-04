@@ -13,6 +13,98 @@ Red/System [
 native: context [
 	verbose: 0
 	
+	preprocess-options: func [							;-- cache optional typesets for native calls
+		args	  [red-block!]
+		native	  [red-native!]
+		path	  [red-path!]
+		pos		  [red-value!]
+		list	  [node!]
+		fname	  [red-word!]
+		value	  [red-value!]
+		tail	  [red-value!]
+		/local	
+			base	  [red-value!]
+			head	  [red-value!]
+			end		  [red-value!]
+			word	  [red-word!]
+			ref		  [red-refinement!]
+			blk		  [red-value!]
+			vec		  [red-vector!]
+			bool	  [red-logic!]
+			s		  [series!]
+			ref-array [int-ptr!]
+			index	  [integer!]
+			offset	  [integer!]
+			ref?	  [logic!]
+	][
+		vec: vector/clone as red-vector! (block/rs-tail args) - 1
+		s: as series! native/spec/value
+		base:	s/offset
+		head:	base
+		end:	s/tail
+		offset: 0
+
+		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
+			switch TYPE_OF(base) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [offset: offset + 1]
+				default [0]
+			]
+			base: base + 1
+		]
+		if base = end [fire [TO_ERROR(script bad-refines) fname as red-word! pos]]
+
+		s: GET_BUFFER(vec)
+		ref-array: as int-ptr! s/offset
+
+		while [value < tail][
+			if TYPE_OF(value) <> TYPE_WORD [
+				fire [TO_ERROR(script bad-refines) fname as red-word! value]
+			]
+			word:  as red-word! value
+			head:  base
+			ref?:  no
+			index: 1
+
+			while [head < end][
+				switch TYPE_OF(head) [
+					TYPE_WORD
+					TYPE_GET_WORD
+					TYPE_LIT_WORD [
+						if ref? [
+							block/rs-append args head
+							blk: head + 1
+							either all [
+								blk < end
+								TYPE_OF(blk) = TYPE_BLOCK
+							][
+								typeset/make-in args as red-block! blk
+							][
+								typeset/make-default args
+							]
+							offset: offset + 1
+						]
+					]
+					TYPE_REFINEMENT [
+						ref: as red-refinement! head
+						either EQUAL_WORDS?(ref word) [
+							ref-array/index: offset
+							ref?: yes
+						][
+							ref?: no
+						]
+						index: index + 1
+					]
+					TYPE_SET_WORD [head: end]
+					default [0]						;-- ignore other values
+				]
+				head: head + 1 
+			]
+			value: value + 1
+		]
+	]
+	
 	push: func [
 		/local
 			cell  [red-native!]
