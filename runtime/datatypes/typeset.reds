@@ -23,6 +23,65 @@ typeset: context [
 		OP_OR
 		OP_XOR
 	]
+	
+	make-default: func [
+		blk [red-block!]
+		/local
+			ts	  [red-typeset!]
+			bits  [int-ptr!]
+			bbits [byte-ptr!]
+	][
+		ts: as red-typeset! ALLOC_TAIL(blk)
+		ts/header: TYPE_TYPESET						;-- implicit reset of all header flags
+		
+		bits: as int-ptr! ts
+		bits/2: FFFFFFFFh
+		bits/3: FFFFFFFFh
+		bits/4: FFFFFFFFh
+		
+		bbits: as byte-ptr! bits + 1
+		BS_CLEAR_BIT(bbits TYPE_UNSET)
+	]
+	
+	make-in: func [
+		blk	  [red-block!]
+		spec  [red-block!]
+		/local
+			ts	  [red-typeset!]
+			ts2	  [red-typeset!]
+			value [red-value!]
+			end	  [red-value!]
+			type  [red-datatype!]
+	][
+		assert TYPE_OF(spec) = TYPE_BLOCK
+		ts: as red-typeset! ALLOC_TAIL(blk)
+		ts/header: TYPE_TYPESET						;-- implicit reset of all header flags
+		clear ts
+		
+		value: block/rs-head spec
+		end:   block/rs-tail spec
+
+		while [value < end][
+			type: as red-datatype! value
+			
+			if TYPE_OF(value) = TYPE_WORD [
+				type: as red-datatype! word/get as red-word! value
+			]
+			switch TYPE_OF(type) [
+				TYPE_DATATYPE [
+					set-type ts value
+				]
+				TYPE_TYPESET  [
+					ts2: as red-typeset! value
+					copy-memory 
+						(as byte-ptr! ts)  + 4
+						(as byte-ptr! ts2) + 4
+						12
+				]
+			]
+			value: value + 1
+		]
+	]
 
 	do-bitwise: func [
 		type	[integer!]
@@ -100,7 +159,7 @@ typeset: context [
 		/local
 			type [red-datatype!]
 			id   [integer!]
-			array [byte-ptr!]
+			bits [byte-ptr!]
 	][
 		type: as red-datatype! value
 		if TYPE_OF(type) = TYPE_WORD [
@@ -111,8 +170,8 @@ typeset: context [
 		]
 		id: type/value
 		assert id < 96
-		array: (as byte-ptr! sets) + 4
-		BS_SET_BIT(array id)
+		bits: (as byte-ptr! sets) + 4					;-- skip header
+		BS_SET_BIT(bits id)
 	]
 
 	;-- Actions --

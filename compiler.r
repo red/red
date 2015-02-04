@@ -1473,13 +1473,16 @@ red: context [
 								emit 'get-path/push
 							][
 								emit to path! reduce [to word! form type? pc/1 'push]
+								if path? pc/1 [emit [as red-path!]]
 							]
 						]
 						lit-path? pc/1 [
 							emit 'path/push
+							emit [as red-path!]
 						]
 						true [
 							emit to path! reduce [to word! form type? pc/1 'push]
+							if path? pc/1 [emit [as red-path!]]
 						]
 					]
 					emit name

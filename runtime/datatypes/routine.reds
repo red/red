@@ -54,6 +54,7 @@ routine: context [
 			cell   [red-routine!]
 			native [red-native!]
 			value  [red-value!]
+			args   [red-block!]
 			more   [series!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "routine/push"]]
@@ -66,7 +67,10 @@ routine: context [
 		more: as series! cell/more/value
 		value: either null? body [none-value][as red-value! body]
 		copy-cell value alloc-tail more					;-- store body block or none
-		alloc-tail more									;-- reserved place for "symbols"
+		
+		args: as red-block! alloc-tail more
+		args/header: TYPE_BLOCK
+		args/node:   null
 
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE

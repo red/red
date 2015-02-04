@@ -42,9 +42,9 @@ action: context [
 		spec: as red-block! s/offset
 		
 		action: as red-action! stack/push*
-		action/header:  TYPE_ACTION						;-- implicit reset of all header flags
+		action/header:	TYPE_ACTION						;-- implicit reset of all header flags
 		action/spec:    spec/node						; @@ copy spec block if not at head
-		;action/symbols: clean-spec spec 				; @@ TBD
+		action/args: 	null
 			
 		index: (integer/get s/offset + 1)				;-- action IDs are one-based
 		action/code: actions/table/index

@@ -44,7 +44,7 @@ native: context [
 		native: as red-native! stack/push*
 		native/header:  TYPE_NATIVE						;-- implicit reset of all header flags
 		native/spec:    spec/node						; @@ copy spec block if not at head
-		;native/symbols: clean-spec spec 				; @@ TBD
+		native/args:	null
 		
 		index: integer/get s/offset + 1
 		native/code: natives/table/index

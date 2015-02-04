@@ -81,9 +81,8 @@ op: context [
 		op: as red-op! stack/push*
 		op/header: TYPE_OP or flag						;-- implicit reset of all header flags
 		op/spec:   node									; @@ copy spec block
-		;op/symbols: clean-spec spec 					; @@ TBD
-		
-		op/code: code
+		op/args:   null
+		op/code:   code
 		
 		op
 	]

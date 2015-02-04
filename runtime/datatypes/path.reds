@@ -145,7 +145,7 @@ path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "path/copy"]]
 
-		path: as red-path! block/copy as red-block! path as red-path! new arg deep? types
+		path: as red-path! block/copy as red-block! path as red-block! new arg deep? types
 		path/header: TYPE_PATH
 		as red-series! path
 	]

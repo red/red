@@ -65,7 +65,7 @@ get-path: context [
 		#if debug? = yes [if verbose > 0 [print-line "get-path/form"]]
 		
 		string/append-char GET_BUFFER(buffer) as-integer #":"
-		path/form p buffer arg part - 1
+		path/form as red-path! p buffer arg part - 1
 	]
 	
 	mold: func [

@@ -90,6 +90,26 @@ vector: context [
 		s/tail: as cell! (as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1))	
 	]
 	
+	rs-append-int: func [
+		vec		[red-vector!]
+		n		[integer!]
+		/local
+			s	 [series!]
+			p	 [byte-ptr!]
+			p4	 [int-ptr!]
+	][
+		s: GET_BUFFER(vec)
+		p: alloc-tail-unit s GET_UNIT(s)
+		
+		switch vec/type [
+			TYPE_INTEGER [
+				p4: as int-ptr! p
+				p4/value: n
+			]
+			;TBD
+		]
+	]
+	
 	rs-append: func [
 		vec		[red-vector!]
 		value	[red-value!]
@@ -198,12 +218,58 @@ vector: context [
 		]
 	]
 	
+	clone: func [
+		vec		[red-vector!]							;-- clone the vector in-place
+		return: [red-vector!]
+		/local
+			new    [node!]
+			s	   [series!]
+			target [series!]
+			size   [integer!]
+	][
+		s: GET_BUFFER(vec)
+		size: s/size									;-- @@ head position ignored
+		new: alloc-bytes size
+		
+		unless zero? size [
+			target: as series! new/value
+			copy-memory
+				as byte-ptr! target/offset
+				as byte-ptr! s/offset
+				size
+			target/tail: as cell! ((as byte-ptr! target/offset) + size)
+		]
+		vec/node: new
+		vec
+	]
+	
 	push: func [
 		vec [red-vector!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/push"]]
 
 		copy-cell as red-value! vec stack/push*
+	]
+	
+	make-at: func [
+		slot	[red-value!]
+		size	[integer!]
+		type	[integer!]
+		unit	[integer!]
+		return: [red-vector!]
+		/local
+			vec [red-vector!]
+			s	[series!]
+	][
+		vec: as red-vector! slot
+		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
+		vec/head: 	0
+		vec/node: 	alloc-bytes size * unit
+		vec/type:	type
+		
+		s: GET_BUFFER(vec)
+		s/flags: s/flags and flag-unit-mask or unit
+		vec
 	]
 
 	;--- Actions ---
@@ -245,14 +311,7 @@ vector: context [
 		]
 		if zero? size [size: 1]
 		
-		vec: as red-vector! stack/push*
-		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
-		vec/head: 	0
-		vec/node: 	alloc-bytes size * unit
-		vec/type:	type
-		
-		s: GET_BUFFER(vec)
-		s/flags: s/flags and flag-unit-mask or unit
+		vec: make-at stack/push* size type unit
 		
 		if TYPE_OF(spec) = TYPE_BLOCK [
 			append-values vec as red-block! spec

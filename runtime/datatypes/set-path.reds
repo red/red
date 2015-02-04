@@ -64,7 +64,7 @@ set-path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-path/form"]]
 		
-		part: path/form p buffer arg part
+		part: path/form as red-path! p buffer arg part
 		string/append-char GET_BUFFER(buffer) as-integer #":"
 		part - 1
 	]

@@ -18,7 +18,7 @@ Red/System [
 		value: _context/get next
 		if TYPE_OF(value) = TYPE_OP [
 			either next = as red-word! pc [
-				if verbose > 0 [log "infix detected!"]
+				#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 				infix?: yes
 			][
 				if TYPE_OF(pc) = TYPE_WORD [
@@ -33,7 +33,7 @@ Red/System [
 					]
 					literal-first-arg? as red-native! left	;-- a literal argument is expected
 				][
-					if verbose > 0 [log "infix detected!"]
+					#if debug? = yes [if verbose > 0 [log "infix detected!"]]
 					infix?: yes
 				]
 			]
@@ -42,25 +42,20 @@ Red/System [
 ]
 
 #define FETCH_ARGUMENT [
-	if pc >= end [
-		fire [
-			TO_ERROR(script no-arg)
-			fname
-			value
-		]
-	]
+	if pc >= end [fire [TO_ERROR(script no-arg) fname value]]
+	
 	switch TYPE_OF(value) [
 		TYPE_WORD [
-			if verbose > 0 [log "evaluating argument"]
+			#if debug? = yes [if verbose > 0 [log "evaluating argument"]]
 			pc: eval-expression pc end no yes
 		]
 		TYPE_GET_WORD [
-			if verbose > 0 [log "fetching argument as-is"]
+			#if debug? = yes [if verbose > 0 [log "fetching argument as-is"]]
 			stack/push pc
 			pc: pc + 1
 		]
 		default [
-			if verbose > 0 [log "fetching argument"]
+			#if debug? = yes [if verbose > 0 [log "fetching argument"]]
 			switch TYPE_OF(pc) [
 				TYPE_GET_WORD [
 					copy-cell _context/get as red-word! pc stack/push*
@@ -125,6 +120,243 @@ interpreter: context [
 		]
 		no
 	]
+
+	preprocess-options: func [
+		native 	  [red-native!]
+		path	  [red-path!]
+		pos		  [red-value!]
+		list	  [node!]
+		fname	  [red-word!]
+		function? [logic!]
+		return:   [node!]
+		/local
+			args	  [red-block!]
+			value	  [red-value!]
+			tail	  [red-value!]
+			base	  [red-value!]
+			head	  [red-value!]
+			end		  [red-value!]
+			saved	  [red-value!]
+			word	  [red-word!]
+			ref		  [red-refinement!]
+			blk		  [red-value!]
+			vec		  [red-vector!]
+			bool	  [red-logic!]
+			s		  [series!]
+			ref-array [int-ptr!]
+			index	  [integer!]
+			offset	  [integer!]
+			ref?	  [logic!]
+	][
+		saved: stack/top
+		
+		args: as red-block! stack/push*
+		args/header: TYPE_BLOCK
+		args/head:	 0
+		args/node:	 list
+		args: 		 block/clone args no				;-- copy it before modifying it
+
+		value: block/rs-head as red-block! path
+		tail:  block/rs-tail as red-block! path
+		
+		either function? [
+			base: block/rs-head args
+			end:  block/rs-tail args
+			while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
+				base: base + 2
+			]
+			if base = end [fire [TO_ERROR(script bad-refines) fname as red-word! pos]]
+			
+			while [value < tail][
+				if TYPE_OF(value) <> TYPE_WORD [
+					fire [TO_ERROR(script bad-refines) fname as red-word! value]
+				]
+				word: as red-word! value
+				head: base
+				while [head < end][
+					ref: as red-refinement! head
+					if EQUAL_WORDS?(ref word) [
+						bool: as red-logic! head + 1
+						assert TYPE_OF(bool) = TYPE_LOGIC
+						bool/value: true
+						head: end						;-- force loop exit
+					]
+					head: head + 2 
+				]
+				value: value + 1
+			]
+		][
+			vec: vector/clone as red-vector! (block/rs-tail args) - 1
+			s: as series! native/spec/value
+			base:	s/offset
+			head:	base
+			end:	s/tail
+			offset: 0
+			
+			while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
+				switch TYPE_OF(base) [
+					TYPE_WORD
+					TYPE_GET_WORD
+					TYPE_LIT_WORD [offset: offset + 1]
+					default [0]
+				]
+				base: base + 1
+			]
+			if base = end [fire [TO_ERROR(script bad-refines) fname as red-word! pos]]
+			
+			s: GET_BUFFER(vec)
+			ref-array: as int-ptr! s/offset
+			
+			while [value < tail][
+				if TYPE_OF(value) <> TYPE_WORD [
+					fire [TO_ERROR(script bad-refines) fname as red-word! value]
+				]
+				word:  as red-word! value
+				head:  base
+				ref?:  no
+				index: 1
+				
+				while [head < end][
+					switch TYPE_OF(head) [
+						TYPE_WORD
+						TYPE_GET_WORD
+						TYPE_LIT_WORD [
+							if ref? [
+								block/rs-append args head
+								blk: head + 1
+								either all [
+									blk < end
+									TYPE_OF(blk) = TYPE_BLOCK
+								][
+									typeset/make-in args as red-block! blk
+								][
+									typeset/make-default args
+								]
+								offset: offset + 1
+							]
+						]
+						TYPE_REFINEMENT [
+							ref: as red-refinement! head
+							either EQUAL_WORDS?(ref word) [
+								ref-array/index: offset
+								ref?: yes
+							][
+								ref?: no
+							]
+							index: index + 1
+						]
+						TYPE_SET_WORD [head: end]
+						default [0]						;-- ignore other values
+					]
+					head: head + 1 
+				]
+				value: value + 1
+			]
+		]
+		stack/top: saved
+		args/node
+	]
+	
+	preprocess-spec: func [
+		native 	[red-native!]
+		return: [node!]
+		/local
+			fun		  [red-function!]
+			vec		  [red-vector!]
+			list	  [red-block!]
+			value	  [red-value!]
+			tail	  [red-value!]
+			saved	  [red-value!]
+			w		  [red-word!]
+			dt		  [red-datatype!]
+			blk		  [red-block!]
+			s		  [series!]
+			routine?  [logic!]
+			function? [logic!]
+			ret-set?  [logic!]
+			required? [logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "cache: pre-processing function spec"]]
+		
+		saved:	   stack/top
+		routine?:  TYPE_OF(native) = TYPE_ROUTINE
+		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
+
+		s: as series! either function? [
+			fun:  as red-function! native
+			fun/spec/value
+		][
+			native/spec/value
+		]
+		unless function? [
+			vec: vector/make-at stack/push* 12 TYPE_INTEGER 4
+		]
+		
+		list:		block/push-only* 8
+		value:		s/offset
+		tail:		s/tail
+		required?:	yes
+
+		while [value < tail][
+			#if debug? = yes [if verbose > 0 [print-line ["cache: spec entry type: " TYPE_OF(value)]]]
+			switch TYPE_OF(value) [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_LIT_WORD [
+					if any [function? required?][		;@@ routine! should not be accepted here...
+						block/rs-append list value
+						either all [
+							value + 1 < tail
+							TYPE_OF(value) = TYPE_BLOCK
+						][
+							typeset/make-in list as red-block! value
+						][
+							typeset/make-default list
+						]
+					]
+				]
+				TYPE_REFINEMENT [
+					required?: no
+					either function? [
+						block/rs-append list value
+						block/rs-append list as red-value! false-value
+					][
+						vector/rs-append-int vec -1
+					]
+				]
+				TYPE_SET_WORD [
+					w: as red-word! value
+					if words/return* <> symbol/resolve w/symbol [
+						fire [TO_ERROR(script bad-func-def)	w]
+					]
+					blk: as red-block! value + 1
+					assert TYPE_OF(blk) = TYPE_BLOCK
+					either routine? [
+						ret-set?: yes
+						value: block/pick blk 1 null
+						assert TYPE_OF(value) = TYPE_WORD
+						dt: as red-datatype! _context/get as red-word! value
+						assert TYPE_OF(dt) = TYPE_DATATYPE
+						return-type: dt/value
+					][
+						block/rs-append list value
+						typeset/make-in list blk
+					]
+				]
+				default [0]								;-- ignore other values
+			]
+			value: value + 1
+		]
+		
+		unless ret-set? [return-type: -1]				;-- set the default correctly in case of nested calls
+
+		unless function? [
+			block/rs-append list as red-value! none-value ;-- place-holder for argument name
+			block/rs-append list as red-value! vec
+		]
+		stack/top: saved
+		list/node
+	]
 	
 	set-locals: func [
 		fun [red-function!]
@@ -154,84 +386,6 @@ interpreter: context [
 			]
 			value: value + 1
 		]
-	]
-	
-	eval-option: func [
-		pc		  [red-value!]
-		end		  [red-value!]
-		value	  [red-value!]
-		tail	  [red-value!]
-		fname	  [red-word!]
-		word	  [red-word!]
-		offset	  [int-ptr!]
-		args	  [int-ptr!]
-		function? [logic!]
-		return:	  [red-value!]
-		/local
-			ref	  [red-refinement!]
-			slot  [red-logic!]
-			type  [integer!]
-			pos	  [integer!]
-			idx	  [integer!]
-			pos2  [integer!]
-	][
-		pos:  0											;-- stack offset
-		idx:  1											;-- native stack ref-array index
-		args/value: 0
-		
-		while [value < tail][
-		
-			switch TYPE_OF(value) [
-				TYPE_REFINEMENT [
-					ref: as red-refinement! value
-					either EQUAL_WORDS?(ref word) [
-						slot: as red-logic! stack/arguments + pos
-						slot/value: true
-						
-						value: value + 1
-						pos2: pos + 1
-						while [
-							type: TYPE_OF(value)
-							all [
-								value < tail
-								type <> TYPE_REFINEMENT
-								type <> TYPE_SET_WORD
-							]
-						][
-							if all [type <> TYPE_STRING type <> TYPE_BLOCK][
-								FETCH_ARGUMENT
-								if function? [
-									copy-cell stack/top - 1 stack/arguments + pos2 
-									stack/pop 1
-								]
-								pos2: pos2 + 1
-								args/value: args/value + 1
-							]
-							value: value + 1
-						]
-						unless function? [offset/value: idx]
-						return pc
-					][
-						idx: idx + 1
-					]
-					pos: pos + 1
-				]
-				TYPE_WORD
-				TYPE_GET_WORD
-				TYPE_LIT_WORD [
-					pos: pos + 1
-				]
-				default [0]
-			]
-			
-			value: value + 1
-		]
-		fire [
-			TO_ERROR(script no-refine)
-			fname
-			word
-		]
-		null
 	]
 	
 	eval-function: func [
@@ -316,11 +470,12 @@ interpreter: context [
 		pc: pc + 1										;-- skip operator
 		pc: eval-expression pc end yes yes				;-- eval right operand
 		op: as red-op! value
-
+		
 		either op/header and body-flag <> 0 [
 			node: as node! op/code
 			s: as series! node/value
 			fun: as red-function! s/offset + 3
+			
 			either TYPE_OF(fun) = TYPE_ROUTINE [
 				exec-routine as red-routine! fun
 			][
@@ -333,11 +488,12 @@ interpreter: context [
 			0											;-- @@ to make compiler happy!
 		]
 
-		if verbose > 0 [
-			value: stack/arguments
-			print-line ["eval: op return type: " TYPE_OF(value)]
+		#if debug? = yes [
+			if verbose > 0 [
+				value: stack/arguments
+				print-line ["eval: op return type: " TYPE_OF(value)]
+			]
 		]
-		
 		infix?: no
 		next: as red-word! pc
 		CHECK_INFIX
@@ -357,133 +513,90 @@ interpreter: context [
 			function? [logic!]
 			routine?  [logic!]
 			value	  [red-value!]
-			head	  [red-value!]
 			tail	  [red-value!]
-			w		  [red-word!]
+			expected  [red-value!]
+			path-end  [red-value!]
 			fname	  [red-word!]
 			blk		  [red-block!]
-			dt		  [red-datatype!]
-			path-end  [red-value!]
+			vec		  [red-vector!]
+			bool	  [red-logic!]
 			s		  [series!]
 			required? [logic!]
-			index	  [integer!]
-			count	  [integer!]
-			offset	  [integer!]
-			args	  [integer!]
-			size	  [integer!]
+			args	  [node!]
+			p		  [int-ptr!]
 			ref-array [int-ptr!]
+			size	  [integer!]
 			ret-set?  [logic!]
 			call
 	][
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
-		
-		s: as series! either function? [
+		fname:	   as red-word! pc - 1
+		args:	   null
+
+		either function? [
 			fun: as red-function! native
-			fun/spec/value
+			s: as series! fun/more/value
+			blk: as red-block! s/offset + 1
+			if TYPE_OF(blk) = TYPE_BLOCK [args: blk/node]
 		][
-			native/spec/value
+			args: native/args
 		]
-		
-		head:  s/offset
-		value: head
-		tail:  s/tail
+		if null? args [
+			args: preprocess-spec native
+			
+			either function? [
+				blk/header: TYPE_BLOCK
+				blk/head:	0
+				blk/node:	args
+			][
+				native/args: args
+			]
+		]
 		
 		unless null? path [
 			path-end: block/rs-tail as red-block! path
-			if pos + 1 = path-end [path: null]			;-- no refinement following the function
-		]												;-- so, process it as a non-path call
-		
-		count:  	 0									;-- base arity (mandatory arguments only)
-		index: 	 	 1
-		args:		 -1
-		offset:		 -1
-		ref?:		 no
-		required?:	 yes								;-- yes: processing mandatory args, no: optional args
-		fname: as red-word! pc - 1
-	
-		unless function? [
-			size: as-integer tail - value				;@@ takes more space than really needed
-			ref-array: system/stack/top - size
-			system/stack/top: ref-array					;-- reserve space on native stack for refs array
+			if pos + 1 < path-end [						;-- test if refinement are following the function
+				either null? path/args [				
+					args: preprocess-options native path pos args fname function?
+					path/args: args
+				][
+					args: path/args
+				]
+			]
 		]
+		
+		s: as series! args/value
+		value: s/offset
+		tail:  s/tail
+		required?: yes
 		
 		while [value < tail][
-			if verbose > 0 [print-line ["eval: spec entry type: " TYPE_OF(value)]]
-			switch TYPE_OF(value) [
-				TYPE_WORD
-				TYPE_GET_WORD
-				TYPE_LIT_WORD [
-					either required? [
-						blk: as red-block! value + 1
-						either all [
-							pc >= end
-							TYPE_OF(value) = TYPE_LIT_WORD
-							value + 1 < tail
-							TYPE_OF(blk) = TYPE_BLOCK
-							symbol/is-any-type? as red-word! block/pick blk 1 null	;-- check for [any-type!] spec
-						][
-							unset/push
-						][
-							FETCH_ARGUMENT
-						]
-						count: count + 1
-					][
-						if function? [none/push]
+			expected: value + 1
+			
+			if TYPE_OF(value) <> TYPE_SET_WORD [
+				switch TYPE_OF(expected) [
+					TYPE_TYPESET [
+						either required? [FETCH_ARGUMENT][none/push]
 					]
+					TYPE_LOGIC [
+						stack/push expected
+						bool: as red-logic! expected
+						required?: bool/value
+					]
+					TYPE_VECTOR [
+						vec: as red-vector! expected
+						s: GET_BUFFER(vec)
+						p: as int-ptr! s/offset
+						size: (as-integer (as int-ptr! s/tail) - p) / 4
+						ref-array: system/stack/top - size
+						system/stack/top: ref-array			;-- reserve space on native stack for refs array
+						copy-memory as byte-ptr! ref-array as byte-ptr! p size * 4
+					]
+					default [assert false]				;-- trap it, if stack corrupted 
 				]
-				TYPE_REFINEMENT [
-					if required? [required?: no]		;-- no more mandatory arguments
-					
-					either function? [
-						logic/push false
-					][
-						ref-array/index: -1
-						index: index + 1
-					]
-				]
-				TYPE_SET_WORD [
-					w: as red-word! value
-					unless words/return* = symbol/resolve w/symbol [
-						fire [
-							TO_ERROR(script bad-func-def)
-							w
-						]
-					]
-					if routine? [
-						ret-set?: yes
-						value: block/pick (as red-block! value + 1) 1 null
-						assert TYPE_OF(value) = TYPE_WORD
-						dt: as red-datatype! _context/get as red-word! value
-						assert TYPE_OF(dt) = TYPE_DATATYPE
-						return-type: dt/value
-					]
-				]
-				default [0]								;-- ignore other values
 			]
-			value: value + 1
-		]
-		
-		unless ret-set? [return-type: -1]				;-- set the default correctly in case of nested calls
-		
-		unless routine? [
-			if path <> null [
-				pos: pos + 1
-				
-				while [pos < path-end][
-					pc: eval-option pc end head tail fname as red-word! pos :offset :args function?
-					
-					unless function? [
-						either args > 0 [
-							ref-array/offset: count + args - 1
-							count: count + args
-						][
-							ref-array/offset: 0
-						]
-					]
-					pos: pos + 1
-				]	
-			]
+			value: value + 2
 		]
 		
 		unless function? [
@@ -512,7 +625,7 @@ interpreter: context [
 			saved	[red-value!]
 			arg		[red-value!]
 	][
-		if verbose > 0 [print-line "eval: path"]
+		#if debug? = yes [if verbose > 0 [print-line "eval: path"]]
 		
 		path:   as red-path! value
 		head:   block/rs-head as red-block! path
@@ -624,30 +737,32 @@ interpreter: context [
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
 			TYPE_NATIVE [
-				if verbose > 0 [log "pushing action/native frame"]
+				#if debug? = yes [if verbose > 0 [log "pushing action/native frame"]]
 				stack/mark-native name
 				pc: eval-arguments as red-native! value pc end path slot 	;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
-
-				if verbose > 0 [
-					value: stack/arguments
-					print-line ["eval: action/native return type: " TYPE_OF(value)]
+				#if debug? = yes [
+					if verbose > 0 [
+						value: stack/arguments
+						print-line ["eval: action/native return type: " TYPE_OF(value)]
+					]
 				]
 			]
 			TYPE_ROUTINE [
-				if verbose > 0 [log "pushing routine frame"]
+				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
 				stack/mark-native name
 				pc: eval-arguments as red-native! value pc end path slot
 				exec-routine as red-routine! value
 				either sub? [stack/unwind][stack/unwind-last]
-
-				if verbose > 0 [
-					value: stack/arguments
-					print-line ["eval: routine return type: " TYPE_OF(value)]
+				#if debug? = yes [
+					if verbose > 0 [
+						value: stack/arguments
+						print-line ["eval: routine return type: " TYPE_OF(value)]
+					]
 				]
 			]
 			TYPE_FUNCTION [
-				if verbose > 0 [log "pushing function frame"]
+				#if debug? = yes [if verbose > 0 [log "pushing function frame"]]
 				obj: as red-object! parent
 				ctx: either all [
 					parent <> null
@@ -668,10 +783,11 @@ interpreter: context [
 				pc: eval-arguments as red-native! value pc end path slot
 				_function/call as red-function! value ctx
 				either sub? [stack/unwind][stack/unwind-last]
-
-				if verbose > 0 [
-					value: stack/arguments
-					print-line ["eval: function return type: " TYPE_OF(value)]
+				#if debug? = yes [
+					if verbose > 0 [
+						value: stack/arguments
+						print-line ["eval: function return type: " TYPE_OF(value)]
+					]
 				]
 			]
 		]
@@ -693,7 +809,7 @@ interpreter: context [
 			sym	   [integer!]
 			infix? [logic!]
 	][
-		if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]
+		#if debug? = yes [if verbose > 0 [print-line ["eval: fetching value of type " TYPE_OF(pc)]]]
 		
 		infix?: no
 		unless prefix? [
@@ -720,10 +836,11 @@ interpreter: context [
 				pc: eval-expression pc end no yes
 				word/set
 				either sub? [stack/unwind][stack/unwind-last]
-				
-				if verbose > 0 [
-					value: stack/arguments
-					print-line ["eval: set-word return type: " TYPE_OF(value)]
+				#if debug? = yes [
+					if verbose > 0 [
+						value: stack/arguments
+						print-line ["eval: set-word return type: " TYPE_OF(value)]
+					]
 				]
 			]
 			TYPE_SET_PATH [
@@ -746,10 +863,12 @@ interpreter: context [
 				pc: pc + 1
 			]
 			TYPE_WORD [
-				if verbose > 0 [
-					print "eval: '"
-					print-symbol as red-word! pc
-					print lf
+				#if debug? = yes [
+					if verbose > 0 [
+						print "eval: '"
+						print-symbol as red-word! pc
+						print lf
+					]
 				]
 				value: _context/get as red-word! pc
 				
@@ -794,16 +913,17 @@ interpreter: context [
 						pc: eval-code value pc end sub? null null value
 					]
 					default [
-						if verbose > 0 [log "getting word value"]
+						#if debug? = yes [if verbose > 0 [log "getting word value"]]
 						either sub? [
 							stack/push value			;-- nested expression: push value
 						][
 							stack/set-last value		;-- root expression: return value
 						]
-						
-						if verbose > 0 [
-							value: stack/arguments
-							print-line ["eval: word return type: " TYPE_OF(value)]
+						#if debug? = yes [
+							if verbose > 0 [
+								value: stack/arguments
+								print-line ["eval: word return type: " TYPE_OF(value)]
+							]
 						]
 					]
 				]
@@ -884,7 +1004,7 @@ interpreter: context [
 		stack/mark-eval words/_body					;-- outer stack frame
 		
 		while [value < tail][
-			if verbose > 0 [log "root loop..."]
+			#if debug? = yes [if verbose > 0 [log "root loop..."]]
 			value: eval-expression value tail no no
 			if value + 1 < tail [stack/reset]
 		]
