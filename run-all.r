@@ -9,9 +9,10 @@ REBOL [
 ;; function to find and run-tests
 run-all-script: func [
 	dir [file!]
+	file [file!]
 ][
 	qt/tests-dir: system/script/path/:dir
-  	foreach line read/lines dir/run-all.r [
+  	foreach line read/lines dir/:file [
   		if any [
 			find line "===start-group"
   	  		find line "--run-"
@@ -22,17 +23,24 @@ run-all-script: func [
 ]
 
 batch-mode: false
+fast-mode: false
 binary?: false
 if system/script/args  [
 	;; should we run non-interactively?
 	batch-mode: find system/script/args "--batch"
+	
+	;; should we run quickly?
+	fast-mode: find system/script/args "--fast"
 
 	;; should we use the binary compiler?
 	args: parse system/script/args " "
 	if find system/script/args "--binary" [
 		binary?: true
 		bin-compiler: select args "--binary"
-		if bin-compiler = "--batch" [
+		if any [
+			bin-compiler = "--batch"
+			bin-complier = "--fast"
+		][
 			bin-compiler: none								;; use default
 		]
 		if bin-compiler [						
@@ -76,10 +84,14 @@ qt/tests-dir: clean-path %tests/
 do %tests/source/units/make-red-auto-tests.r
 do %tests/source/units/make-interpreter-auto-tests.r
 qt/script-header: "Red []"
-run-all-script %tests/
+either fast-mode [
+	run-all-script %tests/ %run-all-fast.r
+][
+	run-all-script %tests/ %run-all.r
+]
 qt/script-header: "Red/System []"
-qt/tests-dir: clean-path %system/tests/
-run-all-script %system/tests/
+qt/tests-dir: clean-path %system/tests/ 
+run-all-script %system/tests/ %run-all.r
 
 ***end-run-quiet***
 
