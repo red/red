@@ -110,8 +110,8 @@ multiply: make action! [[
 
 negate: make action! [[
 		"Returns the opposite (additive inverse) value"
-		number 	 [number!]
-		return:  [number!]
+		number 	 [number! bitset!]
+		return:  [number! bitset!]
 	]
 	#get-definition ACT_NEGATE
 ]
@@ -228,14 +228,14 @@ xor~: make action! [[
 
 append: make action! [[
 		"Inserts value(s) at series tail; returns series head"
-		series	   [series!]
+		series	   [series! bitset!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [number!]
-		return:    [series!]
+		return:    [series! bitset!]
 	]
 	#get-definition ACT_APPEND
 ]
@@ -261,28 +261,28 @@ back: make action! [[
 
 clear: make action! [[
 		"Removes series values from current index to tail; returns new tail"
-		series	 [series!]
-		return:  [series!]
+		series	 [series! bitset!]
+		return:  [series! bitset!]
 	]
 	#get-definition ACT_CLEAR
 ]
 
 copy: make action! [[
 		"Returns a copy of a non-scalar value"
-		value	 [series!]
+		value	 [series! any-object! bitset!]
 		/part	 "Limit the length of the result"
 			length [number! series!]
 		/deep	 "Copy nested values"
 		/types	 "Copy only specific types of non-scalar values"
 			kind [datatype!]
-		return:  [series!]
+		return:  [series! any-object! bitset!]
 	]
 	#get-definition ACT_COPY
 ]
 
 find: make action! [[
 		"Returns the series where a value is found, or NONE"
-		series	 [series! none!]
+		series	 [series! bitset! any-object! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
 			length [number! series!]
@@ -327,21 +327,21 @@ index?: make action! [[
 
 insert: make action! [[
 		"Inserts value(s) at series index; returns series head"
-		series	   [series!]
+		series	   [series! bitset!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [number!]
-		return:    [series!]
+		return:    [series! bitset!]
 	]
 	#get-definition ACT_INSERT
 ]
 
 length?: make action! [[
 		"Returns the number of values in the series, from the current index to the tail"
-		series	 [series!]
+		series	 [series! bitset!]
 		return:  [integer!]
 	]
 	#get-definition ACT_LENGTH?
@@ -358,8 +358,8 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series!]
-		index 	 [integer! logic!]
+		series	 [series! bitset!]
+		index 	 [integer! logic! char!]
 		return:  [any-type!]
 	]
 	#get-definition ACT_PICK
@@ -367,20 +367,20 @@ pick: make action! [[
 
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
-		series	 [series!]
+		series	 [series! bitset!]
 		index 	 [integer! logic!]
 		value 	 [any-type!]
-		return:  [series!]
+		return:  [series! bitset!]
 	]
 	#get-definition ACT_POKE
 ]
 
 remove: make action! [[
 		"Returns the series at the same index after removing a value"
-		series	 [series! none!]
+		series	 [series! bitset! none!]
 		/part "Removes a number of values, or values up to the given series index"
 			length [number! series!]
-		return:  [series! none!]
+		return:  [series! bitset! none!]
 	]
 	#get-definition ACT_REMOVE
 ]
@@ -397,7 +397,7 @@ reverse: make action! [[
 
 select: make action! [[
 		"Find a value in a series and return the next value, or NONE"
-		series	 [series! none!]
+		series	 [series! any-object! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
 			length [number! series!]
@@ -480,7 +480,7 @@ take: make action! [[
 
 trim: make action! [[
 		"Removes space from a string or NONE from a block or object"
-		series	[series! object! error! module!]
+		series	[series! object! error!]
 		/head	"Removes only from the head"
 		/tail	"Removes only from the tail"
 		/auto	"Auto indents lines relative to first line"

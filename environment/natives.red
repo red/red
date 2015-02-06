@@ -178,7 +178,7 @@ reduce: make native! [[
 
 compose: make native! [[
 		"Returns a copy of a block, evaluating only parens"
-		value [block!]
+		value
 		/deep "Compose nested blocks"
 		/only "Compose nested blocks as blocks containing their values"
 		/into "Put results in out block, instead of creating a new block"
@@ -316,7 +316,7 @@ stats: make native! [[
 
 bind: make native! [[
 		word 	[block! any-word!]
-		context [any-word! any-object!]
+		context [any-word! any-object! function!]
 		/copy
 		return: [block! any-word!]
 	]
@@ -392,16 +392,16 @@ positive?: make native! [[
 
 max: make native! [[
 		"Returns the greater of the two values"
-		value1 [number! series!]
-		value2 [number! series!]
+		value1 [number! series! char!]
+		value2 [number! series! char!]
 	]
 	#get-definition NAT_MAX
 ]
 
 min: make native! [[
 		"Returns the lesser of the two values"
-		value1 [number! series!]
-		value2 [number! series!]
+		value1 [number! series! char!]
+		value2 [number! series! char!]
 	]
 	#get-definition NAT_MIN
 ]

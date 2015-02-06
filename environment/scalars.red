@@ -39,4 +39,8 @@ any-object!:	make typeset! [object! error!]
 any-string!:	make typeset! [string! file! url!]
 series!:        union make typeset! [vector!] union any-block! any-string!
 immediate!:		union scalar! union any-word! make typeset! [none! logic! datatype! typeset!]
-any-type!:		union series! union immediate! internal!
+any-type!:		union series! 
+					union immediate! 
+						union internal!
+							union any-object!
+								union any-function! bitset!
