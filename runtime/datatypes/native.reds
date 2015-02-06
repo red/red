@@ -33,11 +33,16 @@ native: context [
 			bool	  [red-logic!]
 			s		  [series!]
 			ref-array [int-ptr!]
+			saved	  [node!]
 			index	  [integer!]
 			offset	  [integer!]
 			ref?	  [logic!]
 	][
-		vec: vector/clone as red-vector! (block/rs-tail args) - 1
+		s: GET_BUFFER(args)
+		vec: vector/clone as red-vector! s/tail - 1
+		saved: vec/node
+		s/tail: s/tail - 2								;-- clear the vector record
+		
 		s: as series! native/spec/value
 		base:	s/offset
 		head:	base
@@ -97,12 +102,20 @@ native: context [
 						index: index + 1
 					]
 					TYPE_SET_WORD [head: end]
-					default [0]						;-- ignore other values
+					default [0]							;-- ignore other values
 				]
 				head: head + 1 
 			]
 			value: value + 1
 		]
+		
+		block/rs-append args as red-value! none-value	;-- restore vector record
+		
+		vec: as red-vector! ALLOC_TAIL(args)
+		vec/header: TYPE_VECTOR							;-- implicit reset of all header flags
+		vec/head: 	0
+		vec/node: 	saved
+		vec/type:	TYPE_INTEGER
 	]
 	
 	push: func [

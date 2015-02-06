@@ -102,6 +102,23 @@ word: context [
 		push as red-word! s/offset + index
 	]
 	
+	at: func [
+		node	[node!]
+		sym		[integer!]
+		return: [red-word!]
+		/local
+			ctx	[red-context!]
+			idx [integer!]
+			s	[series!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "word/at"]]
+
+		ctx: TO_CTX(node)
+		idx: _context/find-word ctx sym no
+		s: as series! ctx/symbols/value
+		as red-word! s/offset + idx
+	]
+	
 	get-in: func [
 		node	[node!]
 		index	[integer!]

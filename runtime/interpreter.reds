@@ -10,6 +10,16 @@ Red/System [
 	}
 ]
 
+#define CHECK_ARGUMENT_TYPE [
+	arg:  stack/top - 1
+	type: TYPE_OF(arg)
+	bits: (as byte-ptr! expected) + 4
+	BS_TEST_BIT(bits type set?)
+	unless set? [
+		ERR_EXPECT_ARGUMENT(type index)
+	]
+]
+
 #define CHECK_INFIX [
 	if all [
 		next < end
@@ -269,7 +279,7 @@ interpreter: context [
 		pc		[red-value!]
 		end	  	[red-value!]
 		path	[red-path!]
-		pos 	[red-value!]
+		ref-pos [red-value!]
 		return: [red-value!]
 		/local
 			fun	  	  [red-function!]
@@ -283,12 +293,18 @@ interpreter: context [
 			blk		  [red-block!]
 			vec		  [red-vector!]
 			bool	  [red-logic!]
+			arg		  [red-value!]
 			s		  [series!]
 			required? [logic!]
 			args	  [node!]
 			p		  [int-ptr!]
 			ref-array [int-ptr!]
+			index	  [integer!]
 			size	  [integer!]
+			type	  [integer!]
+			pos		  [byte-ptr!]
+			bits 	  [byte-ptr!]
+			set? 	  [logic!]
 			ret-set?  [logic!]
 			call
 	][
@@ -319,9 +335,9 @@ interpreter: context [
 		
 		unless null? path [
 			path-end: block/rs-tail as red-block! path
-			if pos + 1 < path-end [						;-- test if refinement are following the function
-				either null? path/args [				
-					args: _function/preprocess-options native path pos args fname function?
+			if ref-pos + 1 < path-end [						;-- test if refinement are following the function
+				either null? path/args [
+					args: _function/preprocess-options native path ref-pos args fname function?
 					path/args: args
 				][
 					args: path/args
@@ -330,9 +346,10 @@ interpreter: context [
 		]
 		
 		s: as series! args/value
-		value: s/offset
-		tail:  s/tail
+		value:	   s/offset
+		tail:	   s/tail
 		required?: yes
+		index: 	   0
 		
 		while [value < tail][
 			expected: value + 1
@@ -340,7 +357,13 @@ interpreter: context [
 			if TYPE_OF(value) <> TYPE_SET_WORD [
 				switch TYPE_OF(expected) [
 					TYPE_TYPESET [
-						either required? [FETCH_ARGUMENT][none/push]
+						either required? [
+							FETCH_ARGUMENT
+							CHECK_ARGUMENT_TYPE
+							index: index + 1
+						][
+							none/push
+						]
 					]
 					TYPE_LOGIC [
 						stack/push expected

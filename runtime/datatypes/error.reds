@@ -35,18 +35,7 @@ error: context [
 		copy-cell value base + field-where
 	]
 	
-	set-stack: func [
-		error [red-object!]
-		ptr	  [int-ptr!]
-		/local
-			base [red-value!]
-			int	 [red-integer!]
-	][
-		base: object/get-values error
-		int: as red-integer! base + field-stack
-		int/header: TYPE_INTEGER
-		int/value:  as-integer ptr
-	]
+	get-stack-id: func [return: [integer!]][field-stack]
 	
 	get-call-argument: func [
 		idx		[integer!]
@@ -63,7 +52,7 @@ error: context [
 		value: s/offset
 		end:   s/tail
 
-		cnt: 1
+		cnt: 0
 		while [value < end][
 			switch TYPE_OF(value) [
 				TYPE_WORD

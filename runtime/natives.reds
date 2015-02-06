@@ -770,7 +770,7 @@ natives: context [
 			into? [logic!]
 	][
 		arg: stack/arguments
-		either TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values			either into >= 0 [
+		either TYPE_OF(arg) <> TYPE_BLOCK [					;-- pass-thru for non block! values
 			into?: into >= 0
 			stack/mark-native words/_body
 			if into? [as red-block! stack/push arg + into]

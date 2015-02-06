@@ -364,11 +364,12 @@ _function: context [
 				TYPE_LIT_WORD [
 					if any [function? required?][		;@@ routine! should not be accepted here...
 						block/rs-append list value
+						blk: as red-block! value + 1
 						either all [
-							value + 1 < tail
-							TYPE_OF(value) = TYPE_BLOCK
+							blk < tail
+							TYPE_OF(blk) = TYPE_BLOCK
 						][
-							typeset/make-in list as red-block! value
+							typeset/make-in list blk
 						][
 							typeset/make-default list
 						]
