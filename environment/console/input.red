@@ -64,7 +64,7 @@ default-input-completer: func [
 	/local word ptr result sys-word delim?
 ][
 	result: make block! 4
-	delimiters: [#" " #"[" #"("]
+	delimiters: [#" " #"[" #"(" #":" #"'"]
 	delim?: no
 	ptr: str: head str
 	foreach d delimiters [
