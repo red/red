@@ -1691,7 +1691,7 @@ Red [
 		--assert not parse 	"aabbc"		nanbnc
 
 	--test-- "str-cplx5"
-		split: function [series [string!] dlm [string!] /local value][
+		split: function [series [string!] dlm [string! char!] /local value][
 		  rule: complement charset dlm
 		  parse series [collect [any [keep copy value some rule | skip]]]
 		]

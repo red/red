@@ -77,9 +77,9 @@ Red [
 	--test-- "fun-11"
 		non-evaluated: func ['param] [param]
 		res: first [(1 + 2)]
-		--assert quote (1 + 2) = res
-		--assert non-evaluated (quote (1 + 2)) = res
-		--assert non-evaluated quote (1 + 2) = 3
+		--assert res = quote (1 + 2)
+		--assert res = non-evaluated (quote (1 + 2))
+		--assert 'quote = non-evaluated quote (1 + 2)
 
 ===end-group===
 
@@ -355,7 +355,7 @@ Red [
 		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
 
 		--test-- "infix-2"
-				*+*: make op! :infix2
+			*+*: make op! :infix2
 			--assert 5 *+* 6 = 106
 
 		--test-- "infix-3"
@@ -403,7 +403,7 @@ Red [
 				"00000"
 			]
 		]
-		--assert "12345" s5-f/extern "12345"
+		--assert "12345" = s5-f/extern "12345"
 		
 	--test-- "scope6 issue #825"
 		s6-text: "abcde"

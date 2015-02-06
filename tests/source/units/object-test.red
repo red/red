@@ -429,7 +429,7 @@ Red [
 	--test-- "inherit-6"
 		--assert new/get-b = 999
 		--assert new/a/double = 912
-		--assert new/a/set-b/with 10
+		new/a/set-b/with 10
 		--assert new/a/b = 10
 		--assert new/b = 999
 		--assert base5/b = 123
@@ -1390,7 +1390,7 @@ Red [
 		--test-- "loc-inherit-6"
 			--assert new/get-b = 999
 			--assert new/a/double = 912
-			--assert new/a/set-b/with 10
+			new/a/set-b/with 10
 			--assert new/a/b = 10
 			--assert new/b = 999
 			--assert base5/b = 123

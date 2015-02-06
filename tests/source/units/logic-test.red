@@ -184,20 +184,20 @@ Red [
   --assert not a
   
   --test-- "logic-all-15"
-  --assert not log-foo all [1 = 2]
+  --assert not log-foo make logic! all [1 = 2]
    
   --test-- "logic-all-16"
   --assert log-foo all [1 < 2 3 <> 4]
   
   --test-- "logic-all-17"
-  --assert not log-foo all [1 = 2 3 <> 4]
+  --assert not log-foo make logic! all [1 = 2 3 <> 4]
 
   --test-- "logic-all-18"
     a: log-foo all [1 < 2]
   --assert a 
  
   --test-- "logic-all-19"
-    a: log-foo all [1 = 2]
+    a: log-foo make logic! all [1 = 2]
   --assert not a
   
   --test-- "logic-all-20"
