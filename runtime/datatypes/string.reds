@@ -708,16 +708,20 @@ string: context [
 			size  [integer!]
 			size2 [integer!]
 			p	  [byte-ptr!]
+			p2	  [byte-ptr!]
+			p4	  [int-ptr!]
 			limit [byte-ptr!]
 			cp	  [integer!]
 			h1	  [integer!]
 			h2	  [integer!]
+			diff? [logic!]
 	][
 		s1: GET_BUFFER(str1)
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
-		
+		diff?: unit1 <> unit2
+
 		case [											;-- harmonize both encodings
 			unit1 < unit2 [
 				switch unit2 [
@@ -752,7 +756,7 @@ string: context [
 		h2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head << (unit2 >> 1)]	;-- make symbol! used as string! pass safely
 		
 		size2: (as-integer s2/tail - s2/offset) - h2
-		size:  (as-integer s1/tail - s1/offset) + size2 + unit1		;-- account for terminal NUL
+		size:  (as-integer s1/tail - s1/offset) + (unit1 / unit2 * size2) + unit1		;-- account for keep? and terminal NUL
 		if s1/size < size [s1: expand-series s1 size]
 		
 		if part >= 0 [
@@ -765,30 +769,30 @@ string: context [
 				(as byte-ptr! s1/offset) + h1 + offset
 				(as-integer s1/tail - s1/offset) - h1
 		]
-		
-		either all [keep? unit1 <> unit2][
-			p: (as byte-ptr! s1/offset) + h1
-			limit: p + size2
-			while [p < limit][
-				either unit2 = UCS-2 [
-					cp: (as-integer p/2) << 8 + p/1
-					p: p + 2
-				][
-					cp: as-integer p/1
-					p: p + 1
+
+		p: either insert? [
+			(as byte-ptr! s1/offset) + (offset << (unit1 >> 1)) + h1
+		][
+			as byte-ptr! s1/tail
+		]
+		either all [keep? diff?][
+			p2: (as byte-ptr! s2/offset) + h2
+			limit: p2 + size2
+			while [p2 < limit][
+				switch unit2 [
+					Latin1 [cp: as-integer p2/1]
+					UCS-2  [cp: (as-integer p2/2) << 8 + p2/1]
+					UCS-4  [p4: as int-ptr! p2 cp: p4/1]
 				]
 				s1: either insert? [
-					poke-char s1 p + (offset << (unit1 >> 1)) cp
+					poke-char s1 p cp
 				][
 					append-char s1 cp
 				]
+				p: p + unit1
+				p2: p2 + unit2
 			]
 		][
-			p: either insert? [
-				(as byte-ptr! s1/offset) + (offset << (unit1 >> 1)) + h1
-			][
-				as byte-ptr! s1/tail
-			]
 			copy-memory	p (as byte-ptr! s2/offset) + h2 size2
 			p: p + size2
 		]
@@ -1011,7 +1015,7 @@ string: context [
 			int: as red-integer! arg
 			int/value	
 		][-1]
-		concatenate buffer str limit 0 no no
+		concatenate buffer str limit 0 yes no
 		part - get-length str no
 	]
 	
