@@ -368,7 +368,7 @@ pick: make action! [[
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
 		series	 [series! bitset!]
-		index 	 [integer! logic!]
+		index 	 [integer! char! logic! block!]
 		value 	 [any-type!]
 		return:  [series! bitset!]
 	]
@@ -379,7 +379,7 @@ remove: make action! [[
 		"Returns the series at the same index after removing a value"
 		series	 [series! bitset! none!]
 		/part "Removes a number of values, or values up to the given series index"
-			length [number! series!]
+			length [number! char! series!]
 		return:  [series! bitset! none!]
 	]
 	#get-definition ACT_REMOVE
