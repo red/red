@@ -295,7 +295,7 @@ stack: context [										;-- call stack
 		base: object/get-values err
 		int: as red-integer! base + error/get-stack-id
 		int/header: TYPE_INTEGER
-		int/value:  as-integer ctop + 1
+		int/value:  as-integer ctop
 	]
 	
 	throw-error: func [
