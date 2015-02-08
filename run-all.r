@@ -2,7 +2,7 @@ REBOL [
 	Title:   "Builds and Runs All Red and Red/System Tests"
 	File: 	 %run-all.r
 	Author:  "Peter W A Wood"
-	Version: 0.2.1
+	Version: 0.3.0
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
 ]
 
@@ -66,44 +66,34 @@ system/options/quiet: true
 store-current-dir: what-dir
 
 do %quick-test/quick-test.r
+qt/tests-dir: clean-path %/tests/
+
 if binary? [
 	qt/binary?: binary?
 	if bin-compiler [qt/bin-compiler: bin-compiler]
 ]
 
-;; run the tests
-print rejoin ["Quick-Test v" qt/version]
-print rejoin ["REBOL " system/version]
-
-start-time: now/precise
-
-***start-run-quiet*** "Complete Red Test Suite"
 qt/tests-dir: clean-path %system/tests/
 do %system/tests/source/units/make-red-system-auto-tests.r
+
 qt/tests-dir: clean-path %tests/
-do %tests/source/units/make-red-auto-tests.r
-do %tests/source/units/make-interpreter-auto-tests.r
-qt/script-header: "Red []"
+do %tests/source/units/run-all-init.r
+
+***start-run-quiet*** "Complete Red Test Suite"
+
+do %tests/source/units/run-all-extra-tests.r
+
 either fast-mode [
-	run-all-script %tests/ %run-all-fast.r
+	--run-test-file-quiet %source/units/auto-tests/run-all-comp1.red
+    --run-test-file-quiet %source/units/auto-tests/run-all-comp2.red
+    --run-test-file-quiet %source/units/auto-tests/run-all-interp.red
+        
 ][
-	run-all-script %tests/ %run-all.r
+	do %tests/source/units/run-each-comp.r
+    do %tests/source/units/run-each-interp.r
 ]
 qt/script-header: "Red/System []"
 qt/tests-dir: clean-path %system/tests/ 
 run-all-script %system/tests/ %run-all.r
 
-***end-run-quiet***
-
-end-time: now/precise
-print ["       in" difference end-time start-time newline]
-system/options/quiet: store-quiet-mode
-change-dir store-current-dir
-either batch-mode [
-	quit/return either qt/test-run/failures > 0 [1] [0]
-][
-	print ["The test output was logged to" qt/log-file]
-	ask "hit enter to finish"
-	print ""
-	qt/test-run/failures
-]
+do %tests/source/units/run-all-final.r
