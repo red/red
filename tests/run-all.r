@@ -32,8 +32,8 @@ do %source/units/run-all-extra-tests.r
         --run-test-file-quiet %source/units/auto-tests/run-all-interp.red
         
     ][
-        do %source/units/run-each-comp.r
-        do %source/units/run-each-interp.r
+        do %source/units/auto-tests/run-each-comp.r
+        do %source/units/auto-tests/run-each-interp.r
     ]
 ===end-group===
 

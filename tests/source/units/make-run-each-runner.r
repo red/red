@@ -48,13 +48,13 @@ comment ^{
 
 ;;--------------- Main Processing
 
-file-out: %run-each-comp.r
+file-out: %auto-tests/run-each-comp.r
 write-test-header file-out
 foreach file file-list-comp [
 	write/append file-out join "--run-test-file-quiet %source/units/" [file lf]	
 ]
 
-file-out: %run-each-interp.r
+file-out: %auto-tests/run-each-interp.r
 write-test-header file-out 
 foreach file file-list-interp [
 	write/append file-out join "--run-test-file-quiet %source/units/" [file lf]

@@ -84,13 +84,13 @@ do %tests/source/units/run-all-init.r
 do %tests/source/units/run-all-extra-tests.r
 
 either fast-mode [
-	--run-test-file-quiet %source/units/auto-tests/run-all-comp1.red
+    --run-test-file-quiet %source/units/auto-tests/run-all-comp1.red
     --run-test-file-quiet %source/units/auto-tests/run-all-comp2.red
     --run-test-file-quiet %source/units/auto-tests/run-all-interp.red
         
 ][
-	do %tests/source/units/run-each-comp.r
-    do %tests/source/units/run-each-interp.r
+	do %tests/source/units/auto-tests/run-each-comp.r
+    do %tests/source/units/auto-tests/run-each-interp.r
 ]
 qt/script-header: "Red/System []"
 qt/tests-dir: clean-path %system/tests/ 
