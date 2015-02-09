@@ -7,7 +7,6 @@ REBOL [
 ]
 
 ;; should we run non-interactively?
-probe system/script/args
 if args: any [system/script/args system/options/args][
 	batch-mode: find args "--batch"
 	fast-mode:  find args "--fast"
