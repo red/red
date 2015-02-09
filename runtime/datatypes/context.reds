@@ -58,7 +58,8 @@ _context: context [
 		
 		s: as series! ctx/symbols/value
 		word: as red-word! alloc-tail s
-		
+		s: GET_BUFFER(s)								;-- refreshing s pointer
+
 		word/header: TYPE_WORD							;-- implicit reset of all header flags
 		word/ctx: 	 global-ctx
 		word/symbol: symbol
