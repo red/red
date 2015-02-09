@@ -1,3 +1,5 @@
+![Travis build](https://travis-ci.org/red/red.svg?branch=master)
+
 Red Programming Language
 ------------------------
 **Red** is a new programming language strongly inspired by [Rebol](http://rebol.com), but with a broader field of usage thanks to its native-code compiler, from system programming to high-level scripting, while providing modern support for concurrency and multi-core CPUs. 
