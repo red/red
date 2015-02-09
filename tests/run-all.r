@@ -7,9 +7,12 @@ REBOL [
 ]
 
 ;; should we run non-interactively?
-batch-mode: all [system/options/args find system/options/args "--batch"]
-fast-mode: all [system/options/args find system/options/args "--fast"]
-
+probe system/script/args
+if args: any [system/script/args system/options/args][
+	batch-mode: find args "--batch"
+	fast-mode:  find args "--fast"
+]
+?? fast-mode
 ;; supress script messages
 store-quiet-mode: system/options/quiet
 system/options/quiet: true
