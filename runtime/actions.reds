@@ -46,7 +46,7 @@ actions: context [
 		index: type << 8 + action
 		index: action-table/index						;-- lookup action function pointer
 
-		if zero? index [ERR_EXPECT_ARGUMENT(type 1)]
+		if zero? index [ERR_EXPECT_ARGUMENT(type 0)]
 		index
 	]
 	
