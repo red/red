@@ -23,14 +23,15 @@ run-all-script: func [
 ]
 
 batch-mode: false
-fast-mode: false
+each-mode: false
 binary?: false
-if system/script/args  [
+args: any [system/script/args system/options/args]
+if args  [
 	;; should we run non-interactively?
 	batch-mode: find system/script/args "--batch"
 	
-	;; should we run quickly?
-	fast-mode: find system/script/args "--fast"
+	;; should we run each file individually?
+	each-mode: find system/script/args "--each"
 
 	;; should we use the binary compiler?
 	args: parse system/script/args " "
@@ -39,7 +40,7 @@ if system/script/args  [
 		bin-compiler: select args "--binary"
 		if any [
 			bin-compiler = "--batch"
-			bin-complier = "--fast"
+			bin-complier = "--each"
 		][
 			bin-compiler: none								;; use default
 		]
@@ -83,14 +84,13 @@ do %tests/source/units/run-all-init.r
 
 do %tests/source/units/run-all-extra-tests.r
 
-either fast-mode [
+either each-mode [
+    do %tests/source/units/auto-tests/run-each-comp.r
+    do %tests/source/units/auto-tests/run-each-interp.r
+][
     --run-test-file-quiet %source/units/auto-tests/run-all-comp1.red
     --run-test-file-quiet %source/units/auto-tests/run-all-comp2.red
-    --run-test-file-quiet %source/units/auto-tests/run-all-interp.red
-        
-][
-	do %tests/source/units/auto-tests/run-each-comp.r
-    do %tests/source/units/auto-tests/run-each-interp.r
+    --run-test-file-quiet %source/units/auto-tests/run-all-interp.red    
 ]
 qt/script-header: "Red/System []"
 qt/tests-dir: clean-path %system/tests/ 
