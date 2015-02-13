@@ -534,7 +534,7 @@ lexer: context [
 	
 	decode-UTF8-string: func [str [string!] /local new s e][
 		new: make string! length? str
-		parse str [
+		parse/all str [
 			some [
 				s: UTF8-char e: (
 					append new debase/base skip decode-UTF8-char as-binary copy/part s e 7 16

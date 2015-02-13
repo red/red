@@ -9,7 +9,7 @@ REBOL [
 ;; should we run non-interactively?
 if args: any [system/script/args system/options/args][
 	batch-mode: find args "--batch"
-	fast-mode:  find args "--fast"
+	each-mode:  find args "--each"
 ]
 
 ;; supress script messages
@@ -28,14 +28,13 @@ do %source/units/run-all-init.r
 do %source/units/run-all-extra-tests.r
 
 ===start-group=== "Main Red Tests"
-    either fast-mode [
+    either each-mode [
+    	do %source/units/auto-tests/run-each-comp.r
+        do %source/units/auto-tests/run-each-interp.r
+    ][
         --run-test-file-quiet %source/units/auto-tests/run-all-comp1.red
         --run-test-file-quiet %source/units/auto-tests/run-all-comp2.red
         --run-test-file-quiet %source/units/auto-tests/run-all-interp.red
-        
-    ][
-        do %source/units/auto-tests/run-each-comp.r
-        do %source/units/auto-tests/run-each-interp.r
     ]
 ===end-group===
 
