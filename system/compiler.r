@@ -2707,7 +2707,7 @@ system-dialect: make-profilable context [
 					casting: cast-null variable
 				]
 				boxed: expr
-				expr: cast expr
+				expr: either any-float? boxed/type [cast/quiet expr][cast expr]
 			]
 			
 			;-- dead expressions elimination
