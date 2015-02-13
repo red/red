@@ -212,7 +212,7 @@ target-class: context [
 	get-arguments-class: func [args [block!] /local c a b arg][
 		c: 1
 		foreach op [a b][
-			arg: either object? args/:c [compiler/cast args/:c][args/:c]		
+			arg: either object? args/:c [compiler/cast/quiet args/:c][args/:c]
 			set op either arg = <last> [
 				 'reg								;-- value in accumulator
 			][

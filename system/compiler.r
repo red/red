@@ -770,12 +770,12 @@ system-dialect: make-profilable context [
 		
 		pop-calls: does [clear expr-call-stack]
 		
-		cast: func [obj [object!] /local value ctype type][
+		cast: func [obj [object!] /quiet /local value ctype type][
 			value: obj/data
 			ctype: resolve-aliased obj/type
 			type: get-type value
 
-			if all [type = obj/type type/1 <> 'function!][
+			if all [not quiet type = obj/type type/1 <> 'function!][
 				throw-warning/near [
 					"type casting from" type/1 
 					"to" obj/type/1 "is not necessary"
