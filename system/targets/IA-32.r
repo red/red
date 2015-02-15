@@ -67,7 +67,7 @@ make-profilable make target-class [
 			not runtime?
 			compiler/job/need-main?
 		][
-			emit-pop								;-- pop zero padding
+			emit-pop								;-- pop exception handler pointer
 			emit-pop								;-- pop CATCH_ALL barrier
 			emit #{5D}								;-- POP ebp
 			args: switch/default compiler/job/OS [
@@ -1728,10 +1728,10 @@ make-profilable make target-class [
 		]
 	]
 	
-	emit-throw: func [value [integer! word!]][
+	emit-throw: func [value [integer! word!] /thru][
 		emit-load value
 		
-		emit #{EB01}								;--			JMP _1st
+		if thru [emit #{EB01}]						;--			JMP _1st
 		emit #{C9}									;-- _loop:	LEAVE
 		emit #{3945FC}								;--	_1st:	CMP [ebp-4], eax ; compare with catch flag
 		emit #{72FA}								;-- 		JB _loop

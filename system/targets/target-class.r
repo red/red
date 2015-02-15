@@ -263,7 +263,11 @@ target-class: context [
 					throw [
 						compiler/check-throw
 						compiler/last-type: [integer!]
-						emit-throw args/1
+						either compiler/catch-attribut? [
+							emit-throw args/1
+						][
+							emit-throw/thru args/1
+						]
 					]
 				] name
 				if name = 'not [res: compiler/get-type args/1]

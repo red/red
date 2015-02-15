@@ -424,6 +424,10 @@ system-dialect: make-profilable context [
 			all [locals find locals name]
 		]
 		
+		catch-attribut?: does [
+			all [locals block? locals/1 find locals/1 'catch]
+		]
+		
 		exists-variable?: func [name [word! set-word!]][
 			name: to word! name
 			to logic! any [

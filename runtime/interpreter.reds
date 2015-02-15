@@ -176,6 +176,7 @@ interpreter: context [
 		eval body yes
 		ctx/values: saved
 		in-func?: in-func? - 1
+		if system/thrown = RED_ERROR [throw RED_ERROR]	;-- let exception pass through
 	]
 	
 	exec-routine: func [
