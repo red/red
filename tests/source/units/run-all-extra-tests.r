@@ -25,17 +25,6 @@ REBOL [
   	--run-script-quiet %source/compiler/compile-error-test.r
 ===end-group===
 
-===start-group=== "Red system directive tests"
-  	--run-test-file-quiet %source/system/datatype.red
-  	--run-test-file-quiet %source/system/context.red
-  	--run-test-file-quiet %source/system/native-functions.red
-  	--run-test-file-quiet %source/system/special-natives.red
-  	--run-test-file-quiet %source/system/math-operators.red
-    --run-test-file-quiet %source/system/auto.red
-    --run-test-file-quiet %source/system/infix-syntax.red
-    --run-test-file-quiet %source/system/runtime.red
-===end-group===
-
 ===start-group=== "Red Library tests"
 	
 ===end-group===
