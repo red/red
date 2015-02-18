@@ -231,6 +231,18 @@ Red [
 
 ===end-group===
 
+===start-group=== "switch-multi"		;; not sure if it will be implemented. 
+	--test-- "switch-multi-1"
+	sm1-i: 2
+	sm1-j: 0
+	switch sm1-i [
+		1 2	[sm1-j: 1]
+	]
+	--assert sm1-j = 0
+	; Following assert needs to be activated when support for multiple values gets implemented
+	;--assert sm1-j = 1
+===end-group===
+
 ;===start-group=== "switch-all"			;; not sure if it will be implemented.
 ;	
 ;	--test-- "switch-all-1"
@@ -238,11 +250,11 @@ Red [
 ;		sa1-i: 1
 ;		sa1-j: 0
 ;		switch/all sa1-i [
-;			0	[sa1-j: sa1j + 1]
-;			1	[sa1-j: sa1j + 2]
-;			2	[sa1-j: sa1j + 4]
+;			0	[sa1-j: sa1-j + 1]
+;			1	[sa1-j: sa1-j + 2]
+;			2	[sa1-j: sa1-j + 4]
 ;		]
-;	--assert sa1-j = 6 
+;	--assert sa1-j = 7 
 ;	Following assert to highlight switch/all not yet implemented
 ;	}
 ;	--assert false
