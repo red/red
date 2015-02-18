@@ -238,9 +238,8 @@ Red [
 	switch sm1-i [
 		1 2	[sm1-j: 1]
 	]
-	--assert sm1-j = 0
-	; Following assert needs to be activated when support for multiple values gets implemented
-	;--assert sm1-j = 1
+	--assert sm1-j = 1
+
 ===end-group===
 
 ;===start-group=== "switch-all"			;; not sure if it will be implemented.
