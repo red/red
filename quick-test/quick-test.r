@@ -41,7 +41,7 @@ qt: make object! [
   binary?: false
 
   ;; check if call-show? is enabled for call
-  if (not value? 'call-show?) [call-show?: 'wait]
+  either (not value? 'call-show?) [call-show?: 'wait] [call-show?: 'show]
   call*: to path! 'call
   append call* :call-show?
   append call* 'output
