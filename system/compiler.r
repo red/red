@@ -1881,7 +1881,7 @@ system-dialect: make-profilable context [
 			set [unused chunk] comp-block-chunked		;-- compile TRUE block
 			catch-level: catch-level - 1
 			
-			offset: emitter/target/emit-open-catch length? chunk/1
+			offset: emitter/target/emit-open-catch length? chunk/1 not locals
 			foreach ptr chunk/2 [ptr/1: ptr/1 + offset]	;-- account for (catch-frame + push) opcodes
 			emitter/merge chunk
 			
@@ -1890,7 +1890,7 @@ system-dialect: make-profilable context [
 			][
 				emitter/target/locals-offset
 			]
-			emitter/target/emit-close-catch locals-size
+			emitter/target/emit-close-catch locals-size not locals
 			
 			last-type: none-type
 			none

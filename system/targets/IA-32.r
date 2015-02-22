@@ -67,8 +67,9 @@ make-profilable make target-class [
 			not runtime?
 			compiler/job/need-main?
 		][
-			emit-pop								;-- pop exception handler pointer
-			emit-pop								;-- pop CATCH_ALL barrier
+			emit #{89EC}							;-- MOV esp, ebp
+			emit-pop								;-- pop exceptions threshold slot
+			emit-pop								;-- pop exceptions address slot
 			emit #{5D}								;-- POP ebp
 			args: switch/default compiler/job/OS [
 				Syllable [6]
