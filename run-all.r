@@ -87,9 +87,8 @@ print rejoin ["REBOL " system/version]
 start-time: now/precise
 
 ***start-run-quiet*** "Complete Red Test Suite"
-
+qt/script-header: "Red []"
 do %tests/source/units/run-all-extra-tests.r
-
 either each-mode [
     do %tests/source/units/auto-tests/run-each-comp.r
     do %tests/source/units/auto-tests/run-each-interp.r
@@ -98,6 +97,7 @@ either each-mode [
     --run-test-file-quiet %source/units/auto-tests/run-all-comp2.red
     --run-test-file-quiet %source/units/auto-tests/run-all-interp.red    
 ]
+
 qt/script-header: "Red/System []"
 qt/tests-dir: clean-path %system/tests/ 
 run-all-script %system/tests/ %run-all.r

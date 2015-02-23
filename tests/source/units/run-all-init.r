@@ -8,9 +8,6 @@ REBOL [
 	Purpose: {Defines tests to be run in red/run-all.r and red/tests/run-all.r}
 ]
 
-;; set the default script header
-qt/script-header: "Red []"
-
 ;; make auto files if needed
 do %make-red-auto-tests.r
 do %make-interpreter-auto-tests.r

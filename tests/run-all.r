@@ -28,6 +28,7 @@ print rejoin ["Quick-Test v" qt/version]
 print rejoin ["REBOL " system/version]
 
 start-time: now/precise
+qt/script-header: "Red []"
 
 --setup-temp-files
 
