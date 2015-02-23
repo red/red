@@ -63,6 +63,7 @@ foreach file [
     "run-all-comp2.red"
     "run-all-interp.red"
 ][
+    print ["Compiling" file] "..." 
     test-file: join %source/units/auto-tests/ file
     exe: replace file ".red" ""
     exe: to-local-file join arm-dir exe
