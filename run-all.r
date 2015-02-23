@@ -80,6 +80,12 @@ do %system/tests/source/units/make-red-system-auto-tests.r
 qt/tests-dir: clean-path %tests/
 do %tests/source/units/run-all-init.r
 
+;; run the tests
+print rejoin ["Quick-Test v" qt/version]
+print rejoin ["REBOL " system/version]
+
+start-time: now/precise
+
 ***start-run-quiet*** "Complete Red Test Suite"
 
 do %tests/source/units/run-all-extra-tests.r
@@ -96,4 +102,16 @@ qt/script-header: "Red/System []"
 qt/tests-dir: clean-path %system/tests/ 
 run-all-script %system/tests/ %run-all.r
 
-do %tests/source/units/run-all-final.r
+***end-run-quiet***
+
+end-time: now/precise
+print ["       in" difference end-time start-time newline]
+system/options/quiet: store-quiet-mode
+either batch-mode [
+	quit/return either qt/test-run/failures > 0 [1] [0]
+][
+	print ["The test output was logged to" qt/log-file]
+	ask "hit enter to finish"
+	print ""
+	qt/test-run/failures
+]
