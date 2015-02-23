@@ -20,9 +20,3 @@ do %make-run-all-red.r
 
 ;; build the each test runners
 do %make-run-each-runner.r
-
-;; run the tests
-print rejoin ["Quick-Test v" qt/version]
-print rejoin ["REBOL " system/version]
-
-start-time: now/precise

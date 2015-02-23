@@ -23,6 +23,12 @@ qt/tests-dir: system/script/path
 
 do %source/units/run-all-init.r
 
+;; run the tests
+print rejoin ["Quick-Test v" qt/version]
+print rejoin ["REBOL " system/version]
+
+start-time: now/precise
+
 --setup-temp-files
 
 ***start-run-quiet*** "Red Test Suite"
@@ -44,4 +50,14 @@ do %source/units/run-all-extra-tests.r
 
 --delete-temp-files
 
-do %source/units/run-all-final.r
+end-time: now/precise
+print ["       in" difference end-time start-time newline]
+system/options/quiet: store-quiet-mode
+either batch-mode [
+	quit/return either qt/test-run/failures > 0 [1] [0]
+][
+	print ["The test output was logged to" qt/log-file]
+	ask "hit enter to finish"
+	print ""
+	qt/test-run/failures
+]
