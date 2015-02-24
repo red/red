@@ -40,4 +40,7 @@ context [
 	extract-defs 'natives!
 	
 	data: none
+	
+	scalars: context [typeset!: block!]					;-- fake a convenient definition
+	scalars: make scalars copy skip load-cache %environment/scalars.red 2
 ]
