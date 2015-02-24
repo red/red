@@ -39,6 +39,15 @@ qt: make object! [
   
   ;; switch for binary compiler usage
   binary?: false
+
+  ;; check if call-show? is enabled for call
+  either any [
+  		not value? 'call-show?
+  		equal? call-show? 'wait
+  	] [call-show?: 'wait] [call-show?: 'show]
+  call*: to path! 'call
+  append call* :call-show?
+  append call* 'output
   
   ;; default binary compiler path
   bin-compiler: base-dir/build/bin/red
@@ -207,7 +216,7 @@ qt: make object! [
     		]  		
     	]
     	comp-output: make string! 1024
-    	call/wait/output cmd comp-output
+    	do call* cmd comp-output
     ][
     	comp: mold compose/deep [
     	  REBOL []
@@ -228,7 +237,7 @@ qt: make object! [
 
     	;; compose command line and call it
     	cmd: join to-local-file system/options/boot [" -sc " comp-r]
-    	call/wait/output cmd make string! 1024	;; redirect output to anonymous
+    	do call* cmd make string! 1024	;; redirect output to anonymous
     											;; buffer
     ]
     
@@ -345,7 +354,7 @@ qt: make object! [
     exec: to-local-file runnable-dir/:prog
     ;;exec: join "" compose/deep [(exec either args [join " " parms] [""])]
     clear output
-    call/output/wait exec output
+    do call* exec output
     if all [red? windows-os?] [output: qt/utf-16le-to-utf-8 output]
     if all [
       source-file?
@@ -371,7 +380,7 @@ qt: make object! [
   ][
     source-file?: false
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    call/wait cmd
+    do call* cmd make string! 1024
   ]
   
   run-unit-test-quiet: func [
@@ -386,7 +395,7 @@ qt: make object! [
     prin [ "running " test-name #"^(0D)"]
     clear output
     cmd: join to-local-file system/options/boot [" -sc " tests-dir src]
-    call/output/wait cmd output
+    do call* cmd output
     if find output "Error:" [_signify-failure]
     add-to-run-totals
     write/append log-file output
