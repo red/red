@@ -636,6 +636,7 @@ string: context [
 			p4	   [int-ptr!]
 			cp	   [integer!]
 			size   [integer!]
+			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
 			match? [logic!]
 	][

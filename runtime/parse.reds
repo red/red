@@ -238,12 +238,13 @@ parser: context [
 			phead  [byte-ptr!]
 			ptail  [byte-ptr!]
 			pbits  [byte-ptr!]
-			pos    [byte-ptr!]
+			pos    [byte-ptr!]							;-- required by BS_TEST_BIT
 			p4	   [int-ptr!]
 			cp	   [integer!]
 			size   [integer!]
 			unit   [integer!]
 			type   [integer!]
+			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
 			match? [logic!]
 	][
@@ -382,11 +383,12 @@ parser: context [
 			phead  [byte-ptr!]
 			ptail  [byte-ptr!]
 			pbits  [byte-ptr!]
-			pos    [byte-ptr!]
+			pos    [byte-ptr!]							;-- required by BS_TEST_BIT
 			p4	   [int-ptr!]
 			cp	   [integer!]
 			cnt	   [integer!]
 			size   [integer!]
+			set?   [logic!]								;-- required by BS_TEST_BIT
 			not?   [logic!]
 			max?   [logic!]
 			match? [logic!]

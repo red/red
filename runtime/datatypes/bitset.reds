@@ -285,7 +285,7 @@ bitset: context [
 			s	  [series!]
 			p	  [byte-ptr!]
 			tail  [byte-ptr!]
-			pos	  [byte-ptr!]
+			pos	  [byte-ptr!]							;-- required by BS_TEST_BIT
 			pbits [byte-ptr!]
 			p4	  [int-ptr!]
 			unit  [integer!]
@@ -293,7 +293,7 @@ bitset: context [
 			cp	  [integer!]
 			size  [integer!]
 			test? [logic!]
-			set?  [logic!]
+			set?  [logic!]								;-- required by BS_TEST_BIT
 			not?  [logic!]
 	][
 		s:	  GET_BUFFER(str)
@@ -345,13 +345,14 @@ bitset: context [
 			w	  [red-word!]
 			value [red-value!]
 			tail  [red-value!]
-			pos	  [byte-ptr!]
+			pos	  [byte-ptr!]							;-- required by BS_TEST_BIT
 			pbits [byte-ptr!]
 			max	  [integer!]
 			min	  [integer!]
 			size  [integer!]
 			type  [integer!]
 			s	  [series!]
+			set?  [logic!]								;-- required by BS_TEST_BIT
 			test? [logic!]
 			not?  [logic!]
 	][
