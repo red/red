@@ -24,15 +24,35 @@ typeset: context [
 		OP_XOR
 	]
 	
+	create: func [
+		bs1 [integer!]									;-- pre-encoded in little-endian
+		bs2 [integer!]									;-- pre-encoded in little-endian
+		bs3 [integer!]									;-- pre-encoded in little-endian
+		return: [red-typeset!]
+		/local
+			ts	  [red-typeset!]
+			bits  [int-ptr!]
+	][
+		ts: as red-typeset! ALLOC_TAIL(root)
+		ts/header: TYPE_TYPESET							;-- implicit reset of all header flags
+		
+		bits: as int-ptr! ts
+		bits/2: bs1
+		bits/3: bs2
+		bits/4: bs3
+		ts
+	]
+	
 	make-default: func [
 		blk [red-block!]
 		/local
 			ts	  [red-typeset!]
 			bits  [int-ptr!]
 			bbits [byte-ptr!]
+			pos	  [byte-ptr!]
 	][
 		ts: as red-typeset! ALLOC_TAIL(blk)
-		ts/header: TYPE_TYPESET						;-- implicit reset of all header flags
+		ts/header: TYPE_TYPESET							;-- implicit reset of all header flags
 		
 		bits: as int-ptr! ts
 		bits/2: FFFFFFFFh
@@ -55,7 +75,7 @@ typeset: context [
 	][
 		assert TYPE_OF(spec) = TYPE_BLOCK
 		ts: as red-typeset! ALLOC_TAIL(blk)
-		ts/header: TYPE_TYPESET						;-- implicit reset of all header flags
+		ts/header: TYPE_TYPESET							;-- implicit reset of all header flags
 		clear ts
 		
 		pos: block/rs-head spec
@@ -159,6 +179,7 @@ typeset: context [
 			type [red-datatype!]
 			id   [integer!]
 			bits [byte-ptr!]
+			pos	 [byte-ptr!]
 	][
 		type: as red-datatype! value
 		if TYPE_OF(type) = TYPE_WORD [
@@ -219,13 +240,14 @@ typeset: context [
 		return: [integer!]
 		/local
 			array	[byte-ptr!]
+			pos		[byte-ptr!]							;-- required by BS_TEST_BIT
 			value	[integer!]
 			id		[integer!]
 			base	[integer!]
 			cnt		[integer!]
 			s		[series!]
 			part?	[logic!]
-			set?	[logic!]
+			set?	[logic!]							;-- required by BS_TEST_BIT
 	][
 		#if debug? = yes [if verbose > 0 [print-line "typeset/form"]]
 
@@ -344,8 +366,9 @@ typeset: context [
 		/local
 			id	 [integer!]
 			type [red-datatype!]
-			set? [logic!]
+			set? [logic!]								;-- required by BS_TEST_BIT
 			array [byte-ptr!]
+			pos	  [byte-ptr!]							;-- required by BS_TEST_BIT
 	][
 		#if debug? = yes [if verbose > 0 [print-line "typeset/find"]]
 
@@ -381,9 +404,10 @@ typeset: context [
 		return: [integer!]
 		/local
 			arr [byte-ptr!]
+			pos [byte-ptr!]								;-- required by BS_TEST_BIT
 			cnt [integer!]
 			id  [integer!]
-			set? [logic!]
+			set? [logic!]								;-- required by BS_TEST_BIT
 	][
 		#if debug? = yes [if verbose > 0 [print-line "typeset/length?"]]
 

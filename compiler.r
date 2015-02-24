@@ -486,6 +486,64 @@ red: context [
 		]
 	]
 	
+	make-typeset: func [
+		spec [block!] option [block! none!]
+		/local cache bs ts word bit idx name
+	][
+		cache: []										;-- [types array name...]
+		spec: sort spec									;-- sort types to reduce cache misses
+		
+		either bs: find/only/skip cache spec 3 [
+			ts: bs/2
+			name: bs/3
+		][
+			ts: copy [0 0 0]
+
+			foreach type spec [
+				type: either word: in extracts/scalars type [get word][reduce [type]]
+				
+				foreach word type [
+					word: head remove back tail form word	;-- remove ending #"!"
+					replace/all word #"-" #"_"
+					type: to word! uppercase head insert word "TYPE_"
+					bit: select extracts/definitions type
+					idx: (bit / 32) + 1
+					poke ts idx ts/:idx or shift/logical -2147483648 bit and 255
+				]
+			]
+			forall ts [ts/1: to integer! to-bin32 ts/1]	;-- convert to little-endian values
+			
+			redirect-to literals [
+				name: decorate-series-var 'ts
+				emit reduce [to set-word! name 'typeset/create ts/1 ts/2 ts/3]
+				insert-lf -5
+			]
+			append cache reduce [spec ts name]
+		]
+		either option [
+			option: to word! join "~" clean-lf-flag option/1
+			reduce ['type-check-alt option name]
+		][
+			reduce ['type-check name]
+		]
+	]
+	
+	emit-type-checking: func [name [word!] spec [block!] /local pos type][
+		name: to word! next form name					;-- remove prefix decoration
+		
+		either pos: find spec name [
+			type: case [
+				block? pos/2 					[pos/2]
+				all [string? pos/3 block? pos/3][pos/3]
+				'else 							[[default!]]
+			]
+			make-typeset type find/reverse pos refinement!
+		][
+			none
+		]
+		
+	]
+	
 	get-counter: does [s-counter: s-counter + 1]
 	
 	clean-lf-deep: func [blk [block! paren!] /local pos][
@@ -2052,7 +2110,7 @@ red: context [
 	
 	comp-func-body: func [
 		name [word!] spec [block!] body [block!] symbols [block!] locals-nb [integer!]
-		/local init locals blk
+		/local init locals blk args?
 	][
 		push-locals copy symbols						;-- prepare compiled spec block
 		forall symbols [symbols/1: decorate-symbol symbols/1]
@@ -2073,10 +2131,20 @@ red: context [
 			ctx/values: as node! stack/arguments
 		]
 		new-line skip tail init -4 on
+		args?: yes
 		
 		forall symbols [								;-- assign local variable to Red arguments
 			append init to set-word! symbols/1
 			new-line back tail init on
+			if symbols/1 = '~local [args?: no]			;-- signal end of arguments
+			
+			if all [
+				args?
+				blk: emit-type-checking symbols/1 spec
+			][
+				append init blk
+				append init (index? symbols) - 1		;-- index of argument for the type-checker
+			]
 			either head? symbols [
 				append/only init 'stack/arguments
 			][

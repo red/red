@@ -110,6 +110,36 @@ fire: func [
 	stack/throw-error error/create as red-word! list/1 as red-word! list/2 arg1 arg2 arg3
 ]
 
+type-check-alt: func [
+	ref		 [red-value!]
+	expected [red-typeset!]
+	index	 [integer!]
+	arg		 [red-value!]
+	return:  [red-value!]
+	/local
+		bool [red-logic!]
+][
+	bool: as red-logic! ref
+	either bool/value [type-check expected index arg][arg]
+]
+
+type-check: func [
+	expected [red-typeset!]
+	index	 [integer!]
+	arg		 [red-value!]
+	return:  [red-value!]
+	/local
+		bits [byte-ptr!]
+		pos	 [byte-ptr!]								;-- required by BS_TEST_BIT
+		set? [logic!]									;-- required by BS_TEST_BIT
+][
+	type: TYPE_OF(arg)
+	bits: (as byte-ptr! expected) + 4
+	BS_TEST_BIT(bits type set?)
+	unless set? [ERR_EXPECT_ARGUMENT(type index)]
+	arg													;-- pass-thru argument
+]
+
 words: context [
 	spec:			-1
 	body:			-1
