@@ -336,6 +336,8 @@ interpreter: context [
 		
 		unless null? path [
 			path-end: block/rs-tail as red-block! path
+			fname: as red-word! ref-pos
+			
 			if ref-pos + 1 < path-end [						;-- test if refinement are following the function
 				either null? path/args [
 					args: _function/preprocess-options native path ref-pos args fname function?
@@ -435,13 +437,8 @@ interpreter: context [
 					pc: eval-code parent pc end yes path item - 1 parent
 					return pc
 				]
-				TYPE_UNSET [
-					fire [
-						TO_ERROR(script no-value)
-						head
-					]
-				]
-				default [0]
+				TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
+				default	   [0]
 			]
 		]
 				
@@ -461,12 +458,7 @@ interpreter: context [
 				item
 			]
 			switch TYPE_OF(value) [
-				TYPE_UNSET [
-					fire [
-						TO_ERROR(script no-value)
-						item
-					]
-				]
+				TYPE_UNSET [fire [TO_ERROR(script no-value)	item]]
 				TYPE_PAREN [
 					stack/mark-native words/_body		;@@ ~paren
 					eval as red-block! value yes		;-- eval paren content

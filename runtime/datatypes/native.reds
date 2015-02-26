@@ -20,9 +20,9 @@ native: context [
 		pos		  [red-value!]
 		list	  [node!]
 		fname	  [red-word!]
-		value	  [red-value!]
 		tail	  [red-value!]
 		/local	
+			value	  [red-value!]
 			base	  [red-value!]
 			head	  [red-value!]
 			end		  [red-value!]
@@ -37,6 +37,7 @@ native: context [
 			index	  [integer!]
 			offset	  [integer!]
 			ref?	  [logic!]
+			found?	  [logic!]
 	][
 		s: GET_BUFFER(args)
 		vec: vector/clone as red-vector! s/tail - 1
@@ -47,6 +48,7 @@ native: context [
 		base:	s/offset
 		head:	base
 		end:	s/tail
+		value:	pos + 1
 		offset: 0
 
 		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
@@ -58,19 +60,21 @@ native: context [
 			]
 			base: base + 1
 		]
-		if base = end [fire [TO_ERROR(script bad-refines) fname as red-word! pos]]
+		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos]]
 
 		s: GET_BUFFER(vec)
 		ref-array: as int-ptr! s/offset
 
 		while [value < tail][
+			word: as red-word! value
+			
 			if TYPE_OF(value) <> TYPE_WORD [
-				fire [TO_ERROR(script bad-refines) fname as red-word! value]
+				fire [TO_ERROR(script no-refine) fname word]
 			]
-			word:  as red-word! value
-			head:  base
-			ref?:  no
-			index: 1
+			head:	base
+			ref?:	no
+			found?: no
+			index:	1
 
 			while [head < end][
 				switch TYPE_OF(head) [
@@ -96,6 +100,7 @@ native: context [
 						either EQUAL_WORDS?(ref word) [
 							ref-array/index: offset
 							ref?: yes
+							found?: yes
 						][
 							ref?: no
 						]
@@ -106,6 +111,7 @@ native: context [
 				]
 				head: head + 1 
 			]
+			unless found? [fire [TO_ERROR(script no-refine) fname word]]
 			value: value + 1
 		]
 		

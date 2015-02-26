@@ -244,15 +244,15 @@ _function: context [
 		pos		  [red-value!]
 		list	  [node!]
 		fname	  [red-word!]
-		value	  [red-value!]
 		tail	  [red-value!]
 		/local
-			base	  [red-value!]
-			head	  [red-value!]
-			end		  [red-value!]
-			word	  [red-word!]
-			ref		  [red-refinement!]
-			bool	  [red-logic!]
+			base  [red-value!]
+			value [red-value!]
+			head  [red-value!]
+			end	  [red-value!]
+			word  [red-word!]
+			ref	  [red-refinement!]
+			bool  [red-logic!]
 	][
 		base: block/rs-head args
 		end:  block/rs-tail args
@@ -260,24 +260,32 @@ _function: context [
 		while [all [base < end TYPE_OF(base) <> TYPE_REFINEMENT]][
 			base: base + 2
 		]
-		if base = end [fire [TO_ERROR(script bad-refines) fname as red-word! pos]]
+		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos]]
 
+		value: pos + 1
+		
 		while [value < tail][
-			if TYPE_OF(value) <> TYPE_WORD [
-				fire [TO_ERROR(script bad-refines) fname as red-word! value]
-			]
 			word: as red-word! value
 			head: base
+			bool: null
+			
+			if TYPE_OF(value) <> TYPE_WORD [
+				fire [TO_ERROR(script no-refine) fname word]
+			]
 			while [head < end][
-				ref: as red-refinement! head
-				if EQUAL_WORDS?(ref word) [
-					bool: as red-logic! head + 1
-					assert TYPE_OF(bool) = TYPE_LOGIC
-					bool/value: true
-					head: end						;-- force loop exit
+				if TYPE_OF(head) = TYPE_REFINEMENT [
+					ref: as red-refinement! head
+
+					if EQUAL_WORDS?(ref word) [
+						bool: as red-logic! head + 1
+						assert TYPE_OF(bool) = TYPE_LOGIC
+						bool/value: true
+						head: end						;-- force loop exit
+					]
 				]
 				head: head + 2 
 			]
+			if null? bool [fire [TO_ERROR(script no-refine) fname word]]
 			value: value + 1
 		]
 	]
@@ -292,7 +300,6 @@ _function: context [
 		return:   [node!]
 		/local
 			args	  [red-block!]
-			value	  [red-value!]
 			tail	  [red-value!]
 			saved	  [red-value!]
 	][
@@ -303,14 +310,13 @@ _function: context [
 		args/head:	 0
 		args/node:	 list
 		args: 		 block/clone args no				;-- copy it before modifying it
-
-		value: block/rs-head as red-block! path
+		
 		tail:  block/rs-tail as red-block! path
 
 		either function? [
-			preprocess-func-options args path pos list fname value tail
+			preprocess-func-options args path pos list fname tail
 		][
-			native/preprocess-options args fun path pos list fname value tail
+			native/preprocess-options args fun path pos list fname tail
 		]
 		stack/top: saved
 		args/node
