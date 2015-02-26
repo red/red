@@ -118,7 +118,7 @@ get-path: context [
 			"get-path!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
+			null			;random
 			null			;reflect
 			null			;to
 			:form

@@ -23,7 +23,7 @@ make: make action! [[									;--	this one works!	;-)
 
 random: make action! [[
 		"Returns a random value of the same datatype; or shuffles series"
-		value   [any-type!] "Maximum value of result (modified when series)"
+		value	"Maximum value of result (modified when series)"
 		/seed   "Restart or randomize"
 		/secure "TBD: Returns a cryptographically secure random number"
 		/only	"Pick a random value from a series"

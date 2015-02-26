@@ -119,7 +119,7 @@ set-path: context [
 			"set-path!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
+			null			;random
 			null			;reflect
 			null			;to
 			:form
