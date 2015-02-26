@@ -50,6 +50,7 @@ red: context [
 	declarations:  make block! 1000
 	bodies:		   make block! 1000
 	ssa-names: 	   make block! 10						;-- unique names lookup table (SSA form)
+	types-cache:   make hash!  100						;-- store compiled typesets [types array name...]
 	last-type:	   none
 	return-def:    to-set-word 'return					;-- return: keyword
 	s-counter:	   0									;-- series suffix counter
@@ -488,12 +489,11 @@ red: context [
 	
 	make-typeset: func [
 		spec [block!] option [block! none!]
-		/local cache bs ts word bit idx name
+		/local bs ts word bit idx name
 	][
-		cache: []										;-- [types array name...]
 		spec: sort spec									;-- sort types to reduce cache misses
 		
-		either bs: find/only/skip cache spec 3 [
+		either bs: find/only/skip types-cache spec 3 [
 			ts: bs/2
 			name: bs/3
 		][
@@ -518,7 +518,7 @@ red: context [
 				emit reduce [to set-word! name 'typeset/create ts/1 ts/2 ts/3]
 				insert-lf -5
 			]
-			append cache reduce [spec ts name]
+			append types-cache reduce [spec ts name]
 		]
 		either option [
 			option: to word! join "~" clean-lf-flag option/1
@@ -3786,6 +3786,7 @@ red: context [
 		clear lit-vars/block
 		clear lit-vars/string
 		clear lit-vars/context
+		clear types-cache
 		s-counter: 0
 		depth:	   0
 		max-depth: 0
