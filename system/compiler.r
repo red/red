@@ -1885,7 +1885,7 @@ system-dialect: make-profilable context [
 			foreach ptr chunk/2 [ptr/1: ptr/1 + offset]	;-- account for (catch-frame + push) opcodes
 			emitter/merge chunk
 			
-			locals-size: either locals [
+			locals-size: either all [locals not empty? emitter/stack][
 				abs last emitter/stack
 			][
 				emitter/target/locals-offset
