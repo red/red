@@ -2221,12 +2221,12 @@ Example using a nested exception:
 
  foo: does [
  	catch 5 [bar]						;-- exception 123 not catchable
- 	print " world"
+ 	print "<hidden>"
  ]
 
  catch 1000 [foo]						;-- exception will be caught here
 will output:
- hello world
+ hello
  
 +++Catch attribute
 
