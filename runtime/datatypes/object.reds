@@ -36,7 +36,7 @@ object: context [
 		]
 		word: as red-word! value
 		ctx: obj/ctx
-		 _context/find-word TO_CTX(ctx) word/symbol no
+		 _context/find-word TO_CTX(ctx) word/symbol yes
 	]
 	
 	rs-select: func [
@@ -57,7 +57,7 @@ object: context [
 		]
 		word: as red-word! value
 		ctx: GET_CTX(obj)
-		id: _context/find-word ctx word/symbol no	
+		id: _context/find-word ctx word/symbol yes	
 		if id = -1 [return as red-value! none-value]
 		
 		values: as series! ctx/values/value
@@ -466,7 +466,7 @@ object: context [
 			
 			if null? value [
 				word: as red-word! syms
-				value: s/offset + _context/find-word ctx word/symbol no
+				value: s/offset + _context/find-word ctx word/symbol yes
 				copy-cell vals value
 			]
 			type: TYPE_OF(value)
@@ -828,7 +828,7 @@ object: context [
 		ctx:  GET_CTX(parent)
 
 		if word/ctx <> parent/ctx [						;-- bind the word to object's context
-			word/index: _context/find-word ctx word/symbol no
+			word/index: _context/find-word ctx word/symbol yes
 			word/ctx: parent/ctx
 		]
 		either value <> null [
