@@ -332,7 +332,7 @@ _context: context [
 		/local
 			idx [integer!]
 	][
-		idx: find-word ctx word/symbol no
+		idx: find-word ctx word/symbol yes
 		if idx >= 0 [
 			word/ctx: ctx/self
 			word/index: idx

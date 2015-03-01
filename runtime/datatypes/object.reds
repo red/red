@@ -378,7 +378,7 @@ object: context [
 
 		while [symbol < tail][
 			word: as red-word! symbol
-			idx: _context/find-word to word/symbol no
+			idx: _context/find-word to word/symbol yes
 			
 			type: TYPE_OF(value)
 			either ANY_SERIES?(type) [					;-- copy series value in extended object
