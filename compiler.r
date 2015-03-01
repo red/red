@@ -1795,7 +1795,7 @@ red: context [
 		
 		if all [
 			path? pc/1
-			not parse pc/1 [skip 2 ['only (only?: yes) | 'with (with?: yes)]] ;@@ handle duplicates
+			not parse pc/1 [skip 2 [opt ['only (only?: yes) | 'with (with?: yes)]]] ;@@ handle duplicates
 		][
 			throw-error "Invalid CONSTRUCT refinement"
 		]
