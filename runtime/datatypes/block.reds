@@ -650,33 +650,29 @@ block: context [
 		/local
 			int  [red-integer!]
 			set? [logic!]
+			type [integer!]
 	][
 		set?: value <> null
-		switch TYPE_OF(element) [
-			TYPE_INTEGER [
-				int: as red-integer! element
-				either set? [
-					poke parent int/value value null
-					value
-				][
-					pick parent int/value null
-				]
+		type: TYPE_OF(element)
+		either type = TYPE_INTEGER [
+			int: as red-integer! element
+			either set? [
+				poke parent int/value value null
+				value
+			][
+				pick parent int/value null
 			]
-			TYPE_WORD [
-				either set? [
-					element: find parent element null no no no null null no no no no
-					actions/poke as red-series! element 2 value null
-					value
+		][
+			either set? [
+				element: find parent element null no no no null null no no no no
+				actions/poke as red-series! element 2 value null
+				value
+			][
+				either type = TYPE_WORD [
+					select-word parent as red-word! element
 				][
-					select-word as red-block! parent as red-word! element
+					select parent element null yes no no null null no no
 				]
-			]
-			default [
-				fire [
-					TO_ERROR(script invalid-type)
-					datatype/push TYPE_OF(element)
-				]
-				null
 			]
 		]
 	]
