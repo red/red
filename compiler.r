@@ -936,12 +936,18 @@ red: context [
 		unless parse spec [
 			opt string!
 			any [
-				pos: /local (append symbols 'local) some [
-					pos: word! (
-						append symbols to word! pos/1
-						locals: locals + 1
+				pos: /local (append symbols 'local) [
+					some [
+						pos: word! (
+							append symbols to word! pos/1
+							locals: locals + 1
+						)
+						pos: opt block! pos: opt string!
+					]
+					| (
+						remove pos
+						clear back tail symbols
 					)
-					pos: opt block! pos: opt string!
 				]
 				| set-word! (
 					if any [return? pos/1 <> return-def][stop: [end skip]]
