@@ -982,5 +982,32 @@ Red [
 		--assert res = sort/compare/stable a func [a b][a/a - b/a]
 ===end-group===
 
+===start-group=== "path access"	
+
+	--test-- "path-blk-1 : issue #939"
+		pb1-b: [#"x" #"y"]
+		--assert #"y" = pb1-b/(#"x")
+		
+	--test-- "path-blk-2"
+		pb2-b: [#"x" #"y"]
+		pb2-c: #"x"
+		--assert #"y" = pb2-b/:pb2-c
+		
+	--test-- "path-str-1"
+		pb1-s: "xy"
+		--assert #"y" = pb1-s/(#"x")
+		
+	--test-- "path-str-2"
+		ps2-s: "xy"
+		ps2-c: #"x"
+		--assert #"y" = ps2-s/:ps2-c
+	
+	--test-- "path-str-3"
+		ps3-s: "xy"
+		ps3-ss: "x"
+		--assert #"y" = ps3-s/:ps3-ss
+		
+===end-group===
+
 ~~~end-file~~~
 

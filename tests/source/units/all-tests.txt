@@ -26,6 +26,7 @@ object-test.red
 integer-test.red
 float-test.red
 same-test.red
+words-of-test.red
 auto-tests/integer-auto-test.red
 auto-tests/float-auto-test.red
 auto-tests/infix-equal-auto-test.red

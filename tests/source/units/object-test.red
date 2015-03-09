@@ -2073,5 +2073,36 @@ comment { ######################################################################
 		
 ===end-group===
 
+===start-group=== "case sensitivity"
+
+	--test-- "ocs1"
+		ocs1-o: make object! [A: 1]
+		--assert ocs1-o/A = 1
+		--assert ocs1-o/A == 1
+		--assert ocs1-o/a = 1
+		--assert ocs1-o/a == 1
+		
+	--test-- "ocs2"
+		ocs2-o: make object! [a: 1 A: 2]
+		--assert ocs2-o/a = 2
+	
+	--test-- "ocs3"
+		ocs3-o: make object! [a: 1 if true [A: 2]]
+		--assert ocs3-o/a = 2
+		
+	--test-- "ocs3"
+		ocs3-o: make object! [a: 1 if false [A: 2]]
+		--assert ocs3-o/a = 1
+		
+	--test-- "ocs4"
+		ocs4-o: make object! [a: 1]
+		--assert 'A = in ocs4-o 'A
+		--assert 'a = in ocs4-o 'A
+		;; the following assertions are commented out as in ocs4-o 'A returns 'A not 'a
+		;--assert 'a == in ocs4-o 'A
+		;--assert not ('A == in ocs4-o 'A)
+
+===end-group===
+
 ~~~end-file~~~
 
