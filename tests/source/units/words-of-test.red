@@ -40,7 +40,7 @@ Red [
 		    s: "abcde"
 		    wos: words-of self
 		]
-		--assert [b c f o i n s] = wos1-o/wos
+		--assert [b c f o i n s wos] = wos1-o/wos
 		
 	--test-- "wos2"
 		wos2-o: make object! [
@@ -53,7 +53,7 @@ Red [
 		    s: "abcde"
 		    do-wos: does [words-of self]
 		]
-		--assert [b c f o i n s] = wos2-o/do-wos
+		--assert [b c f o i n s do-wos] = wos2-o/do-wos
 	
 ===end-group===
 
