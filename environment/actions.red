@@ -469,7 +469,7 @@ tail?: make action! [[
 
 take: make action! [[
 		"Removes and returns one or more elements"
-		series	 [series!]
+		series	 [series! none!]
 		/part	 "Specifies a length or end position"
 			length [number! series!]
 		/deep	 "Copy nested values"
