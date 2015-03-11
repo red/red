@@ -1193,7 +1193,7 @@ string: context [
 					pick parent int/value null
 				]
 			]
-			TYPE_WORD [
+			default [
 				either set? [
 					element: find parent element null no no no null null no no no no
 					actions/poke as red-series! element 2 value null
@@ -1201,13 +1201,6 @@ string: context [
 				][
 					select parent element null no no no null null no no
 				]
-			]
-			default [
-				fire [
-					TO_ERROR(script invalid-type)
-					datatype/push TYPE_OF(element)
-				]
-				null
 			]
 		]
 	]
