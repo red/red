@@ -176,8 +176,29 @@ none: context [
 	][
 		push-last
 	]
+
+	tail?: func [
+		return:	  [red-value!]
+		/local
+			state [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "none/tail?"]]
+
+		state: as red-logic! stack/arguments
+		state/header: TYPE_LOGIC
+		state/value:  true
+		as red-value! state
+	]
 	
-	take: does []
+	take: func [
+		value    	[red-value!]
+		part-arg	[red-value!]
+		deep?		[logic!]
+		last?		[logic!]
+		return:		[red-value!]
+	][
+		push-last
+	]
 
 	init: does [
 		none-value/header: TYPE_NONE
@@ -236,7 +257,7 @@ none: context [
 			null			;skip
 			null			;swap
 			null			;tail
-			null			;tail?
+			:tail?
 			:take
 			null			;trim
 			;-- I/O actions --
