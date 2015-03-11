@@ -21,10 +21,10 @@ quit: func [
 
 empty?: func [
 	"Returns true if a series is at its tail"
-	series	[series!]
+	series	[series! none!]
 	return:	[logic!]
 ][
-	tail? series
+	either none? series [true][tail? series]
 ]
 
 ??: func [

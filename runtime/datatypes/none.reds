@@ -176,8 +176,16 @@ none: context [
 	][
 		push-last
 	]
-	
-	take: does []
+
+	take: func [
+		value	 [red-value!]
+		part-arg [red-value!]
+		deep?	 [logic!]
+		last?	 [logic!]
+		return:  [red-value!]
+	][
+		push-last
+	]
 
 	init: does [
 		none-value/header: TYPE_NONE
