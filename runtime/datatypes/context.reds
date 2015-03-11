@@ -27,13 +27,21 @@ _context: context [
 		list:   as red-word! series/offset
 		end:    as red-word! series/tail
 		
-		if case? [sym: symbol/resolve sym]
-		
-		while [list < end][
-			if sym = list/symbol [
-				return (as-integer list - as red-word! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
+		either case? [
+			sym: symbol/resolve sym
+			while [list < end][
+				if sym = symbol/resolve list/symbol [
+					return (as-integer list - as red-word! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
+				]
+				list: list + 1
 			]
-			list: list + 1
+		][
+			while [list < end][
+				if sym = list/symbol [
+					return (as-integer list - as red-word! series/offset) >> 4	;@@ log2(size? cell!) hardcoded
+				]
+				list: list + 1
+			]
 		]
 		-1												;-- search failed
 	]
