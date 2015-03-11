@@ -90,7 +90,7 @@ system/console: context [
 		list
 	]
 
-	run: function [][
+	run: function [/local result][
 		buffer: make string! 10000
 		cue:    none
 		mode:   'mono

@@ -1310,16 +1310,18 @@ natives: context [
 			arg	[red-value!]
 	][
 		arg: stack/arguments
+		system/thrown: 0
+		
 		catch RED_ERROR [
 			stack/mark-try words/_try
 			interpreter/eval as red-block! arg yes
 			stack/unwind-last
 		]
-		either stack/top-type? = TYPE_ERROR [
+
+		if stack/top-type? = TYPE_ERROR [
 			stack/set-last stack/top - 1
-		][
-			stack/set-last arg + 1
 		]
+		stack/top: stack/arguments + 1
 	]
 
 	;--- Natives helper functions ---
