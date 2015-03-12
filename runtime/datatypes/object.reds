@@ -764,8 +764,10 @@ object: context [
 				vals: s/offset
 				
 				while [syms < tail][
-					value: block/rs-append blk syms
-					value/header: TYPE_SET_WORD
+					word: as red-word! block/rs-append blk syms
+					word/header: TYPE_SET_WORD
+					word/ctx: obj/ctx
+					
 					block/rs-append blk vals
 					syms: syms + 1
 					vals: vals + 1
