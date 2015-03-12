@@ -299,6 +299,11 @@ red: context [
 		]
 	]
 	
+	select-object: func [ctx [word!] /local pos][
+		pos: find objects ctx
+		either object? pos/2 [pos/2][pos/-1]
+	]
+	
 	bind-function: func [body [block!] shadow [object!] /local self* rule pos][
 		bind body shadow
 		if 1 < length? obj-stack [
@@ -2344,7 +2349,7 @@ red: context [
 		
 		process-calls body								;-- process #call directives
 		if ctx: find-binding original [
-			process-routine-calls body ctx/1 spec select objects ctx/1
+			process-routine-calls body ctx/1 spec select-object ctx/1
 		]
 		clear find spec*: copy spec /local
 		spec-blk: redirect-to literals [emit-block spec*]
