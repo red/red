@@ -393,7 +393,7 @@ red: context [
 	]
 	
 	emit-load-string: func [buffer [string! file! url!]][
-		emit to path! reduce [to word! form type? buffer 'load]
+		emit to path! reduce [to word! form type? buffer 'rs-load]
 		emit form buffer
 		emit 1 + length? buffer							;-- account for terminal zero
 		emit 'UTF-8
