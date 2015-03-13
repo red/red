@@ -1,7 +1,7 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 27/02/2015
+	Date: 13/03/2015
 	Revision: 44
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
@@ -837,31 +837,28 @@ Examples:
 
 There is no specific support in Red/System for C-like void pointers. The official way is to use a pointer! [byte!] type to represent C void* pointers.
 
-For pointers to c-string! or struct! variables, a pointer variable can be used then dereferenced and type cast to the target type.
+For pointers to c-string! or struct! variables, a pointer variable can be used then dereferenced and converted using type casting to the target type.
 
 Example:
 
  p-buffer!: alias struct! [buffer [c-string!]]
 
- get-hello: function [
+ set-hello: function [
  	s [p-buffer!]
- 	return: [p-buffer!]					;-- returns a pointer to a c-string
  ][
  	s/buffer: "hello"
  	s									;-- equivalent to C's char **
  ]
- 
+
  foo: func [
  	/local
  		c [p-buffer!]
- 		s [c-string!]
  ][
  	c: declare p-buffer!
- 	get-hello c
- 	s: c/buffer
- 	print s
+ 	set-hello c
+ 	print c/buffer
  ]
- 
+
  foo									;-- call foo function
 would print
  hello
@@ -3642,9 +3639,12 @@ will output:
 
 ===Document History
 
-*<b>27/02/2015 - revision 44</b>
+*<b>13/03/2015 - revision 44</b>
 
 *>Move exceptions description to its own separate section and upgraded it with the new CATCH statement description.
+
+*>Fixed C void pointer bad code example
+
 
 *<b>13/10/2014 - revision 43</b>
 
