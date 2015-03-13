@@ -181,6 +181,15 @@ string: context [
 		p
 	]
 
+	rs-load: func [
+		src		 [c-string!]							;-- UTF-8 source string buffer
+		size	 [integer!]
+		encoding [integer!]
+		return:  [red-string!]
+	][
+		load-in src size root encoding
+	]
+
 	rs-length?: func [
 		str	    [red-string!]
 		return: [integer!]
@@ -847,7 +856,7 @@ string: context [
 		/local
 			str  [red-string!]
 	][
-		str: as red-string! ALLOC_TAIL(blk)
+		str: as red-string! either null = blk [stack/push*][ALLOC_TAIL(blk)]
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 0
 		switch encoding [
@@ -873,7 +882,7 @@ string: context [
 		encoding [integer!]
 		return:  [red-string!]
 	][
-		load-in src size root encoding
+		load-in src size null encoding
 	]
 	
 	push: func [

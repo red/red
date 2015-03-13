@@ -13,6 +13,14 @@ Red/System [
 url: context [
 	verbose: 0
 
+	rs-load: func [
+		src		 [c-string!]							;-- UTF-8 source string buffer
+		size	 [integer!]
+		return:  [red-string!]
+	][
+		load-in src size root
+	]
+
 	load-in: func [
 		src		 [c-string!]							;-- UTF-8 source string buffer
 		size	 [integer!]
@@ -33,7 +41,7 @@ url: context [
 		size	 [integer!]
 		return:  [red-string!]
 	][
-		load-in src size root
+		load-in src size null
 	]
 
 	push: func [
