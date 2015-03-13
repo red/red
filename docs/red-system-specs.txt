@@ -844,8 +844,8 @@ Example:
  p-buffer!: alias struct! [buffer [c-string!]]
 
  get-hello: function [
- 	s [p-buffer]
- 	return: [p-buffer]					;-- returns a pointer to a c-string
+ 	s [p-buffer!]
+ 	return: [p-buffer!]					;-- returns a pointer to a c-string
  ][
  	s/buffer: "hello"
  	s									;-- equivalent to C's char **
@@ -853,13 +853,16 @@ Example:
  
  foo: func [
  	/local
- 		c [pointer! [integer!]]
+ 		c [p-buffer!]
  		s [c-string!]
  ][
- 	c: get-hello
- 	s: as c-string! c/value
+ 	c: declare p-buffer!
+ 	get-hello c
+ 	s: c/buffer
  	print s
  ]
+ 
+ foo									;-- call foo function
 would print
  hello
     
