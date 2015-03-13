@@ -113,7 +113,7 @@ red: context [
 		halt
 	]
 
-	throw-error: func [err [word! string! block!]][
+	throw-error: func [err [word! string! block!] /near code [block!]][
 		print [
 			"*** Compilation Error:"
 			either word? err [
@@ -125,7 +125,7 @@ red: context [
 		if pc [
 			print [
 				;"*** at line:" calc-line lf
-				"*** near:" mold copy/part pc 8
+				"*** near:" mold any [code copy/part pc 8]
 			]
 		]
 		quit-on-error
@@ -493,7 +493,7 @@ red: context [
 	]
 	
 	make-typeset: func [
-		spec [block!] option [block! none!]
+		spec [block!] option [block! none!] f-spec [block!]
 		/local bs ts word bit idx name
 	][
 		spec: sort spec									;-- sort types to reduce cache misses
@@ -508,10 +508,11 @@ red: context [
 				type: either word: in extracts/scalars type [get word][reduce [type]]
 				
 				foreach word type [
-					word: head remove back tail form word	;-- remove ending #"!"
+					word: head remove back tail form name: word	;-- remove ending #"!"
 					replace/all word #"-" #"_"
 					type: to word! uppercase head insert word "TYPE_"
 					bit: select extracts/definitions type
+					unless bit [throw-error/near ["invalid datatype name:" name] f-spec]
 					idx: (bit / 32) + 1
 					poke ts idx ts/:idx or shift/logical -2147483648 bit and 255
 				]
@@ -542,7 +543,7 @@ red: context [
 				all [string? pos/3 block? pos/3][pos/3]
 				'else 							[[default!]]
 			]
-			make-typeset type find/reverse pos refinement!
+			make-typeset type find/reverse pos refinement! spec
 		][
 			none
 		]
