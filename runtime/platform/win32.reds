@@ -38,6 +38,9 @@ platform: context [
 	page-size: 4096
 	confd: -2
 
+	buffer: allocate  1024
+	pbuffer: buffer ;this stores buffer's head position
+
 	#import [
 		LIBC-file cdecl [
 			;putwchar: "putwchar" [
@@ -180,6 +183,28 @@ platform: context [
 	]
 
 	;-------------------------------------------
+	;-- putbuffer use windows api internal
+	;-------------------------------------------
+	putbuffer: func [
+		chars [integer!]
+		return: [integer!]
+		/local
+			n	[integer!]
+			con	[integer!]
+	][
+		n: 0
+		con: GetConsoleMode _get_osfhandle fd-stdout :n		;-- test if output is a console
+		either con > 0 [									;-- output to console
+			if confd = -2 [init-console-out]
+			if confd = -1 [return WEOF]					
+			WriteConsole confd pbuffer chars :n null
+		][													;-- output to redirection file
+			WriteFile _get_osfhandle fd-stdout as c-string! pbuffer 2 * chars :n 0
+		]
+		buffer: pbuffer
+		chars
+	]
+	;-------------------------------------------
 	;-- Print a UCS-4 string to console
 	;-------------------------------------------
 	print-UCS4: func [
@@ -220,18 +245,28 @@ platform: context [
 	print-UCS2: func [
 		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
 		/local
-			p	[byte-ptr!]
-			cp	[integer!]
+			b1    [byte!]
+			b2    [byte!]
+			chars [integer!]
 	][
 		assert str <> null
-		p: str
+		chars: 0
 		while [
-			cp: (as-integer p/2) << 8 + p/1
-			cp <> 0
+			b1: str/1
+			b2: str/2
+			((as-integer b2) << 8 + b1) <> 0
 		][
-			putwchar cp
-			p: p + 2
+			buffer/1: b1
+			buffer/2: b2
+			chars: chars + 1
+			buffer: buffer + 2
+			str: str + 2
+			if chars = 512 [  ; if the buffer has 1024 bytes, it has room for 512 chars
+				putbuffer chars
+				chars: 0
+			]
 		]
+		putbuffer chars
 	]
 
 	;-------------------------------------------
@@ -242,7 +277,11 @@ platform: context [
 	][
 		assert str <> null
 		print-UCS2 str									;@@ throw an error on failure
-		putwchar 10										;-- newline
+		buffer/1: #"^M"
+		buffer/2: null-byte
+		buffer/3: #"^/"
+		buffer/4: null-byte
+		putbuffer 2 									;-- newline
 	]
 
 	;-------------------------------------------
@@ -251,14 +290,23 @@ platform: context [
 	print-Latin1: func [
 		str 	[c-string!]								;-- zero-terminated Latin-1 string
 		/local
-			cp [integer!]								;-- codepoint
+			cp    [byte!]							    ;-- codepoint
+			chars [integer!]							;-- mumber of used chars in buffer
 	][
 		assert str <> null
-
-		while [cp: as-integer str/1 not zero? cp][
-			putwchar cp
+		chars: 0
+		while [cp: str/1  cp <> null-byte][
+			buffer/1: cp
+			buffer/2: null-byte ;this should be always 0 in Latin1
 			str: str + 1
+			chars: chars + 1
+			buffer: buffer + 2
+			if chars = 512 [  ; if the buffer has 1024 bytes, it has room for 512 chars
+				putbuffer chars
+				chars: 0
+			]
 		]
+		putbuffer chars
 	]
 
 	;-------------------------------------------
@@ -269,8 +317,13 @@ platform: context [
 	][
 		assert str <> null
 		print-Latin1 str
-		putwchar 10										;-- newline
+		buffer/1: #"^M"
+		buffer/2: null-byte
+		buffer/3: #"^/"
+		buffer/4: null-byte
+		putbuffer 2 									;-- newline
 	]
+
 
 	;-------------------------------------------
 	;-- Red/System Unicode replacement printing functions
