@@ -32,7 +32,8 @@ system: context [
 	catalog: context [
 		datatypes:
 		actions:
-		natives:
+		natives: none
+		
 		errors: context [
 			throw: object [
 				code:				0
