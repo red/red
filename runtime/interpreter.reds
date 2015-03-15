@@ -10,16 +10,6 @@ Red/System [
 	}
 ]
 
-#define CHECK_ARGUMENT_TYPE [
-	arg:  stack/top - 1
-	type: TYPE_OF(arg)
-	bits: (as byte-ptr! expected) + 4
-	BS_TEST_BIT(bits type set?)
-	unless set? [
-		ERR_EXPECT_ARGUMENT(type index)
-	]
-]
-
 #define CHECK_INFIX [
 	if all [
 		next < end
@@ -340,7 +330,7 @@ interpreter: context [
 			path-end: block/rs-tail as red-block! path
 			fname: as red-word! ref-pos
 			
-			if ref-pos + 1 < path-end [						;-- test if refinement are following the function
+			if ref-pos + 1 < path-end [					;-- test if refinement are following the function
 				either null? path/args [
 					args: _function/preprocess-options native path ref-pos args fname function?
 					path/args: args
@@ -363,9 +353,19 @@ interpreter: context [
 				switch TYPE_OF(expected) [
 					TYPE_TYPESET [
 						either required? [
-							FETCH_ARGUMENT
-							CHECK_ARGUMENT_TYPE
-							index: index + 1
+							bits: (as byte-ptr! expected) + 4
+							BS_TEST_BIT(bits TYPE_UNSET set?)
+							
+							either all [set? pc >= end][ ;-- check for unset! spec
+								unset/push
+							][
+								FETCH_ARGUMENT
+								arg:  stack/top - 1
+								type: TYPE_OF(arg)
+								BS_TEST_BIT(bits type set?)
+								unless set? [ERR_EXPECT_ARGUMENT(type index)]
+								index: index + 1
+							]
 						][
 							none/push
 						]
