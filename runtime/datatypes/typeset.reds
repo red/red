@@ -17,11 +17,42 @@ typeset: context [
 		OP_MAX											;-- calculate highest value
 		OP_SET											;-- set value bits
 		OP_TEST											;-- test if value bits are set
-		OP_CLEAR										;-- clear value bits
 		OP_UNION
 		OP_AND
 		OP_OR
 		OP_XOR
+	]
+	
+	rs-clear: func [
+		sets 	[red-typeset!]
+		return: [red-typeset!]
+	][
+		sets/array1: 0
+		sets/array2: 0
+		sets/array3: 0
+		sets
+	]
+	
+	rs-length?: func [
+		sets	[red-typeset!]
+		return: [integer!]
+		/local
+			arr [byte-ptr!]
+			pos [byte-ptr!]								;-- required by BS_TEST_BIT
+			cnt [integer!]
+			id  [integer!]
+			set? [logic!]								;-- required by BS_TEST_BIT
+	][
+		id:  1
+		cnt: 0
+		arr: (as byte-ptr! sets) + 4
+		until [
+			BS_TEST_BIT(arr id set?)
+			if set? [cnt: cnt + 1]
+			id: id + 1
+			id > datatype/top-id
+		]
+		cnt
 	]
 	
 	create: func [
@@ -76,7 +107,7 @@ typeset: context [
 		assert TYPE_OF(spec) = TYPE_BLOCK
 		ts: as red-typeset! ALLOC_TAIL(blk)
 		ts/header: TYPE_TYPESET							;-- implicit reset of all header flags
-		clear ts
+		rs-clear ts
 		
 		pos: block/rs-head spec
 		end: block/rs-tail spec
@@ -114,7 +145,7 @@ typeset: context [
 		set2: set1 + 1
 		res: as red-typeset! stack/push*
 		res/header: TYPE_TYPESET
-		clear res
+		rs-clear res
 		if TYPE_OF(set2) = TYPE_DATATYPE [
 			set-type res as red-value! set2
 			set2: res
@@ -212,7 +243,7 @@ typeset: context [
 
 		sets: as red-typeset! stack/push*
 		sets/header: TYPE_TYPESET						;-- implicit reset of all header flags
-		clear sets
+		rs-clear sets
 
 		either TYPE_OF(spec) = TYPE_BLOCK [
 			blk: as red-block! spec
@@ -313,7 +344,7 @@ typeset: context [
 			COMP_NOT_EQUAL
 			COMP_SORT
 			COMP_CASE_SORT [
-				res: SIGN_COMPARE_RESULT((length? set1) (length? set2))
+				res: SIGN_COMPARE_RESULT((rs-length? set1) (rs-length? set2))
 			]
 			default [
 				res: -2
