@@ -337,18 +337,6 @@ typeset: context [
 		as red-value! res
 	]
 
-	clear: func [
-		sets	[red-typeset!]
-		return:	[red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "typeset/clear"]]
-
-		sets/array1: 0
-		sets/array2: 0
-		sets/array3: 0
-		as red-value! sets
-	]
-
 	find: func [
 		sets	 [red-typeset!]
 		value	 [red-value!]
@@ -382,45 +370,6 @@ typeset: context [
 		assert id < 96
 		BS_TEST_BIT(array id set?)
 		as red-value! either set? [true-value][false-value]
-	]
-
-	insert: func [
-		sets	 [red-typeset!]
-		value	 [red-value!]
-		part-arg [red-value!]
-		only?	 [logic!]
-		dup-arg	 [red-value!]
-		append?	 [logic!]
-		return:	 [red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "typeset/insert"]]
-
-		set-type sets value
-		as red-value! sets
-	]
-
-	length?: func [
-		sets	[red-typeset!]
-		return: [integer!]
-		/local
-			arr [byte-ptr!]
-			pos [byte-ptr!]								;-- required by BS_TEST_BIT
-			cnt [integer!]
-			id  [integer!]
-			set? [logic!]								;-- required by BS_TEST_BIT
-	][
-		#if debug? = yes [if verbose > 0 [print-line "typeset/length?"]]
-
-		id:  1
-		cnt: 0
-		arr: (as byte-ptr! sets) + 4
-		until [
-			BS_TEST_BIT(arr id set?)
-			if set? [cnt: cnt + 1]
-			id: id + 1
-			id > datatype/top-id
-		]
-		cnt
 	]
 
 	init: does [
@@ -460,14 +409,14 @@ typeset: context [
 			null			;at
 			null			;back
 			null			;change
-			:clear
+			null			;clear
 			null			;copy
 			:find
 			null			;head
 			null			;head?
 			null			;index?
-			:insert
-			:length?
+			null			;insert
+			null			;length?
 			null			;next
 			null			;pick
 			null			;poke
