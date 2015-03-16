@@ -11,7 +11,7 @@ Red [
 ]
 
 help: func [
-	"Get help for functions"
+	"Display helping information about words and other values"
 	'word [any-type!] "Word you are looking for"
 	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block w1 w2 value
 ][
@@ -102,8 +102,11 @@ Other useful functions:
 		opt [set info string! (prin [" =>" append form info dot])]
 		(prin lf)
 	]
-
+	
 	case [
+		unset? get/any :word [
+			print ["Word" :word "is not defined"]
+		]
 		all [
 			any [word? func-name path? func-name]
 			fun: get func-name
