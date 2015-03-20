@@ -161,18 +161,22 @@ redc: context [
 		file
 	]
 	
-	run-console: func [/with file [string!] /local opts result script exe console files][
+	run-console: func [/with file [string!] /local opts result script filename exe console files][
 		script: temp-dir/red-console.red
-		exe: temp-dir/console
-		
+		filename: rejoin [								;-- filename: console-year-month-day(ISO format)-time
+			%console-
+			build-date/year  "-"
+			build-date/month "-"
+			build-date/day   "-"
+			to-integer build-date/time
+		]
+		exe: temp-dir/:filename
+
 		if Windows? [append exe %.exe]
 		
 		unless exists? temp-dir [make-dir temp-dir]
 		
-		if any [
-			not exists? exe 
-			(modified? exe) < build-date				;-- check that console is up to date.
-		][
+		unless exists? exe [
 			console: %environment/console/
 			write script read-cache console/console.red
 			
@@ -184,7 +188,7 @@ redc: context [
 				link?: yes
 				unicode?: yes
 				config-name: to word! default-target
-				build-basename: %console
+				build-basename: filename
 				build-prefix: temp-dir
 				red-help?: yes							;-- include doc-strings
 			]
