@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-#enum datatypes! [
+#enum datatypes! [										;-- Order must not be changed!
 	TYPE_VALUE											;-- 00		00
 	TYPE_DATATYPE										;-- 01		01
 	TYPE_UNSET											;-- 02		02
