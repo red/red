@@ -392,8 +392,7 @@ typeset: context [
 		#if debug? = yes [if verbose > 0 [print-line "typeset/find"]]
 
 		if TYPE_OF(value) <> TYPE_DATATYPE [
-			print-line "Find Error: invalid argument"
-			return as red-value! false-value
+			fire [TO_ERROR(script invalid-arg) value]
 		]
 		array: (as byte-ptr! sets) + 4
 		type: as red-datatype! value
