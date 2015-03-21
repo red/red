@@ -1197,15 +1197,14 @@ case-folding: context [
 			str	  [red-string!]
 			str2  [red-string!]
 			unit  [integer!]
+			unit2 [integer!]
 			s	  [series!]
 			p	  [byte-ptr!]
-			tail  [byte-ptr!]
 			p4	  [int-ptr!]
-			head  [byte-ptr!]
-			c	  [integer!]
 			cp	  [integer!]
 			len   [integer!]
 			table [int-ptr!]
+			i	  [integer!]
 	][
 		table: either upper? [uppercase-table][lowercase-table]
 		either TYPE_OF(arg) = TYPE_CHAR [
@@ -1213,6 +1212,10 @@ case-folding: context [
 			char/value: folding-case char/value table
 		][
 			str: as red-string! arg
+			s: GET_BUFFER(str)
+			unit: GET_UNIT(s)
+			p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			len: (as-integer s/tail - (as red-value! p)) >> (unit >> 1)
 			if positive? part [ 
 				limit: arg + part
 				len: either TYPE_OF(limit) = TYPE_INTEGER [
@@ -1228,30 +1231,25 @@ case-folding: context [
 					]
 					str2/head - str/head
 				]
+				if negative? len [len: 0]
 			]
 
-			s: GET_BUFFER(str)
-			unit: GET_UNIT(s)
-			p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 
-			tail: null
-			if positive? part [
-				tail: either negative? len [p][p + (len << (unit >> 1))]
-			]
-			if any [
-				tail = null
-				tail > as byte-ptr! s/tail
-			][
-				tail: as byte-ptr! s/tail
-			]
+			i: 0
 
-			while [p < tail][
+			while [i < len][
 				cp: switch unit [
 					Latin1 [as-integer p/value]
 					UCS-2  [(as-integer p/2) << 8 + p/1]
 					UCS-4  [p4: as int-ptr! p p4/value]
 				]
-				string/poke-char s p folding-case cp table
+				s: string/poke-char s p folding-case cp table
+				unit2: GET_UNIT(s)
+				if unit2 > unit [
+					unit: unit2
+					p: (as byte-ptr! s/offset) + (str/head + i << (unit >> 1))
+				]
+				i: i + 1
 				p: p + unit
 			]
 		]
