@@ -1324,6 +1324,18 @@ natives: context [
 		stack/top: stack/arguments + 1
 	]
 
+	uppercase*: func [
+		part	  [integer!]
+	][
+		case-folding/change-case stack/arguments part yes
+	]
+
+	lowercase*: func [
+		part	  [integer!]
+	][
+		case-folding/change-case stack/arguments part no
+	]
+
 	;--- Natives helper functions ---
 
 	#enum trigonometric-type! [
@@ -1685,6 +1697,8 @@ natives: context [
 			:construct*
 			:value?*
 			:try*
+			:uppercase*
+			:lowercase*
 		]
 	]
 

@@ -198,6 +198,8 @@ Red/System [
 	NAT_CONSTRUCT
 	NAT_VALUE?
 	NAT_TRY
+	NAT_UPPERCASE
+	NAT_LOWERCASE
 ]
 
 #enum math-op! [

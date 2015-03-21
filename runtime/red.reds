@@ -33,6 +33,7 @@ red: context [
 	#include %datatypes/structures.reds
 	#include %datatypes/common.reds
 	#include %unicode.reds
+	#include %case-folding.reds
 	#include %sort.reds
 	
 	#include %datatypes/datatype.reds
@@ -150,6 +151,7 @@ red: context [
 		natives/init									;-- native specific init code
 		parser/init
 		_random/init
+		case-folding/init
 		
 		stack/init
 		
