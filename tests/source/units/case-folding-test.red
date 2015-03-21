@@ -39,7 +39,6 @@ dont-fold: func [lower upper] [
 ===start-group=== "case-folding"
 	
 	do-fold "abcde" "ABCDE"
-	do-fold "Abcde"	"ABCDE"
 	do-fold "ba^(FB04)e" "BA^(FB04)E"
 	do-fold "cant^(F9)" "CANT^(D9)"
 	do-fold "cantu^(0300)" "CANTU^(0300)"
@@ -76,6 +75,22 @@ dont-fold: func [lower upper] [
 	dont-fold "^(03B1)^(03B9)" "^(1FBC)"
 	dont-fold "^(03C9)^(03B9)" "^(1FFC)"
 	
+===end-group===
+
+===start-group=== "manual case folding"
+
+	--test-- "manual-case-folding-1"
+		--assert "abcde" = "aBCDE"
+		--assert equal? "abcde" "aBCDE"
+		--assert strict-equal? lowercase "aBCDE" "abcde"
+		--assert "abcde" == lowercase "aBCDE"
+		
+	--test-- "manual-case-folding-1"
+		--assert "Abcde" = "ABCDE"
+		--assert equal? "Abcde" "ABCDE"
+		--assert strict-equal? uppercase "Abcde" "ABCDE"
+		--assert "ABCDE" == uppercase "Abcde"
+		
 ===end-group===
 
 ~~~end-file~~~
