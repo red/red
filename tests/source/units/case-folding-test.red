@@ -9,28 +9,29 @@ Red [
 
 #include  %../../../quick-test/quick-test.red
 
+do-test-number: 0
+dont-test-number: 0
+
 do-fold: func [lower upper] [
-	test-number: 0												;; no copy on purpose
-	test-number: test-number + 1
-	--test-- append "case-folding-" test-number
+	do-test-number: do-test-number + 1
+	--test-- append copy "case-folding-" do-test-number
 		--assert lower = upper
 		--assert equal? lower upper
-		--assert equal? uppercase lower upper
-		--assert upper = uppercase lower
-		--assert equal? lower lowercase upper
-		--assert lower = lowercase upper
+		--assert strict-equal? uppercase copy lower upper
+		--assert upper == uppercase copy lower
+		--assert strict-equal? lower lowercase copy upper
+		--assert lower == lowercase copy upper
 ]
 
 dont-fold: func [lower upper] [
-	test-number: 0												;; no copy on purpose
-	test-number: test-number + 1
-	--test-- append "not-case-folding-" test-number
+	dont-test-number: dont-test-number + 1
+	--test-- append copy "not-case-folding-" dont-test-number
 		--assert lower <> upper
 		--assert not equal? lower upper
-		--assert not equal? uppercase lower upper
-		--assert upper <> uppercase lower
-		--assert not equal? lower lowercase upper
-		--assert lower <> lowercase upper
+		--assert not equal? uppercase copy lower upper
+		--assert upper <> uppercase copy lower
+		--assert not equal? lower lowercase copy upper
+		--assert lower <> lowercase copy upper
 ]
 
 ~~~start-file~~~ "case-folding"
@@ -49,14 +50,14 @@ dont-fold: func [lower upper] [
 	do-fold "^(0587)" "^(0587)"
 	do-fold "^(1E96)" "^(1E96)"
 	do-fold "^(1F80)" "^(1F80)"
-	do-fold "^(1FBC)" "^(1FB3)"
-	do-fold "^(1FBE)" "^(03B9)"
-	do-fold "^(1FFC)" "^(1FF3)"
-	do-fold "^(2126)" "^(03C9)"
-	do-fold "^(2163)" "^(2173)"
-	do-fold "^(00CE)" "^(00EE)"
-	do-fold "^(0100)" "^(0101)"
-	do-fold "^(017F)" "^(0073)"
+	do-fold "^(1FB3)" "^(1FBC)"
+	do-fold "^(03B9)" "^(1FBE)"
+	do-fold "^(1FF3)" "^(1FFC)"
+	do-fold "^(03C9)" "^(2126)"
+	do-fold "^(2173)" "^(2163)"
+	do-fold "^(EE)" "^(CE)"
+	do-fold "^(0101)" "^(0100)"
+	do-fold "^(0073)" "^(017F)"
 	
 ===end-group===
 
@@ -68,12 +69,12 @@ dont-fold: func [lower upper] [
 	dont-fold "i" "^(0130)"
 	dont-fold "^(0131)" "I"
 	dont-fold "^(0149)" "^(02BC)^(6E)"
-	dont-fold "^(03B0)" "^(03C5)^(0308)^(0301)"
-	dont-fold "^(0587)" "^(0565)^(0582)"
+	dont-fold "^(03C5)^(0308)^(0301)" "^(03B0)"
+	dont-fold "^(0565)^(0582)" "^(0587)"
 	dont-fold "^(1E96)" "^(68)^(0331)"
 	dont-fold "^(1F80)" "^(1F00)^(03B9)"
-	dont-fold "^(1FBC)"	"^(03B1)^(03B9)"
-	dont-fold "^(1FFC)" "^(03C9)^(03B9)"
+	dont-fold "^(03B1)^(03B9)" "^(1FBC)"
+	dont-fold "^(03C9)^(03B9)" "^(1FFC)"
 	
 ===end-group===
 
