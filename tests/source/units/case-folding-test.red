@@ -48,7 +48,7 @@ dont-fold: func [lower upper] [
 	do-fold "^(03B0)" "^(03B0)"
 	do-fold "^(0587)" "^(0587)"
 	do-fold "^(1E96)" "^(1E96)"
-	do-fold "^(1F80)" "^(1F80)"
+	do-fold "^(1F80)" "^(1F88)"
 	do-fold "^(1FB3)" "^(1FBC)"
 	do-fold "^(03B9)" "^(1FBE)"
 	do-fold "^(1FF3)" "^(1FFC)"
