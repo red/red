@@ -619,8 +619,8 @@ string: context [
 				UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 			]
 			if lax? [
-				c1: case-folding/folding-case c1 lowercase-table	;-- lowercase c1
-				c2: case-folding/folding-case c2 lowercase-table	;-- lowercase c2
+				c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
+				c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
 			]
 			p1: p1 + unit1
 			p2: p2 + unit2
