@@ -39,6 +39,7 @@ write %build/bin/sources.r set-cache [
 		%actions.reds
 		%allocator.reds
 		%debug-tools.reds
+		%case-folding.reds
 		%interpreter.reds
 		%macros.reds
 		%natives.reds
