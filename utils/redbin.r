@@ -17,7 +17,7 @@ context [
 	index:		0
 	
 	stats:		make block! 100
-	profile?:	yes
+	profile?:	no
 	
 	profile: func [blk /local pos][
 		foreach item blk [
@@ -40,7 +40,7 @@ context [
 	
 	emit: func [n [integer!]][insert tail buffer to-bin32 n]
 	
-	emit-type: func [type [word!]][
+	emit-type: func [type [word!] /unit n [integer!]][
 		emit select extracts/definitions type
 	]
 	
@@ -81,8 +81,8 @@ context [
 			url!	TYPE_URL
 		] type?/word str
 		
-		emit (shift/left extracts/definitions/:type 8) or 1 		;-- UCS/Head fields
-		emit (index? str) - 1
+		emit extracts/definitions/:type or shift/left 1 8 ;-- header
+		emit (index? str) - 1							  ;-- head
 		emit length? str
 		append buffer str
 		pad buffer 4
@@ -198,8 +198,7 @@ context [
 	
 	emit-context: func [name [word!] spec [block!] /root][
 		repend contexts [name spec index]
-		emit (shift/left extracts/definitions/TYPE_CONTEXT 8)
-			or 1										;-- flags: 1 (no values)
+		emit extracts/definitions/TYPE_CONTEXT or shift/left 1 8 ;-- header
 		
 		emit length? spec
 		foreach word spec [emit-symbol word]
