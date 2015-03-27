@@ -16,7 +16,7 @@ Red [
 
 complete-from-path: func [
 	str [string!]
-	/local s result word w1 ptr words first? sys-word
+	/local s result word w1 ptr words first? sys-word w
 ][
 	result: make block! 4
 	first?: yes
@@ -61,7 +61,7 @@ complete-from-path: func [
 
 default-input-completer: func [
 	str  [string!]
-	/local word ptr result sys-word delim? len insert? start end
+	/local word ptr result sys-word delim? len insert? start end delimiters d w
 ][
 	result: make block! 4
 	delimiters: [#" " #"[" #"(" #":" #"'"]
