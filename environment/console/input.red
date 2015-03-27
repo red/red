@@ -16,7 +16,7 @@ Red [
 
 complete-from-path: func [
 	str [string!]
-	/local s result word w1 ptr words first? sys-word
+	/local s result word w1 ptr words first? sys-word w
 ][
 	result: make block! 4
 	first?: yes
@@ -60,18 +60,22 @@ complete-from-path: func [
 ]
 
 default-input-completer: func [
-	str [string!]
-	/local word ptr result sys-word delim?
+	str  [string!]
+	/local word ptr result sys-word delim? len insert? start end delimiters d w
 ][
 	result: make block! 4
 	delimiters: [#" " #"[" #"(" #":" #"'"]
 	delim?: no
+	insert?: not tail? str
+	len: (index? str) - 1
+	end: str
 	ptr: str: head str
 	foreach d delimiters [
-		word: find/last/tail str d
+		word: find/last/tail/part str d len
 		if all [word (index? ptr) < (index? word)] [ptr: word]
 	]
-	either head? ptr [word: str][word: ptr delim?: yes]
+	either head? ptr [start: str][start: ptr delim?: yes]
+	word: copy/part start end
 	unless empty? word [
 		either all [
 			#"/" <> word/1
@@ -94,8 +98,12 @@ default-input-completer: func [
 		either word = result/1 [
 			clear result
 		][
-			if delim? [
-				poke result 1 append copy/part str word result/1
+			either any [insert? delim?] [
+				str: append copy/part str start result/1
+				poke result 1 tail str
+				if insert? [append str end]
+			][
+				poke result 1 tail result/1
 			]
 		]
 	]
@@ -190,26 +198,35 @@ default-input-completer: func [
 				line	[red-string!]
 				result	[red-block!]
 				num		[integer!]
+				str2	[red-string!]
+				head	[integer!]
 		][
 			#call [default-input-completer str]
 			result: as red-block! stack/arguments
 			num: block/rs-length? result
 			unless zero? num [
+				head: str/head
+				str/head: 0
+				string/copy str saved-line stack/arguments yes stack/arguments
+				saved-line/head: head
 				line: input-line
-				if num > 1 [
-					str/head: 0
-					string/copy str saved-line stack/arguments yes stack/arguments
-				]
-
 				string/rs-reset line
-				until [
-					string/concatenate line as red-string! block/rs-head result -1 0 yes no
-					unless num = 1 [string/append-char GET_BUFFER(line) 32]
-					block/rs-next result
-					block/rs-tail? result
-				]
 
-				line/head: string/get-length line yes
+				either num = 1 [
+					str2: as red-string! block/rs-head result
+					head: str2/head
+					str2/head: 0
+					string/concatenate line str2 -1 0 yes no
+					line/head: head
+				][
+					until [
+						string/concatenate line as red-string! block/rs-head result -1 0 yes no
+						string/append-char GET_BUFFER(line) 32
+						block/rs-next result
+						block/rs-tail? result
+					]
+					line/head: string/get-length line yes
+				]
 				refresh
 			]
 			num
@@ -348,6 +365,7 @@ default-input-completer: func [
 			prompt-str [red-string!]
 			/local
 				line   [red-string!]
+				head   [integer!]
 				c	   [integer!]
 				n	   [integer!]
 		][
@@ -356,9 +374,11 @@ default-input-completer: func [
 			history/head: block/rs-length? history		;@@ set history list to tail (temporary)
 				
 			get-window-size
-			unless zero? string/rs-length? saved-line [
+			unless zero? string/get-length saved-line yes [
+				head: saved-line/head
+				saved-line/head: 0
 				string/concatenate line saved-line -1 0 yes no
-				line/head: string/get-length line yes
+				line/head: head
 			]
 			refresh
 
