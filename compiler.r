@@ -33,7 +33,9 @@ red: context [
 	expr-stack:	   make block! 8
 	
 	lexer: 		   do bind load-cache %lexer.r 'self
-	extracts:	   do bind load-cache %utils/extractor.r 'self ;-- @@ to be removed once we get redbin loader.
+	extracts:	   do bind load-cache %utils/extractor.r 'self
+	redbin:		   do bind load-cache %utils/redbin.r 'self
+	
 	sys-global:    make block! 1
 	lit-vars: 	   reduce [
 		'block	   make hash! 1000
@@ -519,9 +521,10 @@ red: context [
 			]
 			forall ts [ts/1: to integer! to-bin32 ts/1]	;-- convert to little-endian values
 			
+			idx: redbin/emit-typeset ts/1 ts/2 ts/3
 			redirect-to literals [
 				name: decorate-series-var 'ts
-				emit reduce [to set-word! name 'typeset/create ts/1 ts/2 ts/3]
+				emit compose [(to set-word! name) as red-typeset! get-root (idx)]
 				insert-lf -5
 			]
 			append types-cache reduce [spec ts name]
@@ -1052,124 +1055,6 @@ red: context [
 		repend functions [name reduce [type arity spec refs]]
 	]
 	
-	emit-block: func [
-		blk [any-block!] /sub level [integer!] /bind ctx [word!]
-		/local class name item value word action type binding
-	][
-		if path? blk [class: 'path]
-		
-		unless sub [
-			emit-open-frame 'append
-			emit to set-word! name: decorate-series-var any [class 'blk]
-			emit append to path! any [class 'block] 'push*
-			emit max 1 length? blk
-			insert-lf -3
-		]
-		level: 0
-		
-		forall blk [
-			item: blk/1
-			either any-block? :item [
-				type: either all [path? item get-word? item/1][
-					item/1: to word! item/1 ;this is workaround of missing get-path! in R2
-					'get-path
-				][type? :item]
-				
-				emit-open-frame 'append
-				emit to lit-path! reduce [to word! form type 'push*]
-				emit max 1 length? item
-				insert-lf -2
-				
-				level: level + 1
-				either bind [
-					emit-block/sub/bind to block! item level ctx
-				][
-					emit-block/sub to block! item level
-				]
-				level: level - 1
-				
-				emit-close-frame
-				emit 'block/append*
-				insert-lf -1
-				emit 'stack/keep						;-- reset stack, but keep block as last value
-				insert-lf -1
-			][
-				if :item = #get-definition [			;-- temporary directive
-					value: select extracts/definitions blk/2
-					change/only/part blk value 2
-					item: blk/1
-				]
-				action: 'push
-				value: case [
-					unicode-char? :item [
-						value: item
-						item: #"_"						;-- placeholder just to pass the char! type to item
-						to integer! next value
-					]
-					any-word? :item [
-						add-symbol word: to word! clean-lf-flag item
-						value: decorate-symbol word
-						either all [bind local-word? to word! :item][
-							action: 'push-local
-							reduce [ctx get-word-index/with to word! :item ctx]
-						][
-							either binding: find-binding :item [
-								action: 'push-local
-								binding
-							][
-								value
-							]
-						]
-					]
-					issue? :item [
-						add-symbol word: to word! form item
-						decorate-symbol word
-					]
-					find [string! file! url!] type?/word :item [
-						emit [tmp:]
-						insert-lf -1
-						emit-load-string item
-						new-line back tail output off
-						'tmp
-					]
-					find [logic! unset! datatype!] type?/word :item [
-						to word! form :item
-					]
-					none? :item [
-						[]								;-- no argument
-					]
-					'else [
-						item
-					]
-				]
-				either float-special? :item [
-					emit 'float/push64
-					emit-fp-special item
-					insert-lf -3
-				][
-					either decimal? :item [
-						emit 'float/push64
-						emit-float item
-						insert-lf -3
-					][
-						emit to path! reduce [to word! form type? :item action]
-						emit value
-						insert-lf -1 - either block? value [length? value][1]
-					]
-				]
-				
-				emit 'block/append*
-				insert-lf -1
-				unless tail? next blk [
-					emit 'stack/keep					;-- reset stack, but keep block as last value
-					insert-lf -1
-				]
-			]
-		]
-		unless sub [emit-close-frame]
-		name
-	]
-	
 	emit-eval-path: func [/set][
 		emit 'actions/eval-path*
 		emit either set ['true]['false]
@@ -1337,14 +1222,14 @@ red: context [
 	
 	emit-dynamic-path: func [
 		body [block!]
-		/local path pname idx mark saved cnt frame? octx
+		/local path idx mark saved cnt frame? octx blk-idx
 	][
 		octx: pick [octx null] to logic! all [
 			not empty? locals-stack
 			container-obj?
 		]
 		path: first paths-stack
-		redirect-to literals [pname: emit-block path]
+		blk-idx: redbin/emit-block path
 		
 		if frame?: all [
 			not emit-path-func body octx cnt: get-counter
@@ -1361,7 +1246,7 @@ red: context [
 			emit [either stack/func?]
 			insert-lf -2
 			idx: (index? path) - 1
-			emit compose/deep [[stack/push-call (pname) (idx) 0 (octx)]]
+			emit compose/deep [[stack/push-call as red-path! get-root (blk-idx) (idx) 0 (octx)]]
 
 			either tail? next path [
 				emit [[stack/adjust]]
@@ -1458,7 +1343,10 @@ red: context [
 		]
 	]
 	
-	comp-literal: func [/inactive /with val /local value char? special? name w make-block type][
+	comp-literal: func [
+		/inactive /with val
+		/local value char? special? name w make-block type idx
+	][
 		value: either with [val][pc/1]					;-- val can be NONE
 		either any [
 			char?: unicode-char? value
@@ -1513,30 +1401,24 @@ red: context [
 			]
 		][
 			make-block: [
-				redirect-to literals [
-					value: to block! value
-					either empty? ctx-stack [
-						emit-block value
-					][
-						emit-block/bind value last ctx-stack
-					]
+				value: to block! value
+				either empty? ctx-stack [
+					redbin/emit-block value
+				][
+					redbin/emit-block/with value last ctx-stack
 				]
 			]
 			switch/default type?/word value [
 				block!	[
-					name: do make-block
-					emit 'block/push
-					emit name
-					insert-lf -2
+					emit compose [block/push get-root (do make-block)]
+					insert-lf -3
 				]
 				paren!	[
-					name: do make-block
-					emit 'paren/push
-					emit name
-					insert-lf -2
+					emit compose [paren/push get-root (do make-block)]
+					insert-lf -3
 				]
 				path! set-path!	[
-					name: do make-block
+					idx: do make-block
 					case [
 						inactive [
 							either get-word? pc/1/1 [
@@ -1555,18 +1437,14 @@ red: context [
 							if path? pc/1 [emit [as red-path!]]
 						]
 					]
-					emit name
-					insert-lf -2
+					emit reduce ['get-root idx]
+					insert-lf -3
 				]
 				string!	file! url! [
-					redirect-to literals [
-						emit to set-word! name: decorate-series-var 'str
-						insert-lf -1
-						emit-load-string value
-					]	
+					idx: redbin/emit-string value
 					emit to path! reduce [to word! form type? value 'push]
-					emit name
-					insert-lf -2
+					emit compose [as red-string! get-root (idx)]
+					insert-lf -3
 				]
 				binary!	[]
 			][
@@ -1600,7 +1478,7 @@ red: context [
 		/passive only? [logic!]
 		/locals
 			words ctx spec name id func? obj original body pos entry symbol
-			body? ctx2 new blk list path on-set-info values w defer mark
+			body? ctx2 new blk list path on-set-info values w defer mark blk-idx
 	][
 		either set-path? original: pc/-1 [
 			path: original
@@ -1653,17 +1531,15 @@ red: context [
 			forskip words 2 [append spec to word! words/1]
 		][
 			unless extend [
-				blk: redirect-to literals [
-					blk: copy/part pc 2
-					either empty? ctx-stack [
-						emit-block blk
-					][
-						emit-block/bind blk last ctx-stack
-					]
+				blk: copy/part pc 2
+				blk-idx: either empty? ctx-stack [
+					redbin/emit-block blk
+				][
+					redbin/emit-block/with blk last ctx-stack
 				]
 				pos: tail output
 				emit-open-frame 'do						;-- defer it to runtime evaluation
-				emit reduce ['block/push blk]
+				emit compose [block/push get-root (blk-idx)]
 				insert-lf -2
 				emit-native 'do
 				emit-close-frame
@@ -1696,12 +1572,14 @@ red: context [
 			]
 		]
 
+		ctx: add-context spec
+		blk-idx: redbin/emit-context ctx spec
+		
 		redirect-to literals [							;-- store spec and body blocks
-			ctx: add-context spec
 			emit compose [
-				(to set-word! ctx) _context/make (blk: emit-block spec) no yes	;-- build context
+				(to set-word! ctx) _context/make get-root (blk-idx) no yes	;-- build context
 			]
-			insert-lf -5
+			insert-lf -6
 		]
 		
 		symbol: either path [ctx][
@@ -1735,9 +1613,9 @@ red: context [
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
 			emit compose [
-				(to set-word! ctx) _context/make (blk) no yes	;-- rebuild context
+				(to set-word! ctx) _context/make get-root (blk-idx) no yes	;-- rebuild context
 			]
-			insert-lf -5
+			insert-lf -6
 		]
 
 		if proto [
@@ -2051,19 +1929,17 @@ red: context [
 		change/part pc [while [true]] 1
 	]
 		
-	comp-foreach: has [word blk name cond ctx][
+	comp-foreach: has [word blk cond ctx idx][
 		either block? pc/1 [
 			;TBD: raise error if not a block of words only
 			foreach word blk: pc/1 [
 				add-symbol word
 				add-global word
 			]
-			name: redirect-to literals [
-				either ctx: find-contexts to word! blk/1 [
-					emit-block/bind blk ctx
-				][
-					emit-block blk
-				]
+			idx: either ctx: find-contexts to word! blk/1 [
+				redbin/emit-block/with blk ctx
+			][
+				redbin/emit-block blk
 			]
 		][
 			add-symbol word: pc/1
@@ -2078,7 +1954,7 @@ red: context [
 		
 		either blk [
 			cond: compose [natives/foreach-next-block (length? blk)]
-			emit compose [block/push (name)]			;-- block argument
+			emit compose [block/push get-root (idx)]		;-- block argument
 		][
 			cond: compose [natives/foreach-next]
 			emit-push-word word	word					;-- word argument
@@ -2246,7 +2122,7 @@ red: context [
 	comp-func: func [
 		/collect /does /has
 		/local
-			name word spec body symbols locals-nb spec-blk body-blk ctx
+			name word spec body symbols locals-nb spec-idx body-idx ctx
 			src-name original global? path obj shadow defer
 	][
 		original: pc/-1
@@ -2289,26 +2165,27 @@ red: context [
 		set [symbols locals-nb] check-spec spec
 		add-function name spec
 		
-		redirect-to literals [							;-- store spec and body blocks
-			push-locals symbols
-			spec-blk: emit-block spec
-			ctx: push-context copy symbols
-			emit compose [
-				(to set-word! ctx) _context/make (spec-blk) yes no	;-- build context with value on stack
-			]
-			insert-lf -4
-			body-blk: either job/red-store-bodies? [emit-block/bind body ctx]['null]
-			pop-locals
+		push-locals symbols								;-- store spec and body blocks
+		spec-idx: redbin/emit-block spec
+		ctx: push-context copy symbols
+		emit compose [
+			(to set-word! ctx) _context/make get-root (spec-idx) yes no	;-- build context with value on stack
 		]
+		redbin/emit-context ctx symbols
+		insert-lf -4
+		body-idx: either job/red-store-bodies? [redbin/emit-block/with body ctx][-1]
+		pop-locals
+
 		repend shadow-funcs [							;-- register a new shadow context
 			decorate-func/strict name
 			shadow: to-context-spec symbols
 			ctx
 		]
 		bind-function body shadow
-
+		body-idx: redbin/emit-block body
+		
 		defer: reduce [
-			'_function/push spec-blk body-blk ctx
+			'_function/push 'get-root spec-idx 'get-root body-idx ctx
 			'as 'integer! to get-word! decorate-func/strict name
 			either 1 < length? obj-stack [select objects do obj-stack]['null]
 		]
@@ -2336,7 +2213,7 @@ red: context [
 		comp-func/has
 	]
 	
-	comp-routine: has [name word spec spec* body spec-blk body-blk original ctx][
+	comp-routine: has [name word spec spec* body spec-idx body-idx original ctx][
 		name: get-prefix-func check-func-name to word! original: pc/-1
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
@@ -2353,11 +2230,11 @@ red: context [
 			process-routine-calls body ctx/1 spec select-object ctx/1
 		]
 		clear find spec*: copy spec /local
-		spec-blk: redirect-to literals [emit-block spec*]
-		body-blk: either job/red-store-bodies? [
-			redirect-to literals [emit-block body]
+		spec-idx: redbin/emit-block spec*
+		body-idx: either job/red-store-bodies? [
+			reduce ['get-root redbin/emit-block body]
 		][
-			'null
+			-1
 		]
 		convert-types spec
 		either no-global? [
@@ -2375,7 +2252,7 @@ red: context [
 		
 		pc: skip pc 2
 		compose [
-			routine/push (spec-blk) (body-blk) as integer! (to get-word! name)
+			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name)
 		]
 	]
 	
@@ -2408,7 +2285,7 @@ red: context [
 		]
 	]
 	
-	comp-switch: has [mark name arg body list cnt pos default? value][
+	comp-switch: has [mark arg body list cnt pos default? value idx][
 		if path? pc/-1 [
 			foreach ref next pc/-1 [
 				switch/default ref [
@@ -2436,10 +2313,10 @@ red: context [
 				to block! skip (cnt: cnt + 1)
 			]
 		]
-		name: redirect-to literals [emit-block list]
+		idx: redbin/emit-block list
 		
 		emit-open-frame 'select							;-- SWITCH lookup frame
-		emit compose [block/push (name)]
+		emit compose [block/push get-root (idx)]
 		insert-lf -2
 		emit arg
 		emit [integer/push 2]							;-- /skip 2
@@ -2456,7 +2333,7 @@ red: context [
 			any [skip to block! pos: (
 				mark: tail output
 				comp-sub-block/with 'switch-body pos/1
-				pc: back pc			;-- restore PC position (no block consumed)
+				pc: back pc								;-- restore PC position (no block consumed)
 				repend list [cnt mark/1]
 				clear mark
 				cnt: cnt + 1
@@ -3583,6 +3460,7 @@ red: context [
 	]
 	
 	comp-init: does [
+		redbin/init
 		add-symbol 'datatype!
 		add-global 'datatype!
 		foreach [name specs] functions [
@@ -3599,6 +3477,10 @@ red: context [
 			stack/unwind
 			stack/reset
 		]
+	]
+	
+	comp-finish: does [
+		redbin/finish none
 	]
 	
 	comp-source: func [code [block!] /local user main][
@@ -3620,6 +3502,7 @@ red: context [
 		output: make block! 1000
 		
 		comp-bodies										;-- compile deferred functions
+		comp-finish
 		
 		reduce [user main]
 	]
@@ -3821,6 +3704,6 @@ red: context [
 			job/red-pass?: yes
 			either no-global? [comp-as-lib src][comp-as-exe src]
 		]
-		reduce [output time]
+		reduce [output time redbin/buffer]
 	]
 ]

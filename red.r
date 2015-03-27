@@ -363,7 +363,7 @@ redc: context [
 			][
 				opts/unicode?: yes							;-- force Red/System to use Red's Unicode API
 				opts/verbosity: max 0 opts/verbosity - 3	;-- Red/System verbosity levels upped by 3
-				system-dialect/compile/options/loaded src opts result/1
+				system-dialect/compile/options/loaded src opts result
 			]
 			unless encap? [change-dir %../]
 		]

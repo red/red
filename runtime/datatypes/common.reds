@@ -83,6 +83,14 @@ copy-cell: func [
 	dst
 ]
 
+get-root: func [
+	idx		[integer!]
+	return: [red-block!]
+][
+	;; TBD
+	as red-block! 0
+]
+
 fire: func [
 	[variadic]
 	count	[integer!]

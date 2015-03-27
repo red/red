@@ -124,4 +124,5 @@ system: declare struct! [					;-- store runtime accessible system values
 	alias		[integer!]					;-- aliases ID virtual access
 	words		[integer!]					;-- global context accessor (dummy type)
 	thrown		[integer!]					;-- last THROWn value
+	boot-data	[byte-ptr!]					;-- Redbin encoded boot data (only for Red programs)
 ]

@@ -3151,7 +3151,7 @@ system-dialect: make-profilable context [
 		emitter/libc-init?: no
 	]
 	
-	comp-runtime-prolog: func [red? [logic!] /local script][
+	comp-runtime-prolog: func [red? [logic!]payload [binary! none!] /local script][
 		script: either encap? [
 			set-cache-base %system/runtime/
 			%common.reds
@@ -3161,6 +3161,11 @@ system-dialect: make-profilable context [
  		compiler/run/runtime job loader/process/own script script
  		
  		if red? [
+			if payload [								;-- Redbin boot data handling
+				emitter/target/emit-load-literal [binary!] payload
+				emitter/target/emit-move-path-alt
+				emitter/access-path first [system/boot-data:] <last> 
+			]
  			unless empty? red/sys-global [
 				set-cache-base %./
 				compiler/run job loader/process red/sys-global %***sys-global.reds
@@ -3231,9 +3236,9 @@ system-dialect: make-profilable context [
 		/options
 			opts [object!]
 		/loaded 										;-- source code is already in LOADed format
-			src	[block!]
+			job-data [block!]
 		/local
-			comp-time link-time err output
+			comp-time link-time err output src
 	][
 		comp-time: dt [
 			unless block? files [files: reduce [files]]
@@ -3263,12 +3268,12 @@ system-dialect: make-profilable context [
 				comp-start								;-- init libC properly
 			]
 			
-			if opts/runtime? [comp-runtime-prolog to logic! loaded]
+			if opts/runtime? [comp-runtime-prolog to logic! loaded job-data/3]
 			
 			set-verbose-level opts/verbosity
 			foreach file files [
 				src: either loaded [
-					loader/process/with src file
+					loader/process/with job-data/1 file
 				][
 					loader/process file
 				]
