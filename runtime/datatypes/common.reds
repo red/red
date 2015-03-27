@@ -286,7 +286,6 @@ words: context [
 		_on:			symbol/make "on"
 		_off:			symbol/make "off"
 		
-		_body:			_context/add-global body
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
 		_macosx:		_context/add-global macosx

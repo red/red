@@ -608,7 +608,7 @@ interpreter: context [
 		
 		switch TYPE_OF(pc) [
 			TYPE_PAREN [
-				stack/mark-native as red-word! pc		;@@ ~paren
+				stack/mark-native words/_body
 				eval as red-block! pc yes
 				either sub? [stack/unwind][stack/unwind-last]
 				pc: pc + 1
