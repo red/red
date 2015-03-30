@@ -32,21 +32,21 @@ tan: routine [
 	natives/tangent* 1
 ]
 
-arccos: routine [
+acos: routine [
 	"Returns the trigonometric arccosine"
 	angle [float!] "Angle in radians"
 ][
 	natives/arccosine* 1
 ]
 
-arcsin: routine [
+asin: routine [
 	"Returns the trigonometric arcsine"
 	angle [float!] "Angle in radians"
 ][
 	natives/arcsine* 1
 ]
 
-arctan: routine [
+atan: routine [
 	"Returns the trigonometric arctangent"
 	angle [float!] "Angle in radians"
 ][
