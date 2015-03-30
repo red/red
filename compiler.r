@@ -2232,7 +2232,7 @@ red: context [
 		clear find spec*: copy spec /local
 		spec-idx: redbin/emit-block spec*
 		body-idx: either job/red-store-bodies? [
-			reduce ['get-root redbin/emit-block body]
+			reduce [redbin/emit-block body]
 		][
 			-1
 		]

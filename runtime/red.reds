@@ -83,6 +83,7 @@ red: context [
 	#include %stack.reds
 	#include %interpreter.reds
 	#include %simple-io.reds						;-- temporary file IO support
+	#include %redbin.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	declare red-block!						;-- root block

@@ -46,6 +46,7 @@ char: context [
 
 	push: func [
 		value	 [integer!]
+		return:	 [red-char!]
 		/local
 			cell [red-char!]
 	][
@@ -53,6 +54,7 @@ char: context [
 		cell: as red-char! stack/push*
 		cell/header: TYPE_CHAR
 		cell/value: value
+		cell
 	]
 	
 	;-- Actions --
