@@ -35,6 +35,7 @@ red: context [
 	#include %unicode.reds
 	#include %case-folding.reds
 	#include %sort.reds
+	#include %hashtable.reds
 	
 	#include %datatypes/datatype.reds
 	#include %datatypes/unset.reds
@@ -71,6 +72,7 @@ red: context [
 	#include %datatypes/typeset.reds
 	#include %datatypes/error.reds
 	#include %datatypes/vector.reds
+	#include %datatypes/hash.reds
 	
 	;-- Debugging helpers --
 	
@@ -134,6 +136,7 @@ red: context [
 		typeset/init
 		error/init
 		vector/init
+		hash/init
 		
 		actions/init
 		
@@ -186,6 +189,7 @@ red: context [
 			typeset/verbose:	verbosity
 			error/verbose:		verbosity
 			vector/verbose:		verbosity
+			hash/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

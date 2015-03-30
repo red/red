@@ -253,3 +253,18 @@ red-vector!: alias struct! [
 	node	[node!]									;-- vector's buffer
 	type	[integer!]								;-- vector elements datatype
 ]
+
+red-hash!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- block's head index (zero-based)
+	node	[node!]									;-- series node pointer
+	table	[node!]									;-- additional members of hash table
+	;	size		[integer!]						;-- 	size of keys
+	;	indexes		[node!]							;-- 	optimized: use to refresh hashtable when insert and remove
+	;	flags		[node!]
+	;	keys		[node!]
+	;	blk			[node!]
+	;	n-occupied	[integer!]
+	;	n-buckets	[integer!]
+	;	upper-bound	[integer!]
+]
