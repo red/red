@@ -1408,6 +1408,7 @@ make-profilable make target-class [
 	]
 	
 	emit-float-trash-last: does [
+		if verbose >= 3 [print ">>>cleaning FPU stack base"]
 		emit #{DDD8}								;-- FSTP st0
 	]
 	

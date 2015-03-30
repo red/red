@@ -2787,14 +2787,16 @@ system-dialect: make-profilable context [
 			]
 			
 			if all [									;-- clean FPU stack when required
-				not any [keep? variable]
+				not variable
 				block? expr
 				word? expr/1
 				any-float? get-return-type/check expr/1
 				any [
-					not find functions/(expr/1)/4 return-def	;-- clean if no return value
-					1 = length? expr-call-stack					;-- or if return value not used
+					not find functions/(expr/1)/4 return-def	 ;-- clean if no return value
+					all [not locals 1 = length? expr-call-stack] ;-- or if return value not used
 				]
+				not find expr-call-stack set-word!
+				not find expr-call-stack set-path!
 			][
 				emitter/target/emit-float-trash-last	;-- avoid leaving a x86 FPU slot occupied,
 			]											;-- if return value is not used.
