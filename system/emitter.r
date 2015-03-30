@@ -195,8 +195,6 @@ emitter: make-profilable context [
 	]
 
 	store-global: func [value type [word!] spec [block! word! none!] /local size ptr][
-		if all [paren? value not word? value/1][type: 'array!]
-		
 		if any [find [logic! function!] type logic? value][
 			type: 'integer!
 			if logic? value [value: to integer! value]	;-- TRUE => 1, FALSE => 0
@@ -327,7 +325,10 @@ emitter: make-profilable context [
 				saved: name
 				name: none								;-- anonymous data storing
 			]
-			if any [not new-global? string? value paren? value][
+			if all [paren? value not word? value/1][
+				type: [array!]
+			]
+			if any [not new-global?	string? value paren? value][
 				if string? value [type: [c-string!]]	;-- force c-string! in case of type casting
 				spec: either compiler/job/PIC? [
 					store-value name value type			;-- store new value in data buffer
