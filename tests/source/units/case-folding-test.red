@@ -56,7 +56,7 @@ dont-fold: func [lower upper] [
 	do-fold "^(2173)" "^(2163)"
 	do-fold "^(EE)" "^(CE)"
 	do-fold "^(0101)" "^(0100)"
-;	do-fold "^(017F)" "^(0053)"
+	do-fold "^(017F)" "^(0053)"
 	
 ===end-group===
 
