@@ -619,8 +619,8 @@ string: context [
 				UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 			]
 			if lax? [
-				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
-				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+				c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
+				c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
 			]
 			p1: p1 + unit1
 			p2: p2 + unit2
@@ -694,6 +694,8 @@ string: context [
 			if op <> COMP_STRICT_EQUAL [
 				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
 				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+				c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
+				c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
 			]
 			c1 = c2
 		][
@@ -1272,8 +1274,8 @@ string: context [
 		c1: (as-integer p1/2) << 8 + p1/1
 		c2: (as-integer p2/2) << 8 + p2/1
 		if op = COMP_EQUAL [
-			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
-			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+			c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
+			c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
 		]
 		either zero? flags [c1 - c2][c2 - c1]
 	]
@@ -1294,8 +1296,8 @@ string: context [
 		p4: as int-ptr! p2
 		c2: p4/1
 		if op = COMP_EQUAL [
-			if all [65 <= c1 c1 <= 90][c1: c1 + 32]
-			if all [65 <= c2 c2 <= 90][c2: c2 + 32]
+			c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
+			c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
 		]
 		either zero? flags [c1 - c2][c2 - c1]
 	]
@@ -1550,7 +1552,9 @@ string: context [
 			TYPE_CHAR [
 				char: as red-char! value
 				c2: char/value
-				if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+				if case? [
+					c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
+				]
 			]
 			TYPE_STRING
 			TYPE_FILE
@@ -1582,7 +1586,9 @@ string: context [
 					UCS-2  [c1: (as-integer buffer/2) << 8 + buffer/1]
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
 				]
-				if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
+				if case? [
+					c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
+				]
 				found?: c1 = c2
 				
 				if any [
@@ -1624,8 +1630,10 @@ string: context [
 							UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 						]
 					]
-					if all [case? 65 <= c1 c1 <= 90][c1: c1 + 32] ;-- lowercase c1
-					if all [case? 65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
+					if case? [
+						c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
+						c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
+					]
 					found?: c1 = c2
 					
 					p1: p1 + unit

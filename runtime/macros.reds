@@ -48,6 +48,7 @@ Red/System [
 	TYPE_ERROR											;-- 22		34
 	TYPE_VECTOR											;-- 23		35
 	
+	TYPE_HASH											;-- 24		36
 	TYPE_BINARY
 	TYPE_CLOSURE
 	TYPE_PORT
@@ -198,6 +199,8 @@ Red/System [
 	NAT_CONSTRUCT
 	NAT_VALUE?
 	NAT_TRY
+	NAT_UPPERCASE
+	NAT_LOWERCASE
 ]
 
 #enum math-op! [

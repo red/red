@@ -27,28 +27,35 @@ symbol: context [
 		return:      [integer!]
 		/local
 			aliased? [logic!]
-			c1	     [byte!]
-			c2	     [byte!]
+			c1	     [integer!]
+			c2	     [integer!]
+			u1		 [integer!]
+			u2		 [integer!]
+			len1	 [integer!]
+			len2	 [integer!]
 	][		
 		aliased?: no
-		c1:   str1/1
-		c2:   str2/1
+		len1: length? str1
+		len2: length? str2
 
-		while [all [c1 <> null-byte c2 <> null-byte]][
+		while [all [positive? len1 positive? len2]][
+			u1: len1
+			u2: len2
+			c1: unicode/decode-utf8-char str1 :u1
+			c2: unicode/decode-utf8-char str2 :u2					;@@ unsafe memory access
 			unless c1 = c2 [
-				if all [#"A" <= c1 c1 <= #"Z"][c1: c1 + 32]	;-- lowercase c1
-				if all [#"A" <= c2 c2 <= #"Z"][c2: c2 + 32] ;-- lowercase c2
-				if c1 <> c2 [return 0]					;-- not same case-insensitive character
+				c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
+				c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
+				if c1 <> c2 [return 0]								;-- not same case-insensitive character
 				aliased?: yes
 			]
-			str1: str1 + 1
-			str2: str2 + 1
-			c1: str1/1
-			c2: str2/1									;@@ unsafe memory access
+			str1: str1 + u1
+			str2: str2 + u2
+			len1: len1 - u1
+			len2: len2 - u2
 		]
 		case [
-			c1 <> c2 		[ 0]						;-- not matching
-			c2 <> null-byte [ 0]						;-- not matching
+			len1 <> len2	[ 0]						;-- not matching
 			aliased? 		[-1]						;-- similar (case-insensitive matching)
 			true 			[ 1]						;-- same (case-sensitive matching)
 		]

@@ -60,6 +60,16 @@ Red [
 	
 	--test-- "series-fstff-12"
 	--assert #"^(00)" = second "a^(00)b"
+
+	--test-- "series-fstff-13"
+	sf6-ser: make hash! [a b]
+	--assert 'a = first sf6-ser
+	--assert 'b = last sf6-ser
+
+	--test-- "series-fstff-14"
+	sf7-ser: make hash! [1 2 3]
+	--assert 2 = first next sf7-ser
+	--assert none = fifth next sf7-ser
 	
 ===end-group===
 
@@ -113,6 +123,8 @@ Red [
   --assert 53 = first back next next next next next "12345"
   --test-- "series-back-11"
   --assert 49 = first back "12345"
+  --test-- "series-back-12"
+  --assert 1 = first back next make hash! [1 2 3 4 5]
 ===end-group===
 
 ===start-group=== "tail"
@@ -120,6 +132,12 @@ Red [
   --assert 5 = first back tail [1 2 3 4 5]
   --test-- "seried-tail-2" 
   --assert none = pick tail [1 2 3 4 5] 1
+  --test-- "series-tail-3"
+  hs-ser-1: make hash! [1 2 3 4 5]
+  --assert 5 = first back tail hs-ser-1
+  --test-- "seried-tail-4"
+  hs-ser-2: make hash! [1 2 3 4 5]
+  --assert none = pick tail hs-ser-2 1
 ===end-group===
 
 ===start-group=== "pick"
@@ -183,18 +201,22 @@ Red [
     sp18-i: -1
   --assert none = pick "12345" sp18-i
   
+  --test-- "series-pick-19"
+  --assert 5 = pick make hash! [1 2 3 4 5] 5
   
+  --test-- "series-pick-20"
+  --assert 2 = pick next next next make hash! [1 2 3 4 5] -2
 ===end-group===
 
 ===start-group=== "select"
-  --test-- "series-select-1"
-  --assert 2 = select [1 2 3 4 5] 1
-  --test-- "series-select-2"
-  --assert 5 = select [1 2 3 4 5] 4
-  --test-- "series-select-3"
-  --assert none = select [1 2 3 4 5] 0
-  --test-- "series-select-4"
-  --assert none = select [1 2 3 4 5] 5
+	--test-- "series-select-1"
+		--assert 2 = select [1 2 3 4 5] 1
+	--test-- "series-select-2"
+		--assert 5 = select [1 2 3 4 5] 4
+	--test-- "series-select-3"
+		--assert none = select [1 2 3 4 5] 0
+	--test-- "series-select-4"
+		--assert none = select [1 2 3 4 5] 5
   
 	--test-- "series-select-5"
 		a: [2 3 5 test #"A" a/b 5 "tesT"]
@@ -219,7 +241,25 @@ Red [
 
 	--test-- "series-select-10"
 		--assert none? select s #"!"
-  
+
+	--test-- "series-select-11"
+		--assert 5 = select make hash! [1 2 3 4 5] 4
+
+	--test-- "series-select-12"
+		hs-sel-1: make hash! [2 3 5 test #"A" a/b 5 "tesT"]
+		--assert #"A" = select hs-sel-1 'test
+		
+	--test-- "series-select-13"
+		list: make hash! [a 1 b 2 c 3]
+		--assert 2 = list/b
+
+	--test-- "series-select-14"
+		--assert 'test = select/skip hs-sel-1 5 2
+
+	--test-- "series-select-15"
+		hs-select-1: make hash! [aBc 1 abc 2 ABc 3]
+		--assert 1 = select hs-select-1 'abc
+		--assert 2 = select/case hs-select-1 'abc
 ===end-group===
 
 ===start-group=== "append"
@@ -276,7 +316,10 @@ Red [
 	append/part/dup str "456" 3 2 
 	--assert str = "12456456"
 
-	
+  --test-- "series-append-18"
+  hs-append-1: make hash! [a 1 b 2]
+  --assert 6 = last append hs-append-1 [c 6]
+  --assert 6 = select hs-append-1 'c
 ===end-group===
 
 ===start-group=== "series-equal"
@@ -534,7 +577,72 @@ Red [
 
 	--test-- "series-find-75"
 		--assert 8 = index? find/case s "Red"
+
+	--test-- "series-find-76"  
+		hs-fd-1: make hash! [2 3 5 test #"A" a/b 5 "tesT"]
+		append hs-fd-1 datatype!
+		--assert 3 = index? find hs-fd-1 5
+	
+	--test-- "series-find-77"
+		--assert 8 = index? find hs-fd-1 "test"
+
+	--test-- "series-find-78"
+		--assert none? find hs-fd-1 99
+
+	--test-- "series-find-79"
+		--assert none? find/skip hs-fd-1 'test 2
 		
+	--test-- "series-find-80"
+		--assert 4 = index? find/skip hs-fd-1 'test 3
+
+	--test-- "series-find-81"
+		--assert 7 = index? find/last hs-fd-1 5
+		
+	--test-- "series-find-82"
+		--assert 2 = index? find/reverse skip hs-fd-1 4 3
+
+	--test-- "series-find-83"
+		--assert 8 = index? find skip hs-fd-1 3 "test"
+		
+	--test-- "series-find-84"
+		--assert none? find/last/part hs-fd-1 3 1
+
+	--test-- "series-find-85"
+		--assert 2 = index? find/last/part hs-fd-1 3 2
+
+	--test-- "series-find-86"
+		--assert none? find/part hs-fd-1 'test 3
+
+	--test-- "series-find-87"
+		--assert 4 = index? find/part hs-fd-1 'test 4
+
+	--test-- "series-find-88"
+		--assert 2 = index? find hs-fd-1 [3 5]
+		
+	--test-- "series-find-89"
+		--assert 3 = index? find hs-fd-1 [5 'test]
+	
+	--test-- "series-find-90"
+		--assert none? find hs-fd-1 'a/b
+	
+	--test-- "series-find-91"
+		--assert 6 = index? find/only hs-fd-1 'a/b
+
+	--test-- "series-find-92"
+		--assert 2 = index? find/match hs-fd-1 2
+
+	--test-- "series-find-93"
+		--assert none? find/match hs-fd-1 3
+
+	--test-- "series-find-94"
+		--assert 4 = index? find/match hs-fd-1 [2 3 5]
+
+	--test-- "series-find-95"
+		--assert none? find/match next hs-fd-1 [2 3 5]
+		
+	--test-- "series-find-96"
+		--assert 4 = index? find/tail hs-fd-1 5
+
 ===end-group===
 
 ===start-group=== "remove"
@@ -569,7 +677,32 @@ Red [
 	--test-- "remove-blk-7"
 		a: [1 2 3]
 		--assert [1 2 3] =  remove/part a 0
-		
+
+	--test-- "remove-hash-1"
+		hs-remove-1: make hash! [a 2 3]
+		--assert (make hash! [2 3]) = remove hs-remove-1
+		--assert none? hs-remove-1/a
+
+	--test-- "remove-hash-2"
+		hs-remove-1: make hash! [a 2 3]
+		remove next hs-remove-1
+		--assert 3 = hs-remove-1/a
+
+	--test-- "remove-hash-3"
+		--assert tail? head remove make hash! []
+
+	--test-- "remove-hash-4"
+		hs-remove-1: make hash! [a b c 2]
+		remove/part hs-remove-1 2
+		--assert 2 = hs-remove-1/c
+
+	--test-- "remove-hash-5"
+		hs-remove-1: make hash! [a b c 2]
+		remove/part next hs-remove-1 2
+		--assert 2 = hs-remove-1/a
+		--assert none? hs-remove-1/b
+		--assert none? hs-remove-1/c
+
 	--test-- "remove-str-1"
 		a: "123"
 		--assert "23" = remove a
@@ -649,7 +782,12 @@ Red [
 		c9-b: "^(2710)123"
 		c9-b:  next c9-b
 		--assert "^(2710)" = head clear c9-b
-	
+
+	--test-- "clear-10"
+		c1-h: make hash! [a 1 b 2 c 3 d 4 5]
+		clear skip c1-h 4
+		--assert 2 = c1-h/b
+		--assert none? c1-h/c
 ===end-group===
 
 ===start-group=== "at"
@@ -677,6 +815,14 @@ Red [
 		--assert [e] = at [a b c d e] 5
 		--assert [] = at [a b c d e] 6
 		--assert [] = at [a b c d e] 1028
+
+	--test-- "at-4"
+		hs-at-1: make hash! [a b c d e]
+		--assert (next hs-at-1) = at hs-at-1 2
+		--assert hs-at-1 = at hs-at-1 1
+		--assert hs-at-1 = at hs-at-1 0
+		--assert hs-at-1 = at hs-at-1 -1
+		--assert (make hash! [e]) = at hs-at-1 5
 	
 ===end-group===
 
@@ -745,6 +891,16 @@ Red [
 		p1: first [ab/cd/ef]
 		p2: first [ef/cd/ab]
 		--assert p2 = reverse p1
+
+	--test-- "reverse-hash-1"
+		hash: make hash! [d c b a]
+		--assert (make hash! [a b c d]) = reverse hash
+		--assert 'c = hash/b
+
+	--test-- "reverse-hash-2"
+		hash: make hash! [[a] b c d]
+		reverse/part hash 3
+		--assert [a] = hash/b
 
 ===end-group===
 
@@ -846,6 +1002,23 @@ Red [
 		a: "123"
 		--assert "123" = take/part a 22
 		--assert "" = a
+
+	--test-- "take-hash-1"
+		h: make hash! [1 2 3]
+		--assert 1 = take h
+		--assert none? select h 1
+		--assert 3 = select h 2
+
+	--test-- "take-hash-2"
+		h: make hash! [1 2 3]
+		--assert 3 = take/last h
+		--assert none? select h 2
+
+	--test-- "take-hash-3"
+		h: make hash! [1 2 3]
+		--assert 2 = take next h
+		--assert 3 = select h 1
+
 ===end-group===
 
 ===start-group=== "swap"
@@ -887,6 +1060,12 @@ Red [
 	--test-- "swap-blk-3"
 		--assert [1 a] = swap [1 a] []
 
+	--test-- "swap-hash-1"
+		a: make hash! [1 2]
+		b: make hash! [a b]
+		swap a b
+		--assert 2 = a/a
+		--assert 'b = select b 1
 ===end-group===
 
 ===start-group=== "trim"

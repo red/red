@@ -39,6 +39,7 @@ write %build/bin/sources.r set-cache [
 		%actions.reds
 		%allocator.reds
 		%debug-tools.reds
+		%case-folding.reds
 		%interpreter.reds
 		%macros.reds
 		%natives.reds
@@ -46,6 +47,7 @@ write %build/bin/sources.r set-cache [
 		%random.reds
 		%red.reds
 		%sort.reds
+		%hashtable.reds
 		%stack.reds
 		%stack.reds
 		%tools.reds
@@ -65,6 +67,7 @@ write %build/bin/sources.r set-cache [
 			%function.reds
 			%get-path.reds
 			%get-word.reds
+			%hash.reds
 			%integer.reds
 			%issue.reds
 			%lit-path.reds

@@ -560,3 +560,23 @@ try: make native! [[
 	]
 	#get-definition NAT_TRY
 ]
+
+uppercase: make native! [[
+		"Converts string of characters to uppercase"
+		string		[any-string! char!]
+		/part "Limits to a given length or position"
+			limit	[number! any-string!]
+		return: 	[any-string! char!]
+	]
+	#get-definition NAT_UPPERCASE
+]
+
+lowercase: make native! [[
+		"Converts string of characters to lowercase"
+		string		[any-string! char!]
+		/part "Limits to a given length or position"
+			limit	[number! any-string!]
+		return:		[any-string! char!]
+	]
+	#get-definition NAT_LOWERCASE
+]

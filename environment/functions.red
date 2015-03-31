@@ -70,6 +70,7 @@ float?:		 func ["Returns true if the value is this type" value [any-type!]] [flo
 function?:	 func ["Returns true if the value is this type" value [any-type!]] [function!	= type? :value]
 get-path?:	 func ["Returns true if the value is this type" value [any-type!]] [get-path!	= type? :value]
 get-word?:	 func ["Returns true if the value is this type" value [any-type!]] [get-word!	= type? :value]
+hash?:		 func ["Returns true if the value is this type" value [any-type!]] [hash!		= type? :value]
 integer?:    func ["Returns true if the value is this type" value [any-type!]] [integer!	= type? :value]
 issue?:    	 func ["Returns true if the value is this type" value [any-type!]] [issue!		= type? :value]
 lit-path?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-path!	= type? :value]
