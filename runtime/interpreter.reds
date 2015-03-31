@@ -617,6 +617,7 @@ interpreter: context [
 				stack/mark-native as red-word! pc		;@@ ~set
 				word/push as red-word! pc
 				pc: pc + 1
+				if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
 				pc: eval-expression pc end no yes
 				word/set
 				either sub? [stack/unwind][stack/unwind-last]
