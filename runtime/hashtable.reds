@@ -543,7 +543,7 @@ _hashtable: context [
 	delete: func [
 		node	[node!]
 		key		[red-value!]
-		/local s h i ii sh flags
+		/local s h i ii sh flags indexes
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -557,7 +557,10 @@ _hashtable: context [
 			s: as series! h/flags/value
 			flags: as int-ptr! s/offset
 			s: as series! h/blk/value
-			i: (as-integer key - s/offset) >> 4
+			i: (as-integer key - s/offset) >> 4 + 1
+			s: as series! h/indexes/value
+			indexes: as int-ptr! s/offset
+			i: indexes/i
 			_HT_CAL_FLAG_INDEX(i ii sh)
 			_BUCKET_SET_DEL_TRUE(flags ii sh)
 		]
@@ -587,28 +590,29 @@ _hashtable: context [
 		node	[node!]
 		head	[integer!]
 		size	[integer!]
-		/local s h start n i ii sh
+		/local s h flags n i ii sh indexes
 	][
+		if zero? size [exit]
 		s: as series! node/value
 		h: as hashtable! s/offset
 
 		h/n-occupied: h/n-occupied - size
 		h/size: h/size - size
 		s: as series! h/flags/value
-		start: as int-ptr! s/offset
-		i: head
-		_HT_CAL_FLAG_INDEX(i ii sh)
-		n: ii
-		until [
-			_HT_CAL_FLAG_INDEX(i ii sh)
-			_BUCKET_SET_DEL_TRUE(start ii sh)
-			i: i + 1
-			n <> ii
-		]
-		fill as byte-ptr! (start + ii) as byte-ptr! s/tail #"^(AA)"
+		flags: as int-ptr! s/offset
 		s: as series! h/indexes/value
-		start: (as int-ptr! s/offset) + head
-		fill as byte-ptr! start as byte-ptr! s/tail #"^(FF)"
+		indexes: (as int-ptr! s/offset) + head
+		until [
+			i: indexes/value
+			if i <> -1 [
+				_HT_CAL_FLAG_INDEX(i ii sh)
+				_BUCKET_SET_DEL_TRUE(flags ii sh)
+				indexes/value: -1
+			]
+			indexes: indexes + 1
+			size: size - 1
+			zero? size
+		]
 	]
 
 	refresh: func [

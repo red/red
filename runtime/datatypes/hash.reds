@@ -71,15 +71,6 @@ hash: context [
 		block/mold as red-block! hash buffer only? all? flat? arg part - 11 indent
 	]
 
-	eval-path: func [
-		parent	[red-block!]							;-- implicit type casting
-		element	[red-value!]
-		value	[red-value!]
-		return:	[red-value!]
-	][
-		block/eval-path parent element value
-	]
-
 	clear: func [
 		hash	[red-hash!]
 		return:	[red-value!]
@@ -90,8 +81,8 @@ hash: context [
 		#if debug? = yes [if verbose > 0 [print-line "hash/clear"]]
 
 		blk: as red-block! hash
-		block/rs-clear blk
 		_hashtable/clear hash/table blk/head block/rs-length? blk
+		block/rs-clear blk
 		as red-value! hash
 	]
 
@@ -172,7 +163,7 @@ hash: context [
 			null			;to
 			INHERIT_ACTION	;form
 			:mold
-			:eval-path
+			INHERIT_ACTION	;eval-path
 			null			;set-path
 			INHERIT_ACTION	;compare
 			;-- Scalar actions --
