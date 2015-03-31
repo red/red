@@ -677,7 +677,11 @@ block: context [
 				][
 					select-word parent as red-word! element
 				][
-					select parent element null yes no no null null no no
+					copy-cell
+						select parent element null yes no no null null no no
+						element
+					stack/pop 1							;-- remove FIND result from stack
+					element
 				]
 			]
 		]
@@ -865,7 +869,7 @@ block: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/find"]]
 		
-		result: as red-value! blk
+		result: stack/push as red-value! blk
 		hash?: TYPE_OF(blk) = TYPE_HASH
 		if hash? [
 			hash: as red-hash! blk
