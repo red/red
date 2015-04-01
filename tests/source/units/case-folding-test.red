@@ -56,7 +56,6 @@ dont-fold: func [lower upper] [
 	do-fold "^(2173)" "^(2163)"
 	do-fold "^(EE)" "^(CE)"
 	do-fold "^(0101)" "^(0100)"
-	do-fold "^(017F)" "^(0053)"
 	
 ===end-group===
 
@@ -85,11 +84,20 @@ dont-fold: func [lower upper] [
 		--assert strict-equal? lowercase "aBCDE" "abcde"
 		--assert "abcde" == lowercase "aBCDE"
 		
-	--test-- "manual-case-folding-1"
+	--test-- "manual-case-folding-2"
 		--assert "Abcde" = "ABCDE"
 		--assert equal? "Abcde" "ABCDE"
 		--assert strict-equal? uppercase "Abcde" "ABCDE"
 		--assert "ABCDE" == uppercase "Abcde"
+		
+	--test-- "manual-case-folding-3"
+		--assert "s" = "^(017F)"
+		--assert "S" = "^(017F)"
+		--assert "s" = "S"
+		--assert "S" == uppercase "^(017F)"
+		--assert "^(017F)" == lowercase "^(017F)"
+		--assert "s" == lowercase "S"
+		--assert "S" == uppercase "s"
 		
 ===end-group===
 
