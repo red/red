@@ -9,6 +9,8 @@ Red [
 
 #include  %../../../quick-test/quick-test.red
 
+~~~start-file~~~ "case-folding"
+
 do-test-number: 0
 dont-test-number: 0
 
@@ -33,8 +35,6 @@ dont-fold: func [lower upper] [
 		--assert not equal? lower lowercase copy upper
 		--assert lower <> lowercase copy upper
 ]
-
-~~~start-file~~~ "case-folding"
 
 ===start-group=== "case-folding"
 	
