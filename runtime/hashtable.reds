@@ -605,6 +605,7 @@ _hashtable: context [
 		until [
 			i: indexes/value
 			if i <> -1 [
+				i: i - 1
 				_HT_CAL_FLAG_INDEX(i ii sh)
 				_BUCKET_SET_DEL_TRUE(flags ii sh)
 				indexes/value: -1
