@@ -88,5 +88,12 @@ Red [
 	
 ===end-group===
 
+===start-group=== "words"
+		
+	--test-- "words1"
+		--assert [a [œ∑´®†]] = system/lexer/transcode {œ∑´®†} none
+
+===end-group===
+
 
 ~~~end-file~~~
