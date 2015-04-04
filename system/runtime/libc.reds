@@ -47,9 +47,11 @@ Red/System [
 		putchar: 	 "putchar" [
 			char		[byte!]
 		]
-		printf: 	 "printf" [[variadic]]
+		printf: 	 "printf"  [[variadic]]
+		
 		sprintf:	 "sprintf" [[variadic]]
-		strtod:		 "strtod" [
+		
+		strtod:		 "strtod"  [
 			str			[byte-ptr!]
 			endptr		[byte-ptr!]
 			return:		[float!]
