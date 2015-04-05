@@ -524,14 +524,14 @@ system-dialect: make-profilable context [
 			type
 		]
 		
-		resolve-type: func [name [word!] /with parent [block! none!] /local type local?][
+		resolve-type: func [name /with parent /local type local? pos][
 			type: any [
 				all [parent select parent name]
 				local?: all [locals select locals name]
 				select-globals name
 			]
-			if all [not type find functions name][
-				return reduce ['function! functions/(decorate-fun name)/4]
+			if all [not type pos: select functions decorate-fun name][
+				return reduce ['function! pos/4]
 			]
 			if any [
 				all [not local?	any [enum-type? name enum-id? name]]
@@ -579,15 +579,8 @@ system-dialect: make-profilable context [
 			
 			either tail? skip path 2 [
 				switch/default type/1 [
-					c-string! [
-						check-path-index path 'string
-						[byte!]
-					]
-					pointer!  [
-						check-path-index path 'pointer
-						reduce [type/2/1]				;-- return pointed value type
-					]
 					struct!   [
+
 						unless word? path/2 [
 							backtrack path
 							throw-error ["invalid struct member" path/2]
@@ -603,6 +596,15 @@ system-dialect: make-profilable context [
 						]
 						type
 					]
+					pointer!  [
+						check-path-index path 'pointer
+						reduce [type/2/1]				;-- return pointed value type
+					]
+					c-string! [
+						check-path-index path 'string
+						[byte!]
+					]
+
 				] path-error
 			][
 				either short [
@@ -615,16 +617,9 @@ system-dialect: make-profilable context [
 		
 		get-type: func [value /local type][
 			switch/default type?/word value [
-				none!	 [none-type]					;-- no type case (func with no return value)
-				tag!	 [either value = <last> [last-type][ [logic!] ]]
-				logic!	 [[logic!]]
 				word! 	 [resolve-type value]
-				char!	 [[byte!]]
 				integer! [[integer!]]
-				decimal! [[float!]]
-				string!	 [[c-string!]]
 				path!	 [resolve-path-type value]
-				object!  [value/type]
 				block!	 [
 					if value/1 = 'not [return get-type value/2]	;-- special case for NOT multitype native
 					
@@ -638,14 +633,9 @@ system-dialect: make-profilable context [
 						get-return-type value/1
 					]
 				]
-				paren!	 [
-					switch/default value/1 [
-						struct!  [reduce pick [[value/2][value/1 value/2]] word? value/2]
-						pointer! [reduce [value/1 value/2]]
-					][
-						next next reduce ['array! length? value	'pointer! get-type value/1]	;-- hide array size
-					]
-				]
+				object!  [value/type]
+				tag!	 [either value = <last> [last-type][[logic!]]]
+				string!	 [[c-string!]]
 				get-word! [
 					type: resolve-type to word! value
 					switch/default type/1 [
@@ -655,6 +645,19 @@ system-dialect: make-profilable context [
 						throw-error ["invalid datatype for a get-word:" mold type]
 					]
 				]
+				logic!	 [[logic!]]
+				char!	 [[byte!]]
+				decimal! [[float!]]
+				paren!	 [
+					switch/default value/1 [
+						struct!  [reduce pick [[value/2][value/1 value/2]] word? value/2]
+						pointer! [reduce [value/1 value/2]]
+					][
+						next next reduce ['array! length? value	'pointer! get-type value/1]	;-- hide array size
+					]
+				]
+				none!	 [none-type]					;-- no type case (func with no return value)
+
 			][
 				throw-error ["not accepted datatype:" type? value]
 			]
