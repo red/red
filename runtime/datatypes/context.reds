@@ -253,6 +253,7 @@ _context: context [
 		return:		[node!]
 		/local
 			cell 	[red-context!]
+			node	[node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		
