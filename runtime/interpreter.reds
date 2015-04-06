@@ -230,6 +230,7 @@ interpreter: context [
 			infix? [logic!]
 			op	   [red-op!]
 			s	   [series!]
+			node   [node!]
 			call-op
 	][
 		stack/keep
