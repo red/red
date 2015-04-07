@@ -457,6 +457,7 @@ _hashtable: context [
 		node	 [node!]
 		key		 [red-value!]
 		head	 [integer!]
+		skip	 [integer!]
 		case?	 [logic!]
 		last?	 [logic!]
 		reverse? [logic!]
@@ -509,6 +510,7 @@ _hashtable: context [
 					_BUCKET_IS_NOT_DEL(flags ii sh)
 					TYPE_OF(k) = TYPE_OF(key)
 					actions/compare blk + idx key op
+					idx - head % skip = 0
 				][
 					either reverse? [
 						if all [idx < head idx > last-idx][last-idx: idx find?: yes]
