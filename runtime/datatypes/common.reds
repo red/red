@@ -87,8 +87,17 @@ get-root: func [
 	idx		[integer!]
 	return: [red-block!]
 ][
-	;; TBD
-	as red-block! 0
+	as red-block! redbin/root-base + idx
+]
+
+get-root-node: func [
+	idx		[integer!]
+	return: [node!]
+	/local
+		obj [red-object!]
+][
+	obj: as red-object! get-root idx
+	obj/ctx
 ]
 
 fire: func [

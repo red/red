@@ -521,7 +521,7 @@ red: context [
 			]
 			forall ts [ts/1: to integer! to-bin32 ts/1]	;-- convert to little-endian values
 			
-			idx: redbin/emit-typeset ts/1 ts/2 ts/3
+			idx: redbin/emit-typeset/root ts/1 ts/2 ts/3
 			redirect-to literals [
 				name: decorate-series-var 'ts
 				emit compose [(to set-word! name) as red-typeset! get-root (idx)]
@@ -1441,10 +1441,10 @@ red: context [
 					insert-lf -3
 				]
 				string!	file! url! [
-					idx: redbin/emit-string value
+					idx: redbin/emit-string/root value
 					emit to path! reduce [to word! form type? value 'push]
 					emit compose [as red-string! get-root (idx)]
-					insert-lf -3
+					insert-lf -5
 				]
 				binary!	[]
 			][
@@ -1573,11 +1573,11 @@ red: context [
 		]
 
 		ctx: add-context spec
-		blk-idx: redbin/emit-context ctx spec
+		blk-idx: redbin/emit-context/root ctx spec no yes
 		
 		redirect-to literals [							;-- store spec and body blocks
 			emit compose [
-				(to set-word! ctx) _context/make get-root (blk-idx) no yes	;-- build context
+				(to set-word! ctx) get-root-node (blk-idx)	;-- assign context
 			]
 			insert-lf -6
 		]
@@ -1612,8 +1612,9 @@ red: context [
 		
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
+;;@@@@@@@ TBD: clone the context!
 			emit compose [
-				(to set-word! ctx) _context/make get-root (blk-idx) no yes	;-- rebuild context
+				(to set-word! ctx) get-root-node (blk-idx)	;-- rebuild context
 			]
 			insert-lf -6
 		]
@@ -2123,7 +2124,7 @@ red: context [
 		/collect /does /has
 		/local
 			name word spec body symbols locals-nb spec-idx body-idx ctx
-			src-name original global? path obj shadow defer
+			src-name original global? path obj shadow defer ctx-idx
 	][
 		original: pc/-1
 		case [
@@ -2166,12 +2167,12 @@ red: context [
 		add-function name spec
 		
 		push-locals symbols								;-- store spec and body blocks
-		spec-idx: redbin/emit-block spec
 		ctx: push-context copy symbols
+		ctx-idx: redbin/emit-context/root ctx symbols yes no
+		spec-idx: redbin/emit-block spec
 		emit compose [
-			(to set-word! ctx) _context/make get-root (spec-idx) yes no	;-- build context with value on stack
+			(to set-word! ctx) get-root-node (ctx-idx) ;-- build context with value on stack
 		]
-		redbin/emit-context ctx symbols
 		insert-lf -4
 		body-idx: either job/red-store-bodies? [redbin/emit-block/with body ctx][-1]
 		pop-locals

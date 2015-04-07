@@ -14,71 +14,162 @@ Red/System [
 #define redbin-compressed-mask		02h
 #define redbin-symbol-table-mask	04h
 
+#define REDBIN_VALUES_MASK	40000000h
+#define REDBIN_STACK_MASK	20000000h
+#define REDBIN_SELF_MASK	10000000h
+
 redbin: context [
 
 	#enum redbin-value-type! [
-		REDBIN_PADDING
-		REDBIN_DATATYPE
-		REDBIN_UNSET
-		REDBIN_NONE
-		REDBIN_LOGIC
-		REDBIN_BLOCK
-		REDBIN_PAREN
-		REDBIN_STRING
-		REDBIN_FILE
-		REDBIN_URL
-		REDBIN_CHAR
-		REDBIN_INTEGER
-		REDBIN_FLOAT
-		REDBIN_CONTEXT
-		REDBIN_WORD
-		REDBIN_SET_WORD
-		REDBIN_LIT-WORD
-		REDBIN_GET-WORD
-		REDBIN_REFINEMENT
-		REDBIN_ISSUE
-		REDBIN_NATIVE
-		REDBIN_ACTION
-		REDBIN_OP
-		REDBIN_FUNCTION
-		REDBIN_PATH
-		REDBIN_LIT-PATH
-		REDBIN_SET-PATH
-		REDBIN_GET-PATH
-		REDBIN_BITSET
-		REDBIN_POINT
-		REDBIN_OBJECT
-		REDBIN_TYPESET
-		REDBIN_ERROR
-		REDBIN_VECTOR
-		REDBIN_REFERENCE
+		REDBIN_PADDING: 	0
+		REDBIN_REFERENCE: 	255
 	]
+	
+	root-base: as red-value! 0
+	
+	preprocess-symbols: func [
+		base 	[int-ptr!]
+		/local
+			syms	[int-ptr!]
+			end		[int-ptr!]
+			strings [c-string!]
+	][
+		syms:	 base + 2
+		end:	 syms + base/value
+		strings: as-c-string end
+		
+		while [syms < end][
+			syms/1: symbol/make strings + syms/1
+			syms: syms + 1
+		]
+	]
+	
+	decode-context: func [
+		data	[int-ptr!]
+		table	[int-ptr!]
+		parent	[red-block!]
+		return: [int-ptr!]
+		/local
+			ctx		[red-context!]
+			slot	[red-word!]
+			obj		[red-object!]
+			values	[int-ptr!]
+			sym		[int-ptr!]
+			header	[integer!]
+			values? [logic!]
+			stack?	[logic!]
+			self?	[logic!]
+			slots	[integer!]
+			new		[node!]
+			symbols	[node!]
+			i		[integer!]
+	][
+		header:  data/1
+		values?: header and REDBIN_VALUES_MASK <> 0 
+		stack?:	 header and REDBIN_STACK_MASK  <> 0 
+		self?:	 header and REDBIN_SELF_MASK   <> 0 
+		slots:	 data/2
 
+		if values? [values: data + 2 + slots]
+		
+		new: _context/create slots stack? self?
+		obj: as red-object! ALLOC_TAIL(parent)			;-- use an object to store the ctx node
+		obj/header: TYPE_OBJECT
+		obj/ctx:	new
+		obj/class:	-1
+		obj/on-set: null
+		
+		ctx: TO_CTX(new)
+		symbols: ctx/symbols
+		data: data + 2
+		i: 0
+
+		while [slots > 0][
+			sym: table + data/1
+			;-- create the words entries in the symbol table of the context
+			slot: 		 as red-word! alloc-tail as series! symbols/value
+			slot/header: TYPE_WORD
+			slot/ctx: 	 new
+			slot/symbol: sym/1
+			slot/index:  i
+			
+			i: i + 1
+			data: data + 1
+			slots: slots - 1
+		]
+		data
+	]
+	
+	decode-issue: func [
+		data	[int-ptr!]
+		table	[int-ptr!]
+		parent	[red-block!]
+		return: [int-ptr!]
+		/local
+			w	[red-word!]
+			sym	[int-ptr!]
+	][
+		sym: table + data/2
+		w: as red-word! ALLOC_TAIL(parent)
+		w/header: TYPE_ISSUE
+		w/symbol: sym/1
+		data + 2
+	]
+	
+	decode-word: func [
+		data	[int-ptr!]
+		table	[int-ptr!]
+		parent	[red-block!]
+		return: [int-ptr!]
+		/local
+			w	   [red-word!]
+			obj	   [red-object!]
+			sym	   [int-ptr!]
+			offset [integer!]
+	][
+		sym: table + data/2								;-- get the decoded symbol
+		w: as red-word! ALLOC_TAIL(parent)
+		w/header: data/1 and FFh
+		w/symbol: sym/1
+		
+		offset: data/3
+		either offset = -1 [
+			w/ctx: global-ctx
+			w/index: _context/find-word TO_CTX(global-ctx) sym/1 yes
+		][
+			obj: as red-object! root-base + offset
+			assert TYPE_OF(obj) = TYPE_OBJECT
+			w/ctx: obj/ctx
+			w/index: data/4
+		]
+		data + 4
+	]
+	
 	decode-string: func [
 		data	[int-ptr!]
 		parent	[red-block!]
 		return: [int-ptr!]
-		/local str header type unit size s
+		/local str header unit size s
 	][
 		header: data/1
-		type: header and FFh
 		unit: header >>> 8 and FFh
-		size: data/3 * unit
-		type: switch type [
-			REDBIN_STRING	[TYPE_STRING]
-			REDBIN_FILE		[TYPE_FILE]
-			REDBIN_URL		[TYPE_URL]
-		]
+		size: data/3 << (unit >> 1)					;-- optimized data/3 * unit
 
 		str: as red-string! ALLOC_TAIL(parent)
-		str/header: type							;-- implicit reset of all header flags
+		str/header: header and FFh					;-- implicit reset of all header flags
 		str/head: 	data/2
 		str/node: 	alloc-bytes size + unit			;-- account for NUL
+		
+		data: data + 3
 		s: GET_BUFFER(str)
-		copy-memory as byte-ptr! s/offset as byte-ptr! data + 3 size
+		copy-memory as byte-ptr! s/offset as byte-ptr! data size
 		s/tail: s/tail + size
 		string/add-terminal-NUL as byte-ptr! s/tail unit
-		data + 3 + size
+		
+		data: as int-ptr! ((as byte-ptr! data) + size)
+		either (as-integer data) and 3 = 0 [data][
+			as int-ptr! ((as-integer data) + 4 and -4) ;-- align to upper 32-bit boundary
+		]
 	]
 
 	decode-block: func [
@@ -86,19 +177,21 @@ redbin: context [
 		table	[int-ptr!]
 		parent	[red-block!]
 		return: [int-ptr!]
-		/local blk size i head type
+		/local blk size sz
 	][
-		type: data/1
-		head: data/2
 		size: data/3
-		blk: block/make-in parent size
-		i: 0
-		while [i < size][
+		sz: size
+		if zero? sz [sz: 1]
+		
+		blk: block/make-in parent sz
+		blk/head: data/2
+		blk/header: data/1 and FFh
+		data: data + 3
+		
+		while [size > 0][
 			data: decode-value data table blk
-			i: i + 1
+			size: size - 1
 		]
-		blk/head: head
-		if type = REDBIN_PAREN [blk/header: TYPE_PAREN]
 		data
 	]
 
@@ -107,71 +200,76 @@ redbin: context [
 		table	[int-ptr!]
 		parent	[red-block!]
 		return: [int-ptr!]
-		/local type value
+		/local type
 	][
 		type: data/1 and FFh
-		value: ALLOC_TAIL(parent)
+		
 		switch type [
-			REDBIN_PADDING	[decode-value data + 1 table parent]
-			REDBIN_DATATYPE [
-				copy-cell as cell! datatype/push data/2 value
+			REDBIN_PADDING		[
+				decode-value data + 1 table parent
+			]
+			TYPE_DATATYPE	[
+				copy-cell as cell! datatype/push data/2 ALLOC_TAIL(parent)
 				stack/pop 1
 				data + 2
 			]
-			REDBIN_UNSET	[
-				copy-cell unset-value value
+			TYPE_UNSET		[
+				copy-cell unset-value ALLOC_TAIL(parent)
 				data + 1
 			]
-			REDBIN_NONE		[
-				copy-cell none-value value
+			TYPE_NONE		[
+				copy-cell none-value ALLOC_TAIL(parent)
 				data + 1
 			]
-			REDBIN_LOGIC	[
-				copy-cell as cell! logic/push as logic! data/2 value
+			TYPE_LOGIC		[
+				copy-cell as cell! logic/push as logic! data/2 ALLOC_TAIL(parent)
 				stack/pop 1
 				data + 2
 			]
-			REDBIN_BLOCK
-			REDBIN_PAREN	[decode-block data table parent]
-			REDBIN_STRING
-			REDBIN_FILE
-			REDBIN_URL		[decode-string data parent]
-			REDBIN_CHAR		[
-				copy-cell as cell! char/push data/2 value
+			TYPE_PATH
+			TYPE_LIT_PATH
+			TYPE_SET_PATH
+			TYPE_GET_PATH
+			TYPE_BLOCK
+			TYPE_PAREN		[decode-block data table parent]
+			TYPE_STRING
+			TYPE_FILE
+			TYPE_URL		[decode-string data parent]
+			TYPE_CHAR		[
+				copy-cell as cell! char/push data/2 ALLOC_TAIL(parent)
 				stack/pop 1
 				data + 2
 			]
-			REDBIN_INTEGER	[
-				copy-cell as cell! integer/push data/2 value
+			TYPE_INTEGER	[
+				copy-cell as cell! integer/push data/2 ALLOC_TAIL(parent)
 				stack/pop 1
 				data + 2
 			]
-			REDBIN_FLOAT	[
-				copy-cell as cell! float/push64 data/2 data/3 value
+			TYPE_FLOAT	[
+				copy-cell as cell! float/push64 data/2 data/3 ALLOC_TAIL(parent)
 				stack/pop 1
 				data + 3
 			]
-			REDBIN_CONTEXT
-			REDBIN_WORD
-			REDBIN_SET_WORD
-			REDBIN_LIT-WORD
-			REDBIN_GET-WORD
-			REDBIN_REFINEMENT
-			REDBIN_ISSUE
-			REDBIN_NATIVE
-			REDBIN_ACTION
-			REDBIN_OP
-			REDBIN_FUNCTION
-			REDBIN_PATH
-			REDBIN_LIT-PATH
-			REDBIN_SET-PATH
-			REDBIN_GET-PATH
-			REDBIN_BITSET
-			REDBIN_POINT
-			REDBIN_OBJECT
-			REDBIN_TYPESET
-			REDBIN_ERROR
-			REDBIN_VECTOR
+			TYPE_CONTEXT	[decode-context data table parent]
+			TYPE_WORD
+			TYPE_SET_WORD
+			TYPE_LIT_WORD
+			TYPE_GET_WORD
+			TYPE_REFINEMENT [decode-word data table parent]
+			TYPE_ISSUE		[decode-issue data table parent]
+			TYPE_TYPESET	[
+				typeset/make-at parent data/2 data/3 data/4
+				data + 4
+			]
+			TYPE_NATIVE
+			TYPE_ACTION
+			TYPE_OP
+			TYPE_FUNCTION
+			TYPE_BITSET
+			TYPE_POINT
+			TYPE_OBJECT
+			TYPE_ERROR
+			TYPE_VECTOR
 			REDBIN_REFERENCE [
 				--NOT_IMPLEMENTED--
 				data
@@ -181,7 +279,6 @@ redbin: context [
 
 	decode: func [
 		data	[byte-ptr!]
-		len		[integer!]
 		parent	[red-block!]
 		return: [red-value!]
 		/local
@@ -192,14 +289,15 @@ redbin: context [
 			compressed? [logic!]
 			sym-table?	[logic!]
 			table		[int-ptr!]
-			base		[red-value!]
+			len			[integer!]
+			count		[integer!]
+			i
 	][
 		;----------------
 		;-- decode header
 		;----------------
 		p: data
-		end: data + len
-		unless all [					;-- magic="REBDBIN"
+		unless all [					;-- magic="REDBIN"
 			p/1 = #"R" p/2 = #"E" p/3 = #"D"
 			p/4 = #"B" p/5 = #"I" p/6 = #"N"
 		][
@@ -211,13 +309,18 @@ redbin: context [
 		compressed?: (as-integer p/1) and redbin-compressed-mask = redbin-compressed-mask
 		sym-table?:  (as-integer p/1) and redbin-symbol-table-mask = redbin-symbol-table-mask
 		p: p + 1
-
+		p4: as int-ptr! p
+		count: p4/1						;-- read records number
+		len: p4/2						;-- read records size in bytes
+		p4: p4 + 2						;-- skip both fields
+		p: as byte-ptr! p4
+		
 		;----------------
 		;-- get symbol table if we have it.
 		;----------------
 		table: null
 		if sym-table? [
-			p4: as int-ptr! p
+			preprocess-symbols p4
 			table: p4 + 2
 			p: p + 8 + (p4/1 * 4 + p4/2)
 		]
@@ -226,10 +329,14 @@ redbin: context [
 		;-- decode values
 		;----------------
 		s: GET_BUFFER(parent)
-		base: s/tail
+		root-base: s/tail
+		end: p + len
+		
 		while [p < end][
 			p: as byte-ptr! decode-value as int-ptr! p table parent
 		]
-		base
+		root-base
 	]
+	
+	boot-load: does [decode system/boot-data root]
 ]

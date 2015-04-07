@@ -34,7 +34,16 @@ context [
 	
 	pad: func [buf [any-string!] n [integer!] /local bytes][
 		unless zero? bytes: (length? buf) // n [
-			insert/dup tail buf null bytes
+			insert/dup tail buf null n - bytes
+		]
+	]
+	
+	preprocess-directives: func [blk][
+		forall blk [
+			if blk/1 = #get-definition [			;-- temporary directive
+				value: select extracts/definitions blk/2
+				change/only/part blk value 2
+			]
 		]
 	]
 	
@@ -44,7 +53,7 @@ context [
 		emit select extracts/definitions type
 	]
 	
-	emit-ctx-info: func [word [any-word!] ctx [word!] /local entry pos][	
+	emit-ctx-info: func [word [any-word!] ctx [word!] /local entry pos][
 		entry: find contexts ctx
 		emit entry/3
 		either pos: find entry/2 to word! word [(index? pos) - 1][none]
@@ -109,17 +118,17 @@ context [
 		emit (index? pos) - 1							;-- emit index of symbol
 	]
 	
-	emit-word: func [word ctx [word! none!] index [integer! none!]][
+	emit-word: func [word ctx [word! none!] index [integer! none!] /local idx][
 		emit-type select [
 			word!		TYPE_WORD
 			set-word!	TYPE_SET_WORD
 			get-word!	TYPE_GET_WORD
 			refinement! TYPE_REFINEMENT
 			lit-word!	TYPE_LIT_WORD
-		] type?/word word
+		] type?/word :word
 		
 		emit-symbol word
-		idx: either ctx [emit-ctx-info word ctx][-1]	;-- -1 for global context
+		either ctx [idx: emit-ctx-info word ctx][emit idx: -1]	;-- -1 for global context
 		emit any [index idx -1]
 	]
 	
@@ -132,7 +141,6 @@ context [
 		][
 			type?/word blk
 		]
-	
 		emit-type select [
 			block!		TYPE_BLOCK
 			paren!		TYPE_PAREN
@@ -141,9 +149,10 @@ context [
 			set-path!	TYPE_SET_PATH
 		] type
 		
+		preprocess-directives blk
 		emit (index? blk) - 1							;-- head field
 		emit length? blk
-	
+		
 		forall blk [
 			item: blk/1
 			either any-block? :item [
@@ -153,11 +162,6 @@ context [
 					emit-block/sub item
 				]
 			][
-				if :item = #get-definition [			;-- temporary directive
-					value: select extracts/definitions blk/2
-					change/only/part blk value 2
-					item: blk/1
-				]
 				case [
 					unicode-char? :item [
 						value: item
@@ -167,8 +171,8 @@ context [
 					any-word? :item [
 						ctx: main-ctx
 						value: :item
-						either all [with local-word? to word! :item][				
-							idx: get-word-index/with to word! :item main-ctx			
+						either all [with local-word? to word! :item][
+							idx: get-word-index/with to word! :item main-ctx
 						][
 							if binding: find-binding :item [
 								set [ctx idx] binding
@@ -180,11 +184,13 @@ context [
 						value: :item
 					]
 				]
+				
 				switch type?/word :item [
 					word!
 					set-word!
+					lit-word!
 					refinement!
-					get-word! [emit-word item ctx idx]
+					get-word! [emit-word :item ctx idx]
 					string!	  [emit-string item]
 					issue!	  [emit-issue item]
 					integer!  [emit-integer item]
@@ -196,10 +202,16 @@ context [
 		index - 1										;-- return the block index
 	]
 	
-	emit-context: func [name [word!] spec [block!] /root][
+	emit-context: func [
+		name [word!] spec [block!] stack? [logic!] self? [logic!] /root
+		/local header
+	][
 		repend contexts [name spec index]
-		emit extracts/definitions/TYPE_CONTEXT or shift/left 1 8 ;-- header
+		header: extracts/definitions/TYPE_CONTEXT or shift/left 1 8 ;-- header
+		if stack? [header: header or shift/left 1 29]
+		if self?  [header: header or shift/left 1 28]
 		
+		emit header
 		emit length? spec
 		foreach word spec [emit-symbol word]
 		if root [index: index + 1]
@@ -222,6 +234,8 @@ context [
 		repend header [
 			"REDBIN"
 			#{0104}										;-- version: 1, flags: symbols
+			to-bin32 index - 1							;-- number of root records
+			to-bin32 length? buffer						;-- size of records in bytes
 			to-bin32 length? symbols
 			to-bin32 length? sym-string
 			sym-table

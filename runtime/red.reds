@@ -153,6 +153,7 @@ red: context [
 		_random/init
 		
 		stack/init
+		redbin/boot-load
 		
 		#if debug? = yes [
 			verbosity: 0

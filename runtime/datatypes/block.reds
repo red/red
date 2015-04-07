@@ -340,7 +340,14 @@ block: context [
 		blk: either null? parent [
 			_root
 		][
-			assert TYPE_OF(parent) = TYPE_BLOCK
+			assert any [
+				TYPE_OF(parent) = TYPE_BLOCK			;@@ replace with ANY_BLOCK
+				TYPE_OF(parent) = TYPE_PAREN
+				TYPE_OF(parent) = TYPE_PATH
+				TYPE_OF(parent) = TYPE_LIT_PATH
+				TYPE_OF(parent) = TYPE_SET_PATH
+				TYPE_OF(parent) = TYPE_GET_PATH
+			]
 			as red-block! ALLOC_TAIL(parent)
 		]
 		make-at blk size

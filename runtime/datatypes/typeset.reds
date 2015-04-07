@@ -55,16 +55,17 @@ typeset: context [
 		cnt
 	]
 	
-	create: func [
-		bs1 [integer!]									;-- pre-encoded in little-endian
-		bs2 [integer!]									;-- pre-encoded in little-endian
-		bs3 [integer!]									;-- pre-encoded in little-endian
+	make-at: func [
+		parent	[red-block!]
+		bs1		[integer!]								;-- pre-encoded in little-endian
+		bs2		[integer!]								;-- pre-encoded in little-endian
+		bs3		[integer!]								;-- pre-encoded in little-endian
 		return: [red-typeset!]
 		/local
-			ts	  [red-typeset!]
-			bits  [int-ptr!]
+			ts	 [red-typeset!]
+			bits [int-ptr!]
 	][
-		ts: as red-typeset! ALLOC_TAIL(root)
+		ts: as red-typeset! ALLOC_TAIL(parent)
 		ts/header: TYPE_TYPESET							;-- implicit reset of all header flags
 		
 		bits: as int-ptr! ts
@@ -72,6 +73,15 @@ typeset: context [
 		bits/3: bs2
 		bits/4: bs3
 		ts
+	]
+	
+	create: func [
+		bs1		[integer!]								;-- pre-encoded in little-endian
+		bs2		[integer!]								;-- pre-encoded in little-endian
+		bs3		[integer!]								;-- pre-encoded in little-endian
+		return: [red-typeset!]
+	][
+		make-at root bs1 bs2 bs3
 	]
 	
 	make-default: func [
@@ -244,7 +254,7 @@ typeset: context [
 		sets: as red-typeset! stack/push*
 		sets/header: TYPE_TYPESET						;-- implicit reset of all header flags
 		rs-clear sets
-
+		
 		either TYPE_OF(spec) = TYPE_BLOCK [
 			blk: as red-block! spec
 			s: GET_BUFFER(blk)
@@ -258,8 +268,9 @@ typeset: context [
 				type: s/offset + i
 			]
 		][
+
 			fire [TO_ERROR(script bad-make-arg) proto spec]
-		]
+		]		
 		sets
 	]
 
