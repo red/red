@@ -1014,11 +1014,10 @@ block: context [
 				result/header: TYPE_NONE					;-- change the stack 1st argument to none.
 			]
 		][
-			key: _hashtable/get table value hash/head case? last? reverse?
+			key: _hashtable/get table value hash/head step case? last? reverse?
 			either any [
 				key = null
 				all [part? key > part]
-				all [step > 1 (as-integer s/offset + blk/head - key) >> 4 % step <> 0]
 			][
 				result/header: TYPE_NONE
 			][
