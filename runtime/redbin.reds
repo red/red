@@ -163,7 +163,8 @@ redbin: context [
 		data: data + 3
 		s: GET_BUFFER(str)
 		copy-memory as byte-ptr! s/offset as byte-ptr! data size
-		s/tail: s/tail + size
+		
+		s/tail: as cell! (as byte-ptr! s/offset) + size
 		string/add-terminal-NUL as byte-ptr! s/tail unit
 		
 		data: as int-ptr! ((as byte-ptr! data) + size)
