@@ -147,6 +147,7 @@ context [
 			path!		TYPE_PATH
 			lit-path!	TYPE_LIT_PATH
 			set-path!	TYPE_SET_PATH
+			get-path	TYPE_GET_PATH
 		] type
 		
 		preprocess-directives blk
