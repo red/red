@@ -3156,7 +3156,7 @@ system-dialect: make-profilable context [
 		emitter/libc-init?: no
 	]
 	
-	comp-runtime-prolog: func [red? [logic!]payload [binary! none!] /local script][
+	comp-runtime-prolog: func [red? [logic!] payload [binary! none!] /local script][
 		script: either encap? [
 			set-cache-base %system/runtime/
 			%common.reds
@@ -3271,9 +3271,10 @@ system-dialect: make-profilable context [
 				opts/runtime?
 			][
 				comp-start								;-- init libC properly
+			]		
+			if opts/runtime? [
+				comp-runtime-prolog to logic! loaded  all [loaded job-data/3]
 			]
-			
-			if opts/runtime? [comp-runtime-prolog to logic! loaded job-data/3]
 			
 			set-verbose-level opts/verbosity
 			foreach file files [
