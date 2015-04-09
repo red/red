@@ -1199,6 +1199,11 @@ Red [
 		res: parse "abc|def" [collect [any [keep some alpha | skip]]]
 		--assert res = ["abc" "def"]
 		
+	--test-- "str-ext53 - issue #1093"
+		se53-copied: copy ""
+		--assert parse "abcde" ["xyz" | copy s to end (se53: :s)]
+		--assert "abcde" = se53-copied
+		
 ===end-group===
 
 ===start-group=== "string-skipping"
