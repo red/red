@@ -53,14 +53,23 @@ context [
 		emit select extracts/definitions type
 	]
 	
-	emit-ctx-info: func [word [any-word!] ctx [word!] /local entry pos][
+	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
+		unless ctx [emit -1 return -1]				;-- -1 for global context
 		entry: find contexts ctx
-		emit entry/3
-		either pos: find entry/2 to word! word [(index? pos) - 1][none]
+		
+		either pos: find entry/2 to word! word [
+			emit entry/3
+			(index? pos) - 1
+		][
+			emit -1
+			-1
+		]
 	]
 	
-	emit-decimal: func [value [integer!]][
-			
+	emit-float: func [value [decimal!]][
+		pad buffer 8
+		emit-type 'TYPE_FLOAT
+		append buffer IEEE-754/to-binary64 value
 	]
 	
 	emit-char: func [value [integer!]][
@@ -118,7 +127,7 @@ context [
 		emit (index? pos) - 1							;-- emit index of symbol
 	]
 	
-	emit-word: func [word ctx [word! none!] index [integer! none!] /local idx][
+	emit-word: func [word ctx [word! none!] ctx-idx [integer! none!] /local idx][
 		emit-type select [
 			word!		TYPE_WORD
 			set-word!	TYPE_SET_WORD
@@ -126,10 +135,9 @@ context [
 			refinement! TYPE_REFINEMENT
 			lit-word!	TYPE_LIT_WORD
 		] type?/word :word
-		
 		emit-symbol word
-		either ctx [idx: emit-ctx-info word ctx][emit idx: -1]	;-- -1 for global context
-		emit any [index idx -1]
+		idx: emit-ctx-info word ctx
+		emit any [ctx-idx idx]
 	]
 	
 	emit-block: func [blk [any-block!] /with main-ctx [word!] /sub /local type item binding ctx idx][
@@ -167,7 +175,6 @@ context [
 					unicode-char? :item [
 						value: item
 						item: #"_"						;-- placeholder just to pass the char! type to item
-						emit-char to integer! next value
 					]
 					any-word? :item [
 						ctx: main-ctx
@@ -192,10 +199,13 @@ context [
 					lit-word!
 					refinement!
 					get-word! [emit-word :item ctx idx]
+					file!
+					url!
 					string!	  [emit-string item]
 					issue!	  [emit-issue item]
 					integer!  [emit-integer item]
 					decimal!  [emit-float item]
+					char!	  [emit-char to integer! next value]
 				]
 			]
 		]

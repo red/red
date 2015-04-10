@@ -122,25 +122,33 @@ redbin: context [
 		parent	[red-block!]
 		return: [int-ptr!]
 		/local
+			new	   [red-word!]
 			w	   [red-word!]
 			obj	   [red-object!]
 			sym	   [int-ptr!]
 			offset [integer!]
+			ctx	   [node!]
 	][
 		sym: table + data/2								;-- get the decoded symbol
-		w: as red-word! ALLOC_TAIL(parent)
-		w/header: data/1 and FFh
-		w/symbol: sym/1
+		new: as red-word! ALLOC_TAIL(parent)
+		new/header: data/1 and FFh
+		new/symbol: sym/1
 		
 		offset: data/3
 		either offset = -1 [
-			w/ctx: global-ctx
-			w/index: _context/find-word TO_CTX(global-ctx) sym/1 yes
+			new/ctx: global-ctx
+			w: _context/add-global sym/1
+			new/index: w/index
 		][
 			obj: as red-object! root-base + offset
 			assert TYPE_OF(obj) = TYPE_OBJECT
-			w/ctx: obj/ctx
-			w/index: data/4
+			ctx: obj/ctx
+			new/ctx: ctx
+			either data/4 = -1 [
+				new/index: _context/find-word TO_CTX(ctx) sym/1 yes
+			][
+				new/index: data/4
+			]
 		]
 		data + 4
 	]
@@ -204,7 +212,6 @@ redbin: context [
 		/local type
 	][
 		type: data/1 and FFh
-		
 		switch type [
 			REDBIN_PADDING		[
 				decode-value data + 1 table parent
@@ -332,7 +339,6 @@ redbin: context [
 		s: GET_BUFFER(parent)
 		root-base: s/tail
 		end: p + len
-		
 		while [p < end][
 			p: as byte-ptr! decode-value as int-ptr! p table parent
 		]

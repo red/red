@@ -1579,7 +1579,7 @@ red: context [
 			emit compose [
 				(to set-word! ctx) get-root-node (blk-idx)	;-- assign context
 			]
-			insert-lf -6
+			insert-lf -3
 		]
 		
 		symbol: either path [ctx][
@@ -1616,7 +1616,7 @@ red: context [
 			emit compose [
 				(to set-word! ctx) get-root-node (blk-idx)	;-- rebuild context
 			]
-			insert-lf -6
+			insert-lf -3
 		]
 
 		if proto [
@@ -2170,10 +2170,12 @@ red: context [
 		ctx: push-context copy symbols
 		ctx-idx: redbin/emit-context/root ctx symbols yes no
 		spec-idx: redbin/emit-block spec
-		emit compose [
-			(to set-word! ctx) get-root-node (ctx-idx) ;-- build context with value on stack
+		redirect-to literals [
+			emit compose [
+				(to set-word! ctx) get-root-node (ctx-idx) ;-- build context with value on stack
+			]
+			insert-lf -3
 		]
-		insert-lf -4
 		body-idx: either job/red-store-bodies? [redbin/emit-block/with body ctx][-1]
 		pop-locals
 
