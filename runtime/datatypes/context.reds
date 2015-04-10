@@ -65,13 +65,13 @@ _context: context [
 		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
 		
 		s: as series! ctx/symbols/value
+		id: (as-integer s/tail - s/offset) >> 4			;-- index is zero-base
 		word: as red-word! alloc-tail s
-		s: GET_BUFFER(s)								;-- refreshing s pointer
 
 		word/header: TYPE_WORD							;-- implicit reset of all header flags
 		word/ctx: 	 global-ctx
 		word/symbol: symbol
-		word/index:  (as-integer s/tail - s/offset) >> 4 - 1
+		word/index:  id
 
 		value: alloc-tail as series! ctx/values/value
 		value/header: TYPE_UNSET
@@ -94,10 +94,11 @@ _context: context [
 		if id <> -1 [return null]
 
 		s: as series! ctx/symbols/value
+		id: (as-integer s/tail - s/offset) >> 4			;-- index is zero-base
 		w: as red-word! alloc-tail s
 		copy-cell as cell! word as cell! w
 		w/ctx: ctx/self
-		w/index: (as-integer s/tail - s/offset) >> 4 - 1
+		w/index: id
 		
 		s: as series! ctx/symbols/value					;-- refreshing pointer after alloc-tail
 		copy-cell value alloc-tail as series! ctx/values/value
@@ -119,7 +120,7 @@ _context: context [
 		if id <> -1 [return id]
 		
 		s: as series! ctx/symbols/value
-		id: (as-integer s/tail - s/offset) >> 4
+		id: (as-integer s/tail - s/offset) >> 4			;-- index is zero-base
 
 		sym: alloc-tail s
 		copy-cell as cell! word sym
