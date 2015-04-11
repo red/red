@@ -19,7 +19,8 @@ Red/System [
 #define REDBIN_SELF_MASK	10000000h
 
 redbin: context [
-
+	verbose: 0
+	
 	#enum redbin-value-type! [
 		REDBIN_PADDING: 	0
 		REDBIN_REFERENCE: 	255
@@ -212,8 +213,10 @@ redbin: context [
 		/local type
 	][
 		type: data/1 and FFh
+		#if debug? = yes [if verbose > 0 [print [#"<" type #">"]]]
+		
 		switch type [
-			REDBIN_PADDING		[
+			REDBIN_PADDING	[
 				decode-value data + 1 table parent
 			]
 			TYPE_DATATYPE	[
@@ -299,7 +302,7 @@ redbin: context [
 			table		[int-ptr!]
 			len			[integer!]
 			count		[integer!]
-			i
+			i			[integer!]
 	][
 		;----------------
 		;-- decode header
@@ -339,8 +342,12 @@ redbin: context [
 		s: GET_BUFFER(parent)
 		root-base: s/tail
 		end: p + len
+		#if debug? = yes [if verbose > 0 [i: 0]]
+		
 		while [p < end][
+			#if debug? = yes [if verbose > 0 [print [i #":"]]]
 			p: as byte-ptr! decode-value as int-ptr! p table parent
+			#if debug? = yes [if verbose > 0 [i: i + 1 print lf]]
 		]
 		root-base
 	]
