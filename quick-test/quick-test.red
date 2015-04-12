@@ -17,6 +17,8 @@ qt-file-asserts: 0
 qt-file-passes: 0 
 qt-file-failures: 0
 
+qt-file-name: none
+
 ;; group switches
 qt-group-name-not-printed: true
 qt-group?: false
