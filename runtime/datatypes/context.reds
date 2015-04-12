@@ -246,6 +246,44 @@ _context: context [
 		node: word/ctx
 		get-in word TO_CTX(node)
 	]
+	
+	clone: func [
+		node	[node!]
+		return:	[node!]
+		/local
+			sym		[red-word!]
+			ctx		[red-context!]
+			new		[node!]
+			src		[series!]
+			dst		[series!]
+			slots	[integer!]
+	][
+		ctx: TO_CTX(node)
+		src: as series! ctx/symbols/value
+		slots: (as-integer (src/tail - src/offset)) >> 4
+		
+		new: create 
+			slots
+			ctx/header and flag-series-stk <> 0
+			ctx/header and set-self-mask   <> 0
+		
+		ctx: TO_CTX(new)
+		dst: as series! ctx/symbols/value
+		dst/tail: dst/offset + slots
+		sym: as red-word! dst/offset
+		
+		copy-memory
+			as byte-ptr! sym
+			as byte-ptr! src/offset
+			slots << 4
+		
+		while [slots > 0][
+			sym/ctx: new
+			sym: sym + 1
+			slots: slots - 1
+		]
+		new
+	]
 
 	create: func [
 		slots		[integer!]							;-- max number of words in the context
