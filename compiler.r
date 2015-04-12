@@ -1612,9 +1612,8 @@ red: context [
 		
 
 		unless all [empty? locals-stack not iterator-pending?][	;-- in a function or iteration block
-;;@@@@@@@ TBD: clone the context!
 			emit compose [
-				(to set-word! ctx) get-root-node (blk-idx)	;-- rebuild context
+				(to set-word! ctx) _context/clone get-root-node (blk-idx)	;-- rebuild context
 			]
 			insert-lf -3
 		]
@@ -2574,6 +2573,7 @@ red: context [
 							exit
 						]
 					]
+					add-symbol value					;-- ensure the word is defined in global context
 				]
 				get-word! [
 					if head? path [
