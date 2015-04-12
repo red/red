@@ -18,6 +18,11 @@ context [
 	
 	stats:		make block! 100
 	profile?:	no
+	debug?:		no
+	
+	UTF8-char:	lexer/UTF8-char
+	chars: 		make block!  10'000
+	decoded: 	make string! 10'000
 	
 	profile: func [blk /local pos][
 		foreach item blk [
@@ -40,11 +45,40 @@ context [
 	
 	preprocess-directives: func [blk][
 		forall blk [
-			if blk/1 = #get-definition [			;-- temporary directive
+			if blk/1 = #get-definition [				;-- temporary directive
 				value: select extracts/definitions blk/2
 				change/only/part blk value 2
 			]
 		]
+	]
+	
+	decode-UTF8: func [str [string! file! url!] /local upper s e cp unit new][
+		upper: 0
+
+		parse/all/case str [
+			any [s: UTF8-char e: (
+				cp: either e = next s [s/1][			;-- shortcut for ASCII codepoints
+					lexer/decode-UTF8-char/redbin as-binary copy/part s e
+				]
+				append chars cp: to integer! cp
+				upper: max upper cp
+			)]
+		]
+		if upper < 128 [								;-- shortcut for ASCII strings
+			clear chars
+			return reduce [str 1]
+		]
+		new: clear decoded
+		
+		unit: either upper < 65536 [
+			foreach cp chars [insert tail new to-bin16 cp]
+			2
+		][
+			foreach cp chars [insert tail new to-bin32 cp]
+			4
+		]
+		clear chars
+		reduce [new unit]
 	]
 	
 	emit: func [n [integer!]][insert tail buffer to-bin32 n]
@@ -56,7 +90,6 @@ context [
 	emit-ctx-info: func [word [any-word!] ctx [word! none!] /local entry pos][
 		unless ctx [emit -1 return -1]				;-- -1 for global context
 		entry: find contexts ctx
-		
 		either pos: find entry/2 to word! word [
 			emit entry/3
 			(index? pos) - 1
@@ -66,10 +99,37 @@ context [
 		]
 	]
 	
-	emit-float: func [value [decimal!]][
+	emit-unset: does [emit-type 'TYPE_UNSET]
+
+	emit-none: does [emit-type 'TYPE_NONE]
+	
+	emit-datatype: func [type [datatype!]][
+		emit-type 'TYPE_DATATYPE
+		emit select extracts/definitions to word! mold type
+	]
+	
+	emit-logic: func [value [logic!]][
+		emit-type 'TYPE_LOGIC
+		emit to integer! value
+	]
+	
+	emit-float: func [value [decimal!] /local bin][
 		pad buffer 8
 		emit-type 'TYPE_FLOAT
-		append buffer IEEE-754/to-binary64 value
+		bin: IEEE-754/to-binary64 value
+		emit to integer! copy/part bin 4
+		emit to integer! skip bin 4
+	]
+	
+	emit-fp-special: func [value [issue!]][
+		pad buffer 8
+		emit-type 'TYPE_FLOAT
+		switch next value [
+			#INF  [emit to integer! #{7FF00000} emit 0]
+			#INF- [emit to integer! #{FFF00000} emit 0]
+			#NaN  [emit to integer! #{7FF80000} emit 0]			;-- smallest quiet NaN
+			#0-	  [emit to integer! #{80000000} emit 0]
+		]
 	]
 	
 	emit-char: func [value [integer!]][
@@ -88,24 +148,31 @@ context [
 		emit v2
 		emit v3
 		
-		if root [index: index + 1]
+		if root [
+			if debug? [print [index ": typeset"]]
+			index: index + 1
+		]
 		index - 1
 	]
 	
-	emit-string: func [str [any-string!] /root /local type][
+	emit-string: func [str [any-string!] /root /local type unit][
 		type: select [
 			string! TYPE_STRING
 			file!	TYPE_FILE
 			url!	TYPE_URL
 		] type?/word str
-		
-		emit extracts/definitions/:type or shift/left 1 8 ;-- header
-		emit (index? str) - 1							  ;-- head
-		emit length? str
+
+		set [str unit] decode-UTF8 str
+		emit extracts/definitions/:type or shift/left unit 8 ;-- header
+		emit (index? str) - 1								 ;-- head
+		emit (length? str) / unit
 		append buffer str
 		pad buffer 4
-		
-		if root [index: index + 1]
+
+		if root [
+			if debug? [print [index ": string :" copy/part str 40]]
+			index: index + 1
+		]
 		index - 1
 	]
 	
@@ -117,7 +184,7 @@ context [
 	emit-symbol: func [word /local pos s][
 		word: to word! word
 		
-		unless pos: find symbols word [
+		unless pos: find/case symbols word [
 			s: tail sym-string
 			repend sym-string [word null]
 			append sym-table to-bin32 (index? s) - 1
@@ -135,19 +202,23 @@ context [
 			refinement! TYPE_REFINEMENT
 			lit-word!	TYPE_LIT_WORD
 		] type?/word :word
+		
 		emit-symbol word
 		idx: emit-ctx-info word ctx
 		emit any [ctx-idx idx]
 	]
 	
-	emit-block: func [blk [any-block!] /with main-ctx [word!] /sub /local type item binding ctx idx][
+	emit-block: func [
+		blk [any-block!] /with main-ctx [word!] /sub
+		/local type item binding ctx idx emit?
+	][
 		if profile? [profile blk]
 		
-		type: either all [path? blk get-word? blk/1][
+		type: either all [path? :blk get-word? blk/1][
 			blk/1: to word! blk/1 						;-- workround for missing get-path! in R2
 			'get-path
 		][
-			type?/word blk
+			type?/word :blk
 		]
 		emit-type select [
 			block!		TYPE_BLOCK
@@ -161,20 +232,23 @@ context [
 		preprocess-directives blk
 		emit (index? blk) - 1							;-- head field
 		emit length? blk
+		if all [not sub debug?][
+			print [index ": block" length? blk #":" copy/part mold/flat blk 60]
+		]
 		
 		forall blk [
 			item: blk/1
 			either any-block? :item [
 				either with [
-					emit-block/sub/with item main-ctx 
+					emit-block/sub/with :item main-ctx 
 				][
-					emit-block/sub item
+					emit-block/sub :item
 				]
 			][
-				case [
+				emit?: case [
 					unicode-char? :item [
-						value: item
-						item: #"_"						;-- placeholder just to pass the char! type to item
+						emit-char to integer! next item
+						no
 					]
 					any-word? :item [
 						ctx: main-ctx
@@ -186,26 +260,34 @@ context [
 								set [ctx idx] binding
 							]
 						]
+						yes
 					]
 					float-special? :item [
-						;emit-fp-special item
-						value: :item
+						emit-fp-special item
+						no
 					]
+					'else [yes]
 				]
 				
-				switch type?/word :item [
-					word!
-					set-word!
-					lit-word!
-					refinement!
-					get-word! [emit-word :item ctx idx]
-					file!
-					url!
-					string!	  [emit-string item]
-					issue!	  [emit-issue item]
-					integer!  [emit-integer item]
-					decimal!  [emit-float item]
-					char!	  [emit-char to integer! next value]
+				if emit? [
+					switch type?/word get/any 'item [
+						word!
+						set-word!
+						lit-word!
+						refinement!
+						get-word! [emit-word :item ctx idx]
+						file!
+						url!
+						string!	  [emit-string item]
+						issue!	  [emit-issue item]
+						integer!  [emit-integer item]
+						decimal!  [emit-float item]
+						char!	  [emit-char to integer! item]
+						datatype! [emit-datatype item]
+						logic!	  [emit-logic item]
+						none! 	  [emit-none]
+						unset! 	  [emit-unset]
+					]
 				]
 			]
 		]
@@ -217,7 +299,7 @@ context [
 		name [word!] spec [block!] stack? [logic!] self? [logic!] /root
 		/local header
 	][
-		repend contexts [name spec index]
+		repend contexts [name copy spec index]			;-- COPY to avoid late word decorations
 		header: extracts/definitions/TYPE_CONTEXT or shift/left 1 8 ;-- header
 		if stack? [header: header or shift/left 1 29]
 		if self?  [header: header or shift/left 1 28]
@@ -225,7 +307,10 @@ context [
 		emit header
 		emit length? spec
 		foreach word spec [emit-symbol word]
-		if root [index: index + 1]
+		if root [
+			if debug? [print [index ": context :" copy/part mold/flat spec 50 "," stack? "," self?]]
+			index: index + 1
+		]
 		index - 1
 	]
 	
