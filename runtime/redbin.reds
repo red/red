@@ -27,6 +27,7 @@ redbin: context [
 	]
 	
 	root-base: as red-value! 0
+	root-offset: 0
 	
 	preprocess-symbols: func [
 		base 	[int-ptr!]
@@ -141,7 +142,7 @@ redbin: context [
 			w: _context/add-global sym/1
 			new/index: w/index
 		][
-			obj: as red-object! root-base + offset
+			obj: as red-object! block/rs-abs-at root offset + root-offset
 			assert TYPE_OF(obj) = TYPE_OBJECT
 			ctx: obj/ctx
 			new/ctx: ctx
@@ -173,6 +174,7 @@ redbin: context [
 		s: GET_BUFFER(str)
 		copy-memory as byte-ptr! s/offset as byte-ptr! data size
 		
+		s/flags: s/flags and flag-unit-mask or unit
 		s/tail: as cell! (as byte-ptr! s/offset) + size
 		string/add-terminal-NUL as byte-ptr! s/tail unit
 		
@@ -192,6 +194,7 @@ redbin: context [
 		size: data/3
 		sz: size
 		if zero? sz [sz: 1]
+		#if debug? = yes [if verbose > 0 [print [#":" size #":"]]]
 		
 		blk: block/make-in parent sz
 		blk/head: data/2
@@ -340,7 +343,8 @@ redbin: context [
 		;-- decode values
 		;----------------
 		s: GET_BUFFER(parent)
-		root-base: s/tail
+		root-offset: (as-integer s/tail - s/offset) >> 4
+		
 		end: p + len
 		#if debug? = yes [if verbose > 0 [i: 0]]
 		
@@ -349,6 +353,8 @@ redbin: context [
 			p: as byte-ptr! decode-value as int-ptr! p table parent
 			#if debug? = yes [if verbose > 0 [i: i + 1 print lf]]
 		]
+		
+		root-base: (block/rs-head parent) + root-offset
 		root-base
 	]
 	
