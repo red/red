@@ -70,8 +70,8 @@ crush: context [							;-- LZ77
 		crush/bit-buf: 0
 		crush/bit-count: 0
 		crush/index: 0
-		crush/buf-size: either input = null [size / 4][size * 6]
-		crush/buf: allocate crush/buf-size no
+		crush/buf-size: either input = null [size][size * 6]
+		if input <> null [crush/buf: allocate crush/buf-size no]
 	]
 
 	get-buf: func [
@@ -218,6 +218,7 @@ crush: context [							;-- LZ77
 
 		crush: declare crush!
 		init crush length null
+		crush/buf: outbuf
 
 		size: CRUSH_BUF_SIZE
 		while [length > 0][
@@ -383,8 +384,6 @@ crush: context [							;-- LZ77
 			length: length - CRUSH_BUF_SIZE
 		]
 
-		copy-memory outbuf crush/buf crush/index
-		free crush/buf
 		free as byte-ptr! head
 		free as byte-ptr! prev
 		free buf
