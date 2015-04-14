@@ -223,21 +223,19 @@ redbin: context [
 				decode-value data + 1 table parent
 			]
 			TYPE_DATATYPE	[
-				copy-cell as cell! datatype/push data/2 ALLOC_TAIL(parent)
-				stack/pop 1
+				datatype/make-in parent data/2
 				data + 2
 			]
 			TYPE_UNSET		[
-				copy-cell unset-value ALLOC_TAIL(parent)
+				unset/make-in parent
 				data + 1
 			]
 			TYPE_NONE		[
-				copy-cell none-value ALLOC_TAIL(parent)
+				none/make-in parent
 				data + 1
 			]
 			TYPE_LOGIC		[
-				copy-cell as cell! logic/push as logic! data/2 ALLOC_TAIL(parent)
-				stack/pop 1
+				logic/make-in parent as logic! data/2
 				data + 2
 			]
 			TYPE_PATH
@@ -250,18 +248,15 @@ redbin: context [
 			TYPE_FILE
 			TYPE_URL		[decode-string data parent]
 			TYPE_CHAR		[
-				copy-cell as cell! char/push data/2 ALLOC_TAIL(parent)
-				stack/pop 1
+				char/make-in parent data/2
 				data + 2
 			]
 			TYPE_INTEGER	[
-				copy-cell as cell! integer/push data/2 ALLOC_TAIL(parent)
-				stack/pop 1
+				integer/make-in parent data/2
 				data + 2
 			]
 			TYPE_FLOAT	[
-				copy-cell as cell! float/push64 data/2 data/3 ALLOC_TAIL(parent)
-				stack/pop 1
+				float/make-in parent data/2 data/3
 				data + 3
 			]
 			TYPE_CONTEXT	[decode-context data table parent]
@@ -272,7 +267,7 @@ redbin: context [
 			TYPE_REFINEMENT [decode-word data table parent]
 			TYPE_ISSUE		[decode-issue data table parent]
 			TYPE_TYPESET	[
-				typeset/make-at parent data/2 data/3 data/4
+				typeset/make-in parent data/2 data/3 data/4
 				data + 4
 			]
 			TYPE_NATIVE

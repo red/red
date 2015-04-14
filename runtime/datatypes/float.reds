@@ -258,17 +258,21 @@ float: context [
 		left
 	]
 
-	load-in: func [
-		blk	  	[red-block!]
-		value 	[float!]
+	make-in: func [
+		parent	[red-block!]
+		high	[integer!]
+		low		[integer!]
+		return: [red-float!]
 		/local
-			fl [red-float!]
+			cell [cell!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/load-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "float/make-in"]]
 
-		fl: as red-float! ALLOC_TAIL(blk)
-		fl/header: TYPE_FLOAT
-		fl/value: value
+		cell: ALLOC_TAIL(parent)
+		cell/header: TYPE_FLOAT
+		cell/data2: low
+		cell/data3: high
+		as red-float! cell
 	]
 	
 	push64: func [

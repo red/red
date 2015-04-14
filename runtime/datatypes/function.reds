@@ -375,7 +375,7 @@ _function: context [
 							blk < tail
 							TYPE_OF(blk) = TYPE_BLOCK
 						][
-							typeset/make-in list blk
+							typeset/make-with list blk
 						][
 							typeset/make-default list
 						]
@@ -406,7 +406,7 @@ _function: context [
 						interpreter/return-type: dt/value	;@@ get rid of this
 					][
 						block/rs-append list value
-						typeset/make-in list blk
+						typeset/make-with list blk
 					]
 				]
 				default [0]								;-- ignore other values

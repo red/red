@@ -88,6 +88,21 @@ datatype: context [
 		]
 	]
 	
+	make-in: func [
+		parent	[red-block!]
+		type	[integer!]
+		return: [red-datatype!]
+		/local
+			dt  [red-datatype!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "datatype/make-in"]]
+
+		dt: as red-datatype! ALLOC_TAIL(parent)
+		dt/header: TYPE_DATATYPE						;-- implicit reset of all header flags	
+		dt/value: type
+		dt
+	]
+	
 	push: func [
 		type	[integer!]
 		return: [red-datatype!]

@@ -15,13 +15,13 @@ none-value: declare red-value!							;-- preallocate none! value
 none: context [
 	verbose: 0
 	
-	rs-push: func [
-		blk		[red-block!]
+	make-in: func [
+		parent	[red-block!]
 		return:	[red-value!]							;-- return cell pointer
 		/local
 			cell 	[red-none!]
 	][
-		cell: as red-none! ALLOC_TAIL(blk)
+		cell: as red-none! ALLOC_TAIL(parent)
 		cell/header: TYPE_NONE							;-- implicit reset of all header flags
 		as red-value! cell
 	]

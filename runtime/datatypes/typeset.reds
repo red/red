@@ -55,7 +55,7 @@ typeset: context [
 		cnt
 	]
 	
-	make-at: func [
+	make-in: func [
 		parent	[red-block!]
 		bs1		[integer!]								;-- pre-encoded in little-endian
 		bs2		[integer!]								;-- pre-encoded in little-endian
@@ -81,7 +81,7 @@ typeset: context [
 		bs3		[integer!]								;-- pre-encoded in little-endian
 		return: [red-typeset!]
 	][
-		make-at root bs1 bs2 bs3
+		make-in root bs1 bs2 bs3
 	]
 	
 	make-default: func [
@@ -104,7 +104,7 @@ typeset: context [
 		BS_CLEAR_BIT(bbits TYPE_UNSET)
 	]
 	
-	make-in: func [
+	make-with: func [
 		blk	  [red-block!]
 		spec  [red-block!]
 		/local
