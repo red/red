@@ -70,8 +70,8 @@ crush: context [							;-- LZ77
 		crush/bit-buf: 0
 		crush/bit-count: 0
 		crush/index: 0
-		crush/buf-size: either input = null [size][size * 6]
-		if input <> null [crush/buf: allocate crush/buf-size no]
+		crush/buf-size: size
+		if input <> null [crush/buf: allocate crush/buf-size]
 	]
 
 	get-buf: func [
@@ -89,7 +89,7 @@ crush: context [							;-- LZ77
 
 		if index >= buf-size [
 			buf-size: buf-size + 4194304
-			buf: allocate buf-size no
+			buf: allocate buf-size
 			move-memory buf crush/buf crush/buf-size
 			free crush/buf
 			crush/buf: buf
@@ -182,6 +182,8 @@ crush: context [							;-- LZ77
 		p
 	]
 
+	;-- header of compressed data:
+	;-- algorithm (4), compressed size (4), orignal size (4)
 	compress: func [
 		data	[byte-ptr!]
 		length	[integer!]
@@ -212,13 +214,15 @@ crush: context [							;-- LZ77
 			crush		[crush!]
 	][
 		hash-size: CRUSH_HASH1_SIZE + CRUSH_HASH2_SIZE
-		head: as int-ptr! allocate hash-size * size? integer! no
-		prev: as int-ptr! allocate CRUSH_W_SIZE * size? integer! no
-		buf: allocate CRUSH_BUF_SIZE no
+		head: as int-ptr! allocate hash-size * size? integer!
+		prev: as int-ptr! allocate CRUSH_W_SIZE * size? integer!
+		buf: allocate CRUSH_BUF_SIZE
 
 		crush: declare crush!
 		init crush length null
-		crush/buf: outbuf + 4			;-- skip size of compressed data
+		output: as int-ptr! outbuf
+		output/3: length				;-- save orignal file size
+		crush/buf: outbuf + 12			;-- skip header
 
 		size: CRUSH_BUF_SIZE
 		while [length > 0][
@@ -389,8 +393,8 @@ crush: context [							;-- LZ77
 		free buf
 
 		head: as int-ptr! outbuf
-		head/value: crush/index				;-- save size of compressed data
-		crush/index
+		head/2: crush/index				;-- save size of compressed data
+		crush/index + 12
 	]
 
 	decompress: func [
@@ -413,9 +417,9 @@ crush: context [							;-- LZ77
 			crush		[crush!]
 	][
 		head: as int-ptr! data
-		length: head/value
+		length: head/2
 		crush: declare crush!
-		init crush length data + 4					;-- skip size of data
+		init crush head/3 data + 12					;-- skip size of data
 
 		head: as int-ptr! crush/input
 		while [
