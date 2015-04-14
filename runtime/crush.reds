@@ -185,8 +185,8 @@ crush: context [							;-- LZ77
 	compress: func [
 		data	[byte-ptr!]
 		length	[integer!]
-		written [int-ptr!]
-		return: [byte-ptr!]
+		outbuf	[byte-ptr!]
+		return: [integer!]
 		/local
 			i			[integer!]
 			s			[integer!]
@@ -383,8 +383,13 @@ crush: context [							;-- LZ77
 			length: length - CRUSH_BUF_SIZE
 		]
 
-		written/value: crush/index
-		crush/buf
+		copy-memory outbuf crush/buf crush/index
+		free crush/buf
+		free as byte-ptr! head
+		free as byte-ptr! prev
+		free buf
+
+		crush/index
 	]
 
 	decompress: func [

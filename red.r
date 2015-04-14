@@ -216,10 +216,10 @@ redc: context [
 		
 		crush-lib: load/library crush-lib
 		crush-compress: make routine! [
-			data	[string!]
+			in		[binary!]
 			size	[integer!]							;-- size in bytes
-			written [struct! [num [integer!]]] 
-			return: [string!]
+			out		[binary!]							;-- output buffer (pre-allocated)
+			return: [integer!]							;-- compressed data size
 		] crush-lib "crush/compress"
 	]
 	
