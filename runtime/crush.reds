@@ -218,7 +218,7 @@ crush: context [							;-- LZ77
 
 		crush: declare crush!
 		init crush length null
-		crush/buf: outbuf
+		crush/buf: outbuf + 4			;-- skip size of compressed data
 
 		size: CRUSH_BUF_SIZE
 		while [length > 0][
@@ -388,12 +388,13 @@ crush: context [							;-- LZ77
 		free as byte-ptr! prev
 		free buf
 
+		head: as int-ptr! outbuf
+		head/value: crush/index				;-- save size of compressed data
 		crush/index
 	]
 
 	decompress: func [
 		data	[byte-ptr!]
-		length	[integer!]
 		written [int-ptr!]
 		return: [byte-ptr!]
 		/local
@@ -405,13 +406,16 @@ crush: context [							;-- LZ77
 			len			[integer!]
 			log			[integer!]
 			size		[integer!]
+			length		[integer!]
 			buf			[byte-ptr!]
 			head		[int-ptr!]
 			p4			[int-ptr!]
 			crush		[crush!]
 	][
+		head: as int-ptr! data
+		length: head/value
 		crush: declare crush!
-		init crush length data
+		init crush length data + 4					;-- skip size of data
 
 		head: as int-ptr! crush/input
 		while [
@@ -489,7 +493,7 @@ crush: context [							;-- LZ77
 			]
 		]
 
-		written/value: crush/index
+		unless written = null [written/value: crush/index]
 		crush/buf
 	]
 ]
