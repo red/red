@@ -27,6 +27,7 @@ red: context [
 	;#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds
+	#include %crush.reds
 	
 	;-- Datatypes --
 	

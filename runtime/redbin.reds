@@ -26,7 +26,8 @@ redbin: context [
 		REDBIN_REFERENCE: 	255
 	]
 	
-	root-base: as red-value! 0
+	buffer:		 as byte-ptr! 0
+	root-base:	 as red-value! 0
 	root-offset: 0
 	
 	preprocess-symbols: func [
@@ -353,5 +354,8 @@ redbin: context [
 		root-base
 	]
 	
-	boot-load: does [decode system/boot-data root]
+	boot-load: does [
+		buffer: crush/decompress system/boot-data null
+		decode buffer root
+	]
 ]

@@ -324,7 +324,7 @@ context [
 		index: 0
 	]
 	
-	finish: func [spec [block!] /local flags compress? written data][
+	finish: func [spec [block!] /local flags compress? data out len][
 		pad sym-string 8
 		flags: #{04}
 		if compress?: find spec 'compress [flags: flags or #{02}]
@@ -341,11 +341,13 @@ context [
 			sym-string
 		]
 		insert buffer header
+		
 		if compress? [
-			written: make struct! [num [integer!]] none
-			data: redc/crush-compress buffer length? buffer written
-			?? data
-			?? written
+			out: make binary! len: length? buffer
+			insert/dup out null len
+			len: redc/crush-compress buffer len out
+			clear buffer
+			insert/part buffer out len
 		]
 	]
 ]
