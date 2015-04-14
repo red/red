@@ -324,12 +324,15 @@ context [
 		index: 0
 	]
 	
-	finish: func [flags [block! none!]][
+	finish: func [spec [block!] /local flags compress? written data][
 		pad sym-string 8
+		flags: #{04}
+		if compress?: find spec 'compress [flags: flags or #{02}]
 		
 		repend header [
 			"REDBIN"
-			#{0104}										;-- version: 1, flags: symbols
+			#{01}										;-- version: 1
+			flags										;-- flags: symbols [+ options]
 			to-bin32 index - 1							;-- number of root records
 			to-bin32 length? buffer						;-- size of records in bytes
 			to-bin32 length? symbols
@@ -338,5 +341,11 @@ context [
 			sym-string
 		]
 		insert buffer header
+		if compress? [
+			written: make struct! [num [integer!]] none
+			data: redc/crush-compress buffer length? buffer written
+			?? data
+			?? written
+		]
 	]
 ]

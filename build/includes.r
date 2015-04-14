@@ -52,6 +52,7 @@ write %build/bin/sources.r set-cache [
 		%tools.reds
 		%unicode.reds
 		%simple-io.reds
+		%crush.reds
 		%datatypes/ [
 			%action.reds
 			%block.reds
@@ -102,6 +103,7 @@ write %build/bin/sources.r set-cache [
 	]
 	%utils/ [
 		%extractor.r
+		%redbin.r
 	]
 	%system/ [
 		%compiler.r

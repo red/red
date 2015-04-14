@@ -3273,7 +3273,7 @@ system-dialect: make-profilable context [
 				comp-start								;-- init libC properly
 			]		
 			if opts/runtime? [
-				comp-runtime-prolog to logic! loaded  all [loaded job-data/3]
+				comp-runtime-prolog to logic! loaded all [loaded job-data/3]
 			]
 			
 			set-verbose-level opts/verbosity

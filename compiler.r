@@ -3483,7 +3483,7 @@ red: context [
 	]
 	
 	comp-finish: does [
-		redbin/finish none
+		redbin/finish pick [[compress] []] to logic! redc/load-lib?
 	]
 	
 	comp-source: func [code [block!] /local user main][

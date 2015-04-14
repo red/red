@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Compress and decompress algorithms for Red runtime"
 	Author:  "Qingtian Xie"
-	File: 	 %compress.reds
+	File: 	 %crush.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2015 Nenad Rakocevic & Xie Qingtian. All rights reserved."
 	License: {
@@ -10,7 +10,7 @@ Red/System [
 	}
 	Notes: {
 		Thanks for Ilya Muravyov making it in the Public Domain.
-		http://sourceforge.net/projects/crush/?source=navbar
+		http://sourceforge.net/projects/crush/
 	}
 ]
 
@@ -489,5 +489,3 @@ crush: context [							;-- LZ77
 		crush/buf
 	]
 ]
-
-#export [crush/compress]
