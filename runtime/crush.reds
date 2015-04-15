@@ -16,9 +16,9 @@ Red/System [
 
 crush: context [							;-- LZ77
 
-	#define CRUSH_W_BITS 		21			;-- window size (17..23)
-	#define CRUSH_W_SIZE 		2097152		;-- 1 << CRUSH_W_BITS
-	#define CRUSH_W_MASK 		2097151		;-- CRUSH_W_SIZE - 1
+	#define CRUSH_W_BITS 		18			;-- window size (17..23)
+	#define CRUSH_W_SIZE 		262144		;-- 1 << CRUSH_W_BITS
+	#define CRUSH_W_MASK 		262143		;-- CRUSH_W_SIZE - 1
 	#define CRUSH_SLOT_BITS 	4
 	#define CRUSH_NUM_SLOTS 	16			;-- 1 << CRUSH_SLOT_BITS
 
@@ -37,20 +37,20 @@ crush: context [							;-- LZ77
 	#define CRUSH_MIN_MATCH 	3
 	#define CRUSH_MAX_MATCH 	566			;-- (CRUSH_F - 1) + CRUSH_MIN_MATCH
 	
-	#define CRUSH_BUF_SIZE		67108864	;-- 1 << 26
+	#define CRUSH_BUF_SIZE		1048576		;-- 1 << 20  --> 1MB
 
 	#define CRUSH_TOO_FAR		65536		;-- 1 << 16
 
 	#define CRUSH_HASH1_LEN		3			;-- CRUSH_MIN_MATCH
 	#define CRUSH_HASH2_LEN		4			;-- CRUSH_MIN_MATCH + 1
-	#define CRUSH_HASH1_BITS	21
-	#define CRUSH_HASH2_BITS	24
-	#define CRUSH_HASH1_SIZE	2097152		;-- 1 << CRUSH_HASH1_BITS
-	#define CRUSH_HASH2_SIZE	16777216    ;-- 1 << CRUSH_HASH2_BITS
-	#define CRUSH_HASH1_MASK	2097151     ;-- CRUSH_HASH1_SIZE - 1
-	#define CRUSH_HASH2_MASK	16777215    ;-- CRUSH_HASH2_SIZE - 1
+	#define CRUSH_HASH1_BITS	18
+	#define CRUSH_HASH2_BITS	20
+	#define CRUSH_HASH1_SIZE	524288		;-- 1 << CRUSH_HASH1_BITS
+	#define CRUSH_HASH2_SIZE	1048576		;-- 1 << CRUSH_HASH2_BITS
+	#define CRUSH_HASH1_MASK	524287		;-- CRUSH_HASH1_SIZE - 1
+	#define CRUSH_HASH2_MASK	1048575		;-- CRUSH_HASH2_SIZE - 1
 	#define CRUSH_HASH1_SHIFT	7           ;-- (CRUSH_HASH1_BITS + (CRUSH_HASH1_LEN - 1)) / CRUSH_HASH1_LEN
-	#define CRUSH_HASH2_SHIFT	6           ;-- (CRUSH_HASH2_BITS + (CRUSH_HASH2_LEN - 1)) / CRUSH_HASH2_LEN
+	#define CRUSH_HASH2_SHIFT	5           ;-- (CRUSH_HASH2_BITS + (CRUSH_HASH2_LEN - 1)) / CRUSH_HASH2_LEN
 
 	crush!: alias struct! [
 		bit-buf		[integer!]
@@ -87,14 +87,7 @@ crush: context [							;-- LZ77
 		buf-size: crush/buf-size
 		index: crush/index
 
-		if index >= buf-size [
-			buf-size: buf-size + 4194304
-			buf: allocate buf-size
-			move-memory buf crush/buf crush/buf-size
-			free crush/buf
-			crush/buf: buf
-			crush/buf-size: buf-size
-		]
+		assert index + size <= buf-size
 
 		crush/index: index + size
 		buf + index
