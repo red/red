@@ -2847,11 +2847,61 @@ red: context [
 		emit-close-frame
 	]
 	
+	comp-set-make: has [entry name][
+		name: pc/-1
+		switch/default pc/2 [
+			datatype! [
+				either pc/3 = #get-definition [
+					redbin/emit-word/root/set? name none none
+					redbin/emit-datatype pc/4
+					pc: skip pc 4
+					yes
+				][
+					no
+				]
+			]
+			action!
+			native! [
+				either pc/3/2 = #get-definition [
+					redbin/emit-word/root/set? name none none
+					either pc/2 = 'action! [
+						redbin/emit-native/action pc/3/3 pc/3/1
+					][
+						redbin/emit-native pc/3/3 pc/3/1
+					]
+					fetch-functions back pc
+					pc: skip pc 3
+					yes
+				][
+					no
+				]
+			]
+			op! [
+				entry: select functions to word! pc/3
+				either find [action! native!] entry/1 [
+					name: to set-word! pc/3
+					redbin/emit-word/root/set? name none none
+					redbin/emit-op name
+					fetch-functions back pc
+					pc: skip pc 3
+					yes
+				][
+					no
+				]
+			]
+			typeset! [
+				no
+			]
+		][
+			no
+		]
+	]
+	
 	comp-set-word: func [
 		/native
 		/local 
 			name value ctx original obj bound? deep? inherit? proto
-			defer mark start take-frame
+			defer mark start take-frame preset?
 	][
 		name: original: pc/1
 		pc: next pc
@@ -2873,7 +2923,16 @@ red: context [
 		]
 		deep?: 1 < length? obj-stack
 		mark: tail output
-		take-frame: [start: copy mark clear mark]
+		take-frame: [start: copy mark clear mark not block? pc/1]
+		
+		all [
+			not deep?
+			rebol-gctx = obj
+			empty? expr-stack
+			pc/1 = 'make
+			comp-set-make
+			exit
+		]		
 		
 		emit-open-frame 'set
 		
@@ -2919,7 +2978,7 @@ red: context [
 			emit start
 			emit defer
 		]
-
+		
 		either native [
 			emit-native/with 'set [-1]					;@@ refinement not handled yet
 		][
@@ -3362,7 +3421,9 @@ red: context [
 					emit-dyn-check
 				]
 			][
-				emit-stack-reset						;-- clear stack from last root expression result
+				if 'stack/reset <> last output [
+					emit-stack-reset					;-- clear stack from last root expression result
+				]
 			]
 		]
 		if any [root close-path][

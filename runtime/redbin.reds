@@ -17,6 +17,7 @@ Red/System [
 #define REDBIN_VALUES_MASK	40000000h
 #define REDBIN_STACK_MASK	20000000h
 #define REDBIN_SELF_MASK	10000000h
+#define REDBIN_SET_MASK		08000000h
 
 redbin: context [
 	verbose: 0
@@ -45,6 +46,45 @@ redbin: context [
 			syms/1: symbol/make strings + syms/1
 			syms: syms + 1
 		]
+	]
+	
+	decode-native: func [
+		data	[int-ptr!]
+		table	[int-ptr!]
+		parent	[red-block!]
+		return: [int-ptr!]
+		/local
+			cell  [red-native!]
+			spec  [red-block!]
+			s	  [series!]
+			sym	  [int-ptr!]
+			type  [integer!]
+			index [integer!]
+	][
+		type:  data/1 and FFh
+		index: data/2
+		cell:  as red-native! ALLOC_TAIL(parent)
+		data:  data + 2
+		
+		either type = TYPE_OP [
+			sym: table + index
+			copy-cell
+				as red-value! op/make null as red-block! _context/get-global sym/1
+				as red-value! cell
+		][
+			spec: as red-block! block/rs-tail parent
+			data: decode-block data table parent
+
+			cell/header: type								;-- implicit reset of all header flags
+			cell/spec:	 spec/node
+			cell/args:	 null
+			either type = TYPE_ACTION [
+				cell/code: actions/table/index
+			][
+				cell/code: natives/table/index
+			]
+		]
+		data
 	]
 	
 	decode-context: func [
@@ -131,11 +171,14 @@ redbin: context [
 			sym	   [int-ptr!]
 			offset [integer!]
 			ctx	   [node!]
+			set?   [logic!]
+			s	   [series!]
 	][
 		sym: table + data/2								;-- get the decoded symbol
 		new: as red-word! ALLOC_TAIL(parent)
 		new/header: data/1 and FFh
 		new/symbol: sym/1
+		set?: data/1 and REDBIN_SET_MASK <> 0
 		
 		offset: data/3
 		either offset = -1 [
@@ -153,7 +196,16 @@ redbin: context [
 				new/index: data/4
 			]
 		]
-		data + 4
+		data: data + 4
+		
+		if set? [
+			offset: block/rs-length? parent
+			data: decode-value data table parent
+			_context/set new block/rs-abs-at root offset
+			s: GET_BUFFER(parent)
+			s/tail: s/offset + offset				;-- drop unwanted values in parent
+		]
+		data
 	]
 	
 	decode-string: func [
@@ -273,7 +325,7 @@ redbin: context [
 			]
 			TYPE_NATIVE
 			TYPE_ACTION
-			TYPE_OP
+			TYPE_OP			[decode-native data table parent]
 			TYPE_FUNCTION
 			TYPE_BITSET
 			TYPE_POINT

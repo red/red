@@ -46,6 +46,23 @@ _context: context [
 		-1												;-- search failed
 	]
 	
+	get-global: func [
+		symbol  [integer!]
+		return:	[red-value!]
+		/local
+			ctx	   [red-context!]
+			values [series!]
+			index  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/get-global"]]
+
+		ctx: TO_CTX(global-ctx)
+		values: as series! ctx/values/value
+		index: find-word ctx symbol yes
+		assert index <> -1
+		values/offset + index
+	]
+	
 	add-global: func [
 		symbol	[integer!]
 		return: [red-word!]

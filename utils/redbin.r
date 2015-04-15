@@ -103,9 +103,10 @@ context [
 
 	emit-none: does [emit-type 'TYPE_NONE]
 	
-	emit-datatype: func [type [datatype!]][
+	emit-datatype: func [type [datatype! word!]][
+		unless word? type [type: to word! mold type]
 		emit-type 'TYPE_DATATYPE
-		emit select extracts/definitions to word! mold type
+		emit extracts/definitions/:type
 	]
 	
 	emit-logic: func [value [logic!]][
@@ -140,6 +141,17 @@ context [
 	emit-integer: func [value [integer!]][
 		emit-type 'TYPE_INTEGER
 		emit value
+	]
+	
+	emit-op: func [spec [any-word!]][
+		emit-type 'TYPE_OP
+		emit-symbol spec
+	]
+	
+	emit-native: func [id [word!] spec [block!] /action][
+		emit-type pick [TYPE_ACTION TYPE_NATIVE] to logic! action
+		emit extracts/definitions/:id
+		emit-block/sub spec
 	]
 	
 	emit-typeset: func [v1 [integer!] v2 [integer!] v3 [integer!] /root][
@@ -194,8 +206,11 @@ context [
 		emit (index? pos) - 1							;-- emit index of symbol
 	]
 	
-	emit-word: func [word ctx [word! none!] ctx-idx [integer! none!] /local idx][
-		emit-type select [
+	emit-word: func [
+		word ctx [word! none!] ctx-idx [integer! none!] /root /set?
+		/local type idx header
+	][
+		type: select [
 			word!		TYPE_WORD
 			set-word!	TYPE_SET_WORD
 			get-word!	TYPE_GET_WORD
@@ -203,9 +218,16 @@ context [
 			lit-word!	TYPE_LIT_WORD
 		] type?/word :word
 		
+		header: extracts/definitions/:type
+		if set? [header: header or shift/left 1 27]
+		emit header
 		emit-symbol word
 		idx: emit-ctx-info word ctx
 		emit any [ctx-idx idx]
+		if root [
+			if debug? [print [index ": word :" mold word]]
+			index: index + 1
+		]
 	]
 	
 	emit-block: func [
