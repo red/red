@@ -203,6 +203,7 @@ redbin: context [
 			data: decode-value data table parent
 			_context/set new block/rs-abs-at root offset
 			s: GET_BUFFER(parent)
+			offset: offset - 1
 			s/tail: s/offset + offset				;-- drop unwanted values in parent
 		]
 		data

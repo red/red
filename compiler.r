@@ -2852,7 +2852,7 @@ red: context [
 		switch/default pc/2 [
 			datatype! [
 				either pc/3 = #get-definition [
-					redbin/emit-word/root/set? name none none
+					redbin/emit-word/set? name none none
 					redbin/emit-datatype pc/4
 					pc: skip pc 4
 					yes
@@ -2863,7 +2863,7 @@ red: context [
 			action!
 			native! [
 				either pc/3/2 = #get-definition [
-					redbin/emit-word/root/set? name none none
+					redbin/emit-word/set? name none none
 					either pc/2 = 'action! [
 						redbin/emit-native/action pc/3/3 pc/3/1
 					][
@@ -2877,17 +2877,17 @@ red: context [
 				]
 			]
 			op! [
-				entry: select functions to word! pc/3
-				either find [action! native!] entry/1 [
-					name: to set-word! pc/3
-					redbin/emit-word/root/set? name none none
-					redbin/emit-op name
-					fetch-functions back pc
-					pc: skip pc 3
-					yes
-				][
+				;entry: select functions to word! pc/3
+				;either find [action! native!] entry/1 [
+				;	name: to set-word! pc/3
+				;	redbin/emit-word/set? name none none
+				;	redbin/emit-op name
+				;	fetch-functions back pc
+				;	pc: skip pc 3
+				;	yes
+				;][
 					no
-				]
+				;]
 			]
 			typeset! [
 				no
@@ -2925,6 +2925,7 @@ red: context [
 		mark: tail output
 		take-frame: [start: copy mark clear mark not block? pc/1]
 		
+		;-- Try to push the name/value pair into Redbin data --
 		all [
 			not deep?
 			rebol-gctx = obj
@@ -2932,8 +2933,9 @@ red: context [
 			pc/1 = 'make
 			comp-set-make
 			exit
-		]		
+		]
 		
+		;-- General case: emit stack-oriented construction code --
 		emit-open-frame 'set
 		
 		either native [									;-- 1st argument
@@ -3746,6 +3748,7 @@ red: context [
 		clear lit-vars/string
 		clear lit-vars/context
 		clear types-cache
+		clear shadow-funcs
 		s-counter: 0
 		depth:	   0
 		max-depth: 0

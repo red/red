@@ -3307,7 +3307,7 @@ system-dialect: make-profilable context [
 					data   [- 	(emitter/data-buf)]
 					import [- - (compiler/imports)]
 				]
-				if not empty? compiler/exports [
+				unless empty? compiler/exports [
 					append job/sections compose/deep/only [
 						export [- - (compiler/exports)]
 					]
