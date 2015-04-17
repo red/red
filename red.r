@@ -17,6 +17,8 @@ unless all [value? 'red object? :red][
 	do-cache %compiler.r
 ]
 
+attempt [free redc/crush-lib] ;-- tries to free the lib if running red.r from console multiple time
+
 redc: context [
 	crush-lib:		none								;-- points to compiled crush library
 	crush-compress: none								;-- compression function
@@ -174,7 +176,7 @@ redc: context [
 		file
 	]
 	
-	build-compress-lib: has [script filename text opts ext][
+	build-compress-lib: has [script filename text opts ext crush-lib-file][
 		filename: either encap? [
 			unless exists? temp-dir [make-dir temp-dir]
 			script: temp-dir/crush.reds
@@ -184,11 +186,13 @@ redc: context [
 			script: %crush.reds
 			%crush
 		]
-		unless crush-lib [
-			crush-lib: append temp-dir/:filename pick [%.dll %.so] Windows?
-		]
+		crush-lib-file: append temp-dir/:filename pick [%.dll %.so] Windows?
+		if any [
+			not exists? crush-lib-file
+			(modified? %runtime/crush.reds) > (modified? crush-lib-file)
+		][
+			if crush-lib [free crush-lib]  ;-- just in case we already have the lib loaded so we can overwrite it
 
-		unless exists? crush-lib [
 			text: copy read-cache %runtime/crush.reds
 			append text " #export [crush/compress]"
 			write script text
@@ -213,8 +217,8 @@ redc: context [
 			delete script
 			unless encap? [change-dir %../]
 		]
-		
-		crush-lib: load/library crush-lib
+
+		crush-lib: load/library crush-lib-file
 		crush-compress: make routine! [
 			in		[binary!]
 			size	[integer!]							;-- size in bytes
