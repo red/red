@@ -18,6 +18,7 @@ red: context [
 	runtime-path:  %runtime/
 	include-stk:   make block! 3
 	included-list: make block! 20
+	needed:		   make block! 4
 	symbols:	   make hash! 1000
 	globals:	   make hash! 1000						;-- words defined in global context
 	aliases: 	   make hash! 100
@@ -68,6 +69,10 @@ red: context [
 	]
 	
 	word-iterators: [repeat foreach forall]				;-- only ones that use word(s) as counter
+	
+	standard-modules: [
+		View		%modules/view/VID.red
+	]
 
 	functions: make hash! [
 	;---name--type--arity----------spec----------------------------refs--
@@ -180,6 +185,7 @@ red: context [
 			word! 
 			get-word!
 			set-word!
+			pair!
 		] type?/word :expr
 	]
 	
@@ -665,6 +671,9 @@ red: context [
 					find [logic! unset! datatype!] type?/word :item [
 						to word! form :item
 					]
+					pair? :item [
+						reduce [item/x item/y]
+					]
 					none? :item [
 						[]								;-- no argument
 					]
@@ -919,6 +928,11 @@ red: context [
 				any-word? :value [
 					add-symbol to word! :value
 					emit-push-word :value
+				]
+				pair? :value [
+					emit 'pair/push
+					emit reduce [value/1 value/2]
+					insert-lf -3
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]
@@ -1703,68 +1717,37 @@ red: context [
 		]
 	]
 	
-	comp-path: func [/set /local path value emit? get? entry alter saved after][
+	comp-path: func [/set /local path value get? entry alter][
 		path: copy pc/1
-		emit?: yes
 		
-		if find path paren! [
-			emit-open-frame 'body
-			if set [
-				saved: pc
+		value: path/1
+		if all [not set not get? entry: find functions value][
+			if alter: select ssa-names value [
+				entry: find functions alter
+			]
+			either head? path [
 				pc: next pc
-				comp-expression
-				after: pc
-				pc: saved
-			]
-			comp-literal no
-			pc: back pc
-			
-			unless set [emit [stack/mark-native words/_body]]	;@@ not clean...
-			emit compose [
-				interpreter/eval-path stack/top - 1 null null (to word! form to logic! set)
-			]
-			unless set [emit [stack/unwind-last]]
-			
-			emit-close-frame
-			pc: either set [after][next pc]
-			exit
-		]
-		
-		forall path [
-			switch/default type?/word value: path/1 [
-				word! [
-					if all [not set not get? entry: find functions value][
-						if alter: select ssa-names value [
-							entry: find functions alter
-						]
-						either head? path [
-							pc: next pc
-							comp-call path entry/2		;-- call function with refinements
-							exit
-						][
-							;--not-implemented--			;TBD: resolve access path to function
-						]
-						;emit?: no						;-- no further emitted code needed
-					]
-				]
-				get-word! [
-					if head? path [
-						get?: yes
-						change path to word! path/1
-					]
-				]
-				integer! paren! string!	[
-					if head? path [path-head-error]
-				]
+				comp-call path entry/2		;-- call function with refinements
+				exit
 			][
-				throw-error ["cannot use" mold type? value "value in path:" pc/1]
+				;--not-implemented--			;TBD: resolve access path to function
 			]
 		]
-		if emit? [
-			if set [pc: next pc]					;-- skip set-path to be ready to fetch argument
-			emit-path back tail path to logic! set	;-- emit code recursively from tail
-			unless set [pc: next pc]
+					
+		emit-open-frame 'body
+		if set [
+			saved: pc
+			pc: next pc
+			comp-expression
+			after: pc
+			pc: saved
 		]
+		comp-literal no
+		pc: back pc
+		emit pick [interpreter/do-set-path interpreter/do-path] to logic! set
+		insert-lf -1
+		emit-close-frame
+		pc: either set [after][next pc]
 	]
 	
 	comp-arguments: func [spec [block!] nb [integer!] /ref name [refinement!] /local word][
@@ -2190,7 +2173,7 @@ red: context [
 				][
 					saved: script-name
 					insert skip pc 2 #pop-path
-					change/part pc load-source file 2
+					change/part pc next load-source file 2	;@@ Header skipped, should be processed
 					script-name: saved
 					append included-list file
 				]
@@ -2391,7 +2374,7 @@ red: context [
 		output: make block! 10000
 		comp-init
 		
-		pc: load-source/hidden %boot.red				;-- compile Red's boot script
+		pc: next load-source/hidden %boot.red			;-- compile Red's boot script
 		booting?: yes
 		comp-block
 		make-keywords									;-- register intrinsics functions
@@ -2543,12 +2526,34 @@ red: context [
 			unless hidden [script-name: 'memory]
 			src: file
 		]
-		next src										;-- skip header block
+		src
+	]
+	
+	process-needs: func [header [block!] src [block!] /local list file mods][
+		case [
+			list: select header first [Needs:][
+				unless block? list [list: reduce [list]]
+				mods: make block! 2
+				
+				foreach mod list [
+					unless file: select standard-modules mod [
+						throw-error ["module not found:" mod]
+					]
+					unless find needed mod [
+						file: split-path join system/options/home file
+						script-path: file/1
+						repend mods [#include file/2]
+					]
+				]
+				insert src mods
+			]	
+		]
 	]
 	
 	clean-up: does [
 		clear include-stk
 		clear included-list
+		clear needed
 		clear symbols
 		clear aliases
 		clear globals
@@ -2584,6 +2589,8 @@ red: context [
 		
 		time: dt [
 			src: load-source file
+			process-needs src/1 next src
+			src: next src
 			job/red-pass?: yes
 			either no-global? [comp-as-lib src][comp-as-exe src]
 		]

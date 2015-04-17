@@ -74,8 +74,8 @@ Choose CPU target (ENTER = default):
 3) both
 => }
 options: [
-	["Android" %armeabi]
-	["Android-x86" %x86]
+	["Android-build" %armeabi]
+	["Android-x86-build" %x86]
 ]
 
 opts: switch/default trim/all res [

@@ -266,7 +266,7 @@ transcode: function [
 		cs/10: #"}"										;-- not-mstr-char
 		cs/11: charset [#"^(40)" - #"^(5F)"]			;-- caret-char
 		cs/12: charset [#"^(00)" - #"^(1F)"]			;-- non-printable-char
-		cs/13: charset {^{"[]);}						;-- integer-end
+		cs/13: charset {^{"[]);x.}						;-- integer-end
 		cs/14: charset " ^-^M"							;-- ws-ASCII, ASCII common whitespaces
 		cs/15: charset [#"^(2000)" - #"^(200A)"]			;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 		cs/16: charset [#"^(00)" - #"^(1F)"] 			;-- ASCII control characters
@@ -462,10 +462,18 @@ transcode: function [
 	]
 	
 	integer-rule: [
-		float-special								;-- escape path for NaN, INFs
+		float-special (value: trans-number s e yes)		;-- escape path for NaN, INFs
 		| integer-number-rule
 		  opt [float-number-rule | float-exp-rule e: (type: float!)]
 		  ahead [integer-end | ws-no-count | end]
+		  (value: trans-number s e type = float!)
+		  opt [
+			  #"x" if (value) (value2: make pair! reduce [value 0])
+			  s: integer-rule (
+				  value2/2: trans-number s e type = float!
+				  value: value2
+			  )
+		  ]
 	]
 
 	float-special: [
@@ -547,7 +555,7 @@ transcode: function [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule		(trans-store stack value)
-			| integer-rule		if (value: trans-number s e type = float!) (trans-store stack value)
+			| integer-rule		if (value) (trans-store stack value)
 			| float-rule		if (value: trans-float s e) (trans-store stack value)
 			| hexa-rule			(trans-store stack trans-hexa s e)
 			| word-rule

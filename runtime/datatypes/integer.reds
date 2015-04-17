@@ -12,9 +12,9 @@ Red/System [
 
 integer: context [
 	verbose: 0
-
+	
 	abs: func [
-		value	[integer!]
+		value	[integer!] 
 		return: [integer!]
 	][
 		if value = -2147483648 [
@@ -100,6 +100,8 @@ integer: context [
 		/local
 			left	[red-integer!]
 			right	[red-integer!]
+			pair  [red-pair!]
+			value [integer!]
 	][
 		left: as red-integer! stack/arguments
 		right: left + 1
@@ -111,21 +113,38 @@ integer: context [
 		assert any [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
+			TYPE_OF(right) = TYPE_PAIR
 			TYPE_OF(right) = TYPE_FLOAT
 		]
-
-		either TYPE_OF(right) = TYPE_FLOAT [
-			float/do-math type
-		][
-			left/value: switch type [
-				OP_ADD [left/value + right/value]
-				OP_SUB [left/value - right/value]
-				OP_MUL [left/value * right/value]
-				OP_DIV [left/value / right/value]
-				OP_REM [left/value % right/value]
-				OP_AND [left/value and right/value]
-				OP_OR  [left/value or right/value]
-				OP_XOR [left/value xor right/value]
+		
+		switch TYPE_OF(right) [
+			TYPE_FLOAT [float/do-math type]
+			TYPE_PAIR  [
+				value: left/value
+				copy-cell as red-value! right as red-value! left
+				pair: as red-pair! left
+				switch type [
+					OP_ADD [pair/x: pair/x +   value  pair/y: pair/y +   value]
+					OP_SUB [pair/x: pair/x -   value  pair/y: pair/y -   value]
+					OP_MUL [pair/x: pair/x *   value  pair/y: pair/y *   value]
+					OP_DIV [pair/x: pair/x /   value  pair/y: pair/y /   value]
+					OP_REM [pair/x: pair/x %   value  pair/y: pair/y %   value]
+					OP_AND [pair/x: pair/x and value  pair/y: pair/y and value]
+					OP_OR  [pair/x: pair/x or  value  pair/y: pair/y or  value]
+					OP_XOR [pair/x: pair/x xor value  pair/y: pair/y xor value]
+				]
+			]
+			default [
+				left/value: switch type [
+					OP_ADD [left/value +   right/value]
+					OP_SUB [left/value -   right/value]
+					OP_MUL [left/value *   right/value]
+					OP_DIV [left/value /   right/value]
+					OP_REM [left/value %   right/value]
+					OP_AND [left/value and right/value]
+					OP_OR  [left/value or  right/value]
+					OP_XOR [left/value xor right/value]
+				]
 			]
 		]
 		as red-value! left
@@ -336,8 +355,7 @@ integer: context [
 	absolute: func [
 		return: [red-integer!]
 		/local
-			int	  [red-integer!]
-			value [integer!]
+			int	[red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/absolute"]]
 		

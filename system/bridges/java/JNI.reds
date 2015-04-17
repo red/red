@@ -13,12 +13,18 @@ Red/System [
 #define func-ptr!	integer!
 
 #define jmethodID!	int-ptr!
+#define jfieldID!	int-ptr!
 #define jint!		integer!
+#define jlong!		float!								;@@ temporary workaround for 64-bit integers	
 #define jobject!	int-ptr!
 #define jarray!		int-ptr!
 #define jclass!		int-ptr!
 #define jstring!	int-ptr!
 #define jboolean!	int-ptr!
+#define jbyte!		byte!
+#define jchar!		integer!
+#define jfloat!		float32!
+#define jdouble!	float!
 
 #define JNI-ptr!	[struct! [jni [JNI!]]]
 #define JVM-ptr!	[struct! [ptr [JVM!]]]
@@ -60,7 +66,7 @@ JNI!: alias struct! [
 	DefineClass					[func-ptr!]
 	FindClass					[function! [[JNICALL] env [JNI-ptr!] name [c-string!] return: [jclass!]]]
 	FromReflectedMethod			[function! [[JNICALL] env [JNI-ptr!] method [jobject!] return: [jmethodID!]]]
-	FromReflectedField			[func-ptr!]
+	FromReflectedField			[function! [[JNICALL] env [JNI-ptr!] field [jobject!] return: [jfieldID!]]]
 	ToReflectedMethod			[func-ptr!]
 	GetSuperclass				[func-ptr!]
 	IsAssignableFrom			[func-ptr!]
@@ -172,26 +178,26 @@ JNI!: alias struct! [
 	CallNonvirtualVoidMethodV	[func-ptr!]
 	CallNonvirtualVoidMethodA	[func-ptr!]
 	
-	GetFieldID					[func-ptr!]
-	GetObjectField				[func-ptr!]
-	GetBooleanField				[func-ptr!]
-	GetByteField				[func-ptr!]
-	GetCharField				[func-ptr!]
-	GetShortField				[func-ptr!]
-	GetIntField					[func-ptr!]
-	GetLongField				[func-ptr!]
-	GetFloatField				[func-ptr!]
-	GetDoubleField				[func-ptr!]
+	GetFieldID					[function! [[JNICALL] env [JNI-ptr!] class [jclass!] name [c-string!] sig [c-string!] return: [jfieldID!]]]
+	GetObjectField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] return: [jobject!]]]
+	GetBooleanField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] return: [jboolean!]]]
+	GetByteField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] return: [jbyte!]]]
+	GetCharField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] return: [jchar!]]]
+	GetShortField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] return: [jint!]]]
+	GetIntField					[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] return: [jint!]]]
+	GetLongField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] return: [jint!]]]	;@@ 64-bit, use a float64!
+	GetFloatField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] return: [jfloat!]]]
+	GetDoubleField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] return: [jdouble!]]]
 	
-	SetObjectField				[func-ptr!]
-	SetBooleanField				[func-ptr!]
-	SetByteField				[func-ptr!]
-	SetCharField				[func-ptr!]
-	SetShortField				[func-ptr!]
-	SetIntField					[func-ptr!]
-	SetLongField				[func-ptr!]
-	SetFloatField				[func-ptr!]
-	SetDoubleField				[func-ptr!]
+	SetObjectField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] value [jobject!]]]
+	SetBooleanField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] value [jint!]]] 	;@@ jint! instead of jboolean! to avoid double casting warning
+	SetByteField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] value [jbyte!]]]
+	SetCharField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] value [jchar!]]]
+	SetShortField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] value [jint!]]]
+	SetIntField					[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] value [jint!]]]
+	SetLongField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] value [jint!] zero [jint!]]] ;@@ hack for 2 32-bit ints
+	SetFloatField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] value [jfloat!]]]
+	SetDoubleField				[function! [[JNICALL] env [JNI-ptr!] obj [jclass!] field [jfieldID!] value [jdouble!]]]
 	
 	GetStaticMethodID			[function! [[JNICALL] env [JNI-ptr!] class [jclass!] name [c-string!] sig [c-string!] return: [jmethodID!]]]
 	

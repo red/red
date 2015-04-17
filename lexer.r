@@ -18,6 +18,7 @@ lexer: context [
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
 	value:	none									;-- new value
+	value2:	none									;-- secondary new value
 	fail?:	none									;-- used for failing some parsing rules
 	type:	none									;-- define the type of the new value
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
@@ -27,10 +28,10 @@ lexer: context [
 
 	four:  charset "01234"
 	half:  charset "012345"
-    non-zero: charset "123456789"
-    digit: union non-zero charset "0"
-    dot: #"."
-    comma: #","
+	non-zero: charset "123456789"
+	digit: union non-zero charset "0"
+	dot: #"."
+	comma: #","
 
 	byte: [
 		"25" half
@@ -78,7 +79,7 @@ lexer: context [
 	not-mstr-char:  #"}"
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
-	integer-end:	charset {^{"[]);}
+	integer-end:	charset {^{"[]);x}
 	stop: 		    none
 
 	control-char: reduce [
@@ -242,10 +243,16 @@ lexer: context [
 	]
 	
 	integer-rule: [
-		decimal-special									;-- escape path for NaN, INFs
+		decimal-special	(value: load-number copy/part s e)	;-- escape path for NaN, INFs
 		| integer-number-rule
 		  opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
 		  sticky-word-rule
+		  (value: load-number copy/part s e)
+		  opt [
+			  #"x" (value2: to pair! reduce [value 0])
+			  s: integer-rule
+			  (value2/2: load-number copy/part s e value: value2)
+		  ]
 	]
 
 	decimal-special: [
@@ -382,7 +389,7 @@ lexer: context [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule    (stack/push value)
-			| integer-rule	  (stack/push load-number    copy/part s e)
+			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)

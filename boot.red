@@ -49,6 +49,7 @@ object!:		make datatype! #get-definition TYPE_OBJECT
 bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
+pair!:			make datatype! #get-definition TYPE_PAIR
 
 none:  			make none! 0
 true:  			make logic! 1
@@ -1244,6 +1245,7 @@ none?:		 func ["Returns true if the value is this type" value [any-type!]] [none
 object?:	 func ["Returns true if the value is this type" value [any-type!]] [object!		= type? :value]
 op?:		 func ["Returns true if the value is this type" value [any-type!]] [op!			= type? :value]
 paren?:		 func ["Returns true if the value is this type" value [any-type!]] [paren!		= type? :value]
+pair?:		 func ["Returns true if the value is this type" value [any-type!]] [pair!		= type? :value]
 path?:		 func ["Returns true if the value is this type" value [any-type!]] [path!		= type? :value]
 refinement?: func ["Returns true if the value is this type" value [any-type!]] [refinement! = type? :value]
 routine?:	 func ["Returns true if the value is this type" value [any-type!]] [routine!	= type? :value]
@@ -1364,9 +1366,13 @@ replace: func [
 ]
 
 zero?: func [
-	value [number!]
+	value [number! pair!]
 ][
-	value = 0
+	either pair! = type? value [
+		make logic! all [value/1 = 0 value/2 = 0]
+	][
+		value = 0
+	]
 ]
 
 charset: func [
