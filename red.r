@@ -174,30 +174,40 @@ redc: context [
 		file
 	]
 	
-	build-compress-lib: has [script filename text opts ext][
-		filename: either encap? [
+	build-compress-lib: has [script basename filename text opts ext src][
+		src: %runtime/crush.reds
+		
+		basename: either encap? [
 			unless exists? temp-dir [make-dir temp-dir]
 			script: temp-dir/crush.reds
 			decorate-name %crush
 		][
 			temp-dir: %./
 			script: %crush.reds
-			%crush
+			copy %crush
 		]
-		unless crush-lib [
-			crush-lib: append temp-dir/:filename pick [%.dll %.so] Windows?
-		]
-
-		unless exists? crush-lib [
-			text: copy read-cache %runtime/crush.reds
+		filename: append temp-dir/:basename pick [%.dll %.so] Windows?
+		
+		if any [
+			not exists? filename
+			all [
+				not encap?
+				(modified? filename) < modified? src
+			]
+		][
+			if crush-lib [
+				free crush-lib
+				crush-lib: none
+			]
+			text: copy read-cache src
 			append text " #export [crush/compress]"
 			write script text
-			unless encap? [filename: head insert filename %../]
+			unless encap? [basename: head insert basename %../]
 			
 			opts: make system-dialect/options-class [	;-- minimal set of compilation options
 				link?: yes
 				config-name: to word! default-target
-				build-basename: filename
+				build-basename: basename
 				build-prefix: temp-dir
 			]
 			opts: make opts select load-targets opts/config-name
@@ -214,13 +224,15 @@ redc: context [
 			unless encap? [change-dir %../]
 		]
 		
-		crush-lib: load/library crush-lib
-		crush-compress: make routine! [
-			in		[binary!]
-			size	[integer!]							;-- size in bytes
-			out		[binary!]							;-- output buffer (pre-allocated)
-			return: [integer!]							;-- compressed data size
-		] crush-lib "crush/compress"
+		unless crush-lib [
+			crush-lib: load/library filename
+			crush-compress: make routine! [
+				in		[binary!]
+				size	[integer!]						;-- size in bytes
+				out		[binary!]						;-- output buffer (pre-allocated)
+				return: [integer!]						;-- compressed data size
+			] crush-lib "crush/compress"
+		]
 	]
 	
 	run-console: func [/with file [string!] /local opts result script filename exe console files][
@@ -268,11 +280,13 @@ redc: context [
 		quit/return 0
 	]
 
-	parse-options: has [
-		args src opts output target verbose filename config config-name base-path type
+	parse-options: func [
+		args [string! none!]
+		/local src opts output target verbose filename config config-name base-path type
 		mode target?
-	] [
+	][
 		args: any [
+			all [args parse args none]
 			system/options/args
 			parse any [system/script/args ""] none
 		]
@@ -378,8 +392,8 @@ redc: context [
 		reduce [src opts]
 	]
 
-	main: has [src opts build-dir result saved rs? prefix] [
-		set [src opts] parse-options
+	main: func [/with cmd [string!] /local src opts build-dir result saved rs? prefix] [
+		set [src opts] parse-options cmd
 		
 		rs?: red-system? src
 
@@ -435,6 +449,10 @@ redc: context [
 			]
 		]
 		unless Windows? [print ""]							;-- extra LF for more readable output
+	]
+	
+	set 'rc func [cmd [string! block!]][
+		fail-try "Driver" [redc/main/with reform cmd]
 	]
 ]
 
