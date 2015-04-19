@@ -27,6 +27,19 @@ unset: context [
 		cell
 	]
 	
+	make-in: func [
+		parent	 [red-block!]
+		return:	 [red-unset!]
+		/local
+			cell [red-unset!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "unset/make-in"]]
+
+		cell: as red-unset! ALLOC_TAIL(parent)
+		cell/header: TYPE_UNSET							;-- implicit reset of all header flags
+		cell
+	]
+	
 	push: func [
 		return:	 [red-unset!]
 		/local

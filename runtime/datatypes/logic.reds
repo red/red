@@ -85,6 +85,21 @@ logic: context [
 		]
 	]
 	
+	make-in: func [
+		parent	 [red-block!]
+		value 	 [logic!]
+		return:	 [red-logic!]
+		/local
+			cell [red-logic!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "logic/make-in"]]
+
+		cell: as red-logic! ALLOC_TAIL(parent)
+		cell/header: TYPE_LOGIC							;-- implicit reset of all header flags
+		cell/value: value
+		cell
+	]
+	
 	push: func [
 		value 	 [logic!]
 		return:	 [red-logic!]

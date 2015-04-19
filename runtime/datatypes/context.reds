@@ -46,6 +46,23 @@ _context: context [
 		-1												;-- search failed
 	]
 	
+	get-global: func [
+		symbol  [integer!]
+		return:	[red-value!]
+		/local
+			ctx	   [red-context!]
+			values [series!]
+			index  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "_context/get-global"]]
+
+		ctx: TO_CTX(global-ctx)
+		values: as series! ctx/values/value
+		index: find-word ctx symbol yes
+		assert index <> -1
+		values/offset + index
+	]
+	
 	add-global: func [
 		symbol	[integer!]
 		return: [red-word!]
@@ -65,13 +82,13 @@ _context: context [
 		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
 		
 		s: as series! ctx/symbols/value
+		id: (as-integer s/tail - s/offset) >> 4			;-- index is zero-base
 		word: as red-word! alloc-tail s
-		s: GET_BUFFER(s)								;-- refreshing s pointer
 
 		word/header: TYPE_WORD							;-- implicit reset of all header flags
 		word/ctx: 	 global-ctx
 		word/symbol: symbol
-		word/index:  (as-integer s/tail - s/offset) >> 4 - 1
+		word/index:  id
 
 		value: alloc-tail as series! ctx/values/value
 		value/header: TYPE_UNSET
@@ -94,10 +111,11 @@ _context: context [
 		if id <> -1 [return null]
 
 		s: as series! ctx/symbols/value
+		id: (as-integer s/tail - s/offset) >> 4			;-- index is zero-base
 		w: as red-word! alloc-tail s
 		copy-cell as cell! word as cell! w
 		w/ctx: ctx/self
-		w/index: (as-integer s/tail - s/offset) >> 4 - 1
+		w/index: id
 		
 		s: as series! ctx/symbols/value					;-- refreshing pointer after alloc-tail
 		copy-cell value alloc-tail as series! ctx/values/value
@@ -119,7 +137,7 @@ _context: context [
 		if id <> -1 [return id]
 		
 		s: as series! ctx/symbols/value
-		id: (as-integer s/tail - s/offset) >> 4
+		id: (as-integer s/tail - s/offset) >> 4			;-- index is zero-base
 
 		sym: alloc-tail s
 		copy-cell as cell! word sym
@@ -245,6 +263,44 @@ _context: context [
 		node: word/ctx
 		get-in word TO_CTX(node)
 	]
+	
+	clone: func [
+		node	[node!]
+		return:	[node!]
+		/local
+			sym		[red-word!]
+			ctx		[red-context!]
+			new		[node!]
+			src		[series!]
+			dst		[series!]
+			slots	[integer!]
+	][
+		ctx: TO_CTX(node)
+		src: as series! ctx/symbols/value
+		slots: (as-integer (src/tail - src/offset)) >> 4
+		
+		new: create 
+			slots
+			ctx/header and flag-series-stk <> 0
+			ctx/header and set-self-mask   <> 0
+		
+		ctx: TO_CTX(new)
+		dst: as series! ctx/symbols/value
+		dst/tail: dst/offset + slots
+		sym: as red-word! dst/offset
+		
+		copy-memory
+			as byte-ptr! sym
+			as byte-ptr! src/offset
+			slots << 4
+		
+		while [slots > 0][
+			sym/ctx: new
+			sym: sym + 1
+			slots: slots - 1
+		]
+		new
+	]
 
 	create: func [
 		slots		[integer!]							;-- max number of words in the context
@@ -253,6 +309,7 @@ _context: context [
 		return:		[node!]
 		/local
 			cell 	[red-context!]
+			node	[node!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "_context/create"]]
 		

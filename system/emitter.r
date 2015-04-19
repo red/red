@@ -280,6 +280,12 @@ emitter: make-profilable context [
 				ptr: tail data-buf							;-- ensure array pointer skips size info
 				foreach item value [store-global item type none]
 			]
+			binary! [
+				pad-data-buf 8								;-- forces 64-bit alignment
+				ptr: tail data-buf
+				append ptr value
+				pad-data-buf target/ptr-size
+			]
 		][
 			compiler/throw-error ["store-global unexpected type:" type]
 		]

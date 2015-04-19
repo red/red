@@ -18,8 +18,11 @@ unless all [value? 'red object? :red][
 ]
 
 redc: context [
+	crush-lib:		none								;-- points to compiled crush library
+	crush-compress: none								;-- compression function
 
-	Windows?: system/version/4 = 3
+	Windows?:  system/version/4 = 3
+	load-lib?: any [encap? find system/components 'Library]
 	
 	if encap? [
 		temp-dir: switch/default system/version/4 [
@@ -114,6 +117,16 @@ redc: context [
 	format-time: func [time [time!]][
 		round (time/second * 1000) + (time/minute * 60000)
 	]
+	
+	decorate-name: func [name [file!]][
+		rejoin [										;-- filename: <name>-year-month-day(ISO format)-time
+			name #"-"
+			build-date/year  "-"
+			build-date/month "-"
+			build-date/day   "-"
+			to-integer build-date/time
+		]
+	]
 
 	load-filename: func [filename /local result] [
 		unless any [
@@ -161,15 +174,70 @@ redc: context [
 		file
 	]
 	
+	build-compress-lib: has [script basename filename text opts ext src][
+		src: %runtime/crush.reds
+		
+		basename: either encap? [
+			unless exists? temp-dir [make-dir temp-dir]
+			script: temp-dir/crush.reds
+			decorate-name %crush
+		][
+			temp-dir: %./
+			script: %crush.reds
+			copy %crush
+		]
+		filename: append temp-dir/:basename pick [%.dll %.so] Windows?
+		
+		if any [
+			not exists? filename
+			all [
+				not encap?
+				(modified? filename) < modified? src
+			]
+		][
+			if crush-lib [
+				free crush-lib
+				crush-lib: none
+			]
+			text: copy read-cache src
+			append text " #export [crush/compress]"
+			write script text
+			unless encap? [basename: head insert basename %../]
+			
+			opts: make system-dialect/options-class [	;-- minimal set of compilation options
+				link?: yes
+				config-name: to word! default-target
+				build-basename: basename
+				build-prefix: temp-dir
+			]
+			opts: make opts select load-targets opts/config-name
+			opts/type: 'dll
+			if opts/OS <> 'Windows [opts/PIC?: yes]
+			
+			print "Pre-compiling compression library..."
+			unless encap? [
+				change-dir %system/
+				script: head insert script %../
+			]
+			system-dialect/compile/options script opts
+			delete script
+			unless encap? [change-dir %../]
+		]
+		
+		unless crush-lib [
+			crush-lib: load/library filename
+			crush-compress: make routine! [
+				in		[binary!]
+				size	[integer!]						;-- size in bytes
+				out		[binary!]						;-- output buffer (pre-allocated)
+				return: [integer!]						;-- compressed data size
+			] crush-lib "crush/compress"
+		]
+	]
+	
 	run-console: func [/with file [string!] /local opts result script filename exe console files][
 		script: temp-dir/red-console.red
-		filename: rejoin [								;-- filename: console-year-month-day(ISO format)-time
-			%console-
-			build-date/year  "-"
-			build-date/month "-"
-			build-date/day   "-"
-			to-integer build-date/time
-		]
+		filename: decorate-name %console
 		exe: temp-dir/:filename
 
 		if Windows? [append exe %.exe]
@@ -196,7 +264,7 @@ redc: context [
 
 			print "Pre-compiling Red console..."
 			result: red/compile script opts
-			system-dialect/compile/options/loaded script opts result/1
+			system-dialect/compile/options/loaded script opts result
 			
 			delete script
 			foreach file files [delete temp-dir/:file]
@@ -212,11 +280,13 @@ redc: context [
 		quit/return 0
 	]
 
-	parse-options: has [
-		args src opts output target verbose filename config config-name base-path type
+	parse-options: func [
+		args [string! none!]
+		/local src opts output target verbose filename config config-name base-path type
 		mode target?
-	] [
+	][
 		args: any [
+			all [args parse args none]
 			system/options/args
 			parse any [system/script/args ""] none
 		]
@@ -301,6 +371,7 @@ redc: context [
 		;; Process input sources.
 		unless src [
 			either encap? [
+				if load-lib? [build-compress-lib]
 				run-console
 			][
 				fail "No source files specified."
@@ -321,8 +392,8 @@ redc: context [
 		reduce [src opts]
 	]
 
-	main: has [src opts build-dir result saved rs? prefix] [
-		set [src opts] parse-options
+	main: func [/with cmd [string!] /local src opts build-dir result saved rs? prefix] [
+		set [src opts] parse-options cmd
 		
 		rs?: red-system? src
 
@@ -342,6 +413,7 @@ redc: context [
 		
 		unless rs? [
 	;--- 1st pass: Red compiler ---
+			if load-lib? [build-compress-lib]
 			
 			fail-try "Red Compiler" [
 				result: red/compile src opts
@@ -363,7 +435,7 @@ redc: context [
 			][
 				opts/unicode?: yes							;-- force Red/System to use Red's Unicode API
 				opts/verbosity: max 0 opts/verbosity - 3	;-- Red/System verbosity levels upped by 3
-				system-dialect/compile/options/loaded src opts result/1
+				system-dialect/compile/options/loaded src opts result
 			]
 			unless encap? [change-dir %../]
 		]
@@ -378,7 +450,11 @@ redc: context [
 		]
 		unless Windows? [print ""]							;-- extra LF for more readable output
 	]
-
-	fail-try "Driver" [main]
-	if encap? [quit/return 0]
+	
+	set 'rc func [cmd [string! block!]][
+		fail-try "Driver" [redc/main/with reform cmd]
+	]
 ]
+
+redc/fail-try "Driver" [redc/main]
+if encap? [quit/return 0]

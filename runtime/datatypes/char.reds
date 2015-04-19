@@ -31,21 +31,24 @@ char: context [
 		as red-value! char
 	]
 	
-	load-in: func [
-		value [integer!]
-		blk	  [red-block!]
+	make-in: func [
+		parent	[red-block!]
+		value	[integer!]
+		return: [red-char!]
 		/local
 			cell [red-char!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "char/load-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "char/make-in"]]
 
-		cell: as red-char! ALLOC_TAIL(blk)
+		cell: as red-char! ALLOC_TAIL(parent)
 		cell/header: TYPE_CHAR
 		cell/value: value
+		cell
 	]
 
 	push: func [
 		value	 [integer!]
+		return:	 [red-char!]
 		/local
 			cell [red-char!]
 	][
@@ -53,6 +56,7 @@ char: context [
 		cell: as red-char! stack/push*
 		cell/header: TYPE_CHAR
 		cell/value: value
+		cell
 	]
 	
 	;-- Actions --

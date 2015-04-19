@@ -88,7 +88,7 @@ native: context [
 								blk < end
 								TYPE_OF(blk) = TYPE_BLOCK
 							][
-								typeset/make-in args as red-block! blk
+								typeset/make-with args as red-block! blk
 							][
 								typeset/make-default args
 							]

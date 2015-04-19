@@ -27,6 +27,7 @@ red: context [
 	;#include %threads.reds
 	#include %allocator.reds
 	;#include %collector.reds
+	#include %crush.reds
 	
 	;-- Datatypes --
 	
@@ -86,6 +87,7 @@ red: context [
 	#include %stack.reds
 	#include %interpreter.reds
 	#include %simple-io.reds						;-- temporary file IO support
+	#include %redbin.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	declare red-block!						;-- root block
@@ -157,6 +159,7 @@ red: context [
 		case-folding/init
 		
 		stack/init
+		redbin/boot-load
 		
 		#if debug? = yes [
 			verbosity: 0

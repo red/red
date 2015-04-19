@@ -637,7 +637,7 @@ parser: context [
 			
 			switch state [
 				ST_PUSH_BLOCK [
-					none/rs-push rules
+					none/make-in rules
 					PARSE_PUSH_POSITIONS
 					block/rs-append rules as red-value! rule
 					if all [value <> null value <> rule][

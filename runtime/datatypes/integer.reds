@@ -138,17 +138,19 @@ integer: context [
 		as red-value! left
 	]
 
-	load-in: func [
-		blk	  	[red-block!]
+	make-in: func [
+		parent 	[red-block!]
 		value 	[integer!]
+		return: [red-integer!]
 		/local
 			int [red-integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "integer/load-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "integer/make-in"]]
 		
-		int: as red-integer! ALLOC_TAIL(blk)
+		int: as red-integer! ALLOC_TAIL(parent)
 		int/header: TYPE_INTEGER
 		int/value: value
+		int
 	]
 	
 	push: func [

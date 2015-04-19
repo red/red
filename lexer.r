@@ -56,14 +56,14 @@ lexer: context [
 	]
 	
 	UTF8-3: reduce [
-		#{E0} 	 charset [#"^(A0)" - #"^(BF)"] UTF8-tail
+		#{E0} 	 charset [#"^(A0)" - #"^(BF)"]   UTF8-tail
 		'| 		 charset [#"^(E1)" - #"^(EC)"] 2 UTF8-tail
-		'| #{ED} charset [#"^(80)" - #"^(9F)"] UTF8-tail
+		'| #{ED} charset [#"^(80)" - #"^(9F)"]   UTF8-tail
 		'| 		 charset [#"^(EE)" - #"^(EF)"] 2 UTF8-tail
 	]
 	
 	UTF8-4: reduce [
-		#{F0} 	 charset [#"^(90)" - #"^(BF)"] 2 UTF8-tail
+		#{F0} 	 charset [#"^(90)" - #"^(BF)"] 2 UTF8-tail 
 		'| 		 charset [#"^(F1)" - #"^(F3)"] 3 UTF8-tail
 		'| #{F4} charset [#"^(80)" - #"^(8F)"] 2 UTF8-tail
 	]
@@ -501,8 +501,8 @@ lexer: context [
 		new
 	]
 	
-	decode-UTF8-char: func [value][
-		if char? value [return encode-char to integer! value]
+	decode-UTF8-char: func [value /redbin][
+		if all [not redbin char? value][return encode-char to integer! value]
 		
 		value: switch/default length? value [
 			1 [value]
@@ -527,9 +527,11 @@ lexer: context [
 			]
 		][
 			throw-error/with "Unsupported or invalid UTF-8 encoding"
-		]	
+		]
 		
-		encode-char to integer! value				;-- special encoding for Unicode char!
+		either redbin [value][
+			encode-char to integer! value				;-- special encoding for Unicode char!
+		]
 	]
 	
 	decode-UTF8-string: func [str [string!] /local new s e][
