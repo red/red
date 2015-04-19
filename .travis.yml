@@ -4,6 +4,11 @@
 # (http://docs.travis-ci.com/).
 #
 
+# Only use continuous integration on the master branch
+branches: 
+    only: 
+        - master
+
 # Send notifications on every build failure to comitter and author. Never send
 # notifications for sucessful builds.
 notifications:
