@@ -1201,8 +1201,9 @@ Red [
 		
 	--test-- "str-ext53 - issue #1093"
 		se53-copied: copy ""
-		--assert parse "abcde" ["xyz" | copy s to end (se53: :s)]
+		--assert parse "abcde" ["xyz" | copy s to end (se53-copied: :s)]
 		--assert "abcde" = se53-copied
+
 		
 ===end-group===
 
