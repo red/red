@@ -35,7 +35,7 @@ HORIZONTAL: 0
 VERTICAL: 	1
 BOTTOM:		80
 
-main: function [this [integer!] /extern [input output]][
+main: function [this [integer!] /extern input output][
 	this: to-java-object this
 
 	lay: java-new [android.widget.LinearLayout this]
