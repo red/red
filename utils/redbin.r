@@ -9,7 +9,7 @@ REBOL [
 
 context [
 	header:		make binary! 10'000
-	buffer:		make binary! 100'000
+	buffer:		make binary! 200'000
 	sym-table:	make binary! 10'000
 	sym-string:	make binary! 10'000
 	symbols:	make hash! 	 1'000						;-- [word1 word2 ...]
@@ -349,12 +349,8 @@ context [
 	finish: func [spec [block!] /local flags compress? data out len][
 		pad sym-string 8
 		flags: #{04}
-		if compress?: find spec 'compress [flags: flags or #{02}]
 		
 		repend header [
-			"REDBIN"
-			#{01}										;-- version: 1
-			flags										;-- flags: symbols [+ options]
 			to-bin32 index - 1							;-- number of root records
 			to-bin32 length? buffer						;-- size of records in bytes
 			to-bin32 length? symbols
@@ -364,12 +360,21 @@ context [
 		]
 		insert buffer header
 		
-		if compress? [
+		if compress?: find spec 'compress [
+			flags: flags or #{02}
 			out: make binary! len: length? buffer
 			insert/dup out null len
 			len: redc/crush-compress buffer len out
 			clear buffer
 			insert/part buffer out len
 		]
+		
+		clear header
+		repend header [
+			"REDBIN"
+			#{01}										;-- version: 1
+			flags										;-- flags: symbols [+ options]
+		]
+		insert buffer header
 	]
 ]

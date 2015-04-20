@@ -372,7 +372,11 @@ redbin: context [
 		compressed?: (as-integer p/1) and redbin-compressed-mask = redbin-compressed-mask
 		sym-table?:  (as-integer p/1) and redbin-symbol-table-mask = redbin-symbol-table-mask
 		p: p + 1
+		
+		if compressed? [p: crush/decompress p null]
+
 		p4: as int-ptr! p
+
 		count: p4/1						;-- read records number
 		len: p4/2						;-- read records size in bytes
 		p4: p4 + 2						;-- skip both fields
@@ -407,8 +411,5 @@ redbin: context [
 		root-base
 	]
 	
-	boot-load: does [
-		buffer: crush/decompress system/boot-data null
-		decode buffer root
-	]
+	boot-load: does [decode system/boot-data root]
 ]
