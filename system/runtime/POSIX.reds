@@ -18,6 +18,10 @@ Red/System [
 			oldact	[sigaction!]
 			return: [integer!]
 		]
+		sigemptyset: "sigemptyset" [
+			mask	[integer!]
+			return: [integer!]
+		]
 	]
 ]
 
