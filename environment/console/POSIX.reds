@@ -441,6 +441,7 @@ init: func [
 		term [termios!]
 		cc	 [byte-ptr!]
 		so	 [sigaction!]
+		mask [integer!]
 ][
 	relative-y: 0
 	utf-char: as-c-string allocate 10
@@ -449,8 +450,10 @@ init: func [
 	copy-cell as red-value! hist-blk as red-value! history
 
 	so: declare sigaction!						;-- install resizing signal trap
+	mask: (as-integer so) + 4
+	sigemptyset mask
 	so/sigaction: as-integer :on-resize
-	so/flags: 	SA_SIGINFO ;or SA_RESTART
+	so/flags: 0
 	sigaction SIGWINCH so as sigaction! 0
 
 	term: declare termios!
