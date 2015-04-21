@@ -150,13 +150,14 @@ red: context [
 		symbols: 	block/make-in root 1000
 		global-ctx: _context/create 1000 no no
 
+		case-folding/init
+
 		datatype/make-words								;-- build datatype names as word! values
 		words/build										;-- create symbols used internally
 		refinements/build								;-- create refinements used internally
 		natives/init									;-- native specific init code
 		parser/init
 		_random/init
-		case-folding/init
 		
 		stack/init
 		redbin/boot-load
