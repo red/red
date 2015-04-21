@@ -186,7 +186,7 @@ default-input-completer: func [
 			cp > FFh
 		]
 
-		on-resize: does [
+		on-resize: func [[cdecl] sig [integer!]][
 			get-window-size
 			refresh
 		]
