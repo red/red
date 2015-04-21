@@ -313,6 +313,7 @@ string: context [
 			TYPE_OF(str) = TYPE_STRING					;@@ ANY_STRING?
 			TYPE_OF(str) = TYPE_FILE
 			TYPE_OF(str) = TYPE_URL
+			TYPE_OF(str) = TYPE_VECTOR
 		]
 		assert TYPE_OF(index) = TYPE_INTEGER
 
@@ -364,9 +365,10 @@ string: context [
 			p4 [int-ptr!]
 	][
 		switch unit [
-			Latin1 [p/1: as-byte 0]
-			UCS-2  [p/1: as-byte 0 p/2: as-byte 0]
-			UCS-4  [p4: as int-ptr! p p4/1: 0]
+			Latin1  [p/1: as-byte 0]
+			UCS-2   [p/1: as-byte 0 p/2: as-byte 0]
+			UCS-4   [p4: as int-ptr! p p4/1: 0]
+			default [0]
 		]
 	]
 	
@@ -619,8 +621,8 @@ string: context [
 				UCS-4  [p4: as int-ptr! p2 c2: p4/1]
 			]
 			if lax? [
-				c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
-				c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
+				c1: case-folding/folding-case c1 yes	;-- uppercase c1
+				c2: case-folding/folding-case c2 yes	;-- uppercase c2
 			]
 			p1: p1 + unit1
 			p2: p2 + unit2
@@ -694,8 +696,8 @@ string: context [
 			if op <> COMP_STRICT_EQUAL [
 				if all [65 <= c1 c1 <= 90][c1: c1 + 32]	;-- lowercase c1
 				if all [65 <= c2 c2 <= 90][c2: c2 + 32] ;-- lowercase c2
-				c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
-				c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
+				c1: case-folding/folding-case c1 yes	;-- uppercase c1
+				c2: case-folding/folding-case c2 yes	;-- uppercase c2
 			]
 			c1 = c2
 		][
@@ -1206,12 +1208,20 @@ string: context [
 				]
 			]
 			default [
-				either set? [
-					element: find parent element null no no no null null no no no no
-					actions/poke as red-series! element 2 value null
-					value
+				either TYPE_OF(parent) = TYPE_VECTOR [
+					fire [
+						TO_ERROR(script invalid-type)
+						datatype/push TYPE_OF(element)
+					]
+					null
 				][
-					select parent element null no no no null null no no
+					either set? [
+						element: find parent element null no no no null null no no no no
+						actions/poke as red-series! element 2 value null
+						value
+					][
+						select parent element null no no no null null no no
+					]
 				]
 			]
 		]
@@ -1275,8 +1285,8 @@ string: context [
 		c1: (as-integer p1/2) << 8 + p1/1
 		c2: (as-integer p2/2) << 8 + p2/1
 		if op = COMP_EQUAL [
-			c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
-			c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
+			c1: case-folding/folding-case c1 yes	;-- uppercase c1
+			c2: case-folding/folding-case c2 yes	;-- uppercase c2
 		]
 		either zero? flags [c1 - c2][c2 - c1]
 	]
@@ -1297,10 +1307,54 @@ string: context [
 		p4: as int-ptr! p2
 		c2: p4/1
 		if op = COMP_EQUAL [
-			c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
-			c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
+			c1: case-folding/folding-case c1 yes	;-- uppercase c1
+			c2: case-folding/folding-case c2 yes	;-- uppercase c2
 		]
 		either zero? flags [c1 - c2][c2 - c1]
+	]
+
+	compare-float32: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		return: [integer!]
+		/local
+			pf	[pointer! [float32!]]
+			f1	[float32!]
+			f2	[float32!]
+	][
+		pf: as pointer! [float32!] p1
+		f1: pf/1
+		pf: as pointer! [float32!] p2
+		f2: pf/1
+		either zero? flags [
+			SIGN_COMPARE_RESULT(f1 f2)
+		][
+			SIGN_COMPARE_RESULT(f2 f1)
+		]
+	]
+
+	compare-float: func [
+		p1		[byte-ptr!]
+		p2		[byte-ptr!]
+		op		[integer!]
+		flags	[integer!]
+		return: [integer!]
+		/local
+			pf	[pointer! [float!]]
+			f1	[float!]
+			f2	[float!]
+	][
+		pf: as pointer! [float!] p1
+		f1: pf/1
+		pf: as pointer! [float!] p2
+		f2: pf/1
+		either zero? flags [
+			SIGN_COMPARE_RESULT(f1 f2)
+		][
+			SIGN_COMPARE_RESULT(f2 f1)
+		]
 	]
 
 	;--- Property reading actions ---
@@ -1554,7 +1608,7 @@ string: context [
 				char: as red-char! value
 				c2: char/value
 				if case? [
-					c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
+					c2: case-folding/folding-case c2 yes	;-- uppercase c2
 				]
 			]
 			TYPE_STRING
@@ -1588,7 +1642,7 @@ string: context [
 					UCS-4  [p4: as int-ptr! buffer c1: p4/1]
 				]
 				if case? [
-					c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
+					c1: case-folding/folding-case c1 yes	;-- uppercase c1
 				]
 				found?: c1 = c2
 				
@@ -1632,8 +1686,8 @@ string: context [
 						]
 					]
 					if case? [
-						c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
-						c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
+						c1: case-folding/folding-case c1 yes	;-- uppercase c1
+						c2: case-folding/folding-case c2 yes	;-- uppercase c2
 					]
 					found?: c1 = c2
 					
@@ -1805,12 +1859,28 @@ string: context [
 			]
 			if step > 1 [len: len / step]
 		]
-		cmp: switch unit [
-			Latin1 [as-integer :compare-Latin1]
-			UCS-2  [as-integer :compare-UCS2]
-			UCS-4  [as-integer :compare-UCS4]
+
+		if unit = 6 [unit: 8]
+		cmp: either all [
+			TYPE_OF(str) = TYPE_VECTOR
+			(as-integer str/cache) = TYPE_FLOAT					;-- vec/type
+		][
+			switch unit [
+				4 [as-integer :compare-float32]
+				8 [as-integer :compare-float]
+			]
+		][
+			switch unit [
+				Latin1  [as-integer :compare-Latin1]
+				UCS-2   [as-integer :compare-UCS2]
+				UCS-4   [as-integer :compare-UCS4]
+			]
 		]
-		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		op: either TYPE_OF(str) = TYPE_VECTOR [
+			COMP_STRICT_EQUAL
+		][
+			either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
+		]
 		flags: either reverse? [SORT_REVERSE][SORT_NORMAL]
 		_sort/qsort buffer len unit * step op flags cmp
 		str
@@ -1825,6 +1895,7 @@ string: context [
 		return:	[red-value!]
 		/local
 			char   [red-char!]
+			vec    [red-vector!]
 			s	   [series!]
 			offset [integer!]
 			unit   [integer!]
@@ -1847,10 +1918,15 @@ string: context [
 		][
 			none-value
 		][
-			char: as red-char! stack/push*
-			char/header: TYPE_CHAR		
-			char/value:  get-char p1 unit
-			as red-value! char
+			either TYPE_OF(str) = TYPE_VECTOR [
+				vec: as red-vector! str
+				vector/get-value p1 unit vec/type
+			][
+				char: as red-char! stack/push*
+				char/header: TYPE_CHAR		
+				char/value:  get-char p1 unit
+				as red-value! char
+			]
 		]
 	]
 	
@@ -2032,7 +2108,11 @@ string: context [
 			if TYPE_OF(char) <> TYPE_CHAR [
 				fire [TO_ERROR(script invalid-arg) char]
 			]
-			poke-char s pos char/value
+			either TYPE_OF(str) = TYPE_VECTOR [
+				vector/set-value pos as red-value! char GET_UNIT(s)
+			][
+				poke-char s pos char/value
+			]
 			stack/set-last as red-value! char
 		]
 		as red-value! char
@@ -2058,7 +2138,7 @@ string: context [
 		
 		if head = tail [return str]						;-- early exit if nothing to remove
 
-		part: unit
+		part: either unit = 6 [8][unit]
 
 		if OPTION?(part-arg) [
 			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -2078,13 +2158,15 @@ string: context [
 			part: part << (unit >> 1)
 		]
 
-		if head + part < tail [
+		either head + part < tail [
 			move-memory 
 				head
 				head + part
 				as-integer tail - (head + part) + unit ;-- size including trailing NUL
+			s/tail: as red-value! tail - part
+		][
+			s/tail: as red-value! head
 		]
-		s/tail: as red-value! tail - part
 		str
 	]
 
@@ -2129,6 +2211,7 @@ string: context [
 			part: part << (unit >> 1)
 		]
 
+		if unit = 6 [unit: 8]
 		if all [positive? part head + part < tail] [tail: head + part]
 		tail: tail - unit								;-- point to last value
 		temp: as byte-ptr! :part
@@ -2152,6 +2235,8 @@ string: context [
 			int		[red-integer!]
 			str2	[red-string!]
 			char	[red-char!]
+			float	[red-float!]
+			vec		[red-vector!]
 			offset	[byte-ptr!]
 			tail	[byte-ptr!]
 			s		[series!]
@@ -2161,6 +2246,9 @@ string: context [
 			part	[integer!]
 			bytes	[integer!]
 			size	[integer!]
+			vec?	[logic!]
+			pf		[pointer! [float!]]
+			pf32	[pointer! [float32!]]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/take"]]
 
@@ -2197,8 +2285,15 @@ string: context [
 		buffer: as series! node/value
 		buffer/flags: s/flags							;@@ filter flags?
 
+		vec?: TYPE_OF(str) = TYPE_VECTOR
 		str2: as red-string! stack/push*
-		str2/header: TYPE_STRING
+		either vec? [
+			vec: as red-vector! str
+			str2/header: TYPE_VECTOR
+			str2/cache: str/cache
+		][
+			str2/header: TYPE_STRING
+		]
 		str2/node: 	node
 		str2/head: 	0
 
@@ -2226,10 +2321,15 @@ string: context [
 			add-terminal-NUL as byte-ptr! s/tail unit
 		][return as red-value! str2]
 
-		if part = 1 [									;-- return char!
-			char: as red-char! str2
-			char/header: TYPE_CHAR
-			char/value:  get-char as byte-ptr! buffer/offset unit
+		if part = 1 [
+			either vec? [
+				stack/pop 1
+				str2: as red-string! vector/get-value as byte-ptr! buffer/offset unit vec/type
+			][										;-- return char!
+				char: as red-char! str2
+				char/header: TYPE_CHAR
+				char/value:  get-char as byte-ptr! buffer/offset unit
+			]
 		]
 		as red-value! str2
 	]
@@ -2549,9 +2649,14 @@ string: context [
 
 			buffer/tail: as cell! (as byte-ptr! buffer/offset) + part
 		]
-		add-terminal-NUL as byte-ptr! buffer/tail unit
-		
-		new/header: TYPE_STRING
+
+		either TYPE_OF(str) = TYPE_VECTOR [
+			new/header: TYPE_VECTOR
+			new/cache: str/cache
+		][
+			add-terminal-NUL as byte-ptr! buffer/tail unit
+			new/header: TYPE_STRING
+		]
 		new/node: 	node
 		new/head: 	0
 		

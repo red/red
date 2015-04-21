@@ -42,11 +42,11 @@ symbol: context [
 			u1: len1
 			u2: len2
 			c1: unicode/decode-utf8-char str1 :u1
-			c2: unicode/decode-utf8-char str2 :u2					;@@ unsafe memory access
+			c2: unicode/decode-utf8-char str2 :u2		;@@ unsafe memory access
 			unless c1 = c2 [
-				c1: case-folding/folding-case c1 uppercase-table	;-- uppercase c1
-				c2: case-folding/folding-case c2 uppercase-table	;-- uppercase c2
-				if c1 <> c2 [return 0]								;-- not same case-insensitive character
+				c1: case-folding/folding-case c1 yes	;-- uppercase c1
+				c2: case-folding/folding-case c2 yes	;-- uppercase c2
+				if c1 <> c2 [return 0]					;-- not same case-insensitive character
 				aliased?: yes
 			]
 			str1: str1 + u1

@@ -3295,6 +3295,7 @@ red: context [
 					change/part pc load-source file 2
 					script-name: saved
 					append included-list file
+					unless empty? expr-stack [comp-expression]
 				]
 				true
 			]
