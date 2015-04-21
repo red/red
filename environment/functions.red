@@ -36,7 +36,7 @@ empty?: func [
 	either value? :value [
 		probe get/any :value
 	][
-		print "undefined"
+		print "unset!"
 	]
 ]
 
