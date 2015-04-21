@@ -600,6 +600,7 @@ parser: context [
 			max		 [integer!]
 			s		 [series!]
 			cnt		 [integer!]
+			offset	 [integer!]
 			upper?	 [logic!]
 			end?	 [logic!]
 			ended?	 [logic!]
@@ -989,9 +990,13 @@ parser: context [
 							]
 						]
 						TYPE_PAREN [
+							offset: (as-integer cmd - block/rs-head rule) >> 4	;-- save rule position							
 							interpreter/eval as red-block! value no
 							stack/pop 1
 							PARSE_TRACE(_paren)
+							cmd: (block/rs-head rule) + offset	;-- refresh rule pointers,							
+							tail: block/rs-tail rule			;-- in case the block was changed						
+							if cmd >= tail [cmd: tail - 1]	;-- avoid a "past end" state
 							state: ST_CHECK_PENDING
 						]
 						default [						;-- try to match a literal value
