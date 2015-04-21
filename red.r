@@ -186,7 +186,11 @@ redc: context [
 			script: %crush.reds
 			copy %crush
 		]
-		filename: append temp-dir/:basename pick [%.dll %.so] Windows?
+		filename: append temp-dir/:basename case [
+			Windows? 			 [%.dll]
+			system/version/4 = 2 [%.dylib]
+			'else 				 [%.so]
+		]
 		
 		if any [
 			not exists? filename
