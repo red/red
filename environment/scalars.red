@@ -1,7 +1,7 @@
 Red [
 	Title:   "Red base environment definitions"
 	Author:  "Nenad Rakocevic"
-	File: 	 %boot.red
+	File: 	 %scalars.red
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2013 Nenad Rakocevic. All rights reserved."
 	License: {

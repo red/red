@@ -104,6 +104,7 @@ float: context [
 
 	form-float: func [
 		f			[float!]
+		float32?	[logic!]
 		return:		[c-string!]
 		/local
 			s		[c-string!]
@@ -136,9 +137,15 @@ float: context [
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		s/17: #"0"
-		s/18: #"0"
-		sprintf [s "%.16g" f]
+		either float32? [
+			s/8: #"0"
+			s/9: #"0"
+			sprintf [s "%.7g" f]
+		][
+			s/17: #"0"
+			s/18: #"0"
+			sprintf [s "%.16g" f]
+		]
 
 		p:  null
 		p1: null
@@ -185,7 +192,11 @@ float: context [
 						all [p0/2 = #"1" p0/1 = #"0"]
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
-						sprintf [s0 "%.14g" f]
+						either float32? [
+							sprintf [s0 "%.5g" f]
+						][
+							sprintf [s0 "%.14g" f]
+						]
 						s: s0
 					]
 				]
@@ -368,7 +379,7 @@ float: context [
 			]
 			TYPE_STRING [
 				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
-				string/concatenate-literal buf form-float f
+				string/concatenate-literal buf form-float f no
 			]
 			default [
 				--NOT_IMPLEMENTED--
@@ -388,7 +399,7 @@ float: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/form"]]
 
-		formed: form-float fl/value
+		formed: form-float fl/value no
 		string/concatenate-literal buffer formed
 		part - length? formed							;@@ optimize by removing length?
 	]

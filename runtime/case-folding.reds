@@ -11,7 +11,7 @@ Red/System [
 	}
 ]
 
-lowercase-table: [	; Unicode 7.0 case folding table, only status 'C' and 'S'
+lowercase-table: [	; Unicode 7.0 case folding table,Upper -> Lower. Only status 'C' and 'S'
 	0041h 0061h ; LATIN CAPITAL LETTER A
 	0042h 0062h ; LATIN CAPITAL LETTER B
 	0043h 0063h ; LATIN CAPITAL LETTER C
@@ -1118,9 +1118,10 @@ lowercase-table: [	; Unicode 7.0 case folding table, only status 'C' and 'S'
 	000118BFh 000118DFh ; WARANG CITI CAPITAL LETTER VIYO
 ]
 
-uppercase-table: declare int-ptr!
-
 case-folding: context [
+
+	upper-to-lower: declare red-vector!
+	lower-to-upper: declare red-vector!
 
 	compare-integer: func [								;-- Compare function return integer!
 		p1		 [int-ptr!]
@@ -1136,39 +1137,71 @@ case-folding: context [
 	init: func [
 		/local
 			size  [integer!]
+			sz	  [integer!]
+			s	  [series!]
 			a	  [integer!]
 			b	  [integer!]
+			table [int-ptr!]
 	][
 		size: size? lowercase-table
-		uppercase-table: as int-ptr! allocate 4 * size
+		sz: size * (size? integer!)
+		;-- make upper-to-lower vector!
+		vector/make-at
+			as red-value! upper-to-lower
+			size
+			TYPE_INTEGER
+			size? integer!
+		s: GET_BUFFER(upper-to-lower)
+		copy-memory
+			as byte-ptr! s/offset
+			as byte-ptr! lowercase-table
+			sz
+		s/tail: as cell! ((as byte-ptr! s/offset) + sz)
+
+		;-- make lower-to-upper vector!
+		vector/make-at
+			as red-value! lower-to-upper
+			size
+			TYPE_INTEGER
+			size? integer!
+		s: GET_BUFFER(lower-to-upper)
+		s/tail: as cell! ((as byte-ptr! s/offset) + sz)
+		table: as int-ptr! s/offset
 		a: 1
 		b: 2
 		until [
-			uppercase-table/a: lowercase-table/b
-			uppercase-table/b: lowercase-table/a
+			table/a: lowercase-table/b
+			table/b: lowercase-table/a
 			a: a + 2
 			b: b + 2
 			a > size
 		]
 		_sort/qsort
-			as byte-ptr! uppercase-table
+			as byte-ptr! table
 			size / 2
 			2 * size? integer!
 			COMP_EQUAL
 			0 
-			as-integer :compare-integer
+			as-integer :compare-integer		
 	]
 
 	folding-case: func [
 		cp		[integer!]
-		table	[int-ptr!]
+		upper?	[logic!]
 		return: [integer!]
 		/local
-			c	 [integer!]
-			last [integer!]
-			end  [integer!]
+			c	  [integer!]
+			last  [integer!]
+			end   [integer!]
+			table [int-ptr!]
+			vec   [red-vector!]
+			s	  [series!]
 	][
-		last: size? lowercase-table
+		vec: either upper? [lower-to-upper][upper-to-lower]
+		s: GET_BUFFER(vec)
+		table: as int-ptr! s/offset
+
+		last: vector/rs-length? vec
 		end: last - 1
 		unless any [cp < table/1 cp > table/last][
 			c: -1
@@ -1203,13 +1236,11 @@ case-folding: context [
 			p4	  [int-ptr!]
 			cp	  [integer!]
 			len   [integer!]
-			table [int-ptr!]
 			i	  [integer!]
 	][
-		table: either upper? [uppercase-table][lowercase-table]
 		either TYPE_OF(arg) = TYPE_CHAR [
 			char: as red-char! arg
-			char/value: folding-case char/value table
+			char/value: folding-case char/value upper?
 		][
 			str: as red-string! arg
 			s: GET_BUFFER(str)
@@ -1243,7 +1274,7 @@ case-folding: context [
 					UCS-2  [(as-integer p/2) << 8 + p/1]
 					UCS-4  [p4: as int-ptr! p p4/value]
 				]
-				s: string/poke-char s p folding-case cp table
+				s: string/poke-char s p folding-case cp upper?
 				unit2: GET_UNIT(s)
 				if unit2 > unit [
 					unit: unit2

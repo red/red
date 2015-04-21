@@ -330,6 +330,7 @@ _function: context [
 			vec		  [red-vector!]
 			list	  [red-block!]
 			value	  [red-value!]
+			value2	  [red-value!]
 			tail	  [red-value!]
 			saved	  [red-value!]
 			w		  [red-word!]
@@ -399,9 +400,9 @@ _function: context [
 					assert TYPE_OF(blk) = TYPE_BLOCK
 					either routine? [
 						ret-set?: yes
-						value: block/pick blk 1 null
-						assert TYPE_OF(value) = TYPE_WORD
-						dt: as red-datatype! _context/get as red-word! value
+						value2: block/pick blk 1 null
+						assert TYPE_OF(value2) = TYPE_WORD
+						dt: as red-datatype! _context/get as red-word! value2
 						assert TYPE_OF(dt) = TYPE_DATATYPE
 						interpreter/return-type: dt/value	;@@ get rid of this
 					][

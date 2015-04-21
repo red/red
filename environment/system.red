@@ -207,6 +207,11 @@ system: context [
 		locale:
 		locale*: none									;-- in locale language
 
+		collation: context [
+			lower-to-upper: #system [stack/set-last as cell! case-folding/lower-to-upper]
+			upper-to-lower: #system [stack/set-last as cell! case-folding/upper-to-lower]
+		]
+
 		months: [
 		  "January" "February" "March" "April" "May" "June"
 		  "July" "August" "September" "October" "November" "December"
