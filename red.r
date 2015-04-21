@@ -29,7 +29,7 @@ redc: context [
 			2 [											;-- MacOS X
 				libc: load/library %libc.dylib
 				sys-call: make routine! [cmd [string!]] libc "system"
-				%/tmp/red/
+				join any [attempt [to-rebol-file get-env "HOME"] %/tmp/] %/.red/
 			]
 			3 [											;-- Windows
 				either lib?: find system/components 'Library [
@@ -73,7 +73,7 @@ redc: context [
 			]
 			libc: load/library libc
 			sys-call: make routine! [cmd [string!]] libc "system"
-			%/tmp/red/
+			join any [attempt [to-rebol-file get-env "HOME"] %/tmp/] %/.red/
 		]
 	]
 	
