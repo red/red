@@ -1338,7 +1338,6 @@ natives: context [
 
 	first+*: func [
 		/local
-			word  [red-word!]
 			value [red-value!]
 			str   [red-string!]
 			s     [series!]
@@ -1346,8 +1345,7 @@ natives: context [
 			char  [red-char!]
 			blk   [red-block!]
 	][
-		word: as red-word! stack/arguments
-		value: _context/get word
+		value: _context/get as red-word! stack/arguments
 		switch TYPE_OF(value) [
 			TYPE_STRING
 			TYPE_URL
