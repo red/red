@@ -201,6 +201,7 @@ Red/System [
 	NAT_TRY
 	NAT_UPPERCASE
 	NAT_LOWERCASE
+	NAT_FIRST_PLUS
 ]
 
 #enum math-op! [
