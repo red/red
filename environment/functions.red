@@ -33,7 +33,11 @@ empty?: func [
 ][
 	prin mold :value
 	prin ": "
-	probe get/any :value
+	either value? :value [
+		probe get/any :value
+	][
+		print "unset!"
+	]
 ]
 
 probe: func [
