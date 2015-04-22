@@ -1068,6 +1068,20 @@ parser: context [
 				]
 				ST_MATCH_RULE [
 					either all [value = tail][
+						w: switch type [
+							R_TO		 [words/_to]
+							R_THRU		 [words/_thru]
+							R_NOT		 [words/_not]
+							R_THEN		 [words/_then]
+							R_REMOVE	 [words/_remove]
+							R_WHILE		 [words/_while]
+							R_COLLECT	 [words/_collect]
+							R_KEEP		 [words/_keep]
+							R_KEEP_PAREN [words/_keep]
+							R_AHEAD		 [words/_ahead]
+							default		 [null]
+						]
+						if w <> null [fire [TO_ERROR(script parse-end) w]]
 						match?: yes
 						state: ST_CHECK_PENDING
 					][
@@ -1126,6 +1140,7 @@ parser: context [
 					]
 					case [
 						sym = words/pipe [				;-- |
+							if cmd = tail [fire [TO_ERROR(script parse-end) words/_pipe]]
 							cmd: tail
 							state: ST_POP_BLOCK
 						]
@@ -1136,12 +1151,14 @@ parser: context [
 							state: ST_NEXT_INPUT
 						]
 						sym = words/any* [				;-- ANY
+							if cmd + 1 = tail [fire [TO_ERROR(script parse-end) words/_any]]
 							min:   0
 							max:   R_NONE
 							type:  R_NONE
 							state: ST_PUSH_RULE
 						]
 						sym = words/some [				;-- SOME
+							if cmd + 1 = tail [fire [TO_ERROR(script parse-end) words/_some]]
 							min:   1
 							max:   R_NONE
 							type:  R_NONE
@@ -1150,7 +1167,7 @@ parser: context [
 						sym = words/copy [				;-- COPY
 							cmd: cmd + 1
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
-								fire [TO_ERROR(script parse-end) words/copy]
+								fire [TO_ERROR(script parse-end) words/_copy]
 							]
 							min:   R_NONE
 							type:  R_COPY
@@ -1180,6 +1197,7 @@ parser: context [
 							state:	ST_POP_RULE
 						]
 						sym = words/opt [				;-- OPT
+							if cmd + 1 = tail [fire [TO_ERROR(script parse-end) words/_opt]]
 							min:   0
 							max:   1
 							type:  R_NONE
@@ -1212,13 +1230,13 @@ parser: context [
 								fire [TO_ERROR(script parse-series) input]
 							]
 							value: cmd + 1
-							if value = tail [fire [TO_ERROR(script parse-end) words/into]]
+							if value = tail [fire [TO_ERROR(script parse-end) words/_into]]
 							
 							if TYPE_OF(value) = TYPE_WORD [
 								value: _context/get as red-word! value
 							]
 							if TYPE_OF(value) <> TYPE_BLOCK [
-								fire [TO_ERROR(script parse-end) words/into]
+								fire [TO_ERROR(script parse-end) words/_into]
 							]
 							value: block/rs-head input
 							type: TYPE_OF(value)
@@ -1241,6 +1259,8 @@ parser: context [
 								words/only = symbol/resolve w/symbol
 							]
 							cmd: cmd + max + 1
+							if cmd >= tail [fire [TO_ERROR(script parse-end) words/_insert]]
+							
 							value: cmd
 							if TYPE_OF(value) = TYPE_PAREN [
 								interpreter/eval as red-block! value no
@@ -1258,9 +1278,6 @@ parser: context [
 							state: ST_CHECK_PENDING
 						]
 						sym = words/then [				;-- THEN
-							if cmd + 1 = tail [
-								fire [TO_ERROR(script parse-end) words/then]
-							]
 							min:   R_NONE
 							type:  R_THEN
 							state: ST_PUSH_RULE
@@ -1268,7 +1285,7 @@ parser: context [
 						sym = words/if* [				;-- IF
 							cmd: cmd + 1
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_PAREN][
-								fire [TO_ERROR(script parse-end) words/if*]
+								fire [TO_ERROR(script parse-end) words/_if]
 							]
 							interpreter/eval as red-block! cmd no
 							match?: logic/top-true?
@@ -1283,9 +1300,7 @@ parser: context [
 						]
 						sym = words/quote [				;-- QUOTE
 							cmd: cmd + 1
-							if cmd = tail [
-								fire [TO_ERROR(script parse-end) words/quote]
-							]
+							if cmd = tail [fire [TO_ERROR(script parse-end) words/_quote]]
 							value: cmd
 							state: ST_MATCH
 						]
@@ -1307,7 +1322,7 @@ parser: context [
 										w >= tail
 										TYPE_OF(w) <> TYPE_WORD	
 									][
-										fire [TO_ERROR(script parse-end) words/collect]
+										fire [TO_ERROR(script parse-end) words/_collect]
 									]
 									either into? [get-word/push w][stack/push as red-value! w]
 									cmd: as red-value! w
@@ -1333,7 +1348,7 @@ parser: context [
 						sym = words/set [				;-- SET
 							cmd: cmd + 1
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_WORD][
-								fire [TO_ERROR(script parse-end) words/set]
+								fire [TO_ERROR(script parse-end) words/_set]
 							]
 							min:   R_NONE
 							type:  R_SET

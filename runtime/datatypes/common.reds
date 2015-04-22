@@ -227,6 +227,27 @@ words: context [
 	_body:			as red-word! 0
 	_end:			as red-word! 0
 	
+	_to:			as red-word! 0
+	_thru:			as red-word! 0
+	_not:			as red-word! 0
+	_then:			as red-word! 0
+	_remove:		as red-word! 0
+	_while:			as red-word! 0
+	_collect:		as red-word! 0
+	_keep:			as red-word! 0
+	_ahead:			as red-word! 0
+	_pipe:			as red-word! 0
+	_any:			as red-word! 0
+	_some:			as red-word! 0
+	_copy:			as red-word! 0
+	_opt:			as red-word! 0
+	_into:			as red-word! 0
+	_insert: 		as red-word! 0
+	_if: 			as red-word! 0
+	_quote: 		as red-word! 0
+	_collect: 		as red-word! 0
+	_set: 			as red-word! 0
+	
 	_on-parse-event: as red-word! 0
 	_on-change*:	 as red-word! 0
 	
@@ -311,6 +332,27 @@ words: context [
 		_syllable:		_context/add-global syllable
 		_macosx:		_context/add-global macosx
 		_linux:			_context/add-global linux
+		
+		_to:			_context/add-global to
+		_thru:			_context/add-global thru
+		_not:			_context/add-global not*
+		_then:			_context/add-global then
+		_remove:		_context/add-global remove
+		_while:			_context/add-global while*
+		_collect:		_context/add-global collect
+		_keep:			_context/add-global keep
+		_ahead:			_context/add-global ahead
+		_pipe:			_context/add-global pipe
+		_any:			_context/add-global any*
+		_some:			_context/add-global some
+		_copy:			_context/add-global copy
+		_opt:			_context/add-global opt
+		_into:			_context/add-global into
+		_insert: 		_context/add-global insert
+		_if: 			_context/add-global if*
+		_quote: 		_context/add-global quote
+		_collect: 		_context/add-global collect
+		_set: 			_context/add-global set
 		
 		_push:			word/load "push"
 		_pop:			word/load "pop"
