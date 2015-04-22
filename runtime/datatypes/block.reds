@@ -1398,6 +1398,10 @@ block: context [
 			any [
 				TYPE_OF(value) = TYPE_BLOCK				;@@ replace it with: typeset/any-block?
 				TYPE_OF(value) = TYPE_PATH				;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_GET_PATH			;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_PAREN				;@@ replace it with: typeset/any-block?
 			]
 		]
 		size: either values? [
