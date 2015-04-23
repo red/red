@@ -10,14 +10,14 @@ Red/System [
 	}
 ]
 
-#define redbin-compact-mask			01h
-#define redbin-compressed-mask		02h
-#define redbin-symbol-table-mask	04h
+#define REDBIN_COMPACT_MASK			01h
+#define REDBIN_COMPRESSED_MASK		02h
+#define REDBIN_SYMBOL_TABLE_MASK	04h
 
-#define REDBIN_VALUES_MASK	40000000h
-#define REDBIN_STACK_MASK	20000000h
-#define REDBIN_SELF_MASK	10000000h
-#define REDBIN_SET_MASK		08000000h
+#define REDBIN_VALUES_MASK			40000000h
+#define REDBIN_STACK_MASK			20000000h
+#define REDBIN_SELF_MASK			10000000h
+#define REDBIN_SET_MASK				08000000h
 
 redbin: context [
 	verbose: 0
@@ -368,9 +368,9 @@ redbin: context [
 			halt
 		]
 		p: p + 7						;-- skip magic(6 bytes) + version(1 byte)
-		compact?:	 (as-integer p/1) and redbin-compact-mask = redbin-compact-mask
-		compressed?: (as-integer p/1) and redbin-compressed-mask = redbin-compressed-mask
-		sym-table?:  (as-integer p/1) and redbin-symbol-table-mask = redbin-symbol-table-mask
+		compact?:	 (as-integer p/1) and REDBIN_COMPACT_MASK <> 0
+		compressed?: (as-integer p/1) and REDBIN_COMPRESSED_MASK <> 0
+		sym-table?:  (as-integer p/1) and REDBIN_SYMBOL_TABLE_MASK <> 0
 		p: p + 1
 		
 		if compressed? [p: crush/decompress p null]
