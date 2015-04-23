@@ -209,7 +209,7 @@ crush: context [							;-- LZ77
 		hash-size: CRUSH_HASH1_SIZE + CRUSH_HASH2_SIZE
 		head: as int-ptr! allocate hash-size * size? integer!
 		prev: as int-ptr! allocate CRUSH_W_SIZE * size? integer!
-		buf: allocate CRUSH_BUF_SIZE
+		buf: allocate CRUSH_BUF_SIZE + CRUSH_MAX_MATCH
 
 		crush: declare crush!
 		init crush length null
