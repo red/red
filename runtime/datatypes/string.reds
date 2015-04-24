@@ -1596,7 +1596,8 @@ string: context [
 				end: either part? [limit + unit][as byte-ptr! s/tail] ;-- + unit => compensate for the '>= test
 			]
 		]
-		case?: not case?								;-- inverted case? meaning
+
+		case?: either TYPE_OF(str) = TYPE_VECTOR [no][not case?]			;-- inverted case? meaning
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (unit >> 1)
 		pattern: null
@@ -1604,6 +1605,7 @@ string: context [
 		;-- Value argument processing --
 		
 		switch TYPE_OF(value) [
+			TYPE_INTEGER
 			TYPE_CHAR [
 				char: as red-char! value
 				c2: char/value
@@ -1780,7 +1782,7 @@ string: context [
 			
 			either p < as byte-ptr! s/tail [
 				char: as red-char! result
-				char/header: TYPE_CHAR
+				char/header: either TYPE_OF(str) = TYPE_VECTOR [as-integer str/cache][TYPE_CHAR]
 				char/value:  get-char p unit
 			][
 				result/header: TYPE_NONE
