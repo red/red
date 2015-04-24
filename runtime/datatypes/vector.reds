@@ -432,10 +432,10 @@ vector: context [
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		if unit = 6 [unit: 8]
-		p: (as byte-ptr! s/offset) + vec/head
+		p: (as byte-ptr! s/offset) + (vec/head << (unit >> 1))
 		end: as byte-ptr! s/tail
-		
+		if unit = 6 [unit: 8]
+
 		while [p < end][
 			if all [OPTION?(arg) part <= 0][return part]
 
@@ -599,7 +599,7 @@ vector: context [
 
 		s: GET_BUFFER(vec)
 		tail?: any [
-			(as-integer s/tail - s/offset) / GET_UNIT(s) = vec/head
+			(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) = vec/head
 			append?
 		]
 
@@ -633,7 +633,7 @@ vector: context [
 			added: added * dup-n
 			vec/head: vec/head + added
 			s: GET_BUFFER(vec)
-			assert (as byte-ptr! s/offset) + (vec/head * GET_UNIT(s)) <= as byte-ptr! s/tail
+			assert (as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail
 		]
 		as red-value! vec
 	]
@@ -674,8 +674,8 @@ vector: context [
 		len1: rs-length? left
 		len2: rs-length? right
 
-		p1: (as byte-ptr! s1/offset) + (left/head * unit1)
-		p2: (as byte-ptr! s2/offset) + (right/head * unit2)
+		p1: (as byte-ptr! s1/offset) + (left/head << (unit1 >> 1))
+		p2: (as byte-ptr! s2/offset) + (right/head << (unit2 >> 1))
 		either len1 > len2 [len: len1][
 			len: len2
 			len2: len1							;-- set len2 to minimum length
@@ -683,10 +683,10 @@ vector: context [
 			unit: unit1 unit1: unit2 unit2: unit
 		]
 		unit: either unit1 > unit2 [unit1][unit2]
-		node: alloc-bytes unit * len
+		node: alloc-bytes len << (unit >> 1)
 		buffer: as series! node/value
 		buffer/flags: buffer/flags and flag-unit-mask or unit
-		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (unit * len)
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (len << (unit >> 1))
 
 		i: 0
 		p:  as byte-ptr! buffer/offset
@@ -807,7 +807,7 @@ vector: context [
 			null			;change
 			INHERIT_ACTION	;clear
 			INHERIT_ACTION	;copy
-			null			;find
+			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
@@ -818,7 +818,7 @@ vector: context [
 			INHERIT_ACTION	;poke
 			INHERIT_ACTION	;remove
 			INHERIT_ACTION	;reverse
-			null			;select
+			INHERIT_ACTION	;select
 			INHERIT_ACTION	;sort
 			INHERIT_ACTION	;skip
 			null			;swap
