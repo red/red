@@ -1149,7 +1149,7 @@ case-folding: context [
 		vector/make-at
 			as red-value! upper-to-lower
 			size
-			TYPE_INTEGER
+			TYPE_CHAR
 			size? integer!
 		s: GET_BUFFER(upper-to-lower)
 		copy-memory
@@ -1162,7 +1162,7 @@ case-folding: context [
 		vector/make-at
 			as red-value! lower-to-upper
 			size
-			TYPE_INTEGER
+			TYPE_CHAR
 			size? integer!
 		s: GET_BUFFER(lower-to-upper)
 		s/tail: as cell! ((as byte-ptr! s/offset) + sz)
