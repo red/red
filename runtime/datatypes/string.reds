@@ -1208,20 +1208,12 @@ string: context [
 				]
 			]
 			default [
-				either TYPE_OF(parent) = TYPE_VECTOR [
-					fire [
-						TO_ERROR(script invalid-type)
-						datatype/push TYPE_OF(element)
-					]
-					null
+				either set? [
+					element: find parent element null no no no null null no no no no
+					actions/poke as red-series! element 2 value null
+					value
 				][
-					either set? [
-						element: find parent element null no no no null null no no no no
-						actions/poke as red-series! element 2 value null
-						value
-					][
-						select parent element null no no no null null no no
-					]
+					select parent element null no no no null null no no
 				]
 			]
 		]
@@ -1605,7 +1597,6 @@ string: context [
 		;-- Value argument processing --
 		
 		switch TYPE_OF(value) [
-			TYPE_INTEGER
 			TYPE_CHAR [
 				char: as red-char! value
 				c2: char/value
@@ -1630,8 +1621,16 @@ string: context [
 				end2:    (as byte-ptr! s2/tail)
 			]
 			default [
-				result/header: TYPE_NONE
-				return result
+				either all [
+					TYPE_OF(str) = TYPE_VECTOR
+					TYPE_OF(value) = TYPE_INTEGER
+				][
+					char: as red-char! value
+					c2: char/value
+				][
+					result/header: TYPE_NONE
+					return result
+				]
 			]
 		]
 		
