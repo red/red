@@ -449,14 +449,15 @@ redc: context [
 			print [
 				"...linking time     :" format-time result/2 "ms^/"
 				"...output file size :" result/3 "bytes^/"
-				"...output file      :" to-local-file result/4
+				"...output file      :" to-local-file result/4 lf
 			]
 		]
-		unless Windows? [print ""]							;-- extra LF for more readable output
+		unless Windows? [print ""]						;-- extra LF for more readable output
 	]
 	
 	set 'rc func [cmd [string! block!]][
 		fail-try "Driver" [redc/main/with reform cmd]
+		()												;-- return unset value
 	]
 ]
 
