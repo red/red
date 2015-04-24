@@ -1482,15 +1482,28 @@ natives: context [
 			i		[integer!]
 			block?	[logic!]
 	][
+		i: 1
 		block?: TYPE_OF(value) = TYPE_BLOCK
 		if block? [blk: as red-block! value]
-		i: 1
 		
-		while [i <= size][		
+		while [i <= size][
 			v: either block? [block/pick blk i null][value]
-			_context/set
-				as red-word! block/pick words i null
-				v
+			_context/set (as red-word! block/pick words i null) v
+			i: i + 1
+		]
+	]
+	
+	set-many-string: func [
+		words [red-block!]
+		str	  [red-string!]
+		size  [integer!]
+		/local
+			v [red-value!]
+			i [integer!]
+	][
+		i: 1
+		while [i <= size][
+			_context/set (as red-word! block/pick words i null) string/pick str i null
 			i: i + 1
 		]
 	]
@@ -1501,26 +1514,38 @@ natives: context [
 		/local
 			series [red-series!]
 			blk    [red-block!]
+			type   [integer!]
 			result [logic!]
 	][
 		blk:    as red-block!  stack/arguments - 1
 		series: as red-series! stack/arguments - 2
 
+		type: TYPE_OF(series)
 		assert any [									;@@ replace with any-block?/any-string? check
-			TYPE_OF(series) = TYPE_BLOCK
-			TYPE_OF(series) = TYPE_PAREN
-			TYPE_OF(series) = TYPE_PATH
-			TYPE_OF(series) = TYPE_GET_PATH
-			TYPE_OF(series) = TYPE_SET_PATH
-			TYPE_OF(series) = TYPE_LIT_PATH
-			TYPE_OF(series) = TYPE_STRING
-			TYPE_OF(series) = TYPE_FILE
-			TYPE_OF(series) = TYPE_URL
+			type = TYPE_BLOCK
+			type = TYPE_PAREN
+			type = TYPE_PATH
+			type = TYPE_GET_PATH
+			type = TYPE_SET_PATH
+			type = TYPE_LIT_PATH
+			type = TYPE_STRING
+			type = TYPE_FILE
+			type = TYPE_URL
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
 		result: loop? series
-		if result [set-many blk as red-value! series size]
+		if result [
+			either any [
+				type = TYPE_STRING
+				type = TYPE_FILE
+				type = TYPE_URL
+			][
+				set-many-string blk as red-string! series size
+			][
+				set-many blk as red-value! series size
+			]
+		]
 		series/head: series/head + size
 		result
 	]
