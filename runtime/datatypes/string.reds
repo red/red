@@ -1207,6 +1207,10 @@ string: context [
 					pick parent int/value null
 				]
 			]
+			TYPE_WORD [
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(element)]
+				null
+			]
 			default [
 				either set? [
 					element: find parent element null no no no null null no no no no
