@@ -122,7 +122,6 @@ Red [
 		s7-b: 5
 		--assert none = s7-a/5
 		--assert none = s7-a/:s7-b
-		--assert none = s7-a/s7-b
 
 ===end-group===
 
