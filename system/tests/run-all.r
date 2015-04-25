@@ -23,11 +23,11 @@ qt/script-header: "Red/System []"
 do %source/units/make-red-system-auto-tests.r
 
 ;; run the tests
-print rejoin ["Run-All    v" system/script/header/version]
-print rejoin ["Quick-Test v" qt/version]
-print rejoin ["REBOL       " system/version]
-
+print ["Run-All    v" system/script/header/version]
+print ["Quick-Test v" qt/version]
+print ["REBOL       " system/version]
 start-time: now/precise
+print ["This test started at" start-time]
 
 ;; any .reds test with more than one space between --run-test-file-quiet and 
 ;;  the filename will be excluded from the ARM tests
@@ -123,6 +123,7 @@ start-time: now/precise
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
+print ["The test finished at" end-time]
 system/options/quiet: store-quiet-mode
 either batch-mode [
 	quit/return either qt/test-run/failures > 0 [1] [0]

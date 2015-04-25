@@ -24,10 +24,11 @@ qt/tests-dir: system/script/path
 do %source/units/run-all-init.r
 
 ;; run the tests
-print rejoin ["Quick-Test v" qt/version]
-print rejoin ["REBOL " system/version]
-
+print ["Quick-Test v" qt/version]
+print ["REBOL " system/version]
 start-time: now/precise
+print ["This test started at" start-time]
+
 qt/script-header: "Red []"
 
 --setup-temp-files
@@ -53,6 +54,7 @@ do %source/units/run-all-extra-tests.r
 
 end-time: now/precise
 print ["       in" difference end-time start-time newline]
+print ["The test finished at" end-time]
 system/options/quiet: store-quiet-mode
 either batch-mode [
 	quit/return either qt/test-run/failures > 0 [1] [0]
