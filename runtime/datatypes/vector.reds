@@ -246,6 +246,168 @@ vector: context [
 		]
 	]
 	
+	serialize: func [
+		vec		[red-vector!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part	[integer!]
+		mold?	[logic!]
+		return: [integer!]
+		/local
+			s		[series!]
+			p		[byte-ptr!]
+			end		[byte-ptr!]
+			unit	[integer!]
+			pf		[pointer! [float!]]
+			pf32	[pointer! [float32!]]
+			formed	[c-string!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "vector/serialize"]]
+
+		s: GET_BUFFER(vec)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (vec/head << (unit >> 1))
+		end: as byte-ptr! s/tail
+		if unit = 6 [unit: 8]
+
+		while [p < end][
+			if all [OPTION?(arg) part <= 0][return part]
+
+			either vec/type = TYPE_CHAR [
+				part: either mold? [
+					string/concatenate-literal buffer {#"}
+					string/append-escaped-char
+							buffer
+							get-value-int as int-ptr! p unit
+							string/ESC_CHAR
+							all?
+					string/append-char GET_BUFFER(buffer) as-integer #"^""
+					part - 4
+				][
+					string/append-escaped-char
+							buffer
+							get-value-int as int-ptr! p unit
+							string/ESC_CHAR
+							all?
+					part - 1
+				]
+			][
+				either vec/type = TYPE_FLOAT [
+					formed: either unit = 8 [
+						pf: as pointer! [float!] p
+						float/form-float pf/value no
+					][
+						pf32: as pointer! [float32!] p
+						float/form-float as-float pf32/value yes
+					]
+				][
+					formed: integer/form-signed get-value-int as int-ptr! p unit
+				]
+				string/concatenate-literal buffer formed
+				part: part - system/words/length? formed	;@@ optimize by removing length?
+			]
+			if p + unit < end [
+				string/append-char GET_BUFFER(buffer) as-integer space
+				part: part - 1
+			]
+			p: p + unit
+		]
+		part	
+	]
+	
+	do-math: func [
+		type		[math-op!]
+		return:		[red-value!]
+		/local
+			left	[red-vector!]
+			right	[red-vector!]
+			s1		[series!]
+			s2		[series!]
+			unit	[integer!]
+			unit1	[integer!]
+			unit2	[integer!]
+			len		[integer!]
+			len1	[integer!]
+			len2	[integer!]
+			v1		[integer!]
+			v2		[integer!]
+			i		[integer!]
+			node	[node!]
+			buffer	[series!]
+			p		[byte-ptr!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+			p4		[int-ptr!]
+	][
+		left: as red-vector! stack/arguments
+		right: left + 1
+
+		assert TYPE_OF(right) = TYPE_VECTOR
+
+		s1: GET_BUFFER(left)
+		s2: GET_BUFFER(right)
+		unit1: GET_UNIT(s1)
+		unit2: GET_UNIT(s2)
+		len1: rs-length? left
+		len2: rs-length? right
+
+		p1: (as byte-ptr! s1/offset) + (left/head << (unit1 >> 1))
+		p2: (as byte-ptr! s2/offset) + (right/head << (unit2 >> 1))
+		either len1 > len2 [len: len1][
+			len: len2
+			len2: len1							;-- set len2 to minimum length
+			p: p1 p1: p2 p2: p
+			unit: unit1 unit1: unit2 unit2: unit
+		]
+		unit: either unit1 > unit2 [unit1][unit2]
+		node: alloc-bytes len << (unit >> 1)
+		buffer: as series! node/value
+		buffer/flags: buffer/flags and flag-unit-mask or unit
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (len << (unit >> 1))
+
+		i: 0
+		p:  as byte-ptr! buffer/offset
+		while [i < len][
+			v1: get-value-int as int-ptr! p1 unit1
+			if i < len2 [
+				v2: get-value-int as int-ptr! p2 unit2
+				v1: switch type [
+					OP_ADD [v1 + v2]
+					OP_SUB [v1 - v2]
+					OP_MUL [v1 * v2]
+					OP_REM [v1 % v2]
+					OP_AND [v1 and v2]
+					OP_OR  [v1 or v2]
+					OP_XOR [v1 xor v2]
+					OP_DIV [
+						either zero? v2 [
+							fire [TO_ERROR(math zero-divide)]
+							0								;-- pass the compiler's type-checking
+						][
+							v1 / v2
+						]
+					]
+				]
+				p2: p2 + unit2
+			]
+			p4: as int-ptr! p
+			p4/value: switch unit [
+				1 [v1 and FFh or (p4/value and FFFFFF00h)]
+				2 [v1 and FFFFh or (p4/value and FFFF0000h)]
+				4 [v1]
+			]
+			i:  i  + 1
+			p:  p  + unit
+			p1: p1 + unit1
+		]
+		left/node: node
+		left/head: 0
+		as red-value! left
+	]
+	
 	clone: func [
 		vec		[red-vector!]							;-- clone the vector in-place
 		return: [red-vector!]
@@ -422,78 +584,6 @@ vector: context [
 		]
 		vec
 	]
-
-	serialize: func [
-		vec		[red-vector!]
-		buffer	[red-string!]
-		only?	[logic!]
-		all?	[logic!]
-		flat?	[logic!]
-		arg		[red-value!]
-		part	[integer!]
-		mold?	[logic!]
-		return: [integer!]
-		/local
-			s		[series!]
-			p		[byte-ptr!]
-			end		[byte-ptr!]
-			unit	[integer!]
-			pf		[pointer! [float!]]
-			pf32	[pointer! [float32!]]
-			formed	[c-string!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "vector/serialize"]]
-
-		s: GET_BUFFER(vec)
-		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (vec/head << (unit >> 1))
-		end: as byte-ptr! s/tail
-		if unit = 6 [unit: 8]
-
-		while [p < end][
-			if all [OPTION?(arg) part <= 0][return part]
-
-			either vec/type = TYPE_CHAR [
-				part: either mold? [
-					string/concatenate-literal buffer {#"}
-					string/append-escaped-char
-							buffer
-							get-value-int as int-ptr! p unit
-							string/ESC_CHAR
-							all?
-					string/append-char GET_BUFFER(buffer) as-integer #"^""
-					part - 4
-				][
-					string/append-escaped-char
-							buffer
-							get-value-int as int-ptr! p unit
-							string/ESC_CHAR
-							all?
-					part - 1
-				]
-			][
-				either vec/type = TYPE_FLOAT [
-					formed: either unit = 8 [
-						pf: as pointer! [float!] p
-						float/form-float pf/value no
-					][
-						pf32: as pointer! [float32!] p
-						float/form-float as-float pf32/value yes
-					]
-				][
-					formed: integer/form-signed get-value-int as int-ptr! p unit
-				]
-				string/concatenate-literal buffer formed
-				part: part - system/words/length? formed	;@@ optimize by removing length?
-			]
-			if p + unit < end [
-				string/append-char GET_BUFFER(buffer) as-integer space
-				part: part - 1
-			]
-			p: p + unit
-		]
-		part	
-	]
 	
 	form: func [
 		vec		[red-vector!]
@@ -656,96 +746,6 @@ vector: context [
 			assert (as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail
 		]
 		as red-value! vec
-	]
-
-	do-math: func [
-		type		[math-op!]
-		return:		[red-value!]
-		/local
-			left	[red-vector!]
-			right	[red-vector!]
-			s1		[series!]
-			s2		[series!]
-			unit	[integer!]
-			unit1	[integer!]
-			unit2	[integer!]
-			len		[integer!]
-			len1	[integer!]
-			len2	[integer!]
-			v1		[integer!]
-			v2		[integer!]
-			i		[integer!]
-			node	[node!]
-			buffer	[series!]
-			p		[byte-ptr!]
-			p1		[byte-ptr!]
-			p2		[byte-ptr!]
-			p4		[int-ptr!]
-	][
-		left: as red-vector! stack/arguments
-		right: left + 1
-
-		assert TYPE_OF(right) = TYPE_VECTOR
-
-		s1: GET_BUFFER(left)
-		s2: GET_BUFFER(right)
-		unit1: GET_UNIT(s1)
-		unit2: GET_UNIT(s2)
-		len1: rs-length? left
-		len2: rs-length? right
-
-		p1: (as byte-ptr! s1/offset) + (left/head << (unit1 >> 1))
-		p2: (as byte-ptr! s2/offset) + (right/head << (unit2 >> 1))
-		either len1 > len2 [len: len1][
-			len: len2
-			len2: len1							;-- set len2 to minimum length
-			p: p1 p1: p2 p2: p
-			unit: unit1 unit1: unit2 unit2: unit
-		]
-		unit: either unit1 > unit2 [unit1][unit2]
-		node: alloc-bytes len << (unit >> 1)
-		buffer: as series! node/value
-		buffer/flags: buffer/flags and flag-unit-mask or unit
-		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (len << (unit >> 1))
-
-		i: 0
-		p:  as byte-ptr! buffer/offset
-		while [i < len][
-			v1: get-value-int as int-ptr! p1 unit1
-			if i < len2 [
-				v2: get-value-int as int-ptr! p2 unit2
-				v1: switch type [
-					OP_ADD [v1 + v2]
-					OP_SUB [v1 - v2]
-					OP_MUL [v1 * v2]
-					OP_REM [v1 % v2]
-					OP_AND [v1 and v2]
-					OP_OR  [v1 or v2]
-					OP_XOR [v1 xor v2]
-					OP_DIV [
-						either zero? v2 [
-							fire [TO_ERROR(math zero-divide)]
-							0								;-- pass the compiler's type-checking
-						][
-							v1 / v2
-						]
-					]
-				]
-				p2: p2 + unit2
-			]
-			p4: as int-ptr! p
-			p4/value: switch unit [
-				1 [v1 and FFh or (p4/value and FFFFFF00h)]
-				2 [v1 and FFFFh or (p4/value and FFFF0000h)]
-				4 [v1]
-			]
-			i:  i  + 1
-			p:  p  + unit
-			p1: p1 + unit1
-		]
-		left/node: node
-		left/head: 0
-		as red-value! left
 	]
 
 	add: func [return: [red-value!]][
