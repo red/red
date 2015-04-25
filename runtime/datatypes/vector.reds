@@ -504,41 +504,47 @@ vector: context [
 		indent	[integer!]
 		return:	[integer!]
 		/local
-			s	 [series!]
-			unit [integer!]
+			formed [c-string!]
+			s	   [series!]
+			unit   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "vector/mold"]]
 		
 		string/concatenate-literal buffer "make vector! ["
 		part: part - 14
 
-		string/concatenate-literal buffer switch vec/type [
-			TYPE_CHAR		[part: part - 5 "char!"]
-			TYPE_INTEGER	[part: part - 8 "integer!"]
-			TYPE_FLOAT		[part: part - 6 "float!"]
-		]
-		string/append-char GET_BUFFER(buffer) as-integer space
-
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
 		if unit = 6 [unit: 8]
-		formed: integer/form-signed unit << 3
-		string/concatenate-literal buffer formed
-		string/append-char GET_BUFFER(buffer) as-integer space
-		part: part - system/words/length? formed
+		
+		either any [
+			all [unit = 4 any [vec/type = TYPE_CHAR vec/type = TYPE_INTEGER]]
+			all [unit = 8 vec/type = TYPE_FLOAT]
+		][
+			part: serialize vec buffer only? all? flat? arg part yes
+			string/append-char GET_BUFFER(buffer) as-integer #"]"
+			part - 1
+		][
+			string/concatenate-literal buffer switch vec/type [
+				TYPE_CHAR		[part: part - 5 "char!"]
+				TYPE_INTEGER	[part: part - 8 "integer!"]
+				TYPE_FLOAT		[part: part - 6 "float!"]
+			]
+			string/append-char GET_BUFFER(buffer) as-integer space
 
-		formed: integer/form-signed rs-length? vec
-		string/concatenate-literal buffer formed
-		string/append-char GET_BUFFER(buffer) as-integer space
-		part: part - system/words/length? formed
+			formed: integer/form-signed unit << 3
+			string/concatenate-literal buffer formed
+			string/append-char GET_BUFFER(buffer) as-integer space
+			part: part - system/words/length? formed
 
-		string/append-char GET_BUFFER(buffer) as-integer #"["
-		part: part - 4									;-- 3 spaces + "["
+			string/append-char GET_BUFFER(buffer) as-integer #"["
+			part: part - 4									;-- 3 spaces + "["
 
-		part: serialize vec buffer only? all? flat? arg part yes
+			part: serialize vec buffer only? all? flat? arg part yes
 
-		string/concatenate-literal buffer "]]"
-		part - 2
+			string/concatenate-literal buffer "]]"
+			part - 2
+		]
 	]
 
 	;--- Modifying actions ---
