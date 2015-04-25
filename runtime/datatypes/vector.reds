@@ -99,6 +99,10 @@ vector: context [
 			p	 [byte-ptr!]
 			unit [integer!]
 	][
+		if vec/type <> TYPE_OF(value) [
+			fire [TO_ERROR(script invalid-arg) value]
+		]
+
 		assert TYPE_OF(value) = vec/type
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
@@ -118,6 +122,10 @@ vector: context [
 			unit  [integer!]
 			unit2 [integer!]
 	][
+		if vec/type <> TYPE_OF(value) [
+			fire [TO_ERROR(script invalid-arg) value]
+		]
+
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
 		unit2: either unit = 6 [8][unit]
@@ -334,7 +342,7 @@ vector: context [
 					type:  TYPE_OF(value)
 					if type = TYPE_WORD [
 						if size < 2 [
-							fire [TO_ERROR(script invalid-spec-field) spec]
+							fire [TO_ERROR(script bad-make-arg) proto spec]
 						]
 
 						;-- data type
@@ -344,7 +352,10 @@ vector: context [
 							sym = words/integer!	[TYPE_INTEGER]
 							sym = words/char!		[TYPE_CHAR]
 							sym = words/float!		[TYPE_FLOAT]
-							true					[TYPE_INTEGER]
+							true					[
+								fire [TO_ERROR(script bad-make-arg) proto spec]
+								0
+							]
 						]
 
 						;-- bit size
@@ -352,6 +363,9 @@ vector: context [
 						value: block/rs-head as red-block! spec
 						int: as red-integer! value
 						unit: int/value >> 3
+						unless any [unit = 4 unit = 2 unit = 1 unit = 8][
+							fire [TO_ERROR(script bad-make-arg) proto spec]
+						]
 
 						;-- size or block values
 						block/rs-next as red-block! spec
@@ -811,7 +825,7 @@ vector: context [
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
 			INHERIT_ACTION	;index?
-			INHERIT_ACTION	;insert
+			:insert
 			INHERIT_ACTION	;length?
 			INHERIT_ACTION	;next
 			INHERIT_ACTION	;pick
