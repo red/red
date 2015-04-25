@@ -2106,12 +2106,15 @@ string: context [
 				integer/push index
 			]
 		][
-			if TYPE_OF(char) <> TYPE_CHAR [
-				fire [TO_ERROR(script invalid-arg) char]
-			]
 			either TYPE_OF(str) = TYPE_VECTOR [
+				if TYPE_OF(char) <> as-integer str/cache [
+					fire [TO_ERROR(script invalid-arg) char]
+				]
 				vector/set-value pos as red-value! char GET_UNIT(s)
 			][
+				if TYPE_OF(char) <> TYPE_CHAR [
+					fire [TO_ERROR(script invalid-arg) char]
+				]
 				poke-char s pos char/value
 			]
 			stack/set-last as red-value! char
