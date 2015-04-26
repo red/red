@@ -385,6 +385,9 @@ natives: context [
 				#call [system/lexer/transcode str none]
 				interpreter/eval as red-block! arg yes
 			]
+			TYPE_ERROR [
+				stack/throw-error as red-object! arg
+			]
 			default [
 				interpreter/eval-expression arg arg + 1 no no
 			]
