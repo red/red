@@ -717,28 +717,40 @@ parser: context [
 							R_NONE [					;-- iterative rules (ANY, SOME, WHILE, ...)
 								t: as triple! s/tail - 3
 								cnt: t/state
-								either match? [
-									loop?: either t/max = R_NONE [match?][cnt < t/max]
-								][
-									;@@ might need backtracking here
-									match?: any [t/min <= (cnt - 1) zero? t/min]
+								;-- Find out if a new loop is required
+								loop?: match?
+								if all [match? t/max <> R_NONE][ ;-- if rule matched and an upper bound exists,
+									loop?: cnt < t/max			 ;-- but not reached yet, loop again
 								]
-								if any [
-									break?
-									not match? 
-									all [int/value <> R_WHILE input/head = p/input]
+								if any [						 ;-- don't loop if any:
+									break?						 ;-- a BREAK or REJECT command was issued
+									all [						 ;-- try to avoid some infinite loops
+										int/value <> R_WHILE
+										input/head = p/input	 ;-- if no input was consumed (except for WHILE)
+									]
+									all [end? int/value = R_WHILE] ;-- don't loop on WHILE if no more input
 								][
 									loop?: no
 									break?: no
 								]
-								either any [end? not loop?][
-									if all [match? cnt < t/min][match?: no]
-								][
+								if loop? [
+									;-- Reset state for a new loop
 									t/state: cnt + 1
-									cmd: (block/rs-head rule) + p/rule ;-- loop rule
+									cmd: (block/rs-head rule) + p/rule ;-- reset rule offset
 									PARSE_TRACE(_iterate)
 									state: ST_NEXT_ACTION
 									pop?: no
+								]
+								;-- Postprocess match? value
+								either match? [
+									if all [not loop? cnt < t/min][match?: no]	;-- minimal number of iteration not reached
+								][
+									if any [				;-- last loop failed case
+										t/min <= (cnt - 1)	;-- number of iteration more than lower bound
+										zero? t/min			;-- or lower bound is zero (ANY, OPT, WHILE)
+									][
+										match?: yes			;-- make the last loop return success
+									]
 								]
 							]
 							R_TO
@@ -909,7 +921,7 @@ parser: context [
 								p: as positions! s/tail - 2
 								p/sub: int/value		;-- save rule type in parent stack frame
 							]
-							state:  ST_CHECK_PENDING
+							state: ST_CHECK_PENDING
 						]
 					]
 					pop?: no
