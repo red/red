@@ -212,13 +212,12 @@ error: context [
 						if TYPE_OF(value) = TYPE_NONE [
 							fire [TO_ERROR(script missing-spec-field) words/_type]
 						]
-						copy-cell value base + field-type
-
 						value: block/select-word blk words/_id
 						if TYPE_OF(value) = TYPE_NONE [
 							fire [TO_ERROR(script missing-spec-field) words/_id]
 						]
-						copy-cell value base + field-id
+						_context/bind blk GET_CTX(new) new/ctx yes
+						interpreter/eval blk no
 					]
 					default [
 						fire [TO_ERROR(internal invalid-error)]
