@@ -22,7 +22,7 @@ Red [
 	--test-- "load-7"  --assert "^{^}^}" = load {"^{^}^}"}
 	--test-- "load-8"  --assert ""		 = load {"^"}
 	--test-- "load-9"  --assert ""		 = load "{}"
-	--test-- "load-10" --assert "{"		 = load "{^{}"
+	--test-- "load-10" --assert "{"		 = load "{^^{}"
 	--test-- "load-11" --assert {"}		 = load {{"}}
 	--test-- "load-12" --assert "^/" 	 = load "{^/}^/"
 	--test-- "load-13" --assert "^/" 	 = load "{^/}"
