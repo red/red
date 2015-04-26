@@ -393,11 +393,10 @@ vector: context [
 				]
 				p2: p2 + unit2
 			]
-			p4: as int-ptr! p
-			p4/value: switch unit [
-				1 [v1 and FFh or (p4/value and FFFFFF00h)]
-				2 [v1 and FFFFh or (p4/value and FFFF0000h)]
-				4 [v1]
+			switch unit [
+				1 [p/value: as-byte v1]
+				2 [p/1: as-byte v1 p/2: as-byte v1 >> 8]
+				4 [p4: as int-ptr! p p4/value: v1]
 			]
 			i:  i  + 1
 			p:  p  + unit
