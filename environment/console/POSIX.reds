@@ -273,7 +273,7 @@ check-special: func [
 			c: fd-read-char 50
 		]
 	]
-	KEY_NONE
+	KEY_ESCAPE
 ]
 
 emit: func [c [byte!]][
