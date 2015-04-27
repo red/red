@@ -431,19 +431,19 @@ interpreter: context [
 		]
 		
 		parent: _context/get as red-word! head
-		unless get? [
-			switch TYPE_OF(parent) [
-				TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
-				TYPE_NATIVE
-				TYPE_ROUTINE
-				TYPE_FUNCTION [
-					if set? [fire [TO_ERROR(script invalid-path-set) path]]
-					pc: eval-code parent pc end yes path item - 1 parent
-					return pc
-				]
-				TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
-				default	   [0]
+		
+		switch TYPE_OF(parent) [
+			TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+			TYPE_NATIVE
+			TYPE_ROUTINE
+			TYPE_FUNCTION [
+				if set? [fire [TO_ERROR(script invalid-path-set) path]]
+				if get? [fire [TO_ERROR(script invalid-path-get) path]]
+				pc: eval-code parent pc end yes path item - 1 parent
+				return pc
 			]
+			TYPE_UNSET [fire [TO_ERROR(script no-value)	head]]
+			default	   [0]
 		]
 				
 		while [item < tail][
