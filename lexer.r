@@ -321,8 +321,7 @@ lexer: context [
 	
 	nested-curly-braces: [
 		(cnt: 1 fail?: none)
-		any [
-			[
+		any [[
 				counted-newline 
 				| "^^{" | "^^}"
 				| #"{" (cnt: cnt + 1)
