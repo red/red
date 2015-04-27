@@ -571,6 +571,8 @@ string: context [
 			unit2 [integer!]
 			size1 [integer!]
 			size2 [integer!]
+			head1 [integer!]
+			head2 [integer!]
 			end	  [byte-ptr!]
 			p1	  [byte-ptr!]
 			p2	  [byte-ptr!]
@@ -583,7 +585,9 @@ string: context [
 		s2: GET_BUFFER(str2)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
-		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1) - str2/head
+		head1: either TYPE_OF(str1) = TYPE_SYMBOL [0][str1/head]
+		head2: either TYPE_OF(str2) = TYPE_SYMBOL [0][str2/head]
+		size2: (as-integer s2/tail - s2/offset) >> (unit2 >> 1) - head2
 		end: as byte-ptr! s2/tail							;-- only one "end" is needed
 
 		either match? [
@@ -591,7 +595,7 @@ string: context [
 				return as-integer all [op <> COMP_EQUAL op <> COMP_STRICT_EQUAL]
 			]
 		][
-			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1) - str1/head
+			size1: (as-integer s1/tail - s1/offset) >> (unit1 >> 1) - head1
 
 			either size1 <> size2 [							;-- shortcut exit for different sizes
 				if any [
@@ -605,8 +609,8 @@ string: context [
 				if zero? size1 [return 0]					;-- shortcut exit for empty strings
 			]
 		]
-		p1:  (as byte-ptr! s1/offset) + (str1/head << (unit1 >> 1))
-		p2:  (as byte-ptr! s2/offset) + (str2/head << (unit2 >> 1))
+		p1:  (as byte-ptr! s1/offset) + (head1 << (unit1 >> 1))
+		p2:  (as byte-ptr! s2/offset) + (head2 << (unit2 >> 1))
 		lax?: all [op <> COMP_STRICT_EQUAL op <> COMP_CASE_SORT]
 
 		until [	
