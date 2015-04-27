@@ -1301,7 +1301,10 @@ natives: context [
 			value  [red-value!]
 			result [red-logic!]
 	][
-		value: _context/get as red-word! stack/arguments
+		value: stack/arguments
+		if TYPE_OF(value) = TYPE_WORD [
+			value: _context/get as red-word! stack/arguments
+		]
 		result: as red-logic! stack/arguments
 		result/value: TYPE_OF(value) <> TYPE_UNSET
 		result/header: TYPE_LOGIC
