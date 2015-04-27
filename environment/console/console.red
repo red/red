@@ -90,7 +90,7 @@ system/console: context [
 		list
 	]
 
-	run: function [/local result][
+	run: function [][
 		buffer: make string! 10000
 		cue:    none
 		mode:   'mono
@@ -112,10 +112,10 @@ system/console: context [
 		]
 
 		eval: [
-			code: load/all buffer
-
-			unless tail? code [
-				set/any 'result try code
+			if error? code: try [load/all buffer][print code]
+			
+			unless any [error? code tail? code][
+				result: try code
 
 				case [
 					error? :result [
