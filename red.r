@@ -455,7 +455,7 @@ redc: context [
 		unless Windows? [print ""]						;-- extra LF for more readable output
 	]
 	
-	set 'rc func [cmd [string! block!]][
+	set 'rc func [cmd [file! string! block!]][
 		fail-try "Driver" [redc/main/with reform cmd]
 		()												;-- return unset value
 	]
