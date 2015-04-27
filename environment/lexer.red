@@ -363,16 +363,20 @@ system/lexer: context [
 			(cnt: 1)
 			any [
 				counted-newline 
-				| "^^{" 
+				| "^^{"
 				| "^^}"
-				| #"{" 	  (cnt: cnt + 1)
+				| #"{" (cnt: cnt + 1)
 				| e: #"}" if (zero? cnt: cnt - 1) break
 				| escaped-char
 				| skip
 			]
 		]
 
-		multiline-string: [#"{" s: nested-curly-braces]
+		multiline-string: [
+			#"{" s: nested-curly-braces (
+				unless zero? cnt [cause-error 'syntax 'invalid [string! mold s]]
+			)
+		]
 
 		string-rule: [(type: string!) line-string | multiline-string]
 
@@ -412,7 +416,7 @@ system/lexer: context [
 					| paren-rule
 					| #":" s: begin-symbol-rule	(to-word stack copy/part s e get-word!)
 					;@@ add more datatypes here
-					| (type: none print ["*** Syntax Error: invalid path value at:" back s])
+					| (cause-error 'syntax 'invalid [path! trim/tail back s])
 					  reject
 				]
 				opt [#":" (set-path back tail stack)]
@@ -542,7 +546,7 @@ system/lexer: context [
 				  #"]" (value: #"[") | #")" (value: #"(")
 				| #"[" (value: #"]") | #"(" (value: #")")
 			] :pos
-			(print ["missing matching" value])
+			(cause-error 'syntax 'missing [value pos])
 		]
 
 		literal-value: [
@@ -575,7 +579,7 @@ system/lexer: context [
 		][
 			parse/case src red-rules
 		][
-			print ["*** Syntax Error: invalid Red value at:" copy/part pos 20]
+			cause-error 'syntax 'invalid ['value copy/part pos 20]
 		]
 		stack/1
 	]
