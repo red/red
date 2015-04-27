@@ -86,6 +86,7 @@ system: context [
 				bad-refines:		"incompatible or invalid refinements"
 				bad-refine:			["incompatible refinement:" :arg1]
 				invalid-path:		["cannot access" :arg2 "in path" :arg1]
+				invalid-path-set:	["unsupported type in" :arg1 "set-path"]
 				bad-path-type:		["path" :arg1 "is not valid for" :arg2 "type"]
 				bad-path-set:		["cannot set" :arg2 "in path" :arg1]
 				bad-field-set:		["cannot set" :arg1 "field to" :arg2 "datatype"]

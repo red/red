@@ -437,6 +437,7 @@ interpreter: context [
 				TYPE_NATIVE
 				TYPE_ROUTINE
 				TYPE_FUNCTION [
+					if set? [fire [TO_ERROR(script invalid-path-set) path]]
 					pc: eval-code parent pc end yes path item - 1 parent
 					return pc
 				]
