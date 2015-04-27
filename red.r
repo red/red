@@ -460,11 +460,6 @@ redc: context [
 		()												;-- return unset value
 	]
 ]
-if any [
-	system/options/args
-	system/script/args
-][
-	redc/fail-try "Driver" [redc/main]
-]
 
+redc/fail-try "Driver" [redc/main]
 if encap? [quit/return 0]
