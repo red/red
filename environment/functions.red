@@ -292,6 +292,7 @@ pad: func [
 		(n - length? str)
 ]
 
+eval-set-path: func [value1][]
 
 ;------------------------------------------
 ;-				Aliases					  -

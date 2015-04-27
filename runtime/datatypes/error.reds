@@ -48,6 +48,8 @@ error: context [
 			s	  [series!]
 	][
 		fun:   as red-function! _context/get stack/get-call
+		if TYPE_OF(fun) <> TYPE_FUNCTION [return words/_anon]
+
 		s:	   as series! fun/spec/value
 		value: s/offset
 		end:   s/tail
