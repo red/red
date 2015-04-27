@@ -416,7 +416,7 @@ system/lexer: context [
 					| paren-rule
 					| #":" s: begin-symbol-rule	(to-word stack copy/part s e get-word!)
 					;@@ add more datatypes here
-					| (cause-error 'syntax 'invalid [path! trim/tail back s])
+					| (cause-error 'syntax 'invalid [path! trim/tail copy back s])
 					  reject
 				]
 				opt [#":" (set-path back tail stack)]
@@ -546,7 +546,7 @@ system/lexer: context [
 				  #"]" (value: #"[") | #")" (value: #"(")
 				| #"[" (value: #"]") | #"(" (value: #")")
 			] :pos
-			(cause-error 'syntax 'missing [value pos])
+			(cause-error 'syntax 'missing [trim/all copy skip pos -3 value])
 		]
 
 		literal-value: [
