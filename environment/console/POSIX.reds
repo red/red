@@ -240,10 +240,10 @@ check-special: func [
 		c2 [byte!]
 ][
 	c: fd-read-char 50
-	if (as-integer c) < 0 [return 27]
+	if (as-integer c) > 127 [return 27]
 
 	c2: fd-read-char 50
-	if (as-integer c) < 0 [return as-integer c2]
+	if (as-integer c2) > 127 [return as-integer c2]
 
 	if any [c = #"[" c = #"O"][
 		switch c2 [
