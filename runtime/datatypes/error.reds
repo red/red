@@ -46,10 +46,19 @@ error: context [
 			value [red-value!]
 			end	  [red-value!]
 			s	  [series!]
+			type  [integer!]
 	][
-		fun:   as red-function! _context/get stack/get-call
-		if TYPE_OF(fun) <> TYPE_FUNCTION [return words/_anon]
-
+		fun: as red-function! _context/get stack/get-call
+		type: TYPE_OF(fun)
+		if all [
+			 type <> TYPE_FUNCTION						;@@ replace by ANY_FUNCTION
+			 type <> TYPE_ACTION
+			 type <> TYPE_NATIVE
+			 type <> TYPE_OP
+			 type <> TYPE_ROUTINE
+		][
+			return words/_anon
+		]
 		s:	   as series! fun/spec/value
 		value: s/offset
 		end:   s/tail
