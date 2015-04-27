@@ -263,6 +263,22 @@ load: function [
 	out 
 ]
 
+cause-error: function [
+	"Causes an immediate error throw, with the provided information"
+	err-type [word!]
+	err-id	 [word!]
+	args	 [block!]
+][
+	args: reduce args
+	do make error! [
+		type: err-type
+		id: err-id
+		arg1: first args
+		arg2: second args
+		arg3: third args
+	]
+]
+
 pad: func [
 	"Align a string to a given size prepending whitespaces"
 	str [string!]		"String to pad"
