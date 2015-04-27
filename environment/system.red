@@ -51,7 +51,7 @@ system: context [
 			syntax: object [
 				code:				200
 				type:				"Syntax error"
-				invalid:			["invalid" :arg1 "--" :arg2]
+				invalid:			["invalid" :arg1 "at" :arg2]
 				missing:			["missing" :arg2 "at" :arg1]
 				no-header:			["script is missing a Red header:" :arg1]
 				no-rs-header:		["script is missing a Red/System header:" :arg1]
