@@ -577,6 +577,14 @@ parser: context [
 		block/clear rules
 		restore-stack
 	]
+	
+	eval: func [code [red-value!]][
+		catch RED_ERROR [interpreter/eval as red-block! code no]
+		if system/thrown = RED_ERROR [
+			reset
+			throw RED_ERROR
+		]
+	]
 
 	process: func [
 		input	[red-series!]
@@ -1011,7 +1019,7 @@ parser: context [
 						]
 						TYPE_PAREN [
 							offset: (as-integer cmd - block/rs-head rule) >> 4	;-- save rule position							
-							interpreter/eval as red-block! value no
+							eval value
 							stack/pop 1
 							PARSE_TRACE(_paren)
 							cmd: (block/rs-head rule) + offset	;-- refresh rule pointers,							
@@ -1283,7 +1291,7 @@ parser: context [
 							
 							value: cmd
 							if TYPE_OF(value) = TYPE_PAREN [
-								interpreter/eval as red-block! value no
+								eval value
 								value: stack/top - 1
 								PARSE_TRACE(_paren)
 							]
@@ -1307,7 +1315,7 @@ parser: context [
 							if any [cmd = tail TYPE_OF(cmd) <> TYPE_PAREN][
 								PARSE_ERROR [TO_ERROR(script parse-end) words/_if]
 							]
-							interpreter/eval as red-block! cmd no
+							eval cmd
 							match?: logic/top-true?
 							stack/pop 1
 							PARSE_TRACE(_match)
