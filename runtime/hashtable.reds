@@ -46,7 +46,7 @@ hash-string: func [
 ][
 	s: GET_BUFFER(str)
 	unit: GET_UNIT(s)
-	head: either TYPE_OF(str) = TYPE_SYMBOL [-1][str/head]
+	head: either TYPE_OF(str) = TYPE_SYMBOL [0][str/head]
 	p: (as byte-ptr! s/offset) + (head << (unit >> 1))
 	tail: as byte-ptr! s/tail
 	len: (as-integer tail - p) >> (unit >> 1) << 2
@@ -142,6 +142,7 @@ _hashtable: context [
 		n-occupied	[integer!]
 		n-buckets	[integer!]
 		upper-bound	[integer!]
+		sym-table?  [logic!]
 	]
 
 	round-up: func [
@@ -162,13 +163,14 @@ _hashtable: context [
 		return:	[logic!]
 	][
 		switch TYPE_OF(key) [
+			TYPE_WORD
+			TYPE_SYMBOL
 			TYPE_STRING
+			TYPE_INTEGER
 			TYPE_FILE
 			TYPE_URL
 			TYPE_CHAR
-			TYPE_INTEGER
 			TYPE_FLOAT
-			TYPE_WORD
 			TYPE_SET_WORD
 			TYPE_LIT_WORD
 			TYPE_GET_WORD
@@ -187,6 +189,7 @@ _hashtable: context [
 	][
 		len: 0
 		switch TYPE_OF(key) [
+			TYPE_SYMBOL
 			TYPE_STRING
 			TYPE_FILE
 			TYPE_URL   [
@@ -245,12 +248,14 @@ _hashtable: context [
 		size	[integer!]
 		blk		[red-block!]
 		map?	[logic!]
+		sym?	[logic!]
 		return: [node!]
 		/local node s ss h f-buckets fsize i value skip end
 	][
 		node: alloc-bytes-filled size? hashtable! #"^(00)"
 		s: as series! node/value
 		h: as hashtable! s/offset
+		h/sym-table?: sym?
 
 		if size < 3 [size: 3]
 		fsize: integer/to-float size
@@ -261,17 +266,22 @@ _hashtable: context [
 		h/upper-bound: float/to-integer f-buckets * _HT_HASH_UPPER
 		h/flags: alloc-bytes-filled h/n-buckets >> 2 #"^(AA)"
 		h/keys: alloc-bytes h/n-buckets * size? int-ptr!
-		h/blk: blk/node
 
-		s: GET_BUFFER(blk)
-		end: s/tail
-		unless map? [
-			h/indexes: alloc-bytes-filled size * size? integer! #"^(FF)"
-			i: (as-integer (end - s/offset)) >> 4 - blk/head
-			ss: as series! h/indexes/value
-			ss/tail: as cell! (as int-ptr! ss/tail) + i
+		either blk = null [
+			h/blk: alloc-cells size
+		][
+			h/blk: blk/node
+
+			s: GET_BUFFER(blk)
+			end: s/tail
+			if all [not sym? not map?] [
+				h/indexes: alloc-bytes-filled size * size? integer! #"^(FF)"
+				i: (as-integer (end - s/offset)) >> 4 - blk/head
+				ss: as series! h/indexes/value
+				ss/tail: as cell! (as int-ptr! ss/tail) + i
+			]
+			put-all node blk/head skip
 		]
-		put-all node blk/head skip
 		node
 	]
 
@@ -281,11 +291,12 @@ _hashtable: context [
 		/local
 			s h x k v i j site last mask step keys vals hash n-buckets blk
 			new-size tmp break? flags new-flags new-flags-node ii sh f idx
-			multi-key?
+			multi-key? sym-table?
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
 		multi-key?: h/indexes <> null
+		sym-table?: h/sym-table?
 		s: as series! h/blk/value
 		blk: s/offset
 		s: as series! h/flags/value
@@ -305,7 +316,6 @@ _hashtable: context [
 			]
 		]
 		if zero? j [
-			step: 0
 			s: as series! h/keys/value
 			keys: as int-ptr! s/offset
 			until [
@@ -317,8 +327,9 @@ _hashtable: context [
 					_BUCKET_SET_DEL_TRUE(flags ii sh)
 					break?: no
 					until [									;-- kick-out process
+						step: 0
 						k: blk + (idx and 7FFFFFFFh)
-						hash: hash-value k multi-key?
+						hash: hash-value k either sym-table? [yes][multi-key?]
 						i: hash and mask
 						_HT_CAL_FLAG_INDEX(i ii sh)
 						while [_BUCKET_IS_NOT_EMPTY(new-flags ii sh)][
@@ -380,11 +391,10 @@ _hashtable: context [
 		idx: (as-integer (key - s/offset)) >> 4
 		blk: s/offset
 
-		op: either multi-key? [
+		if multi-key? [
 			ss: as series! h/indexes/value
 			indexes: as int-ptr! ss/offset
-			COMP_EQUAL
-		][COMP_STRICT_EQUAL]
+		]
 
 		s: as series! h/keys/value
 		keys: as int-ptr! s/offset
@@ -394,7 +404,7 @@ _hashtable: context [
 		x:	  n-buckets
 		site: n-buckets
 		mask: n-buckets - 2
-		hash: hash-value key multi-key?
+		hash: hash-value key either h/sym-table? [yes][multi-key?]
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1									;-- 1-based index
@@ -410,18 +420,19 @@ _hashtable: context [
 					any [
 						del?
 						either multi-key? [true][
-							not actions/compare blk + keys/i key op
+							not actions/compare blk + keys/i key COMP_STRICT_EQUAL
 						]
 					]
 				]
 			][
 				if del? [site: i]
-				k: blk + (keys/i and 7FFFFFFFh)
-				if all [
-					multi-key?
-					TYPE_OF(k) = TYPE_OF(key)
-					actions/compare k key op
-				][keys/i: keys/i or 80000000h]
+				if multi-key? [
+					k: blk + (keys/i and 7FFFFFFFh)
+					if all [
+						TYPE_OF(k) = TYPE_OF(key)
+						actions/compare k key COMP_EQUAL
+					][keys/i: keys/i or 80000000h]
+				]
 
 				i: i + step and mask
 				_HT_CAL_FLAG_INDEX(i ii sh)
@@ -485,7 +496,7 @@ _hashtable: context [
 		flags: as int-ptr! s/offset
 		n-buckets: h/n-buckets + 1
 		mask: n-buckets - 2
-		hash: hash-value key multi-key?
+		hash: hash-value key either h/sym-table? [yes][multi-key?]
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1
