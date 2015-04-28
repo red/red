@@ -42,7 +42,7 @@ Other useful functions:
 }
 			exit
 		]
-		all [word? word datatype? get :word] [			;-- HELP <datatype!>
+		all [word? :word datatype? get :word] [			;-- HELP <datatype!>
 			type: get :word
 			foreach w system/words [
 				if type = type? get w [
@@ -71,7 +71,7 @@ Other useful functions:
 			]
 			exit
 		]
-		string? word [
+		string? :word [
 			foreach w system/words [
 				if any [function? get w native? get w action? get w op? get w routine? get w][
 					spec: spec-of get w
@@ -89,6 +89,11 @@ Other useful functions:
 					]
 				]
 			]
+			exit
+		]
+		'else [
+			type: type? :word
+			print [mold :word "is" a-an form type type]
 			exit
 		]
 	]
@@ -197,6 +202,10 @@ Other useful functions:
 
 ?: :help
 
+a-an: function [s [string!]][
+	pick ["an" "a"] make logic! find "aeiou" s/1
+]
+
 what: function [
 	"Lists all functions, or words of a given type"
 ][
@@ -226,8 +235,7 @@ source: function [
 		[append mold func-name #":" mold get func-name]
 	][
 		type: mold type? get func-name
-		a: pick ["an" "a"] make logic! find "aeiou" type/1
-		["Sorry," func-name "is" a type "so no source is available"]
+		["Sorry," func-name "is" a-an type "so no source is available"]
 	]
 ]
 
