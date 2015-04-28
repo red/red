@@ -1011,7 +1011,7 @@ string: context [
 			]
 		][
 			if TYPE_OF(ret) <> t [
-				fire [TO_ERROR(script bad-make-arg) type spec]
+				fire [TO_ERROR(script bad-make-arg) datatype/push t ret]
 			]
 		]
 		stack/set-last ret
