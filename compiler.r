@@ -239,6 +239,7 @@ red: context [
 			word! 
 			get-word!
 			set-word!
+			pair!
 		] type?/word :expr
 	]
 	
@@ -1392,6 +1393,11 @@ red: context [
 				any-word? :value [
 					add-symbol to word! :value
 					emit-push-word :value :value
+				]
+				pair? :value [
+					emit 'pair/push
+					emit reduce [value/1 value/2]
+					insert-lf -3
 				]
 				'else [
 					emit to path! reduce [to word! form type? :value 'push]

@@ -51,6 +51,7 @@ float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
 vector!:		make datatype! #get-definition TYPE_VECTOR
 hash!:			make datatype! #get-definition TYPE_HASH
+pair!:			make datatype! #get-definition TYPE_PAIR
 
 none:  			make none! 0
 true:  			make logic! 1

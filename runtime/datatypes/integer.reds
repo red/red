@@ -12,17 +12,6 @@ Red/System [
 
 integer: context [
 	verbose: 0
-	
-	abs: func [
-		value	[integer!] 
-		return: [integer!]
-	][
-		if value = -2147483648 [
-			print-line "*** Math Error: integer overflow on ABSOLUTE"
-		]
-		if negative? value [value: 0 - value]
-		value
-	]
 
 	abs: func [
 		value	[integer!]
@@ -128,23 +117,36 @@ integer: context [
 			TYPE_OF(right) = TYPE_PAIR
 		]
 
-		either TYPE_OF(right) = TYPE_FLOAT [
-			float/do-math type
-		][
-			left/value: switch type [
-				OP_ADD [left/value + right/value]
-				OP_SUB [left/value - right/value]
-				OP_MUL [left/value * right/value]
-				OP_REM [left/value % right/value]
-				OP_AND [left/value and right/value]
-				OP_OR  [left/value or right/value]
-				OP_XOR [left/value xor right/value]
-				OP_DIV [
-					either zero? right/value [
-						fire [TO_ERROR(math zero-divide)]
-						0								;-- pass the compiler's type-checking
-					][
-						left/value / right/value
+		switch TYPE_OF(right) [
+			TYPE_FLOAT [float/do-math type]
+			TYPE_PAIR  [
+				value: left/value
+				copy-cell as red-value! right as red-value! left
+				pair: as red-pair! left
+				switch type [
+					OP_ADD [pair/x: pair/x + value  pair/y: pair/y + value]
+					OP_MUL [pair/x: pair/x * value  pair/y: pair/y * value]
+					OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
+						ERR_EXPECT_ARGUMENT(TYPE_PAIR 1)
+					]
+				]
+			]
+			default [
+				left/value: switch type [
+					OP_ADD [left/value + right/value]
+					OP_SUB [left/value - right/value]
+					OP_MUL [left/value * right/value]
+					OP_REM [left/value % right/value]
+					OP_AND [left/value and right/value]
+					OP_OR  [left/value or right/value]
+					OP_XOR [left/value xor right/value]
+					OP_DIV [
+						either zero? right/value [
+							fire [TO_ERROR(math zero-divide)]
+							0								;-- pass the compiler's type-checking
+						][
+							left/value / right/value
+						]
 					]
 				]
 			]

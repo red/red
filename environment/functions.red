@@ -84,6 +84,7 @@ native?:	 func ["Returns true if the value is this type" value [any-type!]] [nat
 none?:		 func ["Returns true if the value is this type" value [any-type!]] [none!		= type? :value]
 object?:	 func ["Returns true if the value is this type" value [any-type!]] [object!		= type? :value]
 op?:		 func ["Returns true if the value is this type" value [any-type!]] [op!			= type? :value]
+pair?:		 func ["Returns true if the value is this type" value [any-type!]] [pair!		= type? :value]
 paren?:		 func ["Returns true if the value is this type" value [any-type!]] [paren!		= type? :value]
 path?:		 func ["Returns true if the value is this type" value [any-type!]] [path!		= type? :value]
 refinement?: func ["Returns true if the value is this type" value [any-type!]] [refinement! = type? :value]
@@ -164,9 +165,13 @@ replace: func [
 ]
 
 zero?: func [
-	value [number!]
+	value [number! pair!]
 ][
-	value = 0
+	either pair! = type? value [
+		make logic! all [value/1 = 0 value/2 = 0]
+	][
+		value = 0
+	]
 ]
 
 charset: func [

@@ -243,26 +243,27 @@ lexer: context [
 	]
 	
 	integer-rule: [
-		decimal-special									;-- escape path for NaN, INFs
-		| integer-number-rule
-		  opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
-		  sticky-word-rule
-		opt [
-			#"x" (
-				type: pair!
-				value2: to pair! reduce [value 0]
-			)
-			s: integer-rule
-			(value2/2: load-integer copy/part s e value: value2)
-		]
+		decimal-special	e:								;-- escape path for NaN, INFs
+		(type: issue! value: load-number copy/part s e)
+		|	integer-number-rule
+			opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
+			sticky-word-rule
+			(value: load-number copy/part s e)
+			opt [
+				#"x" (
+					type: pair!
+					value2: to pair! reduce [value 0]
+				)
+				s: integer-number-rule
+				(value2/2: load-number copy/part s e value: value2)
+			]
 	]
 
 	decimal-special: [
-		s: "-0.0" e: (type: issue!) |
-			(neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
-				[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
-				| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
-		] e: (type: issue!)
+		s: "-0.0" | (neg?: no) opt [#"-" (neg?: yes)] "1.#" s: [
+			[[#"N" | #"n"] [#"a" | #"A"] [#"N" | #"n"]]
+			| [[#"I" | #"i"] [#"N" | #"n"] [#"F" | #"f"]]
+		]
 	]
 	
 	decimal-exp-rule: [
@@ -390,7 +391,7 @@ lexer: context [
 		pos: (e: none) s: [
 			comment-rule
 			| escaped-rule    (stack/push value)
-			| integer-rule	  (stack/push load-number    copy/part s e)
+			| integer-rule	  (stack/push value)
 			| decimal-rule	  (stack/push load-decimal	 copy/part s e)
 			| tuple-rule	  (stack/push to tuple!		 copy/part s e)
 			| hexa-rule		  (stack/push decode-hexa	 copy/part s e)
@@ -566,7 +567,7 @@ lexer: context [
 		switch/default type [
 			#[datatype! decimal!][s: load-decimal s]
 			#[datatype! issue!  ][
-				if s = "-0.0" [s: "0-"]					;-- reencoded for consistency
+				if s = "-0.0" [s: "0-"]					;-- re-encoded for consistency
 				s: to issue! join "." s
 				if neg? [append s #"-"]
 			]
