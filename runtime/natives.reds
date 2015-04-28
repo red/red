@@ -1006,6 +1006,7 @@ natives: context [
 		unit: GET_UNIT(s)
 		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
 		tail: as byte-ptr! s/tail
+		if p = tail [return str]						;-- empty string case
 
 		len: string/rs-length? str
 		stack/keep										;-- keep last value
