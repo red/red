@@ -10,10 +10,10 @@ Red [
 	}
 ]
 
-help: func [
+help: function [
 	"Display helping information about words and other values"
 	'word [any-type!] "Word you are looking for"
-	/local func-name desc spec tab tab4 tab8 type start attributes info fun w ref block w1 w2 value
+	/local word type info w attributes block ref
 ][
 	tab: tab4: "    "
 	tab8: "        "
