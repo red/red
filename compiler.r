@@ -939,7 +939,7 @@ red: context [
 		]
 	]
 	
-	check-spec: func [spec [block!] /local symbols value pos stop locals return?][
+	check-spec: func [spec [block!] /local symbols word pos stop locals return?][
 		symbols: make block! length? spec
 		locals:  0
 		
@@ -949,8 +949,10 @@ red: context [
 				pos: /local (append symbols 'local) [
 					some [
 						pos: word! (
-							append symbols to word! pos/1
-							locals: locals + 1
+							unless find symbols word: to word! pos/1 [
+								append symbols word
+								locals: locals + 1
+							]
 						)
 						pos: opt block! pos: opt string!
 					]
@@ -2067,7 +2069,7 @@ red: context [
 		insert last output init
 	]
 	
-	collect-words: func [spec [block!] body [block!] /local pos end ignore words word rule][
+	collect-words: func [spec [block!] body [block!] /local pos loc end ignore words word rule][
 		if pos: find spec /extern [
 			either end: find next pos refinement! [
 				ignore: copy/part next pos end
@@ -2081,10 +2083,29 @@ red: context [
 				throw-error ["duplicate word definition in function:" pc/1]
 			]
 		]
+		;-- Remove local words that are duplicates of lit/get-word arguments
+		if loc: find spec /local [
+			pos: loc
+			while [not tail? pos][
+				either all [
+					find [word! lit-word! get-word!] type?/word pos/1
+					any [
+						find/part spec to lit-word! pos/1 loc
+						find/part spec to get-word! pos/1 loc
+					]
+				][
+					remove pos
+				][
+					pos: next pos
+				]
+			]
+		]
+		
 		foreach item spec [								;-- add all arguments to ignore list
 			if find [word! lit-word! get-word!] type?/word item [
 				unless ignore [ignore: make block! 1]
-				append ignore to word! :item
+				item: to word! :item
+				unless find ignore item [append ignore item]
 			]
 		]
 		words: make block! 1
