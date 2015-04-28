@@ -44,8 +44,10 @@ Other useful functions:
 		]
 		all [word? :word datatype? get :word] [			;-- HELP <datatype!>
 			type: get :word
+			found?: no
 			foreach w system/words [
 				if type = type? get w [
+					found?: yes
 					case [
 						any [function? get w native? get w action? get w op? get w routine? get w][
 							prin [tab w]
@@ -69,6 +71,7 @@ Other useful functions:
 					]
 				]
 			]
+			unless found? [print "No value of that type found in global space."]
 			exit
 		]
 		string? :word [
@@ -91,7 +94,7 @@ Other useful functions:
 			]
 			exit
 		]
-		'else [
+		not word? :word [								;-- all others except word!
 			type: type? :word
 			print [mold :word "is" a-an form type type]
 			exit
