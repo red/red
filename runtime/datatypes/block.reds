@@ -1754,7 +1754,7 @@ block: context [
 		][
 			if hash? [
 				hash: as red-hash! new
-				hash/table: _hashtable/init part new no
+				hash/table: _hashtable/init part new no no
 				hash
 			]
 		]
