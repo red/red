@@ -448,8 +448,12 @@ system/lexer: context [
 		]
 
 		issue-rule: [
-			#"#" (type: issue!) s: symbol-rule 
-			(to-word stack copy/part s e type)
+			#"#" (type: issue!) s: symbol-rule (
+				if (index? s) = index? e [
+					cause-error 'syntax 'invalid [mold type trim/all copy skip s -4]
+				]
+				to-word stack copy/part s e type
+			)
 		]
 
 		refinement-rule: [
