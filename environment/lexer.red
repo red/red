@@ -424,7 +424,7 @@ system/lexer: context [
 		]
 
 		word-rule: 	[
-			#"%" ws-no-count (to-word stack "%" word!)	;-- special case for remainder op!
+			#"%" [ws-no-count | end] (to-word stack "%" word!)	;-- special case for remainder op!
 			| s: begin-symbol-rule (type: word!) [
 					url-rule
 					| path-rule							;-- path matched
