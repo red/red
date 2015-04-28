@@ -225,7 +225,9 @@ source: function [
 	print either function? get func-name [
 		[append mold func-name #":" mold get func-name]
 	][
-		["Sorry," func-name "is a" mold type? get func-name "so no source is available"]
+		type: mold type? get func-name
+		a: pick ["an" "a"] make logic! find "aeiou" type/1
+		["Sorry," func-name "is" a type "so no source is available"]
 	]
 ]
 
