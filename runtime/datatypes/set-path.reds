@@ -82,7 +82,9 @@ set-path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "set-path/mold"]]
 
-		form p buffer arg part
+		part: path/mold as red-path! p buffer only? all? flat? arg part 0
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+		part - 1
 	]
 	
 	compare: func [

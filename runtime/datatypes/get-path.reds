@@ -81,7 +81,8 @@ get-path: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "get-path/mold"]]
 
-		form p buffer arg part
+		string/append-char GET_BUFFER(buffer) as-integer #":"
+		path/mold as red-path! p buffer only? all? flat? arg part - 1 0
 	]
 	
 	compare: func [
