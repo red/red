@@ -142,7 +142,7 @@ _hashtable: context [
 		n-occupied	[integer!]
 		n-buckets	[integer!]
 		upper-bound	[integer!]
-		sym-talbe?  [logic!]
+		sym-table?  [logic!]
 	]
 
 	round-up: func [
@@ -255,7 +255,7 @@ _hashtable: context [
 		node: alloc-bytes-filled size? hashtable! #"^(00)"
 		s: as series! node/value
 		h: as hashtable! s/offset
-		h/sym-talbe?: sym?
+		h/sym-table?: sym?
 
 		if size < 3 [size: 3]
 		fsize: integer/to-float size
@@ -291,12 +291,12 @@ _hashtable: context [
 		/local
 			s h x k v i j site last mask step keys vals hash n-buckets blk
 			new-size tmp break? flags new-flags new-flags-node ii sh f idx
-			multi-key? sym-talbe?
+			multi-key? sym-table?
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
 		multi-key?: h/indexes <> null
-		sym-talbe?: h/sym-talbe?
+		sym-table?: h/sym-table?
 		s: as series! h/blk/value
 		blk: s/offset
 		s: as series! h/flags/value
@@ -329,7 +329,7 @@ _hashtable: context [
 					until [									;-- kick-out process
 						step: 0
 						k: blk + (idx and 7FFFFFFFh)
-						hash: hash-value k either sym-talbe? [yes][multi-key?]
+						hash: hash-value k either sym-table? [yes][multi-key?]
 						i: hash and mask
 						_HT_CAL_FLAG_INDEX(i ii sh)
 						while [_BUCKET_IS_NOT_EMPTY(new-flags ii sh)][
@@ -404,7 +404,7 @@ _hashtable: context [
 		x:	  n-buckets
 		site: n-buckets
 		mask: n-buckets - 2
-		hash: hash-value key either h/sym-talbe? [yes][multi-key?]
+		hash: hash-value key either h/sym-table? [yes][multi-key?]
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1									;-- 1-based index
@@ -496,7 +496,7 @@ _hashtable: context [
 		flags: as int-ptr! s/offset
 		n-buckets: h/n-buckets + 1
 		mask: n-buckets - 2
-		hash: hash-value key either h/sym-talbe? [yes][multi-key?]
+		hash: hash-value key either h/sym-table? [yes][multi-key?]
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1
