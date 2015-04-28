@@ -1188,5 +1188,39 @@ Red [
 		
 ===end-group===
 
+===start-group=== "set operations"	
+
+	--test-- "set-op-blk"
+		a: [1 3 2 4]
+		b: [3 4 5 4 6]
+		--assert [3 4 5 6]		= unique b
+		--assert [1 3 2 4 5 6]	= union a b
+		--assert [3 4]			= intersect a b
+		--assert [1 2 5 6]		= difference a b
+		--assert [1 2]			= exclude a b
+		--assert [5 6]			= exclude b a
+
+	--test-- "set-op-str"
+		a: "CBAD"
+		b: "EDCCF"
+		--assert "EDCF"		= unique b
+		--assert "CBADEF"	= union a b
+		--assert "CD"		= intersect a b
+		--assert "BAEF"		= difference a b
+		--assert "BA"		= exclude a b
+		--assert "EF"		= exclude b a
+
+	--test-- "set-op-bitset"
+		a: make bitset! [1 2 3 4]
+		b: make bitset! [4 5 23]
+		--assert b		= unique b
+		--assert "make bitset! #{7C0001}" = mold union a b
+		--assert "make bitset! #{080000}" = mold intersect a b
+		--assert "make bitset! #{740001}" = mold difference a b
+		--assert "make bitset! #{700000}" = mold exclude a b
+		--assert "make bitset! #{040001}" = mold exclude b a
+
+===end-group===
+
 ~~~end-file~~~
 

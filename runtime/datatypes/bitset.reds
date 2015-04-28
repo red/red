@@ -18,10 +18,6 @@ bitset: context [
 		OP_SET											;-- set value bits
 		OP_TEST											;-- test if value bits are set
 		OP_CLEAR										;-- clear value bits
-		OP_UNION
-		OP_AND
-		OP_OR
-		OP_XOR
 	]
 	
 	rs-head: func [
@@ -139,63 +135,84 @@ bitset: context [
 		type	[integer!]
 		return: [red-bitset!]
 		/local
-			set1  [red-bitset!]
-			set2  [red-bitset!]
-			s1	  [series!]
-			s2	  [series!]
-			s	  [series!]
-			node  [node!]
-			p	  [byte-ptr!]
-			p1	  [byte-ptr!]
-			p2	  [byte-ptr!]
-			tail  [byte-ptr!]
-			same? [logic!]
+			set1	[red-bitset!]
+			set2	[red-bitset!]
+			s1		[series!]
+			s2		[series!]
+			s		[series!]
+			node	[node!]
+			p		[byte-ptr!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+			i		[integer!]
+			size1	[integer!]
+			size2	[integer!]
+			min		[integer!]
+			max		[integer!]
+			same?	[logic!]
 	][
 		set1: as red-bitset! stack/arguments
+		if type = OP_UNIQUE [return set1]
+
 		set2: set1 + 1
 		s1: GET_BUFFER(set1)
 		s2: GET_BUFFER(set2)
-		
-		if (length? set1) > (length? set2) [s: s1 s1: s2 s2: s]		;-- exchange s1 <=> s2
+		size1: as-integer s1/tail - s1/offset
+		size2: as-integer s2/tail - s2/offset
+		min: size1
+		max: size2
+		if min > max [i: min min: max max: i]
 		same?: (s1/flags and flag-bitset-not) = (s2/flags and flag-bitset-not)
 
-		node: alloc-bytes s2/size
+		node: alloc-bytes-filled max null-byte
 		s: as series! node/value
 		p: as byte-ptr! s/offset
 		unless same? [s/flags: s/flags or flag-bitset-not]
 		
 		p1:	  as byte-ptr! s1/offset
-		tail: as byte-ptr! s1/tail
 		p2:	  as byte-ptr! s2/offset
-		
+		i:  0
 		until [
 			p/value: switch type [
 				OP_UNION
-				OP_OR	[p1/value or p2/value]			;-- OR s1 with part(s2)
-				OP_AND	[p1/value and p2/value]
-				OP_XOR	[p1/value xor p2/value]
+				OP_OR		[p1/value or p2/value]			;-- OR s1 with part(s2)
+				OP_INTERSECT
+				OP_AND		[p1/value and p2/value]
+				OP_DIFFERENCE
+				OP_XOR		[p1/value xor p2/value]
+				OP_EXCLUDE	[p1/value and (not p2/value)]
 			]
 			p:  p  + 1
 			p1: p1 + 1
 			p2: p2 + 1
-			p1 = tail
+			i:  i + 1
+			i = min
 		]
-		tail: as byte-ptr! s2/tail
 
-		if p2 < tail [
+		min: max - i
+		unless zero? min [
+			if size2 < size1 [p2: p1]
 			switch type [
+				OP_EXCLUDE [
+					if size1 > size2 [copy-memory p p2 min]
+					p: p + min
+				]
 				OP_UNION
 				OP_OR	[
-					copy-memory p p2 as-integer tail - p2	;-- just copy remaining of s2
-					p: p + as-integer tail - p2
+					copy-memory p p2 min			;-- just copy remaining of s2
+					p: p + min
 				]
+				OP_INTERSECT [p: p + min]
 				OP_AND  []									;-- do nothing
+				OP_DIFFERENCE
 				OP_XOR	[
+					i: 0
 					until [
 						p/value: null-byte xor p2/value
 						p:  p  + 1
 						p2: p2 + 1
-						p2 = tail
+						i:  i + 1
+						i = min
 					]
 				]
 			]
@@ -207,14 +224,6 @@ bitset: context [
 		set1/node:	 node
 		stack/set-last as red-value! set1
 		set1
-	]
-
-	union: func [
-		case?	[logic!]
-		skip	[red-value!]
-		return: [red-bitset!]
-	][
-		do-bitwise OP_UNION
 	]
 
 	and~: func [return:	[red-value!]][

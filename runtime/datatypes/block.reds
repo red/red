@@ -1938,6 +1938,96 @@ block: context [
 		as red-series! new
 	]
 
+	do-set-op: func [
+		case?	 [logic!]
+		skip-arg [red-integer!]
+		op		 [integer!]
+		return:  [red-block!]
+		/local
+			blk1	[red-block!]
+			blk2	[red-block!]
+			new		[red-block!]
+			value	[red-value!]
+			tail	[red-value!]
+			i		[integer!]
+			n		[integer!]
+			s		[series!]
+			len		[integer!]
+			step	[integer!]
+			table	[node!]
+			hash	[node!]
+			check?	[logic!]
+			invert? [logic!]
+			both?	[logic!]
+			find?	[logic!]
+	][
+		step: 1
+		if OPTION?(skip-arg) [
+			assert TYPE_OF(skip-arg) = TYPE_INTEGER
+			step: skip-arg/value
+			if step <= 0 [
+				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)
+			]
+		]
+
+		find?: yes both?: no check?: no invert?: no
+		if op = OP_UNION	  [both?: yes]
+		if op = OP_INTERSECT  [check?: yes]
+		if op = OP_EXCLUDE	  [check?: yes invert?: yes]
+		if op = OP_DIFFERENCE [both?: yes check?: yes invert?: yes]
+
+		blk1: as red-block! stack/arguments
+		blk2: blk1 + 1
+		len: rs-length? blk1
+		len: len + either op = OP_UNION [rs-length? blk2][0]
+		new: make-at as red-block! stack/push* len
+		table: _hashtable/init len new no yes
+		n: 2
+
+		until [
+			s: GET_BUFFER(blk1)
+			value: s/offset + blk1/head
+			tail: s/tail
+
+			if check? [
+				hash: _hashtable/init length? blk2 blk2 no yes
+			]
+
+			while [value < tail] [			;-- iterate over first series
+				if check? [
+					find?: null <> _hashtable/get hash value 0 1 case? no no
+					if invert? [find?: not find?]
+				]
+				if all [
+					find?
+					null = _hashtable/get table value 0 1 case? no no
+				][
+					_hashtable/put table rs-append new value no
+				]
+
+				i: 1
+				while [
+					value: value + 1
+					all [value < tail i < step]
+				][
+					i: i + 1
+					rs-append new value
+				]
+			]
+
+			either both? [					;-- iterate over second series?
+				blk1: blk2
+				blk2: as red-block! stack/arguments
+				n: n - 1
+			][n: 0]
+			zero? n
+		]
+		blk1/node: new/node
+		blk1/head: 0
+		stack/pop 1
+		blk1
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_BLOCK

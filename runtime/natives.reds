@@ -936,10 +936,11 @@ natives: context [
 			part
 			as red-function! stack/arguments + trace
 	]
-	
-	union*: func [
+
+	do-set-op*: func [
 		cased	 [integer!]
 		skip	 [integer!]
+		op		 [integer!]
 		/local
 			set1	 [red-value!]
 			skip-arg [red-value!]
@@ -950,19 +951,48 @@ natives: context [
 		case?:	  as logic! cased + 1
 		
 		switch TYPE_OF(set1) [
-			;TYPE_BLOCK  [stack/set-last block/union set1 set2 case? skip-arg]
-			;TYPE_STRING [stack/set-last string/union set1 set2 case? skip-arg]
-			TYPE_BITSET	 [bitset/union no null]
-			TYPE_TYPESET [typeset/union no null]
+			TYPE_BLOCK   [block/do-set-op case? as red-integer! skip-arg op]
+			TYPE_STRING  [string/do-set-op case? as red-integer! skip-arg op]
+			TYPE_BITSET  [bitset/do-bitwise op]
+			TYPE_TYPESET [typeset/do-bitwise op]
 			default 	 [ERR_EXPECT_ARGUMENT((TYPE_OF(set1)) 1)]
 		]
 	]
 	
-	intersect*: does []
+	union*: func [
+		cased	 [integer!]
+		skip	 [integer!]
+	][
+		do-set-op* cased skip OP_UNION
+	]
 	
-	unique*: does []
+	intersect*: func [
+		cased	 [integer!]
+		skip	 [integer!]
+	][
+		do-set-op* cased skip OP_INTERSECT
+	]
 	
-	difference*: does []
+	unique*: func [
+		cased	 [integer!]
+		skip	 [integer!]
+	][
+		do-set-op* cased skip OP_UNIQUE
+	]
+	
+	difference*: func [
+		cased	 [integer!]
+		skip	 [integer!]
+	][
+		do-set-op* cased skip OP_DIFFERENCE
+	]
+
+	exclude*: func [
+		cased	 [integer!]
+		skip	 [integer!]
+	][
+		do-set-op* cased skip OP_EXCLUDE
+	]
 
 	complement?*: func [
 		return:    [red-logic!]
@@ -1698,6 +1728,7 @@ natives: context [
 			:intersect*
 			:unique*
 			:difference*
+			:exclude*
 			:complement?*
 			:dehex*
 			:negative?*
