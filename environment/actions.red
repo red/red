@@ -75,43 +75,43 @@ mold: make action! [[
 
 absolute: make action! [[
 		"Returns the non-negative value"
-		value	 [number!]
-		return:  [number!]
+		value	 [number! pair!]
+		return:  [number! pair!]
 	]
 	#get-definition ACT_ABSOLUTE
 ]
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char!]
-		value2	 [number! char!]
-		return:  [number! char!]
+		value1	 [number! char! pair!]
+		value2	 [number! char! pair!]
+		return:  [number! char! pair!]
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! char!] "The dividend (numerator)"
-		value2	 [number! char!] "The divisor (denominator)"
-		return:  [number! char!]
+		value1	 [number! char! pair!] "The dividend (numerator)"
+		value2	 [number! char! pair!] "The divisor (denominator)"
+		return:  [number! char! pair!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! char!]
-		value2	 [number! char!]
-		return:  [number! char!]
+		value1	 [number! char! pair!]
+		value2	 [number! char! pair!]
+		return:  [number! char! pair!]
 	]
 	#get-definition ACT_MULTIPLY
 ]
 
 negate: make action! [[
 		"Returns the opposite (additive inverse) value"
-		number 	 [number! bitset!]
-		return:  [number! bitset!]
+		number 	 [number! bitset! pair!]
+		return:  [number! bitset! pair!]
 	]
 	#get-definition ACT_NEGATE
 ]
@@ -127,18 +127,18 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! char!]
-		value2 	 [number! char!]
-		return:  [number! char!]
+		value1 	 [number! char! pair!]
+		value2 	 [number! char! pair!]
+		return:  [number! char! pair!]
 	]
 	#get-definition ACT_REMAINDER
 ]
 
 modulo: func [
 	"Compute a nonnegative remainder of A divided by B"
-	a		[number!]
-	b		[number!]
-	return: [number!]
+	a		[number! pair!]
+	b		[number! pair!]
+	return: [number! pair!]
 	/local r
 ][
 	b: absolute b
@@ -164,9 +164,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char!]
-		value2	 [number! char!]
-		return:  [number! char!]
+		value1	 [number! char! pair!]
+		value2	 [number! char! pair!]
+		return:  [number! char! pair!]
 	]
 	#get-definition ACT_SUBTRACT
 ]
@@ -191,9 +191,9 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! typeset!]
-		value2	[logic! integer! char! bitset! typeset!]
-		return:	[logic! integer! char! bitset! typeset!]
+		value1	[logic! integer! char! bitset! typeset! pair!]
+		value2	[logic! integer! char! bitset! typeset! pair!]
+		return:	[logic! integer! char! bitset! typeset! pair!]
 	]
 	#get-definition ACT_AND~
 ]
@@ -208,18 +208,18 @@ complement: make action! [[
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! typeset!]
-		value2	[logic! integer! char! bitset! typeset!]
-		return:	[logic! integer! char! bitset! typeset!]
+		value1	[logic! integer! char! bitset! typeset! pair!]
+		value2	[logic! integer! char! bitset! typeset! pair!]
+		return:	[logic! integer! char! bitset! typeset! pair!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! typeset!]
-		value2	[logic! integer! char! bitset! typeset!]
-		return:	[logic! integer! char! bitset! typeset!]
+		value1	[logic! integer! char! bitset! typeset! pair!]
+		value2	[logic! integer! char! bitset! typeset! pair!]
+		return:	[logic! integer! char! bitset! typeset! pair!]
 	]
 	#get-definition ACT_XOR~
 ]
