@@ -273,8 +273,37 @@ redbin: context [
 		#if debug? = yes [if verbose > 0 [print [#"<" type #">"]]]
 		
 		switch type [
-			REDBIN_PADDING	[
-				decode-value data + 1 table parent
+			TYPE_WORD
+			TYPE_SET_WORD
+			TYPE_LIT_WORD
+			TYPE_GET_WORD
+			TYPE_REFINEMENT [decode-word data table parent]
+			TYPE_STRING
+			TYPE_FILE
+			TYPE_URL		[decode-string data parent]
+			TYPE_INTEGER	[
+				integer/make-in parent data/2
+				data + 2
+			]
+			TYPE_PATH
+			TYPE_LIT_PATH
+			TYPE_SET_PATH
+			TYPE_GET_PATH
+			TYPE_BLOCK
+			TYPE_PAREN		[decode-block data table parent]
+			TYPE_CONTEXT	[decode-context data table parent]
+			TYPE_ISSUE		[decode-issue data table parent]
+			TYPE_TYPESET	[
+				typeset/make-in parent data/2 data/3 data/4
+				data + 4
+			]
+			TYPE_FLOAT	[
+				float/make-in parent data/2 data/3
+				data + 3
+			]
+			TYPE_CHAR		[
+				char/make-in parent data/2
+				data + 2
 			]
 			TYPE_DATATYPE	[
 				datatype/make-in parent data/2
@@ -292,41 +321,12 @@ redbin: context [
 				logic/make-in parent as logic! data/2
 				data + 2
 			]
-			TYPE_PATH
-			TYPE_LIT_PATH
-			TYPE_SET_PATH
-			TYPE_GET_PATH
-			TYPE_BLOCK
-			TYPE_PAREN		[decode-block data table parent]
-			TYPE_STRING
-			TYPE_FILE
-			TYPE_URL		[decode-string data parent]
-			TYPE_CHAR		[
-				char/make-in parent data/2
-				data + 2
-			]
-			TYPE_INTEGER	[
-				integer/make-in parent data/2
-				data + 2
-			]
-			TYPE_FLOAT	[
-				float/make-in parent data/2 data/3
-				data + 3
-			]
-			TYPE_CONTEXT	[decode-context data table parent]
-			TYPE_WORD
-			TYPE_SET_WORD
-			TYPE_LIT_WORD
-			TYPE_GET_WORD
-			TYPE_REFINEMENT [decode-word data table parent]
-			TYPE_ISSUE		[decode-issue data table parent]
-			TYPE_TYPESET	[
-				typeset/make-in parent data/2 data/3 data/4
-				data + 4
-			]
 			TYPE_NATIVE
 			TYPE_ACTION
 			TYPE_OP			[decode-native data table parent]
+			REDBIN_PADDING	[
+				decode-value data + 1 table parent
+			]
 			TYPE_FUNCTION
 			TYPE_BITSET
 			TYPE_POINT
