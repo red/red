@@ -2150,7 +2150,7 @@ red: context [
 		/collect /does /has
 		/local
 			name word spec body symbols locals-nb spec-idx body-idx ctx
-			src-name original global? path obj shadow defer ctx-idx
+			src-name original global? path obj shadow defer ctx-idx body-code
 	][
 		original: pc/-1
 		case [
@@ -2202,7 +2202,6 @@ red: context [
 			]
 			insert-lf -3
 		]
-		body-idx: either job/red-store-bodies? [redbin/emit-block/with body ctx][-1]
 		pop-locals
 
 		repend shadow-funcs [							;-- register a new shadow context
@@ -2211,12 +2210,18 @@ red: context [
 			ctx
 		]
 		bind-function body shadow
-		body-idx: redbin/emit-block body
 		
-		defer: reduce [
-			'_function/push 'get-root spec-idx 'get-root body-idx ctx
-			'as 'integer! to get-word! decorate-func/strict name
-			either 1 < length? obj-stack [select objects do obj-stack]['null]
+		body-code: either job/red-store-bodies? [
+			body-idx: redbin/emit-block body
+			reduce ['get-root body-idx]
+		][
+			[null]
+		]
+		
+		defer: compose [
+			_function/push get-root (spec-idx) (body-code) (ctx)
+			as integer! (to get-word! decorate-func/strict name)
+			(either 1 < length? obj-stack [select objects do obj-stack]['null])
 		]
 		new-line defer yes
 		new-line skip tail defer -4 no
