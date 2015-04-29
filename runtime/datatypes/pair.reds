@@ -60,16 +60,16 @@ pair: context [
 		left
 	]
 
-	load-in: func [
-		blk	  	[red-block!]
+	make-in: func [
+		parent 	[red-block!]
 		x 		[integer!]
 		y 		[integer!]
 		/local
 			pair [red-pair!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "pair/load-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "pair/make-in"]]
 		
-		pair: as red-pair! ALLOC_TAIL(blk)
+		pair: as red-pair! ALLOC_TAIL(parent)
 		pair/header: TYPE_PAIR
 		pair/x: x
 		pair/y: y
@@ -176,19 +176,19 @@ pair: context [
 				int: as red-integer! element
 				value: int/value
 				if all [value <> 1 value <> 2][
-					print-line ["*** Path Error: pair! does not support accessor:" value]
+					fire [TO_ERROR(script invalid-path) stack/arguments element]
 				]
 			]
 			TYPE_WORD [
 				w: as red-word! element
 				value: symbol/resolve w/symbol
 				if all [value <> words/x value <> words/y][
-					print-line "*** Path Error: pair! does not support accessor:"
+					fire [TO_ERROR(script invalid-path) stack/arguments element]
 				]
 				value: either value = words/x [1][2]
 			]
 			default [
-				print-line "*** Path Error: unsupported pair! access path"
+				fire [TO_ERROR(script invalid-path) stack/arguments element]
 			]
 		]
 		either set? [
@@ -204,22 +204,15 @@ pair: context [
 		left	[red-pair!]								;-- first operand
 		right	[red-pair!]								;-- second operand
 		op		[integer!]								;-- type of comparison
-		return:	[logic!]
+		return:	[integer!]
 		/local
-			res	[logic!]
+			diff [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "pair/compare"]]
-		
-		switch op [
-			COMP_EQUAL 			[res: all [left/x =  right/x left/y =  right/y]]
-			COMP_NOT_EQUAL 		[res: any [left/x <> right/x left/y <> right/y]]
-			COMP_STRICT_EQUAL	[res: all [left/x =  right/x left/y =  right/y]]
-			COMP_LESSER			[res: all [left/x <  right/x left/y <  right/y]]
-			COMP_LESSER_EQUAL	[res: all [left/x <= right/x left/y <= right/y]]
-			COMP_GREATER		[res: all [left/x >  right/x left/y >  right/y]]
-			COMP_GREATER_EQUAL	[res: all [left/x >= right/x left/y >= right/y]]
-		]
-		res
+
+		diff: left/y - right/y
+		if zero? diff [diff: left/x - right/x]
+		SIGN_COMPARE_RESULT(diff 0)
 	]
 	
 	remainder: func [return: [red-value!]][

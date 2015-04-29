@@ -268,7 +268,7 @@ system/lexer: context [
 			cs/10: #"}"									;-- not-mstr-char
 			cs/11: charset [#"^(40)" - #"^(5F)"]		;-- caret-char
 			cs/12: charset [#"^(00)" - #"^(1F)"]		;-- non-printable-char
-			cs/13: charset {^{"[]);}					;-- integer-end
+			cs/13: charset {^{"[]);x}					;-- integer-end
 			cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
 			cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 			cs/16: charset [#"^(00)" - #"^(1F)"] 		;-- ASCII control characters
@@ -472,10 +472,16 @@ system/lexer: context [
 		]
 
 		integer-rule: [
-			float-special								;-- escape path for NaN, INFs
+			float-special (value: make-number s e yes)	;-- escape path for NaN, INFs
 			| integer-number-rule
-			  opt [float-number-rule | float-exp-rule e: (type: float!)]
-			  ahead [integer-end | ws-no-count | end]
+				opt [float-number-rule | float-exp-rule e: (type: float!)]
+				ahead [integer-end | ws-no-count | end]
+				(value: make-number s e type = float!)
+				opt [
+					#"x" (value2: 0x0 value2/x: value)
+					s: integer-number-rule
+					(value2/y: make-number s e no value: value2)
+			]
 		]
 
 		float-special: [
@@ -550,14 +556,14 @@ system/lexer: context [
 				  #"]" (value: #"[") | #")" (value: #"(")
 				| #"[" (value: #"]") | #"(" (value: #")")
 			] :pos
-			(cause-error 'syntax 'missing [trim/all copy skip pos -3 value])
+			(cause-error 'syntax 'missing [trim/tail copy skip pos -3 value])
 		]
 
 		literal-value: [
 			pos: (e: none) s: [
 				comment-rule
 				| escaped-rule		(store stack value)
-				| integer-rule		if (value: make-number s e type = float!) (store stack value)
+				| integer-rule		if (value) (store stack value)
 				| float-rule		if (value: make-float s e) (store stack value)
 				| hexa-rule			(store stack make-hexa s e)
 				| word-rule
