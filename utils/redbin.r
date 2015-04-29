@@ -142,6 +142,12 @@ context [
 		emit-type 'TYPE_INTEGER
 		emit value
 	]
+
+	emit-pair: func [value [pair!]][
+		emit-type 'TYPE_PAIR
+		emit value/x
+		emit value/y
+	]
 	
 	emit-op: func [spec [any-word!]][
 		emit-type 'TYPE_OP
@@ -305,6 +311,7 @@ context [
 						integer!  [emit-integer item]
 						decimal!  [emit-float item]
 						char!	  [emit-char to integer! item]
+						pair!	  [emit-pair item]
 						datatype! [emit-datatype item]
 						logic!	  [emit-logic item]
 						none! 	  [emit-none]

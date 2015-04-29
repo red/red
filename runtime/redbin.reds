@@ -309,6 +309,10 @@ redbin: context [
 				datatype/make-in parent data/2
 				data + 2
 			]
+			TYPE_PAIR	[
+				pair/make-in parent data/2 data/3
+				data + 3
+			]
 			TYPE_UNSET		[
 				unset/make-in parent
 				data + 1
