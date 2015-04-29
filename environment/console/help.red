@@ -94,7 +94,7 @@ Other useful functions:
 			]
 			exit
 		]
-		not word? :word [								;-- all others except word!
+		not any [word? :word path? :word][				;-- all others except word!
 			type: type? :word
 			print [mold :word "is" a-an form type type]
 			exit
