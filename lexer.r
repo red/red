@@ -208,7 +208,7 @@ lexer: context [
 				type: lit-word!
 				value: copy/part s e				;-- word matched
 			)
-		]
+		][s: #":" :s (throw-error) | none]
 	]
 	
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]

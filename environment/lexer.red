@@ -416,7 +416,7 @@ system/lexer: context [
 					| paren-rule
 					| #":" s: begin-symbol-rule	(to-word stack copy/part s e get-word!)
 					;@@ add more datatypes here
-					| (cause-error 'syntax 'invalid [path! trim/tail copy back s])
+					| (cause-error 'syntax 'invalid [path! trim/lines copy back s])
 					  reject
 				]
 				opt [#":" (set-path back tail stack)]
@@ -444,13 +444,14 @@ system/lexer: context [
 			#"'" (type: lit-word!) s: begin-symbol-rule [
 				path-rule (type: lit-path!)				;-- path matched
 				| (to-word stack copy/part s e type)	;-- lit-word matched
-			]
+			] 
+			opt [#":" (cause-error 'syntax 'invalid [type trim/lines copy back s])]
 		]
 
 		issue-rule: [
 			#"#" (type: issue!) s: symbol-rule (
 				if (index? s) = index? e [
-					cause-error 'syntax 'invalid [mold type trim/all copy skip s -4]
+					cause-error 'syntax 'invalid [mold type trim/lines copy skip s -4]
 				]
 				to-word stack copy/part s e type
 			)
@@ -556,7 +557,7 @@ system/lexer: context [
 				  #"]" (value: #"[") | #")" (value: #"(")
 				| #"[" (value: #"]") | #"(" (value: #")")
 			] :pos
-			(cause-error 'syntax 'missing [trim/tail copy skip pos -3 value])
+			(cause-error 'syntax 'missing [trim/lines copy skip pos -3 value])
 		]
 
 		literal-value: [
