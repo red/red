@@ -214,10 +214,6 @@ _hashtable: context [
 				murmur3-x86-32 (as byte-ptr! key) + 4 12
 			]
 			default [
-				fire [
-					TO_ERROR(script invalid-type)
-					datatype/push TYPE_OF(key)
-				]
 				0
 			]
 		]

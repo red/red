@@ -13,16 +13,6 @@ Red/System [
 typeset: context [
 	verbose: 0
 
-	#enum typeset-op! [
-		OP_MAX											;-- calculate highest value
-		OP_SET											;-- set value bits
-		OP_TEST											;-- test if value bits are set
-		OP_UNION
-		OP_AND
-		OP_OR
-		OP_XOR
-	]
-	
 	rs-clear: func [
 		sets 	[red-typeset!]
 		return: [red-typeset!]
@@ -152,6 +142,8 @@ typeset: context [
 			set2  [red-typeset!]
 	][
 		set1: as red-typeset! stack/arguments
+		if type = OP_UNIQUE [return set1]
+
 		set2: set1 + 1
 		res: as red-typeset! stack/push*
 		res/header: TYPE_TYPESET
@@ -167,27 +159,26 @@ typeset: context [
 				res/array2: set1/array2 or set2/array2
 				res/array3: set1/array3 or set2/array3
 			]
+			OP_INTERSECT
 			OP_AND	[
 				res/array1: set1/array1 and set2/array1
 				res/array2: set1/array2 and set2/array2
 				res/array3: set1/array3 and set2/array3
 			]
+			OP_DIFFERENCE
 			OP_XOR	[
 				res/array1: set1/array1 xor set2/array1
 				res/array2: set1/array2 xor set2/array2
 				res/array3: set1/array3 xor set2/array3
 			]
+			OP_EXCLUDE [
+				res/array1: set1/array1 and (not set2/array1)
+				res/array2: set1/array2 and (not set2/array2)
+				res/array3: set1/array3 and (not set2/array3)
+			]
 		]
 		stack/set-last as red-value! res
 		res
-	]
-
-	union: func [
-		case?	[logic!]
-		skip	[red-value!]
-		return: [red-typeset!]
-	][
-		do-bitwise OP_UNION
 	]
 
 	and~: func [return:	[red-value!]][

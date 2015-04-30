@@ -352,14 +352,62 @@ parse: make native! [[
 ]
 
 union: make native! [[
+		"Returns the union of two data sets"
 		set1 [block! string! bitset! typeset!]
 		set2 [block! string! bitset! typeset!]
-		/case
+		/case "Use case-sensitive comparison"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
 		return: [block! string! bitset! typeset!]
 	]
 	#get-definition NAT_UNION
+]
+
+unique: make native! [[
+		"Returns the data set with duplicates removed"
+		set [block! string! bitset! typeset!]
+		/case "Use case-sensitive comparison"
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! string! bitset! typeset!]
+	]
+	#get-definition NAT_UNIQUE
+]
+
+intersect: make native! [[
+		"Returns the intersection of two data sets"
+		set1 [block! string! bitset! typeset!]
+		set2 [block! string! bitset! typeset!]
+		/case "Use case-sensitive comparison"
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! string! bitset! typeset!]
+	]
+	#get-definition NAT_INTERSECT
+]
+
+difference: make native! [[
+		"Returns the special difference of two data sets"
+		set1 [block! string! bitset! typeset!]
+		set2 [block! string! bitset! typeset!]
+		/case "Use case-sensitive comparison"
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! string! bitset! typeset!]
+	]
+	#get-definition NAT_DIFFERENCE
+]
+
+exclude: make native! [[
+		"Returns the first data set less the second data set"
+		set1 [block! string! bitset! typeset!]
+		set2 [block! string! bitset! typeset!]
+		/case "Use case-sensitive comparison"
+		/skip "Treat the series as fixed size records"
+			size [integer!]
+		return: [block! string! bitset! typeset!]
+	]
+	#get-definition NAT_EXCLUDE
 ]
 
 complement?: make native! [[

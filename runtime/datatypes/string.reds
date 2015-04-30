@@ -279,7 +279,35 @@ string: context [
 		s/tail: s/offset
 		str/head: 0
 	]
-	
+
+	rs-find-char: func [
+		str		[red-string!]
+		cp		[integer!]
+		case?	[logic!]
+		return: [logic!]
+		/local
+			s	 [series!]
+			unit [integer!]
+			head [byte-ptr!]
+			tail [byte-ptr!]
+			c1	 [integer!]
+	][
+		s:    GET_BUFFER(str)
+		unit: GET_UNIT(s)
+		head: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+		while [head < tail][
+			c1: get-char head unit
+			if case? [
+				c1: case-folding/folding-case c1 yes	;-- uppercase c1
+				cp: case-folding/folding-case cp yes	;-- uppercase cp
+			]
+			if c1 = cp [return true]
+			head: head + unit
+		]
+		false
+	]
+
 	get-char: func [
 		p	    [byte-ptr!]
 		unit	[integer!]
@@ -2673,6 +2701,95 @@ string: context [
 		new/head: 	0
 		
 		as red-series! new
+	]
+
+	do-set-op: func [
+		case?	 [logic!]
+		skip-arg [red-integer!]
+		op		 [integer!]
+		return:  [red-string!]
+		/local
+			str1	[red-string!]
+			str2	[red-string!]
+			new		[red-string!]
+			head	[byte-ptr!]
+			tail	[byte-ptr!]
+			unit	[integer!]
+			i		[integer!]
+			n		[integer!]
+			s		[series!]
+			s2		[series!]
+			cp		[integer!]
+			len		[integer!]
+			step	[integer!]
+			check?	[logic!]
+			invert? [logic!]
+			both?	[logic!]
+			find?	[logic!]
+	][
+		step: 1
+		if OPTION?(skip-arg) [
+			assert TYPE_OF(skip-arg) = TYPE_INTEGER
+			step: skip-arg/value
+			if step <= 0 [
+				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)
+			]
+		]
+
+		find?: yes both?: no check?: no invert?: no
+		if op = OP_UNION	  [both?: yes]
+		if op = OP_INTERSECT  [check?: yes]
+		if op = OP_EXCLUDE	  [check?: yes invert?: yes]
+		if op = OP_DIFFERENCE [both?: yes check?: yes invert?: yes]
+
+		str1: as red-string! stack/arguments
+		str2: str1 + 1
+		len: rs-length? str1
+		len: len + either op = OP_UNION [rs-length? str2][0]
+		new: rs-make-at stack/push* len
+		s2: GET_BUFFER(new)
+		n: 2
+
+		until [
+			s: GET_BUFFER(str1)
+			unit: GET_UNIT(s)
+			head: (as byte-ptr! s/offset) + (str1/head << (unit >> 1))
+			tail: as byte-ptr! s/tail
+
+			while [head < tail] [			;-- iterate over first series
+				cp: get-char head unit 
+				if check? [
+					find?: rs-find-char str2 cp case?
+					if invert? [find?: not find?]
+				]
+				if all [
+					find?
+					not rs-find-char new cp case?
+				][
+					s2: append-char s2 cp
+				]
+
+				i: 1
+				while [						;-- skip some chars
+					head: head + unit
+					all [head < tail i < step]
+				][
+					i: i + 1
+					s2: append-char s2 get-char head unit
+				]
+			]
+
+			either both? [					;-- iterate over second series?
+				str1: str2
+				str2: as red-string! stack/arguments
+				n: n - 1
+			][n: 0]
+			zero? n
+		]
+		str1/node: new/node
+		str1/head: 0
+		stack/pop 1
+		str1
 	]
 
 	init: does [
