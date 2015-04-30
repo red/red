@@ -298,10 +298,10 @@ vector: context [
 				either vec/type = TYPE_FLOAT [
 					formed: either unit = 8 [
 						pf: as pointer! [float!] p
-						float/form-float pf/value no
+						float/form-float pf/value float/FORM_FLOAT_64
 					][
 						pf32: as pointer! [float32!] p
-						float/form-float as-float pf32/value yes
+						float/form-float as-float pf32/value float/FORM_FLOAT_32
 					]
 				][
 					formed: integer/form-signed get-value-int as int-ptr! p unit

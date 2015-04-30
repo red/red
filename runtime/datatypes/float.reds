@@ -15,6 +15,12 @@ Red/System [
 float: context [
 	verbose: 0
 
+	#enum form-type! [
+		FORM_FLOAT_32
+		FORM_FLOAT_64
+		FORM_PERCENT
+	]
+
 	pretty-print?: true
 	full-support?: false
 
@@ -104,7 +110,7 @@ float: context [
 
 	form-float: func [
 		f			[float!]
-		float32?	[logic!]
+		type		[integer!]
 		return:		[c-string!]
 		/local
 			s		[c-string!]
@@ -133,11 +139,11 @@ float: context [
 
 		if pretty-print? [
 			temp: abs f
-			if temp < DBL_EPSILON [return "0.0"]
+			if temp < DBL_EPSILON [return either type = FORM_PERCENT ["0%"]["0.0"]]
 		]
 
 		s: "0000000000000000000000000000000"					;-- 32 bytes wide, big enough.
-		either float32? [
+		either type = FORM_FLOAT_32 [
 			s/8: #"0"
 			s/9: #"0"
 			sprintf [s "%.7g" f]
@@ -192,7 +198,7 @@ float: context [
 						all [p0/2 = #"1" p0/1 = #"0"]
 						all [p0/2 = #"9" p0/1 = #"9"]
 					][
-						either float32? [
+						either type = FORM_FLOAT_32 [
 							sprintf [s0 "%.5g" f]
 						][
 							sprintf [s0 "%.14g" f]
@@ -213,15 +219,20 @@ float: context [
 			s/1: #"^@"
 			p: p0
 		]
-		unless dot? [											;-- added tailing ".0"
-			either p = null [
-				p: s
-			][
-				move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
+		either type = FORM_PERCENT [
+			s/1: #"%"
+			s/2: #"^@"
+		][
+			unless dot? [										;-- added tailing ".0"
+				either p = null [
+					p: s
+				][
+					move-memory as byte-ptr! p + 2 as byte-ptr! p as-integer s - p
+				]
+				p/1: #"."
+				p/2: #"0"
+				s/3: #"^@"
 			]
-			p/1: #"."
-			p/2: #"0"
-			s/3: #"^@"
 		]
 		s0
 	]
@@ -232,6 +243,8 @@ float: context [
 		/local
 			left  [red-float!]
 			right [red-float!]
+			type1 [integer!]
+			type2 [integer!]
 			int   [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
@@ -242,21 +255,35 @@ float: context [
 		assert any [									;@@ replace by typeset check when possible
 			TYPE_OF(left) = TYPE_INTEGER
 			TYPE_OF(left) = TYPE_FLOAT
+			TYPE_OF(left) = TYPE_PERCENT
 		]
 		assert any [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
 			TYPE_OF(right) = TYPE_FLOAT
+			TYPE_OF(right) = TYPE_PERCENT
 		]
 
-		if TYPE_OF(left) <> TYPE_FLOAT [
+		type1: TYPE_OF(left)
+		type2: TYPE_OF(right)
+		if type1 = TYPE_INTEGER [
 			int: as red-integer! left
 			left/header: TYPE_FLOAT
 			left/value: integer/to-float int/value
 		]
-		if TYPE_OF(right) <> TYPE_FLOAT [
+		if any [
+			type2 = TYPE_INTEGER
+			type2 = TYPE_CHAR
+		][
 			int: as red-integer! right
 			right/value: integer/to-float int/value
+		]
+
+		if all [							;-- convert percent! to float!
+			type1 = TYPE_PERCENT
+			type2 <> TYPE_PERCENT
+		][
+			left/header: TYPE_FLOAT
 		]
 
 		left/value: switch type [
@@ -379,7 +406,7 @@ float: context [
 			]
 			TYPE_STRING [
 				buf: string/rs-make-at as cell! type 1			;-- 16 bits string
-				string/concatenate-literal buf form-float f no
+				string/concatenate-literal buf form-float f FORM_FLOAT_64
 			]
 			default [
 				--NOT_IMPLEMENTED--
@@ -399,7 +426,7 @@ float: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/form"]]
 
-		formed: form-float fl/value no
+		formed: form-float fl/value FORM_FLOAT_64
 		string/concatenate-literal buffer formed
 		part - length? formed							;@@ optimize by removing length?
 	]
@@ -522,7 +549,7 @@ float: context [
 
 		if all [
 			op = COMP_STRICT_EQUAL
-			TYPE_OF(value2) <> TYPE_FLOAT
+			TYPE_OF(value1) <> TYPE_OF(value1)
 		][return 1]
 
 		left: value1/value
@@ -533,6 +560,7 @@ float: context [
 				int: as red-integer! value2
 				right: integer/to-float int/value
 			]
+			TYPE_PERCENT
 			TYPE_FLOAT [right: value2/value]
 			default [RETURN_COMPARE_OTHER]
 		]

@@ -247,6 +247,7 @@ lexer: context [
 		(type: issue! value: load-number copy/part s e)
 		|	integer-number-rule
 			opt [decimal-number-rule | decimal-exp-rule e: (type: decimal!)]
+			opt [#"%" e: (type: issue!)]
 			sticky-word-rule
 			(value: load-number copy/part s e)
 			opt [
@@ -276,7 +277,7 @@ lexer: context [
 	]
 
 	decimal-rule: [
-		decimal-number-rule
+		decimal-number-rule opt [#"%" e: (type: issue!)]
 		sticky-word-rule
 	]
 		
@@ -570,7 +571,7 @@ lexer: context [
 			#[datatype! decimal!][s: load-decimal s]
 			#[datatype! issue!  ][
 				if s = "-0.0" [s: "0-"]					;-- re-encoded for consistency
-				s: to issue! join "." s
+				s: to issue! either #"%" = last s [s][join "." s]
 				if neg? [append s #"-"]
 			]
 		][

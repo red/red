@@ -75,6 +75,7 @@ red: context [
 	#include %datatypes/vector.reds
 	#include %datatypes/hash.reds
 	#include %datatypes/pair.reds
+	#include %datatypes/percent.reds
 	
 	;-- Debugging helpers --
 	
@@ -141,6 +142,7 @@ red: context [
 		vector/init
 		hash/init
 		pair/init
+		percent/init
 		
 		actions/init
 		
