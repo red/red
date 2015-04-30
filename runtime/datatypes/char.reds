@@ -17,8 +17,15 @@ char: context [
 		op		[math-op!]
 		return: [red-value!]
 		/local
-			char [red-char!]
+			right [red-float!]
+			char  [red-char!]
 	][
+		right: as red-float! stack/arguments + 1
+		if TYPE_OF(right) = TYPE_FLOAT [
+			char: as red-char! right
+			char/header: TYPE_CHAR
+			char/value: float/to-integer right/value
+		]
 		char: as red-char! integer/do-math op
 		char/header: TYPE_CHAR
 		

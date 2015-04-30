@@ -114,24 +114,12 @@ integer: context [
 			TYPE_OF(right) = TYPE_INTEGER
 			TYPE_OF(right) = TYPE_CHAR
 			TYPE_OF(right) = TYPE_FLOAT
+			TYPE_OF(right) = TYPE_PERCENT
 			TYPE_OF(right) = TYPE_PAIR
 		]
 
 		switch TYPE_OF(right) [
-			TYPE_FLOAT [float/do-math type]
-			TYPE_PAIR  [
-				value: left/value
-				copy-cell as red-value! right as red-value! left
-				pair: as red-pair! left
-				switch type [
-					OP_ADD [pair/x: pair/x + value  pair/y: pair/y + value]
-					OP_MUL [pair/x: pair/x * value  pair/y: pair/y * value]
-					OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
-						ERR_EXPECT_ARGUMENT(TYPE_PAIR 1)
-					]
-				]
-			]
-			default [
+			TYPE_INTEGER [
 				left/value: switch type [
 					OP_ADD [left/value + right/value]
 					OP_SUB [left/value - right/value]
@@ -149,6 +137,23 @@ integer: context [
 						]
 					]
 				]
+			]
+			TYPE_PERCENT
+			TYPE_FLOAT [float/do-math type]
+			TYPE_PAIR  [
+				value: left/value
+				copy-cell as red-value! right as red-value! left
+				pair: as red-pair! left
+				switch type [
+					OP_ADD [pair/x: pair/x + value  pair/y: pair/y + value]
+					OP_MUL [pair/x: pair/x * value  pair/y: pair/y * value]
+					OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
+						ERR_EXPECT_ARGUMENT(TYPE_PAIR 1)
+					]
+				]
+			]
+			default [
+				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
 			]
 		]
 		as red-value! left
