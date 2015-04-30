@@ -64,3 +64,10 @@ quit-return: routine [
 shift-right:   routine [][natives/shift* -1 -1]
 shift-left:	   routine [][natives/shift* 1 -1]
 shift-logical: routine [][natives/shift* -1 1]
+
+;-- Helping routine for console, returns true if last output character was a LF
+last-lf?: routine [/local bool [red-logic!]][
+	bool: as red-logic! stack/arguments
+	bool/header: TYPE_LOGIC
+	bool/value:	 natives/last-lf?
+]

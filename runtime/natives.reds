@@ -22,8 +22,9 @@ Red/System [
 ]
 
 natives: context [
-	verbose: 0
-	lf?: 	 no											;-- used to print or not an ending newline
+	verbose:  0
+	lf?: 	  no										;-- used to print or not an ending newline
+	last-lf?: no
 	
 	table: declare int-ptr!
 	top: 1
@@ -449,6 +450,7 @@ natives: context [
 		lf?: yes											;@@ get rid of this global state
 		prin*
 		lf?: no
+		last-lf?: yes
 	]
 	
 	prin*: func [
@@ -502,6 +504,7 @@ natives: context [
 				]
 			]
 		]
+		last-lf?: no
 		stack/set-last unset-value
 	]
 	

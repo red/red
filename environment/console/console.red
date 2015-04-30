@@ -129,6 +129,7 @@ system/console: context [
 						print ["==" result]
 					]
 				]
+				unless last-lf? [prin lf]
 			]
 			clear buffer
 		]
