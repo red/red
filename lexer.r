@@ -353,8 +353,10 @@ lexer: context [
 	]
 	
 	file-rule: [
-		#"%" (type: file! stop: [not-file-char | ws-no-count])
-		s: any UTF8-filtered-char e:
+		#"%" (type: file! stop: [not-file-char | ws-no-count]) [
+			#"^"" s: any UTF8-filtered-char e: #"^""
+			| s: any UTF8-filtered-char e:
+		]
 	]
 
 	url-rule: [
