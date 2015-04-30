@@ -87,6 +87,7 @@ op?:		 func ["Returns true if the value is this type" value [any-type!]] [op!			
 pair?:		 func ["Returns true if the value is this type" value [any-type!]] [pair!		= type? :value]
 paren?:		 func ["Returns true if the value is this type" value [any-type!]] [paren!		= type? :value]
 path?:		 func ["Returns true if the value is this type" value [any-type!]] [path!		= type? :value]
+percent?:	 func ["Returns true if the value is this type" value [any-type!]] [percent!	= type? :value]
 refinement?: func ["Returns true if the value is this type" value [any-type!]] [refinement! = type? :value]
 routine?:	 func ["Returns true if the value is this type" value [any-type!]] [routine!	= type? :value]
 set-path?:	 func ["Returns true if the value is this type" value [any-type!]] [set-path!	= type? :value]

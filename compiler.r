@@ -262,6 +262,10 @@ red: context [
 	float-special?: func [value][
 		all [issue? value value/1 = #"."]
 	]
+
+	percent-value?: func [value][
+		all [issue? value #"%" = last value]
+	]
 	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
@@ -1345,15 +1349,16 @@ red: context [
 			#0-	  [emit to integer! #{80000000} emit 0]
 		]
 	]
-	
+
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? name w make-block type idx
+		/local value char? special? percent? name w make-block type idx
 	][
 		value: either with [val][pc/1]					;-- val can be NONE
 		either any [
 			char?: unicode-char? value
 			special?: float-special? value
+			percent?: percent-value? value
 			scalar? :value
 		][			
 			case [
@@ -1361,6 +1366,12 @@ red: context [
 					emit 'char/push
 					emit to integer! next value
 					insert-lf -2
+				]
+				percent? [
+					value: to decimal! to string! copy/part value back tail value
+					emit 'percent/push64
+					emit-float value / 100.0
+					insert-lf -3
 				]
 				special? [
 					emit 'float/push64
@@ -3434,6 +3445,7 @@ red: context [
 				either any [
 					unicode-char?  pc/1
 					float-special? pc/1
+					percent-value? pc/1
 				][
 					comp-literal						;-- special encoding for Unicode char!
 				][
