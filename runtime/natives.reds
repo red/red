@@ -1357,11 +1357,12 @@ natives: context [
 			interpreter/eval as red-block! arg yes
 			stack/unwind-last
 		]
-
+		system/thrown: 0								;-- reset last exception value
+		
 		if stack/top-type? = TYPE_ERROR [
 			stack/set-last stack/top - 1
 		]
-		stack/top: stack/arguments + 1
+		stack/top: stack/arguments + 1	
 	]
 
 	uppercase*: func [

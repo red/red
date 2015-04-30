@@ -1710,7 +1710,7 @@ red: context [
 	comp-try: does [
 		unless block? pc/1 [
 			pc: back pc
-			comp-word									;-- fallback to interpreter
+			comp-word/thru								;-- fallback to interpreter
 			exit
 		]
 		emit [catch RED_ERROR]
@@ -2759,11 +2759,12 @@ red: context [
 		call [word! path!]
 		spec [block!]
 		/with symbol ctx-name [word!]
+		/thru
 		/local 
 			item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref
 			args option stop?
 	][
-		either spec/1 = 'intrinsic! [
+		either all [spec/1 = 'intrinsic! not thru][
 			switch any [all [path? call call/1] call] keywords
 		][
 			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
@@ -3083,7 +3084,11 @@ red: context [
 				][
 					comp-call/with name entry/2 name ctx
 				][
-					comp-call name entry/2
+					either thru [
+						comp-call/thru name entry/2		;-- avoid processing name as intrinsic
+					][
+						comp-call name entry/2
+					]
 				]
 			]
 			any [
