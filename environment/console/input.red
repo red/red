@@ -84,7 +84,7 @@ default-input-completer: func [
 		][
 			result: complete-from-path word
 		][
-			foreach w system/words [
+			foreach w words-of system/words [
 				if value? w [
 					sys-word: mold w
 					if find/match sys-word word [
