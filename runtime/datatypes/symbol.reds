@@ -74,6 +74,7 @@ symbol: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make-alt"]]
 
+		str/header: TYPE_SYMBOL							;-- make hashtable happy
 		id: search str
 		if positive? id [return id]
 
@@ -97,7 +98,7 @@ symbol: context [
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
 		str: declare red-string!
 		str/node: unicode/load-utf8 s 1 + system/words/length? s
-		str/header: TYPE_STRING
+		str/header: TYPE_SYMBOL							;-- make hashtable happy
 		str/head: 0
 		id: search str
 

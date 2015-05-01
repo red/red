@@ -13,25 +13,6 @@ Red/System [
 percent: context [
 	verbose: 0
 
-	get*: func [										;-- unboxing float value from stack
-		return: [float!]
-		/local
-			fl [red-float!]
-	][
-		fl: as red-float! stack/arguments
-		assert TYPE_OF(fl) = TYPE_PERCENT
-		fl/value
-	]
-
-	get-any*: func [									;-- special get* variant for SWITCH
-		return: [float!]
-		/local
-			fl [red-float!]
-	][
-		fl: as red-float! stack/arguments
-		either TYPE_OF(fl) = TYPE_PERCENT [fl/value][0.0] ;-- accept NONE values
-	]
-
 	get: func [											;-- unboxing float value
 		value	[red-value!]
 		return: [float!]

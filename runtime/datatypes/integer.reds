@@ -119,8 +119,7 @@ integer: context [
 		]
 
 		switch TYPE_OF(right) [
-			TYPE_CHAR
-			TYPE_INTEGER [
+			TYPE_INTEGER TYPE_CHAR [
 				left/value: switch type [
 					OP_ADD [left/value + right/value]
 					OP_SUB [left/value - right/value]
@@ -139,8 +138,7 @@ integer: context [
 					]
 				]
 			]
-			TYPE_PERCENT
-			TYPE_FLOAT [float/do-math type]
+			TYPE_FLOAT TYPE_PERCENT [float/do-math type]
 			TYPE_PAIR  [
 				value: left/value
 				copy-cell as red-value! right as red-value! left
