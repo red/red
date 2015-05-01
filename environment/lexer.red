@@ -15,7 +15,7 @@ system/lexer: context [
 	make-number: routine [
 		start  [string!]
 		end	   [string!]
-		float? [logic!]
+		type   [datatype!]
 		/local
 			c	 [integer!]
 			n	 [integer!]
@@ -24,8 +24,8 @@ system/lexer: context [
 			p	 [byte-ptr!]
 			neg? [logic!]
 	][
-		if float? [
-			make-float start end							;-- decimal! escape path
+		if type/value <> TYPE_INTEGER [
+			make-float start end type					;-- decimal! escape path
 			exit
 		]
 		str:  GET_BUFFER(start)
@@ -70,6 +70,7 @@ system/lexer: context [
 	make-float: routine [
 		start [string!]
 		end	  [string!]
+		type  [datatype!]
 		/local
 			str  [series!]
 			cp	 [integer!]
@@ -79,6 +80,7 @@ system/lexer: context [
 			cur	 [byte-ptr!]
 			s0	 [byte-ptr!]
 			byte [byte!]
+			f	 [float!]
 	][
 		str:  GET_BUFFER(start)
 		unit: GET_UNIT(str)
@@ -99,7 +101,8 @@ system/lexer: context [
 		]
 		byte: cur/1										;-- store last byte
 		cur/1: #"^@"									;-- replace the byte with null so to-float can use it as end of input
-		float/box string/to-float s0
+		f: string/to-float s0
+		either type/value = TYPE_FLOAT [float/box f][percent/box f / 100.0]
 		cur/1: byte										;-- revert the byte back
 	]
 
@@ -411,7 +414,7 @@ system/lexer: context [
 			some [
 				slash
 				s: [
-					integer-number-rule			(store stack make-number s e no)
+					integer-number-rule			(store stack make-number s e type)
 					| begin-symbol-rule			(to-word stack copy/part s e word!)
 					| paren-rule
 					| #":" s: begin-symbol-rule	(to-word stack copy/part s e get-word!)
@@ -469,20 +472,21 @@ system/lexer: context [
 		hexa-rule: [2 8 hexa e: #"h"]
 
 		integer-number-rule: [
-			opt [#"-" | #"+"] digit any [digit | #"'" digit] e:
+			opt [#"-" | #"+"] digit any [digit | #"'" digit] e: (type: integer!)
 		]
 
 		integer-rule: [
-			float-special (value: make-number s e yes)	;-- escape path for NaN, INFs
+			float-special (value: make-number s e type)	;-- escape path for NaN, INFs
 			| integer-number-rule
-				opt [float-number-rule | float-exp-rule e: (type: float!)]
-				ahead [integer-end | ws-no-count | end]
-				(value: make-number s e type = float!)
-				opt [
-					#"x" (value2: 0x0 value2/x: value)
-					s: integer-number-rule
-					(value2/y: make-number s e no value: value2)
-			]
+			  opt [float-number-rule | float-exp-rule e: (type: float!)]
+			  opt [#"%" (type: percent!)]
+			  ahead [integer-end | ws-no-count | end]
+			  (value: make-number s e type)
+			  opt [
+				#"x" (value2: 0x0 value2/x: value)
+				s: integer-number-rule
+				(value2/y: make-number s e type value: value2)
+			  ]
 		]
 
 		float-special: [
@@ -501,6 +505,7 @@ system/lexer: context [
 
 		float-rule: [
 			opt [#"-" | #"+"] float-number-rule
+			opt [#"%" (type: percent!)]
 			ahead [integer-end | ws-no-count | end]
 		]
 
@@ -565,7 +570,7 @@ system/lexer: context [
 				comment-rule
 				| escaped-rule		(store stack value)
 				| integer-rule		if (value) (store stack value)
-				| float-rule		if (value: make-float s e) (store stack value)
+				| float-rule		if (value: make-float s e type) (store stack value)
 				| hexa-rule			(store stack make-hexa s e)
 				| word-rule
 				| lit-word-rule
