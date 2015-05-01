@@ -182,7 +182,7 @@ red: context [
 					change/part back pos mark 2
 					clear mark
 				)
-				| #get pos: (process-get-directive pos/1 pos)
+				| #get pos: (process-get-directive pos/1 back pos)
 				| into rule
 				| skip
 			]
