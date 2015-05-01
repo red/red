@@ -374,22 +374,6 @@ _context: context [
 		new
 	]
 	
-	get-words: func [
-		/local
-			blk	[red-block!]
-			ctx [red-context!]
-	][
-		ctx: TO_CTX(global-ctx)
-		blk: as red-block! stack/push*
-		blk/header: TYPE_BLOCK
-		blk/head: 	0
-		blk/node: 	ctx/symbols 
-		
-		copy-cell 										;-- reposition cloned block at right place
-			as red-value! block/clone blk no
-			as red-value! blk
-	]
-	
 	bind-word: func [
 		ctx		[red-context!]
 		word	[red-word!]
