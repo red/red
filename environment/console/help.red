@@ -45,7 +45,7 @@ Other useful functions:
 		all [word? :word datatype? get :word] [			;-- HELP <datatype!>
 			type: get :word
 			found?: no
-			foreach w system/words [
+			foreach w words-of system/words [
 				if type = type? get w [
 					found?: yes
 					case [
@@ -75,7 +75,7 @@ Other useful functions:
 			exit
 		]
 		string? :word [
-			foreach w system/words [
+			foreach w words-of system/words [
 				if any [function? get w native? get w action? get w op? get w routine? get w][
 					spec: spec-of get w
 					if any [find form w word find form spec word] [
@@ -209,10 +209,8 @@ a-an: function [s [string!]][
 	pick ["an" "a"] make logic! find "aeiou" s/1
 ]
 
-what: function [
-	"Lists all functions, or words of a given type"
-][
-	foreach w system/words [
+what: function ["Lists all functions"][
+	foreach w words-of system/words [
 		if any [function? get w native? get w action? get w op? get w routine? get w][
 			prin pad form w 15
 			spec: spec-of get w
@@ -242,8 +240,6 @@ source: function [
 	]
 ]
 
-about: function [
-	"Print Red version information"
-][
+about: function ["Print Red version information"][
 	print ["Red" system/version #"-" system/build]
 ]

@@ -14,8 +14,12 @@ system: context [
 	version: #version
 	build:	 #build-date
 		
-	words: func	["Return a block of global words available"][
-		#system [_context/get-words]
+	words: #system [
+		obj: as red-object! stack/push*
+		obj/header: TYPE_OBJECT
+		obj/ctx:	global-ctx
+		obj/class:	-1
+		obj/on-set:	null
 	]
 	
 	platform: func ["Return a word identifying the operating system"][
