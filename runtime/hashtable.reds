@@ -415,9 +415,8 @@ _hashtable: context [
 					_BUCKET_IS_NOT_EMPTY(flags ii sh)
 					any [
 						del?
-						either multi-key? [true][
-							not actions/compare blk + keys/i key COMP_STRICT_EQUAL
-						]
+						multi-key?
+						not actions/compare blk + keys/i key COMP_STRICT_EQUAL
 					]
 				]
 			][
@@ -500,13 +499,14 @@ _hashtable: context [
 		step: 0
 		find?: no
 		while [
+			k: blk + keys/i
 			all [
 				_BUCKET_IS_NOT_EMPTY(flags ii sh)
 				any [
 					_BUCKET_IS_DEL(flags ii sh)
-					either multi-key? [true][
-						not actions/compare blk + keys/i key op
-					]
+					multi-key?
+					TYPE_OF(k) <> TYPE_OF(key)
+					not actions/compare k key op
 				]
 			]
 		][
@@ -516,7 +516,7 @@ _hashtable: context [
 				if all [
 					_BUCKET_IS_NOT_DEL(flags ii sh)
 					TYPE_OF(k) = TYPE_OF(key)
-					actions/compare blk + idx key op
+					actions/compare k key op
 					idx - head % skip = 0
 				][
 					either reverse? [
