@@ -805,6 +805,26 @@ red: context [
 		]
 	]
 	
+	system-words-path?: func [path [path! set-path!]][
+		if all [
+			2 < length? path
+			find/match path 'system/words 
+		][
+			remove/part path 2
+			either 1 = length? path [
+				switch type?/word pc/1: load mold path [
+					set-word!	[comp-set-word]
+					word!		[comp-word]
+					get-word!	[comp-word/literal]
+				]
+				path: none
+			][
+				bind path/1 'rebol						;-- force binding to global context
+			]
+		]
+		path
+	]
+	
 	push-locals: func [symbols [block!]][
 		append/only locals-stack symbols
 	]
@@ -2574,6 +2594,8 @@ red: context [
 		path:  copy pc/1
 		emit?: yes
 		set?:  to logic! set?
+		
+		unless path: system-words-path? path [exit]
 		
 		if dynamic?: find path paren! [					;-- fallback to interpreter if parens found
 			emit-open-frame 'body
