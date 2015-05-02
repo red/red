@@ -399,6 +399,34 @@ red: context [
 		insert-lf -2
 	]
 	
+	get-path-word: func [
+		original [any-word!] blk [block!] get? [logic!]
+		/local name new obj loc? ctx idx
+	][
+		name: to word! original
+		
+		either all [
+			loc?: rebol-gctx <> obj: bind? original
+			find shadow-funcs obj
+		][
+			either get? [
+				append blk decorate-symbol name			;-- local word, point to value slot
+			][
+				append blk [as cell!]
+				append/only blk prefix-exec name		;-- force global word
+			]
+		][
+			if new: select-ssa name [name: new]			;@@ add a check for function! type
+			either get? [
+				append/only blk '_context/get
+			][
+				append blk [as cell!]
+			]
+			append/only blk prefix-exec name
+		]
+		blk
+	]
+	
 	emit-load-string: func [buffer [string! file! url!]][
 		emit to path! reduce [to word! form type? buffer 'rs-load]
 		emit form buffer
@@ -1082,115 +1110,50 @@ red: context [
 		repend functions [name reduce [type arity spec refs]]
 	]
 	
-	emit-eval-path: func [/set][
-		emit 'actions/eval-path*
-		emit either set ['true]['false]
-		insert-lf -2
-	]
-	
 	emit-path: func [
 		path [path! set-path!] set? [logic!] alt? [logic!]
-		/local value mark assign original
-	][
-		value: path/1
-		
-		assign: [
+		/local pos words item blk get?
+	][	
+		if set? [
+			emit-open-frame 'eval-set-path
 			either alt? [								;-- object path (fallback case)
 				emit [stack/push stack/arguments - 1]	;-- get arguments just below the stack record
 				insert-lf -4
 			][
 				comp-expression							;-- fetch assigned value (normal case)
 			]
-			emit-eval-path/set
-			emit-close-frame
+		]
+		pos: tail output
+		
+		emit either integer? last path [
+			pick [set-int-path* eval-int-path*] set?
+		][
+			pick [set-path* eval-path*] set?
+		]
+		path: back tail path
+		while [not head? path: back path][
+			emit pick [eval-int-path eval-path] integer? path/1
 		]
 		
-		switch type?/word original: value [
-			word! [
-				add-symbol value: to word! clean-lf-flag value
-				case [
-					head? path [
-						emit-get-word value original
-					]
-					all [set? tail? next path][
-						emit-open-frame 'eval-set-path
-						emit-path back path set? alt?
-						emit-push-word value value
-						do assign
-					]
-					'else [
-						emit-open-frame 'select
-						emit-path back path set? alt?
-						emit-push-word value value
-						emit-action/with 'select [-1 -1 -1 -1 -1 -1 -1 -1]
-						emit-close-frame
-					]
-				]
-			]
-			get-word! [
-				either all [set? tail? next path][
-					emit-open-frame 'poke
-					emit-path back path set? alt?
-					emit-get-word to word! value original
-					
-					emit copy/deep [unless stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
-					insert-lf -4
-					
-					mark: tail output					;-- SELECT action
-					emit [stack/pop 1]					;-- overwrite the get-word on stack top
-					insert-lf -2
-					emit-open-frame 'find
-					emit-path back path set? alt?
-					emit-get-word to word! value original
-					emit-action/with 'find [-1 -1 -1 -1 -1 -1 -1 -1 -1 -1]
-					emit-action 'index?
-					emit [stack/pop 2]
-					insert-lf -2
-					emit [integer/push 1]
-					insert-lf -2
-					emit-action 'add
-					emit-close-frame
-					convert-to-block mark
-					do assign
-				][
-					emit-open-frame 'pick-select
-					emit-path back path set? alt?
-					emit-get-word to word! value original
-					
-					emit copy/deep [either stack/top-type? = TYPE_INTEGER] ;-- choose action at run-time
-					insert-lf -4
-					
-					mark: tail output					;-- PICK action
-					emit-action 'pick
-					convert-to-block mark
-					
-					mark: tail output					;-- SELECT action
-					emit-action/with 'select [-1 -1 -1 -1 -1 -1 -1 -1]
-					convert-to-block mark
-					
-					emit-close-frame
-				]
-			]
-			integer! [
-				either all [set? tail? next path][
-					emit-open-frame 'eval-set-path
-					emit-path back path set? alt?
-					emit compose [integer/push (value)]
-					insert-lf -2
-					do assign
-				][
-					emit-open-frame 'pick
-					emit-path back path set? alt?
-					emit compose [integer/push (value)]
-					insert-lf -2
-					emit-action 'pick
-					emit-close-frame
-				]
-			]
-			string!	[
-				--not-implemented--
+		words: make block! length? path					;-- path should be at head again
+		blk: []
+		forall path [
+			append words either integer? item: path/1 [item][
+				get?: to logic! any [head? path get-word? item]
+				get-path-word item clear blk get?
 			]
 		]
+		emit words
+		
+		new-line/all pos no
+		new-line pos yes
+		if set? [emit-close-frame]
+	]
+	
+	emit-eval-path: func [/set][
+		emit 'actions/eval-path*
+		emit either set ['true]['false]
+		insert-lf -2
 	]
 	
 	emit-path-func: func [body [block!] octx [word!] cnt [integer!] /local pos f-name rule arity name][
@@ -2715,10 +2678,7 @@ red: context [
 		mark: tail output
 		
 		either any [obj? set? get? dynamic? not parse path [some word!]][
-			unless self? [
-				obj?: to logic! obj?
-				emit-path back tail path set? obj?		;-- emit code recursively from tail
-			]
+			unless self? [emit-path path set? to logic! obj?]
 		][
 			append/only paths-stack path				;-- defer path generation
 		]

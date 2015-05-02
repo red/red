@@ -157,6 +157,79 @@ type-check: func [
 	arg													;-- pass-thru argument
 ]
 
+set-path*: func [
+	parent  [red-value!]
+	element [red-value!]
+][
+	stack/set-last actions/eval-path parent element stack/arguments
+]
+
+set-int-path*: func [
+	parent  [red-value!]
+	index 	[integer!]
+][
+	stack/set-last actions/eval-path
+		parent
+		as red-value! integer/push index
+		stack/arguments									;-- value to set
+]
+
+eval-path*: func [
+	parent  [red-value!]
+	element [red-value!]
+	/local
+		slot   [red-value!]
+		result [red-value!]
+][
+	slot: stack/push*									;-- reserve stack slot 
+	result: actions/eval-path parent element null		;-- no value to set
+	copy-cell result slot								;-- set the stack as expected
+	stack/top: slot + 1									;-- erase intermediary stack allocations
+]
+
+eval-path: func [
+	parent  [red-value!]
+	element [red-value!]
+	return: [red-value!]
+	/local
+		top	   [red-value!]
+		result [red-value!]
+][
+	top: stack/top
+	result: actions/eval-path parent element null		;-- no value to set
+	stack/top: top
+	result
+]
+
+eval-int-path*: func [
+	parent  [red-value!]
+	index 	[integer!]
+	return: [red-value!]
+	/local
+		int	   [red-value!]
+		result [red-value!]
+][
+	int: as red-value! integer/push index
+	result: actions/eval-path parent int null			;-- no value to set
+	copy-cell result int								;-- set the stack as expected
+	stack/top: int + 1									;-- erase intermediary stack allocations
+	result
+]
+
+eval-int-path: func [
+	parent  [red-value!]
+	index 	[integer!]
+	return: [red-value!]
+	/local
+		int	   [red-value!]
+		result [red-value!]
+][
+	int: as red-value! integer/push index
+	result: actions/eval-path parent int null			;-- no value to set
+	stack/top: int										;-- erase intermediary stack allocations
+	result
+]
+
 words: context [
 	spec:			-1
 	body:			-1
