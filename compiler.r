@@ -1113,7 +1113,7 @@ red: context [
 	emit-path: func [
 		path [path! set-path!] set? [logic!] alt? [logic!]
 		/local pos words item blk get?
-	][	
+	][
 		if set? [
 			emit-open-frame 'eval-set-path
 			either alt? [								;-- object path (fallback case)
@@ -1133,9 +1133,9 @@ red: context [
 		path: back tail path
 		while [not head? path: back path][
 			emit pick [eval-int-path eval-path] integer? path/1
-		]
+		]												;-- path should be at head again
 		
-		words: make block! length? path					;-- path should be at head again
+		words: clear []
 		blk: []
 		forall path [
 			append words either integer? item: path/1 [item][
@@ -2552,7 +2552,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj self? true-blk defer
+			fpath symbol obj self? true-blk defer obj-field?
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -2647,10 +2647,11 @@ red: context [
 			]
 			if block? defer [emit defer]
 		]
+		
 
-		if obj? [
+		if obj-field?: all [obj? word? last path][			;-- not allow get-words to pass (#1141)
 			ctx: second obj: find objects obj
-			
+
 			true-blk: compose/deep pick [
 				[[word/set-in    (ctx) (get-word-index/with last path ctx)]]
 				[[word/get-local (ctx) (get-word-index/with last path ctx)]]
@@ -2678,7 +2679,10 @@ red: context [
 		mark: tail output
 		
 		either any [obj? set? get? dynamic? not parse path [some word!]][
-			unless self? [emit-path path set? to logic! obj?]
+			unless self? [
+				emit-path path set? to logic! obj?
+				unless obj-field? [obj?: no]			;-- static path emitted, not special anymore
+			]
 		][
 			append/only paths-stack path				;-- defer path generation
 		]
