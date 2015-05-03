@@ -1362,18 +1362,14 @@ natives: context [
 		if stack/top-type? = TYPE_ERROR [
 			stack/set-last stack/top - 1
 		]
-		stack/top: stack/arguments + 1	
+		stack/top: stack/arguments + 1
 	]
 
-	uppercase*: func [
-		part	  [integer!]
-	][
+	uppercase*: func [part [integer!]][
 		case-folding/change-case stack/arguments part yes
 	]
 
-	lowercase*: func [
-		part	  [integer!]
-	][
+	lowercase*: func [part [integer!]][
 		case-folding/change-case stack/arguments part no
 	]
 	
