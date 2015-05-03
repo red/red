@@ -1376,6 +1376,19 @@ natives: context [
 	][
 		case-folding/change-case stack/arguments part no
 	]
+	
+	as-pair*: func [
+		/local
+			pair [red-pair!]
+			int  [red-integer!]
+	][
+		pair: as red-pair! stack/arguments
+		pair/header: TYPE_PAIR
+		int: as red-integer! pair
+		pair/x: int/value
+		int: as red-integer! pair + 1
+		pair/y: int/value
+	]
 
 	;--- Natives helper functions ---
 
@@ -1766,6 +1779,7 @@ natives: context [
 			:try*
 			:uppercase*
 			:lowercase*
+			:as-pair*
 		]
 	]
 

@@ -203,6 +203,7 @@ Red/System [
 	NAT_TRY
 	NAT_UPPERCASE
 	NAT_LOWERCASE
+	NAT_AS_PAIR
 ]
 
 #enum math-op! [

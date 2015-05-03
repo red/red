@@ -628,3 +628,11 @@ lowercase: make native! [[
 	]
 	#get-definition NAT_LOWERCASE
 ]
+
+as-pair: make native! [[
+		"Combine X and Y values into a pair."
+		x [integer!]
+		y [integer!]
+	]
+	#get-definition NAT_AS_PAIR
+]
