@@ -278,6 +278,18 @@ pair: context [
 		int 											;-- re-use argument slot for return value
 	]
 	
+	pick: func [
+		pair	[red-pair!]
+		index	[integer!]
+		boxed	[red-value!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/pick"]]
+
+		if all [index <> 1 index <> 2][fire [TO_ERROR(script out-of-range) boxed]]
+		as red-value! integer/push either index = 1 [pair/x][pair/y]
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_PAIR
@@ -324,7 +336,7 @@ pair: context [
 			null			;insert
 			null			;length?
 			null			;next
-			null			;pick
+			:pick
 			null			;poke
 			null			;remove
 			null			;reverse

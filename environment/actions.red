@@ -358,7 +358,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! bitset!]
+		series	 [series! bitset! pair!]
 		index 	 [integer! logic! char!]
 		return:  [any-type!]
 	]
