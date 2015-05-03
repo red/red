@@ -387,7 +387,7 @@ remove: make action! [[
 
 reverse: make action! [[
 		"Reverses the order of elements; returns at same position"
-		series	 [series!]
+		series	 [series! pair!]
 		/part "Limits to a given length or position"
 			length [number! series!]
 		return:  [series!]

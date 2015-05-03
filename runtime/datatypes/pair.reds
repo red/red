@@ -290,6 +290,21 @@ pair: context [
 		as red-value! integer/push either index = 1 [pair/x][pair/y]
 	]
 	
+	reverse: func [
+		pair	[red-pair!]
+		part	[red-value!]
+		return:	[red-value!]
+		/local
+			tmp [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/reverse"]]
+	
+		tmp: pair/x
+		pair/x: pair/y
+		pair/y: tmp
+		as red-value! pair
+	]
+	
 	init: does [
 		datatype/register [
 			TYPE_PAIR
@@ -339,7 +354,7 @@ pair: context [
 			:pick
 			null			;poke
 			null			;remove
-			null			;reverse
+			:reverse
 			null			;select
 			null			;sort
 			null			;skip
