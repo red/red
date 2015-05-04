@@ -30,7 +30,7 @@ pi: 3.141592653589793
 
 internal!:		make typeset! [unset!]
 number!:		make typeset! [integer! float! percent!]
-scalar!:		union number! make typeset! [char! pair!]
+scalar!:		union number! make typeset! [char! pair! tuple!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word! refinement! issue!]
 any-path!:		make typeset! [path! set-path! get-path! lit-path!]
 any-block!:		union any-path! make typeset! [block! paren! hash!]

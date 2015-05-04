@@ -92,6 +92,7 @@ write %build/bin/sources.r set-cache [
 			%structures.reds
 			%symbol.reds
 			%typeset.reds
+			%tuple.reds
 			%unset.reds
 			%url.reds
 			%vector.reds

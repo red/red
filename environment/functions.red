@@ -61,11 +61,11 @@ quote: func [
 	:value
 ]
 
-first:	func ["Returns the first value in a series"  s [series! pair!]] [pick s 1]	;@@ temporary definitions, should be natives ?
-second:	func ["Returns the second value in a series" s [series! pair!]] [pick s 2]
-third:	func ["Returns the third value in a series"  s [series! pair!]] [pick s 3]
-fourth:	func ["Returns the fourth value in a series" s [series! pair!]] [pick s 4]
-fifth:	func ["Returns the fifth value in a series"  s [series! pair!]] [pick s 5]
+first:	func ["Returns the first value in a series"  s [series! pair! tuple!]] [pick s 1]	;@@ temporary definitions, should be natives ?
+second:	func ["Returns the second value in a series" s [series! pair! tuple!]] [pick s 2]
+third:	func ["Returns the third value in a series"  s [series! pair! tuple!]] [pick s 3]
+fourth:	func ["Returns the fourth value in a series" s [series! pair! tuple!]] [pick s 4]
+fifth:	func ["Returns the fifth value in a series"  s [series! pair! tuple!]] [pick s 5]
 
 last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 1]
 
@@ -101,6 +101,7 @@ set-path?:	 func ["Returns true if the value is this type" value [any-type!]] [s
 set-word?:	 func ["Returns true if the value is this type" value [any-type!]] [set-word!	= type? :value]
 string?:	 func ["Returns true if the value is this type" value [any-type!]] [string!		= type? :value]
 typeset?:	 func ["Returns true if the value is this type" value [any-type!]] [typeset!	= type? :value]
+tuple?:		 func ["Returns true if the value is this type" value [any-type!]] [tuple!		= type? :value]
 unset?:		 func ["Returns true if the value is this type" value [any-type!]] [unset!		= type? :value]
 url?:		 func ["Returns true if the value is this type" value [any-type!]] [url!		= type? :value]
 vector?:	 func ["Returns true if the value is this type" value [any-type!]] [vector!		= type? :value]

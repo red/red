@@ -83,27 +83,27 @@ absolute: make action! [[
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char! pair!]
-		value2	 [number! char! pair!]
-		return:  [number! char! pair!]
+		value1	 [number! char! pair! tuple!]
+		value2	 [number! char! pair! tuple!]
+		return:  [number! char! pair! tuple!]
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! char! pair!] "The dividend (numerator)"
-		value2	 [number! char! pair!] "The divisor (denominator)"
-		return:  [number! char! pair!]
+		value1	 [number! char! pair! tuple!] "The dividend (numerator)"
+		value2	 [number! char! pair! tuple!] "The divisor (denominator)"
+		return:  [number! char! pair! tuple!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! char! pair!]
-		value2	 [number! char! pair!]
-		return:  [number! char! pair!]
+		value1	 [number! char! pair! tuple!]
+		value2	 [number! char! pair! tuple!]
+		return:  [number! char! pair! tuple!]
 	]
 	#get-definition ACT_MULTIPLY
 ]
@@ -127,18 +127,18 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! char! pair!]
-		value2 	 [number! char! pair!]
-		return:  [number! char! pair!]
+		value1 	 [number! char! pair! tuple!]
+		value2 	 [number! char! pair! tuple!]
+		return:  [number! char! pair! tuple!]
 	]
 	#get-definition ACT_REMAINDER
 ]
 
 modulo: func [
 	"Compute a nonnegative remainder of A divided by B"
-	a		[number! pair!]
-	b		[number! pair!]
-	return: [number! pair!]
+	a		[number! pair! tuple!]
+	b		[number! pair! tuple!]
+	return: [number! pair! tuple!]
 	/local r
 ][
 	b: absolute b
@@ -164,9 +164,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char! pair!]
-		value2	 [number! char! pair!]
-		return:  [number! char! pair!]
+		value1	 [number! char! pair! tuple!]
+		value2	 [number! char! pair! tuple!]
+		return:  [number! char! pair! tuple!]
 	]
 	#get-definition ACT_SUBTRACT
 ]
@@ -191,9 +191,9 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! typeset! pair!]
-		value2	[logic! integer! char! bitset! typeset! pair!]
-		return:	[logic! integer! char! bitset! typeset! pair!]
+		value1	[logic! integer! char! bitset! typeset! pair! tuple!]
+		value2	[logic! integer! char! bitset! typeset! pair! tuple!]
+		return:	[logic! integer! char! bitset! typeset! pair! tuple!]
 	]
 	#get-definition ACT_AND~
 ]
@@ -208,18 +208,18 @@ complement: make action! [[
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! typeset! pair!]
-		value2	[logic! integer! char! bitset! typeset! pair!]
-		return:	[logic! integer! char! bitset! typeset! pair!]
+		value1	[logic! integer! char! bitset! typeset! pair! tuple!]
+		value2	[logic! integer! char! bitset! typeset! pair! tuple!]
+		return:	[logic! integer! char! bitset! typeset! pair! tuple!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! typeset! pair!]
-		value2	[logic! integer! char! bitset! typeset! pair!]
-		return:	[logic! integer! char! bitset! typeset! pair!]
+		value1	[logic! integer! char! bitset! typeset! pair! tuple!]
+		value2	[logic! integer! char! bitset! typeset! pair! tuple!]
+		return:	[logic! integer! char! bitset! typeset! pair! tuple!]
 	]
 	#get-definition ACT_XOR~
 ]
@@ -358,7 +358,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! bitset! pair!]
+		series	 [series! bitset! pair! tuple!]
 		index 	 [integer! logic! char!]
 		return:  [any-type!]
 	]
@@ -367,7 +367,7 @@ pick: make action! [[
 
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
-		series	 [series! bitset!]
+		series	 [series! bitset! tuple!]
 		index 	 [integer! char! logic! block!]
 		value 	 [any-type!]
 		return:  [series! bitset!]
@@ -387,10 +387,10 @@ remove: make action! [[
 
 reverse: make action! [[
 		"Reverses the order of elements; returns at same position"
-		series	 [series! pair!]
+		series	 [series! pair! tuple!]
 		/part "Limits to a given length or position"
 			length [number! series!]
-		return:  [series!]
+		return:  [series! pair! tuple!]
 	]
 	#get-definition ACT_REVERSE
 ]

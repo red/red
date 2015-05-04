@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Float! datatype runtime functions"
-	Author:  "Nenad Rakocevic, Oldes"
-	File: 	 %decimal.reds
+	Author:  "Nenad Rakocevic, Oldes, Qingtian Xie"
+	File: 	 %float.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {

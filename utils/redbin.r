@@ -157,7 +157,23 @@ context [
 		emit value/x
 		emit value/y
 	]
-	
+
+	emit-tuple: func [value [tuple!] /local bin size n][
+		emit-type 'TYPE_TUPLE
+		bin: make binary! 12
+		size: length? value
+		insert bin to-bin8 size
+		n: 0
+		until [
+			n: n + 1
+			insert tail bin to-bin8 value/:n
+			n = size
+		]
+		emit to integer! copy/part bin 4
+		emit to integer! copy/part skip bin 4 4
+		emit to integer! skip bin 8
+	]
+
 	emit-op: func [spec [any-word!]][
 		emit-type 'TYPE_OP
 		emit-symbol spec
@@ -325,6 +341,7 @@ context [
 						decimal!  [emit-float item]
 						char!	  [emit-char to integer! item]
 						pair!	  [emit-pair item]
+						tuple!	  [emit-tuple item]
 						datatype! [emit-datatype item]
 						logic!	  [emit-logic item]
 						none! 	  [emit-none]

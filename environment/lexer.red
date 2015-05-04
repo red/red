@@ -12,6 +12,52 @@ Red [
 
 system/lexer: context [
 
+	make-tuple: routine [
+		start  [string!]
+		end	   [string!]
+		/local
+			c	 [integer!]
+			n	 [integer!]
+			m	 [integer!]
+			len  [integer!]
+			unit [integer!]
+			size [integer!]
+			p	 [byte-ptr!]
+			tp	 [byte-ptr!]
+			ret  [red-value!]
+	][
+		str:  GET_BUFFER(start)
+		unit: GET_UNIT(str)
+		p:	  string/rs-head start
+		len:  end/head - start/head
+		size: 1
+		ret: stack/arguments
+		tp: (as byte-ptr! ret) + 4
+
+		n: 0
+		until [
+			c: string/get-char p unit
+			either c = as-integer #"." [
+				size: size + 1
+				tp/size: as byte! n
+				n: 0
+			][
+				m: n * 10
+				n: m
+				m: n + c - #"0"
+				n: m
+			]
+			p: p + unit
+			len: len - 1
+			zero? len
+		]
+		ret/header: TYPE_TUPLE
+		tp/1: as byte! size
+		size: size + 1									;-- last number
+		tp/size: as byte! n
+		ret
+	]
+
 	make-number: routine [
 		start  [string!]
 		end	   [string!]
@@ -21,6 +67,7 @@ system/lexer: context [
 			n	 [integer!]
 			m	 [integer!]
 			len  [integer!]
+			unit [integer!]
 			p	 [byte-ptr!]
 			neg? [logic!]
 	][
@@ -232,8 +279,9 @@ system/lexer: context [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
+			four half non-zero
 	][
-		cs:		[- - - - - - - - - - - - - - - -]		;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		line: 	1
@@ -275,13 +323,24 @@ system/lexer: context [
 			cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
 			cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 			cs/16: charset [#"^(00)" - #"^(1F)"] 		;-- ASCII control characters
-
+			cs/17: charset "01234"						;-- four
+			cs/18: charset "012345"						;-- half
+		    cs/19: charset "123456789"					;-- non-zero
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
+			four half non-zero
 		] cs
+
+		byte: [
+			"25" half
+			| "2" four digit
+			| "1" digit digit
+			| non-zero digit
+			| digit
+		]
 
 		;-- Whitespaces list from: http://en.wikipedia.org/wiki/Whitespace_character
 		ws: [
@@ -471,6 +530,15 @@ system/lexer: context [
 
 		hexa-rule: [2 8 hexa e: #"h"]
 
+		tuple-value-rule: [
+			byte dot byte 1 8 [dot byte] e: (type: tuple!)
+		]
+
+		tuple-rule: [
+			tuple-value-rule
+			ahead [integer-end | ws-no-count | end]
+		]
+
 		integer-number-rule: [
 			opt [#"-" | #"+"] digit any [digit | #"'" digit] e: (type: integer!)
 		]
@@ -571,6 +639,7 @@ system/lexer: context [
 				| escaped-rule		(store stack value)
 				| integer-rule		if (value) (store stack value)
 				| float-rule		if (value: make-float s e type) (store stack value)
+				| tuple-rule		(store stack make-tuple s e)
 				| hexa-rule			(store stack make-hexa s e)
 				| word-rule
 				| lit-word-rule
