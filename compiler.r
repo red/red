@@ -1702,21 +1702,24 @@ red: context [
 	]
 	
 	comp-try: does [
-		unless block? pc/1 [
-			pc: back pc
-			comp-word/thru								;-- fallback to interpreter
+		either block? pc/1 [
+			emit [catch RED_ERROR]
+			insert-lf -2
+			body: comp-sub-block 'try
+			if body/1 = 'stack/reset [remove body]
+			mark: tail output
+			emit-open-frame 'try
+			insert body mark
+			clear mark
+			append body [
+				stack/unwind
+			]
+		][
+			emit-open-frame 'try						;-- fallback option
+			comp-expression
+			emit-native 'try
+			emit-close-frame
 			exit
-		]
-		emit [catch RED_ERROR]
-		insert-lf -2
-		body: comp-sub-block 'try
-		if body/1 = 'stack/reset [remove body]
-		mark: tail output
-		emit-open-frame 'try
-		insert body mark
-		clear mark
-		append body [
-			stack/unwind
 		]
 	]
 	
@@ -2761,7 +2764,7 @@ red: context [
 			item name compact? refs ref? cnt pos ctx mark list offset emit-no-ref
 			args option stop?
 	][
-		either all [spec/1 = 'intrinsic! not thru][
+		either spec/1 = 'intrinsic! [
 			switch any [all [path? call call/1] call] keywords
 		][
 			compact?: spec/1 <> 'function!				;-- do not push refinements on stack
@@ -3081,11 +3084,7 @@ red: context [
 				][
 					comp-call/with name entry/2 name ctx
 				][
-					either thru [
-						comp-call/thru name entry/2		;-- avoid processing name as intrinsic
-					][
-						comp-call name entry/2
-					]
+					comp-call name entry/2
 				]
 			]
 			any [
