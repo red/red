@@ -13,6 +13,26 @@ Red/System [
 tuple: context [
 	verbose: 0
 
+	make-in: func [
+		parent	[red-block!]
+		bs1		[integer!]								;-- pre-encoded in little-endian
+		bs2		[integer!]								;-- pre-encoded in little-endian
+		bs3		[integer!]								;-- pre-encoded in little-endian
+		return: [red-tuple!]
+		/local
+			ts	 [red-tuple!]
+			bits [int-ptr!]
+	][
+		ts: as red-tuple! ALLOC_TAIL(parent)
+		ts/header: TYPE_TUPLE							;-- implicit reset of all header flags
+		
+		bits: as int-ptr! ts
+		bits/2: bs1
+		bits/3: bs2
+		bits/4: bs3
+		ts
+	]
+
 	push: func [
 		str		[c-string!]
 		return: [red-tuple!]
