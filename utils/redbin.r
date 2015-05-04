@@ -132,7 +132,16 @@ context [
 			#0-	  [emit to integer! #{80000000} emit 0]
 		]
 	]
-	
+
+	emit-percent: func [value [issue!] /local bin][
+		pad buffer 8
+		emit-type 'TYPE_PERCENT
+		value: to decimal! to string! copy/part value back tail value
+		bin: IEEE-754/to-binary64 value / 100.0
+		emit to integer! copy/part bin 4
+		emit to integer! skip bin 4
+	]
+
 	emit-char: func [value [integer!]][
 		emit-type 'TYPE_CHAR
 		emit value
@@ -289,6 +298,10 @@ context [
 							]
 						]
 						yes
+					]
+					percent-value? :item [
+						emit-percent item
+						no
 					]
 					float-special? :item [
 						emit-fp-special item

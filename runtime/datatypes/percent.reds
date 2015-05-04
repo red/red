@@ -1,7 +1,7 @@
 Red/System [
-	Title:   "Float! datatype runtime functions"
-	Author:  "Nenad Rakocevic, Oldes"
-	File: 	 %decimal.reds
+	Title:   "Percent! datatype runtime functions"
+	Author:  "Qingtian Xie"
+	File: 	 %percent.reds
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2012 Nenad Rakocevic. All rights reserved."
 	License: {
@@ -44,7 +44,7 @@ percent: context [
 		/local
 			cell [cell!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/make-in"]]
+		#if debug? = yes [if verbose > 0 [print-line "percent/make-in"]]
 
 		cell: ALLOC_TAIL(parent)
 		cell/header: TYPE_PERCENT
@@ -60,7 +60,7 @@ percent: context [
 		/local
 			cell [cell!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/push64"]]
+		#if debug? = yes [if verbose > 0 [print-line "percent/push64"]]
 
 		cell: stack/push*
 		cell/header: TYPE_PERCENT
@@ -75,7 +75,7 @@ percent: context [
 		/local
 			fl [red-float!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/push"]]
+		#if debug? = yes [if verbose > 0 [print-line "percent/push"]]
 
 		fl: as red-float! stack/push*
 		fl/header: TYPE_PERCENT
@@ -93,7 +93,7 @@ percent: context [
 			formed [c-string!]
 			value  [float!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/form"]]
+		#if debug? = yes [if verbose > 0 [print-line "percent/form"]]
 
 		value: fl/value * 100.0
 		formed: float/form-float value float/FORM_PERCENT
@@ -112,7 +112,7 @@ percent: context [
 		indent	[integer!]		
 		return: [integer!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "float/mold"]]
+		#if debug? = yes [if verbose > 0 [print-line "percent/mold"]]
 
 		form fl buffer arg part
 	]
