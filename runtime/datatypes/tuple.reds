@@ -164,6 +164,14 @@ tuple: context [
 		proto	 [red-value!]	
 		spec	 [red-value!]
 		return:	 [red-tuple!]
+		/local
+			blk   [red-block!]
+			tuple [red-tuple!]
+			tp    [byte-ptr!]
+			n	  [integer!]
+			i	  [integer!]
+			s	  [series!]
+			int   [red-integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/make"]]
 
@@ -171,9 +179,35 @@ tuple: context [
 			TYPE_TUPLE [
 				as red-tuple! spec
 			]
+			TYPE_BLOCK [
+				blk: as red-block! spec
+				tuple: as red-tuple! stack/push*
+				tuple/header: TYPE_TUPLE
+				tp: (as byte-ptr! tuple) + 4
+				n: block/rs-length? blk
+				if n > 10 [
+					fire [TO_ERROR(script bad-make-arg) proto spec]
+				]
+				tp/1: as byte! either n > 2 [n][3]
+				tp: tp + 1
+				s: GET_BUFFER(blk)
+				int: as red-integer! s/offset + blk/head
+				i: 0
+				while [i < n][
+					i: i + 1
+					if any [
+						int/value > 255
+						int/value < 0
+					][fire [TO_ERROR(script bad-make-arg) proto spec]]
+					tp/i: as byte! int/value
+					int: int + 1
+				]
+				while [i < 3][i: i + 1 tp/i: null-byte]
+				tuple
+			]
 			default [
-				--NOT_IMPLEMENTED--
-				as red-tuple! spec					;@@ just for making it compilable
+				fire [TO_ERROR(script bad-make-arg) proto spec]
+				null
 			]
 		]
 	]
@@ -233,14 +267,12 @@ tuple: context [
 		return:	[red-value!]
 		/local
 			int  [red-integer!]
-			set? [logic!]
 			type [integer!]
 	][
-		set?: value <> null
 		type: TYPE_OF(element)
 		either type = TYPE_INTEGER [
 			int: as red-integer! element
-			either set? [
+			either value <> null [
 				poke parent int/value value null
 				value
 			][
@@ -250,6 +282,43 @@ tuple: context [
 			fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(element)]
 			null
 		]
+	]
+
+	compare: func [
+		tp1		[red-tuple!]							;-- first operand
+		tp2		[red-tuple!]							;-- second operand
+		op		[integer!]								;-- type of comparison
+		return: [integer!]
+		/local
+			p1	 [byte-ptr!]
+			p2	 [byte-ptr!]
+			i	 [integer!]
+			sz   [integer!]
+			sz1  [integer!]
+			sz2  [integer!]
+			v1	 [integer!]
+			v2	 [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tuple/compare"]]
+
+		if TYPE_OF(tp2) <> TYPE_TUPLE [RETURN_COMPARE_OTHER]
+		p1: (as byte-ptr! tp1) + 4
+		p2: (as byte-ptr! tp2) + 4
+		sz1: as-integer p1/1
+		sz2: as-integer p2/1
+		sz: either sz1 > sz2 [sz1][sz2]
+		p1: p1 + 1
+		p2: p2 + 1
+
+		i: 0
+		until [
+			i: i + 1
+			v1: either i > sz1 [0][as-integer p1/i] 
+			v2: either i > sz2 [0][as-integer p2/i]
+			if v1 <> v2 [return SIGN_COMPARE_RESULT(v1 v2)]
+			i = sz
+		]
+		0
 	]
 
 	add: func [return: [red-value!]][
@@ -410,7 +479,7 @@ tuple: context [
 			TYPE_VALUE
 			"tuple!"
 			;-- General actions --
-			null			;make
+			:make
 			null			;random
 			null			;reflect
 			null			;to
@@ -418,7 +487,7 @@ tuple: context [
 			:mold
 			:eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			:add
