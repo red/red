@@ -301,6 +301,10 @@ redbin: context [
 				float/make-in parent data/2 data/3
 				data + 3
 			]
+			TYPE_PERCENT [
+				percent/make-in parent data/2 data/3
+				data + 3
+			]
 			TYPE_CHAR		[
 				char/make-in parent data/2
 				data + 2
