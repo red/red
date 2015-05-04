@@ -1366,6 +1366,11 @@ red: context [
 					emit-float value
 					insert-lf -3
 				]
+				tuple? :value [
+					emit 'tuple/push
+					emit to string! value
+					insert-lf -2
+				]
 				find [refinement! issue! lit-word!] type?/word :value [
 					add-symbol w: to word! form value
 					type: to word! form type? :value

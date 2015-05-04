@@ -76,6 +76,7 @@ red: context [
 	#include %datatypes/hash.reds
 	#include %datatypes/pair.reds
 	#include %datatypes/percent.reds
+	#include %datatypes/tuple.reds
 	
 	;-- Debugging helpers --
 	
@@ -143,6 +144,7 @@ red: context [
 		hash/init
 		pair/init
 		percent/init
+		tuple/init
 		
 		actions/init
 		

@@ -100,8 +100,12 @@ integer: context [
 		/local
 			left	[red-integer!]
 			right	[red-integer!]
-			pair  [red-pair!]
-			value [integer!]
+			pair	[red-pair!]
+			value	[integer!]
+			size	[integer!]
+			n		[integer!]
+			v		[integer!]
+			tp		[byte-ptr!]
 	][
 		left: as red-integer! stack/arguments
 		right: left + 1
@@ -116,6 +120,7 @@ integer: context [
 			TYPE_OF(right) = TYPE_FLOAT
 			TYPE_OF(right) = TYPE_PERCENT
 			TYPE_OF(right) = TYPE_PAIR
+			TYPE_OF(right) = TYPE_TUPLE
 		]
 
 		switch TYPE_OF(right) [
@@ -124,10 +129,17 @@ integer: context [
 					OP_ADD [left/value + right/value]
 					OP_SUB [left/value - right/value]
 					OP_MUL [left/value * right/value]
-					OP_REM [left/value % right/value]
 					OP_AND [left/value and right/value]
 					OP_OR  [left/value or right/value]
 					OP_XOR [left/value xor right/value]
+					OP_REM [
+						either zero? right/value [
+							fire [TO_ERROR(math zero-divide)]
+							0								;-- pass the compiler's type-checking
+						][
+							left/value % right/value
+						]
+					]
 					OP_DIV [
 						either zero? right/value [
 							fire [TO_ERROR(math zero-divide)]
@@ -149,6 +161,27 @@ integer: context [
 					OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
 						ERR_EXPECT_ARGUMENT(TYPE_PAIR 1)
 					]
+				]
+			]
+			TYPE_TUPLE [
+				value: left/value
+				copy-cell as red-value! right as red-value! left
+				tp: (as byte-ptr! left) + 4
+				size: as-integer tp/1
+				n: 1
+				until [
+					n: n + 1
+					v: as-integer tp/n
+					switch type [
+						OP_ADD [v: v + value]
+						OP_MUL [v: v * value]
+						OP_OR OP_AND OP_XOR OP_REM OP_SUB OP_DIV [
+							ERR_EXPECT_ARGUMENT(TYPE_PERCENT 1)
+						]
+					]
+					either v > 255 [v: 255][if negative? v [v: 0]]
+					tp/n: as byte! v
+					n > size
 				]
 			]
 			default [

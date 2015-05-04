@@ -254,6 +254,13 @@ red-typeset!: alias struct! [
 	array3  [integer!]
 ]
 
+red-tuple!: alias struct! [
+	header  [integer!]								;-- cell header
+	array1  [integer!]
+	array2  [integer!]
+	array3  [integer!]
+]
+
 red-vector!: alias struct! [
 	header 	[integer!]								;-- cell header
 	head	[integer!]								;-- vector's head index (zero-based)
