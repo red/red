@@ -22,7 +22,8 @@ complete-from-path: func [
 	first?: yes
 	s: ptr: str
 	while [ptr: find str #"/"][
-		word: to word! copy/part str ptr
+		word: attempt [to word! copy/part str ptr]
+		if none? word [return result]
 		either first? [
 			if value? word [
 				w1: get word
@@ -64,7 +65,7 @@ default-input-completer: func [
 	/local word ptr result sys-word delim? len insert? start end delimiters d w
 ][
 	result: make block! 4
-	delimiters: [#" " #"[" #"(" #":" #"'"]
+	delimiters: [#" " #"[" #"(" #":" #"'" #"{"]
 	delim?: no
 	insert?: not tail? str
 	len: (index? str) - 1
