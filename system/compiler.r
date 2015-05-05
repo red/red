@@ -24,6 +24,8 @@ system-dialect: make-profilable context [
 	runtime-path: pick [%system/runtime/ %runtime/] encap?
 	nl: 		  newline
 	
+	precompiled-file:  %../precompiled-reds.r
+	
 	loader: do bind load-cache %system/loader.r 'self
 	
 	options-class: context [
@@ -557,7 +559,7 @@ system-dialect: make-profilable context [
 		
 		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error saved][
 			path-error: [
-				pc: skip pc -2
+				pc: skip pc -2				
 				throw-error "invalid path value"
 			]
 			either word? path/1 [
@@ -3230,6 +3232,34 @@ system-dialect: make-profilable context [
 		job
 	]
 	
+	save-state: has [data][
+		data: mold/all reduce [
+			reduce [
+				to-set-word 'imports 		compiler/imports
+				to-set-word 'exports 		compiler/exports
+				to-set-word 'ns-list 		compiler/ns-list
+				to-set-word 'sym-ctx-table	compiler/sym-ctx-table
+				to-set-word 'globals		compiler/globals
+				to-set-word 'definitions	compiler/definitions
+				to-set-word 'enumerations	compiler/enumerations
+				to-set-word 'imports		compiler/aliased-types
+				;compiler/debug-lines/records
+				;compiler/debug-lines/files
+			]
+			reduce [	
+				to-set-word 'symbols 		emitter/symbols
+				to-set-word 'code-buf		emitter/code-buf
+				to-set-word 'data-buf		emitter/data-buf
+			]
+			reduce [
+				to-set-word 'include-list	loader/include-list
+				to-set-word 'defs			loader/defs
+			]
+		]
+		red/fix-non-loadable data
+		write precompiled-file data
+	]
+	
 	set 'dt func [code [block!] /local t0][
 		t0: now/time/precise
 		do code
@@ -3243,40 +3273,43 @@ system-dialect: make-profilable context [
 		/loaded 										;-- source code is already in LOADed format
 			job-data [block!]
 		/local
-			comp-time link-time err output src
+			comp-time link-time err output src precomp?
 	][
 		comp-time: dt [
+			precomp?: exists? precompiled-file
 			unless block? files [files: reduce [files]]
 			
 			unless opts [opts: make options-class []]
 			job: make-job opts last files				;-- last input filename is retained for output name
-			emitter/init opts/link? job
+			emitter/init to logic! all [opts/link? not precomp?] job
 			if opts/verbosity >= 10 [set-verbose-level opts/verbosity]
 			
-			clean-up
-			loader/init
-			emit-main-prolog
-			
-			job/need-main?: to logic! any [
-				job/need-main?							;-- pass-thru if set in config file
-				all [
-					job/type = 'exe
-					not find [Windows MacOSX] job/OS
+			unless precomp? [
+				clean-up
+				loader/init
+				emit-main-prolog
+
+				job/need-main?: to logic! any [
+					job/need-main?							;-- pass-thru if set in config file
+					all [
+						job/type = 'exe
+						not find [Windows MacOSX] job/OS
+					]
+				]
+
+				if all [
+					job/need-main?
+					not opts/use-natives?
+					opts/runtime?
+				][
+					comp-start								;-- init libC properly
+				]		
+				if opts/runtime? [
+					comp-runtime-prolog to logic! loaded all [loaded job-data/3]
 				]
 			]
 			
-			if all [
-				job/need-main?
-				not opts/use-natives?
-				opts/runtime?
-			][
-				comp-start								;-- init libC properly
-			]		
-			if opts/runtime? [
-				comp-runtime-prolog to logic! loaded all [loaded job-data/3]
-			]
-			
-			set-verbose-level opts/verbosity
+			set-verbose-level opts/verbosity	
 			foreach file files [
 				src: either loaded [
 					loader/process/with job-data/1 file
@@ -3298,8 +3331,9 @@ system-dialect: make-profilable context [
 				nl mold emitter/code-buf nl
 			]
 		]
+		unless exists? precompiled-file [save-state]
 
-		if opts/link? [
+		if opts/link? [	
 			link-time: dt [
 				job/symbols: emitter/symbols
 				job/sections: compose/deep/only [
@@ -3318,7 +3352,7 @@ system-dialect: make-profilable context [
 				output: linker/build job
 			]
 		]
-		
+
 		set-verbose-level opts/verbosity
 		output-logs
 		if opts/link? [clean-up]

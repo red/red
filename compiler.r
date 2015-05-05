@@ -31,6 +31,7 @@ red: context [
 	paths-stack:   make block! 4						;-- stack of generated code for handling dual codepaths for paths
 	rebol-gctx:	   bind? 'rebol
 	expr-stack:	   make block! 8
+	not-loadable:  make block! 50						;-- non LOAD-able words by Rebol2
 	
 	lexer: 		   do bind load-cache %lexer.r 'self
 	extracts:	   do bind load-cache %utils/extractor.r 'self
@@ -131,6 +132,15 @@ red: context [
 			]
 		]
 		quit-on-error
+	]
+	
+	check-loadable: func [sym [word!] /local s][
+		unless any [
+			attempt [load s: mold sym]
+			find not-loadable s
+		][
+			append not-loadable s
+		]
 	]
 	
 	dispatch-ctx-keywords: func [original [any-word! none!] /with alt-value][
@@ -676,6 +686,7 @@ red: context [
 				to set-word! sym 'word/load mold name
 			]
 			new-line skip tail sym-table -3 on
+			check-loadable sym
 		]
 	]
 	
@@ -1094,6 +1105,7 @@ red: context [
 	
 	fetch-functions: func [pos [block!] /local name type spec refs arity][
 		name: to word! pos/1
+		check-loadable name	
 		if find functions name [exit]					;-- mainly intended for 'make (hardcoded)
 
 		switch type: pos/3 [
@@ -3584,6 +3596,17 @@ red: context [
 		redbin/finish pick [[compress] []] to logic! redc/load-lib?
 	]
 	
+	comp-module: func [code [block!]][
+		output: make block! 10000
+		pc: code										;-- compile user code
+		comp-block
+		
+		main: output
+		output: make block! 1000
+		comp-bodies										;-- compile deferred functions
+		reduce [main main]
+	]
+	
 	comp-source: func [code [block!] /local user main][
 		output: make block! 10000
 		comp-init
@@ -3684,18 +3707,28 @@ red: context [
 		if verbose > 2 [?? output]
 	]
 	
-	comp-as-exe: func [code [block!] /local out user main][
-		out: copy/deep [
-			Red/System [origin: 'Red]
+	comp-as-exe: func [code [block!] /precomp /local out user main pos][
+		out: copy/deep pick [
+			[
+				Red/System [origin: 'Red]
 
-			red/init
-			
-			with red [
-				exec: context <script>
+				with red [with exec <script>]
+			][
+				Red/System [origin: 'Red]
+
+				red/init
+
+				with red [
+					exec: context <script>
+				]
 			]
-		]
+		] to logic! precomp
 		
-		set [user main] comp-source code
+		set [user main] either precomp [
+			comp-module code	
+		][
+			comp-source code
+		]
 		
 		;-- assemble all parts together in right order
 		script: make block! 100'000
@@ -3729,8 +3762,9 @@ red: context [
 			process-calls/global sys-global				;-- lazy #call processing
 		]
 
-		change/only find last out <script> script		;-- inject compilation result in template
+		change/only find last out <script> script			;-- inject compilation result in template
 		output: out
+if precomp [?? output]
 		if verbose > 2 [?? output]
 	]
 	
@@ -3789,11 +3823,121 @@ red: context [
 		max-depth: 0
 		container-obj?: none
 	]
+	
+	fix-non-loadable: func [data /local list delimiter pos e][	
+		unless find not-loadable '| [
+			list: sort/reverse not-loadable
+			forall list [
+				if all [not head? list not tail? list][insert list '| list: next list]
+			]
+		]
+		delimiter: charset "^-^/^M ][()/"
+		parse/all data [
+			any [
+				"%/C/"
+				| pos: [
+					"exec/" not-loadable delimiter
+					| not-loadable delimiter
+				] e: (insert pos #"#" e: next e) :e 
+				| skip
+			]
+		]	
+	]
+	
+	issue-to-word: func [code [block! hash!] /local pos rule][
+		parse code rule: [
+			any [
+				pos: issue! (
+					pos/1: to word! either 1 = length? pos/1 [
+						join "~" pos/2
+					][
+						to string! pos/1
+					]
+				)
+				| into rule
+				| skip
+			]
+		]
+	]
+	
+	path-to-word: func [code [block! hash!] /local pos rule][
+		parse code rule: [
+			any [
+				pos: path! (pos/1: to word! form pos/1)
+				| into rule
+				| skip
+			]
+		]
+	]
+	
+	word-to-path: func [code [block! hash!] /local pos][
+		parse code [
+			any [pos: word! (probe pos/1: to path! pos/1) | skip]
+		]
+		code
+	]
+	
+	save-state: has [data][
+		data: mold/all reduce [
+			reduce [
+				to-set-word 'included-list	included-list
+				to-set-word 'symbols		symbols
+				to-set-word 'aliases		aliases
+				to-set-word 'globals		globals
+				to-set-word 'contexts		contexts
+				to-set-word 'objects		objects
+				to-set-word 'actions		actions
+				to-set-word 'op-actions		op-actions
+				to-set-word 'functions		functions
+				to-set-word 'types-cache	types-cache
+				to-set-word 'shadow-funcs	shadow-funcs
+				to-set-word 's-counter		s-counter
+				to-set-word 'max-depth		max-depth
+			]
+			reduce [
+				to-set-word 'buffer 		redbin/buffer
+				to-set-word 'header			redbin/header
+				to-set-word 'buffer			redbin/buffer
+				to-set-word 'sym-table		redbin/sym-table
+				to-set-word 'sym-string		redbin/sym-string
+				to-set-word 'symbols		redbin/symbols
+				to-set-word 'contexts		redbin/contexts
+				to-set-word 'index			redbin/index
+			]
+		]
+		fix-non-loadable data
+		write %precompiled-red.r data
+	]
+	
+	load-state: has [state sc][
+		state: load %precompiled-red.r
+		do bind state/1	self
+		do bind state/2 redbin
+		issue-to-word symbols
+		issue-to-word globals
+		issue-to-word actions
+		issue-to-word op-actions
+		issue-to-word functions
+		
+print "red state loaded"
+		sc: system-dialect/compiler
+		state: load %precompiled-reds.r
+		do bind state/1	sc
+		do bind state/2	emitter
+		do bind state/3	system-dialect/loader
+		
+		sc/ns-list: to hash! word-to-path sc/ns-list
+		sc/sym-ctx-table: to hash! path-to-word sc/sym-ctx-table
+		sc/globals: to hash! path-to-word sc/globals
+		path-to-word sc/definitions
+		sc/imports: to hash! path-to-word sc/imports
+		emitter/symbols: to hash! path-to-word emitter/symbols
+	]
 
 	compile: func [
 		file [file! block!]								;-- source file or block of code
 		opts [object!]
-		/local time src
+		/local time src saved?
 	][
 		verbose: opts/verbosity
 		job: opts
@@ -3804,8 +3948,15 @@ red: context [
 		time: dt [
 			src: load-source file
 			job/red-pass?: yes
-			either no-global? [comp-as-lib src][comp-as-exe src]
-		]
+			saved?: exists? %precompiled-red.r
+			case [
+				saved?	   [load-state comp-as-exe/precomp src]
+				no-global? [comp-as-lib src]
+				'else 	   [comp-as-exe src]
+			]
+		]		
+		unless saved? [save-state]						;-- saved precompiled state
+		
 		reduce [output time redbin/buffer]
 	]
 ]
