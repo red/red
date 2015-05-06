@@ -282,7 +282,7 @@ _context: context [
 		new: create 
 			slots
 			ctx/header and flag-series-stk <> 0
-			ctx/header and set-self-mask   <> 0
+			ctx/header and flag-self-mask  <> 0
 		
 		ctx: TO_CTX(new)
 		dst: as series! ctx/symbols/value
@@ -320,7 +320,7 @@ _context: context [
 		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer
 		cell/self: node
 		
-		if self? [cell/header: cell/header or set-self-mask]
+		if self? [cell/header: cell/header or flag-self-mask]
 
 		either stack? [
 			cell/header: TYPE_CONTEXT or flag-series-stk
