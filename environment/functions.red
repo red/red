@@ -310,17 +310,15 @@ eval-set-path: func [value1][]
 
 with: func [
 	"Binds context or multiple contexts to block and evaluate it"
-	context [object! block!]  "Context or block with contexts"
+	contexts [object! block!]  "Context or block with multiple contexts"
 	body    [block!]          "Block to evaluate"
 ][
-	either object? context [
-		do bind body context
+	do either block? contexts [
+		contexts: reduce contexts
+		forall contexts [ body: bind body contexts/1 ]
+		body
 	][
-		context: reduce context
-		forall context [
-			body: bind body context/1
-		]
-		do body
+		bind body contexts
 	]
 ]
 
