@@ -308,6 +308,22 @@ pad: func [
 
 eval-set-path: func [value1][]
 
+with: func [
+	"Binds context or multiple contexts to block and evaluate it"
+	context [object! block!]  "Context or block with contexts"
+	body    [block!]          "Block to evaluate"
+][
+	either object? context [
+		do bind body context
+	][
+		context: reduce context
+		forall context [
+			body: bind body context/1
+		]
+		do body
+	]
+]
+
 ;------------------------------------------
 ;-				Aliases					  -
 ;------------------------------------------
