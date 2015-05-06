@@ -1732,7 +1732,8 @@ make-profilable make target-class [
 	
 	emit-throw: func [value [integer! word!] /thru][
 		emit-load value
-		
+		if verbose >= 3 [print [">>>emitting THROW" value]]
+
 		if thru [emit #{EB01}]						;--			JMP _1st
 		emit #{C9}									;-- _loop:	LEAVE
 		emit #{3945FC}								;--	_1st:	CMP [ebp-4], eax ; compare with catch flag
@@ -1752,6 +1753,7 @@ make-profilable make target-class [
 	]
 	
 	emit-open-catch: func [body-size [integer!]][
+		if verbose >= 3 [print ">>>emitting CATCH prolog"]
 		emit #{FF75FC}						 		;--	PUSH [ebp-4]		; save old catch value
 		emit #{FF75F8}						 		;--	PUSH [ebp-8]		; save old catch address
 		emit #{8945FC}								;-- MOV  [ebp-4], eax	; rewrite the catch ID
@@ -1764,6 +1766,7 @@ make-profilable make target-class [
 	]
 	
 	emit-close-catch: func [offset [integer!]][
+		if verbose >= 3 [print ">>>emitting CATCH epilog"]
 		offset: offset + 8							;-- account for the 2 catch slots on stack
 		either offset > 127 [
 			emit #{89EC}							;-- MOV esp, ebp
