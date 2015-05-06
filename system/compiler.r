@@ -1868,7 +1868,7 @@ system-dialect: make-profilable context [
 			ret
 		]
 		
-		comp-catch: has [offset locals-size][
+		comp-catch: has [offset locals-size unused chunk start end][
 			pc: next pc
 			fetch-expression/keep/final
 			if any [not last-type last-type <> [integer!]][
@@ -1881,19 +1881,20 @@ system-dialect: make-profilable context [
 			]
 			
 			catch-level: catch-level + 1
-			set [unused chunk] comp-block-chunked		;-- compile TRUE block
+			set [unused chunk] comp-block-chunked		;-- compile body block
 			catch-level: catch-level - 1
-			
-			offset: emitter/target/emit-open-catch length? chunk/1 not locals
-			foreach ptr chunk/2 [ptr/1: ptr/1 + offset]	;-- account for (catch-frame + push) opcodes
-			emitter/merge chunk
+
+			start: comp-chunked [emitter/target/emit-open-catch length? chunk/1 not locals]			
+			chunk: emitter/chunks/join start chunk
 			
 			locals-size: either all [locals not empty? emitter/stack][
 				abs last emitter/stack
 			][
 				emitter/target/locals-offset
 			]
-			emitter/target/emit-close-catch locals-size not locals
+			end: comp-chunked [emitter/target/emit-close-catch locals-size not locals]
+			chunk: emitter/chunks/join chunk end
+			emitter/merge chunk
 			
 			last-type: none-type
 			none

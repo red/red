@@ -129,7 +129,6 @@ emitter: make-profilable context [
 		either empty? chunks/queue [
 			append code-buf chunk/1
 		][
-			clear at code-buf chunk/3
 			append code-buf chunk/1						;-- replace obsolete buffer
 			append second last chunks/queue chunk/2
 		]
