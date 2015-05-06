@@ -228,7 +228,7 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/get-in"]]
 
 		if all [
-			ctx/header and flag-self-mask = 0			;-- test if context handles SELF
+			TYPE_OF(ctx) = TYPE_OBJECT					;-- test special ctx pointer for SELF
 			word/index = -1
 			word/symbol = words/self
 		][
