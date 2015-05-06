@@ -225,10 +225,10 @@ _context: context [
 			sym	   [red-symbol!]
 			s	   [series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "_context/get-with"]]
+		#if debug? = yes [if verbose > 0 [print-line "_context/get-in"]]
 
 		if all [
-			ctx/header and flag-self-mask <> 0			;-- test if context handles SELF
+			ctx/header and flag-self-mask = 0			;-- test if context handles SELF
 			word/index = -1
 			word/symbol = words/self
 		][
