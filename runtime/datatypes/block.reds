@@ -1983,6 +1983,7 @@ block: context [
 		new: make-at as red-block! stack/push* len
 		table: _hashtable/init len new no yes
 		n: 2
+		hash: null
 
 		until [
 			s: GET_BUFFER(blk1)
@@ -1990,6 +1991,7 @@ block: context [
 			tail: s/tail
 
 			if check? [
+				if hash <> null [_hashtable/destroy hash]
 				hash: _hashtable/init length? blk2 blk2 no yes
 			]
 
@@ -2022,6 +2024,8 @@ block: context [
 			][n: 0]
 			zero? n
 		]
+		_hashtable/destroy table
+		if check? [_hashtable/destroy hash]
 		blk1/node: new/node
 		blk1/head: 0
 		stack/pop 1

@@ -1367,9 +1367,22 @@ red: context [
 					insert-lf -3
 				]
 				tuple? :value [
+					bin: make binary! 12
+					bin: insert/dup bin null 3
+					size: length? value
+					n: 0
+					until [
+						n: n + 1
+						insert bin to-bin8 value/:n
+						n = size
+					]
+					bin: tail bin
 					emit 'tuple/push
-					emit to string! value
-					insert-lf -2
+					emit size
+					emit to-integer skip bin -4
+					emit to-integer copy/part skip bin -8 4
+					emit to-integer copy/part head bin 4
+					insert-lf -5
 				]
 				find [refinement! issue! lit-word!] type?/word :value [
 					add-symbol w: to word! form value

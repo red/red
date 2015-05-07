@@ -625,6 +625,18 @@ _hashtable: context [
 		]
 	]
 
+	destroy: func [
+		node [node!]
+		/local s h
+	][
+		s: as series! node/value
+		h: as hashtable! s/offset
+		free-node h/keys
+		free-node h/flags
+		if h/indexes <> null [free-node h/indexes]
+		free-node node
+	]
+
 	refresh: func [
 		node	[node!]
 		offset	[integer!]

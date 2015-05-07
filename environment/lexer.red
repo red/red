@@ -30,11 +30,11 @@ system/lexer: context [
 		unit: GET_UNIT(str)
 		p:	  string/rs-head start
 		len:  end/head - start/head
-		size: 1
 		ret: stack/arguments
 		tp: (as byte-ptr! ret) + 4
 
 		n: 0
+		size: 0
 		until [
 			c: string/get-char p unit
 			either c = as-integer #"." [
@@ -51,10 +51,9 @@ system/lexer: context [
 			len: len - 1
 			zero? len
 		]
-		ret/header: TYPE_TUPLE
-		tp/1: as byte! size
 		size: size + 1									;-- last number
 		tp/size: as byte! n
+		ret/header: TYPE_TUPLE or (size << 19)
 		ret
 	]
 
@@ -531,7 +530,7 @@ system/lexer: context [
 		hexa-rule: [2 8 hexa e: #"h"]
 
 		tuple-value-rule: [
-			byte dot byte 1 8 [dot byte] e: (type: tuple!)
+			byte 2 11 [dot byte] e: (type: tuple!)
 		]
 
 		tuple-rule: [

@@ -225,10 +225,10 @@ _context: context [
 			sym	   [red-symbol!]
 			s	   [series!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "_context/get-with"]]
+		#if debug? = yes [if verbose > 0 [print-line "_context/get-in"]]
 
 		if all [
-			ctx/header and flag-self-mask <> 0			;-- test if context handles SELF
+			TYPE_OF(ctx) = TYPE_OBJECT					;-- test special ctx pointer for SELF
 			word/index = -1
 			word/symbol = words/self
 		][
@@ -282,7 +282,7 @@ _context: context [
 		new: create 
 			slots
 			ctx/header and flag-series-stk <> 0
-			ctx/header and set-self-mask   <> 0
+			ctx/header and flag-self-mask  <> 0
 		
 		ctx: TO_CTX(new)
 		dst: as series! ctx/symbols/value
@@ -320,7 +320,7 @@ _context: context [
 		cell/symbols: alloc-series slots 16 0			;-- force offset at head of buffer
 		cell/self: node
 		
-		if self? [cell/header: cell/header or set-self-mask]
+		if self? [cell/header: cell/header or flag-self-mask]
 
 		either stack? [
 			cell/header: TYPE_CONTEXT or flag-series-stk
