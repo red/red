@@ -174,6 +174,7 @@ interpreter: context [
 			RED_CONTINUE_EXCEPTION [throw RED_CONTINUE_EXCEPTION] ;-- let exception pass through
 			default [0]											  ;-- do nothing else
 		]
+		system/thrown: 0
 	]
 	
 	exec-routine: func [
