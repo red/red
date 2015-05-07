@@ -14,42 +14,21 @@ tuple: context [
 	verbose: 0
 
 	push: func [
-		str		[c-string!]
+		size	[integer!]
+		arr1	[integer!]
+		arr2	[integer!]
+		arr3	[integer!]
 		return: [red-tuple!]
 		/local
 			tp	 [red-tuple!]
-			size [integer!]
-			p	 [byte-ptr!]
-			c	 [integer!]
-			n	 [integer!]
-			m	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/push"]]
 		
 		tp: as red-tuple! stack/push*
-		p: (as byte-ptr! tp) + 4
-
-		n: 0
-		size: 0
-		while [
-			c: as-integer str/1
-			c <> 0
-		][
-			either c = as-integer #"." [
-				size: size + 1
-				p/size: as byte! n
-				n: 0
-			][
-				m: n * 10
-				n: m
-				m: n + c - #"0"
-				n: m
-			]
-			str: str + 1
-		]
-		size: size + 1									;-- last number
-		p/size: as byte! n
 		tp/header: TYPE_TUPLE or (size << 19)
+		tp/array1: arr1
+		tp/array2: arr2
+		tp/array3: arr3
 		tp
 	]
 
