@@ -82,6 +82,7 @@ stack: context [										;-- call stack
 		FLAG_THROW_ATR:	04000000h						;-- Throw function attribut
 		FLAG_CATCH_ATR:	02000000h						;--	Catch function attribut
 		FLAG_EVAL:		01000000h						;-- Interpreter root frame
+		FLAG_LOOP:		00800000h						;-- Iterator (for BREAK/CONTINUE support)
 		FLAG_DYN_CALL:	11000000h						;-- Dynamic call (alternative stack mode)
 	]
 	
@@ -146,6 +147,7 @@ stack: context [										;-- call stack
 	mark-catch:	 MARK_STACK(FLAG_CATCH)
 	mark-eval:	 MARK_STACK(FLAG_EVAL)
 	mark-dyn:	 MARK_STACK(FLAG_DYN_CALL)
+	mark-loop:	 MARK_STACK(FLAG_LOOP)
 	
 	get-call: func [
 		return: [red-word!]
@@ -326,6 +328,39 @@ stack: context [										;-- call stack
 		]
 		stack/push as red-value! err
 		throw RED_ERROR
+	]
+	
+	throw-break: func [
+		return? [logic!]
+		cont?	[logic!]
+		/local
+			result	  [red-value!]
+			save-top  [red-value!]
+			save-ctop [call-frame!]
+			p		  [call-frame!]
+	][
+		result:	   arguments
+		save-top:  top
+		save-ctop: ctop
+		
+		unroll-frames FLAG_LOOP
+		
+		either ctop - 1 <= cbottom [
+			arguments: result
+			top:	   save-top	
+			ctop:	   save-ctop
+			either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
+		][
+			p: ctop + 1
+			arguments: ctop/prev
+			top: arguments
+			either all [return? not cont?][set-last result][unset/push-last]
+			either cont? [
+				throw RED_CONTINUE_EXCEPTION
+			][
+				throw RED_BREAK_EXCEPTION
+			]
+		]
 	]
 	
 	eval?: func [

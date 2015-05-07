@@ -205,6 +205,8 @@ Red/System [
 	NAT_UPPERCASE
 	NAT_LOWERCASE
 	NAT_AS_PAIR
+	NAT_BREAK
+	NAT_CONTINUE
 ]
 
 #enum math-op! [
@@ -253,7 +255,9 @@ Red/System [
 	#define ------------| 	comment
 ]
 
-#define RED_ERROR			195939070				;-- #0BADCAFE (keep it positive)
+#define RED_ERROR				195939070			;-- #0BADCAFE (keep it positive)
+#define RED_BREAK_EXCEPTION		195939000
+#define RED_CONTINUE_EXCEPTION	195938999
 
 #define TYPE_OF(value)		(value/header and get-type-mask)
 #define GET_BUFFER(series)  (as series! series/node/value)

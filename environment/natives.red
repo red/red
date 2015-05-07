@@ -630,9 +630,23 @@ lowercase: make native! [[
 ]
 
 as-pair: make native! [[
-		"Combine X and Y values into a pair."
+		"Combine X and Y values into a pair"
 		x [integer!]
 		y [integer!]
 	]
 	#get-definition NAT_AS_PAIR
+]
+
+break: make native! [[
+		"Breaks out of a loop, while, until, repeat, foreach, etc"
+		/return "Forces the loop function to return a value"
+			value [any-type!]
+	]
+	#get-definition NAT_BREAK
+]
+
+continue: make native! [[
+		"Throws control back to top of loop"
+	]
+	#get-definition NAT_CONTINUE
 ]

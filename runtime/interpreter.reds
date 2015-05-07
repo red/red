@@ -168,7 +168,12 @@ interpreter: context [
 		
 		ctx/values: saved
 		in-func?: in-func? - 1
-		if system/thrown = RED_ERROR [throw RED_ERROR]	;-- let exception pass through
+		switch system/thrown [
+			RED_ERROR			   [throw RED_ERROR]			  ;-- let exception pass through
+			RED_BREAK_EXCEPTION	   [throw RED_BREAK_EXCEPTION]	  ;-- let exception pass through
+			RED_CONTINUE_EXCEPTION [throw RED_CONTINUE_EXCEPTION] ;-- let exception pass through
+			default [0]											  ;-- do nothing else
+		]
 	]
 	
 	exec-routine: func [
