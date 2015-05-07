@@ -111,6 +111,11 @@ form-type: func [
 	]
 ]
 
+re-throw: func [/local id [integer!]][
+	id: system/thrown						;-- system/* cannot be passed as argument for now
+	throw id								;-- let the exception pass through
+]
+
 #include %lib-names.reds
 
 #either use-natives? = no [					;-- C bindings or native counterparts
