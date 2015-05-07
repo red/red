@@ -159,19 +159,20 @@ context [
 	]
 
 	emit-tuple: func [value [tuple!] /local bin size n][
-		emit-type 'TYPE_TUPLE
 		bin: make binary! 12
+		bin: insert/dup bin null 3
 		size: length? value
-		insert bin to-bin8 size
+		emit extracts/definitions/TYPE_TUPLE or shift/left size 8 ;-- header
 		n: 0
 		until [
 			n: n + 1
-			insert tail bin to-bin8 value/:n
+			insert bin to-bin8 value/:n
 			n = size
 		]
-		emit to integer! copy/part bin 4
-		emit to integer! copy/part skip bin 4 4
-		emit to integer! skip bin 8
+		bin: tail bin
+		emit to integer! skip bin -4
+		emit to integer! copy/part skip bin -8 4
+		emit to integer! copy/part head bin 4
 	]
 
 	emit-op: func [spec [any-word!]][

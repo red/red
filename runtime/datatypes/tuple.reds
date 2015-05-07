@@ -13,64 +13,22 @@ Red/System [
 tuple: context [
 	verbose: 0
 
-	make-in: func [
-		parent	[red-block!]
-		bs1		[integer!]								;-- pre-encoded in little-endian
-		bs2		[integer!]								;-- pre-encoded in little-endian
-		bs3		[integer!]								;-- pre-encoded in little-endian
-		return: [red-tuple!]
-		/local
-			ts	 [red-tuple!]
-			bits [int-ptr!]
-	][
-		ts: as red-tuple! ALLOC_TAIL(parent)
-		ts/header: TYPE_TUPLE							;-- implicit reset of all header flags
-		
-		bits: as int-ptr! ts
-		bits/2: bs1
-		bits/3: bs2
-		bits/4: bs3
-		ts
-	]
-
 	push: func [
-		str		[c-string!]
+		size	[integer!]
+		arr1	[integer!]
+		arr2	[integer!]
+		arr3	[integer!]
 		return: [red-tuple!]
 		/local
 			tp	 [red-tuple!]
-			size [integer!]
-			p	 [byte-ptr!]
-			c	 [integer!]
-			n	 [integer!]
-			m	 [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/push"]]
 		
 		tp: as red-tuple! stack/push*
-		tp/header: TYPE_TUPLE
-		size: 1
-		p: (as byte-ptr! tp) + 4
-
-		n: 0
-		while [
-			c: as-integer str/1
-			c <> 0
-		][
-			either c = as-integer #"." [
-				size: size + 1
-				p/size: as byte! n
-				n: 0
-			][
-				m: n * 10
-				n: m
-				m: n + c - #"0"
-				n: m
-			]
-			str: str + 1
-		]
-		p/1: as byte! size
-		size: size + 1									;-- last number
-		p/size: as byte! n
+		tp/header: TYPE_TUPLE or (size << 19)
+		tp/array1: arr1
+		tp/array2: arr2
+		tp/array3: arr3
 		tp
 	]
 
@@ -100,8 +58,7 @@ tuple: context [
 		switch TYPE_OF(right) [
 			TYPE_TUPLE [
 				tp2: (as byte-ptr! right) + 4
-				size2: as-integer tp2/1
-				tp2: tp2 + 1
+				size2: TUPLE_SIZE(right)
 			]
 			TYPE_INTEGER [
 				int: as red-integer! right
@@ -118,12 +75,11 @@ tuple: context [
 		]
 
 		tp1: (as byte-ptr! left) + 4
-		size1: as-integer tp1/1
+		size1: TUPLE_SIZE(left)
 		size: either size1 < size2 [
 			tp1/1: as byte! size2
 			size2
 		][size1]
-		tp1: tp1 + 1
 		n: 0
 		until [
 			n: n + 1
@@ -185,11 +141,10 @@ tuple: context [
 				tuple/header: TYPE_TUPLE
 				tp: (as byte-ptr! tuple) + 4
 				n: block/rs-length? blk
-				if n > 10 [
+				if n > 12 [
 					fire [TO_ERROR(script bad-make-arg) proto spec]
 				]
-				tp/1: as byte! either n > 2 [n][3]
-				tp: tp + 1
+				tuple/header: TYPE_TUPLE or either n > 2 [n << 19][3 << 19]
 				s: GET_BUFFER(blk)
 				int: as red-integer! s/offset + blk/head
 				i: 0
@@ -227,10 +182,11 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/form"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: as-integer value/1
-		value: value + 1
-		n: 1
+		size: TUPLE_SIZE(tp)
+		
+		n: 0
 		until [
+			n: n + 1
 			formed: integer/form-signed as-integer value/n
 			string/concatenate-literal buffer formed
 			unless n = size [
@@ -238,8 +194,7 @@ tuple: context [
 				string/append-char GET_BUFFER(buffer) as-integer #"."
 			]
 			part: part - system/words/length? formed	;@@ optimize by removing length?
-			n: n + 1
-			n > size
+			n = size
 		]
 		part
 	]
@@ -304,11 +259,9 @@ tuple: context [
 		if TYPE_OF(tp2) <> TYPE_TUPLE [RETURN_COMPARE_OTHER]
 		p1: (as byte-ptr! tp1) + 4
 		p2: (as byte-ptr! tp2) + 4
-		sz1: as-integer p1/1
-		sz2: as-integer p2/1
+		sz1: TUPLE_SIZE(tp1)
+		sz2: TUPLE_SIZE(tp2)
 		sz: either sz1 > sz2 [sz1][sz2]
-		p1: p1 + 1
-		p2: p2 + 1
 
 		i: 0
 		until [
@@ -369,8 +322,7 @@ tuple: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/length?"]]
 
-		value: (as byte-ptr! tp) + 4
-		as-integer value/1
+		TUPLE_SIZE(tp)
 	]
 
 	pick: func [
@@ -385,14 +337,14 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/pick"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: as-integer value/1
-		value: value + 1
+		size: TUPLE_SIZE(tp)
 
 		either any [
 			index <= 0
 			index > size
 		][
-			none-value
+			fire [TO_ERROR(script out-of-range) boxed]
+			null
 		][
 			as red-value! integer/box as-integer value/index
 		]
@@ -413,8 +365,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/poke"]]
 
 		value: (as byte-ptr! tp) + 4
-		size: as-integer value/1
-		value: value + 1
+		size: TUPLE_SIZE(tp)
 
 		either any [
 			index <= 0
@@ -446,7 +397,7 @@ tuple: context [
 		#if debug? = yes [if verbose > 0 [print-line "tuple/reverse"]]
 
 		tp: (as byte-ptr! tuple) + 4
-		size: as-integer tp/1
+		size: TUPLE_SIZE(tuple)
 		part: size
 		if OPTION?(part-arg) [
 			either TYPE_OF(part-arg) = TYPE_INTEGER [
@@ -460,7 +411,6 @@ tuple: context [
 			]
 		]
 
-		tp: tp + 1
 		if part < size [size: part]
 		n: 1
 		while [n < size] [

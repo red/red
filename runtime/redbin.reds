@@ -262,6 +262,21 @@ redbin: context [
 		data
 	]
 
+	decode-tuple: func [
+		data	[int-ptr!]
+		parent	[red-block!]
+		return: [int-ptr!]
+		/local tuple size
+	][
+		size: data/1 >>> 8 and FFh
+		tuple: as red-tuple! ALLOC_TAIL(parent)
+		tuple/header: TYPE_TUPLE or (size << 19)
+		tuple/array1: data/2
+		tuple/array2: data/3
+		tuple/array3: data/4
+		data + 4
+	]
+
 	decode-value: func [
 		data	[int-ptr!]
 		table	[int-ptr!]
@@ -317,10 +332,6 @@ redbin: context [
 				pair/make-in parent data/2 data/3
 				data + 3
 			]
-			TYPE_TUPLE	[
-				tuple/make-in parent data/2 data/3 data/4
-				data + 4
-			]
 			TYPE_UNSET		[
 				unset/make-in parent
 				data + 1
@@ -336,6 +347,7 @@ redbin: context [
 			TYPE_NATIVE
 			TYPE_ACTION
 			TYPE_OP			[decode-native data table parent]
+			TYPE_TUPLE		[decode-tuple data parent]
 			REDBIN_PADDING	[
 				decode-value data + 1 table parent
 			]
