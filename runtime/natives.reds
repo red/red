@@ -1581,6 +1581,7 @@ natives: context [
 			type = TYPE_STRING
 			type = TYPE_FILE
 			type = TYPE_URL
+			type = TYPE_VECTOR
 		]
 		assert TYPE_OF(blk) = TYPE_BLOCK
 
@@ -1590,6 +1591,7 @@ natives: context [
 				type = TYPE_STRING
 				type = TYPE_FILE
 				type = TYPE_URL
+				type = TYPE_VECTOR
 			][
 				set-many-string blk as red-string! series size
 			][
