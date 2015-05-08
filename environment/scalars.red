@@ -40,7 +40,8 @@ immediate!:		union scalar! union any-word! make typeset! [none! logic! datatype!
 default!:		union series! union immediate! union any-object! union any-function! make typeset! [bitset!]
 any-type!:		union default! internal!
 
-;-- CSS4 colors
+;-- color definitions (from CSS4 standard) --
+
 AliceBlue:            240.248.255
 AntiqueWhite:         250.235.215
 Aqua:                 0.255.255
