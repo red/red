@@ -54,7 +54,7 @@ Red/System [
 #define any-struct?		[1000 <=]
 #define alias?  		[1001 <=]
 
-#define CATCH_ALL		-1
+#define CATCH_ALL_EXCEPTIONS -1
 
 ;-- Global variables definition --
 stdout:		-1								;-- uninitialized default value
@@ -232,5 +232,5 @@ re-throw: func [/local id [integer!]][
 	push 0									;-- exception threshold
 	system/stack/frame: system/stack/top	;-- reposition frame pointer just after the catch slots
 ]
-push CATCH_ALL								;-- exceptions root barrier
+push CATCH_ALL_EXCEPTIONS					;-- exceptions root barrier
 push :***-uncaught-exception				;-- root catch (also keeps stack aligned on 64-bit)
