@@ -87,35 +87,12 @@ typed-float!: alias struct! [
 	value	 [float!]
 ]
 
-#include %system.reds
-
-;-------------------------------------------
-;-- Convert a type ID to a c-string!
-;-------------------------------------------
-form-type: func [
-	type 	[integer!]				  		;-- type ID
-	return: [c-string!]						;-- type representation as c-string
-][
-	switch type [
-		type-integer!   ["integer!"]
-		type-c-string!  ["c-string!"]
-		type-logic! 	["logic!"]
-		type-byte! 	    ["byte!"]
-		type-float32!   ["float32!"]
-		type-float! 	["float!"]
-		type-byte-ptr!  ["pointer! [byte!]"]
-		type-int-ptr!   ["pointer! [integer!]"]
-		type-struct!    ["struct!"]
-		type-function!  ["function!"]
-		default			[either alias? type ["alias"]["invalid type"]]
-	]
-]
-
 re-throw: func [/local id [integer!]][
 	id: system/thrown						;-- system/* cannot be passed as argument for now
 	throw id								;-- let the exception pass through
 ]
 
+#include %system.reds
 #include %lib-names.reds
 
 #either use-natives? = no [					;-- C bindings or native counterparts
