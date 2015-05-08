@@ -50,6 +50,7 @@ bitset!:		make datatype! #get-definition TYPE_BITSET
 float!:			make datatype! #get-definition TYPE_FLOAT
 point!:			make datatype! #get-definition TYPE_POINT
 vector!:		make datatype! #get-definition TYPE_VECTOR
+map!:			make datatype! #get-definition TYPE_MAP
 hash!:			make datatype! #get-definition TYPE_HASH
 pair!:			make datatype! #get-definition TYPE_PAIR
 percent!:		make datatype! #get-definition TYPE_PERCENT
