@@ -474,14 +474,22 @@ red: context [
 		]
 	]
 	
-	emit-native: func [name [word!] /with options [block!]][
+	emit-native: func [name [word!] /with options [block!] /local exit? pos][
+		if exit?: to logic! all [
+			not empty? locals-stack
+			find [parse do] name
+		][
+			emit 'if
+		]
 		emit join natives-prefix to word! join name #"*"
-		insert-lf either with [
+		pos: either with [
 			emit options
 			-1 - length? options
 		][
 			-1
 		]
+		insert-lf pos - pick [1 0] exit?
+		if exit? [emit [[ctx/values: as node! pop exit]]]
 	]
 	
 	emit-exit-function: does [

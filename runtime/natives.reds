@@ -421,6 +421,8 @@ natives: context [
 	]
 	
 	do*: func [
+		[catch]
+		return: [logic!]
 		/local
 			arg [red-value!]
 			str	[red-string!]
@@ -446,6 +448,12 @@ natives: context [
 			default [
 				interpreter/eval-expression arg arg + 1 no no
 			]
+		]
+		switch system/thrown [
+			THROWN_RETURN
+			THROWN_EXIT [system/thrown: 0 true]			;-- request an early exit from caller
+			0			[false]
+			default 	[re-throw false]				;-- `false` to make compiler happy
 		]
 	]
 	
@@ -943,16 +951,19 @@ natives: context [
 	]
 
 	parse*: func [
-		case? [integer!]
+		[catch]
+		case?	[integer!]
 		;strict? [integer!]
-		part  [integer!]
-		trace [integer!]
+		part	[integer!]
+		trace	[integer!]
+		return: [logic!]
 		/local
 			op	  [integer!]
 			input [red-series!]
 			limit [red-series!]
 			int	  [red-integer!]
 			rule  [red-block!]
+			res	  [red-value!]
 	][
 		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
 		
@@ -984,17 +995,24 @@ natives: context [
 				][
 					block/rs-length? as red-block! input
 				]
-				exit
+				return false
 			]
 		]
 		
-		stack/set-last parser/process
+		res: parser/process
 			input
 			as red-block! stack/arguments + 1
 			op
 			;as logic! strict? + 1
 			part
 			as red-function! stack/arguments + trace
+		
+		switch system/thrown [
+			THROWN_RETURN
+			THROWN_EXIT [system/thrown: 0 true]			;-- request an early exit from caller
+			0			[stack/set-last res false]
+			default 	[re-throw false]				;-- `false` to make compiler happy
+		]
 	]
 
 	do-set-op*: func [
