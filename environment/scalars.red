@@ -26,6 +26,9 @@ comma:		 #","
 
 pi: 3.141592653589793
 
+;-- warning: following typeset definitions are processed by the compiler, do not change them
+;-- unless you know what you are doing!
+
 internal!:		make typeset! [unset!]
 number!:		make typeset! [integer! float! percent!]
 scalar!:		union number! make typeset! [char! pair! tuple!]
