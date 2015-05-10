@@ -238,12 +238,17 @@ stack: context [										;-- call stack
 		flags	 [integer!]
 		/local
 			last [red-value!]
+			p	 [call-frame!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/unroll"]]
 
 		last: arguments
 		unroll-frames flags
 		copy-cell last ctop/prev
+		
+		p: ctop + 1										;-- adjust stack pointers
+		arguments: ctop/prev
+		top: arguments
 	]
 	
 	adjust: does [

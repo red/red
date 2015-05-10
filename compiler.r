@@ -486,7 +486,6 @@ red: context [
 	
 	emit-exit-function: does [
 		emit [
-			stack/unwind-last
 			stack/unroll stack/FLAG_FUNCTION
 			ctx/values: as node! pop
 			exit

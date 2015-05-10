@@ -677,9 +677,10 @@ interpreter: context [
 						sym = words/return* [
 							pc: pc + 1
 							either pc >= end [
-								copy-cell unset-value stack/arguments
+								unset/push-last
 							][
 								pc: eval-expression pc end no yes
+								stack/set-last stack/top - 1
 							]
 							stack/unroll stack/FLAG_FUNCTION
 							throw THROWN_RETURN
