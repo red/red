@@ -76,9 +76,9 @@ red: context [
 	
 	intrinsics:   [
 		if unless either any all while until loop repeat
-		forever foreach forall break func function does has
+		forever foreach forall func function does has
 		exit return switch case routine set get reduce
-		context object construct try
+		context object construct try break continue
 	]
 	
 	logic-words:  [true false yes no on off]
@@ -441,9 +441,10 @@ red: context [
 				type: find functions name
 				first first next type
 			]['stack/mark-func]
-			name = 'try	  ['stack/mark-try]
-			name = 'catch ['stack/mark-catch]
-			'else		  ['stack/mark-native]
+			find iterators name ['stack/mark-loop]
+			name = 'try			['stack/mark-try]
+			name = 'catch		['stack/mark-catch]
+			'else				['stack/mark-native]
 		]
 		emit prefix-exec name
 		insert-lf -2
@@ -1842,6 +1843,7 @@ red: context [
 
 		set [name set-name] declare-variable join "i" depth
 		
+		emit-open-frame 'loop
 		comp-expression/close-path						;@@ optimize case for literal counter
 		
 		emit compose [(set-name) integer/get*]
@@ -1850,27 +1852,25 @@ red: context [
 			either (name) <= 0 [(set-last-none)]
 		]
 		mark: tail output
-		emit [
-			until
+		emit compose [
+			loop (name)
 		]
 		new-line skip tail output -3 off
 		
 		push-call 'loop
 		comp-sub-block 'loop-body						;-- compile body
 		pop-call
-		
-		repend last output [
-			set-name name '- 1
-			name '= 0
-		]
+
 		new-line skip tail last output -3 on
 		new-line skip tail last output -7 on
 		depth: depth - 1
 		
 		convert-to-block mark
+		emit-close-frame
 	]
 	
 	comp-until: does [
+		emit-open-frame 'until
 		emit [
 			until
 		]
@@ -1879,9 +1879,11 @@ red: context [
 		pop-call
 		append/only last output 'logic/true?
 		new-line back tail last output on
+		emit-close-frame
 	]
 	
 	comp-while: does [
+		emit-open-frame 'while
 		emit [
 			while
 		]
@@ -1891,6 +1893,7 @@ red: context [
 		new-line back tail last output on
 		comp-sub-block 'while-body						;-- compile body
 		pop-call
+		emit-close-frame
 	]
 	
 	comp-repeat: has [name word cnt set-cnt lim set-lim action][
@@ -1943,7 +1946,6 @@ red: context [
 		]
 		new-line last output on
 		new-line skip tail last output -3 on
-		new-line skip tail last output -6 on
 		
 		push-call 'repeat
 		comp-sub-block 'repeat-body
@@ -2024,6 +2026,24 @@ red: context [
 			natives/forall-end							;-- reset series
 			stack/unwind
 		]
+	]
+	
+	comp-break: does [
+		if empty? intersect iterators expr-stack [
+			pc: back pc
+			throw-error "BREAK used with no loop"
+		]
+		emit 'break
+		insert-lf -1
+	]
+	
+	comp-continue: does [
+		if empty? intersect iterators expr-stack [
+			pc: back pc
+			throw-error "CONTINUE used with no loop"
+		]
+		emit 'continue
+		insert-lf -1
 	]
 	
 	comp-func-body: func [
