@@ -1451,15 +1451,19 @@ make-profilable make target-class [
 		]
 	]
 	
-	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
+	emit-clear-Z: does [
+		emit-i32 #{e3b00001}						;--	MOVS r0, #1		; clears Z flag
+	]
+	
+	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
 		change 
-			at code-buf ptr
+			at buffer ptr
 			reverse to-bin24 shift exit-point - ptr - (2 * branch-offset-size) 2
 	]
 	
-	emit-exit: does [
-		if verbose >= 3 [print ">>>exiting function"]
-		emit-reloc-addr emitter/exits
+	emit-jump-point: func [type [block!]][
+		if verbose >= 3 [print ">>>emitting jump point"]
+		emit-reloc-addr type
 		emit-i32 #{ea000000}						;-- B <disp>
 	]
 	

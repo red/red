@@ -72,6 +72,7 @@ system-dialect: make-profilable context [
 		definitions:  	 make block! 100
 		enumerations: 	 make hash! 10
 		expr-call-stack: make block! 1					;-- simple stack of nested calls for a given expression
+		loop-stack:		 make block! 1					;-- keep track of in-loop state
 		locals-init: 	 []								;-- currently compiler function locals variable init list
 		func-name:	 	 none							;-- currently compiled function name
 		block-level: 	 0								;-- nesting level of input source block
@@ -194,6 +195,8 @@ system-dialect: make-profilable context [
 			all			 [comp-expression-list/_all]
 			exit		 [comp-exit]
 			return		 [comp-exit/value]
+			break		 [comp-break]
+			continue	 [comp-continue]
 			catch		 [comp-catch]
 			declare		 [comp-declare]
 			null		 [comp-null]
@@ -766,6 +769,10 @@ system-dialect: make-profilable context [
 				throw-error "THROW used without a wrapping CATCH"
 			]
 		]
+		
+		push-loop: func [type [word!]][append loop-stack type]
+		
+		pop-loop: does [remove back tail loop-stack]
 		
 		push-call: func [action [word! set-word! set-path!]][
 			append/only expr-call-stack action
@@ -1851,7 +1858,7 @@ system-dialect: make-profilable context [
 			pc: next pc
 			ret: select locals return-def
 			
-			either value [				
+			either value [
 				unless ret [							;-- check if return: declared
 					throw-error [
 						"RETURN keyword used without return: declaration in"
@@ -1864,7 +1871,7 @@ system-dialect: make-profilable context [
 			][
 				if ret [throw-error "EXIT keyword is not compatible with declaring a return value"]
 			]
-			emitter/target/emit-exit
+			emitter/target/emit-jump-point emitter/exits
 			ret
 		]
 		
@@ -2136,11 +2143,31 @@ system-dialect: make-profilable context [
 			<last>
 		]
 		
+		comp-break: does [
+			if empty? loop-stack [throw-error "BREAK used with no loop"]
+			emitter/target/emit-jump-point last emitter/breaks
+			pc: next pc
+			none
+		]
+		
+		comp-continue: does [
+			if empty? loop-stack [throw-error "CONTINUE used with no loop"]
+			if 'until = last loop-stack [emitter/target/emit-clear-Z]
+			emitter/target/emit-jump-point last emitter/continues
+			pc: next pc
+			none
+		]
+		
 		comp-until: has [expr chunk][
 			pc: next pc
 			check-body pc/1
+			emitter/init-loop-jumps
+			push-loop 'until
 			set [expr chunk] comp-block-chunked/test 'until
-			emitter/branch/back/on chunk expr/1	
+			pop-loop
+			emitter/resolve-loop-jumps chunk 'continues
+			emitter/branch/back/on chunk expr/1
+			emitter/resolve-loop-jumps chunk 'breaks
 			emitter/merge chunk	
 			last-type: none-type
 			<last>
@@ -2150,15 +2177,20 @@ system-dialect: make-profilable context [
 			pc: next pc
 			check-body pc/1								;-- check condition block
 			check-body pc/2								;-- check body block
+			emitter/init-loop-jumps
 			
+			push-loop 'while
 			set [expr cond]   comp-block-chunked/test 'while	;-- Condition block
 			set [unused body] comp-block-chunked		;-- Body block
+			pop-loop
 			
 			if logic? expr/1 [expr: [<>]]				;-- re-encode test op
 			offset: emitter/branch/over body			;-- Jump to condition
+			emitter/resolve-loop-jumps body 'continues
 			bodies: emitter/chunks/join body cond
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
 			emitter/branch/back/on/adjust bodies reduce [expr/1] offset ;-- Test condition, exit if FALSE
+			emitter/resolve-loop-jumps bodies 'breaks
 			emitter/merge bodies
 			last-type: none-type
 			<last>

@@ -10,12 +10,14 @@ REBOL [
 do-cache %system/targets/target-class.r
 
 emitter: make-profilable context [
-	code-buf: make binary! 100'000
-	data-buf: make binary! 100'000
-	symbols:  make hash! 1000			;-- [name [type address [relocs]] ...]
-	stack: 	  make hash! 40				;-- [name offset ...]
-	exits:	  make block! 1				;-- [offset ...]	(funcs exits points)
-	verbose:  0							;-- logs verbosity level
+	code-buf:  make binary! 100'000
+	data-buf:  make binary! 100'000
+	symbols:   make hash! 1000			;-- [name [type address [relocs]] ...]
+	stack: 	   make hash! 40			;-- [name offset ...]
+	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
+	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	continues: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	verbose:   0						;-- logs verbosity level
 	
 	target:	  none						;-- target code emitter object placeholder
 	compiler: none						;-- just a short-cut
@@ -560,11 +562,23 @@ emitter: make-profilable context [
 		size
 	]
 	
+	init-loop-jumps: does [
+		append/only breaks	  make block! 1
+		append/only continues make block! 1
+	]
+	
+	resolve-loop-jumps: func [chunk [block!] type [word!] /local end len buffer][
+		type: emitter/:type
+		end: index? tail chunk/1
+		len: (last chunk) - 1
+		buffer: chunk/1
+		foreach ptr last type [target/patch-jump-point buffer ptr - len end]
+		remove back tail type
+	]
+	
 	resolve-exit-points: has [end][
 		end: tail-ptr
-		foreach ptr exits [
-			target/patch-exit-call code-buf ptr end
-		]
+		foreach ptr exits [target/patch-jump-point code-buf ptr end]
 	]
 	
 	enter: func [name [word!] locals [block!] /local ret args-sz locals-sz pos var sz][

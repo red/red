@@ -895,13 +895,19 @@ make-profilable make target-class [
 		]
 	]
 	
-	patch-exit-call: func [code-buf [binary!] ptr [integer!] exit-point [integer!]][
-		change at code-buf ptr to-bin32 exit-point - ptr - branch-offset-size
+	emit-clear-Z: does [
+		emit #{31C0}								;--	XOR eax, eax		; eax = 0
+		emit #{40}									;--	INC eax				; eax = 1, Z = 0
 	]
 	
-	emit-exit: does [
+	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
+		change at buffer ptr to-bin32 exit-point - ptr - branch-offset-size
+	]
+	
+	emit-jump-point: func [type [block!]][
+		if verbose >= 3 [print ">>>emitting jump point"]
 		emit #{E9}									;-- JMP imm32
-		emit-reloc-addr compose/only [- - (emitter/exits)]
+		emit-reloc-addr compose/only [- - (type)]
 	]
 
 	emit-branch: func [
