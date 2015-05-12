@@ -87,9 +87,10 @@ print ["This test started at" start-time]
   --run-test-file-quiet %source/units/switch-test.reds
 ===end-group===
 
-===start-group=== "Special natives tests"
+===start-group=== "Exceptions tests"
   --run-test-file-quiet %source/units/exit-test.reds
   --run-test-file-quiet %source/units/return-test.reds
+  --run-test-file-quiet %source/units/exceptions-test.reds
 ===end-group===
 
 ===start-group=== "Math operators tests"
