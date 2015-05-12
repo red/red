@@ -191,6 +191,7 @@ system-dialect: make-profilable context [
 			switch		 [comp-switch]
 			until		 [comp-until]
 			while		 [comp-while]
+			loop		 [comp-loop]
 			any			 [comp-expression-list]
 			all			 [comp-expression-list/_all]
 			exit		 [comp-exit]
@@ -2156,6 +2157,30 @@ system-dialect: make-profilable context [
 			emitter/target/emit-jump-point last emitter/continues
 			pc: next pc
 			none
+		]
+		
+		comp-loop: has [expr chunk start][
+			pc: next pc
+			
+			fetch-expression/keep/final						;-- compile expression
+			if any [none? last-type last-type/1 <> 'integer!][
+				throw-error "LOOP requires an integer as argument"
+			]
+			check-body pc/1
+			emitter/init-loop-jumps
+			push-loop 'loop
+			start: comp-chunked [emitter/target/emit-start-loop]
+			set [expr chunk] comp-block-chunked
+			pop-loop
+			
+			chunk: emitter/chunks/join start chunk
+			emitter/resolve-loop-jumps chunk 'continues
+			chunk: emitter/chunks/join chunk comp-chunked [emitter/target/emit-end-loop]
+			emitter/branch/back/on chunk '=
+			emitter/resolve-loop-jumps chunk 'breaks
+			emitter/merge chunk	
+			last-type: none-type
+			<last>
 		]
 		
 		comp-until: has [expr chunk][

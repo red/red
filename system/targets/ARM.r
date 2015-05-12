@@ -1451,6 +1451,15 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-start-loop: does [
+		emit-i32 #{e92d0001}						;-- PUSH {r0}
+	]
+
+	emit-end-loop: does [
+		emit-i32 #{e8bd0001}						;-- POP {r0}
+		emit-i32 #{e2500001}		 				;-- SUBS r0, r0, #1	; update Z flag
+	]
+	
 	emit-clear-Z: does [
 		emit-i32 #{e3b00001}						;--	MOVS r0, #1		; clears Z flag
 	]

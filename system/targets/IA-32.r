@@ -895,6 +895,15 @@ make-profilable make target-class [
 		]
 	]
 	
+	emit-start-loop: does [
+		emit #{50}									;-- PUSH eax
+	]
+	
+	emit-end-loop: does [
+		emit #{58} 									;-- POP eax
+		emit #{83E801}								;-- SUB eax, 1
+	]
+	
 	emit-clear-Z: does [
 		emit #{31C0}								;--	XOR eax, eax		; eax = 0
 		emit #{40}									;--	INC eax				; eax = 1, Z = 0
