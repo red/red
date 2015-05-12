@@ -2080,7 +2080,7 @@ CONTINUE skips the remaining part of a body loop and resume execution at next lo
 
 <b>Syntax</b>
 
- break
+ continue
  
 <b>Example</b>
 
