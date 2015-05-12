@@ -134,7 +134,19 @@ symbol: context [
 		sym: as red-symbol! s/offset + id - 1
 		either positive? sym/alias [sym/alias][id]
 	]
-	
+
+	alias-id: func [
+		id		[integer!]
+		return:	[integer!]
+		/local
+			sym	[red-symbol!]
+			s	[series!]
+	][
+		s: GET_BUFFER(symbols)
+		sym: as red-symbol! s/offset + id - 1
+		sym/alias
+	]
+
 	push: func [
 
 	][
