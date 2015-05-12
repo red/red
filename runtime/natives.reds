@@ -159,24 +159,22 @@ natives: context [
 	
 	loop*: func [
 		/local
-			body [red-block!]
-			i	 [integer!]
+			body  [red-block!]
+			count [integer!]
 	][
-		i: integer/get*
-		unless positive? i [RETURN_NONE]				;-- if counter <= 0, no loops
+		count: integer/get*
+		unless positive? count [RETURN_NONE]				;-- if counter <= 0, no loops
 		body: as red-block! stack/arguments + 1
 	
 		stack/mark-loop words/_body
-		until [
+		loop count [
 			stack/reset
 			catch RED_BREAK_EXCEPTION [interpreter/eval body yes]
 			switch system/thrown [
-				RED_BREAK_EXCEPTION [i: 1 system/thrown: 0]
+				RED_BREAK_EXCEPTION [system/thrown: 0 break]
 				0 					[0]
 				default				[re-throw]
 			]
-			i: i - 1
-			zero? i
 		]
 		stack/unwind-last
 	]
