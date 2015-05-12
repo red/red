@@ -64,7 +64,7 @@ _context: context [
 	]
 	
 	add-global: func [
-		symbol	[integer!]
+		sym		[integer!]
 		return: [red-word!]
 		/local
 			ctx	  [red-context!]
@@ -76,18 +76,22 @@ _context: context [
 		#if debug? = yes [if verbose > 0 [print-line "_context/add-global"]]
 
 		ctx: TO_CTX(global-ctx)
-		id: find-word ctx symbol no
+		id: find-word ctx sym no
 		s: as series! ctx/symbols/value
 		
 		if id <> -1 [return as red-word! s/offset + id]	;-- word already defined in global context
 		
 		s: as series! ctx/symbols/value
-		id: (as-integer s/tail - s/offset) >> 4			;-- index is zero-base
+		id: either positive? symbol/alias-id sym [		;-- alias, fetch original id
+			find-word ctx sym yes
+		][
+			(as-integer s/tail - s/offset) >> 4			;-- index is zero-base
+		]
 		word: as red-word! alloc-tail s
 
 		word/header: TYPE_WORD							;-- implicit reset of all header flags
 		word/ctx: 	 global-ctx
-		word/symbol: symbol
+		word/symbol: sym
 		word/index:  id
 
 		value: alloc-tail as series! ctx/values/value
