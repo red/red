@@ -1,8 +1,8 @@
 Red/System Language Specification
 
 	Author: Nenad Rakocevic
-	Date: 13/03/2015
-	Revision: 44
+	Date: 12/05/2015
+	Revision: 45
 	Status: reference document
 	Home: <a href="http://www.red-lang.org">red-lang.org</a>
 
@@ -2027,6 +2027,48 @@ While a given condition is met, execute a block of code. WHILE does not return a
 will output:
 
  ooooo
+ 
+---break
+
+BREAK allows to break out of the nearest enclosing loop at once and resume execution after the loop.
+
+<b>Syntax</b>
+
+ break
+ 
+<b>Example</b>
+
+ c: 5
+ until [
+ 	print "o"
+ 	break
+ 	c: c - 1
+ 	c = 0
+ ]
+will output:
+
+ o
+
+---continue
+
+CONTINUE skips the remaining part of a body loop and resume execution at next loop iteration.
+
+<b>Syntax</b>
+
+ break
+ 
+<b>Example</b>
+
+ c: 5
+ until [
+ 	print "o"
+ 	c: c - 1
+	either c > 3 [continue][break]
+ 	c = 0
+ ]
+will output:
+
+ oo
 
 ---any
 
@@ -3638,6 +3680,11 @@ will output:
 
 
 ===Document History
+
+*<b>12/05/2015 - revision 45</b>
+
+*>Added BREAK and CONTINUE descriptions.
+
 
 *<b>13/03/2015 - revision 44</b>
 
