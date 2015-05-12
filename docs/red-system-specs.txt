@@ -1975,6 +1975,31 @@ An alternative way to write it (allowed because all code paths return a value of
  ]
  
  prin ["a is " msg lf]
+ 
+---loop
+
+Loop over a block of code, decrementing a counter down to zero. LOOP does not return any value, so it cannot be used in an expression.
+
+<b>Syntax</b>
+
+ loop <counter> [<code>]
+
+ <counter> : a valid expression returning a positive integer value
+ <code>	   : code to execute while the condition is not met
+
+<b>Examples</b>
+
+ loop 3 [print "o"]
+will output:
+
+ ooo
+
+ a: 2
+ b: 3
+ loop a + b [print "o"]
+will output:
+
+ ooooo
 
 ---until
 
@@ -3550,10 +3575,11 @@ The list of following symbols and keywords are reserved, they cannot be used as 
     >>			>=		    >>>
     ??			alias 		all
     and   		any			as
-    assert		case		comment
-    context		declare     either
-    exit		false		func
-    function	if			not
+    assert		break		case
+    comment		context		continue
+    declare		either		exit
+    false		func		function
+    if			loop		not
     null		or			pop
     push		return		size?
     switch		throw		true
@@ -3684,6 +3710,11 @@ will output:
 *<b>12/05/2015 - revision 45</b>
 
 *>Added BREAK and CONTINUE descriptions.
+
+*>Added LOOP description.
+
+*>Updated keywords section.
+
 
 
 *<b>13/03/2015 - revision 44</b>
