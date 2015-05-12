@@ -62,5 +62,38 @@ Red [
 		
 ===end-group===
 
+===start-group=== "vector-truncate"
+
+	--test-- "vector-trunc-1"
+		vt1-v: make vector! [char! 8 [#"^(00)" #"^(01)" #"^(02)"]]
+		append vt1-v #"^(0100)"
+		--assert 4 = length? vt1-v
+		--assert #"^(00)" = vt1-v/4
+		--assert none = vt1-v/5
+		
+	--test-- "vector-trunc-2"
+		vt2-v: make vector! [char! 16 [#"^(00)" #"^(01)" #"^(02)"]]
+		append vt2-v #"^(100100)"
+		--assert 4 = length? vt2-v
+		--assert #"^(0100)" = vt2-v/4
+		--assert none = vt2-v/5
+		
+	--test-- "vector-trunc-3"
+		vt3-v: make vector! [integer! 8 [0 1 2]]
+		append vt3-v 256
+		--assert 4 = length? vt3-v
+		--assert 0 = vt3-v/4
+		--assert none = vt3-v/5
+	
+	--test-- "vector-trunc-4"
+		vt4-v: make vector! [integer! 16 [0 1 2]]
+		append vt4-v 65536
+		--assert 4 = length? vt4-v
+		--assert 0 = vt4-v/4
+		--assert none = vt4-v/5
+		
+
+===end-group===
+
 ~~~end-file~~~
 
