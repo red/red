@@ -45,7 +45,7 @@ Other useful functions:
 		all [word? :word datatype? get :word] [			;-- HELP <datatype!>
 			type: get :word
 			found?: no
-			foreach w words-of system/words [
+			foreach w sort words-of system/words [
 				if type = type? get w [
 					found?: yes
 					case [
@@ -75,7 +75,7 @@ Other useful functions:
 			exit
 		]
 		string? :word [
-			foreach w words-of system/words [
+			foreach w sort words-of system/words [
 				if any [function? get w native? get w action? get w op? get w routine? get w][
 					spec: spec-of get w
 					if any [find form w word find form spec word] [
