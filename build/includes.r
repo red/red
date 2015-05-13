@@ -75,6 +75,7 @@ write %build/bin/sources.r set-cache [
 			%lit-path.reds
 			%lit-word.reds
 			%logic.reds
+			%map.reds
 			%native.reds
 			%none.reds
 			%op.reds

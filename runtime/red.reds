@@ -73,6 +73,7 @@ red: context [
 	#include %datatypes/typeset.reds
 	#include %datatypes/error.reds
 	#include %datatypes/vector.reds
+	#include %datatypes/map.reds
 	#include %datatypes/hash.reds
 	#include %datatypes/pair.reds
 	#include %datatypes/percent.reds
@@ -141,6 +142,7 @@ red: context [
 		typeset/init
 		error/init
 		vector/init
+		map/init
 		hash/init
 		pair/init
 		percent/init
@@ -200,9 +202,12 @@ red: context [
 			typeset/verbose:	verbosity
 			error/verbose:		verbosity
 			vector/verbose:		verbosity
+			map/verbose:		verbosity
 			hash/verbose:		verbosity
 			point/verbose:		verbosity
 			pair/verbose:		verbosity
+			percent/verbose:	verbosity
+			tuple/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

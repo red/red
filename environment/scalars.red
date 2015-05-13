@@ -40,7 +40,7 @@ any-object!:	make typeset! [object! error!]
 any-string!:	make typeset! [string! file! url!]
 series!:		union make typeset! [vector!] union any-block! any-string!
 immediate!:		union scalar! union any-word! make typeset! [none! logic! datatype! typeset!]
-default!:		union series! union immediate! union any-object! union any-function! make typeset! [bitset!]
+default!:		union series! union immediate! union any-object! union any-function! make typeset! [map! bitset!]
 any-type!:		union default! internal!
 
 ;-- color definitions (from CSS4 standard) --

@@ -87,6 +87,7 @@ issue?:    	 func ["Returns true if the value is this type" value [any-type!]] [
 lit-path?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-path!	= type? :value]
 lit-word?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-word!	= type? :value]
 logic?:		 func ["Returns true if the value is this type" value [any-type!]] [logic!		= type? :value]
+map?:		 func ["Returns true if the value is this type" value [any-type!]] [map!		= type? :value]
 native?:	 func ["Returns true if the value is this type" value [any-type!]] [native!		= type? :value]
 none?:		 func ["Returns true if the value is this type" value [any-type!]] [none!		= type? :value]
 object?:	 func ["Returns true if the value is this type" value [any-type!]] [object!		= type? :value]
