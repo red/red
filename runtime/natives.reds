@@ -403,10 +403,12 @@ natives: context [
 		
 		while [value < tail][
 			value: interpreter/eval-next value tail no	;-- eval condition
+			if value = tail [break]
 			either logic/true? [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
 					stack/reset
 					interpreter/eval as red-block! value yes
+					value: value + 1
 				][
 					value: interpreter/eval-next value tail no
 				]

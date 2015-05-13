@@ -706,6 +706,9 @@ interpreter: context [
 					TYPE_FUNCTION [
 						pc: eval-code value pc end sub? null null value
 					]
+					TYPE_OP [
+						fire [TO_ERROR(script no-op-arg) pc - 1]
+					]
 					default [
 						#if debug? = yes [if verbose > 0 [log "getting word value"]]
 						either sub? [
