@@ -348,15 +348,30 @@ stack: context [										;-- call stack
 		save-top:  top
 		save-ctop: ctop
 		
-		unroll-frames FLAG_LOOP
+		;-- scan the stack to determine the outcome of an exception
+		until [
+			if any [
+				FLAG_FUNCTION and ctop/header <> 0
+				FLAG_TRY and ctop/header <> 0 
+			][
+				ctop: save-ctop
+				either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
+			]
+			ctop: ctop - 1
+			any [
+				ctop <= cbottom
+				FLAG_LOOP and ctop/header <> 0			;-- loop found, we are fine
+			]
+		]
 		
-		either ctop - 1 <= cbottom [
+		either ctop <= cbottom [
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
 			either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
 		][
-			p: ctop + 1
+			ctop: ctop + 1
+			p: ctop + 1									;-- + 1 for getting ctop/prev value
 			arguments: ctop/prev
 			top: arguments
 			either all [return? not cont?][set-last result][unset/push-last]
