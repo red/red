@@ -170,9 +170,9 @@ interpreter: context [
 		in-func?: in-func? - 1
 		switch system/thrown [
 			RED_ERROR			   [throw RED_ERROR]			  ;-- let exception pass through
-			RED_BREAK_EXCEPTION	   [throw RED_BREAK_EXCEPTION]	  ;-- let exception pass through
-			RED_CONTINUE_EXCEPTION [throw RED_CONTINUE_EXCEPTION] ;-- let exception pass through
-			default [0]											  ;-- do nothing else
+			RED_BREAK_EXCEPTION	   [fire [TO_ERROR(throw break)]]
+			RED_CONTINUE_EXCEPTION [fire [TO_ERROR(throw continue)]]
+			default [0]											  ;-- else, do nothing
 		]
 		system/thrown: 0
 	]
