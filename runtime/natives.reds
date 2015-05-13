@@ -407,6 +407,7 @@ natives: context [
 				either TYPE_OF(value) = TYPE_BLOCK [	;-- if true, eval what follows it
 					stack/reset
 					interpreter/eval as red-block! value yes
+					value: value + 1
 				][
 					value: interpreter/eval-next value tail no
 				]
