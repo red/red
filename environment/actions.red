@@ -359,7 +359,7 @@ next: make action! [[
 pick: make action! [[
 		"Returns the series value at a given index"
 		series	 [series! bitset! pair! tuple! map!]
-		index 	 [scalar! any-string! any-word! block!]
+		index 	 [scalar! any-string! any-word! block! logic!]
 		return:  [any-type!]
 	]
 	#get-definition ACT_PICK
@@ -368,7 +368,7 @@ pick: make action! [[
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
 		series	 [series! bitset! tuple! map!]
-		index 	 [scalar! any-string! any-word! block!]
+		index 	 [scalar! any-string! any-word! block! logic!]
 		value 	 [any-type!]
 		return:  [series! bitset!]
 	]
