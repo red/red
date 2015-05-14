@@ -236,7 +236,7 @@ source: function [
 		[append mold func-name #":" mold get func-name]
 	][
 		type: mold type? get func-name
-		["Sorry," func-name "is" a-an type "so no source is available"]
+		["Sorry," func-name "is" a-an type type "so no source is available"]
 	]
 ]
 
