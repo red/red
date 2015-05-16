@@ -25,6 +25,63 @@ map: context [
 		size/value
 	]
 
+	serialize: func [
+		map		[red-hash!]
+		buffer	[red-string!]
+		only?	[logic!]
+		all?	[logic!]
+		flat?	[logic!]
+		arg		[red-value!]
+		part	[integer!]
+		indent?	[logic!]
+		tabs	[integer!]
+		mold?	[logic!]
+		return: [integer!]
+		/local
+			s		[series!]
+			value	[red-value!]
+			next	[red-value!]
+			s-tail	[red-value!]
+			blank	[byte!]
+	][
+		if positive? rs-length? map [
+			either flat? [
+				indent?: no
+				blank: space
+			][
+				if mold? [
+					string/append-char GET_BUFFER(buffer) as-integer lf
+					part: part - 1
+				]
+				blank: lf
+			]
+
+			s: GET_BUFFER(map)
+			value: s/offset
+			s-tail: s/tail
+			while [value < s-tail][
+				next: value + 1
+				unless TYPE_OF(next) = TYPE_NONE [
+					if indent? [part: object/do-indent buffer tabs part]
+
+					part: actions/mold value buffer only? all? flat? arg part tabs
+					string/append-char GET_BUFFER(buffer) as-integer space
+					part: part - 1
+
+					part: actions/mold next buffer only? all? flat? arg part tabs
+
+					if any [indent? next + 1 < s-tail][			;-- no final LF when FORMed
+						string/append-char GET_BUFFER(buffer) as-integer blank
+						part: part - 1
+					]
+				]
+				if all [OPTION?(arg) part <= 0][return part]
+				value: value + 2
+			]
+		]
+		part
+	]
+
 	;--- Actions ---
 
 	make: func [
@@ -75,34 +132,10 @@ map: context [
 		arg		  [red-value!]
 		part 	  [integer!]
 		return:   [integer!]
-		/local
-			s	  [series!]
-			buf	  [series!]
-			value [red-value!]
-			next  [red-value!]
-			c	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/form"]]
 
-		s: GET_BUFFER(map)
-		i: 0
-		value: s/offset + i
-
-		while [value < s/tail][
-			if all [OPTION?(arg) part <= 0][return part]
-
-			next: value + 1
-			either TYPE_OF(next) = TYPE_NONE [i: i + 2][
-				part: actions/form value buffer arg part
-				i: i + 1
-				c: as-integer either i % 2 = 0 [lf][space]
-				string/append-char GET_BUFFER(buffer) c
-				part: part - 1
-			]
-			value: s/offset + i
-		]
-
-		part
+		serialize map buffer no no no arg part no 0 no
 	]
 
 	mold: func [
@@ -115,45 +148,12 @@ map: context [
 		part	[integer!]
 		indent	[integer!]
 		return:	[integer!]
-		/local
-			s	  [series!]
-			value [red-value!]
-			next  [red-value!]
-			i     [integer!]
-			c	  [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/mold"]]
 
-		string/concatenate-literal buffer "make map! [^/^-"
-		part: part - 13
-		if positive? rs-length? map [
-			s: GET_BUFFER(map)
-			i: 0
-			while [
-				value: s/offset + i
-				value < s/tail
-			][
-				if all [OPTION?(arg) part <= 0][return part]
-
-				next: value + 1
-				either TYPE_OF(next) = TYPE_NONE [i: i + 2][
-					part: actions/mold value buffer only? all? flat? arg part indent
-					i: i + 1
-					either i % 2 = 0 [
-						string/concatenate-literal buffer "^/^-"
-						part: part - 2
-					][
-						string/append-char GET_BUFFER(buffer) as-integer space
-						part: part - 1
-					]
-				]
-			]
-		]
-		s: GET_BUFFER(buffer)
-		if i <> 0 [													;-- test if not empty block
-			s/tail: as cell! (as byte-ptr! s/tail) - GET_UNIT(s)	;-- remove extra white space
-			part: part + 1
-		]
+		string/concatenate-literal buffer "make map! ["
+		part: serialize map buffer only? all? flat? arg part - 11 yes indent + 1 yes
+		if indent > 0 [part: object/do-indent buffer indent part]
 		string/append-char GET_BUFFER(buffer) as-integer #"]"
 		part - 1
 	]

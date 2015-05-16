@@ -228,14 +228,14 @@ xor~: make action! [[
 
 append: make action! [[
 		"Inserts value(s) at series tail; returns series head"
-		series	   [series! bitset!]
+		series	   [series! bitset! map!]
 		value	   [any-type!]
 		/part "Limit the number of values inserted"
 			length [number! series!]
 		/only "Insert block types as single values (overrides /part)"
 		/dup  "Duplicate the inserted values"
 			count  [number!]
-		return:    [series! bitset!]
+		return:    [series! bitset! map!]
 	]
 	#get-definition ACT_APPEND
 ]

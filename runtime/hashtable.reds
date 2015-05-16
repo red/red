@@ -387,9 +387,16 @@ _hashtable: context [
 		idx: (as-integer (key - s/offset)) >> 4
 		blk: s/offset
 
-		if multi-key? [
+		either multi-key? [
 			ss: as series! h/indexes/value
 			indexes: as int-ptr! ss/offset
+		][
+			if all [								;-- map, convert any-word! to set-word!
+				not h/sym-table?
+				word/any-word? TYPE_OF(key)
+			][
+				set-type key TYPE_SET_WORD
+			]
 		]
 
 		s: as series! h/keys/value
@@ -478,6 +485,15 @@ _hashtable: context [
 		assert h/n-buckets > 0
 
 		multi-key?: h/indexes <> null
+
+		if all [								;-- map, convert any-word! to set-word!
+			not multi-key?
+			not h/sym-table?
+			word/any-word? TYPE_OF(key)
+		][
+			set-type key TYPE_SET_WORD
+		]
+
 		s: as series! h/blk/value
 		if reverse? [
 			last?: yes
