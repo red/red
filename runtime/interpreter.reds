@@ -480,7 +480,10 @@ interpreter: context [
 			#if debug? = yes [if verbose > 0 [print-line ["eval: path item: " TYPE_OF(value)]]]
 			
 			gparent: parent								;-- save grand-parent reference
-			arg: either all [set? item + 1 = tail][stack/arguments][null]
+			arg: either all [set? item + 1 = tail][
+				if pc >= end [fire [TO_ERROR(script need-value) path]]
+				stack/arguments
+			][null]
 			parent: actions/eval-path parent value arg
 			
 			unless get? [
