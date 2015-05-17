@@ -92,7 +92,26 @@ Red [
 		--assert 0 = vt4-v/4
 		--assert none = vt4-v/5
 		
+	--test-- "vector-trunc-6"
+		vt5-v: make vector! [float! 32 [0.0 1.0 2.0]]
+		append vt5-v 1.23456789012345678901234567
+		--assert 1.234567880630493 = vt5-v/4
+		
+===end-group===
 
+===start-group=== "vector path notation"
+	
+	--test-- "vector-path-1"
+		vp1-v: [0 1 2 3 4]
+		--assert none = vp1-v/0
+		--assert 0 = vp1-v/1
+		--assert 1 = vp1-v/2
+		--assert 2 = vp1-v/3
+		--assert 3 = vp1-v/4
+		--assert 4 = vp1-v/5
+		--assert none = vp1-v/6
+		--assert none = vp1-v/-1
+		
 ===end-group===
 
 ~~~end-file~~~
