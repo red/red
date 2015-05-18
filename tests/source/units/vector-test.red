@@ -95,7 +95,7 @@ Red [
 	--test-- "vector-trunc-6"
 		vt5-v: make vector! [float! 32 [0.0 1.0 2.0]]
 		append vt5-v 1.23456789012345678901234567
-		--assert 1.234567880630493 = vt5-v/4
+		--assert 1.2345679 = round/to vt5-v/4 0.0000001 
 		
 ===end-group===
 
