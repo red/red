@@ -105,11 +105,6 @@ forall: make native! [[
 	#get-definition NAT_FORALL
 ]
 
-;break: make native! [
-;	[]													;@@ add /return option
-;	none
-;]
-
 func: make native! [[
 		"Defines a function with a given spec and body"
 		spec [block!]
