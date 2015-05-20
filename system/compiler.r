@@ -2153,8 +2153,11 @@ system-dialect: make-profilable context [
 		
 		comp-continue: does [
 			if empty? loop-stack [throw-error "CONTINUE used with no loop"]
-			if 'until = last loop-stack [emitter/target/emit-clear-Z]
-			emitter/target/emit-jump-point last emitter/continues
+			emitter/target/emit-jump-point last either 'until = last loop-stack [
+				emitter/cont-back						;-- jump at the beginning for UNTIL iterator,
+			][											;-- as the looping condition cannot be guessed.
+				emitter/cont-next						;-- jump at end for all others
+			]
 			pc: next pc
 			none
 		]
@@ -2174,7 +2177,7 @@ system-dialect: make-profilable context [
 			pop-loop
 			
 			chunk: emitter/chunks/join start chunk
-			emitter/resolve-loop-jumps chunk 'continues
+			emitter/resolve-loop-jumps chunk 'cont-next
 			chunk: emitter/chunks/join chunk comp-chunked [emitter/target/emit-end-loop]
 			emitter/branch/back/on chunk '=
 			emitter/resolve-loop-jumps chunk 'breaks
@@ -2190,7 +2193,7 @@ system-dialect: make-profilable context [
 			push-loop 'until
 			set [expr chunk] comp-block-chunked/test 'until
 			pop-loop
-			emitter/resolve-loop-jumps chunk 'continues
+			emitter/resolve-loop-jumps chunk 'cont-back
 			emitter/branch/back/on chunk expr/1
 			emitter/resolve-loop-jumps chunk 'breaks
 			emitter/merge chunk	
@@ -2211,7 +2214,7 @@ system-dialect: make-profilable context [
 			
 			if logic? expr/1 [expr: [<>]]				;-- re-encode test op
 			offset: emitter/branch/over body			;-- Jump to condition
-			emitter/resolve-loop-jumps body 'continues
+			emitter/resolve-loop-jumps body 'cont-next
 			bodies: emitter/chunks/join body cond
 			emitter/set-signed-state expr				;-- properly set signed/unsigned state
 			emitter/branch/back/on/adjust bodies reduce [expr/1] offset ;-- Test condition, exit if FALSE

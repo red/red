@@ -16,7 +16,8 @@ emitter: make-profilable context [
 	stack: 	   make hash! 40			;-- [name offset ...]
 	exits:	   make block! 1			;-- [offset ...]	(funcs exits points)
 	breaks:	   make block! 1			;-- [[offset ...] [...] ...] (break jump points)
-	continues: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	cont-next: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
+	cont-back: make block! 1			;-- [[offset ...] [...] ...] (break jump points)
 	verbose:   0						;-- logs verbosity level
 	
 	target:	  none						;-- target code emitter object placeholder
@@ -564,16 +565,22 @@ emitter: make-profilable context [
 	
 	init-loop-jumps: does [
 		append/only breaks	  make block! 1
-		append/only continues make block! 1
+		append/only cont-next make block! 1
+		append/only cont-back make block! 1
 	]
 	
-	resolve-loop-jumps: func [chunk [block!] type [word!] /local end len buffer][
-		type: emitter/:type
-		end: index? tail chunk/1
-		len: (last chunk) - 1
+	resolve-loop-jumps: func [chunk [block!] type [word!] /local list end len buffer][
+		list: emitter/:type
 		buffer: chunk/1
-		foreach ptr last type [target/patch-jump-point buffer ptr - len end]
-		remove back tail type
+		len: (last chunk) - 1
+		
+		either type = 'cont-back [
+			foreach ptr last list [target/patch-jump-back buffer ptr - len]
+		][
+			end: index? tail buffer
+			foreach ptr last list [target/patch-jump-point buffer ptr - len end]
+		]
+		remove back tail list
 	]
 	
 	resolve-exit-points: has [end][

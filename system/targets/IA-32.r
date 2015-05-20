@@ -904,9 +904,8 @@ make-profilable make target-class [
 		emit #{83E801}								;-- SUB eax, 1
 	]
 	
-	emit-clear-Z: does [
-		emit #{31C0}								;--	XOR eax, eax		; eax = 0
-		emit #{40}									;--	INC eax				; eax = 1, Z = 0
+	patch-jump-back: func [buffer [binary!] offset [integer!]][
+		change at buffer offset to-bin32 negate offset + 4 - 1
 	]
 	
 	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][

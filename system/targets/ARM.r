@@ -1460,8 +1460,10 @@ make-profilable make target-class [
 		emit-i32 #{e2500001}		 				;-- SUBS r0, r0, #1	; update Z flag
 	]
 	
-	emit-clear-Z: does [
-		emit-i32 #{e3b00001}						;--	MOVS r0, #1		; clears Z flag
+	patch-jump-back: func [buffer [binary!] offset [integer!]][
+		change 
+			at buffer offset
+			reverse to-bin24 shift negate offset 2
 	]
 	
 	patch-jump-point: func [buffer [binary!] ptr [integer!] exit-point [integer!]][
