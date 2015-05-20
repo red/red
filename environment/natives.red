@@ -50,7 +50,7 @@ all: make native! [[
 ]
 
 while: make native! [[
-		"Evaluates body until condition is true"
+		"Evaluates body as long as condition is true"
 		cond [block!]
 		body [block!]
 	]
