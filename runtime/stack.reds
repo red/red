@@ -363,8 +363,7 @@ stack: context [										;-- call stack
 				FLAG_LOOP and ctop/header <> 0			;-- loop found, we are fine
 			]
 		]
-		
-		either ctop <= cbottom [
+		either ctop < cbottom [
 			arguments: result
 			top:	   save-top	
 			ctop:	   save-ctop
