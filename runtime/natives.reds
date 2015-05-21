@@ -110,23 +110,22 @@ natives: context [
 		/local
 			cond  [red-block!]
 			body  [red-block!]
-			cont? [logic!]
 	][
 		cond: as red-block! stack/arguments
 		body: as red-block! stack/arguments + 1
-		cont?: yes
 		
 		stack/mark-loop words/_body
 		while [
 			interpreter/eval cond yes
-			all [cont? logic/true?]
+			logic/true?
 		][
 			stack/reset
 			catch RED_BREAK_EXCEPTION [interpreter/eval body yes]
 			switch system/thrown [
-				RED_BREAK_EXCEPTION [cont?: no system/thrown: 0]
-				0 					[0]
-				default				[re-throw]
+				RED_BREAK_EXCEPTION		[system/thrown: 0 break]
+				RED_CONTINUE_EXCEPTION	[system/thrown: 0 continue]
+				0 						[0]
+				default					[re-throw]
 			]
 		]
 		stack/unwind
@@ -136,23 +135,20 @@ natives: context [
 	until*: func [
 		/local
 			body  [red-block!]
-			exit? [logic!]
 	][
 		body: as red-block! stack/arguments
-		exit?: no
 
 		stack/mark-loop words/_body
 		until [
 			stack/reset
 			catch RED_BREAK_EXCEPTION [interpreter/eval body yes]
 			switch system/thrown [
-				RED_BREAK_EXCEPTION	   [exit?: yes system/thrown: 0]
-				RED_CONTINUE_EXCEPTION [
-					stack/set-last as red-value! false-value	;-- avoid premature exit
-				]
-				default [re-throw]
+				RED_BREAK_EXCEPTION		[system/thrown: 0 break]
+				RED_CONTINUE_EXCEPTION	[system/thrown: 0 continue]
+				0 						[0]
+				default					[re-throw]
 			]
-			any [exit? logic/true?]
+			logic/true?
 		]
 		stack/unwind-last
 	]
@@ -171,9 +167,10 @@ natives: context [
 			stack/reset
 			catch RED_BREAK_EXCEPTION [interpreter/eval body yes]
 			switch system/thrown [
-				RED_BREAK_EXCEPTION [system/thrown: 0 break]
-				0 					[0]
-				default				[re-throw]
+				RED_BREAK_EXCEPTION		[system/thrown: 0 break]
+				RED_CONTINUE_EXCEPTION	[system/thrown: 0 continue]
+				0 						[0]
+				default					[re-throw]
 			]
 		]
 		stack/unwind-last
@@ -202,8 +199,10 @@ natives: context [
 			_context/set w as red-value! count
 			catch RED_BREAK_EXCEPTION [interpreter/eval body yes]
 			switch system/thrown [
-				RED_BREAK_EXCEPTION [i: 0 system/thrown: 0]
+				RED_BREAK_EXCEPTION	[system/thrown: 0 break]
+				RED_CONTINUE_EXCEPTION
 				0 [
+					system/thrown: 0
 					count/value: count/value + 1
 					i: i - 1
 				]
@@ -217,20 +216,18 @@ natives: context [
 	forever*: func [
 		/local
 			body  [red-block!]
-			exit? [logic!]
 	][
 		body: as red-block! stack/arguments
-		exit?: no
 		
 		stack/mark-loop words/_body
-		until [
+		forever [
 			catch RED_BREAK_EXCEPTION [interpreter/eval body no]
 			switch system/thrown [
-				RED_BREAK_EXCEPTION [exit?: yes system/thrown: 0]
-				0 					[stack/pop 1]
-				default				[re-throw]
+				RED_BREAK_EXCEPTION		[system/thrown: 0 break]
+				RED_CONTINUE_EXCEPTION	[system/thrown: 0 continue]
+				0 						[stack/pop 1]
+				default					[re-throw]
 			]
-			exit?
 		]
 		stack/unwind-last
 	]
@@ -240,7 +237,6 @@ natives: context [
 			value [red-value!]
 			body  [red-block!]
 			size  [integer!]
-			cont? [logic!]
 	][
 		value: stack/arguments
 		body: as red-block! stack/arguments + 2
@@ -250,28 +246,29 @@ natives: context [
 		
 		stack/mark-loop words/_body
 		stack/set-last unset-value
-		cont?: yes
 		
 		either TYPE_OF(value) = TYPE_BLOCK [
 			size: block/rs-length? as red-block! value
 			
-			while [all [cont? foreach-next-block size]][ ;-- foreach [..]
+			while [foreach-next-block size][			;-- foreach [..]
 				stack/reset
 				catch RED_BREAK_EXCEPTION [interpreter/eval body no]
 				switch system/thrown [
-					RED_BREAK_EXCEPTION [cont?: no system/thrown: 0]
-					0 					[0]
-					default				[re-throw]
+					RED_BREAK_EXCEPTION		[system/thrown: 0 break]
+					RED_CONTINUE_EXCEPTION	[system/thrown: 0 continue]
+					0 						[0]
+					default					[re-throw]
 				]
 			]
 		][
-			while [all [cont? foreach-next]][			;-- foreach <word!>
+			while [foreach-next][						;-- foreach <word!>
 				stack/reset
 				catch RED_BREAK_EXCEPTION [interpreter/eval body no]
 				switch system/thrown [
-					RED_BREAK_EXCEPTION [cont?: no system/thrown: 0]
-					0 					[0]
-					default				[re-throw]
+					RED_BREAK_EXCEPTION		[system/thrown: 0 break]
+					RED_CONTINUE_EXCEPTION	[system/thrown: 0 continue]
+					0 						[0]
+					default					[re-throw]
 				]
 			]
 		]
@@ -284,21 +281,20 @@ natives: context [
 			body   [red-block!]
 			saved  [red-value!]
 			series [red-series!]
-			cont?  [logic!]
 	][
 		w:    as red-word!  stack/arguments
 		body: as red-block! stack/arguments + 1
 		
 		saved: word/get w							;-- save series (for resetting on end)
 		w: word/push w								;-- word argument
-		cont?: yes
 		
 		stack/mark-loop words/_body
-		while [all [cont? loop? as red-series! _context/get w]][
+		while [loop? as red-series! _context/get w][
 			stack/reset
 			catch RED_BREAK_EXCEPTION [interpreter/eval body no]
 			switch system/thrown [
-				RED_BREAK_EXCEPTION [cont?: no system/thrown: 0]
+				RED_BREAK_EXCEPTION		[system/thrown: 0 break]
+				RED_CONTINUE_EXCEPTION	[system/thrown: 0 continue]
 				0 [
 					series: as red-series! _context/get w
 					series/head: series/head + 1

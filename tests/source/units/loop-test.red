@@ -104,7 +104,8 @@ Red [
 	--assert i = 3
 	
 	--test-- "ex3"
-	i: 4 until [
+	i: 4
+	until [
 		i: i - 1
 		either i > 2 [continue][break]
 		zero? i
