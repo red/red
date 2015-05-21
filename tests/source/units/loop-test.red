@@ -91,6 +91,52 @@ Red [
 
 ===end-group===
 
+===start-group=== "exceptions"
+
+	--test-- "ex1"
+	i: 0
+	loop 3 [i: i + 1 break i: i - 1]
+	--assert i = 1
+	
+	--test-- "ex2"
+	i: 0
+	loop 3 [i: i + 1 continue i: i - 1]
+	--assert i = 3
+	
+	--test-- "ex3"
+	i: 4 until [
+		i: i - 1
+		either i > 2 [continue][break]
+		zero? i
+	]
+	--assert i = 2
+	
+	--test-- "ex4"
+	list: [a b c]
+	while [not tail? list][list: next list break]
+	--assert list = [b c]
+	
+	--test-- "ex5"
+	c: none
+	repeat c 3 [either c = 1 [continue][break]]
+	--assert c = 2
+	
+	--test-- "ex6"
+	w: result: none
+	foreach w [a b c][result: w either w = 'a [continue][break]]
+	--assert result = 'b
+	
+	--test-- "ex7"
+	i: 0
+	loop 3 [i: i + 1 parse "1" [(break)] i: i - 1]
+	--assert i = 1
+	
+	--test-- "ex8"
+	foo-ex2: does [parse "1" [(return 124)]]
+	--assert foo-ex2 = 124
+
+===end-group===
+
 ===start-group=== "specific issues"
 
   --test-- "issue #427-1"
