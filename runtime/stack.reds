@@ -10,6 +10,9 @@ Red/System [
 	}
 ]
 
+#define CALL_STACK_TYPE?(p flags)		(1F000000h and p/header = flags)
+#define NOT_CALL_STACK_TYPE?(p flags)	(1F000000h and p/header <> flags)
+
 stack: context [										;-- call stack
 	verbose: 0
 	
@@ -74,16 +77,22 @@ stack: context [										;-- call stack
 	
 	;-- header flags
 	#enum flags! [
-		FLAG_FUNCTION:	80000000h						;-- function! call
-		FLAG_NATIVE:	40000000h						;-- native! or action! call
-		FLAG_ROUTINE:	20000000h						;--	<reserved>
-		FLAG_TRY:		10000000h						;--	TRY native
-		FLAG_CATCH:		08000000h						;-- CATCH native
-		FLAG_THROW_ATR:	04000000h						;-- Throw function attribut
-		FLAG_CATCH_ATR:	02000000h						;--	Catch function attribut
-		FLAG_EVAL:		01000000h						;-- Interpreter root frame
-		FLAG_LOOP:		00800000h						;-- Iterator (for BREAK/CONTINUE support)
-		FLAG_DYN_CALL:	11000000h						;-- Dynamic call (alternative stack mode)
+		FLAG_INTERPRET: 80000000h						;-- Called from interpreter
+		FLAG_THROW_ATR:	40000000h						;-- Throw function attribut
+		FLAG_CATCH_ATR:	20000000h						;--	Catch function attribut
+
+		FRAME_FUNCTION:	01000000h						;-- function! call
+		FRAME_NATIVE:	02000000h						;-- native! or action! call
+		FRAME_ROUTINE:	03000000h						;--	<reserved>
+		FRAME_TRY:		04000000h						;--	TRY native
+		FRAME_TRY_ALL:	05000000h						;--	TRY native with /ALL
+		FRAME_CATCH:	06000000h						;-- CATCH native
+		FRAME_EVAL:		87000000h						;-- Interpreter root frame
+		FRAME_LOOP:		08000000h						;-- Iterator (for BREAK/CONTINUE support)
+		FRAME_DYN_CALL:	09000000h						;-- Dynamic call (alternative stack mode)
+
+		FRAME_INT_FUNC:	81000000h						;-- function! call from interpreter
+		FRAME_INT_NAT:	82000000h						;-- native! or action! call from interpreter
 	]
 	
 	init: does [
@@ -141,13 +150,15 @@ stack: context [										;-- call stack
 		arguments
 	]
 	
-	mark-native: MARK_STACK(FLAG_NATIVE)
-	mark-func:	 MARK_STACK(FLAG_FUNCTION)
-	mark-try:	 MARK_STACK(FLAG_TRY)
-	mark-catch:	 MARK_STACK(FLAG_CATCH)
-	mark-eval:	 MARK_STACK(FLAG_EVAL)
-	mark-dyn:	 MARK_STACK(FLAG_DYN_CALL)
-	mark-loop:	 MARK_STACK(FLAG_LOOP)
+	mark-native: 		MARK_STACK(FRAME_NATIVE)
+	mark-func:	 		MARK_STACK(FRAME_FUNCTION)
+	mark-try:	 		MARK_STACK(FRAME_TRY)
+	mark-catch:	 		MARK_STACK(FRAME_CATCH)
+	mark-eval:	 		MARK_STACK(FRAME_EVAL)
+	mark-dyn:	 		MARK_STACK(FRAME_DYN_CALL)
+	mark-loop:	 		MARK_STACK(FRAME_LOOP)
+	mark-interp-native: MARK_STACK(FRAME_INT_NAT)
+	mark-interp-func:	MARK_STACK(FRAME_INT_FUNC)
 	
 	get-call: func [
 		return: [red-word!]
@@ -227,7 +238,7 @@ stack: context [										;-- call stack
 			ctop: ctop - 1
 			any [
 				ctop <= cbottom
-				flags and ctop/header = flags
+				CALL_STACK_TYPE?(ctop flags)
 			]
 		]
 		STACK_SET_FRAME
@@ -315,15 +326,16 @@ stack: context [										;-- call stack
 		set-stack err
 		
 		extra: top
-		unroll-frames FLAG_TRY
+		unroll-frames FRAME_TRY
 
 		ctop: ctop - 1
 		assert ctop >= cbottom
 		top: extra
-
+		
 		if all [
 			ctop = cbottom 
-			FLAG_TRY and ctop/header <> FLAG_TRY
+			NOT_CALL_STACK_TYPE?(ctop FRAME_TRY)
+			NOT_CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
 		][
 			saved: arguments
 			arguments: extra							;-- use the top stack frame @@ overflows!
@@ -348,11 +360,11 @@ stack: context [										;-- call stack
 		save-top:  top
 		save-ctop: ctop
 		
-		;-- scan the stack to determine the outcome of an exception
+		;-- unwind the stack and determine the outcome of a break/continue exception
 		until [
 			if any [
-				FLAG_FUNCTION and ctop/header <> 0
-				FLAG_TRY and ctop/header <> 0 
+				CALL_STACK_TYPE?(ctop FRAME_FUNCTION)
+				CALL_STACK_TYPE?(ctop FRAME_TRY)
 			][
 				ctop: save-ctop
 				either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
@@ -360,7 +372,7 @@ stack: context [										;-- call stack
 			ctop: ctop - 1
 			any [
 				ctop <= cbottom
-				FLAG_LOOP and ctop/header <> 0			;-- loop found, we are fine
+				CALL_STACK_TYPE?(ctop FRAME_LOOP)		;-- loop found, we are fine!
 			]
 		]
 		either ctop < cbottom [
@@ -382,15 +394,18 @@ stack: context [										;-- call stack
 		]
 	]
 	
+	get-ctop: func [return: [byte-ptr!]][as byte-ptr! ctop - 1]
+	
 	eval?: func [
+		ptr		[byte-ptr!]
 		return: [logic!]
 		/local
 			cframe [call-frame!]
 	][
-		cframe: ctop
+		cframe: either null? ptr [ctop][(as call-frame! ptr)]
 		until [
 			cframe: cframe - 1
-			if FLAG_EVAL and cframe/header = FLAG_EVAL [return yes]
+			if FLAG_INTERPRET and cframe/header = FLAG_INTERPRET [return yes]
 			cframe <= cbottom
 		]
 		no
@@ -545,7 +560,7 @@ stack: context [										;-- call stack
 		if p < cbottom [exit]
 		
 		if all [
-			FLAG_DYN_CALL and p/header = FLAG_DYN_CALL
+			CALL_STACK_TYPE?(p FRAME_DYN_CALL)
 			TYPE_OF(arguments) <> TYPE_VALUE
 		][
 			info: as dyn-info! arguments - 1
@@ -606,7 +621,7 @@ stack: context [										;-- call stack
 				either p < cbottom [
 					acc-mode?: no						;-- bottom of stack reached, switch back to normal
 				][
-					dyn?: FLAG_DYN_CALL and p/header = FLAG_DYN_CALL
+					dyn?: CALL_STACK_TYPE?(p FRAME_DYN_CALL)
 					either dyn? [check-dyn-call][acc-mode?: no] ;-- if another dyn call pending, keep the mode on
 				]
 			]

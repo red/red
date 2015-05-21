@@ -421,39 +421,52 @@ natives: context [
 	]
 	
 	do*: func [
-		[catch]
-		return: [logic!]
+		return: [integer!]
 		/local
-			arg [red-value!]
-			str	[red-string!]
-			s	[series!]
+			cframe [byte-ptr!]
+			arg	   [red-value!]
+			str	   [red-string!]
+			s	   [series!]
 	][
 		arg: stack/arguments
-		switch TYPE_OF(arg) [
-			TYPE_BLOCK [
-				interpreter/eval as red-block! arg yes
-			]
-			TYPE_PATH [
-				interpreter/eval-path arg arg arg + 1 no no no
-				stack/set-last arg + 1
-			]
-			TYPE_STRING [
-				str: as red-string! arg
-				#call [system/lexer/transcode str none]
-				interpreter/eval as red-block! arg yes
-			]
-			TYPE_ERROR [
-				stack/throw-error as red-object! arg
-			]
-			default [
-				interpreter/eval-expression arg arg + 1 no no
+		cframe: stack/get-ctop							;-- save the current call frame pointer
+		
+		catch RED_BREAK_EXCEPTION [
+			switch TYPE_OF(arg) [
+				TYPE_BLOCK [
+					interpreter/eval as red-block! arg yes
+				]
+				TYPE_PATH [
+					interpreter/eval-path arg arg arg + 1 no no no
+					stack/set-last arg + 1
+				]
+				TYPE_STRING [
+					str: as red-string! arg
+					#call [system/lexer/transcode str none]
+					interpreter/eval as red-block! arg yes
+				]
+				TYPE_ERROR [
+					stack/throw-error as red-object! arg
+				]
+				default [
+					interpreter/eval-expression arg arg + 1 no no
+				]
 			]
 		]
 		switch system/thrown [
+			RED_BREAK_EXCEPTION
+			RED_CONTINUE_EXCEPTION
 			THROWN_RETURN
-			THROWN_EXIT [system/thrown: 0 true]			;-- request an early exit from caller
-			0			[false]
-			default 	[re-throw false]				;-- `false` to make compiler happy
+			THROWN_EXIT [
+				either stack/eval? cframe [				;-- if run from interpreter,
+					re-throw 							;-- let the exception pass through
+					0									;-- 0 to make compiler happy		
+				][
+					system/thrown						;-- request an early exit from caller
+				]
+			]
+			0			[0]
+			default 	[re-throw 0]					;-- 0 to make compiler happy
 		]
 	]
 	
@@ -951,19 +964,19 @@ natives: context [
 	]
 
 	parse*: func [
-		[catch]
 		case?	[integer!]
 		;strict? [integer!]
 		part	[integer!]
 		trace	[integer!]
-		return: [logic!]
+		return: [integer!]
 		/local
-			op	  [integer!]
-			input [red-series!]
-			limit [red-series!]
-			int	  [red-integer!]
-			rule  [red-block!]
-			res	  [red-value!]
+			op	   [integer!]
+			input  [red-series!]
+			limit  [red-series!]
+			int	   [red-integer!]
+			rule   [red-block!]
+			res	   [red-value!]
+			cframe [byte-ptr!]
 	][
 		op: either as logic! case? + 1 [COMP_STRICT_EQUAL][COMP_EQUAL]
 		
@@ -995,23 +1008,34 @@ natives: context [
 				][
 					block/rs-length? as red-block! input
 				]
-				return false
+				return 0
 			]
 		]
+		cframe: stack/get-ctop							;-- save the current call frame pointer
 		
-		res: parser/process
-			input
-			as red-block! stack/arguments + 1
-			op
-			;as logic! strict? + 1
-			part
-			as red-function! stack/arguments + trace
-		
+		catch RED_BREAK_EXCEPTION [
+			res: parser/process
+				input
+				as red-block! stack/arguments + 1
+				op
+				;as logic! strict? + 1
+				part
+				as red-function! stack/arguments + trace
+		]
 		switch system/thrown [
+			RED_BREAK_EXCEPTION
+			RED_CONTINUE_EXCEPTION
 			THROWN_RETURN
-			THROWN_EXIT [system/thrown: 0 true]			;-- request an early exit from caller
-			0			[stack/set-last res false]
-			default 	[re-throw false]				;-- `false` to make compiler happy
+			THROWN_EXIT [
+				either stack/eval? cframe [				;-- if run from interpreter,
+					re-throw 							;-- let the exception pass through
+					0									;-- 0 to make compiler happy		
+				][
+					system/thrown						;-- request an early exit from caller
+				]
+			]
+			0			[stack/set-last res 0]			;-- 0 to make compiler happy
+			default 	[re-throw 0]					;-- 0 to make compiler happy
 		]
 	]
 

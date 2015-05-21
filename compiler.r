@@ -475,13 +475,8 @@ red: context [
 		]
 	]
 	
-	emit-native: func [name [word!] /with options [block!] /local exit? pos][
-		if exit?: to logic! all [
-			not empty? locals-stack
-			find [parse do] name
-		][
-			emit 'if
-		]
+	emit-native: func [name [word!] /with options [block!] /local wrap? pos body][
+		if wrap?: to logic! find [parse do] name [emit 'switch]
 		emit join natives-prefix to word! join name #"*"
 		pos: either with [
 			emit options
@@ -489,13 +484,39 @@ red: context [
 		][
 			-1
 		]
-		insert-lf pos - pick [1 0] exit?
-		if exit? [emit [[ctx/values: as node! pop exit]]]
+		insert-lf pos - pick [1 0] wrap?
+		
+		if wrap? [
+			body: make block! 8
+			either empty? intersect iterators expr-stack [
+				append body [
+					RED_BREAK_EXCEPTION
+					RED_CONTINUE_EXCEPTION [re-throw]
+				]
+			][
+				append body [
+					RED_BREAK_EXCEPTION    [break]
+					RED_CONTINUE_EXCEPTION [continue]
+				]
+			]
+			append body [
+				THROWN_RETURN THROWN_EXIT
+			]
+			append/only body pick [
+				[re-throw]
+				[ctx/values: as node! pop system/thrown: 0 exit]
+			] empty? locals-stack
+			
+			append body [
+				default [0]
+			]
+			emit reduce [body]
+		]
 	]
 	
 	emit-exit-function: does [
 		emit [
-			stack/unroll stack/FLAG_FUNCTION
+			stack/unroll stack/FRAME_FUNCTION
 			ctx/values: as node! pop
 			exit
 		]

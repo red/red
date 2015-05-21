@@ -196,7 +196,7 @@ system: context [
 	
 	state: context [
 		interpreted?: func ["Return TRUE if called from the interpreter"][
-			#system [logic/box stack/eval?]
+			#system [logic/box stack/eval? null]
 		]
 		
 		last-error: none

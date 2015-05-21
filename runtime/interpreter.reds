@@ -62,7 +62,7 @@ Red/System [
 				]
 				TYPE_PAREN [
 					either TYPE_OF(value) = TYPE_LIT_WORD [
-						stack/mark-native as red-word! pc	;@@ ~paren
+						stack/mark-interp-native as red-word! pc	;@@ ~paren
 						eval as red-block! pc yes
 						stack/unwind
 					][
@@ -470,7 +470,7 @@ interpreter: context [
 			switch TYPE_OF(value) [
 				TYPE_UNSET [fire [TO_ERROR(script no-value)	item]]
 				TYPE_PAREN [
-					stack/mark-native words/_body		;@@ ~paren
+					stack/mark-interp-native words/_body ;@@ ~paren
 					eval as red-block! value yes		;-- eval paren content
 					stack/unwind
 					value: stack/top - 1
@@ -530,7 +530,7 @@ interpreter: context [
 			TYPE_ACTION 
 			TYPE_NATIVE [
 				#if debug? = yes [if verbose > 0 [log "pushing action/native frame"]]
-				stack/mark-native name
+				stack/mark-interp-native name
 				pc: eval-arguments as red-native! value pc end path slot 	;-- fetch args and exec
 				either sub? [stack/unwind][stack/unwind-last]
 				#if debug? = yes [
@@ -542,7 +542,7 @@ interpreter: context [
 			]
 			TYPE_ROUTINE [
 				#if debug? = yes [if verbose > 0 [log "pushing routine frame"]]
-				stack/mark-native name
+				stack/mark-interp-native name
 				pc: eval-arguments as red-native! value pc end path slot
 				exec-routine as red-routine! value
 				either sub? [stack/unwind][stack/unwind-last]
@@ -571,7 +571,7 @@ interpreter: context [
 						name/ctx						;-- get a context from calling name
 					]
 				]
-				stack/mark-func name
+				stack/mark-interp-func name
 				pc: eval-arguments as red-native! value pc end path slot
 				_function/call as red-function! value ctx
 				either sub? [stack/unwind][stack/unwind-last]
@@ -608,7 +608,7 @@ interpreter: context [
 			next: as red-word! pc + 1
 			CHECK_INFIX
 			if infix? [
-				stack/mark-native as red-word! pc + 1
+				stack/mark-interp-native as red-word! pc + 1
 				sub?: yes								;-- force sub? for infix expressions
 				op: value
 			]
@@ -616,13 +616,13 @@ interpreter: context [
 		
 		switch TYPE_OF(pc) [
 			TYPE_PAREN [
-				stack/mark-native words/_body
+				stack/mark-interp-native words/_body
 				eval as red-block! pc yes
 				either sub? [stack/unwind][stack/unwind-last]
 				pc: pc + 1
 			]
 			TYPE_SET_WORD [
-				stack/mark-native as red-word! pc		;@@ ~set
+				stack/mark-interp-native as red-word! pc ;@@ ~set
 				word/push as red-word! pc
 				pc: pc + 1
 				if pc >= end [fire [TO_ERROR(script need-value) pc - 1]]
@@ -672,7 +672,7 @@ interpreter: context [
 					case [
 						sym = words/exit* [
 							copy-cell unset-value stack/arguments
-							stack/unroll stack/FLAG_FUNCTION
+							stack/unroll stack/FRAME_FUNCTION
 							throw THROWN_EXIT
 						]
 						sym = words/return* [
@@ -683,7 +683,7 @@ interpreter: context [
 								pc: eval-expression pc end no yes
 								stack/set-last stack/top - 1
 							]
-							stack/unroll stack/FLAG_FUNCTION
+							stack/unroll stack/FRAME_FUNCTION
 							throw THROWN_RETURN
 						]
 						true [0]
@@ -777,7 +777,7 @@ interpreter: context [
 		sub?	[logic!]
 		return: [red-value!]							;-- return start of next expression
 	][
-		stack/mark-native words/_body					;-- outer stack frame
+		stack/mark-interp-native words/_body			;-- outer stack frame
 		value: eval-expression value tail no sub?
 		either sub? [stack/unwind][stack/unwind-last]
 		value
@@ -799,7 +799,7 @@ interpreter: context [
 			exit
 		]
 
-		stack/mark-eval words/_body					;-- outer stack frame
+		stack/mark-eval words/_body						;-- outer stack frame
 		
 		while [value < tail][
 			#if debug? = yes [if verbose > 0 [log "root loop..."]]
