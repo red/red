@@ -950,13 +950,10 @@ red: context [
 		]
 	]
 	
-	check-invalid-call: func [name [word!]][
-		if all [
-			find [exit return] name
-			empty? locals-stack
-		][
+	check-invalid-exit: func [name [word!]][
+		if empty? locals-stack [
 			pc: back pc
-			throw-error "EXIT or RETURN used outside of a function"
+			throw-error [uppercase form name "used outside of a function"]
 		]
 	]
 	
@@ -2366,6 +2363,7 @@ red: context [
 	]
 	
 	comp-exit: does [
+		check-invalid-exit 'exit
 		pc: next pc
 		emit [
 			copy-cell unset-value stack/arguments
@@ -2374,6 +2372,7 @@ red: context [
 	]
 
 	comp-return: does [
+		check-invalid-exit 'return
 		comp-expression
 		emit-exit-function
 	]
@@ -3154,7 +3153,6 @@ red: context [
 				]
 			][
 				if alter: select-ssa name [entry: find functions alter]
-				check-invalid-call name
 				
 				either ctx: any [
 					obj-func-call? original
