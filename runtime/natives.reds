@@ -1477,7 +1477,7 @@ natives: context [
 					err: as red-object! stack/top - 1
 					assert TYPE_OF(err) = TYPE_ERROR
 					id: error/get-type err
-					either id = words/errors/throw/symbol [
+					either id = words/errors/throw/symbol [ ;-- check if error is of type THROW
 						re-throw 						;-- let the error pass through
 					][
 						stack/adjust-post-try
@@ -1486,7 +1486,7 @@ natives: context [
 				0		[stack/adjust-post-try]
 				default [re-throw]
 			]
-		][												;-- TRY/ALL case
+		][												;-- TRY/ALL case, catch everything
 			stack/adjust-post-try
 		]
 		system/thrown: 0
@@ -1517,6 +1517,8 @@ natives: context [
 	break*: func [returned [integer!]][stack/throw-break returned <> -1 no]
 	
 	continue*: does [stack/throw-break no yes]
+	
+	
 
 	;--- Natives helper functions ---
 
