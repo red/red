@@ -35,6 +35,16 @@ error: context [
 		copy-cell value base + field-where
 	]
 	
+	get-type: func [
+		err		[red-object!]
+		return: [integer!]
+		/local
+			type [red-word!]
+	][
+		type: as red-word! (object/get-values err) + field-type
+		type/symbol
+	]
+	
 	get-stack-id: func [return: [integer!]][field-stack]
 	
 	get-call-argument: func [

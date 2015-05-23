@@ -153,6 +153,7 @@ stack: context [										;-- call stack
 	mark-native: 		MARK_STACK(FRAME_NATIVE)
 	mark-func:	 		MARK_STACK(FRAME_FUNCTION)
 	mark-try:	 		MARK_STACK(FRAME_TRY)
+	mark-try-all:		MARK_STACK(FRAME_TRY_ALL)
 	mark-catch:	 		MARK_STACK(FRAME_CATCH)
 	mark-eval:	 		MARK_STACK(FRAME_EVAL)
 	mark-dyn:	 		MARK_STACK(FRAME_DYN_CALL)
@@ -232,13 +233,19 @@ stack: context [										;-- call stack
 		copy-cell last arguments
 	]
 	
-	unroll-frames: func [flags [integer!]][
+	unroll-frames: func [
+		flags [integer!]
+		/local
+			type [integer!]
+	][
 		assert cbottom < ctop
 		until [
 			ctop: ctop - 1
+			type: 1F000000h and ctop/header
 			any [
 				ctop <= cbottom
-				CALL_STACK_TYPE?(ctop flags)
+				type = flags
+				type = FRAME_TRY_ALL
 			]
 		]
 		STACK_SET_FRAME
@@ -249,15 +256,12 @@ stack: context [										;-- call stack
 		flags	 [integer!]
 		/local
 			last [red-value!]
-			p	 [call-frame!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/unroll"]]
 
 		last: arguments
 		unroll-frames flags
 		copy-cell last ctop/prev
-		
-		p: ctop + 1										;-- adjust stack pointers
 		arguments: ctop/prev
 		top: arguments
 	]
@@ -321,13 +325,18 @@ stack: context [										;-- call stack
 		/local
 			extra [red-value!]
 			saved [red-value!]
+			flags [integer!]
+			all?  [logic!]
 	][
 		error/set-where err as red-value! get-call
 		set-stack err
 		
+		all?: (error/get-type err) = words/errors/throw/symbol
+		flags: either all? [FRAME_TRY_ALL][FRAME_TRY]
+		
 		extra: top
-		unroll-frames FRAME_TRY
-
+		unroll-frames flags
+		
 		ctop: ctop - 1
 		assert ctop >= cbottom
 		top: extra
@@ -364,7 +373,7 @@ stack: context [										;-- call stack
 		until [
 			if any [
 				CALL_STACK_TYPE?(ctop FRAME_FUNCTION)
-				CALL_STACK_TYPE?(ctop FRAME_TRY)
+				CALL_STACK_TYPE?(ctop FRAME_TRY_ALL)
 			][
 				ctop: save-ctop
 				either cont? [fire [TO_ERROR(throw continue)]][fire [TO_ERROR(throw break)]]
@@ -392,6 +401,11 @@ stack: context [										;-- call stack
 				throw RED_BREAK_EXCEPTION
 			]
 		]
+	]
+	
+	adjust-post-try: does [
+		if top-type? = TYPE_ERROR [set-last top - 1]
+		top: arguments + 1
 	]
 	
 	get-ctop: func [return: [byte-ptr!]][as byte-ptr! ctop - 1]

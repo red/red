@@ -1438,23 +1438,59 @@ natives: context [
 	]
 	
 	try*: func [
+		_all [integer!]
+		return: [integer!]
 		/local
-			arg	[red-value!]
+			arg	   [red-value!]
+			cframe [byte-ptr!]
+			err	   [red-object!]
+			id	   [integer!]
+			result [integer!]
 	][
 		arg: stack/arguments
-		system/thrown: 0
+		system/thrown: 0								;@@ To be removed
+		cframe: stack/get-ctop							;-- save the current call frame pointer
+		result: 0
 		
-		catch RED_ERROR [
+		either _all = -1 [
 			stack/mark-try words/_try
+		][
+			stack/mark-try-all words/_try
+		]
+		catch RED_ERROR [
 			interpreter/eval as red-block! arg yes
-			stack/unwind-last
+			stack/unwind-last							;-- bypass it in case of error
 		]
-		system/thrown: 0								;-- reset last exception value
-		
-		if stack/top-type? = TYPE_ERROR [
-			stack/set-last stack/top - 1
+		either _all = -1 [
+			switch system/thrown [
+				RED_BREAK_EXCEPTION
+				RED_CONTINUE_EXCEPTION
+				THROWN_RETURN
+				THROWN_EXIT [
+					either stack/eval? cframe [			;-- if run from interpreter,					
+						re-throw 						;-- let the exception pass through
+					][
+						result: system/thrown			;-- request an early exit from caller
+					]
+				]
+				RED_ERROR [
+					err: as red-object! stack/top - 1
+					assert TYPE_OF(err) = TYPE_ERROR
+					id: error/get-type err
+					either id = words/errors/throw/symbol [
+						re-throw 						;-- let the error pass through
+					][
+						stack/adjust-post-try
+					]
+				]
+				0		[stack/adjust-post-try]
+				default [re-throw]
+			]
+		][												;-- TRY/ALL case
+			stack/adjust-post-try
 		]
-		stack/top: stack/arguments + 1
+		system/thrown: 0
+		result
 	]
 
 	uppercase*: func [part [integer!]][

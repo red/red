@@ -465,6 +465,33 @@ red: context [
 		insert-lf -1
 	]
 	
+	build-exception-handler: has [body][
+		body: make block! 8
+		either empty? intersect iterators expr-stack [
+			append body [
+				RED_BREAK_EXCEPTION
+				RED_CONTINUE_EXCEPTION [re-throw]
+			]
+		][
+			append body [
+				RED_BREAK_EXCEPTION    [break]
+				RED_CONTINUE_EXCEPTION [continue]
+			]
+		]
+		append body [
+			THROWN_RETURN THROWN_EXIT
+		]
+		append/only body pick [
+			[re-throw]
+			[ctx/values: as node! pop system/thrown: 0 exit]
+		] empty? locals-stack
+
+		append body [
+			default [0]
+		]
+		reduce [body]
+	]
+	
 	emit-action: func [name [word!] /with options [block!]][
 		emit join actions-prefix to word! join name #"*"
 		insert-lf either with [
@@ -485,33 +512,7 @@ red: context [
 			-1
 		]
 		insert-lf pos - pick [1 0] wrap?
-		
-		if wrap? [
-			body: make block! 8
-			either empty? intersect iterators expr-stack [
-				append body [
-					RED_BREAK_EXCEPTION
-					RED_CONTINUE_EXCEPTION [re-throw]
-				]
-			][
-				append body [
-					RED_BREAK_EXCEPTION    [break]
-					RED_CONTINUE_EXCEPTION [continue]
-				]
-			]
-			append body [
-				THROWN_RETURN THROWN_EXIT
-			]
-			append/only body pick [
-				[re-throw]
-				[ctx/values: as node! pop system/thrown: 0 exit]
-			] empty? locals-stack
-			
-			append body [
-				default [0]
-			]
-			emit reduce [body]
-		]
+		if wrap? [emit build-exception-handler]
 	]
 	
 	emit-exit-function: does [
@@ -1748,7 +1749,9 @@ red: context [
 		]												;-- return object deferred block
 	]
 	
-	comp-try: does [
+	comp-try: has [all? mark body][
+		all?: path? pc/-1
+		
 		either block? pc/1 [
 			emit [catch RED_ERROR]
 			insert-lf -2
@@ -1758,15 +1761,24 @@ red: context [
 			emit-open-frame 'try
 			insert body mark
 			clear mark
+			unless all? [
+				append body [switch system/thrown]
+				append body build-exception-handler
+			]
 			append body [
 				stack/unwind
 			]
 		][
 			emit-open-frame 'try						;-- fallback option
 			comp-expression
-			emit-native 'try
+			unless all? [
+				emit 'switch
+				insert-lf -1
+			]
+			emit-native/with 'try reduce [pick [0 -1] all?]
+			new-line back tail output no
+			unless all? [emit build-exception-handler]
 			emit-close-frame
-			exit
 		]
 	]
 	

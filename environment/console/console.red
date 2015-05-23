@@ -115,8 +115,8 @@ system/console: context [
 			if error? code: try [load/all buffer][print code]
 			
 			unless any [error? code tail? code][
-				set/any 'result try code
-
+				set/any 'result try/all code
+				
 				case [
 					error? :result [
 						print result
