@@ -1518,7 +1518,9 @@ natives: context [
 	
 	continue*: does [stack/throw-break no yes]
 	
+	exit*: does [stack/throw-exit no]
 	
+	return*: does [stack/throw-exit yes]
 
 	;--- Natives helper functions ---
 
@@ -1914,6 +1916,8 @@ natives: context [
 			:as-pair*
 			:break*
 			:continue*
+			:exit*
+			:return*
 		]
 	]
 

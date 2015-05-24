@@ -2128,7 +2128,7 @@ red: context [
 		if find symbols name [name: decorate-exec-ctx name]
 		
 		append init compose [							;-- body stack frame
-			stack/mark-native words/_body
+			stack/mark-func-body words/_body
 		]
 		
 		;-- Function's epilog --

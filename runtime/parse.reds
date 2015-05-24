@@ -576,7 +576,6 @@ parser: context [
 		block/clear series
 		block/clear rules
 		restore-stack
-		interpreter/in-func?: interpreter/in-func? - 1	;-- restore counter
 	]
 	
 	eval: func [code [red-value!]][
@@ -642,9 +641,7 @@ parser: context [
 		
 		save-stack
 		base: stack/push*								;-- slot on stack for COPY/SET operations (until OPTION?() is fixed)
-		input: as red-series! block/rs-append series as red-value! input	;-- input now points to the series stack entry
-		interpreter/in-func?: interpreter/in-func? + 1	;-- simulate a function wrapper to enable interpreted RETURN/EXIT
-														;-- even from compiled code
+		input: as red-series! block/rs-append series as red-value! input ;-- input now points to the series stack entry
 		cmd: (block/rs-head rule) - 1					;-- decrement to compensate for starting increment
 		tail: block/rs-tail rule						;TBD: protect current rule block from changes
 		

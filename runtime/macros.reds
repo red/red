@@ -208,6 +208,8 @@ Red/System [
 	NAT_AS_PAIR
 	NAT_BREAK
 	NAT_CONTINUE
+	NAT_EXIT
+	NAT_RETURN
 ]
 
 #enum math-op! [

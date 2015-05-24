@@ -646,3 +646,16 @@ continue: make native! [[
 	]
 	#get-definition NAT_CONTINUE
 ]
+
+exit: make native! [[
+		"Exits a function, returning no value"
+	]
+	#get-definition NAT_EXIT
+]
+
+return: make native! [[
+		"Returns a value from a function."
+		value [any-type!]
+	]
+	#get-definition NAT_RETURN
+]

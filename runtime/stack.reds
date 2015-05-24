@@ -10,8 +10,9 @@ Red/System [
 	}
 ]
 
-#define CALL_STACK_TYPE?(p flags)		(1F000000h and p/header = flags)
-#define NOT_CALL_STACK_TYPE?(p flags)	(1F000000h and p/header <> flags)
+#define CALL_STACK_MASK					0F000000h
+#define CALL_STACK_TYPE?(p flags)		(CALL_STACK_MASK and p/header = flags)
+#define NOT_CALL_STACK_TYPE?(p flags)	(CALL_STACK_MASK and p/header <> flags)
 
 stack: context [										;-- call stack
 	verbose: 0
@@ -46,23 +47,7 @@ stack: context [										;-- call stack
 	anon-symbol:	0									;-- symbol ID
 	
 	#define MARK_STACK(type) [
-		func [
-			fun [red-word!]
-		][
-			#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
-
-			if ctop = c-end [
-				print-line ["^/*** Error: call stack overflow!^/"]
-				throw RED_ERROR
-			]
-			ctop/header: type or (fun/symbol << 8)
-			ctop/prev:	 arguments
-			ctop/ctx:	 fun/ctx
-			ctop: ctop + 1
-			arguments: top								;-- top of stack becomes frame base
-
-			#if debug? = yes [if verbose > 1 [dump]]
-		]
+		func [fun [red-word!]][mark fun type]
 	]
 	
 	#define STACK_SET_FRAME [
@@ -80,6 +65,7 @@ stack: context [										;-- call stack
 		FLAG_INTERPRET: 80000000h						;-- Called from interpreter
 		FLAG_THROW_ATR:	40000000h						;-- Throw function attribut
 		FLAG_CATCH_ATR:	20000000h						;--	Catch function attribut
+		FLAG_IN_FUNC:	10000000h						;--	Inside of a function body (volative flag)
 
 		FRAME_FUNCTION:	01000000h						;-- function! call
 		FRAME_NATIVE:	02000000h						;-- native! or action! call
@@ -93,6 +79,7 @@ stack: context [										;-- call stack
 
 		FRAME_INT_FUNC:	81000000h						;-- function! call from interpreter
 		FRAME_INT_NAT:	82000000h						;-- native! or action! call from interpreter
+		FRAME_IN_CFUNC:	12000000h						;-- Inside a compiled function body
 	]
 	
 	init: does [
@@ -121,6 +108,25 @@ stack: context [										;-- call stack
 		
 		body-symbol: words/_body/symbol
 		anon-symbol: words/_anon/symbol
+	]
+	
+	mark: func [
+		fun  [red-word!]
+		type [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
+
+		if ctop = c-end [
+			print-line ["^/*** Error: call stack overflow!^/"]
+			throw RED_ERROR
+		]
+		ctop/header: type or (fun/symbol << 8)
+		ctop/prev:	 arguments
+		ctop/ctx:	 fun/ctx
+		ctop: ctop + 1
+		arguments: top								;-- top of stack becomes frame base
+
+		#if debug? = yes [if verbose > 1 [dump]]
 	]
 	
 	check-call: does [
@@ -160,6 +166,20 @@ stack: context [										;-- call stack
 	mark-loop:	 		MARK_STACK(FRAME_LOOP)
 	mark-interp-native: MARK_STACK(FRAME_INT_NAT)
 	mark-interp-func:	MARK_STACK(FRAME_INT_FUNC)
+	mark-func-body:		MARK_STACK(FRAME_IN_CFUNC)
+	
+	set-in-func-flag: func [
+		state [logic!]
+		/local
+			frame [call-frame!]
+	][
+		frame: ctop - 1
+		either state [
+			frame/header: frame/header or FLAG_IN_FUNC
+		][
+			frame/header: frame/header and not FLAG_IN_FUNC
+		]
+	]
 	
 	get-call: func [
 		return: [red-word!]
@@ -241,7 +261,7 @@ stack: context [										;-- call stack
 		assert cbottom < ctop
 		until [
 			ctop: ctop - 1
-			type: 1F000000h and ctop/header
+			type: CALL_STACK_MASK and ctop/header
 			any [
 				ctop <= cbottom
 				type = flags
@@ -399,6 +419,50 @@ stack: context [										;-- call stack
 				throw RED_CONTINUE_EXCEPTION
 			][
 				throw RED_BREAK_EXCEPTION
+			]
+		]
+	]
+	
+	throw-exit: func [
+		return? [logic!]
+		/local
+			result	  [red-value!]
+			save-top  [red-value!]
+			save-ctop [call-frame!]
+			p		  [call-frame!]
+	][
+		result:	   arguments
+		save-top:  top
+		save-ctop: ctop
+
+		;-- unwind the stack and determine the outcome of a break/continue exception
+		until [
+			if CALL_STACK_TYPE?(ctop FRAME_TRY_ALL) [
+				ctop: save-ctop
+				fire [TO_ERROR(throw return)]
+			]
+			ctop: ctop - 1
+			any [
+				ctop <= cbottom
+				ctop/header and FLAG_IN_FUNC <> 0		;-- function body, we are fine!			
+			]
+		]
+		either ctop < cbottom [
+			arguments: result
+			top:	   save-top	
+			ctop:	   save-ctop
+			fire [TO_ERROR(throw return)]
+		][
+			ctop: ctop + 1
+			p: ctop + 1									;-- + 1 for getting ctop/prev value
+			arguments: ctop/prev
+			top: arguments
+			either return? [
+				set-last result
+				throw THROWN_RETURN
+			][
+				unset/push-last
+				throw THROWN_EXIT
 			]
 		]
 	]

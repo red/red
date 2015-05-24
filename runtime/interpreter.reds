@@ -85,7 +85,6 @@ interpreter: context [
 	verbose: 0
 
 	return-type: -1										;-- return type for routine calls
-	in-func?:	 0										;@@ make it thread-safe?
 	
 	log: func [msg [c-string!]][
 		print "eval: "
@@ -159,15 +158,15 @@ interpreter: context [
 			ctx	  [red-context!]
 			saved [node!]
 	][
-		in-func?: in-func? + 1
 		ctx: GET_CTX(fun)
 		saved: ctx/values
 		ctx/values: as node! stack/arguments
+		stack/set-in-func-flag yes
 		
 		eval body yes
 		
+		stack/set-in-func-flag no
 		ctx/values: saved
-		in-func?: in-func? - 1
 		switch system/thrown [
 			RED_ERROR			   [throw RED_ERROR]			  ;-- let exception pass through
 			RED_BREAK_EXCEPTION	   [fire [TO_ERROR(throw break)]]
@@ -665,30 +664,6 @@ interpreter: context [
 					]
 				]
 				value: _context/get as red-word! pc
-				
-				if positive? in-func? [
-					w: as red-word! pc
-					sym: w/symbol
-					case [
-						sym = words/exit* [
-							copy-cell unset-value stack/arguments
-							stack/unroll stack/FRAME_FUNCTION
-							throw THROWN_EXIT
-						]
-						sym = words/return* [
-							pc: pc + 1
-							either pc >= end [
-								unset/push-last
-							][
-								pc: eval-expression pc end no yes
-								stack/set-last stack/top - 1
-							]
-							stack/unroll stack/FRAME_FUNCTION
-							throw THROWN_RETURN
-						]
-						true [0]
-					]
-				]
 				pc: pc + 1
 				
 				switch TYPE_OF(value) [
