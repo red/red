@@ -209,6 +209,13 @@ Red [
 	--test-- "fun-ret-14"								;-- issue #778
 	 	--assert 1 = do load "f: func [][return 1] t: f"
 		
+	--test-- "fun-ret-15"								;-- issue #1169
+		f: does [parse "1" [(return 123)]]
+		--assert f = 123
+
+	--test-- "fun-ret-16"
+		f: does [do [return 124]]
+		--assert f = 124
 
 ===end-group===
 
