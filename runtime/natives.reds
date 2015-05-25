@@ -154,23 +154,25 @@ natives: context [
 	]
 	
 	loop*: func [
+		[catch]
 		/local
 			body  [red-block!]
 			count [integer!]
+			id 	  [integer!]
 	][
 		count: integer/get*
 		unless positive? count [RETURN_NONE]				;-- if counter <= 0, no loops
 		body: as red-block! stack/arguments + 1
-	
+		
 		stack/mark-loop words/_body
 		loop count [
 			stack/reset
-			catch RED_BREAK_EXCEPTION [interpreter/eval body yes]
+			interpreter/eval body yes
 			switch system/thrown [
 				RED_BREAK_EXCEPTION		[system/thrown: 0 break]
 				RED_CONTINUE_EXCEPTION	[system/thrown: 0 continue]
 				0 						[0]
-				default					[re-throw]
+				default					[id: system/thrown throw id]
 			]
 		]
 		stack/unwind-last
