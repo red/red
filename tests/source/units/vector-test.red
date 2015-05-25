@@ -114,5 +114,50 @@ Red [
 		
 ===end-group===
 
+===start-group=== "vector navigation"
+
+	--test-- "vector-navigation-1"
+		vn-v: make vector! [0 1 2 3 4]
+		vn-v: next vn-v
+		--assert vn-v/1 = 1
+		--assert vn-v/4 = 4
+	
+	--test-- "vector-navigation-2"
+		vn-v: make vector! [0 1 2 3 4]
+		vn-v: next next vn-v
+		--assert vn-v/1 = 2
+		--assert vn-v/3 = 4
+	
+	--test-- "vector-navigation-3"
+		vn-v: make vector! [0 1 2 3 4]
+		vn-v: next next next vn-v
+		--assert vn-v/1 = 3 
+		--assert vn-v/2 = 4
+	
+	--test-- "vector-navigation-4"
+		vn-v: make vector! [0 1 2 3 4]
+		vn-v: next next next next vn-v
+		--assert vn-v/1 = 4
+		
+	--test-- "vector-navigation-5"
+		vn-v: make vector! [0 1 2 3 4]
+		vn-v: tail vn-v
+		--assert vn-v/1 = none
+		
+	--test-- "vector-navigation-6"
+		vn-v: make vector! [0 1 2 3 4]
+		vn-v: back tail vn-v
+		--assert vn-v/1 = 4
+	
+	--test-- "vector-navigation-56"
+		vn-v: make vector! [0 1 2 3 4]
+		vn-v: head tail vn-v
+		--assert vn-v/1 = 0
+		--assert vn-v/5 = 4
+	
+		
+	
+===end-group===
+
 ~~~end-file~~~
 
