@@ -15,7 +15,7 @@ Red [
 
 	--test-- "an1" --assert 1  = catch [throw 1 --assert no]
 	--test-- "an2" --assert 2  = catch [if true [throw 2 --assert no] --assert no]
-	;--test-- "an3" --assert 3  = catch [loop 1 [throw 3 --assert no] --assert no]
+	--test-- "an3" --assert 3  = catch [loop 1 [throw 3 --assert no] --assert no]
 	--test-- "an4" --assert 4  = catch [while [true][throw 4 --assert no] --assert no]
 	--test-- "an5" --assert 5  = catch [until [throw 5 --assert no] --assert no]
 	--test-- "an6" --assert 6  = catch [6]
@@ -31,13 +31,15 @@ Red [
 		g: does [f --assert no]
 		--assert 10 = catch [g]
 	
+	--test-- "an11" --assert 11 = catch [parse "1" [(throw 11 --assert no)] --assert no]
+	
 ===end-group===
 
 ===start-group=== "Named THROW"
 
 	--test-- "name1" --assert 1  = catch [throw/name 1 'a --assert no]
 	--test-- "name2" --assert 2  = catch/name [if true [throw/name 2 'a --assert no] --assert no] 'a
-	;--test-- "name3" --assert 3  = catch/name [loop 1 [throw/name 3 'b --assert no] --assert no] 'b
+	--test-- "name3" --assert 3  = catch/name [loop 1 [throw/name 3 'b --assert no] --assert no] 'b
 	--test-- "name4" --assert 4  = catch/name [while [true][throw/name 4 'c --assert no] --assert no] 'c
 	--test-- "name5" --assert 5  = catch/name [until [throw/name 5 'd --assert no] --assert no] 'd
 	--test-- "name6" --assert 6  = catch/name [do [throw/name 6 'e --assert no] --assert no] 'e
