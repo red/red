@@ -488,7 +488,7 @@ stack: context [										;-- call stack
 			ctop: ctop - 1
 			any [
 				ctop < cbottom
-				CALL_STACK_TYPE?(ctop FRAME_CATCH)		;-- CATCH call found, we are fine!			
+				CALL_STACK_TYPE?(ctop FRAME_CATCH)		;-- CATCH call found, we are fine!
 			]
 		]
 		either ctop < cbottom [
@@ -502,7 +502,7 @@ stack: context [										;-- call stack
 			arguments: ctop/prev
 			top: arguments
 			push result
-			push result + 1								;-- get back the NAME argument too		
+			push result + 1								;-- get back the NAME argument too
 			throw id
 		]
 	]
