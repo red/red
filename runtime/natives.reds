@@ -1521,6 +1521,69 @@ natives: context [
 	exit*: does [stack/throw-exit no]
 	
 	return*: does [stack/throw-exit yes]
+	
+	throw*: func [
+		name [integer!]
+	][
+		if name = -1 [unset/push]						;-- fill this slot anyway for CATCH		
+		stack/throw-throw THROWN_THROW
+	]
+	
+	catch*: func [
+		name [integer!]
+		/local
+			arg	   [red-value!]
+			c-name [red-word!]
+			t-name [red-word!]
+			word   [red-word!]
+			tail   [red-word!]
+			id	   [integer!]
+			found? [logic!]
+	][
+		found?: no
+		id:		0
+		arg:	stack/arguments
+		
+		if name <> -1 [
+			c-name: as red-word! arg + name
+			id: c-name/symbol
+		]
+		stack/mark-catch words/_body
+		catch THROWN_THROW [interpreter/eval as red-block! arg yes]
+		t-name: as red-word! stack/arguments + 1
+		stack/unwind-last
+		
+		if system/thrown > 0 [
+			if system/thrown <> THROWN_THROW [re-throw]
+			if name <> -1 [
+				either TYPE_OF(t-name) = TYPE_WORD [
+					either TYPE_OF(c-name) = TYPE_BLOCK [
+						word: as red-word! block/rs-head as red-block! c-name
+						tail: as red-word! block/rs-tail as red-block! c-name
+						while [word < tail][
+							if TYPE_OF(word) <> TYPE_WORD [
+								fire [TO_ERROR(script invalid-refine-arg) words/_name c-name]
+							]
+							if EQUAL_WORDS?(t-name word) [found?: yes break]
+							word: word + 1
+						]
+					][
+						found?: EQUAL_WORDS?(t-name c-name)
+					]
+				][
+					found?: no							;-- THROW with no /NAME refinement
+				]
+				unless found? [
+					copy-cell as red-value! t-name stack/arguments + 1 ;-- ensure t-name is at args + 1
+					stack/ctop: stack/ctop - 1			;-- skip the current CATCH call frame
+					stack/throw-throw THROWN_THROW
+				]
+			]
+			system/thrown: 0
+			stack/set-last stack/top - 1
+			stack/top: stack/arguments + 1
+		]
+	]
 
 	;--- Natives helper functions ---
 
@@ -1918,6 +1981,8 @@ natives: context [
 			:continue*
 			:exit*
 			:return*
+			:throw*
+			:catch*
 		]
 	]
 

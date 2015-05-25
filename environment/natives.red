@@ -654,8 +654,26 @@ exit: make native! [[
 ]
 
 return: make native! [[
-		"Returns a value from a function."
+		"Returns a value from a function"
 		value [any-type!]
 	]
 	#get-definition NAT_RETURN
+]
+
+throw: make native! [[
+		"Throws control back to a previous catch"
+		value [any-type!] "Value returned from catch"
+		/name "Throws to a named catch"
+			word [word!]
+	]
+	#get-definition NAT_THROW
+]
+
+catch: make native! [[
+		"Catches a throw from a block and returns its value"
+		block [block!] "Block to evaluate"
+		/name "Catches a named throw"
+			word [word! block!] "One or more names"
+	]
+	#get-definition NAT_CATCH
 ]

@@ -329,6 +329,8 @@ words: context [
 	_type:			as red-word! 0
 	_id:			as red-word! 0
 	_try:			as red-word! 0
+	_catch:			as red-word! 0
+	_name:			as red-word! 0
 	
 	
 	errors: context [
@@ -448,6 +450,8 @@ words: context [
 		_type:			word/load "type"
 		_id:			word/load "id"
 		_try:			word/load "try"
+		_catch:			word/load "catch"
+		_name:			word/load "name"
 		
 		errors/throw:	 word/load "throw"
 		errors/note:	 word/load "note"

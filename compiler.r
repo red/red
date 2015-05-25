@@ -487,7 +487,7 @@ red: context [
 		] empty? locals-stack
 
 		append body [
-			default [0]
+			default [re-throw]
 		]
 		reduce [body]
 	]

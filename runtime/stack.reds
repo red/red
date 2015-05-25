@@ -435,7 +435,7 @@ stack: context [										;-- call stack
 		save-top:  top
 		save-ctop: ctop
 
-		;-- unwind the stack and determine the outcome of a break/continue exception
+		;-- unwind the stack and determine the outcome of an exit/return exception
 		until [
 			if CALL_STACK_TYPE?(ctop FRAME_TRY_ALL) [
 				ctop: save-ctop
@@ -464,6 +464,46 @@ stack: context [										;-- call stack
 				unset/push-last
 				throw THROWN_EXIT
 			]
+		]
+	]
+	
+	throw-throw: func [
+		id [integer!]
+		/local
+			result	  [red-value!]
+			save-top  [red-value!]
+			save-ctop [call-frame!]
+			p		  [call-frame!]
+	][
+		result:	   arguments
+		save-top:  top
+		save-ctop: ctop
+		
+		;-- unwind the stack and determine the outcome of a break/continue exception
+		until [
+			if CALL_STACK_TYPE?(ctop FRAME_TRY_ALL) [
+				ctop: save-ctop
+				fire [TO_ERROR(throw throw) result]
+			]
+			ctop: ctop - 1
+			any [
+				ctop < cbottom
+				CALL_STACK_TYPE?(ctop FRAME_CATCH)		;-- CATCH call found, we are fine!			
+			]
+		]
+		either ctop < cbottom [
+			arguments: result
+			top:	   save-top	
+			ctop:	   save-ctop
+			fire [TO_ERROR(throw throw) result]
+		][
+			ctop: ctop + 1
+			p: ctop + 1									;-- + 1 for getting ctop/prev value
+			arguments: ctop/prev
+			top: arguments
+			push result
+			push result + 1								;-- get back the NAME argument too		
+			throw id
 		]
 	]
 	

@@ -210,6 +210,8 @@ Red/System [
 	NAT_CONTINUE
 	NAT_EXIT
 	NAT_RETURN
+	NAT_THROW
+	NAT_CATCH
 ]
 
 #enum math-op! [
@@ -244,6 +246,7 @@ Red/System [
 
 #enum exceptions! [
 	NO_EXCEPTION
+	THROWN_THROW
 	THROWN_EXIT
 	THROWN_RETURN
 ]
