@@ -159,15 +159,19 @@ natives: context [
 			body  [red-block!]
 			count [integer!]
 			id 	  [integer!]
+			saved [int-ptr!]
 	][
 		count: integer/get*
-		unless positive? count [RETURN_NONE]				;-- if counter <= 0, no loops
+		unless positive? count [RETURN_NONE]			;-- if counter <= 0, no loops
 		body: as red-block! stack/arguments + 1
 		
-		stack/mark-loop words/_body
+		stack/mark-loop words/_body		
 		loop count [
 			stack/reset
+			saved: system/stack/top						;--	FIXME: solve loop/catch conflict
 			interpreter/eval body yes
+			system/stack/top: saved
+			
 			switch system/thrown [
 				RED_BREAK_EXCEPTION		[system/thrown: 0 break]
 				RED_CONTINUE_EXCEPTION	[system/thrown: 0 continue]
