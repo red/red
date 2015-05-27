@@ -363,8 +363,12 @@ interpreter: context [
 							bits: (as byte-ptr! expected) + 4
 							BS_TEST_BIT(bits TYPE_UNSET set?)
 							
-							either all [set? pc >= end][ ;-- check for unset! spec
-								unset/push
+							either all [
+								set?					;-- if unset! is accepted
+								pc >= end				;-- if no more values to fetch
+								TYPE_OF(value) = TYPE_LIT_WORD ;-- and if spec argument is a lit-word!
+							][
+								unset/push				;-- then, supply an unset argument
 							][
 								FETCH_ARGUMENT
 								arg:  stack/top - 1
