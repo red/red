@@ -158,6 +158,23 @@ vector: context [
 		]
 	]
 
+	get-value-float: func [
+		p		[byte-ptr!]
+		unit	[integer!]
+		return: [float!]
+		/local
+			pf	 [pointer! [float!]]
+			pf32 [pointer! [float32!]]
+	][
+		either unit = 4 [
+			pf32: as pointer! [float32!] p
+			as-float pf32/value
+		][
+			pf: as pointer! [float!] p
+			pf/value
+		]
+	]
+
 	get-value: func [
 		p		[byte-ptr!]
 		unit	[integer!]
@@ -166,8 +183,6 @@ vector: context [
 		/local
 			int    [red-integer!]
 			float  [red-float!]
-			pf	   [pointer! [float!]]
-			pf32   [pointer! [float32!]]
 	][
 		switch type [
 			TYPE_CHAR
@@ -180,13 +195,7 @@ vector: context [
 			TYPE_FLOAT [
 				float: as red-float! stack/push*
 				float/header: TYPE_FLOAT
-				float/value: either unit = 6 [
-								pf: as pointer! [float!] p
-								pf/value
-							][
-								pf32: as pointer! [float32!] p
-								as-float pf32/value
-							]
+				float/value: get-value-float p unit
 				as red-value! float
 			]
 		]
@@ -650,6 +659,96 @@ vector: context [
 		]
 	]
 
+	compare: func [
+		vec1	[red-vector!]
+		vec2	[red-vector!]
+		op		[integer!]
+		return:	[integer!]
+		/local
+			s1		[series!]
+			s2		[series!]
+			unit	[integer!]
+			unit1	[integer!]
+			unit2	[integer!]
+			type	[integer!]
+			len1	[integer!]
+			len2	[integer!]
+			v1		[integer!]
+			v2		[integer!]
+			end 	[byte-ptr!]
+			p1		[byte-ptr!]
+			p2		[byte-ptr!]
+			f1		[float!]
+			f2		[float!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "vector/compare"]]
+
+		if TYPE_OF(vec2) <> TYPE_VECTOR [RETURN_COMPARE_OTHER]
+		if vec1/type <> vec2/type [fire [TO_ERROR(script not-same-type)]]
+		
+		s1: GET_BUFFER(vec1)
+		s2: GET_BUFFER(vec2)
+		unit1: GET_UNIT(s1)
+		unit2: GET_UNIT(s2)
+		len1: rs-length? vec1
+		len2: rs-length? vec2
+
+		end: as byte-ptr! s2/tail
+
+		either len1 <> len2 [							;-- shortcut exit for different sizes
+			if any [
+				op = COMP_EQUAL op = COMP_STRICT_EQUAL op = COMP_NOT_EQUAL
+			][return 1]
+
+			if len2 > len1 [
+				end: end - (len2 - len1 << (unit2 >> 1))
+			]
+		][
+			if zero? len1 [return 0]					;-- shortcut exit for empty vector!
+		]
+
+		type: vec1/type
+		p1: (as byte-ptr! s1/offset) + (vec1/head << (unit1 >> 1))
+		p2: (as byte-ptr! s2/offset) + (vec2/head << (unit2 >> 1))
+
+		switch type [
+			TYPE_CHAR
+			TYPE_INTEGER [
+				until [
+					v1: get-value-int as int-ptr! p1 unit1
+					v2: get-value-int as int-ptr! p2 unit2
+					p1: p1 + unit1
+					p2: p2 + unit2
+					any [
+						v1 <> v2
+						p2 >= end
+					]
+				]
+				if v1 = v2 [v1: len1 v2: len2]
+				SIGN_COMPARE_RESULT(v1 v2)
+			]
+			TYPE_FLOAT [
+				if unit1 = 6 [unit1: 8]
+				if unit2 = 6 [unit2: 8]
+				until [
+					f1: get-value-float p1 unit1
+					f2: get-value-float p2 unit2
+					p1: p1 + unit1
+					p2: p2 + unit2
+					any [
+						v1 <> v2
+						p2 >= end
+					]
+				]
+				either f1 = f2 [
+					SIGN_COMPARE_RESULT(len1 len2)
+				][
+					SIGN_COMPARE_RESULT(f1 f2)
+				]
+			]
+		]
+	]
+
 	;--- Modifying actions ---
 			
 	insert: func [
@@ -801,7 +900,7 @@ vector: context [
 			:mold
 			INHERIT_ACTION	;eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			:add
