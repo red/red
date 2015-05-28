@@ -2174,7 +2174,7 @@ red: context [
 		]
 		
 		foreach item spec [								;-- add all arguments to ignore list
-			if find [word! lit-word! get-word!] type?/word item [
+			if find [word! lit-word! get-word! refinement!] type?/word item [
 				unless ignore [ignore: make block! 1]
 				item: to word! :item
 				unless find ignore item [append ignore item]
