@@ -524,12 +524,9 @@ interpreter: context [
 			s	 [series!]
 			ctx	 [node!]
 	][
-		either null? slot [
-			name: as red-word! pc - 1
-			if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
-		][
-			name: as red-word! slot
-		]
+		name: as red-word! either null? slot [pc - 1][slot]
+		if TYPE_OF(name) <> TYPE_WORD [name: words/_anon]
+		
 		switch TYPE_OF(value) [
 			TYPE_ACTION 
 			TYPE_NATIVE [
