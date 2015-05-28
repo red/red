@@ -126,6 +126,68 @@ map: context [
 		map
 	]
 
+	reflect: func [
+		map		[red-hash!]
+		field	[integer!]
+		return:	[red-block!]
+		/local
+			blk    [red-block!]
+			s-tail [red-value!]
+			value  [red-value!]
+			next   [red-value!]
+			size   [integer!]
+			s	   [series!]
+	][
+		blk: 		as red-block! stack/push*
+		blk/header: TYPE_BLOCK
+		blk/head: 	0
+
+		s: GET_BUFFER(map)
+		value: s/offset
+		s-tail: s/tail
+		size: block/rs-length? as red-block! map
+		case [
+			field = words/words [
+				blk/node: alloc-cells size >> 1
+				while [value < s-tail][
+					next: value + 1
+					unless TYPE_OF(next) = TYPE_NONE [
+						if TYPE_OF(value) = TYPE_SET_WORD [
+							value/header: TYPE_WORD
+						]
+						block/rs-append blk value
+					]
+					value: value + 2
+				]
+			]
+			field = words/values [
+				blk/node: alloc-cells size >> 1
+				while [value < s-tail][
+					next: value + 1
+					unless TYPE_OF(next) = TYPE_NONE [
+						block/rs-append blk next
+					]
+					value: value + 2
+				]
+			]
+			field = words/body [
+				blk/node: alloc-cells size
+				while [value < s-tail][
+					next: value + 1
+					unless TYPE_OF(next) = TYPE_NONE [
+						block/rs-append blk value
+						block/rs-append blk next
+					]
+					value: value + 2
+				]
+			]
+			true [
+				--NOT_IMPLEMENTED--						;@@ raise error
+			]
+		]
+		as red-block! stack/set-last as red-value! blk
+	]
+
 	form: func [
 		map		  [red-hash!]
 		buffer	  [red-string!]
@@ -405,7 +467,7 @@ map: context [
 			;-- General actions --
 			:make
 			null			;random
-			null			;reflect
+			:reflect
 			null			;to
 			:form
 			:mold
