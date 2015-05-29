@@ -149,14 +149,47 @@ Red [
 		vn-v: back tail vn-v
 		--assert vn-v/1 = 4
 	
-	--test-- "vector-navigation-56"
+	--test-- "vector-navigation-7"
 		vn-v: make vector! [0 1 2 3 4]
 		vn-v: head tail vn-v
 		--assert vn-v/1 = 0
 		--assert vn-v/5 = 4
 	
-		
+===end-group===
+
+===start-group=== "vector comparison"
+
+	--test-- "vector-comparison-1"
+		--assert (make vector! [1 2 3 4]) = make vector! [1 2 3 4]
 	
+	--test-- "vector-comparison-2"
+		--assert (make vector! [1 2 3 4]) <> make vector! [1 2 3 3]
+		
+	--test-- "vector-comparison-3"
+		--assert (make vector! [1 2 3 4]) > make vector! [1 2 3 3]
+		
+	--test-- "vector-comparison-4"
+		--assert (make vector! [1 2 3 3]) < make vector! [1 2 3 4]
+		
+	--test-- "vector-comparison-5"
+		--assert (make vector! [1 2 3]) < make vector! [1 2 3 4]
+		
+	--test-- "vector-comparison-6"
+		--assert equal? make vector! [1 2 3 4] make vector! [1 2 3 4]
+	
+	--test-- "vector-comparison-7"
+		--assert not equal? make vector! [1 2 3 4]make vector! [1 2 3 3]
+		
+	--test-- "vector-comparison-8"
+		--assert greater? make vector! [1 2 3 4] make vector! [1 2 3 3]
+		
+	--test-- "vector-comparison-9"
+		--assert lesser? make vector! [1 2 3 3] make vector! [1 2 3 4]
+		
+	--test-- "vector-comparison-10"
+		--assert lesser? make vector! [1 2 3] make vector! [1 2 3 4]
+	
+
 ===end-group===
 
 ~~~end-file~~~

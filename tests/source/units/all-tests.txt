@@ -30,6 +30,7 @@ words-of-test.red
 case-folding-test.red
 loop-test.red
 throw-test.red
+vector-test.red
 auto-tests/integer-auto-test.red
 auto-tests/float-auto-test.red
 auto-tests/infix-equal-auto-test.red
