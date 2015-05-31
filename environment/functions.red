@@ -31,7 +31,7 @@ empty?: func [
 	series	[series! none!]
 	return:	[logic!]
 ][
-	either none? series [true][tail? series]
+	either series = none [true][tail? series]
 ]
 
 ??: func [
@@ -313,6 +313,5 @@ eval-set-path: func [value1][]
 ;-				Aliases					  -
 ;------------------------------------------
 
-;empty?: :tail?
 atan2: :arctangent2
 object: :context
