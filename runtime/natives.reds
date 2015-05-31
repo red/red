@@ -16,11 +16,6 @@ Red/System [
 	exit
 ]
 
-#define RETURN_UNSET [
-	stack/reset
-	unset/push-last
-]
-
 natives: context [
 	verbose:  0
 	lf?: 	  no										;-- used to print or not an ending newline
@@ -129,7 +124,8 @@ natives: context [
 			]
 		]
 		stack/unwind
-		RETURN_UNSET
+		stack/reset
+		unset/push-last
 	]
 	
 	until*: func [
