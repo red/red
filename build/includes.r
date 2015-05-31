@@ -50,7 +50,6 @@ write %build/bin/sources.r set-cache [
 		%sort.reds
 		%hashtable.reds
 		%stack.reds
-		%stack.reds
 		%tools.reds
 		%unicode.reds
 		%simple-io.reds
