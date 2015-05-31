@@ -189,8 +189,102 @@ Red [
 	--test-- "vector-comparison-10"
 		--assert lesser? make vector! [1 2 3] make vector! [1 2 3 4]
 	
-
 ===end-group===
+
+===start-group=== "vector ordinal"
+
+	--test-- "vector-ordinal-1"
+		--assert 1 = first make vector! [1 2 3 4]
+
+	--test-- "vector-ordinal-2"
+		--assert 2 = second make vector! [1 2 3 4]
+
+	--test-- "vector-ordinal-3"
+		--assert 3 = third make vector! [1 2 3 4]
+
+	--test-- "vector-ordinal-4"
+		--assert 4 = fourth make vector! [1 2 3 4]
+
+	--test-- "vector-ordinal-5"
+		--assert 5 = fifth make vector! [1 2 3 4 5]
+
+	--test-- "vector-ordinal-6"
+		--assert none = fifth make vector! [1 2 3 4]
+		
+	--test-- "vector-ordinal-7"
+		--assert 4 = last make vector! [1 2 3 4]
+		
+	--test-- "vector-ordinal-8"
+		--assert 2 = first next make vector! [1 2 3 4]		
+	
+	--test-- "vector-ordinal-7"
+		--assert 3 = second next make vector! [1 2 3 4]
+		
+===end-group===
+
+===start-group=== "vector-clear"
+		
+		empty-vector: make vector! []
+
+	--test-- "vector-clear-1"
+		--assert empty-vector = clear make vector! [1 2 3 4]
+		
+	--test-- "vector-clear-2"
+		vc2-v: make vector! [1 2 3 4]
+		append vc2-v 5 
+		--assert empty-vector = clear vc2-v
+		
+===end-group===
+
+===start-group=== "vector-copy"
+
+	--test-- "vector-copy-1"
+		vcp1-v1: make vector! [1 2 3 4]
+		vcp1-v2: copy vcp1-v1
+		vcp1-v1/1: 5
+		vcp1-v1/2: 6
+		vcp1-v1/3: 7
+		vcp1-v1/4: 8
+		--assert vcp1-v1 = make vector! [5 6 7 8]
+		--assert vcp1-v2 = make vector! [1 2 3 4]
+		
+	--test-- "vector-copy-2"
+		vcp2-v: make vector! [1 2 3 4 5 6 7 8 9]
+			--assert (make vector! [1 2 3 4]) = copy/part vcp2-v 4
+			
+	--test-- "vector-copy-3"
+		vcp3-v: make vector! [1 2 3 4 5 6 7 8 9]
+			--assert (make vector! [3 4]) = copy/part next next vcp3-v 2
+
+	--test-- "vector-copy-4"
+		vcp4-v: make vector! [1 2 3 4 5 6 7 8 9]
+			--assert (make vector! [8]) = copy/part back back tail vcp4-v 1
+
+	--test-- "vector-copy-5"
+		vcp5-v: make vector! [1 2]
+			--assert (make vector! [1 2]) = copy/part vcp5-v 4
+	
+===end-group===
+
+===start-group=== "vector poke"
+
+	--test-- "vector-poke-1"
+		vp1-v: make vector! [1 2]
+		poke vp1-v 1 0
+		--assert (make vector! [0 2]) = vp1-v
+		
+	--test-- "vector-poke-2"
+		vp2-v: make vector! [1 2 3]
+		poke vp2-v 3 0
+		--assert (make vector! [1 2 0]) = vp2-v
+		
+	--test-- "vector-poke-3"
+		vp3-v: make vector! [1 2 3]
+		poke vp3-v 2 0
+		--assert (make vector! [1 0 3]) = vp3-v
+		
+===end-group===
+
 
 ~~~end-file~~~
 
