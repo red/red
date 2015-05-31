@@ -285,6 +285,85 @@ Red [
 		
 ===end-group===
 
+===start-group=== "vector remove"
+
+	--test-- "vector-remove-1"
+		--assert (make vector! [2 3]) = remove make vector! [1 2 3]
+		
+	--test-- "vector-remove-2"
+		--assert (make vector! [3]) = remove next make vector! [1 2 3]
+		
+	--test-- "vector-remove-3"
+		--assert (make vector! []) = remove tail make vector! [1 2 3]
+		
+	--test-- "vector-remove-4"
+		--assert (make vector! []) = remove back tail make vector! [1 2 3]
+		
+	--test-- "vector-remove-5"
+		--assert (make vector! [3]) = remove back back tail make vector! [1 2 3]
+
+===end-group===
+
+===start-group=== "vector reverse"
+
+	--test-- "vector-reverse-1"
+		--assert (make vector! [4 3 2 1]) = reverse make vector! [1 2 3 4]
+		
+	--test-- "vector-reverse-2"
+		--assert (make vector! [1 4 3 2 ]) = head reverse next make vector! [1 2 3 4]
+		
+	--test-- "vector-reverse-2"
+		--assert (make vector! [1 2 3 4]) = head reverse tail make vector! [1 2 3 4]
+		
+===end-group===
+
+===start-group=== "vector take"
+
+	--test-- "vector-take-1"
+		vt1-v: make vector! [1 2 3 4]
+		--assert 1 = take vt1-v
+		--assert vt1-v = make vector! [2 3 4]
+	
+	--test-- "vector-take-2"
+		vt2-v: make vector! [1 2 3 4]
+		--assert 2 = take next vt2-v
+		--assert vt2-v = make vector! [1 3 4]
+		
+	--test-- "vector-take-3"
+		vt3-v: make vector! [1 2 3 4]
+		--assert 4 = take/last vt3-v
+		--assert vt3-v = make vector! [1 2 3]
+		
+	--test-- "vector-take-4"
+		vt4-v: make vector! [1 2 3 4]
+		--assert (make vector! [1 2]) = take/part vt4-v 2
+		--assert vt4-v = make vector! [3 4]
+		
+	--test-- "vector-take-5"
+		vt5-v: make vector! [1 2 3 4]
+		--assert (make vector! [1 2]) = take/part vt5-v find vt5-v 3
+		--assert vt5-v = make vector! [3 4]
+
+===end-group===
+
+===start-group=== "vector sort"
+
+	--test-- "vector-sort-1"
+		--assert (make vector! [1 2 3]) = sort make vector! [3 2 1]
+		
+	--test-- "vector-sort-2"
+		--assert (make vector! [3 1 2]) = head sort next make vector! [3 2 1]
+		
+	--test-- "vector-sort-3"
+		--assert (make vector! [3 2 1]) = head sort tail make vector! [3 2 1]
+
+	--test-- "vector-sort-4"
+		--assert (make vector! [#"c" #"à" #"é"]) = sort make vector! [#"é" #"à" #"c"]
+		
+===end-group===
+
+
+
 
 ~~~end-file~~~
 
