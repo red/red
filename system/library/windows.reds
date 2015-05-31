@@ -2,7 +2,7 @@ Red/System [
 	Title:   "Red/System windows Binding"
 	Author:  "Bruno Anselme"
 	EMail:   "be.red@free.fr"
-	File:    %window.reds
+	File:    %windows.reds
 	Rights:  "Copyright (c) 2014 Bruno Anselme"
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
@@ -42,8 +42,8 @@ Red/System [
 
 	#define IS_TEXT_UNICODE_UNICODE_MASK 	000Fh
 
-	#define GENERIC_WRITE	80000000h
-	#define GENERIC_READ	40000000h
+	#define GENERIC_WRITE	40000000h
+	#define GENERIC_READ	80000000h
 
 	#define FILE_SHARE_READ		1
 	#define FILE_SHARE_WRITE	2
