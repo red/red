@@ -20,7 +20,7 @@ Red [
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 ***FILE***
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012, 2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	Rights:  "Copyright (C) 2011-2015, Nenad Rakocevic & Peter W A Wood. All rights reserved."
 	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
 ]
 
