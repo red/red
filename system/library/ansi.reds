@@ -3,10 +3,10 @@ Red/System [
 	Author:  [ "Kaj de Vos" "Bruno Anselme" ]
 	EMail:   "be.red@free.fr"
 	File:    %ansi.reds
-	Rights:  "Copyright (c) 2013 Bruno Anselme"
+	Rights:  "Copyright (c) 2013-2015 Bruno Anselme"
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Purpose: {
 		All functions definitions imported from Kaj's ANSI.reds binding for future compliance.

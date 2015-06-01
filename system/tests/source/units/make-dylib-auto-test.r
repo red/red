@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Peter W A Wood"
 	File: 	 %make-dylib-auto-test.r
 	Version: 0.2.0
-	Rights:  "Copyright (C) 2012-2014 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2012-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 do %create-dylib-auto-test.r

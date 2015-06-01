@@ -2,8 +2,8 @@ REBOL [
 	Title:   "Red/System namespace compiler test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %namespace-test.r
-	Rights:  "Copyright (C) 2012 Nenad Rakocevic & Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2012-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 change-dir %../

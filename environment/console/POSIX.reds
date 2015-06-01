@@ -3,10 +3,10 @@ Red/System [
 	Author: "Nenad Rakocevic, Xie Qingtian"
 	File: 	%POSIX.reds
 	Tabs: 	4
-	Rights: "Copyright (C) 2014 Nenad Rakocevic. All rights reserved."
+	Rights: "Copyright (C) 2014-2015 Nenad Rakocevic. All rights reserved."
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Notes: {
 		Freely inspired by linenoise fork from msteveb:

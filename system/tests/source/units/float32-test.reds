@@ -3,8 +3,8 @@ Red/System [
 	Author:  "Peter W A Wood"
 	File: 	 %float32-test.reds
 	Version: 0.1.0
-	Rights:  "Copyright (C) 2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2012-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include %../../../../quick-test/quick-test.reds

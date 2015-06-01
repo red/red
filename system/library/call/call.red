@@ -3,10 +3,10 @@ Red [
 	Author: "Bruno Anselme"
 	EMail:  "be.red@free.fr"
 	File:   %call.red
-	Rights: "Copyright (c) 2014 Bruno Anselme"
+	Rights: "Copyright (c) 2014-2015 Bruno Anselme"
 	License: {
 		Distributed under the Boost Software License, Version 1.0.
-		See https://github.com/dockimbel/Red/blob/master/BSL-License.txt
+		See https://github.com/red/red/blob/master/BSL-License.txt
 	}
 	Needs: {
 		Red/System >= 0.4.1

@@ -3,8 +3,8 @@ REBOL [
 	Author:  "Andreas Bolka, Nenad Rakocevic"
 	File:	 %ELF.r
 	Tabs:	 4
-	Rights:  "Copyright (C) 2011-2012 Andreas Bolka, Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2011-2015 Andreas Bolka, Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 ;; NOTE: all "offsets" are offsets into the file (as stored on disk),

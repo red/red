@@ -2,8 +2,8 @@ REBOL [
   Title:   "Old Red regression tests script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
 	File: 	 %regression-tests.r
-	Rights:  "Copyright (C) 2012 Nenad Rakocevic. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2012-2015 Nenad Rakocevic. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 ~~~start-file~~~ "Old Regression tests"

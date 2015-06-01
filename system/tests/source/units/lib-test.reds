@@ -2,8 +2,8 @@ Red/System [
 	Title:   "Red/System lib test script"
 	Author:  "Peter W A Wood"
 	File: 	 %lib-test-source.reds
-	Rights:  "Copyright (C) 2012 Peter W A Wood. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2012-2015 Peter W A Wood. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include %../../../../quick-test/quick-test.reds

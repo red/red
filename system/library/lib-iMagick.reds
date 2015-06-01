@@ -2,8 +2,8 @@ Red/System [
 	Title:   "Red/System imageMagick binding"
 	Author:  "Oldes"
 	File: 	 %iMagick.reds
-	Rights:  "Copyright (C) 2012 David 'Oldes' Oliva. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/master/BSD-3-License.txt"
+	Rights:  "Copyright (C) 2012-2015 David 'Oldes' Oliva. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/master/BSD-3-License.txt"
 ]
 
 #enum MagickBooleanType! [MagickFalse MagickTrue]

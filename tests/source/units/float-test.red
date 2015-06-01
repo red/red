@@ -3,8 +3,8 @@ Red [
 	Author:	"Peter W A Wood, Nenad Rakocevic, Xie Qing Tian"
 	File:	%float-test.red
 	Version: 0.2.0
-	Rights:	"Copyright (C) 2012-2014 Peter W A Wood, Nenad Rakocevic, Xie Qing Tian. All rights reserved."
-	License: "BSD-3 - https://github.com/dockimbel/Red/blob/origin/BSD-3-License.txt"
+	Rights:	"Copyright (C) 2012-2015 Peter W A Wood, Nenad Rakocevic, Xie Qing Tian. All rights reserved."
+	License: "BSD-3 - https://github.com/red/red/blob/origin/BSD-3-License.txt"
 ]
 
 #include %../../../quick-test/quick-test.red
