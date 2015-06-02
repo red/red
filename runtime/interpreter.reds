@@ -410,8 +410,8 @@ interpreter: context [
 	]
 	
 	eval-path: func [
-		value   [red-value!]
-		pc		[red-value!]							;-- path to evaluate
+		value   [red-value!]							;-- path to evaluate
+		pc		[red-value!]
 		end		[red-value!]
 		set?	[logic!]
 		get?	[logic!]
@@ -485,11 +485,11 @@ interpreter: context [
 			
 			gparent: parent								;-- save grand-parent reference
 			arg: either all [set? item + 1 = tail][stack/arguments][null]
-			parent: actions/eval-path parent value arg
+			parent: actions/eval-path parent value arg path
 			
 			unless get? [
 				switch TYPE_OF(parent) [
-					TYPE_ACTION								;@@ replace with TYPE_ANY_FUNCTION
+					TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
 					TYPE_NATIVE
 					TYPE_ROUTINE
 					TYPE_FUNCTION [

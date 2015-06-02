@@ -36,6 +36,29 @@ actions: context [
 		assert index = (ACTIONS_NB + 1)
 	]
 	
+	get-action-ptr-path: func [
+		value	[red-value!]							;-- any-type! value
+		action	[integer!]								;-- action ID
+		path	[red-value!]
+		return: [integer!]								;-- action pointer (datatype-dependent)
+		/local
+			type [integer!]								;-- datatype ID
+	][
+		type:  TYPE_OF(value)
+		index: type << 8 + action
+		index: action-table/index						;-- lookup action function pointer
+
+		if zero? index [
+			if null? path [path: none-value]
+			fire [
+				TO_ERROR(script bad-path-type)
+				path
+				datatype/push type
+			]
+		]
+		index
+	]
+	
 	get-action-ptr-from: func [
 		type	[integer!]								;-- datatype ID
 		action	[integer!]								;-- action ID
@@ -327,12 +350,14 @@ actions: context [
 			stack/arguments
 			stack/arguments + 1
 			value
+			null
 	]
 	
 	eval-path: func [
 		parent	[red-value!]
 		element	[red-value!]
 		value	[red-value!]
+		path	[red-path!]
 		return:	[red-value!]
 		/local
 			action-path
@@ -344,7 +369,7 @@ actions: context [
 			element	[red-value!]
 			value	[red-value!]
 			return:	[red-value!]
-		] get-action-ptr parent ACT_EVALPATH
+		] get-action-ptr-path parent ACT_EVALPATH as red-value! path
 		
 		action-path parent element value
 	]

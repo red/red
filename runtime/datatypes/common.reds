@@ -161,7 +161,7 @@ set-path*: func [
 	parent  [red-value!]
 	element [red-value!]
 ][
-	stack/set-last actions/eval-path parent element stack/arguments
+	stack/set-last actions/eval-path parent element stack/arguments null
 ]
 
 set-int-path*: func [
@@ -172,6 +172,7 @@ set-int-path*: func [
 		parent
 		as red-value! integer/push index
 		stack/arguments									;-- value to set
+		null
 ]
 
 eval-path*: func [
@@ -182,7 +183,7 @@ eval-path*: func [
 		result [red-value!]
 ][
 	slot: stack/push*									;-- reserve stack slot 
-	result: actions/eval-path parent element null		;-- no value to set
+	result: actions/eval-path parent element null null	;-- no value to set
 	copy-cell result slot								;-- set the stack as expected
 	stack/top: slot + 1									;-- erase intermediary stack allocations
 ]
@@ -196,7 +197,7 @@ eval-path: func [
 		result [red-value!]
 ][
 	top: stack/top
-	result: actions/eval-path parent element null		;-- no value to set
+	result: actions/eval-path parent element null null	;-- no value to set
 	stack/top: top
 	result
 ]
@@ -210,7 +211,7 @@ eval-int-path*: func [
 		result [red-value!]
 ][
 	int: as red-value! integer/push index
-	result: actions/eval-path parent int null			;-- no value to set
+	result: actions/eval-path parent int null null		;-- no value to set
 	copy-cell result int								;-- set the stack as expected
 	stack/top: int + 1									;-- erase intermediary stack allocations
 	result
@@ -225,7 +226,7 @@ eval-int-path: func [
 		result [red-value!]
 ][
 	int: as red-value! integer/push index
-	result: actions/eval-path parent int null			;-- no value to set
+	result: actions/eval-path parent int null null		;-- no value to set
 	stack/top: int										;-- erase intermediary stack allocations
 	result
 ]
