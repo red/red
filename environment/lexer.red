@@ -575,6 +575,16 @@ system/lexer: context [
 			opt [#"%" (type: percent!)]
 			ahead [integer-end | ws-no-count | end]
 		]
+		
+		map-rule: [
+			"#(" (append/only stack make block! 4)
+			any-value
+			#")" (
+				value: back tail stack
+				value/1: make map! value/1
+				pop stack
+			)
+		]
 
 		block-rule: [
 			#"[" (append/only stack make block! 4)
@@ -646,6 +656,7 @@ system/lexer: context [
 				| refinement-rule
 				| file-rule			(store stack value: do process)
 				| char-rule			(store stack value)
+				| map-rule
 				| issue-rule
 				| block-rule
 				| paren-rule

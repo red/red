@@ -108,9 +108,7 @@ map: context [
 			]
 			TYPE_BLOCK [
 				size: block/rs-length? as red-block! spec
-				if size % 2 <> 0 [
-					fire [TO_ERROR(script invalid-arg) spec]
-				]
+				if size % 2 <> 0 [fire [TO_ERROR(script invalid-arg) spec]]
 				blk?: yes
 			]
 			default [--NOT_IMPLEMENTED--]
@@ -213,10 +211,10 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/mold"]]
 
-		string/concatenate-literal buffer "make map! ["
-		part: serialize map buffer only? all? flat? arg part - 11 yes indent + 1 yes
+		string/concatenate-literal buffer "#("
+		part: serialize map buffer only? all? flat? arg part - 2 yes indent + 1 yes
 		if indent > 0 [part: object/do-indent buffer indent part]
-		string/append-char GET_BUFFER(buffer) as-integer #"]"
+		string/append-char GET_BUFFER(buffer) as-integer #")"
 		part - 1
 	]
 

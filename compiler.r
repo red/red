@@ -267,6 +267,8 @@ red: context [
 		all [issue? value #"%" = last value]
 	]
 	
+	map-value?: func [value][value = #!map!]
+	
 	insert-lf: func [pos][
 		new-line skip tail output pos yes
 	]
@@ -1362,15 +1364,24 @@ red: context [
 
 	comp-literal: func [
 		/inactive /with val
-		/local value char? special? percent? name w make-block type idx
+		/local value char? special? percent? map? name w make-block type idx
 	][
+		make-block: [
+			value: to block! value
+			either empty? ctx-stack [
+				redbin/emit-block value
+			][
+				redbin/emit-block/with value last ctx-stack
+			]
+		]
 		value: either with [val][pc/1]					;-- val can be NONE
 		either any [
 			char?: unicode-char? value
 			special?: float-special? value
 			percent?: percent-value? value
+			map?: map-value? :value
 			scalar? :value
-		][			
+		][
 			case [
 				char? [
 					emit 'char/push
@@ -1386,6 +1397,11 @@ red: context [
 				special? [
 					emit 'float/push64
 					emit-fp-special value
+					insert-lf -3
+				]
+				map? [
+					value: first pc: next pc
+					emit compose [map/make null as red-value! get-root (do make-block)]
 					insert-lf -3
 				]
 				decimal? :value [
@@ -1447,14 +1463,6 @@ red: context [
 				]
 			]
 		][
-			make-block: [
-				value: to block! value
-				either empty? ctx-stack [
-					redbin/emit-block value
-				][
-					redbin/emit-block/with value last ctx-stack
-				]
-			]
 			switch/default type?/word value [
 				block!	[
 					emit compose [block/push get-root (do make-block)]
@@ -3512,6 +3520,7 @@ red: context [
 					unicode-char?  pc/1
 					float-special? pc/1
 					percent-value? pc/1
+					map-value?	   pc/1
 				][
 					comp-literal						;-- special encoding for Unicode char!
 				][

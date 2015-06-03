@@ -211,6 +211,10 @@ lexer: context [
 		][s: #":" :s (throw-error) | none]
 	]
 	
+	map-rule: [
+		"#(" (stack/push block!) any-value #")" (value: stack/pop block! stack/push #!map!)
+	]
+	
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]
 	
 	refinement-rule: [slash (type: refinement!) s: symbol-rule]
@@ -410,6 +414,7 @@ lexer: context [
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
 			| binary-rule	  (stack/push load-binary s e)
+			| map-rule		  (stack/push value)
 		]
 	]
 	
