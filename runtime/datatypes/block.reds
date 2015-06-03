@@ -167,6 +167,7 @@ block: context [
 	][
 		assert any [
 			TYPE_OF(blk) = TYPE_BLOCK
+			TYPE_OF(blk) = TYPE_PAREN
 			TYPE_OF(blk) = TYPE_PATH
 			TYPE_OF(blk) = TYPE_SET_PATH
 			TYPE_OF(blk) = TYPE_GET_PATH
