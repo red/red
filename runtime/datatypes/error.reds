@@ -288,7 +288,7 @@ error: context [
 			string/concatenate buffer str -1 0 yes no
 			part: part - string/rs-length? str
 		][
-			blk: block/clone as red-block! value no
+			blk: block/clone as red-block! value no no
 			blk: reduce blk obj
 			part: block/form blk buffer arg part
 		]

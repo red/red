@@ -153,6 +153,7 @@ block: context [
 	clone: func [
 		blk 	[red-block!]
 		deep?	[logic!]
+		any?	[logic!]
 		return: [red-block!]
 		/local
 			new	   [red-block!]
@@ -161,9 +162,16 @@ block: context [
 			tail   [red-value!]
 			result [red-block!]
 			size   [integer!]
+			type   [integer!]
 			empty? [logic!]
 	][
-		assert TYPE_OF(blk) = TYPE_BLOCK
+		assert any [
+			TYPE_OF(blk) = TYPE_BLOCK
+			TYPE_OF(blk) = TYPE_PATH
+			TYPE_OF(blk) = TYPE_SET_PATH
+			TYPE_OF(blk) = TYPE_GET_PATH
+			TYPE_OF(blk) = TYPE_LIT_PATH
+		]
 		
 		value: block/rs-head blk
 		tail:  block/rs-tail blk
@@ -188,8 +196,21 @@ block: context [
 		
 		if all [deep? not empty?][
 			while [value < tail][
-				if TYPE_OF(value) = TYPE_BLOCK [
-					result: clone as red-block! value yes
+				type: TYPE_OF(value)
+				if any [
+					type = TYPE_BLOCK
+					all [
+						any? 
+						any [
+							type = TYPE_PATH
+							type = TYPE_SET_PATH
+							type = TYPE_GET_PATH
+							type = TYPE_LIT_PATH
+							type = TYPE_PAREN
+						]
+					]
+				][
+					result: clone as red-block! value yes any?
 					copy-cell as red-value! result value
 					stack/pop 1
 				]

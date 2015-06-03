@@ -510,7 +510,7 @@ object: context [
 		spec/head: 0
 		spec/node: fun/spec
 		
-		blk: block/clone as red-block! more yes
+		blk: block/clone as red-block! more yes yes
 		_context/bind blk ctx null yes					;-- rebind new body to object
 		_function/push spec blk	fun/ctx null null		;-- recreate function
 		copy-cell stack/top - 1	as red-value! fun		;-- overwrite function slot in object
@@ -705,12 +705,7 @@ object: context [
 				obj/class: get-new-id
 				obj/on-set: on-set-defined? ctx
 			]
-			default [
-				fire [
-					TO_ERROR(syntax malconstruct)
-					spec
-				]
-			]
+			default [fire [TO_ERROR(syntax malconstruct) spec]]
 		]
 		obj
 	]
@@ -738,7 +733,7 @@ object: context [
 		case [
 			field = words/words [
 				blk/node: ctx/symbols
-				blk: block/clone blk no
+				blk: block/clone blk no no
 				
 				word: as red-word! block/rs-head blk
 				tail: block/rs-tail blk
@@ -750,7 +745,7 @@ object: context [
 			]
 			field = words/values [
 				blk/node: ctx/values
-				blk: block/clone blk no
+				blk: block/clone blk no no
 			]
 			field = words/body [
 				blk/node: ctx/symbols

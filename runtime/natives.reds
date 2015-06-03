@@ -918,7 +918,7 @@ natives: context [
 			][
 				stack/set-last 
 					as red-value! _context/bind
-						block/clone as red-block! value yes
+						block/clone as red-block! value yes no
 						TO_CTX(ctx)
 						null
 						no

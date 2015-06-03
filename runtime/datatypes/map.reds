@@ -452,7 +452,7 @@ map: context [
 		return:		[red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/copy"]]
-		new: as red-hash! block/clone as red-block! map deep?
+		new: as red-hash! block/clone as red-block! map deep? no
 
 		new/header: TYPE_MAP
 		new/table: 	_hashtable/copy map/table new/node

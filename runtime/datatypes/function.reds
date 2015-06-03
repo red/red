@@ -309,7 +309,7 @@ _function: context [
 		args/header: TYPE_BLOCK
 		args/head:	 0
 		args/node:	 list
-		args: 		 block/clone args no				;-- copy it before modifying it
+		args: 		 block/clone args no no				;-- copy it before modifying it
 		
 		tail:  block/rs-tail as red-block! path
 
@@ -533,7 +533,7 @@ _function: context [
 		list: block/push* 8
 		block/rs-append list as red-value! refinements/local
 		
-		ignore: block/clone spec no
+		ignore: block/clone spec no no
 		block/rs-append ignore as red-value! refinements/local
 		
 		value:  as red-value! refinements/extern		;-- process optional /extern
