@@ -362,6 +362,55 @@ Red [
 		
 ===end-group===
 
+===start-group=== "vector find"
+
+	--test-- "vector-find-1"
+		--assert none = find make vector! [1 2 3 4] "five"
+
+	--test-- "vector-find-2"
+		--assert none = find next make vector! [1 2 3 4] 1
+	
+	--test-- "vector-find-3"
+		--assert 1 = first find make vector! [1 2 3 4] 1
+	
+	--test-- "vector-find-4"
+		--assert none = find make vector! [1 2 3 4] 1.0
+	
+	--test-- "vector-find-5"
+		--assert 1 = length? find make vector! [1 2 3 4] 4
+	
+	--test-- "vector-find-6"
+		--assert none = find/part make vector! [1 2 3 4] 4 3
+
+	--test-- "vector-find-7"
+		--assert 3 = first find/part make vector! [1 2 3 4] 3 3
+		--assert 4 = second find/part make vector! [1 2 3 4] 3 3
+		--assert 2 = length? find/part make vector! [1 2 3 4] 3 3
+		
+	--test-- "vector-find-8"
+		--assert #"a" = first find/case make vector! [ #"A" #"a" #"b" #"c"] #"a"
+		--assert 3 = length? find/case make vector! [ #"A" #"a" #"b" #"c"] #"a"
+		
+	--test-- "vector-find-9"
+		--assert #"a" = first find make vector! [ #"A" #"a" #"b" #"c"] #"a"
+		
+	--test-- "vector-find-10"
+		--assert (make vector! [4 5 6]) = find/skip make vector! [1 4 4 4 5 6] 4 3
+		
+	--test-- "vector-find-11"
+		--assert (make vector! [1]) = find/last make vector! [1 1 1 1 1] 1
+	
+	--test-- "vector-find-12"
+		vf12-v: next next next make vector! [1 2 1 2 1 2]
+		--assert (make vector! [2 1 2 1 2]) = find/reverse vf12-v 2
+		
+	--test-- "vector-find-13"
+		--assert (make vector! [5 6]) = find/tail make vector! [1 2 3 4 5 6] 4
+		
+	--test-- "vector-find-14"
+		--assert (make vector! [3 4]) = find/match next make vector! [1 2 3 4] 2
+		
+===end-group===
 
 
 
