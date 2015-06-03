@@ -359,6 +359,7 @@ map: context [
 				unless key = null [
 					_hashtable/delete table key
 				]
+				value
 			][
 				either key = null [key: _hashtable/put table cell yes][
 					val: key + 1
