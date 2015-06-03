@@ -211,6 +211,7 @@ block: context [
 					]
 				][
 					result: clone as red-block! value yes any?
+					result/header: type
 					copy-cell as red-value! result value
 					stack/pop 1
 				]
