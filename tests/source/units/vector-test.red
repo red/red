@@ -412,7 +412,46 @@ Red [
 		
 ===end-group===
 
+===start-group=== "vector select"
 
+	--test-- "vector-select-1"
+		--assert none = select make vector! [1 2 3 4] "five"
+
+	--test-- "vector-select-2"
+		--assert none = select next make vector! [1 2 3 4] 1
+	
+	--test-- "vector-select-3"
+		--assert 2 = select make vector! [1 2 3 4] 1
+	
+	--test-- "vector-select-4"
+		--assert none = select make vector! [1 2 3 4] 1.0
+	
+	--test-- "vector-select-5"
+		--assert 4 = select make vector! [1 2 3 4] 3
+	
+	--test-- "vector-select-6"
+		--assert none = select/part make vector! [1 2 3 4] 4 3
+
+	--test-- "vector-select-7"
+		--assert 4 = select/part make vector! [1 2 3 4] 3 3
+		
+	--test-- "vector-select-8"
+		--assert #"b" = select/case make vector! [ #"A" #"a" #"b" #"c"] #"a"
+		
+	--test-- "vector-select-9"
+		--assert #"b" = select make vector! [ #"A" #"a" #"b" #"c"] #"a"
+		
+	--test-- "vector-select-10"
+		--assert 5 = select/skip make vector! [1 4 4 4 5 6] 4 3
+		
+	--test-- "vector-select-11"
+		--assert 1 = select/last make vector! [1 2 3 4 1] 4
+	
+	--test-- "vector-select-12"
+		vs12-v: next next next next make vector! [1 2 1 2 3 4]
+		--assert 3 = select/reverse vs12-v 2
+		
+===end-group===
 
 ~~~end-file~~~
 
