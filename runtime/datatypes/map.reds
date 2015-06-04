@@ -113,11 +113,12 @@ map: context [
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
+		if zero? size [size: 1]
 		blk: block/make-at as red-block! stack/push* size
 		if blk? [
 			block/copy as red-block! spec blk null no null
 		]
-		table: _hashtable/init size blk yes no
+		table: _hashtable/init size blk HASH_TABLE_MAP
 		map: as red-hash! blk
 		map/header: TYPE_MAP							;-- implicit reset of all header flags
 		map/table: 	table
@@ -251,7 +252,6 @@ map: context [
 		case?	[logic!]
 		return:	[red-value!]
 		/local
-			set?	[logic!]
 			table	[node!]
 			key		[red-value!]
 			val		[red-value!]
@@ -259,17 +259,20 @@ map: context [
 			size	[int-ptr!]
 	][
 		table: parent/table
+		key: _hashtable/get table element 0 0 case? no no
 
-		set?: value <> null
-		key: _hashtable/get table element 0 0 yes no no
-		either set? [
+		either value <> null [						;-- set value
 			either TYPE_OF(value) = TYPE_NONE [		;-- delete key entry
 				unless key = null [
 					_hashtable/delete table key
 				]
 				value
 			][
-				either key = null [key: _hashtable/put table element yes][
+				either key = null [
+					s: as series! parent/node/value
+					key: copy-cell element as cell! alloc-tail-unit s (size? cell!) << 1
+					_hashtable/put table key
+				][
 					val: key + 1
 					if TYPE_OF(val) = TYPE_NONE [	;-- increase size of keys
 						s: as series! table/value
@@ -351,9 +354,6 @@ map: context [
 		limit: cell + part								;-- /part support
 
 		table: map/table
-		s: as series! table/value
-		psize: as int-ptr! s/offset
-
 		while [cell < limit][
 			key: _hashtable/get table cell 0 0 yes no no
 			value: cell + 1
@@ -362,9 +362,17 @@ map: context [
 					_hashtable/delete table key
 				]
 			][
-				either key = null [key: _hashtable/put table cell yes][
+				either key = null [
+					s: as series! map/node/value
+					key: copy-cell cell as cell! alloc-tail-unit s (size? cell!) << 1
+					_hashtable/put table key
+				][
 					val: key + 1
-					if TYPE_OF(val) = TYPE_NONE [psize/value: psize/value + 1]
+					if TYPE_OF(val) = TYPE_NONE [		;-- increase size of keys
+						s: as series! table/value
+						psize: as int-ptr! s/offset
+						psize/value: psize/value + 1
+					]
 				]
 				copy-cell value key + 1
 			]
@@ -437,7 +445,7 @@ map: context [
 			key   [red-value!]
 	][
 		table: map/table
-		key: _hashtable/get table value 0 0 yes no no
+		key: _hashtable/get table value 0 0 case? no no
 		either key = null [none-value][key + 1]
 	]
 

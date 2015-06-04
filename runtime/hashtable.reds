@@ -13,7 +13,11 @@ Red/System [
 	}
 ]
 
-#define _HT_HASH_UPPER	0.77
+#define HASH_TABLE_HASH		0
+#define HASH_TABLE_MAP		1
+#define HASH_TABLE_SYMBOL	2
+
+#define _HT_HASH_UPPER		0.77
 
 #define _BUCKET_IS_EMPTY(flags i s)			[flags/i >> s and 2 = 2]
 #define _BUCKET_IS_NOT_EMPTY(flags i s)		[flags/i >> s and 2 <> 2]
@@ -39,9 +43,9 @@ Red/System [
 ]
 
 hash-string: func [
-	str					[red-string!]
-	case-insensitive?	[logic!]
-	return: 			[integer!]
+	str		[red-string!]
+	case?	[logic!]
+	return: [integer!]
 	/local series s unit p p4 k1 h1 tail len head
 ][
 	s: GET_BUFFER(str)
@@ -59,7 +63,7 @@ hash-string: func [
 			UCS-2  [(as-integer p/2) << 8 + p/1]
 			UCS-4  [p4: as int-ptr! p p4/value]
 		]
-		if case-insensitive? [k1: case-folding/folding-case k1 yes]
+		unless case? [k1: case-folding/folding-case k1 yes]
 		k1: k1 * MURMUR_HASH_3_X86_32_C1
 		k1: MURMUR_HASH_ROTL_32(k1 15)
 		k1: k1 * MURMUR_HASH_3_X86_32_C2
@@ -133,6 +137,11 @@ murmur3-x86-32: func [
 ]
 
 _hashtable: context [
+	#enum hashtable-type! [
+		HASH_TABLE_HASH
+		HASH_TABLE_MAP
+		HASH_TABLE_SYMBOL
+	]
 	hashtable!: alias struct! [
 		size		[integer!]
 		indexes		[node!]
@@ -142,7 +151,7 @@ _hashtable: context [
 		n-occupied	[integer!]
 		n-buckets	[integer!]
 		upper-bound	[integer!]
-		sym-table?  [logic!]
+		type		[integer!]
 	]
 
 	round-up: func [
@@ -182,9 +191,9 @@ _hashtable: context [
 	]
 
 	hash-value: func [
-		key			[red-value!]
-		multi-key?	[logic!]
-		return: 	[integer!]
+		key		[red-value!]
+		case?	[logic!]
+		return: [integer!]
 		/local sym s
 	][
 		len: 0
@@ -193,7 +202,7 @@ _hashtable: context [
 			TYPE_STRING
 			TYPE_FILE
 			TYPE_URL   [
-				hash-string as red-string! key multi-key?
+				hash-string as red-string! key case?
 			]
 			TYPE_CHAR
 			TYPE_INTEGER [key/data2]
@@ -208,7 +217,7 @@ _hashtable: context [
 			TYPE_ISSUE [
 				s: GET_BUFFER(symbols)
 				sym: as red-string! s/offset + key/data2 - 1
-				hash-string sym multi-key?
+				hash-string sym case?
 			]
 			TYPE_POINT [
 				murmur3-x86-32 (as byte-ptr! key) + 4 12
@@ -223,11 +232,11 @@ _hashtable: context [
 		node	[node!]
 		head	[integer!]
 		skip	[integer!]
-		/local s h i end value
+		/local s h i end value key val
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
-		
+
 		s: as series! h/blk/value
 		end: s/tail
 		i: head
@@ -235,7 +244,25 @@ _hashtable: context [
 			value: s/offset + i
 			value < end
 		][
-			put node value no
+			either h/type = HASH_TABLE_MAP [
+				key: get node value 0 0 yes no no
+				either key = null [
+					if null = put node value [
+						fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(value)]
+					]
+				][
+					copy-cell value + 1 key + 1
+					move-memory 
+						as byte-ptr! value
+						as byte-ptr! value + 2
+						as-integer s/tail - (value + 2)
+					s/tail: s/tail - 2
+					end: s/tail
+					i: i - skip
+				]
+			][
+				put node value
+			]
 			i: i + skip
 		]
 	]
@@ -243,20 +270,19 @@ _hashtable: context [
 	init: func [
 		size	[integer!]
 		blk		[red-block!]
-		map?	[logic!]
-		sym?	[logic!]
+		type	[integer!]
 		return: [node!]
 		/local node s ss h f-buckets fsize i value skip end
 	][
 		node: alloc-bytes-filled size? hashtable! #"^(00)"
 		s: as series! node/value
 		h: as hashtable! s/offset
-		h/sym-table?: sym?
+		h/type: type
 
 		if size < 3 [size: 3]
 		fsize: integer/to-float size
 		f-buckets: fsize / _HT_HASH_UPPER
-		skip: either map? [f-buckets: f-buckets / 2.0 2][1]
+		skip: either type = HASH_TABLE_MAP [f-buckets: f-buckets / 2.0 2][1]
 		h/n-buckets: round-up float/to-integer f-buckets
 		f-buckets: integer/to-float h/n-buckets
 		h/upper-bound: float/to-integer f-buckets * _HT_HASH_UPPER
@@ -270,7 +296,7 @@ _hashtable: context [
 
 			s: GET_BUFFER(blk)
 			end: s/tail
-			if all [not sym? not map?] [
+			if type = HASH_TABLE_HASH [
 				h/indexes: alloc-bytes-filled size * size? integer! #"^(FF)"
 				i: (as-integer (end - s/offset)) >> 4 - blk/head
 				ss: as series! h/indexes/value
@@ -287,12 +313,11 @@ _hashtable: context [
 		/local
 			s h x k v i j site last mask step keys vals hash n-buckets blk
 			new-size tmp break? flags new-flags new-flags-node ii sh f idx
-			multi-key? sym-table?
+			type case?
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
-		multi-key?: h/indexes <> null
-		sym-table?: h/sym-table?
+		type: h/type
 		s: as series! h/blk/value
 		blk: s/offset
 		s: as series! h/flags/value
@@ -325,7 +350,11 @@ _hashtable: context [
 					until [									;-- kick-out process
 						step: 0
 						k: blk + (idx and 7FFFFFFFh)
-						hash: hash-value k either sym-table? [yes][multi-key?]
+						case?: either all [
+							type = HASH_TABLE_MAP
+							not word/any-word? TYPE_OF(k)
+						][yes][no]
+						hash: hash-value k case?
 						i: hash and mask
 						_HT_CAL_FLAG_INDEX(i ii sh)
 						while [_BUCKET_IS_NOT_EMPTY(new-flags ii sh)][
@@ -362,19 +391,18 @@ _hashtable: context [
 	put: func [
 		node	[node!]
 		key 	[red-value!]
-		store?	[logic!]
 		return: [red-value!]
 		/local
 			s h x i site last mask step keys hash n-buckets flags op
-			ii sh continue? blk idx multi-key? del? indexes end ss k
+			ii sh continue? blk idx type del? indexes end ss k case?
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
-		multi-key?: h/indexes <> null
+		type: h/type
 		if all [
-			multi-key?
+			type <> HASH_TABLE_SYMBOL
 			not hash-value? key
-		][return key]
+		][return null]
 
 		if h/n-occupied >= h/upper-bound [			;-- update the hash table
 			n-buckets: h/n-buckets + either h/n-buckets > (h/size << 1) [-1][1]
@@ -382,20 +410,20 @@ _hashtable: context [
 		]
 
 		s: as series! h/blk/value
-		if store? [key: copy-cell key as cell! alloc-tail-unit s 2 * size? cell!]
-		s: GET_BUFFER(s)
 		idx: (as-integer (key - s/offset)) >> 4
 		blk: s/offset
 
-		either multi-key? [
+		case?: no
+		either type = HASH_TABLE_HASH [
 			ss: as series! h/indexes/value
 			indexes: as int-ptr! ss/offset
 		][
-			if all [								;-- map, convert any-word! to set-word!
-				not h/sym-table?
-				word/any-word? TYPE_OF(key)
-			][
-				set-type key TYPE_SET_WORD
+			if type = HASH_TABLE_MAP [
+				either word/any-word? TYPE_OF(key) [
+					set-type key TYPE_SET_WORD		;-- map, convert any-word! to set-word!
+				][
+					case?: yes
+				]
 			]
 		]
 
@@ -407,7 +435,7 @@ _hashtable: context [
 		x:	  n-buckets
 		site: n-buckets
 		mask: n-buckets - 2
-		hash: hash-value key either h/sym-table? [yes][multi-key?]
+		hash: hash-value key case?
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1									;-- 1-based index
@@ -422,13 +450,13 @@ _hashtable: context [
 					_BUCKET_IS_NOT_EMPTY(flags ii sh)
 					any [
 						del?
-						multi-key?
+						type = HASH_TABLE_HASH
 						not actions/compare blk + keys/i key COMP_STRICT_EQUAL
 					]
 				]
 			][
 				if del? [site: i]
-				if multi-key? [
+				if type = HASH_TABLE_HASH [
 					k: blk + (keys/i and 7FFFFFFFh)
 					if all [
 						TYPE_OF(k) = TYPE_OF(key)
@@ -462,7 +490,7 @@ _hashtable: context [
 				h/size: h/size + 1
 			]
 		]
-		if multi-key? [idx: idx + 1 indexes/idx: x]
+		if type = HASH_TABLE_HASH [idx: idx + 1 indexes/idx: x]
 		key
 	]
 
@@ -476,22 +504,22 @@ _hashtable: context [
 		reverse? [logic!]
 		return:  [red-value!]
 		/local
-			s h i flags last mask step keys hash n-buckets ii sh blk multi-key?
-			idx last-idx op find? reverse-head k
+			s h i flags last mask step keys hash n-buckets ii sh blk hash-case?
+			idx last-idx op find? reverse-head k type
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
 		s: as series! node/value
 		h: as hashtable! s/offset
 		assert h/n-buckets > 0
 
-		multi-key?: h/indexes <> null
-
-		if all [								;-- map, convert any-word! to set-word!
-			not multi-key?
-			not h/sym-table?
-			word/any-word? TYPE_OF(key)
-		][
-			set-type key TYPE_SET_WORD
+		type: h/type
+		hash-case?: no
+		if type = HASH_TABLE_MAP [
+			either word/any-word? TYPE_OF(key) [
+				set-type key TYPE_SET_WORD		;-- map, convert any-word! to set-word!
+			][
+				hash-case?: yes
+			]
 		]
 
 		s: as series! h/blk/value
@@ -507,7 +535,7 @@ _hashtable: context [
 		flags: as int-ptr! s/offset
 		n-buckets: h/n-buckets + 1
 		mask: n-buckets - 2
-		hash: hash-value key either h/sym-table? [yes][multi-key?]
+		hash: hash-value key hash-case?
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1
@@ -520,13 +548,13 @@ _hashtable: context [
 				_BUCKET_IS_NOT_EMPTY(flags ii sh)
 				any [
 					_BUCKET_IS_DEL(flags ii sh)
-					multi-key?
+					type = HASH_TABLE_HASH
 					TYPE_OF(k) <> TYPE_OF(key)
 					not actions/compare k key op
 				]
 			]
 		][
-			if multi-key? [
+			if type = HASH_TABLE_HASH [
 				idx: keys/i and 7FFFFFFFh
 				k: blk + idx
 				if all [

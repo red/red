@@ -83,7 +83,7 @@ symbol: context [
 		sym/node:   str/node
 		sym/cache:  unicode/to-utf8 str
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
-		_hashtable/put table as red-value! sym no
+		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
 	]
 	
@@ -109,7 +109,7 @@ symbol: context [
 		sym/node:   str/node
 		sym/cache:  duplicate s
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
-		_hashtable/put table as red-value! sym no
+		_hashtable/put table as red-value! sym
 		block/rs-length? symbols
 	]
 	

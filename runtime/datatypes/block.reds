@@ -1481,12 +1481,12 @@ block: context [
 						key: copy-cell cell ALLOC_TAIL(blk)
 						cell: cell + 1
 						key: key - 1
-						if hash? [_hashtable/put table key no]
+						if hash? [_hashtable/put table key]
 					]
 				][
 					while [cell < limit][				;-- multiple values case
 						copy-cell cell head
-						if hash? [_hashtable/put table head no]
+						if hash? [_hashtable/put table head]
 						head: head + 1
 						cell: cell + 1
 					]
@@ -1495,10 +1495,10 @@ block: context [
 				either tail? [
 					key: copy-cell value ALLOC_TAIL(blk)
 					key: key - 1
-					if hash? [_hashtable/put table key no]
+					if hash? [_hashtable/put table key]
 				][
 					copy-cell value head
-					if hash? [_hashtable/put table head no]
+					if hash? [_hashtable/put table head]
 				]
 			]
 			cnt: cnt - 1
@@ -1664,8 +1664,8 @@ block: context [
 			if hash? [
 				_hashtable/delete table head
 				_hashtable/delete table end
-				_hashtable/put table head no
-				_hashtable/put table end no
+				_hashtable/put table head
+				_hashtable/put table end
 			]
 			head: head + 1
 			end: end - 1
@@ -1778,7 +1778,7 @@ block: context [
 		][
 			if hash? [
 				hash: as red-hash! new
-				hash/table: _hashtable/init part new no no
+				hash/table: _hashtable/init part new HASH_TABLE_HASH
 				hash
 			]
 		]
@@ -1832,13 +1832,13 @@ block: context [
 			hash: as red-hash! blk1
 			h1: h1 - 4
 			_hashtable/delete hash/table as red-value! h1
-			_hashtable/put hash/table as red-value! h1 no
+			_hashtable/put hash/table as red-value! h1
 		]
 		if type2 = TYPE_HASH [
 			hash: as red-hash! blk2
 			h2: h2 - 4
 			_hashtable/delete hash/table as red-value! h2
-			_hashtable/put hash/table as red-value! h2 no
+			_hashtable/put hash/table as red-value! h2
 		]
 		blk1
 	]
@@ -2005,7 +2005,7 @@ block: context [
 		len: rs-length? blk1
 		len: len + either op = OP_UNION [rs-length? blk2][0]
 		new: make-at as red-block! stack/push* len
-		table: _hashtable/init len new no yes
+		table: _hashtable/init len new HASH_TABLE_HASH
 		n: 2
 		hash: null
 
@@ -2016,7 +2016,7 @@ block: context [
 
 			if check? [
 				if hash <> null [_hashtable/destroy hash]
-				hash: _hashtable/init length? blk2 blk2 no yes
+				hash: _hashtable/init length? blk2 blk2 HASH_TABLE_HASH
 			]
 
 			while [value < tail] [			;-- iterate over first series
@@ -2028,7 +2028,7 @@ block: context [
 					find?
 					null = _hashtable/get table value 0 1 case? no no
 				][
-					_hashtable/put table rs-append new value no
+					_hashtable/put table rs-append new value
 				]
 
 				i: 1
