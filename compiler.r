@@ -2629,7 +2629,7 @@ red: context [
 			pc: next pc
 		][
 			emit-open-frame 'get
-			comp-expression
+			comp-substitute-expression
 			emit-native/with 'get [-1]
 			emit-close-frame
 		]
