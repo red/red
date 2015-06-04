@@ -504,6 +504,14 @@ natives: context [
 		value: stack/arguments + 1
 		
 		switch TYPE_OF(w) [
+			TYPE_PATH
+			TYPE_GET_PATH
+			TYPE_SET_PATH
+			TYPE_LIT_PATH [
+				value: stack/push stack/arguments
+				copy-cell stack/arguments + 1 stack/arguments
+				interpreter/eval-path value null null yes no no
+			]
 			TYPE_OBJECT [
 				set-obj-many as red-object! w value
 				stack/set-last value

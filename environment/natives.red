@@ -184,7 +184,7 @@ compose: make native! [[
 
 get: make native! [[
 		"Returns the value a word refers to"
-		word	[word!]
+		word	[word! path!]
 		/any "If word has no value, return UNSET rather than causing an error"
 		return: [any-type!]
 	] 
@@ -193,7 +193,7 @@ get: make native! [[
 
 set: make native! [[
 		"Sets the value(s) one or more words refer to"
-		word	[any-word! block! object!] "Word, object or block of words to set"
+		word	[any-word! block! object! path!] "Word, object or block of words to set"
 		value	[any-type!] "Value or block of values to assign to words"
 		/any "Allow UNSET as a value rather than causing an error"
 		return: [any-type!]
