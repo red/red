@@ -1695,7 +1695,7 @@ red: context [
 					emit-push-word name name
 					comp-literal/with value
 					
-					emit-native/with 'set [-1]
+					emit-native/with 'set [-1 -1]
 					emit-close-frame
 				]
 				pc: skip pc 2
@@ -2592,7 +2592,7 @@ red: context [
 		pop-call
 	]
 	
-	comp-set: has [name][
+	comp-set: has [name call case?][
 		either lit-word? pc/1 [
 			name: to word! pc/1
 			either local-bound? pc/1 [
@@ -2602,23 +2602,23 @@ red: context [
 				comp-set-word/native
 			]
 		][
-			if block? pc/1 [						;-- if words are literals, register them
+			if block? pc/1 [							;-- if words are literals, register them
 				foreach w pc/1 [
 					add-symbol w: to word! w
-					unless local-word? w [
-						add-global w				;-- register it as global
-					]
+					unless local-word? w [add-global w]	;-- register it as global
 				]
 			]
+			call: pc/-1
+			case?: to logic! all [path? call find call 'case]
 			emit-open-frame 'set
 			comp-expression
 			comp-expression
-			emit-native/with 'set [-1]
+			emit-native/with 'set reduce [-1 pick [0 -1] case?]
 			emit-close-frame
 		]
 	]
 	
-	comp-get: has [symbol original][
+	comp-get: has [symbol original call case?][
 		either lit-word? original: pc/1 [
 			add-symbol symbol: to word! original
 			either path? pc/-1 [						;@@ add check for validaty of refinements		
@@ -2628,9 +2628,11 @@ red: context [
 			]
 			pc: next pc
 		][
+			call: pc/-1
+			case?: to logic! all [path? call find call 'case]
 			emit-open-frame 'get
 			comp-substitute-expression
-			emit-native/with 'get [-1]
+			emit-native/with 'get reduce [-1 pick [0 -1] case?]
 			emit-close-frame
 		]
 	]
@@ -2662,7 +2664,7 @@ red: context [
 			
 			unless set? [emit [stack/mark-native words/_body]]	;@@ not clean...
 			emit compose [
-				interpreter/eval-path stack/top - 1 null null (to word! form set?) no (to word! form root?)
+				interpreter/eval-path stack/top - 1 null null (to word! form set?) no (to word! form root?) no
 			]
 			unless set? [emit [stack/unwind-last]]
 			
@@ -3100,7 +3102,7 @@ red: context [
 		]
 		
 		either native [
-			emit-native/with 'set [-1]					;@@ refinement not handled yet
+			emit-native/with 'set [-1 -1]			;@@ refinement not handled yet
 		][
 			either all [bound? ctx: select objects obj][
 				emit 'word/set-in

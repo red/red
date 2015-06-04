@@ -453,5 +453,52 @@ Red [
 		
 ===end-group===
 
+===start-group=== "vector add"
+		
+		va-v1: make vector! [10 20 30 40 50]
+		va-v2: make vector! [2 3 4 5 6]
+
+	--test-- "vector-add-1"
+		va1-v: va-v1 + va-v2
+		--assert va1-v = make vector! [12 23 34 45 56]
+	
+	--test-- "vector-add-2"
+		va2-v: add va-v1 va-v2
+		--assert va2-v = make vector! [12 23 34 45 56]
+		
+	--test-- "vector-add-3"
+		va3-v: add next va-v1 va-v2
+		--assert va3-v = make vector! [22 33 44 55 6]
+		
+	--test-- "vector-add-4"	
+		va4-v: add va-v1 next next va-v2
+		--assert va4-v = make vector! [14 25 36 40 50]
+		
+	--test-- "vector-add-5"
+		va-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
+		va5-v: va-v1 + va-v1
+		--assert va5-v = make vector! [2.0 4.0 6.0 8.0 10.0]
+	
+	--test-- "vector-add-6"
+		va6-v: va-v1 + 0.5
+		--assert va6-v = make vector! [1.5 2.5 3.5 4.5 5.5]
+		
+	--test-- "vector-add-7"
+		va-v1: make vector! [10 20 30 40 50]
+		va7-v: va-v1 + -1
+		--assert va7-v = make vector! [9 19 29 39 49]
+		
+	--test-- "vector-add-8"
+		va-v1: make vector! [10 20 30 40 50]
+		va8-v: va-v1 + 1.5
+		--assert va8-v = make vector! [12 22 32 42 52]
+		
+	--test-- "vector-add-9"
+		va-v1: make vector! [10 20 30 40 50]
+		va8-v: va-v1 + 0.5
+		--assert va8-v = make vector! [11 21 31 41 51]
+		
+===end-group===
+
 ~~~end-file~~~
 

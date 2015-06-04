@@ -679,6 +679,7 @@ block: context [
 		parent	[red-block!]							;-- implicit type casting
 		element	[red-value!]
 		value	[red-value!]
+		case?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]
@@ -697,7 +698,7 @@ block: context [
 			]
 		][
 			either set? [
-				element: find parent element null no no no null null no no no no
+				element: find parent element null no case? no null null no no no no
 				actions/poke as red-series! element 2 value null
 				value
 			][
@@ -708,7 +709,7 @@ block: context [
 					select-word parent as red-word! element
 				][
 					copy-cell
-						select parent element null yes no no null null no no
+						select parent element null yes case? no null null no no
 						element
 					stack/pop 1							;-- remove FIND result from stack
 					element

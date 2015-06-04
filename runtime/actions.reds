@@ -351,6 +351,7 @@ actions: context [
 			stack/arguments + 1
 			value
 			null
+			no
 	]
 	
 	eval-path: func [
@@ -358,6 +359,7 @@ actions: context [
 		element	[red-value!]
 		value	[red-value!]
 		path	[red-path!]
+		case?	[logic!]
 		return:	[red-value!]
 		/local
 			action-path
@@ -368,10 +370,11 @@ actions: context [
 			parent	[red-value!]
 			element	[red-value!]
 			value	[red-value!]
+			case?	[logic!]
 			return:	[red-value!]
 		] get-action-ptr-path parent ACT_EVALPATH as red-value! path
 		
-		action-path parent element value
+		action-path parent element value case?
 	]
 	
 	set-path*: func [][]
