@@ -307,6 +307,19 @@ pad: func [
 		(n - length? str)
 ]
 
+modulo: func [
+	"Compute a nonnegative remainder of A divided by B"
+	a		[number! char! pair! tuple! vector!]
+	b		[number! char! pair! tuple! vector!]
+	return: [number! char! pair! tuple! vector!]
+	/local r
+][
+	b: absolute b
+    all [0 > r: a % b r: r + b]
+    a: absolute a
+    either all [a + r = (a + b) 0 < r + r - b] [r - b] [r]
+]
+
 eval-set-path: func [value1][]
 
 ;------------------------------------------
