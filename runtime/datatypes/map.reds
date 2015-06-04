@@ -248,6 +248,7 @@ map: context [
 		parent	[red-hash!]							;-- implicit type casting
 		element	[red-value!]
 		value	[red-value!]
+		case?	[logic!]
 		return:	[red-value!]
 		/local
 			set?	[logic!]
@@ -293,7 +294,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/pick"]]
 
-		eval-path map boxed null
+		eval-path map boxed null no
 	]
 
 	;--- Modifying actions ---
@@ -403,7 +404,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/poke"]]
 
-		stack/set-last eval-path map boxed data
+		stack/set-last eval-path map boxed data no
 	]
 
 	;--- Property reading actions ---

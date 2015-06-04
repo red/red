@@ -244,7 +244,7 @@ Red [
 	
 	--test-- "fun-ref-3"
 		blk: clean-strings spec-of :set	
-		--assert blk = [word [any-word! block! object!] value [any-type!] /any return: [any-type!]]
+		--assert blk = [word [any-word! block! object! path!] value [any-type!] /any /case return: [any-type!]]
 		
 	--test-- "fun-ref-4"
 		blk: clean-strings spec-of :<

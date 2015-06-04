@@ -70,7 +70,7 @@ Red/System [
 					]
 				]
 				TYPE_GET_PATH [
-					eval-path pc pc + 1 end no yes yes
+					eval-path pc pc + 1 end no yes yes no
 				]
 				default [
 					stack/push pc
@@ -416,6 +416,7 @@ interpreter: context [
 		set?	[logic!]
 		get?	[logic!]
 		sub?	[logic!]
+		case?	[logic!]
 		return: [red-value!]
 		/local 
 			path	[red-path!]
@@ -485,7 +486,7 @@ interpreter: context [
 			
 			gparent: parent								;-- save grand-parent reference
 			arg: either all [set? item + 1 = tail][stack/arguments][null]
-			parent: actions/eval-path parent value arg path
+			parent: actions/eval-path parent value arg path case?
 			
 			unless get? [
 				switch TYPE_OF(parent) [
@@ -642,7 +643,7 @@ interpreter: context [
 				pc: pc + 1
 				if pc >= end [fire [TO_ERROR(script need-value) value]]
 				pc: eval-expression pc end no yes		;-- yes: push value on top of stack
-				pc: eval-path value pc end yes no sub?
+				pc: eval-path value pc end yes no sub? no
 			]
 			TYPE_GET_WORD [
 				copy-cell _context/get as red-word! pc stack/push*
@@ -706,12 +707,12 @@ interpreter: context [
 			TYPE_PATH [
 				value: pc
 				pc: pc + 1
-				pc: eval-path value pc end no no sub?
+				pc: eval-path value pc end no no sub? no
 			]
 			TYPE_GET_PATH [
 				value: pc
 				pc: pc + 1
-				pc: eval-path value pc end no yes sub?
+				pc: eval-path value pc end no yes sub? no
 			]
 			TYPE_LIT_PATH [
 				value: stack/push pc

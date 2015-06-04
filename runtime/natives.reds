@@ -435,7 +435,7 @@ natives: context [
 					interpreter/eval as red-block! arg yes
 				]
 				TYPE_PATH [
-					interpreter/eval-path arg arg arg + 1 no no no
+					interpreter/eval-path arg arg arg + 1 no no no no
 					stack/set-last arg + 1
 				]
 				TYPE_STRING [
@@ -469,7 +469,8 @@ natives: context [
 	]
 	
 	get*: func [
-		any? [integer!]
+		any?  [integer!]
+		case? [integer!]
 		/local
 			value [red-value!]
 			type  [integer!]
@@ -482,7 +483,7 @@ natives: context [
 			TYPE_GET_PATH
 			TYPE_SET_PATH
 			TYPE_LIT_PATH [
-				interpreter/eval-path value null null no yes no
+				interpreter/eval-path value null null no yes no case? <> -1
 			]
 			TYPE_OBJECT [
 				object/reflect as red-object! value words/values
@@ -494,7 +495,8 @@ natives: context [
 	]
 	
 	set*: func [
-		any? [integer!]
+		any?  [integer!]
+		case? [integer!]
 		/local
 			w	  [red-word!]
 			value [red-value!]
@@ -510,7 +512,7 @@ natives: context [
 			TYPE_LIT_PATH [
 				value: stack/push stack/arguments
 				copy-cell stack/arguments + 1 stack/arguments
-				interpreter/eval-path value null null yes no no
+				interpreter/eval-path value null null yes no no case? <> -1
 			]
 			TYPE_OBJECT [
 				set-obj-many as red-object! w value
