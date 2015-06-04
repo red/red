@@ -495,10 +495,63 @@ Red [
 		
 	--test-- "vector-add-9"
 		va-v1: make vector! [10 20 30 40 50]
-		va8-v: va-v1 + 0.5
-		--assert va8-v = make vector! [11 21 31 41 51]
+		va9-v: va-v1 + 0.5
+		--assert va9-v = make vector! [11 21 31 41 51]
 		
 ===end-group===
+
+===start-group=== "vector subtract"
+		
+		vs-v1: make vector! [10 20 30 40 50]
+		vs-v2: make vector! [2 3 4 5 6]
+
+	--test-- "vector-subtract-1"
+		vs1-v: vs-v1 - vs-v2
+		--assert vs1-v = make vector! [8 17 26 35 44]
+	
+	--test-- "vector-subtract-2"
+		vs2-v: subtract vs-v1 vs-v2
+		--assert vs2-v = make vector! [8 17 26 35 44]
+		
+	--test-- "vector-subtract-3"
+		vs3-v: subtract next vs-v1 vs-v2
+		--assert vs3-v = make vector! [18 27 36 45 -6]
+		
+	--test-- "vector-subtract-4"	
+		vs4-v: subtract vs-v1 next next vs-v2
+		--assert vs4-v = make vector! [6 15 24 40 50]
+		
+	--test-- "vector-subtract-5"
+		vs-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
+		vs5-v: vs-v1 - vs-v1
+		--assert vs5-v = make vector! [0.0 0.0 0.0 0.0 0.0]
+	
+	--test-- "vector-subtract-6"
+		vs6-v: vs-v1 - 0.5
+		--assert vs6-v = make vector! [0.5 1.5 2.5 3.5 4.5]
+		
+	--test-- "vector-subtract-7"
+		vs-v1: make vector! [10 20 30 40 50]
+		vs7-v: vs-v1 - -1
+		--assert vs7-v = make vector! [11 21 31 41 51]
+		
+	--test-- "vector-subtract-8"
+		vs-v1: make vector! [10 20 30 40 50]
+		vs8-v: vs-v1 - 1.5
+		--assert vs8-v = make vector! [8 18 28 38 48]
+		
+	--test-- "vector-subtract-9"
+		vs-v1: make vector! [10 20 30 40 50]
+		vs9-v: vs-v1 - 0.5
+		--assert vs9-v = make vector! [9 19 29 39 49]
+		
+	--test-- "vector-subtract-10"
+		vs-v1: make vector! [10 20 30 40 50]
+		vs10-v: vs-v1 - 0.4
+		--assert vs10-v = make vector! [10 20 30 40 50]
+		
+===end-group===
+
 
 ~~~end-file~~~
 
