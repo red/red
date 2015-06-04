@@ -83,27 +83,27 @@ absolute: make action! [[
 
 add: make action! [[
 		"Returns the sum of the two values"
-		value1	 [number! char! pair! tuple!]
-		value2	 [number! char! pair! tuple!]
-		return:  [number! char! pair! tuple!]
+		value1	 [number! char! pair! tuple! vector!]
+		value2	 [number! char! pair! tuple! vector!]
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_ADD
 ]
 
 divide: make action! [[
 		"Returns the quotient of two values"
-		value1	 [number! char! pair! tuple!] "The dividend (numerator)"
-		value2	 [number! char! pair! tuple!] "The divisor (denominator)"
-		return:  [number! char! pair! tuple!]
+		value1	 [number! char! pair! tuple! vector!] "The dividend (numerator)"
+		value2	 [number! char! pair! tuple! vector!] "The divisor (denominator)"
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_DIVIDE
 ]
 
 multiply: make action! [[
 		"Returns the product of two values"
-		value1	 [number! char! pair! tuple!]
-		value2	 [number! char! pair! tuple!]
-		return:  [number! char! pair! tuple!]
+		value1	 [number! char! pair! tuple! vector!]
+		value2	 [number! char! pair! tuple! vector!]
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_MULTIPLY
 ]
@@ -127,24 +127,11 @@ power: make action! [[
 
 remainder: make action! [[
 		"Returns what is left over when one value is divided by another"
-		value1 	 [number! char! pair! tuple!]
-		value2 	 [number! char! pair! tuple!]
-		return:  [number! char! pair! tuple!]
+		value1 	 [number! char! pair! tuple! vector!]
+		value2 	 [number! char! pair! tuple! vector!]
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_REMAINDER
-]
-
-modulo: func [
-	"Compute a nonnegative remainder of A divided by B"
-	a		[number! pair! tuple!]
-	b		[number! pair! tuple!]
-	return: [number! pair! tuple!]
-	/local r
-][
-	b: absolute b
-    all [0 > r: a % b r: r + b]
-    a: absolute a
-    either all [a + r = (a + b) 0 < r + r - b] [r - b] [r]
 ]
 
 round: make action! [[
@@ -164,9 +151,9 @@ round: make action! [[
 
 subtract: make action! [[
 		"Returns the difference between two values"
-		value1	 [number! char! pair! tuple!]
-		value2	 [number! char! pair! tuple!]
-		return:  [number! char! pair! tuple!]
+		value1	 [number! char! pair! tuple! vector!]
+		value2	 [number! char! pair! tuple! vector!]
+		return:  [number! char! pair! tuple! vector!]
 	]
 	#get-definition ACT_SUBTRACT
 ]
@@ -191,9 +178,9 @@ odd?: make action! [[
 
 and~: make action! [[
 		"Returns the first value ANDed with the second"
-		value1	[logic! integer! char! bitset! typeset! pair! tuple!]
-		value2	[logic! integer! char! bitset! typeset! pair! tuple!]
-		return:	[logic! integer! char! bitset! typeset! pair! tuple!]
+		value1	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		value2	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		return:	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
 	]
 	#get-definition ACT_AND~
 ]
@@ -208,18 +195,18 @@ complement: make action! [[
 
 or~: make action! [[
 		"Returns the first value ORed with the second"
-		value1	[logic! integer! char! bitset! typeset! pair! tuple!]
-		value2	[logic! integer! char! bitset! typeset! pair! tuple!]
-		return:	[logic! integer! char! bitset! typeset! pair! tuple!]
+		value1	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		value2	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		return:	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
 	]
 	#get-definition ACT_OR~
 ]
 
 xor~: make action! [[
 		"Returns the first value exclusive ORed with the second"
-		value1	[logic! integer! char! bitset! typeset! pair! tuple!]
-		value2	[logic! integer! char! bitset! typeset! pair! tuple!]
-		return:	[logic! integer! char! bitset! typeset! pair! tuple!]
+		value1	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		value2	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
+		return:	[logic! integer! char! bitset! typeset! pair! tuple! vector!]
 	]
 	#get-definition ACT_XOR~
 ]

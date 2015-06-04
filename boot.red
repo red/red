@@ -14,8 +14,8 @@ Red [
 #include %environment/actions.red
 #include %environment/natives.red
 #include %environment/routines.red
-#include %environment/operators.red
 #include %environment/scalars.red
 #include %environment/system.red
 #include %environment/lexer.red
 #include %environment/functions.red
+#include %environment/operators.red
