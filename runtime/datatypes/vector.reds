@@ -482,18 +482,15 @@ vector: context [
 		s2: GET_BUFFER(right)
 		unit1: GET_UNIT(s1)
 		unit2: GET_UNIT(s2)
+		unit: either unit1 > unit2 [unit1][unit2]
+
 		len1: rs-length? left
 		len2: rs-length? right
+		len: either len1 > len2 [len1][len2]
 
 		p1: (as byte-ptr! s1/offset) + (left/head << (unit1 >> 1))
 		p2: (as byte-ptr! s2/offset) + (right/head << (unit2 >> 1))
-		either len1 > len2 [len: len1][
-			len: len2
-			len2: len1							;-- set len2 to minimum length
-			p: p1 p1: p2 p2: p
-			unit: unit1 unit1: unit2 unit2: unit
-		]
-		unit: either unit1 > unit2 [unit1][unit2]
+
 		node: alloc-bytes len << (unit >> 1)
 		buffer: as series! node/value
 		buffer/flags: buffer/flags and flag-unit-mask or unit
@@ -506,7 +503,7 @@ vector: context [
 			if unit1 = 6 [unit1: 8]
 			if unit2 = 6 [unit2: 8]
 			while [i < len][
-				f1: get-value-float p1 unit1
+				f1: either i < len1 [get-value-float p1 unit1][0.0]
 				if i < len2 [
 					f2: get-value-float p2 unit2
 					f1: switch type [
@@ -542,7 +539,7 @@ vector: context [
 			]
 		][
 			while [i < len][
-				v1: get-value-int as int-ptr! p1 unit1
+				v1: either i < len1 [get-value-int as int-ptr! p1 unit1][0]
 				if i < len2 [
 					v2: get-value-int as int-ptr! p2 unit2
 					v1: switch type [
