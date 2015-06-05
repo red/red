@@ -96,11 +96,13 @@ map: context [
 		size	[integer!]
 		return:	[red-hash!]
 		/local
-			map [red-hash!]
+			table [node!]
+			map	  [red-hash!]
 	][
+		table: _hashtable/map-init size blk HASH_TABLE_MAP
 		map: as red-hash! slot
 		map/header: TYPE_MAP							;-- implicit reset of all header flags
-		map/table: _hashtable/init size blk HASH_TABLE_MAP
+		map/table: table
 		map
 	]
 
