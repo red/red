@@ -982,7 +982,6 @@ natives: context [
 			input  [red-series!]
 			limit  [red-series!]
 			int	   [red-integer!]
-			rule   [red-block!]
 			res	   [red-value!]
 			cframe [byte-ptr!]
 	][
@@ -1006,7 +1005,6 @@ natives: context [
 				limit/head
 			]
 			if part <= 0 [
-				rule: as red-block! stack/arguments + 1
 				logic/box zero? either any [
 					TYPE_OF(input) = TYPE_STRING		;@@ replace with ANY_STRING?
 					TYPE_OF(input) = TYPE_FILE
