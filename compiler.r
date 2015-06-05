@@ -1401,7 +1401,8 @@ red: context [
 				]
 				map? [
 					value: first pc: next pc
-					emit compose [map/make null as red-value! get-root (do make-block)]
+					insert value #!map!
+					emit compose [map/push as red-hash! get-root (redbin/emit-block value)]
 					insert-lf -3
 				]
 				decimal? :value [

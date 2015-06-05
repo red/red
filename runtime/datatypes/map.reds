@@ -81,6 +81,28 @@ map: context [
 		]
 		part
 	]
+	
+	push: func [
+		map [red-hash!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "map/push"]]
+
+		copy-cell as red-value! map stack/push*
+	]
+	
+	make-at: func [
+		slot	[red-value!]
+		blk		[red-block!]
+		size	[integer!]
+		return:	[red-hash!]
+		/local
+			map [red-hash!]
+	][
+		map: as red-hash! slot
+		map/header: TYPE_MAP							;-- implicit reset of all header flags
+		map/table: _hashtable/init size blk HASH_TABLE_MAP
+		map
+	]
 
 	;--- Actions ---
 
@@ -92,7 +114,6 @@ map: context [
 			map		[red-hash!]
 			size	[integer!]
 			int		[red-integer!]
-			table	[node!]
 			blk		[red-block!]
 			blk?	[logic!]
 	][
@@ -115,14 +136,8 @@ map: context [
 		]
 		if zero? size [size: 1]
 		blk: block/make-at as red-block! stack/push* size
-		if blk? [
-			block/copy as red-block! spec blk null no null
-		]
-		table: _hashtable/init size blk HASH_TABLE_MAP
-		map: as red-hash! blk
-		map/header: TYPE_MAP							;-- implicit reset of all header flags
-		map/table: 	table
-		map
+		if blk? [block/copy as red-block! spec blk null no null]
+		make-at as red-value! blk blk size
 	]
 
 	reflect: func [

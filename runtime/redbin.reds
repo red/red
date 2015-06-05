@@ -87,6 +87,31 @@ redbin: context [
 		data
 	]
 	
+	decode-map: func [
+		data	[int-ptr!]
+		table	[int-ptr!]
+		parent	[red-block!]
+		return: [int-ptr!]
+		/local
+			blk  [red-block!]
+			size [integer!]
+			sz   [integer!]
+	][
+		size: data/2
+		sz: size
+		if zero? sz [sz: 1]
+		#if debug? = yes [if verbose > 0 [print [#":" size #":"]]]
+
+		blk: block/make-at as red-block! ALLOC_TAIL(parent) sz
+		data: data + 2
+		while [size > 0][
+			data: decode-value data table blk
+			size: size - 1
+		]
+		map/make-at as red-value! blk blk sz
+		data
+	]
+	
 	decode-context: func [
 		data	[int-ptr!]
 		table	[int-ptr!]
@@ -243,7 +268,10 @@ redbin: context [
 		table	[int-ptr!]
 		parent	[red-block!]
 		return: [int-ptr!]
-		/local blk size sz
+		/local
+			blk  [red-block!]
+			size [integer!]
+			sz   [integer!]
 	][
 		size: data/3
 		sz: size
@@ -344,6 +372,7 @@ redbin: context [
 				logic/make-in parent as logic! data/2
 				data + 2
 			]
+			TYPE_MAP		[decode-map data table parent]
 			TYPE_NATIVE
 			TYPE_ACTION
 			TYPE_OP			[decode-native data table parent]

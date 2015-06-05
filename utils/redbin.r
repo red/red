@@ -268,11 +268,16 @@ context [
 	][
 		if profile? [profile blk]
 		
-		type: either all [path? :blk get-word? blk/1][
-			blk/1: to word! blk/1 						;-- workround for missing get-path! in R2
-			'get-path
-		][
-			type?/word :blk
+		type: case [
+			all [path? :blk get-word? blk/1][
+				blk/1: to word! blk/1 					;-- workround for missing get-path! in R2
+				'get-path
+			]
+			blk/1 = #!map! [
+				remove blk
+				'map
+			]
+			'else [type?/word :blk]
 		]
 		emit-type select [
 			block!		TYPE_BLOCK
@@ -281,10 +286,11 @@ context [
 			lit-path!	TYPE_LIT_PATH
 			set-path!	TYPE_SET_PATH
 			get-path	TYPE_GET_PATH
+			map			TYPE_MAP
 		] type
 		
 		preprocess-directives blk
-		emit (index? blk) - 1							;-- head field
+		unless type = 'map [emit (index? blk) - 1]		;-- head field
 		emit length? blk
 		if all [not sub debug?][
 			print [index ": block" length? blk #":" copy/part mold/flat blk 60]
