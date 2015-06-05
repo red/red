@@ -207,7 +207,7 @@ tuple: context [
 		flat?	[logic!]
 		arg		[red-value!]
 		part 	[integer!]
-		indent	[integer!]		
+		indent	[integer!]
 		return: [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "tuple/mold"]]
@@ -219,6 +219,8 @@ tuple: context [
 		parent	[red-tuple!]							;-- implicit type casting
 		element	[red-value!]
 		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]

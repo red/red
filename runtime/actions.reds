@@ -370,11 +370,12 @@ actions: context [
 			parent	[red-value!]
 			element	[red-value!]
 			value	[red-value!]
+			path	[red-value!]
 			case?	[logic!]
 			return:	[red-value!]
 		] get-action-ptr-path parent ACT_EVALPATH as red-value! path
 		
-		action-path parent element value case?
+		action-path parent element value as red-value! path case?
 	]
 	
 	set-path*: func [][]

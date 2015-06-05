@@ -164,39 +164,41 @@ pair: context [
 	eval-path: func [
 		parent	[red-pair!]								;-- implicit type casting
 		element	[red-value!]
-		set?	[logic!]
+		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
 		return:	[red-value!]
 		/local
-			int	  [red-integer!]
-			w	  [red-word!]
-			value [integer!]
+			int	 [red-integer!]
+			w	 [red-word!]
+			axis [integer!]
 	][
 		switch TYPE_OF(element) [
 			TYPE_INTEGER [
 				int: as red-integer! element
-				value: int/value
-				if all [value <> 1 value <> 2][
+				axis: int/value
+				if all [axis <> 1 axis <> 2][
 					fire [TO_ERROR(script invalid-path) stack/arguments element]
 				]
 			]
 			TYPE_WORD [
 				w: as red-word! element
-				value: symbol/resolve w/symbol
-				if all [value <> words/x value <> words/y][
+				axis: symbol/resolve w/symbol
+				if all [axis <> words/x axis <> words/y][
 					fire [TO_ERROR(script invalid-path) stack/arguments element]
 				]
-				value: either value = words/x [1][2]
+				axis: either axis = words/x [1][2]
 			]
 			default [
 				fire [TO_ERROR(script invalid-path) stack/arguments element]
 			]
 		]
-		either set? [
+		either value <> null [
 			int: as red-integer! stack/arguments
-			either value = 1 [parent/x: int/value][parent/y: int/value]
+			either axis = 1 [parent/x: int/value][parent/y: int/value]
 			as red-value! int
 		][
-			integer/push either value = 1 [parent/x][parent/y]
+			integer/push either axis = 1 [parent/x][parent/y]
 		]
 	]
 	

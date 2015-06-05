@@ -663,6 +663,7 @@ bitset: context [
 		parent	[red-bitset!]							;-- implicit type casting
 		element	[red-value!]
 		value	[red-value!]
+		path	[red-value!]
 		case?	[logic!]
 		return:	[red-value!]
 		/local

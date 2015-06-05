@@ -1223,6 +1223,8 @@ string: context [
 		parent	[red-string!]							;-- implicit type casting
 		element	[red-value!]
 		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
 		return:	[red-value!]
 		/local
 			int  [red-integer!]

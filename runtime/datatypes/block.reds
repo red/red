@@ -679,6 +679,7 @@ block: context [
 		parent	[red-block!]							;-- implicit type casting
 		element	[red-value!]
 		value	[red-value!]
+		path	[red-value!]
 		case?	[logic!]
 		return:	[red-value!]
 		/local

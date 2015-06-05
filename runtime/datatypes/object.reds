@@ -811,6 +811,8 @@ object: context [
 		parent	[red-object!]							;-- implicit type casting
 		element	[red-value!]
 		value	[red-value!]
+		path	[red-value!]
+		case?	[logic!]
 		return:	[red-value!]
 		/local
 			word	[red-word!]
@@ -826,6 +828,9 @@ object: context [
 
 		if word/ctx <> parent/ctx [						;-- bind the word to object's context
 			word/index: _context/find-word ctx word/symbol yes
+			if word/index = -1 [
+				fire [TO_ERROR(script invalid-path) path element]
+			]
 			word/ctx: parent/ctx
 		]
 		either value <> null [
