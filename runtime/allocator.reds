@@ -14,7 +14,7 @@ Red/System [
 #define _1MB				1048576
 #define _2MB				2097152
 #define _16MB				16777216
-#define nodes-per-frame		5000
+#define nodes-per-frame		10000
 #define node-frame-size		[((nodes-per-frame * 2 * size? pointer!) + size? node-frame!)]
 
 #define series-in-use		80000000h		;-- mark a series as used (not collectable by the GC)
