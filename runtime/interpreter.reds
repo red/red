@@ -337,7 +337,7 @@ interpreter: context [
 			path-end: block/rs-tail as red-block! path
 			fname: as red-word! ref-pos
 			
-			if ref-pos + 1 < path-end [					;-- test if refinement are following the function
+			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
 				either null? path/args [
 					args: _function/preprocess-options native path ref-pos args fname function?
 					path/args: args
