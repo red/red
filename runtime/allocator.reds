@@ -11,6 +11,7 @@ Red/System [
 ]
 
 #define _512KB				524288
+#define _1MB				1048576
 #define _2MB				2097152
 #define _16MB				16777216
 #define nodes-per-frame		5000
@@ -126,12 +127,12 @@ memory: declare struct! [					; TBD: instanciate this structure per OS thread
 
 init-mem: does [
 	memory/total: 	0
-	memory/s-start: _512KB
+	memory/s-start: _1MB
 	memory/s-max: 	_2MB
 	memory/s-size: 	memory/s-start
 ]
 
-;; (1) Series frames size will grow from 512KB up to 2MB (arbitrary selected). This
+;; (1) Series frames size will grow from 1MB up to 2MB (arbitrary selected). This
 ;; range will need fine-tuning with real Red apps. This growing size, with low starting value
 ;; will allow small apps to not consume much memory while avoiding to penalize big apps.
 
