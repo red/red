@@ -491,12 +491,12 @@ Red [
 	--test-- "vector-add-8"
 		va-v1: make vector! [10 20 30 40 50]
 		va8-v: va-v1 + 1.5
-		--assert va8-v = make vector! [12 22 32 42 52]
+		--assert va8-v = make vector! [11 21 31 41 51]
 		
 	--test-- "vector-add-9"
 		va-v1: make vector! [10 20 30 40 50]
 		va9-v: va-v1 + 0.5
-		--assert va9-v = make vector! [11 21 31 41 51]
+		--assert va9-v = make vector! [10 20 30 40 50]
 		
 ===end-group===
 
@@ -538,17 +538,12 @@ Red [
 	--test-- "vector-subtract-8"
 		vs-v1: make vector! [10 20 30 40 50]
 		vs8-v: vs-v1 - 1.5
-		--assert vs8-v = make vector! [8 18 28 38 48]
+		--assert vs8-v = make vector! [9 19 29 39 49]
 		
 	--test-- "vector-subtract-9"
 		vs-v1: make vector! [10 20 30 40 50]
 		vs9-v: vs-v1 - 0.5
-		--assert vs9-v = make vector! [9 19 29 39 49]
-		
-	--test-- "vector-subtract-10"
-		vs-v1: make vector! [10 20 30 40 50]
-		vs10-v: vs-v1 - 0.4
-		--assert vs10-v = make vector! [10 20 30 40 50]
+		--assert vs9-v = make vector! [10 20 30 40 50]
 		
 ===end-group===
 
