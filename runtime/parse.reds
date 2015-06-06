@@ -964,10 +964,23 @@ parser: context [
 							state: ST_PUSH_BLOCK
 						]
 						TYPE_DATATYPE [
+							type: TYPE_OF(input)
+							if any [					;TBD: replace with ANY_STRING?
+								type = TYPE_STRING
+								type = TYPE_FILE
+								type = TYPE_URL
+							][
+								fire [TO_ERROR(script parse-unsupported)]
+							]
+							PARSE_CHECK_INPUT_EMPTY?
 							dt: as red-datatype! value
-							value: block/rs-head input
-							match?: TYPE_OF(value) = dt/value
-							PARSE_TRACE(_match)
+							either end? [
+								match?: false
+							][
+								value: block/rs-head input
+								match?: TYPE_OF(value) = dt/value
+								PARSE_TRACE(_match)
+							]
 							state: either match? [ST_NEXT_INPUT][ST_CHECK_PENDING]
 						]
 						TYPE_SET_WORD [

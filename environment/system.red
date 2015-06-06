@@ -125,6 +125,7 @@ system: context [
 				;parse-command:		"PARSE - command cannot be used as variable:" :arg1]
 				parse-invalid-ref:	["PARSE - get-word refers to a different series!" :arg1]
 				parse-series:		["PARSE - input must be a series:" :arg1]
+				parse-unsupported:	"PARSE - matching by datatype not supported for any-string! input"
 			]
 			math: object [
 				code:				400
