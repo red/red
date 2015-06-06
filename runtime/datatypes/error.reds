@@ -229,11 +229,11 @@ error: context [
 						]
 					]
 					TYPE_SET_WORD [
-						value: block/select-word blk words/_type
+						value: block/select-word blk words/_type no
 						if TYPE_OF(value) = TYPE_NONE [
 							fire [TO_ERROR(script missing-spec-field) words/_type]
 						]
-						value: block/select-word blk words/_id
+						value: block/select-word blk words/_id no
 						if TYPE_OF(value) = TYPE_NONE [
 							fire [TO_ERROR(script missing-spec-field) words/_id]
 						]

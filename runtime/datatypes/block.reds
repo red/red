@@ -311,16 +311,18 @@ block: context [
 	select-word: func [
 		blk		[red-block!]
 		word	[red-word!]
+		case?	[logic!]
 		return: [red-value!]
 		/local
 			value [red-value!]
 			tail  [red-value!]
 			w	  [red-word!]
 			sym	  [integer!]
+			sym2  [integer!]
 	][
 		value: rs-head blk
 		tail:  rs-tail blk
-		sym:   symbol/resolve word/symbol
+		sym:   either case? [word/symbol][symbol/resolve word/symbol]
 		
 		while [value < tail][
 			if any [									;@@ replace with ANY_WORD?
@@ -330,7 +332,8 @@ block: context [
 				TYPE_OF(value) = TYPE_LIT_WORD
 			][
 				w: as red-word! value
-				if sym = symbol/resolve w/symbol [
+				sym2: either case? [w/symbol][symbol/resolve w/symbol]
+				if sym = sym2 [
 					either value + 1 = tail [
 						return none-value
 					][
@@ -707,7 +710,7 @@ block: context [
 					TYPE_OF(parent) = TYPE_BLOCK
 					type = TYPE_WORD
 				][
-					select-word parent as red-word! element
+					select-word parent as red-word! element case?
 				][
 					copy-cell
 						select parent element null yes case? no null null no no
