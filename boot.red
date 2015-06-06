@@ -15,6 +15,7 @@ Red [
 #include %environment/natives.red
 #include %environment/routines.red
 #include %environment/scalars.red
+#include %environment/colors.red
 #include %environment/system.red
 #include %environment/lexer.red
 #include %environment/functions.red

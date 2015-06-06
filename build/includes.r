@@ -18,6 +18,8 @@ write %build/bin/sources.r set-cache [
 	%lexer.r
 	%environment/ [
 		%actions.red
+		%colors.red
+		;%css-colors.red
 		%datatypes.red
 		%functions.red
 		%lexer.red
