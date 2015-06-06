@@ -579,7 +579,7 @@ parser: context [
 	]
 	
 	eval: func [code [red-value!]][
-		catch RED_ERROR [interpreter/eval as red-block! code no]
+		catch RED_THROWN_ERROR [interpreter/eval as red-block! code no]
 		if system/thrown <> 0 [reset re-throw]
 	]
 

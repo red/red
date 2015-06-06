@@ -245,10 +245,13 @@ Red/System [
 ]
 
 #enum exceptions! [
-	NO_EXCEPTION
-	THROWN_THROW
-	THROWN_EXIT
-	THROWN_RETURN
+	RED_NO_EXCEPTION
+	RED_THROWN_THROW:		195939000
+	RED_THROWN_EXIT
+	RED_THROWN_RETURN
+	RED_THROWN_CONTINUE
+	RED_THROWN_BREAK
+	RED_THROWN_ERROR:		195939070				;-- #0BADCAFE (keep it positive)
 ]
 
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)
@@ -260,10 +263,6 @@ Red/System [
 ][
 	#define ------------| 	comment
 ]
-
-#define RED_ERROR				195939070			;-- #0BADCAFE (keep it positive)
-#define RED_BREAK_EXCEPTION		195939000
-#define RED_CONTINUE_EXCEPTION	195938999
 
 #define TYPE_OF(value)		(value/header and get-type-mask)
 #define TUPLE_SIZE(value)	(value/header >> 19 and 15)

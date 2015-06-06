@@ -541,7 +541,7 @@ alloc-series-buffer: func [
 		]
 		if sz >= memory/s-max [				;@@ temporary checks
 			print-line "Memory error: series too big!"
-			throw RED_ERROR
+			throw RED_THROWN_ERROR
 		]
 		frame: alloc-series-frame
 		memory/s-active: frame				;@@ to be removed once GC implemented
@@ -705,7 +705,7 @@ expand-series: func [
 		new-sz: series/size * 2				;-- by default, alloc twice the old size
 		if new-sz >= _2MB [
 			print-line "Memory error: allocate memory > 2MB (--NOT_IMPLEMENTED--)"
-			throw RED_ERROR
+			throw RED_THROWN_ERROR
 			;TBD: alloc big
 		]
 	]

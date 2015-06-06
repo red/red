@@ -118,7 +118,7 @@ stack: context [										;-- call stack
 
 		if ctop = c-end [
 			print-line ["^/*** Error: call stack overflow!^/"]
-			throw RED_ERROR
+			throw RED_THROWN_ERROR
 		]
 		ctop/header: type or (fun/symbol << 8)
 		ctop/prev:	 arguments
@@ -373,7 +373,7 @@ stack: context [										;-- call stack
 			arguments: saved
 		]
 		stack/push as red-value! err
-		throw RED_ERROR
+		throw RED_THROWN_ERROR
 	]
 	
 	throw-break: func [
@@ -416,9 +416,9 @@ stack: context [										;-- call stack
 			top: arguments
 			either all [return? not cont?][set-last result][unset/push-last]
 			either cont? [
-				throw RED_CONTINUE_EXCEPTION
+				throw RED_THROWN_CONTINUE
 			][
-				throw RED_BREAK_EXCEPTION
+				throw RED_THROWN_BREAK
 			]
 		]
 	]
@@ -459,10 +459,10 @@ stack: context [										;-- call stack
 			top: arguments
 			either return? [
 				set-last result
-				throw THROWN_RETURN
+				throw RED_THROWN_RETURN
 			][
 				unset/push-last
-				throw THROWN_EXIT
+				throw RED_THROWN_EXIT
 			]
 		]
 	]
@@ -549,7 +549,7 @@ stack: context [										;-- call stack
 		top: top + 1
 		if top >= a-end [
 			print-line ["^/*** Error: arguments stack overflow!^/"]
-			throw RED_ERROR
+			throw RED_THROWN_ERROR
 		]
 		cell
 	]

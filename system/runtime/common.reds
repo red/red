@@ -218,7 +218,7 @@ re-throw: func [/local id [integer!]][
 	]
 	
 	***-uncaught-exception: does [
-		either system/thrown = 0BADCAFEh [	;-- RED_ERROR exception value
+		either system/thrown = 0BADCAFEh [	;-- RED_THROWN_ERROR exception value (label not defined if R/S used standalone)
 			***-on-quit 0 0					;-- Red error, normal exit
 		][
 			***-on-quit 95 as-integer system/pc ;-- Red/System uncaught exception, report it

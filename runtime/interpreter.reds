@@ -168,11 +168,11 @@ interpreter: context [
 		stack/set-in-func-flag no
 		ctx/values: saved
 		switch system/thrown [
-			RED_ERROR			   [throw RED_ERROR]			  ;-- let exception pass through
-			RED_BREAK_EXCEPTION	   [fire [TO_ERROR(throw break)]]
-			RED_CONTINUE_EXCEPTION [fire [TO_ERROR(throw continue)]]
-			THROWN_THROW		   [throw THROWN_THROW]			  ;-- let exception pass through
-			default [0]											  ;-- else, do nothing
+			RED_THROWN_ERROR	[throw RED_THROWN_ERROR] ;-- let exception pass through
+			RED_THROWN_BREAK	[fire [TO_ERROR(throw break)]]
+			RED_THROWN_CONTINUE	[fire [TO_ERROR(throw continue)]]
+			RED_THROWN_THROW	[throw RED_THROWN_THROW] ;-- let exception pass through
+			default [0]									 ;-- else, do nothing
 		]
 		system/thrown: 0
 	]

@@ -471,17 +471,17 @@ red: context [
 		body: make block! 8
 		either empty? intersect iterators expr-stack [
 			append body [
-				RED_BREAK_EXCEPTION
-				RED_CONTINUE_EXCEPTION [re-throw]
+				RED_THROWN_BREAK
+				RED_THROWN_CONTINUE [re-throw]
 			]
 		][
 			append body [
-				RED_BREAK_EXCEPTION    [break]
-				RED_CONTINUE_EXCEPTION [continue]
+				RED_THROWN_BREAK    [break]
+				RED_THROWN_CONTINUE [continue]
 			]
 		]
 		append body [
-			THROWN_RETURN THROWN_EXIT
+			RED_THROWN_RETURN RED_THROWN_EXIT
 		]
 		append/only body pick [
 			[re-throw]
@@ -1759,7 +1759,7 @@ red: context [
 		all?: path? pc/-1
 		
 		either block? pc/1 [
-			emit [catch RED_ERROR]
+			emit [catch RED_THROWN_ERROR]
 			insert-lf -2
 			body: comp-sub-block 'try
 			if body/1 = 'stack/reset [remove body]
