@@ -218,6 +218,7 @@ system/lexer: context [
 			TYPE_LIT_WORD [TYPE_LIT_PATH]
 			default [TYPE_PATH]
 		]
+		path/args: null
 	]
 
 	set-path: routine [
@@ -226,6 +227,7 @@ system/lexer: context [
 			path [red-path!]
 	][
 		path: as red-path! block/pick stack 1 null
+		path/args: null
 		set-type as red-value! path TYPE_SET_PATH
 	]
 

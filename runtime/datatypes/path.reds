@@ -25,6 +25,7 @@ path: context [
 		p/header: TYPE_PATH								;-- implicit reset of all header flags
 		p/head:   0
 		p/node:   alloc-cells size
+		p/args:	  null
 		push p
 		p
 	]
@@ -35,6 +36,7 @@ path: context [
 		#if debug? = yes [if verbose > 0 [print-line "path/push"]]
 
 		p/header: TYPE_PATH								;@@ type casting (from block! to path!)
+		p/args:	  null
 		copy-cell as red-value! p stack/push*
 	]
 
@@ -52,6 +54,7 @@ path: context [
 
 		path: as red-path! block/make proto spec
 		path/header: TYPE_PATH
+		path/args:	 null
 		path
 	]
 	
@@ -147,6 +150,7 @@ path: context [
 
 		path: as red-path! block/copy as red-block! path as red-block! new arg deep? types
 		path/header: TYPE_PATH
+		path/args:	 null
 		as red-series! path
 	]
 	
