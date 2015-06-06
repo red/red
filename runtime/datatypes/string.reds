@@ -1948,15 +1948,14 @@ string: context [
 		offset: str/head + index - 1					;-- index is one-based
 		if negative? index [offset: offset + 1]
 
-		p1: (as byte-ptr! s/offset) + (offset << (unit >> 1))
-		
 		either any [
 			zero? index
-			p1 >= as byte-ptr! s/tail
-			p1 <  as byte-ptr! s/offset
+			offset < 0
+			offset >= ((as-integer s/tail - s/offset) >> (unit >> 1))
 		][
 			none-value
 		][
+			p1: (as byte-ptr! s/offset) + (offset << (unit >> 1))
 			either TYPE_OF(str) = TYPE_VECTOR [
 				vec: as red-vector! str
 				vector/get-value p1 unit vec/type
@@ -2124,31 +2123,32 @@ string: context [
 			s	   [series!]
 			offset [integer!]
 			pos	   [byte-ptr!]
+			unit   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "string/poke"]]
 
 		s: GET_BUFFER(str)
-		
+		unit: GET_UNIT(s)
+
 		offset: str/head + index - 1					;-- index is one-based
 		if negative? index [offset: offset + 1]
 		
-		pos: (as byte-ptr! s/offset) + (offset << (GET_UNIT(s) >> 1))
-		
 		either any [
 			zero? index
-			pos >= as byte-ptr! s/tail
-			pos <  as byte-ptr! s/offset
+			offset < 0
+			offset >= ((as-integer s/tail - s/offset) >> (unit >> 1))
 		][
 			fire [
 				TO_ERROR(script out-of-range)
 				integer/push index
 			]
 		][
+			pos: (as byte-ptr! s/offset) + (offset << (unit >> 1))
 			either TYPE_OF(str) = TYPE_VECTOR [
 				if TYPE_OF(char) <> as-integer str/cache [
 					fire [TO_ERROR(script invalid-arg) char]
 				]
-				vector/set-value pos as red-value! char GET_UNIT(s)
+				vector/set-value pos as red-value! char unit
 			][
 				if TYPE_OF(char) <> TYPE_CHAR [
 					fire [TO_ERROR(script invalid-arg) char]

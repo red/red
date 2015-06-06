@@ -1338,7 +1338,6 @@ block: context [
 		boxed	[red-value!]
 		return:	[red-value!]
 		/local
-			cell   [red-value!]
 			s	   [series!]
 			offset [integer!]
 	][
@@ -1348,16 +1347,14 @@ block: context [
 
 		offset: blk/head + index - 1					;-- index is one-based
 		if negative? index [offset: offset + 1]
-		cell: s/offset + offset
-		
 		either any [
 			zero? index
-			cell >= s/tail
-			cell < s/offset
+			offset < 0
+			offset >= ((as-integer s/tail - s/offset) >> 4)
 		][
 			none-value
 		][
-			cell
+			s/offset + offset
 		]
 	]
 	
@@ -1537,7 +1534,6 @@ block: context [
 		boxed	[red-value!]
 		return:	[red-value!]
 		/local
-			cell   [red-value!]
 			s	   [series!]
 			offset [integer!]
 	][
@@ -1547,16 +1543,15 @@ block: context [
 		
 		offset: blk/head + index - 1					;-- index is one-based
 		if negative? index [offset: offset + 1]
-		cell: s/offset + offset
 
 		either any [
 			zero? index
-			cell >= s/tail
-			cell < s/offset
+			offset < 0
+			offset >= ((as-integer s/tail - s/offset) >> 4)
 		][
 			fire [TO_ERROR(script out-of-range) boxed]
 		][
-			copy-cell data cell
+			copy-cell data s/offset + offset
 			stack/set-last data
 		]
 		as red-value! data
