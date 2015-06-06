@@ -468,11 +468,11 @@ Red [
 		
 	--test-- "vector-add-3"
 		va3-v: add next va-v1 va-v2
-		--assert va3-v = make vector! [22 33 44 55 6]
+		--assert va3-v = make vector! [22 33 44 55]
 		
 	--test-- "vector-add-4"	
 		va4-v: add va-v1 next next va-v2
-		--assert va4-v = make vector! [14 25 36 40 50]
+		--assert va4-v = make vector! [14 25 36]
 		
 	--test-- "vector-add-5"
 		va-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
@@ -497,6 +497,12 @@ Red [
 		va-v1: make vector! [10 20 30 40 50]
 		va9-v: va-v1 + 0.5
 		--assert va9-v = make vector! [10 20 30 40 50]
+	
+	--test-- "vector-add-10"
+		va10-v1: make vector! [integer! 8 [253 254 255]]
+		va10-v2: make vector! [integer! 8 [3 2 1]]
+		va10-v3: va10-v1 + va10-v2
+		--assert va10-v3 = make vector! [integer! 8 [0 0 0]]
 		
 ===end-group===
 
@@ -515,11 +521,11 @@ Red [
 		
 	--test-- "vector-subtract-3"
 		vs3-v: subtract next vs-v1 vs-v2
-		--assert vs3-v = make vector! [18 27 36 45 -6]
+		--assert vs3-v = make vector! [18 27 36 45]
 		
 	--test-- "vector-subtract-4"	
 		vs4-v: subtract vs-v1 next next vs-v2
-		--assert vs4-v = make vector! [6 15 24 40 50]
+		--assert vs4-v = make vector! [6 15 24]
 		
 	--test-- "vector-subtract-5"
 		vs-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
@@ -547,6 +553,251 @@ Red [
 		
 ===end-group===
 
+===start-group=== "vector multiply"
+		
+		vm-v1: make vector! [10 20 30 40 50]
+		vm-v2: make vector! [2 3 4 5 6]
+
+	--test-- "vector-multiply-1"
+		vm1-v: vm-v1 * vm-v2
+		--assert vm1-v = make vector! [20 60 120 200 300]
+	
+	--test-- "vector-multiply-2"
+		vm2-v: multiply vm-v1 vm-v2
+		--assert vm2-v = make vector! [20 60 120 200 300]
+		
+	--test-- "vector-multiply-3"
+		vm3-v: multiply next vm-v1 vm-v2
+		--assert vm3-v = make vector! [40 90 160 250]
+		
+	--test-- "vector-multiply-4"	
+		vm4-v: multiply vm-v1 next next vm-v2
+		--assert vm4-v = make vector! [40 100 180]
+		
+	--test-- "vector-multiply-5"
+		vm-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
+		vm5-v: vm-v1 * vm-v1
+		--assert vm5-v = make vector! [1.0 4.0 9.0 16.0 25.0]
+	
+	--test-- "vector-multiply-6"
+		vm6-v: vm-v1 * 0.5
+		--assert vm6-v = make vector! [0.5 1.0 1.5 2.0 2.5]
+		
+	--test-- "vector-multiply-7"
+		vm-v1: make vector! [10 20 30 40 50]
+		vm7-v: vm-v1 * -1
+		--assert vm7-v = make vector! [-10 -20 -30 -40 -50]
+		
+	--test-- "vector-multiply-8"
+		vm-v1: make vector! [10 20 30 40 50]
+		vm8-v: vm-v1 * 1.5
+		--assert vm8-v = make vector! [10 20 30 40 50]
+		
+	--test-- "vector-multiply-9"
+		vm-v1: make vector! [10 20 30 40 50]
+		vm9-v: vm-v1 * 0.5
+		--assert vm9-v = make vector! [0 0 0 0 0]
+		
+	--test-- "vector-multiply-10"
+		vm10-v1: make vector! [integer! 8 [253 254 255]]
+		vm10-v2: make vector! [integer! 8 [3 2 1]]
+		vm10-v3: vm10-v1 * vm10-v2
+		--assert vm10-v3 = make vector! [integer! 8 [247 252 255]]
+			
+===end-group===
+
+===start-group=== "vector divide"
+		
+		vm-v1: make vector! [10 20 30 40 50]
+		vm-v2: make vector! [2 3 4 5 6]
+
+	--test-- "vector-divide-1"
+		vm1-v: vm-v1 / vm-v2
+		--assert vm1-v = make vector! [5 6 7 8 8]
+	
+	--test-- "vector-divide-2"
+		vm2-v: divide vm-v1 vm-v2
+		--assert vm2-v = make vector! [5 6 7 8 8]
+		
+	--test-- "vector-divide-3"
+		vm3-v: divide next vm-v1 vm-v2
+		--assert vm3-v = make vector! [10 10 10 10]
+		
+	--test-- "vector-divide-4"	
+		vm4-v: divide vm-v1 next next vm-v2
+		--assert vm4-v = make vector! [2 5 5]
+		
+	--test-- "vector-divide-5"
+		vm-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
+		vm5-v: vm-v1 / vm-v1
+		--assert vm5-v = make vector! [1.0 1.0 1.0 1.0 1.0]
+	
+	--test-- "vector-divide-6"
+		vm6-v: vm-v1 / 0.5
+		--assert vm6-v = make vector! [2.0 4.0 6.0 8.0 10.0]
+		
+	--test-- "vector-divide-7"
+		vm-v1: make vector! [10 20 30 40 50]
+		vm7-v: vm-v1 / -1
+		--assert vm7-v = make vector! [-10 -20 -30 -40 -50]
+		
+	--test-- "vector-divide-8"
+		vm-v1: make vector! [10 20 30 40 50]
+		vm8-v: vm-v1 / 1.5
+		--assert vm8-v = make vector! [10 20 30 40 50]
+		
+	--test-- "vector-divide-9"
+		vm-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
+		vm9-v: vm-v1 / 5.0
+		--assert vm9-v = make vector! [0.2 0.4 0.6 0.8 1.0]
+		
+===end-group===
+
+===start-group=== "vector remainder"
+		
+		vm-v1: make vector! [10 20 30 40 50]
+		vm-v2: make vector! [2 3 4 5 6]
+
+	--test-- "vector-remainder-1"
+		vm1-v: vm-v1 % vm-v2
+		--assert vm1-v = make vector! [0 2 2 0 2]
+	
+	--test-- "vector-remainder-2"
+		vm2-v: remainder vm-v1 vm-v2
+		--assert vm2-v = make vector! [0 2 2 0 2]
+		
+	--test-- "vector-remainder-3"
+		vm3-v: remainder next vm-v1 vm-v2
+		--assert vm3-v = make vector! [0 0 0 0]
+		
+	--test-- "vector-remainder-4"	
+		vm4-v: remainder vm-v1 next next vm-v2
+		--assert vm4-v = make vector! [2 0 0]
+		
+	--test-- "vector-remainder-5"
+		vm-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
+		vm5-v: vm-v1 % vm-v1
+		--assert vm5-v = make vector! [0.0 0.0 0.0 0.0 0.0]
+	
+	--test-- "vector-remainder-6"
+		vm6-v: vm-v1 % 0.5
+		--assert vm6-v = make vector! [0.0 0.0 0.0 0.0 0.0]
+		
+	--test-- "vector-remainder-7"
+		vm-v1: make vector! [10 20 30 40 50]
+		vm7-v: vm-v1 % -1
+		--assert vm7-v = make vector! [0 0 0 0 0]
+		
+	--test-- "vector-remainder-8"
+		vm-v1: make vector! [10 20 30 40 50]
+		vm8-v: vm-v1 % 1.5
+		--assert vm8-v = make vector! [0 0 0 0 0]
+		
+	--test-- "vector-remainder-9"
+		vm-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
+		vm9-v: vm-v1 % 5.0
+		--assert vm9-v = make vector! [1.0 2.0 3.0 4.0 0.0]
+		
+===end-group===
+
+===start-group=== "vector and"
+		
+		vand-v1: make vector! [10 20 30 40 50]
+		vand-v2: make vector! [2 3 4 5 6]
+
+	--test-- "vector-and-1"
+		vand1-v: vand-v1 and vand-v2
+		--assert vand1-v = make vector! [2 0 4 0 2]
+	
+	--test-- "vector-and-2"
+		vand2-v: vand-v1 and next vand-v2
+		--assert vand2-v = make vector! [2 4 4 0]
+		
+	--test-- "vector-and-3"
+		vand3-v: (next vand-v1) and vand-v2
+		--assert vand3-v = make vector! [0 2 0 0]
+		
+	--test-- "vector-and-4"	
+		vand4-v: vand-v1 and next next vand-v2
+		--assert vand4-v = make vector! [0 4 6]
+		
+	--test-- "vector-and-5"
+		vand-v1: make vector! [10 20 30 40 50]
+		vand7-v: vand-v1 and -1
+		--assert vand7-v = make vector! [10 20 30 40 50]
+		
+	--test-- "vector-and-6"
+		vand-v1: make vector! [10 20 30 40 50]
+		vand8-v: vand-v1 and 1.5
+		--assert vand8-v = make vector! [0 0 0 0 0]
+		
+===end-group===
+
+===start-group=== "vector or"
+		
+		vor-v1: make vector! [10 20 30 40 50]
+		vor-v2: make vector! [2 3 4 5 6]
+
+	--test-- "vector-or-1"
+		vor1-v: vor-v1 or vor-v2
+		--assert vor1-v = make vector! [10 23 30 45 54]
+	
+	--test-- "vector-or-2"
+		vor2-v: vor-v1 or next vor-v2
+		--assert vor2-v = make vector! [11 20 31 46]
+		
+	--test-- "vector-or-3"
+		vor3-v: (next vor-v1) or vor-v2
+		--assert vor3-v = make vector! [22 31 44 55]
+		
+	--test-- "vector-or-4"	
+		vor4-v: vor-v1 or next next vor-v2
+		--assert vor4-v = make vector! [14 21 30]
+		
+	--test-- "vector-or-5"
+		vor-v1: make vector! [10 20 30 40 50]
+		vor7-v: vor-v1 or -1
+		--assert vor7-v = make vector! [-1 -1 -1 -1 -1]
+		
+	--test-- "vector-or-6"
+		vor-v1: make vector! [10 20 30 40 50]
+		vor8-v: vor-v1 or 1.5
+		--assert vor8-v = make vector! [11 21 31 41 51]
+		
+===end-group===
+
+===start-group=== "vector xor"
+		
+		vxor-v1: make vector! [10 20 30 40 50]
+		vxor-v2: make vector! [2 3 4 5 6]
+
+	--test-- "vector-xor-1"
+		vxor1-v: vxor-v1 xor vxor-v2
+		--assert vxor1-v = make vector! [8 23 26 45 52]
+	
+	--test-- "vector-xor-2"
+		vxor2-v: vxor-v1 xor next vxor-v2
+		--assert vxor2-v = make vector! [9 16 27 46]
+		
+	--test-- "vector-xor-3"
+		vxor3-v: (next vxor-v1) xor vxor-v2
+		--assert vxor3-v = make vector! [22 29 44 55]
+		
+	--test-- "vector-xor-4"	
+		vxor4-v: vxor-v1 xor next next vxor-v2
+		--assert vxor4-v = make vector! [14 17 24]
+		
+	--test-- "vector-xor-5"
+		vxor-v1: make vector! [10 20 30 40 50]
+		vxor7-v: vxor-v1 xor -1
+		--assert vxor7-v = make vector! [-11 -21 -31 -41 -51]
+		
+	--test-- "vector-xor-6"
+		vxor-v1: make vector! [10 20 30 40 50]
+		vxor8-v: vxor-v1 xor 1.5
+		--assert vxor8-v = make vector! [11 21 31 41 51]
+		
+===end-group===
 
 ~~~end-file~~~
 
