@@ -452,7 +452,6 @@ vector: context [
 			unit	[integer!]
 			unit1	[integer!]
 			unit2	[integer!]
-			len		[integer!]
 			len1	[integer!]
 			len2	[integer!]
 			v1		[integer!]
@@ -486,15 +485,15 @@ vector: context [
 
 		len1: rs-length? left
 		len2: rs-length? right
-		len: either len1 > len2 [len1][len2]
+		if len1 > len2 [len1: len2]
 
 		p1: (as byte-ptr! s1/offset) + (left/head << (unit1 >> 1))
 		p2: (as byte-ptr! s2/offset) + (right/head << (unit2 >> 1))
 
-		node: alloc-bytes len << (unit >> 1)
+		node: alloc-bytes len1 << (unit >> 1)
 		buffer: as series! node/value
 		buffer/flags: buffer/flags and flag-unit-mask or unit
-		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (len << (unit >> 1))
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (len1 << (unit >> 1))
 
 		i: 0
 		p:  as byte-ptr! buffer/offset
@@ -502,29 +501,26 @@ vector: context [
 			if unit  = 6 [unit:  8]
 			if unit1 = 6 [unit1: 8]
 			if unit2 = 6 [unit2: 8]
-			while [i < len][
-				f1: either i < len1 [get-value-float p1 unit1][0.0]
-				if i < len2 [
-					f2: get-value-float p2 unit2
-					f1: switch type [
-						OP_ADD [f1 + f2]
-						OP_SUB [f1 - f2]
-						OP_MUL [f1 * f2]
-						OP_REM [f1 % f2]
-						OP_DIV [
-							either 0.0 = f2 [
-								fire [TO_ERROR(math zero-divide)]
-								0.0								;-- pass the compiler's type-checking
-							][
-								f1 / f2
-							]
-						]
-						default [
-							fire [TO_ERROR(script invalid-type) datatype/push left/type]
-							0.0
+			while [i < len1][
+				f1: get-value-float p1 unit1
+				f2: get-value-float p2 unit2
+				f1: switch type [
+					OP_ADD [f1 + f2]
+					OP_SUB [f1 - f2]
+					OP_MUL [f1 * f2]
+					OP_REM [f1 % f2]
+					OP_DIV [
+						either 0.0 = f2 [
+							fire [TO_ERROR(math zero-divide)]
+							0.0								;-- pass the compiler's type-checking
+						][
+							f1 / f2
 						]
 					]
-					p2: p2 + unit2
+					default [
+						fire [TO_ERROR(script invalid-type) datatype/push left/type]
+						0.0
+					]
 				]
 				either unit = 8 [
 					pf: as pointer! [float!] p
@@ -536,30 +532,28 @@ vector: context [
 				i:  i  + 1
 				p:  p  + unit
 				p1: p1 + unit1
+				p2: p2 + unit2
 			]
 		][
-			while [i < len][
-				v1: either i < len1 [get-value-int as int-ptr! p1 unit1][0]
-				if i < len2 [
-					v2: get-value-int as int-ptr! p2 unit2
-					v1: switch type [
-						OP_ADD [v1 + v2]
-						OP_SUB [v1 - v2]
-						OP_MUL [v1 * v2]
-						OP_REM [v1 % v2]
-						OP_AND [v1 and v2]
-						OP_OR  [v1 or v2]
-						OP_XOR [v1 xor v2]
-						OP_DIV [
-							either zero? v2 [
-								fire [TO_ERROR(math zero-divide)]
-								0								;-- pass the compiler's type-checking
-							][
-								v1 / v2
-							]
+			while [i < len1][
+				v1: get-value-int as int-ptr! p1 unit1
+				v2: get-value-int as int-ptr! p2 unit2
+				v1: switch type [
+					OP_ADD [v1 + v2]
+					OP_SUB [v1 - v2]
+					OP_MUL [v1 * v2]
+					OP_REM [v1 % v2]
+					OP_AND [v1 and v2]
+					OP_OR  [v1 or v2]
+					OP_XOR [v1 xor v2]
+					OP_DIV [
+						either zero? v2 [
+							fire [TO_ERROR(math zero-divide)]
+							0								;-- pass the compiler's type-checking
+						][
+							v1 / v2
 						]
 					]
-					p2: p2 + unit2
 				]
 				switch unit [
 					1 [p/value: as-byte v1]
@@ -569,6 +563,7 @@ vector: context [
 				i:  i  + 1
 				p:  p  + unit
 				p1: p1 + unit1
+				p2: p2 + unit2
 			]
 		]
 		left/node: node

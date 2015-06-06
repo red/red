@@ -625,7 +625,7 @@ Red [
 		
 	--test-- "vector-divide-4"	
 		vm4-v: divide vm-v1 next next vm-v2
-		--assert vm4-v = make vector! [2 5 5]
+		--assert vm4-v = make vector! [2 4 5]
 		
 	--test-- "vector-divide-5"
 		vm-v1: make vector! [1.0 2.0 3.0 4.0 5.0]
