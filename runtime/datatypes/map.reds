@@ -281,7 +281,11 @@ map: context [
 
 		either value <> null [						;-- set value
 			either TYPE_OF(value) = TYPE_NONE [		;-- delete key entry
-				unless key = null [
+				val: key + 1
+				if all [
+					key <> null
+					TYPE_OF(val) <> TYPE_NONE
+				][
 					_hashtable/delete table key
 				]
 				value
@@ -376,7 +380,11 @@ map: context [
 			key: _hashtable/get table cell 0 0 yes no no
 			value: cell + 1
 			either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
-				unless key = null [
+				val: key + 1
+				if all [
+					key <> null
+					TYPE_OF(val) <> TYPE_NONE
+				][
 					_hashtable/delete table key
 				]
 			][
