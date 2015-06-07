@@ -282,7 +282,7 @@ _hashtable: context [
 		if size < 3 [size: 3]
 		fsize: integer/to-float size
 		f-buckets: fsize / _HT_HASH_UPPER
-		skip: either type = HASH_TABLE_MAP [f-buckets: f-buckets / 2.0 2][1]
+		skip: either type = HASH_TABLE_MAP [2][1]
 		h/n-buckets: round-up float/to-integer f-buckets
 		f-buckets: integer/to-float h/n-buckets
 		h/upper-bound: float/to-integer f-buckets * _HT_HASH_UPPER
