@@ -323,7 +323,7 @@ system/lexer: context [
 				#"^(00)" - #"^(08)"						;-- (exclude TAB)
 				#"^(0A)" - #"^(1F)"
 			]
-			cs/13: charset {^{"[]);x}					;-- integer-end
+			cs/13: charset {^{"[]();x}					;-- integer-end
 			cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
 			cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
 			cs/16: charset [ 							;-- Control characters
@@ -333,7 +333,7 @@ system/lexer: context [
 			cs/17: charset "01234"						;-- four
 			cs/18: charset "012345"						;-- half
 		    cs/19: charset "123456789"					;-- non-zero
-		    cs/20: charset {^{"[])(;}					;-- path-end
+		    cs/20: charset {^{"[]();}					;-- path-end
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
