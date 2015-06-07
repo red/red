@@ -407,7 +407,6 @@ lexer: context [
 			| get-word-rule	  (stack/push to type value)
 			| refinement-rule (stack/push to refinement! copy/part s e)
 			| slash-rule	  (stack/push to word! 	   	 copy/part s e)
-			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 			| file-rule		  (stack/push load-file		 copy/part s e)
 			| char-rule		  (stack/push decode-UTF8-char value)
 			| block-rule	  (stack/push value)
@@ -415,6 +414,7 @@ lexer: context [
 			| string-rule	  (stack/push load-string s e)
 			| binary-rule	  (stack/push load-binary s e)
 			| map-rule		  (stack/push value)
+			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 		]
 	]
 	

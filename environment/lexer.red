@@ -656,7 +656,6 @@ system/lexer: context [
 				| lit-word-rule
 				| get-word-rule
 				| refinement-rule
-				| issue-rule
 				| file-rule			(store stack value: do process)
 				| char-rule			(store stack value)
 				| block-rule
@@ -664,6 +663,7 @@ system/lexer: context [
 				| string-rule		(store stack do make-string)
 				;| binary-rule	  	(stack/push load-binary s e)
 				| map-rule
+				| issue-rule
 			]
 		]
 
