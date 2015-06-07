@@ -333,7 +333,7 @@ system/lexer: context [
 			cs/17: charset "01234"						;-- four
 			cs/18: charset "012345"						;-- half
 		    cs/19: charset "123456789"					;-- non-zero
-		    cs/20: charset {^{"[])(}					;-- path-end
+		    cs/20: charset {^{"[])(;}					;-- path-end
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
@@ -482,6 +482,7 @@ system/lexer: context [
 			ahead slash (								;-- path detection barrier
 				push-path stack type					;-- create empty path
 				to-word stack copy/part s e word!		;-- push 1st path element
+				type: path!
 			)
 			some [
 				slash
@@ -495,9 +496,9 @@ system/lexer: context [
 					  reject
 				]
 			]
-			opt [#":" (set-path back tail stack)][
+			opt [#":" (type: set-path! set-path back tail stack)][
 				ahead [path-end | ws | end] 
-				| (cause-error 'syntax 'invalid [path! trim/lines copy path])
+				| (cause-error 'syntax 'invalid [type trim/lines copy path])
 			]
 			(pop stack)
 		]
