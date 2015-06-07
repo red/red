@@ -271,8 +271,22 @@ float: context [
 			OP_ADD [left/value + right/value]
 			OP_SUB [left/value - right/value]
 			OP_MUL [left/value * right/value]
-			OP_DIV [left/value / right/value]
-			OP_REM [left/value % right/value]
+			OP_DIV [
+				either 0.0 = right/value [
+					fire [TO_ERROR(math zero-divide)]
+					0.0						;-- pass the compiler's type-checking
+				][
+					left/value / right/value
+				]
+			]
+			OP_REM [
+				either 0.0 = right/value [
+					fire [TO_ERROR(math zero-divide)]
+					0.0						;-- pass the compiler's type-checking
+				][
+					left/value % right/value
+				]
+			]
 		]
 		left
 	]
