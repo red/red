@@ -276,13 +276,13 @@ system/lexer: context [
 			length [integer! string!]
 		return: [block!]
 		/local
-			new s e c hex pos value cnt type process
+			new s e c hex pos value cnt type process path
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero
+			four half non-zero path-end
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		line: 	1
@@ -333,12 +333,13 @@ system/lexer: context [
 			cs/17: charset "01234"						;-- four
 			cs/18: charset "012345"						;-- half
 		    cs/19: charset "123456789"					;-- non-zero
+		    cs/20: charset {^{"[])(}					;-- path-end
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero
+			four half non-zero path-end
 		] cs
 
 		byte: [
@@ -490,16 +491,20 @@ system/lexer: context [
 					| paren-rule
 					| #":" s: begin-symbol-rule	(to-word stack copy/part s e get-word!)
 					;@@ add more datatypes here
-					| (cause-error 'syntax 'invalid [path! trim/lines copy back s])
+					| (cause-error 'syntax 'invalid [path! trim/lines copy path])
 					  reject
 				]
-				opt [#":" (set-path back tail stack)]
-			] (pop stack)
+			]
+			opt [#":" (set-path back tail stack)][
+				ahead [path-end | ws | end] 
+				| (cause-error 'syntax 'invalid [path! trim/lines copy path])
+			]
+			(pop stack)
 		]
 
 		word-rule: 	[
 			#"%" [ws-no-count | end] (to-word stack "%" word!)	;-- special case for remainder op!
-			| s: begin-symbol-rule (type: word!) [
+			| path: s: begin-symbol-rule (type: word!) [
 					url-rule
 					| path-rule							;-- path matched
 					| opt [#":" (type: set-word!)]
