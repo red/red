@@ -386,7 +386,7 @@ system/lexer: context [
 					| "esc"  (value: #"^(1B)")
 					| "del"	 (value: #"^(7F)")
 				]
-				| pos: [1 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
+				| pos: [2 6 hexa-char] e: (				;-- Unicode values allowed up to 10FFFFh
 					value: make-char pos e
 				)
 			] #")"
