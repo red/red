@@ -233,7 +233,7 @@ lexer: context [
 
 	tuple-value-rule: [
 		(type: tuple!)
-		byte dot byte 1 8 [dot byte | dot] e:
+		byte dot byte 1 8 [dot byte] e:
 	]
 
 	tuple-rule: [
