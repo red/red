@@ -15,6 +15,7 @@ lexer: context [
 	count?: yes										;-- if TRUE, lines counter is enabled
 	cnt:	none									;-- counts nested {} in multi-line strings
 	pos:	none									;-- source input position (error reporting)
+	path:	none									;-- path input position (error reporting)
 	s:		none									;-- mark start position of new value
 	e:		none									;-- mark end position of new value
 	value:	none									;-- new value
@@ -80,6 +81,7 @@ lexer: context [
 	caret-char:	    charset [#"^(40)" - #"^(5F)"]
 	non-printable-char: charset [#"^(00)" - #"^(1F)"]
 	integer-end:	charset {^{"[]);x}
+	path-end:		charset {^{"[]);}
 	stop: 		    none
 
 	control-char: reduce [ 							;-- Control characters
@@ -173,15 +175,16 @@ lexer: context [
 				]
 				type: path!
 			)
-			opt [#":" (type: set-path!)]
 		]
+		opt [#":" (type: set-path!)]
+		e: [path-end | ws-no-count | end | (pos: path throw-error)] :e ;-- detect invalid tail characters				
 		(value: stack/pop type)
 	]
 	
 	word-rule: 	[
 		(type: word!)
 		#"%" ws-no-count (value: "%")				;-- special case for remainder op!
-		| s: begin-symbol-rule [
+		| path: s: begin-symbol-rule [
 			url-rule
 			| path-rule 							;-- path matched
 			| (value: copy/part s e)				;-- word matched
