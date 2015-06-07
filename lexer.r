@@ -82,9 +82,9 @@ lexer: context [
 	integer-end:	charset {^{"[]);x}
 	stop: 		    none
 
-	control-char: reduce [
-		charset [#"^(00)" - #"^(1F)"] 				;-- ASCII control characters
-		'| #"^(C2)" charset [#"^(80)" - #"^(9F)"] 	;-- C2 control characters
+	control-char: reduce [ 							;-- Control characters
+		charset [#"^(00)" - #"^(1F)"] 				;-- C0 control codes
+		'| #"^(C2)" charset [#"^(80)" - #"^(9F)"] 	;-- C1 control codes (UTF-8 encoded)
 	]
 	
 	UTF8-filtered-char: [

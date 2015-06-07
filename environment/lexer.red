@@ -326,7 +326,10 @@ system/lexer: context [
 			cs/13: charset {^{"[]);x}					;-- integer-end
 			cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
 			cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
-			cs/16: charset [#"^(00)" - #"^(1F)"] 		;-- ASCII control characters
+			cs/16: charset [ 							;-- Control characters
+				#"^(00)" - #"^(1F)"						;-- C0 control codes
+				#"^(80)" - #"^(9F)"						;-- C1 control codes
+			]
 			cs/17: charset "01234"						;-- four
 			cs/18: charset "012345"						;-- half
 		    cs/19: charset "123456789"					;-- non-zero
