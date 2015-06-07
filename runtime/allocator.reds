@@ -695,8 +695,6 @@ expand-series: func [
 	;#if debug? = yes [print-wide ["series expansion triggered for:" series new-sz lf]]
 	
 	assert not null? series
-	?? new-sz
-	print-line series/size
 	assert any [
 		zero? new-sz
 		new-sz > series/size				;-- ensure requested size is bigger than current one
