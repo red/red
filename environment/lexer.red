@@ -319,7 +319,10 @@ system/lexer: context [
 			cs/9:  #"^""								;-- not-str-char
 			cs/10: #"}"									;-- not-mstr-char
 			cs/11: charset [#"^(40)" - #"^(5F)"]		;-- caret-char
-			cs/12: charset [#"^(00)" - #"^(1F)"]		;-- non-printable-char
+			cs/12: charset [							;-- non-printable-char
+				#"^(00)" - #"^(08)"						;-- (exclude TAB)
+				#"^(0A)" - #"^(1F)"
+			]
 			cs/13: charset {^{"[]);x}					;-- integer-end
 			cs/14: charset " ^-^M"						;-- ws-ASCII, ASCII common whitespaces
 			cs/15: charset [#"^(2000)" - #"^(200A)"]	;-- ws-U+2k, Unicode spaces in the U+2000-U+200A range
@@ -407,9 +410,14 @@ system/lexer: context [
 		char-rule: [
 			{#"} s: [
 				 escaped-char
-				| ahead [non-printable-char | not-str-char] break
+				| ahead [non-printable-char | not-str-char]
+				  (cause-error 'syntax 'invalid [char! mold skip s -2])
+				  reject
 				| skip (value: s/1)
-			] {"}
+			][
+				{"}
+				| (cause-error 'syntax 'invalid [char! mold skip s -2])
+			]
 		]
 
 		line-string: [
