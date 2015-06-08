@@ -144,6 +144,8 @@ values-of: func [
 	reflect :value 'values
 ]
 
+keys-of: :words-of
+
 context: func [spec [block!]][make object! spec]
 
 replace: func [
