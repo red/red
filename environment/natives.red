@@ -679,3 +679,12 @@ catch: make native! [[
 	]
 	#get-definition NAT_CATCH
 ]
+
+extend: make native! [[
+		"Extend an object or map value with list of key and value pairs"
+		obj  [object! map!]
+		spec [block!]
+		/case "Use case-sensitive comparison"
+	]
+	#get-definition NAT_EXTEND
+]
