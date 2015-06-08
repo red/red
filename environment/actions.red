@@ -71,6 +71,17 @@ mold: make action! [[
 	#get-definition ACT_MOLD
 ]
 
+modify: make action! [[
+		"Change mode for port/file or change the value of a key in a map"
+		target	 [map! file!]
+		field 	 [word!]
+		value 	 [any-type!]
+		/case "Perform a case-sensitive lookup"
+		return:  [map! file!]
+	]
+	#get-definition ACT_MODIFY
+]
+
 ;-- Scalar actions --
 
 absolute: make action! [[
@@ -484,7 +495,6 @@ trim: make action! [[
 ;create
 ;close
 ;delete
-;modify
 ;open
 ;open?
 ;query

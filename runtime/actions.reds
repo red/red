@@ -462,6 +462,41 @@ actions: context [
 		res
 	]
 	
+	modify*: func [
+		case?	[integer!]
+		return:	[red-value!]
+	][	
+		modify
+			stack/arguments
+			stack/arguments + 1
+			stack/arguments + 2
+			case? <> -1
+
+		stack/set-last stack/arguments
+	]
+
+
+	modify: func [
+		target	[red-value!]
+		field	[red-value!]
+		value	[red-value!]
+		case?	[logic!]
+		/local
+			action-modify
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/modify"]]
+
+		action-modify: as function! [
+			target	[red-value!]
+			field	[red-value!]
+			value	[red-value!]
+			case?	[logic!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr target ACT_MODIFY
+
+		action-modify target field value case?
+	]
+	
 	absolute*: func [
 		return:	[red-value!]
 		/local
@@ -1404,7 +1439,6 @@ actions: context [
 	create*: func [][]
 	close*: func [][]
 	delete*: func [][]
-	modify*: func [][]
 	open*: func [][]
 	open?*: func [][]
 	query*: func [][]
