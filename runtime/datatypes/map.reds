@@ -82,6 +82,70 @@ map: context [
 		part
 	]
 	
+	extend: func [
+		map		[red-hash!]
+		spec	[red-block!]
+		case?	[logic!]
+		return: [red-value!]
+		/local
+			src		[red-block!]
+			cell	[red-value!]
+			tail	[red-value!]
+			value	[red-value!]
+			int		[red-integer!]
+			s		[series!]
+			cnt		[integer!]
+			size	[integer!]
+			table	[node!]
+			key		[red-value!]
+			val		[red-value!]
+			psize	[int-ptr!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "map/extend"]]
+
+		src: as red-block! spec
+		size: block/rs-length? src
+
+		s: GET_BUFFER(map)
+		size: as-integer s/tail + size - s/offset
+		if size > s/size [s: expand-series s size]
+
+		s: GET_BUFFER(src)
+		cell: s/offset + src/head
+		tail: s/tail
+
+		table: map/table
+		while [cell < tail][
+			key: _hashtable/get table cell 0 0 case? no no
+			value: cell + 1
+			either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
+				val: key + 1
+				if all [
+					key <> null
+					TYPE_OF(val) <> TYPE_NONE
+				][
+					_hashtable/delete table key
+				]
+			][
+				either key = null [
+					s: as series! map/node/value
+					key: copy-cell cell as cell! alloc-tail-unit s (size? cell!) << 1
+					_hashtable/put table key
+				][
+					val: key + 1
+					if TYPE_OF(val) = TYPE_NONE [		;-- increase size of keys
+						s: as series! table/value
+						psize: as int-ptr! s/offset
+						psize/value: psize/value + 1
+					]
+				]
+				copy-cell value key + 1
+			]
+			cell: cell + 2
+		]
+		as red-value! map
+	]
+	
 	push: func [
 		map [red-hash!]
 	][
@@ -336,89 +400,6 @@ map: context [
 		eval-path map field value as red-value! none-value case?
 	]
 
-	insert: func [
-		map		  [red-hash!]
-		value	  [red-value!]
-		part-arg  [red-value!]
-		only?	  [logic!]
-		dup-arg	  [red-value!]
-		append?	  [logic!]
-		return:	  [red-value!]
-		/local
-			src		[red-block!]
-			cell	[red-value!]
-			limit	[red-value!]
-			int		[red-integer!]
-			s		[series!]
-			cnt		[integer!]
-			part	[integer!]
-			size	[integer!]
-			table	[node!]
-			key		[red-value!]
-			val		[red-value!]
-			psize	[int-ptr!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "map/insert"]]
-
-		if TYPE_OF(value) <> TYPE_BLOCK [
-			fire [TO_ERROR(script invalid-arg) value]
-		]
-
-		part: -1
-
-		if OPTION?(part-arg) [
-			if TYPE_OF(part-arg) <> TYPE_INTEGER [
-				fire [TO_ERROR(script invalid-arg) part-arg]
-			]
-			int: as red-integer! part-arg
-			part: int/value * 2
-		]
-
-		src: as red-block! value
-		size: block/rs-length? src
-		if any [negative? part part > size][part: size] ;-- truncate if off-range part value
-		if part % 2 > 0 [part: part - 1]
-
-		s: GET_BUFFER(map)
-		size: as-integer s/tail + part - s/offset
-		if size > s/size [s: expand-series s size]
-
-		s: GET_BUFFER(src)
-		cell: s/offset + src/head
-		limit: cell + part								;-- /part support
-
-		table: map/table
-		while [cell < limit][
-			key: _hashtable/get table cell 0 0 yes no no
-			value: cell + 1
-			either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
-				val: key + 1
-				if all [
-					key <> null
-					TYPE_OF(val) <> TYPE_NONE
-				][
-					_hashtable/delete table key
-				]
-			][
-				either key = null [
-					s: as series! map/node/value
-					key: copy-cell cell as cell! alloc-tail-unit s (size? cell!) << 1
-					_hashtable/put table key
-				][
-					val: key + 1
-					if TYPE_OF(val) = TYPE_NONE [		;-- increase size of keys
-						s: as series! table/value
-						psize: as int-ptr! s/offset
-						psize/value: psize/value + 1
-					]
-				]
-				copy-cell value key + 1
-			]
-			cell: cell + 2
-		]
-		as red-value! map
-	]
-
 	clear: func [
 		map		[red-hash!]
 		return:	[red-value!]
@@ -548,7 +529,7 @@ map: context [
 			null			;head
 			null			;head?
 			null			;index?
-			:insert
+			null			;insert
 			:length?
 			null			;next
 			:pick

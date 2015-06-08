@@ -1594,6 +1594,23 @@ natives: context [
 			stack/top: stack/arguments + 1
 		]
 	]
+	
+	extend*: func [
+		case? [integer!]
+		/local
+			arg [red-value!]
+	][
+		arg: stack/arguments
+		switch TYPE_OF(arg) [
+			TYPE_MAP 	[
+				map/extend
+					as red-hash! arg
+					as red-block! arg + 1
+					case? <> -1
+			]
+			TYPE_OBJECT [--NOT_IMPLEMENTED--]
+		]
+	]
 
 	;--- Natives helper functions ---
 
@@ -1993,6 +2010,7 @@ natives: context [
 			:return*
 			:throw*
 			:catch*
+			:extend*
 		]
 	]
 
