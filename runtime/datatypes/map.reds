@@ -323,6 +323,18 @@ map: context [
 	]
 
 	;--- Modifying actions ---
+	
+	modify: func [
+		map		[red-hash!]
+		field	[red-value!]
+		value	[red-value!]
+		case?	[logic!]
+		return:	[red-value!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "map/modify"]]
+		
+		eval-path map field value as red-value! none-value case?
+	]
 
 	insert: func [
 		map		  [red-hash!]
@@ -438,7 +450,7 @@ map: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/poke"]]
 
-		stack/set-last eval-path map boxed data as red-value! none-value no
+		eval-path map boxed data as red-value! none-value no
 	]
 
 	;--- Property reading actions ---
@@ -555,7 +567,7 @@ map: context [
 			null			;create
 			null			;close
 			null			;delete
-			null			;modify
+			:modify
 			null			;open
 			null			;open?
 			null			;query
