@@ -14,7 +14,7 @@ Red [
 
 make: make action! [[									;--	this one works!	;-)
 		"Returns a new value made from a spec for that value's type"
-		type	 [any-type!] "The datatype or a prototype value"
+		type	 [any-type!] "The datatype, an example or prototype value"
 		spec	 [any-type!] "The specification of the new value"
 		return:  [any-type!] "Returns the specified datatype"
 	]
