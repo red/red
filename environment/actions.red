@@ -15,7 +15,7 @@ Red [
 make: make action! [[									;--	this one works!	;-)
 		"Returns a new value made from a spec for that value's type"
 		type	 [any-type!] "The datatype or a prototype value"
-		spec	 [any-type!] "The specification	of the new value"
+		spec	 [any-type!] "The specification of the new value"
 		return:  [any-type!] "Returns the specified datatype"
 	]
 	#get-definition ACT_MAKE
@@ -280,7 +280,7 @@ copy: make action! [[
 
 find: make action! [[
 		"Returns the series where a value is found, or NONE"
-		series	 [series! bitset! typeset! any-object! none!]
+		series	 [series! bitset! typeset! any-object! map! none!]
 		value 	 [any-type!]
 		/part "Limit the length of the search"
 			length [number! series!]

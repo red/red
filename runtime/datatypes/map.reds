@@ -444,6 +444,29 @@ map: context [
 
 		rs-length? map
 	]
+	
+	find: func [
+		map			[red-hash!]
+		value		[red-value!]
+		part		[red-value!]
+		only?		[logic!]
+		case?		[logic!]
+		any?		[logic!]
+		with-arg	[red-string!]
+		skip		[red-integer!]
+		last?		[logic!]
+		reverse?	[logic!]
+		tail?		[logic!]
+		match?		[logic!]
+		return:		[red-value!]
+		/local
+			table [node!]
+			key   [red-value!]
+	][
+		table: map/table
+		key: _hashtable/get table value 0 0 case? no no
+		either key = null [none-value][true-value]
+	]
 
 	;--- Navigation actions ---
 
@@ -525,7 +548,7 @@ map: context [
 			null			;change
 			:clear
 			:copy
-			null			;find
+			:find
 			null			;head
 			null			;head?
 			null			;index?
