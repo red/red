@@ -215,6 +215,7 @@ map: context [
 			s-tail [red-value!]
 			value  [red-value!]
 			next   [red-value!]
+			new   [red-value!]
 			size   [integer!]
 			s	   [series!]
 	][
@@ -232,10 +233,10 @@ map: context [
 				while [value < s-tail][
 					next: value + 1
 					unless TYPE_OF(next) = TYPE_NONE [
+						new: block/rs-append blk value
 						if TYPE_OF(value) = TYPE_SET_WORD [
-							value/header: TYPE_WORD
+							new/header: TYPE_WORD
 						]
-						block/rs-append blk value
 					]
 					value: value + 2
 				]
