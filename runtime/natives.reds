@@ -518,6 +518,10 @@ natives: context [
 				set-obj-many as red-object! w value
 				stack/set-last value
 			]
+			TYPE_MAP [
+				map/set-many as red-hash! w as red-block! value
+				stack/set-last value
+			]
 			TYPE_BLOCK [
 				blk: as red-block! w
 				set-many blk value block/rs-length? blk

@@ -445,6 +445,29 @@ map: context [
 
 		rs-length? map
 	]
+	
+	find: func [
+		map			[red-hash!]
+		value		[red-value!]
+		part		[red-value!]
+		only?		[logic!]
+		case?		[logic!]
+		any?		[logic!]
+		with-arg	[red-string!]
+		skip		[red-integer!]
+		last?		[logic!]
+		reverse?	[logic!]
+		tail?		[logic!]
+		match?		[logic!]
+		return:		[red-value!]
+		/local
+			table [node!]
+			key   [red-value!]
+	][
+		table: map/table
+		key: _hashtable/get table value 0 0 case? no no
+		either key = null [none-value][true-value]
+	]
 
 	;--- Navigation actions ---
 
@@ -470,6 +493,39 @@ map: context [
 	]
 
 	;--- Misc actions ---
+
+	set-many: func [
+		map		[red-hash!]
+		blk		[red-block!]
+		/local
+			s		[series!]
+			slot	[red-value!]
+			value	[red-value!]
+			end		[red-value!]
+			s-tail	[red-value!]
+	][
+		s: GET_BUFFER(blk)
+		value: s/offset
+		end: s/tail
+		s: GET_BUFFER(map)
+		slot: s/offset + 1
+		s-tail: s/tail
+		while [slot < s-tail][
+			if TYPE_OF(slot) <> TYPE_NONE [
+				either value < end [
+					either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
+						_hashtable/delete map/table slot - 1
+					][
+						copy-cell value slot
+					]
+				][
+					_hashtable/delete map/table slot - 1
+				]
+			]
+			value: value + 1
+			slot: slot + 2
+		]
+	]
 
 	copy: func [
 		map	    	[red-hash!]
@@ -526,7 +582,7 @@ map: context [
 			null			;change
 			:clear
 			:copy
-			null			;find
+			:find
 			null			;head
 			null			;head?
 			null			;index?

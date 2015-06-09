@@ -35,38 +35,38 @@ percent: context [
 		fl/value: value
 		fl
 	]
+	
+	make-at: func [
+		cell 	[cell!]
+		high	[integer!]
+		low		[integer!]
+		return: [red-float!]
+	][
+		cell/header: TYPE_PERCENT
+		cell/data2: low
+		cell/data3: high
+		as red-float! cell
+	]
 
 	make-in: func [
 		parent	[red-block!]
 		high	[integer!]
 		low		[integer!]
 		return: [red-float!]
-		/local
-			cell [cell!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "percent/make-in"]]
 
-		cell: ALLOC_TAIL(parent)
-		cell/header: TYPE_PERCENT
-		cell/data2: low
-		cell/data3: high
-		as red-float! cell
+		make-at ALLOC_TAIL(parent) high low
 	]
 	
 	push64: func [
 		high	[integer!]
 		low		[integer!]
 		return: [red-float!]
-		/local
-			cell [cell!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "percent/push64"]]
 
-		cell: stack/push*
-		cell/header: TYPE_PERCENT
-		cell/data2: low
-		cell/data3: high
-		as red-float! cell
+		make-at stack/push* high low
 	]
 
 	push: func [
