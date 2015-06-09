@@ -493,6 +493,39 @@ map: context [
 
 	;--- Misc actions ---
 
+	set-many: func [
+		map		[red-hash!]
+		blk		[red-block!]
+		/local
+			s		[series!]
+			slot	[red-value!]
+			value	[red-value!]
+			end		[red-value!]
+			s-tail	[red-value!]
+	][
+		s: GET_BUFFER(blk)
+		value: s/offset
+		end: s/tail
+		s: GET_BUFFER(map)
+		slot: s/offset + 1
+		s-tail: s/tail
+		while [slot < s-tail][
+			if TYPE_OF(slot) <> TYPE_NONE [
+				either value < end [
+					either TYPE_OF(value) = TYPE_NONE [			;-- delete key entry
+						_hashtable/delete map/table slot - 1
+					][
+						copy-cell value slot
+					]
+				][
+					_hashtable/delete map/table slot - 1
+				]
+			]
+			value: value + 1
+			slot: slot + 2
+		]
+	]
+
 	copy: func [
 		map	    	[red-hash!]
 		new			[red-hash!]
