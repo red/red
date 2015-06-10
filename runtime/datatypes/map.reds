@@ -463,10 +463,12 @@ map: context [
 		/local
 			table [node!]
 			key   [red-value!]
+			val   [red-value!]
 	][
 		table: map/table
 		key: _hashtable/get table value 0 0 case? no no
-		either key = null [none-value][true-value]
+		val: key + 1
+		either any [key = null TYPE_OF(val) = TYPE_NONE][none-value][true-value]
 	]
 
 	;--- Navigation actions ---
@@ -536,7 +538,7 @@ map: context [
 		return:		[red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "map/copy"]]
-		new: as red-hash! block/clone as red-block! map deep? no
+		new: as red-hash! block/clone as red-block! map deep? yes
 
 		new/header: TYPE_MAP
 		new/table: 	_hashtable/copy map/table new/node

@@ -166,6 +166,8 @@ block: context [
 			empty? [logic!]
 	][
 		assert any [
+			TYPE_OF(blk) = TYPE_HASH
+			TYPE_OF(blk) = TYPE_MAP
 			TYPE_OF(blk) = TYPE_BLOCK
 			TYPE_OF(blk) = TYPE_PAREN
 			TYPE_OF(blk) = TYPE_PATH
