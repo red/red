@@ -227,7 +227,7 @@ _hashtable: context [
 				murmur3-x86-32 (as byte-ptr! key) + 4 12
 			]
 			TYPE_TUPLE [
-				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE(tp)
+				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE(key)
 			]
 			TYPE_DATATYPE
 			TYPE_LOGIC [key/data1]
@@ -323,7 +323,7 @@ _hashtable: context [
 		/local
 			s h x k v i j site last mask step keys vals hash n-buckets blk
 			new-size tmp break? flags new-flags new-flags-node ii sh f idx
-			type case?
+			type
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -360,11 +360,7 @@ _hashtable: context [
 					until [									;-- kick-out process
 						step: 0
 						k: blk + (idx and 7FFFFFFFh)
-						case?: either all [
-							type = HASH_TABLE_MAP
-							not word/any-word? TYPE_OF(k)
-						][yes][no]
-						hash: hash-value k case?
+						hash: hash-value k no
 						i: hash and mask
 						_HT_CAL_FLAG_INDEX(i ii sh)
 						while [_BUCKET_IS_NOT_EMPTY(new-flags ii sh)][
@@ -404,7 +400,7 @@ _hashtable: context [
 		return: [red-value!]
 		/local
 			s h x i site last mask step keys hash n-buckets flags op
-			ii sh continue? blk idx type del? indexes end ss k case?
+			ii sh continue? blk idx type del? indexes end ss k
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -423,16 +419,23 @@ _hashtable: context [
 		idx: (as-integer (key - s/offset)) >> 4
 		blk: s/offset
 
-		case?: no
 		either type = HASH_TABLE_HASH [
 			ss: as series! h/indexes/value
 			indexes: as int-ptr! ss/offset
 		][
 			if type = HASH_TABLE_MAP [
-				either word/any-word? TYPE_OF(key) [
-					set-type key TYPE_SET_WORD		;-- map, convert any-word! to set-word!
-				][
-					case?: yes
+				x: TYPE_OF(key)
+				switch x [
+					TYPE_WORD
+					TYPE_GET_WORD
+					TYPE_SET_WORD
+					TYPE_LIT_WORD
+					TYPE_REFINEMENT
+					TYPE_ISSUE	[set-type key TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
+					TYPE_STRING
+					TYPE_FILE
+					TYPE_URL	[string/copy as red-string! key as red-string! key null yes null]
+					default		[0]
 				]
 			]
 		]
@@ -445,7 +448,7 @@ _hashtable: context [
 		x:	  n-buckets
 		site: n-buckets
 		mask: n-buckets - 2
-		hash: hash-value key case?
+		hash: hash-value key no
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1									;-- 1-based index
@@ -514,7 +517,7 @@ _hashtable: context [
 		reverse? [logic!]
 		return:  [red-value!]
 		/local
-			s h i flags last mask step keys hash n-buckets ii sh blk hash-case?
+			s h i flags last mask step keys hash n-buckets ii sh blk
 			idx last-idx op find? reverse-head k type
 	][
 		op: either case? [COMP_STRICT_EQUAL][COMP_EQUAL]
@@ -523,13 +526,11 @@ _hashtable: context [
 		assert h/n-buckets > 0
 
 		type: h/type
-		hash-case?: no
-		if type = HASH_TABLE_MAP [
-			either word/any-word? TYPE_OF(key) [
-				set-type key TYPE_SET_WORD		;-- map, convert any-word! to set-word!
-			][
-				hash-case?: yes
-			]
+		if all [
+			type = HASH_TABLE_MAP
+			word/any-word? TYPE_OF(key)
+		][
+			set-type key TYPE_SET_WORD			;-- map, convert any-word! to set-word!
 		]
 
 		s: as series! h/blk/value
@@ -545,7 +546,7 @@ _hashtable: context [
 		flags: as int-ptr! s/offset
 		n-buckets: h/n-buckets + 1
 		mask: n-buckets - 2
-		hash: hash-value key hash-case?
+		hash: hash-value key no
 		i: hash and mask
 		_HT_CAL_FLAG_INDEX(i ii sh)
 		i: i + 1
