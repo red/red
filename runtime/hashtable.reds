@@ -185,7 +185,10 @@ _hashtable: context [
 			TYPE_GET_WORD
 			TYPE_REFINEMENT
 			TYPE_ISSUE
-			TYPE_POINT [true]
+			TYPE_POINT
+			TYPE_DATATYPE
+			TYPE_PERCENT
+			TYPE_TUPLE [true]
 			default    [false]
 		]
 	]
@@ -196,7 +199,6 @@ _hashtable: context [
 		return: [integer!]
 		/local sym s
 	][
-		len: 0
 		switch TYPE_OF(key) [
 			TYPE_SYMBOL
 			TYPE_STRING
@@ -206,7 +208,8 @@ _hashtable: context [
 			]
 			TYPE_CHAR
 			TYPE_INTEGER [key/data2]
-			TYPE_FLOAT [
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				murmur3-x86-32 (as byte-ptr! key) + 8 8
 			]
 			TYPE_WORD
@@ -219,12 +222,19 @@ _hashtable: context [
 				sym: as red-string! s/offset + key/data2 - 1
 				hash-string sym case?
 			]
-			TYPE_POINT [
+			TYPE_POINT
+			TYPE_TYPESET [
 				murmur3-x86-32 (as byte-ptr! key) + 4 12
 			]
-			default [
-				0
+			TYPE_TUPLE [
+				murmur3-x86-32 (as byte-ptr! key) + 4 TUPLE_SIZE(tp)
 			]
+			TYPE_DATATYPE
+			TYPE_LOGIC [key/data1]
+			TYPE_ACTION
+			TYPE_NATIVE
+			TYPE_OP [key/data3]
+			default [0]
 		]
 	]
 
