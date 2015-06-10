@@ -123,6 +123,29 @@ pair: context [
 		]
 	]
 	
+	random: func [
+		pair	[red-pair!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-value!]
+		/local
+			n	 [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/random"]]
+
+		either seed? [
+			_random/srand pair/x xor pair/y
+			pair/header: TYPE_UNSET
+		][
+			n: _random/rand % pair/x + 1
+			pair/x: either negative? pair/x [0 - n][n]
+			n: _random/rand % pair/y + 1
+			pair/y: either negative? pair/y [0 - n][n]
+		]
+		as red-value! pair
+	]
+	
 	form: func [
 		pair	[red-pair!]
 		buffer	[red-string!]
@@ -314,7 +337,7 @@ pair: context [
 			"pair!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form
