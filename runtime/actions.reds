@@ -869,8 +869,7 @@ actions: context [
 			return: [red-series!]
 		] get-action-ptr as red-value! series ACT_COPY
 					
-		action-copy series new part deep? types
-		new
+		as red-value! action-copy series new part deep? types
 	]
 	
 	find*: func [

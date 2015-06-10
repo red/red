@@ -166,6 +166,8 @@ block: context [
 			empty? [logic!]
 	][
 		assert any [
+			TYPE_OF(blk) = TYPE_HASH
+			TYPE_OF(blk) = TYPE_MAP
 			TYPE_OF(blk) = TYPE_BLOCK
 			TYPE_OF(blk) = TYPE_PAREN
 			TYPE_OF(blk) = TYPE_PATH
@@ -1427,6 +1429,7 @@ block: context [
 				TYPE_OF(value) = TYPE_SET_PATH			;@@ replace it with: typeset/any-block?
 				TYPE_OF(value) = TYPE_LIT_PATH			;@@ replace it with: typeset/any-block?
 				TYPE_OF(value) = TYPE_PAREN				;@@ replace it with: typeset/any-block?
+				TYPE_OF(value) = TYPE_HASH				;@@ replace it with: typeset/any-block?	
 			]
 		]
 		size: either values? [
