@@ -228,7 +228,7 @@ tuple: context [
 			n: 0
 			until [
 				n: n + 1
-				array/n: as-byte _random/rand % array/n + 1
+				array/n: as-byte _random/rand % ((as-integer array/n) + 1)
 				n = size
 			]
 		]
