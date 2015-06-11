@@ -31,7 +31,9 @@ Red [
 	
 	--test-- "map-construction-1"
 		mc1-m: #(a none b 2 c 3)
+		print "here"
 		--assert 'none = mc1-m/a
+		print "after here"
 		--assert 2 = mc1-m/b
 		--assert 3 = mc1-m/c
 	
@@ -78,14 +80,13 @@ Red [
 		mcp1-m: #(a: 1 b: 2)
 		mcp1-n: copy mcp1-m
 		--assert 1 = mcp1-n/a
-		--assert 2 = mcp1-n/a
+		--assert 2 = mcp1-n/b
 
 ===end-group===
 
 ===start-group=== "string keys"
 
 	--test-- "map-string-keys-1"
-
 		msk1-b: copy []
 		msk1-k: copy "key"
 		append msk1-b msk1-k
