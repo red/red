@@ -270,8 +270,10 @@ integer: context [
 			_random/srand int/value
 			int/header: TYPE_UNSET
 		][
-			n: _random/rand % int/value + 1
-			int/value: either negative? int/value [0 - n][n]
+			unless zero? int/value [
+				n: _random/rand % int/value + 1
+				int/value: either negative? int/value [0 - n][n]
+			]
 		]
 		as red-value! int
 	]
