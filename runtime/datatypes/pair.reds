@@ -378,6 +378,7 @@ pair: context [
 			null			;next
 			:pick
 			null			;poke
+			null			;put
 			null			;remove
 			:reverse
 			null			;select

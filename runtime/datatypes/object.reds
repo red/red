@@ -1096,6 +1096,7 @@ object: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			null			;remove
 			null			;reverse
 			:select

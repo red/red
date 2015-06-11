@@ -237,6 +237,7 @@ none: context [
 			null			;next
 			null			;pick
 			null			;poke
+			null			;put
 			:remove
 			null			;reverse
 			:select

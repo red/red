@@ -389,14 +389,14 @@ map: context [
 
 	;--- Modifying actions ---
 	
-	modify: func [
+	put: func [
 		map		[red-hash!]
 		field	[red-value!]
 		value	[red-value!]
 		case?	[logic!]
 		return:	[red-value!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "map/modify"]]
+		#if debug? = yes [if verbose > 0 [print-line "map/put"]]
 		
 		eval-path map field value as red-value! none-value case?
 	]
@@ -593,6 +593,7 @@ map: context [
 			null			;next
 			:pick
 			:poke
+			:put
 			null			;remove
 			null			;reverse
 			:select
@@ -607,7 +608,7 @@ map: context [
 			null			;create
 			null			;close
 			null			;delete
-			:modify
+			null			;modify
 			null			;open
 			null			;open?
 			null			;query

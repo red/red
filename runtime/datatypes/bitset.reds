@@ -912,6 +912,7 @@ bitset: context [
 			null			;next
 			:pick
 			:poke
+			null			;put
 			:remove
 			null			;reverse
 			null			;select

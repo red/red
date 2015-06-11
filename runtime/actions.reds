@@ -1121,10 +1121,44 @@ actions: context [
 			index	[integer!]
 			data	[red-value!]
 			boxed	[red-value!]
-			return:	[red-value!]						;-- picked value from series
+			return:	[red-value!]						;-- data argument passed as result
 		] get-action-ptr as red-value! series ACT_POKE
 		
 		action-poke series index data boxed
+	]
+	
+	put*: func [
+		case? [integer!]
+		return:	[red-value!]
+	][	
+		put
+			stack/arguments
+			stack/arguments + 1
+			stack/arguments + 2
+			case? <> -1
+
+		stack/set-last stack/arguments
+	]
+
+	put: func [
+		series	[red-value!]
+		key		[red-value!]
+		value	[red-value!]
+		case?	[logic!]
+		/local
+			action-put
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/put"]]
+
+		action-put: as function! [
+			series	[red-value!]
+			key		[red-value!]
+			value	[red-value!]
+			case?	[logic!]
+			return:	[red-value!]						;-- value argument passed as result
+		] get-action-ptr as red-value! series ACT_PUT
+
+		action-put series key value case?
 	]
 	
 	remove*: func [
@@ -1494,6 +1528,7 @@ actions: context [
 			:next*
 			:pick*
 			:poke*
+			:put*
 			:remove*
 			:reverse*
 			:select*

@@ -2842,6 +2842,7 @@ string: context [
 			:next
 			:pick
 			:poke
+			null			;put
 			:remove
 			:reverse
 			:select

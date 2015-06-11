@@ -106,6 +106,7 @@ Red/System [
 	ACT_NEXT
 	ACT_PICK
 	ACT_POKE
+	ACT_PUT
 	ACT_REMOVE
 	ACT_REVERSE
 	ACT_SELECT
@@ -256,7 +257,7 @@ Red/System [
 ]
 
 #define NATIVES_NB		100							;-- max number of natives (arbitrary set)
-#define ACTIONS_NB		60							;-- number of actions (exact number)
+#define ACTIONS_NB		61							;-- number of actions (exact number)
 #define INHERIT_ACTION	-1							;-- placeholder for letting parent's action pass through
 
 #either debug? = yes [

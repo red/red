@@ -373,6 +373,17 @@ poke: make action! [[
 	#get-definition ACT_POKE
 ]
 
+put: make action! [[
+		"Replaces the value following a key, and returns the new value"
+		series	 [series! map!]
+		key 	 [scalar! any-string! any-word!]
+		value 	 [any-type!]
+		/case "Perform a case-sensitive search"
+		return:  [series! map!]
+	]
+	#get-definition ACT_PUT
+]
+
 remove: make action! [[
 		"Returns the series at the same index after removing a value"
 		series	 [series! bitset! none!]
