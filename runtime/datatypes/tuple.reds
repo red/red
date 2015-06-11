@@ -48,12 +48,25 @@ tuple: context [
 			v	  [integer!]
 			v1	  [integer!]
 			n	  [integer!]
+			f1	  [float!]
+			f2	  [float!]
+			swap? [logic!]
+			float? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/do-math"]]
 
 		left:  as red-tuple! stack/arguments
 		right: as red-tuple! left + 1
 
+		swap?: no
+		if TYPE_OF(left) <> TYPE_TUPLE [
+			int: as red-integer! left
+			left: right
+			right: as red-tuple! int
+			swap?: yes
+		]
+
+		float?: no
 		size2: 0
 		switch TYPE_OF(right) [
 			TYPE_TUPLE [
@@ -66,8 +79,9 @@ tuple: context [
 			]
 			TYPE_FLOAT
 			TYPE_PERCENT [
+				float?: yes
 				fl: as red-float! right
-				v: float/to-integer fl/value
+				f2: fl/value
 			]
 			default [
 				fire [TO_ERROR(script invalid-type) datatype/push TYPE_OF(right)]
@@ -76,41 +90,64 @@ tuple: context [
 
 		tp1: (as byte-ptr! left) + 4
 		size1: TUPLE_SIZE(left)
-		size: either size1 < size2 [
-			tp1/1: as byte! size2
-			size2
-		][size1]
 		n: 0
-		until [
-			n: n + 1
-			if positive? size2 [
-				v: either n <= size2 [as-integer tp2/n][0]
-			]
-			v1: either n <= size1 [as-integer tp1/n][0]
-			v1: switch type [
-				OP_ADD [v1 + v]
-				OP_SUB [v1 - v]
-				OP_MUL [v1 * v]
-				OP_AND [v1 and v]
-				OP_OR  [v1 or v]
-				OP_XOR [v1 xor v]
-				OP_REM [
-					either zero? v [
-						fire [TO_ERROR(math zero-divide)]
-						0								;-- pass the compiler's type-checking
-					][v1 % v]
+		either float? [
+			until [
+				n: n + 1
+				f1: integer/to-float as-integer tp1/n
+				f1: switch type [
+					OP_ADD [f1 + f2]
+					OP_SUB [f1 - f2]
+					OP_MUL [f1 * f2]
+					OP_DIV
+					OP_REM [
+						if 0.0 = f2 [fire [TO_ERROR(math zero-divide)]]
+						either type = OP_DIV [f1 / f2][f1 % f2]
+					]
+					default [ERR_EXPECT_ARGUMENT((TYPE_OF(right)) 2) 0.0]
 				]
-				OP_DIV [
-					either zero? v [
-						fire [TO_ERROR(math zero-divide)]
-						0								;-- pass the compiler's type-checking
-					][v1 / v]
-				]
+				v1: float/to-integer either f1 < 0.0 [f1 + 0.4999999999999999][f1 - 0.4999999999999999]
+				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
+				tp1/n: as byte! v1
+				n = size1
 			]
-			either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
-			tp1/n: as byte! v1
-			n = size
+		][
+			size: either size1 < size2 [
+				tp1/1: as byte! size2
+				size2
+			][size1]
+			until [
+				n: n + 1
+				if positive? size2 [
+					v: either n <= size2 [as-integer tp2/n][0]
+				]
+				v1: either n <= size1 [as-integer tp1/n][0]
+				v1: switch type [
+					OP_ADD [v1 + v]
+					OP_SUB [v1 - v]
+					OP_MUL [v1 * v]
+					OP_AND [v1 and v]
+					OP_OR  [v1 or v]
+					OP_XOR [v1 xor v]
+					OP_REM [
+						either zero? v [
+							fire [TO_ERROR(math zero-divide)]
+							0								;-- pass the compiler's type-checking
+						][v1 % v]
+					]
+					OP_DIV [
+						either zero? v [
+							fire [TO_ERROR(math zero-divide)]
+							0								;-- pass the compiler's type-checking
+						][v1 / v]
+					]
+				]
+				either v1 > 255 [v1: 255][if negative? v1 [v1: 0]]
+				tp1/n: as byte! v1
+				n = size
+			]
 		]
+		if swap? [copy-cell as cell! left stack/arguments]
 		left
 	]
 

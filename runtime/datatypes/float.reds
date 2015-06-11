@@ -233,20 +233,26 @@ float: context [
 		left:  as red-float! stack/arguments
 		right: as red-float! left + 1
 
-		assert any [									;@@ replace by typeset check when possible
-			TYPE_OF(left) = TYPE_INTEGER
-			TYPE_OF(left) = TYPE_FLOAT
-			TYPE_OF(left) = TYPE_PERCENT
-		]
-		assert any [
-			TYPE_OF(right) = TYPE_INTEGER
-			TYPE_OF(right) = TYPE_CHAR
-			TYPE_OF(right) = TYPE_FLOAT
-			TYPE_OF(right) = TYPE_PERCENT
-		]
-
 		type1: TYPE_OF(left)
 		type2: TYPE_OF(right)
+
+		assert any [
+			type1 = TYPE_INTEGER
+			type1 = TYPE_FLOAT
+			type1 = TYPE_PERCENT
+		]
+
+		if type2 = TYPE_TUPLE [
+			return as red-float! tuple/do-math type
+		]
+
+		unless any [						;@@ replace by typeset check when possible
+			type2 = TYPE_INTEGER
+			type2 = TYPE_CHAR
+			type2 = TYPE_FLOAT
+			type2 = TYPE_PERCENT
+		][fire [TO_ERROR(script invalid-type) datatype/push type2]]
+
 		if type1 = TYPE_INTEGER [
 			int: as red-integer! left
 			left/header: TYPE_FLOAT
@@ -287,6 +293,7 @@ float: context [
 					left/value % right/value
 				]
 			]
+			default [ERR_EXPECT_ARGUMENT(type1 1) 0.0]
 		]
 		left
 	]
@@ -344,12 +351,27 @@ float: context [
 		proto	 [red-value!]	
 		spec	 [red-value!]
 		return:	 [red-float!]
+		/local
+			int	 [red-integer!]
+			fl	 [red-float!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "float/make"]]
 
 		switch TYPE_OF(spec) [
 			TYPE_FLOAT [
 				as red-float! spec
+			]
+			TYPE_INTEGER [
+				fl: as red-float! spec
+				int: as red-integer! spec
+				fl/value: integer/to-float int/value
+				fl/header: TYPE_FLOAT
+				fl
+			]
+			TYPE_PERCENT [
+				fl: as red-float! spec
+				fl/header: TYPE_FLOAT
+				fl
 			]
 			default [
 				--NOT_IMPLEMENTED--
