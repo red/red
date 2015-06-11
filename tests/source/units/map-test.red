@@ -31,9 +31,7 @@ Red [
 	
 	--test-- "map-construction-1"
 		mc1-m: #(a none b 2 c 3)
-		print "here"
 		--assert 'none = mc1-m/a
-		print "after here"
 		--assert 2 = mc1-m/b
 		--assert 3 = mc1-m/c
 	
