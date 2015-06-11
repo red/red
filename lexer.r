@@ -215,7 +215,10 @@ lexer: context [
 	]
 	
 	map-rule: [
-		"#(" (stack/push block!) any-value #")" (value: stack/pop block! stack/push #!map!)
+		"#(" (stack/push block!) any-value #")" (
+			stack/push/head #!map!
+			value: stack/pop block!
+		)
 	]
 	
 	issue-rule: [#"#" (type: issue!) s: symbol-rule]
@@ -441,13 +444,17 @@ lexer: context [
 	stack: context [
 		stk: []
 		
-		push: func [value][
+		push: func [value /head][
 			either any [value = block! value = paren! value = path!][
 				if value = path! [value: block!]
 				insert/only tail stk value: make value 1
 				value
 			][
-				insert/only tail last stk :value
+				either head [
+					insert/only last stk :value
+				][
+					insert/only tail last stk :value
+				]
 			]
 		]
 		
