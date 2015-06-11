@@ -203,6 +203,37 @@ tuple: context [
 			]
 		]
 	]
+	
+	random: func [
+		tp		[red-tuple!]
+		seed?	[logic!]
+		secure? [logic!]
+		only?   [logic!]
+		return: [red-value!]
+		/local
+			value [red-value!]
+			array [byte-ptr!]
+			n	  [integer!]
+			size  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "tuple/random"]]
+
+		either seed? [
+			value: as red-value! tp
+			_random/srand value/data1 xor value/data2 xor value/data3
+			tp/header: TYPE_UNSET
+		][
+			array: (as byte-ptr! tp) + 4
+			size: TUPLE_SIZE(tp)
+			n: 0
+			until [
+				n: n + 1
+				array/n: as-byte _random/rand % array/n + 1
+				n = size
+			]
+		]
+		as red-value! tp
+	]
 
 	form: func [
 		tp		   [red-tuple!]
@@ -469,7 +500,7 @@ tuple: context [
 			"tuple!"
 			;-- General actions --
 			:make
-			null			;random
+			:random
 			null			;reflect
 			null			;to
 			:form
