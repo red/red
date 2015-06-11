@@ -97,4 +97,33 @@ Red [
 		
 ===end-group===
 
+===start-group=== "put"
+
+	--test-- "map-put-1"
+		mput1-m: #(a: 1 b: 2)
+		--assert 3 = put mput1-m 'c 3
+		--assert 3 = mput1-m/c
+		
+	--test-- "map-put-2"
+		mput2-m: #(a: 1 b: 2)
+		--assert 4 = put mput2-m 'b 4
+		--assert 4 = mput2-m/b
+	
+	--test-- "map-put-3"
+		mput3-m: #(a: 1 b: 2)
+		--assert unset! = type? put mput3-m 'a print ""
+		--assert unset! = type? mput3-m/a
+		--assert 2 = length? mput3-m 
+		
+	--test-- "map-put-4"
+		mput4-m: #(a: 1 b: 2)
+		--assert none = put mput4-m 'a none
+		--assert none = find words-of mput4-m 'a
+		--assert none = mput4-m/a
+		--assert 1 = length? mput4-m
+
+===end-group===
+
+
+
 ~~~end-file~~~

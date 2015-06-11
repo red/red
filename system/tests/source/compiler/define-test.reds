@@ -1,7 +1,7 @@
 Red/System [
 	Title:   "Red/System #define test script"
 	Author:  "Nenad Rakocevic & Peter W A Wood"
-	File: 	 %define-test.red
+	File: 	 %define-test.reds
 	Version: "0.1.0"
 	Tabs:	 4
 	Rights:  "Copyright (C) 2011-2015 Nenad Rakocevic & Peter W A Wood. All rights reserved."
