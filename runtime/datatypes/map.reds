@@ -399,6 +399,7 @@ map: context [
 		#if debug? = yes [if verbose > 0 [print-line "map/put"]]
 		
 		eval-path map field value as red-value! none-value case?
+		value
 	]
 
 	clear: func [

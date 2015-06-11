@@ -1102,7 +1102,7 @@ actions: context [
 			stack/arguments + 2
 			stack/arguments + 1
 		
-		stack/set-last stack/arguments
+		stack/set-last stack/arguments + 2				;@@ inline that above
 	]
 
 
@@ -1129,15 +1129,12 @@ actions: context [
 	
 	put*: func [
 		case? [integer!]
-		return:	[red-value!]
 	][	
-		put
+		stack/set-last put
 			stack/arguments
 			stack/arguments + 1
 			stack/arguments + 2
 			case? <> -1
-
-		stack/set-last stack/arguments
 	]
 
 	put: func [
@@ -1145,6 +1142,7 @@ actions: context [
 		key		[red-value!]
 		value	[red-value!]
 		case?	[logic!]
+		return:	[red-value!]
 		/local
 			action-put
 	][
