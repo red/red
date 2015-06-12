@@ -376,16 +376,16 @@ map: context [
 
 	;--- Reading actions ---
 
-	pick: func [
-		map		[red-hash!]
-		index	[red-value!]
-		boxed	[red-value!]
-		return:	[red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "map/pick"]]
-
-		eval-path map boxed null as red-value! none-value no
-	]
+	;pick: func [
+	;	map		[red-hash!]
+	;	index	[red-value!]
+	;	boxed	[red-value!]
+	;	return:	[red-value!]
+	;][
+	;	#if debug? = yes [if verbose > 0 [print-line "map/pick"]]
+	;
+	;	eval-path map boxed null as red-value! none-value no
+	;]
 
 	;--- Modifying actions ---
 	
@@ -424,17 +424,17 @@ map: context [
 		as red-value! map
 	]
 
-	poke: func [
-		map		[red-hash!]
-		index	[red-value!]
-		data	[red-value!]
-		boxed	[red-value!]
-		return:	[red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "map/poke"]]
-
-		eval-path map boxed data as red-value! none-value no
-	]
+	;poke: func [
+	;	map		[red-hash!]
+	;	index	[red-value!]
+	;	data	[red-value!]
+	;	boxed	[red-value!]
+	;	return:	[red-value!]
+	;][
+	;	#if debug? = yes [if verbose > 0 [print-line "map/poke"]]
+	;
+	;	eval-path map boxed data as red-value! none-value no
+	;]
 
 	;--- Property reading actions ---
 
@@ -592,8 +592,8 @@ map: context [
 			null			;insert
 			:length?
 			null			;next
-			:pick
-			:poke
+			null			;pick
+			null			;poke
 			:put
 			null			;remove
 			null			;reverse
