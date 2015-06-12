@@ -362,11 +362,11 @@ union: make native! [[
 
 unique: make native! [[
 		"Returns the data set with duplicates removed"
-		set [block! string! bitset! typeset!]
+		set [block! string!]
 		/case "Use case-sensitive comparison"
 		/skip "Treat the series as fixed size records"
 			size [integer!]
-		return: [block! string! bitset! typeset!]
+		return: [block! string!]
 	]
 	#get-definition NAT_UNIQUE
 ]
