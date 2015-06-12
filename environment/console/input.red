@@ -14,14 +14,13 @@ Red [
 	}
 ]
 
-;; Fix adding user input until full I/O support in release 0.7.0 will be added.
-;; Check for definition of console to see if this file is included by a userprogram.
-unless system/console [					;-- if not known, then declare history here
+;;@@ Temporary patch to allow inclusion in user code.
+unless system/console [
 	system/console: context [
         	history: make block! 200
 	]
 ]
-;; End Fix
+;; End patch
 
 complete-from-path: func [
 	str [string!]
