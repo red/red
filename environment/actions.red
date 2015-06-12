@@ -356,7 +356,7 @@ next: make action! [[
 
 pick: make action! [[
 		"Returns the series value at a given index"
-		series	 [series! bitset! pair! tuple! map!]
+		series	 [series! bitset! pair! tuple!]
 		index 	 [scalar! any-string! any-word! block! logic!]
 		return:  [any-type!]
 	]
@@ -365,7 +365,7 @@ pick: make action! [[
 
 poke: make action! [[
 		"Replaces the series value at a given index, and returns the new value"
-		series	 [series! bitset! tuple! map!]
+		series	 [series! bitset! tuple!]
 		index 	 [scalar! any-string! any-word! block! logic!]
 		value 	 [any-type!]
 		return:  [series! bitset!]
