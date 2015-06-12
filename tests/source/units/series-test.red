@@ -1213,7 +1213,6 @@ Red [
 	--test-- "set-op-bitset"
 		a: make bitset! [1 2 3 4]
 		b: make bitset! [4 5 23]
-		--assert b		= unique b
 		--assert "make bitset! #{7C0001}" = mold union a b
 		--assert "make bitset! #{080000}" = mold intersect a b
 		--assert "make bitset! #{740001}" = mold difference a b
