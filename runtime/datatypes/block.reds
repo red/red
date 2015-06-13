@@ -1972,6 +1972,7 @@ block: context [
 		/local
 			blk1	[red-block!]
 			blk2	[red-block!]
+			hs		[red-hash!]
 			new		[red-block!]
 			value	[red-value!]
 			tail	[red-value!]
@@ -2015,10 +2016,10 @@ block: context [
 		n: 2
 		hash: null
 		blk?: yes
-		hash?: either any [
+		hash?: any [
 			TYPE_OF(blk1) = TYPE_HASH
 			TYPE_OF(blk2) = TYPE_HASH
-		][yes][no]
+		]
 
 		until [
 			s: GET_BUFFER(blk1)
@@ -2028,7 +2029,8 @@ block: context [
 			if check? [
 				hash: either TYPE_OF(blk2) = TYPE_HASH [
 					blk?: no
-					as node! blk2/_pad
+					hs: as red-hash! blk2
+					hs/table
 				][
 					if all [blk? hash <> null] [_hashtable/destroy hash]
 					blk?: yes
@@ -2072,8 +2074,9 @@ block: context [
 		]
 
 		either hash? [
-			blk1/header: TYPE_HASH
-			blk1/_pad: as-integer table
+			hs: as red-hash! blk2
+			hs/header: TYPE_HASH
+			hs/table: table
 		][
 			_hashtable/destroy table
 		]
