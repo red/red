@@ -175,6 +175,7 @@ default-input-completer: func [
 		columns:	-1
 		rows:		-1
 		output?:	yes
+		init?:		no
 
 		string/rs-make-at as cell! saved-line 1
 
@@ -510,14 +511,27 @@ default-input-completer: func [
 			]
 			line/head: 0
 		]
+		
+		setup: func [
+			line [red-string!]
+			hist [red-block!]
+		][
+			copy-cell as red-value! line as red-value! input-line
+			copy-cell as red-value! hist as red-value! history
+
+			unless init? [
+				init line hist
+				init?: yes
+			]
+		]
 	]
 ]
 
-set-buffer-history: routine [line [string!] hist [block!]][
-	terminal/init line hist
+_set-buffer-history: routine [line [string!] hist [block!]][
+	terminal/setup line hist
 ]
 
-read-input: routine [prompt [string!]][
+_read-input: routine [prompt [string!]][
 	terminal/edit prompt
 	terminal/restore
 	print-line ""
@@ -528,8 +542,8 @@ ask: function [
 	return:  [string!]
 ][
 	buffer: make string! 1
-	set-buffer-history buffer head system/console/history
-	read-input question
+	_set-buffer-history buffer head system/console/history
+	_read-input question
 	buffer
 ]
 
