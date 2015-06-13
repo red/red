@@ -1975,6 +1975,7 @@ block: context [
 			new		[red-block!]
 			value	[red-value!]
 			tail	[red-value!]
+			key		[red-value!]
 			i		[integer!]
 			n		[integer!]
 			s		[series!]
@@ -1987,6 +1988,8 @@ block: context [
 			both?	[logic!]
 			find?	[logic!]
 			skip?	[logic!]
+			blk?	[logic!]
+			hash?	[logic!]
 	][
 		step: 1
 		if OPTION?(skip-arg) [
@@ -2011,6 +2014,11 @@ block: context [
 		table: _hashtable/init len new HASH_TABLE_HASH
 		n: 2
 		hash: null
+		blk?: yes
+		hash?: either any [
+			TYPE_OF(blk1) = TYPE_HASH
+			TYPE_OF(blk2) = TYPE_HASH
+		][yes][no]
 
 		until [
 			s: GET_BUFFER(blk1)
@@ -2018,8 +2026,14 @@ block: context [
 			tail: s/tail
 
 			if check? [
-				if hash <> null [_hashtable/destroy hash]
-				hash: _hashtable/init length? blk2 blk2 HASH_TABLE_HASH
+				hash: either TYPE_OF(blk2) = TYPE_HASH [
+					blk?: no
+					as node! blk2/_pad
+				][
+					if all [blk? hash <> null] [_hashtable/destroy hash]
+					blk?: yes
+					_hashtable/init length? blk2 blk2 HASH_TABLE_HASH
+				]
 			]
 
 			while [value < tail] [			;-- iterate over first series
@@ -2042,7 +2056,10 @@ block: context [
 					all [value < tail i < step]
 				][
 					i: i + 1
-					unless skip? [rs-append new value]
+					unless skip? [
+						key: rs-append new value
+						if hash? [_hashtable/put table key]
+					]
 				]
 			]
 
@@ -2053,8 +2070,14 @@ block: context [
 			][n: 0]
 			zero? n
 		]
-		_hashtable/destroy table
-		if check? [_hashtable/destroy hash]
+
+		either hash? [
+			blk1/header: TYPE_HASH
+			blk1/_pad: as-integer table
+		][
+			_hashtable/destroy table
+		]
+		if all [check? blk?][_hashtable/destroy hash]
 		blk1/node: new/node
 		blk1/head: 0
 		stack/pop 1

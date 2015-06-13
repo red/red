@@ -1063,7 +1063,8 @@ natives: context [
 		case?:	  as logic! cased + 1
 		
 		switch TYPE_OF(set1) [
-			TYPE_BLOCK   [block/do-set-op case? as red-integer! skip-arg op]
+			TYPE_BLOCK   
+			TYPE_HASH    [block/do-set-op case? as red-integer! skip-arg op]
 			TYPE_STRING  [string/do-set-op case? as red-integer! skip-arg op]
 			TYPE_BITSET  [bitset/do-bitwise op]
 			TYPE_TYPESET [typeset/do-bitwise op]
