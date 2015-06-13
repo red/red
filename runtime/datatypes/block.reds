@@ -1986,6 +1986,7 @@ block: context [
 			invert? [logic!]
 			both?	[logic!]
 			find?	[logic!]
+			skip?	[logic!]
 	][
 		step: 1
 		if OPTION?(skip-arg) [
@@ -2022,6 +2023,7 @@ block: context [
 			]
 
 			while [value < tail] [			;-- iterate over first series
+				skip?: yes
 				if check? [
 					find?: null <> _hashtable/get hash value 0 1 case? no no
 					if invert? [find?: not find?]
@@ -2030,6 +2032,7 @@ block: context [
 					find?
 					null = _hashtable/get table value 0 1 case? no no
 				][
+					skip?: no
 					_hashtable/put table rs-append new value
 				]
 
@@ -2039,7 +2042,7 @@ block: context [
 					all [value < tail i < step]
 				][
 					i: i + 1
-					rs-append new value
+					unless skip? [rs-append new value]
 				]
 			]
 
