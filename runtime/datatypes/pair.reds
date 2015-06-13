@@ -138,10 +138,14 @@ pair: context [
 			_random/srand pair/x xor pair/y
 			pair/header: TYPE_UNSET
 		][
-			n: _random/rand % pair/x + 1
-			pair/x: either negative? pair/x [0 - n][n]
-			n: _random/rand % pair/y + 1
-			pair/y: either negative? pair/y [0 - n][n]
+			unless zero? pair/x [
+				n: _random/rand % pair/x + 1
+				pair/x: either negative? pair/x [0 - n][n]
+			]
+			unless zero? pair/y [
+				n: _random/rand % pair/y + 1
+				pair/y: either negative? pair/y [0 - n][n]
+			]
 		]
 		as red-value! pair
 	]
