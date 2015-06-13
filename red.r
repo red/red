@@ -383,6 +383,7 @@ redc: context [
 		]
 		
 		if all [encap? none? output none? type][
+			if load-lib? [build-compress-lib]
 			run-console/with filename
 		]
 		
