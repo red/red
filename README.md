@@ -151,7 +151,7 @@ Contributing
 -------------------------
 If you want to contribute code to the Red project be sure to read the [guidelines](https://github.com/red/red/wiki/Contributor-Guidelines) first.
 
-It is usually a good idea to inform the Red team about what changes you are going to make in order to ensure that someone is not already working on the same thing. You can reach us through the [mailing-list](https://groups.google.com/forum/?hl=en#!forum/red-lang) or our [chat room](http://chat.stackoverflow.com/rooms/50258/red-development-team).
+It is usually a good idea to inform the Red team about what changes you are going to make in order to ensure that someone is not already working on the same thing. You can reach us through the [mailing-list](https://groups.google.com/forum/?hl=en#!forum/red-lang) or our [chat room](https://gitter.im/red/red).
 
 Satisfied with the results of your change and want to issue a pull request on Github?
 
