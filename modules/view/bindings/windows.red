@@ -300,6 +300,74 @@ Red [
 			ShowWindow hWnd  SW_SHOWDEFAULT
 			UpdateWindow hWnd
 		]
+		
+		OS-make-view: func [
+			type	[red-word!]
+			str		[red-string!]
+			offset	[red-pair!]
+			size	[red-pair!]
+			parent	[integer!]
+			return: [integer!]
+			/local
+				flags	 [integer!]
+				ws-flags [integer!]
+				sym		 [integer!]
+				class	 [c-string!]
+				caption  [c-string!]
+		][
+			flags: 	  0
+			ws-flags: 0
+			sym: 	  symbol/resolve type/symbol
+			
+			case [
+				sym = button [
+					class: "BUTTON"
+					flags: WS_TABSTOP or BS_DEFPUSHBUTTON
+				]
+				sym = check [
+					class: "BUTTON"
+					flags: WS_TABSTOP or BS_CHECKBOX
+				]
+				sym = radio [
+					class: "BUTTON"
+					flags: WS_TABSTOP or BS_RADIOBUTTON
+				]
+				sym = field [
+					class: "EDIT"
+					flags: ES_LEFT
+					ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
+				]
+				sym = text [
+					class: "STATIC"
+					flags: SS_SIMPLE
+				]
+			]
+			
+			if zero? parent [parent: as-integer hWnd]
+			
+			caption: either TYPE_OF(str) = TYPE_STRING [
+				as-c-string string/rs-head str
+			][
+				null
+			]
+			
+			handle: CreateWindowEx
+				WS_EX_COMPOSITED or ws-flags
+				class
+				caption
+				WS_VISIBLE or WS_CHILD or flags
+				offset/x
+				offset/y
+				size/x
+				size/y
+				as int-ptr! parent
+				null
+				hInstance
+				null
+					
+			if null? handle [print-line "*** Error: CreateWindowEx failed!"]
+			as-integer handle
+		]
 
 		hInstance:	declare handle!
 		hdc: 		declare handle!
@@ -307,7 +375,7 @@ Red [
 		msg:		declare tagMSG
 
 		init
-		do-events no
+		do-events yes
 		;SetWindowTheme hWnd "Explorer" 0
 
 		button:		symbol/make "button"
@@ -317,7 +385,7 @@ Red [
 		text:		symbol/make "text"
 	]
 ]
-comment {
+
 dpi: 94
 screen-size: 1920x1200
 window-size: 600x400
@@ -329,71 +397,14 @@ make-view: routine [
 	size	[pair!]
 	parent	[integer!]
 	return: [integer!]
-	/local
-		flags	 [integer!]
-		ws-flags [integer!]
-		sym		 [integer!]
-		class	 [c-string!]
-		caption  [c-string!]
 ][
-	flags: 	  0
-	ws-flags: 0
-	sym: 	  symbol/resolve type/symbol
-	
-	case [
-		sym = gui/button [
-			class: "BUTTON"
-			flags: WS_TABSTOP or BS_DEFPUSHBUTTON
-		]
-		sym = gui/check [
-			class: "BUTTON"
-			flags: WS_TABSTOP or BS_CHECKBOX
-		]
-		sym = gui/radio [
-			class: "BUTTON"
-			flags: WS_TABSTOP or BS_RADIOBUTTON
-		]
-		sym = gui/field [
-			class: "EDIT"
-			flags: ES_LEFT
-			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
-		]
-		sym = gui/text [
-			class: "STATIC"
-			flags: SS_SIMPLE
-		]
-	]
-	
-	if zero? parent [parent: as-integer gui/hWnd]
-	
-	caption: either TYPE_OF(text) = TYPE_STRING [
-		as-c-string string/rs-head text
-	][
-		null
-	]
-	
-	handle: gui/CreateWindowEx
-			WS_EX_COMPOSITED or ws-flags
-			class
-			caption
-			WS_VISIBLE or WS_CHILD or flags
-			offset/x
-			offset/y
-			size/x
-			size/y
-			as int-ptr! parent
-			null
-			gui/hInstance
-			null
-			
-	if null? handle [print-line "*** Error: CreateWindowEx failed!"]
-	as-integer handle
+	gui/OS-make-view type text offset size parent
 ]
 
 
 do-event-loop: routine [no-wait? [logic!]][
 	print-line "do-event-loop"
-	gui/do-events no
+	gui/do-events no-wait?
 ]
 
 ;set-font-size: routine [
@@ -445,7 +456,7 @@ show: func [face [block!] /with parent [block!] /local obj f params][
 			;]
 		]
 ;		if obj [set-font-size obj 8]
-;comment {
+comment {
 		if face/type <> 'screen [
 			java-do [obj/setText any [face/text ""]]
 			
@@ -459,7 +470,7 @@ show: func [face [block!] /with parent [block!] /local obj f params][
 			java-do [lay/addView obj params]
 		]
 		face/state: obj
-;}
+}
 	]
 	if face/pane [foreach f face/pane [show/with f face]]
 ]
@@ -468,7 +479,5 @@ do-events: func [/no-wait][
 	do-event-loop no
 ]
 
-obj: make-view 'button "Hello" 10x10 80x40 0
+;obj: make-view 'button "Hello" 10x10 80x40 0
 ;if obj [set-font-size obj 8]
-
-}

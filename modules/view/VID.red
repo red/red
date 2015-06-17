@@ -10,7 +10,8 @@ Red [
 	}
 ]
 
-#include %bindings/android.red
+;#include %bindings/android.red
+#include %bindings/windows.red
 
 at-offset: pad-offset: none
 
@@ -141,11 +142,13 @@ view: func [
 			| set type 'field  options-rule (make-face current type opts)
 			| set type 'check  options-rule (make-face current type opts)
 			| set type 'radio  options-rule (make-face current type opts)
-			| set type 'toggle  options-rule (make-face current type opts)
+			| set type 'toggle options-rule (make-face current type opts)
 			| set type 'clock  options-rule (make-face current type opts)
 			;| set type 'calendar  options-rule (make-face current type opts)
 		]
 	]
 	show root-face
+	print "entering loop..."
+	do-events
 ]
 
