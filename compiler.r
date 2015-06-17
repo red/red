@@ -938,19 +938,25 @@ red: context [
 		]
 	]
 	
-	rewrite-locals: func [code [block!] /local rule pos word ctx][
+	rewrite-locals: func [code [block!] /local rule s pos word ctx p?][
 		parse code rule: [
 			some [
-				'stack/push pos: skip (
+				[
+					'stack/push (p?: yes)
+					| 'set-path* (p?: no)
+					| 'eval-path (p?: no)
+				] pos: (
 					if #"~" = first word: form pos/1 [
 						if ctx: find-contexts word: to word! next word [
-							change/part back pos reduce [
+							pos: either p? [back pos][pos]
+							change/part pos reduce [
 								'word/get-local ctx get-word-index word
-							] 2
-							new-line back pos yes
+							] pick [2 1] p?
+							new-line pos yes
+							pos: next pos				;-- skip the value
 						]
 					]
-				)
+				) :pos
 				| into rule
 				| skip
 			]
@@ -1176,7 +1182,7 @@ red: context [
 				get?: to logic! any [head? path get-word? item]
 				get-path-word item clear blk get?
 			]
-		]
+		]		
 		emit words
 		
 		new-line/all pos no
