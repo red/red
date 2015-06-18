@@ -519,10 +519,7 @@ default-input-completer: func [
 			copy-cell as red-value! line as red-value! input-line
 			copy-cell as red-value! hist as red-value! history
 
-			unless init? [
-				init line hist
-				init?: yes
-			]
+			init line hist					;-- enter raw mode
 		]
 	]
 ]
