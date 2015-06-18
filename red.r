@@ -281,7 +281,7 @@ redc: context [
 		exe: safe-to-local-file exe
 		if with [
 			repend exe [#" " mold file]
-			exe: rejoin [{"} exe {"}]
+			exe: safe-to-local-file exe
 		]
 		sys-call exe									;-- replace the buggy CALL native
 		quit/return 0

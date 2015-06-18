@@ -175,7 +175,6 @@ default-input-completer: func [
 		columns:	-1
 		rows:		-1
 		output?:	yes
-		init?:		no
 
 		string/rs-make-at as cell! saved-line 1
 
