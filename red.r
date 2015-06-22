@@ -164,7 +164,7 @@ redc: context [
 		no
 	]
 	
-	safe-to-local-file: func [file [file!]][
+	safe-to-local-file: func [file [file! string!]][
 		if all [
 			find file: to-local-file file #" "
 			Windows?
