@@ -339,7 +339,7 @@ insert: make action! [[
 
 length?: make action! [[
 		"Returns the number of values in the series, from the current index to the tail"
-		series	 [series! bitset! map!]
+		series	 [series! bitset! map! tuple!]
 		return:  [integer!]
 	]
 	#get-definition ACT_LENGTH?
