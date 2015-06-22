@@ -175,7 +175,6 @@ default-input-completer: func [
 		columns:	-1
 		rows:		-1
 		output?:	yes
-		init?:		no
 
 		string/rs-make-at as cell! saved-line 1
 
@@ -519,10 +518,7 @@ default-input-completer: func [
 			copy-cell as red-value! line as red-value! input-line
 			copy-cell as red-value! hist as red-value! history
 
-			unless init? [
-				init line hist
-				init?: yes
-			]
+			init line hist					;-- enter raw mode
 		]
 	]
 ]
