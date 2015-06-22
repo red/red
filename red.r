@@ -164,7 +164,7 @@ redc: context [
 		no
 	]
 	
-	safe-to-local-file: func [file [file!]][
+	safe-to-local-file: func [file [file! string!]][
 		if all [
 			find file: to-local-file file #" "
 			Windows?
@@ -279,7 +279,10 @@ redc: context [
 			]
 		]
 		exe: safe-to-local-file exe
-		if with [repend exe [#" " file]]
+		if with [
+			repend exe [#" " mold file]
+			exe: safe-to-local-file exe
+		]
 		sys-call exe									;-- replace the buggy CALL native
 		quit/return 0
 	]
@@ -383,6 +386,7 @@ redc: context [
 		]
 		
 		if all [encap? none? output none? type][
+			if load-lib? [build-compress-lib]
 			run-console/with filename
 		]
 		

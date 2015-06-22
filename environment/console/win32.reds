@@ -260,9 +260,6 @@ init: func [
 	/local
 		mode	[integer!]
 ][
-	copy-cell as red-value! line as red-value! input-line
-	copy-cell as red-value! hist-blk as red-value! history
-
 	GetConsoleMode stdin :saved-con
 	mode: saved-con and (not ENABLE_PROCESSED_INPUT)	;-- turn off PROCESSED_INPUT, so we can handle control-c
 	mode: mode or ENABLE_QUICK_EDIT_MODE				;-- use the mouse to select and edit text

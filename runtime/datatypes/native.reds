@@ -60,7 +60,7 @@ native: context [
 			]
 			base: base + 1
 		]
-		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! pos]]
+		if base = end [fire [TO_ERROR(script no-refine) fname as red-word! value]]
 
 		s: GET_BUFFER(vec)
 		ref-array: as int-ptr! s/offset

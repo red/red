@@ -445,10 +445,7 @@ init: func [
 ][
 	relative-y: 0
 	utf-char: as-c-string allocate 10
-
-	copy-cell as red-value! line as red-value! input-line
-	copy-cell as red-value! hist-blk as red-value! history
-
+	
 	so: declare sigaction!						;-- install resizing signal trap
 	mask: (as-integer so) + 4
 	sigemptyset mask

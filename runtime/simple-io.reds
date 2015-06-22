@@ -340,7 +340,12 @@ simple-io: context [
 			file	[integer!]
 			size	[integer!]
 			str		[red-string!]
+			len		[integer!]
 	][
+		if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
+		len: length? filename
+		if filename/len = #"^"" [filename/len: null-byte]
+		
 		file: open-file filename
 		size: file-size? file
 

@@ -1219,6 +1219,22 @@ Red [
 		--assert "make bitset! #{700000}" = mold exclude a b
 		--assert "make bitset! #{040001}" = mold exclude b a
 
+	--test-- "series-union-1"
+		su1-a: ["a" "A" "b" "B"]
+		su1-b: ["b" "B" "e" "E"]
+		--assert ["a" "b" "e"] = sort union su1-a su1-b
+		
+	--test-- "series-union-2"
+		su2-a: ["a" "A" "b" "B"]
+		su2-b: ["b" "B" "e" "E"]
+		--assert ["a""A" "b" "B" "e" "E"] = sort union/case su2-a su2-b
+
+	--test-- "series-union-3"
+		su3-a: ["a" "A" "b" "B"]
+		su3-b: ["b" "B" "e" "E"]
+		su3-c: union/skip su3-a su3-b 2
+		--assert ["a" "A" "b" "B" "e" "E"] = sort/skip su3-c 2
+  
 ===end-group===
 
 ~~~end-file~~~

@@ -30,7 +30,6 @@ hash: context [
 		#if debug? = yes [if verbose > 0 [print-line "hash/make"]]
 
 		blk?: no
-		size: 1
 		switch TYPE_OF(spec) [
 			TYPE_INTEGER [
 				int: as red-integer! spec
@@ -43,6 +42,8 @@ hash: context [
 			]
 			default [--NOT_IMPLEMENTED--]
 		]
+
+		unless positive? size [size: 1]
 		blk: block/make-at as red-block! stack/push* size
 		if blk? [
 			block/copy as red-block! spec blk null no null
