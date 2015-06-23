@@ -21,6 +21,7 @@ Red/System [
 #define flag-ins-both		30000000h		;-- optimize for both head & tail insertions
 #define flag-ins-tail		20000000h		;-- optimize for tail insertions
 #define flag-ins-head		10000000h		;-- optimize for head insertions
+#define flag-gc-mark		08000000h		;-- mark as referenced for the GC (mark phase)
 #define flag-series-big		01000000h		;-- 1 = big, 0 = series
 #define flag-series-small	00800000h		;-- series <= 16 bytes
 #define flag-series-stk		00400000h		;-- values block allocated on stack
@@ -678,7 +679,7 @@ free-series: func [
 	if frame/heap = as series-buffer! (		;-- test if series is on top of heap
 		(as byte-ptr! node/value) +  series/size + size? series-buffer!
 	) [
-		frame/heap = series					;-- cheap collecting of last allocated series
+		frame/heap: series					;-- cheap collecting of last allocated series
 	]
 	free-node node
 ]

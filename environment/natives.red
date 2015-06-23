@@ -688,3 +688,10 @@ extend: make native! [[
 	]
 	#get-definition NAT_EXTEND
 ]
+
+recycle: make native! [[
+		/on
+		/off
+	]
+	#get-definition NAT_RECYCLE
+]

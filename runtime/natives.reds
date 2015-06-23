@@ -1616,6 +1616,13 @@ natives: context [
 			TYPE_OBJECT [--NOT_IMPLEMENTED--]
 		]
 	]
+	
+	recycle*: func [
+		on?  [integer!]
+		off? [integer!]
+	][
+		collector/do-cycle
+	]
 
 	;--- Natives helper functions ---
 
@@ -2016,6 +2023,7 @@ natives: context [
 			:throw*
 			:catch*
 			:extend*
+			:recycle*
 		]
 	]
 

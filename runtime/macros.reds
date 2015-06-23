@@ -214,6 +214,7 @@ Red/System [
 	NAT_THROW
 	NAT_CATCH
 	NAT_EXTEND
+	NAT_RECYCLE
 ]
 
 #enum math-op! [

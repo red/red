@@ -26,7 +26,6 @@ red: context [
 	
 	;#include %threads.reds
 	#include %allocator.reds
-	;#include %collector.reds
 	#include %crush.reds
 	
 	;-- Datatypes --
@@ -92,6 +91,7 @@ red: context [
 	#include %interpreter.reds
 	#include %simple-io.reds						;-- temporary file IO support
 	#include %redbin.reds
+	#include %collector.reds
 
 	_root:	 	declare red-block!						;-- statically alloc root cell for bootstrapping
 	root:	 	declare red-block!						;-- root block

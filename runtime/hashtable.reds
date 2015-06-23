@@ -153,6 +153,19 @@ _hashtable: context [
 		upper-bound	[integer!]
 		type		[integer!]
 	]
+	
+	mark: func [
+		table [node!]
+		/local
+			s [series!]
+			h [hashtable!]
+	][
+		s: as series! table/value
+		h: as hashtable! s/offset
+		collector/keep h/indexes
+		collector/keep h/flags
+		collector/keep h/keys
+	]
 
 	round-up: func [
 		n		[integer!]
