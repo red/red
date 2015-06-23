@@ -200,6 +200,8 @@ pair: context [
 			w	 [red-word!]
 			axis [integer!]
 	][
+		#if debug? = yes [if verbose > 0 [print-line "pair/eval-path"]]
+		
 		switch TYPE_OF(element) [
 			TYPE_INTEGER [
 				int: as red-integer! element
@@ -222,6 +224,7 @@ pair: context [
 		]
 		either value <> null [
 			int: as red-integer! stack/arguments
+			int/header: TYPE_INTEGER
 			either axis = 1 [parent/x: int/value][parent/y: int/value]
 			as red-value! int
 		][
