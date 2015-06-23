@@ -3251,7 +3251,7 @@ red: context [
 			forall ops [
 				paths: length? paths-stack
 				single?: path? pc/1
-				comp-expression/no-infix					;-- fetch right operand
+				comp-expression/no-infix				;-- fetch right operand
 				if single? [do substitute]
 				
 				name: ops/1
