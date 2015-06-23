@@ -228,7 +228,9 @@ pair: context [
 			either axis = 1 [parent/x: int/value][parent/y: int/value]
 			as red-value! int
 		][
-			integer/push either axis = 1 [parent/x][parent/y]
+			int: integer/push either axis = 1 [parent/x][parent/y]
+			stack/pop 1									;-- avoid moving stack top
+			int
 		]
 	]
 	
