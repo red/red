@@ -153,12 +153,11 @@ collector: context [
 		mark-values s/offset s/tail
 	]
 	
-	sweep: func [
-	
-	][
-	
+	do-cycle: does [
+		probe "marking..."
+		mark-block root
+		probe "sweeping..."
+		collect-frames
 	]
-	
-	do-cycle: does [mark-block root]
 	
 ]

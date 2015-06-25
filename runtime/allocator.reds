@@ -446,6 +446,7 @@ update-series: func [
 	offset	[integer!]
 ][
 	until [
+		series/flags: series/flags and not flag-gc-mark
 		;-- update the node pointer to the new series address
 		series/node/value: as-integer series
 	
@@ -457,7 +458,7 @@ update-series: func [
 		series: as series-buffer! (as byte-ptr! series) + series/size + size? series-buffer!
 		
 		;-- exit when a freed series is met (<=> end of region)
-		zero? (series/flags and series-in-use)
+		zero? (series/flags and flag-gc-mark)
 	]
 ]
 
@@ -476,7 +477,8 @@ compact-series-frame: func [
 		free? [logic!] src [byte-ptr!] dst [byte-ptr!]
 ][
 	series: as series-buffer! (as byte-ptr! frame) + size? series-frame! ;-- point to first series buffer
-	free?: zero? (series/flags and series-in-use)  ;-- true: series is not used
+	free?: zero? (series/flags and flag-gc-mark)  ;-- true: series is not used
+	series/flags: series/flags and not flag-gc-mark
 	heap: frame/heap
 		
 	src: null								;-- src will point to start of buffer region to move down
@@ -497,7 +499,8 @@ compact-series-frame: func [
 		]
 	 	;-- point to next series buffer
 		series: as series-buffer! (as byte-ptr! series) + series/size  + size? series-buffer!
-		free?: zero? (series/flags and series-in-use)  ;-- true: series is not used
+		free?: zero? (series/flags and flag-gc-mark)  ;-- true: series is not used
+		series/flags: series/flags and not flag-gc-mark
 
 		if all [state = SM1_USED any [free? series >= heap]][	;-- handle both normal and "exit" states
 			state: SM1_USED_END
@@ -515,6 +518,18 @@ compact-series-frame: func [
 	
 	unless null? dst [						;-- no compaction occurred, all series were in use
 		frame/heap: as series-buffer! dst	;-- set new heap after last moved region
+	]
+]
+
+collect-frames: func [
+	/local
+		frame [series-frame!]					;-- series frame to compact
+][
+	frame: memory/s-head
+	until [
+		compact-series-frame frame
+		frame: frame/next
+		frame = null
 	]
 ]
 
