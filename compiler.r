@@ -438,33 +438,35 @@ red: context [
 	
 	emit-open-frame: func [name [word!] /local type][
 		unless find symbols name [add-symbol name]
-		emit case [
-			'function! = all [
-				type: find functions name
-				first first next type
-			]['stack/mark-func]
-			find iterators name ['stack/mark-loop]
-			name = 'try			['stack/mark-try]
-			name = 'catch		['stack/mark-catch]
-			'else				['stack/mark-native]
-		]
+		;emit case [
+		;	'function! = all [
+		;		type: find functions name
+		;		first first next type
+		;	]['stack/mark-func]
+		;	find iterators name ['stack/mark-loop]
+		;	name = 'try			['stack/mark-try]
+		;	name = 'catch		['stack/mark-catch]
+		;	'else				['stack/mark-native]
+		;]
+
+		emit 'word/push
 		emit prefix-exec name
 		insert-lf -2
 	]
 	
 	emit-close-frame: func [/last][
-		emit pick [stack/unwind-last stack/unwind] to logic! last
-		insert-lf -1
+		;emit pick [stack/unwind-last stack/unwind] to logic! last
+		;insert-lf -1
 	]
 	
 	emit-stack-reset: does [
-		emit 'stack/reset
-		insert-lf -1
+		;emit 'stack/reset
+		;insert-lf -1
 	]
 	
 	emit-dyn-check: does [
-		emit 'stack/check-call
-		insert-lf -1
+		;emit 'stack/check-call
+		;insert-lf -1
 	]
 	
 	build-exception-handler: has [body][
@@ -2829,15 +2831,15 @@ red: context [
 				get-word! [comp-literal/inactive]
 				word!     [comp-expression]
 			]
-			if paths < length? paths-stack [
-				if 'stack/unwind = last output [i: i + 1] ;-- count nested argument with path
-				repeat n nb - i + 1 [
-					emit [stack/push pos +]
-					emit n - 1
-					insert-lf -4
-				]
-				return true								;-- stop compiling new arguments
-			]
+			;if paths < length? paths-stack [
+			;	if 'stack/unwind = last output [i: i + 1] ;-- count nested argument with path
+			;	repeat n nb - i + 1 [
+			;		emit [stack/push pos +]
+			;		emit n - 1
+			;		insert-lf -4
+			;	]
+			;	return true								;-- stop compiling new arguments
+			;]
 			spec: next spec
 		]
 		false
@@ -2893,14 +2895,14 @@ red: context [
 					]
 				]
 			][											;-- prepare function! stack layout
-				emit-no-ref: [							;-- populate stack for unused refinement
-					emit [logic/push false]				;-- unused refinement is set to FALSE
-					insert-lf -2
-					loop args [
-						emit 'none/push					;-- unused arguments are set to NONE
-						insert-lf -1
-					]
-				]
+				;emit-no-ref: [							;-- populate stack for unused refinement
+				;	emit [logic/push false]				;-- unused refinement is set to FALSE
+				;	insert-lf -2
+				;	loop args [
+				;		emit 'none/push					;-- unused arguments are set to NONE
+				;		insert-lf -1
+				;	]
+				;]
 				either path? call [						;-- call with refinements?
 					ctx: copy spec/4					;-- get a new context block
 					foreach ref next call [
@@ -2922,25 +2924,25 @@ red: context [
 							clear mark
 						]
 					]
-					forall ctx [						;-- push context values on stack
-						switch type?/word ctx/1 [
-							refinement! [				;-- unused refinement
-								args: ctx/3
-								do emit-no-ref
-							]
-							logic! [					;-- used refinement
-								emit [logic/push true]
-								insert-lf -2
-								if block? ctx/3 [
-									foreach code ctx/3 [emit code] ;-- emit pre-compiled arguments
-								]
-							]
-						]
-					]
+					;forall ctx [						;-- push context values on stack
+					;	switch type?/word ctx/1 [
+					;		refinement! [				;-- unused refinement
+					;			args: ctx/3
+					;			do emit-no-ref
+					;		]
+					;		logic! [					;-- used refinement
+					;			emit [logic/push true]
+					;			insert-lf -2
+					;			if block? ctx/3 [
+					;				foreach code ctx/3 [emit code] ;-- emit pre-compiled arguments
+					;			]
+					;		]
+					;	]
+					;]
 				][										;-- call with no refinements
-					if spec/4 [
-						foreach [ref offset args] spec/4 emit-no-ref
-					]
+					;if spec/4 [
+					;	foreach [ref offset args] spec/4 emit-no-ref
+					;]
 				]
 			]
 			
@@ -2959,6 +2961,27 @@ red: context [
 		]
 	]
 	
+	emit-lit-path: func [path [path!]][
+		emit compose [path/push as red-path! get-root (redbin/emit-block path)]
+	]
+	
+	__comp-call: func [
+		call [word! path!]
+		spec [block!]
+		/with symbol ctx-name [word!]
+		/thru
+	][
+		either spec/1 = 'intrinsic! [
+			switch any [all [path? call call/1] call] keywords
+		][
+			either path? call [		
+				emit-lit-path call
+			][
+				emit-push-word call call
+			]
+		]	
+	]
+		
 	comp-local-set: func [name [word!]][
 		emit-open-frame 'set
 		comp-expression
@@ -3492,7 +3515,7 @@ red: context [
 		mark: none
 	]
 	
-	comp-expression: func [/no-infix /root /close-path /local out paths][
+	_comp-expression: func [/no-infix /root /close-path /local out paths][
 		root: to logic! root 
 		if any [root close-path][out: tail output]
 		paths: length? paths-stack
@@ -3559,6 +3582,40 @@ red: context [
 		]
 	]
 	
+	comp-expression: func [/no-infix /root /close-path /local paths][
+		root: to logic! root 
+		unless no-infix [if check-infix-operators root [exit]]
+		
+		if tail? pc [
+			pc: back pc
+			throw-error "missing argument"
+		]
+
+		switch/default type?/word pc/1 [
+			issue!		[
+				either any [
+					unicode-char?  pc/1
+					float-special? pc/1
+					percent-value? pc/1
+					map-value?	   pc/1
+				][
+					comp-literal						;-- special encoding for Unicode char!
+				][
+					unless comp-directive [comp-literal]
+				]
+			]
+			;-- active datatypes with specific literal form
+			set-word!	[comp-set-word]
+			word!		[comp-word]
+			get-word!	[comp-word/literal]
+			paren!		[comp-next-block]
+			set-path!	[comp-path/set? root]
+			path! 		[comp-path root]
+		][
+			comp-literal
+		]
+	]
+	
 	comp-next-block: func [/with blk /local saved][
 		saved: pc
 		pc: any [blk pc/1]
@@ -3584,6 +3641,8 @@ red: context [
 	
 	comp-sub-block: func [origin [word!] /with body /local mark saved][
 		unless any [with block? pc/1][
+?? pc
+?? output
 			throw-error [
 				"expected a block for" uppercase form origin
 				"instead of" mold type? pc/1 "value"
