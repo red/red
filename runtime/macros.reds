@@ -55,6 +55,7 @@ Red/System [
 	TYPE_BINARY
 	TYPE_CLOSURE
 	TYPE_PORT
+	TYPE_CALL
 ]
 
 #enum actions! [

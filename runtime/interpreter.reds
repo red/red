@@ -120,6 +120,56 @@ interpreter: context [
 		no
 	]
 	
+	get-args-block: func [
+		native	  [red-native!]
+		path	  [red-path!]
+		ref-pos   [red-value!]
+		function? [logic!]
+		return:	  [node!]
+		/local
+			fun	  [red-function!]
+			args  [node!]
+			fname [red-word!]
+			blk	  [red-block!]
+			s	  [series!]
+	][
+		args: null
+		
+		either function? [
+			fun: as red-function! native
+			s: as series! fun/more/value
+			blk: as red-block! s/offset + 1
+			if TYPE_OF(blk) = TYPE_BLOCK [args: blk/node]
+		][
+			args: native/args
+		]
+		if null? args [
+			args: _function/preprocess-spec native
+
+			either function? [
+				blk/header: TYPE_BLOCK
+				blk/head:	0
+				blk/node:	args
+			][
+				native/args: args
+			]
+		]
+
+		unless null? path [
+			fname: as red-word! ref-pos
+
+			if ref-pos + 1 < block/rs-tail as red-block! path [	;-- test if refinements are following the function
+				either null? path/args [
+					args: _function/preprocess-options native path ref-pos args fname function?
+					path/args: args
+				][
+					args: path/args
+				]
+			]
+		]
+		args
+	]
+	
 	set-locals: func [
 		fun [red-function!]
 		/local
@@ -282,7 +332,6 @@ interpreter: context [
 		ref-pos [red-value!]
 		return: [red-value!]
 		/local
-			fun	  	  [red-function!]
 			function? [logic!]
 			routine?  [logic!]
 			value	  [red-value!]
@@ -290,7 +339,6 @@ interpreter: context [
 			expected  [red-value!]
 			path-end  [red-value!]
 			fname	  [red-word!]
-			blk		  [red-block!]
 			vec		  [red-vector!]
 			bool	  [red-logic!]
 			arg		  [red-value!]
@@ -311,42 +359,14 @@ interpreter: context [
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE
 		function?: any [routine? TYPE_OF(native) = TYPE_FUNCTION]
 		fname:	   as red-word! pc - 1
-		args:	   null
+		;args:	   null
 
-		either function? [
-			fun: as red-function! native
-			s: as series! fun/more/value
-			blk: as red-block! s/offset + 1
-			if TYPE_OF(blk) = TYPE_BLOCK [args: blk/node]
-		][
-			args: native/args
-		]
-		if null? args [
-			args: _function/preprocess-spec native
-			
-			either function? [
-				blk/header: TYPE_BLOCK
-				blk/head:	0
-				blk/node:	args
-			][
-				native/args: args
-			]
-		]
-		
 		unless null? path [
 			path-end: block/rs-tail as red-block! path
 			fname: as red-word! ref-pos
-			
-			if ref-pos + 1 < path-end [					;-- test if refinements are following the function
-				either null? path/args [
-					args: _function/preprocess-options native path ref-pos args fname function?
-					path/args: args
-				][
-					args: path/args
-				]
-			]
 		]
-		
+		args: get-args-block native path ref-pos function? 
+	
 		s: as series! args/value
 		value:	   s/offset
 		tail:	   s/tail

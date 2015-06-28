@@ -30,6 +30,13 @@ stack: context [										;-- call stack
 		ctx	   [node!]									;-- context for function's name
 	]
 	
+	dyn-frame!: alias struct! [
+		header [integer!]
+		args   [node!]
+		index  [integer!]
+		prev   [dyn-frame!]
+	]
+	
 	arg-stk:		as red-block!	0					;-- argument stack (should never be relocated)
 	call-stk:		as red-block!	0					;-- call stack (should never be relocated)
 	args-series:	as series!		0
@@ -39,6 +46,7 @@ stack: context [										;-- call stack
 	arguments:		as red-value!	0
 	bottom:  		as red-value!	0
 	top:	 		as red-value!	0
+	call:			as dyn-frame!	0
 	cbottom: 		as call-frame!	0
 	ctop:	 		as call-frame! 	0
 	
@@ -84,10 +92,10 @@ stack: context [										;-- call stack
 	
 	init: does [
 		arg-stk:  block/make-in root 1024
-		call-stk: block/make-in root 512
+		;call-stk: block/make-in root 512
 
 		set-flag arg-stk/node  flag-series-fixed or flag-series-nogc
-		set-flag call-stk/node flag-series-fixed or flag-series-nogc
+		;set-flag call-stk/node flag-series-fixed or flag-series-nogc
 
 		;-- Shortcuts for stack buffers simpler and faster access
 		;-- (stack buffers are not resizable with such approach
@@ -95,16 +103,17 @@ stack: context [										;-- call stack
 		;-- in the future)
 
 		args-series:  GET_BUFFER(arg-stk)
-		calls-series: GET_BUFFER(call-stk)
+		;calls-series: GET_BUFFER(call-stk)
 
 		a-end: as cell!		  (as byte-ptr! args-series)  + args-series/size
-		c-end: as call-frame! (as byte-ptr! calls-series) + calls-series/size
+		;c-end: as call-frame! (as byte-ptr! calls-series) + calls-series/size
 
 		arguments:	args-series/tail					;@@ incorrect?!
 		bottom:  	args-series/offset
 		top:	 	args-series/tail					;@@ incorrect?!
-		cbottom: 	as call-frame! calls-series/offset
-		ctop:	 	as call-frame! calls-series/tail	;@@ incorrect?!
+		top: top - 1
+		;cbottom: 	as call-frame! calls-series/offset
+		;ctop:	 	as call-frame! calls-series/tail	;@@ incorrect?!
 		
 		body-symbol: words/_body/symbol
 		anon-symbol: words/_anon/symbol
@@ -116,21 +125,21 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/mark"]]
 
-		if ctop = c-end [
-			print-line ["^/*** Error: call stack overflow!^/"]
-			throw RED_THROWN_ERROR
-		]
-		ctop/header: type or (fun/symbol << 8)
-		ctop/prev:	 arguments
-		ctop/ctx:	 fun/ctx
-		ctop: ctop + 1
-		arguments: top								;-- top of stack becomes frame base
+		;if ctop = c-end [
+		;	print-line ["^/*** Error: call stack overflow!^/"]
+		;	throw RED_THROWN_ERROR
+		;]
+		;ctop/header: type or (fun/symbol << 8)
+		;ctop/prev:	 arguments
+		;ctop/ctx:	 fun/ctx
+		;ctop: ctop + 1
+		;arguments: top								;-- top of stack becomes frame base
 
-		#if debug? = yes [if verbose > 1 [dump]]
+		;#if debug? = yes [if verbose > 1 [dump]]
 	]
 	
 	check-call: does [
-		if acc-mode? [check-dyn-call]
+		;if acc-mode? [check-dyn-call]
 	]
 
 	reset: func [
@@ -140,7 +149,7 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/reset"]]
 		
-		either acc-mode? [check-dyn-call][top: arguments]
+		;either acc-mode? [check-dyn-call][top: arguments]
 		arguments
 	]
 	
@@ -151,8 +160,8 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/keep"]]
 		
-		top: arguments + 1								;-- keep last value in arguments slot
-		if acc-mode? [check-dyn-call]
+		;top: arguments + 1								;-- keep last value in arguments slot
+		;if acc-mode? [check-dyn-call]
 		arguments
 	]
 	
@@ -218,27 +227,27 @@ stack: context [										;-- call stack
 	unwind-part: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-part"]]
 
-		assert cbottom < ctop
-		ctop: ctop - 1
-		either ctop = cbottom [
-			arguments: bottom
-		][
-			arguments: ctop/prev
-		]
-		top: top - 1
+		;assert cbottom < ctop
+		;ctop: ctop - 1
+		;either ctop = cbottom [
+		;	arguments: bottom
+		;][
+		;	arguments: ctop/prev
+		;]
+		;top: top - 1
 
-		#if debug? = yes [if verbose > 1 [dump]]
+		;#if debug? = yes [if verbose > 1 [dump]]
 	]
 		
 	unwind: does [
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind"]]
 
-		assert cbottom < ctop
-		ctop: ctop - 1
-		STACK_SET_FRAME
-		if acc-mode? [check-dyn-call]
+		;assert cbottom < ctop
+		;ctop: ctop - 1
+		;STACK_SET_FRAME
+		;if acc-mode? [check-dyn-call]
 		
-		#if debug? = yes [if verbose > 1 [dump]]
+		;#if debug? = yes [if verbose > 1 [dump]]
 	]
 	
 	unwind-last: func [
@@ -248,9 +257,10 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/unwind-last"]]
 
-		last: arguments
-		unwind
-		copy-cell last arguments
+		;last: arguments
+		;unwind
+		;copy-cell last arguments
+		arguments
 	]
 	
 	unroll-frames: func [
@@ -535,33 +545,68 @@ stack: context [										;-- call stack
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/set-last"]]
 		
-		copy-cell last arguments
+		;copy-cell last arguments
+		arguments
 	]
 	
 	push*: func [
 		return:  [red-value!]
-		/local
-			cell [red-value!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/push*"]]
 
-		cell: top
 		top: top + 1
 		if top >= a-end [
 			print-line ["^/*** Error: arguments stack overflow!^/"]
 			throw RED_THROWN_ERROR
 		]
-		cell
+		top
 	]
 	
 	push: func [
-		value 	  [red-value!]
-		return:   [red-value!]
+		value 	[red-value!]
+		return: [red-value!]
+		/local
+			res	   [red-value!]
+			new	   [dyn-frame!]
+			native [red-native!]
+			s	   [series!]
+			idx	   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/push"]]
 		
-		copy-cell value top
-		push*
+		res: copy-cell value push*
+		
+		if TYPE_OF(top) = TYPE_WORD [
+			value: _context/get as red-word! top
+			switch TYPE_OF(value) [
+				TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
+				TYPE_NATIVE
+				TYPE_ROUTINE
+				TYPE_FUNCTION [
+					native: as red-native! copy-cell value push*
+					new: as dyn-frame! push*
+					new/header: TYPE_CALL
+					;new/args:	interpreter/get-args-block native path ref-pos function? 
+					new/index:	1
+					new/prev:	call
+					call: new
+					return res
+				]
+				default [0]
+			]
+		]
+		
+		idx: new/index + 1
+		s: as series! call/args/value
+		expected: s/offset + idx
+		
+		either expected = s/tail [
+			0
+		][
+			
+			new/index: idx + 1
+		]
+		res
 	]
 	
 	pop: func [
@@ -574,21 +619,18 @@ stack: context [										;-- call stack
 	
 	top-type?: func [
 		return:  [integer!]
-		/local
-			value [red-value!]
 	][
-		value: top - 1
-		TYPE_OF(value)
+		TYPE_OF(top)
 	]
 	
 	func?: func [
 		return: [logic!]
 		/local
-			value [red-value!]
+			;value [red-value!]
 			type  [integer!]
 	][
-		value: top - 1
-		type: TYPE_OF(value)
+		;value: top - 1
+		type: TYPE_OF(top)
 		any [											;@@ replace with ANY_FUNCTION?
 			type = TYPE_FUNCTION
 			type = TYPE_ROUTINE
