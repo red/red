@@ -714,11 +714,9 @@ block: context [
 				][
 					select-word parent as red-word! element case?
 				][
-					copy-cell
-						select parent element null yes case? no null null no no
-						element
+					value: select parent element null yes case? no null null no no
 					stack/pop 1							;-- remove FIND result from stack
-					element
+					value
 				]
 			]
 		]
