@@ -629,9 +629,10 @@ stack: context [										;-- call stack
 		expected: s/offset + idx
 		
 		either expected = s/tail [
-			;TBD
+			;build stack layout and call function
 			0
 		][
+			;type-check argument
 			call/index: idx + 1
 		]
 		res
