@@ -435,7 +435,12 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit #{58}									;-- POP eax
 	]
-		
+
+	emit-log-b: func [value [integer!]][
+		emit-load value
+		emit #{0FBCC0}								;-- BSF eax, eax
+	]
+
 	emit-not: func [value [word! char! tag! integer! logic! path! string! object!] /local opcodes type boxed][
 		if verbose >= 3 [print [">>>emitting NOT" mold value]]
 		

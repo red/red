@@ -30,7 +30,7 @@ target-class: context [
 	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
-	emit-throw:	on-init: emit-alt-last: none
+	emit-throw: emit-log-b: on-init: emit-alt-last: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
@@ -269,6 +269,7 @@ target-class: context [
 							emit-throw/thru args/1
 						]
 					]
+					log-b [emit-log-b args/1]
 				] name
 				if name = 'not [res: compiler/get-type args/1]
 			]
