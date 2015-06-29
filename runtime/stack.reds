@@ -562,49 +562,77 @@ stack: context [										;-- call stack
 		top
 	]
 	
+	push-call: func [
+		value	[red-value!]
+		path	[red-path!]
+		fun 	[red-value!]
+		/local
+			new		  [dyn-frame!]
+			native	  [red-native!]
+			function? [logic!]
+	][
+		function?: any [
+			TYPE_OF(value) = TYPE_ROUTINE
+			TYPE_OF(value) = TYPE_FUNCTION
+		]
+		native: as red-native! copy-cell value push*
+		new: as dyn-frame! push*
+		new/header: TYPE_CALL
+		new/args:	interpreter/get-args-block native path fun function? 
+		new/index:	1
+		new/prev:	call
+		call: new
+	]
+	
 	push: func [
 		value 	[red-value!]
 		return: [red-value!]
 		/local
 			res	   [red-value!]
-			new	   [dyn-frame!]
 			native [red-native!]
+			word   [red-word!]
+			pos	   [red-value!]
 			s	   [series!]
 			idx	   [integer!]
+			type   [integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "stack/push"]]
 		
-		res: copy-cell value push*
-		
-		if TYPE_OF(top) = TYPE_WORD [
-			value: _context/get as red-word! top
-			switch TYPE_OF(value) [
-				TYPE_ACTION							;@@ replace with TYPE_ANY_FUNCTION
-				TYPE_NATIVE
-				TYPE_ROUTINE
-				TYPE_FUNCTION [
-					native: as red-native! copy-cell value push*
-					new: as dyn-frame! push*
-					new/header: TYPE_CALL
-					;new/args:	interpreter/get-args-block native path ref-pos function? 
-					new/index:	1
-					new/prev:	call
-					call: new
-					return res
+		switch TYPE_OF(value) [
+			TYPE_WORD [
+				word: as red-word! value
+				value: _context/get word
+				type: TYPE_OF(value)
+				if any [									;@@ replace with TYPE_ANY_FUNCTION
+					type = TYPE_ACTION
+					type = TYPE_NATIVE
+					type = TYPE_ROUTINE
+					type = TYPE_FUNCTION 
+				][
+					copy-cell as red-value! word push*
+					push-call value null null
+					return value
 				]
-				default [0]
 			]
+			TYPE_PATH [
+				pos: eval-path as red-path! value
+				if pos <> null [
+					push-call value as red-path! value pos
+					return value
+				]
+			]
+			default [res: copy-cell value push*]
 		]
 		
-		idx: new/index + 1
+		idx: call/index + 1
 		s: as series! call/args/value
 		expected: s/offset + idx
 		
 		either expected = s/tail [
+			;TBD
 			0
 		][
-			
-			new/index: idx + 1
+			call/index: idx + 1
 		]
 		res
 	]
@@ -637,6 +665,68 @@ stack: context [										;-- call stack
 		]
 	]
 	
+	eval-path: func [
+		path	[red-path!]
+		return: [red-value!]
+		/local 
+			head	[red-value!]
+			tail	[red-value!]
+			item	[red-value!]
+			parent	[red-value!]
+			saved	[red-value!]
+			result	[red-value!]
+			type	[integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "stack: eval path"]]
+
+		head:   block/rs-head as red-block! path
+		tail:   block/rs-tail as red-block! path
+		item:   head + 1
+		saved:  top
+
+		if TYPE_OF(head) <> TYPE_WORD [
+			print-line "*** Error: path value must start with a word!"
+			halt
+		]
+		parent: _context/get as red-word! head
+		result: null									;-- indicatse no "active" value found
+
+		while [item <= tail][
+			value: either any [
+				TYPE_OF(item) = TYPE_GET_WORD 
+				all [
+					parent = head
+					TYPE_OF(item) = TYPE_WORD
+					TYPE_OF(parent) <> TYPE_OBJECT
+				]
+			][
+				_context/get as red-word! item
+			][
+				item
+			]
+			switch TYPE_OF(value) [
+				TYPE_UNSET [fire [TO_ERROR(script no-value)	item]]
+				TYPE_PAREN [interpreter/eval as red-block! value yes]
+				default	   [0]							;-- @@ compilation pass-thru
+			]
+			parent: actions/eval-path parent value null path null ;@@ set case? properly!
+
+			type: TYPE_OF(parent)
+			if any [									;@@ replace with TYPE_ANY_FUNCTION
+				type = TYPE_ACTION
+				type = TYPE_NATIVE
+				type = TYPE_ROUTINE
+				type = TYPE_FUNCTION 
+			][
+				result: item
+			]
+			item: item + 1
+		]
+		stack/top: saved
+		copy-cell parent push*
+		result
+	]
+	
 	defer-call: func [
 		name   [red-word!]
 		code   [integer!]
@@ -659,7 +749,7 @@ stack: context [										;-- call stack
 		arguments/header: TYPE_VALUE					;-- use TYPE_VALUE to signal "no argument"
 	]
 	
-	push-call: func [
+	_push-call: func [
 		path [red-path!]
 		idx  [integer!]
 		code [integer!]
