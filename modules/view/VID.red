@@ -22,6 +22,17 @@ direction: 	  'across
 origin:	  	  10x10
 spacing:	  10x10
 
+face!: object [
+	offset:	 none
+	size: 	 none
+	text:	 none
+	pane:	 none
+	parent:	 none
+	type:	 none
+	state:	 none
+	actions: none
+]
+
 reset-cursor: does [
 	either direction = 'across [
 		cursor/3/x: origin/x
@@ -35,21 +46,12 @@ reset-cursor: does [
 ]
 
 make-face: func [
-	parent [block! none!]
+	parent [object! none!]
 	type   [word!]
 	opts   [block! none!]
 	/local face value list offset
 ][
-	face: copy [
-		offset:	 #[none]
-		size: 	 #[none]
-		text:	 #[none]
-		pane:	 #[none]
-		parent:	 #[none]
-		type:	 #[none]
-		state:	 #[none]
-		actions: #[none]
-	] 
+	face: make face! []
 	face/type: type
 
 	if opts [

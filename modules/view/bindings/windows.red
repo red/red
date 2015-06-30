@@ -40,9 +40,12 @@ Red [
 		#define SW_SHOW				5
 		#define SW_SHOWDEFAULT		10
 
+ 		#define BS_PUSHBUTTON		00000000h
 		#define BS_DEFPUSHBUTTON	00000001h
 		#define BS_CHECKBOX			00000002h
+		#define BS_AUTOCHECKBOX		00000003h
 		#define BS_RADIOBUTTON		00000004h
+		#define BS_AUTORADIOBUTTON	00000009h
 		
 		#define ES_LEFT				00000000h
 		#define SS_LEFT				00000010h
@@ -52,7 +55,19 @@ Red [
 		#define WM_PAINT			000Fh
 		#define WM_SETFONT			0030h
 		#define WM_GETFONT			0031h
+		#define WM_COMMAND 			0111h
 		
+		#define BM_GETCHECK			F0F0h
+		#define BM_SETCHECK			F0F1h
+		
+		#define BN_CLICKED 			0
+		
+		
+		#define DEFAULT_GUI_FONT 	17
+		
+		#define ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID	0004h
+		#define ACTCTX_FLAG_RESOURCE_NAME_VALID			0008h
+		#define ACTCTX_FLAG_SET_PROCESS_DEFAULT 		0010h
 
 		#define handle!				[pointer! [integer!]]
 
@@ -105,6 +120,17 @@ Red [
 			nPos		[integer!]
 			nTrackPos	[integer!]
 		]
+		
+		ACTCTX: alias struct! [
+			cbsize		[integer!]
+			dwFlags		[integer!]
+			lpSource	[c-string!]						;-- wide-string
+			wProcLangID	[integer!]						;-- combined wProc and wLangID in one field
+			lpAssDir	[c-string!]
+			lpResource	[c-string!]
+			lpAppName	[c-string!]
+			hModule		[integer!]
+		]
 
 		#import [
 			"kernel32.dll" stdcall [
@@ -114,6 +140,19 @@ Red [
 				]
 				GetLastError: "GetLastError" [
 					return: [integer!]
+				]
+				GetSystemDirectory: "GetSystemDirectoryA" [
+					lpBuffer	[c-string!]
+					uSize		[integer!]
+					return:		[integer!]
+				]
+				CreateActCtx: "CreateActCtxA" [
+					pActCtx		[ACTCTX]
+					return:		[handle!]
+				]
+				ActivateActCtx: "ActivateActCtx" [
+					hActCtx		[handle!]
+					lpCookie	[struct! [ptr [byte-ptr!]]]
 				]
 			]
 			"User32.dll" stdcall [
@@ -189,6 +228,14 @@ Red [
 					lParam		[integer!]
 					return: 	[handle!]
 				]
+				SendDlgItemMessage: "SendDlgItemMessageA" [
+					hDlg		[handle!]
+					nIDDlgItem	[integer!]
+					msg			[integer!]
+					wParam		[integer!]
+					lParam		[integer!]
+					return: 	[handle!]
+				]
 			]
 			"gdi32.dll" stdcall [
 				SetTextColor: "SetTextColor" [
@@ -209,6 +256,10 @@ Red [
 					size		[integer!]
 					return:		[logic!]
 				]
+				GetStockObject: "GetStockObject" [
+					fnObject	[integer!]
+					return:		[handle!]
+				]
 			]
 			"UxTheme.dll" stdcall [
 				SetWindowTheme: "SetWindowTheme" [
@@ -218,15 +269,72 @@ Red [
 				]
 			]
 		]
+		
+		default-font: declare handle!
+		
+		enable-visual-styles: func [
+			return: [byte-ptr!]
+			/local
+				ctx	   [ACTCTX]
+				dir	   [c-string!]
+				ret	   [integer!]
+				cookie [struct! [ptr [byte-ptr!]]]
+		][
+			ctx: declare ACTCTX
+			cookie: declare struct! [ptr [byte-ptr!]]
+			dir: as-c-string allocate 129				;-- 128 bytes + NUL
+			
+			ctx/cbSize:		 size? ACTCTX
+			ctx/dwFlags: 	 ACTCTX_FLAG_RESOURCE_NAME_VALID
+				or ACTCTX_FLAG_SET_PROCESS_DEFAULT
+				or ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID
+				
+			ctx/lpSource: 	 "shell32.dll"
+			ctx/wProcLangID: 0
+			ctx/lpAssDir: 	 dir
+			ctx/lpResource:	 as-c-string 124			;-- Manifest ID in the DLL
+			
+			sz: GetSystemDirectory dir 128
+			if sz > 128 [probe "GetSystemDirectory: buffer overflow"]
+			sz: sz + 1
+			dir/sz: null-byte
+			
+			ActivateActCtx CreateActCtx ctx cookie
+			cookie/ptr
+		]
+		
+		#define WIN32_LOWORD(param) (param and FFFFh)
+		#define WIN32_HIWORD(param) (param >>> 16)
 
+		id: 0
+		checked: false
+		
 		WndProc: func [
 			hWnd	[handle!]
 			msg		[tagMSG]
 			wParam	[integer!]
 			lParam	[integer!]
 			return: [integer!]
+		;	/local
+		;		id	[integer!]
 		][
 			switch msg [
+				WM_COMMAND [
+					id: WIN32_LOWORD(wParam)
+					
+					probe SendDlgItemMessage hWnd id BM_GETCHECK 1 0
+					checked: as-logic SendDlgItemMessage hWnd id BM_GETCHECK 1 0
+?? checked					
+					either checked [
+						SendDlgItemMessage hWnd id BM_SETCHECK 0 0
+					][
+						SendDlgItemMessage hWnd id BM_SETCHECK 1 0
+					]
+					
+;					if WIN32_HIWORD(wParam) = BN_CLICKED [
+;						SendDlgItemMessage hWnd id BM_SETCHECK 1 0
+;					]
+				]
 				WM_PAINT [
 					DefWindowProc hWnd msg wParam lParam
 				]
@@ -284,7 +392,7 @@ Red [
 				WS_OVERLAPPEDWINDOW or WS_CLIPCHILDREN
 				CW_USEDEFAULT
 				0
-				600
+				800
 				400
 				null
 				null
@@ -295,6 +403,8 @@ Red [
 		init: does [
 			hInstance: GetModuleHandle 0
 			register-classes hInstance
+			probe enable-visual-styles
+			default-font: GetStockObject DEFAULT_GUI_FONT
 			create-window hInstance
 
 			ShowWindow hWnd  SW_SHOWDEFAULT
@@ -322,15 +432,15 @@ Red [
 			case [
 				sym = button [
 					class: "BUTTON"
-					flags: WS_TABSTOP or BS_DEFPUSHBUTTON
+					flags: BS_PUSHBUTTON
 				]
 				sym = check [
 					class: "BUTTON"
-					flags: WS_TABSTOP or BS_CHECKBOX
+					flags: WS_TABSTOP or BS_AUTOCHECKBOX
 				]
 				sym = radio [
 					class: "BUTTON"
-					flags: WS_TABSTOP or BS_RADIOBUTTON
+					flags: WS_TABSTOP or BS_AUTORADIOBUTTON
 				]
 				sym = field [
 					class: "EDIT"
@@ -366,6 +476,8 @@ Red [
 				null
 					
 			if null? handle [print-line "*** Error: CreateWindowEx failed!"]
+			SendMessage handle WM_SETFONT as-integer default-font 1
+			
 			as-integer handle
 		]
 
@@ -388,7 +500,7 @@ Red [
 
 dpi: 94
 screen-size: 1920x1200
-window-size: 600x400
+window-size: 800x400
 
 make-view: routine [
 	type	[word!]
@@ -407,13 +519,13 @@ do-event-loop: routine [no-wait? [logic!]][
 	gui/do-events no-wait?
 ]
 
-;set-font-size: routine [
-;	handle [integer!]
+;set-default-font: routine [
+;	hWnd [handle!]
 ;	size   [integer!]
 ;	/local
 ;		font [handle!]
 ;][
-;	font: gui/SendMessage as int-ptr! handle WM_GETFONT 0 0
+;	font: gui/SendMessage hWnd WM_SETFONT as-integer default-font 1
 ;?? font
 ;	unless null? font [
 ;		0
@@ -421,7 +533,7 @@ do-event-loop: routine [no-wait? [logic!]][
 ;]
 
 
-show: func [face [block!] /with parent [block!] /local obj f params][
+show: func [face [object!] /with parent [object!] /local obj f params][
 	either face/state/1 [
 	
 	][
