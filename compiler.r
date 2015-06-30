@@ -970,11 +970,17 @@ red: context [
 		]
 	]
 	
-	check-redefined: func [name [word!] /local pos][
+	check-redefined: func [name [word!] original [any-word!] /local pos entry][
 		if pos: find functions name [
 			remove/part pos 2							;-- remove previous function definition
 		]
-		if pos: find get-obj-base name name [
+		if all [
+			pos: find get-obj-base name name
+			not all [
+				entry: local-bound? original			;-- retrieve shadow function
+				block? select entry/3 name				;-- if type(s) specified, keep object definition
+			]
+		][	
 			pos/1: none
 		]
 	]
@@ -1127,7 +1133,7 @@ red: context [
 		name
 	]
 	
-	add-function: func [name [word!] spec [block!] /type kind [word!] /local refs arity][
+	add-function: func [name [word!] spec [block!] /type kind [word!] /local refs arity pos][
 		set [refs arity] make-refs-table spec
 		repend functions [name reduce [any [kind 'function!] arity spec refs]]
 	]
@@ -2241,7 +2247,7 @@ red: context [
 	comp-func: func [
 		/collect /does /has
 		/local
-			name word spec body symbols locals-nb spec-idx body-idx ctx
+			name word spec body symbols locals-nb spec-idx body-idx ctx pos
 			src-name original global? path obj shadow defer ctx-idx body-code
 	][
 		original: pc/-1
@@ -2283,6 +2289,8 @@ red: context [
 		]
 		set [symbols locals-nb] check-spec spec
 		add-function name spec
+		if pos: find spec return-def [register-user-type/store name pos/2]
+
 		
 		push-locals symbols								;-- store spec and body blocks
 		ctx: push-context copy symbols
@@ -2300,6 +2308,7 @@ red: context [
 			decorate-func/strict name
 			shadow: to-context-spec symbols
 			ctx
+			spec
 		]
 		bind-function body shadow
 		
@@ -2780,14 +2789,14 @@ red: context [
 		]
 		mark: tail output
 		
-		either any [obj? set? get? dynamic? not parse path [some word!]][
+		;either any [obj? set? get? dynamic? not parse path [some word!]][
 			unless self? [
 				emit-path path set? to logic! obj?
 				unless obj-field? [obj?: no]			;-- static path emitted, not special anymore
 			]
-		][
-			append/only paths-stack path				;-- defer path generation
-		]
+		;][
+		;	append/only paths-stack path				;-- defer path generation
+		;]
 		
 		if obj? [change/only/part mark copy mark tail output]
 		unless set? [pc: next pc]
@@ -3067,6 +3076,9 @@ red: context [
 			exit
 		]
 		
+		if all [word? name is-object? pc/1][
+			register-object/store pc/1 name
+		]
 		;-- General case: emit stack-oriented construction code --
 		emit-open-frame 'set
 		
@@ -3086,7 +3098,7 @@ red: context [
 				any [pc/2 = 'object! proto: is-object? pc/2]
 			][
 				do take-frame
-				check-redefined name
+				check-redefined name original
 				pc: next pc
 				defer: either proto [
 					comp-context/with/extend original proto
@@ -3098,10 +3110,10 @@ red: context [
 				any [word? pc/1 path? pc/1]
 				do take-frame
 				defer: dispatch-ctx-keywords/with original pc/1
-			][]											;-- processing done in dispatch function
+			][]
 			'else [
 				if start [emit start]
-				unless bound? [check-redefined name]
+				unless bound? [check-redefined name original]
 				check-cloned-function name
 				comp-substitute-expression				;-- fetch a value (2nd argument)
 			]
@@ -3634,6 +3646,62 @@ red: context [
 		]
 	]
 	
+	register-object: func [obj [word!] name /store /local pos prev entry][
+		if pos: find/skip objects obj 6 [
+			;if prev: find get-obj-base name name [prev/1: none] ;-- unbind word with previous object
+
+			insert entry: tail objects copy/part pos 6
+			entry/1: to word! name			;@@ set-path! case
+			if store [
+				obj: entry/2
+				either set-path? name [
+					do reduce [to set-path! join obj-stack to path! name obj] ;-- set object in shadow tree
+				][
+					unless tail? next obj-stack [		;-- set object in shadow tree (if sub-object)
+						do reduce [to set-path! join obj-stack name obj]
+					]
+				]
+			]
+		]
+	]
+	
+	register-user-type: func [name [any-word! set-path!] spec [block!] /store /local found? types pos prev entry obj][
+		found?: no
+		types: spec
+		
+		forall types [
+			if #"!" <> last mold types/1 [				;-- enforce trailing ! convention
+				throw-error ["invalid type specified:" mold spec]
+			]
+			if pos: find/skip objects types/1 6 [
+				if found? [throw-error ["unsupported multiple object type spec:" mold spec]]
+				if prev: find get-obj-base name name [prev/1: none] ;-- unbind word with previous object
+
+				insert entry: tail objects copy/part pos 6
+				entry/1: to word! name			;@@ set-path! case
+				types/1: 'object!
+				
+				if store [
+					obj: entry/2
+					either set-path? name [
+						do reduce [to set-path! join obj-stack to path! name obj] ;-- set object in shadow tree
+					][
+						unless tail? next obj-stack [		;-- set object in shadow tree (if sub-object)
+							do reduce [to set-path! join obj-stack name obj]
+						]
+					]
+				]
+				found?: yes
+			]
+		]
+	]
+	
+	preprocess-types: func [name spec [block!] /local pos][
+		parse spec [
+			any [pos: word! block! (register-user-type pos/1 pos/2) | skip]
+		]
+	]
+	
 	comp-bodies: does [
 		obj-stack: to path! 'func-objs
 		
@@ -3650,6 +3718,7 @@ red: context [
 				container-obj?: obj?
 				func-objs: tail objects
 				depth: max-depth
+				preprocess-types name spec
 
 				comp-func-body name spec body symbols locals-nb
 			]

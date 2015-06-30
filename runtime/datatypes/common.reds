@@ -10,6 +10,10 @@ Red/System [
 	}
 ]
 
+object!-type: declare red-datatype!
+object!-type/header: TYPE_DATATYPE
+object!-type/value: TYPE_OBJECT
+
 names!: alias struct! [
 	buffer	[c-string!]								;-- datatype name string
 	size	[integer!]								;-- buffer size - 1 (not counting terminal `!`)

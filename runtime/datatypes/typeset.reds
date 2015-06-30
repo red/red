@@ -128,6 +128,9 @@ typeset: context [
 					ts/array2: ts/array2 or ts2/array2
 					ts/array3: ts/array3 or ts2/array3
 				]
+				default [
+					set-type ts as red-value! object!-type	;@@ user-defined types are object! for now
+				]
 			]
 			pos: pos + 1
 		]
