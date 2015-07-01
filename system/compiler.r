@@ -204,6 +204,7 @@ system-dialect: make-profilable context [
 			context		 [comp-context]
 			with		 [comp-with]
 			comment 	 [comp-comment]
+			log-b		 [comp-log-b]
 			
 			true		 [also true pc: next pc]		  ;-- converts word! to logic!
 			false		 [also false pc: next pc]		  ;-- converts word! to logic!
@@ -215,7 +216,7 @@ system-dialect: make-profilable context [
 		
 		calling-keywords: [								;-- keywords accepted in expr-call-stack
 			?? as assert size? if either case switch until while any all
-			return catch
+			return catch log-b
 		]
 		
 		foreach [word action] keywords [append keywords-list word]
@@ -1875,7 +1876,22 @@ system-dialect: make-profilable context [
 			emitter/target/emit-jump-point emitter/exits
 			ret
 		]
-		
+
+		comp-log-b: has [type][
+			pc: next pc
+			fetch-expression/final/keep
+			unless all [
+				last-type
+				find [integer! byte!] type: last-type/1
+			][
+				backtrack 'log-b
+				throw-error "LOG-B expects a value of type integer! or byte!"
+			]
+			emitter/target/emit-log-b type
+			last-type: [integer!]
+			<integer>
+		]
+
 		comp-catch: has [offset locals-size unused chunk start end][
 			pc: next pc
 			fetch-expression/keep/final
@@ -2776,6 +2792,10 @@ system-dialect: make-profilable context [
 				]
 				boxed: expr
 				expr: either any-float? boxed/type [cast/quiet expr][cast expr]
+			]
+			if all [block? expr find expr <integer>][	;-- temporary code, hack for log-b
+				last-type: [integer!]
+				replace/all expr <integer> <last>
 			]
 			
 			;-- dead expressions elimination
