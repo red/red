@@ -143,6 +143,7 @@ system-dialect: make-profilable context [
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
 			throw	[1	inline	- [n [integer!]]]
+			log-b	[1	native	- [n [number!] return: [integer!]]]
 		]
 		
 		repend functions [shift-right-sym copy functions/-**]
@@ -204,7 +205,6 @@ system-dialect: make-profilable context [
 			context		 [comp-context]
 			with		 [comp-with]
 			comment 	 [comp-comment]
-			log-b		 [comp-log-b]
 			
 			true		 [also true pc: next pc]		  ;-- converts word! to logic!
 			false		 [also false pc: next pc]		  ;-- converts word! to logic!
@@ -1880,21 +1880,6 @@ system-dialect: make-profilable context [
 			]
 			emitter/target/emit-jump-point emitter/exits
 			ret
-		]
-
-		comp-log-b: has [type][
-			pc: next pc
-			fetch-expression/final/keep
-			unless all [
-				last-type
-				find [integer! byte!] type: last-type/1
-			][
-				backtrack 'log-b
-				throw-error "LOG-B expects a value of type integer! or byte!"
-			]
-			emitter/target/emit-log-b type
-			last-type: [integer!]
-			<integer>
 		]
 
 		comp-catch: has [offset locals-size unused chunk start end][
