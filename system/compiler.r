@@ -639,7 +639,12 @@ system-dialect: make-profilable context [
 					]
 				]
 				object!  [value/type]
-				tag!	 [either value = <last> [last-type][[logic!]]]
+				tag!	 [
+					switch/default value [
+						<last>		[last-type]
+						<integer>	[[integer!]]		;-- temporary code, hack for log-b
+					][[logic!]]
+				]
 				string!	 [[c-string!]]
 				get-word! [
 					type: resolve-type to word! value
@@ -2787,15 +2792,22 @@ system-dialect: make-profilable context [
 				]
 			]			
 			if object? expr [							;-- unbox type-casting object
+				if expr/data = <integer> [expr/data: <last>]	;-- temporary code, hack for log-b
 				if all [variable expr/action = 'null][
 					casting: cast-null variable
 				]
 				boxed: expr
 				expr: either any-float? boxed/type [cast/quiet expr][cast expr]
 			]
-			if all [block? expr find expr <integer>][	;-- temporary code, hack for log-b
+			if any [									;-- temporary code, hack for log-b
+				all [expr = <integer> expr: <last>]
+				all [
+					block? expr
+					find expr <integer>
+					replace/all expr <integer> <last>
+				]
+			][
 				last-type: [integer!]
-				replace/all expr <integer> <last>
 			]
 			
 			;-- dead expressions elimination
