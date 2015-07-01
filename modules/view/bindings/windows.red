@@ -308,6 +308,14 @@ Red [
 
 		id: 0
 		checked: false
+		controls-ID: 1000
+		
+		get-unique-ID: func [
+			return: [integer!]
+		][
+			controls-ID: controls-ID + 1
+			controls-ID
+		]
 		
 		WndProc: func [
 			hWnd	[handle!]
@@ -471,7 +479,7 @@ Red [
 				size/x
 				size/y
 				as int-ptr! parent
-				null
+				as handle! get-unique-ID
 				hInstance
 				null
 					
