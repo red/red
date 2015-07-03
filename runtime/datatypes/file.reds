@@ -100,14 +100,14 @@ file: context [
 
 		s: GET_BUFFER(file)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (file/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (file/head << (log-b unit))
 		head: p
 		empty?: p = as byte-ptr! s/tail
 
 		tail: either zero? limit [						;@@ rework that part
 			as byte-ptr! s/tail
 		][
-			either negative? part [p][p + (part << (unit >> 1))]
+			either negative? part [p][p + (part << (log-b unit))]
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 
@@ -125,22 +125,7 @@ file: context [
 				p: p + unit
 			]
 		]
-		part - ((as-integer tail - head) >> (unit >> 1)) - 1
-	]
-
-	copy: func [
-		file    [red-file!]
-		new		[red-string!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "file/copy"]]
-				
-		file: as red-file! string/copy as red-string! file new arg deep? types
-		file/header: TYPE_FILE
-		as red-series! file
+		part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
 
 	init: does [
@@ -181,7 +166,7 @@ file: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?

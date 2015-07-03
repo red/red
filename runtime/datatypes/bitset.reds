@@ -307,7 +307,7 @@ bitset: context [
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		p:	  (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		p:	  (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 		max:  0
 		size: s/size << 3

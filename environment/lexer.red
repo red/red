@@ -131,7 +131,7 @@ system/lexer: context [
 		str:  GET_BUFFER(start)
 		unit: GET_UNIT(str)
 		p:	  string/rs-head start
-		tail: p + ((end/head - start/head) << (unit >> 1))
+		tail: p + ((end/head - start/head) << (log-b unit))
 		cur:  p
 		s0:   cur
 
@@ -226,7 +226,7 @@ system/lexer: context [
 		/local
 			path [red-path!]
 	][
-		path: as red-path! block/pick stack 1 null
+		path: as red-path! _series/pick as red-series! stack 1 null
 		path/args: null
 		set-type as red-value! path TYPE_SET_PATH
 	]

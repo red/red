@@ -209,12 +209,14 @@ platform: context [
 	;-------------------------------------------
 	print-UCS4: func [
 		str    [int-ptr!]								;-- zero-terminated UCS-4 string
+		size   [integer!]
 		/local
 			cp [integer!]								;-- codepoint
 	][
 		assert str <> null
 
-		while [cp: str/value not zero? cp][
+		while [not zero? size][
+			cp: str/value
 			either str/value > FFFFh [
 				cp: cp - 00010000h						;-- encode surrogate pair
 				putwchar cp >> 10 + D800h				;-- emit lead
@@ -223,6 +225,7 @@ platform: context [
 				putwchar cp								;-- UCS-2 codepoint
 			]
 			str: str + 1
+			size: size - 4
 		]
 	]
 
@@ -231,11 +234,12 @@ platform: context [
 	;-------------------------------------------
 	print-line-UCS4: func [
 		str    [int-ptr!]								;-- zero-terminated UCS-4 string
+		size   [integer!]
 		/local
 			cp [integer!]								;-- codepoint
 	][
 		assert str <> null
-		print-UCS4 str									;@@ throw an error on failure
+		print-UCS4 str size								;@@ throw an error on failure
 		putwchar 10										;-- newline
 	]
 
@@ -244,23 +248,19 @@ platform: context [
 	;-------------------------------------------
 	print-UCS2: func [
 		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
+		size	[integer!]
 		/local
-			b1    [byte!]
-			b2    [byte!]
 			chars [integer!]
 	][
 		assert str <> null
 		chars: 0
-		while [
-			b1: str/1
-			b2: str/2
-			((as-integer b2) << 8 + b1) <> 0
-		][
-			buffer/1: b1
-			buffer/2: b2
+		while [not zero? size][
+			buffer/1: str/1
+			buffer/2: str/2
 			chars: chars + 1
 			buffer: buffer + 2
 			str: str + 2
+			size: size - 2
 			if chars = 512 [  ; if the buffer has 1024 bytes, it has room for 512 chars
 				putbuffer chars
 				chars: 0
@@ -274,9 +274,10 @@ platform: context [
 	;-------------------------------------------
 	print-line-UCS2: func [
 		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
+		size	[integer!]
 	][
 		assert str <> null
-		print-UCS2 str									;@@ throw an error on failure
+		print-UCS2 str size								;@@ throw an error on failure
 		buffer/1: #"^M"
 		buffer/2: null-byte
 		buffer/3: #"^/"
@@ -289,15 +290,16 @@ platform: context [
 	;-------------------------------------------
 	print-Latin1: func [
 		str 	[c-string!]								;-- zero-terminated Latin-1 string
+		size	[integer!]
 		/local
-			cp    [byte!]							    ;-- codepoint
 			chars [integer!]							;-- mumber of used chars in buffer
 	][
 		assert str <> null
 		chars: 0
-		while [cp: str/1  cp <> null-byte][
-			buffer/1: cp
+		while [not zero? size][
+			buffer/1: str/1
 			buffer/2: null-byte ;this should be always 0 in Latin1
+			size: size - 1
 			str: str + 1
 			chars: chars + 1
 			buffer: buffer + 2
@@ -313,10 +315,11 @@ platform: context [
 	;-- Print a Latin-1 string with newline to console
 	;-------------------------------------------
 	print-line-Latin1: func [
-		str [c-string!]									;-- zero-terminated Latin-1 string
+		str  [c-string!]									;-- zero-terminated Latin-1 string
+		size [integer!]
 	][
 		assert str <> null
-		print-Latin1 str
+		print-Latin1 str size
 		buffer/1: #"^M"
 		buffer/2: null-byte
 		buffer/3: #"^/"

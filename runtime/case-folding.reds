@@ -1245,8 +1245,8 @@ case-folding: context [
 			str: as red-string! arg
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
-			p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-			len: (as-integer s/tail - (as red-value! p)) >> (unit >> 1)
+			p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
+			len: (as-integer s/tail - (as red-value! p)) >> (log-b unit)
 			if positive? part [ 
 				limit: arg + part
 				len: either TYPE_OF(limit) = TYPE_INTEGER [
@@ -1278,7 +1278,7 @@ case-folding: context [
 				unit2: GET_UNIT(s)
 				if unit2 > unit [
 					unit: unit2
-					p: (as byte-ptr! s/offset) + (str/head + i << (unit >> 1))
+					p: (as byte-ptr! s/offset) + (str/head + i << (log-b unit))
 				]
 				i: i + 1
 				p: p + unit
