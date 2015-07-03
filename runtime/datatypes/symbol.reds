@@ -56,7 +56,7 @@ symbol: context [
 			s	 [series!]
 			len	 [integer!]
 	][
-		len: 1 + length? src							;-- account for terminal NUL
+		len: length? src
 		node: alloc-bytes len							;@@ TBD: mark this buffer as protected!
 		s: as series! node/value
 		dst: as c-string! s/offset
@@ -97,7 +97,7 @@ symbol: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "symbol/make"]]
 		str: declare red-string!
-		str/node: unicode/load-utf8 s 1 + system/words/length? s
+		str/node: unicode/load-utf8 s system/words/length? s
 		str/header: TYPE_SYMBOL							;-- make hashtable happy
 		str/head: 0
 		id: search str

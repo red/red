@@ -262,11 +262,11 @@ parser: context [
 			type = TYPE_BINARY
 		][
 			unit:  GET_UNIT(s)
-			phead: (as byte-ptr! s/offset) + (input/head << (unit >> 1))
+			phead: (as byte-ptr! s/offset) + (input/head << (log-b unit))
 			ptail: as byte-ptr! s/tail
 
 			if positive? part [
-				p: (as byte-ptr! s/offset) + (part << (unit >> 1))
+				p: (as byte-ptr! s/offset) + (part << (log-b unit))
 				if p < ptail [ptail: p]
 			]
 			p: phead
@@ -291,7 +291,7 @@ parser: context [
 							BS_TEST_BIT(pbits cp match?)
 						]
 						if match? [
-							return adjust-input-index input pos* 1 ((as-integer p - phead) >> (unit >> 1))
+							return adjust-input-index input pos* 1 ((as-integer p - phead) >> (log-b unit))
 						]
 						p: p + unit
 						p = ptail
@@ -305,7 +305,7 @@ parser: context [
 					if (string/rs-length? as red-string! input) < size [return no]
 					
 					phead: as byte-ptr! s/offset
-					unit:  unit >> 1
+					unit:  log-b unit
 					
 					until [
 						if zero? string/equal? as red-string! input as red-string! token comp-op yes [
@@ -397,11 +397,11 @@ parser: context [
 	][
 		s:	   GET_BUFFER(input)
 		unit:  GET_UNIT(s)
-		phead: (as byte-ptr! s/offset) + (input/head << (unit >> 1))
+		phead: (as byte-ptr! s/offset) + (input/head << (log-b unit))
 		ptail: as byte-ptr! s/tail
 		
 		if positive? part [
-			p: (as byte-ptr! s/offset) + (part << (unit >> 1))
+			p: (as byte-ptr! s/offset) + (part << (log-b unit))
 			if p < ptail [ptail: p]
 		]
 		
@@ -437,7 +437,7 @@ parser: context [
 				all [max? cnt >= max]
 			]
 		]
-		input/head: input/head + ((as-integer p - phead) >> (unit >> 1))
+		input/head: input/head + ((as-integer p - phead) >> (log-b unit))
 		counter/value: cnt
 		
 		either not max? [min <= cnt][all [min <= cnt cnt <= max]]
@@ -573,8 +573,8 @@ parser: context [
 	]
 	
 	reset: does [
-		block/clear series
-		block/clear rules
+		_series/clear as red-series! series
+		_series/clear as red-series! rules
 		restore-stack
 	]
 	

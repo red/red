@@ -120,9 +120,9 @@ unicode: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS2"]]
 
-		used: as-integer s/tail - s/offset	
-		if used * 2 >= s/size [							;-- ensure we have enough space
-			s: expand-series s (used + 1) * 2			;-- reserve one more for edge cases
+		used: as-integer s/tail - s/offset
+		if used * 2 > s/size [							;-- ensure we have enough space
+			s: expand-series s used * 2					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
@@ -151,8 +151,8 @@ unicode: context [
 		#if debug? = yes [if verbose > 0 [print-line "unicode/Latin1-to-UCS4"]]
 
 		used: as-integer s/tail - s/offset	
-		if used * 4 >= s/size [							;-- ensure we have enough space
-			s: expand-series s (used + 1) * 4			;-- reserve one more for edge cases
+		if used * 4 > s/size [							;-- ensure we have enough space
+			s: expand-series s used * 4					;-- reserve one more for edge cases
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
@@ -180,8 +180,8 @@ unicode: context [
 		#if debug? = yes [if verbose > 0 [print-line "unicode/UCS2-to-UCS4"]]
 
 		used: as-integer s/tail - s/offset	
-		if used * 2 >= s/size [							;-- ensure we have enough space
-			s: expand-series s used * 2 + 1
+		if used * 2 > s/size [							;-- ensure we have enough space
+			s: expand-series s used * 2
 		]
 		base: as byte-ptr! s/offset
 		src:  as byte-ptr! s/tail						;-- start from end
@@ -288,7 +288,7 @@ unicode: context [
 
 	load-utf8-buffer: func [
 		src		   [c-string!]							;-- UTF-8 input buffer (zero-terminated)
-		size	   [integer!]							;-- size of src in bytes (including terminal NUL)
+		size	   [integer!]							;-- size of src in bytes (excluding terminal NUL)
 		dst		   [series!]							;-- optional output string! series
 		remain	   [int-ptr!]							;-- number of undecoded bytes at end of buffer
 		return:	   [node!]
@@ -305,18 +305,19 @@ unicode: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "unicode/load-utf8-buffer"]]
 
-		assert positive? size 
-		
+		assert not negative? size 
+
+		used: either zero? size [1][size]
 		either null? dst [								;-- test if output buffer is provided
-			node: alloc-series size 1 0
+			node: alloc-series used 1 0
 			s: as series! node/value
 			unit:  Latin1								;-- start with 1 byte/codepoint
 		][
 			node: dst/node
 			s: dst
 			unit: GET_UNIT(s)
-			if s/size / unit < size [
-				s: expand-series s size * unit
+			if s/size / unit < used [
+				s: expand-series s used * unit
 			]
 		]
 		
@@ -325,7 +326,7 @@ unicode: context [
 		end:   buf1 + s/size
 		count: size
 
-		if size = 1 [return node]						;-- terminal NUL accounted
+		if zero? size [return node]
 		;assert not zero? as-integer src/1				;@@ ensure input string not empty
 
 		;-- the first part of loop is Rudolf's code with very minor modifications
@@ -415,12 +416,8 @@ unicode: context [
 			zero? count
 		] 												;-- end until
 		
-		s/tail: as cell! switch unit [					;-- position s/tail just before the NUL character
-			Latin1 [buf1 - 1]
-			UCS-2  [buf1 - 2]
-			UCS-4  [buf4 - 1]
-		]
-		assert s/size - GET_UNIT(s) >= as-integer (s/tail - s/offset) ;-- tail points before NUL
+		s/tail: as cell! either unit = UCS-4 [buf4][buf1]
+		assert s/size >= as-integer (s/tail - s/offset)
 		
 		node
 	]
@@ -437,7 +434,7 @@ unicode: context [
 
 	load-utf8: func [
 		src		   [c-string!]							;-- UTF-8 input buffer (zero-terminated)
-		size	   [integer!]							;-- size of src in bytes (including terminal NUL)
+		size	   [integer!]							;-- size of src in bytes (excluding terminal NUL)
 		return:	   [node!]
 	][
 		load-utf8-buffer src size null null
@@ -465,7 +462,7 @@ unicode: context [
 	
 	load-utf16: func [ 
 		src		[c-string!]							;-- UTF-16LE input buffer (zero-terminated)
-		size	[integer!]							;-- size of src in codepoints (including terminal NUL)
+		size	[integer!]							;-- size of src in codepoints (excluding terminal NUL)
 		return:	[node!]
 		/local
 			unit [encoding!]
@@ -522,7 +519,7 @@ unicode: context [
 				]
 			]
 		]
-		s/tail: as cell! (as byte-ptr! s/offset) + (size - 1 * unit)
+		s/tail: as cell! (as byte-ptr! s/offset) + (size * unit)
 		node
 	]
 ]

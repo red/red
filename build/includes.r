@@ -88,6 +88,7 @@ write %build/bin/sources.r set-cache [
 			%point.reds
 			%refinement.reds
 			%routine.reds
+			%series.reds
 			%set-path.reds
 			%set-word.reds
 			%string.reds

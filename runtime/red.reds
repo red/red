@@ -42,6 +42,7 @@ red: context [
 	#include %datatypes/unset.reds
 	#include %datatypes/none.reds
 	#include %datatypes/logic.reds
+	#include %datatypes/series.reds
 	#include %datatypes/block.reds
 	#include %datatypes/string.reds
 	#include %datatypes/integer.reds
@@ -111,6 +112,7 @@ red: context [
 		unset/init
 		none/init
 		logic/init
+		_series/init
 		block/init
 		string/init
 		integer/init
