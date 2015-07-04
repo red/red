@@ -2570,7 +2570,7 @@ system-dialect: make-profilable context [
 				]
 				any-pointer? casting
 			][
-				backtrack variable
+				pc: skip pc -2
 				throw-error "Invalid null assignment"
 			]			
 			casting
