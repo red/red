@@ -82,10 +82,11 @@ _series: context [
 		return: [red-value!]
 		/local
 			char [red-char!]
+			vec [red-vector!]
 			s	 [series!]
 			size [integer!]
 			unit [integer!]
-			temp [integer!]
+			temp [byte-ptr!]
 			idx	 [byte-ptr!]
 			head [byte-ptr!]
 	][
@@ -94,30 +95,44 @@ _series: context [
 		either seed? [
 			ser/header: TYPE_UNSET				;-- TODO: calc series to seed.
 		][
-			temp: 0
 			s: GET_BUFFER(ser)
 			unit: GET_UNIT(s)
 			head: (as byte-ptr! s/offset) + (ser/head << (log-b unit))
 			size: (as-integer s/tail - s/offset) >> (log-b unit) - ser/head
 
-			if only? [
+			either only? [
 				either positive? size [
 					idx: head + (_random/rand % size << (log-b unit))
-					char: as red-char! ser
-					char/header: TYPE_CHAR
-					char/value: string/get-char idx unit
+					switch TYPE_OF(ser) [
+						TYPE_BLOCK
+						TYPE_HASH
+						TYPE_PAREN [
+							copy-cell as cell! idx as cell! ser
+						]
+						TYPE_VECTOR [
+							vec: as red-vector! ser
+							copy-cell vector/get-value idx unit vec/type as cell! ser
+						]
+						default [								;@@ ANY-STRING!
+							char: as red-char! ser
+							char/header: TYPE_CHAR
+							char/value: string/get-char idx unit
+						]
+					]
 				][
 					ser/header: TYPE_NONE
 				]
-			]
-
-			while [size > 0][
-				idx: head + (_random/rand % size << (log-b unit))
-				copy-memory as byte-ptr! :temp head unit
-				copy-memory head idx unit
-				copy-memory idx as byte-ptr! :temp unit
-				head: head + unit
-				size: size - 1
+			][
+				temp: as byte-ptr! stack/push*
+				while [size > 0][
+					idx: head + (_random/rand % size << (log-b unit))
+					copy-memory temp head unit
+					copy-memory head idx unit
+					copy-memory idx temp unit
+					head: head + unit
+					size: size - 1
+				]
+				stack/pop 1
 			]
 		]
 		as red-value! ser
@@ -294,8 +309,13 @@ _series: context [
 		][
 			p1: (as byte-ptr! s/offset) + (offset << (log-b unit))
 			switch TYPE_OF(ser) [
-				TYPE_BLOCK
-				TYPE_HASH [
+				TYPE_BLOCK								;@@ any-block?
+				TYPE_HASH
+				TYPE_PAREN
+				TYPE_PATH
+				TYPE_GET_PATH
+				TYPE_SET_PATH
+				TYPE_LIT_PATH [
 					s/offset + offset
 				]
 				TYPE_VECTOR [
@@ -360,8 +380,13 @@ _series: context [
 		][
 			pos: (as byte-ptr! s/offset) + (offset << (log-b unit))
 			switch TYPE_OF(ser) [
-				TYPE_BLOCK
-				TYPE_HASH [
+				TYPE_BLOCK								;@@ any-block?
+				TYPE_HASH
+				TYPE_PAREN
+				TYPE_PATH
+				TYPE_GET_PATH
+				TYPE_SET_PATH
+				TYPE_LIT_PATH [
 					copy-cell data s/offset + offset
 				]
 				TYPE_VECTOR [
@@ -701,116 +726,11 @@ _series: context [
 		]
 
 		new/header: type
-		new/node: 	node
-		new/head: 	0
-		new/_pad: ser/_pad
+		new/node:   node
+		new/head:   0
+		new/_pad:   ser/_pad
 
-		if all [type = TYPE_BLOCK deep?][
-			part-arg: buffer/offset
-			until [
-				type: TYPE_OF(part-arg)
-				if ANY_SERIES?(type) [
-					actions/copy 
-						as red-series! part-arg
-						part-arg						;-- overwrite the part-arg value
-						null
-						yes
-						null
-				]
-				part-arg: part-arg + 1
-				part-arg >= buffer/tail
-			]
-		]
 		as red-series! new
-	]
-
-	do-set-op: func [
-		case?	 [logic!]
-		skip-arg [red-integer!]
-		op		 [integer!]
-		return:  [red-series!]
-		/local
-			ser1	[red-series!]
-			ser2	[red-series!]
-			new		[red-series!]
-			head	[byte-ptr!]
-			tail	[byte-ptr!]
-			unit	[integer!]
-			i		[integer!]
-			n		[integer!]
-			s		[series!]
-			s2		[series!]
-			cp		[integer!]
-			len		[integer!]
-			step	[integer!]
-			check?	[logic!]
-			invert? [logic!]
-			both?	[logic!]
-			find?	[logic!]
-	][
-		step: 1
-		if OPTION?(skip-arg) [
-			assert TYPE_OF(skip-arg) = TYPE_INTEGER
-			step: skip-arg/value
-			if step <= 0 [
-				ERR_INVALID_REFINEMENT_ARG(refinements/_skip skip-arg)
-			]
-		]
-
-		find?: yes both?: no check?: no invert?: no
-		if op = OP_UNION	  [both?: yes]
-		if op = OP_INTERSECT  [check?: yes]
-		if op = OP_EXCLUDE	  [check?: yes invert?: yes]
-		if op = OP_DIFFERENCE [both?: yes check?: yes invert?: yes]
-
-		ser1: as red-series! stack/arguments
-		ser2: ser1 + 1
-		len: get-length ser1 no
-		len: len + either op = OP_UNION [get-length ser2 no][0]
-		new: as red-series! string/rs-make-at stack/push* len
-		s2: GET_BUFFER(new)
-		n: 2
-
-		until [
-			s: GET_BUFFER(ser1)
-			unit: GET_UNIT(s)
-			head: (as byte-ptr! s/offset) + (ser1/head << (log-b unit))
-			tail: as byte-ptr! s/tail
-
-			while [head < tail] [			;-- iterate over first series
-				cp: string/get-char head unit
-				if check? [
-					find?: string/rs-find-char as red-string! ser2 cp case?
-					if invert? [find?: not find?]
-				]
-				if all [
-					find?
-					not string/rs-find-char as red-string! new cp case?
-				][
-					s2: string/append-char s2 cp
-				]
-
-				i: 1
-				while [						;-- skip some chars
-					head: head + unit
-					all [head < tail i < step]
-				][
-					i: i + 1
-					s2: string/append-char s2 string/get-char head unit
-				]
-			]
-
-			either both? [					;-- iterate over second series?
-				ser1: ser2
-				ser2: as red-series! stack/arguments
-				n: n - 1
-			][n: 0]
-			zero? n
-		]
-		ser1/node: new/node
-		ser1/head: 0
-		stack/pop 1
-		ser1
 	]
 
 	init: does [

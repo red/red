@@ -1067,7 +1067,7 @@ natives: context [
 		switch TYPE_OF(set1) [
 			TYPE_BLOCK   
 			TYPE_HASH    [block/do-set-op case? as red-integer! skip-arg op]
-			TYPE_STRING  [_series/do-set-op case? as red-integer! skip-arg op]
+			TYPE_STRING  [string/do-set-op case? as red-integer! skip-arg op]
 			TYPE_BITSET  [bitset/do-bitwise op]
 			TYPE_TYPESET [typeset/do-bitwise op]
 			default 	 [ERR_EXPECT_ARGUMENT((TYPE_OF(set1)) 1)]
