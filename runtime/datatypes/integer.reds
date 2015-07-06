@@ -299,7 +299,7 @@ integer: context [
 				string/concatenate-literal buf form-signed spec/value
 			]
 			default [
-				fire [TO_ERROR(script bad-make-arg) type spec]
+				fire [TO_ERROR(script bad-to-arg) type spec]
 			]
 		]
 		as red-value! type
