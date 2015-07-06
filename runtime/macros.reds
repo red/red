@@ -52,9 +52,11 @@ Red/System [
 	TYPE_PERCENT										;-- 26		38
 	TYPE_TUPLE											;-- 27		39
 	TYPE_MAP											;-- 28		40
+	TYPE_EVENT											;-- 29		41
 	TYPE_BINARY
 	TYPE_CLOSURE
 	TYPE_PORT
+	
 ]
 
 #enum actions! [

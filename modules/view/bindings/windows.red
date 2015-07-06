@@ -292,6 +292,7 @@ system/view/platform: context [
 				]
 			]
 
+			hScreen: as handle! 0
 			default-font: declare handle!
 
 			enable-visual-styles: func [
@@ -328,27 +329,34 @@ system/view/platform: context [
 			#define WIN32_LOWORD(param) (param and FFFFh)
 			#define WIN32_HIWORD(param) (param >>> 16)
 
-			id: 0
-			checked: false
-			hScreen: as handle! 0
+
 			
-			get-event
+			get-event-type
 
 			WndProc: func [
 				hWnd	[handle!]
-				msg		[tagMSG]
+				msg		[integer!]
 				wParam	[integer!]
 				lParam	[integer!]
 				return: [integer!]
 			;	/local
 			;		id	[integer!]
 			][
+				print-line ["Low-level event type: " msg]
+				
 				switch msg [
+					;BM_CLICK 
+					
+					WM_LBUTTONDOWN [
+					
+					]
+					
+					
 					WM_COMMAND [
-						id: WIN32_LOWORD(wParam)
+						;id: WIN32_LOWORD(wParam)
 
-						probe SendDlgItemMessage hWnd id BM_GETCHECK 1 0
-						checked: as-logic SendDlgItemMessage hWnd id BM_GETCHECK 1 0
+						;probe SendDlgItemMessage hWnd id BM_GETCHECK 1 0
+						;checked: as-logic SendDlgItemMessage hWnd id BM_GETCHECK 1 0
 						
 						either checked [
 							SendDlgItemMessage hWnd id BM_SETCHECK 0 0

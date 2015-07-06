@@ -78,6 +78,7 @@ red: context [
 	#include %datatypes/pair.reds
 	#include %datatypes/percent.reds
 	#include %datatypes/tuple.reds
+	#include %datatypes/event.reds
 	
 	;-- Debugging helpers --
 	
@@ -147,6 +148,7 @@ red: context [
 		pair/init
 		percent/init
 		tuple/init
+		event/init
 		
 		actions/init
 		
@@ -208,6 +210,7 @@ red: context [
 			pair/verbose:		verbosity
 			percent/verbose:	verbosity
 			tuple/verbose:		verbosity
+			event/verbose:		verbosity
 
 			actions/verbose:	verbosity
 			natives/verbose:	verbosity

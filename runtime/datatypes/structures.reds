@@ -282,3 +282,10 @@ red-hash!: alias struct! [
 	;	n-buckets	[integer!]
 	;	upper-bound	[integer!]
 ]
+
+red-event!: alias struct! [
+	header	[integer!]								;-- cell header
+	_pad1	[integer!]
+	msg		[byte-ptr!]								;-- low-level OS-specific structure
+	_pad2	[integer!]
+]
