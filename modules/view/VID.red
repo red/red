@@ -23,14 +23,16 @@ origin:	  	  10x10
 spacing:	  10x10
 
 face!: object [
+	type:	 none
 	offset:	 none
 	size: 	 none
 	text:	 none
-	pane:	 none
+	image:	 none
 	parent:	 none
-	type:	 none
+	pane:	 none
 	state:	 none
-	actions: none
+	edge:	 none
+	actors:  none
 ]
 
 reset-cursor: does [

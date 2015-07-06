@@ -283,17 +283,7 @@ system: context [
 		]
 	]
 	
-	view: context [
-		screen: 	none
-		event-port: none
-		
-		metrics: context [
-			screen-size: 	none
-			dpi:			none
-			;scaling:		1x1
-		]
-	]
-	
-	lexer: none
-	console: none
+	lexer:		none
+	console:	none
+	view:		none
 ]

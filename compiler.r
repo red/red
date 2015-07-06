@@ -89,7 +89,7 @@ red: context [
 	iterators: [loop until while repeat foreach forall forever]
 	
 	standard-modules: [
-		View		%modules/view/VID.red
+		View		%modules/view/view.red
 	]
 
 	func-constructors: [
