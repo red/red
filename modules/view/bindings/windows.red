@@ -73,6 +73,8 @@ system/view/platform: context [
 			#define WM_LBUTTONUP		0202h
 			#define WM_RBUTTONDOWN		0204h
 			#define WM_RBUTTONUP		0205h
+			#define WM_MBUTTONDOWN		0207h
+			#define WM_MBUTTONUP		0208h
 
 			#define ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID	0004h
 			#define ACTCTX_FLAG_RESOURCE_NAME_VALID			0008h
@@ -393,6 +395,8 @@ system/view/platform: context [
 					WM_LBUTTONUP	[make-event msg EVT_LEFT_UP]
 					WM_RBUTTONDOWN	[make-event msg EVT_RIGHT_DOWN]
 					WM_RBUTTONUP	[make-event msg EVT_RIGHT_UP]
+					WM_MBUTTONDOWN	[make-event msg EVT_MIDDLE_DOWN]
+					WM_MBUTTONUP	[make-event msg EVT_MIDDLE_UP]
 					
 					WM_COMMAND [
 						if WIN32_HIWORD(wParam) = BN_CLICKED [
@@ -444,6 +448,21 @@ system/view/platform: context [
 				wcex/hbrBackground:	COLOR_WINDOW
 				wcex/lpszMenuName:	null
 				wcex/lpszClassName: "RedWindow"
+				wcex/hIconSm:		0
+
+				RegisterClassEx wcex
+				
+				wcex/cbSize: 		size? WNDCLASSEX
+				wcex/style:			CS_HREDRAW or CS_VREDRAW
+				wcex/lpfnWndProc:	:WndProc
+				wcex/cbClsExtra:	0
+				wcex/cbWndExtra:	0
+				wcex/hInstance:		hInstance
+				wcex/hIcon:			null
+				wcex/hCursor:		LoadCursor null IDC_ARROW
+				wcex/hbrBackground:	13
+				wcex/lpszMenuName:	null
+				wcex/lpszClassName: "Base"
 				wcex/hIconSm:		0
 
 				RegisterClassEx wcex
@@ -517,6 +536,10 @@ system/view/platform: context [
 						class: "STATIC"
 						flags: flags or SS_SIMPLE
 					]
+					sym = base [
+						class: "Base"
+probe "base widget creation"						
+					]
 					sym = window [
 						class: "RedWindow"
 						flags: WS_OVERLAPPEDWINDOW or WS_CLIPCHILDREN
@@ -564,6 +587,7 @@ system/view/platform: context [
 			radio:		symbol/make "radio"
 			field:		symbol/make "field"
 			text:		symbol/make "text"
+			base:		symbol/make "base"
 		]
 	]
 
