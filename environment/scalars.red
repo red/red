@@ -29,7 +29,7 @@ pi: 3.141592653589793
 ;-- warning: following typeset definitions are processed by the compiler, do not change them
 ;-- unless you know what you are doing!
 
-internal!:		make typeset! [unset!]
+internal!:		make typeset! [unset! event!]
 number!:		make typeset! [integer! float! percent!]
 scalar!:		union number! make typeset! [char! pair! tuple!]
 any-word!:		make typeset! [word! set-word! get-word! lit-word! refinement! issue!]

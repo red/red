@@ -41,9 +41,9 @@ system/view: context [
 	platform: none	
 	VID: none
 	
-	;awake: func [event [event!]][						;@@ temporary until event:// implemented
-	;	
-	;]
+	awake: func [event [event!]][						;@@ temporary until event:// implemented
+		print "awake!"
+	]
 
 ]
 

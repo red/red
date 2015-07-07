@@ -68,6 +68,11 @@ system/view/platform: context [
 			#define BN_CLICKED 			0
 
 			#define DEFAULT_GUI_FONT 	17
+			
+			#define WM_LBUTTONDOWN		0201h
+			#define WM_LBUTTONUP		0202h
+			#define WM_RBUTTONDOWN		0204h
+			#define WM_RBUTTONUP		0205h
 
 			#define ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID	0004h
 			#define ACTCTX_FLAG_RESOURCE_NAME_VALID			0008h
@@ -328,45 +333,71 @@ system/view/platform: context [
 
 			#define WIN32_LOWORD(param) (param and FFFFh)
 			#define WIN32_HIWORD(param) (param >>> 16)
-
-
 			
-			get-event-type
+			#enum event-type! [
+				EVT_LEFT_DOWN:		1
+				EVT_LEFT_UP
+				EVT_MIDDLE_DOWN
+				EVT_MIDDLE_UP
+				EVT_RIGHT_DOWN
+				EVT_RIGHT_UP
+				EVT_AUX_DOWN
+				EVT_AUX_UP
+				EVT_CLICK
+				EVT_DBL_CLICK
+				EVT_MOVE
+				EVT_KEY_DOWN
+				EVT_KEY_UP
+			]
+			
+			#enum event-flag! [
+				EVT_FLAG_DBL_CLICK:		1
+				EVT_FLAG_CTRL_DOWN
+				EVT_FLAG_SHIFT_DOWN
+			]
+			
+			gui-evt: declare red-event!					;-- low-level event value slot
+			gui-evt/header: TYPE_EVENT
+
+			get-event-type: func [
+				evt		[byte-ptr!]
+				;return: [red-value!]
+				/local
+					msg [tagMSG]
+			][
+				msg: as tagMSG evt
+				
+			]
+			
+			make-event: func [
+				msg		[tagMSG]
+				type	[integer!]
+			][
+				print-line ["Low-level event type: " type]
+				gui-evt/type: type
+				gui-evt/msg:  as byte-ptr! msg
+				
+				#call [system/view/awake gui-evt]
+			]
 
 			WndProc: func [
 				hWnd	[handle!]
-				msg		[integer!]
+				msg		[tagMSG]
 				wParam	[integer!]
 				lParam	[integer!]
 				return: [integer!]
-			;	/local
-			;		id	[integer!]
-			][
-				print-line ["Low-level event type: " msg]
-				
+			][				
 				switch msg [
-					;BM_CLICK 
-					
-					WM_LBUTTONDOWN [
-					
-					]
-					
+				
+					WM_LBUTTONDOWN	[make-event msg EVT_LEFT_DOWN]
+					WM_LBUTTONUP	[make-event msg EVT_LEFT_UP]
+					WM_RBUTTONDOWN	[make-event msg EVT_RIGHT_DOWN]
+					WM_RBUTTONUP	[make-event msg EVT_RIGHT_UP]
 					
 					WM_COMMAND [
-						;id: WIN32_LOWORD(wParam)
-
-						;probe SendDlgItemMessage hWnd id BM_GETCHECK 1 0
-						;checked: as-logic SendDlgItemMessage hWnd id BM_GETCHECK 1 0
-						
-						either checked [
-							SendDlgItemMessage hWnd id BM_SETCHECK 0 0
-						][
-							SendDlgItemMessage hWnd id BM_SETCHECK 1 0
+						if WIN32_HIWORD(wParam) = BN_CLICKED [
+							make-event msg EVT_CLICK
 						]
-
-	;					if WIN32_HIWORD(wParam) = BN_CLICKED [
-	;						SendDlgItemMessage hWnd id BM_SETCHECK 1 0
-	;					]
 					]
 					;WM_NOTIFY [
 					;
@@ -377,7 +408,7 @@ system/view/platform: context [
 					WM_DESTROY [PostQuitMessage 0]
 					default    [return DefWindowProc hWnd msg wParam lParam]
 				]
-				0
+				DefWindowProc hWnd msg wParam lParam
 			]
 
 			do-events: func [

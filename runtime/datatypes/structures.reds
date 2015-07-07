@@ -285,7 +285,7 @@ red-hash!: alias struct! [
 
 red-event!: alias struct! [
 	header	[integer!]								;-- cell header
-	_pad1	[integer!]
+	type	[integer!]								;-- symbol ID
 	msg		[byte-ptr!]								;-- low-level OS-specific structure
-	_pad2	[integer!]
+	flags	[integer!]								;-- bit array
 ]

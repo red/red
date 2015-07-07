@@ -13,7 +13,11 @@ Red/System [
 event: context [
 	verbose: 0
 	
-	
+	push: func [
+		evt [red-event!]
+	][	
+		stack/push as red-value! evt
+	]
 
 	;-- Actions --
 	
@@ -71,7 +75,7 @@ event: context [
 		if value <> null [fire [TO_ERROR(script invalid-path-set) path]]
 		word: as red-word! element
 		sym: symbol/resolve word/symbol
-		
+comment {		
 		case [
 			sym = words/type	[gui/get-event-type	  evt/msg]
 			sym = words/face	[gui/get-event-face	  evt/msg]
@@ -81,6 +85,8 @@ event: context [
 			sym = words/flag	[gui/get-event-flag	  evt/msg]
 			sym = words/code	[gui/get-event-code	  evt/msg]
 		]
+}
+		as red-value! 0
 	]
 	
 	init: does [
