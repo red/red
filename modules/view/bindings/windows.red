@@ -132,8 +132,8 @@ system/view/platform: context [
 			ACTCTX: alias struct! [
 				cbsize		[integer!]
 				dwFlags		[integer!]
-				lpSource	[c-string!]						;-- wide-string
-				wProcLangID	[integer!]						;-- combined wProc and wLangID in one field
+				lpSource	[c-string!]					;-- wide-string
+				wProcLangID	[integer!]					;-- combined wProc and wLangID in one field
 				lpAssDir	[c-string!]
 				lpResource	[c-string!]
 				lpAppName	[c-string!]
@@ -143,6 +143,31 @@ system/view/platform: context [
 			DISPLAY_DEVICE: alias struct! [
 				cbSize		[integer!]
 				DevName		[byte!]
+			]
+			
+			OSVERSIONINFO: alias struct! [
+				dwOSVersionInfoSize [integer!]
+				dwMajorVersion		[integer!]
+				dwMinorVersion		[integer!]
+				dwBuildNumber		[integer!]	
+				dwPlatformId		[integer!]
+				szCSDVersion		[byte-ptr!]			;-- array of 128 bytes
+				szCSDVersion0		[integer!]
+				szCSDVersion1		[float!]
+				szCSDVersion2		[float!]
+				szCSDVersion3		[float!]
+				szCSDVersion4		[float!]
+				szCSDVersion5		[float!]
+				szCSDVersion6		[float!]
+				szCSDVersion7		[float!]
+				szCSDVersion8		[float!]
+				szCSDVersion9		[float!]
+				szCSDVersion10		[float!]
+				szCSDVersion11		[float!]
+				szCSDVersion12		[float!]
+				szCSDVersion13		[float!]
+				szCSDVersion14		[float!]
+				szCSDVersion15		[float!]
 			]
 
 			#import [
@@ -166,6 +191,10 @@ system/view/platform: context [
 					ActivateActCtx: "ActivateActCtx" [
 						hActCtx		[handle!]
 						lpCookie	[struct! [ptr [byte-ptr!]]]
+					]
+					GetVersionEx: "GetVersionExA" [
+						lpVersionInfo [OSVERSIONINFO]
+						return:		[integer!]
 					]
 				]
 				"User32.dll" stdcall [
@@ -301,6 +330,7 @@ system/view/platform: context [
 
 			hScreen: as handle! 0
 			default-font: declare handle!
+			version-info: declare OSVERSIONINFO
 
 			enable-visual-styles: func [
 				return: [byte-ptr!]
@@ -452,7 +482,6 @@ system/view/platform: context [
 
 				RegisterClassEx wcex
 				
-				wcex/cbSize: 		size? WNDCLASSEX
 				wcex/style:			CS_HREDRAW or CS_VREDRAW
 				wcex/lpfnWndProc:	:WndProc
 				wcex/cbClsExtra:	0
@@ -468,12 +497,35 @@ system/view/platform: context [
 				RegisterClassEx wcex
 			]
 			
-			init: does [
+			init: func [
+				/local
+					ver [red-tuple!]
+					int [red-integer!]
+			][
 				hScreen: GetDC null
 				hInstance: GetModuleHandle 0
 				register-classes hInstance
-				enable-visual-styles
 				default-font: GetStockObject DEFAULT_GUI_FONT
+				
+				version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
+				GetVersionEx version-info
+				ver: as red-tuple! #get system/view/platform/version
+
+				ver/header: TYPE_TUPLE or (3 << 19)
+				ver/array1: version-info/dwMajorVersion
+					or (version-info/dwMinorVersion << 8)
+					and 0000FFFFh
+					
+				unless all [
+					version-info/dwMajorVersion = 5
+					version-info/dwMinorVersion <= 1
+				][
+					enable-visual-styles				;-- not called for WinXP and Win2000
+				]
+					
+				int: as red-integer! #get system/view/platform/build
+				int/header: TYPE_INTEGER
+				int/value:  version-info/dwBuildNumber 
 			]
 			
 			get-screen-size: func [
@@ -538,7 +590,6 @@ system/view/platform: context [
 					]
 					sym = base [
 						class: "Base"
-probe "base widget creation"						
 					]
 					sym = window [
 						class: "RedWindow"
@@ -660,4 +711,7 @@ probe "base widget creation"
 			pane:	make block! 4
 		]		
 	]
+	
+	version: none
+	build:	none
 ]

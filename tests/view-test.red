@@ -2,6 +2,9 @@ Red [
 	Needs: 'View
 ]
 
+probe system/view/platform/version
+probe system/view/platform/build
+
 win: make face! [type: 'window text: "Red View" offset: 500x500 size: 400x400]
 
 win/pane: reduce [
