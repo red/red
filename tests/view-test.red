@@ -2,8 +2,20 @@ Red [
 	Needs: 'View
 ]
 
-probe system/view/platform/version
-probe system/view/platform/build
+print [
+	"Windows" select [
+		10.0.0	"10"
+		6.3.0	"8.1"
+		6.2.0	"8"
+		6.1.0	"7"
+		6.0.0	"Vista"
+		5.2.0	"Server 2003"
+		5.1.0	"XP"
+		5.0.0	"2000"
+	] system/view/platform/version 
+	
+	"build" system/view/platform/build
+]
 
 win: make face! [type: 'window text: "Red View" offset: 500x500 size: 400x400]
 
