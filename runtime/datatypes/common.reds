@@ -292,6 +292,14 @@ words: context [
 	_on:			-1
 	_off:			-1
 	
+	type:			-1
+	face:			-1
+	window:			-1
+	offset:			-1
+	key:			-1
+	flag:			-1
+	code:			-1
+	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
 	_syllable:		as red-word! 0
@@ -337,7 +345,6 @@ words: context [
 	_try:			as red-word! 0
 	_catch:			as red-word! 0
 	_name:			as red-word! 0
-	
 	
 	errors: context [
 		throw:		as red-word! 0
@@ -414,6 +421,14 @@ words: context [
 		_on:			symbol/make "on"
 		_off:			symbol/make "off"
 		
+		type:			symbol/make "type"
+		face:			symbol/make "face"
+		window:			symbol/make "window"
+		offset:			symbol/make "offset"
+		key:			symbol/make "key"
+		flag:			symbol/make "flag"
+		code:			symbol/make "code"
+
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
 		_macosx:		_context/add-global macosx

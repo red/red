@@ -79,6 +79,8 @@ Red/System [
 #define VER_NT_DOMAIN_CONTROLLER	2
 #define VER_NT_SERVER				3
 
+#define GWL_USERDATA        -21
+
 #define handle!				[pointer! [integer!]]
 
 tagPOINT: alias struct! [
@@ -97,7 +99,7 @@ tagMSG: alias struct! [
 
 wndproc-cb!: alias function! [
 	hWnd	[handle!]
-	msg		[tagMSG]
+	msg		[integer!]
 	wParam	[integer!]
 	lParam	[integer!]
 	return: [integer!]
@@ -255,7 +257,7 @@ OSVERSIONINFO: alias struct! [
 		]
 		DefWindowProc: "DefWindowProcA" [
 			hWnd		[handle!]
-			msg			[tagMSG]
+			msg			[integer!]
 			wParam		[integer!]
 			lParam		[integer!]
 			return: 	[integer!]
@@ -291,6 +293,17 @@ OSVERSIONINFO: alias struct! [
 			msg			[integer!]
 			wParam		[integer!]
 			lParam		[integer!]
+			return: 	[handle!]
+		]
+		SetWindowLong: "SetWindowLongA" [
+			hWnd		[handle!]
+			nIndex		[integer!]
+			dwNewLong	[integer!]
+			return: 	[handle!]
+		]
+		GetWindowLong: "GetWindowLongA" [
+			hWnd		[handle!]
+			nIndex		[integer!]
 			return: 	[handle!]
 		]
 	]

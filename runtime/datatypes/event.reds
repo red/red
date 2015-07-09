@@ -75,18 +75,16 @@ event: context [
 		if value <> null [fire [TO_ERROR(script invalid-path-set) path]]
 		word: as red-word! element
 		sym: symbol/resolve word/symbol
-comment {		
+		
 		case [
-			sym = words/type	[gui/get-event-type	  evt/msg]
-			sym = words/face	[gui/get-event-face	  evt/msg]
-			sym = words/window	[gui/get-event-window evt/msg]
-			sym = words/offset	[gui/get-event-offset evt/msg]
-			sym = words/key		[gui/get-event-key	  evt/msg]
-			sym = words/flag	[gui/get-event-flag	  evt/msg]
-			sym = words/code	[gui/get-event-code	  evt/msg]
+			sym = words/type	[exec/gui/get-event-type evt]
+			;sym = words/face	[exec/gui/get-event-face evt]
+			;sym = words/window	[exec/gui/get-event-window evt]
+			sym = words/offset	[exec/gui/get-event-offset evt]
+			;sym = words/key		[gui/get-event-key	  evt/msg]
+			;sym = words/flag	[gui/get-event-flag	  evt/msg]
+			;sym = words/code	[gui/get-event-code	  evt/msg]
 		]
-}
-		as red-value! 0
 	]
 	
 	init: does [

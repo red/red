@@ -42,7 +42,7 @@ system/view: context [
 	VID: none
 	
 	awake: func [event [event!]][						;@@ temporary until event:// implemented
-		print "awake!"
+		print ["event> type:" event/type "offset:" event/offset]
 	]
 
 ]
