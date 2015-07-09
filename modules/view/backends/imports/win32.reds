@@ -55,7 +55,16 @@ Red/System [
 #define WM_PAINT			000Fh
 #define WM_SETFONT			0030h
 #define WM_GETFONT			0031h
+#define WM_KEYDOWN			0100h
+#define WM_KEYUP			0101h
+#define WM_CHAR				0102h
 #define WM_COMMAND 			0111h
+#define WM_LBUTTONDOWN		0201h
+#define WM_LBUTTONUP		0202h
+#define WM_RBUTTONDOWN		0204h
+#define WM_RBUTTONUP		0205h
+#define WM_MBUTTONDOWN		0207h
+#define WM_MBUTTONUP		0208h
 
 #define BM_GETCHECK			F0F0h
 #define BM_SETCHECK			F0F1h
@@ -63,13 +72,6 @@ Red/System [
 #define BN_CLICKED 			0
 
 #define DEFAULT_GUI_FONT 	17
-
-#define WM_LBUTTONDOWN		0201h
-#define WM_LBUTTONUP		0202h
-#define WM_RBUTTONDOWN		0204h
-#define WM_RBUTTONUP		0205h
-#define WM_MBUTTONDOWN		0207h
-#define WM_MBUTTONUP		0208h
 
 #define ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID	0004h
 #define ACTCTX_FLAG_RESOURCE_NAME_VALID			0008h
@@ -82,6 +84,10 @@ Red/System [
 #define GWL_USERDATA        -21
 
 #define handle!				[pointer! [integer!]]
+
+#define WIN32_LOWORD(param) (param and FFFFh)
+#define WIN32_HIWORD(param) (param >>> 16)
+
 
 tagPOINT: alias struct! [
 	x		[integer!]

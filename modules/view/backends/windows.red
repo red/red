@@ -13,12 +13,8 @@ Red [
 system/view/platform: context [
 
 	#system [
-
 		gui: context [
 			#include %imports/win32.reds
-
-			#define WIN32_LOWORD(param) (param and FFFFh)
-			#define WIN32_HIWORD(param) (param >>> 16)
 			
 			#enum event-type! [
 				EVT_LEFT_DOWN:		1
@@ -33,6 +29,7 @@ system/view/platform: context [
 				EVT_DBL_CLICK
 				EVT_MOVE								;-- last mouse event
 				
+				EVT_KEY
 				EVT_KEY_DOWN
 				EVT_KEY_UP
 			]
@@ -58,6 +55,7 @@ system/view/platform: context [
 			_double-click:	word/load "double-click"
 			_move:			word/load "move"
 			_key:			word/load "key"
+			_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
 			
 			hScreen: as handle! 0
@@ -82,7 +80,8 @@ system/view/platform: context [
 					EVT_CLICK		 [word: _click]
 					EVT_DBL_CLICK	 [word: _double-click]
 					EVT_MOVE		 [word: _move]
-					EVT_KEY_DOWN	 [word: _key]
+					EVT_KEY			 [word: _key]
+					EVT_KEY_DOWN	 [word: _key-down]
 					EVT_KEY_UP		 [word: _key-up]
 				]
 				as red-value! word
@@ -103,23 +102,25 @@ system/view/platform: context [
 					value  [integer!]
 					msg    [tagMSG]
 			][
-				;either evt/type <= EVT_MOVE
-				msg: as tagMSG evt/msg
+				either evt/type <= EVT_MOVE [
+					msg: as tagMSG evt/msg
 
-				offset: as red-pair! stack/push*
-				offset/header: TYPE_PAIR
-				value: msg/lParam
-				
-				offset/x: WIN32_LOWORD(value)
-				offset/y: WIN32_HIWORD(value)				
-				as red-value! offset
+					offset: as red-pair! stack/push*
+					offset/header: TYPE_PAIR
+					value: msg/lParam
+
+					offset/x: WIN32_LOWORD(value)
+					offset/y: WIN32_HIWORD(value)
+					as red-value! offset
+				][
+					as red-value! none-value
+				]
 			]
 				
 			make-event: func [
 				msg		[tagMSG]
 				type	[integer!]
 			][
-				;print-line ["Low-level event type: " type]
 				gui-evt/type: type
 				gui-evt/msg:  as byte-ptr! msg
 				
@@ -137,33 +138,43 @@ system/view/platform: context [
 				DefWindowProc hWnd msg wParam lParam
 			]
 			
-			process: func [
+			process-early: func [
 				msg	[tagMSG]
 				/local
 					wParam [integer!]
 			][
-				switch msg/msg [				
+				switch msg/msg [
 					WM_LBUTTONDOWN	[make-event msg EVT_LEFT_DOWN]
 					WM_LBUTTONUP	[make-event msg EVT_LEFT_UP]
 					WM_RBUTTONDOWN	[make-event msg EVT_RIGHT_DOWN]
 					WM_RBUTTONUP	[make-event msg EVT_RIGHT_UP]
 					WM_MBUTTONDOWN	[make-event msg EVT_MIDDLE_DOWN]
 					WM_MBUTTONUP	[make-event msg EVT_MIDDLE_UP]
-
+					WM_KEYDOWN		[make-event msg EVT_KEY_DOWN]
+					WM_KEYUP		[make-event msg EVT_KEY_UP]
+					;WM_DESTROY []
+					default		[0]
+				]
+			]
+			
+			process-late: func [
+				msg	[tagMSG]
+				/local
+					wParam [integer!]
+			][
+				switch msg/msg [
 					WM_COMMAND [
 						wParam: msg/wParam
 						if WIN32_HIWORD(wParam) = BN_CLICKED [
 							make-event msg EVT_CLICK
 						]
 					]
-					;WM_NOTIFY [
-					;
-					;]
-					;WM_PAINT [
-					;	DefWindowProc hWnd msg wParam lParam
-					;]
-					;WM_DESTROY [PostQuitMessage 0]
-					default    [0]
+					WM_CHAR [
+						probe msg/wParam
+						probe as-byte msg/wParam
+						make-event msg EVT_KEY
+					]
+					default [0]
 				]
 			]
 
@@ -176,8 +187,9 @@ system/view/platform: context [
 
 				while [GetMessage msg null 0 0][
 					TranslateMessage msg
-					process msg
-					DispatchMessage  msg
+					process-early msg
+					DispatchMessage msg
+					process-late msg
 					if no-wait? [exit]
 				]
 			]
