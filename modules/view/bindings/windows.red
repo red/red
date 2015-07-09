@@ -79,6 +79,10 @@ system/view/platform: context [
 			#define ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID	0004h
 			#define ACTCTX_FLAG_RESOURCE_NAME_VALID			0008h
 			#define ACTCTX_FLAG_SET_PROCESS_DEFAULT 		0010h
+			
+			#define VER_NT_WORKSTATION			1
+			#define VER_NT_DOMAIN_CONTROLLER	2
+			#define VER_NT_SERVER				3
 
 			#define handle!				[pointer! [integer!]]
 
@@ -168,6 +172,11 @@ system/view/platform: context [
 				szCSDVersion13		[float!]
 				szCSDVersion14		[float!]
 				szCSDVersion15		[float!]
+				wServicePack		[integer!]			;-- Major: 16, Minor: 16
+				wSuiteMask0			[byte!]
+				wSuiteMask1			[byte!]
+				wProductType		[byte!]
+				wReserved			[byte!]
 			]
 
 			#import [
@@ -525,7 +534,11 @@ system/view/platform: context [
 					
 				int: as red-integer! #get system/view/platform/build
 				int/header: TYPE_INTEGER
-				int/value:  version-info/dwBuildNumber 
+				int/value:  version-info/dwBuildNumber
+				
+				int: as red-integer! #get system/view/platform/product
+				int/header: TYPE_INTEGER
+				int/value:  as-integer version-info/wProductType 
 			]
 			
 			get-screen-size: func [
@@ -713,5 +726,6 @@ system/view/platform: context [
 	]
 	
 	version: none
-	build:	none
+	build:	 none
+	product: none
 ]

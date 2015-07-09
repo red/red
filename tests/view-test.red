@@ -2,18 +2,19 @@ Red [
 	Needs: 'View
 ]
 
+workstation?: system/view/platform/product = 1
+
 print [
-	"Windows" select [
-		10.0.0	"10"
-		6.3.0	"8.1"
-		6.2.0	"8"
-		6.1.0	"7"
-		6.0.0	"Vista"
-		5.2.0	"Server 2003"
-		5.1.0	"XP"
-		5.0.0	"2000"
-	] system/view/platform/version 
-	
+	"Windows" switch system/view/platform/version [
+		10.0.0	[pick ["10"				  "10 Server"] workstation?]
+		6.3.0	[pick ["8.1"		 "Server 2012 R2"] workstation?]
+		6.2.0	[pick ["8"				"Server 2012"] workstation?]
+		6.1.0	[pick ["7"			 "Server 2008 R1"] workstation?]
+		6.0.0	[pick ["Vista"			"Server 2008"] workstation?]
+		5.2.0	[pick ["Server 2003" "Server 2003 R2"] workstation?]
+		5.1.0	["XP"]
+		5.0.0	["2000"]
+	] 
 	"build" system/view/platform/build
 ]
 
