@@ -10,8 +10,8 @@ Red [
 	}
 ]
 
-;#include %bindings/android.red
-#include %bindings/windows.red
+;#include %backends/android.red
+#include %backends/windows.red
 
 at-offset: pad-offset: none
 

@@ -47,8 +47,8 @@ system/view: context [
 
 ]
 
-;#include %bindings/android.red
-#include %bindings/windows.red
+;#include %backends/android.red
+#include %backends/windows.red
 
 do-events: func [/no-wait][
 	system/view/platform/do-event-loop no
