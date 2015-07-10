@@ -65,26 +65,23 @@ system/view/platform: context [
 			get-event-type: func [
 				evt		[red-event!]
 				return: [red-value!]
-				/local
-					word [red-word!]
 			][
-				switch evt/type [
-					EVT_LEFT_DOWN	 [word: _down]
-					EVT_LEFT_UP		 [word: _up]
-					EVT_MIDDLE_DOWN	 [word: _middle-down]
-					EVT_MIDDLE_UP	 [word: _middle-up]
-					EVT_RIGHT_DOWN	 [word: _alt-down]
-					EVT_RIGHT_UP	 [word: _alt-up]
-					EVT_AUX_DOWN	 [word: _aux-down]
-					EVT_AUX_UP		 [word: _aux-up]
-					EVT_CLICK		 [word: _click]
-					EVT_DBL_CLICK	 [word: _double-click]
-					EVT_MOVE		 [word: _move]
-					EVT_KEY			 [word: _key]
-					EVT_KEY_DOWN	 [word: _key-down]
-					EVT_KEY_UP		 [word: _key-up]
+				as red-value! switch evt/type [
+					EVT_LEFT_DOWN	 [_down]
+					EVT_LEFT_UP		 [_up]
+					EVT_MIDDLE_DOWN	 [_middle-down]
+					EVT_MIDDLE_UP	 [_middle-up]
+					EVT_RIGHT_DOWN	 [_alt-down]
+					EVT_RIGHT_UP	 [_alt-up]
+					EVT_AUX_DOWN	 [_aux-down]
+					EVT_AUX_UP		 [_aux-up]
+					EVT_CLICK		 [_click]
+					EVT_DBL_CLICK	 [_double-click]
+					EVT_MOVE		 [_move]
+					EVT_KEY			 [_key]
+					EVT_KEY_DOWN	 [_key-down]
+					EVT_KEY_UP		 [_key-up]
 				]
-				as red-value! word
 			]
 			
 			get-event-face: func [
