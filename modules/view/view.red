@@ -41,8 +41,12 @@ system/view: context [
 	platform: none	
 	VID: none
 	
-	awake: func [event [event!]][						;@@ temporary until event:// implemented
-		print ["event> type:" event/type "offset:" event/offset]
+	awake: func [event [event!]][						;@@ temporary until event:// is implemented
+		print [
+			"event> type:"	event/type
+			"offset:"		event/offset
+			"key:"			event/key
+		]
 	]
 
 ]

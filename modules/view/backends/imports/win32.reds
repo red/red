@@ -66,10 +66,55 @@ Red/System [
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
 
+
 #define BM_GETCHECK			F0F0h
 #define BM_SETCHECK			F0F1h
 
 #define BN_CLICKED 			0
+
+#define VK_SPACE			20h
+#define VK_PRIOR			21h
+#define VK_NEXT				22h
+#define VK_END				23h
+#define VK_HOME				24h
+#define VK_LEFT				25h
+#define VK_UP				26h
+#define VK_RIGHT			27h
+#define VK_DOWN				28h
+#define VK_SELECT			29h
+#define VK_PRINT			2Ah
+#define VK_EXECUTE			2Bh
+#define VK_SNAPSHOT			2Ch
+#define VK_INSERT			2Dh
+#define VK_DELETE			2Eh
+#define VK_HELP				2Fh
+#define VK_LWIN				5Bh
+#define VK_RWIN				5Ch
+#define VK_APPS				5Dh
+#define VK_F1				70h
+#define VK_F2				71h
+#define VK_F3				72h
+#define VK_F4				73h
+#define VK_F5				74h
+#define VK_F6				75h
+#define VK_F7				76h
+#define VK_F8				77h
+#define VK_F9				78h
+#define VK_F10				79h
+#define VK_F11				7Ah
+#define VK_F12				7Bh
+#define VK_F13				7Ch
+#define VK_F14				7Dh
+#define VK_F15				7Eh
+#define VK_F16				7Fh
+#define VK_F17				80h
+#define VK_F18				81h
+#define VK_F19				82h
+#define VK_F20				83h
+#define VK_F21				84h
+#define VK_F22				85h
+#define VK_F23				86h
+#define VK_F24				87h
 
 #define DEFAULT_GUI_FONT 	17
 
@@ -87,6 +132,8 @@ Red/System [
 
 #define WIN32_LOWORD(param) (param and FFFFh)
 #define WIN32_HIWORD(param) (param >>> 16)
+
+#define IS_EXTENDED_KEY		24
 
 
 tagPOINT: alias struct! [

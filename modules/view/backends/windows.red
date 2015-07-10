@@ -35,10 +35,12 @@ system/view/platform: context [
 			]
 			
 			#enum event-flag! [
-				EVT_FLAG_DBL_CLICK:		1
-				EVT_FLAG_CTRL_DOWN
-				EVT_FLAG_SHIFT_DOWN
+				EVT_FLAG_DBL_CLICK:		28
+				EVT_FLAG_CTRL_DOWN:		29
+				EVT_FLAG_SHIFT_DOWN:	30
+				EVT_FLAG_SPECIAL_KEY:	31
 			]
+			
 			
 			gui-evt: declare red-event!					;-- low-level event value slot
 			gui-evt/header: TYPE_EVENT
@@ -57,6 +59,29 @@ system/view/platform: context [
 			_key:			word/load "key"
 			_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
+			
+			_page-up:		word/load "page-up"
+			_page_down:		word/load "page-down"
+			_end:			word/load "end"
+			_home:			word/load "home"
+			_left:			word/load "left"
+			_up:			word/load "up"
+			_right:			word/load "right"
+			_down:			word/load "down"
+			_insert:		word/load "insert"
+			_delete:		word/load "delete"
+			_F1:			word/load "F1"
+			_F2:			word/load "F2"
+			_F3:			word/load "F3"
+			_F4:			word/load "F4"
+			_F5:			word/load "F5"
+			_F6:			word/load "F6"
+			_F7:			word/load "F7"
+			_F8:			word/load "F8"
+			_F9:			word/load "F9"
+			_F10:			word/load "F10"
+			_F11:			word/load "F11"
+			_F12:			word/load "F12"
 			
 			hScreen: as handle! 0
 			default-font: declare handle!
@@ -113,6 +138,46 @@ system/view/platform: context [
 					as red-value! none-value
 				]
 			]
+			
+			get-event-key: func [
+				evt		[red-event!]
+				return: [red-value!]
+				/local
+					char [red-char!]
+			][
+				either evt/flags and EVT_FLAG_SPECIAL_KEY <> 0 [
+					as red-value! switch evt/flags and FFFFh [
+						VK_PRIOR	[_page-up]
+						VK_NEXT		[_page_down]
+						VK_END		[_end]
+						VK_HOME		[_home]
+						VK_LEFT		[_left]
+						VK_UP		[_up]
+						VK_RIGHT	[_right]
+						VK_DOWN		[_down]
+						VK_INSERT	[_insert]
+						VK_DELETE	[_delete]
+						VK_F1		[_F1]
+						VK_F2		[_F2]
+						VK_F3		[_F3]
+						VK_F4		[_F4]
+						VK_F5		[_F5]
+						VK_F6		[_F6]
+						VK_F7		[_F7]
+						VK_F8		[_F8]
+						VK_F9		[_F9]
+						VK_F10		[_F10]
+						VK_F11		[_F11]
+						VK_F12		[_F12]
+						default		[none-value]
+					]
+				][
+					char: as red-char! stack/push*
+					char/header: TYPE_CHAR
+					char/value: evt/flags and FFFFh
+					as red-value! char
+				]
+			]
 				
 			make-event: func [
 				msg		[tagMSG]
@@ -120,6 +185,20 @@ system/view/platform: context [
 			][
 				gui-evt/type: type
 				gui-evt/msg:  as byte-ptr! msg
+				id: msg/msg
+				gui-evt/flags: 0						;-- reset flags
+				
+				switch type [
+					EVT_KEY_DOWN [
+						gui-evt/flags: msg/wParam and FFFFh
+						if msg/lParam and IS_EXTENDED_KEY <> 0 [
+							gui-evt/flags: gui-evt/flags or EVT_FLAG_SPECIAL_KEY
+						]
+					]
+					EVT_KEY [gui-evt/flags: msg/wParam and FFFFh]
+					default [0]
+				]
+				;@@ set other flags here
 				
 				#call [system/view/awake gui-evt]
 			]
@@ -166,11 +245,7 @@ system/view/platform: context [
 							make-event msg EVT_CLICK
 						]
 					]
-					WM_CHAR [
-						probe msg/wParam
-						probe as-byte msg/wParam
-						make-event msg EVT_KEY
-					]
+					WM_CHAR [make-event msg EVT_KEY]
 					default [0]
 				]
 			]
@@ -231,7 +306,7 @@ system/view/platform: context [
 				wcex: declare WNDCLASSEX
 
 				wcex/cbSize: 		size? WNDCLASSEX
-				wcex/style:			CS_HREDRAW or CS_VREDRAW
+				wcex/style:			CS_HREDRAW or CS_VREDRAW ;or CS_DBLCLKS
 				wcex/lpfnWndProc:	:WndProc
 				wcex/cbClsExtra:	0
 				wcex/cbWndExtra:	0
@@ -245,7 +320,7 @@ system/view/platform: context [
 
 				RegisterClassEx wcex
 				
-				wcex/style:			CS_HREDRAW or CS_VREDRAW
+				wcex/style:			CS_HREDRAW or CS_VREDRAW ;or CS_DBLCLKS
 				wcex/lpfnWndProc:	:WndProc
 				wcex/cbClsExtra:	0
 				wcex/cbWndExtra:	0
