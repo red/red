@@ -35,10 +35,10 @@ system/view/platform: context [
 			]
 			
 			#enum event-flag! [
-				EVT_FLAG_DBL_CLICK:		28
-				EVT_FLAG_CTRL_DOWN:		29
-				EVT_FLAG_SHIFT_DOWN:	30
-				EVT_FLAG_SPECIAL_KEY:	31
+				EVT_FLAG_DBL_CLICK:		10000000h
+				EVT_FLAG_CTRL_DOWN:		20000000h
+				EVT_FLAG_SHIFT_DOWN:	40000000h
+				EVT_FLAG_KEY_DOWN:		80000000h
 			]
 			
 			
@@ -145,55 +145,62 @@ system/view/platform: context [
 				/local
 					char [red-char!]
 			][
-				either evt/flags and EVT_FLAG_SPECIAL_KEY <> 0 [
-					as red-value! switch evt/flags and FFFFh [
-						VK_PRIOR	[_page-up]
-						VK_NEXT		[_page_down]
-						VK_END		[_end]
-						VK_HOME		[_home]
-						VK_LEFT		[_left]
-						VK_UP		[_up]
-						VK_RIGHT	[_right]
-						VK_DOWN		[_down]
-						VK_INSERT	[_insert]
-						VK_DELETE	[_delete]
-						VK_F1		[_F1]
-						VK_F2		[_F2]
-						VK_F3		[_F3]
-						VK_F4		[_F4]
-						VK_F5		[_F5]
-						VK_F6		[_F6]
-						VK_F7		[_F7]
-						VK_F8		[_F8]
-						VK_F9		[_F9]
-						VK_F10		[_F10]
-						VK_F11		[_F11]
-						VK_F12		[_F12]
-						default		[none-value]
+				as red-value! switch evt/type [
+					EVT_KEY [
+						either evt/flags and EVT_FLAG_KEY_DOWN <> 0 [
+							switch evt/flags and FFFFh [
+								VK_PRIOR	[_page-up]
+								VK_NEXT		[_page_down]
+								VK_END		[_end]
+								VK_HOME		[_home]
+								VK_LEFT		[_left]
+								VK_UP		[_up]
+								VK_RIGHT	[_right]
+								VK_DOWN		[_down]
+								VK_INSERT	[_insert]
+								VK_DELETE	[_delete]
+								VK_F1		[_F1]
+								VK_F2		[_F2]
+								VK_F3		[_F3]
+								VK_F4		[_F4]
+								VK_F5		[_F5]
+								VK_F6		[_F6]
+								VK_F7		[_F7]
+								VK_F8		[_F8]
+								VK_F9		[_F9]
+								VK_F10		[_F10]
+								VK_F11		[_F11]
+								VK_F12		[_F12]
+								default		[none-value]
+							]
+						][
+							char: as red-char! stack/push*
+							char/header: TYPE_CHAR
+							char/value: evt/flags and FFFFh
+							as red-value! char
+						]
 					]
-				][
-					char: as red-char! stack/push*
-					char/header: TYPE_CHAR
-					char/value: evt/flags and FFFFh
-					as red-value! char
+					default [as red-value! none-value]
 				]
 			]
 				
 			make-event: func [
 				msg		[tagMSG]
 				type	[integer!]
+				return: [logic!]
+				/local
+					done? [logic!]
 			][
 				gui-evt/type: type
 				gui-evt/msg:  as byte-ptr! msg
-				id: msg/msg
 				gui-evt/flags: 0						;-- reset flags
+				done?: no
 				
 				switch type [
 					EVT_KEY_DOWN [
-						gui-evt/flags: msg/wParam and FFFFh
-						if msg/lParam and IS_EXTENDED_KEY <> 0 [
-							gui-evt/flags: gui-evt/flags or EVT_FLAG_SPECIAL_KEY
-						]
+						gui-evt/flags: msg/wParam and FFFFh or EVT_FLAG_KEY_DOWN
+						gui-evt/type: EVT_KEY
+						done?: yes
 					]
 					EVT_KEY [gui-evt/flags: msg/wParam and FFFFh]
 					default [0]
@@ -201,6 +208,7 @@ system/view/platform: context [
 				;@@ set other flags here
 				
 				#call [system/view/awake gui-evt]
+				done?
 			]
 
 			WndProc: func [
@@ -215,7 +223,8 @@ system/view/platform: context [
 			]
 			
 			process-early: func [
-				msg	[tagMSG]
+				msg		[tagMSG]
+				return: [logic!]
 				/local
 					wParam [integer!]
 			][
@@ -229,8 +238,9 @@ system/view/platform: context [
 					WM_KEYDOWN		[make-event msg EVT_KEY_DOWN]
 					WM_KEYUP		[make-event msg EVT_KEY_UP]
 					;WM_DESTROY []
-					default		[0]
+					default			[no]
 				]
+				;done?
 			]
 			
 			process-late: func [
@@ -253,15 +263,16 @@ system/view/platform: context [
 			do-events: func [
 				no-wait? [logic!]
 				/local
-					msg	[tagMSG]
+					msg	  [tagMSG]
+					done? [logic!]
 			][
 				msg: declare tagMSG
 
 				while [GetMessage msg null 0 0][
 					TranslateMessage msg
-					process-early msg
+					done?: process-early msg
 					DispatchMessage msg
-					process-late msg
+					unless done? [process-late msg]
 					if no-wait? [exit]
 				]
 			]

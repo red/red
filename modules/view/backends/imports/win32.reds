@@ -133,7 +133,7 @@ Red/System [
 #define WIN32_LOWORD(param) (param and FFFFh)
 #define WIN32_HIWORD(param) (param >>> 16)
 
-#define IS_EXTENDED_KEY		24
+#define IS_EXTENDED_KEY		01000000h
 
 
 tagPOINT: alias struct! [
