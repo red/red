@@ -45,7 +45,7 @@ system/view: context [
 		print [
 			"event> type:"	event/type
 			"offset:"		event/offset
-			"key:"			event/key
+			"key:"			mold event/key
 		]
 	]
 

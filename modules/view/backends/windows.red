@@ -41,6 +41,12 @@ system/view/platform: context [
 				EVT_FLAG_KEY_DOWN:		80000000h
 			]
 			
+			#enum event-action! [
+				EVT_NO_PROCESS							;-- no further msg processing allowed
+				EVT_DISPATCH							;-- allow DispatchMessage call only
+				EVT_DISPATCH_AND_PROCESS				;-- allow full post-processing of the msg
+			]
+			
 			
 			gui-evt: declare red-event!					;-- low-level event value slot
 			gui-evt/header: TYPE_EVENT
@@ -187,20 +193,20 @@ system/view/platform: context [
 			make-event: func [
 				msg		[tagMSG]
 				type	[integer!]
-				return: [logic!]
+				return: [integer!]
 				/local
-					done? [logic!]
+					state [integer!]
 			][
 				gui-evt/type: type
 				gui-evt/msg:  as byte-ptr! msg
 				gui-evt/flags: 0						;-- reset flags
-				done?: no
+				state: EVT_DISPATCH_AND_PROCESS
 				
 				switch type [
 					EVT_KEY_DOWN [
 						gui-evt/flags: msg/wParam and FFFFh or EVT_FLAG_KEY_DOWN
 						gui-evt/type: EVT_KEY
-						done?: yes
+						state: EVT_DISPATCH
 					]
 					EVT_KEY [gui-evt/flags: msg/wParam and FFFFh]
 					default [0]
@@ -208,7 +214,7 @@ system/view/platform: context [
 				;@@ set other flags here
 				
 				#call [system/view/awake gui-evt]
-				done?
+				state
 			]
 
 			WndProc: func [
@@ -222,9 +228,9 @@ system/view/platform: context [
 				DefWindowProc hWnd msg wParam lParam
 			]
 			
-			process-early: func [
+			pre-process: func [
 				msg		[tagMSG]
-				return: [logic!]
+				return: [integer!]
 				/local
 					wParam [integer!]
 			][
@@ -236,14 +242,19 @@ system/view/platform: context [
 					WM_MBUTTONDOWN	[make-event msg EVT_MIDDLE_DOWN]
 					WM_MBUTTONUP	[make-event msg EVT_MIDDLE_UP]
 					WM_KEYDOWN		[make-event msg EVT_KEY_DOWN]
+					WM_SYSKEYUP
 					WM_KEYUP		[make-event msg EVT_KEY_UP]
+					WM_SYSKEYDOWN	[
+						make-event msg EVT_KEY_DOWN
+						EVT_NO_PROCESS
+					]
 					;WM_DESTROY []
-					default			[no]
+					default			[EVT_DISPATCH_AND_PROCESS]
 				]
 				;done?
 			]
 			
-			process-late: func [
+			post-process: func [
 				msg	[tagMSG]
 				/local
 					wParam [integer!]
@@ -264,15 +275,19 @@ system/view/platform: context [
 				no-wait? [logic!]
 				/local
 					msg	  [tagMSG]
-					done? [logic!]
+					state [integer!]
 			][
 				msg: declare tagMSG
 
-				while [GetMessage msg null 0 0][
+				while [0 < GetMessage msg null 0 0][
 					TranslateMessage msg
-					done?: process-early msg
-					DispatchMessage msg
-					unless done? [process-late msg]
+					state: pre-process msg
+					if state >= EVT_DISPATCH [
+						DispatchMessage msg
+						if state = EVT_DISPATCH_AND_PROCESS [
+							post-process msg
+						]
+					]
 					if no-wait? [exit]
 				]
 			]

@@ -58,7 +58,10 @@ Red/System [
 #define WM_KEYDOWN			0100h
 #define WM_KEYUP			0101h
 #define WM_CHAR				0102h
+#define WM_SYSKEYDOWN		0104h
+#define WM_SYSKEYUP			0105h
 #define WM_COMMAND 			0111h
+#define WM_SYSCOMMAND		0112h
 #define WM_LBUTTONDOWN		0201h
 #define WM_LBUTTONUP		0202h
 #define WM_RBUTTONDOWN		0204h
@@ -320,7 +323,7 @@ OSVERSIONINFO: alias struct! [
 			hWnd		[handle!]
 			wParam		[integer!]
 			lParam		[integer!]
-			return: 	[logic!]
+			return: 	[integer!]
 		]
 		TranslateMessage: "TranslateMessage" [
 			msg			[tagMSG]
