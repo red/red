@@ -321,19 +321,35 @@ system/view/platform: context [
 				ActivateActCtx CreateActCtx ctx cookie
 				cookie/ptr
 			]
+			
+			make-super-class: func [
+				new  [c-string!]
+				base [c-string!]
+				/local
+					wcex  [WNDCLASSEX]
+			][
+				wcex: declare WNDCLASSEX
+				 
+				if 0 = GetClassInfoEx 0 base wcex [
+					print-line "*** Error in GetClassInfoEx"
+				]
+				wcex/cbSize: 		size? WNDCLASSEX
+				wcex/cbClsExtra:	16					;-- reserve extra memory for face! slot
+				wcex/lpszClassName: new
+				RegisterClassEx wcex
+			]
 
 			register-classes: func [
 				hInstance [handle!]
 				/local
 					wcex  [WNDCLASSEX]
-					conex [WNDCLASSEX]
 			][
 				wcex: declare WNDCLASSEX
 
 				wcex/cbSize: 		size? WNDCLASSEX
 				wcex/style:			CS_HREDRAW or CS_VREDRAW ;or CS_DBLCLKS
 				wcex/lpfnWndProc:	:WndProc
-				wcex/cbClsExtra:	0
+				wcex/cbClsExtra:	16
 				wcex/cbWndExtra:	0
 				wcex/hInstance:		hInstance
 				wcex/hIcon:			null
@@ -347,7 +363,7 @@ system/view/platform: context [
 				
 				wcex/style:			CS_HREDRAW or CS_VREDRAW ;or CS_DBLCLKS
 				wcex/lpfnWndProc:	:WndProc
-				wcex/cbClsExtra:	0
+				wcex/cbClsExtra:	16
 				wcex/cbWndExtra:	0
 				wcex/hInstance:		hInstance
 				wcex/hIcon:			null
@@ -358,6 +374,11 @@ system/view/platform: context [
 				wcex/hIconSm:		0
 
 				RegisterClassEx wcex
+				
+				;-- superclass existing classes to add 16 extra bytes
+				;make-super-class "RedButton" "BUTTON"	;@@ commented until switch to Unicode API
+				;make-super-class "RedField"  "EDIT"
+				;make-super-class "RedFace"	  "STATIC"
 			]
 			
 			init: func [
@@ -367,7 +388,6 @@ system/view/platform: context [
 			][
 				hScreen: GetDC null
 				hInstance: GetModuleHandle 0
-				register-classes hInstance
 				default-font: GetStockObject DEFAULT_GUI_FONT
 				
 				version-info/dwOSVersionInfoSize: size? OSVERSIONINFO
@@ -385,6 +405,8 @@ system/view/platform: context [
 				][
 					enable-visual-styles				;-- not called for WinXP and Win2000
 				]
+				register-classes hInstance
+
 					
 				int: as red-integer! #get system/view/platform/build
 				int/header: TYPE_INTEGER
@@ -436,24 +458,24 @@ system/view/platform: context [
 
 				case [
 					sym = button [
-						class: "BUTTON"
+						class: "BUTTON" 				;@@ "RedButton"
 						flags: flags or BS_PUSHBUTTON
 					]
 					sym = check [
-						class: "BUTTON"
+						class: "BUTTON" 				;@@ "RedButton"
 						flags: flags or WS_TABSTOP or BS_AUTOCHECKBOX
 					]
 					sym = radio [
-						class: "BUTTON"
+						class: "BUTTON" 				;@@ "RedButton"
 						flags: flags or WS_TABSTOP or BS_AUTORADIOBUTTON
 					]
 					sym = field [
-						class: "EDIT"
+						class: "EDIT"					;@@ "RedField"
 						flags: flags or ES_LEFT
 						ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
 					]
 					sym = text [
-						class: "STATIC"
+						class: "STATIC"					;@@ "RedFace"
 						flags: flags or SS_SIMPLE
 					]
 					sym = base [

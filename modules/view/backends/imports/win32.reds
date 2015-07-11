@@ -362,6 +362,12 @@ OSVERSIONINFO: alias struct! [
 			nIndex		[integer!]
 			return: 	[handle!]
 		]
+		GetClassInfoEx: "GetClassInfoExA" [
+			hInst		[integer!]
+			lpszClass	[c-string!]
+			lpwcx		[WNDCLASSEX]					;-- pass a WNDCLASSEX pointer's pointer
+			return: 	[integer!]
+		]
 	]
 	"gdi32.dll" stdcall [
 		GetDeviceCaps: "GetDeviceCaps" [
