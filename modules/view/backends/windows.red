@@ -251,7 +251,6 @@ system/view/platform: context [
 					;WM_DESTROY []
 					default			[EVT_DISPATCH_AND_PROCESS]
 				]
-				;done?
 			]
 			
 			post-process: func [
