@@ -525,4 +525,59 @@ unicode: context [
 		s/tail: as cell! (as byte-ptr! s/offset) + (size - 1 * unit)
 		node
 	]
+	
+	to-utf16: func [
+		str		[red-string!]
+		return: [c-string!]
+		/local
+			s	 [series!]
+			s2	 [series!]
+			node [node!]
+			src  [byte-ptr!]
+			dst  [byte-ptr!]
+			tail [byte-ptr!]
+			unit [integer!]
+	][
+		s:	  GET_BUFFER(str)
+		unit: GET_UNIT(s)
+
+		either null? str/cache [
+
+			switch unit [
+				Latin1 [
+					node: alloc-bytes (1 + string/rs-length? str) << 1	;-- account for NUL
+					s2: as series! node/value
+					str/cache: as-c-string s2/offset
+					
+					src:  (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+					tail: as byte-ptr! s/tail
+					dst:  as byte-ptr! str/cache
+					while [src < tail][								;-- in-place conversion
+						dst/1: src/1
+						dst/2: null-byte
+						src: src + 1
+						dst: dst + 2
+					]
+					dst/1: null-byte
+					dst/2: null-byte
+				]
+				UCS-2 [
+					0
+				]
+				UCS-4 [
+					0
+				]
+			]
+		][
+			if all [
+				;check if buffer changed
+				s/flags and flag-UTF16-cache = 0 
+			][
+				;refresh
+				0
+			]
+		]
+		str/cache
+	]
+	
 ]
