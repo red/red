@@ -118,6 +118,7 @@ Red/System [
 #define VK_F22				85h
 #define VK_F23				86h
 #define VK_F24				87h
+#define VK_PROCESSKEY		E5h
 
 #define DEFAULT_GUI_FONT 	17
 
@@ -225,6 +226,22 @@ OSVERSIONINFO: alias struct! [
 	szCSDVersion13		[float!]
 	szCSDVersion14		[float!]
 	szCSDVersion15		[float!]
+	szCSDVersion16		[float!]
+	szCSDVersion17		[float!]
+	szCSDVersion18		[float!]
+	szCSDVersion19		[float!]
+	szCSDVersion20		[float!]
+	szCSDVersion21		[float!]
+	szCSDVersion22		[float!]
+	szCSDVersion23		[float!]
+	szCSDVersion24		[float!]
+	szCSDVersion25		[float!]
+	szCSDVersion26		[float!]
+	szCSDVersion27		[float!]
+	szCSDVersion28		[float!]
+	szCSDVersion29		[float!]
+	szCSDVersion30		[float!]
+	szCSDVersion31		[float!]
 	wServicePack		[integer!]			;-- Major: 16, Minor: 16
 	wSuiteMask0			[byte!]
 	wSuiteMask1			[byte!]
@@ -234,19 +251,19 @@ OSVERSIONINFO: alias struct! [
 
 #import [
 	"kernel32.dll" stdcall [
-		GetModuleHandle: "GetModuleHandleA" [
+		GetModuleHandle: "GetModuleHandleW" [
 			lpModuleName [integer!]
 			return:		 [handle!]
 		]
 		GetLastError: "GetLastError" [
 			return: [integer!]
 		]
-		GetSystemDirectory: "GetSystemDirectoryA" [
+		GetSystemDirectory: "GetSystemDirectoryW" [
 			lpBuffer	[c-string!]
 			uSize		[integer!]
 			return:		[integer!]
 		]
-		CreateActCtx: "CreateActCtxA" [
+		CreateActCtx: "CreateActCtxW" [
 			pActCtx		[ACTCTX]
 			return:		[handle!]
 		]
@@ -254,7 +271,7 @@ OSVERSIONINFO: alias struct! [
 			hActCtx		[handle!]
 			lpCookie	[struct! [ptr [byte-ptr!]]]
 		]
-		GetVersionEx: "GetVersionExA" [
+		GetVersionEx: "GetVersionExW" [
 			lpVersionInfo [OSVERSIONINFO]
 			return:		[integer!]
 		]
@@ -264,23 +281,23 @@ OSVERSIONINFO: alias struct! [
 			hWnd		[handle!]
 			return:		[handle!]
 		]
-		EnumDisplayDevices: "EnumDisplayDevicesA" [
+		EnumDisplayDevices: "EnumDisplayDevicesW" [
 			lpDevice 	[c-string!]
 			iDevNum		[integer!]
 			lpDispDev	[DISPLAY_DEVICE]
 			dwFlags		[integer!]
 			return:		[integer!]
 		]
-		RegisterClassEx: "RegisterClassExA" [
+		RegisterClassEx: "RegisterClassExW" [
 			lpwcx		[WNDCLASSEX]
 			return: 	[integer!]
 		]
-		LoadCursor: "LoadCursorA" [
+		LoadCursor: "LoadCursorW" [
 			hInstance	 [handle!]
 			lpCursorName [integer!]
 			return: 	 [handle!]
 		]
-		CreateWindowEx: "CreateWindowExA" [
+		CreateWindowEx: "CreateWindowExW" [
 			dwExStyle	 [integer!]
 			lpClassName	 [c-string!]
 			lpWindowName [c-string!]
@@ -311,14 +328,14 @@ OSVERSIONINFO: alias struct! [
 			hWnd		[handle!]
 			return:		[logic!]
 		]
-		DefWindowProc: "DefWindowProcA" [
+		DefWindowProc: "DefWindowProcW" [
 			hWnd		[handle!]
 			msg			[integer!]
 			wParam		[integer!]
 			lParam		[integer!]
 			return: 	[integer!]
 		]
-		GetMessage: "GetMessageA" [
+		GetMessage: "GetMessageW" [
 			msg			[tagMSG]
 			hWnd		[handle!]
 			wParam		[integer!]
@@ -329,21 +346,21 @@ OSVERSIONINFO: alias struct! [
 			msg			[tagMSG]
 			return: 	[logic!]
 		]
-		DispatchMessage: "DispatchMessageA" [
+		DispatchMessage: "DispatchMessageW" [
 			msg			[tagMSG]
 			return: 	[integer!]
 		]
 		PostQuitMessage: "PostQuitMessage" [
 			nExitCode	[integer!]
 		]
-		SendMessage: "SendMessageA" [
+		SendMessage: "SendMessageW" [
 			hWnd		[handle!]
 			msg			[integer!]
 			wParam		[integer!]
 			lParam		[integer!]
 			return: 	[handle!]
 		]
-		SendDlgItemMessage: "SendDlgItemMessageA" [
+		SendDlgItemMessage: "SendDlgItemMessageW" [
 			hDlg		[handle!]
 			nIDDlgItem	[integer!]
 			msg			[integer!]
@@ -351,18 +368,18 @@ OSVERSIONINFO: alias struct! [
 			lParam		[integer!]
 			return: 	[handle!]
 		]
-		SetWindowLong: "SetWindowLongA" [
+		SetWindowLong: "SetWindowLongW" [
 			hWnd		[handle!]
 			nIndex		[integer!]
 			dwNewLong	[integer!]
 			return: 	[handle!]
 		]
-		GetWindowLong: "GetWindowLongA" [
+		GetWindowLong: "GetWindowLongW" [
 			hWnd		[handle!]
 			nIndex		[integer!]
 			return: 	[handle!]
 		]
-		GetClassInfoEx: "GetClassInfoExA" [
+		GetClassInfoEx: "GetClassInfoExW" [
 			hInst		[integer!]
 			lpszClass	[c-string!]
 			lpwcx		[WNDCLASSEX]					;-- pass a WNDCLASSEX pointer's pointer
@@ -385,7 +402,7 @@ OSVERSIONINFO: alias struct! [
 			crColor		[integer!]					;-- 0x00bbggrr
 			return:		[integer!]					;-- 0x00bbggrr				
 		]
-		TextOut: "TextOutA" [
+		TextOut: "TextOutW" [
 			hdc			[handle!]
 			nXStart		[integer!]
 			nYStart		[integer!]

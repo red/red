@@ -196,6 +196,7 @@ system/view/platform: context [
 				return: [integer!]
 				/local
 					state [integer!]
+					key	  [integer!]
 			][
 				gui-evt/type: type
 				gui-evt/msg:  as byte-ptr! msg
@@ -204,7 +205,9 @@ system/view/platform: context [
 				
 				switch type [
 					EVT_KEY_DOWN [
-						gui-evt/flags: msg/wParam and FFFFh or EVT_FLAG_KEY_DOWN
+						key: msg/wParam and FFFFh
+						if key = VK_PROCESSKEY [return EVT_DISPATCH]  ;-- IME-friendly exit
+						gui-evt/flags: key or EVT_FLAG_KEY_DOWN
 						gui-evt/type: EVT_KEY
 						state: EVT_DISPATCH
 					]
@@ -301,14 +304,14 @@ system/view/platform: context [
 			][
 				ctx: declare ACTCTX
 				cookie: declare struct! [ptr [byte-ptr!]]
-				dir: as-c-string allocate 129				;-- 128 bytes + NUL
+				dir: as-c-string allocate 258				;-- 128 UTF-16 codepoints + 2 NUL
 
 				ctx/cbSize:		 size? ACTCTX
 				ctx/dwFlags: 	 ACTCTX_FLAG_RESOURCE_NAME_VALID
 					or ACTCTX_FLAG_SET_PROCESS_DEFAULT
 					or ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID
 
-				ctx/lpSource: 	 "shell32.dll"
+				ctx/lpSource: 	 #u16 "shell32.dll"
 				ctx/wProcLangID: 0
 				ctx/lpAssDir: 	 dir
 				ctx/lpResource:	 as-c-string 124			;-- Manifest ID in the DLL
@@ -356,7 +359,7 @@ system/view/platform: context [
 				wcex/hCursor:		LoadCursor null IDC_ARROW
 				wcex/hbrBackground:	COLOR_WINDOW
 				wcex/lpszMenuName:	null
-				wcex/lpszClassName: "RedWindow"
+				wcex/lpszClassName: #u16 "RedWindow"
 				wcex/hIconSm:		0
 
 				RegisterClassEx wcex
@@ -370,15 +373,15 @@ system/view/platform: context [
 				wcex/hCursor:		LoadCursor null IDC_ARROW
 				wcex/hbrBackground:	13
 				wcex/lpszMenuName:	null
-				wcex/lpszClassName: "Base"
+				wcex/lpszClassName: #u16 "Base"
 				wcex/hIconSm:		0
 
 				RegisterClassEx wcex
 				
 				;-- superclass existing classes to add 16 extra bytes
-				;make-super-class "RedButton" "BUTTON"	;@@ commented until switch to Unicode API
-				;make-super-class "RedField"  "EDIT"
-				;make-super-class "RedFace"	  "STATIC"
+				make-super-class #u16 "RedButton" #u16 "BUTTON"
+				make-super-class #u16 "RedField"  #u16 "EDIT"
+				make-super-class #u16 "RedFace"	  #u16 "STATIC"
 			]
 			
 			init: func [
@@ -458,31 +461,31 @@ system/view/platform: context [
 
 				case [
 					sym = button [
-						class: "BUTTON" 				;@@ "RedButton"
+						class: #u16 "RedButton"
 						flags: flags or BS_PUSHBUTTON
 					]
 					sym = check [
-						class: "BUTTON" 				;@@ "RedButton"
+						class: #u16 "RedButton"
 						flags: flags or WS_TABSTOP or BS_AUTOCHECKBOX
 					]
 					sym = radio [
-						class: "BUTTON" 				;@@ "RedButton"
+						class: #u16 "RedButton"
 						flags: flags or WS_TABSTOP or BS_AUTORADIOBUTTON
 					]
 					sym = field [
-						class: "EDIT"					;@@ "RedField"
+						class: #u16 "RedField"
 						flags: flags or ES_LEFT
 						ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
 					]
 					sym = text [
-						class: "STATIC"					;@@ "RedFace"
+						class: #u16 "RedFace"
 						flags: flags or SS_SIMPLE
 					]
 					sym = base [
-						class: "Base"
+						class: #u16 "Base"
 					]
 					sym = window [
-						class: "RedWindow"
+						class: #u16 "RedWindow"
 						flags: WS_OVERLAPPEDWINDOW or WS_CLIPCHILDREN
 						offx:  CW_USEDEFAULT
 						offy:  CW_USEDEFAULT
@@ -490,7 +493,7 @@ system/view/platform: context [
 				]
 
 				caption: either TYPE_OF(str) = TYPE_STRING [
-					as-c-string string/rs-head str
+					unicode/to-utf16 str
 				][
 					null
 				]
@@ -512,7 +515,7 @@ system/view/platform: context [
 				if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 				SendMessage handle WM_SETFONT as-integer default-font 1
 				
-				SetWindowLong handle GWL_USERDATA as-integer face/ctx
+				;SetWindowLong handle GWL_USERDATA as-integer face/ctx
 
 				as-integer handle
 			]

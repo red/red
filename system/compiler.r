@@ -1572,7 +1572,6 @@ system-dialect: make-profilable context [
 			]
 			parse str [any [skip pos: (insert pos null) skip]]
 			append str null								;-- extra NUL for UTF-16 version
-			probe str
 			pc: next pc
 			fetch-expression
 		]
