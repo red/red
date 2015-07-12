@@ -130,8 +130,6 @@ Red/System [
 #define VER_NT_DOMAIN_CONTROLLER	2
 #define VER_NT_SERVER				3
 
-#define GWL_USERDATA        -21
-
 #define handle!				[pointer! [integer!]]
 
 #define WIN32_LOWORD(param) (param and FFFFh)
@@ -360,24 +358,16 @@ OSVERSIONINFO: alias struct! [
 			lParam		[integer!]
 			return: 	[handle!]
 		]
-		SendDlgItemMessage: "SendDlgItemMessageW" [
-			hDlg		[handle!]
-			nIDDlgItem	[integer!]
-			msg			[integer!]
-			wParam		[integer!]
-			lParam		[integer!]
-			return: 	[handle!]
-		]
 		SetWindowLong: "SetWindowLongW" [
 			hWnd		[handle!]
 			nIndex		[integer!]
 			dwNewLong	[integer!]
-			return: 	[handle!]
+			return: 	[integer!]
 		]
 		GetWindowLong: "GetWindowLongW" [
 			hWnd		[handle!]
 			nIndex		[integer!]
-			return: 	[handle!]
+			return: 	[integer!]
 		]
 		GetClassInfoEx: "GetClassInfoExW" [
 			hInst		[integer!]

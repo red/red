@@ -78,7 +78,7 @@ event: context [
 		
 		case [
 			sym = words/type	[exec/gui/get-event-type evt]
-			;sym = words/face	[exec/gui/get-event-face evt]
+			sym = words/face	[exec/gui/get-event-face evt]
 			;sym = words/window	[exec/gui/get-event-window evt]
 			sym = words/offset	[exec/gui/get-event-offset evt]
 			sym = words/key		[exec/gui/get-event-key	evt]

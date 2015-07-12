@@ -92,6 +92,8 @@ system/view/platform: context [
 			hScreen: as handle! 0
 			default-font: declare handle!
 			version-info: declare OSVERSIONINFO
+			wc-extra:	80								;-- reserve 64 bytes for win32 internal usage (arbitrary)
+			wc-offset:	64								;-- offset to our 16 bytes
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -118,8 +120,20 @@ system/view/platform: context [
 			get-event-face: func [
 				evt		[red-event!]
 				return: [red-value!]
+				/local
+					handle [handle!]
+					face   [red-object!]
+					msg    [tagMSG]
 			][
-				as red-value! none-value
+				msg: as tagMSG evt/msg
+				handle: msg/hWnd
+				
+				face: as red-object! stack/push*
+				face/header:		  GetWindowLong handle wc-offset + 0
+				face/ctx:	 as node! GetWindowLong handle wc-offset + 4
+				face/class:			  GetWindowLong handle wc-offset + 8
+				face/on-set: as node! GetWindowLong handle wc-offset + 12
+				as red-value! face
 			]
 			
 			get-event-offset: func [
@@ -337,7 +351,7 @@ system/view/platform: context [
 					print-line "*** Error in GetClassInfoEx"
 				]
 				wcex/cbSize: 		size? WNDCLASSEX
-				wcex/cbClsExtra:	16					;-- reserve extra memory for face! slot
+				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
 				wcex/lpszClassName: new
 				RegisterClassEx wcex
 			]
@@ -352,8 +366,8 @@ system/view/platform: context [
 				wcex/cbSize: 		size? WNDCLASSEX
 				wcex/style:			CS_HREDRAW or CS_VREDRAW ;or CS_DBLCLKS
 				wcex/lpfnWndProc:	:WndProc
-				wcex/cbClsExtra:	16
-				wcex/cbWndExtra:	0
+				wcex/cbClsExtra:	0
+				wcex/cbWndExtra:	wc-extra
 				wcex/hInstance:		hInstance
 				wcex/hIcon:			null
 				wcex/hCursor:		LoadCursor null IDC_ARROW
@@ -366,8 +380,8 @@ system/view/platform: context [
 				
 				wcex/style:			CS_HREDRAW or CS_VREDRAW ;or CS_DBLCLKS
 				wcex/lpfnWndProc:	:WndProc
-				wcex/cbClsExtra:	16
-				wcex/cbWndExtra:	0
+				wcex/cbClsExtra:	0
+				wcex/cbWndExtra:	wc-extra
 				wcex/hInstance:		hInstance
 				wcex/hIcon:			null
 				wcex/hCursor:		LoadCursor null IDC_ARROW
@@ -515,7 +529,11 @@ system/view/platform: context [
 				if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 				SendMessage handle WM_SETFONT as-integer default-font 1
 				
-				;SetWindowLong handle GWL_USERDATA as-integer face/ctx
+				;-- store the face value in the extra space of the window struct
+				SetWindowLong handle wc-offset + 0  		   face/header
+				SetWindowLong handle wc-offset + 4  as-integer face/ctx
+				SetWindowLong handle wc-offset + 8  		   face/class
+				SetWindowLong handle wc-offset + 12 as-integer face/on-set
 
 				as-integer handle
 			]
