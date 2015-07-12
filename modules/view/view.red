@@ -40,16 +40,43 @@ system/view: context [
 
 	platform: none	
 	VID: none
+	evt-names: #(
+		down			on-down
+		up				on-up
+		middle-down		on-mid-down
+		middle-up		on-mid-up
+		alt-down		on-alt-down
+		alt-up			on-alt-up
+		aux-down		on-aux-down
+		aux-up			on-aux-up
+		click			on-click
+		double-click	on-dbl-click
+		move			on-move
+		key				on-key
+		key-up			on-key-up
+	)
 	
-	awake: func [event [event!]][						;@@ temporary until event:// is implemented
-		print [
-			"event> type:"	event/type
-			"offset:"		event/offset
-			"key:"			mold event/key
-			"face:" 		mold event/face
+	awake: function [event [event!]][					;@@ temporary until event:// is implemented
+		if debug? [
+			print [
+				"event> type:"	event/type
+				"offset:"		event/offset
+				"key:"			mold event/key
+				;"face:" 		mold event/face
+			]
+		]
+		face: event/face
+		
+		if all [
+			object? face/actors
+			act: in face/actors select evt-names event/type
+			act: get act
+		][	
+			do [act face event]
 		]
 	]
 
+	debug?: yes
 ]
 
 ;#include %backends/android.red
