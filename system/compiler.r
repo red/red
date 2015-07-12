@@ -1566,6 +1566,17 @@ system-dialect: make-profilable context [
 			none										;-- do not return an expression to compile
 		]
 		
+		process-u16: func [code [block!] /local str pos][
+			unless string? str: code/2 [
+				throw-error "#u16 can only be applied to literal strings"
+			]
+			parse str [any [skip pos: (insert pos null) skip]]
+			append str null								;-- extra NUL for UTF-16 version
+			probe str
+			pc: next pc
+			fetch-expression
+		]
+		
 		comp-chunked: func [body [block!]][
 			emitter/chunks/start
 			do body
@@ -1582,6 +1593,7 @@ system-dialect: make-profilable context [
 				#in		 [process-in	  pc]
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
 				#verbose [set-verbose-level pc/2 pc: skip pc 2]
+				#u16	 [process-u16 	  pc]
 				#script	 [								;-- internal compiler directive
 					unless pc/2 = 'in-memory [
 						compiler/script: secure-clean-path pc/2	;-- set the origin of following code
