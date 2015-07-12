@@ -16,6 +16,8 @@ Red/System [
 #define COLOR_WINDOW		5
 #define CS_VREDRAW			1
 #define CS_HREDRAW			2
+#define CS_DBLCLKS			8
+
 
 #define IDC_ARROW			7F00h
 #define WS_OVERLAPPEDWINDOW	00CF0000h
@@ -64,6 +66,7 @@ Red/System [
 #define WM_SYSCOMMAND		0112h
 #define WM_LBUTTONDOWN		0201h
 #define WM_LBUTTONUP		0202h
+#define WM_LBUTTONDBLCLK	0203h
 #define WM_RBUTTONDOWN		0204h
 #define WM_RBUTTONUP		0205h
 #define WM_MBUTTONDOWN		0207h

@@ -63,7 +63,7 @@ system/view/platform: context [
 			_double-click:	word/load "double-click"
 			_move:			word/load "move"
 			_key:			word/load "key"
-			_key-down:		word/load "key-down"
+			;_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
 			
 			_page-up:		word/load "page-up"
@@ -92,6 +92,7 @@ system/view/platform: context [
 			hScreen: as handle! 0
 			default-font: declare handle!
 			version-info: declare OSVERSIONINFO
+			current-msg: as tagMSG 0
 			wc-extra:	80								;-- reserve 64 bytes for win32 internal usage (arbitrary)
 			wc-offset:	64								;-- offset to our 16 bytes
 
@@ -112,7 +113,7 @@ system/view/platform: context [
 					EVT_DBL_CLICK	 [_double-click]
 					EVT_MOVE		 [_move]
 					EVT_KEY			 [_key]
-					EVT_KEY_DOWN	 [_key-down]
+					;EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
 				]
 			]
@@ -241,7 +242,15 @@ system/view/platform: context [
 				lParam	[integer!]
 				return: [integer!]
 			][
-				if msg = WM_DESTROY [PostQuitMessage 0]
+				switch msg [
+					WM_DESTROY [PostQuitMessage 0]
+					WM_COMMAND [
+						if WIN32_HIWORD(wParam) = BN_CLICKED [
+							make-event current-msg EVT_CLICK
+						]
+					]
+					default [0]
+				]
 				DefWindowProc hWnd msg wParam lParam
 			]
 			
@@ -265,6 +274,10 @@ system/view/platform: context [
 						make-event msg EVT_KEY_DOWN
 						EVT_NO_PROCESS
 					]
+					WM_LBUTTONDBLCLK [
+						make-event msg EVT_DBL_CLICK
+						EVT_NO_PROCESS
+					]
 					;WM_DESTROY []
 					default			[EVT_DISPATCH_AND_PROCESS]
 				]
@@ -276,12 +289,6 @@ system/view/platform: context [
 					wParam [integer!]
 			][
 				switch msg/msg [
-					WM_COMMAND [
-						wParam: msg/wParam
-						if WIN32_HIWORD(wParam) = BN_CLICKED [
-							make-event msg EVT_CLICK
-						]
-					]
 					WM_CHAR [make-event msg EVT_KEY]
 					default [0]
 				]
@@ -299,6 +306,7 @@ system/view/platform: context [
 					TranslateMessage msg
 					state: pre-process msg
 					if state >= EVT_DISPATCH [
+						current-msg: msg
 						DispatchMessage msg
 						if state = EVT_DISPATCH_AND_PROCESS [
 							post-process msg
@@ -364,7 +372,7 @@ system/view/platform: context [
 				wcex: declare WNDCLASSEX
 
 				wcex/cbSize: 		size? WNDCLASSEX
-				wcex/style:			CS_HREDRAW or CS_VREDRAW ;or CS_DBLCLKS
+				wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 				wcex/lpfnWndProc:	:WndProc
 				wcex/cbClsExtra:	0
 				wcex/cbWndExtra:	wc-extra
@@ -378,7 +386,7 @@ system/view/platform: context [
 
 				RegisterClassEx wcex
 				
-				wcex/style:			CS_HREDRAW or CS_VREDRAW ;or CS_DBLCLKS
+				wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 				wcex/lpfnWndProc:	:WndProc
 				wcex/cbClsExtra:	0
 				wcex/cbWndExtra:	wc-extra
