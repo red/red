@@ -47,6 +47,13 @@ system/view/platform: context [
 				EVT_DISPATCH_AND_PROCESS				;-- allow full post-processing of the msg
 			]
 			
+			ext-class!: alias struct! [
+				symbol	  [integer!]					;-- symbol ID
+				class	  [c-string!]					;-- UTF-16 encoded
+				ex-styles [integer!]					;-- extended windows styles
+				styles	  [integer!]					;-- windows styles
+			]
+			
 			gui-evt: declare red-event!					;-- low-level event value slot
 			gui-evt/header: TYPE_EVENT
 			
@@ -57,6 +64,11 @@ system/view/platform: context [
 			current-msg: 	as tagMSG 0
 			wc-extra:		80							;-- reserve 64 bytes for win32 internal usage (arbitrary)
 			wc-offset:		64							;-- offset to our 16 bytes
+			
+			;-- extended classes handling
+			max-ext-styles: 20
+			ext-classes:	as ext-class! allocate max-ext-styles * size? ext-class!
+			ext-cls-tail:	ext-classes					;-- tail pointer
 
 			window:			symbol/make "window"
 			button:			symbol/make "button"
@@ -285,7 +297,7 @@ system/view/platform: context [
 					]
 					WM_LBUTTONDBLCLK [
 						make-event msg EVT_DBL_CLICK
-						EVT_NO_PROCESS
+						EVT_DISPATCH_AND_PROCESS
 					]
 					;WM_DESTROY []
 					default			[EVT_DISPATCH_AND_PROCESS]
@@ -345,7 +357,7 @@ system/view/platform: context [
 				ctx/lpSource: 	 #u16 "shell32.dll"
 				ctx/wProcLangID: 0
 				ctx/lpAssDir: 	 dir
-				ctx/lpResource:	 as-c-string 124			;-- Manifest ID in the DLL
+				ctx/lpResource:	 as-c-string 124		;-- Manifest ID in the DLL
 
 				sz: GetSystemDirectory dir 128
 				if sz > 128 [probe "*** GetSystemDirectory: buffer overflow"]
@@ -354,6 +366,55 @@ system/view/platform: context [
 
 				ActivateActCtx CreateActCtx ctx cookie
 				cookie/ptr
+			]
+			
+			find-class: func [
+				name	[red-word!]
+				return: [ext-class!]
+				/local
+					sym [integer!]
+					p	[ext-class!]
+			][
+				sym: symbol/resolve name/symbol
+				p: ext-classes
+				while [p < ext-cls-tail][
+					if p/symbol = sym [return p]
+					p: p + 1
+				]
+				print-line "gui/find-class failed"
+				null
+			]
+			
+			register-class: func [
+				[typed]
+				count [integer!]
+				list  [typed-value!]
+				/local
+					p [ext-class!]
+					arg1 arg2 arg3 arg4 arg5
+			][
+				if count <> 5 [print-line "gui/register-class error: invalid spec block"]
+				
+				arg1: list/value						;@@ TBD: allow struct indexing in R/S
+				list: list + 1
+				arg2: list/value
+				list: list + 1
+				arg3: list/value
+				list: list + 1
+				arg4: list/value
+				list: list + 1
+				arg5: list/value
+				
+				make-super-class as-c-string arg2 as-c-string arg1
+				
+				p: ext-cls-tail
+				ext-cls-tail: ext-cls-tail + 1
+				assert ext-classes + max-ext-styles > ext-cls-tail
+
+				p/symbol:	 arg3
+				p/class:	 as-c-string arg2
+				p/ex-styles: arg4
+				p/styles: 	 arg5
 			]
 			
 			make-super-class: func [
@@ -483,6 +544,7 @@ system/view/platform: context [
 					caption  [c-string!]
 					offx	 [integer!]
 					offy	 [integer!]
+					p		 [ext-class!]
 			][
 				flags: 	  WS_VISIBLE or WS_CHILD
 				ws-flags: 0
@@ -520,6 +582,12 @@ system/view/platform: context [
 						flags: WS_OVERLAPPEDWINDOW or WS_CLIPCHILDREN
 						offx:  CW_USEDEFAULT
 						offy:  CW_USEDEFAULT
+					]
+					true [								;-- search in user-defined classes
+						p: find-class type
+						class: p/class
+						ws-flags: ws-flags or p/ex-styles
+						flags: flags or p/styles
 					]
 				]
 
