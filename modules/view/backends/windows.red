@@ -47,9 +47,24 @@ system/view/platform: context [
 				EVT_DISPATCH_AND_PROCESS				;-- allow full post-processing of the msg
 			]
 			
-			
 			gui-evt: declare red-event!					;-- low-level event value slot
 			gui-evt/header: TYPE_EVENT
+			
+			hScreen:		as handle! 0
+			hInstance:		as handle! 0
+			default-font:	as handle! 0
+			version-info: 	declare OSVERSIONINFO
+			current-msg: 	as tagMSG 0
+			wc-extra:		80							;-- reserve 64 bytes for win32 internal usage (arbitrary)
+			wc-offset:		64							;-- offset to our 16 bytes
+
+			window:			symbol/make "window"
+			button:			symbol/make "button"
+			check:			symbol/make "check"
+			radio:			symbol/make "radio"
+			field:			symbol/make "field"
+			text:			symbol/make "text"
+			base:			symbol/make "base"
 				
 			_down:			word/load "down"
 			_up:			word/load "up"
@@ -89,12 +104,6 @@ system/view/platform: context [
 			_F11:			word/load "F11"
 			_F12:			word/load "F12"
 			
-			hScreen: as handle! 0
-			default-font: declare handle!
-			version-info: declare OSVERSIONINFO
-			current-msg: as tagMSG 0
-			wc-extra:	80								;-- reserve 64 bytes for win32 internal usage (arbitrary)
-			wc-offset:	64								;-- offset to our 16 bytes
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -545,19 +554,6 @@ system/view/platform: context [
 
 				as-integer handle
 			]
-
-			hInstance:	declare handle!
-			hdc: 		declare handle!
-			hWnd:		declare handle!
-			msg:		declare tagMSG
-
-			window:		symbol/make "window"
-			button:		symbol/make "button"
-			check:		symbol/make "check"
-			radio:		symbol/make "radio"
-			field:		symbol/make "field"
-			text:		symbol/make "text"
-			base:		symbol/make "base"
 		]
 	]
 	
