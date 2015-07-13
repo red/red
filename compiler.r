@@ -2777,12 +2777,15 @@ red: context [
 			]
 			if all [set? obj/5][						;-- detect on-set callback 
 				insert last output reduce [				;-- save old value
+					to set-path! 'stack/top 'stack/top '+ 1
 					'word/get-local ctx get-word-index/with last path ctx
 				]
 				repend last output [
 					'object/fire-on-set*
 						decorate-symbol first back back tail path
 						decorate-symbol last path
+						'stack/top '- 1
+						'stack/top '- 2
 				]
 				foreach pos [-9 -6 -3][new-line skip tail last output pos yes]
 			]
