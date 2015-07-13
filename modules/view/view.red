@@ -35,7 +35,7 @@ face!: object [
 				size		20000000h
 				text		10000000h
 				image		08000000h
-				color:		04000000h
+				color		04000000h
 				data		02000000h
 				visible?	01000000h
 				parent		00800000h
