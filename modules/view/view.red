@@ -16,6 +16,7 @@ face!: object [
 	size:		none
 	text:		none
 	image:		none
+	color:		none
 	data:		none
 	visible?:	none
 	parent:		none
@@ -25,6 +26,27 @@ face!: object [
 	edge:		none
 	actors:		none
 	extra:		none		;-- for storing optional user data
+	
+	on-change*: func [w o n][
+		if all [state w <> 'state][
+			state/2: state/2 or select [
+				type		80000000h
+				offset		40000000h
+				size		20000000h
+				text		10000000h
+				image		08000000h
+				color:		04000000h
+				data		02000000h
+				visible?	01000000h
+				parent		00800000h
+				pane		00400000h
+				rate		00200000h
+				edge		00100000h
+				actors		00080000h
+				extra		00040000h
+			] w
+		]
+	]
 ]
 
 system/view: context [

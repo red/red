@@ -27,6 +27,8 @@ button: make face! [
 	size: 60x40
 	actors: object [
 		on-click: func [face [object!] event [event!]][
+			face/color: red
+			probe face
 			print "Hello!"
 		]
 	]
