@@ -81,6 +81,7 @@ system/view: context [
 
 ;#include %backends/android.red
 #include %backends/windows.red
+#include %VID.red
 
 do-events: func [/no-wait][
 	system/view/platform/do-event-loop no

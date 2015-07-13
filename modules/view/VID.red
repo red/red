@@ -10,30 +10,12 @@ Red [
 	}
 ]
 
-;#include %backends/android.red
-#include %backends/windows.red
-
 at-offset: pad-offset: none
-
-button-list: make block! 4
 
 cursor: 	  [0 0 0x0]									;-- max-x|y, current-x|y, next-face-coordinates
 direction: 	  'across
 origin:	  	  10x10
 spacing:	  10x10
-
-face!: object [
-	type:	 none
-	offset:	 none
-	size: 	 none
-	text:	 none
-	image:	 none
-	parent:	 none
-	pane:	 none
-	state:	 none
-	edge:	 none
-	actors:  none
-]
 
 reset-cursor: does [
 	either direction = 'across [
@@ -62,10 +44,9 @@ make-face: func [
 		face/text:	 opts/text
 		
 		if find opts 'action [
-			face/actions: opts/action
+			face/actors: opts/action
 		]
 	]
-	face/state: copy [#[none] #[false]]
 	
 	if parent [
 		unless list: parent/pane [parent/pane: list: make block! 8]
@@ -92,13 +73,15 @@ make-face: func [
 		append/only list face
 	]
 	
-	if type = 'button [append/only button-list opts/action]
-	
 	at-offset: pad-offset: none							;-- reset global flags
 	face
 ]
 
-root-face: make-face none 'screen none
+root-face: make-face none 'window [
+	text: "VID test"
+	size: 800x600
+	offset: 400x400
+]
 
 view: func [
 	spec [block!]
@@ -146,13 +129,12 @@ view: func [
 			| set type 'field  options-rule (make-face current type opts)
 			| set type 'check  options-rule (make-face current type opts)
 			| set type 'radio  options-rule (make-face current type opts)
-			| set type 'toggle options-rule (make-face current type opts)
-			| set type 'clock  options-rule (make-face current type opts)
+			;| set type 'toggle options-rule (make-face current type opts)
+			;| set type 'clock  options-rule (make-face current type opts)
 			;| set type 'calendar  options-rule (make-face current type opts)
 		]
 	]
 	show root-face
-	print "entering loop..."
 	do-events
 ]
 
