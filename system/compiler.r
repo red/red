@@ -2753,8 +2753,6 @@ system-dialect: make-profilable context [
 			][
 				unless zero? block-level [
 					backtrack set-word
-?? set-word			
-?? expr
 					throw-error "variable not declared"
 				]
 				if any [
