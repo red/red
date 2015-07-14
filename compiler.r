@@ -3079,7 +3079,7 @@ red: context [
 			exit
 		]
 		
-		if all [word? name is-object? pc/1][
+		if all [word? name not path? pc/1 is-object? pc/1][
 			register-object/store pc/1 name
 		]
 		;-- General case: emit stack-oriented construction code --
