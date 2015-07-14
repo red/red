@@ -19,8 +19,6 @@ view [
 	check "option 2"
 	radio "option 3"
 	radio "option 4"
-	clock
-	toggle
 	return
 ]
 
