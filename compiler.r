@@ -3954,7 +3954,7 @@ red: context [
 						throw-error ["module not found:" mod]
 					]
 					unless find needed mod [
-						file: split-path join system/options/home file
+						file: split-path join system/script/path file
 						script-path: file/1
 						repend mods [#include file/2 #pop-path]
 						append needed mod
