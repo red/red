@@ -18,6 +18,8 @@ Red/System [
 #define CS_HREDRAW			2
 #define CS_DBLCLKS			8
 
+#define CBS_DROPDOWN		0002h
+#define CBS_HASSTRINGS		0200h
 
 #define IDC_ARROW			7F00h
 #define WS_OVERLAPPEDWINDOW	00CF0000h
@@ -140,6 +142,25 @@ Red/System [
 #define SWP_SHOWWINDOW		0040h
 #define SWP_HIDEWINDOW		0080h
 
+#define ICC_LISTVIEW_CLASSES	00000001h	;-- listview, header
+#define ICC_TREEVIEW_CLASSES	00000002h	;-- treeview, tooltips
+#define ICC_BAR_CLASSES			00000004h	;-- toolbar, statusbar, trackbar, tooltips
+#define ICC_TAB_CLASSES			00000008h	;-- tab, tooltips
+#define ICC_UPDOWN_CLASS		00000010h	;-- updown
+#define ICC_PROGRESS_CLASS		00000020h	;-- progress
+#define ICC_HOTKEY_CLASS		00000040h	;-- hotkey
+#define ICC_ANIMATE_CLASS		00000080h	;-- animate
+#define ICC_WIN95_CLASSES		000000FFh
+#define ICC_DATE_CLASSES		00000100h	;--  month picker, date picker, time picker, updown
+#define ICC_USEREX_CLASSES		00000200h	;-- comboex
+#define ICC_COOL_CLASSES		00000400h	;-- rebar (coolbar) control
+#define ICC_INTERNET_CLASSES	00000800h
+#define ICC_PAGESCROLLER_CLASS	00001000h	;-- page scroller
+#define ICC_NATIVEFNTCTL_CLASS	00002000h	;-- native font control
+;#if (_WIN32_WINNT >= 0x0501)
+#define ICC_STANDARD_CLASSES	00004000h
+#define ICC_LINK_CLASS			00008000h
+
 #define handle!				[pointer! [integer!]]
 
 #define WIN32_LOWORD(param) (param and FFFFh)
@@ -255,6 +276,11 @@ OSVERSIONINFO: alias struct! [
 	wSuiteMask1			[byte!]
 	wProductType		[byte!]
 	wReserved			[byte!]
+]
+
+INITCOMMONCONTROLSEX: alias struct! [
+	dwSize		[integer!]
+	dwICC		[integer!]
 ]
 
 RECT_STRUCT: alias struct! [
@@ -450,6 +476,13 @@ RECT_STRUCT: alias struct! [
 			crColor		[integer!]
 			return:		[handle!]
 		]
+	]
+	"Comctl32.dll" stdcall [
+		InitCommonControlsEx: "InitCommonControlsEx" [
+			lpInitCtrls [INITCOMMONCONTROLSEX]
+			return:		[integer!]
+		]
+		InitCommonControls: "InitCommonControls" []
 	]
 	"UxTheme.dll" stdcall [
 		SetWindowTheme: "SetWindowTheme" [

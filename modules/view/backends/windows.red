@@ -94,6 +94,7 @@ system/view/platform: context [
 			radio:			symbol/make "radio"
 			field:			symbol/make "field"
 			text:			symbol/make "text"
+			dropdown:		symbol/make "dropdown"
 			base:			symbol/make "base"
 				
 			_down:			word/load "down"
@@ -512,12 +513,14 @@ system/view/platform: context [
 				make-super-class #u16 "RedButton" #u16 "BUTTON"
 				make-super-class #u16 "RedField"  #u16 "EDIT"
 				make-super-class #u16 "RedFace"	  #u16 "STATIC"
+				make-super-class #u16 "RedCombo"  #u16 "ComboBox"
 			]
 			
 			init: func [
 				/local
-					ver [red-tuple!]
-					int [red-integer!]
+					ver  [red-tuple!]
+					int	 [red-integer!]
+					ctrs [INITCOMMONCONTROLSEX]
 			][
 				hScreen: GetDC null
 				hInstance: GetModuleHandle 0
@@ -531,15 +534,20 @@ system/view/platform: context [
 				ver/array1: version-info/dwMajorVersion
 					or (version-info/dwMinorVersion << 8)
 					and 0000FFFFh
-					
+				
 				unless all [
 					version-info/dwMajorVersion = 5
 					version-info/dwMinorVersion <= 1
 				][
 					enable-visual-styles				;-- not called for WinXP and Win2000
 				]
+				
+				ctrls: declare INITCOMMONCONTROLSEX
+				ctrls/dwSize: size? INITCOMMONCONTROLSEX
+				ctrls/dwICC: ICC_STANDARD_CLASSES
+				InitCommonControlsEx ctrls
+				
 				register-classes hInstance
-
 					
 				int: as red-integer! #get system/view/platform/build
 				int/header: TYPE_INTEGER
@@ -611,6 +619,10 @@ system/view/platform: context [
 					sym = text [
 						class: #u16 "RedFace"
 						flags: flags or SS_SIMPLE
+					]
+					sym = dropdown [
+						class: #u16 "RedCombo"
+						flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS ;or WS_OVERLAPPED
 					]
 					sym = base [
 						class: #u16 "Base"
