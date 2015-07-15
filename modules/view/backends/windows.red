@@ -16,6 +16,24 @@ system/view/platform: context [
 		gui: context [
 			#include %imports/win32.reds
 			
+			#enum facet! [
+				FACE_OBJ_TYPE
+				FACE_OBJ_OFFSET
+				FACE_OBJ_SIZE
+				FACE_OBJ_TEXT
+				FACE_OBJ_IMAGE
+				FACE_OBJ_COLOR
+				FACE_OBJ_DATA
+				FACE_OBJ_VISIBLE?
+				FACE_OBJ_PARENT
+				FACE_OBJ_PANE
+				FACE_OBJ_STATE
+				;FACE_OBJ_RATE
+				FACE_OBJ_EDGE
+				FACE_OBJ_ACTORS
+				FACE_OBJ_EXTRA
+			]
+			
 			#enum event-type! [
 				EVT_LEFT_DOWN:		1
 				EVT_LEFT_UP
@@ -270,6 +288,9 @@ system/view/platform: context [
 							make-event current-msg EVT_CLICK
 						]
 					]
+					;WM_ERASEBKGND	[
+					;	if paint-background msg [return 1]
+					;]
 					default [0]
 				]
 				DefWindowProc hWnd msg wParam lParam
@@ -367,6 +388,23 @@ system/view/platform: context [
 				ActivateActCtx CreateActCtx ctx cookie
 				cookie/ptr
 			]
+			
+			;paint-background: func [
+			;	msg		[tagMSG]
+			;	return: [logic!]
+			;][
+			;
+			;]
+			
+			;change-color: func [
+			;	hWnd  [handle!]
+			;	color [tuple!]
+			;][
+				;SetWindowLong 
+				;	hWnd
+				;	-16
+				;	CreateSolidBrush color/3 << 16 or (color/2 << 8) or color/1	
+			;]
 			
 			find-class: func [
 				name	[red-word!]
@@ -625,6 +663,30 @@ system/view/platform: context [
 		]
 	]
 	
+	change-size: routine [
+		hWnd [integer!]
+		size [pair!]
+	][
+		gui/SetWindowPos 
+			as handle! hWnd
+			as handle! 0
+			0 0
+			size/x size/y 
+			SWP_NOMOVE or SWP_NOZORDER
+	]
+	
+	change-offset: routine [
+		hWnd [integer!]
+		pos  [pair!]
+	][
+		gui/SetWindowPos 
+			as handle! hWnd
+			as handle! 0
+			pos/x pos/y
+			0 0
+			SWP_NOSIZE or SWP_NOZORDER
+	]
+	
 	get-screen-size: routine [
 		id		[integer!]
 		/local
@@ -632,6 +694,36 @@ system/view/platform: context [
 	][
 		pair: gui/get-screen-size id
 		SET_RETURN(pair)
+	]
+	
+	update-view: routine [
+		face [object!]
+		/local
+			ctx		[red-context!]
+			values	[red-value!]
+			state	[red-block!]
+			int		[red-integer!]
+			s		[series!]
+			hWnd	[integer!]
+			flags	[integer!]
+	][
+		ctx: GET_CTX(face)
+		s: as series! ctx/values/value
+		values: s/offset
+		
+		state: as red-block! values + gui/FACE_OBJ_STATE
+		s: GET_BUFFER(state)
+		int: as red-integer! s/offset
+		hWnd: int/value
+		int: int + 1
+		flags: int/value
+		
+		if flags and 40000000h <> 0 [
+			change-offset hWnd as red-pair! values + gui/FACE_OBJ_OFFSET
+		]
+		if flags and 20000000h <> 0 [
+			change-size hWnd as red-pair! values + gui/FACE_OBJ_SIZE
+		]
 	]
 	
 	show-window: routine [id [integer!]][gui/OS-show-window id]
@@ -651,27 +743,6 @@ system/view/platform: context [
 	do-event-loop: routine [no-wait? [logic!]][
 		print-line "do-event-loop"
 		gui/do-events no-wait?
-	]
-
-	show: func [face [object!] /with parent [object!] /local obj f params new? p][
-		either all [face/state face/state/1][
-
-		][
-			new?: yes
-			if face/type <> 'screen [
-				p: either with [parent/state/1][0]
-				obj: make-view face face/type face/text face/offset face/size p
-				
-				if face/type = 'window [
-					append system/view/screens/1/pane face
-				]
-			]
-			face/state: reduce [obj 0 0]
-		]
-		
-		if face/pane [foreach f face/pane [self/show/with f face]]
-
-		if all [new? face/type = 'window][show-window obj]
 	]
 	
 	init: has [svs][

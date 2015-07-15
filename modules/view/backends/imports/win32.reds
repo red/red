@@ -55,6 +55,7 @@ Red/System [
 
 #define WM_DESTROY			0002h
 #define WM_PAINT			000Fh
+#define WM_ERASEBKGND		0014h
 #define WM_SETFONT			0030h
 #define WM_GETFONT			0031h
 #define WM_KEYDOWN			0100h
@@ -132,6 +133,12 @@ Red/System [
 #define VER_NT_WORKSTATION			1
 #define VER_NT_DOMAIN_CONTROLLER	2
 #define VER_NT_SERVER				3
+
+#define SWP_NOSIZE			0001h
+#define SWP_NOMOVE			0002h
+#define SWP_NOZORDER		0004h
+#define SWP_SHOWWINDOW		0040h
+#define SWP_HIDEWINDOW		0080h
 
 #define handle!				[pointer! [integer!]]
 
@@ -248,6 +255,13 @@ OSVERSIONINFO: alias struct! [
 	wSuiteMask1			[byte!]
 	wProductType		[byte!]
 	wReserved			[byte!]
+]
+
+RECT_STRUCT: alias struct! [
+	left		[integer!]
+	top			[integer!]
+	right		[integer!]
+	bottom		[integer!]
 ]
 
 #import [
@@ -378,6 +392,27 @@ OSVERSIONINFO: alias struct! [
 			lpwcx		[WNDCLASSEX]					;-- pass a WNDCLASSEX pointer's pointer
 			return: 	[integer!]
 		]
+		GetClientRect: "GetClientRect" [
+			hWnd		[integer!]
+			lpRect		[RECT_STRUCT]
+			return:		[integer!]
+		]
+		FillRect: "FillRect" [
+			hDC			[handle!]
+			lprc		[RECT_STRUCT]
+			hbr			[handle!]
+			return:		[integer!]
+		]
+		SetWindowPos: "SetWindowPos" [
+			hWnd		[handle!]
+			hWndAfter	[handle!]
+			X			[integer!]
+			Y			[integer!]
+			cx			[integer!]
+			cy			[integer!]
+			uFlags		[integer!]
+			return:		[integer!]
+		]
 	]
 	"gdi32.dll" stdcall [
 		GetDeviceCaps: "GetDeviceCaps" [
@@ -393,7 +428,7 @@ OSVERSIONINFO: alias struct! [
 		SetBkColor: "SetBkColor" [
 			hdc			[handle!]
 			crColor		[integer!]					;-- 0x00bbggrr
-			return:		[integer!]					;-- 0x00bbggrr				
+			return:		[integer!]					;-- 0x00bbggrr
 		]
 		TextOut: "TextOutW" [
 			hdc			[handle!]
@@ -405,6 +440,10 @@ OSVERSIONINFO: alias struct! [
 		]
 		GetStockObject: "GetStockObject" [
 			fnObject	[integer!]
+			return:		[handle!]
+		]
+		CreateSolidBrush: "CreateSolidBrush" [
+			crColor		[integer!]
 			return:		[handle!]
 		]
 	]

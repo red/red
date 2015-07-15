@@ -10,7 +10,7 @@ Red [
 	}
 ]
 
-face!: object [
+face!: object [				;-- keep in sync with facet! enum
 	type:		none
 	offset:		none
 	size:		none
@@ -109,8 +109,27 @@ do-events: func [/no-wait][
 	system/view/platform/do-event-loop no
 ]
 
-show: func [face [object!]][
-	system/view/platform/show face
+show: function [face [object!] /with parent [object!]][
+	either all [face/state face/state/1][
+		if face/state/2 <> 0 [system/view/platform/update-view face]
+	][
+		new?: yes
+		if face/type <> 'screen [
+			p: either with [parent/state/1][0]
+			obj: system/view/platform/make-view face face/type face/text face/offset face/size p
+
+			if face/type = 'window [
+				append system/view/screens/1/pane face
+			]
+		]
+		face/state: reduce [obj 0 0]
+	]
+
+	if face/pane [foreach f face/pane [show/with f face]]
+	
+	if all [new? face/type = 'window][
+		system/view/platform/show-window obj
+	]
 ]
 
 system/view/platform/init

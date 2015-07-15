@@ -27,9 +27,11 @@ button: make face! [
 	size: 60x40
 	actors: object [
 		on-click: func [face [object!] event [event!]][
-			face/color: red
+			;face/color: red
+			face/size: face/size + (5x5 - random 10x10)
+			face/offset: face/offset + (5x5 - random 10x10)
 			probe face
-			print "Hello!"
+			show face
 		]
 	]
 ]
