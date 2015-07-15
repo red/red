@@ -408,12 +408,12 @@ red: context [
 	
 	get-path-word: func [
 		original [any-word!] blk [block!] get? [logic!]
-		/local name new obj loc? ctx idx
+		/local name new obj ctx idx
 	][
 		name: to word! original
 		
 		either all [
-			loc?: rebol-gctx <> obj: bind? original
+			rebol-gctx <> obj: bind? original
 			find shadow-funcs obj
 		][
 			either get? [
@@ -425,11 +425,25 @@ red: context [
 		][
 			if new: select-ssa name [name: new]			;@@ add a check for function! type
 			either get? [
-				append/only blk '_context/get
+				either all [
+					rebol-gctx <> obj
+					ctx: select objects obj
+					attempt [idx: get-word-index/with name ctx]
+				][
+					repend blk [
+						'word/get-in
+						either parent-object? obj ['octx][ctx] ;-- optional parametrized context reference (octx)
+						idx
+					]
+				][	
+					append/only blk '_context/get
+					append/only blk prefix-exec name
+				]
 			][
 				append blk [as cell!]
+				append/only blk prefix-exec name
 			]
-			append/only blk prefix-exec name
+			
 		]
 		blk
 	]
