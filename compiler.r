@@ -2363,7 +2363,7 @@ red: context [
 	]
 	
 	comp-routine: has [name word spec spec* body spec-idx body-idx original ctx][
-		name: get-prefix-func check-func-name to word! original: pc/-1
+		name: check-func-name get-prefix-func to word! original: pc/-1
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
 		
