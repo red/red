@@ -30,8 +30,8 @@ button: make face! [
 			;face/color: red
 			face/size: face/size + (5x5 - random 10x10)
 			face/offset: face/offset + (5x5 - random 10x10)
-			probe face
-			show face
+			win/text: "Hello World"
+			show win
 		]
 	]
 ]

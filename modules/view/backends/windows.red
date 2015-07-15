@@ -663,6 +663,14 @@ system/view/platform: context [
 		]
 	]
 	
+	get-facet-id: routine [
+		facet	[word!]
+		return: [integer!]
+	][
+		assert facet/index <> -1
+		1 << facet/index
+	]
+	
 	change-size: routine [
 		hWnd [integer!]
 		size [pair!]
@@ -685,6 +693,21 @@ system/view/platform: context [
 			pos/x pos/y
 			0 0
 			SWP_NOSIZE or SWP_NOZORDER
+	]
+	
+	change-text: routine [
+		hWnd [integer!]
+		str  [string!]
+		/local
+			text [c-string!]
+	][
+		text: null
+		switch TYPE_OF(str) [
+			TYPE_STRING [text: unicode/to-utf16 str]
+			TYPE_NONE	[text: #u16 "^@"]
+			default		[0]								;@@ Auto-convert?
+		]
+		unless null? text [gui/SetWindowText as handle! hWnd text]
 	]
 	
 	get-screen-size: routine [
@@ -718,12 +741,16 @@ system/view/platform: context [
 		int: int + 1
 		flags: int/value
 		
-		if flags and 40000000h <> 0 [
+		if flags and 00000002h <> 0 [
 			change-offset hWnd as red-pair! values + gui/FACE_OBJ_OFFSET
 		]
-		if flags and 20000000h <> 0 [
+		if flags and 00000004h <> 0 [
 			change-size hWnd as red-pair! values + gui/FACE_OBJ_SIZE
 		]
+		if flags and 00000008h <> 0 [
+			change-text hWnd as red-string! values + gui/FACE_OBJ_TEXT
+		]
+		int/value: 0									;-- reset flags
 	]
 	
 	show-window: routine [id [integer!]][gui/OS-show-window id]

@@ -413,6 +413,10 @@ RECT_STRUCT: alias struct! [
 			uFlags		[integer!]
 			return:		[integer!]
 		]
+		SetWindowText: "SetWindowTextW" [
+			hWnd		[handle!]
+			lpString	[c-string!]
+		]
 	]
 	"gdi32.dll" stdcall [
 		GetDeviceCaps: "GetDeviceCaps" [
