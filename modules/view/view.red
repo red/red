@@ -72,7 +72,7 @@ system/view: context [
 				;"face:" 		mold event/face
 			]
 		]
-		face: event/face
+		unless face: event/face [exit]
 		
 		if all [
 			object? face/actors

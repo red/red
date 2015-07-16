@@ -171,6 +171,7 @@ system/view/platform: context [
 				
 				face: as red-object! stack/push*
 				face/header: GetWindowLong handle wc-offset
+
 				if TYPE_OF(face) <> TYPE_OBJECT [
 					handle: GetParent handle			;-- for composed widgets (try 1)
 					face/header: GetWindowLong handle wc-offset
@@ -178,6 +179,12 @@ system/view/platform: context [
 						handle: WindowFromPoint msg/x msg/y	;-- for composed widgets (try 2)
 						face/header: GetWindowLong handle wc-offset
 					]
+				]
+
+				if TYPE_OF(face) <> TYPE_OBJECT [
+z: GetWindowLong handle 0
+dump4 as byte-ptr! z
+					return as red-value! none-value
 				]
 				face/ctx:	 as node! GetWindowLong handle wc-offset + 4
 				face/class:			  GetWindowLong handle wc-offset + 8
@@ -295,6 +302,9 @@ system/view/platform: context [
 					WM_COMMAND [
 						if WIN32_HIWORD(wParam) = BN_CLICKED [
 							make-event current-msg EVT_CLICK
+						]
+						if WIN32_HIWORD(wParam) = CBN_SELCHANGE [
+							?? hWnd
 						]
 					]
 					;WM_ERASEBKGND	[
@@ -591,8 +601,10 @@ system/view/platform: context [
 					values	 [red-value!]
 					type	 [red-word!]
 					str		 [red-string!]
+					tail	 [red-string!]
 					offset	 [red-pair!]
 					size	 [red-pair!]
+					data	 [red-block!]
 					flags	 [integer!]
 					ws-flags [integer!]
 					sym		 [integer!]
@@ -610,6 +622,7 @@ system/view/platform: context [
 				str:	as red-string!	values + gui/FACE_OBJ_TEXT
 				offset: as red-pair!	values + gui/FACE_OBJ_OFFSET
 				size:	as red-pair!	values + gui/FACE_OBJ_SIZE
+				data:	as red-block!	values + gui/FACE_OBJ_DATA
 				
 				flags: 	  WS_VISIBLE or WS_CHILD
 				ws-flags: 0
@@ -684,11 +697,29 @@ system/view/platform: context [
 				SendMessage handle WM_SETFONT as-integer default-font 1
 				
 				;-- extra initialization
-				;case [
-				;	sym = dropdown [
-				;		
-				;	]
-				;]
+				case [
+					sym = dropdown [
+						if any [
+							TYPE_OF(data) = TYPE_BLOCK
+							TYPE_OF(data) = TYPE_HASH
+							TYPE_OF(data) = TYPE_MAP
+						][
+							str:  as red-string! block/rs-head as red-block! data
+							tail: as red-string! block/rs-tail as red-block! data
+							while [str < tail][
+								if TYPE_OF(str) = TYPE_STRING [
+									SendMessage 
+										handle
+										CB_ADDSTRING
+										0
+										as-integer unicode/to-utf16 str
+								]
+								str: str + 1
+							]
+						]
+					]
+					true [0]
+				]
 				
 				;-- store the face value in the extra space of the window struct
 				SetWindowLong handle wc-offset		  		   face/header

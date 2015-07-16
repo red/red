@@ -18,6 +18,10 @@ Red/System [
 #define CS_HREDRAW			2
 #define CS_DBLCLKS			8
 
+#define CB_ADDSTRING		0143h
+
+#define CBN_SELCHANGE       1
+
 #define CBS_DROPDOWN		0002h
 #define CBS_HASSTRINGS		0200h
 
