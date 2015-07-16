@@ -1591,7 +1591,7 @@ system-dialect: make-profilable context [
 				#get	 [process-get	  pc]
 				#in		 [process-in	  pc]
 				#enum	 [process-enum pc/2 pc/3 pc: skip pc 3]
-				#verbose [set-verbose-level pc/2 pc: skip pc 2]
+				#verbose [set-verbose-level pc/2 pc: skip pc 2 none]
 				#u16	 [process-u16 	  pc]
 				#script	 [								;-- internal compiler directive
 					unless pc/2 = 'in-memory [
