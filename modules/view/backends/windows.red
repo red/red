@@ -50,6 +50,7 @@ system/view/platform: context [
 				EVT_KEY
 				EVT_KEY_DOWN
 				EVT_KEY_UP
+				EVT_SELECTED
 			]
 			
 			#enum event-flag! [
@@ -111,6 +112,7 @@ system/view/platform: context [
 			_key:			word/load "key"
 			;_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
+			_selected:		word/load "selected"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -155,6 +157,7 @@ system/view/platform: context [
 					EVT_KEY			 [_key]
 					;EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
+					EVT_SELECTED	 [_selected]
 				]
 			]
 			
@@ -165,6 +168,7 @@ system/view/platform: context [
 					handle [handle!]
 					face   [red-object!]
 					msg    [tagMSG]
+					p	   [int-ptr!]
 			][
 				msg: as tagMSG evt/msg
 				handle: msg/hWnd
@@ -175,17 +179,19 @@ system/view/platform: context [
 				if TYPE_OF(face) <> TYPE_OBJECT [
 					handle: GetParent handle			;-- for composed widgets (try 1)
 					face/header: GetWindowLong handle wc-offset
+					
 					if TYPE_OF(face) <> TYPE_OBJECT [
-						handle: WindowFromPoint msg/x msg/y	;-- for composed widgets (try 2)
+						handle: WindowFromPoint msg/x msg/y	;-- try 2
 						face/header: GetWindowLong handle wc-offset
+						
+						if TYPE_OF(face) <> TYPE_OBJECT [
+							p: as int-ptr! GetWindowLong handle 0	;-- try 3
+							handle: as handle! p/2
+							face/header: GetWindowLong handle wc-offset
+						]
 					]
 				]
 
-				if TYPE_OF(face) <> TYPE_OBJECT [
-z: GetWindowLong handle 0
-dump4 as byte-ptr! z
-					return as red-value! none-value
-				]
 				face/ctx:	 as node! GetWindowLong handle wc-offset + 4
 				face/class:			  GetWindowLong handle wc-offset + 8
 				face/on-set: as node! GetWindowLong handle wc-offset + 12
@@ -304,7 +310,7 @@ dump4 as byte-ptr! z
 							make-event current-msg EVT_CLICK
 						]
 						if WIN32_HIWORD(wParam) = CBN_SELCHANGE [
-							?? hWnd
+							make-event current-msg EVT_SELECTED
 						]
 					]
 					;WM_ERASEBKGND	[
@@ -717,6 +723,7 @@ dump4 as byte-ptr! z
 								str: str + 1
 							]
 						]
+						;SetWindowLong handle wc-offset as-integer 
 					]
 					true [0]
 				]
