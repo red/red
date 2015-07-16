@@ -180,7 +180,8 @@ tagMSG: alias struct! [
 	wParam	[integer!]
 	lParam	[integer!]
 	time	[integer!]
-	pt		[tagPOINT]			;@@ POINT struct
+	x		[integer!]			;@@ POINT struct
+	y		[integer!]	
 ]
 
 wndproc-cb!: alias function! [
@@ -368,6 +369,20 @@ RECT_STRUCT: alias struct! [
 		UpdateWindow: "UpdateWindow" [
 			hWnd		[handle!]
 			return:		[logic!]
+		]
+		GetParent: "GetParent" [
+			hWnd 		[handle!]
+			return:		[handle!]
+		]
+		GetWindow: "GetWindow" [
+			hWnd 		[handle!]
+			uCmd		[integer!]
+			return:		[handle!]
+		]
+		WindowFromPoint: "WindowFromPoint" [
+			x			[integer!]
+			y			[integer!]
+			return:		[handle!]
 		]
 		DefWindowProc: "DefWindowProcW" [
 			hWnd		[handle!]

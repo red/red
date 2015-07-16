@@ -78,7 +78,7 @@ system/view: context [
 			object? face/actors
 			act: in face/actors select evt-names event/type
 			act: get act
-		][	
+		][
 			do [act face event]
 		]
 	]

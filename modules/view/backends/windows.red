@@ -170,7 +170,15 @@ system/view/platform: context [
 				handle: msg/hWnd
 				
 				face: as red-object! stack/push*
-				face/header:		  GetWindowLong handle wc-offset + 0
+				face/header: GetWindowLong handle wc-offset
+				if TYPE_OF(face) <> TYPE_OBJECT [
+					handle: GetParent handle			;-- for composed widgets (try 1)
+					face/header: GetWindowLong handle wc-offset
+					if TYPE_OF(face) <> TYPE_OBJECT [
+						handle: WindowFromPoint msg/x msg/y	;-- for composed widgets (try 2)
+						face/header: GetWindowLong handle wc-offset
+					]
+				]
 				face/ctx:	 as node! GetWindowLong handle wc-offset + 4
 				face/class:			  GetWindowLong handle wc-offset + 8
 				face/on-set: as node! GetWindowLong handle wc-offset + 12
@@ -660,7 +668,7 @@ system/view/platform: context [
 					null
 					hInstance
 					null
-					
+?? handle					
 				if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 				SendMessage handle WM_SETFONT as-integer default-font 1
 				
@@ -669,7 +677,6 @@ system/view/platform: context [
 				SetWindowLong handle wc-offset + 4  as-integer face/ctx
 				SetWindowLong handle wc-offset + 8  		   face/class
 				SetWindowLong handle wc-offset + 12 as-integer face/on-set
-
 				as-integer handle
 			]
 		]
