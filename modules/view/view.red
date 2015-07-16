@@ -101,7 +101,7 @@ show: function [face [object!] /with parent [object!]][
 		new?: yes
 		if face/type <> 'screen [
 			p: either with [parent/state/1][0]
-			obj: system/view/platform/make-view face face/type face/text face/offset face/size p
+			obj: system/view/platform/make-view face p
 
 			if face/type = 'window [
 				append system/view/screens/1/pane face

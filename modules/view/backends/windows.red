@@ -584,13 +584,15 @@ system/view/platform: context [
 
 			OS-make-view: func [
 				face	[red-object!]
-				type	[red-word!]
-				str		[red-string!]
-				offset	[red-pair!]
-				size	[red-pair!]
 				parent	[integer!]
 				return: [integer!]
 				/local
+					ctx		 [red-context!]
+					values	 [red-value!]
+					type	 [red-word!]
+					str		 [red-string!]
+					offset	 [red-pair!]
+					size	 [red-pair!]
 					flags	 [integer!]
 					ws-flags [integer!]
 					sym		 [integer!]
@@ -600,6 +602,15 @@ system/view/platform: context [
 					offy	 [integer!]
 					p		 [ext-class!]
 			][
+				ctx: GET_CTX(face)
+				s: as series! ctx/values/value
+				values: s/offset
+				
+				type:	as red-word!	values + gui/FACE_OBJ_TYPE
+				str:	as red-string!	values + gui/FACE_OBJ_TEXT
+				offset: as red-pair!	values + gui/FACE_OBJ_OFFSET
+				size:	as red-pair!	values + gui/FACE_OBJ_SIZE
+				
 				flags: 	  WS_VISIBLE or WS_CHILD
 				ws-flags: 0
 				sym: 	  symbol/resolve type/symbol
@@ -668,12 +679,19 @@ system/view/platform: context [
 					null
 					hInstance
 					null
-?? handle					
+				
 				if null? handle [print-line "*** Error: CreateWindowEx failed!"]
 				SendMessage handle WM_SETFONT as-integer default-font 1
 				
+				;-- extra initialization
+				;case [
+				;	sym = dropdown [
+				;		
+				;	]
+				;]
+				
 				;-- store the face value in the extra space of the window struct
-				SetWindowLong handle wc-offset + 0  		   face/header
+				SetWindowLong handle wc-offset		  		   face/header
 				SetWindowLong handle wc-offset + 4  as-integer face/ctx
 				SetWindowLong handle wc-offset + 8  		   face/class
 				SetWindowLong handle wc-offset + 12 as-integer face/on-set
@@ -776,14 +794,10 @@ system/view/platform: context [
 
 	make-view: routine [
 		face	[object!]
-		type	[word!]
-		text	[string!]
-		offset	[pair!]
-		size	[pair!]
 		parent	[integer!]
 		return: [integer!]
 	][
-		gui/OS-make-view face type text offset size parent
+		gui/OS-make-view face parent
 	]
 
 	do-event-loop: routine [no-wait? [logic!]][
