@@ -901,7 +901,7 @@ string: context [
 				str/cache: either size < 64 [src][null]	;-- cache only small strings
 			]
 			UTF-16LE [
-				str/node: unicode/load-utf16 src size
+				str/node: unicode/load-utf16 src size null
 				str/cache: null
 			]
 			default	 [

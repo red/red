@@ -454,7 +454,7 @@ unicode: context [
 		unit: 1
 		src: src + 1
 		while [size > 0][
-			c: src/1
+			c: src/2									;-- UTF-16LE, high byte in 2nd position
 			if all [#"^(D8)" <= c c <= #"^(DF)"][return 4]	;-- max
 			if c <> null-byte [unit: 2]
 			src: src + 2
@@ -466,6 +466,7 @@ unicode: context [
 	load-utf16: func [ 
 		src		[c-string!]							;-- UTF-16LE input buffer (zero-terminated)
 		size	[integer!]							;-- size of src in codepoints (including terminal NUL)
+		str		[red-string!]						;-- optional destination string
 		return:	[node!]
 		/local
 			unit [encoding!]
@@ -476,12 +477,22 @@ unicode: context [
 			cnt  [integer!]
 			c	 [integer!]
 			cp	 [integer!]
+			len	 [integer!]
 	][
 		unit: scan-utf16 src size
-		node: alloc-series size unit 0
-		s:	  as series! node/value
-		p:	  as byte-ptr! s/offset
-		cnt:  size
+		
+		either null? str [
+			node: alloc-series size unit 0
+			s: as series! node/value
+		][
+			node: str/node
+			s: GET_BUFFER(str)
+			len: size << (unit >> 1)
+			if len >= s/size [s: expand-series s len]
+			s/flags: s/flags and flag-unit-mask or unit
+		]
+		p: as byte-ptr! s/offset
+		cnt: size
 
 		switch unit [
 			Latin1 [
@@ -578,6 +589,14 @@ unicode: context [
 			]
 		]
 		str/cache
+	]
+	
+	decode-utf16: func [
+		src  [byte-ptr!]
+		str  [red-string!]
+		size [integer!]
+	][
+		
 	]
 	
 ]
