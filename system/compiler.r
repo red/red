@@ -216,7 +216,7 @@ system-dialect: make-profilable context [
 		
 		calling-keywords: [								;-- keywords accepted in expr-call-stack
 			?? as assert size? if either case switch until while any all
-			return catch log-b
+			return catch
 		]
 		
 		foreach [word action] keywords [append keywords-list word]

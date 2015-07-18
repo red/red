@@ -242,12 +242,12 @@ redbin: context [
 	][
 		header: data/1
 		unit: header >>> 8 and FFh
-		size: data/3 << (unit >> 1)					;-- optimized data/3 * unit
+		size: data/3 << (log-b unit)					;-- optimized data/3 * unit
 
 		str: as red-string! ALLOC_TAIL(parent)
 		str/header: header and FFh					;-- implicit reset of all header flags
 		str/head: 	data/2
-		str/node: 	alloc-bytes size + unit			;-- account for NUL
+		str/node: 	alloc-bytes size
 		
 		data: data + 3
 		s: GET_BUFFER(str)
@@ -255,7 +255,6 @@ redbin: context [
 		
 		s/flags: s/flags and flag-unit-mask or unit
 		s/tail: as cell! (as byte-ptr! s/offset) + size
-		string/add-terminal-NUL as byte-ptr! s/tail unit
 		
 		data: as int-ptr! ((as byte-ptr! data) + size)
 		either (as-integer data) and 3 = 0 [data][
@@ -323,7 +322,8 @@ redbin: context [
 			TYPE_REFINEMENT [decode-word data table parent]
 			TYPE_STRING
 			TYPE_FILE
-			TYPE_URL		[decode-string data parent]
+			TYPE_URL
+			TYPE_BINARY		[decode-string data parent]
 			TYPE_INTEGER	[
 				integer/make-in parent data/2
 				data + 2

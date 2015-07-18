@@ -17,7 +17,7 @@ vector: context [
 		vec 	[red-vector!]
 		return: [integer!]
 	][
-		string/get-length as red-string! vec no
+		_series/get-length as red-series! vec no
 	]
 	
 	rs-skip: func [
@@ -25,7 +25,7 @@ vector: context [
 		len		[integer!]
 		return: [logic!]
 	][
-		string/rs-skip as red-string! vec len
+		_series/rs-skip as red-series! vec len
 	]
 	
 	rs-next: func [
@@ -34,7 +34,7 @@ vector: context [
 		/local
 			s [series!]
 	][
-		rs-skip vec 1
+		_series/rs-skip as red-series! vec 1
 	]
 	
 	rs-head: func [
@@ -44,7 +44,7 @@ vector: context [
 			s [series!]
 	][
 		s: GET_BUFFER(vec)
-		(as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1))
+		(as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s)))
 	]
 	
 	rs-tail: func [
@@ -64,7 +64,7 @@ vector: context [
 			s [series!]
 	][
 		s: GET_BUFFER(vec)
-		(as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1)) >= as byte-ptr! s/tail
+		(as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s))) >= as byte-ptr! s/tail
 	]
 
 	rs-clear: func [
@@ -73,7 +73,7 @@ vector: context [
 			s [series!]
 	][
 		s: GET_BUFFER(vec)
-		s/tail: as cell! (as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1))
+		s/tail: as cell! (as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s)))
 	]
 	
 	rs-append-int: func [
@@ -106,7 +106,7 @@ vector: context [
 		assert TYPE_OF(value) = vec/type
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		p: alloc-tail-unit s either unit = 6 [8][unit]
+		p: alloc-tail-unit s unit
 		set-value p value unit
 		value
 	]
@@ -128,12 +128,12 @@ vector: context [
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		unit2: either unit = 6 [8][unit]
+		unit2: unit
 
 		if ((as byte-ptr! s/tail) + unit2) > ((as byte-ptr! s + 1) + s/size) [
 			s: expand-series s 0
 		]
-		p: (as byte-ptr! s/offset) + (offset << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (offset << (log-b unit))
 
 		move-memory										;-- make space
 			p + unit2
@@ -225,7 +225,7 @@ vector: context [
 			]
 			TYPE_FLOAT [
 				f: as red-float! value
-				either unit = 6 [
+				either unit = 8 [
 					pf: as pointer! [float!] p
 					pf/value: f/value
 				][
@@ -278,9 +278,8 @@ vector: context [
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (vec/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (vec/head << (log-b unit))
 		end: as byte-ptr! s/tail
-		if unit = 6 [unit: 8]
 
 		while [p < end][
 			if all [OPTION?(arg) part <= 0][return part]
@@ -360,7 +359,7 @@ vector: context [
 		s: GET_BUFFER(left)
 		unit: GET_UNIT(s)
 		len: rs-length? left
-		p: (as byte-ptr! s/offset) + (left/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (left/head << (log-b unit))
 		i: 0
 		either left/type = TYPE_FLOAT [
 			either type = TYPE_FLOAT [
@@ -370,7 +369,6 @@ vector: context [
 				int: as red-integer! right
 				f2: integer/to-float int/value
 			]
-			if unit = 6 [unit: 8]
 			while [i < len][
 				f1: get-value-float p unit
 				f1: switch op [
@@ -487,20 +485,17 @@ vector: context [
 		len2: rs-length? right
 		if len1 > len2 [len1: len2]
 
-		p1: (as byte-ptr! s1/offset) + (left/head << (unit1 >> 1))
-		p2: (as byte-ptr! s2/offset) + (right/head << (unit2 >> 1))
+		p1: (as byte-ptr! s1/offset) + (left/head << (log-b unit1))
+		p2: (as byte-ptr! s2/offset) + (right/head << (log-b unit2))
 
-		node: alloc-bytes len1 << (unit >> 1)
+		node: alloc-bytes len1 << (log-b unit)
 		buffer: as series! node/value
 		buffer/flags: buffer/flags and flag-unit-mask or unit
-		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (len1 << (unit >> 1))
+		buffer/tail: as cell! (as byte-ptr! buffer/offset) + (len1 << (log-b unit))
 
 		i: 0
 		p:  as byte-ptr! buffer/offset
 		either left/type = TYPE_FLOAT [
-			if unit  = 6 [unit:  8]
-			if unit1 = 6 [unit1: 8]
-			if unit2 = 6 [unit2: 8]
 			while [i < len1][
 				f1: get-value-float p1 unit1
 				f2: get-value-float p2 unit2
@@ -621,7 +616,6 @@ vector: context [
 		vec/type:	type
 		
 		s: GET_BUFFER(vec)
-		if unit = 8 [unit: 6]
 		s/flags: s/flags and flag-unit-mask or unit
 		vec
 	]
@@ -782,7 +776,6 @@ vector: context [
 
 		s: GET_BUFFER(vec)
 		unit: GET_UNIT(s)
-		if unit = 6 [unit: 8]
 		
 		either any [
 			all [unit = 4 any [vec/type = TYPE_CHAR vec/type = TYPE_INTEGER]]
@@ -856,15 +849,15 @@ vector: context [
 			][return 1]
 
 			if len2 > len1 [
-				end: end - (len2 - len1 << (unit2 >> 1))
+				end: end - (len2 - len1 << (log-b unit2))
 			]
 		][
 			if zero? len1 [return 0]					;-- shortcut exit for empty vector!
 		]
 
 		type: vec1/type
-		p1: (as byte-ptr! s1/offset) + (vec1/head << (unit1 >> 1))
-		p2: (as byte-ptr! s2/offset) + (vec2/head << (unit2 >> 1))
+		p1: (as byte-ptr! s1/offset) + (vec1/head << (log-b unit1))
+		p2: (as byte-ptr! s2/offset) + (vec2/head << (log-b unit2))
 
 		switch type [
 			TYPE_CHAR
@@ -883,8 +876,6 @@ vector: context [
 				SIGN_COMPARE_RESULT(v1 v2)
 			]
 			TYPE_FLOAT [
-				if unit1 = 6 [unit1: 8]
-				if unit2 = 6 [unit2: 8]
 				until [
 					f1: get-value-float p1 unit1
 					f2: get-value-float p2 unit2
@@ -962,7 +953,7 @@ vector: context [
 
 		s: GET_BUFFER(vec)
 		tail?: any [
-			(as-integer s/tail - s/offset) >> (GET_UNIT(s) >> 1) = vec/head
+			(as-integer s/tail - s/offset) >> (log-b GET_UNIT(s)) = vec/head
 			append?
 		]
 
@@ -996,7 +987,7 @@ vector: context [
 			added: added * dup-n
 			vec/head: vec/head + added
 			s: GET_BUFFER(vec)
-			assert (as byte-ptr! s/offset) + (vec/head << (GET_UNIT(s) >> 1)) <= as byte-ptr! s/tail
+			assert (as byte-ptr! s/offset) + (vec/head << (log-b GET_UNIT(s))) <= as byte-ptr! s/tail
 		]
 		as red-value! vec
 	]
@@ -1048,7 +1039,7 @@ vector: context [
 			"vector!"
 			;-- General actions --
 			:make
-			null			;random
+			INHERIT_ACTION	;random
 			null			;reflect
 			null			;to
 			:form

@@ -62,7 +62,7 @@ routine: context [
 		cell: as red-routine! stack/push*
 		cell/header: TYPE_ROUTINE						;-- implicit reset of all header flags
 		cell/spec:	 spec/node
-		cell/more:	 alloc-cells 3
+		cell/more:	 alloc-cells 4
 		
 		more: as series! cell/more/value
 		value: either null? body [none-value][as red-value! body]
@@ -75,7 +75,10 @@ routine: context [
 		native: as red-native! alloc-tail more
 		native/header: TYPE_NATIVE
 		native/code: code
-		
+
+		value: alloc-tail more							;-- routine value self-reference (for op!)
+		value/header: TYPE_UNSET
+
 		set-arity cell
 		cell
 	]

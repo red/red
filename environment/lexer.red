@@ -12,10 +12,37 @@ Red [
 
 system/lexer: context [
 
+	make-binary: routine [
+		start  [string!]
+		end    [string!]
+		base   [integer!]
+		/local
+			s	 [series!]
+			p	 [byte-ptr!]
+			len  [integer!]
+			unit [integer!]
+			ret  [red-binary!]
+	][
+		s:  GET_BUFFER(start)
+		unit: GET_UNIT(s)
+		p:	  string/rs-head start
+		len:  end/head - start/head
+		
+		ret: as red-binary! stack/arguments
+		ret/head: 0
+		ret/header: TYPE_BINARY
+		ret/node: switch base [
+			16 [binary/decode-16 p len unit]
+			2  [binary/decode-2  p len unit]
+			64 [binary/decode-64 p len unit]
+		]
+	]
+
 	make-tuple: routine [
 		start  [string!]
 		end	   [string!]
 		/local
+			str  [series!]
 			c	 [integer!]
 			n	 [integer!]
 			m	 [integer!]
@@ -62,6 +89,7 @@ system/lexer: context [
 		end	   [string!]
 		type   [datatype!]
 		/local
+			str  [series!]
 			c	 [integer!]
 			n	 [integer!]
 			m	 [integer!]
@@ -131,7 +159,7 @@ system/lexer: context [
 		str:  GET_BUFFER(start)
 		unit: GET_UNIT(str)
 		p:	  string/rs-head start
-		tail: p + ((end/head - start/head) << (unit >> 1))
+		tail: p + ((end/head - start/head) << (log-b unit))
 		cur:  p
 		s0:   cur
 
@@ -226,7 +254,7 @@ system/lexer: context [
 		/local
 			path [red-path!]
 	][
-		path: as red-path! block/pick stack 1 null
+		path: as red-path! _series/pick as red-series! stack 1 null
 		path/args: null
 		set-type as red-value! path TYPE_SET_PATH
 	]
@@ -280,9 +308,9 @@ system/lexer: context [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end
+			four half non-zero path-end base base64-char
 	][
-		cs:		[- - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
+		cs:		[- - - - - - - - - - - - - - - - - - - - -]	;-- memoized bitsets
 		stack:	clear []
 		count?:	yes										;-- if TRUE, lines counter is enabled
 		line: 	1
@@ -334,12 +362,15 @@ system/lexer: context [
 			cs/18: charset "012345"						;-- half
 		    cs/19: charset "123456789"					;-- non-zero
 		    cs/20: charset {^{"[]();}					;-- path-end
+		    cs/21: union union cs/1						;-- base64-char
+		    		charset [#"A" - #"Z" #"a" - #"z"]
+		    		charset {+/=}
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
 			not-file-char not-str-char not-mstr-char caret-char
 			non-printable-char integer-end ws-ASCII ws-U+2k control-char
-			four half non-zero path-end
+			four half non-zero path-end base64-char
 		] cs
 
 		byte: [
@@ -454,6 +485,26 @@ system/lexer: context [
 		]
 
 		string-rule: [(type: string!) line-string | multiline-string]
+
+		base-2-rule: [
+			"2#{" s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count] e: #"}"
+			(base: 2)
+		]
+
+		base-16-rule: [
+			"#{" s: any [counted-newline | 2 hexa-char | ws-no-count] e: #"}"
+			(base: 16)
+		]
+
+		base-64-rule: [						;@@ correct me!
+			"64#{" s: any [counted-newline | base64-char | ws-no-count] e: #"}"			
+			(base: 64)
+		]
+
+		binary-rule: [
+			(type: binary!)
+			base-16-rule | base-2-rule | base-64-rule
+		]
 
 		file-rule: [
 			#"%" [
@@ -678,7 +729,7 @@ system/lexer: context [
 				| block-rule
 				| paren-rule
 				| string-rule		(store stack do make-string)
-				;| binary-rule	  	(stack/push load-binary s e)
+				| binary-rule		(store stack make-binary s e base)
 				| map-rule
 				| issue-rule
 			]
