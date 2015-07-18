@@ -298,13 +298,14 @@ pair: context [
 	]
 	
 	negate: func [
-		return: [red-integer!]
+		return: [red-pair!]
 		/local
-			int [red-integer!]
+			pair [red-pair!]
 	][
-		int: as red-integer! stack/arguments
-		int/value: 0 - int/value
-		int 											;-- re-use argument slot for return value
+		pair: as red-pair! stack/arguments
+		pair/x: 0 - pair/x
+		pair/y: 0 - pair/y
+		pair
 	]
 	
 	pick: func [
