@@ -77,11 +77,12 @@ event: context [
 		sym: symbol/resolve word/symbol
 		
 		case [
-			sym = words/type	[exec/gui/get-event-type evt]
-			sym = words/face	[exec/gui/get-event-face evt]
-			;sym = words/window	[exec/gui/get-event-window evt]
-			sym = words/offset	[exec/gui/get-event-offset evt]
-			sym = words/key		[exec/gui/get-event-key	evt]
+			sym = words/type	[gui/get-event-type evt]
+			sym = words/face	[gui/get-event-face evt]
+			;sym = words/window	[gui/get-event-window evt]
+			sym = words/offset	[gui/get-event-offset evt]
+			sym = words/key		[gui/get-event-key evt]
+			sym = words/picked	[gui/get-event-picked evt]
 			;sym = words/flag	[gui/get-event-flag	  evt/msg]
 			;sym = words/code	[gui/get-event-code	  evt/msg]
 		]

@@ -10,6 +10,10 @@ Red [
 	}
 ]
 
+#system [
+	#include %../../runtime/datatypes/event.reds
+]
+
 face!: object [				;-- keep in sync with facet! enum
 	type:		none
 	offset:		none
@@ -73,7 +77,16 @@ system/view: context [
 				;"face:" 		mold event/face
 			]
 		]
-		unless face: event/face [exit]
+		unless face: event/face [print "*** Events: no face found!"]
+
+		if event/face/type = 'dropdown [
+			switch event/type [
+				selected [
+					?? face
+					print ["Dropdown selected:" pick face/data event/picked]
+				]
+			]
+		]
 		
 		if all [
 			object? face/actors
@@ -118,4 +131,5 @@ show: function [face [object!] /with parent [object!]][
 	]
 ]
 
+#system [event/init]
 system/view/platform/init

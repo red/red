@@ -299,6 +299,7 @@ words: context [
 	key:			-1
 	flag:			-1
 	code:			-1
+	picked:			-1
 	
 	_body:			as red-word! 0
 	_windows:		as red-word! 0
@@ -428,6 +429,7 @@ words: context [
 		key:			symbol/make "key"
 		flag:			symbol/make "flag"
 		code:			symbol/make "code"
+		picked:			symbol/make "picked"
 
 		_windows:		_context/add-global windows
 		_syllable:		_context/add-global syllable
