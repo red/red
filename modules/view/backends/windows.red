@@ -297,7 +297,7 @@ system/view/platform: context [
 				evt		[red-event!]
 				return: [red-value!]
 			][
-				as red-value! integer/box evt/flags and FFFFh
+				as red-value! integer/push evt/flags and FFFFh
 			]
 				
 			make-event: func [

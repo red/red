@@ -82,8 +82,7 @@ system/view: context [
 		if event/face/type = 'dropdown [
 			switch event/type [
 				selected [
-					?? face
-					print ["Dropdown selected:" pick face/data event/picked]
+					print ["Dropdown selected:" pick face/data event/picked * 2]
 				]
 			]
 		]
