@@ -51,9 +51,9 @@ hash-string: func [
 	s: GET_BUFFER(str)
 	unit: GET_UNIT(s)
 	head: either TYPE_OF(str) = TYPE_SYMBOL [0][str/head]
-	p: (as byte-ptr! s/offset) + (head << (unit >> 1))
+	p: (as byte-ptr! s/offset) + (head << (log-b unit))
 	tail: as byte-ptr! s/tail
-	len: (as-integer tail - p) >> (unit >> 1) << 2
+	len: (as-integer tail - p) >> (log-b unit) << 2
 	h1: 42								;-- seed
 
 	;-- body
@@ -399,8 +399,8 @@ _hashtable: context [
 		key 	[red-value!]
 		return: [red-value!]
 		/local
-			s h x i site last mask step keys hash n-buckets flags op
-			ii sh continue? blk idx type del? indexes end ss k
+			s h x i site last mask step keys hash n-buckets flags
+			ii sh continue? blk idx type del? indexes k
 	][
 		s: as series! node/value
 		h: as hashtable! s/offset
@@ -419,24 +419,19 @@ _hashtable: context [
 		idx: (as-integer (key - s/offset)) >> 4
 		blk: s/offset
 
-		either type = HASH_TABLE_HASH [
-			ss: as series! h/indexes/value
-			indexes: as int-ptr! ss/offset
-		][
-			if type = HASH_TABLE_MAP [
-				x: TYPE_OF(key)
-				switch x [
-					TYPE_WORD
-					TYPE_GET_WORD
-					TYPE_SET_WORD
-					TYPE_LIT_WORD
-					TYPE_REFINEMENT
-					TYPE_ISSUE	[set-type key TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
-					TYPE_STRING
-					TYPE_FILE
-					TYPE_URL	[string/copy as red-string! key as red-string! key null yes null]
-					default		[0]
-				]
+		if type = HASH_TABLE_MAP [
+			x: TYPE_OF(key)
+			switch x [
+				TYPE_WORD
+				TYPE_GET_WORD
+				TYPE_SET_WORD
+				TYPE_LIT_WORD
+				TYPE_REFINEMENT
+				TYPE_ISSUE	[set-type key TYPE_SET_WORD]		;-- map, convert any-word! to set-word!
+				TYPE_STRING
+				TYPE_FILE
+				TYPE_URL	[_series/copy as red-series! key as red-series! key null yes null]
+				default		[0]
 			]
 		]
 
@@ -503,7 +498,16 @@ _hashtable: context [
 				h/size: h/size + 1
 			]
 		]
-		if type = HASH_TABLE_HASH [idx: idx + 1 indexes/idx: x]
+		if type = HASH_TABLE_HASH [
+			s: as series! h/indexes/value
+			if s/size >> 2 = idx [
+				s: expand-series-filled s s/size << 1 #"^(FF)"
+				s/tail: s/tail + (s/size << 4)
+			]
+			indexes: as int-ptr! s/offset
+			idx: idx + 1
+			indexes/idx: x
+		]
 		key
 	]
 

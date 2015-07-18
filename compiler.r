@@ -447,14 +447,7 @@ red: context [
 		]
 		blk
 	]
-	
-	emit-load-string: func [buffer [string! file! url!]][
-		emit to path! reduce [to word! form type? buffer 'rs-load]
-		emit form buffer
-		emit 1 + length? buffer							;-- account for terminal zero
-		emit 'UTF-8
-	]
-	
+
 	emit-open-frame: func [name [word!] /local type][
 		unless find symbols name [add-symbol name]
 		emit case [
@@ -1533,7 +1526,12 @@ red: context [
 					emit compose [as red-string! get-root (idx)]
 					insert-lf -5
 				]
-				binary!	[]
+				binary!	[
+					idx: redbin/emit-string/root value
+					emit to path! reduce [to word! form type? value 'push]
+					emit compose [as red-binary! get-root (idx)]
+					insert-lf -5
+				]
 			][
 				throw-error ["comp-literal: unsupported type" mold value]
 			]

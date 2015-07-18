@@ -245,6 +245,7 @@ red-routine!: alias struct! [
 	;	body	 [red-block!]						;-- 	routine's body block
 	;	args	 [red-block!]						;-- 	list of typed arguments (including optional ones)
 	;	native   [node!]							;-- 	compiled body (binary!)
+	;	fun		 [red-routine!]						;--		(optional) copy of parent routine! value (used by op!)
 ]
 
 red-typeset!: alias struct! [

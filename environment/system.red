@@ -111,7 +111,8 @@ system: context [
 				;protected:			"protected value or series - cannot modify"
 				;self-protected:	"cannot set/unset self - it is protected"
 				bad-bad:			[:arg1 "error:" :arg2]
-				bad-make-arg:		["cannot MAKE/TO" :arg1 "from:" :arg2]
+				bad-make-arg:		["cannot MAKE" :arg1 "from:" :arg2]
+                bad-to-arg:         ["TO cannot convert" :arg1 "from:" :arg2]
 				invalid-spec-field: ["invalid" :arg1 "field in spec block"]
 				missing-spec-field: [:arg1 "not found in spec block"]
 				;bad-decode:		"missing or unsupported encoding marker"

@@ -400,7 +400,7 @@ _function: context [
 					assert TYPE_OF(blk) = TYPE_BLOCK
 					either routine? [
 						ret-set?: yes
-						value2: block/pick blk 1 null
+						value2: _series/pick as red-series! blk 1 null
 						assert TYPE_OF(value2) = TYPE_WORD
 						dt: as red-datatype! _context/get as red-word! value2
 						assert TYPE_OF(dt) = TYPE_DATATYPE
@@ -541,7 +541,7 @@ _function: context [
 		extern?: no
 
 		if TYPE_OF(extern) = TYPE_BLOCK [
-			value: block/pick extern 1 null
+			value: _series/pick as red-series! extern 1 null
 
 			extern?: TYPE_OF(value) = TYPE_REFINEMENT	;-- ensure it is not another word type
 			if extern? [

@@ -189,7 +189,7 @@ default-input-completer: func [
 		][
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
-			offset: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			offset: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 			cp: 0
 			if offset < as byte-ptr! s/tail [cp: string/get-char offset unit]
 			cp > FFh
@@ -216,7 +216,12 @@ default-input-completer: func [
 			unless zero? num [
 				head: str/head
 				str/head: 0
-				string/copy str saved-line stack/arguments yes stack/arguments
+				_series/copy
+					as red-series! str
+					as red-series! saved-line
+					stack/arguments
+					yes
+					stack/arguments
 				saved-line/head: head
 				line: input-line
 				string/rs-reset line
@@ -234,7 +239,7 @@ default-input-completer: func [
 						block/rs-next result
 						block/rs-tail? result
 					]
-					line/head: string/get-length line yes
+					line/head: string/rs-abs-length? line
 				]
 				refresh
 			]
@@ -255,7 +260,7 @@ default-input-completer: func [
 		fetch-history: does [
 			string/rs-reset input-line
 			string/concatenate input-line as red-string! block/rs-head history -1 0 yes no
-			input-line/head: string/get-length input-line yes
+			input-line/head: string/rs-abs-length? input-line
 		]
 
 		init-buffer: func [
@@ -269,8 +274,8 @@ default-input-completer: func [
 			s: GET_BUFFER(str)
 			unit: GET_UNIT(s)
 			if unit < 2 [unit: 2]			;-- always treat string as widechar string
-			size: (string/get-length str yes) << (unit >> 1)
-			size: size + (string/get-length prompt yes) << (unit >> 1)
+			size: (string/rs-abs-length? str) << (log-b unit)
+			size: size + (string/rs-abs-length? prompt) << (log-b unit)
 			if size > buf-size [
 				buf-size: size
 				free buffer
@@ -301,7 +306,7 @@ default-input-completer: func [
 			bytes:	0
 			series: GET_BUFFER(str)
 			unit: 	GET_UNIT(series)
-			offset: (as byte-ptr! series/offset) + (str/head << (unit >> 1))
+			offset: (as byte-ptr! series/offset) + (str/head << (log-b unit))
 			tail:   as byte-ptr! series/tail
 			if head-as-tail? [
 				tail: offset
@@ -383,7 +388,7 @@ default-input-completer: func [
 			history/head: block/rs-length? history		;@@ set history list to tail (temporary)
 				
 			get-window-size
-			unless zero? string/get-length saved-line yes [
+			unless zero? string/rs-abs-length? saved-line [
 				head: saved-line/head
 				saved-line/head: 0
 				string/concatenate line saved-line -1 0 yes no
@@ -446,7 +451,7 @@ default-input-completer: func [
 						unless zero? history/head [
 							history/head: history/head - 1
 							fetch-history
-							line/head: string/get-length line yes
+							line/head: string/rs-abs-length? line
 							refresh
 						]
 					]
@@ -469,7 +474,7 @@ default-input-completer: func [
 					]
 					KEY_CTRL_E
 					KEY_END [
-						line/head: string/get-length line yes
+						line/head: string/rs-abs-length? line
 						refresh
 					]
 					KEY_DELETE [

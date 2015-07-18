@@ -307,7 +307,7 @@ bitset: context [
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		p:	  (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		p:	  (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 		max:  0
 		size: s/size << 3
@@ -695,7 +695,7 @@ bitset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/negate"]]
 
-		as red-value! complement bits
+		copy-cell as red-value! complement bits as red-value! bits
 	]
 	
 	complement: func [

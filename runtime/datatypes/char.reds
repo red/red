@@ -204,7 +204,7 @@ char: context [
 			:make
 			INHERIT_ACTION	;random
 			null			;reflect
-			null			;to
+			INHERIT_ACTION	;to
 			:form
 			:mold
 			null			;eval-path

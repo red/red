@@ -354,12 +354,10 @@ simple-io: context [
 			quit -2
 		]
 		
-		buffer: allocate size + 1						;-- account for terminal NUL
+		buffer: allocate size
 		read-file file buffer size
 		close-file file
-		
-		size: size + 1
-		buffer/size: null-byte
+
 		str: string/load as-c-string buffer size UTF-8
 		free buffer
 		str

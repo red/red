@@ -283,12 +283,18 @@ integer: context [
 		spec	[red-integer!]
 		return: [red-value!]
 		/local
+			int [red-integer!]
 			f	[red-float!]
 			buf [red-string!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "integer/to"]]
 			
 		switch type/value [
+			TYPE_INTEGER [
+				int: as red-integer! type
+				int/header: TYPE_INTEGER
+				int/value: spec/value
+			]
 			TYPE_FLOAT [
 				f: as red-float! type
 				f/header: TYPE_FLOAT
@@ -299,7 +305,7 @@ integer: context [
 				string/concatenate-literal buf form-signed spec/value
 			]
 			default [
-				fire [TO_ERROR(script bad-make-arg) type spec]
+				fire [TO_ERROR(script bad-to-arg) type spec]
 			]
 		]
 		as red-value! type

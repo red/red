@@ -100,7 +100,7 @@ hash: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "hash/copy"]]
 
-		block/copy as red-block! hash new part-arg deep? types
+		block/copy as red-series! hash new part-arg deep? types
 		size: block/rs-length? new
 		table: _hashtable/init size new HASH_TABLE_HASH
 		hash: as red-hash! new

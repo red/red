@@ -557,7 +557,7 @@ java-invoke: routine [
 		type-string	 [
 			buffer: jni/CallObjectMethodA 4
 			str: jni/GetStringUTFChars env buffer null
-			value: as red-value! string/load str 1 + length? str UTF-8
+			value: as red-value! string/load str length? str UTF-8
 			jni/ReleaseStringUTFChars env buffer str
 			jni/DeleteLocalRef env buffer
 		]

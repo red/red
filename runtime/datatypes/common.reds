@@ -44,7 +44,8 @@ alloc-tail: func [
 	/local 
 		cell [red-value!]
 ][
-	if (as byte-ptr! s/tail + 1) >= ((as byte-ptr! s + 1) + s/size) [
+	
+	if (as byte-ptr! s/tail) = ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
 	
@@ -63,7 +64,7 @@ alloc-tail-unit: func [
 	/local 
 		p	 [byte-ptr!]
 ][
-	if ((as byte-ptr! s/tail) + unit) >= ((as byte-ptr! s + 1) + s/size) [
+	if ((as byte-ptr! s/tail) + unit) > ((as byte-ptr! s + 1) + s/size) [
 		s: expand-series s 0
 	]
 	

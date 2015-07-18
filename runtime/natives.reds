@@ -375,7 +375,7 @@ natives: context [
 		][
 			s: GET_BUFFER(blk)
 			end: s/tail
-			pos: block/pick as red-series! pos 1 null
+			pos: _series/pick as red-series! pos 1 null
 			
 			while [pos < end][							;-- find first following block
 				if TYPE_OF(pos) = TYPE_BLOCK [
@@ -547,6 +547,7 @@ natives: context [
 			blk		[red-block!]
 			series	[series!]
 			offset	[byte-ptr!]
+			size	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "native/prin"]]
 		
@@ -568,13 +569,14 @@ natives: context [
 			TYPE_OF(str) = TYPE_SYMBOL						;-- symbol! and string! structs are overlapping
 		]
 		series: GET_BUFFER(str)
-		offset: (as byte-ptr! series/offset) + (str/head << (GET_UNIT(series) >> 1))
+		offset: (as byte-ptr! series/offset) + (str/head << (log-b GET_UNIT(series)))
+		size: as-integer (as byte-ptr! series/tail) - offset
 
 		either lf? [
 			switch GET_UNIT(series) [
-				Latin1 [platform/print-line-Latin1 as c-string! offset]
-				UCS-2  [platform/print-line-UCS2 				offset]
-				UCS-4  [platform/print-line-UCS4   as int-ptr!  offset]
+				Latin1 [platform/print-line-Latin1 as c-string! offset size]
+				UCS-2  [platform/print-line-UCS2 				offset size]
+				UCS-4  [platform/print-line-UCS4   as int-ptr!  offset size]
 
 				default [									;@@ replace by an assertion
 					print-line ["Error: unknown string encoding: " GET_UNIT(series)]
@@ -582,9 +584,9 @@ natives: context [
 			]
 		][
 			switch GET_UNIT(series) [
-				Latin1 [platform/print-Latin1 as c-string! offset]
-				UCS-2  [platform/print-UCS2   			   offset]
-				UCS-4  [platform/print-UCS4   as int-ptr!  offset]
+				Latin1 [platform/print-Latin1 as c-string! offset size]
+				UCS-2  [platform/print-UCS2   			   offset size]
+				UCS-4  [platform/print-UCS4   as int-ptr!  offset size]
 
 				default [									;@@ replace by an assertion
 					print-line ["Error: unknown string encoding: " GET_UNIT(series)]
@@ -663,6 +665,7 @@ natives: context [
 				any [
 					type = TYPE_DATATYPE
 					type = TYPE_LOGIC
+					type = TYPE_OBJECT
 				][
 					res: arg1/data1 = arg2/data1
 				]
@@ -673,11 +676,7 @@ natives: context [
 				][
 					res: arg1/data2 = arg2/data2
 				]
-				any [
-					type = TYPE_BINARY
-					type = TYPE_OBJECT
-					ANY_SERIES?(type)
-				][
+				ANY_SERIES?(type) [
 					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
 				]
 				type = TYPE_FLOAT	[
@@ -1144,7 +1143,7 @@ natives: context [
 		str: as red-string! stack/arguments
 		s: GET_BUFFER(str)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (str/head << (log-b unit))
 		tail: as byte-ptr! s/tail
 		if p = tail [return str]						;-- empty string case
 
@@ -1716,7 +1715,7 @@ natives: context [
 			s/offset + series/head < s/tail
 		][
 			(as byte-ptr! s/offset)
-				+ (series/head << (GET_UNIT(s) >> 1))
+				+ (series/head << (log-b GET_UNIT(s)))
 				< (as byte-ptr! s/tail)
 		]
 	]
@@ -1741,7 +1740,7 @@ natives: context [
 			blk: as red-block! value
 			i: 1
 			while [values < tail][
-				copy-cell (block/pick blk i null) values
+				copy-cell (_series/pick as red-series! blk i null) values
 				values: values + 1
 				i: i + 1
 			]
@@ -1768,8 +1767,8 @@ natives: context [
 		if block? [blk: as red-block! value]
 		
 		while [i <= size][
-			v: either block? [block/pick blk i null][value]
-			_context/set (as red-word! block/pick words i null) v
+			v: either block? [_series/pick as red-series! blk i null][value]
+			_context/set (as red-word! _series/pick as red-series! words i null) v
 			i: i + 1
 		]
 	]
@@ -1784,7 +1783,7 @@ natives: context [
 	][
 		i: 1
 		while [i <= size][
-			_context/set (as red-word! block/pick words i null) string/pick str i null
+			_context/set (as red-word! _series/pick as red-series! words i null) _series/pick as red-series! str i null
 			i: i + 1
 		]
 	]
@@ -1842,7 +1841,7 @@ natives: context [
 	][
 		word:   as red-word!   stack/arguments - 1
 		series: as red-series! stack/arguments - 2
-		
+
 		assert any [									;@@ replace with any-block?/any-string? check
 			TYPE_OF(series) = TYPE_BLOCK
 			TYPE_OF(series) = TYPE_PAREN
@@ -1853,6 +1852,7 @@ natives: context [
 			TYPE_OF(series) = TYPE_STRING
 			TYPE_OF(series) = TYPE_FILE
 			TYPE_OF(series) = TYPE_URL
+			TYPE_OF(series) = TYPE_VECTOR
 		]
 		assert TYPE_OF(word) = TYPE_WORD
 		

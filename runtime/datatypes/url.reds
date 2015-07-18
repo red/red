@@ -99,13 +99,13 @@ url: context [
 
 		s: GET_BUFFER(url)
 		unit: GET_UNIT(s)
-		p: (as byte-ptr! s/offset) + (url/head << (unit >> 1))
+		p: (as byte-ptr! s/offset) + (url/head << (log-b unit))
 		head: p
 
 		tail: either zero? limit [						;@@ rework that part
 			as byte-ptr! s/tail
 		][
-			either negative? part [p][p + (part << (unit >> 1))]
+			either negative? part [p][p + (part << (log-b unit))]
 		]
 		if tail > as byte-ptr! s/tail [tail: as byte-ptr! s/tail]
 
@@ -119,22 +119,7 @@ url: context [
 			p: p + unit
 		]
 
-		return part - ((as-integer tail - head) >> (unit >> 1)) - 1
-	]
-
-	copy: func [
-		url    [red-url!]
-		new		[red-string!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "url/copy"]]
-
-		url: as red-url! string/copy as red-string! url new arg deep? types
-		url/header: TYPE_URL
-		as red-series! url
+		return part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
 
 	init: does [
@@ -144,7 +129,7 @@ url: context [
 			"url!"
 			;-- General actions --
 			:make
-			INHERIT_ACTION	;random
+			null			;random
 			null			;reflect
 			null			;to
 			INHERIT_ACTION	;form
@@ -175,7 +160,7 @@ url: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?
