@@ -39,7 +39,7 @@ print-UCS4: func [
 ][
 	assert str <> null
 
-	while [not zero? zero][
+	while [not zero? size][
 		cp: str/value 
 		case [
 			cp <= 7Fh [
@@ -136,14 +136,12 @@ print-Latin1: func [
 	str 	[c-string!]									;-- Latin-1 string
 	size	[integer!]
 	/local
-		p  [c-string!]
 		cp [integer!]
 ][
 	assert str <> null
 
-	p: s
 	while [not zero? size][
-		cp: as-integer p/1
+		cp: as-integer str/1
 		either cp <= 7Fh [
 			putchar as-byte cp
 		][
@@ -151,9 +149,8 @@ print-Latin1: func [
 			putchar as-byte cp and 3Fh or 80h
 		]
 		size: size - 1
-		p: p + 1
+		str: str + 1
 	]
-	s
 ]
 
 ;-------------------------------------------
