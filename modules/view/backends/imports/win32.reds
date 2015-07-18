@@ -60,6 +60,7 @@ Red/System [
 #define SS_SIMPLE			00000000h
 
 #define WM_DESTROY			0002h
+#define WM_SETTEXT			000Ch
 #define WM_PAINT			000Fh
 #define WM_ERASEBKGND		0014h
 #define WM_SETFONT			0030h
@@ -321,6 +322,14 @@ RECT_STRUCT: alias struct! [
 			lpVersionInfo [OSVERSIONINFO]
 			return:		[integer!]
 		]
+		LocalLock: "LocalLock" [
+			hMem		[handle!]
+			return:		[byte-ptr!]
+		]
+		LocalUnlock: "LocalUnlock" [
+			hMem		[handle!]
+			return:		[byte-ptr!]
+		]
 	]
 	"User32.dll" stdcall [
 		GetDC: "GetDC" [
@@ -461,6 +470,10 @@ RECT_STRUCT: alias struct! [
 		SetWindowText: "SetWindowTextW" [
 			hWnd		[handle!]
 			lpString	[c-string!]
+		]
+		GetWindowTextLength: "GetWindowTextLengthW" [
+			hWnd		[handle!]
+			return:		[integer!]
 		]
 	]
 	"gdi32.dll" stdcall [

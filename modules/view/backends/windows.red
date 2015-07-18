@@ -137,6 +137,62 @@ system/view/platform: context [
 			_F11:			word/load "F11"
 			_F12:			word/load "F12"
 			
+			copy-text: func [
+				hEdit [handle!]
+				str	  [red-string!]
+				/local
+					size [integer!]
+			][
+				size: GetWindowTextLength hEdit
+				unicode/load-utf16 as-c-string LocalLock hEdit size str
+				LocalUnlock hEdit
+			]
+			
+			get-facet: func [
+				msg		[tagMSG]
+				facet	[integer!]
+				return: [red-value!]
+				/local
+					ctx	 [red-context!]
+					node [node!]
+					s	 [series!]
+			][
+				node: as node! GetWindowLong 
+					get-widget-handle msg
+					wc-offset + 4
+				
+				ctx: TO_CTX(node)
+				s: as series! ctx/values/value
+				s/offset + facet
+			]
+			
+			get-widget-handle: func [
+				msg		[tagMSG]
+				return: [handle!]
+				/local
+					hWnd   [handle!]
+					header [integer!]
+					p	   [int-ptr!]
+			][
+				hWnd: msg/hWnd
+				header: GetWindowLong hWnd wc-offset
+			
+				if header and get-type-mask <> TYPE_OBJECT [
+					hWnd: GetParent hWnd				;-- for composed widgets (try 1)
+					header: GetWindowLong hWnd wc-offset
+
+					if header and get-type-mask <> TYPE_OBJECT [
+						hWnd: WindowFromPoint msg/x msg/y	;-- try 2
+						header: GetWindowLong hWnd wc-offset
+
+						if header and get-type-mask <> TYPE_OBJECT [
+							p: as int-ptr! GetWindowLong hWnd 0	;-- try 3
+							hWnd: as handle! p/2
+						]
+					]
+				]
+				hWnd
+			]
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -168,30 +224,12 @@ system/view/platform: context [
 					handle [handle!]
 					face   [red-object!]
 					msg    [tagMSG]
-					p	   [int-ptr!]
 			][
 				msg: as tagMSG evt/msg
-				handle: msg/hWnd
+				handle: get-widget-handle msg
 				
 				face: as red-object! stack/push*
-				face/header: GetWindowLong handle wc-offset
-
-				if TYPE_OF(face) <> TYPE_OBJECT [
-					handle: GetParent handle			;-- for composed widgets (try 1)
-					face/header: GetWindowLong handle wc-offset
-					
-					if TYPE_OF(face) <> TYPE_OBJECT [
-						handle: WindowFromPoint msg/x msg/y	;-- try 2
-						face/header: GetWindowLong handle wc-offset
-						
-						if TYPE_OF(face) <> TYPE_OBJECT [
-							p: as int-ptr! GetWindowLong handle 0	;-- try 3
-							handle: as handle! p/2
-							face/header: GetWindowLong handle wc-offset
-						]
-					]
-				]
-
+				face/header:		  GetWindowLong handle wc-offset
 				face/ctx:	 as node! GetWindowLong handle wc-offset + 4
 				face/class:			  GetWindowLong handle wc-offset + 8
 				face/on-set: as node! GetWindowLong handle wc-offset + 12
@@ -287,7 +325,14 @@ system/view/platform: context [
 						gui-evt/type: EVT_KEY
 						state: EVT_DISPATCH
 					]
-					EVT_KEY [gui-evt/flags: msg/wParam and FFFFh]
+					EVT_KEY [
+						gui-evt/flags: msg/wParam and FFFFh
+					]
+					;EVT_SELECTED [
+					;	copy-text 
+					;		msg/hWnd
+					;		as red-string! get-facet msg FACE_OBJ_TEXT
+					;]
 					default [0]
 				]
 				;@@ set other flags here
@@ -723,7 +768,7 @@ system/view/platform: context [
 								str: str + 1
 							]
 						]
-						;SetWindowLong handle wc-offset as-integer 
+						unless null? caption [SetWindowText handle caption]
 					]
 					true [0]
 				]
