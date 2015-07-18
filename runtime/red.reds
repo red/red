@@ -79,6 +79,7 @@ red: context [
 	#include %datatypes/pair.reds
 	#include %datatypes/percent.reds
 	#include %datatypes/tuple.reds
+	#include %datatypes/binary.reds
 	
 	;-- Debugging helpers --
 	
@@ -115,6 +116,7 @@ red: context [
 		_series/init
 		block/init
 		string/init
+		binary/init
 		integer/init
 		symbol/init
 		_context/init
@@ -179,7 +181,9 @@ red: context [
 			unset/verbose:		verbosity
 			none/verbose:		verbosity
 			logic/verbose:		verbosity
+			_series/verbose:	verbosity
 			block/verbose:		verbosity
+			binary/verbose:		verbosity
 			string/verbose:		verbosity
 			integer/verbose:	verbosity
 			symbol/verbose:		verbosity

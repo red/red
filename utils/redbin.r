@@ -198,15 +198,16 @@ context [
 		]
 		index - 1
 	]
-	
+
 	emit-string: func [str [any-string!] /root /local type unit][
 		type: select [
 			string! TYPE_STRING
 			file!	TYPE_FILE
 			url!	TYPE_URL
+			binary! TYPE_BINARY
 		] type?/word str
 
-		set [str unit] decode-UTF8 str
+		either type = 'TYPE_BINARY [unit: 1][set [str unit] decode-UTF8 str]
 		emit extracts/definitions/:type or shift/left unit 8 ;-- header
 		emit (index? str) - 1								 ;-- head
 		emit (length? str) / unit
@@ -342,7 +343,8 @@ context [
 						get-word! [emit-word :item ctx idx]
 						file!
 						url!
-						string!	  [emit-string item]
+						string!
+						binary!   [emit-string item]
 						issue!	  [emit-issue item]
 						integer!  [emit-integer item]
 						decimal!  [emit-float item]

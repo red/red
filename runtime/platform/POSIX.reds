@@ -33,12 +33,14 @@ Red/System [
 ;-------------------------------------------
 print-UCS4: func [
 	str 	[int-ptr!]									;-- zero-terminated UCS-4 string
+	size	[integer!]
 	/local
 		cp [integer!]
 ][
 	assert str <> null
 
-	while [cp: str/value not zero? cp][
+	while [not zero? zero][
+		cp: str/value 
 		case [
 			cp <= 7Fh [
 				putchar as-byte cp
@@ -62,6 +64,7 @@ print-UCS4: func [
 				print-line "Error in print-UCS4: codepoint > 1FFFFFh"
 			]
 		]
+		size: size - 4
 		str: str + 1
 	]
 ]
@@ -70,13 +73,14 @@ print-UCS4: func [
 ;-- Print a UCS-4 string to console
 ;-------------------------------------------
 print-line-UCS4: func [
-	str    [int-ptr!]									;-- zero-terminated UCS-4 string
+	str    [int-ptr!]									;-- UCS-4 string
+	size   [integer!]
 	/local
 		cp [integer!]									;-- codepoint
 ][
 	assert str <> null
 
-	print-UCS4 str										;@@ throw an error on failure
+	print-UCS4 str size									;@@ throw an error on failure
 	putchar as-byte 10									;-- newline
 ]
 
@@ -84,17 +88,16 @@ print-line-UCS4: func [
 ;-- Print a UCS-2 string to console
 ;-------------------------------------------
 print-UCS2: func [
-	str 	[byte-ptr!]									;-- zero-terminated UCS-2 string
+	str 	[byte-ptr!]									;-- UCS-2 string
+	size	[integer!]
 	/local
 		cp [integer!]
 ][
 	assert str <> null
 
-	while [
+	while [not zero? size][
 		cp: as-integer str/2
 		cp: cp << 8 + str/1
-		not zero? cp
-	][
 		case [
 			cp <= 7Fh [
 				putchar as-byte cp
@@ -109,6 +112,7 @@ print-UCS2: func [
 				putchar as-byte cp and 3Fh or 80h
 			]
 		]
+		size: size - 2
 		str: str + 2
 	]
 ]
@@ -117,10 +121,11 @@ print-UCS2: func [
 ;-- Print a UCS-2 string with newline to console
 ;-------------------------------------------
 print-line-UCS2: func [
-	str 	[byte-ptr!]									;-- zero-terminated UCS-2 string
+	str 	[byte-ptr!]									;-- UCS-2 string
+	size	[integer!]
 ][
 	assert str <> null
-	print-UCS2 str
+	print-UCS2 str size
 	putchar as-byte 10									;-- newline
 ]
 
@@ -128,20 +133,38 @@ print-line-UCS2: func [
 ;-- Print a Latin-1 string to console
 ;-------------------------------------------
 print-Latin1: func [
-	str 	[c-string!]									;-- zero-terminated Latin-1 string
+	str 	[c-string!]									;-- Latin-1 string
+	size	[integer!]
+	/local
+		p  [c-string!]
+		cp [integer!]
 ][
 	assert str <> null
-	prin* str
+
+	p: s
+	while [not zero? size][
+		cp: as-integer p/1
+		either cp <= 7Fh [
+			putchar as-byte cp
+		][
+			putchar as-byte cp >> 6 or C0h
+			putchar as-byte cp and 3Fh or 80h
+		]
+		size: size - 1
+		p: p + 1
+	]
+	s
 ]
 
 ;-------------------------------------------
 ;-- Print a Latin-1 string with newline to console
 ;-------------------------------------------
 print-line-Latin1: func [
-	str [c-string!]										;-- zero-terminated Latin-1 string
+	str  [c-string!]									;-- Latin-1 string
+	size [integer!]
 ][
 	assert str <> null
-	prin* str
+	print-Latin1 str size
 	putchar as-byte 10									;-- newline
 ]
 

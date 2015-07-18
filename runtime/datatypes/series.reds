@@ -315,13 +315,12 @@ _series: context [
 				TYPE_PATH
 				TYPE_GET_PATH
 				TYPE_SET_PATH
-				TYPE_LIT_PATH [
-					s/offset + offset
-				]
+				TYPE_LIT_PATH [s/offset + offset]
 				TYPE_VECTOR [
 					vec: as red-vector! ser
 					vector/get-value p1 unit vec/type
 				]
+				TYPE_BINARY [integer/push as-integer p1/value]
 				default [								;@@ ANY-STRING!
 					char: as red-char! stack/push*
 					char/header: TYPE_CHAR
@@ -389,6 +388,7 @@ _series: context [
 				TYPE_LIT_PATH [
 					copy-cell data s/offset + offset
 				]
+				TYPE_BINARY [binary/set-value pos data]
 				TYPE_VECTOR [
 					if TYPE_OF(data) <> ser/_pad [
 						fire [TO_ERROR(script invalid-arg) data]

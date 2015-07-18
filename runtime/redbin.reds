@@ -322,7 +322,8 @@ redbin: context [
 			TYPE_REFINEMENT [decode-word data table parent]
 			TYPE_STRING
 			TYPE_FILE
-			TYPE_URL		[decode-string data parent]
+			TYPE_URL
+			TYPE_BINARY		[decode-string data parent]
 			TYPE_INTEGER	[
 				integer/make-in parent data/2
 				data + 2

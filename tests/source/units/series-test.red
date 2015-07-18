@@ -361,6 +361,17 @@ Red [
   hs-append-1: make hash! [a 1 b 2]
   --assert 6 = last append hs-append-1 [c 6]
   --assert 6 = select hs-append-1 'c
+
+  --test-- "series-append-25"
+  --assert "a#{6263}" = append "a" #{6263}
+  --assert #{6162} = append #{} "ab"
+
+  --test-- "series-append-26"
+  --assert #{6162} = append/part #{} #{616263} 2
+  --assert #{6162} = append/part #{} "abc" 2
+  --assert #{C3A962} = append/part #{} "ébc" 2
+  --assert #{C3A96263} = append #{} "ébc"
+
 ===end-group===
 
 ===start-group=== "series-equal"
@@ -915,7 +926,7 @@ Red [
 		--assert "Xbab" = replace "abab" #"a" #"X"
 		--assert "XbXb" = replace/all "abab" #"a" #"X"
 		--assert "Xab" = replace "abab" "ab" "X"
-	-
+
 	--test-- "replace-bin"
 		--assert #{FF0201} = replace #{010201} #{01} #{FF}
 		--assert #{FF02FF} = replace/all #{010201} #{01} #{FF}
@@ -1092,7 +1103,7 @@ Red [
 
 	--test-- "take-str-8"
 		a: "123"
-		--assert #"1"= take/part a next a
+		--assert "1"= take/part a next a
 		--assert "23" = a
 
 	--test-- "take-str-9"

@@ -80,6 +80,24 @@ string: context [
 		strtod s0 null
 	]
 
+	byte-to-hex: func [
+		byte	 [integer!]
+		return:  [c-string!]
+		/local
+			ss	 [c-string!]
+			h	 [c-string!]
+			i	 [integer!]
+	][
+		ss: "00"
+		h: "0123456789ABCDEF"
+
+		i: byte and 15 + 1								;-- byte // 16 + 1
+		ss/2: h/i
+		i: byte >> 4 and 15 + 1							;-- byte // 16 + 1
+		ss/1: h/i
+		ss
+	]
+ 
 	to-hex: func [
 		value	 [integer!]
 		char?	 [logic!]
@@ -1385,7 +1403,7 @@ string: context [
 			]
 		]
 
-		case?: either TYPE_OF(str) = TYPE_VECTOR [no][not case?]			;-- inverted case? meaning
+		case?: either TYPE_OF(str) = TYPE_STRING [not case?][no]			;-- inverted case? meaning
 		reverse?: any [reverse? last?]					;-- reduce both flags to one
 		step: step << (log-b unit)
 		pattern: null
@@ -1403,6 +1421,7 @@ string: context [
 			TYPE_STRING
 			TYPE_FILE
 			TYPE_URL
+			TYPE_BINARY
 			TYPE_WORD [
 				either TYPE_OF(value) = TYPE_WORD [
 					str2: as red-string! word/get-buffer as red-word! value
@@ -1418,7 +1437,10 @@ string: context [
 			]
 			default [
 				either all [
-					TYPE_OF(str) = TYPE_VECTOR
+					any [
+						TYPE_OF(str) = TYPE_VECTOR
+						TYPE_OF(str) = TYPE_BINARY
+					]
 					TYPE_OF(value) = TYPE_INTEGER
 				][
 					char: as red-char! value
@@ -1556,7 +1578,7 @@ string: context [
 		
 		if TYPE_OF(result) <> TYPE_NONE [
 			offset: switch TYPE_OF(value) [
-				TYPE_STRING TYPE_FILE TYPE_URL TYPE_WORD [
+				TYPE_STRING TYPE_FILE TYPE_URL TYPE_WORD TYPE_BINARY [
 					either TYPE_OF(value) = TYPE_WORD [
 						str2: as red-string! word/get-buffer as red-word! value
 						head2: 0							;-- str2/head = -1 (casted from symbol!)
@@ -2056,7 +2078,10 @@ string: context [
 		str: as red-string! _series/take as red-series! str part-arg deep? last?
 		s: GET_BUFFER(str)
 
-		if 1 = _series/get-length as red-series! str yes [
+		if all [
+			not OPTION?(part-arg)
+			1 = _series/get-length as red-series! str yes
+		][
 			unit: GET_UNIT(s)
 			either TYPE_OF(str) = TYPE_VECTOR [
 				vec: as red-vector! str

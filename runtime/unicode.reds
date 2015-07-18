@@ -44,9 +44,46 @@ unicode: context [
 		if byte-1st and C0h = C0h [return 2]
 		0
 	]
+
+	cp-to-utf8: func [
+		cp		[integer!]
+		buf		[byte-ptr!]
+		return: [integer!]
+	][
+		case [
+			cp <= 7Fh [
+				buf/1: as-byte cp
+				1
+			]
+			cp <= 07FFh [
+				buf/1: as-byte cp >> 6 or C0h
+				buf/2: as-byte cp and 3Fh or 80h
+				2
+			]
+			cp < 0000FFFFh [
+				buf/1: as-byte cp >> 12 or E0h
+				buf/2: as-byte cp >> 6 and 3Fh or 80h
+				buf/3: as-byte cp	   and 3Fh or 80h
+				3
+			]
+			cp < 0010FFFFh [
+				buf/1: as-byte cp >> 18 or F0h
+				buf/2: as-byte cp >> 12 and 3Fh or 80h
+				buf/3: as-byte cp >> 6  and 3Fh or 80h
+				buf/4: as-byte cp 		and 3Fh or 80h
+				4
+			]
+			true [
+				print "*** Error: to-utf8 codepoint overflow"
+				halt
+				0
+			]
+		]
+	]
 	
 	to-utf8: func [
 		str		[red-string!]
+		len		[int-ptr!]			;-- len/value = -1 convert all chars
 		return: [c-string!]
 		/local
 			s	 [series!]
@@ -57,16 +94,21 @@ unicode: context [
 			tail [byte-ptr!]
 			unit [integer!]
 			cp	 [integer!]
+			part [integer!]
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
 
-		node: alloc-bytes unit << 1 * (1 + string/rs-length? str)	;@@ TBD: mark this buffer as protected!
+		part: string/rs-length? str
+		unless len/value = -1 [
+			if len/value < part [part: len/value]
+		]
+		node: alloc-bytes unit << 1 * (1 + part)	;@@ TBD: mark this buffer as protected!
 		s: 	  as series! node/value
 		buf:  as byte-ptr! s/offset
 		
 		p:	  string/rs-head str
-		tail: string/rs-tail str
+		tail: p + (part << (unit >> 1))
 		
 		while [p < tail][
 			cp: switch unit [
@@ -74,38 +116,12 @@ unicode: context [
 				UCS-2  [(as-integer p/2) << 8 + p/1]
 				UCS-4  [p4: as int-ptr! p p4/value]
 			]
-			case [
-				cp <= 7Fh [
-					buf/1: as-byte cp
-					buf: buf + 1
-				]
-				cp <= 07FFh [
-					buf/1: as-byte cp >> 6 or C0h
-					buf/2: as-byte cp and 3Fh or 80h
-					buf: buf + 2
-				]
-				cp < 0000FFFFh [
-					buf/1: as-byte cp >> 12 or E0h
-					buf/2: as-byte cp >> 6 and 3Fh or 80h
-					buf/3: as-byte cp	   and 3Fh or 80h
-					buf: buf + 3
-				]
-				cp < 0010FFFFh [
-					buf/1: as-byte cp >> 18 or F0h
-					buf/2: as-byte cp >> 12 and 3Fh or 80h
-					buf/3: as-byte cp >> 6  and 3Fh or 80h
-					buf/4: as-byte cp 		and 3Fh or 80h
-					buf: buf + 4
-				]
-				true [
-					print "*** Error: to-utf8 codepoint overflow"
-					halt
-				]
-			]
+			buf: buf + cp-to-utf8 cp buf
 			p: p + unit
 		]
 		buf/1: null-byte
 
+		len/value: as-integer buf - (as byte-ptr! s/offset)
 		as-c-string s/offset
 	]
 	

@@ -52,8 +52,8 @@ Red/System [
 	TYPE_PERCENT										;-- 26		38
 	TYPE_TUPLE											;-- 27		39
 	TYPE_MAP											;-- 28		40
-	TYPE_SERIES											;-- 29		41
-	TYPE_BINARY
+	TYPE_BINARY											;-- 29		41
+	TYPE_SERIES											;-- 2A		42
 	TYPE_CLOSURE
 	TYPE_PORT
 ]

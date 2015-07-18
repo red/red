@@ -60,6 +60,7 @@ write %build/bin/sources.r set-cache [
 			%action.reds
 			%block.reds
 			%bitset.reds
+			%binary.reds
 			%char.reds
 			%common.reds
 			%context.reds

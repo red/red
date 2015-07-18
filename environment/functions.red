@@ -72,6 +72,7 @@ last:	func ["Returns the last value in a series"  s [series!]][pick back tail s 
 
 action?:	 func ["Returns true if the value is this type" value [any-type!]] [action!		= type? :value]
 bitset?:	 func ["Returns true if the value is this type" value [any-type!]] [bitset!		= type? :value]
+binary?:	 func ["Returns true if the value is this type" value [any-type!]] [binary!		= type? :value]
 block?:		 func ["Returns true if the value is this type" value [any-type!]] [block!		= type? :value]
 char?: 		 func ["Returns true if the value is this type" value [any-type!]] [char!		= type? :value]
 datatype?:	 func ["Returns true if the value is this type" value [any-type!]] [datatype!	= type? :value]

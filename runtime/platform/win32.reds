@@ -208,7 +208,7 @@ platform: context [
 	;-- Print a UCS-4 string to console
 	;-------------------------------------------
 	print-UCS4: func [
-		str    [int-ptr!]								;-- zero-terminated UCS-4 string
+		str    [int-ptr!]								;-- UCS-4 string
 		size   [integer!]
 		/local
 			cp [integer!]								;-- codepoint
@@ -233,7 +233,7 @@ platform: context [
 	;-- Print a UCS-4 string to console
 	;-------------------------------------------
 	print-line-UCS4: func [
-		str    [int-ptr!]								;-- zero-terminated UCS-4 string
+		str    [int-ptr!]								;-- UCS-4 string
 		size   [integer!]
 		/local
 			cp [integer!]								;-- codepoint
@@ -247,7 +247,7 @@ platform: context [
 	;-- Print a UCS-2 string to console
 	;-------------------------------------------
 	print-UCS2: func [
-		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
+		str 	[byte-ptr!]								;-- UCS-2 string
 		size	[integer!]
 		/local
 			chars [integer!]
@@ -273,7 +273,7 @@ platform: context [
 	;-- Print a UCS-2 string with newline to console
 	;-------------------------------------------
 	print-line-UCS2: func [
-		str 	[byte-ptr!]								;-- zero-terminated UCS-2 string
+		str 	[byte-ptr!]								;-- UCS-2 string
 		size	[integer!]
 	][
 		assert str <> null
@@ -289,7 +289,7 @@ platform: context [
 	;-- Print a Latin-1 string to console
 	;-------------------------------------------
 	print-Latin1: func [
-		str 	[c-string!]								;-- zero-terminated Latin-1 string
+		str 	[c-string!]								;-- Latin-1 string
 		size	[integer!]
 		/local
 			chars [integer!]							;-- mumber of used chars in buffer
@@ -315,7 +315,7 @@ platform: context [
 	;-- Print a Latin-1 string with newline to console
 	;-------------------------------------------
 	print-line-Latin1: func [
-		str  [c-string!]									;-- zero-terminated Latin-1 string
+		str  [c-string!]									;-- Latin-1 string
 		size [integer!]
 	][
 		assert str <> null
