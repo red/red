@@ -360,6 +360,7 @@ system/view/platform: context [
 							;CBN_EDITCHANGE [
 							;
 							;]
+							default [0]
 						]
 					]
 					;WM_ERASEBKGND	[
