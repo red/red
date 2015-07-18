@@ -665,6 +665,7 @@ natives: context [
 				any [
 					type = TYPE_DATATYPE
 					type = TYPE_LOGIC
+					type = TYPE_OBJECT
 				][
 					res: arg1/data1 = arg2/data1
 				]
@@ -675,11 +676,7 @@ natives: context [
 				][
 					res: arg1/data2 = arg2/data2
 				]
-				any [
-					type = TYPE_BINARY
-					type = TYPE_OBJECT
-					ANY_SERIES?(type)
-				][
+				ANY_SERIES?(type) [
 					res: all [arg1/data1 = arg2/data1 arg1/data2 = arg2/data2]
 				]
 				type = TYPE_FLOAT	[
