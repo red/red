@@ -326,6 +326,7 @@ Red/System [
 		type = TYPE_STRING
 		type = TYPE_FILE
 		type = TYPE_URL
+		type = TYPE_BINARY
 	]
 ]
 
