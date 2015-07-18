@@ -53,7 +53,8 @@ Red/System [
 	TYPE_TUPLE											;-- 27		39
 	TYPE_MAP											;-- 28		40
 	TYPE_BINARY											;-- 29		41
-	TYPE_SERIES											;-- 2A		42	TYPE_EVENT											;-- 2B		43
+	TYPE_SERIES											;-- 2A		42
+	TYPE_EVENT											;-- 2B		43
 	TYPE_CLOSURE
 	TYPE_PORT
 	

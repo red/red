@@ -569,7 +569,7 @@ unicode: context [
 
 			switch unit [
 				Latin1 [
-					node: alloc-bytes string/rs-length? str << 1
+					node: alloc-bytes (string/rs-length? str) << 1
 					s2: as series! node/value
 					str/cache: as-c-string s2/offset
 					
