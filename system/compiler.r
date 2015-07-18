@@ -528,14 +528,17 @@ system-dialect: make-profilable context [
 			type
 		]
 		
-		resolve-type: func [name /with parent /local type local? pos][
+		resolve-type: func [name /with parent /local type local? pos mark][
 			type: any [
 				all [parent select parent name]
 				local?: all [locals select locals name]
 				select-globals name
 			]
 			if all [not type pos: select functions decorate-fun name][
-				return reduce ['function! pos/4]
+				if mark: find pos: pos/4 /local [
+					pos: copy/part pos mark			;-- remove locals
+				]
+				return reduce ['function! pos]
 			]
 			if any [
 				all [not local?	any [enum-type? name enum-id? name]]
