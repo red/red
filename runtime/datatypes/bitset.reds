@@ -695,7 +695,7 @@ bitset: context [
 	][
 		#if debug? = yes [if verbose > 0 [print-line "bitset/negate"]]
 
-		as red-value! complement bits
+		copy-cell as red-value! complement bits as red-value! bits
 	]
 	
 	complement: func [
