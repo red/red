@@ -367,8 +367,9 @@ string: context [
 		p: alloc-series size 1 0
 		set-type slot TYPE_STRING						;@@ decide to use or not 'set-type...
 		str: as red-string! slot
-		str/head: 0
-		str/node: p
+		str/head:  0
+		str/node:  p
+		str/cache: null
 		str
 	]
 	
@@ -954,6 +955,7 @@ string: context [
 		str/header: TYPE_STRING							;-- implicit reset of all header flags
 		str/head: 	0
 		str/node: 	alloc-bytes size					;-- alloc enough space for at least a Latin1 string
+		str/cache:	null
 		str
 	]
 
@@ -2335,6 +2337,7 @@ string: context [
 			str2/cache: str/cache
 		][
 			str2/header: TYPE_STRING
+			str2/cache: null
 		]
 		str2/node: 	node
 		str2/head: 	0
@@ -2698,6 +2701,7 @@ string: context [
 		][
 			add-terminal-NUL as byte-ptr! buffer/tail unit
 			new/header: TYPE_STRING
+			new/cache: null
 		]
 		new/node: 	node
 		new/head: 	0
