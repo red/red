@@ -19,8 +19,12 @@ Red/System [
 #define CS_DBLCLKS			8
 
 #define CB_ADDSTRING		0143h
+#define CB_GETCURSEL		0147h
 
 #define CBN_SELCHANGE       1
+#define CBN_EDITCHANGE		5
+#define CBN_SELENDOK		9
+#define CBN_SELENDCANCEL	10
 
 #define CBS_DROPDOWN		0002h
 #define CBS_HASSTRINGS		0200h

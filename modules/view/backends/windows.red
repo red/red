@@ -137,17 +137,6 @@ system/view/platform: context [
 			_F11:			word/load "F11"
 			_F12:			word/load "F12"
 			
-			copy-text: func [
-				hEdit [handle!]
-				str	  [red-string!]
-				/local
-					size [integer!]
-			][
-				size: GetWindowTextLength hEdit
-				unicode/load-utf16 as-c-string LocalLock hEdit size str
-				LocalUnlock hEdit
-			]
-			
 			get-facet: func [
 				msg		[tagMSG]
 				facet	[integer!]
@@ -303,18 +292,26 @@ system/view/platform: context [
 					default [as red-value! none-value]
 				]
 			]
+			
+			get-event-picked: func [
+				evt		[red-event!]
+				return: [red-value!]
+			][
+				as red-value! integer/box evt/flags and FFFFh
+			]
 				
 			make-event: func [
 				msg		[tagMSG]
+				flags	[integer!]
 				type	[integer!]
 				return: [integer!]
 				/local
 					state [integer!]
 					key	  [integer!]
 			][
-				gui-evt/type: type
-				gui-evt/msg:  as byte-ptr! msg
-				gui-evt/flags: 0						;-- reset flags
+				gui-evt/type:  type
+				gui-evt/msg:   as byte-ptr! msg
+				gui-evt/flags: 0
 				state: EVT_DISPATCH_AND_PROCESS
 				
 				switch type [
@@ -328,11 +325,9 @@ system/view/platform: context [
 					EVT_KEY [
 						gui-evt/flags: msg/wParam and FFFFh
 					]
-					;EVT_SELECTED [
-					;	copy-text 
-					;		msg/hWnd
-					;		as red-string! get-facet msg FACE_OBJ_TEXT
-					;]
+					EVT_SELECTED [
+						gui-evt/flags: flags and FFFFh
+					]
 					default [0]
 				]
 				;@@ set other flags here
@@ -340,22 +335,31 @@ system/view/platform: context [
 				#call [system/view/awake gui-evt]
 				state
 			]
-
+			
 			WndProc: func [
 				hWnd	[handle!]
 				msg		[integer!]
 				wParam	[integer!]
 				lParam	[integer!]
 				return: [integer!]
+				/local
+					idx [integer!]
 			][
 				switch msg [
 					WM_DESTROY [PostQuitMessage 0]
 					WM_COMMAND [
-						if WIN32_HIWORD(wParam) = BN_CLICKED [
-							make-event current-msg EVT_CLICK
-						]
-						if WIN32_HIWORD(wParam) = CBN_SELCHANGE [
-							make-event current-msg EVT_SELECTED
+						switch WIN32_HIWORD(wParam) [
+							BN_CLICKED [
+								make-event current-msg 0 EVT_CLICK
+							]
+							CBN_SELCHANGE [
+								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
+								idx: as-integer SendMessage as handle! lParam CB_GETCURSEL 0 0
+								make-event current-msg idx + 1 EVT_SELECTED	;-- one-based indexing
+							]
+							;CBN_EDITCHANGE [
+							;
+							;]
 						]
 					]
 					;WM_ERASEBKGND	[
@@ -373,21 +377,21 @@ system/view/platform: context [
 					wParam [integer!]
 			][
 				switch msg/msg [
-					WM_LBUTTONDOWN	[make-event msg EVT_LEFT_DOWN]
-					WM_LBUTTONUP	[make-event msg EVT_LEFT_UP]
-					WM_RBUTTONDOWN	[make-event msg EVT_RIGHT_DOWN]
-					WM_RBUTTONUP	[make-event msg EVT_RIGHT_UP]
-					WM_MBUTTONDOWN	[make-event msg EVT_MIDDLE_DOWN]
-					WM_MBUTTONUP	[make-event msg EVT_MIDDLE_UP]
-					WM_KEYDOWN		[make-event msg EVT_KEY_DOWN]
+					WM_LBUTTONDOWN	[make-event msg 0 EVT_LEFT_DOWN]
+					WM_LBUTTONUP	[make-event msg 0 EVT_LEFT_UP]
+					WM_RBUTTONDOWN	[make-event msg 0 EVT_RIGHT_DOWN]
+					WM_RBUTTONUP	[make-event msg 0 EVT_RIGHT_UP]
+					WM_MBUTTONDOWN	[make-event msg 0 EVT_MIDDLE_DOWN]
+					WM_MBUTTONUP	[make-event msg 0 EVT_MIDDLE_UP]
+					WM_KEYDOWN		[make-event msg 0 EVT_KEY_DOWN]
 					WM_SYSKEYUP
-					WM_KEYUP		[make-event msg EVT_KEY_UP]
+					WM_KEYUP		[make-event msg 0 EVT_KEY_UP]
 					WM_SYSKEYDOWN	[
-						make-event msg EVT_KEY_DOWN
+						make-event msg 0 EVT_KEY_DOWN
 						EVT_NO_PROCESS
 					]
 					WM_LBUTTONDBLCLK [
-						make-event msg EVT_DBL_CLICK
+						make-event msg 0 EVT_DBL_CLICK
 						EVT_DISPATCH_AND_PROCESS
 					]
 					;WM_DESTROY []
@@ -401,7 +405,7 @@ system/view/platform: context [
 					wParam [integer!]
 			][
 				switch msg/msg [
-					WM_CHAR [make-event msg EVT_KEY]
+					WM_CHAR [make-event msg 0 EVT_KEY]
 					default [0]
 				]
 			]
