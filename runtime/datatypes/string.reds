@@ -357,20 +357,6 @@ string: context [
 		str
 	]
 	
-	add-terminal-NUL: func [
-		p	   [byte-ptr!]
-		unit   [integer!]
-		/local
-			p4 [int-ptr!]
-	][
-		switch unit [
-			Latin1  [p/1: as-byte 0]
-			UCS-2   [p/1: as-byte 0 p/2: as-byte 0]
-			UCS-4   [p4: as int-ptr! p p4/1: 0]
-			default [0]
-		]
-	]
-	
 	truncate-from-tail: func [
 		s	    [series!]
 		offset  [integer!]								;-- negative offset from tail
