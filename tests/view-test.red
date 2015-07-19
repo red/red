@@ -51,11 +51,11 @@ win/pane: reduce [
 			"option 2"		22
 			"option 3"		33
 		]
-		;actors: object [
-		;	on-selected: func [face [object!] event [event!]][
-		;		probe face/text
-		;	]
-		;]
+		actors: object [
+			on-selected: func [face [object!] event [event!]][
+				probe face/text
+			]
+		]
 	]
 ]
 show win

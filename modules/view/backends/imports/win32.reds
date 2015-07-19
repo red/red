@@ -20,6 +20,8 @@ Red/System [
 
 #define CB_ADDSTRING		0143h
 #define CB_GETCURSEL		0147h
+#define CB_GETLBTEXT		0148h
+#define CB_GETLBTEXTLEN		0149h
 
 #define CBN_SELCHANGE       1
 #define CBN_EDITCHANGE		5
@@ -474,6 +476,12 @@ RECT_STRUCT: alias struct! [
 		SetWindowText: "SetWindowTextW" [
 			hWnd		[handle!]
 			lpString	[c-string!]
+		]
+		GetWindowText: "GetWindowTextW" [
+			hWnd		[handle!]
+			lpString	[c-string!]
+			nMaxCount	[integer!]
+			return:		[integer!]
 		]
 		GetWindowTextLength: "GetWindowTextLengthW" [
 			hWnd		[handle!]

@@ -326,7 +326,8 @@ system/view/platform: context [
 						gui-evt/flags: msg/wParam and FFFFh
 					]
 					EVT_SELECTED [
-						gui-evt/flags: flags and FFFFh
+						select-text msg flags
+						gui-evt/flags: flags + 1 and FFFFh	;-- index is one-based for string!
 					]
 					default [0]
 				]
@@ -355,7 +356,7 @@ system/view/platform: context [
 							CBN_SELCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
 								idx: as-integer SendMessage as handle! lParam CB_GETCURSEL 0 0
-								make-event current-msg idx + 1 EVT_SELECTED	;-- one-based indexing
+								make-event current-msg idx EVT_SELECTED
 							]
 							;CBN_EDITCHANGE [
 							;
@@ -630,6 +631,30 @@ system/view/platform: context [
 				int: as red-integer! #get system/view/platform/product
 				int/header: TYPE_INTEGER
 				int/value:  as-integer version-info/wProductType 
+			]
+			
+			select-text: func [
+				msg	[tagMSG]
+				idx	[integer!]
+				/local
+					size [integer!]
+					str	 [red-string!]
+			][
+				size: as-integer SendMessage msg/hWnd CB_GETLBTEXTLEN idx 0
+				
+				if size > 0 [
+					str: as red-string! get-facet msg FACE_OBJ_TEXT
+					if TYPE_OF(str) <> TYPE_STRING [
+						string/make-at as red-value! str size UCS-2
+					]
+					SendMessage 
+						msg/hWnd
+						CB_GETLBTEXT
+						idx
+						as-integer unicode/get-cache str size + 1 * 4	;-- account for surrogate pairs and terminal NUL
+				
+					unicode/load-utf16 null size str
+				]
 			]
 			
 			get-screen-size: func [

@@ -865,6 +865,22 @@ string: context [
 		load-in src size null encoding
 	]
 	
+	make-at: func [
+		slot	[red-value!]
+		size 	[integer!]								;-- number of bytes to pre-allocate
+		unit	[integer!]
+		return:	[red-string!]
+		/local 
+			str	[red-string!]
+	][
+		str: as red-string! slot
+		str/header: TYPE_STRING
+		str/head:	0
+		str/node:	alloc-bytes size << (unit >> 1)
+		str/cache:	null
+		str
+	]
+	
 	push: func [
 		str [red-string!]
 	][

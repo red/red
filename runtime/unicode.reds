@@ -492,6 +492,10 @@ unicode: context [
 			cp	 [integer!]
 			len	 [integer!]
 	][
+		if null? src [
+			assert not null? str
+			src: str/cache							;-- import UTF-16 string from cache
+		]
 		unit: scan-utf16 src size
 		
 		either null? str [
@@ -501,9 +505,10 @@ unicode: context [
 			node: str/node
 			s: GET_BUFFER(str)
 			len: size << (unit >> 1)
-			if len >= s/size [s: expand-series s len]
+			if len > s/size [s: expand-series s len]
 			s/flags: s/flags and flag-unit-mask or unit
 		]
+		s/flags: s/flags or flag-UTF16-cache
 		p: as byte-ptr! s/offset
 		cnt: size
 
@@ -604,12 +609,24 @@ unicode: context [
 		str/cache
 	]
 	
-	decode-utf16: func [
-		src  [byte-ptr!]
-		str  [red-string!]
-		size [integer!]
+	get-cache: func [
+		str		[red-string!]
+		size	[integer!]								;-- desired cache size in bytes
+		return: [c-string!]
+		/local
+			node [node!]
+			s	 [series!]
 	][
-		
+		either null? str/cache [
+			node: alloc-bytes size
+			s: as series! node/value
+			str/cache: as-c-string s/offset
+		][
+			s: (as series! str/cache) - 1
+			if s/size < size [s: expand-series s size]
+			str/cache: as-c-string s + 1
+		]
+		str/cache
 	]
 	
 ]
