@@ -1569,6 +1569,7 @@ red: context [
 			path: original
 		][
 			name: to word! original: any [word original]
+			check-redefined name original
 		]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
 		list:  clear any [list []]
