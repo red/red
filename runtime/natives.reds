@@ -1171,6 +1171,41 @@ natives: context [
 		buffer
 	]
 
+	debase*: func [
+		base-arg [integer!]
+		/local
+			data [red-string!]
+			int  [red-integer!]
+			base [integer!]
+			s	 [series!]
+			p	 [byte-ptr!]
+			len  [integer!]
+			unit [integer!]
+			ret  [red-binary!]
+	][
+		data: as red-string! stack/arguments
+		base: either positive? base-arg [
+			int: as red-integer! data + 1
+			int/value
+		][64]
+
+		s:  GET_BUFFER(data)
+		unit: GET_UNIT(s)
+		p:	  string/rs-head data
+		len:  string/rs-length? data
+
+		ret: as red-binary! data
+		ret/head: 0
+		ret/header: TYPE_BINARY
+		ret/node: switch base [
+			16 [binary/decode-16 p len unit]
+			2  [binary/decode-2  p len unit]
+			64 [binary/decode-64 p len unit]
+			default [fire [TO_ERROR(script invalid-arg) int] null]
+		]
+		if ret/node = null [ret/header: TYPE_NONE]				;- RETURN_NONE
+	]
+
 	negative?*: func [
 		return:	[red-logic!]
 		/local
@@ -2016,6 +2051,7 @@ natives: context [
 			:throw*
 			:catch*
 			:extend*
+			:debase*
 		]
 	]
 

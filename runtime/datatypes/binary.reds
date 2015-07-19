@@ -219,6 +219,7 @@ binary: context [
 			len: len - 1
 			zero? len
 		]
+		if positive? count [return null]
 		s/tail: as red-value! bin
 		node
 	]
