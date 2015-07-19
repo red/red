@@ -13,6 +13,17 @@ Red/System [
 binary: context [
 	verbose: 0
 
+	#define BINARY_SKIP_COMMENT [
+		if c = as-integer #";" [		;-- skip comment
+			until [
+				p: p + unit
+				len: len - 1
+				c: string/get-char p unit
+				c = as-integer lf
+			]
+		]
+	]
+
 	debase64: [
 		#"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" #"^(80)" ;-- 07h
 		#"^(40)" #"^(40)" #"^(40)" #"^(80)" #"^(40)" #"^(40)" #"^(80)" #"^(80)" ;-- 0Fh
@@ -189,6 +200,7 @@ binary: context [
 		accum: 0
 		until [
 			c: string/get-char p unit
+			BINARY_SKIP_COMMENT
 			if c > as-integer space [
 				case [
 					c = as-integer #"0" [accum: accum << 1]
@@ -233,7 +245,9 @@ binary: context [
 		count: 0
 		flip: 0
 		until [
-			c: 1 + string/get-char p unit
+			c: string/get-char p unit
+			BINARY_SKIP_COMMENT
+			c: c + 1
 			val: as-integer debase64/c
 			either val < 40h [
 				either c <> 62 [		;-- c <> #"="
@@ -303,6 +317,7 @@ binary: context [
 		count: 0
 		until [
 			c: string/get-char p unit
+			BINARY_SKIP_COMMENT
 			if c > as-integer space [
 				c: c + 1
 				hex: as-integer table/c
