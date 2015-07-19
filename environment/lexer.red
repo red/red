@@ -363,9 +363,9 @@ system/lexer: context [
 			cs/18: charset "012345"						;-- half
 		    cs/19: charset "123456789"					;-- non-zero
 		    cs/20: charset {^{"[]();}					;-- path-end
-		    cs/21: union union cs/1						;-- base64-char
-		    		charset [#"A" - #"Z" #"a" - #"z"]
-		    		charset {+/=}
+		    cs/21: union cs/1 charset [					;-- base64-char
+					#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
+				]
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
