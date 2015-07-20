@@ -98,6 +98,7 @@ system/view/platform: context [
 			field:			symbol/make "field"
 			text:			symbol/make "text"
 			dropdown:		symbol/make "dropdown"
+			droplist:		symbol/make "droplist"
 			base:			symbol/make "base"
 			
 			done:			symbol/make "done"
@@ -781,6 +782,10 @@ system/view/platform: context [
 						class: #u16 "RedCombo"
 						flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS ;or WS_OVERLAPPED
 					]
+					sym = droplist [
+						class: #u16 "RedCombo"
+						flags: flags or CBS_DROPDOWNLIST or CBS_HASSTRINGS ;or WS_OVERLAPPED
+					]
 					sym = base [
 						class: #u16 "Base"
 					]
@@ -823,7 +828,10 @@ system/view/platform: context [
 				
 				;-- extra initialization
 				case [
-					sym = dropdown [
+					any [
+						sym = dropdown
+						sym = droplist
+					][
 						if any [
 							TYPE_OF(data) = TYPE_BLOCK
 							TYPE_OF(data) = TYPE_HASH
@@ -852,6 +860,7 @@ system/view/platform: context [
 				SetWindowLong handle wc-offset + 4  as-integer face/ctx
 				SetWindowLong handle wc-offset + 8  		   face/class
 				SetWindowLong handle wc-offset + 12 as-integer face/on-set
+				
 				as-integer handle
 			]
 		]

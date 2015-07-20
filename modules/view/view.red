@@ -106,6 +106,9 @@ show: function [face [object!] /with parent [object!]][
 	][
 		new?: yes
 		if face/type <> 'screen [
+			if all [object? face/actors	in face/actors 'on-make][
+				do [face/actors/on-make face]
+			]
 			p: either with [parent/state/1][0]
 			obj: system/view/platform/make-view face p
 

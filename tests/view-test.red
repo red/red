@@ -60,6 +60,26 @@ win/pane: reduce [
 			]
 		]
 	]
+	make face! [
+		type: 'droplist
+		offset: 200x120
+		size: 80x24
+		data: [
+			"option 10"		110
+			"option 20"		220
+			"option 30"		330
+			"option 40"		440
+			"option 50"		550
+		]
+		actors: object [
+			on-make: func [face [object!]][
+				face/text: copy data/1
+			]
+			on-select: func [face [object!] event [event!]][
+				probe face/text
+			]
+		]
+	]
 ]
 show win
 
