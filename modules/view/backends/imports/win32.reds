@@ -67,6 +67,8 @@ Red/System [
 
 #define WM_DESTROY			0002h
 #define WM_SETTEXT			000Ch
+#define WM_GETTEXT			000Dh
+#define WM_GETTEXTLENGTH	000Eh
 #define WM_PAINT			000Fh
 #define WM_ERASEBKGND		0014h
 #define WM_SETFONT			0030h

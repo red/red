@@ -55,6 +55,9 @@ win/pane: reduce [
 			on-selected: func [face [object!] event [event!]][
 				probe face/text
 			]
+			on-changed: func [face [object!] event [event!]][
+				print ["changed:" mold face/text]
+			]
 		]
 	]
 ]

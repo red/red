@@ -50,7 +50,9 @@ system/view/platform: context [
 				EVT_KEY
 				EVT_KEY_DOWN
 				EVT_KEY_UP
+				
 				EVT_SELECTED
+				EVT_CHANGED
 			]
 			
 			#enum event-flag! [
@@ -113,6 +115,7 @@ system/view/platform: context [
 			;_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
 			_selected:		word/load "selected"
+			_changed:		word/load "changed"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -203,6 +206,7 @@ system/view/platform: context [
 					;EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
 					EVT_SELECTED	 [_selected]
+					EVT_CHANGED		 [_changed]
 				]
 			]
 			
@@ -326,8 +330,11 @@ system/view/platform: context [
 						gui-evt/flags: msg/wParam and FFFFh
 					]
 					EVT_SELECTED [
-						select-text msg flags
+						get-text msg flags
 						gui-evt/flags: flags + 1 and FFFFh	;-- index is one-based for string!
+					]
+					EVT_CHANGED [
+						get-text msg -1
 					]
 					default [0]
 				]
@@ -358,9 +365,10 @@ system/view/platform: context [
 								idx: as-integer SendMessage as handle! lParam CB_GETCURSEL 0 0
 								make-event current-msg idx EVT_SELECTED
 							]
-							;CBN_EDITCHANGE [
-							;
-							;]
+							CBN_EDITCHANGE [
+								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
+								make-event current-msg 0 EVT_CHANGED
+							]
 							default [0]
 						]
 					]
@@ -633,26 +641,35 @@ system/view/platform: context [
 				int/value:  as-integer version-info/wProductType 
 			]
 			
-			select-text: func [
+			get-text: func [
 				msg	[tagMSG]
 				idx	[integer!]
 				/local
-					size [integer!]
-					str	 [red-string!]
+					size	[integer!]
+					str		[red-string!]
+					out		[c-string!]
 			][
-				size: as-integer SendMessage msg/hWnd CB_GETLBTEXTLEN idx 0
-				
-				if size > 0 [
+				size: as-integer either idx = -1 [
+					SendMessage msg/hWnd WM_GETTEXTLENGTH idx 0
+				][
+					SendMessage msg/hWnd CB_GETLBTEXTLEN idx 0
+				]
+				if size >= 0 [
 					str: as red-string! get-facet msg FACE_OBJ_TEXT
 					if TYPE_OF(str) <> TYPE_STRING [
 						string/make-at as red-value! str size UCS-2
 					]
-					SendMessage 
-						msg/hWnd
-						CB_GETLBTEXT
-						idx
-						as-integer unicode/get-cache str size + 1 * 4	;-- account for surrogate pairs and terminal NUL
-				
+					if size = 0 [
+						string/rs-reset str
+						exit
+					]
+					out: unicode/get-cache str size + 1 * 4	;-- account for surrogate pairs and terminal NUL
+					
+					either idx = -1 [
+						SendMessage msg/hWnd WM_GETTEXT size + 1 as-integer out  ;-- account for NUL
+					][
+						SendMessage msg/hWnd CB_GETLBTEXT idx as-integer out
+					]
 					unicode/load-utf16 null size str
 				]
 			]

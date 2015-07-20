@@ -66,6 +66,7 @@ system/view: context [
 		key				on-key
 		key-up			on-key-up
 		selected		on-selected
+		changed			on-changed
 	)
 	
 	awake: function [event [event!]][					;@@ temporary until event:// is implemented
