@@ -51,8 +51,8 @@ system/view/platform: context [
 				EVT_KEY_DOWN
 				EVT_KEY_UP
 				
-				EVT_SELECTED
-				EVT_CHANGED
+				EVT_SELECT
+				EVT_CHANGE
 			]
 			
 			#enum event-flag! [
@@ -114,8 +114,8 @@ system/view/platform: context [
 			_key:			word/load "key"
 			;_key-down:		word/load "key-down"
 			_key-up:		word/load "key-up"
-			_selected:		word/load "selected"
-			_changed:		word/load "changed"
+			_select:		word/load "select"
+			_change:		word/load "change"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -205,8 +205,8 @@ system/view/platform: context [
 					EVT_KEY			 [_key]
 					;EVT_KEY_DOWN	 [_key-down]
 					EVT_KEY_UP		 [_key-up]
-					EVT_SELECTED	 [_selected]
-					EVT_CHANGED		 [_changed]
+					EVT_SELECT	 	 [_select]
+					EVT_CHANGE		 [_change]
 				]
 			]
 			
@@ -329,11 +329,11 @@ system/view/platform: context [
 					EVT_KEY [
 						gui-evt/flags: msg/wParam and FFFFh
 					]
-					EVT_SELECTED [
+					EVT_SELECT [
 						get-text msg flags
 						gui-evt/flags: flags + 1 and FFFFh	;-- index is one-based for string!
 					]
-					EVT_CHANGED [
+					EVT_CHANGE [
 						get-text msg -1
 					]
 					default [0]
@@ -363,11 +363,11 @@ system/view/platform: context [
 							CBN_SELCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
 								idx: as-integer SendMessage as handle! lParam CB_GETCURSEL 0 0
-								make-event current-msg idx EVT_SELECTED
+								make-event current-msg idx EVT_SELECT
 							]
 							CBN_EDITCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
-								make-event current-msg 0 EVT_CHANGED
+								make-event current-msg 0 EVT_CHANGE
 							]
 							default [0]
 						]

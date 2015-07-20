@@ -52,10 +52,10 @@ win/pane: reduce [
 			"option 3"		33
 		]
 		actors: object [
-			on-selected: func [face [object!] event [event!]][
+			on-select: func [face [object!] event [event!]][
 				probe face/text
 			]
-			on-changed: func [face [object!] event [event!]][
+			on-change: func [face [object!] event [event!]][
 				print ["changed:" mold face/text]
 			]
 		]

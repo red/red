@@ -65,8 +65,8 @@ system/view: context [
 		move			on-move
 		key				on-key
 		key-up			on-key-up
-		selected		on-selected
-		changed			on-changed
+		select			on-select
+		change			on-change
 	)
 	
 	awake: function [event [event!]][					;@@ temporary until event:// is implemented
@@ -82,7 +82,7 @@ system/view: context [
 
 		if event/face/type = 'dropdown [
 			switch event/type [
-				selected [
+				select [
 					print ["Dropdown selected:" pick face/data event/picked * 2]
 				]
 			]
