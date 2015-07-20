@@ -29,6 +29,8 @@ Red/System [
 #define CBN_SELENDOK		9
 #define CBN_SELENDCANCEL	10
 
+#define EN_CHANGE			0300h
+
 #define CBS_DROPDOWN		0002h
 #define CBS_DROPDOWNLIST	0003h
 #define CBS_HASSTRINGS		0200h

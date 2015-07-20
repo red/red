@@ -395,6 +395,10 @@ system/view/platform: context [
 							BN_CLICKED [
 								make-event current-msg 0 EVT_CLICK
 							]
+							EN_CHANGE [
+								current-msg/hWnd: as handle! lParam	;-- force Edit handle
+								make-event current-msg -1 EVT_CHANGE
+							]
 							CBN_SELCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
 								idx: as-integer SendMessage as handle! lParam CB_GETCURSEL 0 0
