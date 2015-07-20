@@ -79,14 +79,6 @@ system/view: context [
 			]
 		]
 		unless face: event/face [print "*** Events: no face found!"]
-
-		if event/face/type = 'dropdown [
-			switch event/type [
-				select [
-					print ["Dropdown selected:" pick face/data event/picked * 2]
-				]
-			]
-		]
 		
 		if all [
 			object? face/actors

@@ -99,6 +99,9 @@ system/view/platform: context [
 			text:			symbol/make "text"
 			dropdown:		symbol/make "dropdown"
 			base:			symbol/make "base"
+			
+			done:			symbol/make "done"
+			stop:			symbol/make "stop"
 				
 			_down:			word/load "down"
 			_up:			word/load "up"
@@ -310,6 +313,8 @@ system/view/platform: context [
 				type	[integer!]
 				return: [integer!]
 				/local
+					res	  [red-word!]
+					sym	  [integer!]
 					state [integer!]
 					key	  [integer!]
 			][
@@ -334,13 +339,23 @@ system/view/platform: context [
 						gui-evt/flags: flags + 1 and FFFFh	;-- index is one-based for string!
 					]
 					EVT_CHANGE [
-						get-text msg -1
+						unless zero? flags [get-text msg -1] ;-- get text if not done already
 					]
 					default [0]
 				]
 				;@@ set other flags here
 				
 				#call [system/view/awake gui-evt]
+				
+				res: as red-word! stack/arguments
+				if TYPE_OF(res) = TYPE_WORD [
+					sym: symbol/resolve res/symbol
+					case [
+						sym = done [state: EVT_DISPATCH]	;-- prevent other high-level events
+						sym = stop [state: EVT_NO_PROCESS]	;-- prevent all other events
+						true 	   [0]						;-- ignore others
+					]
+				]
 				state
 			]
 			
@@ -352,6 +367,7 @@ system/view/platform: context [
 				return: [integer!]
 				/local
 					idx [integer!]
+					res [integer!]
 			][
 				switch msg [
 					WM_DESTROY [PostQuitMessage 0]
@@ -363,11 +379,14 @@ system/view/platform: context [
 							CBN_SELCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
 								idx: as-integer SendMessage as handle! lParam CB_GETCURSEL 0 0
-								make-event current-msg idx EVT_SELECT
+								res: make-event current-msg idx EVT_SELECT
+								if res = EVT_DISPATCH_AND_PROCESS [
+									make-event current-msg 0 EVT_CHANGE
+								]
 							]
 							CBN_EDITCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
-								make-event current-msg 0 EVT_CHANGE
+								make-event current-msg -1 EVT_CHANGE
 							]
 							default [0]
 						]
