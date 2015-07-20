@@ -395,9 +395,12 @@ system/view/platform: context [
 							BN_CLICKED [
 								make-event current-msg 0 EVT_CLICK
 							]
-							EN_CHANGE [
-								current-msg/hWnd: as handle! lParam	;-- force Edit handle
-								make-event current-msg -1 EVT_CHANGE
+							EN_CHANGE [					;-- sent also by CreateWindow
+								unless null? current-msg [
+									current-msg/hWnd: as handle! lParam	;-- force Edit handle
+									make-event current-msg -1 EVT_CHANGE
+								]
+								0
 							]
 							CBN_SELCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
@@ -681,7 +684,7 @@ system/view/platform: context [
 				
 				int: as red-integer! #get system/view/platform/product
 				int/header: TYPE_INTEGER
-				int/value:  as-integer version-info/wProductType 
+				int/value:  as-integer version-info/wProductType
 			]
 			
 			set-selected: func [
@@ -944,6 +947,25 @@ system/view/platform: context [
 			default		[0]								;@@ Auto-convert?
 		]
 		unless null? text [gui/SetWindowText as handle! hWnd text]
+	]
+	
+	change-visible: routine [
+		hWnd  [integer!]
+		show? [logic!]
+		/local
+			value [integer!]
+	][
+		either show? [
+			value: SWP_SHOWWINDOW
+		][
+			value: SWP_HIDEWINDOW
+		]
+		gui/SetWindowPos 
+			as handle! hWnd
+			as handle! 0
+			0 0
+			0 0
+			SWP_NOSIZE or SWP_NOMOVE or SWP_NOZORDER or value
 	]
 	
 	change-selection: routine [
