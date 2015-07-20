@@ -183,6 +183,11 @@ system/view/platform: context [
 						if header and get-type-mask <> TYPE_OBJECT [
 							p: as int-ptr! GetWindowLong hWnd 0	;-- try 3
 							hWnd: as handle! p/2
+							header: GetWindowLong hWnd wc-offset
+							
+							if header and get-type-mask <> TYPE_OBJECT [
+								hWnd: as handle! -1		;-- signal not found
+							]
 						]
 					]
 				]
@@ -223,6 +228,9 @@ system/view/platform: context [
 			][
 				msg: as tagMSG evt/msg
 				handle: get-widget-handle msg
+				if handle = as handle! -1 [				;-- filter out unwanted events
+					return as red-value! none-value
+				]
 				
 				face: as red-object! stack/push*
 				face/header:		  GetWindowLong handle wc-offset

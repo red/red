@@ -78,7 +78,7 @@ system/view: context [
 				;"face:" 		mold event/face
 			]
 		]
-		unless face: event/face [print "*** Events: no face found!"]
+		unless face: event/face [exit]					;-- filter out unbound events
 		
 		if all [
 			object? face/actors
