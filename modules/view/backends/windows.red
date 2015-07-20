@@ -946,6 +946,13 @@ system/view/platform: context [
 		unless null? text [gui/SetWindowText as handle! hWnd text]
 	]
 	
+	change-selection: routine [
+		hWnd [integer!]
+		idx  [integer!]
+	][
+		gui/SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
+	]
+	
 	get-screen-size: routine [
 		id		[integer!]
 		/local
@@ -962,6 +969,7 @@ system/view/platform: context [
 			values	[red-value!]
 			state	[red-block!]
 			int		[red-integer!]
+			int2	[red-integer!]
 			s		[series!]
 			hWnd	[integer!]
 			flags	[integer!]
@@ -985,6 +993,10 @@ system/view/platform: context [
 		]
 		if flags and 00000008h <> 0 [
 			change-text hWnd as red-string! values + gui/FACE_OBJ_TEXT
+		]
+		if flags and 00000100h <> 0 [
+			int2: as red-integer! values + gui/FACE_OBJ_SELECTED
+			change-selection hWnd int2/value
 		]
 		int/value: 0									;-- reset flags
 	]

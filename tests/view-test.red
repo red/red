@@ -67,7 +67,7 @@ win/pane: reduce [
 			]
 		]
 	]
-	make face! [
+	droplist: make face! [
 		type: 'droplist
 		offset: 200x120
 		size: 80x24
@@ -87,6 +87,15 @@ win/pane: reduce [
 			]
 			on-change: func [face [object!] event [event!]][
 				print ["changed:" face/selected]
+			]
+		]
+	]
+	make face! [
+		type: 'button text: "Set option 5" offset: 300x120 size: 80x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				droplist/selected: 5
+				show droplist
 			]
 		]
 	]
