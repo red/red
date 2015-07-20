@@ -73,10 +73,13 @@ win/pane: reduce [
 		]
 		actors: object [
 			on-make: func [face [object!]][
-				face/text: copy data/1
+				face/selected: 2
 			]
 			on-select: func [face [object!] event [event!]][
-				probe face/text
+				print ["selected:" face/selected]
+			]
+			on-change: func [face [object!] event [event!]][
+				print ["changed:" face/selected]
 			]
 		]
 	]

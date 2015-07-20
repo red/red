@@ -22,6 +22,7 @@ Red/System [
 #define CB_GETCURSEL		0147h
 #define CB_GETLBTEXT		0148h
 #define CB_GETLBTEXTLEN		0149h
+#define CB_SETCURSEL		014Eh
 
 #define CBN_SELCHANGE       1
 #define CBN_EDITCHANGE		5

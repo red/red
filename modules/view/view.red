@@ -23,6 +23,7 @@ face!: object [				;-- keep in sync with facet! enum
 	color:		none
 	data:		none
 	visible?:	none
+	selected:	none
 	parent:		none
 	pane:		none
 	state:		none		;-- [handle [integer! none!] visible [logic!]]

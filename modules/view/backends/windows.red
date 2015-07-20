@@ -25,6 +25,7 @@ system/view/platform: context [
 				FACE_OBJ_COLOR
 				FACE_OBJ_DATA
 				FACE_OBJ_VISIBLE?
+				FACE_OBJ_SELECTED
 				FACE_OBJ_PARENT
 				FACE_OBJ_PANE
 				FACE_OBJ_STATE
@@ -144,22 +145,27 @@ system/view/platform: context [
 			_F11:			word/load "F11"
 			_F12:			word/load "F12"
 			
-			get-facet: func [
-				msg		[tagMSG]
+			get-node-facet: func [
+				node	[node!]
 				facet	[integer!]
 				return: [red-value!]
 				/local
 					ctx	 [red-context!]
-					node [node!]
 					s	 [series!]
 			][
-				node: as node! GetWindowLong 
-					get-widget-handle msg
-					wc-offset + 4
-				
 				ctx: TO_CTX(node)
 				s: as series! ctx/values/value
 				s/offset + facet
+			]
+			
+			get-facet: func [
+				msg		[tagMSG]
+				facet	[integer!]
+				return: [red-value!]
+			][
+				get-node-facet 
+					as node! GetWindowLong get-widget-handle msg wc-offset + 4
+					facet
 			]
 			
 			get-widget-handle: func [
@@ -187,7 +193,7 @@ system/view/platform: context [
 							header: GetWindowLong hWnd wc-offset
 							
 							if header and get-type-mask <> TYPE_OBJECT [
-								hWnd: as handle! -1		;-- signal not found
+								hWnd: as handle! -1		;-- not found
 							]
 						]
 					]
@@ -323,6 +329,7 @@ system/view/platform: context [
 				return: [integer!]
 				/local
 					res	  [red-word!]
+					word  [red-word!]
 					sym	  [integer!]
 					state [integer!]
 					key	  [integer!]
@@ -330,6 +337,7 @@ system/view/platform: context [
 				gui-evt/type:  type
 				gui-evt/msg:   as byte-ptr! msg
 				gui-evt/flags: 0
+				
 				state: EVT_DISPATCH_AND_PROCESS
 				
 				switch type [
@@ -344,7 +352,9 @@ system/view/platform: context [
 						gui-evt/flags: msg/wParam and FFFFh
 					]
 					EVT_SELECT [
-						get-text msg flags
+						word: as red-word! get-facet msg FACE_OBJ_TYPE
+						assert TYPE_OF(word) = TYPE_WORD
+						if word/symbol = dropdown [get-text msg flags]
 						gui-evt/flags: flags + 1 and FFFFh	;-- index is one-based for string!
 					]
 					EVT_CHANGE [
@@ -389,6 +399,7 @@ system/view/platform: context [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
 								idx: as-integer SendMessage as handle! lParam CB_GETCURSEL 0 0
 								res: make-event current-msg idx EVT_SELECT
+								set-selected current-msg idx + 1
 								if res = EVT_DISPATCH_AND_PROCESS [
 									make-event current-msg 0 EVT_CHANGE
 								]
@@ -669,6 +680,16 @@ system/view/platform: context [
 				int/value:  as-integer version-info/wProductType 
 			]
 			
+			set-selected: func [
+				msg [tagMSG]
+				idx [integer!]
+				/local
+					int [red-integer!]
+			][
+				int: as red-integer! get-facet msg FACE_OBJ_SELECTED
+				int/value: idx
+			]
+			
 			get-text: func [
 				msg	[tagMSG]
 				idx	[integer!]
@@ -731,6 +752,7 @@ system/view/platform: context [
 					offset	 [red-pair!]
 					size	 [red-pair!]
 					data	 [red-block!]
+					int		 [red-integer!]
 					flags	 [integer!]
 					ws-flags [integer!]
 					sym		 [integer!]
@@ -850,7 +872,14 @@ system/view/platform: context [
 								str: str + 1
 							]
 						]
-						unless null? caption [SetWindowText handle caption]
+						either any [null? caption sym = droplist][
+							int: as red-integer! get-node-facet face/ctx FACE_OBJ_SELECTED
+							if TYPE_OF(int) = TYPE_INTEGER [
+								SendMessage handle CB_SETCURSEL int/value - 1 0
+							]
+						][
+							SetWindowText handle caption
+						]
 					]
 					true [0]
 				]
