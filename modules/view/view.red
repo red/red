@@ -15,14 +15,14 @@ Red [
 ]
 
 face!: object [				;-- keep in sync with facet! enum
-	type:		none
+	type:		'face
 	offset:		none
 	size:		none
 	text:		none
 	image:		none
 	color:		none
 	data:		none
-	visible?:	none
+	visible?:	yes
 	selected:	none
 	parent:		none
 	pane:		none

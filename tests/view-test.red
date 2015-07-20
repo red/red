@@ -47,7 +47,16 @@ win/pane: reduce [
 			]
 		]
 	]
-	make face! [type: 'base offset: 100x80 size: 80x24]
+	simple: make face! [type: 'base offset: 100x80 size: 80x24 visible?: no]
+	make face! [
+		type: 'button text: "Show/Hide" offset: 200x80 size: 70x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				simple/visible?: not simple/visible?
+				show simple
+			]
+		]
+	]
 	make face! [
 		type: 'dropdown
 		text: "type"

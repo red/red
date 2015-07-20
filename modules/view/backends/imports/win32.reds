@@ -13,6 +13,9 @@ Red/System [
 #define HORZRES				8
 #define VERTRES				10
 
+#define SW_HIDE				0
+#define SW_SHOW				5
+
 #define COLOR_WINDOW		5
 #define CS_VREDRAW			1
 #define CS_HREDRAW			2

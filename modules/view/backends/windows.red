@@ -760,6 +760,7 @@ system/view/platform: context [
 					size	 [red-pair!]
 					data	 [red-block!]
 					int		 [red-integer!]
+					show?	 [red-logic!]
 					flags	 [integer!]
 					ws-flags [integer!]
 					sym		 [integer!]
@@ -773,17 +774,20 @@ system/view/platform: context [
 				s: as series! ctx/values/value
 				values: s/offset
 				
-				type:	as red-word!	values + gui/FACE_OBJ_TYPE
-				str:	as red-string!	values + gui/FACE_OBJ_TEXT
-				offset: as red-pair!	values + gui/FACE_OBJ_OFFSET
-				size:	as red-pair!	values + gui/FACE_OBJ_SIZE
-				data:	as red-block!	values + gui/FACE_OBJ_DATA
+				type:	as red-word!	values + FACE_OBJ_TYPE
+				str:	as red-string!	values + FACE_OBJ_TEXT
+				offset: as red-pair!	values + FACE_OBJ_OFFSET
+				size:	as red-pair!	values + FACE_OBJ_SIZE
+				show?:	as red-logic!	values + FACE_OBJ_VISIBLE?
+				data:	as red-block!	values + FACE_OBJ_DATA
 				
-				flags: 	  WS_VISIBLE or WS_CHILD
+				flags: 	  WS_CHILD
 				ws-flags: 0
 				sym: 	  symbol/resolve type/symbol
 				offx:	  offset/x
 				offy:	  offset/y
+				
+				if show?/value [flags: flags or WS_VISIBLE]
 
 				case [
 					sym = button [
@@ -955,17 +959,8 @@ system/view/platform: context [
 		/local
 			value [integer!]
 	][
-		either show? [
-			value: SWP_SHOWWINDOW
-		][
-			value: SWP_HIDEWINDOW
-		]
-		gui/SetWindowPos 
-			as handle! hWnd
-			as handle! 0
-			0 0
-			0 0
-			SWP_NOSIZE or SWP_NOMOVE or SWP_NOZORDER or value
+		value: either show? [SW_SHOW][SW_HIDE]
+		gui/ShowWindow as handle! hWnd value
 	]
 	
 	change-selection: routine [
@@ -992,6 +987,7 @@ system/view/platform: context [
 			state	[red-block!]
 			int		[red-integer!]
 			int2	[red-integer!]
+			bool	[red-logic!]
 			s		[series!]
 			hWnd	[integer!]
 			flags	[integer!]
@@ -1015,6 +1011,10 @@ system/view/platform: context [
 		]
 		if flags and 00000008h <> 0 [
 			change-text hWnd as red-string! values + gui/FACE_OBJ_TEXT
+		]
+		if flags and 00000080h <> 0 [
+			bool: as red-logic! values + gui/FACE_OBJ_VISIBLE?
+			change-visible hWnd bool/value
 		]
 		if flags and 00000100h <> 0 [
 			int2: as red-integer! values + gui/FACE_OBJ_SELECTED
