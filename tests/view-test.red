@@ -108,6 +108,19 @@ win/pane: reduce [
 			]
 		]
 	]
+	progress: make face! [
+		type: 'progress offset: 10x160 size: 120x24
+	]
+	make face! [
+		type: 'slider offset: 150x160 size: 120x24
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				print ["silder changed:" face/data]
+				progress/data: face/data
+				show progress
+			]
+		]
+	]
 ]
 show win
 

@@ -98,6 +98,8 @@ system/view/platform: context [
 			radio:			symbol/make "radio"
 			field:			symbol/make "field"
 			text:			symbol/make "text"
+			progress:		symbol/make "progress"
+			slider:			symbol/make "slider"
 			dropdown:		symbol/make "dropdown"
 			droplist:		symbol/make "droplist"
 			base:			symbol/make "base"
@@ -418,6 +420,13 @@ system/view/platform: context [
 							default [0]
 						]
 					]
+					WM_HSCROLL [
+						unless zero? lParam [			;-- message from trackbar
+							current-msg/hWnd: as handle! lParam	;-- trackbar handle
+							get-slider-pos current-msg
+							make-event current-msg 0 EVT_CHANGE
+						]
+					]
 					;WM_ERASEBKGND	[
 					;	if paint-background msg [return 1]
 					;]
@@ -639,10 +648,12 @@ system/view/platform: context [
 				RegisterClassEx wcex
 				
 				;-- superclass existing classes to add 16 extra bytes
-				make-super-class #u16 "RedButton" #u16 "BUTTON"
-				make-super-class #u16 "RedField"  #u16 "EDIT"
-				make-super-class #u16 "RedFace"	  #u16 "STATIC"
-				make-super-class #u16 "RedCombo"  #u16 "ComboBox"
+				make-super-class #u16 "RedButton"	#u16 "BUTTON"
+				make-super-class #u16 "RedField"	#u16 "EDIT"
+				make-super-class #u16 "RedFace"		#u16 "STATIC"
+				make-super-class #u16 "RedCombo"	#u16 "ComboBox"
+				make-super-class #u16 "RedProgress" #u16 "msctls_progress32"
+				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32"
 			]
 			
 			init: func [
@@ -729,7 +740,19 @@ system/view/platform: context [
 					unicode/load-utf16 null size str
 				]
 			]
-			
+
+			get-slider-pos: func [
+				msg	[tagMSG]
+				/local
+					pos	[red-integer!]
+			][
+				pos: as red-integer! get-facet msg FACE_OBJ_DATA
+				if TYPE_OF(pos) <> TYPE_INTEGER [
+					integer/make-at as red-value! pos 0
+				]
+				pos/value: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
+			]
+
 			get-screen-size: func [
 				id		[integer!]						;@@ Not used yet
 				return: [red-pair!]
@@ -818,6 +841,12 @@ system/view/platform: context [
 					sym = droplist [
 						class: #u16 "RedCombo"
 						flags: flags or CBS_DROPDOWNLIST or CBS_HASSTRINGS ;or WS_OVERLAPPED
+					]
+					sym = progress [
+						class: #u16 "RedProgress"
+					]
+					sym = slider [
+						class: #u16 "RedSlider"
 					]
 					sym = base [
 						class: #u16 "Base"
@@ -969,7 +998,14 @@ system/view/platform: context [
 	][
 		gui/SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
 	]
-	
+
+	change-data: routine [
+		hWnd [integer!]
+		data [integer!]
+	][
+		gui/SendMessage as handle! hWnd PBM_SETPOS data 0
+	]
+
 	get-screen-size: routine [
 		id		[integer!]
 		/local
@@ -1019,6 +1055,10 @@ system/view/platform: context [
 		if flags and 00000100h <> 0 [
 			int2: as red-integer! values + gui/FACE_OBJ_SELECTED
 			change-selection hWnd int2/value
+		]
+		if flags and 00000040h <> 0 [
+			int2: as red-integer! values + gui/FACE_OBJ_DATA
+			change-data hWnd int2/value
 		]
 		int/value: 0									;-- reset flags
 	]

@@ -191,6 +191,19 @@ integer: context [
 		as red-value! left
 	]
 
+	make-at: func [
+		slot	[red-value!]
+		value	[integer!]
+		return:	[red-integer!]
+		/local
+			int [red-integer!]
+	][
+		int: as red-integer! slot
+		int/header: TYPE_INTEGER
+		int/value: value
+		int
+	]
+
 	make-in: func [
 		parent 	[red-block!]
 		value 	[integer!]
