@@ -24,6 +24,7 @@ lexer: context [
 	type:	none									;-- define the type of the new value
 	rs?:	no 										;-- if TRUE, do lexing for Red/System
 	neg?:	no										;-- if TRUE, denotes a negative number value
+	base:	16										;-- binary base
 	
 	;====== Parsing rules ======
 
@@ -44,6 +45,7 @@ lexer: context [
 
 	hexa:  union digit charset "ABCDEF"
 	hexa-char: union hexa charset "abcdef"
+	base64-char: union digit charset [#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="]
 	
 	;-- UTF-8 encoding rules from: http://tools.ietf.org/html/rfc3629#section-4
 	UTF-8-BOM: #{EFBBBF}
@@ -356,13 +358,27 @@ lexer: context [
 	multiline-string: [#"{" s: (type: string!) nested-curly-braces]
 	
 	string-rule: [line-string | multiline-string]
-	
-	binary-rule: [
-		"#{" (type: binary!) 
-		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
-		e: #"}"
+
+	base-2-rule: [
+		"2#{" (type: binary!)
+		s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule]
+		e: #"}" (base: 2)
 	]
 	
+	base-16-rule: [
+		"#{" (type: binary!) 
+		s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule]
+		e: #"}" (base: 16)
+	]
+
+	base-64-rule: [
+		"64#{" (type: binary!)
+		s: any [counted-newline | base64-char | ws-no-count | comment-rule]
+		e: #"}" (base: 64)
+	]
+
+	binary-rule: [base-16-rule | base-2-rule | base-64-rule]
+
 	file-rule: [
 		#"%" (type: file! stop: [not-file-char | ws-no-count]) [
 			#"^"" s: any UTF8-filtered-char e: #"^""
@@ -418,7 +434,7 @@ lexer: context [
 			| block-rule	  (stack/push value)
 			| paren-rule	  (stack/push value)
 			| string-rule	  (stack/push load-string s e)
-			| binary-rule	  (stack/push load-binary s e)
+			| binary-rule	  (stack/push load-binary s e base)
 			| map-rule		  (stack/push value)
 			| issue-rule	  (stack/push to issue!	   	 copy/part s e)
 		]
@@ -613,16 +629,18 @@ lexer: context [
 		new
 	]
 	
-	load-binary: func [s [string!] e [string!] /local new byte][
-		new: make binary! (offset? s e) / 2			;-- allocated size above final size
+	load-binary: func [s [string!] e [string!] base [integer!] /local new str][
+		new: make string! offset? s e				;-- allocated size above final size
 
 		parse/all/case s [
 			some [
-				copy byte 2 hexa-char (insert tail new debase/base byte 16)
+				copy str some base64-char (insert tail new str)
 				| ws | comment-rule
 				| #"}" end skip
 			]
 		]
+		new: debase/base new base
+		if none? new [throw-error]
 		new
 	]
 

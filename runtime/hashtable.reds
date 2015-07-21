@@ -188,6 +188,7 @@ _hashtable: context [
 			TYPE_POINT
 			TYPE_DATATYPE
 			TYPE_PERCENT
+			TYPE_BINARY
 			TYPE_TUPLE [true]
 			default    [false]
 		]
@@ -221,6 +222,12 @@ _hashtable: context [
 				s: GET_BUFFER(symbols)
 				sym: as red-string! s/offset + key/data2 - 1
 				hash-string sym case?
+			]
+			TYPE_BINARY [
+				s: GET_BUFFER(symbols)
+				murmur3-x86-32
+					(as byte-ptr! s/offset) + key/data1
+					(as-integer s/tail - s/offset) - key/data1
 			]
 			TYPE_POINT
 			TYPE_TYPESET [
