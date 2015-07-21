@@ -378,6 +378,16 @@ system/view/platform: context [
 				state
 			]
 			
+			init-current-msg: func [
+				/local
+					pos [integer!]
+			][
+				current-msg: declare TAGmsg
+				pos: GetMessagePos
+				current-msg/x: WIN32_LOWORD(pos)
+				current-msg/y: WIN32_HIWORD(pos)
+			]
+			
 			WndProc: func [
 				hWnd	[handle!]
 				msg		[integer!]
@@ -428,16 +438,15 @@ system/view/platform: context [
 					WM_CTLCOLORSTATIC 
 					WM_CTLCOLORLISTBOX 
 					WM_CTLCOLORSCROLLBAR [
-						unless null? current-msg [
-							current-msg/hWnd: as handle! lParam	;-- force child handle
-							handle: get-widget-handle current-msg
-							if handle <> as handle! -1 [
-								color: get-color handle
-								if color <> -1 [
-									SetBkMode as handle! wParam BK_TRANSPARENT 
-									SetDCBrushColor as handle! wParam color
-									return as-integer GetStockObject 18
-								]
+						if null? current-msg [init-current-msg]
+						current-msg/hWnd: as handle! lParam	;-- force child handle
+						handle: get-widget-handle current-msg
+						if handle <> as handle! -1 [
+							color: to-bgr as node! GetWindowLong handle wc-offset + 4
+							if color <> -1 [
+								SetBkMode as handle! wParam BK_TRANSPARENT 
+								SetDCBrushColor as handle! wParam color
+								return as-integer GetStockObject 18
 							]
 						]
 					]
@@ -539,16 +548,11 @@ system/view/platform: context [
 				cookie/ptr
 			]
 			
-			get-color: func [
-				hWnd	[handle!]
+			to-bgr: func [
+				node	[node!]
 				return: [integer!]						;-- 00bbggrr format or -1 if not found
-				/local
-					color [red-tuple!]
 			][
-				color: as red-tuple! get-node-facet 
-					as node! GetWindowLong hWnd wc-offset + 4
-					FACE_OBJ_COLOR
-			
+				color: as red-tuple! get-node-facet node FACE_OBJ_COLOR
 				either TYPE_OF(color) = TYPE_TUPLE [
 					color/array1 and 00FFFFFFh
 				][
@@ -565,7 +569,7 @@ system/view/platform: context [
 					hBrush [handle!]
 					color  [integer!]
 			][
-				color: get-color hWnd
+				color: to-bgr as node! GetWindowLong hWnd wc-offset + 4
 				if color = -1 [return false]
 				
 				hBrush: CreateSolidBrush color

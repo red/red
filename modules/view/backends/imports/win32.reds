@@ -455,6 +455,9 @@ RECT_STRUCT: alias struct! [
 			lParam		[integer!]
 			return: 	[handle!]
 		]
+		GetMessagePos: "GetMessagePos" [
+			return:		[integer!]
+		]
 		SetWindowLong: "SetWindowLongW" [
 			hWnd		[handle!]
 			nIndex		[integer!]
