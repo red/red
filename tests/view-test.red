@@ -2,6 +2,8 @@ Red [
 	Needs: 'View
 ]
 
+system/view/debug?: yes
+
 workstation?: system/view/platform/product = 1
 
 print [
@@ -125,10 +127,11 @@ win/pane: reduce [
 				;data: 50%
 				actors: object [
 					on-change: func [face [object!] event [event!]][
-						print ["slider changed:" face/data]
+						;print ["slider changed:" face/data]
 						progress/data: face/data
 						progress-text/text: form face/data
 						show progress
+						show progress-text
 					]
 				]
 			]
