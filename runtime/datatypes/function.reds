@@ -415,7 +415,7 @@ _function: context [
 			value: value + 1
 		]
 
-		unless ret-set? [interpreter/return-type: -1]	;@@ set the default correctly in case of nested calls
+		;unless ret-set? [interpreter/return-type: -1]	;@@ set the default correctly in case of nested calls
 
 		unless function? [
 			block/rs-append list as red-value! none-value ;-- place-holder for argument name
