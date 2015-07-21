@@ -36,6 +36,7 @@ system/lexer: context [
 			2  [binary/decode-2  p len unit]
 			64 [binary/decode-64 p len unit]
 		]
+		if ret/node = null [ret/header: TYPE_NONE]			;-- return NONE!
 	]
 
 	make-tuple: routine [
@@ -362,9 +363,9 @@ system/lexer: context [
 			cs/18: charset "012345"						;-- half
 		    cs/19: charset "123456789"					;-- non-zero
 		    cs/20: charset {^{"[]();}					;-- path-end
-		    cs/21: union union cs/1						;-- base64-char
-		    		charset [#"A" - #"Z" #"a" - #"z"]
-		    		charset {+/=}
+		    cs/21: union cs/1 charset [					;-- base64-char
+					#"A" - #"Z" #"a" - #"z" #"+" #"/" #"="
+				]
 		]
 		set [
 			digit hexa-upper hexa-lower hexa hexa-char not-word-char not-word-1st
@@ -487,17 +488,17 @@ system/lexer: context [
 		string-rule: [(type: string!) line-string | multiline-string]
 
 		base-2-rule: [
-			"2#{" s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count] e: #"}"
+			"2#{" s: any [counted-newline | 8 [#"0" | #"1" ] | ws-no-count | comment-rule] e: #"}"
 			(base: 2)
 		]
 
 		base-16-rule: [
-			"#{" s: any [counted-newline | 2 hexa-char | ws-no-count] e: #"}"
+			"#{" s: any [counted-newline | 2 hexa-char | ws-no-count | comment-rule] e: #"}"
 			(base: 16)
 		]
 
 		base-64-rule: [						;@@ correct me!
-			"64#{" s: any [counted-newline | base64-char | ws-no-count] e: #"}"			
+			"64#{" s: any [counted-newline | base64-char | ws-no-count | comment-rule] e: #"}"			
 			(base: 64)
 		]
 
@@ -729,7 +730,7 @@ system/lexer: context [
 				| block-rule
 				| paren-rule
 				| string-rule		(store stack do make-string)
-				| binary-rule		(store stack make-binary s e base)
+				| binary-rule		if (value: make-binary s e base) (store stack value)
 				| map-rule
 				| issue-rule
 			]

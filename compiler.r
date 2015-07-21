@@ -1528,7 +1528,7 @@ red: context [
 				]
 				binary!	[
 					idx: redbin/emit-string/root value
-					emit to path! reduce [to word! form type? value 'push]
+					emit 'binary/push
 					emit compose [as red-binary! get-root (idx)]
 					insert-lf -5
 				]

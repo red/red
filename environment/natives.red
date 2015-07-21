@@ -688,3 +688,12 @@ extend: make native! [[
 	]
 	#get-definition NAT_EXTEND
 ]
+
+debase: make native! [[
+		"Decodes binary-coded string (BASE-64 default) to binary value"
+		value [string!] "The string to decode"
+		/base "Binary base to use"
+			base-value [integer!] "The base to convert from: 64, 16, or 2"
+	]
+	#get-definition NAT_DEBASE
+]

@@ -87,6 +87,8 @@ system/view/platform: context [
 			wc-extra:		80							;-- reserve 64 bytes for win32 internal usage (arbitrary)
 			wc-offset:		64							;-- offset to our 16 bytes
 			
+			oldGroupBoxWndProc: 0
+			
 			;-- extended classes handling
 			max-ext-styles: 20
 			ext-classes:	as ext-class! allocate max-ext-styles * size? ext-class!
@@ -98,6 +100,8 @@ system/view/platform: context [
 			radio:			symbol/make "radio"
 			field:			symbol/make "field"
 			text:			symbol/make "text"
+			progress:		symbol/make "progress"
+			slider:			symbol/make "slider"
 			dropdown:		symbol/make "dropdown"
 			droplist:		symbol/make "droplist"
 			base:			symbol/make "base"
@@ -389,6 +393,29 @@ system/view/platform: context [
 				current-msg/y: WIN32_HIWORD(pos)
 			]
 			
+			GroupBoxWndProc: func [
+				hWnd	[handle!]
+				msg		[integer!]
+				wParam	[integer!]
+				lParam	[integer!]
+				return: [integer!]
+			][
+				switch msg [
+					WM_HSCROLL [
+						unless zero? lParam [			;-- message from trackbar
+							unless null? current-msg [
+								current-msg/hWnd: as handle! lParam	;-- trackbar handle
+								get-slider-pos current-msg
+								make-event current-msg 0 EVT_CHANGE
+								return 0
+							]
+						]
+					]
+					default [0]
+				]
+				CallWindowProc as wndproc-cb! oldGroupBoxWndProc hWnd msg wParam lParam
+			]
+			
 			WndProc: func [
 				hWnd	[handle!]
 				msg		[integer!]
@@ -431,6 +458,14 @@ system/view/platform: context [
 							default [0]
 						]
 					]
+					WM_HSCROLL [
+						unless zero? lParam [			;-- message from trackbar
+							current-msg/hWnd: as handle! lParam	;-- trackbar handle
+							get-slider-pos current-msg
+							make-event current-msg 0 EVT_CHANGE
+							return 0
+						]
+					]
 					WM_ERASEBKGND [
 						if paint-background hWnd as handle! wParam [return 1]
 					]
@@ -469,6 +504,10 @@ system/view/platform: context [
 					WM_RBUTTONUP	[make-event msg 0 EVT_RIGHT_UP]
 					WM_MBUTTONDOWN	[make-event msg 0 EVT_MIDDLE_DOWN]
 					WM_MBUTTONUP	[make-event msg 0 EVT_MIDDLE_UP]
+					WM_HSCROLL [
+						get-slider-pos msg
+						make-event current-msg 0 EVT_CHANGE
+					]
 					WM_KEYDOWN		[make-event msg 0 EVT_KEY_DOWN]
 					WM_SYSKEYUP
 					WM_KEYUP		[make-event msg 0 EVT_KEY_UP]
@@ -643,6 +682,7 @@ system/view/platform: context [
 				]
 				wcex/cbSize: 		size? WNDCLASSEX
 				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+				wcex/hInstance:		hInstance
 				wcex/lpszClassName: new
 				RegisterClassEx wcex
 			]
@@ -658,7 +698,7 @@ system/view/platform: context [
 				wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 				wcex/lpfnWndProc:	:WndProc
 				wcex/cbClsExtra:	0
-				wcex/cbWndExtra:	wc-extra
+				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
 				wcex/hInstance:		hInstance
 				wcex/hIcon:			null
 				wcex/hCursor:		LoadCursor null IDC_ARROW
@@ -670,9 +710,9 @@ system/view/platform: context [
 				RegisterClassEx wcex
 				
 				wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
-				wcex/lpfnWndProc:	:WndProc
+				;wcex/lpfnWndProc:	:WndProc
 				wcex/cbClsExtra:	0
-				wcex/cbWndExtra:	wc-extra
+				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
 				wcex/hInstance:		hInstance
 				wcex/hIcon:			null
 				wcex/hCursor:		LoadCursor null IDC_ARROW
@@ -684,10 +724,22 @@ system/view/platform: context [
 				RegisterClassEx wcex
 				
 				;-- superclass existing classes to add 16 extra bytes
-				make-super-class #u16 "RedButton" #u16 "BUTTON"
-				make-super-class #u16 "RedField"  #u16 "EDIT"
-				make-super-class #u16 "RedFace"	  #u16 "STATIC"
-				make-super-class #u16 "RedCombo"  #u16 "ComboBox"
+				make-super-class #u16 "RedButton"	#u16 "BUTTON"
+				make-super-class #u16 "RedField"	#u16 "EDIT"
+				make-super-class #u16 "RedFace"		#u16 "STATIC"
+				make-super-class #u16 "RedCombo"	#u16 "ComboBox"
+				make-super-class #u16 "RedProgress" #u16 "msctls_progress32"
+				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32"
+				
+				if 0 = GetClassInfoEx 0 #u16 "BUTTON" wcex [
+					print-line "*** Error in GetClassInfoEx"
+				]
+				oldGroupBoxWndProc: :wcex/lpfnWndProc
+				wcex/lpfnWndProc:	:GroupBoxWndProc
+				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+				wcex/hInstance:		hInstance
+				wcex/lpszClassName: #u16 "RedPanel"
+				RegisterClassEx wcex
 			]
 			
 			init: func [
@@ -774,7 +826,19 @@ system/view/platform: context [
 					unicode/load-utf16 null size str
 				]
 			]
-			
+
+			get-slider-pos: func [
+				msg	[tagMSG]
+				/local
+					pos	[red-integer!]
+			][
+				pos: as red-integer! get-facet msg FACE_OBJ_DATA
+				if TYPE_OF(pos) <> TYPE_INTEGER [
+					integer/make-at as red-value! pos 0
+				]
+				pos/value: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
+			]
+
 			get-screen-size: func [
 				id		[integer!]						;@@ Not used yet
 				return: [red-pair!]
@@ -848,7 +912,7 @@ system/view/platform: context [
 						flags: flags or WS_TABSTOP or BS_AUTORADIOBUTTON
 					]
 					sym = panel [
-						class: #u16 "RedButton"
+						class: #u16 "RedPanel"
 						flags: flags or WS_GROUP or BS_GROUPBOX
 					]
 					sym = field [
@@ -867,6 +931,12 @@ system/view/platform: context [
 					sym = droplist [
 						class: #u16 "RedCombo"
 						flags: flags or CBS_DROPDOWNLIST or CBS_HASSTRINGS ;or WS_OVERLAPPED
+					]
+					sym = progress [
+						class: #u16 "RedProgress"
+					]
+					sym = slider [
+						class: #u16 "RedSlider"
 					]
 					sym = base [
 						class: #u16 "Base"
@@ -1018,7 +1088,14 @@ system/view/platform: context [
 	][
 		gui/SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
 	]
-	
+
+	change-data: routine [
+		hWnd [integer!]
+		data [integer!]
+	][
+		gui/SendMessage as handle! hWnd PBM_SETPOS data 0
+	]
+
 	get-screen-size: routine [
 		id		[integer!]
 		/local
@@ -1068,6 +1145,10 @@ system/view/platform: context [
 		if flags and 00000100h <> 0 [
 			int2: as red-integer! values + gui/FACE_OBJ_SELECTED
 			change-selection hWnd int2/value
+		]
+		if flags and 00000040h <> 0 [
+			int2: as red-integer! values + gui/FACE_OBJ_DATA
+			change-data hWnd int2/value
 		]
 		int/value: 0									;-- reset flags
 	]

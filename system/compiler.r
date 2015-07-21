@@ -967,9 +967,9 @@ system-dialect: make-profilable context [
 		]
 		
 		compare-func-specs: func [
-			f-type [block!] c-type [block!] /with fun [word!] cb [get-word!] /local spec pos idx
+			f-type [block!] c-type [block!] /with fun [word!] cb [get-word! object!] /local spec pos idx
 		][
-			if with [
+			if all [with not object? cb][
 				cb: to word! cb
 				if functions/:cb/3 <> functions/:fun/3 [
 					throw-error [
@@ -2375,10 +2375,11 @@ system-dialect: make-profilable context [
 			]
 		]
 		
-		comp-path: has [path value ns type name][
+		comp-path: has [path value ns type name get?][
 			path: pc/1
 			if #":" = first mold path/1 [
-				throw-error "get-path! syntax is not supported"
+				path/1: to word! path/1
+				get?: yes
 			]
 			either all [
 				not local-variable? path/1
@@ -2400,7 +2401,10 @@ system-dialect: make-profilable context [
 							pc: next pc
 						]
 					]
-					'function! = first type: resolve-path-type/short path [
+					all [
+						not get?
+						'function! = first type: resolve-path-type/short path 
+					][
 						name: to word! form path
 						check-specs name type/2
 						clear-docstrings type/2

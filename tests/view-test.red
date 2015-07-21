@@ -110,10 +110,28 @@ win/pane: reduce [
 			]
 		]
 	]
-	make face! [
+	group: make face! [
 		type: 'panel text: "Panel" offset: 10x150 size: 300x250
 		pane: reduce [
 			make face! [type: 'button text: "Inside" offset: 20x20 size: 60x40]
+			set 'progress make face! [
+				type: 'progress offset: 10x80 size: 120x16
+			]
+			set 'progress-text make face! [
+				type: 'text text: "0" offset: 145x80 size: 20x16 color: white
+			]
+			make face! [
+				type: 'slider offset: 10x110 size: 120x24
+				;data: 50%
+				actors: object [
+					on-change: func [face [object!] event [event!]][
+						print ["slider changed:" face/data]
+						progress/data: face/data
+						progress-text/text: form face/data
+						show progress
+					]
+				]
+			]
 		]
 	]
 ]
