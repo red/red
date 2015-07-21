@@ -401,6 +401,7 @@ system/view/platform: context [
 				return: [integer!]
 			][
 				switch msg [
+					WM_VSCROLL
 					WM_HSCROLL [
 						unless zero? lParam [			;-- message from trackbar
 							unless null? current-msg [
@@ -934,9 +935,13 @@ system/view/platform: context [
 					]
 					sym = progress [
 						class: #u16 "RedProgress"
+						if size/y > size/x [flags: flags or PBS_VERTICAL]
 					]
 					sym = slider [
 						class: #u16 "RedSlider"
+						if size/y > size/x [
+							flags: flags or TBS_VERT or TBS_DOWNISLEFT
+						]
 					]
 					sym = base [
 						class: #u16 "Base"

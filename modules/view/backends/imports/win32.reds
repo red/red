@@ -75,6 +75,12 @@ Red/System [
 #define CBS_DROPDOWNLIST	0003h
 #define CBS_HASSTRINGS		0200h
 
+#define TBS_HORZ			0000h
+#define TBS_VERT			0002h
+#define TBS_DOWNISLEFT		0400h  	;-- Down=Left and Up=Right (default is Down=Right and Up=Left)
+
+#define PBS_VERTICAL		04h
+
 #define IDC_ARROW			7F00h
 #define WS_OVERLAPPEDWINDOW	00CF0000h
 #define WS_CLIPCHILDREN		02000000h
