@@ -101,6 +101,7 @@ system/view/platform: context [
 			dropdown:		symbol/make "dropdown"
 			droplist:		symbol/make "droplist"
 			base:			symbol/make "base"
+			panel:			symbol/make "panel"
 			
 			done:			symbol/make "done"
 			stop:			symbol/make "stop"
@@ -846,6 +847,10 @@ system/view/platform: context [
 						class: #u16 "RedButton"
 						flags: flags or WS_TABSTOP or BS_AUTORADIOBUTTON
 					]
+					sym = panel [
+						class: #u16 "RedButton"
+						flags: flags or WS_GROUP or BS_GROUPBOX
+					]
 					sym = field [
 						class: #u16 "RedField"
 						flags: flags or ES_LEFT
@@ -868,7 +873,7 @@ system/view/platform: context [
 					]
 					sym = window [
 						class: #u16 "RedWindow"
-						flags: WS_OVERLAPPEDWINDOW or WS_CLIPCHILDREN
+						flags: WS_OVERLAPPEDWINDOW ;or WS_CLIPCHILDREN
 						offx:  CW_USEDEFAULT
 						offy:  CW_USEDEFAULT
 					]

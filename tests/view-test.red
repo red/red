@@ -18,7 +18,7 @@ print [
 	"build" system/view/platform/build
 ]
 
-win: make face! [type: 'window text: "Red View" offset: 500x500 size: 400x400]
+win: make face! [type: 'window text: "Red View" offset: 500x500 size: 500x500]
 
 button: make face! [
 	type: 'button
@@ -108,6 +108,12 @@ win/pane: reduce [
 				droplist/selected: 5
 				show droplist
 			]
+		]
+	]
+	make face! [
+		type: 'panel text: "Panel" offset: 10x150 size: 300x250
+		pane: reduce [
+			make face! [type: 'button text: "Inside" offset: 20x20 size: 60x40]
 		]
 	]
 ]
