@@ -380,6 +380,16 @@ system/view/platform: context [
 				state
 			]
 			
+			init-current-msg: func [
+				/local
+					pos [integer!]
+			][
+				current-msg: declare TAGmsg
+				pos: GetMessagePos
+				current-msg/x: WIN32_LOWORD(pos)
+				current-msg/y: WIN32_HIWORD(pos)
+			]
+			
 			WndProc: func [
 				hWnd	[handle!]
 				msg		[integer!]
@@ -387,8 +397,10 @@ system/view/platform: context [
 				lParam	[integer!]
 				return: [integer!]
 				/local
-					idx [integer!]
-					res [integer!]
+					idx	   [integer!]
+					res	   [integer!]
+					color  [integer!]
+					handle [handle!]
 			][
 				switch msg [
 					WM_DESTROY [PostQuitMessage 0]
@@ -427,9 +439,26 @@ system/view/platform: context [
 							make-event current-msg 0 EVT_CHANGE
 						]
 					]
-					;WM_ERASEBKGND	[
-					;	if paint-background msg [return 1]
-					;]
+					WM_ERASEBKGND [
+						if paint-background hWnd as handle! wParam [return 1]
+					]
+					WM_CTLCOLORBTN
+					WM_CTLCOLOREDIT
+					WM_CTLCOLORSTATIC 
+					WM_CTLCOLORLISTBOX 
+					WM_CTLCOLORSCROLLBAR [
+						if null? current-msg [init-current-msg]
+						current-msg/hWnd: as handle! lParam	;-- force child handle
+						handle: get-widget-handle current-msg
+						if handle <> as handle! -1 [
+							color: to-bgr as node! GetWindowLong handle wc-offset + 4
+							if color <> -1 [
+								SetBkMode as handle! wParam BK_TRANSPARENT 
+								SetDCBrushColor as handle! wParam color
+								return as-integer GetStockObject DC_BRUSH
+							]
+						]
+					]
 					default [0]
 				]
 				DefWindowProc hWnd msg wParam lParam
@@ -528,22 +557,37 @@ system/view/platform: context [
 				cookie/ptr
 			]
 			
-			;paint-background: func [
-			;	msg		[tagMSG]
-			;	return: [logic!]
-			;][
-			;
-			;]
+			to-bgr: func [
+				node	[node!]
+				return: [integer!]						;-- 00bbggrr format or -1 if not found
+			][
+				color: as red-tuple! get-node-facet node FACE_OBJ_COLOR
+				either TYPE_OF(color) = TYPE_TUPLE [
+					color/array1 and 00FFFFFFh
+				][
+					-1
+				]
+			]
 			
-			;change-color: func [
-			;	hWnd  [handle!]
-			;	color [tuple!]
-			;][
-				;SetWindowLong 
-				;	hWnd
-				;	-16
-				;	CreateSolidBrush color/3 << 16 or (color/2 << 8) or color/1	
-			;]
+			paint-background: func [
+				hWnd	[handle!]
+				hDC		[handle!]
+				return: [logic!]
+				/local
+					rect   [RECT_STRUCT]
+					hBrush [handle!]
+					color  [integer!]
+			][
+				color: to-bgr as node! GetWindowLong hWnd wc-offset + 4
+				if color = -1 [return false]
+				
+				hBrush: CreateSolidBrush color
+				rect: declare RECT_STRUCT
+				GetClientRect hWnd rect
+				FillRect hDC rect hBrush
+				DeleteObject hBrush
+				true
+			]
 			
 			find-class: func [
 				name	[red-word!]
@@ -815,7 +859,7 @@ system/view/platform: context [
 				case [
 					sym = button [
 						class: #u16 "RedButton"
-						flags: flags or BS_PUSHBUTTON
+						;flags: flags or BS_PUSHBUTTON
 					]
 					sym = check [
 						class: #u16 "RedButton"
