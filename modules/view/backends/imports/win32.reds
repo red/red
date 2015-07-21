@@ -87,6 +87,12 @@ Red/System [
 #define WM_SYSKEYUP			0105h
 #define WM_COMMAND 			0111h
 #define WM_SYSCOMMAND		0112h
+#define WM_CTLCOLOREDIT		0133h
+#define WM_CTLCOLORLISTBOX	0134h
+#define WM_CTLCOLORBTN		0135h
+#define WM_CTLCOLORDLG		0136h
+#define WM_CTLCOLORSCROLLBAR 0137h
+#define WM_CTLCOLORSTATIC	0138h
 #define WM_LBUTTONDOWN		0201h
 #define WM_LBUTTONUP		0202h
 #define WM_LBUTTONDBLCLK	0203h
@@ -96,8 +102,8 @@ Red/System [
 #define WM_MBUTTONUP		0208h
 
 
-#define BM_GETCHECK			F0F0h
-#define BM_SETCHECK			F0F1h
+#define BM_GETCHECK			00F0h
+#define BM_SETCHECK			00F1h
 
 #define BN_CLICKED 			0
 
@@ -161,6 +167,11 @@ Red/System [
 #define SWP_NOZORDER		0004h
 #define SWP_SHOWWINDOW		0040h
 #define SWP_HIDEWINDOW		0080h
+
+#define BK_TRANSPARENT		1
+#define BK_OPAQUE			2
+
+#define DC_BRUSH			18
 
 #define ICC_LISTVIEW_CLASSES	00000001h	;-- listview, header
 #define ICC_TREEVIEW_CLASSES	00000002h	;-- treeview, tooltips
@@ -462,7 +473,7 @@ RECT_STRUCT: alias struct! [
 			return: 	[integer!]
 		]
 		GetClientRect: "GetClientRect" [
-			hWnd		[integer!]
+			hWnd		[handle!]
 			lpRect		[RECT_STRUCT]
 			return:		[integer!]
 		]
@@ -513,6 +524,11 @@ RECT_STRUCT: alias struct! [
 			crColor		[integer!]					;-- 0x00bbggrr
 			return:		[integer!]					;-- 0x00bbggrr
 		]
+		SetBkMode: "SetBkMode" [
+			hdc			[handle!]
+			iBkMode		[integer!]
+			return:		[integer!]
+		]
 		TextOut: "TextOutW" [
 			hdc			[handle!]
 			nXStart		[integer!]
@@ -528,6 +544,15 @@ RECT_STRUCT: alias struct! [
 		CreateSolidBrush: "CreateSolidBrush" [
 			crColor		[integer!]
 			return:		[handle!]
+		]
+		SetDCBrushColor: "SetDCBrushColor" [
+			hdc			[handle!]
+			crColor		[integer!]					;-- 0x00bbggrr
+			return:		[integer!]					;-- 0x00bbggrr
+		]
+		DeleteObject: "DeleteObject" [
+			hObject		[handle!]
+			return:		[integer!]
 		]
 	]
 	"Comctl32.dll" stdcall [

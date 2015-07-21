@@ -41,13 +41,14 @@ win/pane: reduce [
 	button
 	make face! [
 		type: 'field text: "<type here>" offset: 10x80 size: 80x24
+		color: 255.218.18
 		actors: object [
 			on-change: func [face [object!] event [event!]][
 				print ["field changed:" mold face/text]
 			]
 		]
 	]
-	simple: make face! [type: 'base offset: 100x80 size: 80x24 visible?: no]
+	simple: make face! [type: 'base offset: 100x80 size: 80x24 visible?: no color: red]
 	make face! [
 		type: 'button text: "Show/Hide" offset: 200x80 size: 70x24
 		actors: object [
@@ -62,6 +63,7 @@ win/pane: reduce [
 		text: "type"
 		offset: 100x120
 		size: 80x24
+		color: 240.230.140
 		data: [
 			"option 1"		11
 			"option 2"		22
