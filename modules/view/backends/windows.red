@@ -446,7 +446,7 @@ system/view/platform: context [
 							if color <> -1 [
 								SetBkMode as handle! wParam BK_TRANSPARENT 
 								SetDCBrushColor as handle! wParam color
-								return as-integer GetStockObject 18
+								return as-integer GetStockObject DC_BRUSH
 							]
 						]
 					]
