@@ -157,6 +157,10 @@ Red/System [
 
 #define BN_CLICKED 			0
 
+#define BST_UNCHECKED		0
+#define BST_CHECKED			1
+#define BST_INDETERMINATE	2
+
 #define VK_SPACE			20h
 #define VK_PRIOR			21h
 #define VK_NEXT				22h

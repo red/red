@@ -438,6 +438,7 @@ system/view/platform: context [
 				lParam	[integer!]
 				return: [integer!]
 				/local
+					type   [red-word!]
 					idx	   [integer!]
 					res	   [integer!]
 					color  [integer!]
@@ -449,6 +450,15 @@ system/view/platform: context [
 						switch WIN32_HIWORD(wParam) [
 							BN_CLICKED [
 								make-event current-msg 0 EVT_CLICK
+								type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+								if any [
+									type/symbol = check
+									type/symbol = radio
+								][
+									if get-logic-state current-msg [
+										make-event current-msg 0 EVT_CHANGE
+									]
+								]
 							]
 							EN_CHANGE [					;-- sent also by CreateWindow
 								unless null? current-msg [
@@ -461,7 +471,7 @@ system/view/platform: context [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
 								idx: as-integer SendMessage as handle! lParam CB_GETCURSEL 0 0
 								res: make-event current-msg idx EVT_SELECT
-								set-selected current-msg idx + 1
+								get-selected current-msg idx + 1
 								if res = EVT_DISPATCH_AND_PROCESS [
 									make-event current-msg 0 EVT_CHANGE
 								]
@@ -800,7 +810,45 @@ system/view/platform: context [
 				int/value:  as-integer version-info/wProductType
 			]
 			
-			set-selected: func [
+			set-logic-state: func [
+				hWnd   [handle!]
+				state  [red-logic!]
+				check? [logic!]
+				/local
+					value [integer!]
+			][
+				value: either TYPE_OF(state) <> TYPE_LOGIC [
+					either check? [BST_INDETERMINATE][false]
+				][
+					as-integer state/value				;-- returns 0/1, matches the messages
+				]
+				SendMessage hWnd BM_SETCHECK value 0
+			]
+			
+			get-logic-state: func [
+				msg		[tagMSG]
+				return: [logic!]						;-- TRUE if state has changed
+				/local
+					bool  [red-logic!]
+					state [integer!]
+					otype [integer!]
+					obool [logic!]
+			][
+				bool: as red-logic! get-facet msg FACE_OBJ_DATA
+				state: as-integer SendMessage msg/hWnd BM_GETCHECK 0 0
+				
+				either state = BST_INDETERMINATE [
+					otype: TYPE_OF(bool)
+					bool/header: TYPE_NONE				;-- NONE indicates undeterminate
+					bool/header <> otype
+				][
+					obool: bool/value
+					bool/value: state = BST_CHECKED
+					bool/value <> obool
+				]
+			]
+			
+			get-selected: func [
 				msg [tagMSG]
 				idx [integer!]
 				/local
@@ -1014,6 +1062,8 @@ system/view/platform: context [
 						SendMessage handle TBM_SETRANGE 1 value << 16
 						if vertical? [SendMessage handle TBM_SETPOS 1 size/y]
 					]
+					sym = check [set-logic-state handle as red-logic! data yes]
+					sym = radio [set-logic-state handle as red-logic! data no]
 					any [
 						sym = dropdown
 						sym = droplist
@@ -1125,9 +1175,24 @@ system/view/platform: context [
 
 	change-data: routine [
 		hWnd [integer!]
-		data [integer!]
+		data [any-type!]
+		type [word!]
 	][
-		gui/SendMessage as handle! hWnd PBM_SETPOS data 0
+		case [
+			;all [
+			;	type/symbol = progress
+			;	TYPE_OF(data) = TYPE_PERCENT
+			;][
+			;	gui/SendMessage as handle! hWnd gui/PBM_SETPOS data/value 0
+			;]
+			type/symbol = gui/check [
+				gui/set-logic-state as handle! hWnd as red-logic! data yes
+			]
+			type/symbol = gui/radio [
+				gui/set-logic-state as handle! hWnd as red-logic! data no
+			]
+			true [0]									;-- default, do nothing
+		]
 	]
 
 	get-screen-size: routine [
@@ -1181,8 +1246,10 @@ system/view/platform: context [
 			change-selection hWnd int2/value
 		]
 		if flags and 00000040h <> 0 [
-			int2: as red-integer! values + gui/FACE_OBJ_DATA
-			change-data hWnd int2/value
+			change-data
+				hWnd 
+				values + gui/FACE_OBJ_DATA
+				as red-word! values + gui/FACE_OBJ_TYPE
 		]
 		int/value: 0									;-- reset flags
 	]
