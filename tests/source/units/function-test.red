@@ -358,16 +358,18 @@ Red [
 		***: make op! :infix
 		--assert 7 *** 3 = 73
 
-	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
-		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
-
-		--test-- "infix-2"
-			*+*: make op! :infix2
-			--assert 5 *+* 6 = 106
-
-		--test-- "infix-3"
-			--assert 5 *+* 6 *** 7 = 1067
-	]
+;; Test commented as routine declaration cannot be handled in a code block anymore...
+;;
+;	unless system/state/interpreted? [			;-- routine creation not supported by interpreter
+;		infix2: routine [a [integer!] b [integer!]][integer/box a * 20 + b]
+;
+;		--test-- "infix-2"
+;			*+*: make op! :infix2
+;			--assert 5 *+* 6 = 106
+;
+;		--test-- "infix-3"
+;			--assert 5 *+* 6 *** 7 = 1067
+;	]
 
 ===end-group===
 
