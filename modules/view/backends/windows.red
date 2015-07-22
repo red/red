@@ -473,6 +473,7 @@ system/view/platform: context [
 							default [0]
 						]
 					]
+					WM_VSCROLL
 					WM_HSCROLL [
 						unless zero? lParam [			;-- message from trackbar
 							current-msg/hWnd: as handle! lParam	;-- trackbar handle
@@ -881,25 +882,26 @@ system/view/platform: context [
 				parent	[integer!]
 				return: [integer!]
 				/local
-					ctx		 [red-context!]
-					values	 [red-value!]
-					type	 [red-word!]
-					str		 [red-string!]
-					tail	 [red-string!]
-					offset	 [red-pair!]
-					size	 [red-pair!]
-					data	 [red-block!]
-					int		 [red-integer!]
-					show?	 [red-logic!]
-					flags	 [integer!]
-					ws-flags [integer!]
-					sym		 [integer!]
-					class	 [c-string!]
-					caption  [c-string!]
-					offx	 [integer!]
-					offy	 [integer!]
-					value	 [integer!]
-					p		 [ext-class!]
+					ctx		  [red-context!]
+					values	  [red-value!]
+					type	  [red-word!]
+					str		  [red-string!]
+					tail	  [red-string!]
+					offset	  [red-pair!]
+					size	  [red-pair!]
+					data	  [red-block!]
+					int		  [red-integer!]
+					show?	  [red-logic!]
+					flags	  [integer!]
+					ws-flags  [integer!]
+					sym		  [integer!]
+					class	  [c-string!]
+					caption   [c-string!]
+					offx	  [integer!]
+					offy	  [integer!]
+					value	  [integer!]
+					p		  [ext-class!]
+					vertical? [logic!]
 			][
 				ctx: GET_CTX(face)
 				s: as series! ctx/values/value
@@ -1007,13 +1009,10 @@ system/view/platform: context [
 				;-- extra initialization
 				case [
 					sym = slider [
-						value: either size/y > size/x [
-							SendMessage handle TBM_SETPOS 1 size/y
-							size/y
-						][
-							size/x
-						]
+						vertical?: size/y > size/x
+						value: either vertical? [size/y][size/x]
 						SendMessage handle TBM_SETRANGE 1 value << 16
+						if vertical? [SendMessage handle TBM_SETPOS 1 size/y]
 					]
 					any [
 						sym = dropdown
