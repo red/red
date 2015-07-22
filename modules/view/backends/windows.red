@@ -163,6 +163,20 @@ system/view/platform: context [
 				s/offset + facet
 			]
 			
+			get-facets: func [
+				msg		[tagMSG]
+				return: [red-value!]
+				/local
+					ctx	 [red-context!]
+					node [node!]
+					s	 [series!]
+			][
+				node: as node! GetWindowLong get-widget-handle msg wc-offset + 4
+				ctx: TO_CTX(node)
+				s: as series! ctx/values/value
+				s/offset
+			]
+			
 			get-facet: func [
 				msg		[tagMSG]
 				facet	[integer!]
@@ -831,13 +845,19 @@ system/view/platform: context [
 			get-slider-pos: func [
 				msg	[tagMSG]
 				/local
-					pos	[red-integer!]
+					values [red-value!]
+					int	   [red-integer!]
+					pair   [red-pair!]
 			][
-				pos: as red-integer! get-facet msg FACE_OBJ_DATA
-				if TYPE_OF(pos) <> TYPE_INTEGER [
-					integer/make-at as red-value! pos 0
+				values: get-facets msg
+				size:	as red-pair!	values + FACE_OBJ_SIZE
+				int:	as red-integer! values + FACE_OBJ_DATA
+				
+				if TYPE_OF(int) <> TYPE_INTEGER [
+					integer/make-at as red-value! int 0
 				]
-				pos/value: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
+				pos: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
+				int/value: either size/y > size/x [size/y - pos][pos]
 			]
 
 			get-screen-size: func [
@@ -878,6 +898,7 @@ system/view/platform: context [
 					caption  [c-string!]
 					offx	 [integer!]
 					offy	 [integer!]
+					value	 [integer!]
 					p		 [ext-class!]
 			][
 				ctx: GET_CTX(face)
@@ -985,6 +1006,15 @@ system/view/platform: context [
 				
 				;-- extra initialization
 				case [
+					sym = slider [
+						value: either size/y > size/x [
+							SendMessage handle TBM_SETPOS 1 size/y
+							size/y
+						][
+							size/x
+						]
+						SendMessage handle TBM_SETRANGE 1 value << 16
+					]
 					any [
 						sym = dropdown
 						sym = droplist

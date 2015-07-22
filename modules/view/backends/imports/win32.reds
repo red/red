@@ -77,6 +77,7 @@ Red/System [
 
 #define TBS_HORZ			0000h
 #define TBS_VERT			0002h
+#define TBS_LEFT			0004h
 #define TBS_DOWNISLEFT		0400h  	;-- Down=Left and Up=Right (default is Down=Right and Up=Left)
 
 #define PBS_VERTICAL		04h
