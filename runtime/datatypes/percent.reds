@@ -35,7 +35,20 @@ percent: context [
 		fl/value: value
 		fl
 	]
-	
+
+	rs-make-at: func [
+		slot	[red-value!]
+		value	[float!]
+		return:	[red-float!]
+		/local
+			p	[red-float!]
+	][
+		p: as red-float! slot
+		p/header: TYPE_PERCENT
+		p/value: value
+		p
+	]
+
 	make-at: func [
 		cell 	[cell!]
 		high	[integer!]

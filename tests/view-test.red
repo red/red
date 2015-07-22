@@ -120,11 +120,11 @@ win/pane: reduce [
 				type: 'progress offset: 10x80 size: 120x16
 			]
 			set 'progress-text make face! [
-				type: 'text text: "0" offset: 145x80 size: 20x16 color: white
+				type: 'text text: "0" offset: 145x80 size: 30x16 color: white
 			]
 			make face! [
 				type: 'slider offset: 10x110 size: 120x24
-				;data: 50%
+				data: 50%
 				actors: object [
 					on-change: func [face [object!] event [event!]][
 						;print ["slider changed:" face/data]
@@ -142,10 +142,10 @@ win/pane: reduce [
 	]
 	make face! [
 		type: 'slider offset: 230x170 size: 24x120
-		;data: 50%
+		data: 25%
 		actors: object [
 			on-change: func [face [object!] event [event!]][
-				;print ["slider changed:" face/data]
+				print ["slider changed:" face/data]
 				progress2/data: face/data
 				show progress2
 			]

@@ -843,22 +843,43 @@ system/view/platform: context [
 				]
 			]
 
+			get-position-value: func [
+				pos		[red-float!]
+				return: [integer!]
+				/local
+					f	[float!]
+			][
+				f: 0.0
+				if any [
+					TYPE_OF(pos) = TYPE_FLOAT
+					TYPE_OF(pos) = TYPE_PERCENT
+				][
+					f: pos/value * 100.0
+				]
+				float/to-integer f
+			]
+
 			get-slider-pos: func [
 				msg	[tagMSG]
 				/local
-					values [red-value!]
-					int	   [red-integer!]
-					pair   [red-pair!]
+					values	[red-value!]
+					size	[red-pair!]
+					pos		[red-float!]
+					int		[integer!]
 			][
 				values: get-facets msg
 				size:	as red-pair!	values + FACE_OBJ_SIZE
-				int:	as red-integer! values + FACE_OBJ_DATA
+				pos:	as red-float!	values + FACE_OBJ_DATA
 				
-				if TYPE_OF(int) <> TYPE_INTEGER [
-					integer/make-at as red-value! int 0
+				if all [
+					TYPE_OF(pos) <> TYPE_FLOAT
+					TYPE_OF(pos) <> TYPE_PERCENT
+				][
+					percent/rs-make-at as red-value! pos 0.0
 				]
-				pos: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
-				int/value: either size/y > size/x [size/y - pos][pos]
+				int: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
+				if size/y > size/x [int: 100 - int]
+				pos/value: (integer/to-float int) / 100.0
 			]
 
 			get-screen-size: func [
@@ -1009,10 +1030,12 @@ system/view/platform: context [
 				;-- extra initialization
 				case [
 					sym = slider [
-						vertical?: size/y > size/x
-						value: either vertical? [size/y][size/x]
-						SendMessage handle TBM_SETRANGE 1 value << 16
-						if vertical? [SendMessage handle TBM_SETPOS 1 size/y]
+						value: get-position-value as red-float! data
+						if size/y > size/x [value: 100 - value]
+						SendMessage handle TBM_SETPOS 1 value
+					]
+					sym = progress [
+						SendMessage handle PBM_SETPOS get-position-value as red-float! data 0
 					]
 					any [
 						sym = dropdown
@@ -1125,9 +1148,12 @@ system/view/platform: context [
 
 	change-data: routine [
 		hWnd [integer!]
-		data [integer!]
+		data [float!]
+		/local
+			f [float!]
 	][
-		gui/SendMessage as handle! hWnd PBM_SETPOS data 0
+		f: data/value * 100.0
+		gui/SendMessage as handle! hWnd PBM_SETPOS float/to-integer f 0
 	]
 
 	get-screen-size: routine [
@@ -1147,6 +1173,7 @@ system/view/platform: context [
 			state	[red-block!]
 			int		[red-integer!]
 			int2	[red-integer!]
+			f		[red-float!]
 			bool	[red-logic!]
 			s		[series!]
 			hWnd	[integer!]
@@ -1181,8 +1208,8 @@ system/view/platform: context [
 			change-selection hWnd int2/value
 		]
 		if flags and 00000040h <> 0 [
-			int2: as red-integer! values + gui/FACE_OBJ_DATA
-			change-data hWnd int2/value
+			f: as red-float! values + gui/FACE_OBJ_DATA
+			change-data hWnd f
 		]
 		int/value: 0									;-- reset flags
 	]
