@@ -977,8 +977,8 @@ red: context [
 		]
 	]
 	
-	check-redefined: func [name [word!] original [any-word!] /local pos entry][
-		if pos: find functions name [
+	check-redefined: func [name [word!] original [any-word!] /only /local pos entry][
+		if all [pos: find functions name not only][
 			remove/part pos 2							;-- remove previous function definition
 		]
 		if all [
@@ -987,7 +987,7 @@ red: context [
 				entry: local-bound? original			;-- retrieve shadow function
 				block? select entry/3 name				;-- if type(s) specified, keep object definition
 			]
-		][	
+		][
 			pos/1: none
 		]
 	]
@@ -1569,7 +1569,7 @@ red: context [
 			path: original
 		][
 			name: to word! original: any [word original]
-			check-redefined name original
+			check-redefined/only name original
 		]
 		words: any [all [proto third proto] make block! 8] ;-- start from existing ctx or fresh
 		list:  clear any [list []]
