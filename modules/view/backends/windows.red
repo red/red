@@ -675,7 +675,7 @@ system/view/platform: context [
 					old-proc [integer!]
 					arg1 arg2 arg3 arg4 arg5 arg6
 			][
-				if count <> 5 [print-line "gui/register-class error: invalid spec block"]
+				if count <> 6 [print-line "gui/register-class error: invalid spec block"]
 				
 				arg1: list/value						;@@ TBD: allow struct indexing in R/S
 				list: list + 1
