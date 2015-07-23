@@ -151,10 +151,38 @@ win/pane: reduce [
 			]
 		]
 	]
+	
 	make face! [
-		type: 'image offset: 280x160 size: 120x120
-		data: [%/D/red-3d-icon-1280x1280.png]
+		type: 'check text: "check box" offset: 300x170 size: 90x24
+		data: on
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				probe face/data
+			]
+		]
 	]
+	make face! [
+		type: 'radio text: "radio 1" offset: 300x200 size: 90x24
+		data: on
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				probe face/data
+			]
+		]
+	]
+	make face! [
+		type: 'radio text: "radio 2" offset: 300x230 size: 90x24
+		;data: off
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				probe face/data
+			]
+		]
+	]
+	;make face! [
+	;	type: 'image offset: 280x160 size: 120x120
+	;	data: [%/D/red-3d-icon-1280x1280.png]
+	;]
 ]
 show win
 
