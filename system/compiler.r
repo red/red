@@ -588,21 +588,11 @@ system-dialect: make-profilable context [
 			either tail? skip path 2 [
 				switch/default type/1 [
 					struct!   [
-
 						unless word? path/2 [
 							backtrack path
 							throw-error ["invalid struct member" path/2]
 						]
-						type: resolve-struct-member-type type/2 path/2
-						
-						if all [
-							not short
-							not set-path? path
-							type/1 = 'function!
-						][
-							type: select type/2 return-def
-						]
-						type
+						resolve-struct-member-type type/2 path/2
 					]
 					pointer!  [
 						check-path-index path 'pointer
@@ -971,7 +961,10 @@ system-dialect: make-profilable context [
 		][
 			if all [with not object? cb][
 				cb: to word! cb
-				if functions/:cb/3 <> functions/:fun/3 [
+				if all [
+					select functions :cb
+					functions/:cb/3 <> functions/:fun/3 
+				][
 					throw-error [
 						"incompatible calling conventions between"
 						fun "and" cb
