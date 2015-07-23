@@ -12,6 +12,7 @@ Red/System [
 
 #define TBM_GETPOS			0400h
 #define TBM_SETPOS			0405h
+#define TBM_SETRANGE		0406h
 
 #define PBM_SETPOS			0402h
 

@@ -120,7 +120,7 @@ win/pane: reduce [
 				type: 'progress offset: 10x80 size: 120x16
 			]
 			set 'progress-text make face! [
-				type: 'text text: "0" offset: 145x80 size: 30x16 color: white
+				type: 'text text: "0" offset: 140x80 size: 40x16 color: white
 			]
 			make face! [
 				type: 'slider offset: 10x110 size: 120x24

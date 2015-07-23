@@ -936,6 +936,7 @@ system/view/platform: context [
 
 			get-position-value: func [
 				pos		[red-float!]
+				maximun [integer!]
 				return: [integer!]
 				/local
 					f	[float!]
@@ -945,7 +946,7 @@ system/view/platform: context [
 					TYPE_OF(pos) = TYPE_FLOAT
 					TYPE_OF(pos) = TYPE_PERCENT
 				][
-					f: pos/value * 100.0
+					f: pos/value * (integer/to-float maximun)
 				]
 				float/to-integer f
 			]
@@ -957,6 +958,7 @@ system/view/platform: context [
 					size	[red-pair!]
 					pos		[red-float!]
 					int		[integer!]
+					divisor [integer!]
 			][
 				values: get-facets msg
 				size:	as red-pair!	values + FACE_OBJ_SIZE
@@ -969,8 +971,9 @@ system/view/platform: context [
 					percent/rs-make-at as red-value! pos 0.0
 				]
 				int: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
-				if size/y > size/x [int: 100 - int]
-				pos/value: (integer/to-float int) / 100.0
+				divisor: size/x
+				if size/y > size/x [divisor: size/y int: divisor - int]
+				pos/value: (integer/to-float int) / (integer/to-float divisor)
 			]
 
 			get-screen-size: func [
@@ -1014,6 +1017,7 @@ system/view/platform: context [
 					offy	  [integer!]
 					value	  [integer!]
 					p		  [ext-class!]
+					vertical? [logic!]
 			][
 				ctx: GET_CTX(face)
 				s: as series! ctx/values/value
@@ -1144,12 +1148,16 @@ system/view/platform: context [
 						]
 					]
 					sym = slider [
-						value: get-position-value as red-float! data
-						if size/y > size/x [value: 100 - value]
+						vertical?: size/y > size/x
+						value: either vertical? [size/y][size/x]
+						SendMessage handle TBM_SETRANGE 1 value << 16
+						value: get-position-value as red-float! data value
+						if vertical? [value: size/y - value]
 						SendMessage handle TBM_SETPOS 1 value
 					]
 					sym = progress [
-						SendMessage handle PBM_SETPOS get-position-value as red-float! data 0
+						value: get-position-value as red-float! data 100
+						SendMessage handle PBM_SETPOS value 0
 					]
 					sym = check [set-logic-state handle as red-logic! data yes]
 					sym = radio [set-logic-state handle as red-logic! data no]
@@ -1267,15 +1275,15 @@ system/view/platform: context [
 		data [any-type!]
 		type [word!]
 		/local
-			f [float!]
+			f [red-float!]
 	][
 		case [
 			all [
-				type/symbol = progress
+				type/symbol = gui/progress
 				TYPE_OF(data) = TYPE_PERCENT
 			][
-				f: data/value * 100.0
-				gui/SendMessage as handle! hWnd PBM_SETPOS float/to-integer f 0
+				f: as red-float! data
+				gui/SendMessage as handle! hWnd PBM_SETPOS float/to-integer f/value * 100.0 0
 			]
 			type/symbol = gui/check [
 				gui/set-logic-state as handle! hWnd as red-logic! data yes
