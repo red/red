@@ -126,6 +126,7 @@ Red/System [
 #define WM_ERASEBKGND		0014h
 #define WM_SETFONT			0030h
 #define WM_GETFONT			0031h
+#define WM_NOTIFY			004Eh
 #define WM_KEYDOWN			0100h
 #define WM_KEYUP			0101h
 #define WM_CHAR				0102h

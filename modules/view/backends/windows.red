@@ -74,6 +74,8 @@ system/view/platform: context [
 				class	  [c-string!]					;-- UTF-16 encoded
 				ex-styles [integer!]					;-- extended windows styles
 				styles	  [integer!]					;-- windows styles
+				new-proc  [integer!]
+				old-proc  [integer!]
 			]
 			
 			gui-evt: declare red-event!					;-- low-level event value slot
@@ -665,11 +667,13 @@ system/view/platform: context [
 			
 			register-class: func [
 				[typed]
-				count [integer!]
-				list  [typed-value!]
+				count	[integer!]
+				list	[typed-value!]
+				return: [integer!]
 				/local
-					p [ext-class!]
-					arg1 arg2 arg3 arg4 arg5
+					p		 [ext-class!]
+					old-proc [integer!]
+					arg1 arg2 arg3 arg4 arg5 arg6
 			][
 				if count <> 5 [print-line "gui/register-class error: invalid spec block"]
 				
@@ -682,8 +686,14 @@ system/view/platform: context [
 				arg4: list/value
 				list: list + 1
 				arg5: list/value
+				list: list + 1
+				arg6: list/value
 				
-				make-super-class as-c-string arg2 as-c-string arg1
+				
+				old-proc: make-super-class
+					as-c-string arg2
+					as-c-string arg1
+					arg6
 				
 				p: ext-cls-tail
 				ext-cls-tail: ext-cls-tail + 1
@@ -693,13 +703,19 @@ system/view/platform: context [
 				p/class:	 as-c-string arg2
 				p/ex-styles: arg4
 				p/styles: 	 arg5
+				p/new-proc:	 arg6
+				p/old-proc:	 old-proc
+				old-proc
 			]
 			
 			make-super-class: func [
-				new  [c-string!]
-				base [c-string!]
+				new		[c-string!]
+				base	[c-string!]
+				proc	[integer!]
+				return: [integer!]
 				/local
-					wcex  [WNDCLASSEX]
+					wcex [WNDCLASSEX]
+					old	 [integer!]
 			][
 				wcex: declare WNDCLASSEX
 				 
@@ -710,7 +726,12 @@ system/view/platform: context [
 				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
 				wcex/hInstance:		hInstance
 				wcex/lpszClassName: new
+				if proc <> 0 [
+					old: as-integer :wcex/lpfnWndProc
+					wcex/lpfnWndProc: as wndproc-cb! proc
+				]
 				RegisterClassEx wcex
+				old
 			]
 
 			register-classes: func [
@@ -750,22 +771,18 @@ system/view/platform: context [
 				RegisterClassEx wcex
 				
 				;-- superclass existing classes to add 16 extra bytes
-				make-super-class #u16 "RedButton"	#u16 "BUTTON"
-				make-super-class #u16 "RedField"	#u16 "EDIT"
-				make-super-class #u16 "RedFace"		#u16 "STATIC"
-				make-super-class #u16 "RedCombo"	#u16 "ComboBox"
-				make-super-class #u16 "RedProgress" #u16 "msctls_progress32"
-				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32"
+				make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0
+				make-super-class #u16 "RedField"	#u16 "EDIT"				 0
+				make-super-class #u16 "RedFace"		#u16 "STATIC"			 0
+				make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0
+				make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0
+				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0
 				
-				if 0 = GetClassInfoEx 0 #u16 "BUTTON" wcex [
-					print-line "*** Error in GetClassInfoEx"
-				]
-				oldGroupBoxWndProc: :wcex/lpfnWndProc
-				wcex/lpfnWndProc:	:GroupBoxWndProc
-				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
-				wcex/hInstance:		hInstance
-				wcex/lpszClassName: #u16 "RedPanel"
-				RegisterClassEx wcex
+				oldGroupBoxWndProc: make-super-class 
+					#u16 "RedPanel"
+					#u16 "BUTTON"
+					as-integer :GroupBoxWndProc
+				
 			]
 			
 			init: func [
