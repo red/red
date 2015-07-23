@@ -70,12 +70,14 @@ system/view/platform: context [
 			]
 			
 			ext-class!: alias struct! [
-				symbol	  [integer!]					;-- symbol ID
-				class	  [c-string!]					;-- UTF-16 encoded
-				ex-styles [integer!]					;-- extended windows styles
-				styles	  [integer!]					;-- windows styles
-				new-proc  [integer!]
-				old-proc  [integer!]
+				symbol		[integer!]					;-- symbol ID
+				class		[c-string!]					;-- UTF-16 encoded
+				ex-styles	[integer!]					;-- extended windows styles
+				styles		[integer!]					;-- windows styles
+				base-ID		[integer!]					;-- base ID for instances (0: no ID)
+				new-proc	[integer!]					;-- optional custom event handler
+				old-proc	[integer!]					;-- saved old event handler
+				parent-proc [integer!]					;-- optional parent event handler
 			]
 			
 			gui-evt: declare red-event!					;-- low-level event value slot
@@ -95,6 +97,7 @@ system/view/platform: context [
 			max-ext-styles: 20
 			ext-classes:	as ext-class! allocate max-ext-styles * size? ext-class!
 			ext-cls-tail:	ext-classes					;-- tail pointer
+			ext-parent-proc?:	no
 
 			window:			symbol/make "window"
 			button:			symbol/make "button"
@@ -516,6 +519,8 @@ system/view/platform: context [
 					]
 					default [0]
 				]
+				if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
+				
 				DefWindowProc hWnd msg wParam lParam
 			]
 			
@@ -648,6 +653,23 @@ system/view/platform: context [
 				true
 			]
 			
+			call-custom-proc: func [
+				hWnd	[handle!]
+				msg		[integer!]
+				wParam	[integer!]
+				lParam	[integer!]
+				/local
+					p	 [ext-class!]
+					proc [wndproc-cb!]
+			][
+				p: ext-classes
+				while [p < ext-cls-tail][
+					proc: as wndproc-cb! p/parent-proc
+					unless null? :proc [proc hWnd msg wParam lParam]
+					p: p + 1
+				]
+			]
+			
 			find-class: func [
 				name	[red-word!]
 				return: [ext-class!]
@@ -673,9 +695,9 @@ system/view/platform: context [
 				/local
 					p		 [ext-class!]
 					old-proc [integer!]
-					arg1 arg2 arg3 arg4 arg5 arg6
+					arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8
 			][
-				if count <> 6 [print-line "gui/register-class error: invalid spec block"]
+				if count <> 8 [print-line "gui/register-class error: invalid spec block"]
 				
 				arg1: list/value						;@@ TBD: allow struct indexing in R/S
 				list: list + 1
@@ -688,23 +710,31 @@ system/view/platform: context [
 				arg5: list/value
 				list: list + 1
 				arg6: list/value
-				
+				list: list + 1
+				arg7: list/value
+				list: list + 1
+				arg8: list/value
 				
 				old-proc: make-super-class
 					as-c-string arg2
 					as-c-string arg1
-					arg6
+					arg7
 				
 				p: ext-cls-tail
 				ext-cls-tail: ext-cls-tail + 1
 				assert ext-classes + max-ext-styles > ext-cls-tail
 
-				p/symbol:	 arg3
-				p/class:	 as-c-string arg2
-				p/ex-styles: arg4
-				p/styles: 	 arg5
-				p/new-proc:	 arg6
-				p/old-proc:	 old-proc
+				p/symbol:		arg3
+				p/class:		as-c-string arg2
+				p/ex-styles:	arg4
+				p/styles:		arg5
+				p/base-id:		arg6
+				p/new-proc:		arg7
+				p/old-proc:		old-proc
+				p/parent-proc:	arg8
+				
+				if arg8 <> 0 [ext-parent-proc?: yes]	;-- signal custom parent event handler
+				
 				old-proc
 			]
 			
@@ -966,6 +996,7 @@ system/view/platform: context [
 					offy	  [integer!]
 					value	  [integer!]
 					p		  [ext-class!]
+					id		  [integer!]
 					vertical? [logic!]
 			][
 				ctx: GET_CTX(face)
@@ -981,6 +1012,7 @@ system/view/platform: context [
 				
 				flags: 	  WS_CHILD
 				ws-flags: 0
+				id:		  0
 				sym: 	  symbol/resolve type/symbol
 				offx:	  offset/x
 				offy:	  offset/y
@@ -1045,6 +1077,7 @@ system/view/platform: context [
 						class: p/class
 						ws-flags: ws-flags or p/ex-styles
 						flags: flags or p/styles
+						id: p/base-id
 					]
 				]
 
@@ -1064,7 +1097,7 @@ system/view/platform: context [
 					size/x
 					size/y
 					as int-ptr! parent
-					null
+					as handle! id
 					hInstance
 					null
 				
