@@ -120,16 +120,19 @@ win/pane: reduce [
 				type: 'progress offset: 10x80 size: 120x16
 			]
 			set 'progress-text make face! [
-				type: 'text text: "0" offset: 140x80 size: 40x16 color: white
+				type: 'text text: "0" offset: 140x80 size: 30x16 color: white
 			]
 			make face! [
 				type: 'slider offset: 10x110 size: 120x24
 				data: 50%
 				actors: object [
-					on-change: func [face [object!] event [event!]][
+					on-make: func [face [object!]][
+						on-change face none
+					]
+					on-change: func [face [object!] event [event! none!]][
 						;print ["slider changed:" face/data]
 						progress/data: face/data
-						progress-text/text: form face/data
+						progress-text/text: form round face/data
 						show progress
 						show progress-text
 					]
@@ -144,7 +147,10 @@ win/pane: reduce [
 		type: 'slider offset: 230x170 size: 24x120
 		data: 25%
 		actors: object [
-			on-change: func [face [object!] event [event!]][
+			on-make: func [face [object!]][
+				on-change face none
+			]
+			on-change: func [face [object!] event [event! none!]][
 				print ["slider changed:" face/data]
 				progress2/data: face/data
 				show progress2
@@ -180,7 +186,8 @@ win/pane: reduce [
 		]
 	]
 	;make face! [
-	;	type: 'image offset: 280x160 size: 120x120
+	;	type: 'image offset: 280x10 size: 100x100
+	;	data: [%/C/Dev/Red/red-3d-icon-1280x1280.png]
 	;	data: [%/D/red-3d-icon-1280x1280.png]
 	;]
 ]
