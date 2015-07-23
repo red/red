@@ -109,6 +109,7 @@ system/view/platform: context [
 			slider:			symbol/make "slider"
 			dropdown:		symbol/make "dropdown"
 			droplist:		symbol/make "droplist"
+			_image:			symbol/make "image"
 			base:			symbol/make "base"
 			panel:			symbol/make "panel"
 			
@@ -411,7 +412,41 @@ system/view/platform: context [
 				current-msg/x: WIN32_LOWORD(pos)
 				current-msg/y: WIN32_HIWORD(pos)
 			]
-			
+
+			ImageWndProc: func [
+				hWnd	[handle!]
+				msg		[integer!]
+				wParam	[integer!]
+				lParam	[integer!]
+				return: [integer!]
+				/local
+					data	[red-block!]
+					str		[red-string!]
+					graphic [integer!]
+					img		[red-image!]
+					rect	[RECT_STRUCT]
+					width	[integer!]
+					height	[integer!]
+			][
+				switch msg [
+					WM_ERASEBKGND [
+						graphic: 0
+						rect: declare RECT_STRUCT
+						GetClientRect hWnd rect
+						width: rect/right - rect/left
+						height: rect/bottom - rect/top
+						img: as red-image! get-node-facet
+								as node! GetWindowLong hWnd wc-offset + 4
+								FACE_OBJ_IMAGE
+						GdipCreateFromHWND hWnd :graphic
+						GdipDrawImageRectI graphic as-integer img/node 0 0 width height
+						return 1
+					]
+					default [0]
+				]
+				DefWindowProc hWnd msg wParam lParam
+			]
+
 			GroupBoxWndProc: func [
 				hWnd	[handle!]
 				msg		[integer!]
@@ -799,7 +834,15 @@ system/view/platform: context [
 				wcex/hIconSm:		0
 
 				RegisterClassEx wcex
-				
+
+				wcex/style:			CS_DBLCLKS
+				wcex/lpfnWndProc:	:ImageWndProc
+				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+				wcex/hInstance:		hInstance
+				wcex/lpszClassName: #u16 "RedImage"
+
+				RegisterClassEx wcex
+
 				;-- superclass existing classes to add 16 extra bytes
 				make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0
 				make-super-class #u16 "RedField"	#u16 "EDIT"				 0
@@ -938,22 +981,46 @@ system/view/platform: context [
 				]
 			]
 
+			get-position-value: func [
+				pos		[red-float!]
+				maximun [integer!]
+				return: [integer!]
+				/local
+					f	[float!]
+			][
+				f: 0.0
+				if any [
+					TYPE_OF(pos) = TYPE_FLOAT
+					TYPE_OF(pos) = TYPE_PERCENT
+				][
+					f: pos/value * (integer/to-float maximun)
+				]
+				float/to-integer f
+			]
+
 			get-slider-pos: func [
 				msg	[tagMSG]
 				/local
-					values [red-value!]
-					int	   [red-integer!]
-					pair   [red-pair!]
+					values	[red-value!]
+					size	[red-pair!]
+					pos		[red-float!]
+					int		[integer!]
+					divisor [integer!]
 			][
 				values: get-facets msg
 				size:	as red-pair!	values + FACE_OBJ_SIZE
-				int:	as red-integer! values + FACE_OBJ_DATA
+				pos:	as red-float!	values + FACE_OBJ_DATA
 				
-				if TYPE_OF(int) <> TYPE_INTEGER [
-					integer/make-at as red-value! int 0
+				if all [
+					TYPE_OF(pos) <> TYPE_FLOAT
+					TYPE_OF(pos) <> TYPE_PERCENT
+				][
+					percent/rs-make-at as red-value! pos 0.0
 				]
-				pos: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
-				int/value: either size/y > size/x [size/y - pos][pos]
+				int: as-integer SendMessage msg/hWnd TBM_GETPOS 0 0
+				divisor: size/x
+				if size/y > size/x [divisor: size/y int: divisor - int]
+				pos/value: (integer/to-float int) / (integer/to-float divisor)
 			]
 
 			get-screen-size: func [
@@ -986,6 +1053,7 @@ system/view/platform: context [
 					size	  [red-pair!]
 					data	  [red-block!]
 					int		  [red-integer!]
+					img		 [red-image!]
 					show?	  [red-logic!]
 					flags	  [integer!]
 					ws-flags  [integer!]
@@ -1009,6 +1077,7 @@ system/view/platform: context [
 				size:	as red-pair!	values + FACE_OBJ_SIZE
 				show?:	as red-logic!	values + FACE_OBJ_VISIBLE?
 				data:	as red-block!	values + FACE_OBJ_DATA
+				img:	as red-image!	values + FACE_OBJ_IMAGE
 				
 				flags: 	  WS_CHILD
 				ws-flags: 0
@@ -1063,6 +1132,10 @@ system/view/platform: context [
 							flags: flags or TBS_VERT or TBS_DOWNISLEFT
 						]
 					]
+					sym = _image [
+						class: #u16 "RedImage"
+						;ws-flags: WS_EX_TRANSPARENT
+					]
 					sym = base [
 						class: #u16 "Base"
 					]
@@ -1106,11 +1179,35 @@ system/view/platform: context [
 				
 				;-- extra initialization
 				case [
+					sym = _image [
+						if TYPE_OF(img) <> TYPE_IMAGE [
+							if any [
+								TYPE_OF(data) = TYPE_BLOCK
+								TYPE_OF(data) = TYPE_HASH
+								TYPE_OF(data) = TYPE_MAP
+							][
+								str:  as red-string! block/rs-head as red-block! data
+								tail: as red-string! block/rs-tail as red-block! data
+								while [str < tail][
+									if TYPE_OF(str) = TYPE_FILE [
+										image/make-at as red-value! img str
+									]
+									str: str + 1
+								]
+							]
+						]
+					]
 					sym = slider [
 						vertical?: size/y > size/x
 						value: either vertical? [size/y][size/x]
 						SendMessage handle TBM_SETRANGE 1 value << 16
-						if vertical? [SendMessage handle TBM_SETPOS 1 size/y]
+						value: get-position-value as red-float! data value
+						if vertical? [value: size/y - value]
+						SendMessage handle TBM_SETPOS 1 value
+					]
+					sym = progress [
+						value: get-position-value as red-float! data 100
+						SendMessage handle PBM_SETPOS value 0
 					]
 					sym = check [set-logic-state handle as red-logic! data yes]
 					sym = radio [set-logic-state handle as red-logic! data no]
@@ -1227,14 +1324,17 @@ system/view/platform: context [
 		hWnd [integer!]
 		data [any-type!]
 		type [word!]
+		/local
+			f [red-float!]
 	][
 		case [
-			;all [
-			;	type/symbol = progress
-			;	TYPE_OF(data) = TYPE_PERCENT
-			;][
-			;	gui/SendMessage as handle! hWnd gui/PBM_SETPOS data/value 0
-			;]
+			all [
+				type/symbol = gui/progress
+				TYPE_OF(data) = TYPE_PERCENT
+			][
+				f: as red-float! data
+				gui/SendMessage as handle! hWnd PBM_SETPOS float/to-integer f/value * 100.0 0
+			]
 			type/symbol = gui/check [
 				gui/set-logic-state as handle! hWnd as red-logic! data yes
 			]

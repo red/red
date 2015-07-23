@@ -10,42 +10,11 @@ Red/System [
 	}
 ]
 
-#define WM_USER				0400h
+#define TBM_GETPOS			0400h
+#define TBM_SETPOS			0405h
+#define TBM_SETRANGE		0406h
 
-#define PBM_SETRANGE            [WM_USER + 1]
-#define PBM_SETPOS              [WM_USER + 2]
-#define PBM_DELTAPOS            [WM_USER + 3]
-#define PBM_SETSTEP             [WM_USER + 4]
-#define PBM_STEPIT              [WM_USER + 5]
-
-#define TBM_GETPOS              [WM_USER]
-#define TBM_GETRANGEMIN         [WM_USER + 1]
-#define TBM_GETRANGEMAX         [WM_USER + 2]
-#define TBM_GETTIC              [WM_USER + 3]
-#define TBM_SETTIC              [WM_USER + 4]
-#define TBM_SETPOS              [WM_USER + 5]
-#define TBM_SETRANGE            [WM_USER + 6]
-#define TBM_SETRANGEMIN         [WM_USER + 7]
-#define TBM_SETRANGEMAX         [WM_USER + 8]
-#define TBM_CLEARTICS           [WM_USER + 9]
-#define TBM_SETSEL              [WM_USER + 10]
-#define TBM_SETSELSTART         [WM_USER + 11]
-#define TBM_SETSELEND           [WM_USER + 12]
-#define TBM_GETPTICS            [WM_USER + 14]
-#define TBM_GETTICPOS           [WM_USER + 15]
-#define TBM_GETNUMTICS          [WM_USER + 16]
-#define TBM_GETSELSTART         [WM_USER + 17]
-#define TBM_GETSELEND           [WM_USER + 18]
-#define TBM_CLEARSEL            [WM_USER + 19]
-#define TBM_SETTICFREQ          [WM_USER + 20]
-#define TBM_SETPAGESIZE         [WM_USER + 21]
-#define TBM_GETPAGESIZE         [WM_USER + 22]
-#define TBM_SETLINESIZE         [WM_USER + 23]
-#define TBM_GETLINESIZE         [WM_USER + 24]
-#define TBM_GETTHUMBRECT        [WM_USER + 25]
-#define TBM_GETCHANNELRECT      [WM_USER + 26]
-#define TBM_SETTHUMBLENGTH      [WM_USER + 27]
-#define TBM_GETTHUMBLENGTH      [WM_USER + 28]
+#define PBM_SETPOS			0402h
 
 #define HORZRES				8
 #define VERTRES				10
@@ -618,6 +587,22 @@ RECT_STRUCT: alias struct! [
 		]
 		DeleteObject: "DeleteObject" [
 			hObject		[handle!]
+			return:		[integer!]
+		]
+	]
+	"gdiplus.dll" stdcall [
+		GdipDrawImageRectI: "GdipDrawImageRectI" [
+			graphics	[integer!]
+			image		[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			return:		[integer!]
+		]
+		GdipCreateFromHWND: "GdipCreateFromHWND" [
+			hwnd		[handle!]
+			graphics	[GpGraphics!]
 			return:		[integer!]
 		]
 	]

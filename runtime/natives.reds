@@ -1651,6 +1651,18 @@ natives: context [
 		]
 	]
 
+	to-local-file*: func [
+		full? [integer!]
+		/local
+			src  [red-file!]
+			out  [red-string!]
+	][
+		src: as red-file! stack/arguments
+		out: string/rs-make-at stack/push* string/rs-length? as red-string! src
+		file/to-local-path src out full? <> -1
+		stack/set-last as red-value! out
+	]
+
 	;--- Natives helper functions ---
 
 	#enum trigonometric-type! [
@@ -2052,6 +2064,7 @@ natives: context [
 			:catch*
 			:extend*
 			:debase*
+			:to-local-file*
 		]
 	]
 

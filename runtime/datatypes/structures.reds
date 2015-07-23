@@ -290,3 +290,10 @@ red-event!: alias struct! [
 	msg		[byte-ptr!]								;-- low-level OS-specific structure
 	flags	[integer!]								;-- bit array
 ]
+
+red-image!: alias struct! [
+	header 	[integer!]								;-- cell header
+	head	[integer!]								;-- series's head index (zero-based)
+	node	[node!]									;-- internal buffer or platform-specific handle
+	size	[integer!]								;-- pair of size
+]

@@ -83,6 +83,7 @@ function?:	 func ["Returns true if the value is this type" value [any-type!]] [f
 get-path?:	 func ["Returns true if the value is this type" value [any-type!]] [get-path!	= type? :value]
 get-word?:	 func ["Returns true if the value is this type" value [any-type!]] [get-word!	= type? :value]
 hash?:		 func ["Returns true if the value is this type" value [any-type!]] [hash!		= type? :value]
+image?:		 func ["Returns true if the value is this type" value [any-type!]] [image!		= type? :value]
 integer?:    func ["Returns true if the value is this type" value [any-type!]] [integer!	= type? :value]
 issue?:    	 func ["Returns true if the value is this type" value [any-type!]] [issue!		= type? :value]
 lit-path?:	 func ["Returns true if the value is this type" value [any-type!]] [lit-path!	= type? :value]
