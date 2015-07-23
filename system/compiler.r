@@ -835,14 +835,21 @@ system-dialect: make-profilable context [
 			to word! join "_local_" form name
 		]
 		
-		find-functions: func [name [word!]][
-			if all [
+		decorate-local-func-ptr: func [name [word!] /local type][
+			either all [
 				locals
 				type: select locals name
+				type: resolve-aliased type
 				type/1 = 'function!
 			][
-				name: decorate-function name
+				decorate-function name
+			][
+				name
 			]
+		]
+		
+		find-functions: func [name [word!]][
+			name: decorate-local-func-ptr name
 			any [
 				find functions name
 				find functions resolve-ns name
@@ -2534,6 +2541,7 @@ system-dialect: make-profilable context [
 						any [
 							all [						;-- block local function pointers
 								block? type: select locals name
+								type: resolve-aliased type
 								'function! <> type/1
 							]
 							not block? type				;-- pass-thru
@@ -2559,6 +2567,7 @@ system-dialect: make-profilable context [
 					not path
 					entry: find-functions name
 				][
+					name: decorate-local-func-ptr name
 					spec: entry/2/4
 					if all [
 						find-attribute spec 'infix
