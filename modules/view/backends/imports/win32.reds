@@ -584,6 +584,22 @@ RECT_STRUCT: alias struct! [
 			return:		[integer!]
 		]
 	]
+	"gdiplus.dll" stdcall [
+		GdipDrawImageRectI: "GdipDrawImageRectI" [
+			graphics	[integer!]
+			image		[integer!]
+			x			[integer!]
+			y			[integer!]
+			width		[integer!]
+			height		[integer!]
+			return:		[integer!]
+		]
+		GdipCreateFromHWND: "GdipCreateFromHWND" [
+			hwnd		[handle!]
+			graphics	[GpGraphics!]
+			return:		[integer!]
+		]
+	]
 	"Comctl32.dll" stdcall [
 		InitCommonControlsEx: "InitCommonControlsEx" [
 			lpInitCtrls [INITCOMMONCONTROLSEX]

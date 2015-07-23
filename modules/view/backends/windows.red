@@ -104,6 +104,7 @@ system/view/platform: context [
 			slider:			symbol/make "slider"
 			dropdown:		symbol/make "dropdown"
 			droplist:		symbol/make "droplist"
+			_image:			symbol/make "image"
 			base:			symbol/make "base"
 			panel:			symbol/make "panel"
 			
@@ -406,7 +407,41 @@ system/view/platform: context [
 				current-msg/x: WIN32_LOWORD(pos)
 				current-msg/y: WIN32_HIWORD(pos)
 			]
-			
+
+			ImageWndProc: func [
+				hWnd	[handle!]
+				msg		[integer!]
+				wParam	[integer!]
+				lParam	[integer!]
+				return: [integer!]
+				/local
+					data	[red-block!]
+					str		[red-string!]
+					graphic [integer!]
+					img		[red-image!]
+					rect	[RECT_STRUCT]
+					width	[integer!]
+					height	[integer!]
+			][
+				switch msg [
+					WM_ERASEBKGND [
+						graphic: 0
+						rect: declare RECT_STRUCT
+						GetClientRect hWnd rect
+						width: rect/right - rect/left
+						height: rect/bottom - rect/top
+						img: as red-image! get-node-facet
+								as node! GetWindowLong hWnd wc-offset + 4
+								FACE_OBJ_IMAGE
+						GdipCreateFromHWND hWnd :graphic
+						GdipDrawImageRectI graphic as-integer img/node 0 0 width height
+						return 1
+					]
+					default [0]
+				]
+				DefWindowProc hWnd msg wParam lParam
+			]
+
 			GroupBoxWndProc: func [
 				hWnd	[handle!]
 				msg		[integer!]
@@ -738,7 +773,15 @@ system/view/platform: context [
 				wcex/hIconSm:		0
 
 				RegisterClassEx wcex
-				
+
+				wcex/style:			CS_DBLCLKS
+				wcex/lpfnWndProc:	:ImageWndProc
+				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+				wcex/hInstance:		hInstance
+				wcex/lpszClassName: #u16 "RedImage"
+
+				RegisterClassEx wcex
+
 				;-- superclass existing classes to add 16 extra bytes
 				make-super-class #u16 "RedButton"	#u16 "BUTTON"
 				make-super-class #u16 "RedField"	#u16 "EDIT"
@@ -912,6 +955,7 @@ system/view/platform: context [
 					size	  [red-pair!]
 					data	  [red-block!]
 					int		  [red-integer!]
+					img		 [red-image!]
 					show?	  [red-logic!]
 					flags	  [integer!]
 					ws-flags  [integer!]
@@ -922,7 +966,6 @@ system/view/platform: context [
 					offy	  [integer!]
 					value	  [integer!]
 					p		  [ext-class!]
-					vertical? [logic!]
 			][
 				ctx: GET_CTX(face)
 				s: as series! ctx/values/value
@@ -934,6 +977,7 @@ system/view/platform: context [
 				size:	as red-pair!	values + FACE_OBJ_SIZE
 				show?:	as red-logic!	values + FACE_OBJ_VISIBLE?
 				data:	as red-block!	values + FACE_OBJ_DATA
+				img:	as red-image!	values + FACE_OBJ_IMAGE
 				
 				flags: 	  WS_CHILD
 				ws-flags: 0
@@ -987,6 +1031,10 @@ system/view/platform: context [
 							flags: flags or TBS_VERT or TBS_DOWNISLEFT
 						]
 					]
+					sym = _image [
+						class: #u16 "RedImage"
+						;ws-flags: WS_EX_TRANSPARENT
+					]
 					sym = base [
 						class: #u16 "Base"
 					]
@@ -1029,6 +1077,24 @@ system/view/platform: context [
 				
 				;-- extra initialization
 				case [
+					sym = _image [
+						if TYPE_OF(img) <> TYPE_IMAGE [
+							if any [
+								TYPE_OF(data) = TYPE_BLOCK
+								TYPE_OF(data) = TYPE_HASH
+								TYPE_OF(data) = TYPE_MAP
+							][
+								str:  as red-string! block/rs-head as red-block! data
+								tail: as red-string! block/rs-tail as red-block! data
+								while [str < tail][
+									if TYPE_OF(str) = TYPE_FILE [
+										image/make-at as red-value! img str
+									]
+									str: str + 1
+								]
+							]
+						]
+					]
 					sym = slider [
 						value: get-position-value as red-float! data
 						if size/y > size/x [value: 100 - value]

@@ -151,6 +151,10 @@ win/pane: reduce [
 			]
 		]
 	]
+	make face! [
+		type: 'image offset: 280x160 size: 120x120
+		data: [%/D/red-3d-icon-1280x1280.png]
+	]
 ]
 show win
 

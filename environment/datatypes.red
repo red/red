@@ -55,6 +55,7 @@ pair!:			make datatype! #get-definition TYPE_PAIR
 percent!:		make datatype! #get-definition TYPE_PERCENT
 tuple!:			make datatype! #get-definition TYPE_TUPLE
 event!:			make datatype! #get-definition TYPE_EVENT
+image!:			make datatype! #get-definition TYPE_IMAGE
 
 none:  			make none! 0
 true:  			make logic! 1

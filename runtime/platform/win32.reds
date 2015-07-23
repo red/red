@@ -35,6 +35,15 @@ platform: context [
 		fd-stderr: 2									;@@ hardcoded, safe?
 	]
 
+	GdiplusStartupInput!: alias struct! [
+		GdiplusVersion				[integer!]
+		DebugEventCallback			[integer!]
+		SuppressBackgroundThread	[integer!]
+		SuppressExternalCodecs		[integer!]
+	]
+
+	gdiplus-token: 0
+
 	page-size: 4096
 	confd: -2
 
@@ -102,6 +111,22 @@ platform: context [
 				handle			[integer!]
 				mode			[int-ptr!]
 				return:			[integer!]
+			]
+			GetCurrentDirectory: "GetCurrentDirectoryW" [
+				buf-len			[integer!]
+				buffer			[byte-ptr!]
+				return:			[integer!]
+			]
+		]
+		"gdiplus.dll" stdcall [
+			GdiplusStartup: "GdiplusStartup" [
+				token		[int-ptr!]
+				input		[integer!]
+				output		[integer!]
+				return:		[integer!]
+			]
+			GdiplusShutdown: "GdiplusShutdown" [
+				token		[integer!]
 			]
 		]
 	]
@@ -365,10 +390,24 @@ platform: context [
 		f
 	]
 
+	init-gdiplus: func [/local startup-input res][
+		startup-input: declare GdiplusStartupInput!
+		startup-input/GdiplusVersion: 1
+		startup-input/DebugEventCallback: 0
+		startup-input/SuppressBackgroundThread: 0
+		startup-input/SuppressExternalCodecs: 0
+		res: GdiplusStartup :gdiplus-token as-integer startup-input 0
+	]
+
+	shutdown-gdiplus: does [
+		GdiplusShutdown gdiplus-token 
+	]
+
 	;-------------------------------------------
 	;-- Do platform-specific initialization tasks
 	;-------------------------------------------
 	init: does [
+		init-gdiplus
 		#if unicode? = yes [
 			_setmode fd-stdout _O_U16TEXT				;@@ throw an error on failure
 			_setmode fd-stderr _O_U16TEXT				;@@ throw an error on failure

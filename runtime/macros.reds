@@ -54,7 +54,8 @@ Red/System [
 	TYPE_MAP											;-- 28		40
 	TYPE_BINARY											;-- 29		41
 	TYPE_SERIES											;-- 2A		42
-	TYPE_EVENT											;-- 2B		43
+	TYPE_IMAGE											;-- 2B		43
+	TYPE_EVENT											;-- 2C		44
 	TYPE_CLOSURE
 	TYPE_PORT
 	
@@ -218,6 +219,7 @@ Red/System [
 	NAT_CATCH
 	NAT_EXTEND
 	NAT_DEBASE
+	NAT_TO_LOCAL_FILE
 ]
 
 #enum math-op! [

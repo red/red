@@ -697,3 +697,12 @@ debase: make native! [[
 	]
 	#get-definition NAT_DEBASE
 ]
+
+to-local-file: make native! [[
+		"Converts a REBOL file path to the local system file path"
+		path  [file! string!]
+		/full "Prepends current dir for full path (for relative paths only)"
+		return: [string!]
+	]
+	#get-definition NAT_TO_LOCAL_FILE
+]
