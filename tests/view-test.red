@@ -185,11 +185,10 @@ win/pane: reduce [
 			]
 		]
 	]
-	;make face! [
-	;	type: 'image offset: 280x10 size: 100x100
-	;	data: [%/C/Dev/Red/red-3d-icon-1280x1280.png]
-	;	data: [%/D/red-3d-icon-1280x1280.png]
-	;]
+	make face! [
+		type: 'image offset: 280x10 size: 100x100
+		data: [%..\bridges\android\samples\eval\res\drawable-xxhdpi\ic_launcher.png]
+	]
 ]
 show win
 
