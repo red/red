@@ -95,6 +95,13 @@ Red [
 		--assert none = select msk1-m msk1-k
 		--assert "value" = select msk1-m "key"
 		
+	--test-- "map-string-keys-2"
+		msk2-m: #("abcde" 1 "é" 2 "€" 3 "^(1D122)" 4)
+		--assert 1 = select msk2-m "abcde"
+		--assert 2 = select msk2-m "é"
+		--assert 3 = select msk2-m "€"
+		--assert 4 = select msk2-m "^(1D122)"
+		
 ===end-group===
 
 ===start-group=== "put"
@@ -123,7 +130,5 @@ Red [
 		--assert 1 = length? mput4-m
 
 ===end-group===
-
-
 
 ~~~end-file~~~
