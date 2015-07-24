@@ -169,19 +169,19 @@ win/pane: reduce [
 	]
 	make face! [
 		type: 'radio text: "radio 1" offset: 300x200 size: 90x24
-		data: on
+		;data: on
 		actors: object [
 			on-change: func [face [object!] event [event!]][
-				probe face/data
+				print "radio 1 set"
 			]
 		]
 	]
 	make face! [
 		type: 'radio text: "radio 2" offset: 300x230 size: 90x24
-		;data: off
+		data: on
 		actors: object [
 			on-change: func [face [object!] event [event!]][
-				probe face/data
+				print "radio 2 set"
 			]
 		]
 	]

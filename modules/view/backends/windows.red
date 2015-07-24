@@ -495,6 +495,7 @@ system/view/platform: context [
 									type/symbol = check
 									type/symbol = radio
 								][
+									current-msg/hWnd: as handle! lParam	;-- force child handle
 									if get-logic-state current-msg [
 										make-event current-msg 0 EVT_CHANGE
 									]
@@ -1099,7 +1100,7 @@ system/view/platform: context [
 					]
 					sym = radio [
 						class: #u16 "RedButton"
-						flags: flags or WS_TABSTOP or BS_AUTORADIOBUTTON
+						flags: flags or WS_TABSTOP or BS_RADIOBUTTON
 					]
 					sym = panel [
 						class: #u16 "RedPanel"

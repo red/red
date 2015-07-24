@@ -71,6 +71,21 @@ system/view: context [
 	)
 	
 	awake: function [event [event!]][					;@@ temporary until event:// is implemented
+		unless face: event/face [exit]					;-- filter out unbound events
+		type: event/type
+		
+		if all [										;-- radio styles handler
+			type = 'click
+			face/type = 'radio
+		][
+			foreach f face/parent/pane [
+				if f/type = 'radio [f/data: off show f]
+			]
+			face/data: on
+			type: 'change
+			show face
+		]
+
 		if debug? [
 			print [
 				"event> type:"	event/type
@@ -79,11 +94,10 @@ system/view: context [
 				;"face:" 		mold event/face
 			]
 		]
-		unless face: event/face [exit]					;-- filter out unbound events
-		
+
 		if all [
 			object? face/actors
-			act: in face/actors select evt-names event/type
+			act: in face/actors select evt-names type
 			act: get act
 		][
 			do [act face event]
@@ -113,8 +127,9 @@ show: function [face [object!] /with parent [object!]][
 			p: either with [parent/state/1][0]
 			obj: system/view/platform/make-view face p
 
-			if face/type = 'window [
-				append system/view/screens/1/pane face
+			switch face/type [
+				radio  [if with [face/parent: parent]]
+				window [append system/view/screens/1/pane face]
 			]
 		]
 		face/state: reduce [obj 0 0]
