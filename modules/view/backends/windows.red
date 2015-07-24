@@ -90,7 +90,7 @@ system/view/platform: context [
 			current-msg: 	as tagMSG 0
 			wc-extra:		80							;-- reserve 64 bytes for win32 internal usage (arbitrary)
 			wc-offset:		64							;-- offset to our 16 bytes
-			
+
 			oldGroupBoxWndProc: 0
 			
 			;-- extended classes handling
@@ -420,26 +420,19 @@ system/view/platform: context [
 				lParam	[integer!]
 				return: [integer!]
 				/local
-					data	[red-block!]
-					str		[red-string!]
-					graphic [integer!]
-					img		[red-image!]
 					rect	[RECT_STRUCT]
 					width	[integer!]
 					height	[integer!]
+					hBackDC [handle!]
 			][
 				switch msg [
 					WM_ERASEBKGND [
-						graphic: 0
+						hBackDC: as handle! GetWindowLong hWnd wc-offset - 4
 						rect: declare RECT_STRUCT
 						GetClientRect hWnd rect
 						width: rect/right - rect/left
 						height: rect/bottom - rect/top
-						img: as red-image! get-node-facet
-								as node! GetWindowLong hWnd wc-offset + 4
-								FACE_OBJ_IMAGE
-						GdipCreateFromHWND hWnd :graphic
-						GdipDrawImageRectI graphic as-integer img/node 0 0 width height
+						BitBlt as handle! wParam 0 0 width height hBackDC 0 0 SRCCOPY
 						return 1
 					]
 					default [0]
@@ -1032,7 +1025,38 @@ system/view/platform: context [
 					GetDeviceCaps hScreen HORZRES
 					GetDeviceCaps hScreen VERTRES
 			]
-			
+
+			make-image-dc: func [
+				hWnd		[handle!]
+				img			[red-image!]
+				return:		[integer!]
+				/local
+					graphic [integer!]
+					rect	[RECT_STRUCT]
+					width	[integer!]
+					height	[integer!]
+					hDC		[handle!]
+					hBitmap [handle!]
+					hBackDC [handle!]
+			][
+				graphic: 0
+				rect: declare RECT_STRUCT
+
+				GetClientRect hWnd rect
+				width: rect/right - rect/left
+				height: rect/bottom - rect/top
+
+				hDC: GetDC hWnd
+				hBackDC: CreateCompatibleDC hDC
+				hBitmap: CreateCompatibleBitmap hDC width height
+				SelectObject hBackDC hBitmap
+				FillRect hBackDC rect GetSysColorBrush COLOR_MENU
+				GdipCreateFromHDC hBackDC :graphic
+				GdipDrawImageRectI graphic as-integer img/node 0 0 width height
+				ReleaseDC hWnd hDC
+
+				as-integer hBackDC
+			]
 			OS-show-window: func [
 				hWnd [integer!]
 			][
@@ -1086,7 +1110,7 @@ system/view/platform: context [
 				sym: 	  symbol/resolve type/symbol
 				offx:	  offset/x
 				offy:	  offset/y
-				
+
 				if show?/value [flags: flags or WS_VISIBLE]
 
 				case [
@@ -1135,7 +1159,6 @@ system/view/platform: context [
 					]
 					sym = _image [
 						class: #u16 "RedImage"
-						;ws-flags: WS_EX_TRANSPARENT
 					]
 					sym = base [
 						class: #u16 "Base"
@@ -1160,9 +1183,16 @@ system/view/platform: context [
 				][
 					null
 				]
-				
+
+				if all [								;-- only for WinXP and Win2000
+					version-info/dwMajorVersion = 5
+					version-info/dwMinorVersion <= 1
+				][
+					ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
+				]
+
 				handle: CreateWindowEx
-					WS_EX_COMPOSITED or ws-flags
+					ws-flags
 					class
 					caption
 					flags
@@ -1197,6 +1227,7 @@ system/view/platform: context [
 								]
 							]
 						]
+						SetWindowLong handle wc-offset - 4 make-image-dc handle img
 					]
 					sym = slider [
 						vertical?: size/y > size/x

@@ -34,6 +34,7 @@ Red/System [
 #define    PixelFormatDontCare        0
 
 #define    PixelFormat32bppARGB       [10 or (32 << 8) or PixelFormatAlpha or PixelFormatGDI or PixelFormatCanonical]
+#define    PixelFormat32bppPARGB      [11 or (32 << 8) or PixelFormatAlpha or PixelFormatPAlpha or PixelFormatGDI]
 #define    PixelFormat32bppCMYK       [15 or (32 << 8)]
 #define    PixelFormatMax             16
 
@@ -202,7 +203,7 @@ get-data: func [
 	rect/top: 0
 	rect/right: width? handle
 	rect/bottom: height? handle
-	GdipBitmapLockBits handle rect ImageLockModeWrite PixelFormat32bppARGB data
+	GdipBitmapLockBits handle rect ImageLockModeWrite PixelFormat32bppPARGB data
 	as int-ptr! data
 ]
 
