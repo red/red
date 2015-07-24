@@ -132,7 +132,8 @@ win/pane: reduce [
 					on-change: func [face [object!] event [event! none!]][
 						;print ["slider changed:" face/data]
 						progress/data: face/data
-						progress-text/text: form round face/data
+						progress-text/text: form 
+							to percent! (round face/data * 100) / 100.0
 						show progress
 						show progress-text
 					]

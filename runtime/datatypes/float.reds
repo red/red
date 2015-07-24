@@ -408,6 +408,7 @@ float: context [
 		spec	[red-float!]
 		return: [red-value!]
 		/local
+			fl  [red-float!]
 			int [red-integer!]
 			buf [red-string!]
 			f	[float!]
@@ -420,6 +421,11 @@ float: context [
 				int: as red-integer! type
 				int/header: TYPE_INTEGER
 				int/value: to-integer either f < 0.0 [f + 0.4999999999999999][f - 0.4999999999999999]
+			]
+			TYPE_PERCENT [
+				fl: as red-float! type
+				fl/header: TYPE_PERCENT
+				fl/value: f
 			]
 			TYPE_STRING [
 				buf: string/rs-make-at as cell! type 1			;-- 16 bits string

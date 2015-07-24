@@ -308,9 +308,10 @@ integer: context [
 				int/header: TYPE_INTEGER
 				int/value: spec/value
 			]
-			TYPE_FLOAT [
+			TYPE_FLOAT
+			TYPE_PERCENT [
 				f: as red-float! type
-				f/header: TYPE_FLOAT
+				f/header: type/value
 				f/value: to-float spec/value
 			]
 			TYPE_STRING [

@@ -22,6 +22,7 @@ Red/System [
 #define SW_HIDE				0
 #define SW_SHOW				5
 
+#define COLOR_MENU			4
 #define COLOR_WINDOW		5
 #define CS_VREDRAW			1
 #define CS_HREDRAW			2
@@ -197,6 +198,8 @@ Red/System [
 
 #define DC_BRUSH			18
 
+#define SRCCOPY             00CC0020h
+
 #define ICC_LISTVIEW_CLASSES	00000001h	;-- listview, header
 #define ICC_TREEVIEW_CLASSES	00000002h	;-- treeview, tooltips
 #define ICC_BAR_CLASSES			00000004h	;-- toolbar, statusbar, trackbar, tooltips
@@ -237,6 +240,25 @@ tagMSG: alias struct! [
 	time	[integer!]
 	x		[integer!]			;@@ POINT struct
 	y		[integer!]	
+]
+
+tagPAINTSTRUCT: alias struct! [
+	hdc			 [integer!]
+	fErase		 [integer!]
+	left		 [integer!]
+	top			 [integer!]
+	right		 [integer!]
+	bottom		 [integer!]
+	fRestore	 [integer!]
+	fIncUpdate	 [integer!]
+	rgbReserved1 [integer!]
+	rgbReserved2 [integer!]
+	rgbReserved3 [integer!]
+	rgbReserved4 [integer!]
+	rgbReserved5 [integer!]
+	rgbReserved6 [integer!]
+	rgbReserved7 [integer!]
+	rgbReserved8 [integer!]
 ]
 
 wndproc-cb!: alias function! [
@@ -384,6 +406,25 @@ RECT_STRUCT: alias struct! [
 	"User32.dll" stdcall [
 		GetDC: "GetDC" [
 			hWnd		[handle!]
+			return:		[handle!]
+		]
+		ReleaseDC: "ReleaseDC" [
+			hWnd		[handle!]
+			hDC			[handle!]
+			return:		[integer!]
+		]
+		BeginPaint: "BeginPaint" [
+			hWnd		[handle!]
+			ps			[tagPAINTSTRUCT]
+			return:		[integer!]
+		]
+		EndPaint: "EndPaint" [
+			hWnd		[handle!]
+			ps			[tagPAINTSTRUCT]
+			return:		[integer!]
+		]
+		GetSysColorBrush: "GetSysColorBrush" [
+			index		[integer!]
 			return:		[handle!]
 		]
 		EnumDisplayDevices: "EnumDisplayDevicesW" [
@@ -544,6 +585,33 @@ RECT_STRUCT: alias struct! [
 		]
 	]
 	"gdi32.dll" stdcall [
+		CreateCompatibleDC: "CreateCompatibleDC" [
+			hDC			[handle!]
+			return:		[handle!]
+		]
+		CreateCompatibleBitmap: "CreateCompatibleBitmap" [
+			hDC			[handle!]
+			width		[integer!]
+			height		[integer!]
+			return:		[handle!]
+		]
+		BitBlt: "BitBlt" [
+			hdcDest		[handle!]
+			nXDest		[integer!]
+			nYDest		[integer!]
+			nWidth		[integer!]
+			nHeight		[integer!]
+			hdcSrc		[handle!]
+			nXSrc		[integer!]
+			nYSrc		[integer!]
+			dwRop		[integer!]
+			return:		[integer!]
+		]
+		SelectObject: "SelectObject" [
+			hDC			[handle!]
+			hbitmap		[handle!]
+			return:		[handle!]
+		]
 		GetDeviceCaps: "GetDeviceCaps" [
 			hDC			[handle!]
 			nIndex		[integer!]
@@ -602,6 +670,11 @@ RECT_STRUCT: alias struct! [
 		]
 		GdipCreateFromHWND: "GdipCreateFromHWND" [
 			hwnd		[handle!]
+			graphics	[GpGraphics!]
+			return:		[integer!]
+		]
+		GdipCreateFromHDC: "GdipCreateFromHDC" [
+			hDC			[handle!]
 			graphics	[GpGraphics!]
 			return:		[integer!]
 		]
