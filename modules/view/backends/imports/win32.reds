@@ -368,9 +368,13 @@ RECT_STRUCT: alias struct! [
 	bottom		[integer!]
 ]
 
-
 InitCommonControlsEx!: alias function! [
 	lpInitCtrls [INITCOMMONCONTROLSEX]
+	return:		[integer!]
+]
+
+DwmIsCompositionEnabled!: alias function! [
+	pfEnabled	[int-ptr!]
 	return:		[integer!]
 ]
 

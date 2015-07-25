@@ -1065,6 +1065,22 @@ system/view/platform: context [
 
 				as-integer hBackDC
 			]
+
+			DWM-enabled?: func [
+				return:		[logic!]
+				/local
+					enabled [integer!]
+					dll		[handle!]
+					fun		[DwmIsCompositionEnabled!]
+			][
+				enabled: 0
+				dll: LoadLibraryEx #u16 "dwmapi.dll" 0 0
+				if dll = null [return false]
+				fun: as DwmIsCompositionEnabled! GetProcAddress dll "DwmIsCompositionEnabled"
+				fun :enabled
+				either zero? enabled [false][true]
+			]
+
 			OS-show-window: func [
 				hWnd [integer!]
 			][
@@ -1192,10 +1208,7 @@ system/view/platform: context [
 					null
 				]
 
-				if all [								;-- only for WinXP and Win2000
-					version-info/dwMajorVersion = 5
-					version-info/dwMinorVersion <= 1
-				][
+				unless DWM-enabled? [
 					ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
 				]
 
