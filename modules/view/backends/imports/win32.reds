@@ -368,6 +368,12 @@ RECT_STRUCT: alias struct! [
 	bottom		[integer!]
 ]
 
+
+InitCommonControlsEx!: alias function! [
+	lpInitCtrls [INITCOMMONCONTROLSEX]
+	return:		[integer!]
+]
+
 #import [
 	"kernel32.dll" stdcall [
 		GetModuleHandle: "GetModuleHandleW" [
@@ -389,6 +395,15 @@ RECT_STRUCT: alias struct! [
 		ActivateActCtx: "ActivateActCtx" [
 			hActCtx		[handle!]
 			lpCookie	[struct! [ptr [byte-ptr!]]]
+			return:		[integer!]
+		]
+		DeactivateActCtx: "DeactivateActCtx" [
+			dwFlags		[integer!]
+			Cookie		[byte-ptr!]
+			return:		[integer!]
+		]
+		ReleaseActCtx: "ReleaseActCtx" [
+			hActCtx		[handle!]
 		]
 		GetVersionEx: "GetVersionExW" [
 			lpVersionInfo [OSVERSIONINFO]
@@ -401,6 +416,17 @@ RECT_STRUCT: alias struct! [
 		LocalUnlock: "LocalUnlock" [
 			hMem		[handle!]
 			return:		[byte-ptr!]
+		]
+		LoadLibraryEx: "LoadLibraryExW" [
+			lpFileName	[c-string!]
+			hFile		[integer!]
+			dwFlags		[integer!]
+			return:		[handle!]
+		]
+		GetProcAddress: "GetProcAddress" [
+			hModule		[handle!]
+			lpProcName	[c-string!]
+			return:		[integer!]
 		]
 	]
 	"User32.dll" stdcall [
@@ -678,13 +704,6 @@ RECT_STRUCT: alias struct! [
 			graphics	[GpGraphics!]
 			return:		[integer!]
 		]
-	]
-	"Comctl32.dll" stdcall [
-		InitCommonControlsEx: "InitCommonControlsEx" [
-			lpInitCtrls [INITCOMMONCONTROLSEX]
-			return:		[integer!]
-		]
-		InitCommonControls: "InitCommonControls" []
 	]
 	"UxTheme.dll" stdcall [
 		SetWindowTheme: "SetWindowTheme" [

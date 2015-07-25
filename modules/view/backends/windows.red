@@ -619,11 +619,14 @@ system/view/platform: context [
 			]
 			
 			enable-visual-styles: func [
-				return: [byte-ptr!]
 				/local
 					ctx	   [ACTCTX]
 					dir	   [c-string!]
 					ret	   [integer!]
+					actctx [handle!]
+					dll    [handle!]
+					f	   [InitCommonControlsEx!]
+					ctrls  [INITCOMMONCONTROLSEX]
 					cookie [struct! [ptr [byte-ptr!]]]
 			][
 				ctx: declare ACTCTX
@@ -645,8 +648,20 @@ system/view/platform: context [
 				sz: sz + 1
 				dir/sz: null-byte
 
-				ActivateActCtx CreateActCtx ctx cookie
-				cookie/ptr
+				actctx: CreateActCtx ctx
+				ActivateActCtx actctx cookie
+
+				dll: LoadLibraryEx #u16 "comctl32.dll" 0 0
+				if dll = null [probe "*** Error loading comctl32.dll"]
+
+				f: as InitCommonControlsEx! GetProcAddress dll "InitCommonControlsEx"
+				ctrls: declare INITCOMMONCONTROLSEX
+				ctrls/dwSize: size? INITCOMMONCONTROLSEX
+				ctrls/dwICC: ICC_STANDARD_CLASSES
+				f ctrls
+
+				DeactivateActCtx 0 cookie/ptr
+				ReleaseActCtx actctx
 			]
 			
 			to-bgr: func [
@@ -853,9 +868,8 @@ system/view/platform: context [
 			
 			init: func [
 				/local
-					ver  [red-tuple!]
-					int	 [red-integer!]
-					ctrs [INITCOMMONCONTROLSEX]
+					ver [red-tuple!]
+					int [red-integer!]
 			][
 				hScreen: GetDC null
 				hInstance: GetModuleHandle 0
@@ -869,19 +883,14 @@ system/view/platform: context [
 				ver/array1: version-info/dwMajorVersion
 					or (version-info/dwMinorVersion << 8)
 					and 0000FFFFh
-				
+
 				unless all [
 					version-info/dwMajorVersion = 5
-					version-info/dwMinorVersion <= 1
+					version-info/dwMinorVersion < 1
 				][
-					enable-visual-styles				;-- not called for WinXP and Win2000
+					enable-visual-styles				;-- not called for Win2000
 				]
-				
-				ctrls: declare INITCOMMONCONTROLSEX
-				ctrls/dwSize: size? INITCOMMONCONTROLSEX
-				ctrls/dwICC: ICC_STANDARD_CLASSES
-				InitCommonControlsEx ctrls
-				
+
 				register-classes hInstance
 					
 				int: as red-integer! #get system/view/platform/build
