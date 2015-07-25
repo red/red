@@ -294,8 +294,8 @@ cycles: context [
 				switch TYPE_OF(value) [
 					TYPE_BLOCK	[s: "[...]"				 size: 5 ]
 					TYPE_PAREN	[s: "(...)"				 size: 5 ]
-					TYPE_HASH	[s: "make hash! [...]"	 size: 16]
 					TYPE_MAP	[s: "#(...)"			 size: 6 ]
+					TYPE_HASH	[s: "make hash! [...]"	 size: 16]
 					TYPE_OBJECT [s: "make object! [...]" size: 18]
 					default		[assert false]
 				]
