@@ -61,7 +61,7 @@ win/pane: reduce [
 		]
 	]
 	make face! [
-		type: 'dropdown
+		type: 'drop-down
 		text: "type"
 		offset: 100x120
 		size: 80x24
@@ -80,8 +80,8 @@ win/pane: reduce [
 			]
 		]
 	]
-	droplist: make face! [
-		type: 'droplist
+	drop-list: make face! [
+		type: 'drop-list
 		offset: 200x120
 		size: 80x24
 		data: [
@@ -107,8 +107,8 @@ win/pane: reduce [
 		type: 'button text: "Set option 5" offset: 300x120 size: 80x24
 		actors: object [
 			on-click: func [face [object!] event [event!]][
-				droplist/selected: 5
-				show droplist
+				drop-list/selected: 5
+				show drop-list
 			]
 		]
 	]
@@ -189,6 +189,17 @@ win/pane: reduce [
 	make face! [
 		type: 'image offset: 280x10 size: 100x100
 		data: [%..\bridges\android\samples\eval\res\drawable-xxhdpi\ic_launcher.png]
+	]
+	make face! [
+		type: 'tab-panel offset: 10x320 size: 250x130
+		data: [
+			"tab 1" []
+			"tab 2" []
+			"tab 3" []
+		]
+		;pane: reduce [
+		;
+		;]
 	]
 ]
 show win

@@ -107,11 +107,12 @@ system/view/platform: context [
 			text:			symbol/make "text"
 			progress:		symbol/make "progress"
 			slider:			symbol/make "slider"
-			dropdown:		symbol/make "dropdown"
-			droplist:		symbol/make "droplist"
+			drop-down:		symbol/make "drop-down"
+			drop-list:		symbol/make "drop-list"
 			_image:			symbol/make "image"
 			base:			symbol/make "base"
 			panel:			symbol/make "panel"
+			tab-panel:		symbol/make "tab-panel"
 			
 			done:			symbol/make "done"
 			stop:			symbol/make "stop"
@@ -379,7 +380,7 @@ system/view/platform: context [
 					EVT_SELECT [
 						word: as red-word! get-facet msg FACE_OBJ_TYPE
 						assert TYPE_OF(word) = TYPE_WORD
-						if word/symbol = dropdown [get-text msg flags]
+						if word/symbol = drop-down [get-text msg flags]
 						gui-evt/flags: flags + 1 and FFFFh	;-- index is one-based for string!
 					]
 					EVT_CHANGE [
@@ -844,6 +845,7 @@ system/view/platform: context [
 				make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0
 				make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0
 				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0
+				make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0
 				
 				oldGroupBoxWndProc: make-super-class 
 					#u16 "RedPanel"
@@ -880,7 +882,10 @@ system/view/platform: context [
 				
 				ctrls: declare INITCOMMONCONTROLSEX
 				ctrls/dwSize: size? INITCOMMONCONTROLSEX
-				ctrls/dwICC: ICC_STANDARD_CLASSES
+				ctrls/dwICC: ICC_STANDARD_CLASSES 
+					or ICC_TAB_CLASSES
+					or ICC_LISTVIEW_CLASSES
+					or ICC_BAR_CLASSES
 				InitCommonControlsEx ctrls
 				
 				register-classes hInstance
@@ -892,6 +897,40 @@ system/view/platform: context [
 				int: as red-integer! #get system/view/platform/product
 				int/header: TYPE_INTEGER
 				int/value:  as-integer version-info/wProductType
+			]
+			
+			set-tabs: func [
+				hWnd [handle!]
+				data [red-block!]
+				/local
+					str	 [red-string!]
+					tail [red-string!]
+					item [TCITEM]
+					i	 [integer!]
+			][
+				item: declare TCITEM
+				if TYPE_OF(data) = TYPE_BLOCK [
+					str:  as red-string! block/rs-head data
+					tail: as red-string! block/rs-tail data
+					i: 0
+					while [str < tail][
+						if TYPE_OF(str) = TYPE_STRING [
+							item/mask: TCIF_TEXT
+							item/pszText: unicode/to-utf16 str
+							item/cchTextMax: string/rs-length? str
+							item/iImage: -1
+							item/lParam: 0
+							
+							probe SendMessage
+								hWnd
+								TCM_INSERTITEMW
+								i
+								as-integer item
+						]
+						i: i + 1
+						str: str + 1
+					]
+				]
 			]
 			
 			set-logic-state: func [
@@ -1130,6 +1169,9 @@ system/view/platform: context [
 						class: #u16 "RedPanel"
 						flags: flags or WS_GROUP or BS_GROUPBOX
 					]
+					sym = tab-panel [
+						class: #u16 "RedTabPanel"
+					]
 					sym = field [
 						class: #u16 "RedField"
 						flags: flags or ES_LEFT
@@ -1139,11 +1181,11 @@ system/view/platform: context [
 						class: #u16 "RedFace"
 						flags: flags or SS_SIMPLE
 					]
-					sym = dropdown [
+					sym = drop-down [
 						class: #u16 "RedCombo"
 						flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS ;or WS_OVERLAPPED
 					]
-					sym = droplist [
+					sym = drop-list [
 						class: #u16 "RedCombo"
 						flags: flags or CBS_DROPDOWNLIST or CBS_HASSTRINGS ;or WS_OVERLAPPED
 					]
@@ -1217,8 +1259,8 @@ system/view/platform: context [
 								TYPE_OF(data) = TYPE_HASH
 								TYPE_OF(data) = TYPE_MAP
 							][
-								str:  as red-string! block/rs-head as red-block! data
-								tail: as red-string! block/rs-tail as red-block! data
+								str:  as red-string! block/rs-head data
+								tail: as red-string! block/rs-tail data
 								while [str < tail][
 									if TYPE_OF(str) = TYPE_FILE [
 										image/make-at as red-value! img str
@@ -1228,6 +1270,10 @@ system/view/platform: context [
 							]
 						]
 						SetWindowLong handle wc-offset - 4 make-image-dc handle img
+					]
+					sym = tab-panel [
+						set-tabs handle data
+						
 					]
 					sym = slider [
 						vertical?: size/y > size/x
@@ -1244,16 +1290,16 @@ system/view/platform: context [
 					sym = check [set-logic-state handle as red-logic! data yes]
 					sym = radio [set-logic-state handle as red-logic! data no]
 					any [
-						sym = dropdown
-						sym = droplist
+						sym = drop-down
+						sym = drop-list
 					][
 						if any [
 							TYPE_OF(data) = TYPE_BLOCK
 							TYPE_OF(data) = TYPE_HASH
 							TYPE_OF(data) = TYPE_MAP
 						][
-							str:  as red-string! block/rs-head as red-block! data
-							tail: as red-string! block/rs-tail as red-block! data
+							str:  as red-string! block/rs-head data
+							tail: as red-string! block/rs-tail data
 							while [str < tail][
 								if TYPE_OF(str) = TYPE_STRING [
 									SendMessage 
@@ -1265,7 +1311,7 @@ system/view/platform: context [
 								str: str + 1
 							]
 						]
-						either any [null? caption sym = droplist][
+						either any [null? caption sym = drop-list][
 							int: as red-integer! get-node-facet face/ctx FACE_OBJ_SELECTED
 							if TYPE_OF(int) = TYPE_INTEGER [
 								SendMessage handle CB_SETCURSEL int/value - 1 0

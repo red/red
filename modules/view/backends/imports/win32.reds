@@ -52,6 +52,10 @@ Red/System [
 
 #define PBS_VERTICAL		04h
 
+#define TCM_INSERTITEMW		133Eh
+
+#define TCIF_TEXT			0001h
+
 #define IDC_ARROW			7F00h
 #define WS_OVERLAPPEDWINDOW	00CF0000h
 #define WS_CLIPCHILDREN		02000000h
@@ -209,7 +213,7 @@ Red/System [
 #define ICC_HOTKEY_CLASS		00000040h	;-- hotkey
 #define ICC_ANIMATE_CLASS		00000080h	;-- animate
 #define ICC_WIN95_CLASSES		000000FFh
-#define ICC_DATE_CLASSES		00000100h	;--  month picker, date picker, time picker, updown
+#define ICC_DATE_CLASSES		00000100h	;-- month picker, date picker, time picker, updown
 #define ICC_USEREX_CLASSES		00000200h	;-- comboex
 #define ICC_COOL_CLASSES		00000400h	;-- rebar (coolbar) control
 #define ICC_INTERNET_CLASSES	00000800h
@@ -359,6 +363,16 @@ OSVERSIONINFO: alias struct! [
 INITCOMMONCONTROLSEX: alias struct! [
 	dwSize		[integer!]
 	dwICC		[integer!]
+]
+
+TCITEM: alias struct! [
+	mask		[integer!]
+	dwState		[integer!]
+	dwStateMask	[integer!]
+	pszText		[c-string!]
+	cchTextMax	[integer!]
+	iImage		[integer!]
+	lParam		[integer!]
 ]
 
 RECT_STRUCT: alias struct! [
