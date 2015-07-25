@@ -30,7 +30,7 @@ target-class: context [
 	emit-casting: emit-call-syscall: emit-call-import: ;-- just pre-bind word to avoid contexts issue
 	emit-call-native: emit-not: emit-push: emit-pop:
 	emit-integer-operation: emit-float-operation: 
-	emit-throw:	on-init: emit-alt-last: none
+	emit-throw:	on-init: emit-alt-last: emit-log-b: none
 	
 	comparison-op: [= <> < > <= >=]
 	math-op:	   compose [+ - * / // (to-word "%")]
@@ -249,7 +249,14 @@ target-class: context [
 				emit-call-import args fspec spec attribs
 			]
 			native [
-				emit-call-native args fspec spec attribs
+				switch/default name [
+					log-b [								;@@ needs a new function type...
+						emit-pop
+						emit-log-b compiler/last-type/1
+					]
+				][
+					emit-call-native args fspec spec attribs
+				]
 			]
 			routine [
 				emit-call-native/routine args fspec spec attribs name

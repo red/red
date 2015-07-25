@@ -143,6 +143,7 @@ system-dialect: make-profilable context [
 			push	[1	inline	- [a [any-type!]]]
 			pop		[0	inline	- [						   return: [integer!]]]
 			throw	[1	inline	- [n [integer!]]]
+			log-b	[1	native	- [n [number!] return: [integer!]]]
 		]
 		
 		repend functions [shift-right-sym copy functions/-**]
@@ -1875,7 +1876,7 @@ system-dialect: make-profilable context [
 			emitter/target/emit-jump-point emitter/exits
 			ret
 		]
-		
+
 		comp-catch: has [offset locals-size unused chunk start end][
 			pc: next pc
 			fetch-expression/keep/final

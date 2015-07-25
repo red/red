@@ -117,39 +117,7 @@ block: context [
 		]
 		blk
 	]
-	
-	get-position: func [
-		base	   [integer!]
-		return:	   [integer!]
-		/local
-			blk	   [red-block!]
-			index  [red-integer!]
-			s	   [series!]
-			offset [integer!]
-			max	   [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/get-position"]]
 
-		blk: as red-block! stack/arguments
-		index: as red-integer! blk + 1
-
-		assert any [
-			TYPE_OF(blk)   = TYPE_BLOCK
-			TYPE_OF(blk)   = TYPE_HASH
-		]
-		assert TYPE_OF(index) = TYPE_INTEGER
-
-		s: GET_BUFFER(blk)
-
-		if all [base = 1 index/value <= 0][base: base - 1]
-		offset: blk/head + index/value - base			;-- index is one-based
-		if negative? offset [offset: 0]
-		max: (as-integer s/tail - s/offset) >> 4
-		if offset > max [offset: max]
-
-		offset
-	]
-	
 	clone: func [
 		blk 	[red-block!]
 		deep?	[logic!]
@@ -549,51 +517,6 @@ block: context [
 		if zero? size [size: 1]
 		make-at as red-block! stack/push* size
 	]
-
-	random: func [
-		blk		[red-block!]
-		seed?	[logic!]
-		secure? [logic!]
-		only?   [logic!]
-		return: [red-value!]
-		/local
-			s	 [series!]
-			size [integer!]
-			temp [red-value!]
-			idx	 [red-value!]
-			head [red-value!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/random"]]
-
-		either seed? [
-			blk/header: TYPE_UNSET						;-- TODO: calc block as seed
-		][
-			s: GET_BUFFER(blk)
-			head: s/offset + blk/head
-			size: rs-length? blk
-
-			if only? [
-				either positive? size [
-					idx: head + (_random/rand % size)
-					copy-cell idx as cell! blk
-				][
-					blk/header: TYPE_NONE
-				]
-			]
-
-			temp: stack/push*
-			while [size > 0][
-				idx: head + (_random/rand % size)
-				copy-cell head temp
-				copy-cell idx head
-				copy-cell temp idx
-				head: head + 1
-				size: size - 1
-			]
-			stack/pop 1
-		]
-		as red-value! blk
-	]
 	
 	form: func [
 		blk		  [red-block!]
@@ -702,10 +625,10 @@ block: context [
 		either type = TYPE_INTEGER [
 			int: as red-integer! element
 			either set? [
-				poke parent int/value value null
+				_series/poke as red-series! parent int/value value null
 				value
 			][
-				pick parent int/value null
+				_series/pick as red-series! parent int/value null
 			]
 		][
 			either set? [
@@ -729,147 +652,7 @@ block: context [
 		]
 	]
 	
-	;--- Property reading actions ---
-	
-	head?: func [
-		return:	  [red-value!]
-		/local
-			blk	  [red-block!]
-			state [red-logic!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/head?"]]
-
-		blk:   as red-block! stack/arguments
-		state: as red-logic! blk
-		
-		state/header: TYPE_LOGIC
-		state/value:  zero? blk/head
-		as red-value! state
-	]
-	
-	tail?: func [
-		return:	  [red-value!]
-		/local
-			blk	  [red-block!]
-			state [red-logic!]
-			s	  [series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/tail?"]]
-
-		blk:   as red-block! stack/arguments
-		state: as red-logic! blk
-		
-		s: GET_BUFFER(blk)
-
-		state/header: TYPE_LOGIC
-		state/value:  (s/offset + blk/head) = s/tail
-		as red-value! state
-	]
-	
-	index?: func [
-		return:	  [red-value!]
-		/local
-			blk	  [red-block!]
-			index [red-integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/index?"]]
-
-		blk:   as red-block! stack/arguments
-		index: as red-integer! blk
-		
-		index/header: TYPE_INTEGER
-		index/value:  blk/head + 1
-		as red-value! index
-	]
-	
-	length?: func [
-		blk		[red-block!]
-		return: [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/length?"]]
-		
-		rs-length? blk
-	]
-	
 	;--- Navigation actions ---
-	
-	at: func [
-		return:	[red-value!]
-		/local
-			blk	[red-block!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/at"]]
-		
-		blk: as red-block! stack/arguments
-		blk/head: get-position 1
-		as red-value! blk
-	]
-	
-	back: func [
-		return:	[red-value!]
-		/local
-			blk	[red-block!]
-			s	[series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/back"]]
-
-		blk: as red-block! stack/arguments
-
-		s: GET_BUFFER(blk)
-
-		if blk/head >= 1 [blk/head: blk/head - 1]
-		as red-value! blk
-	]
-	
-	next: func [
-		return:	[red-value!]
-		/local
-			blk	[red-block!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/next"]]
-	
-		rs-next as red-block! stack/arguments
-		stack/arguments
-	]
-		
-	skip: func [
-		return:	[red-value!]
-		/local
-			blk	[red-block!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/skip"]]
-
-		blk: as red-block! stack/arguments
-		blk/head: get-position 0
-		as red-value! blk
-	]
-	
-	head: func [
-		return:	[red-value!]
-		/local
-			blk	[red-block!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/head"]]
-
-		blk: as red-block! stack/arguments
-		blk/head: 0
-		as red-value! blk
-	]
-	
-	tail: func [
-		return:	[red-value!]
-		/local
-			blk	[red-block!]
-			s	[series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/tail"]]
-
-		blk: as red-block! stack/arguments
-		s: GET_BUFFER(blk)
-		
-		blk/head: (as-integer s/tail - s/offset) >> 4
-		as red-value! blk
-	]
 	
 	find: func [
 		blk			[red-block!]
@@ -1336,35 +1119,7 @@ block: context [
 		]
 		blk
 	]
-	
-	;--- Reading actions ---
-	
-	pick: func [
-		blk		[red-block!]
-		index	[integer!]
-		boxed	[red-value!]
-		return:	[red-value!]
-		/local
-			s	   [series!]
-			offset [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/pick"]]
-
-		s: GET_BUFFER(blk)
-
-		offset: blk/head + index - 1					;-- index is one-based
-		if negative? index [offset: offset + 1]
-		either any [
-			zero? index
-			offset < 0
-			offset >= ((as-integer s/tail - s/offset) >> 4)
-		][
-			none-value
-		][
-			s/offset + offset
-		]
-	]
-	
+		
 	;--- Modifying actions ---
 	
 	insert: func [
@@ -1462,23 +1217,6 @@ block: context [
 			s/tail: s/tail + slots
 		]
 
-		if hash? [
-			s: as series! table/value
-			p: (as int-ptr! s/offset) + 1
-			p: as int-ptr! p/value
-			s: as series! p/value
-			size: (as-integer s/tail + slots - s/offset) >> 2
-			if size > s/size [s: expand-series-filled s size #"^(FF)"]
-			unless tail? [
-				p: (as int-ptr! s/offset) + blk/head
-				move-memory
-					as byte-ptr! p + slots
-					as byte-ptr! p
-					as-integer s/tail - as cell! p
-			]
-			s/tail: as cell! (as int-ptr! s/tail) + slots
-		]
-
 		while [not zero? cnt][							;-- /dup support
 			either values? [
 				s: GET_BUFFER(src)
@@ -1521,165 +1259,6 @@ block: context [
 		]
 		as red-value! blk
 	]
-	
-	clear: func [
-		blk		[red-block!]
-		return:	[red-value!]
-		/local
-			s	[series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/clear"]]
-
-		s: GET_BUFFER(blk)
-		s/tail: s/offset + blk/head
-		as red-value! blk
-	]
-	
-	poke: func [
-		blk		[red-block!]
-		index	[integer!]
-		data	[red-value!]
-		boxed	[red-value!]
-		return:	[red-value!]
-		/local
-			s	   [series!]
-			offset [integer!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "block/poke"]]
-
-		s: GET_BUFFER(blk)
-		
-		offset: blk/head + index - 1					;-- index is one-based
-		if negative? index [offset: offset + 1]
-
-		either any [
-			zero? index
-			offset < 0
-			offset >= ((as-integer s/tail - s/offset) >> 4)
-		][
-			fire [TO_ERROR(script out-of-range) boxed]
-		][
-			copy-cell data s/offset + offset
-			stack/set-last data
-		]
-		as red-value! data
-	]
-	
-	remove: func [
-		blk	 	 [red-block!]
-		part-arg [red-value!]
-		return:	 [red-block!]
-		/local
-			s		[series!]
-			part	[integer!]
-			head	[red-value!]
-			int		[red-integer!]
-			b		[red-block!]
-			hash?	[logic!]
-			hash	[red-hash!]
-	][
-		s: GET_BUFFER(blk)
-		head: s/offset + blk/head
-		if head = s/tail [return blk]					;-- early exit if nothing to remove
-		
-		part: 1
-
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				b: as red-block! part-arg
-				assert all [
-					TYPE_OF(b) = TYPE_BLOCK
-					b/node = blk/node
-				]
-				b/head - blk/head
-			]
-			if part <= 0 [return blk]					;-- early exit if negative /part index
-		]
-
-		hash?: TYPE_OF(blk) = TYPE_HASH
-		either head + part < s/tail [
-			move-memory 
-				as byte-ptr! head
-				as byte-ptr! head + part
-				as-integer s/tail - (head + part)
-			s/tail: s/tail - part
-
-			if hash? [
-				hash: as red-hash! blk
-				_hashtable/refresh hash/table 0 - part blk/head + part
-			]
-		][
-			s/tail: head
-		]
-		blk
-	]
-
-	reverse: func [
-		blk	 	 [red-block!]
-		part-arg [red-value!]
-		return:	 [red-block!]
-		/local
-			s		[series!]
-			part	[integer!]
-			size	[integer!]
-			head	[red-value!]
-			end		[red-value!]
-			tmp		[red-value!]
-			int		[red-integer!]
-			b		[red-block!]
-			hash?	[logic!]
-			hash	[red-hash!]
-			table	[node!]
-	][
-		s: GET_BUFFER(blk)
-		head: s/offset + blk/head
-		if head = s/tail [return blk]		;-- early exit if nothing to reverse
-		size: rs-length? blk
-
-		part: size
-
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				b: as red-block! part-arg
-				assert all [
-					TYPE_OF(b) = TYPE_BLOCK
-					b/node = blk/node
-				]
-				b/head - blk/head
-			]
-			if part <= 0 [return blk]		;-- early exit if negative /part index
-		]
-		if part > size [part: size] 		;-- truncate if off-range part value
-
-		hash?: TYPE_OF(blk) = TYPE_HASH
-		if hash? [
-			hash: as red-hash! blk
-			table: hash/table
-		]
-		end: head + part - 1
-		tmp: stack/push*
-		while [head < end][
-			copy-cell head tmp
-			copy-cell end head
-			copy-cell tmp end
-			if hash? [
-				_hashtable/delete table head
-				_hashtable/delete table end
-				_hashtable/put table head
-				_hashtable/put table end
-			]
-			head: head + 1
-			end: end - 1
-		]
-		stack/pop 1
-		blk
-	]
 
 	take: func [
 		blk	    	[red-block!]
@@ -1688,83 +1267,17 @@ block: context [
 		last?		[logic!]
 		return:		[red-value!]
 		/local
-			int		[red-integer!]
-			b		[red-block!]
-			new		[red-block!]
-			offset	[red-value!]
+			s		[series!]
 			slot	[red-value!]
-			buffer	[series!]
-			node	[node!]
-			part	[integer!]
-			slots	[integer!]
 			type	[integer!]
-			hash?	[logic!]
-			hash	[red-hash!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/take"]]
 
+		blk: as red-block! _series/take blk part-arg deep? last?
 		s: GET_BUFFER(blk)
-		slots: rs-length? blk
-		if slots <= 0 [								;-- return NONE if blk is empty
-			set-type as cell! blk TYPE_NONE
-			return as red-value! blk
-		]
-
-		offset: s/offset + blk/head
-		part:   1
-
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				int/value
-			][
-				b: as red-block! part-arg
-				assert all [
-					TYPE_OF(b) = TYPE_BLOCK
-					b/node = blk/node
-				]
-				either b/head < blk/head [0][
-					either last? [slots - (b/head - blk/head)][b/head - blk/head]
-				]
-			]
-			if part > slots [part: slots]
-		]
-
-		hash?: TYPE_OF(blk) = TYPE_HASH
-
-		new:		as red-block! stack/push*
-		new/header: either hash? [TYPE_HASH][TYPE_BLOCK]
-		new/node: 	alloc-cells part + 1
-		new/head: 	0
-		buffer: 	as series! new/node/value
-
-		either positive? part [
-			if last? [
-				offset: s/tail - part
-				s/tail: offset
-			]
-			copy-memory
-				as byte-ptr! buffer/offset
-				as byte-ptr! offset
-				part << 4
-			buffer/tail: buffer/offset + part
-
-			unless last? [
-				move-memory
-					as byte-ptr! offset
-					as byte-ptr! offset + part
-					as-integer s/tail - (offset + part)
-				s/tail: s/tail - part
-			]
-			if hash? [
-				slots: either last? [slots - 1][blk/head + part]
-				hash: as red-hash! blk
-				_hashtable/refresh hash/table 0 - part slots
-			]
-		][return as red-value! new]
 
 		if deep? [
-			slot: buffer/offset
+			slot: s/offset
 			until [
 				type: TYPE_OF(slot)
 				if ANY_SERIES?(type) [
@@ -1776,20 +1289,14 @@ block: context [
 						null
 				]
 				slot: slot + 1
-				slot >= buffer/tail
+				slot >= s/tail
 			]
 		]
 
-		either part = 1	[							;-- flatten block
-			copy-cell as cell! buffer/offset as cell! new
-		][
-			if hash? [
-				hash: as red-hash! new
-				hash/table: _hashtable/init part new HASH_TABLE_HASH
-				hash
-			]
+		if 1 = _series/get-length blk yes [								;-- flatten block
+			copy-cell as cell! s/offset as cell! blk
 		]
-		as red-value! new
+		as red-value! blk
 	]
 
 	swap: func [
@@ -1886,83 +1393,32 @@ block: context [
 	copy: func [
 		blk	    	[red-block!]
 		new			[red-block!]
-		part-arg	[red-value!]
+		arg			[red-value!]
 		deep?		[logic!]
 		types		[red-value!]
 		return:		[red-series!]
 		/local
-			int		[red-integer!]
-			b		[red-block!]
-			offset	[red-value!]
-			slot	[red-value!]
-			buffer	[series!]
-			node	[node!]
-			part	[integer!]
-			slots	[integer!]
+			s		[series!]
 			type	[integer!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "block/copy"]]
-		
-		s: GET_BUFFER(blk)
-		
-		slots:	rs-length? blk
-		offset: s/offset + blk/head
-		part:   as-integer s/tail - offset				;@@ should be `part: slots`
-		
-		if OPTION?(types) [--NOT_IMPLEMENTED--]
-		
-		if OPTION?(part-arg) [
-			part: either TYPE_OF(part-arg) = TYPE_INTEGER [
-				int: as red-integer! part-arg
-				case [
-					int/value > (part >> 4) [part >> 4]
-					positive? int/value 	[int/value]
-					true					[0]
-				]
-			][
-				b: as red-block! part-arg
-				unless all [
-					TYPE_OF(b) = TYPE_OF(blk)			;-- handles ANY-BLOCK!
-					b/node = blk/node
-				][
-					ERR_INVALID_REFINEMENT_ARG(refinements/_part part-arg)
-				]
-				b/head - blk/head
-			]
-			slots: part
-			part: part << 4
-		]
-		
-		node: 	alloc-cells slots + 1
-		buffer: as series! node/value
-		
-		unless zero? part [
-			copy-memory 
-				as byte-ptr! buffer/offset
-				as byte-ptr! offset
-				part
-				
-			buffer/tail: buffer/offset + slots
-		]
-		
-		new/header: TYPE_BLOCK
-		new/node: 	node
-		new/head: 	0
-		
+
+		new: as red-block! _series/copy as red-series! blk as red-series! new arg deep? types
 		if deep? [
-			slot: buffer/offset
+			s: GET_BUFFER(new)
+			arg: s/offset
 			until [
-				type: TYPE_OF(slot)
+				type: TYPE_OF(arg)
 				if ANY_SERIES?(type) [
 					actions/copy 
-						as red-series! slot
-						slot						;-- overwrite the slot value
+						as red-series! arg
+						arg						;-- overwrite the arg value
 						null
 						yes
 						null
 				]
-				slot: slot + 1
-				slot >= buffer/tail
+				arg: arg + 1
+				arg >= s/tail
 			]
 		]
 		
@@ -2039,7 +1495,7 @@ block: context [
 				][
 					if all [blk? hash <> null] [_hashtable/destroy hash]
 					blk?: yes
-					_hashtable/init length? blk2 blk2 HASH_TABLE_HASH
+					_hashtable/init rs-length? blk2 blk2 HASH_TABLE_HASH
 				]
 			]
 
@@ -2095,11 +1551,11 @@ block: context [
 	init: does [
 		datatype/register [
 			TYPE_BLOCK
-			TYPE_VALUE
+			TYPE_SERIES
 			"block!"
 			;-- General actions --
 			:make
-			:random
+			INHERIT_ACTION	;random
 			null			;reflect
 			null			;to
 			:form
@@ -2126,29 +1582,29 @@ block: context [
 			null			;xor~
 			;-- Series actions --
 			null			;append
-			:at
-			:back
+			INHERIT_ACTION	;at
+			INHERIT_ACTION	;back
 			null			;change
-			:clear
+			INHERIT_ACTION	;clear
 			:copy
 			:find
-			:head
-			:head?
-			:index?
+			INHERIT_ACTION	;head
+			INHERIT_ACTION	;head?
+			INHERIT_ACTION	;index?
 			:insert
-			:length?
-			:next
-			:pick
-			:poke
+			INHERIT_ACTION	;length?
+			INHERIT_ACTION	;next
+			INHERIT_ACTION	;pick
+			INHERIT_ACTION	;poke
 			null			;put
-			:remove
-			:reverse
+			INHERIT_ACTION	;remove
+			INHERIT_ACTION	;reverse
 			:select
 			:sort
-			:skip
+			INHERIT_ACTION	;skip
 			:swap
-			:tail
-			:tail?
+			INHERIT_ACTION	;tail
+			INHERIT_ACTION	;tail?
 			:take
 			:trim
 			;-- I/O actions --

@@ -96,21 +96,6 @@ lit-path: context [
 		if TYPE_OF(value2) <> TYPE_LIT_PATH [RETURN_COMPARE_OTHER]
 		block/compare-each value1 value2 op
 	]
-	
-	copy: func [
-		path    [red-path!]
-		new		[red-lit-path!]
-		arg		[red-value!]
-		deep?	[logic!]
-		types	[red-value!]
-		return:	[red-series!]
-	][
-		#if debug? = yes [if verbose > 0 [print-line "lit-path/copy"]]
-
-		path: as red-path! block/copy as red-block! path as red-lit-path! new arg deep? types
-		path/header: TYPE_LIT_PATH
-		as red-series! path
-	]
 
 	init: does [
 		datatype/register [
@@ -150,7 +135,7 @@ lit-path: context [
 			INHERIT_ACTION	;back
 			null			;change
 			INHERIT_ACTION	;clear
-			:copy
+			INHERIT_ACTION	;copy
 			INHERIT_ACTION	;find
 			INHERIT_ACTION	;head
 			INHERIT_ACTION	;head?

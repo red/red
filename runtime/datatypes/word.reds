@@ -285,6 +285,7 @@ word: context [
 		op		 [integer!]								;-- type of comparison
 		return:	 [integer!]
 		/local
+			s	 [series!]
 			type [integer!]
 			res	 [integer!]
 			str1 [red-string!]

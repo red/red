@@ -1034,7 +1034,12 @@ make-profilable make target-class [
 		if verbose >= 3 [print ">>>emitting POP"]
 		emit-i32 #{e8bd0001}						;-- POP {r0}
 	]
-	
+
+	emit-log-b: func [type][
+		emit-i32 #{e16f0f10}						;-- CLZ r0, r0
+		emit-i32 #{e260001f}						;-- RSB r0, r0, #31
+	]
+
 	emit-pop-float: func [idx [integer!] /with type [block!]][
 		if with [width: select emitter/datatypes type/1]
 		emit-float
