@@ -59,6 +59,8 @@ map: context [
 			s: GET_BUFFER(map)
 			value: s/offset
 			s-tail: s/tail
+			cycles/push map/node
+			
 			while [value < s-tail][
 				next: value + 1
 				unless TYPE_OF(next) = TYPE_NONE [
@@ -67,17 +69,23 @@ map: context [
 					part: actions/mold value buffer only? all? flat? arg part tabs
 					string/append-char GET_BUFFER(buffer) as-integer space
 					part: part - 1
-
-					part: actions/mold next buffer only? all? flat? arg part tabs
+					
+					unless cycles/detect? value buffer :part mold? [
+						part: actions/mold next buffer only? all? flat? arg part tabs
+					]
 
 					if any [indent? next + 1 < s-tail][			;-- no final LF when FORMed
 						string/append-char GET_BUFFER(buffer) as-integer blank
 						part: part - 1
 					]
 				]
-				if all [OPTION?(arg) part <= 0][return part]
+				if all [OPTION?(arg) part <= 0][
+					cycles/pop
+					return part
+				]
 				value: value + 2
 			]
+			cycles/pop
 		]
 		part
 	]
