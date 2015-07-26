@@ -135,6 +135,7 @@ show: function [face [object!] /with parent [object!]][
 							if face/selected <> index? faces [
 								faces/1/visible?: no
 							]
+							faces/1/parent: face
 						]
 					]
 				]

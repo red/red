@@ -777,6 +777,7 @@ system/view/platform: context [
 					as-c-string arg2
 					as-c-string arg1
 					arg7
+					yes
 				
 				p: ext-cls-tail
 				ext-cls-tail: ext-cls-tail + 1
@@ -800,14 +801,17 @@ system/view/platform: context [
 				new		[c-string!]
 				base	[c-string!]
 				proc	[integer!]
+				system?	[logic!]
 				return: [integer!]
 				/local
 					wcex [WNDCLASSEX]
 					old	 [integer!]
+					inst [handle!]
 			][
 				wcex: declare WNDCLASSEX
+				inst: either system? [null][hInstance]
 				 
-				if 0 = GetClassInfoEx 0 base wcex [
+				if 0 = GetClassInfoEx inst base wcex [
 					print-line "*** Error in GetClassInfoEx"
 				]
 				wcex/cbSize: 		size? WNDCLASSEX
@@ -855,7 +859,7 @@ system/view/platform: context [
 				wcex/lpszMenuName:	null
 				wcex/lpszClassName: #u16 "Base"
 				wcex/hIconSm:		0
-
+				
 				RegisterClassEx wcex
 
 				wcex/style:			CS_DBLCLKS
@@ -863,27 +867,29 @@ system/view/platform: context [
 				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
 				wcex/hInstance:		hInstance
 				wcex/lpszClassName: #u16 "RedImage"
-
+				
 				RegisterClassEx wcex
 
 				;-- superclass existing classes to add 16 extra bytes
-				make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0
-				make-super-class #u16 "RedField"	#u16 "EDIT"				 0
-				make-super-class #u16 "RedFace"		#u16 "STATIC"			 0
-				make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0
-				make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0
-				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0
-				make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0
-			
-				oldBaseWndProc: make-super-class 
-					#u16 "RedPanel"
-					#u16 "Base"
-					as-integer :PanelWndProc
+				make-super-class #u16 "RedButton"	#u16 "BUTTON"			 0 yes
+				make-super-class #u16 "RedField"	#u16 "EDIT"				 0 yes
+				make-super-class #u16 "RedFace"		#u16 "STATIC"			 0 yes
+				make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0 yes
+				make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
+				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
+				make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
 
 				oldGroupBoxWndProc: make-super-class 
 					#u16 "RegGroubbox"
 					#u16 "BUTTON"
 					as-integer :GroupBoxWndProc
+					yes
+					
+				oldBaseWndProc: make-super-class 
+					#u16 "RedPanel"
+					#u16 "Base"
+					as-integer :PanelWndProc
+					no
 			]
 			
 			init: func [
@@ -929,6 +935,42 @@ system/view/platform: context [
 				int: as red-integer! #get system/view/platform/product
 				int/header: TYPE_INTEGER
 				int/value:  as-integer version-info/wProductType
+			]
+			
+			init-panel: func [
+				values [red-value!]
+				phWnd  [handle!]						;-- parent window handle
+				/local
+					parent	  [red-object!]
+					type	  [red-word!]
+					pair	  [red-pair!]
+					win-rect  [RECT_STRUCT]
+					calc-rect [RECT_STRUCT]
+			][
+				win-rect:  declare RECT_STRUCT
+				calc-rect: declare RECT_STRUCT
+				parent: as red-object! values + FACE_OBJ_PARENT
+				
+				if TYPE_OF(parent) = TYPE_OBJECT [
+					type: as red-word! get-node-facet parent/ctx FACE_OBJ_TYPE
+					
+					if tab-panel = symbol/resolve type/symbol [
+						GetClientRect phWnd win-rect
+						copy-memory 
+							as byte-ptr! calc-rect
+							as byte-ptr! win-rect
+							size? win-rect
+						SendMessage phWnd TCM_ADJUSTRECT 0 as-integer calc-rect
+						
+						pair: as red-pair! values + FACE_OBJ_OFFSET
+						pair/x: calc-rect/left - win-rect/left - 3
+						pair/y: calc-rect/top  - win-rect/top - 1
+						
+						pair: as red-pair! values + FACE_OBJ_SIZE
+						pair/x: calc-rect/right  - calc-rect/left + 4
+						pair/y: calc-rect/bottom - calc-rect/top + 3
+					]
+				]
 			]
 			
 			set-tabs: func [
@@ -1207,6 +1249,9 @@ system/view/platform: context [
 					]
 					sym = panel [
 						class: #u16 "RedPanel"
+						init-panel values as handle! parent
+						offx: offset/x					;-- refresh locals
+						offy: offset/y
 					]
 					sym = tab-panel [
 						class: #u16 "RedTabPanel"

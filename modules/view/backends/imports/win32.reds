@@ -56,7 +56,7 @@ Red/System [
 #define PBS_VERTICAL		04h
 
 #define TCM_INSERTITEMW		133Eh
-#define TCM_ADJUSTRECT		-510
+#define TCM_ADJUSTRECT		1328h 
 
 #define TCIF_TEXT			0001h
 
@@ -567,10 +567,15 @@ RECT_STRUCT: alias struct! [
 			return: 	[integer!]
 		]
 		GetClassInfoEx: "GetClassInfoExW" [
-			hInst		[integer!]
+			hInst		[handle!]
 			lpszClass	[c-string!]
 			lpwcx		[WNDCLASSEX]					;-- pass a WNDCLASSEX pointer's pointer
 			return: 	[integer!]
+		]
+		GetWindowRect: "GetWindowRect" [
+			hWnd		[handle!]
+			lpRect		[RECT_STRUCT]
+			return:		[integer!]
 		]
 		GetClientRect: "GetClientRect" [
 			hWnd		[handle!]
