@@ -225,7 +225,7 @@ win/pane: reduce [
 		]
 		actors: object [
 			on-change: func [face [object!] event [event!]][
-				print ["Switched to tab:" pick face/data face/selected]
+				print ["Switched to:" pick face/data face/selected]
 			]
 		]
 	]
