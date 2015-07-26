@@ -193,9 +193,9 @@ win/pane: reduce [
 	make face! [
 		type: 'tab-panel offset: 10x320 size: 250x130
 		data: [
-			"tab 1" []
-			"tab 2" []
-			"tab 3" []
+			"tab 1"
+			"tab 2"
+			"tab 3"
 		]
 		pane: reduce [
 			make face! [
@@ -225,7 +225,7 @@ win/pane: reduce [
 		]
 		actors: object [
 			on-change: func [face [object!] event [event!]][
-				print "radio 2 set"
+				print ["Switched to tab:" pick face/data face/selected]
 			]
 		]
 	]

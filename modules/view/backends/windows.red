@@ -567,6 +567,9 @@ system/view/platform: context [
 								set-tab current-msg idx
 								res: make-event current-msg idx EVT_SELECT
 								get-selected current-msg idx + 1
+								if res <> EVT_NO_PROCESS [
+									 make-event current-msg 0 EVT_CHANGE
+								]
 								return as-integer res = EVT_NO_PROCESS
 							]
 							default [0]
