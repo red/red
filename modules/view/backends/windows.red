@@ -92,6 +92,7 @@ system/view/platform: context [
 			wc-offset:		64							;-- offset to our 16 bytes
 
 			oldGroupBoxWndProc: 0
+			oldBaseWndProc:		0
 			
 			;-- extended classes handling
 			max-ext-styles: 20
@@ -107,11 +108,13 @@ system/view/platform: context [
 			text:			symbol/make "text"
 			progress:		symbol/make "progress"
 			slider:			symbol/make "slider"
-			dropdown:		symbol/make "dropdown"
-			droplist:		symbol/make "droplist"
+			drop-down:		symbol/make "drop-down"
+			drop-list:		symbol/make "drop-list"
 			_image:			symbol/make "image"
 			base:			symbol/make "base"
 			panel:			symbol/make "panel"
+			tab-panel:		symbol/make "tab-panel"
+			group-box:		symbol/make "group-box"
 			
 			done:			symbol/make "done"
 			stop:			symbol/make "stop"
@@ -379,7 +382,7 @@ system/view/platform: context [
 					EVT_SELECT [
 						word: as red-word! get-facet msg FACE_OBJ_TYPE
 						assert TYPE_OF(word) = TYPE_WORD
-						if word/symbol = dropdown [get-text msg flags]
+						if word/symbol = drop-down [get-text msg flags]
 						gui-evt/flags: flags + 1 and FFFFh	;-- index is one-based for string!
 					]
 					EVT_CHANGE [
@@ -439,6 +442,22 @@ system/view/platform: context [
 				]
 				DefWindowProc hWnd msg wParam lParam
 			]
+			
+			PanelWndProc: func [
+				hWnd	[handle!]
+				msg		[integer!]
+				wParam	[integer!]
+				lParam	[integer!]
+				return: [integer!]
+			][
+				switch msg [
+					WM_NOTIFY [
+						0
+					]
+					default [0]
+				]
+				CallWindowProc as wndproc-cb! oldBaseWndProc hWnd msg wParam lParam
+			]
 
 			GroupBoxWndProc: func [
 				hWnd	[handle!]
@@ -476,6 +495,7 @@ system/view/platform: context [
 					res	   [integer!]
 					color  [integer!]
 					handle [handle!]
+					nmhdr  [tagNMHDR]
 			][
 				switch msg [
 					WM_DESTROY [PostQuitMessage 0]
@@ -488,6 +508,7 @@ system/view/platform: context [
 									type/symbol = check
 									type/symbol = radio
 								][
+									current-msg/hWnd: as handle! lParam	;-- force child handle
 									if get-logic-state current-msg [
 										make-event current-msg 0 EVT_CHANGE
 									]
@@ -512,6 +533,15 @@ system/view/platform: context [
 							CBN_EDITCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
 								make-event current-msg -1 EVT_CHANGE
+							]
+							default [0]
+						]
+					]
+					WM_NOTIFY [
+						nmhdr: as tagNMHDR lParam
+						switch nmhdr/code [
+							TCN_SELCHANGING [
+								probe "tab changing"
 							]
 							default [0]
 						]
@@ -658,6 +688,9 @@ system/view/platform: context [
 				ctrls: declare INITCOMMONCONTROLSEX
 				ctrls/dwSize: size? INITCOMMONCONTROLSEX
 				ctrls/dwICC: ICC_STANDARD_CLASSES
+						  or ICC_TAB_CLASSES
+						  or ICC_LISTVIEW_CLASSES
+						  or ICC_BAR_CLASSES
 				f ctrls
 
 				DeactivateActCtx 0 cookie/ptr
@@ -858,12 +891,17 @@ system/view/platform: context [
 				make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0
 				make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0
 				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0
-				
-				oldGroupBoxWndProc: make-super-class 
+				make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0
+			
+				oldBaseWndProc: make-super-class 
 					#u16 "RedPanel"
+					#u16 "Base"
+					as-integer :PanelWndProc
+
+				oldGroupBoxWndProc: make-super-class 
+					#u16 "RegGroubbox"
 					#u16 "BUTTON"
 					as-integer :GroupBoxWndProc
-				
 			]
 			
 			init: func [
@@ -900,6 +938,48 @@ system/view/platform: context [
 				int: as red-integer! #get system/view/platform/product
 				int/header: TYPE_INTEGER
 				int/value:  as-integer version-info/wProductType
+			]
+			
+			set-tabs: func [
+				hWnd   [handle!]
+				facets [red-value!]
+				/local
+					data [red-block!]
+					str	 [red-string!]
+					tail [red-string!]
+					item [TCITEM]
+					i	 [integer!]
+			][
+				item: declare TCITEM
+				data: as red-block! facets + FACE_OBJ_DATA
+				
+				if TYPE_OF(data) = TYPE_BLOCK [
+					str:  as red-string! block/rs-head data
+					tail: as red-string! block/rs-tail data
+					i: 0
+					while [str < tail][
+						if TYPE_OF(str) = TYPE_STRING [
+							item/mask: TCIF_TEXT
+							item/pszText: unicode/to-utf16 str
+							item/cchTextMax: string/rs-length? str
+							item/iImage: -1
+							item/lParam: 0
+							
+							SendMessage
+								hWnd
+								TCM_INSERTITEMW
+								i
+								as-integer item
+						]
+						i: i + 1
+						str: str + 1
+					]
+				]
+				int: as red-integer! facets + FACE_OBJ_SELECTED
+				if TYPE_OF(int) <> TYPE_INTEGER [
+					int/header: TYPE_INTEGER			;-- force selection on first tab
+					int/value:  1
+				]
 			]
 			
 			set-logic-state: func [
@@ -1102,7 +1182,7 @@ system/view/platform: context [
 					size	  [red-pair!]
 					data	  [red-block!]
 					int		  [red-integer!]
-					img		 [red-image!]
+					img		  [red-image!]
 					show?	  [red-logic!]
 					flags	  [integer!]
 					ws-flags  [integer!]
@@ -1148,10 +1228,16 @@ system/view/platform: context [
 					]
 					sym = radio [
 						class: #u16 "RedButton"
-						flags: flags or WS_TABSTOP or BS_AUTORADIOBUTTON
+						flags: flags or WS_TABSTOP or BS_RADIOBUTTON
 					]
 					sym = panel [
 						class: #u16 "RedPanel"
+					]
+					sym = tab-panel [
+						class: #u16 "RedTabPanel"
+					]
+					sym = group-box [
+						class: #u16 "RegGroubbox"
 						flags: flags or WS_GROUP or BS_GROUPBOX
 					]
 					sym = field [
@@ -1163,11 +1249,11 @@ system/view/platform: context [
 						class: #u16 "RedFace"
 						flags: flags or SS_SIMPLE
 					]
-					sym = dropdown [
+					sym = drop-down [
 						class: #u16 "RedCombo"
 						flags: flags or CBS_DROPDOWN or CBS_HASSTRINGS ;or WS_OVERLAPPED
 					]
-					sym = droplist [
+					sym = drop-list [
 						class: #u16 "RedCombo"
 						flags: flags or CBS_DROPDOWNLIST or CBS_HASSTRINGS ;or WS_OVERLAPPED
 					]
@@ -1238,8 +1324,8 @@ system/view/platform: context [
 								TYPE_OF(data) = TYPE_HASH
 								TYPE_OF(data) = TYPE_MAP
 							][
-								str:  as red-string! block/rs-head as red-block! data
-								tail: as red-string! block/rs-tail as red-block! data
+								str:  as red-string! block/rs-head data
+								tail: as red-string! block/rs-tail data
 								while [str < tail][
 									if TYPE_OF(str) = TYPE_FILE [
 										image/make-at as red-value! img str
@@ -1249,6 +1335,9 @@ system/view/platform: context [
 							]
 						]
 						SetWindowLong handle wc-offset - 4 make-image-dc handle img
+					]
+					sym = tab-panel [
+						set-tabs handle values
 					]
 					sym = slider [
 						vertical?: size/y > size/x
@@ -1265,16 +1354,16 @@ system/view/platform: context [
 					sym = check [set-logic-state handle as red-logic! data yes]
 					sym = radio [set-logic-state handle as red-logic! data no]
 					any [
-						sym = dropdown
-						sym = droplist
+						sym = drop-down
+						sym = drop-list
 					][
 						if any [
 							TYPE_OF(data) = TYPE_BLOCK
 							TYPE_OF(data) = TYPE_HASH
 							TYPE_OF(data) = TYPE_MAP
 						][
-							str:  as red-string! block/rs-head as red-block! data
-							tail: as red-string! block/rs-tail as red-block! data
+							str:  as red-string! block/rs-head data
+							tail: as red-string! block/rs-tail data
 							while [str < tail][
 								if TYPE_OF(str) = TYPE_STRING [
 									SendMessage 
@@ -1286,7 +1375,7 @@ system/view/platform: context [
 								str: str + 1
 							]
 						]
-						either any [null? caption sym = droplist][
+						either any [null? caption sym = drop-list][
 							int: as red-integer! get-node-facet face/ctx FACE_OBJ_SELECTED
 							if TYPE_OF(int) = TYPE_INTEGER [
 								SendMessage handle CB_SETCURSEL int/value - 1 0

@@ -41,6 +41,9 @@ Red/System [
 
 #define EN_CHANGE			0300h
 
+#define TCN_SELCHANGING		-552
+
+
 #define CBS_DROPDOWN		0002h
 #define CBS_DROPDOWNLIST	0003h
 #define CBS_HASSTRINGS		0200h
@@ -51,6 +54,11 @@ Red/System [
 #define TBS_DOWNISLEFT		0400h  	;-- Down=Left and Up=Right (default is Down=Right and Up=Left)
 
 #define PBS_VERTICAL		04h
+
+#define TCM_INSERTITEMW		133Eh
+#define TCM_ADJUSTRECT		-510
+
+#define TCIF_TEXT			0001h
 
 #define IDC_ARROW			7F00h
 #define WS_OVERLAPPEDWINDOW	00CF0000h
@@ -209,7 +217,7 @@ Red/System [
 #define ICC_HOTKEY_CLASS		00000040h	;-- hotkey
 #define ICC_ANIMATE_CLASS		00000080h	;-- animate
 #define ICC_WIN95_CLASSES		000000FFh
-#define ICC_DATE_CLASSES		00000100h	;--  month picker, date picker, time picker, updown
+#define ICC_DATE_CLASSES		00000100h	;-- month picker, date picker, time picker, updown
 #define ICC_USEREX_CLASSES		00000200h	;-- comboex
 #define ICC_COOL_CLASSES		00000400h	;-- rebar (coolbar) control
 #define ICC_INTERNET_CLASSES	00000800h
@@ -259,6 +267,12 @@ tagPAINTSTRUCT: alias struct! [
 	rgbReserved6 [integer!]
 	rgbReserved7 [integer!]
 	rgbReserved8 [integer!]
+]
+
+tagNMHDR: alias struct! [
+	hWndFrom	 [handle!]
+	idFrom		 [integer!]
+	code		 [integer!]
 ]
 
 wndproc-cb!: alias function! [
@@ -359,6 +373,16 @@ OSVERSIONINFO: alias struct! [
 INITCOMMONCONTROLSEX: alias struct! [
 	dwSize		[integer!]
 	dwICC		[integer!]
+]
+
+TCITEM: alias struct! [
+	mask		[integer!]
+	dwState		[integer!]
+	dwStateMask	[integer!]
+	pszText		[c-string!]
+	cchTextMax	[integer!]
+	iImage		[integer!]
+	lParam		[integer!]
 ]
 
 RECT_STRUCT: alias struct! [

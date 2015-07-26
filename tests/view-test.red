@@ -61,7 +61,7 @@ win/pane: reduce [
 		]
 	]
 	make face! [
-		type: 'dropdown
+		type: 'drop-down
 		text: "type"
 		offset: 100x120
 		size: 80x24
@@ -80,8 +80,8 @@ win/pane: reduce [
 			]
 		]
 	]
-	droplist: make face! [
-		type: 'droplist
+	drop-list: make face! [
+		type: 'drop-list
 		offset: 200x120
 		size: 80x24
 		data: [
@@ -107,13 +107,13 @@ win/pane: reduce [
 		type: 'button text: "Set option 5" offset: 300x120 size: 80x24
 		actors: object [
 			on-click: func [face [object!] event [event!]][
-				droplist/selected: 5
-				show droplist
+				drop-list/selected: 5
+				show drop-list
 			]
 		]
 	]
 	group: make face! [
-		type: 'panel text: "Panel" offset: 10x150 size: 180x150
+		type: 'group-box text: "Group box" offset: 10x150 size: 180x150
 		pane: reduce [
 			make face! [type: 'button text: "Inside" offset: 20x20 size: 60x40]
 			set 'progress make face! [
@@ -170,25 +170,59 @@ win/pane: reduce [
 	]
 	make face! [
 		type: 'radio text: "radio 1" offset: 300x200 size: 90x24
-		data: on
+		;data: on
 		actors: object [
 			on-change: func [face [object!] event [event!]][
-				probe face/data
+				print "radio 1 set"
 			]
 		]
 	]
 	make face! [
 		type: 'radio text: "radio 2" offset: 300x230 size: 90x24
-		;data: off
+		data: on
 		actors: object [
 			on-change: func [face [object!] event [event!]][
-				probe face/data
+				print "radio 2 set"
 			]
 		]
 	]
 	make face! [
 		type: 'image offset: 280x10 size: 100x100
 		data: [%..\bridges\android\samples\eval\res\drawable-xxhdpi\ic_launcher.png]
+	]
+	make face! [
+		type: 'tab-panel offset: 10x320 size: 250x130
+		data: [
+			"tab 1" []
+			"tab 2" []
+			"tab 3" []
+		]
+		pane: reduce [
+			make face! [
+				type: 'panel offset: 2x26 size: 246x100
+				pane: reduce [
+					make face! [
+						type: 'button text: "Panel 1" offset: 20x20 size: 60x30
+					]
+				]
+			]
+			make face! [
+				type: 'panel offset: 2x26 size: 246x100
+				pane: reduce [
+					make face! [
+						type: 'text text: "Panel 2" offset: 80x80 size: 60x30
+					]
+				]
+			]
+			make face! [
+				type: 'panel offset: 2x26 size: 246x100
+				pane: reduce [
+					make face! [
+						type: 'text text: "Panel 3" offset: 90x40 size: 60x30
+					]
+				]
+			]
+		]
 	]
 ]
 show win
