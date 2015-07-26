@@ -2751,6 +2751,12 @@ system-dialect: make-profilable context [
 				value: get-type expr
 				if block? expr [parse value [type-spec]] ;-- prefix return type if required	
 				new: resolve-aliased value
+				if all [
+					new/1 = 'any-pointer!
+					any-pointer? type
+				][
+					new: type
+				]
 				
 				if type <> any [casted new][
 					backtrack set-word
