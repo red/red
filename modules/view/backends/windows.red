@@ -92,6 +92,7 @@ system/view/platform: context [
 			wc-offset:		64							;-- offset to our 16 bytes
 
 			oldGroupBoxWndProc: 0
+			oldBaseWndProc:		0
 			
 			;-- extended classes handling
 			max-ext-styles: 20
@@ -113,6 +114,7 @@ system/view/platform: context [
 			base:			symbol/make "base"
 			panel:			symbol/make "panel"
 			tab-panel:		symbol/make "tab-panel"
+			group-box:		symbol/make "group-box"
 			
 			done:			symbol/make "done"
 			stop:			symbol/make "stop"
@@ -440,6 +442,22 @@ system/view/platform: context [
 				]
 				DefWindowProc hWnd msg wParam lParam
 			]
+			
+			PanelWndProc: func [
+				hWnd	[handle!]
+				msg		[integer!]
+				wParam	[integer!]
+				lParam	[integer!]
+				return: [integer!]
+			][
+				switch msg [
+					WM_NOTIFY [
+						0
+					]
+					default [0]
+				]
+				CallWindowProc as wndproc-cb! oldBaseWndProc hWnd msg wParam lParam
+			]
 
 			GroupBoxWndProc: func [
 				hWnd	[handle!]
@@ -477,6 +495,7 @@ system/view/platform: context [
 					res	   [integer!]
 					color  [integer!]
 					handle [handle!]
+					nmhdr  [tagNMHDR]
 			][
 				switch msg [
 					WM_DESTROY [PostQuitMessage 0]
@@ -514,6 +533,15 @@ system/view/platform: context [
 							CBN_EDITCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
 								make-event current-msg -1 EVT_CHANGE
+							]
+							default [0]
+						]
+					]
+					WM_NOTIFY [
+						nmhdr: as tagNMHDR lParam
+						switch nmhdr/code [
+							TCN_SELCHANGING [
+								probe "tab changing"
 							]
 							default [0]
 						]
@@ -846,12 +874,16 @@ system/view/platform: context [
 				make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0
 				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0
 				make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0
-				
-				oldGroupBoxWndProc: make-super-class 
+			
+				oldBaseWndProc: make-super-class 
 					#u16 "RedPanel"
+					#u16 "Base"
+					as-integer :PanelWndProc
+
+				oldGroupBoxWndProc: make-super-class 
+					#u16 "RegGroubbox"
 					#u16 "BUTTON"
 					as-integer :GroupBoxWndProc
-				
 			]
 			
 			init: func [
@@ -900,15 +932,18 @@ system/view/platform: context [
 			]
 			
 			set-tabs: func [
-				hWnd [handle!]
-				data [red-block!]
+				hWnd   [handle!]
+				facets [red-value!]
 				/local
+					data [red-block!]
 					str	 [red-string!]
 					tail [red-string!]
 					item [TCITEM]
 					i	 [integer!]
 			][
 				item: declare TCITEM
+				data: as red-block! facets + FACE_OBJ_DATA
+				
 				if TYPE_OF(data) = TYPE_BLOCK [
 					str:  as red-string! block/rs-head data
 					tail: as red-string! block/rs-tail data
@@ -921,7 +956,7 @@ system/view/platform: context [
 							item/iImage: -1
 							item/lParam: 0
 							
-							probe SendMessage
+							SendMessage
 								hWnd
 								TCM_INSERTITEMW
 								i
@@ -930,6 +965,11 @@ system/view/platform: context [
 						i: i + 1
 						str: str + 1
 					]
+				]
+				int: as red-integer! facets + FACE_OBJ_SELECTED
+				if TYPE_OF(int) <> TYPE_INTEGER [
+					int/header: TYPE_INTEGER			;-- force selection on first tab
+					int/value:  1
 				]
 			]
 			
@@ -1117,7 +1157,7 @@ system/view/platform: context [
 					size	  [red-pair!]
 					data	  [red-block!]
 					int		  [red-integer!]
-					img		 [red-image!]
+					img		  [red-image!]
 					show?	  [red-logic!]
 					flags	  [integer!]
 					ws-flags  [integer!]
@@ -1167,10 +1207,13 @@ system/view/platform: context [
 					]
 					sym = panel [
 						class: #u16 "RedPanel"
-						flags: flags or WS_GROUP or BS_GROUPBOX
 					]
 					sym = tab-panel [
 						class: #u16 "RedTabPanel"
+					]
+					sym = group-box [
+						class: #u16 "RegGroubbox"
+						flags: flags or WS_GROUP or BS_GROUPBOX
 					]
 					sym = field [
 						class: #u16 "RedField"
@@ -1272,8 +1315,7 @@ system/view/platform: context [
 						SetWindowLong handle wc-offset - 4 make-image-dc handle img
 					]
 					sym = tab-panel [
-						set-tabs handle data
-						
+						set-tabs handle values
 					]
 					sym = slider [
 						vertical?: size/y > size/x

@@ -113,7 +113,7 @@ win/pane: reduce [
 		]
 	]
 	group: make face! [
-		type: 'panel text: "Panel" offset: 10x150 size: 180x150
+		type: 'group-box text: "Group box" offset: 10x150 size: 180x150
 		pane: reduce [
 			make face! [type: 'button text: "Inside" offset: 20x20 size: 60x40]
 			set 'progress make face! [
@@ -197,9 +197,32 @@ win/pane: reduce [
 			"tab 2" []
 			"tab 3" []
 		]
-		;pane: reduce [
-		;
-		;]
+		pane: reduce [
+			make face! [
+				type: 'panel offset: 2x26 size: 246x100
+				pane: reduce [
+					make face! [
+						type: 'button text: "Panel 1" offset: 20x20 size: 60x30
+					]
+				]
+			]
+			make face! [
+				type: 'panel offset: 2x26 size: 246x100
+				pane: reduce [
+					make face! [
+						type: 'text text: "Panel 2" offset: 80x80 size: 60x30
+					]
+				]
+			]
+			make face! [
+				type: 'panel offset: 2x26 size: 246x100
+				pane: reduce [
+					make face! [
+						type: 'text text: "Panel 3" offset: 90x40 size: 60x30
+					]
+				]
+			]
+		]
 	]
 ]
 show win

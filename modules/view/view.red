@@ -52,6 +52,7 @@ system/view: context [
 
 	platform: none	
 	VID: none
+	
 	evt-names: #(
 		down			on-down
 		up				on-up
@@ -128,8 +129,17 @@ show: function [face [object!] /with parent [object!]][
 			obj: system/view/platform/make-view face p
 
 			switch face/type [
-				radio  [if with [face/parent: parent]]
-				window [append system/view/screens/1/pane face]
+				tab-panel [
+					if faces: face/pane [
+						forall faces [
+							if face/selected <> index? faces [
+								faces/1/visible?: no
+							]
+						]
+					]
+				]
+				radio	[if with [face/parent: parent]]
+				window	[append system/view/screens/1/pane face]
 			]
 		]
 		face/state: reduce [obj 0 0]

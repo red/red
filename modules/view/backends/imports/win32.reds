@@ -41,6 +41,9 @@ Red/System [
 
 #define EN_CHANGE			0300h
 
+#define TCN_SELCHANGING		-552
+
+
 #define CBS_DROPDOWN		0002h
 #define CBS_DROPDOWNLIST	0003h
 #define CBS_HASSTRINGS		0200h
@@ -53,6 +56,7 @@ Red/System [
 #define PBS_VERTICAL		04h
 
 #define TCM_INSERTITEMW		133Eh
+#define TCM_ADJUSTRECT		-510
 
 #define TCIF_TEXT			0001h
 
@@ -263,6 +267,12 @@ tagPAINTSTRUCT: alias struct! [
 	rgbReserved6 [integer!]
 	rgbReserved7 [integer!]
 	rgbReserved8 [integer!]
+]
+
+tagNMHDR: alias struct! [
+	hWndFrom	 [handle!]
+	idFrom		 [integer!]
+	code		 [integer!]
 ]
 
 wndproc-cb!: alias function! [
