@@ -228,6 +228,20 @@ system/view/platform: context [
 				]
 				hWnd
 			]
+			
+			get-face-handle: func [
+				face	[red-object!]
+				return: [handle!]
+				/local
+					state [red-block!]
+					int	  [red-integer!]
+			][
+				state: as red-block! get-node-facet face/ctx FACE_OBJ_STATE
+				assert TYPE_OF(state) = TYPE_BLOCK
+				int: as red-integer! block/rs-head state
+				assert TYPE_OF(int) = TYPE_INTEGER
+				as handle! int/value
+			]
 
 			get-event-type: func [
 				evt		[red-event!]
@@ -541,7 +555,19 @@ system/view/platform: context [
 						nmhdr: as tagNMHDR lParam
 						switch nmhdr/code [
 							TCN_SELCHANGING [
-								probe "tab changing"
+								res: make-event 
+									current-msg
+									as-integer SendMessage nmhdr/hWndFrom TCM_GETCURSEL 0 0
+									EVT_SELECT
+								return as-integer res = EVT_NO_PROCESS
+							]
+							TCN_SELCHANGE [
+								idx: as-integer SendMessage nmhdr/hWndFrom TCM_GETCURSEL 0 0
+								current-msg/hWnd: nmhdr/hWndFrom
+								set-tab current-msg idx
+								res: make-event current-msg idx EVT_SELECT
+								get-selected current-msg idx + 1
+								return as-integer res = EVT_NO_PROCESS
 							]
 							default [0]
 						]
@@ -1018,9 +1044,44 @@ system/view/platform: context [
 					]
 				]
 				int: as red-integer! facets + FACE_OBJ_SELECTED
+				
 				if TYPE_OF(int) <> TYPE_INTEGER [
 					int/header: TYPE_INTEGER			;-- force selection on first tab
 					int/value:  1
+				]
+			]
+			
+			set-tab: func [
+				msg	 [tagMSG]
+				idx	 [integer!]
+				/local
+					facets [red-value!]
+					pane   [red-block!]
+					old	   [red-integer!]
+					panels [red-value!]
+					obj	   [red-object!]
+					len	   [integer!]
+			][
+				facets: get-facets msg
+				pane: as red-block! facets + FACE_OBJ_PANE
+				
+				if TYPE_OF(pane) = TYPE_BLOCK [
+					old: as red-integer! facets + FACE_OBJ_SELECTED
+					panels: block/rs-head pane
+					len:	block/rs-length? pane
+					
+					if idx <= len [
+						obj: as red-object! panels + idx SW_SHOW
+						if TYPE_OF(obj) = TYPE_OBJECT [
+							ShowWindow get-face-handle obj SW_SHOW
+						]
+					]
+					if old/value <= len [
+						obj: as red-object! panels + old/value - 1
+						if TYPE_OF(obj) = TYPE_OBJECT [
+							ShowWindow get-face-handle obj SW_HIDE
+						]
+					]
 				]
 			]
 			

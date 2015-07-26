@@ -223,6 +223,11 @@ win/pane: reduce [
 				]
 			]
 		]
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				print "radio 2 set"
+			]
+		]
 	]
 ]
 show win

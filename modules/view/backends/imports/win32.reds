@@ -41,6 +41,7 @@ Red/System [
 
 #define EN_CHANGE			0300h
 
+#define TCN_SELCHANGE       -551
 #define TCN_SELCHANGING		-552
 
 
@@ -55,6 +56,8 @@ Red/System [
 
 #define PBS_VERTICAL		04h
 
+#define TCM_GETCURSEL		130Bh
+#define TCM_SETCURSEL		130Ch
 #define TCM_INSERTITEMW		133Eh
 #define TCM_ADJUSTRECT		1328h 
 
