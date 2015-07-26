@@ -42,7 +42,7 @@ win/pane: reduce [
 	make face! [type: 'button text: "Hi" offset: 10x10 size: 60x40]
 	button
 	make face! [
-		type: 'field text: "<type here>" offset: 10x80 size: 80x24
+		type: 'field text: {unicode supported: $€𐐷𤭢} offset: 10x80 size: 160x24
 		color: 255.218.18
 		actors: object [
 			on-change: func [face [object!] event [event!]][
@@ -50,7 +50,7 @@ win/pane: reduce [
 			]
 		]
 	]
-	simple: make face! [type: 'base offset: 100x80 size: 80x24 visible?: no color: red]
+	simple: make face! [type: 'base offset: 200x50 size: 80x24 visible?: no color: red]
 	make face! [
 		type: 'button text: "Show/Hide" offset: 200x80 size: 70x24
 		actors: object [

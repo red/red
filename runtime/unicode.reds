@@ -566,37 +566,63 @@ unicode: context [
 			dst  [byte-ptr!]
 			tail [byte-ptr!]
 			unit [integer!]
+			cp	 [integer!]
+			p4	 [int-ptr!]
 	][
 		s:	  GET_BUFFER(str)
 		unit: GET_UNIT(s)
 
 		either null? str/cache [
+			node: alloc-bytes (string/rs-length? str) << 1 + 2		;-- including terminal-NUL
+			s2: as series! node/value
+			str/cache: as-c-string s2/offset
 
+			src: (as byte-ptr! s/offset) + (str/head << (unit >> 1))
+			tail: as byte-ptr! s/tail
+			dst:  as byte-ptr! str/cache
 			switch unit [
 				Latin1 [
-					node: alloc-bytes (string/rs-length? str) << 1
-					s2: as series! node/value
-					str/cache: as-c-string s2/offset
-					
-					src:  (as byte-ptr! s/offset) + (str/head << (unit >> 1))
-					tail: as byte-ptr! s/tail
-					dst:  as byte-ptr! str/cache
 					while [src < tail][								;-- in-place conversion
 						dst/1: src/1
 						dst/2: null-byte
 						src: src + 1
 						dst: dst + 2
 					]
-					dst/1: null-byte
-					dst/2: null-byte
 				]
 				UCS-2 [
-					0
+					unit: as-integer tail - src
+					copy-memory dst src unit
+					dst: dst + unit
 				]
 				UCS-4 [
-					0
+					while [src < tail][
+						p4: as int-ptr! src
+						cp: p4/value
+						case [
+							cp < 00010000h [
+								dst/1: as-byte cp
+								dst/2: as-byte cp >> 8
+								dst: dst + 2
+							]
+							cp < 00110000h [
+								cp: cp - 00010000h
+								unit: cp >> 10 or D800h
+								dst/1: as-byte unit
+								dst/2: as-byte unit >> 8
+								unit: cp and 03FFh or DC00h
+								dst/3: as-byte unit
+								dst/4: as-byte unit >> 8
+								p4: as int-ptr! dst
+								dst: dst + 4
+							]
+							true [print "Error: to-utf16 codepoint overflow" return null]
+						]
+						src: src + 4
+					]
 				]
 			]
+			dst/1: null-byte
+			dst/2: null-byte
 		][
 			if all [
 				;check if buffer changed
