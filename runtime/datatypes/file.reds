@@ -33,6 +33,7 @@ file: context [
 		
 		cell: string/load-in src size blk UTF-8
 		cell/header: TYPE_FILE							;-- implicit reset of all header flags
+		normalize as red-file! cell
 		cell
 	]
 
@@ -99,6 +100,29 @@ file: context [
 			string/append-char s either c = as-integer #"/" [OS_DIR_SEP][c]
 		]
 		out
+	]
+
+	normalize: func [
+		file    [red-file!]
+		/local
+			s	   [series!]
+			unit   [integer!]
+			cp	   [integer!]
+			p	   [byte-ptr!]
+			tail   [byte-ptr!]
+	][
+		s: GET_BUFFER(file)
+		unit: GET_UNIT(s)
+		p: (as byte-ptr! s/offset) + (file/head << (unit >> 1))
+		tail: as byte-ptr! s/tail
+
+		while [p < tail][
+			cp: string/get-char p unit
+			if cp = as-integer #"\" [
+				string/poke-char s p as-integer #"/"
+			]
+			p: p + unit
+		]
 	]
 
 	;-- Actions --
