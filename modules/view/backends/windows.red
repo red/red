@@ -106,6 +106,7 @@ system/view/platform: context [
 			radio:			symbol/make "radio"
 			field:			symbol/make "field"
 			text:			symbol/make "text"
+			text-list:		symbol/make "text-list"
 			progress:		symbol/make "progress"
 			slider:			symbol/make "slider"
 			drop-down:		symbol/make "drop-down"
@@ -565,8 +566,10 @@ system/view/platform: context [
 								0
 							]
 							CBN_SELCHANGE [
-								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
-								idx: as-integer SendMessage as handle! lParam CB_GETCURSEL 0 0
+								current-msg/hWnd: as handle! lParam	;-- force ListBox or Combobox handle
+								type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+								res: either type/symbol = text-list [LB_GETCURSEL][CB_GETCURSEL]
+								idx: as-integer SendMessage as handle! lParam res 0 0
 								res: make-event current-msg idx EVT_SELECT
 								get-selected current-msg idx + 1
 								if res = EVT_DISPATCH_AND_PROCESS [
@@ -575,7 +578,10 @@ system/view/platform: context [
 							]
 							CBN_EDITCHANGE [
 								current-msg/hWnd: as handle! lParam	;-- force Combobox handle
-								make-event current-msg -1 EVT_CHANGE
+								type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+								unless type/symbol = text-list [
+									make-event current-msg -1 EVT_CHANGE
+								]
 							]
 							default [0]
 						]
@@ -935,6 +941,7 @@ system/view/platform: context [
 				make-super-class #u16 "RedField"	#u16 "EDIT"				 0 yes
 				make-super-class #u16 "RedFace"		#u16 "STATIC"			 0 yes
 				make-super-class #u16 "RedCombo"	#u16 "ComboBox"			 0 yes
+				make-super-class #u16 "RedListBox"	#u16 "ListBox"			 0 yes
 				make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
 				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
 				make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
@@ -1314,6 +1321,10 @@ system/view/platform: context [
 					p		  [ext-class!]
 					id		  [integer!]
 					vertical? [logic!]
+					c-str	  [c-string!]
+					str-saved [c-string!]
+					len		  [integer!]
+					csize	  [tagSIZE]
 			][
 				ctx: GET_CTX(face)
 				s: as series! ctx/values/value
@@ -1370,6 +1381,10 @@ system/view/platform: context [
 					sym = text [
 						class: #u16 "RedFace"
 						flags: flags or SS_SIMPLE
+					]
+					sym = text-list [
+						class: #u16 "RedListBox"
+						flags: flags or LBS_NOTIFY or WS_HSCROLL or WS_VSCROLL
 					]
 					sym = drop-down [
 						class: #u16 "RedCombo"
@@ -1439,6 +1454,38 @@ system/view/platform: context [
 				
 				;-- extra initialization
 				case [
+					sym = text-list [
+						if any [
+							TYPE_OF(data) = TYPE_BLOCK
+							TYPE_OF(data) = TYPE_HASH
+							TYPE_OF(data) = TYPE_MAP
+						][
+							csize: declare tagSIZE
+							len: 0
+							str:  as red-string! block/rs-head data
+							tail: as red-string! block/rs-tail data
+							while [str < tail][
+								c-str: unicode/to-utf16 str
+								value: string/rs-length? str
+								if len < value [len: value str-saved: c-str]
+								if TYPE_OF(str) = TYPE_STRING [
+									SendMessage 
+										handle
+										LB_ADDSTRING
+										0
+										as-integer c-str
+								]
+								str: str + 1
+							]
+							GetTextExtentPoint32 GetDC handle str-saved len csize
+							SendMessage handle LB_SETHORIZONTALEXTENT csize/width 0
+						]
+						int: as red-integer! values + FACE_OBJ_SELECTED
+						if TYPE_OF(int) <> TYPE_INTEGER [
+							int/header: TYPE_INTEGER
+							int/value: -1
+						]
+					]
 					sym = _image [
 						if TYPE_OF(img) <> TYPE_IMAGE [
 							if any [

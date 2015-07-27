@@ -16,6 +16,10 @@ Red/System [
 
 #define PBM_SETPOS			0402h
 
+#define LB_ADDSTRING			384
+#define LB_GETCURSEL            0188h
+#define LB_SETHORIZONTALEXTENT  0194h
+
 #define HORZRES				8
 #define VERTRES				10
 
@@ -39,6 +43,9 @@ Red/System [
 #define CBN_SELENDOK		9
 #define CBN_SELENDCANCEL	10
 
+#define LBN_SELCHANGE       1
+#define LBN_DBLCLK          2
+
 #define EN_CHANGE			0300h
 
 #define TCN_SELCHANGE       -551
@@ -53,6 +60,10 @@ Red/System [
 #define TBS_VERT			0002h
 #define TBS_LEFT			0004h
 #define TBS_DOWNISLEFT		0400h  	;-- Down=Left and Up=Right (default is Down=Right and Up=Left)
+
+#define LBS_NOTIFY			1
+#define LBS_MULTIPLESEL		8
+#define LBS_SORT			2
 
 #define PBS_VERTICAL		04h
 
@@ -71,6 +82,7 @@ Red/System [
 #define WS_CHILD			40000000h
 #define WS_VISIBLE			10000000h
 #define WS_EX_COMPOSITED	02000000h
+#define WS_HSCROLL			00100000h
 #define WS_VSCROLL			00200000h
 #define WS_EX_LAYERED 		00080000h
 #define WS_TABSTOP			00010000h
@@ -241,6 +253,11 @@ Red/System [
 tagPOINT: alias struct! [
 	x		[integer!]
 	y		[integer!]	
+]
+
+tagSIZE: alias struct! [
+	width	[integer!]
+	height	[integer!]
 ]
 
 tagMSG: alias struct! [
@@ -647,6 +664,13 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 	]
 	"gdi32.dll" stdcall [
+		GetTextExtentPoint32: "GetTextExtentPoint32W" [
+			hdc			[handle!]
+			lpString	[c-string!]
+			len			[integer!]
+			lpSize		[tagSIZE]
+			return:		[integer!]
+		]
 		CreateCompatibleDC: "CreateCompatibleDC" [
 			hDC			[handle!]
 			return:		[handle!]
