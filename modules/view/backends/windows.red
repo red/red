@@ -457,16 +457,45 @@ system/view/platform: context [
 				DefWindowProc hWnd msg wParam lParam
 			]
 			
+			process-tab-select: func [
+				hWnd	[handle!]
+				return: [integer!]
+			][
+				as-integer EVT_NO_PROCESS = make-event 
+					current-msg
+					as-integer SendMessage hWnd TCM_GETCURSEL 0 0
+					EVT_SELECT
+			]
+			
+			process-tab-change: func [
+				hWnd [handle!]
+				/local
+					idx [integer!]
+			][
+				idx: as-integer SendMessage hWnd TCM_GETCURSEL 0 0
+				current-msg/hWnd: hWnd
+				set-tab current-msg idx
+				make-event current-msg 0 EVT_CHANGE
+				get-selected current-msg idx + 1
+			]
+			
 			PanelWndProc: func [
 				hWnd	[handle!]
 				msg		[integer!]
 				wParam	[integer!]
 				lParam	[integer!]
 				return: [integer!]
+				/local
+					nmhdr [tagNMHDR]
 			][
 				switch msg [
 					WM_NOTIFY [
-						0
+						nmhdr: as tagNMHDR lParam
+						switch nmhdr/code [
+							TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
+							TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
+							default [0]
+						]
 					]
 					default [0]
 				]
@@ -554,24 +583,8 @@ system/view/platform: context [
 					WM_NOTIFY [
 						nmhdr: as tagNMHDR lParam
 						switch nmhdr/code [
-							TCN_SELCHANGING [
-								res: make-event 
-									current-msg
-									as-integer SendMessage nmhdr/hWndFrom TCM_GETCURSEL 0 0
-									EVT_SELECT
-								return as-integer res = EVT_NO_PROCESS
-							]
-							TCN_SELCHANGE [
-								idx: as-integer SendMessage nmhdr/hWndFrom TCM_GETCURSEL 0 0
-								current-msg/hWnd: nmhdr/hWndFrom
-								set-tab current-msg idx
-								res: make-event current-msg idx EVT_SELECT
-								get-selected current-msg idx + 1
-								if res <> EVT_NO_PROCESS [
-									 make-event current-msg 0 EVT_CHANGE
-								]
-								return as-integer res = EVT_NO_PROCESS
-							]
+							TCN_SELCHANGING [return process-tab-select nmhdr/hWndFrom]
+							TCN_SELCHANGE	[process-tab-change nmhdr/hWndFrom]
 							default [0]
 						]
 					]
