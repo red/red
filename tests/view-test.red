@@ -20,7 +20,7 @@ print [
 	"build" system/view/platform/build
 ]
 
-win: make face! [type: 'window text: "Red View" offset: 500x500 size: 500x500]
+win: make face! [type: 'window text: "Red View" offset: 500x500 size: 600x600]
 
 button: make face! [
 	type: 'button
@@ -226,6 +226,34 @@ win/pane: reduce [
 		actors: object [
 			on-change: func [face [object!] event [event!]][
 				print ["Switched to:" pick face/data face/selected]
+			]
+		]
+	]
+	make face! [
+		type: 'text-list offset: 400x20 size: 165x100
+		data: [
+			"Book 1"
+			"Book 2"
+			"Book 3"
+			"Book 4"
+			"Book 5"
+			"Red Programming Language"
+			"Red编程语言"
+			"FullStack Programming Language"
+			"全栈编程语言"
+			"hahahaha~"
+			"哈哈哈哈~"
+		]
+		actors: object [
+			on-select: func [face [object!] event [event!]][
+				print ["text-list selected:" face/selected]
+				face/text: pick face/data face/selected
+				print ["text-list selected:" mold face/text]
+			]
+			on-change: func [face [object!] event [event!]][
+				print ["text-list changed:" face/selected]
+				face/text: pick face/data face/selected
+				print ["text-list changed:" mold face/text]
 			]
 		]
 	]

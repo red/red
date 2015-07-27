@@ -38,24 +38,6 @@ Red/System [
 #define    PixelFormat32bppCMYK       [15 or (32 << 8)]
 #define    PixelFormatMax             16
 
-;-- Code Page Default Values.
-#define CP_ACP							  0          ;-- default to ANSI code page
-#define CP_OEMCP						  1          ;-- default to OEM  code page
-#define CP_MACCP						  2          ;-- default to MAC  code page
-#define CP_THREAD_ACP					  3          ;-- current thread's ANSI code page
-#define CP_SYMBOL						  42         ;-- SYMBOL translations
-
-#define CP_UTF7							  65000      ;-- UTF-7 translation
-#define CP_UTF8							  65001      ;-- UTF-8 translation
-
-#define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
-#define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
-#define FORMAT_MESSAGE_FROM_STRING        00000400h
-#define FORMAT_MESSAGE_FROM_HMODULE       00000800h
-#define FORMAT_MESSAGE_FROM_SYSTEM        00001000h
-#define FORMAT_MESSAGE_ARGUMENT_ARRAY     00002000h
-#define FORMAT_MESSAGE_MAX_WIDTH_MASK     000000FFh
-
 ;-- PixelFormat
 #define GL_COLOR_INDEX                    1900h
 #define GL_STENCIL_INDEX                  1901h
@@ -103,29 +85,6 @@ BitmapData!: alias struct! [
 		GlobalLock: "GlobalLock" [
 			hMem		[integer!]
 			return:		[integer!]
-		]
-		MultiByteToWideChar: "MultiByteToWideChar" [
-			CodePage		[integer!]
-			dwFlags			[integer!]
-			lpMultiByteStr	[c-string!]
-			cbMultiByte		[integer!]
-			lpWideCharStr	[c-string!]
-			cchWideChar		[integer!]
-			return:		[integer!]
-		]
-		FormatMessage: "FormatMessageA" [
-			dwFlags			[integer!]
-			lpSource		[byte-ptr!]
-			dwMessageId		[integer!]
-			dwLanguageId	[integer!]
-			lpBuffer		[int-ptr!]
-			nSize			[integer!]
-			Argument		[integer!]
-			return:			[integer!]
-		]
-		LocalFree: "LocalFree" [
-			hMem			[integer!]
-			return:			[integer!]
 		]
 	]
 	"ole32.dll" stdcall [
@@ -240,49 +199,6 @@ load-image: func [
 ][
 	handle: 0
 	res: GdipCreateBitmapFromFile filename :handle
-	unless zero? res [
-		error-msg res
-	]
+	unless zero? res [platform/error-msg res]
 	handle
 ]
-
-error-msg: func [
-	error	[integer!]
-	/local
-		len  [integer!]
-		pbuf [integer!]
-][
-	pbuf: 0
-	len: FormatMessage
-		FORMAT_MESSAGE_ALLOCATE_BUFFER or
-		FORMAT_MESSAGE_FROM_SYSTEM or
-		FORMAT_MESSAGE_IGNORE_INSERTS
-		null
-		error
-		0;MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT)
-		:pbuf
-		0
-		0
-	if positive? len [
-		print-line as c-string! pbuf
-		LocalFree pbuf
-	]
-]
-
-to-utf16: func [
-	filename	[c-string!]
-	return:		[c-string!]
-	/local
-		len		[integer!]
-		wbuf	[c-string!]
-][
-	len: MultiByteToWideChar CP_UTF8 0 filename -1 null 0
-	wbuf: as c-string! allocate len * 2
-	MultiByteToWideChar CP_UTF8 0 filename -1 wbuf len
-	wbuf
-]
-
-
-
-
-
