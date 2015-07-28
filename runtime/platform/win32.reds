@@ -26,6 +26,12 @@ Red/System [
 #define FILE_SHARE_WRITE	00000002h
 #define OPEN_EXISTING		00000003h
 
+#define FORMAT_MESSAGE_ALLOCATE_BUFFER    00000100h
+#define FORMAT_MESSAGE_IGNORE_INSERTS     00000200h
+#define FORMAT_MESSAGE_FROM_STRING        00000400h
+#define FORMAT_MESSAGE_FROM_HMODULE       00000800h
+#define FORMAT_MESSAGE_FROM_SYSTEM        00001000h
+
 #define WEOF				FFFFh
 
 platform: context [
@@ -117,6 +123,20 @@ platform: context [
 				buffer			[byte-ptr!]
 				return:			[integer!]
 			]
+			FormatMessage: "FormatMessageW" [
+				dwFlags			[integer!]
+				lpSource		[byte-ptr!]
+				dwMessageId		[integer!]
+				dwLanguageId	[integer!]
+				lpBuffer		[int-ptr!]
+				nSize			[integer!]
+				Argument		[integer!]
+				return:			[integer!]
+			]
+			LocalFree: "LocalFree" [
+				hMem			[integer!]
+				return:			[integer!]
+			]
 		]
 		"gdiplus.dll" stdcall [
 			GdiplusStartup: "GdiplusStartup" [
@@ -128,6 +148,29 @@ platform: context [
 			GdiplusShutdown: "GdiplusShutdown" [
 				token		[integer!]
 			]
+		]
+	]
+
+	error-msg: func [
+		error	[integer!]
+		/local
+			len  [integer!]
+			pbuf [integer!]
+	][
+		pbuf: 0
+		len: FormatMessage
+			FORMAT_MESSAGE_ALLOCATE_BUFFER or
+			FORMAT_MESSAGE_FROM_SYSTEM or
+			FORMAT_MESSAGE_IGNORE_INSERTS
+			null
+			error
+			0400h			;-- user default language
+			:pbuf
+			0
+			0
+		if positive? len [
+			WriteConsole stdout as byte-ptr! pbuf len :len null
+			LocalFree pbuf
 		]
 	]
 
