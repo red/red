@@ -703,7 +703,7 @@ system/view/platform: context [
 					ret	   [integer!]
 					actctx [handle!]
 					dll    [handle!]
-					f	   [InitCommonControlsEx!]
+					InitCC [InitCommonControlsEx!]
 					ctrls  [INITCOMMONCONTROLSEX]
 					cookie [struct! [ptr [byte-ptr!]]]
 			][
@@ -732,17 +732,18 @@ system/view/platform: context [
 				dll: LoadLibraryEx #u16 "comctl32.dll" 0 0
 				if dll = null [probe "*** Error loading comctl32.dll"]
 
-				f: as InitCommonControlsEx! GetProcAddress dll "InitCommonControlsEx"
+				InitCC: as InitCommonControlsEx! GetProcAddress dll "InitCommonControlsEx"
 				ctrls: declare INITCOMMONCONTROLSEX
 				ctrls/dwSize: size? INITCOMMONCONTROLSEX
 				ctrls/dwICC: ICC_STANDARD_CLASSES
 						  or ICC_TAB_CLASSES
 						  or ICC_LISTVIEW_CLASSES
 						  or ICC_BAR_CLASSES
-				f ctrls
+				InitCC ctrls
 
 				DeactivateActCtx 0 cookie/ptr
 				ReleaseActCtx actctx
+				free as byte-ptr! dir
 			]
 			
 			to-bgr: func [
