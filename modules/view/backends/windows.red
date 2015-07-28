@@ -442,6 +442,8 @@ system/view/platform: context [
 					width	[integer!]
 					height	[integer!]
 					hBackDC [handle!]
+					ftn		[integer!]
+					bf		[tagBLENDFUNCTION]
 			][
 				switch msg [
 					WM_ERASEBKGND [
@@ -450,7 +452,13 @@ system/view/platform: context [
 						GetClientRect hWnd rect
 						width: rect/right - rect/left
 						height: rect/bottom - rect/top
-						BitBlt as handle! wParam 0 0 width height hBackDC 0 0 SRCCOPY
+						ftn: 0
+						bf: as tagBLENDFUNCTION :ftn
+						bf/BlendOp: as-byte 0
+                        bf/BlendFlags: as-byte 0
+                        bf/SourceConstantAlpha: as-byte 255
+                        bf/AlphaFormat: as-byte 1
+						AlphaBlend as handle! wParam 0 0 width height hBackDC 0 0 width height ftn
 						return 1
 					]
 					default [0]
@@ -1264,7 +1272,6 @@ system/view/platform: context [
 				hBackDC: CreateCompatibleDC hDC
 				hBitmap: CreateCompatibleBitmap hDC width height
 				SelectObject hBackDC hBitmap
-				FillRect hBackDC rect GetSysColorBrush COLOR_MENU
 				GdipCreateFromHDC hBackDC :graphic
 				GdipDrawImageRectI graphic as-integer img/node 0 0 width height
 				ReleaseDC hWnd hDC

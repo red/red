@@ -295,6 +295,13 @@ tagNMHDR: alias struct! [
 	code		 [integer!]
 ]
 
+tagBLENDFUNCTION: alias struct! [
+	BlendOp				[byte!]
+	BlendFlags			[byte!]
+	SourceConstantAlpha	[byte!]
+	AlphaFormat			[byte!]
+]
+
 wndproc-cb!: alias function! [
 	hWnd	[handle!]
 	msg		[integer!]
@@ -490,7 +497,7 @@ DwmIsCompositionEnabled!: alias function! [
 		BeginPaint: "BeginPaint" [
 			hWnd		[handle!]
 			ps			[tagPAINTSTRUCT]
-			return:		[integer!]
+			return:		[handle!]
 		]
 		EndPaint: "EndPaint" [
 			hWnd		[handle!]
@@ -770,6 +777,22 @@ DwmIsCompositionEnabled!: alias function! [
 			hWnd		[handle!]
 			appname		[c-string!]
 			subIdList	[integer!]
+		]
+	]
+	"msimg32.dll" stdcall [
+		AlphaBlend: "AlphaBlend" [
+			hdcDest		[handle!]
+			nXDest		[integer!]
+			nYDest		[integer!]
+			nWidth		[integer!]
+			nHeight		[integer!]
+			hdcSrc		[handle!]
+			nXSrc		[integer!]
+			nYSrc		[integer!]
+			nsWidth		[integer!]
+			nsHeight	[integer!]
+			ftn			[integer!]
+			return:		[integer!]
 		]
 	]
 ]
