@@ -538,7 +538,7 @@ red: context [
 		insert-lf -5
 	]
 	
-	emit-deep-check: func [path [series!] /local list check check2 obj top? parent-ctx][
+	emit-deep-check: func [path [series!] fpath [path!] /local obj-stk list check check2 obj top? parent-ctx i][
 		check:  [
 			'object/unchanged?
 				prefix-exec path/1
@@ -550,7 +550,7 @@ red: context [
 				get-word-index/with path/1 parent-ctx
 				third obj: find objects do obj-stk
 		]
-		obj-stk: copy obj-stack
+		obj-stk: copy/part fpath (index? find fpath path/1) - 1
 		obj-stk/1: either find-contexts path/1 ['func-objs]['objects]
 
 		either 2 = length? path [
@@ -805,11 +805,34 @@ red: context [
 		none
 	]
 	
-	object-access?: func [path [series!]][
+	search-obj: func [path [path!] /local search base fpath found?][
+		search: [
+			fpath: head insert copy path base
+			until [									;-- evaluate nested paths from longer to shorter
+				remove back tail fpath
+				any [
+					tail? next fpath
+					object? found?: attempt [do fpath]	;-- path evaluates to an object: found!
+				]
+			]
+		]
+
+		base: get-obj-base-word path/1
+		do search									;-- check if path is an absolute object path
+
+		if all [not found? 1 < length? obj-stack][
+			base: obj-stack
+			do search								;-- check if path is a relative object path
+			unless found? [return none]				;-- not an object access path
+		]
+		reduce [found? fpath base]
+	]
+	
+	object-access?: func [path [series!] /local res][
 		either path/1 = 'self [
 			bind? path/1
 		][
-			attempt [do head insert copy/part to path! path (length? path) - 1 get-obj-base-word path/1]
+			search-obj to path! path
 		]
 	]
 	
@@ -823,7 +846,7 @@ red: context [
 		select objects obj
 	]
 	
-	obj-func-path?: func [path [path!] /local search base fpath symbol found? fun origin name obj][
+	obj-func-path?: func [path [path!] /local fpath base symbol found? fun origin name obj][
 		either path/1 = 'self [
 			found?: bind? path/1
 			path: copy path
@@ -831,25 +854,8 @@ red: context [
 			fun: head insert copy path 'objects 
 			fpath: head clear next copy path
 		][
-			search: [
-				fpath: head insert copy path base
-				until [									;-- evaluate nested paths from longer to shorter
-					remove back tail fpath
-					any [
-						tail? next fpath
-						object? found?: attempt [do fpath]	;-- path evaluates to an object: found!
-					]
-				]
-			]
-
-			base: get-obj-base-word path/1
-			do search									;-- check if path is an absolute object path
-
-			if all [not found? 1 < length? obj-stack][
-				base: obj-stack
-				do search								;-- check if path is a relative object path
-				unless found? [return none]				;-- not an object access path
-			]
+			set [found? fpath base] search-obj to path! path
+			unless found? [return none]
 
 			fun: append copy fpath either base = obj-stack [ ;-- extract function access path without refinements
 				pick path 1 + (length? fpath) - (length? obj-stack)
@@ -2261,14 +2267,14 @@ red: context [
 		/collect /does /has
 		/local
 			name word spec body symbols locals-nb spec-idx body-idx ctx pos
-			src-name original global? path obj shadow defer ctx-idx body-code
+			src-name original global? path obj fpath shadow defer ctx-idx body-code
 	][
 		original: pc/-1
 		case [
 			set-path? original [
 				path: original
-				either obj: object-access? path [
-					do reduce [join to set-path! get-obj-base-word path/1 path 'function!] ;-- update shadow object info
+				either set [obj fpath] object-access? path [
+					do reduce [join to set-path! fpath last path 'function!] ;-- update shadow object info
 					obj: find objects obj
 					name: to word! rejoin [any [obj/-1 obj/2] #"~" last path] 
 					add-symbol name
@@ -2757,7 +2763,8 @@ red: context [
 		
 		obj?: all [
 			not any [dynamic? find path integer!]
-			obj: object-access? path
+			set [obj fpath] object-access? path
+			obj
 		]
 		
 		if set? [
@@ -2785,7 +2792,7 @@ red: context [
 				emit first true-blk
 			][
 				emit compose [
-					either (emit-deep-check path) (true-blk)
+					either (emit-deep-check path fpath) (true-blk)
 				]
 			]
 			if all [set? obj/5][						;-- detect on-set callback 
@@ -3301,12 +3308,12 @@ red: context [
 	]
 	
 	process-get-directive: func [
-		path code [block!] /local obj ctx blk
+		path code [block!] /local obj fpath ctx blk
 	][
 		unless path? path [
 			throw-error ["invalid #get argument:" spec]
 		]
-		obj: object-access? path
+		set [obj fpath] object-access? path
 		ctx: second obj: find objects obj
 		remove/part code 2
 		blk: [red/word/get-in (decorate-exec-ctx ctx) (get-word-index/with last path ctx)]
@@ -3314,13 +3321,13 @@ red: context [
 	]
 	
 	process-in-directive: func [
-		path word code [block!] /local obj ctx blk
+		path word code [block!] /local obj fpath ctx blk
 	][
 		if any [not path? path not any-word? :word][
 			throw-error ["invalid #in argument:" mold path mold :word]
 		]
 		append path word
-		obj: object-access? path
+		set [obj fpath] object-access? path
 		ctx: second obj: find objects obj
 		remove/part code 3
 		blk: [red/object/get-word (decorate-exec-ctx ctx) (get-word-index/with word ctx)]
