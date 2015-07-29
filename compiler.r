@@ -538,17 +538,17 @@ red: context [
 		insert-lf -5
 	]
 	
-	emit-deep-check: func [path [series!] fpath [path!] /local obj-stk list check check2 obj top? parent-ctx i][
+	emit-deep-check: func [path [series!] fpath [path!] /local obj-stk list check check2 obj top? parent-ctx][
 		check:  [
 			'object/unchanged?
-				prefix-exec path/1
-				third obj: find objects do obj-stk
+				prefix-exec path/1						;-- word (object! value)
+				third obj: find objects do obj-stk		;-- class id (integer!)
 		]
 		check2: [
 			'object/unchanged2?
-				parent-ctx
-				get-word-index/with path/1 parent-ctx
-				third obj: find objects do obj-stk
+				parent-ctx								;-- ctx (node!)
+				get-word-index/with path/1 parent-ctx	;-- object slot in parent's ctx
+				third obj: find objects do obj-stk		;-- class id
 		]
 		obj-stk: copy/part fpath (index? find fpath path/1) - 1
 		obj-stk/1: either find-contexts path/1 ['func-objs]['objects]
@@ -2780,7 +2780,11 @@ red: context [
 		]
 		
 
-		if obj-field?: all [obj? word? last path][			;-- not allow get-words to pass (#1141)
+		if obj-field?: all [
+			obj? 
+			word? last path								;-- not allow get-words to pass (#1141)
+			any [self? (length? path) = length? fpath]	;-- allow only object-path/field forms
+		][
 			ctx: second obj: find objects obj
 
 			true-blk: compose/deep pick [
