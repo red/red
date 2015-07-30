@@ -22,6 +22,7 @@ face!: object [				;-- keep in sync with facet! enum
 	image:		none
 	color:		none
 	data:		none
+	enable?:	yes
 	visible?:	yes
 	selected:	none
 	parent:		none

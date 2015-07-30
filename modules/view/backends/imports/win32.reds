@@ -145,6 +145,15 @@ Red/System [
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
 
+#define WM_CAP_DRIVER_CONNECT		040Ah
+#define WM_CAP_DRIVER_DISCONNECT	040Bh
+#define WM_CAP_EDIT_COPY			041Eh
+#define WM_CAP_GRAB_FRAME			043Ch
+#define WM_CAP_SET_SCALE			0435h
+#define WM_CAP_SET_PREVIEWRATE		0434h
+#define WM_CAP_SET_PREVIEW			0432h
+#define WM_CAP_DLG_VIDEOSOURCE		042Ah
+#define WM_CAP_STOP					0444h
 
 #define BM_GETCHECK			00F0h
 #define BM_SETCHECK			00F1h
@@ -504,6 +513,13 @@ DwmIsCompositionEnabled!: alias function! [
 			ps			[tagPAINTSTRUCT]
 			return:		[integer!]
 		]
+		MapWindowPoints: "MapWindowPoints" [
+			hWndFrom	[handle!]
+			hWndTo		[handle!]
+			lpPoints	[tagPOINT]
+			cPoint		[integer!]
+			return:		[integer!]
+		]
 		GetSysColorBrush: "GetSysColorBrush" [
 			index		[integer!]
 			return:		[handle!]
@@ -750,6 +766,13 @@ DwmIsCompositionEnabled!: alias function! [
 			hObject		[handle!]
 			return:		[integer!]
 		]
+		SetBrushOrgEx: "SetBrushOrgEx" [
+			hdc			[handle!]
+			nXOrg		[integer!]
+			nYOrg		[integer!]
+			lppt		[tagPOINT]
+			return:		[integer!]
+		]
 	]
 	"gdiplus.dll" stdcall [
 		GdipDrawImageRectI: "GdipDrawImageRectI" [
@@ -772,13 +795,6 @@ DwmIsCompositionEnabled!: alias function! [
 			return:		[integer!]
 		]
 	]
-	"UxTheme.dll" stdcall [
-		SetWindowTheme: "SetWindowTheme" [
-			hWnd		[handle!]
-			appname		[c-string!]
-			subIdList	[integer!]
-		]
-	]
 	"msimg32.dll" stdcall [
 		AlphaBlend: "AlphaBlend" [
 			hdcDest		[handle!]
@@ -792,6 +808,19 @@ DwmIsCompositionEnabled!: alias function! [
 			nsWidth		[integer!]
 			nsHeight	[integer!]
 			ftn			[integer!]
+			return:		[integer!]
+		]
+	]
+	"avicap32.dll" stdcall [
+		capCreateCaptureWindow: "capCreateCaptureWindowW" [
+			lpszName	[c-string!]
+			dwStyle		[integer!]
+			x			[integer!]		
+			y			[integer!]
+			nWidth		[integer!]
+			nHeight		[integer!]
+			hWnd		[handle!]
+			nID			[integer!]
 			return:		[integer!]
 		]
 	]
