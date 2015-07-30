@@ -1877,21 +1877,21 @@ dump4 mii/dwTypeData
 		if flags and 00000008h <> 0 [
 			change-text hWnd as red-string! values + gui/FACE_OBJ_TEXT
 		]
-		if flags and 00000040h <> 0 [
+		if flags and 00000080h <> 0 [
 			change-data
 				hWnd 
 				values + gui/FACE_OBJ_DATA
 				as red-word! values + gui/FACE_OBJ_TYPE
 		]
-		if flags and 00000080h <> 0 [
+		if flags and 00000100h <> 0 [
 			bool: as red-logic! values + gui/FACE_OBJ_ENABLE?
 			change-enable hWnd bool/value
 		]
-		if flags and 00000100h <> 0 [
+		if flags and 00000200h <> 0 [
 			bool: as red-logic! values + gui/FACE_OBJ_VISIBLE?
 			change-visible hWnd bool/value
 		]
-		if flags and 00000200h <> 0 [
+		if flags and 00000400h <> 0 [
 			int2: as red-integer! values + gui/FACE_OBJ_SELECTED
 			change-selection hWnd int2/value as red-word! values + gui/FACE_OBJ_TYPE
 		]
