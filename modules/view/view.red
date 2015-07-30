@@ -71,6 +71,7 @@ system/view: context [
 		key-up			on-key-up
 		select			on-select
 		change			on-change
+		menu			on-menu
 	)
 	
 	awake: function [event [event!]][					;@@ temporary until event:// is implemented

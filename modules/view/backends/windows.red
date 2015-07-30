@@ -56,6 +56,7 @@ system/view/platform: context [
 				
 				EVT_SELECT
 				EVT_CHANGE
+				EVT_MENU
 			]
 			
 			#enum event-flag! [
@@ -92,6 +93,8 @@ system/view/platform: context [
 			current-msg: 	as tagMSG 0
 			wc-extra:		80							;-- reserve 64 bytes for win32 internal usage (arbitrary)
 			wc-offset:		64							;-- offset to our 16 bytes
+			menu-selected:	-1							;-- last selected menu item ID
+			menu-handle: 	as handle! 0				;-- last selected menu handle
 
 			oldGroupBoxWndProc: 0
 			oldBaseWndProc:		0
@@ -141,6 +144,7 @@ system/view/platform: context [
 			_key-up:		word/load "key-up"
 			_select:		word/load "select"
 			_change:		word/load "change"
+			_menu:			word/load "menu"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -270,6 +274,7 @@ system/view/platform: context [
 					EVT_KEY_UP		 [_key-up]
 					EVT_SELECT	 	 [_select]
 					EVT_CHANGE		 [_change]
+					EVT_MENU		 [_menu]
 				]
 			]
 			
@@ -367,7 +372,11 @@ system/view/platform: context [
 				evt		[red-event!]
 				return: [red-value!]
 			][
-				as red-value! integer/push evt/flags and FFFFh
+				as red-value! either evt/type = EVT_MENU [
+					word/push* evt/flags and FFFFh
+				][
+					integer/push evt/flags and FFFFh
+				]
 			]
 				
 			make-event: func [
@@ -408,9 +417,9 @@ system/view/platform: context [
 					EVT_CHANGE [
 						unless zero? flags [get-text msg -1] ;-- get text if not done already
 					]
-					default [0]
+					EVT_MENU [gui-evt/flags: flags and FFFFh]	;-- symbol ID of the menu
+					default	 [0]
 				]
-				;@@ set other flags here
 				
 				#call [system/view/awake gui-evt]
 				
@@ -691,11 +700,15 @@ system/view/platform: context [
 						]
 					]
 					WM_MENUSELECT [
-						probe as byte-ptr! wParam
-					]
-					WM_MENUCOMMAND [
-						probe "menu command message received!"
-						;get-menu-id as handle! lParam wParam
+						either wParam = FFFF0000h [
+							res: get-menu-id menu-handle menu-selected
+							current-msg/hWnd: hWnd
+							make-event current-msg res EVT_MENU
+							return 0
+						][
+							menu-selected: WIN32_LOWORD(wParam)
+							menu-handle: as handle! lParam
+						]
 					]
 					default [0]
 				]
@@ -1137,33 +1150,43 @@ system/view/platform: context [
 				value: block/rs-head menu
 				tail:  block/rs-tail menu
 				
-				pos: 1
+				pos: 0
 				while [value < tail][
 					switch TYPE_OF(value) [
 						TYPE_STRING [
 							str: as red-string! value
 							item/fType:	MFT_STRING
-							item/fMask:	MIIM_STRING or MIIM_ID
+							item/fMask:	MIIM_STRING or MIIM_ID or MIIM_DATA
 							next: value + 1
 							
-							if all [
-								next < tail
-								TYPE_OF(next) = TYPE_BLOCK
-							][
-								item/hSubMenu: build-menu as red-block! next CreatePopupMenu
-								item/fMask:	item/fMask or MIIM_SUBMENU
-								value: value + 1
+							if next < tail [
+								switch TYPE_OF(next) [
+									TYPE_BLOCK [
+										item/hSubMenu: build-menu as red-block! next CreatePopupMenu
+										item/fMask:	item/fMask or MIIM_SUBMENU
+										value: value + 1
+									]
+									TYPE_WORD [
+										w: as red-word! next
+										item/dwItemData: w/symbol
+										item/fMask:	item/fMask or MIIM_DATA
+										value: value + 1
+									]
+									default [0]
+								]
 							]
 							item/cch: string/rs-length? str
 							item/dwTypeData: unicode/to-utf16 str
+							item/wID: pos
 							InsertMenuItem hMenu pos true item
 							pos: pos + 1
 						]
 						TYPE_WORD [
 							w: as red-word! value
 							if w/symbol = --- [
-								item/fMask: MIIM_FTYPE or MIIM_ID
+								item/fMask: MIIM_FTYPE or MIIM_ID or MIIM_DATA
 								item/fType:	MFT_SEPARATOR
+								item/wID: pos
 								InsertMenuItem hMenu pos true item
 								pos: pos + 1
 							]
@@ -1176,14 +1199,17 @@ system/view/platform: context [
 			]
 			
 			get-menu-id: func [
-				hMenu [handle!]
-				pos	  [integer!]
+				hMenu	[handle!]
+				pos		[integer!]
+				return: [integer!]
 				/local
-					mii	[MENUITEMINFO]
+					item [MENUITEMINFO]
 			][
-				mii: declare MENUITEMINFO 
-				probe GetMenuItemInfo hMenu pos true mii
-dump4 mii/dwTypeData
+				item: declare MENUITEMINFO 
+				item/cbSize:  size? MENUITEMINFO
+				item/fMask:	  MIIM_DATA
+				GetMenuItemInfo hMenu pos true item
+				return item/dwItemData
 			]
 			
 			set-tabs: func [

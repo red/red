@@ -25,50 +25,55 @@ win: make face! [
 	menu: [
 		"File" [
 			"New"				new
-			"Open..." 			open 		<F1>
-			"Close"				close 		<Ctrl-C>
+			"Open...	F1" 	open
+			"Close	F2"			close 
 			---
 			"Save..."			save
 			"Save as..."		save-as
-			"Save All"
+			"Save All"			save-all
 			---
-			"Print..."
-			"Preview"
-			"Page Setup..."
+			"Print..."			print
+			"Preview"			preview
+			"Page Setup..."		page-setup
 			---
-			"Exit"
+			"Exit"				exit
 		]
 		"Edit" [
-			"Undo"
-			"Redo"
+			"Undo"				undo
+			"Redo"				redo
 			---
-			"Copy"
-			"Cut"
-			"Paste"
+			"Copy	Ctrl+C"		copy
+			"Cut	Ctrl+X"		cut
+			"Paste	Ctrl+V"		paste
 			---
 			"Sub1" [
-				"Sub-menu1"
+				"Sub-menu1"		sub-m1
 			]
 			"Sub2" [
-				"Sub-menu2"
+				"Sub-menu2"		sub-m2
 			]
 		]
 		"Search" [
-			"Find..."
-			"Find Next"
-			"Find Previous"
+			"Find..."			find
+			"Find Next"			find-next
+			"Find Previous"		find-prev
 			---
-			"Replace..."
-			"Replace Next"
+			"Replace..."		replace
+			"Replace Next"		replace-next
 		]
 		"Deep" [
-			"Item 2"
+			"Item 2"			item2
 			"Deep 2" [
-				"Item 3"
+				"Item 3"		item3
 				"Deep 3" [
-					"End"
+					"End"		end
 				]
 			]
+		]
+	]
+	actors: object [
+		on-menu: func [face [object!] event [event!]][
+			print ["menu selected:" event/picked]
 		]
 	]
 ]
