@@ -25,6 +25,7 @@ system/view/platform: context [
 				FACE_OBJ_COLOR
 				FACE_OBJ_MENU
 				FACE_OBJ_DATA
+				FACE_OBJ_ENABLE?
 				FACE_OBJ_VISIBLE?
 				FACE_OBJ_SELECTED
 				FACE_OBJ_PARENT
@@ -117,6 +118,7 @@ system/view/platform: context [
 			panel:			symbol/make "panel"
 			tab-panel:		symbol/make "tab-panel"
 			group-box:		symbol/make "group-box"
+			camera:			symbol/make "camera"
 			
 			
 			---:			symbol/make "---"
@@ -434,6 +436,60 @@ system/view/platform: context [
 				current-msg/y: WIN32_HIWORD(pos)
 			]
 
+			check-camera: func [
+				handle  [integer!]
+				return: [handle!]
+				/local
+					hWnd [handle!]
+					int  [red-integer!]
+			][
+				hWnd: as handle! GetWindowLong as handle! handle wc-offset - 4
+				if zero? as-integer SendMessage hWnd WM_CAP_DRIVER_CONNECT 0 0 [
+					int: as red-integer! get-node-facet
+						as node! GetWindowLong as handle! handle wc-offset + 4
+						FACE_OBJ_SELECTED
+					int/value: -1
+				]
+				hWnd
+			]
+
+			select-camera: func [
+				handle	[integer!]
+				/local
+					hWnd [handle!]
+			][
+				hWnd: check-camera handle
+				SendMessage hWnd WM_CAP_DLG_VIDEOSOURCE 0 0
+			]
+
+			toggle-camera: func [
+				handle	[integer!]
+				enable? [logic!]
+				/local
+					hWnd [handle!]
+			][
+				hWnd: check-camera handle
+				either enable? [
+					SendMessage hWnd WM_CAP_SET_SCALE 1 0
+					SendMessage hWnd WM_CAP_SET_PREVIEWRATE 66 0
+					SendMessage hWnd WM_CAP_SET_PREVIEW 1 0
+					ShowWindow  hWnd SW_SHOW
+				][
+					ShowWindow  hWnd SW_HIDE
+					SendMessage hWnd WM_CAP_DRIVER_DISCONNECT 0 0
+				]
+			]
+
+			CameraWndProc: func [
+				hWnd	[handle!]
+				msg		[integer!]
+				wParam	[integer!]
+				lParam	[integer!]
+				return: [integer!]
+			][
+				DefWindowProc hWnd msg wParam lParam
+			]
+
 			ImageWndProc: func [
 				hWnd	[handle!]
 				msg		[integer!]
@@ -458,9 +514,9 @@ system/view/platform: context [
 						ftn: 0
 						bf: as tagBLENDFUNCTION :ftn
 						bf/BlendOp: as-byte 0
-                        bf/BlendFlags: as-byte 0
-                        bf/SourceConstantAlpha: as-byte 255
-                        bf/AlphaFormat: as-byte 1
+						bf/BlendFlags: as-byte 0
+						bf/SourceConstantAlpha: as-byte 255
+						bf/AlphaFormat: as-byte 1
 						AlphaBlend as handle! wParam 0 0 width height hBackDC 0 0 width height ftn
 						return 1
 					]
@@ -952,6 +1008,14 @@ system/view/platform: context [
 				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
 				wcex/hInstance:		hInstance
 				wcex/lpszClassName: #u16 "RedImage"
+				
+				RegisterClassEx wcex
+
+				wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+				wcex/lpfnWndProc:	:CameraWndProc
+				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+				wcex/hInstance:		hInstance
+				wcex/lpszClassName: #u16 "RedCamera"
 				
 				RegisterClassEx wcex
 
@@ -1500,6 +1564,9 @@ dump4 mii/dwTypeData
 					sym = _image [
 						class: #u16 "RedImage"
 					]
+					sym = camera [
+						class: #u16 "RedCamera"
+					]
 					sym = base [
 						class: #u16 "Base"
 					]
@@ -1548,6 +1615,10 @@ dump4 mii/dwTypeData
 				
 				;-- extra initialization
 				case [
+					sym = camera [
+						SetWindowLong handle wc-offset - 4 
+							capCreateCaptureWindow #u16 "Camera Window" WS_CHILD 0 0 size/x size/y handle 0
+					]
 					sym = text-list [
 						if any [
 							TYPE_OF(data) = TYPE_BLOCK
@@ -1571,8 +1642,10 @@ dump4 mii/dwTypeData
 								]
 								str: str + 1
 							]
-							GetTextExtentPoint32 GetDC handle str-saved len csize
-							SendMessage handle LB_SETHORIZONTALEXTENT csize/width 0
+							unless zero? len [
+								GetTextExtentPoint32 GetDC handle str-saved len csize
+								SendMessage handle LB_SETHORIZONTALEXTENT csize/width 0
+							]
 						]
 						int: as red-integer! values + FACE_OBJ_SELECTED
 						if TYPE_OF(int) <> TYPE_INTEGER [
@@ -1717,12 +1790,24 @@ dump4 mii/dwTypeData
 		value: either show? [SW_SHOW][SW_HIDE]
 		gui/ShowWindow as handle! hWnd value
 	]
+
+	change-enable: routine [
+		hWnd	[integer!]
+		enable? [logic!]
+	][
+		gui/toggle-camera hWnd enable?
+	]
 	
 	change-selection: routine [
 		hWnd [integer!]
 		idx  [integer!]
+		type [word!]
 	][
-		gui/SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
+		either type/symbol = gui/camera [
+			gui/select-camera hWnd
+		][
+			gui/SendMessage as handle! hWnd CB_SETCURSEL idx - 1 0
+		]
 	]
 
 	change-data: routine [
@@ -1792,19 +1877,23 @@ dump4 mii/dwTypeData
 		if flags and 00000008h <> 0 [
 			change-text hWnd as red-string! values + gui/FACE_OBJ_TEXT
 		]
-		if flags and 00000080h <> 0 [
-			bool: as red-logic! values + gui/FACE_OBJ_VISIBLE?
-			change-visible hWnd bool/value
-		]
-		if flags and 00000100h <> 0 [
-			int2: as red-integer! values + gui/FACE_OBJ_SELECTED
-			change-selection hWnd int2/value
-		]
 		if flags and 00000040h <> 0 [
 			change-data
 				hWnd 
 				values + gui/FACE_OBJ_DATA
 				as red-word! values + gui/FACE_OBJ_TYPE
+		]
+		if flags and 00000080h <> 0 [
+			bool: as red-logic! values + gui/FACE_OBJ_ENABLE?
+			change-enable hWnd bool/value
+		]
+		if flags and 00000100h <> 0 [
+			bool: as red-logic! values + gui/FACE_OBJ_VISIBLE?
+			change-visible hWnd bool/value
+		]
+		if flags and 00000200h <> 0 [
+			int2: as red-integer! values + gui/FACE_OBJ_SELECTED
+			change-selection hWnd int2/value as red-word! values + gui/FACE_OBJ_TYPE
 		]
 		int/value: 0									;-- reset flags
 	]

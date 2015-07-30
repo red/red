@@ -21,7 +21,7 @@ print [
 ]
 
 win: make face! [
-	type: 'window text: "Red View" offset: 500x500 size: 600x600
+	type: 'window text: "Red View" offset: 500x500 size: 800x600
 	menu: [
 		"File" [
 			"New"				new
@@ -307,6 +307,37 @@ win/pane: reduce [
 				print ["text-list changed:" mold face/text]
 			]
 		]
+	]
+	set 'cam make face! [
+		type: 'camera offset: 400x140 size: 320x240
+		enable?: no
+	]
+	make face! [
+		type: 'button text: "Start/Stop" offset: 400x400 size: 70x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				cam/enable?: not cam/enable?
+				show cam
+			]
+		]
+	]
+	make face! [
+		type: 'button text: "Select Camera" offset: 480x400 size: 100x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				cam/selected: 0
+				show cam
+				either cam/selected = -1 [
+					camera-info/text: "No Camera"
+				][
+					camera-info/visible?: no
+				]
+				show camera-info
+			]
+		]
+	]
+	set 'camera-info make face! [
+			type: 'text text: "" offset: 600x405 size: 80x16
 	]
 ]
 show win
