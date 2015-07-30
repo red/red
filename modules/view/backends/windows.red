@@ -23,6 +23,7 @@ system/view/platform: context [
 				FACE_OBJ_TEXT
 				FACE_OBJ_IMAGE
 				FACE_OBJ_COLOR
+				FACE_OBJ_MENU
 				FACE_OBJ_DATA
 				FACE_OBJ_VISIBLE?
 				FACE_OBJ_SELECTED
@@ -117,6 +118,8 @@ system/view/platform: context [
 			tab-panel:		symbol/make "tab-panel"
 			group-box:		symbol/make "group-box"
 			
+			
+			---:			symbol/make "---"
 			done:			symbol/make "done"
 			stop:			symbol/make "stop"
 				
@@ -631,6 +634,13 @@ system/view/platform: context [
 							]
 						]
 					]
+					WM_MENUSELECT [
+						probe as byte-ptr! wParam
+					]
+					WM_MENUCOMMAND [
+						probe "menu command message received!"
+						;get-menu-id as handle! lParam wParam
+					]
 					default [0]
 				]
 				if ext-parent-proc? [call-custom-proc hWnd msg wParam lParam]
@@ -1040,6 +1050,78 @@ system/view/platform: context [
 				]
 			]
 			
+			build-menu: func [
+				menu	[red-block!]
+				hMenu	[handle!]
+				return: [handle!]
+				/local
+					value [red-value!]
+					tail  [red-value!]
+					next  [red-value!]
+					str	  [red-string!]
+					w	  [red-word!]
+					item  [MENUITEMINFO]
+					pos	  [integer!]
+			][
+				if TYPE_OF(menu) <> TYPE_BLOCK [return null] 
+				
+				item: declare MENUITEMINFO
+				item/cbSize:  size? MENUITEMINFO
+				item/fMask:	  MIIM_STRING or MIIM_FTYPE
+				item/fType:	  MFT_STRING
+			
+				value: block/rs-head menu
+				tail:  block/rs-tail menu
+				
+				pos: 1
+				while [value < tail][
+					switch TYPE_OF(value) [
+						TYPE_STRING [
+							str: as red-string! value
+							item/fType:	MFT_STRING
+							item/fMask:	MIIM_STRING or MIIM_ID
+							next: value + 1
+							
+							if all [
+								next < tail
+								TYPE_OF(next) = TYPE_BLOCK
+							][
+								item/hSubMenu: build-menu as red-block! next CreatePopupMenu
+								item/fMask:	item/fMask or MIIM_SUBMENU
+								value: value + 1
+							]
+							item/cch: string/rs-length? str
+							item/dwTypeData: unicode/to-utf16 str
+							InsertMenuItem hMenu pos true item
+							pos: pos + 1
+						]
+						TYPE_WORD [
+							w: as red-word! value
+							if w/symbol = --- [
+								item/fMask: MIIM_FTYPE or MIIM_ID
+								item/fType:	MFT_SEPARATOR
+								InsertMenuItem hMenu pos true item
+								pos: pos + 1
+							]
+						]
+						default [0]
+					]
+					value: value + 1
+				]
+				hMenu
+			]
+			
+			get-menu-id: func [
+				hMenu [handle!]
+				pos	  [integer!]
+				/local
+					mii	[MENUITEMINFO]
+			][
+				mii: declare MENUITEMINFO 
+				probe GetMenuItemInfo hMenu pos true mii
+dump4 mii/dwTypeData
+			]
+			
 			set-tabs: func [
 				hWnd   [handle!]
 				facets [red-value!]
@@ -1317,6 +1399,7 @@ system/view/platform: context [
 					data	  [red-block!]
 					int		  [red-integer!]
 					img		  [red-image!]
+					menu	  [red-block!]
 					show?	  [red-logic!]
 					flags	  [integer!]
 					ws-flags  [integer!]
@@ -1326,6 +1409,7 @@ system/view/platform: context [
 					offx	  [integer!]
 					offy	  [integer!]
 					value	  [integer!]
+					handle	  [handle!]
 					p		  [ext-class!]
 					id		  [integer!]
 					vertical? [logic!]
@@ -1345,6 +1429,7 @@ system/view/platform: context [
 				show?:	as red-logic!	values + FACE_OBJ_VISIBLE?
 				data:	as red-block!	values + FACE_OBJ_DATA
 				img:	as red-image!	values + FACE_OBJ_IMAGE
+				menu:	as red-block!	values + FACE_OBJ_MENU
 				
 				flags: 	  WS_CHILD
 				ws-flags: 0
@@ -1423,6 +1508,7 @@ system/view/platform: context [
 						flags: WS_OVERLAPPEDWINDOW ;or WS_CLIPCHILDREN
 						offx:  CW_USEDEFAULT
 						offy:  CW_USEDEFAULT
+						id: as-integer build-menu menu CreateMenu
 					]
 					true [								;-- search in user-defined classes
 						p: find-class type

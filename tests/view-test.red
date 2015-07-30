@@ -20,7 +20,58 @@ print [
 	"build" system/view/platform/build
 ]
 
-win: make face! [type: 'window text: "Red View" offset: 500x500 size: 600x600]
+win: make face! [
+	type: 'window text: "Red View" offset: 500x500 size: 600x600
+	menu: [
+		"File" [
+			"New"				new
+			"Open..." 			open 		<F1>
+			"Close"				close 		<Ctrl-C>
+			---
+			"Save..."			save
+			"Save as..."		save-as
+			"Save All"
+			---
+			"Print..."
+			"Preview"
+			"Page Setup..."
+			---
+			"Exit"
+		]
+		"Edit" [
+			"Undo"
+			"Redo"
+			---
+			"Copy"
+			"Cut"
+			"Paste"
+			---
+			"Sub1" [
+				"Sub-menu1"
+			]
+			"Sub2" [
+				"Sub-menu2"
+			]
+		]
+		"Search" [
+			"Find..."
+			"Find Next"
+			"Find Previous"
+			---
+			"Replace..."
+			"Replace Next"
+		]
+		"Deep" [
+			"Item 2"
+			"Deep 2" [
+				"Item 3"
+				"Deep 3" [
+					"End"
+				]
+			]
+		]
+	]
+]
 
 button: make face! [
 	type: 'button

@@ -21,6 +21,7 @@ face!: object [				;-- keep in sync with facet! enum
 	text:		none
 	image:		none
 	color:		none
+	menu:		none
 	data:		none
 	visible?:	yes
 	selected:	none

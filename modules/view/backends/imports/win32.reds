@@ -51,7 +51,6 @@ Red/System [
 #define TCN_SELCHANGE       -551
 #define TCN_SELCHANGING		-552
 
-
 #define CBS_DROPDOWN		0002h
 #define CBS_DROPDOWNLIST	0003h
 #define CBS_HASSTRINGS		0200h
@@ -74,10 +73,39 @@ Red/System [
 
 #define TCIF_TEXT			0001h
 
+#define MIIM_STATE			0001h
+#define MIIM_ID				0002h
+#define MIIM_SUBMENU		0004h
+#define MIIM_CHECKMARKS		0008h
+#define MIIM_TYPE			0010h
+#define MIIM_DATA			0020h
+#define MIIM_STRING			0040h
+#define MIIM_BITMAP			0080h
+#define MIIM_FTYPE			0100h
+
+#define MFT_STRING			00000000h
+#define MFT_BITMAP			00000004h
+#define MFT_MENUBARBREAK	00000020h
+#define MFT_MENUBREAK		00000040h
+;#define MFT_OWNERDRAW		MF_OWNERDRAW
+#define MFT_RADIOCHECK		00000200h
+#define MFT_SEPARATOR		00000800h
+#define MFT_RIGHTORDER		00002000h
+#define MFT_RIGHTJUSTIFY	00004000h
+
+#define MNS_NOCHECK			80000000h
+#define MNS_MODELESS		40000000h
+#define MNS_DRAGDROP		20000000h
+#define MNS_AUTODISMISS		10000000h
+#define MNS_NOTIFYBYPOS		08000000h
+#define MNS_CHECKORBMP		04000000h
+
 #define IDC_ARROW			7F00h
+
+#define CW_USEDEFAULT		80000000h
+
 #define WS_OVERLAPPEDWINDOW	00CF0000h
 #define WS_CLIPCHILDREN		02000000h
-#define CW_USEDEFAULT		80000000h
 #define WS_EX_ACCEPTFILES	00000010h
 #define WS_CHILD			40000000h
 #define WS_VISIBLE			10000000h
@@ -117,6 +145,7 @@ Red/System [
 #define WM_GETTEXTLENGTH	000Eh
 #define WM_PAINT			000Fh
 #define WM_ERASEBKGND		0014h
+#define WM_CTLCOLOR			0019h
 #define WM_SETFONT			0030h
 #define WM_GETFONT			0031h
 #define WM_NOTIFY			004Eh
@@ -130,7 +159,8 @@ Red/System [
 #define WM_TIMER			0113h
 #define WM_HSCROLL			0114h
 #define WM_VSCROLL			0115h
-#define WM_CTLCOLOR			0019h
+#define WM_MENUSELECT		011Fh
+#define WM_MENUCOMMAND		0126h
 #define WM_CTLCOLOREDIT		0133h
 #define WM_CTLCOLORLISTBOX	0134h
 #define WM_CTLCOLORBTN		0135h
@@ -412,6 +442,21 @@ TCITEM: alias struct! [
 	lParam		[integer!]
 ]
 
+MENUITEMINFO: alias struct! [
+	cbSize		[integer!]
+	fMask		[integer!]
+	fType		[integer!]
+	fState		[integer!]
+	wID			[integer!]
+	hSubMenu	[handle!]
+	hbmpChecked	[handle!]
+	hbmpUnchecked [handle!]
+	dwItemData	[integer!]
+	dwTypeData	[c-string!]
+	cch			[integer!]
+	hbmpItem	[handle!]
+]
+
 RECT_STRUCT: alias struct! [
 	left		[integer!]
 	top			[integer!]
@@ -668,6 +713,26 @@ DwmIsCompositionEnabled!: alias function! [
 		GetWindowTextLength: "GetWindowTextLengthW" [
 			hWnd		[handle!]
 			return:		[integer!]
+		]
+		CreateMenu: "CreateMenu" [
+			return:		[handle!]
+		]
+		CreatePopupMenu: "CreatePopupMenu" [
+			return:		[handle!]
+		]
+		InsertMenuItem: "InsertMenuItemW" [
+			hMenu		[handle!]
+			uItem		[integer!]
+			byPosition	[logic!]
+			lpmii		[MENUITEMINFO]
+			return:		[logic!]
+		]
+		GetMenuItemInfo: "GetMenuItemInfoW" [
+			hMenu		[handle!]
+			uItem		[integer!]
+			byPosition	[logic!]
+			lpmii		[MENUITEMINFO]
+			return:		[logic!]
 		]
 	]
 	"gdi32.dll" stdcall [
