@@ -23,6 +23,7 @@ print [
 win: make face! [
 	type: 'window text: "Red View" offset: 500x500 size: 800x600
 	menu: [
+		;popup						;-- forces context menu for window
 		"File" [
 			"New"				new
 			"Open...	F1" 	open
@@ -259,6 +260,17 @@ win/pane: reduce [
 				pane: reduce [
 					make face! [
 						type: 'button text: "Panel 1" offset: 20x20 size: 60x30
+					]
+				]
+				menu: [
+					"Set progress to 0%"	s0
+					"Set progress to 25%"	s25
+					"Set progress to 50%"	s50
+					"Set progress to 100%"	s100
+				]
+				actors: object [
+					on-menu: func [face [object!] event [event!]][
+						print ["context menu selected:" event/picked]
 					]
 				]
 			]

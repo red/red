@@ -127,6 +127,7 @@ system/view/platform: context [
 			---:			symbol/make "---"
 			done:			symbol/make "done"
 			stop:			symbol/make "stop"
+			popup:			symbol/make "popup"
 				
 			_down:			word/load "down"
 			_up:			word/load "up"
@@ -574,6 +575,11 @@ system/view/platform: context [
 							default [0]
 						]
 					]
+					WM_CONTEXTMENU [
+						current-msg/hWnd: as handle! wParam
+						show-context-menu current-msg lParam
+						return 0
+					]
 					default [0]
 				]
 				CallWindowProc as wndproc-cb! oldBaseWndProc hWnd msg wParam lParam
@@ -709,6 +715,11 @@ system/view/platform: context [
 							menu-selected: WIN32_LOWORD(wParam)
 							menu-handle: as handle! lParam
 						]
+					]
+					WM_CONTEXTMENU [
+						current-msg/hWnd: as handle! wParam
+						show-context-menu current-msg lParam
+						return 0
 					]
 					default [0]
 				]
@@ -1198,6 +1209,52 @@ system/view/platform: context [
 				hMenu
 			]
 			
+			menu-bar?: func [
+				spec	[red-block!]
+				type	[integer!]
+				return: [logic!]
+				/local
+					w	[red-word!]
+			][
+				if all [
+					TYPE_OF(spec) = TYPE_BLOCK
+					not block/rs-tail? spec
+					type = window
+				][
+					w: as red-word! block/rs-head spec
+					return not all [
+						TYPE_OF(w) = TYPE_WORD
+						popup = symbol/resolve w/symbol
+					]
+				]
+				no
+			]
+			
+			show-context-menu: func [
+				msg [tagMSG]
+				pos	[integer!]
+				/local
+					values [red-value!]
+					spec   [red-block!]
+					w	   [red-word!]
+			][
+				values: get-facets msg
+				spec: as red-block! values + FACE_OBJ_MENU
+				
+				if TYPE_OF(spec) = TYPE_BLOCK [
+					w: as red-word! values + FACE_OBJ_TYPE
+					if menu-bar? spec symbol/resolve w/symbol [exit]
+					
+					TrackPopupMenuEx
+						build-menu spec CreatePopupMenu
+						0								;-- TPM_LEFTALIGN or TPM_TOPALIGN
+						WIN32_LOWORD(pos)
+						WIN32_HIWORD(pos)
+						msg/hWnd
+						null
+				]
+			]
+			
 			get-menu-id: func [
 				hMenu	[handle!]
 				pos		[integer!]
@@ -1601,7 +1658,9 @@ system/view/platform: context [
 						flags: WS_OVERLAPPEDWINDOW ;or WS_CLIPCHILDREN
 						offx:  CW_USEDEFAULT
 						offy:  CW_USEDEFAULT
-						id: as-integer build-menu menu CreateMenu
+						if menu-bar? menu window [
+							id: as-integer build-menu menu CreateMenu
+						]
 					]
 					true [								;-- search in user-defined classes
 						p: find-class type

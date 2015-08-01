@@ -149,6 +149,7 @@ Red/System [
 #define WM_SETFONT			0030h
 #define WM_GETFONT			0031h
 #define WM_NOTIFY			004Eh
+#define WM_CONTEXTMENU		007Bh
 #define WM_KEYDOWN			0100h
 #define WM_KEYUP			0101h
 #define WM_CHAR				0102h
@@ -748,6 +749,15 @@ DwmIsCompositionEnabled!: alias function! [
 			uItem		[integer!]
 			byPosition	[logic!]
 			lpmii		[MENUITEMINFO]
+			return:		[logic!]
+		]
+		TrackPopupMenuEx: "TrackPopupMenuEx" [
+			hMenu		[handle!]
+			fuFlags		[integer!]
+			x			[integer!]
+			y			[integer!]
+			hWnd		[handle!]
+			lptpm		[byte-ptr!]						;-- null (LPTPMPARAMS)
 			return:		[logic!]
 		]
 	]
