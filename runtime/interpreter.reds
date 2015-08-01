@@ -83,8 +83,6 @@ Red/System [
 
 interpreter: context [
 	verbose: 0
-
-	return-type: -1										;-- return type for routine calls
 	
 	log: func [msg [c-string!]][
 		print "eval: "
@@ -178,7 +176,7 @@ interpreter: context [
 	]
 	
 	exec-routine: func [
-		fun	 [red-routine!]
+		rt	 [red-routine!]
 		/local
 			native [red-native!]
 			arg	   [red-value!]
@@ -189,10 +187,10 @@ interpreter: context [
 			count  [integer!]
 			call
 	][
-		s: as series! fun/more/value
+		s: as series! rt/more/value
 		native: as red-native! s/offset + 2
 		call: as function! [return: [integer!]] native/code
-		count: (routine/get-arity fun) - 1				;-- zero-based stack access
+		count: (routine/get-arity rt) - 1				;-- zero-based stack access
 		
 		while [count >= 0][
 			arg: stack/arguments + count
@@ -203,9 +201,9 @@ interpreter: context [
 			]
 			count: count - 1
 		]
-		either positive? return-type [
+		either positive? rt/ret-type [
 			ret: call
-			switch return-type [
+			switch rt/ret-type [
 				TYPE_LOGIC	[
 					bool: as red-logic! stack/arguments
 					bool/header: TYPE_LOGIC
@@ -250,10 +248,10 @@ interpreter: context [
 			fun: as red-function! s/offset + 3
 			
 			either TYPE_OF(fun) = TYPE_ROUTINE [
-				exec-routine as red-routine! fun
+				exec-routine as red-routine! fun		;@@ no type-checking!
 			][
 				set-locals fun
-				eval-function fun as red-block! s/offset
+				eval-function fun as red-block! s/offset ;@@ no type-checking!
 			]
 		][
 			call-op: as function! [] op/code
@@ -305,7 +303,6 @@ interpreter: context [
 			pos		  [byte-ptr!]
 			bits 	  [byte-ptr!]
 			set? 	  [logic!]
-			ret-set?  [logic!]
 			call
 	][
 		routine?:  TYPE_OF(native) = TYPE_ROUTINE

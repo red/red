@@ -238,10 +238,10 @@ red-function!: alias struct! [
 ]
 
 red-routine!: alias struct! [
-	header 	[integer!]								;-- cell header
-	symbols	[node!]									;-- routine cleaned-up spec block reference
-	spec	[node!]									;-- routine spec block buffer reference	
-	more	[node!]									;-- additional members storage block:
+	header   [integer!]								;-- cell header
+	ret-type [integer!]								;-- return type (-1 if no return: in spec block)
+	spec	 [node!]								;-- routine spec block buffer reference	
+	more	 [node!]								;-- additional members storage block:
 	;	body	 [red-block!]						;-- 	routine's body block
 	;	args	 [red-block!]						;-- 	list of typed arguments (including optional ones)
 	;	native   [node!]							;-- 	compiled body (binary!)

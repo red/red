@@ -336,10 +336,10 @@ _function: context [
 			w		  [red-word!]
 			dt		  [red-datatype!]
 			blk		  [red-block!]
+			rt		  [red-routine!]
 			s		  [series!]
 			routine?  [logic!]
 			function? [logic!]
-			ret-set?  [logic!]
 			required? [logic!]
 	][
 		#if debug? = yes [if verbose > 0 [print-line "cache: pre-processing function spec"]]
@@ -398,14 +398,7 @@ _function: context [
 					]
 					blk: as red-block! value + 1
 					assert TYPE_OF(blk) = TYPE_BLOCK
-					either routine? [
-						ret-set?: yes
-						value2: _series/pick as red-series! blk 1 null
-						assert TYPE_OF(value2) = TYPE_WORD
-						dt: as red-datatype! _context/get as red-word! value2
-						assert TYPE_OF(dt) = TYPE_DATATYPE
-						interpreter/return-type: dt/value	;@@ get rid of this
-					][
+					unless routine? [
 						block/rs-append list value
 						typeset/make-with list blk
 					]
@@ -414,9 +407,7 @@ _function: context [
 			]
 			value: value + 1
 		]
-
-		;unless ret-set? [interpreter/return-type: -1]	;@@ set the default correctly in case of nested calls
-
+		
 		unless function? [
 			block/rs-append list as red-value! none-value ;-- place-holder for argument name
 			block/rs-append list as red-value! vec

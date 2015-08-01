@@ -571,6 +571,13 @@ red: context [
 		]
 	]
 	
+	get-RS-type-ID: func [name [word! datatype!] /local type][	;-- Red type name to R/S type ID
+		name: head remove back tail form name			;-- remove ending #"!"
+		replace/all name #"-" #"_"
+		type: to word! uppercase head insert name "TYPE_"
+		select extracts/definitions type
+	]
+	
 	make-typeset: func [
 		spec [block!] option [block! none!] f-spec [block!]
 		/local bs ts word bit idx name
@@ -587,10 +594,7 @@ red: context [
 				type: either word: in extracts/scalars type [get word][reduce [type]]
 				
 				foreach word type [
-					word: head remove back tail form name: word	;-- remove ending #"!"
-					replace/all word #"-" #"_"
-					type: to word! uppercase head insert word "TYPE_"
-					bit: select extracts/definitions type
+					bit: get-RS-type-ID name: word
 					unless bit [throw-error/near ["invalid datatype name:" name] f-spec]
 					idx: (bit / 32) + 1
 					poke ts idx ts/:idx or shift/logical -2147483648 bit and 255
@@ -1325,6 +1329,14 @@ red: context [
 		if frame? [emit-close-frame]
 	]
 	
+	get-return-type: func [spec [block!] /local type][	;-- for routine spec blocks
+		all [
+			type: select spec return-def
+			find [integer! logic!] type/1
+			type
+		]
+	]
+	
 	emit-routine: func [name [word!] spec [block!] /local type cnt offset alter][
 		emit [stack/reset]
 
@@ -1333,10 +1345,7 @@ red: context [
 		insert-lf -2
 
 		offset: 0
-		if all [
-			type: select spec return-def
-			find [integer! logic!] type/1 
-		][
+		if type: get-return-type spec [
 			offset: 1
 			append/only output append to path! form get type/1 'box
 		]
@@ -2367,7 +2376,7 @@ red: context [
 		comp-func/has
 	]
 	
-	comp-routine: has [name word spec spec* body spec-idx body-idx original ctx][
+	comp-routine: has [name word spec spec* body spec-idx body-idx original ctx ret][
 		name: check-func-name get-prefix-func to word! original: pc/-1
 		add-symbol word: to word! clean-lf-flag name
 		add-global word
@@ -2403,10 +2412,14 @@ red: context [
 				append/only output body
 			;]
 		]
+		ret: any [
+			all [ret: get-return-type spec get-RS-type-ID ret/1]
+			-1
+		]
 		
 		pc: skip pc 2
 		compose [
-			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name)
+			routine/push get-root (spec-idx) get-root (body-idx) as integer! (to get-word! name) (ret)
 		]
 	]
 	
