@@ -28,6 +28,8 @@ Red/System [
 
 #define COLOR_MENU			4
 #define COLOR_WINDOW		5
+#define COLOR_3DFACE		15
+
 #define CS_VREDRAW			1
 #define CS_HREDRAW			2
 #define CS_DBLCLKS			8

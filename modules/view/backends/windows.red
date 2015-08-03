@@ -96,7 +96,6 @@ system/view/platform: context [
 			menu-selected:	-1							;-- last selected menu item ID
 			menu-handle: 	as handle! 0				;-- last selected menu handle
 
-			oldGroupBoxWndProc: 0
 			oldBaseWndProc:		0
 			
 			;-- extended classes handling
@@ -567,6 +566,17 @@ system/view/platform: context [
 					nmhdr [tagNMHDR]
 			][
 				switch msg [
+					WM_VSCROLL
+					WM_HSCROLL [
+						unless zero? lParam [			;-- message from trackbar
+							unless null? current-msg [
+								current-msg/hWnd: as handle! lParam	;-- trackbar handle
+								get-slider-pos current-msg
+								make-event current-msg 0 EVT_CHANGE
+								return 0
+							]
+						]
+					]
 					WM_NOTIFY [
 						nmhdr: as tagNMHDR lParam
 						switch nmhdr/code [
@@ -580,33 +590,12 @@ system/view/platform: context [
 						show-context-menu current-msg lParam
 						return 0
 					]
-					default [0]
-				]
-				CallWindowProc as wndproc-cb! oldBaseWndProc hWnd msg wParam lParam
-			]
-
-			GroupBoxWndProc: func [
-				hWnd	[handle!]
-				msg		[integer!]
-				wParam	[integer!]
-				lParam	[integer!]
-				return: [integer!]
-			][
-				switch msg [
-					WM_VSCROLL
-					WM_HSCROLL [
-						unless zero? lParam [			;-- message from trackbar
-							unless null? current-msg [
-								current-msg/hWnd: as handle! lParam	;-- trackbar handle
-								get-slider-pos current-msg
-								make-event current-msg 0 EVT_CHANGE
-								return 0
-							]
-						]
+					WM_ERASEBKGND [
+						if paint-background hWnd as handle! wParam [return 1]
 					]
 					default [0]
 				]
-				CallWindowProc as wndproc-cb! oldGroupBoxWndProc hWnd msg wParam lParam
+				CallWindowProc as wndproc-cb! oldBaseWndProc hWnd msg wParam lParam
 			]
 			
 			WndProc: func [
@@ -1006,7 +995,7 @@ system/view/platform: context [
 				wcex/hInstance:		hInstance
 				wcex/hIcon:			null
 				wcex/hCursor:		LoadCursor null IDC_ARROW
-				wcex/hbrBackground:	COLOR_WINDOW
+				wcex/hbrBackground:	COLOR_3DFACE + 1
 				wcex/lpszMenuName:	null
 				wcex/lpszClassName: #u16 "RedWindow"
 				wcex/hIconSm:		0
@@ -1020,7 +1009,7 @@ system/view/platform: context [
 				wcex/hInstance:		hInstance
 				wcex/hIcon:			null
 				wcex/hCursor:		LoadCursor null IDC_ARROW
-				wcex/hbrBackground:	13
+				wcex/hbrBackground:	COLOR_3DFACE + 1
 				wcex/lpszMenuName:	null
 				wcex/lpszClassName: #u16 "Base"
 				wcex/hIconSm:		0
@@ -1052,12 +1041,6 @@ system/view/platform: context [
 				make-super-class #u16 "RedProgress" #u16 "msctls_progress32" 0 yes
 				make-super-class #u16 "RedSlider"	#u16 "msctls_trackbar32" 0 yes
 				make-super-class #u16 "RedTabpanel"	#u16 "SysTabControl32"	 0 yes
-
-				oldGroupBoxWndProc: make-super-class 
-					#u16 "RegGroubbox"
-					#u16 "BUTTON"
-					as-integer :GroupBoxWndProc
-					yes
 					
 				oldBaseWndProc: make-super-class 
 					#u16 "RedPanel"
@@ -1557,6 +1540,7 @@ system/view/platform: context [
 					offy	  [integer!]
 					value	  [integer!]
 					handle	  [handle!]
+					hWnd	  [handle!]
 					p		  [ext-class!]
 					id		  [integer!]
 					vertical? [logic!]
@@ -1600,7 +1584,10 @@ system/view/platform: context [
 						class: #u16 "RedButton"
 						flags: flags or WS_TABSTOP or BS_RADIOBUTTON
 					]
-					sym = panel [
+					any [
+						sym = panel 
+						sym = group-box
+					][
 						class: #u16 "RedPanel"
 						init-panel values as handle! parent
 						offx: offset/x					;-- refresh locals
@@ -1608,10 +1595,6 @@ system/view/platform: context [
 					]
 					sym = tab-panel [
 						class: #u16 "RedTabPanel"
-					]
-					sym = group-box [
-						class: #u16 "RegGroubbox"
-						flags: flags or WS_GROUP or BS_GROUPBOX
 					]
 					sym = field [
 						class: #u16 "RedField"
@@ -1759,6 +1742,25 @@ system/view/platform: context [
 					]
 					sym = tab-panel [
 						set-tabs handle values
+					]
+					sym = group-box [
+						flags: flags or WS_GROUP or BS_GROUPBOX
+						hWnd: CreateWindowEx
+							ws-flags
+							#u16 "BUTTON"
+							caption
+							flags
+							0
+							0
+							size/x
+							size/y
+							handle
+							null
+							hInstance
+							null
+						
+						SendMessage hWnd WM_SETFONT as-integer default-font 1
+						SetWindowLong handle wc-offset - 4 as-integer hWnd
 					]
 					sym = slider [
 						vertical?: size/y > size/x
