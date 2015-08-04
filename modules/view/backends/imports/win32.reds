@@ -16,6 +16,8 @@ Red/System [
 
 #define PBM_SETPOS			0402h
 
+#define TPM_RETURNCMD		0100h
+
 #define LB_ADDSTRING			384
 #define LB_GETCURSEL            0188h
 #define LB_SETHORIZONTALEXTENT  0194h
@@ -162,6 +164,7 @@ Red/System [
 #define WM_TIMER			0113h
 #define WM_HSCROLL			0114h
 #define WM_VSCROLL			0115h
+#define WM_INITMENU			0116h
 #define WM_MENUSELECT		011Fh
 #define WM_MENUCOMMAND		0126h
 #define WM_CTLCOLOREDIT		0133h
@@ -177,6 +180,7 @@ Red/System [
 #define WM_RBUTTONUP		0205h
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
+#define WM_ENTERMENULOOP	0211h
 
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh
@@ -760,7 +764,17 @@ DwmIsCompositionEnabled!: alias function! [
 			y			[integer!]
 			hWnd		[handle!]
 			lptpm		[byte-ptr!]						;-- null (LPTPMPARAMS)
+			return:		[integer!]
+		]
+		ClientToScreen: "ClientToScreen" [
+			hWnd		[handle!]
+			lpPoint		[tagPOINT]
 			return:		[logic!]
+		]
+		SetParent: "SetParent" [
+			hChild		[handle!]
+			hNewParent	[handle!]
+			return:		[handle!]						;-- old parent
 		]
 	]
 	"gdi32.dll" stdcall [

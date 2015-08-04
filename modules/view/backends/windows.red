@@ -95,6 +95,7 @@ system/view/platform: context [
 			wc-offset:		64							;-- offset to our 16 bytes
 			menu-selected:	-1							;-- last selected menu item ID
 			menu-handle: 	as handle! 0				;-- last selected menu handle
+			menu-window:	as handle! 0				;-- window where context menu was opened from
 
 			oldBaseWndProc:		0
 			
@@ -169,6 +170,20 @@ system/view/platform: context [
 			_F11:			word/load "F11"
 			_F12:			word/load "F12"
 			
+			get-face-values: func [
+				hWnd	[handle!]
+				return: [red-value!]
+				/local
+					ctx	 [red-context!]
+					node [node!]
+					s	 [series!]
+			][
+				node: as node! GetWindowLong hWnd wc-offset + 4
+				ctx: TO_CTX(node)
+				s: as series! ctx/values/value
+				s/offset
+			]
+			
 			get-node-facet: func [
 				node	[node!]
 				facet	[integer!]
@@ -185,15 +200,8 @@ system/view/platform: context [
 			get-facets: func [
 				msg		[tagMSG]
 				return: [red-value!]
-				/local
-					ctx	 [red-context!]
-					node [node!]
-					s	 [series!]
 			][
-				node: as node! GetWindowLong get-widget-handle msg wc-offset + 4
-				ctx: TO_CTX(node)
-				s: as series! ctx/values/value
-				s/offset
+				get-face-values get-widget-handle msg
 			]
 			
 			get-facet: func [
@@ -585,9 +593,11 @@ system/view/platform: context [
 							default [0]
 						]
 					]
-					WM_CONTEXTMENU [
-						current-msg/hWnd: as handle! wParam
-						show-context-menu current-msg lParam
+					WM_MENUSELECT [
+						if wParam <> FFFF0000h [
+							menu-selected: WIN32_LOWORD(wParam)
+							menu-handle: as handle! lParam
+						]
 						return 0
 					]
 					WM_ERASEBKGND [
@@ -615,6 +625,16 @@ system/view/platform: context [
 				switch msg [
 					WM_DESTROY [PostQuitMessage 0]
 					WM_COMMAND [
+						if all [zero? lParam wParam < 1000][ ;-- heuristic to detect a menu selection (--)'						
+							unless null? menu-handle [
+								res: get-menu-id menu-handle menu-selected
+								if null? menu-window [menu-window: hWnd]
+								current-msg/hWnd: menu-window
+								make-event current-msg res EVT_MENU
+								menu-window: null
+								return DefWindowProc hWnd msg wParam lParam
+							]
+						]
 						switch WIN32_HIWORD(wParam) [
 							BN_CLICKED [
 								make-event current-msg 0 EVT_CLICK
@@ -694,20 +714,14 @@ system/view/platform: context [
 							]
 						]
 					]
+					WM_ENTERMENULOOP [
+						if zero? wParam [menu-window: null]	;-- reset if entering menu bar
+					]
 					WM_MENUSELECT [
-						either wParam = FFFF0000h [
-							res: get-menu-id menu-handle menu-selected
-							current-msg/hWnd: hWnd
-							make-event current-msg res EVT_MENU
-							return 0
-						][
+						if wParam <> FFFF0000h [
 							menu-selected: WIN32_LOWORD(wParam)
 							menu-handle: as handle! lParam
 						]
-					]
-					WM_CONTEXTMENU [
-						current-msg/hWnd: as handle! wParam
-						show-context-menu current-msg lParam
 						return 0
 					]
 					default [0]
@@ -721,12 +735,28 @@ system/view/platform: context [
 				msg		[tagMSG]
 				return: [integer!]
 				/local
-					wParam [integer!]
+					lParam [integer!]
+					pt	   [tagPOINT]
 			][
 				switch msg/msg [
-					WM_LBUTTONDOWN	[make-event msg 0 EVT_LEFT_DOWN]
+					WM_LBUTTONDOWN	[
+						menu-window: null				;-- reset if user clicks on menu bar
+						make-event msg 0 EVT_LEFT_DOWN
+					]
 					WM_LBUTTONUP	[make-event msg 0 EVT_LEFT_UP]
-					WM_RBUTTONDOWN	[make-event msg 0 EVT_RIGHT_DOWN]
+					WM_RBUTTONDOWN	[
+						lParam: msg/lParam
+						pt: declare tagPOINT
+						pt/x: WIN32_LOWORD(lParam)
+						pt/y: WIN32_HIWORD(lParam)
+						ClientToScreen msg/hWnd pt
+						menu-window: null
+						either show-context-menu msg pt/x pt/y [
+							EVT_NO_PROCESS
+						][
+							make-event msg 0 EVT_RIGHT_DOWN
+						]
+					]
 					WM_RBUTTONUP	[make-event msg 0 EVT_RIGHT_UP]
 					WM_MBUTTONDOWN	[make-event msg 0 EVT_MIDDLE_DOWN]
 					WM_MBUTTONUP	[make-event msg 0 EVT_MIDDLE_UP]
@@ -1214,28 +1244,41 @@ system/view/platform: context [
 			]
 			
 			show-context-menu: func [
-				msg [tagMSG]
-				pos	[integer!]
+				msg		[tagMSG]
+				x		[integer!]
+				y		[integer!]
+				return: [logic!]						;-- TRUE: menu displayed
 				/local
 					values [red-value!]
 					spec   [red-block!]
 					w	   [red-word!]
+					hWnd   [handle!]
 			][
 				values: get-facets msg
 				spec: as red-block! values + FACE_OBJ_MENU
+				menu-selected: -1
+				menu-handle: null
 				
 				if TYPE_OF(spec) = TYPE_BLOCK [
 					w: as red-word! values + FACE_OBJ_TYPE
-					if menu-bar? spec symbol/resolve w/symbol [exit]
+					if menu-bar? spec symbol/resolve w/symbol [
+						return no
+					]
+					hWnd: GetParent msg/hWnd
+					if null? hWnd [hWnd: msg/hWnd]
+					menu-window: msg/hWnd
 					
 					TrackPopupMenuEx
 						build-menu spec CreatePopupMenu
-						0								;-- TPM_LEFTALIGN or TPM_TOPALIGN
-						WIN32_LOWORD(pos)
-						WIN32_HIWORD(pos)
-						msg/hWnd
-						null
+							0							;-- TPM_LEFTALIGN or TPM_TOPALIGN
+							x
+							y
+							GetParent msg/hWnd
+							null
+					
+					return yes
 				]
+				no
 			]
 			
 			get-menu-id: func [

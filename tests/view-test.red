@@ -175,6 +175,19 @@ win/pane: reduce [
 			make face! [type: 'button text: "Inside" offset: 20x20 size: 60x40]
 			set 'progress make face! [
 				type: 'progress offset: 10x80 size: 120x16
+				menu: [
+					"Set to 0%"		s0
+					"Set to 25%"	s25
+					"Set to 50%"	s50
+					"Set to 100%"	s100
+				]
+				actors: object [
+					on-menu: func [face [object!] event [event!]][
+						print ["context menu selected:" event/picked]
+						face/data: load append next form event/picked #"%"
+						show face
+					]
+				]
 			]
 			set 'progress-text make face! [
 				type: 'text text: "0" offset: 140x80 size: 30x16 color: white
@@ -263,10 +276,12 @@ win/pane: reduce [
 					]
 				]
 				menu: [
-					"Set progress to 0%"	s0
-					"Set progress to 25%"	s25
-					"Set progress to 50%"	s50
-					"Set progress to 100%"	s100
+					"Context menu 1"	menu1
+					"Context menu 2"	menu2
+					"Context menu 3"	[
+						"sub 1"		sub1
+						"sub 2"		sub2
+					]
 				]
 				actors: object [
 					on-menu: func [face [object!] event [event!]][
