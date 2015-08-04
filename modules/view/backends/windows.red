@@ -1252,6 +1252,25 @@ system/view/platform: context [
 				return item/dwItemData
 			]
 			
+			adjust-parent: func [						;-- prevent tabcontrol from having children
+				hWnd   [handle!]
+				parent [handle!]
+				x	   [integer!]
+				y	   [integer!]
+				/local
+					type [red-word!]
+					pos	 [red-pair!]
+			][
+				values: get-face-values parent
+				type: as red-word! values + FACE_OBJ_TYPE
+				
+				if tab-panel = symbol/resolve type/symbol [
+					SetParent hWnd GetParent parent
+					pos: as red-pair! values + FACE_OBJ_OFFSET
+					SetWindowPos hWnd null pos/x + x pos/y + y 0 0 SWP_NOSIZE or SWP_NOZORDER
+				]
+			]
+			
 			set-tabs: func [
 				hWnd   [handle!]
 				facets [red-value!]
@@ -1548,6 +1567,7 @@ system/view/platform: context [
 					str-saved [c-string!]
 					len		  [integer!]
 					csize	  [tagSIZE]
+					panel?	  [logic!]
 			][
 				ctx: GET_CTX(face)
 				s: as series! ctx/values/value
@@ -1568,6 +1588,7 @@ system/view/platform: context [
 				sym: 	  symbol/resolve type/symbol
 				offx:	  offset/x
 				offy:	  offset/y
+				panel?:	  no
 
 				if show?/value [flags: flags or WS_VISIBLE]
 
@@ -1592,6 +1613,7 @@ system/view/platform: context [
 						init-panel values as handle! parent
 						offx: offset/x					;-- refresh locals
 						offy: offset/y
+						panel?: yes
 					]
 					sym = tab-panel [
 						class: #u16 "RedTabPanel"
@@ -1761,6 +1783,9 @@ system/view/platform: context [
 						
 						SendMessage hWnd WM_SETFONT as-integer default-font 1
 						SetWindowLong handle wc-offset - 4 as-integer hWnd
+					]
+					panel? [
+						adjust-parent handle as handle! parent offx offy
 					]
 					sym = slider [
 						vertical?: size/y > size/x
