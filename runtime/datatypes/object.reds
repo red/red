@@ -912,7 +912,13 @@ object: context [
 					any [type2 = TYPE_INTEGER type2 = TYPE_FLOAT]
 				]
 			][
-				res: actions/compare-value value1 value2 op
+				switch TYPE_OF(value1) [
+					TYPE_OBJECT [
+						res: as-integer not natives/same? value1 value2 ;-- prevent cycles matching
+					]
+					TYPE_IMAGE [0]						;@@ placeholder for image/compare
+					default [res: actions/compare-value value1 value2 op]
+				]
 				sym1: sym1 + 1
 				sym2: sym2 + 1
 				value1: value1 + 1

@@ -646,20 +646,18 @@ natives: context [
 		actions/compare* COMP_GREATER_EQUAL
 	]
 	
-	same?*: func [
-		return:	   [red-logic!]
+	same?: func [
+		arg1    [red-value!]
+		arg2    [red-value!]
+		return:	[logic!]
 		/local
 			result [red-logic!]
-			arg1   [red-value!]
-			arg2   [red-value!]
 			type   [integer!]
 			res    [logic!]
 	][
-		arg1: stack/arguments
-		arg2: arg1 + 1
 		type: TYPE_OF(arg1)
-
 		res: false
+		
 		if type = TYPE_OF(arg2) [
 			case [
 				any [
@@ -692,9 +690,21 @@ natives: context [
 				]
 			]
 		]
-
+		res
+	]
+	
+	same?*: func [
+		return:	   [red-logic!]
+		/local
+			result [red-logic!]
+			arg1   [red-value!]
+			arg2   [red-value!]
+	][
+		arg1: stack/arguments
+		arg2: arg1 + 1
+		
 		result: as red-logic! arg1
-		result/value: res
+		result/value: same? arg1 arg2
 		result/header: TYPE_LOGIC
 		result
 	]
