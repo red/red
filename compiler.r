@@ -2695,7 +2695,7 @@ red: context [
 		/set?
 		/local 
 			path value emit? get? entry alter saved after dynamic? ctx mark obj?
-			fpath symbol obj self? true-blk defer obj-field?
+			fpath symbol obj self? true-blk defer obj-field? parent fire
 	][
 		path:  copy pc/1
 		emit?: yes
@@ -2817,9 +2817,15 @@ red: context [
 					to set-path! 'stack/top 'stack/top '+ 1
 					'word/get-local ctx get-word-index/with last path ctx
 				]
+				parent: first back back tail path
+				fire: pick [
+					object/loc-fire-on-set*
+					object/fire-on-set*
+				] to logic! local-word? parent
+				
 				repend last output [
-					'object/fire-on-set*
-						decorate-symbol first back back tail path
+					fire
+						decorate-symbol parent
 						decorate-symbol last path
 						'stack/top '- 1
 						'stack/top '- 2
