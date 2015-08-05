@@ -181,6 +181,17 @@ object: context [
 			_function/calc-arity null fun 0				;-- passing a null path triggers short code branch
 	]
 	
+	loc-fire-on-set*: func [								;-- compiled code entry point
+		parent [red-value!]
+		field  [red-word!]
+	][
+		fire-on-set
+			as red-object! parent
+			field
+			stack/top - 1
+			stack/top - 2
+	]
+	
 	fire-on-set*: func [								;-- compiled code entry point
 		parent [red-word!]
 		field  [red-word!]

@@ -20,6 +20,13 @@ print [
 	"build" system/view/platform/build
 ]
 
+sub-win: make face! [
+	type: 'window text: "Sub" offset: 200x200 size: 200x100
+	pane: reduce [
+		make face! [type: 'text text: "New window" offset: 10x10 size: 80x16 color: white]
+	]
+]
+
 win: make face! [
 	type: 'window text: "Red View" offset: 500x500 size: 800x600
 	menu: [
@@ -75,6 +82,9 @@ win: make face! [
 	actors: object [
 		on-menu: func [face [object!] event [event!]][
 			print ["menu selected:" event/picked]
+		]
+		on-close: func [face [object!] event [event!]][
+			print "closing window"
 		]
 	]
 ]
@@ -369,7 +379,15 @@ win/pane: reduce [
 		]
 	]
 	set 'camera-info make face! [
-			type: 'text text: "" offset: 600x405 size: 80x16
+		type: 'text text: "" offset: 600x405 size: 80x16
+	]
+	make face! [
+		type: 'button text: "Sub-window" offset: 400x440 size: 70x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				show sub-win
+			]
+		]
 	]
 ]
 show win

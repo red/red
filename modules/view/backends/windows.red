@@ -57,6 +57,7 @@ system/view/platform: context [
 				EVT_SELECT
 				EVT_CHANGE
 				EVT_MENU
+				EVT_CLOSE
 			]
 			
 			#enum event-flag! [
@@ -126,6 +127,7 @@ system/view/platform: context [
 			
 			---:			symbol/make "---"
 			done:			symbol/make "done"
+			_continue:		symbol/make "continue"
 			stop:			symbol/make "stop"
 			popup:			symbol/make "popup"
 				
@@ -146,6 +148,7 @@ system/view/platform: context [
 			_select:		word/load "select"
 			_change:		word/load "change"
 			_menu:			word/load "menu"
+			_close:			word/load "close"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -283,6 +286,7 @@ system/view/platform: context [
 					EVT_SELECT	 	 [_select]
 					EVT_CHANGE		 [_change]
 					EVT_MENU		 [_menu]
+					EVT_CLOSE		 [_close]
 				]
 			]
 			
@@ -623,7 +627,6 @@ system/view/platform: context [
 					nmhdr  [tagNMHDR]
 			][
 				switch msg [
-					WM_DESTROY [PostQuitMessage 0]
 					WM_COMMAND [
 						if all [zero? lParam wParam < 1000][ ;-- heuristic to detect a menu selection (--)'						
 							unless null? menu-handle [
@@ -722,6 +725,13 @@ system/view/platform: context [
 							menu-selected: WIN32_LOWORD(wParam)
 							menu-handle: as handle! lParam
 						]
+						return 0
+					]
+					WM_CLOSE [
+						res: make-event current-msg 0 EVT_CLOSE
+						if res  = EVT_DISPATCH_AND_PROCESS [return 0]	;-- continue
+						if res <= EVT_DISPATCH   [DestroyWindow hWnd]	;-- done
+						if res  = EVT_NO_PROCESS [PostQuitMessage 0]	;-- stop
 						return 0
 					]
 					default [0]
@@ -2064,8 +2074,9 @@ system/view/platform: context [
 	]
 
 	do-event-loop: routine [no-wait? [logic!]][
-		print-line "do-event-loop"
+		probe "do-event-loop"
 		gui/do-events no-wait?
+		probe "exited from event-loop"
 	]
 	
 	init: has [svs][

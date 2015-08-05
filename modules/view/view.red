@@ -72,6 +72,7 @@ system/view: context [
 		select			on-select
 		change			on-change
 		menu			on-menu
+		close			on-close
 	)
 	
 	awake: function [event [event!]][					;@@ temporary until event:// is implemented
@@ -104,8 +105,21 @@ system/view: context [
 			act: in face/actors select evt-names type
 			act: get act
 		][
-			do [act face event]
+			set 'result do [act face event]
 		]
+		
+		if all [type = 'close :result <> 'continue][
+			reset-face face
+			windows: head remove find system/view/screens/1/pane face
+			result: pick [stop done] tail? windows
+		]	
+		:result
+	]
+	
+	reset-face: function [face [face!]][
+		if block? face/pane [foreach f face/pane [reset-face f]]
+		;system/view/platform/free-face f
+		face/state: none
 	]
 
 	debug?: yes
@@ -125,7 +139,7 @@ show: function [face [object!] /with parent [object!]][
 	][
 		new?: yes
 		if face/type <> 'screen [
-			if all [object? face/actors	in face/actors 'on-make][
+			if all [object? face/actors in face/actors 'on-make][
 				do [face/actors/on-make face]
 			]
 			p: either with [parent/state/1][0]
