@@ -513,6 +513,7 @@ system/view/platform: context [
 			build-preview-graph: func [
 				cam 		[camera!]
 				hWnd		[handle!]
+				return:		[integer!]
 				/local
 					filter	[this!]
 					IVM		[interface!]
@@ -528,7 +529,16 @@ system/view/platform: context [
 				IVM:	 declare interface!
 
 				hr: builder/RenderStream cam/builder PIN_CATEGORY_PREVIEW MEDIATYPE_Interleaved filter null null
-				hr: builder/RenderStream cam/builder PIN_CATEGORY_PREVIEW MEDIATYPE_Video filter null null
+				case [
+					hr = VFW_S_NOPREVIEWPIN [1]
+					hr <> 0 [
+						hr: builder/RenderStream cam/builder PIN_CATEGORY_PREVIEW MEDIATYPE_Video filter null null
+						case [
+							hr = VFW_S_NOPREVIEWPIN [1]
+							hr <> 0 [probe "This device cannot preview!" return -1]
+						]
+					]
+				]
 				hr: graph/QueryInterface cam/graph IID_IVideoWindow IVM
 				cam/window: IVM/ptr
 
@@ -553,6 +563,7 @@ system/view/platform: context [
 			][
 				this: declare interface!
 				cam: as camera! GetWindowLong handle wc-offset - 4
+				if cam = null [exit]
 				graph: as IGraphBuilder cam/graph/vtbl
 
 				hr: graph/QueryInterface cam/graph IID_IMediaControl this
@@ -608,8 +619,15 @@ system/view/platform: context [
 				IBag:  declare interface!
 
 				hr: CoCreateInstance CLSID_SystemDeviceEnum 0 1 IID_ICreateDevEnum IDev
+				if hr <> 0 [probe "Error Creating Device Enumerator" return 0]
+
 				dev: as ICreateDevEnum IDev/ptr/vtbl
 				hr: dev/CreateClassEnumerator IDev/ptr CLSID_VideoInputDeviceCategory IEnum 0
+				if hr <> 0 [
+					probe "No video capture hardware"
+					dev/Release IDev/ptr
+					return 0
+				]
 				dev/Release IDev/ptr
 
 				em: as IEnumMoniker IEnum/ptr/vtbl
@@ -1211,6 +1229,7 @@ system/view/platform: context [
 				wcex/lpfnWndProc:	:CameraWndProc
 				wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
 				wcex/hInstance:		hInstance
+				wcex/hbrBackground:	COLOR_BACKGROUND + 1
 				wcex/lpszClassName: #u16 "RedCamera"
 				
 				RegisterClassEx wcex
@@ -1908,10 +1927,13 @@ system/view/platform: context [
 				case [
 					sym = camera [
 						cam: as camera! allocate size? camera!			;@@ need to be freed
-						SetWindowLong handle wc-offset - 4 collect-camera cam data
-						init-graph cam 0
-						build-preview-graph cam handle
-						toggle-preview handle open?/value
+						value: collect-camera cam data
+						SetWindowLong handle wc-offset - 4 value
+						either zero? value [free as byte-ptr! cam][
+							init-graph cam 0
+							build-preview-graph cam handle
+							toggle-preview handle open?/value
+						]
 					]
 					sym = text-list [
 						if any [

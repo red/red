@@ -362,7 +362,7 @@ win/pane: reduce [
 			]
 		]
 	]
-	drop-list: make face! [
+	make face! [
 		type: 'drop-list offset: 480x402 size: 160x32
 		actors: object [
 			on-make: func [face [object!]][
