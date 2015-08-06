@@ -125,8 +125,7 @@ system/view: context [
 	debug?: yes
 ]
 
-;#include %backends/android.red
-#include %backends/windows.red
+#include %backends/platform.red
 #include %VID.red
 
 do-events: func [/no-wait][

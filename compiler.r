@@ -3404,7 +3404,7 @@ red: context [
 				]
 			]
 			cmd: to path! reduce [to word! form get type 'push]
-			if global? [insert cmd 'red]
+			if global? [insert cmd pick [exec red] type = 'event!] ;@@ ad-hoc treatment of event!...
 			emit cmd
 			insert-lf -1
 			case [
