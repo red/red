@@ -635,10 +635,10 @@ system/view/platform: context [
 				var/data1: 8 << 16				;-- var.vt = VT_BSTR
 				dev-ptr: (as int-ptr! cam) + 4
 				fetched: 0
-				while [
-					hr: em/Next IEnum/ptr 1 IM :fetched
-					zero? hr
-				][
+
+				hr: em/Next IEnum/ptr 1 IM :fetched
+				either zero? hr [block/make-at data 2][return 0]
+				until [
 					moniker: as IMoniker IM/ptr/vtbl
 					hr: moniker/BindToStorage IM/ptr 0 0 IID_IPropertyBag IBag
 					if hr >= 0 [
@@ -647,7 +647,6 @@ system/view/platform: context [
 						if zero? hr [
 							len: as int-ptr! var/data3 - 4
 							size: len/value >> 1
-							block/make-at data 2
 							str: string/make-at ALLOC_TAIL(data) size 2
 							unicode/load-utf16 as c-string! var/data3 size str
 							dev-ptr/value: as-integer IM/ptr
@@ -657,6 +656,8 @@ system/view/platform: context [
 						bag/Release IBag/ptr
 					]
 					moniker/Release IM/ptr
+					hr: em/Next IEnum/ptr 1 IM :fetched
+					hr <> 0
 				]
 				em/Release IEnum/ptr
 				as-integer cam
