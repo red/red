@@ -388,8 +388,10 @@ build-preview-graph: func [
 			case [
 				hr = VFW_S_NOPREVIEWPIN [1]
 				hr <> 0 [probe "This device cannot preview!" return -1]
+				true [1]
 			]
 		]
+		true [1]
 	]
 	hr: graph/QueryInterface cam/graph IID_IVideoWindow IVM
 	cam/window: IVM/ptr
