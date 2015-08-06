@@ -352,7 +352,6 @@ win/pane: reduce [
 	]
 	set 'cam make face! [
 		type: 'camera offset: 400x140 size: 320x240
-		enable?: no
 	]
 	make face! [
 		type: 'button text: "Start/Stop" offset: 400x400 size: 70x24
@@ -364,22 +363,18 @@ win/pane: reduce [
 		]
 	]
 	make face! [
-		type: 'button text: "Select Camera" offset: 480x400 size: 100x24
+		type: 'drop-list offset: 480x402 size: 160x32
 		actors: object [
-			on-click: func [face [object!] event [event!]][
-				cam/selected: 0
+			on-make: func [face [object!]][
+				face/data: cam/data
+				face/selected: 1
+			]
+			on-change: func [face [object!] event [event!]][
+				print ["changed:" face/selected]
+				cam/selected: face/selected
 				show cam
-				either cam/selected = -1 [
-					camera-info/text: "No Camera"
-				][
-					camera-info/visible?: no
-				]
-				show camera-info
 			]
 		]
-	]
-	set 'camera-info make face! [
-		type: 'text text: "" offset: 600x405 size: 80x16
 	]
 	make face! [
 		type: 'button text: "Sub-window" offset: 400x440 size: 70x24

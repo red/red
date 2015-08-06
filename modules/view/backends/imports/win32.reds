@@ -28,6 +28,7 @@ Red/System [
 #define SW_HIDE				0
 #define SW_SHOW				5
 
+#define COLOR_BACKGROUND	1
 #define COLOR_MENU			4
 #define COLOR_WINDOW		5
 #define COLOR_3DFACE		15
