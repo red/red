@@ -1263,6 +1263,7 @@ system/view/platform: context [
 					spec   [red-block!]
 					w	   [red-word!]
 					hWnd   [handle!]
+					hMenu  [handle!]
 			][
 				values: get-facets msg
 				spec: as red-block! values + FACE_OBJ_MENU
@@ -1278,13 +1279,9 @@ system/view/platform: context [
 					if null? hWnd [hWnd: msg/hWnd]
 					menu-window: msg/hWnd
 					
-					TrackPopupMenuEx
-						build-menu spec CreatePopupMenu
-							0							;-- TPM_LEFTALIGN or TPM_TOPALIGN
-							x
-							y
-							GetParent msg/hWnd
-							null
+					hMenu: build-menu spec CreatePopupMenu
+					TrackPopupMenuEx hMenu 0 x y GetParent msg/hWnd null
+					DestroyMenu hMenu
 					
 					return yes
 				]

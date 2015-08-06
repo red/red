@@ -781,6 +781,10 @@ DwmIsCompositionEnabled!: alias function! [
 			hNewParent	[handle!]
 			return:		[handle!]						;-- old parent
 		]
+		DestroyMenu: "DestroyMenu" [
+			hMenu		[handle!]
+			return:		[logic!]
+		]
 	]
 	"gdi32.dll" stdcall [
 		GetTextExtentPoint32: "GetTextExtentPoint32W" [
