@@ -1,5 +1,5 @@
 Red [
-	Title:	"Windows platoform GUI backend"
+	Title:	"Platform-independent part of the GUI backend"
 	Author: "Nenad Rakocevic, Xie Qingtian"
 	File: 	%platform.red
 	Tabs: 	4
