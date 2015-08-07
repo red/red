@@ -147,8 +147,6 @@ enable-visual-styles: func [
 
 	sz: GetSystemDirectory dir 128
 	if sz > 128 [probe "*** GetSystemDirectory: buffer overflow"]
-	sz: sz + 1
-	dir/sz: null-byte
 
 	actctx: CreateActCtx ctx
 	ActivateActCtx actctx cookie
@@ -192,6 +190,7 @@ free-handles: func [
 		pane   [red-block!]
 		state  [red-value!]
 		sym	   [integer!]
+		cam	   [camera!]
 ][
 	values: get-face-values hWnd
 	type: as red-word! values + FACE_OBJ_TYPE
@@ -213,12 +212,14 @@ free-handles: func [
 			;-- destroy the extra frame window
 			DestroyWindow as handle! GetWindowLong hWnd wc-offset - 4 as-integer hWnd
 		]
-		;sym = _image [
-		;
-		;]
-		;sym = camera [
-		;
-		;]
+		sym = _image [
+			DeleteDC as handle! GetWindowLong hWnd wc-offset - 4
+		]
+		sym = camera [
+			cam: as camera! GetWindowLong hWnd wc-offset - 4
+			teardown-graph cam
+			free-graph cam
+		]
 		true [
 			0
 			;; handle user-provided classes too

@@ -11,9 +11,11 @@ Red/System [
 ]
 
 #define COM_SAFE_RELEASE(interface this) [
-	interface: as IUnknown this/vtbl
-	interface/Release this
-	this: null
+	if this <> null [
+		interface: as IUnknown this/vtbl
+		interface/Release this
+		this: null
+	]
 ]
 
 #define COINIT_APARTMENTTHREADED	2
