@@ -48,6 +48,7 @@ get-event-offset: func [
 	return: [red-value!]
 	/local
 		offset [red-pair!]
+		int  [red-integer!]
 		value  [integer!]
 		msg    [tagMSG]
 ][
@@ -56,10 +57,16 @@ get-event-offset: func [
 
 		offset: as red-pair! stack/push*
 		offset/header: TYPE_PAIR
-		value: msg/lParam
+		either evt/type = EVT_WHEEL [
+			offset/x: 0
+			offset/y: (msg/wParam >> 16) / WHEEL_DELTA
+		][
+			value: msg/lParam
 
-		offset/x: WIN32_LOWORD(value)
-		offset/y: WIN32_HIWORD(value)
+			offset/x: WIN32_LOWORD(value)
+			offset/y: WIN32_HIWORD(value)
+		]
+		
 		as red-value! offset
 	][
 		as red-value! none-value
@@ -237,7 +244,6 @@ WndProc: func [
 		res	   [integer!]
 		color  [integer!]
 		handle [handle!]
-		distance [integer!]
 		nmhdr  [tagNMHDR]
 ][
 	switch msg [
@@ -313,8 +319,9 @@ WndProc: func [
 			]
 		]
 		WM_MOUSEWHEEL [
-			distance: (wParam >> 16) / WHEEL_DELTA
-			print-line ["WM_MOUSEWHEEL: " wParam " " lParam " distance: " distance ]
+			current-msg/hWnd: as handle! lParam
+			make-event current-msg 0 EVT_WHEEL
+			return 0
 		]
 		WM_ERASEBKGND [
 			if paint-background hWnd as handle! wParam [return 1]

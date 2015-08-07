@@ -46,6 +46,7 @@ system/view/platform: context [
 				EVT_AUX_UP
 				EVT_CLICK
 				EVT_DBL_CLICK
+				EVT_WHEEL
 				EVT_MOVE								;-- last mouse event
 				
 				EVT_KEY
@@ -56,6 +57,8 @@ system/view/platform: context [
 				EVT_CHANGE
 				EVT_MENU
 				EVT_CLOSE
+
+				
 			]
 			
 			#enum event-flag! [
@@ -109,6 +112,7 @@ system/view/platform: context [
 			_change:		word/load "change"
 			_menu:			word/load "menu"
 			_close:			word/load "close"
+			_wheel:			word/load "wheel"
 			
 			_page-up:		word/load "page-up"
 			_page_down:		word/load "page-down"
@@ -156,6 +160,7 @@ system/view/platform: context [
 					EVT_CHANGE		 [_change]
 					EVT_MENU		 [_menu]
 					EVT_CLOSE		 [_close]
+					EVT_WHEEL		 [_wheel]
 				]
 			]
 
