@@ -50,11 +50,13 @@ free-graph: func [cam [camera!] /local interface [IUnknown]][
 ]
 
 teardown-graph: func [cam [camera!] /local w [IVideoWindow]][
-	w: as IVideoWindow cam/window/vtbl
-	w/put_Owner cam/window null
-	w/put_Visible cam/window 0
-	w/Release cam/window
-	cam/window: null
+	unless cam/window = null [
+		w: as IVideoWindow cam/window/vtbl
+		w/put_Owner cam/window null
+		w/put_Visible cam/window 0
+		w/Release cam/window
+		cam/window: null
+	]
 ]
 
 init-graph: func [
@@ -92,7 +94,10 @@ init-graph: func [
 
 	hr: moniker/BindToObject dev 0 0 IID_IBaseFilter ICap
 	hr: graph/AddFilter IG/ptr ICap/ptr null
-	cam/v-filter: ICap/ptr
+	cam/v-filter: either zero? hr [ICap/ptr][
+		print-line ["Error " hr ": Cannot add videocap to filtergraph"]
+		null
+	]
 ]
 
 build-preview-graph: func [
@@ -107,6 +112,7 @@ build-preview-graph: func [
 		builder [ICaptureGraphBuilder2]
 		video	[IVideoWindow]
 		hr		[integer!]
+		rect	[RECT_STRUCT]
 ][
 	builder: as ICaptureGraphBuilder2 cam/builder/vtbl
 	graph:   as IGraphBuilder cam/graph/vtbl
@@ -127,15 +133,21 @@ build-preview-graph: func [
 		true [1]
 	]
 	hr: graph/QueryInterface cam/graph IID_IVideoWindow IVM
-	cam/window: IVM/ptr
-
-	rect: declare RECT_STRUCT
-	GetClientRect hWnd rect
-	video: as IVideoWindow IVM/ptr/vtbl
-	video/put_Owner IVM/ptr hWnd
-	video/put_WindowStyle IVM/ptr WS_CHILD
-	video/SetWindowPosition IVM/ptr 0 0 rect/right rect/bottom
-	video/put_Visible IVM/ptr -1
+	either zero? hr [
+		rect: declare RECT_STRUCT
+		GetClientRect hWnd rect
+		video: as IVideoWindow IVM/ptr/vtbl
+		video/put_Owner IVM/ptr hWnd
+		video/put_WindowStyle IVM/ptr WS_CHILD
+		video/SetWindowPosition IVM/ptr 0 0 rect/right rect/bottom
+		video/put_Visible IVM/ptr -1
+		cam/window: IVM/ptr
+	][
+		cam/window: null
+		probe "This graph cannot preview"
+		return -1
+	]
+	0
 ]
 
 toggle-preview: func [
