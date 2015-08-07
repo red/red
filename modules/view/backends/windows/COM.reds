@@ -246,21 +246,6 @@ IVideoWindow: alias struct! [
 	IsCursorHidden			[integer!]
 ]
 
-camera!: alias struct! [
-	builder		[this!]
-	graph		[this!]
-	v-filter	[this!]
-	window		[this!]
-	dev1		[this!]
-	dev2		[this!]
-	dev3		[this!]
-	dev4		[this!]
-	dev5		[this!]
-	dev6		[this!]
-	dev7		[this!]
-	dev8		[this!]
-]
-
 #import [
 	"ole32.dll" stdcall [
 		CoInitializeEx: "CoInitializeEx" [

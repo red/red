@@ -10,6 +10,21 @@ Red/System [
 	}
 ]
 
+camera!: alias struct! [
+	builder		[this!]
+	graph		[this!]
+	v-filter	[this!]
+	window		[this!]
+	dev1		[this!]
+	dev2		[this!]
+	dev3		[this!]
+	dev4		[this!]
+	dev5		[this!]
+	dev6		[this!]
+	dev7		[this!]
+	dev8		[this!]
+]
+
 free-graph: func [cam [camera!] /local interface [IUnknown]][
 	COM_SAFE_RELEASE(interface cam/builder)
 	COM_SAFE_RELEASE(interface cam/graph)
