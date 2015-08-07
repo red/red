@@ -141,6 +141,7 @@ Red/System [
 #define BS_AUTORADIOBUTTON	00000009h
 
 #define ES_LEFT				00000000h
+#define ES_AUTOHSCROLL      00000080h
 #define SS_LEFT				00000010h
 #define SS_SIMPLE			00000000h
 

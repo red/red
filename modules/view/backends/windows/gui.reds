@@ -512,7 +512,7 @@ OS-make-view: func [
 		]
 		sym = field [
 			class: #u16 "RedField"
-			flags: flags or ES_LEFT
+			flags: flags or ES_LEFT or ES_AUTOHSCROLL
 			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
 		]
 		sym = text [
