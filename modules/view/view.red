@@ -124,9 +124,22 @@ do-events: func [/no-wait][
 	system/view/platform/do-event-loop no
 ]
 
-show: function [face [object!] /with parent [object!]][
+show: function [
+	"Display a new face or update it"
+	face [object!]		 "Face object to display"
+	/with				 "Link the face to a parent face"
+		parent [object!] "Parent face to link to"
+][
 	either all [face/state face/state/1][
 		if face/state/2 <> 0 [system/view/platform/update-view face]
+		
+		unless face/state/3 [
+			if all [object? face/actors in face/actors 'on-close][
+				do [face/actors/on-close face]
+			]
+			system/view/platform/close-view face
+			exit
+		]
 	][
 		new?: yes
 		if face/type <> 'screen [
@@ -158,6 +171,31 @@ show: function [face [object!] /with parent [object!]][
 	
 	if all [new? face/type = 'window][
 		system/view/platform/show-window obj
+	]
+]
+
+unview: function [
+	"Close last opened window view"
+	/all  "Close all views"
+	/only "Close a given view"
+		face [object!] "Window view to close"
+][
+	_all: :all											;-- compiler does not support redefining ALL
+	if empty? pane: system/view/screens/1/pane [exit]
+	
+	case [
+		only  [
+		
+		]
+		_all  [
+		
+		]
+		'else [
+			face: last pane
+			remove back tail pane
+			face/state/3: none
+			show face
+		]
 	]
 ]
 

@@ -181,8 +181,9 @@ system/view/platform: context [
 		SET_RETURN(pair)
 	]
 	
+	close-view:  routine [face [object!]][gui/OS-close-view face]
 	update-view: routine [face [object!]][gui/OS-update-view face]
-	show-window: routine [id [integer!]][gui/OS-show-window id]
+	show-window: routine [id [integer!]] [gui/OS-show-window id]
 
 	make-view: routine [
 		face	[object!]

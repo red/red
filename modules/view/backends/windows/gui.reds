@@ -874,3 +874,9 @@ OS-update-view: func [
 	]
 	int/value: 0									;-- reset flags
 ]
+
+OS-close-view: func [
+	face [red-object!]
+][
+	free-handles get-face-handle face
+]

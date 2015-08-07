@@ -23,7 +23,13 @@ print [
 sub-win: make face! [
 	type: 'window text: "Sub" offset: 200x200 size: 200x100
 	pane: reduce [
-		make face! [type: 'text text: "New window" offset: 10x10 size: 80x16 color: white]
+		make face! [type: 'text text: "New window" offset: 10x10 size: 80x20 color: white]
+		make face! [
+			type: 'button text: "Close" offset: 120x10 size: 60x20
+			actors: object [
+				on-click: func [face [object!] event [event!]][unview]
+			]
+		]
 	]
 ]
 

@@ -241,7 +241,7 @@ WndProc: func [
 ][
 	switch msg [
 		WM_COMMAND [
-			if all [zero? lParam wParam < 1000][ ;-- heuristic to detect a menu selection (--)'						
+			if all [zero? lParam wParam < 1000][ ;-- heuristic to detect a menu selection (--)'
 				unless null? menu-handle [
 					res: get-menu-id menu-handle menu-selected
 					if null? menu-origin [menu-origin: hWnd]
@@ -254,8 +254,8 @@ WndProc: func [
 			]
 			switch WIN32_HIWORD(wParam) [
 				BN_CLICKED [
-					make-event current-msg 0 EVT_CLICK
 					type: as red-word! get-facet current-msg FACE_OBJ_TYPE
+					make-event current-msg 0 EVT_CLICK	;-- should be *after* get-facet call (Windows closing on click case)
 					if any [
 						type/symbol = check
 						type/symbol = radio
