@@ -515,6 +515,11 @@ OS-make-view: func [
 			flags: flags or ES_LEFT or ES_AUTOHSCROLL
 			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
 		]
+		sym = area [
+			class: #u16 "RedField"
+			flags: flags or ES_LEFT or ES_AUTOVSCROLL or ES_AUTOHSCROLL or ES_MULTILINE
+			ws-flags: WS_TABSTOP or WS_EX_CLIENTEDGE
+		]
 		sym = text [
 			class: #u16 "RedFace"
 			flags: flags or SS_SIMPLE

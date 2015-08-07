@@ -70,6 +70,7 @@ system/view/platform: context [
 			check:			symbol/make "check"
 			radio:			symbol/make "radio"
 			field:			symbol/make "field"
+			area:			symbol/make "area"
 			text:			symbol/make "text"
 			text-list:		symbol/make "text-list"
 			progress:		symbol/make "progress"
