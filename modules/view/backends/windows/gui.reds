@@ -42,7 +42,8 @@ wc-extra:		80							;-- reserve 64 bytes for win32 internal usage (arbitrary)
 wc-offset:		64							;-- offset to our 16 bytes
 menu-selected:	-1							;-- last selected menu item ID
 menu-handle: 	as handle! 0				;-- last selected menu handle
-menu-window:	as handle! 0				;-- window where context menu was opened from
+menu-origin:	as handle! 0				;-- window where context menu was opened from
+menu-ctx:		as handle! 0				;-- context menu handle
 
 oldBaseWndProc:		0
 
@@ -647,11 +648,11 @@ WndProc: func [
 			if all [zero? lParam wParam < 1000][ ;-- heuristic to detect a menu selection (--)'						
 				unless null? menu-handle [
 					res: get-menu-id menu-handle menu-selected
-					if null? menu-window [menu-window: hWnd]
-					current-msg/hWnd: menu-window
+					if null? menu-origin [menu-origin: hWnd]
+					current-msg/hWnd: menu-origin
 					make-event current-msg res EVT_MENU
-					;@@destroy here
-					menu-window: null
+					unless null? menu-ctx [DestroyMenu menu-ctx]
+					menu-origin: null
 					return DefWindowProc hWnd msg wParam lParam
 				]
 			]
@@ -735,7 +736,10 @@ WndProc: func [
 			]
 		]
 		WM_ENTERMENULOOP [
-			if zero? wParam [menu-window: null]	;-- reset if entering menu bar
+			if zero? wParam [							;-- reset if entering menu bar
+				menu-origin: null
+				menu-ctx: null
+			]
 		]
 		WM_MENUSELECT [
 			if wParam <> FFFF0000h [
@@ -767,7 +771,8 @@ pre-process: func [
 ][
 	switch msg/msg [
 		WM_LBUTTONDOWN	[
-			menu-window: null				;-- reset if user clicks on menu bar
+			menu-origin: null				;-- reset if user clicks on menu bar
+			menu-ctx: null
 			make-event msg 0 EVT_LEFT_DOWN
 		]
 		WM_LBUTTONUP	[make-event msg 0 EVT_LEFT_UP]
@@ -777,7 +782,8 @@ pre-process: func [
 			pt/x: WIN32_LOWORD(lParam)
 			pt/y: WIN32_HIWORD(lParam)
 			ClientToScreen msg/hWnd pt
-			menu-window: null
+			menu-origin: null
+			menu-ctx: null
 			either show-context-menu msg pt/x pt/y [
 				EVT_NO_PROCESS
 			][
@@ -1297,12 +1303,11 @@ show-context-menu: func [
 		]
 		hWnd: GetParent msg/hWnd
 		if null? hWnd [hWnd: msg/hWnd]
-		menu-window: msg/hWnd
+		menu-origin: msg/hWnd
 
 		hMenu: build-menu spec CreatePopupMenu
-		TrackPopupMenuEx hMenu 0 x y GetParent msg/hWnd null		
-		;DestroyMenu hMenu
-
+		menu-ctx: hMenu
+		TrackPopupMenuEx hMenu 0 x y GetParent msg/hWnd null
 		return yes
 	]
 	no
