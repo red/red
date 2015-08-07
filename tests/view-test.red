@@ -117,6 +117,14 @@ win/pane: reduce [
 			]
 		]
 	]
+	make face! [
+		type: 'area text: {Multiline area widget} offset: 580x24 size: 160x100
+		actors: object [
+			on-change: func [face [object!] event [event!]][
+				print ["field changed:" mold face/text]
+			]
+		]
+	]
 	simple: make face! [type: 'base offset: 200x50 size: 80x24 visible?: no color: red]
 	make face! [
 		type: 'button text: "Show/Hide" offset: 200x80 size: 70x24
