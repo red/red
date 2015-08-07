@@ -10,7 +10,7 @@ Red/System [
 	}
 ]
 
-#define OS_DIR_SEP 47						;-- #"\"
+#define OS_DIR_SEP 47						;-- #"/"
 
 #import [									;-- mandatory C bindings
 	LIBC-file cdecl [
