@@ -1,7 +1,7 @@
 Red/System [
 	Title:	"Windows platform COM imports"
 	Author: "Qingtian Xie"
-	File: 	%com.red
+	File: 	%COM.red
 	Tabs: 	4
 	Rights: "Copyright (C) 2015 Qingtian Xie. All rights reserved."
 	License: {
