@@ -400,6 +400,52 @@ get-screen-size: func [
 		GetDeviceCaps hScreen VERTRES
 ]
 
+init-text-list: func [
+	hWnd		  [handle!]
+	data		  [red-block!]
+	selected	  [red-integer!]
+	/local
+		str		  [red-string!]
+		tail	  [red-string!]
+		c-str	  [c-string!]
+		str-saved [c-string!]
+		len		  [integer!]
+		value	  [integer!]
+		csize	  [tagSIZE]
+][
+	if any [
+		TYPE_OF(data) = TYPE_BLOCK
+		TYPE_OF(data) = TYPE_HASH
+		TYPE_OF(data) = TYPE_MAP
+	][
+		csize: declare tagSIZE
+		len: 0
+		str:  as red-string! block/rs-head data
+		tail: as red-string! block/rs-tail data
+		while [str < tail][
+			c-str: unicode/to-utf16 str
+			value: string/rs-length? str
+			if len < value [len: value str-saved: c-str]
+			if TYPE_OF(str) = TYPE_STRING [
+				SendMessage 
+					hWnd
+					LB_ADDSTRING
+					0
+					as-integer c-str
+			]
+			str: str + 1
+		]
+		unless zero? len [
+			GetTextExtentPoint32 GetDC hWnd str-saved len csize
+			SendMessage hWnd LB_SETHORIZONTALEXTENT csize/width 0
+		]
+	]
+	if TYPE_OF(selected) <> TYPE_INTEGER [
+		selected/header: TYPE_INTEGER
+		selected/value: -1
+	]
+]
+
 DWM-enabled?: func [
 	return:		[logic!]
 	/local
@@ -440,6 +486,7 @@ OS-make-view: func [
 		menu	  [red-block!]
 		show?	  [red-logic!]
 		open?	  [red-logic!]
+		selected  [red-integer!]
 		flags	  [integer!]
 		ws-flags  [integer!]
 		sym		  [integer!]
@@ -453,26 +500,22 @@ OS-make-view: func [
 		p		  [ext-class!]
 		id		  [integer!]
 		vertical? [logic!]
-		c-str	  [c-string!]
-		str-saved [c-string!]
-		len		  [integer!]
-		csize	  [tagSIZE]
 		panel?	  [logic!]
-		cam		  [camera!]
 ][
 	ctx: GET_CTX(face)
 	s: as series! ctx/values/value
 	values: s/offset
 
-	type:	as red-word!	values + FACE_OBJ_TYPE
-	str:	as red-string!	values + FACE_OBJ_TEXT
-	offset: as red-pair!	values + FACE_OBJ_OFFSET
-	size:	as red-pair!	values + FACE_OBJ_SIZE
-	show?:	as red-logic!	values + FACE_OBJ_VISIBLE?
-	open?:	as red-logic!	values + FACE_OBJ_ENABLE?
-	data:	as red-block!	values + FACE_OBJ_DATA
-	img:	as red-image!	values + FACE_OBJ_IMAGE
-	menu:	as red-block!	values + FACE_OBJ_MENU
+	type:	  as red-word!		values + FACE_OBJ_TYPE
+	str:	  as red-string!	values + FACE_OBJ_TEXT
+	offset:   as red-pair!		values + FACE_OBJ_OFFSET
+	size:	  as red-pair!		values + FACE_OBJ_SIZE
+	show?:	  as red-logic!		values + FACE_OBJ_VISIBLE?
+	open?:	  as red-logic!		values + FACE_OBJ_ENABLE?
+	data:	  as red-block!		values + FACE_OBJ_DATA
+	img:	  as red-image!		values + FACE_OBJ_IMAGE
+	menu:	  as red-block!		values + FACE_OBJ_MENU
+	selected: as red-integer!	values + FACE_OBJ_SELECTED
 
 	flags: 	  WS_CHILD
 	ws-flags: 0
@@ -597,72 +640,10 @@ OS-make-view: func [
 
 	;-- extra initialization
 	case [
-		sym = camera [
-			cam: as camera! allocate size? camera!			;@@ need to be freed
-			value: collect-camera cam data
-			SetWindowLong handle wc-offset - 4 value
-			either zero? value [free as byte-ptr! cam][
-				init-graph cam 0
-				build-preview-graph cam handle
-				toggle-preview handle open?/value
-			]
-		]
-		sym = text-list [
-			if any [
-				TYPE_OF(data) = TYPE_BLOCK
-				TYPE_OF(data) = TYPE_HASH
-				TYPE_OF(data) = TYPE_MAP
-			][
-				csize: declare tagSIZE
-				len: 0
-				str:  as red-string! block/rs-head data
-				tail: as red-string! block/rs-tail data
-				while [str < tail][
-					c-str: unicode/to-utf16 str
-					value: string/rs-length? str
-					if len < value [len: value str-saved: c-str]
-					if TYPE_OF(str) = TYPE_STRING [
-						SendMessage 
-							handle
-							LB_ADDSTRING
-							0
-							as-integer c-str
-					]
-					str: str + 1
-				]
-				unless zero? len [
-					GetTextExtentPoint32 GetDC handle str-saved len csize
-					SendMessage handle LB_SETHORIZONTALEXTENT csize/width 0
-				]
-			]
-			int: as red-integer! values + FACE_OBJ_SELECTED
-			if TYPE_OF(int) <> TYPE_INTEGER [
-				int/header: TYPE_INTEGER
-				int/value: -1
-			]
-		]
-		sym = _image [
-			if TYPE_OF(img) <> TYPE_IMAGE [
-				if any [
-					TYPE_OF(data) = TYPE_BLOCK
-					TYPE_OF(data) = TYPE_HASH
-					TYPE_OF(data) = TYPE_MAP
-				][
-					str:  as red-string! block/rs-head data
-					tail: as red-string! block/rs-tail data
-					while [str < tail][
-						if TYPE_OF(str) = TYPE_FILE [
-							image/make-at as red-value! img str
-						]
-						str: str + 1
-					]
-				]
-			]
-			SetWindowLong handle wc-offset - 4 make-image-dc handle img
-		]
-		sym = tab-panel [
-			set-tabs handle values
-		]
+		sym = camera	[init-camera handle data open?/value]
+		sym = text-list [init-text-list handle data selected]
+		sym = _image	[init-image handle data img]
+		sym = tab-panel [set-tabs handle values]
 		sym = group-box [
 			flags: flags or WS_GROUP or BS_GROUPBOX
 			hWnd: CreateWindowEx

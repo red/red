@@ -25,6 +25,24 @@ camera!: alias struct! [
 	dev8		[this!]
 ]
 
+init-camera: func [
+	hWnd	[handle!]
+	data	[red-block!]
+	open?	[logic!]
+	/local
+		cam [camera!]
+		val [integer!] 
+][
+	cam: as camera! allocate size? camera!			;@@ need to be freed
+	val: collect-camera cam data
+	SetWindowLong hWnd wc-offset - 4 val
+	either zero? val [free as byte-ptr! cam][
+		init-graph cam 0
+		build-preview-graph cam hWnd
+		toggle-preview hWnd open?
+	]
+]
+
 free-graph: func [cam [camera!] /local interface [IUnknown]][
 	COM_SAFE_RELEASE(interface cam/builder)
 	COM_SAFE_RELEASE(interface cam/graph)
