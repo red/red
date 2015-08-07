@@ -188,6 +188,7 @@ Red/System [
 #define WM_MBUTTONDOWN		0207h
 #define WM_MBUTTONUP		0208h
 #define WM_ENTERMENULOOP	0211h
+#define WM_MOUSEWHEEL		020Ah
 
 #define WM_CAP_DRIVER_CONNECT		040Ah
 #define WM_CAP_DRIVER_DISCONNECT	040Bh
@@ -302,6 +303,7 @@ Red/System [
 
 #define IS_EXTENDED_KEY		01000000h
 
+#define WHEEL_DELTA         120
 
 tagPOINT: alias struct! [
 	x		[integer!]

@@ -237,6 +237,7 @@ WndProc: func [
 		res	   [integer!]
 		color  [integer!]
 		handle [handle!]
+		distance [integer!]
 		nmhdr  [tagNMHDR]
 ][
 	switch msg [
@@ -310,6 +311,10 @@ WndProc: func [
 				make-event current-msg 0 EVT_CHANGE
 				return 0
 			]
+		]
+		WM_MOUSEWHEEL [
+			distance: (wParam >> 16) / WHEEL_DELTA
+			print-line ["WM_MOUSEWHEEL: " wParam " " lParam " distance: " distance ]
 		]
 		WM_ERASEBKGND [
 			if paint-background hWnd as handle! wParam [return 1]
