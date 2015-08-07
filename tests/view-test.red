@@ -359,7 +359,7 @@ win/pane: reduce [
 		]
 	]
 	set 'cam make face! [
-		type: 'camera offset: 400x140 size: 320x240
+		type: 'camera offset: 400x140 size: 320x240 enable?: no
 	]
 	make face! [
 		type: 'button text: "Start/Stop" offset: 400x400 size: 70x24
