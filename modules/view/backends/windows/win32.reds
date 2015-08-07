@@ -806,6 +806,10 @@ DwmIsCompositionEnabled!: alias function! [
 			height		[integer!]
 			return:		[handle!]
 		]
+		DeleteDC: "DeleteDC" [
+			hdc			[handle!]
+			return:		[integer!]
+		]
 		BitBlt: "BitBlt" [
 			hdcDest		[handle!]
 			nXDest		[integer!]
