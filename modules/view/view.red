@@ -109,19 +109,11 @@ system/view: context [
 		]
 		
 		if all [type = 'close :result <> 'continue][
-			reset-face face
 			windows: head remove find system/view/screens/1/pane face
 			result: pick [stop done] tail? windows
 		]	
 		:result
 	]
-	
-	reset-face: function [face [face!]][
-		if block? face/pane [foreach f face/pane [reset-face f]]
-		;system/view/platform/free-face f
-		face/state: none
-	]
-
 	debug?: yes
 ]
 

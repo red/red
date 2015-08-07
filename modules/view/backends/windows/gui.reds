@@ -751,7 +751,7 @@ WndProc: func [
 		WM_CLOSE [
 			res: make-event current-msg 0 EVT_CLOSE
 			if res  = EVT_DISPATCH_AND_PROCESS [return 0]	;-- continue
-			if res <= EVT_DISPATCH   [DestroyWindow hWnd]	;-- done
+			if res <= EVT_DISPATCH   [free-handles hWnd]	;-- done
 			if res  = EVT_NO_PROCESS [PostQuitMessage 0]	;-- stop
 			return 0
 		]
@@ -1111,6 +1111,54 @@ register-classes: func [
 		#u16 "Base"
 		as-integer :PanelWndProc
 		no
+]
+
+free-handles: func [
+	hWnd [handle!]
+	/local
+		values [red-value!]
+		type   [red-word!]
+		face   [red-object!]
+		tail   [red-object!]
+		pane   [red-block!]
+		state  [red-value!]
+		sym	   [integer!]
+][
+	values: get-face-values hWnd
+	type: as red-word! values + FACE_OBJ_TYPE
+	sym: symbol/resolve type/symbol
+	
+	case [
+		sym = window [
+			pane: as red-block! values + FACE_OBJ_PANE
+			if TYPE_OF(pane) = TYPE_BLOCK [
+				face: as red-object! block/rs-head pane
+				tail: as red-object! block/rs-tail pane
+				while [face < tail][
+					free-handles get-face-handle face
+					face: face + 1
+				]
+			]
+		]
+		sym = group-box [
+			;-- destroy the extra frame window
+			DestroyWindow as handle! GetWindowLong hWnd wc-offset - 4 as-integer hWnd
+		]
+		;sym = _image [
+		;
+		;]
+		;sym = camera [
+		;
+		;]
+		true [
+			0
+			;; handle user-provided classes too
+		]
+	]
+	DestroyWindow hWnd
+	
+	state: values + FACE_OBJ_STATE
+	state/header: TYPE_NONE
 ]
 
 init: func [
