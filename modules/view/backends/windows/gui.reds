@@ -217,8 +217,10 @@ free-handles: func [
 		]
 		sym = camera [
 			cam: as camera! GetWindowLong hWnd wc-offset - 4
-			teardown-graph cam
-			free-graph cam
+			unless null? cam [
+				teardown-graph cam
+				free-graph cam
+			]
 		]
 		true [
 			0
