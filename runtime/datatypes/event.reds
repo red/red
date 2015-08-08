@@ -61,6 +61,32 @@ event: context [
 		form evt buffer arg part
 	]
 	
+	compare: func [
+		evt		  [red-event!]							;-- first operand
+		arg2	  [red-none!]							;-- second operand
+		op	      [integer!]							;-- type of comparison
+		return:   [integer!]
+		/local
+			type  [integer!]
+			res	  [integer!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "event/compare"]]
+
+		type: TYPE_OF(arg2)
+		if type <> TYPE_EVENT [RETURN_COMPARE_OTHER]
+		switch op [
+			COMP_EQUAL 
+			COMP_STRICT_EQUAL
+			COMP_NOT_EQUAL [res: as-integer type <> TYPE_EVENT]
+			COMP_SORT
+			COMP_CASE_SORT [res: 0]
+			default [
+				res: -2
+			]
+		]
+		res
+	]
+	
 	eval-path: func [
 		evt		[red-event!]							;-- implicit type casting
 		element	[red-value!]
@@ -102,7 +128,7 @@ event: context [
 			:mold
 			:eval-path
 			null			;set-path
-			null			;compare
+			:compare
 			;-- Scalar actions --
 			null			;absolute
 			null			;add
