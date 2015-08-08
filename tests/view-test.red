@@ -89,7 +89,7 @@ win: make face! [
 		on-menu: func [face [object!] event [event!]][
 			print ["menu selected:" event/picked]
 		]
-		on-close: func [face [object!] event [event!]][
+		on-close: func [face [object!]][
 			print "closing window"
 		]
 	]
@@ -395,6 +395,15 @@ win/pane: reduce [
 		actors: object [
 			on-click: func [face [object!] event [event!]][
 				show sub-win
+			]
+		]
+	]
+	make face! [
+		type: 'button text: "Quit" offset: 500x440 size: 60x24
+		actors: object [
+			on-click: func [face [object!] event [event!]][
+				print "calling unview"
+				unview/all
 			]
 		]
 	]

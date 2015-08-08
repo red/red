@@ -105,7 +105,10 @@ system/view: context [
 			act: in face/actors select evt-names type
 			act: get act
 		][
-			set 'result do [act face event]
+			if error? set 'result try/all [do [act face event]][ ;-- compiler can't call act, hence DO
+				print :result
+				result: none
+			]
 		]
 		
 		if all [type = 'close :result <> 'continue][
@@ -144,7 +147,7 @@ show: function [
 		new?: yes
 		if face/type <> 'screen [
 			if all [object? face/actors in face/actors 'on-make][
-				do [face/actors/on-make face]
+				do [face/actors/on-make face none]
 			]
 			p: either with [parent/state/1][0]
 			obj: system/view/platform/make-view face p
@@ -184,19 +187,23 @@ unview: function [
 	if empty? pane: system/view/screens/1/pane [exit]
 	
 	case [
-		only  [
-		
-		]
+		only  [remove find pane face]
 		_all  [
-		
+			while [not tail? pane][
+				face: pane/1
+				remove pane
+				face/state/3: none
+				show face
+			]
+			exit
 		]
 		'else [
 			face: last pane
 			remove back tail pane
-			face/state/3: none
-			show face
 		]
 	]
+	face/state/3: none
+	show face
 ]
 
 #system [event/init]

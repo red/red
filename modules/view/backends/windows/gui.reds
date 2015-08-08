@@ -880,6 +880,14 @@ OS-update-view: func [
 
 OS-close-view: func [
 	face [red-object!]
+	/local
+		screen [red-object!]
+		pane   [red-block!]
 ][
 	free-handles get-face-handle face
+	
+	screen: as red-object! block/rs-head as red-block! #get system/view/screens
+	pane: as red-block! get-node-facet screen/ctx FACE_OBJ_PANE
+	assert TYPE_OF(pane) = TYPE_BLOCK
+	if zero? block/rs-length? pane [PostQuitMessage 0]
 ]
