@@ -92,7 +92,7 @@ file: context [
 			]
 			string/append-char s OS_DIR_SEP
 		][
-			out
+			string/append-char s c
 		]
 
 		while [p: p + unit p < end][
