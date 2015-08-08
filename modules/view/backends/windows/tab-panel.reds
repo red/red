@@ -29,7 +29,7 @@ process-tab-change: func [
 	idx: as-integer SendMessage hWnd TCM_GETCURSEL 0 0
 	current-msg/hWnd: hWnd
 	set-tab current-msg idx
-	make-event current-msg 0 EVT_CHANGE
+	make-event current-msg idx + 1 EVT_CHANGE
 	get-selected current-msg idx + 1
 ]
 

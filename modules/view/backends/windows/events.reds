@@ -125,7 +125,7 @@ get-event-picked: func [
 make-event: func [
 	msg		[tagMSG]
 	flags	[integer!]
-	type	[integer!]
+	evt		[integer!]
 	return: [integer!]
 	/local
 		res	  [red-word!]
@@ -134,13 +134,13 @@ make-event: func [
 		state [integer!]
 		key	  [integer!]
 ][
-	gui-evt/type:  type
+	gui-evt/type:  evt
 	gui-evt/msg:   as byte-ptr! msg
 	gui-evt/flags: 0
 
 	state: EVT_DISPATCH_AND_PROCESS
 
-	switch type [
+	switch evt [
 		EVT_KEY_DOWN [
 			key: msg/wParam and FFFFh
 			if key = VK_PROCESSKEY [return EVT_DISPATCH]  ;-- IME-friendly exit
@@ -158,7 +158,13 @@ make-event: func [
 			gui-evt/flags: flags + 1 and FFFFh	;-- index is one-based for string!
 		]
 		EVT_CHANGE [
-			unless zero? flags [get-text msg -1] ;-- get text if not done already
+			word: as red-word! get-facet msg FACE_OBJ_TYPE
+			assert TYPE_OF(word) = TYPE_WORD
+			either tab-panel = symbol/resolve word/symbol [
+				gui-evt/flags: flags and FFFFh			;-- already one-based
+			][
+				unless zero? flags [get-text msg -1] 	;-- get text if not done already
+			]
 		]
 		EVT_MENU [gui-evt/flags: flags and FFFFh]	;-- symbol ID of the menu
 		default	 [0]
