@@ -33,7 +33,7 @@ init-camera: func [
 		cam [camera!]
 		val [integer!] 
 ][
-	cam: as camera! allocate size? camera!			;@@ need to be freed
+	cam: as camera! allocate size? camera!				;@@ need to be freed
 	val: collect-camera cam data
 	SetWindowLong hWnd wc-offset - 4 val
 	either zero? val [free as byte-ptr! cam][
@@ -231,7 +231,7 @@ collect-camera: func [
 
 	em: as IEnumMoniker IEnum/ptr/vtbl
 	var: declare tagVARIANT
-	var/data1: 8 << 16				;-- var.vt = VT_BSTR
+	var/data1: 8 << 16									;-- var.vt = VT_BSTR
 	dev-ptr: (as int-ptr! cam) + 4
 	fetched: 0
 

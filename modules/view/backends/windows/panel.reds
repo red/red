@@ -12,7 +12,7 @@ Red/System [
 
 init-panel: func [
 	values [red-value!]
-	phWnd  [handle!]						;-- parent window handle
+	phWnd  [handle!]									;-- parent window handle
 	/local
 		parent	  [red-object!]
 		type	  [red-word!]
@@ -58,7 +58,7 @@ PanelWndProc: func [
 	switch msg [
 		WM_VSCROLL
 		WM_HSCROLL [
-			unless zero? lParam [			;-- message from trackbar
+			unless zero? lParam [						;-- message from trackbar
 				unless null? current-msg [
 					current-msg/hWnd: as handle! lParam	;-- trackbar handle
 					get-slider-pos current-msg

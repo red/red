@@ -247,7 +247,7 @@ WndProc: func [
 ][
 	switch msg [
 		WM_COMMAND [
-			if all [zero? lParam wParam < 1000][ ;-- heuristic to detect a menu selection (--)'
+			if all [zero? lParam wParam < 1000][		;-- heuristic to detect a menu selection (--)'
 				unless null? menu-handle [
 					res: get-menu-id menu-handle menu-selected
 					if null? menu-origin [menu-origin: hWnd]
@@ -272,7 +272,7 @@ WndProc: func [
 						]
 					]
 				]
-				EN_CHANGE [					;-- sent also by CreateWindow
+				EN_CHANGE [								;-- sent also by CreateWindow
 					unless null? current-msg [
 						current-msg/hWnd: as handle! lParam	;-- force Edit handle
 						make-event current-msg -1 EVT_CHANGE
@@ -310,7 +310,7 @@ WndProc: func [
 		]
 		WM_VSCROLL
 		WM_HSCROLL [
-			unless zero? lParam [			;-- message from trackbar
+			unless zero? lParam [						;-- message from trackbar
 				current-msg/hWnd: as handle! lParam	;-- trackbar handle
 				get-slider-pos current-msg
 				make-event current-msg 0 EVT_CHANGE
@@ -326,7 +326,7 @@ WndProc: func [
 		WM_CTLCOLORLISTBOX 
 		WM_CTLCOLORSCROLLBAR [
 			if null? current-msg [init-current-msg]
-			current-msg/hWnd: as handle! lParam	;-- force child handle
+			current-msg/hWnd: as handle! lParam			;-- force child handle
 			handle: get-widget-handle current-msg
 			if handle <> as handle! -1 [
 				color: to-bgr as node! GetWindowLong handle wc-offset + 4
@@ -373,7 +373,7 @@ pre-process: func [
 ][
 	switch msg/msg [
 		WM_LBUTTONDOWN	[
-			menu-origin: null				;-- reset if user clicks on menu bar
+			menu-origin: null							;-- reset if user clicks on menu bar
 			menu-ctx: null
 			make-event msg 0 EVT_LEFT_DOWN
 		]

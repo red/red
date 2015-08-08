@@ -11,19 +11,19 @@ Red/System [
 ]
 
 ext-class!: alias struct! [
-	symbol		[integer!]					;-- symbol ID
-	class		[c-string!]					;-- UTF-16 encoded
-	ex-styles	[integer!]					;-- extended windows styles
-	styles		[integer!]					;-- windows styles
-	base-ID		[integer!]					;-- base ID for instances (0: no ID)
-	new-proc	[integer!]					;-- optional custom event handler
-	old-proc	[integer!]					;-- saved old event handler
-	parent-proc [integer!]					;-- optional parent event handler
+	symbol		[integer!]								;-- symbol ID
+	class		[c-string!]								;-- UTF-16 encoded
+	ex-styles	[integer!]								;-- extended windows styles
+	styles		[integer!]								;-- windows styles
+	base-ID		[integer!]								;-- base ID for instances (0: no ID)
+	new-proc	[integer!]								;-- optional custom event handler
+	old-proc	[integer!]								;-- saved old event handler
+	parent-proc [integer!]								;-- optional parent event handler
 ]
 
 max-ext-styles: 	20
 ext-classes:		as ext-class! allocate max-ext-styles * size? ext-class!
-ext-cls-tail:		ext-classes					;-- tail pointer
+ext-cls-tail:		ext-classes							;-- tail pointer
 ext-parent-proc?:	no
 
 find-class: func [
@@ -55,7 +55,7 @@ register-class: func [
 ][
 	if count <> 8 [print-line "gui/register-class error: invalid spec block"]
 
-	arg1: list/value						;@@ TBD: allow struct indexing in R/S
+	arg1: list/value									;@@ TBD: allow struct indexing in R/S
 	list: list + 1
 	arg2: list/value
 	list: list + 1
@@ -90,7 +90,7 @@ register-class: func [
 	p/old-proc:		old-proc
 	p/parent-proc:	arg8
 
-	if arg8 <> 0 [ext-parent-proc?: yes]	;-- signal custom parent event handler
+	if arg8 <> 0 [ext-parent-proc?: yes]				;-- signal custom parent event handler
 
 	old-proc
 ]
@@ -113,7 +113,7 @@ make-super-class: func [
 		print-line "*** Error in GetClassInfoEx"
 	]
 	wcex/cbSize: 		size? WNDCLASSEX
-	wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/lpszClassName: new
 	if proc <> 0 [
@@ -135,7 +135,7 @@ register-classes: func [
 	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:WndProc
 	wcex/cbClsExtra:	0
-	wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/hIcon:			null
 	wcex/hCursor:		LoadCursor null IDC_ARROW
@@ -149,7 +149,7 @@ register-classes: func [
 	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	;wcex/lpfnWndProc:	:WndProc
 	wcex/cbClsExtra:	0
-	wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/hIcon:			null
 	wcex/hCursor:		LoadCursor null IDC_ARROW
@@ -162,7 +162,7 @@ register-classes: func [
 
 	wcex/style:			CS_DBLCLKS
 	wcex/lpfnWndProc:	:ImageWndProc
-	wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/lpszClassName: #u16 "RedImage"
 
@@ -170,7 +170,7 @@ register-classes: func [
 
 	wcex/style:			CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
 	wcex/lpfnWndProc:	:CameraWndProc
-	wcex/cbWndExtra:	wc-extra				;-- reserve extra memory for face! slot
+	wcex/cbWndExtra:	wc-extra						;-- reserve extra memory for face! slot
 	wcex/hInstance:		hInstance
 	wcex/hbrBackground:	COLOR_BACKGROUND + 1
 	wcex/lpszClassName: #u16 "RedCamera"

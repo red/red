@@ -63,7 +63,7 @@ Red/System [
 #define TBS_HORZ			0000h
 #define TBS_VERT			0002h
 #define TBS_LEFT			0004h
-#define TBS_DOWNISLEFT		0400h  	;-- Down=Left and Up=Right (default is Down=Right and Up=Left)
+#define TBS_DOWNISLEFT		0400h						;-- Down=Left and Up=Right (default is Down=Right and Up=Left)
 
 #define LBS_NOTIFY			1
 #define LBS_MULTIPLESEL		8
@@ -276,21 +276,21 @@ Red/System [
 
 #define SRCCOPY             00CC0020h
 
-#define ICC_LISTVIEW_CLASSES	00000001h	;-- listview, header
-#define ICC_TREEVIEW_CLASSES	00000002h	;-- treeview, tooltips
-#define ICC_BAR_CLASSES			00000004h	;-- toolbar, statusbar, trackbar, tooltips
-#define ICC_TAB_CLASSES			00000008h	;-- tab, tooltips
-#define ICC_UPDOWN_CLASS		00000010h	;-- updown
-#define ICC_PROGRESS_CLASS		00000020h	;-- progress
-#define ICC_HOTKEY_CLASS		00000040h	;-- hotkey
-#define ICC_ANIMATE_CLASS		00000080h	;-- animate
+#define ICC_LISTVIEW_CLASSES	00000001h				;-- listview, header
+#define ICC_TREEVIEW_CLASSES	00000002h				;-- treeview, tooltips
+#define ICC_BAR_CLASSES			00000004h				;-- toolbar, statusbar, trackbar, tooltips
+#define ICC_TAB_CLASSES			00000008h				;-- tab, tooltips
+#define ICC_UPDOWN_CLASS		00000010h				;-- updown
+#define ICC_PROGRESS_CLASS		00000020h				;-- progress
+#define ICC_HOTKEY_CLASS		00000040h				;-- hotkey
+#define ICC_ANIMATE_CLASS		00000080h				;-- animate
 #define ICC_WIN95_CLASSES		000000FFh
-#define ICC_DATE_CLASSES		00000100h	;-- month picker, date picker, time picker, updown
-#define ICC_USEREX_CLASSES		00000200h	;-- comboex
-#define ICC_COOL_CLASSES		00000400h	;-- rebar (coolbar) control
+#define ICC_DATE_CLASSES		00000100h				;-- month picker, date picker, time picker, updown
+#define ICC_USEREX_CLASSES		00000200h				;-- comboex
+#define ICC_COOL_CLASSES		00000400h				;-- rebar (coolbar) control
 #define ICC_INTERNET_CLASSES	00000800h
-#define ICC_PAGESCROLLER_CLASS	00001000h	;-- page scroller
-#define ICC_NATIVEFNTCTL_CLASS	00002000h	;-- native font control
+#define ICC_PAGESCROLLER_CLASS	00001000h				;-- page scroller
+#define ICC_NATIVEFNTCTL_CLASS	00002000h				;-- native font control
 ;#if (_WIN32_WINNT >= 0x0501)
 #define ICC_STANDARD_CLASSES	00004000h
 #define ICC_LINK_CLASS			00008000h
@@ -319,7 +319,7 @@ tagMSG: alias struct! [
 	wParam	[integer!]
 	lParam	[integer!]
 	time	[integer!]
-	x		[integer!]			;@@ POINT struct
+	x		[integer!]									;@@ POINT struct
 	y		[integer!]	
 ]
 
@@ -391,8 +391,8 @@ SCROLLINFO: alias struct! [
 ACTCTX: alias struct! [
 	cbsize		[integer!]
 	dwFlags		[integer!]
-	lpSource	[c-string!]					;-- wide-string
-	wProcLangID	[integer!]					;-- combined wProc and wLangID in one field
+	lpSource	[c-string!]								;-- wide-string
+	wProcLangID	[integer!]								;-- combined wProc and wLangID in one field
 	lpAssDir	[c-string!]
 	lpResource	[c-string!]
 	lpAppName	[c-string!]
@@ -410,7 +410,7 @@ OSVERSIONINFO: alias struct! [
 	dwMinorVersion		[integer!]
 	dwBuildNumber		[integer!]	
 	dwPlatformId		[integer!]
-	szCSDVersion		[byte-ptr!]			;-- array of 128 bytes
+	szCSDVersion		[byte-ptr!]						;-- array of 128 bytes
 	szCSDVersion0		[integer!]
 	szCSDVersion1		[float!]
 	szCSDVersion2		[float!]
@@ -443,7 +443,7 @@ OSVERSIONINFO: alias struct! [
 	szCSDVersion29		[float!]
 	szCSDVersion30		[float!]
 	szCSDVersion31		[float!]
-	wServicePack		[integer!]			;-- Major: 16, Minor: 16
+	wServicePack		[integer!]						;-- Major: 16, Minor: 16
 	wSuiteMask0			[byte!]
 	wSuiteMask1			[byte!]
 	wProductType		[byte!]
@@ -838,13 +838,13 @@ DwmIsCompositionEnabled!: alias function! [
 		]
 		SetTextColor: "SetTextColor" [
 			hdc			[handle!]
-			crColor		[integer!]					;-- 0x00bbggrr
-			return:		[integer!]					;-- 0x00bbggrr
+			crColor		[integer!]						;-- 0x00bbggrr
+			return:		[integer!]						;-- 0x00bbggrr
 		]
 		SetBkColor: "SetBkColor" [
 			hdc			[handle!]
-			crColor		[integer!]					;-- 0x00bbggrr
-			return:		[integer!]					;-- 0x00bbggrr
+			crColor		[integer!]						;-- 0x00bbggrr
+			return:		[integer!]						;-- 0x00bbggrr
 		]
 		SetBkMode: "SetBkMode" [
 			hdc			[handle!]

@@ -10,10 +10,10 @@ Red/System [
 	}
 ]
 
-menu-selected:	-1							;-- last selected menu item ID
-menu-handle: 	as handle! 0				;-- last selected menu handle
-menu-origin:	as handle! 0				;-- window where context menu was opened from
-menu-ctx:		as handle! 0				;-- context menu handle
+menu-selected:	-1										;-- last selected menu item ID
+menu-handle: 	as handle! 0							;-- last selected menu handle
+menu-origin:	as handle! 0							;-- window where context menu was opened from
+menu-ctx:		as handle! 0							;-- context menu handle
 
 
 build-menu: func [
@@ -112,7 +112,7 @@ show-context-menu: func [
 	msg		[tagMSG]
 	x		[integer!]
 	y		[integer!]
-	return: [logic!]						;-- TRUE: menu displayed
+	return: [logic!]									;-- TRUE: menu displayed
 	/local
 		values [red-value!]
 		spec   [red-block!]

@@ -33,7 +33,7 @@ process-tab-change: func [
 	get-selected current-msg idx + 1
 ]
 
-adjust-parent: func [						;-- prevent tabcontrol from having children
+adjust-parent: func [									;-- prevent tabcontrol from having children
 	hWnd   [handle!]
 	parent [handle!]
 	x	   [integer!]
@@ -90,7 +90,7 @@ set-tabs: func [
 	int: as red-integer! facets + FACE_OBJ_SELECTED
 
 	if TYPE_OF(int) <> TYPE_INTEGER [
-		int/header: TYPE_INTEGER			;-- force selection on first tab
+		int/header: TYPE_INTEGER						;-- force selection on first tab
 		int/value:  1
 	]
 ]

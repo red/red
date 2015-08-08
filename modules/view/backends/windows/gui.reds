@@ -26,8 +26,8 @@ hInstance:		as handle! 0
 default-font:	as handle! 0
 version-info: 	declare OSVERSIONINFO
 current-msg: 	as tagMSG 0
-wc-extra:		80							;-- reserve 64 bytes for win32 internal usage (arbitrary)
-wc-offset:		64							;-- offset to our 16 bytes
+wc-extra:		80										;-- reserve 64 bytes for win32 internal usage (arbitrary)
+wc-offset:		64										;-- offset to our 16 bytes
 
 get-face-values: func [
 	hWnd	[handle!]
@@ -85,20 +85,20 @@ get-widget-handle: func [
 	header: GetWindowLong hWnd wc-offset
 
 	if header and get-type-mask <> TYPE_OBJECT [
-		hWnd: GetParent hWnd				;-- for composed widgets (try 1)
+		hWnd: GetParent hWnd							;-- for composed widgets (try 1)
 		header: GetWindowLong hWnd wc-offset
 
 		if header and get-type-mask <> TYPE_OBJECT [
-			hWnd: WindowFromPoint msg/x msg/y	;-- try 2
+			hWnd: WindowFromPoint msg/x msg/y			;-- try 2
 			header: GetWindowLong hWnd wc-offset
 
 			if header and get-type-mask <> TYPE_OBJECT [
-				p: as int-ptr! GetWindowLong hWnd 0	;-- try 3
+				p: as int-ptr! GetWindowLong hWnd 0		;-- try 3
 				hWnd: as handle! p/2
 				header: GetWindowLong hWnd wc-offset
 
 				if header and get-type-mask <> TYPE_OBJECT [
-					hWnd: as handle! -1		;-- not found
+					hWnd: as handle! -1					;-- not found
 				]
 			]
 		]
@@ -133,7 +133,7 @@ enable-visual-styles: func [
 ][
 	ctx: declare ACTCTX
 	cookie: declare struct! [ptr [byte-ptr!]]
-	dir: as-c-string allocate 258				;-- 128 UTF-16 codepoints + 2 NUL
+	dir: as-c-string allocate 258						;-- 128 UTF-16 codepoints + 2 NUL
 
 	ctx/cbSize:		 size? ACTCTX
 	ctx/dwFlags: 	 ACTCTX_FLAG_RESOURCE_NAME_VALID
@@ -143,7 +143,7 @@ enable-visual-styles: func [
 	ctx/lpSource: 	 #u16 "shell32.dll"
 	ctx/wProcLangID: 0
 	ctx/lpAssDir: 	 dir
-	ctx/lpResource:	 as-c-string 124		;-- Manifest ID in the DLL
+	ctx/lpResource:	 as-c-string 124					;-- Manifest ID in the DLL
 
 	sz: GetSystemDirectory dir 128
 	if sz > 128 [probe "*** GetSystemDirectory: buffer overflow"]
@@ -170,7 +170,7 @@ enable-visual-styles: func [
 
 to-bgr: func [
 	node	[node!]
-	return: [integer!]						;-- 00bbggrr format or -1 if not found
+	return: [integer!]									;-- 00bbggrr format or -1 if not found
 ][
 	color: as red-tuple! get-node-facet node FACE_OBJ_COLOR
 	either TYPE_OF(color) = TYPE_TUPLE [
@@ -253,7 +253,7 @@ init: func [
 		version-info/dwMajorVersion = 5
 		version-info/dwMinorVersion < 1
 	][
-		enable-visual-styles				;-- not called for Win2000
+		enable-visual-styles							;-- not called for Win2000
 	]
 
 	register-classes hInstance
@@ -279,14 +279,14 @@ set-logic-state: func [
 	value: either TYPE_OF(state) <> TYPE_LOGIC [
 		either check? [BST_INDETERMINATE][false]
 	][
-		as-integer state/value				;-- returns 0/1, matches the messages
+		as-integer state/value							;-- returns 0/1, matches the messages
 	]
 	SendMessage hWnd BM_SETCHECK value 0
 ]
 
 get-logic-state: func [
 	msg		[tagMSG]
-	return: [logic!]						;-- TRUE if state has changed
+	return: [logic!]									;-- TRUE if state has changed
 	/local
 		bool  [red-logic!]
 		state [integer!]
@@ -298,7 +298,7 @@ get-logic-state: func [
 
 	either state = BST_INDETERMINATE [
 		otype: TYPE_OF(bool)
-		bool/header: TYPE_NONE				;-- NONE indicates undeterminate
+		bool/header: TYPE_NONE							;-- NONE indicates undeterminate
 		bool/header <> otype
 	][
 		obool: bool/value
@@ -339,7 +339,7 @@ get-text: func [
 			string/rs-reset str
 			exit
 		]
-		out: unicode/get-cache str size + 1 * 4	;-- account for surrogate pairs and terminal NUL
+		out: unicode/get-cache str size + 1 * 4			;-- account for surrogate pairs and terminal NUL
 
 		either idx = -1 [
 			SendMessage msg/hWnd WM_GETTEXT size + 1 as-integer out  ;-- account for NUL
@@ -393,7 +393,7 @@ get-slider-pos: func [
 ]
 
 get-screen-size: func [
-	id		[integer!]						;@@ Not used yet
+	id		[integer!]									;@@ Not used yet
 	return: [red-pair!]
 ][
 	pair/push 
@@ -547,7 +547,7 @@ OS-make-view: func [
 		][
 			class: #u16 "RedPanel"
 			init-panel values as handle! parent
-			offx: offset/x					;-- refresh locals
+			offx: offset/x								;-- refresh locals
 			offy: offset/y
 			panel?: yes
 		]
@@ -608,7 +608,7 @@ OS-make-view: func [
 				id: as-integer build-menu menu CreateMenu
 			]
 		]
-		true [								;-- search in user-defined classes
+		true [											;-- search in user-defined classes
 			p: find-class type
 			class: p/class
 			ws-flags: ws-flags or p/ex-styles
@@ -624,7 +624,7 @@ OS-make-view: func [
 	]
 
 	unless DWM-enabled? [
-		ws-flags: ws-flags or WS_EX_COMPOSITED		;-- this flag conflicts with DWM
+		ws-flags: ws-flags or WS_EX_COMPOSITED			;-- this flag conflicts with DWM
 	]
 
 	handle: CreateWindowEx
@@ -763,7 +763,7 @@ change-text: func [
 	switch TYPE_OF(str) [
 		TYPE_STRING [text: unicode/to-utf16 str]
 		TYPE_NONE	[text: #u16 "^@"]
-		default		[0]								;@@ Auto-convert?
+		default		[0]									;@@ Auto-convert?
 	]
 	unless null? text [SetWindowText as handle! hWnd text]
 ]
@@ -818,7 +818,7 @@ change-data: func [
 		type/symbol = radio [
 			set-logic-state as handle! hWnd as red-logic! data no
 		]
-		true [0]									;-- default, do nothing
+		true [0]										;-- default, do nothing
 	]
 ]
 
@@ -873,7 +873,7 @@ OS-update-view: func [
 		int2: as red-integer! values + gui/FACE_OBJ_SELECTED
 		change-selection hWnd int2/value as red-word! values + gui/FACE_OBJ_TYPE
 	]
-	int/value: 0									;-- reset flags
+	int/value: 0										;-- reset flags
 ]
 
 OS-close-view: func [
