@@ -12,6 +12,11 @@ Red/System [
 
 simple-io: context [
 
+	#enum red-io-mode! [
+		RED_IO_READ
+		RED_IO_WRIE
+	]
+
 	#either OS = 'Windows [
 
 		#define GENERIC_WRITE			40000000h
@@ -19,11 +24,22 @@ simple-io: context [
 		#define FILE_SHARE_READ			00000001h
 		#define FILE_SHARE_WRITE		00000002h
 		#define OPEN_EXISTING			00000003h
+		#define CREATE_ALWAYS			00000002h
 		#define FILE_ATTRIBUTE_NORMAL	00000080h
 
 		#import [
 			"kernel32.dll" stdcall [
-				CreateFile:	"CreateFileA" [
+				CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System
+					filename	[c-string!]
+					access		[integer!]
+					share		[integer!]
+					security	[int-ptr!]
+					disposition	[integer!]
+					flags		[integer!]
+					template	[int-ptr!]
+					return:		[integer!]
+				]
+				CreateFileW: "CreateFileW" [
 					filename	[c-string!]
 					access		[integer!]
 					share		[integer!]
@@ -54,7 +70,18 @@ simple-io: context [
 		]
 	][
 		#define O_RDONLY	0
-		
+		#define O_WRONLY	1
+		#define O_RDWR		2
+		#define O_BINARY	4
+
+		#define O_CREAT		64
+
+		#define S_IREAD		256
+		#define S_IWRITE    128
+		#define S_IRGRP		[S_IREAD >> 3]
+		#define S_IWGRP		[S_IWRITE >> 3]
+		#define S_IROTH		[S_IREAD >> 6]
+
 		#import [
 			LIBC-file cdecl [
 				_open:	"open" [
@@ -251,21 +278,50 @@ simple-io: context [
 	
 	open-file: func [
 		filename [c-string!]
+		mode	 [integer!]
+		unicode? [logic!]
 		return:	 [integer!]
 		/local
-			file [integer!]
+			file   [integer!]
+			modes  [integer!]
+			access [integer!]
 	][
 		#either OS = 'Windows [
-			file: CreateFile 
-				filename
-				GENERIC_READ
-				FILE_SHARE_READ
-				null
-				OPEN_EXISTING
-				FILE_ATTRIBUTE_NORMAL
-				null
+			either mode = RED_IO_READ [
+				modes: GENERIC_READ
+				access: OPEN_EXISTING
+			][
+				modes: GENERIC_WRITE
+				access: CREATE_ALWAYS
+			]
+			either unicode? [
+				file: CreateFileW
+					filename
+					modes
+					FILE_SHARE_READ or FILE_SHARE_WRITE
+					null
+					access
+					FILE_ATTRIBUTE_NORMAL
+					null
+			][
+				file: CreateFileA
+					filename
+					modes
+					FILE_SHARE_READ or FILE_SHARE_WRITE
+					null
+					access
+					FILE_ATTRIBUTE_NORMAL
+					null
+			]
 		][
-			file: _open filename O_RDONLY 0
+			either mode = RED_IO_READ [
+				modes: O_BINARY or O_RDONLY
+				access: S_IREAD
+			][
+				modes: O_BINARY or O_WRONLY or O_CREAT
+				access: S_IREAD or S_IWRITE or S_IRGRP or S_IWGRP or S_IROTH
+			]
+			file: _open filename modes access
 		]
 		if file = -1 [
 			print-line "*** Error: File not found"
@@ -296,7 +352,7 @@ simple-io: context [
 		]
 	]
 	
-	read-file: func [
+	read-buffer: func [
 		file	[integer!]
 		buffer	[byte-ptr!]
 		size	[integer!]
@@ -331,22 +387,41 @@ simple-io: context [
 			_close file
 		]
 	]
-	
-	read-txt: func [
+
+	to-OS-path: func [
+		src		[red-file!]
+		return: [c-string!]
+		/local
+			str [red-string!]
+	][
+		str: string/rs-make-at stack/push* string/rs-length? as red-string! src
+		file/to-local-path src str no
+		#either OS = 'Windows [
+			unicode/to-utf16 str
+		][
+			unicode/to-utf8 str
+		]
+	]
+
+	read-file: func [
 		filename [c-string!]
-		return:	 [red-string!]
+		text?	 [logic!]
+		unicode? [logic!]
+		return:	 [red-value!]
 		/local
 			buffer	[byte-ptr!]
 			file	[integer!]
 			size	[integer!]
+			val		[red-value!]
 			str		[red-string!]
 			len		[integer!]
 	][
-		if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
-		len: length? filename
-		if filename/len = #"^"" [filename/len: null-byte]
-		
-		file: open-file filename
+		unless unicode? [		;-- only command line args need to be checked
+			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
+			len: length? filename
+			if filename/len = #"^"" [filename/len: null-byte]
+		]
+		file: open-file filename RED_IO_READ unicode?
 		size: file-size? file
 
 		if size <= 0 [
@@ -355,11 +430,28 @@ simple-io: context [
 		]
 		
 		buffer: allocate size
-		read-file file buffer size
+		read-buffer file buffer size
 		close-file file
 
-		str: string/load as-c-string buffer size UTF-8
+		val: as red-value! either text? [
+			str: as red-string! stack/push*
+			str/header: TYPE_STRING							;-- implicit reset of all header flags
+			str/head: 0
+			str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
+			str/cache: either size < 64 [as-c-string buffer][null]			;-- cache only small strings
+			str
+		][
+			binary/load buffer size
+		]
 		free buffer
-		str
+		val
+	]
+
+	read: func [
+		filename [red-file!]
+		text?	 [logic!]
+		return:	 [red-value!]
+	][
+		read-file to-OS-path filename text? yes
 	]
 ]

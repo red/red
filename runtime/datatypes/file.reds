@@ -201,6 +201,24 @@ file: context [
 		part - ((as-integer tail - head) >> (log-b unit)) - 1
 	]
 
+	;-- I/O actions
+	read: func [
+		src		[red-value!]
+		part	[red-value!]
+		seek	[red-value!]
+		string? [logic!]
+		lines?	[logic!]
+		return:	[red-value!]
+	][
+		if any [
+			OPTION?(part)
+			OPTION?(seek)
+		][
+			--NOT_IMPLEMENTED--
+		]
+		simple-io/read as red-file! src string?
+	]
+
 	init: does [
 		datatype/register [
 			TYPE_FILE
@@ -268,7 +286,7 @@ file: context [
 			null			;open
 			null			;open?
 			null			;query
-			null			;read
+			:read
 			null			;rename
 			null			;update
 			null			;write

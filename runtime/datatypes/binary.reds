@@ -377,20 +377,55 @@ binary: context [
 		part - 1
 	]
 
-	make-in: func [
-		parent 	[red-block!]
-		size	[integer!]
-		return: [red-binary!]
-		/local
-			bin [red-binary!]
+	make-at: func [
+		slot	[red-value!]
+		size 	[integer!]								;-- number of bytes to pre-allocate
+		return:	[red-binary!]
+		/local 
+			bin	[red-binary!]
 	][
-		#if debug? = yes [if verbose > 0 [print-line "bin/make-in"]]
-		
-		bin: as red-binary! ALLOC_TAIL(parent)
+		bin: as red-binary! slot
 		bin/header: TYPE_BINARY
 		bin/head: 0
 		bin/node: alloc-bytes size
 		bin
+	]
+
+	make-in: func [
+		parent 	[red-block!]
+		size	[integer!]
+		return: [red-binary!]
+	][
+		#if debug? = yes [if verbose > 0 [print-line "bin/make-in"]]
+		
+		make-at ALLOC_TAIL(parent) size
+	]
+
+	load-in: func [
+		src		 [byte-ptr!]
+		size	 [integer!]
+		blk		 [red-block!]
+		return:  [red-binary!]
+		/local
+			slot [red-value!]
+			bin  [red-binary!]
+			s	 [series!]
+	][
+		slot: either null = blk [stack/push*][ALLOC_TAIL(blk)]
+		bin: make-at slot size
+		
+		s: GET_BUFFER(bin)
+		copy-memory as byte-ptr! s/offset src size
+		s/tail: as cell! (as byte-ptr! s/tail) + size
+		bin
+	]
+	
+	load: func [
+		src		 [byte-ptr!]
+		size	 [integer!]
+		return:  [red-binary!]
+	][
+		load-in src size null
 	]
 
 	;--- Actions ---

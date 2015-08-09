@@ -509,7 +509,18 @@ trim: make action! [[
 ;open
 ;open?
 ;query
-;read
+read: make action! [[
+		"Read from a file, URL, or other port"
+		source	[file! url!]
+		/part	"Partial read a given number of units (source relative)"
+			length [number!]
+		/seek	"Read from a specific position (source relative)"
+			index [number!]
+		/string	"Convert line terminators to standard text string"
+		/lines	"Convert to block of strings (implies /string)"
+	]
+	#get-definition ACT_READ
+]
 ;rename
 ;update
 ;write

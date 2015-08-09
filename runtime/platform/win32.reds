@@ -212,7 +212,7 @@ platform: context [
 	;-- Initialize console ouput handle
 	;-------------------------------------------
 	init-console-out: func [][
-		confd: simple-io/CreateFile
+		confd: simple-io/CreateFileA
 					"CONOUT$"
 					GENERIC_WRITE
 					FILE_SHARE_READ or FILE_SHARE_WRITE
