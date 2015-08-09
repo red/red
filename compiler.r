@@ -173,7 +173,9 @@ red: context [
 					if all [script-path relative-path? file/1][
 						file/1: clean-path join script-path file/1
 					]
-					insert next file reduce [#script last script-stk]
+					unless empty? script-stk [
+						insert next file reduce [#script last script-stk]
+					]
 				)
 				| into rule
 				| skip
