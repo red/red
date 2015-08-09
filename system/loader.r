@@ -21,6 +21,7 @@ loader: make-profilable context [
 	hex-delim: 	  charset "[]()/"
 	non-cbracket: complement charset "}^/"
 
+	scripts-stk:  make block! 10
 	current-script: none
 	line: none
 
@@ -331,13 +332,16 @@ loader: make-profilable context [
 						][
 							0
 						]
+						name: system/script/path/:name
+						
 						insert e reduce [
 							#pop-path value
-							#script current-script	;-- put back the parent origin
+							#script last scripts-stk	;-- put back the parent origin
 						]
-						insert s reduce [			;-- mark code origin	
+						insert s reduce [				;-- mark code origin
 							#script name
 						]
+						append scripts-stk name
 						current-script: name
 					]
 				) :s
@@ -375,6 +379,7 @@ loader: make-profilable context [
 					][
 						pop-system-path
 					]
+					take/last scripts-stk
 					s: remove/part s 2
 				) :s
 				| line-rule
@@ -448,6 +453,7 @@ loader: make-profilable context [
 				with		[name]
 				'else		['in-memory]
 			]
+			append clear scripts-stk current-script
 		]
 		src: any [src input]
 		if file? input [check-marker src]			;-- look for "Red/System" head marker

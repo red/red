@@ -14,10 +14,12 @@ red: context [
 	job: 		   none									;-- reference the current job object	
 	script-name:   none
 	script-path:   none
+	script-file:   none									;-- #system metadata for R/S loader
 	main-path:	   none
 	runtime-path:  %runtime/
 	include-stk:   make block! 3
 	included-list: make block! 20
+	script-stk:	   make block! 10
 	needed:		   make block! 4
 	symbols:	   make hash! 1000
 	globals:	   make hash! 1000						;-- words defined in global context
@@ -171,6 +173,7 @@ red: context [
 					if all [script-path relative-path? file/1][
 						file/1: clean-path join script-path file/1
 					]
+					insert next file reduce [#script last script-stk]
 				)
 				| into rule
 				| skip
@@ -3458,7 +3461,7 @@ red: context [
 		insert-lf -1
 	]
 
-	comp-directive: has [file saved version mark][
+	comp-directive: has [file saved version mark script-file][
 		switch pc/1 [
 			#include [
 				unless file? file: pc/2 [
@@ -3479,6 +3482,12 @@ red: context [
 					script-path: take/last include-stk
 					remove/part pc 2
 				][
+					script-file: file
+					if all [slash <> first file	script-path][
+						script-file: clean-path join script-path file
+					]
+					append script-stk script-file
+					emit reduce [#script script-file]
 					saved: script-name
 					insert skip pc 2 #pop-path
 					change/part pc next load-source file 2	;@@ Header skipped, should be processed
@@ -3489,6 +3498,7 @@ red: context [
 				true
 			]
 			#pop-path [
+				take/last script-stk
 				script-path: take/last include-stk
 				pc: next pc
 			]
@@ -3997,6 +4007,7 @@ red: context [
 	clean-up: does [
 		clear include-stk
 		clear included-list
+		clear script-stk
 		clear needed
 		clear symbols
 		clear aliases
