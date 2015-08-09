@@ -509,7 +509,20 @@ trim: make action! [[
 ;open
 ;open?
 ;query
-;read
+read: make action! [[
+		"Read from a file, URL, or other port"
+		source	[file! url!]
+		/part	"Partial read a given number of units (source relative)"
+			length [number!]
+		/seek	"Read from a specific position (source relative)"
+			index [number!]
+		/binary	"Preserves contents exactly"
+		/lines	"Convert to block of strings"
+		/as		"Read with the specified encoding, default is 'UTF-8"
+			encoding [word!]
+	]
+	#get-definition ACT_READ
+]
 ;rename
 ;update
 ;write

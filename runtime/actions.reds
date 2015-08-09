@@ -1473,7 +1473,50 @@ actions: context [
 	open*: func [][]
 	open?*: func [][]
 	query*: func [][]
-	read*: func [][]
+
+	read*: func [
+		part	[integer!]
+		seek	[integer!]
+		binary? [integer!]
+		lines?	[integer!]
+		as-arg	[integer!]
+		return:	[red-value!]
+	][
+		stack/set-last read
+			stack/arguments
+			stack/arguments + part
+			stack/arguments + seek
+			binary? <> -1
+			lines? <> -1
+			stack/arguments + as-arg
+	]
+
+	read: func [
+		src		[red-value!]
+		part	[red-value!]
+		seek	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		as-arg	[red-value!]
+		return: [red-value!]
+		/local
+			action-read
+	][
+		#if debug? = yes [if verbose > 0 [print-line "actions/read"]]
+
+		action-read: as function! [
+			src		[red-value!]
+			part	[red-value!]
+			seek	[red-value!]
+			binary? [logic!]
+			lines?	[logic!]
+			as-arg	[red-value!]
+			return:	[red-value!]						;-- picked value from series
+		] get-action-ptr src ACT_READ
+
+		action-read src part seek binary? lines? as-arg
+	]
+
 	rename*: func [][]
 	update*: func [][]
 	write*: func [][]
@@ -1545,7 +1588,7 @@ actions: context [
 			null			;open
 			null			;open?
 			null			;query
-			null			;read
+			:read*
 			null			;rename
 			null			;update
 			null			;write

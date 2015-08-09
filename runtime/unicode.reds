@@ -307,6 +307,7 @@ unicode: context [
 		size	   [integer!]							;-- size of src in bytes (excluding terminal NUL)
 		dst		   [series!]							;-- optional output string! series
 		remain	   [int-ptr!]							;-- number of undecoded bytes at end of buffer
+		convert?   [logic!]								;-- convert all line terminators to standard
 		return:	   [node!]
 		/local
 			node   [node!]
@@ -361,72 +362,73 @@ unicode: context [
 				remain/value: count						;-- return the number of unprocessed bytes
 				return node
 			]
-			
-			switch unit [
-				Latin1 [
-					case [
-						cp <= FFh [
-							buf1/value: as-byte cp
-							buf1: buf1 + 1
-							assert buf1 <= end			;-- should not happen if we're good
-						]
-						cp <= FFFFh [
-							s/tail: as cell! buf1
-							unit: UCS-2
-							s:    Latin1-to-UCS2 s		;-- upgrade to UCS-2
-							buf1: as byte-ptr! s/tail
-							end:  (as byte-ptr! s/offset) + s/size
 
+			unless all [convert? cp = 13] [					;-- convert CRLF to LF
+				switch unit [
+					Latin1 [
+						case [
+							cp <= FFh [
+								buf1/value: as-byte cp
+								buf1: buf1 + 1
+								assert buf1 <= end			;-- should not happen if we're good
+							]
+							cp <= FFFFh [
+								s/tail: as cell! buf1
+								unit: UCS-2
+								s:    Latin1-to-UCS2 s		;-- upgrade to UCS-2
+								buf1: as byte-ptr! s/tail
+								end:  (as byte-ptr! s/offset) + s/size
+
+								buf1/1: as-byte cp and FFh
+								buf1/2: as-byte cp >> 8
+								buf1: buf1 + 2
+							]
+							true [
+								s/tail: as cell! buf1
+								unit: UCS-4
+								s:    Latin1-to-UCS4 s		;-- upgrade to UCS-4
+								buf4: as int-ptr! s/tail
+								end:  (as byte-ptr! s/offset) + s/size
+
+								buf4/value: cp
+								buf4: buf4 + 1
+							]
+						]
+					]
+					UCS-2 [
+						either cp > FFFFh [
+							s/tail: as cell! buf1
+							unit: UCS-4
+							s:    UCS2-to-UCS4 s			;-- upgrade to UCS-4
+							buf4: as int-ptr! s/tail
+							end:  (as byte-ptr! s/offset) + s/size
+							
+							buf4/value: cp
+							buf4: buf4 + 1
+						][
+							if buf1 >= end [
+								s/tail: as cell! buf1
+								s: expand-series s s/size + (size >> 2)	;-- increase size by 50% 
+								buf1: as byte-ptr! s/tail
+								end: (as byte-ptr! s/offset) + s/size
+							]
 							buf1/1: as-byte cp and FFh
 							buf1/2: as-byte cp >> 8
 							buf1: buf1 + 2
 						]
-						true [
-							s/tail: as cell! buf1
-							unit: UCS-4
-							s:    Latin1-to-UCS4 s		;-- upgrade to UCS-4
-							buf4: as int-ptr! s/tail
-							end:  (as byte-ptr! s/offset) + s/size
-
-							buf4/value: cp
-							buf4: buf4 + 1
-						]
 					]
-				]
-				UCS-2 [
-					either cp > FFFFh [
-						s/tail: as cell! buf1
-						unit: UCS-4
-						s:    UCS2-to-UCS4 s			;-- upgrade to UCS-4
-						buf4: as int-ptr! s/tail
-						end:  (as byte-ptr! s/offset) + s/size
-						
-						buf4/value: cp
-						buf4: buf4 + 1
-					][
-						if buf1 >= end [
-							s/tail: as cell! buf1
-							s: expand-series s s/size + (size >> 2)	;-- increase size by 50% 
-							buf1: as byte-ptr! s/tail
+					UCS-4 [
+						if buf4 >= (as int-ptr! end) [
+							s/tail: as cell! buf4
+							s: expand-series s s/size + size ;-- increase size by 100% 
+							buf4: as int-ptr! s/tail
 							end: (as byte-ptr! s/offset) + s/size
 						]
-						buf1/1: as-byte cp and FFh
-						buf1/2: as-byte cp >> 8
-						buf1: buf1 + 2
+						buf4/value: cp
+						buf4: buf4 + 1
 					]
-				]
-				UCS-4 [
-					if buf4 >= (as int-ptr! end) [
-						s/tail: as cell! buf4
-						s: expand-series s s/size + size ;-- increase size by 100% 
-						buf4: as int-ptr! s/tail
-						end: (as byte-ptr! s/offset) + s/size
-					]
-					buf4/value: cp
-					buf4: buf4 + 1
 				]
 			]
-			
 			count: count - used
 			src: src + used
 			zero? count
@@ -445,7 +447,7 @@ unicode: context [
 		remain	   [int-ptr!]							;-- number of undecoded bytes at end of input buffer
 		return:	   [node!]
 	][
-		load-utf8-buffer src size GET_BUFFER(output) remain
+		load-utf8-buffer src size GET_BUFFER(output) remain no
 	]
 
 	load-utf8: func [
@@ -453,7 +455,7 @@ unicode: context [
 		size	   [integer!]							;-- size of src in bytes (excluding terminal NUL)
 		return:	   [node!]
 	][
-		load-utf8-buffer src size null null
+		load-utf8-buffer src size null null no
 	]
 	
 	scan-utf16: func [									;-- detect codepoint max storage size
