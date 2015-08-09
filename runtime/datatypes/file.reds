@@ -206,17 +206,19 @@ file: context [
 		src		[red-value!]
 		part	[red-value!]
 		seek	[red-value!]
-		string? [logic!]
+		binary? [logic!]
 		lines?	[logic!]
+		as-arg	[red-value!]
 		return:	[red-value!]
 	][
 		if any [
 			OPTION?(part)
 			OPTION?(seek)
+			OPTION?(as-arg)
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/read as red-file! src string?
+		simple-io/read as red-file! src not binary?
 	]
 
 	init: does [

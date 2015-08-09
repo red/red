@@ -516,8 +516,10 @@ read: make action! [[
 			length [number!]
 		/seek	"Read from a specific position (source relative)"
 			index [number!]
-		/string	"Convert line terminators to standard text string"
-		/lines	"Convert to block of strings (implies /string)"
+		/binary	"Preserves contents exactly"
+		/lines	"Convert to block of strings"
+		/as		"Read with the specified encoding, default is 'UTF-8"
+			encoding [word!]
 	]
 	#get-definition ACT_READ
 ]

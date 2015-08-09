@@ -1477,24 +1477,27 @@ actions: context [
 	read*: func [
 		part	[integer!]
 		seek	[integer!]
-		string? [integer!]
+		binary? [integer!]
 		lines?	[integer!]
+		as-arg	[integer!]
 		return:	[red-value!]
 	][
 		stack/set-last read
 			stack/arguments
-			stack/arguments + 1
-			stack/arguments + 2
-			string? <> -1
+			stack/arguments + part
+			stack/arguments + seek
+			binary? <> -1
 			lines? <> -1
+			stack/arguments + as-arg
 	]
 
 	read: func [
 		src		[red-value!]
 		part	[red-value!]
 		seek	[red-value!]
-		string? [logic!]
+		binary? [logic!]
 		lines?	[logic!]
+		as-arg	[red-value!]
 		return: [red-value!]
 		/local
 			action-read
@@ -1505,12 +1508,13 @@ actions: context [
 			src		[red-value!]
 			part	[red-value!]
 			seek	[red-value!]
-			string? [logic!]
+			binary? [logic!]
 			lines?	[logic!]
+			as-arg	[red-value!]
 			return:	[red-value!]						;-- picked value from series
 		] get-action-ptr src ACT_READ
 
-		action-read src part seek string? lines?
+		action-read src part seek binary? lines? as-arg
 	]
 
 	rename*: func [][]

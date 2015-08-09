@@ -307,7 +307,7 @@ unicode: context [
 		size	   [integer!]							;-- size of src in bytes (excluding terminal NUL)
 		dst		   [series!]							;-- optional output string! series
 		remain	   [int-ptr!]							;-- number of undecoded bytes at end of buffer
-		lf?		   [logic!]								;-- convert all line terminators to standard
+		convert?   [logic!]								;-- convert all line terminators to standard
 		return:	   [node!]
 		/local
 			node   [node!]
@@ -363,7 +363,7 @@ unicode: context [
 				return node
 			]
 
-			unless all [lf? cp = 13] [					;-- convert CRLF to LF
+			unless all [convert? cp = 13] [					;-- convert CRLF to LF
 				switch unit [
 					Latin1 [
 						case [
