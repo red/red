@@ -37,6 +37,8 @@ get-face-values: func [
 		node [node!]
 		s	 [series!]
 ][
+?? hWnd
+probe 1 / 0
 	node: as node! GetWindowLong hWnd wc-offset + 4
 	ctx: TO_CTX(node)
 	s: as series! ctx/values/value

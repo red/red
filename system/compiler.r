@@ -345,8 +345,10 @@ system-dialect: make-profilable context [
 			1000 + divide 1 + index? pos 2
 		]
 		
-		get-type-id: func [value /local type alias][
-			with-alias-resolution off [type: resolve-expr-type value]
+		get-type-id: func [value /direct /local type alias][
+			either direct [type: value][
+				with-alias-resolution off [type: resolve-expr-type value]
+			]
 			
 			either alias: find-aliased/position type/1 [		
 				get-alias-id alias
@@ -461,6 +463,25 @@ system-dialect: make-profilable context [
 			count
 		]
 		
+		get-args-array: func [name [word!] /local count array spec][ ;-- used by linker for debug info
+			count: 0
+			array: clear #{}							;-- re-use buffer
+			
+			parse functions/:name/4 [
+				opt block!
+				any [
+					word!
+					spec: block! (
+						count: count + 1
+						id: get-type-id/direct spec/1
+						if id >= 1000 [id: 100]
+						append array to-char id
+					)
+				]
+			]
+			reduce [count array]
+		]
+		
 		any-path?: func [value][
 			find [path! set-path! lit-path!] type?/word value
 		]
@@ -565,6 +586,9 @@ system-dialect: make-profilable context [
 		
 		resolve-path-type: func [path [path! set-path!] /short /parent prev /local type path-error saved][
 			path-error: [
+?? path
+?? short
+?? prev
 				pc: skip pc -2
 				throw-error "invalid path value"
 			]
@@ -2961,7 +2985,6 @@ system-dialect: make-profilable context [
 			if job/debug? [store-dbg-lines]
 			
 			check-enum-symbol pc
-
 			expr: switch/default type?/word pc/1 [
 				set-word!	[comp-assignment]
 				word!		[comp-word]

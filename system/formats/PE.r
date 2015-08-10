@@ -699,6 +699,7 @@ context [
 		if job/debug? [
 			code-ptr: entry-point-address? job
 			linker/build-debug-lines job code-ptr pointer
+			linker/build-debug-func-names job code-ptr pointer
 		]
 		
 		build-import job								;-- populate import section buffer

@@ -19,6 +19,13 @@ linker: context [
 		file	[integer!]							;-- filename string offset
 	] none
 	
+	func-record!: make-struct 	[					;-- debug lines records associating code addresses and source lines
+		address [integer!]							;-- entry point of the funcion
+		name	[integer!]							;-- function's name c-string offset (from first record)
+		arity	[integer!]							;-- function's arity
+		args	[integer!]							;-- array of arguments types pointer
+	] none
+	
 	job-class: context [
 		format: 									;-- 'PE | 'ELF | 'Mach-o
 		type: 										;-- 'exe | 'obj | 'lib | 'dll | 'drv
@@ -41,6 +48,16 @@ linker: context [
 			][reform err]
 		]
 		system-dialect/compiler/quit-on-error
+	]
+	
+	set-ptr: func [job [object!] name [word!] value [integer!] /local spec][
+		spec: find job/symbols name
+		spec/<data>/2: value
+	]
+	
+	set-integer: func [job [object!] name [word!] value [integer!] /local spec][
+		spec: find job/symbols name
+		change/part at job/sections/data/2 spec/2/2 + 1 to-bin32 value 4
 	]
 	
 	resolve-symbol-refs: func [
@@ -92,9 +109,9 @@ linker: context [
 	]
 	
 	build-debug-lines: func [
-		job [object!]
+		job 	 [object!]
 		code-ptr [integer!]							;-- code memory address
-		pointer [object!]
+		pointer  [object!]
 		/local	records files rec-size buffer table strings record data-buf spec
 	][
 		records: job/debug-info/lines/records
@@ -124,7 +141,54 @@ linker: context [
 		spec: find job/symbols '__debug-lines
 		spec/<data>/2: length? data-buf				;-- patch __debug-lines symbol to point to 1st record
 		
-		repend data-buf [buffer strings]			;-- append records and strings to data segment
+		repend data-buf [buffer strings]
+	]
+	
+	build-debug-func-names: func [
+		job 	 [object!]
+		code-ptr [integer!]							;-- code memory address
+		pointer  [object!]
+		/local buffer specs args arity sc list rec-size record name-ptr args-ptr data-buf spec nb
+	][
+		sc: system-dialect/compiler
+		list: make block! 4000
+		
+		foreach [name spec] job/symbols [
+			if spec/1 = 'native [
+				append list name
+				append list spec/2
+			]
+		]
+		nb:	(length? list) / 2
+		rec-size: 16 * nb
+		buffer:	make binary! rec-size		 		;-- main buffer
+		specs:  make binary! rec-size + 10'000		;-- funcs name + args spec
+		
+		foreach [name entry-ptr] list [
+			set [arity args] sc/get-args-array name
+			name-ptr: rec-size + length? specs
+			append specs name
+			append specs null
+			
+			either arity > 0 [
+				args-ptr: rec-size + length? specs
+				append specs args
+			][
+				args-ptr: 0
+			]
+
+			record: make-struct func-record! none
+			record/address: code-ptr + entry-ptr - 1
+			record/name:	name-ptr
+			record/arity:	arity
+			record/args:	args-ptr
+			append buffer form-struct record
+		]
+		data-buf: job/sections/data/2
+		set-ptr job '__debug-funcs	length? data-buf
+		set-integer job '__debug-funcs-nb nb
+		
+		repend data-buf [buffer specs]
 	]
 		
 	clean-imports: func [imports [block!]][			;-- remove unused imports

@@ -17,7 +17,18 @@ __line-record!: alias struct! [				;-- debug lines records associating code addr
 	file	[integer!]						;-- source file name c-string offset (from first record)
 ]
 
+__func-record!: alias struct! [				;-- debug lines records associating code addresses and source lines
+	entry	[byte-ptr!]						;-- entry point of the funcion
+	name	[integer!]						;-- function's name c-string offset (from first record)
+	arity	[integer!]						;-- function's arity
+	args	[byte-ptr!]						;-- array of arguments types pointer
+]
+
 __debug-lines: declare __line-record!		;-- pointer to first debug-lines record (set at link-time)
+__debug-funcs: declare __func-record!		;-- pointer to first debug-funcs record (set at link-time)
+
+__debug-lines-nb: 0
+__debug-funcs-nb: 0
 
 ;-------------------------------------------
 ;-- Calculate line number for a runtime error and print it (internal function).
@@ -39,6 +50,50 @@ __print-debug-line: func [
 		lf "*** in file: " as-c-string base + records/file
 		lf "*** at line: " records/line
 		lf
+	]
+]
+
+;-------------------------------------------
+;-- Dump the native call stack (internal function).
+;-------------------------------------------
+__print-debug-stack: func [
+	address [byte-ptr!]						;-- memory address where the runtime error happened
+	/local ret base records nb next end top frame
+][
+	base:	 as byte-ptr! __debug-funcs
+	frame:	 system/debug/frame
+	ret: as int-ptr! address
+
+	until [
+		nb: __debug-funcs-nb
+		records: __debug-funcs
+		until [
+			nb: nb - 1
+			either zero? nb [
+				end: records/entry + 00010000h	;-- set arbitrary limit of 100KB for last func size
+			][
+				next: records + 1
+				end: next/entry
+			]
+			if all [
+				records/entry <= ret
+				ret < end
+			][
+				break
+			]
+			records: records + 1
+			zero? nb
+		]
+		unless zero? nb [
+			print-line as-c-string base + records/name
+		]
+		
+		top: frame
+		frame: as int-ptr! top/value
+		top: top + 1
+		ret: as int-ptr! top/value
+		
+		zero? nb
 	]
 ]
 

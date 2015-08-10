@@ -205,7 +205,8 @@ re-throw: func [/local id [integer!]][
 			print msg
 
 			#either debug? = yes [
-				__print-debug-line as byte-ptr! address
+				__print-debug-line  as byte-ptr! address
+				__print-debug-stack as byte-ptr! address
 			][
 				print [lf "*** at: " as byte-ptr! address "h" lf]
 			]
