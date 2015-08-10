@@ -58,12 +58,13 @@ __print-debug-line: func [
 ;-------------------------------------------
 __print-debug-stack: func [
 	address [byte-ptr!]						;-- memory address where the runtime error happened
-	/local ret base records nb next end top frame
+	/local ret base records nb next end top frame s value pf [pointer! [float!]]
 ][
-	base:	 as byte-ptr! __debug-funcs
-	frame:	 system/debug/frame
-	ret: as int-ptr! address
-
+	base:	as byte-ptr! __debug-funcs
+	frame:	system/debug/frame
+	ret:	as int-ptr! address
+	top:	frame + 2
+	
 	until [
 		nb: __debug-funcs-nb
 		records: __debug-funcs
@@ -85,13 +86,46 @@ __print-debug-stack: func [
 			zero? nb
 		]
 		unless zero? nb [
-			print-line as-c-string base + records/name
+			s: as-c-string base + records/name
+			if all [s/1 = #"e" s/2 = #"x" s/3 = #"e" s/4 = #"c"][s: s + 5]
+			if all [s/1 = #"f" s/2 = #"_"][s: s + 2]
+				
+			print ["***   stack: " s]
+			s: as-c-string base + records/args
+
+			unless zero? records/arity [
+				loop records/arity [
+					print #" "
+					value: top/value
+					switch as-integer s/1 [
+						type-logic!	   [print either as-logic value ["true"]["false"]]
+						type-integer!  [prin-int value]
+						type-byte!	   [printf [{#"^(%02X)"} value]]
+						type-float32!  [prin-float32 as float32! value]
+						type-float!	   [
+							pf: as pointer! [float!] top
+							prin-float pf/value
+							top: top + 1
+						]
+						type-c-string! [printf [{"%20s"} as-c-string value]]
+						type-byte-ptr!
+						type-int-ptr!
+						type-function!
+						100		  	   [prin-hex value print #"h"] ;-- 100 => struct!
+						default 	   [0]			;-- catch all, just in case...
+					]
+					top: top + 1
+					s: s + 1
+				]
+			]
+			print lf
 		]
 		
 		top: frame
 		frame: as int-ptr! top/value
 		top: top + 1
 		ret: as int-ptr! top/value
+		top: top + 1
 		
 		zero? nb
 	]
