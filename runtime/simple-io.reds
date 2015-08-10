@@ -13,8 +13,11 @@ Red/System [
 simple-io: context [
 
 	#enum red-io-mode! [
-		RED_IO_READ
-		RED_IO_WRIE
+		RIO_READ:	1
+		RIO_WRITE:	2
+		RIO_APPEND:	4
+		RIO_SEEK:	8
+		RIO_NEW:	16
 	]
 
 	#either OS = 'Windows [
@@ -23,9 +26,14 @@ simple-io: context [
 		#define GENERIC_READ 			80000000h
 		#define FILE_SHARE_READ			00000001h
 		#define FILE_SHARE_WRITE		00000002h
+		#define OPEN_ALWAYS				00000004h
 		#define OPEN_EXISTING			00000003h
 		#define CREATE_ALWAYS			00000002h
 		#define FILE_ATTRIBUTE_NORMAL	00000080h
+
+		#define SET_FILE_BEGIN			0
+		#define SET_FILE_CURRENT		1
+		#define SET_FILE_END			2
 
 		#import [
 			"kernel32.dll" stdcall [
@@ -57,6 +65,14 @@ simple-io: context [
 					overlapped	[int-ptr!]
 					return:		[integer!]
 				]
+				WriteFile:	"WriteFile" [
+					file		[integer!]
+					buffer		[byte-ptr!]
+					bytes		[integer!]
+					written		[int-ptr!]
+					overlapped	[int-ptr!]
+					return:		[integer!]
+				]
 				GetFileSize: "GetFileSize" [
 					file		[integer!]
 					high-size	[integer!]
@@ -64,6 +80,17 @@ simple-io: context [
 				]
 				CloseHandle:	"CloseHandle" [
 					obj			[integer!]
+					return:		[integer!]
+				]
+				SetFilePointer: "SetFilePointer" [
+					file		[integer!]
+					distance	[integer!]
+					pDistance	[int-ptr!]
+					dwMove		[integer!]
+					return:		[integer!]
+				]
+				SetEndOfFile: "SetEndOfFile" [
+					file		[integer!]
 					return:		[integer!]
 				]
 			]
@@ -91,6 +118,12 @@ simple-io: context [
 					return:		[integer!]
 				]
 				_read:	"read" [
+					file		[integer!]
+					buffer		[byte-ptr!]
+					bytes		[integer!]
+					return:		[integer!]
+				]
+				_write:	"write" [
 					file		[integer!]
 					buffer		[byte-ptr!]
 					bytes		[integer!]
@@ -287,12 +320,16 @@ simple-io: context [
 			access [integer!]
 	][
 		#either OS = 'Windows [
-			either mode = RED_IO_READ [
+			either mode and RIO_READ <> 0 [
 				modes: GENERIC_READ
 				access: OPEN_EXISTING
 			][
 				modes: GENERIC_WRITE
-				access: CREATE_ALWAYS
+				either mode and RIO_APPEND <> 0 [
+					access: OPEN_ALWAYS
+				][
+					access: CREATE_ALWAYS
+				]
 			]
 			either unicode? [
 				file: CreateFileW
@@ -314,7 +351,7 @@ simple-io: context [
 					null
 			]
 		][
-			either mode = RED_IO_READ [
+			either mode and RIO_READ <> 0 [
 				modes: O_BINARY or O_RDONLY
 				access: S_IREAD
 			][
@@ -323,10 +360,7 @@ simple-io: context [
 			]
 			file: _open filename modes access
 		]
-		if file = -1 [
-			print-line "*** Error: File not found"
-			quit -1
-		]
+		if file = -1 [return -1]
 		file
 	]
 	
@@ -360,19 +394,13 @@ simple-io: context [
 		/local
 			read-sz [integer!]
 			res		[integer!]
-			error?	[logic!]
 	][
 		#either OS = 'Windows [
 			read-sz: -1
 			res: ReadFile file buffer size :read-sz null
-			error?: any [zero? res read-sz <> size]
+			res: either zero? res [-1][1]
 		][
 			res: _read file buffer size
-			error?: res <= 0
-		]
-		if error? [
-			print-line "*** Error: cannot read file"
-			quit -3
 		]
 		res
 	]
@@ -393,19 +421,21 @@ simple-io: context [
 		return: [c-string!]
 		/local
 			str [red-string!]
+			len [integer!]
 	][
 		str: string/rs-make-at stack/push* string/rs-length? as red-string! src
 		file/to-local-path src str no
 		#either OS = 'Windows [
 			unicode/to-utf16 str
 		][
-			unicode/to-utf8 str
+			len: -1
+			unicode/to-utf8 str :len no
 		]
 	]
 
 	read-file: func [
 		filename [c-string!]
-		text?	 [logic!]
+		binary?	 [logic!]
 		unicode? [logic!]
 		return:	 [red-value!]
 		/local
@@ -421,37 +451,128 @@ simple-io: context [
 			len: length? filename
 			if filename/len = #"^"" [filename/len: null-byte]
 		]
-		file: open-file filename RED_IO_READ unicode?
+		file: open-file filename RIO_READ unicode?
+		if file < 0 [return none-value]
+
 		size: file-size? file
 
 		if size <= 0 [
-			print-line "*** Error: empty file"
-			quit -2
+			print-line "*** Warning: empty file"
 		]
 		
 		buffer: allocate size
-		read-buffer file buffer size
+		len: read-buffer file buffer size
 		close-file file
 
-		val: as red-value! either text? [
+		if negative? len [return none-value]
+
+		val: as red-value! either binary? [
+			binary/load buffer size
+		][
 			str: as red-string! stack/push*
 			str/header: TYPE_STRING							;-- implicit reset of all header flags
 			str/head: 0
 			str/node: unicode/load-utf8-buffer as-c-string buffer size null null yes
 			str/cache: either size < 64 [as-c-string buffer][null]			;-- cache only small strings
 			str
-		][
-			binary/load buffer size
 		]
 		free buffer
 		val
 	]
 
+	write-file: func [
+		filename [c-string!]
+		data	 [byte-ptr!]
+		size	 [integer!]
+		binary?	 [logic!]
+		append?  [logic!]
+		unicode? [logic!]
+		return:	 [integer!]
+		/local
+			file	[integer!]
+			len		[integer!]
+			mode	[integer!]
+			ret		[integer!]
+	][
+		unless unicode? [		;-- only command line args need to be checked
+			if filename/1 = #"^"" [filename: filename + 1]	;-- FIX: issue #1234
+			len: length? filename
+			if filename/len = #"^"" [filename/len: null-byte]
+		]
+		mode: RIO_WRITE
+		if append? [mode: mode or RIO_APPEND]
+		file: open-file filename mode unicode?
+		if file < 0 [return file]
+
+		#either OS = 'Windows [
+			len: 0
+			if append? [SetFilePointer file 0 null SET_FILE_END]
+			ret: WriteFile file data size :len null
+			ret: either zero? ret [-1][1]
+		][
+			ret: _write file data size
+		]
+		close-file file
+		ret
+	]
+
 	read: func [
 		filename [red-file!]
-		text?	 [logic!]
+		binary?	 [logic!]
 		return:	 [red-value!]
+		/local
+			data [red-value!]
 	][
-		read-file to-OS-path filename text? yes
+		data: read-file to-OS-path filename binary? yes
+		if TYPE_OF(data) = TYPE_NONE [
+			fire [TO_ERROR(access cannot-open) filename]
+		]
+		data
+	]
+
+	write: func [
+		filename [red-file!]
+		data	 [red-value!]
+		part	 [red-value!]
+		binary?	 [logic!]
+		append?  [logic!]
+		return:  [integer!]
+		/local
+			len  	[integer!]
+			str  	[red-string!]
+			buf  	[byte-ptr!]
+			int  	[red-integer!]
+			limit	[integer!]
+			type	[integer!]
+	][
+		limit: -1
+		if OPTION?(part) [
+			either TYPE_OF(part) = TYPE_INTEGER [
+				int: as red-integer! part
+				if negative? int/value [return -1]			;-- early exit if part <= 0
+				limit: int/value
+			][
+				ERR_INVALID_REFINEMENT_ARG(refinements/_part part)
+			]
+		]
+		type: TYPE_OF(data)
+		case [
+			type = TYPE_STRING [
+				len: limit
+				str: as red-string! data
+				buf: as byte-ptr! unicode/to-utf8 str :len not binary?
+			]
+			type = TYPE_BINARY [
+				buf: binary/rs-head as red-binary! data
+				len: binary/rs-length? as red-binary! data
+				if all [limit > 0 len > limit][len: limit]
+			]
+			true [ERR_EXPECT_ARGUMENT(type 1)]
+		]
+		type: write-file to-OS-path filename buf len binary? append? yes
+		if negative? type [
+			fire [TO_ERROR(access cannot-open) filename]
+		]
+		type
 	]
 ]

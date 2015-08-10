@@ -218,7 +218,29 @@ file: context [
 		][
 			--NOT_IMPLEMENTED--
 		]
-		simple-io/read as red-file! src not binary?
+		simple-io/read as red-file! src binary?
+	]
+
+	write: func [
+		dest	[red-value!]
+		data	[red-value!]
+		binary? [logic!]
+		lines?	[logic!]
+		append? [logic!]
+		part	[red-value!]
+		seek	[red-value!]
+		allow	[red-value!]
+		as-arg	[red-value!]
+		return:	[integer!]
+	][
+		if any [
+			OPTION?(seek)
+			OPTION?(allow)
+			OPTION?(as-arg)
+		][
+			--NOT_IMPLEMENTED--
+		]
+		simple-io/write as red-file! dest data part binary? append?
 	]
 
 	init: does [
@@ -291,7 +313,7 @@ file: context [
 			:read
 			null			;rename
 			null			;update
-			null			;write
+			:write
 		]
 	]
 ]

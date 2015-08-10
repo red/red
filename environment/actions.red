@@ -525,4 +525,21 @@ read: make action! [[
 ]
 ;rename
 ;update
-;write
+write: make action! [[
+		"Writes to a file, URL, or other port"
+		destination	[file! url!]
+		data		[any-type!]
+		/binary	"Preserves contents exactly"
+		/lines	"Write each value in a block as a separate line"
+		/append "Write data at end of file"
+		/part	"Partial write a given number of units"
+			length	[number!]
+		/seek	"Write at a specific position"
+			index	[number!]
+		/allow	"Specifies protection attributes"
+			access	[block!]
+		/as		"Write with the specified encoding, default is 'UTF-8"
+			encoding [word!]
+	]
+	#get-definition ACT_WRITE
+]
