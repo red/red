@@ -629,7 +629,7 @@ binary: context [
 						either TYPE_OF(cell) = TYPE_BINARY [
 							data: rs-head as red-binary! cell						
 						][
-							data: as byte-ptr! unicode/to-utf8 as red-string! cell :rest
+							data: as byte-ptr! unicode/to-utf8 as red-string! cell :rest no
 						]
 					]
 				]
