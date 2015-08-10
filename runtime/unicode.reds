@@ -80,8 +80,16 @@ unicode: context [
 			]
 		]
 	]
-	
+
 	to-utf8: func [
+		str		 [red-string!]
+		len		 [int-ptr!]			;-- len/value = -1 convert all chars
+		return:  [c-string!]
+	][
+		io-to-utf8 str len no
+	]
+
+	io-to-utf8: func [
 		str		 [red-string!]
 		len		 [int-ptr!]			;-- len/value = -1 convert all chars
 		convert? [logic!]			;-- convert line terminators to OS specific

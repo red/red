@@ -83,7 +83,7 @@ symbol: context [
 		sym: as red-symbol! ALLOC_TAIL(symbols)
 		sym/header: TYPE_SYMBOL							;-- implicit reset of all header flags
 		sym/node:   str/node
-		sym/cache:  unicode/to-utf8 str :len no
+		sym/cache:  unicode/to-utf8 str :len
 		sym/alias:  either zero? id [-1][0 - id]		;-- -1: no alias, abs(id)>0: alias id
 		_hashtable/put table as red-value! sym
 		block/rs-length? symbols

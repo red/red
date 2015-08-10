@@ -87,7 +87,7 @@ image: context [
 				unicode/to-utf16 src
 			][
 				len: -1
-				unicode/to-utf8 src :len no
+				unicode/to-utf8 src :len
 			]
 		;if file? [stack/pop 1]							;@@ FIX it, seems it is a bug
 		img

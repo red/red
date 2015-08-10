@@ -35,6 +35,21 @@ simple-io: context [
 		#define SET_FILE_CURRENT		1
 		#define SET_FILE_END			2
 
+		#define WIN32_FIND_DATA_SIZE	592
+
+		WIN32_FIND_DATA: alias struct! [
+			dwFileAttributes	[integer!]
+			ftCreationTime		[float!]
+			ftLastAccessTime	[float!]
+			ftLastWriteTime		[float!]
+			nFileSizeHigh		[integer!]
+			nFileSizeLow		[integer!]
+			dwReserved0			[integer!]
+			dwReserved1			[integer!]
+			cFileName			[c-string!]				;-- WCHAR  cFileName[ 260 ]
+			;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
+		]
+
 		#import [
 			"kernel32.dll" stdcall [
 				CreateFileA: "CreateFileA" [			;-- temporary needed by Red/System
@@ -71,6 +86,20 @@ simple-io: context [
 					bytes		[integer!]
 					written		[int-ptr!]
 					overlapped	[int-ptr!]
+					return:		[integer!]
+				]
+				FindFirstFile: "FindFirstFileW" [
+					filename	[c-string!]
+					filedata	[WIN32_FIND_DATA]
+					return:		[integer!]
+				]
+				FindNextFile: "FindNextFile" [
+					file		[integer!]
+					filedata	[WIN32_FIND_DATA]
+					return:		[integer!]
+				]
+				FindClose: "FindClose" [
+					file		[integer!]
 					return:		[integer!]
 				]
 				GetFileSize: "GetFileSize" [
@@ -429,7 +458,7 @@ simple-io: context [
 			unicode/to-utf16 str
 		][
 			len: -1
-			unicode/to-utf8 str :len no
+			unicode/to-utf8 str :len
 		]
 	]
 
@@ -516,6 +545,24 @@ simple-io: context [
 		ret
 	]
 
+	read-dir: func [
+		filename [c-string!]
+		unicode? [logic!]
+		return:  [red-block!]
+		/local
+			info	[WIN32_FIND_DATA]
+			fname	[c-string!]
+			handle	[integer!]
+	][
+		info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
+		handle: FindFirstFile filename info
+		if handle = -1 [return none-value]
+
+		fname: info/cFileName
+		
+		free as byte-ptr! info
+	]
+
 	read: func [
 		filename [red-file!]
 		binary?	 [logic!]
@@ -560,7 +607,7 @@ simple-io: context [
 			type = TYPE_STRING [
 				len: limit
 				str: as red-string! data
-				buf: as byte-ptr! unicode/to-utf8 str :len not binary?
+				buf: as byte-ptr! unicode/io-to-utf8 str :len not binary?
 			]
 			type = TYPE_BINARY [
 				buf: binary/rs-head as red-binary! data
