@@ -58,12 +58,13 @@ __print-debug-line: func [
 ;-------------------------------------------
 __print-debug-stack: func [
 	address [byte-ptr!]						;-- memory address where the runtime error happened
-	/local ret base records nb next end top frame s value pf [pointer! [float!]]
+	/local ret base records nb next end top frame s value lines pf [pointer! [float!]]
 ][
 	base:	as byte-ptr! __debug-funcs
 	frame:	system/debug/frame
 	ret:	as int-ptr! address
 	top:	frame + 2
+	lines:	40											;-- max number of lines displayed
 	
 	print-line "***"
 	
@@ -122,6 +123,7 @@ __print-debug-stack: func [
 				]
 			]
 			print lf
+			lines: lines - 1
 		]
 		
 		top: frame
@@ -130,7 +132,7 @@ __print-debug-stack: func [
 		ret: as int-ptr! top/value
 		top: top + 1
 		
-		zero? nb
+		any [zero? nb zero? lines]
 	]
 ]
 
