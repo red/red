@@ -569,45 +569,47 @@ simple-io: context [
 		filename	[red-file!]
 		return:		[red-block!]
 		/local
-			info	[WIN32_FIND_DATA]
+			info
 			name	[byte-ptr!]
 			handle	[integer!]
 			blk		[red-block!]
 			str		[red-string!]
 	][
-		string/append-char GET_BUFFER(filename) as-integer #"*"
+		#either OS = 'Windows [
+			string/append-char GET_BUFFER(filename) as-integer #"*"
 
-		info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
-		handle: FindFirstFile to-OS-path filename info
-		if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
+			info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
+			handle: FindFirstFile to-OS-path filename info
+			if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
 
-		blk: block/push-only* 1
-		name: (as byte-ptr! info) + 44
-		until [
-			unless any [		;-- skip over the . and .. dir case
-				name = null
-				all [
-					(string/get-char name UCS-2) = as-integer #"."
-					any [
-						zero? string/get-char name + 2 UCS-2
-						all [
-							(string/get-char name UCS-2) = as-integer #"."
-							zero? string/get-char name + 4 UCS-2
+			blk: block/push-only* 1
+			name: (as byte-ptr! info) + 44
+			until [
+				unless any [		;-- skip over the . and .. dir case
+					name = null
+					all [
+						(string/get-char name UCS-2) = as-integer #"."
+						any [
+							zero? string/get-char name + 2 UCS-2
+							all [
+								(string/get-char name UCS-2) = as-integer #"."
+								zero? string/get-char name + 4 UCS-2
+							]
 						]
 					]
+				][
+					str: string/load-in as-c-string name lstrlen name blk UTF-16LE
+					if info/dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 [
+						string/append-char GET_BUFFER(str) as-integer #"/"
+					]
+					set-type as red-value! str TYPE_FILE
 				]
-			][
-				str: string/load-in as-c-string name lstrlen name blk UTF-16LE
-				if info/dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 [
-					string/append-char GET_BUFFER(str) as-integer #"/"
-				]
-				set-type as red-value! str TYPE_FILE
+				zero? FindNextFile handle info
 			]
-			zero? FindNextFile handle info
-		]
-		FindClose handle
-		free as byte-ptr! info
-		blk
+			FindClose handle
+			free as byte-ptr! info
+			blk
+		][as red-block! none-value]
 	]
 
 	read: func [
