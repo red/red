@@ -143,12 +143,19 @@ linker: context [
 		repend data-buf [buffer strings]
 	]
 	
+	undecorate: func [name [word!]][
+		name: form name
+		if find/match name "exec/" [name: skip name 5]
+		if find/match name "f_" [name: skip name 2]
+		name
+	]
+	
 	get-debug-funcs-size: func [job [object!] /local size sc][
 		sc: system-dialect/compiler
 		size: 0
 		foreach [name spec] job/symbols [
 			if spec/1 = 'native [
-				size: size + 1 + (length? form name) 
+				size: size + 1 + (length? undecorate name) 
 					+ 16							;-- size of a record
 					+ sc/get-arity sc/functions/:name/4
 			]
@@ -178,7 +185,7 @@ linker: context [
 		foreach [name entry-ptr] list [
 			set [arity args] sc/get-args-array name
 			name-ptr: rec-size + length? specs
-			append specs name
+			append specs undecorate name
 			append specs null
 			
 			either arity > 0 [
@@ -198,7 +205,7 @@ linker: context [
 		data-buf: job/sections/data/2
 		set-ptr job '__debug-funcs length? data-buf		;-- patch __debug-funcs symbol to point to 1st record
 		set-integer job '__debug-funcs-nb nb
-		
+
 		repend data-buf [buffer specs]
 	]
 		

@@ -95,11 +95,7 @@ __print-debug-stack: func [
 			zero? nb
 		]
 		unless zero? nb [
-			s: as-c-string base + records/name
-			if all [s/1 = #"e" s/2 = #"x" s/3 = #"e" s/4 = #"c"][s: s + 5]
-			if all [s/1 = #"f" s/2 = #"_"][s: s + 2]
-				
-			print ["***   stack: " s]
+			print ["***   stack: " as-c-string base + records/name]
 			s: as-c-string base + records/args
 
 			unless zero? records/arity [
