@@ -111,7 +111,6 @@ linker: context [
 	build-debug-lines: func [
 		job 	 [object!]
 		code-ptr [integer!]							;-- code memory address
-		pointer  [object!]
 		/local	records files rec-size buffer table strings record data-buf spec
 	][
 		records: job/debug-info/lines/records
@@ -147,7 +146,6 @@ linker: context [
 	build-debug-func-names: func [
 		job 	 [object!]
 		code-ptr [integer!]							;-- code memory address
-		pointer  [object!]
 		/local buffer specs args arity sc list rec-size record name-ptr args-ptr data-buf spec nb
 	][
 		sc: system-dialect/compiler

@@ -420,10 +420,8 @@ context [
 
 		set-data ".data" [
 			if job/debug? [
-				linker/build-debug-lines
-					job
-					get-address ".text"
-					machine-word
+				linker/build-debug-lines job get-address ".text"
+				linker/build-debug-func-names job get-address ".text"
 			]
 			job/sections/data/2
 		]

@@ -368,7 +368,8 @@ context [
 	]
 	
 	process-debug-info: func [job [object!]][
-		linker/build-debug-lines job get-section-addr '__text pointer
+		linker/build-debug-lines job get-section-addr '__text
+		linker/build-debug-func-names job get-section-addr '__text
 	]
 	
 	prepare-headers: func [
