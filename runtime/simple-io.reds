@@ -30,6 +30,7 @@ simple-io: context [
 		#define OPEN_EXISTING			00000003h
 		#define CREATE_ALWAYS			00000002h
 		#define FILE_ATTRIBUTE_NORMAL	00000080h
+		#define FILE_ATTRIBUTE_DIRECTORY 00000010h
 
 		#define SET_FILE_BEGIN			0
 		#define SET_FILE_CURRENT		1
@@ -46,7 +47,7 @@ simple-io: context [
 			nFileSizeLow		[integer!]
 			dwReserved0			[integer!]
 			dwReserved1			[integer!]
-			cFileName			[c-string!]				;-- WCHAR  cFileName[ 260 ]
+			;cFileName			[byte-ptr!]				;-- WCHAR  cFileName[ 260 ]
 			;cAlternateFileName	[c-string!]				;-- cAlternateFileName[ 14 ]
 		]
 
@@ -93,7 +94,7 @@ simple-io: context [
 					filedata	[WIN32_FIND_DATA]
 					return:		[integer!]
 				]
-				FindNextFile: "FindNextFile" [
+				FindNextFile: "FindNextFileW" [
 					file		[integer!]
 					filedata	[WIN32_FIND_DATA]
 					return:		[integer!]
@@ -120,6 +121,10 @@ simple-io: context [
 				]
 				SetEndOfFile: "SetEndOfFile" [
 					file		[integer!]
+					return:		[integer!]
+				]
+				lstrlen: "lstrlenW" [
+					str			[byte-ptr!]
 					return:		[integer!]
 				]
 			]
@@ -545,22 +550,64 @@ simple-io: context [
 		ret
 	]
 
+	dir?: func [
+		filename [red-file!]
+		return:  [logic!]
+		/local
+			len  [integer!]
+			cp	 [integer!]
+	][
+		len: string/rs-abs-length? as red-string! filename
+		cp: string/rs-abs-at as red-string! filename len - 1
+		either any [
+			cp = as-integer #"/"
+			cp = as-integer #"\"
+		][true][false]
+	]
+
 	read-dir: func [
-		filename [c-string!]
-		unicode? [logic!]
-		return:  [red-block!]
+		filename	[red-file!]
+		return:		[red-block!]
 		/local
 			info	[WIN32_FIND_DATA]
-			fname	[c-string!]
+			name	[byte-ptr!]
 			handle	[integer!]
+			blk		[red-block!]
+			str		[red-string!]
 	][
-		info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
-		handle: FindFirstFile filename info
-		if handle = -1 [return none-value]
+		string/append-char GET_BUFFER(filename) as-integer #"*"
 
-		fname: info/cFileName
-		
+		info: as WIN32_FIND_DATA allocate WIN32_FIND_DATA_SIZE
+		handle: FindFirstFile to-OS-path filename info
+		if handle = -1 [fire [TO_ERROR(access cannot-open) filename]]
+
+		blk: block/push-only* 1
+		name: (as byte-ptr! info) + 44
+		until [
+			unless any [		;-- skip over the . and .. dir case
+				name = null
+				all [
+					(string/get-char name UCS-2) = as-integer #"."
+					any [
+						zero? string/get-char name + 2 UCS-2
+						all [
+							(string/get-char name UCS-2) = as-integer #"."
+							zero? string/get-char name + 4 UCS-2
+						]
+					]
+				]
+			][
+				str: string/load-in as-c-string name lstrlen name blk UTF-16LE
+				if info/dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY <> 0 [
+					string/append-char GET_BUFFER(str) as-integer #"/"
+				]
+				set-type as red-value! str TYPE_FILE
+			]
+			zero? FindNextFile handle info
+		]
+		FindClose handle
 		free as byte-ptr! info
+		blk
 	]
 
 	read: func [
@@ -570,6 +617,10 @@ simple-io: context [
 		/local
 			data [red-value!]
 	][
+		if dir? filename [
+			return as red-value! read-dir filename
+		]
+
 		data: read-file to-OS-path filename binary? yes
 		if TYPE_OF(data) = TYPE_NONE [
 			fire [TO_ERROR(access cannot-open) filename]
