@@ -137,3 +137,17 @@ siginfo!: alias struct! [
 		ARM	  [ctx/arm_pc]
 	]
 ]
+
+#define UCTX_GET_STACK_TOP(ctx) [
+	#switch target [
+		IA-32 [ctx/esp]
+		ARM	  [ctx/arm_sp]
+	]
+]
+
+#define UCTX_GET_STACK_FRAME(ctx) [
+	#switch target [
+		IA-32 [ctx/ebp]
+		ARM	  [ctx/arm_fp]
+	]
+]
